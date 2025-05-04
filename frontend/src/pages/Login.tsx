@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useNavigate } from 'react-router-dom';
 import characterImg from '../assets/냉털이 캐릭터.png';
 import logoImg from '../assets/냉털이 로고.png';
 import googleLogo from '../assets/구글로그인로고.png';
@@ -8,6 +9,8 @@ import NeangteolButton from '../components/NeangteolButton';
 import NeangteolInput from '../components/NeangteolInput';
 
 const Login: React.FC = () => {
+  const navigate = useNavigate();
+
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-[#f4f0e6]">
       <div className="w-full max-w-[390px] flex flex-col items-center justify-center mx-auto py-8">
@@ -48,7 +51,7 @@ const Login: React.FC = () => {
           <NeangteolButton icon={<img src={googleLogo} alt="Google" className="w-5 h-5" />} color="bg-white" textColor="text-black">Google로 시작하기</NeangteolButton>
           <NeangteolButton icon={<img src={kakaoLogo} alt="Kakao" className="w-5 h-5" />} color="bg-[#ffe812]" textColor="text-black">kakao로 시작하기</NeangteolButton>
           <NeangteolButton icon={<img src={naverLogo} alt="Naver" className="w-5 h-5" />} color="bg-[#1ec800]" textColor="text-white">Naver로 시작하기</NeangteolButton>
-          <NeangteolButton border color="bg-white" textColor="text-black">비회원으로 계속하기</NeangteolButton>
+          <NeangteolButton border color="bg-white" textColor="text-black" onClick={() => navigate('/fridge-select')}>비회원으로 계속하기</NeangteolButton>
         </div>
       </div>
     </div>

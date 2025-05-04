@@ -2,29 +2,48 @@
 @tailwind components;
 @tailwind utilities;
 
-/*
-:root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@font-face {
+  font-family: 'KoPubDotum';
+  src: url('./assets/Fonts/KoPubDotumLight.woff2') format('woff2'),
+       url('./assets/Fonts/KoPubDotumLight.woff') format('woff');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
 }
-
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+@font-face {
+  font-family: 'KoPubDotum';
+  src: url('./assets/Fonts/KoPubDotumMedium.woff2') format('woff2'),
+       url('./assets/Fonts/KoPubDotumMedium.woff') format('woff');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'KoPubDotum';
+  src: url('./assets/Fonts/KoPubDotumBold.woff2') format('woff2'),
+       url('./assets/Fonts/KoPubDotumBold.woff') format('woff');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
 }
 
 body {
+  font-family: 'KoPubDotum', 'Noto Sans KR', sans-serif;
+  font-weight: 500;
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
   width: 100%;
   height: 100vh;
+  /* 윤곽선 효과: 흰색, 1px */
+  text-shadow:
+    0 0 1px #fff,
+    0 0 1px #fff,
+    0 0 1px #fff,
+    0 0 1px #fff;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-smooth: always;
 }
 
 #root {
@@ -77,4 +96,3 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
-*/
