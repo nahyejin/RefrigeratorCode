@@ -2,34 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
-@font-face {
-  font-family: 'KoPubDotum';
-  src: url('./assets/Fonts/KoPubDotumLight.woff2') format('woff2'),
-       url('./assets/Fonts/KoPubDotumLight.woff') format('woff');
-  font-weight: 300;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'KoPubDotum';
-  src: url('./assets/Fonts/KoPubDotumMedium.woff2') format('woff2'),
-       url('./assets/Fonts/KoPubDotumMedium.woff') format('woff');
-  font-weight: 500;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'KoPubDotum';
-  src: url('./assets/Fonts/KoPubDotumBold.woff2') format('woff2'),
-       url('./assets/Fonts/KoPubDotumBold.woff') format('woff');
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
+/* Pretendard 폰트 CDN */
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css");
 
 body {
-  font-family: 'KoPubDotum', 'Noto Sans KR', sans-serif;
-  font-weight: 500;
+  font-family: 'Pretendard Variable', -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', sans-serif;
+  color: #404040;
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
