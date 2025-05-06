@@ -20,10 +20,10 @@ const Login: React.FC = () => {
           <img src={logoImg} alt="냉털이 로고" className="w-[260px] mt-0" />
         </div>
         {/* 로그인 입력+버튼 세로배치 */}
-        <div className="flex flex-col w-full max-w-[320px] items-center gap-2 mb-3 mx-auto">
-          <NeangteolInput placeholder="아이디 또는 이메일" className="w-[240px] h-[44px]" />
-          <NeangteolInput type="password" placeholder="비밀번호" className="w-[240px] h-[44px]" />
-          <NeangteolButton color="bg-[#3c3c3c]" textColor="text-white" className="w-[240px] h-[44px] rounded-xl text-[15px] mt-1">로그인</NeangteolButton>
+        <div className="flex flex-col w-[260px] items-center gap-2 mb-3 mx-auto">
+          <NeangteolInput placeholder="아이디 또는 이메일" className="w-full h-[44px] px-4" />
+          <NeangteolInput type="password" placeholder="비밀번호" className="w-full h-[44px] px-4" />
+          <NeangteolButton color="bg-[#3c3c3c]" textColor="text-white" className="w-full h-[44px] rounded-xl text-[15px] mt-1 px-4">로그인</NeangteolButton>
         </div>
         {/* 체크박스 */}
         <div className="flex flex-row items-center justify-center gap-2 w-full max-w-[320px] mb-2 px-1">
@@ -44,11 +44,11 @@ const Login: React.FC = () => {
           <span className="underline cursor-pointer">비밀번호 찾기</span>
         </div>
         {/* SSO/비회원 버튼 세로배치 */}
-        <div className="flex flex-col gap-3 w-full max-w-[320px] mt-2 items-center">
-          <NeangteolButton icon={<img src={googleLogo} alt="Google" className="w-6 h-6" />} color="bg-white" textColor="text-black" className="w-[240px] h-[44px]">Google로 시작하기</NeangteolButton>
-          <NeangteolButton icon={<img src={kakaoLogo} alt="Kakao" className="w-6 h-6" />} color="bg-[#ffe812]" textColor="text-black" className="w-[240px] h-[44px]">kakao로 시작하기</NeangteolButton>
-          <NeangteolButton icon={<img src={naverLogo} alt="Naver" className="w-6 h-6" />} color="bg-[#1ec800]" textColor="text-white" className="w-[240px] h-[44px]">Naver로 시작하기</NeangteolButton>
-          <NeangteolButton border color="bg-white" textColor="text-black" className="w-[240px] h-[44px]" onClick={() => navigate('/fridge-select')}>비회원으로 계속하기</NeangteolButton>
+        <div className="flex flex-col gap-3 w-[260px] mt-2 items-center">
+          <NeangteolButton icon={<img src={googleLogo} alt="Google" className="w-6 h-6" />} color="bg-white" textColor="text-black" className="w-full h-[44px] px-4">Google로 시작하기</NeangteolButton>
+          <NeangteolButton icon={<img src={kakaoLogo} alt="Kakao" className="w-6 h-6" />} color="bg-[#ffe812]" textColor="text-black" className="w-full h-[44px] px-4">kakao로 시작하기</NeangteolButton>
+          <NeangteolButton icon={<img src={naverLogo} alt="Naver" className="w-6 h-6" />} color="bg-[#1ec800]" textColor="text-white" className="w-full h-[44px] px-4">Naver로 시작하기</NeangteolButton>
+          <NeangteolButton border color="bg-white" textColor="text-black" className="w-full h-[44px] px-4" onClick={() => navigate('/fridge-select')}>비회원으로 계속하기</NeangteolButton>
         </div>
       </div>
     </div>
