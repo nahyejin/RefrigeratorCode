@@ -1,9 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import fridgeImg from '../assets/fridge-up-open.png';
-// @ts-ignore
-import ingredientCsv from '../../ingredient-management/ingredient_profile_dict_with_substitutes.csv?raw';
 
-// CSV 파싱 함수 (ingredient_name 열만 추출)
 function parseIngredientNames(csv: string): string[] {
   const lines = csv.split('\n');
   const header = lines[0].split(',');
@@ -25,7 +22,12 @@ export default function FreezerInput() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    setIngredientDict(parseIngredientNames(ingredientCsv));
+    fetch('/ingredient_profile_dict_with_substitutes.csv')
+      .then(res => res.text())
+      .then(csv => {
+        setIngredientDict(parseIngredientNames(csv));
+        console.log('ingredientDict:', parseIngredientNames(csv));
+      });
     const saved = localStorage.getItem('freezer_ingredients');
     if (saved) setSelected(JSON.parse(saved));
   }, []);
@@ -33,6 +35,10 @@ export default function FreezerInput() {
   useEffect(() => {
     localStorage.setItem('freezer_ingredients', JSON.stringify(selected));
   }, [selected]);
+
+  useEffect(() => {
+    console.log('filtered:', filtered);
+  }, [input, ingredientDict]);
 
   const filtered = ingredientDict.filter(
     (item) => item.includes(input) && !selected.includes(item)
