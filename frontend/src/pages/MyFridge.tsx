@@ -36,14 +36,27 @@ function saveIngredients(frozen: string[], fridge: string[], room: string[]) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify({ frozen, fridge, room }));
 }
 
+const TOAST_DURATION = 3000;
+
+const Toast = ({ message, onUndo, onClose }: { message: string; onUndo: () => void; onClose: () => void }) => (
+  <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-[#B0B0B0] text-white px-4 py-2 rounded-full shadow-lg flex items-center z-50 text-sm gap-2 min-w-[240px] max-w-[90vw]" style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.10)' }}>
+    <span className="font-bold text-white mr-2 whitespace-nowrap inline-block">삭제됨</span>
+    <button className="inline-flex items-center justify-center bg-[#F5F6F8] text-[#404040] rounded-lg px-3 py-1 text-sm font-semibold border border-[#E5E7EB] shadow-none hover:bg-[#E5E7EB] transition whitespace-nowrap" onClick={onUndo}>되돌리기</button>
+    <button className="inline-flex items-center justify-center bg-[#F5F6F8] text-[#404040] rounded-lg px-3 py-1 text-sm font-semibold border border-[#E5E7EB] shadow-none hover:bg-[#E5E7EB] transition whitespace-nowrap" onClick={onClose}>닫기</button>
+  </div>
+);
+
 const MyFridge: React.FC = () => {
-  const [frozen, setFrozen] = React.useState<string[]>(() => loadIngredients().frozen);
-  const [fridge, setFridge] = React.useState<string[]>(() => loadIngredients().fridge);
-  const [room, setRoom] = React.useState<string[]>(() => loadIngredients().room);
+  const [frozen, setFrozen] = React.useState<string[]>([]);
+  const [fridge, setFridge] = React.useState<string[]>([]);
+  const [room, setRoom] = React.useState<string[]>([]);
   const [inputValue, setInputValue] = React.useState('');
   const [ingredientDict, setIngredientDict] = React.useState<string[]>([]);
   const [showDropdown, setShowDropdown] = React.useState(false);
   const inputRef = React.useRef<HTMLInputElement>(null);
+  const [toast, setToast] = React.useState<{visible: boolean, message: string, onUndo: () => void} | null>(null);
+  const toastTimeout = React.useRef<number | null>(null);
+  const [lastDeleted, setLastDeleted] = React.useState<{type: 'single'|'all', box: 'frozen'|'fridge'|'room', tags: string[]}>();
 
   React.useEffect(() => {
     fetch('/ingredient_profile_dict_with_substitutes.csv')
@@ -61,10 +74,43 @@ const MyFridge: React.FC = () => {
     (item) => inputValue && item.includes(inputValue) && !frozen.includes(item)
   ).slice(0, 8);
 
-  const removeTag = (type: 'frozen' | 'fridge' | 'room', tag: string) => {
-    if (type === 'frozen') setFrozen(frozen.filter((item) => item !== tag));
-    if (type === 'fridge') setFridge(fridge.filter((item) => item !== tag));
-    if (type === 'room') setRoom(room.filter((item) => item !== tag));
+  const removeTag = (box: 'frozen'|'fridge'|'room', tag: string) => {
+    let prev: string[] = [];
+    if (box === 'frozen') prev = frozen;
+    if (box === 'fridge') prev = fridge;
+    if (box === 'room') prev = room;
+    const newTags = prev.filter(t => t !== tag);
+    if (box === 'frozen') setFrozen(newTags);
+    if (box === 'fridge') setFridge(newTags);
+    if (box === 'room') setRoom(newTags);
+    setLastDeleted({ type: 'single', box, tags: [tag] });
+    showToast('삭제됨.', () => undoDelete());
+  };
+
+  const removeAll = (box: 'frozen'|'fridge'|'room') => {
+    let prev: string[] = [];
+    if (box === 'frozen') prev = frozen;
+    if (box === 'fridge') prev = fridge;
+    if (box === 'room') prev = room;
+    if (box === 'frozen') setFrozen([]);
+    if (box === 'fridge') setFridge([]);
+    if (box === 'room') setRoom([]);
+    setLastDeleted({ type: 'all', box, tags: prev });
+    showToast('모두 삭제됨.', () => undoDelete());
+  };
+
+  const undoDelete = () => {
+    if (!lastDeleted) return;
+    if (lastDeleted.box === 'frozen') setFrozen(prev => lastDeleted.type === 'all' ? lastDeleted.tags : [...prev, ...lastDeleted.tags]);
+    if (lastDeleted.box === 'fridge') setFridge(prev => lastDeleted.type === 'all' ? lastDeleted.tags : [...prev, ...lastDeleted.tags]);
+    if (lastDeleted.box === 'room') setRoom(prev => lastDeleted.type === 'all' ? lastDeleted.tags : [...prev, ...lastDeleted.tags]);
+    setToast(null);
+  };
+
+  const showToast = (message: string, onUndo: () => void) => {
+    setToast({ visible: true, message, onUndo });
+    if (toastTimeout.current) clearTimeout(toastTimeout.current);
+    toastTimeout.current = setTimeout(() => setToast(null), TOAST_DURATION);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -139,33 +185,63 @@ const MyFridge: React.FC = () => {
         <div className="border-t border-gray-200 mb-6"></div>
         {/* 냉동보관 */}
         <div className="mb-4">
-          <div className="text-[16px] font-bold mb-2 flex items-center">냉동보관 <span className="ml-1">🧊</span></div>
+          <div className="text-[16px] font-bold mb-2 flex items-center">냉동보관 <span className="ml-1">🧊</span>
+            {frozen.length > 0 && (
+              <button
+                className="ml-2 px-1 py-0 text-xs font-normal rounded border border-[#B0B0B0] bg-white text-[#404040] hover:bg-[#F5F6F8] active:bg-[#E5E7EB] transition whitespace-nowrap"
+                onClick={() => removeAll('frozen')}
+              >
+                모두삭제
+              </button>
+            )}
+          </div>
           <div className="bg-gray-100 rounded-xl px-3 py-2 overflow-y-auto overflow-x-hidden always-scrollbar">
             {frozen.map((item) => (
               <TagPill key={item} style={{ fontSize: 11 }}>
-                {item} <span className="ml-2 text-[13px] font-normal cursor-pointer flex items-center leading-none relative" style={{ top: '-1.5px' }} onClick={() => removeTag('frozen', item)}>×</span>
+                <span className="truncate max-w-[110px]">{item}</span>
+                <span className="flex-shrink-0 ml-2 text-[12px] font-normal cursor-pointer grid place-items-center h-6 w-4" style={{ position: 'relative', top: '-2px' }} onClick={() => removeTag('frozen', item)}>×</span>
               </TagPill>
             ))}
           </div>
         </div>
         {/* 냉장보관 */}
         <div className="mb-4">
-          <div className="text-[16px] font-bold mb-2 flex items-center">냉장보관 <span className="ml-1">❄️</span></div>
+          <div className="text-[16px] font-bold mb-2 flex items-center">냉장보관 <span className="ml-1">❄️</span>
+            {fridge.length > 0 && (
+              <button
+                className="ml-2 px-1 py-0 text-xs font-normal rounded border border-[#B0B0B0] bg-white text-[#404040] hover:bg-[#F5F6F8] active:bg-[#E5E7EB] transition whitespace-nowrap"
+                onClick={() => removeAll('fridge')}
+              >
+                모두삭제
+              </button>
+            )}
+          </div>
           <div className="bg-gray-100 rounded-xl px-3 py-2 overflow-y-auto overflow-x-hidden always-scrollbar">
             {fridge.map((item) => (
               <TagPill key={item} style={{ fontSize: 11 }}>
-                {item} <span className="ml-2 text-[13px] font-normal cursor-pointer flex items-center leading-none relative" style={{ top: '-1.5px' }} onClick={() => removeTag('fridge', item)}>×</span>
+                <span className="truncate max-w-[110px]">{item}</span>
+                <span className="flex-shrink-0 ml-2 text-[12px] font-normal cursor-pointer grid place-items-center h-6 w-4" style={{ position: 'relative', top: '-2px' }} onClick={() => removeTag('fridge', item)}>×</span>
               </TagPill>
             ))}
           </div>
         </div>
         {/* 실온보관 */}
         <div className="mb-4">
-          <div className="text-[16px] font-bold mb-2 flex items-center">실온보관 <span className="ml-1">🌡️</span></div>
+          <div className="text-[16px] font-bold mb-2 flex items-center">실온보관 <span className="ml-1">🌡️</span>
+            {room.length > 0 && (
+              <button
+                className="ml-2 px-1 py-0 text-xs font-normal rounded border border-[#B0B0B0] bg-white text-[#404040] hover:bg-[#F5F6F8] active:bg-[#E5E7EB] transition whitespace-nowrap"
+                onClick={() => removeAll('room')}
+              >
+                모두삭제
+              </button>
+            )}
+          </div>
           <div className="bg-gray-100 rounded-xl px-3 py-2 overflow-y-auto overflow-x-hidden always-scrollbar">
             {room.map((item) => (
               <TagPill key={item} style={{ fontSize: 11 }}>
-                {item} <span className="ml-2 text-[13px] font-normal cursor-pointer flex items-center leading-none relative" style={{ top: '-1.5px' }} onClick={() => removeTag('room', item)}>×</span>
+                <span className="truncate max-w-[110px]">{item}</span>
+                <span className="flex-shrink-0 ml-2 text-[12px] font-normal cursor-pointer grid place-items-center h-6 w-4" style={{ position: 'relative', top: '-2px' }} onClick={() => removeTag('room', item)}>×</span>
               </TagPill>
             ))}
           </div>
@@ -182,6 +258,9 @@ const MyFridge: React.FC = () => {
       <div className="w-full">
         <BottomNavBar activeTab="myfridge" />
       </div>
+      {toast && toast.visible && (
+        <Toast message={toast.message} onUndo={toast.onUndo} onClose={() => setToast(null)} />
+      )}
     </div>
   );
 };
