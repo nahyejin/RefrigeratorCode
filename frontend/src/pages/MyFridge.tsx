@@ -40,9 +40,9 @@ const TOAST_DURATION = 3000;
 
 const Toast = ({ message, onUndo, onClose }: { message: string; onUndo: () => void; onClose: () => void }) => (
   <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-[#B0B0B0] text-white px-4 py-2 rounded-full shadow-lg flex items-center z-50 text-sm gap-2 min-w-[240px] max-w-[90vw]" style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.10)' }}>
-    <span className="font-bold text-white mr-2 whitespace-nowrap inline-block">삭제됨</span>
-    <button className="inline-flex items-center justify-center bg-[#F5F6F8] text-[#404040] rounded-lg px-3 py-1 text-sm font-semibold border border-[#E5E7EB] shadow-none hover:bg-[#E5E7EB] transition whitespace-nowrap" onClick={onUndo}>되돌리기</button>
-    <button className="inline-flex items-center justify-center bg-[#F5F6F8] text-[#404040] rounded-lg px-3 py-1 text-sm font-semibold border border-[#E5E7EB] shadow-none hover:bg-[#E5E7EB] transition whitespace-nowrap" onClick={onClose}>닫기</button>
+    <span className="font-light text-white mr-2 whitespace-nowrap inline-block tracking-wider" style={{ letterSpacing: '0.04em' }}>삭제됨</span>
+    <button className="inline-flex items-center justify-center bg-[#F5F6F8] text-[#E5E7EB] rounded-lg px-3 py-1 text-sm font-semibold border border-[#E5E7EB] shadow-none hover:bg-[#E5E7EB] transition whitespace-nowrap" onClick={onUndo}>되돌리기</button>
+    <button className="inline-flex items-center justify-center bg-[#F5F6F8] text-[#E5E7EB] rounded-lg px-3 py-1 text-sm font-semibold border border-[#E5E7EB] shadow-none hover:bg-[#E5E7EB] transition whitespace-nowrap" onClick={onClose}>닫기</button>
   </div>
 );
 
@@ -54,9 +54,12 @@ const MyFridge: React.FC = () => {
   const [ingredientDict, setIngredientDict] = React.useState<string[]>([]);
   const [showDropdown, setShowDropdown] = React.useState(false);
   const inputRef = React.useRef<HTMLInputElement>(null);
-  const [toast, setToast] = React.useState<{visible: boolean, message: string, onUndo: () => void} | null>(null);
+  const [toast, setToast] = React.useState<{
+    visible: boolean,
+    message: string,
+    deleted: { type: 'single'|'all', box: 'frozen'|'fridge'|'room', tags: string[] } | null
+  } | null>(null);
   const toastTimeout = React.useRef<number | null>(null);
-  const [lastDeleted, setLastDeleted] = React.useState<{type: 'single'|'all', box: 'frozen'|'fridge'|'room', tags: string[]}>();
 
   React.useEffect(() => {
     const loaded = loadIngredients();
@@ -83,17 +86,23 @@ const MyFridge: React.FC = () => {
     (item) => inputValue && item.includes(inputValue) && !frozen?.includes(item)
   ).slice(0, 8);
 
+  const showToast = (message: string, deleted: { type: 'single'|'all', box: 'frozen'|'fridge'|'room', tags: string[] }) => {
+    setToast({ visible: true, message, deleted });
+    if (toastTimeout.current) clearTimeout(toastTimeout.current);
+    toastTimeout.current = setTimeout(() => setToast(null), TOAST_DURATION);
+  };
+
   const removeTag = (box: 'frozen'|'fridge'|'room', tag: string) => {
     let prev: string[] = [];
     if (box === 'frozen') prev = frozen || [];
     if (box === 'fridge') prev = fridge || [];
     if (box === 'room') prev = room || [];
     const newTags = prev.filter(t => t !== tag);
+    const deleted: { type: 'single'|'all', box: 'frozen'|'fridge'|'room', tags: string[] } = { type: 'single', box, tags: [tag] };
     if (box === 'frozen') setFrozen(newTags);
     if (box === 'fridge') setFridge(newTags);
     if (box === 'room') setRoom(newTags);
-    setLastDeleted({ type: 'single', box, tags: [tag] });
-    showToast('삭제됨.', () => undoDelete());
+    showToast('삭제됨.', deleted);
   };
 
   const removeAll = (box: 'frozen'|'fridge'|'room') => {
@@ -101,25 +110,20 @@ const MyFridge: React.FC = () => {
     if (box === 'frozen') prev = frozen || [];
     if (box === 'fridge') prev = fridge || [];
     if (box === 'room') prev = room || [];
+    const deleted: { type: 'single'|'all', box: 'frozen'|'fridge'|'room', tags: string[] } = { type: 'all', box, tags: prev };
     if (box === 'frozen') setFrozen([]);
     if (box === 'fridge') setFridge([]);
     if (box === 'room') setRoom([]);
-    setLastDeleted({ type: 'all', box, tags: prev });
-    showToast('모두 삭제됨.', () => undoDelete());
+    showToast('모두 삭제됨.', deleted);
   };
 
   const undoDelete = () => {
-    if (!lastDeleted) return;
-    if (lastDeleted.box === 'frozen') setFrozen(prev => lastDeleted.type === 'all' ? lastDeleted.tags : [...(prev ?? []), ...lastDeleted.tags]);
-    if (lastDeleted.box === 'fridge') setFridge(prev => lastDeleted.type === 'all' ? lastDeleted.tags : [...(prev ?? []), ...lastDeleted.tags]);
-    if (lastDeleted.box === 'room') setRoom(prev => lastDeleted.type === 'all' ? lastDeleted.tags : [...(prev ?? []), ...lastDeleted.tags]);
+    if (!toast?.deleted) return;
+    const deleted = toast.deleted;
+    if (deleted.box === 'frozen') setFrozen(prev => deleted.type === 'all' ? deleted.tags : [...(prev ?? []), ...deleted.tags]);
+    if (deleted.box === 'fridge') setFridge(prev => deleted.type === 'all' ? deleted.tags : [...(prev ?? []), ...deleted.tags]);
+    if (deleted.box === 'room') setRoom(prev => deleted.type === 'all' ? deleted.tags : [...(prev ?? []), ...deleted.tags]);
     setToast(null);
-  };
-
-  const showToast = (message: string, onUndo: () => void) => {
-    setToast({ visible: true, message, onUndo });
-    if (toastTimeout.current) clearTimeout(toastTimeout.current);
-    toastTimeout.current = setTimeout(() => setToast(null), TOAST_DURATION);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -150,9 +154,9 @@ const MyFridge: React.FC = () => {
   return (
     <div className="min-h-screen bg-white flex flex-col items-center" style={{ minWidth: 375 }}>
       <TopNavBar />
-      {/* 타이틀 + 입력창을 한 덩어리로 묶어서 타이틀을 입력창 바로 위로 이동 */}
+      {/* 타이틀+입력창 그룹 */}
       <div className="w-full max-w-[316px] mt-20 mb-10 flex flex-col items-center">
-        <h1 className="text-[18px] font-bold text-[#111] text-center mb-4">내 냉장고 재료 추가</h1>
+        <h1 className="text-[18px] font-bold text-[#111] text-center mb-2">내 냉장고 재료 추가</h1>
         <div className="flex w-full relative">
           <input
             ref={inputRef}
@@ -195,8 +199,8 @@ const MyFridge: React.FC = () => {
         <div className="border-t border-gray-200 mb-6"></div>
         {/* 냉동보관 */}
         <div className="mb-4">
-          <div className="text-[16px] font-bold mb-2 flex items-center">냉동보관 <span className="ml-1">🧊</span>
-            {frozen && frozen.length > 0 && (
+          <div className="text-[16px] font-bold mb-2 flex items-center">냉동보관 <span className="ml-1">��</span>
+            {(frozen ?? []).length > 0 && (
               <button
                 className="ml-2 px-1 py-0 text-xs font-normal rounded border border-[#B0B0B0] bg-white text-[#404040] hover:bg-[#F5F6F8] active:bg-[#E5E7EB] transition whitespace-nowrap"
                 onClick={() => removeAll('frozen')}
@@ -278,7 +282,7 @@ const MyFridge: React.FC = () => {
         <BottomNavBar activeTab="myfridge" />
       </div>
       {toast && toast.visible && (
-        <Toast message={toast.message} onUndo={toast.onUndo} onClose={() => setToast(null)} />
+        <Toast message={toast.message} onUndo={undoDelete} onClose={() => setToast(null)} />
       )}
     </div>
   );
