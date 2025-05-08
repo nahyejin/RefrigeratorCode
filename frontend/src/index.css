@@ -74,3 +74,40 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+
+/* 스크롤바 항상 노출 (내용이 넘칠 때만, hover 없이) */
+.always-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #bdbdbd #f3f4f6;
+}
+.always-scrollbar::-webkit-scrollbar {
+  width: 14px !important;
+  background: #f3f4f6 !important;
+  border-radius: 12px !important;
+}
+.always-scrollbar::-webkit-scrollbar-thumb {
+  background: #bdbdbd !important;
+  border-radius: 12px !important;
+  min-height: 40px !important;
+  border: 4px solid #f3f4f6 !important;
+}
+.always-scrollbar::-webkit-scrollbar-corner {
+  background: transparent !important;
+}
+
+/* 전체 페이지(화면) 스크롤바를 투명하게 */
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+#root::-webkit-scrollbar {
+  width: 8px;
+  background: transparent;
+}
+html::-webkit-scrollbar-thumb,
+body::-webkit-scrollbar-thumb,
+#root::-webkit-scrollbar-thumb {
+  background: transparent;
+}
+html, body, #root {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
