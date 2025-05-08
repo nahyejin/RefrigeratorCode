@@ -86,10 +86,10 @@ const MyFridge: React.FC = () => {
     (item) => inputValue && item.includes(inputValue) && !frozen?.includes(item)
   ).slice(0, 8);
 
-  const showToast = (message: string, deleted: { type: 'single'|'all', box: 'frozen'|'fridge'|'room', tags: string[] }) => {
+  const showToast = (message: string, deleted: { type: 'single'|'all', box: 'frozen'|'fridge'|'room', tags: string[] }, duration?: number) => {
     setToast({ visible: true, message, deleted });
     if (toastTimeout.current) clearTimeout(toastTimeout.current);
-    toastTimeout.current = setTimeout(() => setToast(null), TOAST_DURATION);
+    toastTimeout.current = setTimeout(() => setToast(null), duration ?? TOAST_DURATION);
   };
 
   const removeTag = (box: 'frozen'|'fridge'|'room', tag: string) => {
@@ -114,7 +114,7 @@ const MyFridge: React.FC = () => {
     if (box === 'frozen') setFrozen([]);
     if (box === 'fridge') setFridge([]);
     if (box === 'room') setRoom([]);
-    showToast('모두 삭제됨.', deleted);
+    showToast('모두 삭제됨.', deleted, 7000);
   };
 
   const undoDelete = () => {
@@ -199,7 +199,7 @@ const MyFridge: React.FC = () => {
         <div className="border-t border-gray-200 mb-6"></div>
         {/* 냉동보관 */}
         <div className="mb-4">
-          <div className="text-[16px] font-bold mb-2 flex items-center">냉동보관 <span className="ml-1">��</span>
+          <div className="text-[16px] font-bold mb-2 flex items-center">냉동보관 <span className="ml-1">🧊</span>
             {(frozen ?? []).length > 0 && (
               <button
                 className="ml-2 px-1 py-0 text-xs font-normal rounded border border-[#B0B0B0] bg-white text-[#404040] hover:bg-[#F5F6F8] active:bg-[#E5E7EB] transition whitespace-nowrap"
