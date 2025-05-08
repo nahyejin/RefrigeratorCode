@@ -135,31 +135,38 @@ const MyFridge: React.FC = () => {
       </div>
       {/* 재고 관리 구역 */}
       <div className="w-full px-5 mt-12">
-        <h2 className="text-[16px] font-bold text-[#111] mb-8">내 냉장고 재고 관리</h2>
+        <h2 className="text-[16px] font-bold text-[#111] mb-2">내 냉장고 재고 관리</h2>
+        <div className="border-t border-gray-200 mb-6"></div>
         {/* 냉동보관 */}
-        <div className="mb-8">
+        <div className="mb-4">
           <div className="text-[16px] font-bold mb-2 flex items-center">냉동보관 <span className="ml-1">🧊</span></div>
-          <div className="flex flex-wrap gap-1">
+          <div className="bg-gray-100 rounded-xl px-3 py-2 overflow-y-auto overflow-x-hidden always-scrollbar">
             {frozen.map((item) => (
-              <TagPill key={item} className="font-normal">{item} <span className="ml-2 text-lg font-normal cursor-pointer" onClick={() => removeTag('frozen', item)}>×</span></TagPill>
+              <TagPill key={item} style={{ fontSize: 11 }}>
+                {item} <span className="ml-2 text-[13px] font-normal cursor-pointer flex items-center leading-none relative" style={{ top: '-1.5px' }} onClick={() => removeTag('frozen', item)}>×</span>
+              </TagPill>
             ))}
           </div>
         </div>
         {/* 냉장보관 */}
-        <div className="mb-8">
+        <div className="mb-4">
           <div className="text-[16px] font-bold mb-2 flex items-center">냉장보관 <span className="ml-1">❄️</span></div>
-          <div className="flex flex-wrap gap-1">
+          <div className="bg-gray-100 rounded-xl px-3 py-2 overflow-y-auto overflow-x-hidden always-scrollbar">
             {fridge.map((item) => (
-              <TagPill key={item} className="font-normal">{item} <span className="ml-2 text-lg font-normal cursor-pointer" onClick={() => removeTag('fridge', item)}>×</span></TagPill>
+              <TagPill key={item} style={{ fontSize: 11 }}>
+                {item} <span className="ml-2 text-[13px] font-normal cursor-pointer flex items-center leading-none relative" style={{ top: '-1.5px' }} onClick={() => removeTag('fridge', item)}>×</span>
+              </TagPill>
             ))}
           </div>
         </div>
         {/* 실온보관 */}
-        <div className="mb-8">
+        <div className="mb-4">
           <div className="text-[16px] font-bold mb-2 flex items-center">실온보관 <span className="ml-1">🌡️</span></div>
-          <div className="flex flex-wrap gap-1">
+          <div className="bg-gray-100 rounded-xl px-3 py-2 overflow-y-auto overflow-x-hidden always-scrollbar">
             {room.map((item) => (
-              <TagPill key={item} className="font-normal">{item} <span className="ml-2 text-lg font-normal cursor-pointer" onClick={() => removeTag('room', item)}>×</span></TagPill>
+              <TagPill key={item} style={{ fontSize: 11 }}>
+                {item} <span className="ml-2 text-[13px] font-normal cursor-pointer flex items-center leading-none relative" style={{ top: '-1.5px' }} onClick={() => removeTag('room', item)}>×</span>
+              </TagPill>
             ))}
           </div>
         </div>
