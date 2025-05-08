@@ -111,3 +111,24 @@ html, body, #root {
   scrollbar-width: thin;
   scrollbar-color: transparent transparent;
 }
+
+/* 새로운 스크롤바 스타일 */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #b0b0b0 #e5e7eb !important;
+}
+.custom-scrollbar::-webkit-scrollbar {
+  width: 12px !important;
+  background: #e5e7eb !important;
+  border-radius: 8px !important;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #b0b0b0 !important;
+  border-radius: 8px !important;
+  min-height: 32px !important;
+  border: 2px solid #e5e7eb !important;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #e5e7eb !important;
+  border-radius: 8px !important;
+}

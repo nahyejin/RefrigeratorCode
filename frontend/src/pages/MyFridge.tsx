@@ -47,9 +47,9 @@ const Toast = ({ message, onUndo, onClose }: { message: string; onUndo: () => vo
 );
 
 const MyFridge: React.FC = () => {
-  const [frozen, setFrozen] = React.useState<string[]>([]);
-  const [fridge, setFridge] = React.useState<string[]>([]);
-  const [room, setRoom] = React.useState<string[]>([]);
+  const [frozen, setFrozen] = React.useState<string[] | null>(null);
+  const [fridge, setFridge] = React.useState<string[] | null>(null);
+  const [room, setRoom] = React.useState<string[] | null>(null);
   const [inputValue, setInputValue] = React.useState('');
   const [ingredientDict, setIngredientDict] = React.useState<string[]>([]);
   const [showDropdown, setShowDropdown] = React.useState(false);
@@ -57,6 +57,13 @@ const MyFridge: React.FC = () => {
   const [toast, setToast] = React.useState<{visible: boolean, message: string, onUndo: () => void} | null>(null);
   const toastTimeout = React.useRef<number | null>(null);
   const [lastDeleted, setLastDeleted] = React.useState<{type: 'single'|'all', box: 'frozen'|'fridge'|'room', tags: string[]}>();
+
+  React.useEffect(() => {
+    const loaded = loadIngredients();
+    setFrozen(loaded.frozen);
+    setFridge(loaded.fridge);
+    setRoom(loaded.room);
+  }, []);
 
   React.useEffect(() => {
     fetch('/ingredient_profile_dict_with_substitutes.csv')
@@ -67,18 +74,20 @@ const MyFridge: React.FC = () => {
   }, []);
 
   React.useEffect(() => {
-    saveIngredients(frozen, fridge, room);
+    if (frozen !== null && fridge !== null && room !== null) {
+      saveIngredients(frozen, fridge, room);
+    }
   }, [frozen, fridge, room]);
 
   const filtered = ingredientDict.filter(
-    (item) => inputValue && item.includes(inputValue) && !frozen.includes(item)
+    (item) => inputValue && item.includes(inputValue) && !frozen?.includes(item)
   ).slice(0, 8);
 
   const removeTag = (box: 'frozen'|'fridge'|'room', tag: string) => {
     let prev: string[] = [];
-    if (box === 'frozen') prev = frozen;
-    if (box === 'fridge') prev = fridge;
-    if (box === 'room') prev = room;
+    if (box === 'frozen') prev = frozen || [];
+    if (box === 'fridge') prev = fridge || [];
+    if (box === 'room') prev = room || [];
     const newTags = prev.filter(t => t !== tag);
     if (box === 'frozen') setFrozen(newTags);
     if (box === 'fridge') setFridge(newTags);
@@ -89,9 +98,9 @@ const MyFridge: React.FC = () => {
 
   const removeAll = (box: 'frozen'|'fridge'|'room') => {
     let prev: string[] = [];
-    if (box === 'frozen') prev = frozen;
-    if (box === 'fridge') prev = fridge;
-    if (box === 'room') prev = room;
+    if (box === 'frozen') prev = frozen || [];
+    if (box === 'fridge') prev = fridge || [];
+    if (box === 'room') prev = room || [];
     if (box === 'frozen') setFrozen([]);
     if (box === 'fridge') setFridge([]);
     if (box === 'room') setRoom([]);
@@ -101,9 +110,9 @@ const MyFridge: React.FC = () => {
 
   const undoDelete = () => {
     if (!lastDeleted) return;
-    if (lastDeleted.box === 'frozen') setFrozen(prev => lastDeleted.type === 'all' ? lastDeleted.tags : [...prev, ...lastDeleted.tags]);
-    if (lastDeleted.box === 'fridge') setFridge(prev => lastDeleted.type === 'all' ? lastDeleted.tags : [...prev, ...lastDeleted.tags]);
-    if (lastDeleted.box === 'room') setRoom(prev => lastDeleted.type === 'all' ? lastDeleted.tags : [...prev, ...lastDeleted.tags]);
+    if (lastDeleted.box === 'frozen') setFrozen(prev => lastDeleted.type === 'all' ? lastDeleted.tags : [...(prev ?? []), ...lastDeleted.tags]);
+    if (lastDeleted.box === 'fridge') setFridge(prev => lastDeleted.type === 'all' ? lastDeleted.tags : [...(prev ?? []), ...lastDeleted.tags]);
+    if (lastDeleted.box === 'room') setRoom(prev => lastDeleted.type === 'all' ? lastDeleted.tags : [...(prev ?? []), ...lastDeleted.tags]);
     setToast(null);
   };
 
@@ -119,7 +128,7 @@ const MyFridge: React.FC = () => {
   };
 
   const handleSelect = (item: string) => {
-    setFrozen([...frozen, item]);
+    setFrozen(prev => prev ? [...prev, item] : [item]);
     setInputValue('');
     setShowDropdown(false);
     inputRef.current?.focus();
@@ -129,16 +138,20 @@ const MyFridge: React.FC = () => {
     if (e.key === 'Enter' && filtered.length > 0) {
       handleSelect(filtered[0]);
     }
-    if (e.key === 'Backspace' && inputValue === '' && frozen.length > 0) {
+    if (e.key === 'Backspace' && inputValue === '' && frozen?.length > 0) {
       setFrozen(frozen.slice(0, -1));
     }
   };
+
+  if (frozen === null || fridge === null || room === null) {
+    return <div>로딩 중...</div>;
+  }
 
   return (
     <div className="min-h-screen bg-white flex flex-col items-center" style={{ minWidth: 375 }}>
       <TopNavBar />
       {/* 타이틀 */}
-      <div className="w-full flex flex-col items-center mt-5 mb-4">
+      <div className="w-full flex flex-col items-center mt-20 mb-2">
         <h1 className="text-[18px] font-bold text-[#111] text-center">내 냉장고 재료 추가</h1>
       </div>
       {/* 재료 입력창 (자동완성) */}
@@ -147,7 +160,7 @@ const MyFridge: React.FC = () => {
           <input
             ref={inputRef}
             type="text"
-            placeholder="추가할 재료명을 입력해주세요."
+            placeholder="추가할 재료명을 입력해주세요"
             className="h-[44px] border border-gray-300 text-[14px] placeholder-[#999] flex-1 px-4 focus:outline-none focus:ring-2 focus:ring-gray-300 rounded-md"
             value={inputValue}
             onChange={handleInputChange}
@@ -186,7 +199,7 @@ const MyFridge: React.FC = () => {
         {/* 냉동보관 */}
         <div className="mb-4">
           <div className="text-[16px] font-bold mb-2 flex items-center">냉동보관 <span className="ml-1">🧊</span>
-            {frozen.length > 0 && (
+            {frozen && frozen.length > 0 && (
               <button
                 className="ml-2 px-1 py-0 text-xs font-normal rounded border border-[#B0B0B0] bg-white text-[#404040] hover:bg-[#F5F6F8] active:bg-[#E5E7EB] transition whitespace-nowrap"
                 onClick={() => removeAll('frozen')}
@@ -195,11 +208,14 @@ const MyFridge: React.FC = () => {
               </button>
             )}
           </div>
-          <div className="bg-gray-100 rounded-xl px-3 py-2 overflow-y-auto overflow-x-hidden always-scrollbar">
-            {frozen.map((item) => (
+          <div className="bg-gray-100 rounded-xl px-3 py-2 overflow-y-auto overflow-x-hidden custom-scrollbar" style={{ maxHeight: '140px', minHeight: '140px' }}>
+            {frozen && frozen.length === 0 && (
+              <div className="text-gray-400 text-xs py-1">재료가 아직 없어요</div>
+            )}
+            {frozen && frozen.map((item) => (
               <TagPill key={item} style={{ fontSize: 11 }}>
                 <span className="truncate max-w-[110px]">{item}</span>
-                <span className="flex-shrink-0 ml-2 text-[12px] font-normal cursor-pointer grid place-items-center h-6 w-4" style={{ position: 'relative', top: '-2px' }} onClick={() => removeTag('frozen', item)}>×</span>
+                <span className="flex-shrink-0 ml-2 text-[12px] font-normal cursor-pointer grid place-items-center h-6 w-4" style={{ position: 'relative', top: '2px' }} onClick={() => removeTag('frozen', item)}>×</span>
               </TagPill>
             ))}
           </div>
@@ -207,7 +223,7 @@ const MyFridge: React.FC = () => {
         {/* 냉장보관 */}
         <div className="mb-4">
           <div className="text-[16px] font-bold mb-2 flex items-center">냉장보관 <span className="ml-1">❄️</span>
-            {fridge.length > 0 && (
+            {fridge && fridge.length > 0 && (
               <button
                 className="ml-2 px-1 py-0 text-xs font-normal rounded border border-[#B0B0B0] bg-white text-[#404040] hover:bg-[#F5F6F8] active:bg-[#E5E7EB] transition whitespace-nowrap"
                 onClick={() => removeAll('fridge')}
@@ -216,11 +232,14 @@ const MyFridge: React.FC = () => {
               </button>
             )}
           </div>
-          <div className="bg-gray-100 rounded-xl px-3 py-2 overflow-y-auto overflow-x-hidden always-scrollbar">
-            {fridge.map((item) => (
+          <div className="bg-gray-100 rounded-xl px-3 py-2 overflow-y-auto overflow-x-hidden custom-scrollbar" style={{ maxHeight: '140px', minHeight: '140px' }}>
+            {fridge && fridge.length === 0 && (
+              <div className="text-gray-400 text-xs py-1">재료가 아직 없어요</div>
+            )}
+            {fridge && fridge.map((item) => (
               <TagPill key={item} style={{ fontSize: 11 }}>
                 <span className="truncate max-w-[110px]">{item}</span>
-                <span className="flex-shrink-0 ml-2 text-[12px] font-normal cursor-pointer grid place-items-center h-6 w-4" style={{ position: 'relative', top: '-2px' }} onClick={() => removeTag('fridge', item)}>×</span>
+                <span className="flex-shrink-0 ml-2 text-[12px] font-normal cursor-pointer grid place-items-center h-6 w-4" style={{ position: 'relative', top: '2px' }} onClick={() => removeTag('fridge', item)}>×</span>
               </TagPill>
             ))}
           </div>
@@ -228,7 +247,7 @@ const MyFridge: React.FC = () => {
         {/* 실온보관 */}
         <div className="mb-4">
           <div className="text-[16px] font-bold mb-2 flex items-center">실온보관 <span className="ml-1">🌡️</span>
-            {room.length > 0 && (
+            {room && room.length > 0 && (
               <button
                 className="ml-2 px-1 py-0 text-xs font-normal rounded border border-[#B0B0B0] bg-white text-[#404040] hover:bg-[#F5F6F8] active:bg-[#E5E7EB] transition whitespace-nowrap"
                 onClick={() => removeAll('room')}
@@ -237,11 +256,14 @@ const MyFridge: React.FC = () => {
               </button>
             )}
           </div>
-          <div className="bg-gray-100 rounded-xl px-3 py-2 overflow-y-auto overflow-x-hidden always-scrollbar">
-            {room.map((item) => (
+          <div className="bg-gray-100 rounded-xl px-3 py-2 overflow-y-auto overflow-x-hidden custom-scrollbar" style={{ maxHeight: '140px', minHeight: '140px' }}>
+            {room && room.length === 0 && (
+              <div className="text-gray-400 text-xs py-1">재료가 아직 없어요</div>
+            )}
+            {room && room.map((item) => (
               <TagPill key={item} style={{ fontSize: 11 }}>
                 <span className="truncate max-w-[110px]">{item}</span>
-                <span className="flex-shrink-0 ml-2 text-[12px] font-normal cursor-pointer grid place-items-center h-6 w-4" style={{ position: 'relative', top: '-2px' }} onClick={() => removeTag('room', item)}>×</span>
+                <span className="flex-shrink-0 ml-2 text-[12px] font-normal cursor-pointer grid place-items-center h-6 w-4" style={{ position: 'relative', top: '2px' }} onClick={() => removeTag('room', item)}>×</span>
               </TagPill>
             ))}
           </div>
