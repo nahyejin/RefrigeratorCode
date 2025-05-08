@@ -139,7 +139,7 @@ const MyFridge: React.FC = () => {
       handleSelect(filtered[0]);
     }
     if (e.key === 'Backspace' && inputValue === '' && frozen?.length > 0) {
-      setFrozen(frozen.slice(0, -1));
+      setFrozen((frozen ?? []).slice(0, -1));
     }
   };
 
@@ -150,12 +150,9 @@ const MyFridge: React.FC = () => {
   return (
     <div className="min-h-screen bg-white flex flex-col items-center" style={{ minWidth: 375 }}>
       <TopNavBar />
-      {/* 타이틀 */}
-      <div className="w-full flex flex-col items-center mt-20 mb-2">
-        <h1 className="text-[18px] font-bold text-[#111] text-center">내 냉장고 재료 추가</h1>
-      </div>
-      {/* 재료 입력창 (자동완성) */}
-      <div className="w-full max-w-[316px] mt-12 mb-10 flex flex-col items-center">
+      {/* 타이틀 + 입력창을 한 덩어리로 묶어서 타이틀을 입력창 바로 위로 이동 */}
+      <div className="w-full max-w-[316px] mt-20 mb-10 flex flex-col items-center">
+        <h1 className="text-[18px] font-bold text-[#111] text-center mb-4">내 냉장고 재료 추가</h1>
         <div className="flex w-full relative">
           <input
             ref={inputRef}
@@ -209,10 +206,10 @@ const MyFridge: React.FC = () => {
             )}
           </div>
           <div className="bg-gray-100 rounded-xl px-3 py-2 overflow-y-auto overflow-x-hidden custom-scrollbar" style={{ maxHeight: '140px', minHeight: '140px' }}>
-            {frozen && frozen.length === 0 && (
+            {(frozen ?? []).length === 0 && (
               <div className="text-gray-400 text-xs py-1">재료가 아직 없어요</div>
             )}
-            {frozen && frozen.map((item) => (
+            {(frozen ?? []).map((item) => (
               <TagPill key={item} style={{ fontSize: 11 }}>
                 <span className="truncate max-w-[110px]">{item}</span>
                 <span className="flex-shrink-0 ml-2 text-[12px] font-normal cursor-pointer grid place-items-center h-6 w-4" style={{ position: 'relative', top: '2px' }} onClick={() => removeTag('frozen', item)}>×</span>
