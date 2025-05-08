@@ -48,7 +48,7 @@ const Login: React.FC = () => {
           <NeangteolButton icon={<img src={googleLogo} alt="Google" className="w-6 h-6" />} color="bg-white" textColor="text-black" className="w-full h-[44px] px-4">Google로 시작하기</NeangteolButton>
           <NeangteolButton icon={<img src={kakaoLogo} alt="Kakao" className="w-6 h-6" />} color="bg-[#ffe812]" textColor="text-black" className="w-full h-[44px] px-4">kakao로 시작하기</NeangteolButton>
           <NeangteolButton icon={<img src={naverLogo} alt="Naver" className="w-6 h-6" />} color="bg-[#1ec800]" textColor="text-white" className="w-full h-[44px] px-4">Naver로 시작하기</NeangteolButton>
-          <NeangteolButton border color="bg-white" textColor="text-black" className="w-full h-[44px] px-4" onClick={() => navigate('/fridge-select')}>비회원으로 계속하기</NeangteolButton>
+          <NeangteolButton border color="bg-white" textColor="text-black" className="w-full h-[44px] px-4" onClick={() => navigate('/my-fridge')}>비회원으로 계속하기</NeangteolButton>
         </div>
       </div>
     </div>

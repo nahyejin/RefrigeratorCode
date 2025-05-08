@@ -6,12 +6,14 @@ import RecipeList from '../pages/RecipeList';
 import RecipeDetail from '../pages/RecipeDetail';
 import Popular from '../pages/Popular';
 import MyPage from '../pages/MyPage';
+import MyFridge from '../pages/MyFridge';
 
 const AppRouter = () => {
   return (
     <Router>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/my-fridge" element={<MyFridge />} />
         <Route path="/fridge-select" element={<FridgeSelect />} />
         <Route path="/ingredient-input" element={<IngredientInput />} />
         <Route path="/recipe-list" element={<RecipeList />} />

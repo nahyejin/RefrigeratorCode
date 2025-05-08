@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import fridgeImg from '../assets/fridge-up-open.png';
 // @ts-ignore
-import ingredientCsv from '../../ingredient-management/ingredient_profile_dict_v1_with_substitutes2.csv?raw';
+import ingredientCsv from '../../ingredient-management/ingredient_profile_dict_with_substitutes.csv?raw';
 
 // CSV 파싱 함수 (ingredient_name 열만 추출)
 function parseIngredientNames(csv: string): string[] {
@@ -84,6 +84,12 @@ export default function FreezerInput() {
         </div>
       </div>
 
+      {/* 광고 영역 */}
+      <div className="border border-dashed border-red-400 rounded-md p-4 mt-8 text-center text-red-500 text-sm">
+        <div className="font-semibold mb-1">&lt;이곳에 광고가 노출됩니다&gt;</div>
+        <div>필요한 재료가 없으신가요?<br />쿠팡·마켓컬리에서 바로 구매할 수 있는 상품을 추천해드립니다.</div>
+      </div>
+
       {/* 메인 레이아웃 */}
       <div className="flex flex-1 justify-center items-start gap-24 mt-12 px-12">
         {/* 냉장고 이미지 */}
@@ -113,12 +119,13 @@ export default function FreezerInput() {
               ref={inputRef}
               type="text"
               className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#3c3c3c] text-lg"
-              placeholder="재료명을 입력하세요"
+              placeholder="추가할 재료명을 입력 해주세요"
               value={input}
               onChange={handleInputChange}
               onFocus={() => setShowDropdown(true)}
               onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
               onKeyDown={handleInputKeyDown}
+              autoComplete="off"
             />
             {/* 자동완성 드롭다운 */}
             {showDropdown && filtered.length > 0 && (
