@@ -12,35 +12,26 @@ type Props = {
 
 export default function IngredientDateModal({ type, isOpen, onClose, onComplete, onBack }: Props) {
   const [date, setDate] = useState<Date | null>(null);
-  const [showCalendar, setShowCalendar] = useState(false);
+  const [calendarOpen, setCalendarOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
 
-  // yyyy.mm.dd 포맷 변환
-  const formatDate = (d: Date | null) =>
-    d ? `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}` : '';
+  // 입력 필드 변경 (type=date이므로 별도 포맷팅 불필요)
 
-  // 입력 필드 변경
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let value = e.target.value.replace(/[^0-9.]/g, ''); // 숫자와 .만 허용
-    // 8자리 숫자면 자동 포맷
-    if (/^\d{8}$/.test(value)) {
-      value = value.replace(/(\d{4})(\d{2})(\d{2})/, '$1.$2.$3');
-    }
-    setInputValue(value);
-    setDate(null);
-  };
-
-  // 달력에서 날짜 선택
-  const handleDateChange = (d: Date) => {
-    setDate(d);
-    setInputValue(formatDate(d));
-    setShowCalendar(false);
+  // 달력에서 날짜 선택 시 yyyy-mm-dd로 입력창에 반영
+  const handleCalendarChange = (date: Date) => {
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    setInputValue(`${yyyy}-${mm}-${dd}`);
+    setCalendarOpen(false);
   };
 
   // 완료 버튼 클릭
   const handleSubmit = () => {
-    if (inputValue.match(/^\d{4}\.\d{2}\.\d{2}$/)) {
-      onComplete(inputValue);
+    // yyyy-mm-dd → yyyy.mm.dd로 변환해서 저장
+    if (inputValue.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      const formatted = inputValue.replace(/-/g, '.');
+      onComplete(formatted);
     }
   };
 
@@ -79,24 +70,45 @@ export default function IngredientDateModal({ type, isOpen, onClose, onComplete,
         <div className="mb-2 text-[14px] font-semibold text-[#404040]">
           {type === 'expiry' ? '유통기한은 언제까지 인가요?' : '구매시점은 언제 인가요?'}
         </div>
-        <input
-          className="w-full h-10 border border-gray-300 rounded-lg px-4 text-[14px] mb-4"
-          placeholder="yyyy.mm.dd"
-          value={inputValue}
-          onChange={handleInputChange}
-          onFocus={() => setShowCalendar(true)}
-          readOnly={false}
-        />
-        {showCalendar && (
-          <div className="fixed left-1/2 -translate-x-1/2 bottom-8 z-50">
-            <DatePicker
-              selected={date}
-              onChange={handleDateChange}
-              inline
-              dateFormat="yyyy.MM.dd"
-            />
-          </div>
-        )}
+        <div className="relative mb-4">
+          <input
+            type="text"
+            className="w-full h-10 border border-gray-300 rounded-lg px-4 text-[14px] pr-10"
+            placeholder="yyyy-mm-dd"
+            maxLength={10}
+            value={inputValue}
+            onChange={e => {
+              let value = e.target.value.replace(/[^0-9]/g, '');
+              if (value.length > 8) value = value.slice(0, 8);
+              if (value.length === 8) {
+                value = value.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3');
+              }
+              setInputValue(value);
+            }}
+          />
+          {/* 달력 아이콘 버튼 */}
+          <button
+            type="button"
+            className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-700"
+            onClick={() => setCalendarOpen(true)}
+            tabIndex={-1}
+            aria-label="달력 열기"
+          >
+            {/* 달력 SVG 아이콘 */}
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><rect x="3" y="5" width="18" height="16" rx="2" strokeWidth="2"/><path d="M16 3v4M8 3v4M3 9h18" strokeWidth="2"/></svg>
+          </button>
+          {/* 달력 팝업 */}
+          {calendarOpen && (
+            <div className="absolute left-1/2 -translate-x-1/2 top-12 z-50 bg-white rounded-xl shadow-lg p-2">
+              <DatePicker
+                selected={inputValue.match(/^\d{4}-\d{2}-\d{2}$/) ? new Date(inputValue) : null}
+                onChange={handleCalendarChange}
+                inline
+                dateFormat="yyyy-MM-dd"
+              />
+            </div>
+          )}
+        </div>
         <div className="flex gap-2 mt-2">
           <button
             className="flex-1 h-10 bg-blue-500 text-white rounded-lg flex items-center justify-center"
