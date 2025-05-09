@@ -2,6 +2,7 @@ import * as React from 'react';
 import TopNavBar from '../components/TopNavBar';
 import BottomNavBar from '../components/BottomNavBar';
 import TagPill from '../components/TagPill';
+import IngredientDetailModal from '../components/IngredientDetailModal';
 
 function parseIngredientNames(csv: string): string[] {
   const lines = csv.split('\n');
@@ -60,6 +61,8 @@ const MyFridge: React.FC = () => {
     deleted: { type: 'single'|'all', box: 'frozen'|'fridge'|'room', tags: string[] } | null
   } | null>(null);
   const toastTimeout = React.useRef<number | null>(null);
+  const [modalOpen, setModalOpen] = React.useState(false);
+  const [modalIngredient, setModalIngredient] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     const loaded = loadIngredients();
@@ -132,7 +135,8 @@ const MyFridge: React.FC = () => {
   };
 
   const handleSelect = (item: string) => {
-    setFrozen(prev => prev ? [...prev, item] : [item]);
+    setModalIngredient(item);
+    setModalOpen(true);
     setInputValue('');
     setShowDropdown(false);
     inputRef.current?.focus();
@@ -145,6 +149,14 @@ const MyFridge: React.FC = () => {
     if (e.key === 'Backspace' && inputValue === '' && frozen?.length > 0) {
       setFrozen((frozen ?? []).slice(0, -1));
     }
+  };
+
+  const handleModalComplete = (data: { ingredient: string; storageType: 'frozen' | 'fridge' | 'room'; hasExpiration: boolean; }) => {
+    if (data.storageType === 'frozen') setFrozen(prev => prev ? [...prev, data.ingredient] : [data.ingredient]);
+    if (data.storageType === 'fridge') setFridge(prev => prev ? [...prev, data.ingredient] : [data.ingredient]);
+    if (data.storageType === 'room') setRoom(prev => prev ? [...prev, data.ingredient] : [data.ingredient]);
+    setModalOpen(false);
+    setModalIngredient(null);
   };
 
   if (frozen === null || fridge === null || room === null) {
@@ -193,6 +205,13 @@ const MyFridge: React.FC = () => {
           )}
         </div>
       </div>
+      {/* IngredientDetailModal */}
+      <IngredientDetailModal
+        isOpen={modalOpen}
+        onClose={() => { setModalOpen(false); setModalIngredient(null); }}
+        ingredient={modalIngredient || ''}
+        onComplete={handleModalComplete}
+      />
       {/* 재고 관리 구역 */}
       <div className="w-full px-5 mt-12">
         <h2 className="text-[16px] font-bold text-[#111] mb-2">내 냉장고 재고 관리</h2>
