@@ -270,7 +270,7 @@ const MyFridge: React.FC = () => {
             <SortDropdown value={frozenSort} onChange={setFrozenSort} className="ml-2" />
             {(frozen ?? []).length > 0 && (
               <button
-                className="ml-2 h-6 px-2 py-0 text-xs font-normal rounded border border-[#B0B0B0] bg-white text-[#404040] hover:bg-[#F5F6F8] active:bg-[#E5E7EB] transition whitespace-nowrap"
+                className="ml-2 h-6 px-2 py-0 text-xs font-medium rounded border border-gray-300 bg-white text-[#404040] hover:bg-[#F5F6F8] active:bg-[#E5E7EB] transition whitespace-nowrap"
                 onClick={() => handleRemoveAll('frozen')}
               >
                 모두삭제
@@ -284,7 +284,23 @@ const MyFridge: React.FC = () => {
             {sortIngredients(frozen ?? [], frozenSort).map((item) => (
               <TagPill key={item.name} style={{ fontSize: 11 }} onClick={() => handleTagInfo(item)}>
                 <span className="truncate max-w-[110px]">{item.name}</span>
-                <span className="flex-shrink-0 ml-2 text-[12px] font-normal cursor-pointer grid place-items-center h-6 w-4" style={{ position: 'relative', top: '2px' }} onClick={e => { e.stopPropagation(); removeTag('frozen', item.name); }}>×</span>
+                <span className="relative flex-shrink-0 ml-2" style={{ width: 20, height: 24, display: 'inline-block' }}>
+                  <span
+                    style={{
+                      position: 'absolute',
+                      left: '50%',
+                      top: '50%',
+                      transform: 'translate(-50%, -50%)',
+                      fontSize: 20,
+                      fontWeight: 400,
+                      cursor: 'pointer',
+                      lineHeight: 1,
+                    }}
+                    onClick={e => { e.stopPropagation(); removeTag('frozen', item.name); }}
+                  >
+                    x
+                  </span>
+                </span>
               </TagPill>
             ))}
           </div>
@@ -296,7 +312,7 @@ const MyFridge: React.FC = () => {
             <SortDropdown value={fridgeSort} onChange={setFridgeSort} className="ml-2" />
             {fridge && fridge.length > 0 && (
               <button
-                className="ml-2 h-6 px-2 py-0 text-xs font-normal rounded border border-[#B0B0B0] bg-white text-[#404040] hover:bg-[#F5F6F8] active:bg-[#E5E7EB] transition whitespace-nowrap"
+                className="ml-2 h-6 px-2 py-0 text-xs font-medium rounded border border-gray-300 bg-white text-[#404040] hover:bg-[#F5F6F8] active:bg-[#E5E7EB] transition whitespace-nowrap"
                 onClick={() => handleRemoveAll('fridge')}
               >
                 모두삭제
@@ -310,7 +326,23 @@ const MyFridge: React.FC = () => {
             {sortIngredients(fridge ?? [], fridgeSort).map((item) => (
               <TagPill key={item.name} style={{ fontSize: 11 }} onClick={() => handleTagInfo(item)}>
                 <span className="truncate max-w-[110px]">{item.name}</span>
-                <span className="flex-shrink-0 ml-2 text-[12px] font-normal cursor-pointer grid place-items-center h-6 w-4" style={{ position: 'relative', top: '2px' }} onClick={e => { e.stopPropagation(); removeTag('fridge', item.name); }}>×</span>
+                <span className="relative flex-shrink-0 ml-2" style={{ width: 20, height: 24, display: 'inline-block' }}>
+                  <span
+                    style={{
+                      position: 'absolute',
+                      left: '50%',
+                      top: '50%',
+                      transform: 'translate(-50%, -50%)',
+                      fontSize: 20,
+                      fontWeight: 400,
+                      cursor: 'pointer',
+                      lineHeight: 1,
+                    }}
+                    onClick={e => { e.stopPropagation(); removeTag('fridge', item.name); }}
+                  >
+                    x
+                  </span>
+                </span>
               </TagPill>
             ))}
           </div>
@@ -322,7 +354,7 @@ const MyFridge: React.FC = () => {
             <SortDropdown value={roomSort} onChange={setRoomSort} className="ml-2" />
             {room && room.length > 0 && (
               <button
-                className="ml-2 h-6 px-2 py-0 text-xs font-normal rounded border border-[#B0B0B0] bg-white text-[#404040] hover:bg-[#F5F6F8] active:bg-[#E5E7EB] transition whitespace-nowrap"
+                className="ml-2 h-6 px-2 py-0 text-xs font-medium rounded border border-gray-300 bg-white text-[#404040] hover:bg-[#F5F6F8] active:bg-[#E5E7EB] transition whitespace-nowrap"
                 onClick={() => handleRemoveAll('room')}
               >
                 모두삭제
@@ -336,7 +368,23 @@ const MyFridge: React.FC = () => {
             {sortIngredients(room ?? [], roomSort).map((item) => (
               <TagPill key={item.name} style={{ fontSize: 11 }} onClick={() => handleTagInfo(item)}>
                 <span className="truncate max-w-[110px]">{item.name}</span>
-                <span className="flex-shrink-0 ml-2 text-[12px] font-normal cursor-pointer grid place-items-center h-6 w-4" style={{ position: 'relative', top: '2px' }} onClick={e => { e.stopPropagation(); removeTag('room', item.name); }}>×</span>
+                <span className="relative flex-shrink-0 ml-2" style={{ width: 20, height: 24, display: 'inline-block' }}>
+                  <span
+                    style={{
+                      position: 'absolute',
+                      left: '50%',
+                      top: '50%',
+                      transform: 'translate(-50%, -50%)',
+                      fontSize: 20,
+                      fontWeight: 400,
+                      cursor: 'pointer',
+                      lineHeight: 1,
+                    }}
+                    onClick={e => { e.stopPropagation(); removeTag('room', item.name); }}
+                  >
+                    x
+                  </span>
+                </span>
               </TagPill>
             ))}
           </div>
