@@ -37,13 +37,13 @@ function saveIngredients(frozen, fridge, room) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify({ frozen, fridge, room }));
 }
 
-const TOAST_DURATION = 3000;
+const TOAST_DURATION = 10000;
 
 const Toast = ({ message, onUndo, onClose }: { message: string; onUndo: () => void; onClose: () => void }) => (
   <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-[#B0B0B0] text-white px-4 py-2 rounded-full shadow-lg flex items-center z-50 text-sm gap-2 min-w-[240px] max-w-[90vw]" style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.10)' }}>
     <span className="font-light text-white mr-2 whitespace-nowrap inline-block tracking-wider" style={{ letterSpacing: '0.04em' }}>삭제됨</span>
-    <button className="inline-flex items-center justify-center bg-[#F5F6F8] text-[#E5E7EB] rounded-lg px-3 py-1 text-sm font-semibold border border-[#E5E7EB] shadow-none hover:bg-[#E5E7EB] transition whitespace-nowrap" onClick={onUndo}>되돌리기</button>
-    <button className="inline-flex items-center justify-center bg-[#F5F6F8] text-[#E5E7EB] rounded-lg px-3 py-1 text-sm font-semibold border border-[#E5E7EB] shadow-none hover:bg-[#E5E7EB] transition whitespace-nowrap" onClick={onClose}>닫기</button>
+    <button className="inline-flex items-center justify-center bg-[#F5F6F8] text-gray-700 font-semibold rounded-lg px-3 py-1 text-sm border border-[#E5E7EB] shadow-none hover:bg-[#E5E7EB] transition whitespace-nowrap" onClick={onUndo}>되돌리기</button>
+    <button className="inline-flex items-center justify-center bg-[#F5F6F8] text-gray-700 font-semibold rounded-lg px-3 py-1 text-sm border border-[#E5E7EB] shadow-none hover:bg-[#E5E7EB] transition whitespace-nowrap" onClick={onClose}>닫기</button>
   </div>
 );
 
@@ -171,6 +171,12 @@ const MyFridge: React.FC = () => {
     setTimeout(() => setInfoToast(null), 3000);
   };
 
+  const handleRemoveAll = (box: 'frozen'|'fridge'|'room') => {
+    if (window.confirm('정말 삭제하시겠습니까?')) {
+      removeAll(box);
+    }
+  };
+
   if (frozen === null || fridge === null || room === null) {
     return <div>로딩 중...</div>;
   }
@@ -234,7 +240,7 @@ const MyFridge: React.FC = () => {
             {(frozen ?? []).length > 0 && (
               <button
                 className="ml-2 px-1 py-0 text-xs font-normal rounded border border-[#B0B0B0] bg-white text-[#404040] hover:bg-[#F5F6F8] active:bg-[#E5E7EB] transition whitespace-nowrap"
-                onClick={() => removeAll('frozen')}
+                onClick={() => handleRemoveAll('frozen')}
               >
                 모두삭제
               </button>
@@ -258,7 +264,7 @@ const MyFridge: React.FC = () => {
             {fridge && fridge.length > 0 && (
               <button
                 className="ml-2 px-1 py-0 text-xs font-normal rounded border border-[#B0B0B0] bg-white text-[#404040] hover:bg-[#F5F6F8] active:bg-[#E5E7EB] transition whitespace-nowrap"
-                onClick={() => removeAll('fridge')}
+                onClick={() => handleRemoveAll('fridge')}
               >
                 모두삭제
               </button>
@@ -282,7 +288,7 @@ const MyFridge: React.FC = () => {
             {room && room.length > 0 && (
               <button
                 className="ml-2 px-1 py-0 text-xs font-normal rounded border border-[#B0B0B0] bg-white text-[#404040] hover:bg-[#F5F6F8] active:bg-[#E5E7EB] transition whitespace-nowrap"
-                onClick={() => removeAll('room')}
+                onClick={() => handleRemoveAll('room')}
               >
                 모두삭제
               </button>
