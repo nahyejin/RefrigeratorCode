@@ -27,13 +27,13 @@ function loadIngredients() {
     }
   } catch {}
   return {
-    frozen: initialFrozen,
-    fridge: initialFridge,
-    room: initialRoom,
+    frozen: [],
+    fridge: [],
+    room: [],
   };
 }
 
-function saveIngredients(frozen: string[], fridge: string[], room: string[]) {
+function saveIngredients(frozen, fridge, room) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify({ frozen, fridge, room }));
 }
 
@@ -48,9 +48,9 @@ const Toast = ({ message, onUndo, onClose }: { message: string; onUndo: () => vo
 );
 
 const MyFridge: React.FC = () => {
-  const [frozen, setFrozen] = React.useState<string[] | null>(null);
-  const [fridge, setFridge] = React.useState<string[] | null>(null);
-  const [room, setRoom] = React.useState<string[] | null>(null);
+  const [frozen, setFrozen] = React.useState<{name: string, expiry?: string, purchase?: string}[] | null>(null);
+  const [fridge, setFridge] = React.useState<{name: string, expiry?: string, purchase?: string}[] | null>(null);
+  const [room, setRoom] = React.useState<{name: string, expiry?: string, purchase?: string}[] | null>(null);
   const [inputValue, setInputValue] = React.useState('');
   const [ingredientDict, setIngredientDict] = React.useState<string[]>([]);
   const [showDropdown, setShowDropdown] = React.useState(false);
@@ -63,6 +63,7 @@ const MyFridge: React.FC = () => {
   const toastTimeout = React.useRef<number | null>(null);
   const [modalOpen, setModalOpen] = React.useState(false);
   const [modalIngredient, setModalIngredient] = React.useState<string | null>(null);
+  const [infoToast, setInfoToast] = React.useState<{text: string} | null>(null);
 
   React.useEffect(() => {
     const loaded = loadIngredients();
@@ -86,7 +87,7 @@ const MyFridge: React.FC = () => {
   }, [frozen, fridge, room]);
 
   const filtered = ingredientDict.filter(
-    (item) => inputValue && item.includes(inputValue) && !frozen?.includes(item)
+    (item) => inputValue && item.includes(inputValue) && !frozen?.some(f => f.name === item)
   ).slice(0, 8);
 
   const showToast = (message: string, deleted: { type: 'single'|'all', box: 'frozen'|'fridge'|'room', tags: string[] }, duration?: number) => {
@@ -96,12 +97,12 @@ const MyFridge: React.FC = () => {
   };
 
   const removeTag = (box: 'frozen'|'fridge'|'room', tag: string) => {
-    let prev: string[] = [];
+    let prev: {name: string, expiry?: string, purchase?: string}[] = [];
     if (box === 'frozen') prev = frozen || [];
     if (box === 'fridge') prev = fridge || [];
     if (box === 'room') prev = room || [];
-    const newTags = prev.filter(t => t !== tag);
-    const deleted: { type: 'single'|'all', box: 'frozen'|'fridge'|'room', tags: string[] } = { type: 'single', box, tags: [tag] };
+    const newTags = prev.filter(t => t.name !== tag);
+    const deleted = { type: 'single', box, tags: [tag] };
     if (box === 'frozen') setFrozen(newTags);
     if (box === 'fridge') setFridge(newTags);
     if (box === 'room') setRoom(newTags);
@@ -109,11 +110,11 @@ const MyFridge: React.FC = () => {
   };
 
   const removeAll = (box: 'frozen'|'fridge'|'room') => {
-    let prev: string[] = [];
+    let prev: {name: string, expiry?: string, purchase?: string}[] = [];
     if (box === 'frozen') prev = frozen || [];
     if (box === 'fridge') prev = fridge || [];
     if (box === 'room') prev = room || [];
-    const deleted: { type: 'single'|'all', box: 'frozen'|'fridge'|'room', tags: string[] } = { type: 'all', box, tags: prev };
+    const deleted = { type: 'all', box, tags: prev.map(t => t.name) };
     if (box === 'frozen') setFrozen([]);
     if (box === 'fridge') setFridge([]);
     if (box === 'room') setRoom([]);
@@ -123,9 +124,9 @@ const MyFridge: React.FC = () => {
   const undoDelete = () => {
     if (!toast?.deleted) return;
     const deleted = toast.deleted;
-    if (deleted.box === 'frozen') setFrozen(prev => deleted.type === 'all' ? deleted.tags : [...(prev ?? []), ...deleted.tags]);
-    if (deleted.box === 'fridge') setFridge(prev => deleted.type === 'all' ? deleted.tags : [...(prev ?? []), ...deleted.tags]);
-    if (deleted.box === 'room') setRoom(prev => deleted.type === 'all' ? deleted.tags : [...(prev ?? []), ...deleted.tags]);
+    if (deleted.box === 'frozen') setFrozen(prev => deleted.type === 'all' ? deleted.tags.map(name => ({ name })) : [...(prev ?? []), ...deleted.tags.map(name => ({ name }))]);
+    if (deleted.box === 'fridge') setFridge(prev => deleted.type === 'all' ? deleted.tags.map(name => ({ name })) : [...(prev ?? []), ...deleted.tags.map(name => ({ name }))]);
+    if (deleted.box === 'room') setRoom(prev => deleted.type === 'all' ? deleted.tags.map(name => ({ name })) : [...(prev ?? []), ...deleted.tags.map(name => ({ name }))]);
     setToast(null);
   };
 
@@ -151,12 +152,23 @@ const MyFridge: React.FC = () => {
     }
   };
 
-  const handleModalComplete = (data: { ingredient: string; storageType: 'frozen' | 'fridge' | 'room'; hasExpiration: boolean; }) => {
-    if (data.storageType === 'frozen') setFrozen(prev => prev ? [...prev, data.ingredient] : [data.ingredient]);
-    if (data.storageType === 'fridge') setFridge(prev => prev ? [...prev, data.ingredient] : [data.ingredient]);
-    if (data.storageType === 'room') setRoom(prev => prev ? [...prev, data.ingredient] : [data.ingredient]);
+  const handleModalComplete = (data: { ingredient: string; storageType: 'frozen' | 'fridge' | 'room'; hasExpiration: boolean; date: string | null; }) => {
+    const obj = { name: data.ingredient } as { name: string, expiry?: string, purchase?: string };
+    if (data.hasExpiration && data.date) obj.expiry = data.date;
+    if (!data.hasExpiration && data.date) obj.purchase = data.date;
+    if (data.storageType === 'frozen') setFrozen(prev => prev ? [...prev, obj] : [obj]);
+    if (data.storageType === 'fridge') setFridge(prev => prev ? [...prev, obj] : [obj]);
+    if (data.storageType === 'room') setRoom(prev => prev ? [...prev, obj] : [obj]);
     setModalOpen(false);
     setModalIngredient(null);
+  };
+
+  const handleTagInfo = (item: {name: string, expiry?: string, purchase?: string}) => {
+    console.log('클릭된 아이템:', item);
+    if (item.expiry) setInfoToast({ text: `유통기한 : ${item.expiry}` });
+    else if (item.purchase) setInfoToast({ text: `구매시점 : ${item.purchase}` });
+    else setInfoToast({ text: '날짜 정보가 없습니다.' });
+    setTimeout(() => setInfoToast(null), 3000);
   };
 
   if (frozen === null || fridge === null || room === null) {
@@ -233,9 +245,9 @@ const MyFridge: React.FC = () => {
               <div className="text-gray-400 text-xs py-1">재료가 아직 없어요</div>
             )}
             {(frozen ?? []).map((item) => (
-              <TagPill key={item} style={{ fontSize: 11 }}>
-                <span className="truncate max-w-[110px]">{item}</span>
-                <span className="flex-shrink-0 ml-2 text-[12px] font-normal cursor-pointer grid place-items-center h-6 w-4" style={{ position: 'relative', top: '2px' }} onClick={() => removeTag('frozen', item)}>×</span>
+              <TagPill key={item.name} style={{ fontSize: 11 }} onClick={() => handleTagInfo(item)}>
+                <span className="truncate max-w-[110px]">{item.name}</span>
+                <span className="flex-shrink-0 ml-2 text-[12px] font-normal cursor-pointer grid place-items-center h-6 w-4" style={{ position: 'relative', top: '2px' }} onClick={e => { e.stopPropagation(); removeTag('frozen', item.name); }}>×</span>
               </TagPill>
             ))}
           </div>
@@ -257,9 +269,9 @@ const MyFridge: React.FC = () => {
               <div className="text-gray-400 text-xs py-1">재료가 아직 없어요</div>
             )}
             {fridge && fridge.map((item) => (
-              <TagPill key={item} style={{ fontSize: 11 }}>
-                <span className="truncate max-w-[110px]">{item}</span>
-                <span className="flex-shrink-0 ml-2 text-[12px] font-normal cursor-pointer grid place-items-center h-6 w-4" style={{ position: 'relative', top: '2px' }} onClick={() => removeTag('fridge', item)}>×</span>
+              <TagPill key={item.name} style={{ fontSize: 11 }} onClick={() => handleTagInfo(item)}>
+                <span className="truncate max-w-[110px]">{item.name}</span>
+                <span className="flex-shrink-0 ml-2 text-[12px] font-normal cursor-pointer grid place-items-center h-6 w-4" style={{ position: 'relative', top: '2px' }} onClick={e => { e.stopPropagation(); removeTag('fridge', item.name); }}>×</span>
               </TagPill>
             ))}
           </div>
@@ -281,9 +293,9 @@ const MyFridge: React.FC = () => {
               <div className="text-gray-400 text-xs py-1">재료가 아직 없어요</div>
             )}
             {room && room.map((item) => (
-              <TagPill key={item} style={{ fontSize: 11 }}>
-                <span className="truncate max-w-[110px]">{item}</span>
-                <span className="flex-shrink-0 ml-2 text-[12px] font-normal cursor-pointer grid place-items-center h-6 w-4" style={{ position: 'relative', top: '2px' }} onClick={() => removeTag('room', item)}>×</span>
+              <TagPill key={item.name} style={{ fontSize: 11 }} onClick={() => handleTagInfo(item)}>
+                <span className="truncate max-w-[110px]">{item.name}</span>
+                <span className="flex-shrink-0 ml-2 text-[12px] font-normal cursor-pointer grid place-items-center h-6 w-4" style={{ position: 'relative', top: '2px' }} onClick={e => { e.stopPropagation(); removeTag('room', item.name); }}>×</span>
               </TagPill>
             ))}
           </div>
@@ -302,6 +314,11 @@ const MyFridge: React.FC = () => {
       </div>
       {toast && toast.visible && (
         <Toast message={toast.message} onUndo={undoDelete} onClose={() => setToast(null)} />
+      )}
+      {infoToast && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-white border border-gray-300 rounded-lg px-6 py-3 text-[#404040] text-sm shadow-lg z-[9999]">
+          {infoToast.text}
+        </div>
       )}
     </div>
   );

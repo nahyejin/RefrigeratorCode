@@ -89,7 +89,7 @@ export default function IngredientDetailModal({ isOpen, onClose, ingredient, onC
                   `}
                   onClick={() => setStorageType(opt.key as 'frozen' | 'fridge' | 'room')}
                 >
-                  <img src={opt.icon} alt={opt.label} className="w-20 h-20 mb-2" />
+                  <img src={opt.icon} alt={opt.label} className="w-16 h-16 mb-2" />
                   <span className="text-[13px] font-medium text-[#404040]">{opt.label}</span>
                 </div>
               ))}
@@ -128,6 +128,7 @@ export default function IngredientDetailModal({ isOpen, onClose, ingredient, onC
           isOpen={true}
           onClose={onClose}
           onComplete={handleDateComplete}
+          onBack={() => setStep('select')}
         />
       )}
     </>
