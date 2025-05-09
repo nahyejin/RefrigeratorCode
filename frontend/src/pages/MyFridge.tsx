@@ -3,6 +3,7 @@ import TopNavBar from '../components/TopNavBar';
 import BottomNavBar from '../components/BottomNavBar';
 import TagPill from '../components/TagPill';
 import IngredientDetailModal from '../components/IngredientDetailModal';
+import SortDropdown, { SortType } from '../components/SortDropdown';
 
 function parseIngredientNames(csv: string): string[] {
   const lines = csv.split('\n');
@@ -64,6 +65,9 @@ const MyFridge: React.FC = () => {
   const [modalOpen, setModalOpen] = React.useState(false);
   const [modalIngredient, setModalIngredient] = React.useState<string | null>(null);
   const [infoToast, setInfoToast] = React.useState<{text: string} | null>(null);
+  const [frozenSort, setFrozenSort] = React.useState<SortType>('expiry');
+  const [fridgeSort, setFridgeSort] = React.useState<SortType>('expiry');
+  const [roomSort, setRoomSort] = React.useState<SortType>('expiry');
 
   React.useEffect(() => {
     const loaded = loadIngredients();
@@ -102,7 +106,7 @@ const MyFridge: React.FC = () => {
     if (box === 'fridge') prev = fridge || [];
     if (box === 'room') prev = room || [];
     const newTags = prev.filter(t => t.name !== tag);
-    const deleted = { type: 'single', box, tags: [tag] };
+    const deleted = { type: 'single' as const, box, tags: [tag] };
     if (box === 'frozen') setFrozen(newTags);
     if (box === 'fridge') setFridge(newTags);
     if (box === 'room') setRoom(newTags);
@@ -114,7 +118,7 @@ const MyFridge: React.FC = () => {
     if (box === 'frozen') prev = frozen || [];
     if (box === 'fridge') prev = fridge || [];
     if (box === 'room') prev = room || [];
-    const deleted = { type: 'all', box, tags: prev.map(t => t.name) };
+    const deleted = { type: 'all' as const, box, tags: prev.map(t => t.name) };
     if (box === 'frozen') setFrozen([]);
     if (box === 'fridge') setFridge([]);
     if (box === 'room') setRoom([]);
@@ -177,6 +181,31 @@ const MyFridge: React.FC = () => {
     }
   };
 
+  function sortIngredients(arr: {name: string, expiry?: string, purchase?: string}[], sort: SortType) {
+    if (!arr) return [];
+    if (sort === 'expiry') {
+      const withExpiry = arr.filter(i => i.expiry);
+      const withoutExpiry = arr.filter(i => !i.expiry);
+      withExpiry.sort((a, b) => (a.expiry! > b.expiry! ? 1 : -1));
+      // withoutExpiry는 가나다순
+      withoutExpiry.sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+      return [...withExpiry, ...withoutExpiry];
+    } else if (sort === 'purchase') {
+      const withPurchase = arr.filter(i => i.purchase);
+      const withoutPurchase = arr.filter(i => !i.purchase);
+      withPurchase.sort((a, b) => (a.purchase! > b.purchase! ? 1 : -1));
+      // 구매일 없는 재료 중 유통기한 있는 것, 없는 것 분리
+      const withExpiry = withoutPurchase.filter(i => i.expiry);
+      const noDate = withoutPurchase.filter(i => !i.expiry);
+      withExpiry.sort((a, b) => (a.expiry! > b.expiry! ? 1 : -1));
+      noDate.sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+      return [...withPurchase, ...withExpiry, ...noDate];
+    } else {
+      // 가나다순
+      return [...arr].sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+    }
+  }
+
   if (frozen === null || fridge === null || room === null) {
     return <div>로딩 중...</div>;
   }
@@ -236,10 +265,12 @@ const MyFridge: React.FC = () => {
         <div className="border-t border-gray-200 mb-6"></div>
         {/* 냉동보관 */}
         <div className="mb-4">
-          <div className="text-[16px] font-bold mb-2 flex items-center">냉동보관 <span className="ml-1">🧊</span>
+          <div className="text-[16px] font-bold mb-2 flex items-center">
+            냉동보관 <span className="ml-1">🧊</span>
+            <SortDropdown value={frozenSort} onChange={setFrozenSort} className="ml-2" />
             {(frozen ?? []).length > 0 && (
               <button
-                className="ml-2 px-1 py-0 text-xs font-normal rounded border border-[#B0B0B0] bg-white text-[#404040] hover:bg-[#F5F6F8] active:bg-[#E5E7EB] transition whitespace-nowrap"
+                className="ml-2 h-6 px-2 py-0 text-xs font-normal rounded border border-[#B0B0B0] bg-white text-[#404040] hover:bg-[#F5F6F8] active:bg-[#E5E7EB] transition whitespace-nowrap"
                 onClick={() => handleRemoveAll('frozen')}
               >
                 모두삭제
@@ -250,7 +281,7 @@ const MyFridge: React.FC = () => {
             {(frozen ?? []).length === 0 && (
               <div className="text-gray-400 text-xs py-1">재료가 아직 없어요</div>
             )}
-            {(frozen ?? []).map((item) => (
+            {sortIngredients(frozen ?? [], frozenSort).map((item) => (
               <TagPill key={item.name} style={{ fontSize: 11 }} onClick={() => handleTagInfo(item)}>
                 <span className="truncate max-w-[110px]">{item.name}</span>
                 <span className="flex-shrink-0 ml-2 text-[12px] font-normal cursor-pointer grid place-items-center h-6 w-4" style={{ position: 'relative', top: '2px' }} onClick={e => { e.stopPropagation(); removeTag('frozen', item.name); }}>×</span>
@@ -260,10 +291,12 @@ const MyFridge: React.FC = () => {
         </div>
         {/* 냉장보관 */}
         <div className="mb-4">
-          <div className="text-[16px] font-bold mb-2 flex items-center">냉장보관 <span className="ml-1">❄️</span>
+          <div className="text-[16px] font-bold mb-2 flex items-center">
+            냉장보관 <span className="ml-1">❄️</span>
+            <SortDropdown value={fridgeSort} onChange={setFridgeSort} className="ml-2" />
             {fridge && fridge.length > 0 && (
               <button
-                className="ml-2 px-1 py-0 text-xs font-normal rounded border border-[#B0B0B0] bg-white text-[#404040] hover:bg-[#F5F6F8] active:bg-[#E5E7EB] transition whitespace-nowrap"
+                className="ml-2 h-6 px-2 py-0 text-xs font-normal rounded border border-[#B0B0B0] bg-white text-[#404040] hover:bg-[#F5F6F8] active:bg-[#E5E7EB] transition whitespace-nowrap"
                 onClick={() => handleRemoveAll('fridge')}
               >
                 모두삭제
@@ -274,7 +307,7 @@ const MyFridge: React.FC = () => {
             {fridge && fridge.length === 0 && (
               <div className="text-gray-400 text-xs py-1">재료가 아직 없어요</div>
             )}
-            {fridge && fridge.map((item) => (
+            {sortIngredients(fridge ?? [], fridgeSort).map((item) => (
               <TagPill key={item.name} style={{ fontSize: 11 }} onClick={() => handleTagInfo(item)}>
                 <span className="truncate max-w-[110px]">{item.name}</span>
                 <span className="flex-shrink-0 ml-2 text-[12px] font-normal cursor-pointer grid place-items-center h-6 w-4" style={{ position: 'relative', top: '2px' }} onClick={e => { e.stopPropagation(); removeTag('fridge', item.name); }}>×</span>
@@ -284,10 +317,12 @@ const MyFridge: React.FC = () => {
         </div>
         {/* 실온보관 */}
         <div className="mb-4">
-          <div className="text-[16px] font-bold mb-2 flex items-center">실온보관 <span className="ml-1">🌡️</span>
+          <div className="text-[16px] font-bold mb-2 flex items-center">
+            실온보관 <span className="ml-1">🌡️</span>
+            <SortDropdown value={roomSort} onChange={setRoomSort} className="ml-2" />
             {room && room.length > 0 && (
               <button
-                className="ml-2 px-1 py-0 text-xs font-normal rounded border border-[#B0B0B0] bg-white text-[#404040] hover:bg-[#F5F6F8] active:bg-[#E5E7EB] transition whitespace-nowrap"
+                className="ml-2 h-6 px-2 py-0 text-xs font-normal rounded border border-[#B0B0B0] bg-white text-[#404040] hover:bg-[#F5F6F8] active:bg-[#E5E7EB] transition whitespace-nowrap"
                 onClick={() => handleRemoveAll('room')}
               >
                 모두삭제
@@ -298,7 +333,7 @@ const MyFridge: React.FC = () => {
             {room && room.length === 0 && (
               <div className="text-gray-400 text-xs py-1">재료가 아직 없어요</div>
             )}
-            {room && room.map((item) => (
+            {sortIngredients(room ?? [], roomSort).map((item) => (
               <TagPill key={item.name} style={{ fontSize: 11 }} onClick={() => handleTagInfo(item)}>
                 <span className="truncate max-w-[110px]">{item.name}</span>
                 <span className="flex-shrink-0 ml-2 text-[12px] font-normal cursor-pointer grid place-items-center h-6 w-4" style={{ position: 'relative', top: '2px' }} onClick={e => { e.stopPropagation(); removeTag('room', item.name); }}>×</span>
