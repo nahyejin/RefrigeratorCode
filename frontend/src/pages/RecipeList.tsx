@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import BottomNavBar from '../components/BottomNavBar';
 import { useNavigate } from 'react-router-dom';
 // import { FaFilter } from 'react-icons/fa'; // 아이콘 없으면 주석처리
+import 완료Btn from '../assets/완료하기버튼.png';
+import 공유Btn from '../assets/공유하기버튼.png';
+import 기록Btn from '../assets/기록하기버튼.png';
 
 const sortOptions = [
   { key: 'match', label: '재료매칭률' },
@@ -208,44 +211,99 @@ const RecipeList = () => {
         </div>
         {/* 필터 팝업 상세 구현 */}
         {filterOpen && renderFilterModal()}
-        <div className="flex flex-col gap-4">
-          {sortedRecipes.slice(0, visibleCount).map((recipe) => (
-            <div key={recipe.id} className="bg-[#F8F8F8] rounded-xl shadow p-4 flex gap-3 relative">
-              <img src={recipe.thumbnail} alt="썸네일" className="w-20 h-20 rounded-lg object-cover flex-shrink-0" />
-              <div className="flex-1 flex flex-col">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="font-bold text-base text-gray-800">{recipe.title}</span>
-                  <span className="ml-auto text-xs text-gray-400">{recipe.author} · {recipe.date}</span>
+        <div className="flex flex-col gap-6">
+          {sortedRecipes.slice(0, visibleCount).map((recipe) => {
+            // 재료 pill 10개 제한 + ... 처리
+            const allIngredients = [
+              ...recipe.need_ingredients.map((ing: string) => ({ ing, type: 'need' })),
+              ...recipe.my_ingredients.map((ing: string) => ({ ing, type: 'have' })),
+            ];
+            const maxPill = 10;
+            const shownIngredients = allIngredients.slice(0, maxPill);
+            const hasMore = allIngredients.length > maxPill;
+            return (
+              <div
+                key={recipe.id}
+                className="bg-[#F8F8F8] border border-[#E5E5E5] rounded-[20px] shadow-sm p-6 min-h-[180px] relative mb-6"
+              >
+                {/* 제목 (카드 맨 위, 한 줄, ...중략, 옆의 작성자/날짜 제거) */}
+                <div className="mb-2">
+                  <div className="text-[22px] font-bold text-[#222] leading-tight truncate overflow-hidden whitespace-nowrap" title={recipe.title}>
+                    {recipe.title}
+                  </div>
                 </div>
-                <div className="text-xs text-gray-600 mb-2 line-clamp-2">{recipe.body}</div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-[11px] bg-yellow-200 text-yellow-800 rounded px-2 py-0.5 font-semibold">재료 매칭률 {recipe.match_rate}%</span>
+                {/* 썸네일 + 본문 */}
+                <div className="flex flex-row gap-6 items-start mb-2">
+                  {/* 썸네일 + 매칭률 + 버튼 */}
+                  <div className="relative min-w-[140px] max-w-[180px] h-36 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0">
+                    <img
+                      src={recipe.thumbnail}
+                      alt="썸네일"
+                      className="w-full h-full object-cover object-center"
+                    />
+                    {/* 재료매칭률 배지 */}
+                    <div className="absolute top-2 left-2 bg-[#444] bg-opacity-90 text-white text-[15px] font-bold rounded px-3 py-1 flex items-center gap-1 shadow">
+                      재료매칭률 <span className="text-[#FFD600] font-extrabold ml-1">{recipe.match_rate}%</span>
+                    </div>
+                    {/* 버튼 3개 (썸네일 하단 오른쪽) */}
+                    <div className="absolute bottom-2 right-2 flex gap-2">
+                      <button title="완료" className="w-9 h-9 flex items-center justify-center bg-transparent" onClick={() => saveToStorage('complete', recipe)}>
+                        <img src={완료Btn} alt="완료" className="w-7 h-7 object-contain" />
+                      </button>
+                      <button title="공유" className="w-9 h-9 flex items-center justify-center bg-transparent" onClick={() => {navigator.clipboard.writeText(window.location.origin+`/recipe-detail/${recipe.id}`); alert('URL이 복사되었습니다!');}}>
+                        <img src={공유Btn} alt="공유" className="w-7 h-7 object-contain" />
+                      </button>
+                      <button title="기록" className="w-9 h-9 flex items-center justify-center bg-transparent" onClick={() => saveToStorage('record', recipe)}>
+                        <img src={기록Btn} alt="기록" className="w-7 h-7 object-contain" />
+                      </button>
+                    </div>
+                  </div>
+                  {/* 본문 + 작성자/날짜 */}
+                  <div className="flex-1 flex flex-col min-w-0">
+                    <div className="flex items-center mb-1">
+                      <span className="text-[#FFD600] font-bold text-[15px] mr-2">{recipe.author}</span>
+                      <span className="text-[#B0B0B0] text-[13px]">{recipe.date}</span>
+                    </div>
+                    <div
+                      className="text-[15px] text-[#444] mb-2 max-h-16 overflow-y-auto pr-1 cursor-pointer custom-scrollbar"
+                      style={{ scrollbarWidth: 'auto' }}
+                      onClick={() => navigate(`/recipe-detail/${recipe.id}`)}
+                      title={recipe.body}
+                    >
+                      {recipe.body}
+                    </div>
+                  </div>
                 </div>
-                <div className="flex flex-wrap gap-1 mb-1">
-                  {recipe.my_ingredients.map((ing: string) => (
-                    <span key={ing} className="bg-green-100 text-green-700 rounded-full px-2 py-0.5 text-xs">{ing}</span>
+                {/* 재료 pill (최대 10개, 초과시 ... 표시) */}
+                <div className="flex flex-wrap gap-2 mb-2 max-h-12 overflow-y-auto custom-scrollbar pr-1" style={{ scrollbarWidth: 'auto' }}>
+                  {shownIngredients.map(({ ing, type }: { ing: string, type: string }) => (
+                    <span
+                      key={ing}
+                      className={
+                        type === 'need'
+                          ? 'bg-[#D1D1D1] text-white rounded-full px-3 py-0.5 text-[13px] font-medium'
+                          : 'bg-[#555] text-white rounded-full px-3 py-0.5 text-[13px] font-medium'
+                      }
+                    >
+                      {ing}
+                    </span>
                   ))}
-                  {recipe.need_ingredients.map((ing: string) => (
-                    <span key={ing} className="bg-gray-200 text-gray-500 rounded-full px-2 py-0.5 text-xs">{ing}</span>
-                  ))}
+                  {hasMore && (
+                    <span className="bg-[#555] text-white rounded-full px-3 py-0.5 text-[13px] font-medium">...</span>
+                  )}
                 </div>
+                {/* 대체재 */}
                 {recipe.substitutes && recipe.substitutes.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mb-1">
-                    {recipe.substitutes.map((sub: string) => (
-                      <span key={sub} className="bg-blue-100 text-blue-700 rounded-full px-2 py-0.5 text-xs">대체: {sub}</span>
+                  <div className="mt-2">
+                    <span className="bg-[#FFE066] text-[#444] rounded px-3 py-1 text-[15px] font-bold">대체 가능 :</span>
+                    {recipe.substitutes.map((sub: string, idx: number) => (
+                      <span key={sub} className="ml-2 text-[15px] font-semibold text-[#444]">{sub}</span>
                     ))}
                   </div>
                 )}
               </div>
-              {/* 부가 기능 버튼 영역 */}
-              <div className="absolute top-2 right-2 flex gap-1">
-                <button title="상세" className="bg-white border rounded p-1 text-xs" onClick={() => navigate(`/recipe-detail/${recipe.id}`)}>상세</button>
-                <button title="공유" className="bg-white border rounded p-1 text-xs" onClick={() => {navigator.clipboard.writeText(window.location.origin+`/recipe-detail/${recipe.id}`); alert('URL이 복사되었습니다!');}}>공유</button>
-                <button title="기록" className="bg-white border rounded p-1 text-xs" onClick={() => saveToStorage('record', recipe)}>기록</button>
-                <button title="완료" className="bg-white border rounded p-1 text-xs" onClick={() => saveToStorage('complete', recipe)}>완료</button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
         {visibleCount < sortedRecipes.length && (
           <button onClick={handleLoadMore} className="w-full mt-4 py-2 rounded-lg bg-gray-200 text-gray-700 font-semibold">더보기</button>
