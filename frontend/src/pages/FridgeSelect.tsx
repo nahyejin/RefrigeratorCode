@@ -2,6 +2,7 @@ import * as React from 'react';
 import fridgeImg from '../assets/fridge-close.png';
 import trayImg from '../assets/tray.png';
 import logoImg from '../assets/냉털이 로고.png';
+import BottomNavBar from '../components/BottomNavBar';
 
 const FridgeSelect: React.FC = () => {
   // 클릭 핸들러 (임시 alert)
@@ -58,6 +59,7 @@ const FridgeSelect: React.FC = () => {
             <img src={trayImg} alt="실온 바구니" className="w-full h-full object-contain rounded-[18px] group-hover:ring-4 group-hover:ring-yellow-200/60 group-focus:ring-4 group-focus:ring-yellow-300/80 transition" />
           </button>
         </div>
+        <BottomNavBar activeTab="myfridge" />
       </div>
     </div>
   );
