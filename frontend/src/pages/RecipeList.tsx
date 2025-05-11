@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import BottomNavBar from '../components/BottomNavBar';
 import { useNavigate } from 'react-router-dom';
+import TopNavBar from '../components/TopNavBar';
 // import { FaFilter } from 'react-icons/fa'; // 아이콘 없으면 주석처리
 import 완료Btn from '../assets/완료하기버튼.png';
 import 공유Btn from '../assets/공유하기버튼.png';
@@ -188,8 +189,9 @@ const RecipeList = () => {
 
   return (
     <>
+      <TopNavBar />
       <div className="max-w-[430px] mx-auto pb-20 pt-4 px-2 bg-white min-h-screen">
-        <h2 className="text-lg font-bold mb-4">[사용자 닉네임]님의 재료 기반 레시피 추천</h2>
+        <h2 className="text-lg font-bold mb-4 text-center">내 냉장고 기반 레시피 추천</h2>
         {/* 정렬/필터 바 */}
         <div className="flex gap-2 mb-4 items-center">
           <select
@@ -228,21 +230,21 @@ const RecipeList = () => {
               >
                 {/* 제목 (카드 맨 위, 한 줄, ...중략, 옆의 작성자/날짜 제거) */}
                 <div className="mb-2">
-                  <div className="text-[22px] font-bold text-[#222] leading-tight truncate overflow-hidden whitespace-nowrap" title={recipe.title}>
+                  <div className="font-bold text-[#222] leading-tight truncate overflow-hidden whitespace-nowrap" style={{ fontSize: '18px' }} title={recipe.title}>
                     {recipe.title}
                   </div>
                 </div>
                 {/* 썸네일 + 본문 */}
                 <div className="flex flex-row gap-6 items-start mb-2">
                   {/* 썸네일 + 매칭률 + 버튼 */}
-                  <div className="relative min-w-[140px] max-w-[180px] h-36 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0">
+                  <div className="relative min-w-[98px] max-w-[98px] h-20 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0">
                     <img
                       src={recipe.thumbnail}
                       alt="썸네일"
                       className="w-full h-full object-cover object-center"
                     />
                     {/* 재료매칭률 배지 */}
-                    <div className="absolute top-2 left-2 bg-[#444] bg-opacity-90 text-white text-[15px] font-bold rounded px-3 py-1 flex items-center gap-1 shadow">
+                    <div className="absolute top-1 left-1 bg-[#444] bg-opacity-90 text-white text-[10px] font-bold rounded px-1.5 py-0 flex items-center gap-1 shadow">
                       재료매칭률 <span className="text-[#FFD600] font-extrabold ml-1">{recipe.match_rate}%</span>
                     </div>
                     {/* 버튼 3개 (썸네일 하단 오른쪽) */}
