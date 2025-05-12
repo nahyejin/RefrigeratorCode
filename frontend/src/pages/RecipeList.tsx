@@ -215,7 +215,12 @@ const RecipeList = () => {
     <div className="fixed inset-0 bg-black bg-opacity-30 flex items-start justify-center z-50">
       <div className="bg-white rounded-xl shadow-lg p-6 w-[340px] max-w-[95vw] relative mt-12 mb-24" style={{maxHeight: 'calc(100vh - 144px)', overflowY: 'auto'}}>
         {/* 닫기 버튼 */}
-        <button className="absolute top-3 right-3 w-6 h-6 text-gray-400 text-xl" onClick={() => setFilterOpen(false)}>×</button>
+
+	
+	<span  className="absolute top-3 right-3 w-6 h-6 text-gray-400 text-xl cursor-pointer select-none"  onClick={() => setFilterOpen(false)}  role="button"  aria-label="닫기">×</span>
+
+
+
         {/* 제목 */}
         <div className="text-center font-bold text-[12.8px] mb-2">필터 기능을 선택해주세요</div>
         <hr className="my-2" />
