@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import BottomNavBar from '../components/BottomNavBar';
 import { useNavigate } from 'react-router-dom';
 import TopNavBar from '../components/TopNavBar';
+import doneIcon from '../assets/done.svg';
+import shareIcon from '../assets/share.svg';
+import writeIcon from '../assets/write.svg';
 // import { FaFilter } from 'react-icons/fa'; // 아이콘 없으면 주석처리
-import 완료Btn from '../assets/완료하기버튼.png';
-import 공유Btn from '../assets/공유하기버튼.png';
-import 기록Btn from '../assets/기록하기버튼.png';
 
 const sortOptions = [
   { key: 'match', label: '재료매칭률' },
@@ -228,10 +228,94 @@ const RecipeList = () => {
                 key={recipe.id}
                 className="bg-[#F8F8F8] border border-[#E5E5E5] rounded-[20px] shadow-sm p-6 min-h-[180px] relative mb-6"
               >
-                {/* 제목 (카드 맨 위, 한 줄, ...중략, 옆의 작성자/날짜 제거) */}
-                <div className="mb-2">
-                  <div className="font-bold text-[#222] leading-tight truncate overflow-hidden whitespace-nowrap" style={{ fontSize: '18px' }} title={recipe.title}>
+                {/* 제목 + 버튼 (카드 맨 위, 한 줄, ...중략, 옆의 작성자/날짜 제거) */}
+                <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', minWidth: '200px', flexShrink: 0 }}>
+                  <div
+                    style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '18px', fontWeight: 'bold', color: '#222', lineHeight: 1.2 }}
+                    title={recipe.title}
+                  >
                     {recipe.title}
+                  </div>
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'row',
+                      gap: '8px',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <button
+                      title="완료"
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: 'none',
+                        border: 'none',
+                        padding: 0,
+                        cursor: 'pointer',
+                      }}
+                      onClick={() => saveToStorage('complete', recipe)}
+                    >
+                      <img
+                        src={doneIcon}
+                        alt="완료"
+                        width={24}
+                        height={24}
+                        style={{ display: 'block' }}
+                      />
+                    </button>
+                    <button
+                      title="공유"
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: 'none',
+                        border: 'none',
+                        padding: 0,
+                        cursor: 'pointer',
+                      }}
+                      onClick={() => {
+                        navigator.clipboard.writeText(window.location.origin + `/recipe-detail/${recipe.id}`);
+                        alert('URL이 복사되었습니다!');
+                      }}
+                    >
+                      <img
+                        src={shareIcon}
+                        alt="공유"
+                        width={24}
+                        height={24}
+                        style={{ display: 'block' }}
+                      />
+                    </button>
+                    <button
+                      title="기록"
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: 'none',
+                        border: 'none',
+                        padding: 0,
+                        cursor: 'pointer',
+                      }}
+                      onClick={() => saveToStorage('record', recipe)}
+                    >
+                      <img
+                        src={writeIcon}
+                        alt="기록"
+                        width={24}
+                        height={24}
+                        style={{ display: 'block' }}
+                      />
+                    </button>
                   </div>
                 </div>
                 {/* 썸네일 + 본문 */}
@@ -246,18 +330,6 @@ const RecipeList = () => {
                     {/* 재료매칭률 배지 */}
                     <div className="absolute top-1 left-1 bg-[#444] bg-opacity-90 text-white text-[10px] font-bold rounded px-1.5 py-0 flex items-center gap-1 shadow">
                       재료매칭률 <span className="text-[#FFD600] font-extrabold ml-1">{recipe.match_rate}%</span>
-                    </div>
-                    {/* 버튼 3개 (썸네일 하단 오른쪽) */}
-                    <div className="absolute bottom-2 right-2 flex gap-2">
-                      <button title="완료" className="w-9 h-9 flex items-center justify-center bg-transparent" onClick={() => saveToStorage('complete', recipe)}>
-                        <img src={완료Btn} alt="완료" className="w-7 h-7 object-contain" />
-                      </button>
-                      <button title="공유" className="w-9 h-9 flex items-center justify-center bg-transparent" onClick={() => {navigator.clipboard.writeText(window.location.origin+`/recipe-detail/${recipe.id}`); alert('URL이 복사되었습니다!');}}>
-                        <img src={공유Btn} alt="공유" className="w-7 h-7 object-contain" />
-                      </button>
-                      <button title="기록" className="w-9 h-9 flex items-center justify-center bg-transparent" onClick={() => saveToStorage('record', recipe)}>
-                        <img src={기록Btn} alt="기록" className="w-7 h-7 object-contain" />
-                      </button>
                     </div>
                   </div>
                   {/* 본문 + 작성자/날짜 */}
