@@ -132,3 +132,9 @@ html, body, #root {
   background: #e5e7eb !important;
   border-radius: 8px !important;
 }
+
+img, svg {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
