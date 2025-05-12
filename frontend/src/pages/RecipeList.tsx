@@ -231,7 +231,7 @@ const RecipeList = () => {
                 {/* 제목 + 버튼 (카드 맨 위, 한 줄, ...중략, 옆의 작성자/날짜 제거) */}
                 <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', minWidth: '200px', flexShrink: 0 }}>
                   <div
-                    style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '18px', fontWeight: 'bold', color: '#222', lineHeight: 1.2 }}
+                    style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '14.4px', fontWeight: 'bold', color: '#222', lineHeight: 1.2 }}
                     title={recipe.title}
                   >
                     {recipe.title}
@@ -240,15 +240,15 @@ const RecipeList = () => {
                     style={{
                       display: 'flex',
                       flexDirection: 'row',
-                      gap: '8px',
+                      gap: '6px',
                       alignItems: 'center',
                     }}
                   >
                     <button
                       title="완료"
                       style={{
-                        width: '32px',
-                        height: '32px',
+                        width: '26px',
+                        height: '26px',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -262,16 +262,16 @@ const RecipeList = () => {
                       <img
                         src={doneIcon}
                         alt="완료"
-                        width={24}
-                        height={24}
+                        width={19}
+                        height={19}
                         style={{ display: 'block' }}
                       />
                     </button>
                     <button
                       title="공유"
                       style={{
-                        width: '32px',
-                        height: '32px',
+                        width: '26px',
+                        height: '26px',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -288,16 +288,16 @@ const RecipeList = () => {
                       <img
                         src={shareIcon}
                         alt="공유"
-                        width={24}
-                        height={24}
+                        width={19}
+                        height={19}
                         style={{ display: 'block' }}
                       />
                     </button>
                     <button
                       title="기록"
                       style={{
-                        width: '32px',
-                        height: '32px',
+                        width: '26px',
+                        height: '26px',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -311,8 +311,8 @@ const RecipeList = () => {
                       <img
                         src={writeIcon}
                         alt="기록"
-                        width={24}
-                        height={24}
+                        width={19}
+                        height={19}
                         style={{ display: 'block' }}
                       />
                     </button>
