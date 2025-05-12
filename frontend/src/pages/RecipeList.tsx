@@ -290,8 +290,8 @@ const RecipeList = () => {
         </div>
         {/* 필터 팝업 상세 구현 */}
         {filterOpen && renderFilterModal()}
-        <div className="flex flex-col gap-6">
-          {sortedRecipes.slice(0, visibleCount).map((recipe) => {
+        <div className="flex flex-col gap-2">
+          {sortedRecipes.slice(0, visibleCount).map((recipe, idx) => {
             // 재료 pill 10개 제한 + ... 처리
             const allIngredients = [
               ...recipe.need_ingredients.map((ing: string) => ({ ing, type: 'need' })),
@@ -302,9 +302,10 @@ const RecipeList = () => {
             return (
               <div
                 key={recipe.id}
-                className="bg-[#F8F8F8] border border-[#E5E5E5] rounded-[16px] shadow-sm p-4 min-h-[144px] relative mb-4"
+                className="rounded-[16px] shadow-sm p-4 min-h-[144px] relative mb-1 bg-white"
               >
-                {/* 제목 + 버튼 (카드 맨 위, 한 줄, ...중략, 옆의 작성자/날짜 제거) */}
+                <div className="font-bold text-[18px] text-[#222] text-left">{String(idx + 1).padStart(2, '0')}</div>
+                <div className="h-[2px] w-[20px] bg-[#E5E5E5] mb-2"></div>
                 <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', minWidth: '200px', flexShrink: 0 }}>
                   <div
                     style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '14.4px', fontWeight: 'bold', color: '#222', lineHeight: 1.2 }}
