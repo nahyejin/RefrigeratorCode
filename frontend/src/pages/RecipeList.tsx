@@ -152,7 +152,7 @@ function parseIngredientNames(csv: string): string[] {
 }
 
 const RecipeList = () => {
-  const [visibleCount, setVisibleCount] = useState(2);
+  const [visibleCount, setVisibleCount] = useState(10);
   const [sortType, setSortType] = useState('match');
   const [filterOpen, setFilterOpen] = useState(false);
   // 필터 상태
@@ -212,6 +212,9 @@ const RecipeList = () => {
   if (sortType === 'match') sortedRecipes.sort((a, b) => b.match_rate - a.match_rate);
   else if (sortType === 'expiry') sortedRecipes.sort((a, b) => 0); // TODO: 유통기한 임박순 정렬 구현 필요
 
+  // visibleCount와 sortedRecipes.length를 출력
+  console.log('visibleCount:', visibleCount, 'sortedRecipes.length:', sortedRecipes.length);
+
   // 버튼 클릭 핸들러 (토글, alert 1번만)
   const handleButtonClick = (id: number, type: 'done' | 'share' | 'write', recipe: any) => {
     const prevState = buttonStates[id] || {};
@@ -256,7 +259,7 @@ const RecipeList = () => {
   return (
     <>
       <TopNavBar />
-      <div className="max-w-[430px] mx-auto pb-20 pt-4 px-2 bg-white min-h-screen">
+      <div className="max-w-[430px] mx-auto pb-20 pt-4 px-2 bg-white" style={{ minHeight: '100vh', boxSizing: 'border-box' }}>
         <h2 className="text-lg font-bold mb-4 text-center">내 냉장고 기반 레시피 추천</h2>
         {/* 정렬/필터 바 */}
         <div className="flex gap-2 mb-4 items-center">
@@ -291,7 +294,7 @@ const RecipeList = () => {
           />
         )}
         <div className="flex flex-col gap-2">
-          {sortedRecipes.slice(0, visibleCount).map((recipe, idx) => {
+          {sortedRecipes.slice(0, visibleCount).map((recipe, idx, arr) => {
             // 재료 pill 10개 제한 + ... 처리
             const allIngredients = [
               ...recipe.need_ingredients.map((ing: string) => ({ ing, type: 'need' })),
@@ -303,6 +306,7 @@ const RecipeList = () => {
               <div
                 key={recipe.id}
                 className="rounded-[16px] shadow-sm p-4 min-h-[144px] relative mb-1 bg-white"
+                style={idx === arr.length - 1 ? { marginBottom: 40 } : {}}
               >
                 <div className="font-bold text-[18px] text-[#222] text-left">{String(idx + 1).padStart(2, '0')}</div>
                 <div className="h-[2px] w-[20px] bg-[#E5E5E5] mb-2"></div>
