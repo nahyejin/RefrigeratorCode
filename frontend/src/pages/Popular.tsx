@@ -218,6 +218,14 @@ const Popular = () => {
     setTimeout(() => setToast(''), 1500);
   };
 
+  // 기간 워딩 함수
+  const getPeriodText = (period: string) => {
+    if (period === 'today') return '전일대비 게시글량';
+    if (period === 'week') return '전주대비 게시글량';
+    if (period === 'month') return '전달대비 게시글량';
+    return '기간대비 게시글량';
+  };
+
   return (
     <>
       <TopNavBar />
@@ -366,7 +374,7 @@ const Popular = () => {
                   </div>
                 </div>
                 <div style={{padding: '16px 16px 12px 16px'}}>
-                  <div style={{fontWeight: 700, fontSize: 16, marginBottom: 4}}>{recipe.rank}위 {recipe.title}</div>
+                  <div style={{fontWeight: 700, fontSize: 16, marginBottom: 4}}>{recipe.title}</div>
                   <div style={{fontSize: 13, color: '#888', marginBottom: 4}}>좋아요 {recipe.like} · 댓글 {recipe.comment}</div>
                   <div style={{display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 4}}>
                     {recipe.mainIngredients.map((i) => (
@@ -404,9 +412,13 @@ const Popular = () => {
                   </div>
                 </div>
                 <div style={{padding: '16px 16px 12px 16px'}}>
-                  <div style={{fontWeight: 700, fontSize: 16, marginBottom: 4}}>{i.rank}위 {i.name}</div>
-                  <div style={{fontSize: 13, color: '#888', marginBottom: 4}}>관련 레시피 {i.count}건</div>
-                  <div style={{fontSize: 13, color: '#888'}}>기간대비 {i.rate}% 상승</div>
+                  <div style={{fontWeight: 700, fontSize: 16, marginBottom: 4}}>{i.name}</div>
+                  <div style={{fontSize: 13, color: '#888', marginBottom: 4}}>
+                    관련 레시피 <b style={{fontWeight:700}}>총 {i.count}건</b>
+                  </div>
+                  <div style={{fontSize: 13, color: '#888'}}>
+                    {getPeriodText(period)} <b style={{fontWeight:700}}>{i.rate}% 상승</b>
+                  </div>
                 </div>
               </div>
             ))}
@@ -430,9 +442,13 @@ const Popular = () => {
                   </div>
                 </div>
                 <div style={{padding: '16px 16px 12px 16px'}}>
-                  <div style={{fontWeight: 700, fontSize: 16, marginBottom: 4}}>{t.rank}위 {t.name}</div>
-                  <div style={{fontSize: 13, color: '#888', marginBottom: 4}}>관련 레시피 {t.count}건</div>
-                  <div style={{fontSize: 13, color: '#888'}}>기간대비 {t.rate}% 상승</div>
+                  <div style={{fontWeight: 700, fontSize: 16, marginBottom: 4}}>{t.name}</div>
+                  <div style={{fontSize: 13, color: '#888', marginBottom: 4}}>
+                    관련 레시피 <b style={{fontWeight:700}}>총 {t.count}건</b>
+                  </div>
+                  <div style={{fontSize: 13, color: '#888'}}>
+                    {getPeriodText(period)} <b style={{fontWeight:700}}>{t.rate}% 상승</b>
+                  </div>
                 </div>
               </div>
             ))}
