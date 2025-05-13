@@ -115,23 +115,17 @@ html, body, #root {
 
 /* 새로운 스크롤바 스타일 */
 .custom-scrollbar {
-  scrollbar-width: thin;
-  scrollbar-color: #b0b0b0 #e5e7eb !important;
+  scrollbar-width: none !important;
 }
 .custom-scrollbar::-webkit-scrollbar {
-  width: 12px !important;
-  background: #e5e7eb !important;
-  border-radius: 8px !important;
+  display: none !important;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #b0b0b0 !important;
-  border-radius: 8px !important;
-  min-height: 32px !important;
-  border: 2px solid #e5e7eb !important;
+  background: transparent !important;
+  border: none !important;
 }
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: #e5e7eb !important;
-  border-radius: 8px !important;
+  background: transparent !important;
 }
 
 img, svg {
