@@ -144,7 +144,7 @@ const MyPage = () => {
         >내 정보 수정 <span style={{fontFamily:'inherit', fontWeight:500, fontSize:15, color:'#fff', marginLeft:2}}>〉</span></button>
       </section>
       {/* 내가 기록한 레시피 */}
-      <div className="flex items-center justify-between mb-2 ml-2">
+      <div className="flex items-center justify-between mb-2 ml-8">
         <h2 className="text-[16px] font-bold text-[#111] flex items-center gap-1">
           내가 기록한 레시피
           <img src={writeIcon} alt="기록 아이콘" className="inline-block align-middle" style={{width: 18, height: 18, marginLeft: 4, marginBottom: 2}} />
@@ -157,8 +157,8 @@ const MyPage = () => {
           〉
         </button>
       </div>
-      <div style={{height: '2px', width: '100%', background: '#E5E5E5', marginBottom: 16}} />
-      <div className="flex gap-2 overflow-x-auto pb-2 px-2 custom-scrollbar">
+      <div style={{height: '2px', width: 'calc(100% - 1.5rem)', background: '#E5E5E5', marginBottom: 16, marginLeft: 24}} />
+      <div className="flex gap-2 overflow-x-auto pb-2 px-2 ml-6 custom-scrollbar">
         {dummyRecorded.map(r => (
           <div key={r.id} className="min-w-[210px] max-w-[210px] bg-white rounded-xl shadow p-1 flex flex-col gap-1 relative border border-gray-100">
             <div className="relative">
@@ -167,7 +167,7 @@ const MyPage = () => {
               <div className="absolute bg-[#444] bg-opacity-90 text-white font-bold rounded px-1.5 py-0 flex items-center gap-1 shadow" style={{position:'absolute', top:0, left:0, fontSize:11, zIndex:2}}>
                 재료 매칭률 <span className="text-[#FFD600] font-extrabold ml-1">{r.match}%</span>
               </div>
-              {/* Overlay action buttons: 완료하기, 공유하기 */}
+              {/* Overlay action buttons: 완료하기, 공유하기, 기록하기 */}
               <div style={{position:'absolute', right:8, bottom:8, display:'flex', flexDirection:'row', gap:6, alignItems:'center', zIndex:2}}>
                 <span style={{position:'relative', zIndex:2}}>
                   <span style={{position:'absolute', left:0, top:0, width:26, height:26, borderRadius:'50%', background:'rgba(34,34,34,0.7)', zIndex:1}}></span>
@@ -181,6 +181,12 @@ const MyPage = () => {
                     <img src={공유하기버튼} alt="공유" width={19} height={19} style={{display:'block', position:'relative', zIndex:2}} />
                   </button>
                 </span>
+                <span style={{position:'relative', zIndex:2}}>
+                  <span style={{position:'absolute', left:0, top:0, width:26, height:26, borderRadius:'50%', background:'rgba(34,34,34,0.7)', zIndex:1}}></span>
+                  <button title="기록" tabIndex={0} style={{width:26, height:26, display:'flex', alignItems:'center', justifyContent:'center', background:'none', border:'none', padding:0, cursor:'pointer', outline:'none', position:'relative', zIndex:2}} onClick={() => handleWriteClick(r.id)}>
+                    <img src={기록하기버튼} alt="기록" width={19} height={19} style={{display:'block', position:'relative', zIndex:2, opacity: writeStates[r.id] ? 1 : 0.5}} />
+                  </button>
+                </span>
               </div>
             </div>
             <div className="font-bold text-[13px] line-clamp-2 mt-1">{r.title}</div>
@@ -188,7 +194,7 @@ const MyPage = () => {
         ))}
       </div>
       {/* 내가 완료한 레시피 */}
-      <div className="flex items-center justify-between mb-2 ml-2">
+      <div className="flex items-center justify-between mb-2 ml-8 mt-8">
         <h2 className="text-[16px] font-bold text-[#111] flex items-center gap-1">
           내가 완료한 레시피
           <img src={doneIcon} alt="완료 아이콘" className="inline-block align-middle" style={{width: 18, height: 18, marginLeft: 4, marginBottom: 2}} />
@@ -201,8 +207,8 @@ const MyPage = () => {
           〉
         </button>
       </div>
-      <div style={{height: '2px', width: '100%', background: '#E5E5E5', marginBottom: 16}} />
-      <div className="flex gap-2 overflow-x-auto pb-2 px-2 custom-scrollbar">
+      <div style={{height: '2px', width: 'calc(100% - 1.5rem)', background: '#E5E5E5', marginBottom: 16, marginLeft: 24}} />
+      <div className="flex gap-2 overflow-x-auto pb-2 px-2 ml-6 custom-scrollbar">
         {dummyCompleted.map(r => (
           <div key={r.id} className="min-w-[210px] max-w-[210px] bg-white rounded-xl shadow p-1 flex flex-col gap-1 relative border border-gray-100">
             <div className="relative">
@@ -211,8 +217,14 @@ const MyPage = () => {
               <div className="absolute bg-[#444] bg-opacity-90 text-white font-bold rounded px-1.5 py-0 flex items-center gap-1 shadow" style={{position:'absolute', top:0, left:0, fontSize:11, zIndex:2}}>
                 재료 매칭률 <span className="text-[#FFD600] font-extrabold ml-1">{r.match}%</span>
               </div>
-              {/* Overlay action buttons: 공유하기, 기록하기 */}
+              {/* Overlay action buttons: 완료하기, 공유하기, 기록하기 */}
               <div style={{position:'absolute', right:8, bottom:8, display:'flex', flexDirection:'row', gap:6, alignItems:'center', zIndex:2}}>
+                <span style={{position:'relative', zIndex:2}}>
+                  <span style={{position:'absolute', left:0, top:0, width:26, height:26, borderRadius:'50%', background:'rgba(34,34,34,0.7)', zIndex:1}}></span>
+                  <button title="완료" tabIndex={0} style={{width:26, height:26, display:'flex', alignItems:'center', justifyContent:'center', background:'none', border:'none', padding:0, cursor:'pointer', outline:'none', position:'relative', zIndex:2}} onClick={() => handleDoneClick(r.id)}>
+                    <img src={완료하기버튼} alt="완료" width={19} height={19} style={{display:'block', position:'relative', zIndex:2, opacity: doneStates[r.id] ? 1 : 0.5}} />
+                  </button>
+                </span>
                 <span style={{position:'relative', zIndex:2}}>
                   <span style={{position:'absolute', left:0, top:0, width:26, height:26, borderRadius:'50%', background:'rgba(34,34,34,0.7)', zIndex:1}}></span>
                   <button title="공유" tabIndex={0} style={{width:26, height:26, display:'flex', alignItems:'center', justifyContent:'center', background:'none', border:'none', padding:0, cursor:'pointer', outline:'none', position:'relative', zIndex:2}} onClick={handleShareClick}>

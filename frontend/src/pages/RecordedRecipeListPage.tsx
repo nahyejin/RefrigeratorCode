@@ -8,6 +8,7 @@ import shareIcon from '../assets/share.svg';
 import 기록하기버튼 from '../assets/기록하기버튼.svg';
 import 완료하기버튼 from '../assets/완료하기버튼.svg';
 import 공유하기버튼 from '../assets/공유하기버튼.svg';
+import BottomNavBar from '../components/BottomNavBar';
 
 const dummyRecorded = [
   {
@@ -166,7 +167,7 @@ const RecordedRecipeListPage = () => {
             </div>
           ))}
         </div>
-        {/* Toast Popup */}
+        <BottomNavBar activeTab="mypage" />
         {toast && (
           <div style={{
             position: 'fixed',
