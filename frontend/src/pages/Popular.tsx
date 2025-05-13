@@ -18,9 +18,11 @@ const dummyRecipes = [
     title: "요즘 핫한 감자전 레시피",
     like: 110,
     comment: 13,
-    mainIngredients: ["감자", "양파"],
+    mainIngredients: [
+      "감자", "양파", "전분", "소금", "후추", "식용유", "당근", "파프리카", "베이컨", "치즈"
+    ],
     needToBuy: ["전분"],
-    substitutes: ["고구마"],
+    substitutes: ["고구마→감자", "전분→감자"],
   },
   {
     id: 2,
@@ -29,9 +31,11 @@ const dummyRecipes = [
     title: "다이어트 김밥 만들기",
     like: 90,
     comment: 10,
-    mainIngredients: ["오이", "김"],
+    mainIngredients: [
+      "오이", "김", "밥", "당근", "계란", "참치", "마요네즈", "시금치", "단무지", "햄"
+    ],
     needToBuy: ["밥"],
-    substitutes: ["당근"],
+    substitutes: ["당근→오이", "밥→곤약밥"],
   },
   {
     id: 3,
@@ -40,9 +44,11 @@ const dummyRecipes = [
     title: "황태해장국",
     like: 80,
     comment: 9,
-    mainIngredients: ["황태", "무"],
+    mainIngredients: [
+      "황태", "무", "대파", "달걀", "마늘", "국간장", "참기름", "후추", "청양고추", "두부"
+    ],
     needToBuy: ["대파"],
-    substitutes: ["두부"],
+    substitutes: ["두부→황태", "청양고추→고추"],
   },
 ];
 
@@ -152,6 +158,18 @@ const Popular = () => {
 
   // 각 레시피별 완료/기록 상태 관리
   const [buttonStates, setButtonStates] = useState<{ [id: number]: { done: boolean; write: boolean } }>({});
+
+  // 내 냉장고 재료 불러오기 (RecipeList.tsx와 동일)
+  function getMyIngredients() {
+    try {
+      const data = JSON.parse(localStorage.getItem('myfridge_ingredients') || 'null');
+      if (data && Array.isArray(data.frozen) && Array.isArray(data.fridge) && Array.isArray(data.room)) {
+        return [...data.frozen, ...data.fridge, ...data.room].map(i => (typeof i === 'string' ? i : i.name));
+      }
+    } catch {}
+    return [];
+  }
+  const myIngredients = getMyIngredients();
 
   useEffect(() => {
     fetch('/ingredient_profile_dict_with_substitutes.csv')
@@ -376,19 +394,67 @@ const Popular = () => {
                 <div style={{padding: '16px 16px 12px 16px'}}>
                   <div style={{fontWeight: 700, fontSize: 16, marginBottom: 4}}>{recipe.title}</div>
                   <div style={{fontSize: 13, color: '#888', marginBottom: 4}}>좋아요 {recipe.like} · 댓글 {recipe.comment}</div>
-                  <div style={{display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 4}}>
-                    {recipe.mainIngredients.map((i) => (
-                      <span key={i} style={{fontSize: 12, background: '#f3f3f3', borderRadius: 12, padding: '2px 8px'}}>{i}</span>
-                    ))}
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexWrap: 'nowrap',
+                      gap: 4,
+                      marginBottom: 4,
+                      overflowX: 'auto',
+                      maxWidth: '100%',
+                      scrollbarWidth: 'auto',
+                      alignItems: 'center',
+                      paddingBottom: 4,
+                    }}
+                    className="custom-scrollbar pr-1"
+                  >
+                    {(() => {
+                      const recipeSet = new Set(recipe.mainIngredients);
+                      const mySet = new Set(myIngredients);
+                      const needIngredients = recipe.mainIngredients.filter(i => !mySet.has(i));
+                      const haveIngredients = recipe.mainIngredients.filter(i => mySet.has(i));
+                      return [
+                        ...needIngredients.map(i => (
+                          <span
+                            key={i}
+                            className="bg-[#D1D1D1] text-white rounded-full px-3 py-0.5 font-medium"
+                            style={{ fontSize: '10.4px', lineHeight: 1.3, whiteSpace: 'nowrap', height: 22, display: 'inline-flex', alignItems: 'center' }}
+                          >
+                            {i}
+                          </span>
+                        )),
+                        ...haveIngredients.map(i => (
+                          <span
+                            key={i}
+                            className="bg-[#555] text-white rounded-full px-3 py-0.5 font-medium"
+                            style={{ fontSize: '10.4px', lineHeight: 1.3, whiteSpace: 'nowrap', height: 22, display: 'inline-flex', alignItems: 'center' }}
+                          >
+                            {i}
+                          </span>
+                        ))
+                      ];
+                    })()}
                   </div>
-                  <div style={{display: 'flex', flexWrap: 'wrap', gap: 4}}>
-                    {recipe.needToBuy.map((i) => (
-                      <span key={i} style={{fontSize: 12, background: '#ffe0b2', borderRadius: 12, padding: '2px 8px'}}>사야함:{i}</span>
-                    ))}
-                    {recipe.substitutes.map((i) => (
-                      <span key={i} style={{fontSize: 12, background: '#e0f7fa', borderRadius: 12, padding: '2px 8px'}}>대체:{i}</span>
-                    ))}
-                  </div>
+                  {/* 대체재 */}
+                  {recipe.substitutes && recipe.substitutes.length > 0 && (
+                    <div
+                      className="mt-1 custom-scrollbar pr-1"
+                      style={{
+                        display: 'flex',
+                        flexWrap: 'nowrap',
+                        gap: 4,
+                        overflowX: 'auto',
+                        maxWidth: '100%',
+                        alignItems: 'center',
+                        paddingBottom: 4,
+                      }}
+                    >
+                      <span className="bg-[#FFE066] text-[#444] rounded px-3 py-1 font-bold" style={{ fontSize: '12px', flex: '0 0 auto' }}>대체 가능 :</span>
+                      {recipe.substitutes.map((sub, idx) => (
+                        <span key={sub} className="ml-2 font-semibold text-[#444]" style={{ fontSize: '12px', flex: '0 0 auto' }}>{sub}</span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}

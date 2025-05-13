@@ -306,7 +306,10 @@ const RecipeList = () => {
               <div
                 key={recipe.id}
                 className="rounded-[16px] shadow-sm p-4 min-h-[144px] relative mb-1 bg-white"
-                style={idx === arr.length - 1 ? { marginBottom: 40 } : {}}
+                style={{
+                  ...(idx === arr.length - 1 ? { marginBottom: 40 } : {}),
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
+                }}
               >
                 <div className="font-bold text-[18px] text-[#222] text-left">{String(idx + 1).padStart(2, '0')}</div>
                 <div className="h-[2px] w-[20px] bg-[#E5E5E5] mb-2"></div>
