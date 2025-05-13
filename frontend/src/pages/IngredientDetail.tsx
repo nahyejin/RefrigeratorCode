@@ -314,7 +314,61 @@ function fetchRecipesDummy(name?: string): Promise<any[]> {
     ],
   };
   const key = name || '두릅';
-  return Promise.resolve(dataMap[key] || dataMap['두릅']);
+  if (dataMap[key]) {
+    return Promise.resolve(dataMap[key]);
+  } else {
+    // 동적 예시 4개 생성
+    return Promise.resolve([
+      {
+        id: 1,
+        thumbnail: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80',
+        title: `${key}가 들어간 예시 레시피`,
+        body: `이것은 ${key}가 포함된 예시 레시피입니다.`,
+        used_ingredients: `${key},소금,후추,마늘,양파`,
+        author: '예시봇',
+        date: '25-05-15',
+        like: 1,
+        comment: 0,
+        substitutes: [`${key}→다른재료`],
+      },
+      {
+        id: 2,
+        thumbnail: 'https://images.unsplash.com/photo-1502741338009-cac2772e18bc?auto=format&fit=crop&w=400&q=80',
+        title: `${key}로 만든 초간단 볶음`,
+        body: `${key}와 채소를 활용한 간단 볶음 레시피입니다.`,
+        used_ingredients: `${key},당근,양파,간장,설탕,참기름`,
+        author: '예시봇',
+        date: '25-05-15',
+        like: 2,
+        comment: 1,
+        substitutes: [`${key}→비슷한재료`],
+      },
+      {
+        id: 3,
+        thumbnail: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80',
+        title: `${key} 활용 영양만점 반찬`,
+        body: `${key}를 활용한 영양만점 반찬 레시피입니다.`,
+        used_ingredients: `${key},계란,파,마늘,참기름,깨소금`,
+        author: '예시봇',
+        date: '25-05-15',
+        like: 3,
+        comment: 2,
+        substitutes: [`${key}→다른반찬재료`],
+      },
+      {
+        id: 4,
+        thumbnail: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80',
+        title: `${key}로 만드는 건강 샐러드`,
+        body: `${key}와 신선한 채소로 만드는 건강 샐러드 레시피입니다.`,
+        used_ingredients: `${key},상추,오이,방울토마토,드레싱`,
+        author: '예시봇',
+        date: '25-05-15',
+        like: 4,
+        comment: 0,
+        substitutes: [`${key}→샐러드재료`],
+      },
+    ]);
+  }
 }
 
 function getMyIngredients(): string[] {
@@ -471,7 +525,7 @@ const IngredientDetail = () => {
         </div>
       </header>
       <div className="max-w-[430px] mx-auto pb-20 pt-4 px-2 bg-white" style={{ minHeight: '100vh', boxSizing: 'border-box' }}>
-        <h2 className="text-lg font-bold mb-4 text-center">{name} 인기 레시피 TOP30</h2>
+        <h2 className="text-lg font-bold mb-4 text-center">{name} 관련 인기 레시피 TOP30</h2>
         {/* 정렬/필터 바 */}
         <div className="flex gap-2 mb-4 items-center">
           <select

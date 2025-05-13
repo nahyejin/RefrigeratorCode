@@ -573,8 +573,8 @@ const Popular = () => {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                // 검색결과 페이지로 이동
+              if (e.key === "Enter" && search.trim()) {
+                navigate(`/ingredient/${encodeURIComponent(search.trim())}`);
               }
             }}
           />
