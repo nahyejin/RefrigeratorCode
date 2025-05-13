@@ -1,0 +1,203 @@
+import React, { useState } from 'react';
+
+// 카테고리별 키워드(RecipeList.tsx에서 복사)
+const FILTER_KEYWORDS = {
+  효능: [
+    { title: '다이어트/체중조절/식이조절', keywords: ['저지방', '저칼로리', '저당', '무설탕', '무염', '고단백', '다이어트', '포만감', '칼로리', '글레스테롤', '무염', '저염', '무가당'] },
+    { title: '소화·배변·영양 흡수', keywords: ['소화', '변비', '식이섬유'] },
+    { title: '노화·피부·세포 관련', keywords: ['노화', '저속노화', '주름개선', '항산화', '세포벽'] },
+    { title: '면역·활력·에너지 회복', keywords: ['면역력', '에너지', '신진대사', '컨디션', '피로'] },
+    { title: '해독·순환·디톡스', keywords: ['디톡스', '숙취해소', '혈액순환', '독소'] },
+    { title: '질환·염증·호흡기', keywords: ['염증완화', '질환', '기관지', '호흡기', '세균'] },
+    { title: '성분 특성/영양제어', keywords: ['단백질', '글루텐', '무염', '무설탕', '비정제원당'] },
+    { title: '건강식·한방·보양식', keywords: ['건강', '보양', '보양음식', '약재', '한방'] },
+    { title: '식이제한/특수식단', keywords: ['채식', '당뇨', '글루텐'] },
+    { title: '수면·신경 안정', keywords: ['불면증'] },
+  ],
+  영양분: [
+    { title: '', keywords: ['단백질', '아미노산', '오메가', '타우린', '카페인', '비타민', '비타민C', '비타민B', '비타민D', '미네랄', '무기질', '칼슘', '칼륨', '아연', '식이섬유', '그래놀라', '탄수화물'] },
+  ],
+  대상: [
+    { title: '', keywords: ['부모님', '남편', '와이프', '아이', '가족', '어르신', '직장인', '환자'] },
+  ],
+  TPO: [
+    { title: '용도', keywords: ['반찬', '술안주', '와인', '소풍'] },
+    { title: '시간대', keywords: ['주말', '아침', '브런치', '간식', '점심', '저녁', '야식'] },
+    { title: '상황/장소', keywords: ['운동전', '운동후', '캠핑', '명절', '생일', '추억', '소풍', '잔치상', '여행'] },
+    { title: '난이도', keywords: ['초간단', '심플한', '난이도하', '초보', '즉석', '귀차니즘'] },
+    { title: '계절·시기', keywords: ['봄', '여름', '가을', '겨울', '환절기', '초복', '중복', '말복', '동지'] },
+  ],
+  스타일: [
+    { title: '', keywords: ['이국', '프랑스', '이탈리안', '스페인', '멕시코', '지중해', '프랑스', '중화', '베트남', '그리스', '서양', '태국', '동남아', '일본', '전통', '강원도', '경양식', '궁중', '경상도', '전라도', '황해도', '키토', '가니쉬', '오마카세'] },
+  ],
+};
+
+export type FilterState = {
+  효능: string[];
+  영양분: string[];
+  대상: string[];
+  TPO: string[];
+  스타일: string[];
+};
+
+interface FilterModalProps {
+  open: boolean;
+  onClose: () => void;
+  filterState: FilterState;
+  setFilterState: (f: FilterState) => void;
+  includeInput: string;
+  setIncludeInput: (v: string) => void;
+  excludeInput: string;
+  setExcludeInput: (v: string) => void;
+  allIngredients: string[];
+}
+
+const FilterModal: React.FC<FilterModalProps> = ({ open, onClose, filterState, setFilterState, includeInput, setIncludeInput, excludeInput, setExcludeInput, allIngredients }) => {
+  const [includeFocus, setIncludeFocus] = useState(false);
+  const [excludeFocus, setExcludeFocus] = useState(false);
+  const includeCandidates = allIngredients.filter(i => i && i.includes(includeInput) && includeInput && i !== includeInput);
+  const excludeCandidates = allIngredients.filter(i => i && i.includes(excludeInput) && excludeInput && i !== excludeInput);
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-30 flex items-start justify-center z-50">
+      <div className="bg-white rounded-xl shadow-lg p-6 w-[340px] max-w-[95vw] relative mt-12 mb-24" style={{maxHeight: 'calc(100vh - 144px)', overflowY: 'auto'}}>
+        <span className="absolute top-3 right-3 w-6 h-6 text-gray-400 text-xl cursor-pointer select-none" onClick={onClose} role="button" aria-label="닫기">×</span>
+        <div className="text-center font-bold text-[12.8px] mb-2">필터 기능을 선택해주세요</div>
+        <hr className="my-2" />
+        <div className="mt-2">
+          <div className="font-bold text-[11.2px] mb-1">■ 꼭 포함할 재료</div>
+          <div className="relative mb-2">
+            <input
+              className="w-full border rounded px-3 py-2 text-sm"
+              placeholder="예: 닭고기"
+              value={includeInput}
+              onChange={e => setIncludeInput(e.target.value)}
+              onFocus={() => setIncludeFocus(true)}
+              onBlur={() => setTimeout(() => setIncludeFocus(false), 150)}
+            />
+            {includeFocus && includeCandidates.length > 0 && (
+              <ul className="absolute left-0 right-0 bg-white border border-gray-200 rounded-lg mt-1 shadow z-10 max-h-32 overflow-y-auto">
+                {includeCandidates.map(item => (
+                  <li
+                    key={item}
+                    className="px-4 py-2 hover:bg-[#f4f0e6] cursor-pointer text-[12px]"
+                    onMouseDown={() => { setIncludeInput(item); setIncludeFocus(false); }}
+                  >{item}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+          <div className="font-bold text-[11.2px] mt-4 mb-1">■ 꼭 제외할 재료</div>
+          <div className="relative">
+            <input
+              className="w-full border rounded px-3 py-2 text-sm"
+              placeholder="예: 우유"
+              value={excludeInput}
+              onChange={e => setExcludeInput(e.target.value)}
+              onFocus={() => setExcludeFocus(true)}
+              onBlur={() => setTimeout(() => setExcludeFocus(false), 150)}
+            />
+            {excludeFocus && excludeCandidates.length > 0 && (
+              <ul className="absolute left-0 right-0 bg-white border border-gray-200 rounded-lg mt-1 shadow z-10 max-h-32 overflow-y-auto">
+                {excludeCandidates.map(item => (
+                  <li
+                    key={item}
+                    className="px-4 py-2 hover:bg-[#f4f0e6] cursor-pointer text-[12px]"
+                    onMouseDown={() => { setExcludeInput(item); setExcludeFocus(false); }}
+                  >{item}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+        {/* 카테고리별 태그 */}
+        <div className="mt-4">
+          {/* 효능 */}
+          <div className="font-bold text-[11.2px] mt-4 mb-2">■ 요리 효능</div>
+          {FILTER_KEYWORDS.효능.map((group, idx) => (
+            <div key={group.title + idx} className="mb-1">
+              {group.title && <div className="text-[10px] font-semibold text-[#444] mb-1 ml-1">- {group.title}</div>}
+              <div className="flex flex-wrap gap-1 mb-1">
+                {group.keywords.map(kw => (
+                  <button
+                    key={kw}
+                    className={`rounded-full px-3 py-0.5 font-medium text-[10.4px] mb-1 transition-colors ${filterState.효능.includes(kw) ? 'bg-[#555] text-white' : 'bg-[#F8F8F8] text-[#555]'}`}
+                    onClick={() => setFilterState({ ...filterState, 효능: filterState.효능.includes(kw) ? filterState.효능.filter(x => x !== kw) : [...filterState.효능, kw] })}
+                  >{kw}</button>
+                ))}
+              </div>
+            </div>
+          ))}
+          {/* 영양분 */}
+          <div className="font-bold text-[11.2px] mt-4 mb-2">■ 요리 영양분</div>
+          {FILTER_KEYWORDS.영양분.map((group, idx) => (
+            <div key={group.title + idx} className="mb-1">
+              {group.title && <div className="text-[10px] font-semibold text-[#444] mb-1 ml-1">- {group.title}</div>}
+              <div className="flex flex-wrap gap-1 mb-1">
+                {group.keywords.map(kw => (
+                  <button
+                    key={kw}
+                    className={`rounded-full px-3 py-0.5 font-medium text-[10.4px] mb-1 transition-colors ${filterState.영양분.includes(kw) ? 'bg-[#555] text-white' : 'bg-[#F8F8F8] text-[#555]'}`}
+                    onClick={() => setFilterState({ ...filterState, 영양분: filterState.영양분.includes(kw) ? filterState.영양분.filter(x => x !== kw) : [...filterState.영양분, kw] })}
+                  >{kw}</button>
+                ))}
+              </div>
+            </div>
+          ))}
+          {/* 식사 대상 */}
+          <div className="font-bold text-[11.2px] mt-4 mb-2">■ 요리 식사 대상</div>
+          {FILTER_KEYWORDS.대상.map((group, idx) => (
+            <div key={group.title + idx} className="mb-1">
+              {group.title && <div className="text-[10px] font-semibold text-[#444] mb-1 ml-1">- {group.title}</div>}
+              <div className="flex flex-wrap gap-1 mb-1">
+                {group.keywords.map(kw => (
+                  <button
+                    key={kw}
+                    className={`rounded-full px-3 py-0.5 font-medium text-[10.4px] mb-1 transition-colors ${filterState.대상.includes(kw) ? 'bg-[#555] text-white' : 'bg-[#F8F8F8] text-[#555]'}`}
+                    onClick={() => setFilterState({ ...filterState, 대상: filterState.대상.includes(kw) ? filterState.대상.filter(x => x !== kw) : [...filterState.대상, kw] })}
+                  >{kw}</button>
+                ))}
+              </div>
+            </div>
+          ))}
+          {/* TPO */}
+          <div className="font-bold text-[11.2px] mt-4 mb-2">■ 요리 TPO</div>
+          {FILTER_KEYWORDS.TPO.map((group, idx) => (
+            <div key={group.title + idx} className="mb-1">
+              {group.title && <div className="text-[10px] font-semibold text-[#444] mb-1 ml-1">- {group.title}</div>}
+              <div className="flex flex-wrap gap-1 mb-1">
+                {group.keywords.map(kw => (
+                  <button
+                    key={kw}
+                    className={`rounded-full px-3 py-0.5 font-medium text-[10.4px] mb-1 transition-colors ${filterState.TPO.includes(kw) ? 'bg-[#555] text-white' : 'bg-[#F8F8F8] text-[#555]'}`}
+                    onClick={() => setFilterState({ ...filterState, TPO: filterState.TPO.includes(kw) ? filterState.TPO.filter(x => x !== kw) : [...filterState.TPO, kw] })}
+                  >{kw}</button>
+                ))}
+              </div>
+            </div>
+          ))}
+          {/* 스타일 */}
+          <div className="font-bold text-[11.2px] mt-4 mb-2">■ 요리 스타일</div>
+          {FILTER_KEYWORDS.스타일.map((group, idx) => (
+            <div key={group.title + idx} className="mb-1">
+              {group.title && <div className="text-[10px] font-semibold text-[#444] mb-1 ml-1">- {group.title}</div>}
+              <div className="flex flex-wrap gap-1 mb-1">
+                {group.keywords.map(kw => (
+                  <button
+                    key={kw}
+                    className={`rounded-full px-3 py-0.5 font-medium text-[10.4px] mb-1 transition-colors ${filterState.스타일.includes(kw) ? 'bg-[#555] text-white' : 'bg-[#F8F8F8] text-[#555]'}`}
+                    onClick={() => setFilterState({ ...filterState, 스타일: filterState.스타일.includes(kw) ? filterState.스타일.filter(x => x !== kw) : [...filterState.스타일, kw] })}
+                  >{kw}</button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default FilterModal; 
