@@ -50,9 +50,11 @@ interface FilterModalProps {
   excludeInput: string;
   setExcludeInput: (v: string) => void;
   allIngredients: string[];
+  includeKeyword: string;
+  setIncludeKeyword: (v: string) => void;
 }
 
-const FilterModal: React.FC<FilterModalProps> = ({ open, onClose, filterState, setFilterState, includeInput, setIncludeInput, excludeInput, setExcludeInput, allIngredients }) => {
+const FilterModal: React.FC<FilterModalProps> = ({ open, onClose, filterState, setFilterState, includeInput, setIncludeInput, excludeInput, setExcludeInput, allIngredients, includeKeyword, setIncludeKeyword }) => {
   const [includeFocus, setIncludeFocus] = useState(false);
   const [excludeFocus, setExcludeFocus] = useState(false);
   const includeCandidates = allIngredients.filter(i => i && i.includes(includeInput) && includeInput && i !== includeInput);
@@ -62,138 +64,152 @@ const FilterModal: React.FC<FilterModalProps> = ({ open, onClose, filterState, s
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-30 flex items-start justify-center z-50">
-      <div className="bg-white rounded-xl shadow-lg p-6 w-[340px] max-w-[95vw] relative mt-12 mb-24" style={{maxHeight: 'calc(100vh - 144px)', overflowY: 'auto'}}>
-        <span className="absolute top-3 right-3 w-6 h-6 text-gray-400 text-xl cursor-pointer select-none" onClick={onClose} role="button" aria-label="닫기">×</span>
-        <div className="text-center font-bold text-[12.8px] mb-2">필터 기능을 선택해주세요</div>
-        <hr className="my-2" />
-        <div className="mt-2">
-          <div className="font-bold text-[11.2px] mb-1">■ 꼭 포함할 재료</div>
-          <div className="relative mb-2">
-            <input
-              className="w-full border rounded px-3 py-2 text-sm"
-              placeholder="예: 닭고기"
-              value={includeInput}
-              onChange={e => setIncludeInput(e.target.value)}
-              onFocus={() => setIncludeFocus(true)}
-              onBlur={() => setTimeout(() => setIncludeFocus(false), 150)}
-            />
-            {includeFocus && includeCandidates.length > 0 && (
-              <ul className="absolute left-0 right-0 bg-white border border-gray-200 rounded-lg mt-1 shadow z-10 max-h-32 overflow-y-auto">
-                {includeCandidates.map(item => (
-                  <li
-                    key={item}
-                    className="px-4 py-2 hover:bg-[#f4f0e6] cursor-pointer text-[12px]"
-                    onMouseDown={() => { setIncludeInput(item); setIncludeFocus(false); }}
-                  >{item}</li>
-                ))}
-              </ul>
-            )}
-          </div>
-          <div className="font-bold text-[11.2px] mt-4 mb-1">■ 꼭 제외할 재료</div>
-          <div className="relative">
-            <input
-              className="w-full border rounded px-3 py-2 text-sm"
-              placeholder="예: 우유"
-              value={excludeInput}
-              onChange={e => setExcludeInput(e.target.value)}
-              onFocus={() => setExcludeFocus(true)}
-              onBlur={() => setTimeout(() => setExcludeFocus(false), 150)}
-            />
-            {excludeFocus && excludeCandidates.length > 0 && (
-              <ul className="absolute left-0 right-0 bg-white border border-gray-200 rounded-lg mt-1 shadow z-10 max-h-32 overflow-y-auto">
-                {excludeCandidates.map(item => (
-                  <li
-                    key={item}
-                    className="px-4 py-2 hover:bg-[#f4f0e6] cursor-pointer text-[12px]"
-                    onMouseDown={() => { setExcludeInput(item); setExcludeFocus(false); }}
-                  >{item}</li>
-                ))}
-              </ul>
-            )}
-          </div>
+      <div className="bg-white rounded-xl shadow-lg w-[340px] max-w-[95vw] relative mt-12 mb-24" style={{maxHeight: 'calc(100vh - 144px)', overflowY: 'auto'}}>
+        <div className="sticky top-0 z-10 bg-white border-b border-gray-200" style={{paddingTop: 24, backgroundColor: '#fff', opacity: 1, minHeight: 64}}>
+          <span className="absolute top-3 right-3 w-6 h-6 text-gray-400 text-xl cursor-pointer select-none" onClick={onClose} role="button" aria-label="닫기" style={{zIndex: 20}}>×</span>
+          <div className="text-center font-bold text-[12.8px] mb-2 pt-2">필터를 설정해 주세요</div>
         </div>
-        {/* 카테고리별 태그 */}
-        <div className="mt-4">
-          {/* 효능 */}
-          <div className="font-bold text-[11.2px] mt-4 mb-2">■ 요리 효능</div>
-          {FILTER_KEYWORDS.효능.map((group, idx) => (
-            <div key={group.title + idx} className="mb-1">
-              {group.title && <div className="text-[10px] font-semibold text-[#444] mb-1 ml-1">- {group.title}</div>}
-              <div className="flex flex-wrap gap-1 mb-1">
-                {group.keywords.map(kw => (
-                  <button
-                    key={kw}
-                    className={`rounded-full px-3 py-0.5 font-medium text-[10.4px] mb-1 transition-colors ${filterState.효능.includes(kw) ? 'bg-[#555] text-white' : 'bg-[#F8F8F8] text-[#555]'}`}
-                    onClick={() => setFilterState({ ...filterState, 효능: filterState.효능.includes(kw) ? filterState.효능.filter(x => x !== kw) : [...filterState.효능, kw] })}
-                  >{kw}</button>
-                ))}
-              </div>
+        <div className="p-6 mb-2">
+          <div className="mb-2">
+            <label className="block font-bold text-[11.2px] mb-1">
+              ■ 꼭 포함할 키워드 (게시글 제목 혹은 본문)
+            </label>
+            <input
+              className="w-full border rounded px-3 py-2 text-[10px]"
+              placeholder="예: 파스타"
+              value={includeKeyword}
+              onChange={e => setIncludeKeyword(e.target.value)}
+            />
+          </div>
+          <div className="mt-2">
+            <div className="font-bold text-[11.2px] mb-1">■ 꼭 포함할 재료</div>
+            <div className="relative mb-2">
+              <input
+                className="w-full border rounded px-3 py-2 text-[10px]"
+                placeholder="예: 닭고기"
+                value={includeInput}
+                onChange={e => setIncludeInput(e.target.value)}
+                onFocus={() => setIncludeFocus(true)}
+                onBlur={() => setTimeout(() => setIncludeFocus(false), 150)}
+              />
+              {includeFocus && includeCandidates.length > 0 && (
+                <ul className="absolute left-0 right-0 bg-white border border-gray-200 rounded-lg mt-1 shadow z-10 max-h-32 overflow-y-auto">
+                  {includeCandidates.map(item => (
+                    <li
+                      key={item}
+                      className="px-4 py-2 hover:bg-[#f4f0e6] cursor-pointer text-[12px]"
+                      onMouseDown={() => { setIncludeInput(item); setIncludeFocus(false); }}
+                    >{item}</li>
+                  ))}
+                </ul>
+              )}
             </div>
-          ))}
-          {/* 영양분 */}
-          <div className="font-bold text-[11.2px] mt-4 mb-2">■ 요리 영양분</div>
-          {FILTER_KEYWORDS.영양분.map((group, idx) => (
-            <div key={group.title + idx} className="mb-1">
-              {group.title && <div className="text-[10px] font-semibold text-[#444] mb-1 ml-1">- {group.title}</div>}
-              <div className="flex flex-wrap gap-1 mb-1">
-                {group.keywords.map(kw => (
-                  <button
-                    key={kw}
-                    className={`rounded-full px-3 py-0.5 font-medium text-[10.4px] mb-1 transition-colors ${filterState.영양분.includes(kw) ? 'bg-[#555] text-white' : 'bg-[#F8F8F8] text-[#555]'}`}
-                    onClick={() => setFilterState({ ...filterState, 영양분: filterState.영양분.includes(kw) ? filterState.영양분.filter(x => x !== kw) : [...filterState.영양분, kw] })}
-                  >{kw}</button>
-                ))}
-              </div>
+            <div className="font-bold text-[11.2px] mt-4 mb-1">■ 꼭 제외할 재료</div>
+            <div className="relative">
+              <input
+                className="w-full border rounded px-3 py-2 text-[10px]"
+                placeholder="예: 우유"
+                value={excludeInput}
+                onChange={e => setExcludeInput(e.target.value)}
+                onFocus={() => setExcludeFocus(true)}
+                onBlur={() => setTimeout(() => setExcludeFocus(false), 150)}
+              />
+              {excludeFocus && excludeCandidates.length > 0 && (
+                <ul className="absolute left-0 right-0 bg-white border border-gray-200 rounded-lg mt-1 shadow z-10 max-h-32 overflow-y-auto">
+                  {excludeCandidates.map(item => (
+                    <li
+                      key={item}
+                      className="px-4 py-2 hover:bg-[#f4f0e6] cursor-pointer text-[12px]"
+                      onMouseDown={() => { setExcludeInput(item); setExcludeFocus(false); }}
+                    >{item}</li>
+                  ))}
+                </ul>
+              )}
             </div>
-          ))}
-          {/* 식사 대상 */}
-          <div className="font-bold text-[11.2px] mt-4 mb-2">■ 요리 식사 대상</div>
-          {FILTER_KEYWORDS.대상.map((group, idx) => (
-            <div key={group.title + idx} className="mb-1">
-              {group.title && <div className="text-[10px] font-semibold text-[#444] mb-1 ml-1">- {group.title}</div>}
-              <div className="flex flex-wrap gap-1 mb-1">
-                {group.keywords.map(kw => (
-                  <button
-                    key={kw}
-                    className={`rounded-full px-3 py-0.5 font-medium text-[10.4px] mb-1 transition-colors ${filterState.대상.includes(kw) ? 'bg-[#555] text-white' : 'bg-[#F8F8F8] text-[#555]'}`}
-                    onClick={() => setFilterState({ ...filterState, 대상: filterState.대상.includes(kw) ? filterState.대상.filter(x => x !== kw) : [...filterState.대상, kw] })}
-                  >{kw}</button>
-                ))}
+          </div>
+          {/* 카테고리별 태그 */}
+          <div className="mt-4">
+            {/* 효능 */}
+            <div className="font-bold text-[11.2px] mt-4 mb-2">■ 요리 효능</div>
+            {FILTER_KEYWORDS.효능.map((group, idx) => (
+              <div key={group.title + idx} className="mb-1">
+                {group.title && <div className="text-[10px] font-semibold text-[#444] mb-1 ml-1">- {group.title}</div>}
+                <div className="flex flex-wrap gap-1 mb-1">
+                  {group.keywords.map(kw => (
+                    <button
+                      key={kw}
+                      className={`rounded-full px-3 py-0.5 font-medium text-[10.4px] mb-1 transition-colors ${filterState.효능.includes(kw) ? 'bg-[#555] text-white' : 'bg-[#F8F8F8] text-[#555]'}`}
+                      onClick={() => setFilterState({ ...filterState, 효능: filterState.효능.includes(kw) ? filterState.효능.filter(x => x !== kw) : [...filterState.효능, kw] })}
+                    >{kw}</button>
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
-          {/* TPO */}
-          <div className="font-bold text-[11.2px] mt-4 mb-2">■ 요리 TPO</div>
-          {FILTER_KEYWORDS.TPO.map((group, idx) => (
-            <div key={group.title + idx} className="mb-1">
-              {group.title && <div className="text-[10px] font-semibold text-[#444] mb-1 ml-1">- {group.title}</div>}
-              <div className="flex flex-wrap gap-1 mb-1">
-                {group.keywords.map(kw => (
-                  <button
-                    key={kw}
-                    className={`rounded-full px-3 py-0.5 font-medium text-[10.4px] mb-1 transition-colors ${filterState.TPO.includes(kw) ? 'bg-[#555] text-white' : 'bg-[#F8F8F8] text-[#555]'}`}
-                    onClick={() => setFilterState({ ...filterState, TPO: filterState.TPO.includes(kw) ? filterState.TPO.filter(x => x !== kw) : [...filterState.TPO, kw] })}
-                  >{kw}</button>
-                ))}
+            ))}
+            {/* 영양분 */}
+            <div className="font-bold text-[11.2px] mt-4 mb-2">■ 요리 영양분</div>
+            {FILTER_KEYWORDS.영양분.map((group, idx) => (
+              <div key={group.title + idx} className="mb-1">
+                {group.title && <div className="text-[10px] font-semibold text-[#444] mb-1 ml-1">- {group.title}</div>}
+                <div className="flex flex-wrap gap-1 mb-1">
+                  {group.keywords.map(kw => (
+                    <button
+                      key={kw}
+                      className={`rounded-full px-3 py-0.5 font-medium text-[10.4px] mb-1 transition-colors ${filterState.영양분.includes(kw) ? 'bg-[#555] text-white' : 'bg-[#F8F8F8] text-[#555]'}`}
+                      onClick={() => setFilterState({ ...filterState, 영양분: filterState.영양분.includes(kw) ? filterState.영양분.filter(x => x !== kw) : [...filterState.영양분, kw] })}
+                    >{kw}</button>
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
-          {/* 스타일 */}
-          <div className="font-bold text-[11.2px] mt-4 mb-2">■ 요리 스타일</div>
-          {FILTER_KEYWORDS.스타일.map((group, idx) => (
-            <div key={group.title + idx} className="mb-1">
-              {group.title && <div className="text-[10px] font-semibold text-[#444] mb-1 ml-1">- {group.title}</div>}
-              <div className="flex flex-wrap gap-1 mb-1">
-                {group.keywords.map(kw => (
-                  <button
-                    key={kw}
-                    className={`rounded-full px-3 py-0.5 font-medium text-[10.4px] mb-1 transition-colors ${filterState.스타일.includes(kw) ? 'bg-[#555] text-white' : 'bg-[#F8F8F8] text-[#555]'}`}
-                    onClick={() => setFilterState({ ...filterState, 스타일: filterState.스타일.includes(kw) ? filterState.스타일.filter(x => x !== kw) : [...filterState.스타일, kw] })}
-                  >{kw}</button>
-                ))}
+            ))}
+            {/* 식사 대상 */}
+            <div className="font-bold text-[11.2px] mt-4 mb-2">■ 요리 식사 대상</div>
+            {FILTER_KEYWORDS.대상.map((group, idx) => (
+              <div key={group.title + idx} className="mb-1">
+                {group.title && <div className="text-[10px] font-semibold text-[#444] mb-1 ml-1">- {group.title}</div>}
+                <div className="flex flex-wrap gap-1 mb-1">
+                  {group.keywords.map(kw => (
+                    <button
+                      key={kw}
+                      className={`rounded-full px-3 py-0.5 font-medium text-[10.4px] mb-1 transition-colors ${filterState.대상.includes(kw) ? 'bg-[#555] text-white' : 'bg-[#F8F8F8] text-[#555]'}`}
+                      onClick={() => setFilterState({ ...filterState, 대상: filterState.대상.includes(kw) ? filterState.대상.filter(x => x !== kw) : [...filterState.대상, kw] })}
+                    >{kw}</button>
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+            {/* TPO */}
+            <div className="font-bold text-[11.2px] mt-4 mb-2">■ 요리 TPO</div>
+            {FILTER_KEYWORDS.TPO.map((group, idx) => (
+              <div key={group.title + idx} className="mb-1">
+                {group.title && <div className="text-[10px] font-semibold text-[#444] mb-1 ml-1">- {group.title}</div>}
+                <div className="flex flex-wrap gap-1 mb-1">
+                  {group.keywords.map(kw => (
+                    <button
+                      key={kw}
+                      className={`rounded-full px-3 py-0.5 font-medium text-[10.4px] mb-1 transition-colors ${filterState.TPO.includes(kw) ? 'bg-[#555] text-white' : 'bg-[#F8F8F8] text-[#555]'}`}
+                      onClick={() => setFilterState({ ...filterState, TPO: filterState.TPO.includes(kw) ? filterState.TPO.filter(x => x !== kw) : [...filterState.TPO, kw] })}
+                    >{kw}</button>
+                  ))}
+                </div>
+              </div>
+            ))}
+            {/* 스타일 */}
+            <div className="font-bold text-[11.2px] mt-4 mb-2">■ 요리 스타일</div>
+            {FILTER_KEYWORDS.스타일.map((group, idx) => (
+              <div key={group.title + idx} className="mb-1">
+                {group.title && <div className="text-[10px] font-semibold text-[#444] mb-1 ml-1">- {group.title}</div>}
+                <div className="flex flex-wrap gap-1 mb-1">
+                  {group.keywords.map(kw => (
+                    <button
+                      key={kw}
+                      className={`rounded-full px-3 py-0.5 font-medium text-[10.4px] mb-1 transition-colors ${filterState.스타일.includes(kw) ? 'bg-[#555] text-white' : 'bg-[#F8F8F8] text-[#555]'}`}
+                      onClick={() => setFilterState({ ...filterState, 스타일: filterState.스타일.includes(kw) ? filterState.스타일.filter(x => x !== kw) : [...filterState.스타일, kw] })}
+                    >{kw}</button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>

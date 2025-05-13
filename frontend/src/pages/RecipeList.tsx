@@ -67,7 +67,7 @@ function fetchRecipesDummy() {
       date: '25-03-08',
       like: 77,
       comment: 12,
-      substitutes: ['양파→대파', '고추장→된장'],
+      substitutes: ['양파→대파', '고추장→된장', '설탕→올리고당', '참기름→들기름', '고춧가루→고추장', '다진마늘→마늘가루', '간장→소금'],
     },
     {
       id: 2,
@@ -79,7 +79,7 @@ function fetchRecipesDummy() {
       date: '25-04-09',
       like: 55,
       comment: 8,
-      substitutes: ['맛술→소주', '미림→청주', '오징어→한치'],
+      substitutes: ['맛술→소주', '미림→청주', '오징어→한치', '고추장→된장', '설탕→올리고당', '참기름→들기름', '고춧가루→고추장'],
     },
     {
       id: 3,
@@ -91,7 +91,7 @@ function fetchRecipesDummy() {
       date: '25-04-06',
       like: 61,
       comment: 10,
-      substitutes: ['맛술→소주', '미나리→쪽파', '치킨스톡→미원', '코인육수→다시다, 멸치액젓'],
+      substitutes: ['맛술→소주', '미나리→쪽파', '치킨스톡→미원', '코인육수→다시다, 멸치액젓', '고추장→된장', '설탕→올리고당', '참기름→들기름'],
     },
   ]);
 }
@@ -458,11 +458,38 @@ const RecipeList = () => {
                 </div>
                 {/* 대체재 */}
                 {recipe.substitutes && recipe.substitutes.length > 0 && (
-                  <div className="mt-1">
-                    <span className="bg-[#FFE066] text-[#444] rounded px-3 py-1 font-bold" style={{ fontSize: '12px' }}>대체 가능 :</span>
-                    {recipe.substitutes.map((sub: string, idx: number) => (
-                      <span key={sub} className="ml-2 font-semibold text-[#444]" style={{ fontSize: '12px' }}>{sub}</span>
-                    ))}
+                  <div
+                    className="mt-1 custom-scrollbar pr-1"
+                    style={{
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      alignItems: 'flex-start',
+                      maxHeight: 48, // 2줄+조금, 3번째 줄이 살짝 보이게
+                      overflowY: 'auto',
+                      overflowX: 'hidden',
+                      gap: 4,
+                      paddingBottom: 4,
+                      width: '100%',
+                    }}
+                  >
+                    <span
+                      className="bg-[#FFE066] text-[#444] rounded px-3 py-1 font-bold"
+                      style={{ fontSize: '12px', flex: '0 0 auto' }}
+                    >
+                      대체 가능 :
+                    </span>
+                    <span
+                      className="ml-2 font-semibold text-[#444]"
+                      style={{
+                        fontSize: '12px',
+                        flex: '1 1 0',
+                        minWidth: 0,
+                        wordBreak: 'break-all',
+                        whiteSpace: 'normal',
+                      }}
+                    >
+                      {recipe.substitutes.join(', ')}
+                    </span>
                   </div>
                 )}
               </div>
