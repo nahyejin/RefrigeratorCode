@@ -8,6 +8,7 @@ import 'react-datepicker/dist/react-datepicker.css';
 import 완료하기버튼 from '../assets/완료하기버튼.svg';
 import 공유하기버튼 from '../assets/공유하기버튼.svg';
 import 기록하기버튼 from '../assets/기록하기버튼.svg';
+import { useNavigate } from 'react-router-dom';
 
 // 더미 데이터 예시
 const dummyRecipes = [
@@ -142,6 +143,7 @@ const periodOptions = [
 const Popular = () => {
   const [search, setSearch] = useState('');
   const nickname = "닉네임"; // 실제 닉네임 연동 필요
+  const navigate = useNavigate();
 
   // 필터 관련 상태 (RecipeList.tsx와 동일)
   const [filterOpen, setFilterOpen] = useState(false);
@@ -469,7 +471,22 @@ const Popular = () => {
           </div>
           <div style={{display: 'flex', overflowX: 'auto', gap: 16, paddingBottom: 8}}>
             {dummyIngredients.map((i) => (
-              <div key={i.id} style={{minWidth: 240, background: '#fff', borderRadius: 16, boxShadow: '0 2px 8px #eee', padding: 0, margin: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column'}}>
+              <div
+                key={i.id}
+                onClick={() => navigate(`/ingredient/${encodeURIComponent(i.name)}`)}
+                style={{
+                  cursor: 'pointer',
+                  minWidth: 240,
+                  background: '#fff',
+                  borderRadius: 16,
+                  boxShadow: '0 2px 8px #eee',
+                  padding: 0,
+                  margin: 0,
+                  overflow: 'hidden',
+                  display: 'flex',
+                  flexDirection: 'column',
+                }}
+              >
                 <div style={{position: 'relative', width: '100%', height: 140}}>
                   <img src={i.thumbnail} alt={i.name} style={{width: '100%', height: 140, objectFit: 'cover'}} />
                   {/* 순위 뱃지 */}
@@ -499,7 +516,22 @@ const Popular = () => {
           </div>
           <div style={{display: 'flex', overflowX: 'auto', gap: 16, paddingBottom: 8}}>
             {dummyThemes.map((t) => (
-              <div key={t.id} style={{minWidth: 240, background: '#fff', borderRadius: 16, boxShadow: '0 2px 8px #eee', padding: 0, margin: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column'}}>
+              <div
+                key={t.id}
+                onClick={() => navigate(`/ingredient/${encodeURIComponent(t.name)}`)}
+                style={{
+                  cursor: 'pointer',
+                  minWidth: 240,
+                  background: '#fff',
+                  borderRadius: 16,
+                  boxShadow: '0 2px 8px #eee',
+                  padding: 0,
+                  margin: 0,
+                  overflow: 'hidden',
+                  display: 'flex',
+                  flexDirection: 'column',
+                }}
+              >
                 <div style={{position: 'relative', width: '100%', height: 140}}>
                   <img src={t.thumbnail} alt={t.name} style={{width: '100%', height: 140, objectFit: 'cover'}} />
                   {/* 순위 뱃지 */}

@@ -7,6 +7,7 @@ import RecipeDetail from '../pages/RecipeDetail';
 import Popular from '../pages/Popular';
 import MyPage from '../pages/MyPage';
 import MyFridge from '../pages/MyFridge';
+import IngredientDetail from '../pages/IngredientDetail';
 
 const AppRouter = () => {
   return (
@@ -20,6 +21,7 @@ const AppRouter = () => {
         <Route path="/recipe-detail/:id" element={<RecipeDetail />} />
         <Route path="/popular" element={<Popular />} />
         <Route path="/my-page" element={<MyPage />} />
+        <Route path="/ingredient/:name" element={<IngredientDetail />} />
       </Routes>
     </Router>
   );
