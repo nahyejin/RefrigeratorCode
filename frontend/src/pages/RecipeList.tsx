@@ -8,6 +8,7 @@ import writeIcon from '../assets/write.svg';
 import doneBlackIcon from '../assets/done_black.svg';
 import shareBlackIcon from '../assets/share_black.svg';
 import writeBlackIcon from '../assets/write_black.svg';
+import FilterModal from '../components/FilterModal';
 // import { FaFilter } from 'react-icons/fa'; // 아이콘 없으면 주석처리
 
 const sortOptions = [
@@ -156,8 +157,8 @@ const RecipeList = () => {
   const [filterOpen, setFilterOpen] = useState(false);
   // 필터 상태
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [includeIngredient, setIncludeIngredient] = useState('');
-  const [excludeIngredient, setExcludeIngredient] = useState('');
+  const [includeInput, setIncludeInput] = useState('');
+  const [excludeInput, setExcludeInput] = useState('');
   const [selectedTime, setSelectedTime] = useState('상관없음');
   // 레시피 상태
   const [recipes, setRecipes] = useState<any[]>([]);
@@ -170,6 +171,7 @@ const RecipeList = () => {
   const [selectedFilter, setSelectedFilter] = useState<FilterState>(initialFilterState);
   // 자동완성용 내 냉장고 재료 목록
   const [allIngredients, setAllIngredients] = useState<string[]>([]);
+  const [toast, setToast] = useState('');
 
   useEffect(() => {
     fetch('/ingredient_profile_dict_with_substitutes.csv')
@@ -210,173 +212,10 @@ const RecipeList = () => {
   if (sortType === 'match') sortedRecipes.sort((a, b) => b.match_rate - a.match_rate);
   else if (sortType === 'expiry') sortedRecipes.sort((a, b) => 0); // TODO: 유통기한 임박순 정렬 구현 필요
 
-  // 필터 팝업 내부
-  const renderFilterModal = () => (
-    <div className="fixed inset-0 bg-black bg-opacity-30 flex items-start justify-center z-50">
-      <div className="bg-white rounded-xl shadow-lg p-6 w-[340px] max-w-[95vw] relative mt-12 mb-24" style={{maxHeight: 'calc(100vh - 144px)', overflowY: 'auto'}}>
-        {/* 닫기 버튼 */}
-
-	
-	<span  className="absolute top-3 right-3 w-6 h-6 text-gray-400 text-xl cursor-pointer select-none"  onClick={() => setFilterOpen(false)}  role="button"  aria-label="닫기">×</span>
-
-
-
-        {/* 제목 */}
-        <div className="text-center font-bold text-[12.8px] mb-2">필터 기능을 선택해주세요</div>
-        <hr className="my-2" />
-        {/* 포함/제외 재료 */}
-        <div className="mt-2">
-          <div className="font-bold text-[11.2px] mb-1">■ 꼭 포함할 재료</div>
-          <div className="relative mb-2">
-            <input
-              className="w-full border rounded px-3 py-2 text-sm"
-              placeholder="예: 닭고기"
-              value={includeInput}
-              onChange={e => setIncludeInput(e.target.value)}
-              onFocus={() => setIncludeFocus(true)}
-              onBlur={() => setTimeout(() => setIncludeFocus(false), 150)}
-            />
-            {includeFocus && includeCandidates.length > 0 && (
-              <ul className="absolute left-0 right-0 bg-white border border-gray-200 rounded-lg mt-1 shadow z-10 max-h-32 overflow-y-auto">
-                {includeCandidates.map(item => (
-                  <li
-                    key={item}
-                    className="px-4 py-2 hover:bg-[#f4f0e6] cursor-pointer text-[12px]"
-                    onMouseDown={() => { setIncludeInput(item); setIncludeFocus(false); }}
-                  >{item}</li>
-                ))}
-              </ul>
-            )}
-          </div>
-          <div className="font-bold text-[11.2px] mt-4 mb-1">■ 꼭 제외할 재료</div>
-          <div className="relative">
-            <input
-              className="w-full border rounded px-3 py-2 text-sm"
-              placeholder="예: 우유"
-              value={excludeInput}
-              onChange={e => setExcludeInput(e.target.value)}
-              onFocus={() => setExcludeFocus(true)}
-              onBlur={() => setTimeout(() => setExcludeFocus(false), 150)}
-            />
-            {excludeFocus && excludeCandidates.length > 0 && (
-              <ul className="absolute left-0 right-0 bg-white border border-gray-200 rounded-lg mt-1 shadow z-10 max-h-32 overflow-y-auto">
-                {excludeCandidates.map(item => (
-                  <li
-                    key={item}
-                    className="px-4 py-2 hover:bg-[#f4f0e6] cursor-pointer text-[12px]"
-                    onMouseDown={() => { setExcludeInput(item); setExcludeFocus(false); }}
-                  >{item}</li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </div>
-        {/* 카테고리별 태그 */}
-        <div className="mt-4">
-          {/* 효능 */}
-          <div className="font-bold text-[11.2px] mt-4 mb-2">■ 요리 효능</div>
-          {FILTER_KEYWORDS.효능.map((group, idx) => (
-            <div key={group.title + idx} className="mb-1">
-              {group.title && <div className="text-[10px] font-semibold text-[#444] mb-1 ml-1">- {group.title}</div>}
-              <div className="flex flex-wrap gap-1 mb-1">
-                {group.keywords.map(kw => (
-                  <button
-                    key={kw}
-                    className={`rounded-full px-3 py-0.5 font-medium text-[10.4px] mb-1 transition-colors ${selectedFilter.효능.includes(kw) ? 'bg-[#555] text-white' : 'bg-[#F8F8F8] text-[#555]'}`}
-                    onClick={() => setSelectedFilter(f => ({ ...f, 효능: f.효능.includes(kw) ? f.효능.filter(x => x !== kw) : [...f.효능, kw] }))}
-                  >{kw}</button>
-                ))}
-              </div>
-            </div>
-          ))}
-          {/* 영양분 */}
-          <div className="font-bold text-[11.2px] mt-4 mb-2">■ 요리 영양분</div>
-          {FILTER_KEYWORDS.영양분.map((group, idx) => (
-            <div key={group.title + idx} className="mb-1">
-              {group.title && <div className="text-[10px] font-semibold text-[#444] mb-1 ml-1">- {group.title}</div>}
-              <div className="flex flex-wrap gap-1 mb-1">
-                {group.keywords.map(kw => (
-                  <button
-                    key={kw}
-                    className={`rounded-full px-3 py-0.5 font-medium text-[10.4px] mb-1 transition-colors ${selectedFilter.영양분.includes(kw) ? 'bg-[#555] text-white' : 'bg-[#F8F8F8] text-[#555]'}`}
-                    onClick={() => setSelectedFilter(f => ({ ...f, 영양분: f.영양분.includes(kw) ? f.영양분.filter(x => x !== kw) : [...f.영양분, kw] }))}
-                  >{kw}</button>
-                ))}
-              </div>
-            </div>
-          ))}
-          {/* 식사 대상 */}
-          <div className="font-bold text-[11.2px] mt-4 mb-2">■ 요리 식사 대상</div>
-          {FILTER_KEYWORDS.대상.map((group, idx) => (
-            <div key={group.title + idx} className="mb-1">
-              {group.title && <div className="text-[10px] font-semibold text-[#444] mb-1 ml-1">- {group.title}</div>}
-              <div className="flex flex-wrap gap-1 mb-1">
-                {group.keywords.map(kw => (
-                  <button
-                    key={kw}
-                    className={`rounded-full px-3 py-0.5 font-medium text-[10.4px] mb-1 transition-colors ${selectedFilter.대상.includes(kw) ? 'bg-[#555] text-white' : 'bg-[#F8F8F8] text-[#555]'}`}
-                    onClick={() => setSelectedFilter(f => ({ ...f, 대상: f.대상.includes(kw) ? f.대상.filter(x => x !== kw) : [...f.대상, kw] }))}
-                  >{kw}</button>
-                ))}
-              </div>
-            </div>
-          ))}
-          {/* TPO */}
-          <div className="font-bold text-[11.2px] mt-4 mb-2">■ 요리 TPO</div>
-          {FILTER_KEYWORDS.TPO.map((group, idx) => (
-            <div key={group.title + idx} className="mb-1">
-              {group.title && <div className="text-[10px] font-semibold text-[#444] mb-1 ml-1">- {group.title}</div>}
-              <div className="flex flex-wrap gap-1 mb-1">
-                {group.keywords.map(kw => (
-                  <button
-                    key={kw}
-                    className={`rounded-full px-3 py-0.5 font-medium text-[10.4px] mb-1 transition-colors ${selectedFilter.TPO.includes(kw) ? 'bg-[#555] text-white' : 'bg-[#F8F8F8] text-[#555]'}`}
-                    onClick={() => setSelectedFilter(f => ({ ...f, TPO: f.TPO.includes(kw) ? f.TPO.filter(x => x !== kw) : [...f.TPO, kw] }))}
-                  >{kw}</button>
-                ))}
-              </div>
-            </div>
-          ))}
-          {/* 스타일 */}
-          <div className="font-bold text-[11.2px] mt-4 mb-2">■ 요리 스타일</div>
-          {FILTER_KEYWORDS.스타일.map((group, idx) => (
-            <div key={group.title + idx} className="mb-1">
-              {group.title && <div className="text-[10px] font-semibold text-[#444] mb-1 ml-1">- {group.title}</div>}
-              <div className="flex flex-wrap gap-1 mb-1">
-                {group.keywords.map(kw => (
-                  <button
-                    key={kw}
-                    className={`rounded-full px-3 py-0.5 font-medium text-[10.4px] mb-1 transition-colors ${selectedFilter.스타일.includes(kw) ? 'bg-[#555] text-white' : 'bg-[#F8F8F8] text-[#555]'}`}
-                    onClick={() => setSelectedFilter(f => ({ ...f, 스타일: f.스타일.includes(kw) ? f.스타일.filter(x => x !== kw) : [...f.스타일, kw] }))}
-                  >{kw}</button>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-
-  // 기록/완료 저장 함수 (localStorage 예시)
-  function saveToStorage(type: 'record' | 'complete', recipe: any) {
-    const key = type === 'record' ? 'my_recorded_recipes' : 'my_completed_recipes';
-    const prev = JSON.parse(localStorage.getItem(key) || '[]');
-    localStorage.setItem(key, JSON.stringify([...prev, recipe]));
-  }
-  // 기록/완료 취소 함수 (localStorage에서 삭제)
-  function removeFromStorage(type: 'record' | 'complete', recipe: any) {
-    const key = type === 'record' ? 'my_recorded_recipes' : 'my_completed_recipes';
-    const prev = JSON.parse(localStorage.getItem(key) || '[]');
-    const filtered = prev.filter((r: any) => r.id !== recipe.id);
-    localStorage.setItem(key, JSON.stringify(filtered));
-  }
-
   // 버튼 클릭 핸들러 (토글, alert 1번만)
   const handleButtonClick = (id: number, type: 'done' | 'share' | 'write', recipe: any) => {
     const prevState = buttonStates[id] || {};
     const isActive = !!prevState[type];
-    // 상태 먼저 바꿈
     setButtonStates(prev => ({
       ...prev,
       [id]: {
@@ -384,35 +223,36 @@ const RecipeList = () => {
         [type]: !isActive
       }
     }));
-    // 부수효과는 여기서만!
     if (type === 'done') {
       if (!isActive) {
-        saveToStorage('complete', recipe);
-        setTimeout(() => alert('레시피 완료상태로 저장하였습니다'), 0);
+        // saveToStorage('complete', recipe);
+        setToast('레시피를 완료했습니다!');
+        setTimeout(() => setToast(''), 1500);
       } else {
-        removeFromStorage('complete', recipe);
-        setTimeout(() => alert('레시피 완료상태를 취소하였습니다'), 0);
+        // removeFromStorage('complete', recipe);
+        setToast('레시피 완료를 취소했습니다!');
+        setTimeout(() => setToast(''), 1500);
       }
     }
     if (type === 'write') {
       if (!isActive) {
-        saveToStorage('record', recipe);
-        setTimeout(() => alert('기록하기 상태로 저장하였습니다'), 0);
+        // saveToStorage('record', recipe);
+        setToast('레시피를 기록했습니다!');
+        setTimeout(() => setToast(''), 1500);
       } else {
-        removeFromStorage('record', recipe);
-        setTimeout(() => alert('기록하기 상태를 취소하였습니다'), 0);
+        // removeFromStorage('record', recipe);
+        setToast('레시피 기록을 취소했습니다!');
+        setTimeout(() => setToast(''), 1500);
       }
+    }
+    if (type === 'share') {
+      navigator.clipboard.writeText(window.location.origin + `/recipe-detail/${recipe.id}`);
+      setToast('URL이 복사되었습니다!');
+      setTimeout(() => setToast(''), 1500);
     }
   };
 
-  // 포함/제외 재료 입력 상태 및 자동완성
-  const [includeInput, setIncludeInput] = useState('');
-  const [excludeInput, setExcludeInput] = useState('');
-  const [includeFocus, setIncludeFocus] = useState(false);
-  const [excludeFocus, setExcludeFocus] = useState(false);
-  const includeCandidates = allIngredients.filter(i => i && i.includes(includeInput) && includeInput && i !== includeInput);
-  const excludeCandidates = allIngredients.filter(i => i && i.includes(excludeInput) && excludeInput && i !== excludeInput);
-
+  // 필터 팝업 상세 구현
   return (
     <>
       <TopNavBar />
@@ -437,7 +277,19 @@ const RecipeList = () => {
           </button>
         </div>
         {/* 필터 팝업 상세 구현 */}
-        {filterOpen && renderFilterModal()}
+        {filterOpen && (
+          <FilterModal
+            open={filterOpen}
+            onClose={() => setFilterOpen(false)}
+            filterState={selectedFilter}
+            setFilterState={setSelectedFilter}
+            includeInput={includeInput}
+            setIncludeInput={setIncludeInput}
+            excludeInput={excludeInput}
+            setExcludeInput={setExcludeInput}
+            allIngredients={allIngredients}
+          />
+        )}
         <div className="flex flex-col gap-2">
           {sortedRecipes.slice(0, visibleCount).map((recipe, idx) => {
             // 재료 pill 10개 제한 + ... 처리
@@ -509,11 +361,7 @@ const RecipeList = () => {
                         cursor: 'pointer',
                         outline: 'none',
                       }}
-                      onClick={() => {
-                        navigator.clipboard.writeText(window.location.origin + `/recipe-detail/${recipe.id}`);
-                        alert('URL이 복사되었습니다!');
-                        handleButtonClick(recipe.id, 'share', recipe);
-                      }}
+                      onClick={() => handleButtonClick(recipe.id, 'share', recipe)}
                       tabIndex={0}
                       onMouseDown={e => e.preventDefault()}
                     >
@@ -616,6 +464,31 @@ const RecipeList = () => {
         </div>
       </div>
       <BottomNavBar activeTab="recipe" />
+      {/* Toast Popup */}
+      {toast && (
+        <div style={{
+          position: 'fixed',
+          bottom: 100,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'rgba(34,34,34,0.9)',
+          color: '#fff',
+          padding: '12px 24px',
+          borderRadius: 12,
+          fontWeight: 400,
+          fontSize: 15,
+          zIndex: 9999,
+          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+          maxWidth: 260,
+          width: 'max-content',
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          textAlign: 'center',
+        }}>
+          {toast}
+        </div>
+      )}
     </>
   );
 };
