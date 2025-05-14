@@ -10,13 +10,71 @@ import writeIcon from '../assets/write.svg';
 import doneIcon from '../assets/done.svg';
 import { useNavigate } from 'react-router-dom';
 
+// 타입 명시
+interface RecipeCardData {
+  id: number;
+  thumbnail: string;
+  title: string;
+  match: number;
+}
+
+// 카드 스타일 상수화
+const CARD_STYLE = {
+  borderRadius: 20,
+  background: '#fff',
+  boxShadow: '0 1px 4px rgba(0,0,0,0.03)',
+  marginBottom: 4,
+  minHeight: 144,
+  position: 'relative' as 'relative',
+  padding: 16,
+  border: 'none',
+};
+
+// ActionButton 컴포넌트
+const ActionButton = ({
+  title,
+  icon,
+  onClick,
+  active = true,
+}: {
+  title: string;
+  icon: string;
+  onClick: () => void;
+  active?: boolean;
+}) => (
+  <span style={{ position: 'relative', zIndex: 2 }}>
+    <span style={{ position: 'absolute', left: 0, top: 0, width: 26, height: 26, borderRadius: '50%', background: 'rgba(34,34,34,0.7)', zIndex: 1 }}></span>
+    <button
+      title={title}
+      tabIndex={0}
+      style={{
+        width: 26,
+        height: 26,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'none',
+        border: 'none',
+        padding: 0,
+        cursor: 'pointer',
+        outline: 'none',
+        position: 'relative',
+        zIndex: 2,
+      }}
+      onClick={onClick}
+    >
+      <img src={icon} alt={title} width={19} height={19} style={{ display: 'block', position: 'relative', zIndex: 2, opacity: active ? 1 : 0.5 }} />
+    </button>
+  </span>
+);
+
 const dummyUser = {
   nickname: '홍길동',
   userid: 'honggildong123',
   phone: '010-1234-5678',
 };
 
-const dummyRecorded = [
+const dummyRecorded: RecipeCardData[] = [
   {
     id: 1,
     thumbnail: 'https://cdn.pixabay.com/photo/2016/03/05/19/02/hamburger-1238246_1280.jpg',
@@ -36,7 +94,7 @@ const dummyRecorded = [
     match: 75,
   },
 ];
-const dummyCompleted = [
+const dummyCompleted: RecipeCardData[] = [
   {
     id: 1,
     thumbnail: 'https://cdn.pixabay.com/photo/2016/03/05/19/02/hamburger-1238246_1280.jpg',
@@ -161,42 +219,16 @@ const MyPage = () => {
           <div style={{height: 2, width: '100%', background: '#E5E5E5', marginBottom: 4}} />
           <div className="flex gap-1 overflow-x-auto pb-2 custom-scrollbar">
             {dummyRecorded.map(r => (
-              <div key={r.id} className="min-w-[210px] max-w-[210px] flex flex-col gap-1 relative" style={{
-                borderRadius: 20,
-                background: '#fff',
-                boxShadow: '0 1px 4px rgba(0,0,0,0.03)',
-                marginBottom: 4,
-                minHeight: 144,
-                position: 'relative',
-                padding: 16,
-                border: 'none',
-              }}>
+              <div key={r.id} className="min-w-[210px] max-w-[210px] flex flex-col gap-1 relative" style={CARD_STYLE}>
                 <div className="relative">
                   <img src={r.thumbnail} alt={r.title} className="w-full h-[110px] object-cover rounded-lg" />
-                  {/* 재료매칭률 뱃지 */}
                   <div className="absolute bg-[#444] bg-opacity-90 text-white font-bold rounded px-1.5 py-0 flex items-center gap-1 shadow" style={{position:'absolute', top:0, left:0, fontSize:11, zIndex:2}}>
                     재료 매칭률 <span className="text-[#FFD600] font-extrabold ml-1">{r.match}%</span>
                   </div>
-                  {/* Overlay action buttons: 완료하기, 공유하기, 기록하기 */}
                   <div style={{position:'absolute', right:8, bottom:8, display:'flex', flexDirection:'row', gap:6, alignItems:'center', zIndex:2}}>
-                    <span style={{position:'relative', zIndex:2}}>
-                      <span style={{position:'absolute', left:0, top:0, width:26, height:26, borderRadius:'50%', background:'rgba(34,34,34,0.7)', zIndex:1}}></span>
-                      <button title="완료" tabIndex={0} style={{width:26, height:26, display:'flex', alignItems:'center', justifyContent:'center', background:'none', border:'none', padding:0, cursor:'pointer', outline:'none', position:'relative', zIndex:2}} onClick={() => handleDoneClick(r.id)}>
-                        <img src={완료하기버튼} alt="완료" width={19} height={19} style={{display:'block', position:'relative', zIndex:2, opacity: doneStates[r.id] ? 1 : 0.5}} />
-                      </button>
-                    </span>
-                    <span style={{position:'relative', zIndex:2}}>
-                      <span style={{position:'absolute', left:0, top:0, width:26, height:26, borderRadius:'50%', background:'rgba(34,34,34,0.7)', zIndex:1}}></span>
-                      <button title="공유" tabIndex={0} style={{width:26, height:26, display:'flex', alignItems:'center', justifyContent:'center', background:'none', border:'none', padding:0, cursor:'pointer', outline:'none', position:'relative', zIndex:2}} onClick={handleShareClick}>
-                        <img src={공유하기버튼} alt="공유" width={19} height={19} style={{display:'block', position:'relative', zIndex:2}} />
-                      </button>
-                    </span>
-                    <span style={{position:'relative', zIndex:2}}>
-                      <span style={{position:'absolute', left:0, top:0, width:26, height:26, borderRadius:'50%', background:'rgba(34,34,34,0.7)', zIndex:1}}></span>
-                      <button title="기록" tabIndex={0} style={{width:26, height:26, display:'flex', alignItems:'center', justifyContent:'center', background:'none', border:'none', padding:0, cursor:'pointer', outline:'none', position:'relative', zIndex:2}} onClick={() => handleWriteClick(r.id)}>
-                        <img src={기록하기버튼} alt="기록" width={19} height={19} style={{display:'block', position:'relative', zIndex:2, opacity: writeStates[r.id] ? 1 : 0.5}} />
-                      </button>
-                    </span>
+                    <ActionButton title="완료" icon={완료하기버튼} onClick={() => handleDoneClick(r.id)} active={doneStates[r.id]} />
+                    <ActionButton title="공유" icon={공유하기버튼} onClick={handleShareClick} />
+                    <ActionButton title="기록" icon={기록하기버튼} onClick={() => handleWriteClick(r.id)} active={writeStates[r.id]} />
                   </div>
                 </div>
                 <div className="font-bold text-[13px] line-clamp-2 mt-1">{r.title}</div>
@@ -222,42 +254,16 @@ const MyPage = () => {
           <div style={{height: 2, width: '100%', background: '#E5E5E5', marginBottom: 4}} />
           <div className="flex gap-1 overflow-x-auto pb-2 custom-scrollbar">
             {dummyCompleted.map(r => (
-              <div key={r.id} className="min-w-[210px] max-w-[210px] flex flex-col gap-1 relative" style={{
-                borderRadius: 20,
-                background: '#fff',
-                boxShadow: '0 1px 4px rgba(0,0,0,0.03)',
-                marginBottom: 4,
-                minHeight: 144,
-                position: 'relative',
-                padding: 16,
-                border: 'none',
-              }}>
+              <div key={r.id} className="min-w-[210px] max-w-[210px] flex flex-col gap-1 relative" style={CARD_STYLE}>
                 <div className="relative">
                   <img src={r.thumbnail} alt={r.title} className="w-full h-[110px] object-cover rounded-lg" />
-                  {/* 재료매칭률 뱃지 */}
                   <div className="absolute bg-[#444] bg-opacity-90 text-white font-bold rounded px-1.5 py-0 flex items-center gap-1 shadow" style={{position:'absolute', top:0, left:0, fontSize:11, zIndex:2}}>
                     재료 매칭률 <span className="text-[#FFD600] font-extrabold ml-1">{r.match}%</span>
                   </div>
-                  {/* Overlay action buttons: 완료하기, 공유하기, 기록하기 */}
                   <div style={{position:'absolute', right:8, bottom:8, display:'flex', flexDirection:'row', gap:6, alignItems:'center', zIndex:2}}>
-                    <span style={{position:'relative', zIndex:2}}>
-                      <span style={{position:'absolute', left:0, top:0, width:26, height:26, borderRadius:'50%', background:'rgba(34,34,34,0.7)', zIndex:1}}></span>
-                      <button title="완료" tabIndex={0} style={{width:26, height:26, display:'flex', alignItems:'center', justifyContent:'center', background:'none', border:'none', padding:0, cursor:'pointer', outline:'none', position:'relative', zIndex:2}} onClick={() => handleDoneClick(r.id)}>
-                        <img src={완료하기버튼} alt="완료" width={19} height={19} style={{display:'block', position:'relative', zIndex:2, opacity: doneStates[r.id] ? 1 : 0.5}} />
-                      </button>
-                    </span>
-                    <span style={{position:'relative', zIndex:2}}>
-                      <span style={{position:'absolute', left:0, top:0, width:26, height:26, borderRadius:'50%', background:'rgba(34,34,34,0.7)', zIndex:1}}></span>
-                      <button title="공유" tabIndex={0} style={{width:26, height:26, display:'flex', alignItems:'center', justifyContent:'center', background:'none', border:'none', padding:0, cursor:'pointer', outline:'none', position:'relative', zIndex:2}} onClick={handleShareClick}>
-                        <img src={공유하기버튼} alt="공유" width={19} height={19} style={{display:'block', position:'relative', zIndex:2}} />
-                      </button>
-                    </span>
-                    <span style={{position:'relative', zIndex:2}}>
-                      <span style={{position:'absolute', left:0, top:0, width:26, height:26, borderRadius:'50%', background:'rgba(34,34,34,0.7)', zIndex:1}}></span>
-                      <button title="기록" tabIndex={0} style={{width:26, height:26, display:'flex', alignItems:'center', justifyContent:'center', background:'none', border:'none', padding:0, cursor:'pointer', outline:'none', position:'relative', zIndex:2}} onClick={() => handleWriteClick(r.id)}>
-                        <img src={기록하기버튼} alt="기록" width={19} height={19} style={{display:'block', position:'relative', zIndex:2, opacity: writeStates[r.id] ? 1 : 0.5}} />
-                      </button>
-                    </span>
+                    <ActionButton title="완료" icon={완료하기버튼} onClick={() => handleDoneClick(r.id)} active={doneStates[r.id]} />
+                    <ActionButton title="공유" icon={공유하기버튼} onClick={handleShareClick} />
+                    <ActionButton title="기록" icon={기록하기버튼} onClick={() => handleWriteClick(r.id)} active={writeStates[r.id]} />
                   </div>
                 </div>
                 <div className="font-bold text-[13px] line-clamp-2 mt-1">{r.title}</div>
