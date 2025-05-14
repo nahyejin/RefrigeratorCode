@@ -172,6 +172,7 @@ const RecipeList = () => {
   // 자동완성용 내 냉장고 재료 목록
   const [allIngredients, setAllIngredients] = useState<string[]>([]);
   const [toast, setToast] = useState('');
+  const [includeKeyword, setIncludeKeyword] = useState('');
 
   useEffect(() => {
     fetch('/ingredient_profile_dict_with_substitutes.csv')
@@ -211,9 +212,6 @@ const RecipeList = () => {
   // 정렬
   if (sortType === 'match') sortedRecipes.sort((a, b) => b.match_rate - a.match_rate);
   else if (sortType === 'expiry') sortedRecipes.sort((a, b) => 0); // TODO: 유통기한 임박순 정렬 구현 필요
-
-  // visibleCount와 sortedRecipes.length를 출력
-  console.log('visibleCount:', visibleCount, 'sortedRecipes.length:', sortedRecipes.length);
 
   // 버튼 클릭 핸들러 (토글, alert 1번만)
   const handleButtonClick = (id: number, type: 'done' | 'share' | 'write', recipe: any) => {
@@ -333,6 +331,8 @@ const RecipeList = () => {
             excludeInput={excludeInput}
             setExcludeInput={setExcludeInput}
             allIngredients={allIngredients}
+            includeKeyword={includeKeyword}
+            setIncludeKeyword={setIncludeKeyword}
           />
         )}
         <div className="flex flex-col gap-2">
