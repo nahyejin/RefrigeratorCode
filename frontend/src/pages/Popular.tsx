@@ -330,7 +330,7 @@ const Popular = () => {
         {/* ⓑ 전체 인기 레시피 섹션 (가로 스크롤) */}
         <section style={{marginBottom: 48}}>
           <div style={{marginBottom: 8}}>
-            <h2 className="text-[16px] font-bold text-[#111] mb-2">전체 인기 레시피</h2>
+            <h2 className="text-[16px] font-bold text-[#111] mb-2"><span className="mr-1">🏆</span>전체 인기 레시피</h2>
             <div style={{height: 2, width: '100%', background: '#E5E5E5', marginBottom: 16}} />
           </div>
           <div style={{display: 'flex', overflowX: 'auto', gap: 16, paddingBottom: 8}}>
@@ -443,14 +443,14 @@ const Popular = () => {
           <div style={{display: 'flex', flexDirection: 'column', gap: 32}}>
             {/* 인기 급상승 재료 */}
             <div>
-              <h2 className="text-[16px] font-bold text-[#111] mb-2 text-left">인기 급상승 재료 TOP 10</h2>
+              <h2 className="text-[16px] font-bold text-[#111] mb-2 text-left"><span className="mr-1">📈</span>인기 급상승 재료 TOP 10</h2>
               <div style={{height: 2, width: '100%', background: '#E5E5E5', marginBottom: 16}} />
               <div className="mt-4">
                 <table className="w-full max-w-[280px] mx-auto border-collapse text-[13px] font-sans" style={{background: '#fff'}}>
                   <thead>
                     <tr style={{borderTop: '1px solid #E5E5E5', borderBottom: '1px solid #E5E5E5', background: '#F7F7F9'}}>
                       <th className="py-1.5 px-2 text-center font-medium text-[#222] whitespace-nowrap">순위</th>
-                      <th className="py-1.5 px-2 text-left font-medium text-[#222] whitespace-nowrap">재료명</th>
+                      <th className="py-1.5 px-2 text-center font-medium text-[#222] whitespace-nowrap">재료명</th>
                       <th className="py-1.5 px-2 text-right font-medium text-[#222] whitespace-nowrap">언급량</th>
                       <th className="py-1.5 px-2 text-center font-medium text-[#222] whitespace-nowrap">{period === 'today' ? '전일' : period === 'week' ? '전주' : period === 'month' ? '전달' : '기간'}대비 상승률</th>
                     </tr>
@@ -459,7 +459,7 @@ const Popular = () => {
                     {sortedIngredients.slice(0, 10).map((ing, idx) => (
                       <tr key={ing.id}>
                         <td className="py-1.5 px-2 text-center text-[#444] font-normal whitespace-nowrap">{idx + 1}</td>
-                        <td className="py-1.5 px-2 text-left text-[#444] font-normal whitespace-nowrap">{ing.name}</td>
+                        <td className="py-1.5 px-2 text-center text-[#444] font-normal whitespace-nowrap">{ing.name}</td>
                         <td className="py-1.5 px-2 text-right text-[#444] font-normal whitespace-nowrap">{ing.count.toLocaleString()}</td>
                         <td className="py-1.5 px-2 text-center font-normal whitespace-nowrap" style={{color: ing.rate >= 0 ? '#E85A4F' : '#3A6EA5'}}>{ing.rate >= 0 ? `+${ing.rate}%` : `${ing.rate}%`}</td>
                       </tr>
@@ -470,14 +470,14 @@ const Popular = () => {
             </div>
             {/* 인기 급상승 테마 */}
             <div>
-              <h2 className="text-[16px] font-bold text-[#111] mb-2 text-left">인기 급상승 테마 TOP 10</h2>
+              <h2 className="text-[16px] font-bold text-[#111] mb-2 text-left"><span className="mr-1">📈</span>인기 급상승 테마 TOP 10</h2>
               <div style={{height: 2, width: '100%', background: '#E5E5E5', marginBottom: 16}} />
               <div className="mt-4">
                 <table className="w-full max-w-[280px] mx-auto border-collapse text-[13px] font-sans" style={{background: '#fff'}}>
                   <thead>
                     <tr style={{borderTop: '1px solid #E5E5E5', borderBottom: '1px solid #E5E5E5', background: '#F7F7F9'}}>
                       <th className="py-1.5 px-2 text-center font-medium text-[#222] whitespace-nowrap">순위</th>
-                      <th className="py-1.5 px-2 text-left font-medium text-[#222] whitespace-nowrap">테마명</th>
+                      <th className="py-1.5 px-2 text-center font-medium text-[#222] whitespace-nowrap">테마명</th>
                       <th className="py-1.5 px-2 text-right font-medium text-[#222] whitespace-nowrap">언급량</th>
                       <th className="py-1.5 px-2 text-center font-medium text-[#222] whitespace-nowrap">{period === 'today' ? '전일' : period === 'week' ? '전주' : period === 'month' ? '전달' : '기간'}대비 상승률</th>
                     </tr>
@@ -486,7 +486,7 @@ const Popular = () => {
                     {sortedThemes.slice(0, 10).map((theme, idx) => (
                       <tr key={theme.id}>
                         <td className="py-1.5 px-2 text-center text-[#444] font-normal whitespace-nowrap">{idx + 1}</td>
-                        <td className="py-1.5 px-2 text-left text-[#444] font-normal whitespace-nowrap">{theme.name}</td>
+                        <td className="py-1.5 px-2 text-center text-[#444] font-normal whitespace-nowrap">{theme.name}</td>
                         <td className="py-1.5 px-2 text-right text-[#444] font-normal whitespace-nowrap">{theme.count.toLocaleString()}</td>
                         <td className="py-1.5 px-2 text-center font-normal whitespace-nowrap" style={{color: theme.rate >= 0 ? '#E85A4F' : '#3A6EA5'}}>{theme.rate >= 0 ? `+${theme.rate}%` : `${theme.rate}%`}</td>
                       </tr>
@@ -500,7 +500,7 @@ const Popular = () => {
 
         {/* 인기 레시피 직접 찾아보기 검색창 */}
         <section style={{marginBottom: 48}}>
-          <h2 className="text-[16px] font-bold text-[#111] mb-2 text-left">특정 재료·테마 등 키워드로 찾아보기</h2>
+          <h2 className="text-[16px] font-bold text-[#111] mb-2 text-left"><span className="mr-1">🔍️</span>특정 재료·테마 등 키워드로 찾아보기</h2>
           <div style={{height: 2, width: '100%', background: '#E5E5E5', marginBottom: 16}} />
           <div
             style={{
