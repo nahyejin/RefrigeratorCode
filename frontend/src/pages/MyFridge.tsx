@@ -219,6 +219,8 @@ const MyFridge: React.FC = () => {
         {/* 타이틀+입력창 그룹 */}
         <div className="flex flex-col items-center justify-center w-full" style={{ marginTop: 40, marginBottom: 40 }}>
           <h1 className="text-[18px] font-bold text-[#111] text-center mb-2">내 냉장고 재료 추가</h1>
+        </div>
+        <div style={{ maxWidth: 360, margin: '0 auto', paddingLeft: 20, paddingRight: 20, width: '100%' }}>
           <div
             className="flex gap-2 mb-4"
             style={{
@@ -277,9 +279,9 @@ const MyFridge: React.FC = () => {
           onComplete={handleModalComplete}
         />
         {/* 재고 관리 구역 */}
-        <div className="w-full px-5 mt-12">
+        <div style={{ maxWidth: 360, margin: '0 auto', paddingLeft: 16, paddingRight: 16, width: '100%', marginTop: 48 }}>
           <h2 className="text-[16px] font-bold text-[#111] mb-2">내 냉장고 재고 관리</h2>
-          <div className="border-t border-gray-200 mb-6"></div>
+          <div style={{height: 2, width: '100%', background: '#E5E5E5', marginBottom: 16}} />
           {/* 냉동보관 */}
           <div className="mb-4">
             <div className="text-[16px] font-bold mb-2 flex items-center">
