@@ -211,204 +211,264 @@ const MyFridge: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-white flex flex-col items-center" style={{ minWidth: 375 }}>
-      <TopNavBar />
-      {/* 타이틀+입력창 그룹 */}
-      <div className="w-full max-w-[316px] mt-20 mb-10 flex flex-col items-center">
-        <h1 className="text-[18px] font-bold text-[#111] text-center mb-2">내 냉장고 재료 추가</h1>
-        <div className="flex w-full relative">
-          <input
-            ref={inputRef}
-            type="text"
-            placeholder="추가할 재료명을 입력해주세요"
-            className="h-[44px] border border-gray-300 text-[14px] placeholder-[#999] flex-1 px-4 focus:outline-none focus:ring-2 focus:ring-gray-300 rounded-md"
-            value={inputValue}
-            onChange={handleInputChange}
-            onFocus={() => setShowDropdown(true)}
-            onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
-            onKeyDown={handleInputKeyDown}
-            autoComplete="off"
-          />
-          <button
-            className="h-[44px] px-5 bg-gray-400 text-white rounded-md text-sm font-semibold hover:bg-gray-500 transition ml-2 whitespace-nowrap"
-            onClick={() => filtered.length > 0 && handleSelect(filtered[0])}
-            disabled={filtered.length === 0}
+    <div className="min-h-screen bg-white">
+      <div className="bg-white w-full" style={{position: 'sticky', top: 0, zIndex: 10}}>
+        <TopNavBar />
+      </div>
+      <div className="bg-white w-full p-0 m-0 pb-24">
+        {/* 타이틀+입력창 그룹 */}
+        <div className="flex flex-col items-center justify-center w-full" style={{ marginTop: 40, marginBottom: 40 }}>
+          <h1 className="text-[18px] font-bold text-[#111] text-center mb-2">내 냉장고 재료 추가</h1>
+          <div
+            className="flex gap-2 mb-4"
+            style={{
+              width: '100%',
+              maxWidth: 360,
+              margin: '0 auto',
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
           >
-            입력
-          </button>
-          {/* 자동완성 드롭다운 */}
-          {showDropdown && filtered.length > 0 && (
-            <ul className="absolute left-0 right-0 bg-white border border-gray-200 rounded-lg mt-12 shadow z-10 max-h-48 overflow-y-auto">
-              {filtered.map((item) => (
-                <li
-                  key={item}
-                  className="px-4 py-2 hover:bg-[#f4f0e6] cursor-pointer"
-                  onMouseDown={() => handleSelect(item)}
+            <input
+              ref={inputRef}
+              type="text"
+              placeholder="추가할 재료명을 입력해주세요"
+              className="flex-1 border border-gray-300 rounded-full px-4 py-2 text-sm placeholder-[#999] focus:outline-none focus:ring-2 focus:ring-blue-200"
+              style={{
+                maxWidth: 250,
+                minWidth: 0,
+                flex: '0 1 auto',
+              }}
+              value={inputValue}
+              onChange={handleInputChange}
+              onFocus={() => setShowDropdown(true)}
+              onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
+              onKeyDown={handleInputKeyDown}
+              autoComplete="off"
+            />
+            <button
+              className="bg-[#FFD600] text-[#222] font-bold rounded-full px-5 py-2 text-sm shadow hover:bg-yellow-300 transition whitespace-nowrap"
+              onClick={() => filtered.length > 0 && handleSelect(filtered[0])}
+              disabled={filtered.length === 0}
+            >
+              입력
+            </button>
+            {/* 자동완성 드롭다운 */}
+            {showDropdown && filtered.length > 0 && (
+              <ul className="absolute left-0 right-0 bg-white border border-gray-200 rounded-lg mt-12 shadow z-10 max-h-48 overflow-y-auto">
+                {filtered.map((item) => (
+                  <li
+                    key={item}
+                    className="px-4 py-2 hover:bg-[#f4f0e6] cursor-pointer"
+                    onMouseDown={() => handleSelect(item)}
+                  >
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+        {/* IngredientDetailModal */}
+        <IngredientDetailModal
+          isOpen={modalOpen}
+          onClose={() => { setModalOpen(false); setModalIngredient(null); }}
+          ingredient={modalIngredient || ''}
+          onComplete={handleModalComplete}
+        />
+        {/* 재고 관리 구역 */}
+        <div className="w-full px-5 mt-12">
+          <h2 className="text-[16px] font-bold text-[#111] mb-2">내 냉장고 재고 관리</h2>
+          <div className="border-t border-gray-200 mb-6"></div>
+          {/* 냉동보관 */}
+          <div className="mb-4">
+            <div className="text-[16px] font-bold mb-2 flex items-center">
+              냉동보관 <span className="ml-1">🧊</span>
+              <SortDropdown value={frozenSort} onChange={setFrozenSort} className="ml-2" />
+              {(frozen ?? []).length > 0 && (
+                <button
+                  className="ml-2 h-6 px-2 py-0 text-xs font-medium rounded border border-gray-300 bg-white text-[#404040] hover:bg-[#F5F6F8] active:bg-[#E5E7EB] transition whitespace-nowrap"
+                  onClick={() => handleRemoveAll('frozen')}
                 >
-                  {item}
-                </li>
+                  모두삭제
+                </button>
+              )}
+            </div>
+            <div
+              style={{
+                background: '#F5F6F8',
+                borderRadius: 20,
+                boxShadow: '0 1px 4px rgba(0,0,0,0.03)',
+                padding: 16,
+                maxHeight: '140px',
+                minHeight: '140px',
+                border: 'none',
+                marginBottom: 16,
+                overflowY: 'auto',
+                overflowX: 'hidden',
+              }}
+              className="custom-scrollbar"
+            >
+              {(frozen ?? []).length === 0 && (
+                <div className="text-gray-400 text-xs py-1">재료가 아직 없어요</div>
+              )}
+              {sortIngredients(frozen ?? [], frozenSort).map((item) => (
+                <TagPill key={item.name} style={{ fontSize: 11 }} onClick={() => handleTagInfo(item)}>
+                  <span className="truncate max-w-[110px]">{item.name}</span>
+                  <span className="relative flex-shrink-0 ml-2" style={{ width: 20, height: 24, display: 'inline-block' }}>
+                    <span
+                      style={{
+                        position: 'absolute',
+                        left: '85%',
+                        top: '40%',
+                        transform: 'translate(-50%, -50%)',
+                        fontSize: 16,
+                        fontWeight: 300,
+                        cursor: 'pointer',
+                        lineHeight: 1,
+                      }}
+                      onClick={e => { e.stopPropagation(); removeTag('frozen', item.name); }}
+                    >
+                      x
+                    </span>
+                  </span>
+                </TagPill>
               ))}
-            </ul>
-          )}
-        </div>
-      </div>
-      {/* IngredientDetailModal */}
-      <IngredientDetailModal
-        isOpen={modalOpen}
-        onClose={() => { setModalOpen(false); setModalIngredient(null); }}
-        ingredient={modalIngredient || ''}
-        onComplete={handleModalComplete}
-      />
-      {/* 재고 관리 구역 */}
-      <div className="w-full px-5 mt-12">
-        <h2 className="text-[16px] font-bold text-[#111] mb-2">내 냉장고 재고 관리</h2>
-        <div className="border-t border-gray-200 mb-6"></div>
-        {/* 냉동보관 */}
-        <div className="mb-4">
-          <div className="text-[16px] font-bold mb-2 flex items-center">
-            냉동보관 <span className="ml-1">🧊</span>
-            <SortDropdown value={frozenSort} onChange={setFrozenSort} className="ml-2" />
-            {(frozen ?? []).length > 0 && (
-              <button
-                className="ml-2 h-6 px-2 py-0 text-xs font-medium rounded border border-gray-300 bg-white text-[#404040] hover:bg-[#F5F6F8] active:bg-[#E5E7EB] transition whitespace-nowrap"
-                onClick={() => handleRemoveAll('frozen')}
-              >
-                모두삭제
-              </button>
-            )}
+            </div>
           </div>
-          <div className="bg-gray-100 rounded-xl px-3 py-2 overflow-y-auto overflow-x-hidden custom-scrollbar" style={{ maxHeight: '140px', minHeight: '140px' }}>
-            {(frozen ?? []).length === 0 && (
-              <div className="text-gray-400 text-xs py-1">재료가 아직 없어요</div>
-            )}
-            {sortIngredients(frozen ?? [], frozenSort).map((item) => (
-              <TagPill key={item.name} style={{ fontSize: 11 }} onClick={() => handleTagInfo(item)}>
-                <span className="truncate max-w-[110px]">{item.name}</span>
-                <span className="relative flex-shrink-0 ml-2" style={{ width: 20, height: 24, display: 'inline-block' }}>
-                  <span
-                    style={{
-                      position: 'absolute',
-                      left: '85%',
-                      top: '40%',
-                      transform: 'translate(-50%, -50%)',
-                      fontSize: 16,
-                      fontWeight: 300,
-                      cursor: 'pointer',
-                      lineHeight: 1,
-                    }}
-                    onClick={e => { e.stopPropagation(); removeTag('frozen', item.name); }}
-                  >
-                    x
+          {/* 냉장보관 */}
+          <div className="mb-4">
+            <div className="text-[16px] font-bold mb-2 flex items-center">
+              냉장보관 <span className="ml-1">❄️</span>
+              <SortDropdown value={fridgeSort} onChange={setFridgeSort} className="ml-2" />
+              {fridge && fridge.length > 0 && (
+                <button
+                  className="ml-2 h-6 px-2 py-0 text-xs font-medium rounded border border-gray-300 bg-white text-[#404040] hover:bg-[#F5F6F8] active:bg-[#E5E7EB] transition whitespace-nowrap"
+                  onClick={() => handleRemoveAll('fridge')}
+                >
+                  모두삭제
+                </button>
+              )}
+            </div>
+            <div
+              style={{
+                background: '#F5F6F8',
+                borderRadius: 20,
+                boxShadow: '0 1px 4px rgba(0,0,0,0.03)',
+                padding: 16,
+                maxHeight: '140px',
+                minHeight: '140px',
+                border: 'none',
+                marginBottom: 16,
+                overflowY: 'auto',
+                overflowX: 'hidden',
+              }}
+              className="custom-scrollbar"
+            >
+              {fridge && fridge.length === 0 && (
+                <div className="text-gray-400 text-xs py-1">재료가 아직 없어요</div>
+              )}
+              {sortIngredients(fridge ?? [], fridgeSort).map((item) => (
+                <TagPill key={item.name} style={{ fontSize: 11 }} onClick={() => handleTagInfo(item)}>
+                  <span className="truncate max-w-[110px]">{item.name}</span>
+                  <span className="relative flex-shrink-0 ml-2" style={{ width: 20, height: 24, display: 'inline-block' }}>
+                    <span
+                      style={{
+                        position: 'absolute',
+                        left: '85%',
+                        top: '40%',
+                        transform: 'translate(-50%, -50%)',
+                        fontSize: 16,
+                        fontWeight: 300,
+                        cursor: 'pointer',
+                        lineHeight: 1,
+                      }}
+                      onClick={e => { e.stopPropagation(); removeTag('fridge', item.name); }}
+                    >
+                      x
+                    </span>
                   </span>
-                </span>
-              </TagPill>
-            ))}
+                </TagPill>
+              ))}
+            </div>
           </div>
-        </div>
-        {/* 냉장보관 */}
-        <div className="mb-4">
-          <div className="text-[16px] font-bold mb-2 flex items-center">
-            냉장보관 <span className="ml-1">❄️</span>
-            <SortDropdown value={fridgeSort} onChange={setFridgeSort} className="ml-2" />
-            {fridge && fridge.length > 0 && (
-              <button
-                className="ml-2 h-6 px-2 py-0 text-xs font-medium rounded border border-gray-300 bg-white text-[#404040] hover:bg-[#F5F6F8] active:bg-[#E5E7EB] transition whitespace-nowrap"
-                onClick={() => handleRemoveAll('fridge')}
-              >
-                모두삭제
-              </button>
-            )}
-          </div>
-          <div className="bg-gray-100 rounded-xl px-3 py-2 overflow-y-auto overflow-x-hidden custom-scrollbar" style={{ maxHeight: '140px', minHeight: '140px' }}>
-            {fridge && fridge.length === 0 && (
-              <div className="text-gray-400 text-xs py-1">재료가 아직 없어요</div>
-            )}
-            {sortIngredients(fridge ?? [], fridgeSort).map((item) => (
-              <TagPill key={item.name} style={{ fontSize: 11 }} onClick={() => handleTagInfo(item)}>
-                <span className="truncate max-w-[110px]">{item.name}</span>
-                <span className="relative flex-shrink-0 ml-2" style={{ width: 20, height: 24, display: 'inline-block' }}>
-                  <span
-                    style={{
-                      position: 'absolute',
-                      left: '85%',
-                      top: '40%',
-                      transform: 'translate(-50%, -50%)',
-                      fontSize: 16,
-                      fontWeight: 300,
-                      cursor: 'pointer',
-                      lineHeight: 1,
-                    }}
-                    onClick={e => { e.stopPropagation(); removeTag('fridge', item.name); }}
-                  >
-                    x
+          {/* 실온보관 */}
+          <div className="mb-4">
+            <div className="text-[16px] font-bold mb-2 flex items-center">
+              실온보관 <span className="ml-1">🌡️</span>
+              <SortDropdown value={roomSort} onChange={setRoomSort} className="ml-2" />
+              {room && room.length > 0 && (
+                <button
+                  className="ml-2 h-6 px-2 py-0 text-xs font-medium rounded border border-gray-300 bg-white text-[#404040] hover:bg-[#F5F6F8] active:bg-[#E5E7EB] transition whitespace-nowrap"
+                  onClick={() => handleRemoveAll('room')}
+                >
+                  모두삭제
+                </button>
+              )}
+            </div>
+            <div
+              style={{
+                background: '#F5F6F8',
+                borderRadius: 20,
+                boxShadow: '0 1px 4px rgba(0,0,0,0.03)',
+                padding: 16,
+                maxHeight: '140px',
+                minHeight: '140px',
+                border: 'none',
+                marginBottom: 16,
+                overflowY: 'auto',
+                overflowX: 'hidden',
+              }}
+              className="custom-scrollbar"
+            >
+              {room && room.length === 0 && (
+                <div className="text-gray-400 text-xs py-1">재료가 아직 없어요</div>
+              )}
+              {sortIngredients(room ?? [], roomSort).map((item) => (
+                <TagPill key={item.name} style={{ fontSize: 11 }} onClick={() => handleTagInfo(item)}>
+                  <span className="truncate max-w-[110px]">{item.name}</span>
+                  <span className="relative flex-shrink-0 ml-2" style={{ width: 20, height: 24, display: 'inline-block' }}>
+                    <span
+                      style={{
+                        position: 'absolute',
+                        left: '85%',
+                        top: '40%',
+                        transform: 'translate(-50%, -50%)',
+                        fontSize: 16,
+                        fontWeight: 300,
+                        cursor: 'pointer',
+                        lineHeight: 1,
+                      }}
+                      onClick={e => { e.stopPropagation(); removeTag('room', item.name); }}
+                    >
+                      x
+                    </span>
                   </span>
-                </span>
-              </TagPill>
-            ))}
+                </TagPill>
+              ))}
+            </div>
           </div>
         </div>
-        {/* 실온보관 */}
-        <div className="mb-4">
-          <div className="text-[16px] font-bold mb-2 flex items-center">
-            실온보관 <span className="ml-1">🌡️</span>
-            <SortDropdown value={roomSort} onChange={setRoomSort} className="ml-2" />
-            {room && room.length > 0 && (
-              <button
-                className="ml-2 h-6 px-2 py-0 text-xs font-medium rounded border border-gray-300 bg-white text-[#404040] hover:bg-[#F5F6F8] active:bg-[#E5E7EB] transition whitespace-nowrap"
-                onClick={() => handleRemoveAll('room')}
-              >
-                모두삭제
-              </button>
-            )}
-          </div>
-          <div className="bg-gray-100 rounded-xl px-3 py-2 overflow-y-auto overflow-x-hidden custom-scrollbar" style={{ maxHeight: '140px', minHeight: '140px' }}>
-            {room && room.length === 0 && (
-              <div className="text-gray-400 text-xs py-1">재료가 아직 없어요</div>
-            )}
-            {sortIngredients(room ?? [], roomSort).map((item) => (
-              <TagPill key={item.name} style={{ fontSize: 11 }} onClick={() => handleTagInfo(item)}>
-                <span className="truncate max-w-[110px]">{item.name}</span>
-                <span className="relative flex-shrink-0 ml-2" style={{ width: 20, height: 24, display: 'inline-block' }}>
-                  <span
-                    style={{
-                      position: 'absolute',
-                      left: '85%',
-                      top: '40%',
-                      transform: 'translate(-50%, -50%)',
-                      fontSize: 16,
-                      fontWeight: 300,
-                      cursor: 'pointer',
-                      lineHeight: 1,
-                    }}
-                    onClick={e => { e.stopPropagation(); removeTag('room', item.name); }}
-                  >
-                    x
-                  </span>
-                </span>
-              </TagPill>
-            ))}
+        {/* 광고 영역 */}
+        <div className="w-full px-5 mt-16 mb-44 flex justify-center" style={{position: 'static', zIndex: 0}}>
+          <div className="w-full max-w-[375px] h-[120px] border border-dashed border-red-500 flex flex-col items-center justify-center text-center" style={{ color: 'red', fontSize: 14 }}>
+            <div className="font-bold">&lt;이곳에 광고가 노출됩니다&gt;</div>
+            <div>필요한 재료가 없으신가요?<br />쿠팡·마켓컬리에서 바로 구매할 수 있는 상품을 추천해드립니다.</div>
           </div>
         </div>
-      </div>
-      {/* 광고 영역 */}
-      <div className="w-full px-5 mt-16 mb-44 flex justify-center" style={{position: 'static', zIndex: 0}}>
-        <div className="w-full max-w-[375px] h-[120px] border border-dashed border-red-500 flex flex-col items-center justify-center text-center" style={{ color: 'red', fontSize: 14 }}>
-          <div className="font-bold">&lt;이곳에 광고가 노출됩니다&gt;</div>
-          <div>필요한 재료가 없으신가요?<br />쿠팡·마켓컬리에서 바로 구매할 수 있는 상품을 추천해드립니다.</div>
+        {/* 하단 내비게이션 */}
+        <div className="w-full">
+          <BottomNavBar activeTab="myfridge" />
         </div>
+        {toast && toast.visible && (
+          <Toast message={toast.message} onUndo={undoDelete} onClose={() => setToast(null)} />
+        )}
+        {infoToast && (
+          <div className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-white border border-gray-300 rounded-lg px-6 py-3 text-[#404040] text-sm shadow-lg z-[9999]">
+            {infoToast.text}
+          </div>
+        )}
       </div>
-      {/* 하단 내비게이션 */}
-      <div className="w-full">
-        <BottomNavBar activeTab="myfridge" />
-      </div>
-      {toast && toast.visible && (
-        <Toast message={toast.message} onUndo={undoDelete} onClose={() => setToast(null)} />
-      )}
-      {infoToast && (
-        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-white border border-gray-300 rounded-lg px-6 py-3 text-[#404040] text-sm shadow-lg z-[9999]">
-          {infoToast.text}
-        </div>
-      )}
     </div>
   );
 };

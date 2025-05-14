@@ -138,10 +138,10 @@ const MyPage = () => {
           <div className="text-[15px] text-gray-500">{user.userid}</div>
         </div>
         <button
-          className="mt-1 px-3 h-7 bg-[#BDBDBD] text-white rounded-full text-[13px] font-medium flex items-center gap-1 border-none shadow-none"
+          className="mt-1 px-3 h-7 bg-[#FFD600] text-[#222] rounded-full text-[13px] font-bold flex items-center gap-1 border-none shadow hover:bg-yellow-300 transition"
           style={{ minWidth: 0, height: 28, paddingLeft: 14, paddingRight: 14, fontFamily: 'inherit' }}
           onClick={() => setEditOpen(true)}
-        >내 정보 수정 <span style={{fontFamily:'inherit', fontWeight:500, fontSize:15, color:'#fff', marginLeft:2}}>〉</span></button>
+        >내 정보 수정 <span style={{fontFamily:'inherit', fontWeight:500, fontSize:15, color:'#222', marginLeft:2}}>〉</span></button>
       </section>
       {/* 내가 기록한 레시피 */}
       <div className="flex items-center justify-between mb-2 ml-8">
@@ -365,5 +365,5 @@ const MyPage = () => {
     </div>
   );
 };
-
+ 
 export default MyPage; 

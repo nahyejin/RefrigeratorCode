@@ -25,6 +25,20 @@ const PopularTrends = () => {
           <img src={searchIcon} alt="검색" className="h-4 w-4 mr-1 cursor-pointer" />
         </div>
       </header>
+      {/* ...기존 인기 급상승 표 등 내용... */}
+
+      {/* 인기 레시피 직접 찾아보기 검색창 */}
+      <div className="mt-8 mb-24 flex items-center gap-2 w-full max-w-[360px] mx-auto">
+        <input
+          type="text"
+          placeholder="재료명 또는 키워드로 검색"
+          className="flex-1 border border-gray-300 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+        />
+        <button
+          className="bg-[#FFD600] text-[#222] font-bold rounded-full px-5 py-2 text-sm shadow hover:bg-yellow-300 transition"
+        >검색</button>
+      </div>
+      <BottomNavBar activeTab="popularity" />
     </div>
   );
 };

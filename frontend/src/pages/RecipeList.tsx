@@ -259,12 +259,40 @@ const RecipeList = () => {
   return (
     <>
       <TopNavBar />
-      <div className="max-w-[430px] mx-auto pb-20 pt-4 px-2 bg-white" style={{ minHeight: '100vh', boxSizing: 'border-box' }}>
+      <div className="mx-auto pb-20 bg-white"
+        style={{
+          maxWidth: 400,
+          minHeight: '100vh',
+          boxSizing: 'border-box',
+          paddingLeft: 14,
+          paddingRight: 14,
+          paddingTop: 32,
+        }}
+      >
         <h2 className="text-lg font-bold mb-4 text-center">내 냉장고 기반 레시피 추천</h2>
         {/* 정렬/필터 바 */}
-        <div className="flex gap-2 mb-4 items-center">
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            marginBottom: 24,
+            width: '100%',
+            marginTop: 32,
+          }}
+        >
           <select
-            className="border border-gray-300 rounded h-7 px-2 text-xs font-bold bg-white text-[#404040] focus:outline-none focus:ring-2 focus:ring-blue-200 transition min-w-[120px]"
+            style={{
+              height: 28,
+              border: '1px solid #ccc',
+              borderRadius: 6,
+              fontSize: 14,
+              padding: '0 10px',
+              fontWeight: 700,
+              background: '#fff',
+              color: '#404040',
+              minWidth: 100,
+            }}
             value={sortType}
             onChange={e => setSortType(e.target.value)}
             aria-label="정렬 기준 선택"
@@ -273,10 +301,24 @@ const RecipeList = () => {
             <option value="expiry">유통기한 임박순</option>
           </select>
           <button
-            className="ml-auto flex items-center gap-1 px-3 py-1 rounded-full border border-gray-300 text-gray-600 text-xs font-semibold bg-white hover:bg-gray-100"
+            style={{
+              marginLeft: 'auto',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              padding: '4px 16px',
+              borderRadius: 999,
+              border: '1px solid #ccc',
+              background: '#fff',
+              color: '#444',
+              fontWeight: 600,
+              fontSize: 14,
+              height: 28,
+              cursor: 'pointer',
+            }}
             onClick={() => setFilterOpen(true)}
           >
-            <span className="font-bold">필터</span>
+            <span style={{ fontWeight: 700 }}>필터</span>
           </button>
         </div>
         {/* 필터 팝업 상세 구현 */}
@@ -305,10 +347,15 @@ const RecipeList = () => {
             return (
               <div
                 key={recipe.id}
-                className="rounded-[16px] shadow-sm p-4 min-h-[144px] relative mb-1 bg-white"
                 style={{
-                  ...(idx === arr.length - 1 ? { marginBottom: 40 } : {}),
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
+                  borderRadius: 20,
+                  background: '#fff',
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.03)',
+                  marginBottom: idx === arr.length - 1 ? 40 : 16,
+                  minHeight: 144,
+                  position: 'relative',
+                  padding: 16,
+                  border: 'none',
                 }}
               >
                 <div className="font-bold text-[18px] text-[#222] text-left">{String(idx + 1).padStart(2, '0')}</div>
@@ -443,18 +490,18 @@ const RecipeList = () => {
                   {shownIngredients
                     .filter(({ ing }) => ing && ing.trim() !== '')
                     .map(({ ing, type }: { ing: string, type: string }) => (
-                      <span
-                        key={ing}
-                        className={
-                          type === 'need'
+                    <span
+                      key={ing}
+                      className={
+                        type === 'need'
                             ? 'bg-[#D1D1D1] text-white rounded-full px-3 py-0.5 font-medium'
                             : 'bg-[#555] text-white rounded-full px-3 py-0.5 font-medium'
-                        }
+                      }
                         style={{ fontSize: '10.4px' }}
-                      >
-                        {ing}
-                      </span>
-                    ))}
+                    >
+                      {ing}
+                    </span>
+                  ))}
                 </div>
                 {/* 대체재 */}
                 {recipe.substitutes && recipe.substitutes.length > 0 && (

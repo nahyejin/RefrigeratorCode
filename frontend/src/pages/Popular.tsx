@@ -54,57 +54,29 @@ const dummyRecipes = [
 ];
 
 const dummyIngredients = [
-  {
-    id: 1,
-    rank: 1,
-    name: "두릅",
-    count: 200,
-    rate: 20,
-    thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80",
-  },
-  {
-    id: 2,
-    rank: 2,
-    name: "머위나물",
-    count: 150,
-    rate: 16,
-    thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80",
-  },
-  {
-    id: 3,
-    rank: 3,
-    name: "도다리",
-    count: 44,
-    rate: 8,
-    thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80",
-  },
+  { id: 1, rank: 1, name: "두릅", count: 200, rate: 20, thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80" },
+  { id: 2, rank: 2, name: "머위나물", count: 150, rate: 16, thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80" },
+  { id: 3, rank: 3, name: "도다리", count: 44, rate: 8, thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80" },
+  { id: 4, rank: 4, name: "삼겹살", count: 420, rate: 12, thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80" },
+  { id: 5, rank: 5, name: "대파", count: 380, rate: 7, thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80" },
+  { id: 6, rank: 6, name: "계란", count: 350, rate: 5, thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80" },
+  { id: 7, rank: 7, name: "양파", count: 320, rate: 3, thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80" },
+  { id: 8, rank: 8, name: "두부", count: 300, rate: 2, thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80" },
+  { id: 9, rank: 9, name: "닭가슴살", count: 280, rate: -1, thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80" },
+  { id: 10, rank: 10, name: "감자", count: 260, rate: -3, thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80" },
 ];
 
 const dummyThemes = [
-  {
-    id: 1,
-    rank: 1,
-    name: "저소노화",
-    count: 403,
-    rate: 21,
-    thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80",
-  },
-  {
-    id: 2,
-    rank: 2,
-    name: "어버이날",
-    count: 205,
-    rate: 15,
-    thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80",
-  },
-  {
-    id: 3,
-    rank: 3,
-    name: "기관지",
-    count: 654,
-    rate: 7,
-    thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80",
-  },
+  { id: 1, rank: 1, name: "저소노화", count: 403, rate: 21, thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80" },
+  { id: 2, rank: 2, name: "어버이날", count: 205, rate: 15, thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80" },
+  { id: 3, rank: 3, name: "기관지", count: 654, rate: 7, thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80" },
+  { id: 4, rank: 4, name: "다이어트", count: 600, rate: 18, thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80" },
+  { id: 5, rank: 5, name: "비건", count: 580, rate: 12, thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80" },
+  { id: 6, rank: 6, name: "여름별미", count: 540, rate: 10, thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80" },
+  { id: 7, rank: 7, name: "한식", count: 500, rate: 8, thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80" },
+  { id: 8, rank: 8, name: "집밥", count: 480, rate: 5, thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80" },
+  { id: 9, rank: 9, name: "간편식", count: 470, rate: 2, thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80" },
+  { id: 10, rank: 10, name: "브런치", count: 450, rate: -2, thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80" },
 ];
 
 // 필터 상태 타입 및 초기값 (RecipeList.tsx와 동일)
@@ -245,6 +217,9 @@ const Popular = () => {
     if (period === 'month') return '전달대비 게시글량';
     return '기간대비 게시글량';
   };
+
+  const sortedIngredients = [...dummyIngredients].sort((a, b) => b.rate - a.rate);
+  const sortedThemes = [...dummyThemes].sort((a, b) => b.rate - a.rate);
 
   return (
     <>
@@ -463,150 +438,121 @@ const Popular = () => {
           </div>
         </section>
 
-        {/* ⓒ 인기 재료 */}
+        {/* 인기 급상승 재료/테마 키워드 리스트 (TOP10, No. 열, 동적 상승률 라벨) */}
         <section style={{marginBottom: 48}}>
-          <div style={{marginBottom: 8}}>
-            <h2 className="text-[16px] font-bold text-[#111] mb-2">인기 재료</h2>
-            <div style={{height: 2, width: '100%', background: '#E5E5E5', marginBottom: 16}} />
-          </div>
-          <div style={{display: 'flex', overflowX: 'auto', gap: 16, paddingBottom: 8}}>
-            {dummyIngredients.map((i) => (
-              <div
-                key={i.id}
-                onClick={() => navigate(`/ingredient/${encodeURIComponent(i.name)}`)}
-                style={{
-                  cursor: 'pointer',
-                  minWidth: 240,
-                  background: '#fff',
-                  borderRadius: 16,
-                  boxShadow: '0 2px 8px #eee',
-                  padding: 0,
-                  margin: 0,
-                  overflow: 'hidden',
-                  display: 'flex',
-                  flexDirection: 'column',
-                }}
-              >
-                <div style={{position: 'relative', width: '100%', height: 140}}>
-                  <img src={i.thumbnail} alt={i.name} style={{width: '100%', height: 140, objectFit: 'cover'}} />
-                  {/* 순위 뱃지 */}
-                  <div className="absolute bg-[#444] bg-opacity-90 text-white font-bold rounded px-1.5 py-0 flex items-center shadow" style={{position: 'absolute', top: 0, left: 0, fontSize: 12, zIndex: 2}}>
-                    {i.rank}위
-                  </div>
-                </div>
-                <div style={{padding: '16px 16px 12px 16px'}}>
-                  <div style={{fontWeight: 700, fontSize: 16, marginBottom: 4}}>{i.name}</div>
-                  <div style={{fontSize: 13, color: '#888', marginBottom: 4}}>
-                    관련 레시피 <b style={{fontWeight:700}}>총 {i.count}건</b>
-                  </div>
-                  <div style={{fontSize: 13, color: '#888'}}>
-                    {getPeriodText(period)} <b style={{fontWeight:700}}>{i.rate}% 상승</b>
-                  </div>
-                </div>
+          <div style={{display: 'flex', flexDirection: 'column', gap: 32}}>
+            {/* 인기 급상승 재료 */}
+            <div>
+              <h2 className="text-[16px] font-bold text-[#111] mb-2 text-left">인기 급상승 재료 TOP 10</h2>
+              <div style={{height: 2, width: '100%', background: '#E5E5E5', marginBottom: 16}} />
+              <div className="mt-4">
+                <table className="w-full max-w-[280px] mx-auto border-collapse text-[13px] font-sans" style={{background: '#fff'}}>
+                  <thead>
+                    <tr style={{borderTop: '1px solid #E5E5E5', borderBottom: '1px solid #E5E5E5', background: '#F7F7F9'}}>
+                      <th className="py-1.5 px-2 text-center font-medium text-[#222] whitespace-nowrap">순위</th>
+                      <th className="py-1.5 px-2 text-left font-medium text-[#222] whitespace-nowrap">재료명</th>
+                      <th className="py-1.5 px-2 text-right font-medium text-[#222] whitespace-nowrap">언급량</th>
+                      <th className="py-1.5 px-2 text-center font-medium text-[#222] whitespace-nowrap">{period === 'today' ? '전일' : period === 'week' ? '전주' : period === 'month' ? '전달' : '기간'}대비 상승률</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sortedIngredients.slice(0, 10).map((ing, idx) => (
+                      <tr key={ing.id}>
+                        <td className="py-1.5 px-2 text-center text-[#444] font-normal whitespace-nowrap">{idx + 1}</td>
+                        <td className="py-1.5 px-2 text-left text-[#444] font-normal whitespace-nowrap">{ing.name}</td>
+                        <td className="py-1.5 px-2 text-right text-[#444] font-normal whitespace-nowrap">{ing.count.toLocaleString()}</td>
+                        <td className="py-1.5 px-2 text-center font-normal whitespace-nowrap" style={{color: ing.rate >= 0 ? '#E85A4F' : '#3A6EA5'}}>{ing.rate >= 0 ? `+${ing.rate}%` : `${ing.rate}%`}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            ))}
+            </div>
+            {/* 인기 급상승 테마 */}
+            <div>
+              <h2 className="text-[16px] font-bold text-[#111] mb-2 text-left">인기 급상승 테마 TOP 10</h2>
+              <div style={{height: 2, width: '100%', background: '#E5E5E5', marginBottom: 16}} />
+              <div className="mt-4">
+                <table className="w-full max-w-[280px] mx-auto border-collapse text-[13px] font-sans" style={{background: '#fff'}}>
+                  <thead>
+                    <tr style={{borderTop: '1px solid #E5E5E5', borderBottom: '1px solid #E5E5E5', background: '#F7F7F9'}}>
+                      <th className="py-1.5 px-2 text-center font-medium text-[#222] whitespace-nowrap">순위</th>
+                      <th className="py-1.5 px-2 text-left font-medium text-[#222] whitespace-nowrap">테마명</th>
+                      <th className="py-1.5 px-2 text-right font-medium text-[#222] whitespace-nowrap">언급량</th>
+                      <th className="py-1.5 px-2 text-center font-medium text-[#222] whitespace-nowrap">{period === 'today' ? '전일' : period === 'week' ? '전주' : period === 'month' ? '전달' : '기간'}대비 상승률</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sortedThemes.slice(0, 10).map((theme, idx) => (
+                      <tr key={theme.id}>
+                        <td className="py-1.5 px-2 text-center text-[#444] font-normal whitespace-nowrap">{idx + 1}</td>
+                        <td className="py-1.5 px-2 text-left text-[#444] font-normal whitespace-nowrap">{theme.name}</td>
+                        <td className="py-1.5 px-2 text-right text-[#444] font-normal whitespace-nowrap">{theme.count.toLocaleString()}</td>
+                        <td className="py-1.5 px-2 text-center font-normal whitespace-nowrap" style={{color: theme.rate >= 0 ? '#E85A4F' : '#3A6EA5'}}>{theme.rate >= 0 ? `+${theme.rate}%` : `${theme.rate}%`}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         </section>
 
-        {/* ⓓ 인기 테마 */}
+        {/* 인기 레시피 직접 찾아보기 검색창 */}
         <section style={{marginBottom: 48}}>
-          <div style={{marginBottom: 8}}>
-            <h2 className="text-[16px] font-bold text-[#111] mb-2">인기 테마</h2>
-            <div style={{height: 2, width: '100%', background: '#E5E5E5', marginBottom: 16}} />
-          </div>
-          <div style={{display: 'flex', overflowX: 'auto', gap: 16, paddingBottom: 8}}>
-            {dummyThemes.map((t) => (
-              <div
-                key={t.id}
-                onClick={() => navigate(`/ingredient/${encodeURIComponent(t.name)}`)}
-                style={{
-                  cursor: 'pointer',
-                  minWidth: 240,
-                  background: '#fff',
-                  borderRadius: 16,
-                  boxShadow: '0 2px 8px #eee',
-                  padding: 0,
-                  margin: 0,
-                  overflow: 'hidden',
-                  display: 'flex',
-                  flexDirection: 'column',
-                }}
-              >
-                <div style={{position: 'relative', width: '100%', height: 140}}>
-                  <img src={t.thumbnail} alt={t.name} style={{width: '100%', height: 140, objectFit: 'cover'}} />
-                  {/* 순위 뱃지 */}
-                  <div className="absolute bg-[#444] bg-opacity-90 text-white font-bold rounded px-1.5 py-0 flex items-center shadow" style={{position: 'absolute', top: 0, left: 0, fontSize: 12, zIndex: 2}}>
-                    {t.rank}위
-                  </div>
-                </div>
-                <div style={{padding: '16px 16px 12px 16px'}}>
-                  <div style={{fontWeight: 700, fontSize: 16, marginBottom: 4}}>{t.name}</div>
-                  <div style={{fontSize: 13, color: '#888', marginBottom: 4}}>
-                    관련 레시피 <b style={{fontWeight:700}}>총 {t.count}건</b>
-                  </div>
-                  <div style={{fontSize: 13, color: '#888'}}>
-                    {getPeriodText(period)} <b style={{fontWeight:700}}>{t.rate}% 상승</b>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* ⓔ 키워드 검색 */}
-        <section style={{marginBottom: 48}}>
-          <div style={{marginBottom: 8}}>
-            <h2 className="text-[16px] font-bold text-[#111] mb-2">특정 재료·키워드 기반으로 인기 레시피 찾아보기</h2>
-            <div style={{height: 2, width: '100%', background: '#E5E5E5', marginBottom: 16}} />
-          </div>
-          <input
-            className="search-input"
+          <h2 className="text-[16px] font-bold text-[#111] mb-2 text-left">특정 재료·테마 등 키워드로 찾아보기</h2>
+          <div style={{height: 2, width: '100%', background: '#E5E5E5', marginBottom: 16}} />
+          <div
             style={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
               width: '100%',
-              border: '1px solid #ccc',
-              borderRadius: 8,
-              padding: '14px 16px',
-              fontSize: 12,
-              marginBottom: 8,
+              maxWidth: 360,
+              margin: '0 auto',
+              gap: 8,
             }}
-            placeholder="관심있는 재료·테마 키워드 등을 자유롭게 입력하세요"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && search.trim()) {
-                navigate(`/ingredient/${encodeURIComponent(search.trim())}`);
-              }
-            }}
-          />
+          >
+            <input
+              type="text"
+              placeholder="관심 키워드를 입력해주세요"
+              className="border border-gray-300 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+              style={{
+                maxWidth: 250,
+                minWidth: 0,
+                flex: '0 1 auto',
+                height: 40,
+                fontFamily: 'Pretendard, sans-serif',
+              }}
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter' && search.trim()) {
+                  navigate(`/ingredient/${encodeURIComponent(search.trim())}`);
+                }
+              }}
+            />
+            <button
+              className="bg-[#FFD600] text-[#222] font-bold rounded-full px-5 py-2 text-sm shadow hover:bg-yellow-300 transition"
+              style={{
+                height: 40,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontFamily: 'Pretendard, sans-serif',
+              }}
+              onClick={() => {
+                if (search.trim()) {
+                  navigate(`/ingredient/${encodeURIComponent(search.trim())}`);
+                }
+              }}
+            >
+              검색
+            </button>
+          </div>
         </section>
-      </div>
       <BottomNavBar activeTab="popularity" />
-
-      {/* Toast Popup */}
-      {toast && (
-        <div style={{
-          position: 'fixed',
-          bottom: 100,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          background: 'rgba(34,34,34,0.9)',
-          color: '#fff',
-          padding: '12px 24px',
-          borderRadius: 12,
-          fontWeight: 400,
-          fontSize: 15,
-          zIndex: 9999,
-          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-          maxWidth: 260,
-          width: 'max-content',
-          whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          textAlign: 'center',
-        }}>
-          {toast}
-        </div>
-      )}
+      </div>
     </>
   );
 };

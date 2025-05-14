@@ -13,8 +13,16 @@ const TagPill: React.FC<TagPillProps> = ({ children, info, className = '', style
 
   return (
     <span
-      className={`inline-flex flex-nowrap items-center bg-[#444444] text-white text-[11px] font-light px-2 h-6 rounded-full mr-2 mb-[3px] overflow-hidden whitespace-nowrap relative ${className}`}
-      style={style}
+      className={`inline-flex flex-nowrap items-center bg-[#444444] text-white px-2 h-6 rounded-full mr-2 mb-[3px] overflow-hidden whitespace-nowrap relative ${className}`}
+      style={{
+        fontSize: '10.4px',
+        fontFamily: 'Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif',
+        fontWeight: 400,
+        letterSpacing: '-0.1px',
+        WebkitFontSmoothing: 'antialiased',
+        MozOsxFontSmoothing: 'grayscale',
+        ...style
+      }}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       onClick={onClick}
