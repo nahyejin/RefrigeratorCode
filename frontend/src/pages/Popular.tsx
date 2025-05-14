@@ -551,8 +551,32 @@ const Popular = () => {
             </button>
           </div>
         </section>
-      <BottomNavBar activeTab="popularity" />
       </div>
+      {toast && (
+        <div style={{
+          position: 'fixed',
+          bottom: 100,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'rgba(34,34,34,0.9)',
+          color: '#fff',
+          padding: '12px 24px',
+          borderRadius: 12,
+          fontWeight: 400,
+          fontSize: 15,
+          zIndex: 9999,
+          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+          maxWidth: 260,
+          width: 'max-content',
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          textAlign: 'center',
+        }}>
+          {toast}
+        </div>
+      )}
+      <BottomNavBar activeTab="popularity" />
     </>
   );
 };

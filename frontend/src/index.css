@@ -157,21 +157,72 @@ html, body, #root, * {
 }
 
 /* 네이버 스타일 pill/태그/버튼 (12px 이하, 굵은 글씨 번짐 방지) */
-.pill-label, .tag-label, .filter-pill, .small-pill {
+.pill-label, .tag-label, .filter-pill, .small-pill,
+.inline-flex.flex-nowrap.items-center.bg-\[\#444444\].text-white {
   border: 1px solid #f5f6f8;
   border-radius: 10px;
   color: rgba(5, 5, 5, 0.5);
   cursor: pointer;
   display: inline-block;
-  font-size: 11px;
-  font-weight: 500;
+  font-size: 12px !important;
+  font-weight: 400 !important;
   line-height: 24px;
   min-width: 55px;
   padding: 3px 7px;
   text-align: center;
-  font-family: 'Pretendard', 'Noto Sans KR', 'Apple SD Gothic Neo', Arial, sans-serif;
+  font-family: 'Malgun Gothic', Arial, system-ui, 'Apple SD Gothic Neo', sans-serif !important;
   background: none;
   box-shadow: none;
   user-select: none;
   white-space: nowrap;
+  letter-spacing: -0.1px !important;
+  -webkit-font-smoothing: antialiased !important;
+  text-rendering: optimizeLegibility !important;
+}
+
+/* Force pill/tag font to be sharp and non-blurry */
+.pill-label, .tag-label, .filter-pill, .small-pill,
+.inline-flex.flex-nowrap.items-center.bg-\[\#444444\].text-white {
+  font-family: 'Malgun Gothic', Arial, system-ui, 'Apple SD Gothic Neo', sans-serif !important;
+  font-size: 12px !important;
+  font-weight: 400 !important;
+  letter-spacing: -0.1px !important;
+  -webkit-font-smoothing: antialiased !important;
+  text-rendering: optimizeLegibility !important;
+}
+
+/* 모든 pill/tag에 얇고 선명한 글씨체 강제 적용 */
+.pill-label, .tag-label, .filter-pill, .small-pill,
+.bg-[#D1D1D1], .bg-[#555], .bg-[#444444],
+.rounded-full, .custom-pill {
+  font-family: 'Noto Sans KR', Arial, system-ui, sans-serif !important;
+  font-size: 14px !important;
+  font-weight: 200 !important;
+  letter-spacing: -0.1px !important;
+  -webkit-font-smoothing: antialiased !important;
+  text-rendering: optimizeLegibility !important;
+  text-shadow: none !important;
+}
+
+/* 모든 pill/tag에 text-shadow(테두리/아웃라인) 효과 제거 */
+.bg-[#D1D1D1], .bg-[#555], .bg-[#444444], .rounded-full, .custom-pill,
+.pill-label, .tag-label, .filter-pill, .small-pill {
+  text-shadow: none !important;
+}
+
+/* Tailwind pill에 font-weight: 200 강제 적용 */
+.bg-[#D1D1D1].rounded-full,
+.bg-[#555].rounded-full,
+.bg-[#444444].rounded-full,
+.bg-[#D1D1D1].rounded-full.font-medium,
+.bg-[#555].rounded-full.font-medium,
+.bg-[#444444].rounded-full.font-medium,
+.pill-label, .tag-label, .filter-pill, .small-pill, .custom-pill {
+  font-weight: 200 !important;
+  font-family: 'Noto Sans KR', Arial, system-ui, sans-serif !important;
+  font-size: 14px !important;
+  letter-spacing: -0.1px !important;
+  -webkit-font-smoothing: antialiased !important;
+  text-rendering: optimizeLegibility !important;
+  text-shadow: none !important;
 }
