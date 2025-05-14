@@ -3,11 +3,11 @@
 @tailwind utilities;
 
 /* Pretendard 폰트 CDN */
-@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css");
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
 
 body {
-  font-family: 'Pretendard Variable', -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', sans-serif;
-  color: #404040;
+  font-family: 'Pretendard', '맑은고딕', 'Malgun Gothic', 돋움, Dotum, 굴림, Gulim, AppleSDGothicNeo-Light, AppleGothic, Helvetica, Arial, HelveticaNeue-Light, sans-serif-light, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
+  color: #222;
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
@@ -134,8 +134,44 @@ img, svg {
   box-shadow: none !important;
 }
 
-html, body {
-  min-height: 100vh;
-  height: auto;
-  overflow-y: auto;
+html, body, #root, * {
+  font-family: 'Pretendard', 'Noto Sans KR', 'Apple SD Gothic Neo', Arial, sans-serif !important;
+}
+
+/* 11px 이하에서는 font-weight: 500 이하만 적용 */
+*:not(svg):not(path) {
+  font-size: inherit;
+}
+@media screen {
+  [style*="font-size: 11px"], .text-[11px], .text-xs, .text-2xs, .text-[10px], .text-[9px], .text-[8px] {
+    font-weight: 500 !important;
+  }
+}
+
+/* 11px 이하에서는 font-weight: 500 이하만 적용 */
+.text-[11px], .text-xs, .text-2xs, .text-[10px], .text-[9px], .text-[8px] {
+  font-weight: 500 !important;
+}
+[style*="font-size: 11px"], [style*="font-size:10px"], [style*="font-size:9px"], [style*="font-size:8px"] {
+  font-weight: 500 !important;
+}
+
+/* 네이버 스타일 pill/태그/버튼 (12px 이하, 굵은 글씨 번짐 방지) */
+.pill-label, .tag-label, .filter-pill, .small-pill {
+  border: 1px solid #f5f6f8;
+  border-radius: 10px;
+  color: rgba(5, 5, 5, 0.5);
+  cursor: pointer;
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 24px;
+  min-width: 55px;
+  padding: 3px 7px;
+  text-align: center;
+  font-family: 'Pretendard', 'Noto Sans KR', 'Apple SD Gothic Neo', Arial, sans-serif;
+  background: none;
+  box-shadow: none;
+  user-select: none;
+  white-space: nowrap;
 }
