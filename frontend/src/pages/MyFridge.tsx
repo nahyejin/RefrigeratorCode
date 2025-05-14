@@ -288,11 +288,11 @@ const MyFridge: React.FC = () => {
                   <span
                     style={{
                       position: 'absolute',
-                      left: '50%',
-                      top: '50%',
+                      left: '85%',
+                      top: '40%',
                       transform: 'translate(-50%, -50%)',
-                      fontSize: 20,
-                      fontWeight: 400,
+                      fontSize: 16,
+                      fontWeight: 300,
                       cursor: 'pointer',
                       lineHeight: 1,
                     }}
@@ -330,11 +330,11 @@ const MyFridge: React.FC = () => {
                   <span
                     style={{
                       position: 'absolute',
-                      left: '50%',
-                      top: '50%',
+                      left: '85%',
+                      top: '40%',
                       transform: 'translate(-50%, -50%)',
-                      fontSize: 20,
-                      fontWeight: 400,
+                      fontSize: 16,
+                      fontWeight: 300,
                       cursor: 'pointer',
                       lineHeight: 1,
                     }}
@@ -372,11 +372,11 @@ const MyFridge: React.FC = () => {
                   <span
                     style={{
                       position: 'absolute',
-                      left: '50%',
-                      top: '50%',
+                      left: '85%',
+                      top: '40%',
                       transform: 'translate(-50%, -50%)',
-                      fontSize: 20,
-                      fontWeight: 400,
+                      fontSize: 16,
+                      fontWeight: 300,
                       cursor: 'pointer',
                       lineHeight: 1,
                     }}
