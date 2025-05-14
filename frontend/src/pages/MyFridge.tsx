@@ -34,7 +34,11 @@ function loadIngredients() {
   };
 }
 
-function saveIngredients(frozen, fridge, room) {
+function saveIngredients(
+  frozen: {name: string, expiry?: string, purchase?: string}[],
+  fridge: {name: string, expiry?: string, purchase?: string}[],
+  room: {name: string, expiry?: string, purchase?: string}[]
+) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify({ frozen, fridge, room }));
 }
 
@@ -175,7 +179,7 @@ const MyFridge: React.FC = () => {
     if (e.key === 'Enter' && filtered.length > 0) {
       handleSelect(filtered[0]);
     }
-    if (e.key === 'Backspace' && inputValue === '' && frozen?.length > 0) {
+    if (e.key === 'Backspace' && inputValue === '' && (frozen && frozen.length > 0)) {
       setFrozen((frozen ?? []).slice(0, -1));
     }
   };
@@ -192,7 +196,6 @@ const MyFridge: React.FC = () => {
   };
 
   const handleTagInfo = (item: {name: string, expiry?: string, purchase?: string}) => {
-    console.log('클릭된 아이템:', item);
     if (item.expiry) setInfoToast({ text: `유통기한 : ${item.expiry}` });
     else if (item.purchase) setInfoToast({ text: `구매시점 : ${item.purchase}` });
     else setInfoToast({ text: '날짜 정보가 없습니다.' });
