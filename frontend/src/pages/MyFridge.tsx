@@ -285,7 +285,7 @@ const MyFridge: React.FC = () => {
           {/* 냉동보관 */}
           <div className="mb-4">
             <div className="text-[16px] font-bold mb-2 flex items-center">
-              냉동보관 <span className="ml-1">🧊</span>
+              <span className="mr-1">🧊</span>냉동보관
               <SortDropdown value={frozenSort} onChange={setFrozenSort} className="ml-2" />
               {(frozen ?? []).length > 0 && (
                 <button
@@ -341,7 +341,7 @@ const MyFridge: React.FC = () => {
           {/* 냉장보관 */}
           <div className="mb-4">
             <div className="text-[16px] font-bold mb-2 flex items-center">
-              냉장보관 <span className="ml-1">❄️</span>
+              <span className="mr-1">❄️</span>냉장보관
               <SortDropdown value={fridgeSort} onChange={setFridgeSort} className="ml-2" />
               {fridge && fridge.length > 0 && (
                 <button
@@ -397,7 +397,7 @@ const MyFridge: React.FC = () => {
           {/* 실온보관 */}
           <div className="mb-4">
             <div className="text-[16px] font-bold mb-2 flex items-center">
-              실온보관 <span className="ml-1">🌡️</span>
+              <span className="mr-1">🌡️</span>실온보관
               <SortDropdown value={roomSort} onChange={setRoomSort} className="ml-2" />
               {room && room.length > 0 && (
                 <button

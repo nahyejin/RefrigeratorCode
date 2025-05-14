@@ -128,10 +128,8 @@ const MyPage = () => {
         <img src={logoImg} alt="냉털이 로고" className="h-4 w-auto" style={{ minWidth: 16 }} />
         <img src={searchIcon} alt="검색" className="h-4 w-4 mr-1 cursor-pointer" />
       </header>
-      {/* 상단 타이틀 */}
-      <div className="text-center font-bold text-[18px] mt-12 mb-12">내가 기록하고 살펴본 요리</div>
-      {/* 내 정보 (중앙 정렬, 세로 배치) */}
-      <section className="flex flex-col items-center justify-center gap-3 mb-10">
+      {/* 타이틀 제거, 프로필 영역을 위로 올림 */}
+      <section className="flex flex-col items-center justify-center gap-3 mb-[70px] mt-[64px]">
         <img src={myProfileImg} alt="프로필" className="w-36 h-36 rounded-full border-2 border-gray-200 mb-2" />
         <div className="flex flex-col items-center mb-2">
           <div className="text-[18px] font-bold text-gray-700 mb-1">{user.nickname}</div>
@@ -143,105 +141,130 @@ const MyPage = () => {
           onClick={() => setEditOpen(true)}
         >내 정보 수정 <span style={{fontFamily:'inherit', fontWeight:500, fontSize:15, color:'#222', marginLeft:2}}>〉</span></button>
       </section>
-      {/* 내가 기록한 레시피 */}
-      <div className="flex items-center justify-between mb-2 ml-8">
-        <h2 className="text-[16px] font-bold text-[#111] flex items-center gap-1">
-          내가 기록한 레시피
-          <img src={writeIcon} alt="기록 아이콘" className="inline-block align-middle" style={{width: 18, height: 18, marginLeft: 4, marginBottom: 2}} />
-        </h2>
-        <button
-          className="text-[#888] text-[20px] font-bold px-2 py-0 bg-transparent border-none outline-none cursor-pointer"
-          aria-label="내가 기록한 레시피 전체보기"
-          onClick={() => navigate('/mypage/recorded')}
-        >
-          〉
-        </button>
-      </div>
-      <div style={{height: '2px', width: 'calc(100% - 1.5rem)', background: '#E5E5E5', marginBottom: 16, marginLeft: 24}} />
-      <div className="flex gap-2 overflow-x-auto pb-2 px-2 ml-6 custom-scrollbar">
-        {dummyRecorded.map(r => (
-          <div key={r.id} className="min-w-[210px] max-w-[210px] bg-white rounded-xl shadow p-1 flex flex-col gap-1 relative border border-gray-100">
-            <div className="relative">
-              <img src={r.thumbnail} alt={r.title} className="w-full h-[110px] object-cover rounded-lg" />
-              {/* 재료매칭률 뱃지 */}
-              <div className="absolute bg-[#444] bg-opacity-90 text-white font-bold rounded px-1.5 py-0 flex items-center gap-1 shadow" style={{position:'absolute', top:0, left:0, fontSize:11, zIndex:2}}>
-                재료 매칭률 <span className="text-[#FFD600] font-extrabold ml-1">{r.match}%</span>
-              </div>
-              {/* Overlay action buttons: 완료하기, 공유하기, 기록하기 */}
-              <div style={{position:'absolute', right:8, bottom:8, display:'flex', flexDirection:'row', gap:6, alignItems:'center', zIndex:2}}>
-                <span style={{position:'relative', zIndex:2}}>
-                  <span style={{position:'absolute', left:0, top:0, width:26, height:26, borderRadius:'50%', background:'rgba(34,34,34,0.7)', zIndex:1}}></span>
-                  <button title="완료" tabIndex={0} style={{width:26, height:26, display:'flex', alignItems:'center', justifyContent:'center', background:'none', border:'none', padding:0, cursor:'pointer', outline:'none', position:'relative', zIndex:2}} onClick={() => handleDoneClick(r.id)}>
-                    <img src={완료하기버튼} alt="완료" width={19} height={19} style={{display:'block', position:'relative', zIndex:2, opacity: doneStates[r.id] ? 1 : 0.5}} />
-                  </button>
-                </span>
-                <span style={{position:'relative', zIndex:2}}>
-                  <span style={{position:'absolute', left:0, top:0, width:26, height:26, borderRadius:'50%', background:'rgba(34,34,34,0.7)', zIndex:1}}></span>
-                  <button title="공유" tabIndex={0} style={{width:26, height:26, display:'flex', alignItems:'center', justifyContent:'center', background:'none', border:'none', padding:0, cursor:'pointer', outline:'none', position:'relative', zIndex:2}} onClick={handleShareClick}>
-                    <img src={공유하기버튼} alt="공유" width={19} height={19} style={{display:'block', position:'relative', zIndex:2}} />
-                  </button>
-                </span>
-                <span style={{position:'relative', zIndex:2}}>
-                  <span style={{position:'absolute', left:0, top:0, width:26, height:26, borderRadius:'50%', background:'rgba(34,34,34,0.7)', zIndex:1}}></span>
-                  <button title="기록" tabIndex={0} style={{width:26, height:26, display:'flex', alignItems:'center', justifyContent:'center', background:'none', border:'none', padding:0, cursor:'pointer', outline:'none', position:'relative', zIndex:2}} onClick={() => handleWriteClick(r.id)}>
-                    <img src={기록하기버튼} alt="기록" width={19} height={19} style={{display:'block', position:'relative', zIndex:2, opacity: writeStates[r.id] ? 1 : 0.5}} />
-                  </button>
-                </span>
-              </div>
-            </div>
-            <div className="font-bold text-[13px] line-clamp-2 mt-1">{r.title}</div>
+      {/* 내가 기록한 레시피 + 내가 완료한 레시피 그룹 */}
+      <div style={{ marginTop: 56 }}>
+        {/* 내가 기록한 레시피 */}
+        <div style={{ paddingLeft: 32, marginTop: 0, marginBottom: 8 }}>
+          <div className="flex items-center justify-between mb-0">
+            <h2 className="text-[16px] font-bold text-[#111] flex items-center gap-1">
+              <img src={writeIcon} alt="기록 아이콘" className="inline-block align-middle" style={{width: 18, height: 18, marginRight: 4, marginBottom: 2}} />
+              내가 기록한 레시피
+            </h2>
+            <button
+              className="text-[#888] text-[20px] font-bold px-2 py-0 bg-transparent border-none outline-none cursor-pointer"
+              aria-label="내가 기록한 레시피 전체보기"
+              onClick={() => navigate('/mypage/recorded')}
+            >
+              〉
+            </button>
           </div>
-        ))}
-      </div>
-      {/* 내가 완료한 레시피 */}
-      <div className="flex items-center justify-between mb-2 ml-8 mt-8">
-        <h2 className="text-[16px] font-bold text-[#111] flex items-center gap-1">
-          내가 완료한 레시피
-          <img src={doneIcon} alt="완료 아이콘" className="inline-block align-middle" style={{width: 18, height: 18, marginLeft: 4, marginBottom: 2}} />
-        </h2>
-        <button
-          className="text-[#888] text-[20px] font-bold px-2 py-0 bg-transparent border-none outline-none cursor-pointer"
-          aria-label="내가 완료한 레시피 전체보기"
-          onClick={() => navigate('/mypage/completed')}
-        >
-          〉
-        </button>
-      </div>
-      <div style={{height: '2px', width: 'calc(100% - 1.5rem)', background: '#E5E5E5', marginBottom: 16, marginLeft: 24}} />
-      <div className="flex gap-2 overflow-x-auto pb-2 px-2 ml-6 custom-scrollbar">
-        {dummyCompleted.map(r => (
-          <div key={r.id} className="min-w-[210px] max-w-[210px] bg-white rounded-xl shadow p-1 flex flex-col gap-1 relative border border-gray-100">
-            <div className="relative">
-              <img src={r.thumbnail} alt={r.title} className="w-full h-[110px] object-cover rounded-lg" />
-              {/* 재료매칭률 뱃지 */}
-              <div className="absolute bg-[#444] bg-opacity-90 text-white font-bold rounded px-1.5 py-0 flex items-center gap-1 shadow" style={{position:'absolute', top:0, left:0, fontSize:11, zIndex:2}}>
-                재료 매칭률 <span className="text-[#FFD600] font-extrabold ml-1">{r.match}%</span>
+          <div style={{height: 2, width: '100%', background: '#E5E5E5', marginBottom: 4}} />
+          <div className="flex gap-1 overflow-x-auto pb-2 custom-scrollbar">
+            {dummyRecorded.map(r => (
+              <div key={r.id} className="min-w-[210px] max-w-[210px] flex flex-col gap-1 relative" style={{
+                borderRadius: 20,
+                background: '#fff',
+                boxShadow: '0 1px 4px rgba(0,0,0,0.03)',
+                marginBottom: 4,
+                minHeight: 144,
+                position: 'relative',
+                padding: 16,
+                border: 'none',
+              }}>
+                <div className="relative">
+                  <img src={r.thumbnail} alt={r.title} className="w-full h-[110px] object-cover rounded-lg" />
+                  {/* 재료매칭률 뱃지 */}
+                  <div className="absolute bg-[#444] bg-opacity-90 text-white font-bold rounded px-1.5 py-0 flex items-center gap-1 shadow" style={{position:'absolute', top:0, left:0, fontSize:11, zIndex:2}}>
+                    재료 매칭률 <span className="text-[#FFD600] font-extrabold ml-1">{r.match}%</span>
+                  </div>
+                  {/* Overlay action buttons: 완료하기, 공유하기, 기록하기 */}
+                  <div style={{position:'absolute', right:8, bottom:8, display:'flex', flexDirection:'row', gap:6, alignItems:'center', zIndex:2}}>
+                    <span style={{position:'relative', zIndex:2}}>
+                      <span style={{position:'absolute', left:0, top:0, width:26, height:26, borderRadius:'50%', background:'rgba(34,34,34,0.7)', zIndex:1}}></span>
+                      <button title="완료" tabIndex={0} style={{width:26, height:26, display:'flex', alignItems:'center', justifyContent:'center', background:'none', border:'none', padding:0, cursor:'pointer', outline:'none', position:'relative', zIndex:2}} onClick={() => handleDoneClick(r.id)}>
+                        <img src={완료하기버튼} alt="완료" width={19} height={19} style={{display:'block', position:'relative', zIndex:2, opacity: doneStates[r.id] ? 1 : 0.5}} />
+                      </button>
+                    </span>
+                    <span style={{position:'relative', zIndex:2}}>
+                      <span style={{position:'absolute', left:0, top:0, width:26, height:26, borderRadius:'50%', background:'rgba(34,34,34,0.7)', zIndex:1}}></span>
+                      <button title="공유" tabIndex={0} style={{width:26, height:26, display:'flex', alignItems:'center', justifyContent:'center', background:'none', border:'none', padding:0, cursor:'pointer', outline:'none', position:'relative', zIndex:2}} onClick={handleShareClick}>
+                        <img src={공유하기버튼} alt="공유" width={19} height={19} style={{display:'block', position:'relative', zIndex:2}} />
+                      </button>
+                    </span>
+                    <span style={{position:'relative', zIndex:2}}>
+                      <span style={{position:'absolute', left:0, top:0, width:26, height:26, borderRadius:'50%', background:'rgba(34,34,34,0.7)', zIndex:1}}></span>
+                      <button title="기록" tabIndex={0} style={{width:26, height:26, display:'flex', alignItems:'center', justifyContent:'center', background:'none', border:'none', padding:0, cursor:'pointer', outline:'none', position:'relative', zIndex:2}} onClick={() => handleWriteClick(r.id)}>
+                        <img src={기록하기버튼} alt="기록" width={19} height={19} style={{display:'block', position:'relative', zIndex:2, opacity: writeStates[r.id] ? 1 : 0.5}} />
+                      </button>
+                    </span>
+                  </div>
+                </div>
+                <div className="font-bold text-[13px] line-clamp-2 mt-1">{r.title}</div>
               </div>
-              {/* Overlay action buttons: 완료하기, 공유하기, 기록하기 */}
-              <div style={{position:'absolute', right:8, bottom:8, display:'flex', flexDirection:'row', gap:6, alignItems:'center', zIndex:2}}>
-                <span style={{position:'relative', zIndex:2}}>
-                  <span style={{position:'absolute', left:0, top:0, width:26, height:26, borderRadius:'50%', background:'rgba(34,34,34,0.7)', zIndex:1}}></span>
-                  <button title="완료" tabIndex={0} style={{width:26, height:26, display:'flex', alignItems:'center', justifyContent:'center', background:'none', border:'none', padding:0, cursor:'pointer', outline:'none', position:'relative', zIndex:2}} onClick={() => handleDoneClick(r.id)}>
-                    <img src={완료하기버튼} alt="완료" width={19} height={19} style={{display:'block', position:'relative', zIndex:2, opacity: doneStates[r.id] ? 1 : 0.5}} />
-                  </button>
-                </span>
-                <span style={{position:'relative', zIndex:2}}>
-                  <span style={{position:'absolute', left:0, top:0, width:26, height:26, borderRadius:'50%', background:'rgba(34,34,34,0.7)', zIndex:1}}></span>
-                  <button title="공유" tabIndex={0} style={{width:26, height:26, display:'flex', alignItems:'center', justifyContent:'center', background:'none', border:'none', padding:0, cursor:'pointer', outline:'none', position:'relative', zIndex:2}} onClick={handleShareClick}>
-                    <img src={공유하기버튼} alt="공유" width={19} height={19} style={{display:'block', position:'relative', zIndex:2}} />
-                  </button>
-                </span>
-                <span style={{position:'relative', zIndex:2}}>
-                  <span style={{position:'absolute', left:0, top:0, width:26, height:26, borderRadius:'50%', background:'rgba(34,34,34,0.7)', zIndex:1}}></span>
-                  <button title="기록" tabIndex={0} style={{width:26, height:26, display:'flex', alignItems:'center', justifyContent:'center', background:'none', border:'none', padding:0, cursor:'pointer', outline:'none', position:'relative', zIndex:2}} onClick={() => handleWriteClick(r.id)}>
-                    <img src={기록하기버튼} alt="기록" width={19} height={19} style={{display:'block', position:'relative', zIndex:2, opacity: writeStates[r.id] ? 1 : 0.5}} />
-                  </button>
-                </span>
-              </div>
-            </div>
-            <div className="font-bold text-[13px] line-clamp-2 mt-1">{r.title}</div>
+            ))}
           </div>
-        ))}
+        </div>
+        {/* 내가 완료한 레시피 */}
+        <div style={{ paddingLeft: 32, marginTop: 0 }}>
+          <div className="flex items-center justify-between mb-0">
+            <h2 className="text-[16px] font-bold text-[#111] flex items-center gap-1">
+              <img src={doneIcon} alt="완료 아이콘" className="inline-block align-middle" style={{width: 18, height: 18, marginRight: 4, marginBottom: 2}} />
+              내가 완료한 레시피
+            </h2>
+            <button
+              className="text-[#888] text-[20px] font-bold px-2 py-0 bg-transparent border-none outline-none cursor-pointer"
+              aria-label="내가 완료한 레시피 전체보기"
+              onClick={() => navigate('/mypage/completed')}
+            >
+              〉
+            </button>
+          </div>
+          <div style={{height: 2, width: '100%', background: '#E5E5E5', marginBottom: 4}} />
+          <div className="flex gap-1 overflow-x-auto pb-2 custom-scrollbar">
+            {dummyCompleted.map(r => (
+              <div key={r.id} className="min-w-[210px] max-w-[210px] flex flex-col gap-1 relative" style={{
+                borderRadius: 20,
+                background: '#fff',
+                boxShadow: '0 1px 4px rgba(0,0,0,0.03)',
+                marginBottom: 4,
+                minHeight: 144,
+                position: 'relative',
+                padding: 16,
+                border: 'none',
+              }}>
+                <div className="relative">
+                  <img src={r.thumbnail} alt={r.title} className="w-full h-[110px] object-cover rounded-lg" />
+                  {/* 재료매칭률 뱃지 */}
+                  <div className="absolute bg-[#444] bg-opacity-90 text-white font-bold rounded px-1.5 py-0 flex items-center gap-1 shadow" style={{position:'absolute', top:0, left:0, fontSize:11, zIndex:2}}>
+                    재료 매칭률 <span className="text-[#FFD600] font-extrabold ml-1">{r.match}%</span>
+                  </div>
+                  {/* Overlay action buttons: 완료하기, 공유하기, 기록하기 */}
+                  <div style={{position:'absolute', right:8, bottom:8, display:'flex', flexDirection:'row', gap:6, alignItems:'center', zIndex:2}}>
+                    <span style={{position:'relative', zIndex:2}}>
+                      <span style={{position:'absolute', left:0, top:0, width:26, height:26, borderRadius:'50%', background:'rgba(34,34,34,0.7)', zIndex:1}}></span>
+                      <button title="완료" tabIndex={0} style={{width:26, height:26, display:'flex', alignItems:'center', justifyContent:'center', background:'none', border:'none', padding:0, cursor:'pointer', outline:'none', position:'relative', zIndex:2}} onClick={() => handleDoneClick(r.id)}>
+                        <img src={완료하기버튼} alt="완료" width={19} height={19} style={{display:'block', position:'relative', zIndex:2, opacity: doneStates[r.id] ? 1 : 0.5}} />
+                      </button>
+                    </span>
+                    <span style={{position:'relative', zIndex:2}}>
+                      <span style={{position:'absolute', left:0, top:0, width:26, height:26, borderRadius:'50%', background:'rgba(34,34,34,0.7)', zIndex:1}}></span>
+                      <button title="공유" tabIndex={0} style={{width:26, height:26, display:'flex', alignItems:'center', justifyContent:'center', background:'none', border:'none', padding:0, cursor:'pointer', outline:'none', position:'relative', zIndex:2}} onClick={handleShareClick}>
+                        <img src={공유하기버튼} alt="공유" width={19} height={19} style={{display:'block', position:'relative', zIndex:2}} />
+                      </button>
+                    </span>
+                    <span style={{position:'relative', zIndex:2}}>
+                      <span style={{position:'absolute', left:0, top:0, width:26, height:26, borderRadius:'50%', background:'rgba(34,34,34,0.7)', zIndex:1}}></span>
+                      <button title="기록" tabIndex={0} style={{width:26, height:26, display:'flex', alignItems:'center', justifyContent:'center', background:'none', border:'none', padding:0, cursor:'pointer', outline:'none', position:'relative', zIndex:2}} onClick={() => handleWriteClick(r.id)}>
+                        <img src={기록하기버튼} alt="기록" width={19} height={19} style={{display:'block', position:'relative', zIndex:2, opacity: writeStates[r.id] ? 1 : 0.5}} />
+                      </button>
+                    </span>
+                  </div>
+                </div>
+                <div className="font-bold text-[13px] line-clamp-2 mt-1">{r.title}</div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
       {/* 광고 영역 */}
       <div className="w-full h-[120px] border-2 border-dashed border-red-400 flex items-center justify-center text-center text-[15px] text-red-500 font-bold mb-24">
