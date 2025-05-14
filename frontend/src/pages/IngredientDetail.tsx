@@ -7,6 +7,9 @@ import FilterModal from '../components/FilterModal';
 import doneIcon from '../assets/done.svg';
 import shareIcon from '../assets/share.svg';
 import writeIcon from '../assets/write.svg';
+import doneBlackIcon from '../assets/done_black.svg';
+import shareBlackIcon from '../assets/share_black.svg';
+import writeBlackIcon from '../assets/write_black.svg';
 
 // 더미 fetch 함수 (RecipeList.tsx와 동일)
 function fetchRecipesDummy(name?: string): Promise<any[]> {
@@ -405,7 +408,16 @@ const sortOptions = [
   { key: 'latest', label: '최신순' },
 ];
 
-const initialFilterState: any = {
+// 필터 선택 상태 관리
+interface FilterState {
+  효능: string[];
+  영양분: string[];
+  대상: string[];
+  TPO: string[];
+  스타일: string[];
+}
+
+const initialFilterState: FilterState = {
   효능: [],
   영양분: [],
   대상: [],
@@ -429,13 +441,13 @@ const IngredientDetail = () => {
   const [visibleCount, setVisibleCount] = useState(10);
   const [sortType, setSortType] = useState('match');
   const [filterOpen, setFilterOpen] = useState(false);
-  const [selectedFilter, setSelectedFilter] = useState(initialFilterState);
+  const [selectedFilter, setSelectedFilter] = useState<FilterState>(initialFilterState);
   const [includeInput, setIncludeInput] = useState('');
   const [excludeInput, setExcludeInput] = useState('');
   const [allIngredients, setAllIngredients] = useState<string[]>([]);
   const [recipes, setRecipes] = useState<any[]>([]);
   const myIngredients = getMyIngredients();
-  const [buttonStates, setButtonStates] = useState<{ [id: number]: any }>({});
+  const [buttonStates, setButtonStates] = useState<{ [id: number]: { done: boolean; share: boolean; write: boolean } }>({});
   const [toast, setToast] = useState('');
   const [includeKeyword, setIncludeKeyword] = useState('');
 
@@ -483,7 +495,7 @@ const IngredientDetail = () => {
 
   // 버튼 클릭 핸들러
   const handleButtonClick = (id: number, type: 'done' | 'share' | 'write', recipe: any) => {
-    const prevState = buttonStates[id] || {};
+    const prevState = buttonStates[id] || { done: false, share: false, write: false };
     const isActive = !!prevState[type];
     setButtonStates(prev => ({
       ...prev,
@@ -510,7 +522,7 @@ const IngredientDetail = () => {
   return (
     <>
       {/* TopNavBar 대신 직접 header 구현: 뒤로가기 버튼과 검색 아이콘이 같은 라인에 */}
-      <header className="w-full h-[56px] flex items-center justify-between px-5 bg-white">
+      <header className="w-full h-[56px] flex items-center justify-between px-5 bg-white sticky top-0 z-20">
         <img src={logoImg} alt="냉털이 로고" className="h-4 w-auto" style={{ minWidth: 16 }} />
         <div className="flex items-center gap-2">
           <button
@@ -524,24 +536,67 @@ const IngredientDetail = () => {
           <img src={searchIcon} alt="검색" className="h-4 w-4 mr-1 cursor-pointer" />
         </div>
       </header>
-      <div className="max-w-[430px] mx-auto pb-20 pt-4 px-2 bg-white" style={{ minHeight: '100vh', boxSizing: 'border-box' }}>
+      <div className="mx-auto pb-20 bg-white"
+        style={{
+          maxWidth: 400, // Matched to RecipeList.tsx
+          minHeight: '100vh',
+          boxSizing: 'border-box',
+          paddingLeft: 14, // Matched to RecipeList.tsx
+          paddingRight: 14, // Matched to RecipeList.tsx
+          paddingTop: 32, // Matched to RecipeList.tsx
+        }}
+      >
         <h2 className="text-lg font-bold mb-4 text-center">{name} 관련 인기 레시피 TOP30</h2>
-        {/* 정렬/필터 바 */}
-        <div className="flex gap-2 mb-4 items-center">
+        {/* 정렬/필터 바 - Matched to RecipeList.tsx */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            marginBottom: 24,
+            width: '100%',
+            marginTop: 32, // Added marginTop
+          }}
+        >
           <select
-            className="border border-gray-300 rounded h-7 px-2 text-xs font-bold bg-white text-[#404040] focus:outline-none focus:ring-2 focus:ring-blue-200 transition min-w-[120px]"
+            style={{ // Matched to RecipeList.tsx
+              height: 28,
+              border: '1px solid #ccc',
+              borderRadius: 6,
+              fontSize: 14,
+              padding: '0 10px',
+              fontWeight: 700,
+              background: '#fff',
+              color: '#404040',
+              minWidth: 100,
+            }}
             value={sortType}
             onChange={e => setSortType(e.target.value)}
             aria-label="정렬 기준 선택"
           >
             <option value="match">재료매칭률순</option>
             <option value="expiry">유통기한 임박순</option>
+            {/* Consider adding other sortOptions from RecipeList if applicable */}
           </select>
           <button
-            className="ml-auto flex items-center gap-1 px-3 py-1 rounded-full border border-gray-300 text-gray-600 text-xs font-semibold bg-white hover:bg-gray-100"
+            style={{ // Matched to RecipeList.tsx
+              marginLeft: 'auto',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              padding: '4px 16px',
+              borderRadius: 999, // Equivalent to rounded-full
+              border: '1px solid #ccc',
+              background: '#fff',
+              color: '#444',
+              fontWeight: 600,
+              fontSize: 14,
+              height: 28,
+              cursor: 'pointer',
+            }}
             onClick={() => setFilterOpen(true)}
           >
-            <span className="font-bold">필터</span>
+            <span style={{ fontWeight: 700 }}>필터</span>
           </button>
         </div>
         {filterOpen && (
@@ -555,24 +610,29 @@ const IngredientDetail = () => {
             excludeInput={excludeInput}
             setExcludeInput={setExcludeInput}
             allIngredients={allIngredients}
-            includeKeyword={includeKeyword}
-            setIncludeKeyword={setIncludeKeyword}
+            includeKeyword={includeKeyword} // Passed from state
+            setIncludeKeyword={setIncludeKeyword} // Passed from state
           />
         )}
         <div className="flex flex-col gap-2">
           {sortedRecipes.slice(0, visibleCount).map((recipe: any, idx: number, arr: any[]) => {
-            const allIngredients = [
-              ...recipe.need_ingredients.map((ing: string) => ({ ing, type: 'need' })),
-              ...recipe.my_ingredients.map((ing: string) => ({ ing, type: 'have' })),
+            const recipeSpecificIngredients = [
+              ...(recipe.need_ingredients?.map((ing: string) => ({ ing, type: 'need' })) || []).filter((item: {ing: string}) => item.ing && item.ing.trim() !== ''), // Added trim check
+              ...(recipe.my_ingredients?.map((ing: string) => ({ ing, type: 'have' })) || []).filter((item: {ing: string}) => item.ing && item.ing.trim() !== ''), // Added trim check
             ];
-            const btnState = buttonStates[recipe.id] || {};
+            const btnState = buttonStates[recipe.id] || { done: false, share: false, write: false }; // Ensure all states initialized
             return (
               <div
                 key={recipe.id}
-                className="rounded-[16px] shadow-sm p-4 min-h-[144px] relative mb-1 bg-white"
-                style={{
-                  ...(idx === arr.length - 1 ? { marginBottom: 40 } : {}),
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
+                style={{ // Adopted styling from RecipeList.tsx
+                  borderRadius: 20,
+                  background: '#fff',
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.03)',
+                  marginBottom: idx === arr.length - 1 ? 40 : 16,
+                  minHeight: 144,
+                  position: 'relative',
+                  padding: 16,
+                  border: 'none',
                 }}
               >
                 <div className="font-bold text-[18px] text-[#222] text-left">{String(idx + 1).padStart(2, '0')}</div>
@@ -608,9 +668,10 @@ const IngredientDetail = () => {
                       }}
                       onClick={(e) => { e.preventDefault(); handleButtonClick(recipe.id, 'done', recipe); }}
                       tabIndex={0}
+                      onMouseDown={e => e.preventDefault()} // Added from RecipeList
                     >
                       <img
-                        src={doneIcon}
+                        src={btnState.done ? doneBlackIcon : doneIcon} // Use doneBlackIcon
                         alt="완료"
                         width={19}
                         height={19}
@@ -633,9 +694,10 @@ const IngredientDetail = () => {
                       }}
                       onClick={(e) => { e.preventDefault(); handleButtonClick(recipe.id, 'share', recipe); }}
                       tabIndex={0}
+                      onMouseDown={e => e.preventDefault()} // Added from RecipeList
                     >
                       <img
-                        src={shareIcon}
+                        src={btnState.share ? shareBlackIcon : shareIcon} // Use shareBlackIcon
                         alt="공유"
                         width={19}
                         height={19}
@@ -658,9 +720,10 @@ const IngredientDetail = () => {
                       }}
                       onClick={(e) => { e.preventDefault(); handleButtonClick(recipe.id, 'write', recipe); }}
                       tabIndex={0}
+                      onMouseDown={e => e.preventDefault()} // Added from RecipeList
                     >
                       <img
-                        src={writeIcon}
+                        src={btnState.write ? writeBlackIcon : writeIcon} // Use writeBlackIcon
                         alt="기록"
                         width={19}
                         height={19}
@@ -701,9 +764,9 @@ const IngredientDetail = () => {
                 </div>
                 {/* 재료 pill (최대 10개, 초과시 ... 표시) */}
                 <div className="flex flex-wrap gap-1 mb-1 max-h-9 overflow-y-auto custom-scrollbar pr-1" style={{ scrollbarWidth: 'auto' }}>
-                  {allIngredients
-                    .filter(({ ing }) => ing && ing.trim() !== '')
-                    .map(({ ing, type }) => (
+                  {recipeSpecificIngredients // Changed from allIngredients to recipeSpecificIngredients
+                    .filter(({ ing }) => ing && ing.trim() !== '') // Ensure ing is not undefined or empty
+                    .map(({ ing, type }: { ing: string, type: string }) => (
                       <span
                         key={ing}
                         className={
