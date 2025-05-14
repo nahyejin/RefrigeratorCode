@@ -1,44 +1,41 @@
-import * as React from 'react';
+import React from 'react';
 
 interface TagPillProps {
   children: React.ReactNode;
-  info?: { expiry?: string; purchase?: string };
+  onClick?: () => void;
   className?: string;
   style?: React.CSSProperties;
-  onClick?: () => void;
 }
 
-const TagPill: React.FC<TagPillProps> = ({ children, info, className = '', style, onClick }) => {
-  const [hover, setHover] = React.useState(false);
-
-  return (
-    <span
-      className={`inline-flex flex-nowrap items-center bg-[#444444] text-white px-2 h-6 rounded-full mr-2 mb-[3px] overflow-hidden whitespace-nowrap relative ${className}`}
-      style={{
-        fontSize: '10.4px',
-        fontFamily: 'Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif',
-        fontWeight: 400,
-        letterSpacing: '-0.1px',
-        WebkitFontSmoothing: 'antialiased',
-        MozOsxFontSmoothing: 'grayscale',
-        ...style
-      }}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      onClick={onClick}
-    >
-      {children}
-      {hover && (info?.expiry || info?.purchase) && (
-        <div
-          className="absolute left-1/2 -translate-x-1/2 top-full mt-2 px-3 py-1 rounded border border-gray-300 bg-white bg-opacity-50 text-[#404040] text-xs z-50 shadow"
-          style={{ pointerEvents: 'none', minWidth: 140, textAlign: 'center' }}
-        >
-          {info?.expiry && <>유통기한 : {info.expiry}</>}
-          {info?.purchase && <>구매시점 : {info.purchase}</>}
-        </div>
-      )}
-    </span>
-  );
-};
+const TagPill: React.FC<TagPillProps> = ({ children, onClick, className = '', style }) => (
+  <span
+    className={`custom-pill ${className}`}
+    style={{
+      fontFamily: 'Noto Sans KR, Arial, system-ui, sans-serif',
+      fontSize: 14,
+      fontWeight: 200,
+      color: '#fff',
+      background: '#444',
+      borderRadius: 999,
+      display: 'inline-flex',
+      alignItems: 'center',
+      padding: '0 12px',
+      height: 28,
+      marginRight: 8,
+      marginBottom: 4,
+      whiteSpace: 'nowrap',
+      overflow: 'hidden',
+      letterSpacing: '-0.1px',
+      WebkitFontSmoothing: 'antialiased',
+      MozOsxFontSmoothing: 'grayscale',
+      textRendering: 'optimizeLegibility',
+      textShadow: 'none',
+      ...style,
+    }}
+    onClick={onClick}
+  >
+    {children}
+  </span>
+);
 
 export default TagPill; 

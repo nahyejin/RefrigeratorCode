@@ -41,8 +41,32 @@ function saveIngredients(frozen, fridge, room) {
 const TOAST_DURATION = 10000;
 
 const Toast = ({ message, onUndo, onClose }: { message: string; onUndo: () => void; onClose: () => void }) => (
-  <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-[#B0B0B0] text-white px-4 py-2 rounded-full shadow-lg flex items-center z-50 text-sm gap-2 min-w-[240px] max-w-[90vw]" style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.10)' }}>
-    <span className="font-light text-white mr-2 whitespace-nowrap inline-block tracking-wider" style={{ letterSpacing: '0.04em' }}>삭제됨</span>
+  <div
+    style={{
+      position: 'fixed',
+      bottom: 100,
+      left: '50%',
+      transform: 'translateX(-50%)',
+      background: 'rgba(34,34,34,0.9)',
+      color: '#fff',
+      padding: '12px 24px',
+      borderRadius: 12,
+      fontWeight: 400,
+      fontSize: 15,
+      zIndex: 9999,
+      boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+      maxWidth: 320,
+      width: 'max-content',
+      whiteSpace: 'nowrap',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      textAlign: 'center',
+      display: 'flex',
+      alignItems: 'center',
+      gap: 12,
+    }}
+  >
+    <span style={{ fontWeight: 600, color: '#fff', marginRight: 8, letterSpacing: '0.04em', whiteSpace: 'nowrap', display: 'inline-block' }}>삭제됨</span>
     <button className="inline-flex items-center justify-center bg-[#F5F6F8] text-gray-700 font-semibold rounded-lg px-3 py-1 text-sm border border-[#E5E7EB] shadow-none hover:bg-[#E5E7EB] transition whitespace-nowrap" onClick={onUndo}>되돌리기</button>
     <button className="inline-flex items-center justify-center bg-[#F5F6F8] text-gray-700 font-semibold rounded-lg px-3 py-1 text-sm border border-[#E5E7EB] shadow-none hover:bg-[#E5E7EB] transition whitespace-nowrap" onClick={onClose}>닫기</button>
   </div>
