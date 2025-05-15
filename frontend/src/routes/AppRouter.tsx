@@ -10,6 +10,8 @@ import MyFridge from '../pages/MyFridge';
 import IngredientDetail from '../pages/IngredientDetail';
 import RecordedRecipeListPage from '../pages/RecordedRecipeListPage';
 import CompletedRecipeListPage from '../pages/CompletedRecipeListPage';
+import RecordedRecipeDetailPage from '../pages/RecordedRecipeDetailPage';
+import CompletedRecipeDetailPage from '../pages/CompletedRecipeDetailPage';
 
 const AppRouter = () => {
   return (
@@ -26,6 +28,8 @@ const AppRouter = () => {
         <Route path="/ingredient/:name" element={<IngredientDetail />} />
         <Route path="/mypage/recorded" element={<RecordedRecipeListPage />} />
         <Route path="/mypage/completed" element={<CompletedRecipeListPage />} />
+        <Route path="/mypage/recorded/:id" element={<RecordedRecipeDetailPage />} />
+        <Route path="/mypage/completed/:id" element={<CompletedRecipeDetailPage />} />
       </Routes>
     </Router>
   );
