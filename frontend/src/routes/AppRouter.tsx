@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Login from '../pages/Login';
 import FridgeSelect from '../pages/FridgeSelect';
 import IngredientInput from '../pages/IngredientInput';
@@ -10,12 +10,10 @@ import MyFridge from '../pages/MyFridge';
 import IngredientDetail from '../pages/IngredientDetail';
 import RecordedRecipeListPage from '../pages/RecordedRecipeListPage';
 import CompletedRecipeListPage from '../pages/CompletedRecipeListPage';
-import RecordedRecipeDetailPage from '../pages/RecordedRecipeDetailPage';
-import CompletedRecipeDetailPage from '../pages/CompletedRecipeDetailPage';
 
 const AppRouter = () => {
   return (
-    <Router>
+    <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/my-fridge" element={<MyFridge />} />
@@ -26,12 +24,10 @@ const AppRouter = () => {
         <Route path="/popular" element={<Popular />} />
         <Route path="/my-page" element={<MyPage />} />
         <Route path="/ingredient/:name" element={<IngredientDetail />} />
-        <Route path="/mypage/recorded" element={<RecordedRecipeListPage />} />
-        <Route path="/mypage/completed" element={<CompletedRecipeListPage />} />
-        <Route path="/mypage/recorded/:id" element={<RecordedRecipeDetailPage />} />
-        <Route path="/mypage/completed/:id" element={<CompletedRecipeDetailPage />} />
+        <Route path="/mypage/recorded" element={<IngredientDetail customTitle="내가 기록한 레시피" />} />
+        <Route path="/mypage/completed" element={<IngredientDetail customTitle="내가 완료한 레시피" />} />
       </Routes>
-    </Router>
+    </BrowserRouter>
   );
 };
 

@@ -435,7 +435,11 @@ function parseIngredientNames(csv: string): string[] {
     .filter(name => !!name && name !== 'ingredient_name');
 }
 
-const IngredientDetail = () => {
+interface IngredientDetailProps {
+  customTitle?: string;
+}
+
+const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
   const { name = '' } = useParams<{ name: string }>();
   const navigate = useNavigate();
   const [visibleCount, setVisibleCount] = useState(10);
@@ -546,7 +550,7 @@ const IngredientDetail = () => {
           paddingTop: 32, // Matched to RecipeList.tsx
         }}
       >
-        <h2 className="text-lg font-bold mb-4 text-center">{name} 관련 인기 레시피 TOP30</h2>
+        <h2 className="text-lg font-bold mb-4 text-center">{customTitle || `${name} 관련 인기 레시피 TOP30`}</h2>
         {/* 정렬/필터 바 - Matched to RecipeList.tsx */}
         <div
           style={{
