@@ -550,7 +550,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
           paddingTop: 32, // Matched to RecipeList.tsx
         }}
       >
-        <h2 className="text-lg font-bold mb-4 text-center">{customTitle || `${name} 관련 인기 레시피 TOP30`}</h2>
+        <h2 className="text-lg font-bold mb-4 text-center">{customTitle ? customTitle : `${name} 관련 인기 레시피 TOP30`}</h2>
         {/* 정렬/필터 바 - Matched to RecipeList.tsx */}
         <div
           style={{
@@ -825,7 +825,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
           })}
         </div>
       </div>
-      <BottomNavBar activeTab="popularity" />
+      <BottomNavBar activeTab={customTitle === '내가 기록한 레시피' || customTitle === '내가 완료한 레시피' ? 'mypage' : 'popularity'} />
       {toast && (
         <div style={{
           position: 'fixed',
