@@ -129,6 +129,7 @@ const Popular = () => {
   const [dateInputStart, setDateInputStart] = useState('');
   const [dateInputEnd, setDateInputEnd] = useState('');
   const [toast, setToast] = useState('');
+  const [includeKeyword, setIncludeKeyword] = useState('');
 
   // 각 레시피별 완료/기록 상태 관리
   const [buttonStates, setButtonStates] = useState<{ [id: number]: { done: boolean; write: boolean } }>({});
@@ -324,6 +325,8 @@ const Popular = () => {
             excludeInput={excludeInput}
             setExcludeInput={setExcludeInput}
             allIngredients={allIngredients}
+            includeKeyword={includeKeyword}
+            setIncludeKeyword={setIncludeKeyword}
           />
         )}
 
@@ -397,7 +400,9 @@ const Popular = () => {
                             className="bg-[#D1D1D1] text-white rounded-full px-3 py-0.5 font-medium"
                             style={{ fontSize: '10.4px', lineHeight: 1.3, whiteSpace: 'nowrap', height: 22, display: 'inline-flex', alignItems: 'center' }}
                           >
-                            {i}
+                            <span style={{ cursor: 'pointer', textDecoration: 'none' }} onClick={() => navigate(`/ingredient/${encodeURIComponent(i)}`)}>
+                              {i}
+                            </span>
                           </span>
                         )),
                         ...haveIngredients.map(i => (
@@ -406,7 +411,9 @@ const Popular = () => {
                             className="bg-[#555] text-white rounded-full px-3 py-0.5 font-medium"
                             style={{ fontSize: '10.4px', lineHeight: 1.3, whiteSpace: 'nowrap', height: 22, display: 'inline-flex', alignItems: 'center' }}
                           >
-                            {i}
+                            <span style={{ cursor: 'pointer', textDecoration: 'none' }} onClick={() => navigate(`/ingredient/${encodeURIComponent(i)}`)}>
+                              {i}
+                            </span>
                           </span>
                         ))
                       ];
@@ -428,7 +435,11 @@ const Popular = () => {
                     >
                       <span className="bg-[#FFE066] text-[#444] rounded px-3 py-1 font-bold" style={{ fontSize: '12px', flex: '0 0 auto' }}>대체 가능 :</span>
                       {recipe.substitutes.map((sub, idx) => (
-                        <span key={sub} className="ml-2 font-semibold text-[#444]" style={{ fontSize: '12px', flex: '0 0 auto' }}>{sub}</span>
+                        <span key={sub} className="ml-2 font-semibold text-[#444]" style={{ fontSize: '12px', flex: '0 0 auto' }}>
+                          <span style={{ cursor: 'pointer', textDecoration: 'none' }} onClick={() => navigate(`/ingredient/${encodeURIComponent(sub)}`)}>
+                            {sub}
+                          </span>
+                        </span>
                       ))}
                     </div>
                   )}
@@ -459,7 +470,11 @@ const Popular = () => {
                     {sortedIngredients.slice(0, 10).map((ing, idx) => (
                       <tr key={ing.id}>
                         <td className="py-1.5 px-2 text-center text-[#444] font-normal whitespace-nowrap">{idx + 1}</td>
-                        <td className="py-1.5 px-2 text-center text-[#444] font-normal whitespace-nowrap">{ing.name}</td>
+                        <td className="py-1.5 px-2 text-center text-[#444] font-normal whitespace-nowrap">
+                          <span style={{ cursor: 'pointer', textDecoration: 'none' }} onClick={() => navigate(`/ingredient/${encodeURIComponent(ing.name)}`)}>
+                            {ing.name}
+                          </span>
+                        </td>
                         <td className="py-1.5 px-2 text-right text-[#444] font-normal whitespace-nowrap">{ing.count.toLocaleString()}</td>
                         <td className="py-1.5 px-2 text-center font-normal whitespace-nowrap" style={{color: ing.rate >= 0 ? '#E85A4F' : '#3A6EA5'}}>{ing.rate >= 0 ? `+${ing.rate}%` : `${ing.rate}%`}</td>
                       </tr>
@@ -486,7 +501,11 @@ const Popular = () => {
                     {sortedThemes.slice(0, 10).map((theme, idx) => (
                       <tr key={theme.id}>
                         <td className="py-1.5 px-2 text-center text-[#444] font-normal whitespace-nowrap">{idx + 1}</td>
-                        <td className="py-1.5 px-2 text-center text-[#444] font-normal whitespace-nowrap">{theme.name}</td>
+                        <td className="py-1.5 px-2 text-center text-[#444] font-normal whitespace-nowrap">
+                          <span style={{ cursor: 'pointer', textDecoration: 'none' }} onClick={() => navigate(`/ingredient/${encodeURIComponent(theme.name)}`)}>
+                            {theme.name}
+                          </span>
+                        </td>
                         <td className="py-1.5 px-2 text-right text-[#444] font-normal whitespace-nowrap">{theme.count.toLocaleString()}</td>
                         <td className="py-1.5 px-2 text-center font-normal whitespace-nowrap" style={{color: theme.rate >= 0 ? '#E85A4F' : '#3A6EA5'}}>{theme.rate >= 0 ? `+${theme.rate}%` : `${theme.rate}%`}</td>
                       </tr>
