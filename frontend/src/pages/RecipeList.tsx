@@ -9,6 +9,8 @@ import doneBlackIcon from '../assets/done_black.svg';
 import shareBlackIcon from '../assets/share_black.svg';
 import writeBlackIcon from '../assets/write_black.svg';
 import FilterModal from '../components/FilterModal';
+import { fetchRecipesDummy } from '../utils/dummyData';
+import RecipeCard from '../components/RecipeCard';
 // import { FaFilter } from 'react-icons/fa'; // 아이콘 없으면 주석처리
 
 const sortOptions = [
@@ -53,48 +55,6 @@ const FILTER_KEYWORDS = {
     { title: '', keywords: ['이국', '프랑스', '이탈리안', '스페인', '멕시코', '지중해', '프랑스', '중화', '베트남', '그리스', '서양', '태국', '동남아', '일본', '전통', '강원도', '경양식', '궁중', '경상도', '전라도', '황해도', '키토', '가니쉬', '오마카세'] },
   ],
 };
-
-// 더미 fetch 함수 (실제 API 연동 전용)
-function fetchRecipesDummy() {
-  return Promise.resolve([
-    {
-      id: 1,
-      thumbnail: 'https://cdn.pixabay.com/photo/2016/03/05/19/02/hamburger-1238246_1280.jpg',
-      title: '오징어볶음 레시피 만드는법 간단',
-      body: '저는 평소 찬밥과 곁들여 먹기 딱 좋은... 오징어볶음 레시피입니다.\n저는 평소 찬거리 고를 때 마트에 가서 한 번 쭉~ 둘러 본 다음에 오늘 세일하는거 뭔가 보고 결정을 해요.\n지난주 어느날에는 마트에 갔는데 오징어 세일이라 집어 왔어요 ㅎ. 그래서 이걸로 오징어요리 뭐할까하다 그냥 제일 간단한 물기없는 오징어볶음 레시피 …',
-      used_ingredients: '오징어,고추,대파,양파,당근,고추장,참기름,고춧가루,올리고당,설탕,다진마늘,간장,후추',
-      author: '꼬마츄츄',
-      date: '25-03-08',
-      like: 77,
-      comment: 12,
-      substitutes: ['양파→대파', '고추장→된장', '설탕→올리고당', '참기름→들기름', '고춧가루→고추장', '다진마늘→마늘가루', '간장→소금'],
-    },
-    {
-      id: 2,
-      thumbnail: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80', // 대패삼겹살 제육볶음 (사용자 두번째 이미지)
-      title: '대패삼겹살 제육볶음 레시피',
-      body: '미리 양념장을 만들어서 볶으셔도 좋고, 저처럼 그냥 바로 재료에 다 때려 넣고 볶아도 맛있는 대패삼겹살 제육볶음 레시피 만들 수 있답니다.\n개인적으로 아주 좋아하는 메뉴이기 때문에 앞다리살, 목살, 삼겹살, 뒷다리살 등 구입을 해오면 볶아먹게 되는 것 같습니다.\n고기와 채소, 양념이 어우러져 정말 맛있어요!',
-      used_ingredients: '삼겹살,후추,양파,대파,고추,간장,다진마늘,설탕,맛술,미림,오징어',
-      author: '꼬마츄츄',
-      date: '25-04-09',
-      like: 55,
-      comment: 8,
-      substitutes: ['맛술→소주', '미림→청주', '오징어→한치', '고추장→된장', '설탕→올리고당', '참기름→들기름', '고춧가루→고추장'],
-    },
-    {
-      id: 3,
-      thumbnail: 'https://images.unsplash.com/photo-1502741338009-cac2772e18bc?auto=format&fit=crop&w=400&q=80', // 미나리 오삼불고기 (사용자 첫번째 이미지)
-      title: '미나리 오삼불고기. 술안주로 좋지요~~',
-      body: '언제 먹어도 맛있죠. 누구나 다 좋아하죠. 오징어 볶음도 맛있고, 제육볶음도 맛있고 고민될 땐 오삼불고기죠 ^^.\n밥한그릇 뚝딱하게 만드는 애정하는 메뉴입니다.\n자. 먼저 통오징어를 먼저 손질해 줍니다. 오징어 몸통안으로 손가락을 넣어 오징어 몸통과 내장이 연결되어 …',
-      used_ingredients: '오징어,고추장,고춧가루,간장,된장,다진마늘,후춧가루,설탕,맛술,미나리,치킨스톡,코인육수,매실액',
-      author: '껌딱지',
-      date: '25-04-06',
-      like: 61,
-      comment: 10,
-      substitutes: ['맛술→소주', '미나리→쪽파', '치킨스톡→미원', '코인육수→다시다, 멸치액젓', '고추장→된장', '설탕→올리고당', '참기름→들기름'],
-    },
-  ]);
-}
 
 // 내 냉장고 재료 예시 (localStorage에서 불러오기)
 function getMyIngredients() {
@@ -150,6 +110,56 @@ function parseIngredientNames(csv: string): string[] {
     .map(line => line.split(',')[nameIdx]?.trim())
     .filter(name => !!name && name !== 'ingredient_name');
 }
+
+// 카드 스타일 상수화 (마이페이지와 동일)
+const CARD_STYLE = {
+  borderRadius: 20,
+  background: '#fff',
+  boxShadow: '0 1px 4px rgba(0,0,0,0.03)',
+  marginBottom: 16,
+  minHeight: 144,
+  position: 'relative' as 'relative',
+  padding: 16,
+  border: 'none',
+};
+
+// ActionButton 컴포넌트 (마이페이지와 동일)
+const ActionButton = ({
+  title,
+  icon,
+  onClick,
+  active = true,
+}: {
+  title: string;
+  icon: string;
+  onClick: () => void;
+  active?: boolean;
+}) => (
+  <span style={{ position: 'relative', zIndex: 2 }}>
+    <span style={{ position: 'absolute', left: 0, top: 0, width: 26, height: 26, borderRadius: '50%', background: 'rgba(34,34,34,0.7)', zIndex: 1 }}></span>
+    <button
+      title={title}
+      tabIndex={0}
+      style={{
+        width: 26,
+        height: 26,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'none',
+        border: 'none',
+        padding: 0,
+        cursor: 'pointer',
+        outline: 'none',
+        position: 'relative',
+        zIndex: 2,
+      }}
+      onClick={onClick}
+    >
+      <img src={doneIcon} alt={title} width={19} height={19} style={{ display: 'block', position: 'relative', zIndex: 2, opacity: active ? 1 : 0.5 }} />
+    </button>
+  </span>
+);
 
 const RecipeList = () => {
   const [visibleCount, setVisibleCount] = useState(10);
@@ -337,12 +347,11 @@ const RecipeList = () => {
         )}
         <div className="flex flex-col gap-2">
           {sortedRecipes.slice(0, visibleCount).map((recipe, idx, arr) => {
-            // 재료 pill 10개 제한 + ... 처리
             const allIngredients = [
               ...recipe.need_ingredients.map((ing: string) => ({ ing, type: 'need' })),
               ...recipe.my_ingredients.map((ing: string) => ({ ing, type: 'have' })),
+              ...(recipe.substitutes || []).map((ing: string) => ({ ing, type: 'substitute' })),
             ];
-            const shownIngredients = allIngredients;
             const btnState = buttonStates[recipe.id] || {};
             return (
               <div
@@ -358,118 +367,53 @@ const RecipeList = () => {
                   border: 'none',
                 }}
               >
+                {/* 상단: 순번 + 버튼 */}
                 <div className="font-bold text-[18px] text-[#222] text-left">{String(idx + 1).padStart(2, '0')}</div>
                 <div className="h-[2px] w-[20px] bg-[#E5E5E5] mb-2"></div>
-                <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', minWidth: '200px', flexShrink: 0 }}>
+                <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', minWidth: 200, flexShrink: 0 }}>
                   <div
-                    style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '14.4px', fontWeight: 'bold', color: '#222', lineHeight: 1.2 }}
                     title={recipe.title}
+                    style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '14.4px', fontWeight: 'bold', color: '#222', lineHeight: 1.2 }}
                   >
                     {recipe.title}
                   </div>
-                  <div
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'row',
-                      gap: '6px',
-                      alignItems: 'center',
-                    }}
-                  >
+                  <div style={{ display: 'flex', flexDirection: 'row', gap: '6px', alignItems: 'center' }}>
                     <button
                       title="완료"
-                      style={{
-                        width: '26px',
-                        height: '26px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        background: 'none',
-                        border: 'none',
-                        padding: 0,
-                        cursor: 'pointer',
-                        outline: 'none',
-                      }}
+                      style={{ width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', padding: 0, cursor: 'pointer', outline: 'none' }}
                       onClick={() => handleButtonClick(recipe.id, 'done', recipe)}
                       tabIndex={0}
                       onMouseDown={e => e.preventDefault()}
                     >
-                      <img
-                        src={btnState.done ? doneBlackIcon : doneIcon}
-                        alt="완료"
-                        width={19}
-                        height={19}
-                        style={{ display: 'block' }}
-                      />
+                      <img src={btnState.done ? doneBlackIcon : doneIcon} alt="완료" width={19} height={19} style={{ display: 'block' }} />
                     </button>
                     <button
                       title="공유"
-                      style={{
-                        width: '26px',
-                        height: '26px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        background: 'none',
-                        border: 'none',
-                        padding: 0,
-                        cursor: 'pointer',
-                        outline: 'none',
-                      }}
+                      style={{ width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', padding: 0, cursor: 'pointer', outline: 'none' }}
                       onClick={() => handleButtonClick(recipe.id, 'share', recipe)}
                       tabIndex={0}
                       onMouseDown={e => e.preventDefault()}
                     >
-                      <img
-                        src={btnState.share ? shareBlackIcon : shareIcon}
-                        alt="공유"
-                        width={19}
-                        height={19}
-                        style={{ display: 'block' }}
-                      />
+                      <img src={btnState.share ? shareBlackIcon : shareIcon} alt="공유" width={19} height={19} style={{ display: 'block' }} />
                     </button>
                     <button
                       title="기록"
-                      style={{
-                        width: '26px',
-                        height: '26px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        background: 'none',
-                        border: 'none',
-                        padding: 0,
-                        cursor: 'pointer',
-                        outline: 'none',
-                      }}
+                      style={{ width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', padding: 0, cursor: 'pointer', outline: 'none' }}
                       onClick={() => handleButtonClick(recipe.id, 'write', recipe)}
                       tabIndex={0}
                       onMouseDown={e => e.preventDefault()}
                     >
-                      <img
-                        src={btnState.write ? writeBlackIcon : writeIcon}
-                        alt="기록"
-                        width={19}
-                        height={19}
-                        style={{ display: 'block' }}
-                      />
+                      <img src={btnState.write ? writeBlackIcon : writeIcon} alt="기록" width={19} height={19} style={{ display: 'block' }} />
                     </button>
                   </div>
                 </div>
-                {/* 썸네일 + 본문 */}
                 <div className="flex flex-row gap-6 items-start mb-2">
-                  {/* 썸네일 + 매칭률 + 버튼 */}
                   <div className="relative min-w-[97px] max-w-[97px] h-[79px] rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-                    <img
-                      src={recipe.thumbnail}
-                      alt="썸네일"
-                      className="w-full h-full object-cover object-center"
-                    />
-                    {/* 재료매칭률 배지 */}
+                    <img src={recipe.thumbnail} alt="썸네일" className="w-full h-full object-cover object-center" />
                     <div className="absolute top-1 left-1 bg-[#444] bg-opacity-90 text-white text-[10px] font-bold rounded px-1.5 py-0 flex items-center gap-1 shadow">
                       재료매칭률 <span className="text-[#FFD600] font-extrabold ml-1">{recipe.match_rate}%</span>
                     </div>
                   </div>
-                  {/* 본문 + 작성자/날짜 */}
                   <div className="flex-1 flex flex-col min-w-0">
                     <div className="flex items-center mb-1">
                       <span className="text-[#FFD600] font-bold" style={{ fontSize: '12px', marginRight: 6 }}>{recipe.author}</span>
@@ -478,32 +422,31 @@ const RecipeList = () => {
                     <div
                       className="mb-2 max-h-16 overflow-y-auto pr-1 cursor-pointer custom-scrollbar"
                       style={{ fontSize: '12px', color: '#444', scrollbarWidth: 'auto' }}
-                      onClick={() => navigate(`/recipe-detail/${recipe.id}`)}
                       title={recipe.body}
                     >
                       {recipe.body}
                     </div>
                   </div>
                 </div>
-                {/* 재료 pill (최대 10개, 초과시 ... 표시) */}
                 <div className="flex flex-wrap gap-1 mb-1 max-h-9 overflow-y-auto custom-scrollbar pr-1" style={{ scrollbarWidth: 'auto' }}>
-                  {shownIngredients
-                    .filter(({ ing }) => ing && ing.trim() !== '')
-                    .map(({ ing, type }: { ing: string, type: string }) => (
-                    <span
-                      key={ing}
-                      className={
-                        type === 'need'
+                  {allIngredients
+                    .filter(({ ing, type }: { ing: string; type: string }) => ing && ing.trim() !== '' && !ing.includes('→'))
+                    .map(({ ing, type }: { ing: string; type: string }) => (
+                      <span
+                        key={ing}
+                        className={
+                          type === 'need'
                             ? 'bg-[#D1D1D1] text-white rounded-full px-3 py-0.5 font-medium'
+                            : type === 'have'
+                            ? 'bg-[#FFD600] text-black rounded-full px-3 py-0.5 font-medium'
                             : 'bg-[#555] text-white rounded-full px-3 py-0.5 font-medium'
-                      }
+                        }
                         style={{ fontSize: '10.4px' }}
-                    >
-                      {ing}
-                    </span>
-                  ))}
+                      >
+                        {ing}
+                      </span>
+                    ))}
                 </div>
-                {/* 대체재 */}
                 {recipe.substitutes && recipe.substitutes.length > 0 && (
                   <div
                     className="mt-1 custom-scrollbar pr-1"

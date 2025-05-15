@@ -1,35 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-
-// 더미 fetch 함수 (RecipeList와 동일)
-function fetchRecipesDummy() {
-  return Promise.resolve([
-    {
-      id: 1,
-      thumbnail: 'https://cdn.pixabay.com/photo/2016/03/05/19/02/hamburger-1238246_1280.jpg',
-      title: '오징어볶음 레시피 만드는법 간단',
-      body: '저는 평소 찬밥과 곁들여 먹기 딱 좋은... 오징어볶음 레시피입니다.',
-      used_ingredients: '오징어,대파,고추,양파,당근,고추장',
-      author: '꼬마츄츄',
-      date: '25-03-08',
-      like: 77,
-      comment: 12,
-      substitutes: ['양파→대파', '고추장→된장'],
-    },
-    {
-      id: 2,
-      thumbnail: 'https://cdn.pixabay.com/photo/2017/05/07/08/56/food-2290814_1280.jpg',
-      title: '대패삼겹살 제육볶음 레시피',
-      body: '미리 양념장을 만들어서 볶아도 좋고... 대패삼겹살 제육볶음 레시피입니다.',
-      used_ingredients: '삼겹살,대파,고추,양파,고추장,설탕',
-      author: '꼬마츄츄',
-      date: '25-04-09',
-      like: 55,
-      comment: 8,
-      substitutes: ['설탕→올리고당'],
-    },
-  ]);
-}
+import { fetchRecipesDummy } from '../utils/dummyData';
 
 function getMatchRate(myIngredients: string[], recipeIngredients: string) {
   const recipeSet = new Set(recipeIngredients.split(',').map((i: string) => i.trim()));
