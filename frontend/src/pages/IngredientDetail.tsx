@@ -550,7 +550,18 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
           paddingTop: 32, // Matched to RecipeList.tsx
         }}
       >
-        <h2 className="text-lg font-bold mb-4 text-center">{customTitle ? customTitle : `${name} 관련 인기 레시피 TOP30`}</h2>
+        <h2 className="text-lg font-bold mb-4 text-center" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+          {customTitle === '내가 기록한 레시피' ? (
+            <>
+              <img src={writeIcon} alt="기록 아이콘" style={{ width: 18, height: 18, marginRight: 4, marginBottom: 2, display: 'inline-block', verticalAlign: 'middle' }} />
+              내가 기록한 레시피
+            </>
+          ) : customTitle ? (
+            customTitle
+          ) : (
+            `${name} 관련 인기 레시피 TOP30`
+          )}
+        </h2>
         {/* 정렬/필터 바 - Matched to RecipeList.tsx */}
         <div
           style={{
