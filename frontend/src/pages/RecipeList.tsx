@@ -438,7 +438,7 @@ const RecipeList = () => {
                           type === 'need'
                             ? 'bg-[#D1D1D1] text-white rounded-full px-3 py-0.5 font-medium'
                             : type === 'have'
-                            ? 'bg-[#FFD600] text-black rounded-full px-3 py-0.5 font-medium'
+                            ? 'bg-[#555] text-white rounded-full px-3 py-0.5 font-medium'
                             : 'bg-[#555] text-white rounded-full px-3 py-0.5 font-medium'
                         }
                         style={{ fontSize: '10.4px' }}
