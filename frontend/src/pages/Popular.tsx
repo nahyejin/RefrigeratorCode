@@ -342,12 +342,12 @@ const Popular = () => {
                 <div style={{position: 'relative', width: '100%', height: 140}}>
                   <img src={recipe.thumbnail} alt="썸네일" style={{width: '100%', height: 140, objectFit: 'cover', borderRadius: 12, marginBottom: 8}} />
                   {/* 순위 뱃지 */}
-                  <div className="absolute bg-[#444] bg-opacity-90 text-white font-bold rounded px-1.5 py-0 flex items-center shadow" style={{position: 'absolute', top: 0, left: 0, fontSize: 12, zIndex: 2}}>
+                  <div className="absolute bg-[#444] bg-opacity-80 text-white font-medium rounded px-2 py-0.5 flex items-center" style={{ position: 'absolute', top: 0, left: 0, fontSize: 12, zIndex: 2, textShadow: '0 1px 2px rgba(0,0,0,0.12)' }}>
                     {recipe.rank}위
                   </div>
                   {/* 재료매칭률 뱃지 */}
-                  <div className="absolute bg-[#444] bg-opacity-90 text-white font-bold rounded px-1.5 py-0 flex items-center gap-1 shadow" style={{position: 'absolute', top: 24, left: 0, fontSize: 11, zIndex: 2}}>
-                    재료 매칭률 <span className="text-[#FFD600] font-extrabold ml-1">80%</span>
+                  <div className="absolute bg-[#444] bg-opacity-80 text-white font-medium rounded px-2 py-0.5 flex items-center gap-1" style={{ position: 'absolute', top: 24, left: 0, fontSize: 11, zIndex: 2, textShadow: '0 1px 2px rgba(0,0,0,0.12)' }}>
+                    재료 매칭률 <span className="text-[#FFD600] font-bold ml-1" style={{ textShadow: 'none', letterSpacing: '0.5px' }}>{/* 매칭률 값 */}80%</span>
                   </div>
                   {/* 완료/공유/기록 버튼 */}
                   <div style={{position: 'absolute', right: 8, bottom: 8, display: 'flex', flexDirection: 'row', gap: 6, alignItems: 'center', zIndex: 2}}>

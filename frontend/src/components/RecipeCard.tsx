@@ -75,8 +75,8 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, actionState, onA
       <div className="flex flex-row gap-6 items-start mb-2">
         <div className="relative min-w-[97px] max-w-[97px] h-[79px] rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
           <img src={recipe.thumbnail} alt="썸네일" className="w-full h-full object-cover object-center" />
-          <div className="absolute top-1 left-1 bg-[#444] bg-opacity-90 text-white text-[10px] font-bold rounded px-1.5 py-0 flex items-center gap-1 shadow">
-            재료매칭률 <span className="text-[#FFD600] font-extrabold ml-1">{recipe.match_rate}%</span>
+          <div className="absolute bg-[#444] bg-opacity-80 text-white text-[10px] font-medium rounded px-2 py-0.5 flex items-center gap-1" style={{ top: 0, left: 0, textShadow: '0 1px 2px rgba(0,0,0,0.12)' }}>
+            재료매칭률 <span className="text-[#FFD600] font-bold ml-1" style={{ textShadow: 'none', letterSpacing: '0.5px' }}>{recipe.match_rate}%</span>
           </div>
         </div>
         <div className="flex-1 flex flex-col min-w-0">
@@ -125,7 +125,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, actionState, onA
         });
         return (
           <div className="mt-1 custom-scrollbar pr-1 flex flex-wrap items-start max-h-12 overflow-y-auto overflow-x-hidden gap-1 pb-1 w-full">
-            <span className="bg-[#FFE066] text-[#444] rounded px-3 py-1 font-bold text-[12px] flex-shrink-0">
+            <span className="bg-[#555] text-white rounded px-3 py-1 font-medium text-[12px] flex-shrink-0" style={{ textShadow: '0 1px 1px rgba(0,0,0,0.08)' }}>
               대체 가능 :
             </span>
             <span className="ml-2 text-[12px] text-[#B0B0B0] font-normal flex-1 min-w-0 break-all whitespace-normal">
