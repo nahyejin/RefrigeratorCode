@@ -13,7 +13,7 @@ import { fetchRecipesDummy } from '../utils/dummyData';
 import RecipeCard from '../components/RecipeCard';
 import { Recipe, RecipeActionState, FilterState } from '../types/recipe';
 import { getMyIngredients, sortRecipes } from '../utils/recipeUtils';
-import { RecipeToast } from '../components/RecipeToast';
+import RecipeToast from '../components/RecipeToast';
 
 const sortOptions = [
   { key: 'match', label: '재료매칭률' },
