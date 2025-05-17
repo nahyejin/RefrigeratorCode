@@ -421,27 +421,42 @@ const Popular = () => {
                   </div>
                   {/* 대체재 */}
                   {recipe.substitutes && recipe.substitutes.length > 0 && (
-                    <div
-                      className="mt-1 custom-scrollbar pr-1"
-                      style={{
-                        display: 'flex',
-                        flexWrap: 'nowrap',
-                        gap: 4,
-                        overflowX: 'auto',
-                        maxWidth: '100%',
-                        alignItems: 'center',
-                        paddingBottom: 4,
-                      }}
-                    >
-                      <span className="bg-[#FFE066] text-[#444] rounded px-3 py-1 font-bold" style={{ fontSize: '12px', flex: '0 0 auto' }}>대체 가능 :</span>
-                      {recipe.substitutes.map((sub, idx) => (
-                        <span key={sub} className="ml-2 font-semibold text-[#444]" style={{ fontSize: '12px', flex: '0 0 auto' }}>
-                          <span style={{ cursor: 'pointer', textDecoration: 'none' }} onClick={() => navigate(`/ingredient/${encodeURIComponent(sub)}`)}>
-                            {sub}
-                          </span>
-                        </span>
-                      ))}
-                    </div>
+                    (() => {
+                      const mySet = new Set(myIngredients.map(i => i.trim().toLowerCase()));
+                      const filteredSubs = recipe.substitutes.filter(sub => {
+                        const [from, to] = sub.split('→').map(s => s.trim().toLowerCase());
+                        return to && mySet.has(to);
+                      });
+                      return (
+                        <div
+                          className="mt-1 custom-scrollbar pr-1"
+                          style={{
+                            display: 'flex',
+                            flexWrap: 'nowrap',
+                            gap: 4,
+                            overflowX: 'auto',
+                            maxWidth: '100%',
+                            alignItems: 'center',
+                            paddingBottom: 4,
+                          }}
+                        >
+                          <span className="bg-[#FFE066] text-[#444] rounded px-3 py-1 font-bold" style={{ fontSize: '12px', flex: '0 0 auto' }}>대체 가능 :</span>
+                          {filteredSubs.length > 0 ? (
+                            filteredSubs.map((sub, idx) => (
+                              <span key={sub} className="ml-2 font-semibold text-[#444]" style={{ fontSize: '12px', flex: '0 0 auto' }}>
+                                <span style={{ cursor: 'pointer', textDecoration: 'none' }} onClick={() => navigate(`/ingredient/${encodeURIComponent(sub)}`)}>
+                                  {sub}
+                                </span>
+                              </span>
+                            ))
+                          ) : (
+                            <span className="ml-2 text-[12px] text-[#B0B0B0] font-normal" style={{ flex: '0 0 auto' }}>
+                              (내 냉장고에 대체 가능한 재료가 없습니다)
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })()
                   )}
                 </div>
               </div>
