@@ -226,3 +226,31 @@ html, body, #root, * {
   text-rendering: optimizeLegibility !important;
   text-shadow: none !important;
 }
+
+/* 로그인 input 파란색 배경 완전 차단 */
+input,
+input:focus,
+input:active {
+  background: #fff !important;
+  background-color: #fff !important;
+  box-shadow: none !important;
+  border: none !important;
+  outline: none !important;
+  color: #222 !important;
+  transition: none !important;
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #fff inset !important;
+  box-shadow: 0 0 0 1000px #fff inset !important;
+  background: #fff !important;
+  background-color: #fff !important;
+  color: #222 !important;
+  border: none !important;
+  outline: none !important;
+  -webkit-text-fill-color: #222 !important;
+  transition: background-color 9999s ease-in-out 0s;
+}
