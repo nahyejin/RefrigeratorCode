@@ -21,7 +21,8 @@ const NeangteolInput: React.FC<NeangteolInputProps> = ({
       placeholder={placeholder}
       value={value}
       onChange={onChange}
-      className={`w-[260px] h-[44px] bg-white rounded-lg px-4 text-[15px] placeholder-[#999] border-none focus:outline-none ${className}`}
+      className={`w-[260px] h-[44px] bg-white rounded-lg px-4 text-[15px] placeholder-[#999] border-none focus:outline-none focus:ring-0 focus:border-none focus:shadow-none ${className}`}
+      style={{ backgroundColor: '#fff', boxShadow: 'none', outline: 'none', border: 'none' }}
     />
   );
 };
