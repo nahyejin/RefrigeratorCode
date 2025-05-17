@@ -44,7 +44,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, actionState, onA
         <div className="flex flex-row gap-[6px] items-center">
           <button
             title="완료"
-            className="w-[26px] h-[26px] flex items-center justify-center bg-none border-none p-0 cursor-pointer outline-none"
+            className="w-[26px] h-[26px] flex items-center justify-center bg-transparent border-none p-0 cursor-pointer outline-none"
             onClick={() => onAction('done')}
             tabIndex={0}
             onMouseDown={e => e.preventDefault()}
@@ -53,7 +53,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, actionState, onA
           </button>
           <button
             title="공유"
-            className="w-[26px] h-[26px] flex items-center justify-center bg-none border-none p-0 cursor-pointer outline-none"
+            className="w-[26px] h-[26px] flex items-center justify-center bg-transparent border-none p-0 cursor-pointer outline-none"
             onClick={() => onAction('share')}
             tabIndex={0}
             onMouseDown={e => e.preventDefault()}
@@ -62,7 +62,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, actionState, onA
           </button>
           <button
             title="기록"
-            className="w-[26px] h-[26px] flex items-center justify-center bg-none border-none p-0 cursor-pointer outline-none"
+            className="w-[26px] h-[26px] flex items-center justify-center bg-transparent border-none p-0 cursor-pointer outline-none"
             onClick={() => onAction('write')}
             tabIndex={0}
             onMouseDown={e => e.preventDefault()}
