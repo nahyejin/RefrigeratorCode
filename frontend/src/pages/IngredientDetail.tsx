@@ -11,6 +11,7 @@ import doneBlackIcon from '../assets/done_black.svg';
 import shareBlackIcon from '../assets/share_black.svg';
 import writeBlackIcon from '../assets/write_black.svg';
 import RecipeCard from '../components/RecipeCard';
+import { Recipe, RecipeActionState } from '../types/recipe';
 
 // 더미 fetch 함수 (RecipeList.tsx와 동일)
 function fetchRecipesDummy(name?: string): Promise<any[]> {
@@ -131,7 +132,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
   const [allIngredients, setAllIngredients] = useState<string[]>([]);
   const [recipes, setRecipes] = useState<any[]>([]);
   const myIngredients = getMyIngredients();
-  const [buttonStates, setButtonStates] = useState<{ [id: number]: { done: boolean; share: boolean; write: boolean } }>({});
+  const [buttonStates, setButtonStates] = useState<{ [id: number]: RecipeActionState }>({});
   const [toast, setToast] = useState('');
   const [includeKeyword, setIncludeKeyword] = useState('');
 
@@ -174,29 +175,22 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
   if (sortType === 'match') sortedRecipes.sort((a, b) => b.match_rate - a.match_rate);
   else if (sortType === 'expiry') sortedRecipes.sort((a, b) => 0);
 
-  const handleButtonClick = (id: number, type: 'done' | 'share' | 'write', recipe: any) => {
-    const prevState = buttonStates[id] || { done: false, share: false, write: false };
-    const isActive = !!prevState[type];
-    setButtonStates(prev => ({
-      ...prev,
-      [id]: {
-        ...prevState,
-        [type]: !isActive
+  const handleRecipeAction = (recipeId: number, action: keyof RecipeActionState) => {
+    setButtonStates(prev => {
+      const prevState = prev[recipeId] || { done: false, write: false, share: false };
+      const isActive = !!prevState[action];
+      const newState = { ...prevState, [action]: !isActive };
+      let msg = '';
+      if (action === 'done') msg = isActive ? '레시피 완료를 취소했습니다!' : '레시피를 완료했습니다!';
+      if (action === 'write') msg = isActive ? '레시피 기록을 취소했습니다!' : '레시피를 기록했습니다!';
+      if (action === 'share') {
+        navigator.clipboard.writeText(window.location.origin + `/recipe-detail/${recipeId}`);
+        msg = 'URL이 복사되었습니다!';
       }
-    }));
-    if (type === 'done') {
-      setToast(!isActive ? '레시피를 완료했습니다!' : '레시피 완료를 취소했습니다!');
+      setToast(msg);
       setTimeout(() => setToast(''), 1500);
-    }
-    if (type === 'write') {
-      setToast(!isActive ? '레시피를 기록했습니다!' : '레시피 기록을 취소했습니다!');
-      setTimeout(() => setToast(''), 1500);
-    }
-    if (type === 'share') {
-      navigator.clipboard.writeText(window.location.origin + `/recipe-detail/${recipe.id}`);
-      setToast('URL이 복사되었습니다!');
-      setTimeout(() => setToast(''), 1500);
-    }
+      return { ...prev, [recipeId]: newState };
+    });
   };
 
   return (
@@ -303,16 +297,32 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
           />
         )}
         <div className="flex flex-col gap-2">
-          {sortedRecipes.slice(0, visibleCount).map((recipe: any, idx: number, arr: any[]) => (
-            <RecipeCard
-              key={recipe.id}
-              recipe={recipe}
-              index={idx}
-              actionState={buttonStates[recipe.id]}
-              onAction={(action) => handleButtonClick(recipe.id, action, recipe)}
-              isLast={idx === arr.length - 1}
-            />
-          ))}
+          {sortedRecipes.slice(0, visibleCount).map((recipe: any, idx: number, arr: any[]) => {
+            const recipeCardData: Recipe = {
+              id: recipe.id,
+              thumbnail: recipe.thumbnail,
+              title: recipe.title,
+              match_rate: recipe.match_rate,
+              author: recipe.author,
+              date: recipe.date,
+              body: recipe.body,
+              used_ingredients: recipe.used_ingredients,
+              need_ingredients: recipe.need_ingredients,
+              my_ingredients: recipe.my_ingredients,
+              substitutes: recipe.substitutes,
+            };
+            return (
+              <RecipeCard
+                key={recipe.id}
+                recipe={recipeCardData}
+                index={idx}
+                actionState={buttonStates[recipe.id]}
+                onAction={action => handleRecipeAction(recipe.id, action)}
+                isLast={idx === visibleCount - 1}
+                myIngredients={myIngredients}
+              />
+            );
+          })}
         </div>
       </div>
       <BottomNavBar activeTab={customTitle === '내가 기록한 레시피' || customTitle === '내가 완료한 레시피' ? 'mypage' : 'popularity'} />
