@@ -37,7 +37,14 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, actionState, onA
       <div className="flex flex-row items-center justify-between w-full min-w-[200px] flex-shrink-0">
         <div
           title={recipe.title}
-          className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-[14.4px] font-bold text-[#222] leading-tight"
+          className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-[14.4px] font-bold text-[#222] leading-tight antialiased"
+          style={{
+            fontFamily: 'Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, Arial, sans-serif',
+            WebkitFontSmoothing: 'antialiased',
+            MozOsxFontSmoothing: 'grayscale',
+            fontWeight: 700,
+            textShadow: 'none'
+          }}
         >
           {recipe.title}
         </div>
