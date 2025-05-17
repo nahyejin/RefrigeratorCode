@@ -408,7 +408,7 @@ const Popular = () => {
                         ...haveIngredients.map(i => (
                           <span
                             key={i}
-                            className="bg-[#555] text-white rounded-full px-3 py-0.5 font-medium"
+                            className="bg-[#FFD600] text-[#444] rounded-full px-3 py-0.5 font-medium"
                             style={{ fontSize: '10.4px', lineHeight: 1.3, whiteSpace: 'nowrap', height: 22, display: 'inline-flex', alignItems: 'center' }}
                           >
                             <span style={{ cursor: 'pointer', textDecoration: 'none' }} onClick={() => navigate(`/ingredient/${encodeURIComponent(i)}`)}>
