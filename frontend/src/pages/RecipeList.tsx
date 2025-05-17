@@ -202,6 +202,7 @@ const RecipeList: React.FC = () => {
               actionState={recipeActionStates[recipe.id]}
               onAction={(action) => handleRecipeAction(recipe.id, action, recipe)}
               isLast={idx === visibleCount - 1}
+              myIngredients={myIngredients}
             />
           ))}
         </div>

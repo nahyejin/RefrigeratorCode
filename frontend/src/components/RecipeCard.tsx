@@ -13,9 +13,10 @@ export interface RecipeCardProps {
   actionState?: RecipeActionState;
   onAction: (action: keyof RecipeActionState) => void;
   isLast: boolean;
+  myIngredients?: string[];
 }
 
-const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, actionState, onAction, isLast }) => {
+const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, actionState, onAction, isLast, myIngredients = [] }) => {
   const allIngredients = [
     ...(recipe.need_ingredients || []).map(ing => ({ ing, type: 'need' })),
     ...(recipe.my_ingredients || []).map(ing => ({ ing, type: 'have' })),
@@ -94,16 +95,25 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, actionState, onA
       <div className="flex flex-wrap gap-1 mb-1 max-h-9 overflow-y-auto custom-scrollbar pr-1">
         {allIngredients
           .filter(({ ing }) => ing && ing.trim() !== '' && !ing.includes('→'))
-          .map(({ ing, type }) => (
-            <span
-              key={ing}
-              className={
-                'bg-[#FFD600] text-[#444] rounded-full px-3 py-0.5 font-medium text-[10.4px]'
-              }
-            >
-              {ing}
-            </span>
-          ))}
+          .map(({ ing, type }) => {
+            console.log('myIngredients:', myIngredients, 'ing:', ing);
+            const isMine = myIngredients.some(
+              (mine) => mine.trim().toLowerCase() === ing.trim().toLowerCase()
+            );
+            return (
+              <span
+                key={ing}
+                className={
+                  (isMine
+                    ? 'bg-[#FFD600] text-[#444]'
+                    : 'bg-[#D1D1D1] text-white'
+                  ) + ' rounded-full px-3 py-0.5 font-medium text-[10.4px]'
+                }
+              >
+                {ing}
+              </span>
+            );
+          })}
       </div>
 
       {recipe.substitutes && recipe.substitutes.length > 0 && (
