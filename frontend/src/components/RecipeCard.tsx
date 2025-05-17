@@ -17,6 +17,7 @@ export interface RecipeCardProps {
 }
 
 const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, actionState, onAction, isLast, myIngredients = [] }) => {
+  console.log('RecipeCard received myIngredients:', myIngredients); // 디버깅용
   const allIngredients = [
     ...(recipe.need_ingredients || []).map(ing => ({ ing, type: 'need' })),
     ...(recipe.my_ingredients || []).map(ing => ({ ing, type: 'have' })),

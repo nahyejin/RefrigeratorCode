@@ -8,7 +8,7 @@ interface TagPillProps {
 }
 
 const TagPill: React.FC<TagPillProps> = ({ children, onClick, className = '', style }) => (
-  <span
+    <span
     className={`custom-pill ${className}`}
     style={{
       fontFamily: 'Noto Sans KR, Arial, system-ui, sans-serif',
@@ -32,10 +32,10 @@ const TagPill: React.FC<TagPillProps> = ({ children, onClick, className = '', st
       textShadow: 'none',
       ...style,
     }}
-    onClick={onClick}
-  >
-    {children}
-  </span>
-);
+      onClick={onClick}
+    >
+      {children}
+    </span>
+  );
 
 export default TagPill; 

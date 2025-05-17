@@ -4,10 +4,18 @@ export function getMyIngredients(): string[] {
   try {
     const data = JSON.parse(localStorage.getItem('myfridge_ingredients') || 'null');
     if (data && Array.isArray(data.frozen) && Array.isArray(data.fridge) && Array.isArray(data.room)) {
-      return [...data.frozen, ...data.fridge, ...data.room].map(i => (typeof i === 'string' ? i : i.name));
+      const ingredients = [
+        ...data.frozen,
+        ...data.fridge,
+        ...data.room
+      ].map(i => (typeof i === 'string' ? i : i.name));
+      console.log('Loaded ingredients:', ingredients); // 디버깅용
+      return ingredients;
     }
-  } catch {}
-  return ['오징어', '대파', '고추', '삼겹살']; // 기본값
+  } catch (error) {
+    console.error('Error loading ingredients:', error);
+  }
+  return []; // 기본값을 빈 배열로 변경
 }
 
 export function calculateMatchRate(myIngredients: string[], recipeIngredients: string): RecipeMatchResult {
