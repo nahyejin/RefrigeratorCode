@@ -222,8 +222,8 @@ const MyPage = () => {
               <div key={r.id} className="min-w-[210px] max-w-[210px] flex flex-col gap-1 relative" style={CARD_STYLE}>
                 <div className="relative">
                   <img src={r.thumbnail} alt={r.title} className="w-full h-[110px] object-cover rounded-lg" />
-                  <div className="absolute bg-[#444] bg-opacity-90 text-white font-bold rounded px-1.5 py-0 flex items-center gap-1 shadow" style={{position:'absolute', top:0, left:0, fontSize:11, zIndex:2}}>
-                    재료 매칭률 <span className="text-[#FFD600] font-extrabold ml-1">{r.match}%</span>
+                  <div className="absolute bg-[#444] bg-opacity-80 text-white font-medium rounded px-2 py-0.5 flex items-center gap-1" style={{position:'absolute', top:0, left:0, fontSize:11, zIndex:2, textShadow: '0 1px 2px rgba(0,0,0,0.12)'}}>
+                    재료 매칭률 <span className="text-[#FFD600] font-bold ml-1" style={{ textShadow: 'none', letterSpacing: '0.5px' }}>{r.match}%</span>
                   </div>
                   <div style={{position:'absolute', right:8, bottom:8, display:'flex', flexDirection:'row', gap:6, alignItems:'center', zIndex:2}}>
                     <ActionButton title="완료" icon={완료하기버튼} onClick={() => handleDoneClick(r.id)} active={doneStates[r.id]} />
@@ -257,8 +257,8 @@ const MyPage = () => {
               <div key={r.id} className="min-w-[210px] max-w-[210px] flex flex-col gap-1 relative" style={CARD_STYLE}>
                 <div className="relative">
                   <img src={r.thumbnail} alt={r.title} className="w-full h-[110px] object-cover rounded-lg" />
-                  <div className="absolute bg-[#444] bg-opacity-90 text-white font-bold rounded px-1.5 py-0 flex items-center gap-1 shadow" style={{position:'absolute', top:0, left:0, fontSize:11, zIndex:2}}>
-                    재료 매칭률 <span className="text-[#FFD600] font-extrabold ml-1">{r.match}%</span>
+                  <div className="absolute bg-[#444] bg-opacity-80 text-white font-medium rounded px-2 py-0.5 flex items-center gap-1" style={{position:'absolute', top:0, left:0, fontSize:11, zIndex:2, textShadow: '0 1px 2px rgba(0,0,0,0.12)'}}>
+                    재료 매칭률 <span className="text-[#FFD600] font-bold ml-1" style={{ textShadow: 'none', letterSpacing: '0.5px' }}>{r.match}%</span>
                   </div>
                   <div style={{position:'absolute', right:8, bottom:8, display:'flex', flexDirection:'row', gap:6, alignItems:'center', zIndex:2}}>
                     <ActionButton title="완료" icon={완료하기버튼} onClick={() => handleDoneClick(r.id)} active={doneStates[r.id]} />
