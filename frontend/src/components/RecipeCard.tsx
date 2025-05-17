@@ -1,55 +1,127 @@
-import * as React from 'react';
+import React from 'react';
+import { Recipe, RecipeActionState } from '../types/recipe';
+import doneIcon from '../assets/done.svg';
+import shareIcon from '../assets/share.svg';
+import writeIcon from '../assets/write.svg';
+import doneBlackIcon from '../assets/done_black.svg';
+import shareBlackIcon from '../assets/share_black.svg';
+import writeBlackIcon from '../assets/write_black.svg';
 
-interface RecipeCardProps {
-  thumbnail: string;
-  title: string;
-  author: string;
-  date: string;
-  body: string;
-  matchRate: number;
-  children?: React.ReactNode; // 버튼/재료/대체재 등 부가 UI
-  className?: string;
+export interface RecipeCardProps {
+  recipe: Recipe;
+  index: number;
+  actionState?: RecipeActionState;
+  onAction: (action: keyof RecipeActionState) => void;
+  isLast: boolean;
 }
 
-const RecipeCard: React.FC<RecipeCardProps> = ({
-  thumbnail, title, author, date, body, matchRate, children, className = ''
-}) => (
-  <div
-    className={`w-full ${className}`}
-    style={{
-      borderRadius: 20,
-      background: '#fff',
-      boxShadow: '0 1px 4px rgba(0,0,0,0.03)',
-      minHeight: 144,
-      position: 'relative',
-      padding: 16,
-      border: 'none',
-      marginBottom: 16,
-    }}
-  >
-    <div className="flex flex-row gap-6 items-start mb-2">
-      <div className="relative min-w-[97px] max-w-[97px] h-[79px] rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-        <img src={thumbnail} alt="썸네일" className="w-full h-full object-cover object-center" />
-        <div className="absolute top-1 left-1 bg-[#444] bg-opacity-90 text-white text-[10px] font-bold rounded px-1.5 py-0 flex items-center gap-1 shadow">
-          재료매칭률 <span className="text-[#FFD600] font-extrabold ml-1">{matchRate}%</span>
-        </div>
+const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, actionState, onAction, isLast }) => {
+  const allIngredients = [
+    ...(recipe.need_ingredients || []).map(ing => ({ ing, type: 'need' })),
+    ...(recipe.my_ingredients || []).map(ing => ({ ing, type: 'have' })),
+    ...(recipe.substitutes || []).map(ing => ({ ing, type: 'substitute' })),
+  ];
+
+  return (
+    <div
+      className="bg-white rounded-[20px] shadow-sm min-h-[144px] relative p-4"
+      style={{ marginBottom: isLast ? 40 : 16 }}
+    >
+      <div className="font-bold text-[18px] text-[#222] text-left">
+        {String(index + 1).padStart(2, '0')}
       </div>
-      <div className="flex-1 flex flex-col min-w-0">
-        <div className="flex items-center mb-1">
-          <span className="text-[#FFD600] font-bold" style={{ fontSize: '12px', marginRight: 6 }}>{author}</span>
-          <span className="text-[#B0B0B0]" style={{ fontSize: '10.4px' }}>{date}</span>
-        </div>
+      <div className="h-[2px] w-[20px] bg-[#E5E5E5] mb-2"></div>
+      
+      <div className="flex flex-row items-center justify-between w-full min-w-[200px] flex-shrink-0">
         <div
-          className="mb-2 max-h-16 overflow-y-auto pr-1 cursor-pointer custom-scrollbar"
-          style={{ fontSize: '12px', color: '#444', scrollbarWidth: 'auto' }}
-          title={body}
+          title={recipe.title}
+          className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-[14.4px] font-bold text-[#222] leading-tight"
         >
-          {body}
+          {recipe.title}
+        </div>
+        <div className="flex flex-row gap-[6px] items-center">
+          <button
+            title="완료"
+            className="w-[26px] h-[26px] flex items-center justify-center bg-none border-none p-0 cursor-pointer outline-none"
+            onClick={() => onAction('done')}
+            tabIndex={0}
+            onMouseDown={e => e.preventDefault()}
+          >
+            <img src={actionState?.done ? doneBlackIcon : doneIcon} alt="완료" width={19} height={19} className="block" />
+          </button>
+          <button
+            title="공유"
+            className="w-[26px] h-[26px] flex items-center justify-center bg-none border-none p-0 cursor-pointer outline-none"
+            onClick={() => onAction('share')}
+            tabIndex={0}
+            onMouseDown={e => e.preventDefault()}
+          >
+            <img src={actionState?.share ? shareBlackIcon : shareIcon} alt="공유" width={19} height={19} className="block" />
+          </button>
+          <button
+            title="기록"
+            className="w-[26px] h-[26px] flex items-center justify-center bg-none border-none p-0 cursor-pointer outline-none"
+            onClick={() => onAction('write')}
+            tabIndex={0}
+            onMouseDown={e => e.preventDefault()}
+          >
+            <img src={actionState?.write ? writeBlackIcon : writeIcon} alt="기록" width={19} height={19} className="block" />
+          </button>
         </div>
       </div>
+
+      <div className="flex flex-row gap-6 items-start mb-2">
+        <div className="relative min-w-[97px] max-w-[97px] h-[79px] rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+          <img src={recipe.thumbnail} alt="썸네일" className="w-full h-full object-cover object-center" />
+          <div className="absolute top-1 left-1 bg-[#444] bg-opacity-90 text-white text-[10px] font-bold rounded px-1.5 py-0 flex items-center gap-1 shadow">
+            재료매칭률 <span className="text-[#FFD600] font-extrabold ml-1">{recipe.match_rate}%</span>
+          </div>
+        </div>
+        <div className="flex-1 flex flex-col min-w-0">
+          <div className="flex items-center mb-1">
+            <span className="text-[#FFD600] font-bold text-[12px] mr-1.5">{recipe.author}</span>
+            <span className="text-[#B0B0B0] text-[10.4px]">{recipe.date}</span>
+          </div>
+          <div
+            className="mb-2 max-h-16 overflow-y-auto pr-1 cursor-pointer custom-scrollbar text-[12px] text-[#444]"
+            title={recipe.body}
+          >
+            {recipe.body}
+          </div>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-1 mb-1 max-h-9 overflow-y-auto custom-scrollbar pr-1">
+        {allIngredients
+          .filter(({ ing }) => ing && ing.trim() !== '' && !ing.includes('→'))
+          .map(({ ing, type }) => (
+            <span
+              key={ing}
+              className={`${
+                type === 'need'
+                  ? 'bg-[#D1D1D1] text-white'
+                  : type === 'have'
+                  ? 'bg-[#555] text-white'
+                  : 'bg-[#555] text-white'
+              } rounded-full px-3 py-0.5 font-medium text-[10.4px]`}
+            >
+              {ing}
+            </span>
+          ))}
+      </div>
+
+      {recipe.substitutes && recipe.substitutes.length > 0 && (
+        <div className="mt-1 custom-scrollbar pr-1 flex flex-wrap items-start max-h-12 overflow-y-auto overflow-x-hidden gap-1 pb-1 w-full">
+          <span className="bg-[#FFE066] text-[#444] rounded px-3 py-1 font-bold text-[12px] flex-shrink-0">
+            대체 가능 :
+          </span>
+          <span className="ml-2 font-semibold text-[#444] text-[12px] flex-1 min-w-0 break-all whitespace-normal">
+            {recipe.substitutes.join(', ')}
+          </span>
+        </div>
+      )}
     </div>
-    {children}
-  </div>
-);
+  );
+};
 
 export default RecipeCard; 
