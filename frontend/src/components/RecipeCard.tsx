@@ -97,13 +97,9 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, actionState, onA
           .map(({ ing, type }) => (
             <span
               key={ing}
-              className={`${
-                type === 'need'
-                  ? 'bg-[#D1D1D1] text-white'
-                  : type === 'have'
-                  ? 'bg-[#555] text-white'
-                  : 'bg-[#555] text-white'
-              } rounded-full px-3 py-0.5 font-medium text-[10.4px]`}
+              className={
+                'bg-[#FFD600] text-[#444] rounded-full px-3 py-0.5 font-medium text-[10.4px]'
+              }
             >
               {ing}
             </span>
