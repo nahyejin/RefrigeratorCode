@@ -117,16 +117,25 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, actionState, onA
           })}
       </div>
 
-      {recipe.substitutes && recipe.substitutes.length > 0 && (
-        <div className="mt-1 custom-scrollbar pr-1 flex flex-wrap items-start max-h-12 overflow-y-auto overflow-x-hidden gap-1 pb-1 w-full">
-          <span className="bg-[#FFE066] text-[#444] rounded px-3 py-1 font-bold text-[12px] flex-shrink-0">
-            대체 가능 :
-          </span>
-          <span className="ml-2 font-semibold text-[#444] text-[12px] flex-1 min-w-0 break-all whitespace-normal">
-            {recipe.substitutes.join(', ')}
-          </span>
-        </div>
-      )}
+      {recipe.substitutes && recipe.substitutes.length > 0 && (() => {
+        const mySet = new Set(myIngredients.map(i => i.trim().toLowerCase()));
+        const filteredSubs = recipe.substitutes.filter(sub => {
+          const [from, to] = sub.split('→').map(s => s.trim().toLowerCase());
+          return to && mySet.has(to);
+        });
+        return (
+          <div className="mt-1 custom-scrollbar pr-1 flex flex-wrap items-start max-h-12 overflow-y-auto overflow-x-hidden gap-1 pb-1 w-full">
+            <span className="bg-[#FFE066] text-[#444] rounded px-3 py-1 font-bold text-[12px] flex-shrink-0">
+              대체 가능 :
+            </span>
+            <span className="ml-2 text-[12px] text-[#B0B0B0] font-normal flex-1 min-w-0 break-all whitespace-normal">
+              {filteredSubs.length > 0
+                ? filteredSubs.join(', ')
+                : '(내 냉장고에 대체 가능한 재료가 없습니다)'}
+            </span>
+          </div>
+        );
+      })()}
     </div>
   );
 };
