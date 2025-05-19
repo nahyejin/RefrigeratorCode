@@ -1,0 +1,33 @@
+/* input, input:focus, input:active {
+  background: #fff !important;
+  background-color: #fff !important;
+  box-shadow: none !important;
+  border: none !important;
+  outline: none !important;
+  color: #222 !important;
+  transition: none !important;
+} */
+
+input, input:focus, input:active {
+  background: #fff !important;
+  color: #222 !important;
+  border-width: 3px !important;
+  border-style: solid !important;
+  border-color: #f00 !important;
+  border-radius: 0 !important;
+  width: 200px !important;
+  height: 40px !important;
+  padding: 10px !important;
+  z-index: 9999 !important;
+  position: relative !important;
+  opacity: 1 !important;
+  box-shadow: none !important;
+  outline: none !important;
+  display: block !important;
+}
+
+*, ::before, ::after {
+    box-sizing: border-box;
+    border-style: solid;
+    border-color: #e5e7eb;
+} 

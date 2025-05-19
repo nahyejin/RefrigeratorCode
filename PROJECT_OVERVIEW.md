@@ -71,3 +71,55 @@ RefrigeratorCode/
 - **package.json / package-lock.json**: 프론트엔드 의존성 및 스크립트 관리
 - **PROJECT_OVERVIEW**: 프로젝트 설명 및 구조 안내 문서
 
+## MySQL 데이터베이스 구조 및 recipes 테이블 설명
+
+### 스키마: refrigerator
+
+#### 테이블: recipes
+
+| 컬럼명                  | 타입                | 설명                                                         |
+|------------------------|---------------------|--------------------------------------------------------------|
+| id                     | int AI PK           | 기본키 (자동 증가)                                           |
+| title                  | text                | 제목                                                        |
+| link                   | text                | 레시피 원본 URL                                             |
+| content                | mediumtext          | 본문                                                        |
+| used_ingredients       | text                | 쓰여진 재료들 (쉼표로 구분, 예: 된장, 두부, 멸치)           |
+| used_ingredients_block | text                | used_ingredients 추출을 위한 재료 문단 (내부용)             |
+| block_reason           | varchar(255)        | used_ingredients_block 산출 기준 (내부용)                   |
+| author                 | varchar(255)        | 작성자                                                       |
+| thumbnail              | text                | 썸네일 이미지 URL                                           |
+| platform               | varchar(50)         | 수집처 (네이버/유튜브/만개의레시피 등)                      |
+| likes                  | int                 | 좋아요 수                                                    |
+| comments               | int                 | 댓글 수                                                      |
+| post_time              | date                | 게시일자                                                     |
+| collected_at           | datetime            | 데이터 수집 일자                                             |
+
+---
+
+#### 예시: MySQL 연결 설정 (pymysql)
+
+```python
+import pymysql
+
+# MySQL 연결 설정
+conn = pymysql.connect(
+    host='localhost',
+    user='root',
+    password='sk784512!!',
+    db='refrigerator',
+    charset='utf8mb4',
+    cursorclass=pymysql.cursors.DictCursor
+)
+cursor = conn.cursor()
+```
+
+---
+
+#### 예시: INSERT 쿼리
+
+```sql
+INSERT IGNORE INTO recipes
+(title, link, content, author, thumbnail, platform, likes, comments, post_time, collected_at)
+VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+```
+
