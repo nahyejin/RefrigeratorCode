@@ -12,7 +12,7 @@ import shareBlackIcon from '../assets/share_black.svg';
 import writeBlackIcon from '../assets/write_black.svg';
 import RecipeCard from '../components/RecipeCard';
 import { Recipe, RecipeActionState } from '../types/recipe';
-import RecipeTopBar from '../components/RecipeTopBar';
+import RecipeSortBar from '../components/RecipeSortBar';
 
 // 더미 fetch 함수 (RecipeList.tsx와 동일)
 function fetchRecipesDummy(name?: string): Promise<any[]> {
@@ -159,6 +159,8 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
   const [expirySortType, setExpirySortType] = useState<'expiry'|'purchase'>('expiry');
   const [selectedExpiryIngredients, setSelectedExpiryIngredients] = useState<string[]>([]);
   const [appliedExpiryIngredients, setAppliedExpiryIngredients] = useState<string[]>([]);
+  const [matchRateModalOpen, setMatchRateModalOpen] = useState(false);
+  const [expiryModalOpen, setExpiryModalOpen] = useState(false);
 
   const myIngredients = getMyIngredients();
   const myIngredientObjects = getMyIngredientObjects();
@@ -348,7 +350,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
             `${name} 관련 인기 레시피 TOP30`
           )}
         </h2>
-        <RecipeTopBar
+        <RecipeSortBar
           sortType={sortType}
           onSortChange={setSortType}
           sortOptions={[
@@ -358,29 +360,11 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
             { value: 'comment', label: '댓글순' },
             { value: 'latest', label: '최신순' },
           ]}
-          filterOpen={filterOpen}
-          setFilterOpen={setFilterOpen}
-          selectedFilter={selectedFilter}
-          setSelectedFilter={setSelectedFilter}
-          includeInput={includeInput}
-          setIncludeInput={setIncludeInput}
-          excludeInput={excludeInput}
-          setExcludeInput={setExcludeInput}
-          allIngredients={allIngredients}
-          includeKeyword={includeKeyword}
-          setIncludeKeyword={setIncludeKeyword}
-          matchRange={matchRange}
-          setMatchRange={setMatchRange}
-          maxLack={maxLack}
-          setMaxLack={setMaxLack}
-          expirySortType={expirySortType}
-          setExpirySortType={setExpirySortType}
-          sortedExpiryList={sortedExpiryList}
-          selectedExpiryIngredients={selectedExpiryIngredients}
-          setSelectedExpiryIngredients={setSelectedExpiryIngredients}
-          appliedExpiryIngredients={appliedExpiryIngredients}
-          setAppliedExpiryIngredients={setAppliedExpiryIngredients}
-        />
+          onFilterClick={() => setFilterOpen(true)}
+        >
+          <button onClick={() => setMatchRateModalOpen(true)}>재료 매칭도 설정</button>
+          <button onClick={() => setExpiryModalOpen(true)}>임박 재료 설정</button>
+        </RecipeSortBar>
         <div className="flex flex-col gap-2">
           {sortedRecipes.slice(0, visibleCount).map((recipe: any, idx: number, arr: any[]) => {
             const recipeCardData: Recipe = {
