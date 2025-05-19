@@ -19,7 +19,7 @@ def get_db():
 def get_recipes():
     db = get_db()
     cursor = db.cursor()
-    cursor.execute("SELECT * FROM recipes ORDER BY id DESC LIMIT 20")
+    cursor.execute("SELECT * FROM recipes ORDER BY id DESC")
     recipes = cursor.fetchall()
     db.close()
     return jsonify(recipes)
