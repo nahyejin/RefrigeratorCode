@@ -97,6 +97,8 @@ const RecipeList: React.FC = () => {
   const [includeKeyword, setIncludeKeyword] = useState('');
   const [allIngredients, setAllIngredients] = useState<string[]>([]);
   const [substituteTable, setSubstituteTable] = useState<{ [key: string]: SubstituteInfo }>({});
+  const [matchRateModalOpen, setMatchRateModalOpen] = useState(false);
+  const [expiryModalOpen, setExpiryModalOpen] = useState(false);
   
   const myIngredients = getMyIngredients();
   const navigate = useNavigate();
@@ -221,23 +223,101 @@ const RecipeList: React.FC = () => {
         <h2 className="text-lg font-bold mb-4 text-center">내 냉장고 기반 레시피 추천</h2>
         
         <div className="flex items-center gap-2 mb-6 mt-8">
+          {/* 재료 매칭률 설정 버튼 */}
+          <button
+            className="h-6 border border-gray-300 rounded text-xs px-2 font-bold bg-white text-gray-700 min-w-[70px] hover:bg-gray-50 flex items-center"
+            onClick={() => setMatchRateModalOpen(true)}
+          >
+            매칭률 설정
+          </button>
+
+          {/* 임박 재료 설정 버튼 */}
+          <button
+            className="h-6 border border-gray-300 rounded text-xs px-2 font-bold bg-white text-gray-700 min-w-[70px] hover:bg-gray-50 flex items-center"
+            onClick={() => setExpiryModalOpen(true)}
+          >
+            임박 재료 선택
+          </button>
+
+          {/* 일반 정렬 드롭다운 */}
           <select
-            className="h-7 border border-gray-300 rounded text-sm px-2.5 font-bold bg-white text-gray-700 min-w-[100px]"
+            className="h-6 border border-gray-300 rounded text-xs px-2 font-bold bg-white text-gray-700 min-w-[70px] flex items-center border-gray-300"
             value={sortType}
             onChange={e => setSortType(e.target.value)}
             aria-label="정렬 기준 선택"
           >
-            <option value="match">재료매칭률순</option>
-            <option value="expiry">유통기한 임박순</option>
+            <option value="latest">최신순</option>
+            <option value="like">좋아요순</option>
+            <option value="comment">댓글순</option>
           </select>
-          
+
+          {/* 필터 버튼 */}
           <button
-            className="ml-auto flex items-center gap-1 px-4 py-1 rounded-full border border-gray-300 bg-white text-gray-700 font-semibold text-sm h-7"
+            className="ml-auto flex items-center gap-1 px-3 py-0.5 rounded-full border border-gray-300 bg-white text-gray-700 font-semibold text-xs h-6"
             onClick={() => setFilterOpen(true)}
+            style={{marginLeft: 'auto'}}
           >
             <span className="font-bold">필터</span>
           </button>
         </div>
+
+        {/* 매칭률 설정 모달 */}
+        {matchRateModalOpen && (
+          <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+            <div className="bg-white rounded-xl shadow-lg p-6 w-[340px] max-w-[95vw] relative">
+              <span className="absolute top-3 right-3 w-6 h-6 text-gray-400 text-xl cursor-pointer" onClick={() => setMatchRateModalOpen(false)}>×</span>
+              <div className="text-center font-bold text-[14px] mb-4">재료 매칭률 설정</div>
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center gap-2">
+                  <input type="number" min={0} max={100} defaultValue={40} className="w-16 border rounded px-2 py-1 text-sm" />
+                  <span className="text-sm">%</span>
+                  <span className="mx-2 text-sm">~</span>
+                  <input type="number" min={0} max={100} defaultValue={90} className="w-16 border rounded px-2 py-1 text-sm" />
+                  <span className="text-sm">%</span>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <input type="range" min={0} max={100} defaultValue={40} className="w-full" />
+                  <input type="range" min={0} max={100} defaultValue={90} className="w-full" />
+                </div>
+                <div className="flex gap-2 mt-2">
+                  <label className="flex items-center gap-1 text-sm">
+                    <input type="checkbox" /> 최대 1개 부족
+                  </label>
+                  <label className="flex items-center gap-1 text-sm">
+                    <input type="checkbox" /> 최대 2개 부족
+                  </label>
+                </div>
+                <button className="w-full bg-[#3c3c3c] text-white font-bold py-2 rounded-lg mt-2">적용</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 임박 재료 설정 모달 */}
+        {expiryModalOpen && (
+          <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+            <div className="bg-white rounded-xl shadow-lg p-6 w-[340px] max-w-[95vw] relative">
+              <span className="absolute top-3 right-3 w-6 h-6 text-gray-400 text-xl cursor-pointer" onClick={() => setExpiryModalOpen(false)}>×</span>
+              <div className="text-center font-bold text-[14px] mb-4">임박 재료 선택</div>
+              <div className="flex flex-col gap-4">
+                <div className="flex gap-2 mb-2">
+                  <button className="flex-1 py-2 text-sm font-medium border border-gray-300 rounded-lg bg-white">유통기한 임박순</button>
+                  <button className="flex-1 py-2 text-sm font-medium border border-gray-300 rounded-lg bg-white">구매일 오래된순</button>
+                </div>
+                <div className="max-h-[300px] overflow-y-auto">
+                  {myIngredients.map((ingredient, idx) => (
+                    <label key={idx} className="flex items-center gap-2 p-2 hover:bg-gray-50">
+                      <input type="checkbox" className="w-4 h-4" />
+                      <span className="text-sm">{ingredient}</span>
+                      <span className="text-xs text-gray-500 ml-auto">D-2</span>
+                    </label>
+                  ))}
+                </div>
+                <button className="w-full bg-[#3c3c3c] text-white font-bold py-2 rounded-lg mt-2">선택한 재료만 포함</button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {filterOpen && (
           <FilterModal
