@@ -9,11 +9,10 @@ export function getMyIngredients(): string[] {
         ...data.fridge,
         ...data.room
       ].map(i => (typeof i === 'string' ? i : i.name));
-      console.log('Loaded ingredients:', ingredients); // 디버깅용
       return ingredients;
     }
   } catch (error) {
-    console.error('Error loading ingredients:', error);
+    // 에러는 콘솔에만 출력
   }
   return []; // 기본값을 빈 배열로 변경
 }

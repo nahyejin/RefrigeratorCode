@@ -168,17 +168,13 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
   useEffect(() => {
     const loadSubstituteTable = async () => {
       try {
-        alert('대체 테이블 로드 시작');  // 알림 추가
-        console.log('=== 대체 테이블 로드 시작 ===');
         const response = await fetch('/ingredient_substitute_table.csv');
         const csvText = await response.text();
-        alert('CSV 파일 로드됨: ' + csvText.substring(0, 100));  // CSV 내용 확인
         
         const lines = csvText.split('\n');
         const headers = lines[0].split(',');
         
         const table: { [key: string]: SubstituteInfo } = {};
-        
         // 첫 번째 줄(헤더)을 제외하고 처리
         for (let i = 1; i < lines.length; i++) {
           const line = lines[i].trim();
@@ -203,17 +199,9 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
             }
           }
         }
-
-        alert('대체 테이블 로드 완료: ' + Object.keys(table).length + '개 항목');  // 완료 알림
-        console.log('=== 대체 테이블 로드 완료 ===');
-        console.log('테이블 크기:', Object.keys(table).length);
-        console.log('설탕 대체 정보:', table['설탕']);
-        console.log('알룰로스 대체 정보:', table['알룰로스']);
-        
         setSubstituteTable(table);
       } catch (error) {
-        alert('대체 테이블 로드 실패: ' + error);  // 에러 알림
-        console.error('대체 테이블 로드 실패:', error);
+        // 에러 발생 시 콘솔에만 출력
       }
     };
 
