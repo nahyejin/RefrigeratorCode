@@ -35,7 +35,6 @@ function getProxiedImageUrl(url: string) {
 }
 
 const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, actionState, onAction, isLast, myIngredients = [], substituteTable = {} }) => {
-  console.log('RecipeCard received myIngredients:', myIngredients); // 디버깅용
   const allIngredients = [
     ...(recipe.need_ingredients || []).map(ing => ({ ing, type: 'need' })),
     ...(recipe.my_ingredients || []).map(ing => ({ ing, type: 'have' })),
@@ -84,13 +83,6 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, actionState, onA
       substitutes.push(`${needRaw}→${substituteInfo.ingredient_b}`);
     }
   });
-
-  // 디버깅용 콘솔 로그
-  React.useEffect(() => {
-    console.log('needIngredients:', recipe.need_ingredients);
-    console.log('myIngredients:', myIngredients);
-    console.log("substituteTable['설탕']:", substituteTable['설탕']);
-  }, [recipe.need_ingredients, myIngredients, substituteTable]);
 
   return (
     <div
