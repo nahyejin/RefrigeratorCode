@@ -13,6 +13,7 @@ const AppRouter = () => {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/" element={<RecipeList />} />
         <Route path="/login" element={<Login />} />
         <Route path="/my-fridge" element={<MyFridge />} />
         <Route path="/fridge-select" element={<FridgeSelect />} />

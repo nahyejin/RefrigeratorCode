@@ -1,3 +1,4 @@
+import axios from 'axios';
 import React, { useState, useEffect } from 'react';
 import BottomNavBar from '../components/BottomNavBar';
 import { useNavigate } from 'react-router-dom';
@@ -66,6 +67,22 @@ const initialFilterState: FilterState = {
   스타일: [],
 };
 
+// 게시일자 포맷 변환 함수
+function formatDate(dateString: string): string {
+  let d = new Date(dateString);
+  if (isNaN(d.getTime())) {
+    const parts = dateString.split('-');
+    if (parts.length === 3) {
+      return `${parts[0].slice(2)}-${parts[1]}-${parts[2]}`;
+    }
+    return dateString;
+  }
+  const yy = String(d.getFullYear()).slice(2);
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yy}-${mm}-${dd}`;
+}
+
 const RecipeList: React.FC = () => {
   const [visibleCount, setVisibleCount] = useState(10);
   const [sortType, setSortType] = useState('match');
@@ -99,9 +116,13 @@ const RecipeList: React.FC = () => {
       });
   }, []);
 
+
   useEffect(() => {
-    fetchRecipesDummy().then(setRecipes);
+    axios.get('http://127.0.0.1:5000/api/recipes')
+      .then(res => setRecipes(res.data))
+      .catch(err => console.error(err));
   }, []);
+
 
   useEffect(() => {
     const handleScroll = () => {
@@ -197,7 +218,13 @@ const RecipeList: React.FC = () => {
           {sortedRecipes.slice(0, visibleCount).map((recipe, idx) => (
             <RecipeCard
               key={recipe.id}
-              recipe={recipe}
+              recipe={{
+                ...recipe,
+                thumbnail: recipe.thumbnail,
+                body: (recipe as any).content || '',
+                date: (recipe as any).post_time ? formatDate((recipe as any).post_time) : '',
+                author: recipe.author,
+              }}
               index={idx}
               actionState={recipeActionStates[recipe.id]}
               onAction={(action) => handleRecipeAction(recipe.id, action, recipe)}
