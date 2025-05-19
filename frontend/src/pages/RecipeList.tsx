@@ -17,6 +17,7 @@ import { getMyIngredients, sortRecipes } from '../utils/recipeUtils';
 import RecipeToast from '../components/RecipeToast';
 import Slider from 'rc-slider';
 import 'rc-slider/assets/index.css';
+import RecipeSortBar from '../components/RecipeSortBar';
 
 const sortOptions = [
   { key: 'match', label: '재료매칭률' },
@@ -279,44 +280,29 @@ const RecipeList: React.FC = () => {
       >
         <h2 className="text-lg font-bold mb-4 text-center">내 냉장고 기반 레시피 추천</h2>
         
-        <div className="flex items-center gap-2 mb-6 mt-8">
-          {/* 재료 매칭률 설정 버튼 */}
+        <RecipeSortBar
+          sortType={sortType}
+          onSortChange={setSortType}
+          sortOptions={[
+            { value: 'latest', label: '최신순' },
+            { value: 'like', label: '좋아요순' },
+            { value: 'comment', label: '댓글순' },
+          ]}
+          onFilterClick={() => setFilterOpen(true)}
+        >
           <button
             className="h-6 border border-gray-300 rounded text-xs px-2 font-bold bg-white text-gray-700 min-w-[70px] hover:bg-gray-50 flex items-center"
             onClick={() => setMatchRateModalOpen(true)}
           >
             재료 매칭도 설정
           </button>
-
-          {/* 임박 재료 설정 버튼 */}
           <button
             className="h-6 border border-gray-300 rounded text-xs px-2 font-bold bg-white text-gray-700 min-w-[70px] hover:bg-gray-50 flex items-center"
             onClick={() => setExpiryModalOpen(true)}
           >
             임박 재료 설정
           </button>
-
-          {/* 일반 정렬 드롭다운 */}
-          <select
-            className="h-6 border border-gray-300 rounded text-xs px-2 font-bold bg-white text-gray-700 min-w-[70px] flex items-center border-gray-300"
-            value={sortType}
-            onChange={e => setSortType(e.target.value)}
-            aria-label="정렬 기준 선택"
-          >
-            <option value="latest">최신순</option>
-            <option value="like">좋아요순</option>
-            <option value="comment">댓글순</option>
-          </select>
-
-          {/* 필터 버튼 */}
-          <button
-            className="ml-auto flex items-center gap-1 px-3 py-0.5 rounded-full border border-gray-300 bg-white text-gray-700 font-semibold text-xs h-6"
-            onClick={() => setFilterOpen(true)}
-            style={{marginLeft: 'auto'}}
-          >
-            <span className="font-bold">필터</span>
-          </button>
-        </div>
+        </RecipeSortBar>
 
         {/* 매칭률 설정 모달 */}
         {matchRateModalOpen && (

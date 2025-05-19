@@ -58,4 +58,15 @@ export function sortRecipes(recipes: Recipe[], sortType: string, myIngredients: 
     default:
       return recipesWithMatch;
   }
+}
+
+export function getDDay(expiry: string) {
+  if (!expiry) return '';
+  const today = new Date();
+  const exp = new Date(expiry);
+  if (isNaN(exp.getTime())) return expiry;
+  const diff = Math.floor((exp.getTime() - today.setHours(0,0,0,0)) / (1000*60*60*24));
+  if (diff > 0) return `D-${diff}`;
+  if (diff === 0) return 'D-DAY';
+  return `D+${Math.abs(diff)}`;
 } 

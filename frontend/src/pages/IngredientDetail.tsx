@@ -12,6 +12,7 @@ import shareBlackIcon from '../assets/share_black.svg';
 import writeBlackIcon from '../assets/write_black.svg';
 import RecipeCard from '../components/RecipeCard';
 import { Recipe, RecipeActionState } from '../types/recipe';
+import RecipeTopBar from '../components/RecipeTopBar';
 
 // 더미 fetch 함수 (RecipeList.tsx와 동일)
 function fetchRecipesDummy(name?: string): Promise<any[]> {
@@ -128,6 +129,16 @@ interface IngredientDetailProps {
   customTitle?: string;
 }
 
+function getMyIngredientObjects(): any[] {
+  try {
+    const data = JSON.parse(localStorage.getItem('myfridge_ingredients') || 'null');
+    if (data && Array.isArray(data.frozen) && Array.isArray(data.fridge) && Array.isArray(data.room)) {
+      return [...data.frozen, ...data.fridge, ...data.room];
+    }
+  } catch {}
+  return [];
+}
+
 const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
   const { name = '' } = useParams<{ name: string }>();
   const navigate = useNavigate();
@@ -143,8 +154,14 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
   const [buttonStates, setButtonStates] = useState<{ [id: number]: RecipeActionState }>({});
   const [toast, setToast] = useState('');
   const [includeKeyword, setIncludeKeyword] = useState('');
+  const [matchRange, setMatchRange] = useState<[number, number]>([40, 90]);
+  const [maxLack, setMaxLack] = useState<number | 'unlimited'>('unlimited');
+  const [expirySortType, setExpirySortType] = useState<'expiry'|'purchase'>('expiry');
+  const [selectedExpiryIngredients, setSelectedExpiryIngredients] = useState<string[]>([]);
+  const [appliedExpiryIngredients, setAppliedExpiryIngredients] = useState<string[]>([]);
 
   const myIngredients = getMyIngredients();
+  const myIngredientObjects = getMyIngredientObjects();
 
   useEffect(() => {
     fetch('/ingredient_profile_dict_with_substitutes.csv')
@@ -286,6 +303,13 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
     });
   };
 
+  let sortedExpiryList: any[] = [];
+  if (expirySortType === 'expiry') {
+    sortedExpiryList = myIngredientObjects.filter((i: any) => i.expiry).sort((a: any, b: any) => (a.expiry > b.expiry ? 1 : -1));
+  } else {
+    sortedExpiryList = myIngredientObjects.filter((i: any) => i.purchase).sort((a: any, b: any) => (a.purchase > b.purchase ? 1 : -1));
+  }
+
   return (
     <>
       <header className="w-full h-[56px] flex items-center justify-between px-5 bg-white sticky top-0 z-20">
@@ -324,71 +348,39 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
             `${name} 관련 인기 레시피 TOP30`
           )}
         </h2>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            marginBottom: 24,
-            width: '100%',
-            marginTop: 32,
-          }}
-        >
-          <select
-            style={{
-              height: 28,
-              border: '1px solid #ccc',
-              borderRadius: 6,
-              fontSize: 14,
-              padding: '0 10px',
-              fontWeight: 700,
-              background: '#fff',
-              color: '#404040',
-              minWidth: 100,
-            }}
-            value={sortType}
-            onChange={e => setSortType(e.target.value)}
-            aria-label="정렬 기준 선택"
-          >
-            <option value="match">재료매칭률순</option>
-            <option value="expiry">유통기한 임박순</option>
-          </select>
-          <button
-            style={{
-              marginLeft: 'auto',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4,
-              padding: '4px 16px',
-              borderRadius: 999,
-              border: '1px solid #ccc',
-              background: '#fff',
-              color: '#444',
-              fontWeight: 600,
-              fontSize: 14,
-              height: 28,
-              cursor: 'pointer',
-            }}
-            onClick={() => setFilterOpen(true)}
-          >
-            <span style={{ fontWeight: 700 }}>필터</span>
-          </button>
-        </div>
-        {filterOpen && (
-          <FilterModal
-            open={filterOpen}
-            onClose={() => setFilterOpen(false)}
-            filterState={selectedFilter}
-            setFilterState={setSelectedFilter}
-            includeInput={includeInput}
-            setIncludeInput={setIncludeInput}
-            excludeInput={excludeInput}
-            setExcludeInput={setExcludeInput}
-            allIngredients={allIngredients}
-            includeKeyword={includeKeyword}
-            setIncludeKeyword={setIncludeKeyword}
-          />
-        )}
+        <RecipeTopBar
+          sortType={sortType}
+          onSortChange={setSortType}
+          sortOptions={[
+            { value: 'match', label: '재료매칭률순' },
+            { value: 'expiry', label: '유통기한 임박순' },
+            { value: 'like', label: '좋아요순' },
+            { value: 'comment', label: '댓글순' },
+            { value: 'latest', label: '최신순' },
+          ]}
+          filterOpen={filterOpen}
+          setFilterOpen={setFilterOpen}
+          selectedFilter={selectedFilter}
+          setSelectedFilter={setSelectedFilter}
+          includeInput={includeInput}
+          setIncludeInput={setIncludeInput}
+          excludeInput={excludeInput}
+          setExcludeInput={setExcludeInput}
+          allIngredients={allIngredients}
+          includeKeyword={includeKeyword}
+          setIncludeKeyword={setIncludeKeyword}
+          matchRange={matchRange}
+          setMatchRange={setMatchRange}
+          maxLack={maxLack}
+          setMaxLack={setMaxLack}
+          expirySortType={expirySortType}
+          setExpirySortType={setExpirySortType}
+          sortedExpiryList={sortedExpiryList}
+          selectedExpiryIngredients={selectedExpiryIngredients}
+          setSelectedExpiryIngredients={setSelectedExpiryIngredients}
+          appliedExpiryIngredients={appliedExpiryIngredients}
+          setAppliedExpiryIngredients={setAppliedExpiryIngredients}
+        />
         <div className="flex flex-col gap-2">
           {sortedRecipes.slice(0, visibleCount).map((recipe: any, idx: number, arr: any[]) => {
             const recipeCardData: Recipe = {
