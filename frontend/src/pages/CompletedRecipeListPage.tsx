@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import BottomNavBar from '../components/BottomNavBar';
 import TopNavBar from '../components/TopNavBar';
@@ -6,42 +6,39 @@ import RecipeCard from '../components/RecipeCard';
 import { Recipe, RecipeActionState } from '../types/recipe';
 import RecipeToast from '../components/RecipeToast';
 import { getMyIngredients } from '../utils/recipeUtils';
+import FilterModal from '../components/FilterModal';
+import RecipeSortBar from '../components/RecipeSortBar';
 
-// 더미 데이터
-const dummyCompletedRecipes: Recipe[] = [
-  {
-    id: 1,
-    thumbnail: 'https://cdn.pixabay.com/photo/2016/03/05/19/02/hamburger-1238246_1280.jpg',
-    title: '오징어볶음 레시피 만드는법 간단',
-    author: '홍길동',
-    date: '24-05-01',
-    body: '',
-    used_ingredients: '오징어,고춧가루,참기름,간장,설탕',
-    match_rate: 85,
-  },
-  {
-    id: 2,
-    thumbnail: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80',
-    title: '대패삼겹살 제육볶음 레시피',
-    author: '홍길동',
-    date: '24-05-01',
-    body: '',
-    used_ingredients: '삼겹살,고추장,참기름,고춧가루,대파',
-    match_rate: 78,
-  },
-  {
-    id: 3,
-    thumbnail: 'https://images.unsplash.com/photo-1502741338009-cac2772e18bc?auto=format&fit=crop&w=400&q=80',
-    title: '두릅 장아찌 만드는법 레시피',
-    author: '홍길동',
-    date: '24-05-01',
-    body: '',
-    used_ingredients: '두릅,고춧가루,참기름,간장,식초',
-    match_rate: 70,
-  },
-];
+// Add FilterState interface definition after imports
+interface FilterState {
+  효능: string[];
+  영양분: string[];
+  대상: string[];
+  TPO: string[];
+  스타일: string[];
+}
 
-// getMatchRate 함수 정의 (중복 방지 위해 컴포넌트 내에 정의)
+// Add initialFilterState definition after imports
+const initialFilterState: FilterState = {
+  효능: [],
+  영양분: [],
+  대상: [],
+  TPO: [],
+  스타일: [],
+};
+
+// Add parseIngredientNames function after initialFilterState
+function parseIngredientNames(csv: string): string[] {
+  const lines = csv.split('\n');
+  const header = lines[0].split(',');
+  const nameIdx = header.indexOf('ingredient_name');
+  if (nameIdx === -1) return [];
+  return lines.slice(1)
+    .map(line => line.split(',')[nameIdx]?.trim())
+    .filter(name => !!name && name !== 'ingredient_name');
+}
+
+// Add getMatchRate function after parseIngredientNames
 function getMatchRate(myIngredients: string[], recipeIngredients: string) {
   const recipeSet = new Set(
     recipeIngredients.split(',').map((i) => i.trim()).filter(Boolean)
@@ -55,11 +52,65 @@ function getMatchRate(myIngredients: string[], recipeIngredients: string) {
   };
 }
 
+// Update dummy data variable name
+const dummyRecordedRecipes: Recipe[] = [
+  {
+    id: 1,
+    thumbnail: 'https://cdn.pixabay.com/photo/2016/03/05/19/02/hamburger-1238246_1280.jpg',
+    title: '요즘 틱톡에서 유행하는 초간단 안주레시피',
+    author: '홍길동',
+    date: '24-05-01',
+    body: '',
+    used_ingredients: '오징어,대파,고추,양파',
+    match_rate: 80,
+    link: 'https://example.com/recipe1',
+  },
+  {
+    id: 2,
+    thumbnail: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80',
+    title: '다이어트 김밥 만들기 오이김밥 레시피',
+    author: '홍길동',
+    date: '24-05-01',
+    body: '',
+    used_ingredients: '오이,김,밥,계란,당근',
+    match_rate: 90,
+    link: 'https://example.com/recipe2',
+  },
+  {
+    id: 3,
+    thumbnail: 'https://images.unsplash.com/photo-1502741338009-cac2772e18bc?auto=format&fit=crop&w=400&q=80',
+    title: '숙취해소로 최고의 황태해장국',
+    author: '홍길동',
+    date: '24-05-01',
+    body: '',
+    used_ingredients: '황태,무,대파,달걀,마늘',
+    match_rate: 75,
+    link: 'https://example.com/recipe3',
+  },
+];
+
 const CompletedRecipeListPage = () => {
   const [recipeActionStates, setRecipeActionStates] = useState<Record<number, RecipeActionState>>({});
   const [toast, setToast] = useState('');
   const navigate = useNavigate();
   const myIngredients = getMyIngredients();
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [selectedFilter, setSelectedFilter] = useState(initialFilterState);
+  const [includeInput, setIncludeInput] = useState('');
+  const [excludeInput, setExcludeInput] = useState('');
+  const [allIngredients, setAllIngredients] = useState<string[]>([]);
+  const [includeKeyword, setIncludeKeyword] = useState('');
+  const [sortType, setSortType] = useState('match');
+  const [matchRateModalOpen, setMatchRateModalOpen] = useState(false);
+  const [expiryModalOpen, setExpiryModalOpen] = useState(false);
+
+  useEffect(() => {
+    fetch('/ingredient_profile_dict_with_substitutes.csv')
+      .then(res => res.text())
+      .then(csv => {
+        setAllIngredients(parseIngredientNames(csv));
+      });
+  }, []);
 
   const handleRecipeAction = (recipeId: number, action: keyof RecipeActionState) => {
     const prevState = recipeActionStates[recipeId] || { done: false, share: false, write: false };
@@ -97,7 +148,7 @@ const CompletedRecipeListPage = () => {
         }}
       >
         <div className="flex flex-col gap-2">
-          {dummyCompletedRecipes.map((recipe, idx) => {
+          {dummyRecordedRecipes.map((recipe, idx) => {
             const match = getMatchRate(myIngredients, recipe.used_ingredients || '');
             return (
               <RecipeCard
@@ -106,7 +157,7 @@ const CompletedRecipeListPage = () => {
                 index={idx}
                 actionState={recipeActionStates[recipe.id]}
                 onAction={action => handleRecipeAction(recipe.id, action)}
-                isLast={idx === dummyCompletedRecipes.length - 1}
+                isLast={idx === dummyRecordedRecipes.length - 1}
                 myIngredients={myIngredients}
               />
             );
@@ -115,6 +166,62 @@ const CompletedRecipeListPage = () => {
       </div>
       <BottomNavBar activeTab="mypage" />
       {toast && <RecipeToast message={toast} />}
+      <RecipeSortBar
+        sortType={sortType}
+        onSortChange={setSortType}
+        sortOptions={[
+          { value: 'match', label: '재료매칭률순' },
+          { value: 'expiry', label: '유통기한 임박순' },
+          { value: 'like', label: '좋아요순' },
+          { value: 'comment', label: '댓글순' },
+          { value: 'latest', label: '최신순' },
+        ]}
+        onFilterClick={() => setFilterOpen(true)}
+      >
+        <button
+          className="h-6 border border-gray-300 rounded text-xs px-2 font-bold bg-white text-gray-700 min-w-[70px] hover:bg-gray-50 flex items-center"
+          onClick={() => setMatchRateModalOpen(true)}
+        >
+          재료 매칭도 설정
+        </button>
+        <button
+          className="h-6 border border-gray-300 rounded text-xs px-2 font-bold bg-white text-gray-700 min-w-[70px] hover:bg-gray-50 flex items-center"
+          onClick={() => setExpiryModalOpen(true)}
+        >
+          임박 재료 설정
+        </button>
+      </RecipeSortBar>
+      {filterOpen && (
+        <FilterModal
+          open={filterOpen}
+          onClose={() => setFilterOpen(false)}
+          filterState={selectedFilter}
+          setFilterState={setSelectedFilter}
+          includeInput={includeInput}
+          setIncludeInput={setIncludeInput}
+          excludeInput={excludeInput}
+          setExcludeInput={setExcludeInput}
+          allIngredients={allIngredients}
+          includeKeyword={includeKeyword}
+          setIncludeKeyword={setIncludeKeyword}
+        />
+      )}
+      {matchRateModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-lg p-6 w-[340px] max-w-[95vw] relative">
+            <span className="absolute top-3 right-3 w-6 h-6 text-gray-400 text-xl cursor-pointer" onClick={() => setMatchRateModalOpen(false)}>×</span>
+            <div className="text-center font-bold text-[14px] mb-4">재료 매칭도 설정 (임시 모달)</div>
+          </div>
+        </div>
+      )}
+      {expiryModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-lg p-6 w-[340px] max-w-[95vw] relative">
+            <span className="absolute top-3 right-3 w-6 h-6 text-gray-400 text-xl cursor-pointer" onClick={() => setExpiryModalOpen(false)}>×</span>
+            <div className="text-center font-bold text-[14px] mb-4">임박 재료 설정 (임시 모달)</div>
+          </div>
+        </div>
+      )}
     </>
   );
 };

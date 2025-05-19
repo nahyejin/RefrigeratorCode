@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import BottomNavBar from '../components/BottomNavBar';
 import TopNavBar from '../components/TopNavBar';
@@ -6,8 +6,39 @@ import RecipeCard from '../components/RecipeCard';
 import { Recipe, RecipeActionState } from '../types/recipe';
 import RecipeToast from '../components/RecipeToast';
 import { getMyIngredients } from '../utils/recipeUtils';
+import RecipeSortBar from '../components/RecipeSortBar';
+import FilterModal from '../components/FilterModal';
 
-// 더미 데이터
+// Add FilterState interface definition after imports
+interface FilterState {
+  효능: string[];
+  영양분: string[];
+  대상: string[];
+  TPO: string[];
+  스타일: string[];
+}
+
+// Update initialFilterState to use FilterState interface
+const initialFilterState: FilterState = {
+  효능: [],
+  영양분: [],
+  대상: [],
+  TPO: [],
+  스타일: [],
+};
+
+// Add parseIngredientNames function after initialFilterState
+function parseIngredientNames(csv: string): string[] {
+  const lines = csv.split('\n');
+  const header = lines[0].split(',');
+  const nameIdx = header.indexOf('ingredient_name');
+  if (nameIdx === -1) return [];
+  return lines.slice(1)
+    .map(line => line.split(',')[nameIdx]?.trim())
+    .filter(name => !!name && name !== 'ingredient_name');
+}
+
+// Update dummy data to include 'link' property
 const dummyRecordedRecipes: Recipe[] = [
   {
     id: 1,
@@ -18,6 +49,7 @@ const dummyRecordedRecipes: Recipe[] = [
     body: '',
     used_ingredients: '오징어,대파,고추,양파',
     match_rate: 80,
+    link: 'https://example.com/recipe1',
   },
   {
     id: 2,
@@ -28,6 +60,7 @@ const dummyRecordedRecipes: Recipe[] = [
     body: '',
     used_ingredients: '오이,김,밥,계란,당근',
     match_rate: 90,
+    link: 'https://example.com/recipe2',
   },
   {
     id: 3,
@@ -38,6 +71,7 @@ const dummyRecordedRecipes: Recipe[] = [
     body: '',
     used_ingredients: '황태,무,대파,달걀,마늘',
     match_rate: 75,
+    link: 'https://example.com/recipe3',
   },
 ];
 
@@ -60,6 +94,23 @@ const RecordedRecipeListPage = () => {
   const [toast, setToast] = useState('');
   const navigate = useNavigate();
   const myIngredients = getMyIngredients();
+  const [sortType, setSortType] = useState('match');
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [selectedFilter, setSelectedFilter] = useState(initialFilterState);
+  const [includeInput, setIncludeInput] = useState('');
+  const [excludeInput, setExcludeInput] = useState('');
+  const [allIngredients, setAllIngredients] = useState<string[]>([]);
+  const [includeKeyword, setIncludeKeyword] = useState('');
+  const [matchRateModalOpen, setMatchRateModalOpen] = useState(false);
+  const [expiryModalOpen, setExpiryModalOpen] = useState(false);
+
+  useEffect(() => {
+    fetch('/ingredient_profile_dict_with_substitutes.csv')
+      .then(res => res.text())
+      .then(csv => {
+        setAllIngredients(parseIngredientNames(csv));
+      });
+  }, []);
 
   const handleRecipeAction = (recipeId: number, action: keyof RecipeActionState) => {
     const prevState = recipeActionStates[recipeId] || { done: false, share: false, write: false };
@@ -83,6 +134,24 @@ const RecordedRecipeListPage = () => {
     setTimeout(() => setToast(''), 1500);
   };
 
+  const recipesWithLink = dummyRecordedRecipes.map(r => ({ ...r, link: r.link || '' }));
+  const sortedRecipes = [...recipesWithLink].sort((a, b) => {
+    const matchA = a.match_rate ?? 0;
+    const matchB = b.match_rate ?? 0;
+    if (sortType === 'match') {
+      return matchB - matchA;
+    } else if (sortType === 'expiry') {
+      return new Date(b.date).getTime() - new Date(a.date).getTime();
+    } else if (sortType === 'like') {
+      return matchB - matchA;
+    } else if (sortType === 'comment') {
+      return matchB - matchA;
+    } else if (sortType === 'latest') {
+      return new Date(b.date).getTime() - new Date(a.date).getTime();
+    }
+    return 0;
+  });
+
   return (
     <>
       <TopNavBar />
@@ -96,25 +165,78 @@ const RecordedRecipeListPage = () => {
           paddingTop: 32,
         }}
       >
+        <RecipeSortBar
+          sortType={sortType}
+          onSortChange={setSortType}
+          sortOptions={[
+            { value: 'match', label: '재료매칭률순' },
+            { value: 'expiry', label: '유통기한 임박순' },
+            { value: 'like', label: '좋아요순' },
+            { value: 'comment', label: '댓글순' },
+            { value: 'latest', label: '최신순' },
+          ]}
+          onFilterClick={() => setFilterOpen(true)}
+        >
+          <button
+            className="h-6 border border-gray-300 rounded text-xs px-2 font-bold bg-white text-gray-700 min-w-[70px] hover:bg-gray-50 flex items-center"
+            onClick={() => setMatchRateModalOpen(true)}
+          >
+            재료 매칭도 설정
+          </button>
+          <button
+            className="h-6 border border-gray-300 rounded text-xs px-2 font-bold bg-white text-gray-700 min-w-[70px] hover:bg-gray-50 flex items-center"
+            onClick={() => setExpiryModalOpen(true)}
+          >
+            임박 재료 설정
+          </button>
+        </RecipeSortBar>
         <div className="flex flex-col gap-2">
-          {dummyRecordedRecipes.map((recipe, idx) => {
-            const match = getMatchRate(myIngredients, recipe.used_ingredients || '');
-            return (
-              <RecipeCard
-                key={recipe.id}
-                recipe={{ ...recipe, match_rate: match.rate, my_ingredients: match.my_ingredients, need_ingredients: match.need_ingredients }}
-                index={idx}
-                actionState={recipeActionStates[recipe.id]}
-                onAction={action => handleRecipeAction(recipe.id, action)}
-                isLast={idx === dummyRecordedRecipes.length - 1}
-                myIngredients={myIngredients}
-              />
-            );
-          })}
+          {sortedRecipes.map((recipe, idx) => (
+            <RecipeCard
+              key={recipe.id}
+              recipe={recipe}
+              index={idx}
+              actionState={recipeActionStates[recipe.id]}
+              onAction={action => handleRecipeAction(recipe.id, action)}
+              isLast={idx === sortedRecipes.length - 1}
+              myIngredients={myIngredients}
+            />
+          ))}
         </div>
       </div>
       <BottomNavBar activeTab="mypage" />
       {toast && <RecipeToast message={toast} />}
+      {filterOpen && (
+        <FilterModal
+          open={filterOpen}
+          onClose={() => setFilterOpen(false)}
+          filterState={selectedFilter}
+          setFilterState={setSelectedFilter}
+          includeInput={includeInput}
+          setIncludeInput={setIncludeInput}
+          excludeInput={excludeInput}
+          setExcludeInput={setExcludeInput}
+          allIngredients={allIngredients}
+          includeKeyword={includeKeyword}
+          setIncludeKeyword={setIncludeKeyword}
+        />
+      )}
+      {matchRateModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-lg p-6 w-[340px] max-w-[95vw] relative">
+            <span className="absolute top-3 right-3 w-6 h-6 text-gray-400 text-xl cursor-pointer" onClick={() => setMatchRateModalOpen(false)}>×</span>
+            <div className="text-center font-bold text-[14px] mb-4">재료 매칭도 설정 (임시 모달)</div>
+          </div>
+        </div>
+      )}
+      {expiryModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-lg p-6 w-[340px] max-w-[95vw] relative">
+            <span className="absolute top-3 right-3 w-6 h-6 text-gray-400 text-xl cursor-pointer" onClick={() => setExpiryModalOpen(false)}>×</span>
+            <div className="text-center font-bold text-[14px] mb-4">임박 재료 설정 (임시 모달)</div>
+          </div>
+        </div>
+      )}
     </>
   );
 };
