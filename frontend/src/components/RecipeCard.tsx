@@ -49,9 +49,30 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, actionState, onA
     .filter(Boolean);
 
   const mySet = new Set((myIngredients || []).map(i => i.trim()));
-  const notMine = ingredientList.filter(i => !mySet.has(i));
+
+  // 대체 가능 재료 추출 (need_ingredients 중 대체 가능성이 있는 것)
+  let substituteTarget: string | null = null;
+  let substituteTargetTo: string | null = null;
+  if (recipe.need_ingredients && substituteTable) {
+    for (const needRaw of recipe.need_ingredients) {
+      const need = needRaw.trim();
+      const substituteInfo = substituteTable[need];
+      if (substituteInfo && mySet.has(substituteInfo.ingredient_b)) {
+        substituteTarget = need;
+        substituteTargetTo = substituteInfo.ingredient_b;
+        break; // 여러 개면 첫 번째만 표시
+      }
+    }
+  }
+
+  // 1) 내가 보유하지 않고 대체도 불가한 재료
+  const notMineNotSub = ingredientList.filter(i => !mySet.has(i) && (!substituteTarget || i !== substituteTarget));
+  // 2) 내가 보유하지 않지만 대체 가능한 재료
+  const notMineSub = substituteTarget ? [substituteTarget] : [];
+  // 3) 내가 보유한 재료
   const mine = ingredientList.filter(i => mySet.has(i));
-  const sortedIngredients = [...notMine, ...mine];
+
+  const pills = [...notMineNotSub, ...notMineSub, ...mine];
 
   // 공백/대소문자 무시 매칭 (표시는 원본)
   const needIngredients = recipe.need_ingredients || [];
@@ -164,7 +185,20 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, actionState, onA
       </div>
 
       <div className="flex flex-wrap gap-1 mb-1 max-h-9 overflow-y-auto custom-scrollbar pr-1">
-        {sortedIngredients.map((ing) => {
+        {pills.map((ing) => {
+          // 대체 가능 재료 pill 스타일 적용
+          if (substituteTarget && ing === substituteTarget) {
+            return (
+              <span
+                key={ing}
+                className={
+                  'bg-[#555] text-white rounded-full px-3 py-0.5 font-medium text-[10.4px]'
+                }
+              >
+                {ing}
+              </span>
+            );
+          }
           const isMine = mySet.has(ing);
           return (
             <span
