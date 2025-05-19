@@ -123,3 +123,18 @@ INSERT IGNORE INTO recipes
 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
 ```
 
+## 재료 대체 사전 (ingredient_substitute_table.csv)
+
+- 레시피에 필요한 재료가 없을 때, 내 냉장고에 있는 대체 가능한 재료를 추천하기 위한 사전입니다.
+- 주요 컬럼:
+  - **index**: 고유 인덱스
+  - **ingredient_a**: 원래 레시피에 필요한 재료명
+  - **ingredient_b**: 대체 가능한 재료명 (내 냉장고에 있을 수 있는 재료)
+  - **substitution_direction**: 대체 방향 (예: 설탕 → 알룰로스)
+  - **similarity_score**: 재료 유사도 (0~1, 높을수록 유사)
+  - **substitution_reason**: 대체 사유 (예: 칼로리 절감, 비건 등)
+
+### 활용 예시
+- 레시피에 '설탕'이 필요하지만 내 냉장고에 '알룰로스'가 있을 때, 사전에서 '설탕 → 알룰로스' 매칭을 찾아 대체 가능 재료로 추천합니다.
+- 추후 similarity_score, substitution_reason 등도 UI에 활용할 수 있습니다.
+

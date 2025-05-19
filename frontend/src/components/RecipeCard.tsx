@@ -7,6 +7,14 @@ import doneBlackIcon from '../assets/done_black.svg';
 import shareBlackIcon from '../assets/share_black.svg';
 import writeBlackIcon from '../assets/write_black.svg';
 
+interface SubstituteInfo {
+  ingredient_a: string;
+  ingredient_b: string;
+  substitution_direction: string;
+  similarity_score: number;
+  substitution_reason: string;
+}
+
 export interface RecipeCardProps {
   recipe: Recipe;
   index: number;
@@ -14,6 +22,7 @@ export interface RecipeCardProps {
   onAction: (action: keyof RecipeActionState) => void;
   isLast: boolean;
   myIngredients?: string[];
+  substituteTable?: { [key: string]: SubstituteInfo };
 }
 
 // 네이버 postfiles 등 외부 이미지 프록시 함수
@@ -25,7 +34,7 @@ function getProxiedImageUrl(url: string) {
   return url;
 }
 
-const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, actionState, onAction, isLast, myIngredients = [] }) => {
+const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, actionState, onAction, isLast, myIngredients = [], substituteTable = {} }) => {
   console.log('RecipeCard received myIngredients:', myIngredients); // 디버깅용
   const allIngredients = [
     ...(recipe.need_ingredients || []).map(ing => ({ ing, type: 'need' })),
@@ -43,6 +52,24 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, actionState, onA
   const notMine = ingredientList.filter(i => !mySet.has(i));
   const mine = ingredientList.filter(i => mySet.has(i));
   const sortedIngredients = [...notMine, ...mine];
+
+  // 공백/대소문자 무시 매칭 (표시는 원본)
+  const needIngredients = recipe.need_ingredients || [];
+  const substitutes: string[] = [];
+  needIngredients.forEach(needRaw => {
+    const need = needRaw.trim();
+    const substituteInfo = substituteTable[need];
+    if (substituteInfo && mySet.has(substituteInfo.ingredient_b)) {
+      substitutes.push(`${needRaw}→${substituteInfo.ingredient_b}`);
+    }
+  });
+
+  // 디버깅용 콘솔 로그
+  React.useEffect(() => {
+    console.log('needIngredients:', recipe.need_ingredients);
+    console.log('myIngredients:', myIngredients);
+    console.log("substituteTable['설탕']:", substituteTable['설탕']);
+  }, [recipe.need_ingredients, myIngredients, substituteTable]);
 
   return (
     <div
@@ -155,25 +182,16 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, actionState, onA
         })}
       </div>
 
-      {recipe.substitutes && recipe.substitutes.length > 0 && (() => {
-        const mySet = new Set(myIngredients.map(i => i.trim().toLowerCase()));
-        const filteredSubs = recipe.substitutes.filter(sub => {
-          const [from, to] = sub.split('→').map(s => s.trim().toLowerCase());
-          return to && mySet.has(to);
-        });
-        return (
-          <div className="mt-1 custom-scrollbar pr-1 flex flex-wrap items-start max-h-12 overflow-y-auto overflow-x-hidden gap-1 pb-1 w-full">
-            <span className="bg-[#555] text-white rounded px-3 py-1 font-medium text-[12px] flex-shrink-0" style={{ textShadow: '0 1px 1px rgba(0,0,0,0.08)' }}>
-              대체 가능 :
-            </span>
-            <span className="ml-2 text-[12px] text-[#B0B0B0] font-normal flex-1 min-w-0 break-all whitespace-normal">
-              {filteredSubs.length > 0
-                ? filteredSubs.join(', ')
-                : '(내 냉장고에 대체 가능한 재료가 없습니다)'}
-            </span>
-          </div>
-        );
-      })()}
+      <div className="mt-1 custom-scrollbar pr-1 flex flex-wrap items-start max-h-12 overflow-y-auto overflow-x-hidden gap-1 pb-1 w-full">
+        <span className="bg-[#555] text-white rounded px-3 py-1 font-medium text-[12px] flex-shrink-0" style={{ textShadow: '0 1px 1px rgba(0,0,0,0.08)' }}>
+          대체 가능 :
+        </span>
+        <span className="ml-2 text-[12px] text-[#B0B0B0] font-normal flex-1 min-w-0 break-all whitespace-normal">
+          {substitutes.length > 0
+            ? substitutes.join(', ')
+            : '(내 냉장고에 대체 가능한 재료가 없습니다)'}
+        </span>
+      </div>
     </div>
   );
 };
