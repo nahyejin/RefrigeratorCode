@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { AxiosResponse } from 'axios';
 import React, { useState, useEffect } from 'react';
 import BottomNavBar from '../components/BottomNavBar';
 import { useNavigate } from 'react-router-dom';
@@ -12,7 +12,7 @@ import writeBlackIcon from '../assets/write_black.svg';
 import FilterModal from '../components/FilterModal';
 import { fetchRecipesDummy } from '../utils/dummyData';
 import RecipeCard from '../components/RecipeCard';
-import { Recipe, RecipeActionState, FilterState } from '../types/recipe';
+import { Recipe, RecipeActionState, FilterState, SubstituteInfo } from '../types/recipe';
 import { getMyIngredients, sortRecipes } from '../utils/recipeUtils';
 import RecipeToast from '../components/RecipeToast';
 
@@ -96,6 +96,7 @@ const RecipeList: React.FC = () => {
   const [toast, setToast] = useState('');
   const [includeKeyword, setIncludeKeyword] = useState('');
   const [allIngredients, setAllIngredients] = useState<string[]>([]);
+  const [substituteTable, setSubstituteTable] = useState<{ [key: string]: SubstituteInfo }>({});
   
   const myIngredients = getMyIngredients();
   const navigate = useNavigate();
@@ -116,13 +117,53 @@ const RecipeList: React.FC = () => {
       });
   }, []);
 
-
   useEffect(() => {
-    axios.get('http://127.0.0.1:5000/api/recipes')
-      .then(res => setRecipes(res.data))
-      .catch(err => console.error(err));
+    fetch('/ingredient_substitute_table.csv')
+      .then(res => res.text())
+      .then(csv => {
+        const lines = csv.split('\n');
+        const header = lines[0].split(',').map(h => h.trim().toLowerCase());
+        const aIdx = header.indexOf('ingredient_a');
+        const bIdx = header.indexOf('ingredient_b');
+        const dirIdx = header.indexOf('substitution_direction');
+        const scoreIdx = header.indexOf('similarity_score');
+        const reasonIdx = header.indexOf('substitution_reason');
+        
+        if (aIdx === -1 || bIdx === -1) return;
+        
+        const table: { [key: string]: SubstituteInfo } = {};
+        lines.slice(1).forEach(line => {
+          const cols = line.split(',');
+          const a = cols[aIdx]?.trim();
+          const b = cols[bIdx]?.trim();
+          const direction = cols[dirIdx]?.trim() || '';
+          const score = parseFloat(cols[scoreIdx]?.trim() || '0');
+          const reason = cols[reasonIdx]?.trim() || '';
+          
+          if (a && b) {
+            table[a] = {
+              ingredient_a: a,
+              ingredient_b: b,
+              substitution_direction: direction,
+              similarity_score: score,
+              substitution_reason: reason
+            };
+          }
+        });
+        setSubstituteTable(table);
+      });
   }, []);
 
+  useEffect(() => {
+    // Try to fetch from backend first
+    axios.get('http://127.0.0.1:5000/api/recipes')
+      .then((res: AxiosResponse<any>) => setRecipes(res.data))
+      .catch((err: unknown) => {
+        console.error('Backend fetch failed, using dummy data:', err);
+        // Fallback to dummy data
+        fetchRecipesDummy().then(data => setRecipes(data));
+      });
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -224,12 +265,14 @@ const RecipeList: React.FC = () => {
                 body: (recipe as any).content || '',
                 date: (recipe as any).post_time ? formatDate((recipe as any).post_time) : '',
                 author: recipe.author,
+                link: (recipe as any).link || '',
               }}
               index={idx}
               actionState={recipeActionStates[recipe.id]}
               onAction={(action) => handleRecipeAction(recipe.id, action, recipe)}
               isLast={idx === visibleCount - 1}
-              myIngredients={myIngredients}
+              myIngredients={myIngredients.map(i => i.trim().toLowerCase())}
+              substituteTable={substituteTable}
             />
           ))}
         </div>

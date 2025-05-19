@@ -6,10 +6,19 @@ export interface Recipe {
   body: string;
   thumbnail: string;
   used_ingredients: string;
+  link: string;
   substitutes?: string[];
   match_rate?: number;
   my_ingredients?: string[];
   need_ingredients?: string[];
+}
+
+export interface SubstituteInfo {
+  ingredient_a: string;
+  ingredient_b: string;
+  substitution_direction: string;
+  similarity_score: number;
+  substitution_reason: string;
 }
 
 export interface RecipeActionState {

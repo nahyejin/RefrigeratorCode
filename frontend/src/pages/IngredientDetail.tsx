@@ -116,6 +116,14 @@ function parseIngredientNames(csv: string): string[] {
     .filter(name => !!name && name !== 'ingredient_name');
 }
 
+interface SubstituteInfo {
+  ingredient_a: string;
+  ingredient_b: string;
+  substitution_direction: string;
+  similarity_score: number;
+  substitution_reason: string;
+}
+
 interface IngredientDetailProps {
   customTitle?: string;
 }
@@ -131,10 +139,12 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
   const [excludeInput, setExcludeInput] = useState('');
   const [allIngredients, setAllIngredients] = useState<string[]>([]);
   const [recipes, setRecipes] = useState<any[]>([]);
-  const myIngredients = getMyIngredients();
+  const [substituteTable, setSubstituteTable] = useState<{ [key: string]: SubstituteInfo }>({});
   const [buttonStates, setButtonStates] = useState<{ [id: number]: RecipeActionState }>({});
   const [toast, setToast] = useState('');
   const [includeKeyword, setIncludeKeyword] = useState('');
+
+  const myIngredients = getMyIngredients();
 
   useEffect(() => {
     fetch('/ingredient_profile_dict_with_substitutes.csv')
@@ -156,6 +166,61 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
   }, [name]);
 
   useEffect(() => {
+    const loadSubstituteTable = async () => {
+      try {
+        alert('대체 테이블 로드 시작');  // 알림 추가
+        console.log('=== 대체 테이블 로드 시작 ===');
+        const response = await fetch('/ingredient_substitute_table.csv');
+        const csvText = await response.text();
+        alert('CSV 파일 로드됨: ' + csvText.substring(0, 100));  // CSV 내용 확인
+        
+        const lines = csvText.split('\n');
+        const headers = lines[0].split(',');
+        
+        const table: { [key: string]: SubstituteInfo } = {};
+        
+        // 첫 번째 줄(헤더)을 제외하고 처리
+        for (let i = 1; i < lines.length; i++) {
+          const line = lines[i].trim();
+          if (!line) continue;
+
+          const values = line.split(',');
+          if (values.length >= 6) {
+            const ingredient_a = values[1]?.trim() || '';
+            const ingredient_b = values[2]?.trim() || '';
+            const substitution_direction = values[3]?.trim() || '';
+            const similarity_score = parseFloat(values[4]?.trim() || '0');
+            const substitution_reason = values[5]?.trim() || '';
+
+            if (ingredient_a) {
+              table[ingredient_a] = {
+                ingredient_a,
+                ingredient_b,
+                substitution_direction,
+                similarity_score,
+                substitution_reason
+              };
+            }
+          }
+        }
+
+        alert('대체 테이블 로드 완료: ' + Object.keys(table).length + '개 항목');  // 완료 알림
+        console.log('=== 대체 테이블 로드 완료 ===');
+        console.log('테이블 크기:', Object.keys(table).length);
+        console.log('설탕 대체 정보:', table['설탕']);
+        console.log('알룰로스 대체 정보:', table['알룰로스']);
+        
+        setSubstituteTable(table);
+      } catch (error) {
+        alert('대체 테이블 로드 실패: ' + error);  // 에러 알림
+        console.error('대체 테이블 로드 실패:', error);
+      }
+    };
+
+    loadSubstituteTable();
+  }, []);
+
+  useEffect(() => {
     const handleScroll = () => {
       if (
         window.innerHeight + window.scrollY >= document.body.offsetHeight - 100 &&
@@ -168,9 +233,49 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [visibleCount, recipes.length]);
 
+  const findPossibleSubstitutes = (recipeIngredients: string, userIngredients: string[]): string[] => {
+    console.log('=== 대체 재료 찾기 시작 ===');
+    console.log('레시피 재료:', recipeIngredients);
+    console.log('사용자 재료:', userIngredients);
+    console.log('대체 테이블:', substituteTable);
+
+    const recipeIngredientSet = new Set(recipeIngredients.split(',').map(i => i.trim()));
+    const userIngredientSet = new Set(userIngredients.map(i => i.trim()));
+
+    const substitutes: string[] = [];
+
+    for (const recipeIngredient of recipeIngredientSet) {
+      console.log(`\n[${recipeIngredient}] 대체 정보 찾는 중...`);
+      const substituteInfo = substituteTable[recipeIngredient];
+      console.log(`[${recipeIngredient}] 대체 정보:`, substituteInfo);
+
+      if (substituteInfo) {
+        const possibleSubstitute = substituteInfo.ingredient_b;
+        console.log(`[${recipeIngredient}] 가능한 대체재료:`, possibleSubstitute);
+        console.log(`[${recipeIngredient}] 사용자 재료에 있는지:`, userIngredientSet.has(possibleSubstitute));
+
+        if (userIngredientSet.has(possibleSubstitute)) {
+          substitutes.push(`${recipeIngredient} → ${possibleSubstitute}`);
+          console.log(`[${recipeIngredient}] 대체재료 추가됨:`, `${recipeIngredient} → ${possibleSubstitute}`);
+        }
+      }
+    }
+
+    console.log('=== 최종 대체재료 목록 ===', substitutes);
+    return substitutes.length > 0 ? substitutes : ['(내 냉장고에 대체 가능한 재료가 없습니다)'];
+  };
+
   let sortedRecipes = [...recipes].map(recipe => {
     const match = getMatchRate(myIngredients, recipe.used_ingredients);
-    return { ...recipe, match_rate: match.rate, my_ingredients: match.my_ingredients, need_ingredients: match.need_ingredients };
+    const substitutes = findPossibleSubstitutes(recipe.used_ingredients, myIngredients);
+    return { 
+      ...recipe, 
+      match_rate: match.rate, 
+      my_ingredients: match.my_ingredients, 
+      need_ingredients: match.need_ingredients,
+      substitutes: substitutes.length > 0 ? substitutes : ['(내 냉장고에 대체 가능한 재료가 없습니다)'],
+      link: recipe.link || `https://blog.naver.com/jjangda1105/${recipe.id}`
+    };
   });
   if (sortType === 'match') sortedRecipes.sort((a, b) => b.match_rate - a.match_rate);
   else if (sortType === 'expiry') sortedRecipes.sort((a, b) => 0);
@@ -310,6 +415,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
               need_ingredients: recipe.need_ingredients,
               my_ingredients: recipe.my_ingredients,
               substitutes: recipe.substitutes,
+              link: recipe.link
             };
             return (
               <RecipeCard
@@ -320,6 +426,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
                 onAction={action => handleRecipeAction(recipe.id, action)}
                 isLast={idx === visibleCount - 1}
                 myIngredients={myIngredients}
+                substituteTable={substituteTable}
               />
             );
           })}
