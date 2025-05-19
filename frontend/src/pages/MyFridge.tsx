@@ -265,11 +265,13 @@ const MyFridge: React.FC = () => {
               ref={inputRef}
               type="text"
               placeholder="추가할 재료명을 입력해주세요"
-              className="flex-1 border border-gray-300 rounded-full px-4 py-2 text-sm placeholder-[#999] focus:outline-none focus:ring-2 focus:ring-blue-200"
+              className="border border-gray-300 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
               style={{
                 maxWidth: 250,
                 minWidth: 0,
                 flex: '0 1 auto',
+                height: 40,
+                fontFamily: 'Pretendard, sans-serif',
               }}
               value={inputValue}
               onChange={handleInputChange}
@@ -345,7 +347,7 @@ const MyFridge: React.FC = () => {
                 <div className="text-gray-400 text-xs py-1">재료가 아직 없어요</div>
               )}
               {sortIngredients(frozen ?? [], frozenSort).map((item) => (
-                <TagPill key={item.id} style={{ fontSize: 11 }} onClick={() => handleTagInfo(item)}>
+                <TagPill key={item.id + '-' + item.name} style={{ fontSize: 11 }} onClick={() => handleTagInfo(item)}>
                   <span className="truncate max-w-[110px]">{item.name}</span>
                   <span className="relative flex-shrink-0 ml-2" style={{ width: 20, height: 24, display: 'inline-block' }}>
                     <span
@@ -401,7 +403,7 @@ const MyFridge: React.FC = () => {
                 <div className="text-gray-400 text-xs py-1">재료가 아직 없어요</div>
               )}
               {sortIngredients(fridge ?? [], fridgeSort).map((item) => (
-                <TagPill key={item.id} style={{ fontSize: 11 }} onClick={() => handleTagInfo(item)}>
+                <TagPill key={item.id + '-' + item.name} style={{ fontSize: 11 }} onClick={() => handleTagInfo(item)}>
                   <span className="truncate max-w-[110px]">{item.name}</span>
                   <span className="relative flex-shrink-0 ml-2" style={{ width: 20, height: 24, display: 'inline-block' }}>
                     <span
@@ -457,7 +459,7 @@ const MyFridge: React.FC = () => {
                 <div className="text-gray-400 text-xs py-1">재료가 아직 없어요</div>
               )}
               {sortIngredients(room ?? [], roomSort).map((item) => (
-                <TagPill key={item.id} style={{ fontSize: 11 }} onClick={() => handleTagInfo(item)}>
+                <TagPill key={item.id + '-' + item.name} style={{ fontSize: 11 }} onClick={() => handleTagInfo(item)}>
                   <span className="truncate max-w-[110px]">{item.name}</span>
                   <span className="relative flex-shrink-0 ml-2" style={{ width: 20, height: 24, display: 'inline-block' }}>
                     <span
