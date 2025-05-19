@@ -7,6 +7,8 @@ export interface Recipe {
   thumbnail: string;
   used_ingredients: string;
   link: string;
+  likes?: number;
+  comments?: number;
   substitutes?: string[];
   match_rate?: number;
   my_ingredients?: string[];

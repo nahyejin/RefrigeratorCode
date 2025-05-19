@@ -85,6 +85,18 @@ function formatDate(dateString: string): string {
   return `${yy}-${mm}-${dd}`;
 }
 
+// D-day 계산 함수
+function getDDay(expiry: string) {
+  if (!expiry) return '';
+  const today = new Date();
+  const exp = new Date(expiry);
+  if (isNaN(exp.getTime())) return expiry;
+  const diff = Math.floor((exp.getTime() - today.setHours(0,0,0,0)) / (1000*60*60*24));
+  if (diff > 0) return `D-${diff}`;
+  if (diff === 0) return 'D-DAY';
+  return `D+${Math.abs(diff)}`;
+}
+
 const RecipeList: React.FC = () => {
   const [visibleCount, setVisibleCount] = useState(10);
   const [sortType, setSortType] = useState('match');
@@ -103,6 +115,9 @@ const RecipeList: React.FC = () => {
   const [expiryModalOpen, setExpiryModalOpen] = useState(false);
   const [matchRange, setMatchRange] = useState<[number, number]>([40, 90]);
   const [maxLack, setMaxLack] = useState<number | 'unlimited'>('unlimited');
+  const [expirySortType, setExpirySortType] = useState<'expiry'|'purchase'>('expiry');
+  const [selectedExpiryIngredients, setSelectedExpiryIngredients] = useState<string[]>([]);
+  const [appliedExpiryIngredients, setAppliedExpiryIngredients] = useState<string[]>([]);
   
   const myIngredients = getMyIngredients();
   const navigate = useNavigate();
@@ -224,8 +239,30 @@ const RecipeList: React.FC = () => {
         lackOk = lackCount <= maxLack;
       }
     }
-    return inMatchRange && lackOk;
+    // 임박재료 필터 (AND 조건: 선택된 모든 재료가 레시피에 포함되어야 함)
+    let expiryOk = true;
+    if (appliedExpiryIngredients.length > 0) {
+      expiryOk = appliedExpiryIngredients.every(ing => (recipe.used_ingredients || '').includes(ing));
+    }
+    return inMatchRange && lackOk && expiryOk;
   });
+
+  function getMyIngredientObjects() {
+    try {
+      const data = JSON.parse(localStorage.getItem('myfridge_ingredients') || 'null');
+      if (data && Array.isArray(data.frozen) && Array.isArray(data.fridge) && Array.isArray(data.room)) {
+        return [...data.frozen, ...data.fridge, ...data.room];
+      }
+    } catch {}
+    return [];
+  }
+  const myIngredientObjects = getMyIngredientObjects();
+  let sortedExpiryList = [];
+  if (expirySortType === 'expiry') {
+    sortedExpiryList = myIngredientObjects.filter(i => i.expiry).sort((a, b) => (a.expiry > b.expiry ? 1 : -1));
+  } else {
+    sortedExpiryList = myIngredientObjects.filter(i => i.purchase).sort((a, b) => (a.purchase > b.purchase ? 1 : -1));
+  }
 
   return (
     <>
@@ -256,7 +293,7 @@ const RecipeList: React.FC = () => {
             className="h-6 border border-gray-300 rounded text-xs px-2 font-bold bg-white text-gray-700 min-w-[70px] hover:bg-gray-50 flex items-center"
             onClick={() => setExpiryModalOpen(true)}
           >
-            임박 재료 선택
+            임박 재료 설정
           </button>
 
           {/* 일반 정렬 드롭다운 */}
@@ -374,22 +411,52 @@ const RecipeList: React.FC = () => {
           <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
             <div className="bg-white rounded-xl shadow-lg p-6 w-[340px] max-w-[95vw] relative">
               <span className="absolute top-3 right-3 w-6 h-6 text-gray-400 text-xl cursor-pointer" onClick={() => setExpiryModalOpen(false)}>×</span>
-              <div className="text-center font-bold text-[14px] mb-4">임박 재료 선택</div>
+              <div className="text-center font-bold text-[14px] mb-4">임박 재료 설정</div>
               <div className="flex flex-col gap-4">
                 <div className="flex gap-2 mb-2">
-                  <button className="flex-1 py-2 text-sm font-medium border border-gray-300 rounded-lg bg-white">유통기한 임박순</button>
-                  <button className="flex-1 py-2 text-sm font-medium border border-gray-300 rounded-lg bg-white">구매일 오래된순</button>
+                  <button
+                    className={`flex-1 py-2 text-sm font-medium border border-gray-300 rounded-lg ${expirySortType==='expiry' ? 'bg-gray-200' : 'bg-white'}`}
+                    onClick={() => setExpirySortType('expiry')}
+                  >유통기한 임박순</button>
+                  <button
+                    className={`flex-1 py-2 text-sm font-medium border border-gray-300 rounded-lg ${expirySortType==='purchase' ? 'bg-gray-200' : 'bg-white'}`}
+                    onClick={() => setExpirySortType('purchase')}
+                  >구매일 오래된순</button>
                 </div>
                 <div className="max-h-[300px] overflow-y-auto">
-                  {myIngredients.map((ingredient, idx) => (
-                    <label key={idx} className="flex items-center gap-2 p-2 hover:bg-gray-50">
-                      <input type="checkbox" className="w-4 h-4" />
-                      <span className="text-sm">{ingredient}</span>
-                      <span className="text-xs text-gray-500 ml-auto">D-2</span>
+                  {sortedExpiryList.length === 0 && (
+                    <div className="text-xs text-gray-400 text-center py-6">해당 정보가 입력된 재료가 없습니다.</div>
+                  )}
+                  {sortedExpiryList.map((item, idx) => (
+                    <label key={item.id || idx} className="flex items-center gap-2 p-2 hover:bg-gray-50">
+                      <input
+                        type="checkbox"
+                        className="w-4 h-4"
+                        checked={selectedExpiryIngredients.includes(item.name)}
+                        onChange={e => {
+                          if (e.target.checked) {
+                            setSelectedExpiryIngredients(prev => [...prev, item.name]);
+                          } else {
+                            setSelectedExpiryIngredients(prev => prev.filter(n => n !== item.name));
+                          }
+                        }}
+                      />
+                      <span className="text-sm">{item.name}</span>
+                      <span className="text-xs text-gray-500 ml-auto">
+                        {expirySortType==='expiry' && item.expiry ? getDDay(item.expiry) : expirySortType==='purchase' && item.purchase ? item.purchase : ''}
+                      </span>
                     </label>
                   ))}
                 </div>
-                <button className="w-full bg-[#3c3c3c] text-white font-bold py-2 rounded-lg mt-2">선택한 재료만 포함</button>
+                <button
+                  className="w-full bg-[#3c3c3c] text-white font-bold py-2 rounded-lg mt-2"
+                  onClick={() => {
+                    setAppliedExpiryIngredients(selectedExpiryIngredients);
+                    setExpiryModalOpen(false);
+                  }}
+                >
+                  선택 재료 포함 레시피만 보기
+                </button>
               </div>
             </div>
           </div>
