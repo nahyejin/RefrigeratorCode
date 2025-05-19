@@ -15,6 +15,8 @@ import RecipeCard from '../components/RecipeCard';
 import { Recipe, RecipeActionState, FilterState, SubstituteInfo } from '../types/recipe';
 import { getMyIngredients, sortRecipes } from '../utils/recipeUtils';
 import RecipeToast from '../components/RecipeToast';
+import Slider from 'rc-slider';
+import 'rc-slider/assets/index.css';
 
 const sortOptions = [
   { key: 'match', label: '재료매칭률' },
@@ -99,6 +101,8 @@ const RecipeList: React.FC = () => {
   const [substituteTable, setSubstituteTable] = useState<{ [key: string]: SubstituteInfo }>({});
   const [matchRateModalOpen, setMatchRateModalOpen] = useState(false);
   const [expiryModalOpen, setExpiryModalOpen] = useState(false);
+  const [matchRange, setMatchRange] = useState<[number, number]>([40, 90]);
+  const [maxLack, setMaxLack] = useState<number | 'unlimited'>('unlimited');
   
   const myIngredients = getMyIngredients();
   const navigate = useNavigate();
@@ -205,7 +209,23 @@ const RecipeList: React.FC = () => {
     setTimeout(() => setToast(''), 1500);
   };
 
-  const sortedRecipes = sortRecipes(recipes, sortType, myIngredients);
+  // 매칭률/부족개수 필터 적용
+  const filteredRecipes = sortRecipes(recipes, sortType, myIngredients).filter(recipe => {
+    // 매칭률 필터
+    const matchRate = recipe.match_rate ?? 0;
+    const inMatchRange = matchRate >= matchRange[0] && matchRate <= matchRange[1];
+    // 부족 개수 필터
+    const lackCount = recipe.need_ingredients ? recipe.need_ingredients.length : 0;
+    let lackOk = true;
+    if (maxLack !== 'unlimited') {
+      if (maxLack === 5) {
+        lackOk = lackCount >= 5;
+      } else {
+        lackOk = lackCount <= maxLack;
+      }
+    }
+    return inMatchRange && lackOk;
+  });
 
   return (
     <>
@@ -228,7 +248,7 @@ const RecipeList: React.FC = () => {
             className="h-6 border border-gray-300 rounded text-xs px-2 font-bold bg-white text-gray-700 min-w-[70px] hover:bg-gray-50 flex items-center"
             onClick={() => setMatchRateModalOpen(true)}
           >
-            매칭률 설정
+            재료 매칭도 설정
           </button>
 
           {/* 임박 재료 설정 버튼 */}
@@ -266,28 +286,84 @@ const RecipeList: React.FC = () => {
           <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
             <div className="bg-white rounded-xl shadow-lg p-6 w-[340px] max-w-[95vw] relative">
               <span className="absolute top-3 right-3 w-6 h-6 text-gray-400 text-xl cursor-pointer" onClick={() => setMatchRateModalOpen(false)}>×</span>
-              <div className="text-center font-bold text-[14px] mb-4">재료 매칭률 설정</div>
+              <div className="text-center font-bold text-[14px] mb-4">재료 매칭도 설정</div>
               <div className="flex flex-col gap-4">
-                <div className="flex items-center gap-2">
-                  <input type="number" min={0} max={100} defaultValue={40} className="w-16 border rounded px-2 py-1 text-sm" />
-                  <span className="text-sm">%</span>
-                  <span className="mx-2 text-sm">~</span>
-                  <input type="number" min={0} max={100} defaultValue={90} className="w-16 border rounded px-2 py-1 text-sm" />
-                  <span className="text-sm">%</span>
+                {/* 매칭률 범위 슬라이더 + 숫자 입력 */}
+                <div className="flex items-center gap-2 justify-center">
+                  <input
+                    type="number"
+                    min={0}
+                    max={matchRange[1]}
+                    value={matchRange[0]}
+                    onChange={e => setMatchRange([Math.min(Number(e.target.value), matchRange[1]), matchRange[1]])}
+                    className="w-12 border rounded px-1 text-xs text-center"
+                  />
+                  <span className="text-xs">%</span>
+                  <span className="mx-1 text-xs">~</span>
+                  <input
+                    type="number"
+                    min={matchRange[0]}
+                    max={100}
+                    value={matchRange[1]}
+                    onChange={e => setMatchRange([matchRange[0], Math.max(Number(e.target.value), matchRange[0])])}
+                    className="w-12 border rounded px-1 text-xs text-center"
+                  />
+                  <span className="text-xs">%</span>
                 </div>
-                <div className="flex flex-col gap-2">
-                  <input type="range" min={0} max={100} defaultValue={40} className="w-full" />
-                  <input type="range" min={0} max={100} defaultValue={90} className="w-full" />
+                {/* 범위 슬라이더 */}
+                <div className="flex items-center gap-2 px-2">
+                  {React.createElement(Slider as unknown as React.FC<any>, {
+                    range: true,
+                    min: 0,
+                    max: 100,
+                    value: matchRange,
+                    onChange: (val: number | number[]) => Array.isArray(val) && setMatchRange([val[0], val[1]]),
+                    allowCross: false,
+                    trackStyle: [{ backgroundColor: '#3c3c3c' }],
+                    handleStyle: [
+                      { borderColor: '#3c3c3c', backgroundColor: '#fff' },
+                      { borderColor: '#3c3c3c', backgroundColor: '#fff' }
+                    ],
+                    railStyle: { backgroundColor: '#eee' },
+                    style: { width: '100%' }
+                  })}
                 </div>
-                <div className="flex gap-2 mt-2">
-                  <label className="flex items-center gap-1 text-sm">
-                    <input type="checkbox" /> 최대 1개 부족
+                {/* 최대 n개 부족 라디오 */}
+                <div className="flex flex-wrap gap-2 mt-2 text-xs">
+                  {[1,2,3,4].map(n => (
+                    <label key={n} className="flex items-center gap-1">
+                      <input
+                        type="radio"
+                        name="maxLack"
+                        checked={maxLack === n}
+                        onChange={() => setMaxLack(n)}
+                      />
+                      최대 {n}개 부족
+                    </label>
+                  ))}
+                  <label className="flex items-center gap-1">
+                    <input
+                      type="radio"
+                      name="maxLack"
+                      checked={maxLack === 5}
+                      onChange={() => setMaxLack(5)}
+                    />
+                    5개 이상 부족
                   </label>
-                  <label className="flex items-center gap-1 text-sm">
-                    <input type="checkbox" /> 최대 2개 부족
+                  <label className="flex items-center gap-1">
+                    <input
+                      type="radio"
+                      name="maxLack"
+                      checked={maxLack === 'unlimited' || maxLack === null}
+                      onChange={() => setMaxLack('unlimited')}
+                    />
+                    제한 없음
                   </label>
                 </div>
-                <button className="w-full bg-[#3c3c3c] text-white font-bold py-2 rounded-lg mt-2">적용</button>
+                <button className="w-full bg-[#3c3c3c] text-white font-bold py-2 rounded-lg mt-2" onClick={() => {
+                  if (maxLack === null) setMaxLack('unlimited');
+                  setMatchRateModalOpen(false);
+                }}>적용</button>
               </div>
             </div>
           </div>
@@ -336,7 +412,7 @@ const RecipeList: React.FC = () => {
         )}
 
         <div className="flex flex-col gap-2">
-          {sortedRecipes.slice(0, visibleCount).map((recipe, idx) => (
+          {filteredRecipes.slice(0, visibleCount).map((recipe, idx) => (
             <RecipeCard
               key={recipe.id}
               recipe={{
