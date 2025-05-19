@@ -45,6 +45,16 @@ export function sortRecipes(recipes: Recipe[], sortType: string, myIngredients: 
     case 'expiry':
       // TODO: 유통기한 임박순 정렬 구현
       return recipesWithMatch;
+    case 'latest':
+      return recipesWithMatch.sort((a, b) => {
+        const dateA = new Date((a.date as string) || '');
+        const dateB = new Date((b.date as string) || '');
+        return dateB.getTime() - dateA.getTime();
+      });
+    case 'like':
+      return recipesWithMatch.sort((a, b) => (b.likes || 0) - (a.likes || 0));
+    case 'comment':
+      return recipesWithMatch.sort((a, b) => (b.comments || 0) - (a.comments || 0));
     default:
       return recipesWithMatch;
   }
