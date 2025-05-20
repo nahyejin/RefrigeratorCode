@@ -86,29 +86,6 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, actionState: pro
     }
   });
 
-  // 진단용 로그 추가
-  const needIngredientsForPill = (recipe.used_ingredients || '').split(',').map((i: string) => i.trim()).filter(Boolean);
-  // 문제 레시피에만 진단 로그 출력
-  if (recipe.title === '당 걱정 없는 신제품 비비드키친 알룰로스 간장 감자조림 레시피 후기') {
-    console.log('[RecipeCard] getIngredientPillInfo 호출', {
-      needIngredients: needIngredientsForPill,
-      myIngredients,
-      substituteTable,
-    });
-  }
-  const pillInfo = getUniversalIngredientPillInfo({
-    needIngredients: needIngredientsForPill,
-    myIngredients,
-    substituteTable,
-  });
-  console.log('[RecipeCard] 진단', {
-    title: recipe.title,
-    needIngredients: needIngredientsForPill,
-    myIngredients,
-    substituteTable,
-    pillInfo,
-  });
-
   // 상태 및 토스트 관리
   const [actionState, setActionState] = useState({
     done: isRecipeInStorage('my_completed_recipes', recipe.id),
@@ -309,13 +286,13 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, actionState: pro
       </div>
 
       <div className="flex flex-wrap gap-1 mb-1 max-h-9 overflow-y-auto custom-scrollbar pr-1">
-        {pillInfo.pills.map((ing) => {
-          if (pillInfo.notMineSub.includes(ing)) {
+        {pills.map((ing) => {
+          if (ing === substituteTarget) {
             return (
               <span key={ing} className="bg-[#555] text-white rounded-full px-3 py-0.5 font-medium text-[10.4px]">{ing}</span>
             );
           }
-          if (pillInfo.mine.includes(ing)) {
+          if (ing === substituteTargetTo) {
             return (
               <span key={ing} className="bg-[#FFD600] text-[#444] rounded-full px-3 py-0.5 font-medium text-[10.4px]">{ing}</span>
             );
