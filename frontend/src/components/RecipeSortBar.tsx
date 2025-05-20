@@ -268,18 +268,30 @@ const RecipeSortBar = ({ recipes, myIngredients = [], substituteTable = {} }: Re
       )}
       {/* 레시피 리스트 */}
       <div className="flex flex-col gap-2">
-        {filteredRecipes.map((recipe, idx) => (
-          <RecipeCard
-            key={recipe.id}
-            recipe={recipe}
-            index={idx}
-            onAction={() => {}}
-            isLast={false}
-            actionState={undefined}
-            myIngredients={myIngredients}
-            substituteTable={substituteTable}
-          />
-        ))}
+        {filteredRecipes.map((recipe, idx) => {
+          // 진단용 로그 추가
+          const substituteTableSample = Object.keys(substituteTable).length > 0
+            ? Object.keys(substituteTable).slice(0, 5).reduce((acc: any, key) => { acc[key] = (substituteTable as any)[key]; return acc; }, {})
+            : {};
+          console.log('[RecipeSortBar] RecipeCard props:', {
+            recipeId: recipe.id,
+            myIngredients,
+            substituteTable,
+            substituteTableSample
+          });
+          return (
+            <RecipeCard
+              key={recipe.id}
+              recipe={recipe}
+              index={idx}
+              onAction={() => {}}
+              isLast={false}
+              actionState={undefined}
+              myIngredients={myIngredients}
+              substituteTable={substituteTable}
+            />
+          );
+        })}
       </div>
     </>
   );
