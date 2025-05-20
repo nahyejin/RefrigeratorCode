@@ -9,6 +9,7 @@ import 완료하기버튼 from '../assets/완료하기버튼.svg';
 import 공유하기버튼 from '../assets/공유하기버튼.svg';
 import 기록하기버튼 from '../assets/기록하기버튼.svg';
 import { useNavigate } from 'react-router-dom';
+import { getUniversalIngredientPillInfo } from '../utils/ingredientPillUtils';
 
 // 더미 데이터 예시
 const dummyRecipes = [
@@ -363,6 +364,11 @@ const Popular = () => {
               const notMineSub = substituteTargets.filter((i: string) => ingredientList.includes(i));
               const mine = ingredientList.filter((i: string) => mySet.has(i));
               const pills = [...notMineNotSub, ...notMineSub, ...mine];
+              const pillInfo = getUniversalIngredientPillInfo({
+                needIngredients: recipe.mainIngredients || [],
+                myIngredients,
+                substituteTable,
+              });
               return (
                 <div key={recipe.id} style={{minWidth: 320, maxWidth: 340, background: '#fff', borderRadius: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', padding: 0, display: 'flex', flexDirection: 'column', gap: 8, position: 'relative'}}>
                   <div style={{position: 'relative', width: '100%', height: 140}}>
@@ -402,13 +408,13 @@ const Popular = () => {
                     <div style={{fontSize: 13, color: '#888', marginBottom: 4}}>좋아요 {recipe.like} · 댓글 {recipe.comment}</div>
                     {/* 재료 pill */}
                     <div className="custom-scrollbar pr-1" style={{ display: 'flex', flexWrap: 'nowrap', gap: 4, marginBottom: 4, overflowX: 'auto', maxWidth: '100%', scrollbarWidth: 'auto', alignItems: 'center', paddingBottom: 4 }}>
-                      {pills.map((ing: string) => {
-                        if (notMineSub.includes(ing)) {
+                      {pillInfo.pills.map((ing: string) => {
+                        if (pillInfo.notMineSub.includes(ing)) {
                           return (
                             <span key={ing} className="bg-[#555] text-white rounded-full px-3 py-0.5 font-medium" style={{ fontSize: '10.4px', lineHeight: 1.3, whiteSpace: 'nowrap', height: 22, display: 'inline-flex', alignItems: 'center' }}>{ing}</span>
                           );
                         }
-                        const isMine = mySet.has(ing);
+                        const isMine = pillInfo.mine.includes(ing);
                         return (
                           <span key={ing} className={(isMine ? 'bg-[#FFD600] text-[#444]' : 'bg-[#D1D1D1] text-white') + ' rounded-full px-3 py-0.5 font-medium'} style={{ fontSize: '10.4px', lineHeight: 1.3, whiteSpace: 'nowrap', height: 22, display: 'inline-flex', alignItems: 'center' }}>{ing}</span>
                         );
@@ -417,8 +423,8 @@ const Popular = () => {
                     {/* 대체 가능 태그 */}
                     <div className="mt-1 custom-scrollbar pr-1" style={{ display: 'flex', flexWrap: 'nowrap', gap: 4, overflowX: 'auto', maxWidth: '100%', alignItems: 'center', paddingBottom: 4 }}>
                       <span className="bg-[#FFE066] text-[#444] rounded px-3 py-1 font-bold" style={{ fontSize: '12px', flex: '0 0 auto' }}>대체 가능 :</span>
-                      {substitutes.length > 0 ? (
-                        substitutes.map((sub: string, idx: number) => (
+                      {pillInfo.substitutes.length > 0 ? (
+                        pillInfo.substitutes.map((sub: string, idx: number) => (
                           <span key={sub} className="ml-2 font-semibold text-[#444]" style={{ fontSize: '12px', flex: '0 0 auto' }}>{sub}</span>
                         ))
                       ) : (
