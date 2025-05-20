@@ -156,10 +156,45 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, actionState, onA
           </div>
         </a>
         <div className="flex-1 flex flex-col min-w-0">
-          <div className="flex items-center mb-1 w-full justify-between">
-            <span className="text-[#FFD600] font-bold text-[12px] mr-1.5">{recipe.author}</span>
-            <span className="text-[#B0B0B0] text-[10.4px]">{recipe.date}</span>
-            <span className="text-[#B0B0B0] text-[10.4px] ml-auto text-right" style={{ minWidth: 80 }}>
+          <div className="flex items-center mb-1 w-full" style={{ gap: 4 }}>
+            <span
+              className="text-[#FFD600] font-bold text-[12px] mr-1.5"
+              style={{
+                minWidth: 0,
+                maxWidth: 110,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                display: 'inline-block',
+                verticalAlign: 'bottom',
+                flexShrink: 1,
+                flexGrow: 1,
+              }}
+            >
+              {recipe.author}
+            </span>
+            <span
+              className="text-[#B0B0B0] text-[10.4px] ml-auto"
+              style={{
+                minWidth: 44,
+                textAlign: 'right',
+                flexShrink: 0,
+                marginRight: 4,
+              }}
+            >
+              {recipe.date}
+            </span>
+            <span
+              className="text-[#B0B0B0] text-[10.4px] text-right"
+              style={{
+                minWidth: 90,
+                maxWidth: 120,
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+                overflow: 'visible',
+                textOverflow: 'clip',
+              }}
+            >
               좋아요 {(recipe as any).likes ?? 0} · 댓글 {(recipe as any).comments ?? 0}
             </span>
           </div>
