@@ -9,6 +9,7 @@ import 기록하기버튼 from '../assets/기록하기버튼.svg';
 import writeIcon from '../assets/write.svg';
 import doneIcon from '../assets/done.svg';
 import { useNavigate } from 'react-router-dom';
+import RecipeCard from '../components/RecipeCard';
 
 // 타입 명시
 interface RecipeCardData {
@@ -74,46 +75,46 @@ const dummyUser = {
   phone: '010-1234-5678',
 };
 
-const dummyRecorded: RecipeCardData[] = [
-  {
-    id: 1,
-    thumbnail: 'https://cdn.pixabay.com/photo/2016/03/05/19/02/hamburger-1238246_1280.jpg',
-    title: '요즘 틱톡에서 유행하는 초간단 안주레시피',
-    match: 80,
-  },
-  {
-    id: 2,
-    thumbnail: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80',
-    title: '다이어트 김밥 만들기 오이김밥 레시피',
-    match: 90,
-  },
-  {
-    id: 3,
-    thumbnail: 'https://images.unsplash.com/photo-1502741338009-cac2772e18bc?auto=format&fit=crop&w=400&q=80',
-    title: '숙취해소로 최고의 황태해장국',
-    match: 75,
-  },
-];
-const dummyCompleted: RecipeCardData[] = [
-  {
-    id: 1,
-    thumbnail: 'https://cdn.pixabay.com/photo/2016/03/05/19/02/hamburger-1238246_1280.jpg',
-    title: '오징어볶음 레시피 만드는법 간단',
-    match: 85,
-  },
-  {
-    id: 2,
-    thumbnail: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80',
-    title: '대패삼겹살 제육볶음 레시피',
-    match: 78,
-  },
-  {
-    id: 3,
-    thumbnail: 'https://images.unsplash.com/photo-1502741338009-cac2772e18bc?auto=format&fit=crop&w=400&q=80',
-    title: '두릅 장아찌 만드는법 레시피',
-    match: 70,
-  },
-];
+// 썸네일 프록시 함수 추가
+function getProxiedImageUrl(url: string | undefined) {
+  if (!url) return '/default_thumbnail.png';
+  if (url.includes('postfiles.pstatic.net')) {
+    return 'https://images.weserv.nl/?url=' + url.replace(/^https?:\/\//, '');
+  }
+  return url;
+}
+
+// 재료/대체 가능 파싱 함수 추가
+function parseIngredients(recipe: any) {
+  if (Array.isArray(recipe.mainIngredients)) return recipe.mainIngredients;
+  if (typeof recipe.used_ingredients === 'string') {
+    return recipe.used_ingredients.split(',').map((i: string) => i.trim()).filter(Boolean);
+  }
+  if (Array.isArray(recipe.need_ingredients)) return recipe.need_ingredients;
+  if (typeof recipe.need_ingredients === 'string') {
+    return recipe.need_ingredients.split(',').map((i: string) => i.trim()).filter(Boolean);
+  }
+  return [];
+}
+
+function parseSubstitutes(recipe: any) {
+  if (Array.isArray(recipe.substitutes)) return recipe.substitutes;
+  if (typeof recipe.substitutes === 'string') return recipe.substitutes.split(',').map((i: string) => i.trim()).filter(Boolean);
+  return [];
+}
+
+// 내 냉장고 재료 목록 가져오기 (요즘인기 카드와 동일하게)
+function getMyIngredients() {
+  try {
+    const data = JSON.parse(localStorage.getItem('myfridge_ingredients') || 'null');
+    if (data && Array.isArray(data.frozen) && Array.isArray(data.fridge) && Array.isArray(data.room)) {
+      return [...data.frozen, ...data.fridge, ...data.room].map((i: any) => (typeof i === 'string' ? i : i.name));
+    }
+  } catch {}
+  return [];
+}
+
+const myIngredients = getMyIngredients();
 
 const MyPage = () => {
   const [editOpen, setEditOpen] = useState(false);
@@ -136,7 +137,22 @@ const MyPage = () => {
   const [writeStates, setWriteStates] = useState<{ [id: number]: boolean }>({});
   const [toast, setToast] = useState('');
   const [profilePreview, setProfilePreview] = useState<string | null>(null);
+  const [recordedRecipes, setRecordedRecipes] = useState<any[]>([]);
+  const [completedRecipes, setCompletedRecipes] = useState<any[]>([]);
   const navigate = useNavigate();
+
+  // localStorage에서 데이터 불러오기
+  React.useEffect(() => {
+    setRecordedRecipes(JSON.parse(localStorage.getItem('my_recorded_recipes') || '[]'));
+    setCompletedRecipes(JSON.parse(localStorage.getItem('my_completed_recipes') || '[]'));
+    // storage 이벤트로 동기화
+    const sync = () => {
+      setRecordedRecipes(JSON.parse(localStorage.getItem('my_recorded_recipes') || '[]'));
+      setCompletedRecipes(JSON.parse(localStorage.getItem('my_completed_recipes') || '[]'));
+    };
+    window.addEventListener('storage', sync);
+    return () => window.removeEventListener('storage', sync);
+  }, []);
 
   // 정보 수정 모달 저장
   const handleSave = () => {
@@ -179,6 +195,8 @@ const MyPage = () => {
     setTimeout(() => setToast(''), 1500);
   };
 
+  console.log("==== MyPage 렌더링됨 ====\nrecordedRecipes:", recordedRecipes, "\nmyIngredients:", myIngredients);
+
   return (
     <div className="bg-white min-h-screen max-w-[430px] mx-auto pb-24 relative">
       {/* 상단 네비 */}
@@ -217,23 +235,22 @@ const MyPage = () => {
             </button>
           </div>
           <div style={{height: 2, width: '100%', background: '#E5E5E5', marginBottom: 4}} />
-          <div className="flex gap-1 overflow-x-auto pb-2 custom-scrollbar">
-            {dummyRecorded.map(r => (
-              <div key={r.id} className="min-w-[210px] max-w-[210px] flex flex-col gap-1 relative" style={CARD_STYLE}>
-                <div className="relative">
-                  <img src={r.thumbnail} alt={r.title} className="w-full h-[110px] object-cover rounded-lg" />
-                  <div className="absolute bg-[#444] bg-opacity-80 text-white font-medium rounded px-2 py-0.5 flex items-center gap-1" style={{position:'absolute', top:0, left:0, fontSize:11, zIndex:2, textShadow: '0 1px 2px rgba(0,0,0,0.12)'}}>
-                    재료 매칭률 <span className="text-[#FFD600] font-bold ml-1" style={{ textShadow: 'none', letterSpacing: '0.5px' }}>{r.match}%</span>
-                  </div>
-                  <div style={{position:'absolute', right:8, bottom:8, display:'flex', flexDirection:'row', gap:6, alignItems:'center', zIndex:2}}>
-                    <ActionButton title="완료" icon={완료하기버튼} onClick={() => handleDoneClick(r.id)} active={doneStates[r.id]} />
-                    <ActionButton title="공유" icon={공유하기버튼} onClick={handleShareClick} />
-                    <ActionButton title="기록" icon={기록하기버튼} onClick={() => handleWriteClick(r.id)} active={writeStates[r.id]} />
-                  </div>
-                </div>
-                <div className="font-bold text-[13px] line-clamp-2 mt-1">{r.title}</div>
-              </div>
-            ))}
+          <div style={{display: 'flex', overflowX: 'auto', gap: 16, paddingBottom: 8}}>
+            {recordedRecipes.map((r, idx) => {
+              console.log("RecipeCard에 전달되는 recipe:", r);
+              return (
+                <RecipeCard
+                  key={r.id}
+                  recipe={r}
+                  index={idx}
+                  actionState={undefined}
+                  onAction={() => {}}
+                  isLast={idx === recordedRecipes.length - 1}
+                  myIngredients={myIngredients}
+                  substituteTable={r.substituteTable || {}}
+                />
+              );
+            })}
           </div>
         </div>
         {/* 내가 완료한 레시피 */}
@@ -252,23 +269,22 @@ const MyPage = () => {
             </button>
           </div>
           <div style={{height: 2, width: '100%', background: '#E5E5E5', marginBottom: 4}} />
-          <div className="flex gap-1 overflow-x-auto pb-2 custom-scrollbar">
-            {dummyCompleted.map(r => (
-              <div key={r.id} className="min-w-[210px] max-w-[210px] flex flex-col gap-1 relative" style={CARD_STYLE}>
-                <div className="relative">
-                  <img src={r.thumbnail} alt={r.title} className="w-full h-[110px] object-cover rounded-lg" />
-                  <div className="absolute bg-[#444] bg-opacity-80 text-white font-medium rounded px-2 py-0.5 flex items-center gap-1" style={{position:'absolute', top:0, left:0, fontSize:11, zIndex:2, textShadow: '0 1px 2px rgba(0,0,0,0.12)'}}>
-                    재료 매칭률 <span className="text-[#FFD600] font-bold ml-1" style={{ textShadow: 'none', letterSpacing: '0.5px' }}>{r.match}%</span>
-                  </div>
-                  <div style={{position:'absolute', right:8, bottom:8, display:'flex', flexDirection:'row', gap:6, alignItems:'center', zIndex:2}}>
-                    <ActionButton title="완료" icon={완료하기버튼} onClick={() => handleDoneClick(r.id)} active={doneStates[r.id]} />
-                    <ActionButton title="공유" icon={공유하기버튼} onClick={handleShareClick} />
-                    <ActionButton title="기록" icon={기록하기버튼} onClick={() => handleWriteClick(r.id)} active={writeStates[r.id]} />
-                  </div>
-                </div>
-                <div className="font-bold text-[13px] line-clamp-2 mt-1">{r.title}</div>
-              </div>
-            ))}
+          <div style={{display: 'flex', overflowX: 'auto', gap: 16, paddingBottom: 8}}>
+            {completedRecipes.map((r, idx) => {
+              console.log("RecipeCard에 전달되는 recipe:", r);
+              return (
+                <RecipeCard
+                  key={r.id}
+                  recipe={r}
+                  index={idx}
+                  actionState={undefined}
+                  onAction={() => {}}
+                  isLast={idx === completedRecipes.length - 1}
+                  myIngredients={myIngredients}
+                  substituteTable={r.substituteTable || {}}
+                />
+              );
+            })}
           </div>
         </div>
       </div>

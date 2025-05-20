@@ -103,7 +103,13 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, actionState: pro
   }
   function addRecipeToStorage(key: string, recipe: any) {
     const arr = JSON.parse(localStorage.getItem(key) || '[]');
-    arr.push(recipe);
+    // like, comment 값이 없으면 recipe에서 찾아서 추가
+    const newRecipe = {
+      ...recipe,
+      like: recipe.like ?? recipe.likes ?? 0,
+      comment: recipe.comment ?? recipe.comments ?? 0,
+    };
+    arr.push(newRecipe);
     localStorage.setItem(key, JSON.stringify(arr));
   }
   function removeRecipeFromStorage(key: string, id: number) {
