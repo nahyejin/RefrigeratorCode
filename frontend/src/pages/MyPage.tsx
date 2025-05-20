@@ -139,6 +139,8 @@ const MyPage = () => {
   const [profilePreview, setProfilePreview] = useState<string | null>(null);
   const [recordedRecipes, setRecordedRecipes] = useState<any[]>([]);
   const [completedRecipes, setCompletedRecipes] = useState<any[]>([]);
+  const [pendingRemove, setPendingRemove] = useState<{type: 'done'|'write', id: number}|null>(null);
+  const [pendingRecipe, setPendingRecipe] = useState<any>(null);
   const navigate = useNavigate();
 
   // localStorage에서 데이터 불러오기
@@ -172,9 +174,24 @@ const MyPage = () => {
   const handleDoneClick = (id: number) => {
     setDoneStates(prev => {
       const isActive = !!prev[id];
-      setToast(isActive ? '레시피 완료를 취소했습니다!' : '레시피를 완료했습니다!');
-      setTimeout(() => setToast(''), 1500);
-      return { ...prev, [id]: !isActive };
+      const newState = { ...prev, [id]: !isActive };
+      const completedRecipes = JSON.parse(localStorage.getItem('my_completed_recipes') || '[]');
+      if (!isActive) {
+        // 완료 추가
+        const recipe = recordedRecipes.find(r => r.id === id);
+        if (recipe && !completedRecipes.some((r: any) => r.id === id)) {
+          completedRecipes.push(recipe);
+        }
+        localStorage.setItem('my_completed_recipes', JSON.stringify(completedRecipes));
+        setCompletedRecipes(completedRecipes);
+        setToast('레시피를 완료했습니다!');
+        setTimeout(() => setToast(''), 1500);
+      } else {
+        // 완료 취소 - 모달로 확인
+        setPendingRemove({type: 'done', id});
+        setPendingRecipe(completedRecipes.find((r: any) => r.id === id));
+      }
+      return newState;
     });
   };
 
@@ -182,17 +199,71 @@ const MyPage = () => {
   const handleWriteClick = (id: number) => {
     setWriteStates(prev => {
       const isActive = !!prev[id];
-      setToast(isActive ? '레시피 기록을 취소했습니다!' : '레시피를 기록했습니다!');
-      setTimeout(() => setToast(''), 1500);
-      return { ...prev, [id]: !isActive };
+      const newState = { ...prev, [id]: !isActive };
+      const recordedRecipes = JSON.parse(localStorage.getItem('my_recorded_recipes') || '[]');
+      if (!isActive) {
+        // 기록 추가
+        const recipe = completedRecipes.find((r: any) => r.id === id) || recordedRecipes.find((r: any) => r.id === id);
+        if (recipe && !recordedRecipes.some((r: any) => r.id === id)) {
+          recordedRecipes.push(recipe);
+        }
+        localStorage.setItem('my_recorded_recipes', JSON.stringify(recordedRecipes));
+        setRecordedRecipes(recordedRecipes);
+        setToast('레시피를 기록했습니다!');
+        setTimeout(() => setToast(''), 1500);
+      } else {
+        // 기록 취소 - 모달로 확인
+        setPendingRemove({type: 'write', id});
+        setPendingRecipe(recordedRecipes.find((r: any) => r.id === id));
+      }
+      return newState;
     });
   };
 
+  // 삭제 확정(닫기) 핸들러
+  const handleRemoveConfirm = () => {
+    if (!pendingRemove) return;
+    if (pendingRemove.type === 'done') {
+      setDoneStates(prev => ({ ...prev, [pendingRemove.id]: false }));
+      setCompletedRecipes(prev => {
+        const updated = prev.filter((r: any) => r.id !== pendingRemove.id);
+        localStorage.setItem('my_completed_recipes', JSON.stringify(updated));
+        return updated;
+      });
+    } else if (pendingRemove.type === 'write') {
+      setWriteStates(prev => ({ ...prev, [pendingRemove.id]: false }));
+      setRecordedRecipes(prev => {
+        const updated = prev.filter((r: any) => r.id !== pendingRemove.id);
+        localStorage.setItem('my_recorded_recipes', JSON.stringify(updated));
+        return updated;
+      });
+    }
+    setPendingRemove(null);
+    setPendingRecipe(null);
+  };
+
+  // 되돌리기 핸들러
+  const handleRemoveUndo = () => {
+    if (!pendingRemove) return;
+    if (pendingRemove.type === 'done') {
+      setDoneStates(prev => ({ ...prev, [pendingRemove.id]: true }));
+    } else if (pendingRemove.type === 'write') {
+      setWriteStates(prev => ({ ...prev, [pendingRemove.id]: true }));
+    }
+    setPendingRemove(null);
+    setPendingRecipe(null);
+  };
+
   // 공유 버튼 클릭 핸들러
-  const handleShareClick = () => {
-    navigator.clipboard.writeText(window.location.href);
-    setToast('URL이 복사되었습니다!');
-    setTimeout(() => setToast(''), 1500);
+  const handleShareClick = (recipe: any) => {
+    const shareUrl = recipe.link || `${window.location.origin}/recipe/${recipe.id}`;
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      setToast('레시피 URL이 복사되었습니다!');
+      setTimeout(() => setToast(''), 1500);
+    }).catch(() => {
+      setToast('URL 복사에 실패했습니다.');
+      setTimeout(() => setToast(''), 1500);
+    });
   };
 
   console.log("==== MyPage 렌더링됨 ====\nrecordedRecipes:", recordedRecipes, "\nmyIngredients:", myIngredients);
@@ -266,9 +337,23 @@ const MyPage = () => {
                     </div>
                     {/* 완료/공유/기록 버튼 */}
                     <div style={{ position: 'absolute', right: 8, bottom: 8, display: 'flex', flexDirection: 'row', gap: 6, alignItems: 'center', zIndex: 2 }}>
-                      <ActionButton title="완료" icon={완료하기버튼} onClick={() => handleDoneClick(r.id)} />
-                      <ActionButton title="공유" icon={공유하기버튼} onClick={handleShareClick} />
-                      <ActionButton title="기록" icon={기록하기버튼} onClick={() => handleWriteClick(r.id)} />
+                      <ActionButton 
+                        title="완료" 
+                        icon={완료하기버튼} 
+                        onClick={() => handleDoneClick(r.id)} 
+                        active={!doneStates[r.id]} 
+                      />
+                      <ActionButton 
+                        title="공유" 
+                        icon={공유하기버튼} 
+                        onClick={() => handleShareClick(r)} 
+                      />
+                      <ActionButton 
+                        title="기록" 
+                        icon={기록하기버튼} 
+                        onClick={() => handleWriteClick(r.id)} 
+                        active={!writeStates[r.id]} 
+                      />
                     </div>
                   </div>
                   <div style={{ padding: '16px 16px 12px 16px' }}>
@@ -358,9 +443,23 @@ const MyPage = () => {
                     </div>
                     {/* 완료/공유/기록 버튼 */}
                     <div style={{ position: 'absolute', right: 8, bottom: 8, display: 'flex', flexDirection: 'row', gap: 6, alignItems: 'center', zIndex: 2 }}>
-                      <ActionButton title="완료" icon={완료하기버튼} onClick={() => handleDoneClick(r.id)} />
-                      <ActionButton title="공유" icon={공유하기버튼} onClick={handleShareClick} />
-                      <ActionButton title="기록" icon={기록하기버튼} onClick={() => handleWriteClick(r.id)} />
+                      <ActionButton 
+                        title="완료" 
+                        icon={완료하기버튼} 
+                        onClick={() => handleDoneClick(r.id)} 
+                        active={!doneStates[r.id]} 
+                      />
+                      <ActionButton 
+                        title="공유" 
+                        icon={공유하기버튼} 
+                        onClick={() => handleShareClick(r)} 
+                      />
+                      <ActionButton 
+                        title="기록" 
+                        icon={기록하기버튼} 
+                        onClick={() => handleWriteClick(r.id)} 
+                        active={!writeStates[r.id]} 
+                      />
                     </div>
                   </div>
                   <div style={{ padding: '16px 16px 12px 16px' }}>
@@ -521,6 +620,36 @@ const MyPage = () => {
           textAlign: 'center',
         }}>
           {toast}
+        </div>
+      )}
+      {/* 삭제 확인 토스트(아래 고정) */}
+      {pendingRemove && (
+        <div style={{
+          position: 'fixed',
+          bottom: 100,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'rgba(34, 34, 34, 0.9)',
+          color: '#fff',
+          padding: '12px 24px',
+          borderRadius: 12,
+          fontWeight: 400,
+          fontSize: 15,
+          zIndex: 9999,
+          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+          maxWidth: 320,
+          width: 'max-content',
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          textAlign: 'center',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+        }}>
+          <span style={{fontWeight:600,color:'#fff',marginRight:8,letterSpacing:'0.04em',whiteSpace:'nowrap',display:'inline-block'}}>삭제됨</span>
+          <button className="inline-flex items-center justify-center bg-[#F5F6F8] text-gray-700 font-semibold rounded-lg px-3 py-1 text-sm border border-[#E5E7EB] shadow-none hover:bg-[#E5E7EB] transition whitespace-nowrap" style={{marginRight:4}} onClick={handleRemoveUndo}>되돌리기</button>
+          <button className="inline-flex items-center justify-center bg-[#F5F6F8] text-gray-700 font-semibold rounded-lg px-3 py-1 text-sm border border-[#E5E7EB] shadow-none hover:bg-[#E5E7EB] transition whitespace-nowrap" onClick={handleRemoveConfirm}>닫기</button>
         </div>
       )}
     </div>
