@@ -140,7 +140,8 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, actionState: pro
       setActionState(s => ({ ...s, write: !s.write }));
     }
     if (action === 'share') {
-      navigator.clipboard.writeText(window.location.origin + `/recipe-detail/${recipe.id}`);
+      const shareUrl = recipe.link || window.location.origin + `/recipe-detail/${recipe.id}`;
+      navigator.clipboard.writeText(shareUrl);
       showToast('URL이 복사되었습니다!');
       setActionState(s => ({ ...s, share: true }));
       setTimeout(() => setActionState(s => ({ ...s, share: false })), 1000);
@@ -150,7 +151,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, actionState: pro
   return (
     <div
       className="bg-white rounded-[20px] shadow-sm min-h-[144px] relative p-4"
-      style={{ marginBottom: isLast ? 40 : 16, maxWidth: 240, minWidth: 240 }}
+      style={{ marginBottom: isLast ? 40 : 16, minWidth: 350, maxWidth: 400, width: '100%', margin: '0 auto' }}
     >
       {!hideIndexNumber && (
         <div className="font-bold text-[18px] text-[#222] text-left">
