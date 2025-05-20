@@ -100,7 +100,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, actionState, onA
           target="_blank"
           rel="noopener noreferrer"
           title={recipe.title}
-          className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-[14.4px] font-bold text-[#222] leading-tight antialiased hover:underline"
+          className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-[13px] font-bold text-[#222] leading-tight antialiased hover:underline"
           style={{
             fontFamily: 'Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, Arial, sans-serif',
             WebkitFontSmoothing: 'antialiased',
