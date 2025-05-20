@@ -89,11 +89,23 @@ function getMatchRate(myIngredients: string[], recipeIngredients: string) {
   };
 }
 
+function getMyIngredientObjects() {
+  try {
+    const data = JSON.parse(localStorage.getItem('myfridge_ingredients') || 'null');
+    if (data && Array.isArray(data.frozen) && Array.isArray(data.fridge) && Array.isArray(data.room)) {
+      return [...data.frozen, ...data.fridge, ...data.room];
+    }
+  } catch {}
+  return [];
+}
+
 const RecordedRecipeListPage = () => {
+  const [recipes, setRecipes] = useState([]);
   const [recipeActionStates, setRecipeActionStates] = useState<Record<number, RecipeActionState>>({});
   const [toast, setToast] = useState('');
   const navigate = useNavigate();
   const myIngredients = getMyIngredients();
+  const myIngredientObjects = getMyIngredientObjects();
   const [sortType, setSortType] = useState('match');
   const [filterOpen, setFilterOpen] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState(initialFilterState);
@@ -103,6 +115,16 @@ const RecordedRecipeListPage = () => {
   const [includeKeyword, setIncludeKeyword] = useState('');
   const [matchRateModalOpen, setMatchRateModalOpen] = useState(false);
   const [expiryModalOpen, setExpiryModalOpen] = useState(false);
+
+  useEffect(() => {
+    function load() {
+      const arr = JSON.parse(localStorage.getItem('my_recorded_recipes') || '[]');
+      setRecipes(arr);
+    }
+    load();
+    window.addEventListener('storage', load);
+    return () => window.removeEventListener('storage', load);
+  }, []);
 
   useEffect(() => {
     fetch('/ingredient_profile_dict_with_substitutes.csv')
@@ -166,8 +188,8 @@ const RecordedRecipeListPage = () => {
         }}
       >
         <RecipeSortBar
-          recipes={dummyRecordedRecipes}
-          myIngredients={myIngredients}
+          recipes={recipes}
+          myIngredients={myIngredientObjects}
         />
       </div>
       <BottomNavBar activeTab="mypage" />
