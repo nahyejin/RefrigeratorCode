@@ -6,7 +6,7 @@ import writeIcon from '../assets/write.svg';
 import doneBlackIcon from '../assets/done_black.svg';
 import shareBlackIcon from '../assets/share_black.svg';
 import writeBlackIcon from '../assets/write_black.svg';
-import { getIngredientPillInfo } from '../utils/recipeUtils';
+import { getUniversalIngredientPillInfo } from '../utils/ingredientPillUtils';
 
 interface SubstituteInfo {
   ingredient_a: string;
@@ -96,7 +96,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, actionState: pro
       substituteTable,
     });
   }
-  const pillInfo = getIngredientPillInfo({
+  const pillInfo = getUniversalIngredientPillInfo({
     needIngredients: needIngredientsForPill,
     myIngredients,
     substituteTable,
@@ -129,7 +129,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, actionState: pro
   function addRecipeToStorage(key: string, recipe: any, myIngredients: string[], substituteTable: any) {
     const arr = JSON.parse(localStorage.getItem(key) || '[]');
     const needIngredients = recipe.need_ingredients || (recipe.used_ingredients || '').split(',').map((i: string) => i.trim()).filter(Boolean);
-    const { substitutes } = getIngredientPillInfo({
+    const { substitutes } = getUniversalIngredientPillInfo({
       needIngredients,
       myIngredients,
       substituteTable,
