@@ -314,6 +314,21 @@ const RecipeList: React.FC = () => {
           myIngredients={myIngredients}
           substituteTable={substituteTable}
         />
+        {/* 레시피 리스트 */}
+        <div className="flex flex-col gap-2 mt-4">
+          {filteredRecipes.map((recipe, idx) => (
+            <RecipeCard
+              key={recipe.id}
+              recipe={recipe}
+              index={idx}
+              onAction={() => {}}
+              isLast={false}
+              actionState={undefined}
+              myIngredients={myIngredients}
+              substituteTable={substituteTable}
+            />
+          ))}
+        </div>
       </div>
       <BottomNavBar activeTab="recipe" />
       {toast && <RecipeToast message={toast} />}
