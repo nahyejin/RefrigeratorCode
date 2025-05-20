@@ -314,8 +314,6 @@ const MyPage = () => {
       });
   }, []);
 
-  console.log("==== MyPage 렌더링됨 ====\nrecordedRecipes:", recordedRecipes, "\nmyIngredients:", myIngredients);
-
   return (
     <div className="bg-white min-h-screen max-w-[430px] mx-auto pb-24 relative">
       {/* 상단 네비 */}
@@ -362,18 +360,6 @@ const MyPage = () => {
                 needIngredients: needIngredientsForPill,
                 myIngredients,
                 substituteTable,
-              });
-              // 진단 로그
-              console.log('==== [MyPage 카드 진단 - 기록] ====');
-              console.log('recipe.title:', recipe.title);
-              console.log('myIngredients:', myIngredients);
-              console.log('needIngredients:', needIngredientsForPill);
-              console.log('pillInfo:', {
-                pills: pillInfo.pills,
-                mine: pillInfo.mine,
-                notMineSub: pillInfo.notMineSub,
-                notMineNotSub: pillInfo.notMineNotSub,
-                substitutes: pillInfo.substitutes,
               });
               return (
                 <div key={recipe.id} style={{ minWidth: 320, maxWidth: 340, width: '100%', background: '#fff', borderRadius: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', padding: 0, display: 'flex', flexDirection: 'column', gap: 8, position: 'relative' }}>
@@ -472,18 +458,6 @@ const MyPage = () => {
                 needIngredients: needIngredientsForPill,
                 myIngredients,
                 substituteTable,
-              });
-              // 진단 로그
-              console.log('==== [MyPage 카드 진단 - 완료] ====');
-              console.log('recipe.title:', recipe.title);
-              console.log('myIngredients:', myIngredients);
-              console.log('needIngredients:', needIngredientsForPill);
-              console.log('pillInfo:', {
-                pills: pillInfo.pills,
-                mine: pillInfo.mine,
-                notMineSub: pillInfo.notMineSub,
-                notMineNotSub: pillInfo.notMineNotSub,
-                substitutes: pillInfo.substitutes,
               });
               return (
                 <div key={recipe.id} style={{ minWidth: 320, maxWidth: 340, width: '100%', background: '#fff', borderRadius: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', padding: 0, display: 'flex', flexDirection: 'column', gap: 8, position: 'relative' }}>
