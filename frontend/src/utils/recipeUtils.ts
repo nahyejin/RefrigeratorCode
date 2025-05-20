@@ -82,7 +82,7 @@ export function getIngredientPillInfo({
   substituteTable: { [key: string]: { ingredient_b: string } };
 }) {
   // 정규화 함수 - 앞뒤 공백만 제거하고 소문자로 변환
-  const normalize = (s: string) => s.trim().toLowerCase();
+  const normalize = (s: string) => (s || '').trim().toLowerCase();
   
   const mySet = new Set(myIngredients.map(normalize));
   
