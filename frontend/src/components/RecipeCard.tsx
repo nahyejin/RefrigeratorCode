@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Recipe, RecipeActionState } from '../types/recipe';
 import doneIcon from '../assets/done.svg';
 import shareIcon from '../assets/share.svg';
@@ -34,7 +34,7 @@ function getProxiedImageUrl(url: string) {
   return url;
 }
 
-const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, actionState, onAction, isLast, myIngredients = [], substituteTable = {} }) => {
+const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, actionState: propActionState, onAction, isLast, myIngredients = [], substituteTable = {} }) => {
   const allIngredients = [
     ...(recipe.need_ingredients || []).map(ing => ({ ing, type: 'need' })),
     ...(recipe.my_ingredients || []).map(ing => ({ ing, type: 'have' })),
@@ -84,6 +84,62 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, actionState, onA
     }
   });
 
+  // 상태 및 토스트 관리
+  const [actionState, setActionState] = useState({
+    done: isRecipeInStorage('my_completed_recipes', recipe.id),
+    write: isRecipeInStorage('my_recorded_recipes', recipe.id),
+    share: false,
+  });
+  const [toast, setToast] = useState('');
+
+  function showToast(msg: string) {
+    setToast(msg);
+    setTimeout(() => setToast(''), 1500);
+  }
+
+  function isRecipeInStorage(key: string, id: number) {
+    const arr = JSON.parse(localStorage.getItem(key) || '[]');
+    return arr.some((r: any) => r.id === id);
+  }
+  function addRecipeToStorage(key: string, recipe: any) {
+    const arr = JSON.parse(localStorage.getItem(key) || '[]');
+    arr.push(recipe);
+    localStorage.setItem(key, JSON.stringify(arr));
+  }
+  function removeRecipeFromStorage(key: string, id: number) {
+    const arr = JSON.parse(localStorage.getItem(key) || '[]');
+    localStorage.setItem(key, JSON.stringify(arr.filter((r: any) => r.id !== id)));
+  }
+
+  const handleAction = (action: 'done' | 'write' | 'share') => {
+    if (action === 'done') {
+      if (!actionState.done) {
+        addRecipeToStorage('my_completed_recipes', recipe);
+        showToast('레시피를 완료했습니다!');
+      } else {
+        removeRecipeFromStorage('my_completed_recipes', recipe.id);
+        showToast('레시피 완료를 취소했습니다!');
+      }
+      setActionState(s => ({ ...s, done: !s.done }));
+    }
+    if (action === 'write') {
+      if (!actionState.write) {
+        addRecipeToStorage('my_recorded_recipes', recipe);
+        showToast('레시피를 기록했습니다!');
+      } else {
+        removeRecipeFromStorage('my_recorded_recipes', recipe.id);
+        showToast('레시피 기록을 취소했습니다!');
+      }
+      setActionState(s => ({ ...s, write: !s.write }));
+    }
+    if (action === 'share') {
+      navigator.clipboard.writeText(window.location.origin + `/recipe-detail/${recipe.id}`);
+      showToast('URL이 복사되었습니다!');
+      setActionState(s => ({ ...s, share: true }));
+      setTimeout(() => setActionState(s => ({ ...s, share: false })), 1000);
+    }
+  };
+
   return (
     <div
       className="bg-white rounded-[20px] shadow-sm min-h-[144px] relative p-4"
@@ -115,29 +171,29 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, actionState, onA
           <button
             title="완료"
             className="w-[26px] h-[26px] flex items-center justify-center bg-transparent border-none p-0 cursor-pointer outline-none"
-            onClick={() => onAction('done')}
+            onClick={() => handleAction('done')}
             tabIndex={0}
             onMouseDown={e => e.preventDefault()}
           >
-            <img src={actionState?.done ? doneBlackIcon : doneIcon} alt="완료" width={19} height={19} className="block" />
+            <img src={actionState.done ? doneBlackIcon : doneIcon} alt="완료" width={19} height={19} className="block" />
           </button>
           <button
             title="공유"
             className="w-[26px] h-[26px] flex items-center justify-center bg-transparent border-none p-0 cursor-pointer outline-none"
-            onClick={() => onAction('share')}
+            onClick={() => handleAction('share')}
             tabIndex={0}
             onMouseDown={e => e.preventDefault()}
           >
-            <img src={actionState?.share ? shareBlackIcon : shareIcon} alt="공유" width={19} height={19} className="block" />
+            <img src={actionState.share ? shareBlackIcon : shareIcon} alt="공유" width={19} height={19} className="block" />
           </button>
           <button
             title="기록"
             className="w-[26px] h-[26px] flex items-center justify-center bg-transparent border-none p-0 cursor-pointer outline-none"
-            onClick={() => onAction('write')}
+            onClick={() => handleAction('write')}
             tabIndex={0}
             onMouseDown={e => e.preventDefault()}
           >
-            <img src={actionState?.write ? writeBlackIcon : writeIcon} alt="기록" width={19} height={19} className="block" />
+            <img src={actionState.write ? writeBlackIcon : writeIcon} alt="기록" width={19} height={19} className="block" />
           </button>
         </div>
       </div>
@@ -253,6 +309,27 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, actionState, onA
             : '(내 냉장고에 대체 가능한 재료가 없습니다)'}
         </span>
       </div>
+
+      {toast && (
+        <div style={{
+          position: 'fixed',
+          left: '50%',
+          bottom: 80,
+          transform: 'translateX(-50%)',
+          background: '#222',
+          color: '#fff',
+          padding: '12px 24px',
+          borderRadius: 12,
+          fontWeight: 500,
+          fontSize: 15,
+          zIndex: 9999,
+          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+          whiteSpace: 'nowrap',
+          textShadow: 'none',
+        }}>
+          {toast}
+        </div>
+      )}
     </div>
   );
 };
