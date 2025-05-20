@@ -99,7 +99,7 @@ function getDDay(expiry: string) {
 }
 
 const RecipeList: React.FC = () => {
-  const [visibleCount, setVisibleCount] = useState(10);
+  const [visibleCount, setVisibleCount] = useState(50);
   const [sortType, setSortType] = useState('match');
   const [filterOpen, setFilterOpen] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState<FilterState>(initialFilterState);
@@ -114,7 +114,7 @@ const RecipeList: React.FC = () => {
   const [substituteTable, setSubstituteTable] = useState<{ [key: string]: SubstituteInfo }>({});
   const [matchRateModalOpen, setMatchRateModalOpen] = useState(false);
   const [expiryModalOpen, setExpiryModalOpen] = useState(false);
-  const [matchRange, setMatchRange] = useState<[number, number]>([40, 90]);
+  const [matchRange, setMatchRange] = useState<[number, number]>([0, 100]);
   const [maxLack, setMaxLack] = useState<number | 'unlimited'>('unlimited');
   const [expirySortType, setExpirySortType] = useState<'expiry'|'purchase'>('expiry');
   const [selectedExpiryIngredients, setSelectedExpiryIngredients] = useState<string[]>([]);
@@ -179,11 +179,17 @@ const RecipeList: React.FC = () => {
   useEffect(() => {
     // Try to fetch from backend first
     axios.get('http://127.0.0.1:5000/api/recipes')
-      .then((res: AxiosResponse<any>) => setRecipes(res.data))
+      .then((res: AxiosResponse<any>) => {
+        console.log('API Response length:', res.data.length);
+        setRecipes(res.data);
+      })
       .catch((err: unknown) => {
         console.error('Backend fetch failed, using dummy data:', err);
         // Fallback to dummy data
-        fetchRecipesDummy().then(data => setRecipes(data));
+        fetchRecipesDummy().then(data => {
+          console.log('Dummy data length:', data.length);
+          setRecipes(data);
+        });
       });
   }, []);
 
@@ -193,7 +199,8 @@ const RecipeList: React.FC = () => {
         window.innerHeight + window.scrollY >= document.body.offsetHeight - 100 &&
         visibleCount < recipes.length
       ) {
-        setVisibleCount(prev => prev + 2);
+        console.log('Increasing visibleCount from', visibleCount, 'to', visibleCount + 10);
+        setVisibleCount(prev => prev + 10);
       }
     };
     window.addEventListener('scroll', handleScroll);
@@ -245,8 +252,27 @@ const RecipeList: React.FC = () => {
     if (appliedExpiryIngredients.length > 0) {
       expiryOk = appliedExpiryIngredients.every(ing => (recipe.used_ingredients || '').includes(ing));
     }
+
+    // 디버깅을 위한 로그 추가
+    console.log('Recipe filtering:', {
+      title: recipe.title,
+      matchRate,
+      inMatchRange,
+      lackCount,
+      lackOk,
+      expiryOk,
+      used_ingredients: recipe.used_ingredients,
+      appliedExpiryIngredients
+    });
+
     return inMatchRange && lackOk && expiryOk;
   });
+
+  // 필터링된 레시피 수 로그
+  console.log('Filtered recipes count:', filteredRecipes.length);
+  console.log('Match range:', matchRange);
+  console.log('Max lack:', maxLack);
+  console.log('Applied expiry ingredients:', appliedExpiryIngredients);
 
   function getMyIngredientObjects() {
     try {
@@ -281,6 +307,7 @@ const RecipeList: React.FC = () => {
         <h2 className="text-lg font-bold mb-4 text-center">내 냉장고 기반 레시피 추천</h2>
         
         <RecipeSortBar
+          pageType="recipe"
           sortType={sortType}
           onSortChange={setSortType}
           sortOptions={[
@@ -493,4 +520,4 @@ const RecipeList: React.FC = () => {
   );
 };
 
-export default RecipeList; 
+export default RecipeList;

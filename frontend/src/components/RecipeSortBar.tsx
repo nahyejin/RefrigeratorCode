@@ -42,9 +42,17 @@ function getMatchRate(myIngredients: string[], recipeIngredients: string) {
   };
 }
 
-const RecipeSortBar = ({ pageType }: { pageType: string }) => {
+interface RecipeSortBarProps {
+  pageType: string;
+  sortType: string;
+  onSortChange: (type: string) => void;
+  sortOptions: { value: string; label: string; }[];
+  onFilterClick: () => void;
+  children?: React.ReactNode;
+}
+
+const RecipeSortBar = ({ pageType, sortType, onSortChange, sortOptions, onFilterClick, children }: RecipeSortBarProps) => {
   const [recipes, setRecipes] = useState<any[]>([]);
-  const [sortType, setSortType] = useState<string>('latest');
   const [filterOpen, setFilterOpen] = useState<boolean>(false);
   const [selectedFilter, setSelectedFilter] = useState<any>(initialFilterState);
   const [includeInput, setIncludeInput] = useState<string>('');
@@ -53,8 +61,8 @@ const RecipeSortBar = ({ pageType }: { pageType: string }) => {
   const [includeKeyword, setIncludeKeyword] = useState<string>('');
   const [matchRateModalOpen, setMatchRateModalOpen] = useState<boolean>(false);
   const [expiryModalOpen, setExpiryModalOpen] = useState<boolean>(false);
-  const [matchRange, setMatchRange] = useState<[number, number]>([40, 90]);
-  const [maxLack, setMaxLack] = useState<number | 'unlimited'>('unlimited');
+  const [matchRange, setMatchRange] = useState<[number, number]>([0, 100]);
+  const [maxLack, setMaxLack] = useState<'unlimited' | number>('unlimited');
   const [expirySortType, setExpirySortType] = useState<'expiry'|'purchase'>('expiry');
   const [selectedExpiryIngredients, setSelectedExpiryIngredients] = useState<string[]>([]);
   const [appliedExpiryIngredients, setAppliedExpiryIngredients] = useState<string[]>([]);
@@ -63,51 +71,8 @@ const RecipeSortBar = ({ pageType }: { pageType: string }) => {
 
   // 레시피 fetch (더미/실제 API)
   useEffect(() => {
-    // 임시 더미 데이터로 매칭률 필터 동작 확인
-    setRecipes([
-      {
-        id: 1,
-        title: '전자레인지 전자렌지 계란찜 만들기',
-        used_ingredients: '계란,우유,소금,대파',
-        match_rate: 75,
-        my_ingredients: ['계란', '우유', '소금'],
-        need_ingredients: ['대파'],
-        like: 67,
-        comment: 6,
-        date: '25-04-09',
-        author: '완콩',
-        thumbnail: 'https://cdn.pixabay.com/photo/2016/03/05/19/02/hamburger-1238246_1280.jpg',
-        body: '전자레인지 계란찜 만드는법...'
-      },
-      {
-        id: 2,
-        title: '호박전 만들기, 언제 먹어도 맛있는 호박전',
-        used_ingredients: '호박,계란,밀가루,소금',
-        match_rate: 60,
-        my_ingredients: ['호박', '계란'],
-        need_ingredients: ['밀가루', '소금'],
-        like: 274,
-        comment: 110,
-        date: '19-10-03',
-        author: '미스타육',
-        thumbnail: 'https://cdn.pixabay.com/photo/2016/03/05/19/02/hamburger-1238246_1280.jpg',
-        body: '호박전 만드는법...'
-      },
-      {
-        id: 3,
-        title: '오징어덮밥 레시피 매콤달콤 입에 착 달라붙는 소스 만들기',
-        used_ingredients: '오징어,양파,고추장,설탕,간장',
-        match_rate: 55,
-        my_ingredients: ['오징어', '양파'],
-        need_ingredients: ['고추장', '설탕', '간장'],
-        like: 70,
-        comment: 9,
-        date: '25-04-10',
-        author: '야미짱',
-        thumbnail: 'https://cdn.pixabay.com/photo/2016/03/05/19/02/hamburger-1238246_1280.jpg',
-        body: '오징어덮밥 만드는법...'
-      },
-    ]);
+    // 더미 데이터 삭제. 실제 API 연동 전까지 빈 배열 유지
+    setRecipes([]);
   }, [pageType]);
 
   // 전체 재료 목록 fetch
@@ -163,20 +128,23 @@ const RecipeSortBar = ({ pageType }: { pageType: string }) => {
       return { ...recipe, match_rate: match.rate, my_ingredients: match.my_ingredients, need_ingredients: match.need_ingredients };
     })
     .filter(recipe => {
-      // 매칭률 AND 부족개수
       const matchRate = Number(recipe.match_rate ?? 0);
       const inMatchRange = matchRate >= matchRange[0] && matchRate <= matchRange[1];
       const lackCount = recipe.need_ingredients ? recipe.need_ingredients.length : 0;
-      let lackOk = true;
-      if (maxLack !== 'unlimited') {
-        lackOk = lackCount <= maxLack;
-      }
-      // 임박재료: 선택된 재료가 모두 포함된 레시피만
-      let expiryOk = true;
-      if (appliedExpiryIngredients.length > 0) {
-        expiryOk = appliedExpiryIngredients.every(ing => (recipe.used_ingredients || '').includes(ing));
-      }
-      return inMatchRange && lackOk && expiryOk;
+      const lackOk = maxLack === 'unlimited' ? true : lackCount <= maxLack;
+      
+      // Both conditions must be true (AND condition)
+      const result = inMatchRange && lackOk;
+      
+      console.log(
+        'title:', recipe.title,
+        'match_rate:', matchRate,
+        'inMatchRange:', inMatchRange,
+        'lackCount:', lackCount,
+        'lackOk:', lackOk,
+        'AND result:', result
+      );
+      return result;
     });
 
   // 정렬
@@ -190,14 +158,14 @@ const RecipeSortBar = ({ pageType }: { pageType: string }) => {
         <button style={{ height: 28, border: '1px solid #D1D5DB', borderRadius: 6, fontSize: 12, padding: '0 8px', fontWeight: 600, background: '#fff', color: '#222', minWidth: 70, marginRight: 0, whiteSpace: 'nowrap', lineHeight: '28px', boxSizing: 'border-box', cursor: 'pointer' }} onClick={() => setMatchRateModalOpen(true)}>재료 매칭도 설정</button>
         <button style={{ height: 28, border: '1px solid #D1D5DB', borderRadius: 6, fontSize: 12, padding: '0 8px', fontWeight: 600, background: '#fff', color: '#222', minWidth: 70, marginRight: 0, whiteSpace: 'nowrap', lineHeight: '28px', boxSizing: 'border-box', cursor: 'pointer' }} onClick={() => setExpiryModalOpen(true)}>임박 재료 설정</button>
         <div style={{ position: 'relative', minWidth: 80 }}>
-          <select aria-label="정렬 기준 선택" value={sortType} onChange={e => setSortType(e.target.value)} style={{ height: 28, border: '1px solid #D1D5DB', borderRadius: 6, fontSize: 12, padding: '0 22px 0 8px', fontWeight: 600, background: '#fff', color: '#222', minWidth: 80, marginRight: 0, appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none', outline: 'none', cursor: 'pointer', boxSizing: 'border-box' }}>
-            {SORT_OPTIONS.map(opt => (
+          <select aria-label="정렬 기준 선택" value={sortType} onChange={e => onSortChange(e.target.value)} style={{ height: 28, border: '1px solid #D1D5DB', borderRadius: 6, fontSize: 12, padding: '0 22px 0 8px', fontWeight: 600, background: '#fff', color: '#222', minWidth: 80, marginRight: 0, appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none', outline: 'none', cursor: 'pointer', boxSizing: 'border-box' }}>
+            {sortOptions.map(opt => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
             ))}
           </select>
           <span style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', fontSize: 13, color: '#888' }}>▼</span>
         </div>
-        <button style={{ height: 28, border: '1px solid #D1D5DB', borderRadius: 999, fontSize: 12, padding: '0 12px', fontWeight: 600, background: '#fff', color: '#222', minWidth: 50, whiteSpace: 'nowrap', boxSizing: 'border-box', cursor: 'pointer' }} onClick={() => setFilterOpen(true)}><span style={{ fontWeight: 600 }}>필터</span></button>
+        <button style={{ height: 28, border: '1px solid #D1D5DB', borderRadius: 999, fontSize: 12, padding: '0 12px', fontWeight: 600, background: '#fff', color: '#222', minWidth: 50, whiteSpace: 'nowrap', boxSizing: 'border-box', cursor: 'pointer', marginLeft: 'auto' }} onClick={() => setFilterOpen(true)}><span style={{ fontWeight: 600 }}>필터</span></button>
       </div>
       {/* 매칭률 설정 모달 */}
       {matchRateModalOpen && (
@@ -249,7 +217,10 @@ const RecipeSortBar = ({ pageType }: { pageType: string }) => {
                   제한 없음
                 </label>
               </div>
-              <button className="w-full bg-[#3c3c3c] text-white font-bold py-2 rounded-lg mt-2" onClick={() => { if (maxLack === null) setMaxLack('unlimited'); setMatchRateModalOpen(false); }}>적용</button>
+              <button className="w-full bg-[#3c3c3c] text-white font-bold py-2 rounded-lg mt-2" onClick={() => {
+                if (maxLack === null) setMaxLack('unlimited');
+                setMatchRateModalOpen(false);
+              }}>적용</button>
             </div>
           </div>
         </div>
@@ -308,17 +279,20 @@ const RecipeSortBar = ({ pageType }: { pageType: string }) => {
       )}
       {/* 레시피 리스트 */}
       <div className="flex flex-col gap-2">
-        {filteredRecipes.slice(0, visibleCount).map((recipe, idx) => (
-          <RecipeCard
-            key={recipe.id}
-            recipe={recipe}
-            index={idx}
-            onAction={() => {}}
-            isLast={idx === visibleCount - 1}
-            actionState={undefined}
-            myIngredients={myIngredients}
-          />
-        ))}
+        {filteredRecipes.map((recipe, idx) => {
+          console.log('RecipeCard match_rate:', recipe.title, recipe.match_rate);
+          return (
+            <RecipeCard
+              key={recipe.id}
+              recipe={recipe}
+              index={idx}
+              onAction={() => {}}
+              isLast={false}
+              actionState={undefined}
+              myIngredients={myIngredients}
+            />
+          );
+        })}
       </div>
     </>
   );
