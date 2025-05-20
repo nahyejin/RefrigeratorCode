@@ -6,6 +6,7 @@ import writeIcon from '../assets/write.svg';
 import doneBlackIcon from '../assets/done_black.svg';
 import shareBlackIcon from '../assets/share_black.svg';
 import writeBlackIcon from '../assets/write_black.svg';
+import { getIngredientPillInfo } from '../utils/recipeUtils';
 
 interface SubstituteInfo {
   ingredient_a: string;
@@ -102,13 +103,20 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, actionState: pro
     const arr = JSON.parse(localStorage.getItem(key) || '[]');
     return arr.some((r: any) => r.id === id);
   }
-  function addRecipeToStorage(key: string, recipe: any) {
+  function addRecipeToStorage(key: string, recipe: any, myIngredients: string[], substituteTable: any) {
     const arr = JSON.parse(localStorage.getItem(key) || '[]');
-    // like, comment 값이 없으면 recipe에서 찾아서 추가
+    const needIngredients = recipe.need_ingredients || (recipe.used_ingredients || '').split(',').map((i: string) => i.trim()).filter(Boolean);
+    const { substitutes } = getIngredientPillInfo({
+      needIngredients,
+      myIngredients,
+      substituteTable,
+    });
     const newRecipe = {
       ...recipe,
       like: recipe.like ?? recipe.likes ?? 0,
       comment: recipe.comment ?? recipe.comments ?? 0,
+      substitutes,
+      my_ingredients: myIngredients,
     };
     arr.push(newRecipe);
     localStorage.setItem(key, JSON.stringify(arr));
@@ -121,7 +129,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, actionState: pro
   const handleAction = (action: 'done' | 'write' | 'share') => {
     if (action === 'done') {
       if (!actionState.done) {
-        addRecipeToStorage('my_completed_recipes', recipe);
+        addRecipeToStorage('my_completed_recipes', recipe, myIngredients, substituteTable);
         showToast('레시피를 완료했습니다!');
       } else {
         removeRecipeFromStorage('my_completed_recipes', recipe.id);
@@ -131,7 +139,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, actionState: pro
     }
     if (action === 'write') {
       if (!actionState.write) {
-        addRecipeToStorage('my_recorded_recipes', recipe);
+        addRecipeToStorage('my_recorded_recipes', recipe, myIngredients, substituteTable);
         showToast('레시피를 기록했습니다!');
       } else {
         removeRecipeFromStorage('my_recorded_recipes', recipe.id);

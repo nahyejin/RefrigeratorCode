@@ -69,4 +69,43 @@ export function getDDay(expiry: string) {
   if (diff > 0) return `D-${diff}`;
   if (diff === 0) return 'D-DAY';
   return `D+${Math.abs(diff)}`;
+}
+
+// need_ingredients 기준 pill/대체 가능 로직 공통 함수
+export function getIngredientPillInfo({
+  needIngredients,
+  myIngredients,
+  substituteTable,
+}: {
+  needIngredients: string[];
+  myIngredients: string[];
+  substituteTable: { [key: string]: { ingredient_b: string } };
+}) {
+  // 정규화 함수
+  const normalize = (s: string) => s.trim().replace(/\s/g, '').toLowerCase();
+  const mySet = new Set(myIngredients.map(normalize));
+  // substituteTable도 정규화된 키로 변환
+  const normalizedSubTable: { [key: string]: { ingredient_b: string } } = {};
+  Object.keys(substituteTable).forEach(key => {
+    const normKey = normalize(key);
+    normalizedSubTable[normKey] = { ingredient_b: normalize(substituteTable[key].ingredient_b) };
+  });
+  let substituteTargets: string[] = [];
+  let substitutes: string[] = [];
+  needIngredients.forEach(needRaw => {
+    const need = normalize(needRaw);
+    const substituteInfo = normalizedSubTable[need];
+    if (substituteInfo && mySet.has(substituteInfo.ingredient_b)) {
+      substituteTargets.push(needRaw);
+      substitutes.push(`${needRaw}→${substituteTable[needRaw]?.ingredient_b || substituteInfo.ingredient_b}`);
+    }
+  });
+  const notMineNotSub = needIngredients.filter(i => {
+    const norm = normalize(i);
+    return !mySet.has(norm) && !substituteTargets.includes(i);
+  });
+  const notMineSub = substituteTargets;
+  const mine = needIngredients.filter(i => mySet.has(normalize(i)));
+  const pills = [...notMineNotSub, ...notMineSub, ...mine];
+  return { pills, notMineNotSub, notMineSub, mine, substitutes };
 } 

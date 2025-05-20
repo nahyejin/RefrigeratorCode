@@ -337,130 +337,98 @@ const Popular = () => {
             <div style={{height: 2, width: '100%', background: '#E5E5E5', marginBottom: 16}} />
           </div>
           <div style={{display: 'flex', overflowX: 'auto', gap: 16, paddingBottom: 8}}>
-            {dummyRecipes.map((recipe, idx) => (
-              <div key={recipe.id} style={{minWidth: 240, background: '#fff', borderRadius: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', padding: 0, display: 'flex', flexDirection: 'column', gap: 8, position: 'relative'}}>
-                <div style={{position: 'relative', width: '100%', height: 140}}>
-                  <img src={recipe.thumbnail} alt="썸네일" style={{width: '100%', height: 140, objectFit: 'cover', borderRadius: 12, marginBottom: 8}} />
-                  {/* 순위 뱃지 */}
-                  <div className="absolute bg-[#444] bg-opacity-80 text-white font-medium rounded px-2 py-0.5 flex items-center" style={{ position: 'absolute', top: 0, left: 0, fontSize: 12, zIndex: 2, textShadow: '0 1px 2px rgba(0,0,0,0.12)' }}>
-                    {recipe.rank}위
+            {dummyRecipes.map((recipe, idx) => {
+              // substitutes 배열을 substituteTable 객체로 변환
+              const substituteTable: { [key: string]: { ingredient_b: string } } = {};
+              if (Array.isArray(recipe.substitutes)) {
+                recipe.substitutes.forEach((sub: string) => {
+                  const [from, to] = sub.split('→').map((s: string) => s.trim());
+                  if (from && to) substituteTable[from] = { ingredient_b: to };
+                });
+              }
+              const ingredientList = (recipe.mainIngredients || []).map((i: string) => i.trim()).filter(Boolean);
+              const mySet = new Set(myIngredients.map((i: string) => i.trim()));
+              const needIngredients = recipe.mainIngredients || [];
+              let substituteTargets: string[] = [];
+              let substitutes: string[] = [];
+              needIngredients.forEach((needRaw: string) => {
+                const need = needRaw.trim();
+                const substituteInfo = substituteTable[need];
+                if (substituteInfo && mySet.has(substituteInfo.ingredient_b)) {
+                  substituteTargets.push(need);
+                  substitutes.push(`${needRaw}→${substituteInfo.ingredient_b}`);
+                }
+              });
+              const notMineNotSub = ingredientList.filter((i: string) => !mySet.has(i) && !substituteTargets.includes(i));
+              const notMineSub = substituteTargets.filter((i: string) => ingredientList.includes(i));
+              const mine = ingredientList.filter((i: string) => mySet.has(i));
+              const pills = [...notMineNotSub, ...notMineSub, ...mine];
+              return (
+                <div key={recipe.id} style={{minWidth: 320, maxWidth: 340, background: '#fff', borderRadius: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', padding: 0, display: 'flex', flexDirection: 'column', gap: 8, position: 'relative'}}>
+                  <div style={{position: 'relative', width: '100%', height: 140}}>
+                    <img src={recipe.thumbnail} alt="썸네일" style={{width: '100%', height: 140, objectFit: 'cover', borderRadius: 12, marginBottom: 8}} />
+                    {/* 순위 뱃지 */}
+                    <div className="absolute bg-[#444] bg-opacity-80 text-white font-medium rounded px-2 py-0.5 flex items-center" style={{ position: 'absolute', top: 0, left: 0, fontSize: 12, zIndex: 2, textShadow: '0 1px 2px rgba(0,0,0,0.12)' }}>
+                      {recipe.rank}위
+                    </div>
+                    {/* 재료매칭률 뱃지 */}
+                    <div className="absolute bg-[#444] bg-opacity-80 text-white font-medium rounded px-2 py-0.5 flex items-center gap-1" style={{ position: 'absolute', top: 24, left: 0, fontSize: 11, zIndex: 2, textShadow: '0 1px 2px rgba(0,0,0,0.12)' }}>
+                      재료 매칭률 <span className="text-[#FFD600] font-bold ml-1" style={{ textShadow: 'none', letterSpacing: '0.5px' }}>{/* 매칭률 값 */}80%</span>
+                    </div>
+                    {/* 완료/공유/기록 버튼 */}
+                    <div style={{position: 'absolute', right: 8, bottom: 8, display: 'flex', flexDirection: 'row', gap: 6, alignItems: 'center', zIndex: 2}}>
+                      <span style={{position: 'relative', zIndex: 2}}>
+                        <span style={{position: 'absolute', left: 0, top: 0, width: 26, height: 26, borderRadius: '50%', background: 'rgba(34,34,34,0.7)', zIndex: 1}}></span>
+                        <button title="완료" tabIndex={0} style={{width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', padding: 0, cursor: 'pointer', outline: 'none', position: 'relative', zIndex: 2}} onClick={() => handleDoneClick(recipe.id)}>
+                          <img src={완료하기버튼} alt="완료" width={19} height={19} style={{display: 'block', position: 'relative', zIndex: 2}} />
+                        </button>
+                      </span>
+                      <span style={{position: 'relative', zIndex: 2}}>
+                        <span style={{position: 'absolute', left: 0, top: 0, width: 26, height: 26, borderRadius: '50%', background: 'rgba(34,34,34,0.7)', zIndex: 1}}></span>
+                        <button title="공유" tabIndex={0} style={{width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', padding: 0, cursor: 'pointer', outline: 'none', position: 'relative', zIndex: 2}} onClick={handleShareClick}>
+                          <img src={공유하기버튼} alt="공유" width={19} height={19} style={{display: 'block', position: 'relative', zIndex: 2}} />
+                        </button>
+                      </span>
+                      <span style={{position: 'relative', zIndex: 2}}>
+                        <span style={{position: 'absolute', left: 0, top: 0, width: 26, height: 26, borderRadius: '50%', background: 'rgba(34,34,34,0.7)', zIndex: 1}}></span>
+                        <button title="기록" tabIndex={0} style={{width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', padding: 0, cursor: 'pointer', outline: 'none', position: 'relative', zIndex: 2}} onClick={() => handleRecordClick(recipe.id)}>
+                          <img src={기록하기버튼} alt="기록" width={19} height={19} style={{display: 'block', position: 'relative', zIndex: 2}} />
+                        </button>
+                      </span>
+                    </div>
                   </div>
-                  {/* 재료매칭률 뱃지 */}
-                  <div className="absolute bg-[#444] bg-opacity-80 text-white font-medium rounded px-2 py-0.5 flex items-center gap-1" style={{ position: 'absolute', top: 24, left: 0, fontSize: 11, zIndex: 2, textShadow: '0 1px 2px rgba(0,0,0,0.12)' }}>
-                    재료 매칭률 <span className="text-[#FFD600] font-bold ml-1" style={{ textShadow: 'none', letterSpacing: '0.5px' }}>{/* 매칭률 값 */}80%</span>
-                  </div>
-                  {/* 완료/공유/기록 버튼 */}
-                  <div style={{position: 'absolute', right: 8, bottom: 8, display: 'flex', flexDirection: 'row', gap: 6, alignItems: 'center', zIndex: 2}}>
-                    <span style={{position: 'relative', zIndex: 2}}>
-                      <span style={{position: 'absolute', left: 0, top: 0, width: 26, height: 26, borderRadius: '50%', background: 'rgba(34,34,34,0.7)', zIndex: 1}}></span>
-                      <button title="완료" tabIndex={0} style={{width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', padding: 0, cursor: 'pointer', outline: 'none', position: 'relative', zIndex: 2}} onClick={() => handleDoneClick(recipe.id)}>
-                        <img src={완료하기버튼} alt="완료" width={19} height={19} style={{display: 'block', position: 'relative', zIndex: 2}} />
-                      </button>
-                    </span>
-                    <span style={{position: 'relative', zIndex: 2}}>
-                      <span style={{position: 'absolute', left: 0, top: 0, width: 26, height: 26, borderRadius: '50%', background: 'rgba(34,34,34,0.7)', zIndex: 1}}></span>
-                      <button title="공유" tabIndex={0} style={{width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', padding: 0, cursor: 'pointer', outline: 'none', position: 'relative', zIndex: 2}} onClick={handleShareClick}>
-                        <img src={공유하기버튼} alt="공유" width={19} height={19} style={{display: 'block', position: 'relative', zIndex: 2}} />
-                      </button>
-                    </span>
-                    <span style={{position: 'relative', zIndex: 2}}>
-                      <span style={{position: 'absolute', left: 0, top: 0, width: 26, height: 26, borderRadius: '50%', background: 'rgba(34,34,34,0.7)', zIndex: 1}}></span>
-                      <button title="기록" tabIndex={0} style={{width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', padding: 0, cursor: 'pointer', outline: 'none', position: 'relative', zIndex: 2}} onClick={() => handleRecordClick(recipe.id)}>
-                        <img src={기록하기버튼} alt="기록" width={19} height={19} style={{display: 'block', position: 'relative', zIndex: 2}} />
-                      </button>
-                    </span>
-                  </div>
-                </div>
-                <div style={{padding: '16px 16px 12px 16px'}}>
-                  <div style={{fontWeight: 700, fontSize: 16, marginBottom: 4}}>{recipe.title}</div>
-                  <div style={{fontSize: 13, color: '#888', marginBottom: 4}}>좋아요 {recipe.like} · 댓글 {recipe.comment}</div>
-                  <div
-                    style={{
-                      display: 'flex',
-                      flexWrap: 'nowrap',
-                      gap: 4,
-                      marginBottom: 4,
-                      overflowX: 'auto',
-                      maxWidth: '100%',
-                      scrollbarWidth: 'auto',
-                      alignItems: 'center',
-                      paddingBottom: 4,
-                    }}
-                    className="custom-scrollbar pr-1"
-                  >
-                    {(() => {
-                      const recipeSet = new Set(recipe.mainIngredients);
-                      const mySet = new Set(myIngredients);
-                      const needIngredients = recipe.mainIngredients.filter(i => !mySet.has(i));
-                      const haveIngredients = recipe.mainIngredients.filter(i => mySet.has(i));
-                      return [
-                        ...needIngredients.map(i => (
-                          <span
-                            key={i}
-                            className="bg-[#D1D1D1] text-white rounded-full px-3 py-0.5 font-medium"
-                            style={{ fontSize: '10.4px', lineHeight: 1.3, whiteSpace: 'nowrap', height: 22, display: 'inline-flex', alignItems: 'center' }}
-                          >
-                            <span style={{ cursor: 'pointer', textDecoration: 'none' }} onClick={() => navigate(`/ingredient/${encodeURIComponent(i)}`)}>
-                              {i}
-                            </span>
-                          </span>
-                        )),
-                        ...haveIngredients.map(i => (
-                          <span
-                            key={i}
-                            className="bg-[#FFD600] text-[#444] rounded-full px-3 py-0.5 font-medium"
-                            style={{ fontSize: '10.4px', lineHeight: 1.3, whiteSpace: 'nowrap', height: 22, display: 'inline-flex', alignItems: 'center' }}
-                          >
-                            <span style={{ cursor: 'pointer', textDecoration: 'none' }} onClick={() => navigate(`/ingredient/${encodeURIComponent(i)}`)}>
-                              {i}
-                            </span>
-                          </span>
+                  <div style={{padding: '16px 16px 12px 16px'}}>
+                    <div style={{fontWeight: 700, fontSize: 16, marginBottom: 4}}>{recipe.title}</div>
+                    <div style={{fontSize: 13, color: '#888', marginBottom: 4}}>좋아요 {recipe.like} · 댓글 {recipe.comment}</div>
+                    {/* 재료 pill */}
+                    <div className="custom-scrollbar pr-1" style={{ display: 'flex', flexWrap: 'nowrap', gap: 4, marginBottom: 4, overflowX: 'auto', maxWidth: '100%', scrollbarWidth: 'auto', alignItems: 'center', paddingBottom: 4 }}>
+                      {pills.map((ing: string) => {
+                        if (notMineSub.includes(ing)) {
+                          return (
+                            <span key={ing} className="bg-[#555] text-white rounded-full px-3 py-0.5 font-medium" style={{ fontSize: '10.4px', lineHeight: 1.3, whiteSpace: 'nowrap', height: 22, display: 'inline-flex', alignItems: 'center' }}>{ing}</span>
+                          );
+                        }
+                        const isMine = mySet.has(ing);
+                        return (
+                          <span key={ing} className={(isMine ? 'bg-[#FFD600] text-[#444]' : 'bg-[#D1D1D1] text-white') + ' rounded-full px-3 py-0.5 font-medium'} style={{ fontSize: '10.4px', lineHeight: 1.3, whiteSpace: 'nowrap', height: 22, display: 'inline-flex', alignItems: 'center' }}>{ing}</span>
+                        );
+                      })}
+                    </div>
+                    {/* 대체 가능 태그 */}
+                    <div className="mt-1 custom-scrollbar pr-1" style={{ display: 'flex', flexWrap: 'nowrap', gap: 4, overflowX: 'auto', maxWidth: '100%', alignItems: 'center', paddingBottom: 4 }}>
+                      <span className="bg-[#FFE066] text-[#444] rounded px-3 py-1 font-bold" style={{ fontSize: '12px', flex: '0 0 auto' }}>대체 가능 :</span>
+                      {substitutes.length > 0 ? (
+                        substitutes.map((sub: string, idx: number) => (
+                          <span key={sub} className="ml-2 font-semibold text-[#444]" style={{ fontSize: '12px', flex: '0 0 auto' }}>{sub}</span>
                         ))
-                      ];
-                    })()}
+                      ) : (
+                        <span className="ml-2 text-[12px] text-[#B0B0B0] font-normal" style={{ flex: '0 0 auto' }}>(내 냉장고에 대체 가능한 재료가 없습니다)</span>
+                      )}
+                    </div>
                   </div>
-                  {/* 대체재 */}
-                  {recipe.substitutes && recipe.substitutes.length > 0 && (
-                    (() => {
-                      const mySet = new Set(myIngredients.map(i => i.trim().toLowerCase()));
-                      const filteredSubs = recipe.substitutes.filter(sub => {
-                        const [from, to] = sub.split('→').map(s => s.trim().toLowerCase());
-                        return to && mySet.has(to);
-                      });
-                      return (
-                        <div
-                          className="mt-1 custom-scrollbar pr-1"
-                          style={{
-                            display: 'flex',
-                            flexWrap: 'nowrap',
-                            gap: 4,
-                            overflowX: 'auto',
-                            maxWidth: '100%',
-                            alignItems: 'center',
-                            paddingBottom: 4,
-                          }}
-                        >
-                          <span className="bg-[#FFE066] text-[#444] rounded px-3 py-1 font-bold" style={{ fontSize: '12px', flex: '0 0 auto' }}>대체 가능 :</span>
-                          {filteredSubs.length > 0 ? (
-                            filteredSubs.map((sub, idx) => (
-                              <span key={sub} className="ml-2 font-semibold text-[#444]" style={{ fontSize: '12px', flex: '0 0 auto' }}>
-                                <span style={{ cursor: 'pointer', textDecoration: 'none' }} onClick={() => navigate(`/ingredient/${encodeURIComponent(sub)}`)}>
-                                  {sub}
-                                </span>
-                              </span>
-                            ))
-                          ) : (
-                            <span className="ml-2 text-[12px] text-[#B0B0B0] font-normal" style={{ flex: '0 0 auto' }}>
-                              (내 냉장고에 대체 가능한 재료가 없습니다)
-                            </span>
-                          )}
-                        </div>
-                      );
-                    })()
-                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </section>
 

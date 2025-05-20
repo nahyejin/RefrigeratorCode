@@ -10,6 +10,7 @@ import writeIcon from '../assets/write.svg';
 import doneIcon from '../assets/done.svg';
 import { useNavigate } from 'react-router-dom';
 import RecipeCard from '../components/RecipeCard';
+import { getIngredientPillInfo } from '../utils/recipeUtils';
 
 // 타입 명시
 interface RecipeCardData {
@@ -308,25 +309,26 @@ const MyPage = () => {
           <div style={{height: 2, width: '100%', background: '#E5E5E5', marginBottom: 4}} />
           <div style={{display: 'flex', overflowX: 'auto', gap: 16, paddingBottom: 8}}>
             {recordedRecipes.map((r, idx) => {
-              const ingredientList = (r.used_ingredients || '').split(',').map((i: string) => i.trim()).filter(Boolean);
-              const mySet = new Set(myIngredients.map((i: string) => i.trim()));
+              // substitutes 배열을 substituteTable 객체로 변환
+              const substituteTable: { [key: string]: { ingredient_b: string } } = {};
+              if (Array.isArray(r.substitutes)) {
+                r.substitutes.forEach((sub: string) => {
+                  const [from, to] = sub.split('→').map((s: string) => s.trim());
+                  if (from && to) substituteTable[from] = { ingredient_b: to };
+                });
+              }
               const needIngredients = r.need_ingredients || [];
-              const substituteTable = r.substituteTable || {};
-              // 공통 RecipeCard와 동일하게 대체 가능 재료/텍스트 추출
-              let substituteTargets: string[] = [];
-              let substitutes: string[] = [];
-              needIngredients.forEach((needRaw: string) => {
-                const need = needRaw.trim();
-                const substituteInfo = substituteTable[need];
-                if (substituteInfo && mySet.has(substituteInfo.ingredient_b)) {
-                  substituteTargets.push(need);
-                  substitutes.push(`${needRaw}→${substituteInfo.ingredient_b}`);
-                }
+              const pillInfo = getIngredientPillInfo({
+                needIngredients,
+                myIngredients,
+                substituteTable,
               });
-              const notMineNotSub = ingredientList.filter((i: string) => !mySet.has(i) && !substituteTargets.includes(i));
-              const notMineSub = substituteTargets.filter((i: string) => ingredientList.includes(i));
-              const mine = ingredientList.filter((i: string) => mySet.has(i));
-              const pills = [...notMineNotSub, ...notMineSub, ...mine];
+              // 진단용 로그
+              console.log('==== [recorded] 카드 데이터 ====');
+              console.log('needIngredients:', needIngredients);
+              console.log('myIngredients:', myIngredients);
+              console.log('substituteTable:', substituteTable);
+              console.log('getIngredientPillInfo:', pillInfo);
               return (
                 <div key={r.id} style={{ minWidth: 320, maxWidth: 340, width: '100%', background: '#fff', borderRadius: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', padding: 0, display: 'flex', flexDirection: 'column', gap: 8, position: 'relative' }}>
                   <div style={{ position: 'relative', width: '100%', height: 140 }}>
@@ -367,13 +369,13 @@ const MyPage = () => {
                     )}
                     {/* 재료 pill */}
                     <div className="custom-scrollbar pr-1" style={{ display: 'flex', flexWrap: 'nowrap', gap: 4, marginBottom: 4, overflowX: 'auto', maxWidth: '100%', scrollbarWidth: 'auto', alignItems: 'center', paddingBottom: 4 }}>
-                      {pills.map((ing: string) => {
-                        if (notMineSub.includes(ing)) {
+                      {pillInfo.pills.map((ing: string) => {
+                        if (pillInfo.notMineSub.includes(ing)) {
                           return (
                             <span key={ing} className="bg-[#555] text-white rounded-full px-3 py-0.5 font-medium" style={{ fontSize: '10.4px', lineHeight: 1.3, whiteSpace: 'nowrap', height: 22, display: 'inline-flex', alignItems: 'center' }}>{ing}</span>
                           );
                         }
-                        const isMine = mySet.has(ing);
+                        const isMine = pillInfo.mine.includes(ing);
                         return (
                           <span key={ing} className={(isMine ? 'bg-[#FFD600] text-[#444]' : 'bg-[#D1D1D1] text-white') + ' rounded-full px-3 py-0.5 font-medium'} style={{ fontSize: '10.4px', lineHeight: 1.3, whiteSpace: 'nowrap', height: 22, display: 'inline-flex', alignItems: 'center' }}>{ing}</span>
                         );
@@ -382,8 +384,8 @@ const MyPage = () => {
                     {/* 대체 가능 태그 */}
                     <div className="mt-1 custom-scrollbar pr-1" style={{ display: 'flex', flexWrap: 'nowrap', gap: 4, overflowX: 'auto', maxWidth: '100%', alignItems: 'center', paddingBottom: 4 }}>
                       <span className="bg-[#FFE066] text-[#444] rounded px-3 py-1 font-bold" style={{ fontSize: '12px', flex: '0 0 auto' }}>대체 가능 :</span>
-                      {substitutes.length > 0 ? (
-                        substitutes.map((sub: string, idx: number) => (
+                      {pillInfo.substitutes.length > 0 ? (
+                        pillInfo.substitutes.map((sub: string, idx: number) => (
                           <span key={sub} className="ml-2 font-semibold text-[#444]" style={{ fontSize: '12px', flex: '0 0 auto' }}>{sub}</span>
                         ))
                       ) : (
@@ -414,25 +416,26 @@ const MyPage = () => {
           <div style={{height: 2, width: '100%', background: '#E5E5E5', marginBottom: 4}} />
           <div style={{display: 'flex', overflowX: 'auto', gap: 16, paddingBottom: 8}}>
             {completedRecipes.map((r, idx) => {
-              const ingredientList = (r.used_ingredients || '').split(',').map((i: string) => i.trim()).filter(Boolean);
-              const mySet = new Set(myIngredients.map((i: string) => i.trim()));
+              // substitutes 배열을 substituteTable 객체로 변환
+              const substituteTable: { [key: string]: { ingredient_b: string } } = {};
+              if (Array.isArray(r.substitutes)) {
+                r.substitutes.forEach((sub: string) => {
+                  const [from, to] = sub.split('→').map((s: string) => s.trim());
+                  if (from && to) substituteTable[from] = { ingredient_b: to };
+                });
+              }
               const needIngredients = r.need_ingredients || [];
-              const substituteTable = r.substituteTable || {};
-              // 공통 RecipeCard와 동일하게 대체 가능 재료/텍스트 추출
-              let substituteTargets: string[] = [];
-              let substitutes: string[] = [];
-              needIngredients.forEach((needRaw: string) => {
-                const need = needRaw.trim();
-                const substituteInfo = substituteTable[need];
-                if (substituteInfo && mySet.has(substituteInfo.ingredient_b)) {
-                  substituteTargets.push(need);
-                  substitutes.push(`${needRaw}→${substituteInfo.ingredient_b}`);
-                }
+              const pillInfo = getIngredientPillInfo({
+                needIngredients,
+                myIngredients,
+                substituteTable,
               });
-              const notMineNotSub = ingredientList.filter((i: string) => !mySet.has(i) && !substituteTargets.includes(i));
-              const notMineSub = substituteTargets.filter((i: string) => ingredientList.includes(i));
-              const mine = ingredientList.filter((i: string) => mySet.has(i));
-              const pills = [...notMineNotSub, ...notMineSub, ...mine];
+              // 진단용 로그
+              console.log('==== [completed] 카드 데이터 ====');
+              console.log('needIngredients:', needIngredients);
+              console.log('myIngredients:', myIngredients);
+              console.log('substituteTable:', substituteTable);
+              console.log('getIngredientPillInfo:', pillInfo);
               return (
                 <div key={r.id} style={{ minWidth: 320, maxWidth: 340, width: '100%', background: '#fff', borderRadius: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', padding: 0, display: 'flex', flexDirection: 'column', gap: 8, position: 'relative' }}>
                   <div style={{ position: 'relative', width: '100%', height: 140 }}>
@@ -473,13 +476,13 @@ const MyPage = () => {
                     )}
                     {/* 재료 pill */}
                     <div className="custom-scrollbar pr-1" style={{ display: 'flex', flexWrap: 'nowrap', gap: 4, marginBottom: 4, overflowX: 'auto', maxWidth: '100%', scrollbarWidth: 'auto', alignItems: 'center', paddingBottom: 4 }}>
-                      {pills.map((ing: string) => {
-                        if (notMineSub.includes(ing)) {
+                      {pillInfo.pills.map((ing: string) => {
+                        if (pillInfo.notMineSub.includes(ing)) {
                           return (
                             <span key={ing} className="bg-[#555] text-white rounded-full px-3 py-0.5 font-medium" style={{ fontSize: '10.4px', lineHeight: 1.3, whiteSpace: 'nowrap', height: 22, display: 'inline-flex', alignItems: 'center' }}>{ing}</span>
                           );
                         }
-                        const isMine = mySet.has(ing);
+                        const isMine = pillInfo.mine.includes(ing);
                         return (
                           <span key={ing} className={(isMine ? 'bg-[#FFD600] text-[#444]' : 'bg-[#D1D1D1] text-white') + ' rounded-full px-3 py-0.5 font-medium'} style={{ fontSize: '10.4px', lineHeight: 1.3, whiteSpace: 'nowrap', height: 22, display: 'inline-flex', alignItems: 'center' }}>{ing}</span>
                         );
@@ -488,8 +491,8 @@ const MyPage = () => {
                     {/* 대체 가능 태그 */}
                     <div className="mt-1 custom-scrollbar pr-1" style={{ display: 'flex', flexWrap: 'nowrap', gap: 4, overflowX: 'auto', maxWidth: '100%', alignItems: 'center', paddingBottom: 4 }}>
                       <span className="bg-[#FFE066] text-[#444] rounded px-3 py-1 font-bold" style={{ fontSize: '12px', flex: '0 0 auto' }}>대체 가능 :</span>
-                      {substitutes.length > 0 ? (
-                        substitutes.map((sub: string, idx: number) => (
+                      {pillInfo.substitutes.length > 0 ? (
+                        pillInfo.substitutes.map((sub: string, idx: number) => (
                           <span key={sub} className="ml-2 font-semibold text-[#444]" style={{ fontSize: '12px', flex: '0 0 auto' }}>{sub}</span>
                         ))
                       ) : (
