@@ -142,7 +142,7 @@ function getMyIngredientObjects(): any[] {
 const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
   const { name = '' } = useParams<{ name: string }>();
   const navigate = useNavigate();
-  const [visibleCount, setVisibleCount] = useState(10);
+  const [visibleCount, setVisibleCount] = useState(50);
   const [sortType, setSortType] = useState('match');
   const [filterOpen, setFilterOpen] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState<FilterState>(initialFilterState);
@@ -179,7 +179,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
         r.used_ingredients.includes(name) ||
         r.title.includes(name) ||
         r.body.includes(name)
-      ).slice(0, 30);
+      );
       setRecipes(filtered);
     });
   }, [name]);
