@@ -237,18 +237,76 @@ const MyPage = () => {
           <div style={{height: 2, width: '100%', background: '#E5E5E5', marginBottom: 4}} />
           <div style={{display: 'flex', overflowX: 'auto', gap: 16, paddingBottom: 8}}>
             {recordedRecipes.map((r, idx) => {
-              console.log("RecipeCard에 전달되는 recipe:", r);
+              const ingredientList = (r.used_ingredients || '').split(',').map((i: string) => i.trim()).filter(Boolean);
+              const mySet = new Set(myIngredients.map((i: string) => i.trim()));
+              const needIngredients = r.need_ingredients || [];
+              const substituteTable = r.substituteTable || {};
+              // 공통 RecipeCard와 동일하게 대체 가능 재료/텍스트 추출
+              let substituteTargets: string[] = [];
+              let substitutes: string[] = [];
+              needIngredients.forEach((needRaw: string) => {
+                const need = needRaw.trim();
+                const substituteInfo = substituteTable[need];
+                if (substituteInfo && mySet.has(substituteInfo.ingredient_b)) {
+                  substituteTargets.push(need);
+                  substitutes.push(`${needRaw}→${substituteInfo.ingredient_b}`);
+                }
+              });
+              const notMineNotSub = ingredientList.filter((i: string) => !mySet.has(i) && !substituteTargets.includes(i));
+              const notMineSub = substituteTargets.filter((i: string) => ingredientList.includes(i));
+              const mine = ingredientList.filter((i: string) => mySet.has(i));
+              const pills = [...notMineNotSub, ...notMineSub, ...mine];
               return (
-                <RecipeCard
-                  key={r.id}
-                  recipe={r}
-                  index={idx}
-                  actionState={undefined}
-                  onAction={() => {}}
-                  isLast={idx === recordedRecipes.length - 1}
-                  myIngredients={myIngredients}
-                  substituteTable={r.substituteTable || {}}
-                />
+                <div key={r.id} style={{ minWidth: 320, maxWidth: 340, width: '100%', background: '#fff', borderRadius: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', padding: 0, display: 'flex', flexDirection: 'column', gap: 8, position: 'relative' }}>
+                  <div style={{ position: 'relative', width: '100%', height: 140 }}>
+                    <img src={getProxiedImageUrl(r.thumbnail || r.image)} alt="썸네일" style={{ width: '100%', height: 140, objectFit: 'cover', borderRadius: 12, marginBottom: 8 }} />
+                    {/* 매칭률 뱃지 */}
+                    <div className="absolute bg-[#444] bg-opacity-80 text-white font-medium rounded px-2 py-0.5 flex items-center gap-1" style={{ position: 'absolute', top: 8, left: 8, fontSize: 12, zIndex: 2, textShadow: '0 1px 2px rgba(0,0,0,0.12)' }}>
+                      재료 매칭률 <span className="text-[#FFD600] font-bold ml-1" style={{ textShadow: 'none', letterSpacing: '0.5px' }}>{r.match_rate || r.match || 0}%</span>
+                    </div>
+                    {/* 완료/공유/기록 버튼 */}
+                    <div style={{ position: 'absolute', right: 8, bottom: 8, display: 'flex', flexDirection: 'row', gap: 6, alignItems: 'center', zIndex: 2 }}>
+                      <ActionButton title="완료" icon={완료하기버튼} onClick={() => handleDoneClick(r.id)} />
+                      <ActionButton title="공유" icon={공유하기버튼} onClick={handleShareClick} />
+                      <ActionButton title="기록" icon={기록하기버튼} onClick={() => handleWriteClick(r.id)} />
+                    </div>
+                  </div>
+                  <div style={{ padding: '16px 16px 12px 16px' }}>
+                    {/* 제목 */}
+                    <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>{r.title}</div>
+                    {/* 좋아요/댓글 */}
+                    {(r.like || r.comment) && (
+                      <div style={{ fontSize: 13, color: '#888', marginBottom: 4 }}>
+                        {r.like ? `좋아요 ${r.like}` : ''}{r.like && r.comment ? ' · ' : ''}{r.comment ? `댓글 ${r.comment}` : ''}
+                      </div>
+                    )}
+                    {/* 재료 pill */}
+                    <div className="custom-scrollbar pr-1" style={{ display: 'flex', flexWrap: 'nowrap', gap: 4, marginBottom: 4, overflowX: 'auto', maxWidth: '100%', scrollbarWidth: 'auto', alignItems: 'center', paddingBottom: 4 }}>
+                      {pills.map((ing: string) => {
+                        if (notMineSub.includes(ing)) {
+                          return (
+                            <span key={ing} className="bg-[#555] text-white rounded-full px-3 py-0.5 font-medium" style={{ fontSize: '10.4px', lineHeight: 1.3, whiteSpace: 'nowrap', height: 22, display: 'inline-flex', alignItems: 'center' }}>{ing}</span>
+                          );
+                        }
+                        const isMine = mySet.has(ing);
+                        return (
+                          <span key={ing} className={(isMine ? 'bg-[#FFD600] text-[#444]' : 'bg-[#D1D1D1] text-white') + ' rounded-full px-3 py-0.5 font-medium'} style={{ fontSize: '10.4px', lineHeight: 1.3, whiteSpace: 'nowrap', height: 22, display: 'inline-flex', alignItems: 'center' }}>{ing}</span>
+                        );
+                      })}
+                    </div>
+                    {/* 대체 가능 태그 */}
+                    <div className="mt-1 custom-scrollbar pr-1" style={{ display: 'flex', flexWrap: 'nowrap', gap: 4, overflowX: 'auto', maxWidth: '100%', alignItems: 'center', paddingBottom: 4 }}>
+                      <span className="bg-[#FFE066] text-[#444] rounded px-3 py-1 font-bold" style={{ fontSize: '12px', flex: '0 0 auto' }}>대체 가능 :</span>
+                      {substitutes.length > 0 ? (
+                        substitutes.map((sub: string, idx: number) => (
+                          <span key={sub} className="ml-2 font-semibold text-[#444]" style={{ fontSize: '12px', flex: '0 0 auto' }}>{sub}</span>
+                        ))
+                      ) : (
+                        <span className="ml-2 text-[12px] text-[#B0B0B0] font-normal" style={{ flex: '0 0 auto' }}>(내 냉장고에 대체 가능한 재료가 없습니다)</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
               );
             })}
           </div>
@@ -271,18 +329,76 @@ const MyPage = () => {
           <div style={{height: 2, width: '100%', background: '#E5E5E5', marginBottom: 4}} />
           <div style={{display: 'flex', overflowX: 'auto', gap: 16, paddingBottom: 8}}>
             {completedRecipes.map((r, idx) => {
-              console.log("RecipeCard에 전달되는 recipe:", r);
+              const ingredientList = (r.used_ingredients || '').split(',').map((i: string) => i.trim()).filter(Boolean);
+              const mySet = new Set(myIngredients.map((i: string) => i.trim()));
+              const needIngredients = r.need_ingredients || [];
+              const substituteTable = r.substituteTable || {};
+              // 공통 RecipeCard와 동일하게 대체 가능 재료/텍스트 추출
+              let substituteTargets: string[] = [];
+              let substitutes: string[] = [];
+              needIngredients.forEach((needRaw: string) => {
+                const need = needRaw.trim();
+                const substituteInfo = substituteTable[need];
+                if (substituteInfo && mySet.has(substituteInfo.ingredient_b)) {
+                  substituteTargets.push(need);
+                  substitutes.push(`${needRaw}→${substituteInfo.ingredient_b}`);
+                }
+              });
+              const notMineNotSub = ingredientList.filter((i: string) => !mySet.has(i) && !substituteTargets.includes(i));
+              const notMineSub = substituteTargets.filter((i: string) => ingredientList.includes(i));
+              const mine = ingredientList.filter((i: string) => mySet.has(i));
+              const pills = [...notMineNotSub, ...notMineSub, ...mine];
               return (
-                <RecipeCard
-                  key={r.id}
-                  recipe={r}
-                  index={idx}
-                  actionState={undefined}
-                  onAction={() => {}}
-                  isLast={idx === completedRecipes.length - 1}
-                  myIngredients={myIngredients}
-                  substituteTable={r.substituteTable || {}}
-                />
+                <div key={r.id} style={{ minWidth: 320, maxWidth: 340, width: '100%', background: '#fff', borderRadius: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', padding: 0, display: 'flex', flexDirection: 'column', gap: 8, position: 'relative' }}>
+                  <div style={{ position: 'relative', width: '100%', height: 140 }}>
+                    <img src={getProxiedImageUrl(r.thumbnail || r.image)} alt="썸네일" style={{ width: '100%', height: 140, objectFit: 'cover', borderRadius: 12, marginBottom: 8 }} />
+                    {/* 매칭률 뱃지 */}
+                    <div className="absolute bg-[#444] bg-opacity-80 text-white font-medium rounded px-2 py-0.5 flex items-center gap-1" style={{ position: 'absolute', top: 8, left: 8, fontSize: 12, zIndex: 2, textShadow: '0 1px 2px rgba(0,0,0,0.12)' }}>
+                      재료 매칭률 <span className="text-[#FFD600] font-bold ml-1" style={{ textShadow: 'none', letterSpacing: '0.5px' }}>{r.match_rate || r.match || 0}%</span>
+                    </div>
+                    {/* 완료/공유/기록 버튼 */}
+                    <div style={{ position: 'absolute', right: 8, bottom: 8, display: 'flex', flexDirection: 'row', gap: 6, alignItems: 'center', zIndex: 2 }}>
+                      <ActionButton title="완료" icon={완료하기버튼} onClick={() => handleDoneClick(r.id)} />
+                      <ActionButton title="공유" icon={공유하기버튼} onClick={handleShareClick} />
+                      <ActionButton title="기록" icon={기록하기버튼} onClick={() => handleWriteClick(r.id)} />
+                    </div>
+                  </div>
+                  <div style={{ padding: '16px 16px 12px 16px' }}>
+                    {/* 제목 */}
+                    <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>{r.title}</div>
+                    {/* 좋아요/댓글 */}
+                    {(r.like || r.comment) && (
+                      <div style={{ fontSize: 13, color: '#888', marginBottom: 4 }}>
+                        {r.like ? `좋아요 ${r.like}` : ''}{r.like && r.comment ? ' · ' : ''}{r.comment ? `댓글 ${r.comment}` : ''}
+                      </div>
+                    )}
+                    {/* 재료 pill */}
+                    <div className="custom-scrollbar pr-1" style={{ display: 'flex', flexWrap: 'nowrap', gap: 4, marginBottom: 4, overflowX: 'auto', maxWidth: '100%', scrollbarWidth: 'auto', alignItems: 'center', paddingBottom: 4 }}>
+                      {pills.map((ing: string) => {
+                        if (notMineSub.includes(ing)) {
+                          return (
+                            <span key={ing} className="bg-[#555] text-white rounded-full px-3 py-0.5 font-medium" style={{ fontSize: '10.4px', lineHeight: 1.3, whiteSpace: 'nowrap', height: 22, display: 'inline-flex', alignItems: 'center' }}>{ing}</span>
+                          );
+                        }
+                        const isMine = mySet.has(ing);
+                        return (
+                          <span key={ing} className={(isMine ? 'bg-[#FFD600] text-[#444]' : 'bg-[#D1D1D1] text-white') + ' rounded-full px-3 py-0.5 font-medium'} style={{ fontSize: '10.4px', lineHeight: 1.3, whiteSpace: 'nowrap', height: 22, display: 'inline-flex', alignItems: 'center' }}>{ing}</span>
+                        );
+                      })}
+                    </div>
+                    {/* 대체 가능 태그 */}
+                    <div className="mt-1 custom-scrollbar pr-1" style={{ display: 'flex', flexWrap: 'nowrap', gap: 4, overflowX: 'auto', maxWidth: '100%', alignItems: 'center', paddingBottom: 4 }}>
+                      <span className="bg-[#FFE066] text-[#444] rounded px-3 py-1 font-bold" style={{ fontSize: '12px', flex: '0 0 auto' }}>대체 가능 :</span>
+                      {substitutes.length > 0 ? (
+                        substitutes.map((sub: string, idx: number) => (
+                          <span key={sub} className="ml-2 font-semibold text-[#444]" style={{ fontSize: '12px', flex: '0 0 auto' }}>{sub}</span>
+                        ))
+                      ) : (
+                        <span className="ml-2 text-[12px] text-[#B0B0B0] font-normal" style={{ flex: '0 0 auto' }}>(내 냉장고에 대체 가능한 재료가 없습니다)</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
               );
             })}
           </div>
