@@ -166,43 +166,9 @@ const RecordedRecipeListPage = () => {
         }}
       >
         <RecipeSortBar
-          sortType={sortType}
-          onSortChange={setSortType}
-          sortOptions={[
-            { value: 'match', label: '재료매칭률순' },
-            { value: 'expiry', label: '유통기한 임박순' },
-            { value: 'like', label: '좋아요순' },
-            { value: 'comment', label: '댓글순' },
-            { value: 'latest', label: '최신순' },
-          ]}
-          onFilterClick={() => setFilterOpen(true)}
-        >
-          <button
-            className="h-6 border border-gray-300 rounded text-xs px-2 font-bold bg-white text-gray-700 min-w-[70px] hover:bg-gray-50 flex items-center"
-            onClick={() => setMatchRateModalOpen(true)}
-          >
-            재료 매칭도 설정
-          </button>
-          <button
-            className="h-6 border border-gray-300 rounded text-xs px-2 font-bold bg-white text-gray-700 min-w-[70px] hover:bg-gray-50 flex items-center"
-            onClick={() => setExpiryModalOpen(true)}
-          >
-            임박 재료 설정
-          </button>
-        </RecipeSortBar>
-        <div className="flex flex-col gap-2">
-          {sortedRecipes.map((recipe, idx) => (
-            <RecipeCard
-              key={recipe.id}
-              recipe={recipe}
-              index={idx}
-              actionState={recipeActionStates[recipe.id]}
-              onAction={action => handleRecipeAction(recipe.id, action)}
-              isLast={idx === sortedRecipes.length - 1}
-              myIngredients={myIngredients}
-            />
-          ))}
-        </div>
+          recipes={dummyRecordedRecipes}
+          myIngredients={myIngredients}
+        />
       </div>
       <BottomNavBar activeTab="mypage" />
       {toast && <RecipeToast message={toast} />}

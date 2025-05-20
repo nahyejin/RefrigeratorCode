@@ -147,22 +147,10 @@ const CompletedRecipeListPage = () => {
           paddingTop: 32,
         }}
       >
-        <div className="flex flex-col gap-2">
-          {dummyRecordedRecipes.map((recipe, idx) => {
-            const match = getMatchRate(myIngredients, recipe.used_ingredients || '');
-            return (
-              <RecipeCard
-                key={recipe.id}
-                recipe={{ ...recipe, match_rate: match.rate, my_ingredients: match.my_ingredients, need_ingredients: match.need_ingredients }}
-                index={idx}
-                actionState={recipeActionStates[recipe.id]}
-                onAction={action => handleRecipeAction(recipe.id, action)}
-                isLast={idx === dummyRecordedRecipes.length - 1}
-                myIngredients={myIngredients}
-              />
-            );
-          })}
-        </div>
+        <RecipeSortBar
+          recipes={dummyRecordedRecipes}
+          myIngredients={myIngredients}
+        />
       </div>
       <BottomNavBar activeTab="mypage" />
       {toast && <RecipeToast message={toast} />}

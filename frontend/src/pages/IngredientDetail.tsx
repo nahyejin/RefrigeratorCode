@@ -13,6 +13,8 @@ import writeBlackIcon from '../assets/write_black.svg';
 import RecipeCard from '../components/RecipeCard';
 import { Recipe, RecipeActionState } from '../types/recipe';
 import RecipeSortBar from '../components/RecipeSortBar';
+import TopNavBar from '../components/TopNavBar';
+import RecipeToast from '../components/RecipeToast';
 
 // 더미 fetch 함수 (RecipeList.tsx와 동일)
 function fetchRecipesDummy(name?: string): Promise<any[]> {
@@ -314,20 +316,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
 
   return (
     <>
-      <header className="w-full h-[56px] flex items-center justify-between px-5 bg-white sticky top-0 z-20">
-        <img src={logoImg} alt="냉털이 로고" className="h-4 w-auto" style={{ minWidth: 16 }} />
-        <div className="flex items-center gap-2">
-          <button
-            className="p-1 text-black bg-transparent border-none outline-none text-base"
-            aria-label="뒤로가기"
-            style={{ background: 'none', border: 'none', fontFamily: 'Segoe UI Symbol, Pretendard, Arial, sans-serif', color: '#000' }}
-            onClick={() => navigate(-1)}
-          >
-            ↩
-          </button>
-          <img src={searchIcon} alt="검색" className="h-4 w-4 mr-1 cursor-pointer" />
-        </div>
-      </header>
+      <TopNavBar />
       <div className="mx-auto pb-20 bg-white"
         style={{
           maxWidth: 400,
@@ -338,89 +327,14 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
           paddingTop: 32,
         }}
       >
-        <h2 className="text-lg font-bold mb-4 text-center" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-          {customTitle === '내가 기록한 레시피' ? (
-            <>
-              <img src={writeIcon} alt="기록 아이콘" style={{ width: 18, height: 18, marginRight: 4, marginBottom: 2, display: 'inline-block', verticalAlign: 'middle' }} />
-              내가 기록한 레시피
-            </>
-          ) : customTitle ? (
-            customTitle
-          ) : (
-            `${name} 관련 인기 레시피 TOP30`
-          )}
-        </h2>
         <RecipeSortBar
-          sortType={sortType}
-          onSortChange={setSortType}
-          sortOptions={[
-            { value: 'match', label: '재료매칭률순' },
-            { value: 'expiry', label: '유통기한 임박순' },
-            { value: 'like', label: '좋아요순' },
-            { value: 'comment', label: '댓글순' },
-            { value: 'latest', label: '최신순' },
-          ]}
-          onFilterClick={() => setFilterOpen(true)}
-        >
-          <button onClick={() => setMatchRateModalOpen(true)}>재료 매칭도 설정</button>
-          <button onClick={() => setExpiryModalOpen(true)}>임박 재료 설정</button>
-        </RecipeSortBar>
-        <div className="flex flex-col gap-2">
-          {sortedRecipes.slice(0, visibleCount).map((recipe: any, idx: number, arr: any[]) => {
-            const recipeCardData: Recipe = {
-              id: recipe.id,
-              thumbnail: recipe.thumbnail,
-              title: recipe.title,
-              match_rate: recipe.match_rate,
-              author: recipe.author,
-              date: recipe.date,
-              body: recipe.body,
-              used_ingredients: recipe.used_ingredients,
-              need_ingredients: recipe.need_ingredients,
-              my_ingredients: recipe.my_ingredients,
-              substitutes: recipe.substitutes,
-              link: recipe.link
-            };
-            return (
-              <RecipeCard
-                key={recipe.id}
-                recipe={recipeCardData}
-                index={idx}
-                actionState={buttonStates[recipe.id]}
-                onAction={action => handleRecipeAction(recipe.id, action)}
-                isLast={idx === visibleCount - 1}
-                myIngredients={myIngredients}
-                substituteTable={substituteTable}
-              />
-            );
-          })}
-        </div>
+          recipes={recipes}
+          myIngredients={myIngredients}
+          substituteTable={substituteTable}
+        />
       </div>
-      <BottomNavBar activeTab={customTitle === '내가 기록한 레시피' || customTitle === '내가 완료한 레시피' ? 'mypage' : 'popularity'} />
-      {toast && (
-        <div style={{
-          position: 'fixed',
-          bottom: 100,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          background: 'rgba(34,34,34,0.9)',
-          color: '#fff',
-          padding: '12px 24px',
-          borderRadius: 12,
-          fontWeight: 400,
-          fontSize: 15,
-          zIndex: 9999,
-          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-          maxWidth: 260,
-          width: 'max-content',
-          whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          textAlign: 'center',
-        }}>
-          {toast}
-        </div>
-      )}
+      <BottomNavBar activeTab="ingredient" />
+      {toast && <RecipeToast message={toast} />}
     </>
   );
 };
