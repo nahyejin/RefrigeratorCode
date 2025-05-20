@@ -23,6 +23,7 @@ export interface RecipeCardProps {
   isLast: boolean;
   myIngredients?: string[];
   substituteTable?: { [key: string]: SubstituteInfo };
+  hideIndexNumber?: boolean;
 }
 
 // 네이버 postfiles 등 외부 이미지 프록시 함수
@@ -34,7 +35,7 @@ function getProxiedImageUrl(url: string) {
   return url;
 }
 
-const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, actionState: propActionState, onAction, isLast, myIngredients = [], substituteTable = {} }) => {
+const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, actionState: propActionState, onAction, isLast, myIngredients = [], substituteTable = {}, hideIndexNumber = false }) => {
   const allIngredients = [
     ...(recipe.need_ingredients || []).map(ing => ({ ing, type: 'need' })),
     ...(recipe.my_ingredients || []).map(ing => ({ ing, type: 'have' })),
@@ -149,11 +150,13 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, actionState: pro
   return (
     <div
       className="bg-white rounded-[20px] shadow-sm min-h-[144px] relative p-4"
-      style={{ marginBottom: isLast ? 40 : 16 }}
+      style={{ marginBottom: isLast ? 40 : 16, maxWidth: 240, minWidth: 240 }}
     >
-      <div className="font-bold text-[18px] text-[#222] text-left">
-        {String(index + 1).padStart(2, '0')}
-      </div>
+      {!hideIndexNumber && (
+        <div className="font-bold text-[18px] text-[#222] text-left">
+          {String(index + 1).padStart(2, '0')}
+        </div>
+      )}
       <div className="h-[2px] w-[20px] bg-[#E5E5E5] mb-2"></div>
       
       <div className="flex flex-row items-center justify-between w-full min-w-[200px] flex-shrink-0">
