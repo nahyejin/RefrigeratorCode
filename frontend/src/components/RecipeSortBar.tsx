@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import RecipeCard from './RecipeCard';
 import FilterModal from './FilterModal';
 import Slider from 'rc-slider';
@@ -55,17 +55,19 @@ const RecipeSortBar = ({
   const [expiryModalOpen, setExpiryModalOpen] = useState<boolean>(false);
   const [selectedExpiryIngredients, setSelectedExpiryIngredients] = useState<string[]>([]);
 
-  // 필터링된 결과를 부모 컴포넌트에 전달
+  // 필터링된 결과를 useMemo로 캐싱
+  const filtered = useMemo(() => filterRecipes(recipes, {
+    sortType,
+    matchRange,
+    maxLack,
+    appliedExpiryIngredients,
+    myIngredients
+  }), [recipes, sortType, matchRange, maxLack, appliedExpiryIngredients, myIngredients]);
+
+  // 필터링 결과가 바뀔 때만 부모에 전달
   useEffect(() => {
-    const filtered = filterRecipes(recipes, {
-      sortType,
-      matchRange,
-      maxLack,
-      appliedExpiryIngredients,
-      myIngredients
-    });
     onFilteredRecipesChange(filtered);
-  }, [recipes, sortType, matchRange, maxLack, appliedExpiryIngredients, myIngredients]);
+  }, [filtered, onFilteredRecipesChange]);
 
   // 전체 재료 목록 fetch
   useEffect(() => {
@@ -254,4 +256,4 @@ const RecipeSortBar = ({
   );
 };
 
-export default RecipeSortBar; 
+export default RecipeSortBar;
