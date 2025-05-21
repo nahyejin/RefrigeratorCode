@@ -1,5 +1,5 @@
 import axios, { AxiosResponse } from 'axios';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import BottomNavBar from '../components/BottomNavBar';
 import { useNavigate } from 'react-router-dom';
 import TopNavBar from '../components/TopNavBar';
@@ -122,7 +122,7 @@ const RecipeList: React.FC = () => {
   const [selectedExpiryIngredients, setSelectedExpiryIngredients] = useState<string[]>([]);
   const [appliedExpiryIngredients, setAppliedExpiryIngredients] = useState<string[]>([]);
   
-  const myIngredients = getMyIngredients();
+  const myIngredients = useMemo(() => getMyIngredients(), []);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -181,9 +181,7 @@ const RecipeList: React.FC = () => {
   useEffect(() => {
     axios.get('http://127.0.0.1:5000/api/recipes')
       .then((res: AxiosResponse<any>) => {
-        console.log('API 응답 데이터:', res.data);
         res.data.forEach((recipe: any, idx: any) => {
-          console.log(`[API][${idx}] id:${recipe.id}, title:${recipe.title}, body:`, recipe.body, 'content:', recipe?.content, 'description:', recipe?.description);
         });
         setRecipes(res.data.filter(
           (recipe: any) =>
@@ -194,9 +192,7 @@ const RecipeList: React.FC = () => {
       })
       .catch((err: unknown) => {
         fetchRecipesDummy().then(data => {
-          console.log('더미 데이터:', data);
           data.forEach((recipe: any, idx: any) => {
-            console.log(`[더미][${idx}] id:${recipe.id}, title:${recipe.title}, body:`, recipe.body, 'content:', recipe?.content, 'description:', recipe?.description);
           });
           setRecipes(data.filter(
             (recipe: any) =>
@@ -214,7 +210,6 @@ const RecipeList: React.FC = () => {
         window.innerHeight + window.scrollY >= document.body.offsetHeight - 100 &&
         visibleCount < recipes.length
       ) {
-        console.log('Increasing visibleCount from', visibleCount, 'to', visibleCount + 10);
         setVisibleCount(prev => prev + 10);
       }
     };
@@ -246,8 +241,6 @@ const RecipeList: React.FC = () => {
     
     setTimeout(() => setToast(''), 1500);
   };
-
-  console.log('recipes 상태:', recipes);
 
   function getMyIngredientObjects() {
     try {
@@ -299,7 +292,6 @@ const RecipeList: React.FC = () => {
         <div className="flex flex-col gap-2 mt-4">
           {filteredRecipes.map((recipe, idx) => {
             if (idx < 10 && !recipe.body && !(recipe as any).content && !(recipe as any).description) {
-              console.log('본문 없음', { idx, title: recipe.title, id: recipe.id });
             }
             return (
               <div key={recipe.id} style={{ background: '#fff', borderRadius: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', padding: 0, display: 'flex', flexDirection: 'column', gap: 8, position: 'relative' }}>

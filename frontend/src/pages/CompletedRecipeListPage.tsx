@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import BottomNavBar from '../components/BottomNavBar';
 import TopNavBar from '../components/TopNavBar';
@@ -67,7 +67,7 @@ const CompletedRecipeListPage = () => {
   const [recipeActionStates, setRecipeActionStates] = useState<Record<number, RecipeActionState>>({});
   const [toast, setToast] = useState('');
   const navigate = useNavigate();
-  const myIngredients = getMyIngredients();
+  const myIngredients = useMemo(() => getMyIngredients(), []);
   const myIngredientObjects = getMyIngredientObjects();
   const [filterOpen, setFilterOpen] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState(initialFilterState);
@@ -124,22 +124,26 @@ const CompletedRecipeListPage = () => {
     setTimeout(() => setToast(''), 1500);
   };
 
-  const sortedRecipes = [...recipes].sort((a, b) => {
-    const matchA = a.match_rate ?? 0;
-    const matchB = b.match_rate ?? 0;
-    if (sortType === 'match') {
-      return matchB - matchA;
-    } else if (sortType === 'expiry') {
-      return new Date(b.date).getTime() - new Date(a.date).getTime();
-    } else if (sortType === 'like') {
-      return (b.likes ?? 0) - (a.likes ?? 0);
-    } else if (sortType === 'comment') {
-      return (b.comments ?? 0) - (a.comments ?? 0);
-    } else if (sortType === 'latest') {
-      return new Date(b.date).getTime() - new Date(a.date).getTime();
-    }
-    return 0;
-  });
+  const processedRecipes = useMemo(() => {
+    let arr = [...recipes];
+    arr.sort((a, b) => {
+      const matchA = a.match_rate ?? 0;
+      const matchB = b.match_rate ?? 0;
+      if (sortType === 'match') {
+        return matchB - matchA;
+      } else if (sortType === 'expiry') {
+        return new Date(b.date).getTime() - new Date(a.date).getTime();
+      } else if (sortType === 'like') {
+        return (b.likes ?? 0) - (a.likes ?? 0);
+      } else if (sortType === 'comment') {
+        return (b.comments ?? 0) - (a.comments ?? 0);
+      } else if (sortType === 'latest') {
+        return new Date(b.date).getTime() - new Date(a.date).getTime();
+      }
+      return 0;
+    });
+    return arr;
+  }, [recipes, sortType]);
 
   return (
     <>
@@ -155,7 +159,7 @@ const CompletedRecipeListPage = () => {
         }}
       >
         <RecipeSortBar
-          recipes={sortedRecipes}
+          recipes={processedRecipes}
           myIngredients={myIngredients}
           onFilteredRecipesChange={setFilteredRecipes}
           sortType={sortType}
@@ -177,7 +181,7 @@ const CompletedRecipeListPage = () => {
               index={index}
               actionState={recipeActionStates[recipe.id]}
               onAction={(action) => handleRecipeAction(recipe.id, action)}
-              isLast={index === sortedRecipes.length - 1}
+              isLast={index === processedRecipes.length - 1}
               myIngredients={myIngredients}
             />
           ))}

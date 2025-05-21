@@ -127,15 +127,5 @@ export function getIngredientPillInfo({
   const notMineSub = substituteTargets;
   const pills = [...notMineNotSub, ...notMineSub, ...mine];
 
-  // 디버깅을 위한 로그
-  console.log('[getIngredientPillInfo] 상태', {
-    needIngredients,
-    myIngredients,
-    mine,
-    notMineNotSub,
-    notMineSub,
-    substitutes
-  });
-
   return { pills, notMineNotSub, notMineSub, mine, substitutes };
 } 

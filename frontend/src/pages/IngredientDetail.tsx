@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import logoImg from '../assets/냉털이 로고 white.png';
 import searchIcon from '../assets/navigator_search.png';
@@ -165,7 +165,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
   const [expiryModalOpen, setExpiryModalOpen] = useState(false);
   const [filteredRecipes, setFilteredRecipes] = useState<any[]>([]);
 
-  const myIngredients = getMyIngredients();
+  const myIngredients = useMemo(() => getMyIngredients(), []);
   const myIngredientObjects = getMyIngredientObjects();
 
   useEffect(() => {
@@ -244,51 +244,43 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
   }, [visibleCount, recipes.length]);
 
   const findPossibleSubstitutes = (recipeIngredients: string, userIngredients: string[]): string[] => {
-    console.log('=== 대체 재료 찾기 시작 ===');
-    console.log('레시피 재료:', recipeIngredients);
-    console.log('사용자 재료:', userIngredients);
-    console.log('대체 테이블:', substituteTable);
-
     const recipeIngredientSet = new Set(recipeIngredients.split(',').map(i => i.trim()));
     const userIngredientSet = new Set(userIngredients.map(i => i.trim()));
 
     const substitutes: string[] = [];
 
     for (const recipeIngredient of recipeIngredientSet) {
-      console.log(`\n[${recipeIngredient}] 대체 정보 찾는 중...`);
       const substituteInfo = substituteTable[recipeIngredient];
-      console.log(`[${recipeIngredient}] 대체 정보:`, substituteInfo);
 
       if (substituteInfo) {
         const possibleSubstitute = substituteInfo.ingredient_b;
-        console.log(`[${recipeIngredient}] 가능한 대체재료:`, possibleSubstitute);
-        console.log(`[${recipeIngredient}] 사용자 재료에 있는지:`, userIngredientSet.has(possibleSubstitute));
 
         if (userIngredientSet.has(possibleSubstitute)) {
           substitutes.push(`${recipeIngredient} → ${possibleSubstitute}`);
-          console.log(`[${recipeIngredient}] 대체재료 추가됨:`, `${recipeIngredient} → ${possibleSubstitute}`);
         }
       }
     }
 
-    console.log('=== 최종 대체재료 목록 ===', substitutes);
     return substitutes.length > 0 ? substitutes : ['(내 냉장고에 대체 가능한 재료가 없습니다)'];
   };
 
-  let sortedRecipes = [...recipes].map(recipe => {
-    const match = getMatchRate(myIngredients, recipe.used_ingredients);
-    const substitutes = findPossibleSubstitutes(recipe.used_ingredients, myIngredients);
-    return { 
-      ...recipe, 
-      match_rate: match.rate, 
-      my_ingredients: match.my_ingredients, 
-      need_ingredients: match.need_ingredients,
-      substitutes: substitutes.length > 0 ? substitutes : ['(내 냉장고에 대체 가능한 재료가 없습니다)'],
-      link: recipe.link || `https://blog.naver.com/jjangda1105/${recipe.id}`
-    };
-  });
-  if (sortType === 'match') sortedRecipes.sort((a, b) => b.match_rate - a.match_rate);
-  else if (sortType === 'expiry') sortedRecipes.sort((a, b) => 0);
+  const processedRecipes = useMemo(() => {
+    let arr = [...recipes].map(recipe => {
+      const match = getMatchRate(myIngredients, recipe.used_ingredients);
+      const substitutes = findPossibleSubstitutes(recipe.used_ingredients, myIngredients);
+      return {
+        ...recipe,
+        match_rate: match.rate,
+        my_ingredients: match.my_ingredients,
+        need_ingredients: match.need_ingredients,
+        substitutes: substitutes.length > 0 ? substitutes : ['(내 냉장고에 대체 가능한 재료가 없습니다)'],
+        link: recipe.link || `https://blog.naver.com/jjangda1105/${recipe.id}`
+      };
+    });
+    if (sortType === 'match') arr.sort((a, b) => b.match_rate - a.match_rate);
+    else if (sortType === 'expiry') arr.sort((a, b) => 0);
+    return arr;
+  }, [recipes, myIngredients, sortType]);
 
   const handleRecipeAction = (recipeId: number, action: keyof RecipeActionState) => {
     setButtonStates(prev => {
@@ -329,7 +321,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
         }}
       >
         <RecipeSortBar
-          recipes={recipes}
+          recipes={processedRecipes}
           myIngredients={myIngredients}
           onFilteredRecipesChange={setFilteredRecipes}
           sortType={sortType}

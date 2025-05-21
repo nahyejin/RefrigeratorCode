@@ -13,8 +13,6 @@ const IngredientPillGroup: React.FC<IngredientPillGroupProps> = ({ needIngredien
   const normalize = (s: string) => (s || '').trim().toLowerCase();
   const mySet = new Set(myIngredients.map(normalize));
 
-  console.log('[IngredientPillGroup]', { needIngredients, myIngredients, substituteTable, pillInfo });
-
   return (
     <div style={style}>
       {/* 재료 pill */}

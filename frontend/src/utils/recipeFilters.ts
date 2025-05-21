@@ -36,18 +36,6 @@ export function filterRecipes(recipes: Recipe[], options: FilterOptions): Recipe
       );
     }
 
-    // 디버깅을 위한 로그
-    console.log('Recipe filtering:', {
-      title: recipe.title,
-      matchRate,
-      inMatchRange,
-      lackCount,
-      lackOk,
-      expiryOk,
-      used_ingredients: recipe.used_ingredients,
-      appliedExpiryIngredients
-    });
-
     return inMatchRange && lackOk && expiryOk;
   });
 } 
