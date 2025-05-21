@@ -81,6 +81,11 @@ const RecordedRecipeListPage = () => {
   const [includeKeyword, setIncludeKeyword] = useState('');
   const [matchRateModalOpen, setMatchRateModalOpen] = useState(false);
   const [expiryModalOpen, setExpiryModalOpen] = useState(false);
+  const [filteredRecipes, setFilteredRecipes] = useState<Recipe[]>([]);
+  const [matchRange, setMatchRange] = useState<[number, number]>([0, 100]);
+  const [maxLack, setMaxLack] = useState<number | 'unlimited'>('unlimited');
+  const [appliedExpiryIngredients, setAppliedExpiryIngredients] = useState<string[]>([]);
+  const [expirySortType, setExpirySortType] = useState<'expiry' | 'purchase'>('expiry');
 
   useEffect(() => {
     function load() {
@@ -155,10 +160,20 @@ const RecordedRecipeListPage = () => {
         <RecipeSortBar
           recipes={sortedRecipes}
           myIngredients={myIngredients}
-          substituteTable={{}}
+          onFilteredRecipesChange={setFilteredRecipes}
+          sortType={sortType}
+          setSortType={setSortType}
+          matchRange={matchRange}
+          setMatchRange={setMatchRange}
+          maxLack={maxLack}
+          setMaxLack={setMaxLack}
+          appliedExpiryIngredients={appliedExpiryIngredients}
+          setAppliedExpiryIngredients={setAppliedExpiryIngredients}
+          expirySortType={expirySortType}
+          setExpirySortType={setExpirySortType}
         />
         <div className="mt-4">
-          {sortedRecipes.map((recipe, index) => (
+          {filteredRecipes.map((recipe, index) => (
             <RecipeCard
               key={recipe.id}
               recipe={recipe}
@@ -167,7 +182,6 @@ const RecordedRecipeListPage = () => {
               onAction={(action) => handleRecipeAction(recipe.id, action)}
               isLast={index === sortedRecipes.length - 1}
               myIngredients={myIngredients}
-              substituteTable={{}}
             />
           ))}
         </div>

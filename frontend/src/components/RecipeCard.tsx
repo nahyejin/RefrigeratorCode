@@ -157,6 +157,10 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, actionState: pro
     }
   };
 
+  // 본문 통합 렌더링
+  const recipeAny = recipe as any;
+  const recipeBody = recipeAny.body || recipeAny.content || recipeAny.description || '';
+
   return (
     <div
       className="bg-white rounded-[20px] shadow-sm min-h-[144px] relative p-4"
@@ -278,10 +282,10 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, actionState: pro
             target="_blank"
             rel="noopener noreferrer"
             className="mb-2 max-h-16 overflow-y-auto pr-1 cursor-pointer custom-scrollbar text-[12px] text-[#444] hover:underline"
-            title={recipe.body}
+            title={recipeBody}
             style={{ display: 'block' }}
           >
-            {recipe.body}
+            {recipeBody}
           </a>
         </div>
       </div>

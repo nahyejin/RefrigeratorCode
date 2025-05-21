@@ -108,6 +108,7 @@ const RecipeList: React.FC = () => {
   const [excludeInput, setExcludeInput] = useState('');
   const [selectedTime, setSelectedTime] = useState('상관없음');
   const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [filteredRecipes, setFilteredRecipes] = useState<Recipe[]>([]);
   const [recipeActionStates, setRecipeActionStates] = useState<Record<number, RecipeActionState>>({});
   const [toast, setToast] = useState('');
   const [includeKeyword, setIncludeKeyword] = useState('');
@@ -178,18 +179,31 @@ const RecipeList: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    // Try to fetch from backend first
     axios.get('http://127.0.0.1:5000/api/recipes')
       .then((res: AxiosResponse<any>) => {
-        console.log('API Response length:', res.data.length);
-        setRecipes(res.data);
+        console.log('API 응답 데이터:', res.data);
+        res.data.forEach((recipe: any, idx: any) => {
+          console.log(`[API][${idx}] id:${recipe.id}, title:${recipe.title}, body:`, recipe.body, 'content:', recipe?.content, 'description:', recipe?.description);
+        });
+        setRecipes(res.data.filter(
+          (recipe: any) =>
+            !!(recipe.body && recipe.body.trim()) ||
+            !!(recipe.content && recipe.content.trim()) ||
+            !!(recipe.description && recipe.description.trim())
+        ));
       })
       .catch((err: unknown) => {
-        console.error('Backend fetch failed, using dummy data:', err);
-        // Fallback to dummy data
         fetchRecipesDummy().then(data => {
-          console.log('Dummy data length:', data.length);
-          setRecipes(data);
+          console.log('더미 데이터:', data);
+          data.forEach((recipe: any, idx: any) => {
+            console.log(`[더미][${idx}] id:${recipe.id}, title:${recipe.title}, body:`, recipe.body, 'content:', recipe?.content, 'description:', recipe?.description);
+          });
+          setRecipes(data.filter(
+            (recipe: any) =>
+              !!(recipe.body && recipe.body.trim()) ||
+              !!(recipe.content && recipe.content.trim()) ||
+              !!(recipe.description && recipe.description.trim())
+          ));
         });
       });
   }, []);
@@ -233,47 +247,7 @@ const RecipeList: React.FC = () => {
     setTimeout(() => setToast(''), 1500);
   };
 
-  // 매칭률/부족개수 필터 적용
-  const filteredRecipes = sortRecipes(recipes, sortType, myIngredients).filter(recipe => {
-    // 매칭률 필터
-    const matchRate = recipe.match_rate ?? 0;
-    const inMatchRange = matchRate >= matchRange[0] && matchRate <= matchRange[1];
-    // 부족 개수 필터
-    const lackCount = recipe.need_ingredients ? recipe.need_ingredients.length : 0;
-    let lackOk = true;
-    if (maxLack !== 'unlimited') {
-      if (maxLack === 5) {
-        lackOk = lackCount >= 5;
-      } else {
-        lackOk = lackCount <= maxLack;
-      }
-    }
-    // 임박재료 필터 (AND 조건: 선택된 모든 재료가 레시피에 포함되어야 함)
-    let expiryOk = true;
-    if (appliedExpiryIngredients.length > 0) {
-      expiryOk = appliedExpiryIngredients.every(ing => (recipe.used_ingredients || '').includes(ing));
-    }
-
-    // 디버깅을 위한 로그 추가
-    console.log('Recipe filtering:', {
-      title: recipe.title,
-      matchRate,
-      inMatchRange,
-      lackCount,
-      lackOk,
-      expiryOk,
-      used_ingredients: recipe.used_ingredients,
-      appliedExpiryIngredients
-    });
-
-    return inMatchRange && lackOk && expiryOk;
-  });
-
-  // 필터링된 레시피 수 로그
-  console.log('Filtered recipes count:', filteredRecipes.length);
-  console.log('Match range:', matchRange);
-  console.log('Max lack:', maxLack);
-  console.log('Applied expiry ingredients:', appliedExpiryIngredients);
+  console.log('recipes 상태:', recipes);
 
   function getMyIngredientObjects() {
     try {
@@ -307,17 +281,26 @@ const RecipeList: React.FC = () => {
       >
         <h2 className="text-lg font-bold mb-4 text-center">내 냉장고 기반 레시피 추천</h2>
         <RecipeSortBar
-          recipes={(recipes as any[]).map(recipe => ({
-            ...recipe,
-            body: recipe.content || recipe.body || '',
-            date: recipe.post_time ? formatDate(recipe.post_time) : (recipe.date || ''),
-          }))}
+          recipes={recipes}
           myIngredients={myIngredients}
-          substituteTable={substituteTable}
+          onFilteredRecipesChange={setFilteredRecipes}
+          sortType={sortType}
+          setSortType={setSortType}
+          matchRange={matchRange}
+          setMatchRange={setMatchRange}
+          maxLack={maxLack}
+          setMaxLack={setMaxLack}
+          appliedExpiryIngredients={appliedExpiryIngredients}
+          setAppliedExpiryIngredients={setAppliedExpiryIngredients}
+          expirySortType={expirySortType}
+          setExpirySortType={setExpirySortType}
         />
         {/* 레시피 리스트 */}
         <div className="flex flex-col gap-2 mt-4">
           {filteredRecipes.map((recipe, idx) => {
+            if (idx < 10 && !recipe.body && !(recipe as any).content && !(recipe as any).description) {
+              console.log('본문 없음', { idx, title: recipe.title, id: recipe.id });
+            }
             return (
               <div key={recipe.id} style={{ background: '#fff', borderRadius: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', padding: 0, display: 'flex', flexDirection: 'column', gap: 8, position: 'relative' }}>
                 <RecipeCard

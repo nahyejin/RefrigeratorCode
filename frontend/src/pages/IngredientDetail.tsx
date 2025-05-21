@@ -163,6 +163,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
   const [appliedExpiryIngredients, setAppliedExpiryIngredients] = useState<string[]>([]);
   const [matchRateModalOpen, setMatchRateModalOpen] = useState(false);
   const [expiryModalOpen, setExpiryModalOpen] = useState(false);
+  const [filteredRecipes, setFilteredRecipes] = useState<any[]>([]);
 
   const myIngredients = getMyIngredients();
   const myIngredientObjects = getMyIngredientObjects();
@@ -330,8 +331,32 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
         <RecipeSortBar
           recipes={recipes}
           myIngredients={myIngredients}
-          substituteTable={substituteTable}
+          onFilteredRecipesChange={setFilteredRecipes}
+          sortType={sortType}
+          setSortType={setSortType}
+          matchRange={matchRange}
+          setMatchRange={setMatchRange}
+          maxLack={maxLack}
+          setMaxLack={setMaxLack}
+          appliedExpiryIngredients={appliedExpiryIngredients}
+          setAppliedExpiryIngredients={setAppliedExpiryIngredients}
+          expirySortType={expirySortType}
+          setExpirySortType={setExpirySortType}
         />
+        <div className="mt-4">
+          {filteredRecipes.map((recipe, index) => (
+            <RecipeCard
+              key={recipe.id}
+              recipe={recipe}
+              index={index}
+              actionState={buttonStates[recipe.id]}
+              onAction={(action) => handleRecipeAction(recipe.id, action)}
+              isLast={index === filteredRecipes.length - 1}
+              myIngredients={myIngredients}
+              substituteTable={substituteTable}
+            />
+          ))}
+        </div>
       </div>
       <BottomNavBar activeTab="ingredient" />
       {toast && <RecipeToast message={toast} />}
