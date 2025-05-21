@@ -52,43 +52,6 @@ function getMatchRate(myIngredients: string[], recipeIngredients: string) {
   };
 }
 
-// Update dummy data variable name
-const dummyRecordedRecipes: Recipe[] = [
-  {
-    id: 1,
-    thumbnail: 'https://cdn.pixabay.com/photo/2016/03/05/19/02/hamburger-1238246_1280.jpg',
-    title: '요즘 틱톡에서 유행하는 초간단 안주레시피',
-    author: '홍길동',
-    date: '24-05-01',
-    body: '',
-    used_ingredients: '오징어,대파,고추,양파',
-    match_rate: 80,
-    link: 'https://example.com/recipe1',
-  },
-  {
-    id: 2,
-    thumbnail: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80',
-    title: '다이어트 김밥 만들기 오이김밥 레시피',
-    author: '홍길동',
-    date: '24-05-01',
-    body: '',
-    used_ingredients: '오이,김,밥,계란,당근',
-    match_rate: 90,
-    link: 'https://example.com/recipe2',
-  },
-  {
-    id: 3,
-    thumbnail: 'https://images.unsplash.com/photo-1502741338009-cac2772e18bc?auto=format&fit=crop&w=400&q=80',
-    title: '숙취해소로 최고의 황태해장국',
-    author: '홍길동',
-    date: '24-05-01',
-    body: '',
-    used_ingredients: '황태,무,대파,달걀,마늘',
-    match_rate: 75,
-    link: 'https://example.com/recipe3',
-  },
-];
-
 function getMyIngredientObjects() {
   try {
     const data = JSON.parse(localStorage.getItem('myfridge_ingredients') || 'null');
@@ -100,7 +63,7 @@ function getMyIngredientObjects() {
 }
 
 const CompletedRecipeListPage = () => {
-  const [recipes, setRecipes] = useState([]);
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [recipeActionStates, setRecipeActionStates] = useState<Record<number, RecipeActionState>>({});
   const [toast, setToast] = useState('');
   const navigate = useNavigate();
@@ -156,6 +119,23 @@ const CompletedRecipeListPage = () => {
     setTimeout(() => setToast(''), 1500);
   };
 
+  const sortedRecipes = [...recipes].sort((a, b) => {
+    const matchA = a.match_rate ?? 0;
+    const matchB = b.match_rate ?? 0;
+    if (sortType === 'match') {
+      return matchB - matchA;
+    } else if (sortType === 'expiry') {
+      return new Date(b.date).getTime() - new Date(a.date).getTime();
+    } else if (sortType === 'like') {
+      return (b.likes ?? 0) - (a.likes ?? 0);
+    } else if (sortType === 'comment') {
+      return (b.comments ?? 0) - (a.comments ?? 0);
+    } else if (sortType === 'latest') {
+      return new Date(b.date).getTime() - new Date(a.date).getTime();
+    }
+    return 0;
+  });
+
   return (
     <>
       <TopNavBar />
@@ -170,37 +150,27 @@ const CompletedRecipeListPage = () => {
         }}
       >
         <RecipeSortBar
-          recipes={recipes}
-          myIngredients={myIngredientObjects}
+          recipes={sortedRecipes}
+          myIngredients={myIngredients}
+          substituteTable={{}}
         />
+        <div className="mt-4">
+          {sortedRecipes.map((recipe, index) => (
+            <RecipeCard
+              key={recipe.id}
+              recipe={recipe}
+              index={index}
+              actionState={recipeActionStates[recipe.id]}
+              onAction={(action) => handleRecipeAction(recipe.id, action)}
+              isLast={index === sortedRecipes.length - 1}
+              myIngredients={myIngredients}
+              substituteTable={{}}
+            />
+          ))}
+        </div>
       </div>
       <BottomNavBar activeTab="mypage" />
       {toast && <RecipeToast message={toast} />}
-      <RecipeSortBar
-        sortType={sortType}
-        onSortChange={setSortType}
-        sortOptions={[
-          { value: 'match', label: '재료매칭률순' },
-          { value: 'expiry', label: '유통기한 임박순' },
-          { value: 'like', label: '좋아요순' },
-          { value: 'comment', label: '댓글순' },
-          { value: 'latest', label: '최신순' },
-        ]}
-        onFilterClick={() => setFilterOpen(true)}
-      >
-        <button
-          className="h-6 border border-gray-300 rounded text-xs px-2 font-bold bg-white text-gray-700 min-w-[70px] hover:bg-gray-50 flex items-center"
-          onClick={() => setMatchRateModalOpen(true)}
-        >
-          재료 매칭도 설정
-        </button>
-        <button
-          className="h-6 border border-gray-300 rounded text-xs px-2 font-bold bg-white text-gray-700 min-w-[70px] hover:bg-gray-50 flex items-center"
-          onClick={() => setExpiryModalOpen(true)}
-        >
-          임박 재료 설정
-        </button>
-      </RecipeSortBar>
       {filterOpen && (
         <FilterModal
           open={filterOpen}
