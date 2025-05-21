@@ -18,6 +18,7 @@ import RecipeToast from '../components/RecipeToast';
 import Slider from 'rc-slider';
 import 'rc-slider/assets/index.css';
 import RecipeSortBar from '../components/RecipeSortBar';
+import { getIngredientPillInfo } from '../utils/recipeUtils';
 
 const sortOptions = [
   { key: 'match', label: '재료매칭률' },
@@ -316,18 +317,83 @@ const RecipeList: React.FC = () => {
         />
         {/* 레시피 리스트 */}
         <div className="flex flex-col gap-2 mt-4">
-          {filteredRecipes.map((recipe, idx) => (
-            <RecipeCard
-              key={recipe.id}
-              recipe={recipe}
-              index={idx}
-              onAction={() => {}}
-              isLast={false}
-              actionState={undefined}
-              myIngredients={myIngredients}
-              substituteTable={substituteTable}
-            />
-          ))}
+          {filteredRecipes.map((recipe, idx) => {
+            const needIngredientsForPill = (recipe.used_ingredients || '').split(',').map((i) => (i ? i.trim() : '')).filter(Boolean);
+            const myIngredientsSafe = myIngredients.map(i =>
+              typeof i === 'string'
+                ? i
+                : (i && typeof i === 'object' && 'name' in i ? (i as any).name : '')
+            );
+            const pillInfo = getIngredientPillInfo({
+              needIngredients: needIngredientsForPill,
+              myIngredients: myIngredientsSafe,
+              substituteTable,
+            });
+            if (idx < 20) {
+              console.log({
+                idx,
+                title: recipe.title,
+                myIngredients: myIngredientsSafe,
+                needIngredientsForPill,
+                pillInfo
+              });
+            }
+            return (
+              <div key={recipe.id} style={{ background: '#fff', borderRadius: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', padding: 0, display: 'flex', flexDirection: 'column', gap: 8, position: 'relative' }}>
+                {/* 썸네일, 제목 등 기존 RecipeCard 내용은 필요에 따라 추가 */}
+                <RecipeCard
+                  recipe={recipe}
+                  index={idx}
+                  onAction={() => {}}
+                  isLast={false}
+                  actionState={undefined}
+                  myIngredients={myIngredients}
+                  substituteTable={substituteTable}
+                />
+                {/* 재료 pill 직접 렌더링 */}
+                <div className="custom-scrollbar pr-1" style={{ display: 'flex', flexWrap: 'nowrap', gap: 4, marginBottom: 4, overflowX: 'auto', maxWidth: '100%', scrollbarWidth: 'auto', alignItems: 'center', paddingBottom: 4 }}>
+                  {pillInfo.pills.map((ing) => {
+                    const normalize = (s: string) => (s || '').trim().toLowerCase();
+                    const mySet = new Set(myIngredients.map(normalize));
+                    const isMine = mySet.has(normalize(ing));
+                    if (idx < 1) {
+                      console.log({
+                        ing,
+                        normalizeIng: normalize(ing),
+                        myIngredients,
+                        myIngredientsNormalized: myIngredients.map(normalize),
+                        isMine
+                      });
+                    }
+                    if (isMine) {
+                      return (
+                        <span key={ing} className="bg-customYellow text-[#444] rounded-full px-3 py-0.5 font-medium text-[10.4px]">{ing}</span>
+                      );
+                    } else if (pillInfo.notMineSub.map(normalize).includes(normalize(ing))) {
+                      return (
+                        <span key={ing} className="bg-customDarkGray text-white rounded-full px-3 py-0.5 font-medium text-[10.4px]">{ing}</span>
+                      );
+                    } else {
+                      return (
+                        <span key={ing} className="bg-customGray text-white rounded-full px-3 py-0.5 font-medium text-[10.4px]">{ing}</span>
+                      );
+                    }
+                  })}
+                </div>
+                {/* 대체 가능 태그 */}
+                <div className="mt-1 custom-scrollbar pr-1" style={{ display: 'flex', flexWrap: 'nowrap', gap: 4, overflowX: 'auto', maxWidth: '100%', alignItems: 'center', paddingBottom: 4 }}>
+                  <span className="bg-[#FFE066] text-[#444] rounded px-3 py-1 font-bold" style={{ fontSize: '12px', flex: '0 0 auto' }}>대체 가능 :</span>
+                  {pillInfo.substitutes.length > 0 ? (
+                    pillInfo.substitutes.map((sub: any, idx: any) => (
+                      <span key={sub} className="ml-2 font-semibold text-[#444]" style={{ fontSize: '12px', flex: '0 0 auto' }}>{sub}</span>
+                    ))
+                  ) : (
+                    <span className="ml-2 text-[12px] text-[#B0B0B0] font-normal" style={{ flex: '0 0 auto' }}>(내 냉장고에 대체 가능한 재료가 없습니다)</span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
       <BottomNavBar activeTab="recipe" />

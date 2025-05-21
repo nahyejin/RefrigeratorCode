@@ -7,6 +7,7 @@ import doneBlackIcon from '../assets/done_black.svg';
 import shareBlackIcon from '../assets/share_black.svg';
 import writeBlackIcon from '../assets/write_black.svg';
 import { getUniversalIngredientPillInfo } from '../utils/ingredientPillUtils';
+import IngredientPillGroup from './IngredientPillGroup';
 
 interface SubstituteInfo {
   ingredient_a: string;
@@ -285,35 +286,11 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, actionState: pro
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-1 mb-1 max-h-9 overflow-y-auto custom-scrollbar pr-1">
-        {pills.map((ing) => {
-          if (ing === substituteTarget) {
-            return (
-              <span key={ing} className="bg-[#555] text-white rounded-full px-3 py-0.5 font-medium text-[10.4px]">{ing}</span>
-            );
-          }
-          if (ing === substituteTargetTo) {
-            return (
-              <span key={ing} className="bg-[#FFD600] text-[#444] rounded-full px-3 py-0.5 font-medium text-[10.4px]">{ing}</span>
-            );
-          }
-          // 기본: 연한 회색
-          return (
-            <span key={ing} className="bg-[#D1D1D1] text-white rounded-full px-3 py-0.5 font-medium text-[10.4px]">{ing}</span>
-          );
-        })}
-      </div>
-
-      <div className="mt-1 custom-scrollbar pr-1 flex flex-wrap items-start max-h-12 overflow-y-auto overflow-x-hidden gap-1 pb-1 w-full">
-        <span className="bg-[#555] text-white rounded px-3 py-1 font-medium text-[12px] flex-shrink-0" style={{ textShadow: '0 1px 1px rgba(0,0,0,0.08)' }}>
-          대체 가능 :
-        </span>
-        <span className="ml-2 text-[12px] text-[#B0B0B0] font-normal flex-1 min-w-0 break-all whitespace-normal">
-          {substitutes.length > 0
-            ? substitutes.join(', ')
-            : '(내 냉장고에 대체 가능한 재료가 없습니다)'}
-        </span>
-      </div>
+      <IngredientPillGroup
+        needIngredients={(recipe.used_ingredients || '').split(',').map((i: string) => (i ? i.trim() : '')).filter(Boolean)}
+        myIngredients={myIngredients}
+        substituteTable={substituteTable}
+      />
 
       {toast && (
         <div style={{

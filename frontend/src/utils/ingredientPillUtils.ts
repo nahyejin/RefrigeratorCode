@@ -31,14 +31,14 @@ export function getUniversalIngredientPillInfo({
   // 대체 가능한 재료 찾기
   needIngredients.forEach(needRaw => {
     const need = normalize(needRaw);
-    // 이미 내가 가진 재료는 건너뛰기
     if (mineSet.has(need)) return;
 
-    const substituteInfo = normalizedSubTable[need];
-    if (substituteInfo && mySet.has(substituteInfo.ingredient_b)) {
+    // substituteTable의 키를 normalize해서 접근
+    const originalKey = Object.keys(substituteTable).find(k => normalize(k) === need);
+    const substituteInfo = originalKey ? substituteTable[originalKey] : undefined;
+    if (substituteInfo && mySet.has(normalize(substituteInfo.ingredient_b))) {
       substituteTargets.push(needRaw);
-      const displaySub = substituteTable[needRaw]?.ingredient_b || substituteInfo.ingredient_b;
-      substitutes.push(`${needRaw}→${displaySub}`);
+      substitutes.push(`${needRaw}→${substituteInfo.ingredient_b}`);
     }
   });
 
@@ -54,5 +54,11 @@ export function getUniversalIngredientPillInfo({
   const notMineSub = substituteTargets;
   const pills = [...notMineNotSub, ...notMineSub, ...mine];
 
-  return { pills, notMineNotSub, notMineSub, mine, substitutes };
+  return {
+    mine,
+    notMineNotSub,
+    notMineSub,
+    substitutes,
+    pills: [...notMineNotSub, ...notMineSub, ...mine],
+  };
 } 

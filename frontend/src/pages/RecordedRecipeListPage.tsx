@@ -39,41 +39,7 @@ function parseIngredientNames(csv: string): string[] {
 }
 
 // Update dummy data to include 'link' property
-const dummyRecordedRecipes: Recipe[] = [
-  {
-    id: 1,
-    thumbnail: 'https://cdn.pixabay.com/photo/2016/03/05/19/02/hamburger-1238246_1280.jpg',
-    title: '요즘 틱톡에서 유행하는 초간단 안주레시피',
-    author: '홍길동',
-    date: '24-05-01',
-    body: '',
-    used_ingredients: '오징어,대파,고추,양파',
-    match_rate: 80,
-    link: 'https://example.com/recipe1',
-  },
-  {
-    id: 2,
-    thumbnail: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80',
-    title: '다이어트 김밥 만들기 오이김밥 레시피',
-    author: '홍길동',
-    date: '24-05-01',
-    body: '',
-    used_ingredients: '오이,김,밥,계란,당근',
-    match_rate: 90,
-    link: 'https://example.com/recipe2',
-  },
-  {
-    id: 3,
-    thumbnail: 'https://images.unsplash.com/photo-1502741338009-cac2772e18bc?auto=format&fit=crop&w=400&q=80',
-    title: '숙취해소로 최고의 황태해장국',
-    author: '홍길동',
-    date: '24-05-01',
-    body: '',
-    used_ingredients: '황태,무,대파,달걀,마늘',
-    match_rate: 75,
-    link: 'https://example.com/recipe3',
-  },
-];
+// const dummyRecordedRecipes: Recipe[] = [ ... ];
 
 // getMatchRate 함수 정의 (중복 방지 위해 컴포넌트 내에 정의)
 function getMatchRate(myIngredients: string[], recipeIngredients: string) {
@@ -100,7 +66,7 @@ function getMyIngredientObjects() {
 }
 
 const RecordedRecipeListPage = () => {
-  const [recipes, setRecipes] = useState([]);
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [recipeActionStates, setRecipeActionStates] = useState<Record<number, RecipeActionState>>({});
   const [toast, setToast] = useState('');
   const navigate = useNavigate();
@@ -156,8 +122,7 @@ const RecordedRecipeListPage = () => {
     setTimeout(() => setToast(''), 1500);
   };
 
-  const recipesWithLink = dummyRecordedRecipes.map(r => ({ ...r, link: r.link || '' }));
-  const sortedRecipes = [...recipesWithLink].sort((a, b) => {
+  const sortedRecipes = [...recipes].sort((a, b) => {
     const matchA = a.match_rate ?? 0;
     const matchB = b.match_rate ?? 0;
     if (sortType === 'match') {
@@ -165,9 +130,9 @@ const RecordedRecipeListPage = () => {
     } else if (sortType === 'expiry') {
       return new Date(b.date).getTime() - new Date(a.date).getTime();
     } else if (sortType === 'like') {
-      return matchB - matchA;
+      return (b.likes ?? 0) - (a.likes ?? 0);
     } else if (sortType === 'comment') {
-      return matchB - matchA;
+      return (b.comments ?? 0) - (a.comments ?? 0);
     } else if (sortType === 'latest') {
       return new Date(b.date).getTime() - new Date(a.date).getTime();
     }
@@ -188,9 +153,24 @@ const RecordedRecipeListPage = () => {
         }}
       >
         <RecipeSortBar
-          recipes={recipes}
-          myIngredients={myIngredientObjects}
+          recipes={sortedRecipes}
+          myIngredients={myIngredients}
+          substituteTable={{}}
         />
+        <div className="mt-4">
+          {sortedRecipes.map((recipe, index) => (
+            <RecipeCard
+              key={recipe.id}
+              recipe={recipe}
+              index={index}
+              actionState={recipeActionStates[recipe.id]}
+              onAction={(action) => handleRecipeAction(recipe.id, action)}
+              isLast={index === sortedRecipes.length - 1}
+              myIngredients={myIngredients}
+              substituteTable={{}}
+            />
+          ))}
+        </div>
       </div>
       <BottomNavBar activeTab="mypage" />
       {toast && <RecipeToast message={toast} />}
