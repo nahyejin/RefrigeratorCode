@@ -138,3 +138,43 @@ VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
 - 레시피에 '설탕'이 필요하지만 내 냉장고에 '알룰로스'가 있을 때, 사전에서 '설탕 → 알룰로스' 매칭을 찾아 대체 가능 재료로 추천합니다.
 - 추후 similarity_score, substitution_reason 등도 UI에 활용할 수 있습니다.
 
+## 📁 frontend/src/components/
+- **RecipeSortBar.tsx**: 레시피 필터/정렬 UI 및 로직(공통, 모든 레시피 리스트 페이지에서 사용)
+- **RecipeCard.tsx**: 레시피 카드 UI(공통, 레시피 리스트/상세 등에서 사용)
+- **IngredientPillGroup.tsx**: 재료 pill UI(공통, 레시피 카드 등에서 사용)
+- **FilterModal.tsx**: 필터 모달 UI(공통)
+- **RecipeToast.tsx / Toast.tsx**: 토스트 메시지 UI(공통)
+- **BottomNavBar.tsx / TopNavBar.tsx**: 하단/상단 네비게이션 바(공통)
+- **PrimaryButton.tsx / TextInput.tsx / NeangteolButton.tsx / NeangteolInput.tsx**: 공통 버튼/입력 UI
+- **TagPill.tsx / SortDropdown.tsx**: 태그 pill, 정렬 드롭다운 등 공통 UI
+- **IngredientDateModal.tsx / IngredientDetailModal.tsx**: 재료 관련 상세/날짜 모달(공통)
+- **MyFridge.tsx**: 내 냉장고 재료 관리 UI(공통)
+
+## 📁 frontend/src/pages/
+- **RecipeList.tsx**: "냉장고 요리" 메인 페이지(공통 필터/정렬/카드 구조)
+- **IngredientDetail.tsx**: "요즘 인기" 상세(재료/테마/키워드별 레시피 리스트, 공통 구조)
+- **RecordedRecipeListPage.tsx**: 마이페이지 - 내가 기록한 레시피(공통 구조)
+- **CompletedRecipeListPage.tsx**: 마이페이지 - 내가 완료한 레시피(공통 구조)
+- **Popular.tsx**: 인기 레시피/재료/테마 등 메인(특화)
+- **MyPage.tsx**: 마이페이지 메인(특화)
+- **RecipeDetail.tsx**: 레시피 상세 페이지(특화)
+- **MyFridge.tsx**: 내 냉장고 관리(특화)
+- **FridgeSelect.tsx / IngredientInput.tsx / Login.tsx**: 냉장고/재료/로그인 등 특화 페이지
+
+## 📁 frontend/src/utils/
+- **recipeFilters.ts**: 레시피 필터링 공통 함수(모든 페이지에서 사용)
+- **recipeUtils.ts**: 레시피 관련 유틸 함수(매칭률, 정렬 등)
+- **ingredientPillUtils.ts**: 재료 pill 분류/정규화 유틸
+- **dummyData.ts**: 더미 데이터(테스트/로컬 개발용)
+
+## 📌 특징 및 데이터 흐름
+- **RecipeSortBar, RecipeCard, filterRecipes 등 공통 컴포넌트/유틸**을 모든 레시피 리스트 페이지에서 사용
+- **필터/정렬/카드 UI/로직을 한 곳만 수정하면 전체 페이지에 반영**
+- **props/state로 데이터 흐름이 명확** (상위 페이지에서 상태 관리, 하위 컴포넌트에 전달)
+- **확장/리팩터링/협업에 용이** (구조가 일관적, 문서화로 빠른 파악 가능)
+
+---
+
+> 이 문서는 주요 파일/컴포넌트/유틸의 역할과 구조를 빠르게 파악할 수 있도록 정리한 개요입니다. 
+> 새로운 기능 추가, 리팩터링, 협업, AI 활용 등 모든 작업에서 참고용으로 활용하세요!
+

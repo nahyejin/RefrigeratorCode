@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
-import characterImg from '../assets/냉털이 캐릭터.png';
-import logoImg from '../assets/냉털이 로고.png';
+import logoWithCharacter from '../assets/냉털이로고및캐릭터.png';
 import googleLogo from '../assets/구글로고.png';
 import kakaoLogo from '../assets/카카오톡로고.png';
 import naverLogo from '../assets/네이버로고.png';
@@ -16,8 +15,13 @@ const Login: React.FC = () => {
       <div className="w-full max-w-[390px] flex flex-col items-center justify-center mx-auto py-6">
         {/* 상단 로고/캐릭터 */}
         <div className="flex flex-col items-center mb-8 mt-2">
-          <img src={characterImg} alt="냉털이 캐릭터" className="w-10 h-10 mb-1" />
-          <img src={logoImg} alt="냉털이 로고" className="w-[260px] mt-0" />
+          <img
+            src={logoWithCharacter}
+            alt="냉털이 로고 및 캐릭터"
+            className="mb-4"
+            style={{ width: '170px', height: 'auto', maxWidth: '100%' }}
+            draggable={false}
+          />
         </div>
         {/* 로그인 입력+버튼 세로배치 */}
         <div className="flex flex-col w-[260px] items-center gap-2 mb-3 mx-auto">
