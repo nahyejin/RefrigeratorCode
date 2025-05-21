@@ -3,6 +3,8 @@ import RecipeCard from './RecipeCard';
 import FilterModal from './FilterModal';
 import Slider from 'rc-slider';
 import 'rc-slider/assets/index.css';
+import { Recipe } from '../types/recipe';
+import { filterRecipes } from '../utils/recipeFilters';
 
 interface SubstituteInfo {
   ingredient_a: string;
@@ -12,30 +14,37 @@ interface SubstituteInfo {
   substitution_reason: string;
 }
 
-interface Recipe {
-  id: number;
-  title: string;
-  author: string;
-  date: string;
-  body: string;
-  thumbnail: string;
-  used_ingredients: string;
-  link: string;
-  likes?: number;
-  comments?: number;
-  substitutes?: string[];
-  match_rate?: number;
-  my_ingredients?: string[];
-  need_ingredients?: string[];
-}
-
 interface RecipeSortBarProps {
   recipes: Recipe[];
-  myIngredients?: string[];
-  substituteTable?: { [key: string]: SubstituteInfo };
+  myIngredients: string[];
+  onFilteredRecipesChange: (filtered: Recipe[]) => void;
+  sortType: string;
+  setSortType: (v: string) => void;
+  matchRange: [number, number];
+  setMatchRange: (v: [number, number]) => void;
+  maxLack: number | 'unlimited';
+  setMaxLack: (v: number | 'unlimited') => void;
+  appliedExpiryIngredients: string[];
+  setAppliedExpiryIngredients: (v: string[]) => void;
+  expirySortType: 'expiry' | 'purchase';
+  setExpirySortType: (v: 'expiry' | 'purchase') => void;
 }
 
-const RecipeSortBar = ({ recipes, myIngredients = [], substituteTable = {} }: RecipeSortBarProps) => {
+const RecipeSortBar = ({ 
+  recipes,
+  myIngredients,
+  onFilteredRecipesChange,
+  sortType, 
+  setSortType, 
+  matchRange, 
+  setMatchRange, 
+  maxLack, 
+  setMaxLack, 
+  appliedExpiryIngredients, 
+  setAppliedExpiryIngredients, 
+  expirySortType, 
+  setExpirySortType 
+}: RecipeSortBarProps) => {
   const [filterOpen, setFilterOpen] = useState<boolean>(false);
   const [selectedFilter, setSelectedFilter] = useState<any>({ 효능: [], 영양분: [], 대상: [], TPO: [], 스타일: [] });
   const [includeInput, setIncludeInput] = useState<string>('');
@@ -44,13 +53,19 @@ const RecipeSortBar = ({ recipes, myIngredients = [], substituteTable = {} }: Re
   const [includeKeyword, setIncludeKeyword] = useState<string>('');
   const [matchRateModalOpen, setMatchRateModalOpen] = useState<boolean>(false);
   const [expiryModalOpen, setExpiryModalOpen] = useState<boolean>(false);
-  const [matchRange, setMatchRange] = useState<[number, number]>([0, 100]);
-  const [maxLack, setMaxLack] = useState<'unlimited' | number>('unlimited');
-  const [expirySortType, setExpirySortType] = useState<'expiry'|'purchase'>('expiry');
   const [selectedExpiryIngredients, setSelectedExpiryIngredients] = useState<string[]>([]);
-  const [appliedExpiryIngredients, setAppliedExpiryIngredients] = useState<string[]>([]);
-  const [visibleCount, setVisibleCount] = useState<number>(10);
-  const [sortType, setSortType] = useState<string>('latest');
+
+  // 필터링된 결과를 부모 컴포넌트에 전달
+  useEffect(() => {
+    const filtered = filterRecipes(recipes, {
+      sortType,
+      matchRange,
+      maxLack,
+      appliedExpiryIngredients,
+      myIngredients
+    });
+    onFilteredRecipesChange(filtered);
+  }, [recipes, sortType, matchRange, maxLack, appliedExpiryIngredients, myIngredients]);
 
   // 전체 재료 목록 fetch
   useEffect(() => {
@@ -114,37 +129,6 @@ const RecipeSortBar = ({ recipes, myIngredients = [], substituteTable = {} }: Re
       need_ingredients: [...recipeSet].filter((i: string) => !mySet.has(i)),
     };
   }
-
-  // 필터 적용
-  let filteredRecipes = recipes
-    .map(recipe => {
-      const match = getMatchRate(myIngredients, recipe.used_ingredients || '');
-      return { ...recipe, match_rate: match.rate, my_ingredients: match.my_ingredients, need_ingredients: match.need_ingredients };
-    })
-    .filter(recipe => {
-      const matchRate = Number(recipe.match_rate ?? 0);
-      const inMatchRange = matchRate >= matchRange[0] && matchRate <= matchRange[1];
-      const lackCount = recipe.need_ingredients ? recipe.need_ingredients.length : 0;
-      let lackOk = true;
-      if (maxLack !== 'unlimited') {
-        if (maxLack === 5) {
-          lackOk = lackCount >= 5;
-        } else {
-          lackOk = lackCount <= maxLack;
-        }
-      }
-      let expiryOk = true;
-      if (appliedExpiryIngredients.length > 0) {
-        expiryOk = appliedExpiryIngredients.every(ing => (recipe.used_ingredients || '').includes(ing));
-      }
-      return inMatchRange && lackOk && expiryOk;
-    });
-
-  // 정렬
-  if (sortType === 'latest') filteredRecipes.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-  else if (sortType === 'comment') filteredRecipes.sort((a, b) => (b.comments || 0) - (a.comments || 0));
-  else if (sortType === 'like') filteredRecipes.sort((a, b) => (b.likes || 0) - (a.likes || 0));
-  else if (sortType === 'match') filteredRecipes.sort((a, b) => (b.match_rate || 0) - (a.match_rate || 0));
 
   return (
     <>
@@ -266,33 +250,6 @@ const RecipeSortBar = ({ recipes, myIngredients = [], substituteTable = {} }: Re
           setIncludeKeyword={setIncludeKeyword}
         />
       )}
-      {/* 레시피 리스트 */}
-      <div className="flex flex-col gap-2">
-        {filteredRecipes.map((recipe, idx) => {
-          // 진단용 로그 추가
-          const substituteTableSample = Object.keys(substituteTable).length > 0
-            ? Object.keys(substituteTable).slice(0, 5).reduce((acc: any, key) => { acc[key] = (substituteTable as any)[key]; return acc; }, {})
-            : {};
-          console.log('[RecipeSortBar] RecipeCard props:', {
-            recipeId: recipe.id,
-            myIngredients,
-            substituteTable,
-            substituteTableSample
-          });
-          return (
-            <RecipeCard
-              key={recipe.id}
-              recipe={recipe}
-              index={idx}
-              onAction={() => {}}
-              isLast={false}
-              actionState={undefined}
-              myIngredients={myIngredients}
-              substituteTable={substituteTable}
-            />
-          );
-        })}
-      </div>
     </>
   );
 };
