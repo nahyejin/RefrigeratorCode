@@ -298,25 +298,41 @@ const RecipeList: React.FC = () => {
             setTimeout(() => setToast(''), 3000);
           }}
         />
-        {/* 레시피 리스트 */}
-        <div className="flex flex-col gap-2 mt-4">
-          {filteredRecipes.map((recipe, idx) => {
-            if (idx < 10 && !recipe.body && !(recipe as any).content && !(recipe as any).description) {
-            }
-            return (
-              <div key={recipe.id} style={{ background: '#fff', borderRadius: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', padding: 0, display: 'flex', flexDirection: 'column', gap: 8, position: 'relative' }}>
-                <RecipeCard
-                  recipe={recipe}
-                  index={idx}
-                  onAction={() => {}}
-                  isLast={false}
-                  actionState={undefined}
-                  myIngredients={myIngredients}
-                  substituteTable={substituteTable}
-                />
-              </div>
-            );
-          })}
+        {/* 재료 pill 범례와 카드 리스트를 같은 부모 div 안에 배치 */}
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, marginTop: 8, justifyContent: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <span style={{ width: 24, height: 14, borderRadius: 7, background: '#D1D1D1', display: 'inline-block', marginRight: 2 }}></span>
+              <span style={{ color: '#222', fontSize: '10.4px', minWidth: 30 }}>부족 재료</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <span style={{ width: 24, height: 14, borderRadius: 7, background: '#555', display: 'inline-block', marginRight: 2 }}></span>
+              <span style={{ color: '#222', fontSize: '10.4px', minWidth: 30 }}>대체 가능</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <span style={{ width: 24, height: 14, borderRadius: 7, background: '#FFD600', display: 'inline-block', marginRight: 2 }}></span>
+              <span style={{ color: '#222', fontSize: '10.4px', minWidth: 30 }}>보유 재료</span>
+            </div>
+          </div>
+          <div className="flex flex-col gap-2">
+            {filteredRecipes.map((recipe, idx) => {
+              if (idx < 10 && !recipe.body && !(recipe as any).content && !(recipe as any).description) {
+              }
+              return (
+                <div key={recipe.id} style={{ background: '#fff', borderRadius: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', padding: 0, display: 'flex', flexDirection: 'column', gap: 8, position: 'relative' }}>
+                  <RecipeCard
+                    recipe={recipe}
+                    index={idx}
+                    onAction={() => {}}
+                    isLast={false}
+                    actionState={undefined}
+                    myIngredients={myIngredients}
+                    substituteTable={substituteTable}
+                  />
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
       <BottomNavBar activeTab="recipe" />

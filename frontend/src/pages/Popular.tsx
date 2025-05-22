@@ -338,6 +338,21 @@ const Popular = () => {
             <h2 className="text-[16px] font-bold text-[#111] mb-2"><span className="mr-1">🏆</span>전체 인기 레시피</h2>
             <div style={{height: 2, width: '100%', background: '#E5E5E5', marginBottom: 16}} />
           </div>
+          {/* 범례: 가로형 레시피 카드 위, 왼쪽 정렬 */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, marginTop: 0, justifyContent: 'flex-start' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <span style={{ width: 24, height: 14, borderRadius: 7, background: '#D1D1D1', display: 'inline-block', marginRight: 2 }}></span>
+              <span style={{ color: '#222', fontSize: '10.4px', minWidth: 30 }}>부족 재료</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <span style={{ width: 24, height: 14, borderRadius: 7, background: '#555', display: 'inline-block', marginRight: 2 }}></span>
+              <span style={{ color: '#222', fontSize: '10.4px', minWidth: 30 }}>대체 가능</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <span style={{ width: 24, height: 14, borderRadius: 7, background: '#FFD600', display: 'inline-block', marginRight: 2 }}></span>
+              <span style={{ color: '#222', fontSize: '10.4px', minWidth: 30 }}>보유 재료</span>
+            </div>
+          </div>
           <div style={{display: 'flex', overflowX: 'auto', gap: 16, paddingBottom: 8}}>
             {dummyRecipes.map((recipe, idx) => {
               // substitutes 배열을 substituteTable 객체로 변환
