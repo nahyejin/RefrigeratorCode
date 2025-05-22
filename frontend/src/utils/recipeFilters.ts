@@ -1,5 +1,6 @@
 import { Recipe } from '../types/recipe';
 import { sortRecipes } from './recipeUtils';
+import { calculateMatchRate } from './recipeUtils';
 
 interface FilterOptions {
   sortType: string;
@@ -12,7 +13,18 @@ interface FilterOptions {
 export function filterRecipes(recipes: Recipe[], options: FilterOptions): Recipe[] {
   const { sortType, matchRange, maxLack, appliedExpiryIngredients, myIngredients } = options;
 
-  return sortRecipes(recipes, sortType, myIngredients).filter(recipe => {
+  // 각 레시피에 match_rate, my_ingredients, need_ingredients 추가
+  const recipesWithMatch = recipes.map(recipe => {
+    const match = calculateMatchRate(myIngredients, recipe.used_ingredients || '');
+    return {
+      ...recipe,
+      match_rate: match.rate,
+      my_ingredients: match.my_ingredients,
+      need_ingredients: match.need_ingredients,
+    };
+  });
+
+  return sortRecipes(recipesWithMatch, sortType, myIngredients, appliedExpiryIngredients).filter(recipe => {
     // 매칭률 필터
     const matchRate = recipe.match_rate ?? 0;
     const inMatchRange = matchRate >= matchRange[0] && matchRate <= matchRange[1];

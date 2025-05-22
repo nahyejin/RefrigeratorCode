@@ -79,7 +79,7 @@ const CompletedRecipeListPage = () => {
   const [matchRateModalOpen, setMatchRateModalOpen] = useState(false);
   const [expiryModalOpen, setExpiryModalOpen] = useState(false);
   const [filteredRecipes, setFilteredRecipes] = useState<Recipe[]>([]);
-  const [matchRange, setMatchRange] = useState<[number, number]>([0, 100]);
+  const [matchRange, setMatchRange] = useState<[number, number]>([30, 100]);
   const [maxLack, setMaxLack] = useState<number | 'unlimited'>('unlimited');
   const [appliedExpiryIngredients, setAppliedExpiryIngredients] = useState<string[]>([]);
   const [expirySortType, setExpirySortType] = useState<'expiry' | 'purchase'>('expiry');
