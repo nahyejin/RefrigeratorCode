@@ -183,12 +183,18 @@ const RecipeList: React.FC = () => {
       .then((res: AxiosResponse<any>) => {
         res.data.forEach((recipe: any, idx: any) => {
         });
-        setRecipes(res.data.filter(
-          (recipe: any) =>
-            !!(recipe.body && recipe.body.trim()) ||
-            !!(recipe.content && recipe.content.trim()) ||
-            !!(recipe.description && recipe.description.trim())
-        ));
+        setRecipes(res.data
+          .filter(
+            (recipe: any) =>
+              !!(recipe.body && recipe.body.trim()) ||
+              !!(recipe.content && recipe.content.trim()) ||
+              !!(recipe.description && recipe.description.trim())
+          )
+          .map((recipe: any) => ({
+            ...recipe,
+            date: formatDate(recipe.post_time || recipe.date || ''),
+          }))
+        );
       })
       .catch((err: unknown) => {
         fetchRecipesDummy().then(data => {

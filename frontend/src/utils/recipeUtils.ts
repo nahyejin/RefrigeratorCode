@@ -40,10 +40,18 @@ export function sortRecipes(recipes: Recipe[], sortType: string, myIngredients: 
       sorted.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       break;
     case 'like':
-      sorted.sort((a, b) => (b.like_count || 0) - (a.like_count || 0));
+      sorted.sort((a, b) => {
+        const aLike = a.like_count ?? a.likes ?? a.like ?? 0;
+        const bLike = b.like_count ?? b.likes ?? b.like ?? 0;
+        return bLike - aLike;
+      });
       break;
     case 'comment':
-      sorted.sort((a, b) => (b.comment_count || 0) - (a.comment_count || 0));
+      sorted.sort((a, b) => {
+        const aComment = a.comment_count ?? a.comments ?? a.comment ?? 0;
+        const bComment = b.comment_count ?? b.comments ?? b.comment ?? 0;
+        return bComment - aComment;
+      });
       break;
     case 'match':
       sorted.sort((a, b) => (b.match_rate || 0) - (a.match_rate || 0));
