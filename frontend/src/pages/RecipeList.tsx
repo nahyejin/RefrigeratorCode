@@ -13,7 +13,7 @@ import FilterModal from '../components/FilterModal';
 import { fetchRecipesDummy } from '../utils/dummyData';
 import RecipeCard from '../components/RecipeCard';
 import { Recipe, RecipeActionState, FilterState, SubstituteInfo } from '../types/recipe';
-import { getMyIngredients, sortRecipes } from '../utils/recipeUtils';
+import { getMyIngredients, sortRecipes, calculateMatchRate } from '../utils/recipeUtils';
 import RecipeToast from '../components/RecipeToast';
 import Slider from 'rc-slider';
 import 'rc-slider/assets/index.css';
@@ -108,7 +108,7 @@ const RecipeList: React.FC = () => {
   const [excludeInput, setExcludeInput] = useState('');
   const [selectedTime, setSelectedTime] = useState('상관없음');
   const [recipes, setRecipes] = useState<Recipe[]>([]);
-  const [filteredRecipes, setFilteredRecipes] = useState<Recipe[]>([]);
+  const [filteredRecipes, setFilteredRecipes] = useState<any[]>([]);
   const [recipeActionStates, setRecipeActionStates] = useState<Record<number, RecipeActionState>>({});
   const [toast, setToast] = useState('');
   const [includeKeyword, setIncludeKeyword] = useState('');
@@ -276,7 +276,24 @@ const RecipeList: React.FC = () => {
         <RecipeSortBar
           recipes={recipes}
           myIngredients={myIngredients}
-          onFilteredRecipesChange={setFilteredRecipes}
+          onFilteredRecipesChange={filtered => {
+            setFilteredRecipes(prev => {
+              const next = filtered.map(recipe => {
+                const match = calculateMatchRate(myIngredients, recipe.used_ingredients || '');
+                return {
+                  ...recipe,
+                  match_rate: match.rate,
+                  my_ingredients: match.my_ingredients,
+                  need_ingredients: match.need_ingredients,
+                  created_at: recipe.created_at || recipe.date || '',
+                  like_count: recipe.like_count ?? recipe.likes ?? recipe['like'] ?? 0,
+                  comment_count: recipe.comment_count ?? recipe.comments ?? recipe['comment'] ?? 0,
+                } as Recipe;
+              });
+              if (JSON.stringify(prev) === JSON.stringify(next)) return prev;
+              return next;
+            });
+          }}
           sortType={sortType}
           setSortType={setSortType}
           matchRange={matchRange}
@@ -287,6 +304,10 @@ const RecipeList: React.FC = () => {
           setAppliedExpiryIngredients={setAppliedExpiryIngredients}
           expirySortType={expirySortType}
           setExpirySortType={setExpirySortType}
+          onToast={msg => {
+            setToast(msg);
+            setTimeout(() => setToast(''), 3000);
+          }}
         />
         {/* 레시피 리스트 */}
         <div className="flex flex-col gap-2 mt-4">

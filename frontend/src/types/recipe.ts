@@ -13,6 +13,9 @@ export interface Recipe {
   match_rate?: number;
   my_ingredients?: string[];
   need_ingredients?: string[];
+  created_at: string;
+  like_count: number;
+  comment_count: number;
 }
 
 export interface SubstituteInfo {

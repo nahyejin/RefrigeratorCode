@@ -31,7 +31,7 @@ export function filterRecipes(recipes: Recipe[], options: FilterOptions): Recipe
     // 임박재료 필터
     let expiryOk = true;
     if (appliedExpiryIngredients.length > 0) {
-      expiryOk = appliedExpiryIngredients.every(ing => 
+      expiryOk = appliedExpiryIngredients.some(ing => 
         (recipe.used_ingredients || '').includes(ing)
       );
     }
