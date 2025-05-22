@@ -156,7 +156,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
   const [buttonStates, setButtonStates] = useState<{ [id: number]: RecipeActionState }>({});
   const [toast, setToast] = useState('');
   const [includeKeyword, setIncludeKeyword] = useState('');
-  const [matchRange, setMatchRange] = useState<[number, number]>([40, 90]);
+  const [matchRange, setMatchRange] = useState<[number, number]>([30, 100]);
   const [maxLack, setMaxLack] = useState<number | 'unlimited'>('unlimited');
   const [expirySortType, setExpirySortType] = useState<'expiry'|'purchase'>('expiry');
   const [selectedExpiryIngredients, setSelectedExpiryIngredients] = useState<string[]>([]);

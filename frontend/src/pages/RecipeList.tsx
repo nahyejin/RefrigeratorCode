@@ -116,7 +116,7 @@ const RecipeList: React.FC = () => {
   const [substituteTable, setSubstituteTable] = useState<{ [key: string]: SubstituteInfo }>({});
   const [matchRateModalOpen, setMatchRateModalOpen] = useState(false);
   const [expiryModalOpen, setExpiryModalOpen] = useState(false);
-  const [matchRange, setMatchRange] = useState<[number, number]>([0, 100]);
+  const [matchRange, setMatchRange] = useState<[number, number]>([30, 100]);
   const [maxLack, setMaxLack] = useState<number | 'unlimited'>('unlimited');
   const [expirySortType, setExpirySortType] = useState<'expiry'|'purchase'>('expiry');
   const [selectedExpiryIngredients, setSelectedExpiryIngredients] = useState<string[]>([]);
@@ -276,24 +276,7 @@ const RecipeList: React.FC = () => {
         <RecipeSortBar
           recipes={recipes}
           myIngredients={myIngredients}
-          onFilteredRecipesChange={filtered => {
-            setFilteredRecipes(prev => {
-              const next = filtered.map(recipe => {
-                const match = calculateMatchRate(myIngredients, recipe.used_ingredients || '');
-                return {
-                  ...recipe,
-                  match_rate: match.rate,
-                  my_ingredients: match.my_ingredients,
-                  need_ingredients: match.need_ingredients,
-                  created_at: recipe.created_at || recipe.date || '',
-                  like_count: recipe.like_count ?? recipe.likes ?? recipe['like'] ?? 0,
-                  comment_count: recipe.comment_count ?? recipe.comments ?? recipe['comment'] ?? 0,
-                } as Recipe;
-              });
-              if (JSON.stringify(prev) === JSON.stringify(next)) return prev;
-              return next;
-            });
-          }}
+          onFilteredRecipesChange={setFilteredRecipes}
           sortType={sortType}
           setSortType={setSortType}
           matchRange={matchRange}
