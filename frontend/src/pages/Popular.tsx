@@ -420,7 +420,7 @@ const Popular = () => {
                   </div>
                 </div>
                 <div style={{padding: '16px 16px 12px 16px'}}>
-                  <div style={{fontWeight: 700, fontSize: 16, marginBottom: 4}}>{recipe.title}</div>
+                  <div style={{fontWeight: 700, fontSize: 15, marginBottom: 4}}>{recipe.title}</div>
                   <div style={{fontSize: 13, color: '#888', marginBottom: 4}}>좋아요 {recipe.like} · 댓글 {recipe.comment}</div>
                     {/* 재료 pill */}
                     <IngredientPillGroup
