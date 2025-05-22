@@ -8,10 +8,11 @@ interface FilterOptions {
   maxLack: number | 'unlimited';
   appliedExpiryIngredients: string[];
   myIngredients: string[];
+  expiryIngredientMode?: 'and' | 'or';
 }
 
 export function filterRecipes(recipes: Recipe[], options: FilterOptions): Recipe[] {
-  const { sortType, matchRange, maxLack, appliedExpiryIngredients, myIngredients } = options;
+  const { sortType, matchRange, maxLack, appliedExpiryIngredients, myIngredients, expiryIngredientMode = 'or' } = options;
 
   // 각 레시피에 match_rate, my_ingredients, need_ingredients 추가
   const recipesWithMatch = recipes.map(recipe => {
@@ -43,9 +44,12 @@ export function filterRecipes(recipes: Recipe[], options: FilterOptions): Recipe
     // 임박재료 필터
     let expiryOk = true;
     if (appliedExpiryIngredients.length > 0) {
-      expiryOk = appliedExpiryIngredients.some(ing => 
-        (recipe.used_ingredients || '').includes(ing)
-      );
+      const recipeIngredients = (recipe.used_ingredients || '').split(',').map(i => i.trim());
+      if (expiryIngredientMode === 'and') {
+        expiryOk = appliedExpiryIngredients.every(ing => recipeIngredients.includes(ing));
+      } else {
+        expiryOk = appliedExpiryIngredients.some(ing => recipeIngredients.includes(ing));
+      }
     }
 
     return inMatchRange && lackOk && expiryOk;
