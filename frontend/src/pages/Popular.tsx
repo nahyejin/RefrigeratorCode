@@ -224,6 +224,34 @@ const Popular = () => {
   const sortedIngredients = [...dummyIngredients].sort((a, b) => b.rate - a.rate);
   const sortedThemes = [...dummyThemes].sort((a, b) => b.rate - a.rate);
 
+  const [sortType, setSortType] = useState('match');
+  const [matchRange, setMatchRange] = useState<[number, number]>([30, 100]);
+  const [maxLack, setMaxLack] = useState<number | 'unlimited'>('unlimited');
+  const [appliedExpiryIngredients, setAppliedExpiryIngredients] = useState<string[]>([]);
+  const [expirySortType, setExpirySortType] = useState<'expiry'|'purchase'>('expiry');
+
+  // Restore sort/filter state from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('recipe_sortbar_state_popular');
+    if (saved) {
+      try {
+        const state = JSON.parse(saved);
+        if (state.sortType) setSortType(state.sortType);
+        if (state.matchRange) setMatchRange(state.matchRange);
+        if (state.maxLack !== undefined) setMaxLack(state.maxLack);
+        if (state.appliedExpiryIngredients) setAppliedExpiryIngredients(state.appliedExpiryIngredients);
+        if (state.expirySortType) setExpirySortType(state.expirySortType);
+      } catch {}
+    }
+  }, []);
+
+  // Save sort/filter state to localStorage on change
+  useEffect(() => {
+    localStorage.setItem('recipe_sortbar_state_popular', JSON.stringify({
+      sortType, matchRange, maxLack, appliedExpiryIngredients, expirySortType
+    }));
+  }, [sortType, matchRange, maxLack, appliedExpiryIngredients, expirySortType]);
+
   return (
     <>
       <TopNavBar />

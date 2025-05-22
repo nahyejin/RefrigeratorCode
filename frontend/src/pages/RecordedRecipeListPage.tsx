@@ -105,6 +105,28 @@ const RecordedRecipeListPage = () => {
       });
   }, []);
 
+  // Restore sort/filter state from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('recipe_sortbar_state_recorded');
+    if (saved) {
+      try {
+        const state = JSON.parse(saved);
+        if (state.sortType) setSortType(state.sortType);
+        if (state.matchRange) setMatchRange(state.matchRange);
+        if (state.maxLack !== undefined) setMaxLack(state.maxLack);
+        if (state.appliedExpiryIngredients) setAppliedExpiryIngredients(state.appliedExpiryIngredients);
+        if (state.expirySortType) setExpirySortType(state.expirySortType);
+      } catch {}
+    }
+  }, []);
+
+  // Save sort/filter state to localStorage on change
+  useEffect(() => {
+    localStorage.setItem('recipe_sortbar_state_recorded', JSON.stringify({
+      sortType, matchRange, maxLack, appliedExpiryIngredients, expirySortType
+    }));
+  }, [sortType, matchRange, maxLack, appliedExpiryIngredients, expirySortType]);
+
   const handleRecipeAction = (recipeId: number, action: keyof RecipeActionState) => {
     const prevState = recipeActionStates[recipeId] || { done: false, share: false, write: false };
     const isActive = prevState[action];
@@ -161,6 +183,7 @@ const RecordedRecipeListPage = () => {
           paddingTop: 32,
         }}
       >
+        <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 18, textAlign: 'center' }}>내가 기록한 레시피</div>
         <RecipeSortBar
           recipes={processedRecipes}
           myIngredients={myIngredients}

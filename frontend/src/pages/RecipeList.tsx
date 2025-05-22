@@ -1,7 +1,7 @@
 import axios, { AxiosResponse } from 'axios';
 import React, { useState, useEffect, useMemo } from 'react';
 import BottomNavBar from '../components/BottomNavBar';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import TopNavBar from '../components/TopNavBar';
 import doneIcon from '../assets/done.svg';
 import shareIcon from '../assets/share.svg';
@@ -107,7 +107,7 @@ const RecipeList: React.FC = () => {
   const [includeInput, setIncludeInput] = useState('');
   const [excludeInput, setExcludeInput] = useState('');
   const [selectedTime, setSelectedTime] = useState('상관없음');
-  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [recipes, setRecipes] = useState<any[]>([]);
   const [filteredRecipes, setFilteredRecipes] = useState<any[]>([]);
   const [recipeActionStates, setRecipeActionStates] = useState<Record<number, RecipeActionState>>({});
   const [toast, setToast] = useState('');
@@ -124,6 +124,29 @@ const RecipeList: React.FC = () => {
   
   const myIngredients = useMemo(() => getMyIngredients(), []);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Restore sort/filter state from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('recipe_sortbar_state_fridge');
+    if (saved) {
+      try {
+        const state = JSON.parse(saved);
+        if (state.sortType) setSortType(state.sortType);
+        if (state.matchRange) setMatchRange(state.matchRange);
+        if (state.maxLack !== undefined) setMaxLack(state.maxLack);
+        if (state.appliedExpiryIngredients) setAppliedExpiryIngredients(state.appliedExpiryIngredients);
+        if (state.expirySortType) setExpirySortType(state.expirySortType);
+      } catch {}
+    }
+  }, [location.pathname]);
+
+  // Save sort/filter state to localStorage on change
+  useEffect(() => {
+    localStorage.setItem('recipe_sortbar_state_fridge', JSON.stringify({
+      sortType, matchRange, maxLack, appliedExpiryIngredients, expirySortType
+    }));
+  }, [sortType, matchRange, maxLack, appliedExpiryIngredients, expirySortType]);
 
   useEffect(() => {
     fetch('/ingredient_profile_dict_with_substitutes.csv')
