@@ -368,63 +368,67 @@ const MyPage = () => {
               <span style={{ color: '#222', fontSize: '10.4px', minWidth: 30 }}>보유 재료</span>
             </div>
           </div>
-          <div style={{display: 'flex', overflowX: 'auto', gap: 16, paddingBottom: 8}}>
-            {recordedRecipes.map((recipe, idx) => {
-              // 냉장고요리와 완전히 동일하게 needIngredients를 생성
-              const needIngredientsForPill = (recipe.used_ingredients || '').split(',').map((i: string) => (i ? i.trim() : '')).filter(Boolean);
-              const pillInfo = getIngredientPillInfo({
-                needIngredients: needIngredientsForPill,
-                myIngredients,
-                substituteTable,
-              });
-              return (
-                <div key={recipe.id} style={{ minWidth: 320, maxWidth: 340, width: '100%', background: '#fff', borderRadius: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', padding: 0, display: 'flex', flexDirection: 'column', gap: 8, position: 'relative' }}>
-                  <div style={{ position: 'relative', width: '100%', height: 140 }}>
-                    <img src={getProxiedImageUrl(recipe.thumbnail || recipe.image)} alt="썸네일" style={{ width: '100%', height: 140, objectFit: 'cover', borderRadius: 12, marginBottom: 8 }} />
-                    {/* 매칭률 뱃지 */}
-                    <div className="absolute bg-[#444] bg-opacity-80 text-white font-medium rounded px-2 py-0.5 flex items-center gap-1" style={{ position: 'absolute', top: 8, left: 8, fontSize: 12, zIndex: 2, textShadow: '0 1px 2px rgba(0,0,0,0.12)' }}>
-                      재료 매칭률 <span className="text-[#FFD600] font-bold ml-1" style={{ textShadow: 'none', letterSpacing: '0.5px' }}>{recipe.match_rate || recipe.match || 0}%</span>
-                    </div>
-                    {/* 완료/공유/기록 버튼 */}
-                    <div style={{ position: 'absolute', right: 8, bottom: 8, display: 'flex', flexDirection: 'row', gap: 6, alignItems: 'center', zIndex: 2 }}>
-                      <ActionButton 
-                        title="완료" 
-                        icon={완료하기버튼} 
-                        onClick={() => handleDoneClick(recipe.id)} 
-                        active={!doneStates[recipe.id]} 
-                      />
-                      <ActionButton 
-                        title="공유" 
-                        icon={공유하기버튼} 
-                        onClick={() => handleShareClick(recipe)} 
-                      />
-                      <ActionButton 
-                        title="기록" 
-                        icon={기록하기버튼} 
-                        onClick={() => handleWriteClick(recipe.id)} 
-                        active={!writeStates[recipe.id]} 
-                      />
-                    </div>
-                  </div>
-                  <div style={{ padding: '16px 16px 12px 16px' }}>
-                    {/* 제목 */}
-                    <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>{recipe.title}</div>
-                    {/* 좋아요/댓글 */}
-                    {(recipe.like || recipe.comment) && (
-                      <div style={{ fontSize: 13, color: '#888', marginBottom: 4 }}>
-                        {recipe.like ? `좋아요 ${recipe.like}` : ''}{recipe.like && recipe.comment ? ' · ' : ''}{recipe.comment ? `댓글 ${recipe.comment}` : ''}
+          <div style={{display: 'flex', overflowX: 'auto', gap: 16, paddingBottom: 8, minHeight: 180, alignItems: 'center', justifyContent: recordedRecipes.length === 0 ? 'center' : 'flex-start'}}>
+            {recordedRecipes.length === 0 ? (
+              <span style={{ color: '#bbb', fontSize: 13, textAlign: 'center', width: '100%' }}>레시피를 기록해 주세요</span>
+            ) : (
+              recordedRecipes.map((recipe, idx) => {
+                // 냉장고요리와 완전히 동일하게 needIngredients를 생성
+                const needIngredientsForPill = (recipe.used_ingredients || '').split(',').map((i: string) => (i ? i.trim() : '')).filter(Boolean);
+                const pillInfo = getIngredientPillInfo({
+                  needIngredients: needIngredientsForPill,
+                  myIngredients,
+                  substituteTable,
+                });
+                return (
+                  <div key={recipe.id} style={{ minWidth: 320, maxWidth: 340, width: '100%', background: '#fff', borderRadius: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', padding: 0, display: 'flex', flexDirection: 'column', gap: 8, position: 'relative' }}>
+                    <div style={{ position: 'relative', width: '100%', height: 140 }}>
+                      <img src={getProxiedImageUrl(recipe.thumbnail || recipe.image)} alt="썸네일" style={{ width: '100%', height: 140, objectFit: 'cover', borderRadius: 12, marginBottom: 8 }} />
+                      {/* 매칭률 뱃지 */}
+                      <div className="absolute bg-[#444] bg-opacity-80 text-white font-medium rounded px-2 py-0.5 flex items-center gap-1" style={{ position: 'absolute', top: 8, left: 8, fontSize: 12, zIndex: 2, textShadow: '0 1px 2px rgba(0,0,0,0.12)' }}>
+                        재료 매칭률 <span className="text-[#FFD600] font-bold ml-1" style={{ textShadow: 'none', letterSpacing: '0.5px' }}>{recipe.match_rate || recipe.match || 0}%</span>
                       </div>
-                    )}
-                    {/* 재료 pill */}
-                    <IngredientPillGroup
-                      needIngredients={needIngredientsForPill}
-                      myIngredients={myIngredients}
-                      substituteTable={substituteTable}
-                    />
+                      {/* 완료/공유/기록 버튼 */}
+                      <div style={{ position: 'absolute', right: 8, bottom: 8, display: 'flex', flexDirection: 'row', gap: 6, alignItems: 'center', zIndex: 2 }}>
+                        <ActionButton 
+                          title="완료" 
+                          icon={완료하기버튼} 
+                          onClick={() => handleDoneClick(recipe.id)} 
+                          active={!doneStates[recipe.id]} 
+                        />
+                        <ActionButton 
+                          title="공유" 
+                          icon={공유하기버튼} 
+                          onClick={() => handleShareClick(recipe)} 
+                        />
+                        <ActionButton 
+                          title="기록" 
+                          icon={기록하기버튼} 
+                          onClick={() => handleWriteClick(recipe.id)} 
+                          active={!writeStates[recipe.id]} 
+                        />
+                      </div>
+                    </div>
+                    <div style={{ padding: '16px 16px 12px 16px' }}>
+                      {/* 제목 */}
+                      <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>{recipe.title}</div>
+                      {/* 좋아요/댓글 */}
+                      {(recipe.like || recipe.comment) && (
+                        <div style={{ fontSize: 13, color: '#888', marginBottom: 4 }}>
+                          {recipe.like ? `좋아요 ${recipe.like}` : ''}{recipe.like && recipe.comment ? ' · ' : ''}{recipe.comment ? `댓글 ${recipe.comment}` : ''}
+                        </div>
+                      )}
+                      {/* 재료 pill */}
+                      <IngredientPillGroup
+                        needIngredients={needIngredientsForPill}
+                        myIngredients={myIngredients}
+                        substituteTable={substituteTable}
+                      />
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </div>
         </div>
         {/* 내가 완료한 레시피 */}
@@ -458,63 +462,67 @@ const MyPage = () => {
               <span style={{ color: '#222', fontSize: '10.4px', minWidth: 30 }}>보유 재료</span>
             </div>
           </div>
-          <div style={{display: 'flex', overflowX: 'auto', gap: 16, paddingBottom: 8}}>
-            {completedRecipes.map((recipe, idx) => {
-              // 냉장고요리와 완전히 동일하게 needIngredients를 생성
-              const needIngredientsForPill = (recipe.used_ingredients || '').split(',').map((i: string) => (i ? i.trim() : '')).filter(Boolean);
-              const pillInfo = getIngredientPillInfo({
-                needIngredients: needIngredientsForPill,
-                myIngredients,
-                substituteTable,
-              });
-              return (
-                <div key={recipe.id} style={{ minWidth: 320, maxWidth: 340, width: '100%', background: '#fff', borderRadius: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', padding: 0, display: 'flex', flexDirection: 'column', gap: 8, position: 'relative' }}>
-                  <div style={{ position: 'relative', width: '100%', height: 140 }}>
-                    <img src={getProxiedImageUrl(recipe.thumbnail || recipe.image)} alt="썸네일" style={{ width: '100%', height: 140, objectFit: 'cover', borderRadius: 12, marginBottom: 8 }} />
-                    {/* 매칭률 뱃지 */}
-                    <div className="absolute bg-[#444] bg-opacity-80 text-white font-medium rounded px-2 py-0.5 flex items-center gap-1" style={{ position: 'absolute', top: 8, left: 8, fontSize: 12, zIndex: 2, textShadow: '0 1px 2px rgba(0,0,0,0.12)' }}>
-                      재료 매칭률 <span className="text-[#FFD600] font-bold ml-1" style={{ textShadow: 'none', letterSpacing: '0.5px' }}>{recipe.match_rate || recipe.match || 0}%</span>
-                    </div>
-                    {/* 완료/공유/기록 버튼 */}
-                    <div style={{ position: 'absolute', right: 8, bottom: 8, display: 'flex', flexDirection: 'row', gap: 6, alignItems: 'center', zIndex: 2 }}>
-                      <ActionButton 
-                        title="완료" 
-                        icon={완료하기버튼} 
-                        onClick={() => handleDoneClick(recipe.id)} 
-                        active={!doneStates[recipe.id]} 
-                      />
-                      <ActionButton 
-                        title="공유" 
-                        icon={공유하기버튼} 
-                        onClick={() => handleShareClick(recipe)} 
-                      />
-                      <ActionButton 
-                        title="기록" 
-                        icon={기록하기버튼} 
-                        onClick={() => handleWriteClick(recipe.id)} 
-                        active={!writeStates[recipe.id]} 
-                      />
-                    </div>
-                  </div>
-                  <div style={{ padding: '16px 16px 12px 16px' }}>
-                    {/* 제목 */}
-                    <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>{recipe.title}</div>
-                    {/* 좋아요/댓글 */}
-                    {(recipe.like || recipe.comment) && (
-                      <div style={{ fontSize: 13, color: '#888', marginBottom: 4 }}>
-                        {recipe.like ? `좋아요 ${recipe.like}` : ''}{recipe.like && recipe.comment ? ' · ' : ''}{recipe.comment ? `댓글 ${recipe.comment}` : ''}
+          <div style={{display: 'flex', overflowX: 'auto', gap: 16, paddingBottom: 8, minHeight: 180, alignItems: 'center', justifyContent: completedRecipes.length === 0 ? 'center' : 'flex-start'}}>
+            {completedRecipes.length === 0 ? (
+              <span style={{ color: '#bbb', fontSize: 13, textAlign: 'center', width: '100%' }}>레시피를 완료해 주세요</span>
+            ) : (
+              completedRecipes.map((recipe, idx) => {
+                // 냉장고요리와 완전히 동일하게 needIngredients를 생성
+                const needIngredientsForPill = (recipe.used_ingredients || '').split(',').map((i: string) => (i ? i.trim() : '')).filter(Boolean);
+                const pillInfo = getIngredientPillInfo({
+                  needIngredients: needIngredientsForPill,
+                  myIngredients,
+                  substituteTable,
+                });
+                return (
+                  <div key={recipe.id} style={{ minWidth: 320, maxWidth: 340, width: '100%', background: '#fff', borderRadius: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', padding: 0, display: 'flex', flexDirection: 'column', gap: 8, position: 'relative' }}>
+                    <div style={{ position: 'relative', width: '100%', height: 140 }}>
+                      <img src={getProxiedImageUrl(recipe.thumbnail || recipe.image)} alt="썸네일" style={{ width: '100%', height: 140, objectFit: 'cover', borderRadius: 12, marginBottom: 8 }} />
+                      {/* 매칭률 뱃지 */}
+                      <div className="absolute bg-[#444] bg-opacity-80 text-white font-medium rounded px-2 py-0.5 flex items-center gap-1" style={{ position: 'absolute', top: 8, left: 8, fontSize: 12, zIndex: 2, textShadow: '0 1px 2px rgba(0,0,0,0.12)' }}>
+                        재료 매칭률 <span className="text-[#FFD600] font-bold ml-1" style={{ textShadow: 'none', letterSpacing: '0.5px' }}>{recipe.match_rate || recipe.match || 0}%</span>
                       </div>
-                    )}
-                    {/* 재료 pill */}
-                    <IngredientPillGroup
-                      needIngredients={needIngredientsForPill}
-                      myIngredients={myIngredients}
-                      substituteTable={substituteTable}
-                    />
+                      {/* 완료/공유/기록 버튼 */}
+                      <div style={{ position: 'absolute', right: 8, bottom: 8, display: 'flex', flexDirection: 'row', gap: 6, alignItems: 'center', zIndex: 2 }}>
+                        <ActionButton 
+                          title="완료" 
+                          icon={완료하기버튼} 
+                          onClick={() => handleDoneClick(recipe.id)} 
+                          active={!doneStates[recipe.id]} 
+                        />
+                        <ActionButton 
+                          title="공유" 
+                          icon={공유하기버튼} 
+                          onClick={() => handleShareClick(recipe)} 
+                        />
+                        <ActionButton 
+                          title="기록" 
+                          icon={기록하기버튼} 
+                          onClick={() => handleWriteClick(recipe.id)} 
+                          active={!writeStates[recipe.id]} 
+                        />
+                      </div>
+                    </div>
+                    <div style={{ padding: '16px 16px 12px 16px' }}>
+                      {/* 제목 */}
+                      <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>{recipe.title}</div>
+                      {/* 좋아요/댓글 */}
+                      {(recipe.like || recipe.comment) && (
+                        <div style={{ fontSize: 13, color: '#888', marginBottom: 4 }}>
+                          {recipe.like ? `좋아요 ${recipe.like}` : ''}{recipe.like && recipe.comment ? ' · ' : ''}{recipe.comment ? `댓글 ${recipe.comment}` : ''}
+                        </div>
+                      )}
+                      {/* 재료 pill */}
+                      <IngredientPillGroup
+                        needIngredients={needIngredientsForPill}
+                        myIngredients={myIngredients}
+                        substituteTable={substituteTable}
+                      />
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </div>
         </div>
       </div>
@@ -659,12 +667,17 @@ const MyPage = () => {
           textOverflow: 'ellipsis',
           textAlign: 'center',
           display: 'flex',
+          flexDirection: 'column',
           alignItems: 'center',
-          gap: 12,
+          gap: 8,
         }}>
-          <span style={{fontWeight:600,color:'#fff',marginRight:8,letterSpacing:'0.04em',whiteSpace:'nowrap',display:'inline-block'}}>삭제됨</span>
-          <button className="inline-flex items-center justify-center bg-[#F5F6F8] text-gray-700 font-semibold rounded-lg px-3 py-1 text-sm border border-[#E5E7EB] shadow-none hover:bg-[#E5E7EB] transition whitespace-nowrap" style={{marginRight:4}} onClick={handleRemoveUndo}>되돌리기</button>
-          <button className="inline-flex items-center justify-center bg-[#F5F6F8] text-gray-700 font-semibold rounded-lg px-3 py-1 text-sm border border-[#E5E7EB] shadow-none hover:bg-[#E5E7EB] transition whitespace-nowrap" onClick={handleRemoveConfirm}>닫기</button>
+          <span style={{fontWeight:600,color:'#fff',marginBottom:6,letterSpacing:'0.04em',whiteSpace:'nowrap',display:'inline-block'}}>
+            {pendingRemove.type === 'done' ? '레시피 완료를 취소하시겠어요?' : '레시피 기록을 취소하시겠어요?'}
+          </span>
+          <div style={{display:'flex',flexDirection:'row',gap:12,justifyContent:'center',width:'100%'}}>
+            <button className="inline-flex items-center justify-center bg-[#F5F6F8] text-gray-700 font-semibold rounded-lg px-3 py-1 text-sm border border-[#E5E7EB] shadow-none hover:bg-[#E5E7EB] transition whitespace-nowrap" style={{marginRight:4}} onClick={handleRemoveUndo}>아니요</button>
+            <button className="inline-flex items-center justify-center bg-[#F5F6F8] text-gray-700 font-semibold rounded-lg px-3 py-1 text-sm border border-[#E5E7EB] shadow-none hover:bg-[#E5E7EB] transition whitespace-nowrap" onClick={handleRemoveConfirm}>네</button>
+          </div>
         </div>
       )}
     </div>
