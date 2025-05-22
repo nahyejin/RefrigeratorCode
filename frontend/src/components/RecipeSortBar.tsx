@@ -153,7 +153,7 @@ const RecipeSortBar = ({
             <option value="like">좋아요순</option>
             <option value="comment">댓글순</option>
             <option value="match">재료매칭률순</option>
-            <option value="expiry">임박재료활용도순</option>
+            <option value="expiry">임박재료활용순</option>
           </select>
           <span style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', fontSize: 13, color: '#888' }}>▼</span>
         </div>

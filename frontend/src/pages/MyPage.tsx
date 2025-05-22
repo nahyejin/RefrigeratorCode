@@ -198,7 +198,7 @@ const MyPage = () => {
         localStorage.setItem('my_completed_recipes', JSON.stringify(completedRecipes));
         setCompletedRecipes(completedRecipes);
         setToast('레시피를 완료했습니다!');
-        setTimeout(() => setToast(''), 1500);
+      setTimeout(() => setToast(''), 1500);
       } else {
         // 완료 취소 - 모달로 확인
         setPendingRemove({type: 'done', id});
@@ -223,7 +223,7 @@ const MyPage = () => {
         localStorage.setItem('my_recorded_recipes', JSON.stringify(recordedRecipes));
         setRecordedRecipes(recordedRecipes);
         setToast('레시피를 기록했습니다!');
-        setTimeout(() => setToast(''), 1500);
+      setTimeout(() => setToast(''), 1500);
       } else {
         // 기록 취소 - 모달로 확인
         setPendingRemove({type: 'write', id});
@@ -275,7 +275,7 @@ const MyPage = () => {
       setTimeout(() => setToast(''), 1500);
     }).catch(() => {
       setToast('URL 복사에 실패했습니다.');
-      setTimeout(() => setToast(''), 1500);
+    setTimeout(() => setToast(''), 1500);
     });
   };
 
