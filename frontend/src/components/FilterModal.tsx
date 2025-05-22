@@ -45,6 +45,10 @@ interface FilterModalProps {
   onClose: () => void;
   filterState: FilterState;
   setFilterState: (f: FilterState) => void;
+  includeIngredients: string[];
+  setIncludeIngredients: (v: string[]) => void;
+  excludeIngredients: string[];
+  setExcludeIngredients: (v: string[]) => void;
   includeInput: string;
   setIncludeInput: (v: string) => void;
   excludeInput: string;
@@ -52,13 +56,14 @@ interface FilterModalProps {
   allIngredients: string[];
   includeKeyword: string;
   setIncludeKeyword: (v: string) => void;
+  onApply: () => void;
 }
 
-const FilterModal: React.FC<FilterModalProps> = ({ open, onClose, filterState, setFilterState, includeInput, setIncludeInput, excludeInput, setExcludeInput, allIngredients, includeKeyword, setIncludeKeyword }) => {
+const FilterModal: React.FC<FilterModalProps> = ({ open, onClose, filterState, setFilterState, includeIngredients, setIncludeIngredients, excludeIngredients, setExcludeIngredients, includeInput, setIncludeInput, excludeInput, setExcludeInput, allIngredients, includeKeyword, setIncludeKeyword, onApply }) => {
   const [includeFocus, setIncludeFocus] = useState(false);
   const [excludeFocus, setExcludeFocus] = useState(false);
-  const includeCandidates = allIngredients.filter(i => i && i.includes(includeInput) && includeInput && i !== includeInput);
-  const excludeCandidates = allIngredients.filter(i => i && i.includes(excludeInput) && excludeInput && i !== excludeInput);
+  const includeCandidates = allIngredients.filter(i => i && i.includes(includeInput) && includeInput && i !== includeInput && !includeIngredients.includes(i));
+  const excludeCandidates = allIngredients.filter(i => i && i.includes(excludeInput) && excludeInput && i !== excludeInput && !excludeIngredients.includes(i));
 
   if (!open) return null;
 
@@ -98,11 +103,30 @@ const FilterModal: React.FC<FilterModalProps> = ({ open, onClose, filterState, s
                     <li
                       key={item}
                       className="px-4 py-2 hover:bg-[#f4f0e6] cursor-pointer text-[12px]"
-                      onMouseDown={() => { setIncludeInput(item); setIncludeFocus(false); }}
+                      onMouseDown={() => {
+                        setIncludeIngredients([...includeIngredients, item]);
+                        setIncludeInput('');
+                        setIncludeFocus(false);
+                      }}
                     >{item}</li>
                   ))}
                 </ul>
               )}
+            </div>
+            {/* chips for includeIngredients */}
+            <div className="flex flex-wrap gap-1 mb-2">
+              {includeIngredients.map(ing => (
+                <span key={ing} className="bg-yellow-100 text-yellow-800 rounded-full px-3 py-1 text-xs font-medium flex items-center">
+                  {ing}
+                  <button
+                    type="button"
+                    className="ml-1 text-yellow-700 hover:text-yellow-900 focus:outline-none"
+                    style={{ fontSize: 14, lineHeight: 1, padding: 0, width: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    onClick={() => setIncludeIngredients(includeIngredients.filter(i => i !== ing))}
+                    aria-label="제거"
+                  >×</button>
+                </span>
+              ))}
             </div>
             <div className="font-bold text-[11.2px] mt-4 mb-1">■ 꼭 제외할 재료</div>
             <div className="relative">
@@ -120,11 +144,30 @@ const FilterModal: React.FC<FilterModalProps> = ({ open, onClose, filterState, s
                     <li
                       key={item}
                       className="px-4 py-2 hover:bg-[#f4f0e6] cursor-pointer text-[12px]"
-                      onMouseDown={() => { setExcludeInput(item); setExcludeFocus(false); }}
+                      onMouseDown={() => {
+                        setExcludeIngredients([...excludeIngredients, item]);
+                        setExcludeInput('');
+                        setExcludeFocus(false);
+                      }}
                     >{item}</li>
                   ))}
                 </ul>
               )}
+            </div>
+            {/* chips for excludeIngredients */}
+            <div className="flex flex-wrap gap-1 mb-2">
+              {excludeIngredients.map(ing => (
+                <span key={ing} className="bg-gray-200 text-gray-800 rounded-full px-3 py-1 text-xs font-medium flex items-center">
+                  {ing}
+                  <button
+                    type="button"
+                    className="ml-1 text-gray-700 hover:text-gray-900 focus:outline-none"
+                    style={{ fontSize: 14, lineHeight: 1, padding: 0, width: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    onClick={() => setExcludeIngredients(excludeIngredients.filter(i => i !== ing))}
+                    aria-label="제거"
+                  >×</button>
+                </span>
+              ))}
             </div>
           </div>
           {/* 카테고리별 태그 */}
@@ -210,6 +253,14 @@ const FilterModal: React.FC<FilterModalProps> = ({ open, onClose, filterState, s
               </div>
             ))}
           </div>
+        </div>
+        <div className="flex justify-end p-4">
+          <button
+            className="bg-[#FFD600] text-black font-bold py-2 px-6 rounded-full text-sm shadow"
+            onClick={onApply}
+          >
+            적용
+          </button>
         </div>
       </div>
     </div>
