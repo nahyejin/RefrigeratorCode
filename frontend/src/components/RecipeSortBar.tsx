@@ -71,6 +71,35 @@ const RecipeSortBar = ({
     return 'or';
   });
 
+  // 초기 렌더링과 필터 상태 변경 시 필터링 적용
+  useEffect(() => {
+    const filtered = filterRecipes(recipes, {
+      sortType,
+      matchRange,
+      maxLack,
+      appliedExpiryIngredients,
+      myIngredients,
+      expiryIngredientMode,
+      includeKeyword,
+      includeIngredients,
+      excludeIngredients,
+      categoryKeywords: selectedFilter
+    });
+    onFilteredRecipesChange(filtered);
+  }, [
+    recipes,
+    sortType,
+    matchRange,
+    maxLack,
+    appliedExpiryIngredients,
+    myIngredients,
+    expiryIngredientMode,
+    includeKeyword,
+    includeIngredients,
+    excludeIngredients,
+    selectedFilter
+  ]);
+
   // 필터 적용 함수
   const applyFilter = () => {
     const filtered = filterRecipes(recipes, {
@@ -153,9 +182,7 @@ const RecipeSortBar = ({
   }
 
   useEffect(() => {
-    console.log('RecipeSortBar 마운트');
     return () => {
-      console.log('RecipeSortBar 언마운트');
     };
   }, []);
 

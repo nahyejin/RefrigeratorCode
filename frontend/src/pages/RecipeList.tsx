@@ -287,40 +287,30 @@ const RecipeList: React.FC = () => {
   // 페이지 진입(마운트) 시마다 localStorage에서 복원
   useEffect(() => {
     const saved = localStorage.getItem('recipe_sortbar_state_fridge');
-    console.log('[RecipeList] location.pathname changed:', location.pathname);
-    console.log('[RecipeList] localStorage.recipe_sortbar_state_fridge:', saved);
     if (saved) {
       try {
         const state = JSON.parse(saved);
-        if (state.sortType) { setSortType(state.sortType); console.log('[RecipeList] setSortType:', state.sortType); }
-        if (state.matchRange) { setMatchRange(state.matchRange); console.log('[RecipeList] setMatchRange:', state.matchRange); }
-        if (state.maxLack !== undefined) { setMaxLack(state.maxLack); console.log('[RecipeList] setMaxLack:', state.maxLack); }
-        if (state.appliedExpiryIngredients) { setAppliedExpiryIngredients(state.appliedExpiryIngredients); console.log('[RecipeList] setAppliedExpiryIngredients:', state.appliedExpiryIngredients); }
-        if (state.expirySortType) { setExpirySortType(state.expirySortType); console.log('[RecipeList] setExpirySortType:', state.expirySortType); }
-      } catch (e) { console.error('[RecipeList] localStorage parse error', e); }
+        if (state.sortType) setSortType(state.sortType);
+        if (state.matchRange) setMatchRange(state.matchRange);
+        if (state.maxLack !== undefined) setMaxLack(state.maxLack);
+        if (state.appliedExpiryIngredients) setAppliedExpiryIngredients(state.appliedExpiryIngredients);
+        if (state.expirySortType) setExpirySortType(state.expirySortType);
+      } catch {}
     }
-  }, [location.pathname]);
+  }, []);
 
   // 각 상태값이 바뀔 때마다 로그
-  useEffect(() => { console.log('[RecipeList] sortType changed:', sortType); }, [sortType]);
-  useEffect(() => { console.log('[RecipeList] matchRange changed:', matchRange); }, [matchRange]);
-  useEffect(() => { console.log('[RecipeList] maxLack changed:', maxLack); }, [maxLack]);
-  useEffect(() => { console.log('[RecipeList] appliedExpiryIngredients changed:', appliedExpiryIngredients); }, [appliedExpiryIngredients]);
-  useEffect(() => { console.log('[RecipeList] expirySortType changed:', expirySortType); }, [expirySortType]);
-
-  // RecipeSortBar 렌더링 직전 상태 로그
-  console.log('[RecipeList] RecipeSortBar 렌더링 직전', {
-    sortType, matchRange, maxLack, appliedExpiryIngredients, expirySortType
-  });
+  useEffect(() => { }, [sortType]);
+  useEffect(() => { }, [matchRange]);
+  useEffect(() => { }, [maxLack]);
+  useEffect(() => { }, [appliedExpiryIngredients]);
+  useEffect(() => { }, [expirySortType]);
 
   // 상태가 바뀔 때마다 localStorage에 저장
   useEffect(() => {
     localStorage.setItem('recipe_sortbar_state_fridge', JSON.stringify({
       sortType, matchRange, maxLack, appliedExpiryIngredients, expirySortType
     }));
-    console.log('[RecipeList] localStorage.recipe_sortbar_state_fridge 저장됨:', {
-      sortType, matchRange, maxLack, appliedExpiryIngredients, expirySortType
-    });
   }, [sortType, matchRange, maxLack, appliedExpiryIngredients, expirySortType]);
 
   return (
