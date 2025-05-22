@@ -58,6 +58,16 @@ const RecipeSortBar = ({
   const [selectedExpiryIngredients, setSelectedExpiryIngredients] = useState<string[]>([]);
   const [tempMin, setTempMin] = useState<string | null>(null);
   const [tempMax, setTempMax] = useState<string | null>(null);
+  const [expiryIngredientMode, setExpiryIngredientMode] = useState<'and'|'or'>(() => {
+    const saved = localStorage.getItem('recipe_sortbar_state_fridge');
+    if (saved) {
+      try {
+        const state = JSON.parse(saved);
+        return state.expiryIngredientMode || 'or';
+      } catch {}
+    }
+    return 'or';
+  });
 
   // 필터링된 결과를 useMemo로 캐싱
   const filtered = useMemo(() => filterRecipes(recipes, {
@@ -65,8 +75,9 @@ const RecipeSortBar = ({
     matchRange,
     maxLack,
     appliedExpiryIngredients,
-    myIngredients
-  }), [recipes, sortType, matchRange, maxLack, appliedExpiryIngredients, myIngredients]);
+    myIngredients,
+    expiryIngredientMode
+  }), [recipes, sortType, matchRange, maxLack, appliedExpiryIngredients, myIngredients, expiryIngredientMode]);
 
   // 필터링 결과가 바뀔 때만 부모에 전달
   useEffect(() => {
@@ -143,11 +154,20 @@ const RecipeSortBar = ({
     };
   }, []);
 
+  useEffect(() => {
+    localStorage.setItem('recipe_sortbar_state_fridge', JSON.stringify({
+      sortType, matchRange, maxLack, appliedExpiryIngredients, expirySortType, expiryIngredientMode
+    }));
+  }, [sortType, matchRange, maxLack, appliedExpiryIngredients, expirySortType, expiryIngredientMode]);
+
   return (
     <>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 18, width: '100%', marginTop: 24, flexWrap: 'wrap' }}>
         <button style={{ height: 28, border: '1px solid #D1D5DB', borderRadius: 6, fontSize: 12, padding: '0 8px', fontWeight: 600, background: '#fff', color: '#222', minWidth: 70, marginRight: 0, whiteSpace: 'nowrap', lineHeight: '28px', boxSizing: 'border-box', cursor: 'pointer' }} onClick={() => setMatchRateModalOpen(true)}>재료 매칭도 설정</button>
-        <button style={{ height: 28, border: '1px solid #D1D5DB', borderRadius: 6, fontSize: 12, padding: '0 8px', fontWeight: 600, background: '#fff', color: '#222', minWidth: 70, marginRight: 0, whiteSpace: 'nowrap', lineHeight: '28px', boxSizing: 'border-box', cursor: 'pointer' }} onClick={() => setExpiryModalOpen(true)}>임박 재료 설정</button>
+        <button style={{ height: 28, border: '1px solid #D1D5DB', borderRadius: 6, fontSize: 12, padding: '0 8px', fontWeight: 600, background: '#fff', color: '#222', minWidth: 70, marginRight: 0, whiteSpace: 'nowrap', lineHeight: '28px', boxSizing: 'border-box', cursor: 'pointer' }} onClick={() => {
+          setSelectedExpiryIngredients(appliedExpiryIngredients);
+          setExpiryModalOpen(true);
+        }}>임박 재료 설정</button>
         <div style={{ position: 'relative', minWidth: 80 }}>
           <select aria-label="정렬 기준 선택" value={sortType} onChange={e => {
             if (e.target.value === 'expiry' && appliedExpiryIngredients.length === 0) {
@@ -273,39 +293,71 @@ const RecipeSortBar = ({
       {expiryModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-lg p-6 w-[340px] max-w-[95vw] relative">
-            <span className="absolute top-3 right-3 w-6 h-6 text-gray-400 text-xl cursor-pointer" onClick={() => setExpiryModalOpen(false)}>×</span>
+            <span className="absolute top-3 right-3 w-6 h-6 text-gray-400 text-xl cursor-pointer" onClick={() => {
+              setSelectedExpiryIngredients(appliedExpiryIngredients);
+              setExpiryModalOpen(false);
+            }}>×</span>
             <div className="text-center font-bold text-[14px] mb-4">임박 재료 설정</div>
             <div className="flex flex-col gap-4">
               <div className="flex gap-2 mb-2">
-                <button className={`flex-1 py-2 text-sm font-medium border border-gray-300 rounded-lg ${expirySortType==='expiry' ? 'bg-gray-200' : 'bg-white'}`} onClick={() => setExpirySortType('expiry')}>유통기한 임박순</button>
-                <button className={`flex-1 py-2 text-sm font-medium border border-gray-300 rounded-lg ${expirySortType==='purchase' ? 'bg-gray-200' : 'bg-white'}`} onClick={() => setExpirySortType('purchase')}>구매일 오래된순</button>
+                <button
+                  className={`flex-1 py-2 text-sm font-medium border rounded-lg ${
+                    expirySortType === 'expiry'
+                      ? 'bg-gray-200 border-2 border-[#222]'
+                      : 'bg-white border border-gray-300'
+                  }`}
+                  style={expirySortType === 'expiry' ? { borderWidth: 2, borderColor: '#222' } : {}}
+                  onClick={() => setExpirySortType('expiry')}
+                >
+                  유통기한 임박순
+                </button>
+                <button
+                  className={`flex-1 py-2 text-sm font-medium border rounded-lg ${
+                    expirySortType === 'purchase'
+                      ? 'bg-gray-200 border-2 border-[#222]'
+                      : 'bg-white border border-gray-300'
+                  }`}
+                  style={expirySortType === 'purchase' ? { borderWidth: 2, borderColor: '#222' } : {}}
+                  onClick={() => setExpirySortType('purchase')}
+                >
+                  구매일 오래된순
+                </button>
               </div>
-              {/* 선택된 재료 pill 나열 */}
-              {selectedExpiryIngredients.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-2">
-                  {selectedExpiryIngredients.map(name => (
-                    <span
-                      key={name}
-                      className="px-2 py-[2px] bg-yellow-100 text-yellow-800 rounded-full text-[13px] font-medium border border-yellow-300 flex items-center"
-                      style={{ lineHeight: '1.2', height: 'auto' }}
+              {/* AND/OR 선택 */}
+              <div className="flex gap-3 items-center mb-2 justify-center">
+                <label className="flex items-center gap-1 text-[13px]">
+                  <input type="radio" name="expiryIngredientMode" value="and" checked={expiryIngredientMode==='and'} onChange={()=>setExpiryIngredientMode('and')} />
+                  모두 포함(AND)
+                </label>
+                <label className="flex items-center gap-1 text-[13px]">
+                  <input type="radio" name="expiryIngredientMode" value="or" checked={expiryIngredientMode==='or'} onChange={()=>setExpiryIngredientMode('or')} />
+                  하나라도 포함(OR)
+                </label>
+              </div>
+              {/* 선택된 재료 pill 나열 - 항상 보이게, 중앙정렬 */}
+              <div className="flex flex-wrap gap-2 mb-2 justify-center" style={{minHeight: 28}}>
+                {selectedExpiryIngredients.length > 0 ? selectedExpiryIngredients.map(name => (
+                  <span
+                    key={name}
+                    className="px-2 py-[2px] bg-yellow-100 text-yellow-800 rounded-full text-[13px] font-medium border border-yellow-300 flex items-center"
+                    style={{ lineHeight: '1.2', height: 'auto' }}
+                  >
+                    {name}
+                    <button
+                      type="button"
+                      className="ml-1 text-yellow-700 hover:text-yellow-900 focus:outline-none"
+                      style={{ fontSize: 14, lineHeight: 1, padding: 0, width: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      onClick={e => {
+                        e.stopPropagation();
+                        setSelectedExpiryIngredients(prev => prev.filter(n => n !== name));
+                      }}
+                      aria-label="선택 해제"
                     >
-                      {name}
-                      <button
-                        type="button"
-                        className="ml-1 text-yellow-700 hover:text-yellow-900 focus:outline-none"
-                        style={{ fontSize: 14, lineHeight: 1, padding: 0, width: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                        onClick={e => {
-                          e.stopPropagation();
-                          setSelectedExpiryIngredients(prev => prev.filter(n => n !== name));
-                        }}
-                        aria-label="선택 해제"
-                      >
-                        ×
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              )}
+                      ×
+                    </button>
+                  </span>
+                )) : <span className="text-gray-400 text-[13px]">재료를 선택해 주세요</span>}
+              </div>
               {/* 재료 리스트 스크롤 영역 */}
               <div style={{ maxHeight: 320, overflowY: 'auto' }}>
                 {(expirySortType === 'expiry' ? expiryList : purchaseList).length === 0 && (
@@ -343,7 +395,7 @@ const RecipeSortBar = ({
                 setExpiryModalOpen(false);
               }}
             >
-              선택 재료 포함 레시피만 보기
+              적용
             </button>
           </div>
         </div>
