@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import logoImg from '../assets/냉털이 로고 white.png';
 import searchIcon from '../assets/navigator_search.png';
 import BottomNavBar from '../components/BottomNavBar';
@@ -144,6 +144,7 @@ function getMyIngredientObjects(): any[] {
 const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
   const { name = '' } = useParams<{ name: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const [visibleCount, setVisibleCount] = useState(50);
   const [sortType, setSortType] = useState('match');
   const [filterOpen, setFilterOpen] = useState(false);
@@ -307,6 +308,28 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
     sortedExpiryList = myIngredientObjects.filter((i: any) => i.purchase).sort((a: any, b: any) => (a.purchase > b.purchase ? 1 : -1));
   }
 
+  // Restore sort/filter state from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('recipe_sortbar_state_ingredient');
+    if (saved) {
+      try {
+        const state = JSON.parse(saved);
+        if (state.sortType) setSortType(state.sortType);
+        if (state.matchRange) setMatchRange(state.matchRange);
+        if (state.maxLack !== undefined) setMaxLack(state.maxLack);
+        if (state.appliedExpiryIngredients) setAppliedExpiryIngredients(state.appliedExpiryIngredients);
+        if (state.expirySortType) setExpirySortType(state.expirySortType);
+      } catch {}
+    }
+  }, []);
+
+  // Save sort/filter state to localStorage on change
+  useEffect(() => {
+    localStorage.setItem('recipe_sortbar_state_ingredient', JSON.stringify({
+      sortType, matchRange, maxLack, appliedExpiryIngredients, expirySortType
+    }));
+  }, [sortType, matchRange, maxLack, appliedExpiryIngredients, expirySortType]);
+
   return (
     <>
       <TopNavBar />
@@ -366,7 +389,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
           </div>
         </div>
       </div>
-      <BottomNavBar activeTab="ingredient" />
+      <BottomNavBar activeTab={location.pathname.startsWith('/mypage') ? 'mypage' : 'popularity'} />
       {toast && <RecipeToast message={toast} />}
     </>
   );
