@@ -33,31 +33,39 @@ export function calculateMatchRate(myIngredients: string[], recipeIngredients: s
   };
 }
 
-export function sortRecipes(recipes: Recipe[], sortType: string, myIngredients: string[]): Recipe[] {
-  const recipesWithMatch = recipes.map(recipe => {
-    const match = calculateMatchRate(myIngredients, recipe.used_ingredients);
-    return { ...recipe, match_rate: match.rate, my_ingredients: match.my_ingredients, need_ingredients: match.need_ingredients };
-  });
-
+export function sortRecipes(recipes: Recipe[], sortType: string, myIngredients: string[], appliedExpiryIngredients: string[]): Recipe[] {
+  const sorted = [...recipes];
   switch (sortType) {
-    case 'match':
-      return recipesWithMatch.sort((a, b) => (b.match_rate || 0) - (a.match_rate || 0));
-    case 'expiry':
-      // TODO: 유통기한 임박순 정렬 구현
-      return recipesWithMatch;
     case 'latest':
-      return recipesWithMatch.sort((a, b) => {
-        const dateA = new Date((a.date as string) || '');
-        const dateB = new Date((b.date as string) || '');
-        return dateB.getTime() - dateA.getTime();
-      });
+      sorted.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      break;
     case 'like':
-      return recipesWithMatch.sort((a, b) => (b.likes || 0) - (a.likes || 0));
+      sorted.sort((a, b) => (b.like_count || 0) - (a.like_count || 0));
+      break;
     case 'comment':
-      return recipesWithMatch.sort((a, b) => (b.comments || 0) - (a.comments || 0));
+      sorted.sort((a, b) => (b.comment_count || 0) - (a.comment_count || 0));
+      break;
+    case 'match':
+      sorted.sort((a, b) => (b.match_rate || 0) - (a.match_rate || 0));
+      break;
+    case 'expiry':
+      // 임박재료활용도순 정렬: 임박재료를 많이 포함하는 레시피가 상위에 오도록 정렬
+      sorted.sort((a, b) => {
+        const aIngredients = (a.used_ingredients || '').split(',').map(i => i.trim());
+        const bIngredients = (b.used_ingredients || '').split(',').map(i => i.trim());
+        const aCount = appliedExpiryIngredients.filter(ing => aIngredients.includes(ing)).length;
+        const bCount = appliedExpiryIngredients.filter(ing => bIngredients.includes(ing)).length;
+        if (aCount !== bCount) {
+          return bCount - aCount;
+        }
+        // 임박재료 활용도가 같으면 재료매칭률순으로 2차 정렬
+        return (b.match_rate || 0) - (a.match_rate || 0);
+      });
+      break;
     default:
-      return recipesWithMatch;
+      sorted.sort((a, b) => (b.match_rate || 0) - (a.match_rate || 0));
   }
+  return sorted;
 }
 
 export function getDDay(expiry: string) {
