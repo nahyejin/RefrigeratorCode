@@ -56,6 +56,8 @@ const RecipeSortBar = ({
   const [matchRateModalOpen, setMatchRateModalOpen] = useState<boolean>(false);
   const [expiryModalOpen, setExpiryModalOpen] = useState<boolean>(false);
   const [selectedExpiryIngredients, setSelectedExpiryIngredients] = useState<string[]>([]);
+  const [tempMin, setTempMin] = useState<string | null>(null);
+  const [tempMax, setTempMax] = useState<string | null>(null);
 
   // 필터링된 결과를 useMemo로 캐싱
   const filtered = useMemo(() => filterRecipes(recipes, {
@@ -134,6 +136,13 @@ const RecipeSortBar = ({
     };
   }
 
+  useEffect(() => {
+    console.log('RecipeSortBar 마운트');
+    return () => {
+      console.log('RecipeSortBar 언마운트');
+    };
+  }, []);
+
   return (
     <>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 18, width: '100%', marginTop: 24, flexWrap: 'wrap' }}>
@@ -166,13 +175,46 @@ const RecipeSortBar = ({
             <span className="absolute top-3 right-3 w-6 h-6 text-gray-400 text-xl cursor-pointer" onClick={() => setMatchRateModalOpen(false)}>×</span>
             <div className="text-center font-bold text-[14px] mb-4">재료 매칭도 설정</div>
             <div className="flex flex-col gap-4">
-              {/* 매칭률 범위 슬라이더 + 숫자 입력 */}
               <div className="flex items-center gap-2 justify-center">
-                <input type="number" min={0} max={matchRange[1]} value={matchRange[0]} onChange={e => setMatchRange([Math.min(Number(e.target.value), matchRange[1]), matchRange[1]])} className="w-12 border rounded px-1 text-xs text-center" />
-                <span className="text-xs">%</span>
-                <span className="mx-1 text-xs">~</span>
-                <input type="number" min={matchRange[0]} max={100} value={matchRange[1]} onChange={e => setMatchRange([matchRange[0], Math.max(Number(e.target.value), matchRange[0])])} className="w-12 border rounded px-1 text-xs text-center" />
-                <span className="text-xs">%</span>
+                <input
+                  type="number"
+                  min={0}
+                  max={matchRange[1]}
+                  value={tempMin !== null ? tempMin : matchRange[0]}
+                  onFocus={e => setTempMin('')}
+                  onChange={e => setTempMin(e.target.value)}
+                  onBlur={e => {
+                    if (e.target.value === '' || isNaN(Number(e.target.value))) {
+                      setTempMin(null);
+                    } else {
+                      let val = Math.min(Math.max(0, Number(e.target.value)), matchRange[1]);
+                      setMatchRange([val, matchRange[1]]);
+                      setTempMin(null);
+                    }
+                  }}
+                  className="w-16 h-10 border rounded text-center text-lg"
+                />
+                <span className="text-sm">%</span>
+                <span className="mx-2 text-sm">~</span>
+                <input
+                  type="number"
+                  min={matchRange[0]}
+                  max={100}
+                  value={tempMax !== null ? tempMax : matchRange[1]}
+                  onFocus={e => setTempMax('')}
+                  onChange={e => setTempMax(e.target.value)}
+                  onBlur={e => {
+                    if (e.target.value === '' || isNaN(Number(e.target.value))) {
+                      setTempMax(null);
+                    } else {
+                      let val = Math.max(Math.min(100, Number(e.target.value)), matchRange[0]);
+                      setMatchRange([matchRange[0], val]);
+                      setTempMax(null);
+                    }
+                  }}
+                  className="w-16 h-10 border rounded text-center text-lg"
+                />
+                <span className="text-sm">%</span>
               </div>
               {/* 범위 슬라이더 */}
               <div className="flex items-center gap-2 px-2">
@@ -192,27 +234,37 @@ const RecipeSortBar = ({
                   style: { width: '100%' }
                 })}
               </div>
-              {/* 최대 n개 부족 라디오 */}
-              <div className="flex flex-wrap gap-2 mt-2 text-xs">
+              {/* 재료 부족 갯수 라디오 버튼 */}
+              <div className="flex flex-wrap gap-2 mt-2 text-xs justify-center">
                 {[1,2,3,4].map(n => (
-                  <label key={n} className="flex items-center gap-1">
+                  <label key={n} className="flex items-center gap-1 cursor-pointer">
                     <input type="radio" name="maxLack" checked={maxLack === n} onChange={() => setMaxLack(n)} />
                     최대 {n}개 부족
                   </label>
                 ))}
-                <label className="flex items-center gap-1">
+                <label className="flex items-center gap-1 cursor-pointer">
                   <input type="radio" name="maxLack" checked={maxLack === 5} onChange={() => setMaxLack(5)} />
                   5개 이상 부족
                 </label>
-                <label className="flex items-center gap-1">
-                  <input type="radio" name="maxLack" checked={maxLack === 'unlimited' || maxLack === null} onChange={() => setMaxLack('unlimited')} />
+                <label className="flex items-center gap-1 cursor-pointer">
+                  <input type="radio" name="maxLack" checked={maxLack === 'unlimited'} onChange={() => setMaxLack('unlimited')} />
                   제한 없음
                 </label>
               </div>
-              <button className="w-full bg-[#3c3c3c] text-white font-bold py-2 rounded-lg mt-2" onClick={() => {
-                if (maxLack === null) setMaxLack('unlimited');
-                setMatchRateModalOpen(false);
-              }}>적용</button>
+              <button
+                className="w-full bg-[#3c3c3c] text-white font-bold py-3 rounded-lg mt-2 text-base"
+                onClick={() => {
+                  if (matchRange[0] > matchRange[1]) {
+                    if (typeof onToast === 'function') {
+                      onToast('올바른 범위를 입력해주세요');
+                    }
+                    return;
+                  }
+                  setMatchRateModalOpen(false);
+                }}
+              >
+                적용
+              </button>
             </div>
           </div>
         </div>

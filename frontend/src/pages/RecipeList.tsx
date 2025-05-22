@@ -99,9 +99,31 @@ function getDDay(expiry: string) {
   return `D+${Math.abs(diff)}`;
 }
 
+// 정렬/필터바 상태를 localStorage에서 읽어오는 함수
+function getInitialSortBarState() {
+  const saved = localStorage.getItem('recipe_sortbar_state_fridge');
+  if (saved) {
+    try {
+      return JSON.parse(saved);
+    } catch {}
+  }
+  return {
+    sortType: 'match',
+    matchRange: [30, 100],
+    maxLack: 'unlimited',
+    appliedExpiryIngredients: [],
+    expirySortType: 'expiry',
+  };
+}
+
 const RecipeList: React.FC = () => {
+  const initialSortBarState = getInitialSortBarState();
   const [visibleCount, setVisibleCount] = useState(50);
-  const [sortType, setSortType] = useState('match');
+  const [sortType, setSortType] = useState(initialSortBarState.sortType);
+  const [matchRange, setMatchRange] = useState(initialSortBarState.matchRange);
+  const [maxLack, setMaxLack] = useState(initialSortBarState.maxLack);
+  const [appliedExpiryIngredients, setAppliedExpiryIngredients] = useState(initialSortBarState.appliedExpiryIngredients);
+  const [expirySortType, setExpirySortType] = useState(initialSortBarState.expirySortType);
   const [filterOpen, setFilterOpen] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState<FilterState>(initialFilterState);
   const [includeInput, setIncludeInput] = useState('');
@@ -116,37 +138,11 @@ const RecipeList: React.FC = () => {
   const [substituteTable, setSubstituteTable] = useState<{ [key: string]: SubstituteInfo }>({});
   const [matchRateModalOpen, setMatchRateModalOpen] = useState(false);
   const [expiryModalOpen, setExpiryModalOpen] = useState(false);
-  const [matchRange, setMatchRange] = useState<[number, number]>([30, 100]);
-  const [maxLack, setMaxLack] = useState<number | 'unlimited'>('unlimited');
-  const [expirySortType, setExpirySortType] = useState<'expiry'|'purchase'>('expiry');
   const [selectedExpiryIngredients, setSelectedExpiryIngredients] = useState<string[]>([]);
-  const [appliedExpiryIngredients, setAppliedExpiryIngredients] = useState<string[]>([]);
   
   const myIngredients = useMemo(() => getMyIngredients(), []);
   const navigate = useNavigate();
   const location = useLocation();
-
-  // Restore sort/filter state from localStorage on mount
-  useEffect(() => {
-    const saved = localStorage.getItem('recipe_sortbar_state_fridge');
-    if (saved) {
-      try {
-        const state = JSON.parse(saved);
-        if (state.sortType) setSortType(state.sortType);
-        if (state.matchRange) setMatchRange(state.matchRange);
-        if (state.maxLack !== undefined) setMaxLack(state.maxLack);
-        if (state.appliedExpiryIngredients) setAppliedExpiryIngredients(state.appliedExpiryIngredients);
-        if (state.expirySortType) setExpirySortType(state.expirySortType);
-      } catch {}
-    }
-  }, [location.pathname]);
-
-  // Save sort/filter state to localStorage on change
-  useEffect(() => {
-    localStorage.setItem('recipe_sortbar_state_fridge', JSON.stringify({
-      sortType, matchRange, maxLack, appliedExpiryIngredients, expirySortType
-    }));
-  }, [sortType, matchRange, maxLack, appliedExpiryIngredients, expirySortType]);
 
   useEffect(() => {
     fetch('/ingredient_profile_dict_with_substitutes.csv')
@@ -287,6 +283,45 @@ const RecipeList: React.FC = () => {
   } else {
     sortedExpiryList = myIngredientObjects.filter(i => i.purchase).sort((a, b) => (a.purchase > b.purchase ? 1 : -1));
   }
+
+  // 페이지 진입(마운트) 시마다 localStorage에서 복원
+  useEffect(() => {
+    const saved = localStorage.getItem('recipe_sortbar_state_fridge');
+    console.log('[RecipeList] location.pathname changed:', location.pathname);
+    console.log('[RecipeList] localStorage.recipe_sortbar_state_fridge:', saved);
+    if (saved) {
+      try {
+        const state = JSON.parse(saved);
+        if (state.sortType) { setSortType(state.sortType); console.log('[RecipeList] setSortType:', state.sortType); }
+        if (state.matchRange) { setMatchRange(state.matchRange); console.log('[RecipeList] setMatchRange:', state.matchRange); }
+        if (state.maxLack !== undefined) { setMaxLack(state.maxLack); console.log('[RecipeList] setMaxLack:', state.maxLack); }
+        if (state.appliedExpiryIngredients) { setAppliedExpiryIngredients(state.appliedExpiryIngredients); console.log('[RecipeList] setAppliedExpiryIngredients:', state.appliedExpiryIngredients); }
+        if (state.expirySortType) { setExpirySortType(state.expirySortType); console.log('[RecipeList] setExpirySortType:', state.expirySortType); }
+      } catch (e) { console.error('[RecipeList] localStorage parse error', e); }
+    }
+  }, [location.pathname]);
+
+  // 각 상태값이 바뀔 때마다 로그
+  useEffect(() => { console.log('[RecipeList] sortType changed:', sortType); }, [sortType]);
+  useEffect(() => { console.log('[RecipeList] matchRange changed:', matchRange); }, [matchRange]);
+  useEffect(() => { console.log('[RecipeList] maxLack changed:', maxLack); }, [maxLack]);
+  useEffect(() => { console.log('[RecipeList] appliedExpiryIngredients changed:', appliedExpiryIngredients); }, [appliedExpiryIngredients]);
+  useEffect(() => { console.log('[RecipeList] expirySortType changed:', expirySortType); }, [expirySortType]);
+
+  // RecipeSortBar 렌더링 직전 상태 로그
+  console.log('[RecipeList] RecipeSortBar 렌더링 직전', {
+    sortType, matchRange, maxLack, appliedExpiryIngredients, expirySortType
+  });
+
+  // 상태가 바뀔 때마다 localStorage에 저장
+  useEffect(() => {
+    localStorage.setItem('recipe_sortbar_state_fridge', JSON.stringify({
+      sortType, matchRange, maxLack, appliedExpiryIngredients, expirySortType
+    }));
+    console.log('[RecipeList] localStorage.recipe_sortbar_state_fridge 저장됨:', {
+      sortType, matchRange, maxLack, appliedExpiryIngredients, expirySortType
+    });
+  }, [sortType, matchRange, maxLack, appliedExpiryIngredients, expirySortType]);
 
   return (
     <>
