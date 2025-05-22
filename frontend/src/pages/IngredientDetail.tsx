@@ -343,6 +343,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
           paddingTop: 32,
         }}
       >
+        <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 18, textAlign: 'center' }}>{customTitle || `${name}이 들어간 레시피`}</div>
         <RecipeSortBar
           recipes={processedRecipes}
           myIngredients={myIngredients}
