@@ -173,18 +173,34 @@ const CompletedRecipeListPage = () => {
           expirySortType={expirySortType}
           setExpirySortType={setExpirySortType}
         />
-        <div className="mt-4">
-          {filteredRecipes.map((recipe, index) => (
-            <RecipeCard
-              key={recipe.id}
-              recipe={recipe}
-              index={index}
-              actionState={recipeActionStates[recipe.id]}
-              onAction={(action) => handleRecipeAction(recipe.id, action)}
-              isLast={index === processedRecipes.length - 1}
-              myIngredients={myIngredients}
-            />
-          ))}
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, marginTop: 8, justifyContent: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <span style={{ width: 24, height: 14, borderRadius: 7, background: '#D1D1D1', display: 'inline-block', marginRight: 2 }}></span>
+              <span style={{ color: '#222', fontSize: '10.4px', minWidth: 30 }}>부족 재료</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <span style={{ width: 24, height: 14, borderRadius: 7, background: '#555', display: 'inline-block', marginRight: 2 }}></span>
+              <span style={{ color: '#222', fontSize: '10.4px', minWidth: 30 }}>대체 가능</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <span style={{ width: 24, height: 14, borderRadius: 7, background: '#FFD600', display: 'inline-block', marginRight: 2 }}></span>
+              <span style={{ color: '#222', fontSize: '10.4px', minWidth: 30 }}>보유 재료</span>
+            </div>
+          </div>
+          <div className="mt-4 flex flex-col gap-2" style={{ marginTop: 0 }}>
+            {filteredRecipes.map((recipe, index) => (
+              <RecipeCard
+                key={recipe.id}
+                recipe={recipe}
+                index={index}
+                actionState={recipeActionStates[recipe.id]}
+                onAction={(action) => handleRecipeAction(recipe.id, action)}
+                isLast={index === processedRecipes.length - 1}
+                myIngredients={myIngredients}
+              />
+            ))}
+          </div>
         </div>
       </div>
       <BottomNavBar activeTab="mypage" />
