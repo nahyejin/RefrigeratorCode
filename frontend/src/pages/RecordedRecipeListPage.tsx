@@ -152,21 +152,21 @@ const RecordedRecipeListPage = () => {
   const processedRecipes = useMemo(() => {
     let arr = [...recipes];
     arr.sort((a, b) => {
-      const matchA = a.match_rate ?? 0;
-      const matchB = b.match_rate ?? 0;
-      if (sortType === 'match') {
-        return matchB - matchA;
-      } else if (sortType === 'expiry') {
-        return new Date(b.date).getTime() - new Date(a.date).getTime();
-      } else if (sortType === 'like') {
+    const matchA = a.match_rate ?? 0;
+    const matchB = b.match_rate ?? 0;
+    if (sortType === 'match') {
+      return matchB - matchA;
+    } else if (sortType === 'expiry') {
+      return new Date(b.date).getTime() - new Date(a.date).getTime();
+    } else if (sortType === 'like') {
         return (b.likes ?? 0) - (a.likes ?? 0);
-      } else if (sortType === 'comment') {
+    } else if (sortType === 'comment') {
         return (b.comments ?? 0) - (a.comments ?? 0);
-      } else if (sortType === 'latest') {
-        return new Date(b.date).getTime() - new Date(a.date).getTime();
-      }
-      return 0;
-    });
+    } else if (sortType === 'latest') {
+      return new Date(b.date).getTime() - new Date(a.date).getTime();
+    }
+    return 0;
+  });
     return arr;
   }, [recipes, sortType]);
 
@@ -216,16 +216,16 @@ const RecordedRecipeListPage = () => {
           </div>
           <div className="mt-4 flex flex-col gap-2" style={{ marginTop: 0 }}>
             {filteredRecipes.map((recipe, index) => (
-              <RecipeCard
-                key={recipe.id}
-                recipe={recipe}
+            <RecipeCard
+              key={recipe.id}
+              recipe={recipe}
                 index={index}
-                actionState={recipeActionStates[recipe.id]}
+              actionState={recipeActionStates[recipe.id]}
                 onAction={(action) => handleRecipeAction(recipe.id, action)}
                 isLast={index === processedRecipes.length - 1}
-                myIngredients={myIngredients}
-              />
-            ))}
+              myIngredients={myIngredients}
+            />
+          ))}
           </div>
         </div>
       </div>

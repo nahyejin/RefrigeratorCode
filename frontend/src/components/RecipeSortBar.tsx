@@ -12,7 +12,7 @@ interface SubstituteInfo {
   substitution_direction: string;
   similarity_score: number;
   substitution_reason: string;
-}
+    }
 
 interface RecipeSortBarProps {
   recipes: Recipe[];
@@ -51,6 +51,8 @@ const RecipeSortBar = ({
   const [selectedFilter, setSelectedFilter] = useState<any>({ 효능: [], 영양분: [], 대상: [], TPO: [], 스타일: [] });
   const [includeInput, setIncludeInput] = useState<string>('');
   const [excludeInput, setExcludeInput] = useState<string>('');
+  const [includeIngredients, setIncludeIngredients] = useState<string[]>([]);
+  const [excludeIngredients, setExcludeIngredients] = useState<string[]>([]);
   const [allIngredients, setAllIngredients] = useState<string[]>([]);
   const [includeKeyword, setIncludeKeyword] = useState<string>('');
   const [matchRateModalOpen, setMatchRateModalOpen] = useState<boolean>(false);
@@ -69,20 +71,23 @@ const RecipeSortBar = ({
     return 'or';
   });
 
-  // 필터링된 결과를 useMemo로 캐싱
-  const filtered = useMemo(() => filterRecipes(recipes, {
-    sortType,
-    matchRange,
-    maxLack,
-    appliedExpiryIngredients,
-    myIngredients,
-    expiryIngredientMode
-  }), [recipes, sortType, matchRange, maxLack, appliedExpiryIngredients, myIngredients, expiryIngredientMode]);
-
-  // 필터링 결과가 바뀔 때만 부모에 전달
-  useEffect(() => {
+  // 필터 적용 함수
+  const applyFilter = () => {
+    const filtered = filterRecipes(recipes, {
+      sortType,
+      matchRange,
+      maxLack,
+      appliedExpiryIngredients,
+      myIngredients,
+      expiryIngredientMode,
+      includeKeyword,
+      includeIngredients,
+      excludeIngredients,
+      categoryKeywords: selectedFilter
+    });
     onFilteredRecipesChange(filtered);
-  }, [filtered, onFilteredRecipesChange]);
+    setFilterOpen(false);
+  };
 
   // 전체 재료 목록 fetch
   useEffect(() => {
@@ -280,7 +285,7 @@ const RecipeSortBar = ({
                     }
                     return;
                   }
-                  setMatchRateModalOpen(false);
+                setMatchRateModalOpen(false);
                 }}
               >
                 적용
@@ -407,6 +412,10 @@ const RecipeSortBar = ({
           onClose={() => setFilterOpen(false)}
           filterState={selectedFilter}
           setFilterState={setSelectedFilter}
+          includeIngredients={includeIngredients}
+          setIncludeIngredients={setIncludeIngredients}
+          excludeIngredients={excludeIngredients}
+          setExcludeIngredients={setExcludeIngredients}
           includeInput={includeInput}
           setIncludeInput={setIncludeInput}
           excludeInput={excludeInput}
@@ -414,10 +423,11 @@ const RecipeSortBar = ({
           allIngredients={allIngredients}
           includeKeyword={includeKeyword}
           setIncludeKeyword={setIncludeKeyword}
+          onApply={applyFilter}
         />
       )}
     </>
   );
 };
 
-export default RecipeSortBar;
+export default RecipeSortBar; 

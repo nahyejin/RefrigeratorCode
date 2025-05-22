@@ -424,7 +424,7 @@ const MyPage = () => {
                         myIngredients={myIngredients}
                         substituteTable={substituteTable}
                       />
-                    </div>
+                  </div>
                   </div>
                 );
               })
@@ -518,7 +518,7 @@ const MyPage = () => {
                         myIngredients={myIngredients}
                         substituteTable={substituteTable}
                       />
-                    </div>
+                  </div>
                   </div>
                 );
               })

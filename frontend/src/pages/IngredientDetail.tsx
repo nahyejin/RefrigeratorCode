@@ -267,17 +267,17 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
 
   const processedRecipes = useMemo(() => {
     let arr = [...recipes].map(recipe => {
-      const match = getMatchRate(myIngredients, recipe.used_ingredients);
-      const substitutes = findPossibleSubstitutes(recipe.used_ingredients, myIngredients);
-      return {
-        ...recipe,
-        match_rate: match.rate,
-        my_ingredients: match.my_ingredients,
-        need_ingredients: match.need_ingredients,
-        substitutes: substitutes.length > 0 ? substitutes : ['(내 냉장고에 대체 가능한 재료가 없습니다)'],
-        link: recipe.link || `https://blog.naver.com/jjangda1105/${recipe.id}`
-      };
-    });
+    const match = getMatchRate(myIngredients, recipe.used_ingredients);
+    const substitutes = findPossibleSubstitutes(recipe.used_ingredients, myIngredients);
+    return { 
+      ...recipe, 
+      match_rate: match.rate, 
+      my_ingredients: match.my_ingredients, 
+      need_ingredients: match.need_ingredients,
+      substitutes: substitutes.length > 0 ? substitutes : ['(내 냉장고에 대체 가능한 재료가 없습니다)'],
+      link: recipe.link || `https://blog.naver.com/jjangda1105/${recipe.id}`
+    };
+  });
     if (sortType === 'match') arr.sort((a, b) => b.match_rate - a.match_rate);
     else if (sortType === 'expiry') arr.sort((a, b) => 0);
     return arr;
