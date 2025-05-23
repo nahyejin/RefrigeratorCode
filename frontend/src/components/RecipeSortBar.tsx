@@ -27,7 +27,7 @@ import Slider from 'rc-slider';
 import 'rc-slider/assets/index.css';
 import { Recipe } from '../types/recipe';
 import { filterRecipes } from '../utils/recipeFilters';
-import { getDictCategoryKey, extractKeywordsAndSynonyms } from '../utils/recipeUtils';
+import { getDictCategoryKey, getDDay } from '../utils/recipeUtils';
 
 /**
  * 재료 대체 정보 타입
@@ -205,68 +205,6 @@ const RecipeSortBar = ({
             .filter(name => !!name && name !== 'ingredient_name')
         );
       });
-  }, []);
-
-  // D-day 계산 함수 (유틸 함수로 분리)
-  function calculateDDay(expiryDate: string): string {
-    if (!expiryDate) return '';
-    const today = new Date();
-    const expiry = new Date(expiryDate);
-    if (isNaN(expiry.getTime())) return expiryDate;
-    const diff = Math.floor((expiry.getTime() - today.setHours(0,0,0,0)) / (1000*60*60*24));
-    if (diff > 0) return `D-${diff}`;
-    if (diff === 0) return 'D-DAY';
-    return `D+${Math.abs(diff)}`;
-  }
-
-  // 매칭률 계산 함수 (유틸 함수로 분리)
-  function calculateIngredientMatchRate(myIngredients: string[], recipeIngredients: string): {
-    rate: number;
-    my_ingredients: string[];
-    need_ingredients: string[];
-  } {
-    const safeIngredients = recipeIngredients || '';
-    const recipeSet = new Set(
-      safeIngredients.split(',').map((i: string) => i.trim()).filter(Boolean)
-    );
-    const mySet = new Set(myIngredients);
-    const matched = [...recipeSet].filter((i: string) => mySet.has(i));
-    return {
-      rate: recipeSet.size === 0 ? 0 : Math.round((matched.length / recipeSet.size) * 100),
-      my_ingredients: matched,
-      need_ingredients: [...recipeSet].filter((i: string) => !mySet.has(i)),
-    };
-  }
-
-  // 카테고리 키워드 트리에서 키워드와 동의어를 추출하는 함수
-  function extractKeywordsAndSynonyms(
-    category: string,
-    keywords: string[],
-    tree: FilterKeywordTree | null
-  ): string[] {
-    const dictKey = getDictCategoryKey(category);
-    if (!tree) return [];
-    if (!tree[dictKey]) return [];
-    const result: string[] = [];
-    keywords.forEach(keyword => {
-      if (!keyword) return;
-      const node = Object.values(tree[dictKey] || {}).flat().find(
-        n => n.keyword && n.keyword.trim().toLowerCase() === keyword.trim().toLowerCase()
-      );
-      if (node) {
-        const pushed = [keyword.trim(), ...node.synonyms.map(s => s.trim())];
-        if (category === '효능') {
-          console.log('[extractKeywordsAndSynonyms] push:', pushed);
-        }
-        result.push(...pushed);
-      }
-    });
-    return result;
-  }
-
-  useEffect(() => {
-    return () => {
-    };
   }, []);
 
   useEffect(() => {
@@ -554,7 +492,7 @@ const RecipeSortBar = ({
                       {item.name}
                     </span>
                     <span className="text-xs text-gray-400 ml-auto" style={{ minWidth: 60, textAlign: 'right' }}>
-                      {expirySortType === 'expiry' ? calculateDDay(item.expiry) : (item.purchase || '')}
+                      {expirySortType === 'expiry' ? getDDay(item.expiry) : (item.purchase || '')}
                     </span>
                   </div>
                 ))}
