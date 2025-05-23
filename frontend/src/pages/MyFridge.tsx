@@ -261,25 +261,48 @@ const MyFridge: React.FC = () => {
               alignItems: 'center',
             }}
           >
-            <input
-              ref={inputRef}
-              type="text"
-              placeholder="추가할 재료명을 입력해주세요"
-              className="border border-gray-300 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
-              style={{
-                maxWidth: 250,
-                minWidth: 0,
-                flex: '0 1 auto',
-                height: 40,
-                fontFamily: 'Pretendard, sans-serif',
-              }}
-              value={inputValue}
-              onChange={handleInputChange}
-              onFocus={() => setShowDropdown(true)}
-              onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
-              onKeyDown={handleInputKeyDown}
-              autoComplete="off"
-            />
+            <div className="relative" style={{ flex: '0 1 auto' }}>
+              <input
+                ref={inputRef}
+                type="text"
+                placeholder="추가할 재료명을 입력해주세요"
+                className="border border-gray-300 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                style={{
+                  maxWidth: 250,
+                  minWidth: 0,
+                  flex: '0 1 auto',
+                  height: 40,
+                  fontFamily: 'Pretendard, sans-serif',
+                }}
+                value={inputValue}
+                onChange={handleInputChange}
+                onFocus={() => setShowDropdown(true)}
+                onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
+                onKeyDown={handleInputKeyDown}
+                autoComplete="off"
+              />
+              {showDropdown && filtered.length > 0 && (
+                <ul
+                  className="absolute left-0 top-full bg-white border border-gray-200 rounded-lg shadow z-10 max-h-48 overflow-y-auto"
+                  style={{
+                    width: inputRef.current ? inputRef.current.offsetWidth : 250,
+                    minWidth: 0,
+                    maxWidth: '100%',
+                  }}
+                >
+                  {filtered.map((item) => (
+                    <li
+                      key={item}
+                      className="px-4 py-2 hover:bg-[#f4f0e6] cursor-pointer text-sm"
+                      style={{ fontSize: '13px' }}
+                      onMouseDown={() => handleSelect(item)}
+                    >
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
             <button
               className="bg-[#FFD600] text-[#222] font-bold rounded-full px-5 py-2 text-sm shadow hover:bg-yellow-300 transition whitespace-nowrap"
               onClick={() => filtered.length > 0 && handleSelect(filtered[0])}
@@ -287,20 +310,6 @@ const MyFridge: React.FC = () => {
             >
               입력
             </button>
-            {/* 자동완성 드롭다운 */}
-            {showDropdown && filtered.length > 0 && (
-              <ul className="absolute left-0 right-0 bg-white border border-gray-200 rounded-lg mt-12 shadow z-10 max-h-48 overflow-y-auto">
-                {filtered.map((item) => (
-                  <li
-                    key={item}
-                    className="px-4 py-2 hover:bg-[#f4f0e6] cursor-pointer"
-                    onMouseDown={() => handleSelect(item)}
-                  >
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            )}
           </div>
         </div>
         {/* IngredientDetailModal */}
