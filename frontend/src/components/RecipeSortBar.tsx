@@ -1,3 +1,25 @@
+/*
+ * RecipeSortBar Component
+ *
+ * 레시피 리스트의 필터링과 정렬을 담당하는 컴포넌트입니다.
+ * - 재료 매칭률 기반 필터링
+ * - 임박 재료 기반 필터링
+ * - 카테고리/키워드 기반 필터링
+ * - 정렬 기능
+ *
+ * 모든 필터/정렬 상태는 localStorage에 저장되어 페이지 이동 후에도 복원됩니다.
+ *
+ * 주요 타입 및 인터페이스:
+ * - SubstituteInfo: 재료 대체 정보
+ * - FilterKeywordNode, FilterKeywordTree: 필터 키워드 트리 구조
+ * - RecipeSortBarProps: 컴포넌트 Props
+ *
+ * 주요 유틸 함수:
+ * - calculateMatchRate: 재료 매칭률 계산
+ * - filterUtils: 각종 필터링 함수 모음
+ * - filterRecipes: 전체 레시피 필터링 및 정렬
+ */
+
 import React, { useEffect, useState, useMemo } from 'react';
 import RecipeCard from './RecipeCard';
 import FilterModal from './FilterModal';
@@ -6,14 +28,36 @@ import 'rc-slider/assets/index.css';
 import { Recipe } from '../types/recipe';
 import { filterRecipes } from '../utils/recipeFilters';
 
+/**
+ * 재료 대체 정보 타입
+ */
 interface SubstituteInfo {
   ingredient_a: string;
   ingredient_b: string;
   substitution_direction: string;
   similarity_score: number;
   substitution_reason: string;
-    }
+}
 
+/**
+ * 필터 키워드 트리 타입
+ */
+interface FilterKeywordNode {
+  keyword: string;
+  synonyms: string[];
+}
+
+interface FilterKeywordSubTree {
+  [subCategory: string]: FilterKeywordNode[];
+}
+
+interface FilterKeywordTree {
+  [mainCategory: string]: FilterKeywordSubTree;
+}
+
+/**
+ * RecipeSortBar 컴포넌트 Props 타입
+ */
 interface RecipeSortBarProps {
   recipes: Recipe[];
   myIngredients: string[];
@@ -47,19 +91,19 @@ const RecipeSortBar = ({
   setExpirySortType,
   onToast
 }: RecipeSortBarProps) => {
-  const [filterOpen, setFilterOpen] = useState<boolean>(false);
-  const [selectedFilter, setSelectedFilter] = useState<any>({ 효능: [], 영양분: [], 대상: [], TPO: [], 스타일: [] });
+  const [isFilterModalOpen, setFilterModalOpen] = useState<boolean>(false);
+  const [selectedCategoryKeywords, setSelectedCategoryKeywords] = useState<any>({ 효능: [], 영양분: [], 대상: [], TPO: [], 스타일: [] });
   const [includeInput, setIncludeInput] = useState<string>('');
   const [excludeInput, setExcludeInput] = useState<string>('');
   const [includeIngredients, setIncludeIngredients] = useState<string[]>([]);
   const [excludeIngredients, setExcludeIngredients] = useState<string[]>([]);
   const [allIngredients, setAllIngredients] = useState<string[]>([]);
   const [includeKeyword, setIncludeKeyword] = useState<string>('');
-  const [matchRateModalOpen, setMatchRateModalOpen] = useState<boolean>(false);
-  const [expiryModalOpen, setExpiryModalOpen] = useState<boolean>(false);
+  const [isMatchRateModalOpen, setMatchRateModalOpen] = useState<boolean>(false);
+  const [isExpiryModalOpen, setExpiryModalOpen] = useState<boolean>(false);
   const [selectedExpiryIngredients, setSelectedExpiryIngredients] = useState<string[]>([]);
-  const [tempMin, setTempMin] = useState<string | null>(null);
-  const [tempMax, setTempMax] = useState<string | null>(null);
+  const [tempMatchRangeMin, setTempMatchRangeMin] = useState<string | null>(null);
+  const [tempMatchRangeMax, setTempMatchRangeMax] = useState<string | null>(null);
   const [expiryIngredientMode, setExpiryIngredientMode] = useState<'and'|'or'>(() => {
     const saved = localStorage.getItem('recipe_sortbar_state_fridge');
     if (saved) {
@@ -70,7 +114,31 @@ const RecipeSortBar = ({
     }
     return 'or';
   });
-  const [filterKeywordTree, setFilterKeywordTree] = useState<any>(null);
+  const [categoryKeywordTree, setCategoryKeywordTree] = useState<FilterKeywordTree | null>(null);
+
+  const myFridgeIngredientList = useMemo(() => {
+    try {
+      const data = JSON.parse(localStorage.getItem('myfridge_ingredients') || 'null');
+      if (data && Array.isArray(data.frozen) && Array.isArray(data.fridge) && Array.isArray(data.room)) {
+        return [...data.frozen, ...data.fridge, ...data.room];
+      }
+    } catch {}
+    return [];
+  }, []);
+
+  const expirySortedIngredientList = useMemo(() =>
+    myFridgeIngredientList
+      .filter(i => i.expiry)
+      .sort((a, b) => new Date(a.expiry).getTime() - new Date(b.expiry).getTime()),
+    [myFridgeIngredientList]
+  );
+
+  const purchaseSortedIngredientList = useMemo(() =>
+    myFridgeIngredientList
+      .filter(i => i.purchase)
+      .sort((a, b) => new Date(a.purchase).getTime() - new Date(b.purchase).getTime()),
+    [myFridgeIngredientList]
+  );
 
   // 초기 렌더링과 필터 상태 변경 시 필터링 적용
   useEffect(() => {
@@ -84,7 +152,7 @@ const RecipeSortBar = ({
       includeKeyword,
       includeIngredients,
       excludeIngredients,
-      categoryKeywords: selectedFilter
+      categoryKeywords: selectedCategoryKeywords
     });
     onFilteredRecipesChange(filtered);
   }, [
@@ -98,12 +166,12 @@ const RecipeSortBar = ({
     includeKeyword,
     includeIngredients,
     excludeIngredients,
-    selectedFilter
+    selectedCategoryKeywords
   ]);
 
   // 필터 적용 함수
   const applyFilter = () => {
-    const categoryKeywords = buildCategoryKeywords(selectedFilter, filterKeywordTree);
+    const categoryKeywords = buildCategoryKeywords(selectedCategoryKeywords, categoryKeywordTree);
     console.log('[applyFilter] categoryKeywords', categoryKeywords);
     const filtered = filterRecipes(recipes, {
       sortType,
@@ -118,7 +186,7 @@ const RecipeSortBar = ({
       categoryKeywords
     });
     onFilteredRecipesChange(filtered);
-    setFilterOpen(false);
+    setFilterModalOpen(false);
   };
 
   // 전체 재료 목록 fetch
@@ -138,42 +206,27 @@ const RecipeSortBar = ({
       });
   }, []);
 
-  // 내 냉장고 재료 모두 합치기
-  function getMyIngredientObjects() {
-    try {
-      const data = JSON.parse(localStorage.getItem('myfridge_ingredients') || 'null');
-      if (data && Array.isArray(data.frozen) && Array.isArray(data.fridge) && Array.isArray(data.room)) {
-        return [...data.frozen, ...data.fridge, ...data.room];
-      }
-    } catch {}
-    return [];
-  }
-  const myIngredientObjects = getMyIngredientObjects();
-
-  // 유통기한 임박순/구매일 오래된순 리스트
-  const expiryList = myIngredientObjects
-    .filter(i => i.expiry)
-    .sort((a, b) => new Date(a.expiry).getTime() - new Date(b.expiry).getTime());
-  const purchaseList = myIngredientObjects
-    .filter(i => i.purchase)
-    .sort((a, b) => new Date(a.purchase).getTime() - new Date(b.purchase).getTime());
-
-  // D-day 계산 함수
-  function getDDay(expiry: string) {
-    if (!expiry) return '';
+  // D-day 계산 함수 (유틸 함수로 분리)
+  function calculateDDay(expiryDate: string): string {
+    if (!expiryDate) return '';
     const today = new Date();
-    const exp = new Date(expiry);
-    if (isNaN(exp.getTime())) return expiry;
-    const diff = Math.floor((exp.getTime() - today.setHours(0,0,0,0)) / (1000*60*60*24));
+    const expiry = new Date(expiryDate);
+    if (isNaN(expiry.getTime())) return expiryDate;
+    const diff = Math.floor((expiry.getTime() - today.setHours(0,0,0,0)) / (1000*60*60*24));
     if (diff > 0) return `D-${diff}`;
     if (diff === 0) return 'D-DAY';
     return `D+${Math.abs(diff)}`;
   }
 
-  // 매칭률 계산
-  function getMatchRate(myIngredients: string[], recipeIngredients: string) {
+  // 매칭률 계산 함수 (유틸 함수로 분리)
+  function calculateIngredientMatchRate(myIngredients: string[], recipeIngredients: string): {
+    rate: number;
+    my_ingredients: string[];
+    need_ingredients: string[];
+  } {
+    const safeIngredients = recipeIngredients || '';
     const recipeSet = new Set(
-      recipeIngredients.split(',').map((i: string) => i.trim()).filter(Boolean)
+      safeIngredients.split(',').map((i: string) => i.trim()).filter(Boolean)
     );
     const mySet = new Set(myIngredients);
     const matched = [...recipeSet].filter((i: string) => mySet.has(i));
@@ -182,6 +235,32 @@ const RecipeSortBar = ({
       my_ingredients: matched,
       need_ingredients: [...recipeSet].filter((i: string) => !mySet.has(i)),
     };
+  }
+
+  // 카테고리 키워드 트리에서 키워드와 동의어를 추출하는 함수
+  function extractKeywordsAndSynonyms(
+    category: string,
+    keywords: string[],
+    tree: FilterKeywordTree | null
+  ): string[] {
+    const dictKey = getDictCategoryKey(category);
+    if (!tree) return [];
+    if (!tree[dictKey]) return [];
+    const result: string[] = [];
+    keywords.forEach(keyword => {
+      if (!keyword) return;
+      const node = Object.values(tree[dictKey] || {}).flat().find(
+        n => n.keyword && n.keyword.trim().toLowerCase() === keyword.trim().toLowerCase()
+      );
+      if (node) {
+        const pushed = [keyword.trim(), ...node.synonyms.map(s => s.trim())];
+        if (category === '효능') {
+          console.log('[extractKeywordsAndSynonyms] push:', pushed);
+        }
+        result.push(...pushed);
+      }
+    });
+    return result;
   }
 
   useEffect(() => {
@@ -223,6 +302,42 @@ const RecipeSortBar = ({
     return result;
   }
 
+  // 카테고리명을 트리의 key로 변환하는 함수 (필요시 변환 로직 추가)
+  function getDictCategoryKey(category: string): string {
+    // 현재는 카테고리명이 트리의 key와 동일하다고 가정
+    // 만약 변환이 필요하다면 아래에서 매핑 추가
+    return category;
+  }
+
+  useEffect(() => {
+    const filtered = filterRecipes(recipes, {
+      sortType,
+      matchRange,
+      maxLack,
+      appliedExpiryIngredients,
+      myIngredients,
+      expiryIngredientMode,
+      includeKeyword,
+      includeIngredients,
+      excludeIngredients,
+      categoryKeywords: buildCategoryKeywords(selectedCategoryKeywords, categoryKeywordTree)
+    });
+    onFilteredRecipesChange(filtered);
+  }, [
+    recipes,
+    sortType,
+    matchRange,
+    maxLack,
+    appliedExpiryIngredients,
+    myIngredients,
+    expiryIngredientMode,
+    includeKeyword,
+    includeIngredients,
+    excludeIngredients,
+    selectedCategoryKeywords,
+    categoryKeywordTree
+  ]);
+
   return (
     <>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 18, width: '100%', marginTop: 24, flexWrap: 'wrap' }}>
@@ -249,10 +364,10 @@ const RecipeSortBar = ({
           </select>
           <span style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', fontSize: 13, color: '#888' }}>▼</span>
         </div>
-        <button style={{ height: 28, border: '1px solid #D1D5DB', borderRadius: 999, fontSize: 12, padding: '0 12px', fontWeight: 600, background: '#fff', color: '#222', minWidth: 50, whiteSpace: 'nowrap', boxSizing: 'border-box', cursor: 'pointer', marginLeft: 'auto' }} onClick={() => setFilterOpen(true)}><span style={{ fontWeight: 600 }}>필터</span></button>
+        <button style={{ height: 28, border: '1px solid #D1D5DB', borderRadius: 999, fontSize: 12, padding: '0 12px', fontWeight: 600, background: '#fff', color: '#222', minWidth: 50, whiteSpace: 'nowrap', boxSizing: 'border-box', cursor: 'pointer', marginLeft: 'auto' }} onClick={() => setFilterModalOpen(true)}><span style={{ fontWeight: 600 }}>필터</span></button>
       </div>
       {/* 매칭률 설정 모달 */}
-      {matchRateModalOpen && (
+      {isMatchRateModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-lg p-6 w-[340px] max-w-[95vw] relative">
             <span className="absolute top-3 right-3 w-6 h-6 text-gray-400 text-xl cursor-pointer" onClick={() => setMatchRateModalOpen(false)}>×</span>
@@ -263,16 +378,16 @@ const RecipeSortBar = ({
                   type="number"
                   min={0}
                   max={matchRange[1]}
-                  value={tempMin !== null ? tempMin : matchRange[0]}
-                  onFocus={e => setTempMin('')}
-                  onChange={e => setTempMin(e.target.value)}
+                  value={tempMatchRangeMin !== null ? tempMatchRangeMin : matchRange[0]}
+                  onFocus={e => setTempMatchRangeMin('')}
+                  onChange={e => setTempMatchRangeMin(e.target.value)}
                   onBlur={e => {
                     if (e.target.value === '' || isNaN(Number(e.target.value))) {
-                      setTempMin(null);
+                      setTempMatchRangeMin(null);
                     } else {
                       let val = Math.min(Math.max(0, Number(e.target.value)), matchRange[1]);
                       setMatchRange([val, matchRange[1]]);
-                      setTempMin(null);
+                      setTempMatchRangeMin(null);
                     }
                   }}
                   className="w-16 h-10 border rounded text-center text-lg"
@@ -283,16 +398,16 @@ const RecipeSortBar = ({
                   type="number"
                   min={matchRange[0]}
                   max={100}
-                  value={tempMax !== null ? tempMax : matchRange[1]}
-                  onFocus={e => setTempMax('')}
-                  onChange={e => setTempMax(e.target.value)}
+                  value={tempMatchRangeMax !== null ? tempMatchRangeMax : matchRange[1]}
+                  onFocus={e => setTempMatchRangeMax('')}
+                  onChange={e => setTempMatchRangeMax(e.target.value)}
                   onBlur={e => {
                     if (e.target.value === '' || isNaN(Number(e.target.value))) {
-                      setTempMax(null);
+                      setTempMatchRangeMax(null);
                     } else {
                       let val = Math.max(Math.min(100, Number(e.target.value)), matchRange[0]);
                       setMatchRange([matchRange[0], val]);
-                      setTempMax(null);
+                      setTempMatchRangeMax(null);
                     }
                   }}
                   className="w-16 h-10 border rounded text-center text-lg"
@@ -343,7 +458,7 @@ const RecipeSortBar = ({
                     }
                     return;
                   }
-                setMatchRateModalOpen(false);
+                  setMatchRateModalOpen(false);
                 }}
               >
                 적용
@@ -353,7 +468,7 @@ const RecipeSortBar = ({
         </div>
       )}
       {/* 임박 재료 설정 모달 */}
-      {expiryModalOpen && (
+      {isExpiryModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-lg p-6 w-[340px] max-w-[95vw] relative">
             <span className="absolute top-3 right-3 w-6 h-6 text-gray-400 text-xl cursor-pointer" onClick={() => {
@@ -423,10 +538,10 @@ const RecipeSortBar = ({
               </div>
               {/* 재료 리스트 스크롤 영역 */}
               <div style={{ maxHeight: 320, overflowY: 'auto' }}>
-                {(expirySortType === 'expiry' ? expiryList : purchaseList).length === 0 && (
+                {(expirySortType === 'expiry' ? expirySortedIngredientList : purchaseSortedIngredientList).length === 0 && (
                   <div className="text-xs text-gray-400 text-center py-6">해당 정보가 입력된 재료가 없습니다.</div>
                 )}
-                {(expirySortType === 'expiry' ? expiryList : purchaseList).map(item => (
+                {(expirySortType === 'expiry' ? expirySortedIngredientList : purchaseSortedIngredientList).map(item => (
                   <div
                     key={item.name}
                     className={`flex items-center justify-between p-2 cursor-pointer rounded ${selectedExpiryIngredients.includes(item.name) ? 'bg-gray-200' : ''}`}
@@ -445,7 +560,7 @@ const RecipeSortBar = ({
                       {item.name}
                     </span>
                     <span className="text-xs text-gray-400 ml-auto" style={{ minWidth: 60, textAlign: 'right' }}>
-                      {expirySortType === 'expiry' ? getDDay(item.expiry) : (item.purchase || '')}
+                      {expirySortType === 'expiry' ? calculateDDay(item.expiry) : (item.purchase || '')}
                     </span>
                   </div>
                 ))}
@@ -464,12 +579,12 @@ const RecipeSortBar = ({
         </div>
       )}
       {/* 필터 모달 */}
-      {filterOpen && (
+      {isFilterModalOpen && (
         <FilterModal
-          open={filterOpen}
-          onClose={() => setFilterOpen(false)}
-          filterState={selectedFilter}
-          setFilterState={setSelectedFilter}
+          open={isFilterModalOpen}
+          onClose={() => setFilterModalOpen(false)}
+          filterState={selectedCategoryKeywords}
+          setFilterState={setSelectedCategoryKeywords}
           includeIngredients={includeIngredients}
           setIncludeIngredients={setIncludeIngredients}
           excludeIngredients={excludeIngredients}
@@ -482,8 +597,8 @@ const RecipeSortBar = ({
           includeKeyword={includeKeyword}
           setIncludeKeyword={setIncludeKeyword}
           onApply={applyFilter}
-          filterKeywordTree={filterKeywordTree}
-          setFilterKeywordTree={setFilterKeywordTree}
+          filterKeywordTree={categoryKeywordTree}
+          setFilterKeywordTree={setCategoryKeywordTree}
         />
       )}
     </>
