@@ -167,11 +167,13 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, actionState: pro
       style={{ marginBottom: isLast ? 40 : 16, minWidth: 350, maxWidth: 400, width: '100%', margin: '0 auto' }}
     >
       {!hideIndexNumber && (
-      <div className="font-bold text-[18px] text-[#222] text-left">
-        {String(index + 1).padStart(2, '0')}
-      </div>
+        <div className="font-bold text-[18px] text-[#222] text-left">
+          {String(index + 1).padStart(2, '0')}
+        </div>
       )}
-      <div className="h-[2px] w-[20px] bg-[#E5E5E5] mb-2"></div>
+      {!hideIndexNumber && (
+        <div className="h-[2px] w-[20px] bg-[#E5E5E5] mb-2"></div>
+      )}
       
       <div className="flex flex-row items-center justify-between w-full min-w-[200px] flex-shrink-0">
         <a
