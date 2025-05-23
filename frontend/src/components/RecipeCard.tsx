@@ -165,9 +165,12 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, actionState: pro
   const recipeBody = recipeAny.body || recipeAny.content || recipeAny.description || '';
 
   return (
-    <div
-      className="bg-white rounded-[20px] shadow-sm min-h-[144px] relative p-4"
-      style={{ marginBottom: isLast ? 40 : 16, minWidth: 350, maxWidth: 400, width: '100%', margin: '0 auto' }}
+    <a
+      href={recipe.link}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="bg-white rounded-[20px] shadow-sm min-h-[144px] relative p-4 block hover:shadow-md transition cursor-pointer"
+      style={{ marginBottom: isLast ? 40 : 16, minWidth: 350, maxWidth: 400, width: '100%', margin: '0 auto', textDecoration: 'none', color: 'inherit' }}
     >
       {!hideIndexNumber && (
         <div className="font-bold text-[18px] text-[#222] text-left">
@@ -177,14 +180,9 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, actionState: pro
       {!hideIndexNumber && (
         <div className="h-[2px] w-[20px] bg-[#E5E5E5] mb-2"></div>
       )}
-      
       <div className="flex flex-row items-center justify-between w-full min-w-[200px] flex-shrink-0">
-        <a
-          href={recipe.link}
-          target="_blank"
-          rel="noopener noreferrer"
-          title={recipe.title}
-          className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-[13px] font-bold text-[#222] leading-tight antialiased hover:underline"
+        <span
+          className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-[13px] font-bold text-[#222] leading-tight antialiased"
           style={{
             fontFamily: 'Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, Arial, sans-serif',
             WebkitFontSmoothing: 'antialiased',
@@ -194,12 +192,12 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, actionState: pro
           }}
         >
           {recipe.title}
-        </a>
+        </span>
         <div className="flex flex-row gap-[6px] items-center">
           <button
             title="완료"
             className="w-[26px] h-[26px] flex items-center justify-center bg-transparent border-none p-0 cursor-pointer outline-none"
-            onClick={() => handleAction('done')}
+            onClick={e => { e.preventDefault(); handleAction('done'); }}
             tabIndex={0}
             onMouseDown={e => e.preventDefault()}
           >
@@ -208,7 +206,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, actionState: pro
           <button
             title="공유"
             className="w-[26px] h-[26px] flex items-center justify-center bg-transparent border-none p-0 cursor-pointer outline-none"
-            onClick={() => handleAction('share')}
+            onClick={e => { e.preventDefault(); handleAction('share'); }}
             tabIndex={0}
             onMouseDown={e => e.preventDefault()}
           >
@@ -217,7 +215,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, actionState: pro
           <button
             title="기록"
             className="w-[26px] h-[26px] flex items-center justify-center bg-transparent border-none p-0 cursor-pointer outline-none"
-            onClick={() => handleAction('write')}
+            onClick={e => { e.preventDefault(); handleAction('write'); }}
             tabIndex={0}
             onMouseDown={e => e.preventDefault()}
           >
@@ -225,12 +223,8 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, actionState: pro
           </button>
         </div>
       </div>
-
       <div className="flex flex-row gap-6 items-start mb-2">
-        <a
-          href={recipe.link}
-          target="_blank"
-          rel="noopener noreferrer"
+        <span
           className="relative min-w-[97px] max-w-[97px] h-[79px] rounded-lg overflow-hidden bg-gray-100 flex-shrink-0 group"
           style={{ display: 'block' }}
         >
@@ -238,7 +232,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, actionState: pro
           <div className="absolute bg-[#444] bg-opacity-80 text-white text-[10px] font-medium rounded px-2 py-0.5 flex items-center gap-1" style={{ top: 0, left: 0, textShadow: '0 1px 2px rgba(0,0,0,0.12)' }}>
             재료매칭률 <span className="text-[#FFD600] font-bold ml-1" style={{ textShadow: 'none', letterSpacing: '0.5px' }}>{recipe.match_rate}%</span>
           </div>
-        </a>
+        </span>
         <div className="flex-1 flex flex-col min-w-0">
           <div className="flex items-center mb-1 w-full" style={{ gap: 4 }}>
             <span
@@ -282,25 +276,20 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, actionState: pro
               좋아요 {(recipe as any).likes ?? 0} · 댓글 {(recipe as any).comments ?? 0}
             </span>
           </div>
-          <a
-            href={recipe.link}
-            target="_blank"
-            rel="noopener noreferrer"
+          <span
             className="mb-2 max-h-16 overflow-y-auto pr-1 cursor-pointer custom-scrollbar text-[12px] text-[#444] hover:underline"
             title={recipeBody}
             style={{ display: 'block' }}
           >
             {recipeBody}
-          </a>
+          </span>
         </div>
       </div>
-
       <IngredientPillGroup
         needIngredients={(recipe.used_ingredients || '').split(',').map((i: string) => (i ? i.trim() : '')).filter(Boolean)}
         myIngredients={myIngredients}
         substituteTable={substituteTable}
       />
-
       {toast && (
         <div style={{
           position: 'fixed',
@@ -319,9 +308,9 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, actionState: pro
           textShadow: 'none',
         }}>
           {toast}
-      </div>
+        </div>
       )}
-    </div>
+    </a>
   );
 };
 
