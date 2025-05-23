@@ -27,6 +27,7 @@ import Slider from 'rc-slider';
 import 'rc-slider/assets/index.css';
 import { Recipe } from '../types/recipe';
 import { filterRecipes } from '../utils/recipeFilters';
+import { getDictCategoryKey, extractKeywordsAndSynonyms } from '../utils/recipeUtils';
 
 /**
  * 재료 대체 정보 타입
@@ -300,13 +301,6 @@ const RecipeSortBar = ({
     }
     console.log('[buildCategoryKeywords] 결과', result);
     return result;
-  }
-
-  // 카테고리명을 트리의 key로 변환하는 함수 (필요시 변환 로직 추가)
-  function getDictCategoryKey(category: string): string {
-    // 현재는 카테고리명이 트리의 key와 동일하다고 가정
-    // 만약 변환이 필요하다면 아래에서 매핑 추가
-    return category;
   }
 
   useEffect(() => {

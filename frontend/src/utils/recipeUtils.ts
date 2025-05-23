@@ -144,4 +144,34 @@ export function getIngredientPillInfo({
   const pills = [...notMineNotSub, ...notMineSub, ...mine];
 
   return { pills, notMineNotSub, notMineSub, mine, substitutes };
+}
+
+// 카테고리명을 트리의 key로 변환하는 함수
+export function getDictCategoryKey(category: string): string {
+  // 현재는 카테고리명이 트리의 key와 동일하다고 가정
+  // 만약 변환이 필요하다면 아래에서 매핑 추가
+  return category;
+}
+
+// 카테고리 키워드 트리에서 키워드와 동의어를 추출하는 함수
+export function extractKeywordsAndSynonyms(
+  category: string,
+  keywords: string[],
+  tree: any // FilterKeywordTree 타입이 필요하다면 import해서 명시 가능
+): string[] {
+  const dictKey = getDictCategoryKey(category);
+  if (!tree) return [];
+  if (!tree[dictKey]) return [];
+  const result: string[] = [];
+  keywords.forEach(keyword => {
+    if (!keyword) return;
+    const node = Object.values(tree[dictKey] || {}).flat().find(
+      (n: any) => n.keyword && n.keyword.trim().toLowerCase() === keyword.trim().toLowerCase()
+    );
+    if (node) {
+      const pushed = [keyword.trim(), ...node.synonyms.map((s: string) => s.trim())];
+      result.push(...pushed);
+    }
+  });
+  return result;
 } 
