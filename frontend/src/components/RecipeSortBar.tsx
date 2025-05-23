@@ -20,7 +20,7 @@
  * - filterRecipes: 전체 레시피 필터링 및 정렬
  */
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import RecipeCard from './RecipeCard';
 import FilterModal from './FilterModal';
 import Slider from 'rc-slider';
@@ -171,9 +171,8 @@ const RecipeSortBar = ({
   ]);
 
   // 필터 적용 함수
-  const applyFilter = () => {
+  const applyFilter = useCallback(() => {
     const categoryKeywords = buildCategoryKeywords(selectedCategoryKeywords, categoryKeywordTree);
-    console.log('[applyFilter] categoryKeywords', categoryKeywords);
     const filtered = filterRecipes(recipes, {
       sortType,
       matchRange,
@@ -188,7 +187,7 @@ const RecipeSortBar = ({
     });
     onFilteredRecipesChange(filtered);
     setFilterModalOpen(false);
-  };
+  }, [selectedCategoryKeywords, categoryKeywordTree, recipes, sortType, matchRange, maxLack, appliedExpiryIngredients, myIngredients, expiryIngredientMode, includeKeyword, includeIngredients, excludeIngredients, onFilteredRecipesChange]);
 
   // 전체 재료 목록 fetch
   useEffect(() => {
@@ -214,17 +213,15 @@ const RecipeSortBar = ({
   }, [sortType, matchRange, maxLack, appliedExpiryIngredients, expirySortType, expiryIngredientMode]);
 
   // 선택된 키워드와 filterKeywordTree를 조합해 동의어까지 포함된 categoryKeywords 생성
-  function buildCategoryKeywords(selected: any, tree: any) {
+  const buildCategoryKeywords = useCallback((selected: any, tree: any) => {
     const result: any = {};
     if (!tree) {
-      console.log('[buildCategoryKeywords] tree 없음');
       return result;
     }
     for (const main of Object.keys(selected)) {
       if (!selected[main] || selected[main].length === 0) continue;
       result[main] = [];
       for (const kw of selected[main]) {
-        // tree[main]의 모든 sub에서 해당 키워드 객체를 찾는다
         let found = null;
         for (const sub of Object.keys(tree[main] || {})) {
           found = (tree[main][sub] || []).find((obj: any) => obj.keyword === kw);
@@ -237,9 +234,8 @@ const RecipeSortBar = ({
         }
       }
     }
-    console.log('[buildCategoryKeywords] 결과', result);
     return result;
-  }
+  }, []);
 
   useEffect(() => {
     const filtered = filterRecipes(recipes, {
@@ -273,11 +269,23 @@ const RecipeSortBar = ({
   return (
     <>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 18, width: '100%', marginTop: 24, flexWrap: 'wrap' }}>
-        <button style={{ height: 28, border: '1px solid #D1D5DB', borderRadius: 6, fontSize: 12, padding: '0 8px', fontWeight: 600, background: '#fff', color: '#222', minWidth: 70, marginRight: 0, whiteSpace: 'nowrap', lineHeight: '28px', boxSizing: 'border-box', cursor: 'pointer' }} onClick={() => setMatchRateModalOpen(true)}>재료 매칭도 설정</button>
-        <button style={{ height: 28, border: '1px solid #D1D5DB', borderRadius: 6, fontSize: 12, padding: '0 8px', fontWeight: 600, background: '#fff', color: '#222', minWidth: 70, marginRight: 0, whiteSpace: 'nowrap', lineHeight: '28px', boxSizing: 'border-box', cursor: 'pointer' }} onClick={() => {
-          setSelectedExpiryIngredients(appliedExpiryIngredients);
-          setExpiryModalOpen(true);
-        }}>임박 재료 설정</button>
+        <button
+          style={{ height: 28, border: '1px solid #D1D5DB', borderRadius: 6, fontSize: 12, padding: '0 8px', fontWeight: 600, background: '#fff', color: '#222', minWidth: 70, marginRight: 0, whiteSpace: 'nowrap', lineHeight: '28px', boxSizing: 'border-box', cursor: 'pointer' }}
+          onClick={() => setMatchRateModalOpen(true)}
+          aria-label="재료 매칭도 설정 모달 열기"
+        >
+          재료 매칭도 설정
+        </button>
+        <button
+          style={{ height: 28, border: '1px solid #D1D5DB', borderRadius: 6, fontSize: 12, padding: '0 8px', fontWeight: 600, background: '#fff', color: '#222', minWidth: 70, marginRight: 0, whiteSpace: 'nowrap', lineHeight: '28px', boxSizing: 'border-box', cursor: 'pointer' }}
+          onClick={() => {
+            setSelectedExpiryIngredients(appliedExpiryIngredients);
+            setExpiryModalOpen(true);
+          }}
+          aria-label="임박 재료 설정 모달 열기"
+        >
+          임박 재료 설정
+        </button>
         <div style={{ position: 'relative', minWidth: 80 }}>
           <select aria-label="정렬 기준 선택" value={sortType} onChange={e => {
             if (e.target.value === 'expiry' && appliedExpiryIngredients.length === 0) {
@@ -296,13 +304,19 @@ const RecipeSortBar = ({
           </select>
           <span style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', fontSize: 13, color: '#888' }}>▼</span>
         </div>
-        <button style={{ height: 28, border: '1px solid #D1D5DB', borderRadius: 999, fontSize: 12, padding: '0 12px', fontWeight: 600, background: '#fff', color: '#222', minWidth: 50, whiteSpace: 'nowrap', boxSizing: 'border-box', cursor: 'pointer', marginLeft: 'auto' }} onClick={() => setFilterModalOpen(true)}><span style={{ fontWeight: 600 }}>필터</span></button>
+        <button
+          style={{ height: 28, border: '1px solid #D1D5DB', borderRadius: 999, fontSize: 12, padding: '0 12px', fontWeight: 600, background: '#fff', color: '#222', minWidth: 50, whiteSpace: 'nowrap', boxSizing: 'border-box', cursor: 'pointer', marginLeft: 'auto' }}
+          onClick={() => setFilterModalOpen(true)}
+          aria-label="필터 모달 열기"
+        >
+          <span style={{ fontWeight: 600 }}>필터</span>
+        </button>
       </div>
       {/* 매칭률 설정 모달 */}
       {isMatchRateModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-lg p-6 w-[340px] max-w-[95vw] relative">
-            <span className="absolute top-3 right-3 w-6 h-6 text-gray-400 text-xl cursor-pointer" onClick={() => setMatchRateModalOpen(false)}>×</span>
+            <span className="absolute top-3 right-3 w-6 h-6 text-gray-400 text-xl cursor-pointer" onClick={() => setMatchRateModalOpen(false)} aria-label="매칭률 모달 닫기" role="button">×</span>
             <div className="text-center font-bold text-[14px] mb-4">재료 매칭도 설정</div>
             <div className="flex flex-col gap-4">
               <div className="flex items-center gap-2 justify-center">
@@ -406,7 +420,7 @@ const RecipeSortBar = ({
             <span className="absolute top-3 right-3 w-6 h-6 text-gray-400 text-xl cursor-pointer" onClick={() => {
               setSelectedExpiryIngredients(appliedExpiryIngredients);
               setExpiryModalOpen(false);
-            }}>×</span>
+            }} aria-label="임박 재료 모달 닫기" role="button">×</span>
             <div className="text-center font-bold text-[14px] mb-4">임박 재료 설정</div>
             <div className="flex flex-col gap-4">
               <div className="flex gap-2 mb-2">
