@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import BottomNavBar from '../components/BottomNavBar';
 import TopNavBar from '../components/TopNavBar';
 import FilterModal from '../components/FilterModal';
 import IngredientDateModal from '../components/IngredientDateModal';
-import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import 완료하기버튼 from '../assets/완료하기버튼.svg';
 import 공유하기버튼 from '../assets/공유하기버튼.svg';
@@ -11,6 +10,9 @@ import 기록하기버튼 from '../assets/기록하기버튼.svg';
 import { useNavigate } from 'react-router-dom';
 import { getUniversalIngredientPillInfo } from '../utils/ingredientPillUtils';
 import IngredientPillGroup from '../components/IngredientPillGroup';
+import axios from 'axios';
+import { Recipe } from '../types/recipe';
+import { getProxiedImageUrl } from '../utils/imageUtils';
 
 // 더미 데이터 예시
 const dummyRecipes = [
@@ -21,7 +23,7 @@ const dummyRecipes = [
     title: "요즘 핫한 감자전 레시피",
     like: 110,
     comment: 13,
-    mainIngredients: [
+    used_ingredients: [
       "감자", "양파", "전분", "소금", "후추", "식용유", "당근", "파프리카", "베이컨", "치즈"
     ],
     needToBuy: ["전분"],
@@ -34,7 +36,7 @@ const dummyRecipes = [
     title: "다이어트 김밥 만들기",
     like: 90,
     comment: 10,
-    mainIngredients: [
+    used_ingredients: [
       "오이", "김", "밥", "당근", "계란", "참치", "마요네즈", "시금치", "단무지", "햄"
     ],
     needToBuy: ["밥"],
@@ -47,7 +49,7 @@ const dummyRecipes = [
     title: "황태해장국",
     like: 80,
     comment: 9,
-    mainIngredients: [
+    used_ingredients: [
       "황태", "무", "대파", "달걀", "마늘", "국간장", "참기름", "후추", "청양고추", "두부"
     ],
     needToBuy: ["대파"],
@@ -148,6 +150,8 @@ const Popular = () => {
   }
   const myIngredients = getMyIngredients();
 
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
+
   useEffect(() => {
     fetch('/ingredient_profile_dict_with_substitutes.csv')
       .then(res => res.text())
@@ -161,22 +165,6 @@ const Popular = () => {
     const val = e.target.value;
     setPeriod(val);
     if (val === 'custom') setDateModalOpen(true);
-  };
-
-  // 날짜 입력 핸들러 (각각)
-  const handleDateInputChange = (which: 'start' | 'end') => (e: React.ChangeEvent<HTMLInputElement>) => {
-    let value = e.target.value.replace(/[^0-9.]/g, '');
-    // 20250505 → 2025.05.05
-    value = value.replace(/(\d{4})(\d{2})(\d{2})$/, '$1.$2.$3');
-    if (which === 'start') setDateInputStart(value);
-    else setDateInputEnd(value);
-    // 자동으로 dateRange에 반영
-    const m = value.match(/(\d{4})[.-](\d{2})[.-](\d{2})/);
-    if (m) {
-      const d = new Date(`${m[1]}-${m[2]}-${m[3]}`);
-      if (which === 'start') setDateRange([d, dateRange[1]]);
-      else setDateRange([dateRange[0], d]);
-    }
   };
 
   // 기간 라벨 표시
@@ -252,6 +240,25 @@ const Popular = () => {
     }));
   }, [sortType, matchRange, maxLack, appliedExpiryIngredients, expirySortType]);
 
+  // Fetch recipes and calculate popularity scores (ignore date filter, show up to 30)
+  useEffect(() => {
+    axios.get('http://127.0.0.1:5000/api/recipes')
+      .then((res) => {
+        const recipesWithScores = res.data.map((recipe: Recipe) => ({
+          ...recipe,
+          score: (recipe.likes || 0) + ((recipe.comments || 0) * 2)
+        }));
+        // Sort by popularity score
+        const sortedRecipes = recipesWithScores.sort((a: Recipe & {score: number}, b: Recipe & {score: number}) => b.score - a.score);
+        // Take top 30 recipes
+        setRecipes(sortedRecipes.slice(0, 30));
+      })
+      .catch((err) => {
+        console.error('Failed to fetch recipes:', err);
+        setRecipes([]); // fallback: 빈 배열
+      });
+  }, []);
+
   return (
     <>
       <TopNavBar />
@@ -289,7 +296,7 @@ const Popular = () => {
                   placeholder="2025.05.05"
                   maxLength={10}
                   value={dateInputStart}
-                  onChange={handleDateInputChange('start')}
+                  onChange={e => setDateInputStart(e.target.value)}
                 />
                 <span className="mx-1 text-gray-500">~</span>
                 <input
@@ -298,7 +305,7 @@ const Popular = () => {
                   placeholder="2025.05.13"
                   maxLength={10}
                   value={dateInputEnd}
-                  onChange={handleDateInputChange('end')}
+                  onChange={e => setDateInputEnd(e.target.value)}
                 />
               </div>
               <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
@@ -359,7 +366,8 @@ const Popular = () => {
             </div>
           </div>
           <div style={{display: 'flex', overflowX: 'auto', gap: 16, paddingBottom: 8}}>
-            {dummyRecipes.map((recipe, idx) => {
+            {recipes.map((recipe: Recipe, idx: number) => {
+              console.log('recipe.thumbnail:', recipe.thumbnail, recipe);
               // substitutes 배열을 substituteTable 객체로 변환
               const substituteTable: { [key: string]: { ingredient_b: string } } = {};
               if (Array.isArray(recipe.substitutes)) {
@@ -368,12 +376,11 @@ const Popular = () => {
                   if (from && to) substituteTable[from] = { ingredient_b: to };
                 });
               }
-              const ingredientList = (recipe.mainIngredients || []).map((i: string) => i.trim()).filter(Boolean);
+              const ingredientList = typeof recipe.used_ingredients === 'string' ? recipe.used_ingredients.split(',').map(i => i.trim()).filter(Boolean) : [];
               const mySet = new Set(myIngredients.map((i: string) => i.trim()));
-              const needIngredients = recipe.mainIngredients || [];
               let substituteTargets: string[] = [];
               let substitutes: string[] = [];
-              needIngredients.forEach((needRaw: string) => {
+              ingredientList.forEach((needRaw: string) => {
                 const need = needRaw.trim();
                 const substituteInfo = substituteTable[need];
                 if (substituteInfo && mySet.has(substituteInfo.ingredient_b)) {
@@ -386,17 +393,17 @@ const Popular = () => {
               const mine = ingredientList.filter((i: string) => mySet.has(i));
               const pills = [...notMineNotSub, ...notMineSub, ...mine];
               const pillInfo = getUniversalIngredientPillInfo({
-                needIngredients: recipe.mainIngredients || [],
+                needIngredients: ingredientList,
                 myIngredients,
                 substituteTable,
               });
               return (
                 <div key={recipe.id} style={{minWidth: 320, maxWidth: 340, background: '#fff', borderRadius: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', padding: 0, display: 'flex', flexDirection: 'column', gap: 8, position: 'relative'}}>
                 <div style={{position: 'relative', width: '100%', height: 140}}>
-                  <img src={recipe.thumbnail} alt="썸네일" style={{width: '100%', height: 140, objectFit: 'cover', borderRadius: 12, marginBottom: 8}} />
+                  <img src={getProxiedImageUrl(recipe.thumbnail)} alt="썸네일" style={{width: '100%', height: 140, objectFit: 'cover', borderRadius: 12, marginBottom: 8}} />
                   {/* 순위 뱃지 */}
                   <div className="absolute bg-[#444] bg-opacity-80 text-white font-medium rounded px-2 py-0.5 flex items-center" style={{ position: 'absolute', top: 0, left: 0, fontSize: 12, zIndex: 2, textShadow: '0 1px 2px rgba(0,0,0,0.12)' }}>
-                    {recipe.rank}위
+                    {idx + 1}위
                   </div>
                   {/* 재료매칭률 뱃지 */}
                   <div className="absolute bg-[#444] bg-opacity-80 text-white font-medium rounded px-2 py-0.5 flex items-center gap-1" style={{ position: 'absolute', top: 24, left: 0, fontSize: 11, zIndex: 2, textShadow: '0 1px 2px rgba(0,0,0,0.12)' }}>
@@ -426,10 +433,10 @@ const Popular = () => {
                 </div>
                 <div style={{padding: '16px 16px 12px 16px'}}>
                   <div style={{fontWeight: 700, fontSize: 15, marginBottom: 4}}>{recipe.title}</div>
-                  <div style={{fontSize: 13, color: '#888', marginBottom: 4}}>좋아요 {recipe.like} · 댓글 {recipe.comment}</div>
+                  <div style={{fontSize: 13, color: '#888', marginBottom: 4}}>좋아요 {recipe.likes} · 댓글 {recipe.comments}</div>
                     {/* 재료 pill */}
                     <IngredientPillGroup
-                      needIngredients={recipe.mainIngredients || []}
+                      needIngredients={ingredientList}
                       myIngredients={myIngredients}
                       substituteTable={substituteTable}
                     />

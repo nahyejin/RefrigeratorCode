@@ -8,6 +8,7 @@ import shareBlackIcon from '../assets/share_black.svg';
 import writeBlackIcon from '../assets/write_black.svg';
 import { getUniversalIngredientPillInfo } from '../utils/ingredientPillUtils';
 import IngredientPillGroup from './IngredientPillGroup';
+import { getProxiedImageUrl } from '../utils/imageUtils';
 
 interface SubstituteInfo {
   ingredient_a: string;
@@ -28,13 +29,15 @@ export interface RecipeCardProps {
   hideIndexNumber?: boolean;
 }
 
-// 네이버 postfiles 등 외부 이미지 프록시 함수
-function getProxiedImageUrl(url: string) {
-  if (!url) return '';
-  if (url.includes('postfiles.pstatic.net')) {
-    return 'https://images.weserv.nl/?url=' + url.replace(/^https?:\/\//, '');
-  }
-  return url;
+export interface RecipeCardProps {
+  recipe: Recipe;
+  index: number;
+  actionState?: RecipeActionState;
+  onAction: (action: keyof RecipeActionState) => void;
+  isLast: boolean;
+  myIngredients?: string[];
+  substituteTable?: { [key: string]: SubstituteInfo };
+  hideIndexNumber?: boolean;
 }
 
 const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, actionState: propActionState, onAction, isLast, myIngredients = [], substituteTable = {}, hideIndexNumber = false }) => {

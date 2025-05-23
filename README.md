@@ -275,3 +275,8 @@ VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
 
 # (이하 기존 내용은 최대한 보존, 변경/추가된 부분만 위에 보강)
 
+## 변경 이력
+
+- 네이버 postfiles 이미지가 외부에서 차단되는 문제를 해결하기 위해 `getProxiedImageUrl` 유틸 함수를 도입하고, 모든 레시피 썸네일 이미지에 적용함 (냉장고 요리, 요즘인기 등)
+- `getProxiedImageUrl` 함수는 `frontend/src/utils/imageUtils.ts`에 위치하며, 네이버 postfiles 이미지를 weserv.nl 프록시로 우회하여 정상적으로 표시되도록 함
+
