@@ -409,6 +409,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
                 isLast={index === filteredRecipes.length - 1}
                 myIngredients={myIngredients}
                 substituteTable={substituteTable}
+                hideIndexNumber={location.pathname === '/mypage/recorded' || location.pathname === '/mypage/completed'}
               />
             ))}
           </div>
