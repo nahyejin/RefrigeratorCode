@@ -274,12 +274,6 @@ const Popular = () => {
               <option key={opt.value} value={opt.value}>{opt.label}</option>
             ))}
           </select>
-          <button
-            style={{marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4, padding: '4px 16px', borderRadius: 999, border: '1px solid #ccc', background: '#fff', color: '#444', fontWeight: 600, fontSize: 14, height: 28, cursor: 'pointer'}}
-            onClick={() => setFilterOpen(true)}
-          >
-            <span style={{fontWeight: 700}}>필터</span>
-          </button>
         </div>
 
         {/* 기간선택 모달 */}
@@ -341,23 +335,6 @@ const Popular = () => {
               </div>
             </div>
           </div>
-        )}
-
-        {/* 필터 팝업 */}
-        {filterOpen && (
-          <FilterModal
-            open={filterOpen}
-            onClose={() => setFilterOpen(false)}
-            filterState={selectedFilter}
-            setFilterState={setSelectedFilter}
-            includeInput={includeInput}
-            setIncludeInput={setIncludeInput}
-            excludeInput={excludeInput}
-            setExcludeInput={setExcludeInput}
-            allIngredients={allIngredients}
-            includeKeyword={includeKeyword}
-            setIncludeKeyword={setIncludeKeyword}
-          />
         )}
 
         {/* ⓑ 전체 인기 레시피 섹션 (가로 스크롤) */}
