@@ -1,5 +1,8 @@
 import { Recipe, RecipeMatchResult } from '../types/recipe';
 
+/**
+ * 냉장고 내 내 재료 목록을 localStorage에서 불러온다.
+ */
 export function getMyIngredients(): string[] {
   try {
     const data = JSON.parse(localStorage.getItem('myfridge_ingredients') || 'null');
@@ -17,6 +20,9 @@ export function getMyIngredients(): string[] {
   return []; // 기본값을 빈 배열로 변경
 }
 
+/**
+ * 내 재료와 레시피 재료를 비교해 매칭률(%)과 보유/부족 재료를 반환한다.
+ */
 export function calculateMatchRate(myIngredients: string[], recipeIngredients: string): RecipeMatchResult {
   const recipeSet = new Set(
     recipeIngredients
@@ -33,6 +39,9 @@ export function calculateMatchRate(myIngredients: string[], recipeIngredients: s
   };
 }
 
+/**
+ * 레시피 리스트를 정렬 기준/임박재료 등으로 정렬한다.
+ */
 export function sortRecipes(recipes: Recipe[], sortType: string, myIngredients: string[], appliedExpiryIngredients: string[]): Recipe[] {
   const sorted = [...recipes];
   switch (sortType) {
@@ -76,6 +85,9 @@ export function sortRecipes(recipes: Recipe[], sortType: string, myIngredients: 
   return sorted;
 }
 
+/**
+ * 유통기한 문자열을 받아 D-day 포맷 문자열로 반환한다.
+ */
 export function getDDay(expiry: string) {
   if (!expiry) return '';
   const today = new Date();
@@ -87,7 +99,9 @@ export function getDDay(expiry: string) {
   return `D+${Math.abs(diff)}`;
 }
 
-// need_ingredients 기준 pill/대체 가능 로직 공통 함수
+/**
+ * need_ingredients 기준 pill/대체 가능 로직 공통 함수
+ */
 export function getIngredientPillInfo({
   needIngredients,
   myIngredients,
@@ -146,18 +160,36 @@ export function getIngredientPillInfo({
   return { pills, notMineNotSub, notMineSub, mine, substitutes };
 }
 
-// 카테고리명을 트리의 key로 변환하는 함수
+/**
+ * 카테고리명을 트리의 key로 변환한다.
+ */
 export function getDictCategoryKey(category: string): string {
   // 현재는 카테고리명이 트리의 key와 동일하다고 가정
   // 만약 변환이 필요하다면 아래에서 매핑 추가
   return category;
 }
 
-// 카테고리 키워드 트리에서 키워드와 동의어를 추출하는 함수
+/**
+ * 타입 정의 추가
+ */
+export interface FilterKeywordNode {
+  keyword: string;
+  synonyms: string[];
+}
+export interface FilterKeywordSubTree {
+  [subCategory: string]: FilterKeywordNode[];
+}
+export interface FilterKeywordTree {
+  [mainCategory: string]: FilterKeywordSubTree;
+}
+
+/**
+ * 카테고리 키워드 트리에서 키워드와 동의어를 추출한다.
+ */
 export function extractKeywordsAndSynonyms(
   category: string,
   keywords: string[],
-  tree: any // FilterKeywordTree 타입이 필요하다면 import해서 명시 가능
+  tree: FilterKeywordTree | null
 ): string[] {
   const dictKey = getDictCategoryKey(category);
   if (!tree) return [];
@@ -166,7 +198,7 @@ export function extractKeywordsAndSynonyms(
   keywords.forEach(keyword => {
     if (!keyword) return;
     const node = Object.values(tree[dictKey] || {}).flat().find(
-      (n: any) => n.keyword && n.keyword.trim().toLowerCase() === keyword.trim().toLowerCase()
+      (n: FilterKeywordNode) => n.keyword && n.keyword.trim().toLowerCase() === keyword.trim().toLowerCase()
     );
     if (node) {
       const pushed = [keyword.trim(), ...node.synonyms.map((s: string) => s.trim())];
