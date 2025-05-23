@@ -1,12 +1,16 @@
 export interface Recipe {
   id: number;
   title: string;
+  content?: string;
   author: string;
   date: string;
   body: string;
   thumbnail: string;
   used_ingredients: string;
+  used_ingredients_block?: string;
+  block_reason?: string;
   link: string;
+  platform?: string;
   likes?: number;
   comments?: number;
   substitutes?: string[];
@@ -16,6 +20,8 @@ export interface Recipe {
   created_at: string;
   like_count: number;
   comment_count: number;
+  post_time?: string;
+  collected_at?: string;
 }
 
 export interface SubstituteInfo {

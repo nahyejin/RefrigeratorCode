@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 // 카테고리별 키워드(RecipeList.tsx에서 복사)
 const FILTER_KEYWORDS = {
@@ -38,6 +38,7 @@ export type FilterState = {
   대상: string[];
   TPO: string[];
   스타일: string[];
+  [key: string]: string[]; // string index signature 추가
 };
 
 interface FilterModalProps {
@@ -57,13 +58,48 @@ interface FilterModalProps {
   includeKeyword: string;
   setIncludeKeyword: (v: string) => void;
   onApply: () => void;
+  filterKeywordTree: any;
+  setFilterKeywordTree: (tree: any) => void;
 }
 
-const FilterModal: React.FC<FilterModalProps> = ({ open, onClose, filterState, setFilterState, includeIngredients, setIncludeIngredients, excludeIngredients, setExcludeIngredients, includeInput, setIncludeInput, excludeInput, setExcludeInput, allIngredients, includeKeyword, setIncludeKeyword, onApply }) => {
+// CSV 파싱 및 트리 구조 변환 함수
+function parseFilterKeywordsCSV(csv: string) {
+  const lines = csv.split('\n').filter(Boolean);
+  const header = lines[0].split(',');
+  const idxMap = {
+    대분류: header.indexOf('대분류'),
+    중분류: header.indexOf('중분류'),
+    키워드: header.indexOf('키워드'),
+    동의어: header.indexOf('동의어'),
+  };
+  const tree: Record<string, Record<string, { keyword: string, synonyms: string[] }[]>> = {};
+  for (let i = 1; i < lines.length; ++i) {
+    const cols = lines[i].split(',');
+    const main = cols[idxMap.대분류]?.trim();
+    const sub = cols[idxMap.중분류]?.trim();
+    const keyword = cols[idxMap.키워드]?.trim();
+    const synonyms = cols[idxMap.동의어]?.split('/').map(s => s.trim()).filter(Boolean) || [];
+    if (!main || !sub || !keyword) continue;
+    if (!tree[main]) tree[main] = {};
+    if (!tree[main][sub]) tree[main][sub] = [];
+    tree[main][sub].push({ keyword, synonyms });
+  }
+  return tree;
+}
+
+const FilterModal: React.FC<FilterModalProps> = ({ open, onClose, filterState, setFilterState, includeIngredients, setIncludeIngredients, excludeIngredients, setExcludeIngredients, includeInput, setIncludeInput, excludeInput, setExcludeInput, allIngredients, includeKeyword, setIncludeKeyword, onApply, filterKeywordTree, setFilterKeywordTree }) => {
   const [includeFocus, setIncludeFocus] = useState(false);
   const [excludeFocus, setExcludeFocus] = useState(false);
   const includeCandidates = allIngredients.filter(i => i && i.includes(includeInput) && includeInput && i !== includeInput && !includeIngredients.includes(i));
   const excludeCandidates = allIngredients.filter(i => i && i.includes(excludeInput) && excludeInput && i !== excludeInput && !excludeIngredients.includes(i));
+
+  useEffect(() => {
+    fetch('/Filter_Keywords.csv')
+      .then(res => res.text())
+      .then(csv => {
+        setFilterKeywordTree(parseFilterKeywordsCSV(csv));
+      });
+  }, []);
 
   if (!open) return null;
 
@@ -172,84 +208,34 @@ const FilterModal: React.FC<FilterModalProps> = ({ open, onClose, filterState, s
           </div>
           {/* 카테고리별 태그 */}
           <div className="mt-4">
-            {/* 효능 */}
-            <div className="font-bold text-[11.2px] mt-4 mb-2">■ 요리 효능</div>
-            {FILTER_KEYWORDS.효능.map((group, idx) => (
-              <div key={group.title + idx} className="mb-1">
-                {group.title && <div className="text-[10px] font-semibold text-[#444] mb-1 ml-1">- {group.title}</div>}
-                <div className="flex flex-wrap gap-1 mb-1">
-                  {group.keywords.map(kw => (
-                    <button
-                      key={kw}
-                      className={`rounded-full px-3 py-0.5 font-medium text-[10.4px] mb-1 transition-colors ${filterState.효능.includes(kw) ? 'bg-[#555] text-white' : 'bg-[#F8F8F8] text-[#555]'}`}
-                      onClick={() => setFilterState({ ...filterState, 효능: filterState.효능.includes(kw) ? filterState.효능.filter(x => x !== kw) : [...filterState.효능, kw] })}
-                    >{kw}</button>
-                  ))}
-                </div>
-              </div>
-            ))}
-            {/* 영양분 */}
-            <div className="font-bold text-[11.2px] mt-4 mb-2">■ 요리 영양분</div>
-            {FILTER_KEYWORDS.영양분.map((group, idx) => (
-              <div key={group.title + idx} className="mb-1">
-                {group.title && <div className="text-[10px] font-semibold text-[#444] mb-1 ml-1">- {group.title}</div>}
-                <div className="flex flex-wrap gap-1 mb-1">
-                  {group.keywords.map(kw => (
-                    <button
-                      key={kw}
-                      className={`rounded-full px-3 py-0.5 font-medium text-[10.4px] mb-1 transition-colors ${filterState.영양분.includes(kw) ? 'bg-[#555] text-white' : 'bg-[#F8F8F8] text-[#555]'}`}
-                      onClick={() => setFilterState({ ...filterState, 영양분: filterState.영양분.includes(kw) ? filterState.영양분.filter(x => x !== kw) : [...filterState.영양분, kw] })}
-                    >{kw}</button>
-                  ))}
-                </div>
-              </div>
-            ))}
-            {/* 식사 대상 */}
-            <div className="font-bold text-[11.2px] mt-4 mb-2">■ 요리 식사 대상</div>
-            {FILTER_KEYWORDS.대상.map((group, idx) => (
-              <div key={group.title + idx} className="mb-1">
-                {group.title && <div className="text-[10px] font-semibold text-[#444] mb-1 ml-1">- {group.title}</div>}
-                <div className="flex flex-wrap gap-1 mb-1">
-                  {group.keywords.map(kw => (
-                    <button
-                      key={kw}
-                      className={`rounded-full px-3 py-0.5 font-medium text-[10.4px] mb-1 transition-colors ${filterState.대상.includes(kw) ? 'bg-[#555] text-white' : 'bg-[#F8F8F8] text-[#555]'}`}
-                      onClick={() => setFilterState({ ...filterState, 대상: filterState.대상.includes(kw) ? filterState.대상.filter(x => x !== kw) : [...filterState.대상, kw] })}
-                    >{kw}</button>
-                  ))}
-                </div>
-              </div>
-            ))}
-            {/* TPO */}
-            <div className="font-bold text-[11.2px] mt-4 mb-2">■ 요리 TPO</div>
-            {FILTER_KEYWORDS.TPO.map((group, idx) => (
-              <div key={group.title + idx} className="mb-1">
-                {group.title && <div className="text-[10px] font-semibold text-[#444] mb-1 ml-1">- {group.title}</div>}
-                <div className="flex flex-wrap gap-1 mb-1">
-                  {group.keywords.map(kw => (
-                    <button
-                      key={kw}
-                      className={`rounded-full px-3 py-0.5 font-medium text-[10.4px] mb-1 transition-colors ${filterState.TPO.includes(kw) ? 'bg-[#555] text-white' : 'bg-[#F8F8F8] text-[#555]'}`}
-                      onClick={() => setFilterState({ ...filterState, TPO: filterState.TPO.includes(kw) ? filterState.TPO.filter(x => x !== kw) : [...filterState.TPO, kw] })}
-                    >{kw}</button>
-                  ))}
-                </div>
-              </div>
-            ))}
-            {/* 스타일 */}
-            <div className="font-bold text-[11.2px] mt-4 mb-2">■ 요리 스타일</div>
-            {FILTER_KEYWORDS.스타일.map((group, idx) => (
-              <div key={group.title + idx} className="mb-1">
-                {group.title && <div className="text-[10px] font-semibold text-[#444] mb-1 ml-1">- {group.title}</div>}
-                <div className="flex flex-wrap gap-1 mb-1">
-                  {group.keywords.map(kw => (
-                    <button
-                      key={kw}
-                      className={`rounded-full px-3 py-0.5 font-medium text-[10.4px] mb-1 transition-colors ${filterState.스타일.includes(kw) ? 'bg-[#555] text-white' : 'bg-[#F8F8F8] text-[#555]'}`}
-                      onClick={() => setFilterState({ ...filterState, 스타일: filterState.스타일.includes(kw) ? filterState.스타일.filter(x => x !== kw) : [...filterState.스타일, kw] })}
-                    >{kw}</button>
-                  ))}
-                </div>
+            {/* 동적 카테고리 렌더링 */}
+            {filterKeywordTree && Object.entries(filterKeywordTree).map(([main, subTree]) => (
+              <div key={main}>
+                <div className="font-bold text-[11.2px] mt-4 mb-2">■ {main}</div>
+                {Object.entries(subTree).map(([sub, keywordsArr]) => (
+                  <div key={sub} className="mb-1">
+                    {sub && <div className="text-[10px] font-semibold text-[#444] mb-1 ml-1">- {sub}</div>}
+                    <div className="flex flex-wrap gap-1 mb-1">
+                      {(keywordsArr as { keyword: string, synonyms: string[] }[]).map(({ keyword }) => (
+                        <button
+                          key={keyword}
+                          className={`rounded-full px-3 py-0.5 font-medium text-[10.4px] mb-1 transition-colors ${
+                            (filterState[main] || []).includes(keyword) ? 'bg-[#555] text-white' : 'bg-[#F8F8F8] text-[#555]'
+                          }`}
+                          onClick={() => {
+                            const arr = filterState[main] || [];
+                            setFilterState({
+                              ...filterState,
+                              [main]: arr.includes(keyword)
+                                ? arr.filter((x: string) => x !== keyword)
+                                : [...arr, keyword]
+                            });
+                          }}
+                        >{keyword}</button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
               </div>
             ))}
           </div>
