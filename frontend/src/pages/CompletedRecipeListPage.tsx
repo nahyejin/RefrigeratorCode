@@ -105,7 +105,7 @@ const CompletedRecipeListPage = () => {
 
   // Restore sort/filter state from localStorage on mount
   useEffect(() => {
-    const saved = localStorage.getItem('recipe_sortbar_state_completed');
+    const saved = sessionStorage.getItem('recipe_sortbar_state_completed');
     if (saved) {
       try {
         const state = JSON.parse(saved);
@@ -120,7 +120,7 @@ const CompletedRecipeListPage = () => {
 
   // Save sort/filter state to localStorage on change
   useEffect(() => {
-    localStorage.setItem('recipe_sortbar_state_completed', JSON.stringify({
+    sessionStorage.setItem('recipe_sortbar_state_completed', JSON.stringify({
       sortType, matchRange, maxLack, appliedExpiryIngredients, expirySortType
     }));
   }, [sortType, matchRange, maxLack, appliedExpiryIngredients, expirySortType]);

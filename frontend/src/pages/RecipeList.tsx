@@ -99,9 +99,13 @@ function getDDay(expiry: string) {
   return `D+${Math.abs(diff)}`;
 }
 
-// 정렬/필터바 상태를 localStorage에서 읽어오는 함수
+// 정렬/필터바 상태를 sessionStorage에서 읽어오는 함수
 function getInitialSortBarState() {
-  const saved = localStorage.getItem('recipe_sortbar_state_fridge');
+  // 혹시 남아있을 수 있는 localStorage 값은 한 번 삭제
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('recipe_sortbar_state_fridge');
+  }
+  const saved = sessionStorage.getItem('recipe_sortbar_state_fridge');
   if (saved) {
     try {
       return JSON.parse(saved);
@@ -284,20 +288,12 @@ const RecipeList: React.FC = () => {
     sortedExpiryList = myIngredientObjects.filter(i => i.purchase).sort((a, b) => (a.purchase > b.purchase ? 1 : -1));
   }
 
-  // 페이지 진입(마운트) 시마다 localStorage에서 복원
-  useEffect(() => {
-    const saved = localStorage.getItem('recipe_sortbar_state_fridge');
-    if (saved) {
-      try {
-        const state = JSON.parse(saved);
-        if (state.sortType) setSortType(state.sortType);
-        if (state.matchRange) setMatchRange(state.matchRange);
-        if (state.maxLack !== undefined) setMaxLack(state.maxLack);
-        if (state.appliedExpiryIngredients) setAppliedExpiryIngredients(state.appliedExpiryIngredients);
-        if (state.expirySortType) setExpirySortType(state.expirySortType);
-      } catch {}
-    }
-  }, []);
+  // 최초 마운트 시 localStorage에서 복원 (useRef)
+  const saved = React.useRef<any>(null);
+  if (saved.current === null) {
+    const raw = sessionStorage.getItem('recipe_sortbar_state_fridge');
+    saved.current = raw ? JSON.parse(raw) : {};
+  }
 
   // 각 상태값이 바뀔 때마다 로그
   useEffect(() => { }, [sortType]);
@@ -306,11 +302,16 @@ const RecipeList: React.FC = () => {
   useEffect(() => { }, [appliedExpiryIngredients]);
   useEffect(() => { }, [expirySortType]);
 
-  // 상태가 바뀔 때마다 localStorage에 저장
+  // 필터/정렬 상태 저장
   useEffect(() => {
-    localStorage.setItem('recipe_sortbar_state_fridge', JSON.stringify({
-      sortType, matchRange, maxLack, appliedExpiryIngredients, expirySortType
-    }));
+    const state = {
+      sortType,
+      matchRange,
+      maxLack,
+      appliedExpiryIngredients,
+      expirySortType
+    };
+    sessionStorage.setItem('recipe_sortbar_state_fridge', JSON.stringify(state));
   }, [sortType, matchRange, maxLack, appliedExpiryIngredients, expirySortType]);
 
   return (
