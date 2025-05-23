@@ -179,15 +179,25 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
   }, []);
 
   useEffect(() => {
-    fetchRecipesDummy(name).then(data => {
-      const filtered = data.filter(r =>
-        r.used_ingredients.includes(name) ||
-        r.title.includes(name) ||
-        r.body.includes(name)
-      );
-      setRecipes(filtered);
-    });
-  }, [name]);
+    // 마이페이지 상세(기록/완료)라면 localStorage에서 불러오기
+    if (location.pathname === '/mypage/recorded') {
+      const arr = JSON.parse(localStorage.getItem('my_recorded_recipes') || '[]');
+      setRecipes(arr);
+    } else if (location.pathname === '/mypage/completed') {
+      const arr = JSON.parse(localStorage.getItem('my_completed_recipes') || '[]');
+      setRecipes(arr);
+    } else {
+      // 기존 로직 (예: 인기/재료 상세 등)
+      fetchRecipesDummy(name).then(data => {
+        const filtered = data.filter(r =>
+          r.used_ingredients.includes(name) ||
+          r.title.includes(name) ||
+          r.body.includes(name)
+        );
+        setRecipes(filtered);
+      });
+    }
+  }, [name, location.pathname]);
 
   useEffect(() => {
     const loadSubstituteTable = async () => {
