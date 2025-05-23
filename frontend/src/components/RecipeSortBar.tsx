@@ -15,9 +15,16 @@
  * - RecipeSortBarProps: 컴포넌트 Props
  *
  * 주요 유틸 함수:
- * - calculateMatchRate: 재료 매칭률 계산
- * - filterUtils: 각종 필터링 함수 모음
+ * - getDDay: 재료 유통기한 D-day 계산
  * - filterRecipes: 전체 레시피 필터링 및 정렬
+ * - getDictCategoryKey: 카테고리명 트리 key 변환
+ *
+ * 사용법:
+ * <RecipeSortBar
+ *   recipes={recipes}
+ *   myIngredients={myIngredients}
+ *   ...기타 필터/정렬 상태 props
+ * />
  */
 
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
@@ -27,7 +34,8 @@ import Slider from 'rc-slider';
 import 'rc-slider/assets/index.css';
 import { Recipe } from '../types/recipe';
 import { filterRecipes } from '../utils/recipeFilters';
-import { getDictCategoryKey, getDDay } from '../utils/recipeUtils';
+import { getDictCategoryKey, getDDay, FilterKeywordTree, FilterKeywordNode } from '../utils/recipeUtils';
+import { FilterState } from './FilterModal';
 
 /**
  * 재료 대체 정보 타입
@@ -93,7 +101,7 @@ const RecipeSortBar = ({
   onToast
 }: RecipeSortBarProps) => {
   const [isFilterModalOpen, setFilterModalOpen] = useState<boolean>(false);
-  const [selectedCategoryKeywords, setSelectedCategoryKeywords] = useState<any>({ 효능: [], 영양분: [], 대상: [], TPO: [], 스타일: [] });
+  const [selectedCategoryKeywords, setSelectedCategoryKeywords] = useState<FilterState>({ 효능: [], 영양분: [], 대상: [], TPO: [], 스타일: [] });
   const [includeInput, setIncludeInput] = useState<string>('');
   const [excludeInput, setExcludeInput] = useState<string>('');
   const [includeIngredients, setIncludeIngredients] = useState<string[]>([]);
@@ -213,8 +221,8 @@ const RecipeSortBar = ({
   }, [sortType, matchRange, maxLack, appliedExpiryIngredients, expirySortType, expiryIngredientMode]);
 
   // 선택된 키워드와 filterKeywordTree를 조합해 동의어까지 포함된 categoryKeywords 생성
-  const buildCategoryKeywords = useCallback((selected: any, tree: any) => {
-    const result: any = {};
+  const buildCategoryKeywords = useCallback((selected: FilterState, tree: FilterKeywordTree | null) => {
+    const result: Record<string, { keyword: string; synonyms: string[] }[]> = {};
     if (!tree) {
       return result;
     }
@@ -222,9 +230,9 @@ const RecipeSortBar = ({
       if (!selected[main] || selected[main].length === 0) continue;
       result[main] = [];
       for (const kw of selected[main]) {
-        let found = null;
+        let found: FilterKeywordNode | null = null;
         for (const sub of Object.keys(tree[main] || {})) {
-          found = (tree[main][sub] || []).find((obj: any) => obj.keyword === kw);
+          found = (tree[main][sub] || []).find((obj: FilterKeywordNode) => obj.keyword === kw) || null;
           if (found) break;
         }
         if (found) {

@@ -1,5 +1,24 @@
 import React, { useState, useEffect } from 'react';
 
+/*
+ * FilterModal Component
+ *
+ * 레시피 필터링을 위한 모달 컴포넌트입니다.
+ * - 카테고리별 키워드/동의어 트리
+ * - 포함/제외 재료, 키워드 입력
+ * - 적용 버튼으로 필터 상태 반영
+ *
+ * 주요 props:
+ * - filterState, setFilterState: 카테고리별 필터 상태
+ * - includeIngredients, excludeIngredients: 포함/제외 재료
+ * - includeInput, excludeInput: 입력값
+ * - allIngredients: 전체 재료 목록
+ * - includeKeyword: 포함 키워드
+ * - onApply: 필터 적용 핸들러
+ * - filterKeywordTree: 키워드 트리
+ * - setFilterKeywordTree: 트리 상태 setter
+ */
+
 // 카테고리별 키워드(RecipeList.tsx에서 복사)
 const FILTER_KEYWORDS = {
   효능: [
