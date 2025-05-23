@@ -422,6 +422,7 @@ const Popular = () => {
                     <img
                       src={getProxiedImageUrl(recipe.thumbnail)}
                       alt="썸네일"
+                      onError={e => { e.currentTarget.src = '/default-thumbnail.png'; }}
                       style={{
                         width: '100%',
                         height: 140,
