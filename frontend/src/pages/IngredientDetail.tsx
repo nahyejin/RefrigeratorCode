@@ -15,6 +15,7 @@ import { Recipe, RecipeActionState } from '../types/recipe';
 import RecipeSortBar from '../components/RecipeSortBar';
 import TopNavBar from '../components/TopNavBar';
 import RecipeToast from '../components/RecipeToast';
+import backIcon from '../assets/뒤로가기.png';
 
 // 더미 fetch 함수 (RecipeList.tsx와 동일)
 function fetchRecipesDummy(name?: string): Promise<any[]> {
@@ -332,7 +333,20 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
 
   return (
     <>
-      <TopNavBar />
+      <header className="w-full h-[56px] flex items-center px-2 bg-white">
+        <button
+          className="px-2 focus:outline-none bg-transparent border-none shadow-none ml-2"
+          style={{ minWidth: 40, background: 'transparent' }}
+          onClick={() => navigate(-1)}
+          aria-label="뒤로가기"
+        >
+          <img
+            src={backIcon}
+            alt="뒤로가기"
+            style={{ height: 13, width: 13, objectFit: 'contain', background: 'transparent' }}
+          />
+        </button>
+      </header>
       <div className="mx-auto pb-20 bg-white"
         style={{
           maxWidth: 400,
@@ -343,7 +357,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
           paddingTop: 32,
         }}
       >
-        <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 18, textAlign: 'center' }}>{customTitle || `${name}이 들어간 레시피`}</div>
+        <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 18, textAlign: 'center' }}>{customTitle || `${name} 관련 레시피`}</div>
         <RecipeSortBar
           recipes={processedRecipes}
           myIngredients={myIngredients}
