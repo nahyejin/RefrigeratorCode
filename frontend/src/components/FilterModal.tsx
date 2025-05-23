@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { getMyIngredients } from '../utils/recipeUtils';
 
 /*
  * FilterModal Component
@@ -109,8 +110,10 @@ function parseFilterKeywordsCSV(csv: string) {
 const FilterModal: React.FC<FilterModalProps> = ({ open, onClose, filterState, setFilterState, includeIngredients, setIncludeIngredients, excludeIngredients, setExcludeIngredients, includeInput, setIncludeInput, excludeInput, setExcludeInput, allIngredients, includeKeyword, setIncludeKeyword, onApply, filterKeywordTree, setFilterKeywordTree }) => {
   const [includeFocus, setIncludeFocus] = useState(false);
   const [excludeFocus, setExcludeFocus] = useState(false);
-  const includeCandidates = allIngredients.filter(i => i && i.includes(includeInput) && includeInput && i !== includeInput && !includeIngredients.includes(i));
-  const excludeCandidates = allIngredients.filter(i => i && i.includes(excludeInput) && excludeInput && i !== excludeInput && !excludeIngredients.includes(i));
+  const myIngredients = getMyIngredients();
+  const combinedIngredients = [...new Set([...allIngredients, ...myIngredients])];
+  const includeCandidates = combinedIngredients.filter(i => i && i.includes(includeInput) && includeInput && i !== includeInput && !includeIngredients.includes(i));
+  const excludeCandidates = combinedIngredients.filter(i => i && i.includes(excludeInput) && excludeInput && i !== excludeInput && !excludeIngredients.includes(i));
 
   useEffect(() => {
     fetch('/Filter_Keywords.csv')
@@ -125,7 +128,7 @@ const FilterModal: React.FC<FilterModalProps> = ({ open, onClose, filterState, s
   return (
     <div className="fixed inset-0 bg-black bg-opacity-30 flex items-start justify-center z-50">
       <div className="bg-white rounded-xl shadow-lg w-[340px] max-w-[95vw] relative mt-12 mb-24" style={{maxHeight: 'calc(100vh - 144px)', overflowY: 'auto'}}>
-        <div className="sticky top-0 z-10 bg-white border-b border-gray-200" style={{paddingTop: 24, backgroundColor: '#fff', opacity: 1, minHeight: 64}}>
+        <div className="sticky top-0 z-10 bg-white" style={{paddingTop: 24, backgroundColor: '#fff', opacity: 1, minHeight: 64}}>
           <span className="absolute top-3 right-3 w-6 h-6 text-gray-400 text-xl cursor-pointer select-none" onClick={onClose} role="button" aria-label="닫기" style={{zIndex: 20}}>×</span>
           <div className="text-center font-bold text-[12.8px] mb-2 pt-2">필터를 설정해 주세요</div>
         </div>
@@ -136,7 +139,7 @@ const FilterModal: React.FC<FilterModalProps> = ({ open, onClose, filterState, s
             </label>
             <input
               className="w-full border rounded px-3 py-2 text-[10px]"
-              placeholder="예: 파스타"
+              placeholder="필수 키워드 입력"
               value={includeKeyword}
               onChange={e => setIncludeKeyword(e.target.value)}
             />
@@ -146,7 +149,7 @@ const FilterModal: React.FC<FilterModalProps> = ({ open, onClose, filterState, s
             <div className="relative mb-2">
               <input
                 className="w-full border rounded px-3 py-2 text-[10px]"
-                placeholder="예: 닭고기"
+                placeholder="포함할 재료 입력"
                 value={includeInput}
                 onChange={e => setIncludeInput(e.target.value)}
                 onFocus={() => setIncludeFocus(true)}
@@ -187,7 +190,7 @@ const FilterModal: React.FC<FilterModalProps> = ({ open, onClose, filterState, s
             <div className="relative">
               <input
                 className="w-full border rounded px-3 py-2 text-[10px]"
-                placeholder="예: 우유"
+                placeholder="제외할 재료 입력"
                 value={excludeInput}
                 onChange={e => setExcludeInput(e.target.value)}
                 onFocus={() => setExcludeFocus(true)}
@@ -259,9 +262,10 @@ const FilterModal: React.FC<FilterModalProps> = ({ open, onClose, filterState, s
             ))}
           </div>
         </div>
-        <div className="flex justify-end p-4">
+        <div className="sticky bottom-0 left-0 w-full bg-white p-4 flex justify-center z-20">
           <button
-            className="bg-[#FFD600] text-black font-bold py-2 px-6 rounded-full text-sm shadow"
+            className="w-full bg-[#3c3c3c] text-white font-bold py-2 rounded-lg"
+            style={{maxWidth: 320}}
             onClick={onApply}
           >
             적용
