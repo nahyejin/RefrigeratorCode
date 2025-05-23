@@ -8,6 +8,7 @@ import RecipeToast from '../components/RecipeToast';
 import { getMyIngredients } from '../utils/recipeUtils';
 import RecipeSortBar from '../components/RecipeSortBar';
 import FilterModal from '../components/FilterModal';
+import backIcon from '../assets/뒤로가기.png';
 
 // Add FilterState interface definition after imports
 interface FilterState {
@@ -172,7 +173,20 @@ const RecordedRecipeListPage = () => {
 
   return (
     <>
-      <TopNavBar />
+      <header className="w-full h-[56px] flex items-center px-2 bg-white">
+        <button
+          className="px-2 focus:outline-none bg-transparent border-none shadow-none ml-2"
+          style={{ minWidth: 40, background: 'transparent' }}
+          onClick={() => navigate(-1)}
+          aria-label="뒤로가기"
+        >
+          <img
+            src={backIcon}
+            alt="뒤로가기"
+            style={{ height: 13, width: 13, objectFit: 'contain', background: 'transparent' }}
+          />
+        </button>
+      </header>
       <div className="mx-auto pb-20 bg-white"
         style={{
           maxWidth: 400,
