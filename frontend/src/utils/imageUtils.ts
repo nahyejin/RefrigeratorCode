@@ -9,5 +9,6 @@ export function getProxiedImageUrl(url: string) {
     }
     return 'https://images.weserv.nl/?url=' + cleanUrl.replace(/^https?:\/\//, '');
   }
+  // blogfiles.pstatic.net 등은 프록시 없이 원본 URL 사용
   return url;
 } 

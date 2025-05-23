@@ -12,6 +12,7 @@ import { useNavigate } from 'react-router-dom';
 import RecipeCard from '../components/RecipeCard';
 import { getIngredientPillInfo } from '../utils/recipeUtils';
 import IngredientPillGroup from '../components/IngredientPillGroup';
+import { getProxiedImageUrl } from '../utils/imageUtils';
 
 // 타입 명시
 interface RecipeCardData {
@@ -76,15 +77,6 @@ const dummyUser = {
   userid: 'honggildong123',
   phone: '010-1234-5678',
 };
-
-// 썸네일 프록시 함수 추가
-function getProxiedImageUrl(url: string | undefined) {
-  if (!url) return '/default_thumbnail.png';
-  if (url.includes('postfiles.pstatic.net')) {
-    return 'https://images.weserv.nl/?url=' + url.replace(/^https?:\/\//, '');
-  }
-  return url;
-}
 
 // 재료/대체 가능 파싱 함수 추가
 function parseIngredients(recipe: any) {
@@ -411,7 +403,12 @@ const MyPage = () => {
                 return (
                   <div key={recipe.id} style={{ minWidth: 320, maxWidth: 340, width: '100%', background: '#fff', borderRadius: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', padding: 0, display: 'flex', flexDirection: 'column', gap: 8, position: 'relative' }}>
                     <div style={{ position: 'relative', width: '100%', height: 140 }}>
-                      <img src={getProxiedImageUrl(recipe.thumbnail || recipe.image)} alt="썸네일" style={{ width: '100%', height: 140, objectFit: 'cover', borderRadius: 12, marginBottom: 8 }} />
+                      <img
+                        src={getProxiedImageUrl(recipe.thumbnail || recipe.image)}
+                        alt="썸네일"
+                        onError={e => { e.currentTarget.src = '/default-thumbnail.png'; }}
+                        style={{ width: '100%', height: 140, objectFit: 'cover', borderRadius: 12, marginBottom: 8 }}
+                      />
                       {/* 매칭률 뱃지 */}
                       <div className="absolute bg-[#444] bg-opacity-80 text-white font-medium rounded px-2 py-0.5 flex items-center gap-1" style={{ position: 'absolute', top: 8, left: 8, fontSize: 12, zIndex: 2, textShadow: '0 1px 2px rgba(0,0,0,0.12)' }}>
                         재료 매칭률 <span className="text-[#FFD600] font-bold ml-1" style={{ textShadow: 'none', letterSpacing: '0.5px' }}>{recipe.match_rate || recipe.match || 0}%</span>
@@ -505,7 +502,12 @@ const MyPage = () => {
                 return (
                   <div key={recipe.id} style={{ minWidth: 320, maxWidth: 340, width: '100%', background: '#fff', borderRadius: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', padding: 0, display: 'flex', flexDirection: 'column', gap: 8, position: 'relative' }}>
                     <div style={{ position: 'relative', width: '100%', height: 140 }}>
-                      <img src={getProxiedImageUrl(recipe.thumbnail || recipe.image)} alt="썸네일" style={{ width: '100%', height: 140, objectFit: 'cover', borderRadius: 12, marginBottom: 8 }} />
+                      <img
+                        src={getProxiedImageUrl(recipe.thumbnail || recipe.image)}
+                        alt="썸네일"
+                        onError={e => { e.currentTarget.src = '/default-thumbnail.png'; }}
+                        style={{ width: '100%', height: 140, objectFit: 'cover', borderRadius: 12, marginBottom: 8 }}
+                      />
                       {/* 매칭률 뱃지 */}
                       <div className="absolute bg-[#444] bg-opacity-80 text-white font-medium rounded px-2 py-0.5 flex items-center gap-1" style={{ position: 'absolute', top: 8, left: 8, fontSize: 12, zIndex: 2, textShadow: '0 1px 2px rgba(0,0,0,0.12)' }}>
                         재료 매칭률 <span className="text-[#FFD600] font-bold ml-1" style={{ textShadow: 'none', letterSpacing: '0.5px' }}>{recipe.match_rate || recipe.match || 0}%</span>
