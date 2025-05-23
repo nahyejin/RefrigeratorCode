@@ -70,6 +70,7 @@ const RecipeSortBar = ({
     }
     return 'or';
   });
+  const [filterKeywordTree, setFilterKeywordTree] = useState<any>(null);
 
   // 초기 렌더링과 필터 상태 변경 시 필터링 적용
   useEffect(() => {
@@ -102,6 +103,8 @@ const RecipeSortBar = ({
 
   // 필터 적용 함수
   const applyFilter = () => {
+    const categoryKeywords = buildCategoryKeywords(selectedFilter, filterKeywordTree);
+    console.log('[applyFilter] categoryKeywords', categoryKeywords);
     const filtered = filterRecipes(recipes, {
       sortType,
       matchRange,
@@ -112,7 +115,7 @@ const RecipeSortBar = ({
       includeKeyword,
       includeIngredients,
       excludeIngredients,
-      categoryKeywords: selectedFilter
+      categoryKeywords
     });
     onFilteredRecipesChange(filtered);
     setFilterOpen(false);
@@ -191,6 +194,34 @@ const RecipeSortBar = ({
       sortType, matchRange, maxLack, appliedExpiryIngredients, expirySortType, expiryIngredientMode
     }));
   }, [sortType, matchRange, maxLack, appliedExpiryIngredients, expirySortType, expiryIngredientMode]);
+
+  // 선택된 키워드와 filterKeywordTree를 조합해 동의어까지 포함된 categoryKeywords 생성
+  function buildCategoryKeywords(selected: any, tree: any) {
+    const result: any = {};
+    if (!tree) {
+      console.log('[buildCategoryKeywords] tree 없음');
+      return result;
+    }
+    for (const main of Object.keys(selected)) {
+      if (!selected[main] || selected[main].length === 0) continue;
+      result[main] = [];
+      for (const kw of selected[main]) {
+        // tree[main]의 모든 sub에서 해당 키워드 객체를 찾는다
+        let found = null;
+        for (const sub of Object.keys(tree[main] || {})) {
+          found = (tree[main][sub] || []).find((obj: any) => obj.keyword === kw);
+          if (found) break;
+        }
+        if (found) {
+          result[main].push({ keyword: found.keyword, synonyms: found.synonyms });
+        } else {
+          result[main].push({ keyword: kw, synonyms: [] });
+        }
+      }
+    }
+    console.log('[buildCategoryKeywords] 결과', result);
+    return result;
+  }
 
   return (
     <>
@@ -451,6 +482,8 @@ const RecipeSortBar = ({
           includeKeyword={includeKeyword}
           setIncludeKeyword={setIncludeKeyword}
           onApply={applyFilter}
+          filterKeywordTree={filterKeywordTree}
+          setFilterKeywordTree={setFilterKeywordTree}
         />
       )}
     </>
