@@ -188,19 +188,33 @@ const MyPage = () => {
     setDoneStates(prev => {
       const isActive = !!prev[id];
       const newState = { ...prev, [id]: !isActive };
-      const completedRecipes = JSON.parse(localStorage.getItem('my_completed_recipes') || '[]');
+      let completedRecipes = JSON.parse(localStorage.getItem('my_completed_recipes') || '[]');
       if (!isActive) {
         // 완료 추가
         const recipe = recordedRecipes.find(r => r.id === id);
         if (recipe && !completedRecipes.some((r: any) => r.id === id)) {
-          completedRecipes.push(recipe);
+          // RecipeCard와 동일한 구조로 저장
+          const normalized = {
+            id: recipe.id,
+            title: recipe.title,
+            thumbnail: recipe.thumbnail || recipe.image || '',
+            used_ingredients: recipe.used_ingredients || '',
+            author: recipe.author || '',
+            date: recipe.date || '',
+            link: recipe.link || '',
+            body: recipe.body || recipe.content || recipe.description || '',
+            like: recipe.like || recipe.likes || 0,
+            comment: recipe.comment || recipe.comments || 0,
+            match_rate: recipe.match_rate || recipe.match || 0,
+          };
+          completedRecipes.push(normalized);
         }
         localStorage.setItem('my_completed_recipes', JSON.stringify(completedRecipes));
         setCompletedRecipes(completedRecipes);
         setToast('레시피를 완료했습니다!');
-      setTimeout(() => setToast(''), 1500);
+        console.log('[완료] my_completed_recipes:', completedRecipes);
+        setTimeout(() => setToast(''), 1500);
       } else {
-        // 완료 취소 - 모달로 확인
         setPendingRemove({type: 'done', id});
         setPendingRecipe(completedRecipes.find((r: any) => r.id === id));
       }
@@ -213,19 +227,33 @@ const MyPage = () => {
     setWriteStates(prev => {
       const isActive = !!prev[id];
       const newState = { ...prev, [id]: !isActive };
-      const recordedRecipes = JSON.parse(localStorage.getItem('my_recorded_recipes') || '[]');
+      let recordedRecipes = JSON.parse(localStorage.getItem('my_recorded_recipes') || '[]');
       if (!isActive) {
         // 기록 추가
-        const recipe = completedRecipes.find((r: any) => r.id === id) || recordedRecipes.find((r: any) => r.id === id);
+        const recipe = completedRecipes.find((r: any) => r.id === id) || recordedRecipes.find((r: any) => r.id === id) || recordedRecipes.find((r: any) => r.id === id);
         if (recipe && !recordedRecipes.some((r: any) => r.id === id)) {
-          recordedRecipes.push(recipe);
+          // RecipeCard와 동일한 구조로 저장
+          const normalized = {
+            id: recipe.id,
+            title: recipe.title,
+            thumbnail: recipe.thumbnail || recipe.image || '',
+            used_ingredients: recipe.used_ingredients || '',
+            author: recipe.author || '',
+            date: recipe.date || '',
+            link: recipe.link || '',
+            body: recipe.body || recipe.content || recipe.description || '',
+            like: recipe.like || recipe.likes || 0,
+            comment: recipe.comment || recipe.comments || 0,
+            match_rate: recipe.match_rate || recipe.match || 0,
+          };
+          recordedRecipes.push(normalized);
         }
         localStorage.setItem('my_recorded_recipes', JSON.stringify(recordedRecipes));
         setRecordedRecipes(recordedRecipes);
         setToast('레시피를 기록했습니다!');
-      setTimeout(() => setToast(''), 1500);
+        console.log('[기록] my_recorded_recipes:', recordedRecipes);
+        setTimeout(() => setToast(''), 1500);
       } else {
-        // 기록 취소 - 모달로 확인
         setPendingRemove({type: 'write', id});
         setPendingRecipe(recordedRecipes.find((r: any) => r.id === id));
       }
