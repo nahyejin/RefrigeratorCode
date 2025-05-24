@@ -3,6 +3,7 @@ import BottomNavBar from '../components/BottomNavBar';
 import TopNavBar from '../components/TopNavBar';
 import FilterModal from '../components/FilterModal';
 import IngredientDateModal from '../components/IngredientDateModal';
+import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import 완료하기버튼 from '../assets/완료하기버튼.svg';
 import 공유하기버튼 from '../assets/공유하기버튼.svg';
@@ -117,6 +118,134 @@ const periodOptions = [
   { value: 'custom', label: '기간선택' },
 ];
 
+// 재료 TOP 10 계산 함수
+const calculateIngredientRankings = (recipes: Recipe[]) => {
+  const ingredientCounts: { [key: string]: number } = {};
+  
+  recipes.forEach(recipe => {
+    if (recipe.used_ingredients) {
+      const ingredients = recipe.used_ingredients.split(',').map(i => i.trim());
+      ingredients.forEach(ingredient => {
+        ingredientCounts[ingredient] = (ingredientCounts[ingredient] || 0) + 1;
+      });
+    }
+  });
+
+  return Object.entries(ingredientCounts)
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 10)
+    .map((item, index) => ({
+      id: index + 1,
+      rank: index + 1,
+      name: item.name,
+      count: item.count,
+      rate: 0, // 현재는 증가율 계산하지 않음
+      thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80"
+    }));
+};
+
+// 테마 TOP 10 계산 함수
+const calculateThemeRankings = async (recipes: Recipe[]) => {
+  const themeCounts: { [key: string]: number } = {};
+  
+  try {
+    console.log('Starting theme ranking calculation with', recipes.length, 'recipes');
+    
+    // Filter_Keywords.csv에서 키워드 목록 가져오기
+    const response = await fetch('/Filter_Keywords.csv');
+    if (!response.ok) {
+      throw new Error('Filter_Keywords.csv 파일을 불러올 수 없습니다');
+    }
+    const csv = await response.text();
+    console.log('Successfully loaded Filter_Keywords.csv');
+    
+    const lines = csv.split('\n');
+    const header = lines[0].split(',').map(h => h.trim());
+    console.log('CSV headers:', header);
+    
+    const keywordIdx = header.indexOf('키워드');
+    const synonymIdx = header.indexOf('동의어');
+    const categoryIdx = header.indexOf('대분류');
+    
+    console.log('CSV header indices:', { keywordIdx, synonymIdx, categoryIdx });
+    
+    if (keywordIdx === -1) {
+      throw new Error('키워드 컬럼을 찾을 수 없습니다');
+    }
+    
+    // 키워드와 동의어를 매핑하는 객체 생성
+    const keywordMap = new Map<string, Set<string>>();
+    
+    lines.slice(1).forEach((line, index) => {
+      const columns = line.split(',').map(col => col.trim());
+      const keyword = columns[keywordIdx];
+      const synonyms = columns[synonymIdx] ? columns[synonymIdx].split('|').filter(Boolean) : [];
+      
+      if (keyword) {
+        // 키워드와 동의어를 모두 포함하는 Set 생성
+        const keywordSet = new Set([keyword, ...synonyms]);
+        keywordMap.set(keyword, keywordSet);
+        
+        if (index < 3) {
+          console.log('Added keyword mapping:', { keyword, synonyms });
+        }
+      }
+    });
+    
+    console.log('Created keyword map with', keywordMap.size, 'entries');
+    console.log('Sample keywords:', Array.from(keywordMap.keys()).slice(0, 5));
+
+    recipes.forEach((recipe, index) => {
+      if (index < 3) {
+        console.log('Processing recipe:', recipe.title);
+      }
+      // 한 레시피에서 한 번이라도 등장한 키워드만 1번씩 카운트
+      const matchedKeywords = new Set<string>();
+
+      keywordMap.forEach((synonyms, keyword) => {
+        const allKeywords = [keyword, ...synonyms];
+        allKeywords.forEach(k => {
+          // 한글 조사, 띄어쓰기, 구두점, 문장 끝 등 자연스러운 경계에서만 매칭
+          const regex = new RegExp(`(^|[\\s.,!?"'()\\[\\]{}<>~|:;])${k}(?=\\s|[.,!?"'()\\[\\]{}<>~|:;]|$|[가-힣]{1,2})`, 'g');
+          const text = [recipe.title, recipe.body, recipe.content, recipe.description].filter(Boolean).join(' ');
+          if (regex.test(text)) {
+            matchedKeywords.add(keyword);
+            if (index < 3) {
+              console.log('Found match in recipe:', { keyword, matched: k, title: recipe.title });
+            }
+          }
+        });
+      });
+
+      matchedKeywords.forEach(keyword => {
+        themeCounts[keyword] = (themeCounts[keyword] || 0) + 1;
+      });
+    });
+
+    console.log('Final theme counts:', themeCounts);
+
+    const rankings = Object.entries(themeCounts)
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10)
+      .map((item, index) => ({
+        id: index + 1,
+        rank: index + 1,
+        name: item.name,
+        count: item.count,
+        rate: 0,
+        thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80"
+      }));
+    
+    console.log('Final rankings:', rankings);
+    return rankings;
+  } catch (error) {
+    console.error('테마 랭킹 계산 오류:', error);
+    return [];
+  }
+};
+
 const Popular = () => {
   const [search, setSearch] = useState('');
   const nickname = "닉네임"; // 실제 닉네임 연동 필요
@@ -152,6 +281,9 @@ const Popular = () => {
   const myIngredients = getMyIngredients();
 
   const [recipes, setRecipes] = useState<Recipe[]>([]);
+
+  const [ingredientRankings, setIngredientRankings] = useState<typeof dummyIngredients>([]);
+  const [themeRankings, setThemeRankings] = useState<typeof dummyThemes>([]);
 
   useEffect(() => {
     fetch('/ingredient_profile_dict_with_substitutes.csv')
@@ -210,8 +342,49 @@ const Popular = () => {
     return '기간대비 게시글량';
   };
 
-  const sortedIngredients = [...dummyIngredients].sort((a, b) => b.rate - a.rate);
-  const sortedThemes = [...dummyThemes].sort((a, b) => b.rate - a.rate);
+  // Fetch recipes and calculate popularity scores (ignore date filter, show up to 30)
+  useEffect(() => {
+    axios.get('http://127.0.0.1:5000/api/recipes')
+      .then((res) => {
+        const recipesWithScores = res.data.map((recipe: Recipe) => ({
+          ...recipe,
+          score: (recipe.likes || 0) + ((recipe.comments || 0) * 2)
+        }));
+        // Sort by popularity score
+        const sortedRecipes = recipesWithScores.sort((a: Recipe & {score: number}, b: Recipe & {score: number}) => b.score - a.score);
+        // Take all recipes (remove slice)
+        setRecipes(sortedRecipes);
+      })
+      .catch((err) => {
+        console.error('Failed to fetch recipes:', err);
+        setRecipes([]); // fallback: 빈 배열
+      });
+  }, []);
+
+  // 레시피 데이터 로드 시 랭킹 계산
+  useEffect(() => {
+    const calculateRankings = async () => {
+      if (recipes.length > 0) {
+        try {
+          // 재료 랭킹 계산
+          const ingredientRanks = calculateIngredientRankings(recipes);
+          setIngredientRankings(ingredientRanks);
+
+          // 테마 랭킹 계산
+          const themeRanks = await calculateThemeRankings(recipes);
+          setThemeRankings(themeRanks);
+        } catch (error) {
+          console.error('테마 랭킹 계산 오류');
+        }
+      }
+    };
+
+    calculateRankings();
+  }, [recipes]);
+
+  // 더미 데이터 대신 실제 데이터 사용
+  const sortedIngredients = ingredientRankings;
+  const sortedThemes = themeRankings;
 
   const [sortType, setSortType] = useState('match');
   const [matchRange, setMatchRange] = useState<[number, number]>([30, 100]);
@@ -240,25 +413,6 @@ const Popular = () => {
       sortType, matchRange, maxLack, appliedExpiryIngredients, expirySortType
     }));
   }, [sortType, matchRange, maxLack, appliedExpiryIngredients, expirySortType]);
-
-  // Fetch recipes and calculate popularity scores (ignore date filter, show up to 30)
-  useEffect(() => {
-    axios.get('http://127.0.0.1:5000/api/recipes')
-      .then((res) => {
-        const recipesWithScores = res.data.map((recipe: Recipe) => ({
-          ...recipe,
-          score: (recipe.likes || 0) + ((recipe.comments || 0) * 2)
-        }));
-        // Sort by popularity score
-        const sortedRecipes = recipesWithScores.sort((a: Recipe & {score: number}, b: Recipe & {score: number}) => b.score - a.score);
-        // Take top 30 recipes
-        setRecipes(sortedRecipes.slice(0, 30));
-      })
-      .catch((err) => {
-        console.error('Failed to fetch recipes:', err);
-        setRecipes([]); // fallback: 빈 배열
-      });
-  }, []);
 
   return (
     <>
@@ -368,7 +522,6 @@ const Popular = () => {
           </div>
           <div style={{display: 'flex', overflowX: 'auto', gap: 16, paddingBottom: 8}}>
             {recipes.map((recipe: Recipe, idx: number) => {
-              console.log('recipe.thumbnail:', recipe.thumbnail, recipe);
               // substitutes 배열을 substituteTable 객체로 변환
               const substituteTable: { [key: string]: { ingredient_b: string } } = {};
               if (Array.isArray(recipe.substitutes)) {
@@ -518,30 +671,34 @@ const Popular = () => {
               <h2 className="text-[16px] font-bold text-[#111] mb-2 text-left"><span className="mr-1">📈</span>인기 급상승 테마 TOP 10</h2>
               <div style={{height: 2, width: '100%', background: '#E5E5E5', marginBottom: 16}} />
               <div className="mt-4">
-                <table className="w-full max-w-[280px] mx-auto border-collapse text-[13px] font-sans" style={{background: '#fff'}}>
-                  <thead>
-                    <tr style={{borderTop: '1px solid #E5E5E5', borderBottom: '1px solid #E5E5E5', background: '#F7F7F9'}}>
-                      <th className="py-1.5 px-2 text-center font-medium text-[#222] whitespace-nowrap">순위</th>
-                      <th className="py-1.5 px-2 text-center font-medium text-[#222] whitespace-nowrap">테마명</th>
-                      <th className="py-1.5 px-2 text-right font-medium text-[#222] whitespace-nowrap">언급량</th>
-                      <th className="py-1.5 px-2 text-center font-medium text-[#222] whitespace-nowrap">{period === 'today' ? '전일' : period === 'week' ? '전주' : period === 'month' ? '전달' : '기간'}대비 상승률</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sortedThemes.slice(0, 10).map((theme, idx) => (
-                      <tr key={theme.id}>
-                        <td className="py-1.5 px-2 text-center text-[#444] font-normal whitespace-nowrap">{idx + 1}</td>
-                        <td className="py-1.5 px-2 text-center text-[#444] font-normal whitespace-nowrap">
-                          <span style={{ cursor: 'pointer', textDecoration: 'none' }} onClick={() => navigate(`/ingredient/${encodeURIComponent(theme.name)}`)}>
-                            {theme.name}
-                          </span>
-                        </td>
-                        <td className="py-1.5 px-2 text-right text-[#444] font-normal whitespace-nowrap">{theme.count.toLocaleString()}</td>
-                        <td className="py-1.5 px-2 text-center font-normal whitespace-nowrap" style={{color: theme.rate >= 0 ? '#E85A4F' : '#3A6EA5'}}>{theme.rate >= 0 ? `+${theme.rate}%` : `${theme.rate}%`}</td>
+                {themeRankings.length === 0 ? (
+                  <div className="text-center text-gray-500">데이터를 불러오는 중...</div>
+                ) : (
+                  <table className="w-full max-w-[280px] mx-auto border-collapse text-[13px] font-sans" style={{background: '#fff'}}>
+                    <thead>
+                      <tr style={{borderTop: '1px solid #E5E5E5', borderBottom: '1px solid #E5E5E5', background: '#F7F7F9'}}>
+                        <th className="py-1.5 px-2 text-center font-medium text-[#222] whitespace-nowrap">순위</th>
+                        <th className="py-1.5 px-2 text-center font-medium text-[#222] whitespace-nowrap">테마명</th>
+                        <th className="py-1.5 px-2 text-right font-medium text-[#222] whitespace-nowrap">언급량</th>
+                        <th className="py-1.5 px-2 text-center font-medium text-[#222] whitespace-nowrap">{period === 'today' ? '전일' : period === 'week' ? '전주' : period === 'month' ? '전달' : '기간'}대비 상승률</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {themeRankings.map((theme, idx) => (
+                        <tr key={theme.id}>
+                          <td className="py-1.5 px-2 text-center text-[#444] font-normal whitespace-nowrap">{idx + 1}</td>
+                          <td className="py-1.5 px-2 text-center text-[#444] font-normal whitespace-nowrap">
+                            <span style={{ cursor: 'pointer', textDecoration: 'none' }} onClick={() => navigate(`/ingredient/${encodeURIComponent(theme.name)}`)}>
+                              {theme.name}
+                            </span>
+                          </td>
+                          <td className="py-1.5 px-2 text-right text-[#444] font-normal whitespace-nowrap">{theme.count.toLocaleString()}</td>
+                          <td className="py-1.5 px-2 text-center font-normal whitespace-nowrap" style={{color: theme.rate >= 0 ? '#E85A4F' : '#3A6EA5'}}>{theme.rate >= 0 ? `+${theme.rate}%` : `${theme.rate}%`}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
               </div>
             </div>
           </div>
