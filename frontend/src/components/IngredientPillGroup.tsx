@@ -20,22 +20,22 @@ const IngredientPillGroup: React.FC<IngredientPillGroupProps> = ({ needIngredien
         {pillInfo.pills.map((ing) => {
           if (mySet.has(normalize(ing))) {
             return (
-              <span key={ing} className="bg-customYellow text-[#444] rounded-full px-3 py-0.5 font-medium" style={{ fontSize: '10.4px', lineHeight: 1.3, whiteSpace: 'nowrap', height: 22, display: 'inline-flex', alignItems: 'center' }}>{ing}</span>
+              <span key={ing} className="bg-customYellow text-[#444] rounded-full px-3 py-0.5 font-normal" style={{ fontSize: '10.4px', lineHeight: 1.3, whiteSpace: 'nowrap', height: 22, display: 'inline-flex', alignItems: 'center', textShadow: 'none', border: 'none' }}>{ing}</span>
             );
           } else if (pillInfo.notMineSub.map(normalize).includes(normalize(ing))) {
             return (
-              <span key={ing} className="bg-customDarkGray text-white rounded-full px-3 py-0.5 font-medium" style={{ fontSize: '10.4px', lineHeight: 1.3, whiteSpace: 'nowrap', height: 22, display: 'inline-flex', alignItems: 'center' }}>{ing}</span>
+              <span key={ing} className="bg-customDarkGray text-white rounded-full px-3 py-0.5 font-normal" style={{ fontSize: '10.4px', lineHeight: 1.3, whiteSpace: 'nowrap', height: 22, display: 'inline-flex', alignItems: 'center', textShadow: 'none', border: 'none' }}>{ing}</span>
             );
           } else {
             return (
-              <span key={ing} className="bg-customGray text-white rounded-full px-3 py-0.5 font-medium" style={{ fontSize: '10.4px', lineHeight: 1.3, whiteSpace: 'nowrap', height: 22, display: 'inline-flex', alignItems: 'center' }}>{ing}</span>
+              <span key={ing} className="bg-customGray text-white rounded-full px-3 py-0.5 font-normal" style={{ fontSize: '10.4px', lineHeight: 1.3, whiteSpace: 'nowrap', height: 22, display: 'inline-flex', alignItems: 'center', textShadow: 'none', border: 'none' }}>{ing}</span>
             );
           }
         })}
       </div>
       {/* 대체 가능 태그 */}
       <div className="mt-1 custom-scrollbar pr-1" style={{ display: 'flex', flexWrap: 'nowrap', gap: 4, overflowX: 'auto', maxWidth: '100%', alignItems: 'center', paddingBottom: 4 }}>
-        <span className="bg-[#FFE066] text-[#444] rounded px-3 py-1 font-bold" style={{ fontSize: '12px', flex: '0 0 auto' }}>대체 가능 :</span>
+        <span className="bg-[#555] text-white rounded px-3 py-1 font-normal" style={{ fontSize: '12px', flex: '0 0 auto', textShadow: 'none', border: 'none' }}>대체 가능 :</span>
         {pillInfo.substitutes.length > 0 ? (
           pillInfo.substitutes.map((sub, idx) => (
             <span key={sub} className="ml-2 font-semibold text-[#444]" style={{ fontSize: '12px', flex: '0 0 auto' }}>{sub}</span>
