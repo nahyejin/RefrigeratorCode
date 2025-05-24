@@ -13,6 +13,7 @@ import IngredientPillGroup from '../components/IngredientPillGroup';
 import axios from 'axios';
 import { Recipe } from '../types/recipe';
 import { getProxiedImageUrl } from '../utils/imageUtils';
+import { calculateMatchRate } from '../utils/recipeUtils';
 
 // 더미 데이터 예시
 const dummyRecipes = [
@@ -397,6 +398,7 @@ const Popular = () => {
                 myIngredients,
                 substituteTable,
               });
+              const match = calculateMatchRate(myIngredients, Array.isArray(recipe.used_ingredients) ? recipe.used_ingredients.join(',') : recipe.used_ingredients || '');
               return (
                 <a
                   key={recipe.id}
@@ -437,7 +439,7 @@ const Popular = () => {
                   </div>
                   {/* 재료매칭률 뱃지 */}
                   <div className="absolute bg-[#444] bg-opacity-80 text-white font-medium rounded px-2 py-0.5 flex items-center gap-1" style={{ position: 'absolute', top: 24, left: 0, fontSize: 11, zIndex: 2, textShadow: '0 1px 2px rgba(0,0,0,0.12)' }}>
-                    재료 매칭률 <span className="text-[#FFD600] font-bold ml-1" style={{ textShadow: 'none', letterSpacing: '0.5px' }}>{/* 매칭률 값 */}80%</span>
+                    재료 매칭률 <span className="text-[#FFD600] font-bold ml-1" style={{ textShadow: 'none', letterSpacing: '0.5px' }}>{match.rate}%</span>
                   </div>
                   {/* 완료/공유/기록 버튼 */}
                   <div style={{position: 'absolute', right: 8, bottom: 8, display: 'flex', flexDirection: 'row', gap: 6, alignItems: 'center', zIndex: 2}}>
