@@ -9,6 +9,8 @@ from datetime import datetime, timedelta
 import pymysql
 import time
 import re
+import sys
+import os
 
 # 셀레니움 드라이버 설정
 driver_path = "C:/Users/user/Desktop/RefrigeratorCode/chromedriver-win64/chromedriver.exe"
@@ -238,4 +240,16 @@ print(f"총 저장된 포스트: {saved_posts}")
 
 # 연결 종료
 driver.quit()
-db.close() 
+db.close()
+
+# update_used_ingredients_batch.py 실행
+import sys
+import os
+
+# 상위 디렉토리 경로 추가
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# update_used_ingredients_batch.py 실행
+from backend.backend.update_used_ingredients_batch import update_used_ingredients
+
+print("\n✅ update_used_ingredients_batch.py 실행 완료!") 
