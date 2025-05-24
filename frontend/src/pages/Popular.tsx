@@ -158,17 +158,13 @@ const calculateThemeRankings = async (recipes: Recipe[]) => {
       throw new Error('Filter_Keywords.csv 파일을 불러올 수 없습니다');
     }
     const csv = await response.text();
-    console.log('Successfully loaded Filter_Keywords.csv');
     
     const lines = csv.split('\n');
     const header = lines[0].split(',').map(h => h.trim());
-    console.log('CSV headers:', header);
     
     const keywordIdx = header.indexOf('키워드');
     const synonymIdx = header.indexOf('동의어');
     const categoryIdx = header.indexOf('대분류');
-    
-    console.log('CSV header indices:', { keywordIdx, synonymIdx, categoryIdx });
     
     if (keywordIdx === -1) {
       throw new Error('키워드 컬럼을 찾을 수 없습니다');
@@ -177,53 +173,49 @@ const calculateThemeRankings = async (recipes: Recipe[]) => {
     // 키워드와 동의어를 매핑하는 객체 생성
     const keywordMap = new Map<string, Set<string>>();
     
-    lines.slice(1).forEach((line, index) => {
+    lines.slice(1).forEach(line => {
       const columns = line.split(',').map(col => col.trim());
       const keyword = columns[keywordIdx];
       const synonyms = columns[synonymIdx] ? columns[synonymIdx].split('|').filter(Boolean) : [];
       
       if (keyword) {
-        // 키워드와 동의어를 모두 포함하는 Set 생성
         const keywordSet = new Set([keyword, ...synonyms]);
         keywordMap.set(keyword, keywordSet);
-        
-        if (index < 3) {
-          console.log('Added keyword mapping:', { keyword, synonyms });
-        }
       }
     });
-    
-    console.log('Created keyword map with', keywordMap.size, 'entries');
-    console.log('Sample keywords:', Array.from(keywordMap.keys()).slice(0, 5));
 
-    recipes.forEach((recipe, index) => {
-      if (index < 3) {
-        console.log('Processing recipe:', recipe.title);
-      }
-      // 한 레시피에서 한 번이라도 등장한 키워드만 1번씩 카운트
-      const matchedKeywords = new Set<string>();
+    // 통과한 레시피 ID를 저장할 배열
+    const passedRecipeIds: number[] = [];
 
+    recipes.forEach(recipe => {
       keywordMap.forEach((synonyms, keyword) => {
-        const allKeywords = [keyword, ...synonyms];
-        allKeywords.forEach(k => {
-          // 한글 조사, 띄어쓰기, 구두점, 문장 끝 등 자연스러운 경계에서만 매칭
-          const regex = new RegExp(`(^|[\\s.,!?"'()\\[\\]{}<>~|:;])${k}(?=\\s|[.,!?"'()\\[\\]{}<>~|:;]|$|[가-힣]{1,2})`, 'g');
-          const text = [recipe.title, recipe.body, recipe.content, recipe.description].filter(Boolean).join(' ');
-          if (regex.test(text)) {
-            matchedKeywords.add(keyword);
-            if (index < 3) {
-              console.log('Found match in recipe:', { keyword, matched: k, title: recipe.title });
-            }
-          }
+        const allKeywords = [keyword, ...Array.from(synonyms)];
+        const text = (recipe.title || '') + ' ' + (recipe.content || '');
+        let totalMatches = 0;
+        
+        // 각 키워드별로 독립적으로 매칭 횟수 체크
+        const hasEnoughMatches = allKeywords.some(k => {
+          if (!k) return false;
+          const regex = new RegExp(k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+          const matches = text.match(regex);
+          return matches && matches.length >= 2;
         });
-      });
 
-      matchedKeywords.forEach(keyword => {
-        themeCounts[keyword] = (themeCounts[keyword] || 0) + 1;
+        if (hasEnoughMatches) {
+          themeCounts[keyword] = (themeCounts[keyword] || 0) + 1;
+          if (keyword === '주말') {
+            passedRecipeIds.push(recipe.id);
+          }
+        }
       });
     });
 
-    console.log('Final theme counts:', themeCounts);
+    // "주말" 키워드의 최종 결과만 간단히 출력
+    if (themeCounts['주말']) {
+      console.log('\n[주말 키워드 최종 결과]');
+      console.log(`매칭된 레시피 수: ${themeCounts['주말']}개`);
+      console.log('통과한 레시피 ID:', passedRecipeIds.join(', '));
+    }
 
     const rankings = Object.entries(themeCounts)
       .map(([name, count]) => ({ name, count }))
@@ -238,7 +230,6 @@ const calculateThemeRankings = async (recipes: Recipe[]) => {
         thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80"
       }));
     
-    console.log('Final rankings:', rankings);
     return rankings;
   } catch (error) {
     console.error('테마 랭킹 계산 오류:', error);
@@ -645,7 +636,7 @@ const Popular = () => {
                     <tr style={{borderTop: '1px solid #E5E5E5', borderBottom: '1px solid #E5E5E5', background: '#F7F7F9'}}>
                       <th className="py-1.5 px-2 text-center font-medium text-[#222] whitespace-nowrap">순위</th>
                       <th className="py-1.5 px-2 text-center font-medium text-[#222] whitespace-nowrap">재료명</th>
-                      <th className="py-1.5 px-2 text-right font-medium text-[#222] whitespace-nowrap">언급량</th>
+                      <th className="py-1.5 px-2 text-right font-medium text-[#222] whitespace-nowrap">레시피 수</th>
                       <th className="py-1.5 px-2 text-center font-medium text-[#222] whitespace-nowrap">{period === 'today' ? '전일' : period === 'week' ? '전주' : period === 'month' ? '전달' : '기간'}대비 상승률</th>
                     </tr>
                   </thead>
@@ -679,7 +670,7 @@ const Popular = () => {
                       <tr style={{borderTop: '1px solid #E5E5E5', borderBottom: '1px solid #E5E5E5', background: '#F7F7F9'}}>
                         <th className="py-1.5 px-2 text-center font-medium text-[#222] whitespace-nowrap">순위</th>
                         <th className="py-1.5 px-2 text-center font-medium text-[#222] whitespace-nowrap">테마명</th>
-                        <th className="py-1.5 px-2 text-right font-medium text-[#222] whitespace-nowrap">언급량</th>
+                        <th className="py-1.5 px-2 text-right font-medium text-[#222] whitespace-nowrap">레시피 수</th>
                         <th className="py-1.5 px-2 text-center font-medium text-[#222] whitespace-nowrap">{period === 'today' ? '전일' : period === 'week' ? '전주' : period === 'month' ? '전달' : '기간'}대비 상승률</th>
                       </tr>
                     </thead>
