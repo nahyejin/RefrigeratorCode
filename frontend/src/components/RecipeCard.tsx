@@ -229,7 +229,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, actionState: pro
           style={{ display: 'block' }}
         >
           <img src={getProxiedImageUrl(recipe.thumbnail)} alt="썸네일" className="w-full h-full object-cover object-center group-hover:opacity-80 transition" />
-          <div className="absolute bg-[#444] bg-opacity-80 text-white text-[10px] font-medium rounded px-2 py-0.5 flex items-center gap-1" style={{ top: 0, left: 0, textShadow: '0 1px 2px rgba(0,0,0,0.12)' }}>
+          <div className="absolute bg-[#444] bg-opacity-80 text-white text-[10px] font-medium rounded px-2 py-0.5 flex items-center gap-1" style={{ top: 0, left: 0, textShadow: '0 1px 2px rgba(0,0,0,0.12)', whiteSpace: 'nowrap', minWidth: 80 }}>
             재료매칭률 <span className="text-[#FFD600] font-bold ml-1" style={{ textShadow: 'none', letterSpacing: '0.5px' }}>{recipe.match_rate}%</span>
           </div>
         </span>
