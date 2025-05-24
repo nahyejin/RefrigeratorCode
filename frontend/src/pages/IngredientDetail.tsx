@@ -17,6 +17,7 @@ import TopNavBar from '../components/TopNavBar';
 import RecipeToast from '../components/RecipeToast';
 import backIcon from '../assets/뒤로가기.png';
 import axios from 'axios';
+import { calculateMatchRate } from '../utils/recipeUtils';
 
 // 더미 fetch 함수 (RecipeList.tsx와 동일)
 function fetchRecipesDummy(name?: string): Promise<any[]> {
@@ -129,6 +130,11 @@ interface SubstituteInfo {
   substitution_reason: string;
 }
 
+interface KeywordObject {
+  keyword: string;
+  synonyms?: string[];
+}
+
 interface IngredientDetailProps {
   customTitle?: string;
 }
@@ -142,6 +148,13 @@ function getMyIngredientObjects(): any[] {
   } catch {}
   return [];
 }
+
+// categoryKeywords 정의
+const categoryKeywords = {
+  TPO: [
+    { keyword: '주말', synonyms: ['주말요리', '주말식사', '주말특별식', '주말특별요리'] }
+  ]
+};
 
 const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
   const { name = '' } = useParams<{ name: string }>();
@@ -192,9 +205,27 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
       axios.get('http://127.0.0.1:5000/api/recipes')
         .then(res => {
           const filtered = res.data.filter((r: Recipe) => {
-            const text = [r.title, r.body, r.content].filter(Boolean).join(' ');
-            const regex = new RegExp(`(^|[\\s.,!?"'()\\[\\]{}<>~|:;])${name}(?=\\s|[.,!?"'()\\[\\]{}<>~|:;]|$|[가-힣]{1,2})`, 'g');
-            return regex.test(text);
+            const text = (r.title || '') + ' ' + (r.content || '');
+            const keyword = decodeURIComponent(name);
+            
+            // 키워드와 동의어 목록 가져오기
+            const keywordObj = categoryKeywords.TPO.find((k: KeywordObject) => 
+              typeof k === 'object' && k.keyword === keyword
+            );
+            
+            if (!keywordObj || typeof keywordObj !== 'object') return false;
+            
+            const allKeywords = [keywordObj.keyword, ...(keywordObj.synonyms || [])];
+            
+            // 각 키워드별로 독립적으로 매칭 횟수 체크
+            const hasEnoughMatches = allKeywords.some(k => {
+              if (!k) return false;
+              const regex = new RegExp(k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+              const matches = text.match(regex);
+              return matches && matches.length >= 2;
+            });
+
+            return hasEnoughMatches;
           });
           setRecipes(filtered);
         })
@@ -352,6 +383,51 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
   useEffect(() => {
     setFilteredRecipes(processedRecipes);
   }, [processedRecipes]);
+
+  // 레시피 필터링 함수
+  const filterRecipes = (recipes: Recipe[]) => {
+    return recipes.filter(recipe => {
+      // 1. 키워드 매칭
+      const text = (recipe.title || '') + ' ' + (recipe.content || '');
+      const keyword = decodeURIComponent(includeKeyword);
+      
+      // 키워드와 동의어 목록 가져오기
+      const keywordObj = categoryKeywords.TPO.find((k: KeywordObject) => 
+        typeof k === 'object' && k.keyword === keyword
+      );
+      
+      if (!keywordObj || typeof keywordObj !== 'object') return false;
+      
+      const allKeywords = [keywordObj.keyword, ...(keywordObj.synonyms || [])];
+      
+      // 각 키워드별로 독립적으로 매칭 횟수 체크
+      const hasEnoughMatches = allKeywords.some(k => {
+        if (!k) return false;
+        const regex = new RegExp(k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+        const matches = text.match(regex);
+        return matches && matches.length >= 2;
+      });
+
+      if (!hasEnoughMatches) return false;
+
+      // 2. 재료 매칭
+      if (myIngredients.length > 0) {
+        const recipeIngredients = recipe.used_ingredients.split(',').map(i => i.trim());
+        const matchRate = calculateMatchRate(myIngredients, recipe.used_ingredients);
+        if (matchRate.rate < matchRange[0] || matchRate.rate > matchRange[1]) return false;
+      }
+
+      // 3. 부족 재료 수 체크
+      if (maxLack !== 'unlimited') {
+        const recipeIngredients = recipe.used_ingredients.split(',').map(i => i.trim());
+        const mySet = new Set(myIngredients.map(i => i.trim()));
+        const lackCount = recipeIngredients.filter(i => !mySet.has(i)).length;
+        if (lackCount > maxLack) return false;
+      }
+
+      return true;
+    });
+  };
 
   return (
     <>

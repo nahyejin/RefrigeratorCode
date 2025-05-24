@@ -5,6 +5,7 @@ export interface Recipe {
   author: string;
   date: string;
   body: string;
+  description?: string;
   thumbnail: string;
   used_ingredients: string;
   used_ingredients_block?: string;

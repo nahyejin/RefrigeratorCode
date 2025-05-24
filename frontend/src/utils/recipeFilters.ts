@@ -2,6 +2,11 @@ import { Recipe } from '../types/recipe';
 import { sortRecipes } from './recipeUtils';
 import { calculateMatchRate } from './recipeUtils';
 
+interface KeywordObject {
+  keyword: string;
+  synonyms?: string[];
+}
+
 interface FilterOptions {
   sortType: string;
   matchRange: [number, number];
@@ -13,11 +18,11 @@ interface FilterOptions {
   includeIngredients?: string[];
   excludeIngredients?: string[];
   categoryKeywords?: {
-    효능?: string[];
-    영양분?: string[];
-    대상?: string[];
-    TPO?: string[];
-    스타일?: string[];
+    효능?: (string | KeywordObject)[];
+    영양분?: (string | KeywordObject)[];
+    대상?: (string | KeywordObject)[];
+    TPO?: (string | KeywordObject)[];
+    스타일?: (string | KeywordObject)[];
   };
 }
 
@@ -85,6 +90,34 @@ export function filterRecipes(recipes: Recipe[], options: FilterOptions): Recipe
       });
     }
 
+    // 카테고리 키워드 필터
+    let categoryKeywordsOk = true;
+    if (Object.keys(categoryKeywords).length > 0) {
+      const text = (recipe.title || '') + ' ' + (recipe.content || '');
+      categoryKeywordsOk = Object.entries(categoryKeywords).every(([category, keywords]) => {
+        if (!Array.isArray(keywords) || keywords.length === 0) return true;
+        return keywords.some(keywordObj => {
+          // keyword가 객체인 경우 처리
+          const keyword = typeof keywordObj === 'string' ? keywordObj : (keywordObj as KeywordObject).keyword;
+          if (!keyword) {
+            console.warn(`[필터 경고] 키워드가 없습니다:`, keywordObj);
+            return false;
+          }
+          
+          const regex = new RegExp(keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+          const matches = text.match(regex);
+          const matchCount = matches ? matches.length : 0;
+          
+          // "주말" 키워드에 대한 로그 추가 - 매칭된 경우에만 로그 출력
+          if (keyword === '주말' && matchCount >= 2) {
+            console.log(`[주말 키워드 매칭 성공] ID: ${recipe.id}, 제목: ${recipe.title}`);
+          }
+          
+          return matchCount >= 2;
+        });
+      });
+    }
+
     // 꼭 제외할 재료
     let excludeIngredientsOk = true;
     if (excludeIngredients.length > 0) {
@@ -96,38 +129,7 @@ export function filterRecipes(recipes: Recipe[], options: FilterOptions): Recipe
       });
     }
 
-    // 하단 카테고리 키워드(효능, 영양분, 대상, TPO, 스타일)
-    let categoryOk = true;
-    const text = (recipe.title || '') + ' ' + (recipe.content || '');
-    for (const key of Object.keys(categoryKeywords)) {
-      const keywordGroups = (categoryKeywords as any)[key] || [];
-      if (keywordGroups.length > 0) {
-        // 항상 {keyword, synonyms[]}[] 타입으로만 처리
-        const allPassed = ((keywordGroups as unknown) as { keyword: string, synonyms?: string[] }[]).every(kwObj => {
-          const words = [kwObj.keyword, ...(kwObj.synonyms || [])];
-          let count = 0;
-          for (const w of words) {
-            if (!w) continue;
-            const regex = new RegExp(w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
-            const matches = text.match(regex);
-            count += matches ? matches.length : 0;
-          }
-          // 디버깅 로그 추가
-          if (count < 2) {
-            console.log(`[필터불통과] 레시피ID:${recipe.id} key:${key} 키워드:${kwObj.keyword} 동의어:${kwObj.synonyms?.join(',')} count:${count} title:${recipe.title}`);
-          } else {
-            console.log(`[필터통과] 레시피ID:${recipe.id} key:${key} 키워드:${kwObj.keyword} 동의어:${kwObj.synonyms?.join(',')} count:${count} title:${recipe.title}`);
-          }
-          return count >= 2;
-        });
-        if (!allPassed) {
-          categoryOk = false;
-          break;
-        }
-      }
-    }
-
     // 모든 조건 AND
-    return inMatchRange && lackOk && expiryOk && includeKeywordOk && includeIngredientsOk && excludeIngredientsOk && categoryOk;
+    return inMatchRange && lackOk && expiryOk && includeKeywordOk && includeIngredientsOk && excludeIngredientsOk && categoryKeywordsOk;
   });
 } 
