@@ -380,7 +380,8 @@ const MyPage = () => {
               <span style={{ color: '#222', fontSize: '10.4px', minWidth: 30 }}>부족 재료</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <span className="bg-[#555] text-white rounded px-3 py-1 font-bold" style={{ fontSize: 12, flex: '0 0 auto' }}>대체 가능 :</span>
+              <span style={{ width: 24, height: 14, borderRadius: 7, background: '#555', display: 'inline-block', marginRight: 2 }}></span>
+              <span style={{ color: '#222', fontSize: '10.4px', minWidth: 30 }}>대체 가능</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <span style={{ width: 24, height: 14, borderRadius: 7, background: '#FFD600', display: 'inline-block', marginRight: 2 }}></span>
@@ -478,7 +479,8 @@ const MyPage = () => {
               <span style={{ color: '#222', fontSize: '10.4px', minWidth: 30 }}>부족 재료</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <span className="bg-[#555] text-white rounded px-3 py-1 font-bold" style={{ fontSize: 12, flex: '0 0 auto' }}>대체 가능 :</span>
+              <span style={{ width: 24, height: 14, borderRadius: 7, background: '#555', display: 'inline-block', marginRight: 2 }}></span>
+              <span style={{ color: '#222', fontSize: '10.4px', minWidth: 30 }}>대체 가능</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <span style={{ width: 24, height: 14, borderRadius: 7, background: '#FFD600', display: 'inline-block', marginRight: 2 }}></span>

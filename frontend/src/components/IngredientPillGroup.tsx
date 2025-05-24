@@ -35,7 +35,7 @@ const IngredientPillGroup: React.FC<IngredientPillGroupProps> = ({ needIngredien
       </div>
       {/* 대체 가능 태그 */}
       <div className="mt-1 custom-scrollbar pr-1" style={{ display: 'flex', flexWrap: 'nowrap', gap: 4, overflowX: 'auto', maxWidth: '100%', alignItems: 'center', paddingBottom: 4 }}>
-        <span className="bg-[#555] text-white rounded px-3 py-1 font-normal" style={{ fontSize: '12px', flex: '0 0 auto', textShadow: 'none', border: 'none' }}>대체 가능 :</span>
+        <span className="bg-[#555] text-white rounded px-2 py-0.5 font-normal" style={{ fontSize: '12px', flex: '0 0 auto', textShadow: 'none', border: 'none' }}>대체 가능 :</span>
         {pillInfo.substitutes.length > 0 ? (
           pillInfo.substitutes.map((sub, idx) => (
             <span key={sub} className="ml-2 font-semibold text-[#444]" style={{ fontSize: '12px', flex: '0 0 auto' }}>{sub}</span>
