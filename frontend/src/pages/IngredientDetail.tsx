@@ -206,13 +206,15 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
         try {
           // 레시피 데이터 가져오기
           const recipeResponse = await axios.get('http://127.0.0.1:5000/api/recipes');
-          const ingredient = decodeURIComponent(name);
+          const searchTerm = decodeURIComponent(name);
           
-          // 재료 기반 필터링
+          // 검색어 기반 필터링
           const filtered = recipeResponse.data.filter((r: Recipe) => {
-            if (!r.used_ingredients) return false;
-            const ingredients = r.used_ingredients.split(',').map(i => i.trim());
-            return ingredients.includes(ingredient);
+            const title = (r.title || '').toLowerCase();
+            const content = (r.content || '').toLowerCase();
+            const searchTermLower = searchTerm.toLowerCase();
+            
+            return title.includes(searchTermLower) || content.includes(searchTermLower);
           });
           
           setRecipes(filtered);
