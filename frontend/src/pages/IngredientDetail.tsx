@@ -16,6 +16,7 @@ import RecipeSortBar from '../components/RecipeSortBar';
 import TopNavBar from '../components/TopNavBar';
 import RecipeToast from '../components/RecipeToast';
 import backIcon from '../assets/뒤로가기.png';
+import axios from 'axios';
 
 // 더미 fetch 함수 (RecipeList.tsx와 동일)
 function fetchRecipesDummy(name?: string): Promise<any[]> {
@@ -187,15 +188,17 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
       const arr = JSON.parse(localStorage.getItem('my_completed_recipes') || '[]');
       setRecipes(arr);
     } else {
-      // 기존 로직 (예: 인기/재료 상세 등)
-    fetchRecipesDummy(name).then(data => {
-      const filtered = data.filter(r =>
-        r.used_ingredients.includes(name) ||
-        r.title.includes(name) ||
-        r.body.includes(name)
-        );
-      setRecipes(filtered);
-    });
+      // 실제 레시피 데이터 fetch
+      axios.get('http://127.0.0.1:5000/api/recipes')
+        .then(res => {
+          const filtered = res.data.filter((r: Recipe) => {
+            const text = [r.title, r.body, r.content].filter(Boolean).join(' ');
+            const regex = new RegExp(`(^|[\\s.,!?"'()\\[\\]{}<>~|:;])${name}(?=\\s|[.,!?"'()\\[\\]{}<>~|:;]|$|[가-힣]{1,2})`, 'g');
+            return regex.test(text);
+          });
+          setRecipes(filtered);
+        })
+        .catch(() => setRecipes([]));
     }
   }, [name, location.pathname]);
 
@@ -344,6 +347,11 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [name, location.pathname]);
+
+  // 필터링된 레시피를 바로 사용하도록 수정
+  useEffect(() => {
+    setFilteredRecipes(processedRecipes);
+  }, [processedRecipes]);
 
   return (
     <>
