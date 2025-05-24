@@ -202,34 +202,27 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
       setRecipes(arr);
     } else {
       // 실제 레시피 데이터 fetch
-      axios.get('http://127.0.0.1:5000/api/recipes')
-        .then(res => {
-          const filtered = res.data.filter((r: Recipe) => {
-            const text = (r.title || '') + ' ' + (r.content || '');
-            const keyword = decodeURIComponent(name);
-            
-            // 키워드와 동의어 목록 가져오기
-            const keywordObj = categoryKeywords.TPO.find((k: KeywordObject) => 
-              typeof k === 'object' && k.keyword === keyword
-            );
-            
-            if (!keywordObj || typeof keywordObj !== 'object') return false;
-            
-            const allKeywords = [keywordObj.keyword, ...(keywordObj.synonyms || [])];
-            
-            // 각 키워드별로 독립적으로 매칭 횟수 체크
-            const hasEnoughMatches = allKeywords.some(k => {
-              if (!k) return false;
-              const regex = new RegExp(k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
-              const matches = text.match(regex);
-              return matches && matches.length >= 2;
-            });
-
-            return hasEnoughMatches;
+      const fetchData = async () => {
+        try {
+          // 레시피 데이터 가져오기
+          const recipeResponse = await axios.get('http://127.0.0.1:5000/api/recipes');
+          const ingredient = decodeURIComponent(name);
+          
+          // 재료 기반 필터링
+          const filtered = recipeResponse.data.filter((r: Recipe) => {
+            if (!r.used_ingredients) return false;
+            const ingredients = r.used_ingredients.split(',').map(i => i.trim());
+            return ingredients.includes(ingredient);
           });
+          
           setRecipes(filtered);
-        })
-        .catch(() => setRecipes([]));
+        } catch (error) {
+          console.error('Error fetching data:', error);
+          setRecipes([]);
+        }
+      };
+
+      fetchData();
     }
   }, [name, location.pathname]);
 
