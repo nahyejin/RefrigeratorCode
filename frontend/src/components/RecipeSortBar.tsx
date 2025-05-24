@@ -412,7 +412,7 @@ const RecipeSortBar = ({
                     }
                     return;
                   }
-                  setMatchRateModalOpen(false);
+                setMatchRateModalOpen(false);
                 }}
               >
                 적용
@@ -553,7 +553,7 @@ const RecipeSortBar = ({
           onApply={applyFilter}
           filterKeywordTree={categoryKeywordTree}
           setFilterKeywordTree={setCategoryKeywordTree}
-        />
+            />
       )}
     </>
   );

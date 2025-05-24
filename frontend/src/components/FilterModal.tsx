@@ -237,9 +237,9 @@ const FilterModal: React.FC<FilterModalProps> = ({ open, onClose, filterState, s
                 {Object.entries(subTree).map(([sub, keywordsArr]) => (
                   <div key={sub} className="mb-1">
                     {sub && <div className="text-[10px] font-semibold text-[#444] mb-1 ml-1">- {sub}</div>}
-                    <div className="flex flex-wrap gap-1 mb-1">
+                <div className="flex flex-wrap gap-1 mb-1">
                       {(keywordsArr as { keyword: string, synonyms: string[] }[]).map(({ keyword }) => (
-                        <button
+                    <button
                           key={keyword}
                           className={`rounded-full px-3 py-0.5 font-medium text-[10.4px] mb-1 transition-colors ${
                             (filterState[main] || []).includes(keyword) ? 'bg-[#555] text-white' : 'bg-[#F8F8F8] text-[#555]'
@@ -254,10 +254,10 @@ const FilterModal: React.FC<FilterModalProps> = ({ open, onClose, filterState, s
                             });
                           }}
                         >{keyword}</button>
-                      ))}
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
+              </div>
+            ))}
               </div>
             ))}
           </div>
