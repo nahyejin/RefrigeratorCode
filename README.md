@@ -8,7 +8,7 @@ markdown
 extract_keywords_dual_view.py                  ㅣ 수집된 레시피 텍스트에서 명사 기반 및 띄어쓰기 기반 키워드를 추출하여 CSV로 저장. Komoran 형태소 분석기 사용. 전체 저장 모두 지원.
 ingredient_text_utils.py                       ㅣ 재료 텍스트 전처리 및 추출에 필요한 유틸리티 함수 정의 (예: 정규표현식, 필터링 함수 등).
 update_used_ingredients_batch.ipynb            ㅣ 레시피 텍스트에서 추출한 재료 결과(`used_ingredients`)를 데이터셋에 반영하는 배치 처리 로직 구현.
-refrigerator_crawler.ipynb                     ㅣ Naver 블로그 및 YouTube에서 레시피 포스트를 크롤링하고 필요한 텍스트 데이터를 수집.
+refrigerator_crawler.py                        ㅣ Naver 블로그 및 YouTube에서 레시피 포스트를 크롤링하고 필요한 텍스트 데이터를 수집.
 export_recipes_all.ipynb                       ㅣ 수집된 레시피 데이터를 가공·요약·정제하는 보조 코드.
 generate_substitutes2_by_trait_similarity.ipynbㅣ 사전내에서 재료의 특징 패턴을 찾아 대체제를 자동으로 채워주는 코드. 
 ----------------------------------------------------------------------------------------
