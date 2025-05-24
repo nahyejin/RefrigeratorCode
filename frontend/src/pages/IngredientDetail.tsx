@@ -341,6 +341,10 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
     }));
   }, [sortType, matchRange, maxLack, appliedExpiryIngredients, expirySortType]);
 
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [name, location.pathname]);
+
   return (
     <>
       <header className="w-full h-[56px] flex items-center px-2 bg-white">

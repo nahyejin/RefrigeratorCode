@@ -125,6 +125,10 @@ const CompletedRecipeListPage = () => {
     }));
   }, [sortType, matchRange, maxLack, appliedExpiryIngredients, expirySortType]);
 
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   const handleRecipeAction = (recipeId: number, action: keyof RecipeActionState) => {
     const prevState = recipeActionStates[recipeId] || { done: false, share: false, write: false };
     const isActive = prevState[action];
