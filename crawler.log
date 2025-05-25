@@ -1,0 +1,1760 @@
+2025-05-26 06:43:48,745 - INFO - 크롤러 초기화 시작
+2025-05-26 06:43:50,811 - INFO - package: mysql.connector.plugins
+2025-05-26 06:43:50,811 - INFO - plugin_name: caching_sha2_password
+2025-05-26 06:43:50,811 - INFO - AUTHENTICATION_PLUGIN_CLASS: MySQLCachingSHA2PasswordAuthPlugin
+2025-05-26 06:43:50,812 - INFO - package: mysql.connector.plugins
+2025-05-26 06:43:50,812 - INFO - plugin_name: mysql_native_password
+2025-05-26 06:43:50,813 - INFO - AUTHENTICATION_PLUGIN_CLASS: MySQLNativePasswordAuthPlugin
+2025-05-26 06:43:50,815 - INFO - 크롤러 초기화 완료
+2025-05-26 06:43:50,815 - INFO - 크롤러 시작: https://in.naver.com/discover/135968760155968
+2025-05-26 06:43:56,420 - INFO - 토픽 카드 로드 시작...
+2025-05-26 06:43:57,487 - INFO - 더보기 버튼 클릭 1/20
+2025-05-26 06:44:00,540 - INFO - 더보기 버튼 클릭 2/20
+2025-05-26 06:44:03,578 - INFO - 더보기 버튼 클릭 3/20
+2025-05-26 06:44:06,635 - INFO - 더보기 버튼 클릭 4/20
+2025-05-26 06:44:09,691 - INFO - 더보기 버튼 클릭 5/20
+2025-05-26 06:44:12,747 - INFO - 더보기 버튼 클릭 6/20
+2025-05-26 06:44:15,800 - INFO - 더보기 버튼 클릭 7/20
+2025-05-26 06:44:18,838 - INFO - 더보기 버튼 클릭 8/20
+2025-05-26 06:44:21,906 - INFO - 더보기 버튼 클릭 9/20
+2025-05-26 06:44:24,945 - INFO - 더보기 버튼 클릭 10/20
+2025-05-26 06:44:27,990 - INFO - 더보기 버튼 클릭 11/20
+2025-05-26 06:44:31,044 - INFO - 더보기 버튼 클릭 12/20
+2025-05-26 06:44:34,081 - INFO - 더보기 버튼 클릭 13/20
+2025-05-26 06:44:37,141 - INFO - 더보기 버튼 클릭 14/20
+2025-05-26 06:44:40,205 - INFO - 더보기 버튼 클릭 15/20
+2025-05-26 06:44:43,258 - INFO - 더보기 버튼 클릭 16/20
+2025-05-26 06:44:46,305 - INFO - 더보기 버튼 클릭 17/20
+2025-05-26 06:44:49,379 - INFO - 더보기 버튼 클릭 18/20
+2025-05-26 06:44:52,436 - INFO - 더보기 버튼 클릭 19/20
+2025-05-26 06:44:59,607 - INFO - 더보기 버튼을 찾을 수 없습니다. 모든 카드가 로드되었거나 페이지 구조가 변경되었습니다.
+2025-05-26 06:44:59,631 - INFO - 총 0개의 토픽 카드 링크 발견
+2025-05-26 06:44:59,632 - INFO - 스크롤 완료 후 발견된 토픽 링크 수: 0
+2025-05-26 06:45:00,682 - INFO - 푸드 토픽 카드 링크 수: 231
+2025-05-26 06:45:00,682 - INFO - [1/231] 토픽 페이지 진입: https://in.naver.com/kiyome24/topic/823634683553280
+2025-05-26 06:45:03,841 - INFO - 현재 URL: https://in.naver.com/kiyome24/topic/823634683553280
+2025-05-26 06:45:03,842 - INFO - 블로그에서 더보기 버튼 찾는 중...
+2025-05-26 06:45:03,873 - INFO - 블로그에서 더보기 버튼 발견
+2025-05-26 06:45:03,873 - INFO - 블로그에서 더보기 버튼 클릭 시도...
+2025-05-26 06:45:07,591 - INFO - 블로그 페이지로 이동 성공: https://blog.naver.com/kiyome24/223807951106?isInf=true&trackingCode=naver_etc
+2025-05-26 06:45:12,629 - INFO - iframe 전환 성공
+2025-05-26 06:45:22,825 - WARNING - 요소를 찾을 수 없음: css selector=h3.se-title-text, 오류: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF71F3BCF45+75717]
+	GetHandleVerifier [0x00007FF71F3BCFA0+75808]
+	(No symbol) [0x00007FF71F188F9A]
+	(No symbol) [0x00007FF71F1DF4C6]
+	(No symbol) [0x00007FF71F1DF77C]
+	(No symbol) [0x00007FF71F232577]
+	(No symbol) [0x00007FF71F2073BF]
+	(No symbol) [0x00007FF71F22F39C]
+	(No symbol) [0x00007FF71F207153]
+	(No symbol) [0x00007FF71F1D0421]
+	(No symbol) [0x00007FF71F1D11B3]
+	GetHandleVerifier [0x00007FF71F6BD71D+3223453]
+	GetHandleVerifier [0x00007FF71F6B7CC2+3200322]
+	GetHandleVerifier [0x00007FF71F6D5AF3+3322739]
+	GetHandleVerifier [0x00007FF71F3D6A1A+180890]
+	GetHandleVerifier [0x00007FF71F3DE11F+211359]
+	GetHandleVerifier [0x00007FF71F3C5294+109332]
+	GetHandleVerifier [0x00007FF71F3C5442+109762]
+	GetHandleVerifier [0x00007FF71F3ABA59+4825]
+	BaseThreadInitThunk [0x00007FF821F3E8D7+23]
+	RtlUserThreadStart [0x00007FF822F3C5DC+44]
+
+2025-05-26 06:45:33,087 - WARNING - 요소를 찾을 수 없음: css selector=h2.se-title-text, 오류: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF71F3BCF45+75717]
+	GetHandleVerifier [0x00007FF71F3BCFA0+75808]
+	(No symbol) [0x00007FF71F188F9A]
+	(No symbol) [0x00007FF71F1DF4C6]
+	(No symbol) [0x00007FF71F1DF77C]
+	(No symbol) [0x00007FF71F232577]
+	(No symbol) [0x00007FF71F2073BF]
+	(No symbol) [0x00007FF71F22F39C]
+	(No symbol) [0x00007FF71F207153]
+	(No symbol) [0x00007FF71F1D0421]
+	(No symbol) [0x00007FF71F1D11B3]
+	GetHandleVerifier [0x00007FF71F6BD71D+3223453]
+	GetHandleVerifier [0x00007FF71F6B7CC2+3200322]
+	GetHandleVerifier [0x00007FF71F6D5AF3+3322739]
+	GetHandleVerifier [0x00007FF71F3D6A1A+180890]
+	GetHandleVerifier [0x00007FF71F3DE11F+211359]
+	GetHandleVerifier [0x00007FF71F3C5294+109332]
+	GetHandleVerifier [0x00007FF71F3C5442+109762]
+	GetHandleVerifier [0x00007FF71F3ABA59+4825]
+	BaseThreadInitThunk [0x00007FF821F3E8D7+23]
+	RtlUserThreadStart [0x00007FF822F3C5DC+44]
+
+2025-05-26 06:45:43,289 - WARNING - 요소를 찾을 수 없음: css selector=strong.title_post, 오류: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF71F3BCF45+75717]
+	GetHandleVerifier [0x00007FF71F3BCFA0+75808]
+	(No symbol) [0x00007FF71F188F9A]
+	(No symbol) [0x00007FF71F1DF4C6]
+	(No symbol) [0x00007FF71F1DF77C]
+	(No symbol) [0x00007FF71F232577]
+	(No symbol) [0x00007FF71F2073BF]
+	(No symbol) [0x00007FF71F22F39C]
+	(No symbol) [0x00007FF71F207153]
+	(No symbol) [0x00007FF71F1D0421]
+	(No symbol) [0x00007FF71F1D11B3]
+	GetHandleVerifier [0x00007FF71F6BD71D+3223453]
+	GetHandleVerifier [0x00007FF71F6B7CC2+3200322]
+	GetHandleVerifier [0x00007FF71F6D5AF3+3322739]
+	GetHandleVerifier [0x00007FF71F3D6A1A+180890]
+	GetHandleVerifier [0x00007FF71F3DE11F+211359]
+	GetHandleVerifier [0x00007FF71F3C5294+109332]
+	GetHandleVerifier [0x00007FF71F3C5442+109762]
+	GetHandleVerifier [0x00007FF71F3ABA59+4825]
+	BaseThreadInitThunk [0x00007FF821F3E8D7+23]
+	RtlUserThreadStart [0x00007FF822F3C5DC+44]
+
+2025-05-26 06:45:43,300 - INFO - 제목 수집 완료: 브로콜리무침 고소한 브로콜리무침레시피 브로콜리.. : 네이버블로그
+2025-05-26 06:45:44,002 - INFO - 본문 내용 수집 완료 (길이: 1575)
+2025-05-26 06:45:44,010 - INFO - 작성자 수집 완료: 지율이
+2025-05-26 06:45:44,019 - INFO - 썸네일 수집 완료: https://postfiles.pstatic.net/MjAyNTAzMjRfMjgz/MDAxNzQyNzk0MjQ1MzY4.8NdhNxn3TIweoxiYMhqfa6Qy24sLSyl88gIr8Z4ed7Eg.WjZpvCqyDcqJiouiYAuY0sShZnLMDPU3YOGODuT9L0Yg.JPEG/SE-db140672-6a1e-4e05-82b2-ec0e18c3f18f.jpg?type=w966
+2025-05-26 06:45:44,039 - INFO - 좋아요 수집 완료: 60
+2025-05-26 06:45:44,047 - INFO - 댓글 수집 완료: 12
+2025-05-26 06:45:44,056 - ERROR - 데이터베이스 저장 실패: 'used_ingredients'
+2025-05-26 06:45:44,056 - INFO - [2/231] 토픽 페이지 진입: https://in.naver.com/sakura0110/topic/823649125844480
+2025-05-26 06:45:46,812 - INFO - 현재 URL: https://in.naver.com/sakura0110/topic/823649125844480
+2025-05-26 06:45:46,812 - INFO - 블로그에서 더보기 버튼 찾는 중...
+2025-05-26 06:45:46,822 - INFO - 블로그에서 더보기 버튼 발견
+2025-05-26 06:45:46,823 - INFO - 블로그에서 더보기 버튼 클릭 시도...
+2025-05-26 06:45:50,356 - INFO - 블로그 페이지로 이동 성공: https://blog.naver.com/sakura0110/223866788639?isInf=true&trackingCode=naver_etc
+2025-05-26 06:45:55,376 - INFO - iframe 전환 성공
+2025-05-26 06:46:05,573 - WARNING - 요소를 찾을 수 없음: css selector=h3.se-title-text, 오류: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF71F3BCF45+75717]
+	GetHandleVerifier [0x00007FF71F3BCFA0+75808]
+	(No symbol) [0x00007FF71F188F9A]
+	(No symbol) [0x00007FF71F1DF4C6]
+	(No symbol) [0x00007FF71F1DF77C]
+	(No symbol) [0x00007FF71F232577]
+	(No symbol) [0x00007FF71F2073BF]
+	(No symbol) [0x00007FF71F22F39C]
+	(No symbol) [0x00007FF71F207153]
+	(No symbol) [0x00007FF71F1D0421]
+	(No symbol) [0x00007FF71F1D11B3]
+	GetHandleVerifier [0x00007FF71F6BD71D+3223453]
+	GetHandleVerifier [0x00007FF71F6B7CC2+3200322]
+	GetHandleVerifier [0x00007FF71F6D5AF3+3322739]
+	GetHandleVerifier [0x00007FF71F3D6A1A+180890]
+	GetHandleVerifier [0x00007FF71F3DE11F+211359]
+	GetHandleVerifier [0x00007FF71F3C5294+109332]
+	GetHandleVerifier [0x00007FF71F3C5442+109762]
+	GetHandleVerifier [0x00007FF71F3ABA59+4825]
+	BaseThreadInitThunk [0x00007FF821F3E8D7+23]
+	RtlUserThreadStart [0x00007FF822F3C5DC+44]
+
+2025-05-26 06:47:08,646 - INFO - 크롤러 초기화 시작
+2025-05-26 06:47:09,863 - INFO - package: mysql.connector.plugins
+2025-05-26 06:47:09,863 - INFO - plugin_name: caching_sha2_password
+2025-05-26 06:47:09,863 - INFO - AUTHENTICATION_PLUGIN_CLASS: MySQLCachingSHA2PasswordAuthPlugin
+2025-05-26 06:47:09,864 - INFO - package: mysql.connector.plugins
+2025-05-26 06:47:09,864 - INFO - plugin_name: mysql_native_password
+2025-05-26 06:47:09,865 - INFO - AUTHENTICATION_PLUGIN_CLASS: MySQLNativePasswordAuthPlugin
+2025-05-26 06:47:09,866 - INFO - 크롤러 초기화 완료
+2025-05-26 06:47:09,866 - INFO - 크롤러 시작: https://in.naver.com/discover/135968760155968
+2025-05-26 06:47:15,356 - INFO - 토픽 카드 로드 시작...
+2025-05-26 06:47:16,433 - INFO - 더보기 버튼 클릭 1/20
+2025-05-26 06:47:19,492 - INFO - 더보기 버튼 클릭 2/20
+2025-05-26 06:47:22,560 - INFO - 더보기 버튼 클릭 3/20
+2025-05-26 06:47:25,634 - INFO - 더보기 버튼 클릭 4/20
+2025-05-26 06:47:28,718 - INFO - 더보기 버튼 클릭 5/20
+2025-05-26 06:47:31,790 - INFO - 더보기 버튼 클릭 6/20
+2025-05-26 06:47:34,840 - INFO - 더보기 버튼 클릭 7/20
+2025-05-26 06:47:37,908 - INFO - 더보기 버튼 클릭 8/20
+2025-05-26 06:47:40,994 - INFO - 더보기 버튼 클릭 9/20
+2025-05-26 06:47:44,067 - INFO - 더보기 버튼 클릭 10/20
+2025-05-26 06:47:47,130 - INFO - 더보기 버튼 클릭 11/20
+2025-05-26 06:47:50,217 - INFO - 더보기 버튼 클릭 12/20
+2025-05-26 06:47:53,258 - INFO - 더보기 버튼 클릭 13/20
+2025-05-26 06:47:56,318 - INFO - 더보기 버튼 클릭 14/20
+2025-05-26 06:47:59,387 - INFO - 더보기 버튼 클릭 15/20
+2025-05-26 06:48:02,459 - INFO - 더보기 버튼 클릭 16/20
+2025-05-26 06:48:05,521 - INFO - 더보기 버튼 클릭 17/20
+2025-05-26 06:48:08,593 - INFO - 더보기 버튼 클릭 18/20
+2025-05-26 06:48:11,651 - INFO - 더보기 버튼 클릭 19/20
+2025-05-26 06:48:18,819 - INFO - 더보기 버튼을 찾을 수 없습니다. 모든 카드가 로드되었거나 페이지 구조가 변경되었습니다.
+2025-05-26 06:48:18,827 - INFO - 총 0개의 토픽 카드 링크 발견
+2025-05-26 06:48:18,827 - INFO - 스크롤 완료 후 발견된 토픽 링크 수: 0
+2025-05-26 06:48:20,033 - INFO - 푸드 토픽 카드 링크 수: 231
+2025-05-26 06:48:20,034 - INFO - [1/231] 토픽 페이지 진입: https://in.naver.com/pinkmay12/topic/823168295376512
+2025-05-26 06:48:22,268 - INFO - 현재 URL: https://in.naver.com/pinkmay12/topic/823168295376512
+2025-05-26 06:48:22,268 - INFO - 블로그에서 더보기 버튼 찾는 중...
+2025-05-26 06:48:22,292 - INFO - 블로그에서 더보기 버튼 발견
+2025-05-26 06:48:22,292 - INFO - 블로그에서 더보기 버튼 클릭 시도...
+2025-05-26 06:48:25,919 - INFO - 블로그 페이지로 이동 성공: https://blog.naver.com/pinkmay12/223857465014?isInf=true&trackingCode=naver_etc
+2025-05-26 06:48:30,950 - INFO - iframe 전환 성공
+2025-05-26 06:48:41,322 - WARNING - 요소를 찾을 수 없음: css selector=h3.se-title-text, 오류: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF71F3BCF45+75717]
+	GetHandleVerifier [0x00007FF71F3BCFA0+75808]
+	(No symbol) [0x00007FF71F188F9A]
+	(No symbol) [0x00007FF71F1DF4C6]
+	(No symbol) [0x00007FF71F1DF77C]
+	(No symbol) [0x00007FF71F232577]
+	(No symbol) [0x00007FF71F2073BF]
+	(No symbol) [0x00007FF71F22F39C]
+	(No symbol) [0x00007FF71F207153]
+	(No symbol) [0x00007FF71F1D0421]
+	(No symbol) [0x00007FF71F1D11B3]
+	GetHandleVerifier [0x00007FF71F6BD71D+3223453]
+	GetHandleVerifier [0x00007FF71F6B7CC2+3200322]
+	GetHandleVerifier [0x00007FF71F6D5AF3+3322739]
+	GetHandleVerifier [0x00007FF71F3D6A1A+180890]
+	GetHandleVerifier [0x00007FF71F3DE11F+211359]
+	GetHandleVerifier [0x00007FF71F3C5294+109332]
+	GetHandleVerifier [0x00007FF71F3C5442+109762]
+	GetHandleVerifier [0x00007FF71F3ABA59+4825]
+	BaseThreadInitThunk [0x00007FF821F3E8D7+23]
+	RtlUserThreadStart [0x00007FF822F3C5DC+44]
+
+2025-05-26 06:48:51,635 - WARNING - 요소를 찾을 수 없음: css selector=h2.se-title-text, 오류: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF71F3BCF45+75717]
+	GetHandleVerifier [0x00007FF71F3BCFA0+75808]
+	(No symbol) [0x00007FF71F188F9A]
+	(No symbol) [0x00007FF71F1DF4C6]
+	(No symbol) [0x00007FF71F1DF77C]
+	(No symbol) [0x00007FF71F232577]
+	(No symbol) [0x00007FF71F2073BF]
+	(No symbol) [0x00007FF71F22F39C]
+	(No symbol) [0x00007FF71F207153]
+	(No symbol) [0x00007FF71F1D0421]
+	(No symbol) [0x00007FF71F1D11B3]
+	GetHandleVerifier [0x00007FF71F6BD71D+3223453]
+	GetHandleVerifier [0x00007FF71F6B7CC2+3200322]
+	GetHandleVerifier [0x00007FF71F6D5AF3+3322739]
+	GetHandleVerifier [0x00007FF71F3D6A1A+180890]
+	GetHandleVerifier [0x00007FF71F3DE11F+211359]
+	GetHandleVerifier [0x00007FF71F3C5294+109332]
+	GetHandleVerifier [0x00007FF71F3C5442+109762]
+	GetHandleVerifier [0x00007FF71F3ABA59+4825]
+	BaseThreadInitThunk [0x00007FF821F3E8D7+23]
+	RtlUserThreadStart [0x00007FF822F3C5DC+44]
+
+2025-05-26 06:49:01,948 - WARNING - 요소를 찾을 수 없음: css selector=strong.title_post, 오류: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF71F3BCF45+75717]
+	GetHandleVerifier [0x00007FF71F3BCFA0+75808]
+	(No symbol) [0x00007FF71F188F9A]
+	(No symbol) [0x00007FF71F1DF4C6]
+	(No symbol) [0x00007FF71F1DF77C]
+	(No symbol) [0x00007FF71F232577]
+	(No symbol) [0x00007FF71F2073BF]
+	(No symbol) [0x00007FF71F22F39C]
+	(No symbol) [0x00007FF71F207153]
+	(No symbol) [0x00007FF71F1D0421]
+	(No symbol) [0x00007FF71F1D11B3]
+	GetHandleVerifier [0x00007FF71F6BD71D+3223453]
+	GetHandleVerifier [0x00007FF71F6B7CC2+3200322]
+	GetHandleVerifier [0x00007FF71F6D5AF3+3322739]
+	GetHandleVerifier [0x00007FF71F3D6A1A+180890]
+	GetHandleVerifier [0x00007FF71F3DE11F+211359]
+	GetHandleVerifier [0x00007FF71F3C5294+109332]
+	GetHandleVerifier [0x00007FF71F3C5442+109762]
+	GetHandleVerifier [0x00007FF71F3ABA59+4825]
+	BaseThreadInitThunk [0x00007FF821F3E8D7+23]
+	RtlUserThreadStart [0x00007FF822F3C5DC+44]
+
+2025-05-26 06:49:01,961 - INFO - 제목 수집 완료: 롤유부초밥 만들기 간단한 점심메뉴 오이크래미 .. : 네이버블로그
+2025-05-26 06:49:02,696 - INFO - 본문 내용 수집 완료 (길이: 1415)
+2025-05-26 06:49:02,704 - INFO - 작성자 수집 완료: 단호박
+2025-05-26 06:49:02,714 - INFO - 썸네일 수집 완료: https://postfiles.pstatic.net/MjAyNTA1MDZfMjgx/MDAxNzQ2NTI4NDY5MTI5.rfXn0mNpEOQHKJYqwD1VePuuancn-yvBau6yHggivjYg.7JWxv1IPkk1t2w42Bm2lviwm8XwDtD20vE_irEoXuVQg.JPEG/SE-d379fad2-134c-48d4-9742-563cc578c341.jpg?type=w966
+2025-05-26 06:49:02,737 - INFO - 좋아요 수집 완료: 63
+2025-05-26 06:49:05,784 - WARNING - 요소를 찾을 수 없음: id=commentCount, 오류: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF71F3BCF45+75717]
+	GetHandleVerifier [0x00007FF71F3BCFA0+75808]
+	(No symbol) [0x00007FF71F188F9A]
+	(No symbol) [0x00007FF71F1DF4C6]
+	(No symbol) [0x00007FF71F1DF77C]
+	(No symbol) [0x00007FF71F232577]
+	(No symbol) [0x00007FF71F2073BF]
+	(No symbol) [0x00007FF71F22F39C]
+	(No symbol) [0x00007FF71F207153]
+	(No symbol) [0x00007FF71F1D0421]
+	(No symbol) [0x00007FF71F1D11B3]
+	GetHandleVerifier [0x00007FF71F6BD71D+3223453]
+	GetHandleVerifier [0x00007FF71F6B7CC2+3200322]
+	GetHandleVerifier [0x00007FF71F6D5AF3+3322739]
+	GetHandleVerifier [0x00007FF71F3D6A1A+180890]
+	GetHandleVerifier [0x00007FF71F3DE11F+211359]
+	GetHandleVerifier [0x00007FF71F3C5294+109332]
+	GetHandleVerifier [0x00007FF71F3C5442+109762]
+	GetHandleVerifier [0x00007FF71F3ABA59+4825]
+	BaseThreadInitThunk [0x00007FF821F3E8D7+23]
+	RtlUserThreadStart [0x00007FF822F3C5DC+44]
+
+2025-05-26 06:49:05,785 - INFO - 댓글 수집 완료: 0
+2025-05-26 06:49:05,787 - ERROR - 데이터베이스 저장 실패: 'used_ingredients'
+2025-05-26 06:49:05,788 - INFO - [2/231] 토픽 페이지 진입: https://in.naver.com/happy4305/topic/824550822045216
+2025-05-26 06:49:09,108 - INFO - 현재 URL: https://in.naver.com/happy4305/topic/824550822045216
+2025-05-26 06:49:09,109 - INFO - 블로그에서 더보기 버튼 찾는 중...
+2025-05-26 06:49:09,127 - INFO - 블로그에서 더보기 버튼 발견
+2025-05-26 06:49:09,128 - INFO - 블로그에서 더보기 버튼 클릭 시도...
+2025-05-26 06:49:12,289 - INFO - 블로그 페이지로 이동 성공: https://blog.naver.com/happy4305/223870061425?isInf=true&trackingCode=naver_etc
+2025-05-26 06:49:17,310 - INFO - iframe 전환 성공
+2025-05-26 06:49:27,457 - WARNING - 요소를 찾을 수 없음: css selector=h3.se-title-text, 오류: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF71F3BCF45+75717]
+	GetHandleVerifier [0x00007FF71F3BCFA0+75808]
+	(No symbol) [0x00007FF71F188F9A]
+	(No symbol) [0x00007FF71F1DF4C6]
+	(No symbol) [0x00007FF71F1DF77C]
+	(No symbol) [0x00007FF71F232577]
+	(No symbol) [0x00007FF71F2073BF]
+	(No symbol) [0x00007FF71F22F39C]
+	(No symbol) [0x00007FF71F207153]
+	(No symbol) [0x00007FF71F1D0421]
+	(No symbol) [0x00007FF71F1D11B3]
+	GetHandleVerifier [0x00007FF71F6BD71D+3223453]
+	GetHandleVerifier [0x00007FF71F6B7CC2+3200322]
+	GetHandleVerifier [0x00007FF71F6D5AF3+3322739]
+	GetHandleVerifier [0x00007FF71F3D6A1A+180890]
+	GetHandleVerifier [0x00007FF71F3DE11F+211359]
+	GetHandleVerifier [0x00007FF71F3C5294+109332]
+	GetHandleVerifier [0x00007FF71F3C5442+109762]
+	GetHandleVerifier [0x00007FF71F3ABA59+4825]
+	BaseThreadInitThunk [0x00007FF821F3E8D7+23]
+	RtlUserThreadStart [0x00007FF822F3C5DC+44]
+
+2025-05-26 06:49:37,576 - WARNING - 요소를 찾을 수 없음: css selector=h2.se-title-text, 오류: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF71F3BCF45+75717]
+	GetHandleVerifier [0x00007FF71F3BCFA0+75808]
+	(No symbol) [0x00007FF71F188F9A]
+	(No symbol) [0x00007FF71F1DF4C6]
+	(No symbol) [0x00007FF71F1DF77C]
+	(No symbol) [0x00007FF71F232577]
+	(No symbol) [0x00007FF71F2073BF]
+	(No symbol) [0x00007FF71F22F39C]
+	(No symbol) [0x00007FF71F207153]
+	(No symbol) [0x00007FF71F1D0421]
+	(No symbol) [0x00007FF71F1D11B3]
+	GetHandleVerifier [0x00007FF71F6BD71D+3223453]
+	GetHandleVerifier [0x00007FF71F6B7CC2+3200322]
+	GetHandleVerifier [0x00007FF71F6D5AF3+3322739]
+	GetHandleVerifier [0x00007FF71F3D6A1A+180890]
+	GetHandleVerifier [0x00007FF71F3DE11F+211359]
+	GetHandleVerifier [0x00007FF71F3C5294+109332]
+	GetHandleVerifier [0x00007FF71F3C5442+109762]
+	GetHandleVerifier [0x00007FF71F3ABA59+4825]
+	BaseThreadInitThunk [0x00007FF821F3E8D7+23]
+	RtlUserThreadStart [0x00007FF822F3C5DC+44]
+
+2025-05-26 06:57:22,407 - INFO - 크롤러 초기화 시작
+2025-05-26 06:57:23,647 - INFO - package: mysql.connector.plugins
+2025-05-26 06:57:23,647 - INFO - plugin_name: caching_sha2_password
+2025-05-26 06:57:23,647 - INFO - AUTHENTICATION_PLUGIN_CLASS: MySQLCachingSHA2PasswordAuthPlugin
+2025-05-26 06:57:23,649 - INFO - package: mysql.connector.plugins
+2025-05-26 06:57:23,649 - INFO - plugin_name: mysql_native_password
+2025-05-26 06:57:23,649 - INFO - AUTHENTICATION_PLUGIN_CLASS: MySQLNativePasswordAuthPlugin
+2025-05-26 06:57:23,651 - INFO - 크롤러 초기화 완료
+2025-05-26 06:57:23,651 - INFO - 크롤러 시작: https://in.naver.com/discover/135968760155968
+2025-05-26 06:57:29,235 - INFO - 토픽 카드 로드 시작...
+2025-05-26 06:57:30,301 - INFO - 더보기 버튼 클릭 1/20
+2025-05-26 06:57:33,341 - INFO - 더보기 버튼 클릭 2/20
+2025-05-26 06:57:36,382 - INFO - 더보기 버튼 클릭 3/20
+2025-05-26 06:57:39,423 - INFO - 더보기 버튼 클릭 4/20
+2025-05-26 06:57:42,471 - INFO - 더보기 버튼 클릭 5/20
+2025-05-26 06:57:45,509 - INFO - 더보기 버튼 클릭 6/20
+2025-05-26 06:57:48,564 - INFO - 더보기 버튼 클릭 7/20
+2025-05-26 06:57:51,609 - INFO - 더보기 버튼 클릭 8/20
+2025-05-26 06:57:54,666 - INFO - 더보기 버튼 클릭 9/20
+2025-05-26 06:57:57,723 - INFO - 더보기 버튼 클릭 10/20
+2025-05-26 06:58:00,771 - INFO - 더보기 버튼 클릭 11/20
+2025-05-26 06:58:03,829 - INFO - 더보기 버튼 클릭 12/20
+2025-05-26 06:58:06,879 - INFO - 더보기 버튼 클릭 13/20
+2025-05-26 06:58:09,926 - INFO - 더보기 버튼 클릭 14/20
+2025-05-26 06:58:12,982 - INFO - 더보기 버튼 클릭 15/20
+2025-05-26 06:58:16,043 - INFO - 더보기 버튼 클릭 16/20
+2025-05-26 06:58:19,098 - INFO - 더보기 버튼 클릭 17/20
+2025-05-26 06:58:22,155 - INFO - 더보기 버튼 클릭 18/20
+2025-05-26 06:58:25,215 - INFO - 더보기 버튼 클릭 19/20
+2025-05-26 06:58:32,336 - INFO - 더보기 버튼을 찾을 수 없습니다. 모든 카드가 로드되었거나 페이지 구조가 변경되었습니다.
+2025-05-26 06:58:32,373 - INFO - 총 0개의 토픽 카드 링크 발견
+2025-05-26 06:58:32,373 - INFO - 스크롤 완료 후 발견된 토픽 링크 수: 0
+2025-05-26 06:58:33,416 - INFO - 푸드 토픽 카드 링크 수: 231
+2025-05-26 06:58:33,416 - INFO - [1/231] 토픽 페이지 진입: https://in.naver.com/selfloveyori/topic/822841573426752
+2025-05-26 06:58:36,087 - INFO - 현재 URL: https://in.naver.com/selfloveyori/topic/822841573426752
+2025-05-26 06:58:36,088 - INFO - 블로그에서 더보기 버튼 찾는 중...
+2025-05-26 06:58:36,103 - INFO - 블로그에서 더보기 버튼 발견
+2025-05-26 06:58:36,103 - INFO - 블로그에서 더보기 버튼 클릭 시도...
+2025-05-26 06:58:39,962 - INFO - 블로그 페이지로 이동 성공: https://blog.naver.com/seungsunii/223302848441?isInf=true&trackingCode=naver_etc
+2025-05-26 06:58:44,987 - INFO - iframe 전환 성공
+2025-05-26 06:58:55,226 - WARNING - 요소를 찾을 수 없음: css selector=h3.se-title-text, 오류: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF71F3BCF45+75717]
+	GetHandleVerifier [0x00007FF71F3BCFA0+75808]
+	(No symbol) [0x00007FF71F188F9A]
+	(No symbol) [0x00007FF71F1DF4C6]
+	(No symbol) [0x00007FF71F1DF77C]
+	(No symbol) [0x00007FF71F232577]
+	(No symbol) [0x00007FF71F2073BF]
+	(No symbol) [0x00007FF71F22F39C]
+	(No symbol) [0x00007FF71F207153]
+	(No symbol) [0x00007FF71F1D0421]
+	(No symbol) [0x00007FF71F1D11B3]
+	GetHandleVerifier [0x00007FF71F6BD71D+3223453]
+	GetHandleVerifier [0x00007FF71F6B7CC2+3200322]
+	GetHandleVerifier [0x00007FF71F6D5AF3+3322739]
+	GetHandleVerifier [0x00007FF71F3D6A1A+180890]
+	GetHandleVerifier [0x00007FF71F3DE11F+211359]
+	GetHandleVerifier [0x00007FF71F3C5294+109332]
+	GetHandleVerifier [0x00007FF71F3C5442+109762]
+	GetHandleVerifier [0x00007FF71F3ABA59+4825]
+	BaseThreadInitThunk [0x00007FF821F3E8D7+23]
+	RtlUserThreadStart [0x00007FF822F3C5DC+44]
+
+2025-05-26 06:59:05,436 - WARNING - 요소를 찾을 수 없음: css selector=h2.se-title-text, 오류: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF71F3BCF45+75717]
+	GetHandleVerifier [0x00007FF71F3BCFA0+75808]
+	(No symbol) [0x00007FF71F188F9A]
+	(No symbol) [0x00007FF71F1DF4C6]
+	(No symbol) [0x00007FF71F1DF77C]
+	(No symbol) [0x00007FF71F232577]
+	(No symbol) [0x00007FF71F2073BF]
+	(No symbol) [0x00007FF71F22F39C]
+	(No symbol) [0x00007FF71F207153]
+	(No symbol) [0x00007FF71F1D0421]
+	(No symbol) [0x00007FF71F1D11B3]
+	GetHandleVerifier [0x00007FF71F6BD71D+3223453]
+	GetHandleVerifier [0x00007FF71F6B7CC2+3200322]
+	GetHandleVerifier [0x00007FF71F6D5AF3+3322739]
+	GetHandleVerifier [0x00007FF71F3D6A1A+180890]
+	GetHandleVerifier [0x00007FF71F3DE11F+211359]
+	GetHandleVerifier [0x00007FF71F3C5294+109332]
+	GetHandleVerifier [0x00007FF71F3C5442+109762]
+	GetHandleVerifier [0x00007FF71F3ABA59+4825]
+	BaseThreadInitThunk [0x00007FF821F3E8D7+23]
+	RtlUserThreadStart [0x00007FF822F3C5DC+44]
+
+2025-05-26 06:59:15,674 - WARNING - 요소를 찾을 수 없음: css selector=strong.title_post, 오류: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF71F3BCF45+75717]
+	GetHandleVerifier [0x00007FF71F3BCFA0+75808]
+	(No symbol) [0x00007FF71F188F9A]
+	(No symbol) [0x00007FF71F1DF4C6]
+	(No symbol) [0x00007FF71F1DF77C]
+	(No symbol) [0x00007FF71F232577]
+	(No symbol) [0x00007FF71F2073BF]
+	(No symbol) [0x00007FF71F22F39C]
+	(No symbol) [0x00007FF71F207153]
+	(No symbol) [0x00007FF71F1D0421]
+	(No symbol) [0x00007FF71F1D11B3]
+	GetHandleVerifier [0x00007FF71F6BD71D+3223453]
+	GetHandleVerifier [0x00007FF71F6B7CC2+3200322]
+	GetHandleVerifier [0x00007FF71F6D5AF3+3322739]
+	GetHandleVerifier [0x00007FF71F3D6A1A+180890]
+	GetHandleVerifier [0x00007FF71F3DE11F+211359]
+	GetHandleVerifier [0x00007FF71F3C5294+109332]
+	GetHandleVerifier [0x00007FF71F3C5442+109762]
+	GetHandleVerifier [0x00007FF71F3ABA59+4825]
+	BaseThreadInitThunk [0x00007FF821F3E8D7+23]
+	RtlUserThreadStart [0x00007FF822F3C5DC+44]
+
+2025-05-26 06:59:15,683 - INFO - 제목 수집 완료: 라이스페이퍼 곤약 김말이 만들기 김말이 요리 .. : 네이버블로그
+2025-05-26 06:59:16,195 - INFO - 본문 내용 수집 완료 (길이: 905)
+2025-05-26 06:59:16,202 - INFO - 작성자 수집 완료: 샐럽요리
+2025-05-26 06:59:16,210 - INFO - 썸네일 수집 완료: https://postfiles.pstatic.net/MjAyMzEyMjVfMTky/MDAxNzAzNTAzOTE5NDAy.-zUMFLduvKYAoJtkoUZbPGeSzqJ5B09sRVfCgIGNcYsg.cVgJZtJ0xwsEykQFkupTvdmhCkgb_UtpNYlLCblatlcg.JPEG.seungsunii/SE-0686b90a-4943-44a7-bc43-74d41f89ed7d.jpg?type=w580
+2025-05-26 06:59:16,231 - INFO - 좋아요 수집 완료: 41
+2025-05-26 06:59:16,238 - INFO - 댓글 수집 완료: 22
+2025-05-26 06:59:16,241 - INFO - 레시피 데이터 저장 완료: 라이스페이퍼 곤약 김말이 만들기 김말이 요리 .. : 네이버블로그
+2025-05-26 06:59:16,241 - INFO - [2/231] 토픽 페이지 진입: https://in.naver.com/boni/topic/823778250401312
+2025-05-26 06:59:19,096 - INFO - 현재 URL: https://in.naver.com/boni/topic/823778250401312
+2025-05-26 06:59:19,097 - INFO - 블로그에서 더보기 버튼 찾는 중...
+2025-05-26 06:59:19,117 - INFO - 블로그에서 더보기 버튼 발견
+2025-05-26 06:59:19,117 - INFO - 블로그에서 더보기 버튼 클릭 시도...
+2025-05-26 06:59:22,371 - INFO - 블로그 페이지로 이동 성공: https://blog.naver.com/theboni/223853179582?isInf=true&trackingCode=naver_etc
+2025-05-26 06:59:27,387 - INFO - iframe 전환 성공
+2025-05-26 06:59:37,573 - WARNING - 요소를 찾을 수 없음: css selector=h3.se-title-text, 오류: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF71F3BCF45+75717]
+	GetHandleVerifier [0x00007FF71F3BCFA0+75808]
+	(No symbol) [0x00007FF71F188F9A]
+	(No symbol) [0x00007FF71F1DF4C6]
+	(No symbol) [0x00007FF71F1DF77C]
+	(No symbol) [0x00007FF71F232577]
+	(No symbol) [0x00007FF71F2073BF]
+	(No symbol) [0x00007FF71F22F39C]
+	(No symbol) [0x00007FF71F207153]
+	(No symbol) [0x00007FF71F1D0421]
+	(No symbol) [0x00007FF71F1D11B3]
+	GetHandleVerifier [0x00007FF71F6BD71D+3223453]
+	GetHandleVerifier [0x00007FF71F6B7CC2+3200322]
+	GetHandleVerifier [0x00007FF71F6D5AF3+3322739]
+	GetHandleVerifier [0x00007FF71F3D6A1A+180890]
+	GetHandleVerifier [0x00007FF71F3DE11F+211359]
+	GetHandleVerifier [0x00007FF71F3C5294+109332]
+	GetHandleVerifier [0x00007FF71F3C5442+109762]
+	GetHandleVerifier [0x00007FF71F3ABA59+4825]
+	BaseThreadInitThunk [0x00007FF821F3E8D7+23]
+	RtlUserThreadStart [0x00007FF822F3C5DC+44]
+
+2025-05-26 06:59:47,787 - WARNING - 요소를 찾을 수 없음: css selector=h2.se-title-text, 오류: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF71F3BCF45+75717]
+	GetHandleVerifier [0x00007FF71F3BCFA0+75808]
+	(No symbol) [0x00007FF71F188F9A]
+	(No symbol) [0x00007FF71F1DF4C6]
+	(No symbol) [0x00007FF71F1DF77C]
+	(No symbol) [0x00007FF71F232577]
+	(No symbol) [0x00007FF71F2073BF]
+	(No symbol) [0x00007FF71F22F39C]
+	(No symbol) [0x00007FF71F207153]
+	(No symbol) [0x00007FF71F1D0421]
+	(No symbol) [0x00007FF71F1D11B3]
+	GetHandleVerifier [0x00007FF71F6BD71D+3223453]
+	GetHandleVerifier [0x00007FF71F6B7CC2+3200322]
+	GetHandleVerifier [0x00007FF71F6D5AF3+3322739]
+	GetHandleVerifier [0x00007FF71F3D6A1A+180890]
+	GetHandleVerifier [0x00007FF71F3DE11F+211359]
+	GetHandleVerifier [0x00007FF71F3C5294+109332]
+	GetHandleVerifier [0x00007FF71F3C5442+109762]
+	GetHandleVerifier [0x00007FF71F3ABA59+4825]
+	BaseThreadInitThunk [0x00007FF821F3E8D7+23]
+	RtlUserThreadStart [0x00007FF822F3C5DC+44]
+
+2025-05-26 06:59:58,036 - WARNING - 요소를 찾을 수 없음: css selector=strong.title_post, 오류: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF71F3BCF45+75717]
+	GetHandleVerifier [0x00007FF71F3BCFA0+75808]
+	(No symbol) [0x00007FF71F188F9A]
+	(No symbol) [0x00007FF71F1DF4C6]
+	(No symbol) [0x00007FF71F1DF77C]
+	(No symbol) [0x00007FF71F232577]
+	(No symbol) [0x00007FF71F2073BF]
+	(No symbol) [0x00007FF71F22F39C]
+	(No symbol) [0x00007FF71F207153]
+	(No symbol) [0x00007FF71F1D0421]
+	(No symbol) [0x00007FF71F1D11B3]
+	GetHandleVerifier [0x00007FF71F6BD71D+3223453]
+	GetHandleVerifier [0x00007FF71F6B7CC2+3200322]
+	GetHandleVerifier [0x00007FF71F6D5AF3+3322739]
+	GetHandleVerifier [0x00007FF71F3D6A1A+180890]
+	GetHandleVerifier [0x00007FF71F3DE11F+211359]
+	GetHandleVerifier [0x00007FF71F3C5294+109332]
+	GetHandleVerifier [0x00007FF71F3C5442+109762]
+	GetHandleVerifier [0x00007FF71F3ABA59+4825]
+	BaseThreadInitThunk [0x00007FF821F3E8D7+23]
+	RtlUserThreadStart [0x00007FF822F3C5DC+44]
+
+2025-05-26 06:59:58,047 - INFO - 제목 수집 완료: 표고버섯볶음 레시피 생표고버섯볶음 굴소스 표고.. : 네이버블로그
+2025-05-26 06:59:59,226 - INFO - 본문 내용 수집 완료 (길이: 2083)
+2025-05-26 06:59:59,236 - INFO - 작성자 수집 완료: 편집장 보니
+2025-05-26 06:59:59,244 - INFO - 썸네일 수집 완료: https://postfiles.pstatic.net/MjAyNTA1MDJfMTI0/MDAxNzQ2MTI2NDYwMjMz.LzoDWWMEJWUeaks9AWSSQAApI4jlygIKb6i7fiY0xR4g.UruL7kbJeDbxcXGmhkp0xA0SZHbCgC73AyBo1qmtG3Ug.JPEG/SE-d858e0dd-bedb-4f01-834f-a766845c5d67.jpg?type=w773
+2025-05-26 06:59:59,268 - INFO - 좋아요 수집 완료: 41
+2025-05-26 06:59:59,276 - INFO - 댓글 수집 완료: 3
+2025-05-26 06:59:59,287 - INFO - 레시피 데이터 저장 완료: 표고버섯볶음 레시피 생표고버섯볶음 굴소스 표고.. : 네이버블로그
+2025-05-26 06:59:59,287 - INFO - [3/231] 토픽 페이지 진입: https://in.naver.com/selfloveyori/topic/820060201018592
+2025-05-26 07:00:01,911 - INFO - 현재 URL: https://in.naver.com/selfloveyori/topic/820060201018592
+2025-05-26 07:00:01,912 - INFO - 블로그에서 더보기 버튼 찾는 중...
+2025-05-26 07:00:01,923 - INFO - 블로그에서 더보기 버튼 발견
+2025-05-26 07:00:01,923 - INFO - 블로그에서 더보기 버튼 클릭 시도...
+2025-05-26 07:00:05,391 - INFO - 블로그 페이지로 이동 성공: https://m.blog.naver.com/seungsunii/clip/8158276
+2025-05-26 07:00:20,620 - WARNING - 요소를 찾을 수 없음: id=mainFrame, 오류: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF71F3BCF45+75717]
+	GetHandleVerifier [0x00007FF71F3BCFA0+75808]
+	(No symbol) [0x00007FF71F188F9A]
+	(No symbol) [0x00007FF71F1DF4C6]
+	(No symbol) [0x00007FF71F1DF77C]
+	(No symbol) [0x00007FF71F232577]
+	(No symbol) [0x00007FF71F2073BF]
+	(No symbol) [0x00007FF71F22F39C]
+	(No symbol) [0x00007FF71F207153]
+	(No symbol) [0x00007FF71F1D0421]
+	(No symbol) [0x00007FF71F1D11B3]
+	GetHandleVerifier [0x00007FF71F6BD71D+3223453]
+	GetHandleVerifier [0x00007FF71F6B7CC2+3200322]
+	GetHandleVerifier [0x00007FF71F6D5AF3+3322739]
+	GetHandleVerifier [0x00007FF71F3D6A1A+180890]
+	GetHandleVerifier [0x00007FF71F3DE11F+211359]
+	GetHandleVerifier [0x00007FF71F3C5294+109332]
+	GetHandleVerifier [0x00007FF71F3C5442+109762]
+	GetHandleVerifier [0x00007FF71F3ABA59+4825]
+	BaseThreadInitThunk [0x00007FF821F3E8D7+23]
+	RtlUserThreadStart [0x00007FF822F3C5DC+44]
+
+2025-05-26 07:00:20,622 - WARNING - iframe(mainFrame) 없음, 기본 프레임에서 시도
+2025-05-26 07:00:30,850 - WARNING - 요소를 찾을 수 없음: css selector=h3.se-title-text, 오류: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF71F3BCF45+75717]
+	GetHandleVerifier [0x00007FF71F3BCFA0+75808]
+	(No symbol) [0x00007FF71F188F9A]
+	(No symbol) [0x00007FF71F1DF4C6]
+	(No symbol) [0x00007FF71F1DF77C]
+	(No symbol) [0x00007FF71F232577]
+	(No symbol) [0x00007FF71F2073BF]
+	(No symbol) [0x00007FF71F22F39C]
+	(No symbol) [0x00007FF71F207153]
+	(No symbol) [0x00007FF71F1D0421]
+	(No symbol) [0x00007FF71F1D11B3]
+	GetHandleVerifier [0x00007FF71F6BD71D+3223453]
+	GetHandleVerifier [0x00007FF71F6B7CC2+3200322]
+	GetHandleVerifier [0x00007FF71F6D5AF3+3322739]
+	GetHandleVerifier [0x00007FF71F3D6A1A+180890]
+	GetHandleVerifier [0x00007FF71F3DE11F+211359]
+	GetHandleVerifier [0x00007FF71F3C5294+109332]
+	GetHandleVerifier [0x00007FF71F3C5442+109762]
+	GetHandleVerifier [0x00007FF71F3ABA59+4825]
+	BaseThreadInitThunk [0x00007FF821F3E8D7+23]
+	RtlUserThreadStart [0x00007FF822F3C5DC+44]
+
+2025-05-26 07:00:41,053 - WARNING - 요소를 찾을 수 없음: css selector=h2.se-title-text, 오류: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF71F3BCF45+75717]
+	GetHandleVerifier [0x00007FF71F3BCFA0+75808]
+	(No symbol) [0x00007FF71F188F9A]
+	(No symbol) [0x00007FF71F1DF4C6]
+	(No symbol) [0x00007FF71F1DF77C]
+	(No symbol) [0x00007FF71F232577]
+	(No symbol) [0x00007FF71F2073BF]
+	(No symbol) [0x00007FF71F22F39C]
+	(No symbol) [0x00007FF71F207153]
+	(No symbol) [0x00007FF71F1D0421]
+	(No symbol) [0x00007FF71F1D11B3]
+	GetHandleVerifier [0x00007FF71F6BD71D+3223453]
+	GetHandleVerifier [0x00007FF71F6B7CC2+3200322]
+	GetHandleVerifier [0x00007FF71F6D5AF3+3322739]
+	GetHandleVerifier [0x00007FF71F3D6A1A+180890]
+	GetHandleVerifier [0x00007FF71F3DE11F+211359]
+	GetHandleVerifier [0x00007FF71F3C5294+109332]
+	GetHandleVerifier [0x00007FF71F3C5442+109762]
+	GetHandleVerifier [0x00007FF71F3ABA59+4825]
+	BaseThreadInitThunk [0x00007FF821F3E8D7+23]
+	RtlUserThreadStart [0x00007FF822F3C5DC+44]
+
+2025-05-26 07:00:51,283 - WARNING - 요소를 찾을 수 없음: css selector=strong.title_post, 오류: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF71F3BCF45+75717]
+	GetHandleVerifier [0x00007FF71F3BCFA0+75808]
+	(No symbol) [0x00007FF71F188F9A]
+	(No symbol) [0x00007FF71F1DF4C6]
+	(No symbol) [0x00007FF71F1DF77C]
+	(No symbol) [0x00007FF71F232577]
+	(No symbol) [0x00007FF71F2073BF]
+	(No symbol) [0x00007FF71F22F39C]
+	(No symbol) [0x00007FF71F207153]
+	(No symbol) [0x00007FF71F1D0421]
+	(No symbol) [0x00007FF71F1D11B3]
+	GetHandleVerifier [0x00007FF71F6BD71D+3223453]
+	GetHandleVerifier [0x00007FF71F6B7CC2+3200322]
+	GetHandleVerifier [0x00007FF71F6D5AF3+3322739]
+	GetHandleVerifier [0x00007FF71F3D6A1A+180890]
+	GetHandleVerifier [0x00007FF71F3DE11F+211359]
+	GetHandleVerifier [0x00007FF71F3C5294+109332]
+	GetHandleVerifier [0x00007FF71F3C5442+109762]
+	GetHandleVerifier [0x00007FF71F3ABA59+4825]
+	BaseThreadInitThunk [0x00007FF821F3E8D7+23]
+	RtlUserThreadStart [0x00007FF822F3C5DC+44]
+
+2025-05-26 07:00:51,295 - INFO - 제목 수집 완료: 네이버 블로그 클립
+2025-05-26 07:00:56,402 - WARNING - 요소를 찾을 수 없음: class name=se-main-container, 오류: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF71F3BCF45+75717]
+	GetHandleVerifier [0x00007FF71F3BCFA0+75808]
+	(No symbol) [0x00007FF71F188F9A]
+	(No symbol) [0x00007FF71F1DF4C6]
+	(No symbol) [0x00007FF71F1DF77C]
+	(No symbol) [0x00007FF71F232577]
+	(No symbol) [0x00007FF71F2073BF]
+	(No symbol) [0x00007FF71F22F39C]
+	(No symbol) [0x00007FF71F207153]
+	(No symbol) [0x00007FF71F1D0421]
+	(No symbol) [0x00007FF71F1D11B3]
+	GetHandleVerifier [0x00007FF71F6BD71D+3223453]
+	GetHandleVerifier [0x00007FF71F6B7CC2+3200322]
+	GetHandleVerifier [0x00007FF71F6D5AF3+3322739]
+	GetHandleVerifier [0x00007FF71F3D6A1A+180890]
+	GetHandleVerifier [0x00007FF71F3DE11F+211359]
+	GetHandleVerifier [0x00007FF71F3C5294+109332]
+	GetHandleVerifier [0x00007FF71F3C5442+109762]
+	GetHandleVerifier [0x00007FF71F3ABA59+4825]
+	BaseThreadInitThunk [0x00007FF821F3E8D7+23]
+	RtlUserThreadStart [0x00007FF822F3C5DC+44]
+
+2025-05-26 07:00:59,466 - WARNING - 요소를 찾을 수 없음: class name=post-view, 오류: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF71F3BCF45+75717]
+	GetHandleVerifier [0x00007FF71F3BCFA0+75808]
+	(No symbol) [0x00007FF71F188F9A]
+	(No symbol) [0x00007FF71F1DF4C6]
+	(No symbol) [0x00007FF71F1DF77C]
+	(No symbol) [0x00007FF71F232577]
+	(No symbol) [0x00007FF71F2073BF]
+	(No symbol) [0x00007FF71F22F39C]
+	(No symbol) [0x00007FF71F207153]
+	(No symbol) [0x00007FF71F1D0421]
+	(No symbol) [0x00007FF71F1D11B3]
+	GetHandleVerifier [0x00007FF71F6BD71D+3223453]
+	GetHandleVerifier [0x00007FF71F6B7CC2+3200322]
+	GetHandleVerifier [0x00007FF71F6D5AF3+3322739]
+	GetHandleVerifier [0x00007FF71F3D6A1A+180890]
+	GetHandleVerifier [0x00007FF71F3DE11F+211359]
+	GetHandleVerifier [0x00007FF71F3C5294+109332]
+	GetHandleVerifier [0x00007FF71F3C5442+109762]
+	GetHandleVerifier [0x00007FF71F3ABA59+4825]
+	BaseThreadInitThunk [0x00007FF821F3E8D7+23]
+	RtlUserThreadStart [0x00007FF822F3C5DC+44]
+
+2025-05-26 07:00:59,468 - INFO - 본문 내용 수집 완료 (길이: 0)
+2025-05-26 07:01:02,537 - WARNING - 요소를 찾을 수 없음: css selector=span.nick a, 오류: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF71F3BCF45+75717]
+	GetHandleVerifier [0x00007FF71F3BCFA0+75808]
+	(No symbol) [0x00007FF71F188F9A]
+	(No symbol) [0x00007FF71F1DF4C6]
+	(No symbol) [0x00007FF71F1DF77C]
+	(No symbol) [0x00007FF71F232577]
+	(No symbol) [0x00007FF71F2073BF]
+	(No symbol) [0x00007FF71F22F39C]
+	(No symbol) [0x00007FF71F207153]
+	(No symbol) [0x00007FF71F1D0421]
+	(No symbol) [0x00007FF71F1D11B3]
+	GetHandleVerifier [0x00007FF71F6BD71D+3223453]
+	GetHandleVerifier [0x00007FF71F6B7CC2+3200322]
+	GetHandleVerifier [0x00007FF71F6D5AF3+3322739]
+	GetHandleVerifier [0x00007FF71F3D6A1A+180890]
+	GetHandleVerifier [0x00007FF71F3DE11F+211359]
+	GetHandleVerifier [0x00007FF71F3C5294+109332]
+	GetHandleVerifier [0x00007FF71F3C5442+109762]
+	GetHandleVerifier [0x00007FF71F3ABA59+4825]
+	BaseThreadInitThunk [0x00007FF821F3E8D7+23]
+	RtlUserThreadStart [0x00007FF822F3C5DC+44]
+
+2025-05-26 07:01:02,538 - INFO - 작성자 수집 완료: 
+2025-05-26 07:01:02,562 - INFO - 썸네일 수집 완료: 
+2025-05-26 07:01:05,616 - WARNING - 요소를 찾을 수 없음: class name=area_sympathy, 오류: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF71F3BCF45+75717]
+	GetHandleVerifier [0x00007FF71F3BCFA0+75808]
+	(No symbol) [0x00007FF71F188F9A]
+	(No symbol) [0x00007FF71F1DF4C6]
+	(No symbol) [0x00007FF71F1DF77C]
+	(No symbol) [0x00007FF71F232577]
+	(No symbol) [0x00007FF71F2073BF]
+	(No symbol) [0x00007FF71F22F39C]
+	(No symbol) [0x00007FF71F207153]
+	(No symbol) [0x00007FF71F1D0421]
+	(No symbol) [0x00007FF71F1D11B3]
+	GetHandleVerifier [0x00007FF71F6BD71D+3223453]
+	GetHandleVerifier [0x00007FF71F6B7CC2+3200322]
+	GetHandleVerifier [0x00007FF71F6D5AF3+3322739]
+	GetHandleVerifier [0x00007FF71F3D6A1A+180890]
+	GetHandleVerifier [0x00007FF71F3DE11F+211359]
+	GetHandleVerifier [0x00007FF71F3C5294+109332]
+	GetHandleVerifier [0x00007FF71F3C5442+109762]
+	GetHandleVerifier [0x00007FF71F3ABA59+4825]
+	BaseThreadInitThunk [0x00007FF821F3E8D7+23]
+	RtlUserThreadStart [0x00007FF822F3C5DC+44]
+
+2025-05-26 07:01:05,617 - INFO - 좋아요 수집 완료: 0
+2025-05-26 07:01:08,696 - WARNING - 요소를 찾을 수 없음: id=commentCount, 오류: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF71F3BCF45+75717]
+	GetHandleVerifier [0x00007FF71F3BCFA0+75808]
+	(No symbol) [0x00007FF71F188F9A]
+	(No symbol) [0x00007FF71F1DF4C6]
+	(No symbol) [0x00007FF71F1DF77C]
+	(No symbol) [0x00007FF71F232577]
+	(No symbol) [0x00007FF71F2073BF]
+	(No symbol) [0x00007FF71F22F39C]
+	(No symbol) [0x00007FF71F207153]
+	(No symbol) [0x00007FF71F1D0421]
+	(No symbol) [0x00007FF71F1D11B3]
+	GetHandleVerifier [0x00007FF71F6BD71D+3223453]
+	GetHandleVerifier [0x00007FF71F6B7CC2+3200322]
+	GetHandleVerifier [0x00007FF71F6D5AF3+3322739]
+	GetHandleVerifier [0x00007FF71F3D6A1A+180890]
+	GetHandleVerifier [0x00007FF71F3DE11F+211359]
+	GetHandleVerifier [0x00007FF71F3C5294+109332]
+	GetHandleVerifier [0x00007FF71F3C5442+109762]
+	GetHandleVerifier [0x00007FF71F3ABA59+4825]
+	BaseThreadInitThunk [0x00007FF821F3E8D7+23]
+	RtlUserThreadStart [0x00007FF822F3C5DC+44]
+
+2025-05-26 07:01:08,697 - INFO - 댓글 수집 완료: 0
+2025-05-26 07:01:08,709 - INFO - 레시피 데이터 저장 완료: 네이버 블로그 클립
+2025-05-26 07:01:08,709 - INFO - [4/231] 토픽 페이지 진입: https://in.naver.com/plusx/topic/825317590296096
+2025-05-26 07:01:12,055 - INFO - 현재 URL: https://in.naver.com/plusx/topic/825317590296096
+2025-05-26 07:01:12,055 - INFO - 블로그에서 더보기 버튼 찾는 중...
+2025-05-26 07:01:12,078 - INFO - 블로그에서 더보기 버튼 발견
+2025-05-26 07:01:12,078 - INFO - 블로그에서 더보기 버튼 클릭 시도...
+2025-05-26 07:01:15,393 - INFO - 블로그 페이지로 이동 성공: https://blog.naver.com/plusx_/223872734297?isInf=true&trackingCode=naver_etc
+2025-05-26 07:01:20,410 - INFO - iframe 전환 성공
+2025-05-26 07:01:30,650 - WARNING - 요소를 찾을 수 없음: css selector=h3.se-title-text, 오류: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF71F3BCF45+75717]
+	GetHandleVerifier [0x00007FF71F3BCFA0+75808]
+	(No symbol) [0x00007FF71F188F9A]
+	(No symbol) [0x00007FF71F1DF4C6]
+	(No symbol) [0x00007FF71F1DF77C]
+	(No symbol) [0x00007FF71F232577]
+	(No symbol) [0x00007FF71F2073BF]
+	(No symbol) [0x00007FF71F22F39C]
+	(No symbol) [0x00007FF71F207153]
+	(No symbol) [0x00007FF71F1D0421]
+	(No symbol) [0x00007FF71F1D11B3]
+	GetHandleVerifier [0x00007FF71F6BD71D+3223453]
+	GetHandleVerifier [0x00007FF71F6B7CC2+3200322]
+	GetHandleVerifier [0x00007FF71F6D5AF3+3322739]
+	GetHandleVerifier [0x00007FF71F3D6A1A+180890]
+	GetHandleVerifier [0x00007FF71F3DE11F+211359]
+	GetHandleVerifier [0x00007FF71F3C5294+109332]
+	GetHandleVerifier [0x00007FF71F3C5442+109762]
+	GetHandleVerifier [0x00007FF71F3ABA59+4825]
+	BaseThreadInitThunk [0x00007FF821F3E8D7+23]
+	RtlUserThreadStart [0x00007FF822F3C5DC+44]
+
+2025-05-26 07:01:40,891 - WARNING - 요소를 찾을 수 없음: css selector=h2.se-title-text, 오류: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF71F3BCF45+75717]
+	GetHandleVerifier [0x00007FF71F3BCFA0+75808]
+	(No symbol) [0x00007FF71F188F9A]
+	(No symbol) [0x00007FF71F1DF4C6]
+	(No symbol) [0x00007FF71F1DF77C]
+	(No symbol) [0x00007FF71F232577]
+	(No symbol) [0x00007FF71F2073BF]
+	(No symbol) [0x00007FF71F22F39C]
+	(No symbol) [0x00007FF71F207153]
+	(No symbol) [0x00007FF71F1D0421]
+	(No symbol) [0x00007FF71F1D11B3]
+	GetHandleVerifier [0x00007FF71F6BD71D+3223453]
+	GetHandleVerifier [0x00007FF71F6B7CC2+3200322]
+	GetHandleVerifier [0x00007FF71F6D5AF3+3322739]
+	GetHandleVerifier [0x00007FF71F3D6A1A+180890]
+	GetHandleVerifier [0x00007FF71F3DE11F+211359]
+	GetHandleVerifier [0x00007FF71F3C5294+109332]
+	GetHandleVerifier [0x00007FF71F3C5442+109762]
+	GetHandleVerifier [0x00007FF71F3ABA59+4825]
+	BaseThreadInitThunk [0x00007FF821F3E8D7+23]
+	RtlUserThreadStart [0x00007FF822F3C5DC+44]
+
+2025-05-26 07:01:51,121 - WARNING - 요소를 찾을 수 없음: css selector=strong.title_post, 오류: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF71F3BCF45+75717]
+	GetHandleVerifier [0x00007FF71F3BCFA0+75808]
+	(No symbol) [0x00007FF71F188F9A]
+	(No symbol) [0x00007FF71F1DF4C6]
+	(No symbol) [0x00007FF71F1DF77C]
+	(No symbol) [0x00007FF71F232577]
+	(No symbol) [0x00007FF71F2073BF]
+	(No symbol) [0x00007FF71F22F39C]
+	(No symbol) [0x00007FF71F207153]
+	(No symbol) [0x00007FF71F1D0421]
+	(No symbol) [0x00007FF71F1D11B3]
+	GetHandleVerifier [0x00007FF71F6BD71D+3223453]
+	GetHandleVerifier [0x00007FF71F6B7CC2+3200322]
+	GetHandleVerifier [0x00007FF71F6D5AF3+3322739]
+	GetHandleVerifier [0x00007FF71F3D6A1A+180890]
+	GetHandleVerifier [0x00007FF71F3DE11F+211359]
+	GetHandleVerifier [0x00007FF71F3C5294+109332]
+	GetHandleVerifier [0x00007FF71F3C5442+109762]
+	GetHandleVerifier [0x00007FF71F3ABA59+4825]
+	BaseThreadInitThunk [0x00007FF821F3E8D7+23]
+	RtlUserThreadStart [0x00007FF822F3C5DC+44]
+
+2025-05-26 07:01:51,133 - INFO - 제목 수집 완료: 다이어트 간식 추천, 바삭 에어프라이어 감자칩 : 네이버 블로그
+2025-05-26 07:01:52,171 - INFO - 본문 내용 수집 완료 (길이: 1682)
+2025-05-26 07:01:52,183 - INFO - 작성자 수집 완료: 엑스x
+2025-05-26 07:01:52,194 - INFO - 썸네일 수집 완료: https://postfiles.pstatic.net/MjAyNTA1MjFfMjY1/MDAxNzQ3NzkyNDgxMzgy.c2j1sX-zrV7FWXXMLS7JTup15jlLzJwf8b02gaVHxVUg.bw67HppyXEA4V5rOrP7wNEwmFDg-uFF7eUoS6ntboNcg.JPEG/DSC06121.jpg?type=w966
+2025-05-26 07:01:52,226 - INFO - 좋아요 수집 완료: 38
+2025-05-26 07:01:52,237 - INFO - 댓글 수집 완료: 3
+2025-05-26 07:01:52,241 - INFO - 레시피 데이터 저장 완료: 다이어트 간식 추천, 바삭 에어프라이어 감자칩 : 네이버 블로그
+2025-05-26 07:01:52,241 - INFO - [5/231] 토픽 페이지 진입: https://in.naver.com/igmghouse/topic/824369304704608
+2025-05-26 07:01:54,798 - INFO - 현재 URL: https://in.naver.com/igmghouse/topic/824369304704608
+2025-05-26 07:01:54,799 - INFO - 블로그에서 더보기 버튼 찾는 중...
+2025-05-26 07:01:54,818 - INFO - 블로그에서 더보기 버튼 발견
+2025-05-26 07:01:54,818 - INFO - 블로그에서 더보기 버튼 클릭 시도...
+2025-05-26 07:01:58,751 - INFO - 블로그 페이지로 이동 성공: https://blog.naver.com/igmghouse/223840306804?isInf=true&trackingCode=naver_etc
+2025-05-26 07:02:03,785 - INFO - iframe 전환 성공
+2025-05-26 07:02:14,024 - WARNING - 요소를 찾을 수 없음: css selector=h3.se-title-text, 오류: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF71F3BCF45+75717]
+	GetHandleVerifier [0x00007FF71F3BCFA0+75808]
+	(No symbol) [0x00007FF71F188F9A]
+	(No symbol) [0x00007FF71F1DF4C6]
+	(No symbol) [0x00007FF71F1DF77C]
+	(No symbol) [0x00007FF71F232577]
+	(No symbol) [0x00007FF71F2073BF]
+	(No symbol) [0x00007FF71F22F39C]
+	(No symbol) [0x00007FF71F207153]
+	(No symbol) [0x00007FF71F1D0421]
+	(No symbol) [0x00007FF71F1D11B3]
+	GetHandleVerifier [0x00007FF71F6BD71D+3223453]
+	GetHandleVerifier [0x00007FF71F6B7CC2+3200322]
+	GetHandleVerifier [0x00007FF71F6D5AF3+3322739]
+	GetHandleVerifier [0x00007FF71F3D6A1A+180890]
+	GetHandleVerifier [0x00007FF71F3DE11F+211359]
+	GetHandleVerifier [0x00007FF71F3C5294+109332]
+	GetHandleVerifier [0x00007FF71F3C5442+109762]
+	GetHandleVerifier [0x00007FF71F3ABA59+4825]
+	BaseThreadInitThunk [0x00007FF821F3E8D7+23]
+	RtlUserThreadStart [0x00007FF822F3C5DC+44]
+
+2025-05-26 07:02:24,248 - WARNING - 요소를 찾을 수 없음: css selector=h2.se-title-text, 오류: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF71F3BCF45+75717]
+	GetHandleVerifier [0x00007FF71F3BCFA0+75808]
+	(No symbol) [0x00007FF71F188F9A]
+	(No symbol) [0x00007FF71F1DF4C6]
+	(No symbol) [0x00007FF71F1DF77C]
+	(No symbol) [0x00007FF71F232577]
+	(No symbol) [0x00007FF71F2073BF]
+	(No symbol) [0x00007FF71F22F39C]
+	(No symbol) [0x00007FF71F207153]
+	(No symbol) [0x00007FF71F1D0421]
+	(No symbol) [0x00007FF71F1D11B3]
+	GetHandleVerifier [0x00007FF71F6BD71D+3223453]
+	GetHandleVerifier [0x00007FF71F6B7CC2+3200322]
+	GetHandleVerifier [0x00007FF71F6D5AF3+3322739]
+	GetHandleVerifier [0x00007FF71F3D6A1A+180890]
+	GetHandleVerifier [0x00007FF71F3DE11F+211359]
+	GetHandleVerifier [0x00007FF71F3C5294+109332]
+	GetHandleVerifier [0x00007FF71F3C5442+109762]
+	GetHandleVerifier [0x00007FF71F3ABA59+4825]
+	BaseThreadInitThunk [0x00007FF821F3E8D7+23]
+	RtlUserThreadStart [0x00007FF822F3C5DC+44]
+
+2025-05-26 07:02:34,512 - WARNING - 요소를 찾을 수 없음: css selector=strong.title_post, 오류: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF71F3BCF45+75717]
+	GetHandleVerifier [0x00007FF71F3BCFA0+75808]
+	(No symbol) [0x00007FF71F188F9A]
+	(No symbol) [0x00007FF71F1DF4C6]
+	(No symbol) [0x00007FF71F1DF77C]
+	(No symbol) [0x00007FF71F232577]
+	(No symbol) [0x00007FF71F2073BF]
+	(No symbol) [0x00007FF71F22F39C]
+	(No symbol) [0x00007FF71F207153]
+	(No symbol) [0x00007FF71F1D0421]
+	(No symbol) [0x00007FF71F1D11B3]
+	GetHandleVerifier [0x00007FF71F6BD71D+3223453]
+	GetHandleVerifier [0x00007FF71F6B7CC2+3200322]
+	GetHandleVerifier [0x00007FF71F6D5AF3+3322739]
+	GetHandleVerifier [0x00007FF71F3D6A1A+180890]
+	GetHandleVerifier [0x00007FF71F3DE11F+211359]
+	GetHandleVerifier [0x00007FF71F3C5294+109332]
+	GetHandleVerifier [0x00007FF71F3C5442+109762]
+	GetHandleVerifier [0x00007FF71F3ABA59+4825]
+	BaseThreadInitThunk [0x00007FF821F3E8D7+23]
+	RtlUserThreadStart [0x00007FF822F3C5DC+44]
+
+2025-05-26 07:02:34,524 - INFO - 제목 수집 완료: 동대문 닭한마리 레시피 닭한마리 겨자소스 양념.. : 네이버블로그
+2025-05-26 07:02:35,376 - INFO - 본문 내용 수집 완료 (길이: 2578)
+2025-05-26 07:02:35,384 - INFO - 작성자 수집 완료: 뭉구
+2025-05-26 07:02:35,392 - INFO - 썸네일 수집 완료: https://postfiles.pstatic.net/MjAyNTA0MjBfMjU3/MDAxNzQ1MTE2NTk1Mzkx.p_quNQFBflVbBlqWZtBWwkLGbr_WDrSuLoikCS1S4hkg.SaIlOQ0VtdYd2iroycl07kls3UO87AyLJw_ggKBkn7kg.JPEG/1745116586160.jpg?type=w966
+2025-05-26 07:02:35,413 - INFO - 좋아요 수집 완료: 62
+2025-05-26 07:02:35,420 - INFO - 댓글 수집 완료: 47
+2025-05-26 07:02:35,423 - INFO - 레시피 데이터 저장 완료: 동대문 닭한마리 레시피 닭한마리 겨자소스 양념.. : 네이버블로그
+2025-05-26 07:02:35,423 - INFO - [6/231] 토픽 페이지 진입: https://in.naver.com/selfloveyori/topic/823241363351168
+2025-05-26 07:02:38,357 - INFO - 현재 URL: https://in.naver.com/selfloveyori/topic/823241363351168
+2025-05-26 07:02:38,357 - INFO - 블로그에서 더보기 버튼 찾는 중...
+2025-05-26 07:02:38,375 - INFO - 블로그에서 더보기 버튼 발견
+2025-05-26 07:02:38,375 - INFO - 블로그에서 더보기 버튼 클릭 시도...
+2025-05-26 07:02:42,288 - INFO - 블로그 페이지로 이동 성공: https://blog.naver.com/seungsunii/223607829447?isInf=true&trackingCode=naver_etc
+2025-05-26 07:02:47,328 - INFO - iframe 전환 성공
+2025-05-26 07:02:57,578 - WARNING - 요소를 찾을 수 없음: css selector=h3.se-title-text, 오류: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF71F3BCF45+75717]
+	GetHandleVerifier [0x00007FF71F3BCFA0+75808]
+	(No symbol) [0x00007FF71F188F9A]
+	(No symbol) [0x00007FF71F1DF4C6]
+	(No symbol) [0x00007FF71F1DF77C]
+	(No symbol) [0x00007FF71F232577]
+	(No symbol) [0x00007FF71F2073BF]
+	(No symbol) [0x00007FF71F22F39C]
+	(No symbol) [0x00007FF71F207153]
+	(No symbol) [0x00007FF71F1D0421]
+	(No symbol) [0x00007FF71F1D11B3]
+	GetHandleVerifier [0x00007FF71F6BD71D+3223453]
+	GetHandleVerifier [0x00007FF71F6B7CC2+3200322]
+	GetHandleVerifier [0x00007FF71F6D5AF3+3322739]
+	GetHandleVerifier [0x00007FF71F3D6A1A+180890]
+	GetHandleVerifier [0x00007FF71F3DE11F+211359]
+	GetHandleVerifier [0x00007FF71F3C5294+109332]
+	GetHandleVerifier [0x00007FF71F3C5442+109762]
+	GetHandleVerifier [0x00007FF71F3ABA59+4825]
+	BaseThreadInitThunk [0x00007FF821F3E8D7+23]
+	RtlUserThreadStart [0x00007FF822F3C5DC+44]
+
+2025-05-26 07:03:07,819 - WARNING - 요소를 찾을 수 없음: css selector=h2.se-title-text, 오류: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF71F3BCF45+75717]
+	GetHandleVerifier [0x00007FF71F3BCFA0+75808]
+	(No symbol) [0x00007FF71F188F9A]
+	(No symbol) [0x00007FF71F1DF4C6]
+	(No symbol) [0x00007FF71F1DF77C]
+	(No symbol) [0x00007FF71F232577]
+	(No symbol) [0x00007FF71F2073BF]
+	(No symbol) [0x00007FF71F22F39C]
+	(No symbol) [0x00007FF71F207153]
+	(No symbol) [0x00007FF71F1D0421]
+	(No symbol) [0x00007FF71F1D11B3]
+	GetHandleVerifier [0x00007FF71F6BD71D+3223453]
+	GetHandleVerifier [0x00007FF71F6B7CC2+3200322]
+	GetHandleVerifier [0x00007FF71F6D5AF3+3322739]
+	GetHandleVerifier [0x00007FF71F3D6A1A+180890]
+	GetHandleVerifier [0x00007FF71F3DE11F+211359]
+	GetHandleVerifier [0x00007FF71F3C5294+109332]
+	GetHandleVerifier [0x00007FF71F3C5442+109762]
+	GetHandleVerifier [0x00007FF71F3ABA59+4825]
+	BaseThreadInitThunk [0x00007FF821F3E8D7+23]
+	RtlUserThreadStart [0x00007FF822F3C5DC+44]
+
+2025-05-26 07:03:18,065 - WARNING - 요소를 찾을 수 없음: css selector=strong.title_post, 오류: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF71F3BCF45+75717]
+	GetHandleVerifier [0x00007FF71F3BCFA0+75808]
+	(No symbol) [0x00007FF71F188F9A]
+	(No symbol) [0x00007FF71F1DF4C6]
+	(No symbol) [0x00007FF71F1DF77C]
+	(No symbol) [0x00007FF71F232577]
+	(No symbol) [0x00007FF71F2073BF]
+	(No symbol) [0x00007FF71F22F39C]
+	(No symbol) [0x00007FF71F207153]
+	(No symbol) [0x00007FF71F1D0421]
+	(No symbol) [0x00007FF71F1D11B3]
+	GetHandleVerifier [0x00007FF71F6BD71D+3223453]
+	GetHandleVerifier [0x00007FF71F6B7CC2+3200322]
+	GetHandleVerifier [0x00007FF71F6D5AF3+3322739]
+	GetHandleVerifier [0x00007FF71F3D6A1A+180890]
+	GetHandleVerifier [0x00007FF71F3DE11F+211359]
+	GetHandleVerifier [0x00007FF71F3C5294+109332]
+	GetHandleVerifier [0x00007FF71F3C5442+109762]
+	GetHandleVerifier [0x00007FF71F3ABA59+4825]
+	BaseThreadInitThunk [0x00007FF821F3E8D7+23]
+	RtlUserThreadStart [0x00007FF822F3C5DC+44]
+
+2025-05-26 07:03:18,068 - INFO - 제목 수집 완료: 500원 팽이버섯으로 고단백 덮밥 만들기 팽이.. : 네이버블로그
+2025-05-26 07:03:18,632 - INFO - 본문 내용 수집 완료 (길이: 685)
+2025-05-26 07:03:18,640 - INFO - 작성자 수집 완료: 샐럽요리
+2025-05-26 07:03:18,649 - INFO - 썸네일 수집 완료: https://postfiles.pstatic.net/MjAyNDEwMDVfMTQ4/MDAxNzI4MTAxODQ4ODA2.gqLuBTEikbY5XDNqXpsYFLxoTVnaPJqe9S3jRKw_N7cg.wvIX8XYDZwnruHYiOtOH4a8g_7xzQTv9TU5gt47ETLQg.JPEG/SE-4a025398-b0e3-458f-898f-1fee24d0f38a.jpg?type=w580
+2025-05-26 07:03:18,672 - INFO - 좋아요 수집 완료: 56
+2025-05-26 07:03:18,681 - INFO - 댓글 수집 완료: 36
+2025-05-26 07:03:18,692 - INFO - 레시피 데이터 저장 완료: 500원 팽이버섯으로 고단백 덮밥 만들기 팽이.. : 네이버블로그
+2025-05-26 07:03:18,692 - INFO - [7/231] 토픽 페이지 진입: https://in.naver.com/ilovedldl/topic/824686876395168
+2025-05-26 07:03:21,038 - INFO - 현재 URL: https://in.naver.com/ilovedldl/topic/824686876395168
+2025-05-26 07:03:21,038 - INFO - 블로그에서 더보기 버튼 찾는 중...
+2025-05-26 07:03:21,053 - INFO - 블로그에서 더보기 버튼 발견
+2025-05-26 07:03:21,053 - INFO - 블로그에서 더보기 버튼 클릭 시도...
+2025-05-26 07:03:24,490 - INFO - 블로그 페이지로 이동 성공: https://blog.naver.com/ilovedldl/223864638475?isInf=true&trackingCode=naver_etc
+2025-05-26 07:03:29,528 - INFO - iframe 전환 성공
+2025-05-26 07:03:39,776 - WARNING - 요소를 찾을 수 없음: css selector=h3.se-title-text, 오류: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF71F3BCF45+75717]
+	GetHandleVerifier [0x00007FF71F3BCFA0+75808]
+	(No symbol) [0x00007FF71F188F9A]
+	(No symbol) [0x00007FF71F1DF4C6]
+	(No symbol) [0x00007FF71F1DF77C]
+	(No symbol) [0x00007FF71F232577]
+	(No symbol) [0x00007FF71F2073BF]
+	(No symbol) [0x00007FF71F22F39C]
+	(No symbol) [0x00007FF71F207153]
+	(No symbol) [0x00007FF71F1D0421]
+	(No symbol) [0x00007FF71F1D11B3]
+	GetHandleVerifier [0x00007FF71F6BD71D+3223453]
+	GetHandleVerifier [0x00007FF71F6B7CC2+3200322]
+	GetHandleVerifier [0x00007FF71F6D5AF3+3322739]
+	GetHandleVerifier [0x00007FF71F3D6A1A+180890]
+	GetHandleVerifier [0x00007FF71F3DE11F+211359]
+	GetHandleVerifier [0x00007FF71F3C5294+109332]
+	GetHandleVerifier [0x00007FF71F3C5442+109762]
+	GetHandleVerifier [0x00007FF71F3ABA59+4825]
+	BaseThreadInitThunk [0x00007FF821F3E8D7+23]
+	RtlUserThreadStart [0x00007FF822F3C5DC+44]
+
+2025-05-26 07:03:49,995 - WARNING - 요소를 찾을 수 없음: css selector=h2.se-title-text, 오류: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF71F3BCF45+75717]
+	GetHandleVerifier [0x00007FF71F3BCFA0+75808]
+	(No symbol) [0x00007FF71F188F9A]
+	(No symbol) [0x00007FF71F1DF4C6]
+	(No symbol) [0x00007FF71F1DF77C]
+	(No symbol) [0x00007FF71F232577]
+	(No symbol) [0x00007FF71F2073BF]
+	(No symbol) [0x00007FF71F22F39C]
+	(No symbol) [0x00007FF71F207153]
+	(No symbol) [0x00007FF71F1D0421]
+	(No symbol) [0x00007FF71F1D11B3]
+	GetHandleVerifier [0x00007FF71F6BD71D+3223453]
+	GetHandleVerifier [0x00007FF71F6B7CC2+3200322]
+	GetHandleVerifier [0x00007FF71F6D5AF3+3322739]
+	GetHandleVerifier [0x00007FF71F3D6A1A+180890]
+	GetHandleVerifier [0x00007FF71F3DE11F+211359]
+	GetHandleVerifier [0x00007FF71F3C5294+109332]
+	GetHandleVerifier [0x00007FF71F3C5442+109762]
+	GetHandleVerifier [0x00007FF71F3ABA59+4825]
+	BaseThreadInitThunk [0x00007FF821F3E8D7+23]
+	RtlUserThreadStart [0x00007FF822F3C5DC+44]
+
+2025-05-26 07:04:00,243 - WARNING - 요소를 찾을 수 없음: css selector=strong.title_post, 오류: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF71F3BCF45+75717]
+	GetHandleVerifier [0x00007FF71F3BCFA0+75808]
+	(No symbol) [0x00007FF71F188F9A]
+	(No symbol) [0x00007FF71F1DF4C6]
+	(No symbol) [0x00007FF71F1DF77C]
+	(No symbol) [0x00007FF71F232577]
+	(No symbol) [0x00007FF71F2073BF]
+	(No symbol) [0x00007FF71F22F39C]
+	(No symbol) [0x00007FF71F207153]
+	(No symbol) [0x00007FF71F1D0421]
+	(No symbol) [0x00007FF71F1D11B3]
+	GetHandleVerifier [0x00007FF71F6BD71D+3223453]
+	GetHandleVerifier [0x00007FF71F6B7CC2+3200322]
+	GetHandleVerifier [0x00007FF71F6D5AF3+3322739]
+	GetHandleVerifier [0x00007FF71F3D6A1A+180890]
+	GetHandleVerifier [0x00007FF71F3DE11F+211359]
+	GetHandleVerifier [0x00007FF71F3C5294+109332]
+	GetHandleVerifier [0x00007FF71F3C5442+109762]
+	GetHandleVerifier [0x00007FF71F3ABA59+4825]
+	BaseThreadInitThunk [0x00007FF821F3E8D7+23]
+	RtlUserThreadStart [0x00007FF822F3C5DC+44]
+
+2025-05-26 07:04:00,255 - INFO - 제목 수집 완료: 번데기볶음 양념 냉동 번데기 요리 번데기조림 .. : 네이버블로그
+2025-05-26 07:04:00,767 - INFO - 본문 내용 수집 완료 (길이: 1187)
+2025-05-26 07:04:00,781 - INFO - 작성자 수집 완료: 수마미모드
+2025-05-26 07:04:00,801 - INFO - 썸네일 수집 완료: https://postfiles.pstatic.net/MjAyNTA1MTNfMTIw/MDAxNzQ3MTM4NjA5MTk0.3xNvJiQpepaUqKWLBiHxjQe2eq8NF4O4uZiCnO73FNUg.8CHDipxHBfeu2PkGqOOtGe03ShxpP9RXXdLQYRwhgx8g.JPEG/DSC04367.JPG?type=w966
+2025-05-26 07:04:00,840 - INFO - 좋아요 수집 완료: 420
+2025-05-26 07:04:03,904 - WARNING - 요소를 찾을 수 없음: id=commentCount, 오류: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF71F3BCF45+75717]
+	GetHandleVerifier [0x00007FF71F3BCFA0+75808]
+	(No symbol) [0x00007FF71F188F9A]
+	(No symbol) [0x00007FF71F1DF4C6]
+	(No symbol) [0x00007FF71F1DF77C]
+	(No symbol) [0x00007FF71F232577]
+	(No symbol) [0x00007FF71F2073BF]
+	(No symbol) [0x00007FF71F22F39C]
+	(No symbol) [0x00007FF71F207153]
+	(No symbol) [0x00007FF71F1D0421]
+	(No symbol) [0x00007FF71F1D11B3]
+	GetHandleVerifier [0x00007FF71F6BD71D+3223453]
+	GetHandleVerifier [0x00007FF71F6B7CC2+3200322]
+	GetHandleVerifier [0x00007FF71F6D5AF3+3322739]
+	GetHandleVerifier [0x00007FF71F3D6A1A+180890]
+	GetHandleVerifier [0x00007FF71F3DE11F+211359]
+	GetHandleVerifier [0x00007FF71F3C5294+109332]
+	GetHandleVerifier [0x00007FF71F3C5442+109762]
+	GetHandleVerifier [0x00007FF71F3ABA59+4825]
+	BaseThreadInitThunk [0x00007FF821F3E8D7+23]
+	RtlUserThreadStart [0x00007FF822F3C5DC+44]
+
+2025-05-26 07:04:03,904 - INFO - 댓글 수집 완료: 0
+2025-05-26 07:04:03,915 - INFO - 레시피 데이터 저장 완료: 번데기볶음 양념 냉동 번데기 요리 번데기조림 .. : 네이버블로그
+2025-05-26 07:04:03,915 - INFO - [8/231] 토픽 페이지 진입: https://in.naver.com/rachelpark11_/topic/823252224497312
+2025-05-26 07:04:07,097 - INFO - 현재 URL: https://in.naver.com/rachelpark11_/topic/823252224497312
+2025-05-26 07:04:07,097 - INFO - 블로그에서 더보기 버튼 찾는 중...
+2025-05-26 07:04:07,112 - INFO - 블로그에서 더보기 버튼 발견
+2025-05-26 07:04:07,112 - INFO - 블로그에서 더보기 버튼 클릭 시도...
+2025-05-26 07:04:10,432 - INFO - 블로그 페이지로 이동 성공: https://blog.naver.com/rachelpark11_/223724027723?isInf=true&trackingCode=naver_etc
+2025-05-26 07:04:15,458 - INFO - iframe 전환 성공
+2025-05-26 07:04:25,675 - WARNING - 요소를 찾을 수 없음: css selector=h3.se-title-text, 오류: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF71F3BCF45+75717]
+	GetHandleVerifier [0x00007FF71F3BCFA0+75808]
+	(No symbol) [0x00007FF71F188F9A]
+	(No symbol) [0x00007FF71F1DF4C6]
+	(No symbol) [0x00007FF71F1DF77C]
+	(No symbol) [0x00007FF71F232577]
+	(No symbol) [0x00007FF71F2073BF]
+	(No symbol) [0x00007FF71F22F39C]
+	(No symbol) [0x00007FF71F207153]
+	(No symbol) [0x00007FF71F1D0421]
+	(No symbol) [0x00007FF71F1D11B3]
+	GetHandleVerifier [0x00007FF71F6BD71D+3223453]
+	GetHandleVerifier [0x00007FF71F6B7CC2+3200322]
+	GetHandleVerifier [0x00007FF71F6D5AF3+3322739]
+	GetHandleVerifier [0x00007FF71F3D6A1A+180890]
+	GetHandleVerifier [0x00007FF71F3DE11F+211359]
+	GetHandleVerifier [0x00007FF71F3C5294+109332]
+	GetHandleVerifier [0x00007FF71F3C5442+109762]
+	GetHandleVerifier [0x00007FF71F3ABA59+4825]
+	BaseThreadInitThunk [0x00007FF821F3E8D7+23]
+	RtlUserThreadStart [0x00007FF822F3C5DC+44]
+
+2025-05-26 07:04:35,910 - WARNING - 요소를 찾을 수 없음: css selector=h2.se-title-text, 오류: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF71F3BCF45+75717]
+	GetHandleVerifier [0x00007FF71F3BCFA0+75808]
+	(No symbol) [0x00007FF71F188F9A]
+	(No symbol) [0x00007FF71F1DF4C6]
+	(No symbol) [0x00007FF71F1DF77C]
+	(No symbol) [0x00007FF71F232577]
+	(No symbol) [0x00007FF71F2073BF]
+	(No symbol) [0x00007FF71F22F39C]
+	(No symbol) [0x00007FF71F207153]
+	(No symbol) [0x00007FF71F1D0421]
+	(No symbol) [0x00007FF71F1D11B3]
+	GetHandleVerifier [0x00007FF71F6BD71D+3223453]
+	GetHandleVerifier [0x00007FF71F6B7CC2+3200322]
+	GetHandleVerifier [0x00007FF71F6D5AF3+3322739]
+	GetHandleVerifier [0x00007FF71F3D6A1A+180890]
+	GetHandleVerifier [0x00007FF71F3DE11F+211359]
+	GetHandleVerifier [0x00007FF71F3C5294+109332]
+	GetHandleVerifier [0x00007FF71F3C5442+109762]
+	GetHandleVerifier [0x00007FF71F3ABA59+4825]
+	BaseThreadInitThunk [0x00007FF821F3E8D7+23]
+	RtlUserThreadStart [0x00007FF822F3C5DC+44]
+
+2025-05-26 07:04:46,122 - WARNING - 요소를 찾을 수 없음: css selector=strong.title_post, 오류: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF71F3BCF45+75717]
+	GetHandleVerifier [0x00007FF71F3BCFA0+75808]
+	(No symbol) [0x00007FF71F188F9A]
+	(No symbol) [0x00007FF71F1DF4C6]
+	(No symbol) [0x00007FF71F1DF77C]
+	(No symbol) [0x00007FF71F232577]
+	(No symbol) [0x00007FF71F2073BF]
+	(No symbol) [0x00007FF71F22F39C]
+	(No symbol) [0x00007FF71F207153]
+	(No symbol) [0x00007FF71F1D0421]
+	(No symbol) [0x00007FF71F1D11B3]
+	GetHandleVerifier [0x00007FF71F6BD71D+3223453]
+	GetHandleVerifier [0x00007FF71F6B7CC2+3200322]
+	GetHandleVerifier [0x00007FF71F6D5AF3+3322739]
+	GetHandleVerifier [0x00007FF71F3D6A1A+180890]
+	GetHandleVerifier [0x00007FF71F3DE11F+211359]
+	GetHandleVerifier [0x00007FF71F3C5294+109332]
+	GetHandleVerifier [0x00007FF71F3C5442+109762]
+	GetHandleVerifier [0x00007FF71F3ABA59+4825]
+	BaseThreadInitThunk [0x00007FF821F3E8D7+23]
+	RtlUserThreadStart [0x00007FF822F3C5DC+44]
+
+2025-05-26 07:04:46,134 - INFO - 제목 수집 완료: 따뜻한 국물요리 추천 물만두로 만든 완탕 물만.. : 네이버블로그
+2025-05-26 07:04:46,939 - INFO - 본문 내용 수집 완료 (길이: 1668)
+2025-05-26 07:04:46,947 - INFO - 작성자 수집 완료: 쿠짱
+2025-05-26 07:04:46,955 - INFO - 썸네일 수집 완료: https://postfiles.pstatic.net/MjAyNTAxMDhfOCAg/MDAxNzM2MzI1MTUyNDIw.otev-aUk8MX3T_s1_aJPQd1Ll2zwFKOXUxfbMlAYjqIg.HnsXUwpaW5gBJJJe1vvwTByYrXxZ6OYfPMoGjttwhgcg.JPEG/IMG_0435.jpg?type=w80_blur
+2025-05-26 07:04:46,977 - INFO - 좋아요 수집 완료: 74
+2025-05-26 07:04:46,984 - INFO - 댓글 수집 완료: 32
+2025-05-26 07:04:46,997 - INFO - 레시피 데이터 저장 완료: 따뜻한 국물요리 추천 물만두로 만든 완탕 물만.. : 네이버블로그
+2025-05-26 07:04:46,997 - INFO - [9/231] 토픽 페이지 진입: https://in.naver.com/selfloveyori/topic/820856722130560
+2025-05-26 07:04:49,374 - INFO - 현재 URL: https://in.naver.com/selfloveyori/topic/820856722130560
+2025-05-26 07:04:49,374 - INFO - 블로그에서 더보기 버튼 찾는 중...
+2025-05-26 07:04:49,385 - INFO - 블로그에서 더보기 버튼 발견
+2025-05-26 07:04:49,385 - INFO - 블로그에서 더보기 버튼 클릭 시도...
+2025-05-26 07:04:52,831 - INFO - 블로그 페이지로 이동 성공: https://blog.naver.com/seungsunii/223847739444?isInf=true&trackingCode=naver_etc
+2025-05-26 07:04:57,861 - INFO - iframe 전환 성공
+2025-05-26 07:05:08,114 - WARNING - 요소를 찾을 수 없음: css selector=h3.se-title-text, 오류: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF71F3BCF45+75717]
+	GetHandleVerifier [0x00007FF71F3BCFA0+75808]
+	(No symbol) [0x00007FF71F188F9A]
+	(No symbol) [0x00007FF71F1DF4C6]
+	(No symbol) [0x00007FF71F1DF77C]
+	(No symbol) [0x00007FF71F232577]
+	(No symbol) [0x00007FF71F2073BF]
+	(No symbol) [0x00007FF71F22F39C]
+	(No symbol) [0x00007FF71F207153]
+	(No symbol) [0x00007FF71F1D0421]
+	(No symbol) [0x00007FF71F1D11B3]
+	GetHandleVerifier [0x00007FF71F6BD71D+3223453]
+	GetHandleVerifier [0x00007FF71F6B7CC2+3200322]
+	GetHandleVerifier [0x00007FF71F6D5AF3+3322739]
+	GetHandleVerifier [0x00007FF71F3D6A1A+180890]
+	GetHandleVerifier [0x00007FF71F3DE11F+211359]
+	GetHandleVerifier [0x00007FF71F3C5294+109332]
+	GetHandleVerifier [0x00007FF71F3C5442+109762]
+	GetHandleVerifier [0x00007FF71F3ABA59+4825]
+	BaseThreadInitThunk [0x00007FF821F3E8D7+23]
+	RtlUserThreadStart [0x00007FF822F3C5DC+44]
+
+2025-05-26 07:05:18,345 - WARNING - 요소를 찾을 수 없음: css selector=h2.se-title-text, 오류: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF71F3BCF45+75717]
+	GetHandleVerifier [0x00007FF71F3BCFA0+75808]
+	(No symbol) [0x00007FF71F188F9A]
+	(No symbol) [0x00007FF71F1DF4C6]
+	(No symbol) [0x00007FF71F1DF77C]
+	(No symbol) [0x00007FF71F232577]
+	(No symbol) [0x00007FF71F2073BF]
+	(No symbol) [0x00007FF71F22F39C]
+	(No symbol) [0x00007FF71F207153]
+	(No symbol) [0x00007FF71F1D0421]
+	(No symbol) [0x00007FF71F1D11B3]
+	GetHandleVerifier [0x00007FF71F6BD71D+3223453]
+	GetHandleVerifier [0x00007FF71F6B7CC2+3200322]
+	GetHandleVerifier [0x00007FF71F6D5AF3+3322739]
+	GetHandleVerifier [0x00007FF71F3D6A1A+180890]
+	GetHandleVerifier [0x00007FF71F3DE11F+211359]
+	GetHandleVerifier [0x00007FF71F3C5294+109332]
+	GetHandleVerifier [0x00007FF71F3C5442+109762]
+	GetHandleVerifier [0x00007FF71F3ABA59+4825]
+	BaseThreadInitThunk [0x00007FF821F3E8D7+23]
+	RtlUserThreadStart [0x00007FF822F3C5DC+44]
+
+2025-05-26 07:05:28,610 - WARNING - 요소를 찾을 수 없음: css selector=strong.title_post, 오류: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF71F3BCF45+75717]
+	GetHandleVerifier [0x00007FF71F3BCFA0+75808]
+	(No symbol) [0x00007FF71F188F9A]
+	(No symbol) [0x00007FF71F1DF4C6]
+	(No symbol) [0x00007FF71F1DF77C]
+	(No symbol) [0x00007FF71F232577]
+	(No symbol) [0x00007FF71F2073BF]
+	(No symbol) [0x00007FF71F22F39C]
+	(No symbol) [0x00007FF71F207153]
+	(No symbol) [0x00007FF71F1D0421]
+	(No symbol) [0x00007FF71F1D11B3]
+	GetHandleVerifier [0x00007FF71F6BD71D+3223453]
+	GetHandleVerifier [0x00007FF71F6B7CC2+3200322]
+	GetHandleVerifier [0x00007FF71F6D5AF3+3322739]
+	GetHandleVerifier [0x00007FF71F3D6A1A+180890]
+	GetHandleVerifier [0x00007FF71F3DE11F+211359]
+	GetHandleVerifier [0x00007FF71F3C5294+109332]
+	GetHandleVerifier [0x00007FF71F3C5442+109762]
+	GetHandleVerifier [0x00007FF71F3ABA59+4825]
+	BaseThreadInitThunk [0x00007FF821F3E8D7+23]
+	RtlUserThreadStart [0x00007FF822F3C5DC+44]
+
+2025-05-26 07:05:28,623 - INFO - 제목 수집 완료: 7일 동안 -3kg 감량해요! 초간단 양배추 .. : 네이버블로그
+2025-05-26 07:05:29,237 - INFO - 본문 내용 수집 완료 (길이: 784)
+2025-05-26 07:05:29,244 - INFO - 작성자 수집 완료: 샐럽요리
+2025-05-26 07:05:29,252 - INFO - 썸네일 수집 완료: https://postfiles.pstatic.net/MjAyNTA0MjdfMjk1/MDAxNzQ1NzI5MzkzMDg4.Keimr84QjsimxlGltbaNMqvQGt6cCjQPtzeKTO-sGwog.z8mgCEWtDR5zAo0RIJAYzMWFntN6xhMHszr_ilSkubYg.JPEG/SE-c0492edf-76d7-4696-a132-f7e30e29e758.jpg?type=w580
+2025-05-26 07:05:29,274 - INFO - 좋아요 수집 완료: 65
+2025-05-26 07:05:29,283 - INFO - 댓글 수집 완료: 39
+2025-05-26 07:05:29,294 - INFO - 레시피 데이터 저장 완료: 7일 동안 -3kg 감량해요! 초간단 양배추 .. : 네이버블로그
+2025-05-26 07:05:29,294 - INFO - [10/231] 토픽 페이지 진입: https://in.naver.com/kimscook/topic/823717434902112
+2025-05-26 07:05:31,894 - INFO - 현재 URL: https://in.naver.com/kimscook/topic/823717434902112
+2025-05-26 07:05:31,895 - INFO - 블로그에서 더보기 버튼 찾는 중...
+2025-05-26 07:05:31,910 - INFO - 블로그에서 더보기 버튼 발견
+2025-05-26 07:05:31,910 - INFO - 블로그에서 더보기 버튼 클릭 시도...
+2025-05-26 07:05:35,066 - INFO - 블로그 페이지로 이동 성공: https://blog.naver.com/starship89/223863406405?isInf=true&trackingCode=naver_etc
+2025-05-26 07:05:40,087 - INFO - iframe 전환 성공
+2025-05-26 07:05:50,241 - WARNING - 요소를 찾을 수 없음: css selector=h3.se-title-text, 오류: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF71F3BCF45+75717]
+	GetHandleVerifier [0x00007FF71F3BCFA0+75808]
+	(No symbol) [0x00007FF71F188F9A]
+	(No symbol) [0x00007FF71F1DF4C6]
+	(No symbol) [0x00007FF71F1DF77C]
+	(No symbol) [0x00007FF71F232577]
+	(No symbol) [0x00007FF71F2073BF]
+	(No symbol) [0x00007FF71F22F39C]
+	(No symbol) [0x00007FF71F207153]
+	(No symbol) [0x00007FF71F1D0421]
+	(No symbol) [0x00007FF71F1D11B3]
+	GetHandleVerifier [0x00007FF71F6BD71D+3223453]
+	GetHandleVerifier [0x00007FF71F6B7CC2+3200322]
+	GetHandleVerifier [0x00007FF71F6D5AF3+3322739]
+	GetHandleVerifier [0x00007FF71F3D6A1A+180890]
+	GetHandleVerifier [0x00007FF71F3DE11F+211359]
+	GetHandleVerifier [0x00007FF71F3C5294+109332]
+	GetHandleVerifier [0x00007FF71F3C5442+109762]
+	GetHandleVerifier [0x00007FF71F3ABA59+4825]
+	BaseThreadInitThunk [0x00007FF821F3E8D7+23]
+	RtlUserThreadStart [0x00007FF822F3C5DC+44]
+
+2025-05-26 07:06:00,392 - WARNING - 요소를 찾을 수 없음: css selector=h2.se-title-text, 오류: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF71F3BCF45+75717]
+	GetHandleVerifier [0x00007FF71F3BCFA0+75808]
+	(No symbol) [0x00007FF71F188F9A]
+	(No symbol) [0x00007FF71F1DF4C6]
+	(No symbol) [0x00007FF71F1DF77C]
+	(No symbol) [0x00007FF71F232577]
+	(No symbol) [0x00007FF71F2073BF]
+	(No symbol) [0x00007FF71F22F39C]
+	(No symbol) [0x00007FF71F207153]
+	(No symbol) [0x00007FF71F1D0421]
+	(No symbol) [0x00007FF71F1D11B3]
+	GetHandleVerifier [0x00007FF71F6BD71D+3223453]
+	GetHandleVerifier [0x00007FF71F6B7CC2+3200322]
+	GetHandleVerifier [0x00007FF71F6D5AF3+3322739]
+	GetHandleVerifier [0x00007FF71F3D6A1A+180890]
+	GetHandleVerifier [0x00007FF71F3DE11F+211359]
+	GetHandleVerifier [0x00007FF71F3C5294+109332]
+	GetHandleVerifier [0x00007FF71F3C5442+109762]
+	GetHandleVerifier [0x00007FF71F3ABA59+4825]
+	BaseThreadInitThunk [0x00007FF821F3E8D7+23]
+	RtlUserThreadStart [0x00007FF822F3C5DC+44]
+
+2025-05-26 07:06:10,563 - WARNING - 요소를 찾을 수 없음: css selector=strong.title_post, 오류: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF71F3BCF45+75717]
+	GetHandleVerifier [0x00007FF71F3BCFA0+75808]
+	(No symbol) [0x00007FF71F188F9A]
+	(No symbol) [0x00007FF71F1DF4C6]
+	(No symbol) [0x00007FF71F1DF77C]
+	(No symbol) [0x00007FF71F232577]
+	(No symbol) [0x00007FF71F2073BF]
+	(No symbol) [0x00007FF71F22F39C]
+	(No symbol) [0x00007FF71F207153]
+	(No symbol) [0x00007FF71F1D0421]
+	(No symbol) [0x00007FF71F1D11B3]
+	GetHandleVerifier [0x00007FF71F6BD71D+3223453]
+	GetHandleVerifier [0x00007FF71F6B7CC2+3200322]
+	GetHandleVerifier [0x00007FF71F6D5AF3+3322739]
+	GetHandleVerifier [0x00007FF71F3D6A1A+180890]
+	GetHandleVerifier [0x00007FF71F3DE11F+211359]
+	GetHandleVerifier [0x00007FF71F3C5294+109332]
+	GetHandleVerifier [0x00007FF71F3C5442+109762]
+	GetHandleVerifier [0x00007FF71F3ABA59+4825]
+	BaseThreadInitThunk [0x00007FF821F3E8D7+23]
+	RtlUserThreadStart [0x00007FF822F3C5DC+44]
+
+2025-05-26 07:06:10,575 - INFO - 제목 수집 완료: 부대찌개 황금레시피 초간단 부대찌개 양념장 만.. : 네이버블로그
+2025-05-26 07:06:11,810 - INFO - 본문 내용 수집 완료 (길이: 1354)
+2025-05-26 07:06:11,824 - INFO - 작성자 수집 완료: 부부공감
+2025-05-26 07:06:11,836 - INFO - 썸네일 수집 완료: https://postfiles.pstatic.net/MjAyNTA1MTJfMjY0/MDAxNzQ3MDQ5MTE2ODgx.ndpUCIoB3gIqsXH_dMyxrLb8D5bsmn2Cjs_NpS_0MXMg.sGcMNGaC6bDImFQiyHqVy2uVFG_vIocKskT9AILmXcEg.JPEG/SE-3977f8d3-2e15-11f0-aadd-47876ac8d5c2.jpg?type=w966
+2025-05-26 07:06:11,870 - INFO - 좋아요 수집 완료: 49
+2025-05-26 07:06:11,882 - INFO - 댓글 수집 완료: 20
+2025-05-26 07:06:11,884 - INFO - 레시피 데이터 저장 완료: 부대찌개 황금레시피 초간단 부대찌개 양념장 만.. : 네이버블로그
+2025-05-26 07:06:11,884 - INFO - [11/231] 토픽 페이지 진입: https://in.naver.com/kies84/topic/823514706884224
+2025-05-26 07:06:14,981 - INFO - 현재 URL: https://in.naver.com/kies84/topic/823514706884224
+2025-05-26 07:06:14,982 - INFO - 블로그에서 더보기 버튼 찾는 중...
+2025-05-26 07:06:15,001 - INFO - 블로그에서 더보기 버튼 발견
+2025-05-26 07:06:15,001 - INFO - 블로그에서 더보기 버튼 클릭 시도...
+2025-05-26 07:06:18,094 - INFO - 블로그 페이지로 이동 성공: https://blog.naver.com/kies84/223863376928?isInf=true&trackingCode=naver_etc
+2025-05-26 07:06:23,126 - INFO - iframe 전환 성공
+2025-05-26 07:06:33,313 - WARNING - 요소를 찾을 수 없음: css selector=h3.se-title-text, 오류: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF71F3BCF45+75717]
+	GetHandleVerifier [0x00007FF71F3BCFA0+75808]
+	(No symbol) [0x00007FF71F188F9A]
+	(No symbol) [0x00007FF71F1DF4C6]
+	(No symbol) [0x00007FF71F1DF77C]
+	(No symbol) [0x00007FF71F232577]
+	(No symbol) [0x00007FF71F2073BF]
+	(No symbol) [0x00007FF71F22F39C]
+	(No symbol) [0x00007FF71F207153]
+	(No symbol) [0x00007FF71F1D0421]
+	(No symbol) [0x00007FF71F1D11B3]
+	GetHandleVerifier [0x00007FF71F6BD71D+3223453]
+	GetHandleVerifier [0x00007FF71F6B7CC2+3200322]
+	GetHandleVerifier [0x00007FF71F6D5AF3+3322739]
+	GetHandleVerifier [0x00007FF71F3D6A1A+180890]
+	GetHandleVerifier [0x00007FF71F3DE11F+211359]
+	GetHandleVerifier [0x00007FF71F3C5294+109332]
+	GetHandleVerifier [0x00007FF71F3C5442+109762]
+	GetHandleVerifier [0x00007FF71F3ABA59+4825]
+	BaseThreadInitThunk [0x00007FF821F3E8D7+23]
+	RtlUserThreadStart [0x00007FF822F3C5DC+44]
+
+2025-05-26 07:06:43,481 - WARNING - 요소를 찾을 수 없음: css selector=h2.se-title-text, 오류: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF71F3BCF45+75717]
+	GetHandleVerifier [0x00007FF71F3BCFA0+75808]
+	(No symbol) [0x00007FF71F188F9A]
+	(No symbol) [0x00007FF71F1DF4C6]
+	(No symbol) [0x00007FF71F1DF77C]
+	(No symbol) [0x00007FF71F232577]
+	(No symbol) [0x00007FF71F2073BF]
+	(No symbol) [0x00007FF71F22F39C]
+	(No symbol) [0x00007FF71F207153]
+	(No symbol) [0x00007FF71F1D0421]
+	(No symbol) [0x00007FF71F1D11B3]
+	GetHandleVerifier [0x00007FF71F6BD71D+3223453]
+	GetHandleVerifier [0x00007FF71F6B7CC2+3200322]
+	GetHandleVerifier [0x00007FF71F6D5AF3+3322739]
+	GetHandleVerifier [0x00007FF71F3D6A1A+180890]
+	GetHandleVerifier [0x00007FF71F3DE11F+211359]
+	GetHandleVerifier [0x00007FF71F3C5294+109332]
+	GetHandleVerifier [0x00007FF71F3C5442+109762]
+	GetHandleVerifier [0x00007FF71F3ABA59+4825]
+	BaseThreadInitThunk [0x00007FF821F3E8D7+23]
+	RtlUserThreadStart [0x00007FF822F3C5DC+44]
+
+2025-05-26 07:06:53,712 - WARNING - 요소를 찾을 수 없음: css selector=strong.title_post, 오류: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF71F3BCF45+75717]
+	GetHandleVerifier [0x00007FF71F3BCFA0+75808]
+	(No symbol) [0x00007FF71F188F9A]
+	(No symbol) [0x00007FF71F1DF4C6]
+	(No symbol) [0x00007FF71F1DF77C]
+	(No symbol) [0x00007FF71F232577]
+	(No symbol) [0x00007FF71F2073BF]
+	(No symbol) [0x00007FF71F22F39C]
+	(No symbol) [0x00007FF71F207153]
+	(No symbol) [0x00007FF71F1D0421]
+	(No symbol) [0x00007FF71F1D11B3]
+	GetHandleVerifier [0x00007FF71F6BD71D+3223453]
+	GetHandleVerifier [0x00007FF71F6B7CC2+3200322]
+	GetHandleVerifier [0x00007FF71F6D5AF3+3322739]
+	GetHandleVerifier [0x00007FF71F3D6A1A+180890]
+	GetHandleVerifier [0x00007FF71F3DE11F+211359]
+	GetHandleVerifier [0x00007FF71F3C5294+109332]
+	GetHandleVerifier [0x00007FF71F3C5442+109762]
+	GetHandleVerifier [0x00007FF71F3ABA59+4825]
+	BaseThreadInitThunk [0x00007FF821F3E8D7+23]
+	RtlUserThreadStart [0x00007FF822F3C5DC+44]
+
+2025-05-26 07:06:53,718 - INFO - 제목 수집 완료: 속 편하고 노화도 늦춰주는 김밥, 이 조합 아.. : 네이버블로그
+2025-05-26 07:06:54,330 - INFO - 본문 내용 수집 완료 (길이: 1731)
+2025-05-26 07:06:54,338 - INFO - 작성자 수집 완료: 초대리
+2025-05-26 07:06:54,346 - INFO - 썸네일 수집 완료: https://postfiles.pstatic.net/MjAyNTA1MTFfMjk5/MDAxNzQ2OTQxNzA0NzQ4.__OYIszdKYZ9u80OjLu5GpUkANa_dYtx2vJ5tNB0VNsg.2fF27uolh42sTgg0TKsjoDhbTRHcMqAZAglR-5Q-uAcg.JPEG/IMG_7567.JPG?type=w966
+2025-05-26 07:06:54,372 - INFO - 좋아요 수집 완료: 32
+2025-05-26 07:06:54,380 - INFO - 댓글 수집 완료: 3
+2025-05-26 07:06:54,391 - INFO - 레시피 데이터 저장 완료: 속 편하고 노화도 늦춰주는 김밥, 이 조합 아.. : 네이버블로그
+2025-05-26 07:06:54,391 - INFO - [12/231] 토픽 페이지 진입: https://in.naver.com/woncook/topic/824760171009696
+2025-05-26 07:06:57,413 - INFO - 현재 URL: https://in.naver.com/woncook/topic/824760171009696
+2025-05-26 07:06:57,414 - INFO - 블로그에서 더보기 버튼 찾는 중...
+2025-05-26 07:06:57,433 - INFO - 블로그에서 더보기 버튼 발견
+2025-05-26 07:06:57,433 - INFO - 블로그에서 더보기 버튼 클릭 시도...
+2025-05-26 07:08:26,644 - INFO - 크롤러 초기화 시작
+2025-05-26 07:08:27,937 - INFO - package: mysql.connector.plugins
+2025-05-26 07:08:27,937 - INFO - plugin_name: caching_sha2_password
+2025-05-26 07:08:27,937 - INFO - AUTHENTICATION_PLUGIN_CLASS: MySQLCachingSHA2PasswordAuthPlugin
+2025-05-26 07:08:27,938 - INFO - package: mysql.connector.plugins
+2025-05-26 07:08:27,938 - INFO - plugin_name: mysql_native_password
+2025-05-26 07:08:27,939 - INFO - AUTHENTICATION_PLUGIN_CLASS: MySQLNativePasswordAuthPlugin
+2025-05-26 07:08:27,940 - INFO - 크롤러 초기화 완료
+2025-05-26 07:08:27,940 - INFO - 크롤러 시작: https://in.naver.com/discover/135968760155968
+2025-05-26 07:08:33,700 - INFO - 토픽 카드 로드 시작...
+2025-05-26 07:08:34,747 - INFO - 더보기 버튼 클릭 1/20
+2025-05-26 07:08:37,795 - INFO - 더보기 버튼 클릭 2/20
+2025-05-26 07:08:40,854 - INFO - 더보기 버튼 클릭 3/20
+2025-05-26 07:08:43,882 - INFO - 더보기 버튼 클릭 4/20
+2025-05-26 07:08:46,978 - INFO - 더보기 버튼 클릭 5/20
+2025-05-26 07:08:50,016 - INFO - 더보기 버튼 클릭 6/20
+2025-05-26 07:08:53,061 - INFO - 더보기 버튼 클릭 7/20
+2025-05-26 07:08:56,097 - INFO - 더보기 버튼 클릭 8/20
+2025-05-26 07:08:59,138 - INFO - 더보기 버튼 클릭 9/20
+2025-05-26 07:09:02,187 - INFO - 더보기 버튼 클릭 10/20
+2025-05-26 07:09:05,241 - INFO - 더보기 버튼 클릭 11/20
+2025-05-26 07:09:08,278 - INFO - 더보기 버튼 클릭 12/20
+2025-05-26 07:09:11,341 - INFO - 더보기 버튼 클릭 13/20
+2025-05-26 07:09:14,374 - INFO - 더보기 버튼 클릭 14/20
+2025-05-26 07:09:17,453 - INFO - 더보기 버튼 클릭 15/20
+2025-05-26 07:09:20,508 - INFO - 더보기 버튼 클릭 16/20
+2025-05-26 07:09:23,560 - INFO - 더보기 버튼 클릭 17/20
+2025-05-26 07:09:26,607 - INFO - 더보기 버튼 클릭 18/20
+2025-05-26 07:09:29,673 - INFO - 더보기 버튼 클릭 19/20
+2025-05-26 07:09:36,782 - INFO - 더보기 버튼을 찾을 수 없습니다. 모든 카드가 로드되었거나 페이지 구조가 변경되었습니다.
+2025-05-26 07:09:36,797 - INFO - 총 0개의 토픽 카드 링크 발견
+2025-05-26 07:09:36,797 - INFO - 스크롤 완료 후 발견된 토픽 링크 수: 0
+2025-05-26 07:09:37,837 - INFO - 푸드 토픽 카드 링크 수: 231
+2025-05-26 07:09:37,837 - INFO - [1/231] 토픽 페이지 진입: https://in.naver.com/loveme90000/topic/824967069132384
+2025-05-26 07:09:41,039 - INFO - 현재 URL: https://in.naver.com/loveme90000/topic/824967069132384
+2025-05-26 07:09:41,039 - INFO - 블로그에서 더보기 버튼 찾는 중...
+2025-05-26 07:09:41,076 - INFO - 블로그에서 더보기 버튼 발견
+2025-05-26 07:09:41,076 - INFO - 블로그에서 더보기 버튼 클릭 시도...
+2025-05-26 07:09:44,379 - INFO - 블로그 페이지로 이동 성공: https://blog.naver.com/loveme90000/223871478139?isInf=true&trackingCode=naver_etc
+2025-05-26 07:09:49,406 - INFO - iframe 전환 성공
+2025-05-26 07:09:59,619 - WARNING - 요소를 찾을 수 없음: css selector=h3.se-title-text, 오류: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF71F3BCF45+75717]
+	GetHandleVerifier [0x00007FF71F3BCFA0+75808]
+	(No symbol) [0x00007FF71F188F9A]
+	(No symbol) [0x00007FF71F1DF4C6]
+	(No symbol) [0x00007FF71F1DF77C]
+	(No symbol) [0x00007FF71F232577]
+	(No symbol) [0x00007FF71F2073BF]
+	(No symbol) [0x00007FF71F22F39C]
+	(No symbol) [0x00007FF71F207153]
+	(No symbol) [0x00007FF71F1D0421]
+	(No symbol) [0x00007FF71F1D11B3]
+	GetHandleVerifier [0x00007FF71F6BD71D+3223453]
+	GetHandleVerifier [0x00007FF71F6B7CC2+3200322]
+	GetHandleVerifier [0x00007FF71F6D5AF3+3322739]
+	GetHandleVerifier [0x00007FF71F3D6A1A+180890]
+	GetHandleVerifier [0x00007FF71F3DE11F+211359]
+	GetHandleVerifier [0x00007FF71F3C5294+109332]
+	GetHandleVerifier [0x00007FF71F3C5442+109762]
+	GetHandleVerifier [0x00007FF71F3ABA59+4825]
+	BaseThreadInitThunk [0x00007FF821F3E8D7+23]
+	RtlUserThreadStart [0x00007FF822F3C5DC+44]
+
+2025-05-26 07:10:09,853 - WARNING - 요소를 찾을 수 없음: css selector=h2.se-title-text, 오류: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF71F3BCF45+75717]
+	GetHandleVerifier [0x00007FF71F3BCFA0+75808]
+	(No symbol) [0x00007FF71F188F9A]
+	(No symbol) [0x00007FF71F1DF4C6]
+	(No symbol) [0x00007FF71F1DF77C]
+	(No symbol) [0x00007FF71F232577]
+	(No symbol) [0x00007FF71F2073BF]
+	(No symbol) [0x00007FF71F22F39C]
+	(No symbol) [0x00007FF71F207153]
+	(No symbol) [0x00007FF71F1D0421]
+	(No symbol) [0x00007FF71F1D11B3]
+	GetHandleVerifier [0x00007FF71F6BD71D+3223453]
+	GetHandleVerifier [0x00007FF71F6B7CC2+3200322]
+	GetHandleVerifier [0x00007FF71F6D5AF3+3322739]
+	GetHandleVerifier [0x00007FF71F3D6A1A+180890]
+	GetHandleVerifier [0x00007FF71F3DE11F+211359]
+	GetHandleVerifier [0x00007FF71F3C5294+109332]
+	GetHandleVerifier [0x00007FF71F3C5442+109762]
+	GetHandleVerifier [0x00007FF71F3ABA59+4825]
+	BaseThreadInitThunk [0x00007FF821F3E8D7+23]
+	RtlUserThreadStart [0x00007FF822F3C5DC+44]
+
+2025-05-26 07:10:20,068 - WARNING - 요소를 찾을 수 없음: css selector=strong.title_post, 오류: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF71F3BCF45+75717]
+	GetHandleVerifier [0x00007FF71F3BCFA0+75808]
+	(No symbol) [0x00007FF71F188F9A]
+	(No symbol) [0x00007FF71F1DF4C6]
+	(No symbol) [0x00007FF71F1DF77C]
+	(No symbol) [0x00007FF71F232577]
+	(No symbol) [0x00007FF71F2073BF]
+	(No symbol) [0x00007FF71F22F39C]
+	(No symbol) [0x00007FF71F207153]
+	(No symbol) [0x00007FF71F1D0421]
+	(No symbol) [0x00007FF71F1D11B3]
+	GetHandleVerifier [0x00007FF71F6BD71D+3223453]
+	GetHandleVerifier [0x00007FF71F6B7CC2+3200322]
+	GetHandleVerifier [0x00007FF71F6D5AF3+3322739]
+	GetHandleVerifier [0x00007FF71F3D6A1A+180890]
+	GetHandleVerifier [0x00007FF71F3DE11F+211359]
+	GetHandleVerifier [0x00007FF71F3C5294+109332]
+	GetHandleVerifier [0x00007FF71F3C5442+109762]
+	GetHandleVerifier [0x00007FF71F3ABA59+4825]
+	BaseThreadInitThunk [0x00007FF821F3E8D7+23]
+	RtlUserThreadStart [0x00007FF822F3C5DC+44]
+
+2025-05-26 07:10:20,071 - INFO - 제목 수집 완료: 부추양파무침 요리 레시피 백종원 양파김치 만들기 : 네이버 블로그
+2025-05-26 07:10:20,458 - INFO - 본문 내용 수집 완료 (길이: 914)
+2025-05-26 07:10:20,465 - INFO - 작성자 수집 완료: 골드스푼
+2025-05-26 07:10:20,473 - INFO - 썸네일 수집 완료: https://postfiles.pstatic.net/MjAyNTA1MjBfMTc4/MDAxNzQ3NzA2MDkwMDUx.RSup4mpnhAktU0B6wNcf8u8yd787prTLVa7LnF2wwV0g.MOzTcY2MXKFX8ws5h1mrDxwSF48qXtvkEK93S1ZH9_Ig.JPEG/SE-da73f4d8-1efc-4026-98d0-06e7cec659e0.jpg?type=w966
+2025-05-26 07:10:20,494 - INFO - 좋아요 수집 완료: 40
+2025-05-26 07:10:20,501 - INFO - 댓글 수집 완료: 27
+2025-05-26 07:10:20,512 - INFO - 레시피 데이터 저장 완료: 부추양파무침 요리 레시피 백종원 양파김치 만들기 : 네이버 블로그
+2025-05-26 07:10:20,512 - INFO - [2/231] 토픽 페이지 진입: https://in.naver.com/plusx/topic/825317590296096
+2025-05-26 07:10:23,527 - INFO - 현재 URL: https://in.naver.com/plusx/topic/825317590296096
+2025-05-26 07:10:23,527 - INFO - 블로그에서 더보기 버튼 찾는 중...
+2025-05-26 07:10:23,543 - INFO - 블로그에서 더보기 버튼 발견
+2025-05-26 07:10:23,543 - INFO - 블로그에서 더보기 버튼 클릭 시도...
+2025-05-26 07:10:27,011 - INFO - 블로그 페이지로 이동 성공: https://blog.naver.com/plusx_/223872734297?isInf=true&trackingCode=naver_etc
+2025-05-26 07:10:32,046 - INFO - iframe 전환 성공
+2025-05-26 07:10:42,248 - WARNING - 요소를 찾을 수 없음: css selector=h3.se-title-text, 오류: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF71F3BCF45+75717]
+	GetHandleVerifier [0x00007FF71F3BCFA0+75808]
+	(No symbol) [0x00007FF71F188F9A]
+	(No symbol) [0x00007FF71F1DF4C6]
+	(No symbol) [0x00007FF71F1DF77C]
+	(No symbol) [0x00007FF71F232577]
+	(No symbol) [0x00007FF71F2073BF]
+	(No symbol) [0x00007FF71F22F39C]
+	(No symbol) [0x00007FF71F207153]
+	(No symbol) [0x00007FF71F1D0421]
+	(No symbol) [0x00007FF71F1D11B3]
+	GetHandleVerifier [0x00007FF71F6BD71D+3223453]
+	GetHandleVerifier [0x00007FF71F6B7CC2+3200322]
+	GetHandleVerifier [0x00007FF71F6D5AF3+3322739]
+	GetHandleVerifier [0x00007FF71F3D6A1A+180890]
+	GetHandleVerifier [0x00007FF71F3DE11F+211359]
+	GetHandleVerifier [0x00007FF71F3C5294+109332]
+	GetHandleVerifier [0x00007FF71F3C5442+109762]
+	GetHandleVerifier [0x00007FF71F3ABA59+4825]
+	BaseThreadInitThunk [0x00007FF821F3E8D7+23]
+	RtlUserThreadStart [0x00007FF822F3C5DC+44]
+
+2025-05-26 07:10:52,443 - WARNING - 요소를 찾을 수 없음: css selector=h2.se-title-text, 오류: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF71F3BCF45+75717]
+	GetHandleVerifier [0x00007FF71F3BCFA0+75808]
+	(No symbol) [0x00007FF71F188F9A]
+	(No symbol) [0x00007FF71F1DF4C6]
+	(No symbol) [0x00007FF71F1DF77C]
+	(No symbol) [0x00007FF71F232577]
+	(No symbol) [0x00007FF71F2073BF]
+	(No symbol) [0x00007FF71F22F39C]
+	(No symbol) [0x00007FF71F207153]
+	(No symbol) [0x00007FF71F1D0421]
+	(No symbol) [0x00007FF71F1D11B3]
+	GetHandleVerifier [0x00007FF71F6BD71D+3223453]
+	GetHandleVerifier [0x00007FF71F6B7CC2+3200322]
+	GetHandleVerifier [0x00007FF71F6D5AF3+3322739]
+	GetHandleVerifier [0x00007FF71F3D6A1A+180890]
+	GetHandleVerifier [0x00007FF71F3DE11F+211359]
+	GetHandleVerifier [0x00007FF71F3C5294+109332]
+	GetHandleVerifier [0x00007FF71F3C5442+109762]
+	GetHandleVerifier [0x00007FF71F3ABA59+4825]
+	BaseThreadInitThunk [0x00007FF821F3E8D7+23]
+	RtlUserThreadStart [0x00007FF822F3C5DC+44]
+
+2025-05-26 07:11:02,661 - WARNING - 요소를 찾을 수 없음: css selector=strong.title_post, 오류: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF71F3BCF45+75717]
+	GetHandleVerifier [0x00007FF71F3BCFA0+75808]
+	(No symbol) [0x00007FF71F188F9A]
+	(No symbol) [0x00007FF71F1DF4C6]
+	(No symbol) [0x00007FF71F1DF77C]
+	(No symbol) [0x00007FF71F232577]
+	(No symbol) [0x00007FF71F2073BF]
+	(No symbol) [0x00007FF71F22F39C]
+	(No symbol) [0x00007FF71F207153]
+	(No symbol) [0x00007FF71F1D0421]
+	(No symbol) [0x00007FF71F1D11B3]
+	GetHandleVerifier [0x00007FF71F6BD71D+3223453]
+	GetHandleVerifier [0x00007FF71F6B7CC2+3200322]
+	GetHandleVerifier [0x00007FF71F6D5AF3+3322739]
+	GetHandleVerifier [0x00007FF71F3D6A1A+180890]
+	GetHandleVerifier [0x00007FF71F3DE11F+211359]
+	GetHandleVerifier [0x00007FF71F3C5294+109332]
+	GetHandleVerifier [0x00007FF71F3C5442+109762]
+	GetHandleVerifier [0x00007FF71F3ABA59+4825]
+	BaseThreadInitThunk [0x00007FF821F3E8D7+23]
+	RtlUserThreadStart [0x00007FF822F3C5DC+44]
+
+2025-05-26 07:11:02,666 - INFO - 제목 수집 완료: 다이어트 간식 추천, 바삭 에어프라이어 감자칩 : 네이버 블로그
+2025-05-26 07:11:03,492 - INFO - 본문 내용 수집 완료 (길이: 1682)
+2025-05-26 07:11:03,498 - INFO - 작성자 수집 완료: 엑스x
+2025-05-26 07:11:03,503 - INFO - 썸네일 수집 완료: https://postfiles.pstatic.net/MjAyNTA1MjFfMjY1/MDAxNzQ3NzkyNDgxMzgy.c2j1sX-zrV7FWXXMLS7JTup15jlLzJwf8b02gaVHxVUg.bw67HppyXEA4V5rOrP7wNEwmFDg-uFF7eUoS6ntboNcg.JPEG/DSC06121.jpg?type=w966
+2025-05-26 07:11:03,531 - INFO - 좋아요 수집 완료: 38
+2025-05-26 07:11:03,543 - INFO - 댓글 수집 완료: 3
+2025-05-26 07:11:03,544 - ERROR - 데이터베이스 저장 실패: 1062 (23000): Duplicate entry 'https://blog.naver.com/plusx_/223872734297?isInf=true&trackingCo' for key 'recipes.unique_link'
+2025-05-26 07:11:03,545 - INFO - [3/231] 토픽 페이지 진입: https://in.naver.com/yong2mom/topic/823299175343712
+2025-05-26 07:11:06,060 - INFO - 현재 URL: https://in.naver.com/yong2mom/topic/823299175343712
+2025-05-26 07:11:06,060 - INFO - 블로그에서 더보기 버튼 찾는 중...
+2025-05-26 07:11:06,071 - INFO - 블로그에서 더보기 버튼 발견
+2025-05-26 07:11:06,071 - INFO - 블로그에서 더보기 버튼 클릭 시도...
+2025-05-26 07:11:09,436 - INFO - 블로그 페이지로 이동 성공: https://blog.naver.com/bhl1960/223866094645?isInf=true&trackingCode=naver_etc
+2025-05-26 07:11:14,458 - INFO - iframe 전환 성공
+2025-05-26 07:11:24,630 - WARNING - 요소를 찾을 수 없음: css selector=h3.se-title-text, 오류: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF71F3BCF45+75717]
+	GetHandleVerifier [0x00007FF71F3BCFA0+75808]
+	(No symbol) [0x00007FF71F188F9A]
+	(No symbol) [0x00007FF71F1DF4C6]
+	(No symbol) [0x00007FF71F1DF77C]
+	(No symbol) [0x00007FF71F232577]
+	(No symbol) [0x00007FF71F2073BF]
+	(No symbol) [0x00007FF71F22F39C]
+	(No symbol) [0x00007FF71F207153]
+	(No symbol) [0x00007FF71F1D0421]
+	(No symbol) [0x00007FF71F1D11B3]
+	GetHandleVerifier [0x00007FF71F6BD71D+3223453]
+	GetHandleVerifier [0x00007FF71F6B7CC2+3200322]
+	GetHandleVerifier [0x00007FF71F6D5AF3+3322739]
+	GetHandleVerifier [0x00007FF71F3D6A1A+180890]
+	GetHandleVerifier [0x00007FF71F3DE11F+211359]
+	GetHandleVerifier [0x00007FF71F3C5294+109332]
+	GetHandleVerifier [0x00007FF71F3C5442+109762]
+	GetHandleVerifier [0x00007FF71F3ABA59+4825]
+	BaseThreadInitThunk [0x00007FF821F3E8D7+23]
+	RtlUserThreadStart [0x00007FF822F3C5DC+44]
+
+2025-05-26 07:11:34,822 - WARNING - 요소를 찾을 수 없음: css selector=h2.se-title-text, 오류: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF71F3BCF45+75717]
+	GetHandleVerifier [0x00007FF71F3BCFA0+75808]
+	(No symbol) [0x00007FF71F188F9A]
+	(No symbol) [0x00007FF71F1DF4C6]
+	(No symbol) [0x00007FF71F1DF77C]
+	(No symbol) [0x00007FF71F232577]
+	(No symbol) [0x00007FF71F2073BF]
+	(No symbol) [0x00007FF71F22F39C]
+	(No symbol) [0x00007FF71F207153]
+	(No symbol) [0x00007FF71F1D0421]
+	(No symbol) [0x00007FF71F1D11B3]
+	GetHandleVerifier [0x00007FF71F6BD71D+3223453]
+	GetHandleVerifier [0x00007FF71F6B7CC2+3200322]
+	GetHandleVerifier [0x00007FF71F6D5AF3+3322739]
+	GetHandleVerifier [0x00007FF71F3D6A1A+180890]
+	GetHandleVerifier [0x00007FF71F3DE11F+211359]
+	GetHandleVerifier [0x00007FF71F3C5294+109332]
+	GetHandleVerifier [0x00007FF71F3C5442+109762]
+	GetHandleVerifier [0x00007FF71F3ABA59+4825]
+	BaseThreadInitThunk [0x00007FF821F3E8D7+23]
+	RtlUserThreadStart [0x00007FF822F3C5DC+44]
+

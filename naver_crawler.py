@@ -44,7 +44,7 @@ class NaverCrawler:
             return None
 
     def crawl_naver_influencer_discover(self):
-        """네이버 인플루언서 디스커버 섹션의 푸드 토픽을 크롤링 (동적 스크롤 및 안전 탐색)"""
+        """네이버 인플루언서 디스커버 섹션의 푸드 토픽을 크롤링"""
         try:
             print("\n[인플루언서] 디스커버 페이지 접속 중...")
             discover_url = "https://in.naver.com/discover/135968760155968"
@@ -71,6 +71,8 @@ class NaverCrawler:
             topic_section = topic_title.find_element(By.XPATH, "../../..")
             card_area = topic_section.find_element(By.CSS_SELECTOR, "div.CollectionTopic__root___OXVxW")
             print("[인플루언서] 카드 링크 수집 중...")
+            
+            # 카드 링크 수집
             card_links = []
             topic_cards = card_area.find_elements(By.CSS_SELECTOR, "div.CollectionTopicCard__root___rv6dQ")
             for card in topic_cards:
@@ -83,6 +85,7 @@ class NaverCrawler:
 
             print(f"[인플루언서] {len(card_links)}개의 카드 링크 수집 완료")
             
+            # 각 카드 처리
             for i, link in enumerate(card_links):
                 try:
                     print(f"\n[인플루언서] {i+1}번째 카드 처리 중...")
@@ -90,52 +93,32 @@ class NaverCrawler:
                     self.driver.get(link)
                     time.sleep(3)
 
-                    # 상세 페이지 HTML 저장 (디버깅용)
-                    with open(f"influencer_detail_{i+1}.html", "w", encoding="utf-8") as f:
-                        f.write(self.driver.page_source)
-                    print(f"[인플루언서] {i+1}번째 카드 HTML 저장 완료")
+                    # "블로그에서 더보기" 링크 찾기
+                    blog_link = self.wait_for_element(By.CSS_SELECTOR, "a.TopicContent__link___HTKpK")
+                    if not blog_link:
+                        print(f"[인플루언서] {i+1}번째 카드에서 블로그 링크를 찾을 수 없습니다.")
+                        continue
 
-                    # window.__APOLLO_STATE__가 로딩될 때까지 최대 10초간 반복 체크
-                    apollo_state = None
-                    max_retries = 20  # 10초 (0.5초 * 20)
-                    for attempt in range(max_retries):
-                        try:
-                            apollo_state = self.driver.execute_script("return window.__APOLLO_STATE__ || null;")
-                            if apollo_state:
-                                print(f"[인플루언서] {i+1}번째 카드의 Apollo state 로드 성공 (시도 {attempt + 1}/{max_retries})")
-                                break
-                            else:
-                                print(f"[인플루언서] {i+1}번째 카드의 Apollo state 로드 대기 중... (시도 {attempt + 1}/{max_retries})")
-                        except Exception as e:
-                            print(f"[인플루언서] Apollo state 체크 중 오류 발생: {str(e)}")
-                        time.sleep(0.5)
+                    blog_url = blog_link.get_attribute("href")
+                    if not blog_url:
+                        print(f"[인플루언서] {i+1}번째 카드의 블로그 URL이 없습니다.")
+                        continue
 
-                    found_blog = False
-                    if apollo_state:
-                        print(f"[인플루언서] {i+1}번째 카드의 Apollo state 분석 중...")
-                        for key, value in apollo_state.items():
-                            if key.startswith("Meta:") and isinstance(value, dict):
-                                url = value.get("url", "")
-                                if "blog.naver.com" in url:
-                                    print(f"[인플루언서] {i+1}번째 카드의 블로그 글 URL 추출 성공: {url}")
-                                    match = re.search(r'blog\\.naver\\.com/([^/]+)/([0-9]+)', url)
-                                    if not match:
-                                        match = re.search(r'blog.naver.com/([^/]+)/([0-9]+)', url)
-                                    if match:
-                                        blog_id = match.group(1)
-                                        log_no = match.group(2)
-                                        print(f"[인플루언서] 블로그 ID: {blog_id}, 로그 번호: {log_no}")
-                                        self.crawl_naver_blog(blog_id, log_no, platform="naver(인플루언서핫토픽)")
-                                        found_blog = True
-                                        break
-                        if not found_blog:
-                            print(f"[인플루언서] {i+1}번째 카드에서 블로그 URL을 찾을 수 없습니다.")
-                    else:
-                        print(f"[인플루언서] {i+1}번째 카드의 Apollo state를 찾을 수 없습니다.")
+                    # 블로그 URL에서 blog_id와 log_no 추출
+                    match = re.search(r'blog\.naver\.com/([^/]+)/(\d+)', blog_url)
+                    if not match:
+                        print(f"[인플루언서] {i+1}번째 카드의 블로그 URL 파싱 실패: {blog_url}")
+                        continue
+
+                    blog_id = match.group(1)
+                    log_no = match.group(2)
+                    print(f"[인플루언서] {i+1}번째 카드의 블로그 크롤링 시작 (ID: {blog_id}, LogNo: {log_no})")
+                    self.crawl_naver_blog(blog_id, log_no, platform="naver(인플루언서핫토픽)")
 
                 except Exception as e:
                     print(f"[인플루언서] {i+1}번째 카드 처리 실패: {e}")
                     continue
+
         except Exception as e:
             print(f"[인플루언서] 크롤링 중 오류 발생: {str(e)}")
 
