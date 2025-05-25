@@ -8,7 +8,8 @@ markdown
 extract_keywords_dual_view.py                  ㅣ 수집된 레시피 텍스트에서 명사 기반 및 띄어쓰기 기반 키워드를 추출하여 CSV로 저장. Komoran 형태소 분석기 사용. 전체 저장 모두 지원.
 ingredient_text_utils.py                       ㅣ 재료 텍스트 전처리 및 추출에 필요한 유틸리티 함수 정의 (예: 정규표현식, 필터링 함수 등).
 update_used_ingredients_batch.py               ㅣ 레시피 텍스트에서 추출한 재료 결과(`used_ingredients`)를 데이터셋에 반영하는 배치 처리 로직 구현. refrigerator_crawler.py 실행 후 자동으로 실행됨.
-refrigerator_crawler.py                        ㅣ Naver 블로그 및 YouTube에서 레시피 포스트를 크롤링하고 필요한 텍스트 데이터를 수집. 실행 완료 후 자동으로 update_used_ingredients_batch.py를 실행.
+crawling/naver_crawler.py                      ㅣ 네이버 블로그 및 인플루언서에서 레시피 포스트를 크롤링하고 필요한 텍스트 데이터를 수집. 실행 완료 후 자동으로 update_used_ingredients_batch.py를 실행.
+crawling/youtube_crawler.py                    ㅣ YouTube에서 레시피 영상을 크롤링하고 필요한 텍스트 데이터를 수집. (개발 예정)
 export_recipes_all.ipynb                       ㅣ 수집된 레시피 데이터를 가공·요약·정제하는 보조 코드.
 generate_substitutes2_by_trait_similarity.ipynbㅣ 사전내에서 재료의 특징 패턴을 찾아 대체제를 자동으로 채워주는 코드. 
 ----------------------------------------------------------------------------------------
@@ -167,7 +168,7 @@ VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
 - **ingredientPillUtils.ts**: 재료 pill 분류/정규화 유틸
 - **dummyData.ts**: 더미 데이터(테스트/로컬 개발용)
 
-## 📌 특징 및 데이터 흐름
+## 🌟 특징 및 데이터 흐름
 - **RecipeSortBar, RecipeCard, filterRecipes 등 공통 컴포넌트/유틸**을 모든 레시피 리스트 페이지에서 사용
 - **필터/정렬/카드 UI/로직을 한 곳만 수정하면 전체 페이지에 반영**
 - **props/state로 데이터 흐름이 명확** (상위 페이지에서 상태 관리, 하위 컴포넌트에 전달)
@@ -306,4 +307,33 @@ VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
 
 - 네이버 postfiles 이미지가 외부에서 차단되는 문제를 해결하기 위해 `getProxiedImageUrl` 유틸 함수를 도입하고, 모든 레시피 썸네일 이미지에 적용함 (냉장고 요리, 요즘인기 등)
 - `getProxiedImageUrl` 함수는 `frontend/src/utils/imageUtils.ts`에 위치하며, 네이버 postfiles 이미지를 weserv.nl 프록시로 우회하여 정상적으로 표시되도록 함
+
+✅ 2. 크롤링 대상 및 구조
+----------------------------------------------------------------------------------------
+크롤링 대상                                    ㅣ 설명
+----------------------------------------------------------------------------------------
+1. 네이버 블로그 > 주제별보기 > 요리/레시피     ㅣ URL: https://section.blog.naver.com/ThemePost.naver?directoryNo=20&activeDirectorySeq=2
+                                            ㅣ 위치: 생활/노하우/쇼핑 > 요리/레시피
+                                            ㅣ 필터: 제목에 '레시피', '만드는', '만들기', '요리', '끓이', '하는법' 포함
+
+2. 네이버 인플루언서 > 푸드 > 지금 핫한 토픽  ㅣ URL: https://in.naver.com/discover/135968760155968
+                                            ㅣ 특징: 네이버에서 선정한 영향력 있는 인플루언서들의 요리 콘텐츠
+                                            ㅣ 필터: 제목에 '레시피', '만드는', '만들기', '요리', '끓이', '하는법' 포함
+
+3. YouTube 레시피 채널                        ㅣ 개발 예정
+                                            ㅣ 특징: 조회수, 좋아요, 댓글수 등 추가 메트릭 수집
+----------------------------------------------------------------------------------------
+
+✅ 3. 크롤링 코드 구조
+```
+crawling/
+├── common/
+│   ├── __init__.py
+│   ├── base_crawler.py        # 기본 크롤러 클래스
+│   ├── data_models.py         # 공통 데이터 모델
+│   └── constants.py          # 공통 상수 (키워드, DB 스키마 등)
+├── naver_crawler.py          # 네이버 크롤러 (블로그 + 인플루언서)
+├── youtube_crawler.py        # 유튜브 크롤러 (개발 예정)
+└── main_crawler.py           # 메인 실행 파일
+```
 
