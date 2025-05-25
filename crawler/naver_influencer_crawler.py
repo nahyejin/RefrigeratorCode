@@ -12,6 +12,7 @@ from selenium.common.exceptions import TimeoutException, NoSuchElementException,
 import random
 import logging
 from crawling.common.constants import RECIPE_KEYWORDS
+import subprocess
 
 # 로깅 설정
 logging.basicConfig(
@@ -136,9 +137,10 @@ class NaverDiscoverCrawler:
                 return
 
             # 3. 각 토픽 카드 상세 페이지 진입
+            total_topics = len(topic_links)
             for idx, topic_url in enumerate(topic_links, 1):
                 try:
-                    logger.info(f"[{idx}/{len(topic_links)}] 토픽 페이지 진입: {topic_url}")
+                    logger.info(f"[큐레이션 진행률] {idx}/{total_topics} ({int(idx/total_topics*100)}%) 토픽 페이지 진입: {topic_url}")
                     self.driver.get(topic_url)
                     time.sleep(random.uniform(2, 3))
 
@@ -158,9 +160,10 @@ class NaverDiscoverCrawler:
                         logger.error(f"버튼 찾기 실패: {e}")
 
                     # 각 블로그에서 더보기 버튼을 모두 클릭하여 원문 수집
+                    total_blogs = len(blog_btns)
                     for btn_idx, blog_btn in enumerate(blog_btns, 1):
                         try:
-                            logger.info(f"[{btn_idx}/{len(blog_btns)}] 블로그에서 더보기 버튼 클릭 시도...")
+                            logger.info(f"[블로그 진행률] {btn_idx}/{total_blogs} ({int(btn_idx/total_blogs*100)}%) 블로그에서 더보기 버튼 클릭 시도...")
                             # 새 창/탭이 열리도록 shift+click (혹은 JS window.open)
                             self.driver.execute_script("window.open(arguments[0].href, '_blank');", blog_btn)
                             time.sleep(2)
@@ -315,7 +318,12 @@ class NaverDiscoverCrawler:
         except Exception as e:
             logger.error(f"크롤링 중 오류 발생: {e}")
         finally:
-            logger.info("크롤링 종료")
+            logger.info("크롤링 종료. update_used_ingredients_batch.py 실행 시도...")
+            try:
+                subprocess.run(['python', 'ingredient-management/update_used_ingredients_batch.py'], check=True)
+                logger.info("update_used_ingredients_batch.py 실행 완료")
+            except Exception as e:
+                logger.error(f"update_used_ingredients_batch.py 실행 실패: {e}")
             self.driver.quit()
 
 if __name__ == "__main__":
