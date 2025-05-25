@@ -427,5 +427,35 @@ crawler/
 
 ---
 
+## 🍳 레시피 크롤링/저장 기준 및 키워드 관리
+
+### 1. 저장/수집 공통 조건
+
+- 아래 3개 필드 중 하나라도 값이 없으면 해당 레시피는 저장하지 않음
+  - content (본문)
+  - author (작성자)
+  - thumbnail (썸네일 이미지)
+- 모든 필드는 크롤링 시점에 값이 존재해야 하며, 값이 없을 경우 로그에 남기고 저장하지 않음
+
+### 2. 필터 키워드 적용 방식
+
+- **네이버 인플루언서 핫토픽**
+  - 큐레이션(토픽) 페이지에서 '블로그에서 더보기' 버튼을 모두 탐색
+  - 각 버튼을 클릭해 블로그 원문(새 창/탭)으로 이동
+  - **블로그 원문의 제목**에 필터 키워드(`RECIPE_KEYWORDS`) 중 하나라도 포함되어 있을 때만 수집
+
+- **네이버 블로그 주제별보기**
+  - 각 블로그 포스트의 **제목**에 필터 키워드(`RECIPE_KEYWORDS`) 중 하나라도 포함되어 있을 때만 수집
+
+- **필터 키워드 변경 시**: `crawling/common/constants.py`의 `RECIPE_KEYWORDS`만 수정하면 전체 크롤러에 반영됨
+
+### 3. 수동 관리 키워드/사전 파일 목록
+
+- `frontend/public/Filter_Keywords.csv`  : 레시피 카테고리, 테마, 효능 등 필터링에 사용되는 키워드 목록
+- `frontend/public/ingredient_profile_dict_with_substitutes.csv`  : 식재료별 프로필 및 대체재 정보
+- `frontend/public/ingredient_substitute_table.csv`  : 식재료 대체 가능성 사전
+
+---
+
 # ... existing code ...
 

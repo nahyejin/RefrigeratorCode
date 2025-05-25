@@ -11,6 +11,7 @@ from selenium.webdriver.chrome.options import Options
 from selenium.common.exceptions import TimeoutException, NoSuchElementException, WebDriverException
 import random
 import logging
+from crawling.common.constants import RECIPE_KEYWORDS
 
 # 로깅 설정
 logging.basicConfig(
@@ -141,37 +142,35 @@ class NaverDiscoverCrawler:
                     self.driver.get(topic_url)
                     time.sleep(random.uniform(2, 3))
 
-                    # 4. '블로그에서 더보기' 버튼 클릭
+                    # 4. '블로그에서 더보기' 버튼 모두 찾기
                     logger.info(f"현재 URL: {self.driver.current_url}")
-                    logger.info("블로그에서 더보기 버튼 찾는 중...")
-                    
-                    blog_btn = None
+                    logger.info("블로그에서 더보기 버튼들 모두 찾는 중...")
+                    blog_btns = []
                     try:
                         buttons = self.driver.find_elements(By.CSS_SELECTOR, 'a.TopicContent__link___HTKpK')
                         for btn in buttons:
                             if '블로그' in btn.text and '더보기' in btn.text:
-                                blog_btn = btn
-                                break
-                        if blog_btn:
-                            logger.info("블로그에서 더보기 버튼 발견")
-                        else:
+                                blog_btns.append(btn)
+                        logger.info(f"블로그에서 더보기 버튼 {len(blog_btns)}개 발견")
+                        if not blog_btns:
                             logger.warning("블로그에서 더보기 버튼을 찾을 수 없음")
                     except Exception as e:
                         logger.error(f"버튼 찾기 실패: {e}")
 
-                    if blog_btn:
+                    # 각 블로그에서 더보기 버튼을 모두 클릭하여 원문 수집
+                    for btn_idx, blog_btn in enumerate(blog_btns, 1):
                         try:
-                            logger.info("블로그에서 더보기 버튼 클릭 시도...")
-                            self.driver.execute_script("arguments[0].click();", blog_btn)
-                            time.sleep(random.uniform(3, 4))
-                            
+                            logger.info(f"[{btn_idx}/{len(blog_btns)}] 블로그에서 더보기 버튼 클릭 시도...")
+                            # 새 창/탭이 열리도록 shift+click (혹은 JS window.open)
+                            self.driver.execute_script("window.open(arguments[0].href, '_blank');", blog_btn)
+                            time.sleep(2)
+                            # 새 창으로 전환
+                            self.driver.switch_to.window(self.driver.window_handles[-1])
+                            time.sleep(3)
                             current_url = self.driver.current_url
                             if 'blog.naver.com' in current_url:
                                 logger.info(f"블로그 페이지로 이동 성공: {current_url}")
-                                
-                                time.sleep(5)
-                                
-                                # 블로그 글 수집 시작
+                                time.sleep(3)
                                 try:
                                     # iframe 전환 시도
                                     try:
@@ -197,6 +196,13 @@ class NaverDiscoverCrawler:
                                         logger.info(f"제목 수집 완료: {title}")
                                     except Exception as e:
                                         logger.error(f"제목 수집 실패: {e}")
+
+                                    # 필터 키워드 적용 (제목)
+                                    if not any(k in title for k in RECIPE_KEYWORDS):
+                                        logger.info(f"필터 키워드 미포함으로 저장하지 않음: {title}")
+                                        self.driver.close()
+                                        self.driver.switch_to.window(self.driver.window_handles[0])
+                                        continue
 
                                     # 본문 수집
                                     content = ''
@@ -266,10 +272,14 @@ class NaverDiscoverCrawler:
                                     except Exception as e:
                                         logger.error(f"댓글 수 수집 실패: {e}")
 
-                                    # 데이터베이스 저장 전 필수값 체크
+                                    # 필수값 체크
                                     if not content or not author or not thumbnail:
                                         logger.warning(f"필수값 누락으로 저장하지 않음: title={title}, author={author}, thumbnail={thumbnail}, content_length={len(content)}")
+                                        self.driver.close()
+                                        self.driver.switch_to.window(self.driver.window_handles[0])
                                         continue
+
+                                    # 데이터베이스 저장
                                     try:
                                         recipe_data = {
                                             'title': title,
@@ -293,10 +303,11 @@ class NaverDiscoverCrawler:
 
                                 except Exception as e:
                                     logger.error(f"블로그 글 수집 중 오류 발생: {e}")
-                            else:
-                                logger.warning(f"블로그 페이지로 이동 실패: {current_url}")
+                            # 창 닫고 원래 창으로 복귀
+                            self.driver.close()
+                            self.driver.switch_to.window(self.driver.window_handles[0])
                         except Exception as e:
-                            logger.error(f"블로그에서 더보기 버튼 클릭 실패: {e}")
+                            logger.error(f"블로그에서 더보기 버튼 클릭/수집 실패: {e}")
                 except Exception as e:
                     logger.error(f"토픽 페이지 처리 중 오류 발생: {e}")
                     continue
