@@ -385,3 +385,37 @@ crawling/
 └── main_crawler.py           # 메인 실행 파일
 ```
 
+## 크롤러 구조
+```
+crawler/
+├── naver_influencer_crawler.py  # 네이버 인플루언서 핫토픽 수집
+├── naver_blog_crawler.py        # 네이버 블로그 주제별보기 수집
+├── youtube_crawler.py           # 유튜브 수집 (향후 구현)
+└── database.py                  # 데이터베이스 연결 및 관리
+```
+
+### 크롤러 실행 방법
+
+1. **네이버 인플루언서 핫토픽 수집**
+   ```bash
+   python -m crawler.naver_influencer_crawler
+   ```
+   - 수집 대상: 네이버 인플루언서 푸드 섹션 (https://in.naver.com/discover/135968760155968)
+   - 저장되는 platform 값: `naver(인플루언서핫토픽)`
+
+2. **네이버 블로그 주제별보기 수집**
+   ```bash
+   python -m crawler.naver_blog_crawler
+   ```
+   - 수집 대상: 네이버 블로그 주제별보기 > 요리/레시피 (https://section.blog.naver.com/ThemePost.naver?directoryNo=20&activeDirectorySeq=2)
+   - 저장되는 platform 값: `naver(주제별보기)`
+
+3. **유튜브 수집** (향후 구현)
+   ```bash
+   python -m crawler.youtube_crawler
+   ```
+   - 수집 대상: 유튜브 요리/레시피 채널
+   - 저장되는 platform 값: `youtube`
+
+# ... existing code ...
+

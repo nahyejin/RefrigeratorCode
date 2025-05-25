@@ -1,0 +1,53 @@
+2025-05-25 11:24:38,335 - main - INFO - 디스커버 게시물 크롤링 시작
+2025-05-25 11:25:34,293 - main - ERROR - 크롤링 중 오류 발생: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF65FDDCF45+75717]
+	GetHandleVerifier [0x00007FF65FDDCFA0+75808]
+	(No symbol) [0x00007FF65FBA8F9A]
+	(No symbol) [0x00007FF65FBFF4C6]
+	(No symbol) [0x00007FF65FBFF77C]
+	(No symbol) [0x00007FF65FC52577]
+	(No symbol) [0x00007FF65FC273BF]
+	(No symbol) [0x00007FF65FC4F39C]
+	(No symbol) [0x00007FF65FC27153]
+	(No symbol) [0x00007FF65FBF0421]
+	(No symbol) [0x00007FF65FBF11B3]
+	GetHandleVerifier [0x00007FF6600DD71D+3223453]
+	GetHandleVerifier [0x00007FF6600D7CC2+3200322]
+	GetHandleVerifier [0x00007FF6600F5AF3+3322739]
+	GetHandleVerifier [0x00007FF65FDF6A1A+180890]
+	GetHandleVerifier [0x00007FF65FDFE11F+211359]
+	GetHandleVerifier [0x00007FF65FDE5294+109332]
+	GetHandleVerifier [0x00007FF65FDE5442+109762]
+	GetHandleVerifier [0x00007FF65FDCBA59+4825]
+	BaseThreadInitThunk [0x00007FF84A28E8D7+23]
+	RtlUserThreadStart [0x00007FF84B7FC5DC+44]
+
+2025-05-25 11:32:42,866 - main - INFO - 디스커버 게시물 크롤링 시작
+2025-05-25 11:33:43,981 - main - ERROR - 크롤링 중 오류 발생: Message: 
+
+2025-05-25 11:34:43,949 - main - INFO - 디스커버 게시물 크롤링 시작
+2025-05-25 11:35:58,184 - main - ERROR - 크롤링 중 오류 발생: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF65FDDCF45+75717]
+	GetHandleVerifier [0x00007FF65FDDCFA0+75808]
+	(No symbol) [0x00007FF65FBA8F9A]
+	(No symbol) [0x00007FF65FBFF4C6]
+	(No symbol) [0x00007FF65FBFF77C]
+	(No symbol) [0x00007FF65FC52577]
+	(No symbol) [0x00007FF65FC273BF]
+	(No symbol) [0x00007FF65FC4F39C]
+	(No symbol) [0x00007FF65FC27153]
+	(No symbol) [0x00007FF65FBF0421]
+	(No symbol) [0x00007FF65FBF11B3]
+	GetHandleVerifier [0x00007FF6600DD71D+3223453]
+	GetHandleVerifier [0x00007FF6600D7CC2+3200322]
+	GetHandleVerifier [0x00007FF6600F5AF3+3322739]
+	GetHandleVerifier [0x00007FF65FDF6A1A+180890]
+	GetHandleVerifier [0x00007FF65FDFE11F+211359]
+	GetHandleVerifier [0x00007FF65FDE5294+109332]
+	GetHandleVerifier [0x00007FF65FDE5442+109762]
+	GetHandleVerifier [0x00007FF65FDCBA59+4825]
+	BaseThreadInitThunk [0x00007FF84A28E8D7+23]
+	RtlUserThreadStart [0x00007FF84B7FC5DC+44]
+
