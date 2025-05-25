@@ -49,24 +49,72 @@ extract_keywords_dual_view.py는 Komoran 기반으로 명사/띄어쓰기 단어
 ```
 RefrigeratorCode/
 ├── backend/                # 백엔드(서버) 코드
-├── frontend/               # 프론트엔드(React) 코드
-├── data/                   # 데이터 및 데이터 처리 스크립트
-├── crawling/               # 크롤링 관련 코드
-├── ingredient-management/  # 식재료 관리 기능
-├── utils/                  # 공통 유틸리티 함수
-├── node_modules/           # 프론트엔드 라이브러리(자동 생성)
-├── __pycache__/            # 파이썬 캐시(자동 생성)
-├── package.json            # 프론트엔드 의존성/스크립트
-├── package-lock.json       # 프론트엔드 의존성 고정
-└── PROJECT_OVERVIEW        # 프로젝트 설명 문서
+│   ├── api/               # API 엔드포인트
+│   ├── models/            # 데이터베이스 모델
+│   ├── services/          # 비즈니스 로직
+│   └── utils/             # 백엔드 유틸리티
+├── frontend/              # 프론트엔드(React) 코드
+│   ├── src/
+│   │   ├── components/    # 재사용 가능한 컴포넌트
+│   │   ├── pages/        # 페이지 컴포넌트
+│   │   ├── utils/        # 프론트엔드 유틸리티
+│   │   └── hooks/        # 커스텀 훅
+│   └── public/           # 정적 파일
+├── data/                  # 데이터 및 데이터 처리 스크립트
+│   ├── raw/              # 원본 데이터
+│   ├── processed/        # 가공된 데이터
+│   └── scripts/          # 데이터 처리 스크립트
+├── crawling/             # 크롤링 관련 코드
+│   ├── common/           # 공통 모듈
+│   │   ├── __init__.py   # 패키지 초기화
+│   │   ├── base_crawler.py # 기본 크롤러 클래스
+│   │   ├── data_models.py  # 데이터 모델 정의
+│   │   └── constants.py    # 공통 상수 정의
+│   ├── naver_crawler.py    # 네이버 크롤러
+│   ├── youtube_crawler.py  # (개발 예정)
+│   └── main_crawler.py     # 메인 실행 파일
+├── ingredient-management/ # 식재료 관리 기능
+│   ├── models/           # 식재료 데이터 모델
+│   ├── services/         # 식재료 관련 서비스
+│   └── utils/            # 식재료 관련 유틸리티
+├── utils/                # 공통 유틸리티 함수
+│   ├── text/            # 텍스트 처리 유틸리티
+│   ├── db/              # 데이터베이스 유틸리티
+│   └── validation/      # 데이터 검증 유틸리티
+├── node_modules/         # 프론트엔드 라이브러리(자동 생성)
+├── __pycache__/          # 파이썬 캐시(자동 생성)
+├── package.json          # 프론트엔드 의존성/스크립트
+├── package-lock.json     # 프론트엔드 의존성 고정
+└── PROJECT_OVERVIEW      # 프로젝트 설명 문서
 ```
 
 - **backend/**: 백엔드(서버) 코드 및 API
+  - **api/**: RESTful API 엔드포인트 정의
+  - **models/**: 데이터베이스 모델 및 스키마
+  - **services/**: 비즈니스 로직 및 서비스 레이어
+  - **utils/**: 백엔드 전용 유틸리티 함수
 - **frontend/**: 프론트엔드(React) 코드
-- **data/**: 데이터 파일, 데이터 처리 스크립트
+  - **components/**: 재사용 가능한 UI 컴포넌트
+  - **pages/**: 페이지 단위 컴포넌트
+  - **utils/**: 프론트엔드 유틸리티 함수
+  - **hooks/**: 커스텀 React 훅
+- **data/**: 데이터 및 데이터 처리 스크립트
+  - **raw/**: 크롤링된 원본 데이터
+  - **processed/**: 가공/정제된 데이터
+  - **scripts/**: 데이터 처리 및 분석 스크립트
 - **crawling/**: 크롤링(데이터 수집) 관련 코드
+  - **common/**: 크롤러 공통 모듈 (기본 클래스, 데이터 모델, 상수 등)
+  - **naver_crawler.py**: 네이버 블로그/인플루언서 크롤러
+  - **youtube_crawler.py**: 유튜브 크롤러 (개발 예정)
+  - **main_crawler.py**: 크롤러 실행 진입점
 - **ingredient-management/**: 식재료 관리 기능/모듈
+  - **models/**: 식재료 데이터 모델 및 스키마
+  - **services/**: 식재료 관련 비즈니스 로직
+  - **utils/**: 식재료 관련 유틸리티 함수
 - **utils/**: 공통 유틸리티 함수 및 모듈
+  - **text/**: 텍스트 처리 및 분석 유틸리티
+  - **db/**: 데이터베이스 관련 유틸리티
+  - **validation/**: 데이터 검증 및 정제 유틸리티
 - **node_modules/**: 프론트엔드 라이브러리(자동 생성, 직접 수정 X)
 - **__pycache__/**: 파이썬 캐시(자동 생성, 직접 수정 X)
 - **package.json / package-lock.json**: 프론트엔드 의존성 및 스크립트 관리
