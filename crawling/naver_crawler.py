@@ -300,16 +300,20 @@ class NaverCrawler(BaseCrawler):
         print("✅ 저장 완료")
     
     def _run_ingredients_update(self):
-        """Run ingredients update batch."""
+        """Run the ingredients update batch script after crawling is complete."""
         try:
-            # Add parent directory to path
-            sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            print("\n🔄 재료 정보 업데이트 배치 실행 중...")
+            batch_script = os.path.join(os.path.dirname(os.path.dirname(__file__)), 
+                                      "ingredient-management", 
+                                      "update_used_ingredients_batch.py")
             
-            # Import and run update_used_ingredients_batch
-            from update_used_ingredients_batch import main as update_ingredients
-            update_ingredients()
+            if os.path.exists(batch_script):
+                os.system(f"python {batch_script}")
+                print("✅ 재료 정보 업데이트 완료!")
+            else:
+                print(f"❌ 배치 스크립트를 찾을 수 없습니다: {batch_script}")
         except Exception as e:
-            print(f"Error running ingredients update batch: {e}")
+            print(f"❌ 재료 정보 업데이트 중 오류 발생: {str(e)}")
 
 if __name__ == "__main__":
     crawler = NaverCrawler()
