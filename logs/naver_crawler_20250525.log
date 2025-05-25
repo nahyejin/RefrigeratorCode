@@ -1,0 +1,116 @@
+2025-05-25 11:24:39,691 - naver_crawler - INFO - 드라이버 설정 완료
+2025-05-25 11:24:39,691 - naver_crawler - INFO - 네이버 디스커버 크롤링 시작
+2025-05-25 11:24:51,183 - naver_crawler - ERROR - 음식 섹션을 찾을 수 없습니다: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF65FDDCF45+75717]
+	GetHandleVerifier [0x00007FF65FDDCFA0+75808]
+	(No symbol) [0x00007FF65FBA8F9A]
+	(No symbol) [0x00007FF65FBFF4C6]
+	(No symbol) [0x00007FF65FBFF77C]
+	(No symbol) [0x00007FF65FC52577]
+	(No symbol) [0x00007FF65FC273BF]
+	(No symbol) [0x00007FF65FC4F39C]
+	(No symbol) [0x00007FF65FC27153]
+	(No symbol) [0x00007FF65FBF0421]
+	(No symbol) [0x00007FF65FBF11B3]
+	GetHandleVerifier [0x00007FF6600DD71D+3223453]
+	GetHandleVerifier [0x00007FF6600D7CC2+3200322]
+	GetHandleVerifier [0x00007FF6600F5AF3+3322739]
+	GetHandleVerifier [0x00007FF65FDF6A1A+180890]
+	GetHandleVerifier [0x00007FF65FDFE11F+211359]
+	GetHandleVerifier [0x00007FF65FDE5294+109332]
+	GetHandleVerifier [0x00007FF65FDE5442+109762]
+	GetHandleVerifier [0x00007FF65FDCBA59+4825]
+	BaseThreadInitThunk [0x00007FF84A28E8D7+23]
+	RtlUserThreadStart [0x00007FF84B7FC5DC+44]
+
+2025-05-25 11:24:53,298 - naver_crawler - INFO - 크롤링이 중단되었습니다.
+2025-05-25 11:24:53,299 - naver_crawler - ERROR - 크롤링 중 오류 발생: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF65FDDCF45+75717]
+	GetHandleVerifier [0x00007FF65FDDCFA0+75808]
+	(No symbol) [0x00007FF65FBA8F9A]
+	(No symbol) [0x00007FF65FBFF4C6]
+	(No symbol) [0x00007FF65FBFF77C]
+	(No symbol) [0x00007FF65FC52577]
+	(No symbol) [0x00007FF65FC273BF]
+	(No symbol) [0x00007FF65FC4F39C]
+	(No symbol) [0x00007FF65FC27153]
+	(No symbol) [0x00007FF65FBF0421]
+	(No symbol) [0x00007FF65FBF11B3]
+	GetHandleVerifier [0x00007FF6600DD71D+3223453]
+	GetHandleVerifier [0x00007FF6600D7CC2+3200322]
+	GetHandleVerifier [0x00007FF6600F5AF3+3322739]
+	GetHandleVerifier [0x00007FF65FDF6A1A+180890]
+	GetHandleVerifier [0x00007FF65FDFE11F+211359]
+	GetHandleVerifier [0x00007FF65FDE5294+109332]
+	GetHandleVerifier [0x00007FF65FDE5442+109762]
+	GetHandleVerifier [0x00007FF65FDCBA59+4825]
+	BaseThreadInitThunk [0x00007FF84A28E8D7+23]
+	RtlUserThreadStart [0x00007FF84B7FC5DC+44]
+
+2025-05-25 11:25:13,807 - naver_crawler - INFO - 크롤링이 중단되었습니다.
+2025-05-25 11:25:34,292 - naver_crawler - INFO - 크롤링 종료
+2025-05-25 11:32:44,028 - naver_crawler - INFO - 드라이버 설정 완료
+2025-05-25 11:32:44,028 - naver_crawler - INFO - 네이버 디스커버 크롤링 시작
+2025-05-25 11:33:00,932 - naver_crawler - ERROR - 페이지 로딩 시간 초과: Message: 
+
+2025-05-25 11:33:03,054 - naver_crawler - INFO - 크롤링이 중단되었습니다.
+2025-05-25 11:33:03,054 - naver_crawler - ERROR - 크롤링 중 오류 발생: Message: 
+
+2025-05-25 11:33:23,500 - naver_crawler - INFO - 크롤링이 중단되었습니다.
+2025-05-25 11:33:43,980 - naver_crawler - INFO - 크롤링 종료
+2025-05-25 11:34:45,112 - naver_crawler - INFO - 드라이버 설정 완료
+2025-05-25 11:34:45,112 - naver_crawler - INFO - 네이버 디스커버 크롤링 시작
+2025-05-25 11:35:15,070 - naver_crawler - ERROR - 요소를 찾을 수 없습니다: ul.lst_total
+2025-05-25 11:35:15,071 - naver_crawler - ERROR - 페이지 로딩 시간 초과: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF65FDDCF45+75717]
+	GetHandleVerifier [0x00007FF65FDDCFA0+75808]
+	(No symbol) [0x00007FF65FBA8F9A]
+	(No symbol) [0x00007FF65FBFF4C6]
+	(No symbol) [0x00007FF65FBFF77C]
+	(No symbol) [0x00007FF65FC52577]
+	(No symbol) [0x00007FF65FC273BF]
+	(No symbol) [0x00007FF65FC4F39C]
+	(No symbol) [0x00007FF65FC27153]
+	(No symbol) [0x00007FF65FBF0421]
+	(No symbol) [0x00007FF65FBF11B3]
+	GetHandleVerifier [0x00007FF6600DD71D+3223453]
+	GetHandleVerifier [0x00007FF6600D7CC2+3200322]
+	GetHandleVerifier [0x00007FF6600F5AF3+3322739]
+	GetHandleVerifier [0x00007FF65FDF6A1A+180890]
+	GetHandleVerifier [0x00007FF65FDFE11F+211359]
+	GetHandleVerifier [0x00007FF65FDE5294+109332]
+	GetHandleVerifier [0x00007FF65FDE5442+109762]
+	GetHandleVerifier [0x00007FF65FDCBA59+4825]
+	BaseThreadInitThunk [0x00007FF84A28E8D7+23]
+	RtlUserThreadStart [0x00007FF84B7FC5DC+44]
+
+2025-05-25 11:35:17,229 - naver_crawler - INFO - 크롤링이 중단되었습니다.
+2025-05-25 11:35:17,230 - naver_crawler - ERROR - 크롤링 중 오류 발생: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF65FDDCF45+75717]
+	GetHandleVerifier [0x00007FF65FDDCFA0+75808]
+	(No symbol) [0x00007FF65FBA8F9A]
+	(No symbol) [0x00007FF65FBFF4C6]
+	(No symbol) [0x00007FF65FBFF77C]
+	(No symbol) [0x00007FF65FC52577]
+	(No symbol) [0x00007FF65FC273BF]
+	(No symbol) [0x00007FF65FC4F39C]
+	(No symbol) [0x00007FF65FC27153]
+	(No symbol) [0x00007FF65FBF0421]
+	(No symbol) [0x00007FF65FBF11B3]
+	GetHandleVerifier [0x00007FF6600DD71D+3223453]
+	GetHandleVerifier [0x00007FF6600D7CC2+3200322]
+	GetHandleVerifier [0x00007FF6600F5AF3+3322739]
+	GetHandleVerifier [0x00007FF65FDF6A1A+180890]
+	GetHandleVerifier [0x00007FF65FDFE11F+211359]
+	GetHandleVerifier [0x00007FF65FDE5294+109332]
+	GetHandleVerifier [0x00007FF65FDE5442+109762]
+	GetHandleVerifier [0x00007FF65FDCBA59+4825]
+	BaseThreadInitThunk [0x00007FF84A28E8D7+23]
+	RtlUserThreadStart [0x00007FF84B7FC5DC+44]
+
+2025-05-25 11:35:37,695 - naver_crawler - INFO - 크롤링이 중단되었습니다.
+2025-05-25 11:35:58,184 - naver_crawler - INFO - 크롤링 종료

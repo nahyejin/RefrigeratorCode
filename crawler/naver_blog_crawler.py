@@ -14,10 +14,11 @@ import time
 import re
 import sys
 import os
+from typing import Tuple
 
-from common.base_crawler import BaseCrawler
-from common.data_models import Recipe
-from common.constants import DB_CONFIG, NAVER_TARGETS, PLATFORM_NAVER
+from crawling.common.base_crawler import BaseCrawler
+from crawling.common.data_models import Recipe
+from crawling.common.constants import DB_CONFIG, NAVER_TARGETS, PLATFORM_NAVER
 
 class NaverCrawler(BaseCrawler):
     def __init__(self):
@@ -72,9 +73,11 @@ class NaverCrawler(BaseCrawler):
         for target_name, target_info in NAVER_TARGETS.items():
             print(f"\nCrawling {target_name} content...")
             if target_name == 'blog':
-                total, saved = self._crawl_blog_posts(target_info)
+                platform = "naver(주제별보기)"
+                total, saved = self._crawl_blog_posts(target_info, platform)
             else:
-                total, saved = self._crawl_influencer_posts(target_info)
+                platform = "naver(인플루언서핫토픽)"
+                total, saved = self._crawl_influencer_posts()
             
             total_posts += total
             saved_posts += saved
@@ -90,7 +93,7 @@ class NaverCrawler(BaseCrawler):
         # Run ingredients update batch
         self._run_ingredients_update()
     
-    def _crawl_blog_posts(self, target_info: dict) -> tuple[int, int]:
+    def _crawl_blog_posts(self, target_info: dict, platform: str) -> tuple[int, int]:
         """Crawl blog posts."""
         total_posts = 0
         saved_posts = 0
@@ -109,7 +112,7 @@ class NaverCrawler(BaseCrawler):
             
             for post in posts:
                 try:
-                    recipe = self._process_blog_post(post)
+                    recipe = self._process_blog_post(post, platform)
                     if recipe:
                         self.save_to_database(recipe)
                         saved_posts += 1
@@ -119,12 +122,99 @@ class NaverCrawler(BaseCrawler):
         
         return total_posts, saved_posts
     
-    def _crawl_influencer_posts(self, target_info: dict) -> tuple[int, int]:
-        """Crawl influencer posts."""
-        # TODO: Implement influencer post crawling
-        return 0, 0
+    def _crawl_influencer_posts(self) -> Tuple[int, int]:
+        """인플루언서 포스트 크롤링"""
+        total_posts = 0
+        saved_posts = 0
+        
+        try:
+            # 네이버 디스커버 푸드 섹션으로 이동
+            self.driver.get("https://in.naver.com/discover/135968760155968")
+            time.sleep(3)  # 페이지 로딩 대기
+            
+            # "지금 핫한 푸드 토픽" 섹션 찾기
+            topic_section = WebDriverWait(self.driver, 10).until(
+                EC.presence_of_element_located((By.XPATH, "//h2[contains(text(), '지금 핫한 푸드 토픽')]"))
+            )
+            self.logger.info("지금 핫한 푸드 토픽 섹션을 찾았습니다.")
+            
+            # 토픽 카드들 찾기
+            topic_cards = WebDriverWait(self.driver, 10).until(
+                EC.presence_of_all_elements_located((By.CSS_SELECTOR, "a[href*='/topic/']"))
+            )
+            self.logger.info(f"총 {len(topic_cards)}개의 토픽 카드를 찾았습니다.")
+            
+            # 각 토픽 카드 처리
+            for card in topic_cards:
+                try:
+                    # 매번 새로운 요소 참조 가져오기
+                    card = WebDriverWait(self.driver, 10).until(
+                        EC.element_to_be_clickable((By.CSS_SELECTOR, "a[href*='/topic/']"))
+                    )
+                    
+                    topic_url = card.get_attribute('href')
+                    self.logger.info(f"토픽 처리 중: {topic_url}")
+                    
+                    # 새 탭에서 토픽 페이지 열기
+                    self.driver.execute_script("window.open('');")
+                    self.driver.switch_to.window(self.driver.window_handles[-1])
+                    self.driver.get(topic_url)
+                    time.sleep(3)
+                    
+                    # 포스트 카드들 찾기
+                    post_cards = WebDriverWait(self.driver, 10).until(
+                        EC.presence_of_all_elements_located((By.CSS_SELECTOR, "a[href*='/blog/']"))
+                    )
+                    
+                    for post_card in post_cards:
+                        try:
+                            # 매번 새로운 요소 참조 가져오기
+                            post_card = WebDriverWait(self.driver, 10).until(
+                                EC.element_to_be_clickable((By.CSS_SELECTOR, "a[href*='/blog/']"))
+                            )
+                            
+                            post_url = post_card.get_attribute('href')
+                            self.logger.info(f"블로그 포스트 처리 중: {post_url}")
+                            
+                            # 새 탭에서 포스트 열기
+                            self.driver.execute_script("window.open('');")
+                            self.driver.switch_to.window(self.driver.window_handles[-1])
+                            self.driver.get(post_url)
+                            time.sleep(3)
+                            
+                            # 포스트 데이터 추출
+                            post_data = self._extract_post_data()
+                            if post_data:
+                                post_data['platform'] = 'naver(인플루언서핫토픽)'  # 플랫폼 값 설정
+                                total_posts += 1
+                                
+                                # 데이터베이스에 저장
+                                if self.db.save_post(post_data):
+                                    saved_posts += 1
+                                    self.logger.info("✅ 저장 완료")
+                            
+                            # 포스트 탭 닫기
+                            self.driver.close()
+                            self.driver.switch_to.window(self.driver.window_handles[-2])
+                            
+                        except Exception as e:
+                            self.logger.error(f"블로그 포스트 처리 중 오류 발생: {str(e)}")
+                            continue
+                    
+                    # 토픽 탭 닫기
+                    self.driver.close()
+                    self.driver.switch_to.window(self.driver.window_handles[0])
+                    
+                except Exception as e:
+                    self.logger.error(f"토픽 카드 처리 중 오류 발생: {str(e)}")
+                    continue
+            
+        except Exception as e:
+            self.logger.error(f"인플루언서 크롤링 중 오류 발생: {str(e)}")
+        
+        return total_posts, saved_posts
     
-    def _process_blog_post(self, post) -> Recipe:
+    def _process_blog_post(self, post, platform: str) -> Recipe:
         """Process a single blog post and return Recipe object."""
         title_tag = post.select_one("strong.title_post")
         if not title_tag:
@@ -181,7 +271,7 @@ class NaverCrawler(BaseCrawler):
             likes=likes,
             comments=comments,
             post_time=post_time,
-            platform=self.platform,
+            platform=platform,
             used_ingredients=self.extract_ingredients(content),
             link=link
         )
@@ -278,6 +368,18 @@ class NaverCrawler(BaseCrawler):
         except Exception as e:
             print(f"작성일 가져오기 실패: {e}")
         return None
+    
+    def _get_title(self) -> str:
+        """Get post title."""
+        try:
+            title_element = self.driver.find_element(By.CSS_SELECTOR, "h3.se-title-text")
+            return title_element.text.strip()
+        except:
+            try:
+                title_element = self.driver.find_element(By.CSS_SELECTOR, "h2.se-title-text")
+                return title_element.text.strip()
+            except:
+                return ""
     
     def save_to_database(self, recipe: Recipe):
         """Save recipe to database."""
