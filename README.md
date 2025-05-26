@@ -76,8 +76,6 @@ RefrigeratorCode/
 - **package.json / package-lock.json**: 프론트엔드 의존성 및 스크립트 관리
 - **PROJECT_OVERVIEW**: 프로젝트 설명 및 구조 안내 문서
 
-# (과거 구조, 현재 미사용)
-# crawling/ ... (예전 크롤러/공통코드, 현재는 사용하지 않음. 필요시 완전히 삭제)
 
 ## MySQL 데이터베이스 구조 및 recipes 테이블 설명
 
@@ -394,7 +392,7 @@ crawler/
 - **네이버 블로그 주제별보기**
   - 각 블로그 포스트의 **제목**에 필터 키워드(`RECIPE_KEYWORDS`) 중 하나라도 포함되어 있을 때만 수집
 
-- **필터 키워드 변경 시**: `crawling/common/constants.py`의 `RECIPE_KEYWORDS`만 수정하면 전체 크롤러에 반영됨
+- **필터 키워드 변경 시**: `crawler/common/constants.py`의 `RECIPE_KEYWORDS`만 수정하면 전체 크롤러에 반영됨
 
 ### 3. 수동 관리 키워드/사전 파일 목록
 

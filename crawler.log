@@ -12028,3 +12028,125 @@ Stacktrace:
 2025-05-26 08:43:44,889 - INFO - 레시피 데이터 저장 완료: 편스토랑 이정현 콩나물솥밥 만들기 양념장 레시.. : 네이버블로그
 2025-05-26 08:43:44,945 - INFO - [2/5] 블로그에서 더보기 버튼 클릭 시도...
 2025-05-26 08:43:49,973 - INFO - 블로그 페이지로 이동 성공: https://blog.naver.com/happy_hyunji/223861176126?isInf=true&trackingCode=naver_etc
+2025-05-26 09:01:47,574 - INFO - 크롤러 초기화 시작
+2025-05-26 09:01:48,877 - INFO - package: mysql.connector.plugins
+2025-05-26 09:01:48,877 - INFO - plugin_name: caching_sha2_password
+2025-05-26 09:01:48,877 - INFO - AUTHENTICATION_PLUGIN_CLASS: MySQLCachingSHA2PasswordAuthPlugin
+2025-05-26 09:01:48,879 - INFO - package: mysql.connector.plugins
+2025-05-26 09:01:48,879 - INFO - plugin_name: mysql_native_password
+2025-05-26 09:01:48,879 - INFO - AUTHENTICATION_PLUGIN_CLASS: MySQLNativePasswordAuthPlugin
+2025-05-26 09:01:48,881 - INFO - 크롤러 초기화 완료
+2025-05-26 09:01:48,881 - INFO - 크롤러 시작: https://in.naver.com/discover/135968760155968
+2025-05-26 09:01:54,352 - INFO - 토픽 카드 로드 시작...
+2025-05-26 09:01:55,413 - INFO - 더보기 버튼 클릭 1/20
+2025-05-26 09:01:58,445 - INFO - 더보기 버튼 클릭 2/20
+2025-05-26 09:02:01,480 - INFO - 더보기 버튼 클릭 3/20
+2025-05-26 09:02:04,518 - INFO - 더보기 버튼 클릭 4/20
+2025-05-26 09:02:07,553 - INFO - 더보기 버튼 클릭 5/20
+2025-05-26 09:02:10,600 - INFO - 더보기 버튼 클릭 6/20
+2025-05-26 09:02:13,641 - INFO - 더보기 버튼 클릭 7/20
+2025-05-26 09:02:16,688 - INFO - 더보기 버튼 클릭 8/20
+2025-05-26 09:02:19,727 - INFO - 더보기 버튼 클릭 9/20
+2025-05-26 09:02:22,805 - INFO - 더보기 버튼 클릭 10/20
+2025-05-26 09:02:25,848 - INFO - 더보기 버튼 클릭 11/20
+2025-05-26 09:02:28,894 - INFO - 더보기 버튼 클릭 12/20
+2025-05-26 09:02:31,942 - INFO - 더보기 버튼 클릭 13/20
+2025-05-26 09:02:34,979 - INFO - 더보기 버튼 클릭 14/20
+2025-05-26 09:02:38,047 - INFO - 더보기 버튼 클릭 15/20
+2025-05-26 09:02:41,088 - INFO - 더보기 버튼 클릭 16/20
+2025-05-26 09:02:44,139 - INFO - 더보기 버튼 클릭 17/20
+2025-05-26 09:02:47,193 - INFO - 더보기 버튼 클릭 18/20
+2025-05-26 09:02:50,257 - INFO - 더보기 버튼 클릭 19/20
+2025-05-26 09:02:57,332 - INFO - 더보기 버튼을 찾을 수 없습니다. 모든 카드가 로드되었거나 페이지 구조가 변경되었습니다.
+2025-05-26 09:02:57,342 - INFO - 총 0개의 토픽 카드 링크 발견
+2025-05-26 09:02:57,343 - INFO - 스크롤 완료 후 발견된 토픽 링크 수: 0
+2025-05-26 09:02:58,420 - INFO - 푸드 토픽 카드 링크 수: 231
+2025-05-26 09:02:58,420 - INFO - [큐레이션 진행률] 1/231 (0%) 토픽 페이지 진입: https://in.naver.com/danatable/topic/824431637493248
+2025-05-26 09:03:00,953 - INFO - 현재 URL: https://in.naver.com/danatable/topic/824431637493248
+2025-05-26 09:03:00,953 - INFO - 블로그에서 더보기 버튼들 모두 찾는 중...
+2025-05-26 09:03:00,979 - INFO - 블로그에서 더보기 버튼 3개 발견
+2025-05-26 09:03:00,979 - INFO - [블로그 진행률] 1/3 (33%) 블로그에서 더보기 버튼 클릭 시도...
+2025-05-26 09:03:06,038 - INFO - 블로그 페이지로 이동 성공: https://blog.naver.com/handsromance/223868148159?isInf=true&trackingCode=naver_etc
+2025-05-26 09:03:09,062 - INFO - iframe 전환 성공
+2025-05-26 09:03:19,323 - WARNING - 요소를 찾을 수 없음: css selector=h3.se-title-text, 오류: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF71F3BCF45+75717]
+	GetHandleVerifier [0x00007FF71F3BCFA0+75808]
+	(No symbol) [0x00007FF71F188F9A]
+	(No symbol) [0x00007FF71F1DF4C6]
+	(No symbol) [0x00007FF71F1DF77C]
+	(No symbol) [0x00007FF71F232577]
+	(No symbol) [0x00007FF71F2073BF]
+	(No symbol) [0x00007FF71F22F39C]
+	(No symbol) [0x00007FF71F207153]
+	(No symbol) [0x00007FF71F1D0421]
+	(No symbol) [0x00007FF71F1D11B3]
+	GetHandleVerifier [0x00007FF71F6BD71D+3223453]
+	GetHandleVerifier [0x00007FF71F6B7CC2+3200322]
+	GetHandleVerifier [0x00007FF71F6D5AF3+3322739]
+	GetHandleVerifier [0x00007FF71F3D6A1A+180890]
+	GetHandleVerifier [0x00007FF71F3DE11F+211359]
+	GetHandleVerifier [0x00007FF71F3C5294+109332]
+	GetHandleVerifier [0x00007FF71F3C5442+109762]
+	GetHandleVerifier [0x00007FF71F3ABA59+4825]
+	BaseThreadInitThunk [0x00007FF821F3E8D7+23]
+	RtlUserThreadStart [0x00007FF822F3C5DC+44]
+
+2025-05-26 09:03:29,529 - WARNING - 요소를 찾을 수 없음: css selector=h2.se-title-text, 오류: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF71F3BCF45+75717]
+	GetHandleVerifier [0x00007FF71F3BCFA0+75808]
+	(No symbol) [0x00007FF71F188F9A]
+	(No symbol) [0x00007FF71F1DF4C6]
+	(No symbol) [0x00007FF71F1DF77C]
+	(No symbol) [0x00007FF71F232577]
+	(No symbol) [0x00007FF71F2073BF]
+	(No symbol) [0x00007FF71F22F39C]
+	(No symbol) [0x00007FF71F207153]
+	(No symbol) [0x00007FF71F1D0421]
+	(No symbol) [0x00007FF71F1D11B3]
+	GetHandleVerifier [0x00007FF71F6BD71D+3223453]
+	GetHandleVerifier [0x00007FF71F6B7CC2+3200322]
+	GetHandleVerifier [0x00007FF71F6D5AF3+3322739]
+	GetHandleVerifier [0x00007FF71F3D6A1A+180890]
+	GetHandleVerifier [0x00007FF71F3DE11F+211359]
+	GetHandleVerifier [0x00007FF71F3C5294+109332]
+	GetHandleVerifier [0x00007FF71F3C5442+109762]
+	GetHandleVerifier [0x00007FF71F3ABA59+4825]
+	BaseThreadInitThunk [0x00007FF821F3E8D7+23]
+	RtlUserThreadStart [0x00007FF822F3C5DC+44]
+
+2025-05-26 09:03:39,696 - WARNING - 요소를 찾을 수 없음: css selector=strong.title_post, 오류: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF71F3BCF45+75717]
+	GetHandleVerifier [0x00007FF71F3BCFA0+75808]
+	(No symbol) [0x00007FF71F188F9A]
+	(No symbol) [0x00007FF71F1DF4C6]
+	(No symbol) [0x00007FF71F1DF77C]
+	(No symbol) [0x00007FF71F232577]
+	(No symbol) [0x00007FF71F2073BF]
+	(No symbol) [0x00007FF71F22F39C]
+	(No symbol) [0x00007FF71F207153]
+	(No symbol) [0x00007FF71F1D0421]
+	(No symbol) [0x00007FF71F1D11B3]
+	GetHandleVerifier [0x00007FF71F6BD71D+3223453]
+	GetHandleVerifier [0x00007FF71F6B7CC2+3200322]
+	GetHandleVerifier [0x00007FF71F6D5AF3+3322739]
+	GetHandleVerifier [0x00007FF71F3D6A1A+180890]
+	GetHandleVerifier [0x00007FF71F3DE11F+211359]
+	GetHandleVerifier [0x00007FF71F3C5294+109332]
+	GetHandleVerifier [0x00007FF71F3C5442+109762]
+	GetHandleVerifier [0x00007FF71F3ABA59+4825]
+	BaseThreadInitThunk [0x00007FF821F3E8D7+23]
+	RtlUserThreadStart [0x00007FF822F3C5DC+44]
+
+2025-05-26 09:03:39,699 - INFO - 제목 수집 완료: 볶음김치 만드는법 두부김치 두부데치기 시간 막.. : 네이버블로그
+2025-05-26 09:03:40,756 - INFO - 본문 내용 수집 완료 (길이: 1622)
+2025-05-26 09:03:40,763 - INFO - 작성자 수집 완료: 단아테이블
+2025-05-26 09:03:40,772 - INFO - 썸네일 수집 완료: https://postfiles.pstatic.net/MjAyNTA1MTZfNDAg/MDAxNzQ3Mzc2NTYxNjMz.kT3hPce3v8r3SB4z-l8a3MN1wNYpdc0szqtimuObkmMg.6qr-17yzyBiPuYoWKO5ic-3DQdsy6FVDaE70KmnfveUg.JPEG/hbbatch_DSC09361.JPG?type=w966
+2025-05-26 09:03:40,792 - INFO - 좋아요 수집 완료: 30
+2025-05-26 09:03:40,799 - INFO - 댓글 수집 완료: 2
+2025-05-26 09:03:40,810 - INFO - 레시피 데이터 저장 완료: 볶음김치 만드는법 두부김치 두부데치기 시간 막.. : 네이버블로그
+2025-05-26 09:03:40,878 - INFO - [블로그 진행률] 2/3 (66%) 블로그에서 더보기 버튼 클릭 시도...
+2025-05-26 09:03:45,912 - INFO - 블로그 페이지로 이동 성공: https://blog.naver.com/handsromance/223851668637?isInf=true&trackingCode=naver_etc
+2025-05-26 09:03:48,945 - INFO - iframe 전환 성공
