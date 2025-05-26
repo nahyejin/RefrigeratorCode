@@ -65,6 +65,20 @@ interface RecipeSortBarProps {
   setAppliedExpiryIngredients: (v: string[]) => void;
   expirySortType: 'expiry' | 'purchase';
   setExpirySortType: (v: 'expiry' | 'purchase') => void;
+  selectedChannel: string[];
+  setSelectedChannel: (channels: string[]) => void;
+  includeKeyword: string;
+  setIncludeKeyword: (v: string) => void;
+  includeIngredients: string[];
+  setIncludeIngredients: (v: string[]) => void;
+  excludeIngredients: string[];
+  setExcludeIngredients: (v: string[]) => void;
+  selectedCategoryKeywords: FilterState;
+  setSelectedCategoryKeywords: (v: FilterState) => void;
+  includeInput: string;
+  setIncludeInput: (v: string) => void;
+  excludeInput: string;
+  setExcludeInput: (v: string) => void;
   onToast?: (msg: string) => void;
 }
 
@@ -82,17 +96,24 @@ const RecipeSortBar = ({
   setAppliedExpiryIngredients, 
   expirySortType, 
   setExpirySortType,
+  selectedChannel,
+  setSelectedChannel,
+  includeKeyword,
+  setIncludeKeyword,
+  includeIngredients,
+  setIncludeIngredients,
+  excludeIngredients,
+  setExcludeIngredients,
+  selectedCategoryKeywords,
+  setSelectedCategoryKeywords,
+  includeInput,
+  setIncludeInput,
+  excludeInput,
+  setExcludeInput,
   onToast
 }: RecipeSortBarProps) => {
   const [isFilterModalOpen, setFilterModalOpen] = useState<boolean>(false);
-  const [selectedCategoryKeywords, setSelectedCategoryKeywords] = useState<FilterState>({ 효능: [], 영양분: [], 대상: [], TPO: [], 스타일: [] });
-  const [includeInput, setIncludeInput] = useState<string>('');
-  const [excludeInput, setExcludeInput] = useState<string>('');
-  const [includeIngredients, setIncludeIngredients] = useState<string[]>([]);
-  const [excludeIngredients, setExcludeIngredients] = useState<string[]>([]);
   const [allIngredients, setAllIngredients] = useState<string[]>([]);
-  const [includeKeyword, setIncludeKeyword] = useState<string>('');
-  const [selectedChannel, setSelectedChannel] = useState<string[]>([]);
   const [isMatchRateModalOpen, setMatchRateModalOpen] = useState<boolean>(false);
   const [isExpiryModalOpen, setExpiryModalOpen] = useState<boolean>(false);
   const [selectedExpiryIngredients, setSelectedExpiryIngredients] = useState<string[]>([]);
@@ -208,9 +229,9 @@ const RecipeSortBar = ({
   }, [sortType, matchRange, maxLack, appliedExpiryIngredients, expirySortType, expiryIngredientMode]);
 
   // 선택된 키워드와 filterKeywordTree를 조합해 동의어까지 포함된 categoryKeywords 생성
-  const buildCategoryKeywords = useCallback((selected: FilterState, tree: FilterKeywordTree | null) => {
+  const buildCategoryKeywords = useCallback((selected: FilterState | null, tree: FilterKeywordTree | null) => {
     const result: Record<string, { keyword: string; synonyms: string[] }[]> = {};
-    if (!tree) {
+    if (!tree || !selected) {
       return result;
     }
     for (const main of Object.keys(selected)) {
@@ -218,9 +239,11 @@ const RecipeSortBar = ({
       result[main] = [];
       for (const kw of selected[main]) {
         let found: FilterKeywordNode | null = null;
-        for (const sub of Object.keys(tree[main] || {})) {
-          found = (tree[main][sub] || []).find((obj: FilterKeywordNode) => obj.keyword === kw) || null;
-          if (found) break;
+        if (tree[main]) {
+          for (const sub of Object.keys(tree[main])) {
+            found = (tree[main][sub] || []).find((obj: FilterKeywordNode) => obj.keyword === kw) || null;
+            if (found) break;
+          }
         }
         if (found) {
           result[main].push({ keyword: found.keyword, synonyms: found.synonyms });
@@ -233,6 +256,8 @@ const RecipeSortBar = ({
   }, []);
 
   useEffect(() => {
+    if (!recipes) return;
+    
     const filtered = filterRecipes(recipes, {
       sortType,
       matchRange,
@@ -243,7 +268,7 @@ const RecipeSortBar = ({
       includeKeyword,
       includeIngredients,
       excludeIngredients,
-      categoryKeywords: buildCategoryKeywords(selectedCategoryKeywords, categoryKeywordTree)
+      categoryKeywords: buildCategoryKeywords(selectedCategoryKeywords || {}, categoryKeywordTree)
     });
     onFilteredRecipesChange(filtered);
   }, [

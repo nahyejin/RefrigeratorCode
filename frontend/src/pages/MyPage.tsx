@@ -169,6 +169,12 @@ const MyPage = () => {
 
   // 완료 버튼 클릭 핸들러
   const handleDoneClick = (id: number) => {
+    const isAlreadyDone = getRecipesFromLocalStorage('done').some(r => r.id === id);
+    if (isAlreadyDone) {
+      setPendingRemove({ type: 'done', id });
+      setPendingRecipe(completedRecipes.find(r => r.id === id));
+      return;
+    }
     setDoneStates(prev => {
       const isActive = !!prev[id];
       const newState = { ...prev, [id]: !isActive };
@@ -183,10 +189,8 @@ const MyPage = () => {
         setToast('레시피를 완료했습니다!');
         setTimeout(() => setToast(''), 1500);
       } else {
-        // 완료 취소: 확인 토스트(모달) 띄우기
         setPendingRemove({ type: 'done', id });
         setPendingRecipe(completedRecipes.find(r => r.id === id));
-        // 실제 삭제는 handleRemoveConfirm에서 처리
       }
       return newState;
     });
@@ -194,6 +198,12 @@ const MyPage = () => {
 
   // 기록 버튼 클릭 핸들러
   const handleWriteClick = (id: number) => {
+    const isAlreadyWritten = getRecipesFromLocalStorage('write').some(r => r.id === id);
+    if (isAlreadyWritten) {
+      setPendingRemove({ type: 'write', id });
+      setPendingRecipe(recordedRecipes.find(r => r.id === id));
+      return;
+    }
     setWriteStates(prev => {
       const isActive = !!prev[id];
       const newState = { ...prev, [id]: !isActive };
@@ -208,10 +218,8 @@ const MyPage = () => {
         setToast('레시피를 기록했습니다!');
         setTimeout(() => setToast(''), 1500);
       } else {
-        // 기록 취소: 확인 토스트(모달) 띄우기
         setPendingRemove({ type: 'write', id });
         setPendingRecipe(recordedRecipes.find(r => r.id === id));
-        // 실제 삭제는 handleRemoveConfirm에서 처리
       }
       return newState;
     });

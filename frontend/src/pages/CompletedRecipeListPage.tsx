@@ -142,7 +142,7 @@ const CompletedRecipeListPage = () => {
       setToast('레시피를 완료했습니다!');
       setTimeout(() => setToast(''), 1500);
     } else {
-      // 완료 취소: 확인 토스트만 세팅, 일반 토스트 띄우지 않음
+      // 완료 취소: 확인 모달만 세팅
       setPendingRemove({ type: 'done', id });
       setPendingRecipe(recipes.find(r => r.id === id));
     }
@@ -160,7 +160,7 @@ const CompletedRecipeListPage = () => {
       setToast('레시피를 기록했습니다!');
       setTimeout(() => setToast(''), 1500);
     } else {
-      // 기록 취소: 확인 토스트만 세팅, 일반 토스트 띄우지 않음
+      // 기록 취소: 확인 모달만 세팅
       setPendingRemove({ type: 'write', id });
       setPendingRecipe(recipes.find(r => r.id === id));
     }
@@ -187,11 +187,15 @@ const CompletedRecipeListPage = () => {
       removeRecipeFromLocalStorage('done', pendingRemove.id);
       setRecipes(prev => prev.filter(r => r.id !== pendingRemove.id));
       setFilteredRecipes(prev => prev.filter(r => r.id !== pendingRemove.id));
+      setToast('레시피 완료를 취소했습니다!');
+      setTimeout(() => setToast(''), 1500);
     } else if (pendingRemove.type === 'write') {
       setRecipeActionStates(s => ({ ...s, [pendingRemove.id]: { ...s[pendingRemove.id], write: false } }));
       removeRecipeFromLocalStorage('write', pendingRemove.id);
       setRecipes(prev => prev.filter(r => r.id !== pendingRemove.id));
       setFilteredRecipes(prev => prev.filter(r => r.id !== pendingRemove.id));
+      setToast('레시피 기록을 취소했습니다!');
+      setTimeout(() => setToast(''), 1500);
     }
     setPendingRemove(null);
     setPendingRecipe(null);
@@ -223,6 +227,23 @@ const CompletedRecipeListPage = () => {
     return arr;
   }, [recipes, sortType]);
 
+  useEffect(() => {
+    setFilteredRecipes(processedRecipes);
+  }, [processedRecipes]);
+
+  const handleFilterButtonClick = () => {
+    console.log('[CompletedRecipeListPage] 필터 버튼 클릭');
+    setFilterOpen(true);
+  };
+
+  useEffect(() => {
+    console.log('[CompletedRecipeListPage] FilterModal open:', filterOpen);
+  }, [filterOpen]);
+
+  useEffect(() => {
+    console.log('[CompletedRecipeListPage] selectedChannel:', selectedChannel);
+  }, [selectedChannel]);
+
   return (
     <>
       <header className="w-full h-[56px] flex items-center px-2 bg-white">
@@ -237,6 +258,13 @@ const CompletedRecipeListPage = () => {
             alt="뒤로가기"
             style={{ height: 13, width: 13, objectFit: 'contain', background: 'transparent' }}
           />
+        </button>
+        <button
+          aria-label="필터 모달 열기"
+          style={{ height: 28, border: '1px solid #D1D5DB', borderRadius: 999, fontSize: 12, padding: '0 12px', fontWeight: 600, background: '#fff', color: '#222', minWidth: 50, whiteSpace: 'nowrap', boxSizing: 'border-box', cursor: 'pointer', marginLeft: 'auto' }}
+          onClick={handleFilterButtonClick}
+        >
+          <span style={{ fontWeight: 600 }}>필터</span>
         </button>
       </header>
       <div className="mx-auto pb-20 bg-white"
@@ -304,7 +332,10 @@ const CompletedRecipeListPage = () => {
       {filterOpen && (
         <FilterModal
           open={filterOpen}
-          onClose={() => setFilterOpen(false)}
+          onClose={() => {
+            console.log('[CompletedRecipeListPage] FilterModal 닫기 전 selectedChannel:', selectedChannel);
+            setFilterOpen(false);
+          }}
           filterState={selectedFilter}
           setFilterState={setSelectedFilter}
           includeIngredients={includeIngredients}
@@ -321,8 +352,14 @@ const CompletedRecipeListPage = () => {
           filterKeywordTree={filterKeywordTree}
           setFilterKeywordTree={setFilterKeywordTree}
           selectedChannel={selectedChannel}
-          setSelectedChannel={setSelectedChannel}
-          onApply={() => {}}
+          setSelectedChannel={(channels) => {
+            console.log('[CompletedRecipeListPage] FilterModal에서 채널 선택:', channels);
+            setSelectedChannel(channels);
+          }}
+          onApply={() => {
+            console.log('[CompletedRecipeListPage] FilterModal 적용 버튼 클릭, selectedChannel:', selectedChannel);
+            setFilterOpen(false);
+          }}
         />
       )}
       {matchRateModalOpen && (

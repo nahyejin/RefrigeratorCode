@@ -63,7 +63,19 @@ export function sortRecipes(recipes: Recipe[], sortType: string, myIngredients: 
       });
       break;
     case 'hits':
-      sorted.sort((a, b) => (b.hits ?? 0) - (a.hits ?? 0));
+      sorted.sort((a, b) => {
+        // 조회수가 없는 경우(네이버)는 하단으로
+        if (!a.hits && !b.hits) {
+          // 둘 다 조회수가 없으면 인기도 점수로 2차 정렬
+          const aScore = (a.like_count ?? a.likes ?? 0) * 1.0 + (a.comment_count ?? a.comments ?? 0) * 2.0;
+          const bScore = (b.like_count ?? b.likes ?? 0) * 1.0 + (b.comment_count ?? b.comments ?? 0) * 2.0;
+          return bScore - aScore;
+        }
+        if (!a.hits) return 1;  // a가 조회수 없으면 뒤로
+        if (!b.hits) return -1; // b가 조회수 없으면 뒤로
+        // 둘 다 조회수가 있으면 조회수순 정렬
+        return b.hits - a.hits;
+      });
       break;
     case 'match':
       sorted.sort((a, b) => (b.match_rate || 0) - (a.match_rate || 0));

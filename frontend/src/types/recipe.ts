@@ -49,6 +49,7 @@ export interface FilterState {
   대상: string[];
   TPO: string[];
   스타일: string[];
+  [key: string]: string[];
 }
 
 export interface RecipeMatchResult {
