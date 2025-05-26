@@ -50,17 +50,20 @@ export function sortRecipes(recipes: Recipe[], sortType: string, myIngredients: 
       break;
     case 'like':
       sorted.sort((a, b) => {
-        const aLike = a.like_count ?? a.likes ?? a.like ?? 0;
-        const bLike = b.like_count ?? b.likes ?? b.like ?? 0;
+        const aLike = a.like_count ?? a.likes ?? 0;
+        const bLike = b.like_count ?? b.likes ?? 0;
         return bLike - aLike;
       });
       break;
     case 'comment':
       sorted.sort((a, b) => {
-        const aComment = a.comment_count ?? a.comments ?? a.comment ?? 0;
-        const bComment = b.comment_count ?? b.comments ?? b.comment ?? 0;
+        const aComment = a.comment_count ?? a.comments ?? 0;
+        const bComment = b.comment_count ?? b.comments ?? 0;
         return bComment - aComment;
       });
+      break;
+    case 'hits':
+      sorted.sort((a, b) => (b.hits ?? 0) - (a.hits ?? 0));
       break;
     case 'match':
       sorted.sort((a, b) => (b.match_rate || 0) - (a.match_rate || 0));
@@ -68,8 +71,12 @@ export function sortRecipes(recipes: Recipe[], sortType: string, myIngredients: 
     case 'expiry':
       // 임박재료활용도순 정렬: 임박재료를 많이 포함하는 레시피가 상위에 오도록 정렬
       sorted.sort((a, b) => {
-        const aIngredients = (a.used_ingredients || '').split(',').map(i => i.trim());
-        const bIngredients = (b.used_ingredients || '').split(',').map(i => i.trim());
+        const aIngredients = Array.isArray(a.used_ingredients)
+          ? a.used_ingredients.map(i => (typeof i === 'string' ? i.trim() : ''))
+          : (typeof a.used_ingredients === 'string' ? a.used_ingredients.split(',').map(i => i.trim()) : []);
+        const bIngredients = Array.isArray(b.used_ingredients)
+          ? b.used_ingredients.map(i => (typeof i === 'string' ? i.trim() : ''))
+          : (typeof b.used_ingredients === 'string' ? b.used_ingredients.split(',').map(i => i.trim()) : []);
         const aCount = appliedExpiryIngredients.filter(ing => aIngredients.includes(ing)).length;
         const bCount = appliedExpiryIngredients.filter(ing => bIngredients.includes(ing)).length;
         if (aCount !== bCount) {

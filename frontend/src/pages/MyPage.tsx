@@ -111,11 +111,11 @@ function getMyIngredientsSafe() {
 }
 
 const getPlatformLogo = (platform: string | undefined) => {
-  if (!platform) return null;
+  if (!platform) return naverLogo;
   const lower = platform.toLowerCase();
-  if (lower.includes('naver') || platform.includes('네이버')) return naverLogo;
-  if (lower.includes('youtube') || platform.includes('유튜브')) return youtubeLogo;
-  return null;
+  if (lower.includes('naver') || lower.includes('네이버')) return naverLogo;
+  if (lower.includes('youtube') || lower.includes('유튜브')) return youtubeLogo;
+  return naverLogo;
 };
 
 const MyPage = () => {
@@ -139,37 +139,18 @@ const MyPage = () => {
   const [writeStates, setWriteStates] = useState<{ [id: number]: boolean }>({});
   const [toast, setToast] = useState('');
   const [profilePreview, setProfilePreview] = useState<string | null>(null);
-  const [recordedRecipes, setRecordedRecipes] = useState<any[]>([]);
-  const [completedRecipes, setCompletedRecipes] = useState<any[]>([]);
+  const [recordedRecipes, setRecordedRecipes] = useState<any[]>(() => {
+    return JSON.parse(localStorage.getItem('my_recorded_recipes') || '[]');
+  });
+  const [completedRecipes, setCompletedRecipes] = useState<any[]>(() => {
+    return JSON.parse(localStorage.getItem('my_completed_recipes') || '[]');
+  });
   const [pendingRemove, setPendingRemove] = useState<{type: 'done'|'write', id: number}|null>(null);
   const [pendingRecipe, setPendingRecipe] = useState<any>(null);
   const navigate = useNavigate();
 
   // myIngredients를 useState로 관리
   const [myIngredients, setMyIngredients] = React.useState<string[]>(getMyIngredientsSafe());
-
-  // 마운트 시, storage 이벤트 발생 시 최신값으로 갱신
-  React.useEffect(() => {
-    const updateIngredients = () => {
-      setMyIngredients(getMyIngredientsSafe());
-    };
-    updateIngredients();
-    window.addEventListener('storage', updateIngredients);
-    return () => window.removeEventListener('storage', updateIngredients);
-  }, []);
-
-  // localStorage에서 데이터 불러오기
-  React.useEffect(() => {
-    setRecordedRecipes(JSON.parse(localStorage.getItem('my_recorded_recipes') || '[]'));
-    setCompletedRecipes(JSON.parse(localStorage.getItem('my_completed_recipes') || '[]'));
-    // storage 이벤트로 동기화
-    const sync = () => {
-      setRecordedRecipes(JSON.parse(localStorage.getItem('my_recorded_recipes') || '[]'));
-      setCompletedRecipes(JSON.parse(localStorage.getItem('my_completed_recipes') || '[]'));
-    };
-    window.addEventListener('storage', sync);
-    return () => window.removeEventListener('storage', sync);
-  }, []);
 
   // 정보 수정 모달 저장
   const handleSave = () => {
@@ -190,35 +171,21 @@ const MyPage = () => {
     setDoneStates(prev => {
       const isActive = !!prev[id];
       const newState = { ...prev, [id]: !isActive };
-      let completedRecipes = JSON.parse(localStorage.getItem('my_completed_recipes') || '[]');
       if (!isActive) {
-        // 완료 추가
-        const recipe = recordedRecipes.find(r => r.id === id);
-        if (recipe && !completedRecipes.some((r: any) => r.id === id)) {
-          // RecipeCard와 동일한 구조로 저장
-          const normalized = {
-            id: recipe.id,
-            title: recipe.title,
-            thumbnail: recipe.thumbnail || recipe.image || '',
-            used_ingredients: recipe.used_ingredients || '',
-            author: recipe.author || '',
-            date: recipe.date || '',
-            link: recipe.link || '',
-            body: recipe.body || recipe.content || recipe.description || '',
-            like: recipe.like || recipe.likes || 0,
-            comment: recipe.comment || recipe.comments || 0,
-            match_rate: recipe.match_rate || recipe.match || 0,
-          };
-          completedRecipes.push(normalized);
+        // 완료 추가: completedRecipes에만 추가(중복 추가 방지)
+        const recipe = recordedRecipes.find(r => r.id === id) || completedRecipes.find(r => r.id === id);
+        if (recipe && !completedRecipes.some(r => r.id === id)) {
+          const updatedCompleted = [...completedRecipes, recipe];
+          setCompletedRecipes(updatedCompleted);
+          localStorage.setItem('my_completed_recipes', JSON.stringify(updatedCompleted));
         }
-        localStorage.setItem('my_completed_recipes', JSON.stringify(completedRecipes));
-        setCompletedRecipes(completedRecipes);
         setToast('레시피를 완료했습니다!');
-        console.log('[완료] my_completed_recipes:', completedRecipes);
-      setTimeout(() => setToast(''), 1500);
+        setTimeout(() => setToast(''), 1500);
       } else {
-        setPendingRemove({type: 'done', id});
-        setPendingRecipe(completedRecipes.find((r: any) => r.id === id));
+        // 완료 취소: 확인 토스트(모달) 띄우기
+        setPendingRemove({ type: 'done', id });
+        setPendingRecipe(completedRecipes.find(r => r.id === id));
+        // 실제 삭제는 handleRemoveConfirm에서 처리
       }
       return newState;
     });
@@ -229,35 +196,21 @@ const MyPage = () => {
     setWriteStates(prev => {
       const isActive = !!prev[id];
       const newState = { ...prev, [id]: !isActive };
-      let recordedRecipes = JSON.parse(localStorage.getItem('my_recorded_recipes') || '[]');
       if (!isActive) {
-        // 기록 추가
-        const recipe = completedRecipes.find((r: any) => r.id === id) || recordedRecipes.find((r: any) => r.id === id) || recordedRecipes.find((r: any) => r.id === id);
-        if (recipe && !recordedRecipes.some((r: any) => r.id === id)) {
-          // RecipeCard와 동일한 구조로 저장
-          const normalized = {
-            id: recipe.id,
-            title: recipe.title,
-            thumbnail: recipe.thumbnail || recipe.image || '',
-            used_ingredients: recipe.used_ingredients || '',
-            author: recipe.author || '',
-            date: recipe.date || '',
-            link: recipe.link || '',
-            body: recipe.body || recipe.content || recipe.description || '',
-            like: recipe.like || recipe.likes || 0,
-            comment: recipe.comment || recipe.comments || 0,
-            match_rate: recipe.match_rate || recipe.match || 0,
-          };
-          recordedRecipes.push(normalized);
+        // 기록 추가: recordedRecipes에만 추가(중복 추가 방지)
+        const recipe = completedRecipes.find(r => r.id === id) || recordedRecipes.find(r => r.id === id);
+        if (recipe && !recordedRecipes.some(r => r.id === id)) {
+          const updatedRecorded = [...recordedRecipes, recipe];
+          setRecordedRecipes(updatedRecorded);
+          localStorage.setItem('my_recorded_recipes', JSON.stringify(updatedRecorded));
         }
-        localStorage.setItem('my_recorded_recipes', JSON.stringify(recordedRecipes));
-        setRecordedRecipes(recordedRecipes);
         setToast('레시피를 기록했습니다!');
-        console.log('[기록] my_recorded_recipes:', recordedRecipes);
-      setTimeout(() => setToast(''), 1500);
+        setTimeout(() => setToast(''), 1500);
       } else {
-        setPendingRemove({type: 'write', id});
-        setPendingRecipe(recordedRecipes.find((r: any) => r.id === id));
+        // 기록 취소: 확인 토스트(모달) 띄우기
+        setPendingRemove({ type: 'write', id });
+        setPendingRecipe(recordedRecipes.find(r => r.id === id));
+        // 실제 삭제는 handleRemoveConfirm에서 처리
       }
       return newState;
     });
@@ -268,18 +221,14 @@ const MyPage = () => {
     if (!pendingRemove) return;
     if (pendingRemove.type === 'done') {
       setDoneStates(prev => ({ ...prev, [pendingRemove.id]: false }));
-      setCompletedRecipes(prev => {
-        const updated = prev.filter((r: any) => r.id !== pendingRemove.id);
-        localStorage.setItem('my_completed_recipes', JSON.stringify(updated));
-        return updated;
-      });
+      const updated = completedRecipes.filter((r: any) => String(r.id) !== String(pendingRemove.id));
+      localStorage.setItem('my_completed_recipes', JSON.stringify(updated));
+      setCompletedRecipes(updated);
     } else if (pendingRemove.type === 'write') {
       setWriteStates(prev => ({ ...prev, [pendingRemove.id]: false }));
-      setRecordedRecipes(prev => {
-        const updated = prev.filter((r: any) => r.id !== pendingRemove.id);
-        localStorage.setItem('my_recorded_recipes', JSON.stringify(updated));
-        return updated;
-      });
+      const updated = recordedRecipes.filter((r: any) => String(r.id) !== String(pendingRemove.id));
+      localStorage.setItem('my_recorded_recipes', JSON.stringify(updated));
+      setRecordedRecipes(updated);
     }
     setPendingRemove(null);
     setPendingRecipe(null);
@@ -398,87 +347,44 @@ const MyPage = () => {
               <span style={{ color: '#222', fontSize: '10.4px', minWidth: 30 }}>보유 재료</span>
             </div>
           </div>
-          <div style={{display: 'flex', overflowX: 'auto', gap: 16, paddingBottom: 8, minHeight: 180, alignItems: 'center', justifyContent: recordedRecipes.length === 0 ? 'center' : 'flex-start'}}>
+          <div style={{
+            display: 'flex',
+            overflowX: 'auto',
+            gap: 16,
+            paddingBottom: 8,
+            minHeight: 180,
+            alignItems: 'center',
+            justifyContent: recordedRecipes.length === 0 ? 'center' : 'flex-start',
+            paddingRight: 64,
+          }}>
             {recordedRecipes.length === 0 ? (
               <span style={{ color: '#bbb', fontSize: 13, textAlign: 'center', width: '100%' }}>레시피를 기록해 주세요</span>
             ) : (
-              recordedRecipes.map((recipe, idx) => {
-                // 냉장고요리와 완전히 동일하게 needIngredients를 생성
-                const needIngredientsForPill = (recipe.used_ingredients || '').split(',').map((i: string) => (i ? i.trim() : '')).filter(Boolean);
-                const pillInfo = getIngredientPillInfo({
-                  needIngredients: needIngredientsForPill,
-                  myIngredients,
-                  substituteTable,
-                });
-                const logo = getPlatformLogo(recipe.platform);
-                return (
-                  <div key={recipe.id} style={{ minWidth: 320, maxWidth: 340, width: '100%', background: '#fff', borderRadius: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', padding: 0, display: 'flex', flexDirection: 'column', gap: 8, position: 'relative' }}>
-                    <div style={{ position: 'relative', width: '100%', height: 140 }}>
-                      <img
-                        src={getProxiedImageUrl(recipe.thumbnail || recipe.image)}
-                        alt="썸네일"
-                        onError={e => { e.currentTarget.src = '/default-thumbnail.png'; }}
-                        style={{ width: '100%', height: 140, objectFit: 'cover', borderRadius: 12, marginBottom: 8 }}
-                      />
-                      {/* 플랫폼별 로고 오버레이 */}
-                      {logo && (
-                        <img
-                          src={logo}
-                          alt="플랫폼 로고"
-                          style={{
-                            position: 'absolute',
-                            right: 4,
-                            top: 4,
-                            width: 24,
-                            height: 24,
-                            zIndex: 2
-                          }}
-                        />
-                      )}
-                      {/* 매칭률 뱃지 */}
-                      <div className="absolute bg-[#444] bg-opacity-80 text-white font-medium rounded px-2 py-0.5 flex items-center gap-1" style={{ position: 'absolute', top: 8, left: 8, fontSize: 12, zIndex: 2, textShadow: '0 1px 2px rgba(0,0,0,0.12)' }}>
-                        재료 매칭률 <span className="text-[#FFD600] font-bold ml-1" style={{ textShadow: 'none', letterSpacing: '0.5px' }}>{recipe.match_rate || recipe.match || 0}%</span>
-                      </div>
-                      {/* 완료/공유/기록 버튼 */}
-                      <div style={{ position: 'absolute', right: 8, bottom: 8, display: 'flex', flexDirection: 'row', gap: 6, alignItems: 'center', zIndex: 2 }}>
-                        <ActionButton 
-                          title="완료" 
-                          icon={완료하기버튼} 
-                          onClick={() => handleDoneClick(recipe.id)} 
-                          active={!doneStates[recipe.id]} 
-                        />
-                        <ActionButton 
-                          title="공유" 
-                          icon={공유하기버튼} 
-                          onClick={() => handleShareClick(recipe)} 
-                        />
-                        <ActionButton 
-                          title="기록" 
-                          icon={기록하기버튼} 
-                          onClick={() => handleWriteClick(recipe.id)} 
-                          active={!writeStates[recipe.id]} 
-                        />
-                      </div>
-                    </div>
-                    <div style={{ padding: '16px 16px 12px 16px' }}>
-                      {/* 제목 */}
-                      <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>{recipe.title}</div>
-                      {/* 좋아요/댓글 */}
-                      {(recipe.like || recipe.comment) && (
-                        <div style={{ fontSize: 13, color: '#888', marginBottom: 4 }}>
-                          {recipe.like ? `좋아요 ${recipe.like}` : ''}{recipe.like && recipe.comment ? ' · ' : ''}{recipe.comment ? `댓글 ${recipe.comment}` : ''}
-                        </div>
-                      )}
-                      {/* 재료 pill */}
-                      <IngredientPillGroup
-                        needIngredients={needIngredientsForPill}
-                        myIngredients={myIngredients}
-                        substituteTable={substituteTable}
-                      />
-                  </div>
-                  </div>
-                );
-              })
+              recordedRecipes.map((recipe, idx) => (
+                <div
+                  key={recipe.id}
+                  style={{
+                    minWidth: 360,
+                    maxWidth: 360,
+                    flex: '0 0 360px',
+                  }}
+                >
+                  <RecipeCard
+                    recipe={recipe}
+                    index={idx}
+                    actionState={{ done: doneStates[recipe.id], write: writeStates[recipe.id], share: false }}
+                    onAction={(recipe) => {
+                      console.log('[RecipeCard onAction]', recipe);
+                      if (recipe.action === 'done') handleDoneClick(recipe.id);
+                      else if (recipe.action === 'share') handleShareClick(recipe);
+                      else if (recipe.action === 'write') handleWriteClick(recipe.id);
+                    }}
+                    isLast={idx === recordedRecipes.length - 1}
+                    myIngredients={myIngredients}
+                    substituteTable={substituteTable}
+                  />
+                </div>
+              ))
             )}
           </div>
         </div>
@@ -513,87 +419,44 @@ const MyPage = () => {
               <span style={{ color: '#222', fontSize: '10.4px', minWidth: 30 }}>보유 재료</span>
             </div>
           </div>
-          <div style={{display: 'flex', overflowX: 'auto', gap: 16, paddingBottom: 8, minHeight: 180, alignItems: 'center', justifyContent: completedRecipes.length === 0 ? 'center' : 'flex-start'}}>
+          <div style={{
+            display: 'flex',
+            overflowX: 'auto',
+            gap: 16,
+            paddingBottom: 8,
+            minHeight: 180,
+            alignItems: 'center',
+            justifyContent: completedRecipes.length === 0 ? 'center' : 'flex-start',
+            paddingRight: 64,
+          }}>
             {completedRecipes.length === 0 ? (
               <span style={{ color: '#bbb', fontSize: 13, textAlign: 'center', width: '100%' }}>레시피를 완료해 주세요</span>
             ) : (
-              completedRecipes.map((recipe, idx) => {
-                // 냉장고요리와 완전히 동일하게 needIngredients를 생성
-                const needIngredientsForPill = (recipe.used_ingredients || '').split(',').map((i: string) => (i ? i.trim() : '')).filter(Boolean);
-                const pillInfo = getIngredientPillInfo({
-                  needIngredients: needIngredientsForPill,
-                  myIngredients,
-                  substituteTable,
-                });
-                const logo = getPlatformLogo(recipe.platform);
-                return (
-                  <div key={recipe.id} style={{ minWidth: 320, maxWidth: 340, width: '100%', background: '#fff', borderRadius: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', padding: 0, display: 'flex', flexDirection: 'column', gap: 8, position: 'relative' }}>
-                    <div style={{ position: 'relative', width: '100%', height: 140 }}>
-                      <img
-                        src={getProxiedImageUrl(recipe.thumbnail || recipe.image)}
-                        alt="썸네일"
-                        onError={e => { e.currentTarget.src = '/default-thumbnail.png'; }}
-                        style={{ width: '100%', height: 140, objectFit: 'cover', borderRadius: 12, marginBottom: 8 }}
-                      />
-                      {/* 플랫폼별 로고 오버레이 */}
-                      {logo && (
-                        <img
-                          src={logo}
-                          alt="플랫폼 로고"
-                          style={{
-                            position: 'absolute',
-                            right: 4,
-                            top: 4,
-                            width: 24,
-                            height: 24,
-                            zIndex: 2
-                          }}
-                        />
-                      )}
-                      {/* 매칭률 뱃지 */}
-                      <div className="absolute bg-[#444] bg-opacity-80 text-white font-medium rounded px-2 py-0.5 flex items-center gap-1" style={{ position: 'absolute', top: 8, left: 8, fontSize: 12, zIndex: 2, textShadow: '0 1px 2px rgba(0,0,0,0.12)' }}>
-                        재료 매칭률 <span className="text-[#FFD600] font-bold ml-1" style={{ textShadow: 'none', letterSpacing: '0.5px' }}>{recipe.match_rate || recipe.match || 0}%</span>
-                      </div>
-                      {/* 완료/공유/기록 버튼 */}
-                      <div style={{ position: 'absolute', right: 8, bottom: 8, display: 'flex', flexDirection: 'row', gap: 6, alignItems: 'center', zIndex: 2 }}>
-                        <ActionButton 
-                          title="완료" 
-                          icon={완료하기버튼} 
-                          onClick={() => handleDoneClick(recipe.id)} 
-                          active={!doneStates[recipe.id]} 
-                        />
-                        <ActionButton 
-                          title="공유" 
-                          icon={공유하기버튼} 
-                          onClick={() => handleShareClick(recipe)} 
-                        />
-                        <ActionButton 
-                          title="기록" 
-                          icon={기록하기버튼} 
-                          onClick={() => handleWriteClick(recipe.id)} 
-                          active={!writeStates[recipe.id]} 
-                        />
-                      </div>
-                    </div>
-                    <div style={{ padding: '16px 16px 12px 16px' }}>
-                      {/* 제목 */}
-                      <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>{recipe.title}</div>
-                      {/* 좋아요/댓글 */}
-                      {(recipe.like || recipe.comment) && (
-                        <div style={{ fontSize: 13, color: '#888', marginBottom: 4 }}>
-                          {recipe.like ? `좋아요 ${recipe.like}` : ''}{recipe.like && recipe.comment ? ' · ' : ''}{recipe.comment ? `댓글 ${recipe.comment}` : ''}
-                        </div>
-                      )}
-                      {/* 재료 pill */}
-                      <IngredientPillGroup
-                        needIngredients={needIngredientsForPill}
-                        myIngredients={myIngredients}
-                        substituteTable={substituteTable}
-                      />
-                  </div>
-                  </div>
-                );
-              })
+              completedRecipes.map((recipe, idx) => (
+                <div
+                  key={recipe.id}
+                  style={{
+                    minWidth: 360,
+                    maxWidth: 360,
+                    flex: '0 0 360px',
+                  }}
+                >
+                  <RecipeCard
+                    recipe={recipe}
+                    index={idx}
+                    actionState={{ done: doneStates[recipe.id], write: writeStates[recipe.id], share: false }}
+                    onAction={(recipe) => {
+                      console.log('[RecipeCard onAction]', recipe);
+                      if (recipe.action === 'done') handleDoneClick(recipe.id);
+                      else if (recipe.action === 'share') handleShareClick(recipe);
+                      else if (recipe.action === 'write') handleWriteClick(recipe.id);
+                    }}
+                    isLast={idx === completedRecipes.length - 1}
+                    myIngredients={myIngredients}
+                    substituteTable={substituteTable}
+                  />
+                </div>
+              ))
             )}
           </div>
         </div>
@@ -703,10 +566,8 @@ const MyPage = () => {
           color: '#fff',
           padding: '12px 24px',
           borderRadius: 12,
-          fontWeight: 400,
           fontSize: 15,
           zIndex: 9999,
-          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
           maxWidth: 260,
           width: 'max-content',
           whiteSpace: 'nowrap',
@@ -728,10 +589,8 @@ const MyPage = () => {
           color: '#fff',
           padding: '12px 24px',
           borderRadius: 12,
-          fontWeight: 400,
           fontSize: 15,
           zIndex: 9999,
-          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
           maxWidth: 320,
           width: 'max-content',
           whiteSpace: 'nowrap',
@@ -743,7 +602,13 @@ const MyPage = () => {
           alignItems: 'center',
           gap: 8,
         }}>
-          <span style={{fontWeight:600,color:'#fff',marginBottom:6,letterSpacing:'0.04em',whiteSpace:'nowrap',display:'inline-block'}}>
+          <span style={{
+            color: '#fff',
+            marginBottom: 6,
+            letterSpacing: '0.04em',
+            whiteSpace: 'nowrap',
+            display: 'inline-block',
+          }}>
             {pendingRemove.type === 'done' ? '레시피 완료를 취소하시겠어요?' : '레시피 기록을 취소하시겠어요?'}
           </span>
           <div style={{display:'flex',flexDirection:'row',gap:12,justifyContent:'center',width:'100%'}}>

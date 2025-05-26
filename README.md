@@ -445,3 +445,34 @@ crawler/
    ```bash
    python crawler/youtube_crawler.py
    ```
+
+## 폴더 구조
+```
+frontend/
+├── src/
+│   ├── components/
+│   │   ├── RecipeCard.tsx        # 레시피 카드 컴포넌트
+│   │   ├── IngredientPillGroup.tsx  # 재료 pill 그룹 컴포넌트
+│   │   └── ...
+│   ├── pages/
+│   │   ├── Popular.tsx          # 인기 레시피 페이지
+│   │   └── ...
+│   └── ...
+```
+
+## 인기도 점수 계산 방식
+
+### 유튜브 레시피
+```
+popularity_score = 1.0 * likes + 2.0 * comments + 0.5 * hits
+```
+- likes: 좋아요 수
+- comments: 댓글 수
+- hits: 조회수
+
+### 네이버 레시피
+```
+popularity_score = 1.0 * likes + 2.0 * comments
+```
+- likes: 공감(좋아요) 수
+- comments: 댓글 수

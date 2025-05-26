@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
+import backIcon from '../assets/뒤로가기_GREY.png';
 
 type Props = {
   type: 'expiry' | 'purchase';
@@ -18,7 +19,8 @@ export default function IngredientDateModal({ type, isOpen, onClose, onComplete,
   // 입력 필드 변경 (type=date이므로 별도 포맷팅 불필요)
 
   // 달력에서 날짜 선택 시 yyyy-mm-dd로 입력창에 반영
-  const handleCalendarChange = (date: Date) => {
+  const handleCalendarChange = (date: Date | null) => {
+    if (!date) return;
     const yyyy = date.getFullYear();
     const mm = String(date.getMonth() + 1).padStart(2, '0');
     const dd = String(date.getDate()).padStart(2, '0');
@@ -47,19 +49,21 @@ export default function IngredientDateModal({ type, isOpen, onClose, onComplete,
         onClick={e => e.stopPropagation()}
         style={{ fontFamily: 'Pretendard, sans-serif' }}
       >
-        <div className="absolute top-1 right-1 flex gap-1 z-10">
+        <div className="absolute top-1 left-1 flex gap-1 z-10">
           <button
             onClick={onBack ? onBack : onClose}
             className="p-1 text-gray-400 hover:text-gray-700 bg-transparent border-none outline-none text-base"
-            style={{ background: 'none', border: 'none' }}
+            style={{ background: 'none', border: 'none', padding: 0, width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             aria-label="뒤로가기"
           >
-            ↩
+            <img src={backIcon} alt="뒤로가기" style={{ width: 13, height: 13, objectFit: 'contain', display: 'block' }} />
           </button>
+        </div>
+        <div className="absolute top-1 right-1 flex gap-1 z-10">
           <button
             onClick={onClose}
             className="p-1 text-gray-400 hover:text-gray-700 bg-transparent border-none outline-none text-base"
-            style={{ background: 'none', border: 'none' }}
+            style={{ background: 'none', border: 'none', width: 24, height: 24, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             aria-label="닫기"
           >
             ×
@@ -100,8 +104,9 @@ export default function IngredientDateModal({ type, isOpen, onClose, onComplete,
           {/* 달력 팝업 */}
           {calendarOpen && (
             <div className="absolute left-1/2 -translate-x-1/2 top-12 z-50 bg-white rounded-xl shadow-lg p-2">
+              {/* @ts-expect-error DatePicker type issue with React 18/19 */}
               <DatePicker
-                selected={inputValue.match(/^\d{4}-\d{2}-\d{2}$/) ? new Date(inputValue) : null}
+                selected={inputValue.match(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/) ? new Date(inputValue) : null}
                 onChange={handleCalendarChange}
                 inline
                 dateFormat="yyyy-MM-dd"

@@ -17,6 +17,9 @@ import { getProxiedImageUrl } from '../utils/imageUtils';
 import { calculateMatchRate } from '../utils/recipeUtils';
 import naverLogo from '../assets/썸네일_naverlogo.png';
 import youtubeLogo from '../assets/썸네일_youtubelogo.png';
+import RecipeCard from '../components/RecipeCard';
+import youtubeTitleImg from '../assets/유튜브제목이미지.png';
+import naverTitleImg from '../assets/네이버제목이미지.png';
 
 // 더미 데이터 예시
 const dummyRecipes = [
@@ -126,8 +129,8 @@ const calculateIngredientRankings = (recipes: Recipe[]) => {
   
   recipes.forEach(recipe => {
     if (recipe.used_ingredients) {
-      const ingredients = recipe.used_ingredients.split(',').map(i => i.trim());
-      ingredients.forEach(ingredient => {
+      const ingredients = (typeof recipe.used_ingredients === 'string' ? recipe.used_ingredients.split(',') : recipe.used_ingredients).map((i: string) => i.trim());
+      ingredients.forEach((ingredient: string) => {
         ingredientCounts[ingredient] = (ingredientCounts[ingredient] || 0) + 1;
       });
     }
@@ -247,6 +250,17 @@ const getPlatformLogo = (platform: string | undefined) => {
   return null;
 };
 
+// Update helper function to use correct localStorage keys
+function getRecipeActionState(recipeId: number) {
+  const completedRecipes = JSON.parse(localStorage.getItem('my_completed_recipes') || '[]');
+  const recordedRecipes = JSON.parse(localStorage.getItem('my_recorded_recipes') || '[]');
+  return {
+    done: completedRecipes.some((r: any) => r.id === recipeId),
+    write: recordedRecipes.some((r: any) => r.id === recipeId),
+    share: false,
+  };
+}
+
 const Popular = () => {
   const [search, setSearch] = useState('');
   const nickname = "닉네임"; // 실제 닉네임 연동 필요
@@ -266,8 +280,8 @@ const Popular = () => {
   const [toast, setToast] = useState('');
   const [includeKeyword, setIncludeKeyword] = useState('');
 
-  // 각 레시피별 완료/기록 상태 관리
-  const [buttonStates, setButtonStates] = useState<{ [id: number]: { done: boolean; write: boolean } }>({});
+  // 버튼 상태 통일: {done, write, share}
+  const [buttonStates, setButtonStates] = useState<{ [id: number]: { done: boolean; write: boolean; share: boolean } }>({});
 
   // 내 냉장고 재료 불러오기 (RecipeList.tsx와 동일)
   function getMyIngredients() {
@@ -307,32 +321,88 @@ const Popular = () => {
     periodLabel = `${dateRange[0].getFullYear()}.${String(dateRange[0].getMonth()+1).padStart(2,'0')}.${String(dateRange[0].getDate()).padStart(2,'0')}~${dateRange[1].getFullYear()}.${String(dateRange[1].getMonth()+1).padStart(2,'0')}.${String(dateRange[1].getDate()).padStart(2,'0')}`;
   }
 
-  const handleDoneClick = (recipeId: number) => {
+  // Update handleRecipeAction to use correct localStorage keys and sync properly
+  const handleRecipeAction = (id: number, action: { action: 'done' | 'write' | 'share' }) => {
     setButtonStates(prev => {
-      const prevState = prev[recipeId] || { done: false, write: false };
-      const isActive = !!prevState.done;
-      const newState = { ...prevState, done: !isActive };
-      setToast(isActive ? '레시피 완료를 취소했습니다!' : '레시피를 완료했습니다!');
+      const prevState = prev[id] || getRecipeActionState(id);
+      let newState = { ...prevState };
+      
+      if (action.action === 'done') {
+        let completedRecipes = JSON.parse(localStorage.getItem('my_completed_recipes') || '[]');
+        const recipe = recipes.find(r => r.id === id);
+        
+        if (prevState.done) {
+          // 완료 취소
+          completedRecipes = completedRecipes.filter((r: any) => r.id !== id);
+          setToast('레시피 완료를 취소했습니다!');
+        } else {
+          // 완료 추가
+          if (recipe && !completedRecipes.some((r: any) => r.id === id)) {
+            const normalized = {
+              id: recipe.id,
+              title: recipe.title,
+              thumbnail: recipe.thumbnail || '',
+              used_ingredients: recipe.used_ingredients || '',
+              author: recipe.author || '',
+              date: recipe.date || '',
+              link: recipe.link || '',
+              body: recipe.body || recipe.content || recipe.description || '',
+              likes: recipe.likes || 0,
+              comments: recipe.comments || 0,
+              match_rate: recipe.match_rate || 0,
+            };
+            completedRecipes.push(normalized);
+            setToast('레시피를 완료했습니다!');
+          }
+        }
+        localStorage.setItem('my_completed_recipes', JSON.stringify(completedRecipes));
+        newState.done = !prevState.done;
+      }
+      
+      if (action.action === 'write') {
+        let recordedRecipes = JSON.parse(localStorage.getItem('my_recorded_recipes') || '[]');
+        const recipe = recipes.find(r => r.id === id);
+        
+        if (prevState.write) {
+          // 기록 취소
+          recordedRecipes = recordedRecipes.filter((r: any) => r.id !== id);
+          setToast('레시피 기록을 취소했습니다!');
+        } else {
+          // 기록 추가
+          if (recipe && !recordedRecipes.some((r: any) => r.id === id)) {
+            const normalized = {
+              id: recipe.id,
+              title: recipe.title,
+              thumbnail: recipe.thumbnail || '',
+              used_ingredients: recipe.used_ingredients || '',
+              author: recipe.author || '',
+              date: recipe.date || '',
+              link: recipe.link || '',
+              body: recipe.body || recipe.content || recipe.description || '',
+              likes: recipe.likes || 0,
+              comments: recipe.comments || 0,
+              match_rate: recipe.match_rate || 0,
+            };
+            recordedRecipes.push(normalized);
+            setToast('레시피를 기록했습니다!');
+          }
+        }
+        localStorage.setItem('my_recorded_recipes', JSON.stringify(recordedRecipes));
+        newState.write = !prevState.write;
+      }
+      
+      if (action.action === 'share') {
+        const recipe = recipes.find(r => r.id === id);
+        if (recipe) {
+          const shareUrl = recipe.link || `${window.location.origin}/recipe/${recipe.id}`;
+          navigator.clipboard.writeText(shareUrl);
+          setToast('URL이 복사되었습니다!');
+        }
+      }
+      
       setTimeout(() => setToast(''), 1500);
-      return { ...prev, [recipeId]: newState };
+      return { ...prev, [id]: newState };
     });
-  };
-
-  const handleRecordClick = (recipeId: number) => {
-    setButtonStates(prev => {
-      const prevState = prev[recipeId] || { done: false, write: false };
-      const isActive = !!prevState.write;
-      const newState = { ...prevState, write: !isActive };
-      setToast(isActive ? '레시피 기록을 취소했습니다!' : '레시피를 기록했습니다!');
-      setTimeout(() => setToast(''), 1500);
-      return { ...prev, [recipeId]: newState };
-    });
-  };
-
-  const handleShareClick = () => {
-    navigator.clipboard.writeText(window.location.href);
-    setToast('URL이 복사되었습니다!');
-    setTimeout(() => setToast(''), 1500);
   };
 
   // 기간 워딩 함수
@@ -342,6 +412,41 @@ const Popular = () => {
     if (period === 'month') return '전달대비 게시글량';
     return '기간대비 게시글량';
   };
+
+  // 인기도 점수 계산 함수 수정
+  const calculatePopularityScore = (recipe: Recipe) => {
+    const likes = recipe.likes || 0;
+    const comments = recipe.comments || 0;
+    const hits = recipe.hits || 0;
+    
+    // YouTube와 Naver의 인기도 계산 방식 분리
+    if (recipe.channel === 'youtube') {
+      return 1.0 * likes + 2.0 * comments + 0.5 * hits;
+    } else {
+      return 1.0 * likes + 2.0 * comments;
+    }
+  };
+
+  // 레시피 정렬 함수 수정
+  const sortRecipesByPopularity = (recipes: Recipe[]) => {
+    return [...recipes].sort((a, b) => {
+      const scoreA = calculatePopularityScore(a);
+      const scoreB = calculatePopularityScore(b);
+      return scoreB - scoreA;
+    });
+  };
+
+  // 유튜브와 네이버 레시피 분리 (부분 일치 필터)
+  const youtubeRecipes = sortRecipesByPopularity(
+    recipes.filter(recipe =>
+      recipe.platform && recipe.platform.toLowerCase().includes('youtube')
+    )
+  );
+  const naverRecipes = sortRecipesByPopularity(
+    recipes.filter(recipe =>
+      recipe.platform && recipe.platform.toLowerCase().includes('naver')
+    )
+  );
 
   // Fetch recipes and calculate popularity scores (ignore date filter, show up to 30)
   useEffect(() => {
@@ -415,6 +520,15 @@ const Popular = () => {
     }));
   }, [sortType, matchRange, maxLack, appliedExpiryIngredients, expirySortType]);
 
+  // Add useEffect to initialize buttonStates from localStorage on mount
+  useEffect(() => {
+    const initialButtonStates: { [id: number]: { done: boolean; write: boolean; share: boolean } } = {};
+    recipes.forEach(recipe => {
+      initialButtonStates[recipe.id] = getRecipeActionState(recipe.id);
+    });
+    setButtonStates(initialButtonStates);
+  }, [recipes]);
+
   return (
     <>
       <TopNavBar />
@@ -465,25 +579,27 @@ const Popular = () => {
                 />
               </div>
               <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
-                <DatePicker
-                  selectsRange
-                  startDate={dateRange[0]}
-                  endDate={dateRange[1]}
-                  onChange={(update: [Date|null, Date|null]) => {
-                    setDateRange(update);
-                    if (update[0]) {
-                      const f = (d: Date) => `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
-                      setDateInputStart(f(update[0]));
-                    }
-                    if (update[1]) {
-                      const f = (d: Date) => `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
-                      setDateInputEnd(f(update[1]));
-                    }
-                  }}
-                  inline
-                  dateFormat="yyyy-MM-dd"
-                  maxDate={new Date()}
-                />
+                <div>
+                  {React.createElement(DatePicker as any, {
+                    selectsRange: true,
+                    startDate: dateRange[0],
+                    endDate: dateRange[1],
+                    onChange: (update: [Date|null, Date|null]) => {
+                      setDateRange(update);
+                      if (update[0]) {
+                        const f = (d: Date) => `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
+                        setDateInputStart(f(update[0]));
+                      }
+                      if (update[1]) {
+                        const f = (d: Date) => `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
+                        setDateInputEnd(f(update[1]));
+                      }
+                    },
+                    inline: true,
+                    dateFormat: "yyyy-MM-dd",
+                    maxDate: new Date()
+                  })}
+                </div>
               </div>
               <div className="flex mt-4">
                 <button
@@ -500,14 +616,17 @@ const Popular = () => {
           </div>
         )}
 
-        {/* ⓑ 전체 인기 레시피 섹션 (가로 스크롤) */}
+        {/* ⓑ 유튜브 인기 레시피 섹션 */}
         <section style={{marginBottom: 48}}>
-          <div style={{marginBottom: 8}}>
-            <h2 className="text-[16px] font-bold text-[#111] mb-2"><span className="mr-1">🏆</span>전체 인기 레시피</h2>
-            <div style={{height: 2, width: '100%', background: '#E5E5E5', marginBottom: 16}} />
+          <div style={{marginBottom: 8, display: 'flex', alignItems: 'center'}}>
+            <img src={youtubeTitleImg} alt="유튜브 로고" style={{height: 16, width: 'auto', marginRight: 6, display: 'inline-block', verticalAlign: 'middle'}} />
+            <h2 className="text-[16px] font-bold text-[#111] mb-2" style={{display: 'inline', verticalAlign: 'middle', lineHeight: '16px', fontSize: 16}}>
+              유튜브 인기 레시피
+            </h2>
           </div>
+          <div style={{height: 2, width: '100%', background: '#E5E5E5', marginBottom: 16}} />
           {/* 범례: 가로형 레시피 카드 위, 왼쪽 정렬 */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, marginTop: 0, justifyContent: 'flex-start' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 0, marginTop: 0, justifyContent: 'flex-start' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <span style={{ width: 24, height: 14, borderRadius: 7, background: '#D1D1D1', display: 'inline-block', marginRight: 2 }}></span>
               <span style={{ color: '#222', fontSize: '10.4px', minWidth: 30 }}>부족 재료</span>
@@ -521,131 +640,67 @@ const Popular = () => {
               <span style={{ color: '#222', fontSize: '10.4px', minWidth: 30 }}>보유 재료</span>
             </div>
           </div>
-          <div style={{display: 'flex', overflowX: 'auto', gap: 16, paddingBottom: 8}}>
-            {recipes.map((recipe: Recipe, idx: number) => {
-              // substitutes 배열을 substituteTable 객체로 변환
-              const substituteTable: { [key: string]: { ingredient_b: string } } = {};
-              if (Array.isArray(recipe.substitutes)) {
-                recipe.substitutes.forEach((sub: string) => {
-                  const [from, to] = sub.split('→').map((s: string) => s.trim());
-                  if (from && to) substituteTable[from] = { ingredient_b: to };
-                });
-              }
-              const ingredientList = typeof recipe.used_ingredients === 'string' ? recipe.used_ingredients.split(',').map(i => i.trim()).filter(Boolean) : [];
-              const mySet = new Set(myIngredients.map((i: string) => i.trim()));
-              let substituteTargets: string[] = [];
-              let substitutes: string[] = [];
-              ingredientList.forEach((needRaw: string) => {
-                const need = needRaw.trim();
-                const substituteInfo = substituteTable[need];
-                if (substituteInfo && mySet.has(substituteInfo.ingredient_b)) {
-                  substituteTargets.push(need);
-                  substitutes.push(`${needRaw}→${substituteInfo.ingredient_b}`);
-                }
-              });
-              const notMineNotSub = ingredientList.filter((i: string) => !mySet.has(i) && !substituteTargets.includes(i));
-              const notMineSub = substituteTargets.filter((i: string) => ingredientList.includes(i));
-              const mine = ingredientList.filter((i: string) => mySet.has(i));
-              const pills = [...notMineNotSub, ...notMineSub, ...mine];
-              const pillInfo = getUniversalIngredientPillInfo({
-                needIngredients: ingredientList,
-                myIngredients,
-                substituteTable,
-              });
-              const match = calculateMatchRate(myIngredients, Array.isArray(recipe.used_ingredients) ? recipe.used_ingredients.join(',') : recipe.used_ingredients || '');
-              const logo = getPlatformLogo(recipe.platform);
-              return (
-                <a
-                  key={recipe.id}
-                  href={recipe.link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    minWidth: 320,
-                    maxWidth: 340,
-                    background: '#fff',
-                    borderRadius: 16,
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-                    padding: 0,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 8,
-                    position: 'relative',
-                    textDecoration: 'none',
-                    color: 'inherit',
-                  }}
-                >
-                <div style={{position: 'relative', width: '100%', height: 140}}>
-                    <img
-                      src={getProxiedImageUrl(recipe.thumbnail)}
-                      alt="썸네일"
-                      onError={e => { e.currentTarget.src = '/default-thumbnail.png'; }}
-                      style={{
-                        width: '100%',
-                        height: 140,
-                        objectFit: 'cover',
-                        borderRadius: 12,
-                        marginBottom: 8,
-                      }}
-                    />
-                    {/* 플랫폼별 로고 오버레이 */}
-                    {logo && (
-                      <img
-                        src={logo}
-                        alt="플랫폼 로고"
-                        style={{
-                          position: 'absolute',
-                          right: 4,
-                          top: 4,
-                          width: 24,
-                          height: 24,
-                          zIndex: 2
-                        }}
-                      />
-                    )}
-                  {/* 순위 뱃지 */}
-                  <div className="absolute bg-[#444] bg-opacity-80 text-white font-medium rounded px-2 py-0.5 flex items-center" style={{ position: 'absolute', top: 0, left: 0, fontSize: 12, zIndex: 2, textShadow: '0 1px 2px rgba(0,0,0,0.12)' }}>
-                      {idx + 1}위
-                  </div>
-                  {/* 재료매칭률 뱃지 */}
-                  <div className="absolute bg-[#444] bg-opacity-80 text-white font-medium rounded px-2 py-0.5 flex items-center gap-1" style={{ position: 'absolute', top: 24, left: 0, fontSize: 11, zIndex: 2, textShadow: '0 1px 2px rgba(0,0,0,0.12)' }}>
-                    재료 매칭률 <span className="text-[#FFD600] font-bold ml-1" style={{ textShadow: 'none', letterSpacing: '0.5px' }}>{match.rate}%</span>
-                  </div>
-                  {/* 완료/공유/기록 버튼 */}
-                  <div style={{position: 'absolute', right: 8, bottom: 8, display: 'flex', flexDirection: 'row', gap: 6, alignItems: 'center', zIndex: 2}}>
-                    <span style={{position: 'relative', zIndex: 2}}>
-                      <span style={{position: 'absolute', left: 0, top: 0, width: 26, height: 26, borderRadius: '50%', background: 'rgba(34,34,34,0.7)', zIndex: 1}}></span>
-                      <button title="완료" tabIndex={0} style={{width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', padding: 0, cursor: 'pointer', outline: 'none', position: 'relative', zIndex: 2}} onClick={() => handleDoneClick(recipe.id)}>
-                        <img src={완료하기버튼} alt="완료" width={19} height={19} style={{display: 'block', position: 'relative', zIndex: 2}} />
-                      </button>
-                    </span>
-                    <span style={{position: 'relative', zIndex: 2}}>
-                      <span style={{position: 'absolute', left: 0, top: 0, width: 26, height: 26, borderRadius: '50%', background: 'rgba(34,34,34,0.7)', zIndex: 1}}></span>
-                      <button title="공유" tabIndex={0} style={{width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', padding: 0, cursor: 'pointer', outline: 'none', position: 'relative', zIndex: 2}} onClick={handleShareClick}>
-                        <img src={공유하기버튼} alt="공유" width={19} height={19} style={{display: 'block', position: 'relative', zIndex: 2}} />
-                      </button>
-                    </span>
-                    <span style={{position: 'relative', zIndex: 2}}>
-                      <span style={{position: 'absolute', left: 0, top: 0, width: 26, height: 26, borderRadius: '50%', background: 'rgba(34,34,34,0.7)', zIndex: 1}}></span>
-                      <button title="기록" tabIndex={0} style={{width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', padding: 0, cursor: 'pointer', outline: 'none', position: 'relative', zIndex: 2}} onClick={() => handleRecordClick(recipe.id)}>
-                        <img src={기록하기버튼} alt="기록" width={19} height={19} style={{display: 'block', position: 'relative', zIndex: 2}} />
-                      </button>
-                    </span>
-                  </div>
-                </div>
-                <div style={{padding: '16px 16px 12px 16px'}}>
-                    <div style={{fontWeight: 700, fontSize: 15, marginBottom: 4}}>{recipe.title}</div>
-                    <div style={{fontSize: 13, color: '#888', marginBottom: 4}}>좋아요 {recipe.likes} · 댓글 {recipe.comments}</div>
-                    {/* 재료 pill */}
-                    <IngredientPillGroup
-                      needIngredients={ingredientList}
-                      myIngredients={myIngredients}
-                      substituteTable={substituteTable}
-                    />
-                  </div>
-                </a>
-                      );
-            })}
+          <div style={{
+            display: 'flex',
+            overflowX: 'auto',
+            gap: 16,
+            paddingBottom: 8,
+            minHeight: 180,
+            alignItems: 'center',
+            justifyContent: 'flex-start',
+            flexWrap: 'nowrap',
+            marginTop: 8
+          }}>
+            {youtubeRecipes.map((recipe, idx) => (
+              <div key={recipe.id} style={{ minWidth: 320, maxWidth: 340, width: '100%' }}>
+                <RecipeCard 
+                  recipe={recipe} 
+                  index={idx}
+                  isLast={idx === youtubeRecipes.length - 1}
+                  actionState={buttonStates[recipe.id] || { done: false, write: false, share: false }}
+                  onAction={(recipe: Recipe) => handleRecipeAction(recipe.id, { action: recipe.action as 'done' | 'write' | 'share' })}
+                />
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ⓒ 네이버 인기 레시피 섹션 */}
+        <section style={{marginBottom: 48}}>
+          <div style={{marginBottom: 8, display: 'flex', alignItems: 'center'}}>
+            <img src={naverTitleImg} alt="네이버 로고" style={{height: 16, width: 'auto', marginRight: 6, display: 'inline-block', verticalAlign: 'middle'}} />
+            <h2 className="text-[16px] font-bold text-[#111] mb-2" style={{display: 'inline', verticalAlign: 'middle', lineHeight: '16px', fontSize: 16}}>
+              네이버 인기 레시피
+            </h2>
+          </div>
+          <div style={{height: 2, width: '100%', background: '#E5E5E5', marginBottom: 16}} />
+          {/* 범례: 가로형 레시피 카드 위, 왼쪽 정렬 */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 0, marginTop: 0, justifyContent: 'flex-start' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <span style={{ width: 24, height: 14, borderRadius: 7, background: '#D1D1D1', display: 'inline-block', marginRight: 2 }}></span>
+              <span style={{ color: '#222', fontSize: '10.4px', minWidth: 30 }}>부족 재료</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <span style={{ width: 24, height: 14, borderRadius: 7, background: '#555', display: 'inline-block', marginRight: 2 }}></span>
+              <span style={{ color: '#222', fontSize: '10.4px', minWidth: 30 }}>대체 가능</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <span style={{ width: 24, height: 14, borderRadius: 7, background: '#FFD600', display: 'inline-block', marginRight: 2 }}></span>
+              <span style={{ color: '#222', fontSize: '10.4px', minWidth: 30 }}>보유 재료</span>
+            </div>
+          </div>
+          <div style={{display: 'flex', overflowX: 'auto', gap: 16, paddingBottom: 8, marginTop: 8}}>
+            {naverRecipes.map((recipe, idx) => (
+              <div key={recipe.id} style={{minWidth: 320, maxWidth: 340}}>
+                <RecipeCard 
+                  recipe={recipe} 
+                  index={idx}
+                  isLast={idx === naverRecipes.length - 1}
+                  actionState={buttonStates[recipe.id] || { done: false, write: false, share: false }}
+                  onAction={(recipe: Recipe) => handleRecipeAction(recipe.id, { action: recipe.action as 'done' | 'write' | 'share' })}
+                />
+              </div>
+            ))}
           </div>
         </section>
 
@@ -785,10 +840,8 @@ const Popular = () => {
           color: '#fff',
           padding: '12px 24px',
           borderRadius: 12,
-          fontWeight: 400,
           fontSize: 15,
           zIndex: 9999,
-          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
           maxWidth: 260,
           width: 'max-content',
           whiteSpace: 'nowrap',
