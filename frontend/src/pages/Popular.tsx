@@ -15,6 +15,8 @@ import axios from 'axios';
 import { Recipe } from '../types/recipe';
 import { getProxiedImageUrl } from '../utils/imageUtils';
 import { calculateMatchRate } from '../utils/recipeUtils';
+import naverLogo from '../assets/썸네일_naverlogo.png';
+import youtubeLogo from '../assets/썸네일_youtubelogo.png';
 
 // 더미 데이터 예시
 const dummyRecipes = [
@@ -235,6 +237,12 @@ const calculateThemeRankings = async (recipes: Recipe[]) => {
     console.error('테마 랭킹 계산 오류:', error);
     return [];
   }
+};
+
+const getPlatformLogo = (platform: string | undefined) => {
+  if (platform === 'naver(인플루언서핫토픽)' || platform === 'naver(주제별보기)') return naverLogo;
+  if (platform === '유튜브(인플루언서)') return youtubeLogo;
+  return null;
 };
 
 const Popular = () => {
@@ -543,6 +551,7 @@ const Popular = () => {
                 substituteTable,
               });
               const match = calculateMatchRate(myIngredients, Array.isArray(recipe.used_ingredients) ? recipe.used_ingredients.join(',') : recipe.used_ingredients || '');
+              const logo = getPlatformLogo(recipe.platform);
               return (
                 <a
                   key={recipe.id}
@@ -577,6 +586,21 @@ const Popular = () => {
                         marginBottom: 8,
                       }}
                     />
+                    {/* 플랫폼별 로고 오버레이 */}
+                    {logo && (
+                      <img
+                        src={logo}
+                        alt="플랫폼 로고"
+                        style={{
+                          position: 'absolute',
+                          right: 4,
+                          top: 4,
+                          width: 24,
+                          height: 24,
+                          zIndex: 2
+                        }}
+                      />
+                    )}
                   {/* 순위 뱃지 */}
                   <div className="absolute bg-[#444] bg-opacity-80 text-white font-medium rounded px-2 py-0.5 flex items-center" style={{ position: 'absolute', top: 0, left: 0, fontSize: 12, zIndex: 2, textShadow: '0 1px 2px rgba(0,0,0,0.12)' }}>
                       {idx + 1}위
