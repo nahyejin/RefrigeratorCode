@@ -19,6 +19,7 @@ import Slider from 'rc-slider';
 import 'rc-slider/assets/index.css';
 import RecipeSortBar from '../components/RecipeSortBar';
 import { getIngredientPillInfo } from '../utils/recipeUtils';
+import { addRecipeToLocalStorage, removeRecipeFromLocalStorage, getRecipesFromLocalStorage, copyRecipeUrlToClipboard } from '../utils/recipeStorage';
 
 const sortOptions = [
   { key: 'match', label: '재료매칭률' },
@@ -251,34 +252,47 @@ const RecipeList: React.FC = () => {
     setRecipeActionStates(prev => {
       const isActive = !!prev[id]?.done;
       const newState = { ...prev, [id]: { ...prev[id], done: !isActive } };
-      let completedRecipes = JSON.parse(localStorage.getItem('my_completed_recipes') || '[]');
       if (!isActive) {
         // 완료 추가
         const recipe = recipes.find(r => r.id === id);
-        if (recipe && !completedRecipes.some((r: any) => r.id === id)) {
-          // RecipeCard와 동일한 구조로 저장
+        if (recipe && !getRecipesFromLocalStorage('done').some((r: any) => r.id === id)) {
           const normalized = {
             id: recipe.id,
             title: recipe.title,
-            thumbnail: recipe.thumbnail || recipe.image || '',
-            used_ingredients: recipe.used_ingredients || '',
+            content: recipe.content || '',
             author: recipe.author || '',
             date: recipe.date || '',
-            link: recipe.link || '',
             body: recipe.body || recipe.content || recipe.description || '',
-            like: recipe.like || recipe.likes || 0,
-            comment: recipe.comment || recipe.comments || 0,
+            description: recipe.description || '',
+            thumbnail: recipe.thumbnail || recipe.image || '',
+            used_ingredients: recipe.used_ingredients || '',
+            used_ingredients_block: recipe.used_ingredients_block || '',
+            block_reason: recipe.block_reason || '',
+            link: recipe.link || '',
+            platform: recipe.platform || 'youtube',
+            channel: recipe.channel || 'youtube',
+            likes: recipe.likes || recipe.like || 0,
+            comments: recipe.comments || recipe.comment || 0,
+            substitutes: recipe.substitutes || [],
             match_rate: recipe.match_rate || recipe.match || 0,
+            my_ingredients: recipe.my_ingredients || [],
+            need_ingredients: recipe.need_ingredients || [],
+            created_at: recipe.created_at || '',
+            updated_at: recipe.updated_at || '',
+            like_count: recipe.like_count || 0,
+            comment_count: recipe.comment_count || 0,
+            post_time: recipe.post_time || '',
+            collected_at: recipe.collected_at || '',
+            hits: recipe.hits || 0,
+            action: recipe.action,
           };
-          completedRecipes.push(normalized);
+          addRecipeToLocalStorage('done', normalized);
         }
-        localStorage.setItem('my_completed_recipes', JSON.stringify(completedRecipes));
         setToast('레시피를 완료했습니다!');
         setTimeout(() => setToast(''), 1500);
       } else {
         // 완료 취소
-        completedRecipes = completedRecipes.filter((r: any) => r.id !== id);
-        localStorage.setItem('my_completed_recipes', JSON.stringify(completedRecipes));
+        removeRecipeFromLocalStorage('done', id);
         setToast('레시피 완료를 취소했습니다!');
         setTimeout(() => setToast(''), 1500);
       }
@@ -291,34 +305,47 @@ const RecipeList: React.FC = () => {
     setRecipeActionStates(prev => {
       const isActive = !!prev[id]?.write;
       const newState = { ...prev, [id]: { ...prev[id], write: !isActive } };
-      let recordedRecipes = JSON.parse(localStorage.getItem('my_recorded_recipes') || '[]');
       if (!isActive) {
         // 기록 추가
         const recipe = recipes.find(r => r.id === id);
-        if (recipe && !recordedRecipes.some((r: any) => r.id === id)) {
-          // RecipeCard와 동일한 구조로 저장
+        if (recipe && !getRecipesFromLocalStorage('write').some((r: any) => r.id === id)) {
           const normalized = {
             id: recipe.id,
             title: recipe.title,
-            thumbnail: recipe.thumbnail || recipe.image || '',
-            used_ingredients: recipe.used_ingredients || '',
+            content: recipe.content || '',
             author: recipe.author || '',
             date: recipe.date || '',
-            link: recipe.link || '',
             body: recipe.body || recipe.content || recipe.description || '',
-            like: recipe.like || recipe.likes || 0,
-            comment: recipe.comment || recipe.comments || 0,
+            description: recipe.description || '',
+            thumbnail: recipe.thumbnail || recipe.image || '',
+            used_ingredients: recipe.used_ingredients || '',
+            used_ingredients_block: recipe.used_ingredients_block || '',
+            block_reason: recipe.block_reason || '',
+            link: recipe.link || '',
+            platform: recipe.platform || 'youtube',
+            channel: recipe.channel || 'youtube',
+            likes: recipe.likes || recipe.like || 0,
+            comments: recipe.comments || recipe.comment || 0,
+            substitutes: recipe.substitutes || [],
             match_rate: recipe.match_rate || recipe.match || 0,
+            my_ingredients: recipe.my_ingredients || [],
+            need_ingredients: recipe.need_ingredients || [],
+            created_at: recipe.created_at || '',
+            updated_at: recipe.updated_at || '',
+            like_count: recipe.like_count || 0,
+            comment_count: recipe.comment_count || 0,
+            post_time: recipe.post_time || '',
+            collected_at: recipe.collected_at || '',
+            hits: recipe.hits || 0,
+            action: recipe.action,
           };
-          recordedRecipes.push(normalized);
+          addRecipeToLocalStorage('write', normalized);
         }
-        localStorage.setItem('my_recorded_recipes', JSON.stringify(recordedRecipes));
         setToast('레시피를 기록했습니다!');
         setTimeout(() => setToast(''), 1500);
       } else {
         // 기록 취소
-        recordedRecipes = recordedRecipes.filter((r: any) => r.id !== id);
-        localStorage.setItem('my_recorded_recipes', JSON.stringify(recordedRecipes));
+        removeRecipeFromLocalStorage('write', id);
         setToast('레시피 기록을 취소했습니다!');
         setTimeout(() => setToast(''), 1500);
       }
@@ -328,14 +355,14 @@ const RecipeList: React.FC = () => {
 
   // 공유 버튼 클릭 핸들러
   const handleShareClick = (recipe: any) => {
-    const shareUrl = recipe.link || `${window.location.origin}/recipe/${recipe.id}`;
-    navigator.clipboard.writeText(shareUrl).then(() => {
+    try {
+      copyRecipeUrlToClipboard(recipe);
       setToast('URL이 복사되었습니다!');
       setTimeout(() => setToast(''), 1500);
-    }).catch(() => {
+    } catch {
       setToast('URL 복사에 실패했습니다.');
       setTimeout(() => setToast(''), 1500);
-    });
+    }
   };
 
   function getMyIngredientObjects() {
