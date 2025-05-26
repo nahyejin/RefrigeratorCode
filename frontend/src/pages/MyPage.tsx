@@ -13,6 +13,8 @@ import RecipeCard from '../components/RecipeCard';
 import { getIngredientPillInfo } from '../utils/recipeUtils';
 import IngredientPillGroup from '../components/IngredientPillGroup';
 import { getProxiedImageUrl } from '../utils/imageUtils';
+import naverLogo from '../assets/썸네일_naverlogo.png';
+import youtubeLogo from '../assets/썸네일_youtubelogo.png';
 
 // 타입 명시
 interface RecipeCardData {
@@ -107,6 +109,12 @@ function getMyIngredientsSafe() {
   } catch {}
   return [];
 }
+
+const getPlatformLogo = (platform: string | undefined) => {
+  if (platform === 'naver(인플루언서핫토픽)' || platform === 'naver(주제별보기)') return naverLogo;
+  if (platform === '유튜브(인플루언서)') return youtubeLogo;
+  return null;
+};
 
 const MyPage = () => {
   const [editOpen, setEditOpen] = useState(false);
@@ -400,6 +408,7 @@ const MyPage = () => {
                   myIngredients,
                   substituteTable,
                 });
+                const logo = getPlatformLogo(recipe.platform);
                 return (
                   <div key={recipe.id} style={{ minWidth: 320, maxWidth: 340, width: '100%', background: '#fff', borderRadius: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', padding: 0, display: 'flex', flexDirection: 'column', gap: 8, position: 'relative' }}>
                     <div style={{ position: 'relative', width: '100%', height: 140 }}>
@@ -409,6 +418,21 @@ const MyPage = () => {
                         onError={e => { e.currentTarget.src = '/default-thumbnail.png'; }}
                         style={{ width: '100%', height: 140, objectFit: 'cover', borderRadius: 12, marginBottom: 8 }}
                       />
+                      {/* 플랫폼별 로고 오버레이 */}
+                      {logo && (
+                        <img
+                          src={logo}
+                          alt="플랫폼 로고"
+                          style={{
+                            position: 'absolute',
+                            right: 4,
+                            top: 4,
+                            width: 24,
+                            height: 24,
+                            zIndex: 2
+                          }}
+                        />
+                      )}
                       {/* 매칭률 뱃지 */}
                       <div className="absolute bg-[#444] bg-opacity-80 text-white font-medium rounded px-2 py-0.5 flex items-center gap-1" style={{ position: 'absolute', top: 8, left: 8, fontSize: 12, zIndex: 2, textShadow: '0 1px 2px rgba(0,0,0,0.12)' }}>
                         재료 매칭률 <span className="text-[#FFD600] font-bold ml-1" style={{ textShadow: 'none', letterSpacing: '0.5px' }}>{recipe.match_rate || recipe.match || 0}%</span>
@@ -499,6 +523,7 @@ const MyPage = () => {
                   myIngredients,
                   substituteTable,
                 });
+                const logo = getPlatformLogo(recipe.platform);
                 return (
                   <div key={recipe.id} style={{ minWidth: 320, maxWidth: 340, width: '100%', background: '#fff', borderRadius: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', padding: 0, display: 'flex', flexDirection: 'column', gap: 8, position: 'relative' }}>
                     <div style={{ position: 'relative', width: '100%', height: 140 }}>
@@ -508,6 +533,21 @@ const MyPage = () => {
                         onError={e => { e.currentTarget.src = '/default-thumbnail.png'; }}
                         style={{ width: '100%', height: 140, objectFit: 'cover', borderRadius: 12, marginBottom: 8 }}
                       />
+                      {/* 플랫폼별 로고 오버레이 */}
+                      {logo && (
+                        <img
+                          src={logo}
+                          alt="플랫폼 로고"
+                          style={{
+                            position: 'absolute',
+                            right: 4,
+                            top: 4,
+                            width: 24,
+                            height: 24,
+                            zIndex: 2
+                          }}
+                        />
+                      )}
                       {/* 매칭률 뱃지 */}
                       <div className="absolute bg-[#444] bg-opacity-80 text-white font-medium rounded px-2 py-0.5 flex items-center gap-1" style={{ position: 'absolute', top: 8, left: 8, fontSize: 12, zIndex: 2, textShadow: '0 1px 2px rgba(0,0,0,0.12)' }}>
                         재료 매칭률 <span className="text-[#FFD600] font-bold ml-1" style={{ textShadow: 'none', letterSpacing: '0.5px' }}>{recipe.match_rate || recipe.match || 0}%</span>

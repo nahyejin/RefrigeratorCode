@@ -29,16 +29,24 @@ export interface RecipeCardProps {
   hideIndexNumber?: boolean;
 }
 
-export interface RecipeCardProps {
-  recipe: Recipe;
-  index: number;
-  actionState?: RecipeActionState;
-  onAction: (action: keyof RecipeActionState) => void;
-  isLast: boolean;
-  myIngredients?: string[];
-  substituteTable?: { [key: string]: SubstituteInfo };
-  hideIndexNumber?: boolean;
-}
+const YoutubeLogoSVG = ({ size = 24 }) => (
+  <svg viewBox="0 0 90 64" width={size} height={size} fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="90" height="64" rx="12" fill="#FF0000"/>
+    <polygon points="36,20 36,44 60,32" fill="#fff"/>
+  </svg>
+);
+const NaverLogoSVG = ({ size = 24 }) => (
+  <svg viewBox="0 0 512 512" width={size} height={size} fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="512" height="512" rx="64" fill="#03CF5D"/>
+    <path d="M 144 128 H 224 L 288 224 V 128 H 368 V 384 H 288 L 224 288 V 384 H 144 V 128 Z" fill="#fff"/>
+  </svg>
+);
+
+const getPlatformLogo = (platform: string | undefined) => {
+  if (platform === 'naver(인플루언서핫토픽)' || platform === 'naver(주제별보기)') return <NaverLogoSVG />;
+  if (platform === '유튜브(인플루언서)') return <YoutubeLogoSVG />;
+  return null;
+};
 
 const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, actionState: propActionState, onAction, isLast, myIngredients = [], substituteTable = {}, hideIndexNumber = false }) => {
   const allIngredients = [
@@ -164,6 +172,9 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, actionState: pro
   const recipeAny = recipe as any;
   const recipeBody = recipeAny.body || recipeAny.content || recipeAny.description || '';
 
+  // 썸네일 플랫폼 로고
+  const logo = getPlatformLogo(recipe.platform);
+
   return (
     <a
       href={recipe.link}
@@ -229,6 +240,12 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, actionState: pro
           style={{ display: 'block' }}
         >
           <img src={getProxiedImageUrl(recipe.thumbnail)} alt="썸네일" className="w-full h-full object-cover object-center group-hover:opacity-80 transition" />
+          {/* 플랫폼별 로고 오버레이 */}
+          {logo && (
+            <span style={{ position: 'absolute', right: 4, bottom: 4, zIndex: 2 }}>
+              {logo}
+            </span>
+          )}
           <div className="absolute bg-[#444] bg-opacity-80 text-white text-[10px] font-medium rounded px-2 py-0.5 flex items-center gap-1" style={{ top: 0, left: 0, textShadow: '0 1px 2px rgba(0,0,0,0.12)', whiteSpace: 'nowrap', minWidth: 80 }}>
             재료매칭률 <span className="text-[#FFD600] font-bold ml-1" style={{ textShadow: 'none', letterSpacing: '0.5px' }}>{recipe.match_rate}%</span>
           </div>
