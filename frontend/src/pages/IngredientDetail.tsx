@@ -187,6 +187,8 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
   const [matchRateModalOpen, setMatchRateModalOpen] = useState(false);
   const [expiryModalOpen, setExpiryModalOpen] = useState(false);
   const [filteredRecipes, setFilteredRecipes] = useState<any[]>([]);
+  const [pendingRemove, setPendingRemove] = useState<{type: 'done'|'write', id: number}|null>(null);
+  const [pendingRecipe, setPendingRecipe] = useState<any>(null);
 
   const myIngredients = useMemo(() => getMyIngredients(), []);
   const myIngredientObjects = getMyIngredientObjects();
@@ -331,22 +333,85 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
     return arr;
   }, [recipes, myIngredients, sortType]);
 
-  const handleRecipeAction = (recipeId: number, action: keyof RecipeActionState) => {
+  const handleRecipeAction = (id: number, action: { action: 'done' | 'write' | 'share' }) => {
     setButtonStates(prev => {
-      const prevState = prev[recipeId] || { done: false, write: false, share: false };
-      const isActive = !!prevState[action];
-      const newState = { ...prevState, [action]: !isActive };
-      let msg = '';
-      if (action === 'done') msg = isActive ? '레시피 완료를 취소했습니다!' : '레시피를 완료했습니다!';
-      if (action === 'write') msg = isActive ? '레시피 기록을 취소했습니다!' : '레시피를 기록했습니다!';
-      if (action === 'share') {
-        navigator.clipboard.writeText(window.location.origin + `/recipe-detail/${recipeId}`);
-        msg = 'URL이 복사되었습니다!';
+      const prevState = prev[id] || { done: false, write: false, share: false };
+      let newState = { ...prevState };
+      if (action.action === 'done') {
+        if (!prevState.done) {
+          // 완료 추가
+          let completedRecipes = JSON.parse(localStorage.getItem('my_completed_recipes') || '[]');
+          const recipe = recipes.find(r => r.id === id);
+          if (recipe && !completedRecipes.some((r: any) => r.id === id)) {
+            completedRecipes.push(recipe);
+            localStorage.setItem('my_completed_recipes', JSON.stringify(completedRecipes));
+          }
+          newState.done = true;
+          setToast('레시피를 완료했습니다!');
+          setTimeout(() => setToast(''), 1500);
+        } else {
+          // 완료 취소: 확인 토스트만 세팅
+          setPendingRemove({ type: 'done', id });
+          setPendingRecipe(recipes.find(r => r.id === id));
+          return prev;
+        }
       }
-      setToast(msg);
-      setTimeout(() => setToast(''), 1500);
-      return { ...prev, [recipeId]: newState };
+      if (action.action === 'write') {
+        if (!prevState.write) {
+          // 기록 추가
+          let recordedRecipes = JSON.parse(localStorage.getItem('my_recorded_recipes') || '[]');
+          const recipe = recipes.find(r => r.id === id);
+          if (recipe && !recordedRecipes.some((r: any) => r.id === id)) {
+            recordedRecipes.push(recipe);
+            localStorage.setItem('my_recorded_recipes', JSON.stringify(recordedRecipes));
+          }
+          newState.write = true;
+          setToast('레시피를 기록했습니다!');
+          setTimeout(() => setToast(''), 1500);
+        } else {
+          // 기록 취소: 확인 토스트만 세팅
+          setPendingRemove({ type: 'write', id });
+          setPendingRecipe(recipes.find(r => r.id === id));
+          return prev;
+        }
+      }
+      if (action.action === 'share') {
+        const recipe = recipes.find(r => r.id === id);
+        if (recipe) {
+          const shareUrl = recipe.link || `${window.location.origin}/recipe/${recipe.id}`;
+          navigator.clipboard.writeText(shareUrl);
+          setToast('URL이 복사되었습니다!');
+          setTimeout(() => setToast(''), 1500);
+        }
+      }
+      return { ...prev, [id]: newState };
     });
+  };
+
+  const handleRemoveConfirm = () => {
+    if (!pendingRemove) return;
+    if (pendingRemove.type === 'done') {
+      setButtonStates(s => ({ ...s, [pendingRemove.id]: { ...s[pendingRemove.id], done: false } }));
+      let completed = JSON.parse(localStorage.getItem('my_completed_recipes') || '[]');
+      completed = completed.filter((r: any) => r.id !== pendingRemove.id);
+      localStorage.setItem('my_completed_recipes', JSON.stringify(completed));
+      setRecipes(prev => prev.filter(r => r.id !== pendingRemove.id));
+      setFilteredRecipes(prev => prev.filter(r => r.id !== pendingRemove.id));
+    } else if (pendingRemove.type === 'write') {
+      setButtonStates(s => ({ ...s, [pendingRemove.id]: { ...s[pendingRemove.id], write: false } }));
+      let recorded = JSON.parse(localStorage.getItem('my_recorded_recipes') || '[]');
+      recorded = recorded.filter((r: any) => r.id !== pendingRemove.id);
+      localStorage.setItem('my_recorded_recipes', JSON.stringify(recorded));
+      setRecipes(prev => prev.filter(r => r.id !== pendingRemove.id));
+      setFilteredRecipes(prev => prev.filter(r => r.id !== pendingRemove.id));
+    }
+    setPendingRemove(null);
+    setPendingRecipe(null);
+  };
+
+  const handleRemoveUndo = () => {
+    setPendingRemove(null);
+    setPendingRecipe(null);
   };
 
   let sortedExpiryList: any[] = [];
@@ -495,16 +560,8 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
                 key={recipe.id}
                 recipe={recipe}
                 index={index}
-                actionState={buttonStates[recipe.id]}
-                onAction={(recipeObj: any) => {
-                  if (
-                    recipeObj &&
-                    typeof recipeObj.id === 'number' &&
-                    (recipeObj.action === 'done' || recipeObj.action === 'write' || recipeObj.action === 'share')
-                  ) {
-                    handleRecipeAction(recipeObj.id, recipeObj.action);
-                  }
-                }}
+                recipeActionState={buttonStates[recipe.id] || { done: false, write: false, share: false }}
+                onRecipeAction={({ action }) => handleRecipeAction(recipe.id, { action })}
                 isLast={index === filteredRecipes.length - 1}
                 myIngredients={myIngredients}
                 substituteTable={substituteTable}
@@ -515,7 +572,39 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
         </div>
       </div>
       <BottomNavBar activeTab={location.pathname.startsWith('/mypage') ? 'mypage' : 'popularity'} />
-      {toast && <RecipeToast message={toast} />}
+      {!pendingRemove && toast && <RecipeToast message={toast} />}
+      {pendingRemove && (
+        <div style={{
+          position: 'fixed',
+          bottom: 100,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'rgba(34, 34, 34, 0.9)',
+          color: '#fff',
+          padding: '12px 24px',
+          borderRadius: 12,
+          fontSize: 15,
+          zIndex: 9999,
+          maxWidth: 320,
+          width: 'max-content',
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          textAlign: 'center',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 8,
+        }}>
+          <span style={{ color: '#fff', marginBottom: 6, letterSpacing: '0.04em', whiteSpace: 'nowrap', display: 'inline-block' }}>
+            {pendingRemove.type === 'done' ? '레시피 완료를 취소하시겠어요?' : '레시피 기록을 취소하시겠어요?'}
+          </span>
+          <div style={{display:'flex',flexDirection:'row',gap:12,justifyContent:'center',width:'100%'}}>
+            <button className="inline-flex items-center justify-center bg-[#F5F6F8] text-gray-700 font-semibold rounded-lg px-3 py-1 text-sm border border-[#E5E7EB] shadow-none hover:bg-[#E5E7EB] transition whitespace-nowrap" style={{marginRight:4}} onClick={handleRemoveUndo}>아니요</button>
+            <button className="inline-flex items-center justify-center bg-[#F5F6F8] text-gray-700 font-semibold rounded-lg px-3 py-1 text-sm border border-[#E5E7EB] shadow-none hover:bg-[#E5E7EB] transition whitespace-nowrap" onClick={handleRemoveConfirm}>네</button>
+          </div>
+        </div>
+      )}
     </>
   );
 };

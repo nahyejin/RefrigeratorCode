@@ -1,69 +1,63 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Recipe, RecipeActionState } from '../types/recipe';
-import doneIcon from '../assets/done.svg';
-import shareIcon from '../assets/share.svg';
-import writeIcon from '../assets/write.svg';
-import doneBlackIcon from '../assets/done_black.svg';
-import shareBlackIcon from '../assets/share_black.svg';
-import writeBlackIcon from '../assets/write_black.svg';
-import { getUniversalIngredientPillInfo } from '../utils/ingredientPillUtils';
-import IngredientPillGroup from './IngredientPillGroup';
 import { getProxiedImageUrl } from '../utils/imageUtils';
 import { getPlatformLogo } from '../utils/platform';
 import { calculateMatchRate } from '../utils/recipeUtils';
+import IngredientPillGroup from './IngredientPillGroup';
 import 완료하기버튼 from '../assets/완료하기버튼.png';
 import 공유하기버튼 from '../assets/공유하기버튼.png';
 import 기록하기버튼 from '../assets/기록하기버튼.png';
 import naverLogo from '../assets/썸네일_naverlogo.png';
 import youtubeLogo from '../assets/썸네일_youtubelogo.png';
 
-interface SubstituteInfo {
-  ingredient_a: string;
-  ingredient_b: string;
-  substitution_direction: string;
-  similarity_score: number;
-  substitution_reason: string;
-}
+// 버튼/아이콘/스타일 상수화
+const ACTIONS = [
+  { key: 'done', title: '완료', icon: 완료하기버튼 },
+  { key: 'share', title: '공유', icon: 공유하기버튼 },
+  { key: 'write', title: '기록', icon: 기록하기버튼 },
+] as const;
+const BUTTON_SIZE = 26;
+const ICON_SIZE = 19;
 
 export interface RecipeCardProps {
   recipe: Recipe;
   index: number;
-  actionState?: RecipeActionState;
-  onAction: (recipe: Recipe) => void;
+  recipeActionState?: RecipeActionState;
+  onRecipeAction: (recipe: Recipe & { action: 'done' | 'share' | 'write' }) => void;
   isLast: boolean;
   myIngredients?: string[];
-  substituteTable?: { [key: string]: SubstituteInfo };
+  substituteTable?: { [key: string]: any };
   hideIndexNumber?: boolean;
 }
 
-const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, actionState: propActionState, onAction, isLast, myIngredients = [], substituteTable = {}, hideIndexNumber = false }) => {
-  // used_ingredients에서 pill 리스트 만들기
-  const ingredientList = (() => {
-    if (Array.isArray(recipe.used_ingredients)) {
-      return recipe.used_ingredients.map(i => i.trim()).filter(Boolean);
-    }
-    return (recipe.used_ingredients || '').split(',').map(i => i.trim()).filter(Boolean);
-  })();
+// RecipeCard는 UI만 담당, 상태/스토리지/토스트 등은 상위에서 관리
+const RecipeCard: React.FC<RecipeCardProps> = ({
+  recipe,
+  index,
+  recipeActionState,
+  onRecipeAction,
+  isLast,
+  myIngredients = [],
+  substituteTable = {},
+  hideIndexNumber = false,
+}) => {
+  // used_ingredients 파싱
+  const usedIngredientList = Array.isArray(recipe.used_ingredients)
+    ? recipe.used_ingredients.map(i => i.trim()).filter(Boolean)
+    : (recipe.used_ingredients || '').split(',').map(i => i.trim()).filter(Boolean);
 
-  const mySet = new Set((myIngredients || []).map(i => i.trim()));
-
-  // 버튼 클릭 시 onAction만 호출
-  const handleDoneClick = (e: React.MouseEvent) => {
+  // 버튼 클릭 핸들러 하나로 통합
+  const handleActionButtonClick = (action: 'done' | 'share' | 'write', e: React.MouseEvent) => {
     e.preventDefault();
-    onAction({ ...recipe, action: 'done' });
-  };
-  const handleShareClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    onAction({ ...recipe, action: 'share' });
-  };
-  const handleRecordClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    onAction({ ...recipe, action: 'write' });
+    onRecipeAction({ ...recipe, action });
   };
 
-  const match = calculateMatchRate(myIngredients, Array.isArray(recipe.used_ingredients) 
-    ? recipe.used_ingredients.join(',') 
-    : recipe.used_ingredients || '');
+  const match = calculateMatchRate(
+    myIngredients,
+    Array.isArray(recipe.used_ingredients)
+      ? recipe.used_ingredients.join(',')
+      : recipe.used_ingredients || ''
+  );
 
   return (
     <div
@@ -96,24 +90,25 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, actionState: pro
         />
         {/* 완료/공유/기록 버튼 */}
         <div style={{ position: 'absolute', right: 8, bottom: 8, display: 'flex', flexDirection: 'row', gap: 6, alignItems: 'center', zIndex: 2 }}>
-          <span style={{ position: 'relative', zIndex: 2 }}>
-            <span style={{ position: 'absolute', left: 0, top: 0, width: 26, height: 26, borderRadius: '50%', background: 'rgba(34,34,34,0.7)', zIndex: 1 }}></span>
-            <button title="완료" tabIndex={0} style={{ width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', padding: 0, cursor: 'pointer', outline: 'none', position: 'relative', zIndex: 2 }} onClick={handleDoneClick}>
-              <img src={완료하기버튼} alt="완료" width={19} height={19} style={{ display: 'block', position: 'relative', zIndex: 2, opacity: propActionState?.done ? 0.5 : 1, filter: propActionState?.done ? 'brightness(0.6)' : 'none' }} />
-            </button>
-          </span>
-          <span style={{ position: 'relative', zIndex: 2 }}>
-            <span style={{ position: 'absolute', left: 0, top: 0, width: 26, height: 26, borderRadius: '50%', background: 'rgba(34,34,34,0.7)', zIndex: 1 }}></span>
-            <button title="공유" tabIndex={0} style={{ width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', padding: 0, cursor: 'pointer', outline: 'none', position: 'relative', zIndex: 2 }} onClick={handleShareClick}>
-              <img src={공유하기버튼} alt="공유" width={19} height={19} style={{ display: 'block', position: 'relative', zIndex: 2, opacity: propActionState?.share ? 0.5 : 1, filter: propActionState?.share ? 'brightness(0.6)' : 'none' }} />
-            </button>
-          </span>
-          <span style={{ position: 'relative', zIndex: 2 }}>
-            <span style={{ position: 'absolute', left: 0, top: 0, width: 26, height: 26, borderRadius: '50%', background: 'rgba(34,34,34,0.7)', zIndex: 1 }}></span>
-            <button title="기록" tabIndex={0} style={{ width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', padding: 0, cursor: 'pointer', outline: 'none', position: 'relative', zIndex: 2 }} onClick={handleRecordClick}>
-              <img src={기록하기버튼} alt="기록" width={19} height={19} style={{ display: 'block', position: 'relative', zIndex: 2, opacity: propActionState?.write ? 0.5 : 1, filter: propActionState?.write ? 'brightness(0.6)' : 'none' }} />
-            </button>
-          </span>
+          {ACTIONS.map(({ key, title, icon }) => (
+            <span key={key} style={{ position: 'relative', zIndex: 2 }}>
+              <span style={{ position: 'absolute', left: 0, top: 0, width: BUTTON_SIZE, height: BUTTON_SIZE, borderRadius: '50%', background: 'rgba(34,34,34,0.7)', zIndex: 1 }}></span>
+              <button
+                title={title}
+                tabIndex={0}
+                style={{ width: BUTTON_SIZE, height: BUTTON_SIZE, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', padding: 0, cursor: 'pointer', outline: 'none', position: 'relative', zIndex: 2 }}
+                onClick={e => handleActionButtonClick(key, e)}
+              >
+                <img
+                  src={icon}
+                  alt={title}
+                  width={ICON_SIZE}
+                  height={ICON_SIZE}
+                  style={{ display: 'block', position: 'relative', zIndex: 2, opacity: recipeActionState?.[key] ? 0.5 : 1, filter: recipeActionState?.[key] ? 'brightness(0.6)' : 'none' }}
+                />
+              </button>
+            </span>
+          ))}
         </div>
       </div>
       <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>{recipe.title}</div>
@@ -122,7 +117,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, actionState: pro
         {recipe.platform && (recipe.platform.includes('youtube') || recipe.platform.includes('유튜브(인플루언서)')) && ` · 조회수 ${(recipe as any).hits?.toLocaleString() ?? 0}`}
       </div>
       <IngredientPillGroup
-        needIngredients={ingredientList}
+        needIngredients={usedIngredientList}
         myIngredients={myIngredients}
         substituteTable={substituteTable}
       />

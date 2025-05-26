@@ -372,12 +372,11 @@ const MyPage = () => {
                   <RecipeCard
                     recipe={recipe}
                     index={idx}
-                    actionState={{ done: doneStates[recipe.id], write: writeStates[recipe.id], share: false }}
-                    onAction={(recipe) => {
-                      console.log('[RecipeCard onAction]', recipe);
-                      if (recipe.action === 'done') handleDoneClick(recipe.id);
-                      else if (recipe.action === 'share') handleShareClick(recipe);
-                      else if (recipe.action === 'write') handleWriteClick(recipe.id);
+                    recipeActionState={{ done: doneStates[recipe.id], write: writeStates[recipe.id], share: false }}
+                    onRecipeAction={({ action }) => {
+                      if (action === 'done') handleDoneClick(recipe.id);
+                      else if (action === 'share') handleShareClick(recipe);
+                      else if (action === 'write') handleWriteClick(recipe.id);
                     }}
                     isLast={idx === recordedRecipes.length - 1}
                     myIngredients={myIngredients}
@@ -444,12 +443,11 @@ const MyPage = () => {
                   <RecipeCard
                     recipe={recipe}
                     index={idx}
-                    actionState={{ done: doneStates[recipe.id], write: writeStates[recipe.id], share: false }}
-                    onAction={(recipe) => {
-                      console.log('[RecipeCard onAction]', recipe);
-                      if (recipe.action === 'done') handleDoneClick(recipe.id);
-                      else if (recipe.action === 'share') handleShareClick(recipe);
-                      else if (recipe.action === 'write') handleWriteClick(recipe.id);
+                    recipeActionState={{ done: doneStates[recipe.id], write: writeStates[recipe.id], share: false }}
+                    onRecipeAction={({ action }) => {
+                      if (action === 'done') handleDoneClick(recipe.id);
+                      else if (action === 'share') handleShareClick(recipe);
+                      else if (action === 'write') handleWriteClick(recipe.id);
                     }}
                     isLast={idx === completedRecipes.length - 1}
                     myIngredients={myIngredients}

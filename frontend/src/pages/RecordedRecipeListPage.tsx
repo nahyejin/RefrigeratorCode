@@ -17,6 +17,7 @@ interface FilterState {
   대상: string[];
   TPO: string[];
   스타일: string[];
+  [key: string]: string[]; // string index signature 추가
 }
 
 // Update initialFilterState to use FilterState interface
@@ -87,6 +88,12 @@ const RecordedRecipeListPage = () => {
   const [maxLack, setMaxLack] = useState<number | 'unlimited'>('unlimited');
   const [appliedExpiryIngredients, setAppliedExpiryIngredients] = useState<string[]>([]);
   const [expirySortType, setExpirySortType] = useState<'expiry' | 'purchase'>('expiry');
+  const [pendingRemove, setPendingRemove] = useState<{type: 'done'|'write', id: number}|null>(null);
+  const [pendingRecipe, setPendingRecipe] = useState<any>(null);
+  const [includeIngredients, setIncludeIngredients] = useState<string[]>([]);
+  const [excludeIngredients, setExcludeIngredients] = useState<string[]>([]);
+  const [filterKeywordTree, setFilterKeywordTree] = useState<any>(null);
+  const [selectedChannel, setSelectedChannel] = useState<string[]>([]);
 
   useEffect(() => {
     function load() {
@@ -132,26 +139,78 @@ const RecordedRecipeListPage = () => {
     window.scrollTo(0, 0);
   }, []);
 
-  const handleRecipeAction = (recipeId: number, action: keyof RecipeActionState) => {
-    const prevState = recipeActionStates[recipeId] || { done: false, share: false, write: false };
-    const isActive = prevState[action];
-    setRecipeActionStates(prev => ({
-      ...prev,
-      [recipeId]: { ...prevState, [action]: !isActive }
-    }));
-    switch (action) {
-      case 'done':
-        setToast(isActive ? '레시피 완료를 취소했습니다!' : '레시피를 완료했습니다!');
-        break;
-      case 'write':
-        setToast(isActive ? '레시피 기록을 취소했습니다!' : '레시피를 기록했습니다!');
-        break;
-      case 'share':
-        navigator.clipboard.writeText(window.location.origin + `/recipe-detail/${recipeId}`);
-        setToast('URL이 복사되었습니다!');
-        break;
+  const handleDoneClick = (id: number) => {
+    const prev = recipeActionStates[id] || { done: false, write: false, share: false };
+    if (!prev.done) {
+      // 완료 추가
+      const recipe = recipes.find(r => r.id === id);
+      let completed = JSON.parse(localStorage.getItem('my_completed_recipes') || '[]');
+      if (recipe && !completed.some((r: any) => r.id === id)) {
+        completed.push(recipe);
+        localStorage.setItem('my_completed_recipes', JSON.stringify(completed));
+      }
+      setRecipeActionStates(s => ({ ...s, [id]: { ...prev, done: true } }));
+      setToast('레시피를 완료했습니다!');
+      setTimeout(() => setToast(''), 1500);
+    } else {
+      // 완료 취소: 확인 토스트만 세팅, 일반 토스트 띄우지 않음
+      setPendingRemove({ type: 'done', id });
+      setPendingRecipe(recipes.find(r => r.id === id));
     }
+  };
+
+  const handleWriteClick = (id: number) => {
+    const prev = recipeActionStates[id] || { done: false, write: false, share: false };
+    if (!prev.write) {
+      // 기록 추가
+      const recipe = recipes.find(r => r.id === id);
+      let recorded = JSON.parse(localStorage.getItem('my_recorded_recipes') || '[]');
+      if (recipe && !recorded.some((r: any) => r.id === id)) {
+        recorded.push(recipe);
+        localStorage.setItem('my_recorded_recipes', JSON.stringify(recorded));
+      }
+      setRecipeActionStates(s => ({ ...s, [id]: { ...prev, write: true } }));
+      setToast('레시피를 기록했습니다!');
+      setTimeout(() => setToast(''), 1500);
+    } else {
+      // 기록 취소: 확인 토스트만 세팅, 일반 토스트 띄우지 않음
+      setPendingRemove({ type: 'write', id });
+      setPendingRecipe(recipes.find(r => r.id === id));
+    }
+  };
+
+  const handleShareClick = (id: number) => {
+    const recipe = recipes.find(r => r.id === id);
+    const shareUrl = recipe?.link || `${window.location.origin}/recipe/${id}`;
+    navigator.clipboard.writeText(shareUrl);
+    setToast('URL이 복사되었습니다!');
     setTimeout(() => setToast(''), 1500);
+  };
+
+  const handleRemoveConfirm = () => {
+    if (!pendingRemove) return;
+    if (pendingRemove.type === 'done') {
+      setRecipeActionStates(s => ({ ...s, [pendingRemove.id]: { ...s[pendingRemove.id], done: false } }));
+      let completed = JSON.parse(localStorage.getItem('my_completed_recipes') || '[]');
+      completed = completed.filter((r: any) => r.id !== pendingRemove.id);
+      localStorage.setItem('my_completed_recipes', JSON.stringify(completed));
+      setRecipes(prev => prev.filter(r => r.id !== pendingRemove.id));
+      setFilteredRecipes(prev => prev.filter(r => r.id !== pendingRemove.id));
+    } else if (pendingRemove.type === 'write') {
+      setRecipeActionStates(s => ({ ...s, [pendingRemove.id]: { ...s[pendingRemove.id], write: false } }));
+      let recorded = JSON.parse(localStorage.getItem('my_recorded_recipes') || '[]');
+      recorded = recorded.filter((r: any) => r.id !== pendingRemove.id);
+      localStorage.setItem('my_recorded_recipes', JSON.stringify(recorded));
+      setRecipes(prev => prev.filter(r => r.id !== pendingRemove.id));
+      setFilteredRecipes(prev => prev.filter(r => r.id !== pendingRemove.id));
+    }
+    setPendingRemove(null);
+    setPendingRecipe(null);
+  };
+
+  const handleRemoveUndo = () => {
+    setPendingRemove(null);
+    setPendingRecipe(null);
   };
 
   const processedRecipes = useMemo(() => {
@@ -237,10 +296,14 @@ const RecordedRecipeListPage = () => {
             <RecipeCard
               key={recipe.id}
               recipe={recipe}
-                index={index}
-              actionState={recipeActionStates[recipe.id]}
-                onAction={(action) => handleRecipeAction(recipe.id, action)}
-                isLast={index === processedRecipes.length - 1}
+              index={index}
+              recipeActionState={recipeActionStates[recipe.id]}
+              onRecipeAction={({ action }) => {
+                if (action === 'done') handleDoneClick(recipe.id);
+                else if (action === 'write') handleWriteClick(recipe.id);
+                else if (action === 'share') handleShareClick(recipe.id);
+              }}
+              isLast={index === processedRecipes.length - 1}
               myIngredients={myIngredients}
             />
           ))}
@@ -255,6 +318,10 @@ const RecordedRecipeListPage = () => {
           onClose={() => setFilterOpen(false)}
           filterState={selectedFilter}
           setFilterState={setSelectedFilter}
+          includeIngredients={includeIngredients}
+          setIncludeIngredients={setIncludeIngredients}
+          excludeIngredients={excludeIngredients}
+          setExcludeIngredients={setExcludeIngredients}
           includeInput={includeInput}
           setIncludeInput={setIncludeInput}
           excludeInput={excludeInput}
@@ -262,6 +329,11 @@ const RecordedRecipeListPage = () => {
           allIngredients={allIngredients}
           includeKeyword={includeKeyword}
           setIncludeKeyword={setIncludeKeyword}
+          filterKeywordTree={filterKeywordTree}
+          setFilterKeywordTree={setFilterKeywordTree}
+          selectedChannel={selectedChannel}
+          setSelectedChannel={setSelectedChannel}
+          onApply={() => {}}
         />
       )}
       {matchRateModalOpen && (
@@ -277,6 +349,38 @@ const RecordedRecipeListPage = () => {
           <div className="bg-white rounded-xl shadow-lg p-6 w-[340px] max-w-[95vw] relative">
             <span className="absolute top-3 right-3 w-6 h-6 text-gray-400 text-xl cursor-pointer" onClick={() => setExpiryModalOpen(false)}>×</span>
             <div className="text-center font-bold text-[14px] mb-4">임박 재료 설정 (임시 모달)</div>
+          </div>
+        </div>
+      )}
+      {pendingRemove && (
+        <div style={{
+          position: 'fixed',
+          bottom: 100,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'rgba(34, 34, 34, 0.9)',
+          color: '#fff',
+          padding: '12px 24px',
+          borderRadius: 12,
+          fontSize: 15,
+          zIndex: 9999,
+          maxWidth: 320,
+          width: 'max-content',
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          textAlign: 'center',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 8,
+        }}>
+          <span style={{ color: '#fff', marginBottom: 6, letterSpacing: '0.04em', whiteSpace: 'nowrap', display: 'inline-block' }}>
+            {pendingRemove.type === 'done' ? '레시피 완료를 취소하시겠어요?' : '레시피 기록을 취소하시겠어요?'}
+          </span>
+          <div style={{display:'flex',flexDirection:'row',gap:12,justifyContent:'center',width:'100%'}}>
+            <button className="inline-flex items-center justify-center bg-[#F5F6F8] text-gray-700 font-semibold rounded-lg px-3 py-1 text-sm border border-[#E5E7EB] shadow-none hover:bg-[#E5E7EB] transition whitespace-nowrap" style={{marginRight:4}} onClick={handleRemoveUndo}>아니요</button>
+            <button className="inline-flex items-center justify-center bg-[#F5F6F8] text-gray-700 font-semibold rounded-lg px-3 py-1 text-sm border border-[#E5E7EB] shadow-none hover:bg-[#E5E7EB] transition whitespace-nowrap" onClick={handleRemoveConfirm}>네</button>
           </div>
         </div>
       )}
