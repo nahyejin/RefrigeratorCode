@@ -338,20 +338,6 @@ const RecipeList: React.FC = () => {
     });
   };
 
-  // 레시피 액션 핸들러
-  const handleRecipeAction = (id: number, action: any) => {
-    const recipe = recipes.find(r => r.id === id);
-    if (!recipe) return;
-
-    if (action.action === 'done') {
-      handleDoneClick(id);
-    } else if (action.action === 'share') {
-      handleShareClick(recipe);
-    } else if (action.action === 'write') {
-      handleWriteClick(id);
-    }
-  };
-
   function getMyIngredientObjects() {
     try {
       const data = JSON.parse(localStorage.getItem('myfridge_ingredients') || 'null');
@@ -445,23 +431,22 @@ const RecipeList: React.FC = () => {
             </div>
           </div>
           <div className="flex flex-col gap-2">
-            {filteredRecipes.map((recipe, idx) => {
-              if (idx < 10 && !recipe.body && !(recipe as any).content && !(recipe as any).description) {
-              }
-              return (
-                <div key={recipe.id} style={{ background: '#fff', borderRadius: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', padding: 0, display: 'flex', flexDirection: 'column', gap: 8, position: 'relative' }}>
-                  <RecipeCard
-                    recipe={recipe}
-                    index={idx}
-                    onAction={(action) => handleRecipeAction(recipe.id, action)}
-                    isLast={false}
-                    actionState={recipeActionStates[recipe.id]}
-                    myIngredients={myIngredients}
-                    substituteTable={substituteTable}
-                  />
-                </div>
-              );
-            })}
+            {filteredRecipes.slice(0, visibleCount).map((recipe, idx) => (
+              <RecipeCard
+                key={recipe.id}
+                recipe={recipe}
+                index={idx}
+                recipeActionState={recipeActionStates[recipe.id]}
+                onRecipeAction={({ action }) => {
+                  if (action === 'done') handleDoneClick(recipe.id);
+                  else if (action === 'write') handleWriteClick(recipe.id);
+                  else if (action === 'share') handleShareClick(recipe);
+                }}
+                isLast={idx === filteredRecipes.length - 1}
+                myIngredients={myIngredients}
+                substituteTable={substituteTable}
+              />
+            ))}
           </div>
         </div>
       </div>

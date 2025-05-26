@@ -657,8 +657,10 @@ const Popular = () => {
                   recipe={recipe} 
                   index={idx}
                   isLast={idx === youtubeRecipes.length - 1}
-                  actionState={buttonStates[recipe.id] || { done: false, write: false, share: false }}
-                  onAction={(recipe: Recipe) => handleRecipeAction(recipe.id, { action: recipe.action as 'done' | 'write' | 'share' })}
+                  recipeActionState={buttonStates[recipe.id] || { done: false, write: false, share: false }}
+                  onRecipeAction={({ action }) => handleRecipeAction(recipe.id, { action })}
+                  myIngredients={myIngredients}
+                  substituteTable={{}}
                 />
               </div>
             ))}
@@ -696,8 +698,10 @@ const Popular = () => {
                   recipe={recipe} 
                   index={idx}
                   isLast={idx === naverRecipes.length - 1}
-                  actionState={buttonStates[recipe.id] || { done: false, write: false, share: false }}
-                  onAction={(recipe: Recipe) => handleRecipeAction(recipe.id, { action: recipe.action as 'done' | 'write' | 'share' })}
+                  recipeActionState={buttonStates[recipe.id] || { done: false, write: false, share: false }}
+                  onRecipeAction={({ action }) => handleRecipeAction(recipe.id, { action })}
+                  myIngredients={myIngredients}
+                  substituteTable={{}}
                 />
               </div>
             ))}
