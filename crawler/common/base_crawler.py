@@ -4,7 +4,7 @@ Base crawler class that defines common functionality for all crawlers.
 from abc import ABC, abstractmethod
 from typing import List, Dict
 from datetime import datetime
-from crawling.common.constants import RECIPE_KEYWORDS
+from crawler.common.constants import RECIPE_KEYWORDS
 
 class BaseCrawler(ABC):
     def __init__(self):
