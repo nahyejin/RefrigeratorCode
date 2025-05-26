@@ -16,9 +16,9 @@ import sys
 import os
 from typing import Tuple
 
-from crawling.common.base_crawler import BaseCrawler
-from crawling.common.data_models import Recipe
-from crawling.common.constants import DB_CONFIG, NAVER_TARGETS, PLATFORM_NAVER
+from crawler.common.base_crawler import BaseCrawler
+from crawler.common.data_models import Recipe
+from crawler.common.constants import DB_CONFIG, NAVER_TARGETS, PLATFORM_NAVER
 
 class NaverCrawler(BaseCrawler):
     def __init__(self):

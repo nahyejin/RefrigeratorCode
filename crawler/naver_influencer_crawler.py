@@ -11,7 +11,7 @@ from selenium.webdriver.chrome.options import Options
 from selenium.common.exceptions import TimeoutException, NoSuchElementException, WebDriverException
 import random
 import logging
-from crawling.common.constants import RECIPE_KEYWORDS
+from crawler.common.constants import RECIPE_KEYWORDS
 import subprocess
 
 # 로깅 설정
