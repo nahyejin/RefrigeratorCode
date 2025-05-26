@@ -204,10 +204,13 @@ class YouTubeCrawler:
                                 # 'id'가 없거나 비정상 구조면 건너뜀
                                 if 'id' not in item or 'snippet' not in item:
                                     continue
+                                content = item['snippet']['description']
+                                if len(content) < 30:
+                                    continue  # 30자 미만은 저장하지 않음
                                 video_info = {
                                     'title': item['snippet']['title'],
                                     'link': f"https://www.youtube.com/watch?v={item['id']}",
-                                    'content': item['snippet']['description'],
+                                    'content': content,
                                     'author': item['snippet']['channelTitle'],
                                     'thumbnail': item['snippet']['thumbnails']['high']['url'],
                                     'platform': self.platform,
