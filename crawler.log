@@ -12150,3 +12150,104 @@ Stacktrace:
 2025-05-26 09:03:40,878 - INFO - [블로그 진행률] 2/3 (66%) 블로그에서 더보기 버튼 클릭 시도...
 2025-05-26 09:03:45,912 - INFO - 블로그 페이지로 이동 성공: https://blog.naver.com/handsromance/223851668637?isInf=true&trackingCode=naver_etc
 2025-05-26 09:03:48,945 - INFO - iframe 전환 성공
+2025-05-26 10:19:25,205 - INFO - file_cache is only supported with oauth2client<4.0.0
+2025-05-26 10:19:25,208 - ERROR - Error processing influencer list: 'channel_id'
+2025-05-26 10:22:28,160 - INFO - file_cache is only supported with oauth2client<4.0.0
+2025-05-26 10:22:28,163 - INFO - Processing channel: 백종원의 요리비책 (https://www.youtube.com/@paik_jongwon)
+2025-05-26 10:22:30,523 - INFO - Processing channel: 이연복의 복주머지 (https://www.youtube.com/@leeyeonbok)
+2025-05-26 10:22:32,306 - INFO - Processing channel: COOKING HARU (https://www.youtube.com/@cooking_haru)
+2025-05-26 10:22:34,078 - INFO - Processing channel: 루다 테이블 Luda Table (https://www.youtube.com/@LudaTable)
+2025-05-26 10:22:35,852 - INFO - Processing channel: 킴서울 Kim seoul (https://www.youtube.com/@%ED%82%B4%EC%84%9C%EC%9A%B8)
+2025-05-26 10:22:37,705 - INFO - Saved 250 videos to data/youtube_videos.csv
+2025-05-26 10:22:46,240 - INFO - file_cache is only supported with oauth2client<4.0.0
+2025-05-26 10:22:46,244 - INFO - Processing channel: 백종원의 요리비책 (https://www.youtube.com/@paik_jongwon)
+2025-05-26 10:22:48,545 - INFO - Processing channel: 이연복의 복주머니 (https://www.youtube.com/@leeyeonbok)
+2025-05-26 10:22:50,260 - INFO - Processing channel: COOKING HARU (https://www.youtube.com/@cooking_haru)
+2025-05-26 10:22:52,071 - INFO - Processing channel: 루다 테이블 Luda Table (https://www.youtube.com/@LudaTable)
+2025-05-26 10:22:53,805 - INFO - Processing channel: 킴서울 Kim seoul (https://www.youtube.com/@%ED%82%B4%EC%84%9C%EC%9A%B8)
+2025-05-26 10:22:55,727 - INFO - Saved 250 videos to data/youtube_videos.csv
+2025-05-26 10:25:00,089 - INFO - file_cache is only supported with oauth2client<4.0.0
+2025-05-26 10:25:00,101 - INFO - Processing channel: 백종원의 요리비책 (https://www.youtube.com/@paik_jongwon)
+2025-05-26 10:25:02,329 - INFO - Processing channel: 이연복의 복주머니 (https://www.youtube.com/@leeyeonbok)
+2025-05-26 10:25:04,265 - INFO - Processing channel: COOKING HARU (https://www.youtube.com/@cooking_haru)
+2025-05-26 10:25:05,852 - INFO - Processing channel: 루다 테이블 Luda Table (https://www.youtube.com/@LudaTable)
+2025-05-26 10:25:07,617 - INFO - Processing channel: 킴서울 Kim seoul (https://www.youtube.com/@%ED%82%B4%EC%84%9C%EC%9A%B8)
+2025-05-26 10:25:09,538 - INFO - Saved 250 videos to data/youtube_videos.csv
+2025-05-26 10:25:09,577 - INFO - Inserted 250 videos into DB.
+2025-05-26 10:38:18,627 - INFO - file_cache is only supported with oauth2client<4.0.0
+2025-05-26 10:38:18,641 - INFO - Processing channel: 백종원의 요리비책 (https://www.youtube.com/@paik_jongwon)
+2025-05-26 10:38:24,814 - INFO - Processing channel: 이연복의 복주머니 (https://www.youtube.com/@leeyeonbok)
+2025-05-26 10:38:29,985 - INFO - Processing channel: COOKING HARU (https://www.youtube.com/@cooking_haru)
+2025-05-26 10:38:36,718 - INFO - Processing channel: 루다 테이블 Luda Table (https://www.youtube.com/@LudaTable)
+2025-05-26 10:38:46,721 - INFO - Processing channel: 킴서울 Kim seoul (https://www.youtube.com/@킴서울)
+2025-05-26 10:38:56,449 - INFO - Saved 1373 videos to data/youtube_videos.csv
+2025-05-26 10:38:56,598 - INFO - Inserted 1373 videos into DB.
+2025-05-26 10:40:20,850 - INFO - file_cache is only supported with oauth2client<4.0.0
+2025-05-26 10:40:20,866 - INFO - Processing channel: 백종원의 요리비책 (https://www.youtube.com/@paik_jongwon)
+2025-05-26 10:40:25,301 - INFO - No new videos to collect for channel: 백종원의 요리비책
+2025-05-26 10:40:25,302 - INFO - Processing channel: 이연복의 복주머니 (https://www.youtube.com/@leeyeonbok)
+2025-05-26 10:40:30,370 - INFO - Processing channel: COOKING HARU (https://www.youtube.com/@cooking_haru)
+2025-05-26 10:40:36,272 - INFO - Processing channel: 루다 테이블 Luda Table (https://www.youtube.com/@LudaTable)
+2025-05-26 10:40:40,874 - ERROR - Error getting channel videos: 'videoId'
+2025-05-26 10:40:40,874 - INFO - No new videos to collect for channel: 루다 테이블 Luda Table
+2025-05-26 10:40:40,875 - INFO - Processing channel: 킴서울 Kim seoul (https://www.youtube.com/@킴서울)
+2025-05-26 10:40:45,617 - WARNING - Encountered 403 Forbidden with reason "quotaExceeded"
+2025-05-26 10:40:45,618 - ERROR - Error getting channel videos: <HttpError 403 when requesting https://youtube.googleapis.com/youtube/v3/search?part=snippet&channelId=UCokVA1lCR_ZsieE8xx5f8hw&maxResults=50&order=date&type=video&pageToken=CPoBEAA&key=AIzaSyAHp_0bod-XWi5yNItEhQu16VWKy-fBA2Q&alt=json returned "The request cannot be completed because you have exceeded your <a href="/youtube/v3/getting-started#quota">quota</a>.". Details: "[{'message': 'The request cannot be completed because you have exceeded your <a href="/youtube/v3/getting-started#quota">quota</a>.', 'domain': 'youtube.quota', 'reason': 'quotaExceeded'}]">
+2025-05-26 10:40:45,618 - INFO - No new videos to collect for channel: 킴서울 Kim seoul
+2025-05-26 10:40:45,625 - INFO - Saved 5 videos to data/youtube_videos.csv
+2025-05-26 10:40:45,637 - INFO - Inserted 5 videos into DB.
+2025-05-26 10:40:46,112 - INFO - file_cache is only supported with oauth2client<4.0.0
+2025-05-26 10:40:46,128 - INFO - Processing channel: 백종원의 요리비책 (https://www.youtube.com/@paik_jongwon)
+2025-05-26 10:40:46,469 - WARNING - Encountered 403 Forbidden with reason "quotaExceeded"
+2025-05-26 10:40:46,470 - ERROR - Error finding channel ID for https://www.youtube.com/@paik_jongwon: <HttpError 403 when requesting https://youtube.googleapis.com/youtube/v3/search?part=snippet&q=%40paik_jongwon&type=channel&maxResults=1&key=AIzaSyAHp_0bod-XWi5yNItEhQu16VWKy-fBA2Q&alt=json returned "The request cannot be completed because you have exceeded your <a href="/youtube/v3/getting-started#quota">quota</a>.". Details: "[{'message': 'The request cannot be completed because you have exceeded your <a href="/youtube/v3/getting-started#quota">quota</a>.', 'domain': 'youtube.quota', 'reason': 'quotaExceeded'}]">
+2025-05-26 10:40:46,470 - ERROR - Could not find channel ID for https://www.youtube.com/@paik_jongwon
+2025-05-26 10:40:46,471 - INFO - Processing channel: 이연복의 복주머니 (https://www.youtube.com/@leeyeonbok)
+2025-05-26 10:40:46,550 - WARNING - Encountered 403 Forbidden with reason "quotaExceeded"
+2025-05-26 10:40:46,551 - ERROR - Error finding channel ID for https://www.youtube.com/@leeyeonbok: <HttpError 403 when requesting https://youtube.googleapis.com/youtube/v3/search?part=snippet&q=%40leeyeonbok&type=channel&maxResults=1&key=AIzaSyAHp_0bod-XWi5yNItEhQu16VWKy-fBA2Q&alt=json returned "The request cannot be completed because you have exceeded your <a href="/youtube/v3/getting-started#quota">quota</a>.". Details: "[{'message': 'The request cannot be completed because you have exceeded your <a href="/youtube/v3/getting-started#quota">quota</a>.', 'domain': 'youtube.quota', 'reason': 'quotaExceeded'}]">
+2025-05-26 10:40:46,551 - ERROR - Could not find channel ID for https://www.youtube.com/@leeyeonbok
+2025-05-26 10:40:46,552 - INFO - Processing channel: COOKING HARU (https://www.youtube.com/@cooking_haru)
+2025-05-26 10:40:46,633 - WARNING - Encountered 403 Forbidden with reason "quotaExceeded"
+2025-05-26 10:40:46,633 - ERROR - Error finding channel ID for https://www.youtube.com/@cooking_haru: <HttpError 403 when requesting https://youtube.googleapis.com/youtube/v3/search?part=snippet&q=%40cooking_haru&type=channel&maxResults=1&key=AIzaSyAHp_0bod-XWi5yNItEhQu16VWKy-fBA2Q&alt=json returned "The request cannot be completed because you have exceeded your <a href="/youtube/v3/getting-started#quota">quota</a>.". Details: "[{'message': 'The request cannot be completed because you have exceeded your <a href="/youtube/v3/getting-started#quota">quota</a>.', 'domain': 'youtube.quota', 'reason': 'quotaExceeded'}]">
+2025-05-26 10:40:46,633 - ERROR - Could not find channel ID for https://www.youtube.com/@cooking_haru
+2025-05-26 10:40:46,634 - INFO - Processing channel: 루다 테이블 Luda Table (https://www.youtube.com/@LudaTable)
+2025-05-26 10:40:46,728 - WARNING - Encountered 403 Forbidden with reason "quotaExceeded"
+2025-05-26 10:40:46,728 - ERROR - Error finding channel ID for https://www.youtube.com/@LudaTable: <HttpError 403 when requesting https://youtube.googleapis.com/youtube/v3/search?part=snippet&q=%40LudaTable&type=channel&maxResults=1&key=AIzaSyAHp_0bod-XWi5yNItEhQu16VWKy-fBA2Q&alt=json returned "The request cannot be completed because you have exceeded your <a href="/youtube/v3/getting-started#quota">quota</a>.". Details: "[{'message': 'The request cannot be completed because you have exceeded your <a href="/youtube/v3/getting-started#quota">quota</a>.', 'domain': 'youtube.quota', 'reason': 'quotaExceeded'}]">
+2025-05-26 10:40:46,729 - ERROR - Could not find channel ID for https://www.youtube.com/@LudaTable
+2025-05-26 10:40:46,729 - INFO - Processing channel: 킴서울 Kim seoul (https://www.youtube.com/@킴서울)
+2025-05-26 10:40:46,810 - WARNING - Encountered 403 Forbidden with reason "quotaExceeded"
+2025-05-26 10:40:46,810 - ERROR - Error finding channel ID for https://www.youtube.com/@킴서울: <HttpError 403 when requesting https://youtube.googleapis.com/youtube/v3/search?part=snippet&q=%40%ED%82%B4%EC%84%9C%EC%9A%B8&type=channel&maxResults=1&key=AIzaSyAHp_0bod-XWi5yNItEhQu16VWKy-fBA2Q&alt=json returned "The request cannot be completed because you have exceeded your <a href="/youtube/v3/getting-started#quota">quota</a>.". Details: "[{'message': 'The request cannot be completed because you have exceeded your <a href="/youtube/v3/getting-started#quota">quota</a>.', 'domain': 'youtube.quota', 'reason': 'quotaExceeded'}]">
+2025-05-26 10:40:46,810 - ERROR - Could not find channel ID for https://www.youtube.com/@킴서울
+2025-05-26 10:40:46,812 - INFO - Saved 0 videos to data/youtube_videos.csv
+2025-05-26 10:40:46,813 - INFO - Inserted 0 videos into DB.
+2025-05-26 10:42:45,264 - INFO - file_cache is only supported with oauth2client<4.0.0
+2025-05-26 10:42:45,280 - INFO - Processing channel: 백종원의 요리비책 (https://www.youtube.com/@paik_jongwon)
+2025-05-26 10:42:45,665 - WARNING - Encountered 403 Forbidden with reason "quotaExceeded"
+2025-05-26 10:42:45,666 - ERROR - Error finding channel ID for https://www.youtube.com/@paik_jongwon: <HttpError 403 when requesting https://youtube.googleapis.com/youtube/v3/search?part=snippet&q=%40paik_jongwon&type=channel&maxResults=1&key=AIzaSyAHp_0bod-XWi5yNItEhQu16VWKy-fBA2Q&alt=json returned "The request cannot be completed because you have exceeded your <a href="/youtube/v3/getting-started#quota">quota</a>.". Details: "[{'message': 'The request cannot be completed because you have exceeded your <a href="/youtube/v3/getting-started#quota">quota</a>.', 'domain': 'youtube.quota', 'reason': 'quotaExceeded'}]">
+2025-05-26 10:42:45,667 - ERROR - Could not find channel ID for https://www.youtube.com/@paik_jongwon
+2025-05-26 10:42:45,667 - INFO - Processing channel: 이연복의 복주머니 (https://www.youtube.com/@leeyeonbok)
+2025-05-26 10:42:45,758 - WARNING - Encountered 403 Forbidden with reason "quotaExceeded"
+2025-05-26 10:42:45,758 - ERROR - Error finding channel ID for https://www.youtube.com/@leeyeonbok: <HttpError 403 when requesting https://youtube.googleapis.com/youtube/v3/search?part=snippet&q=%40leeyeonbok&type=channel&maxResults=1&key=AIzaSyAHp_0bod-XWi5yNItEhQu16VWKy-fBA2Q&alt=json returned "The request cannot be completed because you have exceeded your <a href="/youtube/v3/getting-started#quota">quota</a>.". Details: "[{'message': 'The request cannot be completed because you have exceeded your <a href="/youtube/v3/getting-started#quota">quota</a>.', 'domain': 'youtube.quota', 'reason': 'quotaExceeded'}]">
+2025-05-26 10:42:45,759 - ERROR - Could not find channel ID for https://www.youtube.com/@leeyeonbok
+2025-05-26 10:42:45,759 - INFO - Processing channel: COOKING HARU (https://www.youtube.com/@cooking_haru)
+2025-05-26 10:42:45,847 - WARNING - Encountered 403 Forbidden with reason "quotaExceeded"
+2025-05-26 10:42:45,848 - ERROR - Error finding channel ID for https://www.youtube.com/@cooking_haru: <HttpError 403 when requesting https://youtube.googleapis.com/youtube/v3/search?part=snippet&q=%40cooking_haru&type=channel&maxResults=1&key=AIzaSyAHp_0bod-XWi5yNItEhQu16VWKy-fBA2Q&alt=json returned "The request cannot be completed because you have exceeded your <a href="/youtube/v3/getting-started#quota">quota</a>.". Details: "[{'message': 'The request cannot be completed because you have exceeded your <a href="/youtube/v3/getting-started#quota">quota</a>.', 'domain': 'youtube.quota', 'reason': 'quotaExceeded'}]">
+2025-05-26 10:42:45,848 - ERROR - Could not find channel ID for https://www.youtube.com/@cooking_haru
+2025-05-26 10:42:45,848 - INFO - Processing channel: 루다 테이블 Luda Table (https://www.youtube.com/@LudaTable)
+2025-05-26 10:42:45,933 - WARNING - Encountered 403 Forbidden with reason "quotaExceeded"
+2025-05-26 10:42:45,934 - ERROR - Error finding channel ID for https://www.youtube.com/@LudaTable: <HttpError 403 when requesting https://youtube.googleapis.com/youtube/v3/search?part=snippet&q=%40LudaTable&type=channel&maxResults=1&key=AIzaSyAHp_0bod-XWi5yNItEhQu16VWKy-fBA2Q&alt=json returned "The request cannot be completed because you have exceeded your <a href="/youtube/v3/getting-started#quota">quota</a>.". Details: "[{'message': 'The request cannot be completed because you have exceeded your <a href="/youtube/v3/getting-started#quota">quota</a>.', 'domain': 'youtube.quota', 'reason': 'quotaExceeded'}]">
+2025-05-26 10:42:45,934 - ERROR - Could not find channel ID for https://www.youtube.com/@LudaTable
+2025-05-26 10:42:45,935 - INFO - Processing channel: 킴서울 Kim seoul (https://www.youtube.com/@킴서울)
+2025-05-26 10:42:46,019 - WARNING - Encountered 403 Forbidden with reason "quotaExceeded"
+2025-05-26 10:42:46,020 - ERROR - Error finding channel ID for https://www.youtube.com/@킴서울: <HttpError 403 when requesting https://youtube.googleapis.com/youtube/v3/search?part=snippet&q=%40%ED%82%B4%EC%84%9C%EC%9A%B8&type=channel&maxResults=1&key=AIzaSyAHp_0bod-XWi5yNItEhQu16VWKy-fBA2Q&alt=json returned "The request cannot be completed because you have exceeded your <a href="/youtube/v3/getting-started#quota">quota</a>.". Details: "[{'message': 'The request cannot be completed because you have exceeded your <a href="/youtube/v3/getting-started#quota">quota</a>.', 'domain': 'youtube.quota', 'reason': 'quotaExceeded'}]">
+2025-05-26 10:42:46,020 - ERROR - Could not find channel ID for https://www.youtube.com/@킴서울
+2025-05-26 10:57:56,052 - INFO - file_cache is only supported with oauth2client<4.0.0
+2025-05-26 10:57:56,068 - INFO - Processing channel: 백종원의 요리비책 (https://www.youtube.com/@paik_jongwon)
+2025-05-26 10:58:00,703 - INFO - No new videos to collect for channel: 백종원의 요리비책
+2025-05-26 10:58:00,703 - INFO - Processing channel: 이연복의 복주머니 (https://www.youtube.com/@leeyeonbok)
+2025-05-26 10:58:05,052 - INFO - No new videos to collect for channel: 이연복의 복주머니
+2025-05-26 10:58:05,053 - INFO - Processing channel: COOKING HARU (https://www.youtube.com/@cooking_haru)
+2025-05-26 10:58:10,063 - INFO - No new videos to collect for channel: COOKING HARU
+2025-05-26 10:58:10,064 - INFO - Processing channel: 루다 테이블 Luda Table (https://www.youtube.com/@LudaTable)
+2025-05-26 10:58:18,459 - INFO - No new videos to collect for channel: 루다 테이블 Luda Table
+2025-05-26 10:58:18,459 - INFO - Processing channel: 킴서울 Kim seoul (https://www.youtube.com/@킴서울)
+2025-05-26 10:58:26,116 - INFO - No new videos to collect for channel: 킴서울 Kim seoul

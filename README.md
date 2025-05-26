@@ -399,3 +399,33 @@ crawler/
 - `frontend/public/Filter_Keywords.csv`  : 레시피 카테고리, 테마, 효능 등 필터링에 사용되는 키워드 목록
 - `frontend/public/ingredient_profile_dict_with_substitutes.csv`  : 식재료별 프로필 및 대체재 정보
 - `frontend/public/ingredient_substitute_table.csv`  : 식재료 대체 가능성 사전
+- `frontend/public/YouTube_Cooking_influencer.csv` : 유튜브 요리 인플루언서 채널 목록 (여기에 채널 정보를 추가하면, 크롤러 실행 시 해당 채널의 영상이 자동으로 수집됩니다. CSV에 채널을 계속 추가하면, 그 채널의 영상도 모두 수집하게 됩니다.)
+
+## YouTube 크롤러 설정
+
+1. YouTube Data API v3 키 발급
+   - Google Cloud Console에서 프로젝트 생성
+   - YouTube Data API v3 활성화
+   - API 키 발급
+
+2. API 키 설정
+   - 프로젝트 루트에 `.env` 파일 생성
+   - 다음 내용 추가:
+     ```
+     YOUTUBE_API_KEY=your_api_key_here
+     ```
+   - ⚠️ 개발용 API 키 (테스트용으로만 사용):
+     ```
+     YOUTUBE_API_KEY=AIzaSyAHp_0bod-XWi5yNItEhQu16VWKy-fBA2Q
+     YOUTUBE_API_KEY=AIzaSyAKKcpwecA7whlRRw0IAVbrTnpLNsDYayM
+     ```
+   - ⚠️ 보안 주의사항:
+     - 이 API 키는 개발/테스트용이며, 실제 프로덕션 환경에서는 사용하지 마세요
+     - 프로덕션 환경에서는 새로운 API 키를 발급받아 사용하세요
+     - API 키는 절대 공개 저장소에 커밋하지 마세요
+     - `.env` 파일은 반드시 `.gitignore`에 포함되어야 합니다
+
+3. 크롤러 실행
+   ```bash
+   python crawler/youtube_crawler.py
+   ```
