@@ -9,6 +9,7 @@ import { getMyIngredients } from '../utils/recipeUtils';
 import RecipeSortBar from '../components/RecipeSortBar';
 import FilterModal from '../components/FilterModal';
 import backIcon from '../assets/뒤로가기.png';
+import { addRecipeToLocalStorage, removeRecipeFromLocalStorage, getRecipesFromLocalStorage, copyRecipeUrlToClipboard, getMyFridgeIngredients } from '../utils/recipeStorage';
 
 // Add FilterState interface definition after imports
 interface FilterState {
@@ -58,13 +59,7 @@ function getMatchRate(myIngredients: string[], recipeIngredients: string) {
 }
 
 function getMyIngredientObjects() {
-  try {
-    const data = JSON.parse(localStorage.getItem('myfridge_ingredients') || 'null');
-    if (data && Array.isArray(data.frozen) && Array.isArray(data.fridge) && Array.isArray(data.room)) {
-      return [...data.frozen, ...data.fridge, ...data.room];
-    }
-  } catch {}
-  return [];
+  return getMyFridgeIngredients();
 }
 
 const RecordedRecipeListPage = () => {
@@ -97,8 +92,7 @@ const RecordedRecipeListPage = () => {
 
   useEffect(() => {
     function load() {
-      const arr = JSON.parse(localStorage.getItem('my_recorded_recipes') || '[]');
-      setRecipes(arr);
+      setRecipes(getRecipesFromLocalStorage('write'));
     }
     load();
     window.addEventListener('storage', load);
@@ -144,10 +138,8 @@ const RecordedRecipeListPage = () => {
     if (!prev.done) {
       // 완료 추가
       const recipe = recipes.find(r => r.id === id);
-      let completed = JSON.parse(localStorage.getItem('my_completed_recipes') || '[]');
-      if (recipe && !completed.some((r: any) => r.id === id)) {
-        completed.push(recipe);
-        localStorage.setItem('my_completed_recipes', JSON.stringify(completed));
+      if (recipe && !getRecipesFromLocalStorage('done').some((r: any) => r.id === id)) {
+        addRecipeToLocalStorage('done', recipe);
       }
       setRecipeActionStates(s => ({ ...s, [id]: { ...prev, done: true } }));
       setToast('레시피를 완료했습니다!');
@@ -164,10 +156,8 @@ const RecordedRecipeListPage = () => {
     if (!prev.write) {
       // 기록 추가
       const recipe = recipes.find(r => r.id === id);
-      let recorded = JSON.parse(localStorage.getItem('my_recorded_recipes') || '[]');
-      if (recipe && !recorded.some((r: any) => r.id === id)) {
-        recorded.push(recipe);
-        localStorage.setItem('my_recorded_recipes', JSON.stringify(recorded));
+      if (recipe && !getRecipesFromLocalStorage('write').some((r: any) => r.id === id)) {
+        addRecipeToLocalStorage('write', recipe);
       }
       setRecipeActionStates(s => ({ ...s, [id]: { ...prev, write: true } }));
       setToast('레시피를 기록했습니다!');
@@ -181,26 +171,28 @@ const RecordedRecipeListPage = () => {
 
   const handleShareClick = (id: number) => {
     const recipe = recipes.find(r => r.id === id);
-    const shareUrl = recipe?.link || `${window.location.origin}/recipe/${id}`;
-    navigator.clipboard.writeText(shareUrl);
-    setToast('URL이 복사되었습니다!');
-    setTimeout(() => setToast(''), 1500);
+    if (recipe) {
+      try {
+        copyRecipeUrlToClipboard(recipe);
+        setToast('URL이 복사되었습니다!');
+        setTimeout(() => setToast(''), 1500);
+      } catch {
+        setToast('URL 복사에 실패했습니다.');
+        setTimeout(() => setToast(''), 1500);
+      }
+    }
   };
 
   const handleRemoveConfirm = () => {
     if (!pendingRemove) return;
     if (pendingRemove.type === 'done') {
       setRecipeActionStates(s => ({ ...s, [pendingRemove.id]: { ...s[pendingRemove.id], done: false } }));
-      let completed = JSON.parse(localStorage.getItem('my_completed_recipes') || '[]');
-      completed = completed.filter((r: any) => r.id !== pendingRemove.id);
-      localStorage.setItem('my_completed_recipes', JSON.stringify(completed));
+      removeRecipeFromLocalStorage('done', pendingRemove.id);
       setRecipes(prev => prev.filter(r => r.id !== pendingRemove.id));
       setFilteredRecipes(prev => prev.filter(r => r.id !== pendingRemove.id));
     } else if (pendingRemove.type === 'write') {
       setRecipeActionStates(s => ({ ...s, [pendingRemove.id]: { ...s[pendingRemove.id], write: false } }));
-      let recorded = JSON.parse(localStorage.getItem('my_recorded_recipes') || '[]');
-      recorded = recorded.filter((r: any) => r.id !== pendingRemove.id);
-      localStorage.setItem('my_recorded_recipes', JSON.stringify(recorded));
+      removeRecipeFromLocalStorage('write', pendingRemove.id);
       setRecipes(prev => prev.filter(r => r.id !== pendingRemove.id));
       setFilteredRecipes(prev => prev.filter(r => r.id !== pendingRemove.id));
     }

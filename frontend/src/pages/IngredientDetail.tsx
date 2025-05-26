@@ -17,7 +17,8 @@ import TopNavBar from '../components/TopNavBar';
 import RecipeToast from '../components/RecipeToast';
 import backIcon from '../assets/뒤로가기.png';
 import axios from 'axios';
-import { calculateMatchRate } from '../utils/recipeUtils';
+import { calculateMatchRate, getMyIngredients } from '../utils/recipeUtils';
+import { addRecipeToLocalStorage, removeRecipeFromLocalStorage, getRecipesFromLocalStorage, copyRecipeUrlToClipboard, getMyFridgeIngredients } from '../utils/recipeStorage';
 
 // 더미 fetch 함수 (RecipeList.tsx와 동일)
 function fetchRecipesDummy(name?: string): Promise<any[]> {
@@ -60,16 +61,6 @@ function fetchRecipesDummy(name?: string): Promise<any[]> {
       // ... (생략: 나머지 3개 예시) ...
     ]);
   }
-}
-
-function getMyIngredients(): string[] {
-  try {
-    const data = JSON.parse(localStorage.getItem('myfridge_ingredients') || 'null');
-    if (data && Array.isArray(data.frozen) && Array.isArray(data.fridge) && Array.isArray(data.room)) {
-      return [...data.frozen, ...data.fridge, ...data.room].map(i => (typeof i === 'string' ? i : i.name));
-    }
-  } catch {}
-  return ['오징어', '대파', '고추', '삼겹살'];
 }
 
 function toIngredientArray(recipeIngredients: string | string[] | null | undefined): string[] {
@@ -146,14 +137,8 @@ interface IngredientDetailProps {
   customTitle?: string;
 }
 
-function getMyIngredientObjects(): any[] {
-  try {
-    const data = JSON.parse(localStorage.getItem('myfridge_ingredients') || 'null');
-    if (data && Array.isArray(data.frozen) && Array.isArray(data.fridge) && Array.isArray(data.room)) {
-      return [...data.frozen, ...data.fridge, ...data.room];
-    }
-  } catch {}
-  return [];
+function getMyIngredientObjects() {
+  return getMyFridgeIngredients();
 }
 
 // categoryKeywords 정의
@@ -340,11 +325,9 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
       if (action.action === 'done') {
         if (!prevState.done) {
           // 완료 추가
-          let completedRecipes = JSON.parse(localStorage.getItem('my_completed_recipes') || '[]');
           const recipe = recipes.find(r => r.id === id);
-          if (recipe && !completedRecipes.some((r: any) => r.id === id)) {
-            completedRecipes.push(recipe);
-            localStorage.setItem('my_completed_recipes', JSON.stringify(completedRecipes));
+          if (recipe && !getRecipesFromLocalStorage('done').some((r: any) => r.id === id)) {
+            addRecipeToLocalStorage('done', recipe);
           }
           newState.done = true;
           setToast('레시피를 완료했습니다!');
@@ -359,11 +342,9 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
       if (action.action === 'write') {
         if (!prevState.write) {
           // 기록 추가
-          let recordedRecipes = JSON.parse(localStorage.getItem('my_recorded_recipes') || '[]');
           const recipe = recipes.find(r => r.id === id);
-          if (recipe && !recordedRecipes.some((r: any) => r.id === id)) {
-            recordedRecipes.push(recipe);
-            localStorage.setItem('my_recorded_recipes', JSON.stringify(recordedRecipes));
+          if (recipe && !getRecipesFromLocalStorage('write').some((r: any) => r.id === id)) {
+            addRecipeToLocalStorage('write', recipe);
           }
           newState.write = true;
           setToast('레시피를 기록했습니다!');
@@ -378,13 +359,17 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
       if (action.action === 'share') {
         const recipe = recipes.find(r => r.id === id);
         if (recipe) {
-          const shareUrl = recipe.link || `${window.location.origin}/recipe/${recipe.id}`;
-          navigator.clipboard.writeText(shareUrl);
-          setToast('URL이 복사되었습니다!');
-          setTimeout(() => setToast(''), 1500);
+          try {
+            copyRecipeUrlToClipboard(recipe);
+            setToast('URL이 복사되었습니다!');
+            setTimeout(() => setToast(''), 1500);
+          } catch {
+            setToast('URL 복사에 실패했습니다.');
+            setTimeout(() => setToast(''), 1500);
+          }
         }
       }
-      return { ...prev, [id]: newState };
+      return newState;
     });
   };
 
@@ -392,16 +377,12 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
     if (!pendingRemove) return;
     if (pendingRemove.type === 'done') {
       setButtonStates(s => ({ ...s, [pendingRemove.id]: { ...s[pendingRemove.id], done: false } }));
-      let completed = JSON.parse(localStorage.getItem('my_completed_recipes') || '[]');
-      completed = completed.filter((r: any) => r.id !== pendingRemove.id);
-      localStorage.setItem('my_completed_recipes', JSON.stringify(completed));
+      removeRecipeFromLocalStorage('done', pendingRemove.id);
       setRecipes(prev => prev.filter(r => r.id !== pendingRemove.id));
       setFilteredRecipes(prev => prev.filter(r => r.id !== pendingRemove.id));
     } else if (pendingRemove.type === 'write') {
       setButtonStates(s => ({ ...s, [pendingRemove.id]: { ...s[pendingRemove.id], write: false } }));
-      let recorded = JSON.parse(localStorage.getItem('my_recorded_recipes') || '[]');
-      recorded = recorded.filter((r: any) => r.id !== pendingRemove.id);
-      localStorage.setItem('my_recorded_recipes', JSON.stringify(recorded));
+      removeRecipeFromLocalStorage('write', pendingRemove.id);
       setRecipes(prev => prev.filter(r => r.id !== pendingRemove.id));
       setFilteredRecipes(prev => prev.filter(r => r.id !== pendingRemove.id));
     }

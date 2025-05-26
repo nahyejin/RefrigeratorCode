@@ -20,6 +20,7 @@ import youtubeLogo from '../assets/썸네일_youtubelogo.png';
 import RecipeCard from '../components/RecipeCard';
 import youtubeTitleImg from '../assets/유튜브제목이미지.png';
 import naverTitleImg from '../assets/네이버제목이미지.png';
+import { addRecipeToLocalStorage, removeRecipeFromLocalStorage, getRecipesFromLocalStorage, copyRecipeUrlToClipboard } from '../utils/recipeStorage';
 
 // 더미 데이터 예시
 const dummyRecipes = [
@@ -326,80 +327,103 @@ const Popular = () => {
     setButtonStates(prev => {
       const prevState = prev[id] || getRecipeActionState(id);
       let newState = { ...prevState };
-      
       if (action.action === 'done') {
-        let completedRecipes = JSON.parse(localStorage.getItem('my_completed_recipes') || '[]');
         const recipe = recipes.find(r => r.id === id);
-        
         if (prevState.done) {
           // 완료 취소
-          completedRecipes = completedRecipes.filter((r: any) => r.id !== id);
+          removeRecipeFromLocalStorage('done', id);
           setToast('레시피 완료를 취소했습니다!');
         } else {
           // 완료 추가
-          if (recipe && !completedRecipes.some((r: any) => r.id === id)) {
+          if (recipe && !getRecipesFromLocalStorage('done').some((r: any) => r.id === id)) {
             const normalized = {
               id: recipe.id,
               title: recipe.title,
-              thumbnail: recipe.thumbnail || '',
-              used_ingredients: recipe.used_ingredients || '',
+              content: recipe.content || '',
               author: recipe.author || '',
               date: recipe.date || '',
-              link: recipe.link || '',
               body: recipe.body || recipe.content || recipe.description || '',
+              description: recipe.description || '',
+              thumbnail: recipe.thumbnail || '',
+              used_ingredients: recipe.used_ingredients || '',
+              used_ingredients_block: recipe.used_ingredients_block || '',
+              block_reason: recipe.block_reason || '',
+              link: recipe.link || '',
+              platform: recipe.platform || 'youtube',
+              channel: recipe.channel || 'youtube',
               likes: recipe.likes || 0,
               comments: recipe.comments || 0,
+              substitutes: recipe.substitutes || [],
               match_rate: recipe.match_rate || 0,
+              my_ingredients: recipe.my_ingredients || [],
+              need_ingredients: recipe.need_ingredients || [],
+              created_at: recipe.created_at || '',
+              updated_at: recipe.updated_at || '',
+              like_count: recipe.like_count || 0,
+              comment_count: recipe.comment_count || 0,
+              post_time: recipe.post_time || '',
+              collected_at: recipe.collected_at || '',
+              hits: recipe.hits || 0,
+              action: recipe.action,
             };
-            completedRecipes.push(normalized);
+            addRecipeToLocalStorage('done', normalized);
             setToast('레시피를 완료했습니다!');
           }
         }
-        localStorage.setItem('my_completed_recipes', JSON.stringify(completedRecipes));
         newState.done = !prevState.done;
       }
-      
       if (action.action === 'write') {
-        let recordedRecipes = JSON.parse(localStorage.getItem('my_recorded_recipes') || '[]');
         const recipe = recipes.find(r => r.id === id);
-        
         if (prevState.write) {
           // 기록 취소
-          recordedRecipes = recordedRecipes.filter((r: any) => r.id !== id);
+          removeRecipeFromLocalStorage('write', id);
           setToast('레시피 기록을 취소했습니다!');
         } else {
           // 기록 추가
-          if (recipe && !recordedRecipes.some((r: any) => r.id === id)) {
+          if (recipe && !getRecipesFromLocalStorage('write').some((r: any) => r.id === id)) {
             const normalized = {
               id: recipe.id,
               title: recipe.title,
-              thumbnail: recipe.thumbnail || '',
-              used_ingredients: recipe.used_ingredients || '',
+              content: recipe.content || '',
               author: recipe.author || '',
               date: recipe.date || '',
-              link: recipe.link || '',
               body: recipe.body || recipe.content || recipe.description || '',
+              description: recipe.description || '',
+              thumbnail: recipe.thumbnail || '',
+              used_ingredients: recipe.used_ingredients || '',
+              used_ingredients_block: recipe.used_ingredients_block || '',
+              block_reason: recipe.block_reason || '',
+              link: recipe.link || '',
+              platform: recipe.platform || 'youtube',
+              channel: recipe.channel || 'youtube',
               likes: recipe.likes || 0,
               comments: recipe.comments || 0,
+              substitutes: recipe.substitutes || [],
               match_rate: recipe.match_rate || 0,
+              my_ingredients: recipe.my_ingredients || [],
+              need_ingredients: recipe.need_ingredients || [],
+              created_at: recipe.created_at || '',
+              updated_at: recipe.updated_at || '',
+              like_count: recipe.like_count || 0,
+              comment_count: recipe.comment_count || 0,
+              post_time: recipe.post_time || '',
+              collected_at: recipe.collected_at || '',
+              hits: recipe.hits || 0,
+              action: recipe.action,
             };
-            recordedRecipes.push(normalized);
+            addRecipeToLocalStorage('write', normalized);
             setToast('레시피를 기록했습니다!');
           }
         }
-        localStorage.setItem('my_recorded_recipes', JSON.stringify(recordedRecipes));
         newState.write = !prevState.write;
       }
-      
       if (action.action === 'share') {
         const recipe = recipes.find(r => r.id === id);
         if (recipe) {
-          const shareUrl = recipe.link || `${window.location.origin}/recipe/${recipe.id}`;
-          navigator.clipboard.writeText(shareUrl);
+          copyRecipeUrlToClipboard(recipe);
           setToast('URL이 복사되었습니다!');
         }
       }
-      
       setTimeout(() => setToast(''), 1500);
       return { ...prev, [id]: newState };
     });

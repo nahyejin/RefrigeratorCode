@@ -15,6 +15,7 @@ import IngredientPillGroup from '../components/IngredientPillGroup';
 import { getProxiedImageUrl } from '../utils/imageUtils';
 import naverLogo from '../assets/썸네일_naverlogo.png';
 import youtubeLogo from '../assets/썸네일_youtubelogo.png';
+import { addRecipeToLocalStorage, removeRecipeFromLocalStorage, getRecipesFromLocalStorage, copyRecipeUrlToClipboard } from '../utils/recipeStorage';
 
 // 타입 명시
 interface RecipeCardData {
@@ -174,10 +175,10 @@ const MyPage = () => {
       if (!isActive) {
         // 완료 추가: completedRecipes에만 추가(중복 추가 방지)
         const recipe = recordedRecipes.find(r => r.id === id) || completedRecipes.find(r => r.id === id);
-        if (recipe && !completedRecipes.some(r => r.id === id)) {
+        if (recipe && !getRecipesFromLocalStorage('done').some(r => r.id === id)) {
+          addRecipeToLocalStorage('done', recipe);
           const updatedCompleted = [...completedRecipes, recipe];
           setCompletedRecipes(updatedCompleted);
-          localStorage.setItem('my_completed_recipes', JSON.stringify(updatedCompleted));
         }
         setToast('레시피를 완료했습니다!');
         setTimeout(() => setToast(''), 1500);
@@ -199,10 +200,10 @@ const MyPage = () => {
       if (!isActive) {
         // 기록 추가: recordedRecipes에만 추가(중복 추가 방지)
         const recipe = completedRecipes.find(r => r.id === id) || recordedRecipes.find(r => r.id === id);
-        if (recipe && !recordedRecipes.some(r => r.id === id)) {
+        if (recipe && !getRecipesFromLocalStorage('write').some(r => r.id === id)) {
+          addRecipeToLocalStorage('write', recipe);
           const updatedRecorded = [...recordedRecipes, recipe];
           setRecordedRecipes(updatedRecorded);
-          localStorage.setItem('my_recorded_recipes', JSON.stringify(updatedRecorded));
         }
         setToast('레시피를 기록했습니다!');
         setTimeout(() => setToast(''), 1500);
@@ -221,13 +222,13 @@ const MyPage = () => {
     if (!pendingRemove) return;
     if (pendingRemove.type === 'done') {
       setDoneStates(prev => ({ ...prev, [pendingRemove.id]: false }));
+      removeRecipeFromLocalStorage('done', pendingRemove.id);
       const updated = completedRecipes.filter((r: any) => String(r.id) !== String(pendingRemove.id));
-      localStorage.setItem('my_completed_recipes', JSON.stringify(updated));
       setCompletedRecipes(updated);
     } else if (pendingRemove.type === 'write') {
       setWriteStates(prev => ({ ...prev, [pendingRemove.id]: false }));
+      removeRecipeFromLocalStorage('write', pendingRemove.id);
       const updated = recordedRecipes.filter((r: any) => String(r.id) !== String(pendingRemove.id));
-      localStorage.setItem('my_recorded_recipes', JSON.stringify(updated));
       setRecordedRecipes(updated);
     }
     setPendingRemove(null);
@@ -248,14 +249,14 @@ const MyPage = () => {
 
   // 공유 버튼 클릭 핸들러
   const handleShareClick = (recipe: any) => {
-    const shareUrl = recipe.link || `${window.location.origin}/recipe/${recipe.id}`;
-    navigator.clipboard.writeText(shareUrl).then(() => {
+    try {
+      copyRecipeUrlToClipboard(recipe);
       setToast('레시피 URL이 복사되었습니다!');
       setTimeout(() => setToast(''), 1500);
-    }).catch(() => {
+    } catch {
       setToast('URL 복사에 실패했습니다.');
-    setTimeout(() => setToast(''), 1500);
-    });
+      setTimeout(() => setToast(''), 1500);
+    }
   };
 
   const [substituteTable, setSubstituteTable] = useState<{ [key: string]: any }>({});
