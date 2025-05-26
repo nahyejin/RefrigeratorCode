@@ -14,16 +14,18 @@ import time
 import re
 import sys
 import os
+import logging
 from typing import Tuple
 
 from crawler.common.base_crawler import BaseCrawler
 from crawler.common.data_models import Recipe
 from crawler.common.constants import DB_CONFIG, NAVER_TARGETS, PLATFORM_NAVER
 
-class NaverCrawler(BaseCrawler):
+class NaverBlogCrawler(BaseCrawler):
     def __init__(self):
         super().__init__()
         self.platform = PLATFORM_NAVER
+        self.logger = logging.getLogger(__name__)
         self._setup_driver()
         self._setup_database()
     
@@ -418,5 +420,5 @@ class NaverCrawler(BaseCrawler):
             print(f"❌ 재료 정보 업데이트 중 오류 발생: {str(e)}")
 
 if __name__ == "__main__":
-    crawler = NaverCrawler()
+    crawler = NaverBlogCrawler()
     crawler.crawl() 

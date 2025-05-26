@@ -49,22 +49,6 @@ interface SubstituteInfo {
 }
 
 /**
- * 필터 키워드 트리 타입
- */
-interface FilterKeywordNode {
-  keyword: string;
-  synonyms: string[];
-}
-
-interface FilterKeywordSubTree {
-  [subCategory: string]: FilterKeywordNode[];
-}
-
-interface FilterKeywordTree {
-  [mainCategory: string]: FilterKeywordSubTree;
-}
-
-/**
  * RecipeSortBar 컴포넌트 Props 타입
  */
 interface RecipeSortBarProps {
@@ -108,6 +92,7 @@ const RecipeSortBar = ({
   const [excludeIngredients, setExcludeIngredients] = useState<string[]>([]);
   const [allIngredients, setAllIngredients] = useState<string[]>([]);
   const [includeKeyword, setIncludeKeyword] = useState<string>('');
+  const [selectedChannel, setSelectedChannel] = useState<string[]>([]);
   const [isMatchRateModalOpen, setMatchRateModalOpen] = useState<boolean>(false);
   const [isExpiryModalOpen, setExpiryModalOpen] = useState<boolean>(false);
   const [selectedExpiryIngredients, setSelectedExpiryIngredients] = useState<string[]>([]);
@@ -151,7 +136,22 @@ const RecipeSortBar = ({
 
   // 초기 렌더링과 필터 상태 변경 시 필터링 적용
   useEffect(() => {
-    const filtered = filterRecipes(recipes, {
+    let filtered = [...recipes];
+    
+    // 채널 필터링 (다중 선택 지원)
+    if (selectedChannel.length > 0) {
+      filtered = filtered.filter(recipe => {
+        const plat = (recipe.platform || '').toLowerCase();
+        return (
+          (selectedChannel.includes('youtube') && (plat.includes('youtube') || plat.includes('유튜브')))
+          ||
+          (selectedChannel.includes('naver') && (plat.includes('naver') || plat.includes('네이버')))
+        );
+      });
+    }
+
+    // 기존 필터링 로직
+    filtered = filterRecipes(filtered, {
       sortType,
       matchRange,
       maxLack,
@@ -175,27 +175,14 @@ const RecipeSortBar = ({
     includeKeyword,
     includeIngredients,
     excludeIngredients,
-    selectedCategoryKeywords
+    selectedCategoryKeywords,
+    selectedChannel
   ]);
 
   // 필터 적용 함수
   const applyFilter = useCallback(() => {
-    const categoryKeywords = buildCategoryKeywords(selectedCategoryKeywords, categoryKeywordTree);
-    const filtered = filterRecipes(recipes, {
-      sortType,
-      matchRange,
-      maxLack,
-      appliedExpiryIngredients,
-      myIngredients,
-      expiryIngredientMode,
-      includeKeyword,
-      includeIngredients,
-      excludeIngredients,
-      categoryKeywords
-    });
-    onFilteredRecipesChange(filtered);
     setFilterModalOpen(false);
-  }, [selectedCategoryKeywords, categoryKeywordTree, recipes, sortType, matchRange, maxLack, appliedExpiryIngredients, myIngredients, expiryIngredientMode, includeKeyword, includeIngredients, excludeIngredients, onFilteredRecipesChange]);
+  }, []);
 
   // 전체 재료 목록 fetch
   useEffect(() => {
@@ -553,7 +540,9 @@ const RecipeSortBar = ({
           onApply={applyFilter}
           filterKeywordTree={categoryKeywordTree}
           setFilterKeywordTree={setCategoryKeywordTree}
-            />
+          selectedChannel={selectedChannel}
+          setSelectedChannel={setSelectedChannel}
+        />
       )}
     </>
   );

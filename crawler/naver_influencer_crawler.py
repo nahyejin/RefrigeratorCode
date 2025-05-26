@@ -25,7 +25,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-class NaverDiscoverCrawler:
+class NaverInfluencerCrawler:
     def __init__(self):
         logger.info("크롤러 초기화 시작")
         self.options = Options()
@@ -327,5 +327,5 @@ class NaverDiscoverCrawler:
             self.driver.quit()
 
 if __name__ == "__main__":
-    crawler = NaverDiscoverCrawler()
+    crawler = NaverInfluencerCrawler()
     crawler.crawl_influencer_posts("https://in.naver.com/discover/135968760155968") 

@@ -80,6 +80,8 @@ interface FilterModalProps {
   onApply: () => void;
   filterKeywordTree: any;
   setFilterKeywordTree: (tree: any) => void;
+  selectedChannel: string[];
+  setSelectedChannel: (channels: string[]) => void;
 }
 
 // CSV 파싱 및 트리 구조 변환 함수
@@ -107,7 +109,7 @@ function parseFilterKeywordsCSV(csv: string) {
   return tree;
 }
 
-const FilterModal: React.FC<FilterModalProps> = ({ open, onClose, filterState, setFilterState, includeIngredients, setIncludeIngredients, excludeIngredients, setExcludeIngredients, includeInput, setIncludeInput, excludeInput, setExcludeInput, allIngredients, includeKeyword, setIncludeKeyword, onApply, filterKeywordTree, setFilterKeywordTree }) => {
+const FilterModal: React.FC<FilterModalProps> = ({ open, onClose, filterState, setFilterState, includeIngredients, setIncludeIngredients, excludeIngredients, setExcludeIngredients, includeInput, setIncludeInput, excludeInput, setExcludeInput, allIngredients, includeKeyword, setIncludeKeyword, onApply, filterKeywordTree, setFilterKeywordTree, selectedChannel, setSelectedChannel }) => {
   const [includeFocus, setIncludeFocus] = useState(false);
   const [excludeFocus, setExcludeFocus] = useState(false);
   const myIngredients = getMyIngredients();
@@ -133,7 +135,7 @@ const FilterModal: React.FC<FilterModalProps> = ({ open, onClose, filterState, s
           <div className="text-center font-bold text-[12.8px] mb-2 pt-2">필터를 설정해 주세요</div>
         </div>
         <div className="p-6 mb-2">
-          <div className="mb-2">
+          <div className="mb-4">
             <label className="block font-bold text-[11.2px] mb-1">
               ■ 꼭 포함할 키워드 (게시글 제목 혹은 본문)
             </label>
@@ -227,6 +229,7 @@ const FilterModal: React.FC<FilterModalProps> = ({ open, onClose, filterState, s
                 </span>
               ))}
             </div>
+            <div className="mt-8 border-t pt-4"></div>
           </div>
           {/* 카테고리별 태그 */}
           <div className="mt-4">
@@ -260,6 +263,40 @@ const FilterModal: React.FC<FilterModalProps> = ({ open, onClose, filterState, s
             ))}
               </div>
             ))}
+          </div>
+          {/* 채널 선택 */}
+          <div className="mt-4 border-t pt-4">
+            <div className="font-bold text-[11.2px] mb-2">■ 채널선택</div>
+            <div className="flex gap-4">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  name="channel"
+                  value="youtube"
+                  checked={selectedChannel.includes('youtube')}
+                  onChange={e => {
+                    if (e.target.checked) setSelectedChannel([...selectedChannel, 'youtube']);
+                    else setSelectedChannel(selectedChannel.filter(c => c !== 'youtube'));
+                  }}
+                  className="w-4 h-4"
+                />
+                <span className="text-[11.2px]">유튜브</span>
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  name="channel"
+                  value="naver"
+                  checked={selectedChannel.includes('naver')}
+                  onChange={e => {
+                    if (e.target.checked) setSelectedChannel([...selectedChannel, 'naver']);
+                    else setSelectedChannel(selectedChannel.filter(c => c !== 'naver'));
+                  }}
+                  className="w-4 h-4"
+                />
+                <span className="text-[11.2px]">네이버</span>
+              </label>
+            </div>
           </div>
         </div>
         <div className="sticky bottom-0 left-0 w-full bg-white p-4 flex justify-center z-20">
