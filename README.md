@@ -8,8 +8,10 @@ markdown
 extract_keywords_dual_view.py                  ㅣ 수집된 레시피 텍스트에서 명사 기반 및 띄어쓰기 기반 키워드를 추출하여 CSV로 저장. Komoran 형태소 분석기 사용. 전체 저장 모두 지원.
 ingredient_text_utils.py                       ㅣ 재료 텍스트 전처리 및 추출에 필요한 유틸리티 함수 정의 (예: 정규표현식, 필터링 함수 등).
 update_used_ingredients_batch.py               ㅣ 레시피 텍스트에서 추출한 재료 결과(`used_ingredients`)를 데이터셋에 반영하는 배치 처리 로직 구현. refrigerator_crawler.py 실행 후 자동으로 실행됨.
-crawling/naver_crawler.py                      ㅣ 네이버 블로그 및 인플루언서에서 레시피 포스트를 크롤링하고 필요한 텍스트 데이터를 수집. 실행 완료 후 자동으로 update_used_ingredients_batch.py를 실행.
-crawling/youtube_crawler.py                    ㅣ YouTube에서 레시피 영상을 크롤링하고 필요한 텍스트 데이터를 수집. (개발 예정)
+crawler/naver_influencer_crawler.py            ㅣ 네이버 인플루언서 핫토픽 크롤러 (단독 실행 가능, 배치 자동 실행)
+crawler/naver_blog_crawler.py                  ㅣ 네이버 블로그 주제별보기 크롤러 (단독 실행 가능, 배치 자동 실행)
+crawler/youtube_crawler.py                     ㅣ 유튜브 인플루언서 크롤러 (단독 실행 가능, 배치 자동 실행)
+run_all_crawlers.py                            ㅣ 모든 크롤러를 순차적으로 자동 실행하는 통합 스크립트 (권장)
 export_recipes_all.ipynb                       ㅣ 수집된 레시피 데이터를 가공·요약·정제하는 보조 코드.
 generate_substitutes2_by_trait_similarity.ipynbㅣ 사전내에서 재료의 특징 패턴을 찾아 대체제를 자동으로 채워주는 코드. 
 ----------------------------------------------------------------------------------------
@@ -17,6 +19,11 @@ generate_substitutes2_by_trait_similarity.ipynbㅣ 사전내에서 재료의 특
 # 가상환경 실행 상태에서 아래 명령어 입력
 pip install -r requirements.txt
 Python 버전: 3.10
+
+크롤러 전체 자동 실행:
+python run_all_crawlers.py
+
+(개별 크롤러 실행도 가능: python -m crawler.naver_blog_crawler 등)
 
 Java 버전: JDK 11
 
@@ -48,22 +55,23 @@ extract_keywords_dual_view.py는 Komoran 기반으로 명사/띄어쓰기 단어
 
 ```
 RefrigeratorCode/
-├── crawler/                # 크롤러 및 공통 코드 (최신 구조)
+├── run_all_crawlers.py           # 모든 크롤러를 순차 실행하는 통합 스크립트 (import 방식)
+├── crawler/                      # 크롤러 및 공통 코드 (최신 구조)
 │   ├── naver_influencer_crawler.py   # 네이버 인플루언서 핫토픽 크롤러
 │   ├── naver_blog_crawler.py         # 네이버 블로그 주제별보기 크롤러
-│   ├── youtube_crawler.py            # 유튜브 크롤러 (향후 구현)
+│   ├── youtube_crawler.py            # 유튜브 인플루언서 크롤러
 │   ├── database.py                   # 데이터베이스 연결 및 관리
 │   └── common/                       # 공통 상수, 기본 클래스, 데이터 모델 등
-├── chromedriver-win64/     # 셀레늄용 크롬드라이버(루트에만 유지)
-├── frontend/               # 프론트엔드(React) 코드
-├── ingredient-management/  # 식재료 관리 기능
-├── utils/                  # 공통 유틸리티 함수
-├── data/                   # 데이터 및 데이터 처리 스크립트
-├── node_modules/           # 프론트엔드 라이브러리(자동 생성)
-├── __pycache__/            # 파이썬 캐시(자동 생성)
-├── package.json            # 프론트엔드 의존성/스크립트
-├── package-lock.json       # 프론트엔드 의존성 고정
-└── PROJECT_OVERVIEW        # 프로젝트 설명 문서
+├── chromedriver-win64/           # 셀레늄용 크롬드라이버(루트에만 유지)
+├── frontend/                     # 프론트엔드(React) 코드
+├── ingredient-management/        # 식재료 관리 기능
+├── utils/                        # 공통 유틸리티 함수
+├── data/                         # 데이터 및 데이터 처리 스크립트
+├── node_modules/                 # 프론트엔드 라이브러리(자동 생성)
+├── __pycache__/                  # 파이썬 캐시(자동 생성)
+├── package.json                  # 프론트엔드 의존성/스크립트
+├── package-lock.json             # 프론트엔드 의존성 고정
+└── PROJECT_OVERVIEW              # 프로젝트 설명 문서
 ```
 
 - **crawler/**: 크롤러 실행 파일 및 공통 코드(상수, 데이터 모델 등) 관리
@@ -337,30 +345,38 @@ crawler/
 ├── naver_blog_crawler.py        # 네이버 블로그 주제별보기 수집
 ├── youtube_crawler.py           # 유튜브 수집 (향후 구현)
 └── database.py                  # 데이터베이스 연결 및 관리
+
+실행 순서: naver_blog_crawler.py → naver_influencer_crawler.py → youtube_crawler.py
 ```
 
 ### 크롤러 실행 방법
 
-1. **네이버 인플루언서 핫토픽 수집**
+1. **통합 실행 (권장)**
    ```bash
-   python -m crawler.naver_influencer_crawler
+  cd C:\Users\user\Desktop\RefrigeratorCode
+  python run_all_crawlers.py
    ```
-   - 수집 대상: 네이버 인플루언서 푸드 섹션 (https://in.naver.com/discover/135968760155968)
-   - 저장되는 platform 값: `naver(인플루언서핫토픽)`
+   - 모든 크롤러를 순차적으로 실행
+   - 로그는 `crawler.log`에 기록
+   - 예외 발생 시 상세 로그 확인 가능
 
-2. **네이버 블로그 주제별보기 수집**
+2. **개별 크롤러 실행**
    ```bash
    python -m crawler.naver_blog_crawler
-   ```
-   - 수집 대상: 네이버 블로그 주제별보기 > 요리/레시피 (https://section.blog.naver.com/ThemePost.naver?directoryNo=20&activeDirectorySeq=2)
-   - 저장되는 platform 값: `naver(주제별보기)`
-
-3. **유튜브 수집** (향후 구현)
-   ```bash
+   python -m crawler.naver_influencer_crawler
    python -m crawler.youtube_crawler
    ```
-   - 수집 대상: 유튜브 요리/레시피 채널
-   - 저장되는 platform 값: `youtube`
+   - 각 크롤러를 독립적으로 실행
+   - 디버깅이나 테스트 시 유용
+
+3. **크롤러 실행 순서**
+   - 네이버(주제별보기) → 네이버(인플루언서핫토픽) → 유튜브(인플루언서)
+   - 각 크롤러는 이전 크롤러가 완료된 후에 실행됨
+   - 중간에 오류 발생 시 해당 시점에서 실행 중단
+
+
+
+
 
 ## 네이버 인플루언서 핫토픽 크롤러 데이터 저장 조건
 

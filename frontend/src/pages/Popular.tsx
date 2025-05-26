@@ -240,8 +240,10 @@ const calculateThemeRankings = async (recipes: Recipe[]) => {
 };
 
 const getPlatformLogo = (platform: string | undefined) => {
-  if (platform === 'naver(인플루언서핫토픽)' || platform === 'naver(주제별보기)') return naverLogo;
-  if (platform === '유튜브(인플루언서)') return youtubeLogo;
+  if (!platform) return null;
+  const lower = platform.toLowerCase();
+  if (lower.includes('naver') || platform.includes('네이버')) return naverLogo;
+  if (lower.includes('youtube') || platform.includes('유튜브')) return youtubeLogo;
   return null;
 };
 
