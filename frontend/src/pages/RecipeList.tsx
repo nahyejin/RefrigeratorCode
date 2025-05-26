@@ -246,29 +246,110 @@ const RecipeList: React.FC = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [visibleCount, recipes.length]);
 
-  const handleRecipeAction = (recipeId: number, action: keyof RecipeActionState, recipe: Recipe) => {
-    const prevState = recipeActionStates[recipeId] || { done: false, share: false, write: false };
-    const isActive = prevState[action];
-    
-    setRecipeActionStates(prev => ({
-      ...prev,
-      [recipeId]: { ...prevState, [action]: !isActive }
-    }));
+  // 완료 버튼 클릭 핸들러
+  const handleDoneClick = (id: number) => {
+    setRecipeActionStates(prev => {
+      const isActive = !!prev[id]?.done;
+      const newState = { ...prev, [id]: { ...prev[id], done: !isActive } };
+      let completedRecipes = JSON.parse(localStorage.getItem('my_completed_recipes') || '[]');
+      if (!isActive) {
+        // 완료 추가
+        const recipe = recipes.find(r => r.id === id);
+        if (recipe && !completedRecipes.some((r: any) => r.id === id)) {
+          // RecipeCard와 동일한 구조로 저장
+          const normalized = {
+            id: recipe.id,
+            title: recipe.title,
+            thumbnail: recipe.thumbnail || recipe.image || '',
+            used_ingredients: recipe.used_ingredients || '',
+            author: recipe.author || '',
+            date: recipe.date || '',
+            link: recipe.link || '',
+            body: recipe.body || recipe.content || recipe.description || '',
+            like: recipe.like || recipe.likes || 0,
+            comment: recipe.comment || recipe.comments || 0,
+            match_rate: recipe.match_rate || recipe.match || 0,
+          };
+          completedRecipes.push(normalized);
+        }
+        localStorage.setItem('my_completed_recipes', JSON.stringify(completedRecipes));
+        setToast('레시피를 완료했습니다!');
+        setTimeout(() => setToast(''), 1500);
+      } else {
+        // 완료 취소
+        completedRecipes = completedRecipes.filter((r: any) => r.id !== id);
+        localStorage.setItem('my_completed_recipes', JSON.stringify(completedRecipes));
+        setToast('레시피 완료를 취소했습니다!');
+        setTimeout(() => setToast(''), 1500);
+      }
+      return newState;
+    });
+  };
 
-    switch (action) {
-      case 'done':
-        setToast(isActive ? '레시피 완료를 취소했습니다!' : '레시피를 완료했습니다!');
-        break;
-      case 'write':
-        setToast(isActive ? '레시피 기록을 취소했습니다!' : '레시피를 기록했습니다!');
-        break;
-      case 'share':
-        navigator.clipboard.writeText(window.location.origin + `/recipe-detail/${recipe.id}`);
-        setToast('URL이 복사되었습니다!');
-        break;
+  // 기록 버튼 클릭 핸들러
+  const handleWriteClick = (id: number) => {
+    setRecipeActionStates(prev => {
+      const isActive = !!prev[id]?.write;
+      const newState = { ...prev, [id]: { ...prev[id], write: !isActive } };
+      let recordedRecipes = JSON.parse(localStorage.getItem('my_recorded_recipes') || '[]');
+      if (!isActive) {
+        // 기록 추가
+        const recipe = recipes.find(r => r.id === id);
+        if (recipe && !recordedRecipes.some((r: any) => r.id === id)) {
+          // RecipeCard와 동일한 구조로 저장
+          const normalized = {
+            id: recipe.id,
+            title: recipe.title,
+            thumbnail: recipe.thumbnail || recipe.image || '',
+            used_ingredients: recipe.used_ingredients || '',
+            author: recipe.author || '',
+            date: recipe.date || '',
+            link: recipe.link || '',
+            body: recipe.body || recipe.content || recipe.description || '',
+            like: recipe.like || recipe.likes || 0,
+            comment: recipe.comment || recipe.comments || 0,
+            match_rate: recipe.match_rate || recipe.match || 0,
+          };
+          recordedRecipes.push(normalized);
+        }
+        localStorage.setItem('my_recorded_recipes', JSON.stringify(recordedRecipes));
+        setToast('레시피를 기록했습니다!');
+        setTimeout(() => setToast(''), 1500);
+      } else {
+        // 기록 취소
+        recordedRecipes = recordedRecipes.filter((r: any) => r.id !== id);
+        localStorage.setItem('my_recorded_recipes', JSON.stringify(recordedRecipes));
+        setToast('레시피 기록을 취소했습니다!');
+        setTimeout(() => setToast(''), 1500);
+      }
+      return newState;
+    });
+  };
+
+  // 공유 버튼 클릭 핸들러
+  const handleShareClick = (recipe: any) => {
+    const shareUrl = recipe.link || `${window.location.origin}/recipe/${recipe.id}`;
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      setToast('URL이 복사되었습니다!');
+      setTimeout(() => setToast(''), 1500);
+    }).catch(() => {
+      setToast('URL 복사에 실패했습니다.');
+      setTimeout(() => setToast(''), 1500);
+    });
+  };
+
+  // 레시피 액션 핸들러
+  const handleRecipeAction = (id: number, action: any) => {
+    const recipe = recipes.find(r => r.id === id);
+    if (!recipe) return;
+
+    if (action.action === 'done') {
+      handleDoneClick(id);
+    } else if (action.action === 'share') {
+      handleShareClick(recipe);
+    } else if (action.action === 'write') {
+      handleWriteClick(id);
     }
-    
-    setTimeout(() => setToast(''), 1500);
   };
 
   function getMyIngredientObjects() {
@@ -353,11 +434,11 @@ const RecipeList: React.FC = () => {
             <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <span style={{ width: 24, height: 14, borderRadius: 7, background: '#D1D1D1', display: 'inline-block', marginRight: 2 }}></span>
               <span style={{ color: '#222', fontSize: '10.4px', minWidth: 30 }}>부족 재료</span>
-                </div>
+            </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <span style={{ width: 24, height: 14, borderRadius: 7, background: '#555', display: 'inline-block', marginRight: 2 }}></span>
               <span style={{ color: '#222', fontSize: '10.4px', minWidth: 30 }}>대체 가능</span>
-                </div>
+            </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <span style={{ width: 24, height: 14, borderRadius: 7, background: '#FFD600', display: 'inline-block', marginRight: 2 }}></span>
               <span style={{ color: '#222', fontSize: '10.4px', minWidth: 30 }}>보유 재료</span>
@@ -372,9 +453,9 @@ const RecipeList: React.FC = () => {
                   <RecipeCard
                     recipe={recipe}
                     index={idx}
-                    onAction={() => {}}
+                    onAction={(action) => handleRecipeAction(recipe.id, action)}
                     isLast={false}
-                    actionState={undefined}
+                    actionState={recipeActionStates[recipe.id]}
                     myIngredients={myIngredients}
                     substituteTable={substituteTable}
                   />

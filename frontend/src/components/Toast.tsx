@@ -17,10 +17,8 @@ const Toast: React.FC<ToastProps> = ({ message, children, style }) => (
       color: '#fff',
       padding: '12px 24px',
       borderRadius: 12,
-      fontWeight: 400,
       fontSize: 15,
       zIndex: 9999,
-      boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
       maxWidth: 320,
       width: 'max-content',
       whiteSpace: 'nowrap',
@@ -33,7 +31,7 @@ const Toast: React.FC<ToastProps> = ({ message, children, style }) => (
       ...style,
     }}
   >
-    <span style={{ fontWeight: 600, color: '#fff', marginRight: 8, letterSpacing: '0.04em', whiteSpace: 'nowrap', display: 'inline-block' }}>{message}</span>
+    <span style={{ color: '#fff', marginRight: 8, letterSpacing: '0.04em', whiteSpace: 'nowrap', display: 'inline-block' }}>{message}</span>
     {children}
   </div>
 );

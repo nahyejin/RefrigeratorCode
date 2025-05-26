@@ -72,19 +72,26 @@ function getMyIngredients(): string[] {
   return ['오징어', '대파', '고추', '삼겹살'];
 }
 
-function getMatchRate(myIngredients: string[], recipeIngredients: string) {
-  const recipeSet = new Set(
-    recipeIngredients
-      .split(',')
-      .map((i) => i.trim())
-      .filter(Boolean)
-  );
-  const mySet = new Set(myIngredients);
-  const matched = [...recipeSet].filter((i) => mySet.has(i));
+function toIngredientArray(recipeIngredients: string | string[] | null | undefined): string[] {
+  if (typeof recipeIngredients === 'string') {
+    const s: string = recipeIngredients;
+    return s.split(',').map(i => i.trim()).filter(Boolean);
+  } else if (Array.isArray(recipeIngredients)) {
+    const arr: string[] = recipeIngredients;
+    return arr.map(i => (typeof i === 'string' ? i.trim() : '')).filter(Boolean);
+  }
+  return [];
+}
+
+function getMatchRate(myIngredients: string[], recipeIngredients: string | string[] | null | undefined) {
+  const ingredientsArr = toIngredientArray(recipeIngredients);
+  const recipeSet = new Set<string>(ingredientsArr);
+  const mySet = new Set<string>(myIngredients);
+  const matched = [...recipeSet].filter(i => mySet.has(i));
   return {
-    rate: Math.round((matched.length / recipeSet.size) * 100),
+    rate: recipeSet.size === 0 ? 0 : Math.round((matched.length / recipeSet.size) * 100),
     my_ingredients: matched,
-    need_ingredients: [...recipeSet].filter((i) => !mySet.has(i)),
+    need_ingredients: [...recipeSet].filter(i => !mySet.has(i)),
   };
 }
 
@@ -284,8 +291,9 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [visibleCount, recipes.length]);
 
-  const findPossibleSubstitutes = (recipeIngredients: string, userIngredients: string[]): string[] => {
-    const recipeIngredientSet = new Set(recipeIngredients.split(',').map(i => i.trim()));
+  const findPossibleSubstitutes = (recipeIngredients: string | string[] | null | undefined, userIngredients: string[]): string[] => {
+    const ingredientsArr = toIngredientArray(recipeIngredients);
+    const recipeIngredientSet = new Set(ingredientsArr);
     const userIngredientSet = new Set(userIngredients.map(i => i.trim()));
 
     const substitutes: string[] = [];
@@ -398,7 +406,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
       // 각 키워드별로 독립적으로 매칭 횟수 체크
       const hasEnoughMatches = allKeywords.some(k => {
         if (!k) return false;
-        const regex = new RegExp(k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+        const regex = new RegExp(k.replace(/[.*+?^${}()|[\\\]]/g, '\\$&'), 'g');
         const matches = text.match(regex);
         return matches && matches.length >= 2;
       });
@@ -407,14 +415,14 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
 
       // 2. 재료 매칭
       if (myIngredients.length > 0) {
-        const recipeIngredients = recipe.used_ingredients.split(',').map(i => i.trim());
-        const matchRate = calculateMatchRate(myIngredients, recipe.used_ingredients);
+        const recipeIngredients = toIngredientArray(recipe.used_ingredients);
+        const matchRate = calculateMatchRate(myIngredients, recipeIngredients.join(','));
         if (matchRate.rate < matchRange[0] || matchRate.rate > matchRange[1]) return false;
       }
 
       // 3. 부족 재료 수 체크
       if (maxLack !== 'unlimited') {
-        const recipeIngredients = recipe.used_ingredients.split(',').map(i => i.trim());
+        const recipeIngredients = toIngredientArray(recipe.used_ingredients);
         const mySet = new Set(myIngredients.map(i => i.trim()));
         const lackCount = recipeIngredients.filter(i => !mySet.has(i)).length;
         if (lackCount > maxLack) return false;
@@ -488,7 +496,15 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
                 recipe={recipe}
                 index={index}
                 actionState={buttonStates[recipe.id]}
-                onAction={(action) => handleRecipeAction(recipe.id, action)}
+                onAction={(recipeObj: any) => {
+                  if (
+                    recipeObj &&
+                    typeof recipeObj.id === 'number' &&
+                    (recipeObj.action === 'done' || recipeObj.action === 'write' || recipeObj.action === 'share')
+                  ) {
+                    handleRecipeAction(recipeObj.id, recipeObj.action);
+                  }
+                }}
                 isLast={index === filteredRecipes.length - 1}
                 myIngredients={myIngredients}
                 substituteTable={substituteTable}

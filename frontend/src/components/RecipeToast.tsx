@@ -6,18 +6,24 @@ interface RecipeToastProps {
 
 const RecipeToast: React.FC<RecipeToastProps> = ({ message }) => {
   return (
-    <div
-      className="fixed bottom-[100px] left-1/2 -translate-x-1/2 bg-[rgba(34,34,34,0.9)] text-white py-3 px-6 rounded-xl font-normal shadow-lg max-w-[260px] w-max text-center"
-      style={{
-        fontSize: 13,
-        whiteSpace: 'pre-line', // 줄바꿈 허용
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-        wordBreak: 'keep-all',
-        lineHeight: 1.5,
-        zIndex: 99999,
-      }}
-    >
+    <div style={{
+      position: 'fixed',
+      bottom: 100,
+      left: '50%',
+      transform: 'translateX(-50%)',
+      background: 'rgba(34,34,34,0.9)',
+      color: '#fff',
+      padding: '12px 24px',
+      borderRadius: 12,
+      fontSize: 15,
+      zIndex: 9999,
+      maxWidth: 260,
+      width: 'max-content',
+      whiteSpace: 'nowrap',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      textAlign: 'center',
+    }}>
       {message}
     </div>
   );

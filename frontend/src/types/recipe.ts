@@ -7,22 +7,26 @@ export interface Recipe {
   body: string;
   description?: string;
   thumbnail: string;
-  used_ingredients: string;
+  used_ingredients: string | string[];
   used_ingredients_block?: string;
   block_reason?: string;
   link: string;
-  platform?: string;
-  likes?: number;
-  comments?: number;
+  platform: 'youtube' | 'naver';
+  channel: 'youtube' | 'naver';
+  likes: number;
+  comments: number;
   substitutes?: string[];
   match_rate?: number;
   my_ingredients?: string[];
   need_ingredients?: string[];
   created_at: string;
+  updated_at: string;
   like_count: number;
   comment_count: number;
   post_time?: string;
   collected_at?: string;
+  hits?: number;  // Optional for Naver recipes
+  action?: 'done' | 'share' | 'write';  // Optional action property
 }
 
 export interface SubstituteInfo {

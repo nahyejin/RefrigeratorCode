@@ -9,6 +9,13 @@ import writeBlackIcon from '../assets/write_black.svg';
 import { getUniversalIngredientPillInfo } from '../utils/ingredientPillUtils';
 import IngredientPillGroup from './IngredientPillGroup';
 import { getProxiedImageUrl } from '../utils/imageUtils';
+import { getPlatformLogo } from '../utils/platform';
+import { calculateMatchRate } from '../utils/recipeUtils';
+import 완료하기버튼 from '../assets/완료하기버튼.png';
+import 공유하기버튼 from '../assets/공유하기버튼.png';
+import 기록하기버튼 from '../assets/기록하기버튼.png';
+import naverLogo from '../assets/썸네일_naverlogo.png';
+import youtubeLogo from '../assets/썸네일_youtubelogo.png';
 
 interface SubstituteInfo {
   ingredient_a: string;
@@ -22,314 +29,104 @@ export interface RecipeCardProps {
   recipe: Recipe;
   index: number;
   actionState?: RecipeActionState;
-  onAction: (action: keyof RecipeActionState) => void;
+  onAction: (recipe: Recipe) => void;
   isLast: boolean;
   myIngredients?: string[];
   substituteTable?: { [key: string]: SubstituteInfo };
   hideIndexNumber?: boolean;
 }
 
-const YoutubeLogoSVG = ({ size = 24 }) => (
-  <svg viewBox="0 0 90 64" width={size} height={size} fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect width="90" height="64" rx="12" fill="#FF0000"/>
-    <polygon points="36,20 36,44 60,32" fill="#fff"/>
-  </svg>
-);
-const NaverLogoSVG = ({ size = 24 }) => (
-  <svg viewBox="0 0 512 512" width={size} height={size} fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect width="512" height="512" rx="64" fill="#03CF5D"/>
-    <path d="M 144 128 H 224 L 288 224 V 128 H 368 V 384 H 288 L 224 288 V 384 H 144 V 128 Z" fill="#fff"/>
-  </svg>
-);
-
-const getPlatformLogo = (platform: string | undefined) => {
-  if (!platform) return null;
-  const lower = platform.toLowerCase();
-  if (lower.includes('naver') || platform.includes('네이버')) return <NaverLogoSVG />;
-  if (lower.includes('youtube') || platform.includes('유튜브')) return <YoutubeLogoSVG />;
-  return null;
-};
-
 const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, actionState: propActionState, onAction, isLast, myIngredients = [], substituteTable = {}, hideIndexNumber = false }) => {
-  const allIngredients = [
-    ...(recipe.need_ingredients || []).map(ing => ({ ing, type: 'need' })),
-    ...(recipe.my_ingredients || []).map(ing => ({ ing, type: 'have' })),
-    ...(recipe.substitutes || []).map(ing => ({ ing, type: 'substitute' })),
-  ];
-
   // used_ingredients에서 pill 리스트 만들기
-  const ingredientList = (recipe.used_ingredients || '')
-    .split(',')
-    .map(i => i.trim())
-    .filter(Boolean);
+  const ingredientList = (() => {
+    if (Array.isArray(recipe.used_ingredients)) {
+      return recipe.used_ingredients.map(i => i.trim()).filter(Boolean);
+    }
+    return (recipe.used_ingredients || '').split(',').map(i => i.trim()).filter(Boolean);
+  })();
 
   const mySet = new Set((myIngredients || []).map(i => i.trim()));
 
-  // 대체 가능 재료 추출 (need_ingredients 중 대체 가능성이 있는 것)
-  let substituteTarget: string | null = null;
-  let substituteTargetTo: string | null = null;
-  if (recipe.need_ingredients && substituteTable) {
-    for (const needRaw of recipe.need_ingredients) {
-      const need = needRaw.trim();
-      const substituteInfo = substituteTable[need];
-      if (substituteInfo && mySet.has(substituteInfo.ingredient_b)) {
-        substituteTarget = need;
-        substituteTargetTo = substituteInfo.ingredient_b;
-        break; // 여러 개면 첫 번째만 표시
-      }
-    }
-  }
-
-  // 1) 내가 보유하지 않고 대체도 불가한 재료
-  const notMineNotSub = ingredientList.filter(i => !mySet.has(i) && (!substituteTarget || i !== substituteTarget));
-  // 2) 내가 보유하지 않지만 대체 가능한 재료
-  const notMineSub = substituteTarget ? [substituteTarget] : [];
-  // 3) 내가 보유한 재료
-  const mine = ingredientList.filter(i => mySet.has(i));
-
-  const pills = [...notMineNotSub, ...notMineSub, ...mine];
-
-  // 공백/대소문자 무시 매칭 (표시는 원본)
-  const needIngredients = recipe.need_ingredients || [];
-  const substitutes: string[] = [];
-  needIngredients.forEach(needRaw => {
-    const need = needRaw.trim();
-    const substituteInfo = substituteTable[need];
-    if (substituteInfo && mySet.has(substituteInfo.ingredient_b)) {
-      substitutes.push(`${needRaw}→${substituteInfo.ingredient_b}`);
-    }
-  });
-
-  // 상태 및 토스트 관리
-  const [actionState, setActionState] = useState({
-    done: isRecipeInStorage('my_completed_recipes', recipe.id),
-    write: isRecipeInStorage('my_recorded_recipes', recipe.id),
-    share: false,
-  });
-  const [toast, setToast] = useState('');
-
-  function showToast(msg: string) {
-    setToast(msg);
-    setTimeout(() => setToast(''), 1500);
-  }
-
-  function isRecipeInStorage(key: string, id: number) {
-    const arr = JSON.parse(localStorage.getItem(key) || '[]');
-    return arr.some((r: any) => r.id === id);
-  }
-  function addRecipeToStorage(key: string, recipe: any, myIngredients: string[], substituteTable: any) {
-    const arr = JSON.parse(localStorage.getItem(key) || '[]');
-    const needIngredients = recipe.need_ingredients || (recipe.used_ingredients || '').split(',').map((i: string) => i.trim()).filter(Boolean);
-    const { substitutes } = getUniversalIngredientPillInfo({
-      needIngredients,
-      myIngredients,
-      substituteTable,
-    });
-    const newRecipe = {
-      ...recipe,
-      like: recipe.like ?? recipe.likes ?? 0,
-      comment: recipe.comment ?? recipe.comments ?? 0,
-      substitutes,
-      my_ingredients: myIngredients,
-    };
-    arr.push(newRecipe);
-    localStorage.setItem(key, JSON.stringify(arr));
-  }
-  function removeRecipeFromStorage(key: string, id: number) {
-    const arr = JSON.parse(localStorage.getItem(key) || '[]');
-    localStorage.setItem(key, JSON.stringify(arr.filter((r: any) => r.id !== id)));
-  }
-
-  const handleAction = (action: 'done' | 'write' | 'share') => {
-    if (action === 'done') {
-      if (!actionState.done) {
-        addRecipeToStorage('my_completed_recipes', recipe, myIngredients, substituteTable);
-        showToast('레시피를 완료했습니다!');
-      } else {
-        removeRecipeFromStorage('my_completed_recipes', recipe.id);
-        showToast('레시피 완료를 취소했습니다!');
-      }
-      setActionState(s => ({ ...s, done: !s.done }));
-    }
-    if (action === 'write') {
-      if (!actionState.write) {
-        addRecipeToStorage('my_recorded_recipes', recipe, myIngredients, substituteTable);
-        showToast('레시피를 기록했습니다!');
-      } else {
-        removeRecipeFromStorage('my_recorded_recipes', recipe.id);
-        showToast('레시피 기록을 취소했습니다!');
-      }
-      setActionState(s => ({ ...s, write: !s.write }));
-    }
-    if (action === 'share') {
-      const shareUrl = recipe.link || window.location.origin + `/recipe-detail/${recipe.id}`;
-      navigator.clipboard.writeText(shareUrl);
-      showToast('URL이 복사되었습니다!');
-      setActionState(s => ({ ...s, share: true }));
-      setTimeout(() => setActionState(s => ({ ...s, share: false })), 1000);
-    }
+  // 버튼 클릭 시 onAction만 호출
+  const handleDoneClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    onAction({ ...recipe, action: 'done' });
+  };
+  const handleShareClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    onAction({ ...recipe, action: 'share' });
+  };
+  const handleRecordClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    onAction({ ...recipe, action: 'write' });
   };
 
-  // 본문 통합 렌더링
-  const recipeAny = recipe as any;
-  const recipeBody = recipeAny.body || recipeAny.content || recipeAny.description || '';
-
-  // 썸네일 플랫폼 로고
-  const logo = getPlatformLogo(recipe.platform);
+  const match = calculateMatchRate(myIngredients, Array.isArray(recipe.used_ingredients) 
+    ? recipe.used_ingredients.join(',') 
+    : recipe.used_ingredients || '');
 
   return (
-    <a
-      href={recipe.link}
-      target="_blank"
-      rel="noopener noreferrer"
+    <div
       className="bg-white rounded-[20px] shadow-sm min-h-[144px] relative p-4 block hover:shadow-md transition cursor-pointer"
-      style={{ marginBottom: isLast ? 40 : 16, minWidth: 350, maxWidth: 400, width: '100%', margin: '0 auto', textDecoration: 'none', color: 'inherit' }}
+      style={{ marginBottom: isLast ? 40 : 16, minWidth: 0, maxWidth: 400, width: '100%', margin: '0 auto', textDecoration: 'none', color: 'inherit' }}
     >
-      {!hideIndexNumber && (
-      <div className="font-bold text-[18px] text-[#222] text-left">
-        {String(index + 1).padStart(2, '0')}
-      </div>
-      )}
-      {!hideIndexNumber && (
-      <div className="h-[2px] w-[20px] bg-[#E5E5E5] mb-2"></div>
-      )}
-      <div className="flex flex-row items-center justify-between w-full min-w-[200px] flex-shrink-0">
-        <span
-          className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-[13px] font-bold text-[#222] leading-tight antialiased"
+      <div style={{ position: 'relative', width: '100%', height: 180 }}>
+        <img
+          src={getProxiedImageUrl(recipe.thumbnail)}
+          alt="썸네일"
+          onError={e => { e.currentTarget.src = '/default-thumbnail.png'; }}
           style={{
-            fontFamily: 'Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, Arial, sans-serif',
-            WebkitFontSmoothing: 'antialiased',
-            MozOsxFontSmoothing: 'grayscale',
-            fontWeight: 700,
-            textShadow: 'none'
+            width: '100%',
+            height: 180,
+            objectFit: 'cover',
+            borderRadius: 12,
+            marginBottom: 12,
           }}
-        >
-          {recipe.title}
-        </span>
-        <div className="flex flex-row gap-[6px] items-center">
-          <button
-            title="완료"
-            className="w-[26px] h-[26px] flex items-center justify-center bg-transparent border-none p-0 cursor-pointer outline-none"
-            onClick={e => { e.preventDefault(); handleAction('done'); }}
-            tabIndex={0}
-            onMouseDown={e => e.preventDefault()}
-          >
-            <img src={actionState.done ? doneBlackIcon : doneIcon} alt="완료" width={19} height={19} className="block" />
-          </button>
-          <button
-            title="공유"
-            className="w-[26px] h-[26px] flex items-center justify-center bg-transparent border-none p-0 cursor-pointer outline-none"
-            onClick={e => { e.preventDefault(); handleAction('share'); }}
-            tabIndex={0}
-            onMouseDown={e => e.preventDefault()}
-          >
-            <img src={actionState.share ? shareBlackIcon : shareIcon} alt="공유" width={19} height={19} className="block" />
-          </button>
-          <button
-            title="기록"
-            className="w-[26px] h-[26px] flex items-center justify-center bg-transparent border-none p-0 cursor-pointer outline-none"
-            onClick={e => { e.preventDefault(); handleAction('write'); }}
-            tabIndex={0}
-            onMouseDown={e => e.preventDefault()}
-          >
-            <img src={actionState.write ? writeBlackIcon : writeIcon} alt="기록" width={19} height={19} className="block" />
-          </button>
+        />
+        {/* 재료 매칭률 뱃지 */}
+        <div className="absolute bg-[#444] bg-opacity-80 text-white font-medium rounded px-2 py-0.5 flex items-center gap-1" style={{ position: 'absolute', top: 8, left: 8, fontSize: 12, zIndex: 2, textShadow: '0 1px 2px rgba(0,0,0,0.12)' }}>
+          재료 매칭률 <span className="text-[#FFD600] font-bold ml-1" style={{ textShadow: 'none', letterSpacing: '0.5px' }}>{match.rate}%</span>
         </div>
-      </div>
-      <div className="flex flex-row gap-6 items-start mb-2">
-        <span
-          className="relative min-w-[97px] max-w-[97px] h-[79px] rounded-lg overflow-hidden bg-gray-100 flex-shrink-0 group"
-          style={{ display: 'block' }}
-        >
-          <img src={getProxiedImageUrl(recipe.thumbnail)} alt="썸네일" className="w-full h-full object-cover object-center group-hover:opacity-80 transition" />
-          {/* 플랫폼별 로고 오버레이 */}
-          {logo && (
-            <span style={{ position: 'absolute', right: 4, bottom: 4, zIndex: 2 }}>
-              {logo}
-            </span>
-          )}
-          <div className="absolute bg-[#444] bg-opacity-80 text-white text-[10px] font-medium rounded px-2 py-0.5 flex items-center gap-1" style={{ top: 0, left: 0, textShadow: '0 1px 2px rgba(0,0,0,0.12)', whiteSpace: 'nowrap', minWidth: 80 }}>
-            재료매칭률 <span className="text-[#FFD600] font-bold ml-1" style={{ textShadow: 'none', letterSpacing: '0.5px' }}>{recipe.match_rate}%</span>
-          </div>
-        </span>
-        <div className="flex-1 flex flex-col min-w-0">
-          <div className="flex items-center mb-1 w-full" style={{ gap: 4 }}>
-            <span
-              className="text-[#FFD600] font-bold text-[12px] mr-1.5"
-              style={{
-                minWidth: 0,
-                maxWidth: 110,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-                display: 'inline-block',
-                verticalAlign: 'bottom',
-                flexShrink: 1,
-                flexGrow: 1,
-              }}
-            >
-              {recipe.author}
-            </span>
-            <span
-              className="text-[#B0B0B0] text-[10.4px] ml-auto"
-              style={{
-                minWidth: 44,
-                textAlign: 'right',
-                flexShrink: 0,
-                marginRight: 4,
-              }}
-            >
-              {recipe.date}
-            </span>
-            <span
-              className="text-[#B0B0B0] text-[10.4px] text-right"
-              style={{
-                minWidth: 90,
-                maxWidth: 120,
-                whiteSpace: 'nowrap',
-                flexShrink: 0,
-                overflow: 'visible',
-                textOverflow: 'clip',
-              }}
-            >
-              좋아요 {(recipe as any).likes ?? 0} · 댓글 {(recipe as any).comments ?? 0}
-            </span>
-          </div>
-          <span
-            className="mb-2 max-h-16 overflow-y-auto pr-1 cursor-pointer custom-scrollbar text-[12px] text-[#444] hover:underline"
-            title={recipeBody}
-            style={{ display: 'block' }}
-          >
-            {recipeBody}
+        {/* 플랫폼 로고 */}
+        <img
+          src={getPlatformLogo(recipe.platform) || naverLogo}
+          alt="플랫폼 로고"
+          style={{ position: 'absolute', right: 4, top: 4, width: 24, height: 24, zIndex: 2 }}
+          onError={e => { e.currentTarget.src = naverLogo; }}
+        />
+        {/* 완료/공유/기록 버튼 */}
+        <div style={{ position: 'absolute', right: 8, bottom: 8, display: 'flex', flexDirection: 'row', gap: 6, alignItems: 'center', zIndex: 2 }}>
+          <span style={{ position: 'relative', zIndex: 2 }}>
+            <span style={{ position: 'absolute', left: 0, top: 0, width: 26, height: 26, borderRadius: '50%', background: 'rgba(34,34,34,0.7)', zIndex: 1 }}></span>
+            <button title="완료" tabIndex={0} style={{ width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', padding: 0, cursor: 'pointer', outline: 'none', position: 'relative', zIndex: 2 }} onClick={handleDoneClick}>
+              <img src={완료하기버튼} alt="완료" width={19} height={19} style={{ display: 'block', position: 'relative', zIndex: 2, opacity: propActionState?.done ? 0.5 : 1, filter: propActionState?.done ? 'brightness(0.6)' : 'none' }} />
+            </button>
+          </span>
+          <span style={{ position: 'relative', zIndex: 2 }}>
+            <span style={{ position: 'absolute', left: 0, top: 0, width: 26, height: 26, borderRadius: '50%', background: 'rgba(34,34,34,0.7)', zIndex: 1 }}></span>
+            <button title="공유" tabIndex={0} style={{ width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', padding: 0, cursor: 'pointer', outline: 'none', position: 'relative', zIndex: 2 }} onClick={handleShareClick}>
+              <img src={공유하기버튼} alt="공유" width={19} height={19} style={{ display: 'block', position: 'relative', zIndex: 2, opacity: propActionState?.share ? 0.5 : 1, filter: propActionState?.share ? 'brightness(0.6)' : 'none' }} />
+            </button>
+          </span>
+          <span style={{ position: 'relative', zIndex: 2 }}>
+            <span style={{ position: 'absolute', left: 0, top: 0, width: 26, height: 26, borderRadius: '50%', background: 'rgba(34,34,34,0.7)', zIndex: 1 }}></span>
+            <button title="기록" tabIndex={0} style={{ width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', padding: 0, cursor: 'pointer', outline: 'none', position: 'relative', zIndex: 2 }} onClick={handleRecordClick}>
+              <img src={기록하기버튼} alt="기록" width={19} height={19} style={{ display: 'block', position: 'relative', zIndex: 2, opacity: propActionState?.write ? 0.5 : 1, filter: propActionState?.write ? 'brightness(0.6)' : 'none' }} />
+            </button>
           </span>
         </div>
       </div>
+      <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>{recipe.title}</div>
+      <div style={{ fontSize: 13, color: '#888', marginBottom: 4 }}>
+        좋아요 {(recipe as any).likes?.toLocaleString() ?? 0} · 댓글 {(recipe as any).comments?.toLocaleString() ?? 0}
+        {recipe.platform && (recipe.platform.includes('youtube') || recipe.platform.includes('유튜브(인플루언서)')) && ` · 조회수 ${(recipe as any).hits?.toLocaleString() ?? 0}`}
+      </div>
       <IngredientPillGroup
-        needIngredients={(recipe.used_ingredients || '').split(',').map((i: string) => (i ? i.trim() : '')).filter(Boolean)}
+        needIngredients={ingredientList}
         myIngredients={myIngredients}
         substituteTable={substituteTable}
       />
-      {toast && (
-        <div style={{
-          position: 'fixed',
-          left: '50%',
-          bottom: 80,
-          transform: 'translateX(-50%)',
-          background: '#222',
-          color: '#fff',
-          padding: '12px 24px',
-          borderRadius: 12,
-          fontWeight: 500,
-          fontSize: 15,
-          zIndex: 9999,
-          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-          whiteSpace: 'nowrap',
-          textShadow: 'none',
-        }}>
-          {toast}
-      </div>
-      )}
-    </a>
+    </div>
   );
 };
 
