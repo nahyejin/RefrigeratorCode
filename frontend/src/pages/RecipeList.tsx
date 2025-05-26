@@ -144,6 +144,10 @@ const RecipeList: React.FC = () => {
   const [matchRateModalOpen, setMatchRateModalOpen] = useState(false);
   const [expiryModalOpen, setExpiryModalOpen] = useState(false);
   const [selectedExpiryIngredients, setSelectedExpiryIngredients] = useState<string[]>([]);
+  const [selectedChannel, setSelectedChannel] = useState<string[]>([]);
+  const [includeIngredients, setIncludeIngredients] = useState<string[]>([]);
+  const [excludeIngredients, setExcludeIngredients] = useState<string[]>([]);
+  const [selectedCategoryKeywords, setSelectedCategoryKeywords] = useState<FilterState>(initialFilterState);
   
   const myIngredients = useMemo(() => getMyIngredients(), []);
   const navigate = useNavigate();
@@ -436,6 +440,20 @@ const RecipeList: React.FC = () => {
           setAppliedExpiryIngredients={setAppliedExpiryIngredients}
           expirySortType={expirySortType}
           setExpirySortType={setExpirySortType}
+          selectedChannel={selectedChannel}
+          setSelectedChannel={setSelectedChannel}
+          includeKeyword={includeKeyword}
+          setIncludeKeyword={setIncludeKeyword}
+          includeIngredients={includeIngredients}
+          setIncludeIngredients={setIncludeIngredients}
+          excludeIngredients={excludeIngredients}
+          setExcludeIngredients={setExcludeIngredients}
+          selectedCategoryKeywords={selectedCategoryKeywords}
+          setSelectedCategoryKeywords={setSelectedCategoryKeywords}
+          includeInput={includeInput}
+          setIncludeInput={setIncludeInput}
+          excludeInput={excludeInput}
+          setExcludeInput={setExcludeInput}
           onToast={msg => {
             setToast(msg);
             setTimeout(() => setToast(''), 3000);

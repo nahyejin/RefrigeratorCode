@@ -135,6 +135,7 @@ const RecordedRecipeListPage = () => {
 
   const handleDoneClick = (id: number) => {
     const prev = recipeActionStates[id] || { done: false, write: false, share: false };
+    console.log('handleDoneClick', { id, prev });
     if (!prev.done) {
       // 완료 추가
       const recipe = recipes.find(r => r.id === id);
@@ -145,7 +146,8 @@ const RecordedRecipeListPage = () => {
       setToast('레시피를 완료했습니다!');
       setTimeout(() => setToast(''), 1500);
     } else {
-      // 완료 취소: 확인 토스트만 세팅, 일반 토스트 띄우지 않음
+      // 완료 취소: 확인 모달만 세팅
+      console.log('setPendingRemove for done', id);
       setPendingRemove({ type: 'done', id });
       setPendingRecipe(recipes.find(r => r.id === id));
     }
@@ -153,6 +155,7 @@ const RecordedRecipeListPage = () => {
 
   const handleWriteClick = (id: number) => {
     const prev = recipeActionStates[id] || { done: false, write: false, share: false };
+    console.log('handleWriteClick', { id, prev });
     if (!prev.write) {
       // 기록 추가
       const recipe = recipes.find(r => r.id === id);
@@ -163,7 +166,8 @@ const RecordedRecipeListPage = () => {
       setToast('레시피를 기록했습니다!');
       setTimeout(() => setToast(''), 1500);
     } else {
-      // 기록 취소: 확인 토스트만 세팅, 일반 토스트 띄우지 않음
+      // 기록 취소: 확인 모달만 세팅
+      console.log('setPendingRemove for write', id);
       setPendingRemove({ type: 'write', id });
       setPendingRecipe(recipes.find(r => r.id === id));
     }
@@ -184,17 +188,22 @@ const RecordedRecipeListPage = () => {
   };
 
   const handleRemoveConfirm = () => {
+    console.log('handleRemoveConfirm', pendingRemove);
     if (!pendingRemove) return;
     if (pendingRemove.type === 'done') {
       setRecipeActionStates(s => ({ ...s, [pendingRemove.id]: { ...s[pendingRemove.id], done: false } }));
       removeRecipeFromLocalStorage('done', pendingRemove.id);
       setRecipes(prev => prev.filter(r => r.id !== pendingRemove.id));
       setFilteredRecipes(prev => prev.filter(r => r.id !== pendingRemove.id));
+      setToast('레시피 완료를 취소했습니다!');
+      setTimeout(() => setToast(''), 1500);
     } else if (pendingRemove.type === 'write') {
       setRecipeActionStates(s => ({ ...s, [pendingRemove.id]: { ...s[pendingRemove.id], write: false } }));
       removeRecipeFromLocalStorage('write', pendingRemove.id);
       setRecipes(prev => prev.filter(r => r.id !== pendingRemove.id));
       setFilteredRecipes(prev => prev.filter(r => r.id !== pendingRemove.id));
+      setToast('레시피 기록을 취소했습니다!');
+      setTimeout(() => setToast(''), 1500);
     }
     setPendingRemove(null);
     setPendingRecipe(null);
@@ -207,24 +216,52 @@ const RecordedRecipeListPage = () => {
 
   const processedRecipes = useMemo(() => {
     let arr = [...recipes];
-    arr.sort((a, b) => {
-    const matchA = a.match_rate ?? 0;
-    const matchB = b.match_rate ?? 0;
-    if (sortType === 'match') {
-      return matchB - matchA;
-    } else if (sortType === 'expiry') {
-      return new Date(b.date).getTime() - new Date(a.date).getTime();
-    } else if (sortType === 'like') {
-        return (b.likes ?? 0) - (a.likes ?? 0);
-    } else if (sortType === 'comment') {
-        return (b.comments ?? 0) - (a.comments ?? 0);
-    } else if (sortType === 'latest') {
-      return new Date(b.date).getTime() - new Date(a.date).getTime();
+    // 채널 필터링 추가
+    if (selectedChannel.length > 0) {
+      arr = arr.filter(recipe => {
+        const platform = (recipe.platform || '').toLowerCase();
+        return (
+          (selectedChannel.includes('youtube') && (platform.includes('youtube') || platform.includes('유튜브')))
+          ||
+          (selectedChannel.includes('naver') && (platform.includes('naver') || platform.includes('네이버')))
+        );
+      });
     }
-    return 0;
-  });
+    arr.sort((a, b) => {
+      const matchA = a.match_rate ?? 0;
+      const matchB = b.match_rate ?? 0;
+      if (sortType === 'match') {
+        return matchB - matchA;
+      } else if (sortType === 'expiry') {
+        return new Date(b.date).getTime() - new Date(a.date).getTime();
+      } else if (sortType === 'like') {
+          return (b.likes ?? 0) - (a.likes ?? 0);
+      } else if (sortType === 'comment') {
+          return (b.comments ?? 0) - (a.comments ?? 0);
+      } else if (sortType === 'latest') {
+        return new Date(b.date).getTime() - new Date(a.date).getTime();
+      }
+      return 0;
+    });
     return arr;
-  }, [recipes, sortType]);
+  }, [recipes, sortType, selectedChannel]);
+
+  useEffect(() => {
+    setFilteredRecipes(processedRecipes);
+  }, [processedRecipes]);
+
+  const handleFilterButtonClick = () => {
+    console.log('[RecordedRecipeListPage] 필터 버튼 클릭');
+    setFilterOpen(true);
+  };
+
+  useEffect(() => {
+    console.log('[RecordedRecipeListPage] FilterModal open:', filterOpen);
+  }, [filterOpen]);
+
+  useEffect(() => {
+    console.log('[RecordedRecipeListPage] selectedChannel:', selectedChannel);
+  }, [selectedChannel]);
 
   return (
     <>
@@ -240,6 +277,13 @@ const RecordedRecipeListPage = () => {
             alt="뒤로가기"
             style={{ height: 13, width: 13, objectFit: 'contain', background: 'transparent' }}
           />
+        </button>
+        <button
+          aria-label="필터 모달 열기"
+          style={{ height: 28, border: '1px solid #D1D5DB', borderRadius: 999, fontSize: 12, padding: '0 12px', fontWeight: 600, background: '#fff', color: '#222', minWidth: 50, whiteSpace: 'nowrap', boxSizing: 'border-box', cursor: 'pointer', marginLeft: 'auto' }}
+          onClick={handleFilterButtonClick}
+        >
+          <span style={{ fontWeight: 600 }}>필터</span>
         </button>
       </header>
       <div className="mx-auto pb-20 bg-white"
@@ -267,6 +311,8 @@ const RecordedRecipeListPage = () => {
           setAppliedExpiryIngredients={setAppliedExpiryIngredients}
           expirySortType={expirySortType}
           setExpirySortType={setExpirySortType}
+          selectedChannel={selectedChannel}
+          setSelectedChannel={setSelectedChannel}
         />
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, marginTop: 8, justifyContent: 'center' }}>
@@ -291,6 +337,7 @@ const RecordedRecipeListPage = () => {
               index={index}
               recipeActionState={recipeActionStates[recipe.id]}
               onRecipeAction={({ action }) => {
+                console.log('onRecipeAction', { action, recipeId: recipe.id });
                 if (action === 'done') handleDoneClick(recipe.id);
                 else if (action === 'write') handleWriteClick(recipe.id);
                 else if (action === 'share') handleShareClick(recipe.id);
@@ -307,7 +354,10 @@ const RecordedRecipeListPage = () => {
       {filterOpen && (
         <FilterModal
           open={filterOpen}
-          onClose={() => setFilterOpen(false)}
+          onClose={() => {
+            console.log('[RecordedRecipeListPage] FilterModal 닫기 전 selectedChannel:', selectedChannel);
+            setFilterOpen(false);
+          }}
           filterState={selectedFilter}
           setFilterState={setSelectedFilter}
           includeIngredients={includeIngredients}
@@ -324,8 +374,14 @@ const RecordedRecipeListPage = () => {
           filterKeywordTree={filterKeywordTree}
           setFilterKeywordTree={setFilterKeywordTree}
           selectedChannel={selectedChannel}
-          setSelectedChannel={setSelectedChannel}
-          onApply={() => {}}
+          setSelectedChannel={(channels) => {
+            console.log('[RecordedRecipeListPage] FilterModal에서 채널 선택:', channels);
+            setSelectedChannel(channels);
+          }}
+          onApply={() => {
+            console.log('[RecordedRecipeListPage] FilterModal 적용 버튼 클릭, selectedChannel:', selectedChannel);
+            setFilterOpen(false);
+          }}
         />
       )}
       {matchRateModalOpen && (

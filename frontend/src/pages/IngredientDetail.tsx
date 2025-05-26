@@ -17,7 +17,7 @@ import TopNavBar from '../components/TopNavBar';
 import RecipeToast from '../components/RecipeToast';
 import backIcon from '../assets/뒤로가기.png';
 import axios from 'axios';
-import { calculateMatchRate, getMyIngredients } from '../utils/recipeUtils';
+import { calculateMatchRate, getMyIngredients, sortRecipes } from '../utils/recipeUtils';
 import { addRecipeToLocalStorage, removeRecipeFromLocalStorage, getRecipesFromLocalStorage, copyRecipeUrlToClipboard, getMyFridgeIngredients } from '../utils/recipeStorage';
 
 // 더미 fetch 함수 (RecipeList.tsx와 동일)
@@ -100,6 +100,7 @@ interface FilterState {
   대상: string[];
   TPO: string[];
   스타일: string[];
+  [key: string]: string[];
 }
 
 const initialFilterState: FilterState = {
@@ -174,6 +175,10 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
   const [filteredRecipes, setFilteredRecipes] = useState<any[]>([]);
   const [pendingRemove, setPendingRemove] = useState<{type: 'done'|'write', id: number}|null>(null);
   const [pendingRecipe, setPendingRecipe] = useState<any>(null);
+  const [selectedChannel, setSelectedChannel] = useState<string[]>([]);
+  const [includeIngredients, setIncludeIngredients] = useState<string[]>([]);
+  const [excludeIngredients, setExcludeIngredients] = useState<string[]>([]);
+  const [filterKeywordTree, setFilterKeywordTree] = useState<any>(null);
 
   const myIngredients = useMemo(() => getMyIngredients(), []);
   const myIngredientObjects = getMyIngredientObjects();
@@ -301,22 +306,41 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
   };
 
   const processedRecipes = useMemo(() => {
+    console.log('[IngredientDetail] processedRecipes useMemo 실행', { recipes, selectedChannel, sortType });
     let arr = [...recipes].map(recipe => {
-    const match = getMatchRate(myIngredients, recipe.used_ingredients);
-    const substitutes = findPossibleSubstitutes(recipe.used_ingredients, myIngredients);
-    return { 
-      ...recipe, 
-      match_rate: match.rate, 
-      my_ingredients: match.my_ingredients, 
-      need_ingredients: match.need_ingredients,
-      substitutes: substitutes.length > 0 ? substitutes : ['(내 냉장고에 대체 가능한 재료가 없습니다)'],
-      link: recipe.link || `https://blog.naver.com/jjangda1105/${recipe.id}`
-    };
-  });
+      const match = getMatchRate(myIngredients, recipe.used_ingredients);
+      const substitutes = findPossibleSubstitutes(recipe.used_ingredients, myIngredients);
+      return { 
+        ...recipe, 
+        match_rate: match.rate, 
+        my_ingredients: match.my_ingredients, 
+        need_ingredients: match.need_ingredients,
+        substitutes: substitutes.length > 0 ? substitutes : ['(내 냉장고에 대체 가능한 재료가 없습니다)'],
+        link: recipe.link || `https://blog.naver.com/jjangda1105/${recipe.id}`
+      };
+    });
+
+    // 채널 필터링
+    if (selectedChannel.length > 0) {
+      arr = arr.filter(recipe => {
+        const platform = recipe.platform?.toLowerCase() || '';
+        if (selectedChannel.includes('naver')) {
+          return platform.includes('naver(주제별보기)') || platform.includes('naver(인플루언서핫토픽)');
+        }
+        if (selectedChannel.includes('youtube')) {
+          return platform.includes('youtube(인플루언서)');
+        }
+        return true;
+      });
+    }
+
+    // 정렬
     if (sortType === 'match') arr.sort((a, b) => b.match_rate - a.match_rate);
     else if (sortType === 'expiry') arr.sort((a, b) => 0);
+    else arr = sortRecipes(arr, sortType, myIngredients, appliedExpiryIngredients);
+
     return arr;
-  }, [recipes, myIngredients, sortType]);
+  }, [recipes, myIngredients, sortType, selectedChannel, appliedExpiryIngredients]);
 
   const handleRecipeAction = (id: number, action: { action: 'done' | 'write' | 'share' }) => {
     setButtonStates(prev => {
@@ -333,7 +357,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
           setToast('레시피를 완료했습니다!');
           setTimeout(() => setToast(''), 1500);
         } else {
-          // 완료 취소: 확인 토스트만 세팅
+          // 완료 취소: 확인 모달만 세팅
           setPendingRemove({ type: 'done', id });
           setPendingRecipe(recipes.find(r => r.id === id));
           return prev;
@@ -350,7 +374,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
           setToast('레시피를 기록했습니다!');
           setTimeout(() => setToast(''), 1500);
         } else {
-          // 기록 취소: 확인 토스트만 세팅
+          // 기록 취소: 확인 모달만 세팅
           setPendingRemove({ type: 'write', id });
           setPendingRecipe(recipes.find(r => r.id === id));
           return prev;
@@ -380,11 +404,15 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
       removeRecipeFromLocalStorage('done', pendingRemove.id);
       setRecipes(prev => prev.filter(r => r.id !== pendingRemove.id));
       setFilteredRecipes(prev => prev.filter(r => r.id !== pendingRemove.id));
+      setToast('레시피 완료를 취소했습니다!');
+      setTimeout(() => setToast(''), 1500);
     } else if (pendingRemove.type === 'write') {
       setButtonStates(s => ({ ...s, [pendingRemove.id]: { ...s[pendingRemove.id], write: false } }));
       removeRecipeFromLocalStorage('write', pendingRemove.id);
       setRecipes(prev => prev.filter(r => r.id !== pendingRemove.id));
       setFilteredRecipes(prev => prev.filter(r => r.id !== pendingRemove.id));
+      setToast('레시피 기록을 취소했습니다!');
+      setTimeout(() => setToast(''), 1500);
     }
     setPendingRemove(null);
     setPendingRecipe(null);
@@ -428,15 +456,25 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
     window.scrollTo(0, 0);
   }, [name, location.pathname]);
 
-  // 필터링된 레시피를 바로 사용하도록 수정
-  useEffect(() => {
-    setFilteredRecipes(processedRecipes);
-  }, [processedRecipes]);
-
   // 레시피 필터링 함수
   const filterRecipes = (recipes: Recipe[]) => {
     return recipes.filter(recipe => {
-      // 1. 키워드 매칭
+      // 1. 채널 필터링
+      if (selectedChannel.length > 0) {
+        const platform = recipe.platform?.toLowerCase() || '';
+        if (selectedChannel.includes('naver')) {
+          if (!platform.includes('naver(주제별보기)') && !platform.includes('naver(인플루언서핫토픽)')) {
+            return false;
+          }
+        }
+        if (selectedChannel.includes('youtube')) {
+          if (!platform.includes('youtube(인플루언서)')) {
+            return false;
+          }
+        }
+      }
+
+      // 2. 키워드 매칭
       const text = (recipe.title || '') + ' ' + (recipe.content || '');
       const keyword = decodeURIComponent(includeKeyword);
       
@@ -459,14 +497,14 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
 
       if (!hasEnoughMatches) return false;
 
-      // 2. 재료 매칭
+      // 3. 재료 매칭
       if (myIngredients.length > 0) {
         const recipeIngredients = toIngredientArray(recipe.used_ingredients);
         const matchRate = calculateMatchRate(myIngredients, recipeIngredients.join(','));
         if (matchRate.rate < matchRange[0] || matchRate.rate > matchRange[1]) return false;
       }
 
-      // 3. 부족 재료 수 체크
+      // 4. 부족 재료 수 체크
       if (maxLack !== 'unlimited') {
         const recipeIngredients = toIngredientArray(recipe.used_ingredients);
         const mySet = new Set(myIngredients.map(i => i.trim()));
@@ -478,21 +516,52 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
     });
   };
 
+  useEffect(() => {
+    // recipes가 바뀔 때마다 buttonStates를 동기화
+    const doneList = getRecipesFromLocalStorage('done');
+    const writeList = getRecipesFromLocalStorage('write');
+    const newStates: { [id: number]: RecipeActionState } = {};
+    recipes.forEach(recipe => {
+      newStates[recipe.id] = {
+        done: doneList.some((r: any) => r.id === recipe.id),
+        write: writeList.some((r: any) => r.id === recipe.id),
+        share: false // 공유는 토글이 아니므로 false로 고정
+      };
+    });
+    setButtonStates(newStates);
+  }, [recipes]);
+
+  // 1. 필터 버튼 클릭 핸들러에 로그
+  const handleFilterButtonClick = () => {
+    console.log('[IngredientDetail] 필터 버튼 클릭');
+    setFilterOpen(true);
+  };
+
+  // 2. FilterModal 열림/닫힘에 로그
+  useEffect(() => {
+    console.log('[IngredientDetail] FilterModal open:', filterOpen);
+  }, [filterOpen]);
+
+  // 3. selectedChannel 변경에 로그
+  useEffect(() => {
+    console.log('[IngredientDetail] selectedChannel:', selectedChannel);
+  }, [selectedChannel]);
+
   return (
     <>
       <header className="w-full h-[56px] flex items-center px-2 bg-white">
-          <button
+        <button
           className="px-2 focus:outline-none bg-transparent border-none shadow-none ml-2"
           style={{ minWidth: 40, background: 'transparent' }}
           onClick={() => navigate(-1)}
-            aria-label="뒤로가기"
+          aria-label="뒤로가기"
         >
           <img
             src={backIcon}
             alt="뒤로가기"
             style={{ height: 13, width: 13, objectFit: 'contain', background: 'transparent' }}
           />
-          </button>
+        </button>
       </header>
       <div className="mx-auto pb-20 bg-white"
         style={{
@@ -519,6 +588,8 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
           setAppliedExpiryIngredients={setAppliedExpiryIngredients}
           expirySortType={expirySortType}
           setExpirySortType={setExpirySortType}
+          selectedChannel={selectedChannel}
+          setSelectedChannel={setSelectedChannel}
         />
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, marginTop: 8, justifyContent: 'center' }}>
@@ -536,14 +607,14 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
             </div>
           </div>
           <div className="mt-4 flex flex-col gap-2" style={{ marginTop: 0 }}>
-            {filteredRecipes.map((recipe, index) => (
+            {processedRecipes.map((recipe, index) => (
               <RecipeCard
                 key={recipe.id}
                 recipe={recipe}
                 index={index}
                 recipeActionState={buttonStates[recipe.id] || { done: false, write: false, share: false }}
                 onRecipeAction={({ action }) => handleRecipeAction(recipe.id, { action })}
-                isLast={index === filteredRecipes.length - 1}
+                isLast={index === processedRecipes.length - 1}
                 myIngredients={myIngredients}
                 substituteTable={substituteTable}
                 hideIndexNumber={location.pathname === '/mypage/recorded' || location.pathname === '/mypage/completed'}
@@ -585,6 +656,39 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
             <button className="inline-flex items-center justify-center bg-[#F5F6F8] text-gray-700 font-semibold rounded-lg px-3 py-1 text-sm border border-[#E5E7EB] shadow-none hover:bg-[#E5E7EB] transition whitespace-nowrap" onClick={handleRemoveConfirm}>네</button>
           </div>
         </div>
+      )}
+      {filterOpen && (
+        <FilterModal
+          open={filterOpen}
+          onClose={() => {
+            console.log('[IngredientDetail] FilterModal 닫기 전 selectedChannel:', selectedChannel);
+            setFilterOpen(false);
+          }}
+          filterState={selectedFilter}
+          setFilterState={setSelectedFilter}
+          includeIngredients={includeIngredients}
+          setIncludeIngredients={setIncludeIngredients}
+          excludeIngredients={excludeIngredients}
+          setExcludeIngredients={setExcludeIngredients}
+          includeInput={includeInput}
+          setIncludeInput={setIncludeInput}
+          excludeInput={excludeInput}
+          setExcludeInput={setExcludeInput}
+          allIngredients={allIngredients}
+          includeKeyword={includeKeyword}
+          setIncludeKeyword={setIncludeKeyword}
+          filterKeywordTree={filterKeywordTree}
+          setFilterKeywordTree={setFilterKeywordTree}
+          selectedChannel={selectedChannel}
+          setSelectedChannel={(channels) => {
+            console.log('[IngredientDetail] FilterModal에서 채널 선택:', channels);
+            setSelectedChannel(channels);
+          }}
+          onApply={() => {
+            console.log('[IngredientDetail] FilterModal 적용 버튼 클릭, selectedChannel:', selectedChannel);
+            setFilterOpen(false);
+          }}
+        />
       )}
     </>
   );

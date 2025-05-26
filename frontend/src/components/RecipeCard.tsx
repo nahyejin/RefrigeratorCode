@@ -62,7 +62,21 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
   return (
     <div
       className="bg-white rounded-[20px] shadow-sm min-h-[144px] relative p-4 block hover:shadow-md transition cursor-pointer"
-      style={{ marginBottom: isLast ? 40 : 16, minWidth: 0, maxWidth: 400, width: '100%', margin: '0 auto', textDecoration: 'none', color: 'inherit' }}
+      style={{ 
+        marginBottom: isLast ? 40 : 16,
+        marginLeft: 'auto',
+        marginRight: 'auto',
+        minWidth: 0, 
+        maxWidth: 400, 
+        width: '100%', 
+        textDecoration: 'none', 
+        color: 'inherit' 
+      }}
+      onClick={() => {
+        if (recipe.link) {
+          window.open(recipe.link, '_blank');
+        }
+      }}
     >
       <div style={{ position: 'relative', width: '100%', height: 180 }}>
         <img
