@@ -242,49 +242,35 @@ class NaverInfluencerCrawler:
                     logger.warning(f"[NO CONTENT CONTAINER FOR IMG] {current_url}")
             except Exception as e:
                 logger.error(f"[THUMBNAIL ERROR] {current_url} - {e}")
-            # 받아온 HTML을 파일과 로그로 저장 (likes/comments 추출 직전)
-            try:
-                with open('last_blog_html.html', 'w', encoding='utf-8') as f:
-                    f.write(soup.prettify())
-                logger.info(f"[HTML SAVED] {current_url} -> last_blog_html.html")
-            except Exception as e:
-                logger.error(f"[HTML SAVE ERROR] {current_url} - {e}")
-            # 공감수
+
+            # 좋아요 수와 댓글 수 추출
             likes = 0
-            try:
-                like_ems = soup.select('em.u_cnt._count, span.u_cnt._count')
-                like_values = []
-                for em in like_ems:
-                    text = em.get_text(strip=True).replace(',', '')
-                    logger.info(f"[LIKES CANDIDATE] {current_url} - {text}")
-                    if text.isdigit():
-                        like_values.append(int(text))
-                if like_values:
-                    likes = max(like_values)
-                else:
-                    logger.warning(f"[NO LIKES] {current_url}")
-            except Exception as e:
-                logger.error(f"[LIKES ERROR] {current_url} - {e}")
-            # 댓글수
             comments = 0
             try:
-                comment_ems = soup.select('a.btn_reply em, em._commentCount, span._commentCount, em#commentCount, span#commentCount')
-                comment_values = []
-                for em in comment_ems:
-                    text = em.get_text(strip=True).replace(',', '')
-                    if text.isdigit():
-                        comment_values.append(int(text))
-                # 추가: id가 commentCount인 em/span도 체크
-                for el in soup.select('em#commentCount, span#commentCount'):
-                    text = el.get_text(strip=True).replace(',', '')
-                    if text.isdigit():
-                        comment_values.append(int(text))
-                if comment_values:
-                    comments = max(comment_values)
+                # 좋아요 수 추출
+                sympathy_area = soup.select_one('div.area_sympathy')
+                if sympathy_area:
+                    em_tags = sympathy_area.select('em.u_cnt._count')
+                    for em in em_tags:
+                        likes_text = em.get_text(strip=True)
+                        if likes_text:
+                            likes = int(likes_text.replace(',', ''))
+                            logger.info(f"[LIKES FOUND] {current_url} - {likes}")
+                            break
+                else:
+                    logger.warning(f"[NO LIKES] {current_url}")
+
+                # 댓글 수 추출
+                comments_element = soup.select_one('div.area_comment em#commentCount._commentCount')
+                if comments_element:
+                    comments_text = comments_element.get_text(strip=True)
+                    comments = int(comments_text.replace(',', '')) if comments_text.isdigit() else 0
+                    logger.info(f"[COMMENTS FOUND] {current_url} - {comments}")
                 else:
                     logger.warning(f"[NO COMMENTS] {current_url}")
             except Exception as e:
-                logger.error(f"[COMMENTS ERROR] {current_url} - {e}")
+                logger.error(f"[LIKES/COMMENTS ERROR] {current_url} - {e}")
+
             # 작성일
             post_time = None
             try:

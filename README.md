@@ -345,8 +345,9 @@ VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
 crawler/
 ├── naver_influencer_crawler.py  # 네이버 인플루언서 핫토픽 수집
 ├── naver_blog_crawler.py        # 네이버 블로그 주제별보기 수집
-├── youtube_crawler.py           # 유튜브 수집 (향후 구현)
-└── database.py                  # 데이터베이스 연결 및 관리
+├── youtube_crawler.py           # 유튜브 수집
+├── database.py                  # 데이터베이스 연결 및 관리
+└── common/                      # 공통 상수, 기본 클래스, 데이터 모델 등
 
 실행 순서: naver_blog_crawler.py → naver_influencer_crawler.py → youtube_crawler.py
 ```
