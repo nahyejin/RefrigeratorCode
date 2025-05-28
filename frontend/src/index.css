@@ -113,19 +113,18 @@ html, body, #root {
   scrollbar-color: transparent transparent;
 }
 
-/* 새로운 스크롤바 스타일 */
+/* Custom scrollbar for filter modal scroll area */
 .custom-scrollbar {
-  scrollbar-width: none !important;
+  scrollbar-width: thin;
+  scrollbar-color: #e0e0e0 #f5f5f5;
 }
 .custom-scrollbar::-webkit-scrollbar {
-  display: none !important;
+  width: 8px;
+  background: #f5f5f5;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: transparent !important;
-  border: none !important;
-}
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent !important;
+  background: #e0e0e0;
+  border-radius: 4px;
 }
 
 img, svg {
