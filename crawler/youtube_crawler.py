@@ -1,7 +1,7 @@
 import os
 import json
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 from googleapiclient.discovery import build
 from dotenv import load_dotenv
 import logging
@@ -11,6 +11,11 @@ import re
 import pymysql
 import urllib.parse
 import subprocess
+import sys
+
+# Add ingredient-management directory to Python path
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'ingredient-management'))
+from update_used_ingredients_batch import extract_best_ingredient_block, extract_ingredients
 
 # 로깅 설정
 logging.basicConfig(
@@ -26,12 +31,12 @@ logger = logging.getLogger(__name__)
 class YouTubeCrawler:
     def __init__(self):
         load_dotenv()
-        self.api_key = os.getenv('YOUTUBE_API_KEY')
+        self.api_key = 'AIzaSyAHp_0bod-XWi5yNItEhQu16VWKy-fBA2Q'
         if not self.api_key:
             raise ValueError("YouTube API key not found in environment variables")
         
         self.youtube = build('youtube', 'v3', developerKey=self.api_key)
-        self.platform = '유튜브(인플루언서)'
+        self.platform = 'youtube(인플루언서)'
         # DB 연결
         self.conn = pymysql.connect(
             host='localhost',
@@ -42,6 +47,12 @@ class YouTubeCrawler:
             cursorclass=pymysql.cursors.DictCursor
         )
         self.cursor = self.conn.cursor()
+        self.ingredient_patterns = [
+            r'재료\s*[:\s]*(.*?)(?=\n\n|\Z)',
+            r'필요한\s*재료\s*[:\s]*(.*?)(?=\n\n|\Z)',
+            r'준비물\s*[:\s]*(.*?)(?=\n\n|\Z)',
+            r'재료\s*준비\s*[:\s]*(.*?)(?=\n\n|\Z)'
+        ]
 
     def get_channel_id_from_url(self, url):
         # URL 디코딩 처리
@@ -142,6 +153,62 @@ class YouTubeCrawler:
         except Exception as e:
             logger.error(f"Error saving to CSV: {str(e)}")
 
+    def extract_ingredients_from_content(self, content):
+        """영상 설명에서 재료 정보를 추출합니다."""
+        for pattern in self.ingredient_patterns:
+            match = re.search(pattern, content, re.DOTALL | re.IGNORECASE)
+            if match:
+                ingredients_block = match.group(1).strip()
+                if len(ingredients_block) > 10:  # 최소 길이 체크
+                    return ingredients_block
+        return None
+
+    def update_video_metadata(self, video_id):
+        """특정 영상의 메타데이터(조회수, 좋아요, 댓글수)를 업데이트합니다."""
+        try:
+            request = self.youtube.videos().list(
+                part="statistics",
+                id=video_id
+            )
+            response = request.execute()
+            if response['items']:
+                stats = response['items'][0]['statistics']
+                sql = """
+                UPDATE recipes 
+                SET hits = %s, likes = %s, comments = %s, collected_at = %s
+                WHERE link LIKE %s
+                """
+                self.cursor.execute(sql, (
+                    int(stats.get('viewCount', 0)),
+                    int(stats.get('likeCount', 0)),
+                    int(stats.get('commentCount', 0)),
+                    datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                    f'%v={video_id}'
+                ))
+                self.conn.commit()
+                return True
+        except Exception as e:
+            logger.error(f"Error updating metadata for video {video_id}: {e}")
+        return False
+
+    def update_recent_videos_metadata(self, days=3):
+        """최근 N일 내의 영상들의 메타데이터를 업데이트합니다."""
+        try:
+            cutoff_date = (datetime.now() - timedelta(days=days)).strftime('%Y-%m-%d')
+            sql = """
+            SELECT link FROM recipes 
+            WHERE platform = %s AND post_time >= %s
+            """
+            self.cursor.execute(sql, (self.platform, cutoff_date))
+            videos = self.cursor.fetchall()
+            
+            for video in videos:
+                video_id = video['link'].split('v=')[-1]
+                self.update_video_metadata(video_id)
+                time.sleep(0.5)  # API 쿼터 보호
+        except Exception as e:
+            logger.error(f"Error updating recent videos metadata: {e}")
+
     def save_to_db(self, videos_info):
         sql = '''
         INSERT IGNORE INTO recipes
@@ -151,11 +218,20 @@ class YouTubeCrawler:
         count = 0
         for v in videos_info:
             try:
+                # 재료 블록 추출 (update_used_ingredients_batch.py의 함수 사용)
+                block, reason = extract_best_ingredient_block(v['content'])
+                if not block or len(block.strip()) < 10:
+                    logger.info(f"Skipping video {v['link']} - no ingredients block found")
+                    continue
+                # 재료 추출
+                ingredients = extract_ingredients(block)
                 self.cursor.execute(sql, (
                     v['title'],
                     v['link'],
                     v['content'],
-                    '', '', '',  # used_ingredients, used_ingredients_block, block_reason
+                    ','.join(ingredients) if ingredients else '',
+                    block,
+                    reason,
                     v['author'],
                     v['thumbnail'],
                     v['platform'],
@@ -237,12 +313,14 @@ def main():
     try:
         crawler = YouTubeCrawler()
         crawler.process_influencer_list()
+        # 최근 3일 내 영상들의 메타데이터 업데이트
+        crawler.update_recent_videos_metadata(days=3)
     except Exception as e:
         logger.error(f"Error in main: {str(e)}")
     # 크롤링이 끝나면 update_used_ingredients_batch.py 자동 실행
     try:
         logger.info("Running update_used_ingredients_batch.py...")
-        subprocess.run(["python", "update_used_ingredients_batch.py"], check=True)
+        subprocess.run(["python", "ingredient-management/update_used_ingredients_batch.py"], check=True)
         logger.info("update_used_ingredients_batch.py finished.")
     except Exception as e:
         logger.error(f"Failed to run update_used_ingredients_batch.py: {e}")
