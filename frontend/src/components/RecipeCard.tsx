@@ -72,7 +72,11 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
         textDecoration: 'none', 
         color: 'inherit' 
       }}
-      onClick={() => {
+      onClick={(e) => {
+        // 버튼 영역 클릭 시 카드 클릭 이벤트 무시
+        if ((e.target as HTMLElement).closest('.action-buttons')) {
+          return;
+        }
         if (recipe.link) {
           window.open(recipe.link, '_blank');
         }
@@ -103,7 +107,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
           onError={e => { e.currentTarget.src = naverLogo; }}
         />
         {/* 완료/공유/기록 버튼 */}
-        <div style={{ position: 'absolute', right: 8, bottom: 8, display: 'flex', flexDirection: 'row', gap: 6, alignItems: 'center', zIndex: 2 }}>
+        <div className="action-buttons" style={{ position: 'absolute', right: 8, bottom: 8, display: 'flex', flexDirection: 'row', gap: 6, alignItems: 'center', zIndex: 2 }}>
           {ACTIONS.map(({ key, title, icon }) => (
             <span key={key} style={{ position: 'relative', zIndex: 2 }}>
               <span style={{ position: 'absolute', left: 0, top: 0, width: BUTTON_SIZE, height: BUTTON_SIZE, borderRadius: '50%', background: 'rgba(34,34,34,0.7)', zIndex: 1 }}></span>
@@ -111,7 +115,11 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
                 title={title}
                 tabIndex={0}
                 style={{ width: BUTTON_SIZE, height: BUTTON_SIZE, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', padding: 0, cursor: 'pointer', outline: 'none', position: 'relative', zIndex: 2 }}
-                onClick={e => handleActionButtonClick(key, e)}
+                onClick={e => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleActionButtonClick(key, e);
+                }}
               >
                 <img
                   src={icon}
