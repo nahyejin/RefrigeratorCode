@@ -435,7 +435,6 @@ crawler/
    - ⚠️ 개발용 API 키 (테스트용으로만 사용):
      ```
      YOUTUBE_API_KEY=AIzaSyAHp_0bod-XWi5yNItEhQu16VWKy-fBA2Q
-     YOUTUBE_API_KEY=AIzaSyAKKcpwecA7whlRRw0IAVbrTnpLNsDYayM
      ```
    - ⚠️ 보안 주의사항:
      - 이 API 키는 개발/테스트용이며, 실제 프로덕션 환경에서는 사용하지 마세요
