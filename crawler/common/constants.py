@@ -22,7 +22,7 @@ RECIPE_KEYWORDS = [
 ]
 
 # Platform names
-PLATFORM_NAVER = 'naver'
+PLATFORM_NAVER = 'naver(인플루언서핫토픽)'
 PLATFORM_YOUTUBE = 'youtube'
 
 # Crawling targets

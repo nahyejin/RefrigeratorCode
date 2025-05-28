@@ -139,6 +139,14 @@ const FilterModal: React.FC<FilterModalProps> = ({
   const includeCandidates = combinedIngredients.filter(i => i && i.includes(includeInput) && includeInput && i !== includeInput && !includeIngredients.includes(i));
   const excludeCandidates = combinedIngredients.filter(i => i && i.includes(excludeInput) && excludeInput && i !== excludeInput && !excludeIngredients.includes(i));
 
+  // 1. 모든 카테고리의 선택된 키워드 flat하게 모으기
+  const selectedKeywordPills: { main: string; keyword: string }[] = [];
+  Object.entries(filterState || {}).forEach(([main, arr]) => {
+    (arr || []).forEach((keyword: string) => {
+      selectedKeywordPills.push({ main, keyword });
+    });
+  });
+
   useEffect(() => {
     setIsLoading(true);
     fetch('/Filter_Keywords.csv')
@@ -161,185 +169,242 @@ const FilterModal: React.FC<FilterModalProps> = ({
       <div className="bg-white rounded-xl shadow-lg w-[340px] max-w-[95vw] relative mt-12 mb-24" style={{maxHeight: 'calc(100vh - 144px)', overflowY: 'auto'}}>
         <div className="sticky top-0 z-10 bg-white" style={{paddingTop: 24, backgroundColor: '#fff', opacity: 1, minHeight: 64}}>
           <span className="absolute top-3 right-3 w-6 h-6 text-gray-400 text-xl cursor-pointer select-none" onClick={onClose} role="button" aria-label="닫기" style={{zIndex: 20}}>×</span>
-          <div className="text-center font-bold text-[12.8px] mb-2 pt-2">필터를 설정해 주세요</div>
+          <div className="text-center font-bold text-[12.8px] mb-4 pt-1">필터를 설정해 주세요</div>
+          <div className="border-b border-gray-200"></div>
         </div>
         <div className="p-6 mb-2">
-          {isLoading ? (
-            <div className="flex justify-center items-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+          {/* 채널 선택: 맨 위로 이동 */}
+          <div className="mb-4">
+            <div className="font-bold text-[11.2px] mb-2">■ 채널선택</div>
+            <div className="flex gap-4">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  name="channel"
+                  value="youtube"
+                  checked={(selectedChannel || []).includes('youtube')}
+                  onChange={e => {
+                    if (e.target.checked) setSelectedChannel([...(selectedChannel || []), 'youtube']);
+                    else setSelectedChannel((selectedChannel || []).filter(c => c !== 'youtube'));
+                  }}
+                  className="w-4 h-4"
+                />
+                <span className="text-[11.2px]">유튜브</span>
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  name="channel"
+                  value="naver"
+                  checked={(selectedChannel || []).includes('naver')}
+                  onChange={e => {
+                    if (e.target.checked) setSelectedChannel([...(selectedChannel || []), 'naver']);
+                    else setSelectedChannel((selectedChannel || []).filter(c => c !== 'naver'));
+                  }}
+                  className="w-4 h-4"
+                />
+                <span className="text-[11.2px]">네이버</span>
+              </label>
             </div>
-          ) : (
-            <>
-              <div className="mb-4">
-                <label className="block font-bold text-[11.2px] mb-1">
-                  ■ 꼭 포함할 키워드 (게시글 제목 혹은 본문)
-                </label>
+          </div>
+          {/* 고정: 키워드/재료 입력 */}
+          <div>
+            <div className="mt-4 border-t border-gray-200"></div>
+            <div className="mb-4 mt-6">
+              <label className="block font-bold text-[11.2px] mb-1">
+                ■ 꼭 포함할 키워드 (게시글 제목 혹은 본문)
+              </label>
+              <input
+                className="w-full border rounded px-3 py-2 text-[10px]"
+                placeholder="필수 키워드 입력"
+                value={includeKeyword || ''}
+                onChange={e => setIncludeKeyword(e.target.value)}
+              />
+            </div>
+            <div className="mt-2">
+              <div className="font-bold text-[11.2px] mb-1">■ 꼭 포함할 재료</div>
+              <div className="relative mb-2">
                 <input
                   className="w-full border rounded px-3 py-2 text-[10px]"
-                  placeholder="필수 키워드 입력"
-                  value={includeKeyword || ''}
-                  onChange={e => setIncludeKeyword(e.target.value)}
+                  placeholder="포함할 재료 입력"
+                  value={includeInput || ''}
+                  onChange={e => setIncludeInput(e.target.value)}
+                  onFocus={() => setIncludeFocus(true)}
+                  onBlur={() => setTimeout(() => setIncludeFocus(false), 150)}
                 />
+                {includeFocus && includeCandidates.length > 0 && (
+                  <ul className="absolute left-0 right-0 bg-white border border-gray-200 rounded-lg mt-1 shadow z-10 max-h-32 overflow-y-auto">
+                    {includeCandidates.map(item => (
+                      <li
+                        key={item}
+                        className="px-4 py-2 hover:bg-[#f4f0e6] cursor-pointer text-[12px]"
+                        onMouseDown={() => {
+                          setIncludeIngredients([...(includeIngredients || []), item]);
+                          setIncludeInput('');
+                          setIncludeFocus(false);
+                        }}
+                      >{item}</li>
+                    ))}
+                  </ul>
+                )}
               </div>
-              <div className="mt-2">
-                <div className="font-bold text-[11.2px] mb-1">■ 꼭 포함할 재료</div>
-                <div className="relative mb-2">
-                  <input
-                    className="w-full border rounded px-3 py-2 text-[10px]"
-                    placeholder="포함할 재료 입력"
-                    value={includeInput || ''}
-                    onChange={e => setIncludeInput(e.target.value)}
-                    onFocus={() => setIncludeFocus(true)}
-                    onBlur={() => setTimeout(() => setIncludeFocus(false), 150)}
-                  />
-                  {includeFocus && includeCandidates.length > 0 && (
-                    <ul className="absolute left-0 right-0 bg-white border border-gray-200 rounded-lg mt-1 shadow z-10 max-h-32 overflow-y-auto">
-                      {includeCandidates.map(item => (
-                        <li
-                          key={item}
-                          className="px-4 py-2 hover:bg-[#f4f0e6] cursor-pointer text-[12px]"
-                          onMouseDown={() => {
-                            setIncludeIngredients([...(includeIngredients || []), item]);
-                            setIncludeInput('');
-                            setIncludeFocus(false);
-                          }}
-                        >{item}</li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-                {/* chips for includeIngredients */}
-                <div className="flex flex-wrap gap-1 mb-2">
-                  {(includeIngredients || []).map(ing => (
-                    <span key={ing} className="bg-yellow-100 text-yellow-800 rounded-full px-3 py-1 text-xs font-medium flex items-center">
-                      {ing}
-                      <button
-                        type="button"
-                        className="ml-1 text-yellow-700 hover:text-yellow-900 focus:outline-none"
-                        style={{ fontSize: 14, lineHeight: 1, padding: 0, width: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                        onClick={() => setIncludeIngredients((includeIngredients || []).filter(i => i !== ing))}
-                        aria-label="제거"
-                      >×</button>
-                    </span>
-                  ))}
-                </div>
-                <div className="font-bold text-[11.2px] mt-4 mb-1">■ 꼭 제외할 재료</div>
-                <div className="relative">
-                  <input
-                    className="w-full border rounded px-3 py-2 text-[10px]"
-                    placeholder="제외할 재료 입력"
-                    value={excludeInput || ''}
-                    onChange={e => setExcludeInput(e.target.value)}
-                    onFocus={() => setExcludeFocus(true)}
-                    onBlur={() => setTimeout(() => setExcludeFocus(false), 150)}
-                  />
-                  {excludeFocus && excludeCandidates.length > 0 && (
-                    <ul className="absolute left-0 right-0 bg-white border border-gray-200 rounded-lg mt-1 shadow z-10 max-h-32 overflow-y-auto">
-                      {excludeCandidates.map(item => (
-                        <li
-                          key={item}
-                          className="px-4 py-2 hover:bg-[#f4f0e6] cursor-pointer text-[12px]"
-                          onMouseDown={() => {
-                            setExcludeIngredients([...(excludeIngredients || []), item]);
-                            setExcludeInput('');
-                            setExcludeFocus(false);
-                          }}
-                        >{item}</li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-                {/* chips for excludeIngredients */}
-                <div className="flex flex-wrap gap-1 mb-2">
-                  {(excludeIngredients || []).map(ing => (
-                    <span key={ing} className="bg-gray-200 text-gray-800 rounded-full px-3 py-1 text-xs font-medium flex items-center">
-                      {ing}
-                      <button
-                        type="button"
-                        className="ml-1 text-gray-700 hover:text-gray-900 focus:outline-none"
-                        style={{ fontSize: 14, lineHeight: 1, padding: 0, width: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                        onClick={() => setExcludeIngredients((excludeIngredients || []).filter(i => i !== ing))}
-                        aria-label="제거"
-                      >×</button>
-                    </span>
-                  ))}
-                </div>
-                <div className="mt-8 border-t pt-4"></div>
+              {/* chips for includeIngredients */}
+              <div className="flex flex-wrap gap-1 mb-2">
+                {(includeIngredients || []).map(ing => (
+                  <span key={ing} className="bg-yellow-100 text-yellow-800 rounded-full px-3 py-1 text-xs font-medium flex items-center">
+                    {ing}
+                    <button
+                      type="button"
+                      className="ml-1 text-yellow-700 hover:text-yellow-900 focus:outline-none"
+                      style={{ fontSize: 14, lineHeight: 1, padding: 0, width: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      onClick={() => setIncludeIngredients((includeIngredients || []).filter(i => i !== ing))}
+                      aria-label="제거"
+                    >×</button>
+                  </span>
+                ))}
               </div>
-              {/* 카테고리별 태그 */}
-              <div className="mt-4">
-                {filterKeywordTree && typeof filterKeywordTree === 'object' && Object.keys(filterKeywordTree).length > 0
-                  ? Object.entries(filterKeywordTree).map(([main, subTree]) => (
-                      <div key={main}>
-                        <div className="font-bold text-[11.2px] mt-4 mb-2">■ {main}</div>
-                        {subTree && typeof subTree === 'object'
-                          ? Object.entries(subTree).map(([sub, keywordsArr]) => (
-                              <div key={sub} className="mb-1">
-                                {sub && <div className="text-[10px] font-semibold text-[#444] mb-1 ml-1">- {sub}</div>}
-                                <div className="flex flex-wrap gap-1 mb-1">
-                                  {Array.isArray(keywordsArr)
-                                    ? keywordsArr.map(({ keyword }) => (
-                                        <button
-                                          key={keyword}
-                                          className={`rounded-full px-3 py-0.5 font-medium text-[10.4px] mb-1 transition-colors ${
-                                            ((filterState || {})[main] || []).includes(keyword) ? 'bg-[#555] text-white' : 'bg-[#F8F8F8] text-[#555]'
-                                          }`}
-                                          onClick={() => {
-                                            const arr = (filterState || {})[main] || [];
-                                            setFilterState({
-                                              ...(filterState || {}),
-                                              [main]: arr.includes(keyword)
-                                                ? arr.filter((x: string) => x !== keyword)
-                                                : [...arr, keyword]
-                                            });
-                                          }}
-                                        >{keyword}</button>
-                                      ))
-                                    : null}
+              <div className="font-bold text-[11.2px] mt-4 mb-1">■ 꼭 제외할 재료</div>
+              <div className="relative">
+                <input
+                  className="w-full border rounded px-3 py-2 text-[10px]"
+                  placeholder="제외할 재료 입력"
+                  value={excludeInput || ''}
+                  onChange={e => setExcludeInput(e.target.value)}
+                  onFocus={() => setExcludeFocus(true)}
+                  onBlur={() => setTimeout(() => setExcludeFocus(false), 150)}
+                />
+                {excludeFocus && excludeCandidates.length > 0 && (
+                  <ul className="absolute left-0 right-0 bg-white border border-gray-200 rounded-lg mt-1 shadow z-10 max-h-32 overflow-y-auto">
+                    {excludeCandidates.map(item => (
+                      <li
+                        key={item}
+                        className="px-4 py-2 hover:bg-[#f4f0e6] cursor-pointer text-[12px]"
+                        onMouseDown={() => {
+                          setExcludeIngredients([...(excludeIngredients || []), item]);
+                          setExcludeInput('');
+                          setExcludeFocus(false);
+                        }}
+                      >{item}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+              {/* chips for excludeIngredients */}
+              <div className="flex flex-wrap gap-1 mb-2">
+                {(excludeIngredients || []).map(ing => (
+                  <span key={ing} className="bg-gray-200 text-gray-800 rounded-full px-3 py-1 text-xs font-medium flex items-center">
+                    {ing}
+                    <button
+                      type="button"
+                      className="ml-1 text-gray-700 hover:text-gray-900 focus:outline-none"
+                      style={{ fontSize: 14, lineHeight: 1, padding: 0, width: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      onClick={() => setExcludeIngredients((excludeIngredients || []).filter(i => i !== ing))}
+                      aria-label="제거"
+                    >×</button>
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+          {/* 고정: 선택된 키워드 pill (sticky) */}
+          <div className="mt-6 border-t border-gray-200 pt-4"></div>
+          <div
+            className="flex flex-wrap gap-2 mb-2 justify-center sticky top-0 z-10 bg-white"
+            style={{ minHeight: 28 }}
+          >
+            {selectedKeywordPills.length === 0 ? (
+              <span className="text-gray-400 text-[13px]">테마를 선택해 주세요</span>
+            ) : (
+              selectedKeywordPills.map(({ main, keyword }) => (
+                <span
+                  key={main + '-' + keyword}
+                  className="px-2 py-[2px] bg-yellow-100 text-yellow-800 rounded-full text-[13px] font-medium border border-yellow-300 flex items-center"
+                  style={{ lineHeight: 1.2, height: 'auto' }}
+                >
+                  {keyword}
+                  <button
+                    type="button"
+                    className="ml-1 text-yellow-700 hover:text-yellow-900 focus:outline-none"
+                    aria-label="선택 해제"
+                    style={{ fontSize: 14, lineHeight: 1, padding: 0, width: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    onClick={() => {
+                      setFilterState({
+                        ...filterState,
+                        [main]: (filterState[main] || []).filter((k: string) => k !== keyword)
+                      });
+                    }}
+                  >
+                    ×
+                  </button>
+                </span>
+              ))
+            )}
+          </div>
+          {/* 스크롤: 카테고리별 키워드~채널선택 */}
+          <div
+            className="custom-scrollbar"
+            style={{
+              maxHeight: 320,
+              overflowY: 'scroll',
+              borderBottom: '1px solid #eee',
+              paddingTop: 16,
+              paddingBottom: 24,
+              marginBottom: 8,
+              background: '#f5f5f5',
+              position: 'relative',
+              boxShadow: '0px -8px 16px -8px rgba(0,0,0,0.08) inset',
+              borderRadius: '8px',
+              margin: '0 8px'
+            }}
+          >
+            {/* 기존 카테고리~채널선택 내용 */}
+            {isLoading ? (
+              <div className="flex justify-center items-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+              </div>
+            ) : (
+              <>
+                {/* 카테고리별 태그 */}
+                <div className="px-4">
+                  {filterKeywordTree && typeof filterKeywordTree === 'object' && Object.keys(filterKeywordTree).length > 0
+                    ? Object.entries(filterKeywordTree).map(([main, subTree]) => (
+                        <div key={main}>
+                          <div className="font-bold text-[11.2px] mb-2">■ {main}</div>
+                          {subTree && typeof subTree === 'object'
+                            ? Object.entries(subTree).map(([sub, keywordsArr]) => (
+                                <div key={sub} className="mb-1">
+                                  {sub && <div className="text-[10px] font-semibold text-[#444] mb-1 ml-1">- {sub}</div>}
+                                  <div className="flex flex-wrap gap-1 mb-1">
+                                    {Array.isArray(keywordsArr)
+                                      ? keywordsArr.map(({ keyword }) => (
+                                          <button
+                                            key={keyword}
+                                            className={`rounded-full px-3 py-0.5 font-medium text-[10.4px] mb-1 transition-colors ${
+                                              ((filterState || {})[main] || []).includes(keyword) ? 'bg-[#555] text-white' : 'bg-white text-[#555] shadow-sm'
+                                            }`}
+                                            onClick={() => {
+                                              const arr = (filterState || {})[main] || [];
+                                              setFilterState({
+                                                ...(filterState || {}),
+                                                [main]: arr.includes(keyword)
+                                                  ? arr.filter((x: string) => x !== keyword)
+                                                  : [...arr, keyword]
+                                              });
+                                            }}
+                                          >{keyword}</button>
+                                        ))
+                                      : null}
+                                  </div>
                                 </div>
-                              </div>
-                            ))
-                          : null}
-                      </div>
-                    ))
-                  : <div className="text-center text-gray-500 py-4">필터 키워드를 불러오는 중입니다...</div>}
-              </div>
-              {/* 채널 선택 */}
-              <div className="mt-4 border-t pt-4">
-                <div className="font-bold text-[11.2px] mb-2">■ 채널선택</div>
-                <div className="flex gap-4">
-                  <label className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      name="channel"
-                      value="youtube"
-                      checked={(selectedChannel || []).includes('youtube')}
-                      onChange={e => {
-                        if (e.target.checked) setSelectedChannel([...(selectedChannel || []), 'youtube']);
-                        else setSelectedChannel((selectedChannel || []).filter(c => c !== 'youtube'));
-                      }}
-                      className="w-4 h-4"
-                    />
-                    <span className="text-[11.2px]">유튜브</span>
-                  </label>
-                  <label className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      name="channel"
-                      value="naver"
-                      checked={(selectedChannel || []).includes('naver')}
-                      onChange={e => {
-                        if (e.target.checked) setSelectedChannel([...(selectedChannel || []), 'naver']);
-                        else setSelectedChannel((selectedChannel || []).filter(c => c !== 'naver'));
-                      }}
-                      className="w-4 h-4"
-                    />
-                    <span className="text-[11.2px]">네이버</span>
-                  </label>
+                              ))
+                            : null}
+                        </div>
+                      ))
+                    : <div className="text-center text-gray-500 py-4">필터 키워드를 불러오는 중입니다...</div>}
                 </div>
-              </div>
-            </>
-          )}
+              </>
+            )}
+          </div>
         </div>
         <div className="sticky bottom-0 left-0 w-full bg-white p-4 flex justify-center z-20">
           <button
