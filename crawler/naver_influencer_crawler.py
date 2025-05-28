@@ -9,6 +9,10 @@ import json
 import os
 import socket
 import dns.resolver
+import re
+from urllib.parse import urljoin
+import pymysql
+from tqdm import tqdm
 
 # 로깅 설정
 logging.basicConfig(
@@ -19,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 class NaverInfluencerCrawler:
     def __init__(self):
-        self.base_url = "https://influencer.naver.com/hot-topics"
+        self.base_url = "https://in.naver.com/discover/135968760155968"
         self.session = requests.Session()
         self.session.headers.update({
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
@@ -33,11 +37,15 @@ class NaverInfluencerCrawler:
         # DNS 설정
         self._setup_dns()
         
-        # 프록시 설정 (필요한 경우 주석 해제)
-        # self.session.proxies = {
-        #     'http': 'http://your-proxy:port',
-        #     'https': 'https://your-proxy:port'
-        # }
+        # DB 연결 설정
+        self.db_config = {
+            'host': 'localhost',
+            'user': 'root',
+            'password': 'sk784512!!',
+            'db': 'refrigerator',
+            'charset': 'utf8mb4',
+            'cursorclass': pymysql.cursors.DictCursor
+        }
 
     def _setup_dns(self):
         """DNS 설정"""
@@ -49,6 +57,55 @@ class NaverInfluencerCrawler:
             logger.info("DNS resolver configured successfully")
         except Exception as e:
             logger.error(f"Failed to configure DNS resolver: {str(e)}")
+
+    def _connect_db(self):
+        """DB 연결"""
+        try:
+            return pymysql.connect(**self.db_config)
+        except Exception as e:
+            logger.error(f"Database connection failed: {str(e)}")
+            return None
+
+    def _save_to_db(self, data: Dict):
+        """데이터를 DB에 저장 (필터 없이 모두 저장)"""
+        if not data:
+            return
+
+        # 추출된 데이터 로그로 출력
+        logger.info(f"Saving to DB: {json.dumps(data, ensure_ascii=False)}")
+
+        conn = self._connect_db()
+        if not conn:
+            return
+
+        try:
+            with conn.cursor() as cursor:
+                sql = """
+                INSERT INTO recipes (
+                    title, link, content, author, thumbnail, 
+                    platform, likes, comments, post_time, collected_at
+                ) VALUES (
+                    %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+                )
+                """
+                cursor.execute(sql, (
+                    data['title'],
+                    data['link'],
+                    data['content'],
+                    data['author'],
+                    data['thumbnail'],
+                    data['platform'],
+                    data['likes'],
+                    data['comments'],
+                    data['post_time'],
+                    data['collected_at']
+                ))
+            conn.commit()
+            logger.info(f"Successfully saved recipe: {data['title']}")
+        except Exception as e:
+            logger.error(f"Error saving to database: {str(e)}")
+        finally:
+            conn.close()
 
     def _make_request(self, url: str) -> Optional[BeautifulSoup]:
         """요청을 보내고 BeautifulSoup 객체를 반환"""
@@ -73,93 +130,266 @@ class NaverInfluencerCrawler:
                 continue
         return None
 
-    def _extract_topic_data(self, topic_element) -> Optional[Dict]:
-        """토픽 데이터 추출"""
+    def _extract_recipe_cards(self, soup: BeautifulSoup) -> List[Dict]:
+        """레시피 카드 정보 추출"""
+        recipe_cards = []
+        cards = soup.select('div.CollectionTopicCard__root___rv6dQ')
+        
+        for card in cards:
+            try:
+                link_element = card.select_one('a')
+                if not link_element:
+                    continue
+                    
+                link = link_element.get('href', '')
+                if not link.startswith('http'):
+                    link = f"https://in.naver.com{link}"
+                
+                title_element = card.select_one('a.CollectionTopicCard__title___uDcAM')
+                title = title_element.get_text(strip=True) if title_element else ""
+                
+                author_element = card.select_one('div.CollectionTopicCard__name___yojnV')
+                author = author_element.get_text(strip=True) if author_element else ""
+                
+                recipe_cards.append({
+                    'title': title,
+                    'link': link,
+                    'author': author
+                })
+            except Exception as e:
+                logger.error(f"Error extracting recipe card: {str(e)}")
+                continue
+                
+        return recipe_cards
+
+    def _extract_blog_links(self, soup: BeautifulSoup) -> List[str]:
+        """블로그 더보기 링크만 추출"""
+        blog_links = []
+        links = soup.select('a.TopicContent__link___HTKpK')
+        for link in links:
+            text = link.get_text(strip=True)
+            if "블로그에서 더보기" in text:
+                href = link.get('href', '')
+                if href:
+                    full_url = urljoin("https://in.naver.com", href)
+                    blog_links.append(full_url)
+        return blog_links
+
+    def _extract_blog_content(self, soup: BeautifulSoup, current_url: str = "") -> Dict:
+        """블로그 레시피 페이지에서 데이터 추출 (실제 blog.naver.com 본문까지 진입)"""
         try:
-            # 제목 추출
-            title_element = topic_element.select_one('div.topic_title')
-            if not title_element:
-                return None
-            title = title_element.get_text(strip=True)
-
-            # 링크 추출
-            link_element = topic_element.select_one('a')
-            if not link_element:
-                return None
-            link = link_element.get('href', '')
-            if not link.startswith('http'):
-                link = f"https://influencer.naver.com{link}"
-
-            # 조회수 추출
-            views_element = topic_element.select_one('div.topic_views')
-            views = views_element.get_text(strip=True) if views_element else "0"
-
-            # 작성일 추출
-            date_element = topic_element.select_one('div.topic_date')
-            date = date_element.get_text(strip=True) if date_element else ""
-
+            # 영상 포스트(동영상) 감지 시 건너뜀
+            if soup.select_one('div.ControlArea-module__touch_wrap__XWNof'):
+                logger.info(f"[SKIP VIDEO] 영상 포스트이므로 건너뜀: {current_url}")
+                return {}
+            # 1. in.naver.com/contents/internal/ 페이지라면 blog.naver.com 링크 추출
+            blog_real_url = None
+            # iframe 방식
+            iframe = soup.select_one('iframe#mainFrame')
+            if iframe and iframe.get('src'):
+                blog_real_url = iframe.get('src')
+                if blog_real_url.startswith('/'):
+                    blog_real_url = 'https://blog.naver.com' + blog_real_url
+            # meta refresh 방식
+            if not blog_real_url:
+                meta = soup.select_one('meta[http-equiv="refresh"]')
+                if meta and 'url=' in meta.get('content', ''):
+                    blog_real_url = meta.get('content').split('url=')[-1]
+            # a 태그 직접 링크
+            if not blog_real_url:
+                a_tag = soup.find('a', href=True)
+                if a_tag and 'blog.naver.com' in a_tag['href']:
+                    blog_real_url = a_tag['href']
+            # 만약 blog.naver.com 링크를 찾았다면, 해당 페이지를 다시 요청
+            if blog_real_url and 'blog.naver.com' in blog_real_url:
+                logger.info(f"[REAL BLOG] {blog_real_url}")
+                blog_resp = self.session.get(blog_real_url, timeout=self.timeout)
+                blog_resp.raise_for_status()
+                soup = BeautifulSoup(blog_resp.text, 'html.parser')
+            # 2. 실제 blog.naver.com 본문에서 selector로 데이터 추출
+            # 제목
+            title = ''
+            try:
+                title_element = soup.select_one('div.se-module.se-module-text.se-title-text')
+                if title_element:
+                    title_span = title_element.select_one('span')
+                    title = title_span.get_text(strip=True) if title_span else title_element.get_text(strip=True)
+                else:
+                    logger.warning(f"[NO TITLE] {current_url}")
+            except Exception as e:
+                logger.error(f"[TITLE ERROR] {current_url} - {e}")
+            # 작성자
+            author = ''
+            try:
+                author_element = soup.select_one('strong.ell')
+                if author_element:
+                    author = author_element.get_text(strip=True)
+                else:
+                    logger.warning(f"[NO AUTHOR] {current_url}")
+            except Exception as e:
+                logger.error(f"[AUTHOR ERROR] {current_url} - {e}")
+            # 썸네일 (본문 첫 번째 이미지)
+            thumbnail = ''
+            try:
+                content_container = soup.select_one('div.se-main-container')
+                if content_container:
+                    img_element = content_container.select_one('img.se-image-resource')
+                    if img_element:
+                        thumbnail = img_element.get('src', '')
+                    else:
+                        logger.warning(f"[NO THUMBNAIL IMG] {current_url}")
+                else:
+                    logger.warning(f"[NO CONTENT CONTAINER FOR IMG] {current_url}")
+            except Exception as e:
+                logger.error(f"[THUMBNAIL ERROR] {current_url} - {e}")
+            # 받아온 HTML을 파일과 로그로 저장 (likes/comments 추출 직전)
+            try:
+                with open('last_blog_html.html', 'w', encoding='utf-8') as f:
+                    f.write(soup.prettify())
+                logger.info(f"[HTML SAVED] {current_url} -> last_blog_html.html")
+            except Exception as e:
+                logger.error(f"[HTML SAVE ERROR] {current_url} - {e}")
+            # 공감수
+            likes = 0
+            try:
+                like_ems = soup.select('em.u_cnt._count, span.u_cnt._count')
+                like_values = []
+                for em in like_ems:
+                    text = em.get_text(strip=True).replace(',', '')
+                    logger.info(f"[LIKES CANDIDATE] {current_url} - {text}")
+                    if text.isdigit():
+                        like_values.append(int(text))
+                if like_values:
+                    likes = max(like_values)
+                else:
+                    logger.warning(f"[NO LIKES] {current_url}")
+            except Exception as e:
+                logger.error(f"[LIKES ERROR] {current_url} - {e}")
+            # 댓글수
+            comments = 0
+            try:
+                comment_ems = soup.select('a.btn_reply em, em._commentCount, span._commentCount, em#commentCount, span#commentCount')
+                comment_values = []
+                for em in comment_ems:
+                    text = em.get_text(strip=True).replace(',', '')
+                    if text.isdigit():
+                        comment_values.append(int(text))
+                # 추가: id가 commentCount인 em/span도 체크
+                for el in soup.select('em#commentCount, span#commentCount'):
+                    text = el.get_text(strip=True).replace(',', '')
+                    if text.isdigit():
+                        comment_values.append(int(text))
+                if comment_values:
+                    comments = max(comment_values)
+                else:
+                    logger.warning(f"[NO COMMENTS] {current_url}")
+            except Exception as e:
+                logger.error(f"[COMMENTS ERROR] {current_url} - {e}")
+            # 작성일
+            post_time = None
+            try:
+                date_element = soup.select_one('p.blog_date')
+                if date_element:
+                    date_text = date_element.get_text(strip=True)
+                    date_formats = [
+                        '%Y. %m. %d. %H:%M',
+                        '%Y.%m.%d. %H:%M',
+                        '%Y-%m-%d %H:%M',
+                        '%Y.%m.%d',
+                        '%Y. %m. %d.'
+                    ]
+                    for date_format in date_formats:
+                        try:
+                            post_time = datetime.strptime(date_text, date_format).strftime('%Y-%m-%d')
+                            break
+                        except Exception:
+                            continue
+                    if not post_time:
+                        post_time = datetime.now().strftime('%Y-%m-%d')
+                else:
+                    logger.warning(f"[NO POST TIME] {current_url}")
+                    post_time = datetime.now().strftime('%Y-%m-%d')
+            except Exception as e:
+                logger.error(f"[POST TIME ERROR] {current_url} - {e}")
+                post_time = datetime.now().strftime('%Y-%m-%d')
+            # 본문
+            content = ''
+            try:
+                if content_container:
+                    content = content_container.get_text(separator='\n', strip=True)
+                else:
+                    logger.warning(f"[NO CONTENT CONTAINER FOR CONTENT] {current_url}")
+            except Exception as e:
+                logger.error(f"[CONTENT ERROR] {current_url} - {e}")
             return {
                 'title': title,
-                'link': link,
-                'views': views,
-                'date': date,
-                'crawled_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                'author': author,
+                'thumbnail': thumbnail,
+                'likes': likes,
+                'comments': comments,
+                'post_time': post_time,
+                'content': content,
+                'platform': 'naver(인플루언서핫토픽)',
+                'collected_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             }
         except Exception as e:
-            logger.error(f"Error extracting topic data: {str(e)}")
-            return None
-
-    def _get_total_pages(self, soup: BeautifulSoup) -> int:
-        """전체 페이지 수 계산"""
-        try:
-            pagination = soup.select('div.pagination a')
-            if not pagination:
-                return 1
-            
-            page_numbers = [int(a.get_text(strip=True)) for a in pagination if a.get_text(strip=True).isdigit()]
-            return max(page_numbers) if page_numbers else 1
-        except Exception as e:
-            logger.error(f"Error getting total pages: {str(e)}")
-            return 1
+            import traceback
+            logger.error(f"[FATAL ERROR] {current_url} - {e}\n{traceback.format_exc()}")
+            return {}
 
     def crawl(self) -> List[Dict]:
         """크롤링 실행"""
-        all_topics = []
-        page = 1
+        all_recipes = []
         
-        while True:
-            url = f"{self.base_url}?page={page}"
-            logger.info(f"Crawling page {page}")
+        # 초기 페이지 접근
+        soup = self._make_request(self.base_url)
+        if not soup:
+            logger.error("Failed to fetch initial page")
+            return all_recipes
             
-            soup = self._make_request(url)
-            if not soup:
-                logger.error(f"Failed to fetch page {page}")
-                break
-
-            # 토픽 목록 추출
-            topic_elements = soup.select('div.topic_item')
-            if not topic_elements:
-                logger.info("No more topics found")
-                break
-
-            # 각 토픽 데이터 추출
-            for topic_element in topic_elements:
-                topic_data = self._extract_topic_data(topic_element)
-                if topic_data:
-                    all_topics.append(topic_data)
-
-            # 다음 페이지 확인
-            if page == 1:
-                total_pages = self._get_total_pages(soup)
-                logger.info(f"Total pages: {total_pages}")
-
-            if page >= total_pages:
-                break
-
-            page += 1
-            time.sleep(random.uniform(1, 2))  # 랜덤 딜레이
-
-        return all_topics
+        # 레시피 카드 수집
+        recipe_cards = self._extract_recipe_cards(soup)
+        total_cards = len(recipe_cards)
+        logger.info(f"Found {total_cards} recipe cards")
+        
+        # 진행률 표시를 위한 tqdm 설정
+        with tqdm(total=total_cards, desc="Crawling Progress") as pbar:
+            # 각 레시피 카드 처리
+            for card in recipe_cards:
+                try:
+                    # 상세 페이지 접근
+                    detail_soup = self._make_request(card['link'])
+                    if not detail_soup:
+                        continue
+                        
+                    # 블로그 링크 수집
+                    blog_links = self._extract_blog_links(detail_soup)
+                    logger.info(f"Found {len(blog_links)} blog links for recipe: {card['title']}")
+                    
+                    # 각 블로그 페이지 처리
+                    for blog_link in blog_links:
+                        blog_soup = self._make_request(blog_link)
+                        if not blog_soup:
+                            continue
+                            
+                        recipe_data = self._extract_blog_content(blog_soup, current_url=blog_link)
+                        if recipe_data:
+                            recipe_data['link'] = blog_link
+                            all_recipes.append(recipe_data)
+                            # DB에 저장
+                            self._save_to_db(recipe_data)
+                            
+                        time.sleep(random.uniform(1, 2))
+                        
+                except Exception as e:
+                    logger.error(f"Error processing recipe card: {str(e)}")
+                    continue
+                    
+                time.sleep(random.uniform(1, 2))
+                pbar.update(1)
+                pbar.set_postfix({'Current': f"{card['title'][:20]}..."})
+            
+        return all_recipes
 
     def save_to_json(self, data: List[Dict], filename: str = "naver_influencer_topics.json"):
         """데이터를 JSON 파일로 저장"""
@@ -172,8 +402,9 @@ class NaverInfluencerCrawler:
 
 def main():
     crawler = NaverInfluencerCrawler()
-    topics = crawler.crawl()
-    crawler.save_to_json(topics)
+    recipes = crawler.crawl()
+    crawler.save_to_json(recipes)
+    logger.info(f"Total recipes collected: {len(recipes)}")
 
 if __name__ == "__main__":
     main() 
