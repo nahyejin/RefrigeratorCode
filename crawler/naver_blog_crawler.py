@@ -72,8 +72,11 @@ class NaverBlogCrawler(BaseCrawler):
         """Main crawling method."""
         total_posts = 0
         saved_posts = 0
+        total_pages = 100
 
-        for page in range(1, 101):
+        for page in range(1, total_pages + 1):
+            progress = (page / total_pages) * 100
+            print(f"\n[진행상황] {page}/{total_pages} 페이지 수집 중... ({progress:.1f}% 완료)")
             url = f"https://section.blog.naver.com/ThemePost.naver?directoryNo=20&activeDirectorySeq=2&currentPage={page}"
             self.driver.get(url)
             WebDriverWait(self.driver, 10).until(
@@ -81,14 +84,17 @@ class NaverBlogCrawler(BaseCrawler):
             )
             soup = BeautifulSoup(self.driver.page_source, "html.parser")
             posts = soup.select("div.info_post")
-            print(f"페이지 {page}에서 {len(posts)}개의 포스트 발견")
+            print(f"[진행상황] 페이지 {page}에서 {len(posts)}개의 포스트 발견")
             total_posts += len(posts)
-            for post in posts:
+            
+            for idx, post in enumerate(posts, 1):
+                post_progress = (idx / len(posts)) * 100
                 link_tag = post.select_one("a.desc_inner")
                 link = link_tag["href"] if link_tag else ""
                 if not link:
                     continue
-                print(f"블로그 원문 접근: {link}")
+                print(f"[진행상황] {page}페이지의 {idx}/{len(posts)} 번째 포스트 처리 중... ({post_progress:.1f}% 완료)")
+                print(f"[진행상황] 블로그 원문 접근: {link}")
                 self.driver.get(link)
                 time.sleep(2)
                 try:
@@ -100,11 +106,14 @@ class NaverBlogCrawler(BaseCrawler):
                     print(f"Error processing blog post: {e}")
                     print(traceback.format_exc())
                     continue
+
+        total_progress = (saved_posts / total_posts) * 100 if total_posts > 0 else 0
         print("\n✅ 크롤링 및 MySQL 저장 완료!")
-        print(f"총 처리된 포스트: {total_posts}")
-        print(f"총 저장된 포스트: {saved_posts}")
+        print(f"[결과] 총 처리된 포스트: {total_posts}")
+        print(f"[결과] 총 저장된 포스트: {saved_posts} ({total_progress:.1f}% 성공률)")
         self.driver.quit()
         self.db.close()
+        print("\n🔄 재료 정보 업데이트 배치 실행 시작...")
         self._run_ingredients_update()
     
     def _crawl_blog_posts(self, target_info: dict, platform: str) -> tuple[int, int]:
