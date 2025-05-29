@@ -83119,3 +83119,8 @@ Stacktrace:
 2025-05-27 11:35:12,555 - INFO - [더보기 버튼 텍스트] text=블로그에서 더보기, href=https://in.naver.com/okybali123/contents/internal/686059000333632
 2025-05-27 11:35:12,557 - INFO - 블로그에서 더보기 버튼 5개 발견
 2025-05-27 11:35:12,557 - INFO - [블로그 진행률] 1/5 (20%) 블로그에서 더보기 버튼 클릭 시도...
+2025-05-30 06:22:48,138 - INFO - file_cache is only supported with oauth2client<4.0.0
+2025-05-30 06:22:48,143 - ERROR - Error processing influencer list: 'channel_url'
+2025-05-30 06:22:48,143 - ERROR - Error in main: 'channel_url'
+2025-05-30 06:22:48,144 - INFO - Running update_used_ingredients_batch.py...
+2025-05-30 06:22:48,163 - ERROR - Failed to run update_used_ingredients_batch.py: Command '['python', 'ingredient-management/update_used_ingredients_batch.py']' returned non-zero exit status 2.

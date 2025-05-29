@@ -261,7 +261,7 @@ class YouTubeCrawler:
                 influencer_progress = (idx / total_influencers) * 100
                 print(f"\n[진행상황] {idx + 1}/{total_influencers} 번째 인플루언서 처리 중... ({influencer_progress:.1f}% 완료)")
                 
-                channel_url = row['channel_url']
+                channel_url = row['URL']
                 channel_id = self.get_channel_id_from_url(channel_url)
                 if not channel_id:
                     print(f"채널 ID를 찾을 수 없음: {channel_url}")
@@ -312,7 +312,7 @@ def main():
     # 크롤링이 끝나면 update_used_ingredients_batch.py 자동 실행
     try:
         logger.info("Running update_used_ingredients_batch.py...")
-        subprocess.run(["python", "ingredient-management/update_used_ingredients_batch.py"], check=True)
+        subprocess.run(["python", "ingredient_management/update_used_ingredients_batch.py"], check=True)
         logger.info("update_used_ingredients_batch.py finished.")
     except Exception as e:
         logger.error(f"Failed to run update_used_ingredients_batch.py: {e}")

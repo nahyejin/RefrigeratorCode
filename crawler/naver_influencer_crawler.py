@@ -225,14 +225,28 @@ class NaverInfluencerCrawler:
                 logger.error(f"[TITLE ERROR] {current_url} - {e}")
             # 작성자
             author = ''
-            try:
-                author_element = soup.select_one('strong.ell')
-                if author_element:
-                    author = author_element.get_text(strip=True)
-                else:
-                    logger.warning(f"[NO AUTHOR] {current_url}")
-            except Exception as e:
-                logger.error(f"[AUTHOR ERROR] {current_url} - {e}")
+            author_selectors = [
+                'strong.ell',  # 신버전 에디터
+                'span.nick a',  # 구버전 에디터
+                'span.nick',    # 대체 선택자
+                'div.blog2_post_title span',  # 추가 선택자
+                'div.blog2_post_title a'      # 추가 선택자
+            ]
+            
+            for selector in author_selectors:
+                try:
+                    author_element = soup.select_one(selector)
+                    if author_element:
+                        author = author_element.get_text(strip=True)
+                        if author:  # 빈 문자열이 아닌 경우에만 사용
+                            logger.info(f"[AUTHOR] 작성자 정보 발견: {author} (선택자: {selector})")
+                            break
+                except Exception as e:
+                    logger.debug(f"선택자 {selector}로 작성자 찾기 실패: {e}")
+                    continue
+            
+            if not author:
+                logger.warning(f"[NO AUTHOR] {current_url}")
             # 썸네일 (본문 첫 번째 이미지)
             thumbnail = ''
             try:
