@@ -20,6 +20,8 @@ def run_crawler(crawler_instance, desc):
             crawler_instance.crawl()
         elif hasattr(crawler_instance, 'crawl_influencer_posts'):
             crawler_instance.crawl_influencer_posts("https://in.naver.com/discover/135968760155968")
+        elif hasattr(crawler_instance, 'process_influencer_list'):
+            crawler_instance.process_influencer_list()
         else:
             raise Exception("크롤러에 실행 메서드가 없습니다.")
         logger.info(f"=== {desc} 실행 완료 ===\n")
