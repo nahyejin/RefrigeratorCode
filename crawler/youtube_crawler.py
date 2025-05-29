@@ -78,11 +78,16 @@ class YouTubeCrawler:
         return None
 
     def get_existing_video_ids(self):
-        sql = "SELECT link FROM recipes WHERE platform=%s"
-        self.cursor.execute(sql, (self.platform,))
-        rows = self.cursor.fetchall()
-        # 유튜브 영상 ID만 추출
-        return set([row['link'].split('v=')[-1] for row in rows if 'v=' in row['link']])
+        """DB에서 기존 영상 ID 목록을 가져옴"""
+        try:
+            sql = "SELECT link FROM recipes WHERE platform = %s"
+            self.cursor.execute(sql, (self.platform,))
+            existing_videos = self.cursor.fetchall()
+            # URL에서 video_id 추출
+            return [video['link'].split('v=')[-1] for video in existing_videos]
+        except Exception as e:
+            print(f"기존 영상 ID 조회 중 오류 발생: {str(e)}")
+            return []
 
     def get_channel_videos(self, channel_id, max_results_per_page=50):
         """채널의 모든 동영상을 페이지네이션으로 가져옵니다."""
@@ -111,7 +116,9 @@ class YouTubeCrawler:
         return all_video_ids
 
     def get_videos_info(self, video_ids):
+        """여러 영상의 정보를 한 번에 가져옴"""
         videos_info = []
+        # 50개씩 묶어서 처리
         for i in range(0, len(video_ids), 50):
             batch = video_ids[i:i+50]
             try:
@@ -120,28 +127,29 @@ class YouTubeCrawler:
                     id=','.join(batch)
                 )
                 response = request.execute()
+                
                 for item in response['items']:
-                    try:
-                        video_info = {
-                            'title': item['snippet']['title'],
-                            'link': f"https://www.youtube.com/watch?v={item['id']}",
-                            'content': item['snippet']['description'],
-                            'author': item['snippet']['channelTitle'],
-                            'thumbnail': item['snippet']['thumbnails']['high']['url'],
-                            'platform': self.platform,
-                            'hits': int(item['statistics'].get('viewCount', 0)),
-                            'likes': int(item['statistics'].get('likeCount', 0)),
-                            'comments': int(item['statistics'].get('commentCount', 0)),
-                            'post_time': item['snippet']['publishedAt'][:10],
-                            'collected_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                        }
-                        videos_info.append(video_info)
-                    except Exception as e:
-                        logger.error(f"Error processing video {item['id']}: {str(e)}")
-                        continue
+                    snippet = item['snippet']
+                    stats = item['statistics']
+                    
+                    video_info = {
+                        'video_id': item['id'],
+                        'title': snippet['title'],
+                        'description': snippet['description'],
+                        'published_at': snippet['publishedAt'],
+                        'channel_id': snippet['channelId'],
+                        'channel_title': snippet['channelTitle'],
+                        'view_count': int(stats.get('viewCount', 0)),
+                        'like_count': int(stats.get('likeCount', 0)),
+                        'comment_count': int(stats.get('commentCount', 0))
+                    }
+                    videos_info.append(video_info)
+                
+                time.sleep(0.5)  # API 쿼터 보호
             except Exception as e:
-                logger.error(f"Error getting videos info: {str(e)}")
+                print(f"영상 정보 조회 중 오류 발생: {str(e)}")
                 continue
+                
         return videos_info
 
     def save_to_csv(self, videos_info, output_file='data/youtube_videos.csv'):
@@ -192,7 +200,7 @@ class YouTubeCrawler:
         return False
 
     def update_recent_videos_metadata(self, days=3):
-        """최근 N일 내의 영상들의 메타데이터를 업데이트합니다."""
+        """최근 3일간의 영상 메타데이터를 일괄 업데이트"""
         try:
             cutoff_date = (datetime.now() - timedelta(days=days)).strftime('%Y-%m-%d')
             sql = """
@@ -202,12 +210,62 @@ class YouTubeCrawler:
             self.cursor.execute(sql, (self.platform, cutoff_date))
             videos = self.cursor.fetchall()
             
+            if not videos:
+                print("업데이트할 영상이 없습니다.")
+                return
+                
+            print(f"총 {len(videos)}개의 영상 메타데이터 업데이트 시작")
+            
+            # 50개씩 묶어서 처리
+            video_ids = []
             for video in videos:
                 video_id = video['link'].split('v=')[-1]
-                self.update_video_metadata(video_id)
-                time.sleep(0.5)  # API 쿼터 보호
+                video_ids.append(video_id)
+                
+                if len(video_ids) == 50:
+                    self._update_batch_metadata(video_ids)
+                    video_ids = []  # 초기화
+            
+            # 남은 영상들 처리
+            if video_ids:
+                self._update_batch_metadata(video_ids)
+                
+            print("메타데이터 업데이트 완료")
+            
         except Exception as e:
-            logger.error(f"Error updating recent videos metadata: {e}")
+            print(f"메타데이터 업데이트 중 오류 발생: {str(e)}")
+            self.conn.rollback()
+
+    def _update_batch_metadata(self, video_ids):
+        """50개 단위로 메타데이터 업데이트"""
+        try:
+            request = self.youtube.videos().list(
+                part="statistics",
+                id=','.join(video_ids)
+            )
+            response = request.execute()
+            
+            for item in response['items']:
+                stats = item['statistics']
+                sql = """
+                UPDATE recipes 
+                SET hits = %s, likes = %s, comments = %s, collected_at = %s
+                WHERE link LIKE %s
+                """
+                self.cursor.execute(sql, (
+                    int(stats.get('viewCount', 0)),
+                    int(stats.get('likeCount', 0)),
+                    int(stats.get('commentCount', 0)),
+                    datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                    f'%v={item["id"]}'
+                ))
+            
+            self.conn.commit()
+            time.sleep(0.5)  # API 쿼터 보호
+            
+        except Exception as e:
+            print(f"배치 메타데이터 업데이트 중 오류 발생: {str(e)}")
+            self.conn.rollback()
 
     def save_to_db(self, videos_info):
         sql = '''
@@ -219,7 +277,7 @@ class YouTubeCrawler:
         for v in videos_info:
             try:
                 # 재료 블록 추출 (update_used_ingredients_batch.py의 함수 사용)
-                block, reason = extract_best_ingredient_block(v['content'])
+                block, reason = extract_best_ingredient_block(v['description'])
                 if not block or len(block.strip()) < 10:
                     logger.info(f"Skipping video {v['link']} - no ingredients block found")
                     continue
@@ -228,18 +286,18 @@ class YouTubeCrawler:
                 self.cursor.execute(sql, (
                     v['title'],
                     v['link'],
-                    v['content'],
+                    v['description'],
                     ','.join(ingredients) if ingredients else '',
                     block,
                     reason,
-                    v['author'],
-                    v['thumbnail'],
-                    v['platform'],
-                    v['hits'],
-                    v['likes'],
-                    v['comments'],
-                    v['post_time'],
-                    v['collected_at']
+                    v['channel_title'],
+                    '',  # Assuming no thumbnail for now
+                    self.platform,
+                    v['view_count'],
+                    v['like_count'],
+                    v['comment_count'],
+                    v['published_at'][:10],
+                    datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 ))
                 count += 1
             except Exception as e:
@@ -248,58 +306,54 @@ class YouTubeCrawler:
         logger.info(f"Inserted {count} videos into DB.")
 
     def process_influencer_list(self, csv_path='frontend/public/YouTube_Cooking_influencer.csv'):
-        """Process the list of influencers from CSV file."""
+        """인플루언서 목록을 처리하고 영상을 수집"""
         try:
+            # 시작할 때 한 번만 DB에서 기존 영상 ID들을 가져옴
+            existing_ids = self.get_existing_video_ids()
+            print(f"기존 영상 수: {len(existing_ids)}")
+            
             df = pd.read_csv(csv_path)
             total_influencers = len(df)
-            total_videos = 0
-            saved_videos = 0
-            
-            print(f"\n[진행상황] 총 {total_influencers}명의 인플루언서 처리 시작...")
             
             for idx, row in df.iterrows():
-                influencer_progress = (idx / total_influencers) * 100
-                print(f"\n[진행상황] {idx + 1}/{total_influencers} 번째 인플루언서 처리 중... ({influencer_progress:.1f}% 완료)")
-                
                 channel_url = row['URL']
-                channel_id = self.get_channel_id_from_url(channel_url)
-                if not channel_id:
-                    print(f"채널 ID를 찾을 수 없음: {channel_url}")
+                print(f"\n[진행상황] {idx+1}/{total_influencers} 처리 중: {channel_url}")
+                
+                try:
+                    channel_id = self.get_channel_id_from_url(channel_url)
+                    if not channel_id:
+                        print(f"채널 ID를 찾을 수 없음: {channel_url}")
+                        continue
+                        
+                    video_ids = self.get_channel_videos(channel_id)
+                    # 기존에 없는 영상만 필터링
+                    new_video_ids = [vid for vid in video_ids if vid not in existing_ids]
+                    
+                    if not new_video_ids:
+                        print(f"새로운 영상이 없음: {channel_url}")
+                        continue
+                        
+                    print(f"[진행상황] {len(new_video_ids)}개의 새로운 영상 발견")
+                    videos_info = self.get_videos_info(new_video_ids)
+                    
+                    for video in videos_info:
+                        self.save_to_db(video)
+                        existing_ids.add(video['video_id'])  # 새로 저장된 영상 ID 추가
+                    
+                    print(f"[진행상황] {len(videos_info)}개 영상 저장 완료")
+                    
+                except Exception as e:
+                    print(f"인플루언서 처리 중 오류 발생: {str(e)}")
                     continue
-                
-                video_ids = self.get_channel_videos(channel_id)
-                if not video_ids:
-                    print(f"영상을 찾을 수 없음: {channel_url}")
-                    continue
-                
-                print(f"[진행상황] {len(video_ids)}개의 영상 발견")
-                videos_info = self.get_videos_info(video_ids)
-                
-                # 재료 정보가 있는 영상만 필터링
-                filtered_videos = []
-                for video in videos_info:
-                    if self.extract_ingredients_from_content(video['content']):
-                        filtered_videos.append(video)
-                
-                print(f"[진행상황] {len(filtered_videos)}개의 영상에 재료 정보 발견")
-                total_videos += len(filtered_videos)
-                
-                if filtered_videos:
-                    self.save_to_db(filtered_videos)
-                    saved_videos += len(filtered_videos)
+                    
+            print("\n모든 인플루언서 처리 완료")
             
-            success_rate = (saved_videos / total_videos * 100) if total_videos > 0 else 0
-            print("\n✅ 크롤링 및 MySQL 저장 완료!")
-            print(f"[결과] 총 처리된 영상: {total_videos}")
-            print(f"[결과] 총 저장된 영상: {saved_videos} ({success_rate:.1f}% 성공률)")
-            
-            # 최근 3일 내 영상들의 메타데이터 업데이트
-            print("\n🔄 최근 3일 내 영상들의 메타데이터 업데이트 중...")
+            # 최근 3일간의 영상 메타데이터 업데이트
+            print("\n최근 영상 메타데이터 업데이트 시작...")
             self.update_recent_videos_metadata()
             
         except Exception as e:
-            logger.error(f"Error processing influencer list: {str(e)}")
-            raise
+            print(f"인플루언서 목록 처리 중 오류 발생: {str(e)}")
 
 def main():
     try:
