@@ -15,6 +15,12 @@ import logging
 import re
 from selenium.common.exceptions import TimeoutException, StaleElementReferenceException
 from urllib.parse import quote
+import sys
+import os
+
+# ingredient_management 모듈 경로 추가
+sys.path.append(os.path.join(os.path.dirname(__file__), 'ingredient_management'))
+from update_used_ingredients_batch import extract_best_ingredient_block, extract_ingredients
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -40,10 +46,13 @@ class NaverInfluencerCrawler:
         # options.add_argument("--headless")  # headless 모드 비활성화
         options.add_argument("--disable-gpu")
         options.add_argument("--window-size=1920x1080")
+        options.add_argument("--log-level=3")  # 브라우저 로그 레벨 최소화
+        options.add_argument("--silent")
+        options.add_experimental_option('excludeSwitches', ['enable-logging'])  # DevTools 로그 비활성화
         driver_path = "C:/Users/user/Desktop/RefrigeratorCode/chromedriver-win64/chromedriver.exe"
         service = Service(driver_path)
         self.driver = webdriver.Chrome(service=service, options=options)
-        self.wait = WebDriverWait(self.driver, 10)
+        self.wait = WebDriverWait(self.driver, 15)  # 대기 시간 15초로 증가
     
     def _setup_database(self):
         """Setup database connection."""
@@ -51,18 +60,43 @@ class NaverInfluencerCrawler:
         self.cursor = self.db.cursor()
     
     def _load_all_recipe_cards(self):
-        """Click '더보기' button 20 times to load all recipe cards."""
-        for i in range(20):
+        """Click '더보기' button until all recipe cards are loaded."""
+        click_count = 0
+        max_clicks = 20  # 최대 20번까지 클릭 시도
+        consecutive_failures = 0
+        max_failures = 3  # 연속 실패 최대 횟수
+        
+        while click_count < max_clicks and consecutive_failures < max_failures:
             try:
+                # 더보기 버튼 찾기
                 more_button = self.wait.until(
-                    EC.element_to_be_clickable((By.CSS_SELECTOR, "button.CollectionTopic__btn_more___dzWOi"))
+                    EC.presence_of_element_located((By.CSS_SELECTOR, "button.CollectionTopic__btn_more___dzWOi"))
                 )
+                
+                # 버튼이 보이도록 스크롤
+                self.driver.execute_script("arguments[0].scrollIntoView(true);", more_button)
+                time.sleep(2)  # 스크롤 후 대기 시간 증가
+                
+                # 버튼이 클릭 가능한 상태인지 확인
+                if not more_button.is_enabled():
+                    logger.info("더보기 버튼이 더 이상 클릭할 수 없습니다.")
+                    break
+                    
+                # 버튼 클릭
                 more_button.click()
-                time.sleep(2)
-                logger.info(f"더보기 버튼 클릭 {i+1}/20")
+                click_count += 1
+                consecutive_failures = 0  # 성공 시 실패 카운트 초기화
+                logger.info(f"더보기 버튼 클릭 {click_count}/20")
+                
+                # 새로운 컨텐츠가 로드될 때까지 대기
+                time.sleep(4)  # 대기 시간 증가
+                
             except Exception as e:
-                logger.error(f"더보기 버튼 클릭 실패: {str(e)}")
-                break
+                consecutive_failures += 1
+                logger.error(f"더보기 버튼 클릭 실패 ({consecutive_failures}/{max_failures}): {str(e)}")
+                time.sleep(2)  # 실패 시 잠시 대기
+                
+        logger.info(f"총 {click_count}번의 더보기 버튼 클릭 완료")
     
     def _process_blog_post(self, url):
         """Process a single blog post and return data."""
@@ -98,6 +132,21 @@ class NaverInfluencerCrawler:
             title = title_element.text.strip()
             logger.info(f"[BLOG] 제목 추출: {title}")
             
+            # Get content
+            content_elements = self.driver.find_elements(By.CSS_SELECTOR, "div.se-module-text")
+            content_texts = []
+            for element in content_elements:
+                text = element.text.strip()
+                if text:  # 빈 텍스트가 아닌 경우만 추가
+                    content_texts.append(text)
+            content = "\n".join(content_texts)
+            
+            # 재료 블록 추출
+            block, reason = extract_best_ingredient_block(content)
+            if not block or len(block.strip()) < 10:
+                logger.info(f"[SKIP] 재료 블록이 없거나 너무 짧은 글은 건너뜀: {url}")
+                return None
+                
             # Get likes count
             try:
                 likes_elements = self.driver.find_elements(By.CSS_SELECTOR, "em.u_cnt._count")
@@ -124,21 +173,6 @@ class NaverInfluencerCrawler:
             except Exception as e:
                 comments = 0
                 logger.error(f"[BLOG] 댓글 수를 찾을 수 없음: {str(e)}")
-            
-            # Extract data
-            try:
-                # 본문 내용 추출
-                content_elements = self.driver.find_elements(By.CSS_SELECTOR, "div.se-module-text")
-                content_texts = []
-                for element in content_elements:
-                    text = element.text.strip()
-                    if text:  # 빈 텍스트가 아닌 경우만 추가
-                        content_texts.append(text)
-                content = "\n".join(content_texts)  # 각 텍스트를 줄바꿈으로 구분
-                logger.info("[BLOG] 본문 내용 추출 완료")
-            except Exception as e:
-                content = ""
-                logger.error(f"[BLOG] 본문 내용 추출 실패: {str(e)}")
 
             try:
                 author = self.driver.find_element(By.CSS_SELECTOR, 'span.nick').text.strip()
@@ -158,6 +192,9 @@ class NaverInfluencerCrawler:
             
             logger.info(f"[BLOG] 작성자: {author}, 작성일: {post_time}")
             
+            # 재료 목록 추출
+            used_ingredients = extract_ingredients(block)
+            
             return {
                 'title': title,
                 'link': url,
@@ -168,7 +205,10 @@ class NaverInfluencerCrawler:
                 'likes': likes,
                 'comments': comments,
                 'post_time': post_time,
-                'collected_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                'collected_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                'used_ingredients': used_ingredients,
+                'used_ingredients_block': block,
+                'block_reason': reason
             }
         except Exception as e:
             logger.error(f"[BLOG] 블로그 포스트 처리 중 오류 발생: {str(e)}")
@@ -419,5 +459,17 @@ class NaverInfluencerCrawler:
             self.db.close()
 
 if __name__ == "__main__":
-    crawler = NaverInfluencerCrawler()
-    crawler.crawl() 
+    try:
+        crawler = NaverInfluencerCrawler()
+        crawler.crawl()
+        
+        # 크롤링 완료 후 재료 블록 업데이트 실행
+        logger.info("[START] 재료 블록 업데이트 시작")
+        import subprocess
+        subprocess.run(["python", "ingredient_management/update_used_ingredients_batch.py"], check=True)
+        logger.info("[END] 재료 블록 업데이트 완료")
+        
+    except Exception as e:
+        logger.error(f"[FATAL ERROR] 크롤링 중 오류 발생: {str(e)}")
+    finally:
+        logger.info("[END] 크롤링 종료") 
