@@ -14,6 +14,10 @@ from urllib.parse import urljoin
 import pymysql
 from tqdm import tqdm
 import sys
+from selenium import webdriver
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.by import By
 
 # Add the parent directory to Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -211,6 +215,32 @@ class NaverInfluencerCrawler:
                 blog_resp = self.session.get(blog_real_url, timeout=self.timeout)
                 blog_resp.raise_for_status()
                 soup = BeautifulSoup(blog_resp.text, 'html.parser')
+                
+                # "더보기" 버튼 클릭 로직 추가
+                driver = webdriver.Chrome()  # Chrome 드라이버 초기화
+                try:
+                    driver.get(blog_real_url)
+                    time.sleep(3)  # 페이지 로드 대기
+                    
+                    # "더보기" 버튼 최대 20번 클릭
+                    for _ in range(20):
+                        try:
+                            more_button = WebDriverWait(driver, 2).until(
+                                EC.presence_of_element_located((By.CSS_SELECTOR, "a.btn_more"))
+                            )
+                            if more_button and more_button.is_displayed():
+                                more_button.click()
+                                time.sleep(0.5)
+                            else:
+                                break
+                        except:
+                            break
+                    
+                    # 확장된 본문 가져오기
+                    soup = BeautifulSoup(driver.page_source, 'html.parser')
+                finally:
+                    driver.quit()
+            
             # 2. 실제 blog.naver.com 본문에서 selector로 데이터 추출
             # 제목
             title = ''
@@ -266,16 +296,14 @@ class NaverInfluencerCrawler:
             likes = 0
             comments = 0
             try:
-                # 좋아요 수 추출
+                # 좋아요 수 추출 - 수정된 부분
                 sympathy_area = soup.select_one('div.area_sympathy')
                 if sympathy_area:
-                    em_tags = sympathy_area.select('em.u_cnt._count')
-                    for em in em_tags:
-                        likes_text = em.get_text(strip=True)
-                        if likes_text:
-                            likes = int(likes_text.replace(',', ''))
-                            logger.info(f"[LIKES FOUND] {current_url} - {likes}")
-                            break
+                    like_count = sympathy_area.select_one('em.u_cnt._count')
+                    if like_count:
+                        likes_text = like_count.get_text(strip=True)
+                        likes = int(likes_text.replace(',', '')) if likes_text.isdigit() else 0
+                        logger.info(f"[LIKES FOUND] {current_url} - {likes}")
                 else:
                     logger.warning(f"[NO LIKES] {current_url}")
 
@@ -354,57 +382,86 @@ class NaverInfluencerCrawler:
             logger.error(f"[FATAL ERROR] {current_url} - {e}\n{traceback.format_exc()}")
             return {}
 
+    def _click_more_button(self, driver):
+        """더보기 버튼을 20번 클릭"""
+        for i in range(20):
+            try:
+                # 더보기 버튼 찾기
+                more_button = WebDriverWait(driver, 10).until(
+                    EC.presence_of_element_located((By.CSS_SELECTOR, "button.CollectionTopic__btn_more___dzWOi"))
+                )
+                # 버튼 클릭
+                more_button.click()
+                logger.info(f"Clicked '더보기' button {i+1}/20 times")
+                # 로딩 대기
+                time.sleep(2)
+            except Exception as e:
+                logger.error(f"Error clicking '더보기' button: {str(e)}")
+                break
+
     def crawl(self) -> List[Dict]:
         """크롤링 실행"""
         all_recipes = []
         
-        # 초기 페이지 접근
-        soup = self._make_request(self.base_url)
-        if not soup:
-            logger.error("Failed to fetch initial page")
-            return all_recipes
+        # Selenium 웹드라이버 초기화 (브라우저 창이 보이도록 설정)
+        options = webdriver.ChromeOptions()
+        options.add_argument('--start-maximized')  # 브라우저 창 최대화
+        driver = webdriver.Chrome(options=options)
+        try:
+            # 초기 페이지 접근
+            driver.get(self.base_url)
+            time.sleep(3)  # 페이지 로딩 대기
             
-        # 레시피 카드 수집
-        recipe_cards = self._extract_recipe_cards(soup)
-        total_cards = len(recipe_cards)
-        logger.info(f"Found {total_cards} recipe cards")
-        
-        # 진행률 표시를 위한 tqdm 설정
-        with tqdm(total=total_cards, desc="Crawling Progress") as pbar:
-            # 각 레시피 카드 처리
-            for card in recipe_cards:
-                try:
-                    # 상세 페이지 접근
-                    detail_soup = self._make_request(card['link'])
-                    if not detail_soup:
-                        continue
-                        
-                    # 블로그 링크 수집
-                    blog_links = self._extract_blog_links(detail_soup)
-                    logger.info(f"Found {len(blog_links)} blog links for recipe: {card['title']}")
-                    
-                    # 각 블로그 페이지 처리
-                    for blog_link in blog_links:
-                        blog_soup = self._make_request(blog_link)
-                        if not blog_soup:
+            # 더보기 버튼 20번 클릭
+            self._click_more_button(driver)
+            
+            # 현재 페이지의 HTML 가져오기
+            page_source = driver.page_source
+            soup = BeautifulSoup(page_source, 'html.parser')
+            
+            # 레시피 카드 수집
+            recipe_cards = self._extract_recipe_cards(soup)
+            total_cards = len(recipe_cards)
+            logger.info(f"Found {total_cards} recipe cards")
+            
+            # 진행률 표시를 위한 tqdm 설정
+            with tqdm(total=total_cards, desc="Crawling Progress") as pbar:
+                # 각 레시피 카드 처리
+                for card in recipe_cards:
+                    try:
+                        # 상세 페이지 접근
+                        detail_soup = self._make_request(card['link'])
+                        if not detail_soup:
                             continue
                             
-                        recipe_data = self._extract_blog_content(blog_soup, current_url=blog_link)
-                        if recipe_data:
-                            recipe_data['link'] = blog_link
-                            all_recipes.append(recipe_data)
-                            # DB에 저장
-                            self._save_to_db(recipe_data)
-                            
-                        time.sleep(random.uniform(1, 2))
+                        # 블로그 링크 수집
+                        blog_links = self._extract_blog_links(detail_soup)
+                        logger.info(f"Found {len(blog_links)} blog links for recipe: {card['title']}")
                         
-                except Exception as e:
-                    logger.error(f"Error processing recipe card: {str(e)}")
-                    continue
-                    
-                time.sleep(random.uniform(1, 2))
-                pbar.update(1)
-                pbar.set_postfix({'Current': f"{card['title'][:20]}..."})
+                        # 각 블로그 페이지 처리
+                        for blog_link in blog_links:
+                            blog_soup = self._make_request(blog_link)
+                            if not blog_soup:
+                                continue
+                                
+                            recipe_data = self._extract_blog_content(blog_soup, current_url=blog_link)
+                            if recipe_data:
+                                recipe_data['link'] = blog_link
+                                all_recipes.append(recipe_data)
+                                # DB에 저장
+                                self._save_to_db(recipe_data)
+                                
+                            time.sleep(random.uniform(1, 2))
+                            
+                    except Exception as e:
+                        logger.error(f"Error processing recipe card: {str(e)}")
+                        continue
+                        
+                    time.sleep(random.uniform(1, 2))
+                    pbar.update(1)
+                    pbar.set_postfix({'Current': f"{card['title'][:20]}..."})
+        finally:
+            driver.quit()
             
         return all_recipes
 
