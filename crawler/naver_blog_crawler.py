@@ -21,6 +21,7 @@ import traceback
 from crawler.common.base_crawler import BaseCrawler
 from crawler.common.data_models import Recipe
 from crawler.common.constants import DB_CONFIG, NAVER_TARGETS, PLATFORM_NAVER
+from ingredient_management.update_used_ingredients_batch import extract_best_ingredient_block, extract_ingredients
 
 class NaverBlogCrawler(BaseCrawler):
     def __init__(self):
@@ -465,6 +466,15 @@ class NaverBlogCrawler(BaseCrawler):
             if content_container:
                 content = content_container.get_text(separator='\n', strip=True)
 
+            # --- 재료 정보 필터링 추가 ---
+            used_ingredients_block, block_reason = extract_best_ingredient_block(content)
+            if not used_ingredients_block or len(used_ingredients_block.strip()) < 10:
+                print(f"❌ 재료 정보가 없어 저장하지 않음: {link}")
+                self.driver.switch_to.default_content()
+                return None
+            used_ingredients = extract_ingredients(used_ingredients_block)
+            # ---
+
             # 썸네일
             thumbnail = ""
             if content_container:
@@ -508,7 +518,9 @@ class NaverBlogCrawler(BaseCrawler):
                 post_time=post_time,
                 platform="naver(주제별보기)",
                 link=link,
-                used_ingredients=self.extract_ingredients(content)
+                used_ingredients=used_ingredients,
+                used_ingredients_block=used_ingredients_block,
+                block_reason=block_reason
             )
         except Exception as e:
             print(f"블로그글 데이터 추출 실패: {e}")

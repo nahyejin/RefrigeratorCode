@@ -14,6 +14,7 @@ import pymysql
 import logging
 import re
 from selenium.common.exceptions import TimeoutException, StaleElementReferenceException
+from urllib.parse import quote
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -219,6 +220,134 @@ class NaverInfluencerCrawler:
             logger.error(f"데이터베이스 저장 중 오류 발생: {str(e)}")
             self.db.rollback()
     
+    def get_blog_content(self, url):
+        try:
+            self.driver.get(url)
+            time.sleep(3)
+            
+            # 더보기 버튼 클릭
+            try:
+                more_button = WebDriverWait(self.driver, 10).until(
+                    EC.presence_of_element_located((By.CSS_SELECTOR, "a.link_more"))
+                )
+                more_button.click()
+                time.sleep(2)
+            except Exception as e:
+                print(f"더보기 버튼 클릭 실패: {str(e)}")
+            
+            # 블로그 본문 내용 가져오기
+            content = WebDriverWait(self.driver, 10).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, "div.se-main-container"))
+            ).text
+            
+            # 작성자 정보 가져오기
+            try:
+                author = WebDriverWait(self.driver, 10).until(
+                    EC.presence_of_element_located((By.CSS_SELECTOR, "span.nick a"))
+                ).text
+            except:
+                author = "Unknown"
+            
+            return content, author
+            
+        except Exception as e:
+            print(f"블로그 내용 가져오기 실패: {str(e)}")
+            return None, None
+
+    def crawl_naver_blog(self):
+        try:
+            # 검색어 설정
+            search_query = "레시피"
+            encoded_query = quote(search_query)
+            url = f"https://search.naver.com/search.naver?where=view&query={encoded_query}&sm=tab_jum"
+            
+            print("[진행상황] 검색 페이지 접속 중...")
+            self.driver.get(url)
+            time.sleep(3)
+            
+            # 스크롤 다운
+            print("[진행상황] 스크롤 다운 시작...")
+            last_height = self.driver.execute_script("return document.body.scrollHeight")
+            scroll_count = 0
+            while True:
+                self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                time.sleep(2)
+                new_height = self.driver.execute_script("return document.body.scrollHeight")
+                if new_height == last_height:
+                    break
+                last_height = new_height
+                scroll_count += 1
+                print(f"[진행상황] 스크롤 다운 {scroll_count}회 완료")
+            
+            # 블로그 포스트 링크 수집
+            print("[진행상황] 블로그 링크 수집 중...")
+            blog_links = []
+            elements = self.driver.find_elements(By.CSS_SELECTOR, "a.total_tit")
+            for element in elements:
+                try:
+                    link = element.get_attribute("href")
+                    if link and "blog.naver.com" in link:
+                        blog_links.append(link)
+                except:
+                    continue
+            
+            total_links = len(blog_links)
+            print(f"[진행상황] 총 {total_links}개의 블로그 링크 발견")
+            
+            # 각 블로그 포스트 처리
+            for idx, link in enumerate(blog_links, 1):
+                try:
+                    print(f"\n[진행상황] {idx}/{total_links} 번째 블로그 처리 중... ({(idx/total_links)*100:.1f}%)")
+                    content, author = self.get_blog_content(link)
+                    if not content:
+                        print(f"[진행상황] {idx}번째 블로그 내용 추출 실패, 다음으로 진행")
+                        continue
+                    
+                    # 재료 정보 추출
+                    ingredients = self.extract_ingredients(content)
+                    if not ingredients:
+                        print(f"[진행상황] {idx}번째 블로그에서 재료 정보를 찾을 수 없음, 다음으로 진행")
+                        continue
+                    
+                    # 제목 추출
+                    title = self.driver.find_element(By.CSS_SELECTOR, "h3.se-text").text
+                    
+                    # 날짜 추출
+                    try:
+                        date = self.driver.find_element(By.CSS_SELECTOR, "span.se_publishDate").text
+                    except:
+                        date = "Unknown"
+                    
+                    # 이미지 URL 추출
+                    try:
+                        img_element = self.driver.find_element(By.CSS_SELECTOR, "img.se-image-resource")
+                        img_url = img_element.get_attribute("src")
+                    except:
+                        img_url = None
+                    
+                    # 데이터 저장
+                    blog_data = {
+                        "title": title,
+                        "content": content,
+                        "author": author,
+                        "date": date,
+                        "url": link,
+                        "img_url": img_url,
+                        "used_ingredients": ingredients
+                    }
+                    
+                    self.save_to_json(blog_data)
+                    print(f"[진행상황] {idx}번째 블로그 포스트 저장 완료: {title}")
+                    
+                except Exception as e:
+                    print(f"[진행상황] {idx}번째 블로그 포스트 처리 실패: {str(e)}")
+                    continue
+                
+        except Exception as e:
+            print(f"[오류] 크롤링 실패: {str(e)}")
+        finally:
+            self.driver.quit()
+
     def crawl(self):
         """Main crawling method."""
         try:
