@@ -13,6 +13,10 @@ import re
 from urllib.parse import urljoin
 import pymysql
 from tqdm import tqdm
+import sys
+
+# Add the parent directory to Python path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from ingredient_management.update_used_ingredients_batch import extract_best_ingredient_block, extract_ingredients
 
 # 로깅 설정
