@@ -13,8 +13,8 @@ import urllib.parse
 import subprocess
 import sys
 
-# Add ingredient-management directory to Python path
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'ingredient-management'))
+# Add ingredient_management directory to Python path
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'ingredient_management'))
 from update_used_ingredients_batch import extract_best_ingredient_block, extract_ingredients
 
 # 로깅 설정

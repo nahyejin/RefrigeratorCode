@@ -13,6 +13,7 @@ import re
 from urllib.parse import urljoin
 import pymysql
 from tqdm import tqdm
+from ingredient_management.update_used_ingredients_batch import extract_best_ingredient_block, extract_ingredients
 
 # 로깅 설정
 logging.basicConfig(
@@ -307,6 +308,15 @@ class NaverInfluencerCrawler:
                     logger.warning(f"[NO CONTENT CONTAINER FOR CONTENT] {current_url}")
             except Exception as e:
                 logger.error(f"[CONTENT ERROR] {current_url} - {e}")
+
+            # --- 재료 정보 필터링 추가 ---
+            used_ingredients_block, block_reason = extract_best_ingredient_block(content)
+            if not used_ingredients_block or len(used_ingredients_block.strip()) < 10:
+                logger.info(f"[SKIP NO INGREDIENTS] 재료 정보가 없는 포스트: {current_url}")
+                return {}
+            used_ingredients = extract_ingredients(used_ingredients_block)
+            # ---
+
             return {
                 'title': title,
                 'author': author,
@@ -316,7 +326,10 @@ class NaverInfluencerCrawler:
                 'post_time': post_time,
                 'content': content,
                 'platform': 'naver(인플루언서핫토픽)',
-                'collected_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                'collected_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                'used_ingredients': used_ingredients,
+                'used_ingredients_block': used_ingredients_block,
+                'block_reason': block_reason
             }
         except Exception as e:
             import traceback
