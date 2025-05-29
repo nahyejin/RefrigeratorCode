@@ -16,6 +16,7 @@ import sys
 import os
 import logging
 from typing import Tuple
+import traceback
 
 from crawler.common.base_crawler import BaseCrawler
 from crawler.common.data_models import Recipe
@@ -33,7 +34,7 @@ class NaverBlogCrawler(BaseCrawler):
         """Setup Selenium WebDriver."""
         driver_path = "C:/Users/user/Desktop/RefrigeratorCode/chromedriver-win64/chromedriver.exe"
         options = Options()
-        options.add_argument("--headless")
+        # options.add_argument("--headless")  # 창이 뜨도록 headless 옵션 제거
         options.add_argument("--disable-gpu")
         options.add_argument("--window-size=1920x1080")
         service = Service(driver_path)
@@ -70,29 +71,39 @@ class NaverBlogCrawler(BaseCrawler):
         """Main crawling method."""
         total_posts = 0
         saved_posts = 0
-        
-        # Crawl both blog and influencer content
-        for target_name, target_info in NAVER_TARGETS.items():
-            print(f"\nCrawling {target_name} content...")
-            if target_name == 'blog':
-                platform = "naver(주제별보기)"
-                total, saved = self._crawl_blog_posts(target_info, platform)
-            else:
-                platform = "naver(인플루언서핫토픽)"
-                total, saved = self._crawl_influencer_posts()
-            
-            total_posts += total
-            saved_posts += saved
-        
+
+        for page in range(1, 101):
+            url = f"https://section.blog.naver.com/ThemePost.naver?directoryNo=20&activeDirectorySeq=2&currentPage={page}"
+            self.driver.get(url)
+            WebDriverWait(self.driver, 10).until(
+                EC.presence_of_element_located((By.CLASS_NAME, "info_post"))
+            )
+            soup = BeautifulSoup(self.driver.page_source, "html.parser")
+            posts = soup.select("div.info_post")
+            print(f"페이지 {page}에서 {len(posts)}개의 포스트 발견")
+            total_posts += len(posts)
+            for post in posts:
+                link_tag = post.select_one("a.desc_inner")
+                link = link_tag["href"] if link_tag else ""
+                if not link:
+                    continue
+                print(f"블로그 원문 접근: {link}")
+                self.driver.get(link)
+                time.sleep(2)
+                try:
+                    recipe = self._process_blog_post_from_blog_page(link)
+                    if recipe:
+                        self.save_to_database(recipe)
+                        saved_posts += 1
+                except Exception as e:
+                    print(f"Error processing blog post: {e}")
+                    print(traceback.format_exc())
+                    continue
         print("\n✅ 크롤링 및 MySQL 저장 완료!")
         print(f"총 처리된 포스트: {total_posts}")
         print(f"총 저장된 포스트: {saved_posts}")
-        
-        # Cleanup
         self.driver.quit()
         self.db.close()
-        
-        # Run ingredients update batch
         self._run_ingredients_update()
     
     def _crawl_blog_posts(self, target_info: dict, platform: str) -> tuple[int, int]:
@@ -418,6 +429,90 @@ class NaverBlogCrawler(BaseCrawler):
                 print(f"❌ 배치 스크립트를 찾을 수 없습니다: {batch_script}")
         except Exception as e:
             print(f"❌ 재료 정보 업데이트 중 오류 발생: {str(e)}")
+
+    def _process_blog_post_from_blog_page(self, link):
+        try:
+            # 네이버 블로그는 종종 iframe(mainFrame) 안에 본문이 있음
+            try:
+                iframe = WebDriverWait(self.driver, 10).until(
+                    EC.presence_of_element_located((By.ID, "mainFrame"))
+                )
+                self.driver.switch_to.frame(iframe)
+            except Exception as e:
+                print(f"iframe 전환 실패: {e}")
+                return None
+
+            soup = BeautifulSoup(self.driver.page_source, "html.parser")
+
+            # 제목
+            title = ""
+            title_element = soup.select_one('div.se-module.se-module-text.se-title-text')
+            if title_element:
+                title_span = title_element.select_one('span')
+                title = title_span.get_text(strip=True) if title_span else title_element.get_text(strip=True)
+
+            # 작성자 - 수정된 부분
+            author = ""
+            author_element = soup.select_one('span.nick a')
+            if not author_element:
+                author_element = soup.select_one('strong.ell')
+            if author_element:
+                author = author_element.get_text(strip=True)
+
+            # 본문
+            content = ""
+            content_container = soup.select_one('div.se-main-container')
+            if content_container:
+                content = content_container.get_text(separator='\n', strip=True)
+
+            # 썸네일
+            thumbnail = ""
+            if content_container:
+                img_element = content_container.select_one('img.se-image-resource')
+                if img_element:
+                    thumbnail = img_element.get('src', '')
+
+            # 좋아요
+            likes = 0
+            sympathy_area = soup.select_one('div.area_sympathy')
+            if sympathy_area:
+                em_tags = sympathy_area.select('em.u_cnt._count')
+                for em in em_tags:
+                    likes_text = em.get_text(strip=True)
+                    if likes_text:
+                        likes = int(likes_text.replace(',', ''))
+                        break
+
+            # 댓글
+            comments = 0
+            comments_element = soup.select_one('div.area_comment em#commentCount._commentCount')
+            if comments_element:
+                comments_text = comments_element.get_text(strip=True)
+                comments = int(comments_text.replace(',', '')) if comments_text.isdigit() else 0
+
+            # 작성일
+            post_time = ""
+            date_element = soup.select_one('p.blog_date')
+            if date_element:
+                post_time = date_element.get_text(strip=True)
+
+            self.driver.switch_to.default_content()
+
+            return Recipe(
+                title=title,
+                content=content,
+                author=author,
+                thumbnail=thumbnail,
+                likes=likes,
+                comments=comments,
+                post_time=post_time,
+                platform="naver(주제별보기)",
+                link=link,
+                used_ingredients=self.extract_ingredients(content)
+            )
+        except Exception as e:
+            print(f"블로그글 데이터 추출 실패: {e}")
+            return None
 
 if __name__ == "__main__":
     crawler = NaverBlogCrawler()
