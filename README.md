@@ -3,6 +3,7 @@
 파일명                                      ㅣ 설명
 ----------------------------------------------------------------------------------------
 extract_keywords_dual_view.py                  ㅣ 수집된 레시피 텍스트에서 명사 기반 및 띄어쓰기 기반 키워드를 추출하여 CSV로 저장. Komoran 형태소 분석기 사용. 전체 저장 모두 지원.
+extract_ingredients_keywords.py                ㅣ DB의 used_ingredients_block 컬럼에서 재료 관련 키워드를 추출하여 CSV로 저장. extract_keywords_dual_view.py와 동일한 로직을 사용하되, 추출 대상이 content가 아닌 used_ingredients_block임.
 ingredient_text_utils.py                       ㅣ 재료 텍스트 전처리 및 추출에 필요한 유틸리티 함수 정의 (예: 정규표현식, 필터링 함수 등).
 update_used_ingredients_batch.py               ㅣ 레시피 텍스트에서 추출한 재료 결과(`used_ingredients`)를 데이터셋에 반영하는 배치 처리 로직 구현. refrigerator_crawler.py 실행 후 자동으로 실행됨.
 crawler/naver_influencer_crawler.py            ㅣ 네이버 인플루언서 핫토픽 크롤러 (단독 실행 가능, 배치 자동 실행)
