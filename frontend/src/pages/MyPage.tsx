@@ -342,19 +342,22 @@ const MyPage = () => {
           </div>
           <div style={{height: 2, width: '100%', background: '#E5E5E5', marginBottom: 4}} />
           {/* 범례: 가로형 레시피 카드 위, 왼쪽 정렬 */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, marginTop: 12, justifyContent: 'flex-start' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <span style={{ width: 24, height: 14, borderRadius: 7, background: '#D1D1D1', display: 'inline-block', marginRight: 2 }}></span>
-              <span style={{ color: '#222', fontSize: '10.4px', minWidth: 30 }}>부족 재료</span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, marginTop: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <span style={{ width: 24, height: 14, borderRadius: 7, background: '#D1D1D1', display: 'inline-block', marginRight: 2 }}></span>
+                <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>부족 재료</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <span style={{ width: 24, height: 14, borderRadius: 7, background: '#555', display: 'inline-block', marginRight: 2 }}></span>
+                <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>대체 가능</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <span style={{ width: 24, height: 14, borderRadius: 7, background: '#FFD600', display: 'inline-block', marginRight: 2 }}></span>
+                <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>보유 재료</span>
+              </div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <span style={{ width: 24, height: 14, borderRadius: 7, background: '#555', display: 'inline-block', marginRight: 2 }}></span>
-              <span style={{ color: '#222', fontSize: '10.4px', minWidth: 30 }}>대체 가능</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <span style={{ width: 24, height: 14, borderRadius: 7, background: '#FFD600', display: 'inline-block', marginRight: 2 }}></span>
-              <span style={{ color: '#222', fontSize: '10.4px', minWidth: 30 }}>보유 재료</span>
-            </div>
+            <span style={{ color: '#666', fontSize: '12px' }}>총 {recordedRecipes.length.toLocaleString()}건</span>
           </div>
           <div style={{
             display: 'flex',
@@ -413,19 +416,22 @@ const MyPage = () => {
           </div>
           <div style={{height: 2, width: '100%', background: '#E5E5E5', marginBottom: 4}} />
           {/* 범례: 가로형 레시피 카드 위, 왼쪽 정렬 */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, marginTop: 12, justifyContent: 'flex-start' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <span style={{ width: 24, height: 14, borderRadius: 7, background: '#D1D1D1', display: 'inline-block', marginRight: 2 }}></span>
-              <span style={{ color: '#222', fontSize: '10.4px', minWidth: 30 }}>부족 재료</span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, marginTop: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <span style={{ width: 24, height: 14, borderRadius: 7, background: '#D1D1D1', display: 'inline-block', marginRight: 2 }}></span>
+                <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>부족 재료</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <span style={{ width: 24, height: 14, borderRadius: 7, background: '#555', display: 'inline-block', marginRight: 2 }}></span>
+                <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>대체 가능</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <span style={{ width: 24, height: 14, borderRadius: 7, background: '#FFD600', display: 'inline-block', marginRight: 2 }}></span>
+                <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>보유 재료</span>
+              </div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <span style={{ width: 24, height: 14, borderRadius: 7, background: '#555', display: 'inline-block', marginRight: 2 }}></span>
-              <span style={{ color: '#222', fontSize: '10.4px', minWidth: 30 }}>대체 가능</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <span style={{ width: 24, height: 14, borderRadius: 7, background: '#FFD600', display: 'inline-block', marginRight: 2 }}></span>
-              <span style={{ color: '#222', fontSize: '10.4px', minWidth: 30 }}>보유 재료</span>
-            </div>
+            <span style={{ color: '#666', fontSize: '12px' }}>총 {completedRecipes.length.toLocaleString()}건</span>
           </div>
           <div style={{
             display: 'flex',

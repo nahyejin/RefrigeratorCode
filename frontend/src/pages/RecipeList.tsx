@@ -461,19 +461,22 @@ const RecipeList: React.FC = () => {
         />
         {/* 재료 pill 범례와 카드 리스트를 같은 부모 div 안에 배치 */}
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, marginTop: 8, justifyContent: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <span style={{ width: 24, height: 14, borderRadius: 7, background: '#D1D1D1', display: 'inline-block', marginRight: 2 }}></span>
-              <span style={{ color: '#222', fontSize: '10.4px', minWidth: 30 }}>부족 재료</span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, marginTop: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <span style={{ width: 24, height: 14, borderRadius: 7, background: '#D1D1D1', display: 'inline-block', marginRight: 2 }}></span>
+                <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>부족 재료</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <span style={{ width: 24, height: 14, borderRadius: 7, background: '#555', display: 'inline-block', marginRight: 2 }}></span>
+                <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>대체 가능</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <span style={{ width: 24, height: 14, borderRadius: 7, background: '#FFD600', display: 'inline-block', marginRight: 2 }}></span>
+                <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>보유 재료</span>
+              </div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <span style={{ width: 24, height: 14, borderRadius: 7, background: '#555', display: 'inline-block', marginRight: 2 }}></span>
-              <span style={{ color: '#222', fontSize: '10.4px', minWidth: 30 }}>대체 가능</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <span style={{ width: 24, height: 14, borderRadius: 7, background: '#FFD600', display: 'inline-block', marginRight: 2 }}></span>
-              <span style={{ color: '#222', fontSize: '10.4px', minWidth: 30 }}>보유 재료</span>
-            </div>
+            <span style={{ color: '#666', fontSize: '12px' }}>총 {filteredRecipes.length.toLocaleString()}건</span>
           </div>
           <div className="flex flex-col gap-2">
             {filteredRecipes.slice(0, visibleCount).map((recipe, idx) => (
