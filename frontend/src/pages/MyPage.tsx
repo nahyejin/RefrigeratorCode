@@ -357,7 +357,7 @@ const MyPage = () => {
                 <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>보유 재료</span>
               </div>
             </div>
-            <span style={{ color: '#666', fontSize: '12px' }}>총 {recordedRecipes.length.toLocaleString()}건</span>
+            <span style={{ color: '#666', fontSize: '12px', marginRight: 32 }}>총 {recordedRecipes.length.toLocaleString()}건</span>
           </div>
           <div style={{
             display: 'flex',
@@ -431,7 +431,7 @@ const MyPage = () => {
                 <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>보유 재료</span>
               </div>
             </div>
-            <span style={{ color: '#666', fontSize: '12px' }}>총 {completedRecipes.length.toLocaleString()}건</span>
+            <span style={{ color: '#666', fontSize: '12px', marginRight: 32 }}>총 {completedRecipes.length.toLocaleString()}건</span>
           </div>
           <div style={{
             display: 'flex',
