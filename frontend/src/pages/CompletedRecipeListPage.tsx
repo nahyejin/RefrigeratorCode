@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import BottomNavBar from '../components/BottomNavBar';
 import TopNavBar from '../components/TopNavBar';
 import RecipeCard from '../components/RecipeCard';
+import VirtualizedRecipeList from '../components/VirtualizedRecipeList';
 import { Recipe, RecipeActionState } from '../types/recipe';
 import RecipeToast from '../components/RecipeToast';
 import { getMyIngredients } from '../utils/recipeUtils';
@@ -334,21 +335,17 @@ const CompletedRecipeListPage = () => {
             <span style={{ color: '#666', fontSize: '12px' }}>총 {recipes.length.toLocaleString()}건</span>
           </div>
           <div className="mt-4 flex flex-col gap-2" style={{ marginTop: 0 }}>
-            {filteredRecipes.map((recipe, index) => (
-              <RecipeCard
-                key={recipe.id}
-                recipe={recipe}
-                index={index}
-                recipeActionState={recipeActionStates[recipe.id]}
-                onRecipeAction={({ action }) => {
-                  if (action === 'done') handleDoneClick(recipe.id);
-                  else if (action === 'write') handleWriteClick(recipe.id);
-                  else if (action === 'share') handleShareClick(recipe.id);
-                }}
-                isLast={index === processedRecipes.length - 1}
-                myIngredients={myIngredients}
-              />
-            ))}
+            <VirtualizedRecipeList
+              recipes={filteredRecipes}
+              myIngredients={myIngredients}
+              substituteTable={{}}
+              recipeActionStates={recipeActionStates}
+              onRecipeAction={(recipe, action) => {
+                if (action === 'done') handleDoneClick(recipe.id);
+                else if (action === 'write') handleWriteClick(recipe.id);
+                else if (action === 'share') handleShareClick(recipe.id);
+              }}
+            />
           </div>
         </div>
       </div>

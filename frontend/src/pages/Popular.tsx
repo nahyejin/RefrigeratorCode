@@ -20,7 +20,12 @@ import youtubeLogo from '../assets/썸네일_youtubelogo.png';
 import RecipeCard from '../components/RecipeCard';
 import youtubeTitleImg from '../assets/유튜브제목이미지.png';
 import naverTitleImg from '../assets/네이버제목이미지.png';
-import { addRecipeToLocalStorage, removeRecipeFromLocalStorage, getRecipesFromLocalStorage, copyRecipeUrlToClipboard } from '../utils/recipeStorage';
+import { addRecipeToLocalStorage, removeRecipeFromLocalStorage, getRecipesFromLocalStorage, copyRecipeUrlToClipboard, getMyFridgeIngredients } from '../utils/recipeStorage';
+import VirtualizedRecipeList from '../components/VirtualizedRecipeList';
+import RecipeToast from '../components/RecipeToast';
+import RecipeSortBar from '../components/RecipeSortBar';
+import backIcon from '../assets/뒤로가기.png';
+import VirtualizedHorizontalRecipeList from '../components/VirtualizedHorizontalRecipeList';
 
 // 더미 데이터 예시
 const dummyRecipes = [
@@ -675,31 +680,17 @@ const Popular = () => {
             </div>
             <span style={{ color: '#666', fontSize: '12px' }}>총 {youtubeRecipes.length.toLocaleString()}건</span>
           </div>
-          <div style={{
-            display: 'flex',
-            overflowX: 'auto',
-            gap: 16,
-            paddingBottom: 8,
-            minHeight: 180,
-            alignItems: 'center',
-            justifyContent: 'flex-start',
-            flexWrap: 'nowrap',
-            marginTop: 8
-          }}>
-            {youtubeRecipes.map((recipe, idx) => (
-              <div key={recipe.id} style={{ minWidth: 320, maxWidth: 340, width: '100%' }}>
-                <RecipeCard 
-                  recipe={recipe} 
-                  index={idx}
-                  isLast={idx === youtubeRecipes.length - 1}
-                  recipeActionState={buttonStates[recipe.id] || { done: false, write: false, share: false }}
-                  onRecipeAction={({ action }) => handleRecipeAction(recipe.id, { action })}
-                  myIngredients={myIngredients}
-                  substituteTable={{}}
-                />
-              </div>
-            ))}
-          </div>
+          <VirtualizedHorizontalRecipeList
+            recipes={youtubeRecipes}
+            myIngredients={myIngredients}
+            substituteTable={{}}
+            recipeActionStates={buttonStates}
+            onRecipeAction={(recipe, action) => handleRecipeAction(recipe.id, { action: action as 'done' | 'write' | 'share' })}
+            cardWidth={320}
+            cardHeight={320}
+            gap={16}
+            showRank={true}
+          />
         </section>
 
         {/* ⓒ 네이버 인기 레시피 섹션 */}
@@ -729,21 +720,17 @@ const Popular = () => {
             </div>
             <span style={{ color: '#666', fontSize: '12px' }}>총 {naverRecipes.length.toLocaleString()}건</span>
           </div>
-          <div style={{display: 'flex', overflowX: 'auto', gap: 16, paddingBottom: 8, marginTop: 8}}>
-            {naverRecipes.map((recipe, idx) => (
-              <div key={recipe.id} style={{minWidth: 320, maxWidth: 340}}>
-                <RecipeCard 
-                  recipe={recipe} 
-                  index={idx}
-                  isLast={idx === naverRecipes.length - 1}
-                  recipeActionState={buttonStates[recipe.id] || { done: false, write: false, share: false }}
-                  onRecipeAction={({ action }) => handleRecipeAction(recipe.id, { action })}
-                  myIngredients={myIngredients}
-                  substituteTable={{}}
-                />
-              </div>
-            ))}
-          </div>
+          <VirtualizedHorizontalRecipeList
+            recipes={naverRecipes}
+            myIngredients={myIngredients}
+            substituteTable={{}}
+            recipeActionStates={buttonStates}
+            onRecipeAction={(recipe, action) => handleRecipeAction(recipe.id, { action: action as 'done' | 'write' | 'share' })}
+            cardWidth={320}
+            cardHeight={320}
+            gap={16}
+            showRank={true}
+          />
         </section>
 
         {/* 인기 급상승 재료/테마 키워드 리스트 (TOP10, No. 열, 동적 상승률 라벨) */}
