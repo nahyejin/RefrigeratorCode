@@ -478,12 +478,12 @@ const Popular = () => {
     recipes.filter(recipe =>
       recipe.platform && recipe.platform.toLowerCase().includes('youtube')
     )
-  );
+  ).slice(0, 300);
   const naverRecipes = sortRecipesByPopularity(
     recipes.filter(recipe =>
       recipe.platform && recipe.platform.toLowerCase().includes('naver')
     )
-  );
+  ).slice(0, 300);
 
   // Fetch recipes and calculate popularity scores (ignore date filter, show up to 30)
   useEffect(() => {
@@ -678,7 +678,7 @@ const Popular = () => {
                 <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>보유 재료</span>
               </div>
             </div>
-            <span style={{ color: '#666', fontSize: '12px' }}>총 {youtubeRecipes.length.toLocaleString()}건</span>
+            <span style={{ color: '#666', fontSize: '12px' }}>총 300건</span>
           </div>
           <VirtualizedHorizontalRecipeList
             recipes={youtubeRecipes}
@@ -718,7 +718,7 @@ const Popular = () => {
                 <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>보유 재료</span>
               </div>
             </div>
-            <span style={{ color: '#666', fontSize: '12px' }}>총 {naverRecipes.length.toLocaleString()}건</span>
+            <span style={{ color: '#666', fontSize: '12px' }}>총 300건</span>
           </div>
           <VirtualizedHorizontalRecipeList
             recipes={naverRecipes}
