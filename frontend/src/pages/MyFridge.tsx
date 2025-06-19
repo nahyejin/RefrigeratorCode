@@ -111,12 +111,25 @@ const MyFridge: React.FC = () => {
         const lines = csv.split('\n');
         const header = lines[0].split(',');
         const nameIdx = header.indexOf('keyword');
-        if (nameIdx === -1) return;
-        setIngredientDict(
-          lines.slice(1)
-            .map(line => line.split(',')[nameIdx]?.trim())
-            .filter(name => !!name && name !== 'keyword')
-        );
+        const categoryIdx = header.indexOf('대분류');
+        if (nameIdx === -1 || categoryIdx === -1) return;
+        
+        const ingredients = lines.slice(1)
+          .map(line => {
+            const values = line.split(',');
+            return {
+              keyword: values[nameIdx]?.trim(),
+              category: values[categoryIdx]?.trim()
+            };
+          })
+          .filter(item => 
+            item.keyword && 
+            item.keyword !== 'keyword' && 
+            item.category === '재료'
+          )
+          .map(item => item.keyword);
+        
+        setIngredientDict(ingredients);
       });
   }, []);
 
@@ -126,9 +139,36 @@ const MyFridge: React.FC = () => {
     }
   }, [frozen, fridge, room]);
 
-  const filtered = ingredientDict.filter(
-    (item) => inputValue && item.includes(inputValue) && !frozen?.some(f => f.name === item)
-  ).slice(0, 8);
+  const filtered = ingredientDict
+    .filter(item => 
+      inputValue && 
+      item.includes(inputValue) && 
+      !frozen?.some(f => f.name === item) &&
+      !fridge?.some(f => f.name === item) &&
+      !room?.some(f => f.name === item)
+    )
+    .sort((a, b) => {
+      // 정확한 매칭을 우선시
+      const aExact = a === inputValue;
+      const bExact = b === inputValue;
+      if (aExact && !bExact) return -1;
+      if (!aExact && bExact) return 1;
+      
+      // 시작 부분 매칭을 우선시
+      const aStartsWith = a.startsWith(inputValue);
+      const bStartsWith = b.startsWith(inputValue);
+      if (aStartsWith && !bStartsWith) return -1;
+      if (!aStartsWith && bStartsWith) return 1;
+      
+      // 길이 순으로 정렬 (짧은 것 우선)
+      return a.length - b.length;
+    })
+    .slice(0, 8);
+
+  // 디버깅용: 입력값과 매칭되는 항목들 확인
+  console.log('입력값:', inputValue);
+  console.log('사전에서 "고구마" 포함된 항목들:', ingredientDict.filter(item => item.includes('고구마')));
+  console.log('필터링된 결과:', filtered);
 
   const showToast = (message: string, deleted: { type: 'single'|'all', box: 'frozen'|'fridge'|'room', tags: string[] }, duration?: number) => {
     setToast({ visible: true, message, deleted });
@@ -184,8 +224,20 @@ const MyFridge: React.FC = () => {
   };
 
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && filtered.length > 0) {
-      handleSelect(filtered[0]);
+    if (e.key === 'Enter') {
+      if (filtered.length > 0) {
+        // 자동완성 목록에서 첫 번째 항목 선택
+        handleSelect(filtered[0]);
+      } else if (inputValue.trim()) {
+        // 입력된 값이 사전에 있는지 확인
+        const exactMatch = ingredientDict.find(item => item === inputValue.trim());
+        if (exactMatch) {
+          handleSelect(exactMatch);
+        } else {
+          // 사전에 없는 경우 경고 표시
+          alert('사전에 등록되지 않은 재료입니다. 자동완성 목록에서 선택해주세요.');
+        }
+      }
     }
     if (e.key === 'Backspace' && inputValue === '' && (frozen && frozen.length > 0)) {
       setFrozen((frozen ?? []).slice(0, -1));

@@ -326,11 +326,29 @@ const RecipeSortBar = ({
           <span style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', fontSize: 13, color: '#888' }}>▼</span>
         </div>
         <button
-          style={{ height: 28, border: '1px solid #D1D5DB', borderRadius: 999, fontSize: 12, padding: '0 12px', fontWeight: 600, background: '#fff', color: '#222', minWidth: 50, whiteSpace: 'nowrap', boxSizing: 'border-box', cursor: 'pointer', marginLeft: 'auto' }}
+          style={{
+            height: 28,
+            border: '1px solid #D1D5DB',
+            borderRadius: 999,
+            fontSize: 12,
+            padding: '0 12px',
+            fontWeight: 600,
+            background: '#fff',
+            color: '#222',
+            minWidth: 50,
+            whiteSpace: 'nowrap',
+            lineHeight: '28px',
+            boxSizing: 'border-box',
+            cursor: 'pointer',
+            marginLeft: 'auto',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
           onClick={() => setFilterModalOpen(true)}
           aria-label="필터 모달 열기"
         >
-          <span style={{ fontWeight: 600 }}>필터</span>
+          필터
         </button>
       </div>
       {/* 매칭률 설정 모달 */}
