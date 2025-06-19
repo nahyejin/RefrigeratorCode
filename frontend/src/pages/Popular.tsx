@@ -129,39 +129,117 @@ const periodOptions = [
   { value: 'custom', label: '기간선택' },
 ];
 
-// 재료 TOP 10 계산 함수
-const calculateIngredientRankings = (recipes: Recipe[]) => {
-  const ingredientCounts: { [key: string]: number } = {};
+// 기간별 날짜 계산 함수들
+const getDateRange = (period: string, customRange?: [Date, Date]) => {
+  const today = new Date();
+  today.setHours(23, 59, 59, 999); // 오늘의 끝
   
-  recipes.forEach(recipe => {
+  switch (period) {
+    case 'today':
+      const todayStart = new Date(today);
+      todayStart.setHours(0, 0, 0, 0);
+      return { start: todayStart, end: today };
+    case 'week':
+      const weekStart = new Date(today);
+      weekStart.setDate(today.getDate() - today.getDay()); // 이번주 월요일
+      weekStart.setHours(0, 0, 0, 0);
+      return { start: weekStart, end: today };
+    case 'month':
+      const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+      return { start: monthStart, end: today };
+    case 'custom':
+      if (customRange && customRange[0] && customRange[1]) {
+        const start = new Date(customRange[0]);
+        const end = new Date(customRange[1]);
+        start.setHours(0, 0, 0, 0);
+        end.setHours(23, 59, 59, 999);
+        return { start, end };
+      }
+      return { start: today, end: today };
+    default:
+      return { start: today, end: today };
+  }
+};
+
+// 이전 기간 날짜 계산
+const getPreviousDateRange = (period: string, currentRange: { start: Date, end: Date }) => {
+  const duration = currentRange.end.getTime() - currentRange.start.getTime();
+  const previousEnd = new Date(currentRange.start.getTime() - 1);
+  const previousStart = new Date(previousEnd.getTime() - duration);
+  
+  return { start: previousStart, end: previousEnd };
+};
+
+// 날짜 기반 레시피 필터링
+const filterRecipesByDateRange = (recipes: Recipe[], dateRange: { start: Date, end: Date }) => {
+  return recipes.filter(recipe => {
+    if (!recipe.post_time) return false;
+    
+    const postDate = new Date(recipe.post_time);
+    return postDate >= dateRange.start && postDate <= dateRange.end;
+  });
+};
+
+// 상승률 계산 함수
+const calculateGrowthRate = (current: number, previous: number): number => {
+  if (previous === 0) return current > 0 ? 100 : 0;
+  return Math.round(((current - previous) / previous) * 100);
+};
+
+// 재료 TOP 10 계산 함수 (날짜 필터링 적용)
+const calculateIngredientRankings = (recipes: Recipe[], dateRange: { start: Date, end: Date }, previousRange?: { start: Date, end: Date }) => {
+  // 현재 기간 재료 카운트
+  const currentRecipes = filterRecipesByDateRange(recipes, dateRange);
+  const currentIngredientCounts: { [key: string]: number } = {};
+  
+  currentRecipes.forEach(recipe => {
     if (recipe.used_ingredients) {
       const ingredients = (typeof recipe.used_ingredients === 'string' ? recipe.used_ingredients.split(',') : recipe.used_ingredients).map((i: string) => i.trim());
       ingredients.forEach((ingredient: string) => {
-        ingredientCounts[ingredient] = (ingredientCounts[ingredient] || 0) + 1;
+        currentIngredientCounts[ingredient] = (currentIngredientCounts[ingredient] || 0) + 1;
       });
     }
   });
 
-  return Object.entries(ingredientCounts)
-    .map(([name, count]) => ({ name, count }))
-    .sort((a, b) => b.count - a.count)
+  // 이전 기간 재료 카운트 (상승률 계산용)
+  const previousIngredientCounts: { [key: string]: number } = {};
+  if (previousRange) {
+    const previousRecipes = filterRecipesByDateRange(recipes, previousRange);
+    previousRecipes.forEach(recipe => {
+      if (recipe.used_ingredients) {
+        const ingredients = (typeof recipe.used_ingredients === 'string' ? recipe.used_ingredients.split(',') : recipe.used_ingredients).map((i: string) => i.trim());
+        ingredients.forEach((ingredient: string) => {
+          previousIngredientCounts[ingredient] = (previousIngredientCounts[ingredient] || 0) + 1;
+        });
+      }
+    });
+  }
+
+  return Object.entries(currentIngredientCounts)
+    .map(([name, count]) => {
+      const previousCount = previousIngredientCounts[name] || 0;
+      const rate = previousRange ? calculateGrowthRate(count, previousCount) : 0;
+      return { name, count, rate };
+    })
+    .sort((a, b) => b.rate - a.rate)
     .slice(0, 10)
     .map((item, index) => ({
       id: index + 1,
       rank: index + 1,
       name: item.name,
       count: item.count,
-      rate: 0, // 현재는 증가율 계산하지 않음
+      rate: item.rate,
       thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80"
     }));
 };
 
-// 테마 TOP 10 계산 함수
-const calculateThemeRankings = async (recipes: Recipe[]) => {
+// 테마 TOP 10 계산 함수 (날짜 필터링 적용)
+const calculateThemeRankings = async (recipes: Recipe[], dateRange: { start: Date, end: Date }, previousRange?: { start: Date, end: Date }) => {
+  const currentRecipes = filterRecipesByDateRange(recipes, dateRange);
   const themeCounts: { [key: string]: number } = {};
   
   try {
-    console.log('Starting theme ranking calculation with', recipes.length, 'recipes');
+    console.log('Starting theme ranking calculation with', currentRecipes.length, 'recipes for date range');
     
     // Filter_Keywords.csv에서 키워드 목록 가져오기
     const response = await fetch('/Filter_Keywords.csv');
@@ -175,7 +253,6 @@ const calculateThemeRankings = async (recipes: Recipe[]) => {
     
     const keywordIdx = header.indexOf('키워드');
     const synonymIdx = header.indexOf('동의어');
-    const categoryIdx = header.indexOf('대분류');
     
     if (keywordIdx === -1) {
       throw new Error('키워드 컬럼을 찾을 수 없습니다');
@@ -195,55 +272,69 @@ const calculateThemeRankings = async (recipes: Recipe[]) => {
       }
     });
 
-    // 통과한 레시피 ID를 저장할 배열
-    const passedRecipeIds: number[] = [];
-
-    recipes.forEach(recipe => {
+    // 현재 기간 테마 카운트
+    currentRecipes.forEach(recipe => {
+      const text = `${recipe.title} ${recipe.content}`.toLowerCase();
+      
       keywordMap.forEach((synonyms, keyword) => {
-        const allKeywords = [keyword, ...Array.from(synonyms)];
-        const text = (recipe.title || '') + ' ' + (recipe.content || '');
-        let totalMatches = 0;
-        
-        // 각 키워드별로 독립적으로 매칭 횟수 체크
-        const hasEnoughMatches = allKeywords.some(k => {
-          if (!k) return false;
-          const regex = new RegExp(k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+        let count = 0;
+        synonyms.forEach(synonym => {
+          const regex = new RegExp(synonym.toLowerCase(), 'g');
           const matches = text.match(regex);
-          return matches && matches.length >= 2;
-        });
-
-        if (hasEnoughMatches) {
-          themeCounts[keyword] = (themeCounts[keyword] || 0) + 1;
-          if (keyword === '주말') {
-            passedRecipeIds.push(recipe.id);
+          if (matches && matches.length >= 2) {
+            count += matches.length;
           }
+        });
+        
+        if (count > 0) {
+          themeCounts[keyword] = (themeCounts[keyword] || 0) + count;
         }
       });
     });
 
-    // "주말" 키워드의 최종 결과만 간단히 출력
-    if (themeCounts['주말']) {
-      console.log('\n[주말 키워드 최종 결과]');
-      console.log(`매칭된 레시피 수: ${themeCounts['주말']}개`);
-      console.log('통과한 레시피 ID:', passedRecipeIds.join(', '));
+    // 이전 기간 테마 카운트 (상승률 계산용)
+    const previousThemeCounts: { [key: string]: number } = {};
+    if (previousRange) {
+      const previousRecipes = filterRecipesByDateRange(recipes, previousRange);
+      previousRecipes.forEach(recipe => {
+        const text = `${recipe.title} ${recipe.content}`.toLowerCase();
+        
+        keywordMap.forEach((synonyms, keyword) => {
+          let count = 0;
+          synonyms.forEach(synonym => {
+            const regex = new RegExp(synonym.toLowerCase(), 'g');
+            const matches = text.match(regex);
+            if (matches && matches.length >= 2) {
+              count += matches.length;
+            }
+          });
+          
+          if (count > 0) {
+            previousThemeCounts[keyword] = (previousThemeCounts[keyword] || 0) + count;
+          }
+        });
+      });
     }
 
-    const rankings = Object.entries(themeCounts)
-      .map(([name, count]) => ({ name, count }))
-      .sort((a, b) => b.count - a.count)
+    return Object.entries(themeCounts)
+      .map(([name, count]) => {
+        const previousCount = previousThemeCounts[name] || 0;
+        const rate = previousRange ? calculateGrowthRate(count, previousCount) : 0;
+        return { name, count, rate };
+      })
+      .sort((a, b) => b.rate - a.rate)
       .slice(0, 10)
       .map((item, index) => ({
         id: index + 1,
         rank: index + 1,
         name: item.name,
         count: item.count,
-        rate: 0,
+        rate: item.rate,
         thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80"
       }));
-    
-    return rankings;
+
   } catch (error) {
-    console.error('테마 랭킹 계산 오류:', error);
+    console.error('Error calculating theme rankings:', error);
     return [];
   }
 };
@@ -326,7 +417,12 @@ const Popular = () => {
   const handlePeriodChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value;
     setPeriod(val);
-    if (val === 'custom') setDateModalOpen(true);
+    if (val === 'custom') {
+      setDateModalOpen(true);
+    } else {
+      // 기간이 변경되면 랭킹을 다시 계산하도록 트리거
+      setDateRange([null, null]);
+    }
   };
 
   // 기간 라벨 표시
@@ -473,14 +569,17 @@ const Popular = () => {
     });
   };
 
-  // 유튜브와 네이버 레시피 분리 (부분 일치 필터)
+  // 유튜브와 네이버 레시피 분리 (날짜 기반 필터링 적용)
+  const currentDateRange = getDateRange(period, dateRange[0] && dateRange[1] ? [dateRange[0], dateRange[1]] : undefined);
+  const filteredRecipes = filterRecipesByDateRange(recipes, currentDateRange);
+  
   const youtubeRecipes = sortRecipesByPopularity(
-    recipes.filter(recipe =>
+    filteredRecipes.filter(recipe =>
       recipe.platform && recipe.platform.toLowerCase().includes('youtube')
     )
   ).slice(0, 300);
   const naverRecipes = sortRecipesByPopularity(
-    recipes.filter(recipe =>
+    filteredRecipes.filter(recipe =>
       recipe.platform && recipe.platform.toLowerCase().includes('naver')
     )
   ).slice(0, 300);
@@ -509,21 +608,25 @@ const Popular = () => {
     const calculateRankings = async () => {
       if (recipes.length > 0) {
         try {
+          // 날짜 범위 계산
+          const currentDateRange = getDateRange(period, dateRange[0] && dateRange[1] ? [dateRange[0], dateRange[1]] : undefined);
+          const previousDateRange = getPreviousDateRange(period, currentDateRange);
+          
           // 재료 랭킹 계산
-          const ingredientRanks = calculateIngredientRankings(recipes);
+          const ingredientRanks = calculateIngredientRankings(recipes, currentDateRange, previousDateRange);
           setIngredientRankings(ingredientRanks);
 
           // 테마 랭킹 계산
-          const themeRanks = await calculateThemeRankings(recipes);
+          const themeRanks = await calculateThemeRankings(recipes, currentDateRange, previousDateRange);
           setThemeRankings(themeRanks);
         } catch (error) {
-          console.error('테마 랭킹 계산 오류');
+          console.error('랭킹 계산 중 오류:', error);
         }
       }
     };
 
     calculateRankings();
-  }, [recipes]);
+  }, [recipes, period, dateRange]);
 
   // 더미 데이터 대신 실제 데이터 사용
   const sortedIngredients = ingredientRankings;
@@ -751,18 +854,37 @@ const Popular = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {sortedIngredients.slice(0, 10).map((ing, idx) => (
-                      <tr key={ing.id}>
-                        <td className="py-1.5 px-2 text-center text-[#444] font-normal whitespace-nowrap">{idx + 1}</td>
-                        <td className="py-1.5 px-2 text-center text-[#444] font-normal whitespace-nowrap">
-                          <span style={{ cursor: 'pointer', textDecoration: 'none' }} onClick={() => navigate(`/ingredient/${encodeURIComponent(ing.name)}`)}>
-                            {ing.name}
-                          </span>
+                    {ingredientRankings.length > 0 ? (
+                      ingredientRankings.map((ing, idx) => (
+                        <tr key={ing.id}>
+                          <td className="py-1.5 px-2 text-center text-[#444] font-normal whitespace-nowrap">{idx + 1}</td>
+                          <td className="py-1.5 px-2 text-center text-[#444] font-normal whitespace-nowrap">
+                            <span style={{ cursor: 'pointer', textDecoration: 'none' }} onClick={() => navigate(`/ingredient/${encodeURIComponent(ing.name)}`)}>
+                              {ing.name}
+                            </span>
+                          </td>
+                          <td className="py-1.5 px-2 text-right text-[#444] font-normal whitespace-nowrap">{ing.count.toLocaleString()}</td>
+                          <td className="py-1.5 px-2 text-center font-normal whitespace-nowrap" style={{color: ing.rate >= 0 ? '#E85A4F' : '#3A6EA5'}}>{ing.rate >= 0 ? `+${ing.rate}%` : `${ing.rate}%`}</td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td
+                          colSpan={4}
+                          className="text-center"
+                          style={{
+                            height: 320,
+                            color: 'rgb(187, 187, 187)',
+                            fontSize: '13px',
+                            whiteSpace: 'nowrap',
+                            verticalAlign: 'middle',
+                            textAlign: 'center'
+                          }}
+                        >
+                          데이터가 없습니다
                         </td>
-                        <td className="py-1.5 px-2 text-right text-[#444] font-normal whitespace-nowrap">{ing.count.toLocaleString()}</td>
-                        <td className="py-1.5 px-2 text-center font-normal whitespace-nowrap" style={{color: ing.rate >= 0 ? '#E85A4F' : '#3A6EA5'}}>{ing.rate >= 0 ? `+${ing.rate}%` : `${ing.rate}%`}</td>
                       </tr>
-                    ))}
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -772,20 +894,18 @@ const Popular = () => {
               <h2 className="text-[16px] font-bold text-[#111] mb-2 text-left"><span className="mr-1">📈</span>인기 급상승 테마 TOP 10</h2>
               <div style={{height: 2, width: '100%', background: '#E5E5E5', marginBottom: 16}} />
               <div className="mt-4">
-                {themeRankings.length === 0 ? (
-                  <div className="text-center text-gray-500">데이터를 불러오는 중...</div>
-                ) : (
-                  <table className="w-full max-w-[280px] mx-auto border-collapse text-[13px] font-sans" style={{background: '#fff'}}>
-                    <thead>
-                      <tr style={{borderTop: '1px solid #E5E5E5', borderBottom: '1px solid #E5E5E5', background: '#F7F7F9'}}>
-                        <th className="py-1.5 px-2 text-center font-medium text-[#222] whitespace-nowrap">순위</th>
-                        <th className="py-1.5 px-2 text-center font-medium text-[#222] whitespace-nowrap">테마명</th>
-                        <th className="py-1.5 px-2 text-right font-medium text-[#222] whitespace-nowrap">레시피 수</th>
-                        <th className="py-1.5 px-2 text-center font-medium text-[#222] whitespace-nowrap">{period === 'today' ? '전일' : period === 'week' ? '전주' : period === 'month' ? '전달' : '기간'}대비 상승률</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {themeRankings.map((theme, idx) => (
+                <table className="w-full max-w-[280px] mx-auto border-collapse text-[13px] font-sans" style={{background: '#fff'}}>
+                  <thead>
+                    <tr style={{borderTop: '1px solid #E5E5E5', borderBottom: '1px solid #E5E5E5', background: '#F7F7F9'}}>
+                      <th className="py-1.5 px-2 text-center font-medium text-[#222] whitespace-nowrap">순위</th>
+                      <th className="py-1.5 px-2 text-center font-medium text-[#222] whitespace-nowrap">테마명</th>
+                      <th className="py-1.5 px-2 text-right font-medium text-[#222] whitespace-nowrap">레시피 수</th>
+                      <th className="py-1.5 px-2 text-center font-medium text-[#222] whitespace-nowrap">{period === 'today' ? '전일' : period === 'week' ? '전주' : period === 'month' ? '전달' : '기간'}대비 상승률</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {themeRankings.length > 0 ? (
+                      themeRankings.map((theme, idx) => (
                         <tr key={theme.id}>
                           <td className="py-1.5 px-2 text-center text-[#444] font-normal whitespace-nowrap">{idx + 1}</td>
                           <td className="py-1.5 px-2 text-center text-[#444] font-normal whitespace-nowrap">
@@ -796,10 +916,27 @@ const Popular = () => {
                           <td className="py-1.5 px-2 text-right text-[#444] font-normal whitespace-nowrap">{theme.count.toLocaleString()}</td>
                           <td className="py-1.5 px-2 text-center font-normal whitespace-nowrap" style={{color: theme.rate >= 0 ? '#E85A4F' : '#3A6EA5'}}>{theme.rate >= 0 ? `+${theme.rate}%` : `${theme.rate}%`}</td>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
+                      ))
+                    ) : (
+                      <tr>
+                        <td
+                          colSpan={4}
+                          className="text-center"
+                          style={{
+                            height: 320,
+                            color: 'rgb(187, 187, 187)',
+                            fontSize: '13px',
+                            whiteSpace: 'nowrap',
+                            verticalAlign: 'middle',
+                            textAlign: 'center'
+                          }}
+                        >
+                          데이터가 없습니다
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
