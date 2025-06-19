@@ -429,7 +429,7 @@ class NaverBlogCrawler(BaseCrawler):
         try:
             print("\n🔄 재료 정보 업데이트 배치 실행 중...")
             batch_script = os.path.join(os.path.dirname(os.path.dirname(__file__)), 
-                                      "ingredient-management", 
+                                      "ingredient_management", 
                                       "update_used_ingredients_batch.py")
             
             if os.path.exists(batch_script):
