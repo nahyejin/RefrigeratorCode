@@ -212,12 +212,12 @@ const RecipeSortBar = ({
       .then(csv => {
         const lines = csv.split('\n');
         const header = lines[0].split(',');
-        const nameIdx = header.indexOf('ingredient_name');
+        const nameIdx = header.indexOf('keyword');
         if (nameIdx === -1) return;
         setAllIngredients(
           lines.slice(1)
             .map(line => line.split(',')[nameIdx]?.trim())
-            .filter(name => !!name && name !== 'ingredient_name')
+            .filter(name => !!name && name !== 'keyword')
         );
       });
   }, []);
