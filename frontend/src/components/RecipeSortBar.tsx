@@ -288,42 +288,44 @@ const RecipeSortBar = ({
 
   return (
     <>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 18, width: '100%', marginTop: 24, flexWrap: 'wrap' }}>
-        <button
-          style={{ height: 28, border: '1px solid #D1D5DB', borderRadius: 6, fontSize: 12, padding: '0 8px', fontWeight: 600, background: '#fff', color: '#222', minWidth: 70, marginRight: 0, whiteSpace: 'nowrap', lineHeight: '28px', boxSizing: 'border-box', cursor: 'pointer' }}
-          onClick={() => setMatchRateModalOpen(true)}
-          aria-label="재료 매칭도 설정 모달 열기"
-        >
-          재료 매칭도 설정
-        </button>
-        <button
-          style={{ height: 28, border: '1px solid #D1D5DB', borderRadius: 6, fontSize: 12, padding: '0 8px', fontWeight: 600, background: '#fff', color: '#222', minWidth: 70, marginRight: 0, whiteSpace: 'nowrap', lineHeight: '28px', boxSizing: 'border-box', cursor: 'pointer' }}
-          onClick={() => {
-            setSelectedExpiryIngredients(appliedExpiryIngredients);
-            setExpiryModalOpen(true);
-          }}
-          aria-label="임박 재료 설정 모달 열기"
-        >
-          임박 재료 설정
-        </button>
-        <div style={{ position: 'relative', minWidth: 80 }}>
-          <select aria-label="정렬 기준 선택" value={sortType} onChange={e => {
-            if (e.target.value === 'expiry' && appliedExpiryIngredients.length === 0) {
-              if (typeof onToast === 'function') {
-                onToast('선택한 임박 재료가 없습니다.\n임박 재료 설정 버튼에서\n임박재료를 설정해주세요.');
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 18, width: '100%', marginTop: 24, flexWrap: 'nowrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <button
+            style={{ height: 28, border: '1px solid #D1D5DB', borderRadius: 6, fontSize: 12, padding: '0 8px', fontWeight: 600, background: '#fff', color: '#222', minWidth: 70, marginRight: 0, whiteSpace: 'nowrap', lineHeight: '28px', boxSizing: 'border-box', cursor: 'pointer' }}
+            onClick={() => setMatchRateModalOpen(true)}
+            aria-label="재료 매칭도 설정 모달 열기"
+          >
+            재료 매칭도 설정
+          </button>
+          <button
+            style={{ height: 28, border: '1px solid #D1D5DB', borderRadius: 6, fontSize: 12, padding: '0 8px', fontWeight: 600, background: '#fff', color: '#222', minWidth: 70, marginRight: 0, whiteSpace: 'nowrap', lineHeight: '28px', boxSizing: 'border-box', cursor: 'pointer' }}
+            onClick={() => {
+              setSelectedExpiryIngredients(appliedExpiryIngredients);
+              setExpiryModalOpen(true);
+            }}
+            aria-label="임박 재료 설정 모달 열기"
+          >
+            임박 재료 설정
+          </button>
+          <div style={{ position: 'relative', minWidth: 80 }}>
+            <select aria-label="정렬 기준 선택" value={sortType} onChange={e => {
+              if (e.target.value === 'expiry' && appliedExpiryIngredients.length === 0) {
+                if (typeof onToast === 'function') {
+                  onToast('선택한 임박 재료가 없습니다.\n임박 재료 설정 버튼에서\n임박재료를 설정해주세요.');
+                }
+                return;
               }
-              return;
-            }
-            setSortType(e.target.value);
-          }} style={{ height: 28, border: '1px solid #D1D5DB', borderRadius: 6, fontSize: 12, padding: '0 22px 0 8px', fontWeight: 600, background: '#fff', color: '#222', minWidth: 80, marginRight: 0, appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none', outline: 'none', cursor: 'pointer', boxSizing: 'border-box' }}>
-            <option value="latest">최신순</option>
-            <option value="like">좋아요순</option>
-            <option value="comment">댓글순</option>
-            <option value="hits">조회수순</option>
-            <option value="match">재료매칭률순</option>
-            <option value="expiry">임박재료활용순</option>
-          </select>
-          <span style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', fontSize: 13, color: '#888' }}>▼</span>
+              setSortType(e.target.value);
+            }} style={{ height: 28, border: '1px solid #D1D5DB', borderRadius: 6, fontSize: 12, padding: '0 22px 0 8px', fontWeight: 600, background: '#fff', color: '#222', minWidth: 80, marginRight: 0, appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none', outline: 'none', cursor: 'pointer', boxSizing: 'border-box' }}>
+              <option value="latest">최신순</option>
+              <option value="like">좋아요순</option>
+              <option value="comment">댓글순</option>
+              <option value="hits">조회수순</option>
+              <option value="match">재료매칭률순</option>
+              <option value="expiry">임박재료활용순</option>
+            </select>
+            <span style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', fontSize: 13, color: '#888' }}>▼</span>
+          </div>
         </div>
         <button
           style={{
