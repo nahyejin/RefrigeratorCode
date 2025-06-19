@@ -108,7 +108,15 @@ const MyFridge: React.FC = () => {
     fetch('/ingredient_profile_dict_with_substitutes.csv')
       .then(res => res.text())
       .then(csv => {
-        setIngredientDict(parseIngredientNames(csv));
+        const lines = csv.split('\n');
+        const header = lines[0].split(',');
+        const nameIdx = header.indexOf('keyword');
+        if (nameIdx === -1) return;
+        setIngredientDict(
+          lines.slice(1)
+            .map(line => line.split(',')[nameIdx]?.trim())
+            .filter(name => !!name && name !== 'keyword')
+        );
       });
   }, []);
 

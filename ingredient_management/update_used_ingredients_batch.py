@@ -20,9 +20,9 @@ ingredient_df_filtered = ingredient_df[ingredient_df["대분류"].isin(["재료"
 normal_dict, short_dict = {}, {}
 
 for _, row in ingredient_df_filtered.iterrows():
-    if pd.isna(row["ingredient_name"]):
+    if pd.isna(row["keyword"]):
         continue
-    base_name = str(row["ingredient_name"]).strip()
+    base_name = str(row["keyword"]).strip()
     synonyms = str(row["synonyms"]).split(", ") if not pd.isna(row["synonyms"]) else []
     names = [base_name] + synonyms
 
