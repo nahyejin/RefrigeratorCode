@@ -180,6 +180,8 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
   const [includeIngredients, setIncludeIngredients] = useState<string[]>([]);
   const [excludeIngredients, setExcludeIngredients] = useState<string[]>([]);
   const [filterKeywordTree, setFilterKeywordTree] = useState<any>(null);
+  const [ingredientSynonyms, setIngredientSynonyms] = useState<string[]>([]);
+  const [isIngredient, setIsIngredient] = useState<boolean>(true);
 
   const myIngredients = useMemo(() => getMyIngredients(), []);
   const myIngredientObjects = getMyIngredientObjects();
@@ -191,17 +193,27 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
         const lines = csv.split('\n');
         const header = lines[0].split(',');
         const nameIdx = header.indexOf('keyword');
+        const synIdx = header.indexOf('synonyms');
+        const catIdx = header.indexOf('대분류');
         if (nameIdx === -1) return;
-        setAllIngredients(
-          lines.slice(1)
-            .map(line => line.split(',')[nameIdx]?.trim())
-            .filter(name => !!name && name !== 'keyword')
-        );
+        const found = lines.slice(1).find(line => {
+          const cols = line.split(',');
+          return cols[nameIdx]?.trim() === decodeURIComponent(name);
+        });
+        if (found) {
+          const cols = found.split(',');
+          const base = cols[nameIdx]?.trim();
+          const syns = synIdx !== -1 ? cols[synIdx]?.split('|').map(s => s.trim()).filter(Boolean) : [];
+          setIngredientSynonyms([base, ...syns]);
+          setIsIngredient(cols[catIdx]?.trim() === '재료');
+        } else {
+          setIngredientSynonyms([decodeURIComponent(name)]);
+          setIsIngredient(true);
+        }
       });
-  }, []);
+  }, [name]);
 
   useEffect(() => {
-    // 마이페이지 상세(기록/완료)라면 localStorage에서 불러오기
     if (location.pathname === '/mypage/recorded') {
       const arr = JSON.parse(localStorage.getItem('my_recorded_recipes') || '[]');
       setRecipes(arr);
@@ -209,32 +221,37 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
       const arr = JSON.parse(localStorage.getItem('my_completed_recipes') || '[]');
       setRecipes(arr);
     } else {
-      // 실제 레시피 데이터 fetch
       const fetchData = async () => {
         try {
-          // 레시피 데이터 가져오기
           const recipeResponse = await axios.get('http://127.0.0.1:5000/api/recipes');
-          const searchTerm = decodeURIComponent(name);
-          
-          // 검색어 기반 필터링
-          const filtered = recipeResponse.data.filter((r: Recipe) => {
-            const title = (r.title || '').toLowerCase();
-            const content = (r.content || '').toLowerCase();
-            const searchTermLower = searchTerm.toLowerCase();
-            
-            return title.includes(searchTermLower) || content.includes(searchTermLower);
-          });
-          
+          let filtered = [];
+          if (isIngredient) {
+            // 재료: used_ingredients에 동의어 포함
+            filtered = recipeResponse.data.filter((r: Recipe) => {
+              const ingredientsArr = toIngredientArray(r.used_ingredients).map(i => i.replace(/\s/g, ''));
+              return ingredientSynonyms.some(syn => ingredientsArr.includes(syn.replace(/\s/g, '')));
+            });
+          } else {
+            // 테마: title/content에 동의어 포함 && 2번 이상 등장
+            filtered = recipeResponse.data.filter((r: Recipe) => {
+              const text = ((r.title || '') + ' ' + (r.content || '')).toLowerCase();
+              return ingredientSynonyms.some(syn => {
+                if (!syn) return false;
+                const regex = new RegExp(syn.replace(/[.*+?^${}()|[\\\]]/g, '\\$&'), 'g');
+                const matches = text.match(regex);
+                return matches && matches.length >= 2;
+              });
+            });
+          }
           setRecipes(filtered);
         } catch (error) {
           console.error('Error fetching data:', error);
           setRecipes([]);
         }
       };
-
-      fetchData();
+      if (ingredientSynonyms.length > 0) fetchData();
     }
-  }, [name, location.pathname]);
+  }, [name, location.pathname, ingredientSynonyms, isIngredient]);
 
   useEffect(() => {
     const loadSubstituteTable = async () => {
@@ -599,6 +616,18 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
           setExpirySortType={setExpirySortType}
           selectedChannel={selectedChannel}
           setSelectedChannel={setSelectedChannel}
+          includeKeyword={includeKeyword}
+          setIncludeKeyword={setIncludeKeyword}
+          includeIngredients={includeIngredients}
+          setIncludeIngredients={setIncludeIngredients}
+          excludeIngredients={excludeIngredients}
+          setExcludeIngredients={setExcludeIngredients}
+          selectedCategoryKeywords={selectedFilter}
+          setSelectedCategoryKeywords={setSelectedFilter}
+          includeInput={includeInput}
+          setIncludeInput={setIncludeInput}
+          excludeInput={excludeInput}
+          setExcludeInput={setExcludeInput}
         />
         <div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, marginTop: 8 }}>
