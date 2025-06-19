@@ -134,10 +134,68 @@ const FilterModal: React.FC<FilterModalProps> = ({
   const [includeFocus, setIncludeFocus] = useState(false);
   const [excludeFocus, setExcludeFocus] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [ingredientDict, setIngredientDict] = useState<string[]>([]);
   const myIngredients = getMyIngredients() || [];
-  const combinedIngredients = [...new Set([...(allIngredients || []), ...myIngredients])];
-  const includeCandidates = combinedIngredients.filter(i => i && i.includes(includeInput) && includeInput && i !== includeInput && !includeIngredients.includes(i));
-  const excludeCandidates = combinedIngredients.filter(i => i && i.includes(excludeInput) && excludeInput && i !== excludeInput && !excludeIngredients.includes(i));
+  
+  // 재료 사전 로드
+  useEffect(() => {
+    fetch('/ingredient_profile_dict_with_substitutes.csv')
+      .then(res => res.text())
+      .then(csv => {
+        const lines = csv.split('\n');
+        const header = lines[0].split(',');
+        const nameIdx = header.indexOf('keyword');
+        const categoryIdx = header.indexOf('대분류');
+        if (nameIdx === -1 || categoryIdx === -1) return;
+        
+        const ingredients = lines.slice(1)
+          .map(line => {
+            const values = line.split(',');
+            return {
+              keyword: values[nameIdx]?.trim(),
+              category: values[categoryIdx]?.trim()
+            };
+          })
+          .filter(item => 
+            item.keyword && 
+            item.keyword !== 'keyword' && 
+            item.category === '재료'
+          )
+          .map(item => item.keyword);
+        
+        setIngredientDict(ingredients);
+      });
+  }, []);
+
+  // 스마트한 자동완성 필터링
+  const getFilteredCandidates = (input: string, excludeList: string[]) => {
+    return ingredientDict
+      .filter(item => 
+        input && 
+        item.includes(input) && 
+        !excludeList.includes(item)
+      )
+      .sort((a, b) => {
+        // 정확한 매칭을 우선시
+        const aExact = a === input;
+        const bExact = b === input;
+        if (aExact && !bExact) return -1;
+        if (!aExact && bExact) return 1;
+        
+        // 시작 부분 매칭을 우선시
+        const aStartsWith = a.startsWith(input);
+        const bStartsWith = b.startsWith(input);
+        if (aStartsWith && !bStartsWith) return -1;
+        if (!aStartsWith && bStartsWith) return 1;
+        
+        // 길이 순으로 정렬 (짧은 것 우선)
+        return a.length - b.length;
+      })
+      .slice(0, 8);
+  };
+
+  const includeCandidates = getFilteredCandidates(includeInput, includeIngredients);
+  const excludeCandidates = getFilteredCandidates(excludeInput, excludeIngredients);
 
   // 1. 모든 카테고리의 선택된 키워드 flat하게 모으기
   const selectedKeywordPills: { main: string; keyword: string }[] = [];
@@ -231,6 +289,24 @@ const FilterModal: React.FC<FilterModalProps> = ({
                   onChange={e => setIncludeInput(e.target.value)}
                   onFocus={() => setIncludeFocus(true)}
                   onBlur={() => setTimeout(() => setIncludeFocus(false), 150)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      if (includeCandidates.length > 0) {
+                        setIncludeIngredients([...(includeIngredients || []), includeCandidates[0]]);
+                        setIncludeInput('');
+                        setIncludeFocus(false);
+                      } else if (includeInput.trim()) {
+                        const exactMatch = ingredientDict.find(item => item === includeInput.trim());
+                        if (exactMatch) {
+                          setIncludeIngredients([...(includeIngredients || []), exactMatch]);
+                          setIncludeInput('');
+                          setIncludeFocus(false);
+                        } else {
+                          alert('사전에 등록되지 않은 재료입니다. 자동완성 목록에서 선택해주세요.');
+                        }
+                      }
+                    }
+                  }}
                 />
                 {includeFocus && includeCandidates.length > 0 && (
                   <ul className="absolute left-0 right-0 bg-white border border-gray-200 rounded-lg mt-1 shadow z-10 max-h-32 overflow-y-auto">
@@ -272,6 +348,24 @@ const FilterModal: React.FC<FilterModalProps> = ({
                   onChange={e => setExcludeInput(e.target.value)}
                   onFocus={() => setExcludeFocus(true)}
                   onBlur={() => setTimeout(() => setExcludeFocus(false), 150)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      if (excludeCandidates.length > 0) {
+                        setExcludeIngredients([...(excludeIngredients || []), excludeCandidates[0]]);
+                        setExcludeInput('');
+                        setExcludeFocus(false);
+                      } else if (excludeInput.trim()) {
+                        const exactMatch = ingredientDict.find(item => item === excludeInput.trim());
+                        if (exactMatch) {
+                          setExcludeIngredients([...(excludeIngredients || []), exactMatch]);
+                          setExcludeInput('');
+                          setExcludeFocus(false);
+                        } else {
+                          alert('사전에 등록되지 않은 재료입니다. 자동완성 목록에서 선택해주세요.');
+                        }
+                      }
+                    }
+                  }}
                 />
                 {excludeFocus && excludeCandidates.length > 0 && (
                   <ul className="absolute left-0 right-0 bg-white border border-gray-200 rounded-lg mt-1 shadow z-10 max-h-32 overflow-y-auto">
