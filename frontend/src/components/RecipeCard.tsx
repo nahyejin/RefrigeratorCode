@@ -71,7 +71,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
 
   return (
     <div
-      className="bg-white rounded-[20px] shadow-sm min-h-[144px] relative p-4 block hover:shadow-md transition cursor-pointer"
+      className="bg-white rounded-[20px] shadow-sm min-h-[280px] relative p-4 block hover:shadow-md transition cursor-pointer"
       style={{ 
         marginBottom: isLast ? 40 : 16,
         marginLeft: 'auto',

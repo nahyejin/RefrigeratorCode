@@ -19,7 +19,7 @@ const VirtualizedRecipeList: React.FC<VirtualizedRecipeListProps> = ({
   onRecipeAction,
 }) => {
   // 각 레시피 카드의 높이 (픽셀)
-  const ITEM_HEIGHT = 280;
+  const ITEM_HEIGHT = 320;
   
   // 화면 높이 상태
   const [listHeight, setListHeight] = useState(window.innerHeight - 300);
