@@ -1,4 +1,7 @@
 import logging
+import subprocess
+import sys
+import os
 from crawler import NaverBlogCrawler, NaverInfluencerCrawler, YouTubeCrawler
 
 # 로깅 설정
@@ -29,6 +32,22 @@ def run_crawler(crawler_instance, desc):
         logger.error(f"!!! {desc} 실행 실패: {str(e)} !!!\n")
         raise
 
+def run_ingredients_batch():
+    """used_ingredients 배치 처리 실행"""
+    try:
+        logger.info("=== used_ingredients 배치 처리 시작 ===")
+        script_path = os.path.join("ingredient_management", "update_used_ingredients_batch.py")
+        result = subprocess.run([sys.executable, script_path], check=True, capture_output=True, text=True)
+        logger.info("=== used_ingredients 배치 처리 완료 ===")
+        return True
+    except subprocess.CalledProcessError as e:
+        logger.error(f"used_ingredients 배치 처리 실패: {str(e)}")
+        logger.error(f"에러 출력: {e.stderr}")
+        return False
+    except Exception as e:
+        logger.error(f"used_ingredients 배치 처리 중 예외 발생: {str(e)}")
+        return False
+
 def main():
     """모든 크롤러를 순차적으로 실행"""
     try:
@@ -45,6 +64,13 @@ def main():
         run_crawler(youtube, "유튜브(인플루언서) 크롤러")
         
         logger.info("=== 모든 크롤러 실행 완료 ===")
+        
+        # 모든 크롤러 완료 후 used_ingredients 배치 처리 실행
+        if run_ingredients_batch():
+            logger.info("=== 전체 프로세스 완료 (크롤링 + 재료 추출) ===")
+        else:
+            logger.warning("=== 크롤링은 완료되었으나 재료 추출에 실패했습니다 ===")
+            
     except Exception as e:
         logger.error(f"크롤러 실행 중 오류 발생: {str(e)}")
         exit(1)
