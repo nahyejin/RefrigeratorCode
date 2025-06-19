@@ -12,6 +12,7 @@ import writeBlackIcon from '../assets/write_black.svg';
 import FilterModal from '../components/FilterModal';
 import { fetchRecipesDummy } from '../utils/dummyData';
 import RecipeCard from '../components/RecipeCard';
+import VirtualizedRecipeList from '../components/VirtualizedRecipeList';
 import { Recipe, RecipeActionState, FilterState, SubstituteInfo } from '../types/recipe';
 import { getMyIngredients, sortRecipes, calculateMatchRate } from '../utils/recipeUtils';
 import RecipeToast from '../components/RecipeToast';
@@ -123,7 +124,6 @@ function getInitialSortBarState() {
 
 const RecipeList: React.FC = () => {
   const initialSortBarState = getInitialSortBarState();
-  const [visibleCount, setVisibleCount] = useState(50);
   const [sortType, setSortType] = useState(initialSortBarState.sortType);
   const [matchRange, setMatchRange] = useState(initialSortBarState.matchRange);
   const [maxLack, setMaxLack] = useState(initialSortBarState.maxLack);
@@ -237,19 +237,6 @@ const RecipeList: React.FC = () => {
         });
       });
   }, []);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      if (
-        window.innerHeight + window.scrollY >= document.body.offsetHeight - 100 &&
-        visibleCount < recipes.length
-      ) {
-        setVisibleCount(prev => prev + 10);
-      }
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [visibleCount, recipes.length]);
 
   // 완료 버튼 클릭 핸들러
   const handleDoneClick = (id: number) => {
@@ -479,22 +466,17 @@ const RecipeList: React.FC = () => {
             <span style={{ color: '#666', fontSize: '12px' }}>총 {filteredRecipes.length.toLocaleString()}건</span>
           </div>
           <div className="flex flex-col gap-2">
-            {filteredRecipes.slice(0, visibleCount).map((recipe, idx) => (
-              <RecipeCard
-                key={recipe.id}
-                recipe={recipe}
-                index={idx}
-                recipeActionState={recipeActionStates[recipe.id]}
-                onRecipeAction={({ action }) => {
-                  if (action === 'done') handleDoneClick(recipe.id);
-                  else if (action === 'write') handleWriteClick(recipe.id);
-                  else if (action === 'share') handleShareClick(recipe);
-                }}
-                isLast={idx === filteredRecipes.length - 1}
-                myIngredients={myIngredients}
-                substituteTable={substituteTable}
-              />
-            ))}
+            <VirtualizedRecipeList
+              recipes={filteredRecipes}
+              myIngredients={myIngredients}
+              substituteTable={substituteTable}
+              recipeActionStates={recipeActionStates}
+              onRecipeAction={(recipe, action) => {
+                if (action === 'done') handleDoneClick(recipe.id);
+                else if (action === 'write') handleWriteClick(recipe.id);
+                else if (action === 'share') handleShareClick(recipe);
+              }}
+            />
           </div>
         </div>
       </div>

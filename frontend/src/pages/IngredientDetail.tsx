@@ -11,6 +11,7 @@ import doneBlackIcon from '../assets/done_black.svg';
 import shareBlackIcon from '../assets/share_black.svg';
 import writeBlackIcon from '../assets/write_black.svg';
 import RecipeCard from '../components/RecipeCard';
+import VirtualizedRecipeList from '../components/VirtualizedRecipeList';
 import { Recipe, RecipeActionState } from '../types/recipe';
 import RecipeSortBar from '../components/RecipeSortBar';
 import TopNavBar from '../components/TopNavBar';
@@ -618,19 +619,13 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
             <span style={{ color: '#666', fontSize: '12px' }}>총 {processedRecipes.length.toLocaleString()}건</span>
           </div>
           <div className="mt-4 flex flex-col gap-2" style={{ marginTop: 0 }}>
-            {processedRecipes.map((recipe, index) => (
-              <RecipeCard
-                key={recipe.id}
-                recipe={recipe}
-                index={index}
-                recipeActionState={buttonStates[recipe.id] || { done: false, write: false, share: false }}
-                onRecipeAction={({ action }) => handleRecipeAction(recipe.id, { action })}
-                isLast={index === processedRecipes.length - 1}
-                myIngredients={myIngredients}
-                substituteTable={substituteTable}
-                hideIndexNumber={location.pathname === '/mypage/recorded' || location.pathname === '/mypage/completed'}
-              />
-            ))}
+            <VirtualizedRecipeList
+              recipes={processedRecipes}
+              myIngredients={myIngredients}
+              substituteTable={substituteTable}
+              recipeActionStates={buttonStates}
+              onRecipeAction={(recipe, action) => handleRecipeAction(recipe.id, { action: action as 'done' | 'write' | 'share' })}
+            />
           </div>
         </div>
       </div>

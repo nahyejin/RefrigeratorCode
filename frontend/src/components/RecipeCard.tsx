@@ -28,6 +28,7 @@ export interface RecipeCardProps {
   myIngredients?: string[];
   substituteTable?: { [key: string]: any };
   hideIndexNumber?: boolean;
+  showRank?: boolean;
 }
 
 // RecipeCard는 UI만 담당, 상태/스토리지/토스트 등은 상위에서 관리
@@ -40,6 +41,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
   myIngredients = [],
   substituteTable = {},
   hideIndexNumber = false,
+  showRank = false,
 }) => {
   // used_ingredients 파싱
   const usedIngredientList = Array.isArray(recipe.used_ingredients)
@@ -58,6 +60,14 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
       ? recipe.used_ingredients.join(',')
       : recipe.used_ingredients || ''
   );
+
+  // 순위 표시 로직
+  const getRankDisplay = (rank: number) => {
+    if (rank === 1) return "1위🥇";
+    if (rank === 2) return "2위🥈";
+    if (rank === 3) return "3위🥉";
+    return `${rank}위`;
+  };
 
   return (
     <div
@@ -95,8 +105,14 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
             marginBottom: 12,
           }}
         />
+        {/* 순위 표시 (Popular 페이지에서만) */}
+        {showRank && (
+          <div className="absolute bg-[#444] bg-opacity-80 text-white font-bold rounded px-2 py-1 flex items-center gap-1" style={{ position: 'absolute', top: 8, left: 8, fontSize: 13, zIndex: 3, textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>
+            {getRankDisplay(index + 1)}
+          </div>
+        )}
         {/* 재료 매칭률 뱃지 */}
-        <div className="absolute bg-[#444] bg-opacity-80 text-white font-medium rounded px-2 py-0.5 flex items-center gap-1" style={{ position: 'absolute', top: 8, left: 8, fontSize: 12, zIndex: 2, textShadow: '0 1px 2px rgba(0,0,0,0.12)' }}>
+        <div className="absolute bg-[#444] bg-opacity-80 text-white font-medium rounded px-2 py-0.5 flex items-center gap-1" style={{ position: 'absolute', top: showRank ? 40 : 8, left: 8, fontSize: 12, zIndex: 2, textShadow: '0 1px 2px rgba(0,0,0,0.12)' }}>
           재료 매칭률 <span className="text-[#FFD600] font-bold ml-1" style={{ textShadow: 'none', letterSpacing: '0.5px' }}>{match.rate}%</span>
         </div>
         {/* 플랫폼 로고 */}

@@ -10,6 +10,7 @@ import writeIcon from '../assets/write.svg';
 import doneIcon from '../assets/done.svg';
 import { useNavigate } from 'react-router-dom';
 import RecipeCard from '../components/RecipeCard';
+import VirtualizedHorizontalRecipeList from '../components/VirtualizedHorizontalRecipeList';
 import { getIngredientPillInfo } from '../utils/recipeUtils';
 import IngredientPillGroup from '../components/IngredientPillGroup';
 import { getProxiedImageUrl } from '../utils/imageUtils';
@@ -359,45 +360,25 @@ const MyPage = () => {
             </div>
             <span style={{ color: '#666', fontSize: '12px', marginRight: 32 }}>총 {recordedRecipes.length.toLocaleString()}건</span>
           </div>
-          <div style={{
-            display: 'flex',
-            overflowX: 'auto',
-            gap: 16,
-            paddingBottom: 8,
-            minHeight: 180,
-            alignItems: 'center',
-            justifyContent: recordedRecipes.length === 0 ? 'center' : 'flex-start',
-            paddingRight: 64,
-          }}>
-            {recordedRecipes.length === 0 ? (
-              <span style={{ color: '#bbb', fontSize: 13, textAlign: 'center', width: '100%' }}>레시피를 기록해 주세요</span>
-            ) : (
-              recordedRecipes.map((recipe, idx) => (
-                <div
-                  key={recipe.id}
-                  style={{
-                    minWidth: 360,
-                    maxWidth: 360,
-                    flex: '0 0 360px',
-                  }}
-                >
-                  <RecipeCard
-                    recipe={recipe}
-                    index={idx}
-                    recipeActionState={{ done: doneStates[recipe.id], write: writeStates[recipe.id], share: false }}
-                    onRecipeAction={({ action }) => {
-                      if (action === 'done') handleDoneClick(recipe.id);
-                      else if (action === 'share') handleShareClick(recipe);
-                      else if (action === 'write') handleWriteClick(recipe.id);
-                    }}
-                    isLast={idx === recordedRecipes.length - 1}
-                    myIngredients={myIngredients}
-                    substituteTable={substituteTable}
-                  />
-                </div>
-              ))
-            )}
-          </div>
+          <VirtualizedHorizontalRecipeList
+            recipes={recordedRecipes}
+            myIngredients={myIngredients}
+            substituteTable={substituteTable}
+            recipeActionStates={{ 
+              ...Object.fromEntries(recordedRecipes.map(recipe => [
+                recipe.id, 
+                { done: doneStates[recipe.id], write: writeStates[recipe.id], share: false }
+              ]))
+            }}
+            onRecipeAction={(recipe, action) => {
+              if (action === 'done') handleDoneClick(recipe.id);
+              else if (action === 'share') handleShareClick(recipe);
+              else if (action === 'write') handleWriteClick(recipe.id);
+            }}
+            cardWidth={360}
+            cardHeight={320}
+            gap={16}
+          />
         </div>
         {/* 내가 완료한 레시피 */}
         <div style={{ paddingLeft: 32, marginTop: 0 }}>
@@ -433,45 +414,25 @@ const MyPage = () => {
             </div>
             <span style={{ color: '#666', fontSize: '12px', marginRight: 32 }}>총 {completedRecipes.length.toLocaleString()}건</span>
           </div>
-          <div style={{
-            display: 'flex',
-            overflowX: 'auto',
-            gap: 16,
-            paddingBottom: 8,
-            minHeight: 180,
-            alignItems: 'center',
-            justifyContent: completedRecipes.length === 0 ? 'center' : 'flex-start',
-            paddingRight: 64,
-          }}>
-            {completedRecipes.length === 0 ? (
-              <span style={{ color: '#bbb', fontSize: 13, textAlign: 'center', width: '100%' }}>레시피를 완료해 주세요</span>
-            ) : (
-              completedRecipes.map((recipe, idx) => (
-                <div
-                  key={recipe.id}
-                  style={{
-                    minWidth: 360,
-                    maxWidth: 360,
-                    flex: '0 0 360px',
-                  }}
-                >
-                  <RecipeCard
-                    recipe={recipe}
-                    index={idx}
-                    recipeActionState={{ done: doneStates[recipe.id], write: writeStates[recipe.id], share: false }}
-                    onRecipeAction={({ action }) => {
-                      if (action === 'done') handleDoneClick(recipe.id);
-                      else if (action === 'share') handleShareClick(recipe);
-                      else if (action === 'write') handleWriteClick(recipe.id);
-                    }}
-                    isLast={idx === completedRecipes.length - 1}
-                    myIngredients={myIngredients}
-                    substituteTable={substituteTable}
-                  />
-                </div>
-              ))
-            )}
-          </div>
+          <VirtualizedHorizontalRecipeList
+            recipes={completedRecipes}
+            myIngredients={myIngredients}
+            substituteTable={substituteTable}
+            recipeActionStates={{ 
+              ...Object.fromEntries(completedRecipes.map(recipe => [
+                recipe.id, 
+                { done: doneStates[recipe.id], write: writeStates[recipe.id], share: false }
+              ]))
+            }}
+            onRecipeAction={(recipe, action) => {
+              if (action === 'done') handleDoneClick(recipe.id);
+              else if (action === 'share') handleShareClick(recipe);
+              else if (action === 'write') handleWriteClick(recipe.id);
+            }}
+            cardWidth={360}
+            cardHeight={320}
+            gap={16}
+          />
         </div>
       </div>
       {/* 광고 영역 */}
