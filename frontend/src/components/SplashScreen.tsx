@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import splashImg from '../assets/open_loading_page.png';
 
 interface SplashScreenProps {
@@ -21,15 +21,22 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ recipeCount }) => {
     // 처음부터 바로 룰렛 애니메이션 시작
     setStage('roulette');
     rouletteStartTime.current = Date.now();
-    startRouletteAnimation();
     
-    // 0.8초간 룰렛 애니메이션 후 실제값 표시
-    timeoutRefs.current.push(
-      window.setTimeout(() => {
+    const animate = () => {
+      const elapsed = Date.now() - rouletteStartTime.current;
+      
+      if (elapsed < 400) { // 0.4초 동안 룰렛
+        const randomDigits = Array.from({ length: 4 }, () => Math.floor(Math.random() * 10).toString());
+        setDisplayDigits(randomDigits);
+        animationRef.current = requestAnimationFrame(animate);
+      } else {
+        // 룰렛 종료 시 바로 실제값으로 설정
         setStage('final');
         setDisplayDigits(padNumber(recipeCount, 4).split(''));
-      }, 800)
-    );
+      }
+    };
+    
+    animationRef.current = requestAnimationFrame(animate);
 
     return () => {
       timeoutRefs.current.forEach(clearTimeout);
@@ -38,24 +45,6 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ recipeCount }) => {
       }
     };
   }, [recipeCount]);
-
-  const startRouletteAnimation = () => {
-    const animate = () => {
-      const elapsed = Date.now() - rouletteStartTime.current;
-      
-      if (elapsed < 800 && stage === 'roulette') { // 0.8초 동안 룰렛
-        const randomDigits = Array.from({ length: 4 }, () => Math.floor(Math.random() * 10).toString());
-        setDisplayDigits(randomDigits);
-        animationRef.current = requestAnimationFrame(animate);
-      } else if (stage === 'roulette') {
-        // 룰렛 종료 시 실제값으로 설정
-        setStage('final');
-        setDisplayDigits(padNumber(recipeCount, 4).split(''));
-      }
-    };
-    
-    animationRef.current = requestAnimationFrame(animate);
-  };
 
   // 쉼표 추가 (4자리 기준)
   const formatted = `${displayDigits[0]},${displayDigits[1]}${displayDigits[2]}${displayDigits[3]}`;
