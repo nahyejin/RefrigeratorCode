@@ -10,27 +10,20 @@ function padNumber(num: number, length: number) {
 }
 
 const SplashScreen: React.FC<SplashScreenProps> = ({ recipeCount }) => {
-  // 단계: zero(0,000) → roulette(룰렛) → final(실제값)
-  const [stage, setStage] = useState<'zero' | 'roulette' | 'final'>('zero');
+  // 단계: roulette(룰렛) → final(실제값)
+  const [stage, setStage] = useState<'roulette' | 'final'>('roulette');
   const [displayDigits, setDisplayDigits] = useState<string[]>(['0', '0', '0', '0']);
   const animationRef = useRef<number>();
   const timeoutRefs = useRef<number[]>([]);
   const rouletteStartTime = useRef<number>(0);
 
   useEffect(() => {
-    // 0.5초간 0,000 표시
-    setDisplayDigits(['0', '0', '0', '0']);
-    setStage('zero');
+    // 처음부터 바로 룰렛 애니메이션 시작
+    setStage('roulette');
+    rouletteStartTime.current = Date.now();
+    startRouletteAnimation();
     
-    timeoutRefs.current.push(
-      window.setTimeout(() => {
-        setStage('roulette');
-        rouletteStartTime.current = Date.now();
-        startRouletteAnimation();
-      }, 500)
-    );
-    
-    // 0.3초간 룰렛 애니메이션 후 실제값 표시
+    // 0.8초간 룰렛 애니메이션 후 실제값 표시
     timeoutRefs.current.push(
       window.setTimeout(() => {
         setStage('final');
@@ -50,7 +43,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ recipeCount }) => {
     const animate = () => {
       const elapsed = Date.now() - rouletteStartTime.current;
       
-      if (elapsed < 300 && stage === 'roulette') { // 0.3초 동안 룰렛
+      if (elapsed < 800 && stage === 'roulette') { // 0.8초 동안 룰렛
         const randomDigits = Array.from({ length: 4 }, () => Math.floor(Math.random() * 10).toString());
         setDisplayDigits(randomDigits);
         animationRef.current = requestAnimationFrame(animate);
