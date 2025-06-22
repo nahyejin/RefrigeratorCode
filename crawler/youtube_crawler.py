@@ -44,6 +44,10 @@ class YouTubeCrawler:
             'total_quota_used': 0
         }
         
+        # 할당량 제한 설정 (YouTube API 일일 할당량: 10,000 units)
+        self.daily_quota_limit = 9500  # 안전 마진 500 units
+        self.quota_exceeded = False
+        
         # DB 연결
         self.conn = pymysql.connect(
             host='localhost',
@@ -54,6 +58,10 @@ class YouTubeCrawler:
             cursorclass=pymysql.cursors.DictCursor
         )
         self.cursor = self.conn.cursor()
+        
+        # 채널 캐싱 테이블 생성
+        self.create_channel_cache_table()
+        
         self.ingredient_patterns = [
             r'재료\s*[:\s]*(.*?)(?=\n\n|\Z)',
             r'필요한\s*재료\s*[:\s]*(.*?)(?=\n\n|\Z)',
@@ -61,8 +69,72 @@ class YouTubeCrawler:
             r'재료\s*준비\s*[:\s]*(.*?)(?=\n\n|\Z)'
         ]
 
+    def create_channel_cache_table(self):
+        """채널 ID 캐싱을 위한 테이블 생성"""
+        try:
+            sql = """
+            CREATE TABLE IF NOT EXISTS youtube_channel_cache (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                channel_url VARCHAR(255) UNIQUE NOT NULL,
+                channel_id VARCHAR(100) NOT NULL,
+                channel_title VARCHAR(255),
+                last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_channel_url (channel_url),
+                INDEX idx_channel_id (channel_id)
+            )
+            """
+            self.cursor.execute(sql)
+            self.conn.commit()
+            logger.info("YouTube 채널 캐시 테이블 생성 완료")
+        except Exception as e:
+            logger.error(f"채널 캐시 테이블 생성 실패: {e}")
+
+    def get_cached_channel_id(self, channel_url):
+        """캐시에서 채널 ID 조회"""
+        try:
+            sql = "SELECT channel_id, channel_title FROM youtube_channel_cache WHERE channel_url = %s"
+            self.cursor.execute(sql, (channel_url,))
+            result = self.cursor.fetchone()
+            if result:
+                logger.info(f"캐시에서 채널 ID 조회: {channel_url} -> {result['channel_id']}")
+                return result['channel_id'], result['channel_title']
+        except Exception as e:
+            logger.error(f"캐시 조회 실패: {e}")
+        return None, None
+
+    def cache_channel_id(self, channel_url, channel_id, channel_title=None):
+        """채널 ID를 캐시에 저장"""
+        try:
+            sql = """
+            INSERT INTO youtube_channel_cache (channel_url, channel_id, channel_title) 
+            VALUES (%s, %s, %s) 
+            ON DUPLICATE KEY UPDATE 
+            channel_id = VALUES(channel_id), 
+            channel_title = VALUES(channel_title),
+            last_updated = CURRENT_TIMESTAMP
+            """
+            self.cursor.execute(sql, (channel_url, channel_id, channel_title))
+            self.conn.commit()
+            logger.info(f"캐시에 채널 ID 저장: {channel_url} -> {channel_id}")
+        except Exception as e:
+            logger.error(f"캐시 저장 실패: {e}")
+
+    def check_quota_limit(self, required_quota=100):
+        """할당량 제한 확인"""
+        if self.quota_exceeded:
+            return False
+        
+        if self.api_quota_used['total_quota_used'] + required_quota > self.daily_quota_limit:
+            logger.warning(f"할당량 제한 도달: 현재 {self.api_quota_used['total_quota_used']}, 제한 {self.daily_quota_limit}")
+            self.quota_exceeded = True
+            return False
+        return True
+
     def log_api_call(self, api_type, endpoint, quota_cost=1):
         """API 호출을 로깅하고 할당량 사용량을 추적"""
+        if not self.check_quota_limit(quota_cost):
+            raise Exception("할당량 제한에 도달했습니다")
+        
         self.api_quota_used[f'{api_type}_api_calls'] += 1
         self.api_quota_used['total_quota_used'] += quota_cost
         
@@ -71,6 +143,20 @@ class YouTubeCrawler:
     def get_channel_id_from_url(self, url):
         # URL 디코딩 처리
         url = urllib.parse.unquote(url)
+        
+        # 1. 먼저 캐시에서 조회
+        cached_channel_id, cached_title = self.get_cached_channel_id(url)
+        if cached_channel_id:
+            return cached_channel_id
+        
+        # 2. 직접 채널 ID인 경우
+        match = re.search(r"youtube.com/channel/([\w\-]+)", url)
+        if match:
+            channel_id = match.group(1)
+            self.cache_channel_id(url, channel_id)
+            return channel_id
+        
+        # 3. @username 형태인 경우 API 호출
         match = re.search(r"youtube.com/@([\w\-_.%]+)", url)
         if match:
             username = match.group(1)
@@ -83,13 +169,15 @@ class YouTubeCrawler:
                     maxResults=1
                 ).execute()
                 if search_response['items']:
-                    return search_response['items'][0]['snippet']['channelId']
+                    channel_id = search_response['items'][0]['snippet']['channelId']
+                    channel_title = search_response['items'][0]['snippet']['title']
+                    # 캐시에 저장
+                    self.cache_channel_id(url, channel_id, channel_title)
+                    return channel_id
             except Exception as e2:
                 logger.error(f"Error finding channel ID for {url}: {e2}")
                 return None
-        match = re.search(r"youtube.com/channel/([\w\-]+)", url)
-        if match:
-            return match.group(1)
+        
         return None
 
     def get_existing_video_ids(self):
@@ -297,48 +385,57 @@ class YouTubeCrawler:
             print(f"배치 메타데이터 업데이트 중 오류 발생: {str(e)}")
             self.conn.rollback()
 
-    def save_to_db(self, videos_info):
+    def save_to_db(self, video_info):
+        """단일 영상을 DB에 저장하고 성공/실패를 반환"""
         sql = '''
         INSERT IGNORE INTO recipes
         (title, link, content, used_ingredients, used_ingredients_block, block_reason, author, thumbnail, platform, hits, likes, comments, post_time, collected_at)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         '''
-        count = 0
-        for v in videos_info:
-            try:
-                # 재료 블록 추출 (update_used_ingredients_batch.py의 함수 사용)
-                block, reason = extract_best_ingredient_block(v['description'])
-                if not block or len(block.strip()) < 10:
-                    logger.info(f"Skipping video {v['link']} - no ingredients block found")
-                    continue
-                # 재료 추출
-                ingredients = extract_ingredients(block)
+        
+        try:
+            # 재료 블록 추출 (update_used_ingredients_batch.py의 함수 사용)
+            block, reason = extract_best_ingredient_block(video_info['description'])
+            if not block or len(block.strip()) < 10:
+                logger.info(f"Skipping video {video_info['link']} - no ingredients block found")
+                return False
                 
-                # 추출된 재료 개수 체크 (3개 이하이면 저장하지 않음)
-                if not ingredients or len(ingredients) <= 3:
-                    logger.info(f"Skipping video {v['link']} - extracted ingredients 3 or less: {ingredients}")
-                    continue
-                self.cursor.execute(sql, (
-                    v['title'],
-                    v['link'],
-                    v['description'],
-                    ','.join(ingredients) if ingredients else '',
-                    block,
-                    reason,
-                    v['channel_title'],
-                    '',  # Assuming no thumbnail for now
-                    self.platform,
-                    v['view_count'],
-                    v['like_count'],
-                    v['comment_count'],
-                    v['published_at'][:10],
-                    datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                ))
-                count += 1
-            except Exception as e:
-                logger.error(f"DB insert error for video {v['link']}: {e}")
-        self.conn.commit()
-        logger.info(f"Inserted {count} videos into DB.")
+            # 재료 추출
+            ingredients = extract_ingredients(block)
+            
+            # 추출된 재료 개수 체크 (3개 이하이면 저장하지 않음)
+            if not ingredients or len(ingredients) <= 3:
+                logger.info(f"Skipping video {video_info['link']} - extracted ingredients 3 or less: {ingredients}")
+                return False
+                
+            self.cursor.execute(sql, (
+                video_info['title'],
+                video_info['link'],
+                video_info['description'],
+                ','.join(ingredients) if ingredients else '',
+                block,
+                reason,
+                video_info['channel_title'],
+                '',  # Assuming no thumbnail for now
+                self.platform,
+                video_info['view_count'],
+                video_info['like_count'],
+                video_info['comment_count'],
+                video_info['published_at'][:10],
+                datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            ))
+            
+            # INSERT IGNORE의 영향을 확인
+            if self.cursor.rowcount > 0:
+                logger.info(f"새 영상 저장 성공: {video_info['title']}")
+                return True
+            else:
+                logger.info(f"이미 존재하는 영상: {video_info['title']}")
+                return False
+                
+        except Exception as e:
+            logger.error(f"DB insert error for video {video_info['link']}: {e}")
+            return False
 
     def process_influencer_list(self, csv_path='frontend/public/YouTube_Cooking_influencer.csv'):
         """인플루언서 목록을 처리하고 영상을 수집"""
@@ -349,8 +446,19 @@ class YouTubeCrawler:
             
             df = pd.read_csv(csv_path)
             total_influencers = len(df)
+            processed_count = 0
+            new_videos_count = 0
+            
+            logger.info(f"=== YouTube 크롤러 시작 ===")
+            logger.info(f"총 인플루언서 수: {total_influencers}")
+            logger.info(f"기존 영상 수: {len(existing_ids)}")
+            logger.info(f"할당량 제한: {self.daily_quota_limit} units")
             
             for idx, row in df.iterrows():
+                if self.quota_exceeded:
+                    logger.warning("할당량 제한에 도달하여 크롤링을 중단합니다.")
+                    break
+                
                 channel_url = row['URL']
                 print(f"\n[진행상황] {idx+1}/{total_influencers} 처리 중: {channel_url}")
                 
@@ -371,23 +479,38 @@ class YouTubeCrawler:
                     print(f"[진행상황] {len(new_video_ids)}개의 새로운 영상 발견")
                     videos_info = self.get_videos_info(new_video_ids)
                     
+                    saved_count = 0
                     for video in videos_info:
-                        self.save_to_db(video)
-                        existing_ids.add(video['video_id'])  # 새로 저장된 영상 ID 추가
+                        if self.save_to_db(video):
+                            existing_ids.add(video['video_id'])  # 새로 저장된 영상 ID 추가
+                            saved_count += 1
                     
-                    print(f"[진행상황] {len(videos_info)}개 영상 저장 완료")
+                    new_videos_count += saved_count
+                    print(f"[진행상황] {saved_count}개 영상 저장 완료")
                     
                 except Exception as e:
-                    print(f"인플루언서 처리 중 오류 발생: {str(e)}")
-                    continue
+                    if "할당량 제한에 도달했습니다" in str(e):
+                        logger.error(f"할당량 제한으로 인해 크롤링 중단: {channel_url}")
+                        break
+                    else:
+                        print(f"인플루언서 처리 중 오류 발생: {str(e)}")
+                        continue
+                
+                processed_count += 1
                     
             print("\n모든 인플루언서 처리 완료")
             
             # API 할당량 사용량 요약 출력
             logger.info("=== YouTube API 할당량 사용량 요약 ===")
+            logger.info(f"처리된 인플루언서 수: {processed_count}/{total_influencers}")
+            logger.info(f"새로 수집된 영상 수: {new_videos_count}")
             logger.info(f"Search API 호출 횟수: {self.api_quota_used['search_api_calls']}")
             logger.info(f"Videos API 호출 횟수: {self.api_quota_used['videos_api_calls']}")
             logger.info(f"총 할당량 사용량: {self.api_quota_used['total_quota_used']}")
+            logger.info(f"할당량 제한: {self.daily_quota_limit}")
+            logger.info(f"할당량 잔여량: {self.daily_quota_limit - self.api_quota_used['total_quota_used']}")
+            if self.quota_exceeded:
+                logger.warning("할당량 제한에 도달하여 일부 인플루언서가 처리되지 않았습니다.")
             logger.info("=== 할당량 사용량 요약 완료 ===")
             
             # 메타데이터 업데이트는 별도 함수로 분리하여 필요시에만 실행

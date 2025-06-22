@@ -8,7 +8,7 @@ ingredient_text_utils.py                       ㅣ 재료 텍스트 전처리 �
 update_used_ingredients_batch.py               ㅣ 레시피 텍스트에서 추출한 재료 결과(`used_ingredients`)를 데이터셋에 반영하는 배치 처리 로직 구현. refrigerator_crawler.py 실행 후 자동으로 실행됨.
 crawler/naver_influencer_crawler.py            ㅣ 네이버 인플루언서 핫토픽 크롤러 (단독 실행 가능, 배치 자동 실행)
 crawler/naver_blog_crawler.py                  ㅣ 네이버 블로그 주제별보기 크롤러 (단독 실행 가능, 배치 자동 실행)
-crawler/youtube_crawler.py                     ㅣ 유튜브 인플루언서 크롤러 (단독 실행 가능, 배치 자동 실행)
+crawler/youtube_crawler.py                     ㅣ 유튜브 인플루언서 크롤러 (단독 실행 가능, 배치 자동 실행) - API 할당량 최적화 적용
 run_all_crawlers.py                            ㅣ 모든 크롤러를 순차적으로 자동 실행하는 통합 스크립트 (권장)
 export_recipes_all.ipynb                       ㅣ 수집된 레시피 데이터를 가공·요약·정제하는 보조 코드.
 generate_substitutes2_by_trait_similarity.ipynbㅣ 사전내에서 재료의 특징 패턴을 찾아 대체제를 자동으로 채워주는 코드. 
@@ -39,6 +39,57 @@ ingredient_profile_dict_v1.csv                 ㅣ 주요 식재료별 명칭, �
 ingredient_substitute_table_v1.csv             ㅣ 재료 대체 가능성 사전 (예: 설탕 → 알룰로스 등) 정의, 재료 부족 시 대체 추천에 활용
 ----------------------------------------------------------------------------------------
 
+## 🚀 YouTube API 할당량 최적화 (2025-06-22 업데이트)
+
+### 📊 API 할당량 비용 구조
+- **Search API**: 100 units per request (채널 검색, 영상 목록 조회)
+- **Videos API**: 1 unit per request (영상 상세정보 조회)
+- **일일 할당량**: 10,000 units (Google Cloud Console 기준)
+
+### 🔧 최적화 기능
+
+#### 1. 채널 ID 캐싱 시스템
+- **테이블**: `youtube_channel_cache`
+- **기능**: 
+  - 채널 URL → 채널 ID 매핑을 DB에 저장
+  - 재실행 시 API 호출 없이 캐시에서 조회
+  - 할당량 절약: 채널당 100 units 절약
+
+#### 2. 할당량 모니터링
+- **실시간 추적**: API 호출마다 할당량 사용량 로깅
+- **제한 설정**: 9,500 units (안전 마진 500 units)
+- **조기 종료**: 할당량 초과 시 자동 중단
+
+#### 3. 에러 처리 개선
+- **할당량 초과 감지**: 403 quotaExceeded 에러 시 조기 종료
+- **상세 로깅**: 각 API 호출의 할당량 비용과 총 사용량 추적
+- **진행 상황 표시**: 처리된 인플루언서 수, 새로 수집된 영상 수
+
+### 📈 성능 개선 효과
+- **첫 실행**: 49개 채널 × 100 units = 4,900 units 사용
+- **재실행**: 캐시된 채널은 0 units, 새로운 채널만 API 호출
+- **할당량 효율성**: 약 50% 할당량 절약 가능
+
+### 🔍 로깅 예시
+```
+=== YouTube 크롤러 시작 ===
+총 인플루언서 수: 49
+기존 영상 수: 6650
+할당량 제한: 9500 units
+
+API 호출: search - 채널 검색: @username (할당량 비용: 100, 총 사용량: 100)
+캐시에서 채널 ID 조회: https://youtube.com/@username -> UC123456789
+
+=== YouTube API 할당량 사용량 요약 ===
+처리된 인플루언서 수: 25/49
+새로 수집된 영상 수: 15
+Search API 호출 횟수: 25
+Videos API 호출 횟수: 3
+총 할당량 사용량: 2503
+할당량 제한: 9500
+할당량 잔여량: 6997
+```
+
 ⚠️ 필수 주의사항
 konlpy는 0.5.2 버전, JPype1은 1.4.1 버전으로 설치해야 Komoran 정상 작동
 
@@ -47,6 +98,8 @@ open-korean-text-2.1.0.jar 파일 안에 kr.lucypark.okt.OktInterface 클래스�
 모든 코드는 반드시 가상환경 venv310 안에서 실행할 것
 
 extract_keywords_dual_view.py는 Komoran 기반으로 명사/띄어쓰기 단어를 모두 추출하며, full 저장 모드와 top-100 저장 모드를 모두 지원함
+
+**YouTube API 할당량**: 매일 자정에 리셋되므로, 할당량 초과 시 다음 날까지 대기 필요
 
 ✅ 4. 프로젝트 폴더 구조 및 역할
 
