@@ -31,7 +31,8 @@ logger = logging.getLogger(__name__)
 class YouTubeCrawler:
     def __init__(self):
         load_dotenv()
-        self.api_key = os.getenv('YOUTUBE_API_KEY')
+        # 환경변수에서 API 키를 가져오거나 직접 설정
+        self.api_key = os.getenv('YOUTUBE_API_KEY') or 'AIzaSyAHp_0bod-XWi5yNItEhQu16VWKy-fBA2Q'
         if not self.api_key:
             raise ValueError("YouTube API 키가 설정되지 않았습니다.")
         
@@ -41,7 +42,7 @@ class YouTubeCrawler:
         self.db = pymysql.connect(
             host=os.getenv('DB_HOST', 'localhost'),
             user=os.getenv('DB_USER', 'root'),
-            password=os.getenv('DB_PASSWORD', ''),
+            password=os.getenv('DB_PASSWORD', 'sk784512!!'),
             database=os.getenv('DB_NAME', 'refrigerator'),
             charset='utf8mb4'
         )
