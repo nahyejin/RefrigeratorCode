@@ -194,7 +194,7 @@ def extract_ingredients(text):
 total_recipes = len(recipes)
 for i, recipe in enumerate(recipes, 1):
     if i % 10 == 0:
-        print(f"🔄 진행 중: {i}/{total_recipes} ({round(i/total_recipes*100)}%) 완료")
+        print(f"진행 중: {i}/{total_recipes} ({round(i/total_recipes*100)}%) 완료")
         
     recipe_id = recipe['id']
     content = recipe['content']
@@ -220,7 +220,7 @@ for i, recipe in enumerate(recipes, 1):
     ))
     
 db.commit()
-print("✅ used_ingredients, used_ingredients_block, block_reason 업데이트 완료!")
+print("used_ingredients, used_ingredients_block, block_reason 업데이트 완료!")
 
 # 연결 종료
 cursor.close()

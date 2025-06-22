@@ -37,6 +37,13 @@ class YouTubeCrawler:
         
         self.youtube = build('youtube', 'v3', developerKey=self.api_key)
         self.platform = 'youtube(인플루언서)'
+        # API 할당량 추적을 위한 카운터
+        self.api_quota_used = {
+            'search_api_calls': 0,
+            'videos_api_calls': 0,
+            'total_quota_used': 0
+        }
+        
         # DB 연결
         self.conn = pymysql.connect(
             host='localhost',
@@ -54,6 +61,13 @@ class YouTubeCrawler:
             r'재료\s*준비\s*[:\s]*(.*?)(?=\n\n|\Z)'
         ]
 
+    def log_api_call(self, api_type, endpoint, quota_cost=1):
+        """API 호출을 로깅하고 할당량 사용량을 추적"""
+        self.api_quota_used[f'{api_type}_api_calls'] += 1
+        self.api_quota_used['total_quota_used'] += quota_cost
+        
+        logger.info(f"API 호출: {api_type} - {endpoint} (할당량 비용: {quota_cost}, 총 사용량: {self.api_quota_used['total_quota_used']})")
+
     def get_channel_id_from_url(self, url):
         # URL 디코딩 처리
         url = urllib.parse.unquote(url)
@@ -61,6 +75,7 @@ class YouTubeCrawler:
         if match:
             username = match.group(1)
             try:
+                self.log_api_call('search', f'채널 검색: @{username}', quota_cost=100)
                 search_response = self.youtube.search().list(
                     part="snippet",
                     q=f"@{username}",
@@ -93,8 +108,13 @@ class YouTubeCrawler:
         """채널의 모든 동영상을 페이지네이션으로 가져옵니다."""
         all_video_ids = []
         next_page_token = None
+        page_count = 0
+        
         while True:
             try:
+                page_count += 1
+                self.log_api_call('search', f'채널 영상 목록: {channel_id} (페이지 {page_count})', quota_cost=100)
+                
                 request = self.youtube.search().list(
                     part="snippet",
                     channelId=channel_id,
@@ -106,6 +126,9 @@ class YouTubeCrawler:
                 response = request.execute()
                 video_ids = [item['id']['videoId'] for item in response['items']]
                 all_video_ids.extend(video_ids)
+                
+                logger.info(f"채널 {channel_id}에서 {len(video_ids)}개 영상 발견 (총 {len(all_video_ids)}개)")
+                
                 next_page_token = response.get('nextPageToken')
                 if not next_page_token:
                     break
@@ -118,10 +141,16 @@ class YouTubeCrawler:
     def get_videos_info(self, video_ids):
         """여러 영상의 정보를 한 번에 가져옴"""
         videos_info = []
+        batch_count = 0
+        
         # 50개씩 묶어서 처리
         for i in range(0, len(video_ids), 50):
             batch = video_ids[i:i+50]
+            batch_count += 1
+            
             try:
+                self.log_api_call('videos', f'영상 상세정보 배치 {batch_count} ({len(batch)}개)', quota_cost=1)
+                
                 request = self.youtube.videos().list(
                     part="snippet,statistics",
                     id=','.join(batch)
@@ -145,6 +174,7 @@ class YouTubeCrawler:
                     }
                     videos_info.append(video_info)
                 
+                logger.info(f"배치 {batch_count} 처리 완료: {len(response['items'])}개 영상 정보 수집")
                 time.sleep(0.5)  # API 쿼터 보호
             except Exception as e:
                 print(f"영상 정보 조회 중 오류 발생: {str(e)}")
@@ -283,6 +313,11 @@ class YouTubeCrawler:
                     continue
                 # 재료 추출
                 ingredients = extract_ingredients(block)
+                
+                # 추출된 재료 개수 체크 (3개 이하이면 저장하지 않음)
+                if not ingredients or len(ingredients) <= 3:
+                    logger.info(f"Skipping video {v['link']} - extracted ingredients 3 or less: {ingredients}")
+                    continue
                 self.cursor.execute(sql, (
                     v['title'],
                     v['link'],
@@ -348,9 +383,15 @@ class YouTubeCrawler:
                     
             print("\n모든 인플루언서 처리 완료")
             
-            # 최근 3일간의 영상 메타데이터 업데이트
-            print("\n최근 영상 메타데이터 업데이트 시작...")
-            self.update_recent_videos_metadata()
+            # API 할당량 사용량 요약 출력
+            logger.info("=== YouTube API 할당량 사용량 요약 ===")
+            logger.info(f"Search API 호출 횟수: {self.api_quota_used['search_api_calls']}")
+            logger.info(f"Videos API 호출 횟수: {self.api_quota_used['videos_api_calls']}")
+            logger.info(f"총 할당량 사용량: {self.api_quota_used['total_quota_used']}")
+            logger.info("=== 할당량 사용량 요약 완료 ===")
+            
+            # 메타데이터 업데이트는 별도 함수로 분리하여 필요시에만 실행
+            # self.update_recent_videos_metadata()  # 이 줄 제거
             
         except Exception as e:
             print(f"인플루언서 목록 처리 중 오류 발생: {str(e)}")
@@ -359,8 +400,8 @@ def main():
     try:
         crawler = YouTubeCrawler()
         crawler.process_influencer_list()
-        # 최근 3일 내 영상들의 메타데이터 업데이트
-        crawler.update_recent_videos_metadata(days=3)
+        # 메타데이터 업데이트는 별도로 실행하거나 주석 처리
+        # crawler.update_recent_videos_metadata(days=3)  # 이 줄 제거
     except Exception as e:
         logger.error(f"Error in main: {str(e)}")
     # 크롤링이 끝나면 update_used_ingredients_batch.py 자동 실행
