@@ -361,6 +361,11 @@ class NaverInfluencerCrawler:
                 logger.info(f"[SKIP NO INGREDIENTS] 재료 정보가 없는 포스트: {current_url}")
                 return {}
             used_ingredients = extract_ingredients(used_ingredients_block)
+            
+            # 추출된 재료 개수 체크 (3개 이하이면 저장하지 않음)
+            if not used_ingredients or len(used_ingredients) <= 3:
+                logger.info(f"[SKIP FEW INGREDIENTS] 추출된 재료가 3개 이하인 포스트: {current_url} (재료: {used_ingredients})")
+                return {}
             # ---
 
             return {

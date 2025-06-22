@@ -35,7 +35,7 @@ class NaverBlogCrawler(BaseCrawler):
         """Setup Selenium WebDriver."""
         driver_path = "C:/Users/user/Desktop/RefrigeratorCode/chromedriver-win64/chromedriver.exe"
         options = Options()
-        # options.add_argument("--headless")  # 창이 뜨도록 headless 옵션 제거
+        options.add_argument("--headless")  # headless 모드 활성화
         options.add_argument("--disable-gpu")
         options.add_argument("--window-size=1920x1080")
         service = Service(driver_path)
@@ -482,6 +482,12 @@ class NaverBlogCrawler(BaseCrawler):
                 self.driver.switch_to.default_content()
                 return None
             used_ingredients = extract_ingredients(used_ingredients_block)
+            
+            # 추출된 재료 개수 체크 (3개 이하이면 저장하지 않음)
+            if not used_ingredients or len(used_ingredients) <= 3:
+                print(f"❌ 추출된 재료가 3개 이하여서 저장하지 않음: {link} (재료: {used_ingredients})")
+                self.driver.switch_to.default_content()
+                return None
             # ---
 
             # 썸네일
