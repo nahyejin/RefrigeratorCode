@@ -83789,3 +83789,883 @@ Stacktrace:
 2025-06-23 06:51:39,302 - INFO - === 할당량 사용량 요약 완료 ===
 2025-06-23 06:51:39,302 - INFO - Running update_used_ingredients_batch.py...
 2025-06-23 06:56:32,048 - INFO - update_used_ingredients_batch.py finished.
+2025-06-23 07:30:50,565 - INFO - file_cache is only supported with oauth2client<4.0.0
+2025-06-23 07:30:50,583 - INFO - === YouTube 크롤러 시작 ===
+2025-06-23 07:30:50,583 - INFO - 총 인플루언서 수: 49
+2025-06-23 07:30:50,583 - INFO - 기존 영상 수: 0
+2025-06-23 07:30:50,583 - INFO - 할당량 제한: 9500 units
+2025-06-23 07:30:50,584 - INFO - API 호출: search - 채널 검색: @paik_jongwon   (할당량 비용: 100, 총 사용량: 100)
+2025-06-23 07:30:51,056 - WARNING - Encountered 403 Forbidden with reason "quotaExceeded"
+2025-06-23 07:30:51,057 - WARNING - Encountered 403 Forbidden with reason "quotaExceeded"
+2025-06-23 07:30:51,058 - ERROR - Error finding channel ID for @paik_jongwon  : <HttpError 403 when requesting https://youtube.googleapis.com/youtube/v3/search?part=snippet&q=%40paik_jongwon++&type=channel&maxResults=1&key=AIzaSyAHp_0bod-XWi5yNItEhQu16VWKy-fBA2Q&alt=json returned "The request cannot be completed because you have exceeded your <a href="/youtube/v3/getting-started#quota">quota</a>.". Details: "[{'message': 'The request cannot be completed because you have exceeded your <a href="/youtube/v3/getting-started#quota">quota</a>.', 'domain': 'youtube.quota', 'reason': 'quotaExceeded'}]">
+2025-06-23 07:30:51,059 - WARNING - 할당량 초과로 조기 종료 (처리된 인플루언서: 0/49)
+2025-06-23 07:30:51,060 - INFO - === YouTube API 할당량 사용량 요약 ===
+2025-06-23 07:30:51,060 - INFO - 처리된 인플루언서 수: 0/49
+2025-06-23 07:30:51,061 - INFO - 새로 수집된 영상 수: 0
+2025-06-23 07:30:51,061 - INFO - Search API 호출 횟수: 1
+2025-06-23 07:30:51,061 - INFO - Videos API 호출 횟수: 0
+2025-06-23 07:30:51,061 - INFO - 총 할당량 사용량: 100
+2025-06-23 07:30:51,061 - INFO - 할당량 제한: 9500
+2025-06-23 07:30:51,061 - INFO - 할당량 잔여량: 9400
+2025-06-23 07:30:51,062 - INFO - === 할당량 사용량 요약 완료 ===
+2025-06-23 07:30:51,062 - INFO - Running update_used_ingredients_batch.py...
+2025-06-23 07:35:47,226 - INFO - update_used_ingredients_batch.py finished.
+2025-06-23 19:24:27,784 - INFO - file_cache is only supported with oauth2client<4.0.0
+2025-06-23 19:24:27,794 - INFO - === YouTube 크롤러 시작 ===
+2025-06-23 19:24:27,794 - INFO - 총 인플루언서 수: 49
+2025-06-23 19:24:27,794 - INFO - 기존 영상 수: 0
+2025-06-23 19:24:27,794 - INFO - 할당량 제한: 9500 units
+2025-06-23 19:24:27,795 - INFO - API 호출: search - 채널 검색: @paik_jongwon   (할당량 비용: 100, 총 사용량: 100)
+2025-06-23 19:24:28,372 - INFO - API 호출: search - 채널 영상 목록: UCyn-K7rZLXjGl7VXGweIlcA (페이지 1) (할당량 비용: 100, 총 사용량: 200)
+2025-06-23 19:24:28,700 - INFO - API 호출: videos - 영상 상세정보 배치: 50개 (할당량 비용: 1, 총 사용량: 201)
+2025-06-23 19:24:28,869 - INFO - Skipping video https://www.youtube.com/watch?v=DJzHEhpCvbo - no ingredients block found
+2025-06-23 19:24:28,899 - INFO - Skipping video https://www.youtube.com/watch?v=6xNVYwqVQC0 - no ingredients block found
+2025-06-23 19:24:28,928 - INFO - Skipping video https://www.youtube.com/watch?v=GERYVlfWosg - no ingredients block found
+2025-06-23 19:24:28,959 - INFO - Skipping video https://www.youtube.com/watch?v=vbnUMpasxvA - no ingredients block found
+2025-06-23 19:24:28,989 - INFO - Skipping video https://www.youtube.com/watch?v=3ET3nXU--nY - too few ingredients (1)
+2025-06-23 19:24:29,020 - INFO - Skipping video https://www.youtube.com/watch?v=al0_T_mO9rM - no ingredients block found
+2025-06-23 19:24:29,050 - INFO - Skipping video https://www.youtube.com/watch?v=c9ZfEMh2tG8 - no ingredients block found
+2025-06-23 19:24:29,080 - INFO - Skipping video https://www.youtube.com/watch?v=OyVq1NzxjEM - no ingredients block found
+2025-06-23 19:24:29,110 - INFO - Skipping video https://www.youtube.com/watch?v=iK0dSM4FqVs - too few ingredients (1)
+2025-06-23 19:24:29,140 - INFO - Skipping video https://www.youtube.com/watch?v=ZYr-Vgn2w-8 - no ingredients block found
+2025-06-23 19:24:29,170 - INFO - Skipping video https://www.youtube.com/watch?v=iMmOC4Xbb1M - too few ingredients (1)
+2025-06-23 19:24:29,200 - INFO - Skipping video https://www.youtube.com/watch?v=cUpE5s11kbU - no ingredients block found
+2025-06-23 19:24:29,230 - INFO - Skipping video https://www.youtube.com/watch?v=xRONNVN3RCE - no ingredients block found
+2025-06-23 19:24:29,261 - INFO - Skipping video https://www.youtube.com/watch?v=9KtzgdvHYYE - no ingredients block found
+2025-06-23 19:24:29,290 - INFO - Skipping video https://www.youtube.com/watch?v=LKiuHdFdLWg - no ingredients block found
+2025-06-23 19:24:29,320 - INFO - Skipping video https://www.youtube.com/watch?v=p76S5oWanN0 - no ingredients block found
+2025-06-23 19:24:29,351 - INFO - Skipping video https://www.youtube.com/watch?v=4d5epeSKm68 - no ingredients block found
+2025-06-23 19:24:29,381 - INFO - Skipping video https://www.youtube.com/watch?v=5F1GQFQADK0 - no ingredients block found
+2025-06-23 19:24:29,411 - INFO - Skipping video https://www.youtube.com/watch?v=7zSEQN-VuWw - no ingredients block found
+2025-06-23 19:24:29,442 - INFO - Skipping video https://www.youtube.com/watch?v=Nd8igTrYvyw - too few ingredients (1)
+2025-06-23 19:24:29,471 - INFO - Skipping video https://www.youtube.com/watch?v=lP7Ioi0Xu1A - no ingredients block found
+2025-06-23 19:24:29,546 - INFO - Skipping video https://www.youtube.com/watch?v=5D-b2NrZoQI - no ingredients block found
+2025-06-23 19:24:29,580 - INFO - Skipping video https://www.youtube.com/watch?v=fSy1YG-uY5Y - too few ingredients (1)
+2025-06-23 19:24:29,608 - INFO - Skipping video https://www.youtube.com/watch?v=BcZ6qYrTqIU - no ingredients block found
+2025-06-23 19:24:29,675 - INFO - Skipping video https://www.youtube.com/watch?v=saBMXFDw9SQ - no ingredients block found
+2025-06-23 19:24:29,712 - INFO - Skipping video https://www.youtube.com/watch?v=wtvo-n3ovZo - too few ingredients (1)
+2025-06-23 19:24:29,745 - INFO - Skipping video https://www.youtube.com/watch?v=pnbcqRLpADQ - too few ingredients (2)
+2025-06-23 19:24:29,774 - INFO - Skipping video https://www.youtube.com/watch?v=CjTbumZOFcM - no ingredients block found
+2025-06-23 19:24:29,802 - INFO - Skipping video https://www.youtube.com/watch?v=opgXYFG-K7Q - no ingredients block found
+2025-06-23 19:24:29,831 - INFO - Skipping video https://www.youtube.com/watch?v=KburR6QBmgg - no ingredients block found
+2025-06-23 19:24:29,859 - INFO - Skipping video https://www.youtube.com/watch?v=Ex12Cj8XGWw - no ingredients block found
+2025-06-23 19:24:29,893 - INFO - Skipping video https://www.youtube.com/watch?v=Tr2KL-Xl85k - no ingredients block found
+2025-06-23 19:24:29,927 - INFO - Skipping video https://www.youtube.com/watch?v=QbJNAiZZhXw - no ingredients block found
+2025-06-23 19:24:29,962 - INFO - Skipping video https://www.youtube.com/watch?v=eXHN6g664xE - too few ingredients (2)
+2025-06-23 19:24:30,100 - INFO - Skipping video https://www.youtube.com/watch?v=PgIJlbWb7Nc - too few ingredients (2)
+2025-06-23 19:24:30,128 - INFO - Skipping video https://www.youtube.com/watch?v=kb410U8gEZ8 - no ingredients block found
+2025-06-23 19:24:30,193 - INFO - Skipping video https://www.youtube.com/watch?v=MaiWn55K1aE - no ingredients block found
+2025-06-23 19:24:30,222 - INFO - Skipping video https://www.youtube.com/watch?v=tuc_c0H0Yn0 - no ingredients block found
+2025-06-23 19:24:30,259 - INFO - Skipping video https://www.youtube.com/watch?v=R8mFQlArXg8 - too few ingredients (2)
+2025-06-23 19:24:30,359 - INFO - Skipping video https://www.youtube.com/watch?v=_NzpO-SNqPg - too few ingredients (1)
+2025-06-23 19:24:30,389 - INFO - Skipping video https://www.youtube.com/watch?v=utIbM9Iua-k - no ingredients block found
+2025-06-23 19:24:30,418 - INFO - Skipping video https://www.youtube.com/watch?v=ce-i1FdCJTk - too few ingredients (1)
+2025-06-23 19:24:30,418 - INFO - API 호출: search - 채널 검색: @deliciousday1   (할당량 비용: 100, 총 사용량: 301)
+2025-06-23 19:24:30,719 - INFO - API 호출: search - 채널 영상 목록: UCFiYPUhUzLKoi-cZ0AwpjLA (페이지 1) (할당량 비용: 100, 총 사용량: 401)
+2025-06-23 19:24:31,114 - INFO - API 호출: videos - 영상 상세정보 배치: 50개 (할당량 비용: 1, 총 사용량: 402)
+2025-06-23 19:24:33,076 - INFO - Skipping video https://www.youtube.com/watch?v=uwtYdBCJZE0 - no ingredients block found
+2025-06-23 19:24:33,103 - INFO - Skipping video https://www.youtube.com/watch?v=ABy5j2t9FV8 - no ingredients block found
+2025-06-23 19:24:33,213 - INFO - Skipping video https://www.youtube.com/watch?v=THcd4w2vHmU - no ingredients block found
+2025-06-23 19:24:33,215 - INFO - 캐시에 채널 ID 저장: https://www.youtube.com/channel/UCemFUqq5jad1f258HrPS5rg -> UCemFUqq5jad1f258HrPS5rg
+2025-06-23 19:24:33,215 - INFO - API 호출: search - 채널 영상 목록: UCemFUqq5jad1f258HrPS5rg (페이지 1) (할당량 비용: 100, 총 사용량: 502)
+2025-06-23 19:24:33,570 - INFO - API 호출: videos - 영상 상세정보 배치: 50개 (할당량 비용: 1, 총 사용량: 503)
+2025-06-23 19:24:33,814 - INFO - Skipping video https://www.youtube.com/watch?v=JZDUqx7WuE8 - no ingredients block found
+2025-06-23 19:24:33,977 - INFO - Skipping video https://www.youtube.com/watch?v=G2A6i4DbuAQ - too few ingredients (2)
+2025-06-23 19:24:34,034 - INFO - Skipping video https://www.youtube.com/watch?v=FOG-WLDhBdo - no ingredients block found
+2025-06-23 19:24:34,096 - INFO - Skipping video https://www.youtube.com/watch?v=-_U1fT_e314 - too few ingredients (2)
+2025-06-23 19:24:34,226 - INFO - Skipping video https://www.youtube.com/watch?v=nJ2iYTslLV8 - too few ingredients (1)
+2025-06-23 19:24:34,255 - INFO - Skipping video https://www.youtube.com/watch?v=pkpH1J5JElc - no ingredients block found
+2025-06-23 19:24:34,343 - INFO - Skipping video https://www.youtube.com/watch?v=eQk6vzndQHs - no ingredients block found
+2025-06-23 19:24:34,376 - INFO - Skipping video https://www.youtube.com/watch?v=42rk2cq4elQ - too few ingredients (2)
+2025-06-23 19:24:34,493 - INFO - Skipping video https://www.youtube.com/watch?v=B_E-clVqUYw - too few ingredients (1)
+2025-06-23 19:24:34,523 - INFO - Skipping video https://www.youtube.com/watch?v=v_PhrGCvTfk - too few ingredients (2)
+2025-06-23 19:24:34,848 - INFO - Skipping video https://www.youtube.com/watch?v=AcbjtMbFFf4 - too few ingredients (2)
+2025-06-23 19:24:34,910 - INFO - Skipping video https://www.youtube.com/watch?v=WueCSuNd_RM - too few ingredients (2)
+2025-06-23 19:24:34,972 - INFO - Skipping video https://www.youtube.com/watch?v=oT1-PIE28Hs - too few ingredients (1)
+2025-06-23 19:24:35,062 - INFO - Skipping video https://www.youtube.com/watch?v=VWVKpEDcIx4 - too few ingredients (1)
+2025-06-23 19:24:35,124 - INFO - Skipping video https://www.youtube.com/watch?v=OacgYRYKm-M - too few ingredients (2)
+2025-06-23 19:24:35,162 - INFO - Skipping video https://www.youtube.com/watch?v=OTbbhUFStuA - too few ingredients (2)
+2025-06-23 19:24:35,285 - INFO - Skipping video https://www.youtube.com/watch?v=weaxTu6BrFM - too few ingredients (2)
+2025-06-23 19:24:35,315 - INFO - 캐시에 채널 ID 저장: https://www.youtube.com/channel/UCtby6rJtBGgUm-2oD_E7bzw   -> UCtby6rJtBGgUm-2oD_E7bzw  
+2025-06-23 19:24:35,316 - INFO - API 호출: search - 채널 영상 목록: UCtby6rJtBGgUm-2oD_E7bzw   (페이지 1) (할당량 비용: 100, 총 사용량: 603)
+2025-06-23 19:24:35,588 - INFO - API 호출: videos - 영상 상세정보 배치: 4개 (할당량 비용: 1, 총 사용량: 604)
+2025-06-23 19:24:35,722 - INFO - Skipping video https://www.youtube.com/watch?v=EqQDo4t2U8Q - too few ingredients (1)
+2025-06-23 19:24:35,806 - INFO - Skipping video https://www.youtube.com/watch?v=24orfFw8BVM - too few ingredients (1)
+2025-06-23 19:24:35,863 - INFO - API 호출: search - 채널 검색: @onemealaday767 (할당량 비용: 100, 총 사용량: 704)
+2025-06-23 19:24:36,149 - INFO - API 호출: search - 채널 영상 목록: UCC19OxrLbrlZQul616Vuysw (페이지 1) (할당량 비용: 100, 총 사용량: 804)
+2025-06-23 19:24:36,462 - INFO - API 호출: videos - 영상 상세정보 배치: 27개 (할당량 비용: 1, 총 사용량: 805)
+2025-06-23 19:24:36,634 - INFO - Skipping video https://www.youtube.com/watch?v=Bi5zPR-nmgo - no ingredients block found
+2025-06-23 19:24:36,662 - INFO - Skipping video https://www.youtube.com/watch?v=OsUuV6cTROw - no ingredients block found
+2025-06-23 19:24:36,690 - INFO - Skipping video https://www.youtube.com/watch?v=UrhyynnATZ0 - no ingredients block found
+2025-06-23 19:24:36,718 - INFO - Skipping video https://www.youtube.com/watch?v=Vmsz-YgJYcE - no ingredients block found
+2025-06-23 19:24:36,746 - INFO - Skipping video https://www.youtube.com/watch?v=jheKA647BXc - no ingredients block found
+2025-06-23 19:24:36,775 - INFO - Skipping video https://www.youtube.com/watch?v=P2vVjeznJRQ - no ingredients block found
+2025-06-23 19:24:36,803 - INFO - Skipping video https://www.youtube.com/watch?v=UfCbGnWHJMw - no ingredients block found
+2025-06-23 19:24:36,830 - INFO - Skipping video https://www.youtube.com/watch?v=vTctSHFHAxA - no ingredients block found
+2025-06-23 19:24:36,859 - INFO - Skipping video https://www.youtube.com/watch?v=RVIuwBJ7F7A - no ingredients block found
+2025-06-23 19:24:36,888 - INFO - Skipping video https://www.youtube.com/watch?v=zL5Xwwh6Y8M - no ingredients block found
+2025-06-23 19:24:36,916 - INFO - Skipping video https://www.youtube.com/watch?v=YEAT4FeaTfM - no ingredients block found
+2025-06-23 19:24:36,944 - INFO - Skipping video https://www.youtube.com/watch?v=Lb6Zkr-uK5g - no ingredients block found
+2025-06-23 19:24:36,972 - INFO - Skipping video https://www.youtube.com/watch?v=ZqaBiPCmyLE - no ingredients block found
+2025-06-23 19:24:37,001 - INFO - Skipping video https://www.youtube.com/watch?v=aSrdOjYKKbM - no ingredients block found
+2025-06-23 19:24:37,028 - INFO - Skipping video https://www.youtube.com/watch?v=cwUKhii4tp4 - no ingredients block found
+2025-06-23 19:24:37,057 - INFO - Skipping video https://www.youtube.com/watch?v=ZQDjTSPVaVg - no ingredients block found
+2025-06-23 19:24:37,085 - INFO - Skipping video https://www.youtube.com/watch?v=CCnOZukXZR4 - no ingredients block found
+2025-06-23 19:24:37,113 - INFO - Skipping video https://www.youtube.com/watch?v=4ylLAXiuMcw - no ingredients block found
+2025-06-23 19:24:37,141 - INFO - Skipping video https://www.youtube.com/watch?v=CFO1AkDHyyI - no ingredients block found
+2025-06-23 19:24:37,169 - INFO - Skipping video https://www.youtube.com/watch?v=kJL0-h_EDkc - no ingredients block found
+2025-06-23 19:24:37,196 - INFO - Skipping video https://www.youtube.com/watch?v=Z61l_TvRsDk - no ingredients block found
+2025-06-23 19:24:37,224 - INFO - Skipping video https://www.youtube.com/watch?v=WYEouuVjcBc - no ingredients block found
+2025-06-23 19:24:37,253 - INFO - Skipping video https://www.youtube.com/watch?v=ysZp7Kwbh78 - no ingredients block found
+2025-06-23 19:24:37,281 - INFO - Skipping video https://www.youtube.com/watch?v=0ZY50DCx2OQ - no ingredients block found
+2025-06-23 19:24:37,310 - INFO - Skipping video https://www.youtube.com/watch?v=tyQI7Ko7cbU - no ingredients block found
+2025-06-23 19:24:37,337 - INFO - Skipping video https://www.youtube.com/watch?v=lGKjxjnbxro - no ingredients block found
+2025-06-23 19:24:37,365 - INFO - Skipping video https://www.youtube.com/watch?v=c4jLML4SrQY - no ingredients block found
+2025-06-23 19:24:37,375 - INFO - 캐시에 채널 ID 저장: https://www.youtube.com/channel/UCy2WX3w5UyYFHBDHyWFKNUQ -> UCy2WX3w5UyYFHBDHyWFKNUQ
+2025-06-23 19:24:37,375 - INFO - API 호출: search - 채널 영상 목록: UCy2WX3w5UyYFHBDHyWFKNUQ (페이지 1) (할당량 비용: 100, 총 사용량: 905)
+2025-06-23 19:24:37,707 - INFO - API 호출: videos - 영상 상세정보 배치: 50개 (할당량 비용: 1, 총 사용량: 906)
+2025-06-23 19:24:39,421 - INFO - API 호출: search - 채널 검색: @KimChefTV (할당량 비용: 100, 총 사용량: 1006)
+2025-06-23 19:24:39,702 - INFO - API 호출: search - 채널 영상 목록: UC1g9JaEVLOFGhH8hpaK--Jg (페이지 1) (할당량 비용: 100, 총 사용량: 1106)
+2025-06-23 19:24:39,995 - INFO - API 호출: videos - 영상 상세정보 배치: 28개 (할당량 비용: 1, 총 사용량: 1107)
+2025-06-23 19:24:40,224 - INFO - Skipping video https://www.youtube.com/watch?v=dpPYQcI3xUY - too few ingredients (2)
+2025-06-23 19:24:40,290 - INFO - Skipping video https://www.youtube.com/watch?v=sVXMUVbKlrY - too few ingredients (2)
+2025-06-23 19:24:40,734 - INFO - Skipping video https://www.youtube.com/watch?v=Xo5Jr2gBQp4 - too few ingredients (1)
+2025-06-23 19:24:40,833 - INFO - Skipping video https://www.youtube.com/watch?v=zOn--yRmJ9Y - too few ingredients (2)
+2025-06-23 19:24:40,866 - INFO - Skipping video https://www.youtube.com/watch?v=7NtO7DDB0fI - no ingredients block found
+2025-06-23 19:24:40,998 - INFO - Skipping video https://www.youtube.com/watch?v=-ctINycCfIc - too few ingredients (1)
+2025-06-23 19:24:41,062 - INFO - API 호출: search - 채널 검색: @BooneBake (할당량 비용: 100, 총 사용량: 1207)
+2025-06-23 19:24:41,347 - INFO - API 호출: search - 채널 영상 목록: UCV89PIJRsTLAOMQUdFmo--g (페이지 1) (할당량 비용: 100, 총 사용량: 1307)
+2025-06-23 19:24:41,716 - INFO - API 호출: videos - 영상 상세정보 배치: 50개 (할당량 비용: 1, 총 사용량: 1308)
+2025-06-23 19:24:41,978 - INFO - Skipping video https://www.youtube.com/watch?v=J4SSSN-MguM - too few ingredients (2)
+2025-06-23 19:24:42,474 - INFO - Skipping video https://www.youtube.com/watch?v=P_KxaHcWJo8 - too few ingredients (2)
+2025-06-23 19:24:42,659 - INFO - Skipping video https://www.youtube.com/watch?v=BqUmsRNFm0k - too few ingredients (2)
+2025-06-23 19:24:42,838 - INFO - Skipping video https://www.youtube.com/watch?v=QtQM4uryz8U - too few ingredients (2)
+2025-06-23 19:24:42,931 - INFO - Skipping video https://www.youtube.com/watch?v=XHQVbh040-o - too few ingredients (2)
+2025-06-23 19:24:43,022 - INFO - Skipping video https://www.youtube.com/watch?v=kGhNd-a1nCM - too few ingredients (1)
+2025-06-23 19:24:43,071 - INFO - Skipping video https://www.youtube.com/watch?v=bBkhVs0LATI - too few ingredients (1)
+2025-06-23 19:24:43,116 - INFO - Skipping video https://www.youtube.com/watch?v=XX3owmPuPpA - too few ingredients (2)
+2025-06-23 19:24:43,145 - INFO - Skipping video https://www.youtube.com/watch?v=M19lPyPJK5E - no ingredients block found
+2025-06-23 19:24:43,174 - INFO - Skipping video https://www.youtube.com/watch?v=MuuDe7DFREI - no ingredients block found
+2025-06-23 19:24:43,348 - INFO - Skipping video https://www.youtube.com/watch?v=_q2SDIoqbiM - too few ingredients (2)
+2025-06-23 19:24:43,428 - INFO - Skipping video https://www.youtube.com/watch?v=ywNqcG7uty0 - no ingredients block found
+2025-06-23 19:24:43,503 - INFO - Skipping video https://www.youtube.com/watch?v=eIFnDTVbRH0 - no ingredients block found
+2025-06-23 19:24:43,532 - INFO - Skipping video https://www.youtube.com/watch?v=QJ5PEbHgcmI - no ingredients block found
+2025-06-23 19:24:43,562 - INFO - Skipping video https://www.youtube.com/watch?v=-oMDkFA4-QI - too few ingredients (1)
+2025-06-23 19:24:43,591 - INFO - Skipping video https://www.youtube.com/watch?v=iqQ54bbnLeE - no ingredients block found
+2025-06-23 19:24:43,620 - INFO - Skipping video https://www.youtube.com/watch?v=mLItqj6l4jE - no ingredients block found
+2025-06-23 19:24:43,648 - INFO - Skipping video https://www.youtube.com/watch?v=GzPpK5jO5PE - no ingredients block found
+2025-06-23 19:24:43,677 - INFO - Skipping video https://www.youtube.com/watch?v=zdBWYrqN008 - no ingredients block found
+2025-06-23 19:24:43,706 - INFO - Skipping video https://www.youtube.com/watch?v=BUsS8abWeKk - too few ingredients (1)
+2025-06-23 19:24:43,735 - INFO - Skipping video https://www.youtube.com/watch?v=x5o0KFdJ54Y - no ingredients block found
+2025-06-23 19:24:43,764 - INFO - Skipping video https://www.youtube.com/watch?v=y2WNWk9cAns - no ingredients block found
+2025-06-23 19:24:43,793 - INFO - Skipping video https://www.youtube.com/watch?v=LxZ6b4oR9ng - no ingredients block found
+2025-06-23 19:24:43,992 - INFO - API 호출: search - 채널 검색: @newyorkcookingtable2344 (할당량 비용: 100, 총 사용량: 1408)
+2025-06-23 19:24:44,271 - INFO - API 호출: search - 채널 영상 목록: UCiLmAiqZCwmLECtxirqivvw (페이지 1) (할당량 비용: 100, 총 사용량: 1508)
+2025-06-23 19:24:44,540 - INFO - API 호출: videos - 영상 상세정보 배치: 3개 (할당량 비용: 1, 총 사용량: 1509)
+2025-06-23 19:24:44,684 - INFO - Skipping video https://www.youtube.com/watch?v=2aAtBGBWY8k - no ingredients block found
+2025-06-23 19:24:44,712 - INFO - Skipping video https://www.youtube.com/watch?v=ld5q7L7Od2g - no ingredients block found
+2025-06-23 19:24:44,741 - INFO - Skipping video https://www.youtube.com/watch?v=fwfYoXvItco - no ingredients block found
+2025-06-23 19:24:44,741 - INFO - API 호출: search - 채널 검색: @%EC%9E%90%EC%B7%A8%EC%9A%94%EB%A6%AC%EC%8B%A0simplecooking (할당량 비용: 100, 총 사용량: 1609)
+2025-06-23 19:24:45,068 - INFO - API 호출: search - 채널 검색: @haegreendal (할당량 비용: 100, 총 사용량: 1709)
+2025-06-23 19:24:45,335 - INFO - API 호출: search - 채널 영상 목록: UCaxiEbLis3vqMb5SB2zGVOQ (페이지 1) (할당량 비용: 100, 총 사용량: 1809)
+2025-06-23 19:24:45,667 - INFO - API 호출: videos - 영상 상세정보 배치: 50개 (할당량 비용: 1, 총 사용량: 1810)
+2025-06-23 19:24:45,877 - INFO - Skipping video https://www.youtube.com/watch?v=RwQoXj1224k - no ingredients block found
+2025-06-23 19:24:45,940 - INFO - Skipping video https://www.youtube.com/watch?v=pj7FBC8lhcs - no ingredients block found
+2025-06-23 19:24:45,996 - INFO - Skipping video https://www.youtube.com/watch?v=ehGagXF6aZ4 - no ingredients block found
+2025-06-23 19:24:46,051 - INFO - Skipping video https://www.youtube.com/watch?v=EvB5oftFRxI - no ingredients block found
+2025-06-23 19:24:46,106 - INFO - Skipping video https://www.youtube.com/watch?v=hpjvJaGFQe8 - no ingredients block found
+2025-06-23 19:24:46,162 - INFO - Skipping video https://www.youtube.com/watch?v=zKC9re8RIN8 - no ingredients block found
+2025-06-23 19:24:46,216 - INFO - Skipping video https://www.youtube.com/watch?v=nddmrs-GW5o - no ingredients block found
+2025-06-23 19:24:46,278 - INFO - Skipping video https://www.youtube.com/watch?v=ue3BdTv6uqo - no ingredients block found
+2025-06-23 19:24:46,335 - INFO - Skipping video https://www.youtube.com/watch?v=4R6ogZHCX3g - no ingredients block found
+2025-06-23 19:24:46,391 - INFO - Skipping video https://www.youtube.com/watch?v=HsKUNZ0PeWo - no ingredients block found
+2025-06-23 19:24:46,447 - INFO - Skipping video https://www.youtube.com/watch?v=5e3sYbWcYRo - no ingredients block found
+2025-06-23 19:24:46,503 - INFO - Skipping video https://www.youtube.com/watch?v=YCrVLGSKBAI - no ingredients block found
+2025-06-23 19:24:46,564 - INFO - Skipping video https://www.youtube.com/watch?v=W_cnYt9WqZw - no ingredients block found
+2025-06-23 19:24:46,626 - INFO - Skipping video https://www.youtube.com/watch?v=M0bsNhtyPkI - no ingredients block found
+2025-06-23 19:24:46,683 - INFO - Skipping video https://www.youtube.com/watch?v=L3UTtRe46SU - no ingredients block found
+2025-06-23 19:24:46,741 - INFO - Skipping video https://www.youtube.com/watch?v=QVJr7Ulz3IU - no ingredients block found
+2025-06-23 19:24:46,799 - INFO - Skipping video https://www.youtube.com/watch?v=yPPcXieF4Vo - no ingredients block found
+2025-06-23 19:24:46,858 - INFO - Skipping video https://www.youtube.com/watch?v=Jd3Dz_aU2NU - no ingredients block found
+2025-06-23 19:24:46,919 - INFO - Skipping video https://www.youtube.com/watch?v=vrWR5YGWKPI - no ingredients block found
+2025-06-23 19:24:46,977 - INFO - Skipping video https://www.youtube.com/watch?v=5NgCmibLWyY - no ingredients block found
+2025-06-23 19:24:47,043 - INFO - Skipping video https://www.youtube.com/watch?v=p8QwAdplmJk - no ingredients block found
+2025-06-23 19:24:47,100 - INFO - Skipping video https://www.youtube.com/watch?v=VXwlqG2JoDQ - no ingredients block found
+2025-06-23 19:24:47,158 - INFO - Skipping video https://www.youtube.com/watch?v=MZ1ox1kwUu8 - no ingredients block found
+2025-06-23 19:24:47,215 - INFO - Skipping video https://www.youtube.com/watch?v=B7Dj1HaX3Vg - no ingredients block found
+2025-06-23 19:24:47,270 - INFO - Skipping video https://www.youtube.com/watch?v=eRiY8KGvmh8 - no ingredients block found
+2025-06-23 19:24:47,329 - INFO - Skipping video https://www.youtube.com/watch?v=-2bUJZyrxTQ - no ingredients block found
+2025-06-23 19:24:47,391 - INFO - Skipping video https://www.youtube.com/watch?v=Qws8bdv_ZSA - no ingredients block found
+2025-06-23 19:24:47,450 - INFO - Skipping video https://www.youtube.com/watch?v=06mlAveN3rQ - no ingredients block found
+2025-06-23 19:24:47,505 - INFO - Skipping video https://www.youtube.com/watch?v=CqFHs_TguuY - no ingredients block found
+2025-06-23 19:24:47,565 - INFO - Skipping video https://www.youtube.com/watch?v=4clac18YJIY - no ingredients block found
+2025-06-23 19:24:47,619 - INFO - Skipping video https://www.youtube.com/watch?v=bNGQuimslII - no ingredients block found
+2025-06-23 19:24:47,671 - INFO - Skipping video https://www.youtube.com/watch?v=Gbw_2CPNaMs - no ingredients block found
+2025-06-23 19:24:47,723 - INFO - Skipping video https://www.youtube.com/watch?v=n9UfH7uwO6E - no ingredients block found
+2025-06-23 19:24:47,783 - INFO - Skipping video https://www.youtube.com/watch?v=A9znTEqqV6c - no ingredients block found
+2025-06-23 19:24:47,838 - INFO - Skipping video https://www.youtube.com/watch?v=YrBumQFo-Sk - no ingredients block found
+2025-06-23 19:24:47,897 - INFO - Skipping video https://www.youtube.com/watch?v=-R3rO823TsY - no ingredients block found
+2025-06-23 19:24:47,959 - INFO - Skipping video https://www.youtube.com/watch?v=KEJgeKV8_50 - too few ingredients (1)
+2025-06-23 19:24:48,015 - INFO - Skipping video https://www.youtube.com/watch?v=KzXrWb532qw - too few ingredients (1)
+2025-06-23 19:24:48,075 - INFO - Skipping video https://www.youtube.com/watch?v=GcmNnrXX_m4 - no ingredients block found
+2025-06-23 19:24:48,131 - INFO - Skipping video https://www.youtube.com/watch?v=RQ2ZzJjzhyU - no ingredients block found
+2025-06-23 19:24:48,192 - INFO - Skipping video https://www.youtube.com/watch?v=1sIeg0jyLNY - no ingredients block found
+2025-06-23 19:24:48,251 - INFO - Skipping video https://www.youtube.com/watch?v=q0ju9XVN07s - no ingredients block found
+2025-06-23 19:24:48,306 - INFO - Skipping video https://www.youtube.com/watch?v=rWOAZ_6R8Gg - no ingredients block found
+2025-06-23 19:24:48,359 - INFO - Skipping video https://www.youtube.com/watch?v=2Z6YCyhW6hI - no ingredients block found
+2025-06-23 19:24:48,408 - INFO - Skipping video https://www.youtube.com/watch?v=z5vdtc-9A0E - no ingredients block found
+2025-06-23 19:24:48,461 - INFO - Skipping video https://www.youtube.com/watch?v=cNXW9pZpozc - no ingredients block found
+2025-06-23 19:24:48,512 - INFO - Skipping video https://www.youtube.com/watch?v=LA2nsJl9_Bk - no ingredients block found
+2025-06-23 19:24:48,563 - INFO - Skipping video https://www.youtube.com/watch?v=pcyTqwIhOG8 - no ingredients block found
+2025-06-23 19:24:48,612 - INFO - Skipping video https://www.youtube.com/watch?v=XL4NlWDMTLk - no ingredients block found
+2025-06-23 19:24:48,654 - INFO - Skipping video https://www.youtube.com/watch?v=CTErmpcToR0 - no ingredients block found
+2025-06-23 19:24:48,655 - INFO - API 호출: search - 채널 검색: @dragonrain (할당량 비용: 100, 총 사용량: 1910)
+2025-06-23 19:24:48,958 - INFO - API 호출: search - 채널 영상 목록: UCAmu2GfpBOixeMEWqkjA9BA (페이지 1) (할당량 비용: 100, 총 사용량: 2010)
+2025-06-23 19:24:49,249 - INFO - API 호출: videos - 영상 상세정보 배치: 8개 (할당량 비용: 1, 총 사용량: 2011)
+2025-06-23 19:24:49,391 - INFO - Skipping video https://www.youtube.com/watch?v=3AOQJNc2FJg - no ingredients block found
+2025-06-23 19:24:49,419 - INFO - Skipping video https://www.youtube.com/watch?v=mVtbNW__kG0 - no ingredients block found
+2025-06-23 19:24:49,447 - INFO - Skipping video https://www.youtube.com/watch?v=9X1d6kCWj9c - no ingredients block found
+2025-06-23 19:24:49,475 - INFO - Skipping video https://www.youtube.com/watch?v=bijPaPqosvE - no ingredients block found
+2025-06-23 19:24:49,503 - INFO - Skipping video https://www.youtube.com/watch?v=wH0bEK0WR0I - no ingredients block found
+2025-06-23 19:24:49,531 - INFO - Skipping video https://www.youtube.com/watch?v=RqwZBXMSMtU - no ingredients block found
+2025-06-23 19:24:49,560 - INFO - Skipping video https://www.youtube.com/watch?v=iMsegF5Hmkk - no ingredients block found
+2025-06-23 19:24:49,588 - INFO - Skipping video https://www.youtube.com/watch?v=PuD5mNjM5_I - no ingredients block found
+2025-06-23 19:24:49,589 - INFO - API 호출: search - 채널 검색: @CookingSee (할당량 비용: 100, 총 사용량: 2111)
+2025-06-23 19:24:49,862 - INFO - API 호출: search - 채널 영상 목록: UC3LYwyrDUkDEU85zPCfFlXA (페이지 1) (할당량 비용: 100, 총 사용량: 2211)
+2025-06-23 19:24:50,223 - INFO - API 호출: videos - 영상 상세정보 배치: 50개 (할당량 비용: 1, 총 사용량: 2212)
+2025-06-23 19:24:50,379 - INFO - Skipping video https://www.youtube.com/watch?v=Co58xRbEwaE - no ingredients block found
+2025-06-23 19:24:50,408 - INFO - Skipping video https://www.youtube.com/watch?v=jZ5k5Ai8j0Y - no ingredients block found
+2025-06-23 19:24:50,437 - INFO - Skipping video https://www.youtube.com/watch?v=xGfVFOXT6Ls - no ingredients block found
+2025-06-23 19:24:50,465 - INFO - Skipping video https://www.youtube.com/watch?v=tVX7QsXSZyY - no ingredients block found
+2025-06-23 19:24:50,493 - INFO - Skipping video https://www.youtube.com/watch?v=FZxjYZEmnq4 - no ingredients block found
+2025-06-23 19:24:50,522 - INFO - Skipping video https://www.youtube.com/watch?v=lkMsKLQFCcg - no ingredients block found
+2025-06-23 19:24:50,550 - INFO - Skipping video https://www.youtube.com/watch?v=J19lHxLVgTg - no ingredients block found
+2025-06-23 19:24:50,578 - INFO - Skipping video https://www.youtube.com/watch?v=dtzA9NHWHcs - no ingredients block found
+2025-06-23 19:24:50,606 - INFO - Skipping video https://www.youtube.com/watch?v=9C7HBag-5y8 - no ingredients block found
+2025-06-23 19:24:50,634 - INFO - Skipping video https://www.youtube.com/watch?v=R9Wqrl-10lo - no ingredients block found
+2025-06-23 19:24:50,662 - INFO - Skipping video https://www.youtube.com/watch?v=2JbIRwBQi9I - no ingredients block found
+2025-06-23 19:24:50,691 - INFO - Skipping video https://www.youtube.com/watch?v=YPVm3Y4yoFY - no ingredients block found
+2025-06-23 19:24:50,719 - INFO - Skipping video https://www.youtube.com/watch?v=-85h1e-7IZg - no ingredients block found
+2025-06-23 19:24:50,748 - INFO - Skipping video https://www.youtube.com/watch?v=Gh_tAtCJclA - no ingredients block found
+2025-06-23 19:24:50,776 - INFO - Skipping video https://www.youtube.com/watch?v=j_PMcbvxY6k - no ingredients block found
+2025-06-23 19:24:50,805 - INFO - Skipping video https://www.youtube.com/watch?v=ci2wsHihECo - no ingredients block found
+2025-06-23 19:24:50,833 - INFO - Skipping video https://www.youtube.com/watch?v=ofr40vr7CZk - no ingredients block found
+2025-06-23 19:24:50,860 - INFO - Skipping video https://www.youtube.com/watch?v=NWyxgcRJQsE - no ingredients block found
+2025-06-23 19:24:50,889 - INFO - Skipping video https://www.youtube.com/watch?v=YjEFzNgY1Ps - no ingredients block found
+2025-06-23 19:24:50,917 - INFO - Skipping video https://www.youtube.com/watch?v=lwX7Wlqpf4E - no ingredients block found
+2025-06-23 19:24:50,946 - INFO - Skipping video https://www.youtube.com/watch?v=wkcFYtzUM-I - no ingredients block found
+2025-06-23 19:24:50,974 - INFO - Skipping video https://www.youtube.com/watch?v=vRC0ZD_Lhw4 - no ingredients block found
+2025-06-23 19:24:51,002 - INFO - Skipping video https://www.youtube.com/watch?v=MudCYbrc3XA - no ingredients block found
+2025-06-23 19:24:51,030 - INFO - Skipping video https://www.youtube.com/watch?v=2HphY312X5o - no ingredients block found
+2025-06-23 19:24:51,058 - INFO - Skipping video https://www.youtube.com/watch?v=deSFtfvkOhY - no ingredients block found
+2025-06-23 19:24:51,086 - INFO - Skipping video https://www.youtube.com/watch?v=rdbYBdlJTDs - no ingredients block found
+2025-06-23 19:24:51,115 - INFO - Skipping video https://www.youtube.com/watch?v=ekGBIt2LXyQ - no ingredients block found
+2025-06-23 19:24:51,143 - INFO - Skipping video https://www.youtube.com/watch?v=Jh_Ol98kbHE - no ingredients block found
+2025-06-23 19:24:51,172 - INFO - Skipping video https://www.youtube.com/watch?v=1j_iCOgRJh8 - no ingredients block found
+2025-06-23 19:24:51,209 - INFO - Skipping video https://www.youtube.com/watch?v=dFaP1J9IxXw - no ingredients block found
+2025-06-23 19:24:51,244 - INFO - Skipping video https://www.youtube.com/watch?v=yFkIykhP034 - no ingredients block found
+2025-06-23 19:24:51,272 - INFO - Skipping video https://www.youtube.com/watch?v=UMCfZWoY8Ks - no ingredients block found
+2025-06-23 19:24:51,299 - INFO - Skipping video https://www.youtube.com/watch?v=DkyGPBaxAfw - no ingredients block found
+2025-06-23 19:24:51,327 - INFO - Skipping video https://www.youtube.com/watch?v=xpzFxuSImnQ - no ingredients block found
+2025-06-23 19:24:51,355 - INFO - Skipping video https://www.youtube.com/watch?v=lesrvne4-NM - no ingredients block found
+2025-06-23 19:24:51,384 - INFO - Skipping video https://www.youtube.com/watch?v=AWGNxxjb9-4 - no ingredients block found
+2025-06-23 19:24:51,413 - INFO - Skipping video https://www.youtube.com/watch?v=mXYYRUpwb9E - no ingredients block found
+2025-06-23 19:24:51,442 - INFO - Skipping video https://www.youtube.com/watch?v=IoZpVPrgZwo - no ingredients block found
+2025-06-23 19:24:51,471 - INFO - Skipping video https://www.youtube.com/watch?v=Gi1Zjoa5caw - no ingredients block found
+2025-06-23 19:24:51,499 - INFO - Skipping video https://www.youtube.com/watch?v=inemWohkpUE - no ingredients block found
+2025-06-23 19:24:51,527 - INFO - Skipping video https://www.youtube.com/watch?v=YjOR5AVnAik - no ingredients block found
+2025-06-23 19:24:51,555 - INFO - Skipping video https://www.youtube.com/watch?v=lFeWbvtc7TQ - no ingredients block found
+2025-06-23 19:24:51,584 - INFO - Skipping video https://www.youtube.com/watch?v=DPEocWe7bMk - no ingredients block found
+2025-06-23 19:24:51,612 - INFO - Skipping video https://www.youtube.com/watch?v=PdO0B18H4qA - no ingredients block found
+2025-06-23 19:24:51,641 - INFO - Skipping video https://www.youtube.com/watch?v=jpEqxlDynsQ - no ingredients block found
+2025-06-23 19:24:51,669 - INFO - Skipping video https://www.youtube.com/watch?v=R5b29w8Meqs - no ingredients block found
+2025-06-23 19:24:51,697 - INFO - Skipping video https://www.youtube.com/watch?v=YuOWDD-_Fec - no ingredients block found
+2025-06-23 19:24:51,726 - INFO - Skipping video https://www.youtube.com/watch?v=VaET4FLd2gw - no ingredients block found
+2025-06-23 19:24:51,754 - INFO - Skipping video https://www.youtube.com/watch?v=dyb1zkhRS7Q - no ingredients block found
+2025-06-23 19:24:51,783 - INFO - Skipping video https://www.youtube.com/watch?v=vuRVlKpUz20 - no ingredients block found
+2025-06-23 19:24:51,784 - INFO - API 호출: search - 채널 검색: @TryToEat (할당량 비용: 100, 총 사용량: 2312)
+2025-06-23 19:24:51,954 - INFO - API 호출: search - 채널 영상 목록: UCBUsNA6RpOik0Ny7uUF9_GQ (페이지 1) (할당량 비용: 100, 총 사용량: 2412)
+2025-06-23 19:24:52,228 - INFO - API 호출: videos - 영상 상세정보 배치: 10개 (할당량 비용: 1, 총 사용량: 2413)
+2025-06-23 19:24:52,414 - INFO - Skipping video https://www.youtube.com/watch?v=Pm5NV_0_AmY - no ingredients block found
+2025-06-23 19:24:52,442 - INFO - Skipping video https://www.youtube.com/watch?v=kCKw68tqo60 - no ingredients block found
+2025-06-23 19:24:52,470 - INFO - Skipping video https://www.youtube.com/watch?v=EAV7vy3MaHE - no ingredients block found
+2025-06-23 19:24:52,498 - INFO - Skipping video https://www.youtube.com/watch?v=eLWCiLPIobk - no ingredients block found
+2025-06-23 19:24:52,526 - INFO - Skipping video https://www.youtube.com/watch?v=yA1Yisn0yBU - no ingredients block found
+2025-06-23 19:24:52,554 - INFO - Skipping video https://www.youtube.com/watch?v=pSsAwK9mNTs - no ingredients block found
+2025-06-23 19:24:52,581 - INFO - Skipping video https://www.youtube.com/watch?v=CvAnnWwo2gQ - no ingredients block found
+2025-06-23 19:24:52,609 - INFO - Skipping video https://www.youtube.com/watch?v=KLGHHVyGXcU - no ingredients block found
+2025-06-23 19:24:52,637 - INFO - Skipping video https://www.youtube.com/watch?v=ddAD2cLAll8 - no ingredients block found
+2025-06-23 19:24:52,665 - INFO - Skipping video https://www.youtube.com/watch?v=8VI8jmggdxY - no ingredients block found
+2025-06-23 19:24:52,666 - INFO - API 호출: search - 채널 검색: @MoonyKitchen (할당량 비용: 100, 총 사용량: 2513)
+2025-06-23 19:24:53,002 - INFO - API 호출: search - 채널 영상 목록: UCQg7opkHC1IIHYsIRuivMbw (페이지 1) (할당량 비용: 100, 총 사용량: 2613)
+2025-06-23 19:24:53,460 - INFO - API 호출: videos - 영상 상세정보 배치: 50개 (할당량 비용: 1, 총 사용량: 2614)
+2025-06-23 19:24:54,339 - INFO - Skipping video https://www.youtube.com/watch?v=KerJ7234LfQ - too few ingredients (2)
+2025-06-23 19:24:55,058 - INFO - Skipping video https://www.youtube.com/watch?v=BIVD7I7UVnQ - too few ingredients (2)
+2025-06-23 19:24:55,794 - INFO - Skipping video https://www.youtube.com/watch?v=gdSJCreROqU - no ingredients block found
+2025-06-23 19:24:56,273 - INFO - API 호출: search - 채널 검색: @momstaste (할당량 비용: 100, 총 사용량: 2714)
+2025-06-23 19:24:56,552 - INFO - API 호출: search - 채널 영상 목록: UCAWBHZ8EdPXesfUPj3xCbpA (페이지 1) (할당량 비용: 100, 총 사용량: 2814)
+2025-06-23 19:24:56,888 - INFO - API 호출: videos - 영상 상세정보 배치: 50개 (할당량 비용: 1, 총 사용량: 2815)
+2025-06-23 19:24:57,069 - INFO - Skipping video https://www.youtube.com/watch?v=D-t_yE9cpEE - no ingredients block found
+2025-06-23 19:24:57,096 - INFO - Skipping video https://www.youtube.com/watch?v=flFALYr2jZ8 - no ingredients block found
+2025-06-23 19:24:57,124 - INFO - Skipping video https://www.youtube.com/watch?v=RHVu-IBZYv4 - no ingredients block found
+2025-06-23 19:24:57,152 - INFO - Skipping video https://www.youtube.com/watch?v=KVZcucGnuv4 - no ingredients block found
+2025-06-23 19:24:57,180 - INFO - Skipping video https://www.youtube.com/watch?v=sPIjOGEdigU - no ingredients block found
+2025-06-23 19:24:57,209 - INFO - Skipping video https://www.youtube.com/watch?v=F5Ifw_0s1lI - no ingredients block found
+2025-06-23 19:24:57,237 - INFO - Skipping video https://www.youtube.com/watch?v=0f0gE56kRkQ - no ingredients block found
+2025-06-23 19:24:57,265 - INFO - Skipping video https://www.youtube.com/watch?v=HadnT8NuJ8w - no ingredients block found
+2025-06-23 19:24:57,293 - INFO - Skipping video https://www.youtube.com/watch?v=UwlwE-Msu6Y - no ingredients block found
+2025-06-23 19:24:57,322 - INFO - Skipping video https://www.youtube.com/watch?v=4bYgm6j4gEI - no ingredients block found
+2025-06-23 19:24:57,350 - INFO - Skipping video https://www.youtube.com/watch?v=rUhIespmYTY - no ingredients block found
+2025-06-23 19:24:57,379 - INFO - Skipping video https://www.youtube.com/watch?v=GlgxRvH_QL4 - no ingredients block found
+2025-06-23 19:24:57,407 - INFO - Skipping video https://www.youtube.com/watch?v=EwAnzZwUAHw - no ingredients block found
+2025-06-23 19:24:57,435 - INFO - Skipping video https://www.youtube.com/watch?v=3WVgGiBkNps - no ingredients block found
+2025-06-23 19:24:57,463 - INFO - Skipping video https://www.youtube.com/watch?v=pd7K_Er22Ds - no ingredients block found
+2025-06-23 19:24:57,492 - INFO - Skipping video https://www.youtube.com/watch?v=Ap2jOQM19FA - no ingredients block found
+2025-06-23 19:24:57,520 - INFO - Skipping video https://www.youtube.com/watch?v=iEZXlUNnDdo - no ingredients block found
+2025-06-23 19:24:57,548 - INFO - Skipping video https://www.youtube.com/watch?v=mwUgDZYUQZo - no ingredients block found
+2025-06-23 19:24:57,576 - INFO - Skipping video https://www.youtube.com/watch?v=iLbds_y_G4k - no ingredients block found
+2025-06-23 19:24:57,603 - INFO - Skipping video https://www.youtube.com/watch?v=gs5VayP6zG0 - no ingredients block found
+2025-06-23 19:24:57,631 - INFO - Skipping video https://www.youtube.com/watch?v=9eTFp4CTs6c - no ingredients block found
+2025-06-23 19:24:57,659 - INFO - Skipping video https://www.youtube.com/watch?v=x4BD2db6UbI - no ingredients block found
+2025-06-23 19:24:57,687 - INFO - Skipping video https://www.youtube.com/watch?v=zB3DcniMnuk - no ingredients block found
+2025-06-23 19:24:57,715 - INFO - Skipping video https://www.youtube.com/watch?v=Lxn3aKZ0hN8 - no ingredients block found
+2025-06-23 19:24:57,744 - INFO - Skipping video https://www.youtube.com/watch?v=tvaquYwV3UE - no ingredients block found
+2025-06-23 19:24:57,778 - INFO - Skipping video https://www.youtube.com/watch?v=d1AkTzhDPg8 - no ingredients block found
+2025-06-23 19:24:57,806 - INFO - Skipping video https://www.youtube.com/watch?v=4K1smrZzps8 - no ingredients block found
+2025-06-23 19:24:57,834 - INFO - Skipping video https://www.youtube.com/watch?v=0OnusLx7ouo - no ingredients block found
+2025-06-23 19:24:57,863 - INFO - Skipping video https://www.youtube.com/watch?v=x0fs9VWZSio - no ingredients block found
+2025-06-23 19:24:57,892 - INFO - Skipping video https://www.youtube.com/watch?v=AH6ej6JkHaw - no ingredients block found
+2025-06-23 19:24:57,920 - INFO - Skipping video https://www.youtube.com/watch?v=DD8w-_dddtk - no ingredients block found
+2025-06-23 19:24:57,948 - INFO - Skipping video https://www.youtube.com/watch?v=hWgCTmfJs3I - no ingredients block found
+2025-06-23 19:24:57,976 - INFO - Skipping video https://www.youtube.com/watch?v=PH6OXKDYZRo - no ingredients block found
+2025-06-23 19:24:58,004 - INFO - Skipping video https://www.youtube.com/watch?v=rc375qd9rnc - no ingredients block found
+2025-06-23 19:24:58,032 - INFO - Skipping video https://www.youtube.com/watch?v=LKsgGBqVn0k - no ingredients block found
+2025-06-23 19:24:58,062 - INFO - Skipping video https://www.youtube.com/watch?v=1e_sb7XhJJM - no ingredients block found
+2025-06-23 19:24:58,091 - INFO - Skipping video https://www.youtube.com/watch?v=CtXiSVk0260 - no ingredients block found
+2025-06-23 19:24:58,119 - INFO - Skipping video https://www.youtube.com/watch?v=BsUxwY7VfDo - no ingredients block found
+2025-06-23 19:24:58,147 - INFO - Skipping video https://www.youtube.com/watch?v=vKyhf0S37HA - no ingredients block found
+2025-06-23 19:24:58,175 - INFO - Skipping video https://www.youtube.com/watch?v=CAYBArsmC0I - no ingredients block found
+2025-06-23 19:24:58,203 - INFO - Skipping video https://www.youtube.com/watch?v=FyBSg2SDiCA - no ingredients block found
+2025-06-23 19:24:58,231 - INFO - Skipping video https://www.youtube.com/watch?v=HfBh2nNy6os - no ingredients block found
+2025-06-23 19:24:58,259 - INFO - Skipping video https://www.youtube.com/watch?v=9xtwkVKcSnU - no ingredients block found
+2025-06-23 19:24:58,288 - INFO - Skipping video https://www.youtube.com/watch?v=qFPR9QzhrYo - no ingredients block found
+2025-06-23 19:24:58,316 - INFO - Skipping video https://www.youtube.com/watch?v=nSWudDsFIhI - no ingredients block found
+2025-06-23 19:24:58,345 - INFO - Skipping video https://www.youtube.com/watch?v=swsLWHsXbUM - no ingredients block found
+2025-06-23 19:24:58,373 - INFO - Skipping video https://www.youtube.com/watch?v=iMWD9xOM1S4 - no ingredients block found
+2025-06-23 19:24:58,401 - INFO - Skipping video https://www.youtube.com/watch?v=XOceVV6Iis0 - no ingredients block found
+2025-06-23 19:24:58,429 - INFO - Skipping video https://www.youtube.com/watch?v=kxgBP9MupbA - no ingredients block found
+2025-06-23 19:24:58,463 - INFO - Skipping video https://www.youtube.com/watch?v=TSFW-qMRJ_U - no ingredients block found
+2025-06-23 19:24:58,465 - INFO - 캐시에 채널 ID 저장: https://www.youtube.com/channel/UCVXx89z5j3gkQMGScNqmWjw -> UCVXx89z5j3gkQMGScNqmWjw
+2025-06-23 19:24:58,465 - INFO - API 호출: search - 채널 영상 목록: UCVXx89z5j3gkQMGScNqmWjw (페이지 1) (할당량 비용: 100, 총 사용량: 2915)
+2025-06-23 19:24:58,629 - INFO - API 호출: videos - 영상 상세정보 배치: 50개 (할당량 비용: 1, 총 사용량: 2916)
+2025-06-23 19:24:59,396 - INFO - Skipping video https://www.youtube.com/watch?v=ttemFf13S7A - no ingredients block found
+2025-06-23 19:25:00,399 - INFO - API 호출: search - 채널 검색: @Jocondesbaking (할당량 비용: 100, 총 사용량: 3016)
+2025-06-23 19:25:00,687 - INFO - API 호출: search - 채널 영상 목록: UCClqcOmMx6AeXs_WQg3jU7A (페이지 1) (할당량 비용: 100, 총 사용량: 3116)
+2025-06-23 19:25:00,990 - INFO - API 호출: videos - 영상 상세정보 배치: 41개 (할당량 비용: 1, 총 사용량: 3117)
+2025-06-23 19:25:01,165 - INFO - Skipping video https://www.youtube.com/watch?v=9hUQMxD5W2M - no ingredients block found
+2025-06-23 19:25:01,196 - INFO - Skipping video https://www.youtube.com/watch?v=zEiD_fmERUo - no ingredients block found
+2025-06-23 19:25:01,223 - INFO - Skipping video https://www.youtube.com/watch?v=Ch-NeQF3ObM - no ingredients block found
+2025-06-23 19:25:01,252 - INFO - Skipping video https://www.youtube.com/watch?v=iamFZZ98LYw - no ingredients block found
+2025-06-23 19:25:01,280 - INFO - Skipping video https://www.youtube.com/watch?v=8EZnC_62Ee4 - no ingredients block found
+2025-06-23 19:25:01,308 - INFO - Skipping video https://www.youtube.com/watch?v=fI7Iaw6_0EY - no ingredients block found
+2025-06-23 19:25:01,336 - INFO - Skipping video https://www.youtube.com/watch?v=6z7Mc6W55LQ - no ingredients block found
+2025-06-23 19:25:01,364 - INFO - Skipping video https://www.youtube.com/watch?v=xx0P7FONyJA - no ingredients block found
+2025-06-23 19:25:01,393 - INFO - Skipping video https://www.youtube.com/watch?v=yvyTx3sacgY - no ingredients block found
+2025-06-23 19:25:01,421 - INFO - Skipping video https://www.youtube.com/watch?v=zK9qfB41E7k - no ingredients block found
+2025-06-23 19:25:01,449 - INFO - Skipping video https://www.youtube.com/watch?v=GHDp9na4kuE - no ingredients block found
+2025-06-23 19:25:01,477 - INFO - Skipping video https://www.youtube.com/watch?v=WUXhPcbrMCQ - no ingredients block found
+2025-06-23 19:25:01,505 - INFO - Skipping video https://www.youtube.com/watch?v=R6GWW05KKpU - no ingredients block found
+2025-06-23 19:25:01,533 - INFO - Skipping video https://www.youtube.com/watch?v=r_ALH_oHa-Y - no ingredients block found
+2025-06-23 19:25:01,561 - INFO - Skipping video https://www.youtube.com/watch?v=B_2p14v8gF8 - no ingredients block found
+2025-06-23 19:25:01,590 - INFO - Skipping video https://www.youtube.com/watch?v=-0vcQ5kwDJs - no ingredients block found
+2025-06-23 19:25:01,618 - INFO - Skipping video https://www.youtube.com/watch?v=DblucU3SJA8 - no ingredients block found
+2025-06-23 19:25:01,645 - INFO - Skipping video https://www.youtube.com/watch?v=L4s2VX_55N0 - no ingredients block found
+2025-06-23 19:25:01,673 - INFO - Skipping video https://www.youtube.com/watch?v=3PGyFLX1QLg - no ingredients block found
+2025-06-23 19:25:01,701 - INFO - Skipping video https://www.youtube.com/watch?v=34Z7OGI-0VQ - no ingredients block found
+2025-06-23 19:25:01,728 - INFO - Skipping video https://www.youtube.com/watch?v=P0jM4nKlTGg - no ingredients block found
+2025-06-23 19:25:01,756 - INFO - Skipping video https://www.youtube.com/watch?v=YHMS30LXIcs - no ingredients block found
+2025-06-23 19:25:01,784 - INFO - Skipping video https://www.youtube.com/watch?v=lG2-AeA9vwQ - no ingredients block found
+2025-06-23 19:25:01,812 - INFO - Skipping video https://www.youtube.com/watch?v=Yd7hvxArHWk - no ingredients block found
+2025-06-23 19:25:01,840 - INFO - Skipping video https://www.youtube.com/watch?v=o7cQViltmgI - no ingredients block found
+2025-06-23 19:25:01,868 - INFO - Skipping video https://www.youtube.com/watch?v=3HgGKEttFro - no ingredients block found
+2025-06-23 19:25:01,896 - INFO - Skipping video https://www.youtube.com/watch?v=b5MBYMgLDIE - no ingredients block found
+2025-06-23 19:25:01,924 - INFO - Skipping video https://www.youtube.com/watch?v=ip-jeI0ReVM - no ingredients block found
+2025-06-23 19:25:01,953 - INFO - Skipping video https://www.youtube.com/watch?v=DOg5Kruk-AE - no ingredients block found
+2025-06-23 19:25:01,980 - INFO - Skipping video https://www.youtube.com/watch?v=LC-woLHE2Zc - no ingredients block found
+2025-06-23 19:25:02,008 - INFO - Skipping video https://www.youtube.com/watch?v=qyRrVieK9h0 - no ingredients block found
+2025-06-23 19:25:02,037 - INFO - Skipping video https://www.youtube.com/watch?v=qwLH-nWOevo - no ingredients block found
+2025-06-23 19:25:02,065 - INFO - Skipping video https://www.youtube.com/watch?v=VXe6ioRJMhU - no ingredients block found
+2025-06-23 19:25:02,093 - INFO - Skipping video https://www.youtube.com/watch?v=N51LNQIwX7M - no ingredients block found
+2025-06-23 19:25:02,121 - INFO - Skipping video https://www.youtube.com/watch?v=HMMO0rYqsW8 - no ingredients block found
+2025-06-23 19:25:02,149 - INFO - Skipping video https://www.youtube.com/watch?v=bQ05p70zWGs - no ingredients block found
+2025-06-23 19:25:02,176 - INFO - Skipping video https://www.youtube.com/watch?v=so6-eWTnjck - no ingredients block found
+2025-06-23 19:25:02,203 - INFO - Skipping video https://www.youtube.com/watch?v=fyGwdTQwuDc - no ingredients block found
+2025-06-23 19:25:02,231 - INFO - Skipping video https://www.youtube.com/watch?v=24pbsa7avEA - no ingredients block found
+2025-06-23 19:25:02,259 - INFO - Skipping video https://www.youtube.com/watch?v=tYCJBlr4hvo - no ingredients block found
+2025-06-23 19:25:02,287 - INFO - Skipping video https://www.youtube.com/watch?v=N32L4Vi2y5Q - no ingredients block found
+2025-06-23 19:25:02,297 - INFO - 캐시에 채널 ID 저장: https://www.youtube.com/channel/UCKm-cusLT76t3t4s9OgCqcA -> UCKm-cusLT76t3t4s9OgCqcA
+2025-06-23 19:25:02,297 - INFO - API 호출: search - 채널 영상 목록: UCKm-cusLT76t3t4s9OgCqcA (페이지 1) (할당량 비용: 100, 총 사용량: 3217)
+2025-06-23 19:25:02,639 - INFO - API 호출: videos - 영상 상세정보 배치: 50개 (할당량 비용: 1, 총 사용량: 3218)
+2025-06-23 19:25:04,507 - INFO - API 호출: search - 채널 검색: @wtable6077 (할당량 비용: 100, 총 사용량: 3318)
+2025-06-23 19:25:04,819 - INFO - API 호출: search - 채널 영상 목록: UCStb6xqP228XXUykrrY-_CQ (페이지 1) (할당량 비용: 100, 총 사용량: 3418)
+2025-06-23 19:25:05,138 - INFO - API 호출: videos - 영상 상세정보 배치: 50개 (할당량 비용: 1, 총 사용량: 3419)
+2025-06-23 19:25:05,752 - INFO - Skipping video https://www.youtube.com/watch?v=oXZGRfdr8iM - too few ingredients (2)
+2025-06-23 19:25:06,002 - INFO - Skipping video https://www.youtube.com/watch?v=BWIWmMuhpRo - too few ingredients (1)
+2025-06-23 19:25:06,130 - INFO - Skipping video https://www.youtube.com/watch?v=L__kQaY1rdQ - too few ingredients (2)
+2025-06-23 19:25:06,381 - INFO - Skipping video https://www.youtube.com/watch?v=--tNgk-meJw - too few ingredients (2)
+2025-06-23 19:25:06,424 - INFO - Skipping video https://www.youtube.com/watch?v=qpKHuflzS94 - too few ingredients (2)
+2025-06-23 19:25:06,499 - INFO - Skipping video https://www.youtube.com/watch?v=0_xhyZI2GHI - too few ingredients (1)
+2025-06-23 19:25:06,694 - INFO - Skipping video https://www.youtube.com/watch?v=OZ4ayRbN9Zs - too few ingredients (2)
+2025-06-23 19:25:06,732 - INFO - Skipping video https://www.youtube.com/watch?v=usWklmquMG4 - too few ingredients (2)
+2025-06-23 19:25:06,773 - INFO - Skipping video https://www.youtube.com/watch?v=0KBfcpYHMK8 - too few ingredients (1)
+2025-06-23 19:25:06,897 - INFO - Skipping video https://www.youtube.com/watch?v=mdJCuflL4UM - too few ingredients (2)
+2025-06-23 19:25:06,942 - INFO - Skipping video https://www.youtube.com/watch?v=y5DsRNip1cg - no ingredients block found
+2025-06-23 19:25:06,981 - INFO - Skipping video https://www.youtube.com/watch?v=BcC_9orISwI - too few ingredients (2)
+2025-06-23 19:25:07,186 - INFO - Skipping video https://www.youtube.com/watch?v=Zr0_xT79WrE - too few ingredients (1)
+2025-06-23 19:25:07,267 - INFO - Skipping video https://www.youtube.com/watch?v=EzjuDOOM4N4 - too few ingredients (2)
+2025-06-23 19:25:07,310 - INFO - API 호출: search - 채널 검색: @haeum_cooking (할당량 비용: 100, 총 사용량: 3519)
+2025-06-23 19:25:07,653 - INFO - API 호출: search - 채널 영상 목록: UCWkI9Qcm3vfRY0bZw71ZzYw (페이지 1) (할당량 비용: 100, 총 사용량: 3619)
+2025-06-23 19:25:08,045 - INFO - API 호출: videos - 영상 상세정보 배치: 50개 (할당량 비용: 1, 총 사용량: 3620)
+2025-06-23 19:25:08,237 - INFO - Skipping video https://www.youtube.com/watch?v=kDwekHXyLV8 - no ingredients block found
+2025-06-23 19:25:08,274 - INFO - Skipping video https://www.youtube.com/watch?v=TKss3v4uvxY - no ingredients block found
+2025-06-23 19:25:08,315 - INFO - Skipping video https://www.youtube.com/watch?v=WmM9Zhy84DM - no ingredients block found
+2025-06-23 19:25:08,344 - INFO - Skipping video https://www.youtube.com/watch?v=47QQGn0zgAk - no ingredients block found
+2025-06-23 19:25:08,372 - INFO - Skipping video https://www.youtube.com/watch?v=fUgEaaPj30E - no ingredients block found
+2025-06-23 19:25:08,401 - INFO - Skipping video https://www.youtube.com/watch?v=_W-O8vxVDuE - no ingredients block found
+2025-06-23 19:25:08,429 - INFO - Skipping video https://www.youtube.com/watch?v=B_RVoMDaqRg - no ingredients block found
+2025-06-23 19:25:08,500 - INFO - Skipping video https://www.youtube.com/watch?v=7Kgpe_AwwRA - no ingredients block found
+2025-06-23 19:25:08,562 - INFO - Skipping video https://www.youtube.com/watch?v=12N5Z0nIjso - no ingredients block found
+2025-06-23 19:25:08,590 - INFO - Skipping video https://www.youtube.com/watch?v=Q6LQ6WZ4TC0 - too few ingredients (2)
+2025-06-23 19:25:08,626 - INFO - Skipping video https://www.youtube.com/watch?v=4T0db1APP0s - no ingredients block found
+2025-06-23 19:25:08,828 - INFO - Skipping video https://www.youtube.com/watch?v=t9qyoRxf7Eg - no ingredients block found
+2025-06-23 19:25:08,870 - INFO - Skipping video https://www.youtube.com/watch?v=SujbzAeJEOM - no ingredients block found
+2025-06-23 19:25:08,909 - INFO - Skipping video https://www.youtube.com/watch?v=twKYCzqu_jE - no ingredients block found
+2025-06-23 19:25:08,947 - INFO - Skipping video https://www.youtube.com/watch?v=19IyBUH9A10 - no ingredients block found
+2025-06-23 19:25:09,021 - INFO - Skipping video https://www.youtube.com/watch?v=8Wt-dPoBpXk - no ingredients block found
+2025-06-23 19:25:09,057 - INFO - Skipping video https://www.youtube.com/watch?v=aptG8iq69Rs - no ingredients block found
+2025-06-23 19:25:09,128 - INFO - Skipping video https://www.youtube.com/watch?v=JMpiHRay_FE - no ingredients block found
+2025-06-23 19:25:09,167 - INFO - Skipping video https://www.youtube.com/watch?v=XkLAoUKEiPo - no ingredients block found
+2025-06-23 19:25:09,203 - INFO - Skipping video https://www.youtube.com/watch?v=XHiUGbMgYJ0 - no ingredients block found
+2025-06-23 19:25:09,241 - INFO - Skipping video https://www.youtube.com/watch?v=OUMgIEbgWGk - no ingredients block found
+2025-06-23 19:25:09,281 - INFO - Skipping video https://www.youtube.com/watch?v=O0B4WeVwOk8 - no ingredients block found
+2025-06-23 19:25:09,320 - INFO - Skipping video https://www.youtube.com/watch?v=eD2GEGjrCjI - no ingredients block found
+2025-06-23 19:25:09,430 - INFO - Skipping video https://www.youtube.com/watch?v=yxD9tckO5CQ - no ingredients block found
+2025-06-23 19:25:09,473 - INFO - Skipping video https://www.youtube.com/watch?v=Te59CQc5ScA - no ingredients block found
+2025-06-23 19:25:09,518 - INFO - Skipping video https://www.youtube.com/watch?v=_BiAhjJIWx8 - too few ingredients (2)
+2025-06-23 19:25:09,590 - INFO - Skipping video https://www.youtube.com/watch?v=g2gp_CxHBrk - no ingredients block found
+2025-06-23 19:25:09,666 - INFO - Skipping video https://www.youtube.com/watch?v=pC6zs5BaEz8 - no ingredients block found
+2025-06-23 19:25:09,703 - INFO - Skipping video https://www.youtube.com/watch?v=qfepofYfflY - no ingredients block found
+2025-06-23 19:25:09,740 - INFO - Skipping video https://www.youtube.com/watch?v=BhvUzETV78I - no ingredients block found
+2025-06-23 19:25:09,847 - INFO - Skipping video https://www.youtube.com/watch?v=eRc6DprPSyI - no ingredients block found
+2025-06-23 19:25:09,918 - INFO - Skipping video https://www.youtube.com/watch?v=ihnD3423ip8 - no ingredients block found
+2025-06-23 19:25:09,988 - INFO - API 호출: search - 채널 검색: @50food (할당량 비용: 100, 총 사용량: 3720)
+2025-06-23 19:25:10,346 - INFO - API 호출: search - 채널 영상 목록: UC6GHLoMTdl5rpLIWtz7vu8Q (페이지 1) (할당량 비용: 100, 총 사용량: 3820)
+2025-06-23 19:25:10,669 - INFO - API 호출: videos - 영상 상세정보 배치: 37개 (할당량 비용: 1, 총 사용량: 3821)
+2025-06-23 19:25:10,838 - INFO - Skipping video https://www.youtube.com/watch?v=p-rBG2TOkL8 - no ingredients block found
+2025-06-23 19:25:10,866 - INFO - Skipping video https://www.youtube.com/watch?v=l4YvTO_dOHg - no ingredients block found
+2025-06-23 19:25:10,894 - INFO - Skipping video https://www.youtube.com/watch?v=Ag1RwCRP7UA - no ingredients block found
+2025-06-23 19:25:10,921 - INFO - Skipping video https://www.youtube.com/watch?v=jUgKLynJzhE - no ingredients block found
+2025-06-23 19:25:10,949 - INFO - Skipping video https://www.youtube.com/watch?v=1ZSbMVtVibQ - no ingredients block found
+2025-06-23 19:25:10,977 - INFO - Skipping video https://www.youtube.com/watch?v=DF5NJ9X8kjc - no ingredients block found
+2025-06-23 19:25:11,006 - INFO - Skipping video https://www.youtube.com/watch?v=PROokA0z25Y - no ingredients block found
+2025-06-23 19:25:11,035 - INFO - Skipping video https://www.youtube.com/watch?v=tebGJ5mE9q4 - no ingredients block found
+2025-06-23 19:25:11,064 - INFO - Skipping video https://www.youtube.com/watch?v=NmarU-q4ql8 - no ingredients block found
+2025-06-23 19:25:11,093 - INFO - Skipping video https://www.youtube.com/watch?v=BAbpeDt4ZNs - no ingredients block found
+2025-06-23 19:25:11,122 - INFO - Skipping video https://www.youtube.com/watch?v=TUfZr8yr8V0 - no ingredients block found
+2025-06-23 19:25:11,151 - INFO - Skipping video https://www.youtube.com/watch?v=3ke6lBN_aX8 - no ingredients block found
+2025-06-23 19:25:11,180 - INFO - Skipping video https://www.youtube.com/watch?v=a-vcala7Xwg - no ingredients block found
+2025-06-23 19:25:11,209 - INFO - Skipping video https://www.youtube.com/watch?v=GxeD0kdTC2k - no ingredients block found
+2025-06-23 19:25:11,238 - INFO - Skipping video https://www.youtube.com/watch?v=7A9QGItZkjM - no ingredients block found
+2025-06-23 19:25:11,267 - INFO - Skipping video https://www.youtube.com/watch?v=PORjHjSCPwE - no ingredients block found
+2025-06-23 19:25:11,295 - INFO - Skipping video https://www.youtube.com/watch?v=Siy_EnfJB1c - no ingredients block found
+2025-06-23 19:25:11,325 - INFO - Skipping video https://www.youtube.com/watch?v=pjxnpZS0G28 - no ingredients block found
+2025-06-23 19:25:11,353 - INFO - Skipping video https://www.youtube.com/watch?v=PANoZbXthfU - no ingredients block found
+2025-06-23 19:25:11,382 - INFO - Skipping video https://www.youtube.com/watch?v=A4S7sUoXp-4 - no ingredients block found
+2025-06-23 19:25:11,411 - INFO - Skipping video https://www.youtube.com/watch?v=TDWnoSF8E-s - no ingredients block found
+2025-06-23 19:25:11,440 - INFO - Skipping video https://www.youtube.com/watch?v=bAEWZiX0W6k - no ingredients block found
+2025-06-23 19:25:11,469 - INFO - Skipping video https://www.youtube.com/watch?v=Cd1IS9czkZE - no ingredients block found
+2025-06-23 19:25:11,498 - INFO - Skipping video https://www.youtube.com/watch?v=m9FcrHU-q8w - no ingredients block found
+2025-06-23 19:25:11,528 - INFO - Skipping video https://www.youtube.com/watch?v=WEk-fltGnew - no ingredients block found
+2025-06-23 19:25:11,557 - INFO - Skipping video https://www.youtube.com/watch?v=6BB1ueijwuM - no ingredients block found
+2025-06-23 19:25:11,585 - INFO - Skipping video https://www.youtube.com/watch?v=m88bbvMDlZg - no ingredients block found
+2025-06-23 19:25:11,614 - INFO - Skipping video https://www.youtube.com/watch?v=NwomEJgvLoU - no ingredients block found
+2025-06-23 19:25:11,642 - INFO - Skipping video https://www.youtube.com/watch?v=pVa5nDT7gmE - no ingredients block found
+2025-06-23 19:25:11,670 - INFO - Skipping video https://www.youtube.com/watch?v=Hb8-1G4sPH0 - no ingredients block found
+2025-06-23 19:25:11,699 - INFO - Skipping video https://www.youtube.com/watch?v=kQM-NOcMTrQ - no ingredients block found
+2025-06-23 19:25:11,728 - INFO - Skipping video https://www.youtube.com/watch?v=I2AFjKLDiyk - no ingredients block found
+2025-06-23 19:25:11,757 - INFO - Skipping video https://www.youtube.com/watch?v=oUxnXy94Boc - no ingredients block found
+2025-06-23 19:25:11,785 - INFO - Skipping video https://www.youtube.com/watch?v=qpEZmI0DsLQ - no ingredients block found
+2025-06-23 19:25:11,813 - INFO - Skipping video https://www.youtube.com/watch?v=DRoGupDWmTM - no ingredients block found
+2025-06-23 19:25:11,843 - INFO - Skipping video https://www.youtube.com/watch?v=o9x0qq6_FOs - no ingredients block found
+2025-06-23 19:25:11,871 - INFO - Skipping video https://www.youtube.com/watch?v=OtNpUB5Mn0s - no ingredients block found
+2025-06-23 19:25:11,882 - INFO - 캐시에 채널 ID 저장: https://www.youtube.com/channel/UCB4JlWU3Vcev5pkyIdeBMRw -> UCB4JlWU3Vcev5pkyIdeBMRw
+2025-06-23 19:25:11,883 - INFO - API 호출: search - 채널 영상 목록: UCB4JlWU3Vcev5pkyIdeBMRw (페이지 1) (할당량 비용: 100, 총 사용량: 3921)
+2025-06-23 19:25:12,205 - INFO - API 호출: videos - 영상 상세정보 배치: 50개 (할당량 비용: 1, 총 사용량: 3922)
+2025-06-23 19:25:12,816 - INFO - Skipping video https://www.youtube.com/watch?v=YIWXkVZnfgo - no ingredients block found
+2025-06-23 19:25:13,630 - INFO - Skipping video https://www.youtube.com/watch?v=lUYAiQ6lTy0 - no ingredients block found
+2025-06-23 19:25:13,693 - INFO - Skipping video https://www.youtube.com/watch?v=RMr4LYCzsmc - no ingredients block found
+2025-06-23 19:25:13,823 - INFO - Skipping video https://www.youtube.com/watch?v=xOiOfDyyj2I - no ingredients block found
+2025-06-23 19:25:13,886 - INFO - Skipping video https://www.youtube.com/watch?v=U9PRmAQyjUs - no ingredients block found
+2025-06-23 19:25:13,949 - INFO - Skipping video https://www.youtube.com/watch?v=TrO5HXDK3lg - no ingredients block found
+2025-06-23 19:25:13,950 - INFO - API 호출: search - 채널 검색: @JUNTV9 (할당량 비용: 100, 총 사용량: 4022)
+2025-06-23 19:25:14,295 - INFO - API 호출: search - 채널 영상 목록: UCNB-6ArklP1Mgg11-Og2zMg (페이지 1) (할당량 비용: 100, 총 사용량: 4122)
+2025-06-23 19:25:14,661 - INFO - API 호출: videos - 영상 상세정보 배치: 50개 (할당량 비용: 1, 총 사용량: 4123)
+2025-06-23 19:25:14,839 - INFO - Skipping video https://www.youtube.com/watch?v=2ctiYdwwjSk - too few ingredients (1)
+2025-06-23 19:25:14,871 - INFO - Skipping video https://www.youtube.com/watch?v=piyr439M0Vk - too few ingredients (1)
+2025-06-23 19:25:14,981 - INFO - Skipping video https://www.youtube.com/watch?v=d8Sk5TKdv3I - no ingredients block found
+2025-06-23 19:25:15,937 - INFO - Skipping video https://www.youtube.com/watch?v=7TQT_RAsdes - no ingredients block found
+2025-06-23 19:25:15,965 - INFO - Skipping video https://www.youtube.com/watch?v=HfQVFdxItt8 - no ingredients block found
+2025-06-23 19:25:15,993 - INFO - Skipping video https://www.youtube.com/watch?v=esLWiRUCl00 - too few ingredients (2)
+2025-06-23 19:25:16,022 - INFO - Skipping video https://www.youtube.com/watch?v=pAoR-iigxC8 - no ingredients block found
+2025-06-23 19:25:16,050 - INFO - Skipping video https://www.youtube.com/watch?v=PUGFLinxw4w - no ingredients block found
+2025-06-23 19:25:16,079 - INFO - Skipping video https://www.youtube.com/watch?v=CfpW-LshaQ0 - no ingredients block found
+2025-06-23 19:25:16,107 - INFO - Skipping video https://www.youtube.com/watch?v=zvGhS9vCym8 - no ingredients block found
+2025-06-23 19:25:16,136 - INFO - Skipping video https://www.youtube.com/watch?v=ou31T3RhyOM - no ingredients block found
+2025-06-23 19:25:16,164 - INFO - Skipping video https://www.youtube.com/watch?v=nufXHi9jyq4 - no ingredients block found
+2025-06-23 19:25:16,227 - INFO - Skipping video https://www.youtube.com/watch?v=XPZL7RM7TD4 - no ingredients block found
+2025-06-23 19:25:16,256 - INFO - Skipping video https://www.youtube.com/watch?v=fwI5k8FsmIw - no ingredients block found
+2025-06-23 19:25:16,330 - INFO - Skipping video https://www.youtube.com/watch?v=QNonKgBDmhU - too few ingredients (1)
+2025-06-23 19:25:16,571 - INFO - API 호출: search - 채널 검색: @%EB%94%B8%EC%9D%84%EC%9C%84%ED%95%9C%EB%A0%88%EC%8B%9C%ED%94%BC (할당량 비용: 100, 총 사용량: 4223)
+2025-06-23 19:25:16,972 - INFO - API 호출: search - 채널 영상 목록: UCRFArW5eXVFkmi20J19PqgA (페이지 1) (할당량 비용: 100, 총 사용량: 4323)
+2025-06-23 19:25:17,258 - INFO - API 호출: videos - 영상 상세정보 배치: 27개 (할당량 비용: 1, 총 사용량: 4324)
+2025-06-23 19:25:17,414 - INFO - Skipping video https://www.youtube.com/watch?v=dVo4Q7Pv1NM - no ingredients block found
+2025-06-23 19:25:17,442 - INFO - Skipping video https://www.youtube.com/watch?v=AqWJLxLlP3k - no ingredients block found
+2025-06-23 19:25:17,473 - INFO - Skipping video https://www.youtube.com/watch?v=ajckZlHTzac - no ingredients block found
+2025-06-23 19:25:17,502 - INFO - Skipping video https://www.youtube.com/watch?v=JZBUtYpQdcY - no ingredients block found
+2025-06-23 19:25:17,530 - INFO - Skipping video https://www.youtube.com/watch?v=OfnvEfYmZxI - no ingredients block found
+2025-06-23 19:25:17,558 - INFO - Skipping video https://www.youtube.com/watch?v=DMknt3EsVQM - no ingredients block found
+2025-06-23 19:25:17,586 - INFO - Skipping video https://www.youtube.com/watch?v=1FpBpzs-mPw - no ingredients block found
+2025-06-23 19:25:17,613 - INFO - Skipping video https://www.youtube.com/watch?v=mtoCNY6pViQ - no ingredients block found
+2025-06-23 19:25:17,642 - INFO - Skipping video https://www.youtube.com/watch?v=NGeRAZ990TI - no ingredients block found
+2025-06-23 19:25:17,670 - INFO - Skipping video https://www.youtube.com/watch?v=5l_8FoFg_xY - no ingredients block found
+2025-06-23 19:25:17,698 - INFO - Skipping video https://www.youtube.com/watch?v=mZG13tsbstg - no ingredients block found
+2025-06-23 19:25:17,726 - INFO - Skipping video https://www.youtube.com/watch?v=mQvleIscAIE - no ingredients block found
+2025-06-23 19:25:17,755 - INFO - Skipping video https://www.youtube.com/watch?v=RRz2VJQEtE8 - no ingredients block found
+2025-06-23 19:25:17,783 - INFO - Skipping video https://www.youtube.com/watch?v=CcD4TX9L2_0 - no ingredients block found
+2025-06-23 19:25:17,812 - INFO - Skipping video https://www.youtube.com/watch?v=UpwyNhKmkqM - no ingredients block found
+2025-06-23 19:25:17,840 - INFO - Skipping video https://www.youtube.com/watch?v=oA1Mv7Mwkto - no ingredients block found
+2025-06-23 19:25:17,869 - INFO - Skipping video https://www.youtube.com/watch?v=GTL9H2vpLog - no ingredients block found
+2025-06-23 19:25:17,897 - INFO - Skipping video https://www.youtube.com/watch?v=oHT9Ag4JCNE - no ingredients block found
+2025-06-23 19:25:17,926 - INFO - Skipping video https://www.youtube.com/watch?v=hmtsaxTXc8E - no ingredients block found
+2025-06-23 19:25:17,954 - INFO - Skipping video https://www.youtube.com/watch?v=UUXGgqxPX6w - no ingredients block found
+2025-06-23 19:25:17,982 - INFO - Skipping video https://www.youtube.com/watch?v=K5iy2Ad2M_0 - no ingredients block found
+2025-06-23 19:25:18,010 - INFO - Skipping video https://www.youtube.com/watch?v=fMqPM67vVlc - no ingredients block found
+2025-06-23 19:25:18,038 - INFO - Skipping video https://www.youtube.com/watch?v=VzfbOlEu20Q - no ingredients block found
+2025-06-23 19:25:18,066 - INFO - Skipping video https://www.youtube.com/watch?v=3_OYm17xcP4 - no ingredients block found
+2025-06-23 19:25:18,095 - INFO - Skipping video https://www.youtube.com/watch?v=4vOe4t9Rn0Y - no ingredients block found
+2025-06-23 19:25:18,123 - INFO - Skipping video https://www.youtube.com/watch?v=fgK5DVu869k - no ingredients block found
+2025-06-23 19:25:18,151 - INFO - Skipping video https://www.youtube.com/watch?v=Vls2bMAQ5jo - no ingredients block found
+2025-06-23 19:25:18,161 - INFO - 캐시에 채널 ID 저장: https://www.youtube.com/channel/UCyn7aoxdLNDZG2ZXXLoVCNQ -> UCyn7aoxdLNDZG2ZXXLoVCNQ
+2025-06-23 19:25:18,161 - INFO - API 호출: search - 채널 영상 목록: UCyn7aoxdLNDZG2ZXXLoVCNQ (페이지 1) (할당량 비용: 100, 총 사용량: 4424)
+2025-06-23 19:25:18,502 - INFO - API 호출: videos - 영상 상세정보 배치: 50개 (할당량 비용: 1, 총 사용량: 4425)
+2025-06-23 19:25:18,689 - INFO - Skipping video https://www.youtube.com/watch?v=HLai1z5J9rs - no ingredients block found
+2025-06-23 19:25:19,427 - INFO - Skipping video https://www.youtube.com/watch?v=HyVWxISUwkA - too few ingredients (1)
+2025-06-23 19:25:19,456 - INFO - Skipping video https://www.youtube.com/watch?v=TwSq7T5xzOM - too few ingredients (2)
+2025-06-23 19:25:19,793 - INFO - Skipping video https://www.youtube.com/watch?v=_EHIzDHZ3i0 - too few ingredients (2)
+2025-06-23 19:25:20,313 - INFO - 캐시에 채널 ID 저장: https://www.youtube.com/channel/UC2gasvQVxOdRht9ykwhxwjw -> UC2gasvQVxOdRht9ykwhxwjw
+2025-06-23 19:25:20,314 - INFO - API 호출: search - 채널 영상 목록: UC2gasvQVxOdRht9ykwhxwjw (페이지 1) (할당량 비용: 100, 총 사용량: 4525)
+2025-06-23 19:25:20,578 - INFO - API 호출: videos - 영상 상세정보 배치: 10개 (할당량 비용: 1, 총 사용량: 4526)
+2025-06-23 19:25:20,704 - INFO - Skipping video https://www.youtube.com/watch?v=g-AI4I_jYu0 - no ingredients block found
+2025-06-23 19:25:20,732 - INFO - Skipping video https://www.youtube.com/watch?v=P0tb_GGv6o8 - no ingredients block found
+2025-06-23 19:25:20,772 - INFO - Skipping video https://www.youtube.com/watch?v=2scz24ZyJNs - too few ingredients (1)
+2025-06-23 19:25:20,800 - INFO - Skipping video https://www.youtube.com/watch?v=GMV5McHOrM0 - no ingredients block found
+2025-06-23 19:25:20,828 - INFO - Skipping video https://www.youtube.com/watch?v=9bZkpoeNBFw - no ingredients block found
+2025-06-23 19:25:20,856 - INFO - Skipping video https://www.youtube.com/watch?v=aOKn_cv1H38 - no ingredients block found
+2025-06-23 19:25:20,917 - INFO - Skipping video https://www.youtube.com/watch?v=ERCDoRGei6g - no ingredients block found
+2025-06-23 19:25:20,945 - INFO - Skipping video https://www.youtube.com/watch?v=L13DA1CqpQE - no ingredients block found
+2025-06-23 19:25:20,974 - INFO - Skipping video https://www.youtube.com/watch?v=8r_H9Shusz8 - no ingredients block found
+2025-06-23 19:25:20,975 - INFO - API 호출: search - 채널 검색: @leeyeonbok (할당량 비용: 100, 총 사용량: 4626)
+2025-06-23 19:25:21,244 - INFO - API 호출: search - 채널 영상 목록: UCaAka9CN4naD3FzHX6AvpqA (페이지 1) (할당량 비용: 100, 총 사용량: 4726)
+2025-06-23 19:25:21,571 - INFO - API 호출: videos - 영상 상세정보 배치: 50개 (할당량 비용: 1, 총 사용량: 4727)
+2025-06-23 19:25:21,775 - INFO - Skipping video https://www.youtube.com/watch?v=LlT_SrvmWMU - no ingredients block found
+2025-06-23 19:25:22,126 - INFO - Skipping video https://www.youtube.com/watch?v=6_cCX4I7PzE - too few ingredients (1)
+2025-06-23 19:25:22,769 - INFO - Skipping video https://www.youtube.com/watch?v=Zd5gnEcXeN0 - too few ingredients (1)
+2025-06-23 19:25:22,864 - INFO - Skipping video https://www.youtube.com/watch?v=oNlhcD0Rrks - no ingredients block found
+2025-06-23 19:25:23,194 - INFO - Skipping video https://www.youtube.com/watch?v=tfjaG1efgpg - no ingredients block found
+2025-06-23 19:25:23,223 - INFO - Skipping video https://www.youtube.com/watch?v=AgyqBO0zBZA - no ingredients block found
+2025-06-23 19:25:23,318 - INFO - Skipping video https://www.youtube.com/watch?v=o3cCOcxViIY - no ingredients block found
+2025-06-23 19:25:23,347 - INFO - Skipping video https://www.youtube.com/watch?v=FFDDNX5XTfM - no ingredients block found
+2025-06-23 19:25:23,385 - INFO - API 호출: search - 채널 검색: @J.Dessert (할당량 비용: 100, 총 사용량: 4827)
+2025-06-23 19:25:23,772 - INFO - API 호출: search - 채널 영상 목록: UCQobkXCJIEp0cIOJWWeaqSA (페이지 1) (할당량 비용: 100, 총 사용량: 4927)
+2025-06-23 19:25:24,096 - INFO - API 호출: videos - 영상 상세정보 배치: 50개 (할당량 비용: 1, 총 사용량: 4928)
+2025-06-23 19:25:24,281 - INFO - Skipping video https://www.youtube.com/watch?v=Z7ESN1wbUZw - too few ingredients (1)
+2025-06-23 19:25:24,314 - INFO - Skipping video https://www.youtube.com/watch?v=-8mUk1lxen4 - too few ingredients (1)
+2025-06-23 19:25:24,344 - INFO - Skipping video https://www.youtube.com/watch?v=tlZQysM83-I - no ingredients block found
+2025-06-23 19:25:24,505 - INFO - Skipping video https://www.youtube.com/watch?v=22W19vKxDYg - too few ingredients (1)
+2025-06-23 19:25:24,574 - INFO - Skipping video https://www.youtube.com/watch?v=w9cp2FlcYHI - too few ingredients (1)
+2025-06-23 19:25:24,645 - INFO - Skipping video https://www.youtube.com/watch?v=rCoD4bY6RI0 - too few ingredients (1)
+2025-06-23 19:25:24,841 - INFO - Skipping video https://www.youtube.com/watch?v=M0R0ZFEbdGc - too few ingredients (2)
+2025-06-23 19:25:24,909 - INFO - Skipping video https://www.youtube.com/watch?v=f-Y7GunOTik - too few ingredients (2)
+2025-06-23 19:25:25,007 - INFO - Skipping video https://www.youtube.com/watch?v=4tKvvn4satA - no ingredients block found
+2025-06-23 19:25:25,042 - INFO - Skipping video https://www.youtube.com/watch?v=haA59RSFhTg - no ingredients block found
+2025-06-23 19:25:25,072 - INFO - Skipping video https://www.youtube.com/watch?v=Yz6pSPZyFVU - too few ingredients (2)
+2025-06-23 19:25:25,171 - INFO - Skipping video https://www.youtube.com/watch?v=KrpoFXGfUx4 - no ingredients block found
+2025-06-23 19:25:25,269 - INFO - Skipping video https://www.youtube.com/watch?v=vbr30BCMVhU - too few ingredients (2)
+2025-06-23 19:25:25,334 - INFO - Skipping video https://www.youtube.com/watch?v=WCUGydYqdYs - too few ingredients (2)
+2025-06-23 19:25:25,400 - INFO - Skipping video https://www.youtube.com/watch?v=pzyRcXUQCy0 - too few ingredients (2)
+2025-06-23 19:25:25,466 - INFO - Skipping video https://www.youtube.com/watch?v=3mR5TyJvbFk - too few ingredients (1)
+2025-06-23 19:25:25,502 - INFO - Skipping video https://www.youtube.com/watch?v=7_u7gV16Omw - too few ingredients (2)
+2025-06-23 19:25:25,533 - INFO - Skipping video https://www.youtube.com/watch?v=3e6aiEzOG7Q - no ingredients block found
+2025-06-23 19:25:25,570 - INFO - Skipping video https://www.youtube.com/watch?v=lAXggtudbw0 - too few ingredients (1)
+2025-06-23 19:25:25,599 - INFO - Skipping video https://www.youtube.com/watch?v=Atmpap26zLc - no ingredients block found
+2025-06-23 19:25:25,635 - INFO - Skipping video https://www.youtube.com/watch?v=yCW7uXkVOaw - too few ingredients (1)
+2025-06-23 19:25:25,664 - INFO - Skipping video https://www.youtube.com/watch?v=LoxzWdbr1_4 - too few ingredients (1)
+2025-06-23 19:25:25,796 - INFO - Skipping video https://www.youtube.com/watch?v=TxGeRrSsRi0 - too few ingredients (1)
+2025-06-23 19:25:25,832 - INFO - Skipping video https://www.youtube.com/watch?v=JLDkte3zEjA - too few ingredients (1)
+2025-06-23 19:25:25,861 - INFO - Skipping video https://www.youtube.com/watch?v=SBFvPJYdz98 - too few ingredients (1)
+2025-06-23 19:25:25,861 - INFO - API 호출: search - 채널 검색: @seodam (할당량 비용: 100, 총 사용량: 5028)
+2025-06-23 19:25:26,156 - INFO - API 호출: search - 채널 영상 목록: UC84Zkx_92divh3h4sKXeDew (페이지 1) (할당량 비용: 100, 총 사용량: 5128)
+2025-06-23 19:25:26,496 - INFO - API 호출: videos - 영상 상세정보 배치: 50개 (할당량 비용: 1, 총 사용량: 5129)
+2025-06-23 19:25:26,669 - INFO - Skipping video https://www.youtube.com/watch?v=SvddW4Flwwk - no ingredients block found
+2025-06-23 19:25:26,696 - INFO - Skipping video https://www.youtube.com/watch?v=opT-QwSFUPI - no ingredients block found
+2025-06-23 19:25:26,725 - INFO - Skipping video https://www.youtube.com/watch?v=H8pgSBUWq5c - no ingredients block found
+2025-06-23 19:25:26,753 - INFO - Skipping video https://www.youtube.com/watch?v=_pBjYSnvdpg - no ingredients block found
+2025-06-23 19:25:26,886 - INFO - Skipping video https://www.youtube.com/watch?v=2zP6A1p19Tc - too few ingredients (2)
+2025-06-23 19:25:27,026 - INFO - Skipping video https://www.youtube.com/watch?v=SMCC8IdxAGA - too few ingredients (2)
+2025-06-23 19:25:27,060 - INFO - Skipping video https://www.youtube.com/watch?v=P3xNJcMeEZQ - too few ingredients (2)
+2025-06-23 19:25:27,095 - INFO - Skipping video https://www.youtube.com/watch?v=0VIwPAsOe8Y - too few ingredients (2)
+2025-06-23 19:25:27,224 - INFO - Skipping video https://www.youtube.com/watch?v=L2mfFuNtYok - no ingredients block found
+2025-06-23 19:25:27,252 - INFO - Skipping video https://www.youtube.com/watch?v=Okbrnl0Id7Q - no ingredients block found
+2025-06-23 19:25:27,320 - INFO - Skipping video https://www.youtube.com/watch?v=ZUc7dKd1L9c - too few ingredients (2)
+2025-06-23 19:25:27,497 - INFO - Skipping video https://www.youtube.com/watch?v=-a6POptOcKo - too few ingredients (2)
+2025-06-23 19:25:27,531 - INFO - Skipping video https://www.youtube.com/watch?v=gHPkCsxFqRo - too few ingredients (2)
+2025-06-23 19:25:27,565 - INFO - Skipping video https://www.youtube.com/watch?v=SY40OmQq_ws - too few ingredients (1)
+2025-06-23 19:25:27,703 - INFO - Skipping video https://www.youtube.com/watch?v=3LIFbSheacU - too few ingredients (2)
+2025-06-23 19:25:27,738 - INFO - Skipping video https://www.youtube.com/watch?v=9rNSm5AaVLs - too few ingredients (2)
+2025-06-23 19:25:27,836 - INFO - Skipping video https://www.youtube.com/watch?v=V0o018MFkJo - too few ingredients (1)
+2025-06-23 19:25:27,864 - INFO - Skipping video https://www.youtube.com/watch?v=svS_RMcL81k - no ingredients block found
+2025-06-23 19:25:28,175 - INFO - Skipping video https://www.youtube.com/watch?v=FlXloXn7SbU - too few ingredients (2)
+2025-06-23 19:25:28,281 - INFO - API 호출: search - 채널 검색: @CookingKun (할당량 비용: 100, 총 사용량: 5229)
+2025-06-23 19:25:28,568 - INFO - API 호출: search - 채널 영상 목록: UCmTmv_oJt72uO0IWHMxAUrA (페이지 1) (할당량 비용: 100, 총 사용량: 5329)
+2025-06-23 19:25:28,883 - INFO - API 호출: videos - 영상 상세정보 배치: 15개 (할당량 비용: 1, 총 사용량: 5330)
+2025-06-23 19:25:29,015 - INFO - Skipping video https://www.youtube.com/watch?v=HB_J4WR9I64 - no ingredients block found
+2025-06-23 19:25:29,043 - INFO - Skipping video https://www.youtube.com/watch?v=XTMq31LJmAM - no ingredients block found
+2025-06-23 19:25:29,071 - INFO - Skipping video https://www.youtube.com/watch?v=riCbbt6MI-4 - no ingredients block found
+2025-06-23 19:25:29,099 - INFO - Skipping video https://www.youtube.com/watch?v=D4ivqQEW-Z8 - no ingredients block found
+2025-06-23 19:25:29,127 - INFO - Skipping video https://www.youtube.com/watch?v=yEqvVTVCMwE - no ingredients block found
+2025-06-23 19:25:29,155 - INFO - Skipping video https://www.youtube.com/watch?v=89BFDgdj_2s - no ingredients block found
+2025-06-23 19:25:29,183 - INFO - Skipping video https://www.youtube.com/watch?v=Ys7CzX9Jmec - no ingredients block found
+2025-06-23 19:25:29,211 - INFO - Skipping video https://www.youtube.com/watch?v=XH3WRbkYCq4 - no ingredients block found
+2025-06-23 19:25:29,239 - INFO - Skipping video https://www.youtube.com/watch?v=sJTeyVC6TzY - no ingredients block found
+2025-06-23 19:25:29,268 - INFO - Skipping video https://www.youtube.com/watch?v=stEBJskMlj4 - no ingredients block found
+2025-06-23 19:25:29,295 - INFO - Skipping video https://www.youtube.com/watch?v=JyodEYDaoBM - no ingredients block found
+2025-06-23 19:25:29,323 - INFO - Skipping video https://www.youtube.com/watch?v=3oP69eoXRCA - no ingredients block found
+2025-06-23 19:25:29,351 - INFO - Skipping video https://www.youtube.com/watch?v=AKmb7jJBaLc - no ingredients block found
+2025-06-23 19:25:29,379 - INFO - Skipping video https://www.youtube.com/watch?v=5fzC27ahVCY - no ingredients block found
+2025-06-23 19:25:29,407 - INFO - Skipping video https://www.youtube.com/watch?v=2m4VFurDo64 - no ingredients block found
+2025-06-23 19:25:29,408 - INFO - API 호출: search - 채널 검색: @JadoreRecipe (할당량 비용: 100, 총 사용량: 5430)
+2025-06-23 19:25:29,707 - INFO - API 호출: search - 채널 영상 목록: UCg4Pbo3iicOnxyuaJAAtrNQ (페이지 1) (할당량 비용: 100, 총 사용량: 5530)
+2025-06-23 19:25:30,028 - INFO - API 호출: videos - 영상 상세정보 배치: 6개 (할당량 비용: 1, 총 사용량: 5531)
+2025-06-23 19:25:30,151 - INFO - Skipping video https://www.youtube.com/watch?v=ZT-I5IwX4M8 - no ingredients block found
+2025-06-23 19:25:30,179 - INFO - Skipping video https://www.youtube.com/watch?v=wqkGjrZkXk8 - no ingredients block found
+2025-06-23 19:25:30,208 - INFO - Skipping video https://www.youtube.com/watch?v=OcKMHcfhG2Q - no ingredients block found
+2025-06-23 19:25:30,236 - INFO - Skipping video https://www.youtube.com/watch?v=fjFYpqdZYXA - no ingredients block found
+2025-06-23 19:25:30,264 - INFO - Skipping video https://www.youtube.com/watch?v=c4yeilM7Be0 - no ingredients block found
+2025-06-23 19:25:30,296 - INFO - API 호출: search - 채널 검색: @%EC%8B%AC%EB%B0%A9%EA%B3%A8%EC%A3%BC%EB%B6%80 (할당량 비용: 100, 총 사용량: 5631)
+2025-06-23 19:25:30,676 - INFO - API 호출: search - 채널 검색: @mrs_macarons (할당량 비용: 100, 총 사용량: 5731)
+2025-06-23 19:25:30,988 - INFO - API 호출: search - 채널 영상 목록: UCy1vrsGlOnu4NGZUB658CBg (페이지 1) (할당량 비용: 100, 총 사용량: 5831)
+2025-06-23 19:25:31,267 - INFO - API 호출: videos - 영상 상세정보 배치: 11개 (할당량 비용: 1, 총 사용량: 5832)
+2025-06-23 19:25:31,399 - INFO - Skipping video https://www.youtube.com/watch?v=cKThCnjSuZg - no ingredients block found
+2025-06-23 19:25:31,427 - INFO - Skipping video https://www.youtube.com/watch?v=O47ACMtoUeI - no ingredients block found
+2025-06-23 19:25:31,456 - INFO - Skipping video https://www.youtube.com/watch?v=mkCQRGuXxHM - no ingredients block found
+2025-06-23 19:25:31,486 - INFO - Skipping video https://www.youtube.com/watch?v=K8tzSFAqW6k - no ingredients block found
+2025-06-23 19:25:31,516 - INFO - Skipping video https://www.youtube.com/watch?v=5ap8YyhJRJc - no ingredients block found
+2025-06-23 19:25:31,544 - INFO - Skipping video https://www.youtube.com/watch?v=w2_IBK3v7i4 - no ingredients block found
+2025-06-23 19:25:31,573 - INFO - Skipping video https://www.youtube.com/watch?v=xR8F1pDVZmk - no ingredients block found
+2025-06-23 19:25:31,601 - INFO - Skipping video https://www.youtube.com/watch?v=GIvmvbkkEOM - no ingredients block found
+2025-06-23 19:25:31,629 - INFO - Skipping video https://www.youtube.com/watch?v=4U-RW2t7jMc - no ingredients block found
+2025-06-23 19:25:31,658 - INFO - Skipping video https://www.youtube.com/watch?v=sJSDJyUULN0 - no ingredients block found
+2025-06-23 19:25:31,688 - INFO - Skipping video https://www.youtube.com/watch?v=J_l7hpywFGs - no ingredients block found
+2025-06-23 19:25:31,689 - INFO - API 호출: search - 채널 검색: @sosocook (할당량 비용: 100, 총 사용량: 5932)
+2025-06-23 19:25:31,977 - INFO - API 호출: search - 채널 영상 목록: UCWrh9haWsTEAQF9UEg6AEFQ (페이지 1) (할당량 비용: 100, 총 사용량: 6032)
+2025-06-23 19:25:32,280 - INFO - API 호출: videos - 영상 상세정보 배치: 50개 (할당량 비용: 1, 총 사용량: 6033)
+2025-06-23 19:25:33,167 - INFO - Skipping video https://www.youtube.com/watch?v=p0IX6oK2IXI - too few ingredients (1)
+2025-06-23 19:25:33,243 - INFO - Skipping video https://www.youtube.com/watch?v=lffZEzyO5mI - too few ingredients (2)
+2025-06-23 19:25:34,025 - INFO - Skipping video https://www.youtube.com/watch?v=FaZTqYyJ1Io - too few ingredients (1)
+2025-06-23 19:25:34,265 - INFO - API 호출: search - 채널 검색: @babchanam1 (할당량 비용: 100, 총 사용량: 6133)
+2025-06-23 19:25:34,540 - INFO - API 호출: search - 채널 영상 목록: UCKRyhheRuLLDGuUn2YoFFFQ (페이지 1) (할당량 비용: 100, 총 사용량: 6233)
+2025-06-23 19:25:34,732 - INFO - API 호출: videos - 영상 상세정보 배치: 50개 (할당량 비용: 1, 총 사용량: 6234)
+2025-06-23 19:25:35,184 - INFO - Skipping video https://www.youtube.com/watch?v=WXXVN-nFRDE - too few ingredients (1)
+2025-06-23 19:25:36,240 - INFO - Skipping video https://www.youtube.com/watch?v=nsz1wf2wVjE - no ingredients block found
+2025-06-23 19:25:36,280 - INFO - Skipping video https://www.youtube.com/watch?v=iMuoBJe4stg - too few ingredients (1)
+2025-06-23 19:25:36,310 - INFO - Skipping video https://www.youtube.com/watch?v=1bhiJcLvNEM - no ingredients block found
+2025-06-23 19:25:36,587 - INFO - Skipping video https://www.youtube.com/watch?v=JB_ZQxjFJTY - too few ingredients (1)
+2025-06-23 19:25:36,654 - INFO - Skipping video https://www.youtube.com/watch?v=XXcpXTrvVOo - too few ingredients (2)
+2025-06-23 19:25:36,726 - INFO - Skipping video https://www.youtube.com/watch?v=y_Je5MGW5IU - no ingredients block found
+2025-06-23 19:25:36,760 - INFO - API 호출: search - 채널 검색: @%EC%82%B4%EB%A6%BC%ED%8C%9D (할당량 비용: 100, 총 사용량: 6334)
+2025-06-23 19:25:37,090 - INFO - API 호출: search - 채널 영상 목록: UCqzV58IpvqoUZN_26_SEKzw (페이지 1) (할당량 비용: 100, 총 사용량: 6434)
+2025-06-23 19:25:37,364 - INFO - API 호출: videos - 영상 상세정보 배치: 5개 (할당량 비용: 1, 총 사용량: 6435)
+2025-06-23 19:25:37,501 - INFO - Skipping video https://www.youtube.com/watch?v=ywDnmtYI3_M - no ingredients block found
+2025-06-23 19:25:37,537 - INFO - Skipping video https://www.youtube.com/watch?v=j0eS4PDFSek - no ingredients block found
+2025-06-23 19:25:37,567 - INFO - Skipping video https://www.youtube.com/watch?v=CiUREoGOaKY - no ingredients block found
+2025-06-23 19:25:37,597 - INFO - Skipping video https://www.youtube.com/watch?v=8XPuM2qep1Q - no ingredients block found
+2025-06-23 19:25:37,625 - INFO - Skipping video https://www.youtube.com/watch?v=noXvxZlCRK0 - no ingredients block found
+2025-06-23 19:25:37,626 - INFO - API 호출: search - 채널 검색: @Tooktak (할당량 비용: 100, 총 사용량: 6535)
+2025-06-23 19:25:37,845 - INFO - API 호출: search - 채널 영상 목록: UCkxvX8lNP_TkiLde378oHUg (페이지 1) (할당량 비용: 100, 총 사용량: 6635)
+2025-06-23 19:25:38,139 - INFO - API 호출: videos - 영상 상세정보 배치: 3개 (할당량 비용: 1, 총 사용량: 6636)
+2025-06-23 19:25:38,313 - INFO - Skipping video https://www.youtube.com/watch?v=Gt09XEEspQc - too few ingredients (2)
+2025-06-23 19:25:38,349 - INFO - 캐시에 채널 ID 저장: https://www.youtube.com/channel/UCrxSR4OGbJBVjYxp4xjWgZQ -> UCrxSR4OGbJBVjYxp4xjWgZQ
+2025-06-23 19:25:38,350 - INFO - API 호출: search - 채널 영상 목록: UCrxSR4OGbJBVjYxp4xjWgZQ (페이지 1) (할당량 비용: 100, 총 사용량: 6736)
+2025-06-23 19:25:38,631 - INFO - API 호출: videos - 영상 상세정보 배치: 34개 (할당량 비용: 1, 총 사용량: 6737)
+2025-06-23 19:25:39,877 - INFO - Skipping video https://www.youtube.com/watch?v=ixXYC8k8Olk - too few ingredients (1)
+2025-06-23 19:25:40,107 - INFO - 캐시에 채널 ID 저장: https://www.youtube.com/channel/UC1NLUzgZaBOo050WuQE80eA -> UC1NLUzgZaBOo050WuQE80eA
+2025-06-23 19:25:40,107 - INFO - API 호출: search - 채널 영상 목록: UC1NLUzgZaBOo050WuQE80eA (페이지 1) (할당량 비용: 100, 총 사용량: 6837)
+2025-06-23 19:25:40,461 - INFO - API 호출: videos - 영상 상세정보 배치: 50개 (할당량 비용: 1, 총 사용량: 6838)
+2025-06-23 19:25:40,821 - INFO - Skipping video https://www.youtube.com/watch?v=PQc39UnQoDY - too few ingredients (2)
+2025-06-23 19:25:41,033 - INFO - Skipping video https://www.youtube.com/watch?v=QVD8NgCElzg - no ingredients block found
+2025-06-23 19:25:42,429 - INFO - 캐시에 채널 ID 저장: https://www.youtube.com/channel/UCKA_6r3CWC76x_EaFO6jsPA -> UCKA_6r3CWC76x_EaFO6jsPA
+2025-06-23 19:25:42,430 - INFO - API 호출: search - 채널 영상 목록: UCKA_6r3CWC76x_EaFO6jsPA (페이지 1) (할당량 비용: 100, 총 사용량: 6938)
+2025-06-23 19:25:42,701 - INFO - API 호출: videos - 영상 상세정보 배치: 6개 (할당량 비용: 1, 총 사용량: 6939)
+2025-06-23 19:25:43,002 - INFO - API 호출: search - 채널 검색: @suri4095 (할당량 비용: 100, 총 사용량: 7039)
+2025-06-23 19:25:43,303 - INFO - API 호출: search - 채널 영상 목록: UCsP57H5msIG3JnOSmJ_dYig (페이지 1) (할당량 비용: 100, 총 사용량: 7139)
+2025-06-23 19:25:43,625 - INFO - API 호출: videos - 영상 상세정보 배치: 50개 (할당량 비용: 1, 총 사용량: 7140)
+2025-06-23 19:25:44,056 - INFO - Skipping video https://www.youtube.com/watch?v=PC0rWbhPjvM - no ingredients block found
+2025-06-23 19:25:44,085 - INFO - Skipping video https://www.youtube.com/watch?v=g7-DnnfCfw8 - no ingredients block found
+2025-06-23 19:25:44,114 - INFO - Skipping video https://www.youtube.com/watch?v=tsa8xsxLIj4 - no ingredients block found
+2025-06-23 19:25:44,171 - INFO - Skipping video https://www.youtube.com/watch?v=D0PI8UAS9-g - no ingredients block found
+2025-06-23 19:25:44,199 - INFO - Skipping video https://www.youtube.com/watch?v=cx_51YkzLE8 - no ingredients block found
+2025-06-23 19:25:44,226 - INFO - Skipping video https://www.youtube.com/watch?v=M68di_3sIwk - no ingredients block found
+2025-06-23 19:25:44,375 - INFO - Skipping video https://www.youtube.com/watch?v=d0MVaBp9tww - no ingredients block found
+2025-06-23 19:25:44,524 - INFO - Skipping video https://www.youtube.com/watch?v=55SFV3TFGL0 - no ingredients block found
+2025-06-23 19:25:44,642 - INFO - Skipping video https://www.youtube.com/watch?v=GSvIJOU8_2I - no ingredients block found
+2025-06-23 19:25:44,670 - INFO - Skipping video https://www.youtube.com/watch?v=r41xeO2H6IM - no ingredients block found
+2025-06-23 19:25:44,788 - INFO - Skipping video https://www.youtube.com/watch?v=7BZQcN9MPaE - no ingredients block found
+2025-06-23 19:25:44,997 - INFO - Skipping video https://www.youtube.com/watch?v=DBSoRzZX0rY - no ingredients block found
+2025-06-23 19:25:45,025 - INFO - Skipping video https://www.youtube.com/watch?v=tz7dNqcBc_0 - no ingredients block found
+2025-06-23 19:25:45,209 - INFO - API 호출: search - 채널 검색: @JoonsLittleTable (할당량 비용: 100, 총 사용량: 7240)
+2025-06-23 19:25:45,495 - INFO - API 호출: search - 채널 영상 목록: UCxvLG9ZsUBhkwgl9558YfOA (페이지 1) (할당량 비용: 100, 총 사용량: 7340)
+2025-06-23 19:25:45,800 - INFO - API 호출: videos - 영상 상세정보 배치: 50개 (할당량 비용: 1, 총 사용량: 7341)
+2025-06-23 19:25:45,976 - INFO - Skipping video https://www.youtube.com/watch?v=aby0uJnNPbE - no ingredients block found
+2025-06-23 19:25:46,006 - INFO - Skipping video https://www.youtube.com/watch?v=IC2CnqytE78 - no ingredients block found
+2025-06-23 19:25:46,035 - INFO - Skipping video https://www.youtube.com/watch?v=S9cCeaZtFP4 - no ingredients block found
+2025-06-23 19:25:46,069 - INFO - Skipping video https://www.youtube.com/watch?v=wtQePLcz5F4 - no ingredients block found
+2025-06-23 19:25:46,103 - INFO - Skipping video https://www.youtube.com/watch?v=76ezeR3S3mc - no ingredients block found
+2025-06-23 19:25:46,136 - INFO - Skipping video https://www.youtube.com/watch?v=s9xadCJJ38s - no ingredients block found
+2025-06-23 19:25:46,172 - INFO - Skipping video https://www.youtube.com/watch?v=JvvDkhxyELs - no ingredients block found
+2025-06-23 19:25:46,208 - INFO - Skipping video https://www.youtube.com/watch?v=Z_tWRehC1HI - no ingredients block found
+2025-06-23 19:25:46,244 - INFO - Skipping video https://www.youtube.com/watch?v=-HcS8eTUUqE - no ingredients block found
+2025-06-23 19:25:46,275 - INFO - Skipping video https://www.youtube.com/watch?v=pkBRhgLhNHc - no ingredients block found
+2025-06-23 19:25:46,307 - INFO - Skipping video https://www.youtube.com/watch?v=KFojl3rh9Wg - too few ingredients (1)
+2025-06-23 19:25:46,367 - INFO - Skipping video https://www.youtube.com/watch?v=F8_l0LnTAww - no ingredients block found
+2025-06-23 19:25:46,396 - INFO - Skipping video https://www.youtube.com/watch?v=lmzi-_m_E2Q - no ingredients block found
+2025-06-23 19:25:46,430 - INFO - Skipping video https://www.youtube.com/watch?v=0Z9W87OJ04Y - no ingredients block found
+2025-06-23 19:25:46,461 - INFO - Skipping video https://www.youtube.com/watch?v=fJNaIuu1RQM - too few ingredients (2)
+2025-06-23 19:25:46,495 - INFO - Skipping video https://www.youtube.com/watch?v=hjupEYTzsc4 - no ingredients block found
+2025-06-23 19:25:46,525 - INFO - Skipping video https://www.youtube.com/watch?v=l14I_Syh9dg - no ingredients block found
+2025-06-23 19:25:46,555 - INFO - Skipping video https://www.youtube.com/watch?v=_qV0lEY4evk - no ingredients block found
+2025-06-23 19:25:46,586 - INFO - Skipping video https://www.youtube.com/watch?v=XFHLGf7MrT0 - no ingredients block found
+2025-06-23 19:25:46,620 - INFO - Skipping video https://www.youtube.com/watch?v=OI0-wXDAfCQ - no ingredients block found
+2025-06-23 19:25:46,648 - INFO - Skipping video https://www.youtube.com/watch?v=XzPmCoBeRqE - no ingredients block found
+2025-06-23 19:25:46,679 - INFO - Skipping video https://www.youtube.com/watch?v=mcPMb16ZuSE - no ingredients block found
+2025-06-23 19:25:46,712 - INFO - Skipping video https://www.youtube.com/watch?v=hDP3Og8Hm_8 - no ingredients block found
+2025-06-23 19:25:46,746 - INFO - Skipping video https://www.youtube.com/watch?v=c27U7sh2guQ - no ingredients block found
+2025-06-23 19:25:46,881 - INFO - Skipping video https://www.youtube.com/watch?v=yapQ1_YZpFU - no ingredients block found
+2025-06-23 19:25:46,912 - INFO - Skipping video https://www.youtube.com/watch?v=cBDRpaBVD4s - no ingredients block found
+2025-06-23 19:25:46,943 - INFO - Skipping video https://www.youtube.com/watch?v=WqbcKipaFQ0 - no ingredients block found
+2025-06-23 19:25:46,976 - INFO - Skipping video https://www.youtube.com/watch?v=UxTYqyz6KOw - no ingredients block found
+2025-06-23 19:25:47,006 - INFO - Skipping video https://www.youtube.com/watch?v=4C6JEFMTf3E - no ingredients block found
+2025-06-23 19:25:47,034 - INFO - Skipping video https://www.youtube.com/watch?v=oH_JMR0bpmI - no ingredients block found
+2025-06-23 19:25:47,063 - INFO - Skipping video https://www.youtube.com/watch?v=k4Re6IHF6B0 - no ingredients block found
+2025-06-23 19:25:47,099 - INFO - Skipping video https://www.youtube.com/watch?v=bSWkrp-5Sns - no ingredients block found
+2025-06-23 19:25:47,131 - INFO - Skipping video https://www.youtube.com/watch?v=RCnejgjghTw - no ingredients block found
+2025-06-23 19:25:47,164 - INFO - Skipping video https://www.youtube.com/watch?v=jO9JV9F3Do0 - no ingredients block found
+2025-06-23 19:25:47,192 - INFO - Skipping video https://www.youtube.com/watch?v=DlzWgSr9sD4 - no ingredients block found
+2025-06-23 19:25:47,292 - INFO - Skipping video https://www.youtube.com/watch?v=8gKG-Qxv4Ys - too few ingredients (2)
+2025-06-23 19:25:47,389 - INFO - Skipping video https://www.youtube.com/watch?v=OixQVOp1d1Q - no ingredients block found
+2025-06-23 19:25:47,420 - INFO - Skipping video https://www.youtube.com/watch?v=QEsNZMD9g5k - too few ingredients (1)
+2025-06-23 19:25:47,553 - INFO - 캐시에 채널 ID 저장: https://www.youtube.com/channel/UCkGr7BCJ8plP-Jhy4kSfP8w -> UCkGr7BCJ8plP-Jhy4kSfP8w
+2025-06-23 19:25:47,554 - INFO - API 호출: search - 채널 영상 목록: UCkGr7BCJ8plP-Jhy4kSfP8w (페이지 1) (할당량 비용: 100, 총 사용량: 7441)
+2025-06-23 19:25:47,934 - INFO - API 호출: videos - 영상 상세정보 배치: 50개 (할당량 비용: 1, 총 사용량: 7442)
+2025-06-23 19:25:49,805 - INFO - 캐시에 채널 ID 저장: https://www.youtube.com/channel/UCZi3anHvH7wBatykoVGMVJw -> UCZi3anHvH7wBatykoVGMVJw
+2025-06-23 19:25:49,805 - INFO - API 호출: search - 채널 영상 목록: UCZi3anHvH7wBatykoVGMVJw (페이지 1) (할당량 비용: 100, 총 사용량: 7542)
+2025-06-23 19:25:50,152 - INFO - API 호출: videos - 영상 상세정보 배치: 50개 (할당량 비용: 1, 총 사용량: 7543)
+2025-06-23 19:25:51,104 - INFO - Skipping video https://www.youtube.com/watch?v=_jQJfrzh-68 - too few ingredients (2)
+2025-06-23 19:25:51,811 - INFO - 캐시에 채널 ID 저장: https://www.youtube.com/channel/UC4485ilDR3hfZe83lvUZYVA -> UC4485ilDR3hfZe83lvUZYVA
+2025-06-23 19:25:51,811 - INFO - API 호출: search - 채널 영상 목록: UC4485ilDR3hfZe83lvUZYVA (페이지 1) (할당량 비용: 100, 총 사용량: 7643)
+2025-06-23 19:25:52,238 - INFO - API 호출: videos - 영상 상세정보 배치: 50개 (할당량 비용: 1, 총 사용량: 7644)
+2025-06-23 19:25:52,539 - INFO - Skipping video https://www.youtube.com/watch?v=W0RcFiVBaSA - no ingredients block found
+2025-06-23 19:25:52,578 - INFO - Skipping video https://www.youtube.com/watch?v=1pIAAdXzsjo - too few ingredients (1)
+2025-06-23 19:25:53,400 - INFO - Skipping video https://www.youtube.com/watch?v=GxnDTS03zn4 - no ingredients block found
+2025-06-23 19:25:53,833 - INFO - Skipping video https://www.youtube.com/watch?v=jZOyyS-zsGc - no ingredients block found
+2025-06-23 19:25:54,047 - INFO - Skipping video https://www.youtube.com/watch?v=gsW5JxSBVUw - no ingredients block found
+2025-06-23 19:25:54,133 - INFO - Skipping video https://www.youtube.com/watch?v=Ak6BTFJA7AY - no ingredients block found
+2025-06-23 19:25:54,161 - INFO - Skipping video https://www.youtube.com/watch?v=nBPbKZSlfUQ - no ingredients block found
+2025-06-23 19:25:54,234 - INFO - Skipping video https://www.youtube.com/watch?v=IskH7tBzUoA - no ingredients block found
+2025-06-23 19:25:54,512 - INFO - Skipping video https://www.youtube.com/watch?v=NTRKhPdKlYE - no ingredients block found
+2025-06-23 19:25:54,541 - INFO - Skipping video https://www.youtube.com/watch?v=32YB3vvbOEk - no ingredients block found
+2025-06-23 19:25:54,619 - INFO - Skipping video https://www.youtube.com/watch?v=sza0qnIVsw4 - no ingredients block found
+2025-06-23 19:25:54,647 - INFO - Skipping video https://www.youtube.com/watch?v=TWz3MnK4YGQ - no ingredients block found
+2025-06-23 19:25:54,825 - INFO - Skipping video https://www.youtube.com/watch?v=H4UCbejf6CU - no ingredients block found
+2025-06-23 19:25:54,853 - INFO - Skipping video https://www.youtube.com/watch?v=5pfDGPReOp0 - no ingredients block found
+2025-06-23 19:25:54,854 - INFO - API 호출: search - 채널 검색: @HoodadakCook (할당량 비용: 100, 총 사용량: 7744)
+2025-06-23 19:25:55,161 - INFO - API 호출: search - 채널 영상 목록: UC7ok_PMSTIY5Qg4ULxRoSNg (페이지 1) (할당량 비용: 100, 총 사용량: 7844)
+2025-06-23 19:25:55,447 - INFO - API 호출: videos - 영상 상세정보 배치: 37개 (할당량 비용: 1, 총 사용량: 7845)
+2025-06-23 19:25:55,616 - INFO - Skipping video https://www.youtube.com/watch?v=fZTCy-8tdkk - too few ingredients (1)
+2025-06-23 19:25:55,649 - INFO - Skipping video https://www.youtube.com/watch?v=1xbWxVPtKUQ - too few ingredients (1)
+2025-06-23 19:25:55,718 - INFO - Skipping video https://www.youtube.com/watch?v=i8vC0GJGMVo - too few ingredients (2)
+2025-06-23 19:25:55,784 - INFO - Skipping video https://www.youtube.com/watch?v=5CrMANXX6vA - no ingredients block found
+2025-06-23 19:25:55,855 - INFO - Skipping video https://www.youtube.com/watch?v=sH3DdBt1vDs - too few ingredients (1)
+2025-06-23 19:25:55,931 - INFO - Skipping video https://www.youtube.com/watch?v=TPVK3-mQgOw - too few ingredients (1)
+2025-06-23 19:25:55,962 - INFO - Skipping video https://www.youtube.com/watch?v=Q4ql9nL9JyY - no ingredients block found
+2025-06-23 19:25:56,424 - INFO - Skipping video https://www.youtube.com/watch?v=NyH3vn0cYhg - too few ingredients (2)
+2025-06-23 19:25:56,565 - INFO - Skipping video https://www.youtube.com/watch?v=kQO0SkkNtvc - too few ingredients (2)
+2025-06-23 19:25:56,634 - INFO - Skipping video https://www.youtube.com/watch?v=_BAJTn7Crhg - too few ingredients (2)
+2025-06-23 19:25:56,665 - INFO - Skipping video https://www.youtube.com/watch?v=7Nc3IBbNJz0 - too few ingredients (1)
+2025-06-23 19:25:56,702 - INFO - Skipping video https://www.youtube.com/watch?v=SClNSp1TAl4 - no ingredients block found
+2025-06-23 19:25:56,734 - INFO - Skipping video https://www.youtube.com/watch?v=mfmAwAQl2Gg - too few ingredients (1)
+2025-06-23 19:25:56,806 - INFO - Skipping video https://www.youtube.com/watch?v=I1rLbP1PLfM - no ingredients block found
+2025-06-23 19:25:56,836 - INFO - Skipping video https://www.youtube.com/watch?v=oP6bHtGPcX0 - too few ingredients (2)
+2025-06-23 19:25:56,904 - INFO - API 호출: search - 채널 검색: @scoopdang (할당량 비용: 100, 총 사용량: 7945)
+2025-06-23 19:25:57,283 - INFO - API 호출: search - 채널 영상 목록: UCrEhjhZS6XUaZQ0_xgKPkRQ (페이지 1) (할당량 비용: 100, 총 사용량: 8045)
+2025-06-23 19:25:57,732 - INFO - API 호출: videos - 영상 상세정보 배치: 50개 (할당량 비용: 1, 총 사용량: 8046)
+2025-06-23 19:25:57,883 - INFO - Skipping video https://www.youtube.com/watch?v=SJVMpstTW_U - no ingredients block found
+2025-06-23 19:25:57,910 - INFO - Skipping video https://www.youtube.com/watch?v=rJpdrwsXFvY - no ingredients block found
+2025-06-23 19:25:57,939 - INFO - Skipping video https://www.youtube.com/watch?v=b-eTitzos_k - too few ingredients (2)
+2025-06-23 19:25:57,967 - INFO - Skipping video https://www.youtube.com/watch?v=5fUtgpSQEmc - no ingredients block found
+2025-06-23 19:25:57,995 - INFO - Skipping video https://www.youtube.com/watch?v=Z627N0CCrrw - too few ingredients (2)
+2025-06-23 19:25:58,024 - INFO - Skipping video https://www.youtube.com/watch?v=3U_wkkVJ6Do - too few ingredients (2)
+2025-06-23 19:25:58,053 - INFO - Skipping video https://www.youtube.com/watch?v=imL33mO57u4 - too few ingredients (2)
+2025-06-23 19:25:58,157 - INFO - Skipping video https://www.youtube.com/watch?v=IRWLkKIHA_E - too few ingredients (1)
+2025-06-23 19:25:58,256 - INFO - Skipping video https://www.youtube.com/watch?v=l8LpUjoouGQ - no ingredients block found
+2025-06-23 19:25:58,322 - INFO - Skipping video https://www.youtube.com/watch?v=4_MakhYeJC4 - too few ingredients (1)
+2025-06-23 19:25:58,421 - INFO - Skipping video https://www.youtube.com/watch?v=KIfvmgnkvf0 - too few ingredients (2)
+2025-06-23 19:25:58,594 - INFO - Skipping video https://www.youtube.com/watch?v=synmaXVPMRo - too few ingredients (1)
+2025-06-23 19:25:58,695 - INFO - Skipping video https://www.youtube.com/watch?v=tgh00J7wOSg - no ingredients block found
+2025-06-23 19:25:58,727 - INFO - Skipping video https://www.youtube.com/watch?v=iBAJ7MWfFAY - too few ingredients (1)
+2025-06-23 19:25:58,759 - INFO - Skipping video https://www.youtube.com/watch?v=cf5qFaAYDZE - too few ingredients (2)
+2025-06-23 19:25:58,788 - INFO - Skipping video https://www.youtube.com/watch?v=S9JBIvhAuQw - no ingredients block found
+2025-06-23 19:25:58,863 - INFO - Skipping video https://www.youtube.com/watch?v=IUHRWqH_7mo - no ingredients block found
+2025-06-23 19:25:58,929 - INFO - Skipping video https://www.youtube.com/watch?v=8Wx_FLQA5js - too few ingredients (1)
+2025-06-23 19:25:58,961 - INFO - Skipping video https://www.youtube.com/watch?v=UM0KadLkNzM - too few ingredients (1)
+2025-06-23 19:25:58,990 - INFO - Skipping video https://www.youtube.com/watch?v=yJI1FFHE09w - no ingredients block found
+2025-06-23 19:25:59,100 - INFO - Skipping video https://www.youtube.com/watch?v=Z_oU8xZyt8Q - too few ingredients (2)
+2025-06-23 19:25:59,131 - INFO - Skipping video https://www.youtube.com/watch?v=PLFDKa2RCOs - no ingredients block found
+2025-06-23 19:25:59,200 - INFO - Skipping video https://www.youtube.com/watch?v=ulwZE3mPsUM - too few ingredients (2)
+2025-06-23 19:25:59,275 - INFO - Skipping video https://www.youtube.com/watch?v=q1te21OTUCI - too few ingredients (2)
+2025-06-23 19:25:59,312 - INFO - Skipping video https://www.youtube.com/watch?v=h05_pvLzmts - too few ingredients (1)
+2025-06-23 19:25:59,348 - INFO - Skipping video https://www.youtube.com/watch?v=zTfblFnJMDw - too few ingredients (2)
+2025-06-23 19:25:59,381 - INFO - Skipping video https://www.youtube.com/watch?v=eNAdvANMLGI - too few ingredients (1)
+2025-06-23 19:25:59,413 - INFO - Skipping video https://www.youtube.com/watch?v=-wMp76zyX6U - no ingredients block found
+2025-06-23 19:25:59,443 - INFO - Skipping video https://www.youtube.com/watch?v=XOYyEOSaEzs - too few ingredients (2)
+2025-06-23 19:25:59,581 - INFO - Skipping video https://www.youtube.com/watch?v=i0bHcxSrd_E - too few ingredients (2)
+2025-06-23 19:25:59,582 - INFO - API 호출: search - 채널 검색: @LudaTable (할당량 비용: 100, 총 사용량: 8146)
+2025-06-23 19:25:59,862 - INFO - API 호출: search - 채널 영상 목록: UCFacbDFmny-7iNdIOdb5mvA (페이지 1) (할당량 비용: 100, 총 사용량: 8246)
+2025-06-23 19:26:00,251 - INFO - API 호출: videos - 영상 상세정보 배치: 50개 (할당량 비용: 1, 총 사용량: 8247)
+2025-06-23 19:26:00,473 - INFO - Skipping video https://www.youtube.com/watch?v=LZI7a5keUAE - too few ingredients (1)
+2025-06-23 19:26:00,704 - INFO - Skipping video https://www.youtube.com/watch?v=3GqoYcLh87w - too few ingredients (1)
+2025-06-23 19:26:01,023 - INFO - Skipping video https://www.youtube.com/watch?v=KkVu8c7HyQ8 - too few ingredients (2)
+2025-06-23 19:26:01,143 - INFO - Skipping video https://www.youtube.com/watch?v=NnLotNh47Y0 - too few ingredients (2)
+2025-06-23 19:26:01,312 - INFO - Skipping video https://www.youtube.com/watch?v=KwubmNJ2QVc - too few ingredients (1)
+2025-06-23 19:26:02,013 - INFO - Skipping video https://www.youtube.com/watch?v=xO_mnqVNpT0 - too few ingredients (2)
+2025-06-23 19:26:02,177 - INFO - Skipping video https://www.youtube.com/watch?v=TniSVexUABk - too few ingredients (1)
+2025-06-23 19:26:02,287 - INFO - === YouTube API 할당량 사용량 요약 ===
+2025-06-23 19:26:02,287 - INFO - 처리된 인플루언서 수: 47/49
+2025-06-23 19:26:02,287 - INFO - 새로 수집된 영상 수: 656
+2025-06-23 19:26:02,287 - INFO - Search API 호출 횟수: 82
+2025-06-23 19:26:02,287 - INFO - Videos API 호출 횟수: 47
+2025-06-23 19:26:02,287 - INFO - 총 할당량 사용량: 8247
+2025-06-23 19:26:02,287 - INFO - 할당량 제한: 9500
+2025-06-23 19:26:02,287 - INFO - 할당량 잔여량: 1253
+2025-06-23 19:26:02,287 - INFO - === 할당량 사용량 요약 완료 ===
+2025-06-23 19:26:02,288 - INFO - Running update_used_ingredients_batch.py...
+2025-06-23 19:31:22,291 - INFO - update_used_ingredients_batch.py finished.

@@ -47,23 +47,29 @@ class YouTubeCrawler:
             charset='utf8mb4'
         )
         
-        # 할당량 모니터링
-        self.daily_quota_limit = 9500  # YouTube API 일일 할당량
+        # 할당량 추적
+        self.daily_quota_limit = 9500
         self.quota_used = 0
         self.quota_exceeded = False
-        
-        # 채널 ID 캐시 테이블 생성
-        self.create_channel_cache_table()
         
         # API 호출 카운터
         self.search_api_calls = 0
         self.videos_api_calls = 0
         
+        # 채널 ID 캐시 테이블 생성
+        self.create_channel_cache_table()
+        
+        # 에러 재시도 설정
+        self.max_retries = 3
+        self.retry_delay = 1  # 초
+        
+        logger.info(f"YouTube 크롤러 초기화 완료 - 할당량 제한: {self.daily_quota_limit} units")
+    
     def create_channel_cache_table(self):
         """채널 ID 캐시 테이블 생성"""
         cursor = self.db.cursor()
         cursor.execute("""
-            CREATE TABLE IF NOT EXISTS channel_cache (
+            CREATE TABLE IF NOT EXISTS youtube_channel_cache (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 channel_url VARCHAR(255) UNIQUE NOT NULL,
                 channel_id VARCHAR(50) NOT NULL,
@@ -72,100 +78,107 @@ class YouTubeCrawler:
             )
         """)
         self.db.commit()
-        
+        logger.info("채널 캐시 테이블 확인/생성 완료")
+    
     def get_cached_channel_id(self, channel_url):
         """캐시에서 채널 ID 조회"""
         cursor = self.db.cursor()
-        cursor.execute("SELECT channel_id FROM channel_cache WHERE channel_url = %s", (channel_url,))
+        cursor.execute("SELECT channel_id FROM youtube_channel_cache WHERE channel_url = %s", (channel_url,))
         result = cursor.fetchone()
-        return result[0] if result else None
-        
-    def cache_channel_id(self, channel_url, channel_id):
+        if result:
+            logger.info(f"캐시에서 채널 ID 조회: {channel_url} -> {result[0]}")
+            return result[0]
+        return None
+    
+    def save_channel_id_to_cache(self, channel_url, channel_id):
         """채널 ID를 캐시에 저장"""
         cursor = self.db.cursor()
-        cursor.execute("""
-            INSERT INTO channel_cache (channel_url, channel_id) 
-            VALUES (%s, %s) 
-            ON DUPLICATE KEY UPDATE channel_id = VALUES(channel_id), updated_at = CURRENT_TIMESTAMP
-        """, (channel_url, channel_id))
-        self.db.commit()
-        logger.info(f"캐시에 채널 ID 저장: {channel_url} -> {channel_id}")
-        
-    def check_quota_remaining(self, required_quota):
-        """할당량 잔여량 확인"""
-        if self.quota_exceeded:
-            return False
-            
-        remaining = self.daily_quota_limit - self.quota_used
-        if remaining < required_quota:
-            logger.warning(f"할당량 부족: 필요 {required_quota}, 잔여 {remaining}")
-            self.quota_exceeded = True
-            return False
-        return True
-        
-    def log_api_call(self, api_type, description, quota_cost):
+        try:
+            cursor.execute("""
+                INSERT INTO youtube_channel_cache (channel_url, channel_id) 
+                VALUES (%s, %s) 
+                ON DUPLICATE KEY UPDATE channel_id = VALUES(channel_id), updated_at = CURRENT_TIMESTAMP
+            """, (channel_url, channel_id))
+            self.db.commit()
+            logger.info(f"캐시에 채널 ID 저장: {channel_url} -> {channel_id}")
+        except Exception as e:
+            logger.error(f"캐시 저장 실패: {e}")
+    
+    def log_api_call(self, api_type, description, cost):
         """API 호출 로깅"""
-        self.quota_used += quota_cost
+        self.quota_used += cost
         if api_type == 'search':
             self.search_api_calls += 1
         elif api_type == 'videos':
             self.videos_api_calls += 1
             
-        logger.info(f"API 호출: {api_type} - {description} (할당량 비용: {quota_cost}, 총 사용량: {self.quota_used})")
+        logger.info(f"API 호출: {api_type} - {description} (할당량 비용: {cost}, 총 사용량: {self.quota_used})")
         
+        # 할당량 체크
+        if self.quota_used >= self.daily_quota_limit:
+            self.quota_exceeded = True
+            logger.warning(f"할당량 초과! (사용량: {self.quota_used}/{self.daily_quota_limit})")
+    
+    def make_api_request_with_retry(self, request_func, *args, **kwargs):
+        """API 요청을 재시도 로직과 함께 실행"""
+        for attempt in range(self.max_retries):
+            try:
+                return request_func(*args, **kwargs).execute()
+            except Exception as e:
+                if 'quotaExceeded' in str(e):
+                    self.quota_exceeded = True
+                    logger.warning(f"할당량 초과로 조기 종료 (시도 {attempt + 1}/{self.max_retries})")
+                    raise e
+                elif attempt < self.max_retries - 1:
+                    wait_time = self.retry_delay * (2 ** attempt)  # 지수 백오프
+                    logger.warning(f"API 요청 실패, {wait_time}초 후 재시도 ({attempt + 1}/{self.max_retries}): {e}")
+                    time.sleep(wait_time)
+                else:
+                    logger.error(f"API 요청 최종 실패: {e}")
+                    raise e
+    
     def get_channel_id_from_url(self, url):
-        """URL에서 채널 ID 추출 (캐시 우선)"""
+        """URL에서 채널 ID 추출"""
         # 먼저 캐시에서 확인
         cached_id = self.get_cached_channel_id(url)
         if cached_id:
-            logger.info(f"캐시에서 채널 ID 조회: {url} -> {cached_id}")
             return cached_id
-            
-        # 할당량 확인
-        if not self.check_quota_remaining(100):  # Search API는 100 units
+        
+        # URL 패턴에 따른 처리
+        if '/channel/' in url:
+            channel_id = url.split('/channel/')[-1].split('/')[0]
+            self.save_channel_id_to_cache(url, channel_id)
+            return channel_id
+        elif '/c/' in url:
+            custom_name = url.split('/c/')[-1].split('/')[0]
+            # @username 형태로 변환하여 검색
+            query = f"@{custom_name}"
+        elif '/@' in url:
+            query = url.split('/@')[-1].split('/')[0]
+            if not query.startswith('@'):
+                query = f"@{query}"
+        else:
             return None
-            
-        try:
-            # URL 패턴에 따른 처리
-            if '/channel/' in url:
-                channel_id = url.split('/channel/')[-1].split('/')[0]
-                self.cache_channel_id(url, channel_id)
-                return channel_id
-            elif '/c/' in url:
-                # /c/ 형태는 더 이상 지원되지 않으므로 검색 필요
-                custom_name = url.split('/c/')[-1].split('/')[0]
-                return self.search_channel_id(f"@{custom_name}")
-            elif '/@' in url:
-                username = url.split('/@')[-1].split('/')[0]
-                return self.search_channel_id(f"@{username}")
-            else:
-                return None
-        except Exception as e:
-            logger.error(f"채널 ID 추출 실패: {url} - {e}")
-            return None
-            
-    def search_channel_id(self, query):
-        """검색을 통해 채널 ID 찾기"""
+        
+        # API 호출로 채널 ID 검색
         try:
             self.log_api_call('search', f'채널 검색: {query}', 100)
             
             request = self.youtube.search().list(
-                part='snippet',
+                part='id',
                 q=query,
                 type='channel',
                 maxResults=1
             )
-            response = request.execute()
+            response = self.make_api_request_with_retry(request.execute)
             
             if response['items']:
                 channel_id = response['items'][0]['id']['channelId']
+                self.save_channel_id_to_cache(url, channel_id)
                 return channel_id
             return None
             
         except Exception as e:
-            if 'quotaExceeded' in str(e):
-                logger.warning(f"Encountered 403 Forbidden with reason \"quotaExceeded\"")
-                self.quota_exceeded = True
             logger.error(f"Error finding channel ID for {query}: {e}")
             return None
             
@@ -184,7 +197,7 @@ class YouTubeCrawler:
                 order='date',
                 type='video'
             )
-            response = request.execute()
+            response = self.make_api_request_with_retry(request.execute)
             
             return response.get('items', [])
             
@@ -217,7 +230,7 @@ class YouTubeCrawler:
                     part='snippet,statistics',
                     id=','.join(batch)
                 )
-                response = request.execute()
+                response = self.make_api_request_with_retry(request.execute)
                 
                 all_videos.extend(response.get('items', []))
                 
@@ -274,23 +287,23 @@ class YouTubeCrawler:
                 video_info['title'],
                 video_info['link'],
                 video_info['description'],
-                ",".join(ingredients) if ingredients else None,
-                block if block else None,
+                ",".join(ingredients),
+                block,
                 reason,
                 video_info['author'],
                 video_info['thumbnail'],
-                'youtube',
-                video_info.get('hits', 0),
-                video_info.get('likes', 0),
-                video_info.get('comments', 0),
-                video_info['post_time'],
+                'youtube(인플루언서)',
+                video_info.get('view_count', 0),
+                video_info.get('like_count', 0),
+                video_info.get('comment_count', 0),
+                video_info['published_at'],
                 datetime.now()
             ))
             
-            return cursor.rowcount > 0
+            return True
             
         except Exception as e:
-            logger.error(f"Error saving video to DB: {e}")
+            logger.error(f"Error saving video {video_info['link']}: {e}")
             return False
             
     def process_influencer_list(self, csv_path='frontend/public/YouTube_Cooking_influencer.csv'):
