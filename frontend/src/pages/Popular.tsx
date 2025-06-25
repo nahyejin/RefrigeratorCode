@@ -358,6 +358,67 @@ function getRecipeActionState(recipeId: number) {
   };
 }
 
+// CSV에서 '대분류'가 '요리이름'인 'keyword'만 추출
+function extractDishKeywordsFromCSV(csv: string): string[] {
+  const lines = csv.split('\n');
+  const header = lines[0].split(',');
+  const keywordIdx = header.indexOf('keyword');
+  const categoryIdx = header.indexOf('대분류');
+  if (keywordIdx === -1 || categoryIdx === -1) return [];
+  return lines.slice(1)
+    .map(line => line.split(','))
+    .filter(cols => cols[categoryIdx] && cols[categoryIdx].trim() === '요리이름')
+    .map(cols => cols[keywordIdx]?.trim())
+    .filter(Boolean);
+}
+
+// 요리이름 키워드 기반 랭킹 계산
+function calculateDishRankings(recipes: Recipe[], dishKeywords: string[], dateRange: { start: Date, end: Date }, previousRange?: { start: Date, end: Date }) {
+  // 현재 기간 카운트
+  const currentRecipes = filterRecipesByDateRange(recipes, dateRange);
+  const currentCounts: { [key: string]: number } = {};
+  dishKeywords.forEach(keyword => {
+    currentCounts[keyword] = 0;
+  });
+  currentRecipes.forEach(recipe => {
+    const text = `${recipe.title} ${recipe.content}`;
+    dishKeywords.forEach(keyword => {
+      const regex = new RegExp(keyword, 'g');
+      const matches = text.match(regex);
+      if (matches && matches.length >= 2) {
+        currentCounts[keyword] += 1;
+      }
+    });
+  });
+  // 이전 기간 카운트 (상승률 계산용)
+  const previousCounts: { [key: string]: number } = {};
+  if (previousRange) {
+    const previousRecipes = filterRecipesByDateRange(recipes, previousRange);
+    dishKeywords.forEach(keyword => {
+      previousCounts[keyword] = 0;
+    });
+    previousRecipes.forEach(recipe => {
+      const text = `${recipe.title} ${recipe.content}`;
+      dishKeywords.forEach(keyword => {
+        const regex = new RegExp(keyword, 'g');
+        const matches = text.match(regex);
+        if (matches && matches.length >= 2) {
+          previousCounts[keyword] += 1;
+        }
+      });
+    });
+  }
+  // 랭킹 데이터 생성
+  const rankings = dishKeywords.map((keyword, idx) => {
+    const count = currentCounts[keyword] || 0;
+    const prev = previousCounts[keyword] || 0;
+    const rate = prev === 0 ? (count > 0 ? 100 : 0) : Math.round(((count - prev) / prev) * 100);
+    return { id: idx + 1, name: keyword, count, rate };
+  }).filter(item => item.count > 0);
+  // count 기준 내림차순 정렬 후 TOP 10
+  return rankings.sort((a, b) => b.count - a.count).slice(0, 10);
+}
+
 const Popular = () => {
   const [search, setSearch] = useState('');
   const nickname = "닉네임"; // 실제 닉네임 연동 필요
@@ -396,20 +457,15 @@ const Popular = () => {
 
   const [ingredientRankings, setIngredientRankings] = useState<typeof dummyIngredients>([]);
   const [themeRankings, setThemeRankings] = useState<typeof dummyThemes>([]);
+  const [dishKeywords, setDishKeywords] = useState<string[]>([]);
+  const [dishRankings, setDishRankings] = useState<any[]>([]);
 
   useEffect(() => {
     fetch('/ingredient_profile_dict_with_substitutes.csv')
       .then(res => res.text())
       .then(csv => {
-        const lines = csv.split('\n');
-        const header = lines[0].split(',');
-        const nameIdx = header.indexOf('keyword');
-        if (nameIdx === -1) return;
-        setAllIngredients(
-          lines.slice(1)
-            .map(line => line.split(',')[nameIdx]?.trim())
-            .filter(name => !!name && name !== 'keyword')
-        );
+        setAllIngredients(parseIngredientNames(csv));
+        setDishKeywords(extractDishKeywordsFromCSV(csv));
       });
   }, []);
 
@@ -606,17 +662,17 @@ const Popular = () => {
   // 레시피 데이터 로드 시 랭킹 계산
   useEffect(() => {
     const calculateRankings = async () => {
-      if (recipes.length > 0) {
+      if (recipes.length > 0 && dishKeywords.length > 0) {
         try {
           // 날짜 범위 계산
           const currentDateRange = getDateRange(period, dateRange[0] && dateRange[1] ? [dateRange[0], dateRange[1]] : undefined);
           const previousDateRange = getPreviousDateRange(period, currentDateRange);
-          
-          // 재료 랭킹 계산
+          // 요리 랭킹 계산
+          const dishRanks = calculateDishRankings(recipes, dishKeywords, currentDateRange, previousDateRange);
+          setDishRankings(dishRanks);
+          // 기존 ingredient/theme 랭킹도 필요하면 유지
           const ingredientRanks = calculateIngredientRankings(recipes, currentDateRange, previousDateRange);
           setIngredientRankings(ingredientRanks);
-
-          // 테마 랭킹 계산
           const themeRanks = await calculateThemeRankings(recipes, currentDateRange, previousDateRange);
           setThemeRankings(themeRanks);
         } catch (error) {
@@ -624,9 +680,8 @@ const Popular = () => {
         }
       }
     };
-
     calculateRankings();
-  }, [recipes, period, dateRange]);
+  }, [recipes, period, dateRange, dishKeywords]);
 
   // 더미 데이터 대신 실제 데이터 사용
   const sortedIngredients = ingredientRankings;
@@ -876,53 +931,36 @@ const Popular = () => {
           />
         </section>
 
-        {/* 인기 급상승 재료/테마 키워드 리스트 (TOP10, No. 열, 동적 상승률 라벨) */}
+        {/* 인기 급상승 요리 TOP 10 섹션 */}
         <section style={{marginBottom: 48}}>
           <div style={{display: 'flex', flexDirection: 'column', gap: 32}}>
-            {/* 인기 급상승 재료 */}
+            {/* 인기 급상승 요리 */}
             <div>
-              <h2 className="text-[16px] font-bold text-[#111] mb-2 text-left"><span className="mr-1">📈</span>인기 급상승 재료 TOP 10</h2>
+              <h2 className="text-[16px] font-bold text-[#111] mb-2 text-left"><span className="mr-1">📈</span>인기 급상승 요리 TOP 10</h2>
               <div style={{height: 2, width: '100%', background: '#E5E5E5', marginBottom: 16}} />
               <div className="mt-4">
                 <table className="w-full max-w-[280px] mx-auto border-collapse text-[13px] font-sans" style={{background: '#fff'}}>
                   <thead>
                     <tr style={{borderTop: '1px solid #E5E5E5', borderBottom: '1px solid #E5E5E5', background: '#F7F7F9'}}>
                       <th className="py-1.5 px-2 text-center font-medium text-[#222] whitespace-nowrap">순위</th>
-                      <th className="py-1.5 px-2 text-center font-medium text-[#222] whitespace-nowrap">재료명</th>
+                      <th className="py-1.5 px-2 text-center font-medium text-[#222] whitespace-nowrap">요리명</th>
                       <th className="py-1.5 px-2 text-right font-medium text-[#222] whitespace-nowrap">레시피 수</th>
                       <th className="py-1.5 px-2 text-center font-medium text-[#222] whitespace-nowrap">{period === 'today' ? '전일' : period === 'week' ? '전주' : period === 'month' ? '전달' : '기간'}대비 상승률</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {ingredientRankings.length > 0 ? (
-                      ingredientRankings.map((ing, idx) => (
-                        <tr key={ing.id}>
+                    {dishRankings.length > 0 ? (
+                      dishRankings.map((dish, idx) => (
+                        <tr key={dish.name}>
                           <td className="py-1.5 px-2 text-center text-[#444] font-normal whitespace-nowrap">{idx + 1}</td>
-                          <td className="py-1.5 px-2 text-center text-[#444] font-normal whitespace-nowrap">
-                            <span style={{ cursor: 'pointer', textDecoration: 'none' }} onClick={() => navigate(`/ingredient/${encodeURIComponent(ing.name)}`)}>
-                              {ing.name}
-                            </span>
-                          </td>
-                          <td className="py-1.5 px-2 text-right text-[#444] font-normal whitespace-nowrap">{ing.count.toLocaleString()}</td>
-                          <td className="py-1.5 px-2 text-center font-normal whitespace-nowrap" style={{color: ing.rate >= 0 ? '#E85A4F' : '#3A6EA5'}}>{ing.rate >= 0 ? `+${ing.rate}%` : `${ing.rate}%`}</td>
+                          <td className="py-1.5 px-2 text-center text-[#444] font-normal whitespace-nowrap">{dish.name}</td>
+                          <td className="py-1.5 px-2 text-right text-[#444] font-normal whitespace-nowrap">{dish.count.toLocaleString()}</td>
+                          <td className="py-1.5 px-2 text-center font-normal whitespace-nowrap" style={{color: dish.rate >= 0 ? '#E85A4F' : '#3A6EA5'}}>{dish.rate >= 0 ? `+${dish.rate}%` : `${dish.rate}%`}</td>
                         </tr>
                       ))
                     ) : (
                       <tr>
-                        <td
-                          colSpan={4}
-                          className="text-center"
-                          style={{
-                            height: 320,
-                            color: 'rgb(187, 187, 187)',
-                            fontSize: '13px',
-                            whiteSpace: 'nowrap',
-                            verticalAlign: 'middle',
-                            textAlign: 'center'
-                          }}
-                        >
-                          데이터가 없습니다
-                        </td>
+                        <td colSpan={4} className="text-center" style={{height: 320, color: 'rgb(187, 187, 187)', fontSize: '13px', whiteSpace: 'nowrap', verticalAlign: 'middle', textAlign: 'center'}}>데이터가 없습니다</td>
                       </tr>
                     )}
                   </tbody>
