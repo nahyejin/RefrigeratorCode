@@ -47,7 +47,7 @@ class YouTubeCrawler:
             charset='utf8mb4'
         )
         
-        # 할당량 추적
+        # 할당량 추적 - 실제 API 응답 기반으로 관리
         self.daily_quota_limit = 9500
         self.quota_used = 0
         self.quota_exceeded = False
@@ -63,6 +63,9 @@ class YouTubeCrawler:
         self.max_retries = 3
         self.retry_delay = 1  # 초
         
+        # 할당량 상태 확인
+        self.check_quota_status()
+        
         logger.info(f"YouTube 크롤러 초기화 완료 - 할당량 제한: {self.daily_quota_limit} units")
     
     def create_channel_cache_table(self):
@@ -73,8 +76,7 @@ class YouTubeCrawler:
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 channel_url VARCHAR(255) UNIQUE NOT NULL,
                 channel_id VARCHAR(50) NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
         self.db.commit()
@@ -97,7 +99,7 @@ class YouTubeCrawler:
             cursor.execute("""
                 INSERT INTO youtube_channel_cache (channel_url, channel_id) 
                 VALUES (%s, %s) 
-                ON DUPLICATE KEY UPDATE channel_id = VALUES(channel_id), updated_at = CURRENT_TIMESTAMP
+                ON DUPLICATE KEY UPDATE channel_id = VALUES(channel_id)
             """, (channel_url, channel_id))
             self.db.commit()
             logger.info(f"캐시에 채널 ID 저장: {channel_url} -> {channel_id}")
@@ -114,20 +116,25 @@ class YouTubeCrawler:
             
         logger.info(f"API 호출: {api_type} - {description} (할당량 비용: {cost}, 총 사용량: {self.quota_used})")
         
-        # 할당량 체크
+        # 할당량 체크 - 실제 API 응답을 기반으로 하므로 여기서는 로깅만
         if self.quota_used >= self.daily_quota_limit:
-            self.quota_exceeded = True
-            logger.warning(f"할당량 초과! (사용량: {self.quota_used}/{self.daily_quota_limit})")
+            logger.warning(f"예상 할당량 초과! (사용량: {self.quota_used}/{self.daily_quota_limit})")
     
     def make_api_request_with_retry(self, request_func, *args, **kwargs):
         """API 요청을 재시도 로직과 함께 실행"""
         for attempt in range(self.max_retries):
             try:
-                return request_func(*args, **kwargs).execute()
+                if callable(request_func):
+                    return request_func(*args, **kwargs)
+                else:
+                    return request_func.execute()
             except Exception as e:
-                if 'quotaExceeded' in str(e):
+                error_str = str(e)
+                if 'quotaExceeded' in error_str or '403' in error_str and 'quota' in error_str.lower():
                     self.quota_exceeded = True
-                    logger.warning(f"할당량 초과로 조기 종료 (시도 {attempt + 1}/{self.max_retries})")
+                    logger.error(f"할당량 초과로 조기 종료 (시도 {attempt + 1}/{self.max_retries})")
+                    logger.error(f"API 에러: {error_str}")
+                    # 할당량 초과 시 즉시 종료
                     raise e
                 elif attempt < self.max_retries - 1:
                     wait_time = self.retry_delay * (2 ** attempt)  # 지수 백오프
@@ -136,6 +143,19 @@ class YouTubeCrawler:
                 else:
                     logger.error(f"API 요청 최종 실패: {e}")
                     raise e
+    
+    def check_quota_remaining(self, required_quota):
+        """할당량 잔여량 확인 - 실제 API 응답 기반으로 판단"""
+        if self.quota_exceeded:
+            return False
+            
+        # 예상 잔여량 계산 (실제와 다를 수 있음)
+        remaining = self.daily_quota_limit - self.quota_used
+        if remaining < required_quota:
+            logger.warning(f"예상 할당량 부족: 필요 {required_quota}, 예상 잔여 {remaining}")
+            # 실제 API 호출에서 할당량 초과 여부를 확인하므로 여기서는 경고만
+            return True  # 실제 API 호출에서 확인하도록 함
+        return True
     
     def get_channel_id_from_url(self, url):
         """URL에서 채널 ID 추출"""
@@ -170,7 +190,7 @@ class YouTubeCrawler:
                 type='channel',
                 maxResults=1
             )
-            response = self.make_api_request_with_retry(request.execute)
+            response = self.make_api_request_with_retry(request)
             
             if response['items']:
                 channel_id = response['items'][0]['id']['channelId']
@@ -184,45 +204,31 @@ class YouTubeCrawler:
             
     def get_channel_videos(self, channel_id, max_results=50):
         """채널의 영상 목록 가져오기"""
-        if not self.check_quota_remaining(100):  # Search API는 100 units
-            return []
-            
         try:
             self.log_api_call('search', f'채널 영상 목록: {channel_id} (페이지 1)', 100)
             
             request = self.youtube.search().list(
-                part='snippet',
+                part='id',
                 channelId=channel_id,
-                maxResults=max_results,
+                type='video',
                 order='date',
-                type='video'
+                maxResults=max_results
             )
-            response = self.make_api_request_with_retry(request.execute)
+            response = self.make_api_request_with_retry(request)
             
             return response.get('items', [])
             
         except Exception as e:
-            if 'quotaExceeded' in str(e):
-                logger.warning(f"Encountered 403 Forbidden with reason \"quotaExceeded\"")
-                self.quota_exceeded = True
-            logger.error(f"Error getting channel videos: {e}")
+            logger.error(f"Error getting channel videos for {channel_id}: {e}")
             return []
-            
+    
     def get_videos_info(self, video_ids):
-        """영상 상세 정보 가져오기 (배치 처리)"""
-        if not video_ids:
-            return []
-            
-        # 배치 크기 제한 (YouTube API는 한 번에 최대 50개)
-        batch_size = 50
+        """영상 상세 정보 가져오기"""
         all_videos = []
         
-        for i in range(0, len(video_ids), batch_size):
-            batch = video_ids[i:i + batch_size]
-            
-            if not self.check_quota_remaining(1):  # Videos API는 1 unit
-                break
-                
+        # 50개씩 배치로 처리
+        for i in range(0, len(video_ids), 50):
+            batch = video_ids[i:i+50]
             try:
                 self.log_api_call('videos', f'영상 상세정보 배치: {len(batch)}개', 1)
                 
@@ -230,18 +236,14 @@ class YouTubeCrawler:
                     part='snippet,statistics',
                     id=','.join(batch)
                 )
-                response = self.make_api_request_with_retry(request.execute)
+                response = self.make_api_request_with_retry(request)
                 
                 all_videos.extend(response.get('items', []))
                 
             except Exception as e:
-                if 'quotaExceeded' in str(e):
-                    logger.warning(f"Encountered 403 Forbidden with reason \"quotaExceeded\"")
-                    self.quota_exceeded = True
-                    break
-                logger.error(f"Error getting videos info: {e}")
-                break
-                
+                logger.error(f"Error getting video info for batch: {e}")
+                continue
+        
         return all_videos
         
     def get_existing_video_ids(self):
@@ -293,10 +295,10 @@ class YouTubeCrawler:
                 video_info['author'],
                 video_info['thumbnail'],
                 'youtube(인플루언서)',
-                video_info.get('view_count', 0),
-                video_info.get('like_count', 0),
-                video_info.get('comment_count', 0),
-                video_info['published_at'],
+                video_info.get('hits', 0),
+                video_info.get('likes', 0),
+                video_info.get('comments', 0),
+                video_info['post_time'],
                 datetime.now()
             ))
             
@@ -392,9 +394,16 @@ class YouTubeCrawler:
             logger.info(f"새로 수집된 영상 수: {new_videos_count}")
             logger.info(f"Search API 호출 횟수: {self.search_api_calls}")
             logger.info(f"Videos API 호출 횟수: {self.videos_api_calls}")
-            logger.info(f"총 할당량 사용량: {self.quota_used}")
+            logger.info(f"예상 할당량 사용량: {self.quota_used}")
             logger.info(f"할당량 제한: {self.daily_quota_limit}")
-            logger.info(f"할당량 잔여량: {self.daily_quota_limit - self.quota_used}")
+            logger.info(f"예상 할당량 잔여량: {self.daily_quota_limit - self.quota_used}")
+            
+            if self.quota_exceeded:
+                logger.warning("⚠️  실제 할당량 초과로 조기 종료됨")
+                logger.warning("💡 할당량 리셋 시간: 매일 오후 4시 (한국 시간)")
+            else:
+                logger.info("✅ 할당량 내에서 정상 종료됨")
+            
             logger.info(f"=== 할당량 사용량 요약 완료 ===")
             
             # 재료 추출 배치 처리
@@ -409,6 +418,31 @@ class YouTubeCrawler:
         """DB 연결 종료"""
         if self.db:
             self.db.close()
+
+    def check_quota_status(self):
+        """할당량 상태 확인 - 간단한 API 호출로 테스트"""
+        try:
+            logger.info("할당량 상태 확인 중...")
+            # 가장 가벼운 API 호출로 할당량 상태 확인
+            request = self.youtube.search().list(
+                part='id',
+                q='test',
+                type='video',
+                maxResults=1
+            )
+            response = request.execute()
+            logger.info("할당량 상태 확인 완료 - API 사용 가능")
+            # 테스트 호출이 성공했으므로 할당량이 남아있음
+            self.quota_exceeded = False
+        except Exception as e:
+            error_str = str(e)
+            if 'quotaExceeded' in error_str or '403' in error_str and 'quota' in error_str.lower():
+                logger.error("할당량 상태 확인 실패 - 할당량 초과")
+                self.quota_exceeded = True
+            else:
+                logger.warning(f"할당량 상태 확인 중 오류 (할당량과 무관): {e}")
+                # 다른 오류는 할당량과 무관하므로 계속 진행
+                self.quota_exceeded = False
 
 if __name__ == "__main__":
     crawler = YouTubeCrawler()
