@@ -369,7 +369,7 @@ const Popular = () => {
   const [includeInput, setIncludeInput] = useState('');
   const [excludeInput, setExcludeInput] = useState('');
   const [allIngredients, setAllIngredients] = useState<string[]>([]);
-  const [period, setPeriod] = useState('today');
+  const [period, setPeriod] = useState('week');
   const [dateModalOpen, setDateModalOpen] = useState(false);
   const [dateRange, setDateRange] = useState<[Date|null, Date|null]>([null, null]);
   const [dateInputStart, setDateInputStart] = useState('');
@@ -777,6 +777,8 @@ const Popular = () => {
                 verticalAlign: 'middle',
                 lineHeight: '1',
                 fontSize: 16,
+                position: 'relative',
+                top: 6,
               }}
             >
               유튜브 인기 레시피
@@ -835,6 +837,8 @@ const Popular = () => {
                 verticalAlign: 'middle',
                 lineHeight: '1',
                 fontSize: 16,
+                position: 'relative',
+                top: 6,
               }}
             >
               네이버 인기 레시피
