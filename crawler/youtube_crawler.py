@@ -399,10 +399,10 @@ class YouTubeCrawler:
             logger.info(f"예상 할당량 잔여량: {self.daily_quota_limit - self.quota_used}")
             
             if self.quota_exceeded:
-                logger.warning("⚠️  실제 할당량 초과로 조기 종료됨")
-                logger.warning("💡 할당량 리셋 시간: 매일 오후 4시 (한국 시간)")
+                logger.warning("실제 할당량 초과로 조기 종료됨")
+                logger.warning("할당량 리셋 시간: 매일 오후 4시 (한국 시간)")
             else:
-                logger.info("✅ 할당량 내에서 정상 종료됨")
+                logger.info("할당량 내에서 정상 종료됨")
             
             logger.info(f"=== 할당량 사용량 요약 완료 ===")
             
