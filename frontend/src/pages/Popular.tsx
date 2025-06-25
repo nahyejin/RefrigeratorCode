@@ -759,8 +759,26 @@ const Popular = () => {
         {/* ⓑ 유튜브 인기 레시피 섹션 */}
         <section style={{marginBottom: 48}}>
           <div style={{marginBottom: 8, display: 'flex', alignItems: 'center'}}>
-            <img src={youtubeTitleImg} alt="유튜브 로고" style={{height: 16, width: 'auto', marginRight: 6, display: 'inline-block', verticalAlign: 'middle'}} />
-            <h2 className="text-[16px] font-bold text-[#111] mb-2" style={{display: 'inline', verticalAlign: 'middle', lineHeight: '16px', fontSize: 16}}>
+            <span
+              style={{
+                display: 'inline-block',
+                width: 20,
+                height: 20,
+                background: `url(${youtubeTitleImg}) no-repeat center/contain`,
+                marginRight: 6,
+                position: 'relative',
+                top: 2,
+              }}
+            />
+            <h2
+              className="text-[16px] font-bold text-[#111] mb-2"
+              style={{
+                display: 'inline',
+                verticalAlign: 'middle',
+                lineHeight: '1',
+                fontSize: 16,
+              }}
+            >
               유튜브 인기 레시피
             </h2>
           </div>
@@ -781,7 +799,7 @@ const Popular = () => {
                 <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>보유 재료</span>
               </div>
             </div>
-            <span style={{ color: '#666', fontSize: '12px' }}>총 300건</span>
+            <span style={{ color: '#666', fontSize: '12px' }}>총 {youtubeRecipes.length}건</span>
           </div>
           <VirtualizedHorizontalRecipeList
             recipes={youtubeRecipes}
@@ -799,8 +817,26 @@ const Popular = () => {
         {/* ⓒ 네이버 인기 레시피 섹션 */}
         <section style={{marginBottom: 48}}>
           <div style={{marginBottom: 8, display: 'flex', alignItems: 'center'}}>
-            <img src={naverTitleImg} alt="네이버 로고" style={{height: 16, width: 'auto', marginRight: 6, display: 'inline-block', verticalAlign: 'middle'}} />
-            <h2 className="text-[16px] font-bold text-[#111] mb-2" style={{display: 'inline', verticalAlign: 'middle', lineHeight: '16px', fontSize: 16}}>
+            <span
+              style={{
+                display: 'inline-block',
+                width: 20,
+                height: 20,
+                background: `url(${naverTitleImg}) no-repeat center/contain`,
+                marginRight: 6,
+                position: 'relative',
+                top: 2,
+              }}
+            />
+            <h2
+              className="text-[16px] font-bold text-[#111] mb-2"
+              style={{
+                display: 'inline',
+                verticalAlign: 'middle',
+                lineHeight: '1',
+                fontSize: 16,
+              }}
+            >
               네이버 인기 레시피
             </h2>
           </div>
@@ -821,7 +857,7 @@ const Popular = () => {
                 <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>보유 재료</span>
               </div>
             </div>
-            <span style={{ color: '#666', fontSize: '12px' }}>총 300건</span>
+            <span style={{ color: '#666', fontSize: '12px' }}>총 {naverRecipes.length}건</span>
           </div>
           <VirtualizedHorizontalRecipeList
             recipes={naverRecipes}
