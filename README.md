@@ -1,43 +1,266 @@
-✅ 1. 주요 Python 코드 파일 및 역할
-----------------------------------------------------------------------------------------
-파일명                                      ㅣ 설명
-----------------------------------------------------------------------------------------
-extract_keywords_dual_view.py                  ㅣ 수집된 레시피 텍스트에서 명사 기반 및 띄어쓰기 기반 키워드를 추출하여 CSV로 저장. Komoran 형태소 분석기 사용. 전체 저장 모두 지원.
-extract_ingredients_keywords.py                ㅣ DB의 used_ingredients_block 컬럼에서 재료 관련 키워드를 추출하여 CSV로 저장. extract_keywords_dual_view.py와 동일한 로직을 사용하되, 추출 대상이 content가 아닌 used_ingredients_block임.
-ingredient_text_utils.py                       ㅣ 재료 텍스트 전처리 및 추출에 필요한 유틸리티 함수 정의 (예: 정규표현식, 필터링 함수 등).
-update_used_ingredients_batch.py               ㅣ 레시피 텍스트에서 추출한 재료 결과(`used_ingredients`)를 데이터셋에 반영하는 배치 처리 로직 구현. refrigerator_crawler.py 실행 후 자동으로 실행됨.
-crawler/naver_influencer_crawler.py            ㅣ 네이버 인플루언서 핫토픽 크롤러 (단독 실행 가능, 배치 자동 실행)
-crawler/naver_blog_crawler.py                  ㅣ 네이버 블로그 주제별보기 크롤러 (단독 실행 가능, 배치 자동 실행)
-crawler/youtube_crawler.py                     ㅣ 유튜브 인플루언서 크롤러 (단독 실행 가능, 배치 자동 실행) - API 할당량 최적화 적용
-run_all_crawlers.py                            ㅣ 모든 크롤러를 순차적으로 자동 실행하는 통합 스크립트 (권장)
-export_recipes_all.ipynb                       ㅣ 수집된 레시피 데이터를 가공·요약·정제하는 보조 코드.
-generate_substitutes2_by_trait_similarity.ipynbㅣ 사전내에서 재료의 특징 패턴을 찾아 대체제를 자동으로 채워주는 코드. 
-----------------------------------------------------------------------------------------
+# 🍳 쿡매치 (CookMatch) - 냉장고 재료 기반 레시피 추천 서비스
 
-✅ 2. 실행 및 환경 구성 방법
-# 가상환경 실행 상태에서 아래 명령어 입력
-pip install -r requirements.txt
-Python 버전: 3.10
+## 📁 프로젝트 폴더 구조
 
-크롤러 전체 자동 실행:
-python run_all_crawlers.py
+```
+RefrigeratorCode/
+├── 📁 frontend/                    # React + TypeScript 프론트엔드
+│   ├── 📁 src/
+│   │   ├── 📁 components/          # 재사용 가능한 UI 컴포넌트
+│   │   ├── 📁 pages/              # 페이지 컴포넌트
+│   │   ├── 📁 routes/             # 라우팅 설정
+│   │   ├── 📁 utils/              # 유틸리티 함수
+│   │   ├── 📁 types/              # TypeScript 타입 정의
+│   │   └── 📁 assets/             # 이미지, 아이콘 등 정적 파일
+│   ├── 📄 env.development         # 개발 환경 변수
+│   ├── 📄 env.production          # 운영 환경 변수
+│   ├── 📄 package.json            # 프론트엔드 의존성 및 스크립트
+│   └── 📄 vite.config.ts          # Vite 설정
+│
+├── 📁 backend/                     # Flask 백엔드
+│   ├── 📄 app.py                  # 메인 Flask 애플리케이션
+│   ├── 📄 run_dev.py              # 개발 서버 실행 스크립트
+│   ├── 📄 run_prod.py             # 운영 서버 실행 스크립트
+│   ├── 📄 env.development         # 개발 환경 변수
+│   └── 📄 env.production          # 운영 환경 변수
+│
+├── 📁 database/                    # 데이터베이스 관련
+│   ├── 📄 DATABASE_SCHEMA.md      # DB 스키마 설계 문서
+│   └── 📄 setup_database.sql      # DB 초기 설정 스크립트
+│
+├── 📁 crawler/                     # 데이터 수집 크롤러
+│   ├── 📄 naver_influencer_crawler.py
+│   ├── 📄 naver_blog_crawler.py
+│   ├── 📄 youtube_crawler.py
+│   └── 📄 database.py
+│
+├── 📁 data/                        # 데이터 파일
+│   ├── 📄 ingredient_profile_dict_with_substitutes.csv
+│   └── 📄 ingredient_substitute_table.csv
+│
+├── 📄 requirements.txt             # Python 의존성
+├── 📄 package.json                 # 루트 Node.js 의존성
+├── 📄 .gitignore                   # Git 제외 파일
+├── 📄 README.md                    # 프로젝트 설명서
+├── 📄 ENVIRONMENT_SETUP.md         # 환경 설정 가이드
+└── 📄 start_dev.bat/.sh           # 개발 환경 실행 스크립트
+```
 
-(개별 크롤러 실행도 가능: python -m crawler.naver_blog_crawler 등)
+## 🔧 환경 분리 설정
 
-Java 버전: JDK 11
+### 개발/운영 환경 분리 원리
+- **동일한 코드베이스**로 개발/운영 환경을 완전히 분리
+- **환경변수 파일**로 API URL, DB 설정, CORS 등 구분
+- **빌드/실행 스크립트**로 환경별 실행 방식 분리
 
-JAVA_HOME 환경 변수 설정 필요
+### 프론트엔드 환경 설정
 
-반드시 가상환경 venv310에서 실행할 것
+#### 개발 환경 (env.development)
+```bash
+VITE_API_BASE_URL=http://localhost:5000
+VITE_ENV=development
+VITE_DEBUG=true
+```
 
-✅ 3. 주요 구성 요소 설명
-----------------------------------------------------------------------------------------
-파일명                                         ㅣ 설명
-----------------------------------------------------------------------------------------
-requirements.txt                               ㅣ 실행에 필요한 Python 패키지 목록 및 버전 명시
-ingredient_profile_dict_v1.csv                 ㅣ 주요 식재료별 명칭, 레이블(예: 유제품, 단백질원, 건강식 등) 정의
-ingredient_substitute_table_v1.csv             ㅣ 재료 대체 가능성 사전 (예: 설탕 → 알룰로스 등) 정의, 재료 부족 시 대체 추천에 활용
-----------------------------------------------------------------------------------------
+#### 운영 환경 (env.production)
+```bash
+VITE_API_BASE_URL=https://api.cookmatch.com
+VITE_ENV=production
+VITE_DEBUG=false
+```
+
+#### 실행 명령어
+```bash
+# 개발 서버 실행
+npm run dev
+
+# 개발 환경 빌드
+npm run build:dev
+
+# 운영 환경 빌드
+npm run build:prod
+
+# 개발 환경 미리보기
+npm run preview:dev
+
+# 운영 환경 미리보기
+npm run preview:prod
+```
+
+### 백엔드 환경 설정
+
+#### 개발 환경 (env.development)
+```bash
+FLASK_ENV=development
+FLASK_DEBUG=true
+DB_HOST=localhost
+DB_USER=root
+DB_PASSWORD=sk784512!!
+DB_NAME=refrigerator
+DB_PORT=3306
+CORS_ORIGIN=http://localhost:5173,http://localhost:5177
+```
+
+#### 운영 환경 (env.production)
+```bash
+FLASK_ENV=production
+FLASK_DEBUG=false
+DB_HOST=your-production-db-host.com
+DB_USER=your-production-db-user
+DB_PASSWORD=your-production-db-password
+DB_NAME=refrigerator_production
+DB_PORT=3306
+CORS_ORIGIN=https://your-production-frontend-url.com
+```
+
+#### 실행 명령어
+```bash
+# 개발 서버 실행
+python backend/run_dev.py
+
+# 운영 서버 실행
+python backend/run_prod.py
+```
+
+### 환경 전환 방법
+
+#### 🛠️ **개발환경에서 작업**
+```bash
+# 1. 프론트엔드
+cd C:\Users\user\Desktop\RefrigeratorCode\frontend
+npm run dev
+
+# 2. 백엔드 (새 터미널에서)
+cd C:\Users\user\Desktop\RefrigeratorCode\backend
+python run_dev.py
+```
+
+#### 🚀 **운영 환경으로 전환**
+```bash
+# 프론트엔드 빌드
+cd C:\Users\user\Desktop\RefrigeratorCode\frontend
+npm run build:prod
+
+# 백엔드
+cd C:\Users\user\Desktop\RefrigeratorCode\backend
+python run_prod.py
+```
+
+#### 🔄 **환경별 차이점**
+| 구분 | 개발 환경 | 운영 환경 |
+|------|-----------|-----------|
+| **URL** | localhost:5177, localhost:5000 | 실제 도메인 |
+| **DB** | 로컬 MySQL | 운영 DB |
+| **Debug** | 활성화 | 비활성화 |
+| **용도** | 로컬 개발 | 실제 서비스 |
+
+#### 📍 **현재 상황**
+- **개발 환경 (현재 사용 중)**
+  - 프론트엔드: `http://localhost:5177/login`
+  - 백엔드: `http://localhost:5000`
+
+- **운영 환경 (아직 미설정)**
+  - 프론트엔드: `https://your-domain.com/login` (설정 필요)
+  - 백엔드: `https://api.your-domain.com` (설정 필요)
+
+#### 🚀 **운영 환경 설정 시 필요한 작업**
+1. **도메인 구매/설정** (예: cookmatch.com)
+2. **환경변수 파일 수정** (frontend/env.production, backend/env.production)
+3. **호스팅 서비스 배포** (Vercel, Render, AWS 등)
+
+## 📱 **앱 출시 전략 (PWA → React Native)**
+
+### 🎯 **단계적 접근 전략 (권장)**
+
+#### **1단계: PWA 출시 (1-2주)**
+```bash
+✅ 현재 React 웹앱을 PWA로 변환
+✅ 앱 아이콘, 스플래시 스크린 추가
+✅ 홈화면 추가 기능 구현
+✅ 사용자 피드백 수집
+```
+
+#### **2단계: 사용자 분석 (1-2개월)**
+```bash
+✅ 실제 사용자 행동 분석
+✅ 인기 기능 파악
+✅ 개선점 도출
+✅ 수익 모델 검증
+```
+
+#### **3단계: React Native 개발 (2-3개월)**
+```bash
+✅ PWA 데이터 기반으로 개발
+✅ 앱스토어 등록
+✅ 마케팅 시작
+```
+
+### 💡 **왜 이 방법이 최고인가?**
+
+#### **성공 확률 높음**
+- **시장 검증**: 실제 사용자로 테스트
+- **개선 기회**: 피드백 반영 가능
+- **비용 효율**: 실패 시 손실 최소
+
+#### **기술적 장점**
+- **기존 코드 활용**: 70-80% 재사용
+- **점진적 개선**: 단계별 기능 추가
+- **유지보수 용이**: 웹/앱 동시 관리
+
+### 💰 **비용 예상**
+
+#### **PWA 단계**
+- **개발 비용**: 거의 무료
+- **시간**: 1-2주
+- **리스크**: 최소
+
+#### **React Native 단계 (저와 함께 개발)**
+- **개발 비용**: 거의 무료 (저와 함께)
+- **앱스토어 등록**: $99/년 (iOS), $25 (Android)
+- **서버 비용**: 월 10-50만원
+- **총 비용**: 연 50-100만원 정도
+- **성공 확률**: 높음 (PWA 데이터 기반)
+
+## 🚀 **실제 개발 계획 (저와 함께)**
+
+### **1단계: PWA 변환 (1-2주)**
+```bash
+✅ 현재 React 웹앱을 PWA로 변환
+✅ 앱 아이콘, 스플래시 스크린 추가
+✅ 홈화면 추가 기능 구현
+✅ 사용자 피드백 수집
+```
+
+### **2단계: React Native 개발 (2-3개월)**
+```bash
+✅ PWA 기반으로 React Native 개발
+✅ 네이티브 기능 추가 (푸시 알림, 카메라 등)
+✅ 앱스토어 등록 준비
+```
+
+### **3단계: 출시 및 마케팅**
+```bash
+✅ 앱스토어 등록
+✅ 마케팅 전략 수립
+✅ 사용자 피드백 수집
+```
+
+### 💡 **저와 함께 개발하는 장점**
+
+#### **비용 효율성**
+- **개발 비용**: 거의 무료
+- **품질**: 전문적인 코드
+- **속도**: 빠른 개발
+
+#### **기술적 장점**
+- **기존 코드 활용**: 70-80% 재사용
+- **최신 기술**: React Native 최신 버전
+- **최적화**: 성능 최적화 적용
+
+#### **지속적 지원**
+- **버그 수정**: 지속적 유지보수
+- **기능 추가**: 새로운 기능 개발
+- **업데이트**: 정기적 업데이트
 
 ## 🚀 YouTube API 할당량 최적화 (2025-06-22 업데이트)
 
@@ -110,8 +333,8 @@ RefrigeratorCode/
 │   ├── naver_influencer_crawler.py   # 네이버 인플루언서 핫토픽 크롤러
 │   ├── naver_blog_crawler.py         # 네이버 블로그 주제별보기 크롤러
 │   ├── youtube_crawler.py            # 유튜브 인플루언서 크롤러
-│   ├── database.py                   # 데이터베이스 연결 및 관리
-│   └── common/                       # 공통 상수, 기본 클래스, 데이터 모델 등
+│   ├── database.py                  # 데이터베이스 연결 및 관리
+│   └── common/                      # 공통 상수, 기본 클래스, 데이터 모델 등
 ├── chromedriver-win64/           # 셀레늄용 크롬드라이버(루트에만 유지)
 ├── frontend/                     # 프론트엔드(React) 코드
 ├── ingredient-management/        # 식재료 관리 기능

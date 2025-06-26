@@ -8,7 +8,8 @@ function App() {
 
   useEffect(() => {
     // 실제 API 연동: 모든 레시피를 받아와서 개수 세기
-    fetch('http://127.0.0.1:5000/api/recipes')
+    const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+    fetch(`${apiUrl}/api/recipes`)
       .then(res => res.json())
       .then(data => setRecipeCount(Array.isArray(data) ? data.length : 0));
     const timer = setTimeout(() => setShowSplash(false), 5000);
