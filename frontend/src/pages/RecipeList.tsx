@@ -207,7 +207,8 @@ const RecipeList: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    axios.get('http://127.0.0.1:5000/api/recipes')
+    const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+    axios.get(`${apiUrl}/api/recipes`)
       .then((res: AxiosResponse<any>) => {
         res.data.forEach((recipe: any, idx: any) => {
         });

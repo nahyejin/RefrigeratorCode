@@ -642,7 +642,8 @@ const Popular = () => {
 
   // Fetch recipes and calculate popularity scores (ignore date filter, show up to 30)
   useEffect(() => {
-    axios.get('http://127.0.0.1:5000/api/recipes')
+    const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+    axios.get(`${apiUrl}/api/recipes`)
       .then((res) => {
         const recipesWithScores = res.data.map((recipe: Recipe) => ({
           ...recipe,
