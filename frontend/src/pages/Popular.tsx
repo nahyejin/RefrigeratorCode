@@ -356,51 +356,100 @@ function getRecipeActionState(recipeId: number) {
   };
 }
 
-// CSV에서 '대분류'가 '요리이름'인 'keyword'만 추출
-function extractDishKeywordsFromCSV(csv: string): string[] {
+// CSV에서 '대분류'가 '요리이름'인 'keyword'와 'synonyms' 추출
+function extractDishKeywordsFromCSV(csv: string): { keyword: string; synonyms: string[] }[] {
   const lines = csv.split('\n');
   const header = lines[0].split(',');
   const keywordIdx = header.indexOf('keyword');
   const categoryIdx = header.indexOf('대분류');
+  const synonymsIdx = header.indexOf('synonyms');
+  
   if (keywordIdx === -1 || categoryIdx === -1) return [];
+  
   return lines.slice(1)
     .map(line => line.split(','))
     .filter(cols => cols[categoryIdx] && cols[categoryIdx].trim() === '요리이름')
-    .map(cols => cols[keywordIdx]?.trim())
-    .filter(Boolean);
+    .map(cols => {
+      const keyword = cols[keywordIdx]?.trim();
+      const synonymsStr = cols[synonymsIdx]?.trim() || '';
+      
+      // synonyms 컬럼에서 동의어들을 파싱 (쉼표로 구분)
+      const synonyms = synonymsStr
+        .split(',')
+        .map(s => s.trim())
+        .filter(s => s && s !== '');
+      
+      return { keyword, synonyms };
+    })
+    .filter(item => item.keyword);
 }
 
-// 요리이름 키워드 기반 랭킹 계산
-function calculateDishRankings(recipes: Recipe[], dishKeywords: string[], dateRange: { start: Date, end: Date }, previousRange?: { start: Date, end: Date }) {
+// 요리이름 키워드 기반 랭킹 계산 (동의어 고려)
+function calculateDishRankings(recipes: Recipe[], dishKeywords: { keyword: string; synonyms: string[] }[], dateRange: { start: Date, end: Date }, previousRange?: { start: Date, end: Date }) {
   // 현재 기간 카운트
   const currentRecipes = filterRecipesByDateRange(recipes, dateRange);
   const currentCounts: { [key: string]: number } = {};
-  dishKeywords.forEach(keyword => {
+  const recipeMatchMap: { [recipeId: number]: Set<string> } = {}; // 레시피별 매칭된 키워드 추적
+  
+  // 초기화
+  dishKeywords.forEach(({ keyword }) => {
     currentCounts[keyword] = 0;
   });
+  
+  // 각 레시피에 대해 키워드와 동의어 매칭
   currentRecipes.forEach(recipe => {
     const text = `${recipe.title} ${recipe.content}`;
-    dishKeywords.forEach(keyword => {
-      if (text.includes(keyword)) {
-        currentCounts[keyword]++;
+    const matchedKeywords = new Set<string>();
+    
+    dishKeywords.forEach(({ keyword, synonyms }) => {
+      // 메인 키워드와 모든 동의어를 포함한 검색어 목록
+      const searchTerms = [keyword, ...synonyms];
+      
+      // 검색어 중 하나라도 매칭되면 해당 키워드로 카운트
+      const isMatched = searchTerms.some(term => text.includes(term));
+      if (isMatched) {
+        matchedKeywords.add(keyword);
       }
     });
+    
+    // 매칭된 키워드들을 카운트에 추가
+    matchedKeywords.forEach(keyword => {
+      currentCounts[keyword]++;
+    });
+    
+    // 레시피별 매칭 정보 저장 (중복 제거용)
+    recipeMatchMap[recipe.id] = matchedKeywords;
   });
 
   // 이전 기간 카운트 (상승률 계산용)
   const previousCounts: { [key: string]: number } = {};
   if (previousRange) {
     const previousRecipes = filterRecipesByDateRange(recipes, previousRange);
-    dishKeywords.forEach(keyword => {
+    const previousRecipeMatchMap: { [recipeId: number]: Set<string> } = {};
+    
+    // 초기화
+    dishKeywords.forEach(({ keyword }) => {
       previousCounts[keyword] = 0;
     });
+    
+    // 이전 기간도 동일한 로직으로 카운트
     previousRecipes.forEach(recipe => {
       const text = `${recipe.title} ${recipe.content}`;
-      dishKeywords.forEach(keyword => {
-        if (text.includes(keyword)) {
-          previousCounts[keyword]++;
+      const matchedKeywords = new Set<string>();
+      
+      dishKeywords.forEach(({ keyword, synonyms }) => {
+        const searchTerms = [keyword, ...synonyms];
+        const isMatched = searchTerms.some(term => text.includes(term));
+        if (isMatched) {
+          matchedKeywords.add(keyword);
         }
       });
+      
+      matchedKeywords.forEach(keyword => {
+        previousCounts[keyword]++;
+      });
+      
+      previousRecipeMatchMap[recipe.id] = matchedKeywords;
     });
   }
 
@@ -460,7 +509,7 @@ const Popular = () => {
 
   const [ingredientRankings, setIngredientRankings] = useState<any[]>([]);
   const [themeRankings, setThemeRankings] = useState<any[]>([]);
-  const [dishKeywords, setDishKeywords] = useState<string[]>([]);
+  const [dishKeywords, setDishKeywords] = useState<{ keyword: string; synonyms: string[] }[]>([]);
   const [dishRankings, setDishRankings] = useState<any[]>([]);
 
   useEffect(() => {
