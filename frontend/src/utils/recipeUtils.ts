@@ -1,5 +1,41 @@
 import { Recipe, RecipeMatchResult } from '../types/recipe';
 
+// =====================
+// 상수 및 유틸리티 함수
+// =====================
+
+const MS_PER_DAY = 1000 * 60 * 60 * 24;
+
+/**
+ * 문자열 정규화: 앞뒤 공백 제거 + 소문자 변환
+ */
+function normalize(s: string): string {
+  return (s || '').trim().toLowerCase();
+}
+
+// =====================
+// 타입 정의
+// =====================
+
+export interface SubstituteTable {
+  [key: string]: { ingredient_b: string };
+}
+
+export interface FilterKeywordNode {
+  keyword: string;
+  synonyms: string[];
+}
+export interface FilterKeywordSubTree {
+  [subCategory: string]: FilterKeywordNode[];
+}
+export interface FilterKeywordTree {
+  [mainCategory: string]: FilterKeywordSubTree;
+}
+
+// =====================
+// 주요 함수
+// =====================
+
 /**
  * 냉장고 내 내 재료 목록을 localStorage에서 불러온다.
  */
@@ -17,23 +53,23 @@ export function getMyIngredients(): string[] {
   } catch (error) {
     // 에러는 콘솔에만 출력
   }
-  return []; // 기본값을 빈 배열로 변경
+  return [];
 }
 
 /**
  * 내 재료와 레시피 재료를 비교해 매칭률(%)과 보유/부족 재료를 반환한다.
  */
-export function calculateMatchRate(myIngredients: string[], recipeIngredients: string): RecipeMatchResult {
+export function calculateMatchRate(myIngredients: string[], recipeIngredients: string | string[]): RecipeMatchResult {
+  const recipeArr = Array.isArray(recipeIngredients)
+    ? recipeIngredients
+    : recipeIngredients.split(',');
   const recipeSet = new Set(
-    recipeIngredients
-      .split(',')
-      .map((i: string) => i.trim())
-      .filter(Boolean)
+    recipeArr.map((i: string) => i.trim()).filter(Boolean)
   );
   const mySet = new Set(myIngredients);
   const matched = [...recipeSet].filter((i: string) => mySet.has(i));
   return {
-    rate: Math.round((matched.length / recipeSet.size) * 100),
+    rate: recipeSet.size === 0 ? 0 : Math.round((matched.length / recipeSet.size) * 100),
     my_ingredients: matched,
     need_ingredients: [...recipeSet],
   };
@@ -42,7 +78,12 @@ export function calculateMatchRate(myIngredients: string[], recipeIngredients: s
 /**
  * 레시피 리스트를 정렬 기준/임박재료 등으로 정렬한다.
  */
-export function sortRecipes(recipes: Recipe[], sortType: string, myIngredients: string[], appliedExpiryIngredients: string[]): Recipe[] {
+export function sortRecipes(
+  recipes: Recipe[],
+  sortType: string,
+  myIngredients: string[],
+  appliedExpiryIngredients: string[]
+): Recipe[] {
   const sorted = [...recipes];
   switch (sortType) {
     case 'latest':
@@ -64,16 +105,13 @@ export function sortRecipes(recipes: Recipe[], sortType: string, myIngredients: 
       break;
     case 'hits':
       sorted.sort((a, b) => {
-        // 조회수가 없는 경우(네이버)는 하단으로
         if (!a.hits && !b.hits) {
-          // 둘 다 조회수가 없으면 인기도 점수로 2차 정렬
           const aScore = (a.like_count ?? a.likes ?? 0) * 1.0 + (a.comment_count ?? a.comments ?? 0) * 2.0;
           const bScore = (b.like_count ?? b.likes ?? 0) * 1.0 + (b.comment_count ?? b.comments ?? 0) * 2.0;
           return bScore - aScore;
         }
-        if (!a.hits) return 1;  // a가 조회수 없으면 뒤로
-        if (!b.hits) return -1; // b가 조회수 없으면 뒤로
-        // 둘 다 조회수가 있으면 조회수순 정렬
+        if (!a.hits) return 1;
+        if (!b.hits) return -1;
         return b.hits - a.hits;
       });
       break;
@@ -81,7 +119,6 @@ export function sortRecipes(recipes: Recipe[], sortType: string, myIngredients: 
       sorted.sort((a, b) => (b.match_rate || 0) - (a.match_rate || 0));
       break;
     case 'expiry':
-      // 임박재료활용도순 정렬: 임박재료를 많이 포함하는 레시피가 상위에 오도록 정렬
       sorted.sort((a, b) => {
         const aIngredients = Array.isArray(a.used_ingredients)
           ? a.used_ingredients.map(i => (typeof i === 'string' ? i.trim() : ''))
@@ -94,7 +131,6 @@ export function sortRecipes(recipes: Recipe[], sortType: string, myIngredients: 
         if (aCount !== bCount) {
           return bCount - aCount;
         }
-        // 임박재료 활용도가 같으면 재료매칭률순으로 2차 정렬
         return (b.match_rate || 0) - (a.match_rate || 0);
       });
       break;
@@ -107,12 +143,12 @@ export function sortRecipes(recipes: Recipe[], sortType: string, myIngredients: 
 /**
  * 유통기한 문자열을 받아 D-day 포맷 문자열로 반환한다.
  */
-export function getDDay(expiry: string) {
+export function getDDay(expiry: string): string {
   if (!expiry) return '';
   const today = new Date();
   const exp = new Date(expiry);
   if (isNaN(exp.getTime())) return expiry;
-  const diff = Math.floor((exp.getTime() - today.setHours(0,0,0,0)) / (1000*60*60*24));
+  const diff = Math.floor((exp.getTime() - today.setHours(0,0,0,0)) / MS_PER_DAY);
   if (diff > 0) return `D-${diff}`;
   if (diff === 0) return 'D-DAY';
   return `D+${Math.abs(diff)}`;
@@ -128,15 +164,12 @@ export function getIngredientPillInfo({
 }: {
   needIngredients: string[];
   myIngredients: string[];
-  substituteTable: { [key: string]: { ingredient_b: string } };
+  substituteTable: SubstituteTable;
 }) {
-  // 정규화 함수 - 앞뒤 공백만 제거하고 소문자로 변환
-  const normalize = (s: string) => (s || '').trim().toLowerCase();
-  
   const mySet = new Set(myIngredients.map(normalize));
-  
+
   // substituteTable도 정규화된 키로 변환
-  const normalizedSubTable: { [key: string]: { ingredient_b: string } } = {};
+  const normalizedSubTable: SubstituteTable = {};
   Object.keys(substituteTable).forEach(key => {
     const normKey = normalize(key);
     normalizedSubTable[normKey] = { ingredient_b: normalize(substituteTable[key].ingredient_b) };
@@ -145,7 +178,7 @@ export function getIngredientPillInfo({
   // 대체 가능한 재료 찾기
   let substituteTargets: string[] = [];
   let substitutes: string[] = [];
-  
+
   // 먼저 내가 가진 재료 찾기
   const mine = needIngredients.filter(i => mySet.has(normalize(i)));
   const mineSet = new Set(mine.map(normalize));
@@ -153,9 +186,7 @@ export function getIngredientPillInfo({
   // 대체 가능한 재료 찾기
   needIngredients.forEach(needRaw => {
     const need = normalize(needRaw);
-    // 이미 내가 가진 재료는 건너뛰기
     if (mineSet.has(need)) return;
-    
     const substituteInfo = normalizedSubTable[need];
     if (substituteInfo && mySet.has(substituteInfo.ingredient_b)) {
       substituteTargets.push(needRaw);
@@ -166,7 +197,7 @@ export function getIngredientPillInfo({
 
   // 대체 가능한 재료 목록
   const substituteTargetsSet = new Set(substituteTargets.map(normalize));
-  
+
   // 내가 없고 대체도 불가능한 재료
   const notMineNotSub = needIngredients.filter(i => {
     const norm = normalize(i);
@@ -183,23 +214,7 @@ export function getIngredientPillInfo({
  * 카테고리명을 트리의 key로 변환한다.
  */
 export function getDictCategoryKey(category: string): string {
-  // 현재는 카테고리명이 트리의 key와 동일하다고 가정
-  // 만약 변환이 필요하다면 아래에서 매핑 추가
   return category;
-}
-
-/**
- * 타입 정의 추가
- */
-export interface FilterKeywordNode {
-  keyword: string;
-  synonyms: string[];
-}
-export interface FilterKeywordSubTree {
-  [subCategory: string]: FilterKeywordNode[];
-}
-export interface FilterKeywordTree {
-  [mainCategory: string]: FilterKeywordSubTree;
 }
 
 /**
