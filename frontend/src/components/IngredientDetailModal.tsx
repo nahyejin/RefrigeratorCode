@@ -16,6 +16,58 @@ interface IngredientDetailModalProps {
   }) => void;
 }
 
+// 상수 정의
+const CONSTANTS = {
+  BUTTON_WIDTH: 200,
+  BUTTON_HEIGHT: 60,
+  ICON_SIZE: 64
+} as const;
+
+// 스타일 상수
+const STYLES = {
+  closeButton: {
+    background: 'none',
+    border: 'none',
+    width: 24,
+    height: 24,
+    padding: 0,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  expiryButton: {
+    boxShadow: '0 4px 16px 0 #ff980033',
+    lineHeight: '1.3'
+  },
+  noExpiryButton: {
+    boxShadow: '0 4px 16px 0 #4fc3f733',
+    lineHeight: '1.3'
+  }
+};
+
+// 보관 공간 옵션 데이터
+const STORAGE_OPTIONS = [
+  { key: 'frozen', label: '냉동보관', icon: frozenIcon },
+  { key: 'fridge', label: '냉장보관', icon: refrigeratedIcon },
+  { key: 'room', label: '실온보관', icon: roomIcon }
+] as const;
+
+// 소비 기한 옵션 데이터
+const EXPIRATION_OPTIONS = [
+  {
+    key: true,
+    label: '유통기한\n있어요',
+    className: 'bg-[#FF9800]',
+    style: STYLES.expiryButton
+  },
+  {
+    key: false,
+    label: '유통기한\n없어요·몰라요',
+    className: 'bg-[#4FC3F7]',
+    style: STYLES.noExpiryButton
+  }
+] as const;
+
 export default function IngredientDetailModal({ isOpen, onClose, ingredient, onComplete }: IngredientDetailModalProps) {
   const [storageType, setStorageType] = useState<'frozen' | 'fridge' | 'room' | null>(null);
   const [hasExpiration, setHasExpiration] = useState<boolean | null>(null);
@@ -69,7 +121,7 @@ export default function IngredientDetailModal({ isOpen, onClose, ingredient, onC
             <button
               onClick={onClose}
               className="absolute top-2 right-2 p-1 text-gray-400 hover:text-gray-700 bg-transparent border-none outline-none text-base"
-              style={{ background: 'none', border: 'none', width: 24, height: 24, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              style={STYLES.closeButton}
               aria-label="닫기"
             >
               ×
@@ -82,9 +134,7 @@ export default function IngredientDetailModal({ isOpen, onClose, ingredient, onC
             {/* 보관 공간 */}
             <div className="mb-2 text-[13px] font-semibold text-[#404040]">보관 공간</div>
             <div className="flex justify-between items-end mb-6">
-              {[{ key: 'frozen', label: '냉동보관', icon: frozenIcon },
-                { key: 'fridge', label: '냉장보관', icon: refrigeratedIcon },
-                { key: 'room', label: '실온보관', icon: roomIcon }].map(opt => (
+              {STORAGE_OPTIONS.map(opt => (
                 <div
                   key={opt.key}
                   className={`flex flex-col items-center flex-1 cursor-pointer transition
@@ -92,7 +142,12 @@ export default function IngredientDetailModal({ isOpen, onClose, ingredient, onC
                   `}
                   onClick={() => setStorageType(opt.key as 'frozen' | 'fridge' | 'room')}
                 >
-                  <img src={opt.icon} alt={opt.label} className="w-16 h-16 mb-2" />
+                  <img 
+                    src={opt.icon} 
+                    alt={opt.label} 
+                    className="w-16 h-16 mb-2" 
+                    style={{ width: CONSTANTS.ICON_SIZE, height: CONSTANTS.ICON_SIZE }}
+                  />
                   <span className="text-[13px] font-medium text-[#404040]">{opt.label}</span>
                 </div>
               ))}
@@ -101,26 +156,29 @@ export default function IngredientDetailModal({ isOpen, onClose, ingredient, onC
             {/* 소비 기한 */}
             <div className="mb-2 text-[13px] font-semibold text-[#404040]">소비 기한</div>
             <div className="flex justify-between gap-8 mt-2">
-              <button
-                onClick={() => handleExpirationSelect(true)}
-                disabled={!storageType}
-                className={`flex flex-col justify-center items-center w-[200px] h-[60px] rounded-[32px] bg-[#FF9800] text-white text-[12px] shadow-md transition hover:brightness-95 p-0
-                  ${!storageType ? 'opacity-50 cursor-not-allowed' : ''}
-                `}
-                style={{ boxShadow: '0 4px 16px 0 #ff980033', lineHeight: '1.3' }}
-              >
-                유통기한<br />있어요
-              </button>
-              <button
-                onClick={() => handleExpirationSelect(false)}
-                disabled={!storageType}
-                className={`flex flex-col justify-center items-center w-[200px] h-[60px] rounded-[32px] bg-[#4FC3F7] text-white text-[12px] shadow-md transition hover:brightness-95 p-0
-                  ${!storageType ? 'opacity-50 cursor-not-allowed' : ''}
-                `}
-                style={{ boxShadow: '0 4px 16px 0 #4fc3f733', lineHeight: '1.3' }}
-              >
-                유통기한<br />없어요·몰라요
-              </button>
+              {EXPIRATION_OPTIONS.map(option => (
+                <button
+                  key={String(option.key)}
+                  onClick={() => handleExpirationSelect(option.key)}
+                  disabled={!storageType}
+                  className={`flex flex-col justify-center items-center rounded-[32px] text-white text-[12px] shadow-md transition hover:brightness-95 p-0
+                    ${option.className}
+                    ${!storageType ? 'opacity-50 cursor-not-allowed' : ''}
+                  `}
+                  style={{
+                    ...option.style,
+                    width: CONSTANTS.BUTTON_WIDTH,
+                    height: CONSTANTS.BUTTON_HEIGHT
+                  }}
+                >
+                  {option.label.split('\n').map((line, index) => (
+                    <React.Fragment key={index}>
+                      {line}
+                      {index < option.label.split('\n').length - 1 && <br />}
+                    </React.Fragment>
+                  ))}
+                </button>
+              ))}
             </div>
           </div>
         </div>

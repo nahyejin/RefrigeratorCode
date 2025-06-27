@@ -6,8 +6,8 @@ import { Recipe, RecipeActionState } from '../types/recipe';
 interface VirtualizedHorizontalRecipeListProps {
   recipes: Recipe[];
   myIngredients: string[];
-  substituteTable: { [key: string]: string[] };
-  recipeActionStates: { [id: number]: RecipeActionState };
+  substituteTable: Record<string, string[]>;
+  recipeActionStates: Record<number, RecipeActionState>;
   onRecipeAction: (recipe: Recipe, action: string) => void;
   cardWidth?: number;
   cardHeight?: number;
@@ -15,20 +15,72 @@ interface VirtualizedHorizontalRecipeListProps {
   showRank?: boolean;
 }
 
+// 상수 정의
+const CONSTANTS = {
+  DEFAULT_CARD_WIDTH: 360,
+  DEFAULT_CARD_HEIGHT: 280,
+  DEFAULT_GAP: 16,
+  DEFAULT_CONTAINER_WIDTH: 400,
+  EMPTY_MESSAGE_FONT_SIZE: 13
+} as const;
+
+// 스타일 상수
+const STYLES = {
+  cardContainer: (cardWidth: number, gap: number, cardHeight: number) => ({
+    width: cardWidth,
+    marginRight: gap,
+    display: 'inline-block' as const,
+    height: 'auto',
+    minHeight: cardHeight
+  }),
+  emptyContainer: (cardHeight: number) => ({
+    display: 'flex' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    height: cardHeight,
+    color: '#bbb',
+    fontSize: CONSTANTS.EMPTY_MESSAGE_FONT_SIZE
+  }),
+  listContainer: (cardHeight: number) => ({
+    height: cardHeight,
+    width: '100%'
+  })
+};
+
+// 유틸리티 함수들
+const Utils = {
+  // 마지막 아이템인지 확인
+  isLastItem: (index: number, totalCount: number): boolean => {
+    return index === totalCount - 1;
+  },
+
+  // 기본 RecipeActionState 객체 생성
+  getDefaultRecipeActionState: (): RecipeActionState => ({
+    done: false,
+    write: false,
+    share: false
+  }),
+
+  // 아이템 크기 계산 (카드 너비 + 간격)
+  calculateItemSize: (cardWidth: number, gap: number): number => {
+    return cardWidth + gap;
+  }
+};
+
 const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListProps> = ({
   recipes,
   myIngredients,
   substituteTable,
   recipeActionStates,
   onRecipeAction,
-  cardWidth = 360,
-  cardHeight = 280,
-  gap = 16,
+  cardWidth = CONSTANTS.DEFAULT_CARD_WIDTH,
+  cardHeight = CONSTANTS.DEFAULT_CARD_HEIGHT,
+  gap = CONSTANTS.DEFAULT_GAP,
   showRank = false
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [containerWidth, setContainerWidth] = useState(400);
-  const itemSize = cardWidth + gap;
+  const [containerWidth, setContainerWidth] = useState<number>(CONSTANTS.DEFAULT_CONTAINER_WIDTH);
+  const itemSize = Utils.calculateItemSize(cardWidth, gap);
 
   useEffect(() => {
     const updateWidth = () => {
@@ -50,18 +102,14 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
     return (
       <div style={{
         ...style,
-        width: cardWidth,
-        marginRight: gap,
-        display: 'inline-block',
-        height: 'auto',
-        minHeight: cardHeight
+        ...STYLES.cardContainer(cardWidth, gap, cardHeight)
       }}>
         <RecipeCard
           recipe={recipe}
           index={index}
-          recipeActionState={recipeActionStates[recipe.id] || { done: false, write: false, share: false }}
+          recipeActionState={recipeActionStates[recipe.id] || Utils.getDefaultRecipeActionState()}
           onRecipeAction={({ action }) => onRecipeAction(recipe, action)}
-          isLast={index === recipes.length - 1}
+          isLast={Utils.isLastItem(index, recipes.length)}
           myIngredients={myIngredients}
           substituteTable={substituteTable}
           showRank={showRank}
@@ -72,21 +120,14 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
 
   if (recipes.length === 0) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center',
-        height: cardHeight,
-        color: '#bbb',
-        fontSize: 13
-      }}>
+      <div style={STYLES.emptyContainer(cardHeight)}>
         레시피가 없습니다
       </div>
     );
   }
 
   return (
-    <div ref={containerRef} style={{ height: cardHeight, width: '100%' }}>
+    <div ref={containerRef} style={STYLES.listContainer(cardHeight)}>
       <List
         height={cardHeight}
         itemCount={recipes.length}
