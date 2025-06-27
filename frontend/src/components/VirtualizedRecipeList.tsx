@@ -6,10 +6,30 @@ import { Recipe, RecipeActionState } from '../types/recipe';
 interface VirtualizedRecipeListProps {
   recipes: Recipe[];
   myIngredients: string[];
-  substituteTable: { [key: string]: any };
+  substituteTable: Record<string, unknown>;
   recipeActionStates: Record<number, RecipeActionState>;
   onRecipeAction: (recipe: Recipe, action: string) => void;
 }
+
+// 상수 정의
+const CONSTANTS = {
+  ITEM_HEIGHT: 320, // 각 레시피 카드의 높이 (픽셀)
+  HEADER_OFFSET: 300, // 헤더/네비게이션 영역 높이
+  OVERSCAN_COUNT: 5 // 추가로 렌더링할 아이템 수
+} as const;
+
+// 유틸리티 함수들
+const Utils = {
+  // 화면 높이에서 헤더 영역을 제외한 리스트 높이 계산
+  calculateListHeight: (): number => {
+    return window.innerHeight - CONSTANTS.HEADER_OFFSET;
+  },
+
+  // 마지막 아이템인지 확인
+  isLastItem: (index: number, totalCount: number): boolean => {
+    return index === totalCount - 1;
+  }
+};
 
 const VirtualizedRecipeList: React.FC<VirtualizedRecipeListProps> = ({
   recipes,
@@ -18,16 +38,13 @@ const VirtualizedRecipeList: React.FC<VirtualizedRecipeListProps> = ({
   recipeActionStates,
   onRecipeAction,
 }) => {
-  // 각 레시피 카드의 높이 (픽셀)
-  const ITEM_HEIGHT = 320;
-  
   // 화면 높이 상태
-  const [listHeight, setListHeight] = useState(window.innerHeight - 300);
+  const [listHeight, setListHeight] = useState(Utils.calculateListHeight());
 
   // 화면 크기 변경 시 높이 조정
   useEffect(() => {
     const handleResize = () => {
-      setListHeight(window.innerHeight - 300);
+      setListHeight(Utils.calculateListHeight());
     };
 
     window.addEventListener('resize', handleResize);
@@ -46,7 +63,7 @@ const VirtualizedRecipeList: React.FC<VirtualizedRecipeListProps> = ({
           index={index}
           recipeActionState={recipeActionStates[recipe.id]}
           onRecipeAction={({ action }) => onRecipeAction(recipe, action)}
-          isLast={index === recipes.length - 1}
+          isLast={Utils.isLastItem(index, recipes.length)}
           myIngredients={myIngredients}
           substituteTable={substituteTable}
         />
@@ -58,9 +75,9 @@ const VirtualizedRecipeList: React.FC<VirtualizedRecipeListProps> = ({
     <List
       height={listHeight}
       itemCount={recipes.length}
-      itemSize={ITEM_HEIGHT}
+      itemSize={CONSTANTS.ITEM_HEIGHT}
       width="100%"
-      overscanCount={5} // 추가로 렌더링할 아이템 수
+      overscanCount={CONSTANTS.OVERSCAN_COUNT}
     >
       {Row}
     </List>

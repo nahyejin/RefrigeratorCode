@@ -107,6 +107,114 @@ const AutoCompleteUtils = {
         return a.length - b.length;
       })
       .slice(0, 8);
+  },
+
+  // 자동완성 입력 핸들러 생성
+  createInputHandler: (
+    inputValue: string,
+    candidates: string[],
+    ingredientDict: string[],
+    setIngredients: (ingredients: string[]) => void,
+    setInput: (input: string) => void,
+    setFocus: (focus: boolean) => void
+  ) => {
+    return (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Enter') {
+        if (candidates.length > 0) {
+          setIngredients([...candidates.slice(0, 1)]);
+          setInput('');
+          setFocus(false);
+        } else if (inputValue.trim()) {
+          const exactMatch = ingredientDict.find(item => item === inputValue.trim());
+          if (exactMatch) {
+            setIngredients([exactMatch]);
+            setInput('');
+            setFocus(false);
+          } else {
+            alert('사전에 등록되지 않은 재료입니다. 자동완성 목록에서 선택해주세요.');
+          }
+        }
+      }
+    };
+  },
+
+  // 자동완성 아이템 클릭 핸들러 생성
+  createItemClickHandler: (
+    item: string,
+    setIngredients: (ingredients: string[]) => void,
+    setInput: (input: string) => void,
+    setFocus: (focus: boolean) => void
+  ) => {
+    return () => {
+      setIngredients([item]);
+      setInput('');
+      setFocus(false);
+    };
+  }
+};
+
+// 스타일 상수
+const STYLES = {
+  modal: {
+    maxHeight: 'calc(100vh - 144px)',
+    overflowY: 'auto' as const
+  },
+  header: {
+    paddingTop: 24,
+    backgroundColor: '#fff',
+    opacity: 1,
+    minHeight: 64
+  },
+  closeButton: {
+    zIndex: 20
+  },
+  scrollContainer: {
+    maxHeight: 320,
+    overflowY: 'scroll' as const,
+    borderBottom: '1px solid #eee',
+    paddingTop: 16,
+    paddingBottom: 24,
+    marginBottom: 8,
+    background: '#f5f5f5',
+    position: 'relative' as const,
+    boxShadow: '0px -8px 16px -8px rgba(0,0,0,0.08) inset',
+    borderRadius: '8px',
+    margin: '0 8px'
+  },
+  applyButton: {
+    maxWidth: 320
+  },
+  chipButton: {
+    fontSize: 14,
+    lineHeight: 1,
+    padding: 0,
+    width: 18,
+    height: 18,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  keywordPill: {
+    lineHeight: 1.2,
+    height: 'auto'
+  },
+  toast: {
+    position: 'fixed' as const,
+    bottom: 100,
+    left: '50%',
+    transform: 'translateX(-50%)',
+    background: 'rgba(34,34,34,0.9)',
+    color: '#fff',
+    padding: '12px 24px',
+    borderRadius: 12,
+    fontSize: 15,
+    zIndex: 9999,
+    maxWidth: 260,
+    width: 'max-content',
+    whiteSpace: 'nowrap' as const,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    textAlign: 'center' as const
   }
 };
 
@@ -136,7 +244,6 @@ const FilterModal: React.FC<FilterModalProps> = ({
   const [excludeFocus, setExcludeFocus] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [ingredientDict, setIngredientDict] = useState<string[]>([]);
-  const myIngredients = getMyIngredients() || [];
   
   // 재료 사전 로드
   useEffect(() => {
@@ -168,17 +275,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
       });
   }, []);
 
-  const includeCandidates = AutoCompleteUtils.getFilteredCandidates(includeInput, includeIngredients, ingredientDict);
-  const excludeCandidates = AutoCompleteUtils.getFilteredCandidates(excludeInput, excludeIngredients, ingredientDict);
-
-  // 1. 모든 카테고리의 선택된 키워드 flat하게 모으기
-  const selectedKeywordPills: { main: string; keyword: string }[] = [];
-  Object.entries(filterState || {}).forEach(([main, arr]) => {
-    (arr || []).forEach((keyword: string) => {
-      selectedKeywordPills.push({ main, keyword });
-    });
-  });
-
+  // 키워드 트리 로드
   useEffect(() => {
     setIsLoading(true);
     fetch('/Filter_Keywords.csv')
@@ -192,15 +289,56 @@ const FilterModal: React.FC<FilterModalProps> = ({
         setFilterKeywordTree({});
         setIsLoading(false);
       });
-  }, []);
+  }, [setFilterKeywordTree]);
+
+  const includeCandidates = AutoCompleteUtils.getFilteredCandidates(includeInput, includeIngredients, ingredientDict);
+  const excludeCandidates = AutoCompleteUtils.getFilteredCandidates(excludeInput, excludeIngredients, ingredientDict);
+
+  // 선택된 키워드 pills 생성
+  const selectedKeywordPills: { main: string; keyword: string }[] = [];
+  Object.entries(filterState || {}).forEach(([main, arr]) => {
+    (arr || []).forEach((keyword: string) => {
+      selectedKeywordPills.push({ main, keyword });
+    });
+  });
+
+  // 채널 선택 핸들러
+  const handleChannelChange = (channel: string, checked: boolean) => {
+    if (checked) {
+      setSelectedChannel([...selectedChannel, channel]);
+    } else {
+      setSelectedChannel(selectedChannel.filter(c => c !== channel));
+    }
+  };
+
+  // 키워드 선택/해제 핸들러
+  const handleKeywordToggle = (main: string, keyword: string) => {
+    const currentKeywords = filterState[main] || [];
+    const isSelected = currentKeywords.includes(keyword);
+    
+    setFilterState({
+      ...filterState,
+      [main]: isSelected
+        ? currentKeywords.filter(k => k !== keyword)
+        : [...currentKeywords, keyword]
+    });
+  };
+
+  // 키워드 제거 핸들러
+  const handleKeywordRemove = (main: string, keyword: string) => {
+    setFilterState({
+      ...filterState,
+      [main]: (filterState[main] || []).filter(k => k !== keyword)
+    });
+  };
 
   if (!open) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-30 flex items-start justify-center z-50">
-      <div className="bg-white rounded-xl shadow-lg w-[340px] max-w-[95vw] relative mt-12 mb-24" style={{maxHeight: 'calc(100vh - 144px)', overflowY: 'auto'}}>
-        <div className="sticky top-0 z-10 bg-white" style={{paddingTop: 24, backgroundColor: '#fff', opacity: 1, minHeight: 64}}>
-          <span className="absolute top-3 right-3 w-6 h-6 text-gray-400 text-xl cursor-pointer select-none" onClick={onClose} role="button" aria-label="닫기" style={{zIndex: 20}}>×</span>
+      <div className="bg-white rounded-xl shadow-lg w-[340px] max-w-[95vw] relative mt-12 mb-24" style={STYLES.modal}>
+        <div className="sticky top-0 z-10 bg-white" style={STYLES.header}>
+          <span className="absolute top-3 right-3 w-6 h-6 text-gray-400 text-xl cursor-pointer select-none" onClick={onClose} role="button" aria-label="닫기" style={STYLES.closeButton}>×</span>
           <div className="text-center font-bold text-[12.8px] mb-4 pt-1">필터를 설정해 주세요</div>
           <div className="border-b border-gray-200"></div>
         </div>
@@ -215,10 +353,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                   name="channel"
                   value="youtube"
                   checked={(selectedChannel || []).includes('youtube')}
-                  onChange={e => {
-                    if (e.target.checked) setSelectedChannel([...(selectedChannel || []), 'youtube']);
-                    else setSelectedChannel((selectedChannel || []).filter(c => c !== 'youtube'));
-                  }}
+                  onChange={e => handleChannelChange('youtube', e.target.checked)}
                   className="w-4 h-4"
                 />
                 <span className="text-[11.2px]">유튜브</span>
@@ -229,10 +364,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                   name="channel"
                   value="naver"
                   checked={(selectedChannel || []).includes('naver')}
-                  onChange={e => {
-                    if (e.target.checked) setSelectedChannel([...(selectedChannel || []), 'naver']);
-                    else setSelectedChannel((selectedChannel || []).filter(c => c !== 'naver'));
-                  }}
+                  onChange={e => handleChannelChange('naver', e.target.checked)}
                   className="w-4 h-4"
                 />
                 <span className="text-[11.2px]">네이버</span>
@@ -263,24 +395,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                   onChange={e => setIncludeInput(e.target.value)}
                   onFocus={() => setIncludeFocus(true)}
                   onBlur={() => setTimeout(() => setIncludeFocus(false), 150)}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') {
-                      if (includeCandidates.length > 0) {
-                        setIncludeIngredients([...(includeIngredients || []), includeCandidates[0]]);
-                        setIncludeInput('');
-                        setIncludeFocus(false);
-                      } else if (includeInput.trim()) {
-                        const exactMatch = ingredientDict.find(item => item === includeInput.trim());
-                        if (exactMatch) {
-                          setIncludeIngredients([...(includeIngredients || []), exactMatch]);
-                          setIncludeInput('');
-                          setIncludeFocus(false);
-                        } else {
-                          alert('사전에 등록되지 않은 재료입니다. 자동완성 목록에서 선택해주세요.');
-                        }
-                      }
-                    }
-                  }}
+                  onKeyDown={AutoCompleteUtils.createInputHandler(includeInput, includeCandidates, ingredientDict, setIncludeIngredients, setIncludeInput, setIncludeFocus)}
                 />
                 {includeFocus && includeCandidates.length > 0 && (
                   <ul className="absolute left-0 right-0 bg-white border border-gray-200 rounded-lg mt-1 shadow z-10 max-h-32 overflow-y-auto">
@@ -288,11 +403,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                       <li
                         key={item}
                         className="px-4 py-2 hover:bg-[#f4f0e6] cursor-pointer text-[12px]"
-                        onMouseDown={() => {
-                          setIncludeIngredients([...(includeIngredients || []), item]);
-                          setIncludeInput('');
-                          setIncludeFocus(false);
-                        }}
+                        onMouseDown={AutoCompleteUtils.createItemClickHandler(item, setIncludeIngredients, setIncludeInput, setIncludeFocus)}
                       >{item}</li>
                     ))}
                   </ul>
@@ -306,7 +417,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                     <button
                       type="button"
                       className="ml-1 text-yellow-700 hover:text-yellow-900 focus:outline-none"
-                      style={{ fontSize: 14, lineHeight: 1, padding: 0, width: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      style={STYLES.chipButton}
                       onClick={() => setIncludeIngredients((includeIngredients || []).filter(i => i !== ing))}
                       aria-label="제거"
                     >×</button>
@@ -322,24 +433,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                   onChange={e => setExcludeInput(e.target.value)}
                   onFocus={() => setExcludeFocus(true)}
                   onBlur={() => setTimeout(() => setExcludeFocus(false), 150)}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') {
-                      if (excludeCandidates.length > 0) {
-                        setExcludeIngredients([...(excludeIngredients || []), excludeCandidates[0]]);
-                        setExcludeInput('');
-                        setExcludeFocus(false);
-                      } else if (excludeInput.trim()) {
-                        const exactMatch = ingredientDict.find(item => item === excludeInput.trim());
-                        if (exactMatch) {
-                          setExcludeIngredients([...(excludeIngredients || []), exactMatch]);
-                          setExcludeInput('');
-                          setExcludeFocus(false);
-                        } else {
-                          alert('사전에 등록되지 않은 재료입니다. 자동완성 목록에서 선택해주세요.');
-                        }
-                      }
-                    }
-                  }}
+                  onKeyDown={AutoCompleteUtils.createInputHandler(excludeInput, excludeCandidates, ingredientDict, setExcludeIngredients, setExcludeInput, setExcludeFocus)}
                 />
                 {excludeFocus && excludeCandidates.length > 0 && (
                   <ul className="absolute left-0 right-0 bg-white border border-gray-200 rounded-lg mt-1 shadow z-10 max-h-32 overflow-y-auto">
@@ -347,11 +441,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                       <li
                         key={item}
                         className="px-4 py-2 hover:bg-[#f4f0e6] cursor-pointer text-[12px]"
-                        onMouseDown={() => {
-                          setExcludeIngredients([...(excludeIngredients || []), item]);
-                          setExcludeInput('');
-                          setExcludeFocus(false);
-                        }}
+                        onMouseDown={AutoCompleteUtils.createItemClickHandler(item, setExcludeIngredients, setExcludeInput, setExcludeFocus)}
                       >{item}</li>
                     ))}
                   </ul>
@@ -365,7 +455,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                     <button
                       type="button"
                       className="ml-1 text-gray-700 hover:text-gray-900 focus:outline-none"
-                      style={{ fontSize: 14, lineHeight: 1, padding: 0, width: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      style={STYLES.chipButton}
                       onClick={() => setExcludeIngredients((excludeIngredients || []).filter(i => i !== ing))}
                       aria-label="제거"
                     >×</button>
@@ -387,20 +477,15 @@ const FilterModal: React.FC<FilterModalProps> = ({
                 <span
                   key={main + '-' + keyword}
                   className="px-2 py-[2px] bg-yellow-100 text-yellow-800 rounded-full text-[13px] font-medium border border-yellow-300 flex items-center"
-                  style={{ lineHeight: 1.2, height: 'auto' }}
+                  style={STYLES.keywordPill}
                 >
                   {keyword}
                   <button
                     type="button"
                     className="ml-1 text-yellow-700 hover:text-yellow-900 focus:outline-none"
                     aria-label="선택 해제"
-                    style={{ fontSize: 14, lineHeight: 1, padding: 0, width: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                    onClick={() => {
-                      setFilterState({
-                        ...filterState,
-                        [main]: (filterState[main] || []).filter((k: string) => k !== keyword)
-                      });
-                    }}
+                    style={STYLES.chipButton}
+                    onClick={() => handleKeywordRemove(main, keyword)}
                   >
                     ×
                   </button>
@@ -411,19 +496,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
           {/* 스크롤: 카테고리별 키워드~채널선택 */}
           <div
             className="custom-scrollbar"
-            style={{
-              maxHeight: 320,
-              overflowY: 'scroll',
-              borderBottom: '1px solid #eee',
-              paddingTop: 16,
-              paddingBottom: 24,
-              marginBottom: 8,
-              background: '#f5f5f5',
-              position: 'relative',
-              boxShadow: '0px -8px 16px -8px rgba(0,0,0,0.08) inset',
-              borderRadius: '8px',
-              margin: '0 8px'
-            }}
+            style={STYLES.scrollContainer}
           >
             {/* 기존 카테고리~채널선택 내용 */}
             {isLoading ? (
@@ -450,15 +523,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                                             className={`rounded-full px-3 py-0.5 font-medium text-[10.4px] mb-1 transition-colors ${
                                               ((filterState || {})[main] || []).includes(keyword) ? 'bg-[#555] text-white' : 'bg-white text-[#555] shadow-sm'
                                             }`}
-                                            onClick={() => {
-                                              const arr = (filterState || {})[main] || [];
-                                              setFilterState({
-                                                ...(filterState || {}),
-                                                [main]: arr.includes(keyword)
-                                                  ? arr.filter((x: string) => x !== keyword)
-                                                  : [...arr, keyword]
-                                              });
-                                            }}
+                                            onClick={() => handleKeywordToggle(main, keyword)}
                                           >{keyword}</button>
                                         ))
                                       : null}
@@ -477,7 +542,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
         <div className="sticky bottom-0 left-0 w-full bg-white p-4 flex justify-center z-20">
           <button
             className="w-full bg-[#3c3c3c] text-white font-bold py-2 rounded-lg"
-            style={{maxWidth: 320}}
+            style={STYLES.applyButton}
             onClick={onApply}
           >
             적용
