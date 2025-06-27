@@ -19,81 +19,28 @@ import RecipeToast from '../components/RecipeToast';
 import backIcon from '../assets/뒤로가기.png';
 import axios from 'axios';
 import { calculateMatchRate, getMyIngredients, sortRecipes } from '../utils/recipeUtils';
-import { addRecipeToLocalStorage, removeRecipeFromLocalStorage, getRecipesFromLocalStorage, copyRecipeUrlToClipboard, getMyFridgeIngredients } from '../utils/recipeStorage';
+import { 
+  addRecipeToLocalStorage, 
+  removeRecipeFromLocalStorage, 
+  getRecipesFromLocalStorage, 
+  copyRecipeUrlToClipboard, 
+  getMyFridgeIngredients 
+} from '../utils/recipeStorage';
 
-// 더미 fetch 함수 (RecipeList.tsx와 동일)
-function fetchRecipesDummy(name?: string): Promise<any[]> {
-  const dataMap: Record<string, any[]> = {
-    '두릅': [
-      {
-        id: 1,
-        thumbnail: 'https://cdn.pixabay.com/photo/2016/03/05/19/02/hamburger-1238246_1280.jpg',
-        title: '두릅 오징어볶음 레시피 만드는법 간단',
-        body: '저는 평소 찬밥과 곁들여 먹기 딱 좋은 두릅 오징어볶음 레시피입니다.',
-        used_ingredients: '두릅,오징어,고추,대파,양파,당근,고추장,참기름,고춧가루,올리고당,설탕,다진마늘,간장,후추',
-        author: '꼬마츄츄',
-        date: '25-03-08',
-        like: 77,
-        comment: 12,
-        substitutes: ['양파→대파', '고추장→된장', '설탕→올리고당', '참기름→들기름', '고춧가루→고추장', '다진마늘→마늘가루', '간장→소금'],
-      },
-      // ... (생략: 나머지 더미 데이터는 기존 코드에서 복사) ...
-    ],
-    // ... (생략: 머위나물, 도다리, 저소노화, 어버이날, 기관지 등 기존 코드에서 복사) ...
-  };
-  const key = name || '두릅';
-  if (dataMap[key]) {
-    return Promise.resolve(dataMap[key]);
-  } else {
-    // 동적 예시 4개 생성
-    return Promise.resolve([
-      {
-        id: 1,
-        thumbnail: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80',
-        title: `${key}가 들어간 예시 레시피`,
-        body: `이것은 ${key}가 포함된 예시 레시피입니다.`,
-        used_ingredients: `${key},소금,후추,마늘,양파`,
-        author: '예시봇',
-        date: '25-05-15',
-        like: 1,
-        comment: 0,
-        substitutes: [`${key}→다른재료`],
-      },
-      // ... (생략: 나머지 3개 예시) ...
-    ]);
-  }
-}
+// =====================
+// 상수
+// =====================
 
-function toIngredientArray(recipeIngredients: string | string[] | null | undefined): string[] {
-  if (typeof recipeIngredients === 'string') {
-    const s: string = recipeIngredients;
-    return s.split(',').map(i => i.trim()).filter(Boolean);
-  } else if (Array.isArray(recipeIngredients)) {
-    const arr: string[] = recipeIngredients;
-    return arr.map(i => (typeof i === 'string' ? i.trim() : '')).filter(Boolean);
-  }
-  return [];
-}
+const STORAGE_KEY = 'recipe_sortbar_state_ingredient';
+const TOAST_DURATION = 1500;
+const CSV_INGREDIENT_URL = '/ingredient_profile_dict_with_substitutes.csv';
+const CSV_SUBSTITUTE_URL = '/ingredient_substitute_table.csv';
+const SCROLL_THRESHOLD = 100;
+const VISIBLE_INCREMENT = 2;
 
-function getMatchRate(myIngredients: string[], recipeIngredients: string | string[] | null | undefined) {
-  const ingredientsArr = toIngredientArray(recipeIngredients);
-  const recipeSet = new Set<string>(ingredientsArr);
-  const mySet = new Set<string>(myIngredients);
-  const matched = [...recipeSet].filter(i => mySet.has(i));
-  return {
-    rate: recipeSet.size === 0 ? 0 : Math.round((matched.length / recipeSet.size) * 100),
-    my_ingredients: matched,
-    need_ingredients: [...recipeSet].filter(i => !mySet.has(i)),
-  };
-}
-
-const sortOptions = [
-  { key: 'match', label: '재료매칭률' },
-  { key: 'expiry', label: '유통기한 임박순' },
-  { key: 'like', label: '좋아요순' },
-  { key: 'comment', label: '댓글순' },
-  { key: 'latest', label: '최신순' },
-];
+// =====================
+// 타입 정의
+// =====================
 
 interface FilterState {
   효능: string[];
@@ -102,24 +49,6 @@ interface FilterState {
   TPO: string[];
   스타일: string[];
   [key: string]: string[];
-}
-
-const initialFilterState: FilterState = {
-  효능: [],
-  영양분: [],
-  대상: [],
-  TPO: [],
-  스타일: [],
-};
-
-function parseIngredientNames(csv: string): string[] {
-  const lines = csv.split('\n');
-  const header = lines[0].split(',');
-  const nameIdx = header.indexOf('keyword');
-  if (nameIdx === -1) return [];
-  return lines.slice(1)
-    .map(line => line.split(',')[nameIdx]?.trim())
-    .filter(name => !!name && name !== 'keyword');
 }
 
 interface SubstituteInfo {
@@ -139,25 +68,192 @@ interface IngredientDetailProps {
   customTitle?: string;
 }
 
+interface PendingRemove {
+  type: 'done' | 'write';
+  id: number;
+}
+
+interface SortFilterState {
+  sortType: string;
+  matchRange: [number, number];
+  maxLack: number | 'unlimited';
+  appliedExpiryIngredients: string[];
+  expirySortType: 'expiry' | 'purchase';
+}
+
+// =====================
+// 유틸리티 함수
+// =====================
+
+/**
+ * 초기 필터 상태를 반환한다
+ */
+function getInitialFilterState(): FilterState {
+  return {
+    효능: [],
+    영양분: [],
+    대상: [],
+    TPO: [],
+    스타일: [],
+  };
+}
+
+/**
+ * 더미 레시피 데이터를 가져온다
+ */
+function fetchRecipesDummy(name?: string): Promise<any[]> {
+  const dataMap: Record<string, any[]> = {
+    '두릅': [
+      {
+        id: 1,
+        thumbnail: 'https://cdn.pixabay.com/photo/2016/03/05/19/02/hamburger-1238246_1280.jpg',
+        title: '두릅 오징어볶음 레시피 만드는법 간단',
+        body: '저는 평소 찬밥과 곁들여 먹기 딱 좋은 두릅 오징어볶음 레시피입니다.',
+        used_ingredients: '두릅,오징어,고추,대파,양파,당근,고추장,참기름,고춧가루,올리고당,설탕,다진마늘,간장,후추',
+        author: '꼬마츄츄',
+        date: '25-03-08',
+        like: 77,
+        comment: 12,
+        substitutes: ['양파→대파', '고추장→된장', '설탕→올리고당', '참기름→들기름', '고춧가루→고추장', '다진마늘→마늘가루', '간장→소금'],
+      },
+    ],
+  };
+  
+  const key = name || '두릅';
+  if (dataMap[key]) {
+    return Promise.resolve(dataMap[key]);
+  } else {
+    // 동적 예시 4개 생성
+    return Promise.resolve([
+      {
+        id: 1,
+        thumbnail: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80',
+        title: `${key}가 들어간 예시 레시피`,
+        body: `이것은 ${key}가 포함된 예시 레시피입니다.`,
+        used_ingredients: `${key},소금,후추,마늘,양파`,
+        author: '예시봇',
+        date: '25-05-15',
+        like: 1,
+        comment: 0,
+        substitutes: [`${key}→다른재료`],
+      },
+    ]);
+  }
+}
+
+/**
+ * 재료 배열로 변환한다
+ */
+function toIngredientArray(recipeIngredients: string | string[] | null | undefined): string[] {
+  if (typeof recipeIngredients === 'string') {
+    return recipeIngredients.split(',').map(i => i.trim()).filter(Boolean);
+  } else if (Array.isArray(recipeIngredients)) {
+    return recipeIngredients.map(i => (typeof i === 'string' ? i.trim() : '')).filter(Boolean);
+  }
+  return [];
+}
+
+/**
+ * 재료 매칭률을 계산한다
+ */
+function getMatchRate(myIngredients: string[], recipeIngredients: string | string[] | null | undefined) {
+  const ingredientsArr = toIngredientArray(recipeIngredients);
+  const recipeSet = new Set<string>(ingredientsArr);
+  const mySet = new Set<string>(myIngredients);
+  const matched = [...recipeSet].filter(i => mySet.has(i));
+  
+  return {
+    rate: recipeSet.size === 0 ? 0 : Math.round((matched.length / recipeSet.size) * 100),
+    my_ingredients: matched,
+    need_ingredients: [...recipeSet].filter(i => !mySet.has(i)),
+  };
+}
+
+/**
+ * CSV에서 재료명 목록을 파싱한다
+ */
+function parseIngredientNames(csv: string): string[] {
+  const lines = csv.split('\n');
+  const header = lines[0].split(',');
+  const nameIdx = header.indexOf('keyword');
+  
+  if (nameIdx === -1) return [];
+  
+  return lines.slice(1)
+    .map(line => line.split(',')[nameIdx]?.trim())
+    .filter(name => !!name && name !== 'keyword');
+}
+
+/**
+ * 내 냉장고 재료 객체를 가져온다
+ */
 function getMyIngredientObjects() {
   return getMyFridgeIngredients();
 }
 
-// categoryKeywords 정의
+/**
+ * 정렬/필터 상태를 저장한다
+ */
+function saveSortFilterState(state: SortFilterState): void {
+  try {
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch (error) {
+    console.warn('[Storage] 정렬/필터 상태 저장 실패:', error);
+  }
+}
+
+/**
+ * 정렬/필터 상태를 로드한다
+ */
+function loadSortFilterState(): Partial<SortFilterState> | null {
+  try {
+    const saved = sessionStorage.getItem(STORAGE_KEY);
+    return saved ? JSON.parse(saved) : null;
+  } catch (error) {
+    console.warn('[Storage] 정렬/필터 상태 로드 실패:', error);
+    return null;
+  }
+}
+
+// =====================
+// 정렬 옵션
+// =====================
+
+const sortOptions = [
+  { key: 'match', label: '재료매칭률' },
+  { key: 'expiry', label: '유통기한 임박순' },
+  { key: 'like', label: '좋아요순' },
+  { key: 'comment', label: '댓글순' },
+  { key: 'latest', label: '최신순' },
+];
+
+// =====================
+// 카테고리 키워드
+// =====================
+
 const categoryKeywords = {
   TPO: [
     { keyword: '주말', synonyms: ['주말요리', '주말식사', '주말특별식', '주말특별요리'] }
   ]
 };
 
+// =====================
+// 메인 컴포넌트
+// =====================
+
 const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
+  // =====================
+  // 상태 관리
+  // =====================
+  
   const { name = '' } = useParams<{ name: string }>();
   const navigate = useNavigate();
   const location = useLocation();
+  
   const [visibleCount, setVisibleCount] = useState(50);
   const [sortType, setSortType] = useState('match');
   const [filterOpen, setFilterOpen] = useState(false);
-  const [selectedFilter, setSelectedFilter] = useState<FilterState>(initialFilterState);
+  const [selectedFilter, setSelectedFilter] = useState<FilterState>(getInitialFilterState());
   const [includeInput, setIncludeInput] = useState('');
   const [excludeInput, setExcludeInput] = useState('');
   const [allIngredients, setAllIngredients] = useState<string[]>([]);
@@ -174,7 +270,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
   const [matchRateModalOpen, setMatchRateModalOpen] = useState(false);
   const [expiryModalOpen, setExpiryModalOpen] = useState(false);
   const [filteredRecipes, setFilteredRecipes] = useState<any[]>([]);
-  const [pendingRemove, setPendingRemove] = useState<{type: 'done'|'write', id: number}|null>(null);
+  const [pendingRemove, setPendingRemove] = useState<PendingRemove | null>(null);
   const [pendingRecipe, setPendingRecipe] = useState<any>(null);
   const [selectedChannel, setSelectedChannel] = useState<string[]>([]);
   const [includeIngredients, setIncludeIngredients] = useState<string[]>([]);
@@ -186,8 +282,148 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
   const myIngredients = useMemo(() => getMyIngredients(), []);
   const myIngredientObjects = getMyIngredientObjects();
 
+  // =====================
+  // 이벤트 핸들러
+  // =====================
+
+  /**
+   * 토스트 메시지를 표시한다
+   */
+  const showToast = (message: string) => {
+    setToast(message);
+    setTimeout(() => setToast(''), TOAST_DURATION);
+  };
+
+  /**
+   * 가능한 대체재료를 찾는다
+   */
+  const findPossibleSubstitutes = (recipeIngredients: string | string[] | null | undefined, userIngredients: string[]): string[] => {
+    const ingredientsArr = toIngredientArray(recipeIngredients);
+    const recipeIngredientSet = new Set(ingredientsArr);
+    const userIngredientSet = new Set(userIngredients.map(i => i.trim()));
+
+    const substitutes: string[] = [];
+
+    for (const recipeIngredient of recipeIngredientSet) {
+      const substituteInfo = substituteTable[recipeIngredient];
+
+      if (substituteInfo) {
+        const possibleSubstitute = substituteInfo.ingredient_b;
+
+        if (userIngredientSet.has(possibleSubstitute)) {
+          substitutes.push(`${recipeIngredient} → ${possibleSubstitute}`);
+        }
+      }
+    }
+
+    return substitutes.length > 0 ? substitutes : ['(내 냉장고에 대체 가능한 재료가 없습니다)'];
+  };
+
+  /**
+   * 레시피 액션 처리
+   */
+  const handleRecipeAction = (id: number, action: { action: 'done' | 'write' | 'share' }) => {
+    setButtonStates(prev => {
+      const prevState = prev[id] || { done: false, write: false, share: false };
+      let newState = { ...prevState };
+      
+      if (action.action === 'done') {
+        if (!prevState.done) {
+          // 완료 추가
+          const recipe = recipes.find(r => r.id === id);
+          if (recipe && !getRecipesFromLocalStorage('done').some((r: any) => r.id === id)) {
+            addRecipeToLocalStorage('done', recipe);
+          }
+          newState.done = true;
+          showToast('레시피를 완료했습니다!');
+        } else {
+          // 완료 취소: 확인 모달만 세팅
+          setPendingRemove({ type: 'done', id });
+          setPendingRecipe(recipes.find(r => r.id === id));
+          return prev;
+        }
+      }
+      
+      if (action.action === 'write') {
+        if (!prevState.write) {
+          // 기록 추가
+          const recipe = recipes.find(r => r.id === id);
+          if (recipe && !getRecipesFromLocalStorage('write').some((r: any) => r.id === id)) {
+            addRecipeToLocalStorage('write', recipe);
+          }
+          newState.write = true;
+          showToast('레시피를 기록했습니다!');
+        } else {
+          // 기록 취소: 확인 모달만 세팅
+          setPendingRemove({ type: 'write', id });
+          setPendingRecipe(recipes.find(r => r.id === id));
+          return prev;
+        }
+      }
+      
+      if (action.action === 'share') {
+        const recipe = recipes.find(r => r.id === id);
+        if (recipe) {
+          try {
+            copyRecipeUrlToClipboard(recipe);
+            showToast('URL이 복사되었습니다!');
+          } catch {
+            showToast('URL 복사에 실패했습니다.');
+          }
+        }
+      }
+      
+      return newState;
+    });
+  };
+
+  /**
+   * 삭제 확인 처리
+   */
+  const handleRemoveConfirm = () => {
+    if (!pendingRemove) return;
+    
+    if (pendingRemove.type === 'done') {
+      setButtonStates(s => ({ ...s, [pendingRemove.id]: { ...s[pendingRemove.id], done: false } }));
+      removeRecipeFromLocalStorage('done', pendingRemove.id);
+      setRecipes(prev => prev.filter(r => r.id !== pendingRemove.id));
+      setFilteredRecipes(prev => prev.filter(r => r.id !== pendingRemove.id));
+      showToast('레시피 완료를 취소했습니다!');
+    } else if (pendingRemove.type === 'write') {
+      setButtonStates(s => ({ ...s, [pendingRemove.id]: { ...s[pendingRemove.id], write: false } }));
+      removeRecipeFromLocalStorage('write', pendingRemove.id);
+      setRecipes(prev => prev.filter(r => r.id !== pendingRemove.id));
+      setFilteredRecipes(prev => prev.filter(r => r.id !== pendingRemove.id));
+      showToast('레시피 기록을 취소했습니다!');
+    }
+    
+    setPendingRemove(null);
+    setPendingRecipe(null);
+  };
+
+  /**
+   * 삭제 취소 처리
+   */
+  const handleRemoveUndo = () => {
+    setPendingRemove(null);
+    setPendingRecipe(null);
+  };
+
+  /**
+   * 필터 버튼 클릭 처리
+   */
+  const handleFilterButtonClick = () => {
+    console.log('[IngredientDetail] 필터 버튼 클릭');
+    setFilterOpen(true);
+  };
+
+  // =====================
+  // 사이드 이펙트
+  // =====================
+
+  // 재료 정보 로드
   useEffect(() => {
-    fetch('/ingredient_profile_dict_with_substitutes.csv')
+    fetch(CSV_INGREDIENT_URL)
       .then(res => res.text())
       .then(csv => {
         const lines = csv.split('\n');
@@ -195,11 +431,14 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
         const nameIdx = header.indexOf('keyword');
         const synIdx = header.indexOf('synonyms');
         const catIdx = header.indexOf('대분류');
+        
         if (nameIdx === -1) return;
+        
         const found = lines.slice(1).find(line => {
           const cols = line.split(',');
           return cols[nameIdx]?.trim() === decodeURIComponent(name);
         });
+        
         if (found) {
           const cols = found.split(',');
           const base = cols[nameIdx]?.trim();
@@ -213,6 +452,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
       });
   }, [name]);
 
+  // 레시피 데이터 로드
   useEffect(() => {
     if (location.pathname === '/mypage/recorded') {
       const arr = JSON.parse(localStorage.getItem('my_recorded_recipes') || '[]');
@@ -226,6 +466,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
           const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
           const recipeResponse = await axios.get(`${apiUrl}/api/recipes`);
           let filtered = [];
+          
           if (isIngredient) {
             // 재료: used_ingredients에 동의어 포함
             filtered = recipeResponse.data.filter((r: Recipe) => {
@@ -254,16 +495,18 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
     }
   }, [name, location.pathname, ingredientSynonyms, isIngredient]);
 
+  // 대체재료 테이블 로드
   useEffect(() => {
     const loadSubstituteTable = async () => {
       try {
-        const response = await fetch('/ingredient_substitute_table.csv');
+        const response = await fetch(CSV_SUBSTITUTE_URL);
         const csvText = await response.text();
         
         const lines = csvText.split('\n');
         const headers = lines[0].split(',');
         
         const table: { [key: string]: SubstituteInfo } = {};
+        
         // 첫 번째 줄(헤더)을 제외하고 처리
         for (let i = 1; i < lines.length; i++) {
           const line = lines[i].trim();
@@ -291,52 +534,82 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
         setSubstituteTable(table);
       } catch (error) {
         // 에러 발생 시 콘솔에만 출력
+        console.warn('[IngredientDetail] 대체재료 테이블 로드 실패:', error);
       }
     };
 
     loadSubstituteTable();
   }, []);
 
+  // 스크롤 이벤트 처리
   useEffect(() => {
     const handleScroll = () => {
       if (
-        window.innerHeight + window.scrollY >= document.body.offsetHeight - 100 &&
+        window.innerHeight + window.scrollY >= document.body.offsetHeight - SCROLL_THRESHOLD &&
         visibleCount < recipes.length
       ) {
-        setVisibleCount((prev) => prev + 2);
+        setVisibleCount((prev) => prev + VISIBLE_INCREMENT);
       }
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, [visibleCount, recipes.length]);
 
-  const findPossibleSubstitutes = (recipeIngredients: string | string[] | null | undefined, userIngredients: string[]): string[] => {
-    const ingredientsArr = toIngredientArray(recipeIngredients);
-    const recipeIngredientSet = new Set(ingredientsArr);
-    const userIngredientSet = new Set(userIngredients.map(i => i.trim()));
-
-    const substitutes: string[] = [];
-
-    for (const recipeIngredient of recipeIngredientSet) {
-      const substituteInfo = substituteTable[recipeIngredient];
-
-      if (substituteInfo) {
-        const possibleSubstitute = substituteInfo.ingredient_b;
-
-        if (userIngredientSet.has(possibleSubstitute)) {
-          substitutes.push(`${recipeIngredient} → ${possibleSubstitute}`);
-        }
-      }
+  // 정렬/필터 상태 복원
+  useEffect(() => {
+    const saved = loadSortFilterState();
+    if (saved) {
+      if (saved.sortType) setSortType(saved.sortType);
+      if (saved.matchRange) setMatchRange(saved.matchRange);
+      if (saved.maxLack !== undefined) setMaxLack(saved.maxLack);
+      if (saved.appliedExpiryIngredients) setAppliedExpiryIngredients(saved.appliedExpiryIngredients);
+      if (saved.expirySortType) setExpirySortType(saved.expirySortType);
     }
+  }, []);
 
-    return substitutes.length > 0 ? substitutes : ['(내 냉장고에 대체 가능한 재료가 없습니다)'];
-  };
+  // 정렬/필터 상태 저장
+  useEffect(() => {
+    saveSortFilterState({
+      sortType,
+      matchRange,
+      maxLack,
+      appliedExpiryIngredients,
+      expirySortType,
+    });
+  }, [sortType, matchRange, maxLack, appliedExpiryIngredients, expirySortType]);
+
+  // 페이지 상단으로 스크롤
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [name, location.pathname]);
+
+  // 버튼 상태 동기화
+  useEffect(() => {
+    const doneList = getRecipesFromLocalStorage('done');
+    const writeList = getRecipesFromLocalStorage('write');
+    const newStates: { [id: number]: RecipeActionState } = {};
+    
+    recipes.forEach(recipe => {
+      newStates[recipe.id] = {
+        done: doneList.some((r: any) => r.id === recipe.id),
+        write: writeList.some((r: any) => r.id === recipe.id),
+        share: false // 공유는 토글이 아니므로 false로 고정
+      };
+    });
+    setButtonStates(newStates);
+  }, [recipes]);
+
+  // =====================
+  // 계산된 값
+  // =====================
 
   const processedRecipes = useMemo(() => {
     console.log('[IngredientDetail] processedRecipes useMemo 실행', { recipes, selectedChannel, sortType });
+    
     let arr = [...recipes].map(recipe => {
       const match = getMatchRate(myIngredients, recipe.used_ingredients);
       const substitutes = findPossibleSubstitutes(recipe.used_ingredients, myIngredients);
+      
       return { 
         ...recipe, 
         match_rate: match.rate, 
@@ -362,217 +635,20 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
     }
 
     // 정렬
-    if (sortType === 'match') arr.sort((a, b) => b.match_rate - a.match_rate);
-    else if (sortType === 'expiry') arr.sort((a, b) => 0);
-    else arr = sortRecipes(arr, sortType, myIngredients, appliedExpiryIngredients);
+    if (sortType === 'match') {
+      arr.sort((a, b) => b.match_rate - a.match_rate);
+    } else if (sortType === 'expiry') {
+      arr.sort((a, b) => 0);
+    } else {
+      arr = sortRecipes(arr, sortType, myIngredients, appliedExpiryIngredients);
+    }
 
     return arr;
   }, [recipes, myIngredients, sortType, selectedChannel, appliedExpiryIngredients]);
 
-  const handleRecipeAction = (id: number, action: { action: 'done' | 'write' | 'share' }) => {
-    setButtonStates(prev => {
-      const prevState = prev[id] || { done: false, write: false, share: false };
-      let newState = { ...prevState };
-      if (action.action === 'done') {
-        if (!prevState.done) {
-          // 완료 추가
-          const recipe = recipes.find(r => r.id === id);
-          if (recipe && !getRecipesFromLocalStorage('done').some((r: any) => r.id === id)) {
-            addRecipeToLocalStorage('done', recipe);
-          }
-          newState.done = true;
-          setToast('레시피를 완료했습니다!');
-          setTimeout(() => setToast(''), 1500);
-        } else {
-          // 완료 취소: 확인 모달만 세팅
-          setPendingRemove({ type: 'done', id });
-          setPendingRecipe(recipes.find(r => r.id === id));
-          return prev;
-        }
-      }
-      if (action.action === 'write') {
-        if (!prevState.write) {
-          // 기록 추가
-          const recipe = recipes.find(r => r.id === id);
-          if (recipe && !getRecipesFromLocalStorage('write').some((r: any) => r.id === id)) {
-            addRecipeToLocalStorage('write', recipe);
-          }
-          newState.write = true;
-          setToast('레시피를 기록했습니다!');
-          setTimeout(() => setToast(''), 1500);
-        } else {
-          // 기록 취소: 확인 모달만 세팅
-          setPendingRemove({ type: 'write', id });
-          setPendingRecipe(recipes.find(r => r.id === id));
-          return prev;
-        }
-      }
-      if (action.action === 'share') {
-        const recipe = recipes.find(r => r.id === id);
-        if (recipe) {
-          try {
-            copyRecipeUrlToClipboard(recipe);
-            setToast('URL이 복사되었습니다!');
-            setTimeout(() => setToast(''), 1500);
-          } catch {
-            setToast('URL 복사에 실패했습니다.');
-            setTimeout(() => setToast(''), 1500);
-          }
-        }
-      }
-      return newState;
-    });
-  };
-
-  const handleRemoveConfirm = () => {
-    if (!pendingRemove) return;
-    if (pendingRemove.type === 'done') {
-      setButtonStates(s => ({ ...s, [pendingRemove.id]: { ...s[pendingRemove.id], done: false } }));
-      removeRecipeFromLocalStorage('done', pendingRemove.id);
-      setRecipes(prev => prev.filter(r => r.id !== pendingRemove.id));
-      setFilteredRecipes(prev => prev.filter(r => r.id !== pendingRemove.id));
-      setToast('레시피 완료를 취소했습니다!');
-      setTimeout(() => setToast(''), 1500);
-    } else if (pendingRemove.type === 'write') {
-      setButtonStates(s => ({ ...s, [pendingRemove.id]: { ...s[pendingRemove.id], write: false } }));
-      removeRecipeFromLocalStorage('write', pendingRemove.id);
-      setRecipes(prev => prev.filter(r => r.id !== pendingRemove.id));
-      setFilteredRecipes(prev => prev.filter(r => r.id !== pendingRemove.id));
-      setToast('레시피 기록을 취소했습니다!');
-      setTimeout(() => setToast(''), 1500);
-    }
-    setPendingRemove(null);
-    setPendingRecipe(null);
-  };
-
-  const handleRemoveUndo = () => {
-    setPendingRemove(null);
-    setPendingRecipe(null);
-  };
-
-  let sortedExpiryList: any[] = [];
-  if (expirySortType === 'expiry') {
-    sortedExpiryList = myIngredientObjects.filter((i: any) => i.expiry).sort((a: any, b: any) => (a.expiry > b.expiry ? 1 : -1));
-  } else {
-    sortedExpiryList = myIngredientObjects.filter((i: any) => i.purchase).sort((a: any, b: any) => (a.purchase > b.purchase ? 1 : -1));
-  }
-
-  // Restore sort/filter state from localStorage on mount
-  useEffect(() => {
-    const saved = sessionStorage.getItem('recipe_sortbar_state_ingredient');
-    if (saved) {
-      try {
-        const state = JSON.parse(saved);
-        if (state.sortType) setSortType(state.sortType);
-        if (state.matchRange) setMatchRange(state.matchRange);
-        if (state.maxLack !== undefined) setMaxLack(state.maxLack);
-        if (state.appliedExpiryIngredients) setAppliedExpiryIngredients(state.appliedExpiryIngredients);
-        if (state.expirySortType) setExpirySortType(state.expirySortType);
-      } catch {}
-    }
-  }, []);
-
-  // Save sort/filter state to localStorage on change
-  useEffect(() => {
-    sessionStorage.setItem('recipe_sortbar_state_ingredient', JSON.stringify({
-      sortType, matchRange, maxLack, appliedExpiryIngredients, expirySortType
-    }));
-  }, [sortType, matchRange, maxLack, appliedExpiryIngredients, expirySortType]);
-
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [name, location.pathname]);
-
-  // 레시피 필터링 함수
-  const filterRecipes = (recipes: Recipe[]) => {
-    return recipes.filter(recipe => {
-      // 1. 채널 필터링
-      if (selectedChannel.length > 0) {
-        const platform = recipe.platform?.toLowerCase() || '';
-        if (selectedChannel.includes('naver')) {
-          if (!platform.includes('naver(주제별보기)') && !platform.includes('naver(인플루언서핫토픽)')) {
-            return false;
-          }
-        }
-        if (selectedChannel.includes('youtube')) {
-          if (!platform.includes('youtube(인플루언서)')) {
-            return false;
-          }
-        }
-      }
-
-      // 2. 키워드 매칭
-      const text = (recipe.title || '') + ' ' + (recipe.content || '');
-      const keyword = decodeURIComponent(includeKeyword);
-      
-      // 키워드와 동의어 목록 가져오기
-      const keywordObj = categoryKeywords.TPO.find((k: KeywordObject) => 
-        typeof k === 'object' && k.keyword === keyword
-      );
-      
-      if (!keywordObj || typeof keywordObj !== 'object') return false;
-      
-      const allKeywords = [keywordObj.keyword, ...(keywordObj.synonyms || [])];
-      
-      // 각 키워드별로 독립적으로 매칭 횟수 체크
-      const hasEnoughMatches = allKeywords.some(k => {
-        if (!k) return false;
-        const regex = new RegExp(k.replace(/[.*+?^${}()|[\\\]]/g, '\\$&'), 'g');
-        const matches = text.match(regex);
-        return matches && matches.length >= 2;
-      });
-
-      if (!hasEnoughMatches) return false;
-
-      // 3. 재료 매칭
-      if (myIngredients.length > 0) {
-        const recipeIngredients = toIngredientArray(recipe.used_ingredients);
-        const matchRate = calculateMatchRate(myIngredients, recipeIngredients.join(','));
-        if (matchRate.rate < matchRange[0] || matchRate.rate > matchRange[1]) return false;
-      }
-
-      // 4. 부족 재료 수 체크
-      if (maxLack !== 'unlimited') {
-        const recipeIngredients = toIngredientArray(recipe.used_ingredients);
-        const mySet = new Set(myIngredients.map(i => i.trim()));
-        const lackCount = recipeIngredients.filter(i => !mySet.has(i)).length;
-        if (lackCount > maxLack) return false;
-      }
-
-      return true;
-    });
-  };
-
-  useEffect(() => {
-    // recipes가 바뀔 때마다 buttonStates를 동기화
-    const doneList = getRecipesFromLocalStorage('done');
-    const writeList = getRecipesFromLocalStorage('write');
-    const newStates: { [id: number]: RecipeActionState } = {};
-    recipes.forEach(recipe => {
-      newStates[recipe.id] = {
-        done: doneList.some((r: any) => r.id === recipe.id),
-        write: writeList.some((r: any) => r.id === recipe.id),
-        share: false // 공유는 토글이 아니므로 false로 고정
-      };
-    });
-    setButtonStates(newStates);
-  }, [recipes]);
-
-  // 1. 필터 버튼 클릭 핸들러에 로그
-  const handleFilterButtonClick = () => {
-    console.log('[IngredientDetail] 필터 버튼 클릭');
-    setFilterOpen(true);
-  };
-
-  // 2. FilterModal 열림/닫힘에 로그
-  useEffect(() => {
-    console.log('[IngredientDetail] FilterModal open:', filterOpen);
-  }, [filterOpen]);
-
-  // 3. selectedChannel 변경에 로그
-  useEffect(() => {
-    console.log('[IngredientDetail] selectedChannel:', selectedChannel);
-  }, [selectedChannel]);
+  // =====================
+  // 렌더링
+  // =====================
 
   return (
     <>
@@ -590,7 +666,9 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
           />
         </button>
       </header>
-      <div className="mx-auto pb-20 bg-white"
+      
+      <div 
+        className="mx-auto pb-20 bg-white"
         style={{
           maxWidth: 400,
           minHeight: '100vh',
@@ -600,7 +678,10 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
           paddingTop: 32,
         }}
       >
-        <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 18, textAlign: 'center' }}>{customTitle || `${name} 관련 레시피`}</div>
+        <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 18, textAlign: 'center' }}>
+          {customTitle || `${name} 관련 레시피`}
+        </div>
+        
         <RecipeSortBar
           recipes={processedRecipes}
           myIngredients={myIngredients}
@@ -630,24 +711,55 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
           excludeInput={excludeInput}
           setExcludeInput={setExcludeInput}
         />
+        
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, marginTop: 8 }}>
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'space-between', 
+            marginBottom: 16, 
+            marginTop: 8 
+          }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <span style={{ width: 24, height: 14, borderRadius: 7, background: '#D1D1D1', display: 'inline-block', marginRight: 2 }}></span>
+                <span style={{ 
+                  width: 24, 
+                  height: 14, 
+                  borderRadius: 7, 
+                  background: '#D1D1D1', 
+                  display: 'inline-block', 
+                  marginRight: 2 
+                }}></span>
                 <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>부족 재료</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <span style={{ width: 24, height: 14, borderRadius: 7, background: '#555', display: 'inline-block', marginRight: 2 }}></span>
+                <span style={{ 
+                  width: 24, 
+                  height: 14, 
+                  borderRadius: 7, 
+                  background: '#555', 
+                  display: 'inline-block', 
+                  marginRight: 2 
+                }}></span>
                 <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>대체 가능</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <span style={{ width: 24, height: 14, borderRadius: 7, background: '#FFD600', display: 'inline-block', marginRight: 2 }}></span>
+                <span style={{ 
+                  width: 24, 
+                  height: 14, 
+                  borderRadius: 7, 
+                  background: '#FFD600', 
+                  display: 'inline-block', 
+                  marginRight: 2 
+                }}></span>
                 <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>보유 재료</span>
               </div>
             </div>
-            <span style={{ color: '#666', fontSize: '12px' }}>총 {processedRecipes.length.toLocaleString()}건</span>
+            <span style={{ color: '#666', fontSize: '12px' }}>
+              총 {processedRecipes.length.toLocaleString()}건
+            </span>
           </div>
+          
           <div className="mt-4 flex flex-col gap-2" style={{ marginTop: 0 }}>
             <VirtualizedRecipeList
               recipes={processedRecipes}
@@ -659,8 +771,11 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
           </div>
         </div>
       </div>
+      
       <BottomNavBar activeTab={location.pathname.startsWith('/mypage') ? 'mypage' : 'popularity'} />
+      
       {!pendingRemove && toast && <RecipeToast message={toast} />}
+      
       {pendingRemove && (
         <div style={{
           position: 'fixed',
@@ -684,15 +799,33 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
           alignItems: 'center',
           gap: 8,
         }}>
-          <span style={{ color: '#fff', marginBottom: 6, letterSpacing: '0.04em', whiteSpace: 'nowrap', display: 'inline-block' }}>
+          <span style={{ 
+            color: '#fff', 
+            marginBottom: 6, 
+            letterSpacing: '0.04em', 
+            whiteSpace: 'nowrap', 
+            display: 'inline-block' 
+          }}>
             {pendingRemove.type === 'done' ? '레시피 완료를 취소하시겠어요?' : '레시피 기록을 취소하시겠어요?'}
           </span>
           <div style={{display:'flex',flexDirection:'row',gap:12,justifyContent:'center',width:'100%'}}>
-            <button className="inline-flex items-center justify-center bg-[#F5F6F8] text-gray-700 font-semibold rounded-lg px-3 py-1 text-sm border border-[#E5E7EB] shadow-none hover:bg-[#E5E7EB] transition whitespace-nowrap" style={{marginRight:4}} onClick={handleRemoveUndo}>아니요</button>
-            <button className="inline-flex items-center justify-center bg-[#F5F6F8] text-gray-700 font-semibold rounded-lg px-3 py-1 text-sm border border-[#E5E7EB] shadow-none hover:bg-[#E5E7EB] transition whitespace-nowrap" onClick={handleRemoveConfirm}>네</button>
+            <button 
+              className="inline-flex items-center justify-center bg-[#F5F6F8] text-gray-700 font-semibold rounded-lg px-3 py-1 text-sm border border-[#E5E7EB] shadow-none hover:bg-[#E5E7EB] transition whitespace-nowrap" 
+              style={{marginRight:4}} 
+              onClick={handleRemoveUndo}
+            >
+              아니요
+            </button>
+            <button 
+              className="inline-flex items-center justify-center bg-[#F5F6F8] text-gray-700 font-semibold rounded-lg px-3 py-1 text-sm border border-[#E5E7EB] shadow-none hover:bg-[#E5E7EB] transition whitespace-nowrap" 
+              onClick={handleRemoveConfirm}
+            >
+              네
+            </button>
           </div>
         </div>
       )}
+      
       {filterOpen && (
         <FilterModal
           open={filterOpen}

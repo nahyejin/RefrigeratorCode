@@ -10,9 +10,26 @@ import { getMyIngredients } from '../utils/recipeUtils';
 import FilterModal from '../components/FilterModal';
 import RecipeSortBar from '../components/RecipeSortBar';
 import backIcon from '../assets/뒤로가기.png';
-import { addRecipeToLocalStorage, removeRecipeFromLocalStorage, getRecipesFromLocalStorage, copyRecipeUrlToClipboard, getMyFridgeIngredients } from '../utils/recipeStorage';
+import { 
+  addRecipeToLocalStorage, 
+  removeRecipeFromLocalStorage, 
+  getRecipesFromLocalStorage, 
+  copyRecipeUrlToClipboard, 
+  getMyFridgeIngredients 
+} from '../utils/recipeStorage';
 
-// Add FilterState interface definition after imports
+// =====================
+// 상수
+// =====================
+
+const STORAGE_KEY = 'recipe_sortbar_state_completed';
+const TOAST_DURATION = 1500;
+const CSV_INGREDIENT_URL = '/ingredient_profile_dict_with_substitutes.csv';
+
+// =====================
+// 타입 정의
+// =====================
+
 interface FilterState {
   효능: string[];
   영양분: string[];
@@ -22,33 +39,61 @@ interface FilterState {
   [key: string]: string[];
 }
 
-// Add initialFilterState definition after imports
-const initialFilterState: FilterState = {
-  효능: [],
-  영양분: [],
-  대상: [],
-  TPO: [],
-  스타일: [],
-};
+interface PendingRemove {
+  type: 'done' | 'write';
+  id: number;
+}
 
-// Add parseIngredientNames function after initialFilterState
+interface SortFilterState {
+  sortType: string;
+  matchRange: [number, number];
+  maxLack: number | 'unlimited';
+  appliedExpiryIngredients: string[];
+  expirySortType: 'expiry' | 'purchase';
+}
+
+// =====================
+// 유틸리티 함수
+// =====================
+
+/**
+ * 초기 필터 상태를 반환한다
+ */
+function getInitialFilterState(): FilterState {
+  return {
+    효능: [],
+    영양분: [],
+    대상: [],
+    TPO: [],
+    스타일: [],
+  };
+}
+
+/**
+ * CSV에서 재료명 목록을 파싱한다
+ */
 function parseIngredientNames(csv: string): string[] {
   const lines = csv.split('\n');
   const header = lines[0].split(',');
-  const nameIdx = header.indexOf('ingredient_name');
+  const nameIdx = header.indexOf('keyword');
+  
   if (nameIdx === -1) return [];
+  
   return lines.slice(1)
     .map(line => line.split(',')[nameIdx]?.trim())
-    .filter(name => !!name && name !== 'ingredient_name');
+    .filter(name => !!name && name !== 'keyword');
 }
 
-// Add getMatchRate function after parseIngredientNames
+/**
+ * 재료 매칭률을 계산한다
+ */
 function getMatchRate(myIngredients: string[], recipeIngredients: string) {
   const recipeSet = new Set(
     recipeIngredients.split(',').map((i) => i.trim()).filter(Boolean)
   );
   const mySet = new Set(myIngredients);
   const matched = [...recipeSet].filter((i) => mySet.has(i));
+  
   return {
     rate: recipeSet.size === 0 ? 0 : Math.round((matched.length / recipeSet.size) * 100),
     my_ingredients: matched,
@@ -56,19 +101,75 @@ function getMatchRate(myIngredients: string[], recipeIngredients: string) {
   };
 }
 
+/**
+ * 내 냉장고 재료 객체를 가져온다
+ */
 function getMyIngredientObjects() {
   return getMyFridgeIngredients();
 }
 
-const CompletedRecipeListPage = () => {
+/**
+ * 정렬된 레시피 목록을 반환한다
+ */
+function getSortedRecipes(recipes: Recipe[], sortType: string): Recipe[] {
+  return [...recipes].sort((a, b) => {
+    const matchA = a.match_rate ?? 0;
+    const matchB = b.match_rate ?? 0;
+    
+    switch (sortType) {
+      case 'match':
+        return matchB - matchA;
+      case 'expiry':
+      case 'latest':
+        return new Date(b.date).getTime() - new Date(a.date).getTime();
+      case 'like':
+        return (b.likes ?? 0) - (a.likes ?? 0);
+      case 'comment':
+        return (b.comments ?? 0) - (a.comments ?? 0);
+      default:
+        return 0;
+    }
+  });
+}
+
+/**
+ * 정렬/필터 상태를 저장한다
+ */
+function saveSortFilterState(state: SortFilterState): void {
+  try {
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch (error) {
+    console.warn('[Storage] 정렬/필터 상태 저장 실패:', error);
+  }
+}
+
+/**
+ * 정렬/필터 상태를 로드한다
+ */
+function loadSortFilterState(): Partial<SortFilterState> | null {
+  try {
+    const saved = sessionStorage.getItem(STORAGE_KEY);
+    return saved ? JSON.parse(saved) : null;
+  } catch (error) {
+    console.warn('[Storage] 정렬/필터 상태 로드 실패:', error);
+    return null;
+  }
+}
+
+// =====================
+// 메인 컴포넌트
+// =====================
+
+const CompletedRecipeListPage: React.FC = () => {
+  // =====================
+  // 상태 관리
+  // =====================
+  
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [recipeActionStates, setRecipeActionStates] = useState<Record<number, RecipeActionState>>({});
   const [toast, setToast] = useState('');
-  const navigate = useNavigate();
-  const myIngredients = useMemo(() => getMyIngredients(), []);
-  const myIngredientObjects = getMyIngredientObjects();
   const [filterOpen, setFilterOpen] = useState(false);
-  const [selectedFilter, setSelectedFilter] = useState(initialFilterState);
+  const [selectedFilter, setSelectedFilter] = useState<FilterState>(getInitialFilterState());
   const [includeInput, setIncludeInput] = useState('');
   const [excludeInput, setExcludeInput] = useState('');
   const [allIngredients, setAllIngredients] = useState<string[]>([]);
@@ -81,13 +182,156 @@ const CompletedRecipeListPage = () => {
   const [maxLack, setMaxLack] = useState<number | 'unlimited'>('unlimited');
   const [appliedExpiryIngredients, setAppliedExpiryIngredients] = useState<string[]>([]);
   const [expirySortType, setExpirySortType] = useState<'expiry' | 'purchase'>('expiry');
-  const [pendingRemove, setPendingRemove] = useState<{type: 'done'|'write', id: number}|null>(null);
-  const [pendingRecipe, setPendingRecipe] = useState<any>(null);
+  const [pendingRemove, setPendingRemove] = useState<PendingRemove | null>(null);
+  const [pendingRecipe, setPendingRecipe] = useState<Recipe | null>(null);
   const [includeIngredients, setIncludeIngredients] = useState<string[]>([]);
   const [excludeIngredients, setExcludeIngredients] = useState<string[]>([]);
   const [filterKeywordTree, setFilterKeywordTree] = useState<any>(null);
   const [selectedChannel, setSelectedChannel] = useState<string[]>([]);
 
+  const navigate = useNavigate();
+  const myIngredients = useMemo(() => getMyIngredients(), []);
+  const myIngredientObjects = getMyIngredientObjects();
+
+  // =====================
+  // 계산된 값
+  // =====================
+
+  const processedRecipes = useMemo(() => {
+    return getSortedRecipes(recipes, sortType);
+  }, [recipes, sortType]);
+
+  // =====================
+  // 이벤트 핸들러
+  // =====================
+
+  /**
+   * 토스트 메시지를 표시한다
+   */
+  const showToast = (message: string) => {
+    setToast(message);
+    setTimeout(() => setToast(''), TOAST_DURATION);
+  };
+
+  /**
+   * 완료 버튼 클릭 처리
+   */
+  const handleDoneClick = (id: number) => {
+    const prev = recipeActionStates[id] || { done: false, write: false, share: false };
+    
+    if (!prev.done) {
+      // 완료 추가
+      const recipe = recipes.find(r => r.id === id);
+      if (recipe && !getRecipesFromLocalStorage('done').some((r: any) => r.id === id)) {
+        addRecipeToLocalStorage('done', recipe);
+      }
+      setRecipeActionStates(s => ({ ...s, [id]: { ...prev, done: true } }));
+      showToast('레시피를 완료했습니다!');
+    } else {
+      // 완료 취소: 확인 모달만 세팅
+      setPendingRemove({ type: 'done', id });
+      setPendingRecipe(recipes.find(r => r.id === id) || null);
+    }
+  };
+
+  /**
+   * 기록 버튼 클릭 처리
+   */
+  const handleWriteClick = (id: number) => {
+    const prev = recipeActionStates[id] || { done: false, write: false, share: false };
+    
+    if (!prev.write) {
+      // 기록 추가
+      const recipe = recipes.find(r => r.id === id);
+      if (recipe && !getRecipesFromLocalStorage('write').some((r: any) => r.id === id)) {
+        addRecipeToLocalStorage('write', recipe);
+      }
+      setRecipeActionStates(s => ({ ...s, [id]: { ...prev, write: true } }));
+      showToast('레시피를 기록했습니다!');
+    } else {
+      // 기록 취소: 확인 모달만 세팅
+      setPendingRemove({ type: 'write', id });
+      setPendingRecipe(recipes.find(r => r.id === id) || null);
+    }
+  };
+
+  /**
+   * 공유 버튼 클릭 처리
+   */
+  const handleShareClick = (id: number) => {
+    const recipe = recipes.find(r => r.id === id);
+    if (recipe) {
+      try {
+        copyRecipeUrlToClipboard(recipe);
+        showToast('URL이 복사되었습니다!');
+      } catch {
+        showToast('URL 복사에 실패했습니다.');
+      }
+    }
+  };
+
+  /**
+   * 삭제 확인 처리
+   */
+  const handleRemoveConfirm = () => {
+    if (!pendingRemove) return;
+    
+    if (pendingRemove.type === 'done') {
+      setRecipeActionStates(s => ({ ...s, [pendingRemove.id]: { ...s[pendingRemove.id], done: false } }));
+      removeRecipeFromLocalStorage('done', pendingRemove.id);
+      setRecipes(prev => prev.filter(r => r.id !== pendingRemove.id));
+      setFilteredRecipes(prev => prev.filter(r => r.id !== pendingRemove.id));
+      showToast('레시피 완료를 취소했습니다!');
+    } else if (pendingRemove.type === 'write') {
+      setRecipeActionStates(s => ({ ...s, [pendingRemove.id]: { ...s[pendingRemove.id], write: false } }));
+      removeRecipeFromLocalStorage('write', pendingRemove.id);
+      setRecipes(prev => prev.filter(r => r.id !== pendingRemove.id));
+      setFilteredRecipes(prev => prev.filter(r => r.id !== pendingRemove.id));
+      showToast('레시피 기록을 취소했습니다!');
+    }
+    
+    setPendingRemove(null);
+    setPendingRecipe(null);
+  };
+
+  /**
+   * 삭제 취소 처리
+   */
+  const handleRemoveUndo = () => {
+    setPendingRemove(null);
+    setPendingRecipe(null);
+  };
+
+  /**
+   * 필터 버튼 클릭 처리
+   */
+  const handleFilterButtonClick = () => {
+    console.log('[CompletedRecipeListPage] 필터 버튼 클릭');
+    setFilterOpen(true);
+  };
+
+  /**
+   * 레시피 액션 처리
+   */
+  const handleRecipeAction = (recipe: Recipe, action: string) => {
+    switch (action) {
+      case 'done':
+        handleDoneClick(recipe.id);
+        break;
+      case 'write':
+        handleWriteClick(recipe.id);
+        break;
+      case 'share':
+        handleShareClick(recipe.id);
+        break;
+    }
+  };
+
+  // =====================
+  // 사이드 이펙트
+  // =====================
+
+  // 레시피 데이터 로드
   useEffect(() => {
     function load() {
       setRecipes(getRecipesFromLocalStorage('done'));
@@ -97,161 +341,54 @@ const CompletedRecipeListPage = () => {
     return () => window.removeEventListener('storage', load);
   }, []);
 
+  // 재료 사전 로드
   useEffect(() => {
-    fetch('/ingredient_profile_dict_with_substitutes.csv')
+    fetch(CSV_INGREDIENT_URL)
       .then(res => res.text())
       .then(csv => {
-        const lines = csv.split('\n');
-        const header = lines[0].split(',');
-        const nameIdx = header.indexOf('keyword');
-        if (nameIdx === -1) return;
-        setAllIngredients(
-          lines.slice(1)
-            .map(line => line.split(',')[nameIdx]?.trim())
-            .filter(name => !!name && name !== 'keyword')
-        );
+        setAllIngredients(parseIngredientNames(csv));
+      })
+      .catch(error => {
+        console.error('[CompletedRecipeListPage] 재료 사전 로드 실패:', error);
       });
   }, []);
 
-  // Restore sort/filter state from localStorage on mount
+  // 정렬/필터 상태 복원
   useEffect(() => {
-    const saved = sessionStorage.getItem('recipe_sortbar_state_completed');
+    const saved = loadSortFilterState();
     if (saved) {
-      try {
-        const state = JSON.parse(saved);
-        if (state.sortType) setSortType(state.sortType);
-        if (state.matchRange) setMatchRange(state.matchRange);
-        if (state.maxLack !== undefined) setMaxLack(state.maxLack);
-        if (state.appliedExpiryIngredients) setAppliedExpiryIngredients(state.appliedExpiryIngredients);
-        if (state.expirySortType) setExpirySortType(state.expirySortType);
-      } catch {}
+      if (saved.sortType) setSortType(saved.sortType);
+      if (saved.matchRange) setMatchRange(saved.matchRange);
+      if (saved.maxLack !== undefined) setMaxLack(saved.maxLack);
+      if (saved.appliedExpiryIngredients) setAppliedExpiryIngredients(saved.appliedExpiryIngredients);
+      if (saved.expirySortType) setExpirySortType(saved.expirySortType);
     }
   }, []);
 
-  // Save sort/filter state to localStorage on change
+  // 정렬/필터 상태 저장
   useEffect(() => {
-    sessionStorage.setItem('recipe_sortbar_state_completed', JSON.stringify({
-      sortType, matchRange, maxLack, appliedExpiryIngredients, expirySortType
-    }));
+    saveSortFilterState({
+      sortType,
+      matchRange,
+      maxLack,
+      appliedExpiryIngredients,
+      expirySortType,
+    });
   }, [sortType, matchRange, maxLack, appliedExpiryIngredients, expirySortType]);
 
+  // 페이지 상단으로 스크롤
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
-  const handleDoneClick = (id: number) => {
-    const prev = recipeActionStates[id] || { done: false, write: false, share: false };
-    if (!prev.done) {
-      // 완료 추가
-      const recipe = recipes.find(r => r.id === id);
-      if (recipe && !getRecipesFromLocalStorage('done').some((r: any) => r.id === id)) {
-        addRecipeToLocalStorage('done', recipe);
-      }
-      setRecipeActionStates(s => ({ ...s, [id]: { ...prev, done: true } }));
-      setToast('레시피를 완료했습니다!');
-      setTimeout(() => setToast(''), 1500);
-    } else {
-      // 완료 취소: 확인 모달만 세팅
-      setPendingRemove({ type: 'done', id });
-      setPendingRecipe(recipes.find(r => r.id === id));
-    }
-  };
-
-  const handleWriteClick = (id: number) => {
-    const prev = recipeActionStates[id] || { done: false, write: false, share: false };
-    if (!prev.write) {
-      // 기록 추가
-      const recipe = recipes.find(r => r.id === id);
-      if (recipe && !getRecipesFromLocalStorage('write').some((r: any) => r.id === id)) {
-        addRecipeToLocalStorage('write', recipe);
-      }
-      setRecipeActionStates(s => ({ ...s, [id]: { ...prev, write: true } }));
-      setToast('레시피를 기록했습니다!');
-      setTimeout(() => setToast(''), 1500);
-    } else {
-      // 기록 취소: 확인 모달만 세팅
-      setPendingRemove({ type: 'write', id });
-      setPendingRecipe(recipes.find(r => r.id === id));
-    }
-  };
-
-  const handleShareClick = (id: number) => {
-    const recipe = recipes.find(r => r.id === id);
-    if (recipe) {
-      try {
-        copyRecipeUrlToClipboard(recipe);
-        setToast('URL이 복사되었습니다!');
-        setTimeout(() => setToast(''), 1500);
-      } catch {
-        setToast('URL 복사에 실패했습니다.');
-        setTimeout(() => setToast(''), 1500);
-      }
-    }
-  };
-
-  const handleRemoveConfirm = () => {
-    if (!pendingRemove) return;
-    if (pendingRemove.type === 'done') {
-      setRecipeActionStates(s => ({ ...s, [pendingRemove.id]: { ...s[pendingRemove.id], done: false } }));
-      removeRecipeFromLocalStorage('done', pendingRemove.id);
-      setRecipes(prev => prev.filter(r => r.id !== pendingRemove.id));
-      setFilteredRecipes(prev => prev.filter(r => r.id !== pendingRemove.id));
-      setToast('레시피 완료를 취소했습니다!');
-      setTimeout(() => setToast(''), 1500);
-    } else if (pendingRemove.type === 'write') {
-      setRecipeActionStates(s => ({ ...s, [pendingRemove.id]: { ...s[pendingRemove.id], write: false } }));
-      removeRecipeFromLocalStorage('write', pendingRemove.id);
-      setRecipes(prev => prev.filter(r => r.id !== pendingRemove.id));
-      setFilteredRecipes(prev => prev.filter(r => r.id !== pendingRemove.id));
-      setToast('레시피 기록을 취소했습니다!');
-      setTimeout(() => setToast(''), 1500);
-    }
-    setPendingRemove(null);
-    setPendingRecipe(null);
-  };
-
-  const handleRemoveUndo = () => {
-    setPendingRemove(null);
-    setPendingRecipe(null);
-  };
-
-  const processedRecipes = useMemo(() => {
-    let arr = [...recipes];
-    arr.sort((a, b) => {
-      const matchA = a.match_rate ?? 0;
-      const matchB = b.match_rate ?? 0;
-      if (sortType === 'match') {
-        return matchB - matchA;
-      } else if (sortType === 'expiry') {
-        return new Date(b.date).getTime() - new Date(a.date).getTime();
-      } else if (sortType === 'like') {
-        return (b.likes ?? 0) - (a.likes ?? 0);
-      } else if (sortType === 'comment') {
-        return (b.comments ?? 0) - (a.comments ?? 0);
-      } else if (sortType === 'latest') {
-        return new Date(b.date).getTime() - new Date(a.date).getTime();
-      }
-      return 0;
-    });
-    return arr;
-  }, [recipes, sortType]);
-
+  // 필터링된 레시피 업데이트
   useEffect(() => {
     setFilteredRecipes(processedRecipes);
   }, [processedRecipes]);
 
-  const handleFilterButtonClick = () => {
-    console.log('[CompletedRecipeListPage] 필터 버튼 클릭');
-    setFilterOpen(true);
-  };
-
-  useEffect(() => {
-    console.log('[CompletedRecipeListPage] FilterModal open:', filterOpen);
-  }, [filterOpen]);
-
-  useEffect(() => {
-    console.log('[CompletedRecipeListPage] selectedChannel:', selectedChannel);
-  }, [selectedChannel]);
+  // =====================
+  // 렌더링
+  // =====================
 
   return (
     <>
@@ -270,13 +407,29 @@ const CompletedRecipeListPage = () => {
         </button>
         <button
           aria-label="필터 모달 열기"
-          style={{ height: 28, border: '1px solid #D1D5DB', borderRadius: 999, fontSize: 12, padding: '0 12px', fontWeight: 600, background: '#fff', color: '#222', minWidth: 50, whiteSpace: 'nowrap', boxSizing: 'border-box', cursor: 'pointer', marginLeft: 'auto' }}
+          style={{ 
+            height: 28, 
+            border: '1px solid #D1D5DB', 
+            borderRadius: 999, 
+            fontSize: 12, 
+            padding: '0 12px', 
+            fontWeight: 600, 
+            background: '#fff', 
+            color: '#222', 
+            minWidth: 50, 
+            whiteSpace: 'nowrap', 
+            boxSizing: 'border-box', 
+            cursor: 'pointer', 
+            marginLeft: 'auto' 
+          }}
           onClick={handleFilterButtonClick}
         >
           <span style={{ fontWeight: 600 }}>필터</span>
         </button>
       </header>
-      <div className="mx-auto pb-20 bg-white"
+      
+      <div 
+        className="mx-auto pb-20 bg-white"
         style={{
           maxWidth: 400,
           minHeight: '100vh',
@@ -286,7 +439,10 @@ const CompletedRecipeListPage = () => {
           paddingTop: 32,
         }}
       >
-        <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 18, textAlign: 'center' }}>내가 완료한 레시피</div>
+        <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 18, textAlign: 'center' }}>
+          내가 완료한 레시피
+        </div>
+        
         <RecipeSortBar
           recipes={processedRecipes}
           myIngredients={myIngredients}
@@ -316,41 +472,71 @@ const CompletedRecipeListPage = () => {
           excludeInput={excludeInput}
           setExcludeInput={setExcludeInput}
         />
+        
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, marginTop: 8 }}>
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'space-between', 
+            marginBottom: 16, 
+            marginTop: 8 
+          }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <span style={{ width: 24, height: 14, borderRadius: 7, background: '#D1D1D1', display: 'inline-block', marginRight: 2 }}></span>
+                <span style={{ 
+                  width: 24, 
+                  height: 14, 
+                  borderRadius: 7, 
+                  background: '#D1D1D1', 
+                  display: 'inline-block', 
+                  marginRight: 2 
+                }}></span>
                 <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>부족 재료</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <span style={{ width: 24, height: 14, borderRadius: 7, background: '#555', display: 'inline-block', marginRight: 2 }}></span>
+                <span style={{ 
+                  width: 24, 
+                  height: 14, 
+                  borderRadius: 7, 
+                  background: '#555', 
+                  display: 'inline-block', 
+                  marginRight: 2 
+                }}></span>
                 <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>대체 가능</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <span style={{ width: 24, height: 14, borderRadius: 7, background: '#FFD600', display: 'inline-block', marginRight: 2 }}></span>
+                <span style={{ 
+                  width: 24, 
+                  height: 14, 
+                  borderRadius: 7, 
+                  background: '#FFD600', 
+                  display: 'inline-block', 
+                  marginRight: 2 
+                }}></span>
                 <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>보유 재료</span>
               </div>
             </div>
-            <span style={{ color: '#666', fontSize: '12px' }}>총 {recipes.length.toLocaleString()}건</span>
+            <span style={{ color: '#666', fontSize: '12px' }}>
+              총 {recipes.length.toLocaleString()}건
+            </span>
           </div>
+          
           <div className="mt-4 flex flex-col gap-2" style={{ marginTop: 0 }}>
             <VirtualizedRecipeList
               recipes={filteredRecipes}
               myIngredients={myIngredients}
               substituteTable={{}}
               recipeActionStates={recipeActionStates}
-              onRecipeAction={(recipe, action) => {
-                if (action === 'done') handleDoneClick(recipe.id);
-                else if (action === 'write') handleWriteClick(recipe.id);
-                else if (action === 'share') handleShareClick(recipe.id);
-              }}
+              onRecipeAction={handleRecipeAction}
             />
           </div>
         </div>
       </div>
+      
       <BottomNavBar activeTab="mypage" />
+      
       {toast && <RecipeToast message={toast} />}
+      
       {filterOpen && (
         <FilterModal
           open={filterOpen}
@@ -384,22 +570,39 @@ const CompletedRecipeListPage = () => {
           }}
         />
       )}
+      
       {matchRateModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-lg p-6 w-[340px] max-w-[95vw] relative">
-            <span className="absolute top-3 right-3 w-6 h-6 text-gray-400 text-xl cursor-pointer" onClick={() => setMatchRateModalOpen(false)}>×</span>
-            <div className="text-center font-bold text-[14px] mb-4">재료 매칭도 설정 (임시 모달)</div>
+            <span 
+              className="absolute top-3 right-3 w-6 h-6 text-gray-400 text-xl cursor-pointer" 
+              onClick={() => setMatchRateModalOpen(false)}
+            >
+              ×
+            </span>
+            <div className="text-center font-bold text-[14px] mb-4">
+              재료 매칭도 설정 (임시 모달)
+            </div>
           </div>
         </div>
       )}
+      
       {expiryModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-lg p-6 w-[340px] max-w-[95vw] relative">
-            <span className="absolute top-3 right-3 w-6 h-6 text-gray-400 text-xl cursor-pointer" onClick={() => setExpiryModalOpen(false)}>×</span>
-            <div className="text-center font-bold text-[14px] mb-4">임박 재료 설정 (임시 모달)</div>
+            <span 
+              className="absolute top-3 right-3 w-6 h-6 text-gray-400 text-xl cursor-pointer" 
+              onClick={() => setExpiryModalOpen(false)}
+            >
+              ×
+            </span>
+            <div className="text-center font-bold text-[14px] mb-4">
+              임박 재료 설정 (임시 모달)
+            </div>
           </div>
         </div>
       )}
+      
       {pendingRemove && (
         <div style={{
           position: 'fixed',
@@ -423,12 +626,29 @@ const CompletedRecipeListPage = () => {
           alignItems: 'center',
           gap: 8,
         }}>
-          <span style={{ color: '#fff', marginBottom: 6, letterSpacing: '0.04em', whiteSpace: 'nowrap', display: 'inline-block' }}>
+          <span style={{ 
+            color: '#fff', 
+            marginBottom: 6, 
+            letterSpacing: '0.04em', 
+            whiteSpace: 'nowrap', 
+            display: 'inline-block' 
+          }}>
             {pendingRemove.type === 'done' ? '레시피 완료를 취소하시겠어요?' : '레시피 기록을 취소하시겠어요?'}
           </span>
           <div style={{display:'flex',flexDirection:'row',gap:12,justifyContent:'center',width:'100%'}}>
-            <button className="inline-flex items-center justify-center bg-[#F5F6F8] text-gray-700 font-semibold rounded-lg px-3 py-1 text-sm border border-[#E5E7EB] shadow-none hover:bg-[#E5E7EB] transition whitespace-nowrap" style={{marginRight:4}} onClick={handleRemoveUndo}>아니요</button>
-            <button className="inline-flex items-center justify-center bg-[#F5F6F8] text-gray-700 font-semibold rounded-lg px-3 py-1 text-sm border border-[#E5E7EB] shadow-none hover:bg-[#E5E7EB] transition whitespace-nowrap" onClick={handleRemoveConfirm}>네</button>
+            <button 
+              className="inline-flex items-center justify-center bg-[#F5F6F8] text-gray-700 font-semibold rounded-lg px-3 py-1 text-sm border border-[#E5E7EB] shadow-none hover:bg-[#E5E7EB] transition whitespace-nowrap" 
+              style={{marginRight:4}} 
+              onClick={handleRemoveUndo}
+            >
+              아니요
+            </button>
+            <button 
+              className="inline-flex items-center justify-center bg-[#F5F6F8] text-gray-700 font-semibold rounded-lg px-3 py-1 text-sm border border-[#E5E7EB] shadow-none hover:bg-[#E5E7EB] transition whitespace-nowrap" 
+              onClick={handleRemoveConfirm}
+            >
+              네
+            </button>
           </div>
         </div>
       )}

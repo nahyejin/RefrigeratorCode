@@ -18,7 +18,20 @@ import naverLogo from '../assets/썸네일_naverlogo.png';
 import youtubeLogo from '../assets/썸네일_youtubelogo.png';
 import { addRecipeToLocalStorage, removeRecipeFromLocalStorage, getRecipesFromLocalStorage, copyRecipeUrlToClipboard } from '../utils/recipeStorage';
 
-// 타입 명시
+// =====================
+// 상수
+// =====================
+
+const TOAST_DURATION = 1500;
+const CSV_SUBSTITUTE_URL = '/ingredient_substitute_table.csv';
+const STORAGE_KEY_MYFRIDGE = 'myfridge_ingredients';
+const STORAGE_KEY_RECORDED = 'my_recorded_recipes';
+const STORAGE_KEY_COMPLETED = 'my_completed_recipes';
+
+// =====================
+// 타입 정의
+// =====================
+
 interface RecipeCardData {
   id: number;
   thumbnail: string;
@@ -26,7 +39,39 @@ interface RecipeCardData {
   match: number;
 }
 
-// 카드 스타일 상수화
+interface User {
+  nickname: string;
+  userid: string;
+  phone: string;
+}
+
+interface EditForm {
+  nickname: string;
+  userid: string;
+  password: string;
+  password2: string;
+  phone1: string;
+  phone2: string;
+  phone3: string;
+  zipcode: string;
+  address1: string;
+  address2: string;
+}
+
+interface ErrorState {
+  password: string;
+  phone: string;
+}
+
+interface PendingRemove {
+  type: 'done' | 'write';
+  id: number;
+}
+
+// =====================
+// 스타일 상수
+// =====================
+
 const CARD_STYLE = {
   borderRadius: 20,
   background: '#fff',
@@ -38,20 +83,143 @@ const CARD_STYLE = {
   border: 'none',
 };
 
-// ActionButton 컴포넌트
-const ActionButton = ({
-  title,
-  icon,
-  onClick,
-  active = true,
-}: {
+// =====================
+// 더미 데이터
+// =====================
+
+const dummyUser: User = {
+  nickname: '홍길동',
+  userid: 'honggildong123',
+  phone: '010-1234-5678',
+};
+
+// =====================
+// 유틸리티 함수
+// =====================
+
+/**
+ * 재료 배열을 파싱한다
+ */
+function parseIngredients(recipe: any): string[] {
+  if (Array.isArray(recipe.mainIngredients)) return recipe.mainIngredients;
+  if (typeof recipe.used_ingredients === 'string') {
+    return recipe.used_ingredients.split(',').map((i: string) => i.trim()).filter(Boolean);
+  }
+  if (Array.isArray(recipe.need_ingredients)) return recipe.need_ingredients;
+  if (typeof recipe.need_ingredients === 'string') {
+    return recipe.need_ingredients.split(',').map((i: string) => i.trim()).filter(Boolean);
+  }
+  return [];
+}
+
+/**
+ * 대체재료 배열을 파싱한다
+ */
+function parseSubstitutes(recipe: any): string[] {
+  if (Array.isArray(recipe.substitutes)) return recipe.substitutes;
+  if (typeof recipe.substitutes === 'string') {
+    return recipe.substitutes.split(',').map((i: string) => i.trim()).filter(Boolean);
+  }
+  return [];
+}
+
+/**
+ * 내 냉장고 재료 목록을 안전하게 가져온다
+ */
+function getMyIngredientsSafe(): string[] {
+  try {
+    const data = JSON.parse(localStorage.getItem(STORAGE_KEY_MYFRIDGE) || 'null');
+    if (data && Array.isArray(data.frozen) && Array.isArray(data.fridge) && Array.isArray(data.room)) {
+      return [...data.frozen, ...data.fridge, ...data.room].map((i: any) => 
+        typeof i === 'string' ? i : i.name
+      );
+    }
+  } catch (error) {
+    console.warn('[MyPage] 내 냉장고 재료 로드 실패:', error);
+  }
+  return [];
+}
+
+/**
+ * 플랫폼에 따른 로고를 반환한다
+ */
+function getPlatformLogo(platform: string | undefined): string {
+  if (!platform) return naverLogo;
+  const lower = platform.toLowerCase();
+  if (lower.includes('naver') || lower.includes('네이버')) return naverLogo;
+  if (lower.includes('youtube') || lower.includes('유튜브')) return youtubeLogo;
+  return naverLogo;
+}
+
+/**
+ * 대체재료 테이블을 로드한다
+ */
+async function loadSubstituteTable(): Promise<{ [key: string]: any }> {
+  try {
+    const response = await fetch(CSV_SUBSTITUTE_URL);
+    const csv = await response.text();
+    
+    const lines = csv.split('\n');
+    const header = lines[0].split(',').map(h => h.trim().toLowerCase());
+    const aIdx = header.indexOf('ingredient_a');
+    const bIdx = header.indexOf('ingredient_b');
+    const dirIdx = header.indexOf('substitution_direction');
+    const scoreIdx = header.indexOf('similarity_score');
+    const reasonIdx = header.indexOf('substitution_reason');
+    
+    if (aIdx === -1 || bIdx === -1) return {};
+    
+    const table: { [key: string]: any } = {};
+    lines.slice(1).forEach(line => {
+      const cols = line.split(',');
+      const a = cols[aIdx]?.trim();
+      const b = cols[bIdx]?.trim();
+      const direction = cols[dirIdx]?.trim() || '';
+      const score = parseFloat(cols[scoreIdx]?.trim() || '0');
+      const reason = cols[reasonIdx]?.trim() || '';
+      
+      if (a && b) {
+        table[a] = {
+          ingredient_a: a,
+          ingredient_b: b,
+          substitution_direction: direction,
+          similarity_score: score,
+          substitution_reason: reason
+        };
+      }
+    });
+    
+    return table;
+  } catch (error) {
+    console.warn('[MyPage] 대체재료 테이블 로드 실패:', error);
+    return {};
+  }
+}
+
+// =====================
+// 컴포넌트
+// =====================
+
+/**
+ * 액션 버튼 컴포넌트
+ */
+const ActionButton: React.FC<{
   title: string;
   icon: string;
   onClick: () => void;
   active?: boolean;
-}) => (
+}> = ({ title, icon, onClick, active = true }) => (
   <span style={{ position: 'relative', zIndex: 2 }}>
-    <span style={{ position: 'absolute', left: 0, top: 0, width: 26, height: 26, borderRadius: '50%', background: 'rgba(34,34,34,0.7)', zIndex: 1 }}></span>
+    <span style={{ 
+      position: 'absolute', 
+      left: 0, 
+      top: 0, 
+      width: 26, 
+      height: 26, 
+      borderRadius: '50%', 
+      background: 'rgba(34,34,34,0.7)', 
+      zIndex: 1 
+    }}></span>
     <button
       title={title}
       tabIndex={0}
@@ -71,59 +239,34 @@ const ActionButton = ({
       }}
       onClick={onClick}
     >
-      <img src={icon} alt={title} width={19} height={19} style={{ display: 'block', position: 'relative', zIndex: 2, opacity: active ? 1 : 0.5 }} />
+      <img 
+        src={icon} 
+        alt={title} 
+        width={19} 
+        height={19} 
+        style={{ 
+          display: 'block', 
+          position: 'relative', 
+          zIndex: 2, 
+          opacity: active ? 1 : 0.5 
+        }} 
+      />
     </button>
   </span>
 );
 
-const dummyUser = {
-  nickname: '홍길동',
-  userid: 'honggildong123',
-  phone: '010-1234-5678',
-};
+// =====================
+// 메인 컴포넌트
+// =====================
 
-// 재료/대체 가능 파싱 함수 추가
-function parseIngredients(recipe: any) {
-  if (Array.isArray(recipe.mainIngredients)) return recipe.mainIngredients;
-  if (typeof recipe.used_ingredients === 'string') {
-    return recipe.used_ingredients.split(',').map((i: string) => i.trim()).filter(Boolean);
-  }
-  if (Array.isArray(recipe.need_ingredients)) return recipe.need_ingredients;
-  if (typeof recipe.need_ingredients === 'string') {
-    return recipe.need_ingredients.split(',').map((i: string) => i.trim()).filter(Boolean);
-  }
-  return [];
-}
-
-function parseSubstitutes(recipe: any) {
-  if (Array.isArray(recipe.substitutes)) return recipe.substitutes;
-  if (typeof recipe.substitutes === 'string') return recipe.substitutes.split(',').map((i: string) => i.trim()).filter(Boolean);
-  return [];
-}
-
-// 내 냉장고 재료 목록 가져오기 (요즘인기 카드와 동일하게)
-function getMyIngredientsSafe() {
-  try {
-    const data = JSON.parse(localStorage.getItem('myfridge_ingredients') || 'null');
-    if (data && Array.isArray(data.frozen) && Array.isArray(data.fridge) && Array.isArray(data.room)) {
-      return [...data.frozen, ...data.fridge, ...data.room].map((i: any) => (typeof i === 'string' ? i : i.name));
-    }
-  } catch {}
-  return [];
-}
-
-const getPlatformLogo = (platform: string | undefined) => {
-  if (!platform) return naverLogo;
-  const lower = platform.toLowerCase();
-  if (lower.includes('naver') || lower.includes('네이버')) return naverLogo;
-  if (lower.includes('youtube') || lower.includes('유튜브')) return youtubeLogo;
-  return naverLogo;
-};
-
-const MyPage = () => {
+const MyPage: React.FC = () => {
+  // =====================
+  // 상태 관리
+  // =====================
+  
   const [editOpen, setEditOpen] = useState(false);
-  const [user, setUser] = useState(dummyUser);
-  const [edit, setEdit] = useState({
+  const [user, setUser] = useState<User>(dummyUser);
+  const [edit, setEdit] = useState<EditForm>({
     nickname: user.nickname,
     userid: user.userid,
     password: '',
@@ -135,50 +278,71 @@ const MyPage = () => {
     address1: '',
     address2: '',
   });
-  const [error, setError] = useState({ password: '', phone: '' });
-  // 완료 상태 및 토스트
+  const [error, setError] = useState<ErrorState>({ password: '', phone: '' });
   const [doneStates, setDoneStates] = useState<{ [id: number]: boolean }>({});
   const [writeStates, setWriteStates] = useState<{ [id: number]: boolean }>({});
   const [toast, setToast] = useState('');
   const [profilePreview, setProfilePreview] = useState<string | null>(null);
   const [recordedRecipes, setRecordedRecipes] = useState<any[]>(() => {
-    return JSON.parse(localStorage.getItem('my_recorded_recipes') || '[]');
+    return JSON.parse(localStorage.getItem(STORAGE_KEY_RECORDED) || '[]');
   });
   const [completedRecipes, setCompletedRecipes] = useState<any[]>(() => {
-    return JSON.parse(localStorage.getItem('my_completed_recipes') || '[]');
+    return JSON.parse(localStorage.getItem(STORAGE_KEY_COMPLETED) || '[]');
   });
-  const [pendingRemove, setPendingRemove] = useState<{type: 'done'|'write', id: number}|null>(null);
+  const [pendingRemove, setPendingRemove] = useState<PendingRemove | null>(null);
   const [pendingRecipe, setPendingRecipe] = useState<any>(null);
+  const [myIngredients, setMyIngredients] = React.useState<string[]>(getMyIngredientsSafe());
+  const [substituteTable, setSubstituteTable] = useState<{ [key: string]: any }>({});
+
   const navigate = useNavigate();
 
-  // myIngredients를 useState로 관리
-  const [myIngredients, setMyIngredients] = React.useState<string[]>(getMyIngredientsSafe());
+  // =====================
+  // 이벤트 핸들러
+  // =====================
 
-  // 정보 수정 모달 저장
+  /**
+   * 토스트 메시지를 표시한다
+   */
+  const showToast = (message: string) => {
+    setToast(message);
+    setTimeout(() => setToast(''), TOAST_DURATION);
+  };
+
+  /**
+   * 정보 수정 모달 저장
+   */
   const handleSave = () => {
     let valid = true;
-    const newError = { password: '', phone: '' };
+    const newError: ErrorState = { password: '', phone: '' };
+    
     if (edit.password && edit.password.length < 6) {
       newError.password = '비밀번호는 6자 이상이어야 합니다.';
       valid = false;
     }
+    
     setError(newError);
     if (!valid) return;
+    
     setUser({ ...user, nickname: edit.nickname });
     setEditOpen(false);
   };
 
-  // 완료 버튼 클릭 핸들러
+  /**
+   * 완료 버튼 클릭 처리
+   */
   const handleDoneClick = (id: number) => {
     const isAlreadyDone = getRecipesFromLocalStorage('done').some(r => r.id === id);
+    
     if (isAlreadyDone) {
       setPendingRemove({ type: 'done', id });
       setPendingRecipe(completedRecipes.find(r => r.id === id));
       return;
     }
+    
     setDoneStates(prev => {
       const isActive = !!prev[id];
       const newState = { ...prev, [id]: !isActive };
+      
       if (!isActive) {
         // 완료 추가: completedRecipes에만 추가(중복 추가 방지)
         const recipe = recordedRecipes.find(r => r.id === id) || completedRecipes.find(r => r.id === id);
@@ -187,27 +351,32 @@ const MyPage = () => {
           const updatedCompleted = [...completedRecipes, recipe];
           setCompletedRecipes(updatedCompleted);
         }
-        setToast('레시피를 완료했습니다!');
-        setTimeout(() => setToast(''), 1500);
+        showToast('레시피를 완료했습니다!');
       } else {
         setPendingRemove({ type: 'done', id });
         setPendingRecipe(completedRecipes.find(r => r.id === id));
       }
+      
       return newState;
     });
   };
 
-  // 기록 버튼 클릭 핸들러
+  /**
+   * 기록 버튼 클릭 처리
+   */
   const handleWriteClick = (id: number) => {
     const isAlreadyWritten = getRecipesFromLocalStorage('write').some(r => r.id === id);
+    
     if (isAlreadyWritten) {
       setPendingRemove({ type: 'write', id });
       setPendingRecipe(recordedRecipes.find(r => r.id === id));
       return;
     }
+    
     setWriteStates(prev => {
       const isActive = !!prev[id];
       const newState = { ...prev, [id]: !isActive };
+      
       if (!isActive) {
         // 기록 추가: recordedRecipes에만 추가(중복 추가 방지)
         const recipe = completedRecipes.find(r => r.id === id) || recordedRecipes.find(r => r.id === id);
@@ -216,19 +385,22 @@ const MyPage = () => {
           const updatedRecorded = [...recordedRecipes, recipe];
           setRecordedRecipes(updatedRecorded);
         }
-        setToast('레시피를 기록했습니다!');
-        setTimeout(() => setToast(''), 1500);
+        showToast('레시피를 기록했습니다!');
       } else {
         setPendingRemove({ type: 'write', id });
         setPendingRecipe(recordedRecipes.find(r => r.id === id));
       }
+      
       return newState;
     });
   };
 
-  // 삭제 확정(닫기) 핸들러
+  /**
+   * 삭제 확인 처리
+   */
   const handleRemoveConfirm = () => {
     if (!pendingRemove) return;
+    
     if (pendingRemove.type === 'done') {
       setDoneStates(prev => ({ ...prev, [pendingRemove.id]: false }));
       removeRecipeFromLocalStorage('done', pendingRemove.id);
@@ -240,69 +412,68 @@ const MyPage = () => {
       const updated = recordedRecipes.filter((r: any) => String(r.id) !== String(pendingRemove.id));
       setRecordedRecipes(updated);
     }
+    
     setPendingRemove(null);
     setPendingRecipe(null);
   };
 
-  // 되돌리기 핸들러
+  /**
+   * 삭제 취소 처리
+   */
   const handleRemoveUndo = () => {
     if (!pendingRemove) return;
+    
     if (pendingRemove.type === 'done') {
       setDoneStates(prev => ({ ...prev, [pendingRemove.id]: true }));
     } else if (pendingRemove.type === 'write') {
       setWriteStates(prev => ({ ...prev, [pendingRemove.id]: true }));
     }
+    
     setPendingRemove(null);
     setPendingRecipe(null);
   };
 
-  // 공유 버튼 클릭 핸들러
+  /**
+   * 공유 버튼 클릭 처리
+   */
   const handleShareClick = (recipe: any) => {
     try {
       copyRecipeUrlToClipboard(recipe);
-      setToast('레시피 URL이 복사되었습니다!');
-      setTimeout(() => setToast(''), 1500);
+      showToast('레시피 URL이 복사되었습니다!');
     } catch {
-      setToast('URL 복사에 실패했습니다.');
-      setTimeout(() => setToast(''), 1500);
+      showToast('URL 복사에 실패했습니다.');
     }
   };
 
-  const [substituteTable, setSubstituteTable] = useState<{ [key: string]: any }>({});
+  /**
+   * 레시피 액션 처리
+   */
+  const handleRecipeAction = (recipe: any, action: string) => {
+    switch (action) {
+      case 'done':
+        handleDoneClick(recipe.id);
+        break;
+      case 'share':
+        handleShareClick(recipe);
+        break;
+      case 'write':
+        handleWriteClick(recipe.id);
+        break;
+    }
+  };
 
+  // =====================
+  // 사이드 이펙트
+  // =====================
+
+  // 대체재료 테이블 로드
   useEffect(() => {
-    fetch('/ingredient_substitute_table.csv')
-      .then(res => res.text())
-      .then(csv => {
-        const lines = csv.split('\n');
-        const header = lines[0].split(',').map(h => h.trim().toLowerCase());
-        const aIdx = header.indexOf('ingredient_a');
-        const bIdx = header.indexOf('ingredient_b');
-        const dirIdx = header.indexOf('substitution_direction');
-        const scoreIdx = header.indexOf('similarity_score');
-        const reasonIdx = header.indexOf('substitution_reason');
-        if (aIdx === -1 || bIdx === -1) return;
-        const table: { [key: string]: any } = {};
-        lines.slice(1).forEach(line => {
-          const cols = line.split(',');
-          const a = cols[aIdx]?.trim();
-          const b = cols[bIdx]?.trim();
-          const direction = cols[dirIdx]?.trim() || '';
-          const score = parseFloat(cols[scoreIdx]?.trim() || '0');
-          const reason = cols[reasonIdx]?.trim() || '';
-          if (a && b) {
-            table[a] = {
-              ingredient_a: a,
-              ingredient_b: b,
-              substitution_direction: direction,
-              similarity_score: score,
-              substitution_reason: reason
-            };
-          }
-        });
-        setSubstituteTable(table);
-      });
+    loadSubstituteTable().then(setSubstituteTable);
   }, []);
+
+  // =====================
+  // 렌더링
+  // =====================
 
   return (
     <div className="bg-white min-h-screen max-w-[430px] mx-auto pb-24 relative">
@@ -311,26 +482,59 @@ const MyPage = () => {
         <img src={logoImg} alt="냉털이 로고" className="h-4 w-auto" style={{ minWidth: 16 }} />
         <img src={searchIcon} alt="검색" className="h-4 w-4 mr-1 cursor-pointer" />
       </header>
-      {/* 타이틀 제거, 프로필 영역을 위로 올림 */}
+      
+      {/* 프로필 영역 */}
       <section className="flex flex-col items-center justify-center gap-3 mb-[70px] mt-[64px]">
-        <img src={myProfileImg} alt="프로필" className="w-36 h-36 rounded-full border-2 border-gray-200 mb-2" />
+        <img 
+          src={myProfileImg} 
+          alt="프로필" 
+          className="w-36 h-36 rounded-full border-2 border-gray-200 mb-2" 
+        />
         <div className="flex flex-col items-center mb-2">
           <div className="text-[18px] font-bold text-gray-700 mb-1">{user.nickname}</div>
           <div className="text-[15px] text-gray-500">{user.userid}</div>
         </div>
         <button
           className="mt-1 px-3 h-7 bg-[#FFD600] text-[#222] rounded-full text-[13px] font-bold flex items-center gap-1 border-none shadow hover:bg-yellow-300 transition"
-          style={{ minWidth: 0, height: 28, paddingLeft: 14, paddingRight: 14, fontFamily: 'inherit' }}
+          style={{ 
+            minWidth: 0, 
+            height: 28, 
+            paddingLeft: 14, 
+            paddingRight: 14, 
+            fontFamily: 'inherit' 
+          }}
           onClick={() => setEditOpen(true)}
-        >내 정보 수정 <span style={{fontFamily:'inherit', fontWeight:500, fontSize:15, color:'#222', marginLeft:2}}>〉</span></button>
+        >
+          내 정보 수정 
+          <span style={{
+            fontFamily:'inherit', 
+            fontWeight:500, 
+            fontSize:15, 
+            color:'#222', 
+            marginLeft:2
+          }}>
+            〉
+          </span>
+        </button>
       </section>
-      {/* 내가 기록한 레시피 + 내가 완료한 레시피 그룹 */}
+      
+      {/* 레시피 그룹 */}
       <div style={{ marginTop: 56 }}>
         {/* 내가 기록한 레시피 */}
         <div style={{ paddingLeft: 32, marginTop: 0, marginBottom: 8 }}>
           <div className="flex items-center justify-between mb-0">
             <h2 className="text-[16px] font-bold text-[#111] flex items-center gap-1">
-              <img src={writeIcon} alt="기록 아이콘" className="inline-block align-middle" style={{width: 18, height: 18, marginRight: 4, marginBottom: 2}} />
+              <img 
+                src={writeIcon} 
+                alt="기록 아이콘" 
+                className="inline-block align-middle" 
+                style={{
+                  width: 18, 
+                  height: 18, 
+                  marginRight: 4, 
+                  marginBottom: 2
+                }} 
+              />
               내가 기록한 레시피
             </h2>
             <button
@@ -342,24 +546,55 @@ const MyPage = () => {
             </button>
           </div>
           <div style={{height: 2, width: '100%', background: '#E5E5E5', marginBottom: 4}} />
-          {/* 범례: 가로형 레시피 카드 위, 왼쪽 정렬 */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, marginTop: 8 }}>
+          
+          {/* 범례 */}
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'space-between', 
+            marginBottom: 16, 
+            marginTop: 8 
+          }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <span style={{ width: 24, height: 14, borderRadius: 7, background: '#D1D1D1', display: 'inline-block', marginRight: 2 }}></span>
+                <span style={{ 
+                  width: 24, 
+                  height: 14, 
+                  borderRadius: 7, 
+                  background: '#D1D1D1', 
+                  display: 'inline-block', 
+                  marginRight: 2 
+                }}></span>
                 <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>부족 재료</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <span style={{ width: 24, height: 14, borderRadius: 7, background: '#555', display: 'inline-block', marginRight: 2 }}></span>
+                <span style={{ 
+                  width: 24, 
+                  height: 14, 
+                  borderRadius: 7, 
+                  background: '#555', 
+                  display: 'inline-block', 
+                  marginRight: 2 
+                }}></span>
                 <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>대체 가능</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <span style={{ width: 24, height: 14, borderRadius: 7, background: '#FFD600', display: 'inline-block', marginRight: 2 }}></span>
+                <span style={{ 
+                  width: 24, 
+                  height: 14, 
+                  borderRadius: 7, 
+                  background: '#FFD600', 
+                  display: 'inline-block', 
+                  marginRight: 2 
+                }}></span>
                 <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>보유 재료</span>
               </div>
             </div>
-            <span style={{ color: '#666', fontSize: '12px', marginRight: 32 }}>총 {recordedRecipes.length.toLocaleString()}건</span>
+            <span style={{ color: '#666', fontSize: '12px', marginRight: 32 }}>
+              총 {recordedRecipes.length.toLocaleString()}건
+            </span>
           </div>
+          
           <VirtualizedHorizontalRecipeList
             recipes={recordedRecipes}
             myIngredients={myIngredients}
@@ -367,24 +602,35 @@ const MyPage = () => {
             recipeActionStates={{ 
               ...Object.fromEntries(recordedRecipes.map(recipe => [
                 recipe.id, 
-                { done: doneStates[recipe.id], write: writeStates[recipe.id], share: false }
+                { 
+                  done: doneStates[recipe.id], 
+                  write: writeStates[recipe.id], 
+                  share: false 
+                }
               ]))
             }}
-            onRecipeAction={(recipe, action) => {
-              if (action === 'done') handleDoneClick(recipe.id);
-              else if (action === 'share') handleShareClick(recipe);
-              else if (action === 'write') handleWriteClick(recipe.id);
-            }}
+            onRecipeAction={handleRecipeAction}
             cardWidth={360}
             cardHeight={320}
             gap={16}
           />
         </div>
+        
         {/* 내가 완료한 레시피 */}
         <div style={{ paddingLeft: 32, marginTop: 0 }}>
           <div className="flex items-center justify-between mb-0">
             <h2 className="text-[16px] font-bold text-[#111] flex items-center gap-1">
-              <img src={doneIcon} alt="완료 아이콘" className="inline-block align-middle" style={{width: 18, height: 18, marginRight: 4, marginBottom: 2}} />
+              <img 
+                src={doneIcon} 
+                alt="완료 아이콘" 
+                className="inline-block align-middle" 
+                style={{
+                  width: 18, 
+                  height: 18, 
+                  marginRight: 4, 
+                  marginBottom: 2
+                }} 
+              />
               내가 완료한 레시피
             </h2>
             <button
@@ -396,24 +642,55 @@ const MyPage = () => {
             </button>
           </div>
           <div style={{height: 2, width: '100%', background: '#E5E5E5', marginBottom: 4}} />
-          {/* 범례: 가로형 레시피 카드 위, 왼쪽 정렬 */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, marginTop: 8 }}>
+          
+          {/* 범례 */}
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'space-between', 
+            marginBottom: 16, 
+            marginTop: 8 
+          }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <span style={{ width: 24, height: 14, borderRadius: 7, background: '#D1D1D1', display: 'inline-block', marginRight: 2 }}></span>
+                <span style={{ 
+                  width: 24, 
+                  height: 14, 
+                  borderRadius: 7, 
+                  background: '#D1D1D1', 
+                  display: 'inline-block', 
+                  marginRight: 2 
+                }}></span>
                 <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>부족 재료</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <span style={{ width: 24, height: 14, borderRadius: 7, background: '#555', display: 'inline-block', marginRight: 2 }}></span>
+                <span style={{ 
+                  width: 24, 
+                  height: 14, 
+                  borderRadius: 7, 
+                  background: '#555', 
+                  display: 'inline-block', 
+                  marginRight: 2 
+                }}></span>
                 <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>대체 가능</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <span style={{ width: 24, height: 14, borderRadius: 7, background: '#FFD600', display: 'inline-block', marginRight: 2 }}></span>
+                <span style={{ 
+                  width: 24, 
+                  height: 14, 
+                  borderRadius: 7, 
+                  background: '#FFD600', 
+                  display: 'inline-block', 
+                  marginRight: 2 
+                }}></span>
                 <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>보유 재료</span>
               </div>
             </div>
-            <span style={{ color: '#666', fontSize: '12px', marginRight: 32 }}>총 {completedRecipes.length.toLocaleString()}건</span>
+            <span style={{ color: '#666', fontSize: '12px', marginRight: 32 }}>
+              총 {completedRecipes.length.toLocaleString()}건
+            </span>
           </div>
+          
           <VirtualizedHorizontalRecipeList
             recipes={completedRecipes}
             myIngredients={myIngredients}
@@ -421,31 +698,50 @@ const MyPage = () => {
             recipeActionStates={{ 
               ...Object.fromEntries(completedRecipes.map(recipe => [
                 recipe.id, 
-                { done: doneStates[recipe.id], write: writeStates[recipe.id], share: false }
+                { 
+                  done: doneStates[recipe.id], 
+                  write: writeStates[recipe.id], 
+                  share: false 
+                }
               ]))
             }}
-            onRecipeAction={(recipe, action) => {
-              if (action === 'done') handleDoneClick(recipe.id);
-              else if (action === 'share') handleShareClick(recipe);
-              else if (action === 'write') handleWriteClick(recipe.id);
-            }}
+            onRecipeAction={handleRecipeAction}
             cardWidth={360}
             cardHeight={320}
             gap={16}
           />
         </div>
       </div>
+      
       {/* 광고 영역 */}
       <div className="w-full h-[120px] border-2 border-dashed border-red-400 flex items-center justify-center text-center text-[15px] text-red-500 font-bold mb-24">
-        <span>〈추후 광고 추가 할 자리〉<br />'새로 사야하는 재료'는 쿠팡이나 마켓컬리로<br />바로 이동 가능하게 하여 광고 삽입하기</span>
+        <span>
+          〈추후 광고 추가 할 자리〉<br />
+          '새로 사야하는 재료'는 쿠팡이나 마켓컬리로<br />
+          바로 이동 가능하게 하여 광고 삽입하기
+        </span>
       </div>
+      
       <BottomNavBar activeTab="mypage" />
+      
       {/* 내 정보 수정 모달 */}
       {editOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-30 flex items-start justify-center z-50">
-          <div className="bg-white rounded-xl shadow-lg w-[370px] max-w-[95vw] relative max-h-[90vh] overflow-y-auto scrollbar-none" style={{scrollbarWidth:'none'}} onClick={e => e.stopPropagation()}>
+          <div 
+            className="bg-white rounded-xl shadow-lg w-[370px] max-w-[95vw] relative max-h-[90vh] overflow-y-auto scrollbar-none" 
+            style={{scrollbarWidth:'none'}} 
+            onClick={e => e.stopPropagation()}
+          >
             <div className="sticky top-0 left-0 right-0 z-20 bg-white border-b border-gray-200 rounded-t-xl w-full" style={{minHeight: 56, paddingTop: 18, paddingBottom: 8}}>
-              <span className="absolute top-3 right-3 w-6 h-6 text-gray-400 text-xl cursor-pointer select-none" onClick={() => setEditOpen(false)} role="button" aria-label="닫기" style={{zIndex: 20}}>×</span>
+              <span 
+                className="absolute top-3 right-3 w-6 h-6 text-gray-400 text-xl cursor-pointer select-none" 
+                onClick={() => setEditOpen(false)} 
+                role="button" 
+                aria-label="닫기" 
+                style={{zIndex: 20}}
+              >
+                ×
+              </span>
               <div className="text-center font-bold text-[18px]">내 정보 수정</div>
             </div>
             <div className="p-6 pt-2">
@@ -473,54 +769,117 @@ const MyPage = () => {
                   />
                 </label>
               </div>
+              
               {/* 닉네임 + 중복체크 */}
               <div className="mb-3 flex items-center gap-2">
                 <div className="flex-1">
                   <label className="block text-[15px] font-semibold mb-1">닉네임</label>
-                  <input className="w-full h-10 border border-gray-300 rounded-lg px-4 text-[15px]" value={edit.nickname} onChange={e => setEdit({ ...edit, nickname: e.target.value })} />
+                  <input 
+                    className="w-full h-10 border border-gray-300 rounded-lg px-4 text-[15px]" 
+                    value={edit.nickname} 
+                    onChange={e => setEdit({ ...edit, nickname: e.target.value })} 
+                  />
                 </div>
-                <button className="h-10 px-3 bg-blue-500 text-white rounded-lg text-[14px] font-semibold whitespace-nowrap mt-6">닉네임 중복 체크</button>
+                <button className="h-10 px-3 bg-blue-500 text-white rounded-lg text-[14px] font-semibold whitespace-nowrap mt-6">
+                  닉네임 중복 체크
+                </button>
               </div>
+              
               {/* 아이디 (회색, 읽기전용) */}
               <div className="mb-3">
                 <label className="block text-[15px] font-semibold mb-1">아이디</label>
-                <input className="w-full h-10 border border-gray-200 rounded-lg px-4 text-[15px] bg-gray-200 text-gray-400" value={edit.userid} readOnly />
+                <input 
+                  className="w-full h-10 border border-gray-200 rounded-lg px-4 text-[15px] bg-gray-200 text-gray-400" 
+                  value={edit.userid} 
+                  readOnly 
+                />
               </div>
+              
               {/* 비밀번호 */}
               <div className="mb-3">
                 <label className="block text-[15px] font-semibold mb-1">비밀번호</label>
-                <input type="password" className="w-full h-10 border border-gray-300 rounded-lg px-4 text-[15px]" value={edit.password} onChange={e => setEdit({ ...edit, password: e.target.value })} placeholder="Password" />
+                <input 
+                  type="password" 
+                  className="w-full h-10 border border-gray-300 rounded-lg px-4 text-[15px]" 
+                  value={edit.password} 
+                  onChange={e => setEdit({ ...edit, password: e.target.value })} 
+                  placeholder="Password" 
+                />
               </div>
+              
               {/* 비밀번호 확인 */}
               <div className="mb-3">
                 <label className="block text-[15px] font-semibold mb-1">비밀번호 확인</label>
-                <input type="password" className="w-full h-10 border border-gray-300 rounded-lg px-4 text-[15px]" value={edit.password2} onChange={e => setEdit({ ...edit, password2: e.target.value })} placeholder="Re Password" />
+                <input 
+                  type="password" 
+                  className="w-full h-10 border border-gray-300 rounded-lg px-4 text-[15px]" 
+                  value={edit.password2} 
+                  onChange={e => setEdit({ ...edit, password2: e.target.value })} 
+                  placeholder="Re Password" 
+                />
               </div>
+              
               {/* 연락처 */}
               <div className="mb-3">
                 <label className="block text-[15px] font-semibold mb-1">연락처</label>
                 <div className="flex gap-2">
-                  <input className="w-[70px] h-10 border border-gray-300 rounded-lg px-3 text-[15px]" maxLength={3} value={edit.phone1} onChange={e => setEdit({ ...edit, phone1: e.target.value.replace(/[^0-9]/g, '') })} />
-                  <input className="w-[90px] h-10 border border-gray-300 rounded-lg px-3 text-[15px]" maxLength={4} value={edit.phone2} onChange={e => setEdit({ ...edit, phone2: e.target.value.replace(/[^0-9]/g, '') })} />
-                  <input className="w-[90px] h-10 border border-gray-300 rounded-lg px-3 text-[15px]" maxLength={4} value={edit.phone3} onChange={e => setEdit({ ...edit, phone3: e.target.value.replace(/[^0-9]/g, '') })} />
+                  <input 
+                    className="w-[70px] h-10 border border-gray-300 rounded-lg px-3 text-[15px]" 
+                    maxLength={3} 
+                    value={edit.phone1} 
+                    onChange={e => setEdit({ ...edit, phone1: e.target.value.replace(/[^0-9]/g, '') })} 
+                  />
+                  <input 
+                    className="w-[90px] h-10 border border-gray-300 rounded-lg px-3 text-[15px]" 
+                    maxLength={4} 
+                    value={edit.phone2} 
+                    onChange={e => setEdit({ ...edit, phone2: e.target.value.replace(/[^0-9]/g, '') })} 
+                  />
+                  <input 
+                    className="w-[90px] h-10 border border-gray-300 rounded-lg px-3 text-[15px]" 
+                    maxLength={4} 
+                    value={edit.phone3} 
+                    onChange={e => setEdit({ ...edit, phone3: e.target.value.replace(/[^0-9]/g, '') })} 
+                  />
                 </div>
               </div>
+              
               {/* 우편번호 + 확인 */}
               <div className="mb-3 flex items-center gap-2">
                 <div className="flex-1">
                   <label className="block text-[15px] font-semibold mb-1">우편번호</label>
-                  <input className="w-full h-10 border border-gray-300 rounded-lg px-4 text-[15px]" value={edit.zipcode} onChange={e => setEdit({ ...edit, zipcode: e.target.value.replace(/[^0-9]/g, '') })} />
+                  <input 
+                    className="w-full h-10 border border-gray-300 rounded-lg px-4 text-[15px]" 
+                    value={edit.zipcode} 
+                    onChange={e => setEdit({ ...edit, zipcode: e.target.value.replace(/[^0-9]/g, '') })} 
+                  />
                 </div>
-                <button className="h-10 px-3 bg-blue-500 text-white rounded-lg text-[14px] font-semibold whitespace-nowrap mt-6">우편번호 찾기</button>
+                <button className="h-10 px-3 bg-blue-500 text-white rounded-lg text-[14px] font-semibold whitespace-nowrap mt-6">
+                  우편번호 찾기
+                </button>
               </div>
+              
               {/* 주소 */}
               <div className="mb-3">
                 <label className="block text-[15px] font-semibold mb-1">주소</label>
-                <input className="w-full h-10 border border-gray-300 rounded-lg px-4 text-[15px] mb-2" value={edit.address1} onChange={e => setEdit({ ...edit, address1: e.target.value })} placeholder="주소" />
-                <input className="w-full h-10 border border-gray-300 rounded-lg px-4 text-[15px]" value={edit.address2} onChange={e => setEdit({ ...edit, address2: e.target.value })} placeholder="상세 주소" />
+                <input 
+                  className="w-full h-10 border border-gray-300 rounded-lg px-4 text-[15px] mb-2" 
+                  value={edit.address1} 
+                  onChange={e => setEdit({ ...edit, address1: e.target.value })} 
+                  placeholder="주소" 
+                />
+                <input 
+                  className="w-full h-10 border border-gray-300 rounded-lg px-4 text-[15px]" 
+                  value={edit.address2} 
+                  onChange={e => setEdit({ ...edit, address2: e.target.value })} 
+                  placeholder="상세 주소" 
+                />
               </div>
+              
               {/* 저장 버튼 */}
-              <button className="w-full h-11 bg-green-600 text-white rounded-lg text-[16px] font-bold mt-4">수정하기</button>
+              <button className="w-full h-11 bg-green-600 text-white rounded-lg text-[16px] font-bold mt-4">
+                수정하기
+              </button>
             </div>
           </div>
           <style>{`
@@ -529,6 +888,7 @@ const MyPage = () => {
           `}</style>
         </div>
       )}
+      
       {/* Toast Popup */}
       {toast && (
         <div style={{
@@ -552,7 +912,8 @@ const MyPage = () => {
           {toast}
         </div>
       )}
-      {/* 삭제 확인 토스트(아래 고정) */}
+      
+      {/* 삭제 확인 토스트 */}
       {pendingRemove && (
         <div style={{
           position: 'fixed',
@@ -586,13 +947,24 @@ const MyPage = () => {
             {pendingRemove.type === 'done' ? '레시피 완료를 취소하시겠어요?' : '레시피 기록을 취소하시겠어요?'}
           </span>
           <div style={{display:'flex',flexDirection:'row',gap:12,justifyContent:'center',width:'100%'}}>
-            <button className="inline-flex items-center justify-center bg-[#F5F6F8] text-gray-700 font-semibold rounded-lg px-3 py-1 text-sm border border-[#E5E7EB] shadow-none hover:bg-[#E5E7EB] transition whitespace-nowrap" style={{marginRight:4}} onClick={handleRemoveUndo}>아니요</button>
-            <button className="inline-flex items-center justify-center bg-[#F5F6F8] text-gray-700 font-semibold rounded-lg px-3 py-1 text-sm border border-[#E5E7EB] shadow-none hover:bg-[#E5E7EB] transition whitespace-nowrap" onClick={handleRemoveConfirm}>네</button>
+            <button 
+              className="inline-flex items-center justify-center bg-[#F5F6F8] text-gray-700 font-semibold rounded-lg px-3 py-1 text-sm border border-[#E5E7EB] shadow-none hover:bg-[#E5E7EB] transition whitespace-nowrap" 
+              style={{marginRight:4}} 
+              onClick={handleRemoveUndo}
+            >
+              아니요
+            </button>
+            <button 
+              className="inline-flex items-center justify-center bg-[#F5F6F8] text-gray-700 font-semibold rounded-lg px-3 py-1 text-sm border border-[#E5E7EB] shadow-none hover:bg-[#E5E7EB] transition whitespace-nowrap" 
+              onClick={handleRemoveConfirm}
+            >
+              네
+            </button>
           </div>
         </div>
       )}
     </div>
   );
 };
- 
+
 export default MyPage; 
