@@ -5,34 +5,113 @@ import RecipeCard from '../components/RecipeCard';
 import { getMyIngredients } from '../utils/recipeUtils';
 import { Recipe, RecipeActionState } from '../types/recipe';
 
-const RecipeDetail = () => {
-  const { id } = useParams();
+// =====================
+// 상수
+// =====================
+
+const CONTAINER_STYLE = {
+  maxWidth: '430px',
+  minHeight: '100vh',
+  paddingBottom: '80px',
+  paddingTop: '24px',
+  paddingLeft: '16px',
+  paddingRight: '16px'
+};
+
+// =====================
+// 메인 컴포넌트
+// =====================
+
+const RecipeDetail: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
   const [recipe, setRecipe] = useState<Recipe | null | undefined>(null);
-  const [actionState, setActionState] = useState<RecipeActionState>({ done: false, share: false, write: false });
+  const [actionState, setActionState] = useState<RecipeActionState>({ 
+    done: false, 
+    share: false, 
+    write: false 
+  });
   const navigate = useNavigate();
   const myIngredients = getMyIngredients();
 
+  // =====================
+  // 이벤트 핸들러
+  // =====================
+
+  /**
+   * 뒤로가기 처리
+   */
+  const handleBackClick = () => {
+    navigate(-1);
+  };
+
+  /**
+   * 레시피 액션 처리
+   */
+  const handleAction = (action: keyof RecipeActionState) => {
+    setActionState((prev) => ({ ...prev, [action]: !prev[action] }));
+  };
+
+  // =====================
+  // 사이드 이펙트
+  // =====================
+
+  // 레시피 데이터 로드
   useEffect(() => {
-    fetchRecipesDummy().then((data) => {
-      const found = data.find((r: any) => String(r.id) === String(id));
-      setRecipe(found);
-    });
+    const loadRecipe = async () => {
+      try {
+        const data = await fetchRecipesDummy();
+        const found = data.find((r: any) => String(r.id) === String(id));
+        setRecipe(found);
+      } catch (error) {
+        console.warn('[RecipeDetail] 레시피 로드 실패:', error);
+        setRecipe(null);
+      }
+    };
+
+    if (id) {
+      loadRecipe();
+    }
   }, [id]);
 
-  if (!recipe) return <div className="p-8 text-center">레시피를 찾을 수 없습니다.</div>;
+  // =====================
+  // 렌더링
+  // =====================
+
+  if (!recipe) {
+    return (
+      <div className="p-8 text-center">
+        레시피를 찾을 수 없습니다.
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-[430px] mx-auto min-h-screen bg-white pb-20 pt-6 px-4">
-      <button className="mb-4 text-blue-500" onClick={() => navigate(-1)}>&larr; 목록으로</button>
+    <div 
+      className="mx-auto bg-white"
+      style={CONTAINER_STYLE}
+    >
+      <button 
+        className="mb-4 text-blue-500" 
+        onClick={handleBackClick}
+      >
+        &larr; 목록으로
+      </button>
+      
       <RecipeCard
         recipe={recipe}
         index={0}
-        actionState={actionState}
-        onAction={(action) => setActionState((prev) => ({ ...prev, [action]: !prev[action] }))}
+        recipeActionState={actionState}
+        onRecipeAction={(recipeWithAction) => {
+          const action = recipeWithAction.action;
+          setActionState((prev) => ({ ...prev, [action]: !prev[action] }));
+        }}
         isLast={true}
         myIngredients={myIngredients}
       />
-      <div className="mt-6 text-xs text-gray-400">* 본문/재료 정보는 예시 데이터입니다.</div>
+      
+      <div className="mt-6 text-xs text-gray-400">
+        * 본문/재료 정보는 예시 데이터입니다.
+      </div>
     </div>
   );
 };
