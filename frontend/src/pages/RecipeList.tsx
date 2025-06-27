@@ -20,7 +20,26 @@ import Slider from 'rc-slider';
 import 'rc-slider/assets/index.css';
 import RecipeSortBar from '../components/RecipeSortBar';
 import { getIngredientPillInfo } from '../utils/recipeUtils';
-import { addRecipeToLocalStorage, removeRecipeFromLocalStorage, getRecipesFromLocalStorage, copyRecipeUrlToClipboard } from '../utils/recipeStorage';
+import { 
+  addRecipeToLocalStorage, 
+  removeRecipeFromLocalStorage, 
+  getRecipesFromLocalStorage, 
+  copyRecipeUrlToClipboard 
+} from '../utils/recipeStorage';
+
+// =====================
+// 상수
+// =====================
+
+const TOAST_DURATION = 1500;
+const CSV_INGREDIENT_URL = '/ingredient_profile_dict_with_substitutes.csv';
+const CSV_SUBSTITUTE_URL = '/ingredient_substitute_table.csv';
+const STORAGE_KEY = 'recipe_sortbar_state_fridge';
+const STORAGE_KEY_MYFRIDGE = 'myfridge_ingredients';
+
+// =====================
+// 정렬 옵션
+// =====================
 
 const sortOptions = [
   { key: 'match', label: '재료매칭률' },
@@ -33,7 +52,10 @@ const sortOptions = [
 const categoryOptions = ['한식', '중식', '양식'];
 const timeOptions = ['30분 이하', '1시간 이하', '상관없음'];
 
-// 필터 카테고리별 키워드 (이미지 기준, 소분류 포함)
+// =====================
+// 필터 키워드
+// =====================
+
 const FILTER_KEYWORDS = {
   효능: [
     { title: '다이어트/체중조절/식이조절', keywords: ['저지방', '저칼로리', '저당', '무설탕', '무염', '고단백', '다이어트', '포만감', '칼로리', '글레스테롤', '무염', '저염', '무가당'] },
@@ -65,6 +87,10 @@ const FILTER_KEYWORDS = {
   ],
 };
 
+// =====================
+// 초기 상태
+// =====================
+
 const initialFilterState: FilterState = {
   효능: [],
   영양분: [],
@@ -73,7 +99,13 @@ const initialFilterState: FilterState = {
   스타일: [],
 };
 
-// 게시일자 포맷 변환 함수
+// =====================
+// 유틸리티 함수
+// =====================
+
+/**
+ * 게시일자 포맷을 변환한다
+ */
 function formatDate(dateString: string): string {
   let d = new Date(dateString);
   if (isNaN(d.getTime())) {
@@ -89,8 +121,10 @@ function formatDate(dateString: string): string {
   return `${yy}-${mm}-${dd}`;
 }
 
-// D-day 계산 함수
-function getDDay(expiry: string) {
+/**
+ * D-day를 계산한다
+ */
+function getDDay(expiry: string): string {
   if (!expiry) return '';
   const today = new Date();
   const exp = new Date(expiry);
@@ -101,17 +135,21 @@ function getDDay(expiry: string) {
   return `D+${Math.abs(diff)}`;
 }
 
-// 정렬/필터바 상태를 sessionStorage에서 읽어오는 함수
+/**
+ * 정렬/필터바 초기 상태를 가져온다
+ */
 function getInitialSortBarState() {
   // 혹시 남아있을 수 있는 localStorage 값은 한 번 삭제
   if (typeof window !== 'undefined') {
-    localStorage.removeItem('recipe_sortbar_state_fridge');
+    localStorage.removeItem(STORAGE_KEY);
   }
-  const saved = sessionStorage.getItem('recipe_sortbar_state_fridge');
+  const saved = sessionStorage.getItem(STORAGE_KEY);
   if (saved) {
     try {
       return JSON.parse(saved);
-    } catch {}
+    } catch (error) {
+      console.warn('[RecipeList] 정렬바 상태 로드 실패:', error);
+    }
   }
   return {
     sortType: 'match',
@@ -122,7 +160,163 @@ function getInitialSortBarState() {
   };
 }
 
+/**
+ * 내 냉장고 재료 객체를 가져온다
+ */
+function getMyIngredientObjects() {
+  try {
+    const data = JSON.parse(localStorage.getItem(STORAGE_KEY_MYFRIDGE) || 'null');
+    if (data && Array.isArray(data.frozen) && Array.isArray(data.fridge) && Array.isArray(data.room)) {
+      return [...data.frozen, ...data.fridge, ...data.room];
+    }
+  } catch (error) {
+    console.warn('[RecipeList] 내 냉장고 재료 로드 실패:', error);
+  }
+  return [];
+}
+
+/**
+ * 레시피를 정규화한다
+ */
+function normalizeRecipe(recipe: any) {
+  return {
+    id: recipe.id,
+    title: recipe.title,
+    content: recipe.content || '',
+    author: recipe.author || '',
+    date: recipe.date || '',
+    body: recipe.body || recipe.content || recipe.description || '',
+    description: recipe.description || '',
+    thumbnail: recipe.thumbnail || recipe.image || '',
+    used_ingredients: recipe.used_ingredients || '',
+    used_ingredients_block: recipe.used_ingredients_block || '',
+    block_reason: recipe.block_reason || '',
+    link: recipe.link || '',
+    platform: recipe.platform || 'youtube',
+    channel: recipe.channel || 'youtube',
+    likes: recipe.likes || recipe.like || 0,
+    comments: recipe.comments || recipe.comment || 0,
+    substitutes: recipe.substitutes || [],
+    match_rate: recipe.match_rate || recipe.match || 0,
+    my_ingredients: recipe.my_ingredients || [],
+    need_ingredients: recipe.need_ingredients || [],
+    created_at: recipe.created_at || '',
+    updated_at: recipe.updated_at || '',
+    like_count: recipe.like_count || 0,
+    comment_count: recipe.comment_count || 0,
+    post_time: recipe.post_time || '',
+    collected_at: recipe.collected_at || '',
+    hits: recipe.hits || 0,
+    action: recipe.action,
+  };
+}
+
+/**
+ * 대체재료 테이블을 로드한다
+ */
+async function loadSubstituteTable(): Promise<{ [key: string]: SubstituteInfo }> {
+  try {
+    const response = await fetch(CSV_SUBSTITUTE_URL);
+    const csv = await response.text();
+    
+    const lines = csv.split('\n');
+    const header = lines[0].split(',').map(h => h.trim().toLowerCase());
+    const aIdx = header.indexOf('ingredient_a');
+    const bIdx = header.indexOf('ingredient_b');
+    const dirIdx = header.indexOf('substitution_direction');
+    const scoreIdx = header.indexOf('similarity_score');
+    const reasonIdx = header.indexOf('substitution_reason');
+    
+    if (aIdx === -1 || bIdx === -1) return {};
+    
+    const table: { [key: string]: SubstituteInfo } = {};
+    lines.slice(1).forEach(line => {
+      const cols = line.split(',');
+      const a = cols[aIdx]?.trim();
+      const b = cols[bIdx]?.trim();
+      const direction = cols[dirIdx]?.trim() || '';
+      const score = parseFloat(cols[scoreIdx]?.trim() || '0');
+      const reason = cols[reasonIdx]?.trim() || '';
+      
+      if (a && b) {
+        table[a] = {
+          ingredient_a: a,
+          ingredient_b: b,
+          substitution_direction: direction,
+          similarity_score: score,
+          substitution_reason: reason
+        };
+      }
+    });
+    
+    return table;
+  } catch (error) {
+    console.warn('[RecipeList] 대체재료 테이블 로드 실패:', error);
+    return {};
+  }
+}
+
+/**
+ * 재료 사전을 로드한다
+ */
+async function loadIngredientDictionary(): Promise<string[]> {
+  try {
+    const response = await fetch(CSV_INGREDIENT_URL);
+    const csv = await response.text();
+    
+    const lines = csv.split('\n');
+    const header = lines[0].split(',');
+    const nameIdx = header.indexOf('keyword');
+    
+    if (nameIdx === -1) return [];
+    
+    return lines.slice(1)
+      .map(line => line.split(',')[nameIdx]?.trim())
+      .filter(name => !!name && name !== 'keyword');
+  } catch (error) {
+    console.warn('[RecipeList] 재료 사전 로드 실패:', error);
+    return [];
+  }
+}
+
+/**
+ * 레시피 데이터를 로드한다
+ */
+async function loadRecipes(): Promise<any[]> {
+  try {
+    const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+    const response: AxiosResponse<any> = await axios.get(`${apiUrl}/api/recipes`);
+    
+    return response.data
+      .filter((recipe: any) =>
+        !!(recipe.body && recipe.body.trim()) ||
+        !!(recipe.content && recipe.content.trim()) ||
+        !!(recipe.description && recipe.description.trim())
+      )
+      .map((recipe: any) => ({
+        ...recipe,
+        date: formatDate(recipe.post_time || recipe.date || ''),
+      }));
+  } catch (error) {
+    console.warn('[RecipeList] API 레시피 로드 실패, 더미 데이터 사용:', error);
+    const dummyData = await fetchRecipesDummy();
+    return dummyData.filter((recipe: any) =>
+      !!(recipe.body && recipe.body.trim()) ||
+      !!(recipe.content && recipe.content.trim()) ||
+      !!(recipe.description && recipe.description.trim())
+    );
+  }
+}
+
+// =====================
+// 메인 컴포넌트
+// =====================
+
 const RecipeList: React.FC = () => {
+  // =====================
+  // 상태 관리
+  // =====================
+  
   const initialSortBarState = getInitialSortBarState();
   const [sortType, setSortType] = useState(initialSortBarState.sortType);
   const [matchRange, setMatchRange] = useState(initialSortBarState.matchRange);
@@ -148,245 +342,122 @@ const RecipeList: React.FC = () => {
   const [includeIngredients, setIncludeIngredients] = useState<string[]>([]);
   const [excludeIngredients, setExcludeIngredients] = useState<string[]>([]);
   const [selectedCategoryKeywords, setSelectedCategoryKeywords] = useState<FilterState>(initialFilterState);
-  
+
   const myIngredients = useMemo(() => getMyIngredients(), []);
   const navigate = useNavigate();
   const location = useLocation();
 
-  useEffect(() => {
-    fetch('/ingredient_profile_dict_with_substitutes.csv')
-      .then(res => res.text())
-      .then(csv => {
-        const lines = csv.split('\n');
-        const header = lines[0].split(',');
-        const nameIdx = header.indexOf('keyword');
-        if (nameIdx === -1) return;
-        setAllIngredients(
-          lines.slice(1)
-            .map(line => line.split(',')[nameIdx]?.trim())
-            .filter(name => !!name && name !== 'keyword')
-        );
-      });
-  }, []);
+  // =====================
+  // 이벤트 핸들러
+  // =====================
 
-  useEffect(() => {
-    fetch('/ingredient_substitute_table.csv')
-      .then(res => res.text())
-      .then(csv => {
-        const lines = csv.split('\n');
-        const header = lines[0].split(',').map(h => h.trim().toLowerCase());
-        const aIdx = header.indexOf('ingredient_a');
-        const bIdx = header.indexOf('ingredient_b');
-        const dirIdx = header.indexOf('substitution_direction');
-        const scoreIdx = header.indexOf('similarity_score');
-        const reasonIdx = header.indexOf('substitution_reason');
-        
-        if (aIdx === -1 || bIdx === -1) return;
-        
-        const table: { [key: string]: SubstituteInfo } = {};
-        lines.slice(1).forEach(line => {
-          const cols = line.split(',');
-          const a = cols[aIdx]?.trim();
-          const b = cols[bIdx]?.trim();
-          const direction = cols[dirIdx]?.trim() || '';
-          const score = parseFloat(cols[scoreIdx]?.trim() || '0');
-          const reason = cols[reasonIdx]?.trim() || '';
-          
-          if (a && b) {
-            table[a] = {
-              ingredient_a: a,
-              ingredient_b: b,
-              substitution_direction: direction,
-              similarity_score: score,
-              substitution_reason: reason
-            };
-          }
-        });
-        setSubstituteTable(table);
-      });
-  }, []);
+  /**
+   * 토스트 메시지를 표시한다
+   */
+  const showToast = (message: string) => {
+    setToast(message);
+    setTimeout(() => setToast(''), TOAST_DURATION);
+  };
 
-  useEffect(() => {
-    const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
-    axios.get(`${apiUrl}/api/recipes`)
-      .then((res: AxiosResponse<any>) => {
-        res.data.forEach((recipe: any, idx: any) => {
-        });
-        setRecipes(res.data
-          .filter(
-            (recipe: any) =>
-              !!(recipe.body && recipe.body.trim()) ||
-              !!(recipe.content && recipe.content.trim()) ||
-              !!(recipe.description && recipe.description.trim())
-          )
-          .map((recipe: any) => ({
-            ...recipe,
-            date: formatDate(recipe.post_time || recipe.date || ''),
-          }))
-        );
-      })
-      .catch((err: unknown) => {
-        fetchRecipesDummy().then(data => {
-          data.forEach((recipe: any, idx: any) => {
-          });
-          setRecipes(data.filter(
-            (recipe: any) =>
-              !!(recipe.body && recipe.body.trim()) ||
-              !!(recipe.content && recipe.content.trim()) ||
-              !!(recipe.description && recipe.description.trim())
-          ));
-        });
-      });
-  }, []);
-
-  // 완료 버튼 클릭 핸들러
+  /**
+   * 완료 버튼 클릭 처리
+   */
   const handleDoneClick = (id: number) => {
     setRecipeActionStates(prev => {
       const isActive = !!prev[id]?.done;
       const newState = { ...prev, [id]: { ...prev[id], done: !isActive } };
+      
       if (!isActive) {
         // 완료 추가
         const recipe = recipes.find(r => r.id === id);
         if (recipe && !getRecipesFromLocalStorage('done').some((r: any) => r.id === id)) {
-          const normalized = {
-            id: recipe.id,
-            title: recipe.title,
-            content: recipe.content || '',
-            author: recipe.author || '',
-            date: recipe.date || '',
-            body: recipe.body || recipe.content || recipe.description || '',
-            description: recipe.description || '',
-            thumbnail: recipe.thumbnail || recipe.image || '',
-            used_ingredients: recipe.used_ingredients || '',
-            used_ingredients_block: recipe.used_ingredients_block || '',
-            block_reason: recipe.block_reason || '',
-            link: recipe.link || '',
-            platform: recipe.platform || 'youtube',
-            channel: recipe.channel || 'youtube',
-            likes: recipe.likes || recipe.like || 0,
-            comments: recipe.comments || recipe.comment || 0,
-            substitutes: recipe.substitutes || [],
-            match_rate: recipe.match_rate || recipe.match || 0,
-            my_ingredients: recipe.my_ingredients || [],
-            need_ingredients: recipe.need_ingredients || [],
-            created_at: recipe.created_at || '',
-            updated_at: recipe.updated_at || '',
-            like_count: recipe.like_count || 0,
-            comment_count: recipe.comment_count || 0,
-            post_time: recipe.post_time || '',
-            collected_at: recipe.collected_at || '',
-            hits: recipe.hits || 0,
-            action: recipe.action,
-          };
+          const normalized = normalizeRecipe(recipe);
           addRecipeToLocalStorage('done', normalized);
         }
-        setToast('레시피를 완료했습니다!');
-        setTimeout(() => setToast(''), 1500);
+        showToast('레시피를 완료했습니다!');
       } else {
         // 완료 취소
         removeRecipeFromLocalStorage('done', id);
-        setToast('레시피 완료를 취소했습니다!');
-        setTimeout(() => setToast(''), 1500);
+        showToast('레시피 완료를 취소했습니다!');
       }
+      
       return newState;
     });
   };
 
-  // 기록 버튼 클릭 핸들러
+  /**
+   * 기록 버튼 클릭 처리
+   */
   const handleWriteClick = (id: number) => {
     setRecipeActionStates(prev => {
       const isActive = !!prev[id]?.write;
       const newState = { ...prev, [id]: { ...prev[id], write: !isActive } };
+      
       if (!isActive) {
         // 기록 추가
         const recipe = recipes.find(r => r.id === id);
         if (recipe && !getRecipesFromLocalStorage('write').some((r: any) => r.id === id)) {
-          const normalized = {
-            id: recipe.id,
-            title: recipe.title,
-            content: recipe.content || '',
-            author: recipe.author || '',
-            date: recipe.date || '',
-            body: recipe.body || recipe.content || recipe.description || '',
-            description: recipe.description || '',
-            thumbnail: recipe.thumbnail || recipe.image || '',
-            used_ingredients: recipe.used_ingredients || '',
-            used_ingredients_block: recipe.used_ingredients_block || '',
-            block_reason: recipe.block_reason || '',
-            link: recipe.link || '',
-            platform: recipe.platform || 'youtube',
-            channel: recipe.channel || 'youtube',
-            likes: recipe.likes || recipe.like || 0,
-            comments: recipe.comments || recipe.comment || 0,
-            substitutes: recipe.substitutes || [],
-            match_rate: recipe.match_rate || recipe.match || 0,
-            my_ingredients: recipe.my_ingredients || [],
-            need_ingredients: recipe.need_ingredients || [],
-            created_at: recipe.created_at || '',
-            updated_at: recipe.updated_at || '',
-            like_count: recipe.like_count || 0,
-            comment_count: recipe.comment_count || 0,
-            post_time: recipe.post_time || '',
-            collected_at: recipe.collected_at || '',
-            hits: recipe.hits || 0,
-            action: recipe.action,
-          };
+          const normalized = normalizeRecipe(recipe);
           addRecipeToLocalStorage('write', normalized);
         }
-        setToast('레시피를 기록했습니다!');
-        setTimeout(() => setToast(''), 1500);
+        showToast('레시피를 기록했습니다!');
       } else {
         // 기록 취소
         removeRecipeFromLocalStorage('write', id);
-        setToast('레시피 기록을 취소했습니다!');
-        setTimeout(() => setToast(''), 1500);
+        showToast('레시피 기록을 취소했습니다!');
       }
+      
       return newState;
     });
   };
 
-  // 공유 버튼 클릭 핸들러
+  /**
+   * 공유 버튼 클릭 처리
+   */
   const handleShareClick = (recipe: any) => {
     try {
       copyRecipeUrlToClipboard(recipe);
-      setToast('URL이 복사되었습니다!');
-      setTimeout(() => setToast(''), 1500);
+      showToast('URL이 복사되었습니다!');
     } catch {
-      setToast('URL 복사에 실패했습니다.');
-      setTimeout(() => setToast(''), 1500);
+      showToast('URL 복사에 실패했습니다.');
     }
   };
 
-  function getMyIngredientObjects() {
-    try {
-      const data = JSON.parse(localStorage.getItem('myfridge_ingredients') || 'null');
-      if (data && Array.isArray(data.frozen) && Array.isArray(data.fridge) && Array.isArray(data.room)) {
-        return [...data.frozen, ...data.fridge, ...data.room];
-      }
-    } catch {}
-    return [];
-  }
-  const myIngredientObjects = getMyIngredientObjects();
-  let sortedExpiryList = [];
-  if (expirySortType === 'expiry') {
-    sortedExpiryList = myIngredientObjects.filter(i => i.expiry).sort((a, b) => (a.expiry > b.expiry ? 1 : -1));
-  } else {
-    sortedExpiryList = myIngredientObjects.filter(i => i.purchase).sort((a, b) => (a.purchase > b.purchase ? 1 : -1));
-  }
+  /**
+   * 레시피 액션 처리
+   */
+  const handleRecipeAction = (recipe: any, action: string) => {
+    switch (action) {
+      case 'done':
+        handleDoneClick(recipe.id);
+        break;
+      case 'write':
+        handleWriteClick(recipe.id);
+        break;
+      case 'share':
+        handleShareClick(recipe);
+        break;
+    }
+  };
 
-  // 최초 마운트 시 localStorage에서 복원 (useRef)
-  const saved = React.useRef<any>(null);
-  if (saved.current === null) {
-    const raw = sessionStorage.getItem('recipe_sortbar_state_fridge');
-    saved.current = raw ? JSON.parse(raw) : {};
-  }
+  // =====================
+  // 사이드 이펙트
+  // =====================
 
-  // 각 상태값이 바뀔 때마다 로그
-  useEffect(() => { }, [sortType]);
-  useEffect(() => { }, [matchRange]);
-  useEffect(() => { }, [maxLack]);
-  useEffect(() => { }, [appliedExpiryIngredients]);
-  useEffect(() => { }, [expirySortType]);
+  // 재료 사전 로드
+  useEffect(() => {
+    loadIngredientDictionary().then(setAllIngredients);
+  }, []);
+
+  // 대체재료 테이블 로드
+  useEffect(() => {
+    loadSubstituteTable().then(setSubstituteTable);
+  }, []);
+
+  // 레시피 데이터 로드
+  useEffect(() => {
+    loadRecipes().then(setRecipes);
+  }, []);
 
   // 필터/정렬 상태 저장
   useEffect(() => {
@@ -397,13 +468,31 @@ const RecipeList: React.FC = () => {
       appliedExpiryIngredients,
       expirySortType
     };
-    sessionStorage.setItem('recipe_sortbar_state_fridge', JSON.stringify(state));
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }, [sortType, matchRange, maxLack, appliedExpiryIngredients, expirySortType]);
+
+  // =====================
+  // 계산된 값
+  // =====================
+
+  const myIngredientObjects = getMyIngredientObjects();
+  const sortedExpiryList = useMemo(() => {
+    if (expirySortType === 'expiry') {
+      return myIngredientObjects.filter(i => i.expiry).sort((a, b) => (a.expiry > b.expiry ? 1 : -1));
+    } else {
+      return myIngredientObjects.filter(i => i.purchase).sort((a, b) => (a.purchase > b.purchase ? 1 : -1));
+    }
+  }, [myIngredientObjects, expirySortType]);
+
+  // =====================
+  // 렌더링
+  // =====================
 
   return (
     <>
       <TopNavBar />
-      <div className="mx-auto pb-20 bg-white"
+      <div 
+        className="mx-auto pb-20 bg-white"
         style={{
           maxWidth: 400,
           minHeight: '100vh',
@@ -413,7 +502,10 @@ const RecipeList: React.FC = () => {
           paddingTop: 32,
         }}
       >
-        <h2 className="text-lg font-bold mb-4 text-center">내 냉장고 기반 레시피 추천</h2>
+        <h2 className="text-lg font-bold mb-4 text-center">
+          내 냉장고 기반 레시피 추천
+        </h2>
+        
         <RecipeSortBar
           recipes={recipes}
           myIngredients={myIngredients}
@@ -447,41 +539,70 @@ const RecipeList: React.FC = () => {
             setTimeout(() => setToast(''), 3000);
           }}
         />
+        
         {/* 재료 pill 범례와 카드 리스트를 같은 부모 div 안에 배치 */}
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, marginTop: 8 }}>
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'space-between', 
+            marginBottom: 16, 
+            marginTop: 8 
+          }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <span style={{ width: 24, height: 14, borderRadius: 7, background: '#D1D1D1', display: 'inline-block', marginRight: 2 }}></span>
+                <span style={{ 
+                  width: 24, 
+                  height: 14, 
+                  borderRadius: 7, 
+                  background: '#D1D1D1', 
+                  display: 'inline-block', 
+                  marginRight: 2 
+                }}></span>
                 <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>부족 재료</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <span style={{ width: 24, height: 14, borderRadius: 7, background: '#555', display: 'inline-block', marginRight: 2 }}></span>
+                <span style={{ 
+                  width: 24, 
+                  height: 14, 
+                  borderRadius: 7, 
+                  background: '#555', 
+                  display: 'inline-block', 
+                  marginRight: 2 
+                }}></span>
                 <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>대체 가능</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <span style={{ width: 24, height: 14, borderRadius: 7, background: '#FFD600', display: 'inline-block', marginRight: 2 }}></span>
+                <span style={{ 
+                  width: 24, 
+                  height: 14, 
+                  borderRadius: 7, 
+                  background: '#FFD600', 
+                  display: 'inline-block', 
+                  marginRight: 2 
+                }}></span>
                 <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>보유 재료</span>
               </div>
             </div>
-            <span style={{ color: '#666', fontSize: '12px' }}>총 {filteredRecipes.length.toLocaleString()}건</span>
+            <span style={{ color: '#666', fontSize: '12px' }}>
+              총 {filteredRecipes.length.toLocaleString()}건
+            </span>
           </div>
+          
           <div className="flex flex-col gap-2">
             <VirtualizedRecipeList
               recipes={filteredRecipes}
               myIngredients={myIngredients}
               substituteTable={substituteTable}
               recipeActionStates={recipeActionStates}
-              onRecipeAction={(recipe, action) => {
-                if (action === 'done') handleDoneClick(recipe.id);
-                else if (action === 'write') handleWriteClick(recipe.id);
-                else if (action === 'share') handleShareClick(recipe);
-              }}
+              onRecipeAction={handleRecipeAction}
             />
           </div>
         </div>
       </div>
+      
       <BottomNavBar activeTab="recipe" />
+      
       {toast && <RecipeToast message={toast} />}
     </>
   );
