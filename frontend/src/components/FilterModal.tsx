@@ -20,45 +20,13 @@ import { getMyIngredients } from '../utils/recipeUtils';
  * - setFilterKeywordTree: 트리 상태 setter
  */
 
-// 카테고리별 키워드(RecipeList.tsx에서 복사)
-const FILTER_KEYWORDS = {
-  효능: [
-    { title: '다이어트/체중조절/식이조절', keywords: ['저지방', '저칼로리', '저당', '무설탕', '무염', '고단백', '다이어트', '포만감', '칼로리', '글레스테롤', '저염', '무가당'] },
-    { title: '소화·배변·영양 흡수', keywords: ['소화', '변비', '식이섬유'] },
-    { title: '노화·피부·세포 관련', keywords: ['노화', '저속노화', '주름개선', '항산화', '세포벽'] },
-    { title: '면역·활력·에너지 회복', keywords: ['면역력', '에너지', '신진대사', '컨디션', '피로'] },
-    { title: '해독·순환·디톡스', keywords: ['디톡스', '숙취해소', '혈액순환', '독소'] },
-    { title: '질환·염증·호흡기', keywords: ['염증완화', '질환', '기관지', '호흡기', '세균'] },
-    { title: '성분 특성/영양제어', keywords: ['단백질', '글루텐', '무설탕', '비정제원당'] },
-    { title: '건강식·한방·보양식', keywords: ['건강', '보양', '보양음식', '약재', '한방'] },
-    { title: '식이제한/특수식단', keywords: ['채식', '당뇨', '글루텐'] },
-    { title: '수면·신경 안정', keywords: ['불면증'] },
-  ],
-  영양분: [
-    { title: '', keywords: ['단백질', '아미노산', '오메가', '타우린', '카페인', '비타민', '비타민C', '비타민B', '비타민D', '미네랄', '무기질', '칼슘', '칼륨', '아연', '식이섬유', '그래놀라', '탄수화물'] },
-  ],
-  대상: [
-    { title: '', keywords: ['부모님', '남편', '와이프', '아이', '가족', '어르신', '직장인', '환자'] },
-  ],
-  TPO: [
-    { title: '용도', keywords: ['반찬', '술안주', '와인', '소풍'] },
-    { title: '시간대', keywords: ['주말', '아침', '브런치', '간식', '점심', '저녁', '야식'] },
-    { title: '상황/장소', keywords: ['운동전', '운동후', '캠핑', '명절', '생일', '추억', '소풍', '잔치상', '여행'] },
-    { title: '난이도', keywords: ['초간단', '심플한', '난이도하', '초보', '즉석', '귀차니즘'] },
-    { title: '계절·시기', keywords: ['봄', '여름', '가을', '겨울', '환절기', '초복', '중복', '말복', '동지'] },
-  ],
-  스타일: [
-    { title: '', keywords: ['이국', '프랑스', '이탈리안', '스페인', '멕시코', '지중해', '중화', '베트남', '그리스', '서양', '태국', '동남아', '일본', '전통', '강원도', '경양식', '궁중', '경상도', '전라도', '황해도', '키토', '가니쉬', '오마카세'] },
-  ],
-};
-
 export type FilterState = {
   효능: string[];
   영양분: string[];
   대상: string[];
   TPO: string[];
   스타일: string[];
-  [key: string]: string[]; // string index signature 추가
+  [key: string]: string[];
 };
 
 interface FilterModalProps {
@@ -78,14 +46,14 @@ interface FilterModalProps {
   includeKeyword: string;
   setIncludeKeyword: (v: string) => void;
   onApply: () => void;
-  filterKeywordTree: any;
-  setFilterKeywordTree: (tree: any) => void;
+  filterKeywordTree: Record<string, Record<string, { keyword: string, synonyms: string[] }[]>>;
+  setFilterKeywordTree: (tree: Record<string, Record<string, { keyword: string, synonyms: string[] }[]>>) => void;
   selectedChannel: string[];
   setSelectedChannel: (channels: string[]) => void;
 }
 
 // CSV 파싱 및 트리 구조 변환 함수
-function parseFilterKeywordsCSV(csv: string) {
+function parseFilterKeywordsCSV(csv: string): Record<string, Record<string, { keyword: string, synonyms: string[] }[]>> {
   const lines = csv.split('\n').filter(Boolean);
   const header = lines[0].split(',');
   const idxMap = {
@@ -95,19 +63,52 @@ function parseFilterKeywordsCSV(csv: string) {
     동의어: header.indexOf('동의어'),
   };
   const tree: Record<string, Record<string, { keyword: string, synonyms: string[] }[]>> = {};
+  
   for (let i = 1; i < lines.length; ++i) {
     const cols = lines[i].split(',');
     const main = cols[idxMap.대분류]?.trim();
     const sub = cols[idxMap.중분류]?.trim();
     const keyword = cols[idxMap.키워드]?.trim();
     const synonyms = cols[idxMap.동의어]?.split('/').map(s => s.trim()).filter(Boolean) || [];
+    
     if (!main || !sub || !keyword) continue;
+    
     if (!tree[main]) tree[main] = {};
     if (!tree[main][sub]) tree[main][sub] = [];
     tree[main][sub].push({ keyword, synonyms });
   }
+  
   return tree;
 }
+
+// 자동완성 필터링 유틸리티
+const AutoCompleteUtils = {
+  getFilteredCandidates: (input: string, excludeList: string[], ingredientDict: string[]) => {
+    return ingredientDict
+      .filter(item => 
+        input && 
+        item.includes(input) && 
+        !excludeList.includes(item)
+      )
+      .sort((a, b) => {
+        // 정확한 매칭을 우선시
+        const aExact = a === input;
+        const bExact = b === input;
+        if (aExact && !bExact) return -1;
+        if (!aExact && bExact) return 1;
+        
+        // 시작 부분 매칭을 우선시
+        const aStartsWith = a.startsWith(input);
+        const bStartsWith = b.startsWith(input);
+        if (aStartsWith && !bStartsWith) return -1;
+        if (!aStartsWith && bStartsWith) return 1;
+        
+        // 길이 순으로 정렬 (짧은 것 우선)
+        return a.length - b.length;
+      })
+      .slice(0, 8);
+  }
+};
 
 const FilterModal: React.FC<FilterModalProps> = ({ 
   open, 
@@ -167,35 +168,8 @@ const FilterModal: React.FC<FilterModalProps> = ({
       });
   }, []);
 
-  // 스마트한 자동완성 필터링
-  const getFilteredCandidates = (input: string, excludeList: string[]) => {
-    return ingredientDict
-      .filter(item => 
-        input && 
-        item.includes(input) && 
-        !excludeList.includes(item)
-      )
-      .sort((a, b) => {
-        // 정확한 매칭을 우선시
-        const aExact = a === input;
-        const bExact = b === input;
-        if (aExact && !bExact) return -1;
-        if (!aExact && bExact) return 1;
-        
-        // 시작 부분 매칭을 우선시
-        const aStartsWith = a.startsWith(input);
-        const bStartsWith = b.startsWith(input);
-        if (aStartsWith && !bStartsWith) return -1;
-        if (!aStartsWith && bStartsWith) return 1;
-        
-        // 길이 순으로 정렬 (짧은 것 우선)
-        return a.length - b.length;
-      })
-      .slice(0, 8);
-  };
-
-  const includeCandidates = getFilteredCandidates(includeInput, includeIngredients);
-  const excludeCandidates = getFilteredCandidates(excludeInput, excludeIngredients);
+  const includeCandidates = AutoCompleteUtils.getFilteredCandidates(includeInput, includeIngredients, ingredientDict);
+  const excludeCandidates = AutoCompleteUtils.getFilteredCandidates(excludeInput, excludeIngredients, ingredientDict);
 
   // 1. 모든 카테고리의 선택된 키워드 flat하게 모으기
   const selectedKeywordPills: { main: string; keyword: string }[] = [];
