@@ -636,12 +636,12 @@ const Popular = () => {
     filteredRecipes.filter(recipe =>
       recipe.platform && recipe.platform.toLowerCase().includes('youtube')
     )
-  ).slice(0, 300);
+  ).slice(0, 100);
   const naverRecipes = sortRecipesByPopularity(
     filteredRecipes.filter(recipe =>
       recipe.platform && recipe.platform.toLowerCase().includes('naver')
     )
-  ).slice(0, 300);
+  ).slice(0, 100);
 
   // Fetch recipes and calculate popularity scores (ignore date filter, show up to 30)
   useEffect(() => {
@@ -957,7 +957,15 @@ const Popular = () => {
                       dishRankings.map((dish, idx) => (
                         <tr key={dish.name}>
                           <td className="py-1.5 px-2 text-center text-[#444] font-normal whitespace-nowrap">{idx + 1}</td>
-                          <td className="py-1.5 px-2 text-center text-[#444] font-normal whitespace-nowrap">{dish.name}</td>
+                          <td className="py-1.5 px-2 text-center text-[#444] font-normal whitespace-nowrap">
+                            <span
+                              style={{ cursor: 'pointer', textDecoration: 'none' }}
+                              onClick={() => navigate(`/ingredient/${encodeURIComponent(dish.name)}?minCount=2`)}
+                              title="해당 키워드 상세 보기"
+                            >
+                              {dish.name}
+                            </span>
+                          </td>
                           <td className="py-1.5 px-2 text-right text-[#444] font-normal whitespace-nowrap">{dish.count.toLocaleString()}</td>
                           <td className="py-1.5 px-2 text-center font-normal whitespace-nowrap" style={{color: dish.rate >= 0 ? '#E85A4F' : '#3A6EA5'}}>{dish.rate >= 0 ? `+${dish.rate}%` : `${dish.rate}%`}</td>
                         </tr>
