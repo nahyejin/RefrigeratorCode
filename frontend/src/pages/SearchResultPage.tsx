@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import BottomNavBar from '../components/BottomNavBar';
 import TopNavBar from '../components/TopNavBar';
@@ -12,61 +12,72 @@ import RecipeSortBar from '../components/RecipeSortBar';
 import backIcon from '../assets/뒤로가기.png';
 import { addRecipeToLocalStorage, removeRecipeFromLocalStorage, getRecipesFromLocalStorage, copyRecipeUrlToClipboard, getMyFridgeIngredients } from '../utils/recipeStorage';
 
-const SearchResultPage = () => {
-  const [recipes, setRecipes] = useState<Recipe[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState('');
-  const [sort, setSort] = useState('latest');
-  const [showFilterModal, setShowFilterModal] = useState(false);
-  const [showSortBar, setShowSortBar] = useState(false);
+// =====================
+// 타입 및 샘플 데이터
+// =====================
 
+const SAMPLE_RECIPES: Recipe[] = [
+  // { id: 1, title: '예시 레시피', ... } // 필요시 샘플 추가
+];
+
+// =====================
+// 메인 컴포넌트
+// =====================
+
+const SearchResultPage: React.FC = () => {
+  const [recipes, setRecipes] = useState<Recipe[]>(SAMPLE_RECIPES);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState('');
   const navigate = useNavigate();
   const location = useLocation();
+  const myIngredients = getMyIngredients();
+
+  // =====================
+  // 이벤트 핸들러 (샘플)
+  // =====================
 
   const handleRecipeClick = (recipe: Recipe) => {
-    // Implement the logic to handle recipe click
+    // TODO: 상세 페이지 이동 등 구현
+    setToast(`${recipe.title} 클릭됨`);
   };
 
-  const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFilter(e.target.value);
-  };
-
-  const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSort(e.target.value);
-  };
-
-  const handleFilterModalClose = () => {
-    setShowFilterModal(false);
-  };
-
-  const handleSortBarClose = () => {
-    setShowSortBar(false);
-  };
-
-  const handleRecipeAdd = (recipe: Recipe) => {
-    // Implement the logic to add a recipe
-  };
-
-  const handleRecipeRemove = (recipe: Recipe) => {
-    // Implement the logic to remove a recipe
-  };
-
-  const handleRecipeSort = () => {
-    // Implement the logic to sort recipes
-  };
-
-  const handleRecipeFilter = () => {
-    // Implement the logic to filter recipes
-  };
+  // =====================
+  // 사이드 이펙트 (샘플)
+  // =====================
 
   useEffect(() => {
-    // Implement the logic to fetch recipes
+    // TODO: 실제 검색 결과 fetch 구현
+    // setIsLoading(true);
+    // fetch(...)
+    //   .then(...)
+    //   .catch(...)
+    //   .finally(() => setIsLoading(false));
   }, []);
 
+  // =====================
+  // 렌더링
+  // =====================
+
   return (
-    <div>
-      {/* Render your components here */}
+    <div className="min-h-screen bg-white max-w-[430px] mx-auto pb-20">
+      <TopNavBar />
+      <div className="p-4">
+        <h2 className="text-lg font-bold mb-4">검색 결과</h2>
+        {isLoading && <div className="text-center py-8">로딩 중...</div>}
+        {error && <div className="text-center text-red-500 py-8">{error}</div>}
+        {!isLoading && !error && (
+          <VirtualizedRecipeList
+            recipes={recipes}
+            myIngredients={myIngredients}
+            substituteTable={{}}
+            recipeActionStates={{}}
+            onRecipeAction={handleRecipeClick}
+          />
+        )}
+      </div>
+      <BottomNavBar activeTab="recipe" />
+      {toast && <RecipeToast message={toast} />}
     </div>
   );
 };
