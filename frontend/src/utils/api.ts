@@ -1,23 +1,85 @@
-// API 호출을 위한 공통 유틸리티
+import { Recipe } from '../types/recipe';
+
+// =====================
+// 상수
+// =====================
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 
+const API_ENDPOINTS = {
+  recipes: '/api/recipes',
+  health: '/api/health',
+} as const;
+
+// =====================
+// 타입 정의
+// =====================
+
+export interface HealthCheckResponse {
+  status: string;
+  timestamp: string;
+}
+
+export interface ApiError extends Error {
+  status?: number;
+  endpoint?: string;
+}
+
+// =====================
+// 유틸리티 함수
+// =====================
+
+/**
+ * API 응답을 안전하게 처리하고 에러를 던진다
+ */
+async function handleApiResponse<T>(
+  response: Response,
+  endpoint: string
+): Promise<T> {
+  if (!response.ok) {
+    const error: ApiError = new Error(
+      `API 요청 실패: ${response.status} ${response.statusText}`
+    );
+    error.status = response.status;
+    error.endpoint = endpoint;
+    throw error;
+  }
+  
+  try {
+    return await response.json();
+  } catch (error) {
+    const jsonError: ApiError = new Error(
+      `JSON 파싱 실패: ${endpoint}`
+    );
+    jsonError.endpoint = endpoint;
+    throw jsonError;
+  }
+}
+
+// =====================
+// API 함수들
+// =====================
+
+/**
+ * API 호출을 위한 공통 유틸리티
+ */
 export const api = {
-  // 레시피 목록 조회
-  getRecipes: async () => {
-    const response = await fetch(`${API_BASE_URL}/api/recipes`);
-    if (!response.ok) {
-      throw new Error('Failed to fetch recipes');
-    }
-    return response.json();
+  /**
+   * 레시피 목록을 조회한다
+   */
+  getRecipes: async (): Promise<Recipe[]> => {
+    const endpoint = `${API_BASE_URL}${API_ENDPOINTS.recipes}`;
+    const response = await fetch(endpoint);
+    return handleApiResponse<Recipe[]>(response, endpoint);
   },
 
-  // 헬스 체크
-  healthCheck: async () => {
-    const response = await fetch(`${API_BASE_URL}/api/health`);
-    if (!response.ok) {
-      throw new Error('Health check failed');
-    }
-    return response.json();
+  /**
+   * API 서버 상태를 확인한다
+   */
+  healthCheck: async (): Promise<HealthCheckResponse> => {
+    const endpoint = `${API_BASE_URL}${API_ENDPOINTS.health}`;
+    const response = await fetch(endpoint);
+    return handleApiResponse<HealthCheckResponse>(response, endpoint);
   }
 };
 
