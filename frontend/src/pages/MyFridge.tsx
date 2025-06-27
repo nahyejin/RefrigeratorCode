@@ -6,28 +6,55 @@ import IngredientDetailModal from '../components/IngredientDetailModal';
 import SortDropdown, { SortType } from '../components/SortDropdown';
 import receiptImg from '../assets/영수증.png';
 
-function parseIngredientNames(csv: string): string[] {
-  const lines = csv.split('\n');
-  const header = lines[0].split(',');
-  const nameIdx = header.indexOf('ingredient_name');
-  if (nameIdx === -1) return [];
-  return lines.slice(1)
-    .map(line => line.split(',')[nameIdx]?.trim())
-    .filter(name => !!name && name !== 'ingredient_name');
+// =====================
+// 상수
+// =====================
+
+const STORAGE_KEY = 'myfridge_ingredients';
+const TOAST_DURATION = 10000;
+
+// =====================
+// 타입 정의
+// =====================
+
+export interface Ingredient {
+  id: string;
+  name: string;
+  expiry?: string;
+  purchase?: string;
 }
 
-const initialFrozen = ['청양고추', '만두', '대파', '표고버섯', '떡갈비', '고구마'];
-const initialFridge = ['계란', '두부', '쌈장', '우유', '파스타면', '두부면'];
-const initialRoom = ['아몬드', '양파'];
-const STORAGE_KEY = 'myfridge_ingredients';
+export type StorageBox = 'frozen' | 'fridge' | 'room';
 
+export interface DeletedInfo {
+  type: 'single' | 'all';
+  box: StorageBox;
+  tags: string[];
+}
+
+export interface ToastState {
+  visible: boolean;
+  message: string;
+  deleted: DeletedInfo | null;
+}
+
+// =====================
+// 유틸리티 함수
+// =====================
+
+/**
+ * localStorage에서 재료 데이터를 로드한다
+ */
 function loadIngredients() {
   try {
     const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
     if (data && data.frozen && data.fridge && data.room) {
       return data;
     }
-  } catch {}
+  } catch (error) {
+    console.warn('[Storage] 재료 데이터 로드 실패:', error);
+  }
+  
   return {
     frozen: [],
     fridge: [],
@@ -35,15 +62,53 @@ function loadIngredients() {
   };
 }
 
+/**
+ * localStorage에 재료 데이터를 저장한다
+ */
 function saveIngredients(
-  frozen: {id: string, name: string, expiry?: string, purchase?: string}[],
-  fridge: {id: string, name: string, expiry?: string, purchase?: string}[],
-  room: {id: string, name: string, expiry?: string, purchase?: string}[]
+  frozen: Ingredient[],
+  fridge: Ingredient[],
+  room: Ingredient[]
 ) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({ frozen, fridge, room }));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ frozen, fridge, room }));
+  } catch (error) {
+    console.error('[Storage] 재료 데이터 저장 실패:', error);
+  }
 }
 
-const TOAST_DURATION = 10000;
+/**
+ * 재료를 정렬 기준에 따라 정렬한다
+ */
+function sortIngredients(arr: Ingredient[], sort: SortType): Ingredient[] {
+  if (!arr) return [];
+  
+  if (sort === 'expiry') {
+    const withExpiry = arr.filter(i => i.expiry);
+    const withoutExpiry = arr.filter(i => !i.expiry);
+    withExpiry.sort((a, b) => (a.expiry! > b.expiry! ? 1 : -1));
+    // withoutExpiry는 가나다순
+    withoutExpiry.sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+    return [...withExpiry, ...withoutExpiry];
+  } else if (sort === 'purchase') {
+    const withPurchase = arr.filter(i => i.purchase);
+    const withoutPurchase = arr.filter(i => !i.purchase);
+    withPurchase.sort((a, b) => (a.purchase! > b.purchase! ? 1 : -1));
+    // 구매일 없는 재료 중 유통기한 있는 것, 없는 것 분리
+    const withExpiry = withoutPurchase.filter(i => i.expiry);
+    const noDate = withoutPurchase.filter(i => !i.expiry);
+    withExpiry.sort((a, b) => (a.expiry! > b.expiry! ? 1 : -1));
+    noDate.sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+    return [...withPurchase, ...withExpiry, ...noDate];
+  } else {
+    // 가나다순
+    return [...arr].sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+  }
+}
+
+// =====================
+// Toast 컴포넌트
+// =====================
 
 const Toast = ({ message, onUndo, onClose }: { message: string; onUndo: () => void; onClose: () => void }) => (
   <div
@@ -77,20 +142,20 @@ const Toast = ({ message, onUndo, onClose }: { message: string; onUndo: () => vo
   </div>
 );
 
+// =====================
+// 메인 컴포넌트
+// =====================
+
 const MyFridge: React.FC = () => {
-  const [frozen, setFrozen] = React.useState<{id: string, name: string, expiry?: string, purchase?: string}[] | null>(null);
-  const [fridge, setFridge] = React.useState<{id: string, name: string, expiry?: string, purchase?: string}[] | null>(null);
-  const [room, setRoom] = React.useState<{id: string, name: string, expiry?: string, purchase?: string}[] | null>(null);
+  const [frozen, setFrozen] = React.useState<Ingredient[] | null>(null);
+  const [fridge, setFridge] = React.useState<Ingredient[] | null>(null);
+  const [room, setRoom] = React.useState<Ingredient[] | null>(null);
   const [inputValue, setInputValue] = React.useState('');
   const [ingredientDict, setIngredientDict] = React.useState<string[]>([]);
   const [showDropdown, setShowDropdown] = React.useState(false);
   const inputRef = React.useRef<HTMLInputElement>(null);
-  const [toast, setToast] = React.useState<{
-    visible: boolean,
-    message: string,
-    deleted: { type: 'single'|'all', box: 'frozen'|'fridge'|'room', tags: string[] } | null
-  } | null>(null);
-  const toastTimeout = React.useRef<number | null>(null);
+  const [toast, setToast] = React.useState<ToastState | null>(null);
+  const toastTimeout = React.useRef<NodeJS.Timeout | null>(null);
   const [modalOpen, setModalOpen] = React.useState(false);
   const [modalIngredient, setModalIngredient] = React.useState<string | null>(null);
   const [infoToast, setInfoToast] = React.useState<{text: string} | null>(null);
@@ -171,31 +236,31 @@ const MyFridge: React.FC = () => {
   console.log('사전에서 "고구마" 포함된 항목들:', ingredientDict.filter(item => item.includes('고구마')));
   console.log('필터링된 결과:', filtered);
 
-  const showToast = (message: string, deleted: { type: 'single'|'all', box: 'frozen'|'fridge'|'room', tags: string[] }, duration?: number) => {
+  const showToast = (message: string, deleted: DeletedInfo, duration?: number) => {
     setToast({ visible: true, message, deleted });
     if (toastTimeout.current) clearTimeout(toastTimeout.current);
     toastTimeout.current = setTimeout(() => setToast(null), duration ?? TOAST_DURATION);
   };
 
-  const removeTag = (box: 'frozen'|'fridge'|'room', tag: string) => {
-    let prev: {id: string, name: string, expiry?: string, purchase?: string}[] = [];
+  const removeTag = (box: StorageBox, tag: string) => {
+    let prev: Ingredient[] = [];
     if (box === 'frozen') prev = frozen || [];
     if (box === 'fridge') prev = fridge || [];
     if (box === 'room') prev = room || [];
     const newTags = prev.filter(t => t.id !== tag);
-    const deleted = { type: 'single' as const, box, tags: [tag] };
+    const deleted: DeletedInfo = { type: 'single', box, tags: [tag] };
     if (box === 'frozen') setFrozen(newTags);
     if (box === 'fridge') setFridge(newTags);
     if (box === 'room') setRoom(newTags);
     showToast('삭제됨.', deleted);
   };
 
-  const removeAll = (box: 'frozen'|'fridge'|'room') => {
-    let prev: {id: string, name: string, expiry?: string, purchase?: string}[] = [];
+  const removeAll = (box: StorageBox) => {
+    let prev: Ingredient[] = [];
     if (box === 'frozen') prev = frozen || [];
     if (box === 'fridge') prev = fridge || [];
     if (box === 'room') prev = room || [];
-    const deleted = { type: 'all' as const, box, tags: prev.map(t => t.id) };
+    const deleted: DeletedInfo = { type: 'all', box, tags: prev.map(t => t.id) };
     if (box === 'frozen') setFrozen([]);
     if (box === 'fridge') setFridge([]);
     if (box === 'room') setRoom([]);
@@ -245,11 +310,11 @@ const MyFridge: React.FC = () => {
     }
   };
 
-  const handleModalComplete = (data: { ingredient: string; storageType: 'frozen' | 'fridge' | 'room'; hasExpiration: boolean; date: string | null; }) => {
+  const handleModalComplete = (data: { ingredient: string; storageType: StorageBox; hasExpiration: boolean; date: string | null; }) => {
     const obj = { 
       id: `${data.ingredient}-${Date.now()}`,
       name: data.ingredient 
-    } as { id: string, name: string, expiry?: string, purchase?: string };
+    } as Ingredient;
     if (data.hasExpiration && data.date) obj.expiry = data.date;
     if (!data.hasExpiration && data.date) obj.purchase = data.date;
     if (data.storageType === 'frozen') setFrozen(prev => prev ? [...prev, obj] : [obj]);
@@ -259,43 +324,18 @@ const MyFridge: React.FC = () => {
     setModalIngredient(null);
   };
 
-  const handleTagInfo = (item: {id: string, name: string, expiry?: string, purchase?: string}) => {
+  const handleTagInfo = (item: Ingredient) => {
     if (item.expiry) setInfoToast({ text: `유통기한 : ${item.expiry}` });
     else if (item.purchase) setInfoToast({ text: `구매시점 : ${item.purchase}` });
     else setInfoToast({ text: '날짜 정보가 없습니다.' });
     setTimeout(() => setInfoToast(null), 3000);
   };
 
-  const handleRemoveAll = (box: 'frozen'|'fridge'|'room') => {
+  const handleRemoveAll = (box: StorageBox) => {
     if (window.confirm('정말 삭제하시겠습니까?')) {
       removeAll(box);
     }
   };
-
-  function sortIngredients(arr: {id: string, name: string, expiry?: string, purchase?: string}[], sort: SortType) {
-    if (!arr) return [];
-    if (sort === 'expiry') {
-      const withExpiry = arr.filter(i => i.expiry);
-      const withoutExpiry = arr.filter(i => !i.expiry);
-      withExpiry.sort((a, b) => (a.expiry! > b.expiry! ? 1 : -1));
-      // withoutExpiry는 가나다순
-      withoutExpiry.sort((a, b) => a.name.localeCompare(b.name, 'ko'));
-      return [...withExpiry, ...withoutExpiry];
-    } else if (sort === 'purchase') {
-      const withPurchase = arr.filter(i => i.purchase);
-      const withoutPurchase = arr.filter(i => !i.purchase);
-      withPurchase.sort((a, b) => (a.purchase! > b.purchase! ? 1 : -1));
-      // 구매일 없는 재료 중 유통기한 있는 것, 없는 것 분리
-      const withExpiry = withoutPurchase.filter(i => i.expiry);
-      const noDate = withoutPurchase.filter(i => !i.expiry);
-      withExpiry.sort((a, b) => (a.expiry! > b.expiry! ? 1 : -1));
-      noDate.sort((a, b) => a.name.localeCompare(b.name, 'ko'));
-      return [...withPurchase, ...withExpiry, ...noDate];
-    } else {
-      // 가나다순
-      return [...arr].sort((a, b) => a.name.localeCompare(b.name, 'ko'));
-    }
-  }
 
   if (frozen === null || fridge === null || room === null) {
     return <div>로딩 중...</div>;
@@ -340,6 +380,19 @@ const MyFridge: React.FC = () => {
                 onKeyDown={handleInputKeyDown}
                 autoComplete="off"
               />
+              {showDropdown && filtered.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-10 max-h-60 overflow-y-auto">
+                  {filtered.map((item, index) => (
+                    <div
+                      key={index}
+                      className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                      onClick={() => handleSelect(item)}
+                    >
+                      {item}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             <button
               type="button"
