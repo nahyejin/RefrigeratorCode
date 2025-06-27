@@ -14,13 +14,15 @@ interface SortDropdownProps {
   className?: string;
 }
 
+const BASE_STYLE =
+  'border border-gray-300 rounded h-6 py-0 pl-2 pr-2 text-[11px] font-medium bg-white text-[#404040] focus:outline-none focus:ring-2 focus:ring-blue-200 transition min-w-[110px]';
+
 const SortDropdown: React.FC<SortDropdownProps> = ({ value, onChange, className }) => {
   return (
     <select
-      className={`border border-gray-300 rounded h-6 py-0 pl-2 pr-2 text-[11px] font-medium bg-white text-[#404040] focus:outline-none focus:ring-2 focus:ring-blue-200 transition ${className || ''}`}
+      className={`${BASE_STYLE} ${className || ''}`}
       value={value}
       onChange={e => onChange(e.target.value as SortType)}
-      style={{ minWidth: 110 }}
       aria-label="정렬 기준 선택"
     >
       {SORT_OPTIONS.map(opt => (
