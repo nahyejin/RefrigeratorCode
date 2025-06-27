@@ -27,76 +27,7 @@ import RecipeSortBar from '../components/RecipeSortBar';
 import backIcon from '../assets/뒤로가기.png';
 import VirtualizedHorizontalRecipeList from '../components/VirtualizedHorizontalRecipeList';
 
-// 더미 데이터 예시
-const dummyRecipes = [
-  {
-    id: 1,
-    rank: 1,
-    thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80",
-    title: "요즘 핫한 감자전 레시피",
-    like: 110,
-    comment: 13,
-    used_ingredients: [
-      "감자", "양파", "전분", "소금", "후추", "식용유", "당근", "파프리카", "베이컨", "치즈"
-    ],
-    needToBuy: ["전분"],
-    substitutes: ["고구마→감자", "전분→감자"],
-  },
-  {
-    id: 2,
-    rank: 2,
-    thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80",
-    title: "다이어트 김밥 만들기",
-    like: 90,
-    comment: 10,
-    used_ingredients: [
-      "오이", "김", "밥", "당근", "계란", "참치", "마요네즈", "시금치", "단무지", "햄"
-    ],
-    needToBuy: ["밥"],
-    substitutes: ["당근→오이", "밥→곤약밥"],
-  },
-  {
-    id: 3,
-    rank: 3,
-    thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80",
-    title: "황태해장국",
-    like: 80,
-    comment: 9,
-    used_ingredients: [
-      "황태", "무", "대파", "달걀", "마늘", "국간장", "참기름", "후추", "청양고추", "두부"
-    ],
-    needToBuy: ["대파"],
-    substitutes: ["두부→황태", "청양고추→고추"],
-  },
-];
-
-const dummyIngredients = [
-  { id: 1, rank: 1, name: "두릅", count: 200, rate: 20, thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80" },
-  { id: 2, rank: 2, name: "머위나물", count: 150, rate: 16, thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80" },
-  { id: 3, rank: 3, name: "도다리", count: 44, rate: 8, thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80" },
-  { id: 4, rank: 4, name: "삼겹살", count: 420, rate: 12, thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80" },
-  { id: 5, rank: 5, name: "대파", count: 380, rate: 7, thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80" },
-  { id: 6, rank: 6, name: "계란", count: 350, rate: 5, thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80" },
-  { id: 7, rank: 7, name: "양파", count: 320, rate: 3, thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80" },
-  { id: 8, rank: 8, name: "두부", count: 300, rate: 2, thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80" },
-  { id: 9, rank: 9, name: "닭가슴살", count: 280, rate: -1, thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80" },
-  { id: 10, rank: 10, name: "감자", count: 260, rate: -3, thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80" },
-];
-
-const dummyThemes = [
-  { id: 1, rank: 1, name: "저소노화", count: 403, rate: 21, thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80" },
-  { id: 2, rank: 2, name: "어버이날", count: 205, rate: 15, thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80" },
-  { id: 3, rank: 3, name: "기관지", count: 654, rate: 7, thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80" },
-  { id: 4, rank: 4, name: "다이어트", count: 600, rate: 18, thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80" },
-  { id: 5, rank: 5, name: "비건", count: 580, rate: 12, thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80" },
-  { id: 6, rank: 6, name: "여름별미", count: 540, rate: 10, thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80" },
-  { id: 7, rank: 7, name: "한식", count: 500, rate: 8, thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80" },
-  { id: 8, rank: 8, name: "집밥", count: 480, rate: 5, thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80" },
-  { id: 9, rank: 9, name: "간편식", count: 470, rate: 2, thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80" },
-  { id: 10, rank: 10, name: "브런치", count: 450, rate: -2, thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80" },
-];
-
-// 필터 상태 타입 및 초기값 (RecipeList.tsx와 동일)
+// 필터 상태 타입 및 초기값
 type FilterState = {
   효능: string[];
   영양분: string[];
@@ -104,12 +35,126 @@ type FilterState = {
   TPO: string[];
   스타일: string[];
 };
+
 const initialFilterState: FilterState = {
   효능: [],
   영양분: [],
   대상: [],
   TPO: [],
   스타일: [],
+};
+
+// 기간 옵션 상수
+const PERIOD_OPTIONS = [
+  { value: 'today', label: '오늘' },
+  { value: 'week', label: '이번주' },
+  { value: 'month', label: '이번달' },
+  { value: 'custom', label: '기간선택' },
+];
+
+// 날짜 계산 유틸리티 함수들
+const DateUtils = {
+  getDateRange: (period: string, customRange?: [Date, Date]) => {
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+    
+    switch (period) {
+      case 'today':
+        const todayStart = new Date(today);
+        todayStart.setHours(0, 0, 0, 0);
+        return { start: todayStart, end: today };
+      case 'week':
+        const weekStart = new Date(today);
+        weekStart.setDate(today.getDate() - today.getDay());
+        weekStart.setHours(0, 0, 0, 0);
+        return { start: weekStart, end: today };
+      case 'month':
+        const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+        return { start: monthStart, end: today };
+      case 'custom':
+        if (customRange && customRange[0] && customRange[1]) {
+          const start = new Date(customRange[0]);
+          const end = new Date(customRange[1]);
+          start.setHours(0, 0, 0, 0);
+          end.setHours(23, 59, 59, 999);
+          return { start, end };
+        }
+        return { start: today, end: today };
+      default:
+        return { start: today, end: today };
+    }
+  },
+
+  getPreviousDateRange: (currentRange: { start: Date, end: Date }) => {
+    const duration = currentRange.end.getTime() - currentRange.start.getTime();
+    const previousEnd = new Date(currentRange.start.getTime() - 1);
+    const previousStart = new Date(previousEnd.getTime() - duration);
+    
+    return { start: previousStart, end: previousEnd };
+  },
+
+  formatDate: (date: Date) => `${date.getFullYear()}.${String(date.getMonth()+1).padStart(2,'0')}.${String(date.getDate()).padStart(2,'0')}`,
+};
+
+// 레시피 필터링 유틸리티
+const RecipeFilterUtils = {
+  filterByDateRange: (recipes: Recipe[], dateRange: { start: Date, end: Date }) => {
+    return recipes.filter(recipe => {
+      if (!recipe.post_time) return false;
+      const postDate = new Date(recipe.post_time);
+      return postDate >= dateRange.start && postDate <= dateRange.end;
+    });
+  },
+
+  calculateGrowthRate: (current: number, previous: number): number => {
+    if (previous === 0) return current > 0 ? 100 : 0;
+    return Math.round(((current - previous) / previous) * 100);
+  },
+};
+
+// 재료 순위 계산 함수
+const calculateIngredientRankings = (recipes: Recipe[], dateRange: { start: Date, end: Date }, previousRange?: { start: Date, end: Date }) => {
+  const currentRecipes = RecipeFilterUtils.filterByDateRange(recipes, dateRange);
+  const currentIngredientCounts: { [key: string]: number } = {};
+  
+  currentRecipes.forEach(recipe => {
+    if (recipe.used_ingredients) {
+      const ingredients = (typeof recipe.used_ingredients === 'string' ? recipe.used_ingredients.split(',') : recipe.used_ingredients).map((i: string) => i.trim());
+      ingredients.forEach((ingredient: string) => {
+        currentIngredientCounts[ingredient] = (currentIngredientCounts[ingredient] || 0) + 1;
+      });
+    }
+  });
+
+  const previousIngredientCounts: { [key: string]: number } = {};
+  if (previousRange) {
+    const previousRecipes = RecipeFilterUtils.filterByDateRange(recipes, previousRange);
+    previousRecipes.forEach(recipe => {
+      if (recipe.used_ingredients) {
+        const ingredients = (typeof recipe.used_ingredients === 'string' ? recipe.used_ingredients.split(',') : recipe.used_ingredients).map((i: string) => i.trim());
+        ingredients.forEach((ingredient: string) => {
+          previousIngredientCounts[ingredient] = (previousIngredientCounts[ingredient] || 0) + 1;
+        });
+      }
+    });
+  }
+
+  return Object.entries(currentIngredientCounts)
+    .map(([name, count]) => {
+      const previousCount = previousIngredientCounts[name] || 0;
+      const rate = previousRange ? RecipeFilterUtils.calculateGrowthRate(count, previousCount) : 0;
+      return { name, count, rate };
+    })
+    .sort((a, b) => b.rate - a.rate)
+    .slice(0, 10)
+    .map((item, index) => ({
+      id: index + 1,
+      rank: index + 1,
+      name: item.name,
+      count: item.count,
+      rate: item.rate,
+      thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80"
+    }));
 };
 
 function parseIngredientNames(csv: string): string[] {
@@ -184,53 +229,6 @@ const filterRecipesByDateRange = (recipes: Recipe[], dateRange: { start: Date, e
 const calculateGrowthRate = (current: number, previous: number): number => {
   if (previous === 0) return current > 0 ? 100 : 0;
   return Math.round(((current - previous) / previous) * 100);
-};
-
-// 재료 TOP 10 계산 함수 (날짜 필터링 적용)
-const calculateIngredientRankings = (recipes: Recipe[], dateRange: { start: Date, end: Date }, previousRange?: { start: Date, end: Date }) => {
-  // 현재 기간 재료 카운트
-  const currentRecipes = filterRecipesByDateRange(recipes, dateRange);
-  const currentIngredientCounts: { [key: string]: number } = {};
-  
-  currentRecipes.forEach(recipe => {
-    if (recipe.used_ingredients) {
-      const ingredients = (typeof recipe.used_ingredients === 'string' ? recipe.used_ingredients.split(',') : recipe.used_ingredients).map((i: string) => i.trim());
-      ingredients.forEach((ingredient: string) => {
-        currentIngredientCounts[ingredient] = (currentIngredientCounts[ingredient] || 0) + 1;
-      });
-    }
-  });
-
-  // 이전 기간 재료 카운트 (상승률 계산용)
-  const previousIngredientCounts: { [key: string]: number } = {};
-  if (previousRange) {
-    const previousRecipes = filterRecipesByDateRange(recipes, previousRange);
-    previousRecipes.forEach(recipe => {
-      if (recipe.used_ingredients) {
-        const ingredients = (typeof recipe.used_ingredients === 'string' ? recipe.used_ingredients.split(',') : recipe.used_ingredients).map((i: string) => i.trim());
-        ingredients.forEach((ingredient: string) => {
-          previousIngredientCounts[ingredient] = (previousIngredientCounts[ingredient] || 0) + 1;
-        });
-      }
-    });
-  }
-
-  return Object.entries(currentIngredientCounts)
-    .map(([name, count]) => {
-      const previousCount = previousIngredientCounts[name] || 0;
-      const rate = previousRange ? calculateGrowthRate(count, previousCount) : 0;
-      return { name, count, rate };
-    })
-    .sort((a, b) => b.rate - a.rate)
-    .slice(0, 10)
-    .map((item, index) => ({
-      id: index + 1,
-      rank: index + 1,
-      name: item.name,
-      count: item.count,
-      rate: item.rate,
-      thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80"
-    }));
 };
 
 // 테마 TOP 10 계산 함수 (날짜 필터링 적용)
@@ -383,13 +381,12 @@ function calculateDishRankings(recipes: Recipe[], dishKeywords: string[], dateRa
   currentRecipes.forEach(recipe => {
     const text = `${recipe.title} ${recipe.content}`;
     dishKeywords.forEach(keyword => {
-      const regex = new RegExp(keyword, 'g');
-      const matches = text.match(regex);
-      if (matches && matches.length >= 2) {
-        currentCounts[keyword] += 1;
+      if (text.includes(keyword)) {
+        currentCounts[keyword]++;
       }
     });
   });
+
   // 이전 기간 카운트 (상승률 계산용)
   const previousCounts: { [key: string]: number } = {};
   if (previousRange) {
@@ -400,23 +397,29 @@ function calculateDishRankings(recipes: Recipe[], dishKeywords: string[], dateRa
     previousRecipes.forEach(recipe => {
       const text = `${recipe.title} ${recipe.content}`;
       dishKeywords.forEach(keyword => {
-        const regex = new RegExp(keyword, 'g');
-        const matches = text.match(regex);
-        if (matches && matches.length >= 2) {
-          previousCounts[keyword] += 1;
+        if (text.includes(keyword)) {
+          previousCounts[keyword]++;
         }
       });
     });
   }
-  // 랭킹 데이터 생성
-  const rankings = dishKeywords.map((keyword, idx) => {
-    const count = currentCounts[keyword] || 0;
-    const prev = previousCounts[keyword] || 0;
-    const rate = prev === 0 ? (count > 0 ? 100 : 0) : Math.round(((count - prev) / prev) * 100);
-    return { id: idx + 1, name: keyword, count, rate };
-  }).filter(item => item.count > 0);
-  // count 기준 내림차순 정렬 후 TOP 10
-  return rankings.sort((a, b) => b.count - a.count).slice(0, 10);
+
+  return Object.entries(currentCounts)
+    .map(([name, count]) => {
+      const previousCount = previousCounts[name] || 0;
+      const rate = previousRange ? calculateGrowthRate(count, previousCount) : 0;
+      return { name, count, rate };
+    })
+    .sort((a, b) => b.rate - a.rate)
+    .slice(0, 10)
+    .map((item, index) => ({
+      id: index + 1,
+      rank: index + 1,
+      name: item.name,
+      count: item.count,
+      rate: item.rate,
+      thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80"
+    }));
 }
 
 const Popular = () => {
@@ -455,8 +458,8 @@ const Popular = () => {
 
   const [recipes, setRecipes] = useState<Recipe[]>([]);
 
-  const [ingredientRankings, setIngredientRankings] = useState<typeof dummyIngredients>([]);
-  const [themeRankings, setThemeRankings] = useState<typeof dummyThemes>([]);
+  const [ingredientRankings, setIngredientRankings] = useState<any[]>([]);
+  const [themeRankings, setThemeRankings] = useState<any[]>([]);
   const [dishKeywords, setDishKeywords] = useState<string[]>([]);
   const [dishRankings, setDishRankings] = useState<any[]>([]);
 
@@ -1100,6 +1103,6 @@ const Popular = () => {
       <BottomNavBar activeTab="popularity" />
     </>
   );
-};
- 
-export default Popular; 
+}; // <- 이 중괄호가 Popular 함수를 닫는 부분
+
+export default Popular; // <- 이 줄이 함수 밖에 있어야 함

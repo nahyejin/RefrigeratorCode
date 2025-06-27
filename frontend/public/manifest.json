@@ -1,0 +1,21 @@
+{
+  "name": "쿡매치",
+  "short_name": "쿡매치",
+  "description": "냉장고 재료 기반 레시피 추천 서비스",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#FFD600",
+  "theme_color": "#FFD600",
+  "icons": [
+    {
+      "src": "src/assets/cookmatch_icon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "src/assets/cookmatch_icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+} 
