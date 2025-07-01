@@ -184,11 +184,11 @@ const getDateRange = (period: string, customRange?: [Date, Date]) => {
       const todayStart = new Date(today);
       todayStart.setHours(0, 0, 0, 0);
       return { start: todayStart, end: today };
-    case 'week':
-      const weekStart = new Date(today);
-      weekStart.setDate(today.getDate() - today.getDay()); // 이번주 월요일
-      weekStart.setHours(0, 0, 0, 0);
-      return { start: weekStart, end: today };
+          case 'week':
+        const weekStart = new Date(today);
+        weekStart.setDate(today.getDate() - 6); // 7일 전(6일 전)
+        weekStart.setHours(0, 0, 0, 0);
+        return { start: weekStart, end: today };
     case 'month':
       const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
       return { start: monthStart, end: today };
