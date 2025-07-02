@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import AppRouter from './routes/AppRouter';
 import SplashScreen from './components/SplashScreen';
+import OfflineIndicator from './components/OfflineIndicator';
 
 function App() {
   const [showSplash, setShowSplash] = useState(true);
@@ -20,7 +21,12 @@ function App() {
     return <SplashScreen recipeCount={recipeCount} />;
   }
 
-  return <AppRouter />;
+  return (
+    <>
+      <OfflineIndicator />
+      <AppRouter />
+    </>
+  );
 }
 
 export default App;

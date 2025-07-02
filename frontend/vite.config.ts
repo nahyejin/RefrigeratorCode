@@ -7,5 +7,17 @@ export default defineConfig({
   server: {
     port: 5177,
     host: true
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom']
+        }
+      }
+    }
+  },
+  define: {
+    __PWA_ENABLED__: true
   }
 })
