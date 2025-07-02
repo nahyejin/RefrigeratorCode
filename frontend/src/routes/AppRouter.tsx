@@ -45,12 +45,7 @@ const RecipeDetail = lazy(() => import('../pages/RecipeDetail'));
  */
 function AppRouter() {
   return (
-    <Router
-      future={{
-        v7_startTransition: true,
-        v7_relativeSplatPath: true
-      }}
-    >
+    <Router>
       <Suspense fallback={<SplashScreen recipeCount={0} />}>
         <Routes>
           {/* 홈 페이지 - RecipeList로 리다이렉트 */}
