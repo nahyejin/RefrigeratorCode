@@ -10,8 +10,8 @@ load_dotenv('env.development' if os.getenv('FLASK_ENV') == 'development' else 'e
 app = Flask(__name__)
 
 # CORS 설정 - 환경변수에서 허용할 origin 가져오기
-cors_origins = os.getenv('CORS_ORIGIN', 'http://localhost:5173,http://localhost:5177').split(',')
-CORS(app, origins=cors_origins)
+cors_origins = os.getenv('CORS_ORIGINS', 'http://localhost:5173,http://localhost:5177').split(',')
+CORS(app, origins=[origin.strip() for origin in cors_origins if origin.strip()], supports_credentials=True)
 
 def get_db():
     return pymysql.connect(
