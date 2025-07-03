@@ -236,18 +236,25 @@ const calculateGrowthRate = (current: number, previous: number): number => {
 
 // 테마 TOP 10 계산 함수 (날짜 필터링 적용)
 const calculateThemeRankings = async (recipes: Recipe[], dateRange: { start: Date, end: Date }, previousRange?: { start: Date, end: Date }) => {
+  console.log('calculateThemeRankings 호출됨');
+  console.log('테마 랭킹 계산용 레시피 수:', recipes.length);
+  
   const currentRecipes = filterRecipesByDateRange(recipes, dateRange);
+  console.log('테마 랭킹 날짜 필터링 후 레시피 수:', currentRecipes.length);
+  
   const themeCounts: { [key: string]: number } = {};
   
   try {
-    // 테마 랭킹 계산 시작 (디버그 로그 제거)
+    // 테마 랭킹 계산 시작
     
     // Filter_Keywords.csv에서 키워드 목록 가져오기
+    console.log('Filter_Keywords.csv 파일 로드 시작');
     const response = await fetch('/Filter_Keywords.csv');
     if (!response.ok) {
       throw new Error('Filter_Keywords.csv 파일을 불러올 수 없습니다');
     }
     const csv = await response.text();
+    console.log('Filter_Keywords.csv 파일 로드 완료, 크기:', csv.length);
     
     const lines = csv.split('\n');
     const header = lines[0].split(',').map(h => h.trim());
@@ -317,7 +324,7 @@ const calculateThemeRankings = async (recipes: Recipe[], dateRange: { start: Dat
       });
     }
 
-    return Object.entries(themeCounts)
+    const result = Object.entries(themeCounts)
       .map(([name, count]) => {
         const previousCount = previousThemeCounts[name] || 0;
         const rate = previousRange ? calculateGrowthRate(count, previousCount) : 0;
@@ -333,6 +340,9 @@ const calculateThemeRankings = async (recipes: Recipe[], dateRange: { start: Dat
         rate: item.rate,
         thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80"
       }));
+    
+    console.log('계산된 테마 랭킹:', result);
+    return result;
 
   } catch (error) {
     console.error('Error calculating theme rankings:', error);
@@ -491,7 +501,7 @@ const Popular = () => {
   const [includeInput, setIncludeInput] = useState('');
   const [excludeInput, setExcludeInput] = useState('');
   const [allIngredients, setAllIngredients] = useState<string[]>([]);
-  const [period, setPeriod] = useState('week');
+  const [period, setPeriod] = useState('month');
   const [dateModalOpen, setDateModalOpen] = useState(false);
   const [dateRange, setDateRange] = useState<[Date|null, Date|null]>([null, null]);
   const [dateInputStart, setDateInputStart] = useState('');
@@ -1152,6 +1162,7 @@ const Popular = () => {
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontFamily: 'Pretendard, sans-serif',
+                whiteSpace: 'nowrap',
               }}
               onClick={() => {
                 if (search.trim()) {
