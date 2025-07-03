@@ -702,7 +702,8 @@ const Popular = () => {
     const youtube = sortRecipesByPopularity(
       filteredRecipes.filter(recipe => {
         const isYoutube = recipe.platform && recipe.platform.toLowerCase().includes('youtube');
-        if (filteredRecipes.indexOf(recipe) < 3) {
+        // 모든 레시피의 플랫폼 정보 로깅 (처음 10개만)
+        if (filteredRecipes.indexOf(recipe) < 10) {
           console.log(`레시피 ${recipe.id}: platform="${recipe.platform}", isYoutube=${isYoutube}`);
         }
         return isYoutube;
@@ -726,13 +727,13 @@ const Popular = () => {
 
   // Fetch recipes and calculate popularity scores (ignore date filter, show up to 30)
   useEffect(() => {
-    const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
-    axios.get(`${apiUrl}/api/recipes`)
-      .then((res) => {
-        // API 응답에서 recipes 배열 추출
-        console.log('전체 API 응답:', res);
-        console.log('res.data:', res.data);
-        
+    (async () => {
+      const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+      // 인기 레시피 API로 변경
+      const period = 30;
+      const size = 100;
+      try {
+        const res = await axios.get(`${apiUrl}/api/recipes/popular?period=${period}&size=${size}`);
         const recipesData = res.data.recipes;
         if (!recipesData || !Array.isArray(recipesData)) {
           console.error('API 응답에 recipes 배열이 없습니다:', res.data);
@@ -741,6 +742,14 @@ const Popular = () => {
         }
         
         console.log('레시피 데이터:', recipesData);
+        
+        // 플랫폼별 분포 확인
+        const platformCounts: { [key: string]: number } = {};
+        recipesData.forEach((recipe: any) => {
+          const platform = recipe.platform || 'unknown';
+          platformCounts[platform] = (platformCounts[platform] || 0) + 1;
+        });
+        console.log('API 응답 플랫폼별 분포:', platformCounts);
         
         // 한글 텍스트 디코딩
         const decodedRecipes = decodeRecipesText(recipesData);
@@ -753,11 +762,11 @@ const Popular = () => {
         const sortedRecipes = recipesWithScores.sort((a: Recipe & {score: number}, b: Recipe & {score: number}) => b.score - a.score);
         // Take all recipes (remove slice)
         setRecipes(sortedRecipes);
-      })
-      .catch((err) => {
+      } catch (err) {
         console.error('Failed to fetch recipes:', err);
-        setRecipes([]); // fallback: 빈 배열
-      });
+        setRecipes([]);
+      }
+    })();
   }, []);
 
   // 레시피 데이터 로드 시 랭킹 계산

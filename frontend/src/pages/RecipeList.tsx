@@ -282,21 +282,54 @@ async function loadIngredientDictionary(): Promise<string[]> {
 /**
  * 레시피 데이터를 페이징으로 로드한다
  */
-async function loadRecipesPaged(page = 1, size = 20): Promise<{recipes: any[], total: number}> {
+async function loadRecipesPaged(
+  page = 1, 
+  size = 20, 
+  filters: {
+    matchRateMin?: number;
+    matchRateMax?: number;
+    sortBy?: string;
+    platform?: string;
+  } = {}
+): Promise<{recipes: any[], total: number}> {
   try {
     const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
-    const response: AxiosResponse<any> = await axios.get(`${apiUrl}/api/recipes?page=${page}&size=${size}`);
+    
+    // 필터링 API 사용
+    const params = new URLSearchParams({
+      page: page.toString(),
+      size: size.toString(),
+      match_rate_min: (filters.matchRateMin || 30).toString(),
+      match_rate_max: (filters.matchRateMax || 100).toString(),
+      sort_by: filters.sortBy || 'match_rate'
+    });
+    
+    if (filters.platform) {
+      params.append('platform', filters.platform);
+    }
+    
+    const response: AxiosResponse<any> = await axios.get(`${apiUrl}/api/recipes/filter?${params}`);
+    const recipes = response.data.recipes
+      .filter((recipe: any) =>
+        !!(recipe.body && recipe.body.trim()) ||
+        !!(recipe.content && recipe.content.trim()) ||
+        !!(recipe.description && recipe.description.trim())
+      )
+      .map((recipe: any) => ({
+        ...recipe,
+        date: formatDate(recipe.post_time || recipe.date || ''),
+      }));
+    
+    // 플랫폼별 분포 확인
+    const platformCounts: { [key: string]: number } = {};
+    recipes.forEach((recipe: any) => {
+      const platform = recipe.platform || 'unknown';
+      platformCounts[platform] = (platformCounts[platform] || 0) + 1;
+    });
+    console.log('RecipeList API 응답 플랫폼별 분포:', platformCounts);
+    
     return {
-      recipes: response.data.recipes
-        .filter((recipe: any) =>
-          !!(recipe.body && recipe.body.trim()) ||
-          !!(recipe.content && recipe.content.trim()) ||
-          !!(recipe.description && recipe.description.trim())
-        )
-        .map((recipe: any) => ({
-          ...recipe,
-          date: formatDate(recipe.post_time || recipe.date || ''),
-        })),
+      recipes,
       total: response.data.total
     };
   } catch (error) {
@@ -457,16 +490,47 @@ const RecipeList: React.FC = () => {
     loadSubstituteTable().then(setSubstituteTable);
   }, []);
 
-  // 레시피 데이터 로드
+  // 레시피 데이터 로드 (초기 로드)
   useEffect(() => {
     setLoading(true);
-    loadRecipesPaged(1, size).then(({recipes, total}) => {
+    const filters = {
+      matchRateMin: matchRange[0],
+      matchRateMax: matchRange[1],
+      sortBy: sortType === 'match' ? 'match_rate' : 
+              sortType === 'latest' ? 'date' : 
+              sortType === 'like' ? 'popularity' : 'match_rate',
+      platform: selectedChannel.length > 0 ? selectedChannel[0] : undefined
+    };
+    
+    loadRecipesPaged(1, size, filters).then(({recipes, total}) => {
       setRecipes(recipes);
       setTotal(total);
       setPage(1);
       setLoading(false);
     });
   }, []);
+
+  // 필터/정렬 변경 시 새로운 데이터 로드
+  useEffect(() => {
+    if (recipes.length > 0) { // 초기 로드가 아닌 경우에만
+      setLoading(true);
+      const filters = {
+        matchRateMin: matchRange[0],
+        matchRateMax: matchRange[1],
+        sortBy: sortType === 'match' ? 'match_rate' : 
+                sortType === 'latest' ? 'date' : 
+                sortType === 'like' ? 'popularity' : 'match_rate',
+        platform: selectedChannel.length > 0 ? selectedChannel[0] : undefined
+      };
+      
+      loadRecipesPaged(1, size, filters).then(({recipes, total}) => {
+        setRecipes(recipes);
+        setTotal(total);
+        setPage(1);
+        setLoading(false);
+      });
+    }
+  }, [sortType, matchRange, selectedChannel]);
 
   // 필터/정렬 상태 저장
   useEffect(() => {
@@ -496,7 +560,16 @@ const RecipeList: React.FC = () => {
   // 더보기 버튼 클릭 시 다음 페이지 로드
   const handleLoadMore = () => {
     setLoading(true);
-    loadRecipesPaged(page + 1, size).then(({recipes: newRecipes}) => {
+    const filters = {
+      matchRateMin: matchRange[0],
+      matchRateMax: matchRange[1],
+      sortBy: sortType === 'match' ? 'match_rate' : 
+              sortType === 'latest' ? 'date' : 
+              sortType === 'like' ? 'popularity' : 'match_rate',
+      platform: selectedChannel.length > 0 ? selectedChannel[0] : undefined
+    };
+    
+    loadRecipesPaged(page + 1, size, filters).then(({recipes: newRecipes}) => {
       setRecipes(prev => [...prev, ...newRecipes]);
       setPage(prev => prev + 1);
       setLoading(false);
