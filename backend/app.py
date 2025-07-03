@@ -60,7 +60,7 @@ def get_popular_recipes():
         SELECT * FROM recipes
         WHERE post_time >= DATE_SUB(NOW(), INTERVAL %s DAY)
         AND platform LIKE %s
-        ORDER BY (COALESCE(hits, 0) + COALESCE(likes, 0)*2) DESC
+        ORDER BY (1.0 * COALESCE(likes, 0) + 2.0 * COALESCE(comments, 0) + 0.5 * COALESCE(hits, 0)) DESC
         LIMIT %s
         """, (period, '%youtube%', size)
     )
@@ -71,7 +71,7 @@ def get_popular_recipes():
         SELECT * FROM recipes
         WHERE post_time >= DATE_SUB(NOW(), INTERVAL %s DAY)
         AND platform LIKE %s
-        ORDER BY (COALESCE(hits, 0) + COALESCE(likes, 0)*2) DESC
+        ORDER BY (1.0 * COALESCE(likes, 0) + 2.0 * COALESCE(comments, 0)) DESC
         LIMIT %s
         """, (period, '%naver%', size)
     )
