@@ -309,7 +309,7 @@ async function loadRecipesPaged(
     }
     
     const response: AxiosResponse<any> = await axios.get(`${apiUrl}/api/recipes/filter?${params}`);
-    const recipes = response.data.recipes
+    const recipes = (response.data.recipes || [])
       .filter((recipe: any) =>
         !!(recipe.body && recipe.body.trim()) ||
         !!(recipe.content && recipe.content.trim()) ||
