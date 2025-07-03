@@ -9,6 +9,9 @@ load_dotenv('env.development' if os.getenv('FLASK_ENV') == 'development' else 'e
 
 app = Flask(__name__)
 
+# 한글이 유니코드 이스케이프 시퀀스로 변환되지 않도록 설정
+app.config['JSON_AS_ASCII'] = False
+
 # CORS 설정 - 환경변수에서 허용할 origin 가져오기
 cors_origins = os.getenv('CORS_ORIGINS', 'http://localhost:5173,http://localhost:5177').split(',')
 CORS(app, origins=[origin.strip() for origin in cors_origins if origin.strip()], supports_credentials=True)

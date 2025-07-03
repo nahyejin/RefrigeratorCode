@@ -26,6 +26,7 @@ import RecipeToast from '../components/RecipeToast';
 import RecipeSortBar from '../components/RecipeSortBar';
 import backIcon from '../assets/뒤로가기.png';
 import VirtualizedHorizontalRecipeList from '../components/VirtualizedHorizontalRecipeList';
+import { decodeRecipesText } from '../utils/textUtils';
 
 // 필터 상태 타입 및 초기값
 type FilterState = {
@@ -697,7 +698,15 @@ const Popular = () => {
     const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
     axios.get(`${apiUrl}/api/recipes`)
       .then((res) => {
-        const recipesWithScores = res.data.map((recipe: Recipe) => ({
+        // API 응답에서 recipes 배열 추출
+        const recipesData = res.data.recipes || res.data;
+        console.log('API 응답 데이터:', res.data);
+        console.log('레시피 데이터:', recipesData);
+        
+        // 한글 텍스트 디코딩
+        const decodedRecipes = decodeRecipesText(recipesData);
+        
+        const recipesWithScores = decodedRecipes.map((recipe: Recipe) => ({
           ...recipe,
           score: (recipe.likes || 0) + ((recipe.comments || 0) * 2)
         }));
