@@ -512,6 +512,8 @@ const Popular = () => {
   const [themeRankings, setThemeRankings] = useState<any[]>([]);
   const [dishKeywords, setDishKeywords] = useState<{ keyword: string; synonyms: string[] }[]>([]);
   const [dishRankings, setDishRankings] = useState<any[]>([]);
+  const [youtubeRecipes, setYoutubeRecipes] = useState<any[]>([]);
+  const [naverRecipes, setNaverRecipes] = useState<any[]>([]);
 
   useEffect(() => {
     fetch('/ingredient_profile_dict_with_substitutes.csv')
@@ -682,7 +684,7 @@ const Popular = () => {
   const currentDateRange = getDateRange(period, dateRange[0] && dateRange[1] ? [dateRange[0], dateRange[1]] : undefined);
   const filteredRecipes = filterRecipesByDateRange(youtubeRecipes, currentDateRange);
   
-  const youtubeRecipes = sortRecipesByPopularity(
+  const sortedYoutubeRecipes = sortRecipesByPopularity(
     filteredRecipes.filter(recipe => {
       const isYoutube = recipe.platform && recipe.platform.toLowerCase().includes('youtube');
       // 모든 레시피의 플랫폼 정보 로깅 (처음 10개만)
@@ -693,7 +695,7 @@ const Popular = () => {
     })
   ).slice(0, 100);
   
-  const naverRecipes = sortRecipesByPopularity(
+  const sortedNaverRecipes = sortRecipesByPopularity(
     filteredRecipes.filter(recipe =>
       recipe.platform && recipe.platform.toLowerCase().includes('naver')
     )
@@ -707,11 +709,17 @@ const Popular = () => {
       const size = 100;
       try {
         const res = await axios.get(`${apiUrl}/api/recipes/popular?period=${period}&size=${size}`);
-        const youtubeRecipes = res.data.youtube || [];
-        const naverRecipes = res.data.naver || [];
-        // 이후 youtubeRecipes, naverRecipes를 각각 상태로 저장하거나 가공해서 사용
-        setYoutubeRecipes(youtubeRecipes);
-        setNaverRecipes(naverRecipes);
+        console.log('Popular API 응답:', res.data);
+        
+        // res.data가 직접 객체인 경우와 res.data.youtube/naver인 경우 모두 처리
+        const youtubeData = (res.data.youtube || res.data?.youtube || []);
+        const naverData = (res.data.naver || res.data?.naver || []);
+        
+        console.log('YouTube 레시피:', youtubeData);
+        console.log('Naver 레시피:', naverData);
+        
+        setYoutubeRecipes(youtubeData);
+        setNaverRecipes(naverData);
       } catch (err) {
         console.error('Failed to fetch popular recipes:', err);
         setYoutubeRecipes([]);
