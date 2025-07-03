@@ -508,8 +508,6 @@ const Popular = () => {
   }
   const myIngredients = getMyIngredients();
 
-  const [recipes, setRecipes] = useState<Recipe[]>([]);
-
   const [ingredientRankings, setIngredientRankings] = useState<any[]>([]);
   const [themeRankings, setThemeRankings] = useState<any[]>([]);
   const [dishKeywords, setDishKeywords] = useState<{ keyword: string; synonyms: string[] }[]>([]);
@@ -548,7 +546,7 @@ const Popular = () => {
       const prevState = prev[id] || getRecipeActionState(id);
       let newState = { ...prevState };
       if (action.action === 'done') {
-        const recipe = recipes.find(r => r.id === id);
+        const recipe = youtubeRecipes.find(r => r.id === id) || naverRecipes.find(r => r.id === id);
         if (prevState.done) {
           // 완료 취소
           removeRecipeFromLocalStorage('done', id);
@@ -593,7 +591,7 @@ const Popular = () => {
         newState.done = !prevState.done;
       }
       if (action.action === 'write') {
-        const recipe = recipes.find(r => r.id === id);
+        const recipe = youtubeRecipes.find(r => r.id === id) || naverRecipes.find(r => r.id === id);
         if (prevState.write) {
           // 기록 취소
           removeRecipeFromLocalStorage('write', id);
@@ -638,7 +636,7 @@ const Popular = () => {
         newState.write = !prevState.write;
       }
       if (action.action === 'share') {
-        const recipe = recipes.find(r => r.id === id);
+        const recipe = youtubeRecipes.find(r => r.id === id) || naverRecipes.find(r => r.id === id);
         if (recipe) {
           copyRecipeUrlToClipboard(recipe);
           setToast('URL이 복사되었습니다!');
@@ -682,7 +680,7 @@ const Popular = () => {
 
   // 유튜브와 네이버 레시피 분리 (날짜 기반 필터링 적용)
   const currentDateRange = getDateRange(period, dateRange[0] && dateRange[1] ? [dateRange[0], dateRange[1]] : undefined);
-  const filteredRecipes = filterRecipesByDateRange(recipes, currentDateRange);
+  const filteredRecipes = filterRecipesByDateRange(youtubeRecipes, currentDateRange);
   
   const youtubeRecipes = sortRecipesByPopularity(
     filteredRecipes.filter(recipe => {
@@ -725,18 +723,18 @@ const Popular = () => {
   // 레시피 데이터 로드 시 랭킹 계산
   useEffect(() => {
     const calculateRankings = async () => {
-      if (recipes.length > 0 && dishKeywords.length > 0) {
+      if (youtubeRecipes.length > 0 && dishKeywords.length > 0) {
         try {
           // 날짜 범위 계산
           const currentDateRange = getDateRange(period, dateRange[0] && dateRange[1] ? [dateRange[0], dateRange[1]] : undefined);
           const previousDateRange = getPreviousDateRange(period, currentDateRange);
           // 요리 랭킹 계산
-          const dishRanks = calculateDishRankings(recipes, dishKeywords, currentDateRange, previousDateRange);
+          const dishRanks = calculateDishRankings(youtubeRecipes, dishKeywords, currentDateRange, previousDateRange);
           setDishRankings(dishRanks);
           // 기존 ingredient/theme 랭킹도 필요하면 유지
-          const ingredientRanks = calculateIngredientRankings(recipes, currentDateRange, previousDateRange);
+          const ingredientRanks = calculateIngredientRankings(youtubeRecipes, currentDateRange, previousDateRange);
           setIngredientRankings(ingredientRanks);
-          const themeRanks = await calculateThemeRankings(recipes, currentDateRange, previousDateRange);
+          const themeRanks = await calculateThemeRankings(youtubeRecipes, currentDateRange, previousDateRange);
           setThemeRankings(themeRanks);
         } catch (error) {
           console.error('랭킹 계산 중 오류:', error);
@@ -744,7 +742,7 @@ const Popular = () => {
       }
     };
     calculateRankings();
-  }, [recipes, period, dateRange, dishKeywords]);
+  }, [youtubeRecipes, period, dateRange, dishKeywords]);
 
   // 더미 데이터 대신 실제 데이터 사용
   const sortedIngredients = ingredientRankings;
@@ -781,11 +779,11 @@ const Popular = () => {
   // Add useEffect to initialize buttonStates from localStorage on mount
   useEffect(() => {
     const initialButtonStates: { [id: number]: { done: boolean; write: boolean; share: boolean } } = {};
-    recipes.forEach(recipe => {
+    youtubeRecipes.forEach(recipe => {
       initialButtonStates[recipe.id] = getRecipeActionState(recipe.id);
     });
     setButtonStates(initialButtonStates);
-  }, [recipes]);
+  }, [youtubeRecipes]);
 
   return (
     <>
@@ -1170,6 +1168,6 @@ const Popular = () => {
       <BottomNavBar activeTab="popularity" />
     </>
   );
-}; // <- 이 중괄호가 Popular 함수를 닫는 부분
+};
 
-export default Popular; // <- 이 줄이 함수 밖에 있어야 함
+export default Popular;
