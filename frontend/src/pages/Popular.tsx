@@ -238,7 +238,7 @@ const calculateThemeRankings = async (recipes: Recipe[], dateRange: { start: Dat
   const themeCounts: { [key: string]: number } = {};
   
   try {
-    console.log('Starting theme ranking calculation with', currentRecipes.length, 'recipes for date range');
+    // 테마 랭킹 계산 시작 (디버그 로그 제거)
     
     // Filter_Keywords.csv에서 키워드 목록 가져오기
     const response = await fetch('/Filter_Keywords.csv');
