@@ -112,6 +112,8 @@ def get_filtered_recipes():
         order_by = "post_time DESC"
     elif sort_by == 'popularity':
         order_by = "(COALESCE(hits, 0) + COALESCE(likes, 0)*2) DESC"
+    elif sort_by == 'hits':
+        order_by = "hits DESC"
     elif sort_by == 'like':
         order_by = "likes DESC"
     elif sort_by == 'comment':
