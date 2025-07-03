@@ -58,7 +58,7 @@ def get_popular_recipes():
         """
         SELECT * FROM recipes
         WHERE post_time >= DATE_SUB(NOW(), INTERVAL %s DAY)
-        ORDER BY (views + likes*2) DESC
+        ORDER BY (COALESCE(hits, 0) + COALESCE(likes, 0)*2) DESC
         LIMIT %s
         """, (period, size)
     )
@@ -72,7 +72,7 @@ def get_filtered_recipes():
     size = int(request.args.get('size', 20))
     match_rate_min = float(request.args.get('match_rate_min', 30))
     match_rate_max = float(request.args.get('match_rate_max', 100))
-    sort_by = request.args.get('sort_by', 'match_rate')  # match_rate, date, popularity
+    sort_by = request.args.get('sort_by', 'match_rate')  # match_rate, date, popularity, like, comment
     platform = request.args.get('platform', '')  # youtube, naver, or empty for all
     
     offset = (page - 1) * size
@@ -93,13 +93,18 @@ def get_filtered_recipes():
             params.append('%naver%')
     
     # 정렬 조건
-    order_by = "id DESC"  # 기본값
     if sort_by == 'match_rate':
-        order_by = "match_rate DESC"
+        order_by = "post_time DESC"  # DB에는 match_rate가 없으므로 최신순으로 대체
     elif sort_by == 'date':
         order_by = "post_time DESC"
     elif sort_by == 'popularity':
-        order_by = "(views + likes*2) DESC"
+        order_by = "(COALESCE(hits, 0) + COALESCE(likes, 0)*2) DESC"
+    elif sort_by == 'like':
+        order_by = "likes DESC"
+    elif sort_by == 'comment':
+        order_by = "comments DESC"
+    else:
+        order_by = "post_time DESC"
     
     # 전체 개수 구하기
     count_query = f"SELECT COUNT(*) as total FROM recipes WHERE {' AND '.join(where_conditions)}"
