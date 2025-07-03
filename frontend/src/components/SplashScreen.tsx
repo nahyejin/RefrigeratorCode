@@ -37,7 +37,7 @@ const STYLES = {
   numberDisplay: {
     position: 'absolute' as const,
     left: '50%',
-    top: '75%',
+    top: '70%',
     transform: 'translate(-50%, 0)',
     color: '#FFA800',
     fontWeight: 700,
