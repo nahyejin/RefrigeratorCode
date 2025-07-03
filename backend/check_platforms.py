@@ -68,4 +68,24 @@ youtube_samples = cursor.fetchall()
 for recipe in youtube_samples:
     print(f"ID: {recipe['id']}, 제목: {recipe['title'][:30]}..., 플랫폼: {recipe['platform']}, 날짜: {recipe['post_time']}")
 
+# 네이버 레시피 샘플 확인
+print("\n=== 네이버 레시피 샘플 ===")
+cursor.execute("""
+    SELECT id, title, platform, post_time 
+    FROM recipes 
+    WHERE platform LIKE '%naver%' 
+    ORDER BY post_time DESC 
+    LIMIT 5
+""")
+naver_samples = cursor.fetchall()
+for recipe in naver_samples:
+    print(f"ID: {recipe['id']}, 제목: {recipe['title'][:30]}..., 플랫폼: {recipe['platform']}, 날짜: {recipe['post_time']}")
+
+# 플랫폼 값 정확히 확인
+print("\n=== 플랫폼 값 정확히 확인 ===")
+cursor.execute("SELECT DISTINCT platform FROM recipes ORDER BY platform")
+platforms = cursor.fetchall()
+for row in platforms:
+    print(f"플랫폼 값: '{row['platform']}'")
+
 db.close() 
