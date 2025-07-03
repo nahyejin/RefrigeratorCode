@@ -389,8 +389,14 @@ function extractDishKeywordsFromCSV(csv: string): { keyword: string; synonyms: s
 
 // 요리이름 키워드 기반 랭킹 계산 (동의어 고려)
 function calculateDishRankings(recipes: Recipe[], dishKeywords: { keyword: string; synonyms: string[] }[], dateRange: { start: Date, end: Date }, previousRange?: { start: Date, end: Date }) {
+  console.log('calculateDishRankings 호출됨');
+  console.log('전체 레시피 수:', recipes.length);
+  console.log('키워드 수:', dishKeywords.length);
+  
   // 현재 기간 카운트
   const currentRecipes = filterRecipesByDateRange(recipes, dateRange);
+  console.log('날짜 필터링 후 레시피 수:', currentRecipes.length);
+  
   const currentCounts: { [key: string]: number } = {};
   const recipeMatchMap: { [recipeId: number]: Set<string> } = {}; // 레시피별 매칭된 키워드 추적
   
@@ -731,14 +737,21 @@ const Popular = () => {
   // 레시피 데이터 로드 시 랭킹 계산
   useEffect(() => {
     const calculateRankings = async () => {
-      if (youtubeRecipes.length > 0 && dishKeywords.length > 0) {
+      if ((youtubeRecipes.length > 0 || naverRecipes.length > 0) && dishKeywords.length > 0) {
         try {
           // 날짜 범위 계산
           const currentDateRange = getDateRange(period, dateRange[0] && dateRange[1] ? [dateRange[0], dateRange[1]] : undefined);
           const previousDateRange = getPreviousDateRange(period, currentDateRange);
-          // 요리 랭킹 계산
-          const dishRanks = calculateDishRankings(youtubeRecipes, dishKeywords, currentDateRange, previousDateRange);
+          
+          // 모든 레시피를 합쳐서 요리 랭킹 계산
+          const allRecipes = [...youtubeRecipes, ...naverRecipes];
+          console.log('요리 랭킹 계산용 레시피 수:', allRecipes.length);
+          console.log('요리 키워드 수:', dishKeywords.length);
+          
+          const dishRanks = calculateDishRankings(allRecipes, dishKeywords, currentDateRange, previousDateRange);
+          console.log('계산된 요리 랭킹:', dishRanks);
           setDishRankings(dishRanks);
+          
           // 기존 ingredient/theme 랭킹도 필요하면 유지
           const ingredientRanks = calculateIngredientRankings(youtubeRecipes, currentDateRange, previousDateRange);
           setIngredientRankings(ingredientRanks);
@@ -750,7 +763,7 @@ const Popular = () => {
       }
     };
     calculateRankings();
-  }, [youtubeRecipes, period, dateRange, dishKeywords]);
+  }, [youtubeRecipes, naverRecipes, period, dateRange, dishKeywords]);
 
   // 더미 데이터 대신 실제 데이터 사용
   const sortedIngredients = ingredientRankings;

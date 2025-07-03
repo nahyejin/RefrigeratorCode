@@ -153,7 +153,7 @@ function getInitialSortBarState() {
   }
   return {
     sortType: 'match',
-    matchRange: [30, 100],
+          matchRange: [0, 100],
     maxLack: 'unlimited',
     appliedExpiryIngredients: [],
     expirySortType: 'expiry',
@@ -299,7 +299,7 @@ async function loadRecipesPaged(
     const params = new URLSearchParams({
       page: page.toString(),
       size: size.toString(),
-      match_rate_min: (filters.matchRateMin || 30).toString(),
+      match_rate_min: (filters.matchRateMin || 0).toString(),
       match_rate_max: (filters.matchRateMax || 100).toString(),
       sort_by: filters.sortBy || 'match_rate'
     });
