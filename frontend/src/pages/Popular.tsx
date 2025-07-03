@@ -171,7 +171,7 @@ function parseIngredientNames(csv: string): string[] {
 const periodOptions = [
   { value: 'today', label: '오늘' },
   { value: 'week', label: '이번주' },
-  { value: 'month', label: '이번달' },
+  { value: 'month', label: '최근 30일' },
   { value: 'custom', label: '기간선택' },
 ];
 
@@ -191,7 +191,9 @@ const getDateRange = (period: string, customRange?: [Date, Date]) => {
         weekStart.setHours(0, 0, 0, 0);
         return { start: weekStart, end: today };
     case 'month':
-      const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+      const monthStart = new Date(today);
+      monthStart.setDate(today.getDate() - 30); // 최근 30일
+      monthStart.setHours(0, 0, 0, 0);
       return { start: monthStart, end: today };
     case 'custom':
       if (customRange && customRange[0] && customRange[1]) {
