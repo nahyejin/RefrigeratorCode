@@ -165,7 +165,7 @@ const Utils = {
 
   // 플랫폼 체크
   isYouTube: (platform?: string) => {
-    return platform && (platform.includes('youtube') || platform.includes('유튜브(인플루언서)'));
+    return platform && (platform.toLowerCase().includes('youtube') || platform.includes('유튜브'));
   },
 
   // 통계 텍스트 생성
