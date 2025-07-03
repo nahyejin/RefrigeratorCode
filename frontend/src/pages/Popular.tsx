@@ -684,87 +684,40 @@ const Popular = () => {
   const currentDateRange = getDateRange(period, dateRange[0] && dateRange[1] ? [dateRange[0], dateRange[1]] : undefined);
   const filteredRecipes = filterRecipesByDateRange(recipes, currentDateRange);
   
-  const youtubeRecipes = useMemo(() => {
-    console.log('유튜브 레시피 필터링:', {
-      총레시피수: recipes.length,
-      필터링된레시피수: filteredRecipes.length,
-      기간: period
-    });
-    
-    // 플랫폼별 분포 확인
-    const platformCounts: { [key: string]: number } = {};
-    filteredRecipes.forEach(recipe => {
-      const platform = recipe.platform || 'unknown';
-      platformCounts[platform] = (platformCounts[platform] || 0) + 1;
-    });
-    console.log('플랫폼별 분포:', platformCounts);
-    
-    const youtube = sortRecipesByPopularity(
-      filteredRecipes.filter(recipe => {
-        const isYoutube = recipe.platform && recipe.platform.toLowerCase().includes('youtube');
-        // 모든 레시피의 플랫폼 정보 로깅 (처음 10개만)
-        if (filteredRecipes.indexOf(recipe) < 10) {
-          console.log(`레시피 ${recipe.id}: platform="${recipe.platform}", isYoutube=${isYoutube}`);
-        }
-        return isYoutube;
-      })
-    ).slice(0, 100);
-    
-    console.log('유튜브 레시피 결과:', youtube.length, '개');
-    return youtube;
-  }, [filteredRecipes, period]);
+  const youtubeRecipes = sortRecipesByPopularity(
+    filteredRecipes.filter(recipe => {
+      const isYoutube = recipe.platform && recipe.platform.toLowerCase().includes('youtube');
+      // 모든 레시피의 플랫폼 정보 로깅 (처음 10개만)
+      if (filteredRecipes.indexOf(recipe) < 10) {
+        console.log(`레시피 ${recipe.id}: platform="${recipe.platform}", isYoutube=${isYoutube}`);
+      }
+      return isYoutube;
+    })
+  ).slice(0, 100);
   
-  const naverRecipes = useMemo(() => {
-    const naver = sortRecipesByPopularity(
-      filteredRecipes.filter(recipe =>
-        recipe.platform && recipe.platform.toLowerCase().includes('naver')
-      )
-    ).slice(0, 100);
-    
-    console.log('네이버 레시피 결과:', naver.length, '개');
-    return naver;
-  }, [filteredRecipes, period]);
+  const naverRecipes = sortRecipesByPopularity(
+    filteredRecipes.filter(recipe =>
+      recipe.platform && recipe.platform.toLowerCase().includes('naver')
+    )
+  ).slice(0, 100);
 
   // Fetch recipes and calculate popularity scores (ignore date filter, show up to 30)
   useEffect(() => {
     (async () => {
       const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
-      // 인기 레시피 API로 변경
       const period = 30;
       const size = 100;
       try {
         const res = await axios.get(`${apiUrl}/api/recipes/popular?period=${period}&size=${size}`);
-        const recipesData = res.data.recipes;
-        if (!recipesData || !Array.isArray(recipesData)) {
-          console.error('API 응답에 recipes 배열이 없습니다:', res.data);
-          setRecipes([]);
-          return;
-        }
-        
-        console.log('레시피 데이터:', recipesData);
-        
-        // 플랫폼별 분포 확인
-        const platformCounts: { [key: string]: number } = {};
-        recipesData.forEach((recipe: any) => {
-          const platform = recipe.platform || 'unknown';
-          platformCounts[platform] = (platformCounts[platform] || 0) + 1;
-        });
-        console.log('API 응답 플랫폼별 분포:', platformCounts);
-        
-        // 한글 텍스트 디코딩
-        const decodedRecipes = decodeRecipesText(recipesData);
-        
-        const recipesWithScores = decodedRecipes.map((recipe: Recipe) => ({
-          ...recipe,
-          score: (recipe.likes || 0) + ((recipe.comments || 0) * 2)
-        }));
-        // Sort by popularity score
-        const sortedRecipes = recipesWithScores.sort((a: Recipe & {score: number}, b: Recipe & {score: number}) => b.score - a.score);
-        // Take all recipes (remove slice)
-        setRecipes(sortedRecipes);
+        const youtubeRecipes = res.data.youtube || [];
+        const naverRecipes = res.data.naver || [];
+        // 이후 youtubeRecipes, naverRecipes를 각각 상태로 저장하거나 가공해서 사용
+        setYoutubeRecipes(youtubeRecipes);
+        setNaverRecipes(naverRecipes);
       } catch (err) {
-        console.error('Failed to fetch recipes:', err);
-        setRecipes([]);
+        console.error('Failed to fetch popular recipes:', err);
+        setYoutubeRecipes([]);
+        setNaverRecipes([]);
       }
     })();
   }, []);
