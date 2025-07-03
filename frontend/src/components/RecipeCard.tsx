@@ -208,6 +208,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
 }) => {
   // used_ingredients 파싱
   const usedIngredientList = Utils.parseIngredients(recipe.used_ingredients);
+  const safeUsedIngredientList = usedIngredientList.length > 0 ? usedIngredientList : ['재료 정보 없음'];
 
   // 버튼 클릭 핸들러 하나로 통합
   const handleActionButtonClick = (action: 'done' | 'share' | 'write', e: React.MouseEvent) => {
@@ -302,7 +303,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
         {Utils.getStatsText(recipe)}
       </div>
       <IngredientPillGroup
-        needIngredients={usedIngredientList}
+        needIngredients={safeUsedIngredientList}
         myIngredients={myIngredients}
         substituteTable={substituteTable}
       />
