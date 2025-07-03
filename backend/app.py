@@ -48,6 +48,89 @@ def get_recipes():
         'size': size
     })
 
+@app.route('/api/recipes/popular')
+def get_popular_recipes():
+    size = int(request.args.get('size', 30))
+    period = int(request.args.get('period', 30))  # 최근 30일
+    db = get_db()
+    cursor = db.cursor()
+    cursor.execute(
+        """
+        SELECT * FROM recipes
+        WHERE post_time >= DATE_SUB(NOW(), INTERVAL %s DAY)
+        ORDER BY (views + likes*2) DESC
+        LIMIT %s
+        """, (period, size)
+    )
+    recipes = cursor.fetchall()
+    db.close()
+    return jsonify({'recipes': recipes, 'size': size, 'period': period})
+
+@app.route('/api/recipes/filter')
+def get_filtered_recipes():
+    page = int(request.args.get('page', 1))
+    size = int(request.args.get('size', 20))
+    match_rate_min = float(request.args.get('match_rate_min', 30))
+    match_rate_max = float(request.args.get('match_rate_max', 100))
+    sort_by = request.args.get('sort_by', 'match_rate')  # match_rate, date, popularity
+    platform = request.args.get('platform', '')  # youtube, naver, or empty for all
+    
+    offset = (page - 1) * size
+    db = get_db()
+    cursor = db.cursor()
+    
+    # 기본 WHERE 조건
+    where_conditions = ["1=1"]  # 항상 참인 조건으로 시작
+    params = []
+    
+    # 플랫폼 필터링
+    if platform:
+        if platform.lower() == 'youtube':
+            where_conditions.append("platform LIKE %s")
+            params.append('%youtube%')
+        elif platform.lower() == 'naver':
+            where_conditions.append("platform LIKE %s")
+            params.append('%naver%')
+    
+    # 정렬 조건
+    order_by = "id DESC"  # 기본값
+    if sort_by == 'match_rate':
+        order_by = "match_rate DESC"
+    elif sort_by == 'date':
+        order_by = "post_time DESC"
+    elif sort_by == 'popularity':
+        order_by = "(views + likes*2) DESC"
+    
+    # 전체 개수 구하기
+    count_query = f"SELECT COUNT(*) as total FROM recipes WHERE {' AND '.join(where_conditions)}"
+    cursor.execute(count_query, params)
+    total = cursor.fetchone()['total']
+    
+    # 필터링된 레시피 가져오기
+    query = f"""
+        SELECT * FROM recipes 
+        WHERE {' AND '.join(where_conditions)}
+        ORDER BY {order_by}
+        LIMIT %s OFFSET %s
+    """
+    cursor.execute(query, params + [size, offset])
+    recipes = cursor.fetchall()
+    
+    db.close()
+    
+    return jsonify({
+        'recipes': recipes,
+        'total': total,
+        'page': page,
+        'size': size,
+        'filters': {
+            'match_rate_min': match_rate_min,
+            'match_rate_max': match_rate_max,
+            'sort_by': sort_by,
+            'platform': platform
+        }
+    })
+
 @app.route('/api/health')
 def health_check():
     return jsonify({
