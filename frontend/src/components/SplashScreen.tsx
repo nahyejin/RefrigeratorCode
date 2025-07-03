@@ -81,6 +81,12 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ recipeCount }) => {
   const rouletteStartTime = useRef<number>(0);
 
   useEffect(() => {
+    // recipeCount가 0이면 아직 데이터가 로드되지 않은 상태이므로 룰렛을 시작하지 않음
+    if (recipeCount === 0) {
+      setDisplayDigits(['0', '0', '0', '0']);
+      return;
+    }
+
     // 처음부터 바로 룰렛 애니메이션 시작
     setStage('roulette');
     rouletteStartTime.current = Date.now();
@@ -93,7 +99,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ recipeCount }) => {
         setDisplayDigits(randomDigits);
         animationRef.current = requestAnimationFrame(animate);
       } else {
-        // 룰렛 종료 시 바로 실제값으로 설정
+        // 룰렛 종료 시 바로 실제값으로 설정하고 더 이상 변경하지 않음
         setStage('final');
         setDisplayDigits(Utils.padNumber(recipeCount, CONSTANTS.DIGIT_LENGTH).split(''));
       }
