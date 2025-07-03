@@ -1,4 +1,4 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 import pymysql
 import os
@@ -26,12 +26,24 @@ def get_db():
 
 @app.route('/api/recipes')
 def get_recipes():
+    page = int(request.args.get('page', 1))
+    size = int(request.args.get('size', 20))
+    offset = (page - 1) * size
     db = get_db()
     cursor = db.cursor()
-    cursor.execute("SELECT * FROM recipes ORDER BY id DESC")
+    # 전체 개수 구하기
+    cursor.execute("SELECT COUNT(*) as total FROM recipes")
+    total = cursor.fetchone()['total']
+    # 페이징 적용 쿼리
+    cursor.execute("SELECT * FROM recipes ORDER BY id DESC LIMIT %s OFFSET %s", (size, offset))
     recipes = cursor.fetchall()
     db.close()
-    return jsonify(recipes)
+    return jsonify({
+        'recipes': recipes,
+        'total': total,
+        'page': page,
+        'size': size
+    })
 
 @app.route('/api/health')
 def health_check():

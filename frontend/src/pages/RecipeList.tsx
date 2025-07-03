@@ -280,31 +280,29 @@ async function loadIngredientDictionary(): Promise<string[]> {
 }
 
 /**
- * 레시피 데이터를 로드한다
+ * 레시피 데이터를 페이징으로 로드한다
  */
-async function loadRecipes(): Promise<any[]> {
+async function loadRecipesPaged(page = 1, size = 20): Promise<{recipes: any[], total: number}> {
   try {
     const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
-    const response: AxiosResponse<any> = await axios.get(`${apiUrl}/api/recipes`);
-    
-    return response.data
-      .filter((recipe: any) =>
-        !!(recipe.body && recipe.body.trim()) ||
-        !!(recipe.content && recipe.content.trim()) ||
-        !!(recipe.description && recipe.description.trim())
-      )
-      .map((recipe: any) => ({
-        ...recipe,
-        date: formatDate(recipe.post_time || recipe.date || ''),
-      }));
+    const response: AxiosResponse<any> = await axios.get(`${apiUrl}/api/recipes?page=${page}&size=${size}`);
+    return {
+      recipes: response.data.recipes
+        .filter((recipe: any) =>
+          !!(recipe.body && recipe.body.trim()) ||
+          !!(recipe.content && recipe.content.trim()) ||
+          !!(recipe.description && recipe.description.trim())
+        )
+        .map((recipe: any) => ({
+          ...recipe,
+          date: formatDate(recipe.post_time || recipe.date || ''),
+        })),
+      total: response.data.total
+    };
   } catch (error) {
     console.warn('[RecipeList] API 레시피 로드 실패, 더미 데이터 사용:', error);
     const dummyData = await fetchRecipesDummy();
-    return dummyData.filter((recipe: any) =>
-      !!(recipe.body && recipe.body.trim()) ||
-      !!(recipe.content && recipe.content.trim()) ||
-      !!(recipe.description && recipe.description.trim())
-    );
+    return { recipes: dummyData, total: dummyData.length };
   }
 }
 
@@ -342,6 +340,11 @@ const RecipeList: React.FC = () => {
   const [includeIngredients, setIncludeIngredients] = useState<string[]>([]);
   const [excludeIngredients, setExcludeIngredients] = useState<string[]>([]);
   const [selectedCategoryKeywords, setSelectedCategoryKeywords] = useState<FilterState>(initialFilterState);
+  // 페이징 관련 상태
+  const [page, setPage] = useState(1);
+  const [size] = useState(20);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(false);
 
   const myIngredients = useMemo(() => getMyIngredients(), []);
   const navigate = useNavigate();
@@ -456,7 +459,13 @@ const RecipeList: React.FC = () => {
 
   // 레시피 데이터 로드
   useEffect(() => {
-    loadRecipes().then(setRecipes);
+    setLoading(true);
+    loadRecipesPaged(1, size).then(({recipes, total}) => {
+      setRecipes(recipes);
+      setTotal(total);
+      setPage(1);
+      setLoading(false);
+    });
   }, []);
 
   // 필터/정렬 상태 저장
@@ -483,6 +492,16 @@ const RecipeList: React.FC = () => {
       return myIngredientObjects.filter(i => i.purchase).sort((a, b) => (a.purchase > b.purchase ? 1 : -1));
     }
   }, [myIngredientObjects, expirySortType]);
+
+  // 더보기 버튼 클릭 시 다음 페이지 로드
+  const handleLoadMore = () => {
+    setLoading(true);
+    loadRecipesPaged(page + 1, size).then(({recipes: newRecipes}) => {
+      setRecipes(prev => [...prev, ...newRecipes]);
+      setPage(prev => prev + 1);
+      setLoading(false);
+    });
+  };
 
   // =====================
   // 렌더링
@@ -591,7 +610,7 @@ const RecipeList: React.FC = () => {
           
           <div className="flex flex-col gap-2">
             <VirtualizedRecipeList
-              recipes={filteredRecipes}
+              recipes={filteredRecipes.length ? filteredRecipes : recipes}
               myIngredients={myIngredients}
               substituteTable={substituteTable}
               recipeActionStates={recipeActionStates}
@@ -599,6 +618,28 @@ const RecipeList: React.FC = () => {
             />
           </div>
         </div>
+        {/* 더보기 버튼 */}
+        {recipes.length < total && (
+          <button
+            onClick={handleLoadMore}
+            disabled={loading}
+            style={{
+              width: '100%',
+              margin: '20px 0',
+              padding: '12px',
+              background: '#FFD600',
+              color: '#222',
+              fontWeight: 'bold',
+              border: 'none',
+              borderRadius: 8,
+              fontSize: 16,
+              cursor: loading ? 'not-allowed' : 'pointer',
+              opacity: loading ? 0.6 : 1
+            }}
+          >
+            {loading ? '로딩 중...' : '더보기'}
+          </button>
+        )}
       </div>
       
       <BottomNavBar activeTab="recipe" />
