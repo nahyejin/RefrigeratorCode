@@ -170,7 +170,7 @@ function parseIngredientNames(csv: string): string[] {
 
 const periodOptions = [
   { value: 'today', label: '오늘' },
-  { value: 'week', label: '이번주' },
+  { value: 'week', label: '최근 7일' },
   { value: 'month', label: '최근 30일' },
   { value: 'custom', label: '기간선택' },
 ];
@@ -684,16 +684,45 @@ const Popular = () => {
   const currentDateRange = getDateRange(period, dateRange[0] && dateRange[1] ? [dateRange[0], dateRange[1]] : undefined);
   const filteredRecipes = filterRecipesByDateRange(recipes, currentDateRange);
   
-  const youtubeRecipes = sortRecipesByPopularity(
-    filteredRecipes.filter(recipe =>
-      recipe.platform && recipe.platform.toLowerCase().includes('youtube')
-    )
-  ).slice(0, 100);
-  const naverRecipes = sortRecipesByPopularity(
-    filteredRecipes.filter(recipe =>
-      recipe.platform && recipe.platform.toLowerCase().includes('naver')
-    )
-  ).slice(0, 100);
+  const youtubeRecipes = useMemo(() => {
+    console.log('유튜브 레시피 필터링:', {
+      총레시피수: recipes.length,
+      필터링된레시피수: filteredRecipes.length,
+      기간: period
+    });
+    
+    // 플랫폼별 분포 확인
+    const platformCounts: { [key: string]: number } = {};
+    filteredRecipes.forEach(recipe => {
+      const platform = recipe.platform || 'unknown';
+      platformCounts[platform] = (platformCounts[platform] || 0) + 1;
+    });
+    console.log('플랫폼별 분포:', platformCounts);
+    
+    const youtube = sortRecipesByPopularity(
+      filteredRecipes.filter(recipe => {
+        const isYoutube = recipe.platform && recipe.platform.toLowerCase().includes('youtube');
+        if (filteredRecipes.indexOf(recipe) < 3) {
+          console.log(`레시피 ${recipe.id}: platform="${recipe.platform}", isYoutube=${isYoutube}`);
+        }
+        return isYoutube;
+      })
+    ).slice(0, 100);
+    
+    console.log('유튜브 레시피 결과:', youtube.length, '개');
+    return youtube;
+  }, [filteredRecipes, period]);
+  
+  const naverRecipes = useMemo(() => {
+    const naver = sortRecipesByPopularity(
+      filteredRecipes.filter(recipe =>
+        recipe.platform && recipe.platform.toLowerCase().includes('naver')
+      )
+    ).slice(0, 100);
+    
+    console.log('네이버 레시피 결과:', naver.length, '개');
+    return naver;
+  }, [filteredRecipes, period]);
 
   // Fetch recipes and calculate popularity scores (ignore date filter, show up to 30)
   useEffect(() => {
