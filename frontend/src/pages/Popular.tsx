@@ -699,8 +699,16 @@ const Popular = () => {
     axios.get(`${apiUrl}/api/recipes`)
       .then((res) => {
         // API 응답에서 recipes 배열 추출
-        const recipesData = res.data.recipes || res.data;
-        console.log('API 응답 데이터:', res.data);
+        console.log('전체 API 응답:', res);
+        console.log('res.data:', res.data);
+        
+        const recipesData = res.data.recipes;
+        if (!recipesData || !Array.isArray(recipesData)) {
+          console.error('API 응답에 recipes 배열이 없습니다:', res.data);
+          setRecipes([]);
+          return;
+        }
+        
         console.log('레시피 데이터:', recipesData);
         
         // 한글 텍스트 디코딩
