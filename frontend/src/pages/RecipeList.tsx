@@ -314,7 +314,7 @@ async function loadRecipesPaged(
     // response.data가 직접 배열인 경우와 response.data.recipes인 경우 모두 처리
     const recipesData = Array.isArray(response.data) ? response.data : (response.data.recipes || []);
     
-    const recipes = recipesData
+    let recipes = recipesData
       .filter((recipe: any) =>
         !!(recipe.body && recipe.body.trim()) ||
         !!(recipe.content && recipe.content.trim()) ||
@@ -324,7 +324,12 @@ async function loadRecipesPaged(
         ...recipe,
         date: formatDate(recipe.post_time || recipe.date || ''),
       }));
-    
+
+    // 프론트엔드에서 재료매칭률순 정렬 적용
+    if (filters.sortBy === 'match_rate') {
+      recipes = recipes.sort((a, b) => (b.match_rate || 0) - (a.match_rate || 0));
+    }
+
     // 플랫폼별 분포 확인
     const platformCounts: { [key: string]: number } = {};
     recipes.forEach((recipe: any) => {
