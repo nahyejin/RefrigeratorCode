@@ -54,17 +54,30 @@ def get_popular_recipes():
     period = int(request.args.get('period', 30))  # 최근 30일
     db = get_db()
     cursor = db.cursor()
+    # 유튜브 인기 레시피
     cursor.execute(
         """
         SELECT * FROM recipes
         WHERE post_time >= DATE_SUB(NOW(), INTERVAL %s DAY)
+        AND platform LIKE %s
         ORDER BY (COALESCE(hits, 0) + COALESCE(likes, 0)*2) DESC
         LIMIT %s
-        """, (period, size)
+        """, (period, '%youtube%', size)
     )
-    recipes = cursor.fetchall()
+    youtube_recipes = cursor.fetchall()
+    # 네이버 인기 레시피
+    cursor.execute(
+        """
+        SELECT * FROM recipes
+        WHERE post_time >= DATE_SUB(NOW(), INTERVAL %s DAY)
+        AND platform LIKE %s
+        ORDER BY (COALESCE(hits, 0) + COALESCE(likes, 0)*2) DESC
+        LIMIT %s
+        """, (period, '%naver%', size)
+    )
+    naver_recipes = cursor.fetchall()
     db.close()
-    return jsonify({'recipes': recipes, 'size': size, 'period': period})
+    return jsonify({'youtube': youtube_recipes, 'naver': naver_recipes, 'size': size, 'period': period})
 
 @app.route('/api/recipes/filter')
 def get_filtered_recipes():
