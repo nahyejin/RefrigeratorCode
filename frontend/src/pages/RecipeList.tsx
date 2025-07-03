@@ -309,7 +309,12 @@ async function loadRecipesPaged(
     }
     
     const response: AxiosResponse<any> = await axios.get(`${apiUrl}/api/recipes/filter?${params}`);
-    const recipes = (response.data.recipes || [])
+    console.log('RecipeList API 응답:', response.data);
+    
+    // response.data가 직접 배열인 경우와 response.data.recipes인 경우 모두 처리
+    const recipesData = Array.isArray(response.data) ? response.data : (response.data.recipes || []);
+    
+    const recipes = recipesData
       .filter((recipe: any) =>
         !!(recipe.body && recipe.body.trim()) ||
         !!(recipe.content && recipe.content.trim()) ||
@@ -330,7 +335,7 @@ async function loadRecipesPaged(
     
     return {
       recipes,
-      total: response.data.total
+      total: response.data.total || recipes.length
     };
   } catch (error) {
     console.warn('[RecipeList] API 레시피 로드 실패, 더미 데이터 사용:', error);
