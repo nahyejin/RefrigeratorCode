@@ -327,7 +327,7 @@ async function loadRecipesPaged(
 
     // 프론트엔드에서 재료매칭률순 정렬 적용
     if (filters.sortBy === 'match_rate') {
-      recipes = recipes.sort((a, b) => (b.match_rate || 0) - (a.match_rate || 0));
+      recipes = recipes.sort((a: any, b: any) => (b.match_rate || 0) - (a.match_rate || 0));
     }
 
     // 플랫폼별 분포 확인
