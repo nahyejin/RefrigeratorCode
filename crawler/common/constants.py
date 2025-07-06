@@ -4,10 +4,11 @@ Constants used across crawlers.
 
 # Database configuration
 DB_CONFIG = {
-    'host': 'localhost',
+    'host': 'caboose.proxy.rlwy.net',
     'user': 'root',
-    'password': 'sk784512!!',
-    'db': 'refrigerator',
+    'password': 'HkqYFCoKPPPxgryxiEbUYxcYynQXxeRF',
+    'db': 'railway',
+    'port': 3306,
     'charset': 'utf8mb4'
 }
 

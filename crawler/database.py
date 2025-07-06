@@ -2,14 +2,19 @@ import mysql.connector
 import logging
 from typing import Dict, Optional
 from datetime import datetime
+import pymysql
+import pymysql.cursors
 
 class Database:
     def __init__(self):
-        self.conn = mysql.connector.connect(
-            host='localhost',
+        self.conn = pymysql.connect(
+            host='caboose.proxy.rlwy.net',
             user='root',
-            password='sk784512!!',
-            database='refrigerator'
+            password='HkqYFCoKPPPxgryxiEbUYxcYynQXxeRF',
+            db='railway',
+            port=3306,
+            charset='utf8mb4',
+            cursorclass=pymysql.cursors.DictCursor
         )
         self.cursor = self.conn.cursor()
         self.setup_database()

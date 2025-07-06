@@ -43,8 +43,16 @@ class NaverBlogCrawler(BaseCrawler):
     
     def _setup_database(self):
         """Setup database connection."""
-        self.db = pymysql.connect(**DB_CONFIG, cursorclass=pymysql.cursors.DictCursor)
-        self.cursor = self.db.cursor()
+        conn = pymysql.connect(
+            host='caboose.proxy.rlwy.net',
+            user='root',
+            password='HkqYFCoKPPPxgryxiEbUYxcYynQXxeRF',
+            db='railway',
+            port=3306,
+            charset='utf8mb4',
+            cursorclass=pymysql.cursors.DictCursor
+        )
+        self.cursor = conn.cursor()
     
     def convert_post_time(self, time_text: str) -> str:
         """Convert post time text to datetime string."""
@@ -112,7 +120,7 @@ class NaverBlogCrawler(BaseCrawler):
         print(f"[결과] 총 처리된 포스트: {total_posts}")
         print(f"[결과] 총 저장된 포스트: {saved_posts} ({total_progress:.1f}% 성공률)")
         self.driver.quit()
-        self.db.close()
+        self.cursor.close()
         print("\n🔄 재료 정보 업데이트 배치 실행 시작...")
         self._run_ingredients_update()
     
@@ -212,7 +220,15 @@ class NaverBlogCrawler(BaseCrawler):
                                 total_posts += 1
                                 
                                 # 데이터베이스에 저장
-                                if self.db.save_post(post_data):
+                                if self.cursor.execute("""
+                                    INSERT IGNORE INTO recipes
+                                    (title, link, content, author, thumbnail, platform, likes, comments, post_time, collected_at)
+                                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                                """, (
+                                    post_data['title'], post_data['link'], post_data['content'], post_data['author'],
+                                    post_data['thumbnail'], post_data['platform'], post_data['likes'], post_data['comments'],
+                                    post_data['post_time'], datetime.now()
+                                )):
                                     saved_posts += 1
                                     self.logger.info("✅ 저장 완료")
                             
@@ -421,7 +437,7 @@ class NaverBlogCrawler(BaseCrawler):
             recipe.thumbnail, recipe.platform, recipe.likes, recipe.comments,
             recipe.post_time, datetime.now()
         ))
-        self.db.commit()
+        self.cursor.connection.commit()
         print("✅ 저장 완료")
     
     def _run_ingredients_update(self):

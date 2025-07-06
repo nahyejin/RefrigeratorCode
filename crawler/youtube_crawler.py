@@ -40,11 +40,13 @@ class YouTubeCrawler:
         
         # DB 연결
         self.db = pymysql.connect(
-            host=os.getenv('DB_HOST', 'localhost'),
-            user=os.getenv('DB_USER', 'root'),
-            password=os.getenv('DB_PASSWORD', 'sk784512!!'),
-            database=os.getenv('DB_NAME', 'refrigerator'),
-            charset='utf8mb4'
+            host='caboose.proxy.rlwy.net',
+            user='root',
+            password='HkqYFCoKPPPxgryxiEbUYxcYynQXxeRF',
+            db='railway',
+            port=3306,
+            charset='utf8mb4',
+            cursorclass=pymysql.cursors.DictCursor
         )
         
         # 할당량 추적 - 실제 API 응답 기반으로 관리
