@@ -47,11 +47,20 @@ self.addEventListener('activate', (event) => {
 
 // Fetch event - 네트워크 우선, 캐시 폴백 전략
 self.addEventListener('fetch', (event) => {
-  // API 요청은 네트워크 우선
+  // API 요청은 네트워크 우선 (오프라인일 때만 폴백)
   if (event.request.url.includes('/api/')) {
     event.respondWith(
       fetch(event.request)
+        .then(response => {
+          // 성공적인 응답이면 그대로 반환
+          if (response.ok) {
+            return response;
+          }
+          // HTTP 에러가 있으면 오프라인 응답 반환
+          throw new Error('API request failed');
+        })
         .catch(() => {
+          // 네트워크 오류나 HTTP 에러일 때만 오프라인 메시지
           return new Response(JSON.stringify({
             error: '오프라인 상태입니다. 인터넷 연결을 확인해주세요.'
           }), {
