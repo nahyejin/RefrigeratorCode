@@ -113,7 +113,21 @@ def get_filtered_recipes():
     elif sort_by == 'popularity':
         order_by = "(COALESCE(hits, 0) + COALESCE(likes, 0)*2) DESC"
     elif sort_by == 'hits':
-        order_by = "hits DESC"
+        # 조회수순: 유튜브는 hits DESC, 네이버는 likes DESC로 정렬
+        order_by = """
+        CASE 
+            WHEN platform LIKE '%youtube%' THEN 1
+            ELSE 2
+        END,
+        CASE 
+            WHEN platform LIKE '%youtube%' THEN COALESCE(hits, 0)
+            ELSE 0
+        END DESC,
+        CASE 
+            WHEN platform NOT LIKE '%youtube%' THEN COALESCE(likes, 0)
+            ELSE 0
+        END DESC
+        """
     elif sort_by == 'like':
         order_by = "likes DESC"
     elif sort_by == 'comment':

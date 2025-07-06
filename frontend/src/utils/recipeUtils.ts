@@ -105,14 +105,34 @@ export function sortRecipes(
       break;
     case 'hits':
       sorted.sort((a, b) => {
-        if (!a.hits && !b.hits) {
-          const aScore = (a.like_count ?? a.likes ?? 0) * 1.0 + (a.comment_count ?? a.comments ?? 0) * 2.0;
-          const bScore = (b.like_count ?? b.likes ?? 0) * 1.0 + (b.comment_count ?? b.comments ?? 0) * 2.0;
-          return bScore - aScore;
+        // 플랫폼별 분리 정렬: 유튜브(인플루언서)는 hits 기준, 네이버는 likes 기준
+        const aPlatform = a.platform || '';
+        const bPlatform = b.platform || '';
+        
+        // 유튜브(인플루언서) 플랫폼인지 확인
+        const aIsYoutube = aPlatform.includes('youtube');
+        const bIsYoutube = bPlatform.includes('youtube');
+        
+        // 둘 다 유튜브인 경우 hits로 정렬
+        if (aIsYoutube && bIsYoutube) {
+          const aHits = a.hits || 0;
+          const bHits = b.hits || 0;
+          return bHits - aHits;
         }
-        if (!a.hits) return 1;
-        if (!b.hits) return -1;
-        return b.hits - a.hits;
+        
+        // 둘 다 네이버인 경우 likes로 정렬
+        if (!aIsYoutube && !bIsYoutube) {
+          const aLike = a.like_count ?? a.likes ?? 0;
+          const bLike = b.like_count ?? b.likes ?? 0;
+          return bLike - aLike;
+        }
+        
+        // 유튜브가 네이버보다 우선 (유튜브가 위로)
+        if (aIsYoutube && !bIsYoutube) return -1;
+        if (!aIsYoutube && bIsYoutube) return 1;
+        
+        // 기본값
+        return 0;
       });
       break;
     case 'match':
@@ -120,17 +140,28 @@ export function sortRecipes(
       break;
     case 'expiry':
       sorted.sort((a, b) => {
+        // 임박재료가 선택되지 않은 경우 매칭률순으로 정렬
+        if (appliedExpiryIngredients.length === 0) {
+          return (b.match_rate || 0) - (a.match_rate || 0);
+        }
+        
         const aIngredients = Array.isArray(a.used_ingredients)
           ? a.used_ingredients.map(i => (typeof i === 'string' ? i.trim() : ''))
           : (typeof a.used_ingredients === 'string' ? a.used_ingredients.split(',').map(i => i.trim()) : []);
         const bIngredients = Array.isArray(b.used_ingredients)
           ? b.used_ingredients.map(i => (typeof i === 'string' ? i.trim() : ''))
           : (typeof b.used_ingredients === 'string' ? b.used_ingredients.split(',').map(i => i.trim()) : []);
+        
+        // 임박재료 포함 개수 계산
         const aCount = appliedExpiryIngredients.filter(ing => aIngredients.includes(ing)).length;
         const bCount = appliedExpiryIngredients.filter(ing => bIngredients.includes(ing)).length;
+        
+        // 임박재료 개수가 다르면 임박재료가 많은 순으로 정렬
         if (aCount !== bCount) {
           return bCount - aCount;
         }
+        
+        // 임박재료 개수가 같으면 매칭률순으로 정렬
         return (b.match_rate || 0) - (a.match_rate || 0);
       });
       break;
