@@ -48,7 +48,7 @@ class NaverBlogCrawler(BaseCrawler):
             user='root',
             password='HkqYFCoKPPPxgryxiEbUYxcYynQXxeRF',
             db='railway',
-            port=3306,
+            port=47779,
             charset='utf8mb4',
             cursorclass=pymysql.cursors.DictCursor
         )
