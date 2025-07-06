@@ -13,7 +13,7 @@ app = Flask(__name__)
 app.config['JSON_AS_ASCII'] = False
 
 # CORS 설정 - 환경변수에서 허용할 origin 가져오기
-cors_origins = os.getenv('CORS_ORIGINS', 'http://localhost:5173,http://localhost:5177').split(',')
+cors_origins = os.getenv('CORS_ORIGINS', 'http://localhost:5173,http://localhost:5177,http://localhost:5178').split(',')
 CORS(app, origins=[origin.strip() for origin in cors_origins if origin.strip()], supports_credentials=True)
 
 def get_db():
