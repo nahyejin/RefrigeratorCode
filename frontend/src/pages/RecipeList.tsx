@@ -508,7 +508,10 @@ const RecipeList: React.FC = () => {
       matchRateMax: matchRange[1],
       sortBy: sortType === 'match' ? 'match_rate' : 
               sortType === 'latest' ? 'date' : 
-              sortType === 'like' ? 'popularity' : 'match_rate',
+              sortType === 'like' ? 'like' : 
+              sortType === 'comment' ? 'comment' : 
+              sortType === 'hits' ? 'hits' : 
+              sortType === 'expiry' ? 'match_rate' : 'match_rate',
       platform: selectedChannel.length > 0 ? selectedChannel[0] : undefined
     };
     
@@ -529,7 +532,10 @@ const RecipeList: React.FC = () => {
         matchRateMax: matchRange[1],
         sortBy: sortType === 'match' ? 'match_rate' : 
                 sortType === 'latest' ? 'date' : 
-                sortType === 'like' ? 'popularity' : 'match_rate',
+                sortType === 'like' ? 'like' : 
+                sortType === 'comment' ? 'comment' : 
+                sortType === 'hits' ? 'hits' : 
+                sortType === 'expiry' ? 'match_rate' : 'match_rate',
         platform: selectedChannel.length > 0 ? selectedChannel[0] : undefined
       };
       
@@ -575,7 +581,10 @@ const RecipeList: React.FC = () => {
       matchRateMax: matchRange[1],
       sortBy: sortType === 'match' ? 'match_rate' : 
               sortType === 'latest' ? 'date' : 
-              sortType === 'like' ? 'popularity' : 'match_rate',
+              sortType === 'like' ? 'like' : 
+              sortType === 'comment' ? 'comment' : 
+              sortType === 'hits' ? 'hits' : 
+              sortType === 'expiry' ? 'match_rate' : 'match_rate',
       platform: selectedChannel.length > 0 ? selectedChannel[0] : undefined
     };
     
