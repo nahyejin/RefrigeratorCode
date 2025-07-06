@@ -48,10 +48,11 @@ class NaverInfluencerCrawler:
         
         # DB 연결 설정
         self.db_config = {
-            'host': 'localhost',
+            'host': 'caboose.proxy.rlwy.net',
             'user': 'root',
-            'password': 'sk784512!!',
-            'db': 'refrigerator',
+            'password': 'HkqYFCoKPPPxgryxiEbUYxcYynQXxeRF',
+            'db': 'railway',
+            'port': 3306,
             'charset': 'utf8mb4',
             'cursorclass': pymysql.cursors.DictCursor
         }
