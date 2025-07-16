@@ -48,8 +48,8 @@ const initialFilterState: FilterState = {
 // 기간 옵션 상수
 const PERIOD_OPTIONS = [
   { value: 'today', label: '오늘' },
-  { value: 'week', label: '이번주' },
-  { value: 'month', label: '이번달' },
+  { value: 'week', label: '최근 7일' },
+  { value: 'month', label: '최근 30일' },
   { value: 'custom', label: '기간선택' },
 ];
 
@@ -168,12 +168,7 @@ function parseIngredientNames(csv: string): string[] {
     .filter(name => !!name && name !== 'ingredient_name');
 }
 
-const periodOptions = [
-  { value: 'today', label: '오늘' },
-  { value: 'week', label: '최근 7일' },
-  { value: 'month', label: '최근 30일' },
-  { value: 'custom', label: '기간선택' },
-];
+const periodOptions = PERIOD_OPTIONS;
 
 // 기간별 날짜 계산 함수들
 const getDateRange = (period: string, customRange?: [Date, Date]) => {
@@ -717,14 +712,23 @@ const Popular = () => {
     )
   ).slice(0, 100);
 
-  // Fetch recipes and calculate popularity scores (ignore date filter, show up to 30)
+  // Fetch recipes and calculate popularity scores based on period filter
   useEffect(() => {
     (async () => {
       const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
-      const period = 30;
       const size = 100;
+      
       try {
-        const res = await axios.get(`${apiUrl}/api/recipes/popular?period=${period}&size=${size}`);
+        // 기간별 API 파라미터 구성
+        let apiParams = `period_type=${period}&size=${size}`;
+        
+        // custom 기간인 경우 시작/종료 날짜 추가
+        if (period === 'custom' && dateRange[0] && dateRange[1]) {
+          const formatDate = (date: Date) => date.toISOString().split('T')[0];
+          apiParams += `&start_date=${formatDate(dateRange[0])}&end_date=${formatDate(dateRange[1])}`;
+        }
+        
+        const res = await axios.get(`${apiUrl}/api/recipes/popular?${apiParams}`);
         console.log('Popular API 응답:', res.data);
         
         // res.data가 직접 객체인 경우와 res.data.youtube/naver인 경우 모두 처리
@@ -742,7 +746,7 @@ const Popular = () => {
         setNaverRecipes([]);
       }
     })();
-  }, []);
+  }, [period, dateRange]); // period와 dateRange가 변경될 때마다 API 재호출
 
   // 레시피 데이터 로드 시 랭킹 계산
   useEffect(() => {
