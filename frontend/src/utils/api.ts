@@ -69,7 +69,13 @@ export const api = {
    */
   getRecipes: async (): Promise<Recipe[]> => {
     const endpoint = `${API_BASE_URL}${API_ENDPOINTS.recipes}`;
-    const response = await fetch(endpoint);
+    const response = await fetch(endpoint, {
+      mode: 'cors',
+      credentials: 'omit',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    });
     return handleApiResponse<Recipe[]>(response, endpoint);
   },
 
@@ -78,7 +84,13 @@ export const api = {
    */
   healthCheck: async (): Promise<HealthCheckResponse> => {
     const endpoint = `${API_BASE_URL}${API_ENDPOINTS.health}`;
-    const response = await fetch(endpoint);
+    const response = await fetch(endpoint, {
+      mode: 'cors',
+      credentials: 'omit',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    });
     return handleApiResponse<HealthCheckResponse>(response, endpoint);
   }
 };
