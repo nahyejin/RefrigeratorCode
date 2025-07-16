@@ -66,7 +66,7 @@ const Utils = {
     if (isNaN(num)) return numberStr;
     // 0인 경우에도 0,000으로 표시
     if (num === 0 && digits.length === 4) return '0,000';
-    return num.toLocaleString('ko-KR');
+    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   },
 
   // 랜덤 숫자 배열 생성
