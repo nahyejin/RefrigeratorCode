@@ -47,6 +47,13 @@ self.addEventListener('activate', (event) => {
 
 // Fetch event - 네트워크 우선, 캐시 폴백 전략
 self.addEventListener('fetch', (event) => {
+  // chrome-extension, moz-extension 등의 요청은 무시
+  if (event.request.url.startsWith('chrome-extension://') || 
+      event.request.url.startsWith('moz-extension://') ||
+      event.request.url.startsWith('edge-extension://')) {
+    return;
+  }
+  
   // API 요청은 네트워크 우선 (오프라인일 때만 폴백)
   if (event.request.url.includes('/api/')) {
     event.respondWith(

@@ -40,12 +40,13 @@ def is_valid_short_match(word, line):
     pattern = rf"(?<![가-힣A-Za-z]){re.escape(word)}(?![가-힣A-Za-z])"
     return bool(re.search(pattern, line)) and len(line.strip()) <= 25
 
-# ✅ DB 연결
+# ✅ DB 연결 (Railway DB)
 db = pymysql.connect(
-    host='localhost',
+    host='caboose.proxy.rlwy.net',
     user='root',
-    password='sk784512!!',
-    db='refrigerator',
+    password='HkqYFCoKPPPxgryxiEbUYxcYynQXxeRF',
+    db='railway',  # 실제 DB명
+    port=47779,    # 반드시 47779로!
     charset='utf8mb4',
     cursorclass=pymysql.cursors.DictCursor
 )

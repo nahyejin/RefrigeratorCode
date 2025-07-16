@@ -327,7 +327,21 @@ async function loadRecipesPaged(
 
     // 프론트엔드에서 재료매칭률순 정렬 적용
     if (filters.sortBy === 'match_rate') {
-      recipes = recipes.sort((a: any, b: any) => (b.match_rate || 0) - (a.match_rate || 0));
+      // 매칭률 계산 및 정렬
+      recipes = recipes.map((recipe: any) => {
+        // 재료 정보가 없는 경우 null로 처리
+        if (!recipe.used_ingredients || recipe.used_ingredients.trim() === '' || recipe.used_ingredients === 'null') {
+          return { ...recipe, match_rate: null };
+        }
+        // 매칭률 계산
+        const matchResult = calculateMatchRate(getMyIngredients(), recipe.used_ingredients);
+        return { ...recipe, match_rate: matchResult.rate };
+      }).sort((a: any, b: any) => {
+        // null 값을 가장 낮은 값으로 처리
+        const aRate = a.match_rate === null || a.match_rate === undefined ? -1 : a.match_rate;
+        const bRate = b.match_rate === null || b.match_rate === undefined ? -1 : b.match_rate;
+        return bRate - aRate;
+      });
     }
 
     // 플랫폼별 분포 확인

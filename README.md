@@ -377,16 +377,16 @@ RefrigeratorCode/
 
 import pymysql
 
-conn = pymysql.connect(
-    host='caboose.proxy.rlwy.net',
-    user='root',
-    password='HkqYFCoKPPPxgryxiEbUYxcYynQXxeRF',
-    db='railway',
-    port=3306,
-    charset='utf8mb4',
-    cursorclass=pymysql.cursors.DictCursor
-)
-cursor = conn.cursor()
+    conn = pymysql.connect(
+       host='caboose.proxy.rlwy.net',
+       user='root',
+       password='HkqYFCoKPPPxgryxiEbUYxcYynQXxeRF',
+       db='railway',  # 실제 DB명
+       port=47779,    # 반드시 47779로!
+       charset='utf8mb4',
+       cursorclass=pymysql.cursors.DictCursor
+   )
+   cursor = conn.cursor()
 ```
 
 ---
@@ -690,6 +690,24 @@ crawler/
 - `frontend/public/ingredient_profile_dict_with_substitutes.csv`  : 식재료별 프로필 및 대체재 정보
 - `frontend/public/ingredient_substitute_table.csv`  : 식재료 대체 가능성 사전
 - `frontend/public/YouTube_Cooking_influencer.csv` : 유튜브 요리 인플루언서 채널 목록 (여기에 채널 정보를 추가하면, 크롤러 실행 시 해당 채널의 영상이 자동으로 수집됩니다. CSV에 채널을 계속 추가하면, 그 채널의 영상도 모두 수집하게 됩니다.)
+
+### 5. 재료 정보 자동 추출 시스템
+
+**모든 크롤러는 크롤링 완료 후 자동으로 `update_used_ingredients_batch.py`를 실행합니다:**
+
+- **실행 시점**: 각 크롤러의 크롤링 작업 완료 직후
+- **실행 파일**: `ingredient_management/update_used_ingredients_batch.py`
+- **처리 대상**: 새로 수집된 레시피의 `used_ingredients`, `used_ingredients_block`, `block_reason` 필드
+- **실행 방식**: 
+  - `run_all_crawlers.py`: 모든 크롤러 완료 후 통합 실행
+  - `crawler/youtube_crawler.py`: 유튜브 크롤링 완료 후 실행
+  - `crawler/naver_blog_crawler.py`: 네이버 블로그 크롤링 완료 후 실행
+  - `crawler/naver_influencer_crawler.py`: 네이버 인플루언서 크롤링 완료 후 실행
+
+**재료 추출 로직:**
+1. **재료 블록 탐색**: 레시피 본문에서 재료 정보가 포함된 텍스트 블록 추출
+2. **재료명 매칭**: 사전 기반으로 재료명과 동의어 매칭
+3. **데이터베이스 업데이트**: 추출된 재료 정보를 DB에 저장
 
 ## YouTube 크롤러 설정
 
