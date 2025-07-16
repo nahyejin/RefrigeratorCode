@@ -170,9 +170,9 @@ const Utils = {
 
   // 통계 텍스트 생성
   getStatsText: (recipe: Recipe) => {
-    const likes = recipe.likes?.toLocaleString() ?? 0;
-    const comments = recipe.comments?.toLocaleString() ?? 0;
-    const hits = Utils.isYouTube(recipe.platform) ? recipe.hits?.toLocaleString() ?? 0 : null;
+      const likes = recipe.likes?.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') ?? 0;
+  const comments = recipe.comments?.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') ?? 0;
+  const hits = Utils.isYouTube(recipe.platform) ? recipe.hits?.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') ?? 0 : null;
     
     let stats = `좋아요 ${likes} · 댓글 ${comments}`;
     if (hits !== null) {

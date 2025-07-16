@@ -518,7 +518,7 @@ const RecipeSortBar = ({
       includeKeyword,
       includeIngredients,
       excludeIngredients,
-      categoryKeywords: Utils.buildCategoryKeywords(selectedCategoryKeywords || {}, categoryKeywordTree)
+      categoryKeywords: Utils.buildCategoryKeywords(selectedCategoryKeywords || null, categoryKeywordTree)
     });
     
     onFilteredRecipesChange(filtered);
