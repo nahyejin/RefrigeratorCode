@@ -180,7 +180,6 @@ export default function IngredientDateModal({ type, isOpen, onClose, onComplete,
           {/* 달력 팝업 */}
           {calendarOpen && (
             <div className="absolute left-1/2 -translate-x-1/2 top-12 z-50 bg-white rounded-xl shadow-lg p-2">
-              {/* @ts-expect-error DatePicker type issue with React 18/19 */}
               <DatePicker
                 selected={Utils.isValidDateString(inputValue) ? new Date(inputValue) : null}
                 onChange={handleCalendarChange}
