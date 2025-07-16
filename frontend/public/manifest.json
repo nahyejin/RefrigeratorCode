@@ -69,7 +69,7 @@
       "url": "/myfridge",
       "icons": [
         {
-          "src": "/src/assets/navigator_myfridge_black.png",
+          "src": "/navigator_myfridge_black.png",
           "sizes": "96x96"
         }
       ]
@@ -81,7 +81,7 @@
       "url": "/search",
       "icons": [
         {
-          "src": "/src/assets/navigator_search.png",
+          "src": "/navigator_search.png",
           "sizes": "96x96"
         }
       ]
@@ -93,7 +93,7 @@
       "url": "/popularity",
       "icons": [
         {
-          "src": "/src/assets/navigator_popularity_black.png",
+          "src": "/navigator_popularity_black.png",
           "sizes": "96x96"
         }
       ]
@@ -101,7 +101,7 @@
   ],
   "screenshots": [
     {
-      "src": "/src/assets/open_loading_page.png",
+      "src": "/open_loading_page.png",
       "sizes": "1280x720",
       "type": "image/png",
       "form_factor": "wide",
