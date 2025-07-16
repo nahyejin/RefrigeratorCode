@@ -123,7 +123,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ recipeCount }) => {
 
   // 쉼표 추가된 포맷팅
   const formatted = stage === 'final' 
-    ? recipeCount.toLocaleString('ko-KR') 
+    ? recipeCount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') 
     : Utils.formatNumberWithComma(displayDigits);
   
   // 디버깅용 로그
