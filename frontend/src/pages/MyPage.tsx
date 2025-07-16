@@ -591,7 +591,7 @@ const MyPage: React.FC = () => {
               </div>
             </div>
             <span style={{ color: '#666', fontSize: '12px', marginRight: 32 }}>
-              총 {recordedRecipes.length.toLocaleString()}건
+              총 {recordedRecipes.length.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}건
             </span>
           </div>
           
@@ -687,7 +687,7 @@ const MyPage: React.FC = () => {
               </div>
             </div>
             <span style={{ color: '#666', fontSize: '12px', marginRight: 32 }}>
-              총 {completedRecipes.length.toLocaleString()}건
+              총 {completedRecipes.length.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}건
             </span>
           </div>
           

@@ -710,7 +710,7 @@ const RecipeList: React.FC = () => {
               </div>
             </div>
             <span style={{ color: '#666', fontSize: '12px' }}>
-              총 {filteredRecipes.length.toLocaleString()}건
+              총 {filteredRecipes.length.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}건
             </span>
           </div>
           

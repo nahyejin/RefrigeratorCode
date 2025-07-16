@@ -1054,7 +1054,7 @@ const Popular = () => {
                               {dish.name}
                             </span>
                           </td>
-                          <td className="py-1.5 px-2 text-right text-[#444] font-normal whitespace-nowrap">{dish.count.toLocaleString()}</td>
+                          <td className="py-1.5 px-2 text-right text-[#444] font-normal whitespace-nowrap">{dish.count.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</td>
                           <td className="py-1.5 px-2 text-center font-normal whitespace-nowrap" style={{color: dish.rate >= 0 ? '#E85A4F' : '#3A6EA5'}}>{dish.rate >= 0 ? `+${dish.rate}%` : `${dish.rate}%`}</td>
                         </tr>
                       ))
@@ -1091,7 +1091,7 @@ const Popular = () => {
                               {theme.name}
                             </span>
                           </td>
-                          <td className="py-1.5 px-2 text-right text-[#444] font-normal whitespace-nowrap">{theme.count.toLocaleString()}</td>
+                          <td className="py-1.5 px-2 text-right text-[#444] font-normal whitespace-nowrap">{theme.count.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</td>
                           <td className="py-1.5 px-2 text-center font-normal whitespace-nowrap" style={{color: theme.rate >= 0 ? '#E85A4F' : '#3A6EA5'}}>{theme.rate >= 0 ? `+${theme.rate}%` : `${theme.rate}%`}</td>
                         </tr>
                       ))

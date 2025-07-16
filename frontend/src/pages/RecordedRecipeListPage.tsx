@@ -540,7 +540,7 @@ const RecordedRecipeListPage: React.FC = () => {
               </div>
             </div>
             <span style={{ color: '#666', fontSize: '12px' }}>
-              총 {recipes.length.toLocaleString()}건
+              총 {recipes.length.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}건
             </span>
           </div>
           

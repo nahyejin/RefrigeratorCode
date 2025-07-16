@@ -756,7 +756,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
               </div>
             </div>
             <span style={{ color: '#666', fontSize: '12px' }}>
-              총 {processedRecipes.length.toLocaleString()}건
+              총 {processedRecipes.length.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}건
             </span>
           </div>
           

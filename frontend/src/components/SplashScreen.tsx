@@ -132,7 +132,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ recipeCount }) => {
   console.log('Display Digits:', displayDigits);
   console.log('Formatted:', formatted);
   console.log('Stage === final:', stage === 'final');
-  console.log('Using toLocaleString:', stage === 'final' ? 'YES' : 'NO');
+  console.log('Using regex formatting:', stage === 'final' ? 'YES' : 'NO');
 
   return (
     <div style={STYLES.container}>
