@@ -2,9 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Pretendard 폰트 CDN */
-@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
-
 body {
   font-family: 'Pretendard', '맑은고딕', 'Malgun Gothic', 돋움, Dotum, 굴림, Gulim, AppleSDGothicNeo-Light, AppleGothic, Helvetica, Arial, HelveticaNeue-Light, sans-serif-light, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
   color: #222;
