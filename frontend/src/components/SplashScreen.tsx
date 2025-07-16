@@ -59,12 +59,14 @@ const Utils = {
     return num.toString().padStart(length, '0');
   },
 
-  // 4자리 숫자에 쉼표 추가
+  // 숫자에 쉼표 추가 (1000단위)
   formatNumberWithComma: (digits: string[]): string => {
-    if (digits.length !== CONSTANTS.DIGIT_LENGTH) {
-      return digits.join('');
-    }
-    return `${digits[0]},${digits[1]}${digits[2]}${digits[3]}`;
+    const numberStr = digits.join('');
+    const num = parseInt(numberStr, 10);
+    if (isNaN(num)) return numberStr;
+    // 0인 경우에도 0,000으로 표시
+    if (num === 0 && digits.length === 4) return '0,000';
+    return num.toLocaleString('ko-KR');
   },
 
   // 랜덤 숫자 배열 생성
@@ -81,9 +83,12 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ recipeCount }) => {
   const rouletteStartTime = useRef<number>(0);
 
   useEffect(() => {
+    console.log('SplashScreen useEffect triggered, recipeCount:', recipeCount);
+    
     // recipeCount가 0이면 아직 데이터가 로드되지 않은 상태이므로 룰렛을 시작하지 않음
     if (recipeCount === 0) {
       setDisplayDigits(['0', '0', '0', '0']);
+      setStage('roulette');
       return;
     }
 
@@ -101,7 +106,9 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ recipeCount }) => {
       } else {
         // 룰렛 종료 시 바로 실제값으로 설정하고 더 이상 변경하지 않음
         setStage('final');
-        setDisplayDigits(Utils.padNumber(recipeCount, CONSTANTS.DIGIT_LENGTH).split(''));
+        console.log('Setting final stage with recipeCount:', recipeCount);
+        // 실제 숫자를 그대로 표시 (패딩하지 않음)
+        setDisplayDigits(recipeCount.toString().split(''));
       }
     };
     
@@ -115,7 +122,17 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ recipeCount }) => {
   }, [recipeCount]);
 
   // 쉼표 추가된 포맷팅
-  const formatted = Utils.formatNumberWithComma(displayDigits);
+  const formatted = stage === 'final' 
+    ? recipeCount.toLocaleString('ko-KR') 
+    : Utils.formatNumberWithComma(displayDigits);
+  
+  // 디버깅용 로그
+  console.log('Stage:', stage);
+  console.log('Recipe Count:', recipeCount);
+  console.log('Display Digits:', displayDigits);
+  console.log('Formatted:', formatted);
+  console.log('Stage === final:', stage === 'final');
+  console.log('Using toLocaleString:', stage === 'final' ? 'YES' : 'NO');
 
   return (
     <div style={STYLES.container}>

@@ -14,6 +14,7 @@ from urllib.parse import urljoin
 import pymysql
 from tqdm import tqdm
 import sys
+import subprocess
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -468,6 +469,17 @@ class NaverInfluencerCrawler:
                     pbar.set_postfix({'Current': f"{card['title'][:20]}..."})
         finally:
             driver.quit()
+            
+        # 크롤링 완료 후 재료 정보 업데이트 배치 실행
+        logger.info("=== 네이버 인플루언서 크롤링 완료 ===")
+        logger.info("Running update_used_ingredients_batch.py...")
+        try:
+            subprocess.run([sys.executable, 'ingredient_management/update_used_ingredients_batch.py'], check=True)
+            logger.info("update_used_ingredients_batch.py finished.")
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Failed to run update_used_ingredients_batch.py: {e}")
+        except Exception as e:
+            logger.error(f"Error running update_used_ingredients_batch.py: {e}")
             
         return all_recipes
 

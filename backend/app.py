@@ -107,7 +107,14 @@ def get_filtered_recipes():
     
     # 정렬 조건
     if sort_by == 'match_rate':
-        order_by = "post_time DESC"  # DB에는 match_rate가 없으므로 최신순으로 대체
+        # 매칭률 순으로 정렬 (재료 정보가 없는 경우 하위로)
+        order_by = """
+        CASE 
+            WHEN used_ingredients IS NULL OR used_ingredients = '' OR used_ingredients = 'null' THEN 1
+            ELSE 0
+        END,
+        post_time DESC
+        """
     elif sort_by == 'date':
         order_by = "post_time DESC"
     elif sort_by == 'popularity':
