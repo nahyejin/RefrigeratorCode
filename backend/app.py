@@ -51,33 +51,62 @@ def get_recipes():
 @app.route('/api/recipes/popular')
 def get_popular_recipes():
     size = int(request.args.get('size', 30))
-    period = int(request.args.get('period', 30))  # 최근 30일
+    period_type = request.args.get('period_type', 'month')  # today, week, month, custom
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+    
     db = get_db()
     cursor = db.cursor()
+    
+    # 기간별 WHERE 조건 생성
+    if period_type == 'custom' and start_date and end_date:
+        where_clause = "WHERE post_time >= %s AND post_time <= %s"
+        params = [start_date, end_date]
+    else:
+        # 기본 기간 설정
+        if period_type == 'today':
+            days = 1
+        elif period_type == 'week':
+            days = 7
+        else:  # month
+            days = 30
+        
+        where_clause = "WHERE post_time >= DATE_SUB(NOW(), INTERVAL %s DAY)"
+        params = [days]
+    
     # 유튜브 인기 레시피
     cursor.execute(
-        """
+        f"""
         SELECT * FROM recipes
-        WHERE post_time >= DATE_SUB(NOW(), INTERVAL %s DAY)
+        {where_clause}
         AND platform LIKE %s
         ORDER BY (1.0 * COALESCE(likes, 0) + 2.0 * COALESCE(comments, 0) + 0.5 * COALESCE(hits, 0)) DESC
         LIMIT %s
-        """, (period, '%youtube%', size)
+        """, params + ['%youtube%', size]
     )
     youtube_recipes = cursor.fetchall()
+    
     # 네이버 인기 레시피
     cursor.execute(
-        """
+        f"""
         SELECT * FROM recipes
-        WHERE post_time >= DATE_SUB(NOW(), INTERVAL %s DAY)
+        {where_clause}
         AND platform LIKE %s
         ORDER BY (1.0 * COALESCE(likes, 0) + 2.0 * COALESCE(comments, 0)) DESC
         LIMIT %s
-        """, (period, '%naver%', size)
+        """, params + ['%naver%', size]
     )
     naver_recipes = cursor.fetchall()
+    
     db.close()
-    return jsonify({'youtube': youtube_recipes, 'naver': naver_recipes, 'size': size, 'period': period})
+    return jsonify({
+        'youtube': youtube_recipes, 
+        'naver': naver_recipes, 
+        'size': size, 
+        'period_type': period_type,
+        'start_date': start_date,
+        'end_date': end_date
+    })
 
 @app.route('/api/recipes/filter')
 def get_filtered_recipes():
