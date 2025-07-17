@@ -120,7 +120,12 @@ const calculateIngredientRankings = (recipes: Recipe[], dateRange: { start: Date
   
   currentRecipes.forEach(recipe => {
     if (recipe.used_ingredients) {
-      const ingredients = (typeof recipe.used_ingredients === 'string' ? recipe.used_ingredients.split(',') : recipe.used_ingredients).map((i: string) => i.trim());
+      let ingredients: string[] = [];
+      if (typeof recipe.used_ingredients === 'string' && recipe.used_ingredients.trim()) {
+        ingredients = recipe.used_ingredients.split(',').map((i: string) => i.trim()).filter(i => i);
+      } else if (Array.isArray(recipe.used_ingredients)) {
+        ingredients = recipe.used_ingredients.map((i: string) => i.trim()).filter(i => i);
+      }
       ingredients.forEach((ingredient: string) => {
         currentIngredientCounts[ingredient] = (currentIngredientCounts[ingredient] || 0) + 1;
       });
@@ -132,7 +137,12 @@ const calculateIngredientRankings = (recipes: Recipe[], dateRange: { start: Date
     const previousRecipes = RecipeFilterUtils.filterByDateRange(recipes, previousRange);
     previousRecipes.forEach(recipe => {
       if (recipe.used_ingredients) {
-        const ingredients = (typeof recipe.used_ingredients === 'string' ? recipe.used_ingredients.split(',') : recipe.used_ingredients).map((i: string) => i.trim());
+        let ingredients: string[] = [];
+        if (typeof recipe.used_ingredients === 'string' && recipe.used_ingredients.trim()) {
+          ingredients = recipe.used_ingredients.split(',').map((i: string) => i.trim()).filter(i => i);
+        } else if (Array.isArray(recipe.used_ingredients)) {
+          ingredients = recipe.used_ingredients.map((i: string) => i.trim()).filter(i => i);
+        }
         ingredients.forEach((ingredient: string) => {
           previousIngredientCounts[ingredient] = (previousIngredientCounts[ingredient] || 0) + 1;
         });

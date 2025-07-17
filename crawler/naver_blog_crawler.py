@@ -428,17 +428,26 @@ class NaverBlogCrawler(BaseCrawler):
         
         insert_query = """
         INSERT IGNORE INTO recipes
-        (title, link, content, author, thumbnail, platform, likes, comments, post_time, collected_at)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        (title, link, content, used_ingredients, used_ingredients_block, block_reason, 
+         author, thumbnail, platform, likes, comments, post_time, collected_at)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
         
+        # used_ingredients가 리스트인 경우 콤마로 구분된 문자열로 변환
+        used_ingredients_str = None
+        if recipe.used_ingredients:
+            if isinstance(recipe.used_ingredients, list):
+                used_ingredients_str = ','.join(recipe.used_ingredients)
+            else:
+                used_ingredients_str = recipe.used_ingredients
+        
         self.cursor.execute(insert_query, (
-            recipe.title, recipe.link, recipe.content, recipe.author,
-            recipe.thumbnail, recipe.platform, recipe.likes, recipe.comments,
-            recipe.post_time, datetime.now()
+            recipe.title, recipe.link, recipe.content, 
+            used_ingredients_str, recipe.used_ingredients_block, recipe.block_reason,
+            recipe.author, recipe.thumbnail, recipe.platform, 
+            recipe.likes, recipe.comments, recipe.post_time, datetime.now()
         ))
         self.cursor.connection.commit()
-        print("✅ 저장 완료")
     
     def _run_ingredients_update(self):
         """Run the ingredients update batch script after crawling is complete."""
