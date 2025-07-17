@@ -93,16 +93,19 @@ class NaverInfluencerCrawler:
             with conn.cursor() as cursor:
                 sql = """
                 INSERT INTO recipes (
-                    title, link, content, author, thumbnail, 
-                    platform, likes, comments, post_time, collected_at
+                    title, link, content, used_ingredients, used_ingredients_block, block_reason,
+                    author, thumbnail, platform, likes, comments, post_time, collected_at
                 ) VALUES (
-                    %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+                    %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
                 )
                 """
                 cursor.execute(sql, (
                     data['title'],
                     data['link'],
                     data['content'],
+                    data.get('used_ingredients'),
+                    data.get('used_ingredients_block'),
+                    data.get('block_reason'),
                     data['author'],
                     data['thumbnail'],
                     data['platform'],
