@@ -56,24 +56,68 @@ class NaverBlogCrawler(BaseCrawler):
     
     def convert_post_time(self, time_text: str) -> str:
         """Convert post time text to datetime string."""
+        if not time_text or not time_text.strip():
+            return None
+            
         now = datetime.now()
         try:
-            time_text = re.sub(r'\s+\d+:\d+', '', time_text)
+            time_text = time_text.strip()
+            print(f"시간 변환 시도: '{time_text}'")
             
+            # 시간/분/일 전 형식 처리
             if "시간 전" in time_text:
-                hours = int(re.search(r"(\d+)", time_text).group(1))
-                post_date = now - timedelta(hours=hours)
+                match = re.search(r"(\d+)시간", time_text)
+                if match:
+                    hours = int(match.group(1))
+                    post_date = now - timedelta(hours=hours)
+                    result = post_date.strftime("%Y-%m-%d")
+                    print(f"시간 전 변환: {time_text} -> {result}")
+                    return result
             elif "분 전" in time_text:
-                minutes = int(re.search(r"(\d+)", time_text).group(1))
-                post_date = now - timedelta(minutes=minutes)
+                match = re.search(r"(\d+)분", time_text)
+                if match:
+                    minutes = int(match.group(1))
+                    post_date = now - timedelta(minutes=minutes)
+                    result = post_date.strftime("%Y-%m-%d")
+                    print(f"분 전 변환: {time_text} -> {result}")
+                    return result
             elif "일 전" in time_text:
-                days = int(re.search(r"(\d+)", time_text).group(1))
-                post_date = now - timedelta(days=days)
+                match = re.search(r"(\d+)일", time_text)
+                if match:
+                    days = int(match.group(1))
+                    post_date = now - timedelta(days=days)
+                    result = post_date.strftime("%Y-%m-%d")
+                    print(f"일 전 변환: {time_text} -> {result}")
+                    return result
             else:
-                post_date = datetime.strptime(time_text.strip(), "%Y. %m. %d.")
-            return post_date.strftime("%Y-%m-%d")
+                # yyyy. mm. dd. 형식 처리
+                # 시간 부분 제거 (예: "2024. 1. 15. 14:30" -> "2024. 1. 15.")
+                time_text = re.sub(r'\s+\d{1,2}:\d{2}', '', time_text)
+                
+                # 다양한 날짜 형식 시도
+                date_formats = [
+                    "%Y. %m. %d.",
+                    "%Y.%m.%d.",
+                    "%Y. %m. %d",
+                    "%Y.%m.%d",
+                    "%Y-%m-%d",
+                    "%Y/%m/%d"
+                ]
+                
+                for date_format in date_formats:
+                    try:
+                        post_date = datetime.strptime(time_text, date_format)
+                        result = post_date.strftime("%Y-%m-%d")
+                        print(f"날짜 형식 변환: {time_text} -> {result}")
+                        return result
+                    except ValueError:
+                        continue
+                        
+            print(f"❌ 시간 변환 실패: 지원하지 않는 형식 '{time_text}'")
+            return None
+            
         except Exception as e:
-            print(f"시간 변환 오류: {time_text} - {str(e)}")
+            print(f"❌ 시간 변환 오류: {time_text} - {str(e)}")
             return None
     
     def crawl(self):
@@ -387,25 +431,54 @@ class NaverBlogCrawler(BaseCrawler):
     def _get_post_time(self) -> str:
         """Get post time."""
         try:
-            time_selectors = [
-                "span.se_publishDate",
-                "span.date",
+            # 우선순위 1: span.se_publishDate (실제 게시 시간)
+            try:
+                time_element = self.driver.find_element(By.CSS_SELECTOR, "span.se_publishDate")
+                time_text = time_element.text.strip()
+                if time_text:
+                    post_time = self.convert_post_time(time_text)
+                    if post_time:
+                        print(f"게시일 찾음 (se_publishDate): {time_text} -> {post_time}")
+                        return post_time
+            except:
+                pass
+            
+            # 우선순위 2: span.date 중에서 yyyy. mm. dd. 형식인 것
+            try:
+                date_elements = self.driver.find_elements(By.CSS_SELECTOR, "span.date")
+                for element in date_elements:
+                    time_text = element.text.strip()
+                    # yyyy. mm. dd. 형식인지 확인
+                    if re.match(r'\d{4}\.\s*\d{1,2}\.\s*\d{1,2}\.', time_text):
+                        post_time = self.convert_post_time(time_text)
+                        if post_time:
+                            print(f"게시일 찾음 (date): {time_text} -> {post_time}")
+                            return post_time
+            except:
+                pass
+                
+            # 우선순위 3: 기타 셀렉터들
+            fallback_selectors = [
                 "div.blog2_postdate span",
                 "div.post_date"
             ]
             
-            for selector in time_selectors:
+            for selector in fallback_selectors:
                 try:
                     time_element = self.driver.find_element(By.CSS_SELECTOR, selector)
                     time_text = time_element.text.strip()
                     if time_text:
                         post_time = self.convert_post_time(time_text)
                         if post_time:
+                            print(f"게시일 찾음 ({selector}): {time_text} -> {post_time}")
                             return post_time
                 except:
                     continue
+                    
         except Exception as e:
-            print(f"작성일 가져오기 실패: {e}")
+            print(f"❌ 작성일 가져오기 실패: {e}")
+        
+        print("❌ 작성일을 찾을 수 없음")
         return None
     
     def _get_title(self) -> str:
@@ -441,12 +514,20 @@ class NaverBlogCrawler(BaseCrawler):
             else:
                 used_ingredients_str = recipe.used_ingredients
         
+        # post_time이 None이면 현재 날짜로 설정
+        post_time_to_save = recipe.post_time if recipe.post_time else datetime.now().strftime("%Y-%m-%d")
+        
         self.cursor.execute(insert_query, (
             recipe.title, recipe.link, recipe.content, 
             used_ingredients_str, recipe.used_ingredients_block, recipe.block_reason,
             recipe.author, recipe.thumbnail, recipe.platform, 
-            recipe.likes, recipe.comments, recipe.post_time, datetime.now()
+            recipe.likes, recipe.comments, post_time_to_save, datetime.now()
         ))
+        
+        if recipe.post_time:
+            print(f"✅ 저장 완료 - 게시일: {recipe.post_time}")
+        else:
+            print(f"⚠️ 저장 완료 - 게시일 없음 (현재 날짜로 대체: {post_time_to_save})")
         self.cursor.connection.commit()
     
     def _run_ingredients_update(self):
@@ -540,11 +621,25 @@ class NaverBlogCrawler(BaseCrawler):
                 comments_text = comments_element.get_text(strip=True)
                 comments = int(comments_text.replace(',', '')) if comments_text.isdigit() else 0
 
-            # 작성일
+            # 작성일 - 수정된 셀렉터 사용
             post_time = ""
-            date_element = soup.select_one('p.blog_date')
-            if date_element:
-                post_time = date_element.get_text(strip=True)
+            # 우선순위 1: span.se_publishDate (실제 게시 시간)
+            date_element = soup.select_one('span.se_publishDate')
+            if date_element and date_element.get_text(strip=True):
+                post_time_text = date_element.get_text(strip=True)
+                post_time = self.convert_post_time(post_time_text)
+                print(f"게시일 찾음 (se_publishDate): {post_time_text} -> {post_time}")
+            
+            # 우선순위 2: span.date 중에서 yyyy. mm. dd. 형식인 것
+            if not post_time:
+                date_elements = soup.select('span.date')
+                for element in date_elements:
+                    date_text = element.get_text(strip=True)
+                    # yyyy. mm. dd. 형식인지 확인
+                    if re.match(r'\d{4}\.\s*\d{1,2}\.\s*\d{1,2}\.', date_text):
+                        post_time = self.convert_post_time(date_text)
+                        print(f"게시일 찾음 (date): {date_text} -> {post_time}")
+                        break
 
             self.driver.switch_to.default_content()
 
