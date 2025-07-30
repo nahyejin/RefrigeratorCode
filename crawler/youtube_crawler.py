@@ -84,29 +84,25 @@ class YouTubeCrawler:
         self.db.commit()
         logger.info("채널 캐시 테이블 확인/생성 완료")
     
-    def get_cached_channel_id(self, channel_url):
-        """캐시에서 채널 ID 조회"""
-        cursor = self.db.cursor()
-        cursor.execute("SELECT channel_id FROM youtube_channel_cache WHERE channel_url = %s", (channel_url,))
-        result = cursor.fetchone()
-        if result:
-            logger.info(f"캐시에서 채널 ID 조회: {channel_url} -> {result[0]}")
-            return result[0]
-        return None
-    
-    def save_channel_id_to_cache(self, channel_url, channel_id):
+    def get_cached_channel_id(self, key):
+        """캐시에서 채널 ID 가져오기"""
+        # 캐시 로직 구현
+        return self.cache.get(key)
+
+    def save_channel_id_to_cache(self, key, channel_id):
         """채널 ID를 캐시에 저장"""
-        cursor = self.db.cursor()
-        try:
-            cursor.execute("""
-                INSERT INTO youtube_channel_cache (channel_url, channel_id) 
-                VALUES (%s, %s) 
-                ON DUPLICATE KEY UPDATE channel_id = VALUES(channel_id)
-            """, (channel_url, channel_id))
-            self.db.commit()
-            logger.info(f"캐시에 채널 ID 저장: {channel_url} -> {channel_id}")
-        except Exception as e:
-            logger.error(f"캐시 저장 실패: {e}")
+        # 캐시 로직 구현
+        self.cache.set(key, channel_id)
+
+    def get_cached_videos(self, channel_id):
+        """캐시에서 영상 목록 가져오기"""
+        # 캐시 로직 구현
+        return self.cache.get(f"videos_{channel_id}")
+
+    def save_videos_to_cache(self, channel_id, videos):
+        """영상 목록을 캐시에 저장"""
+        # 캐시 로직 구현
+        self.cache.set(f"videos_{channel_id}", videos)
     
     def log_api_call(self, api_type, description, cost):
         """API 호출 로깅"""
@@ -122,29 +118,24 @@ class YouTubeCrawler:
         if self.quota_used >= self.daily_quota_limit:
             logger.warning(f"예상 할당량 초과! (사용량: {self.quota_used}/{self.daily_quota_limit})")
     
-    def make_api_request_with_retry(self, request_func, *args, **kwargs):
-        """API 요청을 재시도 로직과 함께 실행"""
-        for attempt in range(self.max_retries):
+    def make_api_request_with_retry(self, endpoint, params):
+        """API 요청을 재시도하며 수행"""
+        logger.info(f"API 요청 시작: {endpoint} with params {params}")
+        for attempt in range(3):
             try:
-                if callable(request_func):
-                    return request_func(*args, **kwargs)
+                response = self.youtube_api_client.request(endpoint, params)
+                if response.status_code == 200:
+                    logger.info(f"API 요청 성공: {endpoint}")
+                    return response.json()
+                elif response.status_code == 403 and 'quotaExceeded' in response.text:
+                    logger.error("API 할당량 초과")
+                    break
                 else:
-                    return request_func.execute()
+                    logger.warning(f"API 요청 실패: {response.status_code}, 재시도 중...")
             except Exception as e:
-                error_str = str(e)
-                if 'quotaExceeded' in error_str or '403' in error_str and 'quota' in error_str.lower():
-                    self.quota_exceeded = True
-                    logger.error(f"할당량 초과로 조기 종료 (시도 {attempt + 1}/{self.max_retries})")
-                    logger.error(f"API 에러: {error_str}")
-                    # 할당량 초과 시 즉시 종료
-                    raise e
-                elif attempt < self.max_retries - 1:
-                    wait_time = self.retry_delay * (2 ** attempt)  # 지수 백오프
-                    logger.warning(f"API 요청 실패, {wait_time}초 후 재시도 ({attempt + 1}/{self.max_retries}): {e}")
-                    time.sleep(wait_time)
-                else:
-                    logger.error(f"API 요청 최종 실패: {e}")
-                    raise e
+                logger.error(f"API 요청 중 예외 발생: {e}, 재시도 중...")
+        logger.error(f"API 요청 실패: {endpoint} with params {params}")
+        return None
     
     def check_quota_remaining(self, required_quota):
         """할당량 잔여량 확인 - 실제 API 응답 기반으로 판단"""
@@ -161,69 +152,74 @@ class YouTubeCrawler:
     
     def get_channel_id_from_url(self, url):
         """URL에서 채널 ID 추출"""
+        logger.info(f"채널 ID 추출 시작: {url}")
         # 먼저 캐시에서 확인
         cached_id = self.get_cached_channel_id(url)
         if cached_id:
+            logger.info(f"캐시에서 채널 ID 찾음: {cached_id}")
             return cached_id
         
         # URL 패턴에 따른 처리
         if '/channel/' in url:
             channel_id = url.split('/channel/')[-1].split('/')[0]
             self.save_channel_id_to_cache(url, channel_id)
+            logger.info(f"채널 ID 추출 완료: {channel_id}")
             return channel_id
         elif '/c/' in url:
             custom_name = url.split('/c/')[-1].split('/')[0]
             # @username 형태로 변환하여 검색
             query = f"@{custom_name}"
-        elif '/@' in url:
-            query = url.split('/@')[-1].split('/')[0]
-            if not query.startswith('@'):
-                query = f"@{query}"
-        else:
-            return None
-        
-        # API 호출로 채널 ID 검색
-        try:
-            self.log_api_call('search', f'채널 검색: {query}', 100)
-            
-            request = self.youtube.search().list(
-                part='id',
-                q=query,
-                type='channel',
-                maxResults=1
-            )
-            response = self.make_api_request_with_retry(request)
-            
-            if response['items']:
-                channel_id = response['items'][0]['id']['channelId']
-                self.save_channel_id_to_cache(url, channel_id)
-                return channel_id
-            return None
-            
-        except Exception as e:
-            logger.error(f"Error finding channel ID for {query}: {e}")
-            return None
-            
-    def get_channel_videos(self, channel_id, max_results=50):
+            logger.info(f"커스텀 이름으로 검색: {query}")
+            # API 호출을 줄이기 위해 캐시를 먼저 확인
+            cached_id = self.get_cached_channel_id(query)
+            if cached_id:
+                logger.info(f"캐시에서 커스텀 이름으로 채널 ID 찾음: {cached_id}")
+                return cached_id
+            # API 호출
+            response = self.make_api_request_with_retry('search', {'q': query, 'type': 'channel'})
+            if response and 'items' in response:
+                for item in response['items']:
+                    if 'channelId' in item['id']:
+                        channel_id = item['id']['channelId']
+                        self.save_channel_id_to_cache(query, channel_id)
+                        logger.info(f"API 호출 후 채널 ID 추출 완료: {channel_id}")
+                        return channel_id
+        logger.warning(f"채널 ID를 찾을 수 없음: {url}")
+        return None
+
+    def get_channel_videos(self, channel_id):
         """채널의 영상 목록 가져오기"""
-        try:
-            self.log_api_call('search', f'채널 영상 목록: {channel_id} (페이지 1)', 100)
-            
-            request = self.youtube.search().list(
-                part='id',
-                channelId=channel_id,
-                type='video',
-                order='date',
-                maxResults=max_results
-            )
-            response = self.make_api_request_with_retry(request)
-            
-            return response.get('items', [])
-            
-        except Exception as e:
-            logger.error(f"Error getting channel videos for {channel_id}: {e}")
-            return []
-    
+        logger.info(f"채널 영상 목록 가져오기 시작: {channel_id}")
+        # 캐시에서 영상 목록 확인
+        cached_videos = self.get_cached_videos(channel_id)
+        if cached_videos:
+            logger.info(f"캐시에서 영상 목록 찾음: {len(cached_videos)}개")
+            return cached_videos
+        
+        # 로컬 데이터베이스에서 이미 수집된 영상 ID 확인
+        existing_video_ids = self.get_existing_video_ids_from_db(channel_id)
+        logger.info(f"로컬 DB에서 기존 영상 수: {len(existing_video_ids)}개")
+        
+        # API 호출로 새로운 영상 목록 가져오기
+        response = self.make_api_request_with_retry('search', {'channelId': channel_id, 'type': 'video', 'order': 'date', 'maxResults': 50})
+        new_videos = []
+        if response and 'items' in response:
+            for item in response['items']:
+                video_id = item['id']['videoId']
+                if video_id not in existing_video_ids:
+                    new_videos.append(video_id)
+            self.save_videos_to_cache(channel_id, new_videos)
+            logger.info(f"API 호출 후 새로운 영상 목록 추출 완료: {len(new_videos)}개")
+        else:
+            logger.warning(f"새로운 영상 목록을 찾을 수 없음: {channel_id}")
+        return new_videos
+
+    def get_existing_video_ids_from_db(self, channel_id):
+        """로컬 데이터베이스에서 이미 수집된 영상 ID 가져오기"""
+        # 데이터베이스 로직 구현
+        # 예시: SELECT video_id FROM videos WHERE channel_id = ?
+        return []  # 실제 구현 필요
+        
     def get_videos_info(self, video_ids):
         """영상 상세 정보 가져오기"""
         all_videos = []
@@ -265,6 +261,7 @@ class YouTubeCrawler:
         
     def save_to_db(self, video_info):
         """단일 영상을 DB에 저장하고 성공/실패를 반환"""
+        logger.info(f"DB 저장 시작: {video_info['link']}")  # 추가된 로그
         sql = '''
         INSERT IGNORE INTO recipes
         (title, link, content, used_ingredients, used_ingredients_block, block_reason, author, thumbnail, platform, hits, likes, comments, post_time, collected_at)
@@ -280,6 +277,7 @@ class YouTubeCrawler:
                 
             # 재료 추출
             ingredients = extract_ingredients(block)
+            logger.info(f"추출된 재료: {ingredients}")  # 추가된 로그
             
             # 추출된 재료가 너무 적으면 건너뛰기
             if len(ingredients) < 3:
@@ -303,7 +301,7 @@ class YouTubeCrawler:
                 video_info['post_time'],
                 datetime.now()
             ))
-            
+            logger.info(f"DB 저장 성공: {video_info['link']}")  # 추가된 로그
             return True
             
         except Exception as e:
@@ -315,7 +313,7 @@ class YouTubeCrawler:
         try:
             # 시작할 때 한 번만 DB에서 기존 영상 ID들을 가져옴
             existing_ids = self.get_existing_video_ids()
-            print(f"기존 영상 수: {len(existing_ids)}")
+            logger.info(f"기존 영상 수: {len(existing_ids)}")  # 추가된 로그
             
             df = pd.read_csv(csv_path)
             total_influencers = len(df)
@@ -333,18 +331,18 @@ class YouTubeCrawler:
                     break
                     
                 channel_url = row['URL']
-                print(f"\n[진행상황] {idx+1}/{total_influencers} 처리 중: {channel_url}")
+                logger.info(f"[진행상황] {idx+1}/{total_influencers} 처리 중: {channel_url}")  # 추가된 로그
                 
                 try:
                     channel_id = self.get_channel_id_from_url(channel_url)
                     if not channel_id:
-                        print(f"채널 ID를 찾을 수 없음: {channel_url}")
+                        logger.warning(f"채널 ID를 찾을 수 없음: {channel_url}")  # 추가된 로그
                         continue
                         
                     # 영상 목록 가져오기
                     videos = self.get_channel_videos(channel_id)
                     if not videos:
-                        print(f"새로운 영상이 없음: {channel_url}")
+                        logger.info(f"새로운 영상이 없음: {channel_url}")  # 추가된 로그
                         continue
                         
                     # 새로운 영상만 필터링
@@ -355,7 +353,7 @@ class YouTubeCrawler:
                             new_videos.append(video)
                             
                     if not new_videos:
-                        print(f"새로운 영상이 없음: {channel_url}")
+                        logger.info(f"새로운 영상이 없음: {channel_url}")  # 추가된 로그
                         continue
                         
                     # 영상 상세 정보 가져오기
@@ -382,13 +380,13 @@ class YouTubeCrawler:
                             
                     new_videos_count += saved_count
                     processed_count += 1
-                    print(f"새로 저장된 영상: {saved_count}개")
+                    logger.info(f"새로 저장된 영상: {saved_count}개")  # 추가된 로그
                     
                 except Exception as e:
                     logger.error(f"Error processing channel {channel_url}: {e}")
                     continue
                     
-            print("모든 인플루언서 처리 완료")
+            logger.info("모든 인플루언서 처리 완료")  # 추가된 로그
             
             # 할당량 사용량 요약 로깅
             logger.info(f"=== YouTube API 할당량 사용량 요약 ===")

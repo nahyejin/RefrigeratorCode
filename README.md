@@ -376,7 +376,7 @@ RefrigeratorCode/
 #### 예시: MySQL 연결 설정 (pymysql)
 
 import pymysql
-
+메메
     conn = pymysql.connect(
        host='caboose.proxy.rlwy.net',
        user='root',
@@ -794,3 +794,11 @@ popularity_score = 1.0 * likes + 2.0 * comments
 4. **배치 처리 최적화**: Videos API는 50개씩 배치로 효율적 사용
 
 ---
+
+### .env 파일 생성 및 API 키 설정
+1. 프로젝트 루트에 `.env` 파일을 생성합니다.
+2. `.env` 파일에 다음 내용을 추가합니다:
+   ```
+   YOUTUBE_API_KEY=AIzaSyAHp_0bod-XWi5yNItEhQu16VWKy-fBA2Q
+   ```
+3. 파일을 저장하고 닫습니다.
