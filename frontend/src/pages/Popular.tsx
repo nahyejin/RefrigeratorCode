@@ -740,16 +740,26 @@ const Popular = () => {
         
         const res = await axios.get(`${apiUrl}/api/recipes/popular?${apiParams}`);
         console.log('Popular API 응답:', res.data);
-        
-        // res.data가 직접 객체인 경우와 res.data.youtube/naver인 경우 모두 처리
-        const youtubeData = (res.data.youtube || res.data?.youtube || []);
-        const naverData = (res.data.naver || res.data?.naver || []);
-        
+
+        // 응답 형태 방어적 파싱: 배열/객체 모두 안전 처리
+        const payload: any = res.data;
+        let youtubeData: any[] = [];
+        let naverData: any[] = [];
+
+        if (Array.isArray(payload)) {
+          // 과거: 배열만 내려오는 형태(단일 리스트) → 유튜브로 간주
+          youtubeData = payload;
+        } else if (payload && typeof payload === 'object') {
+          if (Array.isArray(payload.youtube)) youtubeData = payload.youtube;
+          else if (Array.isArray(payload.recipes)) youtubeData = payload.recipes; // 안전망
+          if (Array.isArray(payload.naver)) naverData = payload.naver;
+        }
+
         console.log('YouTube 레시피:', youtubeData);
         console.log('Naver 레시피:', naverData);
-        
-        setYoutubeRecipes(youtubeData);
-        setNaverRecipes(naverData);
+
+        setYoutubeRecipes(Array.isArray(youtubeData) ? youtubeData : []);
+        setNaverRecipes(Array.isArray(naverData) ? naverData : []);
       } catch (err) {
         console.error('Failed to fetch popular recipes:', err);
         setYoutubeRecipes([]);

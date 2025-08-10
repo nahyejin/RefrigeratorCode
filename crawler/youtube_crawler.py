@@ -62,9 +62,11 @@ class YouTubeCrawler:
         self.videos_api_calls = 0
 
         # 엔드포인트별 예상 할당량 비용(YouTube Data API 기준 추정)
-        # 참고: search.list ≈ 100, videos.list ≈ 1
+        # 참고: search.list ≈ 100, channels.list ≈ 1, playlistItems.list ≈ 1, videos.list ≈ 1
         self.quota_cost_map = {
             'search': 100,
+            'channels': 1,
+            'playlistItems': 1,
             'videos': 1,
         }
 
@@ -75,6 +77,8 @@ class YouTubeCrawler:
         
         # 채널 ID 캐시 테이블 생성
         self.create_channel_cache_table()
+        # 채널 메타 테이블 생성(uploads 플레이리스트 캐시)
+        self.create_channel_meta_table()
         
         # 에러 재시도 설정
         self.max_retries = 3
@@ -100,6 +104,19 @@ class YouTubeCrawler:
         """)
         self.db.commit()
         logger.info("채널 캐시 테이블 확인/생성 완료")
+
+    def create_channel_meta_table(self):
+        """채널 메타(uploads playlist) 캐시 테이블 생성"""
+        cursor = self.db.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS youtube_channel_meta (
+                channel_id VARCHAR(50) PRIMARY KEY,
+                uploads_playlist_id VARCHAR(50),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        self.db.commit()
+        logger.info("채널 메타 테이블 확인/생성 완료")
     
     def get_cached_channel_id(self, key):
         """캐시 또는 DB에서 채널 ID 가져오기"""
@@ -144,6 +161,40 @@ class YouTubeCrawler:
     def save_videos_to_cache(self, channel_id, videos):
         """영상 목록을 캐시에 저장"""
         self.cache[f"recipes_{channel_id}"] = videos
+
+    def get_cached_uploads_playlist_id(self, channel_id: str):
+        """채널의 업로드 플레이리스트 ID 캐시 조회"""
+        key = f"uploads_{channel_id}"
+        if key in self.cache:
+            return self.cache[key]
+        try:
+            cursor = self.db.cursor()
+            cursor.execute("SELECT uploads_playlist_id FROM youtube_channel_meta WHERE channel_id=%s", (channel_id,))
+            row = cursor.fetchone()
+            if row and row.get('uploads_playlist_id'):
+                self.cache[key] = row['uploads_playlist_id']
+                return row['uploads_playlist_id']
+        except Exception:
+            pass
+        return None
+
+    def save_uploads_playlist_id(self, channel_id: str, uploads_playlist_id: str):
+        """업로드 플레이리스트 ID 캐시 저장"""
+        key = f"uploads_{channel_id}"
+        self.cache[key] = uploads_playlist_id
+        try:
+            cursor = self.db.cursor()
+            cursor.execute(
+                """
+                INSERT INTO youtube_channel_meta (channel_id, uploads_playlist_id)
+                VALUES (%s, %s)
+                ON DUPLICATE KEY UPDATE uploads_playlist_id = VALUES(uploads_playlist_id)
+                """,
+                (channel_id, uploads_playlist_id)
+            )
+            self.db.commit()
+        except Exception:
+            self.db.rollback()
     
     def log_api_call(self, api_type, description, cost, channel_key=None):
         """API 호출 로깅"""
@@ -262,25 +313,42 @@ class YouTubeCrawler:
         existing_video_ids = self.get_existing_video_ids_from_db()
         logger.info(f"로컬 DB에서 기존 영상 수: {len(existing_video_ids)}개")
         
-        # API 호출로 새로운 영상 목록 가져오기
-        logger.info(f"[예상 비용] search.list 채널 최신 영상 조회 1회 → ~{self.quota_cost_map['search']} units [channel={channel_id}]")
-        response = self.make_api_request_with_retry('search', {
-            'channelId': channel_id,
-            'type': 'video',
-            'order': 'date',
-            'maxResults': 50,
-            'part': 'snippet'
-        }, context={'channel': channel_id, 'desc': '채널 최신 영상'})
+        # API 호출로 새로운 영상 목록 가져오기 (playlistItems 기반으로 비용 절감)
+        # 1) uploads playlist id 확보
+        uploads_id = self.get_cached_uploads_playlist_id(channel_id)
+        if not uploads_id:
+            logger.info(f"[예상 비용] channels.list(contentDetails) 1회 → ~{self.quota_cost_map['channels']} units [channel={channel_id}]")
+            ch_resp = self.make_api_request_with_retry('channels', {
+                'part': 'contentDetails',
+                'id': channel_id
+            }, context={'channel': channel_id, 'desc': '채널 contentDetails 조회'})
+            try:
+                uploads_id = ch_resp['items'][0]['contentDetails']['relatedPlaylists']['uploads'] if ch_resp and ch_resp.get('items') else None
+                if uploads_id:
+                    self.save_uploads_playlist_id(channel_id, uploads_id)
+            except Exception as e:
+                logger.error(f"uploads playlist id 파싱 실패: {e}")
+                uploads_id = None
+
         new_videos = []
-        if response and 'items' in response:
-            for item in response['items']:
-                video_id = item['id']['videoId']
-                if video_id not in existing_video_ids:
-                    new_videos.append(video_id)
-            self.save_videos_to_cache(channel_id, new_videos)
-            logger.info(f"API 호출 후 새로운 영상 목록 추출 완료: {len(new_videos)}개")
+        if uploads_id:
+            logger.info(f"[예상 비용] playlistItems.list(contentDetails) 1회 → ~{self.quota_cost_map['playlistItems']} units [channel={channel_id}]")
+            pl_resp = self.make_api_request_with_retry('playlistItems', {
+                'part': 'contentDetails',
+                'playlistId': uploads_id,
+                'maxResults': 50
+            }, context={'channel': channel_id, 'desc': '업로드 플레이리스트 최신 영상'})
+            if pl_resp and 'items' in pl_resp:
+                for item in pl_resp['items']:
+                    vid = item.get('contentDetails', {}).get('videoId')
+                    if vid and vid not in existing_video_ids:
+                        new_videos.append(vid)
+                self.save_videos_to_cache(channel_id, new_videos)
+                logger.info(f"playlistItems 기반 새로운 영상 추출: {len(new_videos)}개")
+            else:
+                logger.warning(f"업로드 플레이리스트에서 항목을 찾지 못함: {channel_id}")
         else:
-            logger.warning(f"새로운 영상 목록을 찾을 수 없음: {channel_id}")
+            logger.warning(f"uploads playlist id 미확보로 영상 목록 조회 스킵: {channel_id}")
         return new_videos
 
     def get_existing_video_ids_from_db(self):
@@ -342,15 +410,21 @@ class YouTubeCrawler:
         logger.info(f"데이터베이스에 저장 시작: {video_data['title']}")
         try:
             sql = """
-            INSERT INTO recipes (title, link, content, author, thumbnail, platform, hits, likes, comments, post_time, collected_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+            INSERT INTO recipes (
+                title, link, content, used_ingredients, used_ingredients_block, block_reason,
+                author, thumbnail, platform, hits, likes, comments, post_time, collected_at
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
             """
             # post_time은 DATE 컬럼이므로 YYYY-MM-DD 형태로 저장
             post_date = str(video_data['post_time'])[:10]
             self.db.cursor().execute(sql, (
                 video_data['title'],
                 video_data['link'],
-                video_data['description'],
+                video_data['description'] or '',
+                video_data.get('used_ingredients'),
+                video_data.get('used_ingredients_block'),
+                video_data.get('block_reason'),
                 video_data['author'],
                 video_data['thumbnail'],
                 'youtube(인플루언서)',
@@ -426,7 +500,22 @@ class YouTubeCrawler:
                             'comments': int(video_detail.get('statistics', {}).get('commentCount', 0)),
                             'post_time': video_detail['snippet'].get('publishedAt', '')
                         }
-                        
+
+                        # --- 재료 정보 필터링 (네이버와 동일 정책) ---
+                        desc_text = video_info['description'] or ''
+                        used_block, block_reason = extract_best_ingredient_block(desc_text)
+                        if not used_block or len(used_block.strip()) < 10:
+                            logger.info(f"[SKIP NO INGREDIENTS] 재료 정보가 없어 저장하지 않음: {video_info['link']}")
+                            continue
+                        used_ings = extract_ingredients(used_block)
+                        if not used_ings or len(used_ings) <= 3:
+                            logger.info(f"[SKIP FEW INGREDIENTS] 추출된 재료가 3개 이하여서 저장하지 않음: {video_info['link']} (재료: {used_ings})")
+                            continue
+                        video_info['used_ingredients'] = ','.join(used_ings)
+                        video_info['used_ingredients_block'] = used_block
+                        video_info['block_reason'] = block_reason
+                        # ---
+
                         if self.save_to_db(video_info):
                             saved_count += 1
                     
@@ -510,6 +599,10 @@ class YouTubeCrawler:
                     if isinstance(endpoint_or_request, str):
                         if endpoint_or_request == 'search':
                             request = self.youtube.search().list(**params)
+                        elif endpoint_or_request == 'channels':
+                            request = self.youtube.channels().list(**params)
+                        elif endpoint_or_request == 'playlistItems':
+                            request = self.youtube.playlistItems().list(**params)
                         elif endpoint_or_request == 'videos':
                             request = self.youtube.videos().list(**params)
                         else:
