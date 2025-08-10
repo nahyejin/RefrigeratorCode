@@ -207,20 +207,24 @@ for i, recipe in enumerate(recipes, 1):
     ingredients = extract_ingredients(block)
     
     # DB 업데이트
-    cursor.execute("""
-        UPDATE recipes 
-        SET used_ingredients = %s,
-            used_ingredients_block = %s,
-            block_reason = %s
-        WHERE id = %s
-    """, (
-        ",".join(ingredients) if ingredients else None,
-        block if block else None,
-        reason,
-        recipe_id
-    ))
+    try:
+        cursor.execute("""
+            UPDATE recipes 
+            SET used_ingredients = %s,
+                used_ingredients_block = %s,
+                block_reason = %s
+            WHERE id = %s
+        """, (
+            ",".join(ingredients) if ingredients else None,
+            block if block else None,
+            reason,
+            recipe_id
+        ))
+        db.commit()  # 각 업데이트 후에 커밋
+    except pymysql.err.OperationalError as e:
+        print(f"Error updating recipe {recipe_id}: {e}")
+        db.rollback()  # 오류 발생 시 롤백
     
-db.commit()
 print("used_ingredients, used_ingredients_block, block_reason 업데이트 완료!")
 
 # 연결 종료
