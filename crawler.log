@@ -92009,3 +92009,593 @@ Stacktrace:
 2025-08-10 22:47:55,517 - INFO - === 할당량 사용량 요약 완료 ===
 2025-08-10 22:47:55,517 - INFO - Running update_used_ingredients_batch.py...
 2025-08-10 23:40:29,798 - INFO - update_used_ingredients_batch.py finished.
+2025-08-11 01:05:51,253 - INFO - file_cache is only supported with oauth2client<4.0.0
+2025-08-11 01:05:51,992 - INFO - 채널 캐시 테이블 확인/생성 완료
+2025-08-11 01:05:52,234 - INFO - 채널 메타 테이블 확인/생성 완료
+2025-08-11 01:05:52,235 - INFO - YouTube 크롤러 초기화 완료 - 할당량 제한: 9500 units
+2025-08-11 01:05:52,639 - INFO - 기존 영상 수: 3842
+2025-08-11 01:05:52,641 - INFO - === YouTube 크롤러 시작 ===
+2025-08-11 01:05:52,641 - INFO - 총 인플루언서 수: 49
+2025-08-11 01:05:52,641 - INFO - 기존 영상 수: 3842
+2025-08-11 01:05:52,641 - INFO - 할당량 제한: 9500 units
+2025-08-11 01:05:52,641 - INFO - [진행상황] 1/49 처리 중: https://www.youtube.com/@paik_jongwon  
+2025-08-11 01:05:52,641 - INFO - 채널 ID 추출 시작: https://www.youtube.com/@paik_jongwon  
+2025-08-11 01:05:52,740 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com
+2025-08-11 01:05:52,740 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com/@paik_jongwon  
+2025-08-11 01:05:52,740 - INFO - [진행상황] 2/49 처리 중: https://www.youtube.com/@deliciousday1  
+2025-08-11 01:05:52,740 - INFO - 채널 ID 추출 시작: https://www.youtube.com/@deliciousday1  
+2025-08-11 01:05:52,838 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com
+2025-08-11 01:05:52,839 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com/@deliciousday1  
+2025-08-11 01:05:52,840 - INFO - [진행상황] 3/49 처리 중: https://www.youtube.com/channel/UCemFUqq5jad1f258HrPS5rg
+2025-08-11 01:05:52,840 - INFO - 채널 ID 추출 시작: https://www.youtube.com/channel/UCemFUqq5jad1f258HrPS5rg
+2025-08-11 01:05:52,940 - INFO - 캐시에서 채널 ID 찾음: UCemFUqq5jad1f258HrPS5rg
+2025-08-11 01:05:52,940 - INFO - 채널 영상 목록 가져오기 시작: UCemFUqq5jad1f258HrPS5rg
+2025-08-11 01:05:53,145 - INFO - 로컬 DB에서 기존 영상 수: 3842개
+2025-08-11 01:05:53,245 - INFO - [예상 비용] channels.list(contentDetails) 1회 → ~1 units [channel=UCemFUqq5jad1f258HrPS5rg]
+2025-08-11 01:05:53,615 - INFO - API 호출: channels - 채널 contentDetails 조회 (비용: 1, 누적: 1) [channel=UCemFUqq5jad1f258HrPS5rg]
+2025-08-11 01:05:53,816 - INFO - [예상 비용] playlistItems.list(contentDetails) 1회 → ~1 units [channel=UCemFUqq5jad1f258HrPS5rg]
+2025-08-11 01:05:54,288 - INFO - API 호출: playlistItems - 업로드 플레이리스트 최신 영상 (비용: 1, 누적: 2) [channel=UCemFUqq5jad1f258HrPS5rg]
+2025-08-11 01:05:54,289 - INFO - playlistItems 기반 새로운 영상 추출: 5개
+2025-08-11 01:05:54,289 - INFO - [예상 비용] videos.list(배치 5개) 1회 → ~1 units [channel=UCemFUqq5jad1f258HrPS5rg]
+2025-08-11 01:05:54,382 - INFO - API 호출: videos - 영상 상세정보 배치(5개) (비용: 1, 누적: 3) [channel=UCemFUqq5jad1f258HrPS5rg]
+2025-08-11 01:05:54,418 - INFO - 데이터베이스에 저장 시작: 200번 흔들었더니...
+2025-08-11 01:05:54,619 - INFO - 데이터베이스에 저장 완료: 200번 흔들었더니...
+2025-08-11 01:05:54,664 - INFO - 데이터베이스에 저장 시작: 요즘 누가 동그랗게 굽나
+2025-08-11 01:05:54,891 - INFO - 데이터베이스에 저장 완료: 요즘 누가 동그랗게 굽나
+2025-08-11 01:05:54,934 - INFO - [SKIP FEW INGREDIENTS] 추출된 재료가 3개 이하여서 저장하지 않음: https://www.youtube.com/watch?v=c151FVX-UTg (재료: ['통밀'])
+2025-08-11 01:05:54,962 - INFO - [SKIP NO INGREDIENTS] 재료 정보가 없어 저장하지 않음: https://www.youtube.com/watch?v=G4JWpNXX-E4
+2025-08-11 01:05:54,996 - INFO - [SKIP FEW INGREDIENTS] 추출된 재료가 3개 이하여서 저장하지 않음: https://www.youtube.com/watch?v=wrvAjv9oeUg (재료: ['옥수수', '게', '수수'])
+2025-08-11 01:05:54,996 - INFO - 새로 저장된 영상: 2개
+2025-08-11 01:05:54,997 - INFO - [진행상황] 4/49 처리 중: https://www.youtube.com/channel/UCtby6rJtBGgUm-2oD_E7bzw  
+2025-08-11 01:05:54,997 - INFO - 채널 ID 추출 시작: https://www.youtube.com/channel/UCtby6rJtBGgUm-2oD_E7bzw  
+2025-08-11 01:05:55,096 - INFO - 캐시에서 채널 ID 찾음: UCtby6rJtBGgUm-2oD_E7bzw  
+2025-08-11 01:05:55,097 - INFO - 채널 영상 목록 가져오기 시작: UCtby6rJtBGgUm-2oD_E7bzw  
+2025-08-11 01:05:55,402 - INFO - 로컬 DB에서 기존 영상 수: 3844개
+2025-08-11 01:05:55,502 - INFO - [예상 비용] channels.list(contentDetails) 1회 → ~1 units [channel=UCtby6rJtBGgUm-2oD_E7bzw  ]
+2025-08-11 01:05:55,591 - INFO - API 호출: channels - 채널 contentDetails 조회 (비용: 1, 누적: 4) [channel=UCtby6rJtBGgUm-2oD_E7bzw  ]
+2025-08-11 01:05:55,790 - INFO - [예상 비용] playlistItems.list(contentDetails) 1회 → ~1 units [channel=UCtby6rJtBGgUm-2oD_E7bzw  ]
+2025-08-11 01:05:56,537 - INFO - API 호출: playlistItems - 업로드 플레이리스트 최신 영상 (비용: 1, 누적: 5) [channel=UCtby6rJtBGgUm-2oD_E7bzw  ]
+2025-08-11 01:05:56,538 - INFO - playlistItems 기반 새로운 영상 추출: 37개
+2025-08-11 01:05:56,539 - INFO - [예상 비용] videos.list(배치 37개) 1회 → ~1 units [channel=UCtby6rJtBGgUm-2oD_E7bzw  ]
+2025-08-11 01:05:56,694 - INFO - API 호출: videos - 영상 상세정보 배치(37개) (비용: 1, 누적: 6) [channel=UCtby6rJtBGgUm-2oD_E7bzw  ]
+2025-08-11 01:05:56,729 - INFO - [SKIP FEW INGREDIENTS] 추출된 재료가 3개 이하여서 저장하지 않음: https://www.youtube.com/watch?v=srDprRLS2Io (재료: ['크림', '복숭아', '요거트'])
+2025-08-11 01:05:56,780 - INFO - 데이터베이스에 저장 시작: #136 3x Speed 케이크 디저트 베이킹 영상 | Cake Dessert Baking Video | Peach Cake, Oreo Brownie | Cooking tree
+2025-08-11 01:05:56,994 - INFO - 데이터베이스에 저장 완료: #136 3x Speed 케이크 디저트 베이킹 영상 | Cake Dessert Baking Video | Peach Cake, Oreo Brownie | Cooking tree
+2025-08-11 01:05:57,055 - INFO - [SKIP FEW INGREDIENTS] 추출된 재료가 3개 이하여서 저장하지 않음: https://www.youtube.com/watch?v=eHqmGh8cVYM (재료: ['크림', '복숭아', '요거트'])
+2025-08-11 01:05:57,086 - INFO - [SKIP FEW INGREDIENTS] 추출된 재료가 3개 이하여서 저장하지 않음: https://www.youtube.com/watch?v=UrsZxmkFZtc (재료: ['글레이즈', '젤리', '복숭아'])
+2025-08-11 01:05:57,117 - INFO - [SKIP FEW INGREDIENTS] 추출된 재료가 3개 이하여서 저장하지 않음: https://www.youtube.com/watch?v=sxOuWqawb1Q (재료: ['초콜릿', '쿠키', '마시멜로'])
+2025-08-11 01:05:57,450 - INFO - [SKIP FEW INGREDIENTS] 추출된 재료가 3개 이하여서 저장하지 않음: https://www.youtube.com/watch?v=YSfmS8v3ZyM (재료: ['치즈', '초콜릿', '오레오'])
+2025-08-11 01:05:57,508 - INFO - [SKIP FEW INGREDIENTS] 추출된 재료가 3개 이하여서 저장하지 않음: https://www.youtube.com/watch?v=uhQltl3ie0w (재료: ['쿠키', '초콜릿', '마시멜로'])
+2025-08-11 01:05:57,565 - INFO - [SKIP FEW INGREDIENTS] 추출된 재료가 3개 이하여서 저장하지 않음: https://www.youtube.com/watch?v=C--cDGSqvBI (재료: ['초콜릿', '치즈', '오레오'])
+2025-08-11 01:05:57,596 - INFO - [SKIP FEW INGREDIENTS] 추출된 재료가 3개 이하여서 저장하지 않음: https://www.youtube.com/watch?v=j0vtZytqfuQ (재료: ['쿠키', '레몬', '크림'])
+2025-08-11 01:05:57,945 - INFO - [SKIP FEW INGREDIENTS] 추출된 재료가 3개 이하여서 저장하지 않음: https://www.youtube.com/watch?v=LHSZe6_JFuc (재료: ['글레이즈', '복숭아'])
+2025-08-11 01:05:58,544 - INFO - [SKIP FEW INGREDIENTS] 추출된 재료가 3개 이하여서 저장하지 않음: https://www.youtube.com/watch?v=CAIKQ_OJ-9c (재료: ['쿠키', '크림', '커스터드'])
+2025-08-11 01:05:58,848 - INFO - [SKIP FEW INGREDIENTS] 추출된 재료가 3개 이하여서 저장하지 않음: https://www.youtube.com/watch?v=N9Q361E17vo (재료: ['글레이즈', '복숭아'])
+2025-08-11 01:05:58,900 - INFO - 데이터베이스에 저장 시작: #135 3x Speed 케이크 디저트 베이킹 영상 | Cake Dessert Baking Video | Mango, Melon, Peach Cake | Cooking tree
+2025-08-11 01:05:59,113 - INFO - 데이터베이스에 저장 완료: #135 3x Speed 케이크 디저트 베이킹 영상 | Cake Dessert Baking Video | Mango, Melon, Peach Cake | Cooking tree
+2025-08-11 01:05:59,426 - INFO - [SKIP FEW INGREDIENTS] 추출된 재료가 3개 이하여서 저장하지 않음: https://www.youtube.com/watch?v=dD-Ke_zoZa8 (재료: ['글레이즈', '크림', '복숭아'])
+2025-08-11 01:05:59,456 - INFO - [SKIP FEW INGREDIENTS] 추출된 재료가 3개 이하여서 저장하지 않음: https://www.youtube.com/watch?v=zkjP56bwB7E (재료: ['카라멜', '초콜릿', '치즈'])
+2025-08-11 01:05:59,775 - INFO - [SKIP FEW INGREDIENTS] 추출된 재료가 3개 이하여서 저장하지 않음: https://www.youtube.com/watch?v=bWdjis5R9e0 (재료: ['치즈', '망고'])
+2025-08-11 01:05:59,806 - INFO - [SKIP FEW INGREDIENTS] 추출된 재료가 3개 이하여서 저장하지 않음: https://www.youtube.com/watch?v=M1-JQr_ggH8 (재료: ['멜론', '메론'])
+2025-08-11 01:06:00,377 - INFO - [SKIP FEW INGREDIENTS] 추출된 재료가 3개 이하여서 저장하지 않음: https://www.youtube.com/watch?v=EqQDo4t2U8Q (재료: ['딸기'])
+2025-08-11 01:06:00,408 - INFO - [SKIP FEW INGREDIENTS] 추출된 재료가 3개 이하여서 저장하지 않음: https://www.youtube.com/watch?v=24orfFw8BVM (재료: ['우유'])
+2025-08-11 01:06:00,439 - INFO - [SKIP FEW INGREDIENTS] 추출된 재료가 3개 이하여서 저장하지 않음: https://www.youtube.com/watch?v=_lNOtapWdSM (재료: ['치즈', '망고'])
+2025-08-11 01:06:00,502 - INFO - [SKIP FEW INGREDIENTS] 추출된 재료가 3개 이하여서 저장하지 않음: https://www.youtube.com/watch?v=HU0Xt4SHtWw (재료: ['우유', '크림', '흑당'])
+2025-08-11 01:06:00,533 - INFO - [SKIP FEW INGREDIENTS] 추출된 재료가 3개 이하여서 저장하지 않음: https://www.youtube.com/watch?v=J3J2oDccrgw (재료: ['시리얼', '도넛', '크림'])
+2025-08-11 01:06:00,590 - INFO - [SKIP FEW INGREDIENTS] 추출된 재료가 3개 이하여서 저장하지 않음: https://www.youtube.com/watch?v=1afzIuDiGOM (재료: ['치즈', '망고', '크림'])
+2025-08-11 01:06:00,915 - INFO - [SKIP FEW INGREDIENTS] 추출된 재료가 3개 이하여서 저장하지 않음: https://www.youtube.com/watch?v=9vgXyuSkfbQ (재료: ['초콜릿'])
+2025-08-11 01:06:00,972 - INFO - [SKIP FEW INGREDIENTS] 추출된 재료가 3개 이하여서 저장하지 않음: https://www.youtube.com/watch?v=r5ELqssVwcY (재료: ['초콜릿', '캔디'])
+2025-08-11 01:06:01,003 - INFO - [SKIP FEW INGREDIENTS] 추출된 재료가 3개 이하여서 저장하지 않음: https://www.youtube.com/watch?v=-G7YuE92ETg (재료: ['우유', '젤리'])
+2025-08-11 01:06:01,063 - INFO - [SKIP FEW INGREDIENTS] 추출된 재료가 3개 이하여서 저장하지 않음: https://www.youtube.com/watch?v=NKo3Wou4nH8 (재료: ['가지', '쿠키', '복숭아'])
+2025-08-11 01:06:01,063 - INFO - 새로 저장된 영상: 12개
+2025-08-11 01:06:01,063 - INFO - [진행상황] 5/49 처리 중: https://www.youtube.com/@onemealaday767
+2025-08-11 01:06:01,063 - INFO - 채널 ID 추출 시작: https://www.youtube.com/@onemealaday767
+2025-08-11 01:06:01,162 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com
+2025-08-11 01:06:01,163 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com/@onemealaday767
+2025-08-11 01:06:01,164 - INFO - [진행상황] 6/49 처리 중: https://www.youtube.com/channel/UCy2WX3w5UyYFHBDHyWFKNUQ
+2025-08-11 01:06:01,164 - INFO - 채널 ID 추출 시작: https://www.youtube.com/channel/UCy2WX3w5UyYFHBDHyWFKNUQ
+2025-08-11 01:06:01,264 - INFO - 캐시에서 채널 ID 찾음: UCy2WX3w5UyYFHBDHyWFKNUQ
+2025-08-11 01:06:01,265 - INFO - 채널 영상 목록 가져오기 시작: UCy2WX3w5UyYFHBDHyWFKNUQ
+2025-08-11 01:06:01,669 - INFO - 로컬 DB에서 기존 영상 수: 3856개
+2025-08-11 01:06:01,768 - INFO - [예상 비용] channels.list(contentDetails) 1회 → ~1 units [channel=UCy2WX3w5UyYFHBDHyWFKNUQ]
+2025-08-11 01:06:01,861 - INFO - API 호출: channels - 채널 contentDetails 조회 (비용: 1, 누적: 7) [channel=UCy2WX3w5UyYFHBDHyWFKNUQ]
+2025-08-11 01:06:02,060 - INFO - [예상 비용] playlistItems.list(contentDetails) 1회 → ~1 units [channel=UCy2WX3w5UyYFHBDHyWFKNUQ]
+2025-08-11 01:06:02,341 - INFO - API 호출: playlistItems - 업로드 플레이리스트 최신 영상 (비용: 1, 누적: 8) [channel=UCy2WX3w5UyYFHBDHyWFKNUQ]
+2025-08-11 01:06:02,342 - INFO - playlistItems 기반 새로운 영상 추출: 28개
+2025-08-11 01:06:02,343 - INFO - [예상 비용] videos.list(배치 28개) 1회 → ~1 units [channel=UCy2WX3w5UyYFHBDHyWFKNUQ]
+2025-08-11 01:06:02,462 - INFO - API 호출: videos - 영상 상세정보 배치(28개) (비용: 1, 누적: 9) [channel=UCy2WX3w5UyYFHBDHyWFKNUQ]
+2025-08-11 01:06:02,741 - INFO - [SKIP FEW INGREDIENTS] 추출된 재료가 3개 이하여서 저장하지 않음: https://www.youtube.com/watch?v=WHecmGJ9sQw (재료: ['옥수수', '소금', '수수'])
+2025-08-11 01:06:02,773 - INFO - 데이터베이스에 저장 시작: 와~ 이건 꼭 해드세요! 젓가락이 멈추질 않네요! / 부침개 / 애호박전 / 애호박부침개
+2025-08-11 01:06:02,977 - INFO - 데이터베이스에 저장 완료: 와~ 이건 꼭 해드세요! 젓가락이 멈추질 않네요! / 부침개 / 애호박전 / 애호박부침개
+2025-08-11 01:06:04,505 - INFO - 데이터베이스에 저장 시작: 두부를 으깨세요! 3분이면 반찬 해결됩니다!
+2025-08-11 01:06:04,707 - INFO - 데이터베이스에 저장 완료: 두부를 으깨세요! 3분이면 반찬 해결됩니다!
+2025-08-11 01:06:04,743 - INFO - 데이터베이스에 저장 시작: 진짜 맛있는 비빔국수는 김치를 씻습니다! 어떻게?
+2025-08-11 01:06:04,944 - INFO - 데이터베이스에 저장 완료: 진짜 맛있는 비빔국수는 김치를 씻습니다! 어떻게?
+2025-08-11 01:06:04,974 - INFO - 데이터베이스에 저장 시작: 만들어놓고 요긴하게 써먹으세요!
+2025-08-11 01:06:05,177 - INFO - 데이터베이스에 저장 완료: 만들어놓고 요긴하게 써먹으세요!
+2025-08-11 01:06:05,211 - INFO - 데이터베이스에 저장 시작: 이건 정말 맛있고, 진짜 간단합니다!
+2025-08-11 01:06:05,413 - INFO - 데이터베이스에 저장 완료: 이건 정말 맛있고, 진짜 간단합니다!
+2025-08-11 01:06:05,458 - INFO - 데이터베이스에 저장 시작: 김치 볶지마세요! 'OO'하면 10배 더 맛있습니다!
+2025-08-11 01:06:05,660 - INFO - 데이터베이스에 저장 완료: 김치 볶지마세요! 'OO'하면 10배 더 맛있습니다!
+2025-08-11 01:06:05,701 - INFO - 데이터베이스에 저장 시작: 엄마! 이제부터 김밥은 이렇게... 굵고 짧게 그리고 매콤하게
+2025-08-11 01:06:05,904 - INFO - 데이터베이스에 저장 완료: 엄마! 이제부터 김밥은 이렇게... 굵고 짧게 그리고 매콤하게
+2025-08-11 01:06:05,941 - INFO - 데이터베이스에 저장 시작: 벌써 3일째... 요즘 밥 대신 이것만 먹어요!
+2025-08-11 01:06:06,144 - INFO - 데이터베이스에 저장 완료: 벌써 3일째... 요즘 밥 대신 이것만 먹어요!
+2025-08-11 01:06:06,183 - INFO - 데이터베이스에 저장 시작: 순두부에 계란을 부으면... 놀라운 맛이!
+2025-08-11 01:06:06,384 - INFO - 데이터베이스에 저장 완료: 순두부에 계란을 부으면... 놀라운 맛이!
+2025-08-11 01:06:06,912 - INFO - 데이터베이스에 저장 시작: 집에 있는 'OO'만 넣으면... 세상 맛있는 라면 레시피!
+2025-08-11 01:06:07,117 - INFO - 데이터베이스에 저장 완료: 집에 있는 'OO'만 넣으면... 세상 맛있는 라면 레시피!
+2025-08-11 01:06:08,136 - INFO - 데이터베이스에 저장 시작: 10분이면 설 상차림 끝! 명절 반찬은 이렇게...
+2025-08-11 01:06:08,341 - INFO - 데이터베이스에 저장 완료: 10분이면 설 상차림 끝! 명절 반찬은 이렇게...
+2025-08-11 01:06:08,872 - INFO - 데이터베이스에 저장 시작: 이걸 이제 알았네! 스팸과 애호박이 만나면...
+2025-08-11 01:06:09,075 - INFO - 데이터베이스에 저장 완료: 이걸 이제 알았네! 스팸과 애호박이 만나면...
+2025-08-11 01:06:09,076 - INFO - 새로 저장된 영상: 27개
+2025-08-11 01:06:09,077 - INFO - [진행상황] 7/49 처리 중: https://www.youtube.com/@KimChefTV
+2025-08-11 01:06:09,077 - INFO - 채널 ID 추출 시작: https://www.youtube.com/@KimChefTV
+2025-08-11 01:06:09,176 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com
+2025-08-11 01:06:09,176 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com/@KimChefTV
+2025-08-11 01:06:09,177 - INFO - [진행상황] 8/49 처리 중: https://www.youtube.com/@BooneBake
+2025-08-11 01:06:09,178 - INFO - 채널 ID 추출 시작: https://www.youtube.com/@BooneBake
+2025-08-11 01:06:09,278 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com
+2025-08-11 01:06:09,278 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com/@BooneBake
+2025-08-11 01:06:09,279 - INFO - [진행상황] 9/49 처리 중: https://www.youtube.com/@newyorkcookingtable2344/videos
+2025-08-11 01:06:09,279 - INFO - 채널 ID 추출 시작: https://www.youtube.com/@newyorkcookingtable2344/videos
+2025-08-11 01:06:09,378 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com
+2025-08-11 01:06:09,378 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com/@newyorkcookingtable2344/videos
+2025-08-11 01:06:09,379 - INFO - [진행상황] 10/49 처리 중: https://www.youtube.com/@%EC%9E%90%EC%B7%A8%EC%9A%94%EB%A6%AC%EC%8B%A0simplecooking
+2025-08-11 01:06:09,379 - INFO - 채널 ID 추출 시작: https://www.youtube.com/@%EC%9E%90%EC%B7%A8%EC%9A%94%EB%A6%AC%EC%8B%A0simplecooking
+2025-08-11 01:06:09,478 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com
+2025-08-11 01:06:09,479 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com/@%EC%9E%90%EC%B7%A8%EC%9A%94%EB%A6%AC%EC%8B%A0simplecooking
+2025-08-11 01:06:09,480 - INFO - [진행상황] 11/49 처리 중: https://www.youtube.com/@haegreendal
+2025-08-11 01:06:09,480 - INFO - 채널 ID 추출 시작: https://www.youtube.com/@haegreendal
+2025-08-11 01:06:09,580 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com
+2025-08-11 01:06:09,580 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com/@haegreendal
+2025-08-11 01:06:09,581 - INFO - [진행상황] 12/49 처리 중: https://www.youtube.com/@dragonrain
+2025-08-11 01:06:09,582 - INFO - 채널 ID 추출 시작: https://www.youtube.com/@dragonrain
+2025-08-11 01:06:09,682 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com
+2025-08-11 01:06:09,682 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com/@dragonrain
+2025-08-11 01:06:09,683 - INFO - [진행상황] 13/49 처리 중: https://www.youtube.com/@CookingSee
+2025-08-11 01:06:09,684 - INFO - 채널 ID 추출 시작: https://www.youtube.com/@CookingSee
+2025-08-11 01:06:09,784 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com
+2025-08-11 01:06:09,785 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com/@CookingSee
+2025-08-11 01:06:09,785 - INFO - [진행상황] 14/49 처리 중: https://www.youtube.com/@TryToEat
+2025-08-11 01:06:09,786 - INFO - 채널 ID 추출 시작: https://www.youtube.com/@TryToEat
+2025-08-11 01:06:09,886 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com
+2025-08-11 01:06:09,886 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com/@TryToEat
+2025-08-11 01:06:09,887 - INFO - [진행상황] 15/49 처리 중: https://www.youtube.com/@MoonyKitchen
+2025-08-11 01:06:09,888 - INFO - 채널 ID 추출 시작: https://www.youtube.com/@MoonyKitchen
+2025-08-11 01:06:09,988 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com
+2025-08-11 01:06:09,989 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com/@MoonyKitchen
+2025-08-11 01:06:09,989 - INFO - [진행상황] 16/49 처리 중: https://www.youtube.com/@momstaste
+2025-08-11 01:06:09,990 - INFO - 채널 ID 추출 시작: https://www.youtube.com/@momstaste
+2025-08-11 01:06:10,090 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com
+2025-08-11 01:06:10,090 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com/@momstaste
+2025-08-11 01:06:10,091 - INFO - [진행상황] 17/49 처리 중: https://www.youtube.com/channel/UCVXx89z5j3gkQMGScNqmWjw
+2025-08-11 01:06:10,092 - INFO - 채널 ID 추출 시작: https://www.youtube.com/channel/UCVXx89z5j3gkQMGScNqmWjw
+2025-08-11 01:06:10,192 - INFO - 캐시에서 채널 ID 찾음: UCVXx89z5j3gkQMGScNqmWjw
+2025-08-11 01:06:10,192 - INFO - 채널 영상 목록 가져오기 시작: UCVXx89z5j3gkQMGScNqmWjw
+2025-08-11 01:06:10,402 - INFO - 로컬 DB에서 기존 영상 수: 3883개
+2025-08-11 01:06:10,502 - INFO - [예상 비용] channels.list(contentDetails) 1회 → ~1 units [channel=UCVXx89z5j3gkQMGScNqmWjw]
+2025-08-11 01:06:10,595 - INFO - API 호출: channels - 채널 contentDetails 조회 (비용: 1, 누적: 10) [channel=UCVXx89z5j3gkQMGScNqmWjw]
+2025-08-11 01:06:10,794 - INFO - [예상 비용] playlistItems.list(contentDetails) 1회 → ~1 units [channel=UCVXx89z5j3gkQMGScNqmWjw]
+2025-08-11 01:06:11,225 - INFO - API 호출: playlistItems - 업로드 플레이리스트 최신 영상 (비용: 1, 누적: 11) [channel=UCVXx89z5j3gkQMGScNqmWjw]
+2025-08-11 01:06:11,226 - INFO - playlistItems 기반 새로운 영상 추출: 23개
+2025-08-11 01:06:11,227 - INFO - [예상 비용] videos.list(배치 23개) 1회 → ~1 units [channel=UCVXx89z5j3gkQMGScNqmWjw]
+2025-08-11 01:06:11,327 - INFO - API 호출: videos - 영상 상세정보 배치(23개) (비용: 1, 누적: 12) [channel=UCVXx89z5j3gkQMGScNqmWjw]
+2025-08-11 01:06:13,342 - INFO - [SKIP FEW INGREDIENTS] 추출된 재료가 3개 이하여서 저장하지 않음: https://www.youtube.com/watch?v=9WHKq152AbQ (재료: ['소금', '설탕', '감자'])
+2025-08-11 01:06:15,099 - INFO - [SKIP FEW INGREDIENTS] 추출된 재료가 3개 이하여서 저장하지 않음: https://www.youtube.com/watch?v=7_pUozAPETE (재료: ['설탕', '양파'])
+2025-08-11 01:06:16,575 - INFO - 새로 저장된 영상: 21개
+2025-08-11 01:06:16,576 - INFO - [진행상황] 18/49 처리 중: https://www.youtube.com/@Jocondesbaking
+2025-08-11 01:06:16,576 - INFO - 채널 ID 추출 시작: https://www.youtube.com/@Jocondesbaking
+2025-08-11 01:06:16,676 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com
+2025-08-11 01:06:16,676 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com/@Jocondesbaking
+2025-08-11 01:06:16,677 - INFO - [진행상황] 19/49 처리 중: https://www.youtube.com/channel/UCKm-cusLT76t3t4s9OgCqcA
+2025-08-11 01:06:16,678 - INFO - 채널 ID 추출 시작: https://www.youtube.com/channel/UCKm-cusLT76t3t4s9OgCqcA
+2025-08-11 01:06:16,778 - INFO - 캐시에서 채널 ID 찾음: UCKm-cusLT76t3t4s9OgCqcA
+2025-08-11 01:06:16,778 - INFO - 채널 영상 목록 가져오기 시작: UCKm-cusLT76t3t4s9OgCqcA
+2025-08-11 01:06:17,082 - INFO - 로컬 DB에서 기존 영상 수: 3904개
+2025-08-11 01:06:17,182 - INFO - [예상 비용] channels.list(contentDetails) 1회 → ~1 units [channel=UCKm-cusLT76t3t4s9OgCqcA]
+2025-08-11 01:06:17,280 - INFO - API 호출: channels - 채널 contentDetails 조회 (비용: 1, 누적: 13) [channel=UCKm-cusLT76t3t4s9OgCqcA]
+2025-08-11 01:06:17,480 - INFO - [예상 비용] playlistItems.list(contentDetails) 1회 → ~1 units [channel=UCKm-cusLT76t3t4s9OgCqcA]
+2025-08-11 01:06:18,021 - INFO - API 호출: playlistItems - 업로드 플레이리스트 최신 영상 (비용: 1, 누적: 14) [channel=UCKm-cusLT76t3t4s9OgCqcA]
+2025-08-11 01:06:18,022 - INFO - playlistItems 기반 새로운 영상 추출: 26개
+2025-08-11 01:06:18,022 - INFO - [예상 비용] videos.list(배치 26개) 1회 → ~1 units [channel=UCKm-cusLT76t3t4s9OgCqcA]
+2025-08-11 01:06:18,134 - INFO - API 호출: videos - 영상 상세정보 배치(26개) (비용: 1, 누적: 15) [channel=UCKm-cusLT76t3t4s9OgCqcA]
+2025-08-11 01:06:18,174 - INFO - 데이터베이스에 저장 시작: ♡세상에서 제일 쉽고맛있는 오이냉국!#양장금주부 #오이냉국 #레시피
+2025-08-11 01:06:18,379 - INFO - 데이터베이스에 저장 완료: ♡세상에서 제일 쉽고맛있는 오이냉국!#양장금주부 #오이냉국 #레시피
+2025-08-11 01:06:19,149 - INFO - 데이터베이스에 저장 시작: ♡세상에서 제일맛있는 국멸치꽈리고추무침! #양장금주부 #밑반찬 #밥도둑
+2025-08-11 01:06:19,359 - INFO - 데이터베이스에 저장 완료: ♡세상에서 제일맛있는 국멸치꽈리고추무침! #양장금주부 #밑반찬 #밥도둑
+2025-08-11 01:06:19,644 - INFO - 데이터베이스에 저장 시작: ♡마요네즈없는 세상에서 제일맛있는 으깬감자샐러드! #양장금주부 #레시피  #감자
+2025-08-11 01:06:19,850 - INFO - 데이터베이스에 저장 완료: ♡마요네즈없는 세상에서 제일맛있는 으깬감자샐러드! #양장금주부 #레시피  #감자
+2025-08-11 01:06:20,394 - INFO - 데이터베이스에 저장 시작: ♡술안주!밥반찬!그냥먹어도 너무맛있어요! #양장금주부 #밑반찬 #마늘
+2025-08-11 01:06:20,599 - INFO - 데이터베이스에 저장 완료: ♡술안주!밥반찬!그냥먹어도 너무맛있어요! #양장금주부 #밑반찬 #마늘
+2025-08-11 01:06:21,643 - INFO - 데이터베이스에 저장 시작: ♡흔하지않지만 알사람은 다~아는 밥도둑!#양장금주부 #부추 #밑반찬
+2025-08-11 01:06:21,847 - INFO - 데이터베이스에 저장 완료: ♡흔하지않지만 알사람은 다~아는 밥도둑!#양장금주부 #부추 #밑반찬
+2025-08-11 01:06:22,131 - INFO - 데이터베이스에 저장 시작: ♡아무도 모르는 마늘쫑반찬!#양장금주부 #밑반찬 #마늘쫑요리
+2025-08-11 01:06:22,336 - INFO - 데이터베이스에 저장 완료: ♡아무도 모르는 마늘쫑반찬!#양장금주부 #밑반찬 #마늘쫑요리
+2025-08-11 01:06:22,626 - INFO - 데이터베이스에 저장 시작: ♡세상에서 제일 맛있는 빨간콩나물무침!#양장금주부 #콩나물 #밑반찬
+2025-08-11 01:06:22,829 - INFO - 데이터베이스에 저장 완료: ♡세상에서 제일 맛있는 빨간콩나물무침!#양장금주부 #콩나물 #밑반찬
+2025-08-11 01:06:23,130 - INFO - 데이터베이스에 저장 시작: ♡한번맛보면 잊지못하는 쪽파장아찌!#양장금주부 #장아찌 #쪽파 #레시피
+2025-08-11 01:06:23,337 - INFO - 데이터베이스에 저장 완료: ♡한번맛보면 잊지못하는 쪽파장아찌!#양장금주부 #장아찌 #쪽파 #레시피
+2025-08-11 01:06:24,089 - INFO - 데이터베이스에 저장 시작: ♡시골김치처럼 너무맛있는 얼갈이열무김치!#양장금주부 #열무김치 #김치
+2025-08-11 01:06:24,311 - INFO - 데이터베이스에 저장 완료: ♡시골김치처럼 너무맛있는 얼갈이열무김치!#양장금주부 #열무김치 #김치
+2025-08-11 01:06:24,355 - INFO - 데이터베이스에 저장 시작: ♡벽돌처럼 굳지않는 세상에서 제일맛있는 멸치볶음!#양장금주부 #멸치볶음 #밑반찬
+2025-08-11 01:06:24,571 - INFO - 데이터베이스에 저장 완료: ♡벽돌처럼 굳지않는 세상에서 제일맛있는 멸치볶음!#양장금주부 #멸치볶음 #밑반찬
+2025-08-11 01:06:24,571 - INFO - 새로 저장된 영상: 26개
+2025-08-11 01:06:24,573 - INFO - [진행상황] 20/49 처리 중: https://www.youtube.com/@wtable6077
+2025-08-11 01:06:24,573 - INFO - 채널 ID 추출 시작: https://www.youtube.com/@wtable6077
+2025-08-11 01:06:24,673 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com
+2025-08-11 01:06:24,674 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com/@wtable6077
+2025-08-11 01:06:24,675 - INFO - [진행상황] 21/49 처리 중: https://www.youtube.com/@haeum_cooking
+2025-08-11 01:06:24,676 - INFO - 채널 ID 추출 시작: https://www.youtube.com/@haeum_cooking
+2025-08-11 01:06:24,775 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com
+2025-08-11 01:06:24,776 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com/@haeum_cooking
+2025-08-11 01:06:24,777 - INFO - [진행상황] 22/49 처리 중: https://www.youtube.com/@50food
+2025-08-11 01:06:24,777 - INFO - 채널 ID 추출 시작: https://www.youtube.com/@50food
+2025-08-11 01:06:24,875 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com
+2025-08-11 01:06:24,876 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com/@50food
+2025-08-11 01:06:24,877 - INFO - [진행상황] 23/49 처리 중: https://www.youtube.com/channel/UCB4JlWU3Vcev5pkyIdeBMRw
+2025-08-11 01:06:24,877 - INFO - 채널 ID 추출 시작: https://www.youtube.com/channel/UCB4JlWU3Vcev5pkyIdeBMRw
+2025-08-11 01:06:24,977 - INFO - 캐시에서 채널 ID 찾음: UCB4JlWU3Vcev5pkyIdeBMRw
+2025-08-11 01:06:24,978 - INFO - 채널 영상 목록 가져오기 시작: UCB4JlWU3Vcev5pkyIdeBMRw
+2025-08-11 01:06:25,273 - INFO - 로컬 DB에서 기존 영상 수: 3930개
+2025-08-11 01:06:25,373 - INFO - [예상 비용] channels.list(contentDetails) 1회 → ~1 units [channel=UCB4JlWU3Vcev5pkyIdeBMRw]
+2025-08-11 01:06:25,461 - INFO - API 호출: channels - 채널 contentDetails 조회 (비용: 1, 누적: 16) [channel=UCB4JlWU3Vcev5pkyIdeBMRw]
+2025-08-11 01:06:25,665 - INFO - [예상 비용] playlistItems.list(contentDetails) 1회 → ~1 units [channel=UCB4JlWU3Vcev5pkyIdeBMRw]
+2025-08-11 01:06:26,089 - INFO - API 호출: playlistItems - 업로드 플레이리스트 최신 영상 (비용: 1, 누적: 17) [channel=UCB4JlWU3Vcev5pkyIdeBMRw]
+2025-08-11 01:06:26,090 - INFO - playlistItems 기반 새로운 영상 추출: 2개
+2025-08-11 01:06:26,090 - INFO - [예상 비용] videos.list(배치 2개) 1회 → ~1 units [channel=UCB4JlWU3Vcev5pkyIdeBMRw]
+2025-08-11 01:06:26,179 - INFO - API 호출: videos - 영상 상세정보 배치(2개) (비용: 1, 누적: 18) [channel=UCB4JlWU3Vcev5pkyIdeBMRw]
+2025-08-11 01:06:26,216 - INFO - 데이터베이스에 저장 시작: 정말 맛있어요!!!!!!#여름김밥#간단김밥#김밥레시피#쇼츠#kimbap#recipes#shorts
+2025-08-11 01:06:26,418 - INFO - 데이터베이스에 저장 완료: 정말 맛있어요!!!!!!#여름김밥#간단김밥#김밥레시피#쇼츠#kimbap#recipes#shorts
+2025-08-11 01:06:26,667 - INFO - 새로 저장된 영상: 2개
+2025-08-11 01:06:26,667 - INFO - [진행상황] 24/49 처리 중: https://www.youtube.com/@JUNTV9/videos
+2025-08-11 01:06:26,668 - INFO - 채널 ID 추출 시작: https://www.youtube.com/@JUNTV9/videos
+2025-08-11 01:06:26,767 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com
+2025-08-11 01:06:26,769 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com/@JUNTV9/videos
+2025-08-11 01:06:26,770 - INFO - [진행상황] 25/49 처리 중: https://www.youtube.com/@%EB%94%B8%EC%9D%84%EC%9C%84%ED%95%9C%EB%A0%88%EC%8B%9C%ED%94%BC
+2025-08-11 01:06:26,770 - INFO - 채널 ID 추출 시작: https://www.youtube.com/@%EB%94%B8%EC%9D%84%EC%9C%84%ED%95%9C%EB%A0%88%EC%8B%9C%ED%94%BC
+2025-08-11 01:06:26,869 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com
+2025-08-11 01:06:26,870 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com/@%EB%94%B8%EC%9D%84%EC%9C%84%ED%95%9C%EB%A0%88%EC%8B%9C%ED%94%BC
+2025-08-11 01:06:26,871 - INFO - [진행상황] 26/49 처리 중: https://www.youtube.com/channel/UCyn7aoxdLNDZG2ZXXLoVCNQ
+2025-08-11 01:06:26,872 - INFO - 채널 ID 추출 시작: https://www.youtube.com/channel/UCyn7aoxdLNDZG2ZXXLoVCNQ
+2025-08-11 01:06:26,971 - INFO - 캐시에서 채널 ID 찾음: UCyn7aoxdLNDZG2ZXXLoVCNQ
+2025-08-11 01:06:26,972 - INFO - 채널 영상 목록 가져오기 시작: UCyn7aoxdLNDZG2ZXXLoVCNQ
+2025-08-11 01:06:27,275 - INFO - 로컬 DB에서 기존 영상 수: 3932개
+2025-08-11 01:06:27,375 - INFO - [예상 비용] channels.list(contentDetails) 1회 → ~1 units [channel=UCyn7aoxdLNDZG2ZXXLoVCNQ]
+2025-08-11 01:06:27,464 - INFO - API 호출: channels - 채널 contentDetails 조회 (비용: 1, 누적: 19) [channel=UCyn7aoxdLNDZG2ZXXLoVCNQ]
+2025-08-11 01:06:27,664 - INFO - [예상 비용] playlistItems.list(contentDetails) 1회 → ~1 units [channel=UCyn7aoxdLNDZG2ZXXLoVCNQ]
+2025-08-11 01:06:28,039 - INFO - API 호출: playlistItems - 업로드 플레이리스트 최신 영상 (비용: 1, 누적: 20) [channel=UCyn7aoxdLNDZG2ZXXLoVCNQ]
+2025-08-11 01:06:28,040 - INFO - playlistItems 기반 새로운 영상 추출: 4개
+2025-08-11 01:06:28,041 - INFO - [예상 비용] videos.list(배치 4개) 1회 → ~1 units [channel=UCyn7aoxdLNDZG2ZXXLoVCNQ]
+2025-08-11 01:06:28,137 - INFO - API 호출: videos - 영상 상세정보 배치(4개) (비용: 1, 누적: 21) [channel=UCyn7aoxdLNDZG2ZXXLoVCNQ]
+2025-08-11 01:06:28,173 - INFO - 데이터베이스에 저장 시작: 쑥갓을 아몬드와 무쳤더니 놀라운 맛입니다
+2025-08-11 01:06:28,375 - INFO - 데이터베이스에 저장 완료: 쑥갓을 아몬드와 무쳤더니 놀라운 맛입니다
+2025-08-11 01:06:28,411 - INFO - 데이터베이스에 저장 시작: 맛없으면 반칙! 이걸 밥에 비벼 돌돌 말아보세요
+2025-08-11 01:06:28,613 - INFO - 데이터베이스에 저장 완료: 맛없으면 반칙! 이걸 밥에 비벼 돌돌 말아보세요
+2025-08-11 01:06:28,657 - INFO - 데이터베이스에 저장 시작: 이탈리아 쌈장? 스테이크 소스, 파스타 소스 어디든 어울리는 만능 페스토!
+2025-08-11 01:06:28,862 - INFO - 데이터베이스에 저장 완료: 이탈리아 쌈장? 스테이크 소스, 파스타 소스 어디든 어울리는 만능 페스토!
+2025-08-11 01:06:28,912 - INFO - 데이터베이스에 저장 시작: 충무김밥 집에서 푸짐하게 드세요~ 오묵무침이 끝내줍니다
+2025-08-11 01:06:29,121 - INFO - 데이터베이스에 저장 완료: 충무김밥 집에서 푸짐하게 드세요~ 오묵무침이 끝내줍니다
+2025-08-11 01:06:29,121 - INFO - 새로 저장된 영상: 4개
+2025-08-11 01:06:29,122 - INFO - [진행상황] 27/49 처리 중: https://www.youtube.com/channel/UC2gasvQVxOdRht9ykwhxwjw
+2025-08-11 01:06:29,122 - INFO - 채널 ID 추출 시작: https://www.youtube.com/channel/UC2gasvQVxOdRht9ykwhxwjw
+2025-08-11 01:06:29,222 - INFO - 캐시에서 채널 ID 찾음: UC2gasvQVxOdRht9ykwhxwjw
+2025-08-11 01:06:29,222 - INFO - 채널 영상 목록 가져오기 시작: UC2gasvQVxOdRht9ykwhxwjw
+2025-08-11 01:06:29,430 - INFO - 로컬 DB에서 기존 영상 수: 3936개
+2025-08-11 01:06:29,528 - INFO - [예상 비용] channels.list(contentDetails) 1회 → ~1 units [channel=UC2gasvQVxOdRht9ykwhxwjw]
+2025-08-11 01:06:29,616 - INFO - API 호출: channels - 채널 contentDetails 조회 (비용: 1, 누적: 22) [channel=UC2gasvQVxOdRht9ykwhxwjw]
+2025-08-11 01:06:29,819 - INFO - [예상 비용] playlistItems.list(contentDetails) 1회 → ~1 units [channel=UC2gasvQVxOdRht9ykwhxwjw]
+2025-08-11 01:06:30,492 - INFO - API 호출: playlistItems - 업로드 플레이리스트 최신 영상 (비용: 1, 누적: 23) [channel=UC2gasvQVxOdRht9ykwhxwjw]
+2025-08-11 01:06:30,492 - INFO - playlistItems 기반 새로운 영상 추출: 38개
+2025-08-11 01:06:30,493 - INFO - [예상 비용] videos.list(배치 38개) 1회 → ~1 units [channel=UC2gasvQVxOdRht9ykwhxwjw]
+2025-08-11 01:06:30,603 - INFO - API 호출: videos - 영상 상세정보 배치(38개) (비용: 1, 누적: 24) [channel=UC2gasvQVxOdRht9ykwhxwjw]
+2025-08-11 01:06:30,641 - INFO - [SKIP NO INGREDIENTS] 재료 정보가 없어 저장하지 않음: https://www.youtube.com/watch?v=S6hBG1_RvsU
+2025-08-11 01:06:30,672 - INFO - [SKIP NO INGREDIENTS] 재료 정보가 없어 저장하지 않음: https://www.youtube.com/watch?v=NmxwGL4Gsbg
+2025-08-11 01:06:31,442 - INFO - [SKIP NO INGREDIENTS] 재료 정보가 없어 저장하지 않음: https://www.youtube.com/watch?v=HqA1G8XbN58
+2025-08-11 01:06:31,727 - INFO - [SKIP FEW INGREDIENTS] 추출된 재료가 3개 이하여서 저장하지 않음: https://www.youtube.com/watch?v=N7BC7veFXEo (재료: ['감자'])
+2025-08-11 01:06:31,754 - INFO - [SKIP NO INGREDIENTS] 재료 정보가 없어 저장하지 않음: https://www.youtube.com/watch?v=uL97T6L52ng
+2025-08-11 01:06:32,054 - INFO - 데이터베이스에 저장 시작: 입맛없는 여름 이 요리했더니 난리났어요! [여름비빔밥, 얼갈이열무김치, 오이김치]
+2025-08-11 01:06:32,261 - INFO - 데이터베이스에 저장 완료: 입맛없는 여름 이 요리했더니 난리났어요! [여름비빔밥, 얼갈이열무김치, 오이김치]
+2025-08-11 01:06:32,301 - INFO - [SKIP NO INGREDIENTS] 재료 정보가 없어 저장하지 않음: https://www.youtube.com/watch?v=2yjMAMxUP3w
+2025-08-11 01:06:32,820 - INFO - [SKIP NO INGREDIENTS] 재료 정보가 없어 저장하지 않음: https://www.youtube.com/watch?v=mkSvgpyRaF4
+2025-08-11 01:06:33,112 - INFO - 데이터베이스에 저장 시작: 콩국 수제비 드셔보셨나요? 집에 콩이 있다면 꼭 해봐야할 요리!
+2025-08-11 01:06:33,319 - INFO - 데이터베이스에 저장 완료: 콩국 수제비 드셔보셨나요? 집에 콩이 있다면 꼭 해봐야할 요리!
+2025-08-11 01:06:33,354 - INFO - [SKIP NO INGREDIENTS] 재료 정보가 없어 저장하지 않음: https://www.youtube.com/watch?v=262xI0YAjhk
+2025-08-11 01:06:33,647 - INFO - [SKIP NO INGREDIENTS] 재료 정보가 없어 저장하지 않음: https://www.youtube.com/watch?v=oXvPhfDmDMY
+2025-08-11 01:06:33,680 - INFO - 데이터베이스에 저장 시작: 무더운 여름 출산한 딸에게 제일 먼저 해주고 싶은 요리 '속편한 새우젓 애호박죽'
+2025-08-11 01:06:33,884 - INFO - 데이터베이스에 저장 완료: 무더운 여름 출산한 딸에게 제일 먼저 해주고 싶은 요리 '속편한 새우젓 애호박죽'
+2025-08-11 01:06:33,911 - INFO - [SKIP NO INGREDIENTS] 재료 정보가 없어 저장하지 않음: https://www.youtube.com/watch?v=VcVn8hgPl-k
+2025-08-11 01:06:33,951 - INFO - 데이터베이스에 저장 시작: 이번주 일요일은 초복! 초간단 복날요리 TOP5
+2025-08-11 01:06:34,159 - INFO - 데이터베이스에 저장 완료: 이번주 일요일은 초복! 초간단 복날요리 TOP5
+2025-08-11 01:06:34,203 - INFO - 데이터베이스에 저장 시작: 고추, 계란이 있다면 무조건 해서 드세요! 간단하지만 가족모두가 환호성을 지릅니다! 고추계란말이
+2025-08-11 01:06:34,413 - INFO - 데이터베이스에 저장 완료: 고추, 계란이 있다면 무조건 해서 드세요! 간단하지만 가족모두가 환호성을 지릅니다! 고추계란말이
+2025-08-11 01:06:34,451 - INFO - [SKIP NO INGREDIENTS] 재료 정보가 없어 저장하지 않음: https://www.youtube.com/watch?v=CCZ6d5fTys4
+2025-08-11 01:06:34,484 - INFO - 데이터베이스에 저장 시작: 항암 성분 다 살린 장수하는 양배추요리 3가지 [양배추전, 양배추생채, 양배추밥]
+2025-08-11 01:06:34,689 - INFO - 데이터베이스에 저장 완료: 항암 성분 다 살린 장수하는 양배추요리 3가지 [양배추전, 양배추생채, 양배추밥]
+2025-08-11 01:06:34,964 - INFO - [SKIP NO INGREDIENTS] 재료 정보가 없어 저장하지 않음: https://www.youtube.com/watch?v=vaAqqAXKbUc
+2025-08-11 01:06:35,243 - INFO - [SKIP NO INGREDIENTS] 재료 정보가 없어 저장하지 않음: https://www.youtube.com/watch?v=TushZpe1QRg
+2025-08-11 01:06:35,765 - INFO - [SKIP NO INGREDIENTS] 재료 정보가 없어 저장하지 않음: https://www.youtube.com/watch?v=SoSyw73ABjs
+2025-08-11 01:06:36,060 - INFO - 데이터베이스에 저장 시작: 한여름에 열을 내려주는 녹두닭죽! 초간단 몸보양식 추천!
+2025-08-11 01:06:36,266 - INFO - 데이터베이스에 저장 완료: 한여름에 열을 내려주는 녹두닭죽! 초간단 몸보양식 추천!
+2025-08-11 01:06:36,304 - INFO - [SKIP NO INGREDIENTS] 재료 정보가 없어 저장하지 않음: https://www.youtube.com/watch?v=gYe1czgKfMA
+2025-08-11 01:06:36,331 - INFO - [SKIP NO INGREDIENTS] 재료 정보가 없어 저장하지 않음: https://www.youtube.com/watch?v=wPyvWx1C-uQ
+2025-08-11 01:06:36,359 - INFO - [SKIP NO INGREDIENTS] 재료 정보가 없어 저장하지 않음: https://www.youtube.com/watch?v=VKuolqv-1c0
+2025-08-11 01:06:36,359 - INFO - 새로 저장된 영상: 21개
+2025-08-11 01:06:36,360 - INFO - [진행상황] 28/49 처리 중: https://www.youtube.com/@leeyeonbok
+2025-08-11 01:06:36,360 - INFO - 채널 ID 추출 시작: https://www.youtube.com/@leeyeonbok
+2025-08-11 01:06:36,459 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com
+2025-08-11 01:06:36,460 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com/@leeyeonbok
+2025-08-11 01:06:36,461 - INFO - [진행상황] 29/49 처리 중: https://www.youtube.com/@J.Dessert
+2025-08-11 01:06:36,461 - INFO - 채널 ID 추출 시작: https://www.youtube.com/@J.Dessert
+2025-08-11 01:06:36,561 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com
+2025-08-11 01:06:36,562 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com/@J.Dessert
+2025-08-11 01:06:36,563 - INFO - [진행상황] 30/49 처리 중: https://www.youtube.com/@seodam
+2025-08-11 01:06:36,563 - INFO - 채널 ID 추출 시작: https://www.youtube.com/@seodam
+2025-08-11 01:06:36,663 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com
+2025-08-11 01:06:36,666 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com/@seodam
+2025-08-11 01:06:36,667 - INFO - [진행상황] 31/49 처리 중: https://www.youtube.com/@CookingKun
+2025-08-11 01:06:36,667 - INFO - 채널 ID 추출 시작: https://www.youtube.com/@CookingKun
+2025-08-11 01:06:36,765 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com
+2025-08-11 01:06:36,766 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com/@CookingKun
+2025-08-11 01:06:36,767 - INFO - [진행상황] 32/49 처리 중: https://www.youtube.com/@JadoreRecipe
+2025-08-11 01:06:36,767 - INFO - 채널 ID 추출 시작: https://www.youtube.com/@JadoreRecipe
+2025-08-11 01:06:36,867 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com
+2025-08-11 01:06:36,868 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com/@JadoreRecipe
+2025-08-11 01:06:36,869 - INFO - [진행상황] 33/49 처리 중: https://www.youtube.com/c/%EC%8B%AC%EB%B0%A9%EA%B3%A8%EC%A3%BC%EB%B6%80
+2025-08-11 01:06:36,869 - INFO - 채널 ID 추출 시작: https://www.youtube.com/c/%EC%8B%AC%EB%B0%A9%EA%B3%A8%EC%A3%BC%EB%B6%80
+2025-08-11 01:06:36,969 - INFO - 커스텀 이름으로 검색: @%EC%8B%AC%EB%B0%A9%EA%B3%A8%EC%A3%BC%EB%B6%80
+2025-08-11 01:06:37,069 - INFO - [예상 비용] search.list 채널 검색 1회 → ~100 units
+2025-08-11 01:06:37,444 - INFO - API 호출: search - 채널 검색: @%EC%8B%AC%EB%B0%A9%EA%B3%A8%EC%A3%BC%EB%B6%80 (비용: 100, 누적: 124) [channel=https://www.youtube.com/c/%EC%8B%AC%EB%B0%A9%EA%B3%A8%EC%A3%BC%EB%B6%80]
+2025-08-11 01:06:37,445 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com/c/%EC%8B%AC%EB%B0%A9%EA%B3%A8%EC%A3%BC%EB%B6%80
+2025-08-11 01:06:37,445 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com/c/%EC%8B%AC%EB%B0%A9%EA%B3%A8%EC%A3%BC%EB%B6%80
+2025-08-11 01:06:37,446 - INFO - [진행상황] 34/49 처리 중: https://www.youtube.com/@mrs_macarons
+2025-08-11 01:06:37,447 - INFO - 채널 ID 추출 시작: https://www.youtube.com/@mrs_macarons
+2025-08-11 01:06:37,545 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com
+2025-08-11 01:06:37,546 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com/@mrs_macarons
+2025-08-11 01:06:37,547 - INFO - [진행상황] 35/49 처리 중: https://www.youtube.com/@sosocook
+2025-08-11 01:06:37,547 - INFO - 채널 ID 추출 시작: https://www.youtube.com/@sosocook
+2025-08-11 01:06:37,647 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com
+2025-08-11 01:06:37,648 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com/@sosocook
+2025-08-11 01:06:37,649 - INFO - [진행상황] 36/49 처리 중: https://www.youtube.com/@babchanam1
+2025-08-11 01:06:37,649 - INFO - 채널 ID 추출 시작: https://www.youtube.com/@babchanam1
+2025-08-11 01:06:37,749 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com
+2025-08-11 01:06:37,750 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com/@babchanam1
+2025-08-11 01:06:37,751 - INFO - [진행상황] 37/49 처리 중: https://www.youtube.com/@%EC%82%B4%EB%A6%BC%ED%8C%9D
+2025-08-11 01:06:37,751 - INFO - 채널 ID 추출 시작: https://www.youtube.com/@%EC%82%B4%EB%A6%BC%ED%8C%9D
+2025-08-11 01:06:37,851 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com
+2025-08-11 01:06:37,852 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com/@%EC%82%B4%EB%A6%BC%ED%8C%9D
+2025-08-11 01:06:37,853 - INFO - [진행상황] 38/49 처리 중: https://www.youtube.com/@Tooktak
+2025-08-11 01:06:37,853 - INFO - 채널 ID 추출 시작: https://www.youtube.com/@Tooktak
+2025-08-11 01:06:37,954 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com
+2025-08-11 01:06:37,954 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com/@Tooktak
+2025-08-11 01:06:37,955 - INFO - [진행상황] 39/49 처리 중: https://www.youtube.com/channel/UCrxSR4OGbJBVjYxp4xjWgZQ
+2025-08-11 01:06:37,956 - INFO - 채널 ID 추출 시작: https://www.youtube.com/channel/UCrxSR4OGbJBVjYxp4xjWgZQ
+2025-08-11 01:06:38,055 - INFO - 캐시에서 채널 ID 찾음: UCrxSR4OGbJBVjYxp4xjWgZQ
+2025-08-11 01:06:38,056 - INFO - 채널 영상 목록 가져오기 시작: UCrxSR4OGbJBVjYxp4xjWgZQ
+2025-08-11 01:06:38,459 - INFO - 로컬 DB에서 기존 영상 수: 3957개
+2025-08-11 01:06:38,557 - INFO - [예상 비용] channels.list(contentDetails) 1회 → ~1 units [channel=UCrxSR4OGbJBVjYxp4xjWgZQ]
+2025-08-11 01:06:38,649 - INFO - API 호출: channels - 채널 contentDetails 조회 (비용: 1, 누적: 125) [channel=UCrxSR4OGbJBVjYxp4xjWgZQ]
+2025-08-11 01:06:38,912 - INFO - [예상 비용] playlistItems.list(contentDetails) 1회 → ~1 units [channel=UCrxSR4OGbJBVjYxp4xjWgZQ]
+2025-08-11 01:06:39,167 - INFO - API 호출: playlistItems - 업로드 플레이리스트 최신 영상 (비용: 1, 누적: 126) [channel=UCrxSR4OGbJBVjYxp4xjWgZQ]
+2025-08-11 01:06:39,167 - INFO - playlistItems 기반 새로운 영상 추출: 28개
+2025-08-11 01:06:39,167 - INFO - [예상 비용] videos.list(배치 28개) 1회 → ~1 units [channel=UCrxSR4OGbJBVjYxp4xjWgZQ]
+2025-08-11 01:06:39,276 - INFO - API 호출: videos - 영상 상세정보 배치(28개) (비용: 1, 누적: 127) [channel=UCrxSR4OGbJBVjYxp4xjWgZQ]
+2025-08-11 01:06:40,604 - INFO - [SKIP NO INGREDIENTS] 재료 정보가 없어 저장하지 않음: https://www.youtube.com/watch?v=Vxn0cjQDnc8
+2025-08-11 01:06:41,413 - INFO - [SKIP FEW INGREDIENTS] 추출된 재료가 3개 이하여서 저장하지 않음: https://www.youtube.com/watch?v=MvdBBNS_LZ0 (재료: ['사과'])
+2025-08-11 01:06:41,699 - INFO - [SKIP FEW INGREDIENTS] 추출된 재료가 3개 이하여서 저장하지 않음: https://www.youtube.com/watch?v=rTS-9YPpwxc (재료: ['사과'])
+2025-08-11 01:06:42,727 - INFO - [SKIP NO INGREDIENTS] 재료 정보가 없어 저장하지 않음: https://www.youtube.com/watch?v=cRIzZEJ2tog
+2025-08-11 01:06:43,510 - INFO - [SKIP NO INGREDIENTS] 재료 정보가 없어 저장하지 않음: https://www.youtube.com/watch?v=AY56qhWZh4o
+2025-08-11 01:06:44,310 - INFO - [SKIP FEW INGREDIENTS] 추출된 재료가 3개 이하여서 저장하지 않음: https://www.youtube.com/watch?v=0AXTxE-X_0U (재료: ['사과'])
+2025-08-11 01:06:45,060 - INFO - 새로 저장된 영상: 22개
+2025-08-11 01:06:45,061 - INFO - [진행상황] 40/49 처리 중: https://www.youtube.com/channel/UC1NLUzgZaBOo050WuQE80eA
+2025-08-11 01:06:45,061 - INFO - 채널 ID 추출 시작: https://www.youtube.com/channel/UC1NLUzgZaBOo050WuQE80eA
+2025-08-11 01:06:45,163 - INFO - 캐시에서 채널 ID 찾음: UC1NLUzgZaBOo050WuQE80eA
+2025-08-11 01:06:45,164 - INFO - 채널 영상 목록 가져오기 시작: UC1NLUzgZaBOo050WuQE80eA
+2025-08-11 01:06:45,378 - INFO - 로컬 DB에서 기존 영상 수: 3979개
+2025-08-11 01:06:45,477 - INFO - [예상 비용] channels.list(contentDetails) 1회 → ~1 units [channel=UC1NLUzgZaBOo050WuQE80eA]
+2025-08-11 01:06:45,579 - INFO - API 호출: channels - 채널 contentDetails 조회 (비용: 1, 누적: 128) [channel=UC1NLUzgZaBOo050WuQE80eA]
+2025-08-11 01:06:45,779 - INFO - [예상 비용] playlistItems.list(contentDetails) 1회 → ~1 units [channel=UC1NLUzgZaBOo050WuQE80eA]
+2025-08-11 01:06:46,083 - INFO - API 호출: playlistItems - 업로드 플레이리스트 최신 영상 (비용: 1, 누적: 129) [channel=UC1NLUzgZaBOo050WuQE80eA]
+2025-08-11 01:06:46,084 - INFO - playlistItems 기반 새로운 영상 추출: 0개
+2025-08-11 01:06:46,085 - INFO - 새로운 영상이 없음: https://www.youtube.com/channel/UC1NLUzgZaBOo050WuQE80eA
+2025-08-11 01:06:46,086 - INFO - [진행상황] 41/49 처리 중: https://www.youtube.com/channel/UCKA_6r3CWC76x_EaFO6jsPA
+2025-08-11 01:06:46,086 - INFO - 채널 ID 추출 시작: https://www.youtube.com/channel/UCKA_6r3CWC76x_EaFO6jsPA
+2025-08-11 01:06:46,185 - INFO - 캐시에서 채널 ID 찾음: UCKA_6r3CWC76x_EaFO6jsPA
+2025-08-11 01:06:46,186 - INFO - 채널 영상 목록 가져오기 시작: UCKA_6r3CWC76x_EaFO6jsPA
+2025-08-11 01:06:46,394 - INFO - 로컬 DB에서 기존 영상 수: 3979개
+2025-08-11 01:06:46,493 - INFO - [예상 비용] channels.list(contentDetails) 1회 → ~1 units [channel=UCKA_6r3CWC76x_EaFO6jsPA]
+2025-08-11 01:06:46,586 - INFO - API 호출: channels - 채널 contentDetails 조회 (비용: 1, 누적: 130) [channel=UCKA_6r3CWC76x_EaFO6jsPA]
+2025-08-11 01:06:46,787 - INFO - [예상 비용] playlistItems.list(contentDetails) 1회 → ~1 units [channel=UCKA_6r3CWC76x_EaFO6jsPA]
+2025-08-11 01:06:48,525 - INFO - API 호출: playlistItems - 업로드 플레이리스트 최신 영상 (비용: 1, 누적: 131) [channel=UCKA_6r3CWC76x_EaFO6jsPA]
+2025-08-11 01:06:48,526 - INFO - playlistItems 기반 새로운 영상 추출: 45개
+2025-08-11 01:06:48,527 - INFO - [예상 비용] videos.list(배치 45개) 1회 → ~1 units [channel=UCKA_6r3CWC76x_EaFO6jsPA]
+2025-08-11 01:06:48,649 - INFO - API 호출: videos - 영상 상세정보 배치(45개) (비용: 1, 누적: 132) [channel=UCKA_6r3CWC76x_EaFO6jsPA]
+2025-08-11 01:06:48,690 - INFO - 데이터베이스에 저장 시작: 마요네즈 대신 이렇게! 꿀조합 크래미오이샌드위치
+2025-08-11 01:06:48,898 - INFO - 데이터베이스에 저장 완료: 마요네즈 대신 이렇게! 꿀조합 크래미오이샌드위치
+2025-08-11 01:06:48,925 - INFO - [SKIP NO INGREDIENTS] 재료 정보가 없어 저장하지 않음: https://www.youtube.com/watch?v=rHd4EW2UBPQ
+2025-08-11 01:06:48,960 - INFO - 데이터베이스에 저장 시작: 통통한 새우식감 가득 향긋한 쑥갓새우전
+2025-08-11 01:06:49,169 - INFO - 데이터베이스에 저장 완료: 통통한 새우식감 가득 향긋한 쑥갓새우전
+2025-08-11 01:06:49,215 - INFO - 데이터베이스에 저장 시작: 애매하게 남은 쑥갓 모두 넣어 만드는 부침개 레시피
+2025-08-11 01:06:49,428 - INFO - 데이터베이스에 저장 완료: 애매하게 남은 쑥갓 모두 넣어 만드는 부침개 레시피
+2025-08-11 01:06:49,471 - INFO - 데이터베이스에 저장 시작: #브로콜리#두부#두부비빔#다이어트#레시피#건강식#한그릇
+2025-08-11 01:06:49,684 - INFO - 데이터베이스에 저장 완료: #브로콜리#두부#두부비빔#다이어트#레시피#건강식#한그릇
+2025-08-11 01:06:49,728 - INFO - 데이터베이스에 저장 시작: 초코에몽 공모전 당선작, 초코에몽 수건케이크
+2025-08-11 01:06:49,952 - INFO - 데이터베이스에 저장 완료: 초코에몽 공모전 당선작, 초코에몽 수건케이크
+2025-08-11 01:06:49,987 - INFO - 데이터베이스에 저장 시작: 바질향 가득 시원하게 먹으면 더 맛있는 크림콜드파스타
+2025-08-11 01:06:50,199 - INFO - 데이터베이스에 저장 완료: 바질향 가득 시원하게 먹으면 더 맛있는 크림콜드파스타
+2025-08-11 01:06:50,243 - INFO - 데이터베이스에 저장 시작: 느끼함 없이 맛있게 먹는 크림콜드파스타
+2025-08-11 01:06:50,452 - INFO - 데이터베이스에 저장 완료: 느끼함 없이 맛있게 먹는 크림콜드파스타
+2025-08-11 01:06:50,489 - INFO - 데이터베이스에 저장 시작: 10분도 안 걸리는 여름 레시피 참외오이샐러드 (by 아임레시피)
+2025-08-11 01:06:50,696 - INFO - 데이터베이스에 저장 완료: 10분도 안 걸리는 여름 레시피 참외오이샐러드 (by 아임레시피)
+2025-08-11 01:06:50,734 - INFO - 데이터베이스에 저장 시작: 가볍게 먹기 좋은 식전 샐러드 레시피
+2025-08-11 01:06:50,942 - INFO - 데이터베이스에 저장 완료: 가볍게 먹기 좋은 식전 샐러드 레시피
+2025-08-11 01:06:50,976 - INFO - [SKIP NO INGREDIENTS] 재료 정보가 없어 저장하지 않음: https://www.youtube.com/watch?v=QctzDz5Z_GY
+2025-08-11 01:06:51,014 - INFO - 데이터베이스에 저장 시작: [만만셰] 쑥갓 어묵전 by.아이해피  | #간단반찬 #집들이음식
+2025-08-11 01:06:51,223 - INFO - 데이터베이스에 저장 완료: [만만셰] 쑥갓 어묵전 by.아이해피  | #간단반찬 #집들이음식
+2025-08-11 01:06:51,262 - INFO - 데이터베이스에 저장 시작: 잘 익은 토마토는 두부와 볶아보세요.
+2025-08-11 01:06:51,467 - INFO - 데이터베이스에 저장 완료: 잘 익은 토마토는 두부와 볶아보세요.
+2025-08-11 01:06:51,511 - INFO - 데이터베이스에 저장 시작: 잘 익은 토마토가 있다면 두부와 볶아보세요.
+2025-08-11 01:06:51,721 - INFO - 데이터베이스에 저장 완료: 잘 익은 토마토가 있다면 두부와 볶아보세요.
+2025-08-11 01:06:51,763 - INFO - 데이터베이스에 저장 시작: #직장인#출근#도시락#출근도시락#간단#레시피#식비절약#중화비빔밥#오이탕탕이
+2025-08-11 01:06:51,971 - INFO - 데이터베이스에 저장 완료: #직장인#출근#도시락#출근도시락#간단#레시피#식비절약#중화비빔밥#오이탕탕이
+2025-08-11 01:06:52,011 - INFO - 데이터베이스에 저장 시작: 밥 말아 먹기 좋은 소고기배추된장국
+2025-08-11 01:06:52,217 - INFO - 데이터베이스에 저장 완료: 밥 말아 먹기 좋은 소고기배추된장국
+2025-08-11 01:06:52,262 - INFO - 데이터베이스에 저장 시작: 한 냄비 만들어두면 든든한 소고기배추된장국
+2025-08-11 01:06:52,470 - INFO - 데이터베이스에 저장 완료: 한 냄비 만들어두면 든든한 소고기배추된장국
+2025-08-11 01:06:52,512 - INFO - 데이터베이스에 저장 시작: #토마토국수#토마토#국수#여름국수#냉국수#레시피
+2025-08-11 01:06:52,720 - INFO - 데이터베이스에 저장 완료: #토마토국수#토마토#국수#여름국수#냉국수#레시피
+2025-08-11 01:06:52,763 - INFO - 데이터베이스에 저장 시작: 간단하게 볶아먹는 풍미가득 버터양송이볶음
+2025-08-11 01:06:52,977 - INFO - 데이터베이스에 저장 완료: 간단하게 볶아먹는 풍미가득 버터양송이볶음
+2025-08-11 01:06:53,021 - INFO - 데이터베이스에 저장 시작: 버터 풍미가득 간단 술안주 버터양송이볶음
+2025-08-11 01:06:53,237 - INFO - 데이터베이스에 저장 완료: 버터 풍미가득 간단 술안주 버터양송이볶음
+2025-08-11 01:06:53,273 - INFO - 데이터베이스에 저장 시작: 빠르게 만들어도 아린맛 없이 아삭한 양파겉절이
+2025-08-11 01:06:53,490 - INFO - 데이터베이스에 저장 완료: 빠르게 만들어도 아린맛 없이 아삭한 양파겉절이
+2025-08-11 01:06:53,524 - INFO - 데이터베이스에 저장 시작: 아린맛 없이 맛있게 먹는 양파겉절이
+2025-08-11 01:06:53,730 - INFO - 데이터베이스에 저장 완료: 아린맛 없이 맛있게 먹는 양파겉절이
+2025-08-11 01:06:53,769 - INFO - 데이터베이스에 저장 시작: #만만셰 #애호박요리 #덮밥 #레시피 #집밥요리 #간단한한끼 #자취생요리 #혼밥
+2025-08-11 01:06:53,975 - INFO - 데이터베이스에 저장 완료: #만만셰 #애호박요리 #덮밥 #레시피 #집밥요리 #간단한한끼 #자취생요리 #혼밥
+2025-08-11 01:06:54,017 - INFO - 데이터베이스에 저장 시작: [만만셰] 애호박덮밥 by.아이해피  | 초간단 덮밥 레시피 | 덮밥추천!!!
+2025-08-11 01:06:54,225 - INFO - 데이터베이스에 저장 완료: [만만셰] 애호박덮밥 by.아이해피  | 초간단 덮밥 레시피 | 덮밥추천!!!
+2025-08-11 01:06:54,271 - INFO - 데이터베이스에 저장 시작: 연근 안 좋아하는 사람도 맛있게 먹은 쫀득 바삭 연근 강정!
+2025-08-11 01:06:54,479 - INFO - 데이터베이스에 저장 완료: 연근 안 좋아하는 사람도 맛있게 먹은 쫀득 바삭 연근 강정!
+2025-08-11 01:06:54,524 - INFO - 데이터베이스에 저장 시작: 연근 안 좋아하는 사람도 맛있게 먹어요.
+2025-08-11 01:06:54,729 - INFO - 데이터베이스에 저장 완료: 연근 안 좋아하는 사람도 맛있게 먹어요.
+2025-08-11 01:06:54,771 - INFO - 데이터베이스에 저장 시작: 참외로 만드는 태국식 샐러드
+2025-08-11 01:06:54,977 - INFO - 데이터베이스에 저장 완료: 참외로 만드는 태국식 샐러드
+2025-08-11 01:06:55,020 - INFO - 데이터베이스에 저장 시작: 새콤달콤 참외로 만드는 태국식 샐러드 참외쏨땀(by 희정집밥)
+2025-08-11 01:06:55,228 - INFO - 데이터베이스에 저장 완료: 새콤달콤 참외로 만드는 태국식 샐러드 참외쏨땀(by 희정집밥)
+2025-08-11 01:06:55,268 - INFO - 데이터베이스에 저장 시작: 맛있게 살 빠지는 요거트사과샐러드
+2025-08-11 01:06:55,477 - INFO - 데이터베이스에 저장 완료: 맛있게 살 빠지는 요거트사과샐러드
+2025-08-11 01:06:55,513 - INFO - 데이터베이스에 저장 시작: 샐러드가 맛있어지는 드레싱
+2025-08-11 01:06:55,717 - INFO - 데이터베이스에 저장 완료: 샐러드가 맛있어지는 드레싱
+2025-08-11 01:06:55,752 - INFO - 데이터베이스에 저장 시작: #식빵치즈케이크 #노오븐베이킹 #에어프라이어 #초간단디저트 #바스크치즈케이크
+2025-08-11 01:06:55,977 - INFO - 데이터베이스에 저장 완료: #식빵치즈케이크 #노오븐베이킹 #에어프라이어 #초간단디저트 #바스크치즈케이크
+2025-08-11 01:06:56,023 - INFO - 데이터베이스에 저장 시작: 인증 수산물로 믿고 먹는 건강밥상, 누구나 맛있게 먹는 '새우솥밥'
+2025-08-11 01:06:56,235 - INFO - 데이터베이스에 저장 완료: 인증 수산물로 믿고 먹는 건강밥상, 누구나 맛있게 먹는 '새우솥밥'
+2025-08-11 01:06:56,276 - INFO - 데이터베이스에 저장 시작: 품절대란 컵빙수 간단하게 집에서 직접 만들어 먹어요!
+2025-08-11 01:06:56,481 - INFO - 데이터베이스에 저장 완료: 품절대란 컵빙수 간단하게 집에서 직접 만들어 먹어요!
+2025-08-11 01:06:56,519 - INFO - 데이터베이스에 저장 시작: 품절대란 컵빙수 간단하게 만들기
+2025-08-11 01:06:56,730 - INFO - 데이터베이스에 저장 완료: 품절대란 컵빙수 간단하게 만들기
+2025-08-11 01:06:56,771 - INFO - 데이터베이스에 저장 시작: 여름 몸보신 레시피 닭다리 영양솥밥
+2025-08-11 01:06:56,980 - INFO - 데이터베이스에 저장 완료: 여름 몸보신 레시피 닭다리 영양솥밥
+2025-08-11 01:06:57,025 - INFO - 데이터베이스에 저장 시작: 한 공기로 끝내는 여름 보양 닭다리 영양솥밥
+2025-08-11 01:06:57,234 - INFO - 데이터베이스에 저장 완료: 한 공기로 끝내는 여름 보양 닭다리 영양솥밥
+2025-08-11 01:06:57,278 - INFO - 데이터베이스에 저장 시작: #만만셰 #바나나디저트 #핫케이크레시피 #레시피 #홈카페디저트 #노오븐디저트 #간단브런치 #아이간식추천
+2025-08-11 01:06:57,485 - INFO - 데이터베이스에 저장 완료: #만만셰 #바나나디저트 #핫케이크레시피 #레시피 #홈카페디저트 #노오븐디저트 #간단브런치 #아이간식추천
+2025-08-11 01:06:57,520 - INFO - 데이터베이스에 저장 시작: [만만셰] 바나나 핫케이크 by.식식쟁이  | 겉바속촉 디저트 | 핫케이크레시피
+2025-08-11 01:06:57,736 - INFO - 데이터베이스에 저장 완료: [만만셰] 바나나 핫케이크 by.식식쟁이  | 겉바속촉 디저트 | 핫케이크레시피
+2025-08-11 01:06:57,781 - INFO - 데이터베이스에 저장 시작: #직장인#출근#도시락#출근도시락#간단#레시피#식비절약#김밥#스크램블회오리김밥
+2025-08-11 01:06:57,989 - INFO - 데이터베이스에 저장 완료: #직장인#출근#도시락#출근도시락#간단#레시피#식비절약#김밥#스크램블회오리김밥
+2025-08-11 01:06:58,032 - INFO - 데이터베이스에 저장 시작: 아이들이 진짜 잘 먹는 단짠단짠 간장두부강정
+2025-08-11 01:06:58,241 - INFO - 데이터베이스에 저장 완료: 아이들이 진짜 잘 먹는 단짠단짠 간장두부강정
+2025-08-11 01:06:58,283 - INFO - 데이터베이스에 저장 시작: 쫄깃 촉촉하게 먹는 간장두부강정
+2025-08-11 01:06:58,491 - INFO - 데이터베이스에 저장 완료: 쫄깃 촉촉하게 먹는 간장두부강정
+2025-08-11 01:06:58,543 - INFO - 데이터베이스에 저장 시작: #닭다리살#유린기#닭튀김#닭고기샐러드#치킨#레시피
+2025-08-11 01:06:58,751 - INFO - 데이터베이스에 저장 완료: #닭다리살#유린기#닭튀김#닭고기샐러드#치킨#레시피
+2025-08-11 01:06:58,796 - INFO - 데이터베이스에 저장 시작: 입맛 없을 때 먹기 좋은 매콤한 밥 반찬 꽈리고추감자조림
+2025-08-11 01:06:59,003 - INFO - 데이터베이스에 저장 완료: 입맛 없을 때 먹기 좋은 매콤한 밥 반찬 꽈리고추감자조림
+2025-08-11 01:06:59,050 - INFO - 데이터베이스에 저장 시작: 매콤 쫀득한 밥도둑 꽈리고추감자조림
+2025-08-11 01:06:59,258 - INFO - 데이터베이스에 저장 완료: 매콤 쫀득한 밥도둑 꽈리고추감자조림
+2025-08-11 01:06:59,298 - INFO - [SKIP NO INGREDIENTS] 재료 정보가 없어 저장하지 않음: https://www.youtube.com/watch?v=EWYh9_tMjtU
+2025-08-11 01:06:59,299 - INFO - 새로 저장된 영상: 42개
+2025-08-11 01:06:59,299 - INFO - [진행상황] 42/49 처리 중: https://www.youtube.com/@suri4095
+2025-08-11 01:06:59,299 - INFO - 채널 ID 추출 시작: https://www.youtube.com/@suri4095
+2025-08-11 01:06:59,399 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com
+2025-08-11 01:06:59,400 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com/@suri4095
+2025-08-11 01:06:59,401 - INFO - [진행상황] 43/49 처리 중: https://www.youtube.com/@JoonsLittleTable
+2025-08-11 01:06:59,402 - INFO - 채널 ID 추출 시작: https://www.youtube.com/@JoonsLittleTable
+2025-08-11 01:06:59,501 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com
+2025-08-11 01:06:59,502 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com/@JoonsLittleTable
+2025-08-11 01:06:59,503 - INFO - [진행상황] 44/49 처리 중: https://www.youtube.com/channel/UCkGr7BCJ8plP-Jhy4kSfP8w
+2025-08-11 01:06:59,503 - INFO - 채널 ID 추출 시작: https://www.youtube.com/channel/UCkGr7BCJ8plP-Jhy4kSfP8w
+2025-08-11 01:06:59,603 - INFO - 캐시에서 채널 ID 찾음: UCkGr7BCJ8plP-Jhy4kSfP8w
+2025-08-11 01:06:59,603 - INFO - 채널 영상 목록 가져오기 시작: UCkGr7BCJ8plP-Jhy4kSfP8w
+2025-08-11 01:07:00,013 - INFO - 로컬 DB에서 기존 영상 수: 4021개
+2025-08-11 01:07:00,111 - INFO - [예상 비용] channels.list(contentDetails) 1회 → ~1 units [channel=UCkGr7BCJ8plP-Jhy4kSfP8w]
+2025-08-11 01:07:00,201 - INFO - API 호출: channels - 채널 contentDetails 조회 (비용: 1, 누적: 133) [channel=UCkGr7BCJ8plP-Jhy4kSfP8w]
+2025-08-11 01:07:00,401 - INFO - [예상 비용] playlistItems.list(contentDetails) 1회 → ~1 units [channel=UCkGr7BCJ8plP-Jhy4kSfP8w]
+2025-08-11 01:07:00,857 - INFO - API 호출: playlistItems - 업로드 플레이리스트 최신 영상 (비용: 1, 누적: 134) [channel=UCkGr7BCJ8plP-Jhy4kSfP8w]
+2025-08-11 01:07:00,857 - INFO - playlistItems 기반 새로운 영상 추출: 11개
+2025-08-11 01:07:00,858 - INFO - [예상 비용] videos.list(배치 11개) 1회 → ~1 units [channel=UCkGr7BCJ8plP-Jhy4kSfP8w]
+2025-08-11 01:07:00,957 - INFO - API 호출: videos - 영상 상세정보 배치(11개) (비용: 1, 누적: 135) [channel=UCkGr7BCJ8plP-Jhy4kSfP8w]
+2025-08-11 01:07:01,000 - INFO - 데이터베이스에 저장 시작: 초간단 삼겹살 부추볶음 만들기 / 캠핑한끼 #삼겹살 #돼지고기 #부추요리
+2025-08-11 01:07:01,208 - INFO - 데이터베이스에 저장 완료: 초간단 삼겹살 부추볶음 만들기 / 캠핑한끼 #삼겹살 #돼지고기 #부추요리
+2025-08-11 01:07:01,259 - INFO - 데이터베이스에 저장 시작: 냉동 삼겹살 간장 뿌리고 파채 올리기 / 파불고기 / 봉용불고기st / 캠핑한끼
+2025-08-11 01:07:01,464 - INFO - 데이터베이스에 저장 완료: 냉동 삼겹살 간장 뿌리고 파채 올리기 / 파불고기 / 봉용불고기st / 캠핑한끼
+2025-08-11 01:07:01,503 - INFO - 데이터베이스에 저장 시작: 냉삼 위에 파채를 올려봤습니다 / 봉용불고기st / 캠핑한끼 #파불고기 #삼겹살 #봉용불고기
+2025-08-11 01:07:01,710 - INFO - 데이터베이스에 저장 완료: 냉삼 위에 파채를 올려봤습니다 / 봉용불고기st / 캠핑한끼 #파불고기 #삼겹살 #봉용불고기
+2025-08-11 01:07:02,509 - INFO - 데이터베이스에 저장 시작: 정말 호텔 짜장면 맛이 날까? 최현석 짜파게티 / 캠핑요리 / 캠핑한끼
+2025-08-11 01:07:02,710 - INFO - 데이터베이스에 저장 완료: 정말 호텔 짜장면 맛이 날까? 최현석 짜파게티 / 캠핑요리 / 캠핑한끼
+2025-08-11 01:07:02,754 - INFO - 데이터베이스에 저장 시작: 단백질 추가된 육회 한 접시 와 소주 한잔 / 캠핑한끼 #단백질 #육회 #소고기
+2025-08-11 01:07:02,958 - INFO - 데이터베이스에 저장 완료: 단백질 추가된 육회 한 접시 와 소주 한잔 / 캠핑한끼 #단백질 #육회 #소고기
+2025-08-11 01:07:03,004 - INFO - 데이터베이스에 저장 시작: 우대갈비 한 점, 스카치블루 21년의 깊은 여유 / 캠핑한끼 #우대갈비 #스카치블루21년 #위스키
+2025-08-11 01:07:03,209 - INFO - 데이터베이스에 저장 완료: 우대갈비 한 점, 스카치블루 21년의 깊은 여유 / 캠핑한끼 #우대갈비 #스카치블루21년 #위스키
+2025-08-11 01:07:03,252 - INFO - 데이터베이스에 저장 시작: 식당 보다 맛있다는 류수영의 부대찌개 / 사리곰탕면 / 캠핑한끼
+2025-08-11 01:07:03,456 - INFO - 데이터베이스에 저장 완료: 식당 보다 맛있다는 류수영의 부대찌개 / 사리곰탕면 / 캠핑한끼
+2025-08-11 01:07:03,504 - INFO - 데이터베이스에 저장 시작: 비오는 날 류수영의 사리곰탕면 부대찌개 소주 한잔 / 캠핑한끼 #류수영부대찌개 #부대찌개 #비오는날
+2025-08-11 01:07:03,710 - INFO - 데이터베이스에 저장 완료: 비오는 날 류수영의 사리곰탕면 부대찌개 소주 한잔 / 캠핑한끼 #류수영부대찌개 #부대찌개 #비오는날
+2025-08-11 01:07:03,710 - INFO - 새로 저장된 영상: 11개
+2025-08-11 01:07:03,711 - INFO - [진행상황] 45/49 처리 중: https://www.youtube.com/channel/UCZi3anHvH7wBatykoVGMVJw
+2025-08-11 01:07:03,712 - INFO - 채널 ID 추출 시작: https://www.youtube.com/channel/UCZi3anHvH7wBatykoVGMVJw
+2025-08-11 01:07:03,811 - INFO - 캐시에서 채널 ID 찾음: UCZi3anHvH7wBatykoVGMVJw
+2025-08-11 01:07:03,811 - INFO - 채널 영상 목록 가져오기 시작: UCZi3anHvH7wBatykoVGMVJw
+2025-08-11 01:07:04,116 - INFO - 로컬 DB에서 기존 영상 수: 4032개
+2025-08-11 01:07:04,217 - INFO - [예상 비용] channels.list(contentDetails) 1회 → ~1 units [channel=UCZi3anHvH7wBatykoVGMVJw]
+2025-08-11 01:07:04,307 - INFO - API 호출: channels - 채널 contentDetails 조회 (비용: 1, 누적: 136) [channel=UCZi3anHvH7wBatykoVGMVJw]
+2025-08-11 01:07:04,507 - INFO - [예상 비용] playlistItems.list(contentDetails) 1회 → ~1 units [channel=UCZi3anHvH7wBatykoVGMVJw]
+2025-08-11 01:07:04,854 - INFO - API 호출: playlistItems - 업로드 플레이리스트 최신 영상 (비용: 1, 누적: 137) [channel=UCZi3anHvH7wBatykoVGMVJw]
+2025-08-11 01:07:04,855 - INFO - playlistItems 기반 새로운 영상 추출: 0개
+2025-08-11 01:07:04,855 - INFO - 새로운 영상이 없음: https://www.youtube.com/channel/UCZi3anHvH7wBatykoVGMVJw
+2025-08-11 01:07:04,856 - INFO - [진행상황] 46/49 처리 중: https://www.youtube.com/channel/UC4485ilDR3hfZe83lvUZYVA
+2025-08-11 01:07:04,857 - INFO - 채널 ID 추출 시작: https://www.youtube.com/channel/UC4485ilDR3hfZe83lvUZYVA
+2025-08-11 01:07:04,956 - INFO - 캐시에서 채널 ID 찾음: UC4485ilDR3hfZe83lvUZYVA
+2025-08-11 01:07:04,957 - INFO - 채널 영상 목록 가져오기 시작: UC4485ilDR3hfZe83lvUZYVA
+2025-08-11 01:07:05,163 - INFO - 로컬 DB에서 기존 영상 수: 4032개
+2025-08-11 01:07:05,263 - INFO - [예상 비용] channels.list(contentDetails) 1회 → ~1 units [channel=UC4485ilDR3hfZe83lvUZYVA]
+2025-08-11 01:07:05,354 - INFO - API 호출: channels - 채널 contentDetails 조회 (비용: 1, 누적: 138) [channel=UC4485ilDR3hfZe83lvUZYVA]
+2025-08-11 01:07:05,557 - INFO - [예상 비용] playlistItems.list(contentDetails) 1회 → ~1 units [channel=UC4485ilDR3hfZe83lvUZYVA]
+2025-08-11 01:07:05,917 - INFO - API 호출: playlistItems - 업로드 플레이리스트 최신 영상 (비용: 1, 누적: 139) [channel=UC4485ilDR3hfZe83lvUZYVA]
+2025-08-11 01:07:05,917 - INFO - playlistItems 기반 새로운 영상 추출: 5개
+2025-08-11 01:07:05,917 - INFO - [예상 비용] videos.list(배치 5개) 1회 → ~1 units [channel=UC4485ilDR3hfZe83lvUZYVA]
+2025-08-11 01:07:06,002 - INFO - API 호출: videos - 영상 상세정보 배치(5개) (비용: 1, 누적: 140) [channel=UC4485ilDR3hfZe83lvUZYVA]
+2025-08-11 01:07:06,060 - INFO - 데이터베이스에 저장 시작: 다음날 먹어도 부드러운 샌드위치용 식빵 누구나 만들 수 있어요./마스카포네치즈식빵/풀먼식빵/soft sandwich bread
+2025-08-11 01:07:06,277 - INFO - 데이터베이스에 저장 완료: 다음날 먹어도 부드러운 샌드위치용 식빵 누구나 만들 수 있어요./마스카포네치즈식빵/풀먼식빵/soft sandwich bread
+2025-08-11 01:07:06,315 - INFO - [SKIP NO INGREDIENTS] 재료 정보가 없어 저장하지 않음: https://www.youtube.com/watch?v=AmPpDrDuyso
+2025-08-11 01:07:06,366 - INFO - 데이터베이스에 저장 시작: 강력추천!!! 미국맛 그 자체인 최상급 피넛버터쿠키/땅콩샌드쿠키/Peanut Butter Cookie/샌드쿠키
+2025-08-11 01:07:06,582 - INFO - 데이터베이스에 저장 완료: 강력추천!!! 미국맛 그 자체인 최상급 피넛버터쿠키/땅콩샌드쿠키/Peanut Butter Cookie/샌드쿠키
+2025-08-11 01:07:06,618 - INFO - [SKIP NO INGREDIENTS] 재료 정보가 없어 저장하지 않음: https://www.youtube.com/watch?v=lJHILyb8bpc
+2025-08-11 01:07:06,673 - INFO - 데이터베이스에 저장 시작: 한 가지 반죽으로 3가지 옛날빵 만드는 방법(단팥빵, 슈크림빵, 땅콩크림빵)/Custard cream bread/Peanut Cream Bread/Red bean bread
+2025-08-11 01:07:06,888 - INFO - 데이터베이스에 저장 완료: 한 가지 반죽으로 3가지 옛날빵 만드는 방법(단팥빵, 슈크림빵, 땅콩크림빵)/Custard cream bread/Peanut Cream Bread/Red bean bread
+2025-08-11 01:07:06,889 - INFO - 새로 저장된 영상: 3개
+2025-08-11 01:07:06,890 - INFO - [진행상황] 47/49 처리 중: https://www.youtube.com/@HoodadakCook
+2025-08-11 01:07:06,890 - INFO - 채널 ID 추출 시작: https://www.youtube.com/@HoodadakCook
+2025-08-11 01:07:06,991 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com
+2025-08-11 01:07:06,991 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com/@HoodadakCook
+2025-08-11 01:07:06,992 - INFO - [진행상황] 48/49 처리 중: https://www.youtube.com/@scoopdang
+2025-08-11 01:07:06,993 - INFO - 채널 ID 추출 시작: https://www.youtube.com/@scoopdang
+2025-08-11 01:07:07,092 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com
+2025-08-11 01:07:07,093 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com/@scoopdang
+2025-08-11 01:07:07,093 - INFO - [진행상황] 49/49 처리 중: https://www.youtube.com/@LudaTable
+2025-08-11 01:07:07,094 - INFO - 채널 ID 추출 시작: https://www.youtube.com/@LudaTable
+2025-08-11 01:07:07,193 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com
+2025-08-11 01:07:07,193 - WARNING - 채널 ID를 찾을 수 없음: https://www.youtube.com/@LudaTable
+2025-08-11 01:07:07,194 - INFO - 모든 인플루언서 처리 완료
+2025-08-11 01:07:07,194 - INFO - === YouTube API 할당량 사용량 요약 ===
+2025-08-11 01:07:07,195 - INFO - 처리된 인플루언서 수: 12/49
+2025-08-11 01:07:07,195 - INFO - 새로 수집된 영상 수: 193
+2025-08-11 01:07:07,195 - INFO - Search API 호출 횟수: 1
+2025-08-11 01:07:07,196 - INFO - Videos API 호출 횟수: 12
+2025-08-11 01:07:07,196 - INFO - 예상 할당량 사용량: 140
+2025-08-11 01:07:07,196 - INFO - 할당량 제한: 9500
+2025-08-11 01:07:07,197 - INFO - 예상 할당량 잔여량: 9360
+2025-08-11 01:07:07,197 - INFO - --- 채널별 예상 할당량 TOP5 ---
+2025-08-11 01:07:07,197 - INFO - channel=https://www.youtube.com/c/%EC%8B%AC%EB%B0%A9%EA%B3%A8%EC%A3%BC%EB%B6%80 | search_calls=1 | videos_calls=0 | est_cost=100
+2025-08-11 01:07:07,198 - INFO - channel=UCemFUqq5jad1f258HrPS5rg | search_calls=0 | videos_calls=1 | est_cost=3
+2025-08-11 01:07:07,198 - INFO - channel=UCtby6rJtBGgUm-2oD_E7bzw   | search_calls=0 | videos_calls=1 | est_cost=3
+2025-08-11 01:07:07,198 - INFO - channel=UCy2WX3w5UyYFHBDHyWFKNUQ | search_calls=0 | videos_calls=1 | est_cost=3
+2025-08-11 01:07:07,198 - INFO - channel=UCVXx89z5j3gkQMGScNqmWjw | search_calls=0 | videos_calls=1 | est_cost=3
+2025-08-11 01:07:07,198 - INFO - 할당량 내에서 정상 종료됨
+2025-08-11 01:07:07,198 - INFO - === 할당량 사용량 요약 완료 ===
+2025-08-11 01:07:07,198 - INFO - Running update_used_ingredients_batch.py...
+2025-08-11 02:01:56,794 - INFO - update_used_ingredients_batch.py finished.
