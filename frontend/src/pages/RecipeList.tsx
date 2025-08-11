@@ -307,6 +307,14 @@ async function loadRecipesPaged(
     if (filters.platform) {
       params.append('platform', filters.platform);
     }
+
+    // 서버가 매칭률을 계산할 수 있도록 내 보유 재료 전달
+    try {
+      const my = getMyIngredients();
+      if (my && my.length > 0) {
+        params.append('my_ingredients', my.join(','));
+      }
+    } catch {}
     
     const response: AxiosResponse<any> = await axios.get(`${apiUrl}/api/recipes/filter?${params}`);
     console.log('RecipeList API 응답:', response.data);
