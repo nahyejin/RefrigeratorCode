@@ -112,10 +112,13 @@ def get_popular_recipes():
 def get_filtered_recipes():
     page = int(request.args.get('page', 1))
     size = int(request.args.get('size', 20))
-    match_rate_min = float(request.args.get('match_rate_min', 30))
+    match_rate_min = float(request.args.get('match_rate_min', 0))
     match_rate_max = float(request.args.get('match_rate_max', 100))
-    sort_by = request.args.get('sort_by', 'match_rate')  # match_rate, date, popularity, like, comment
+    sort_by = request.args.get('sort_by', 'match_rate')  # match_rate, date, popularity, like, comment, hits
     platform = request.args.get('platform', '')  # youtube, naver, or empty for all
+    # 내 보유 재료 목록(쉼표 구분) → 서버에서 매칭률 계산
+    my_ingredients_raw = request.args.get('my_ingredients', '').strip()
+    my_ingredients = [i.strip() for i in my_ingredients_raw.split(',') if i.strip()]
     
     offset = (page - 1) * size
     db = get_db()
@@ -134,16 +137,21 @@ def get_filtered_recipes():
             where_conditions.append("platform LIKE %s")
             params.append('%naver%')
     
+    # 매칭률 계산식(필요 시)
+    # 공백 제거한 used_ingredients에서 쉼표 개수로 총 재료 수 계산
+    total_ing_expr = "CASE WHEN used_ingredients IS NULL OR used_ingredients='' THEN 0 ELSE LENGTH(REPLACE(used_ingredients,' ','')) - LENGTH(REPLACE(REPLACE(used_ingredients,' ',''),',','')) + 1 END"
+    if my_ingredients:
+        # 각 재료가 used_ingredients(공백 제거)에 포함되는지 FIND_IN_SET로 체크
+        match_count_parts = ["(CASE WHEN FIND_IN_SET(%s, REPLACE(used_ingredients,' ','')) > 0 THEN 1 ELSE 0 END)" for _ in my_ingredients]
+        match_count_expr = " + ".join(match_count_parts) if match_count_parts else "0"
+        match_rate_expr = f"CASE WHEN ({total_ing_expr}) = 0 THEN 0 ELSE ROUND(( {match_count_expr} ) / ({total_ing_expr}) * 100) END"
+        select_match_rate = f", {match_rate_expr} AS match_rate"
+    else:
+        select_match_rate = ", 0 AS match_rate"
+
     # 정렬 조건
     if sort_by == 'match_rate':
-        # 매칭률 순으로 정렬 (재료 정보가 없는 경우 하위로)
-        order_by = """
-        CASE 
-            WHEN used_ingredients IS NULL OR used_ingredients = '' OR used_ingredients = 'null' THEN 1
-            ELSE 0
-        END,
-        post_time DESC
-        """
+        order_by = "match_rate DESC, post_time DESC"
     elif sort_by == 'date':
         order_by = "post_time DESC"
     elif sort_by == 'popularity':
@@ -171,19 +179,43 @@ def get_filtered_recipes():
     else:
         order_by = "post_time DESC"
     
-    # 전체 개수 구하기
-    count_query = f"SELECT COUNT(*) as total FROM recipes WHERE {' AND '.join(where_conditions)}"
-    cursor.execute(count_query, params)
+    # 전체 개수 구하기 (매칭률 필터가 있는 경우 HAVING으로 반영)
+    if my_ingredients:
+        count_query = f"""
+            SELECT COUNT(*) as total
+            FROM (
+                SELECT id {select_match_rate}
+                FROM recipes
+                WHERE {' AND '.join(where_conditions)}
+            ) t
+            WHERE match_rate BETWEEN %s AND %s
+        """
+        cursor.execute(count_query, params + my_ingredients + [match_rate_min, match_rate_max])
+    else:
+        count_query = f"SELECT COUNT(*) as total FROM recipes WHERE {' AND '.join(where_conditions)}"
+        cursor.execute(count_query, params)
     total = cursor.fetchone()['total']
-    
+
     # 필터링된 레시피 가져오기
-    query = f"""
-        SELECT * FROM recipes 
-        WHERE {' AND '.join(where_conditions)}
-        ORDER BY {order_by}
-        LIMIT %s OFFSET %s
-    """
-    cursor.execute(query, params + [size, offset])
+    if my_ingredients:
+        query = f"""
+            SELECT * {select_match_rate}
+            FROM recipes
+            WHERE {' AND '.join(where_conditions)}
+            HAVING match_rate BETWEEN %s AND %s
+            ORDER BY {order_by}
+            LIMIT %s OFFSET %s
+        """
+        cursor.execute(query, params + my_ingredients + [match_rate_min, match_rate_max, size, offset])
+    else:
+        query = f"""
+            SELECT * {select_match_rate}
+            FROM recipes 
+            WHERE {' AND '.join(where_conditions)}
+            ORDER BY {order_by}
+            LIMIT %s OFFSET %s
+        """
+        cursor.execute(query, params + [size, offset])
     recipes = cursor.fetchall()
     
     db.close()
