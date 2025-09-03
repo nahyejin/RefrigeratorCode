@@ -495,10 +495,36 @@ class NaverInfluencerCrawler:
         except Exception as e:
             logger.error(f"Error saving data to file: {str(e)}")
 
+    def delete_low_ingredient_entries(self):
+        connection = pymysql.connect(
+            host='caboose.proxy.rlwy.net',
+            user='root',
+            password='HkqYFCoKPPPxgryxiEbUYxcYynQXxeRF',
+            db='railway',
+            port=47779,
+            charset='utf8mb4',
+            cursorclass=pymysql.cursors.DictCursor
+        )
+
+        try:
+            with connection.cursor() as cursor:
+                today = datetime.now().strftime('%Y-%m-%d')
+                delete_query = """
+                DELETE FROM recipes
+                WHERE DATE(collected_at) = %s
+                AND (LENGTH(used_ingredients) - LENGTH(REPLACE(used_ingredients, ',', '')) + 1) <= 3
+                """
+                cursor.execute(delete_query, (today,))
+                connection.commit()
+                print(f"Deleted entries with 3 or fewer ingredients collected on {today}.")
+        finally:
+            connection.close()
+
 def main():
     crawler = NaverInfluencerCrawler()
     recipes = crawler.crawl()
     crawler.save_to_json(recipes)
+    crawler.delete_low_ingredient_entries()
     logger.info(f"Total recipes collected: {len(recipes)}")
 
 if __name__ == "__main__":
