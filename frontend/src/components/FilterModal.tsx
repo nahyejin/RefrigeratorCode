@@ -313,14 +313,9 @@ const FilterModal: React.FC<FilterModalProps> = ({
 
   // 키워드 선택/해제 핸들러
   const handleKeywordToggle = (main: string, keyword: string) => {
-    const currentKeywords = filterState[main] || [];
-    const isSelected = currentKeywords.includes(keyword);
-    
     setFilterState({
       ...filterState,
-      [main]: isSelected
-        ? currentKeywords.filter(k => k !== keyword)
-        : [...currentKeywords, keyword]
+      [main]: [keyword] // Allow only single selection
     });
   };
 
