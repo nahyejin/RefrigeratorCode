@@ -151,7 +151,7 @@ const MyFridge: React.FC = () => {
   const [fridge, setFridge] = React.useState<Ingredient[] | null>(null);
   const [room, setRoom] = React.useState<Ingredient[] | null>(null);
   const [inputValue, setInputValue] = React.useState('');
-  const [ingredientDict, setIngredientDict] = React.useState<string[]>([]);
+  const [ingredientDict, setIngredientDict] = React.useState<{ [key: string]: string }>({});
   const [showDropdown, setShowDropdown] = React.useState(false);
   const inputRef = React.useRef<HTMLInputElement>(null);
   const [toast, setToast] = React.useState<ToastState | null>(null);
@@ -177,23 +177,26 @@ const MyFridge: React.FC = () => {
         const lines = csv.split('\n');
         const header = lines[0].split(',');
         const nameIdx = header.indexOf('keyword');
+        const synonymsIdx = header.indexOf('synonyms');
         const categoryIdx = header.indexOf('대분류');
-        if (nameIdx === -1 || categoryIdx === -1) return;
         
-        const ingredients = lines.slice(1)
-          .map(line => {
-            const values = line.split(',');
-            return {
-              keyword: values[nameIdx]?.trim(),
-              category: values[categoryIdx]?.trim()
-            };
-          })
-          .filter(item => 
-            item.keyword && 
-            item.keyword !== 'keyword' && 
-            item.category === '재료'
-          )
-          .map(item => item.keyword);
+        const ingredients = {};
+        
+        lines.slice(1).forEach(line => {
+          const values = line.split(',');
+          const keyword = values[nameIdx]?.trim();
+          const synonyms = values[synonymsIdx]?.split(',').map(s => s.trim());
+          const category = values[categoryIdx]?.trim();
+          
+          if (keyword && category === '재료') {
+            ingredients[keyword] = keyword;
+            if (synonyms) {
+              synonyms.forEach(synonym => {
+                ingredients[synonym] = keyword;
+              });
+            }
+          }
+        });
         
         setIngredientDict(ingredients);
       });
@@ -205,36 +208,21 @@ const MyFridge: React.FC = () => {
     }
   }, [frozen, fridge, room]);
 
-  const filtered = ingredientDict
-    .filter(item => 
+  // Modify the autocomplete logic to use the synonyms
+  const combinedFiltered = Object.entries(ingredientDict)
+    .filter(([key, value]) => 
       inputValue && 
-      item.includes(inputValue) && 
-      !frozen?.some(f => f.name === item) &&
-      !fridge?.some(f => f.name === item) &&
-      !room?.some(f => f.name === item)
+      (key.includes(inputValue) || value.includes(inputValue))
     )
-    .sort((a, b) => {
-      // 정확한 매칭을 우선시
-      const aExact = a === inputValue;
-      const bExact = b === inputValue;
-      if (aExact && !bExact) return -1;
-      if (!aExact && bExact) return 1;
-      
-      // 시작 부분 매칭을 우선시
-      const aStartsWith = a.startsWith(inputValue);
-      const bStartsWith = b.startsWith(inputValue);
-      if (aStartsWith && !bStartsWith) return -1;
-      if (!aStartsWith && bStartsWith) return 1;
-      
-      // 길이 순으로 정렬 (짧은 것 우선)
-      return a.length - b.length;
-    })
-    .slice(0, 8);
+    .map(([key, value]) => value)
+    .filter((value, index, self) => self.indexOf(value) === index); // Remove duplicates
 
   // 디버깅용: 입력값과 매칭되는 항목들 확인
   console.log('입력값:', inputValue);
-  console.log('사전에서 "고구마" 포함된 항목들:', ingredientDict.filter(item => item.includes('고구마')));
-  console.log('필터링된 결과:', filtered);
+  console.log('필터링된 결과:', combinedFiltered);
+  console.log('ingredientDict:', ingredientDict);
+  console.log('combinedFiltered:', combinedFiltered);
+  console.log('Checking mapping for 계란:', ingredientDict['계란']);
 
   const showToast = (message: string, deleted: DeletedInfo, duration?: number) => {
     setToast({ visible: true, message, deleted });
@@ -291,12 +279,12 @@ const MyFridge: React.FC = () => {
 
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
-      if (filtered.length > 0) {
+      if (combinedFiltered.length > 0) {
         // 자동완성 목록에서 첫 번째 항목 선택
-        handleSelect(filtered[0]);
+        handleSelect(combinedFiltered[0]);
       } else if (inputValue.trim()) {
         // 입력된 값이 사전에 있는지 확인
-        const exactMatch = ingredientDict.find(item => item === inputValue.trim());
+        const exactMatch = ingredientDict[inputValue.trim()];
         if (exactMatch) {
           handleSelect(exactMatch);
         } else {
@@ -380,9 +368,9 @@ const MyFridge: React.FC = () => {
                 onKeyDown={handleInputKeyDown}
                 autoComplete="off"
               />
-              {showDropdown && filtered.length > 0 && (
+              {showDropdown && combinedFiltered.length > 0 && (
                 <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-10 max-h-60 overflow-y-auto">
-                  {filtered.map((item, index) => (
+                  {combinedFiltered.map((item, index) => (
                     <div
                       key={index}
                       className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
@@ -398,8 +386,8 @@ const MyFridge: React.FC = () => {
               type="button"
               className="bg-[#FFD600] text-[#222] font-bold rounded-full px-5 py-2 text-sm shadow hover:bg-yellow-300 transition whitespace-nowrap"
               style={{ display: 'flex', alignItems: 'center', height: 40, padding: '0 18px', fontSize: 15, marginLeft: 0 }}
-              onClick={() => filtered.length > 0 && handleSelect(filtered[0])}
-              disabled={filtered.length === 0}
+              onClick={() => combinedFiltered.length > 0 && handleSelect(combinedFiltered[0])}
+              disabled={combinedFiltered.length === 0}
             >
               입력
             </button>

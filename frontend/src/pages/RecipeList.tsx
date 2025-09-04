@@ -1,5 +1,5 @@
 import axios, { AxiosResponse } from 'axios';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import BottomNavBar from '../components/BottomNavBar';
 import { useNavigate, useLocation } from 'react-router-dom';
 import TopNavBar from '../components/TopNavBar';
@@ -533,8 +533,8 @@ const RecipeList: React.FC = () => {
               sortType === 'like' ? 'like' : 
               sortType === 'comment' ? 'comment' : 
               sortType === 'hits' ? 'hits' : 
-              sortType === 'expiry' ? 'match_rate' : 'match_rate',
-      platform: selectedChannel.length > 0 ? selectedChannel[0] : undefined
+              sortType === 'expiry' ? 'match_rate' : 'match_rate'
+      // platform 필터는 프론트엔드에서만 처리 (DB 값과 UI 값이 달라서)
     };
     
     loadRecipesPaged(1, size, filters).then(({recipes, total}) => {
@@ -557,8 +557,8 @@ const RecipeList: React.FC = () => {
                 sortType === 'like' ? 'like' : 
                 sortType === 'comment' ? 'comment' : 
                 sortType === 'hits' ? 'hits' : 
-                sortType === 'expiry' ? 'match_rate' : 'match_rate',
-        platform: selectedChannel.length > 0 ? selectedChannel[0] : undefined
+                sortType === 'expiry' ? 'match_rate' : 'match_rate'
+        // platform 필터는 프론트엔드에서만 처리 (DB 값과 UI 값이 달라서)
       };
       
       loadRecipesPaged(1, size, filters).then(({recipes, total}) => {
@@ -568,7 +568,36 @@ const RecipeList: React.FC = () => {
         setLoading(false);
       });
     }
-  }, [sortType, matchRange, selectedChannel]);
+  }, [sortType, matchRange]);
+
+  // 키워드/재료 필터가 적용될 때는 더 많은 데이터를 로드
+  const loadMoreDataForFiltering = useCallback(async () => {
+    setLoading(true);
+    
+    // 필터링을 위해 더 많은 데이터를 로드 (최대 1000개)
+    const filters = {
+      matchRateMin: matchRange[0],
+      matchRateMax: matchRange[1],
+      sortBy: sortType === 'match' ? 'match_rate' : 
+              sortType === 'latest' ? 'date' : 
+              sortType === 'like' ? 'like' : 
+              sortType === 'comment' ? 'comment' : 
+              sortType === 'hits' ? 'hits' : 
+              sortType === 'expiry' ? 'match_rate' : 'match_rate',
+      platform: selectedChannel.length > 0 ? selectedChannel[0] : undefined
+    };
+    
+    try {
+      const {recipes: newRecipes, total: newTotal} = await loadRecipesPaged(1, 1000, filters);
+      setRecipes(newRecipes);
+      setTotal(newTotal);
+      setPage(1);
+    } catch (error) {
+      console.error('Error loading more data for filtering:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [matchRange, sortType, selectedChannel]);
 
   // 필터/정렬 상태 저장
   useEffect(() => {
@@ -643,6 +672,7 @@ const RecipeList: React.FC = () => {
           recipes={recipes}
           myIngredients={myIngredients}
           onFilteredRecipesChange={setFilteredRecipes}
+          onLoadMoreDataForFiltering={loadMoreDataForFiltering}
           sortType={sortType}
           setSortType={setSortType}
           matchRange={matchRange}

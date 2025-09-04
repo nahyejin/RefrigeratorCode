@@ -53,9 +53,19 @@ function escapeRegex(text: string): string {
  * 레시피 텍스트에서 키워드 매칭 횟수 계산
  */
 function getKeywordMatchCount(text: string, keyword: string): number {
-  const regex = new RegExp(escapeRegex(keyword), 'g');
+  const regex = new RegExp(escapeRegex(keyword), 'gi'); // i 플래그 추가 (대소문자 무시)
   const matches = text.match(regex);
-  return matches ? matches.length : 0;
+  const count = matches ? matches.length : 0;
+  
+  // 디버깅 로그
+  if (keyword === '저칼로리') {
+    console.log(`[키워드 매칭 상세] 텍스트: "${text.substring(0, 100)}..."`);
+    console.log(`[키워드 매칭 상세] 키워드: "${keyword}"`);
+    console.log(`[키워드 매칭 상세] 매치 결과:`, matches);
+    console.log(`[키워드 매칭 상세] 매치 개수: ${count}`);
+  }
+  
+  return count;
 }
 
 /**
@@ -141,12 +151,23 @@ function filterByIncludeIngredients(recipe: Recipe, includeIngredients: string[]
  * 카테고리 키워드 필터
  */
 function filterByCategoryKeywords(recipe: Recipe, categoryKeywords: CategoryKeywords): boolean {
-  if (Object.keys(categoryKeywords).length === 0) return true;
+  console.log(`[키워드 필터 시작] 함수 호출됨 - 레시피: "${recipe.title}"`);
+  console.log(`[키워드 필터 시작] categoryKeywords:`, categoryKeywords);
+  console.log(`[키워드 필터 시작] categoryKeywords 키 개수:`, Object.keys(categoryKeywords).length);
+  
+  if (Object.keys(categoryKeywords).length === 0) {
+    console.log(`[키워드 필터 시작] 키워드가 비어있음 - true 반환`);
+    return true;
+  }
   
   const text = getRecipeText(recipe);
+  console.log(`[키워드 필터] 레시피 "${recipe.title}" 검사 중...`);
+  console.log(`[키워드 필터] 텍스트 길이: ${text.length}, 처음 100자: ${text.substring(0, 100)}`);
   
   return Object.entries(categoryKeywords).every(([category, keywords]) => {
     if (!Array.isArray(keywords) || keywords.length === 0) return true;
+    
+    console.log(`[키워드 필터] 카테고리 "${category}"의 키워드들:`, keywords);
     
     return keywords.some(keywordObj => {
       const keyword = typeof keywordObj === 'string' 
@@ -159,13 +180,14 @@ function filterByCategoryKeywords(recipe: Recipe, categoryKeywords: CategoryKeyw
       }
       
       const matchCount = getKeywordMatchCount(text, keyword);
+      console.log(`[키워드 필터] "${keyword}" 매칭 횟수: ${matchCount} (최소 필요: ${MIN_KEYWORD_MATCH_COUNT})`);
       
-      // "주말" 키워드에 대한 로그 추가 - 매칭된 경우에만 로그 출력
-      if (keyword === '주말' && matchCount >= MIN_KEYWORD_MATCH_COUNT) {
-        console.log(`[주말 키워드 매칭 성공] ID: ${recipe.id}, 제목: ${recipe.title}`);
+      const isMatch = matchCount >= MIN_KEYWORD_MATCH_COUNT;
+      if (isMatch) {
+        console.log(`[키워드 필터] ✅ "${keyword}" 매칭 성공 - 레시피: "${recipe.title}"`);
       }
       
-      return matchCount >= MIN_KEYWORD_MATCH_COUNT;
+      return isMatch;
     });
   });
 }
@@ -191,7 +213,11 @@ function filterByExcludeIngredients(recipe: Recipe, excludeIngredients: string[]
  * 레시피 목록을 다양한 조건으로 필터링한다.
  */
 export function filterRecipes(recipes: Recipe[], options: FilterOptions): Recipe[] {
-  console.log('[filterRecipes] 호출', options.categoryKeywords);
+  console.log('🔍 [filterRecipes 시작] 레시피 수:', recipes.length);
+  console.log('Filter options:', options);
+  console.log('Category Keywords:', options.categoryKeywords);
+  console.log('Category Keywords keys:', Object.keys(options.categoryKeywords || {}));
+  console.log('Category Keywords values:', Object.values(options.categoryKeywords || {}));
   
   const {
     sortType,
@@ -205,6 +231,10 @@ export function filterRecipes(recipes: Recipe[], options: FilterOptions): Recipe
     excludeIngredients = [],
     categoryKeywords = {}
   } = options;
+  
+  console.log('Destructured categoryKeywords:', categoryKeywords);
+  console.log('categoryKeywords type:', typeof categoryKeywords);
+  console.log('categoryKeywords is empty?', Object.keys(categoryKeywords).length === 0);
 
   // 각 레시피에 match_rate, my_ingredients, need_ingredients 추가
   const recipesWithMatch = recipes.map(recipe => {
@@ -218,16 +248,43 @@ export function filterRecipes(recipes: Recipe[], options: FilterOptions): Recipe
   });
 
   // 정렬 후 필터링
-  return sortRecipes(recipesWithMatch, sortType, myIngredients, appliedExpiryIngredients)
-    .filter(recipe => {
-      return (
-        filterByMatchRange(recipe, matchRange) &&
-        filterByLackCount(recipe, maxLack) &&
-        filterByExpiryIngredients(recipe, appliedExpiryIngredients, expiryIngredientMode) &&
-        filterByIncludeKeyword(recipe, includeKeyword) &&
-        filterByIncludeIngredients(recipe, includeIngredients) &&
-        filterByExcludeIngredients(recipe, excludeIngredients) &&
-        filterByCategoryKeywords(recipe, categoryKeywords)
-      );
-    });
+  const sortedRecipes = sortRecipes(recipesWithMatch, sortType, myIngredients, appliedExpiryIngredients);
+  console.log('🔍 [정렬 후] 레시피 수:', sortedRecipes.length);
+  
+  const filteredRecipes = sortedRecipes.filter(recipe => {
+    console.log(`🔍 [필터링 시작] 레시피: "${recipe.title}"`);
+    
+    const matchRangeResult = filterByMatchRange(recipe, matchRange);
+    console.log(`  - matchRange 결과: ${matchRangeResult}`);
+    if (!matchRangeResult) return false;
+    
+    const lackCountResult = filterByLackCount(recipe, maxLack);
+    console.log(`  - lackCount 결과: ${lackCountResult}`);
+    if (!lackCountResult) return false;
+    
+    const expiryResult = filterByExpiryIngredients(recipe, appliedExpiryIngredients, expiryIngredientMode);
+    console.log(`  - expiry 결과: ${expiryResult}`);
+    if (!expiryResult) return false;
+    
+    const includeKeywordResult = filterByIncludeKeyword(recipe, includeKeyword);
+    console.log(`  - includeKeyword 결과: ${includeKeywordResult}`);
+    if (!includeKeywordResult) return false;
+    
+    const includeIngredientsResult = filterByIncludeIngredients(recipe, includeIngredients);
+    console.log(`  - includeIngredients 결과: ${includeIngredientsResult}`);
+    if (!includeIngredientsResult) return false;
+    
+    const excludeIngredientsResult = filterByExcludeIngredients(recipe, excludeIngredients);
+    console.log(`  - excludeIngredients 결과: ${excludeIngredientsResult}`);
+    if (!excludeIngredientsResult) return false;
+    
+    console.log(`  - 🔍 키워드 필터링 시작! categoryKeywords:`, categoryKeywords);
+    const categoryKeywordsResult = filterByCategoryKeywords(recipe, categoryKeywords);
+    console.log(`  - categoryKeywords 결과: ${categoryKeywordsResult}`);
+    
+    return categoryKeywordsResult;
+  });
+  
+  console.log('🔍 [필터링 완료] 결과 레시피 수:', filteredRecipes.length);
+  return filteredRecipes;
 } 
