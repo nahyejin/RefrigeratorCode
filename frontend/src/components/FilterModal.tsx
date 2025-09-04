@@ -45,7 +45,7 @@ interface FilterModalProps {
   allIngredients: string[];
   includeKeyword: string;
   setIncludeKeyword: (v: string) => void;
-  onApply: () => void;
+  onApply: (options?: any) => void;
   filterKeywordTree: Record<string, Record<string, { keyword: string, synonyms: string[] }[]>>;
   setFilterKeywordTree: (tree: Record<string, Record<string, { keyword: string, synonyms: string[] }[]>>) => void;
   selectedChannel: string[];
@@ -329,6 +329,27 @@ const FilterModal: React.FC<FilterModalProps> = ({
 
   if (!open) return null;
 
+  console.log('Selected filter options:', {
+    includeKeyword,
+    includeIngredients,
+    excludeIngredients,
+    selectedKeywordPills,
+    selectedChannel
+  });
+
+  const handleApplyFilters = () => {
+    const options = {
+      includeKeyword,
+      includeIngredients,
+      excludeIngredients,
+      selectedCategoryKeywords: selectedKeywordPills,
+      selectedChannel
+    };
+    console.log('Applying filters with options:', options);
+    // Call the function to apply filters with the options
+    onApply(options);
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-30 flex items-start justify-center z-50">
       <div className="bg-white rounded-xl shadow-lg w-[340px] max-w-[95vw] relative mt-12 mb-24" style={STYLES.modal}>
@@ -538,7 +559,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
           <button
             className="w-full bg-[#3c3c3c] text-white font-bold py-2 rounded-lg"
             style={STYLES.applyButton}
-            onClick={onApply}
+            onClick={handleApplyFilters}
           >
             적용
           </button>

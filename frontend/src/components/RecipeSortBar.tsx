@@ -55,6 +55,7 @@ interface RecipeSortBarProps {
   recipes: Recipe[];
   myIngredients: string[];
   onFilteredRecipesChange: (filtered: Recipe[]) => void;
+  onLoadMoreDataForFiltering?: () => Promise<void>;
   sortType: string;
   setSortType: (v: string) => void;
   matchRange: [number, number];
@@ -408,11 +409,14 @@ const Utils = {
     if (selectedChannel.length === 0) return recipes;
     
     return recipes.filter(recipe => {
-      const plat = (recipe.platform || '').toLowerCase();
+      const platform = recipe.platform || '';
       return (
-        (selectedChannel.includes('youtube') && (plat.includes('youtube') || plat.includes('유튜브')))
+        (selectedChannel.includes('youtube') && platform === 'youtube(인플루언서)')
         ||
-        (selectedChannel.includes('naver') && (plat.includes('naver') || plat.includes('네이버')))
+        (selectedChannel.includes('naver') && (
+          platform === 'naver(인플루언서핫토픽)' || 
+          platform === 'naver(주제별보기)'
+        ))
       );
     });
   }
@@ -422,6 +426,7 @@ const RecipeSortBar = ({
   recipes,
   myIngredients,
   onFilteredRecipesChange,
+  onLoadMoreDataForFiltering,
   sortType, 
   setSortType, 
   matchRange, 
@@ -484,9 +489,55 @@ const RecipeSortBar = ({
   );
 
   // 필터 적용 함수
-  const applyFilter = useCallback(() => {
+  const applyFilter = useCallback(async (options?: any) => {
+    if (options) {
+      console.log('Applying filter options:', options);
+      
+      // 키워드 필터가 있으면 더 많은 데이터를 로드
+      const hasKeywordFilter = options.selectedCategoryKeywords && 
+                               options.selectedCategoryKeywords.length > 0;
+      const hasOtherFilters = (options.includeKeyword && options.includeKeyword.trim()) ||
+                              (options.includeIngredients && options.includeIngredients.length > 0) ||
+                              (options.excludeIngredients && options.excludeIngredients.length > 0);
+      
+      if ((hasKeywordFilter || hasOtherFilters) && onLoadMoreDataForFiltering) {
+        console.log('Loading more data for filtering...');
+        await onLoadMoreDataForFiltering();
+      }
+      
+      // 필터 옵션이 전달되면 상태 업데이트
+      if (options.includeKeyword !== undefined) {
+        setIncludeKeyword(options.includeKeyword);
+      }
+      if (options.includeIngredients !== undefined) {
+        setIncludeIngredients(options.includeIngredients);
+      }
+      if (options.excludeIngredients !== undefined) {
+        setExcludeIngredients(options.excludeIngredients);
+      }
+      if (options.selectedChannel !== undefined) {
+        setSelectedChannel(options.selectedChannel);
+      }
+      if (options.selectedCategoryKeywords !== undefined) {
+        console.log('[필터 적용] 카테고리 키워드 Pills:', options.selectedCategoryKeywords);
+        
+        // selectedCategoryKeywords를 올바른 형태로 변환
+        const categoryKeywords: any = {};
+        options.selectedCategoryKeywords.forEach((pill: any) => {
+          console.log('[필터 적용] 개별 Pill:', pill);
+          if (!categoryKeywords[pill.main]) {
+            categoryKeywords[pill.main] = [];
+          }
+          categoryKeywords[pill.main].push(pill.keyword);
+        });
+        
+        console.log('[필터 적용] 변환된 카테고리 키워드:', categoryKeywords);
+        setSelectedCategoryKeywords(categoryKeywords as FilterState);
+      }
+    }
+    
     setFilterModalOpen(false);
-  }, []);
+  }, [onLoadMoreDataForFiltering]);
 
   // 전체 재료 목록 fetch
   useEffect(() => {
