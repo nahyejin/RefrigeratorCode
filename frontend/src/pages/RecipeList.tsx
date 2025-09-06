@@ -26,6 +26,49 @@ import {
   getRecipesFromLocalStorage, 
   copyRecipeUrlToClipboard 
 } from '../utils/recipeStorage';
+import { ClipLoader } from "react-spinners";
+
+// Add CSS for loader-toast with dots
+const loaderStyle = `
+  .loader-toast {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .loader-dots {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .loader-dots div {
+    width: 12px;
+    height: 12px;
+    margin: 2px;
+    border-radius: 50%;
+    background-color: #FFD600;
+    animation: dot-blink 1.2s infinite ease-in-out both;
+  }
+
+  .loader-dots div:nth-child(1) { animation-delay: -0.32s; }
+  .loader-dots div:nth-child(2) { animation-delay: -0.16s; }
+
+  @keyframes dot-blink {
+    0%, 80%, 100% { opacity: 0; }
+    40% { opacity: 1; }
+  }
+`;
+
+// Inject style into the document
+const styleSheet = document.createElement("style");
+styleSheet.type = "text/css";
+styleSheet.innerText = loaderStyle;
+document.head.appendChild(styleSheet);
 
 // =====================
 // 상수
@@ -410,6 +453,7 @@ const RecipeList: React.FC = () => {
   const [size] = useState(20);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
 
   const myIngredients = useMemo(() => getMyIngredients(), []);
   const navigate = useNavigate();
@@ -668,121 +712,135 @@ const RecipeList: React.FC = () => {
           내 냉장고 기반 레시피 추천
         </h2>
         
-        <RecipeSortBar
-          recipes={recipes}
-          myIngredients={myIngredients}
-          onFilteredRecipesChange={setFilteredRecipes}
-          onLoadMoreDataForFiltering={loadMoreDataForFiltering}
-          sortType={sortType}
-          setSortType={setSortType}
-          matchRange={matchRange}
-          setMatchRange={setMatchRange}
-          maxLack={maxLack}
-          setMaxLack={setMaxLack}
-          appliedExpiryIngredients={appliedExpiryIngredients}
-          setAppliedExpiryIngredients={setAppliedExpiryIngredients}
-          expirySortType={expirySortType}
-          setExpirySortType={setExpirySortType}
-          selectedChannel={selectedChannel}
-          setSelectedChannel={setSelectedChannel}
-          includeKeyword={includeKeyword}
-          setIncludeKeyword={setIncludeKeyword}
-          includeIngredients={includeIngredients}
-          setIncludeIngredients={setIncludeIngredients}
-          excludeIngredients={excludeIngredients}
-          setExcludeIngredients={setExcludeIngredients}
-          selectedCategoryKeywords={selectedCategoryKeywords}
-          setSelectedCategoryKeywords={setSelectedCategoryKeywords}
-          includeInput={includeInput}
-          setIncludeInput={setIncludeInput}
-          excludeInput={excludeInput}
-          setExcludeInput={setExcludeInput}
-          onToast={msg => {
-            setToast(msg);
-            setTimeout(() => setToast(''), 3000);
-          }}
-        />
+        {loading && (
+          <div className="loader-toast">
+            <div className="loader-dots">
+              <div></div>
+              <div></div>
+              <div></div>
+            </div>
+          </div>
+        )}
         
-        {/* 재료 pill 범례와 카드 리스트를 같은 부모 div 안에 배치 */}
-        <div>
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'space-between', 
-            marginBottom: 16, 
-            marginTop: 8 
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <span style={{ 
-                  width: 24, 
-                  height: 14, 
-                  borderRadius: 7, 
-                  background: '#D1D1D1', 
-                  display: 'inline-block', 
-                  marginRight: 2 
-                }}></span>
-                <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>부족 재료</span>
+        {!loading && (
+          <>
+            <RecipeSortBar
+              recipes={recipes}
+              myIngredients={myIngredients}
+              onFilteredRecipesChange={setFilteredRecipes}
+              onLoadMoreDataForFiltering={loadMoreDataForFiltering}
+              sortType={sortType}
+              setSortType={setSortType}
+              matchRange={matchRange}
+              setMatchRange={setMatchRange}
+              maxLack={maxLack}
+              setMaxLack={setMaxLack}
+              appliedExpiryIngredients={appliedExpiryIngredients}
+              setAppliedExpiryIngredients={setAppliedExpiryIngredients}
+              expirySortType={expirySortType}
+              setExpirySortType={setExpirySortType}
+              selectedChannel={selectedChannel}
+              setSelectedChannel={setSelectedChannel}
+              includeKeyword={includeKeyword}
+              setIncludeKeyword={setIncludeKeyword}
+              includeIngredients={includeIngredients}
+              setIncludeIngredients={setIncludeIngredients}
+              excludeIngredients={excludeIngredients}
+              setExcludeIngredients={setExcludeIngredients}
+              selectedCategoryKeywords={selectedCategoryKeywords}
+              setSelectedCategoryKeywords={setSelectedCategoryKeywords}
+              includeInput={includeInput}
+              setIncludeInput={setIncludeInput}
+              excludeInput={excludeInput}
+              setExcludeInput={setExcludeInput}
+              onToast={msg => {
+                setToast(msg);
+                setTimeout(() => setToast(''), 3000);
+              }}
+            />
+            
+            {/* 재료 pill 범례와 카드 리스트를 같은 부모 div 안에 배치 */}
+            <div>
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'space-between', 
+                marginBottom: 16, 
+                marginTop: 8 
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <span style={{ 
+                      width: 24, 
+                      height: 14, 
+                      borderRadius: 7, 
+                      background: '#D1D1D1', 
+                      display: 'inline-block', 
+                      marginRight: 2 
+                    }}></span>
+                    <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>부족 재료</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <span style={{ 
+                      width: 24, 
+                      height: 14, 
+                      borderRadius: 7, 
+                      background: '#555', 
+                      display: 'inline-block', 
+                      marginRight: 2 
+                    }}></span>
+                    <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>대체 가능</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <span style={{ 
+                      width: 24, 
+                      height: 14, 
+                      borderRadius: 7, 
+                      background: '#FFD600', 
+                      display: 'inline-block', 
+                      marginRight: 2 
+                    }}></span>
+                    <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>보유 재료</span>
+                  </div>
+                </div>
+                <span style={{ color: '#666', fontSize: '12px' }}>
+                  총 {filteredRecipes.length.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}건
+                </span>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <span style={{ 
-                  width: 24, 
-                  height: 14, 
-                  borderRadius: 7, 
-                  background: '#555', 
-                  display: 'inline-block', 
-                  marginRight: 2 
-                }}></span>
-                <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>대체 가능</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <span style={{ 
-                  width: 24, 
-                  height: 14, 
-                  borderRadius: 7, 
-                  background: '#FFD600', 
-                  display: 'inline-block', 
-                  marginRight: 2 
-                }}></span>
-                <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>보유 재료</span>
+              
+              <div className="flex flex-col gap-2">
+                <VirtualizedRecipeList
+                  recipes={filteredRecipes.length ? filteredRecipes : recipes}
+                  myIngredients={myIngredients}
+                  substituteTable={substituteTable}
+                  recipeActionStates={recipeActionStates}
+                  onRecipeAction={handleRecipeAction}
+                />
               </div>
             </div>
-            <span style={{ color: '#666', fontSize: '12px' }}>
-              총 {filteredRecipes.length.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}건
-            </span>
-          </div>
-          
-          <div className="flex flex-col gap-2">
-            <VirtualizedRecipeList
-              recipes={filteredRecipes.length ? filteredRecipes : recipes}
-              myIngredients={myIngredients}
-              substituteTable={substituteTable}
-              recipeActionStates={recipeActionStates}
-              onRecipeAction={handleRecipeAction}
-            />
-          </div>
-        </div>
-        {/* 더보기 버튼 */}
-        {recipes.length < total && (
-          <button
-            onClick={handleLoadMore}
-            disabled={loading}
-            style={{
-              width: '100%',
-              margin: '20px 0',
-              padding: '12px',
-              background: '#FFD600',
-              color: '#222',
-              fontWeight: 'bold',
-              border: 'none',
-              borderRadius: 8,
-              fontSize: 16,
-              cursor: loading ? 'not-allowed' : 'pointer',
-              opacity: loading ? 0.6 : 1
-            }}
-          >
-            {loading ? '로딩 중...' : '더보기'}
-          </button>
+            {/* 더보기 버튼 */}
+            {recipes.length < total && (
+              <button
+                onClick={handleLoadMore}
+                disabled={loading}
+                style={{
+                  width: '100%',
+                  margin: '20px 0',
+                  padding: '12px',
+                  background: '#FFD600',
+                  color: '#222',
+                  fontWeight: 'bold',
+                  border: 'none',
+                  borderRadius: 8,
+                  fontSize: 16,
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  opacity: loading ? 0.6 : 1
+                }}
+              >
+                {loading ? '로딩 중...' : '더보기'}
+              </button>
+            )}
+          </>
         )}
       </div>
       
