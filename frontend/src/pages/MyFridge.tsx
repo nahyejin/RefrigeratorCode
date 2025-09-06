@@ -5,6 +5,7 @@ import TagPill from '../components/TagPill';
 import IngredientDetailModal from '../components/IngredientDetailModal';
 import SortDropdown, { SortType } from '../components/SortDropdown';
 import receiptImg from '../assets/영수증.png';
+import { useState } from 'react';
 
 // =====================
 // 상수
@@ -142,6 +143,48 @@ const Toast = ({ message, onUndo, onClose }: { message: string; onUndo: () => vo
   </div>
 );
 
+// Add CSS for loader-toast with dots
+const loaderStyle = `
+  .loader-toast {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .loader-dots {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .loader-dots div {
+    width: 12px;
+    height: 12px;
+    margin: 2px;
+    border-radius: 50%;
+    background-color: #FFD600;
+    animation: dot-blink 1.2s infinite ease-in-out both;
+  }
+
+  .loader-dots div:nth-child(1) { animation-delay: -0.32s; }
+  .loader-dots div:nth-child(2) { animation-delay: -0.16s; }
+
+  @keyframes dot-blink {
+    0%, 80%, 100% { opacity: 0; }
+    40% { opacity: 1; }
+  }
+`;
+
+// Inject style into the document
+const styleSheet = document.createElement("style");
+styleSheet.type = "text/css";
+styleSheet.innerText = loaderStyle;
+document.head.appendChild(styleSheet);
+
 // =====================
 // 메인 컴포넌트
 // =====================
@@ -162,6 +205,7 @@ const MyFridge: React.FC = () => {
   const [frozenSort, setFrozenSort] = React.useState<SortType>('expiry');
   const [fridgeSort, setFridgeSort] = React.useState<SortType>('expiry');
   const [roomSort, setRoomSort] = React.useState<SortType>('expiry');
+  const [loading, setLoading] = useState(true);
 
   React.useEffect(() => {
     const loaded = loadIngredients();

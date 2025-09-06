@@ -237,6 +237,48 @@ const categoryKeywords = {
   ]
 };
 
+// Add CSS for loader-toast with dots
+const loaderStyle = `
+  .loader-toast {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .loader-dots {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .loader-dots div {
+    width: 12px;
+    height: 12px;
+    margin: 2px;
+    border-radius: 50%;
+    background-color: #FFD600;
+    animation: dot-blink 1.2s infinite ease-in-out both;
+  }
+
+  .loader-dots div:nth-child(1) { animation-delay: -0.32s; }
+  .loader-dots div:nth-child(2) { animation-delay: -0.16s; }
+
+  @keyframes dot-blink {
+    0%, 80%, 100% { opacity: 0; }
+    40% { opacity: 1; }
+  }
+`;
+
+// Inject style into the document
+const styleSheet = document.createElement("style");
+styleSheet.type = "text/css";
+styleSheet.innerText = loaderStyle;
+document.head.appendChild(styleSheet);
+
 // =====================
 // 메인 컴포넌트
 // =====================
@@ -278,6 +320,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
   const [filterKeywordTree, setFilterKeywordTree] = useState<any>(null);
   const [ingredientSynonyms, setIngredientSynonyms] = useState<string[]>([]);
   const [isIngredient, setIsIngredient] = useState<boolean>(true);
+  const [loading, setLoading] = useState(true);
 
   const myIngredients = useMemo(() => getMyIngredients(), []);
   const myIngredientObjects = getMyIngredientObjects();
@@ -774,7 +817,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
       
       <BottomNavBar activeTab={location.pathname.startsWith('/mypage') ? 'mypage' : 'popularity'} />
       
-      {!pendingRemove && toast && <RecipeToast message={toast} />}
+      {toast && <RecipeToast message={toast} />}
       
       {pendingRemove && (
         <div style={{
