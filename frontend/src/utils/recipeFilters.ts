@@ -58,12 +58,10 @@ function getKeywordMatchCount(text: string, keyword: string): number {
   const count = matches ? matches.length : 0;
   
   // 디버깅 로그
-  if (keyword === '저칼로리') {
-    console.log(`[키워드 매칭 상세] 텍스트: "${text.substring(0, 100)}..."`);
-    console.log(`[키워드 매칭 상세] 키워드: "${keyword}"`);
-    console.log(`[키워드 매칭 상세] 매치 결과:`, matches);
-    console.log(`[키워드 매칭 상세] 매치 개수: ${count}`);
-  }
+  console.log(`[키워드 매칭 상세] 텍스트: "${text.substring(0, 100)}..."`);
+  console.log(`[키워드 매칭 상세] 키워드: "${keyword}"`);
+  console.log(`[키워드 매칭 상세] 매치 결과:`, matches);
+  console.log(`[키워드 매칭 상세] 매치 개수: ${count}`);
   
   return count;
 }
@@ -131,7 +129,9 @@ function filterByIncludeKeyword(recipe: Recipe, includeKeyword: string): boolean
   
   const text = getRecipeText(recipe);
   const keyword = includeKeyword.trim();
-  return text.includes(keyword);
+  const matchCount = getKeywordMatchCount(text, keyword);
+  console.log(`[필터링 디버그] 레시피: "${recipe.title}", 키워드: "${keyword}", 매칭 횟수: ${matchCount}`);
+  return matchCount >= 2; // 최소 2번 이상 나타나야 매칭
 }
 
 /**
@@ -180,9 +180,9 @@ function filterByCategoryKeywords(recipe: Recipe, categoryKeywords: CategoryKeyw
       }
       
       const matchCount = getKeywordMatchCount(text, keyword);
-      console.log(`[키워드 필터] "${keyword}" 매칭 횟수: ${matchCount} (최소 필요: ${MIN_KEYWORD_MATCH_COUNT})`);
+      console.log(`[키워드 필터] "${keyword}" 매칭 횟수: ${matchCount} (최소 필요: 2)`);
       
-      const isMatch = matchCount >= MIN_KEYWORD_MATCH_COUNT;
+      const isMatch = matchCount >= 2; // 최소 2번 이상 나타나야 매칭
       if (isMatch) {
         console.log(`[키워드 필터] ✅ "${keyword}" 매칭 성공 - 레시피: "${recipe.title}"`);
       }
