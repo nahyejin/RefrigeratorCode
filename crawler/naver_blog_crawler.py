@@ -33,7 +33,7 @@ class NaverBlogCrawler(BaseCrawler):
     
     def _setup_driver(self):
         """Setup Selenium WebDriver."""
-        driver_path = "C:/Users/user/Desktop/RefrigeratorCode/chromedriver-win64/chromedriver.exe"
+        driver_path = 'C:/Users/user/Desktop/RefrigeratorCode/chromedriver-win64/chromedriver.exe'
         options = Options()
         options.add_argument("--headless")  # headless 모드 활성화
         options.add_argument("--disable-gpu")

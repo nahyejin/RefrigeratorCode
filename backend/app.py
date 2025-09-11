@@ -5,7 +5,7 @@ import os
 from dotenv import load_dotenv
 
 # 환경변수 로드
-load_dotenv('env.development' if os.getenv('FLASK_ENV') == 'development' else 'env.production')
+load_dotenv('C:\Users\user\Desktop\RefrigeratorCode\env.development' if os.getenv('FLASK_ENV') == 'development' else 'C:\Users\user\Desktop\RefrigeratorCode\env.production')
 
 app = Flask(__name__)
 

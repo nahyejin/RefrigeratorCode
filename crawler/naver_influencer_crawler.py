@@ -477,7 +477,7 @@ class NaverInfluencerCrawler:
         logger.info("=== 네이버 인플루언서 크롤링 완료 ===")
         logger.info("Running update_used_ingredients_batch.py...")
         try:
-            subprocess.run([sys.executable, 'ingredient_management/update_used_ingredients_batch.py'], check=True)
+            subprocess.run([sys.executable, 'C:\\Users\\user\\Desktop\\RefrigeratorCode\\ingredient_management\\update_used_ingredients_batch.py'], check=True)
             logger.info("update_used_ingredients_batch.py finished.")
         except subprocess.CalledProcessError as e:
             logger.error(f"Failed to run update_used_ingredients_batch.py: {e}")

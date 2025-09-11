@@ -447,7 +447,7 @@ class YouTubeCrawler:
             existing_ids = self.get_existing_video_ids()
             logger.info(f"기존 영상 수: {len(existing_ids)}")  # 추가된 로그
             
-            df = pd.read_csv(csv_path)
+            df = pd.read_csv(r'C:\Users\user\Desktop\RefrigeratorCode\frontend\public\YouTube_Cooking_influencer.csv')
             total_influencers = len(df)
             processed_count = 0
             new_videos_count = 0
