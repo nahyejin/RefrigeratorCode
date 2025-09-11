@@ -192,12 +192,14 @@ const calculateIngredientRankings = (recipes: Recipe[], dateRange: { start: Date
     });
   }
 
+  // Correct growth rate calculation and filtering for ingredient rankings
   return Object.entries(currentIngredientCounts)
     .map(([name, count]) => {
       const previousCount = previousIngredientCounts[name] || 0;
       const rate = previousRange ? RecipeFilterUtils.calculateGrowthRate(count, previousCount) : 0;
       return { name, count, rate };
     })
+    .filter(item => item.rate !== Infinity && item.rate !== 100) // Exclude items with infinite or exactly 100% growth rate
     .sort((a, b) => b.rate - a.rate)
     .slice(0, 10)
     .map((item, index) => ({
@@ -371,12 +373,14 @@ const calculateThemeRankings = async (recipes: Recipe[], dateRange: { start: Dat
       });
     }
 
+    // Correct growth rate calculation and filtering for theme rankings
     const result = Object.entries(themeCounts)
       .map(([name, count]) => {
         const previousCount = previousThemeCounts[name] || 0;
         const rate = previousRange ? calculateGrowthRate(count, previousCount) : 0;
         return { name, count, rate };
       })
+      .filter(item => item.rate !== Infinity && item.rate !== 100) // Exclude items with infinite or exactly 100% growth rate
       .sort((a, b) => b.rate - a.rate)
       .slice(0, 10)
       .map((item, index) => ({
