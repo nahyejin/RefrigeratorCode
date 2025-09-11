@@ -5,7 +5,11 @@ import os
 from dotenv import load_dotenv
 
 # 환경변수 로드
-load_dotenv(r'C:\Users\user\Desktop\RefrigeratorCode\env.development' if os.getenv('FLASK_ENV') == 'development' else r'C:\Users\user\Desktop\RefrigeratorCode\env.production')
+# - 로컬 개발: 현재 작업 디렉토리의 .env 파일을 로드
+# - 배포(예: Railway): 플랫폼이 제공하는 환경변수를 그대로 사용
+if os.getenv('FLASK_ENV', '').lower() == 'development':
+    # 현재 디렉토리 기준 .env 로드 (존재하지 않으면 무시)
+    load_dotenv()
 
 app = Flask(__name__)
 
@@ -17,12 +21,44 @@ cors_origins = os.getenv('CORS_ORIGINS', 'http://localhost:5173,http://localhost
 CORS(app, origins=[origin.strip() for origin in cors_origins if origin.strip()], supports_credentials=True)
 
 def get_db():
+    # Railway 기본 변수명(MYSQLHOST 등)과 사용자 정의(DB_HOST 등) 모두 지원
+    host = (
+        os.getenv('DB_HOST')
+        or os.getenv('MYSQLHOST')
+        or os.getenv('MYSQL_HOST')
+        or 'localhost'
+    )
+    user = (
+        os.getenv('DB_USER')
+        or os.getenv('MYSQLUSER')
+        or os.getenv('MYSQL_USER')
+        or 'root'
+    )
+    password = (
+        os.getenv('DB_PASSWORD')
+        or os.getenv('MYSQLPASSWORD')
+        or os.getenv('MYSQL_PASSWORD')
+        or ''
+    )
+    db_name = (
+        os.getenv('DB_NAME')
+        or os.getenv('MYSQLDATABASE')
+        or os.getenv('MYSQL_DATABASE')
+        or 'refrigerator'
+    )
+    port = int(
+        os.getenv('DB_PORT')
+        or os.getenv('MYSQLPORT')
+        or os.getenv('MYSQL_PORT')
+        or 3306
+    )
+
     return pymysql.connect(
-        host=os.getenv('DB_HOST', 'localhost'),
-        user=os.getenv('DB_USER', 'root'),
-        password=os.getenv('DB_PASSWORD', 'sk784512!!'),
-        db=os.getenv('DB_NAME', 'refrigerator'),
-        port=int(os.getenv('DB_PORT', 3306)),
+        host=host,
+        user=user,
+        password=password,
+        db=db_name,
+        port=port,
         charset='utf8mb4',
         cursorclass=pymysql.cursors.DictCursor
     )
