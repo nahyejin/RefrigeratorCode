@@ -96,15 +96,19 @@ const AutoCompleteUtils = {
         const bExact = b === input;
         if (aExact && !bExact) return -1;
         if (!aExact && bExact) return 1;
-        
+
         // 시작 부분 매칭을 우선시
         const aStartsWith = a.startsWith(input);
         const bStartsWith = b.startsWith(input);
         if (aStartsWith && !bStartsWith) return -1;
         if (!aStartsWith && bStartsWith) return 1;
-        
+
         // 길이 순으로 정렬 (짧은 것 우선)
-        return a.length - b.length;
+        const lengthComparison = a.length - b.length;
+        if (lengthComparison !== 0) return lengthComparison;
+
+        // ㄱㄴㄷ 순으로 정렬
+        return a.localeCompare(b, 'ko');
       })
       .slice(0, 8);
   },
