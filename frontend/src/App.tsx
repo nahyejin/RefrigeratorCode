@@ -10,6 +10,7 @@ function App() {
   
   // 스플래시 화면을 강제로 표시하기 위한 디버깅
   console.log('App component rendered, showSplash:', showSplash);
+  console.log(import.meta.env);
 
   useEffect(() => {
     // 실제 API 연동: 전체 레시피 개수 가져오기
