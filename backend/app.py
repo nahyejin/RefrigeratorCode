@@ -5,7 +5,10 @@ import os
 from dotenv import load_dotenv
 
 # 환경변수 로드
-load_dotenv('C:\Users\user\Desktop\RefrigeratorCode\env.development' if os.getenv('FLASK_ENV') == 'development' else 'C:\Users\user\Desktop\RefrigeratorCode\env.production')
+# - 개발환경에서만 현재 디렉토리의 .env를 로드
+# - 배포환경(Railway 등)에서는 플랫폼이 주입한 환경변수 사용
+if os.getenv('FLASK_ENV', '').lower() == 'development':
+    load_dotenv()
 
 app = Flask(__name__)
 
@@ -13,16 +16,56 @@ app = Flask(__name__)
 app.config['JSON_AS_ASCII'] = False
 
 # CORS 설정 - 환경변수에서 허용할 origin 가져오기
-cors_origins = os.getenv('CORS_ORIGINS', 'http://localhost:5173,http://localhost:5177,http://localhost:5178').split(',')
+default_origins = 'http://localhost:5173,http://localhost:5177,http://localhost:5178'
+cors_origins = os.getenv('CORS_ORIGINS', default_origins).split(',')
+
+# Railway 배포 환경에서는 모든 도메인 허용 (프론트엔드가 다른 플랫폼에 있을 수 있음)
+if os.getenv('RAILWAY_ENVIRONMENT'):
+    cors_origins.append('https://*.up.railway.app')
+    cors_origins.append('https://*.vercel.app')
+    cors_origins.append('https://*.netlify.app')
+    cors_origins.append('https://*.github.io')
+
 CORS(app, origins=[origin.strip() for origin in cors_origins if origin.strip()], supports_credentials=True)
 
 def get_db():
+    host = (
+        os.getenv('DB_HOST')
+        or os.getenv('MYSQLHOST')
+        or os.getenv('MYSQL_HOST')
+        or 'localhost'
+    )
+    user = (
+        os.getenv('DB_USER')
+        or os.getenv('MYSQLUSER')
+        or os.getenv('MYSQL_USER')
+        or 'root'
+    )
+    password = (
+        os.getenv('DB_PASSWORD')
+        or os.getenv('MYSQLPASSWORD')
+        or os.getenv('MYSQL_PASSWORD')
+        or ''
+    )
+    db_name = (
+        os.getenv('DB_NAME')
+        or os.getenv('MYSQLDATABASE')
+        or os.getenv('MYSQL_DATABASE')
+        or 'refrigerator'
+    )
+    port = int(
+        os.getenv('DB_PORT')
+        or os.getenv('MYSQLPORT')
+        or os.getenv('MYSQL_PORT')
+        or 3306
+    )
+
     return pymysql.connect(
-        host=os.getenv('DB_HOST', 'localhost'),
-        user=os.getenv('DB_USER', 'root'),
-        password=os.getenv('DB_PASSWORD', 'sk784512!!'),
-        db=os.getenv('DB_NAME', 'refrigerator'),
-        port=int(os.getenv('DB_PORT', 3306)),
+        host=host,
+        user=user,
+        password=password,
+        db=db_name,
+        port=port,
         charset='utf8mb4',
         cursorclass=pymysql.cursors.DictCursor
     )

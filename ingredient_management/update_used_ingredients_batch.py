@@ -40,13 +40,41 @@ def is_valid_short_match(word, line):
     pattern = rf"(?<![가-힣A-Za-z]){re.escape(word)}(?![가-힣A-Za-z])"
     return bool(re.search(pattern, line)) and len(line.strip()) <= 25
 
-# ✅ DB 연결 (Railway DB)
+# ✅ DB 연결 (환경변수 우선)
+db_host = (
+    os.getenv('DB_HOST')
+    or os.getenv('MYSQLHOST')
+    or os.getenv('MYSQL_HOST')
+)
+db_user = (
+    os.getenv('DB_USER')
+    or os.getenv('MYSQLUSER')
+    or os.getenv('MYSQL_USER')
+)
+db_password = (
+    os.getenv('DB_PASSWORD')
+    or os.getenv('MYSQLPASSWORD')
+    or os.getenv('MYSQL_PASSWORD')
+)
+db_name = (
+    os.getenv('DB_NAME')
+    or os.getenv('MYSQLDATABASE')
+    or os.getenv('MYSQL_DATABASE')
+    or 'railway'
+)
+db_port = int(
+    os.getenv('DB_PORT')
+    or os.getenv('MYSQLPORT')
+    or os.getenv('MYSQL_PORT')
+    or 3306
+)
+
 db = pymysql.connect(
-    host='caboose.proxy.rlwy.net',
-    user='root',
-    password='HkqYFCoKPPPxgryxiEbUYxcYynQXxeRF',
-    db='railway',  # 실제 DB명
-    port=47779,    # 반드시 47779로!
+    host=db_host,
+    user=db_user,
+    password=db_password,
+    db=db_name,
+    port=db_port,
     charset='utf8mb4',
     cursorclass=pymysql.cursors.DictCursor
 )

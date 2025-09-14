@@ -47,13 +47,13 @@ class NaverInfluencerCrawler:
         # DNS 설정
         self._setup_dns()
         
-        # DB 연결 설정
+        # DB 연결 설정 (환경변수 우선)
         self.db_config = {
-            'host': 'caboose.proxy.rlwy.net',
-            'user': 'root',
-            'password': 'HkqYFCoKPPPxgryxiEbUYxcYynQXxeRF',
-            'db': 'railway',
-            'port': 47779,
+            'host': os.getenv('DB_HOST') or os.getenv('MYSQLHOST') or os.getenv('MYSQL_HOST'),
+            'user': os.getenv('DB_USER') or os.getenv('MYSQLUSER') or os.getenv('MYSQL_USER'),
+            'password': os.getenv('DB_PASSWORD') or os.getenv('MYSQLPASSWORD') or os.getenv('MYSQL_PASSWORD'),
+            'db': os.getenv('DB_NAME') or os.getenv('MYSQLDATABASE') or os.getenv('MYSQL_DATABASE') or 'railway',
+            'port': int(os.getenv('DB_PORT') or os.getenv('MYSQLPORT') or os.getenv('MYSQL_PORT') or 3306),
             'charset': 'utf8mb4',
             'cursorclass': pymysql.cursors.DictCursor
         }
@@ -497,11 +497,11 @@ class NaverInfluencerCrawler:
 
     def delete_low_ingredient_entries(self):
         connection = pymysql.connect(
-            host='caboose.proxy.rlwy.net',
-            user='root',
-            password='HkqYFCoKPPPxgryxiEbUYxcYynQXxeRF',
-            db='railway',
-            port=47779,
+            host=os.getenv('DB_HOST') or os.getenv('MYSQLHOST') or os.getenv('MYSQL_HOST'),
+            user=os.getenv('DB_USER') or os.getenv('MYSQLUSER') or os.getenv('MYSQL_USER'),
+            password=os.getenv('DB_PASSWORD') or os.getenv('MYSQLPASSWORD') or os.getenv('MYSQL_PASSWORD'),
+            db=os.getenv('DB_NAME') or os.getenv('MYSQLDATABASE') or os.getenv('MYSQL_DATABASE') or 'railway',
+            port=int(os.getenv('DB_PORT') or os.getenv('MYSQLPORT') or os.getenv('MYSQL_PORT') or 3306),
             charset='utf8mb4',
             cursorclass=pymysql.cursors.DictCursor
         )

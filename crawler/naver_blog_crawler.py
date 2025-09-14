@@ -44,11 +44,11 @@ class NaverBlogCrawler(BaseCrawler):
     def _setup_database(self):
         """Setup database connection."""
         conn = pymysql.connect(
-            host='caboose.proxy.rlwy.net',
-            user='root',
-            password='HkqYFCoKPPPxgryxiEbUYxcYynQXxeRF',
-            db='railway',
-            port=47779,
+            host=os.getenv('DB_HOST') or os.getenv('MYSQLHOST') or os.getenv('MYSQL_HOST'),
+            user=os.getenv('DB_USER') or os.getenv('MYSQLUSER') or os.getenv('MYSQL_USER'),
+            password=os.getenv('DB_PASSWORD') or os.getenv('MYSQLPASSWORD') or os.getenv('MYSQL_PASSWORD'),
+            db=os.getenv('DB_NAME') or os.getenv('MYSQLDATABASE') or os.getenv('MYSQL_DATABASE') or 'railway',
+            port=int(os.getenv('DB_PORT') or os.getenv('MYSQLPORT') or os.getenv('MYSQL_PORT') or 3306),
             charset='utf8mb4',
             cursorclass=pymysql.cursors.DictCursor
         )
@@ -663,11 +663,11 @@ class NaverBlogCrawler(BaseCrawler):
 
 def delete_low_ingredient_entries(self):
     connection = pymysql.connect(
-        host='caboose.proxy.rlwy.net',
-        user='root',
-        password='HkqYFCoKPPPxgryxiEbUYxcYynQXxeRF',
-        db='railway',
-        port=47779,
+        host=os.getenv('DB_HOST') or os.getenv('MYSQLHOST') or os.getenv('MYSQL_HOST'),
+        user=os.getenv('DB_USER') or os.getenv('MYSQLUSER') or os.getenv('MYSQL_USER'),
+        password=os.getenv('DB_PASSWORD') or os.getenv('MYSQLPASSWORD') or os.getenv('MYSQL_PASSWORD'),
+        db=os.getenv('DB_NAME') or os.getenv('MYSQLDATABASE') or os.getenv('MYSQL_DATABASE') or 'railway',
+        port=int(os.getenv('DB_PORT') or os.getenv('MYSQLPORT') or os.getenv('MYSQL_PORT') or 3306),
         charset='utf8mb4',
         cursorclass=pymysql.cursors.DictCursor
     )
