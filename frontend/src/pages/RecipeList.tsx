@@ -16,8 +16,8 @@ import VirtualizedRecipeList from '../components/VirtualizedRecipeList';
 import { Recipe, RecipeActionState, FilterState, SubstituteInfo } from '../types/recipe';
 import { getMyIngredients, sortRecipes, calculateMatchRate } from '../utils/recipeUtils';
 import RecipeToast from '../components/RecipeToast';
-import Slider from 'rc-slider';
-import 'rc-slider/assets/index.css';
+// import Slider from 'rc-slider';
+// import 'rc-slider/assets/index.css';
 import RecipeSortBar from '../components/RecipeSortBar';
 import { getIngredientPillInfo } from '../utils/recipeUtils';
 import { 

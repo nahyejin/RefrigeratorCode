@@ -5,10 +5,14 @@ import os
 from dotenv import load_dotenv
 
 # 환경변수 로드
+<<<<<<< HEAD
 # - 개발환경에서만 현재 디렉토리의 .env를 로드
 # - 배포환경(Railway 등)에서는 플랫폼이 주입한 환경변수 사용
 if os.getenv('FLASK_ENV', '').lower() == 'development':
     load_dotenv()
+=======
+load_dotenv('C:\Users\user\OneDrive\Desktop\RefrigeratorCode\env.development' if os.getenv('FLASK_ENV') == 'development' else 'C:\Users\user\OneDrive\Desktop\RefrigeratorCode\env.production')
+>>>>>>> ae33bbbf8924db6492ce3a7e78e3b6501a59e204
 
 app = Flask(__name__)
 

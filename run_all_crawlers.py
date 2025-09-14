@@ -36,7 +36,7 @@ def run_ingredients_batch():
     """used_ingredients 배치 처리 실행"""
     try:
         logger.info("=== used_ingredients 배치 처리 시작 ===")
-        script_path = os.path.join("ingredient_management", "update_used_ingredients_batch.py")
+        script_path = os.path.join('C:\Users\user\Desktop\RefrigeratorCode', 'ingredient_management', 'update_used_ingredients_batch.py')
         result = subprocess.run([sys.executable, script_path], check=True, capture_output=True, text=True)
         logger.info("=== used_ingredients 배치 처리 완료 ===")
         return True

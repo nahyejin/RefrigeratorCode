@@ -30,8 +30,8 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import RecipeCard from './RecipeCard';
 import FilterModal from './FilterModal';
-import Slider from 'rc-slider';
-import 'rc-slider/assets/index.css';
+// import Slider from 'rc-slider';
+// import 'rc-slider/assets/index.css';
 import { Recipe } from '../types/recipe';
 import { filterRecipes } from '../utils/recipeFilters';
 import { getDictCategoryKey, getDDay, FilterKeywordTree, FilterKeywordNode } from '../utils/recipeUtils';
