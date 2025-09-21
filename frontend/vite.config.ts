@@ -11,7 +11,6 @@ export default defineConfig({
   },
   build: {
     rollupOptions: {
-      external: ['react-datepicker'],
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom']

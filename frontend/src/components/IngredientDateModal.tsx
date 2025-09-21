@@ -1,6 +1,4 @@
 import React, { useState } from 'react';
-import DatePicker from 'react-datepicker';
-import 'react-datepicker/dist/react-datepicker.css';
 import backIcon from '../assets/뒤로가기_GREY.png';
 
 type Props = {
@@ -177,14 +175,15 @@ export default function IngredientDateModal({ type, isOpen, onClose, onComplete,
               <path d="M16 3v4M8 3v4M3 9h18" strokeWidth="2"/>
             </svg>
           </button>
-          {/* 달력 팝업 */}
+          {/* 달력 팝업 대체: 기본 date 입력 */}
           {calendarOpen && (
-            <div className="absolute left-1/2 -translate-x-1/2 top-12 z-50 bg-white rounded-xl shadow-lg p-2">
-              <DatePicker
-                selected={Utils.isValidDateString(inputValue) ? new Date(inputValue) : null}
-                onChange={handleCalendarChange}
-                inline
-                dateFormat="yyyy-MM-dd"
+            <div className="absolute left-1/2 -translate-x-1/2 top-12 z-50 bg-white rounded-xl shadow-lg p-3">
+              <input
+                type="date"
+                className="border border-gray-300 rounded-lg px-3 py-2 text-[14px]"
+                value={Utils.isValidDateString(inputValue) ? inputValue : ''}
+                onChange={e => handleCalendarChange(e.target.value ? new Date(e.target.value) : null)}
+                max={Utils.formatDateToInput(new Date())}
               />
             </div>
           )}
