@@ -22,7 +22,8 @@
     "react-dom": "^19.1.0",
     "react-router-dom": "^7.6.3",
     "react-window": "^1.8.11",
-    "react-window-infinite-loader": "^1.0.10"
+    "react-window-infinite-loader": "^1.0.10",
+    "react-datepicker": "^4.8.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.22.0",
