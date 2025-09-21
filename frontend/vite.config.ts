@@ -6,10 +6,12 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5178,
-    host: true
+    host: true,
+    logLevel: 'info'
   },
   build: {
     rollupOptions: {
+      external: ['react-datepicker'],
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom']
