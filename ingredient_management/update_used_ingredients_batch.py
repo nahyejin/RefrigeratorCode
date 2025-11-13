@@ -13,6 +13,10 @@ from backend.backend.ingredient_text_utils import unit_keywords, normalize_quant
 # ✅ 사전 불러오기
 ingredient_df = pd.read_csv(r'C:\Users\user\Desktop\RefrigeratorCode\frontend\public\ingredient_profile_dict_with_substitutes.csv', encoding='utf-8')
 
+# ✅ 컬럼명 정리: '1keyword'를 'keyword'로 변경
+if '1keyword' in ingredient_df.columns:
+    ingredient_df = ingredient_df.rename(columns={'1keyword': 'keyword'})
+
 # ✅ "대분류"가 '재료','포장/제품'인 항목만 필터링
 ingredient_df_filtered = ingredient_df[ingredient_df["대분류"].isin(["재료", "포장/제품"])]
 

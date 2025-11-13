@@ -293,7 +293,7 @@ async function loadRecipesPaged(
   } = {}
 ): Promise<{recipes: any[], total: number}> {
   try {
-    const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+    const apiUrl = import.meta.env?.VITE_API_BASE_URL || 'https://refrigeratorcode-production.up.railway.app';
     
     // 필터링 API 사용
     const params = new URLSearchParams({
