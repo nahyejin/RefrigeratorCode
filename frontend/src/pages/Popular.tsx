@@ -3,8 +3,8 @@ import BottomNavBar from '../components/BottomNavBar';
 import TopNavBar from '../components/TopNavBar';
 import FilterModal from '../components/FilterModal';
 import IngredientDateModal from '../components/IngredientDateModal';
-// import DatePicker from 'react-datepicker';
-// import 'react-datepicker/dist/react-datepicker.css';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 import 완료하기버튼 from '../assets/완료하기버튼.svg';
 import 공유하기버튼 from '../assets/공유하기버튼.svg';
 import 기록하기버튼 from '../assets/기록하기버튼.svg';
@@ -772,7 +772,7 @@ const Popular = () => {
   // Fetch recipes and calculate popularity scores based on period filter
   useEffect(() => {
     (async () => {
-      const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+      const apiUrl = import.meta.env?.VITE_API_BASE_URL || 'https://refrigeratorcode-production.up.railway.app';
       const size = 100;
       
       try {
@@ -936,29 +936,28 @@ const Popular = () => {
                   onChange={e => setDateInputEnd(e.target.value)}
                 />
               </div>
-              {/* react-datepicker 제거: 기본 입력으로 대체 */}
-              <div className="flex items-center gap-2 mb-2 justify-center">
-                <input
-                  type="date"
-                  className="w-full h-10 border border-gray-300 rounded-lg px-4 text-[14px]"
-                  value={dateInputStart}
-                  onChange={e => {
-                    setDateInputStart(e.target.value);
-                    const d = e.target.value ? new Date(e.target.value) : null;
-                    setDateRange([d, dateRange[1]]);
-                  }}
-                />
-                <span className="mx-1 text-gray-500">~</span>
-                <input
-                  type="date"
-                  className="w-full h-10 border border-gray-300 rounded-lg px-4 text-[14px]"
-                  value={dateInputEnd}
-                  onChange={e => {
-                    setDateInputEnd(e.target.value);
-                    const d = e.target.value ? new Date(e.target.value) : null;
-                    setDateRange([dateRange[0], d]);
-                  }}
-                />
+              <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+                <div>
+                  {React.createElement(DatePicker as any, {
+                    selectsRange: true,
+                    startDate: dateRange[0],
+                    endDate: dateRange[1],
+                    onChange: (update: [Date|null, Date|null]) => {
+                      setDateRange(update);
+                      if (update[0]) {
+                        const f = (d: Date) => `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
+                        setDateInputStart(f(update[0]));
+                      }
+                      if (update[1]) {
+                        const f = (d: Date) => `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
+                        setDateInputEnd(f(update[1]));
+                      }
+                    },
+                    inline: true,
+                    dateFormat: "yyyy-MM-dd",
+                    maxDate: new Date()
+                  })}
+                </div>
               </div>
               <div className="flex mt-4">
                 <button
