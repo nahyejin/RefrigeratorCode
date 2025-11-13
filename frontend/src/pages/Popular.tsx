@@ -772,7 +772,7 @@ const Popular = () => {
   // Fetch recipes and calculate popularity scores based on period filter
   useEffect(() => {
     (async () => {
-      const apiUrl = import.meta.env?.VITE_API_BASE_URL || 'https://refrigeratorcode-production.up.railway.app';
+      const apiUrl = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'https://refrigeratorcode-production.up.railway.app';
       const size = 100;
       
       try {

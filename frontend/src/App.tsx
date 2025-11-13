@@ -14,7 +14,7 @@ function App() {
 
   useEffect(() => {
     // 실제 API 연동: 전체 레시피 개수 가져오기
-    const apiUrl = import.meta.env?.VITE_API_BASE_URL || 'https://refrigeratorcode-production.up.railway.app';
+    const apiUrl = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'https://refrigeratorcode-production.up.railway.app';
     fetch(`${apiUrl}/api/recipes`)
       .then(res => res.json())
       .then(data => {

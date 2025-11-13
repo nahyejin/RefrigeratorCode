@@ -506,7 +506,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
     } else {
       const fetchData = async () => {
         try {
-          const apiUrl = import.meta.env?.VITE_API_BASE_URL || 'https://refrigeratorcode-production.up.railway.app';
+          const apiUrl = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'https://refrigeratorcode-production.up.railway.app';
           const recipeResponse = await axios.get(`${apiUrl}/api/recipes`);
           let filtered = [];
           

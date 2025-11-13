@@ -4,7 +4,7 @@ import { Recipe } from '../types/recipe';
 // 상수
 // =====================
 
-const API_BASE_URL = import.meta.env?.VITE_API_BASE_URL || 'https://refrigeratorcode-production.up.railway.app';
+const API_BASE_URL = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'https://refrigeratorcode-production.up.railway.app';
 
 const API_ENDPOINTS = {
   recipes: '/api/recipes',
