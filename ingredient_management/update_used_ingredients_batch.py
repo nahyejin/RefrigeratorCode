@@ -44,50 +44,6 @@ def is_valid_short_match(word, line):
     pattern = rf"(?<![가-힣A-Za-z]){re.escape(word)}(?![가-힣A-Za-z])"
     return bool(re.search(pattern, line)) and len(line.strip()) <= 25
 
-# ✅ DB 연결 (환경변수 우선)
-db_host = (
-    os.getenv('DB_HOST')
-    or os.getenv('MYSQLHOST')
-    or os.getenv('MYSQL_HOST')
-)
-db_user = (
-    os.getenv('DB_USER')
-    or os.getenv('MYSQLUSER')
-    or os.getenv('MYSQL_USER')
-)
-db_password = (
-    os.getenv('DB_PASSWORD')
-    or os.getenv('MYSQLPASSWORD')
-    or os.getenv('MYSQL_PASSWORD')
-)
-db_name = (
-    os.getenv('DB_NAME')
-    or os.getenv('MYSQLDATABASE')
-    or os.getenv('MYSQL_DATABASE')
-    or 'railway'
-)
-db_port = int(
-    os.getenv('DB_PORT')
-    or os.getenv('MYSQLPORT')
-    or os.getenv('MYSQL_PORT')
-    or 3306
-)
-
-db = pymysql.connect(
-    host=db_host,
-    user=db_user,
-    password=db_password,
-    db=db_name,
-    port=db_port,
-    charset='utf8mb4',
-    cursorclass=pymysql.cursors.DictCursor
-)
-cursor = db.cursor()
-
-# ✅ 레시피 불러오기
-cursor.execute("SELECT id, content FROM recipes")
-recipes = cursor.fetchall()
-
 # ✅ 의미 키워드 줄 정제 함수
 def clean_meaning_line(line):
     # 0. 앞쪽 장식 기호 제거 (기존보다 범위 확대)
@@ -223,42 +179,90 @@ def extract_ingredients(text):
                 
     return list(ingredients)
 
-# ✅ 메인 처리
-total_recipes = len(recipes)
-for i, recipe in enumerate(recipes, 1):
-    if i % 10 == 0:
-        print(f"진행 중: {i}/{total_recipes} ({round(i/total_recipes*100)}%) 완료")
-        
-    recipe_id = recipe['id']
-    content = recipe['content']
-    
-    # 재료 블록 추출
-    block, reason = extract_best_ingredient_block(content)
-    
-    # 재료 목록 추출
-    ingredients = extract_ingredients(block)
-    
-    # DB 업데이트
-    try:
-        cursor.execute("""
-            UPDATE recipes 
-            SET used_ingredients = %s,
-                used_ingredients_block = %s,
-                block_reason = %s
-            WHERE id = %s
-        """, (
-            ",".join(ingredients) if ingredients else None,
-            block if block else None,
-            reason,
-            recipe_id
-        ))
-        db.commit()  # 각 업데이트 후에 커밋
-    except pymysql.err.OperationalError as e:
-        print(f"Error updating recipe {recipe_id}: {e}")
-        db.rollback()  # 오류 발생 시 롤백
-    
-print("used_ingredients, used_ingredients_block, block_reason 업데이트 완료!")
+# ✅ 메인 처리 (직접 실행할 때만)
+if __name__ == "__main__":
+    # ✅ DB 연결 (환경변수 우선)
+    db_host = (
+        os.getenv('DB_HOST')
+        or os.getenv('MYSQLHOST')
+        or os.getenv('MYSQL_HOST')
+        or 'caboose.proxy.rlwy.net'
+    )
+    db_user = (
+        os.getenv('DB_USER')
+        or os.getenv('MYSQLUSER')
+        or os.getenv('MYSQL_USER')
+        or 'root'
+    )
+    db_password = (
+        os.getenv('DB_PASSWORD')
+        or os.getenv('MYSQLPASSWORD')
+        or os.getenv('MYSQL_PASSWORD')
+        or 'HkqYFCoKPPPxgryxiEbUYxcYynQXxeRF'
+    )
+    db_name = (
+        os.getenv('DB_NAME')
+        or os.getenv('MYSQLDATABASE')
+        or os.getenv('MYSQL_DATABASE')
+        or 'railway'
+    )
+    db_port = int(
+        os.getenv('DB_PORT')
+        or os.getenv('MYSQLPORT')
+        or os.getenv('MYSQL_PORT')
+        or 47779
+    )
 
-# 연결 종료
-cursor.close()
-db.close() 
+    db = pymysql.connect(
+        host=db_host,
+        user=db_user,
+        password=db_password,
+        db=db_name,
+        port=db_port,
+        charset='utf8mb4',
+        cursorclass=pymysql.cursors.DictCursor
+    )
+    cursor = db.cursor()
+
+    # ✅ 레시피 불러오기
+    cursor.execute("SELECT id, content FROM recipes")
+    recipes = cursor.fetchall()
+
+    total_recipes = len(recipes)
+    for i, recipe in enumerate(recipes, 1):
+        if i % 10 == 0:
+            print(f"진행 중: {i}/{total_recipes} ({round(i/total_recipes*100)}%) 완료")
+            
+        recipe_id = recipe['id']
+        content = recipe['content']
+        
+        # 재료 블록 추출
+        block, reason = extract_best_ingredient_block(content)
+        
+        # 재료 목록 추출
+        ingredients = extract_ingredients(block)
+        
+        # DB 업데이트
+        try:
+            cursor.execute("""
+                UPDATE recipes 
+                SET used_ingredients = %s,
+                    used_ingredients_block = %s,
+                    block_reason = %s
+                WHERE id = %s
+            """, (
+                ",".join(ingredients) if ingredients else None,
+                block if block else None,
+                reason,
+                recipe_id
+            ))
+            db.commit()  # 각 업데이트 후에 커밋
+        except pymysql.err.OperationalError as e:
+            print(f"Error updating recipe {recipe_id}: {e}")
+            db.rollback()  # 오류 발생 시 롤백
+    
+    print("used_ingredients, used_ingredients_block, block_reason 업데이트 완료!")
+
+    # 연결 종료
+    cursor.close()
+    db.close() 

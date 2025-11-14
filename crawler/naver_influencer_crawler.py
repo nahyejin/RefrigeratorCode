@@ -16,9 +16,11 @@ from tqdm import tqdm
 import sys
 import subprocess
 from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
+from webdriver_manager.chrome import ChromeDriverManager
 
 # Add the parent directory to Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -49,11 +51,11 @@ class NaverInfluencerCrawler:
         
         # DB 연결 설정 (환경변수 우선)
         self.db_config = {
-            'host': os.getenv('DB_HOST') or os.getenv('MYSQLHOST') or os.getenv('MYSQL_HOST'),
-            'user': os.getenv('DB_USER') or os.getenv('MYSQLUSER') or os.getenv('MYSQL_USER'),
-            'password': os.getenv('DB_PASSWORD') or os.getenv('MYSQLPASSWORD') or os.getenv('MYSQL_PASSWORD'),
+            'host': os.getenv('DB_HOST') or os.getenv('MYSQLHOST') or os.getenv('MYSQL_HOST') or 'caboose.proxy.rlwy.net',
+            'user': os.getenv('DB_USER') or os.getenv('MYSQLUSER') or os.getenv('MYSQL_USER') or 'root',
+            'password': os.getenv('DB_PASSWORD') or os.getenv('MYSQLPASSWORD') or os.getenv('MYSQL_PASSWORD') or 'HkqYFCoKPPPxgryxiEbUYxcYynQXxeRF',
             'db': os.getenv('DB_NAME') or os.getenv('MYSQLDATABASE') or os.getenv('MYSQL_DATABASE') or 'railway',
-            'port': int(os.getenv('DB_PORT') or os.getenv('MYSQLPORT') or os.getenv('MYSQL_PORT') or 3306),
+            'port': int(os.getenv('DB_PORT') or os.getenv('MYSQLPORT') or os.getenv('MYSQL_PORT') or 47779),
             'charset': 'utf8mb4',
             'cursorclass': pymysql.cursors.DictCursor
         }
@@ -222,7 +224,8 @@ class NaverInfluencerCrawler:
                 soup = BeautifulSoup(blog_resp.text, 'html.parser')
                 
                 # "더보기" 버튼 클릭 로직 추가
-                driver = webdriver.Chrome()  # Chrome 드라이버 초기화
+                service = Service(ChromeDriverManager().install())
+                driver = webdriver.Chrome(service=service)  # Chrome 드라이버 초기화
                 try:
                     driver.get(blog_real_url)
                     time.sleep(3)  # 페이지 로드 대기
@@ -416,7 +419,8 @@ class NaverInfluencerCrawler:
         # Selenium 웹드라이버 초기화 (브라우저 창이 보이도록 설정)
         options = webdriver.ChromeOptions()
         options.add_argument('--start-maximized')  # 브라우저 창 최대화
-        driver = webdriver.Chrome(options=options)
+        service = Service(ChromeDriverManager().install())
+        driver = webdriver.Chrome(service=service, options=options)
         try:
             # 초기 페이지 접근
             driver.get(self.base_url)
@@ -497,11 +501,11 @@ class NaverInfluencerCrawler:
 
     def delete_low_ingredient_entries(self):
         connection = pymysql.connect(
-            host=os.getenv('DB_HOST') or os.getenv('MYSQLHOST') or os.getenv('MYSQL_HOST'),
-            user=os.getenv('DB_USER') or os.getenv('MYSQLUSER') or os.getenv('MYSQL_USER'),
-            password=os.getenv('DB_PASSWORD') or os.getenv('MYSQLPASSWORD') or os.getenv('MYSQL_PASSWORD'),
+            host=os.getenv('DB_HOST') or os.getenv('MYSQLHOST') or os.getenv('MYSQL_HOST') or 'caboose.proxy.rlwy.net',
+            user=os.getenv('DB_USER') or os.getenv('MYSQLUSER') or os.getenv('MYSQL_USER') or 'root',
+            password=os.getenv('DB_PASSWORD') or os.getenv('MYSQLPASSWORD') or os.getenv('MYSQL_PASSWORD') or 'HkqYFCoKPPPxgryxiEbUYxcYynQXxeRF',
             db=os.getenv('DB_NAME') or os.getenv('MYSQLDATABASE') or os.getenv('MYSQL_DATABASE') or 'railway',
-            port=int(os.getenv('DB_PORT') or os.getenv('MYSQLPORT') or os.getenv('MYSQL_PORT') or 3306),
+            port=int(os.getenv('DB_PORT') or os.getenv('MYSQLPORT') or os.getenv('MYSQL_PORT') or 47779),
             charset='utf8mb4',
             cursorclass=pymysql.cursors.DictCursor
         )

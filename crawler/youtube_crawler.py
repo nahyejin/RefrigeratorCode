@@ -43,16 +43,19 @@ class YouTubeCrawler:
             os.getenv('DB_HOST')
             or os.getenv('MYSQLHOST')
             or os.getenv('MYSQL_HOST')
+            or 'caboose.proxy.rlwy.net'
         )
         db_user = (
             os.getenv('DB_USER')
             or os.getenv('MYSQLUSER')
             or os.getenv('MYSQL_USER')
+            or 'root'
         )
         db_password = (
             os.getenv('DB_PASSWORD')
             or os.getenv('MYSQLPASSWORD')
             or os.getenv('MYSQL_PASSWORD')
+            or 'HkqYFCoKPPPxgryxiEbUYxcYynQXxeRF'
         )
         db_name = (
             os.getenv('DB_NAME')
@@ -64,7 +67,7 @@ class YouTubeCrawler:
             os.getenv('DB_PORT')
             or os.getenv('MYSQLPORT')
             or os.getenv('MYSQL_PORT')
-            or 3306
+            or 47779
         )
 
         self.db = pymysql.connect(
