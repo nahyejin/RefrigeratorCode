@@ -1,1 +1,1 @@
-start: python backend/run_prod.py
+start: python run_prod.py
