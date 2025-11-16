@@ -587,10 +587,7 @@ class YouTubeCrawler:
             
             logger.info(f"=== 할당량 사용량 요약 완료 ===")
             
-            # 재료 추출 배치 처리
-            logger.info("Running update_used_ingredients_batch.py...")
-            subprocess.run([sys.executable, 'ingredient_management/update_used_ingredients_batch.py'])
-            logger.info("update_used_ingredients_batch.py finished.")
+            # 재료 추출 배치 처리는 run_all_crawlers.py에서 한 번만 수행
             
         except Exception as e:
             logger.error(f"Error in process_influencer_list: {e}")

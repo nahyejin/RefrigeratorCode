@@ -67,7 +67,12 @@ def get_db():
         db=db_name,
         port=port,
         charset='utf8mb4',
-        cursorclass=pymysql.cursors.DictCursor
+        cursorclass=pymysql.cursors.DictCursor,
+        # 네트워크 환경(원격 DB)에서 간헐적 타임아웃을 방지하기 위한 옵션
+        connect_timeout=10,
+        read_timeout=120,
+        write_timeout=120,
+        autocommit=False
     )
 
 @app.route('/api/recipes')

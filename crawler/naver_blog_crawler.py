@@ -166,8 +166,7 @@ class NaverBlogCrawler(BaseCrawler):
         print(f"[결과] 총 저장된 포스트: {saved_posts} ({total_progress:.1f}% 성공률)")
         self.driver.quit()
         self.cursor.close()
-        print("\n🔄 재료 정보 업데이트 배치 실행 시작...")
-        self._run_ingredients_update()
+        # 재료 정보 업데이트 배치 실행은 run_all_crawlers.py에서 한 번만 수행
     
     def _crawl_blog_posts(self, target_info: dict, platform: str) -> tuple[int, int]:
         """Crawl blog posts."""

@@ -477,16 +477,9 @@ class NaverInfluencerCrawler:
         finally:
             driver.quit()
             
-        # 크롤링 완료 후 재료 정보 업데이트 배치 실행
+        # 크롤링 완료
         logger.info("=== 네이버 인플루언서 크롤링 완료 ===")
-        logger.info("Running update_used_ingredients_batch.py...")
-        try:
-            subprocess.run([sys.executable, 'C:\\Users\\user\\Desktop\\RefrigeratorCode\\ingredient_management\\update_used_ingredients_batch.py'], check=True)
-            logger.info("update_used_ingredients_batch.py finished.")
-        except subprocess.CalledProcessError as e:
-            logger.error(f"Failed to run update_used_ingredients_batch.py: {e}")
-        except Exception as e:
-            logger.error(f"Error running update_used_ingredients_batch.py: {e}")
+        # 배치 스크립트 실행은 run_all_crawlers.py에서 한 번만 수행
             
         return all_recipes
 

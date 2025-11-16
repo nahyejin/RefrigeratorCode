@@ -220,7 +220,11 @@ if __name__ == "__main__":
         db=db_name,
         port=db_port,
         charset='utf8mb4',
-        cursorclass=pymysql.cursors.DictCursor
+        cursorclass=pymysql.cursors.DictCursor,
+        connect_timeout=10,
+        read_timeout=120,
+        write_timeout=120,
+        autocommit=False
     )
     cursor = db.cursor()
 
@@ -244,6 +248,8 @@ if __name__ == "__main__":
         
         # DB 업데이트
         try:
+            # 연결이 끊겨있으면 자동으로 재연결
+            db.ping(reconnect=True)
             cursor.execute("""
                 UPDATE recipes 
                 SET used_ingredients = %s,
@@ -259,7 +265,29 @@ if __name__ == "__main__":
             db.commit()  # 각 업데이트 후에 커밋
         except pymysql.err.OperationalError as e:
             print(f"Error updating recipe {recipe_id}: {e}")
-            db.rollback()  # 오류 발생 시 롤백
+            # 롤백 시 이미 끊겨 있을 수 있으므로 방어
+            try:
+                db.rollback()
+            except Exception:
+                pass
+            # 1회 재시도
+            try:
+                db.ping(reconnect=True)
+                cursor.execute("""
+                    UPDATE recipes 
+                    SET used_ingredients = %s,
+                        used_ingredients_block = %s,
+                        block_reason = %s
+                    WHERE id = %s
+                """, (
+                    ",".join(ingredients) if ingredients else None,
+                    block if block else None,
+                    reason,
+                    recipe_id
+                ))
+                db.commit()
+            except Exception as e2:
+                print(f"Retry failed for recipe {recipe_id}: {e2}")
     
     print("used_ingredients, used_ingredients_block, block_reason 업데이트 완료!")
 
