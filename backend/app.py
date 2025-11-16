@@ -158,95 +158,87 @@ def get_popular_recipes():
 
 @app.route('/api/recipes/filter')
 def get_filtered_recipes():
-    match_rate_min = float(request.args.get('match_rate_min', 0))
-    match_rate_max = float(request.args.get('match_rate_max', 100))
+    # 페이징
+    page = int(request.args.get('page', 1))
+    size = int(request.args.get('size', 20))
+    offset = (page - 1) * size
+
+    # 필터/정렬 파라미터
     sort_by = request.args.get('sort_by', 'match_rate')  # match_rate, date, popularity, like, comment, hits
-    platform = request.args.get('platform', '')  # youtube, naver, or empty for all
-    keyword = request.args.get('keyword', '').strip()  # New keyword parameter
-    
+    platform = request.args.get('platform', '').strip().lower()
+    keyword = request.args.get('keyword', '').strip()
     my_ingredients_raw = request.args.get('my_ingredients', '').strip()
     my_ingredients = [i.strip() for i in my_ingredients_raw.split(',') if i.strip()]
-    
+
     db = get_db()
     cursor = db.cursor()
-    
-    where_conditions = ["1=1"]
-    params = []
-    
-    if platform:
-        if platform.lower() == 'youtube':
-            where_conditions.append("platform LIKE %s")
-            params.append('%youtube%')
-        elif platform.lower() == 'naver':
-            where_conditions.append("platform LIKE %s")
-            params.append('%naver%')
-    
-    if keyword:
-        where_conditions.append("(title LIKE %s OR content LIKE %s)")
-        params.extend([f'%{keyword}%', f'%{keyword}%'])
-    
-    total_ing_expr = "CASE WHEN used_ingredients IS NULL OR used_ingredients='' THEN 0 ELSE LENGTH(REPLACE(used_ingredients,' ','')) - LENGTH(REPLACE(REPLACE(used_ingredients,' ',''),',','')) + 1 END"
-    if my_ingredients:
-        match_count_parts = ["(CASE WHEN FIND_IN_SET(%s, REPLACE(used_ingredients,' ','')) > 0 THEN 1 ELSE 0 END)" for _ in my_ingredients]
-        match_count_expr = " + ".join(match_count_parts) if match_count_parts else "0"
-        match_rate_expr = f"CASE WHEN ({total_ing_expr}) = 0 THEN 0 ELSE ROUND(( {match_count_expr} ) / ({total_ing_expr}) * 100) END"
-        select_match_rate = f", {match_rate_expr} AS match_rate"
-        params.extend(my_ingredients)  # Add my_ingredients to params
-    else:
-        select_match_rate = ", 0 AS match_rate"
 
+    # WHERE
+    where_clauses = ["1=1"]
+    base_params = []
+    if platform:
+        where_clauses.append("platform LIKE %s")
+        base_params.append(f"%{platform}%")
+    if keyword:
+        where_clauses.append("(title LIKE %s OR content LIKE %s)")
+        base_params.extend([f"%{keyword}%", f"%{keyword}%"])
+    where_sql = " AND ".join(where_clauses)
+
+    # match_rate 계산식
+    total_ing_expr = """
+      CASE WHEN used_ingredients IS NULL OR used_ingredients=''
+           THEN 0
+           ELSE LENGTH(REPLACE(used_ingredients,' ','')) - LENGTH(REPLACE(REPLACE(used_ingredients,' ',''),',','')) + 1
+      END
+    """
+    if my_ingredients:
+        match_count_parts = [
+            "(CASE WHEN FIND_IN_SET(%s, REPLACE(used_ingredients,' ','')) > 0 THEN 1 ELSE 0 END)"
+            for _ in my_ingredients
+        ]
+        match_count_expr = " + ".join(match_count_parts)
+        match_rate_expr = f"CASE WHEN ({total_ing_expr}) = 0 THEN 0 ELSE ROUND(({match_count_expr})/({total_ing_expr})*100) END"
+    else:
+        match_rate_expr = "0"
+
+    # ORDER BY
     if sort_by == 'match_rate':
         order_by = "match_rate DESC, post_time DESC"
     elif sort_by == 'date':
         order_by = "post_time DESC"
     elif sort_by == 'popularity':
-        order_by = "(COALESCE(hits, 0) + COALESCE(likes, 0)*2) DESC"
+        order_by = "(COALESCE(hits,0) + 2*COALESCE(likes,0)) DESC"
     elif sort_by == 'hits':
-        order_by = """
-        CASE 
-            WHEN platform LIKE '%youtube%' THEN 1
-            ELSE 2
-        END,
-        CASE 
-            WHEN platform LIKE '%youtube%' THEN COALESCE(hits, 0)
-            ELSE 0
-        END DESC,
-        CASE 
-            WHEN platform NOT LIKE '%youtube%' THEN COALESCE(likes, 0)
-            ELSE 0
-        END DESC
-        """
+        order_by = "COALESCE(hits,0) DESC"
     elif sort_by == 'like':
-        order_by = "likes DESC"
+        order_by = "COALESCE(likes,0) DESC"
     elif sort_by == 'comment':
-        order_by = "comments DESC"
+        order_by = "COALESCE(comments,0) DESC"
     else:
         order_by = "post_time DESC"
-    
-    # 필터링된 레시피 가져오기 (전체 데이터 대상)
-    query = f"""
-        SELECT * {select_match_rate}
-        FROM recipes 
-        WHERE {' AND '.join(where_conditions)}
-        ORDER BY {order_by}
+
+    # total COUNT
+    count_sql = f"SELECT COUNT(*) AS total FROM recipes WHERE {where_sql}"
+    cursor.execute(count_sql, base_params)
+    total = cursor.fetchone()['total']
+
+    # 메인 쿼리: 필요한 컬럼만 + LIMIT/OFFSET
+    select_cols = "id, title, thumbnail, platform, likes, comments, hits, post_time"
+    main_sql = f"""
+      SELECT {select_cols},
+             {match_rate_expr} AS match_rate
+      FROM recipes
+      WHERE {where_sql}
+      ORDER BY {order_by}
+      LIMIT %s OFFSET %s
     """
-    print("Executing main query without pagination:", query, params)
-    cursor.execute(query, params)
-    recipes = cursor.fetchall()
-    
+    # my_ingredients가 있으면 매칭 파라미터가 먼저와야 하므로 결합 순서 주의
+    params = (my_ingredients if my_ingredients else []) + base_params + [size, offset]
+    cursor.execute(main_sql, params)
+    rows = cursor.fetchall()
+
     db.close()
-    
-    return jsonify({
-        'recipes': recipes,
-        'total': len(recipes),
-        'filters': {
-            'match_rate_min': match_rate_min,
-            'match_rate_max': match_rate_max,
-            'sort_by': sort_by,
-            'platform': platform,
-            'keyword': keyword  # Include keyword in response
-        }
-    })
+    return jsonify({"recipes": rows, "total": total, "page": page, "size": size})
 
 @app.route('/api/health')
 def health_check():

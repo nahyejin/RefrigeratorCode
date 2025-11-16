@@ -321,36 +321,12 @@ async function loadRecipesPaged(
     
     // response.data가 직접 배열인 경우와 response.data.recipes인 경우 모두 처리
     const recipesData = Array.isArray(response.data) ? response.data : (response.data.recipes || []);
-    
-    let recipes = recipesData
-      .filter((recipe: any) =>
-        !!(recipe.body && recipe.body.trim()) ||
-        !!(recipe.content && recipe.content.trim()) ||
-        !!(recipe.description && recipe.description.trim())
-      )
-      .map((recipe: any) => ({
-        ...recipe,
-        date: formatDate(recipe.post_time || recipe.date || ''),
-      }));
 
-    // 프론트엔드에서 재료매칭률순 정렬 적용
-    if (filters.sortBy === 'match_rate') {
-      // 매칭률 계산 및 정렬
-      recipes = recipes.map((recipe: any) => {
-        // 재료 정보가 없는 경우 null로 처리
-        if (!recipe.used_ingredients || recipe.used_ingredients.trim() === '' || recipe.used_ingredients === 'null') {
-          return { ...recipe, match_rate: null };
-        }
-        // 매칭률 계산
-        const matchResult = calculateMatchRate(getMyIngredients(), recipe.used_ingredients);
-        return { ...recipe, match_rate: matchResult.rate };
-      }).sort((a: any, b: any) => {
-        // null 값을 가장 낮은 값으로 처리
-        const aRate = a.match_rate === null || a.match_rate === undefined ? -1 : a.match_rate;
-        const bRate = b.match_rate === null || b.match_rate === undefined ? -1 : b.match_rate;
-        return bRate - aRate;
-      });
-    }
+    // 서버가 이미 정렬/필터/페이징을 수행하므로, 여기서는 최소 가공만 수행
+    const recipes = recipesData.map((recipe: any) => ({
+      ...recipe,
+      date: formatDate(recipe.post_time || recipe.date || ''),
+    }));
 
     // 플랫폼별 분포 확인
     const platformCounts: { [key: string]: number } = {};
