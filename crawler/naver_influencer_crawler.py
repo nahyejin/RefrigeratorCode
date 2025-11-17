@@ -224,8 +224,31 @@ class NaverInfluencerCrawler:
                 soup = BeautifulSoup(blog_resp.text, 'html.parser')
                 
                 # "더보기" 버튼 클릭 로직 추가
-                service = Service(ChromeDriverManager().install())
-                driver = webdriver.Chrome(service=service)  # Chrome 드라이버 초기화
+                import shutil
+                max_retries = 2
+                driver = None
+                for attempt in range(max_retries):
+                    try:
+                        service = Service(ChromeDriverManager().install())
+                        driver = webdriver.Chrome(service=service)  # Chrome 드라이버 초기화
+                        break
+                    except Exception as e:
+                        error_msg = str(e)
+                        if "version" in error_msg.lower() or "supports Chrome version" in error_msg:
+                            cache_dir = os.path.join(os.path.expanduser("~"), ".wdm")
+                            if os.path.exists(cache_dir) and attempt < max_retries - 1:
+                                try:
+                                    shutil.rmtree(cache_dir)
+                                    logger.info("ChromeDriver 캐시 삭제 후 재시도...")
+                                except:
+                                    pass
+                                continue
+                        if attempt == max_retries - 1:
+                            logger.error(f"ChromeDriver 초기화 실패: {e}")
+                            raise
+                
+                if driver is None:
+                    raise Exception("ChromeDriver 초기화 실패")
                 try:
                     driver.get(blog_real_url)
                     time.sleep(3)  # 페이지 로드 대기
@@ -419,8 +442,42 @@ class NaverInfluencerCrawler:
         # Selenium 웹드라이버 초기화 (브라우저 창이 보이도록 설정)
         options = webdriver.ChromeOptions()
         options.add_argument('--start-maximized')  # 브라우저 창 최대화
-        service = Service(ChromeDriverManager().install())
-        driver = webdriver.Chrome(service=service, options=options)
+        
+        # ChromeDriver 자동 다운로드 및 초기화 (재시도 로직 포함)
+        import shutil
+        max_retries = 2
+        driver = None
+        for attempt in range(max_retries):
+            try:
+                service = Service(ChromeDriverManager().install())
+                driver = webdriver.Chrome(service=service, options=options)
+                logger.info("✅ ChromeDriver 초기화 성공")
+                break
+            except Exception as e:
+                error_msg = str(e)
+                logger.warning(f"⚠️ ChromeDriver 초기화 실패 (시도 {attempt + 1}/{max_retries}): {error_msg}")
+                
+                # 버전 불일치 오류인 경우
+                if "version" in error_msg.lower() or "supports Chrome version" in error_msg:
+                    logger.info("🔄 ChromeDriver 버전 불일치 감지, 캐시 삭제 후 재다운로드...")
+                    cache_dir = os.path.join(os.path.expanduser("~"), ".wdm")
+                    if os.path.exists(cache_dir):
+                        try:
+                            shutil.rmtree(cache_dir)
+                            logger.info("✅ ChromeDriver 캐시 삭제 완료")
+                        except Exception as cache_error:
+                            logger.warning(f"⚠️ 캐시 삭제 실패: {cache_error}")
+                    
+                    if attempt < max_retries - 1:
+                        continue
+                
+                if attempt == max_retries - 1:
+                    logger.error("❌ ChromeDriver 초기화 실패")
+                    logger.error("💡 Chrome이 자동 업데이트되어 버전이 맞지 않을 수 있습니다.")
+                    raise
+        
+        if driver is None:
+            raise Exception("ChromeDriver 초기화 실패")
         try:
             # 초기 페이지 접근
             driver.get(self.base_url)

@@ -38,9 +38,52 @@ class NaverBlogCrawler(BaseCrawler):
         options.add_argument("--headless")  # headless 모드 활성화
         options.add_argument("--disable-gpu")
         options.add_argument("--window-size=1920x1080")
-        # webdriver_manager를 사용하여 자동으로 최신 ChromeDriver 다운로드
-        service = Service(ChromeDriverManager().install())
-        self.driver = webdriver.Chrome(service=service, options=options)
+        
+        # Chrome 버전 확인 및 ChromeDriver 자동 다운로드
+        import shutil
+        import subprocess
+        import re
+        
+        max_retries = 2
+        for attempt in range(max_retries):
+            try:
+                # webdriver_manager가 Chrome 버전을 자동 감지하여 맞는 드라이버 다운로드
+                service = Service(ChromeDriverManager().install())
+                self.driver = webdriver.Chrome(service=service, options=options)
+                # 성공하면 드라이버 버전 확인
+                try:
+                    version = self.driver.capabilities.get('browserVersion', 'unknown')
+                    print(f"✅ ChromeDriver 초기화 성공 (Chrome 버전: {version})")
+                except:
+                    pass
+                return
+            except Exception as e:
+                error_msg = str(e)
+                print(f"⚠️ ChromeDriver 초기화 실패 (시도 {attempt + 1}/{max_retries}): {error_msg}")
+                
+                # 버전 불일치 오류인 경우
+                if "version" in error_msg.lower() or "supports Chrome version" in error_msg:
+                    print("🔄 ChromeDriver 버전 불일치 감지, 캐시 삭제 후 재다운로드...")
+                    cache_dir = os.path.join(os.path.expanduser("~"), ".wdm")
+                    if os.path.exists(cache_dir):
+                        try:
+                            shutil.rmtree(cache_dir)
+                            print("✅ ChromeDriver 캐시 삭제 완료")
+                        except Exception as cache_error:
+                            print(f"⚠️ 캐시 삭제 실패: {cache_error}")
+                    
+                    # 마지막 시도가 아니면 재시도
+                    if attempt < max_retries - 1:
+                        continue
+                
+                # 모든 시도 실패 시 오류 발생
+                if attempt == max_retries - 1:
+                    print("\n❌ ChromeDriver 초기화 실패")
+                    print("💡 해결 방법:")
+                    print("   1. Chrome 브라우저를 최신 버전으로 업데이트하거나")
+                    print("   2. Chrome 자동 업데이트를 일시적으로 중지하세요")
+                    print("   3. 또는 수동으로 ChromeDriver를 다운로드하여 설치하세요")
+                    raise
     
     def _setup_database(self):
         """Setup database connection."""
