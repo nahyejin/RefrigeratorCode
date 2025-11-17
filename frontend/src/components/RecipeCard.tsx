@@ -208,7 +208,6 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
 }) => {
   // used_ingredients 파싱
   const usedIngredientList = Utils.parseIngredients(recipe.used_ingredients);
-  const safeUsedIngredientList = usedIngredientList.length > 0 ? usedIngredientList : ['재료 정보 없음'];
 
   // 버튼 클릭 핸들러 하나로 통합
   const handleActionButtonClick = (action: 'done' | 'share' | 'write', e: React.MouseEvent) => {
@@ -302,11 +301,17 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
       <div style={STYLES.stats}>
         {Utils.getStatsText(recipe)}
       </div>
-      <IngredientPillGroup
-        needIngredients={safeUsedIngredientList}
-        myIngredients={myIngredients}
-        substituteTable={substituteTable}
-      />
+      {usedIngredientList.length > 0 ? (
+        <IngredientPillGroup
+          needIngredients={usedIngredientList}
+          myIngredients={myIngredients}
+          substituteTable={substituteTable}
+        />
+      ) : (
+        <div className="custom-scrollbar pr-1" style={{ display: 'flex', flexWrap: 'nowrap', gap: 4, marginBottom: 4, overflowX: 'auto', maxWidth: '100%', scrollbarWidth: 'auto', alignItems: 'center', paddingBottom: 4 }}>
+          <span className="bg-customGray text-white rounded-full px-3 py-0.5 font-normal" style={{ fontSize: '10.4px', lineHeight: 1.3, whiteSpace: 'nowrap', height: 22, display: 'inline-flex', alignItems: 'center', textShadow: 'none', border: 'none' }}>재료 정보 없음</span>
+        </div>
+      )}
     </div>
   );
 };

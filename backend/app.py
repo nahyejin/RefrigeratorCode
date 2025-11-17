@@ -223,7 +223,7 @@ def get_filtered_recipes():
     total = cursor.fetchone()['total']
 
     # 메인 쿼리: 필요한 컬럼만 + LIMIT/OFFSET
-    select_cols = "id, title, thumbnail, platform, likes, comments, hits, post_time"
+    select_cols = "id, title, thumbnail, platform, likes, comments, hits, post_time, used_ingredients"
     main_sql = f"""
       SELECT {select_cols},
              {match_rate_expr} AS match_rate

@@ -153,7 +153,7 @@ function getInitialSortBarState() {
   }
   return {
     sortType: 'match',
-          matchRange: [0, 100],
+    matchRange: [30, 100],
     maxLack: 'unlimited',
     appliedExpiryIngredients: [],
     expirySortType: 'expiry',

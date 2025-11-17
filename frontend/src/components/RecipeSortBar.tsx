@@ -30,8 +30,8 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import RecipeCard from './RecipeCard';
 import FilterModal from './FilterModal';
-// import Slider from 'rc-slider';
-// import 'rc-slider/assets/index.css';
+import Slider from 'rc-slider';
+import 'rc-slider/assets/index.css';
 import { Recipe } from '../types/recipe';
 import { filterRecipes } from '../utils/recipeFilters';
 import { getDictCategoryKey, getDDay, FilterKeywordTree, FilterKeywordNode } from '../utils/recipeUtils';
@@ -691,21 +691,24 @@ const RecipeSortBar = ({
             </div>
             {/* 범위 슬라이더 */}
             <div style={STYLES.sliderContainer}>
-              {React.createElement(Slider as unknown as React.FC<any>, {
-                range: true,
-                min: 0,
-                max: 100,
-                value: matchRange,
-                onChange: (val: any) => Array.isArray(val) && setMatchRange([val[0], val[1]]),
-                allowCross: false,
-                trackStyle: [{ backgroundColor: '#3c3c3c' }],
-                handleStyle: [
+              <Slider
+                range
+                min={0}
+                max={100}
+                value={matchRange}
+                onChange={(val: number | number[]) => {
+                  if (Array.isArray(val)) {
+                    setMatchRange([val[0], val[1]]);
+                  }
+                }}
+                allowCross={false}
+                trackStyle={[{ backgroundColor: '#3c3c3c' }]}
+                handleStyle={[
                   { borderColor: '#3c3c3c', backgroundColor: '#fff' },
                   { borderColor: '#3c3c3c', backgroundColor: '#fff' }
-                ],
-                railStyle: { backgroundColor: '#eee' },
-                style: { width: '100%' }
-              })}
+                ]}
+                railStyle={{ backgroundColor: '#eee' }}
+              />
             </div>
             {/* 재료 부족 갯수 라디오 버튼 */}
             <div style={STYLES.radioGroup}>
