@@ -14,6 +14,7 @@ const BASE_STYLE: React.CSSProperties = {
   padding: '12px 24px',
   borderRadius: 12,
   fontSize: 15,
+  fontWeight: 400,
   zIndex: 9999,
   maxWidth: 260,
   width: 'max-content',

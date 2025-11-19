@@ -112,16 +112,24 @@ html, body, #root {
 
 /* Custom scrollbar for filter modal scroll area */
 .custom-scrollbar {
-  scrollbar-width: thin;
-  scrollbar-color: #e0e0e0 #f5f5f5;
+  scrollbar-width: auto;
+  scrollbar-color: #6b7280 #f3f4f6;
 }
 .custom-scrollbar::-webkit-scrollbar {
-  width: 8px;
-  background: #f5f5f5;
+  width: 16px;
+  background: #f3f4f6;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background-color: #f3f4f6;
+  border-radius: 8px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #e0e0e0;
-  border-radius: 4px;
+  background-color: #6b7280;
+  border-radius: 8px;
+  border: 2px solid #f3f4f6;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: #4b5563;
 }
 
 img, svg {

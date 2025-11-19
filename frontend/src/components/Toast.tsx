@@ -16,6 +16,7 @@ const BASE_STYLE: React.CSSProperties = {
   padding: '12px 24px',
   borderRadius: 12,
   fontSize: 15,
+  fontWeight: 400,
   zIndex: 9999,
   maxWidth: 320,
   width: 'max-content',
@@ -34,6 +35,7 @@ const MESSAGE_STYLE: React.CSSProperties = {
   letterSpacing: '0.04em',
   whiteSpace: 'nowrap',
   display: 'inline-block',
+  fontWeight: 400,
 };
 
 const Toast: React.FC<ToastProps> = ({ message, children, style }) => (

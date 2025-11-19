@@ -137,9 +137,9 @@ const Toast = ({ message, onUndo, onClose }: { message: string; onUndo: () => vo
       gap: 12,
     }}
   >
-    <span style={{ fontWeight: 600, color: '#fff', marginRight: 8, letterSpacing: '0.04em', whiteSpace: 'nowrap', display: 'inline-block' }}>삭제됨</span>
-    <button className="inline-flex items-center justify-center bg-[#F5F6F8] text-gray-700 font-semibold rounded-lg px-3 py-1 text-sm border border-[#E5E7EB] shadow-none hover:bg-[#E5E7EB] transition whitespace-nowrap" onClick={onUndo}>되돌리기</button>
-    <button className="inline-flex items-center justify-center bg-[#F5F6F8] text-gray-700 font-semibold rounded-lg px-3 py-1 text-sm border border-[#E5E7EB] shadow-none hover:bg-[#E5E7EB] transition whitespace-nowrap" onClick={onClose}>닫기</button>
+    <span style={{ fontWeight: 400, color: '#fff', marginRight: 8, letterSpacing: '0.04em', whiteSpace: 'nowrap', display: 'inline-block' }}>정말 삭제하시겠습니까?</span>
+    <button className="inline-flex items-center justify-center bg-[#F5F6F8] text-gray-700 font-semibold rounded-lg px-3 py-1 text-sm border border-[#E5E7EB] shadow-none hover:bg-[#E5E7EB] transition whitespace-nowrap" onClick={onUndo}>아니요</button>
+    <button className="inline-flex items-center justify-center bg-[#F5F6F8] text-gray-700 font-semibold rounded-lg px-3 py-1 text-sm border border-[#E5E7EB] shadow-none hover:bg-[#E5E7EB] transition whitespace-nowrap" onClick={onClose}>네</button>
   </div>
 );
 
@@ -209,9 +209,20 @@ const MyFridge: React.FC = () => {
 
   React.useEffect(() => {
     const loaded = loadIngredients();
+    
+    // 초기 진입 시 '냉장보관'에 '계란'이 없으면 추가
+    const hasEgg = loaded.fridge && loaded.fridge.some(ing => ing.name === '계란');
+    if (!hasEgg && (!loaded.fridge || loaded.fridge.length === 0)) {
+      // 초기 상태인 경우에만 '계란' 추가
+      const eggId = `egg-${Date.now()}`;
+      loaded.fridge = [{ id: eggId, name: '계란' }];
+    }
+    
     setFrozen(loaded.frozen);
     setFridge(loaded.fridge);
     setRoom(loaded.room);
+    // 로컬 스토리지에서 로드하는 것은 즉시 완료되므로 로딩 종료
+    setLoading(false);
   }, []);
 
   React.useEffect(() => {
@@ -243,6 +254,9 @@ const MyFridge: React.FC = () => {
         });
         
         setIngredientDict(ingredients);
+      })
+      .catch(error => {
+        console.error('Error loading ingredient dictionary:', error);
       });
   }, []);
 
@@ -259,7 +273,34 @@ const MyFridge: React.FC = () => {
       (key.includes(inputValue) || value.includes(inputValue))
     )
     .map(([key, value]) => value)
-    .filter((value, index, self) => self.indexOf(value) === index); // Remove duplicates
+    .filter((value, index, self) => self.indexOf(value) === index) // Remove duplicates
+    .sort((a, b) => {
+      if (!inputValue) return 0;
+      
+      // 입력값의 첫 글자
+      const firstChar = inputValue[0];
+      
+      // 1순위: 정확한 매칭
+      const aExact = a === inputValue;
+      const bExact = b === inputValue;
+      if (aExact && !bExact) return -1;
+      if (!aExact && bExact) return 1;
+      
+      // 2순위: 첫 글자로 시작하는 단어들 (가OOO 형태)
+      const aStartsWithFirstChar = a.startsWith(firstChar);
+      const bStartsWithFirstChar = b.startsWith(firstChar);
+      if (aStartsWithFirstChar && !bStartsWithFirstChar) return -1;
+      if (!aStartsWithFirstChar && bStartsWithFirstChar) return 1;
+      
+      // 3순위: 입력값으로 시작하는 단어들
+      const aStartsWithInput = a.startsWith(inputValue);
+      const bStartsWithInput = b.startsWith(inputValue);
+      if (aStartsWithInput && !bStartsWithInput) return -1;
+      if (!aStartsWithInput && bStartsWithInput) return 1;
+      
+      // 4순위: 길이 순으로 정렬 (짧은 것 우선)
+      return a.length - b.length;
+    });
 
   // 디버깅용: 입력값과 매칭되는 항목들 확인
   console.log('입력값:', inputValue);
@@ -413,7 +454,7 @@ const MyFridge: React.FC = () => {
                 autoComplete="off"
               />
               {showDropdown && combinedFiltered.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-10 max-h-60 overflow-y-auto">
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-10 max-h-60 overflow-y-auto custom-scrollbar">
                   {combinedFiltered.map((item, index) => (
                     <div
                       key={index}
@@ -641,7 +682,7 @@ const MyFridge: React.FC = () => {
           <Toast message={toast.message} onUndo={undoDelete} onClose={() => setToast(null)} />
         )}
         {infoToast && (
-          <div className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-white border border-gray-300 rounded-lg px-6 py-3 text-[#404040] text-sm shadow-lg z-[9999]">
+          <div className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-white border border-gray-300 rounded-lg px-6 py-3 text-[#404040] text-sm shadow-lg z-[9999]" style={{ fontWeight: 400 }}>
             {infoToast.text}
           </div>
         )}

@@ -84,26 +84,36 @@ function parseFilterKeywordsCSV(csv: string): Record<string, Record<string, { ke
 // 자동완성 필터링 유틸리티
 const AutoCompleteUtils = {
   getFilteredCandidates: (input: string, excludeList: string[], ingredientDict: string[]) => {
+    if (!input) return [];
+    
+    // 입력값의 첫 글자
+    const firstChar = input[0];
+    
     return ingredientDict
       .filter(item => 
-        input && 
         item.includes(input) && 
         !excludeList.includes(item)
       )
       .sort((a, b) => {
-        // 정확한 매칭을 우선시
+        // 1순위: 정확한 매칭
         const aExact = a === input;
         const bExact = b === input;
         if (aExact && !bExact) return -1;
         if (!aExact && bExact) return 1;
         
-        // 시작 부분 매칭을 우선시
-        const aStartsWith = a.startsWith(input);
-        const bStartsWith = b.startsWith(input);
-        if (aStartsWith && !bStartsWith) return -1;
-        if (!aStartsWith && bStartsWith) return 1;
+        // 2순위: 첫 글자로 시작하는 단어들 (가OOO 형태)
+        const aStartsWithFirstChar = a.startsWith(firstChar);
+        const bStartsWithFirstChar = b.startsWith(firstChar);
+        if (aStartsWithFirstChar && !bStartsWithFirstChar) return -1;
+        if (!aStartsWithFirstChar && bStartsWithFirstChar) return 1;
         
-        // 길이 순으로 정렬 (짧은 것 우선)
+        // 3순위: 입력값으로 시작하는 단어들
+        const aStartsWithInput = a.startsWith(input);
+        const bStartsWithInput = b.startsWith(input);
+        if (aStartsWithInput && !bStartsWithInput) return -1;
+        if (!aStartsWithInput && bStartsWithInput) return 1;
+        
+        // 4순위: 길이 순으로 정렬 (짧은 것 우선)
         return a.length - b.length;
       })
       .slice(0, 8);
@@ -414,7 +424,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                   onKeyDown={AutoCompleteUtils.createInputHandler(includeInput, includeCandidates, ingredientDict, setIncludeIngredients, setIncludeInput, setIncludeFocus)}
                 />
                 {includeFocus && includeCandidates.length > 0 && (
-                  <ul className="absolute left-0 right-0 bg-white border border-gray-200 rounded-lg mt-1 shadow z-10 max-h-32 overflow-y-auto">
+                  <ul className="absolute left-0 right-0 bg-white border border-gray-200 rounded-lg mt-1 shadow z-10 max-h-32 overflow-y-auto custom-scrollbar">
                     {includeCandidates.map(item => (
                       <li
                         key={item}
@@ -452,7 +462,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                   onKeyDown={AutoCompleteUtils.createInputHandler(excludeInput, excludeCandidates, ingredientDict, setExcludeIngredients, setExcludeInput, setExcludeFocus)}
                 />
                 {excludeFocus && excludeCandidates.length > 0 && (
-                  <ul className="absolute left-0 right-0 bg-white border border-gray-200 rounded-lg mt-1 shadow z-10 max-h-32 overflow-y-auto">
+                  <ul className="absolute left-0 right-0 bg-white border border-gray-200 rounded-lg mt-1 shadow z-10 max-h-32 overflow-y-auto custom-scrollbar">
                     {excludeCandidates.map(item => (
                       <li
                         key={item}

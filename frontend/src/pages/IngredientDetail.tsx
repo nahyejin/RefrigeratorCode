@@ -830,6 +830,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
           padding: '12px 24px',
           borderRadius: 12,
           fontSize: 15,
+          fontWeight: 400,
           zIndex: 9999,
           maxWidth: 320,
           width: 'max-content',
@@ -847,7 +848,8 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
             marginBottom: 6, 
             letterSpacing: '0.04em', 
             whiteSpace: 'nowrap', 
-            display: 'inline-block' 
+            display: 'inline-block',
+            fontWeight: 400
           }}>
             {pendingRemove.type === 'done' ? '레시피 완료를 취소하시겠어요?' : '레시피 기록을 취소하시겠어요?'}
           </span>
