@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { FixedSizeList as List } from 'react-window';
+import React, { useState, useEffect, useRef, useImperativeHandle, forwardRef } from 'react';
+import { FixedSizeList as List, ListRef } from 'react-window';
 import RecipeCard from './RecipeCard';
 import { Recipe, RecipeActionState } from '../types/recipe';
 
@@ -9,6 +9,11 @@ interface VirtualizedRecipeListProps {
   substituteTable: Record<string, unknown>;
   recipeActionStates: Record<number, RecipeActionState>;
   onRecipeAction: (recipe: Recipe, action: string) => void;
+}
+
+export interface VirtualizedRecipeListRef {
+  scrollToOffset: (offset: number) => void;
+  getScrollOffset: () => number;
 }
 
 // 상수 정의
@@ -31,15 +36,32 @@ const Utils = {
   }
 };
 
-const VirtualizedRecipeList: React.FC<VirtualizedRecipeListProps> = ({
+const VirtualizedRecipeList = forwardRef<VirtualizedRecipeListRef, VirtualizedRecipeListProps>(({
   recipes,
   myIngredients,
   substituteTable,
   recipeActionStates,
   onRecipeAction,
-}) => {
+}, ref) => {
   // 화면 높이 상태
   const [listHeight, setListHeight] = useState(Utils.calculateListHeight());
+  const listRef = useRef<ListRef>(null);
+
+  // ref를 통해 스크롤 제어 메서드 노출
+  useImperativeHandle(ref, () => ({
+    scrollToOffset: (offset: number) => {
+      listRef.current?.scrollTo(offset);
+    },
+    getScrollOffset: () => {
+      // react-window는 직접적으로 스크롤 오프셋을 가져올 수 없으므로
+      // DOM 요소를 통해 가져옴
+      const listElement = listRef.current as any;
+      if (listElement && listElement._outerRef) {
+        return listElement._outerRef.scrollTop || 0;
+      }
+      return 0;
+    }
+  }));
 
   // 화면 크기 변경 시 높이 조정
   useEffect(() => {
@@ -73,6 +95,7 @@ const VirtualizedRecipeList: React.FC<VirtualizedRecipeListProps> = ({
 
   return (
     <List
+      ref={listRef}
       height={listHeight}
       itemCount={recipes.length}
       itemSize={CONSTANTS.ITEM_HEIGHT}
@@ -82,6 +105,8 @@ const VirtualizedRecipeList: React.FC<VirtualizedRecipeListProps> = ({
       {Row}
     </List>
   );
-};
+});
+
+VirtualizedRecipeList.displayName = 'VirtualizedRecipeList';
 
 export default VirtualizedRecipeList; 

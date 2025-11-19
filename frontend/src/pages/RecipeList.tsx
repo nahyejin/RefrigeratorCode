@@ -1,5 +1,5 @@
 import axios, { AxiosResponse } from 'axios';
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import BottomNavBar from '../components/BottomNavBar';
 import { useNavigate, useLocation } from 'react-router-dom';
 import TopNavBar from '../components/TopNavBar';
@@ -12,7 +12,7 @@ import writeBlackIcon from '../assets/write_black.svg';
 import FilterModal from '../components/FilterModal';
 import { fetchRecipesDummy } from '../utils/dummyData';
 import RecipeCard from '../components/RecipeCard';
-import VirtualizedRecipeList from '../components/VirtualizedRecipeList';
+import VirtualizedRecipeList, { VirtualizedRecipeListRef } from '../components/VirtualizedRecipeList';
 import { Recipe, RecipeActionState, FilterState, SubstituteInfo } from '../types/recipe';
 import { getMyIngredients, sortRecipes, calculateMatchRate } from '../utils/recipeUtils';
 import RecipeToast from '../components/RecipeToast';
@@ -383,9 +383,10 @@ const RecipeList: React.FC = () => {
   const [selectedCategoryKeywords, setSelectedCategoryKeywords] = useState<FilterState>(initialFilterState);
   // 페이징 관련 상태
   const [page, setPage] = useState(1);
-  const [size] = useState(20);
+  const [size] = useState(100); // 초기 로드 시 더 많은 데이터 로드
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
+  const listRef = useRef<VirtualizedRecipeListRef>(null);
 
   const myIngredients = useMemo(() => getMyIngredients(), []);
   const navigate = useNavigate();
@@ -556,14 +557,54 @@ const RecipeList: React.FC = () => {
               sortType === 'like' ? 'like' : 
               sortType === 'comment' ? 'comment' : 
               sortType === 'hits' ? 'hits' : // Ensure 'hits' is handled correctly
-              sortType === 'expiry' ? 'match_rate' : 'match_rate'
+              sortType === 'expiry' ? 'match_rate' : 'match_rate',
+      platform: selectedChannel.length > 0 ? selectedChannel[0] : undefined,
+      keyword: includeKeyword || undefined
     };
     
     loadRecipesPaged(1, size, filters).then(({recipes, total}) => {
-      setRecipes(recipes);
+      // 클라이언트 측 필터링 (백엔드가 지원하지 않는 필터)
+      let filteredRecipes = recipes;
+      
+      // 포함 재료 필터
+      if (includeIngredients.length > 0) {
+        filteredRecipes = filteredRecipes.filter(recipe => {
+          const recipeIngredients = (recipe.used_ingredients || '').split(',').map(i => i.trim().toLowerCase());
+          return includeIngredients.some(ing => 
+            recipeIngredients.some(ri => ri.includes(ing.toLowerCase()))
+          );
+        });
+      }
+      
+      // 제외 재료 필터
+      if (excludeIngredients.length > 0) {
+        filteredRecipes = filteredRecipes.filter(recipe => {
+          const recipeIngredients = (recipe.used_ingredients || '').split(',').map(i => i.trim().toLowerCase());
+          return !excludeIngredients.some(ing => 
+            recipeIngredients.some(ri => ri.includes(ing.toLowerCase()))
+          );
+        });
+      }
+      
+      // 카테고리 키워드 필터
+      if (selectedCategoryKeywords && Object.keys(selectedCategoryKeywords).length > 0) {
+        const hasAnyKeyword = Object.values(selectedCategoryKeywords).some(keywords => keywords.length > 0);
+        if (hasAnyKeyword) {
+          filteredRecipes = filteredRecipes.filter(recipe => {
+            const content = ((recipe.title || '') + ' ' + (recipe.content || '')).toLowerCase();
+            return Object.entries(selectedCategoryKeywords).some(([category, keywords]) => {
+              if (keywords.length === 0) return false;
+              return keywords.some(keyword => content.includes(keyword.toLowerCase()));
+            });
+          });
+        }
+      }
+      
+      setRecipes(filteredRecipes);
+      // 서버에서 받은 전체 개수는 유지 (더보기 버튼 표시용)
       setTotal(total);
       setPage(1);
-      const imagePromises = recipes.map(recipe => {
+      const imagePromises = filteredRecipes.map(recipe => {
         return new Promise(resolve => {
           const img = new Image();
           img.src = recipe.thumbnail;
@@ -578,7 +619,7 @@ const RecipeList: React.FC = () => {
       console.error('Error loading recipes:', error);
       setLoading(true); // Keep loading animation if data fails to load
     });
-  }, [sortType, matchRange]);
+  }, [sortType, matchRange, selectedChannel, includeKeyword, includeIngredients, excludeIngredients, selectedCategoryKeywords]);
 
   // 키워드/재료 필터가 적용될 때는 더 많은 데이터를 로드
   const loadMoreDataForFiltering = useCallback(async () => {
@@ -636,6 +677,9 @@ const RecipeList: React.FC = () => {
 
   // 더보기 버튼 클릭 시 다음 페이지 로드
   const handleLoadMore = () => {
+    // 현재 스크롤 위치 저장
+    const currentScrollOffset = listRef.current?.getScrollOffset() || 0;
+    
     setLoading(true);
     const filters = {
       matchRateMin: matchRange[0],
@@ -646,13 +690,59 @@ const RecipeList: React.FC = () => {
               sortType === 'comment' ? 'comment' : 
               sortType === 'hits' ? 'hits' : 
               sortType === 'expiry' ? 'match_rate' : 'match_rate',
-      platform: selectedChannel.length > 0 ? selectedChannel[0] : undefined
+      platform: selectedChannel.length > 0 ? selectedChannel[0] : undefined,
+      keyword: includeKeyword || undefined
     };
     
-    loadRecipesPaged(page + 1, size, filters).then(({recipes: newRecipes}) => {
-      setRecipes(prev => [...prev, ...newRecipes]);
+    loadRecipesPaged(page + 1, size, filters).then(({recipes: newRecipes, total: newTotal}) => {
+      // 클라이언트 측 필터링 적용
+      let filteredNewRecipes = newRecipes;
+      
+      // 포함 재료 필터
+      if (includeIngredients.length > 0) {
+        filteredNewRecipes = filteredNewRecipes.filter(recipe => {
+          const recipeIngredients = (recipe.used_ingredients || '').split(',').map(i => i.trim().toLowerCase());
+          return includeIngredients.some(ing => 
+            recipeIngredients.some(ri => ri.includes(ing.toLowerCase()))
+          );
+        });
+      }
+      
+      // 제외 재료 필터
+      if (excludeIngredients.length > 0) {
+        filteredNewRecipes = filteredNewRecipes.filter(recipe => {
+          const recipeIngredients = (recipe.used_ingredients || '').split(',').map(i => i.trim().toLowerCase());
+          return !excludeIngredients.some(ing => 
+            recipeIngredients.some(ri => ri.includes(ing.toLowerCase()))
+          );
+        });
+      }
+      
+      // 카테고리 키워드 필터
+      if (selectedCategoryKeywords && Object.keys(selectedCategoryKeywords).length > 0) {
+        const hasAnyKeyword = Object.values(selectedCategoryKeywords).some(keywords => keywords.length > 0);
+        if (hasAnyKeyword) {
+          filteredNewRecipes = filteredNewRecipes.filter(recipe => {
+            const content = ((recipe.title || '') + ' ' + (recipe.content || '')).toLowerCase();
+            return Object.entries(selectedCategoryKeywords).some(([category, keywords]) => {
+              if (keywords.length === 0) return false;
+              return keywords.some(keyword => content.includes(keyword.toLowerCase()));
+            });
+          });
+        }
+      }
+      
+      setRecipes(prev => [...prev, ...filteredNewRecipes]);
+      setTotal(newTotal); // 서버에서 받은 전체 개수 유지
       setPage(prev => prev + 1);
       setLoading(false);
+      
+      // 스크롤 위치 복원 (다음 프레임에서 실행하여 DOM 업데이트 후 적용)
+      setTimeout(() => {
+        if (listRef.current) {
+          listRef.current.scrollToOffset(currentScrollOffset);
+        }
+      }, 0);
     });
   };
 
@@ -766,6 +856,7 @@ const RecipeList: React.FC = () => {
           {!loading && (
             <div className="flex flex-col gap-2">
               <VirtualizedRecipeList
+                ref={listRef}
                 recipes={filteredRecipes.length ? filteredRecipes : recipes}
                 myIngredients={myIngredients}
                 substituteTable={substituteTable}
@@ -776,7 +867,7 @@ const RecipeList: React.FC = () => {
           )}
         </div>
         {/* Render '더보기' button only when not loading */}
-        {!loading && recipes.length < total && (
+        {!loading && page * size < total && (
           <button
             onClick={handleLoadMore}
             disabled={loading}
