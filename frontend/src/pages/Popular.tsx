@@ -772,6 +772,7 @@ const Popular = () => {
   // Fetch recipes and calculate popularity scores based on period filter
   useEffect(() => {
     (async () => {
+      setLoading(true); // 로딩 시작
       const apiUrl = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'https://refrigeratorcode-production.up.railway.app';
       const size = 100;
       
@@ -807,10 +808,12 @@ const Popular = () => {
 
         setYoutubeRecipes(Array.isArray(youtubeData) ? youtubeData : []);
         setNaverRecipes(Array.isArray(naverData) ? naverData : []);
+        setLoading(false); // 로딩 완료
       } catch (err) {
         console.error('Failed to fetch popular recipes:', err);
         setYoutubeRecipes([]);
         setNaverRecipes([]);
+        setLoading(false); // 에러 발생 시에도 로딩 종료
       }
     })();
   }, [period, dateRange]); // period와 dateRange가 변경될 때마다 API 재호출
@@ -1262,6 +1265,16 @@ const Popular = () => {
           textAlign: 'center',
         }}>
           {toast}
+        </div>
+      )}
+      {/* Loading animation */}
+      {loading && (
+        <div className="loader-toast" style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 1000 }}>
+          <div className="loader-dots">
+            <div></div>
+            <div></div>
+            <div></div>
+          </div>
         </div>
       )}
       <BottomNavBar activeTab="popularity" />

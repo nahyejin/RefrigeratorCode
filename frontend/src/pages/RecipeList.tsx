@@ -386,6 +386,7 @@ const RecipeList: React.FC = () => {
   const [size] = useState(100); // 초기 로드 시 더 많은 데이터 로드
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false); // 더보기 버튼 로딩 상태
   const listRef = useRef<VirtualizedRecipeListRef>(null);
 
   const myIngredients = useMemo(() => getMyIngredients(), []);
@@ -677,10 +678,11 @@ const RecipeList: React.FC = () => {
 
   // 더보기 버튼 클릭 시 다음 페이지 로드
   const handleLoadMore = () => {
-    // 현재 스크롤 위치 저장
+    // 현재 보이는 아이템 인덱스 저장 (스크롤 위치보다 정확함)
+    const currentVisibleIndex = listRef.current?.getVisibleItemIndex() || 0;
     const currentScrollOffset = listRef.current?.getScrollOffset() || 0;
     
-    setLoading(true);
+    setIsLoadingMore(true); // 더보기 전용 로딩 상태
     const filters = {
       matchRateMin: matchRange[0],
       matchRateMax: matchRange[1],
@@ -732,17 +734,28 @@ const RecipeList: React.FC = () => {
         }
       }
       
+      const previousLength = recipes.length;
       setRecipes(prev => [...prev, ...filteredNewRecipes]);
       setTotal(newTotal); // 서버에서 받은 전체 개수 유지
       setPage(prev => prev + 1);
-      setLoading(false);
+      setIsLoadingMore(false); // 더보기 로딩 종료
       
-      // 스크롤 위치 복원 (다음 프레임에서 실행하여 DOM 업데이트 후 적용)
-      setTimeout(() => {
-        if (listRef.current) {
-          listRef.current.scrollToOffset(currentScrollOffset);
-        }
-      }, 0);
+      // 스크롤 위치 조정: 기존 카드와 새로 로드된 카드가 모두 조금씩 보이도록
+      // requestAnimationFrame을 사용하여 렌더링 완료 후 스크롤 조정
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          if (listRef.current && previousLength > 0 && currentScrollOffset >= 0) {
+            const ITEM_HEIGHT = 320; // VirtualizedRecipeList의 ITEM_HEIGHT와 동일
+            // 현재 스크롤 위치에서 약 120px 아래로 이동
+            // 이렇게 하면 기존 카드가 대부분 보이면서 새로 로드된 카드도 조금 보임
+            const newScrollOffset = currentScrollOffset + 120;
+            listRef.current.scrollToOffset(newScrollOffset);
+          }
+        });
+      });
+    }).catch(error => {
+      console.error('Error loading more recipes:', error);
+      setIsLoadingMore(false);
     });
   };
 
@@ -868,34 +881,36 @@ const RecipeList: React.FC = () => {
         </div>
         {/* Render '더보기' button only when not loading */}
         {!loading && page * size < total && (
-          <button
-            onClick={handleLoadMore}
-            disabled={loading}
-            style={{
-              width: '100%',
-              margin: '20px 0',
-              padding: '12px',
-              background: '#FFD600',
-              color: '#222',
-              fontWeight: 'bold',
-              border: 'none',
-              borderRadius: 8,
-              fontSize: 16,
-              cursor: loading ? 'not-allowed' : 'pointer',
-              opacity: loading ? 0.6 : 1
-            }}
-          >
-            {'더보기'}
-          </button>
+          <div style={{ position: 'relative', width: '100%', margin: '20px 0' }}>
+            <button
+              onClick={handleLoadMore}
+              disabled={isLoadingMore}
+              style={{
+                width: '100%',
+                padding: '12px',
+                background: '#FFD600',
+                color: '#222',
+                fontWeight: 'bold',
+                border: 'none',
+                borderRadius: 8,
+                fontSize: 16,
+                cursor: isLoadingMore ? 'not-allowed' : 'pointer',
+                opacity: isLoadingMore ? 0.6 : 1,
+                position: 'relative'
+              }}
+            >
+              {isLoadingMore ? '로딩 중...' : '더보기'}
+            </button>
+          </div>
         )}
       </div>
       
       <BottomNavBar activeTab="recipe" />
       
       {toast && <RecipeToast message={toast} />}
-        {/* Loading animation */}
-        {loading && (
-          <div className="loader-toast" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}>
+        {/* Loading animation - 초기 로드/필터 변경/더보기 버튼 클릭 시 표시 */}
+        {(loading || isLoadingMore) && (
+          <div className="loader-toast" style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 1000 }}>
             <div className="loader-dots">
               <div></div>
               <div></div>
@@ -906,5 +921,43 @@ const RecipeList: React.FC = () => {
     </>
   );
 };
+
+// 로더 스타일 추가
+const loaderStyle = `
+  .loader-dots {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .loader-dots div {
+    width: 12px;
+    height: 12px;
+    margin: 2px;
+    border-radius: 50%;
+    background-color: #FFD600;
+    animation: dot-blink 1.2s infinite ease-in-out both;
+  }
+
+  .loader-dots div:nth-child(1) { animation-delay: -0.32s; }
+  .loader-dots div:nth-child(2) { animation-delay: -0.16s; }
+
+  @keyframes dot-blink {
+    0%, 80%, 100% { opacity: 0; }
+    40% { opacity: 1; }
+  }
+`;
+
+// 스타일을 문서에 주입
+if (typeof document !== 'undefined') {
+  const styleId = 'recipe-list-loader-style';
+  if (!document.getElementById(styleId)) {
+    const styleSheet = document.createElement("style");
+    styleSheet.id = styleId;
+    styleSheet.type = "text/css";
+    styleSheet.innerText = loaderStyle;
+    document.head.appendChild(styleSheet);
+  }
+}
 
 export default RecipeList; 

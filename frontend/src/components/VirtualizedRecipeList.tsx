@@ -14,6 +14,8 @@ interface VirtualizedRecipeListProps {
 export interface VirtualizedRecipeListRef {
   scrollToOffset: (offset: number) => void;
   getScrollOffset: () => number;
+  scrollToItem: (index: number) => void;
+  getVisibleItemIndex: () => number;
 }
 
 // 상수 정의
@@ -46,20 +48,36 @@ const VirtualizedRecipeList = forwardRef<VirtualizedRecipeListRef, VirtualizedRe
   // 화면 높이 상태
   const [listHeight, setListHeight] = useState(Utils.calculateListHeight());
   const listRef = useRef<ListRef>(null);
+  const scrollOffsetRef = useRef<number>(0);
 
   // ref를 통해 스크롤 제어 메서드 노출
   useImperativeHandle(ref, () => ({
     scrollToOffset: (offset: number) => {
-      listRef.current?.scrollTo(offset);
+      if (listRef.current) {
+        listRef.current.scrollTo(offset);
+      } else {
+        // 대안: 직접 DOM 조작
+        const container = document.getElementById('virtualized-recipe-list-container');
+        if (container) {
+          const scrollableDiv = container.querySelector('div[style*="overflow"]') as HTMLElement;
+          if (scrollableDiv) {
+            scrollableDiv.scrollTop = offset;
+          }
+        }
+      }
     },
     getScrollOffset: () => {
-      // react-window는 직접적으로 스크롤 오프셋을 가져올 수 없으므로
-      // DOM 요소를 통해 가져옴
-      const listElement = listRef.current as any;
-      if (listElement && listElement._outerRef) {
-        return listElement._outerRef.scrollTop || 0;
+      // 저장된 스크롤 위치 반환
+      return scrollOffsetRef.current;
+    },
+    scrollToItem: (index: number) => {
+      if (listRef.current) {
+        listRef.current.scrollToItem(index, 'start');
       }
-      return 0;
+    },
+    getVisibleItemIndex: () => {
+      // 현재 보이는 아이템의 인덱스 계산
+      return Math.floor(scrollOffsetRef.current / CONSTANTS.ITEM_HEIGHT);
     }
   }));
 
@@ -93,17 +111,25 @@ const VirtualizedRecipeList = forwardRef<VirtualizedRecipeListRef, VirtualizedRe
     );
   };
 
+  // 스크롤 이벤트 핸들러
+  const handleScroll = ({ scrollOffset }: { scrollOffset: number }) => {
+    scrollOffsetRef.current = scrollOffset;
+  };
+
   return (
-    <List
-      ref={listRef}
-      height={listHeight}
-      itemCount={recipes.length}
-      itemSize={CONSTANTS.ITEM_HEIGHT}
-      width="100%"
-      overscanCount={CONSTANTS.OVERSCAN_COUNT}
-    >
-      {Row}
-    </List>
+    <div id="virtualized-recipe-list-container">
+      <List
+        ref={listRef}
+        height={listHeight}
+        itemCount={recipes.length}
+        itemSize={CONSTANTS.ITEM_HEIGHT}
+        width="100%"
+        overscanCount={CONSTANTS.OVERSCAN_COUNT}
+        onScroll={handleScroll}
+      >
+        {Row}
+      </List>
+    </div>
   );
 });
 
