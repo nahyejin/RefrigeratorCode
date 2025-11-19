@@ -209,15 +209,6 @@ const MyFridge: React.FC = () => {
 
   React.useEffect(() => {
     const loaded = loadIngredients();
-    
-    // 초기 진입 시 '냉장보관'에 '계란'이 없으면 추가
-    const hasEgg = loaded.fridge && loaded.fridge.some(ing => ing.name === '계란');
-    if (!hasEgg && (!loaded.fridge || loaded.fridge.length === 0)) {
-      // 초기 상태인 경우에만 '계란' 추가
-      const eggId = `egg-${Date.now()}`;
-      loaded.fridge = [{ id: eggId, name: '계란' }];
-    }
-    
     setFrozen(loaded.frozen);
     setFridge(loaded.fridge);
     setRoom(loaded.room);
@@ -254,6 +245,25 @@ const MyFridge: React.FC = () => {
         });
         
         setIngredientDict(ingredients);
+        
+        // 재료 사전 로드 후, 초기 진입 시 '냉장보관'에 '계란'이 없으면 추가
+        const loaded = loadIngredients();
+        const hasEgg = loaded.fridge && loaded.fridge.some(ing => {
+          const ingName = typeof ing === 'string' ? ing : ing.name;
+          // '계란' 또는 '달걀'이 있는지 확인
+          return ingName === '계란' || ingName === '달걀' || 
+                 ingredients[ingName] === '달걀' || ingredients[ingName] === '계란';
+        });
+        
+        if (!hasEgg && (!loaded.fridge || loaded.fridge.length === 0)) {
+          // '계란'을 keyword로 변환 (synonym -> keyword)
+          const eggKeyword = ingredients['계란'] || '달걀'; // '계란'이 synonym이면 keyword인 '달걀'로 변환
+          const eggId = `egg-${Date.now()}`;
+          const newFridge = [{ id: eggId, name: eggKeyword }];
+          setFridge(newFridge);
+          // localStorage에도 저장
+          saveIngredients(loaded.frozen, newFridge, loaded.room);
+        }
       })
       .catch(error => {
         console.error('Error loading ingredient dictionary:', error);
@@ -384,9 +394,11 @@ const MyFridge: React.FC = () => {
   };
 
   const handleModalComplete = (data: { ingredient: string; storageType: StorageBox; hasExpiration: boolean; date: string | null; }) => {
+    // 재료 사전에서 keyword로 변환 (synonym -> keyword)
+    const ingredientKeyword = ingredientDict[data.ingredient] || data.ingredient;
     const obj = { 
-      id: `${data.ingredient}-${Date.now()}`,
-      name: data.ingredient 
+      id: `${ingredientKeyword}-${Date.now()}`,
+      name: ingredientKeyword 
     } as Ingredient;
     if (data.hasExpiration && data.date) obj.expiry = data.date;
     if (!data.hasExpiration && data.date) obj.purchase = data.date;
