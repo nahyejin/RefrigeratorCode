@@ -290,22 +290,45 @@ async function loadRecipesPaged(
     matchRateMax?: number;
     sortBy?: string;
     platform?: string;
+    keyword?: string;
+    includeIngredients?: string[];
+    excludeIngredients?: string[];
+    categoryKeywords?: Record<string, string[]>;
   } = {}
 ): Promise<{recipes: any[], total: number}> {
   try {
     const apiUrl = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'https://refrigeratorcode-production.up.railway.app';
     
-    // 필터링 API 사용
+    // 필터링 API 사용 - 필터가 가장 우선적으로 적용
     const params = new URLSearchParams({
       page: page.toString(),
       size: size.toString(),
-      match_rate_min: (filters.matchRateMin || 0).toString(),
-      match_rate_max: (filters.matchRateMax || 100).toString(),
-      sort_by: filters.sortBy || 'match_rate'
+      // match_rate와 sort_by는 서버에서 필터링 후 클라이언트에서 적용하므로 여기서는 기본값만 전달
+      sort_by: 'match_rate' // 필터 후 클라이언트에서 정렬 적용
     });
     
+    // 필터 파라미터 추가 (가장 우선순위)
     if (filters.platform) {
       params.append('platform', filters.platform);
+    }
+    
+    if (filters.keyword) {
+      params.append('keyword', filters.keyword);
+    }
+    
+    if (filters.includeIngredients && filters.includeIngredients.length > 0) {
+      params.append('include_ingredients', filters.includeIngredients.join(','));
+    }
+    
+    if (filters.excludeIngredients && filters.excludeIngredients.length > 0) {
+      params.append('exclude_ingredients', filters.excludeIngredients.join(','));
+    }
+    
+    if (filters.categoryKeywords && Object.keys(filters.categoryKeywords).length > 0) {
+      const hasAnyKeyword = Object.values(filters.categoryKeywords).some(keywords => keywords.length > 0);
+      if (hasAnyKeyword) {
+        params.append('category_keywords', JSON.stringify(filters.categoryKeywords));
+      }
     }
 
     // 서버가 매칭률을 계산할 수 있도록 내 보유 재료 전달
@@ -322,7 +345,7 @@ async function loadRecipesPaged(
     // response.data가 직접 배열인 경우와 response.data.recipes인 경우 모두 처리
     const recipesData = Array.isArray(response.data) ? response.data : (response.data.recipes || []);
 
-    // 서버가 이미 정렬/필터/페이징을 수행하므로, 여기서는 최소 가공만 수행
+    // 서버에서 필터링된 결과를 받아옴
     const recipes = recipesData.map((recipe: any) => ({
       ...recipe,
       date: formatDate(recipe.post_time || recipe.date || ''),
@@ -510,22 +533,22 @@ const RecipeList: React.FC = () => {
     loadSubstituteTable().then(setSubstituteTable);
   }, []);
 
-  // 레시피 데이터 로드 (초기 로드)
+  // 레시피 데이터 로드 (초기 로드) - 필터 조건 포함
   useEffect(() => {
-    setLoading(true); // Ensure loading animation starts immediately when the page loads
-    setRecipes([]); // Clear recipes to avoid showing hardcoded data
-    const filters = {
-      matchRateMin: matchRange[0],
-      matchRateMax: matchRange[1],
-      sortBy: sortType === 'match' ? 'match_rate' : 
-              sortType === 'latest' ? 'date' : 
-              sortType === 'like' ? 'like' : 
-              sortType === 'comment' ? 'comment' : 
-              sortType === 'hits' ? 'hits' : 
-              sortType === 'expiry' ? 'match_rate' : 'match_rate'
+    setLoading(true);
+    setRecipes([]);
+    
+    // 필터 조건만 서버에 전달 (필터가 가장 우선)
+    const filterParams = {
+      platform: selectedChannel.length > 0 ? selectedChannel[0] : undefined,
+      keyword: includeKeyword || undefined,
+      includeIngredients: includeIngredients.length > 0 ? includeIngredients : undefined,
+      excludeIngredients: excludeIngredients.length > 0 ? excludeIngredients : undefined,
+      categoryKeywords: selectedCategoryKeywords && Object.keys(selectedCategoryKeywords).length > 0 ? selectedCategoryKeywords : undefined
     };
     
-    loadRecipesPaged(1, size, filters).then(({recipes, total}) => {
+    loadRecipesPaged(1, size, filterParams).then(({recipes, total}) => {
+      // 서버에서 필터링된 결과를 받아옴
       setRecipes(recipes);
       setTotal(total);
       setPage(1);
@@ -538,74 +561,35 @@ const RecipeList: React.FC = () => {
         });
       });
       Promise.all(imagePromises).then(() => {
-        setLoading(false); // Only stop loading after all images are loaded
+        setLoading(false);
       });
     }).catch(error => {
       console.error('Error loading recipes:', error);
-      setLoading(true); // Keep loading animation if data fails to load
+      setLoading(false);
     });
-  }, []);
+  }, []); // 초기 로드만 실행
 
-  // 필터/정렬 변경 시 새로운 데이터 로드
+  // 필터 변경 시 새로운 데이터 로드 (필터가 가장 우선순위)
   useEffect(() => {
-    setLoading(true); // Ensure loading animation starts immediately when sort criteria change
-    setRecipes([]); // Clear recipes to avoid showing hardcoded data
-    const filters = {
-      matchRateMin: matchRange[0],
-      matchRateMax: matchRange[1],
-      sortBy: sortType === 'match' ? 'match_rate' : 
-              sortType === 'latest' ? 'date' : 
-              sortType === 'like' ? 'like' : 
-              sortType === 'comment' ? 'comment' : 
-              sortType === 'hits' ? 'hits' : // Ensure 'hits' is handled correctly
-              sortType === 'expiry' ? 'match_rate' : 'match_rate',
+    setLoading(true);
+    setRecipes([]);
+    
+    // 필터 조건만 서버에 전달 (필터가 가장 우선)
+    const filterParams = {
       platform: selectedChannel.length > 0 ? selectedChannel[0] : undefined,
-      keyword: includeKeyword || undefined
+      keyword: includeKeyword || undefined,
+      includeIngredients: includeIngredients.length > 0 ? includeIngredients : undefined,
+      excludeIngredients: excludeIngredients.length > 0 ? excludeIngredients : undefined,
+      categoryKeywords: selectedCategoryKeywords && Object.keys(selectedCategoryKeywords).length > 0 ? selectedCategoryKeywords : undefined
     };
     
-    loadRecipesPaged(1, size, filters).then(({recipes, total}) => {
-      // 클라이언트 측 필터링 (백엔드가 지원하지 않는 필터)
-      let filteredRecipes = recipes;
-      
-      // 포함 재료 필터
-      if (includeIngredients.length > 0) {
-        filteredRecipes = filteredRecipes.filter(recipe => {
-          const recipeIngredients = (recipe.used_ingredients || '').split(',').map(i => i.trim().toLowerCase());
-          return includeIngredients.some(ing => 
-            recipeIngredients.some(ri => ri.includes(ing.toLowerCase()))
-          );
-        });
-      }
-      
-      // 제외 재료 필터
-      if (excludeIngredients.length > 0) {
-        filteredRecipes = filteredRecipes.filter(recipe => {
-          const recipeIngredients = (recipe.used_ingredients || '').split(',').map(i => i.trim().toLowerCase());
-          return !excludeIngredients.some(ing => 
-            recipeIngredients.some(ri => ri.includes(ing.toLowerCase()))
-          );
-        });
-      }
-      
-      // 카테고리 키워드 필터
-      if (selectedCategoryKeywords && Object.keys(selectedCategoryKeywords).length > 0) {
-        const hasAnyKeyword = Object.values(selectedCategoryKeywords).some(keywords => keywords.length > 0);
-        if (hasAnyKeyword) {
-          filteredRecipes = filteredRecipes.filter(recipe => {
-            const content = ((recipe.title || '') + ' ' + (recipe.content || '')).toLowerCase();
-            return Object.entries(selectedCategoryKeywords).some(([category, keywords]) => {
-              if (keywords.length === 0) return false;
-              return keywords.some(keyword => content.includes(keyword.toLowerCase()));
-            });
-          });
-        }
-      }
-      
-      setRecipes(filteredRecipes);
-      // 서버에서 받은 전체 개수는 유지 (더보기 버튼 표시용)
-      setTotal(total);
+    loadRecipesPaged(1, size, filterParams).then(({recipes, total}) => {
+      // 서버에서 필터링된 결과를 받아옴
+      // 이제 필터링된 결과에 대해 매칭도, 임박 재료, 정렬 적용 (클라이언트 사이드)
+      setRecipes(recipes);
+      setTotal(total); // 서버에서 필터링된 전체 개수
       setPage(1);
-      const imagePromises = filteredRecipes.map(recipe => {
+      const imagePromises = recipes.map(recipe => {
         return new Promise(resolve => {
           const img = new Image();
           img.src = recipe.thumbnail;
@@ -614,13 +598,52 @@ const RecipeList: React.FC = () => {
         });
       });
       Promise.all(imagePromises).then(() => {
-        setLoading(false); // Only stop loading after all images are loaded
+        setLoading(false);
       });
     }).catch(error => {
       console.error('Error loading recipes:', error);
-      setLoading(true); // Keep loading animation if data fails to load
+      setLoading(false);
     });
-  }, [sortType, matchRange, selectedChannel, includeKeyword, includeIngredients, excludeIngredients, selectedCategoryKeywords]);
+  }, [selectedChannel, includeKeyword, includeIngredients, excludeIngredients, selectedCategoryKeywords]);
+  
+  // 매칭도, 임박 재료, 정렬 변경 시 클라이언트 사이드에서 필터링/정렬 적용
+  useEffect(() => {
+    if (recipes.length === 0) return;
+    
+    // 필터링된 결과에 대해 매칭도, 임박 재료, 정렬 적용
+    let filteredRecipes = [...recipes];
+    
+    // 매칭도 필터 (클라이언트 사이드)
+    filteredRecipes = filteredRecipes.filter(recipe => {
+      const matchRate = recipe.match_rate || 0;
+      return matchRate >= matchRange[0] && matchRate <= matchRange[1];
+    });
+    
+    // 임박 재료 필터 (클라이언트 사이드)
+    if (appliedExpiryIngredients.length > 0) {
+      filteredRecipes = filteredRecipes.filter(recipe => {
+        const recipeIngredients = (recipe.used_ingredients || '').split(',').map(i => i.trim().toLowerCase());
+        return appliedExpiryIngredients.some(ing => 
+          recipeIngredients.some(ri => ri.includes(ing.toLowerCase()))
+        );
+      });
+    }
+    
+    // 정렬 (클라이언트 사이드)
+    if (sortType === 'match') {
+      filteredRecipes.sort((a, b) => (b.match_rate || 0) - (a.match_rate || 0));
+    } else if (sortType === 'latest') {
+      filteredRecipes.sort((a, b) => new Date(b.post_time || 0).getTime() - new Date(a.post_time || 0).getTime());
+    } else if (sortType === 'like') {
+      filteredRecipes.sort((a, b) => (b.likes || 0) - (a.likes || 0));
+    } else if (sortType === 'comment') {
+      filteredRecipes.sort((a, b) => (b.comments || 0) - (a.comments || 0));
+    } else if (sortType === 'hits') {
+      filteredRecipes.sort((a, b) => (b.hits || 0) - (a.hits || 0));
+    }
+    
+    setRecipes(filteredRecipes);
+  }, [matchRange, appliedExpiryIngredients, sortType]);
 
   // 키워드/재료 필터가 적용될 때는 더 많은 데이터를 로드
   const loadMoreDataForFiltering = useCallback(async () => {
@@ -683,55 +706,35 @@ const RecipeList: React.FC = () => {
     const currentScrollOffset = listRef.current?.getScrollOffset() || 0;
     
     setIsLoadingMore(true); // 더보기 전용 로딩 상태
-    const filters = {
-      matchRateMin: matchRange[0],
-      matchRateMax: matchRange[1],
-      sortBy: sortType === 'match' ? 'match_rate' : 
-              sortType === 'latest' ? 'date' : 
-              sortType === 'like' ? 'like' : 
-              sortType === 'comment' ? 'comment' : 
-              sortType === 'hits' ? 'hits' : 
-              sortType === 'expiry' ? 'match_rate' : 'match_rate',
+    
+    // 필터 조건만 서버에 전달 (필터가 가장 우선)
+    const filterParams = {
       platform: selectedChannel.length > 0 ? selectedChannel[0] : undefined,
-      keyword: includeKeyword || undefined
+      keyword: includeKeyword || undefined,
+      includeIngredients: includeIngredients.length > 0 ? includeIngredients : undefined,
+      excludeIngredients: excludeIngredients.length > 0 ? excludeIngredients : undefined,
+      categoryKeywords: selectedCategoryKeywords && Object.keys(selectedCategoryKeywords).length > 0 ? selectedCategoryKeywords : undefined
     };
     
-    loadRecipesPaged(page + 1, size, filters).then(({recipes: newRecipes, total: newTotal}) => {
-      // 클라이언트 측 필터링 적용
+    loadRecipesPaged(page + 1, size, filterParams).then(({recipes: newRecipes, total: newTotal}) => {
+      // 서버에서 필터링된 결과를 받아옴
+      // 필터링된 결과에 대해 매칭도, 임박 재료 필터 적용 (클라이언트 사이드)
       let filteredNewRecipes = newRecipes;
       
-      // 포함 재료 필터
-      if (includeIngredients.length > 0) {
+      // 매칭도 필터
+      filteredNewRecipes = filteredNewRecipes.filter(recipe => {
+        const matchRate = recipe.match_rate || 0;
+        return matchRate >= matchRange[0] && matchRate <= matchRange[1];
+      });
+      
+      // 임박 재료 필터
+      if (appliedExpiryIngredients.length > 0) {
         filteredNewRecipes = filteredNewRecipes.filter(recipe => {
           const recipeIngredients = (recipe.used_ingredients || '').split(',').map(i => i.trim().toLowerCase());
-          return includeIngredients.some(ing => 
+          return appliedExpiryIngredients.some(ing => 
             recipeIngredients.some(ri => ri.includes(ing.toLowerCase()))
           );
         });
-      }
-      
-      // 제외 재료 필터
-      if (excludeIngredients.length > 0) {
-        filteredNewRecipes = filteredNewRecipes.filter(recipe => {
-          const recipeIngredients = (recipe.used_ingredients || '').split(',').map(i => i.trim().toLowerCase());
-          return !excludeIngredients.some(ing => 
-            recipeIngredients.some(ri => ri.includes(ing.toLowerCase()))
-          );
-        });
-      }
-      
-      // 카테고리 키워드 필터
-      if (selectedCategoryKeywords && Object.keys(selectedCategoryKeywords).length > 0) {
-        const hasAnyKeyword = Object.values(selectedCategoryKeywords).some(keywords => keywords.length > 0);
-        if (hasAnyKeyword) {
-          filteredNewRecipes = filteredNewRecipes.filter(recipe => {
-            const content = ((recipe.title || '') + ' ' + (recipe.content || '')).toLowerCase();
-            return Object.entries(selectedCategoryKeywords).some(([category, keywords]) => {
-              if (keywords.length === 0) return false;
-              return keywords.some(keyword => content.includes(keyword.toLowerCase()));
-            });
-          });
-        }
       }
       
       const previousLength = recipes.length;

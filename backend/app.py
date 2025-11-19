@@ -169,19 +169,67 @@ def get_filtered_recipes():
     keyword = request.args.get('keyword', '').strip()
     my_ingredients_raw = request.args.get('my_ingredients', '').strip()
     my_ingredients = [i.strip() for i in my_ingredients_raw.split(',') if i.strip()]
+    
+    # 필터 파라미터 추가
+    include_ingredients_raw = request.args.get('include_ingredients', '').strip()
+    include_ingredients = [i.strip() for i in include_ingredients_raw.split(',') if i.strip()]
+    
+    exclude_ingredients_raw = request.args.get('exclude_ingredients', '').strip()
+    exclude_ingredients = [i.strip() for i in exclude_ingredients_raw.split(',') if i.strip()]
+    
+    # 카테고리 키워드 (JSON 형태로 전달)
+    category_keywords_json = request.args.get('category_keywords', '').strip()
+    category_keywords = {}
+    if category_keywords_json:
+        try:
+            import json
+            category_keywords = json.loads(category_keywords_json)
+        except:
+            pass
 
     db = get_db()
     cursor = db.cursor()
 
-    # WHERE
+    # WHERE - 필터가 가장 우선적으로 적용
     where_clauses = ["1=1"]
     base_params = []
+    
+    # 채널 필터
     if platform:
         where_clauses.append("platform LIKE %s")
         base_params.append(f"%{platform}%")
+    
+    # 키워드 필터
     if keyword:
         where_clauses.append("(title LIKE %s OR content LIKE %s)")
         base_params.extend([f"%{keyword}%", f"%{keyword}%"])
+    
+    # 포함할 재료 필터 (OR 조건: 하나라도 포함)
+    if include_ingredients:
+        include_conditions = []
+        for ing in include_ingredients:
+            include_conditions.append("FIND_IN_SET(%s, REPLACE(used_ingredients,' ','')) > 0")
+            base_params.append(ing)
+        if include_conditions:
+            where_clauses.append(f"({' OR '.join(include_conditions)})")
+    
+    # 제외할 재료 필터 (AND 조건: 모두 제외)
+    if exclude_ingredients:
+        for ing in exclude_ingredients:
+            where_clauses.append("FIND_IN_SET(%s, REPLACE(used_ingredients,' ','')) = 0")
+            base_params.append(ing)
+    
+    # 카테고리 키워드 필터 (OR 조건: 하나라도 포함)
+    if category_keywords:
+        keyword_conditions = []
+        for category, keywords in category_keywords.items():
+            if keywords and len(keywords) > 0:
+                for kw in keywords:
+                    keyword_conditions.append("(title LIKE %s OR content LIKE %s)")
+                    base_params.extend([f"%{kw}%", f"%{kw}%"])
+        if keyword_conditions:
+            where_clauses.append(f"({' OR '.join(keyword_conditions)})")
+    
     where_sql = " AND ".join(where_clauses)
 
     # match_rate 계산식
@@ -232,7 +280,7 @@ def get_filtered_recipes():
       ORDER BY {order_by}
       LIMIT %s OFFSET %s
     """
-    # my_ingredients가 있으면 매칭 파라미터가 먼저와야 하므로 결합 순서 주의
+    # 파라미터 순서: my_ingredients (매칭률 계산용) + base_params (WHERE 조건) + size, offset
     params = (my_ingredients if my_ingredients else []) + base_params + [size, offset]
     cursor.execute(main_sql, params)
     rows = cursor.fetchall()
