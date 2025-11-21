@@ -398,9 +398,39 @@ const RecipeList: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const listRef = useRef<VirtualizedRecipeListRef>(null);
 
-  const myIngredients = useMemo(() => getMyIngredients(), []);
+  const [myIngredients, setMyIngredients] = useState<string[]>(getMyIngredients());
   const navigate = useNavigate();
   const location = useLocation();
+
+  // localStorage 변경 감지 및 myIngredients 업데이트
+  useEffect(() => {
+    const updateMyIngredients = () => {
+      setMyIngredients(getMyIngredients());
+    };
+
+    // 페이지 포커스 시 업데이트
+    const handleFocus = () => {
+      updateMyIngredients();
+    };
+
+    // storage 이벤트 리스너 (다른 탭에서 변경 시)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'myfridge_ingredients') {
+        updateMyIngredients();
+      }
+    };
+
+    // location 변경 시 업데이트 (페이지 이동 시)
+    updateMyIngredients();
+
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, [location]);
 
   // =====================
   // 이벤트 핸들러
@@ -782,14 +812,33 @@ const RecipeList: React.FC = () => {
           {/* Render recipe cards only when not loading */}
           {!loading && (
             <div className="flex flex-col gap-2">
-              <VirtualizedRecipeList
-                ref={listRef}
-                recipes={filteredRecipes.length > 0 ? filteredRecipes : recipes}
-                myIngredients={myIngredients}
-                substituteTable={substituteTable}
-                recipeActionStates={recipeActionStates}
-                onRecipeAction={handleRecipeAction}
-              />
+              {(() => {
+                // 재료가 없거나, 디폴트 '달걀'만 있고 레시피가 없을 때 안내 문구 표시
+                const hasOnlyDefaultEgg = myIngredients.length === 1 && 
+                  (myIngredients[0] === '달걀' || myIngredients[0] === '계란');
+                const hasNoRecipes = (filteredRecipes.length === 0 && recipes.length === 0);
+                const shouldShowMessage = myIngredients.length === 0 || (hasOnlyDefaultEgg && hasNoRecipes);
+                
+                return shouldShowMessage ? (
+                  <div style={{
+                    textAlign: 'center',
+                    padding: '60px 20px',
+                    color: '#666',
+                    fontSize: '14px'
+                  }}>
+                    내냉장고 페이지에서 재료를 등록해 주세요.
+                  </div>
+                ) : (
+                  <VirtualizedRecipeList
+                    ref={listRef}
+                    recipes={filteredRecipes.length > 0 ? filteredRecipes : recipes}
+                    myIngredients={myIngredients}
+                    substituteTable={substituteTable}
+                    recipeActionStates={recipeActionStates}
+                    onRecipeAction={handleRecipeAction}
+                  />
+                );
+              })()}
             </div>
           )}
         </div>
