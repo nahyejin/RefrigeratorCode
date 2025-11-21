@@ -88,7 +88,6 @@ const initialFilterState: FilterState = {
 
 // 기간 옵션 상수
 const PERIOD_OPTIONS = [
-  { value: 'today', label: '오늘' },
   { value: 'week', label: '최근 7일' },
   { value: 'month', label: '최근 30일' },
   { value: 'custom', label: '기간선택' },
@@ -555,6 +554,7 @@ const Popular = () => {
   const [period, setPeriod] = useState('month');
   const [dateModalOpen, setDateModalOpen] = useState(false);
   const [dateRange, setDateRange] = useState<[Date|null, Date|null]>([null, null]);
+  const [tempDateRange, setTempDateRange] = useState<[Date|null, Date|null]>([null, null]); // 모달 내 임시 상태
   const [dateInputStart, setDateInputStart] = useState('');
   const [dateInputEnd, setDateInputEnd] = useState('');
   const [calendarStartOpen, setCalendarStartOpen] = useState(false);
@@ -649,6 +649,11 @@ const Popular = () => {
       if (dateRange[0] && dateRange[1]) {
         setDateInputStart(formatDateForInput(dateRange[0]));
         setDateInputEnd(formatDateForInput(dateRange[1]));
+        setTempDateRange([dateRange[0], dateRange[1]]);
+      } else {
+        setDateInputStart('');
+        setDateInputEnd('');
+        setTempDateRange([null, null]);
       }
       setDateModalOpen(true);
     } else {
@@ -656,8 +661,21 @@ const Popular = () => {
       setDateRange([null, null]);
       setDateInputStart('');
       setDateInputEnd('');
+      setTempDateRange([null, null]);
     }
   };
+
+  // 모달이 열려있을 때 body 스크롤 막기
+  React.useEffect(() => {
+    if (dateModalOpen || calendarStartOpen || calendarEndOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [dateModalOpen, calendarStartOpen, calendarEndOpen]);
 
   // 기간 라벨 표시
   let periodLabel = periodOptions.find(o => o.value === period)?.label || '';
@@ -957,23 +975,92 @@ const Popular = () => {
         </header>
 
         {/* 정렬/필터 바 */}
-        <div style={{display: 'flex', gap: 8, alignItems: 'center', marginBottom: 24}}>
-          <select
-            style={{height: 28, border: '1px solid #ccc', borderRadius: 6, fontSize: 14, padding: '0 10px', fontWeight: 700, background: '#fff', color: '#404040', minWidth: 100}}
-            value={period}
-            onChange={handlePeriodChange}
-          >
-            {periodOptions.map(opt => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
+        <div style={{display: 'flex', gap: 8, alignItems: 'center', marginBottom: 24, justifyContent: 'flex-end'}}>
+          {periodOptions.map(opt => (
+            <button
+              key={opt.value}
+              onClick={() => {
+                if (opt.value === 'custom') {
+                  // 모달 열 때 현재 dateRange 값을 input에 반영
+                  if (dateRange[0] && dateRange[1]) {
+                    setDateInputStart(formatDateForInput(dateRange[0]));
+                    setDateInputEnd(formatDateForInput(dateRange[1]));
+                    setTempDateRange([dateRange[0], dateRange[1]]);
+                  } else {
+                    setDateInputStart('');
+                    setDateInputEnd('');
+                    setTempDateRange([null, null]);
+                  }
+                  setDateModalOpen(true);
+                } else {
+                  // 다른 기간 선택 시
+                  setPeriod(opt.value);
+                  setDateRange([null, null]);
+                  setDateInputStart('');
+                  setDateInputEnd('');
+                  setTempDateRange([null, null]);
+                }
+              }}
+              style={{
+                height: 28,
+                border: period === opt.value ? '1px solid #6b7280' : '1px solid #D1D5DB',
+                borderRadius: 6,
+                fontSize: 12,
+                padding: '0 8px',
+                fontWeight: 600,
+                background: period === opt.value ? '#6b7280' : '#fff',
+                color: period === opt.value ? '#fff' : '#222',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                whiteSpace: 'nowrap',
+                lineHeight: '28px',
+                boxSizing: 'border-box'
+              }}
+              onMouseEnter={(e) => {
+                if (period !== opt.value) {
+                  e.currentTarget.style.background = '#f5f5f5';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (period !== opt.value) {
+                  e.currentTarget.style.background = '#fff';
+                }
+              }}
+            >
+              {opt.label}
+            </button>
+          ))}
         </div>
 
         {/* 기간선택 모달 */}
         {dateModalOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50" onClick={() => setDateModalOpen(false)}>
+          <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50" onClick={() => {
+            setDateModalOpen(false);
+            // 모달을 닫을 때 임시 상태를 원래 상태로 복원
+            if (dateRange[0] && dateRange[1]) {
+              setDateInputStart(formatDateForInput(dateRange[0]));
+              setDateInputEnd(formatDateForInput(dateRange[1]));
+              setTempDateRange([dateRange[0], dateRange[1]]);
+            } else {
+              setDateInputStart('');
+              setDateInputEnd('');
+              setTempDateRange([null, null]);
+            }
+          }}>
             <div className="bg-white rounded-xl shadow-lg p-6 w-[380px] max-w-[95vw] relative" onClick={e => e.stopPropagation()}>
-              <span className="absolute top-3 right-3 w-6 h-6 text-gray-400 text-xl cursor-pointer select-none" onClick={() => setDateModalOpen(false)} role="button" aria-label="닫기">×</span>
+              <span className="absolute top-3 right-3 w-6 h-6 text-gray-400 text-xl cursor-pointer select-none" onClick={() => {
+                setDateModalOpen(false);
+                // 모달을 닫을 때 임시 상태를 원래 상태로 복원
+                if (dateRange[0] && dateRange[1]) {
+                  setDateInputStart(formatDateForInput(dateRange[0]));
+                  setDateInputEnd(formatDateForInput(dateRange[1]));
+                  setTempDateRange([dateRange[0], dateRange[1]]);
+                } else {
+                  setDateInputStart('');
+                  setDateInputEnd('');
+                  setTempDateRange([null, null]);
+                }
+              }} role="button" aria-label="닫기">×</span>
               <div className="text-center font-bold text-[14px] mb-4">기간을 입력하세요</div>
               
               {/* 날짜 입력 필드 */}
@@ -988,7 +1075,7 @@ const Popular = () => {
                       if (isValidDateString(formatted)) {
                         const date = new Date(formatted);
                         date.setHours(0, 0, 0, 0);
-                        setDateRange([date, dateRange[1]]);
+                        setTempDateRange([date, tempDateRange[1]]);
                       }
                     }}
                     placeholder="yyyy-mm-dd"
@@ -1038,7 +1125,7 @@ const Popular = () => {
                             const formatted = formatDateForInput(date);
                             setDateInputStart(formatted);
                             date.setHours(0, 0, 0, 0);
-                            setDateRange([date, dateRange[1]]);
+                            setTempDateRange([date, tempDateRange[1]]);
                             setCalendarStartOpen(false);
                           }}
                           onClose={() => setCalendarStartOpen(false)}
@@ -1061,7 +1148,7 @@ const Popular = () => {
                       if (isValidDateString(formatted)) {
                         const date = new Date(formatted);
                         date.setHours(23, 59, 59, 999);
-                        setDateRange([dateRange[0], date]);
+                        setTempDateRange([tempDateRange[0], date]);
                       }
                     }}
                     placeholder="yyyy-mm-dd"
@@ -1111,12 +1198,12 @@ const Popular = () => {
                             const formatted = formatDateForInput(date);
                             setDateInputEnd(formatted);
                             date.setHours(23, 59, 59, 999);
-                            setDateRange([dateRange[0], date]);
+                            setTempDateRange([tempDateRange[0], date]);
                             setCalendarEndOpen(false);
                           }}
                           onClose={() => setCalendarEndOpen(false)}
                           type="range-end"
-                          minDate={dateRange[0] || new Date(1900, 0, 1)}
+                          minDate={tempDateRange[0] || new Date(1900, 0, 1)}
                           maxDate={today}
                         />
                       </div>
@@ -1130,12 +1217,13 @@ const Popular = () => {
                 <button
                   className="flex-1 h-10 bg-blue-500 text-white rounded-lg flex items-center justify-center"
                   onClick={() => {
-                    if (dateRange[0] && dateRange[1]) {
+                    if (tempDateRange[0] && tempDateRange[1]) {
+                      setDateRange([tempDateRange[0], tempDateRange[1]]);
                       setPeriod('custom');
                       setDateModalOpen(false);
                     }
                   }}
-                  disabled={!(dateRange[0] && dateRange[1])}
+                  disabled={!(tempDateRange[0] && tempDateRange[1])}
                 >
                   확인
                 </button>
