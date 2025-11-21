@@ -552,54 +552,45 @@ const RecipeSortBar = ({
     }));
   }, [sortType, matchRange, maxLack, appliedExpiryIngredients, expirySortType, expiryIngredientMode]);
 
-  // 필터링 및 정렬 적용
+  // 재료 매칭도 필터는 서버에서 적용되므로, 여기서는 임박 재료와 maxLack 필터만 적용
+  // 정렬도 서버에서 적용되므로 여기서는 필터링만 수행
   useEffect(() => {
     if (!recipes || recipes.length === 0) {
       onFilteredRecipesChange([]);
       return;
     }
     
-    console.log('[RecipeSortBar] 필터링 시작:', {
-      recipesCount: recipes.length,
-      maxLack,
-      matchRange,
-      sortType
-    });
+    // 서버에서 이미 필터링된 데이터를 받았으므로, 임박 재료와 maxLack 필터만 적용
+    let filtered = [...recipes];
     
-    // 채널 필터링
-    let filtered = Utils.filterByChannel(recipes, selectedChannel);
-    console.log('[RecipeSortBar] 채널 필터링 후:', filtered.length);
+    // 임박 재료 필터
+    if (appliedExpiryIngredients.length > 0) {
+      filtered = filtered.filter(recipe => {
+        const recipeIngredients = (recipe.used_ingredients || '').split(',').map(i => i.trim().toLowerCase());
+        return appliedExpiryIngredients.some(ing => 
+          recipeIngredients.some(ri => ri.includes(ing.toLowerCase()))
+        );
+      });
+    }
     
-    // 기존 필터링 로직
-    filtered = filterRecipes(filtered, {
-      sortType,
-      matchRange,
-      maxLack,
-      appliedExpiryIngredients,
-      myIngredients,
-      expiryIngredientMode,
-      includeKeyword,
-      includeIngredients,
-      excludeIngredients,
-      categoryKeywords: Utils.buildCategoryKeywords(selectedCategoryKeywords || null, categoryKeywordTree)
-    });
+    // maxLack 필터
+    if (maxLack !== 'unlimited') {
+      filtered = filtered.filter(recipe => {
+        // need_ingredients가 계산되어 있어야 함
+        const needIngredients = recipe.need_ingredients || [];
+        const lackCount = needIngredients.length;
+        if (maxLack === 5) {
+          return lackCount >= 5;
+        }
+        return lackCount <= maxLack;
+      });
+    }
     
-    console.log('[RecipeSortBar] 최종 필터링 결과:', filtered.length);
     onFilteredRecipesChange(filtered);
   }, [
     recipes,
-    sortType,
-    matchRange,
     maxLack,
     appliedExpiryIngredients,
-    myIngredients,
-    expiryIngredientMode,
-    includeKeyword,
-    includeIngredients,
-    excludeIngredients,
-    selectedCategoryKeywords,
-    categoryKeywordTree,
-    selectedChannel,
     onFilteredRecipesChange
   ]);
 

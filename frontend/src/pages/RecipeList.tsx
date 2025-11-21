@@ -283,9 +283,16 @@ async function loadRecipesPaged(
     const params = new URLSearchParams({
       page: page.toString(),
       size: size.toString(),
-      // match_rate와 sort_by는 서버에서 필터링 후 클라이언트에서 적용하므로 여기서는 기본값만 전달
-      sort_by: 'match_rate' // 필터 후 클라이언트에서 정렬 적용
+      sort_by: filters.sortBy || 'match_rate'
     });
+    
+    // 재료 매칭도 필터 추가
+    if (filters.matchRateMin !== undefined) {
+      params.append('match_rate_min', filters.matchRateMin.toString());
+    }
+    if (filters.matchRateMax !== undefined) {
+      params.append('match_rate_max', filters.matchRateMax.toString());
+    }
     
     // 필터 파라미터 추가 (가장 우선순위)
     if (filters.platform) {
@@ -386,11 +393,9 @@ const RecipeList: React.FC = () => {
   const [selectedCategoryKeywords, setSelectedCategoryKeywords] = useState<FilterState>(initialFilterState);
   // 페이징 관련 상태
   const [page, setPage] = useState(1);
-  const [size] = useState(100); // 클라이언트 사이드 페이지네이션용 크기
-  const [total, setTotal] = useState(0); // 서버에서 필터 버튼 조건으로 필터링된 전체 개수
-  const [displayedCount, setDisplayedCount] = useState(100); // 현재 표시된 레시피 개수 (클라이언트 페이지네이션)
+  const [size] = useState(100); // 서버 사이드 페이지네이션용 크기
+  const [total, setTotal] = useState(0); // 서버에서 필터링된 전체 개수
   const [loading, setLoading] = useState(false);
-  const [isLoadingMore, setIsLoadingMore] = useState(false); // 더보기 버튼 로딩 상태
   const listRef = useRef<VirtualizedRecipeListRef>(null);
 
   const myIngredients = useMemo(() => getMyIngredients(), []);
@@ -514,26 +519,28 @@ const RecipeList: React.FC = () => {
     loadSubstituteTable().then(setSubstituteTable);
   }, []);
 
-  // 레시피 데이터 로드 (초기 로드) - 필터 조건 없음, 전체 데이터 로드
+  // 레시피 데이터 로드 (초기 로드) - 페이지네이션 사용
   useEffect(() => {
     setLoading(true);
     setRecipes([]);
-    setFilteredRecipes([]); // 필터링된 결과 초기화
+    setFilteredRecipes([]);
     
-    // 초기 로드 시에는 필터 조건이 없으므로 전체 데이터를 로드
-    // 먼저 total을 확인하기 위해 작은 size로 요청
-    loadRecipesPaged(1, 1, {}).then(({total}) => {
-      // 전체 데이터를 받아오기 위해 total만큼 요청
-      const loadSize = Math.min(total, 10000); // 최대 10000개로 제한
-      return loadRecipesPaged(1, loadSize, {});
-    }).then(({recipes, total}) => {
-      // 서버에서 필터 버튼 조건 없이 전체 결과를 받아옴
-      // 이후 RecipeSortBar에서 재료 매칭도, 임박 재료, maxLack 필터가 클라이언트에서 적용됨
+    // 초기 로드 시 디폴트 값으로 서버에 요청
+    const filterParams = {
+      matchRateMin: matchRange[0],
+      matchRateMax: matchRange[1],
+      sortBy: sortType === 'match' ? 'match_rate' : 
+              sortType === 'latest' ? 'date' : 
+              sortType === 'like' ? 'like' : 
+              sortType === 'comment' ? 'comment' : 
+              sortType === 'hits' ? 'hits' : 
+              sortType === 'expiry' ? 'match_rate' : 'match_rate'
+    };
+    
+    loadRecipesPaged(1, size, filterParams).then(({recipes, total}) => {
       setRecipes(recipes);
       setTotal(total);
       setPage(1);
-      setDisplayedCount(size); // 초기 표시 개수 리셋
-      // 이미지 프리로딩 제거하여 로드 시간 단축
       setLoading(false);
     }).catch(error => {
       console.error('Error loading recipes:', error);
@@ -541,14 +548,22 @@ const RecipeList: React.FC = () => {
     });
   }, []); // 초기 로드만 실행
 
-  // 필터 버튼 조건 변경 시 전체 데이터 로드 (필터가 가장 우선순위)
+  // 필터 버튼 조건 또는 재료 매칭도/정렬 변경 시 페이지네이션으로 데이터 로드
   useEffect(() => {
     setLoading(true);
     setRecipes([]);
-    setFilteredRecipes([]); // 필터링된 결과 초기화
+    setFilteredRecipes([]);
     
-    // 필터 조건만 서버에 전달 (필터가 가장 우선)
+    // 필터 조건과 재료 매칭도 필터를 서버에 전달
     const filterParams = {
+      matchRateMin: matchRange[0],
+      matchRateMax: matchRange[1],
+      sortBy: sortType === 'match' ? 'match_rate' : 
+              sortType === 'latest' ? 'date' : 
+              sortType === 'like' ? 'like' : 
+              sortType === 'comment' ? 'comment' : 
+              sortType === 'hits' ? 'hits' : 
+              sortType === 'expiry' ? 'match_rate' : 'match_rate',
       platform: selectedChannel.length > 0 ? selectedChannel[0] : undefined,
       keyword: includeKeyword || undefined,
       includeIngredients: includeIngredients.length > 0 ? includeIngredients : undefined,
@@ -556,37 +571,19 @@ const RecipeList: React.FC = () => {
       categoryKeywords: selectedCategoryKeywords && Object.keys(selectedCategoryKeywords).length > 0 ? selectedCategoryKeywords : undefined
     };
     
-    // 먼저 total을 확인하기 위해 작은 size로 요청
-    loadRecipesPaged(1, 1, filterParams).then(({total}) => {
-      // 전체 데이터를 받아오기 위해 total만큼 요청
-      const loadSize = Math.min(total, 10000); // 최대 10000개로 제한
-      return loadRecipesPaged(1, loadSize, filterParams);
-    }).then(({recipes, total}) => {
-      // 서버에서 필터 버튼 조건으로 필터링된 전체 결과를 받아옴
-      // 이후 RecipeSortBar에서 재료 매칭도, 임박 재료, maxLack 필터가 클라이언트에서 적용됨
+    loadRecipesPaged(1, size, filterParams).then(({recipes, total}) => {
       setRecipes(recipes);
-      setTotal(total); // 서버에서 필터링된 전체 개수
+      setTotal(total);
       setPage(1);
-      setDisplayedCount(size); // 초기 표시 개수 리셋
-      // 이미지 프리로딩 제거하여 로드 시간 단축
       setLoading(false);
     }).catch(error => {
       console.error('Error loading recipes:', error);
       setLoading(false);
     });
-  }, [selectedChannel, includeKeyword, includeIngredients, excludeIngredients, selectedCategoryKeywords]);
+  }, [selectedChannel, includeKeyword, includeIngredients, excludeIngredients, selectedCategoryKeywords, matchRange, sortType]);
   
-  // RecipeSortBar가 필터링을 수행하므로 여기서는 제거
-  // 필터링은 RecipeSortBar의 onFilteredRecipesChange를 통해 filteredRecipes에 반영됨
-  // recipes가 변경되면 displayedCount를 리셋하여 처음부터 표시
-  useEffect(() => {
-    if (recipes.length > 0) {
-      // recipes가 변경되면 RecipeSortBar의 useEffect가 자동으로 필터링을 수행함
-      // filteredRecipes는 RecipeSortBar의 onFilteredRecipesChange를 통해 업데이트됨
-      // displayedCount를 리셋하여 처음부터 표시
-      setDisplayedCount(size);
-    }
-  }, [recipes, size]);
+  // RecipeSortBar에서 임박 재료와 maxLack 필터를 적용하여 filteredRecipes를 업데이트함
+  // 재료 매칭도 필터는 서버에서 적용됨
 
   // 키워드/재료 필터가 적용될 때는 더 많은 데이터를 로드
   const loadMoreDataForFiltering = useCallback(async () => {
@@ -642,33 +639,38 @@ const RecipeList: React.FC = () => {
     }
   }, [myIngredientObjects, expirySortType]);
 
-  // 더보기 버튼 클릭 시 클라이언트 사이드에서 더 많은 레시피 표시
-  const handleLoadMore = () => {
-    // 현재 보이는 아이템 인덱스 저장 (스크롤 위치보다 정확함)
-    const currentScrollOffset = listRef.current?.getScrollOffset() || 0;
+  // 페이지 변경 핸들러
+  const handlePageChange = (newPage: number) => {
+    setLoading(true);
+    setPage(newPage);
     
-    setIsLoadingMore(true); // 더보기 전용 로딩 상태
+    // 현재 필터 조건으로 서버에 요청
+    const filterParams = {
+      matchRateMin: matchRange[0],
+      matchRateMax: matchRange[1],
+      sortBy: sortType === 'match' ? 'match_rate' : 
+              sortType === 'latest' ? 'date' : 
+              sortType === 'like' ? 'like' : 
+              sortType === 'comment' ? 'comment' : 
+              sortType === 'hits' ? 'hits' : 
+              sortType === 'expiry' ? 'match_rate' : 'match_rate',
+      platform: selectedChannel.length > 0 ? selectedChannel[0] : undefined,
+      keyword: includeKeyword || undefined,
+      includeIngredients: includeIngredients.length > 0 ? includeIngredients : undefined,
+      excludeIngredients: excludeIngredients.length > 0 ? excludeIngredients : undefined,
+      categoryKeywords: selectedCategoryKeywords && Object.keys(selectedCategoryKeywords).length > 0 ? selectedCategoryKeywords : undefined
+    };
     
-    // 클라이언트 사이드 페이지네이션: displayedCount를 증가시켜 더 많은 레시피 표시
-    // filteredRecipes는 이미 RecipeSortBar에서 필터링된 전체 결과이므로,
-    // displayedCount만 증가시키면 됨
-    setTimeout(() => {
-      setDisplayedCount(prev => prev + size); // size만큼 더 표시
-      setIsLoadingMore(false);
-      
-      // 스크롤 위치 조정: 기존 카드와 새로 로드된 카드가 모두 조금씩 보이도록
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          if (listRef.current && currentScrollOffset >= 0) {
-            const ITEM_HEIGHT = 320; // VirtualizedRecipeList의 ITEM_HEIGHT와 동일
-            // 현재 스크롤 위치에서 약 120px 아래로 이동
-            // 이렇게 하면 기존 카드가 대부분 보이면서 새로 로드된 카드도 조금 보임
-            const newScrollOffset = currentScrollOffset + 120;
-            listRef.current.scrollToOffset(newScrollOffset);
-          }
-        });
-      });
-    }, 100); // 약간의 딜레이를 주어 로딩 애니메이션이 보이도록
+    loadRecipesPaged(newPage, size, filterParams).then(({recipes, total}) => {
+      setRecipes(recipes);
+      setTotal(total);
+      setLoading(false);
+      // 페이지 상단으로 스크롤
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }).catch(error => {
+      console.error('Error loading recipes:', error);
+      setLoading(false);
+    });
   };
 
   // =====================
@@ -773,7 +775,7 @@ const RecipeList: React.FC = () => {
               </div>
             </div>
             <span style={{ color: '#666', fontSize: '12px' }}>
-              총 {filteredRecipes.length.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}건
+              총 {total.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}건
             </span>
           </div>
           
@@ -782,7 +784,7 @@ const RecipeList: React.FC = () => {
             <div className="flex flex-col gap-2">
               <VirtualizedRecipeList
                 ref={listRef}
-                recipes={(filteredRecipes.length > 0 ? filteredRecipes : (recipes.length > 0 ? recipes : [])).slice(0, displayedCount)}
+                recipes={filteredRecipes.length > 0 ? filteredRecipes : recipes}
                 myIngredients={myIngredients}
                 substituteTable={substituteTable}
                 recipeActionStates={recipeActionStates}
@@ -791,37 +793,242 @@ const RecipeList: React.FC = () => {
             </div>
           )}
         </div>
-        {/* Render '더보기' button only when not loading */}
-        {!loading && displayedCount < (filteredRecipes.length > 0 ? filteredRecipes.length : recipes.length) && (
-          <div style={{ position: 'relative', width: '100%', margin: '20px 0' }}>
-            <button
-              onClick={handleLoadMore}
-              disabled={isLoadingMore}
-              style={{
-                width: '100%',
-                padding: '12px',
-                background: '#FFD600',
-                color: '#222',
-                fontWeight: 'bold',
-                border: 'none',
-                borderRadius: 8,
-                fontSize: 16,
-                cursor: isLoadingMore ? 'not-allowed' : 'pointer',
-                opacity: isLoadingMore ? 0.6 : 1,
-                position: 'relative'
-              }}
-            >
-              {isLoadingMore ? '로딩 중...' : '더보기'}
-            </button>
-          </div>
-        )}
+        {/* 페이지네이션 - 이미지 형식 */}
+        {!loading && total > 0 && (() => {
+          const totalPages = Math.ceil(total / size);
+          const getPageNumbers = () => {
+            const pages: number[] = [];
+            const maxVisible = 5; // 현재 페이지 주변에 표시할 페이지 수
+            
+            if (totalPages <= maxVisible) {
+              // 전체 페이지가 적으면 모두 표시
+              for (let i = 1; i <= totalPages; i++) {
+                pages.push(i);
+              }
+            } else {
+              // 현재 페이지 주변 페이지 계산
+              let start = Math.max(1, page - 2);
+              let end = Math.min(totalPages, page + 2);
+              
+              // 앞쪽에 페이지가 부족하면 뒤쪽으로 보정
+              if (end - start < 4) {
+                if (start === 1) {
+                  end = Math.min(totalPages, start + 4);
+                } else if (end === totalPages) {
+                  start = Math.max(1, end - 4);
+                }
+              }
+              
+              for (let i = start; i <= end; i++) {
+                pages.push(i);
+              }
+            }
+            
+            return pages;
+          };
+          
+          const pageNumbers = getPageNumbers();
+          
+          return (
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'center', 
+              alignItems: 'center', 
+              gap: '4px', 
+              margin: '32px 0',
+              width: '100%',
+              maxWidth: '400px',
+              marginLeft: 'auto',
+              marginRight: 'auto',
+              padding: '0 14px',
+              boxSizing: 'border-box'
+            }}>
+              {/* 맨 처음으로 << */}
+              <button
+                onClick={() => handlePageChange(1)}
+                disabled={page === 1}
+                style={{
+                  padding: '6px 8px',
+                  background: 'transparent',
+                  color: page === 1 ? '#d1d5db' : '#222',
+                  fontWeight: '500',
+                  border: 'none',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  cursor: page === 1 ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  minWidth: '32px',
+                  height: '32px'
+                }}
+                onMouseEnter={(e) => {
+                  if (page !== 1) {
+                    e.currentTarget.style.background = '#f5f5f5';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (page !== 1) {
+                    e.currentTarget.style.background = 'transparent';
+                  }
+                }}
+              >
+                &laquo;
+              </button>
+              
+              {/* 이전 페이지 < */}
+              <button
+                onClick={() => handlePageChange(page - 1)}
+                disabled={page === 1}
+                style={{
+                  padding: '6px 8px',
+                  background: 'transparent',
+                  color: page === 1 ? '#d1d5db' : '#222',
+                  fontWeight: '500',
+                  border: 'none',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  cursor: page === 1 ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  minWidth: '32px',
+                  height: '32px'
+                }}
+                onMouseEnter={(e) => {
+                  if (page !== 1) {
+                    e.currentTarget.style.background = '#f5f5f5';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (page !== 1) {
+                    e.currentTarget.style.background = 'transparent';
+                  }
+                }}
+              >
+                &lsaquo;
+              </button>
+              
+              {/* 페이지 번호 */}
+              <div style={{ display: 'flex', gap: '2px', alignItems: 'center' }}>
+                {pageNumbers.map((pageNum) => {
+                  const isCurrentPage = pageNum === page;
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => handlePageChange(pageNum)}
+                      style={{
+                        padding: '6px 10px',
+                        background: isCurrentPage ? '#222' : 'transparent',
+                        color: isCurrentPage ? '#fff' : '#222',
+                        fontWeight: '500',
+                        border: 'none',
+                        borderRadius: '6px',
+                        fontSize: '13px',
+                        cursor: 'pointer',
+                        minWidth: '32px',
+                        height: '32px',
+                        transition: 'all 0.2s',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isCurrentPage) {
+                          e.currentTarget.style.background = '#f5f5f5';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isCurrentPage) {
+                          e.currentTarget.style.background = 'transparent';
+                        }
+                      }}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+              </div>
+              
+              {/* 다음 페이지 > */}
+              <button
+                onClick={() => handlePageChange(page + 1)}
+                disabled={page >= totalPages}
+                style={{
+                  padding: '6px 8px',
+                  background: 'transparent',
+                  color: page >= totalPages ? '#d1d5db' : '#222',
+                  fontWeight: '500',
+                  border: 'none',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  cursor: page >= totalPages ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  minWidth: '32px',
+                  height: '32px'
+                }}
+                onMouseEnter={(e) => {
+                  if (page < totalPages) {
+                    e.currentTarget.style.background = '#f5f5f5';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (page < totalPages) {
+                    e.currentTarget.style.background = 'transparent';
+                  }
+                }}
+              >
+                &rsaquo;
+              </button>
+              
+              {/* 맨 끝으로 >> */}
+              <button
+                onClick={() => handlePageChange(totalPages)}
+                disabled={page >= totalPages}
+                style={{
+                  padding: '6px 8px',
+                  background: 'transparent',
+                  color: page >= totalPages ? '#d1d5db' : '#222',
+                  fontWeight: '500',
+                  border: 'none',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  cursor: page >= totalPages ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  minWidth: '32px',
+                  height: '32px'
+                }}
+                onMouseEnter={(e) => {
+                  if (page < totalPages) {
+                    e.currentTarget.style.background = '#f5f5f5';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (page < totalPages) {
+                    e.currentTarget.style.background = 'transparent';
+                  }
+                }}
+              >
+                &raquo;
+              </button>
+            </div>
+          );
+        })()}
       </div>
       
       <BottomNavBar activeTab="recipe" />
       
       {toast && <RecipeToast message={toast} />}
-        {/* Loading animation - 초기 로드/필터 변경/더보기 버튼 클릭 시 표시 */}
-        {(loading || isLoadingMore) && (
+        {/* Loading animation - 초기 로드/필터 변경/페이지 변경 시 표시 */}
+        {loading && (
           <div className="loader-toast" style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 1000 }}>
             <div className="loader-dots">
               <div></div>

@@ -170,6 +170,20 @@ def get_filtered_recipes():
     my_ingredients_raw = request.args.get('my_ingredients', '').strip()
     my_ingredients = [i.strip() for i in my_ingredients_raw.split(',') if i.strip()]
     
+    # 재료 매칭도 필터
+    match_rate_min = request.args.get('match_rate_min', None)
+    match_rate_max = request.args.get('match_rate_max', None)
+    if match_rate_min is not None:
+        try:
+            match_rate_min = int(match_rate_min)
+        except:
+            match_rate_min = None
+    if match_rate_max is not None:
+        try:
+            match_rate_max = int(match_rate_max)
+        except:
+            match_rate_max = None
+    
     # 필터 파라미터 추가
     include_ingredients_raw = request.args.get('include_ingredients', '').strip()
     include_ingredients = [i.strip() for i in include_ingredients_raw.split(',') if i.strip()]
@@ -265,9 +279,29 @@ def get_filtered_recipes():
     else:
         order_by = "post_time DESC"
 
-    # total COUNT
-    count_sql = f"SELECT COUNT(*) AS total FROM recipes WHERE {where_sql}"
-    cursor.execute(count_sql, base_params)
+    # match_rate 필터를 위한 서브쿼리 (HAVING 절 사용)
+    # total COUNT (match_rate 필터 포함)
+    count_sql = f"""
+      SELECT COUNT(*) AS total
+      FROM (
+        SELECT {match_rate_expr} AS match_rate
+        FROM recipes
+        WHERE {where_sql}
+      ) AS subquery
+    """
+    count_params = (my_ingredients if my_ingredients else []) + base_params
+    if match_rate_min is not None or match_rate_max is not None:
+        having_clauses = []
+        if match_rate_min is not None:
+            count_sql = count_sql.replace(") AS subquery", f"HAVING match_rate >= %s) AS subquery")
+            count_params = count_params + [match_rate_min]
+        if match_rate_max is not None:
+            if match_rate_min is not None:
+                count_sql = count_sql.replace("HAVING match_rate >= %s", "HAVING match_rate >= %s AND match_rate <= %s")
+            else:
+                count_sql = count_sql.replace(") AS subquery", f"HAVING match_rate <= %s) AS subquery")
+            count_params = count_params + [match_rate_max]
+    cursor.execute(count_sql, count_params)
     total = cursor.fetchone()['total']
 
     # 메인 쿼리: 필요한 컬럼만 + LIMIT/OFFSET
@@ -277,12 +311,24 @@ def get_filtered_recipes():
              {match_rate_expr} AS match_rate
       FROM recipes
       WHERE {where_sql}
-      ORDER BY {order_by}
-      LIMIT %s OFFSET %s
     """
-    # 파라미터 순서: my_ingredients (매칭률 계산용) + base_params (WHERE 조건) + size, offset
-    params = (my_ingredients if my_ingredients else []) + base_params + [size, offset]
-    cursor.execute(main_sql, params)
+    main_params = (my_ingredients if my_ingredients else []) + base_params
+    
+    # HAVING 절 추가 (match_rate 필터)
+    if match_rate_min is not None or match_rate_max is not None:
+        having_clauses = []
+        if match_rate_min is not None:
+            having_clauses.append("match_rate >= %s")
+            main_params = main_params + [match_rate_min]
+        if match_rate_max is not None:
+            having_clauses.append("match_rate <= %s")
+            main_params = main_params + [match_rate_max]
+        if having_clauses:
+            main_sql += " HAVING " + " AND ".join(having_clauses)
+    
+    main_sql += f" ORDER BY {order_by} LIMIT %s OFFSET %s"
+    main_params = main_params + [size, offset]
+    cursor.execute(main_sql, main_params)
     rows = cursor.fetchall()
 
     db.close()
