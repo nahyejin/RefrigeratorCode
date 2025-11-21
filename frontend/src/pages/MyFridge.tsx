@@ -31,6 +31,7 @@ export interface DeletedInfo {
   type: 'single' | 'all';
   box: StorageBox;
   tags: string[];
+  ingredients?: Ingredient[]; // 삭제된 재료의 전체 정보 저장
 }
 
 export interface ToastState {
@@ -87,9 +88,20 @@ function sortIngredients(arr: Ingredient[], sort: SortType): Ingredient[] {
   if (sort === 'expiry') {
     const withExpiry = arr.filter(i => i.expiry);
     const withoutExpiry = arr.filter(i => !i.expiry);
+    // 유통기한 있는 것들을 날짜순으로 정렬 (임박한 것부터)
     withExpiry.sort((a, b) => (a.expiry! > b.expiry! ? 1 : -1));
-    // withoutExpiry는 가나다순
-    withoutExpiry.sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+    // 유통기한 없는 것들은 원래 순서 유지 (재료 추가한 순)
+    // 배열의 원래 인덱스를 유지하기 위해 필터링 전 인덱스를 저장
+    const originalIndices = new Map<Ingredient, number>();
+    arr.forEach((item, index) => {
+      originalIndices.set(item, index);
+    });
+    // 원래 순서대로 정렬
+    withoutExpiry.sort((a, b) => {
+      const indexA = originalIndices.get(a) ?? 0;
+      const indexB = originalIndices.get(b) ?? 0;
+      return indexA - indexB;
+    });
     return [...withExpiry, ...withoutExpiry];
   } else if (sort === 'purchase') {
     const withPurchase = arr.filter(i => i.purchase);
@@ -184,6 +196,84 @@ const styleSheet = document.createElement("style");
 styleSheet.type = "text/css";
 styleSheet.innerText = loaderStyle;
 document.head.appendChild(styleSheet);
+
+// =====================
+// IngredientPill 컴포넌트
+// =====================
+
+interface IngredientPillProps {
+  item: Ingredient;
+  onRemove: (id: string) => void;
+  onInfoClick: (item: Ingredient) => void;
+  onSettingsClick: (item: Ingredient) => void;
+}
+
+const IngredientPill: React.FC<IngredientPillProps> = ({ item, onRemove, onInfoClick, onSettingsClick }) => {
+  return (
+    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 0, marginRight: 8, marginBottom: 4 }}>
+      <TagPill 
+        style={{ fontSize: 11, cursor: 'default', marginRight: 0, marginBottom: 0 }}
+      >
+        <span 
+          className="truncate max-w-[100px]"
+          style={{ cursor: 'pointer', userSelect: 'none', flex: 1 }}
+          onClick={(e) => {
+            // X 버튼 영역이 아닐 때만 정보 표시
+            const target = e.target as HTMLElement;
+            if (!target.closest('span[title="삭제"]')) {
+              e.stopPropagation();
+              onInfoClick(item);
+            }
+          }}
+        >
+          {item.name}
+        </span>
+        <span
+          style={{
+            fontSize: 16,
+            fontWeight: 300,
+            cursor: 'pointer',
+            lineHeight: 1,
+            padding: 0,
+            marginLeft: 4,
+            display: 'inline-block',
+            width: '16px',
+            height: '16px',
+            textAlign: 'center',
+            flexShrink: 0,
+          }}
+          onClick={e => { 
+            e.stopPropagation(); 
+            e.preventDefault();
+            onRemove(item.id); 
+          }}
+          onMouseDown={e => {
+            e.stopPropagation();
+            e.preventDefault();
+          }}
+          title="삭제"
+        >
+          x
+        </span>
+      </TagPill>
+      <span
+        style={{
+          fontSize: 14,
+          cursor: 'pointer',
+          lineHeight: 1,
+          padding: '4px',
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+        onClick={e => { e.stopPropagation(); onSettingsClick(item); }}
+        title="설정"
+      >
+        ⚙︎
+      </span>
+    </div>
+  );
+};
 
 // =====================
 // 메인 컴포넌트
@@ -330,8 +420,14 @@ const MyFridge: React.FC = () => {
     if (box === 'frozen') prev = frozen || [];
     if (box === 'fridge') prev = fridge || [];
     if (box === 'room') prev = room || [];
+    const deletedIngredient = prev.find(t => t.id === tag);
     const newTags = prev.filter(t => t.id !== tag);
-    const deleted: DeletedInfo = { type: 'single', box, tags: [tag] };
+    const deleted: DeletedInfo = { 
+      type: 'single', 
+      box, 
+      tags: [tag],
+      ingredients: deletedIngredient ? [deletedIngredient] : []
+    };
     if (box === 'frozen') setFrozen(newTags);
     if (box === 'fridge') setFridge(newTags);
     if (box === 'room') setRoom(newTags);
@@ -343,7 +439,12 @@ const MyFridge: React.FC = () => {
     if (box === 'frozen') prev = frozen || [];
     if (box === 'fridge') prev = fridge || [];
     if (box === 'room') prev = room || [];
-    const deleted: DeletedInfo = { type: 'all', box, tags: prev.map(t => t.id) };
+    const deleted: DeletedInfo = { 
+      type: 'all', 
+      box, 
+      tags: prev.map(t => t.id),
+      ingredients: [...prev] // 전체 재료 정보 저장
+    };
     if (box === 'frozen') setFrozen([]);
     if (box === 'fridge') setFridge([]);
     if (box === 'room') setRoom([]);
@@ -353,9 +454,21 @@ const MyFridge: React.FC = () => {
   const undoDelete = () => {
     if (!toast?.deleted) return;
     const deleted = toast.deleted;
-    if (deleted.box === 'frozen') setFrozen(prev => deleted.type === 'all' ? deleted.tags.map(id => ({ id, name: id.split('-')[0] })) : [...(prev ?? []), ...deleted.tags.map(id => ({ id, name: id.split('-')[0] }))]);
-    if (deleted.box === 'fridge') setFridge(prev => deleted.type === 'all' ? deleted.tags.map(id => ({ id, name: id.split('-')[0] })) : [...(prev ?? []), ...deleted.tags.map(id => ({ id, name: id.split('-')[0] }))]);
-    if (deleted.box === 'room') setRoom(prev => deleted.type === 'all' ? deleted.tags.map(id => ({ id, name: id.split('-')[0] })) : [...(prev ?? []), ...deleted.tags.map(id => ({ id, name: id.split('-')[0] }))]);
+    if (deleted.ingredients && deleted.ingredients.length > 0) {
+      // 저장된 재료 정보를 사용하여 복원
+      if (deleted.box === 'frozen') {
+        setFrozen(prev => deleted.type === 'all' ? deleted.ingredients! : [...(prev ?? []), ...deleted.ingredients!]);
+      } else if (deleted.box === 'fridge') {
+        setFridge(prev => deleted.type === 'all' ? deleted.ingredients! : [...(prev ?? []), ...deleted.ingredients!]);
+      } else if (deleted.box === 'room') {
+        setRoom(prev => deleted.type === 'all' ? deleted.ingredients! : [...(prev ?? []), ...deleted.ingredients!]);
+      }
+    }
+    setToast(null);
+  };
+  
+  // '아니요' 버튼 클릭 시 토스트만 닫기
+  const handleCancelDelete = () => {
     setToast(null);
   };
 
@@ -396,17 +509,63 @@ const MyFridge: React.FC = () => {
   const handleModalComplete = (data: { ingredient: string; storageType: StorageBox; hasExpiration: boolean; date: string | null; }) => {
     // 재료 사전에서 keyword로 변환 (synonym -> keyword)
     const ingredientKeyword = ingredientDict[data.ingredient] || data.ingredient;
-    const obj = { 
-      id: `${ingredientKeyword}-${Date.now()}`,
-      name: ingredientKeyword 
-    } as Ingredient;
-    if (data.hasExpiration && data.date) obj.expiry = data.date;
-    if (!data.hasExpiration && data.date) obj.purchase = data.date;
-    if (data.storageType === 'frozen') setFrozen(prev => prev ? [...prev, obj] : [obj]);
-    if (data.storageType === 'fridge') setFridge(prev => prev ? [...prev, obj] : [obj]);
-    if (data.storageType === 'room') setRoom(prev => prev ? [...prev, obj] : [obj]);
+    
+    // 기존 재료를 수정하는 경우 (모달에서 재료 이름이 이미 있는 경우)
+    const existingIngredient = [...(frozen || []), ...(fridge || []), ...(room || [])].find(
+      ing => ing.name === ingredientKeyword
+    );
+    
+    if (existingIngredient) {
+      // 기존 재료 업데이트
+      const updatedIngredient = { ...existingIngredient };
+      if (data.hasExpiration && data.date) {
+        updatedIngredient.expiry = data.date;
+        delete updatedIngredient.purchase;
+      } else if (!data.hasExpiration && data.date) {
+        updatedIngredient.purchase = data.date;
+        delete updatedIngredient.expiry;
+      } else {
+        delete updatedIngredient.expiry;
+        delete updatedIngredient.purchase;
+      }
+      
+      // 기존 위치에서 제거
+      if (frozen?.some(ing => ing.id === existingIngredient.id)) {
+        setFrozen(prev => prev?.filter(ing => ing.id !== existingIngredient.id) || null);
+      }
+      if (fridge?.some(ing => ing.id === existingIngredient.id)) {
+        setFridge(prev => prev?.filter(ing => ing.id !== existingIngredient.id) || null);
+      }
+      if (room?.some(ing => ing.id === existingIngredient.id)) {
+        setRoom(prev => prev?.filter(ing => ing.id !== existingIngredient.id) || null);
+      }
+      
+      // 새 위치에 추가
+      if (data.storageType === 'frozen') setFrozen(prev => prev ? [...prev, updatedIngredient] : [updatedIngredient]);
+      if (data.storageType === 'fridge') setFridge(prev => prev ? [...prev, updatedIngredient] : [updatedIngredient]);
+      if (data.storageType === 'room') setRoom(prev => prev ? [...prev, updatedIngredient] : [updatedIngredient]);
+    } else {
+      // 새 재료 추가
+      const obj = { 
+        id: `${ingredientKeyword}-${Date.now()}`,
+        name: ingredientKeyword 
+      } as Ingredient;
+      if (data.hasExpiration && data.date) obj.expiry = data.date;
+      if (!data.hasExpiration && data.date) obj.purchase = data.date;
+      if (data.storageType === 'frozen') setFrozen(prev => prev ? [...prev, obj] : [obj]);
+      if (data.storageType === 'fridge') setFridge(prev => prev ? [...prev, obj] : [obj]);
+      if (data.storageType === 'room') setRoom(prev => prev ? [...prev, obj] : [obj]);
+    }
+    
     setModalOpen(false);
     setModalIngredient(null);
+  };
+  
+
+  // 재료 pill 클릭 시 모달 열기
+  const handleTagClick = (item: Ingredient) => {
+    setModalIngredient(item.name);
+    setModalOpen(true);
   };
 
   const handleTagInfo = (item: Ingredient) => {
@@ -543,26 +702,13 @@ const MyFridge: React.FC = () => {
                 <div className="text-gray-400 text-xs py-1">재료가 아직 없어요</div>
               )}
               {sortIngredients(frozen ?? [], frozenSort).map((item) => (
-                <TagPill key={item.id + '-' + item.name} style={{ fontSize: 11 }} onClick={() => handleTagInfo(item)}>
-                  <span className="truncate max-w-[110px]">{item.name}</span>
-                  <span className="relative flex-shrink-0 ml-2" style={{ width: 20, height: 24, display: 'inline-block' }}>
-                    <span
-                      style={{
-                        position: 'absolute',
-                        left: '85%',
-                        top: '40%',
-                        transform: 'translate(-50%, -50%)',
-                        fontSize: 16,
-                        fontWeight: 300,
-                        cursor: 'pointer',
-                        lineHeight: 1,
-                      }}
-                      onClick={e => { e.stopPropagation(); removeTag('frozen', item.id); }}
-                    >
-                      x
-                    </span>
-                  </span>
-                </TagPill>
+                <IngredientPill
+                  key={`${item.id}-${item.name}`}
+                  item={item}
+                  onRemove={(id) => removeTag('frozen', id)}
+                  onInfoClick={handleTagInfo}
+                  onSettingsClick={handleTagClick}
+                />
               ))}
             </div>
           </div>
@@ -599,26 +745,13 @@ const MyFridge: React.FC = () => {
                 <div className="text-gray-400 text-xs py-1">재료가 아직 없어요</div>
               )}
               {sortIngredients(fridge ?? [], fridgeSort).map((item) => (
-                <TagPill key={item.id + '-' + item.name} style={{ fontSize: 11 }} onClick={() => handleTagInfo(item)}>
-                  <span className="truncate max-w-[110px]">{item.name}</span>
-                  <span className="relative flex-shrink-0 ml-2" style={{ width: 20, height: 24, display: 'inline-block' }}>
-                    <span
-                      style={{
-                        position: 'absolute',
-                        left: '85%',
-                        top: '40%',
-                        transform: 'translate(-50%, -50%)',
-                        fontSize: 16,
-                        fontWeight: 300,
-                        cursor: 'pointer',
-                        lineHeight: 1,
-                      }}
-                      onClick={e => { e.stopPropagation(); removeTag('fridge', item.id); }}
-                    >
-                      x
-                    </span>
-                  </span>
-                </TagPill>
+                <IngredientPill
+                  key={`${item.id}-${item.name}`}
+                  item={item}
+                  onRemove={(id) => removeTag('fridge', id)}
+                  onInfoClick={handleTagInfo}
+                  onSettingsClick={handleTagClick}
+                />
               ))}
             </div>
           </div>
@@ -655,26 +788,13 @@ const MyFridge: React.FC = () => {
                 <div className="text-gray-400 text-xs py-1">재료가 아직 없어요</div>
               )}
               {sortIngredients(room ?? [], roomSort).map((item) => (
-                <TagPill key={item.id + '-' + item.name} style={{ fontSize: 11 }} onClick={() => handleTagInfo(item)}>
-                  <span className="truncate max-w-[110px]">{item.name}</span>
-                  <span className="relative flex-shrink-0 ml-2" style={{ width: 20, height: 24, display: 'inline-block' }}>
-                    <span
-                      style={{
-                        position: 'absolute',
-                        left: '85%',
-                        top: '40%',
-                        transform: 'translate(-50%, -50%)',
-                        fontSize: 16,
-                        fontWeight: 300,
-                        cursor: 'pointer',
-                        lineHeight: 1,
-                      }}
-                      onClick={e => { e.stopPropagation(); removeTag('room', item.id); }}
-                    >
-                      x
-                    </span>
-                  </span>
-                </TagPill>
+                <IngredientPill
+                  key={`${item.id}-${item.name}`}
+                  item={item}
+                  onRemove={(id) => removeTag('room', id)}
+                  onInfoClick={handleTagInfo}
+                  onSettingsClick={handleTagClick}
+                />
               ))}
             </div>
           </div>
@@ -691,7 +811,7 @@ const MyFridge: React.FC = () => {
           <BottomNavBar activeTab="myfridge" />
         </div>
         {toast && toast.visible && (
-          <Toast message={toast.message} onUndo={undoDelete} onClose={() => setToast(null)} />
+          <Toast message={toast.message} onUndo={handleCancelDelete} onClose={undoDelete} />
         )}
         {infoToast && (
           <div className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-white border border-gray-300 rounded-lg px-6 py-3 text-[#404040] text-sm shadow-lg z-[9999]" style={{ fontWeight: 400 }}>
