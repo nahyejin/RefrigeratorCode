@@ -8,7 +8,7 @@ import 공유하기버튼 from '../assets/공유하기버튼.svg';
 import 기록하기버튼 from '../assets/기록하기버튼.svg';
 import writeIcon from '../assets/write.svg';
 import doneIcon from '../assets/done.svg';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import RecipeCard from '../components/RecipeCard';
 import VirtualizedHorizontalRecipeList from '../components/VirtualizedHorizontalRecipeList';
 import { getIngredientPillInfo } from '../utils/recipeUtils';
@@ -285,6 +285,7 @@ const MyPage: React.FC = () => {
   const [substituteTable, setSubstituteTable] = useState<{ [key: string]: { ingredient_b: string } }>({});
 
   const navigate = useNavigate();
+  const location = useLocation();
 
   // =====================
   // 이벤트 핸들러
@@ -460,6 +461,35 @@ const MyPage: React.FC = () => {
   useEffect(() => {
     loadSubstituteTable().then(setSubstituteTable);
   }, []);
+
+  // 내 냉장고 재료 업데이트 (페이지 포커스, visibility 변경, 경로 변경 시)
+  useEffect(() => {
+    const updateMyIngredients = () => {
+      setMyIngredients(getMyIngredientsSafe());
+    };
+
+    // 초기 로드 및 경로 변경 시 업데이트
+    updateMyIngredients();
+
+    // 페이지 포커스 시 업데이트
+    const handleFocus = () => {
+      updateMyIngredients();
+    };
+    window.addEventListener('focus', handleFocus);
+
+    // 페이지 visibility 변경 시 업데이트 (탭 전환 시)
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        updateMyIngredients();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [location.pathname]); // 경로 변경 시에도 업데이트
 
   // =====================
   // 렌더링
