@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-// import DatePicker from 'react-datepicker';
-// import 'react-datepicker/dist/react-datepicker.css';
+import React, { useState, useRef, useEffect } from 'react';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 import backIcon from '../assets/뒤로가기_GREY.png';
 
 type Props = {
@@ -96,6 +96,26 @@ const TEXTS = {
 export default function IngredientDateModal({ type, isOpen, onClose, onComplete, onBack }: Props) {
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
+  const calendarRef = useRef<HTMLDivElement>(null);
+  const today = new Date();
+  today.setHours(23, 59, 59, 999); // 오늘의 끝 시간
+
+  // 달력 외부 클릭 시 닫기
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (calendarRef.current && !calendarRef.current.contains(event.target as Node)) {
+        setCalendarOpen(false);
+      }
+    };
+
+    if (calendarOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [calendarOpen]);
 
   // 달력에서 날짜 선택 시 yyyy-mm-dd로 입력창에 반영
   const handleCalendarChange = (date: Date | null) => {
@@ -179,13 +199,31 @@ export default function IngredientDateModal({ type, isOpen, onClose, onComplete,
           </button>
           {/* 달력 팝업 */}
           {calendarOpen && (
-            <div className="absolute left-1/2 -translate-x-1/2 top-12 z-50 bg-white rounded-xl shadow-lg p-2">
-              {/* <DatePicker
+            <div 
+              ref={calendarRef}
+              className="absolute left-1/2 -translate-x-1/2 top-12 z-50 bg-white rounded-xl shadow-lg p-2"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <DatePicker
                 selected={Utils.isValidDateString(inputValue) ? new Date(inputValue) : null}
                 onChange={handleCalendarChange}
                 inline
                 dateFormat="yyyy-MM-dd"
-              /> */}
+                maxDate={today}
+                minDate={new Date(1900, 0, 1)}
+                filterDate={(date) => {
+                  const dateToCheck = new Date(date);
+                  dateToCheck.setHours(0, 0, 0, 0);
+                  const todayCheck = new Date(today);
+                  todayCheck.setHours(0, 0, 0, 0);
+                  return dateToCheck <= todayCheck;
+                }}
+                showYearDropdown
+                showMonthDropdown
+                dropdownMode="select"
+                yearDropdownItemNumber={today.getFullYear() - 1899}
+                scrollableYearDropdown
+              />
             </div>
           )}
         </div>

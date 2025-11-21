@@ -3,8 +3,8 @@ import BottomNavBar from '../components/BottomNavBar';
 import TopNavBar from '../components/TopNavBar';
 import FilterModal from '../components/FilterModal';
 import IngredientDateModal from '../components/IngredientDateModal';
-// import DatePicker from 'react-datepicker';
-// import 'react-datepicker/dist/react-datepicker.css';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 import 완료하기버튼 from '../assets/완료하기버튼.svg';
 import 공유하기버튼 from '../assets/공유하기버튼.svg';
 import 기록하기버튼 from '../assets/기록하기버튼.svg';
@@ -558,6 +558,12 @@ const Popular = () => {
   const [dateRange, setDateRange] = useState<[Date|null, Date|null]>([null, null]);
   const [dateInputStart, setDateInputStart] = useState('');
   const [dateInputEnd, setDateInputEnd] = useState('');
+  const [calendarStartOpen, setCalendarStartOpen] = useState(false);
+  const [calendarEndOpen, setCalendarEndOpen] = useState(false);
+  const calendarStartRef = React.useRef<HTMLDivElement>(null);
+  const calendarEndRef = React.useRef<HTMLDivElement>(null);
+  const today = new Date();
+  today.setHours(23, 59, 59, 999);
   const [toast, setToast] = useState('');
   const [includeKeyword, setIncludeKeyword] = useState('');
 
@@ -593,14 +599,64 @@ const Popular = () => {
   }, []);
 
   // 기간 드롭다운 핸들러
+  // 달력 외부 클릭 감지
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (calendarStartRef.current && !calendarStartRef.current.contains(event.target as Node)) {
+        setCalendarStartOpen(false);
+      }
+      if (calendarEndRef.current && !calendarEndRef.current.contains(event.target as Node)) {
+        setCalendarEndOpen(false);
+      }
+    };
+
+    if (calendarStartOpen || calendarEndOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [calendarStartOpen, calendarEndOpen]);
+
+  // 날짜 포맷팅 유틸리티
+  const formatDateForInput = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const formatInputValue = (value: string): string => {
+    const digits = value.replace(/[^0-9]/g, '');
+    if (digits.length > 8) {
+      return digits.slice(0, 8);
+    }
+    if (digits.length === 8) {
+      return digits.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3');
+    }
+    return digits;
+  };
+
+  const isValidDateString = (dateString: string): boolean => {
+    return /^\d{4}-\d{2}-\d{2}$/.test(dateString);
+  };
+
   const handlePeriodChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value;
     setPeriod(val);
     if (val === 'custom') {
+      // 모달 열 때 현재 dateRange 값을 input에 반영
+      if (dateRange[0] && dateRange[1]) {
+        setDateInputStart(formatDateForInput(dateRange[0]));
+        setDateInputEnd(formatDateForInput(dateRange[1]));
+      }
       setDateModalOpen(true);
     } else {
       // 기간이 변경되면 랭킹을 다시 계산하도록 트리거
       setDateRange([null, null]);
+      setDateInputStart('');
+      setDateInputEnd('');
     }
   };
 
@@ -917,57 +973,191 @@ const Popular = () => {
         {/* 기간선택 모달 */}
         {dateModalOpen && (
           <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50" onClick={() => setDateModalOpen(false)}>
-            <div className="bg-white rounded-xl shadow-lg p-6 w-[340px] max-w-[95vw] relative" onClick={e => e.stopPropagation()}>
+            <div className="bg-white rounded-xl shadow-lg p-6 w-[380px] max-w-[95vw] relative" onClick={e => e.stopPropagation()}>
               <span className="absolute top-3 right-3 w-6 h-6 text-gray-400 text-xl cursor-pointer select-none" onClick={() => setDateModalOpen(false)} role="button" aria-label="닫기">×</span>
               <div className="text-center font-bold text-[14px] mb-4">기간을 입력하세요</div>
-              <div className="flex items-center gap-2 mb-4">
-                <input
-                  type="text"
-                  className="w-full h-10 border border-gray-300 rounded-lg px-4 text-[14px]"
-                  placeholder="2025.05.05"
-                  maxLength={10}
-                  value={dateInputStart}
-                  onChange={e => setDateInputStart(e.target.value)}
-                />
-                <span className="mx-1 text-gray-500">~</span>
-                <input
-                  type="text"
-                  className="w-full h-10 border border-gray-300 rounded-lg px-4 text-[14px]"
-                  placeholder="2025.05.13"
-                  maxLength={10}
-                  value={dateInputEnd}
-                  onChange={e => setDateInputEnd(e.target.value)}
-                />
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
-                <div>
-                  <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                    <input
-                      type="date"
-                      value={dateInputStart}
-                      onChange={e => setDateInputStart(e.target.value)}
-                      style={{ padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}
-                    />
-                    <span>~</span>
-                    <input
-                      type="date"
-                      value={dateInputEnd}
-                      onChange={e => setDateInputEnd(e.target.value)}
-                      style={{ padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}
-                    />
-                  </div>
+              
+              {/* 날짜 입력 필드 */}
+              <div className="flex items-center gap-2 mb-4 w-full">
+                <div className="flex-1 min-w-0 relative">
+                  <input
+                    type="text"
+                    value={dateInputStart}
+                    onChange={e => {
+                      const formatted = formatInputValue(e.target.value);
+                      setDateInputStart(formatted);
+                      if (isValidDateString(formatted)) {
+                        const date = new Date(formatted);
+                        date.setHours(0, 0, 0, 0);
+                        setDateRange([date, dateRange[1]]);
+                      }
+                    }}
+                    placeholder="yyyy-mm-dd"
+                    maxLength={10}
+                    className="w-full h-10 border border-gray-300 rounded-lg px-4 text-[14px] pr-10"
+                    style={{ 
+                      boxSizing: 'border-box',
+                      width: '100%'
+                    }}
+                  />
+                  {/* 달력 아이콘 버튼 */}
+                  <button
+                    type="button"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-700"
+                    onClick={() => {
+                      setCalendarStartOpen(!calendarStartOpen);
+                      setCalendarEndOpen(false);
+                    }}
+                    tabIndex={-1}
+                    aria-label="달력 열기"
+                  >
+                    <svg 
+                      style={{ width: 20, height: 20 }}
+                      fill="none" 
+                      viewBox="0 0 24 24" 
+                      stroke="currentColor"
+                    >
+                      <rect x="3" y="5" width="18" height="16" rx="2" strokeWidth="2"/>
+                      <path d="M16 3v4M8 3v4M3 9h18" strokeWidth="2"/>
+                    </svg>
+                  </button>
+                  {/* 달력 팝업 */}
+                  {calendarStartOpen && (
+                    <div 
+                      ref={calendarStartRef}
+                      className="absolute left-1/2 -translate-x-1/2 top-12 z-50 bg-white rounded-xl shadow-lg p-2"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <DatePicker
+                        selected={isValidDateString(dateInputStart) ? new Date(dateInputStart) : null}
+                        onChange={(date: Date | null) => {
+                          if (date) {
+                            const formatted = formatDateForInput(date);
+                            setDateInputStart(formatted);
+                            date.setHours(0, 0, 0, 0);
+                            setDateRange([date, dateRange[1]]);
+                            setCalendarStartOpen(false);
+                          }
+                        }}
+                        inline
+                        dateFormat="yyyy-MM-dd"
+                        maxDate={today}
+                        minDate={new Date(1900, 0, 1)}
+                        filterDate={(date) => {
+                          const dateToCheck = new Date(date);
+                          dateToCheck.setHours(0, 0, 0, 0);
+                          const todayCheck = new Date(today);
+                          todayCheck.setHours(0, 0, 0, 0);
+                          return dateToCheck <= todayCheck;
+                        }}
+                        showYearDropdown
+                        showMonthDropdown
+                        dropdownMode="select"
+                        yearDropdownItemNumber={today.getFullYear() - 1899}
+                        scrollableYearDropdown
+                      />
+                    </div>
+                  )}
+                </div>
+                <span className="text-gray-500 text-[14px] whitespace-nowrap flex-shrink-0">~</span>
+                <div className="flex-1 min-w-0 relative">
+                  <input
+                    type="text"
+                    value={dateInputEnd}
+                    onChange={e => {
+                      const formatted = formatInputValue(e.target.value);
+                      setDateInputEnd(formatted);
+                      if (isValidDateString(formatted)) {
+                        const date = new Date(formatted);
+                        date.setHours(23, 59, 59, 999);
+                        setDateRange([dateRange[0], date]);
+                      }
+                    }}
+                    placeholder="yyyy-mm-dd"
+                    maxLength={10}
+                    className="w-full h-10 border border-gray-300 rounded-lg px-4 text-[14px] pr-10"
+                    style={{ 
+                      boxSizing: 'border-box',
+                      width: '100%'
+                    }}
+                  />
+                  {/* 달력 아이콘 버튼 */}
+                  <button
+                    type="button"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-700"
+                    onClick={() => {
+                      setCalendarEndOpen(!calendarEndOpen);
+                      setCalendarStartOpen(false);
+                    }}
+                    tabIndex={-1}
+                    aria-label="달력 열기"
+                  >
+                    <svg 
+                      style={{ width: 20, height: 20 }}
+                      fill="none" 
+                      viewBox="0 0 24 24" 
+                      stroke="currentColor"
+                    >
+                      <rect x="3" y="5" width="18" height="16" rx="2" strokeWidth="2"/>
+                      <path d="M16 3v4M8 3v4M3 9h18" strokeWidth="2"/>
+                    </svg>
+                  </button>
+                  {/* 달력 팝업 */}
+                  {calendarEndOpen && (
+                    <div 
+                      ref={calendarEndRef}
+                      className="absolute left-1/2 -translate-x-1/2 top-12 z-50 bg-white rounded-xl shadow-lg p-2"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <DatePicker
+                        selected={isValidDateString(dateInputEnd) ? new Date(dateInputEnd) : null}
+                        onChange={(date: Date | null) => {
+                          if (date) {
+                            const formatted = formatDateForInput(date);
+                            setDateInputEnd(formatted);
+                            date.setHours(23, 59, 59, 999);
+                            setDateRange([dateRange[0], date]);
+                            setCalendarEndOpen(false);
+                          }
+                        }}
+                        inline
+                        dateFormat="yyyy-MM-dd"
+                        maxDate={today}
+                        minDate={dateRange[0] || new Date(1900, 0, 1)}
+                        filterDate={(date) => {
+                          const dateToCheck = new Date(date);
+                          dateToCheck.setHours(0, 0, 0, 0);
+                          const todayCheck = new Date(today);
+                          todayCheck.setHours(0, 0, 0, 0);
+                          const minCheck = dateRange[0] ? new Date(dateRange[0]) : new Date(1900, 0, 1);
+                          minCheck.setHours(0, 0, 0, 0);
+                          return dateToCheck <= todayCheck && dateToCheck >= minCheck;
+                        }}
+                        showYearDropdown
+                        showMonthDropdown
+                        dropdownMode="select"
+                        yearDropdownItemNumber={today.getFullYear() - 1899}
+                        scrollableYearDropdown
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
+              
+              {/* 확인 버튼 */}
               <div className="flex mt-4">
                 <button
-                  className="flex-1 h-10 bg-blue-500 text-white rounded-lg flex items-center justify-center mx-auto"
-                  style={{ maxWidth: '100%' }}
+                  className="flex-1 h-10 bg-blue-500 text-white rounded-lg flex items-center justify-center"
                   onClick={() => {
-                    setDateModalOpen(false);
-                    if (dateRange[0] && dateRange[1]) setPeriod('custom');
+                    if (dateRange[0] && dateRange[1]) {
+                      setPeriod('custom');
+                      setDateModalOpen(false);
+                    }
                   }}
                   disabled={!(dateRange[0] && dateRange[1])}
-                >확인</button>
+                >
+                  확인
+                </button>
               </div>
             </div>
           </div>
