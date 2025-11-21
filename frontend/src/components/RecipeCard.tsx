@@ -222,17 +222,28 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
       : recipe.used_ingredients || ''
   );
 
+  const handleCardClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    // 버튼 영역 클릭 시 카드 클릭 이벤트 무시
+    if ((e.target as HTMLElement).closest('.action-buttons')) {
+      return;
+    }
+    // 썸네일 이미지나 제목 클릭 시 새 창 열기
+    if (recipe.link) {
+      e.preventDefault();
+      e.stopPropagation();
+      window.open(recipe.link, '_blank', 'noopener,noreferrer');
+    }
+  };
+
   return (
     <div
       className="bg-white rounded-[20px] shadow-sm min-h-[280px] relative p-4 block hover:shadow-md transition cursor-pointer"
       style={isLast ? STYLES.lastCard : STYLES.card}
-      onClick={(e) => {
-        // 버튼 영역 클릭 시 카드 클릭 이벤트 무시
-        if ((e.target as HTMLElement).closest('.action-buttons')) {
-          return;
-        }
-        if (recipe.link) {
-          window.open(recipe.link, '_blank');
+      onClick={handleCardClick}
+      onMouseDown={(e) => {
+        // 버튼 영역이 아닌 경우에만 처리
+        if (!(e.target as HTMLElement).closest('.action-buttons')) {
+          // 마우스 다운 이벤트도 처리하여 확실하게 작동하도록
         }
       }}
     >
@@ -241,7 +252,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
           src={getProxiedImageUrl(recipe.thumbnail)}
           alt="썸네일"
           onError={e => { e.currentTarget.src = '/default-thumbnail.png'; }}
-          style={STYLES.thumbnail}
+          style={{ ...STYLES.thumbnail, cursor: 'pointer' }}
         />
         {/* 순위 표시 (Popular 페이지에서만) */}
         {showRank && (
@@ -297,7 +308,9 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
           ))}
         </div>
       </div>
-      <div style={STYLES.title}>{recipe.title}</div>
+      <div style={{ ...STYLES.title, cursor: 'pointer' }}>
+        {recipe.title}
+      </div>
       <div style={STYLES.stats}>
         {Utils.getStatsText(recipe)}
       </div>

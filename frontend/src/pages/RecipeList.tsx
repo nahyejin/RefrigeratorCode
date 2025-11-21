@@ -214,37 +214,27 @@ function normalizeRecipe(recipe: any) {
 /**
  * 대체재료 테이블을 로드한다
  */
-async function loadSubstituteTable(): Promise<{ [key: string]: SubstituteInfo }> {
+async function loadSubstituteTable(): Promise<{ [key: string]: { ingredient_b: string } }> {
   try {
     const response = await fetch(CSV_SUBSTITUTE_URL);
     const csv = await response.text();
     
-    const lines = csv.split('\n');
+    const lines = csv.split('\n').filter(line => line.trim()); // 빈 행 제거
     const header = lines[0].split(',').map(h => h.trim().toLowerCase());
     const aIdx = header.indexOf('ingredient_a');
     const bIdx = header.indexOf('ingredient_b');
-    const dirIdx = header.indexOf('substitution_direction');
-    const scoreIdx = header.indexOf('similarity_score');
-    const reasonIdx = header.indexOf('substitution_reason');
     
     if (aIdx === -1 || bIdx === -1) return {};
     
-    const table: { [key: string]: SubstituteInfo } = {};
+    const table: { [key: string]: { ingredient_b: string } } = {};
     lines.slice(1).forEach(line => {
       const cols = line.split(',');
       const a = cols[aIdx]?.trim();
       const b = cols[bIdx]?.trim();
-      const direction = cols[dirIdx]?.trim() || '';
-      const score = parseFloat(cols[scoreIdx]?.trim() || '0');
-      const reason = cols[reasonIdx]?.trim() || '';
       
       if (a && b) {
         table[a] = {
-          ingredient_a: a,
-          ingredient_b: b,
-          substitution_direction: direction,
-          similarity_score: score,
-          substitution_reason: reason
+          ingredient_b: b
         };
       }
     });
@@ -396,7 +386,7 @@ const RecipeList: React.FC = () => {
   const [toast, setToast] = useState('');
   const [includeKeyword, setIncludeKeyword] = useState('');
   const [allIngredients, setAllIngredients] = useState<string[]>([]);
-  const [substituteTable, setSubstituteTable] = useState<{ [key: string]: SubstituteInfo }>({});
+  const [substituteTable, setSubstituteTable] = useState<{ [key: string]: { ingredient_b: string } }>({});
   const [matchRateModalOpen, setMatchRateModalOpen] = useState(false);
   const [expiryModalOpen, setExpiryModalOpen] = useState(false);
   const [selectedExpiryIngredients, setSelectedExpiryIngredients] = useState<string[]>([]);

@@ -97,7 +97,7 @@ const VirtualizedRecipeList = forwardRef<VirtualizedRecipeListRef, VirtualizedRe
     if (!recipe) return null;
 
     return (
-      <div style={style}>
+      <div style={{ ...style, pointerEvents: 'auto' }}>
         <RecipeCard
           recipe={recipe}
           index={index}
@@ -117,7 +117,7 @@ const VirtualizedRecipeList = forwardRef<VirtualizedRecipeListRef, VirtualizedRe
   };
 
   return (
-    <div id="virtualized-recipe-list-container">
+    <div id="virtualized-recipe-list-container" style={{ pointerEvents: 'auto' }}>
       <List
         ref={listRef}
         height={listHeight}
@@ -126,6 +126,7 @@ const VirtualizedRecipeList = forwardRef<VirtualizedRecipeListRef, VirtualizedRe
         width="100%"
         overscanCount={CONSTANTS.OVERSCAN_COUNT}
         onScroll={handleScroll}
+        style={{ pointerEvents: 'auto' }}
       >
         {Row}
       </List>

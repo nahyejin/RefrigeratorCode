@@ -300,7 +300,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
   const [excludeInput, setExcludeInput] = useState('');
   const [allIngredients, setAllIngredients] = useState<string[]>([]);
   const [recipes, setRecipes] = useState<any[]>([]);
-  const [substituteTable, setSubstituteTable] = useState<{ [key: string]: SubstituteInfo }>({});
+  const [substituteTable, setSubstituteTable] = useState<{ [key: string]: { ingredient_b: string } }>({});
   const [buttonStates, setButtonStates] = useState<{ [id: number]: RecipeActionState }>({});
   const [toast, setToast] = useState('');
   const [includeKeyword, setIncludeKeyword] = useState('');
@@ -545,10 +545,14 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
         const response = await fetch(CSV_SUBSTITUTE_URL);
         const csvText = await response.text();
         
-        const lines = csvText.split('\n');
-        const headers = lines[0].split(',');
+        const lines = csvText.split('\n').filter(line => line.trim()); // 빈 행 제거
+        const header = lines[0].split(',').map(h => h.trim().toLowerCase());
+        const aIdx = header.indexOf('ingredient_a');
+        const bIdx = header.indexOf('ingredient_b');
         
-        const table: { [key: string]: SubstituteInfo } = {};
+        if (aIdx === -1 || bIdx === -1) return;
+        
+        const table: { [key: string]: { ingredient_b: string } } = {};
         
         // 첫 번째 줄(헤더)을 제외하고 처리
         for (let i = 1; i < lines.length; i++) {
@@ -556,22 +560,13 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
           if (!line) continue;
 
           const values = line.split(',');
-          if (values.length >= 6) {
-            const ingredient_a = values[1]?.trim() || '';
-            const ingredient_b = values[2]?.trim() || '';
-            const substitution_direction = values[3]?.trim() || '';
-            const similarity_score = parseFloat(values[4]?.trim() || '0');
-            const substitution_reason = values[5]?.trim() || '';
+          const ingredient_a = values[aIdx]?.trim();
+          const ingredient_b = values[bIdx]?.trim();
 
-            if (ingredient_a) {
-              table[ingredient_a] = {
-                ingredient_a,
-                ingredient_b,
-                substitution_direction,
-                similarity_score,
-                substitution_reason
-              };
-            }
+          if (ingredient_a && ingredient_b) {
+            table[ingredient_a] = {
+              ingredient_b: ingredient_b
+            };
           }
         }
         setSubstituteTable(table);
