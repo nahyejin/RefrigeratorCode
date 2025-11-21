@@ -541,7 +541,7 @@ const MyPage: React.FC = () => {
       {/* 레시피 그룹 */}
       <div style={{ marginTop: 56 }}>
         {/* 내가 기록한 레시피 */}
-        <div style={{ paddingLeft: 32, marginTop: 0, marginBottom: 8 }}>
+        <div style={{ paddingLeft: 32, paddingRight: 32, marginTop: 0, marginBottom: 8 }}>
           <div className="flex items-center justify-between mb-0">
             <h2 className="text-[16px] font-bold text-[#111] flex items-center gap-1">
               <img 
@@ -562,10 +562,10 @@ const MyPage: React.FC = () => {
               aria-label="내가 기록한 레시피 전체보기"
               onClick={() => navigate('/mypage/recorded')}
             >
-              〉
+              ☰
             </button>
           </div>
-          <div style={{height: 2, width: '100%', background: '#E5E5E5', marginBottom: 4}} />
+          <div style={{height: 2, width: '100%', background: '#E5E5E5', marginBottom: 16}} />
           
           {/* 범례 */}
           <div style={{ 
@@ -637,7 +637,7 @@ const MyPage: React.FC = () => {
         </div>
         
         {/* 내가 완료한 레시피 */}
-        <div style={{ paddingLeft: 32, marginTop: 0 }}>
+        <div style={{ paddingLeft: 32, paddingRight: 32, marginTop: 0 }}>
           <div className="flex items-center justify-between mb-0">
             <h2 className="text-[16px] font-bold text-[#111] flex items-center gap-1">
               <img 
@@ -658,10 +658,10 @@ const MyPage: React.FC = () => {
               aria-label="내가 완료한 레시피 전체보기"
               onClick={() => navigate('/mypage/completed')}
             >
-              〉
+              ☰
             </button>
           </div>
-          <div style={{height: 2, width: '100%', background: '#E5E5E5', marginBottom: 4}} />
+          <div style={{height: 2, width: '100%', background: '#E5E5E5', marginBottom: 16}} />
           
           {/* 범례 */}
           <div style={{ 
