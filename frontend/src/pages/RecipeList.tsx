@@ -9,6 +9,7 @@ import writeIcon from '../assets/write.svg';
 import doneBlackIcon from '../assets/done_black.svg';
 import shareBlackIcon from '../assets/share_black.svg';
 import writeBlackIcon from '../assets/write_black.svg';
+import nodataImg from '../assets/nodata.png';
 import FilterModal from '../components/FilterModal';
 import { fetchRecipesDummy } from '../utils/dummyData';
 import RecipeCard from '../components/RecipeCard';
@@ -139,11 +140,28 @@ function getDDay(expiry: string): string {
  * 정렬/필터바 초기 상태를 가져온다
  */
 function getInitialSortBarState() {
-  // 초기 진입 시에는 sessionStorage를 사용하지 않고 디폴트 값 반환
-  // 디폴트 값: 재료 매칭률 30~100%, 정렬 기준 '재료매칭률순', 임박재료 없음, 필터 없음
+  // sessionStorage에서 저장된 상태를 읽어온다
+  try {
+    const saved = sessionStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      // 저장된 matchRange가 있으면 사용, 없으면 기본값 [0, 100]
+      return {
+        sortType: parsed.sortType || 'match',
+        matchRange: parsed.matchRange || [0, 100],
+        maxLack: parsed.maxLack || 'unlimited',
+        appliedExpiryIngredients: parsed.appliedExpiryIngredients || [],
+        expirySortType: parsed.expirySortType || 'expiry',
+      };
+    }
+  } catch (error) {
+    console.warn('[RecipeList] 저장된 상태 로드 실패:', error);
+  }
+  
+  // 기본값: 재료 매칭률 0~100%, 정렬 기준 '재료매칭률순', 임박재료 없음, 필터 없음
   return {
     sortType: 'match', // 재료매칭률순
-    matchRange: [30, 100], // 30~100%
+    matchRange: [0, 100], // 0~100%
     maxLack: 'unlimited',
     appliedExpiryIngredients: [], // 임박재료 없음
     expirySortType: 'expiry',
@@ -838,26 +856,61 @@ const RecipeList: React.FC = () => {
                   return (
                     <div style={{
                       textAlign: 'center',
-                      padding: '60px 20px',
+                      padding: '180px 20px',
                       color: '#666',
                       fontSize: '14px',
-                      lineHeight: '1.6'
+                      lineHeight: '1.6',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '20px',
+                      minHeight: '50vh'
                     }}>
-                      등록된 재료가 없습니다.<br />
-                      내냉장고 페이지에서 재료를 등록해 주세요.
+                      <img 
+                        src={nodataImg} 
+                        alt="데이터 없음" 
+                        style={{
+                          width: '120px',
+                          height: '120px',
+                          objectFit: 'contain'
+                        }}
+                      />
+                      <div>
+                        등록된 재료가 없습니다.<br />
+                        내냉장고 페이지에서 재료를 등록해 주세요.
+                      </div>
                     </div>
                   );
                 } else if (hasIngredientsButNoRecipes) {
                   return (
                     <div style={{
                       textAlign: 'center',
-                      padding: '60px 20px',
+                      padding: '180px 20px',
                       color: '#666',
                       fontSize: '14px',
-                      lineHeight: '1.6'
+                      lineHeight: '1.6',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '20px',
+                      minHeight: '50vh'
                     }}>
-                      내냉장고 페이지에 등록된 재료가 적거나, 검색·필터 조건이 너무 좁을 수 있습니다.<br />
-                      재료를 등록하거나 검색·필터 조건을 넓혀주세요.
+                      <img 
+                        src={nodataImg} 
+                        alt="데이터 없음" 
+                        style={{
+                          width: '120px',
+                          height: '120px',
+                          objectFit: 'contain'
+                        }}
+                      />
+                      <div>
+                        등록된 내냉장고 재료가 부족하거나<br />
+                        검색·필터 조건이 너무 좁습니다.<br />
+                        재료를 추가하거나 조건을 넓혀주세요.
+                      </div>
                     </div>
                   );
                 } else {

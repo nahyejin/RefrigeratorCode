@@ -13,6 +13,7 @@ interface VirtualizedHorizontalRecipeListProps {
   cardHeight?: number;
   gap?: number;
   showRank?: boolean;
+  emptyMessage?: string | React.ReactNode;
 }
 
 // 상수 정의
@@ -76,7 +77,8 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
   cardWidth = CONSTANTS.DEFAULT_CARD_WIDTH,
   cardHeight = CONSTANTS.DEFAULT_CARD_HEIGHT,
   gap = CONSTANTS.DEFAULT_GAP,
-  showRank = false
+  showRank = false,
+  emptyMessage = '레시피가 없습니다'
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState<number>(CONSTANTS.DEFAULT_CONTAINER_WIDTH);
@@ -120,8 +122,24 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
 
   if (recipes.length === 0) {
     return (
-      <div style={STYLES.emptyContainer(cardHeight)}>
-        레시피가 없습니다
+      <div style={{
+        ...STYLES.emptyContainer(cardHeight),
+        flexDirection: 'column',
+        gap: 4,
+        textAlign: 'center',
+        padding: '50px 20px',
+        color: '#666',
+        fontSize: '14px',
+        lineHeight: '1.6',
+        whiteSpace: 'pre-line',
+        justifyContent: 'flex-start',
+        alignItems: 'center'
+      }}>
+        {typeof emptyMessage === 'string' ? (
+          <div>{emptyMessage}</div>
+        ) : (
+          emptyMessage
+        )}
       </div>
     );
   }

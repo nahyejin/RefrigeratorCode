@@ -633,6 +633,12 @@ const MyPage: React.FC = () => {
             cardWidth={360}
             cardHeight={320}
             gap={16}
+            emptyMessage={
+              <>
+                <div>기록된 레시피가 없습니다.</div>
+                <div>레시피를 기록해주세요.</div>
+              </>
+            }
           />
         </div>
         
@@ -729,6 +735,12 @@ const MyPage: React.FC = () => {
             cardWidth={360}
             cardHeight={320}
             gap={16}
+            emptyMessage={
+              <>
+                <div>완료된 레시피가 없습니다.</div>
+                <div>레시피를 완료해주세요.</div>
+              </>
+            }
           />
         </div>
       </div>
