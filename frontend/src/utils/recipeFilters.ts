@@ -89,14 +89,22 @@ function filterByMatchRange(recipe: Recipe, matchRange: [number, number]): boole
  * 부족 재료 개수 필터
  */
 function filterByLackCount(recipe: Recipe, maxLack: number | 'unlimited'): boolean {
-  if (maxLack === 'unlimited') return true;
+  if (maxLack === 'unlimited') {
+    console.log(`  [maxLack 필터] 레시피: "${recipe.title}", maxLack: unlimited -> 통과`);
+    return true;
+  }
   
   const lackCount = recipe.need_ingredients ? recipe.need_ingredients.length : 0;
+  console.log(`  [maxLack 필터] 레시피: "${recipe.title}", maxLack: ${maxLack}, lackCount: ${lackCount}, need_ingredients:`, recipe.need_ingredients);
   
   if (maxLack === MAX_LACK_THRESHOLD) {
-    return lackCount >= MAX_LACK_THRESHOLD;
+    const result = lackCount >= MAX_LACK_THRESHOLD;
+    console.log(`  [maxLack 필터] 5개 이상 부족 조건: ${lackCount} >= ${MAX_LACK_THRESHOLD} = ${result}`);
+    return result;
   }
-  return lackCount <= maxLack;
+  const result = lackCount <= maxLack;
+  console.log(`  [maxLack 필터] 최대 ${maxLack}개 부족 조건: ${lackCount} <= ${maxLack} = ${result}`);
+  return result;
 }
 
 /**

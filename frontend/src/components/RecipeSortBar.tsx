@@ -460,6 +460,7 @@ const RecipeSortBar = ({
   const [selectedExpiryIngredients, setSelectedExpiryIngredients] = useState<string[]>([]);
   const [tempMatchRangeMin, setTempMatchRangeMin] = useState<string | null>(null);
   const [tempMatchRangeMax, setTempMatchRangeMax] = useState<string | null>(null);
+  const [tempMatchRange, setTempMatchRange] = useState<[number, number]>(matchRange); // 임시 매칭도 범위
   const [expiryIngredientMode, setExpiryIngredientMode] = useState<'and'|'or'>(() => {
     const saved = localStorage.getItem('recipe_sortbar_state_fridge');
     if (saved) {
@@ -553,10 +554,21 @@ const RecipeSortBar = ({
 
   // 필터링 및 정렬 적용
   useEffect(() => {
-    if (!recipes) return;
+    if (!recipes || recipes.length === 0) {
+      onFilteredRecipesChange([]);
+      return;
+    }
+    
+    console.log('[RecipeSortBar] 필터링 시작:', {
+      recipesCount: recipes.length,
+      maxLack,
+      matchRange,
+      sortType
+    });
     
     // 채널 필터링
     let filtered = Utils.filterByChannel(recipes, selectedChannel);
+    console.log('[RecipeSortBar] 채널 필터링 후:', filtered.length);
     
     // 기존 필터링 로직
     filtered = filterRecipes(filtered, {
@@ -572,6 +584,7 @@ const RecipeSortBar = ({
       categoryKeywords: Utils.buildCategoryKeywords(selectedCategoryKeywords || null, categoryKeywordTree)
     });
     
+    console.log('[RecipeSortBar] 최종 필터링 결과:', filtered.length);
     onFilteredRecipesChange(filtered);
   }, [
     recipes,
@@ -586,7 +599,8 @@ const RecipeSortBar = ({
     excludeIngredients,
     selectedCategoryKeywords,
     categoryKeywordTree,
-    selectedChannel
+    selectedChannel,
+    onFilteredRecipesChange
   ]);
 
   return (
@@ -595,7 +609,10 @@ const RecipeSortBar = ({
         <div style={STYLES.buttonGroup}>
           <button
             style={STYLES.button}
-            onClick={() => setMatchRateModalOpen(true)}
+            onClick={() => {
+              setTempMatchRange(matchRange); // 모달 열 때 현재 값을 임시 상태로 복사
+              setMatchRateModalOpen(true);
+            }}
             aria-label="재료 매칭도 설정 모달 열기"
           >
             재료 매칭도 설정
@@ -646,22 +663,34 @@ const RecipeSortBar = ({
       {isMatchRateModalOpen && (
         <div style={STYLES.modal}>
           <div style={STYLES.modalContent}>
-            <span style={STYLES.closeButton} onClick={() => setMatchRateModalOpen(false)} aria-label="매칭률 모달 닫기" role="button">×</span>
+            <span style={STYLES.closeButton} onClick={() => {
+              // 모달 닫을 때 임시 상태를 원래 값으로 되돌림
+              setTempMatchRange(matchRange);
+              setTempMatchRangeMin(null);
+              setTempMatchRangeMax(null);
+              setMatchRateModalOpen(false);
+            }} aria-label="매칭률 모달 닫기" role="button">×</span>
             <div style={STYLES.modalTitle}>재료 매칭도 설정</div>
             <div style={STYLES.inputGroup}>
               <input
                 type="number"
                 min={0}
-                max={matchRange[1]}
-                value={tempMatchRangeMin !== null ? tempMatchRangeMin : matchRange[0]}
+                max={tempMatchRange[1]}
+                value={tempMatchRangeMin !== null ? tempMatchRangeMin : tempMatchRange[0]}
                 onFocus={e => setTempMatchRangeMin('')}
-                onChange={e => setTempMatchRangeMin(e.target.value)}
+                onChange={e => {
+                  setTempMatchRangeMin(e.target.value);
+                  if (e.target.value !== '' && !isNaN(Number(e.target.value))) {
+                    let val = Math.min(Math.max(0, Number(e.target.value)), tempMatchRange[1]);
+                    setTempMatchRange([val, tempMatchRange[1]]);
+                  }
+                }}
                 onBlur={e => {
                   if (e.target.value === '' || isNaN(Number(e.target.value))) {
                     setTempMatchRangeMin(null);
                   } else {
-                    let val = Math.min(Math.max(0, Number(e.target.value)), matchRange[1]);
-                    setMatchRange([val, matchRange[1]]);
+                    let val = Math.min(Math.max(0, Number(e.target.value)), tempMatchRange[1]);
+                    setTempMatchRange([val, tempMatchRange[1]]);
                     setTempMatchRangeMin(null);
                   }
                 }}
@@ -671,17 +700,23 @@ const RecipeSortBar = ({
               <span className="mx-2 text-sm">~</span>
               <input
                 type="number"
-                min={matchRange[0]}
+                min={tempMatchRange[0]}
                 max={100}
-                value={tempMatchRangeMax !== null ? tempMatchRangeMax : matchRange[1]}
+                value={tempMatchRangeMax !== null ? tempMatchRangeMax : tempMatchRange[1]}
                 onFocus={e => setTempMatchRangeMax('')}
-                onChange={e => setTempMatchRangeMax(e.target.value)}
+                onChange={e => {
+                  setTempMatchRangeMax(e.target.value);
+                  if (e.target.value !== '' && !isNaN(Number(e.target.value))) {
+                    let val = Math.max(Math.min(100, Number(e.target.value)), tempMatchRange[0]);
+                    setTempMatchRange([tempMatchRange[0], val]);
+                  }
+                }}
                 onBlur={e => {
                   if (e.target.value === '' || isNaN(Number(e.target.value))) {
                     setTempMatchRangeMax(null);
                   } else {
-                    let val = Math.max(Math.min(100, Number(e.target.value)), matchRange[0]);
-                    setMatchRange([matchRange[0], val]);
+                    let val = Math.max(Math.min(100, Number(e.target.value)), tempMatchRange[0]);
+                    setTempMatchRange([tempMatchRange[0], val]);
                     setTempMatchRangeMax(null);
                   }
                 }}
@@ -695,10 +730,12 @@ const RecipeSortBar = ({
                 range
                 min={0}
                 max={100}
-                value={matchRange}
+                value={tempMatchRange}
                 onChange={(val: number | number[]) => {
                   if (Array.isArray(val)) {
-                    setMatchRange([val[0], val[1]]);
+                    setTempMatchRange([val[0], val[1]]);
+                    setTempMatchRangeMin(null);
+                    setTempMatchRangeMax(null);
                   }
                 }}
                 allowCross={false}
@@ -730,13 +767,17 @@ const RecipeSortBar = ({
             <button
               style={STYLES.applyButton}
               onClick={() => {
-                if (matchRange[0] > matchRange[1]) {
+                if (tempMatchRange[0] > tempMatchRange[1]) {
                   if (typeof onToast === 'function') {
                     onToast('올바른 범위를 입력해주세요');
                   }
                   return;
                 }
+                // '적용' 버튼을 눌렀을 때만 실제 matchRange 상태 업데이트
+                setMatchRange(tempMatchRange);
                 setMatchRateModalOpen(false);
+                setTempMatchRangeMin(null);
+                setTempMatchRangeMax(null);
               }}
             >
               적용

@@ -63,15 +63,29 @@ export function calculateMatchRate(myIngredients: string[], recipeIngredients: s
   const recipeArr = Array.isArray(recipeIngredients)
     ? recipeIngredients
     : recipeIngredients.split(',');
-  const recipeSet = new Set(
-    recipeArr.map((i: string) => i.trim()).filter(Boolean)
-  );
-  const mySet = new Set(myIngredients);
-  const matched = [...recipeSet].filter((i: string) => mySet.has(i));
+  const recipeList = recipeArr.map((i: string) => i.trim()).filter(Boolean);
+  const recipeSet = new Set(recipeList);
+  
+  // 정규화된 비교를 위한 Set 생성
+  const mySet = new Set(myIngredients.map(i => normalize(i)));
+  
+  // 매칭된 재료와 부족한 재료 분리 (원본 재료명 유지)
+  const matched: string[] = [];
+  const needIngredients: string[] = [];
+  
+  recipeList.forEach(ingredient => {
+    const normalized = normalize(ingredient);
+    if (mySet.has(normalized)) {
+      matched.push(ingredient);
+    } else {
+      needIngredients.push(ingredient);
+    }
+  });
+  
   return {
     rate: recipeSet.size === 0 ? 0 : Math.round((matched.length / recipeSet.size) * 100),
     my_ingredients: matched,
-    need_ingredients: [...recipeSet],
+    need_ingredients: needIngredients, // 부족한 재료만 반환 (원본 재료명 유지)
   };
 }
 

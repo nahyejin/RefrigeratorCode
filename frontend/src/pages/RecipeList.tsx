@@ -139,23 +139,13 @@ function getDDay(expiry: string): string {
  * 정렬/필터바 초기 상태를 가져온다
  */
 function getInitialSortBarState() {
-  // 혹시 남아있을 수 있는 localStorage 값은 한 번 삭제
-  if (typeof window !== 'undefined') {
-    localStorage.removeItem(STORAGE_KEY);
-  }
-  const saved = sessionStorage.getItem(STORAGE_KEY);
-  if (saved) {
-    try {
-      return JSON.parse(saved);
-    } catch (error) {
-      console.warn('[RecipeList] 정렬바 상태 로드 실패:', error);
-    }
-  }
+  // 초기 진입 시에는 sessionStorage를 사용하지 않고 디폴트 값 반환
+  // 디폴트 값: 재료 매칭률 30~100%, 정렬 기준 '재료매칭률순', 임박재료 없음, 필터 없음
   return {
-    sortType: 'match',
-    matchRange: [30, 100],
+    sortType: 'match', // 재료매칭률순
+    matchRange: [30, 100], // 30~100%
     maxLack: 'unlimited',
-    appliedExpiryIngredients: [],
+    appliedExpiryIngredients: [], // 임박재료 없음
     expirySortType: 'expiry',
   };
 }
@@ -380,8 +370,8 @@ const RecipeList: React.FC = () => {
   const [includeInput, setIncludeInput] = useState('');
   const [excludeInput, setExcludeInput] = useState('');
   const [selectedTime, setSelectedTime] = useState('상관없음');
-  const [recipes, setRecipes] = useState<any[]>([]);
-  const [filteredRecipes, setFilteredRecipes] = useState<any[]>([]);
+  const [recipes, setRecipes] = useState<any[]>([]); // 서버에서 받은 전체 데이터 (필터 버튼 조건 적용 후)
+  const [filteredRecipes, setFilteredRecipes] = useState<any[]>([]); // 클라이언트 필터링 결과 (재료 매칭도, 임박 재료, maxLack 적용)
   const [recipeActionStates, setRecipeActionStates] = useState<Record<number, RecipeActionState>>({});
   const [toast, setToast] = useState('');
   const [includeKeyword, setIncludeKeyword] = useState('');
@@ -396,8 +386,9 @@ const RecipeList: React.FC = () => {
   const [selectedCategoryKeywords, setSelectedCategoryKeywords] = useState<FilterState>(initialFilterState);
   // 페이징 관련 상태
   const [page, setPage] = useState(1);
-  const [size] = useState(100); // 초기 로드 시 더 많은 데이터 로드
-  const [total, setTotal] = useState(0);
+  const [size] = useState(100); // 클라이언트 사이드 페이지네이션용 크기
+  const [total, setTotal] = useState(0); // 서버에서 필터 버튼 조건으로 필터링된 전체 개수
+  const [displayedCount, setDisplayedCount] = useState(100); // 현재 표시된 레시피 개수 (클라이언트 페이지네이션)
   const [loading, setLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false); // 더보기 버튼 로딩 상태
   const listRef = useRef<VirtualizedRecipeListRef>(null);
@@ -523,46 +514,38 @@ const RecipeList: React.FC = () => {
     loadSubstituteTable().then(setSubstituteTable);
   }, []);
 
-  // 레시피 데이터 로드 (초기 로드) - 필터 조건 포함
+  // 레시피 데이터 로드 (초기 로드) - 필터 조건 없음, 전체 데이터 로드
   useEffect(() => {
     setLoading(true);
     setRecipes([]);
+    setFilteredRecipes([]); // 필터링된 결과 초기화
     
-    // 필터 조건만 서버에 전달 (필터가 가장 우선)
-    const filterParams = {
-      platform: selectedChannel.length > 0 ? selectedChannel[0] : undefined,
-      keyword: includeKeyword || undefined,
-      includeIngredients: includeIngredients.length > 0 ? includeIngredients : undefined,
-      excludeIngredients: excludeIngredients.length > 0 ? excludeIngredients : undefined,
-      categoryKeywords: selectedCategoryKeywords && Object.keys(selectedCategoryKeywords).length > 0 ? selectedCategoryKeywords : undefined
-    };
-    
-    loadRecipesPaged(1, size, filterParams).then(({recipes, total}) => {
-      // 서버에서 필터링된 결과를 받아옴
+    // 초기 로드 시에는 필터 조건이 없으므로 전체 데이터를 로드
+    // 먼저 total을 확인하기 위해 작은 size로 요청
+    loadRecipesPaged(1, 1, {}).then(({total}) => {
+      // 전체 데이터를 받아오기 위해 total만큼 요청
+      const loadSize = Math.min(total, 10000); // 최대 10000개로 제한
+      return loadRecipesPaged(1, loadSize, {});
+    }).then(({recipes, total}) => {
+      // 서버에서 필터 버튼 조건 없이 전체 결과를 받아옴
+      // 이후 RecipeSortBar에서 재료 매칭도, 임박 재료, maxLack 필터가 클라이언트에서 적용됨
       setRecipes(recipes);
       setTotal(total);
       setPage(1);
-      const imagePromises = recipes.map(recipe => {
-        return new Promise(resolve => {
-          const img = new Image();
-          img.src = recipe.thumbnail;
-          img.onload = resolve;
-          img.onerror = resolve;
-        });
-      });
-      Promise.all(imagePromises).then(() => {
-        setLoading(false);
-      });
+      setDisplayedCount(size); // 초기 표시 개수 리셋
+      // 이미지 프리로딩 제거하여 로드 시간 단축
+      setLoading(false);
     }).catch(error => {
       console.error('Error loading recipes:', error);
       setLoading(false);
     });
   }, []); // 초기 로드만 실행
 
-  // 필터 변경 시 새로운 데이터 로드 (필터가 가장 우선순위)
+  // 필터 버튼 조건 변경 시 전체 데이터 로드 (필터가 가장 우선순위)
   useEffect(() => {
     setLoading(true);
     setRecipes([]);
+    setFilteredRecipes([]); // 필터링된 결과 초기화
     
     // 필터 조건만 서버에 전달 (필터가 가장 우선)
     const filterParams = {
@@ -573,67 +556,37 @@ const RecipeList: React.FC = () => {
       categoryKeywords: selectedCategoryKeywords && Object.keys(selectedCategoryKeywords).length > 0 ? selectedCategoryKeywords : undefined
     };
     
-    loadRecipesPaged(1, size, filterParams).then(({recipes, total}) => {
-      // 서버에서 필터링된 결과를 받아옴
-      // 이제 필터링된 결과에 대해 매칭도, 임박 재료, 정렬 적용 (클라이언트 사이드)
+    // 먼저 total을 확인하기 위해 작은 size로 요청
+    loadRecipesPaged(1, 1, filterParams).then(({total}) => {
+      // 전체 데이터를 받아오기 위해 total만큼 요청
+      const loadSize = Math.min(total, 10000); // 최대 10000개로 제한
+      return loadRecipesPaged(1, loadSize, filterParams);
+    }).then(({recipes, total}) => {
+      // 서버에서 필터 버튼 조건으로 필터링된 전체 결과를 받아옴
+      // 이후 RecipeSortBar에서 재료 매칭도, 임박 재료, maxLack 필터가 클라이언트에서 적용됨
       setRecipes(recipes);
       setTotal(total); // 서버에서 필터링된 전체 개수
       setPage(1);
-      const imagePromises = recipes.map(recipe => {
-        return new Promise(resolve => {
-          const img = new Image();
-          img.src = recipe.thumbnail;
-          img.onload = resolve;
-          img.onerror = resolve;
-        });
-      });
-      Promise.all(imagePromises).then(() => {
-        setLoading(false);
-      });
+      setDisplayedCount(size); // 초기 표시 개수 리셋
+      // 이미지 프리로딩 제거하여 로드 시간 단축
+      setLoading(false);
     }).catch(error => {
       console.error('Error loading recipes:', error);
       setLoading(false);
     });
   }, [selectedChannel, includeKeyword, includeIngredients, excludeIngredients, selectedCategoryKeywords]);
   
-  // 매칭도, 임박 재료, 정렬 변경 시 클라이언트 사이드에서 필터링/정렬 적용
+  // RecipeSortBar가 필터링을 수행하므로 여기서는 제거
+  // 필터링은 RecipeSortBar의 onFilteredRecipesChange를 통해 filteredRecipes에 반영됨
+  // recipes가 변경되면 displayedCount를 리셋하여 처음부터 표시
   useEffect(() => {
-    if (recipes.length === 0) return;
-    
-    // 필터링된 결과에 대해 매칭도, 임박 재료, 정렬 적용
-    let filteredRecipes = [...recipes];
-    
-    // 매칭도 필터 (클라이언트 사이드)
-    filteredRecipes = filteredRecipes.filter(recipe => {
-      const matchRate = recipe.match_rate || 0;
-      return matchRate >= matchRange[0] && matchRate <= matchRange[1];
-    });
-    
-    // 임박 재료 필터 (클라이언트 사이드)
-    if (appliedExpiryIngredients.length > 0) {
-      filteredRecipes = filteredRecipes.filter(recipe => {
-        const recipeIngredients = (recipe.used_ingredients || '').split(',').map(i => i.trim().toLowerCase());
-        return appliedExpiryIngredients.some(ing => 
-          recipeIngredients.some(ri => ri.includes(ing.toLowerCase()))
-        );
-      });
+    if (recipes.length > 0) {
+      // recipes가 변경되면 RecipeSortBar의 useEffect가 자동으로 필터링을 수행함
+      // filteredRecipes는 RecipeSortBar의 onFilteredRecipesChange를 통해 업데이트됨
+      // displayedCount를 리셋하여 처음부터 표시
+      setDisplayedCount(size);
     }
-    
-    // 정렬 (클라이언트 사이드)
-    if (sortType === 'match') {
-      filteredRecipes.sort((a, b) => (b.match_rate || 0) - (a.match_rate || 0));
-    } else if (sortType === 'latest') {
-      filteredRecipes.sort((a, b) => new Date(b.post_time || 0).getTime() - new Date(a.post_time || 0).getTime());
-    } else if (sortType === 'like') {
-      filteredRecipes.sort((a, b) => (b.likes || 0) - (a.likes || 0));
-    } else if (sortType === 'comment') {
-      filteredRecipes.sort((a, b) => (b.comments || 0) - (a.comments || 0));
-    } else if (sortType === 'hits') {
-      filteredRecipes.sort((a, b) => (b.hits || 0) - (a.hits || 0));
-    }
-    
-    setRecipes(filteredRecipes);
-  }, [matchRange, appliedExpiryIngredients, sortType]);
+  }, [recipes, size]);
 
   // 키워드/재료 필터가 적용될 때는 더 많은 데이터를 로드
   const loadMoreDataForFiltering = useCallback(async () => {
@@ -689,55 +642,24 @@ const RecipeList: React.FC = () => {
     }
   }, [myIngredientObjects, expirySortType]);
 
-  // 더보기 버튼 클릭 시 다음 페이지 로드
+  // 더보기 버튼 클릭 시 클라이언트 사이드에서 더 많은 레시피 표시
   const handleLoadMore = () => {
     // 현재 보이는 아이템 인덱스 저장 (스크롤 위치보다 정확함)
-    const currentVisibleIndex = listRef.current?.getVisibleItemIndex() || 0;
     const currentScrollOffset = listRef.current?.getScrollOffset() || 0;
     
     setIsLoadingMore(true); // 더보기 전용 로딩 상태
     
-    // 필터 조건만 서버에 전달 (필터가 가장 우선)
-    const filterParams = {
-      platform: selectedChannel.length > 0 ? selectedChannel[0] : undefined,
-      keyword: includeKeyword || undefined,
-      includeIngredients: includeIngredients.length > 0 ? includeIngredients : undefined,
-      excludeIngredients: excludeIngredients.length > 0 ? excludeIngredients : undefined,
-      categoryKeywords: selectedCategoryKeywords && Object.keys(selectedCategoryKeywords).length > 0 ? selectedCategoryKeywords : undefined
-    };
-    
-    loadRecipesPaged(page + 1, size, filterParams).then(({recipes: newRecipes, total: newTotal}) => {
-      // 서버에서 필터링된 결과를 받아옴
-      // 필터링된 결과에 대해 매칭도, 임박 재료 필터 적용 (클라이언트 사이드)
-      let filteredNewRecipes = newRecipes;
-      
-      // 매칭도 필터
-      filteredNewRecipes = filteredNewRecipes.filter(recipe => {
-        const matchRate = recipe.match_rate || 0;
-        return matchRate >= matchRange[0] && matchRate <= matchRange[1];
-      });
-      
-      // 임박 재료 필터
-      if (appliedExpiryIngredients.length > 0) {
-        filteredNewRecipes = filteredNewRecipes.filter(recipe => {
-          const recipeIngredients = (recipe.used_ingredients || '').split(',').map(i => i.trim().toLowerCase());
-          return appliedExpiryIngredients.some(ing => 
-            recipeIngredients.some(ri => ri.includes(ing.toLowerCase()))
-          );
-        });
-      }
-      
-      const previousLength = recipes.length;
-      setRecipes(prev => [...prev, ...filteredNewRecipes]);
-      setTotal(newTotal); // 서버에서 받은 전체 개수 유지
-      setPage(prev => prev + 1);
-      setIsLoadingMore(false); // 더보기 로딩 종료
+    // 클라이언트 사이드 페이지네이션: displayedCount를 증가시켜 더 많은 레시피 표시
+    // filteredRecipes는 이미 RecipeSortBar에서 필터링된 전체 결과이므로,
+    // displayedCount만 증가시키면 됨
+    setTimeout(() => {
+      setDisplayedCount(prev => prev + size); // size만큼 더 표시
+      setIsLoadingMore(false);
       
       // 스크롤 위치 조정: 기존 카드와 새로 로드된 카드가 모두 조금씩 보이도록
-      // requestAnimationFrame을 사용하여 렌더링 완료 후 스크롤 조정
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          if (listRef.current && previousLength > 0 && currentScrollOffset >= 0) {
+          if (listRef.current && currentScrollOffset >= 0) {
             const ITEM_HEIGHT = 320; // VirtualizedRecipeList의 ITEM_HEIGHT와 동일
             // 현재 스크롤 위치에서 약 120px 아래로 이동
             // 이렇게 하면 기존 카드가 대부분 보이면서 새로 로드된 카드도 조금 보임
@@ -746,10 +668,7 @@ const RecipeList: React.FC = () => {
           }
         });
       });
-    }).catch(error => {
-      console.error('Error loading more recipes:', error);
-      setIsLoadingMore(false);
-    });
+    }, 100); // 약간의 딜레이를 주어 로딩 애니메이션이 보이도록
   };
 
   // =====================
@@ -863,7 +782,7 @@ const RecipeList: React.FC = () => {
             <div className="flex flex-col gap-2">
               <VirtualizedRecipeList
                 ref={listRef}
-                recipes={filteredRecipes.length ? filteredRecipes : recipes}
+                recipes={(filteredRecipes.length > 0 ? filteredRecipes : (recipes.length > 0 ? recipes : [])).slice(0, displayedCount)}
                 myIngredients={myIngredients}
                 substituteTable={substituteTable}
                 recipeActionStates={recipeActionStates}
@@ -873,7 +792,7 @@ const RecipeList: React.FC = () => {
           )}
         </div>
         {/* Render '더보기' button only when not loading */}
-        {!loading && page * size < total && (
+        {!loading && displayedCount < (filteredRecipes.length > 0 ? filteredRecipes.length : recipes.length) && (
           <div style={{ position: 'relative', width: '100%', margin: '20px 0' }}>
             <button
               onClick={handleLoadMore}
