@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import DatePicker from 'react-datepicker';
-import 'react-datepicker/dist/react-datepicker.css';
 import backIcon from '../assets/뒤로가기_GREY.png';
+import CustomCalendar from './CustomCalendar';
 
 type Props = {
   type: 'expiry' | 'purchase';
@@ -80,7 +79,8 @@ const Utils = {
   // 날짜 문자열이 유효한지 검증
   isValidDateString: (dateString: string): boolean => {
     return /^\d{4}-\d{2}-\d{2}$/.test(dateString);
-  }
+  },
+
 };
 
 // 텍스트 상수
@@ -90,15 +90,17 @@ const TEXTS = {
   purchaseQuestion: '구매시점은 언제 인가요?',
   placeholder: 'yyyy-mm-dd',
   confirm: '확인',
-  unknown: '잘 모르겠어요'
+  unknown: '잘 모르겠어요',
+  cancel: '취소',
+  select: '선택'
 } as const;
+
 
 export default function IngredientDateModal({ type, isOpen, onClose, onComplete, onBack }: Props) {
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const calendarRef = useRef<HTMLDivElement>(null);
-  const today = new Date();
-  today.setHours(23, 59, 59, 999); // 오늘의 끝 시간
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
   // 달력 외부 클릭 시 닫기
   useEffect(() => {
@@ -117,10 +119,22 @@ export default function IngredientDateModal({ type, isOpen, onClose, onComplete,
     };
   }, [calendarOpen]);
 
+  // 입력값이 변경되면 selectedDate 업데이트
+  useEffect(() => {
+    if (Utils.isValidDateString(inputValue)) {
+      const date = new Date(inputValue);
+      if (!isNaN(date.getTime())) {
+        setSelectedDate(date);
+      }
+    } else {
+      setSelectedDate(null);
+    }
+  }, [inputValue]);
+
   // 달력에서 날짜 선택 시 yyyy-mm-dd로 입력창에 반영
-  const handleCalendarChange = (date: Date | null) => {
-    if (!date) return;
+  const handleCalendarDateSelect = (date: Date) => {
     setInputValue(Utils.formatDateToInput(date));
+    setSelectedDate(date);
     setCalendarOpen(false);
   };
 
@@ -197,32 +211,18 @@ export default function IngredientDateModal({ type, isOpen, onClose, onComplete,
               <path d="M16 3v4M8 3v4M3 9h18" strokeWidth="2"/>
             </svg>
           </button>
-          {/* 달력 팝업 */}
+          {/* 커스텀 달력 팝업 */}
           {calendarOpen && (
             <div 
               ref={calendarRef}
-              className="absolute left-1/2 -translate-x-1/2 top-12 z-50 bg-white rounded-xl shadow-lg p-2"
+              className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 z-50"
               onClick={(e) => e.stopPropagation()}
             >
-              <DatePicker
-                selected={Utils.isValidDateString(inputValue) ? new Date(inputValue) : null}
-                onChange={handleCalendarChange}
-                inline
-                dateFormat="yyyy-MM-dd"
-                maxDate={today}
-                minDate={new Date(1900, 0, 1)}
-                filterDate={(date) => {
-                  const dateToCheck = new Date(date);
-                  dateToCheck.setHours(0, 0, 0, 0);
-                  const todayCheck = new Date(today);
-                  todayCheck.setHours(0, 0, 0, 0);
-                  return dateToCheck <= todayCheck;
-                }}
-                showYearDropdown
-                showMonthDropdown
-                dropdownMode="select"
-                yearDropdownItemNumber={today.getFullYear() - 1899}
-                scrollableYearDropdown
+              <CustomCalendar
+                selectedDate={selectedDate}
+                onDateSelect={handleCalendarDateSelect}
+                onClose={() => setCalendarOpen(false)}
+                type={type}
               />
             </div>
           )}

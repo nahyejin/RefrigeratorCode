@@ -3,8 +3,7 @@ import BottomNavBar from '../components/BottomNavBar';
 import TopNavBar from '../components/TopNavBar';
 import FilterModal from '../components/FilterModal';
 import IngredientDateModal from '../components/IngredientDateModal';
-import DatePicker from 'react-datepicker';
-import 'react-datepicker/dist/react-datepicker.css';
+import CustomCalendar from '../components/CustomCalendar';
 import 완료하기버튼 from '../assets/완료하기버튼.svg';
 import 공유하기버튼 from '../assets/공유하기버튼.svg';
 import 기록하기버튼 from '../assets/기록하기버튼.svg';
@@ -1023,40 +1022,32 @@ const Popular = () => {
                   </button>
                   {/* 달력 팝업 */}
                   {calendarStartOpen && (
-                    <div 
-                      ref={calendarStartRef}
-                      className="absolute left-1/2 -translate-x-1/2 top-12 z-50 bg-white rounded-xl shadow-lg p-2"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <DatePicker
-                        selected={isValidDateString(dateInputStart) ? new Date(dateInputStart) : null}
-                        onChange={(date: Date | null) => {
-                          if (date) {
+                    <>
+                      <div 
+                        className="fixed inset-0 bg-black bg-opacity-30 z-40"
+                        onClick={() => setCalendarStartOpen(false)}
+                      />
+                      <div 
+                        ref={calendarStartRef}
+                        className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <CustomCalendar
+                          selectedDate={isValidDateString(dateInputStart) ? new Date(dateInputStart) : null}
+                          onDateSelect={(date) => {
                             const formatted = formatDateForInput(date);
                             setDateInputStart(formatted);
                             date.setHours(0, 0, 0, 0);
                             setDateRange([date, dateRange[1]]);
                             setCalendarStartOpen(false);
-                          }
-                        }}
-                        inline
-                        dateFormat="yyyy-MM-dd"
-                        maxDate={today}
-                        minDate={new Date(1900, 0, 1)}
-                        filterDate={(date) => {
-                          const dateToCheck = new Date(date);
-                          dateToCheck.setHours(0, 0, 0, 0);
-                          const todayCheck = new Date(today);
-                          todayCheck.setHours(0, 0, 0, 0);
-                          return dateToCheck <= todayCheck;
-                        }}
-                        showYearDropdown
-                        showMonthDropdown
-                        dropdownMode="select"
-                        yearDropdownItemNumber={today.getFullYear() - 1899}
-                        scrollableYearDropdown
-                      />
-                    </div>
+                          }}
+                          onClose={() => setCalendarStartOpen(false)}
+                          type="range-start"
+                          minDate={new Date(1900, 0, 1)}
+                          maxDate={today}
+                        />
+                      </div>
+                    </>
                   )}
                 </div>
                 <span className="text-gray-500 text-[14px] whitespace-nowrap flex-shrink-0">~</span>
@@ -1104,42 +1095,32 @@ const Popular = () => {
                   </button>
                   {/* 달력 팝업 */}
                   {calendarEndOpen && (
-                    <div 
-                      ref={calendarEndRef}
-                      className="absolute left-1/2 -translate-x-1/2 top-12 z-50 bg-white rounded-xl shadow-lg p-2"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <DatePicker
-                        selected={isValidDateString(dateInputEnd) ? new Date(dateInputEnd) : null}
-                        onChange={(date: Date | null) => {
-                          if (date) {
+                    <>
+                      <div 
+                        className="fixed inset-0 bg-black bg-opacity-30 z-40"
+                        onClick={() => setCalendarEndOpen(false)}
+                      />
+                      <div 
+                        ref={calendarEndRef}
+                        className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <CustomCalendar
+                          selectedDate={isValidDateString(dateInputEnd) ? new Date(dateInputEnd) : null}
+                          onDateSelect={(date) => {
                             const formatted = formatDateForInput(date);
                             setDateInputEnd(formatted);
                             date.setHours(23, 59, 59, 999);
                             setDateRange([dateRange[0], date]);
                             setCalendarEndOpen(false);
-                          }
-                        }}
-                        inline
-                        dateFormat="yyyy-MM-dd"
-                        maxDate={today}
-                        minDate={dateRange[0] || new Date(1900, 0, 1)}
-                        filterDate={(date) => {
-                          const dateToCheck = new Date(date);
-                          dateToCheck.setHours(0, 0, 0, 0);
-                          const todayCheck = new Date(today);
-                          todayCheck.setHours(0, 0, 0, 0);
-                          const minCheck = dateRange[0] ? new Date(dateRange[0]) : new Date(1900, 0, 1);
-                          minCheck.setHours(0, 0, 0, 0);
-                          return dateToCheck <= todayCheck && dateToCheck >= minCheck;
-                        }}
-                        showYearDropdown
-                        showMonthDropdown
-                        dropdownMode="select"
-                        yearDropdownItemNumber={today.getFullYear() - 1899}
-                        scrollableYearDropdown
-                      />
-                    </div>
+                          }}
+                          onClose={() => setCalendarEndOpen(false)}
+                          type="range-end"
+                          minDate={dateRange[0] || new Date(1900, 0, 1)}
+                          maxDate={today}
+                        />
+                      </div>
+                    </>
                   )}
                 </div>
               </div>

@@ -451,8 +451,17 @@ const MyFridge: React.FC = () => {
     showToast('모두 삭제됨.', deleted, 7000);
   };
 
+  // '네' 버튼 클릭 시 삭제 확정 (토스트만 닫기)
   const undoDelete = () => {
-    if (!toast?.deleted) return;
+    setToast(null);
+  };
+  
+  // '아니요' 버튼 클릭 시 삭제 취소 (재료 복원)
+  const handleCancelDelete = () => {
+    if (!toast?.deleted) {
+      setToast(null);
+      return;
+    }
     const deleted = toast.deleted;
     if (deleted.ingredients && deleted.ingredients.length > 0) {
       // 저장된 재료 정보를 사용하여 복원
@@ -464,11 +473,6 @@ const MyFridge: React.FC = () => {
         setRoom(prev => deleted.type === 'all' ? deleted.ingredients! : [...(prev ?? []), ...deleted.ingredients!]);
       }
     }
-    setToast(null);
-  };
-  
-  // '아니요' 버튼 클릭 시 토스트만 닫기
-  const handleCancelDelete = () => {
     setToast(null);
   };
 
