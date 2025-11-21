@@ -816,28 +816,62 @@ const RecipeList: React.FC = () => {
                 // 재료가 없거나, 디폴트 '달걀'만 있고 레시피가 없을 때 안내 문구 표시
                 const hasOnlyDefaultEgg = myIngredients.length === 1 && 
                   (myIngredients[0] === '달걀' || myIngredients[0] === '계란');
-                const hasNoRecipes = (filteredRecipes.length === 0 && recipes.length === 0);
-                const shouldShowMessage = myIngredients.length === 0 || (hasOnlyDefaultEgg && hasNoRecipes);
+                const currentRecipes = filteredRecipes.length > 0 ? filteredRecipes : recipes;
+                const hasNoRecipes = currentRecipes.length === 0;
+                const hasNoIngredients = myIngredients.length === 0;
+                const hasIngredientsButNoRecipes = !hasNoIngredients && !hasOnlyDefaultEgg && hasNoRecipes;
+                const shouldShowNoIngredientsMessage = hasNoIngredients || (hasOnlyDefaultEgg && hasNoRecipes);
                 
-                return shouldShowMessage ? (
-                  <div style={{
-                    textAlign: 'center',
-                    padding: '60px 20px',
-                    color: '#666',
-                    fontSize: '14px'
-                  }}>
-                    내냉장고 페이지에서 재료를 등록해 주세요.
-                  </div>
-                ) : (
-                  <VirtualizedRecipeList
-                    ref={listRef}
-                    recipes={filteredRecipes.length > 0 ? filteredRecipes : recipes}
-                    myIngredients={myIngredients}
-                    substituteTable={substituteTable}
-                    recipeActionStates={recipeActionStates}
-                    onRecipeAction={handleRecipeAction}
-                  />
-                );
+                // 디버깅용 로그
+                console.log('RecipeList 안내 문구 체크:', {
+                  myIngredientsLength: myIngredients.length,
+                  myIngredients: myIngredients,
+                  hasOnlyDefaultEgg,
+                  currentRecipesLength: currentRecipes.length,
+                  hasNoRecipes,
+                  hasNoIngredients,
+                  hasIngredientsButNoRecipes,
+                  shouldShowNoIngredientsMessage
+                });
+                
+                if (shouldShowNoIngredientsMessage) {
+                  return (
+                    <div style={{
+                      textAlign: 'center',
+                      padding: '60px 20px',
+                      color: '#666',
+                      fontSize: '14px',
+                      lineHeight: '1.6'
+                    }}>
+                      등록된 재료가 없습니다.<br />
+                      내냉장고 페이지에서 재료를 등록해 주세요.
+                    </div>
+                  );
+                } else if (hasIngredientsButNoRecipes) {
+                  return (
+                    <div style={{
+                      textAlign: 'center',
+                      padding: '60px 20px',
+                      color: '#666',
+                      fontSize: '14px',
+                      lineHeight: '1.6'
+                    }}>
+                      내냉장고 페이지에 등록된 재료가 적거나, 검색·필터 조건이 너무 좁을 수 있습니다.<br />
+                      재료를 등록하거나 검색·필터 조건을 넓혀주세요.
+                    </div>
+                  );
+                } else {
+                  return (
+                    <VirtualizedRecipeList
+                      ref={listRef}
+                      recipes={currentRecipes}
+                      myIngredients={myIngredients}
+                      substituteTable={substituteTable}
+                      recipeActionStates={recipeActionStates}
+                      onRecipeAction={handleRecipeAction}
+                    />
+                  );
+                }
               })()}
             </div>
           )}
