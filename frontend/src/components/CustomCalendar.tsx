@@ -284,22 +284,32 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
           const selected = isSelected(date);
           const today = isToday(date);
 
+          let buttonStyle: React.CSSProperties = {};
+          let buttonClassName = 'aspect-square rounded-lg text-[14px] font-medium ';
+          
+          if (disabled) {
+            buttonClassName += 'text-gray-300 cursor-not-allowed';
+            buttonStyle.color = '#D1D5DB'; // gray-300
+          } else if (selected) {
+            buttonClassName += 'bg-blue-500 text-white hover:bg-blue-600';
+            buttonStyle.color = '#FFFFFF'; // white
+            buttonStyle.backgroundColor = '#3B82F6'; // blue-500
+          } else if (today) {
+            buttonClassName += 'bg-blue-50 text-blue-600';
+            buttonStyle.color = '#2563EB'; // blue-600
+            buttonStyle.backgroundColor = '#EFF6FF'; // blue-50
+          } else {
+            buttonClassName += 'hover:bg-gray-100 cursor-pointer';
+            buttonStyle.color = '#374151'; // gray-700 명시적 색상
+          }
+
           return (
             <button
               key={idx}
               onClick={() => handleDateClick(date)}
               disabled={disabled}
-              className={`
-                aspect-square rounded-lg text-[14px] font-medium
-                ${disabled ? 'text-gray-300 cursor-not-allowed' : 'hover:bg-gray-100 cursor-pointer'}
-                ${selected ? 'bg-blue-500 text-white hover:bg-blue-600' : ''}
-                ${today && !selected ? 'bg-blue-50 text-blue-600' : ''}
-              `}
-              style={
-                !disabled && !selected && !today
-                  ? { color: '#374151' } // gray-700 명시적 색상
-                  : undefined
-              }
+              className={buttonClassName}
+              style={buttonStyle}
             >
               {date.getDate()}
             </button>
@@ -312,7 +322,10 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
         <button
           onClick={onClose}
           className="flex-1 h-10 border border-gray-300 rounded-lg text-[14px] font-medium hover:bg-gray-50"
-          style={{ color: '#374151' }} // gray-700 명시적 색상
+          style={{ 
+            color: '#374151', // gray-700 명시적 색상
+            borderColor: '#D1D5DB' // gray-300
+          }}
         >
           취소
         </button>
