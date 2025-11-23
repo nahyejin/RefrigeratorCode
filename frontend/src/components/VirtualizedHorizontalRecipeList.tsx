@@ -82,6 +82,7 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState<number>(CONSTANTS.DEFAULT_CONTAINER_WIDTH);
+  const [showScrollIndicator, setShowScrollIndicator] = useState(false);
   const itemSize = Utils.calculateItemSize(cardWidth, gap);
 
   useEffect(() => {
@@ -97,21 +98,31 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
     return () => window.removeEventListener('resize', updateWidth);
   }, []);
 
-  // 가로 스크롤 우선 처리 (세로 스크롤은 화면 전체로 전달)
+  // 스크롤 가능 여부 확인 및 가로 스크롤 우선 처리
   useEffect(() => {
     const container = containerRef.current;
     if (!container || recipes.length === 0) return;
 
+    const checkScrollable = () => {
+      if (container) {
+        const isScrollable = container.scrollWidth > container.clientWidth;
+        const isAtEnd = container.scrollLeft + container.clientWidth >= container.scrollWidth - 1;
+        setShowScrollIndicator(isScrollable && !isAtEnd);
+      }
+    };
+
+    checkScrollable();
+    container.addEventListener('scroll', checkScrollable);
+    window.addEventListener('resize', checkScrollable);
+
     let startX = 0;
     let startY = 0;
-    let isHorizontalScroll = false;
 
     const handleTouchStart = (e: TouchEvent) => {
       const touch = e.touches[0];
       if (!touch) return;
       startX = touch.clientX;
       startY = touch.clientY;
-      isHorizontalScroll = false;
     };
 
     const handleTouchMove = (e: TouchEvent) => {
@@ -124,19 +135,18 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
       // 가로 스크롤이 우선되는 경우에만 preventDefault
       // 세로 스크롤은 차단하지 않고 부모(body)로 전달되도록 함
       if (deltaX > deltaY && deltaX > 5) {
-        isHorizontalScroll = true;
         // 가로 스크롤 중일 때만 preventDefault (레시피 카드 가로 스크롤 허용)
         e.preventDefault();
-      } else if (deltaY > deltaX && deltaY > 5) {
-        // 세로 스크롤은 차단하지 않음 - 화면 전체 스크롤 허용
-        isHorizontalScroll = false;
       }
+      // 세로 스크롤은 preventDefault 하지 않음 - 화면 전체 스크롤 허용
     };
 
     container.addEventListener('touchstart', handleTouchStart, { passive: true });
     container.addEventListener('touchmove', handleTouchMove, { passive: false });
 
     return () => {
+      container.removeEventListener('scroll', checkScrollable);
+      window.removeEventListener('resize', checkScrollable);
       container.removeEventListener('touchstart', handleTouchStart);
       container.removeEventListener('touchmove', handleTouchMove);
     };
@@ -150,7 +160,7 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
       <div style={{
         ...style,
         ...STYLES.cardContainer(cardWidth, gap, cardHeight),
-        touchAction: 'pan-x pan-y', // 가로 스크롤 우선, 세로 스크롤은 부모로 전달
+        touchAction: 'pan-x', // 가로 스크롤 허용
         overflowY: 'hidden'
       }}>
         <RecipeCard
@@ -192,31 +202,63 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
   }
 
   return (
-    <div 
-      ref={containerRef} 
-      style={{
-        ...STYLES.listContainer(cardHeight),
-        overflowY: 'hidden',
-        overflowX: 'auto',
-        touchAction: 'pan-x pan-y', // 가로 스크롤 우선, 세로 스크롤은 부모로 전달
-        WebkitOverflowScrolling: 'touch',
-        position: 'relative'
-      }}
-    >
-      <List
-        height={cardHeight}
-        itemCount={recipes.length}
-        itemSize={itemSize}
-        layout="horizontal"
-        width={containerWidth}
+    <div style={{ position: 'relative' }}>
+      <div 
+        ref={containerRef} 
         style={{
+          ...STYLES.listContainer(cardHeight),
           overflowY: 'hidden',
           overflowX: 'auto',
-          touchAction: 'pan-x pan-y' // 가로 스크롤 우선, 세로 스크롤은 부모로 전달
+          touchAction: 'pan-x pan-y', // 가로 스크롤 우선, 세로 스크롤도 허용
+          WebkitOverflowScrolling: 'touch',
+          position: 'relative'
         }}
       >
-        {Row}
-      </List>
+        <List
+          height={cardHeight}
+          itemCount={recipes.length}
+          itemSize={itemSize}
+          layout="horizontal"
+          width={containerWidth}
+          style={{
+            overflowY: 'hidden',
+            overflowX: 'auto',
+            touchAction: 'pan-x pan-y' // 가로 스크롤 우선, 세로 스크롤도 허용
+          }}
+        >
+          {Row}
+        </List>
+      </div>
+      {/* Fade-out 그라데이션 + 화살표 텍스트 */}
+      {showScrollIndicator && (
+        <div
+          style={{
+            position: 'absolute',
+            right: 0,
+            top: 0,
+            bottom: 0,
+            width: '60px',
+            background: 'linear-gradient(to right, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.6) 40%, rgba(255, 255, 255, 0.95) 100%)',
+            pointerEvents: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'flex-end',
+            paddingRight: '12px'
+          }}
+        >
+          <span
+            style={{
+              fontSize: '32px',
+              color: 'rgba(102, 102, 102, 0.85)',
+              fontWeight: 400,
+              lineHeight: 1,
+              pointerEvents: 'none'
+            }}
+          >
+            ›
+          </span>
+        </div>
+      )}
     </div>
   );
 };
