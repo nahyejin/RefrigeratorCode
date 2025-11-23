@@ -745,15 +745,6 @@ const MyPage: React.FC = () => {
         </div>
       </div>
       
-      {/* 광고 영역 */}
-      <div className="w-full h-[120px] border-2 border-dashed border-red-400 flex items-center justify-center text-center text-[15px] text-red-500 font-bold mb-24">
-        <span>
-          〈추후 광고 추가 할 자리〉<br />
-          '새로 사야하는 재료'는 쿠팡이나 마켓컬리로<br />
-          바로 이동 가능하게 하여 광고 삽입하기
-        </span>
-      </div>
-      
       <BottomNavBar activeTab="mypage" />
       
       {/* 내 정보 수정 모달 */}

@@ -820,13 +820,6 @@ const MyFridge: React.FC = () => {
             </div>
           </div>
         </div>
-        {/* 광고 영역 */}
-        <div className="w-full px-5 mt-16 mb-44 flex justify-center" style={{position: 'static', zIndex: 0}}>
-          <div className="w-full max-w-[375px] h-[120px] border border-dashed border-red-500 flex flex-col items-center justify-center text-center" style={{ color: 'red', fontSize: 14 }}>
-            <div className="font-bold">&lt;이곳에 광고가 노출됩니다&gt;</div>
-            <div>필요한 재료가 없으신가요?<br />쿠팡·마켓컬리에서 바로 구매할 수 있는 상품을 추천해드립니다.</div>
-          </div>
-        </div>
         {/* 하단 내비게이션 */}
         <div className="w-full">
           <BottomNavBar activeTab="myfridge" />

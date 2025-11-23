@@ -177,7 +177,7 @@ const STYLES = {
     display: 'flex' as const,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
-    zIndex: 50
+    zIndex: 100
   },
   modalContent: {
     backgroundColor: '#fff',
@@ -642,7 +642,10 @@ const RecipeSortBar = ({
           >
             임박 재료 설정
           </button>
-          <div style={STYLES.selectContainer} ref={sortDropdownRef}>
+          <div style={{
+            ...STYLES.selectContainer,
+            zIndex: (isExpiryModalOpen || isMatchRateModalOpen || isFilterModalOpen) ? 1 : 10
+          }} ref={sortDropdownRef}>
             <button
               onClick={() => setIsSortDropdownOpen(!isSortDropdownOpen)}
               style={{ ...STYLES.select, position: 'relative', textAlign: 'left' }}
@@ -666,7 +669,7 @@ const RecipeSortBar = ({
                 border: '1px solid #D1D5DB',
                 borderRadius: '0.5rem',
                 boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-                zIndex: 20,
+                zIndex: (isExpiryModalOpen || isMatchRateModalOpen || isFilterModalOpen) ? 1 : 20,
                 overflow: 'visible',
                 minWidth: '130px'
               }}>
