@@ -398,18 +398,15 @@ input:-webkit-autofill:active {
   transition: background-color 9999s ease-in-out 0s;
 }
 
-/* 가로 스크롤 리스트의 세로 스크롤 완전 차단 */
-div[style*="overflowY: 'hidden'"],
-div[style*="overflowY: hidden"],
-div[style*="overflow-y: hidden"],
-div[style*="overflow-y: 'hidden'"] {
+/* 가로 스크롤 리스트의 세로 스크롤 완전 차단 (가로 스크롤이 있는 경우만) */
+div[style*="overflowY: 'hidden'"][style*="overflowX: 'auto'"],
+div[style*="overflowY: hidden"][style*="overflowX: auto"] {
   overflow-y: hidden !important;
   -webkit-overflow-scrolling: touch;
 }
 
-/* react-window List 컴포넌트의 세로 스크롤 차단 */
-div[class*="ReactVirtualized__List"],
-div[style*="overflowY: 'hidden'"] > div {
+/* react-window List 컴포넌트의 세로 스크롤 차단 (가로 스크롤 리스트만) */
+div[class*="ReactVirtualized__List"][style*="layout: horizontal"] {
   overflow-y: hidden !important;
-  touch-action: pan-x !important;
+  touch-action: pan-x pan-y !important;
 }

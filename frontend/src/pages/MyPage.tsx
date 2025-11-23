@@ -630,7 +630,7 @@ const MyPage: React.FC = () => {
               ]))
             }}
             onRecipeAction={handleRecipeAction}
-            cardWidth={360}
+            cardWidth={300}
             cardHeight={320}
             gap={16}
             emptyMessage={
@@ -732,7 +732,7 @@ const MyPage: React.FC = () => {
               ]))
             }}
             onRecipeAction={handleRecipeAction}
-            cardWidth={360}
+            cardWidth={300}
             cardHeight={320}
             gap={16}
             emptyMessage={

@@ -292,6 +292,7 @@ async function loadRecipesPaged(
     includeIngredients?: string[];
     excludeIngredients?: string[];
     categoryKeywords?: Record<string, string[]>;
+    appliedExpiryIngredients?: string[];
   } = {}
 ): Promise<{recipes: any[], total: number}> {
   try {
@@ -334,6 +335,11 @@ async function loadRecipesPaged(
       if (hasAnyKeyword) {
         params.append('category_keywords', JSON.stringify(filters.categoryKeywords));
       }
+    }
+
+    // 임박재료 필터 추가
+    if (filters.appliedExpiryIngredients && filters.appliedExpiryIngredients.length > 0) {
+      params.append('applied_expiry_ingredients', filters.appliedExpiryIngredients.join(','));
     }
 
     // 서버가 매칭률을 계산할 수 있도록 내 보유 재료 전달
@@ -582,7 +588,8 @@ const RecipeList: React.FC = () => {
               sortType === 'like' ? 'like' : 
               sortType === 'comment' ? 'comment' : 
               sortType === 'hits' ? 'hits' : 
-              sortType === 'expiry' ? 'match_rate' : 'match_rate'
+              sortType === 'expiry' ? 'match_rate' : 'match_rate',
+      appliedExpiryIngredients: appliedExpiryIngredients.length > 0 ? appliedExpiryIngredients : undefined
     };
     
     loadRecipesPaged(1, size, filterParams).then(({recipes, total}) => {
@@ -616,7 +623,8 @@ const RecipeList: React.FC = () => {
       keyword: includeKeyword || undefined,
       includeIngredients: includeIngredients.length > 0 ? includeIngredients : undefined,
       excludeIngredients: excludeIngredients.length > 0 ? excludeIngredients : undefined,
-      categoryKeywords: selectedCategoryKeywords && Object.keys(selectedCategoryKeywords).length > 0 ? selectedCategoryKeywords : undefined
+      categoryKeywords: selectedCategoryKeywords && Object.keys(selectedCategoryKeywords).length > 0 ? selectedCategoryKeywords : undefined,
+      appliedExpiryIngredients: appliedExpiryIngredients.length > 0 ? appliedExpiryIngredients : undefined
     };
     
     loadRecipesPaged(1, size, filterParams).then(({recipes, total}) => {
@@ -628,7 +636,7 @@ const RecipeList: React.FC = () => {
       console.error('Error loading recipes:', error);
       setLoading(false);
     });
-  }, [selectedChannel, includeKeyword, includeIngredients, excludeIngredients, selectedCategoryKeywords, matchRange, sortType]);
+  }, [selectedChannel, includeKeyword, includeIngredients, excludeIngredients, selectedCategoryKeywords, matchRange, sortType, appliedExpiryIngredients]);
   
   // RecipeSortBar에서 임박 재료와 maxLack 필터를 적용하여 filteredRecipes를 업데이트함
   // 재료 매칭도 필터는 서버에서 적용됨
@@ -660,7 +668,7 @@ const RecipeList: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [matchRange, sortType, selectedChannel]);
+  }, [matchRange, sortType, selectedChannel, appliedExpiryIngredients]);
 
   // 필터/정렬 상태 저장
   useEffect(() => {
@@ -706,7 +714,8 @@ const RecipeList: React.FC = () => {
       keyword: includeKeyword || undefined,
       includeIngredients: includeIngredients.length > 0 ? includeIngredients : undefined,
       excludeIngredients: excludeIngredients.length > 0 ? excludeIngredients : undefined,
-      categoryKeywords: selectedCategoryKeywords && Object.keys(selectedCategoryKeywords).length > 0 ? selectedCategoryKeywords : undefined
+      categoryKeywords: selectedCategoryKeywords && Object.keys(selectedCategoryKeywords).length > 0 ? selectedCategoryKeywords : undefined,
+      appliedExpiryIngredients: appliedExpiryIngredients.length > 0 ? appliedExpiryIngredients : undefined
     };
     
     loadRecipesPaged(newPage, size, filterParams).then(({recipes, total}) => {

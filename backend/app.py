@@ -201,6 +201,10 @@ def get_filtered_recipes():
         except:
             pass
 
+    # 임박재료 필터
+    applied_expiry_ingredients_raw = request.args.get('applied_expiry_ingredients', '').strip()
+    applied_expiry_ingredients = [i.strip() for i in applied_expiry_ingredients_raw.split(',') if i.strip()]
+
     db = get_db()
     cursor = db.cursor()
 
@@ -243,6 +247,15 @@ def get_filtered_recipes():
                     base_params.extend([f"%{kw}%", f"%{kw}%"])
         if keyword_conditions:
             where_clauses.append(f"({' OR '.join(keyword_conditions)})")
+    
+    # 임박재료 필터 (OR 조건: 하나라도 포함)
+    if applied_expiry_ingredients:
+        expiry_conditions = []
+        for ing in applied_expiry_ingredients:
+            expiry_conditions.append("FIND_IN_SET(%s, REPLACE(used_ingredients,' ','')) > 0")
+            base_params.append(ing)
+        if expiry_conditions:
+            where_clauses.append(f"({' OR '.join(expiry_conditions)})")
     
     where_sql = " AND ".join(where_clauses)
 

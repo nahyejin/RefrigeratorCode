@@ -18,7 +18,7 @@ interface VirtualizedHorizontalRecipeListProps {
 
 // 상수 정의
 const CONSTANTS = {
-  DEFAULT_CARD_WIDTH: 360,
+  DEFAULT_CARD_WIDTH: 300, // 두 번째 카드가 더 잘 보이도록 너비 축소
   DEFAULT_CARD_HEIGHT: 280,
   DEFAULT_GAP: 16,
   DEFAULT_CONTAINER_WIDTH: 400,
@@ -81,6 +81,7 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
   emptyMessage = '레시피가 없습니다'
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<any>(null);
   const [containerWidth, setContainerWidth] = useState<number>(CONSTANTS.DEFAULT_CONTAINER_WIDTH);
   const [showScrollIndicator, setShowScrollIndicator] = useState(false);
   const itemSize = Utils.calculateItemSize(cardWidth, gap);
@@ -98,59 +99,60 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
     return () => window.removeEventListener('resize', updateWidth);
   }, []);
 
-  // 스크롤 가능 여부 확인 및 가로 스크롤 우선 처리
+  // 스크롤 가능 여부 확인
   useEffect(() => {
     const container = containerRef.current;
-    if (!container || recipes.length === 0) return;
+    if (!container || recipes.length === 0) {
+      setShowScrollIndicator(false);
+      return;
+    }
 
     const checkScrollable = () => {
-      if (container) {
-        const isScrollable = container.scrollWidth > container.clientWidth;
-        const isAtEnd = container.scrollLeft + container.clientWidth >= container.scrollWidth - 1;
+      // react-window의 List 컴포넌트 내부 스크롤 컨테이너 찾기
+      const listElement = container.querySelector('[class*="ReactVirtualized__List"]') as HTMLElement;
+      const scrollContainer = listElement || container;
+      
+      if (scrollContainer) {
+        const scrollWidth = scrollContainer.scrollWidth;
+        const clientWidth = scrollContainer.clientWidth;
+        const scrollLeft = scrollContainer.scrollLeft;
+        const isScrollable = scrollWidth > clientWidth;
+        
+        // 디버깅을 위한 로그 (나중에 제거 가능)
+        console.log('checkScrollable:', { scrollWidth, clientWidth, scrollLeft, isScrollable, isAtEnd: scrollLeft + clientWidth >= scrollWidth - 1 });
+        
+        // 끝에 도달했는지 확인
+        const isAtEnd = scrollLeft + clientWidth >= scrollWidth - 1;
         setShowScrollIndicator(isScrollable && !isAtEnd);
+      } else {
+        setShowScrollIndicator(false);
       }
     };
 
-    checkScrollable();
-    container.addEventListener('scroll', checkScrollable);
-    window.addEventListener('resize', checkScrollable);
+    // 초기 체크 (약간의 지연을 두어 DOM이 완전히 렌더링된 후 확인)
+    const timeoutId1 = setTimeout(checkScrollable, 100);
+    const timeoutId2 = setTimeout(checkScrollable, 300);
+    const timeoutId3 = setTimeout(checkScrollable, 500);
 
-    let startX = 0;
-    let startY = 0;
-
-    const handleTouchStart = (e: TouchEvent) => {
-      const touch = e.touches[0];
-      if (!touch) return;
-      startX = touch.clientX;
-      startY = touch.clientY;
-    };
-
-    const handleTouchMove = (e: TouchEvent) => {
-      if (!e.touches[0]) return;
-      
-      const touch = e.touches[0];
-      const deltaX = Math.abs(touch.clientX - startX);
-      const deltaY = Math.abs(touch.clientY - startY);
-      
-      // 가로 스크롤이 우선되는 경우에만 preventDefault
-      // 세로 스크롤은 차단하지 않고 부모(body)로 전달되도록 함
-      if (deltaX > deltaY && deltaX > 5) {
-        // 가로 스크롤 중일 때만 preventDefault (레시피 카드 가로 스크롤 허용)
-        e.preventDefault();
-      }
-      // 세로 스크롤은 preventDefault 하지 않음 - 화면 전체 스크롤 허용
-    };
-
-    container.addEventListener('touchstart', handleTouchStart, { passive: true });
-    container.addEventListener('touchmove', handleTouchMove, { passive: false });
+    // 스크롤 이벤트 리스너 추가
+    const listElement = container.querySelector('[class*="ReactVirtualized__List"]') as HTMLElement;
+    const scrollContainer = listElement || container;
+    
+    if (scrollContainer) {
+      scrollContainer.addEventListener('scroll', checkScrollable);
+      window.addEventListener('resize', checkScrollable);
+    }
 
     return () => {
-      container.removeEventListener('scroll', checkScrollable);
-      window.removeEventListener('resize', checkScrollable);
-      container.removeEventListener('touchstart', handleTouchStart);
-      container.removeEventListener('touchmove', handleTouchMove);
+      clearTimeout(timeoutId1);
+      clearTimeout(timeoutId2);
+      clearTimeout(timeoutId3);
+      if (scrollContainer) {
+        scrollContainer.removeEventListener('scroll', checkScrollable);
+        window.removeEventListener('resize', checkScrollable);
+      }
     };
-  }, [recipes.length]);
+  }, [recipes.length, containerWidth]);
 
   const Row = ({ index, style }: { index: number; style: React.CSSProperties }) => {
     const recipe = recipes[index];
@@ -215,11 +217,31 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
         }}
       >
         <List
+          ref={listRef}
           height={cardHeight}
           itemCount={recipes.length}
           itemSize={itemSize}
           layout="horizontal"
           width={containerWidth}
+          onScroll={(props) => {
+            // react-window의 onScroll 이벤트로 스크롤 위치 추적
+            const container = containerRef.current;
+            if (!container) return;
+            
+            // 실제 스크롤 컨테이너 찾기
+            const listElement = container.querySelector('[class*="ReactVirtualized__List"]') as HTMLElement;
+            const scrollContainer = listElement || container;
+            
+            if (scrollContainer) {
+              const scrollWidth = scrollContainer.scrollWidth;
+              const clientWidth = scrollContainer.clientWidth;
+              const scrollLeft = scrollContainer.scrollLeft;
+              const isScrollable = scrollWidth > clientWidth;
+              // 끝에 도달했는지 확인
+              const isAtEnd = scrollLeft + clientWidth >= scrollWidth - 1;
+              setShowScrollIndicator(isScrollable && !isAtEnd);
+            }
+          }}
           style={{
             overflowY: 'hidden',
             overflowX: 'auto',
@@ -229,34 +251,43 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
           {Row}
         </List>
       </div>
-      {/* Fade-out 그라데이션 + 화살표 텍스트 */}
+      {/* 동그라미 아이콘 (둥둥 띄워진 느낌) */}
       {showScrollIndicator && (
         <div
           style={{
             position: 'absolute',
-            right: 0,
-            top: 0,
-            bottom: 0,
-            width: '60px',
-            background: 'linear-gradient(to right, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.6) 40%, rgba(255, 255, 255, 0.95) 100%)',
+            right: '8px',
+            top: '50%',
+            transform: 'translateY(-50%)',
             pointerEvents: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'flex-end',
-            paddingRight: '12px'
+            zIndex: 10
           }}
         >
-          <span
+          <div
             style={{
-              fontSize: '32px',
-              color: 'rgba(102, 102, 102, 0.85)',
-              fontWeight: 400,
-              lineHeight: 1,
+              width: '40px',
+              height: '40px',
+              borderRadius: '50%',
+              backgroundColor: 'rgba(255, 255, 255, 0.95)',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
               pointerEvents: 'none'
             }}
           >
-            ›
-          </span>
+            <span
+              style={{
+                fontSize: '24px',
+                color: '#666666',
+                fontWeight: 400,
+                lineHeight: 1,
+                pointerEvents: 'none'
+              }}
+            >
+              ›
+            </span>
+          </div>
         </div>
       )}
     </div>
