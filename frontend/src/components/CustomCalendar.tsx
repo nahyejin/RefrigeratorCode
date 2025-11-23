@@ -294,8 +294,12 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
                 ${disabled ? 'text-gray-300 cursor-not-allowed' : 'hover:bg-gray-100 cursor-pointer'}
                 ${selected ? 'bg-blue-500 text-white hover:bg-blue-600' : ''}
                 ${today && !selected ? 'bg-blue-50 text-blue-600' : ''}
-                ${!disabled && !selected && !today ? 'text-gray-700' : ''}
               `}
+              style={
+                !disabled && !selected && !today
+                  ? { color: '#374151' } // gray-700 명시적 색상
+                  : undefined
+              }
             >
               {date.getDate()}
             </button>
@@ -307,7 +311,8 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
       <div className="flex gap-2">
         <button
           onClick={onClose}
-          className="flex-1 h-10 border border-gray-300 rounded-lg text-[14px] font-medium text-gray-700 hover:bg-gray-50"
+          className="flex-1 h-10 border border-gray-300 rounded-lg text-[14px] font-medium hover:bg-gray-50"
+          style={{ color: '#374151' }} // gray-700 명시적 색상
         >
           취소
         </button>
