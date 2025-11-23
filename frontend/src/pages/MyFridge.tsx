@@ -610,7 +610,7 @@ const MyFridge: React.FC = () => {
               alignItems: 'center',
             }}
           >
-            <div style={{ position: 'relative', width: '100%', maxWidth: 250, minWidth: 0, flex: '0 1 auto' }}>
+            <div style={{ position: 'relative', width: '100%', maxWidth: 250, minWidth: 0, flex: '0 1 auto', overflow: 'visible', zIndex: 10 }}>
               <input
                 ref={inputRef}
                 type="text"
@@ -629,12 +629,29 @@ const MyFridge: React.FC = () => {
                 autoComplete="off"
               />
               {showDropdown && combinedFiltered.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-10 max-h-60 overflow-y-auto custom-scrollbar">
+                <div 
+                  className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-[10] custom-scrollbar" 
+                  style={{ 
+                    maxHeight: '240px',
+                    height: '240px',
+                    overflowY: 'auto',
+                    overflowX: 'hidden',
+                    position: 'absolute',
+                    display: 'flex',
+                    flexDirection: 'column'
+                  }}
+                >
                   {combinedFiltered.map((item, index) => (
                     <div
                       key={index}
                       className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
                       onClick={() => handleSelect(item)}
+                      style={{ 
+                        whiteSpace: 'nowrap', 
+                        overflow: 'hidden', 
+                        textOverflow: 'ellipsis',
+                        flexShrink: 0
+                      }}
                     >
                       {item}
                     </div>

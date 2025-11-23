@@ -27,7 +27,7 @@
  * />
  */
 
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import RecipeCard from './RecipeCard';
 import FilterModal from './FilterModal';
 import Slider from 'rc-slider';
@@ -117,7 +117,9 @@ const STYLES = {
   },
   selectContainer: {
     position: 'relative' as const,
-    minWidth: 80
+    minWidth: 100,
+    overflow: 'visible' as const,
+    zIndex: 9999
   },
   select: {
     height: 28,
@@ -135,7 +137,10 @@ const STYLES = {
     MozAppearance: 'none' as const,
     outline: 'none',
     cursor: 'pointer',
-    boxSizing: 'border-box' as const
+    boxSizing: 'border-box' as const,
+    zIndex: 9999,
+    position: 'relative' as const,
+    overflow: 'visible' as const
   },
   selectArrow: {
     position: 'absolute' as const,
@@ -144,7 +149,8 @@ const STYLES = {
     transform: 'translateY(-50%)',
     pointerEvents: 'none' as const,
     fontSize: 13,
-    color: '#888'
+    color: '#888',
+    marginLeft: 'auto'
   },
   filterButton: {
     height: 28,
@@ -460,6 +466,8 @@ const RecipeSortBar = ({
   const [selectedExpiryIngredients, setSelectedExpiryIngredients] = useState<string[]>([]);
   const [tempMatchRangeMin, setTempMatchRangeMin] = useState<string | null>(null);
   const [tempMatchRangeMax, setTempMatchRangeMax] = useState<string | null>(null);
+  const [isSortDropdownOpen, setIsSortDropdownOpen] = useState<boolean>(false);
+  const sortDropdownRef = useRef<HTMLDivElement>(null);
   const [tempMatchRange, setTempMatchRange] = useState<[number, number]>(matchRange); // 임시 매칭도 범위
   const [expiryIngredientMode, setExpiryIngredientMode] = useState<'and'|'or'>(() => {
     const saved = localStorage.getItem('recipe_sortbar_state_fridge');
@@ -552,6 +560,23 @@ const RecipeSortBar = ({
     }));
   }, [sortType, matchRange, maxLack, appliedExpiryIngredients, expirySortType, expiryIngredientMode]);
 
+  // 드롭다운 외부 클릭 감지
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (sortDropdownRef.current && !sortDropdownRef.current.contains(event.target as Node)) {
+        setIsSortDropdownOpen(false);
+      }
+    };
+
+    if (isSortDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isSortDropdownOpen]);
+
   // 재료 매칭도 필터는 서버에서 적용되므로, 여기서는 임박 재료와 maxLack 필터만 적용
   // 정렬도 서버에서 적용되므로 여기서는 필터링만 수행
   useEffect(() => {
@@ -618,28 +643,86 @@ const RecipeSortBar = ({
           >
             임박 재료 설정
           </button>
-          <div style={STYLES.selectContainer}>
-            <select
-              value={sortType}
-              onChange={e => {
-                if (e.target.value === 'expiry' && appliedExpiryIngredients.length === 0) {
-                  if (typeof onToast === 'function') {
-                    onToast('선택한 임박 재료가 없습니다.\n임박 재료 설정 버튼에서\n임박재료를 설정해주세요.');
-                  }
-                  return;
-                }
-                setSortType(e.target.value);
-              }}
-              style={STYLES.select}
+          <div style={STYLES.selectContainer} ref={sortDropdownRef}>
+            <button
+              onClick={() => setIsSortDropdownOpen(!isSortDropdownOpen)}
+              style={{ ...STYLES.select, position: 'relative', textAlign: 'left' }}
             >
-              <option value="latest">최신순</option>
-              <option value="like">좋아요순</option>
-              <option value="comment">댓글순</option>
-              <option value="hits">조회수순</option>
-              <option value="match">재료매칭률순</option>
-              <option value="expiry">임박재료활용순</option>
-            </select>
-            <span style={STYLES.selectArrow}>▼</span>
+              <span>{sortType === 'latest' ? '최신순' :
+               sortType === 'like' ? '좋아요순' :
+               sortType === 'comment' ? '댓글순' :
+               sortType === 'hits' ? '조회수순' :
+               sortType === 'match' ? '재료매칭률순' :
+               sortType === 'expiry' ? '임박재료활용순' : '재료매칭률순'}</span>
+              <span style={STYLES.selectArrow}>∨</span>
+            </button>
+            {isSortDropdownOpen && (
+              <div style={{
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                right: 0,
+                marginTop: '4px',
+                backgroundColor: '#FFFFFF',
+                border: '1px solid #D1D5DB',
+                borderRadius: '0.5rem',
+                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                zIndex: 9999,
+                overflow: 'visible',
+                minWidth: '130px'
+              }}>
+                {[
+                  { value: 'latest', label: '최신순' },
+                  { value: 'like', label: '좋아요순' },
+                  { value: 'comment', label: '댓글순' },
+                  { value: 'hits', label: '조회수순' },
+                  { value: 'match', label: '재료매칭률순' },
+                  { value: 'expiry', label: '임박재료활용순' }
+                ].map(option => (
+                  <button
+                    key={option.value}
+                    onClick={() => {
+                      if (option.value === 'expiry' && appliedExpiryIngredients.length === 0) {
+                        if (typeof onToast === 'function') {
+                          onToast('선택한 임박 재료가 없습니다.\n임박 재료 설정 버튼에서\n임박재료를 설정해주세요.');
+                        }
+                        setIsSortDropdownOpen(false);
+                        return;
+                      }
+                      setSortType(option.value);
+                      setIsSortDropdownOpen(false);
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      textAlign: 'left',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      color: sortType === option.value ? '#2563EB' : '#222222',
+                      backgroundColor: sortType === option.value ? '#EFF6FF' : '#FFFFFF',
+                      border: 'none',
+                      cursor: 'pointer',
+                      borderTop: option.value !== 'latest' ? '1px solid #F3F4F6' : 'none',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (sortType !== option.value) {
+                        e.currentTarget.style.backgroundColor = '#F3F4F6';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (sortType !== option.value) {
+                        e.currentTarget.style.backgroundColor = '#FFFFFF';
+                      }
+                    }}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
         <button

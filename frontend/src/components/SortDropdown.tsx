@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 
 const SORT_OPTIONS = [
   { value: 'expiry', label: '유통기한 임박순' },
@@ -14,21 +14,124 @@ interface SortDropdownProps {
   className?: string;
 }
 
-const BASE_STYLE =
-  'border border-gray-300 rounded h-6 py-0 pl-2 pr-2 text-[11px] font-medium bg-white text-[#404040] focus:outline-none focus:ring-2 focus:ring-blue-200 transition min-w-[110px]';
-
 const SortDropdown: React.FC<SortDropdownProps> = ({ value, onChange, className }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // 외부 클릭 감지
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen]);
+
+  const selectedOption = SORT_OPTIONS.find(opt => opt.value === value) || SORT_OPTIONS[0];
+
   return (
-    <select
-      className={`${BASE_STYLE} ${className || ''}`}
-      value={value}
-      onChange={e => onChange(e.target.value as SortType)}
-      aria-label="정렬 기준 선택"
+    <div 
+      ref={dropdownRef}
+      className={`relative ${className || ''}`}
+      style={{ zIndex: 1 }} // 낮은 z-index로 다른 요소들 뒤에 위치
     >
-      {SORT_OPTIONS.map(opt => (
-        <option key={opt.value} value={opt.value}>{opt.label}</option>
-      ))}
-    </select>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="border border-gray-300 rounded h-6 py-0 pl-2 pr-6 text-[11px] font-medium bg-white text-[#404040] focus:outline-none focus:ring-2 focus:ring-blue-200 transition min-w-[110px] relative"
+        style={{ 
+          textAlign: 'left',
+          height: 28,
+          border: '1px solid #D1D5DB',
+          borderRadius: 6,
+          fontSize: 12,
+          padding: '0 22px 0 8px',
+          fontWeight: 600,
+          background: '#fff',
+          color: '#222',
+          minWidth: 100,
+          appearance: 'none',
+          WebkitAppearance: 'none',
+          MozAppearance: 'none',
+          outline: 'none',
+          cursor: 'pointer',
+          boxSizing: 'border-box',
+          position: 'relative'
+        }}
+        aria-label="정렬 기준 선택"
+      >
+        <span>{selectedOption.label}</span>
+        <span style={{
+          position: 'absolute',
+          right: 8,
+          top: '50%',
+          transform: 'translateY(-50%)',
+          pointerEvents: 'none',
+          fontSize: 13,
+          color: '#888'
+        }}>∨</span>
+      </button>
+      {isOpen && (
+        <div style={{
+          position: 'absolute',
+          top: '100%',
+          left: 0,
+          right: 0,
+          marginTop: '4px',
+          backgroundColor: '#FFFFFF',
+          border: '1px solid #D1D5DB',
+          borderRadius: '0.5rem',
+          boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+          zIndex: 10, // 드롭다운이 열렸을 때만 높은 z-index
+          overflow: 'visible',
+          minWidth: '130px'
+        }}>
+          {SORT_OPTIONS.map(option => (
+            <button
+              key={option.value}
+              onClick={() => {
+                onChange(option.value);
+                setIsOpen(false);
+              }}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                textAlign: 'left',
+                fontSize: '12px',
+                fontWeight: 600,
+                color: value === option.value ? '#2563EB' : '#222222',
+                backgroundColor: value === option.value ? '#EFF6FF' : '#FFFFFF',
+                border: 'none',
+                cursor: 'pointer',
+                borderTop: option.value !== 'expiry' ? '1px solid #F3F4F6' : 'none',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis'
+              }}
+              onMouseEnter={(e) => {
+                if (value !== option.value) {
+                  e.currentTarget.style.backgroundColor = '#F3F4F6';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (value !== option.value) {
+                  e.currentTarget.style.backgroundColor = '#FFFFFF';
+                }
+              }}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 };
 

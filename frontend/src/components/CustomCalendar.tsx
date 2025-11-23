@@ -174,7 +174,7 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
         </button>
         
         <div className="flex items-center gap-2">
-          <div className="relative" ref={yearDropdownRef}>
+          <div className="relative" ref={yearDropdownRef} style={{ overflow: 'visible', zIndex: 9999 }}>
             <button
               onClick={() => {
                 setShowYearDropdown(!showYearDropdown);
@@ -197,7 +197,7 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
               </svg>
             </button>
             {showYearDropdown && (
-              <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-[200px] overflow-y-auto">
+              <div className="absolute top-full left-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-[9999] max-h-[200px] overflow-y-auto" style={{ minWidth: '100%' }}>
                 {years.map((y) => (
                   <button
                     key={y}
@@ -213,7 +213,7 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
             )}
           </div>
           
-          <div className="relative" ref={monthDropdownRef}>
+          <div className="relative" ref={monthDropdownRef} style={{ overflow: 'visible', zIndex: 9999 }}>
             <button
               onClick={() => {
                 setShowMonthDropdown(!showMonthDropdown);
@@ -236,7 +236,7 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
               </svg>
             </button>
             {showMonthDropdown && (
-              <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+              <div className="absolute top-full left-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-[9999]" style={{ minWidth: '100%' }}>
                 {months.map((m, idx) => (
                   <button
                     key={idx}
