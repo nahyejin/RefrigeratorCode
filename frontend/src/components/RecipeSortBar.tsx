@@ -119,7 +119,7 @@ const STYLES = {
     position: 'relative' as const,
     minWidth: 100,
     overflow: 'visible' as const,
-    zIndex: 9999
+    zIndex: 10
   },
   select: {
     height: 28,
@@ -138,7 +138,6 @@ const STYLES = {
     outline: 'none',
     cursor: 'pointer',
     boxSizing: 'border-box' as const,
-    zIndex: 9999,
     position: 'relative' as const,
     overflow: 'visible' as const
   },
@@ -667,7 +666,7 @@ const RecipeSortBar = ({
                 border: '1px solid #D1D5DB',
                 borderRadius: '0.5rem',
                 boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-                zIndex: 9999,
+                zIndex: 20,
                 overflow: 'visible',
                 minWidth: '130px'
               }}>

@@ -238,7 +238,11 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
   return (
     <div
       className="bg-white rounded-[20px] shadow-sm min-h-[280px] relative p-4 block hover:shadow-md transition cursor-pointer"
-      style={isLast ? STYLES.lastCard : STYLES.card}
+      style={{
+        ...(isLast ? STYLES.lastCard : STYLES.card),
+        touchAction: 'pan-x', // 가로 스크롤만 허용
+        overflowY: 'hidden'
+      }}
       onClick={handleCardClick}
       onMouseDown={(e) => {
         // 버튼 영역이 아닌 경우에만 처리

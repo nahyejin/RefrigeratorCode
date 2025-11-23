@@ -97,6 +97,70 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
     return () => window.removeEventListener('resize', updateWidth);
   }, []);
 
+  // 터치 이벤트로 세로 스크롤 완전 차단
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || recipes.length === 0) return;
+
+    let startX = 0;
+    let startY = 0;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      const touch = e.touches[0];
+      if (!touch) return;
+      startX = touch.clientX;
+      startY = touch.clientY;
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!e.touches[0]) return;
+      
+      const touch = e.touches[0];
+      const deltaX = Math.abs(touch.clientX - startX);
+      const deltaY = Math.abs(touch.clientY - startY);
+      
+      // 세로 스크롤이 가로 스크롤보다 크거나 같으면 무조건 차단
+      if (deltaY >= deltaX && deltaY > 2) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        return false;
+      }
+    };
+
+    // capture phase에서 처리하여 다른 핸들러보다 먼저 실행
+    container.addEventListener('touchstart', handleTouchStart, { passive: true, capture: true });
+    container.addEventListener('touchmove', handleTouchMove, { passive: false, capture: true });
+
+    // 모든 자식 요소에도 적용 - document 레벨에서 처리
+    const handleDocumentTouchMove = (e: TouchEvent) => {
+      const target = e.target as HTMLElement;
+      if (container.contains(target)) {
+        const touch = e.touches[0];
+        if (!touch) return;
+        
+        const deltaX = Math.abs(touch.clientX - startX);
+        const deltaY = Math.abs(touch.clientY - startY);
+        
+        // 세로 스크롤 완전 차단
+        if (deltaY >= deltaX && deltaY > 2) {
+          e.preventDefault();
+          e.stopPropagation();
+          e.stopImmediatePropagation();
+          return false;
+        }
+      }
+    };
+
+    document.addEventListener('touchmove', handleDocumentTouchMove, { passive: false, capture: true });
+
+    return () => {
+      container.removeEventListener('touchstart', handleTouchStart, { capture: true });
+      container.removeEventListener('touchmove', handleTouchMove, { capture: true });
+      document.removeEventListener('touchmove', handleDocumentTouchMove, { capture: true });
+    };
+  }, [recipes.length]);
+
   const Row = ({ index, style }: { index: number; style: React.CSSProperties }) => {
     const recipe = recipes[index];
     if (!recipe) return null;
@@ -104,7 +168,9 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
     return (
       <div style={{
         ...style,
-        ...STYLES.cardContainer(cardWidth, gap, cardHeight)
+        ...STYLES.cardContainer(cardWidth, gap, cardHeight),
+        touchAction: 'pan-x', // 가로 스크롤만 허용
+        overflowY: 'hidden'
       }}>
         <RecipeCard
           recipe={recipe}
@@ -145,13 +211,28 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
   }
 
   return (
-    <div ref={containerRef} style={STYLES.listContainer(cardHeight)}>
+    <div 
+      ref={containerRef} 
+      style={{
+        ...STYLES.listContainer(cardHeight),
+        overflowY: 'hidden',
+        overflowX: 'auto',
+        touchAction: 'pan-x', // 가로 스크롤만 허용
+        WebkitOverflowScrolling: 'touch',
+        position: 'relative'
+      }}
+    >
       <List
         height={cardHeight}
         itemCount={recipes.length}
         itemSize={itemSize}
         layout="horizontal"
         width={containerWidth}
+        style={{
+          overflowY: 'hidden',
+          overflowX: 'auto',
+          touchAction: 'pan-x'
+        }}
       >
         {Row}
       </List>
