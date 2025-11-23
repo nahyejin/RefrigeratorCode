@@ -240,7 +240,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
       className="bg-white rounded-[20px] shadow-sm min-h-[280px] relative p-4 block hover:shadow-md transition cursor-pointer"
       style={{
         ...(isLast ? STYLES.lastCard : STYLES.card),
-        touchAction: 'pan-x', // 가로 스크롤만 허용
+        touchAction: 'pan-x pan-y', // 가로 스크롤 우선, 세로 스크롤은 부모로 전달
         overflowY: 'hidden'
       }}
       onClick={handleCardClick}

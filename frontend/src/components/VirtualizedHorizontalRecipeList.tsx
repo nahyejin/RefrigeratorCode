@@ -97,19 +97,21 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
     return () => window.removeEventListener('resize', updateWidth);
   }, []);
 
-  // 터치 이벤트로 세로 스크롤 완전 차단
+  // 가로 스크롤 우선 처리 (세로 스크롤은 화면 전체로 전달)
   useEffect(() => {
     const container = containerRef.current;
     if (!container || recipes.length === 0) return;
 
     let startX = 0;
     let startY = 0;
+    let isHorizontalScroll = false;
 
     const handleTouchStart = (e: TouchEvent) => {
       const touch = e.touches[0];
       if (!touch) return;
       startX = touch.clientX;
       startY = touch.clientY;
+      isHorizontalScroll = false;
     };
 
     const handleTouchMove = (e: TouchEvent) => {
@@ -119,45 +121,24 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
       const deltaX = Math.abs(touch.clientX - startX);
       const deltaY = Math.abs(touch.clientY - startY);
       
-      // 세로 스크롤이 가로 스크롤보다 크거나 같으면 무조건 차단
-      if (deltaY >= deltaX && deltaY > 2) {
+      // 가로 스크롤이 우선되는 경우에만 preventDefault
+      // 세로 스크롤은 차단하지 않고 부모(body)로 전달되도록 함
+      if (deltaX > deltaY && deltaX > 5) {
+        isHorizontalScroll = true;
+        // 가로 스크롤 중일 때만 preventDefault (레시피 카드 가로 스크롤 허용)
         e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-        return false;
+      } else if (deltaY > deltaX && deltaY > 5) {
+        // 세로 스크롤은 차단하지 않음 - 화면 전체 스크롤 허용
+        isHorizontalScroll = false;
       }
     };
 
-    // capture phase에서 처리하여 다른 핸들러보다 먼저 실행
-    container.addEventListener('touchstart', handleTouchStart, { passive: true, capture: true });
-    container.addEventListener('touchmove', handleTouchMove, { passive: false, capture: true });
-
-    // 모든 자식 요소에도 적용 - document 레벨에서 처리
-    const handleDocumentTouchMove = (e: TouchEvent) => {
-      const target = e.target as HTMLElement;
-      if (container.contains(target)) {
-        const touch = e.touches[0];
-        if (!touch) return;
-        
-        const deltaX = Math.abs(touch.clientX - startX);
-        const deltaY = Math.abs(touch.clientY - startY);
-        
-        // 세로 스크롤 완전 차단
-        if (deltaY >= deltaX && deltaY > 2) {
-          e.preventDefault();
-          e.stopPropagation();
-          e.stopImmediatePropagation();
-          return false;
-        }
-      }
-    };
-
-    document.addEventListener('touchmove', handleDocumentTouchMove, { passive: false, capture: true });
+    container.addEventListener('touchstart', handleTouchStart, { passive: true });
+    container.addEventListener('touchmove', handleTouchMove, { passive: false });
 
     return () => {
-      container.removeEventListener('touchstart', handleTouchStart, { capture: true });
-      container.removeEventListener('touchmove', handleTouchMove, { capture: true });
-      document.removeEventListener('touchmove', handleDocumentTouchMove, { capture: true });
+      container.removeEventListener('touchstart', handleTouchStart);
+      container.removeEventListener('touchmove', handleTouchMove);
     };
   }, [recipes.length]);
 
@@ -169,7 +150,7 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
       <div style={{
         ...style,
         ...STYLES.cardContainer(cardWidth, gap, cardHeight),
-        touchAction: 'pan-x', // 가로 스크롤만 허용
+        touchAction: 'pan-x pan-y', // 가로 스크롤 우선, 세로 스크롤은 부모로 전달
         overflowY: 'hidden'
       }}>
         <RecipeCard
@@ -217,7 +198,7 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
         ...STYLES.listContainer(cardHeight),
         overflowY: 'hidden',
         overflowX: 'auto',
-        touchAction: 'pan-x', // 가로 스크롤만 허용
+        touchAction: 'pan-x pan-y', // 가로 스크롤 우선, 세로 스크롤은 부모로 전달
         WebkitOverflowScrolling: 'touch',
         position: 'relative'
       }}
@@ -231,7 +212,7 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
         style={{
           overflowY: 'hidden',
           overflowX: 'auto',
-          touchAction: 'pan-x'
+          touchAction: 'pan-x pan-y' // 가로 스크롤 우선, 세로 스크롤은 부모로 전달
         }}
       >
         {Row}
