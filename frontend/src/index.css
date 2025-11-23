@@ -73,6 +73,50 @@ button:focus-visible {
   }
 }
 
+/* CustomCalendar 버튼 스타일 - 기본 버튼 스타일 덮어쓰기 */
+.custom-calendar-container button.aspect-square {
+  background-color: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  color: #374151 !important; /* gray-700 */
+  font-weight: 500 !important;
+}
+
+.custom-calendar-container button.aspect-square:disabled {
+  color: #D1D5DB !important; /* gray-300 */
+  background-color: transparent !important;
+}
+
+.custom-calendar-container button.aspect-square.bg-blue-500 {
+  background-color: #3B82F6 !important; /* blue-500 */
+  color: #FFFFFF !important;
+}
+
+.custom-calendar-container button.aspect-square.bg-blue-50 {
+  background-color: #EFF6FF !important; /* blue-50 */
+  color: #2563EB !important; /* blue-600 */
+}
+
+/* CustomCalendar 취소 버튼 스타일 */
+.custom-calendar-container button:not(.aspect-square):not(.bg-blue-500) {
+  background-color: transparent !important;
+  border: 1px solid #D1D5DB !important; /* gray-300 */
+  color: #374151 !important; /* gray-700 */
+}
+
+/* CustomCalendar 선택 버튼 (파란색) 스타일 */
+.custom-calendar-container button.bg-blue-500:not(.aspect-square) {
+  background-color: #3B82F6 !important; /* blue-500 */
+  color: #FFFFFF !important;
+  border: none !important;
+}
+
+.custom-calendar-container button.bg-gray-300:not(.aspect-square) {
+  background-color: #D1D5DB !important; /* gray-300 */
+  color: #FFFFFF !important;
+  border: none !important;
+}
+
 /* 스크롤바 항상 노출 (내용이 넘칠 때만, hover 없이) */
 .always-scrollbar {
   scrollbar-width: thin;

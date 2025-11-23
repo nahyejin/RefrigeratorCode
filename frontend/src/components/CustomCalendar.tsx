@@ -160,7 +160,7 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-lg p-4 w-[320px]">
+    <div className="bg-white rounded-xl shadow-lg p-4 w-[320px] custom-calendar-container">
       {/* 상단: < > 버튼과 년도/월 드롭다운 */}
       <div className="flex items-center justify-between mb-4">
         <button
