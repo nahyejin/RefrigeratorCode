@@ -95,9 +95,9 @@ const IngredientPillGroup: React.FC<IngredientPillGroupProps> = ({ needIngredien
           >
             <span
               style={{
-                fontSize: '18px',
-                color: 'rgba(102, 102, 102, 0.6)',
-                fontWeight: 300,
+                fontSize: '22px',
+                color: 'rgba(102, 102, 102, 0.85)',
+                fontWeight: 400,
                 lineHeight: 1,
                 pointerEvents: 'none'
               }}
