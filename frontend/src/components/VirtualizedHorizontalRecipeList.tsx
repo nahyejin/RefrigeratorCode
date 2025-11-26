@@ -82,6 +82,7 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<any>(null);
+  const scrollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [containerWidth, setContainerWidth] = useState<number>(CONSTANTS.DEFAULT_CONTAINER_WIDTH);
   const [showScrollIndicator, setShowScrollIndicator] = useState(false);
   const itemSize = Utils.calculateItemSize(cardWidth, gap);
@@ -96,7 +97,14 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
 
     updateWidth();
     window.addEventListener('resize', updateWidth);
-    return () => window.removeEventListener('resize', updateWidth);
+    return () => {
+      window.removeEventListener('resize', updateWidth);
+      // 컴포넌트 언마운트 시 인터벌 정리
+      if (scrollIntervalRef.current) {
+        clearInterval(scrollIntervalRef.current);
+        scrollIntervalRef.current = null;
+      }
+    };
   }, []);
 
   // 스크롤 가능 여부 확인
@@ -107,10 +115,33 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
       return;
     }
 
+    const getScrollContainer = (): HTMLElement | null => {
+      // react-window의 List 컴포넌트 내부 스크롤 컨테이너 찾기 (여러 방법 시도)
+      let scrollContainer: HTMLElement | null = null;
+      
+      // 방법 1: ReactVirtualized__List 클래스로 찾기
+      scrollContainer = container.querySelector('[class*="ReactVirtualized__List"]') as HTMLElement;
+      
+      // 방법 2: 직접 자식 요소 중 스크롤 가능한 요소 찾기
+      if (!scrollContainer) {
+        const children = Array.from(container.children) as HTMLElement[];
+        scrollContainer = children.find(child => 
+          child.scrollWidth > child.clientWidth || 
+          child.style.overflowX === 'auto' ||
+          child.style.overflowX === 'scroll'
+        ) || null;
+      }
+      
+      // 방법 3: container 자체가 스크롤 가능한 경우
+      if (!scrollContainer && container.scrollWidth > container.clientWidth) {
+        scrollContainer = container;
+      }
+      
+      return scrollContainer;
+    };
+
     const checkScrollable = () => {
-      // react-window의 List 컴포넌트 내부 스크롤 컨테이너 찾기
-      const listElement = container.querySelector('[class*="ReactVirtualized__List"]') as HTMLElement;
-      const scrollContainer = listElement || container;
+      const scrollContainer = getScrollContainer();
       
       if (scrollContainer) {
         const scrollWidth = scrollContainer.scrollWidth;
@@ -118,14 +149,14 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
         const scrollLeft = scrollContainer.scrollLeft;
         const isScrollable = scrollWidth > clientWidth;
         
-        // 디버깅을 위한 로그 (나중에 제거 가능)
-        console.log('checkScrollable:', { scrollWidth, clientWidth, scrollLeft, isScrollable, isAtEnd: scrollLeft + clientWidth >= scrollWidth - 1 });
-        
-        // 끝에 도달했는지 확인
-        const isAtEnd = scrollLeft + clientWidth >= scrollWidth - 1;
+        // 끝에 도달했는지 확인 (약간의 여유를 두어 더 정확하게 감지)
+        const isAtEnd = scrollLeft + clientWidth >= scrollWidth - 5;
         setShowScrollIndicator(isScrollable && !isAtEnd);
       } else {
-        setShowScrollIndicator(false);
+        // 스크롤 컨테이너를 찾지 못한 경우, 전체 너비 계산으로 판단
+        const totalWidth = recipes.length * itemSize;
+        const isScrollable = totalWidth > containerWidth;
+        setShowScrollIndicator(isScrollable);
       }
     };
 
@@ -133,13 +164,17 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
     const timeoutId1 = setTimeout(checkScrollable, 100);
     const timeoutId2 = setTimeout(checkScrollable, 300);
     const timeoutId3 = setTimeout(checkScrollable, 500);
+    const timeoutId4 = setTimeout(checkScrollable, 800);
+    const timeoutId5 = setTimeout(checkScrollable, 1200);
 
     // 스크롤 이벤트 리스너 추가
-    const listElement = container.querySelector('[class*="ReactVirtualized__List"]') as HTMLElement;
-    const scrollContainer = listElement || container;
+    const scrollContainer = getScrollContainer();
     
     if (scrollContainer) {
-      scrollContainer.addEventListener('scroll', checkScrollable);
+      scrollContainer.addEventListener('scroll', checkScrollable, { passive: true });
+      window.addEventListener('resize', checkScrollable);
+    } else {
+      // 스크롤 컨테이너를 찾지 못한 경우에도 체크
       window.addEventListener('resize', checkScrollable);
     }
 
@@ -147,12 +182,14 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
       clearTimeout(timeoutId1);
       clearTimeout(timeoutId2);
       clearTimeout(timeoutId3);
+      clearTimeout(timeoutId4);
+      clearTimeout(timeoutId5);
       if (scrollContainer) {
         scrollContainer.removeEventListener('scroll', checkScrollable);
-        window.removeEventListener('resize', checkScrollable);
       }
+      window.removeEventListener('resize', checkScrollable);
     };
-  }, [recipes.length, containerWidth]);
+  }, [recipes.length, containerWidth, itemSize]);
 
   const Row = ({ index, style }: { index: number; style: React.CSSProperties }) => {
     const recipe = recipes[index];
@@ -229,16 +266,33 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
             if (!container) return;
             
             // 실제 스크롤 컨테이너 찾기
-            const listElement = container.querySelector('[class*="ReactVirtualized__List"]') as HTMLElement;
-            const scrollContainer = listElement || container;
+            let scrollContainer: HTMLElement | null = null;
+            
+            // 방법 1: ReactVirtualized__List 클래스로 찾기
+            scrollContainer = container.querySelector('[class*="ReactVirtualized__List"]') as HTMLElement;
+            
+            // 방법 2: 직접 자식 요소 중 스크롤 가능한 요소 찾기
+            if (!scrollContainer) {
+              const children = Array.from(container.children) as HTMLElement[];
+              scrollContainer = children.find(child => 
+                child.scrollWidth > child.clientWidth || 
+                child.style.overflowX === 'auto' ||
+                child.style.overflowX === 'scroll'
+              ) || null;
+            }
+            
+            // 방법 3: container 자체가 스크롤 가능한 경우
+            if (!scrollContainer && container.scrollWidth > container.clientWidth) {
+              scrollContainer = container;
+            }
             
             if (scrollContainer) {
               const scrollWidth = scrollContainer.scrollWidth;
               const clientWidth = scrollContainer.clientWidth;
               const scrollLeft = scrollContainer.scrollLeft;
               const isScrollable = scrollWidth > clientWidth;
-              // 끝에 도달했는지 확인
-              const isAtEnd = scrollLeft + clientWidth >= scrollWidth - 1;
+              // 끝에 도달했는지 확인 (약간의 여유를 두어 더 정확하게 감지)
+              const isAtEnd = scrollLeft + clientWidth >= scrollWidth - 5;
               setShowScrollIndicator(isScrollable && !isAtEnd);
             }
           }}
@@ -259,8 +313,158 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
             right: '8px',
             top: '50%',
             transform: 'translateY(-50%)',
-            pointerEvents: 'none',
-            zIndex: 10
+            pointerEvents: 'auto',
+            zIndex: 10,
+            cursor: 'pointer'
+          }}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            const container = containerRef.current;
+            if (!container) return;
+            
+            // react-window의 List 컴포넌트 내부 스크롤 컨테이너 찾기
+            let scrollContainer: HTMLElement | null = null;
+            
+            // 방법 1: ReactVirtualized__List 클래스로 찾기
+            scrollContainer = container.querySelector('[class*="ReactVirtualized__List"]') as HTMLElement;
+            
+            // 방법 2: 직접 자식 요소 중 스크롤 가능한 요소 찾기
+            if (!scrollContainer) {
+              const children = Array.from(container.children) as HTMLElement[];
+              scrollContainer = children.find(child => 
+                child.scrollWidth > child.clientWidth || 
+                child.style.overflowX === 'auto' ||
+                child.style.overflowX === 'scroll'
+              ) || null;
+            }
+            
+            // 방법 3: container 자체가 스크롤 가능한 경우
+            if (!scrollContainer && container.scrollWidth > container.clientWidth) {
+              scrollContainer = container;
+            }
+            
+            if (!scrollContainer) return;
+            
+            // 기존 인터벌이 있으면 정리
+            if (scrollIntervalRef.current) {
+              clearInterval(scrollIntervalRef.current);
+            }
+            
+            // 즉시 한 번 스크롤
+            const scrollOnce = () => {
+              const scrollAmount = itemSize;
+              const currentScroll = scrollContainer!.scrollLeft;
+              const maxScroll = scrollContainer!.scrollWidth - scrollContainer!.clientWidth;
+              
+              // 끝에 도달하지 않았을 때만 스크롤
+              if (currentScroll < maxScroll - 5) {
+                scrollContainer!.scrollBy({
+                  left: scrollAmount,
+                  behavior: 'smooth'
+                });
+                return true;
+              }
+              return false;
+            };
+            
+            // 즉시 한 번 실행
+            scrollOnce();
+            
+            // 계속 스크롤하는 인터벌 시작
+            scrollIntervalRef.current = setInterval(() => {
+              if (!scrollOnce()) {
+                // 끝에 도달했으면 인터벌 정리
+                if (scrollIntervalRef.current) {
+                  clearInterval(scrollIntervalRef.current);
+                  scrollIntervalRef.current = null;
+                }
+              }
+            }, 100); // 100ms마다 스크롤
+          }}
+          onMouseUp={() => {
+            // 마우스를 떼면 인터벌 정리
+            if (scrollIntervalRef.current) {
+              clearInterval(scrollIntervalRef.current);
+              scrollIntervalRef.current = null;
+            }
+          }}
+          onMouseLeave={() => {
+            // 마우스가 버튼을 벗어나면 인터벌 정리
+            if (scrollIntervalRef.current) {
+              clearInterval(scrollIntervalRef.current);
+              scrollIntervalRef.current = null;
+            }
+          }}
+          onTouchStart={(e) => {
+            e.preventDefault();
+            const container = containerRef.current;
+            if (!container) return;
+            
+            // react-window의 List 컴포넌트 내부 스크롤 컨테이너 찾기
+            let scrollContainer: HTMLElement | null = null;
+            
+            // 방법 1: ReactVirtualized__List 클래스로 찾기
+            scrollContainer = container.querySelector('[class*="ReactVirtualized__List"]') as HTMLElement;
+            
+            // 방법 2: 직접 자식 요소 중 스크롤 가능한 요소 찾기
+            if (!scrollContainer) {
+              const children = Array.from(container.children) as HTMLElement[];
+              scrollContainer = children.find(child => 
+                child.scrollWidth > child.clientWidth || 
+                child.style.overflowX === 'auto' ||
+                child.style.overflowX === 'scroll'
+              ) || null;
+            }
+            
+            // 방법 3: container 자체가 스크롤 가능한 경우
+            if (!scrollContainer && container.scrollWidth > container.clientWidth) {
+              scrollContainer = container;
+            }
+            
+            if (!scrollContainer) return;
+            
+            // 기존 인터벌이 있으면 정리
+            if (scrollIntervalRef.current) {
+              clearInterval(scrollIntervalRef.current);
+            }
+            
+            // 즉시 한 번 스크롤
+            const scrollOnce = () => {
+              const scrollAmount = itemSize;
+              const currentScroll = scrollContainer!.scrollLeft;
+              const maxScroll = scrollContainer!.scrollWidth - scrollContainer!.clientWidth;
+              
+              // 끝에 도달하지 않았을 때만 스크롤
+              if (currentScroll < maxScroll - 5) {
+                scrollContainer!.scrollBy({
+                  left: scrollAmount,
+                  behavior: 'smooth'
+                });
+                return true;
+              }
+              return false;
+            };
+            
+            // 즉시 한 번 실행
+            scrollOnce();
+            
+            // 계속 스크롤하는 인터벌 시작
+            scrollIntervalRef.current = setInterval(() => {
+              if (!scrollOnce()) {
+                // 끝에 도달했으면 인터벌 정리
+                if (scrollIntervalRef.current) {
+                  clearInterval(scrollIntervalRef.current);
+                  scrollIntervalRef.current = null;
+                }
+              }
+            }, 100); // 100ms마다 스크롤
+          }}
+          onTouchEnd={() => {
+            // 터치를 떼면 인터벌 정리
+            if (scrollIntervalRef.current) {
+              clearInterval(scrollIntervalRef.current);
+              scrollIntervalRef.current = null;
+            }
           }}
         >
           <div
@@ -273,7 +477,8 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              pointerEvents: 'none'
+              pointerEvents: 'auto',
+              cursor: 'pointer'
             }}
           >
             <span

@@ -576,7 +576,7 @@ const RecipeSortBar = ({
     };
   }, [isSortDropdownOpen]);
 
-  // 재료 매칭도 필터는 서버에서 적용되므로, 여기서는 임박 재료와 maxLack 필터만 적용
+  // 재료 매칭도 필터와 임박 재료 필터는 서버에서 적용되므로, 여기서는 maxLack 필터만 적용
   // 정렬도 서버에서 적용되므로 여기서는 필터링만 수행
   useEffect(() => {
     if (!recipes || recipes.length === 0) {
@@ -584,18 +584,8 @@ const RecipeSortBar = ({
       return;
     }
     
-    // 서버에서 이미 필터링된 데이터를 받았으므로, 임박 재료와 maxLack 필터만 적용
+    // 서버에서 이미 필터링된 데이터를 받았으므로, maxLack 필터만 적용
     let filtered = [...recipes];
-    
-    // 임박 재료 필터
-    if (appliedExpiryIngredients.length > 0) {
-      filtered = filtered.filter(recipe => {
-        const recipeIngredients = (recipe.used_ingredients || '').split(',').map(i => i.trim().toLowerCase());
-        return appliedExpiryIngredients.some(ing => 
-          recipeIngredients.some(ri => ri.includes(ing.toLowerCase()))
-        );
-      });
-    }
     
     // maxLack 필터
     if (maxLack !== 'unlimited') {
@@ -614,7 +604,6 @@ const RecipeSortBar = ({
   }, [
     recipes,
     maxLack,
-    appliedExpiryIngredients,
     onFilteredRecipesChange
   ]);
 

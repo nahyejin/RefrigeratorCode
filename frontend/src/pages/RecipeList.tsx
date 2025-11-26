@@ -655,7 +655,8 @@ const RecipeList: React.FC = () => {
               sortType === 'comment' ? 'comment' : 
               sortType === 'hits' ? 'hits' : 
               sortType === 'expiry' ? 'match_rate' : 'match_rate',
-      platform: selectedChannel.length > 0 ? selectedChannel[0] : undefined
+      platform: selectedChannel.length > 0 ? selectedChannel[0] : undefined,
+      appliedExpiryIngredients: appliedExpiryIngredients.length > 0 ? appliedExpiryIngredients : undefined
     };
     
     try {
