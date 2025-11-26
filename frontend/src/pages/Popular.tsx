@@ -275,10 +275,27 @@ const filterRecipesByDateRange = (recipes: Recipe[], dateRange: { start: Date, e
   });
 };
 
-// 상승률 계산 함수
-const calculateGrowthRate = (current: number, previous: number): number => {
-  if (previous === 0) return current > 0 ? 100 : 0;
-  return Math.round(((current - previous) / previous) * 100);
+// 상승률 계산 함수 (배수와 퍼센트 정보 반환)
+const calculateGrowthRate = (current: number, previous: number): { rate: number; isNew: boolean; multiplier?: number } => {
+  // 이전 기간에 데이터가 없고 현재 기간에 데이터가 있으면 신규로 처리
+  if (previous === 0) {
+    return { rate: 0, isNew: true };
+  }
+  const rate = Math.round(((current - previous) / previous) * 100);
+  // 100% 이상이면 배수로 계산
+  const multiplier = rate >= 100 ? Math.round((current / previous) * 10) / 10 : undefined;
+  return { rate, isNew: false, multiplier };
+};
+
+// 상승률 표시 포맷 함수
+const formatGrowthRate = (rate: number, isNew: boolean, current: number, multiplier?: number): string => {
+  if (isNew) {
+    return `${current}건 신규`;
+  }
+  if (multiplier && multiplier >= 2) {
+    return `${multiplier}배`;
+  }
+  return rate >= 0 ? `+${rate}%` : `${rate}%`;
 };
 
 // 테마 TOP 10 계산 함수 (날짜 필터링 적용)
@@ -336,7 +353,7 @@ const calculateThemeRankings = async (recipes: Recipe[], dateRange: { start: Dat
         synonyms.forEach(synonym => {
           const regex = new RegExp(synonym.toLowerCase(), 'g');
           const matches = text.match(regex);
-          if (matches && matches.length >= 2) {
+          if (matches && matches.length >= 1) {
             count += matches.length;
           }
         });
@@ -359,7 +376,7 @@ const calculateThemeRankings = async (recipes: Recipe[], dateRange: { start: Dat
           synonyms.forEach(synonym => {
             const regex = new RegExp(synonym.toLowerCase(), 'g');
             const matches = text.match(regex);
-            if (matches && matches.length >= 2) {
+            if (matches && matches.length >= 1) {
               count += matches.length;
             }
           });
@@ -372,14 +389,35 @@ const calculateThemeRankings = async (recipes: Recipe[], dateRange: { start: Dat
     }
 
     // Correct growth rate calculation and filtering for theme rankings
-    const result = Object.entries(themeCounts)
+    const results = Object.entries(themeCounts)
+      .filter(([name, count]) => count > 0) // 레시피 수가 0인 항목 제외
       .map(([name, count]) => {
         const previousCount = previousThemeCounts[name] || 0;
-        const rate = previousRange ? calculateGrowthRate(count, previousCount) : 0;
-        return { name, count, rate };
+        const growthInfo = previousRange ? calculateGrowthRate(count, previousCount) : { rate: 0, isNew: false };
+        // 정렬을 위한 값: 신규는 현재 카운트를 우선순위로, 그 외는 상승률
+        // 신규 항목도 레시피 수가 많을수록 높은 순위
+        const sortValue = growthInfo.isNew ? count : growthInfo.rate;
+        return { name, count, previousCount, ...growthInfo, sortValue };
+      });
+    
+    console.log('테마 랭킹 계산 결과 (상위 5개):', results.slice(0, 5).map(r => ({
+      name: r.name,
+      count: r.count,
+      previousCount: r.previousCount,
+      isNew: r.isNew,
+      rate: r.rate,
+      multiplier: r.multiplier
+    })));
+    
+    const result = results
+      .sort((a, b) => {
+        // 먼저 신규 여부로 정렬 (신규가 뒤로)
+        if (a.isNew !== b.isNew) {
+          return a.isNew ? 1 : -1;
+        }
+        // 같은 타입이면 sortValue로 정렬
+        return b.sortValue - a.sortValue;
       })
-      .filter(item => item.rate !== Infinity && item.rate !== 100) // Exclude items with infinite or exactly 100% growth rate
-      .sort((a, b) => b.rate - a.rate)
       .slice(0, 10)
       .map((item, index) => ({
         id: index + 1,
@@ -387,6 +425,8 @@ const calculateThemeRankings = async (recipes: Recipe[], dateRange: { start: Dat
         name: item.name,
         count: item.count,
         rate: item.rate,
+        isNew: item.isNew,
+        multiplier: item.multiplier,
         thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80"
       }));
     
@@ -493,6 +533,7 @@ function calculateDishRankings(recipes: Recipe[], dishKeywords: { keyword: strin
   const previousCounts: { [key: string]: number } = {};
   if (previousRange) {
     const previousRecipes = filterRecipesByDateRange(recipes, previousRange);
+    console.log('이전 기간 레시피 수:', previousRecipes.length, '기간:', previousRange.start, '~', previousRange.end);
     const previousRecipeMatchMap: { [recipeId: number]: Set<string> } = {};
     
     // 초기화
@@ -521,13 +562,35 @@ function calculateDishRankings(recipes: Recipe[], dishKeywords: { keyword: strin
     });
   }
 
-  return Object.entries(currentCounts)
+  const results = Object.entries(currentCounts)
+    .filter(([name, count]) => count > 0) // 레시피 수가 0인 항목 제외
     .map(([name, count]) => {
       const previousCount = previousCounts[name] || 0;
-      const rate = previousRange ? calculateGrowthRate(count, previousCount) : 0;
-      return { name, count, rate };
+      const growthInfo = previousRange ? calculateGrowthRate(count, previousCount) : { rate: 0, isNew: false };
+      // 정렬을 위한 값: 신규는 현재 카운트를 우선순위로, 그 외는 상승률
+      // 신규 항목도 레시피 수가 많을수록 높은 순위
+      const sortValue = growthInfo.isNew ? count : growthInfo.rate;
+      return { name, count, previousCount, ...growthInfo, sortValue };
+    });
+  
+  console.log('요리 랭킹 계산 결과 (상위 5개):', results.slice(0, 5).map(r => ({
+    name: r.name,
+    count: r.count,
+    previousCount: r.previousCount,
+    isNew: r.isNew,
+    rate: r.rate,
+    multiplier: r.multiplier
+  })));
+  
+  return results
+    .sort((a, b) => {
+      // 먼저 신규 여부로 정렬 (신규가 뒤로)
+      if (a.isNew !== b.isNew) {
+        return a.isNew ? 1 : -1;
+      }
+      // 같은 타입이면 sortValue로 정렬
+      return b.sortValue - a.sortValue;
     })
-    .sort((a, b) => b.rate - a.rate)
     .slice(0, 10)
     .map((item, index) => ({
       id: index + 1,
@@ -535,6 +598,8 @@ function calculateDishRankings(recipes: Recipe[], dishKeywords: { keyword: strin
       name: item.name,
       count: item.count,
       rate: item.rate,
+      isNew: item.isNew,
+      multiplier: item.multiplier,
       thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80"
     }));
 }
@@ -1366,7 +1431,6 @@ const Popular = () => {
                       <th className="py-1.5 px-2 text-center font-medium text-[#222] whitespace-nowrap">순위</th>
                       <th className="py-1.5 px-2 text-center font-medium text-[#222] whitespace-nowrap">요리명</th>
                       <th className="py-1.5 px-2 text-right font-medium text-[#222] whitespace-nowrap">레시피 수</th>
-                      <th className="py-1.5 px-2 text-center font-medium text-[#222] whitespace-nowrap">{period === 'today' ? '전일' : period === 'week' ? '전주' : period === 'month' ? '전달' : '기간'}대비 상승률</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1383,13 +1447,32 @@ const Popular = () => {
                               {dish.name}
                             </span>
                           </td>
-                          <td className="py-1.5 px-2 text-right text-[#444] font-normal whitespace-nowrap">{dish.count.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</td>
-                          <td className="py-1.5 px-2 text-center font-normal whitespace-nowrap" style={{color: dish.rate >= 0 ? '#E85A4F' : '#3A6EA5'}}>{dish.rate >= 0 ? `+${dish.rate}%` : `${dish.rate}%`}</td>
+                          <td className="py-1.5 px-2 text-right text-[#444] font-normal whitespace-nowrap">
+                            <div style={{display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px'}}>
+                              <span>{dish.count.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</span>
+                              {dish.isNew || dish.rate !== 0 ? (
+                                <span
+                                  style={{
+                                    display: 'inline-block',
+                                    padding: '2px 6px',
+                                    borderRadius: '4px',
+                                    fontSize: '11px',
+                                    fontWeight: 600,
+                                    backgroundColor: (dish.isNew || dish.rate >= 0) ? '#FFF5F5' : '#EFF6FF',
+                                    color: (dish.isNew || dish.rate >= 0) ? '#E85A4F' : '#3A6EA5',
+                                    whiteSpace: 'nowrap'
+                                  }}
+                                >
+                                  {dish.isNew ? '✦신규' : dish.multiplier && dish.multiplier >= 2 ? `▴${dish.multiplier}배` : dish.rate >= 0 ? `▴+${dish.rate}%` : `▾${dish.rate}%`}
+                                </span>
+                              ) : null}
+                            </div>
+                          </td>
                         </tr>
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={4} className="text-center" style={{height: 320, color: 'rgb(187, 187, 187)', fontSize: '13px', whiteSpace: 'nowrap', verticalAlign: 'middle', textAlign: 'center'}}>데이터가 없습니다</td>
+                        <td colSpan={3} className="text-center" style={{height: 320, color: 'rgb(187, 187, 187)', fontSize: '13px', whiteSpace: 'nowrap', verticalAlign: 'middle', textAlign: 'center'}}>데이터가 없습니다</td>
                       </tr>
                     )}
                   </tbody>
@@ -1407,7 +1490,6 @@ const Popular = () => {
                       <th className="py-1.5 px-2 text-center font-medium text-[#222] whitespace-nowrap">순위</th>
                       <th className="py-1.5 px-2 text-center font-medium text-[#222] whitespace-nowrap">테마명</th>
                       <th className="py-1.5 px-2 text-right font-medium text-[#222] whitespace-nowrap">레시피 수</th>
-                      <th className="py-1.5 px-2 text-center font-medium text-[#222] whitespace-nowrap">{period === 'today' ? '전일' : period === 'week' ? '전주' : period === 'month' ? '전달' : '기간'}대비 상승률</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1420,8 +1502,27 @@ const Popular = () => {
                               {theme.name}
                             </span>
                           </td>
-                          <td className="py-1.5 px-2 text-right text-[#444] font-normal whitespace-nowrap">{theme.count.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</td>
-                          <td className="py-1.5 px-2 text-center font-normal whitespace-nowrap" style={{color: theme.rate >= 0 ? '#E85A4F' : '#3A6EA5'}}>{theme.rate >= 0 ? `+${theme.rate}%` : `${theme.rate}%`}</td>
+                          <td className="py-1.5 px-2 text-right text-[#444] font-normal whitespace-nowrap">
+                            <div style={{display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px'}}>
+                              <span>{theme.count.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</span>
+                              {theme.isNew || theme.rate !== 0 ? (
+                                <span
+                                  style={{
+                                    display: 'inline-block',
+                                    padding: '2px 6px',
+                                    borderRadius: '4px',
+                                    fontSize: '11px',
+                                    fontWeight: 600,
+                                    backgroundColor: (theme.isNew || theme.rate >= 0) ? '#FFF5F5' : '#EFF6FF',
+                                    color: (theme.isNew || theme.rate >= 0) ? '#E85A4F' : '#3A6EA5',
+                                    whiteSpace: 'nowrap'
+                                  }}
+                                >
+                                  {theme.isNew ? '✦신규' : theme.multiplier && theme.multiplier >= 2 ? `▴${theme.multiplier}배` : theme.rate >= 0 ? `▴+${theme.rate}%` : `▾${theme.rate}%`}
+                                </span>
+                              ) : null}
+                            </div>
+                          </td>
                         </tr>
                       ))
                     ) : (
