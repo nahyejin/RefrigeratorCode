@@ -166,8 +166,12 @@ const AutoCompleteUtils = {
 // 스타일 상수
 const STYLES = {
   modal: {
-    maxHeight: 'calc(100vh - 144px)',
-    overflowY: 'auto' as const
+    maxHeight: 'calc(100vh - 200px)', // 모바일 기준으로 높이 조정 (상단/하단 여유 공간 확보)
+    overflowY: 'auto' as const,
+    // 모바일에서 더 작은 높이 적용
+    '@media (max-width: 430px)': {
+      maxHeight: 'calc(100vh - 240px)' // 모바일에서는 더 작게
+    }
   },
   header: {
     paddingTop: 24,
@@ -254,6 +258,17 @@ const FilterModal: React.FC<FilterModalProps> = ({
   const [excludeFocus, setExcludeFocus] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [ingredientDict, setIngredientDict] = useState<string[]>([]);
+  const [isMobile, setIsMobile] = useState(false);
+  
+  // 모바일 화면 크기 감지
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 430);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
   
   // 재료 사전 로드
   useEffect(() => {
@@ -361,14 +376,22 @@ const FilterModal: React.FC<FilterModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-30 flex items-start justify-center z-50">
-      <div className="bg-white rounded-xl shadow-lg w-[340px] max-w-[95vw] relative mt-12 mb-24" style={STYLES.modal}>
+    <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+      <div 
+        className="bg-white rounded-xl shadow-lg w-[340px] max-w-[95vw] relative" 
+        style={{
+          ...STYLES.modal,
+          maxHeight: isMobile ? 'calc(100vh - 240px)' : 'calc(100vh - 200px)',
+          display: 'flex',
+          flexDirection: 'column'
+        }}
+      >
         <div className="sticky top-0 z-10 bg-white" style={STYLES.header}>
           <span className="absolute top-3 right-3 w-6 h-6 text-gray-400 text-xl cursor-pointer select-none" onClick={onClose} role="button" aria-label="닫기" style={STYLES.closeButton}>×</span>
           <div className="text-center font-bold text-[12.8px] mb-4 pt-1">필터를 설정해 주세요</div>
           <div className="border-b border-gray-200"></div>
         </div>
-        <div className="p-6 mb-2">
+        <div className="p-6 mb-2" style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
           {/* 채널 선택: 맨 위로 이동 */}
           <div className="mb-4">
             <div className="font-bold text-[11.2px] mb-2">■ 채널선택</div>
@@ -522,7 +545,10 @@ const FilterModal: React.FC<FilterModalProps> = ({
           {/* 스크롤: 카테고리별 키워드~채널선택 */}
           <div
             className="custom-scrollbar"
-            style={STYLES.scrollContainer}
+            style={{
+              ...STYLES.scrollContainer,
+              maxHeight: isMobile ? '180px' : '240px' // 모바일에서 더 작게
+            }}
           >
             {/* 기존 카테고리~채널선택 내용 */}
             {isLoading ? (
