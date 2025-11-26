@@ -213,18 +213,24 @@ export default function IngredientDateModal({ type, isOpen, onClose, onComplete,
           </button>
           {/* 커스텀 달력 팝업 */}
           {calendarOpen && (
-            <div 
-              ref={calendarRef}
-              className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 z-50"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <CustomCalendar
-                selectedDate={selectedDate}
-                onDateSelect={handleCalendarDateSelect}
-                onClose={() => setCalendarOpen(false)}
-                type={type}
+            <>
+              <div 
+                className="fixed inset-0 bg-black bg-opacity-30 z-40"
+                onClick={() => setCalendarOpen(false)}
               />
-            </div>
+              <div 
+                ref={calendarRef}
+                className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <CustomCalendar
+                  selectedDate={selectedDate}
+                  onDateSelect={handleCalendarDateSelect}
+                  onClose={() => setCalendarOpen(false)}
+                  type={type}
+                />
+              </div>
+            </>
           )}
         </div>
         <div className="flex gap-2 mt-2">

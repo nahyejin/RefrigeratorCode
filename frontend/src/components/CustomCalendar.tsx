@@ -67,8 +67,11 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
   const year = currentMonth.getFullYear();
   const month = currentMonth.getMonth();
 
-  // 년도 목록 생성 (1900년부터 현재+10년까지)
-  const years = Array.from({ length: today.getFullYear() + 10 - 1899 }, (_, i) => 1900 + i);
+  // 년도 목록 생성 (2000년부터 현재+3년까지, 최신순)
+  const currentYear = today.getFullYear();
+  const startYear = 2000;
+  const endYear = currentYear + 3;
+  const years = Array.from({ length: endYear - startYear + 1 }, (_, i) => startYear + i).reverse();
   const months = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
   const weekDays = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -197,17 +200,65 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
               </svg>
             </button>
             {showYearDropdown && (
-              <div className="absolute top-full left-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-[9999] max-h-[200px] overflow-y-auto" style={{ minWidth: '100%' }}>
+              <div 
+                style={{ 
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  marginTop: '4px',
+                  backgroundColor: 'white',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                  zIndex: 9999,
+                  minWidth: '100%',
+                  width: '100%',
+                  maxHeight: '180px',
+                  overflow: 'hidden',
+                  overflowY: 'auto',
+                  overflowX: 'hidden',
+                  display: 'block',
+                  scrollbarWidth: 'auto',
+                  scrollbarColor: '#6b7280 #f3f4f6'
+                }}
+              >
                 {years.map((y) => (
-                  <button
+                  <div
                     key={y}
                     onClick={() => handleYearSelect(y)}
-                    className={`w-full px-4 py-2 text-left text-[14px] hover:bg-gray-100 ${
-                      y === year ? 'bg-blue-50 text-blue-600' : ''
-                    }`}
+                    style={{ 
+                      width: '100%',
+                      minHeight: '36px',
+                      maxHeight: '36px',
+                      height: '36px',
+                      padding: '0 16px',
+                      margin: 0,
+                      display: 'flex', 
+                      alignItems: 'center',
+                      boxSizing: 'border-box',
+                      background: y === year ? '#eff6ff' : 'transparent',
+                      color: y === year ? '#2563eb' : '#111',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      textAlign: 'left',
+                      flexShrink: 0,
+                      lineHeight: '36px',
+                      border: 'none',
+                      borderBottom: '1px solid #f3f4f6'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (y !== year) {
+                        e.currentTarget.style.backgroundColor = '#f9fafb';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (y !== year) {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                      }
+                    }}
                   >
                     {y}년
-                  </button>
+                  </div>
                 ))}
               </div>
             )}
@@ -236,17 +287,65 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
               </svg>
             </button>
             {showMonthDropdown && (
-              <div className="absolute top-full left-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-[9999]" style={{ minWidth: '100%' }}>
+              <div 
+                style={{ 
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  marginTop: '4px',
+                  backgroundColor: 'white',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                  zIndex: 9999,
+                  minWidth: '100%',
+                  width: '100%',
+                  maxHeight: '180px',
+                  overflow: 'hidden',
+                  overflowY: 'auto',
+                  overflowX: 'hidden',
+                  display: 'block',
+                  scrollbarWidth: 'auto',
+                  scrollbarColor: '#6b7280 #f3f4f6'
+                }}
+              >
                 {months.map((m, idx) => (
-                  <button
+                  <div
                     key={idx}
                     onClick={() => handleMonthSelect(idx)}
-                    className={`w-full px-4 py-2 text-left text-[14px] hover:bg-gray-100 ${
-                      idx === month ? 'bg-blue-50 text-blue-600' : ''
-                    }`}
+                    style={{ 
+                      width: '100%',
+                      minHeight: '36px',
+                      maxHeight: '36px',
+                      height: '36px',
+                      padding: '0 16px',
+                      margin: 0,
+                      display: 'flex', 
+                      alignItems: 'center',
+                      boxSizing: 'border-box',
+                      background: idx === month ? '#eff6ff' : 'transparent',
+                      color: idx === month ? '#2563eb' : '#111',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      textAlign: 'left',
+                      flexShrink: 0,
+                      lineHeight: '36px',
+                      border: 'none',
+                      borderBottom: '1px solid #f3f4f6'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (idx !== month) {
+                        e.currentTarget.style.backgroundColor = '#f9fafb';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (idx !== month) {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                      }
+                    }}
                   >
                     {m}
-                  </button>
+                  </div>
                 ))}
               </div>
             )}
