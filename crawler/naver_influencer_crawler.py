@@ -264,13 +264,18 @@ class NaverInfluencerCrawler:
                                 except:
                                     pass
                         
-                        # headless 옵션 추가
+                        # headless 옵션 추가 (Windows에서 강제 headless)
                         chrome_options = webdriver.ChromeOptions()
-                        chrome_options.add_argument('--headless')
+                        chrome_options.add_argument('--headless=new')  # Chrome 109+ 새로운 headless 모드
                         chrome_options.add_argument('--no-sandbox')
                         chrome_options.add_argument('--disable-dev-shm-usage')
                         chrome_options.add_argument('--disable-gpu')
+                        chrome_options.add_argument('--disable-software-rasterizer')
                         chrome_options.add_argument('--window-size=1920x1080')
+                        chrome_options.add_argument('--remote-debugging-port=0')  # 디버깅 포트 비활성화
+                        chrome_options.add_argument('--disable-blink-features=AutomationControlled')
+                        chrome_options.add_experimental_option('excludeSwitches', ['enable-logging', 'enable-automation'])
+                        chrome_options.add_experimental_option('useAutomationExtension', False)
                         
                         service = Service(driver_manager.install())
                         driver = webdriver.Chrome(service=service, options=chrome_options)  # Chrome 드라이버 초기화
@@ -492,11 +497,16 @@ class NaverInfluencerCrawler:
         
         # Selenium 웹드라이버 초기화 (headless 모드)
         options = webdriver.ChromeOptions()
-        options.add_argument('--headless')  # headless 모드 활성화
+        options.add_argument('--headless=new')  # Chrome 109+ 새로운 headless 모드
         options.add_argument('--no-sandbox')
         options.add_argument('--disable-dev-shm-usage')
         options.add_argument('--disable-gpu')
+        options.add_argument('--disable-software-rasterizer')
         options.add_argument('--window-size=1920x1080')
+        options.add_argument('--remote-debugging-port=0')  # 디버깅 포트 비활성화
+        options.add_argument('--disable-blink-features=AutomationControlled')
+        options.add_experimental_option('excludeSwitches', ['enable-logging', 'enable-automation'])
+        options.add_experimental_option('useAutomationExtension', False)
         
         # ChromeDriver 자동 다운로드 및 초기화 (재시도 로직 포함)
         import shutil
