@@ -225,26 +225,77 @@ class NaverInfluencerCrawler:
                 
                 # "더보기" 버튼 클릭 로직 추가
                 import shutil
-                max_retries = 2
+                import subprocess
+                import re
+                max_retries = 3
                 driver = None
+                
+                # Chrome 버전 확인
+                chrome_version = None
+                try:
+                    chrome_path = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
+                    if os.path.exists(chrome_path):
+                        result = subprocess.run(
+                            [chrome_path, "--version"],
+                            capture_output=True,
+                            text=True,
+                            timeout=5
+                        )
+                        if result.returncode == 0:
+                            version_match = re.search(r'(\d+)\.(\d+)\.(\d+)\.(\d+)', result.stdout)
+                            if version_match:
+                                chrome_version = version_match.group(1)
+                                logger.info(f"🔍 Chrome 버전 감지: {result.stdout.strip()}")
+                except Exception as e:
+                    logger.warning(f"⚠️ Chrome 버전 확인 실패: {e}")
+                
                 for attempt in range(max_retries):
                     try:
-                        service = Service(ChromeDriverManager().install())
-                        driver = webdriver.Chrome(service=service)  # Chrome 드라이버 초기화
+                        driver_manager = ChromeDriverManager()
+                        
+                        # 캐시 삭제 후 재시도 (첫 번째 시도가 아닌 경우)
+                        if attempt > 0:
+                            cache_dir = os.path.join(os.path.expanduser("~"), ".wdm")
+                            if os.path.exists(cache_dir):
+                                try:
+                                    shutil.rmtree(cache_dir)
+                                    logger.info("ChromeDriver 캐시 삭제 후 재시도...")
+                                    time.sleep(2)  # 잠시 대기
+                                except:
+                                    pass
+                        
+                        # headless 옵션 추가
+                        chrome_options = webdriver.ChromeOptions()
+                        chrome_options.add_argument('--headless')
+                        chrome_options.add_argument('--no-sandbox')
+                        chrome_options.add_argument('--disable-dev-shm-usage')
+                        chrome_options.add_argument('--disable-gpu')
+                        chrome_options.add_argument('--window-size=1920x1080')
+                        
+                        service = Service(driver_manager.install())
+                        driver = webdriver.Chrome(service=service, options=chrome_options)  # Chrome 드라이버 초기화
+                        logger.info("✅ ChromeDriver 초기화 성공 (headless 모드)")
                         break
                     except Exception as e:
                         error_msg = str(e)
+                        logger.warning(f"⚠️ ChromeDriver 초기화 실패 (시도 {attempt + 1}/{max_retries}): {error_msg}")
+                        
                         if "version" in error_msg.lower() or "supports Chrome version" in error_msg:
                             cache_dir = os.path.join(os.path.expanduser("~"), ".wdm")
                             if os.path.exists(cache_dir) and attempt < max_retries - 1:
                                 try:
                                     shutil.rmtree(cache_dir)
                                     logger.info("ChromeDriver 캐시 삭제 후 재시도...")
+                                    time.sleep(2)  # 잠시 대기
                                 except:
                                     pass
                                 continue
                         if attempt == max_retries - 1:
                             logger.error(f"ChromeDriver 초기화 실패: {e}")
+                            logger.error("💡 해결 방법:")
+                            logger.error("   1. webdriver-manager를 최신 버전으로 업데이트: pip install --upgrade webdriver-manager")
+                            logger.error("   2. Chrome이 너무 최신 버전(142)일 수 있습니다. Chrome을 재시작하거나")
+                            logger.error("   3. 수동으로 ChromeDriver를 다운로드하여 설치하세요")
                             raise
                 
                 if driver is None:
@@ -439,17 +490,56 @@ class NaverInfluencerCrawler:
         """크롤링 실행"""
         all_recipes = []
         
-        # Selenium 웹드라이버 초기화 (브라우저 창이 보이도록 설정)
+        # Selenium 웹드라이버 초기화 (headless 모드)
         options = webdriver.ChromeOptions()
-        options.add_argument('--start-maximized')  # 브라우저 창 최대화
+        options.add_argument('--headless')  # headless 모드 활성화
+        options.add_argument('--no-sandbox')
+        options.add_argument('--disable-dev-shm-usage')
+        options.add_argument('--disable-gpu')
+        options.add_argument('--window-size=1920x1080')
         
         # ChromeDriver 자동 다운로드 및 초기화 (재시도 로직 포함)
         import shutil
-        max_retries = 2
+        import subprocess
+        import re
+        max_retries = 3
         driver = None
+        
+        # Chrome 버전 확인
+        chrome_version = None
+        try:
+            chrome_path = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
+            if os.path.exists(chrome_path):
+                result = subprocess.run(
+                    [chrome_path, "--version"],
+                    capture_output=True,
+                    text=True,
+                    timeout=5
+                )
+                if result.returncode == 0:
+                    version_match = re.search(r'(\d+)\.(\d+)\.(\d+)\.(\d+)', result.stdout)
+                    if version_match:
+                        chrome_version = version_match.group(1)
+                        logger.info(f"🔍 Chrome 버전 감지: {result.stdout.strip()}")
+        except Exception as e:
+            logger.warning(f"⚠️ Chrome 버전 확인 실패: {e}")
+        
         for attempt in range(max_retries):
             try:
-                service = Service(ChromeDriverManager().install())
+                # webdriver_manager 최신 버전 사용
+                driver_manager = ChromeDriverManager()
+                
+                # 캐시 삭제 후 재시도 (첫 번째 시도가 아닌 경우)
+                if attempt > 0:
+                    cache_dir = os.path.join(os.path.expanduser("~"), ".wdm")
+                    if os.path.exists(cache_dir):
+                        try:
+                            shutil.rmtree(cache_dir)
+                            logger.info("✅ ChromeDriver 캐시 삭제 완료")
+                        except Exception as cache_error:
+                            logger.warning(f"⚠️ 캐시 삭제 실패: {cache_error}")
+                
+                service = Service(driver_manager.install())
                 driver = webdriver.Chrome(service=service, options=options)
                 logger.info("✅ ChromeDriver 초기화 성공")
                 break
@@ -469,11 +559,14 @@ class NaverInfluencerCrawler:
                             logger.warning(f"⚠️ 캐시 삭제 실패: {cache_error}")
                     
                     if attempt < max_retries - 1:
+                        time.sleep(2)  # 잠시 대기 후 재시도
                         continue
                 
                 if attempt == max_retries - 1:
                     logger.error("❌ ChromeDriver 초기화 실패")
-                    logger.error("💡 Chrome이 자동 업데이트되어 버전이 맞지 않을 수 있습니다.")
+                    logger.error("💡 해결 방법:")
+                    logger.error("   1. webdriver-manager를 최신 버전으로 업데이트: pip install --upgrade webdriver-manager")
+                    logger.error("   2. 또는 Chrome 브라우저를 재시작하세요")
                     raise
         
         if driver is None:

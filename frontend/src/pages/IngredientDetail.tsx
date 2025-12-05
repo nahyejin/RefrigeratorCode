@@ -291,6 +291,9 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
   const { name = '' } = useParams<{ name: string }>();
   const navigate = useNavigate();
   const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const startDate = searchParams.get('start_date');
+  const endDate = searchParams.get('end_date');
   
   const [visibleCount, setVisibleCount] = useState(50);
   const [sortType, setSortType] = useState('match');
@@ -466,6 +469,8 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
 
   // 재료 정보 로드
   useEffect(() => {
+    setLoading(true);
+    console.log('IngredientDetail - CSV 로드 시작, name:', name);
     fetch(CSV_INGREDIENT_URL)
       .then(res => res.text())
       .then(csv => {
@@ -475,7 +480,12 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
         const synIdx = header.indexOf('synonyms');
         const catIdx = header.indexOf('대분류');
         
-        if (nameIdx === -1) return;
+        if (nameIdx === -1) {
+          console.log('IngredientDetail - CSV 헤더에 keyword 없음, 기본값 사용');
+          setIngredientSynonyms([decodeURIComponent(name)]);
+          setIsIngredient(true);
+          return;
+        }
         
         const found = lines.slice(1).find(line => {
           const cols = line.split(',');
@@ -486,12 +496,19 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
           const cols = found.split(',');
           const base = cols[nameIdx]?.trim();
           const syns = synIdx !== -1 ? cols[synIdx]?.split('|').map(s => s.trim()).filter(Boolean) : [];
+          console.log('IngredientDetail - CSV에서 찾음, base:', base, 'syns:', syns);
           setIngredientSynonyms([base, ...syns]);
           setIsIngredient(cols[catIdx]?.trim() === '재료');
         } else {
+          console.log('IngredientDetail - CSV에서 못 찾음, 기본값 사용');
           setIngredientSynonyms([decodeURIComponent(name)]);
           setIsIngredient(true);
         }
+      })
+      .catch(error => {
+        console.error('Error loading ingredient CSV:', error);
+        setIngredientSynonyms([decodeURIComponent(name)]);
+        setIsIngredient(true);
       });
   }, [name]);
 
@@ -500,43 +517,94 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
     if (location.pathname === '/mypage/recorded') {
       const arr = JSON.parse(localStorage.getItem('my_recorded_recipes') || '[]');
       setRecipes(arr);
-    } else if (location.pathname === '/mypage/completed') {
+      setLoading(false);
+      return;
+    }
+    
+    if (location.pathname === '/mypage/completed') {
       const arr = JSON.parse(localStorage.getItem('my_completed_recipes') || '[]');
       setRecipes(arr);
-    } else {
-      const fetchData = async () => {
-        try {
-          const apiUrl = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'https://refrigeratorcode-production.up.railway.app';
-          const recipeResponse = await axios.get(`${apiUrl}/api/recipes`);
-          let filtered = [];
-          
-          if (isIngredient) {
-            // 재료: used_ingredients에 동의어 포함
-            filtered = recipeResponse.data.filter((r: Recipe) => {
-              const ingredientsArr = toIngredientArray(r.used_ingredients).map(i => i.replace(/\s/g, ''));
-              return ingredientSynonyms.some(syn => ingredientsArr.includes(syn.replace(/\s/g, '')));
-            });
-          } else {
-            // 테마: title/content에 동의어 포함 && 2번 이상 등장
-            filtered = recipeResponse.data.filter((r: Recipe) => {
-              const text = ((r.title || '') + ' ' + (r.content || '')).toLowerCase();
-              return ingredientSynonyms.some(syn => {
-                if (!syn) return false;
-                const regex = new RegExp(syn.replace(/[.*+?^${}()|[\\\]]/g, '\\$&'), 'g');
-                const matches = text.match(regex);
-                return matches && matches.length >= 2;
-              });
-            });
-          }
-          setRecipes(filtered);
-        } catch (error) {
-          console.error('Error fetching data:', error);
-          setRecipes([]);
-        }
-      };
-      if (ingredientSynonyms.length > 0) fetchData();
+      setLoading(false);
+      return;
     }
-  }, [name, location.pathname, ingredientSynonyms, isIngredient]);
+    
+    // ingredientSynonyms가 비어있으면 아직 CSV 로딩 중이므로 대기
+    if (ingredientSynonyms.length === 0) {
+      return;
+    }
+    
+    const fetchData = async () => {
+      console.log('IngredientDetail - fetchData 시작');
+      console.log('IngredientDetail - ingredientSynonyms:', ingredientSynonyms);
+      console.log('IngredientDetail - isIngredient:', isIngredient);
+      console.log('IngredientDetail - startDate:', startDate, 'endDate:', endDate);
+      
+      try {
+        const apiUrl = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'https://refrigeratorcode-production.up.railway.app';
+        
+        // /api/recipes는 기간 필터를 지원하지 않으므로 전체 데이터를 가져온 후 클라이언트에서 필터링
+        const recipeResponse = await axios.get(`${apiUrl}/api/recipes`);
+        console.log('IngredientDetail - API 응답 받음, 전체 레시피 수:', recipeResponse.data?.length || recipeResponse.data?.recipes?.length || 0);
+        
+        // 응답 데이터 형식 확인 (배열 또는 객체)
+        const allRecipes = Array.isArray(recipeResponse.data) 
+          ? recipeResponse.data 
+          : (recipeResponse.data?.recipes || []);
+        
+        console.log('IngredientDetail - 처리할 레시피 수:', allRecipes.length);
+        
+        let filtered = [];
+        
+        if (isIngredient) {
+          // 재료: used_ingredients에 동의어 포함
+          filtered = allRecipes.filter((r: Recipe) => {
+            const ingredientsArr = toIngredientArray(r.used_ingredients).map(i => i.replace(/\s/g, ''));
+            return ingredientSynonyms.some(syn => ingredientsArr.includes(syn.replace(/\s/g, '')));
+          });
+          console.log('IngredientDetail - 재료 필터링 후:', filtered.length);
+        } else {
+          // 테마: title/content에 동의어 포함 && 2번 이상 등장
+          filtered = allRecipes.filter((r: Recipe) => {
+            const text = ((r.title || '') + ' ' + (r.content || '')).toLowerCase();
+            return ingredientSynonyms.some(syn => {
+              if (!syn) return false;
+              const regex = new RegExp(syn.replace(/[.*+?^${}()|[\\\]]/g, '\\$&'), 'g');
+              const matches = text.match(regex);
+              return matches && matches.length >= 2;
+            });
+          });
+          console.log('IngredientDetail - 테마 필터링 후:', filtered.length);
+        }
+        
+        // 기간 필터 적용 (클라이언트 사이드)
+        if (startDate && endDate) {
+          const start = new Date(startDate);
+          const end = new Date(endDate);
+          end.setHours(23, 59, 59, 999);
+          
+          const beforeDateFilter = filtered.length;
+          filtered = filtered.filter((r: Recipe) => {
+            if (!r.post_time) return false;
+            const postDate = new Date(r.post_time);
+            return postDate >= start && postDate <= end;
+          });
+          console.log('IngredientDetail - 기간 필터링 전:', beforeDateFilter, '후:', filtered.length);
+          console.log('IngredientDetail - 기간:', start, '~', end);
+        }
+        
+        console.log('IngredientDetail - 최종 필터링된 레시피 수:', filtered.length);
+        setRecipes(filtered);
+      } catch (error) {
+        console.error('IngredientDetail - Error fetching data:', error);
+        setRecipes([]);
+      } finally {
+        console.log('IngredientDetail - fetchData 완료, 로딩 해제');
+        setLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, [name, location.pathname, location.search, ingredientSynonyms, isIngredient, startDate, endDate]);
 
   // 대체재료 테이블 로드
   useEffect(() => {
