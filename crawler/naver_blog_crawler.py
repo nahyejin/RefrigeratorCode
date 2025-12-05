@@ -35,16 +35,23 @@ class NaverBlogCrawler(BaseCrawler):
     def _setup_driver(self):
         """Setup Selenium WebDriver."""
         options = Options()
-        options.add_argument("--headless=new")  # Chrome 109+ 새로운 headless 모드
+        # Windows에서 headless 모드 강제 적용
+        options.add_argument("--headless")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--disable-gpu")
         options.add_argument("--disable-software-rasterizer")
         options.add_argument("--window-size=1920x1080")
-        options.add_argument("--remote-debugging-port=0")  # 디버깅 포트 비활성화
-        options.add_argument("--disable-blink-features=AutomationControlled")
+        options.add_argument("--disable-extensions")
+        options.add_argument("--disable-plugins")
+        # DevTools 완전 비활성화
+        options.add_argument("--disable-logging")
+        options.add_argument("--log-level=3")  # FATAL 레벨만
         options.add_experimental_option('excludeSwitches', ['enable-logging', 'enable-automation'])
         options.add_experimental_option('useAutomationExtension', False)
+        # 환경 변수로 headless 강제
+        import os
+        os.environ['CHROME_NO_SANDBOX'] = '1'
         
         # Chrome 버전 확인 및 ChromeDriver 자동 다운로드
         import shutil

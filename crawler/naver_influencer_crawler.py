@@ -266,14 +266,17 @@ class NaverInfluencerCrawler:
                         
                         # headless 옵션 추가 (Windows에서 강제 headless)
                         chrome_options = webdriver.ChromeOptions()
-                        chrome_options.add_argument('--headless=new')  # Chrome 109+ 새로운 headless 모드
+                        chrome_options.add_argument('--headless')  # Windows에서 안정적인 headless 모드
                         chrome_options.add_argument('--no-sandbox')
                         chrome_options.add_argument('--disable-dev-shm-usage')
                         chrome_options.add_argument('--disable-gpu')
                         chrome_options.add_argument('--disable-software-rasterizer')
                         chrome_options.add_argument('--window-size=1920x1080')
-                        chrome_options.add_argument('--remote-debugging-port=0')  # 디버깅 포트 비활성화
-                        chrome_options.add_argument('--disable-blink-features=AutomationControlled')
+                        chrome_options.add_argument('--disable-extensions')
+                        chrome_options.add_argument('--disable-plugins')
+                        # DevTools 완전 비활성화
+                        chrome_options.add_argument('--disable-logging')
+                        chrome_options.add_argument('--log-level=3')  # FATAL 레벨만
                         chrome_options.add_experimental_option('excludeSwitches', ['enable-logging', 'enable-automation'])
                         chrome_options.add_experimental_option('useAutomationExtension', False)
                         
@@ -497,16 +500,23 @@ class NaverInfluencerCrawler:
         
         # Selenium 웹드라이버 초기화 (headless 모드)
         options = webdriver.ChromeOptions()
-        options.add_argument('--headless=new')  # Chrome 109+ 새로운 headless 모드
+        # Windows에서 headless 모드 강제 적용
+        options.add_argument('--headless')
         options.add_argument('--no-sandbox')
         options.add_argument('--disable-dev-shm-usage')
         options.add_argument('--disable-gpu')
         options.add_argument('--disable-software-rasterizer')
         options.add_argument('--window-size=1920x1080')
-        options.add_argument('--remote-debugging-port=0')  # 디버깅 포트 비활성화
-        options.add_argument('--disable-blink-features=AutomationControlled')
+        options.add_argument('--disable-extensions')
+        options.add_argument('--disable-plugins')
+        # DevTools 완전 비활성화
+        options.add_argument('--disable-logging')
+        options.add_argument('--log-level=3')  # FATAL 레벨만
         options.add_experimental_option('excludeSwitches', ['enable-logging', 'enable-automation'])
         options.add_experimental_option('useAutomationExtension', False)
+        # 환경 변수로 headless 강제
+        import os
+        os.environ['CHROME_NO_SANDBOX'] = '1'
         
         # ChromeDriver 자동 다운로드 및 초기화 (재시도 로직 포함)
         import shutil
