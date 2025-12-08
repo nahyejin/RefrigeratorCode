@@ -53,24 +53,27 @@ const STYLES = {
     width: '90%',
     maxWidth: '600px'
   },
-  // "누적 레시피 수" 노란색 pill 스타일
+  // "누적 레시피 수" 최신 UI 트렌드 스타일 (미묘한 glassmorphism)
   labelPill: {
     display: 'inline-block' as const,
-    backgroundColor: '#FFD600',
-    color: '#222222',
-    fontSize: 'clamp(16px, 3vw, 22px)', // 글자 크기 증가
-    fontWeight: 600,
-    padding: 'clamp(6px, 1vh, 10px) clamp(16px, 4vw, 24px)',
-    borderRadius: '50px',
+    backgroundColor: 'rgba(255, 255, 255, 0.6)', // 매우 연한 반투명 배경
+    color: '#555555', // 부드러운 회색 텍스트
+    fontSize: 'clamp(19px, 3.6vw, 26px)', // 글자 크기 20% 증가
+    fontWeight: 500,
+    padding: 'clamp(4px, 0.8vh, 7px) clamp(14px, 3.5vw, 22px)', // 패딩 축소
+    borderRadius: '30px', // 부드러운 둥근 모서리
     textAlign: 'center' as const,
     whiteSpace: 'nowrap' as const,
-    boxShadow: '0 2px 8px rgba(255, 214, 0, 0.3)'
+    border: '0.5px solid rgba(0, 0, 0, 0.06)', // 거의 보이지 않는 얇은 테두리
+    backdropFilter: 'blur(8px)', // 미묘한 블러
+    WebkitBackdropFilter: 'blur(8px)', // Safari 지원
+    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)' // 거의 보이지 않는 매우 부드러운 그림자
   },
-  // 숫자 표시 스타일 (검은색)
+  // 숫자 표시 스타일 (회색)
   numberDisplay: {
-    color: '#222222',
+    color: '#444444', // 검정에서 회색으로 변경
     fontWeight: 700,
-    fontSize: `clamp(${CONSTANTS.FONT_SIZE_MIN}px, ${CONSTANTS.FONT_SIZE_VW}vw, ${CONSTANTS.FONT_SIZE_MAX}px)`,
+    fontSize: `clamp(38px, 9.6vw, 77px)`, // 글자 크기 20% 증가 (32px→38px, 8vw→9.6vw, 64px→77px)
     textAlign: 'center' as const,
     fontFamily: 'inherit',
     letterSpacing: `${CONSTANTS.LETTER_SPACING_VW}vw`,
@@ -80,7 +83,7 @@ const STYLES = {
   // 하단 설명 텍스트 스타일 (회색)
   descriptionText: {
     color: '#666666',
-    fontSize: 'clamp(11px, 1.8vw, 14px)',
+    fontSize: 'clamp(13px, 2.16vw, 17px)', // 글자 크기 20% 증가 (11px→13px, 1.8vw→2.16vw, 14px→17px)
     fontWeight: 400,
     textAlign: 'center' as const,
     lineHeight: '1.6',
