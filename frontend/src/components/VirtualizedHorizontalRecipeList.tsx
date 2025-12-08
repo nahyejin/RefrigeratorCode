@@ -85,6 +85,7 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
   const scrollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [containerWidth, setContainerWidth] = useState<number>(CONSTANTS.DEFAULT_CONTAINER_WIDTH);
   const [showScrollIndicator, setShowScrollIndicator] = useState(false);
+  const [showLeftScrollIndicator, setShowLeftScrollIndicator] = useState(false);
   const itemSize = Utils.calculateItemSize(cardWidth, gap);
 
   useEffect(() => {
@@ -151,12 +152,16 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
         
         // 끝에 도달했는지 확인 (약간의 여유를 두어 더 정확하게 감지)
         const isAtEnd = scrollLeft + clientWidth >= scrollWidth - 5;
+        const isAtStart = scrollLeft <= 5;
+        
         setShowScrollIndicator(isScrollable && !isAtEnd);
+        setShowLeftScrollIndicator(isScrollable && !isAtStart);
       } else {
         // 스크롤 컨테이너를 찾지 못한 경우, 전체 너비 계산으로 판단
         const totalWidth = recipes.length * itemSize;
         const isScrollable = totalWidth > containerWidth;
         setShowScrollIndicator(isScrollable);
+        setShowLeftScrollIndicator(false);
       }
     };
 
@@ -293,7 +298,10 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
               const isScrollable = scrollWidth > clientWidth;
               // 끝에 도달했는지 확인 (약간의 여유를 두어 더 정확하게 감지)
               const isAtEnd = scrollLeft + clientWidth >= scrollWidth - 5;
+              const isAtStart = scrollLeft <= 5;
+              
               setShowScrollIndicator(isScrollable && !isAtEnd);
+              setShowLeftScrollIndicator(isScrollable && !isAtStart);
             }
           }}
           style={{
@@ -305,7 +313,195 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
           {Row}
         </List>
       </div>
-      {/* 동그라미 아이콘 (둥둥 띄워진 느낌) */}
+      {/* 왼쪽 스크롤 버튼 */}
+      {showLeftScrollIndicator && (
+        <div
+          style={{
+            position: 'absolute',
+            left: '8px',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            pointerEvents: 'auto',
+            zIndex: 10,
+            cursor: 'pointer'
+          }}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            const container = containerRef.current;
+            if (!container) return;
+            
+            // react-window의 List 컴포넌트 내부 스크롤 컨테이너 찾기
+            let scrollContainer: HTMLElement | null = null;
+            
+            // 방법 1: ReactVirtualized__List 클래스로 찾기
+            scrollContainer = container.querySelector('[class*="ReactVirtualized__List"]') as HTMLElement;
+            
+            // 방법 2: 직접 자식 요소 중 스크롤 가능한 요소 찾기
+            if (!scrollContainer) {
+              const children = Array.from(container.children) as HTMLElement[];
+              scrollContainer = children.find(child => 
+                child.scrollWidth > child.clientWidth || 
+                child.style.overflowX === 'auto' ||
+                child.style.overflowX === 'scroll'
+              ) || null;
+            }
+            
+            // 방법 3: container 자체가 스크롤 가능한 경우
+            if (!scrollContainer && container.scrollWidth > container.clientWidth) {
+              scrollContainer = container;
+            }
+            
+            if (!scrollContainer) return;
+            
+            // 기존 인터벌이 있으면 정리
+            if (scrollIntervalRef.current) {
+              clearInterval(scrollIntervalRef.current);
+            }
+            
+            // 즉시 한 번 스크롤
+            const scrollOnce = () => {
+              const scrollAmount = itemSize;
+              const currentScroll = scrollContainer!.scrollLeft;
+              
+              // 시작에 도달하지 않았을 때만 스크롤
+              if (currentScroll > 5) {
+                scrollContainer!.scrollBy({
+                  left: -scrollAmount,
+                  behavior: 'smooth'
+                });
+                return true;
+              }
+              return false;
+            };
+            
+            // 즉시 한 번 실행
+            scrollOnce();
+            
+            // 계속 스크롤하는 인터벌 시작
+            scrollIntervalRef.current = setInterval(() => {
+              if (!scrollOnce()) {
+                // 시작에 도달했으면 인터벌 정리
+                if (scrollIntervalRef.current) {
+                  clearInterval(scrollIntervalRef.current);
+                  scrollIntervalRef.current = null;
+                }
+              }
+            }, 100); // 100ms마다 스크롤
+          }}
+          onMouseUp={() => {
+            // 마우스를 떼면 인터벌 정리
+            if (scrollIntervalRef.current) {
+              clearInterval(scrollIntervalRef.current);
+              scrollIntervalRef.current = null;
+            }
+          }}
+          onMouseLeave={() => {
+            // 마우스가 버튼을 벗어나면 인터벌 정리
+            if (scrollIntervalRef.current) {
+              clearInterval(scrollIntervalRef.current);
+              scrollIntervalRef.current = null;
+            }
+          }}
+          onTouchStart={(e) => {
+            e.preventDefault();
+            const container = containerRef.current;
+            if (!container) return;
+            
+            // react-window의 List 컴포넌트 내부 스크롤 컨테이너 찾기
+            let scrollContainer: HTMLElement | null = null;
+            
+            // 방법 1: ReactVirtualized__List 클래스로 찾기
+            scrollContainer = container.querySelector('[class*="ReactVirtualized__List"]') as HTMLElement;
+            
+            // 방법 2: 직접 자식 요소 중 스크롤 가능한 요소 찾기
+            if (!scrollContainer) {
+              const children = Array.from(container.children) as HTMLElement[];
+              scrollContainer = children.find(child => 
+                child.scrollWidth > child.clientWidth || 
+                child.style.overflowX === 'auto' ||
+                child.style.overflowX === 'scroll'
+              ) || null;
+            }
+            
+            // 방법 3: container 자체가 스크롤 가능한 경우
+            if (!scrollContainer && container.scrollWidth > container.clientWidth) {
+              scrollContainer = container;
+            }
+            
+            if (!scrollContainer) return;
+            
+            // 기존 인터벌이 있으면 정리
+            if (scrollIntervalRef.current) {
+              clearInterval(scrollIntervalRef.current);
+            }
+            
+            // 즉시 한 번 스크롤
+            const scrollOnce = () => {
+              const scrollAmount = itemSize;
+              const currentScroll = scrollContainer!.scrollLeft;
+              
+              // 시작에 도달하지 않았을 때만 스크롤
+              if (currentScroll > 5) {
+                scrollContainer!.scrollBy({
+                  left: -scrollAmount,
+                  behavior: 'smooth'
+                });
+                return true;
+              }
+              return false;
+            };
+            
+            // 즉시 한 번 실행
+            scrollOnce();
+            
+            // 계속 스크롤하는 인터벌 시작
+            scrollIntervalRef.current = setInterval(() => {
+              if (!scrollOnce()) {
+                // 시작에 도달했으면 인터벌 정리
+                if (scrollIntervalRef.current) {
+                  clearInterval(scrollIntervalRef.current);
+                  scrollIntervalRef.current = null;
+                }
+              }
+            }, 100); // 100ms마다 스크롤
+          }}
+          onTouchEnd={() => {
+            // 터치를 떼면 인터벌 정리
+            if (scrollIntervalRef.current) {
+              clearInterval(scrollIntervalRef.current);
+              scrollIntervalRef.current = null;
+            }
+          }}
+        >
+          <div
+            style={{
+              width: '40px',
+              height: '40px',
+              borderRadius: '50%',
+              backgroundColor: 'rgba(255, 255, 255, 0.95)',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              pointerEvents: 'auto',
+              cursor: 'pointer'
+            }}
+          >
+            <span
+              style={{
+                fontSize: '24px',
+                color: '#666666',
+                fontWeight: 400,
+                lineHeight: 1,
+                pointerEvents: 'none'
+              }}
+            >
+              ‹
+            </span>
+          </div>
+        </div>
+      )}
+      {/* 오른쪽 스크롤 버튼 */}
       {showScrollIndicator && (
         <div
           style={{
