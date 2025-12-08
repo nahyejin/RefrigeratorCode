@@ -633,12 +633,9 @@ const MyFridge: React.FC = () => {
                   className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-[10] custom-scrollbar" 
                   style={{ 
                     maxHeight: '240px',
-                    height: '240px',
                     overflowY: 'auto',
                     overflowX: 'hidden',
-                    position: 'absolute',
-                    display: 'flex',
-                    flexDirection: 'column'
+                    position: 'absolute'
                   }}
                 >
                   {combinedFiltered.map((item, index) => (
@@ -649,8 +646,7 @@ const MyFridge: React.FC = () => {
                       style={{ 
                         whiteSpace: 'nowrap', 
                         overflow: 'hidden', 
-                        textOverflow: 'ellipsis',
-                        flexShrink: 0
+                        textOverflow: 'ellipsis'
                       }}
                     >
                       {item}

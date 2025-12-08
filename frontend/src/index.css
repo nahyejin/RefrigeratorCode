@@ -132,7 +132,7 @@ div.absolute.top-full.left-0.right-0.mt-1.bg-white.border.border-gray-300 {
   overflow-y: auto !important;
   overflow-x: hidden !important;
   max-height: 240px !important;
-  height: 240px !important;
+  /* height는 자동으로 조정되도록 제거 */
 }
 
 /* 드롭다운이 잘리지 않도록 부모 요소 설정 */
