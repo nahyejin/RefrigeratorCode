@@ -244,9 +244,10 @@ class NaverBlogCrawler(BaseCrawler):
                 # Chrome이 완전히 시작될 때까지 대기 (타임아웃 설정)
                 print("⏳ Chrome 시작 대기 중...")
                 try:
-                    # 간단한 명령으로 Chrome이 응답하는지 확인 (타임아웃 5초)
-                    self.driver.set_page_load_timeout(5)
-                    self.driver.implicitly_wait(2)
+                    # 페이지 로딩 타임아웃을 30초로 설정 (충분한 시간 제공)
+                    self.driver.set_page_load_timeout(30)
+                    # 암시적 대기 시간 설정
+                    self.driver.implicitly_wait(5)
                     # capabilities 확인 (빠른 확인)
                     capabilities = self.driver.capabilities
                     if capabilities:
@@ -402,10 +403,41 @@ class NaverBlogCrawler(BaseCrawler):
             progress = (page / total_pages) * 100
             print(f"\n[진행상황] {page}/{total_pages} 페이지 수집 중... ({progress:.1f}% 완료)")
             url = f"https://section.blog.naver.com/ThemePost.naver?directoryNo=20&activeDirectorySeq=2&currentPage={page}"
-            self.driver.get(url)
-            WebDriverWait(self.driver, 10).until(
-                EC.presence_of_element_located((By.CLASS_NAME, "info_post"))
-            )
+            
+            # 페이지 로딩 재시도 로직
+            max_retries = 3
+            retry_count = 0
+            page_loaded = False
+            
+            while retry_count < max_retries and not page_loaded:
+                try:
+                    self.driver.get(url)
+                    WebDriverWait(self.driver, 15).until(
+                        EC.presence_of_element_located((By.CLASS_NAME, "info_post"))
+                    )
+                    page_loaded = True
+                except Exception as load_error:
+                    retry_count += 1
+                    error_msg = str(load_error)
+                    if "timeout" in error_msg.lower() or "Timed out" in error_msg:
+                        print(f"⚠️ 페이지 로딩 타임아웃 (시도 {retry_count}/{max_retries}): {url}")
+                        if retry_count < max_retries:
+                            time.sleep(3)
+                            continue
+                        else:
+                            print(f"❌ 페이지 로딩 실패 (최대 재시도 횟수 초과): {url}")
+                            break
+                    else:
+                        print(f"⚠️ 페이지 로딩 오류: {load_error}")
+                        if retry_count < max_retries:
+                            time.sleep(2)
+                            continue
+                        else:
+                            break
+            
+            if not page_loaded:
+                print(f"⚠️ 페이지 {page} 로딩 실패, 다음 페이지로 이동")
+                continue
             soup = BeautifulSoup(self.driver.page_source, "html.parser")
             posts = soup.select("div.info_post")
             print(f"[진행상황] 페이지 {page}에서 {len(posts)}개의 포스트 발견")
@@ -419,8 +451,39 @@ class NaverBlogCrawler(BaseCrawler):
                     continue
                 print(f"[진행상황] {page}페이지의 {idx}/{len(posts)} 번째 포스트 처리 중... ({post_progress:.1f}% 완료)")
                 print(f"[진행상황] 블로그 원문 접근: {link}")
-                self.driver.get(link)
-                time.sleep(2)
+                
+                # 페이지 로딩 재시도 로직
+                max_retries = 3
+                retry_count = 0
+                page_loaded = False
+                
+                while retry_count < max_retries and not page_loaded:
+                    try:
+                        self.driver.get(link)
+                        time.sleep(2)
+                        page_loaded = True
+                    except Exception as load_error:
+                        retry_count += 1
+                        error_msg = str(load_error)
+                        if "timeout" in error_msg.lower() or "Timed out" in error_msg:
+                            print(f"⚠️ 페이지 로딩 타임아웃 (시도 {retry_count}/{max_retries}): {link}")
+                            if retry_count < max_retries:
+                                time.sleep(3)  # 재시도 전 대기
+                                continue
+                            else:
+                                print(f"❌ 페이지 로딩 실패 (최대 재시도 횟수 초과): {link}")
+                                break
+                        else:
+                            print(f"⚠️ 페이지 로딩 오류: {load_error}")
+                            if retry_count < max_retries:
+                                time.sleep(2)
+                                continue
+                            else:
+                                break
+                
+                if not page_loaded:
+                    continue
+                
                 try:
                     recipe = self._process_blog_post_from_blog_page(link)
                     if recipe:
@@ -594,13 +657,40 @@ class NaverBlogCrawler(BaseCrawler):
         print(f"\n포스트 처리 중: {title}")
         print(f"링크: {link}")
         
-        # Get post content
-        self.driver.get(link)
-        time.sleep(2)
+        # Get post content - 재시도 로직 포함
+        max_retries = 3
+        retry_count = 0
+        page_loaded = False
+        
+        while retry_count < max_retries and not page_loaded:
+            try:
+                self.driver.get(link)
+                time.sleep(2)
+                page_loaded = True
+            except Exception as load_error:
+                retry_count += 1
+                error_msg = str(load_error)
+                if "timeout" in error_msg.lower() or "Timed out" in error_msg:
+                    if retry_count < max_retries:
+                        time.sleep(3)
+                        continue
+                    else:
+                        print(f"❌ 페이지 로딩 실패 (최대 재시도 횟수 초과): {link}")
+                        return None
+                else:
+                    if retry_count < max_retries:
+                        time.sleep(2)
+                        continue
+                    else:
+                        print(f"❌ 페이지 로딩 오류: {load_error}")
+                        return None
+        
+        if not page_loaded:
+            return None
         
         # Switch to iframe
         try:
-            iframe = WebDriverWait(self.driver, 10).until(
+            iframe = WebDriverWait(self.driver, 15).until(
                 EC.presence_of_element_located((By.ID, "mainFrame"))
             )
             self.driver.switch_to.frame(iframe)
@@ -826,7 +916,7 @@ class NaverBlogCrawler(BaseCrawler):
         try:
             # 네이버 블로그는 종종 iframe(mainFrame) 안에 본문이 있음
             try:
-                iframe = WebDriverWait(self.driver, 10).until(
+                iframe = WebDriverWait(self.driver, 15).until(
                     EC.presence_of_element_located((By.ID, "mainFrame"))
                 )
                 self.driver.switch_to.frame(iframe)
