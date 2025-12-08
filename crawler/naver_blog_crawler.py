@@ -33,19 +33,26 @@ from crawler.common.data_models import Recipe
 from crawler.common.constants import DB_CONFIG, NAVER_TARGETS, PLATFORM_NAVER
 from ingredient_management.update_used_ingredients_batch import extract_best_ingredient_block, extract_ingredients
 
-def hide_chrome_windows():
-    """Windows에서 Chrome 창을 강제로 숨기는 함수"""
+def hide_chrome_windows(driver=None):
+    """Windows에서 Selenium으로 생성된 Chrome 창만 숨기는 함수"""
     if not WINDOWS:
-        return
+        return 0
     
     try:
         # Windows API 상수
         SW_HIDE = 0
-        SW_MINIMIZE = 6
         
         # Windows API 함수 로드
         user32 = ctypes.windll.user32
-        kernel32 = ctypes.windll.kernel32
+        
+        # Selenium Chrome 창의 특정 속성들
+        selenium_indicators = [
+            'data:,',  # Selenium이 자주 사용하는 data: URL
+            'chrome driver',  # ChromeDriver 관련
+            'automation',  # 자동화 관련
+            '--test-type',  # 테스트 모드
+            '--disable-blink-features=automationcontrolled',  # 자동화 제어
+        ]
         
         def enum_windows_callback(hwnd, windows):
             """창 열거 콜백 함수"""
@@ -55,13 +62,37 @@ def hide_chrome_windows():
                 class_name = ctypes.create_unicode_buffer(256)
                 user32.GetClassNameW(hwnd, class_name, 256)
                 
-                # Chrome 관련 창 찾기
                 text = window_text.value.lower()
                 class_name_str = class_name.value.lower()
                 
-                if any(keyword in text or keyword in class_name_str for keyword in 
-                       ['chrome', 'chromedriver', 'selenium', 'automation']):
-                    # 창 숨기기
+                # Chrome 창인지 확인
+                is_chrome = class_name_str.startswith('chrome') or 'chrome' in class_name_str
+                
+                if not is_chrome:
+                    return True  # Chrome 창이 아니면 건너뛰기
+                
+                # 제외할 창들 (CMD, PowerShell, 일반 Chrome 등)
+                exclude_keywords = ['cmd', 'powershell', 'command', 'terminal', 'console', 'python']
+                is_excluded = any(exclude in text or exclude in class_name_str for exclude in exclude_keywords)
+                
+                if is_excluded:
+                    return True  # 제외 목록에 있으면 건너뛰기
+                
+                # Selenium으로 생성된 Chrome 창인지 확인 (더 엄격한 조건)
+                # 일반 Chrome은 보통 탭 제목이나 URL을 가지고 있지만, Selenium Chrome은 특정 패턴을 가짐
+                is_selenium_chrome = any(indicator in text for indicator in selenium_indicators)
+                
+                # 또는 창 제목이 비어있거나 특정 패턴을 가지는 경우 (Selenium Chrome의 특징)
+                if not text.strip() or len(text.strip()) < 3:
+                    # 제목이 거의 없는 경우는 Selenium Chrome일 가능성이 높음
+                    is_selenium_chrome = True
+                
+                # ChromeDriver 관련 클래스명
+                if 'chromedriver' in class_name_str or 'automation' in class_name_str:
+                    is_selenium_chrome = True
+                
+                if is_selenium_chrome:
+                    # Selenium Chrome 창만 숨기기
                     user32.ShowWindow(hwnd, SW_HIDE)
                     windows.append(hwnd)
             return True
@@ -226,19 +257,19 @@ class NaverBlogCrawler(BaseCrawler):
                     print(f"⚠️ Chrome 세션 확인 실패 (계속 진행): {test_error}")
                     # 확인 실패해도 계속 진행
                 
-                # Windows에서 Chrome 창 강제로 숨기기
+                # Windows에서 Selenium Chrome 창만 숨기기
                 if WINDOWS:
                     time.sleep(0.5)  # 창이 생성될 시간 대기
-                    hidden_count = hide_chrome_windows()
+                    hidden_count = hide_chrome_windows(self.driver)
                     if hidden_count > 0:
-                        print(f"✅ {hidden_count}개의 Chrome 창을 숨겼습니다")
+                        print(f"✅ {hidden_count}개의 Selenium Chrome 창을 숨겼습니다")
                     
-                    # 주기적으로 Chrome 창을 숨기는 스레드 시작
+                    # 주기적으로 Selenium Chrome 창만 숨기는 스레드 시작
                     import threading
                     def periodic_hide():
                         while hasattr(self, 'driver') and self.driver:
                             try:
-                                hide_chrome_windows()
+                                hide_chrome_windows(self.driver)
                                 time.sleep(1)  # 1초마다 체크
                             except:
                                 break
@@ -405,9 +436,9 @@ class NaverBlogCrawler(BaseCrawler):
         print(f"[결과] 총 처리된 포스트: {total_posts}")
         print(f"[결과] 총 저장된 포스트: {saved_posts} ({total_progress:.1f}% 성공률)")
         
-        # 드라이버 종료 전 마지막으로 창 숨기기
+        # 드라이버 종료 전 마지막으로 Selenium Chrome 창 숨기기
         if WINDOWS:
-            hide_chrome_windows()
+            hide_chrome_windows(self.driver)
         
         self.driver.quit()
         self.cursor.close()
