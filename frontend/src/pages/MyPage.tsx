@@ -497,14 +497,25 @@ const MyPage: React.FC = () => {
 
   return (
     <div className="bg-white min-h-screen max-w-[430px] mx-auto pb-24 relative">
-      {/* 상단 네비 */}
-      <header className="w-full h-[56px] flex items-center justify-between px-5 bg-white">
+      {/* 상단 네비 - 고정 */}
+      <header 
+        className="w-full h-[56px] flex items-center justify-between px-5 bg-white"
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 1000,
+          maxWidth: '430px',
+          margin: '0 auto'
+        }}
+      >
         <img src={logoImg} alt="냉털이 로고" className="h-4 w-auto" style={{ minWidth: 16 }} />
         <img src={searchIcon} alt="검색" className="h-4 w-4 mr-1 cursor-pointer" />
       </header>
       
       {/* 프로필 영역 */}
-      <section className="flex flex-col items-center justify-center gap-3 mb-[70px] mt-[64px]">
+      <section className="flex flex-col items-center justify-center gap-3 mb-[70px]" style={{ marginTop: '64px' }}>
         <img 
           src={myProfileImg} 
           alt="프로필" 

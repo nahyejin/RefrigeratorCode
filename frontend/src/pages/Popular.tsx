@@ -1031,7 +1031,7 @@ const Popular = () => {
   return (
     <>
       <TopNavBar />
-      <div className="popular-page" style={{padding: '32px 32px 80px 32px', maxWidth: 900, margin: '0 auto'}}>
+      <div className="popular-page" style={{padding: '88px 32px 80px 32px', maxWidth: 900, margin: '0 auto'}}>
         {/* 상단 타이틀 */}
         <header style={{marginBottom: 32}}>
           <h2 className="text-lg font-bold mb-4 text-center" style={{marginBottom: 32}}>
@@ -1430,7 +1430,7 @@ const Popular = () => {
                     <tr style={{borderTop: '1px solid #E5E5E5', borderBottom: '1px solid #E5E5E5', background: '#F7F7F9'}}>
                       <th className="py-1.5 px-2 text-center font-medium text-[#222] whitespace-nowrap">순위</th>
                       <th className="py-1.5 px-2 text-center font-medium text-[#222] whitespace-nowrap">요리명</th>
-                      <th className="py-1.5 px-2 text-right font-medium text-[#222] whitespace-nowrap">레시피 수</th>
+                      <th className="py-1.5 px-2 text-center font-medium text-[#222] whitespace-nowrap">레시피 수</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1447,9 +1447,9 @@ const Popular = () => {
                               {dish.name}
                             </span>
                           </td>
-                          <td className="py-1.5 px-2 text-right text-[#444] font-normal whitespace-nowrap">
-                            <div style={{display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px'}}>
-                              <span>{dish.count.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</span>
+                          <td className="py-1.5 px-2 text-center text-[#444] font-normal whitespace-nowrap">
+                            <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', position: 'relative', paddingRight: '8px'}}>
+                              <span style={{flex: 1, textAlign: 'center', paddingRight: '20px'}}>{dish.count.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</span>
                               {dish.isNew || dish.rate !== 0 ? (
                                 <span
                                   style={{
@@ -1460,7 +1460,9 @@ const Popular = () => {
                                     fontWeight: 600,
                                     backgroundColor: (dish.isNew || dish.rate >= 0) ? '#FFF5F5' : '#EFF6FF',
                                     color: (dish.isNew || dish.rate >= 0) ? '#E85A4F' : '#3A6EA5',
-                                    whiteSpace: 'nowrap'
+                                    whiteSpace: 'nowrap',
+                                    position: 'absolute',
+                                    right: 0
                                   }}
                                 >
                                   {dish.isNew ? '✦신규' : dish.multiplier && dish.multiplier >= 2 ? `▴${dish.multiplier}배` : dish.rate >= 0 ? `▴+${dish.rate}%` : `▾${dish.rate}%`}
@@ -1489,7 +1491,7 @@ const Popular = () => {
                     <tr style={{borderTop: '1px solid #E5E5E5', borderBottom: '1px solid #E5E5E5', background: '#F7F7F9'}}>
                       <th className="py-1.5 px-2 text-center font-medium text-[#222] whitespace-nowrap">순위</th>
                       <th className="py-1.5 px-2 text-center font-medium text-[#222] whitespace-nowrap">테마명</th>
-                      <th className="py-1.5 px-2 text-right font-medium text-[#222] whitespace-nowrap">레시피 수</th>
+                      <th className="py-1.5 px-2 text-center font-medium text-[#222] whitespace-nowrap">레시피 수</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1502,9 +1504,9 @@ const Popular = () => {
                               {theme.name}
                             </span>
                           </td>
-                          <td className="py-1.5 px-2 text-right text-[#444] font-normal whitespace-nowrap">
-                            <div style={{display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px'}}>
-                              <span>{theme.count.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</span>
+                          <td className="py-1.5 px-2 text-center text-[#444] font-normal whitespace-nowrap">
+                            <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', position: 'relative', paddingRight: '8px'}}>
+                              <span style={{flex: 1, textAlign: 'center', paddingRight: '20px'}}>{theme.count.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</span>
                               {theme.isNew || theme.rate !== 0 ? (
                                 <span
                                   style={{
@@ -1515,7 +1517,9 @@ const Popular = () => {
                                     fontWeight: 600,
                                     backgroundColor: (theme.isNew || theme.rate >= 0) ? '#FFF5F5' : '#EFF6FF',
                                     color: (theme.isNew || theme.rate >= 0) ? '#E85A4F' : '#3A6EA5',
-                                    whiteSpace: 'nowrap'
+                                    whiteSpace: 'nowrap',
+                                    position: 'absolute',
+                                    right: 0
                                   }}
                                 >
                                   {theme.isNew ? '✦신규' : theme.multiplier && theme.multiplier >= 2 ? `▴${theme.multiplier}배` : theme.rate >= 0 ? `▴+${theme.rate}%` : `▾${theme.rate}%`}

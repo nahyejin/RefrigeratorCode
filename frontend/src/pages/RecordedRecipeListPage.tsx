@@ -415,7 +415,18 @@ const RecordedRecipeListPage: React.FC = () => {
 
   return (
     <>
-      <header className="w-full h-[56px] flex items-center px-2 bg-white">
+      <header 
+        className="w-full h-[56px] flex items-center px-2 bg-white"
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 1000,
+          maxWidth: '100%',
+          margin: '0 auto'
+        }}
+      >
         <button
           className="px-2 focus:outline-none bg-transparent border-none shadow-none ml-2"
           style={{ minWidth: 40, background: 'transparent' }}
@@ -459,7 +470,7 @@ const RecordedRecipeListPage: React.FC = () => {
           boxSizing: 'border-box',
           paddingLeft: 14,
           paddingRight: 14,
-          paddingTop: 32,
+          paddingTop: 88, // 헤더 높이(56px) + 여백(32px)
         }}
       >
         <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 18, textAlign: 'center' }}>
