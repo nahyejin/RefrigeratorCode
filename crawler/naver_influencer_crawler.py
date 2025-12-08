@@ -22,6 +22,58 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
 
+# Windows에서 Chrome 창을 숨기기 위한 모듈
+try:
+    import ctypes
+    from ctypes import wintypes
+    WINDOWS = True
+except ImportError:
+    WINDOWS = False
+
+def hide_chrome_windows():
+    """Windows에서 Chrome 창을 강제로 숨기는 함수"""
+    if not WINDOWS:
+        return 0
+    
+    try:
+        # Windows API 상수
+        SW_HIDE = 0
+        
+        # Windows API 함수 로드
+        user32 = ctypes.windll.user32
+        
+        def enum_windows_callback(hwnd, windows):
+            """창 열거 콜백 함수"""
+            if user32.IsWindowVisible(hwnd):
+                window_text = ctypes.create_unicode_buffer(512)
+                user32.GetWindowTextW(hwnd, window_text, 512)
+                class_name = ctypes.create_unicode_buffer(256)
+                user32.GetClassNameW(hwnd, class_name, 256)
+                
+                # Chrome 관련 창 찾기
+                text = window_text.value.lower()
+                class_name_str = class_name.value.lower()
+                
+                if any(keyword in text or keyword in class_name_str for keyword in 
+                       ['chrome', 'chromedriver', 'selenium', 'automation']):
+                    # 창 숨기기
+                    user32.ShowWindow(hwnd, SW_HIDE)
+                    windows.append(hwnd)
+            return True
+        
+        # 콜백 함수 타입 정의
+        EnumWindowsProc = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.POINTER(ctypes.c_int), 
+                                            ctypes.POINTER(ctypes.c_int))
+        
+        windows_list = []
+        callback = EnumWindowsProc(lambda hwnd, lParam: enum_windows_callback(hwnd, windows_list))
+        user32.EnumWindows(callback, 0)
+        
+        return len(windows_list)
+    except Exception as e:
+        logger.warning(f"⚠️ Chrome 창 숨기기 실패: {e}")
+        return 0
+
 # Add the parent directory to Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from ingredient_management.update_used_ingredients_batch import extract_best_ingredient_block, extract_ingredients
@@ -45,6 +97,8 @@ class NaverInfluencerCrawler:
         self.max_retries = 3
         self.retry_delay = 2
         self.timeout = 10
+        self._hide_window_thread = None
+        self._driver = None
 
         # DNS 설정
         self._setup_dns()
@@ -230,8 +284,9 @@ class NaverInfluencerCrawler:
                 max_retries = 3
                 driver = None
                 
-                # Chrome 버전 확인
+                # Chrome 버전 확인 (타임아웃 증가 및 에러 무시)
                 chrome_version = None
+                chrome_full_version = None
                 try:
                     chrome_path = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
                     if os.path.exists(chrome_path):
@@ -239,19 +294,38 @@ class NaverInfluencerCrawler:
                             [chrome_path, "--version"],
                             capture_output=True,
                             text=True,
-                            timeout=5
+                            timeout=10,  # 타임아웃 증가
+                            creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == 'win32' else 0  # Windows에서 창 숨기기
                         )
                         if result.returncode == 0:
                             version_match = re.search(r'(\d+)\.(\d+)\.(\d+)\.(\d+)', result.stdout)
                             if version_match:
                                 chrome_version = version_match.group(1)
-                                logger.info(f"🔍 Chrome 버전 감지: {result.stdout.strip()}")
+                                chrome_full_version = version_match.group(0)
+                                logger.info(f"🔍 Chrome 버전 감지: {result.stdout.strip()} (메이저: {chrome_version})")
                 except Exception as e:
-                    logger.warning(f"⚠️ Chrome 버전 확인 실패: {e}")
+                    # 버전 확인 실패해도 계속 진행
+                    pass
                 
                 for attempt in range(max_retries):
                     try:
-                        driver_manager = ChromeDriverManager()
+                        # Chrome 버전이 115 이상이면 Chrome for Testing 사용
+                        logger.info(f"🔍 Chrome 버전 정보: 메이저={chrome_version}, 전체={chrome_full_version}")
+                        if chrome_version and int(chrome_version) >= 115:
+                            logger.info(f"🔧 Chrome {chrome_version} 감지 - Chrome for Testing 사용")
+                            if chrome_full_version:
+                                # 전체 버전 사용 (예: 143.0.7499.40)
+                                logger.info(f"📦 ChromeDriver 버전 {chrome_full_version} 요청")
+                                driver_manager = ChromeDriverManager(version=chrome_full_version)
+                            elif chrome_version:
+                                # 메이저 버전만 사용 (예: 143)
+                                logger.info(f"📦 ChromeDriver 버전 {chrome_version} 요청")
+                                driver_manager = ChromeDriverManager(version=chrome_version)
+                            else:
+                                driver_manager = ChromeDriverManager()
+                        else:
+                            logger.warning(f"⚠️ Chrome 버전 감지 실패 또는 구버전 - 기본 ChromeDriverManager 사용")
+                            driver_manager = ChromeDriverManager()
                         
                         # 캐시 삭제 후 재시도 (첫 번째 시도가 아닌 경우)
                         if attempt > 0:
@@ -266,7 +340,10 @@ class NaverInfluencerCrawler:
                         
                         # headless 옵션 추가 (Windows에서 강제 headless)
                         chrome_options = webdriver.ChromeOptions()
-                        chrome_options.add_argument('--headless')  # Windows에서 안정적인 headless 모드
+                        # "unable to discover open pages" 오류 방지를 위해 headless 모드 제거
+                        # 대신 창을 숨기는 방식 사용
+                        # chrome_options.add_argument('--headless')  # 일시적으로 비활성화
+                        
                         chrome_options.add_argument('--no-sandbox')
                         chrome_options.add_argument('--disable-dev-shm-usage')
                         chrome_options.add_argument('--disable-gpu')
@@ -274,14 +351,79 @@ class NaverInfluencerCrawler:
                         chrome_options.add_argument('--window-size=1920x1080')
                         chrome_options.add_argument('--disable-extensions')
                         chrome_options.add_argument('--disable-plugins')
-                        # DevTools 완전 비활성화
                         chrome_options.add_argument('--disable-logging')
-                        chrome_options.add_argument('--log-level=3')  # FATAL 레벨만
+                        chrome_options.add_argument('--log-level=3')
+                        chrome_options.add_argument('--disable-infobars')
+                        chrome_options.add_argument('--disable-notifications')
+                        chrome_options.add_argument('--disable-blink-features=AutomationControlled')
+                        # --no-startup-window 제거 (Windows에서 문제 발생 가능)
+                        chrome_options.add_argument('--disable-background-timer-throttling')
+                        chrome_options.add_argument('--disable-backgrounding-occluded-windows')
+                        chrome_options.add_argument('--disable-renderer-backgrounding')
+                        # 최소한의 옵션만 사용하여 안정성 향상
+                        # 디버깅 포트는 제거 (0으로 설정하면 문제 발생 가능)
                         chrome_options.add_experimental_option('excludeSwitches', ['enable-logging', 'enable-automation'])
                         chrome_options.add_experimental_option('useAutomationExtension', False)
+                        chrome_options.add_experimental_option("detach", False)
                         
-                        service = Service(driver_manager.install())
-                        driver = webdriver.Chrome(service=service, options=chrome_options)  # Chrome 드라이버 초기화
+                        # Chrome 실행 파일 경로 명시 (Windows)
+                        chrome_path = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
+                        if os.path.exists(chrome_path):
+                            chrome_options.binary_location = chrome_path
+                        
+                        # 환경 변수 설정
+                        os.environ['CHROME_NO_SANDBOX'] = '1'
+                        os.environ['CHROME_HEADLESS'] = '1'
+                        
+                        service = Service(
+                            driver_manager.install(),
+                            log_output=os.devnull  # 로그 출력 억제
+                        )
+                        logger.info("🔄 ChromeDriver 초기화 중...")
+                        try:
+                            driver = webdriver.Chrome(service=service, options=chrome_options)  # Chrome 드라이버 초기화
+                            self._driver = driver  # 인스턴스 변수에 저장
+                            logger.info("✅ ChromeDriver 인스턴스 생성 완료")
+                        except Exception as init_error:
+                            logger.error(f"❌ ChromeDriver 초기화 실패: {init_error}")
+                            raise
+                        
+                        # Chrome이 완전히 시작될 때까지 대기 (타임아웃 설정)
+                        logger.info("⏳ Chrome 시작 대기 중...")
+                        try:
+                            # 간단한 명령으로 Chrome이 응답하는지 확인 (타임아웃 5초)
+                            driver.set_page_load_timeout(5)
+                            driver.implicitly_wait(2)
+                            # capabilities 확인 (빠른 확인)
+                            capabilities = driver.capabilities
+                            if capabilities:
+                                logger.info(f"✅ Chrome 세션 확인 완료 (버전: {capabilities.get('browserVersion', 'unknown')})")
+                            else:
+                                logger.warning("⚠️ Chrome capabilities 확인 실패 (계속 진행)")
+                        except Exception as test_error:
+                            logger.warning(f"⚠️ Chrome 세션 확인 실패 (계속 진행): {test_error}")
+                            # 확인 실패해도 계속 진행
+                        
+                        # Windows에서 Chrome 창 강제로 숨기기
+                        if WINDOWS:
+                            time.sleep(0.5)  # 창이 생성될 시간 대기
+                            hidden_count = hide_chrome_windows()
+                            if hidden_count > 0:
+                                logger.info(f"✅ {hidden_count}개의 Chrome 창을 숨겼습니다")
+                            
+                            # 주기적으로 Chrome 창을 숨기는 스레드 시작
+                            import threading
+                            def periodic_hide():
+                                while hasattr(self, '_driver') and self._driver:
+                                    try:
+                                        hide_chrome_windows()
+                                        time.sleep(1)  # 1초마다 체크
+                                    except:
+                                        break
+                            
+                            self._hide_window_thread = threading.Thread(target=periodic_hide, daemon=True)
+                            self._hide_window_thread.start()
+                        
                         logger.info("✅ ChromeDriver 초기화 성공 (headless 모드)")
                         break
                     except Exception as e:
@@ -499,9 +641,14 @@ class NaverInfluencerCrawler:
         all_recipes = []
         
         # Selenium 웹드라이버 초기화 (headless 모드)
+        import os
         options = webdriver.ChromeOptions()
+        
         # Windows에서 headless 모드 강제 적용
-        options.add_argument('--headless')
+        # "unable to discover open pages" 오류 방지를 위해 headless 모드 제거
+        # 대신 창을 숨기는 방식 사용
+        # options.add_argument('--headless')  # 일시적으로 비활성화
+        
         options.add_argument('--no-sandbox')
         options.add_argument('--disable-dev-shm-usage')
         options.add_argument('--disable-gpu')
@@ -509,14 +656,29 @@ class NaverInfluencerCrawler:
         options.add_argument('--window-size=1920x1080')
         options.add_argument('--disable-extensions')
         options.add_argument('--disable-plugins')
-        # DevTools 완전 비활성화
         options.add_argument('--disable-logging')
-        options.add_argument('--log-level=3')  # FATAL 레벨만
+        options.add_argument('--log-level=3')
+        options.add_argument('--disable-infobars')
+        options.add_argument('--disable-notifications')
+        options.add_argument('--disable-blink-features=AutomationControlled')
+        # --no-startup-window 제거 (Windows에서 문제 발생 가능)
+        options.add_argument('--disable-background-timer-throttling')
+        options.add_argument('--disable-backgrounding-occluded-windows')
+        options.add_argument('--disable-renderer-backgrounding')
+        # 최소한의 옵션만 사용하여 안정성 향상
+        # 디버깅 포트는 제거 (0으로 설정하면 문제 발생 가능)
         options.add_experimental_option('excludeSwitches', ['enable-logging', 'enable-automation'])
         options.add_experimental_option('useAutomationExtension', False)
+        options.add_experimental_option("detach", False)
+        
+        # Chrome 실행 파일 경로 명시 (Windows)
+        chrome_path = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
+        if os.path.exists(chrome_path):
+            options.binary_location = chrome_path
+        
         # 환경 변수로 headless 강제
-        import os
         os.environ['CHROME_NO_SANDBOX'] = '1'
+        os.environ['CHROME_HEADLESS'] = '1'
         
         # ChromeDriver 자동 다운로드 및 초기화 (재시도 로직 포함)
         import shutil
@@ -525,8 +687,9 @@ class NaverInfluencerCrawler:
         max_retries = 3
         driver = None
         
-        # Chrome 버전 확인
+        # Chrome 버전 확인 (타임아웃 증가 및 에러 무시)
         chrome_version = None
+        chrome_full_version = None
         try:
             chrome_path = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
             if os.path.exists(chrome_path):
@@ -534,20 +697,39 @@ class NaverInfluencerCrawler:
                     [chrome_path, "--version"],
                     capture_output=True,
                     text=True,
-                    timeout=5
+                    timeout=10,  # 타임아웃 증가
+                    creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == 'win32' else 0  # Windows에서 창 숨기기
                 )
                 if result.returncode == 0:
                     version_match = re.search(r'(\d+)\.(\d+)\.(\d+)\.(\d+)', result.stdout)
                     if version_match:
                         chrome_version = version_match.group(1)
-                        logger.info(f"🔍 Chrome 버전 감지: {result.stdout.strip()}")
+                        chrome_full_version = version_match.group(0)
+                        logger.info(f"🔍 Chrome 버전 감지: {result.stdout.strip()} (메이저: {chrome_version})")
         except Exception as e:
-            logger.warning(f"⚠️ Chrome 버전 확인 실패: {e}")
+            # 버전 확인 실패해도 계속 진행
+            pass
         
         for attempt in range(max_retries):
             try:
                 # webdriver_manager 최신 버전 사용
-                driver_manager = ChromeDriverManager()
+                # Chrome 버전이 115 이상이면 Chrome for Testing 사용
+                logger.info(f"🔍 Chrome 버전 정보: 메이저={chrome_version}, 전체={chrome_full_version}")
+                if chrome_version and int(chrome_version) >= 115:
+                    logger.info(f"🔧 Chrome {chrome_version} 감지 - Chrome for Testing 사용")
+                    if chrome_full_version:
+                        # 전체 버전 사용 (예: 143.0.7499.40)
+                        logger.info(f"📦 ChromeDriver 버전 {chrome_full_version} 요청")
+                        driver_manager = ChromeDriverManager(version=chrome_full_version)
+                    elif chrome_version:
+                        # 메이저 버전만 사용 (예: 143)
+                        logger.info(f"📦 ChromeDriver 버전 {chrome_version} 요청")
+                        driver_manager = ChromeDriverManager(version=chrome_version)
+                    else:
+                        driver_manager = ChromeDriverManager()
+                else:
+                    logger.warning(f"⚠️ Chrome 버전 감지 실패 또는 구버전 - 기본 ChromeDriverManager 사용")
+                    driver_manager = ChromeDriverManager()
                 
                 # 캐시 삭제 후 재시도 (첫 번째 시도가 아닌 경우)
                 if attempt > 0:
@@ -559,8 +741,55 @@ class NaverInfluencerCrawler:
                         except Exception as cache_error:
                             logger.warning(f"⚠️ 캐시 삭제 실패: {cache_error}")
                 
-                service = Service(driver_manager.install())
-                driver = webdriver.Chrome(service=service, options=options)
+                service = Service(
+                    driver_manager.install(),
+                    log_output=os.devnull  # 로그 출력 억제
+                )
+                logger.info("🔄 ChromeDriver 초기화 중...")
+                try:
+                    driver = webdriver.Chrome(service=service, options=options)
+                    self._driver = driver  # 인스턴스 변수에 저장
+                    logger.info("✅ ChromeDriver 인스턴스 생성 완료")
+                except Exception as init_error:
+                    logger.error(f"❌ ChromeDriver 초기화 실패: {init_error}")
+                    raise
+                
+                # Chrome이 완전히 시작될 때까지 대기 (타임아웃 설정)
+                logger.info("⏳ Chrome 시작 대기 중...")
+                try:
+                    # 간단한 명령으로 Chrome이 응답하는지 확인 (타임아웃 5초)
+                    driver.set_page_load_timeout(5)
+                    driver.implicitly_wait(2)
+                    # capabilities 확인 (빠른 확인)
+                    capabilities = driver.capabilities
+                    if capabilities:
+                        logger.info(f"✅ Chrome 세션 확인 완료 (버전: {capabilities.get('browserVersion', 'unknown')})")
+                    else:
+                        logger.warning("⚠️ Chrome capabilities 확인 실패 (계속 진행)")
+                except Exception as test_error:
+                    logger.warning(f"⚠️ Chrome 세션 확인 실패 (계속 진행): {test_error}")
+                    # 확인 실패해도 계속 진행
+                
+                # Windows에서 Chrome 창 강제로 숨기기
+                if WINDOWS:
+                    time.sleep(0.5)  # 창이 생성될 시간 대기
+                    hidden_count = hide_chrome_windows()
+                    if hidden_count > 0:
+                        logger.info(f"✅ {hidden_count}개의 Chrome 창을 숨겼습니다")
+                    
+                    # 주기적으로 Chrome 창을 숨기는 스레드 시작
+                    import threading
+                    def periodic_hide():
+                        while hasattr(self, '_driver') and self._driver:
+                            try:
+                                hide_chrome_windows()
+                                time.sleep(1)  # 1초마다 체크
+                            except:
+                                break
+                    
+                    self._hide_window_thread = threading.Thread(target=periodic_hide, daemon=True)
+                    self._hide_window_thread.start()
+                
                 logger.info("✅ ChromeDriver 초기화 성공")
                 break
             except Exception as e:
@@ -645,7 +874,11 @@ class NaverInfluencerCrawler:
                     pbar.update(1)
                     pbar.set_postfix({'Current': f"{card['title'][:20]}..."})
         finally:
+            # 드라이버 종료 전 마지막으로 창 숨기기
+            if WINDOWS:
+                hide_chrome_windows()
             driver.quit()
+            self._driver = None  # 드라이버 참조 제거
             
         # 크롤링 완료
         logger.info("=== 네이버 인플루언서 크롤링 완료 ===")
