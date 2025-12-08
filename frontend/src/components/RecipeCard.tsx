@@ -192,6 +192,7 @@ export interface RecipeCardProps {
   substituteTable?: { [key: string]: any };
   hideIndexNumber?: boolean;
   showRank?: boolean;
+  onThumbnailError?: (recipeId: number) => void;
 }
 
 // RecipeCard는 UI만 담당, 상태/스토리지/토스트 등은 상위에서 관리
@@ -205,7 +206,42 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
   substituteTable = {},
   hideIndexNumber = false,
   showRank = false,
+  onThumbnailError,
 }) => {
+  // 썸네일 로드 상태 추적 (null: 검증 중, true: 성공, false: 실패)
+  const [thumbnailStatus, setThumbnailStatus] = React.useState<boolean | null>(null);
+  
+  // 이미지 로드 전 사전 검증
+  React.useEffect(() => {
+    if (!recipe.thumbnail || !recipe.thumbnail.trim()) {
+      // 썸네일이 없으면 즉시 실패 처리
+      if (onThumbnailError && recipe.id) {
+        onThumbnailError(recipe.id);
+      }
+      setThumbnailStatus(false);
+      return;
+    }
+    
+    // 이미지 URL 유효성 사전 검증
+    const img = new Image();
+    img.onload = () => {
+      setThumbnailStatus(true);
+    };
+    img.onerror = () => {
+      // 이미지 로드 실패 시 즉시 알림
+      if (onThumbnailError && recipe.id) {
+        onThumbnailError(recipe.id);
+      }
+      setThumbnailStatus(false);
+    };
+    img.src = getProxiedImageUrl(recipe.thumbnail);
+  }, [recipe.thumbnail, recipe.id, onThumbnailError]);
+  
+  // 썸네일이 실패했거나 아직 검증 중인 경우 카드를 렌더링하지 않음
+  if (thumbnailStatus === false || thumbnailStatus === null) {
+    return null;
+  }
+  
   // used_ingredients 파싱
   const usedIngredientList = Utils.parseIngredients(recipe.used_ingredients);
 
@@ -253,9 +289,16 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
     >
       <div style={STYLES.imageContainer}>
         <img
-          src={getProxiedImageUrl(recipe.thumbnail)}
+          src={getProxiedImageUrl(recipe.thumbnail || '')}
           alt="썸네일"
-          onError={e => { e.currentTarget.src = '/default-thumbnail.png'; }}
+          onError={e => {
+            // 썸네일 로드 실패 시 상위 컴포넌트에 알림 (레시피 숨기기용)
+            if (onThumbnailError && recipe.id) {
+              onThumbnailError(recipe.id);
+            }
+            setThumbnailStatus(false);
+            e.currentTarget.onerror = null; // 무한 루프 방지
+          }}
           style={{ ...STYLES.thumbnail, cursor: 'pointer' }}
         />
         {/* 순위 표시 (Popular 페이지에서만) */}

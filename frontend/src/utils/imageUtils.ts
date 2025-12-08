@@ -112,4 +112,28 @@ export function getProxiedImageUrl(url: string) {
   }
   // blogfiles.pstatic.net 등은 프록시 없이 원본 URL 사용
   return url;
+}
+
+/**
+ * 레시피에 유효한 썸네일이 있는지 확인
+ */
+export function hasValidThumbnail(recipe: { thumbnail?: string | null }): boolean {
+  if (!recipe.thumbnail) return false;
+  const thumbnail = recipe.thumbnail.trim();
+  if (thumbnail === '') return false;
+  
+  // 기본적인 URL 형식 체크
+  try {
+    const url = new URL(thumbnail);
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * 레시피 목록에서 썸네일이 없는 레시피를 필터링
+ */
+export function filterRecipesWithValidThumbnails<T extends { thumbnail?: string | null }>(recipes: T[]): T[] {
+  return recipes.filter(recipe => hasValidThumbnail(recipe));
 } 

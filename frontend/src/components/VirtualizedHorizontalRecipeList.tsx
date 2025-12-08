@@ -14,6 +14,7 @@ interface VirtualizedHorizontalRecipeListProps {
   gap?: number;
   showRank?: boolean;
   emptyMessage?: string | React.ReactNode;
+  onThumbnailError?: (recipeId: number) => void;
 }
 
 // 상수 정의
@@ -78,7 +79,8 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
   cardHeight = CONSTANTS.DEFAULT_CARD_HEIGHT,
   gap = CONSTANTS.DEFAULT_GAP,
   showRank = false,
-  emptyMessage = '레시피가 없습니다'
+  emptyMessage = '레시피가 없습니다',
+  onThumbnailError
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<any>(null);
@@ -216,6 +218,7 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
           myIngredients={myIngredients}
           substituteTable={substituteTable}
           showRank={showRank}
+          onThumbnailError={onThumbnailError}
         />
       </div>
     );

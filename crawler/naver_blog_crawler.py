@@ -65,8 +65,14 @@ def hide_chrome_windows(driver=None):
                 text = window_text.value.lower()
                 class_name_str = class_name.value.lower()
                 
-                # Chrome 창인지 확인
-                is_chrome = class_name_str.startswith('chrome') or 'chrome' in class_name_str
+                # Chrome 창인지 확인 (더 넓은 범위로 검사)
+                is_chrome = (
+                    class_name_str.startswith('chrome') or 
+                    'chrome' in class_name_str or
+                    'chromium' in class_name_str or
+                    class_name_str == 'chrome_widgetwin_1' or
+                    class_name_str == 'chrome_widgetwin_0'
+                )
                 
                 if not is_chrome:
                     return True  # Chrome 창이 아니면 건너뛰기
@@ -75,21 +81,34 @@ def hide_chrome_windows(driver=None):
                 exclude_keywords = ['cmd', 'powershell', 'command', 'terminal', 'console', 'python']
                 is_excluded = any(exclude in text or exclude in class_name_str for exclude in exclude_keywords)
                 
+                # 일반 Chrome 브라우저는 보통 제목이 길거나 특정 패턴을 가짐
+                # Selenium Chrome은 제목이 비어있거나 매우 짧음
+                if len(text.strip()) > 10:
+                    # 제목이 긴 경우는 일반 Chrome 브라우저일 가능성이 높음
+                    # 하지만 확실하지 않으므로 특정 패턴 확인
+                    if any(keyword in text for keyword in ['google', 'youtube', 'naver', 'http', 'www', 'chrome://']):
+                        # 일반 Chrome 브라우저로 보임
+                        return True
+                
                 if is_excluded:
                     return True  # 제외 목록에 있으면 건너뛰기
                 
                 # Selenium으로 생성된 Chrome 창인지 확인 (더 엄격한 조건)
-                # 일반 Chrome은 보통 탭 제목이나 URL을 가지고 있지만, Selenium Chrome은 특정 패턴을 가짐
                 is_selenium_chrome = any(indicator in text for indicator in selenium_indicators)
                 
-                # 또는 창 제목이 비어있거나 특정 패턴을 가지는 경우 (Selenium Chrome의 특징)
-                if not text.strip() or len(text.strip()) < 3:
-                    # 제목이 거의 없는 경우는 Selenium Chrome일 가능성이 높음
+                # 창 제목이 비어있거나 매우 짧은 경우 (Selenium Chrome의 특징)
+                if not text.strip() or len(text.strip()) < 5:
                     is_selenium_chrome = True
                 
                 # ChromeDriver 관련 클래스명
                 if 'chromedriver' in class_name_str or 'automation' in class_name_str:
                     is_selenium_chrome = True
+                
+                # Chrome_WidgetWin_1 클래스는 일반 Chrome과 Selenium Chrome 모두에서 사용
+                # 제목이 거의 없거나 특정 패턴을 가진 경우 Selenium Chrome으로 판단
+                if 'chrome_widgetwin' in class_name_str:
+                    if not text.strip() or len(text.strip()) < 5:
+                        is_selenium_chrome = True
                 
                 if is_selenium_chrome:
                     # Selenium Chrome 창만 숨기기
@@ -125,11 +144,8 @@ class NaverBlogCrawler(BaseCrawler):
         options = Options()
         
         # Windows에서 headless 모드 강제 적용
-        # "unable to discover open pages" 오류 방지를 위해 headless 모드 제거
-        # 대신 창을 숨기는 방식 사용 (hide_chrome_windows 함수 사용)
-        # options.add_argument("--headless")  # 일시적으로 비활성화
-        
-        # 필수 headless 옵션들
+        # 최신 Chrome에서는 --headless=new가 더 안정적
+        options.add_argument("--headless=new")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--disable-gpu")
@@ -142,10 +158,15 @@ class NaverBlogCrawler(BaseCrawler):
         options.add_argument("--disable-infobars")
         options.add_argument("--disable-notifications")
         options.add_argument("--disable-blink-features=AutomationControlled")
-        # --no-startup-window 제거 (Windows에서 문제 발생 가능)
         options.add_argument("--disable-background-timer-throttling")
         options.add_argument("--disable-backgrounding-occluded-windows")
         options.add_argument("--disable-renderer-backgrounding")
+        # 창이 보이지 않도록 추가 옵션
+        options.add_argument("--start-maximized")
+        options.add_argument("--disable-web-security")
+        options.add_argument("--disable-features=TranslateUI")
+        options.add_argument("--hide-scrollbars")
+        options.add_argument("--mute-audio")
         # 최소한의 옵션만 사용하여 안정성 향상
         
         # 디버깅 포트는 제거 (0으로 설정하면 문제 발생 가능)
@@ -258,20 +279,21 @@ class NaverBlogCrawler(BaseCrawler):
                     print(f"⚠️ Chrome 세션 확인 실패 (계속 진행): {test_error}")
                     # 확인 실패해도 계속 진행
                 
-                # Windows에서 Selenium Chrome 창만 숨기기
+                # Windows에서 headless 모드가 실패한 경우를 대비해 창 숨기기 (이중 보호)
                 if WINDOWS:
-                    time.sleep(0.5)  # 창이 생성될 시간 대기
+                    # 즉시 한 번 실행
+                    time.sleep(0.1)  # 창이 생성될 시간 대기 (최소화)
                     hidden_count = hide_chrome_windows(self.driver)
                     if hidden_count > 0:
                         print(f"✅ {hidden_count}개의 Selenium Chrome 창을 숨겼습니다")
                     
-                    # 주기적으로 Selenium Chrome 창만 숨기는 스레드 시작
+                    # 주기적으로 Selenium Chrome 창만 숨기는 스레드 시작 (더 빠르게)
                     import threading
                     def periodic_hide():
                         while hasattr(self, 'driver') and self.driver:
                             try:
                                 hide_chrome_windows(self.driver)
-                                time.sleep(1)  # 1초마다 체크
+                                time.sleep(0.1)  # 0.1초마다 체크 (더 빠르게)
                             except:
                                 break
                     
@@ -412,6 +434,9 @@ class NaverBlogCrawler(BaseCrawler):
             while retry_count < max_retries and not page_loaded:
                 try:
                     self.driver.get(url)
+                    # 페이지 로드 후 즉시 창 숨기기
+                    if WINDOWS:
+                        hide_chrome_windows(self.driver)
                     WebDriverWait(self.driver, 15).until(
                         EC.presence_of_element_located((By.CLASS_NAME, "info_post"))
                     )
@@ -460,6 +485,9 @@ class NaverBlogCrawler(BaseCrawler):
                 while retry_count < max_retries and not page_loaded:
                     try:
                         self.driver.get(link)
+                        # 페이지 로드 후 즉시 창 숨기기
+                        if WINDOWS:
+                            hide_chrome_windows(self.driver)
                         time.sleep(2)
                         page_loaded = True
                     except Exception as load_error:

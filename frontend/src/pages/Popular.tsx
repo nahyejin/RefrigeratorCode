@@ -12,7 +12,7 @@ import { getUniversalIngredientPillInfo } from '../utils/ingredientPillUtils';
 import IngredientPillGroup from '../components/IngredientPillGroup';
 import axios from 'axios';
 import { Recipe } from '../types/recipe';
-import { getProxiedImageUrl } from '../utils/imageUtils';
+import { getProxiedImageUrl, filterRecipesWithValidThumbnails } from '../utils/imageUtils';
 import { calculateMatchRate } from '../utils/recipeUtils';
 import naverLogo from '../assets/썸네일_naverlogo.png';
 import youtubeLogo from '../assets/썸네일_youtubelogo.png';
@@ -652,6 +652,8 @@ const Popular = () => {
   const [dishRankings, setDishRankings] = useState<any[]>([]);
   const [youtubeRecipes, setYoutubeRecipes] = useState<any[]>([]);
   const [naverRecipes, setNaverRecipes] = useState<any[]>([]);
+  // 썸네일 로드 실패한 레시피 ID 추적 (404 등)
+  const [failedThumbnailIds, setFailedThumbnailIds] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     fetch('/ingredient_profile_dict_with_substitutes.csv')
@@ -943,9 +945,31 @@ const Popular = () => {
 
         console.log('YouTube 레시피:', youtubeData);
         console.log('Naver 레시피:', naverData);
+        
+        // 썸네일이 없는 레시피 필터링
+        const filteredYoutubeData = Array.isArray(youtubeData) 
+          ? filterRecipesWithValidThumbnails(youtubeData)
+          : [];
+        const filteredNaverData = Array.isArray(naverData)
+          ? filterRecipesWithValidThumbnails(naverData)
+          : [];
+        
+        // 필터링된 레시피 수 로깅
+        if (Array.isArray(youtubeData) && youtubeData.length > 0) {
+          const filteredCount = youtubeData.length - filteredYoutubeData.length;
+          if (filteredCount > 0) {
+            console.log(`⚠️ 썸네일 없는 YouTube 레시피 ${filteredCount}개 필터링됨`);
+          }
+        }
+        if (Array.isArray(naverData) && naverData.length > 0) {
+          const filteredCount = naverData.length - filteredNaverData.length;
+          if (filteredCount > 0) {
+            console.log(`⚠️ 썸네일 없는 Naver 레시피 ${filteredCount}개 필터링됨`);
+          }
+        }
 
-        setYoutubeRecipes(Array.isArray(youtubeData) ? youtubeData : []);
-        setNaverRecipes(Array.isArray(naverData) ? naverData : []);
+        setYoutubeRecipes(filteredYoutubeData);
+        setNaverRecipes(filteredNaverData);
         setLoading(false); // 로딩 완료
       } catch (err) {
         console.error('Failed to fetch popular recipes:', err);
@@ -1344,17 +1368,20 @@ const Popular = () => {
             </div>
             <span style={{ color: '#666', fontSize: '12px' }}>총 {youtubeRecipes.length}건</span>
           </div>
-          <VirtualizedHorizontalRecipeList
-            recipes={youtubeRecipes}
-            myIngredients={myIngredients}
-            substituteTable={{}}
-            recipeActionStates={buttonStates}
-            onRecipeAction={(recipe, action) => handleRecipeAction(recipe.id, { action: action as 'done' | 'write' | 'share' })}
-            cardWidth={320}
-            cardHeight={320}
-            gap={16}
-            showRank={true}
-          />
+           <VirtualizedHorizontalRecipeList
+             recipes={youtubeRecipes.filter(recipe => !failedThumbnailIds.has(recipe.id))}
+             myIngredients={myIngredients}
+             substituteTable={{}}
+             recipeActionStates={buttonStates}
+             onRecipeAction={(recipe, action) => handleRecipeAction(recipe.id, { action: action as 'done' | 'write' | 'share' })}
+             cardWidth={320}
+             cardHeight={320}
+             gap={16}
+             showRank={true}
+             onThumbnailError={(recipeId) => {
+               setFailedThumbnailIds(prev => new Set([...prev, recipeId]));
+             }}
+           />
         </section>
 
         {/* ⓒ 네이버 인기 레시피 섹션 */}
@@ -1404,17 +1431,20 @@ const Popular = () => {
             </div>
             <span style={{ color: '#666', fontSize: '12px' }}>총 {naverRecipes.length}건</span>
           </div>
-          <VirtualizedHorizontalRecipeList
-            recipes={naverRecipes}
-            myIngredients={myIngredients}
-            substituteTable={{}}
-            recipeActionStates={buttonStates}
-            onRecipeAction={(recipe, action) => handleRecipeAction(recipe.id, { action: action as 'done' | 'write' | 'share' })}
-            cardWidth={320}
-            cardHeight={320}
-            gap={16}
-            showRank={true}
-          />
+           <VirtualizedHorizontalRecipeList
+             recipes={naverRecipes.filter(recipe => !failedThumbnailIds.has(recipe.id))}
+             myIngredients={myIngredients}
+             substituteTable={{}}
+             recipeActionStates={buttonStates}
+             onRecipeAction={(recipe, action) => handleRecipeAction(recipe.id, { action: action as 'done' | 'write' | 'share' })}
+             cardWidth={320}
+             cardHeight={320}
+             gap={16}
+             showRank={true}
+             onThumbnailError={(recipeId) => {
+               setFailedThumbnailIds(prev => new Set([...prev, recipeId]));
+             }}
+           />
         </section>
 
         {/* 인기 급상승 요리 TOP 10 섹션 */}
