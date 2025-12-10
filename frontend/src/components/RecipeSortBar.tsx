@@ -177,7 +177,7 @@ const STYLES = {
     display: 'flex' as const,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
-    zIndex: 100
+    zIndex: 1001
   },
   modalContent: {
     backgroundColor: '#fff',
@@ -907,7 +907,7 @@ const RecipeSortBar = ({
                     ×
                   </button>
                 </span>
-              )) : <span style={{...STYLES.ingredientPill, color: '#9CA3AF'}}>재료를 선택해 주세요</span>}
+              )) : <span style={{color: '#9CA3AF', fontSize: 13}}>재료를 선택해 주세요</span>}
             </div>
             {/* 재료 리스트 스크롤 영역 */}
             <div style={STYLES.ingredientList}>

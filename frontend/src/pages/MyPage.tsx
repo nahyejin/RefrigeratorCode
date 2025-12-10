@@ -760,7 +760,7 @@ const MyPage: React.FC = () => {
       
       {/* 내 정보 수정 모달 */}
       {editOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-start justify-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-start justify-center" style={{ zIndex: 1001 }}>
           <div 
             className="bg-white rounded-xl shadow-lg w-[370px] max-w-[95vw] relative max-h-[90vh] overflow-y-auto scrollbar-none" 
             style={{scrollbarWidth:'none'}} 

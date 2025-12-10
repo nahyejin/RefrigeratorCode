@@ -111,7 +111,7 @@ export default function IngredientDetailModal({ isOpen, onClose, ingredient, onC
   return isOpen && (
     <>
       {step === 'select' && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50" onClick={onClose}>
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center" style={{ zIndex: 1001 }} onClick={onClose}>
           <div
             className="relative bg-white rounded-2xl shadow-2xl w-[370px] max-w-[92vw] p-8"
             onClick={e => e.stopPropagation()}

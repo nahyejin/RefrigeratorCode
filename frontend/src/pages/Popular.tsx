@@ -1121,7 +1121,7 @@ const Popular = () => {
 
         {/* 기간선택 모달 */}
         {dateModalOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50" onClick={() => {
+          <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center" style={{ zIndex: 1001 }} onClick={() => {
             setDateModalOpen(false);
             // 모달을 닫을 때 임시 상태를 원래 상태로 복원
             if (dateRange[0] && dateRange[1]) {
@@ -1198,7 +1198,8 @@ const Popular = () => {
                   {calendarStartOpen && (
                     <>
                       <div 
-                        className="fixed inset-0 bg-black bg-opacity-30 z-40"
+                        className="fixed inset-0 bg-black bg-opacity-30"
+                        style={{ zIndex: 1002 }}
                         onClick={() => setCalendarStartOpen(false)}
                       />
                       <div 
@@ -1271,7 +1272,8 @@ const Popular = () => {
                   {calendarEndOpen && (
                     <>
                       <div 
-                        className="fixed inset-0 bg-black bg-opacity-30 z-40"
+                        className="fixed inset-0 bg-black bg-opacity-30"
+                        style={{ zIndex: 1002 }}
                         onClick={() => setCalendarEndOpen(false)}
                       />
                       <div 

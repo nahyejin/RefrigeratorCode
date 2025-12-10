@@ -263,6 +263,28 @@ const FilterModal: React.FC<FilterModalProps> = ({
   const [ingredientDict, setIngredientDict] = useState<string[]>([]);
   const [isMobile, setIsMobile] = useState(false);
   
+  // 모달 내부 임시 상태 (적용 버튼을 눌러야만 실제 상태에 반영)
+  const [tempFilterState, setTempFilterState] = useState<FilterState>(filterState);
+  const [tempIncludeIngredients, setTempIncludeIngredients] = useState<string[]>(includeIngredients);
+  const [tempExcludeIngredients, setTempExcludeIngredients] = useState<string[]>(excludeIngredients);
+  const [tempIncludeInput, setTempIncludeInput] = useState<string>(includeInput);
+  const [tempExcludeInput, setTempExcludeInput] = useState<string>(excludeInput);
+  const [tempIncludeKeyword, setTempIncludeKeyword] = useState<string>(includeKeyword);
+  const [tempSelectedChannel, setTempSelectedChannel] = useState<string[]>(selectedChannel);
+  
+  // 모달이 열릴 때 초기 상태 저장
+  useEffect(() => {
+    if (open) {
+      setTempFilterState(filterState);
+      setTempIncludeIngredients(includeIngredients);
+      setTempExcludeIngredients(excludeIngredients);
+      setTempIncludeInput(includeInput);
+      setTempExcludeInput(excludeInput);
+      setTempIncludeKeyword(includeKeyword);
+      setTempSelectedChannel(selectedChannel);
+    }
+  }, [open, filterState, includeIngredients, excludeIngredients, includeInput, excludeInput, includeKeyword, selectedChannel]);
+  
   // 모바일 화면 크기 감지
   useEffect(() => {
     const checkMobile = () => {
@@ -319,67 +341,98 @@ const FilterModal: React.FC<FilterModalProps> = ({
       });
   }, [setFilterKeywordTree]);
 
-  const includeCandidates = AutoCompleteUtils.getFilteredCandidates(includeInput, includeIngredients, ingredientDict);
-  const excludeCandidates = AutoCompleteUtils.getFilteredCandidates(excludeInput, excludeIngredients, ingredientDict);
+  const includeCandidates = AutoCompleteUtils.getFilteredCandidates(tempIncludeInput, tempIncludeIngredients, ingredientDict);
+  const excludeCandidates = AutoCompleteUtils.getFilteredCandidates(tempExcludeInput, tempExcludeIngredients, ingredientDict);
 
-  // 선택된 키워드 pills 생성
+  // 선택된 키워드 pills 생성 (임시 상태 사용)
   const selectedKeywordPills: { main: string; keyword: string }[] = [];
-  Object.entries(filterState || {}).forEach(([main, arr]) => {
+  Object.entries(tempFilterState || {}).forEach(([main, arr]) => {
     (arr || []).forEach((keyword: string) => {
       selectedKeywordPills.push({ main, keyword });
     });
   });
 
-  // 채널 선택 핸들러
+  // 채널 선택 핸들러 (임시 상태 사용)
   const handleChannelChange = (channel: string, checked: boolean) => {
     if (checked) {
-      setSelectedChannel([...selectedChannel, channel]);
+      setTempSelectedChannel([...tempSelectedChannel, channel]);
     } else {
-      setSelectedChannel(selectedChannel.filter(c => c !== channel));
+      setTempSelectedChannel(tempSelectedChannel.filter(c => c !== channel));
     }
   };
 
-  // 키워드 선택/해제 핸들러
+  // 키워드 선택/해제 핸들러 (임시 상태 사용)
   const handleKeywordToggle = (main: string, keyword: string) => {
-    setFilterState({
-      ...filterState,
+    setTempFilterState({
+      ...tempFilterState,
       [main]: [keyword] // Allow only single selection
     });
   };
 
-  // 키워드 제거 핸들러
+  // 키워드 제거 핸들러 (임시 상태 사용)
   const handleKeywordRemove = (main: string, keyword: string) => {
-    setFilterState({
-      ...filterState,
-      [main]: (filterState[main] || []).filter(k => k !== keyword)
+    setTempFilterState({
+      ...tempFilterState,
+      [main]: (tempFilterState[main] || []).filter(k => k !== keyword)
     });
+  };
+  
+  // [x] 버튼 클릭 핸들러 - 변경사항 무시하고 모달만 닫기
+  const handleClose = () => {
+    // 임시 상태를 초기 상태로 복원 (변경사항 무시)
+    setTempFilterState(filterState);
+    setTempIncludeIngredients(includeIngredients);
+    setTempExcludeIngredients(excludeIngredients);
+    setTempIncludeInput(includeInput);
+    setTempExcludeInput(excludeInput);
+    setTempIncludeKeyword(includeKeyword);
+    setTempSelectedChannel(selectedChannel);
+    // 입력 필드도 초기화
+    setIncludeInput(includeInput);
+    setExcludeInput(excludeInput);
+    onClose();
   };
 
   if (!open) return null;
 
-  console.log('Selected filter options:', {
-    includeKeyword,
-    includeIngredients,
-    excludeIngredients,
+  console.log('Selected filter options (temp):', {
+    includeKeyword: tempIncludeKeyword,
+    includeIngredients: tempIncludeIngredients,
+    excludeIngredients: tempExcludeIngredients,
     selectedKeywordPills,
-    selectedChannel
+    selectedChannel: tempSelectedChannel
   });
 
   const handleApplyFilters = () => {
+    // 임시 상태를 실제 상태에 반영
+    setFilterState(tempFilterState);
+    setIncludeIngredients(tempIncludeIngredients);
+    setExcludeIngredients(tempExcludeIngredients);
+    setIncludeInput(tempIncludeInput);
+    setExcludeInput(tempExcludeInput);
+    setIncludeKeyword(tempIncludeKeyword);
+    setSelectedChannel(tempSelectedChannel);
+    
     const options = {
-      includeKeyword,
-      includeIngredients,
-      excludeIngredients,
+      includeKeyword: tempIncludeKeyword,
+      includeIngredients: tempIncludeIngredients,
+      excludeIngredients: tempExcludeIngredients,
       selectedCategoryKeywords: selectedKeywordPills,
-      selectedChannel
+      selectedChannel: tempSelectedChannel
     };
     console.log('Applying filters with options:', options);
-    // Call the function to apply filters with the options
-    onApply(options);
+    
+    // 모달을 먼저 닫기
+    onClose();
+    
+    // 그 다음 필터 적용 (비동기로 실행하여 모달이 닫힌 후 실행되도록)
+    setTimeout(() => {
+      onApply(options);
+    }, 0);
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center" style={{ zIndex: 1001 }}>
       <div 
         className="bg-white rounded-xl shadow-lg w-[340px] max-w-[95vw] relative" 
         style={{
@@ -390,7 +443,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
         }}
       >
         <div className="sticky top-0 z-10 bg-white" style={STYLES.header}>
-          <span className="absolute top-3 right-3 w-6 h-6 text-gray-400 text-xl cursor-pointer select-none" onClick={onClose} role="button" aria-label="닫기" style={STYLES.closeButton}>×</span>
+          <span className="absolute top-3 right-3 w-6 h-6 text-gray-400 text-xl cursor-pointer select-none" onClick={handleClose} role="button" aria-label="닫기" style={STYLES.closeButton}>×</span>
           <div className="text-center font-bold text-[12.8px] mb-4 pt-1">필터를 설정해 주세요</div>
           <div className="border-b border-gray-200"></div>
         </div>
@@ -404,7 +457,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                   type="checkbox"
                   name="channel"
                   value="youtube"
-                  checked={(selectedChannel || []).includes('youtube')}
+                  checked={(tempSelectedChannel || []).includes('youtube')}
                   onChange={e => handleChannelChange('youtube', e.target.checked)}
                   className="w-4 h-4"
                 />
@@ -415,7 +468,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                   type="checkbox"
                   name="channel"
                   value="naver"
-                  checked={(selectedChannel || []).includes('naver')}
+                  checked={(tempSelectedChannel || []).includes('naver')}
                   onChange={e => handleChannelChange('naver', e.target.checked)}
                   className="w-4 h-4"
                 />
@@ -433,8 +486,8 @@ const FilterModal: React.FC<FilterModalProps> = ({
               <input
                 className="w-full border rounded px-3 py-2 text-[10px]"
                 placeholder="필수 키워드 입력"
-                value={includeKeyword || ''}
-                onChange={e => setIncludeKeyword(e.target.value)}
+                value={tempIncludeKeyword || ''}
+                onChange={e => setTempIncludeKeyword(e.target.value)}
               />
             </div>
             <div className="mt-2">
@@ -443,11 +496,11 @@ const FilterModal: React.FC<FilterModalProps> = ({
                 <input
                   className="w-full border rounded px-3 py-2 text-[10px]"
                   placeholder="포함할 재료 입력"
-                  value={includeInput || ''}
-                  onChange={e => setIncludeInput(e.target.value)}
+                  value={tempIncludeInput || ''}
+                  onChange={e => setTempIncludeInput(e.target.value)}
                   onFocus={() => setIncludeFocus(true)}
                   onBlur={() => setTimeout(() => setIncludeFocus(false), 150)}
-                  onKeyDown={AutoCompleteUtils.createInputHandler(includeInput, includeCandidates, ingredientDict, setIncludeIngredients, setIncludeInput, setIncludeFocus)}
+                  onKeyDown={AutoCompleteUtils.createInputHandler(tempIncludeInput, includeCandidates, ingredientDict, setTempIncludeIngredients, setTempIncludeInput, setIncludeFocus)}
                 />
                 {includeFocus && includeCandidates.length > 0 && (
                   <ul className="absolute left-0 right-0 bg-white border border-gray-200 rounded-lg mt-1 shadow z-10 max-h-32 overflow-y-auto custom-scrollbar">
@@ -455,7 +508,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                       <li
                         key={item}
                         className="px-4 py-2 hover:bg-[#f4f0e6] cursor-pointer text-[12px]"
-                        onMouseDown={AutoCompleteUtils.createItemClickHandler(item, setIncludeIngredients, setIncludeInput, setIncludeFocus)}
+                        onMouseDown={AutoCompleteUtils.createItemClickHandler(item, setTempIncludeIngredients, setTempIncludeInput, setIncludeFocus)}
                       >{item}</li>
                     ))}
                   </ul>
@@ -463,14 +516,14 @@ const FilterModal: React.FC<FilterModalProps> = ({
               </div>
               {/* chips for includeIngredients */}
               <div className="flex flex-wrap gap-1 mb-2">
-                {(includeIngredients || []).map(ing => (
+                {(tempIncludeIngredients || []).map(ing => (
                   <span key={ing} className="bg-yellow-100 text-yellow-800 rounded-full px-3 py-1 text-xs font-medium flex items-center">
                     {ing}
                     <button
                       type="button"
                       className="ml-1 text-yellow-700 hover:text-yellow-900 focus:outline-none"
                       style={STYLES.chipButton}
-                      onClick={() => setIncludeIngredients((includeIngredients || []).filter(i => i !== ing))}
+                      onClick={() => setTempIncludeIngredients((tempIncludeIngredients || []).filter(i => i !== ing))}
                       aria-label="제거"
                     >×</button>
                   </span>
@@ -481,11 +534,11 @@ const FilterModal: React.FC<FilterModalProps> = ({
                 <input
                   className="w-full border rounded px-3 py-2 text-[10px]"
                   placeholder="제외할 재료 입력"
-                  value={excludeInput || ''}
-                  onChange={e => setExcludeInput(e.target.value)}
+                  value={tempExcludeInput || ''}
+                  onChange={e => setTempExcludeInput(e.target.value)}
                   onFocus={() => setExcludeFocus(true)}
                   onBlur={() => setTimeout(() => setExcludeFocus(false), 150)}
-                  onKeyDown={AutoCompleteUtils.createInputHandler(excludeInput, excludeCandidates, ingredientDict, setExcludeIngredients, setExcludeInput, setExcludeFocus)}
+                  onKeyDown={AutoCompleteUtils.createInputHandler(tempExcludeInput, excludeCandidates, ingredientDict, setTempExcludeIngredients, setTempExcludeInput, setExcludeFocus)}
                 />
                 {excludeFocus && excludeCandidates.length > 0 && (
                   <ul className="absolute left-0 right-0 bg-white border border-gray-200 rounded-lg mt-1 shadow z-10 max-h-32 overflow-y-auto custom-scrollbar">
@@ -493,7 +546,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                       <li
                         key={item}
                         className="px-4 py-2 hover:bg-[#f4f0e6] cursor-pointer text-[12px]"
-                        onMouseDown={AutoCompleteUtils.createItemClickHandler(item, setExcludeIngredients, setExcludeInput, setExcludeFocus)}
+                        onMouseDown={AutoCompleteUtils.createItemClickHandler(item, setTempExcludeIngredients, setTempExcludeInput, setExcludeFocus)}
                       >{item}</li>
                     ))}
                   </ul>
@@ -501,14 +554,14 @@ const FilterModal: React.FC<FilterModalProps> = ({
               </div>
               {/* chips for excludeIngredients */}
               <div className="flex flex-wrap gap-1 mb-2">
-                {(excludeIngredients || []).map(ing => (
+                {(tempExcludeIngredients || []).map(ing => (
                   <span key={ing} className="bg-gray-200 text-gray-800 rounded-full px-3 py-1 text-xs font-medium flex items-center">
                     {ing}
                     <button
                       type="button"
                       className="ml-1 text-gray-700 hover:text-gray-900 focus:outline-none"
                       style={STYLES.chipButton}
-                      onClick={() => setExcludeIngredients((excludeIngredients || []).filter(i => i !== ing))}
+                      onClick={() => setTempExcludeIngredients((tempExcludeIngredients || []).filter(i => i !== ing))}
                       aria-label="제거"
                     >×</button>
                   </span>
@@ -582,7 +635,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                                           <button
                                             key={keyword}
                                             className={`rounded-full px-3 py-0.5 font-medium text-[10.4px] mb-1 transition-colors ${
-                                              ((filterState || {})[main] || []).includes(keyword) ? 'bg-[#555] text-white' : 'bg-white text-[#555] shadow-sm'
+                                              ((tempFilterState || {})[main] || []).includes(keyword) ? 'bg-[#555] text-white' : 'bg-white text-[#555] shadow-sm'
                                             }`}
                                             onClick={() => handleKeywordToggle(main, keyword)}
                                           >{keyword}</button>
