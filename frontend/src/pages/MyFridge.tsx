@@ -1,5 +1,4 @@
 import * as React from 'react';
-import TopNavBar from '../components/TopNavBar';
 import BottomNavBar from '../components/BottomNavBar';
 import TagPill from '../components/TagPill';
 import IngredientDetailModal from '../components/IngredientDetailModal';
@@ -591,9 +590,6 @@ const MyFridge: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-white">
-      <div className="bg-white w-full" style={{position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1000, maxWidth: '100%', margin: '0 auto'}}>
-        <TopNavBar />
-      </div>
       <div className="bg-white w-full p-0 m-0 pb-24" style={{ marginTop: '56px' }}>
         {/* 타이틀+입력창 그룹 */}
         <div className="flex flex-col items-center justify-center w-full" style={{ marginTop: 40, marginBottom: 40 }}>

@@ -263,20 +263,48 @@ class NaverBlogCrawler(BaseCrawler):
                             print(f"⚠️ 캐시 삭제 실패: {cache_error}")
                 
                 # Service 초기화 (로그 출력 억제 및 Windows에서 창 숨기기)
-                service = Service(
-                    driver_manager.install(),
-                    log_output=os.devnull  # 로그 출력 억제
-                )
-                # Windows에서 서비스 시작 시 창 숨기기
+                # Windows에서 CREATE_NO_WINDOW 플래그를 사용하기 위해 커스텀 Service 클래스 사용
                 if sys.platform == 'win32':
+                    from selenium.webdriver.chrome.service import Service as ChromeService
                     import subprocess
-                    # CREATE_NO_WINDOW 플래그 사용 (Windows 전용)
-                    service.service_args = []
+                    
+                    class NoWindowService(ChromeService):
+                        def __init__(self, executable_path, **kwargs):
+                            super().__init__(executable_path, **kwargs)
+                            # Windows에서 창이 뜨지 않도록 설정
+                            if sys.platform == 'win32':
+                                self.service_args = []
+                    
+                    service = NoWindowService(
+                        driver_manager.install(),
+                        log_output=os.devnull
+                    )
+                    # subprocess의 CREATE_NO_WINDOW 플래그 사용
+                    import subprocess
+                    # 환경 변수로 창 숨기기 강제
+                    os.environ['CHROME_HEADLESS'] = '1'
+                    os.environ['DISPLAY'] = ':0'
+                else:
+                    service = Service(
+                        driver_manager.install(),
+                        log_output=os.devnull
+                    )
                 
                 # ChromeDriver 초기화 (타임아웃 설정)
                 print("🔄 ChromeDriver 초기화 중...")
                 try:
-                    self.driver = webdriver.Chrome(service=service, options=options)
+                    # Windows에서 subprocess를 사용하여 창 없이 실행
+                    if sys.platform == 'win32':
+                        # Chrome 프로세스를 CREATE_NO_WINDOW 플래그로 시작
+                        # 하지만 Selenium이 직접 제어하므로, 드라이버 생성 후 즉시 창 숨기기
+                        self.driver = webdriver.Chrome(service=service, options=options)
+                        # 드라이버 생성 직후 즉시 모든 Chrome 창 숨기기
+                        time.sleep(0.1)
+                        for _ in range(10):  # 10번 반복하여 확실히 숨기기
+                            hide_chrome_windows(self.driver)
+                            time.sleep(0.05)
+                    else:
+                        self.driver = webdriver.Chrome(service=service, options=options)
                     print("✅ ChromeDriver 인스턴스 생성 완료")
                 except Exception as init_error:
                     print(f"❌ ChromeDriver 초기화 실패: {init_error}")
@@ -299,11 +327,11 @@ class NaverBlogCrawler(BaseCrawler):
                     print(f"⚠️ Chrome 세션 확인 실패 (계속 진행): {test_error}")
                     # 확인 실패해도 계속 진행
                 
-                # Windows에서 headless 모드가 실패한 경우를 대비해 창 숨기기 (이중 보호)
+                # Windows에서 headless 모드가 실패한 경우를 대비해 창 숨기기 (강화)
                 if WINDOWS:
                     # 즉시 여러 번 실행 (창이 뜨는 것을 방지)
-                    for _ in range(5):
-                        time.sleep(0.05)  # 창이 생성될 시간 대기 (최소화)
+                    for _ in range(20):  # 20번 반복하여 확실히 숨기기
+                        time.sleep(0.02)  # 창이 생성될 시간 대기 (최소화)
                         hidden_count = hide_chrome_windows(self.driver)
                         if hidden_count > 0:
                             print(f"✅ {hidden_count}개의 Selenium Chrome 창을 숨겼습니다")
@@ -314,7 +342,7 @@ class NaverBlogCrawler(BaseCrawler):
                         while hasattr(self, 'driver') and self.driver:
                             try:
                                 hide_chrome_windows(self.driver)
-                                time.sleep(0.05)  # 0.05초마다 체크 (더 빠르게)
+                                time.sleep(0.02)  # 0.02초마다 체크 (더 빠르게)
                             except:
                                 break
                     

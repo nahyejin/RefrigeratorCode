@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import BottomNavBar from '../components/BottomNavBar';
-import TopNavBar from '../components/TopNavBar';
 import FilterModal from '../components/FilterModal';
 import IngredientDateModal from '../components/IngredientDateModal';
 import CustomCalendar from '../components/CustomCalendar';
@@ -1054,7 +1053,6 @@ const Popular = () => {
 
   return (
     <>
-      <TopNavBar />
       <div className="popular-page" style={{padding: '88px 32px 80px 32px', maxWidth: 900, margin: '0 auto'}}>
         {/* 상단 타이틀 */}
         <header style={{marginBottom: 32}}>

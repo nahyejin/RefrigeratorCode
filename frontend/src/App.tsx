@@ -1,10 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import AppRouter from './routes/AppRouter';
 import SplashScreen from './components/SplashScreen';
 import OfflineIndicator from './components/OfflineIndicator';
 
 function App() {
-  const [showSplash, setShowSplash] = useState(true);
+  // 한 번이라도 스플래시를 본 세션에서는 다시 표시하지 않음 (모바일 새로고침 시 재등장 방지)
+  const hasSeenSplashRef = useRef(sessionStorage.getItem('splashShown') === 'true');
+  const [showSplash, setShowSplash] = useState(!hasSeenSplashRef.current);
   const [recipeCount, setRecipeCount] = useState(0);
   const [splashKey, setSplashKey] = useState(0);
   
@@ -13,6 +15,8 @@ function App() {
   console.log(import.meta.env);
 
   useEffect(() => {
+    if (!showSplash) return;
+
     // 실제 API 연동: 전체 레시피 개수 가져오기
     const apiUrl = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'https://refrigeratorcode-production.up.railway.app';
     fetch(`${apiUrl}/api/recipes`)
@@ -30,13 +34,15 @@ function App() {
         setRecipeCount(0);
       });
     
-    // 스플래시 화면을 5초 동안 표시
+    // 스플래시 화면을 짧게 표시 (2초) 후 세션에 기록
     const timer = setTimeout(() => {
       console.log('스플래시 화면 종료');
       setShowSplash(false);
-    }, 5000);
+      sessionStorage.setItem('splashShown', 'true');
+    }, 2000);
+
     return () => clearTimeout(timer);
-  }, []);
+  }, [showSplash]);
 
   // recipeCount가 변경될 때마다 로그 출력
   useEffect(() => {

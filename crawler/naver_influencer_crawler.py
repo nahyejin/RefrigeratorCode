@@ -415,14 +415,39 @@ class NaverInfluencerCrawler:
                         os.environ['CHROME_NO_SANDBOX'] = '1'
                         os.environ['CHROME_HEADLESS'] = '1'
                         
-                        service = Service(
-                            driver_manager.install(),
-                            log_output=os.devnull  # 로그 출력 억제
-                        )
+                        # Windows에서 CREATE_NO_WINDOW 플래그를 사용하기 위해 커스텀 Service 클래스 사용
+                        if sys.platform == 'win32':
+                            from selenium.webdriver.chrome.service import Service as ChromeService
+                            
+                            class NoWindowService(ChromeService):
+                                def __init__(self, executable_path, **kwargs):
+                                    super().__init__(executable_path, **kwargs)
+                                    # Windows에서 창이 뜨지 않도록 설정
+                                    if sys.platform == 'win32':
+                                        self.service_args = []
+                            
+                            service = NoWindowService(
+                                driver_manager.install(),
+                                log_output=os.devnull
+                            )
+                        else:
+                            service = Service(
+                                driver_manager.install(),
+                                log_output=os.devnull
+                            )
+                        
                         logger.info("🔄 ChromeDriver 초기화 중...")
                         try:
                             driver = webdriver.Chrome(service=service, options=chrome_options)  # Chrome 드라이버 초기화
                             self._driver = driver  # 인스턴스 변수에 저장
+                            
+                            # Windows에서 드라이버 생성 직후 즉시 모든 Chrome 창 숨기기
+                            if sys.platform == 'win32':
+                                time.sleep(0.1)
+                                for _ in range(10):  # 10번 반복하여 확실히 숨기기
+                                    hide_chrome_windows(driver)
+                                    time.sleep(0.05)
+                            
                             logger.info("✅ ChromeDriver 인스턴스 생성 완료")
                         except Exception as init_error:
                             logger.error(f"❌ ChromeDriver 초기화 실패: {init_error}")
@@ -447,8 +472,8 @@ class NaverInfluencerCrawler:
                         # Windows에서 Selenium Chrome 창만 숨기기 (강화)
                         if WINDOWS:
                             # 즉시 여러 번 실행 (창이 뜨는 것을 방지)
-                            for _ in range(5):
-                                time.sleep(0.05)  # 창이 생성될 시간 대기
+                            for _ in range(20):  # 20번 반복하여 확실히 숨기기
+                                time.sleep(0.02)  # 창이 생성될 시간 대기
                                 hidden_count = hide_chrome_windows(driver)
                                 if hidden_count > 0:
                                     logger.info(f"✅ {hidden_count}개의 Selenium Chrome 창을 숨겼습니다")
@@ -459,7 +484,7 @@ class NaverInfluencerCrawler:
                                 while hasattr(self, '_driver') and self._driver:
                                     try:
                                         hide_chrome_windows(self._driver)
-                                        time.sleep(0.05)  # 0.05초마다 체크 (더 빠르게)
+                                        time.sleep(0.02)  # 0.02초마다 체크 (더 빠르게)
                                     except:
                                         break
                             
@@ -790,14 +815,39 @@ class NaverInfluencerCrawler:
                         except Exception as cache_error:
                             logger.warning(f"⚠️ 캐시 삭제 실패: {cache_error}")
                 
-                service = Service(
-                    driver_manager.install(),
-                    log_output=os.devnull  # 로그 출력 억제
-                )
+                # Windows에서 CREATE_NO_WINDOW 플래그를 사용하기 위해 커스텀 Service 클래스 사용
+                if sys.platform == 'win32':
+                    from selenium.webdriver.chrome.service import Service as ChromeService
+                    
+                    class NoWindowService(ChromeService):
+                        def __init__(self, executable_path, **kwargs):
+                            super().__init__(executable_path, **kwargs)
+                            # Windows에서 창이 뜨지 않도록 설정
+                            if sys.platform == 'win32':
+                                self.service_args = []
+                    
+                    service = NoWindowService(
+                        driver_manager.install(),
+                        log_output=os.devnull
+                    )
+                else:
+                    service = Service(
+                        driver_manager.install(),
+                        log_output=os.devnull
+                    )
+                
                 logger.info("🔄 ChromeDriver 초기화 중...")
                 try:
                     driver = webdriver.Chrome(service=service, options=options)
                     self._driver = driver  # 인스턴스 변수에 저장
+                    
+                    # Windows에서 드라이버 생성 직후 즉시 모든 Chrome 창 숨기기
+                    if sys.platform == 'win32':
+                        time.sleep(0.1)
+                        for _ in range(10):  # 10번 반복하여 확실히 숨기기
+                            hide_chrome_windows(driver)
+                            time.sleep(0.05)
+                    
                     logger.info("✅ ChromeDriver 인스턴스 생성 완료")
                 except Exception as init_error:
                     logger.error(f"❌ ChromeDriver 초기화 실패: {init_error}")
@@ -819,27 +869,27 @@ class NaverInfluencerCrawler:
                     logger.warning(f"⚠️ Chrome 세션 확인 실패 (계속 진행): {test_error}")
                     # 확인 실패해도 계속 진행
                 
-                # Windows에서 Selenium Chrome 창만 숨기기 (강화)
-                if WINDOWS:
-                    # 즉시 여러 번 실행 (창이 뜨는 것을 방지)
-                    for _ in range(5):
-                        time.sleep(0.05)  # 창이 생성될 시간 대기
-                        hidden_count = hide_chrome_windows(driver)
-                        if hidden_count > 0:
-                            logger.info(f"✅ {hidden_count}개의 Selenium Chrome 창을 숨겼습니다")
-                    
-                    # 주기적으로 Selenium Chrome 창만 숨기는 스레드 시작 (더 빠르게)
-                    import threading
-                    def periodic_hide():
-                        while hasattr(self, '_driver') and self._driver:
-                            try:
-                                hide_chrome_windows(self._driver)
-                                time.sleep(0.05)  # 0.05초마다 체크 (더 빠르게)
-                            except:
-                                break
-                    
-                    self._hide_window_thread = threading.Thread(target=periodic_hide, daemon=True)
-                    self._hide_window_thread.start()
+                        # Windows에서 Selenium Chrome 창만 숨기기 (강화)
+                        if WINDOWS:
+                            # 즉시 여러 번 실행 (창이 뜨는 것을 방지)
+                            for _ in range(20):  # 20번 반복하여 확실히 숨기기
+                                time.sleep(0.02)  # 창이 생성될 시간 대기
+                                hidden_count = hide_chrome_windows(driver)
+                                if hidden_count > 0:
+                                    logger.info(f"✅ {hidden_count}개의 Selenium Chrome 창을 숨겼습니다")
+                            
+                            # 주기적으로 Selenium Chrome 창만 숨기는 스레드 시작 (더 빠르게)
+                            import threading
+                            def periodic_hide():
+                                while hasattr(self, '_driver') and self._driver:
+                                    try:
+                                        hide_chrome_windows(self._driver)
+                                        time.sleep(0.02)  # 0.02초마다 체크 (더 빠르게)
+                                    except:
+                                        break
+                            
+                            self._hide_window_thread = threading.Thread(target=periodic_hide, daemon=True)
+                            self._hide_window_thread.start()
                 
                 logger.info("✅ ChromeDriver 초기화 성공")
                 break

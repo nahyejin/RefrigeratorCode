@@ -1,7 +1,8 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { Suspense, lazy } from 'react';
 import SplashScreen from '../components/SplashScreen';
 import ScrollToTop from '../components/ScrollToTop';
+import TopNavBar from '../components/TopNavBar';
 import Login from '../pages/Login';
 import FridgeSelect from '../pages/FridgeSelect';
 import IngredientInput from '../pages/IngredientInput';
@@ -44,11 +45,55 @@ const RecipeDetail = lazy(() => import('../pages/RecipeDetail'));
  * 애플리케이션의 메인 라우터
  * 지연 로딩을 통해 성능을 최적화하고, 스플래시 스크린을 제공합니다.
  */
-function AppRouter() {
+// GNB를 표시할 경로 목록 (로그인 페이지 등은 제외)
+const SHOW_NAVBAR_PATHS = ['/', '/recipe-list', '/my-fridge', '/popular', '/my-page', '/ingredient', '/mypage', '/recipe-detail'];
+
+function AppContent() {
+  const location = useLocation();
+  const showNavBar = SHOW_NAVBAR_PATHS.some(path => location.pathname.startsWith(path));
+  
   return (
-    <Router>
-      <ScrollToTop />
-      <Suspense fallback={<SplashScreen recipeCount={0} />}>
+    <>
+      {/* GNB는 항상 표시 (로그인 페이지 제외) */}
+      {showNavBar && <TopNavBar />}
+      {/* 라우트 지연 로딩 시 GNB 아래에만 스피너 표시 */}
+      <Suspense
+        fallback={
+          <div
+            style={{
+              width: '100%',
+              padding: '12px',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginTop: showNavBar ? '56px' : '0',
+              minHeight: showNavBar ? 'calc(100vh - 56px)' : '100vh'
+            }}
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 44 44"
+              xmlns="http://www.w3.org/2000/svg"
+              aria-label="로딩 중"
+            >
+              <g fill="none" fillRule="evenodd" strokeWidth="4">
+                <circle cx="22" cy="22" r="20" stroke="#e5e7eb" />
+                <path d="M42 22c0-11.046-8.954-20-20-20" stroke="#9ca3af">
+                  <animateTransform
+                    attributeName="transform"
+                    type="rotate"
+                    from="0 22 22"
+                    to="360 22 22"
+                    dur="0.8s"
+                    repeatCount="indefinite"
+                  />
+                </path>
+              </g>
+            </svg>
+          </div>
+        }
+      >
         <Routes>
           {/* 홈 페이지 - RecipeList로 리다이렉트 */}
           <Route 
@@ -123,6 +168,15 @@ function AppRouter() {
           />
         </Routes>
       </Suspense>
+    </>
+  );
+}
+
+function AppRouter() {
+  return (
+    <Router>
+      <ScrollToTop />
+      <AppContent />
     </Router>
   );
 }

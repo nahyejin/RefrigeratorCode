@@ -2,7 +2,6 @@ import axios, { AxiosResponse } from 'axios';
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import BottomNavBar from '../components/BottomNavBar';
 import { useNavigate, useLocation } from 'react-router-dom';
-import TopNavBar from '../components/TopNavBar';
 import doneIcon from '../assets/done.svg';
 import shareIcon from '../assets/share.svg';
 import writeIcon from '../assets/write.svg';
@@ -737,7 +736,6 @@ const RecipeList: React.FC = () => {
 
   return (
     <>
-      <TopNavBar />
       <div 
         className="mx-auto pb-20 bg-white"
         style={{
