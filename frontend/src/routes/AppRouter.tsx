@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Suspense, lazy } from 'react';
 import SplashScreen from '../components/SplashScreen';
+import ScrollToTop from '../components/ScrollToTop';
 import Login from '../pages/Login';
 import FridgeSelect from '../pages/FridgeSelect';
 import IngredientInput from '../pages/IngredientInput';
@@ -46,6 +47,7 @@ const RecipeDetail = lazy(() => import('../pages/RecipeDetail'));
 function AppRouter() {
   return (
     <Router>
+      <ScrollToTop />
       <Suspense fallback={<SplashScreen recipeCount={0} />}>
         <Routes>
           {/* 홈 페이지 - RecipeList로 리다이렉트 */}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import logoImg from '../assets/냉털이 로고 white.png';
 import searchIcon from '../assets/navigator_search.png';
@@ -321,9 +321,13 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
   const [includeIngredients, setIncludeIngredients] = useState<string[]>([]);
   const [excludeIngredients, setExcludeIngredients] = useState<string[]>([]);
   const [filterKeywordTree, setFilterKeywordTree] = useState<any>(null);
-  const [ingredientSynonyms, setIngredientSynonyms] = useState<string[]>([]);
-  const [isIngredient, setIsIngredient] = useState<boolean>(true);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const pageSize = 50;  // 페이지당 레시피 수
+  
+  // 키워드 변경 추적용 ref (컴포넌트 최상위 레벨)
+  const prevNameRef = useRef(name);
 
   const myIngredients = useMemo(() => getMyIngredients(), []);
   const myIngredientObjects = getMyIngredientObjects();
@@ -467,50 +471,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
   // 사이드 이펙트
   // =====================
 
-  // 재료 정보 로드
-  useEffect(() => {
-    setLoading(true);
-    console.log('IngredientDetail - CSV 로드 시작, name:', name);
-    fetch(CSV_INGREDIENT_URL)
-      .then(res => res.text())
-      .then(csv => {
-        const lines = csv.split('\n');
-        const header = lines[0].split(',');
-        const nameIdx = header.indexOf('keyword');
-        const synIdx = header.indexOf('synonyms');
-        const catIdx = header.indexOf('대분류');
-        
-        if (nameIdx === -1) {
-          console.log('IngredientDetail - CSV 헤더에 keyword 없음, 기본값 사용');
-          setIngredientSynonyms([decodeURIComponent(name)]);
-          setIsIngredient(true);
-          return;
-        }
-        
-        const found = lines.slice(1).find(line => {
-          const cols = line.split(',');
-          return cols[nameIdx]?.trim() === decodeURIComponent(name);
-        });
-        
-        if (found) {
-          const cols = found.split(',');
-          const base = cols[nameIdx]?.trim();
-          const syns = synIdx !== -1 ? cols[synIdx]?.split('|').map(s => s.trim()).filter(Boolean) : [];
-          console.log('IngredientDetail - CSV에서 찾음, base:', base, 'syns:', syns);
-          setIngredientSynonyms([base, ...syns]);
-          setIsIngredient(cols[catIdx]?.trim() === '재료');
-        } else {
-          console.log('IngredientDetail - CSV에서 못 찾음, 기본값 사용');
-          setIngredientSynonyms([decodeURIComponent(name)]);
-          setIsIngredient(true);
-        }
-      })
-      .catch(error => {
-        console.error('Error loading ingredient CSV:', error);
-        setIngredientSynonyms([decodeURIComponent(name)]);
-        setIsIngredient(true);
-      });
-  }, [name]);
+  // CSV 로딩 제거 - 단순 키워드 검색으로 변경
 
   // 레시피 데이터 로드
   useEffect(() => {
@@ -528,53 +489,31 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
       return;
     }
     
-    // ingredientSynonyms가 비어있으면 아직 CSV 로딩 중이므로 대기
-    if (ingredientSynonyms.length === 0) {
-      return;
-    }
-    
     const fetchData = async () => {
-      console.log('IngredientDetail - fetchData 시작');
-      console.log('IngredientDetail - ingredientSynonyms:', ingredientSynonyms);
-      console.log('IngredientDetail - isIngredient:', isIngredient);
+      console.log('IngredientDetail - fetchData 시작, keyword:', name, 'page:', page);
       console.log('IngredientDetail - startDate:', startDate, 'endDate:', endDate);
       
       try {
         const apiUrl = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'https://refrigeratorcode-production.up.railway.app';
+        const searchKeyword = decodeURIComponent(name);
         
-        // /api/recipes는 기간 필터를 지원하지 않으므로 전체 데이터를 가져온 후 클라이언트에서 필터링
-        const recipeResponse = await axios.get(`${apiUrl}/api/recipes`);
-        console.log('IngredientDetail - API 응답 받음, 전체 레시피 수:', recipeResponse.data?.length || recipeResponse.data?.recipes?.length || 0);
+        // 서버 사이드 키워드 검색 API 사용 (페이징 적용)
+        const recipeResponse = await axios.get(`${apiUrl}/api/recipes/search`, {
+          params: {
+            keyword: searchKeyword,
+            page: page,
+            size: pageSize
+          }
+        });
         
-        // 응답 데이터 형식 확인 (배열 또는 객체)
-        const allRecipes = Array.isArray(recipeResponse.data) 
-          ? recipeResponse.data 
-          : (recipeResponse.data?.recipes || []);
+        let filtered = Array.isArray(recipeResponse.data?.recipes) 
+          ? recipeResponse.data.recipes 
+          : [];
         
-        console.log('IngredientDetail - 처리할 레시피 수:', allRecipes.length);
+        const totalCount = recipeResponse.data?.total || 0;
+        setTotal(totalCount);
         
-        let filtered = [];
-        
-        if (isIngredient) {
-          // 재료: used_ingredients에 동의어 포함
-          filtered = allRecipes.filter((r: Recipe) => {
-            const ingredientsArr = toIngredientArray(r.used_ingredients).map(i => i.replace(/\s/g, ''));
-            return ingredientSynonyms.some(syn => ingredientsArr.includes(syn.replace(/\s/g, '')));
-          });
-          console.log('IngredientDetail - 재료 필터링 후:', filtered.length);
-        } else {
-          // 테마: title/content에 동의어 포함 && 2번 이상 등장
-          filtered = allRecipes.filter((r: Recipe) => {
-            const text = ((r.title || '') + ' ' + (r.content || '')).toLowerCase();
-            return ingredientSynonyms.some(syn => {
-              if (!syn) return false;
-              const regex = new RegExp(syn.replace(/[.*+?^${}()|[\\\]]/g, '\\$&'), 'g');
-              const matches = text.match(regex);
-              return matches && matches.length >= 2;
-            });
-          });
-          console.log('IngredientDetail - 테마 필터링 후:', filtered.length);
-        }
+        console.log('IngredientDetail - 서버에서 필터링된 레시피 수:', filtered.length, '전체:', totalCount);
         
         // 기간 필터 적용 (클라이언트 사이드)
         if (startDate && endDate) {
@@ -597,14 +536,62 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
       } catch (error) {
         console.error('IngredientDetail - Error fetching data:', error);
         setRecipes([]);
+        setTotal(0);
       } finally {
         console.log('IngredientDetail - fetchData 완료, 로딩 해제');
         setLoading(false);
       }
     };
     
+    // 키워드가 변경되면 첫 페이지로 리셋
+    if (name && location.pathname.startsWith('/ingredient/') && prevNameRef.current !== name) {
+      prevNameRef.current = name;
+      setPage(1);
+      // 페이지가 리셋되면 다음 렌더에서 fetchData가 실행됨
+      return;
+    }
+    prevNameRef.current = name;
+    
     fetchData();
-  }, [name, location.pathname, location.search, ingredientSynonyms, isIngredient, startDate, endDate]);
+  }, [name, location.pathname, location.search, startDate, endDate, page]);
+
+  // 페이지 변경 핸들러
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+    // 페이지 상단으로 즉시 스크롤
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  };
+  
+  // 페이지 변경 시 데이터 로딩 완료 후 스크롤 (useLayoutEffect로 DOM 업데이트 직후 실행)
+  useLayoutEffect(() => {
+    if (!loading && recipes.length > 0 && location.pathname.startsWith('/ingredient/')) {
+      // 레이아웃이 완전히 렌더링된 후 상단으로 스크롤
+      const scrollToTop = () => {
+        window.scrollTo({ top: 0, behavior: 'instant' });
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+        // 모든 스크롤 가능한 요소도 확인
+        const scrollableElements = document.querySelectorAll('[data-scroll-container]');
+        scrollableElements.forEach((el: any) => {
+          if (el.scrollTop !== undefined) el.scrollTop = 0;
+        });
+      };
+      
+      // 즉시 실행
+      scrollToTop();
+      
+      // requestAnimationFrame으로 한 번 더
+      requestAnimationFrame(() => {
+        scrollToTop();
+        // 추가로 약간의 지연 후 한 번 더 (레이아웃 완전 반영 대기)
+        setTimeout(() => {
+          scrollToTop();
+        }, 200);
+      });
+    }
+  }, [page, loading, recipes.length, location.pathname]);
 
   // 대체재료 테이블 로드
   useEffect(() => {
@@ -873,7 +860,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
               </div>
             </div>
             <span style={{ color: '#666', fontSize: '12px' }}>
-              총 {processedRecipes.length.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}건
+              총 {total > 0 ? total.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') : processedRecipes.length.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}건
             </span>
           </div>
           
@@ -885,6 +872,202 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
               recipeActionStates={buttonStates}
               onRecipeAction={(recipe, action) => handleRecipeAction(recipe.id, { action: action as 'done' | 'write' | 'share' })}
             />
+            
+            {/* 페이지네이션 */}
+            {!loading && total > 0 && location.pathname.startsWith('/ingredient/') && (() => {
+              const totalPages = Math.ceil(total / pageSize);
+              const maxVisiblePages = 5;
+              let startPage = Math.max(1, page - Math.floor(maxVisiblePages / 2));
+              let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+              
+              if (endPage - startPage < maxVisiblePages - 1) {
+                startPage = Math.max(1, endPage - maxVisiblePages + 1);
+              }
+              
+              return (
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  gap: '4px',
+                  marginTop: '24px',
+                  marginBottom: '24px',
+                  flexWrap: 'wrap'
+                }}>
+                  {/* 맨 처음으로 << */}
+                  <button
+                    onClick={() => handlePageChange(1)}
+                    disabled={page <= 1}
+                    style={{
+                      padding: '6px 8px',
+                      background: 'transparent',
+                      color: page <= 1 ? '#d1d5db' : '#222',
+                      fontWeight: '500',
+                      border: 'none',
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      cursor: page <= 1 ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.2s',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      minWidth: '32px',
+                      height: '32px'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (page > 1) {
+                        e.currentTarget.style.background = '#f5f5f5';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (page > 1) {
+                        e.currentTarget.style.background = 'transparent';
+                      }
+                    }}
+                  >
+                    &laquo;
+                  </button>
+                  
+                  {/* 이전 페이지 < */}
+                  <button
+                    onClick={() => handlePageChange(page - 1)}
+                    disabled={page <= 1}
+                    style={{
+                      padding: '6px 8px',
+                      background: 'transparent',
+                      color: page <= 1 ? '#d1d5db' : '#222',
+                      fontWeight: '500',
+                      border: 'none',
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      cursor: page <= 1 ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.2s',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      minWidth: '32px',
+                      height: '32px'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (page > 1) {
+                        e.currentTarget.style.background = '#f5f5f5';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (page > 1) {
+                        e.currentTarget.style.background = 'transparent';
+                      }
+                    }}
+                  >
+                    &lsaquo;
+                  </button>
+                  
+                  {/* 페이지 번호 */}
+                  {Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i).map((pageNum) => (
+                    <button
+                      key={pageNum}
+                      onClick={() => handlePageChange(pageNum)}
+                      style={{
+                        padding: '6px 12px',
+                        background: pageNum === page ? '#FFD600' : 'transparent',
+                        color: pageNum === page ? '#222' : '#222',
+                        fontWeight: pageNum === page ? '600' : '500',
+                        border: 'none',
+                        borderRadius: '6px',
+                        fontSize: '14px',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        minWidth: '32px',
+                        height: '32px'
+                      }}
+                      onMouseEnter={(e) => {
+                        if (pageNum !== page) {
+                          e.currentTarget.style.background = '#f5f5f5';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (pageNum !== page) {
+                          e.currentTarget.style.background = 'transparent';
+                        }
+                      }}
+                    >
+                      {pageNum}
+                    </button>
+                  ))}
+                  
+                  {/* 다음 페이지 > */}
+                  <button
+                    onClick={() => handlePageChange(page + 1)}
+                    disabled={page >= totalPages}
+                    style={{
+                      padding: '6px 8px',
+                      background: 'transparent',
+                      color: page >= totalPages ? '#d1d5db' : '#222',
+                      fontWeight: '500',
+                      border: 'none',
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      cursor: page >= totalPages ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.2s',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      minWidth: '32px',
+                      height: '32px'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (page < totalPages) {
+                        e.currentTarget.style.background = '#f5f5f5';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (page < totalPages) {
+                        e.currentTarget.style.background = 'transparent';
+                      }
+                    }}
+                  >
+                    &rsaquo;
+                  </button>
+                  
+                  {/* 맨 끝으로 >> */}
+                  <button
+                    onClick={() => handlePageChange(totalPages)}
+                    disabled={page >= totalPages}
+                    style={{
+                      padding: '6px 8px',
+                      background: 'transparent',
+                      color: page >= totalPages ? '#d1d5db' : '#222',
+                      fontWeight: '500',
+                      border: 'none',
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      cursor: page >= totalPages ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.2s',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      minWidth: '32px',
+                      height: '32px'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (page < totalPages) {
+                        e.currentTarget.style.background = '#f5f5f5';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (page < totalPages) {
+                        e.currentTarget.style.background = 'transparent';
+                      }
+                    }}
+                  >
+                    &raquo;
+                  </button>
+                </div>
+              );
+            })()}
           </div>
         </div>
       </div>

@@ -96,6 +96,48 @@ def get_recipes():
         'size': size
     })
 
+@app.route('/api/recipes/search')
+def search_recipes():
+    """키워드 기반 레시피 검색 (전체 데이터 대상)"""
+    keyword = request.args.get('keyword', '').strip()
+    page = int(request.args.get('page', 1))
+    size = int(request.args.get('size', 50))
+    offset = (page - 1) * size
+    
+    if not keyword:
+        return jsonify({'recipes': [], 'total': 0, 'page': page, 'size': size})
+    
+    db = get_db()
+    cursor = db.cursor()
+    
+    # 키워드가 title 또는 content에 포함된 레시피 검색
+    search_pattern = f'%{keyword}%'
+    
+    # 전체 개수 구하기
+    cursor.execute(
+        "SELECT COUNT(*) as total FROM recipes WHERE (title LIKE %s OR content LIKE %s)",
+        (search_pattern, search_pattern)
+    )
+    total = cursor.fetchone()['total']
+    
+    # 페이징 적용 쿼리
+    cursor.execute(
+        """SELECT * FROM recipes 
+           WHERE (title LIKE %s OR content LIKE %s)
+           ORDER BY id DESC 
+           LIMIT %s OFFSET %s""",
+        (search_pattern, search_pattern, size, offset)
+    )
+    recipes = cursor.fetchall()
+    
+    db.close()
+    return jsonify({
+        'recipes': recipes,
+        'total': total,
+        'page': page,
+        'size': size
+    })
+
 @app.route('/api/recipes/popular')
 def get_popular_recipes():
     size = int(request.args.get('size', 30))

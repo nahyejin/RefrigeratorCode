@@ -418,3 +418,59 @@ div[class*="ReactVirtualized__List"][style*="layout: horizontal"] {
   overflow-y: hidden !important;
   touch-action: pan-x pan-y !important;
 }
+
+/* VirtualizedRecipeList 스크롤바 항상 표시 */
+#virtualized-recipe-list-container,
+#virtualized-recipe-list-container > *,
+#virtualized-recipe-list-container > * > * {
+  scrollbar-width: thin !important;
+  scrollbar-color: #bdbdbd #f3f4f6 !important;
+}
+
+#virtualized-recipe-list-container::-webkit-scrollbar,
+#virtualized-recipe-list-container > *::-webkit-scrollbar,
+#virtualized-recipe-list-container > * > *::-webkit-scrollbar {
+  width: 12px !important;
+  background: #f3f4f6 !important;
+  border-radius: 6px !important;
+  display: block !important;
+}
+
+#virtualized-recipe-list-container::-webkit-scrollbar-thumb,
+#virtualized-recipe-list-container > *::-webkit-scrollbar-thumb,
+#virtualized-recipe-list-container > * > *::-webkit-scrollbar-thumb {
+  background: #bdbdbd !important;
+  border-radius: 6px !important;
+  min-height: 40px !important;
+  border: 2px solid #f3f4f6 !important;
+}
+
+#virtualized-recipe-list-container::-webkit-scrollbar-thumb:hover,
+#virtualized-recipe-list-container > *::-webkit-scrollbar-thumb:hover,
+#virtualized-recipe-list-container > * > *::-webkit-scrollbar-thumb:hover {
+  background: #9e9e9e !important;
+}
+
+/* react-window의 내부 스크롤 컨테이너에도 적용 (세로 스크롤만) */
+div[style*="overflow"]:not([style*="layout: horizontal"]):not([style*="overflow-x"]) {
+  scrollbar-width: thin !important;
+  scrollbar-color: #bdbdbd #f3f4f6 !important;
+}
+
+div[style*="overflow"]:not([style*="layout: horizontal"]):not([style*="overflow-x"])::-webkit-scrollbar {
+  width: 12px !important;
+  background: #f3f4f6 !important;
+  border-radius: 6px !important;
+  display: block !important;
+}
+
+div[style*="overflow"]:not([style*="layout: horizontal"]):not([style*="overflow-x"])::-webkit-scrollbar-thumb {
+  background: #bdbdbd !important;
+  border-radius: 6px !important;
+  min-height: 40px !important;
+  border: 2px solid #f3f4f6 !important;
+}
+
+div[style*="overflow"]:not([style*="layout: horizontal"]):not([style*="overflow-x"])::-webkit-scrollbar-thumb:hover {
+  background: #9e9e9e !important;
+}

@@ -282,8 +282,8 @@ const calculateGrowthRate = (current: number, previous: number): { rate: number;
     return { rate: 0, isNew: true };
   }
   const rate = Math.round(((current - previous) / previous) * 100);
-  // 100% 이상이면 배수로 계산
-  const multiplier = rate >= 100 ? Math.round((current / previous) * 10) / 10 : undefined;
+  // 모든 경우에 배수 계산 (소수점 첫째 자리까지)
+  const multiplier = Math.round((current / previous) * 10) / 10;
   return { rate, isNew: false, multiplier };
 };
 
@@ -393,7 +393,7 @@ const calculateThemeRankings = async (recipes: Recipe[], dateRange: { start: Dat
       .filter(([name, count]) => count > 0) // 레시피 수가 0인 항목 제외
       .map(([name, count]) => {
         const previousCount = previousThemeCounts[name] || 0;
-        const growthInfo = previousRange ? calculateGrowthRate(count, previousCount) : { rate: 0, isNew: false };
+        const growthInfo = previousRange ? calculateGrowthRate(count, previousCount) : { rate: 0, isNew: false, multiplier: 1 };
         // 정렬을 위한 값: 신규는 현재 카운트를 우선순위로, 그 외는 상승률
         // 신규 항목도 레시피 수가 많을수록 높은 순위
         const sortValue = growthInfo.isNew ? count : growthInfo.rate;
@@ -1495,7 +1495,7 @@ const Popular = () => {
                                     right: 0
                                   }}
                                 >
-                                  {dish.isNew ? '✦신규' : dish.multiplier && dish.multiplier >= 2 ? `▴${dish.multiplier}배` : dish.rate >= 0 ? `▴+${dish.rate}%` : `▾${dish.rate}%`}
+                                  {dish.isNew ? '✦신규' : dish.multiplier ? (dish.multiplier >= 1 ? `▴${dish.multiplier}배` : `▾${dish.multiplier}배`) : ''}
                                 </span>
                               ) : null}
                             </div>
@@ -1552,7 +1552,7 @@ const Popular = () => {
                                     right: 0
                                   }}
                                 >
-                                  {theme.isNew ? '✦신규' : theme.multiplier && theme.multiplier >= 2 ? `▴${theme.multiplier}배` : theme.rate >= 0 ? `▴+${theme.rate}%` : `▾${theme.rate}%`}
+                                  {theme.isNew ? '✦신규' : theme.multiplier ? (theme.multiplier >= 1 ? `▴${theme.multiplier}배` : `▾${theme.multiplier}배`) : ''}
                                 </span>
                               ) : null}
                             </div>

@@ -1,0 +1,18 @@
+import { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
+
+/**
+ * 라우트 변경 시 페이지를 맨 위로 스크롤하는 컴포넌트
+ */
+function ScrollToTop() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  return null;
+}
+
+export default ScrollToTop;
+

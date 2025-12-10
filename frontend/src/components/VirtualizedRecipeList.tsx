@@ -91,6 +91,31 @@ const VirtualizedRecipeList = forwardRef<VirtualizedRecipeListRef, VirtualizedRe
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // 스크롤바 스타일 적용
+  useEffect(() => {
+    const container = document.getElementById('virtualized-recipe-list-container');
+    if (!container) return;
+
+    const applyScrollbarStyle = () => {
+      // react-window는 내부에 스크롤 가능한 div를 생성
+      const scrollableDiv = container.querySelector('div[style*="overflow"]') as HTMLElement;
+      if (scrollableDiv) {
+        scrollableDiv.style.scrollbarWidth = 'thin';
+        scrollableDiv.style.scrollbarColor = '#bdbdbd #f3f4f6';
+        // WebKit 스크롤바 스타일은 CSS로 처리
+        scrollableDiv.classList.add('virtualized-recipe-list-scrollbar');
+      }
+    };
+
+    // 즉시 적용
+    applyScrollbarStyle();
+
+    // 약간의 지연 후 다시 시도 (DOM이 완전히 렌더링된 후)
+    const timeoutId = setTimeout(applyScrollbarStyle, 100);
+    
+    return () => clearTimeout(timeoutId);
+  }, [recipes.length]);
+
   const Row = ({ index, style }: { index: number; style: React.CSSProperties }) => {
     const recipe = recipes[index];
     
@@ -127,6 +152,7 @@ const VirtualizedRecipeList = forwardRef<VirtualizedRecipeListRef, VirtualizedRe
         overscanCount={CONSTANTS.OVERSCAN_COUNT}
         onScroll={handleScroll}
         style={{ pointerEvents: 'auto' }}
+        className="virtualized-recipe-list-scrollbar"
       >
         {Row}
       </List>
