@@ -869,27 +869,27 @@ class NaverInfluencerCrawler:
                     logger.warning(f"⚠️ Chrome 세션 확인 실패 (계속 진행): {test_error}")
                     # 확인 실패해도 계속 진행
                 
-                        # Windows에서 Selenium Chrome 창만 숨기기 (강화)
-                        if WINDOWS:
-                            # 즉시 여러 번 실행 (창이 뜨는 것을 방지)
-                            for _ in range(20):  # 20번 반복하여 확실히 숨기기
-                                time.sleep(0.02)  # 창이 생성될 시간 대기
-                                hidden_count = hide_chrome_windows(driver)
-                                if hidden_count > 0:
-                                    logger.info(f"✅ {hidden_count}개의 Selenium Chrome 창을 숨겼습니다")
-                            
-                            # 주기적으로 Selenium Chrome 창만 숨기는 스레드 시작 (더 빠르게)
-                            import threading
-                            def periodic_hide():
-                                while hasattr(self, '_driver') and self._driver:
-                                    try:
-                                        hide_chrome_windows(self._driver)
-                                        time.sleep(0.02)  # 0.02초마다 체크 (더 빠르게)
-                                    except:
-                                        break
-                            
-                            self._hide_window_thread = threading.Thread(target=periodic_hide, daemon=True)
-                            self._hide_window_thread.start()
+                # Windows에서 Selenium Chrome 창만 숨기기 (강화)
+                if WINDOWS:
+                    # 즉시 여러 번 실행 (창이 뜨는 것을 방지)
+                    for _ in range(20):  # 20번 반복하여 확실히 숨기기
+                        time.sleep(0.02)  # 창이 생성될 시간 대기
+                        hidden_count = hide_chrome_windows(driver)
+                        if hidden_count > 0:
+                            logger.info(f"✅ {hidden_count}개의 Selenium Chrome 창을 숨겼습니다")
+                    
+                    # 주기적으로 Selenium Chrome 창만 숨기는 스레드 시작 (더 빠르게)
+                    import threading
+                    def periodic_hide():
+                        while hasattr(self, '_driver') and self._driver:
+                            try:
+                                hide_chrome_windows(self._driver)
+                                time.sleep(0.02)  # 0.02초마다 체크 (더 빠르게)
+                            except:
+                                break
+                    
+                    self._hide_window_thread = threading.Thread(target=periodic_hide, daemon=True)
+                    self._hide_window_thread.start()
                 
                 logger.info("✅ ChromeDriver 초기화 성공")
                 break
