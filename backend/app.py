@@ -16,17 +16,25 @@ app = Flask(__name__)
 app.config['JSON_AS_ASCII'] = False
 
 # CORS 설정 - 환경변수에서 허용할 origin 가져오기
-default_origins = 'http://localhost:5173,http://localhost:5177,http://localhost:5178'
+default_origins = 'http://localhost:5173,http://localhost:5177,http://localhost:5178,https://refrigerator-code.vercel.app'
 cors_origins = os.getenv('CORS_ORIGINS', default_origins).split(',')
 
-# Railway 배포 환경에서는 모든 도메인 허용 (프론트엔드가 다른 플랫폼에 있을 수 있음)
-if os.getenv('RAILWAY_ENVIRONMENT'):
-    cors_origins.append('https://*.up.railway.app')
-    cors_origins.append('https://*.vercel.app')
-    cors_origins.append('https://*.netlify.app')
-    cors_origins.append('https://*.github.io')
+# Railway 배포 환경에서는 Vercel 도메인 명시적으로 추가
+if os.getenv('RAILWAY_ENVIRONMENT') or os.getenv('RAILWAY_ENVIRONMENT_NAME'):
+    if 'https://refrigerator-code.vercel.app' not in cors_origins:
+        cors_origins.append('https://refrigerator-code.vercel.app')
+    # 모든 localhost 포트 허용
+    for port in [5173, 5177, 5178, 3000, 8080]:
+        localhost_origin = f'http://localhost:{port}'
+        if localhost_origin not in cors_origins:
+            cors_origins.append(localhost_origin)
 
-CORS(app, origins=[origin.strip() for origin in cors_origins if origin.strip()], supports_credentials=True)
+# CORS 설정 - 와일드카드 대신 명시적 도메인 사용
+CORS(app, 
+     origins=[origin.strip() for origin in cors_origins if origin.strip()], 
+     supports_credentials=True,
+     allow_headers=['Content-Type', 'Authorization'],
+     methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'])
 
 def get_db():
     host = (

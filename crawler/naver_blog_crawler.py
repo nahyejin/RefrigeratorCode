@@ -143,7 +143,7 @@ class NaverBlogCrawler(BaseCrawler):
         import os
         options = Options()
         
-        # Windows에서 headless 모드 강제 적용
+        # Windows에서 headless 모드 강제 적용 (창이 절대 뜨지 않도록)
         # 최신 Chrome에서는 --headless=new가 더 안정적
         options.add_argument("--headless=new")
         options.add_argument("--no-sandbox")
@@ -161,12 +161,20 @@ class NaverBlogCrawler(BaseCrawler):
         options.add_argument("--disable-background-timer-throttling")
         options.add_argument("--disable-backgrounding-occluded-windows")
         options.add_argument("--disable-renderer-backgrounding")
-        # 창이 보이지 않도록 추가 옵션
-        options.add_argument("--start-maximized")
+        # 창이 보이지 않도록 추가 옵션 (start-maximized 제거 - 창이 뜨는 원인일 수 있음)
         options.add_argument("--disable-web-security")
         options.add_argument("--disable-features=TranslateUI")
         options.add_argument("--hide-scrollbars")
         options.add_argument("--mute-audio")
+        # Windows에서 창이 뜨지 않도록 추가 옵션
+        options.add_argument("--disable-setuid-sandbox")
+        options.add_argument("--no-first-run")
+        options.add_argument("--no-default-browser-check")
+        options.add_argument("--disable-default-apps")
+        # 백그라운드 실행 강제
+        if sys.platform == 'win32':
+            options.add_argument("--disable-background-networking")
+            options.add_argument("--disable-sync")
         # 최소한의 옵션만 사용하여 안정성 향상
         
         # 디버깅 포트는 제거 (0으로 설정하면 문제 발생 가능)
@@ -185,6 +193,13 @@ class NaverBlogCrawler(BaseCrawler):
         chrome_path = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
         if os.path.exists(chrome_path):
             options.binary_location = chrome_path
+            # Windows에서 Chrome을 백그라운드로 실행
+            if sys.platform == 'win32':
+                # CREATE_NO_WINDOW 플래그로 프로세스 생성 시 창 숨기기
+                import subprocess
+                # Chrome이 창을 띄우지 않도록 환경 변수 설정
+                os.environ['CHROME_HEADLESS'] = '1'
+                os.environ['DISPLAY'] = ':0'  # Linux 스타일이지만 Windows에서도 무시됨
         
         # Chrome 버전 확인 및 ChromeDriver 자동 다운로드
         import shutil
@@ -247,11 +262,16 @@ class NaverBlogCrawler(BaseCrawler):
                         except Exception as cache_error:
                             print(f"⚠️ 캐시 삭제 실패: {cache_error}")
                 
-                # Service 초기화 (로그 출력 억제)
+                # Service 초기화 (로그 출력 억제 및 Windows에서 창 숨기기)
                 service = Service(
                     driver_manager.install(),
                     log_output=os.devnull  # 로그 출력 억제
                 )
+                # Windows에서 서비스 시작 시 창 숨기기
+                if sys.platform == 'win32':
+                    import subprocess
+                    # CREATE_NO_WINDOW 플래그 사용 (Windows 전용)
+                    service.service_args = []
                 
                 # ChromeDriver 초기화 (타임아웃 설정)
                 print("🔄 ChromeDriver 초기화 중...")
@@ -281,11 +301,12 @@ class NaverBlogCrawler(BaseCrawler):
                 
                 # Windows에서 headless 모드가 실패한 경우를 대비해 창 숨기기 (이중 보호)
                 if WINDOWS:
-                    # 즉시 한 번 실행
-                    time.sleep(0.1)  # 창이 생성될 시간 대기 (최소화)
-                    hidden_count = hide_chrome_windows(self.driver)
-                    if hidden_count > 0:
-                        print(f"✅ {hidden_count}개의 Selenium Chrome 창을 숨겼습니다")
+                    # 즉시 여러 번 실행 (창이 뜨는 것을 방지)
+                    for _ in range(5):
+                        time.sleep(0.05)  # 창이 생성될 시간 대기 (최소화)
+                        hidden_count = hide_chrome_windows(self.driver)
+                        if hidden_count > 0:
+                            print(f"✅ {hidden_count}개의 Selenium Chrome 창을 숨겼습니다")
                     
                     # 주기적으로 Selenium Chrome 창만 숨기는 스레드 시작 (더 빠르게)
                     import threading
@@ -293,7 +314,7 @@ class NaverBlogCrawler(BaseCrawler):
                         while hasattr(self, 'driver') and self.driver:
                             try:
                                 hide_chrome_windows(self.driver)
-                                time.sleep(0.1)  # 0.1초마다 체크 (더 빠르게)
+                                time.sleep(0.05)  # 0.05초마다 체크 (더 빠르게)
                             except:
                                 break
                     

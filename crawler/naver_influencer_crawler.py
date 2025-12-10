@@ -371,11 +371,10 @@ class NaverInfluencerCrawler:
                                 except:
                                     pass
                         
-                        # headless 옵션 추가 (Windows에서 강제 headless)
+                        # headless 옵션 추가 (Windows에서 강제 headless - 창이 절대 뜨지 않도록)
                         chrome_options = webdriver.ChromeOptions()
-                        # "unable to discover open pages" 오류 방지를 위해 headless 모드 제거
-                        # 대신 창을 숨기는 방식 사용
-                        # chrome_options.add_argument('--headless')  # 일시적으로 비활성화
+                        # 최신 Chrome에서는 --headless=new가 더 안정적
+                        chrome_options.add_argument('--headless=new')
                         
                         chrome_options.add_argument('--no-sandbox')
                         chrome_options.add_argument('--disable-dev-shm-usage')
@@ -389,10 +388,18 @@ class NaverInfluencerCrawler:
                         chrome_options.add_argument('--disable-infobars')
                         chrome_options.add_argument('--disable-notifications')
                         chrome_options.add_argument('--disable-blink-features=AutomationControlled')
-                        # --no-startup-window 제거 (Windows에서 문제 발생 가능)
                         chrome_options.add_argument('--disable-background-timer-throttling')
                         chrome_options.add_argument('--disable-backgrounding-occluded-windows')
                         chrome_options.add_argument('--disable-renderer-backgrounding')
+                        # Windows에서 창이 뜨지 않도록 추가 옵션
+                        chrome_options.add_argument('--disable-setuid-sandbox')
+                        chrome_options.add_argument('--no-first-run')
+                        chrome_options.add_argument('--no-default-browser-check')
+                        chrome_options.add_argument('--disable-default-apps')
+                        # 백그라운드 실행 강제
+                        if sys.platform == 'win32':
+                            chrome_options.add_argument('--disable-background-networking')
+                            chrome_options.add_argument('--disable-sync')
                         # 최소한의 옵션만 사용하여 안정성 향상
                         # 디버깅 포트는 제거 (0으로 설정하면 문제 발생 가능)
                         chrome_options.add_experimental_option('excludeSwitches', ['enable-logging', 'enable-automation'])
@@ -437,20 +444,22 @@ class NaverInfluencerCrawler:
                             logger.warning(f"⚠️ Chrome 세션 확인 실패 (계속 진행): {test_error}")
                             # 확인 실패해도 계속 진행
                         
-                        # Windows에서 Selenium Chrome 창만 숨기기
+                        # Windows에서 Selenium Chrome 창만 숨기기 (강화)
                         if WINDOWS:
-                            time.sleep(0.5)  # 창이 생성될 시간 대기
-                            hidden_count = hide_chrome_windows(driver)
-                            if hidden_count > 0:
-                                logger.info(f"✅ {hidden_count}개의 Selenium Chrome 창을 숨겼습니다")
+                            # 즉시 여러 번 실행 (창이 뜨는 것을 방지)
+                            for _ in range(5):
+                                time.sleep(0.05)  # 창이 생성될 시간 대기
+                                hidden_count = hide_chrome_windows(driver)
+                                if hidden_count > 0:
+                                    logger.info(f"✅ {hidden_count}개의 Selenium Chrome 창을 숨겼습니다")
                             
-                            # 주기적으로 Selenium Chrome 창만 숨기는 스레드 시작
+                            # 주기적으로 Selenium Chrome 창만 숨기는 스레드 시작 (더 빠르게)
                             import threading
                             def periodic_hide():
                                 while hasattr(self, '_driver') and self._driver:
                                     try:
                                         hide_chrome_windows(self._driver)
-                                        time.sleep(1)  # 1초마다 체크
+                                        time.sleep(0.05)  # 0.05초마다 체크 (더 빠르게)
                                     except:
                                         break
                             
@@ -677,10 +686,9 @@ class NaverInfluencerCrawler:
         import os
         options = webdriver.ChromeOptions()
         
-        # Windows에서 headless 모드 강제 적용
-        # "unable to discover open pages" 오류 방지를 위해 headless 모드 제거
-        # 대신 창을 숨기는 방식 사용
-        # options.add_argument('--headless')  # 일시적으로 비활성화
+        # Windows에서 headless 모드 강제 적용 (창이 절대 뜨지 않도록)
+        # 최신 Chrome에서는 --headless=new가 더 안정적
+        options.add_argument('--headless=new')
         
         options.add_argument('--no-sandbox')
         options.add_argument('--disable-dev-shm-usage')
@@ -694,10 +702,18 @@ class NaverInfluencerCrawler:
         options.add_argument('--disable-infobars')
         options.add_argument('--disable-notifications')
         options.add_argument('--disable-blink-features=AutomationControlled')
-        # --no-startup-window 제거 (Windows에서 문제 발생 가능)
         options.add_argument('--disable-background-timer-throttling')
         options.add_argument('--disable-backgrounding-occluded-windows')
         options.add_argument('--disable-renderer-backgrounding')
+        # Windows에서 창이 뜨지 않도록 추가 옵션
+        options.add_argument('--disable-setuid-sandbox')
+        options.add_argument('--no-first-run')
+        options.add_argument('--no-default-browser-check')
+        options.add_argument('--disable-default-apps')
+        # 백그라운드 실행 강제
+        if sys.platform == 'win32':
+            options.add_argument('--disable-background-networking')
+            options.add_argument('--disable-sync')
         # 최소한의 옵션만 사용하여 안정성 향상
         # 디버깅 포트는 제거 (0으로 설정하면 문제 발생 가능)
         options.add_experimental_option('excludeSwitches', ['enable-logging', 'enable-automation'])
@@ -803,20 +819,22 @@ class NaverInfluencerCrawler:
                     logger.warning(f"⚠️ Chrome 세션 확인 실패 (계속 진행): {test_error}")
                     # 확인 실패해도 계속 진행
                 
-                # Windows에서 Selenium Chrome 창만 숨기기
+                # Windows에서 Selenium Chrome 창만 숨기기 (강화)
                 if WINDOWS:
-                    time.sleep(0.5)  # 창이 생성될 시간 대기
-                    hidden_count = hide_chrome_windows(driver)
-                    if hidden_count > 0:
-                        logger.info(f"✅ {hidden_count}개의 Selenium Chrome 창을 숨겼습니다")
+                    # 즉시 여러 번 실행 (창이 뜨는 것을 방지)
+                    for _ in range(5):
+                        time.sleep(0.05)  # 창이 생성될 시간 대기
+                        hidden_count = hide_chrome_windows(driver)
+                        if hidden_count > 0:
+                            logger.info(f"✅ {hidden_count}개의 Selenium Chrome 창을 숨겼습니다")
                     
-                    # 주기적으로 Selenium Chrome 창만 숨기는 스레드 시작
+                    # 주기적으로 Selenium Chrome 창만 숨기는 스레드 시작 (더 빠르게)
                     import threading
                     def periodic_hide():
                         while hasattr(self, '_driver') and self._driver:
                             try:
                                 hide_chrome_windows(self._driver)
-                                time.sleep(1)  # 1초마다 체크
+                                time.sleep(0.05)  # 0.05초마다 체크 (더 빠르게)
                             except:
                                 break
                     

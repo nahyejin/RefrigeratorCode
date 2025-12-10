@@ -6,4 +6,5 @@ pandas==2.2.1
 python-dotenv==1.0.1
 Flask
 flask-cors
-pymysql 
+pymysql
+gunicorn 
