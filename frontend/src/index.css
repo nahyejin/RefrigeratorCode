@@ -131,7 +131,7 @@ button:focus-visible {
 div.absolute.top-full.left-0.right-0.mt-1.bg-white.border.border-gray-300 {
   overflow-y: auto !important;
   overflow-x: hidden !important;
-  max-height: 240px !important;
+  max-height: 96px !important; /* 3개 항목 기준 (각 항목 약 32px) */
   /* height는 자동으로 조정되도록 제거 */
 }
 

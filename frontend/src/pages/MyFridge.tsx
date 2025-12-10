@@ -628,10 +628,13 @@ const MyFridge: React.FC = () => {
                 <div 
                   className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-[10] custom-scrollbar" 
                   style={{ 
-                    maxHeight: '240px',
+                    maxHeight: '96px', // 3개 항목 기준 (각 항목 약 32px: py-2 = 8px*2 + 텍스트 높이)
                     overflowY: 'auto',
                     overflowX: 'hidden',
-                    position: 'absolute'
+                    position: 'absolute',
+                    // 스크롤바 항상 표시 강제
+                    scrollbarWidth: 'thin',
+                    scrollbarColor: '#bdbdbd #f3f4f6'
                   }}
                 >
                   {combinedFiltered.map((item, index) => (
@@ -642,7 +645,11 @@ const MyFridge: React.FC = () => {
                       style={{ 
                         whiteSpace: 'nowrap', 
                         overflow: 'hidden', 
-                        textOverflow: 'ellipsis'
+                        textOverflow: 'ellipsis',
+                        height: '32px', // 각 항목 높이 고정
+                        lineHeight: '16px', // 텍스트 높이
+                        display: 'flex',
+                        alignItems: 'center'
                       }}
                     >
                       {item}
