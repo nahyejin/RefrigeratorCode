@@ -409,6 +409,10 @@ const calculateThemeRankings = async (recipes: Recipe[], dateRange: { start: Dat
     })));
     
     const result = results
+      .filter(item => {
+        // 신규이거나 상승한 것만 필터링 (rate > 0 또는 multiplier >= 1)
+        return item.isNew || (item.rate > 0) || (item.multiplier !== undefined && item.multiplier >= 1);
+      })
       .sort((a, b) => {
         // 먼저 신규 여부로 정렬 (신규가 뒤로)
         if (a.isNew !== b.isNew) {
@@ -582,6 +586,10 @@ function calculateDishRankings(recipes: Recipe[], dishKeywords: { keyword: strin
   })));
   
   return results
+    .filter(item => {
+      // 신규이거나 상승한 것만 필터링 (rate > 0 또는 multiplier >= 1)
+      return item.isNew || (item.rate > 0) || (item.multiplier !== undefined && item.multiplier >= 1);
+    })
     .sort((a, b) => {
       // 먼저 신규 여부로 정렬 (신규가 뒤로)
       if (a.isNew !== b.isNew) {

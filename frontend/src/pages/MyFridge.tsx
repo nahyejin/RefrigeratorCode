@@ -688,9 +688,9 @@ const MyFridge: React.FC = () => {
                     boxSizing: 'border-box'
                   }}
                 >
-                  {combinedFiltered.map((item, index) => (
+                  {combinedFiltered.map((item) => (
                     <div
-                      key={index}
+                      key={item}
                       className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
                       onClick={() => handleSelect(item)}
                       style={{ 
