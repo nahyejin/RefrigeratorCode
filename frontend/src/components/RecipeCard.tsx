@@ -276,8 +276,9 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
       className="bg-white rounded-[20px] shadow-sm min-h-[280px] relative p-4 block hover:shadow-md transition cursor-pointer"
       style={{
         ...(isLast ? STYLES.lastCard : STYLES.card),
-        touchAction: 'pan-x', // 가로 스크롤 허용
-        overflowY: 'hidden'
+        touchAction: 'pan-y pan-x', // 세로 및 가로 스크롤 모두 허용
+        overflowY: 'hidden',
+        WebkitOverflowScrolling: 'touch' // iOS 부드러운 스크롤
       }}
       onClick={handleCardClick}
       onMouseDown={(e) => {
@@ -299,7 +300,13 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
             setThumbnailStatus(false);
             e.currentTarget.onerror = null; // 무한 루프 방지
           }}
-          style={{ ...STYLES.thumbnail, cursor: 'pointer' }}
+          style={{ 
+            ...STYLES.thumbnail, 
+            cursor: 'pointer',
+            touchAction: 'pan-y', // 세로 스크롤 허용
+            userSelect: 'none', // 이미지 선택 방지
+            WebkitUserSelect: 'none'
+          }}
         />
         {/* 순위 표시 (Popular 페이지에서만) */}
         {showRank && (

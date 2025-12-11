@@ -551,12 +551,14 @@ div[class*="ReactVirtualized__List"][style*="layout: horizontal"] {
   touch-action: pan-x pan-y !important;
 }
 
-/* VirtualizedRecipeList 스크롤바 항상 표시 */
+/* VirtualizedRecipeList 스크롤바 항상 표시 및 터치 스크롤 개선 */
 #virtualized-recipe-list-container,
 #virtualized-recipe-list-container > *,
 #virtualized-recipe-list-container > * > * {
   scrollbar-width: thin !important;
   scrollbar-color: #bdbdbd #f3f4f6 !important;
+  touch-action: pan-y !important; /* 세로 스크롤 우선 */
+  -webkit-overflow-scrolling: touch !important; /* iOS 부드러운 스크롤 */
 }
 
 #virtualized-recipe-list-container::-webkit-scrollbar,
