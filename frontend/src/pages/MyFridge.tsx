@@ -286,6 +286,7 @@ const MyFridge: React.FC = () => {
   const [ingredientDict, setIngredientDict] = React.useState<{ [key: string]: string }>({});
   const [showDropdown, setShowDropdown] = React.useState(false);
   const inputRef = React.useRef<HTMLInputElement>(null);
+  const dropdownRef = React.useRef<HTMLDivElement>(null);
   const [toast, setToast] = React.useState<ToastState | null>(null);
   const toastTimeout = React.useRef<NodeJS.Timeout | null>(null);
   const [modalOpen, setModalOpen] = React.useState(false);
@@ -407,6 +408,36 @@ const MyFridge: React.FC = () => {
   console.log('ingredientDict:', ingredientDict);
   console.log('combinedFiltered:', combinedFiltered);
   console.log('Checking mapping for 계란:', ingredientDict['계란']);
+
+  // 드롭다운이 열릴 때 스크롤바를 표시하기 위해 미세한 스크롤 트리거
+  React.useEffect(() => {
+    if (showDropdown && dropdownRef.current && combinedFiltered.length > 3) {
+      // 드롭다운이 열리고 항목이 3개 이상일 때만 스크롤바 표시
+      const dropdown = dropdownRef.current;
+      // 여러 번 스크롤을 트리거하여 스크롤바를 확실히 표시
+      const triggerScrollbar = () => {
+        if (dropdown.scrollHeight > dropdown.clientHeight) {
+          // 작은 값으로 스크롤하여 스크롤바 표시
+          dropdown.scrollTop = 0.5;
+          requestAnimationFrame(() => {
+            dropdown.scrollTop = 0;
+            // 한 번 더 트리거
+            setTimeout(() => {
+              dropdown.scrollTop = 0.5;
+              requestAnimationFrame(() => {
+                dropdown.scrollTop = 0;
+              });
+            }, 100);
+          });
+        }
+      };
+      
+      // DOM이 완전히 렌더링된 후 실행
+      setTimeout(triggerScrollbar, 50);
+      setTimeout(triggerScrollbar, 150);
+      setTimeout(triggerScrollbar, 300);
+    }
+  }, [showDropdown, combinedFiltered.length]);
 
   const showToast = (message: string, deleted: DeletedInfo, duration?: number) => {
     setToast({ visible: true, message, deleted });
@@ -626,6 +657,7 @@ const MyFridge: React.FC = () => {
               />
               {showDropdown && combinedFiltered.length > 0 && (
                 <div 
+                  ref={dropdownRef}
                   className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-[10] autocomplete-scrollbar" 
                   style={{ 
                     maxHeight: '96px', // 3개 항목 기준 (각 항목 약 32px: py-2 = 8px*2 + 텍스트 높이)
@@ -635,7 +667,10 @@ const MyFridge: React.FC = () => {
                     // 스크롤바 항상 표시 강제
                     scrollbarWidth: 'thin',
                     scrollbarColor: '#9e9e9e #e5e7eb', // 더 진한 색상으로 변경
-                    WebkitOverflowScrolling: 'touch' // 모바일 스크롤 부드럽게
+                    WebkitOverflowScrolling: 'touch', // 모바일 스크롤 부드럽게
+                    // 스크롤 가능함을 시각적으로 표시
+                    paddingRight: combinedFiltered.length > 3 ? '14px' : '0',
+                    boxSizing: 'border-box'
                   }}
                 >
                   {combinedFiltered.map((item, index) => (

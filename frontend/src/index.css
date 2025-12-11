@@ -341,10 +341,42 @@ html, body, #root {
 @supports (-webkit-touch-callout: none) {
   .autocomplete-scrollbar {
     overflow-y: scroll !important;
+    -webkit-overflow-scrolling: touch !important;
   }
   .autocomplete-scrollbar::-webkit-scrollbar {
     -webkit-appearance: auto !important; /* iOS에서도 표시 */
+    display: block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
   }
+  .autocomplete-scrollbar::-webkit-scrollbar-thumb {
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+}
+
+/* iOS Safari에서 스크롤바를 항상 표시하기 위한 추가 스타일 */
+.autocomplete-scrollbar {
+  /* 스크롤 가능한 영역임을 명확히 표시 - 오른쪽에 그라데이션 추가 */
+  position: relative !important;
+}
+
+/* 스크롤 가능함을 나타내는 오른쪽 그라데이션 (항상 표시) */
+.autocomplete-scrollbar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 14px;
+  height: 100%;
+  background: linear-gradient(to right, transparent, rgba(229, 231, 235, 0.8));
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* 항목이 3개 이상일 때만 그라데이션 표시 */
+.autocomplete-scrollbar:not(:has(> *:nth-child(4)))::after {
+  display: none;
 }
 
 /* CustomCalendar 드롭다운 스크롤 강제 적용 */
@@ -373,6 +405,21 @@ a:active,
   outline: none !important;
   box-shadow: none !important;
   -webkit-tap-highlight-color: transparent !important;
+}
+
+/* 하단 네비게이션 버튼 전용 스타일 */
+nav button:focus,
+nav button:focus-visible,
+nav button:active,
+nav button:focus-within,
+nav button:hover:focus,
+nav button:hover:active {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+  tap-highlight-color: transparent !important;
+  background-color: transparent !important;
 }
 
 html, body, #root, * {

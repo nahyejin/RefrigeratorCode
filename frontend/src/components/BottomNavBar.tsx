@@ -108,7 +108,15 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({ activeTab }) => {
             <button
               key={nav.key}
               className="flex flex-col items-center justify-center focus:outline-none bg-transparent"
+              style={{
+                outline: 'none',
+                border: 'none',
+                background: 'transparent',
+                WebkitTapHighlightColor: 'transparent',
+                tapHighlightColor: 'transparent'
+              }}
               onClick={() => handleNavigation(nav.path)}
+              onMouseDown={(e) => e.preventDefault()}
             >
               <img
                 src={isActive ? nav.icon : nav.iconInactive}
