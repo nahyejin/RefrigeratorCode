@@ -61,36 +61,50 @@ function AppContent() {
         fallback={
           <div
             style={{
+              position: 'fixed',
+              top: showNavBar ? '56px' : '0',
+              left: 0,
+              right: 0,
               width: '100%',
               padding: '12px',
               display: 'flex',
               justifyContent: 'center',
-              alignItems: 'center',
-              marginTop: showNavBar ? '56px' : '0',
+              alignItems: 'flex-start',
+              zIndex: 999,
+              backgroundColor: 'transparent',
               minHeight: showNavBar ? 'calc(100vh - 56px)' : '100vh'
             }}
           >
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 44 44"
-              xmlns="http://www.w3.org/2000/svg"
-              aria-label="로딩 중"
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                paddingTop: '20px'
+              }}
             >
-              <g fill="none" fillRule="evenodd" strokeWidth="4">
-                <circle cx="22" cy="22" r="20" stroke="#e5e7eb" />
-                <path d="M42 22c0-11.046-8.954-20-20-20" stroke="#9ca3af">
-                  <animateTransform
-                    attributeName="transform"
-                    type="rotate"
-                    from="0 22 22"
-                    to="360 22 22"
-                    dur="0.8s"
-                    repeatCount="indefinite"
-                  />
-                </path>
-              </g>
-            </svg>
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 44 44"
+                xmlns="http://www.w3.org/2000/svg"
+                aria-label="로딩 중"
+              >
+                <g fill="none" fillRule="evenodd" strokeWidth="4">
+                  <circle cx="22" cy="22" r="20" stroke="#e5e7eb" />
+                  <path d="M42 22c0-11.046-8.954-20-20-20" stroke="#9ca3af">
+                    <animateTransform
+                      attributeName="transform"
+                      type="rotate"
+                      from="0 22 22"
+                      to="360 22 22"
+                      dur="0.8s"
+                      repeatCount="indefinite"
+                    />
+                  </path>
+                </g>
+              </svg>
+            </div>
           </div>
         }
       >
