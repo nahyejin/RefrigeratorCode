@@ -195,7 +195,8 @@ export default function IngredientDateModal({ type, isOpen, onClose, onComplete,
           {/* 달력 아이콘 버튼 */}
           <button
             type="button"
-            className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-700"
+            className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-700 bg-transparent border-none outline-none"
+            style={{ background: 'transparent', border: 'none', cursor: 'pointer' }}
             onClick={() => setCalendarOpen(true)}
             tabIndex={-1}
             aria-label="달력 열기"

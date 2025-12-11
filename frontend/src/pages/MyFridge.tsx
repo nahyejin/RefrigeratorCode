@@ -629,12 +629,13 @@ const MyFridge: React.FC = () => {
                   className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-[10] custom-scrollbar" 
                   style={{ 
                     maxHeight: '96px', // 3개 항목 기준 (각 항목 약 32px: py-2 = 8px*2 + 텍스트 높이)
-                    overflowY: 'auto',
+                    overflowY: 'scroll', // 'auto' 대신 'scroll'로 변경하여 항상 스크롤바 표시
                     overflowX: 'hidden',
                     position: 'absolute',
                     // 스크롤바 항상 표시 강제
                     scrollbarWidth: 'thin',
-                    scrollbarColor: '#bdbdbd #f3f4f6'
+                    scrollbarColor: '#bdbdbd #f3f4f6',
+                    WebkitOverflowScrolling: 'touch' // 모바일 스크롤 부드럽게
                   }}
                 >
                   {combinedFiltered.map((item, index) => (

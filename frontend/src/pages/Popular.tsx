@@ -615,7 +615,7 @@ const Popular = () => {
   const [includeInput, setIncludeInput] = useState('');
   const [excludeInput, setExcludeInput] = useState('');
   const [allIngredients, setAllIngredients] = useState<string[]>([]);
-  const [period, setPeriod] = useState('month');
+  const [period, setPeriod] = useState('week');
   const [dateModalOpen, setDateModalOpen] = useState(false);
   const [dateRange, setDateRange] = useState<[Date|null, Date|null]>([null, null]);
   const [tempDateRange, setTempDateRange] = useState<[Date|null, Date|null]>([null, null]); // 모달 내 임시 상태
