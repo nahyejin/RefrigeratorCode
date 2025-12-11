@@ -410,8 +410,9 @@ const calculateThemeRankings = async (recipes: Recipe[], dateRange: { start: Dat
     
     const result = results
       .filter(item => {
-        // 신규이거나 상승한 것만 필터링 (rate > 0 또는 multiplier >= 1)
-        return item.isNew || (item.rate > 0) || (item.multiplier !== undefined && item.multiplier >= 1);
+        // 신규이거나 상승한 것만 필터링 (rate > 0 또는 multiplier > 1)
+        // multiplier가 1이면 변화 없음이므로 제외
+        return item.isNew || (item.rate > 0) || (item.multiplier !== undefined && item.multiplier > 1);
       })
       .sort((a, b) => {
         // 먼저 신규 여부로 정렬 (신규가 뒤로)
@@ -587,8 +588,9 @@ function calculateDishRankings(recipes: Recipe[], dishKeywords: { keyword: strin
   
   return results
     .filter(item => {
-      // 신규이거나 상승한 것만 필터링 (rate > 0 또는 multiplier >= 1)
-      return item.isNew || (item.rate > 0) || (item.multiplier !== undefined && item.multiplier >= 1);
+      // 신규이거나 상승한 것만 필터링 (rate > 0 또는 multiplier > 1)
+      // multiplier가 1이면 변화 없음이므로 제외
+      return item.isNew || (item.rate > 0) || (item.multiplier !== undefined && item.multiplier > 1);
     })
     .sort((a, b) => {
       // 먼저 신규 여부로 정렬 (신규가 뒤로)
@@ -1337,7 +1339,7 @@ const Popular = () => {
                           <td className="py-1.5 px-2 text-center text-[#444] font-normal whitespace-nowrap">
                             <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', position: 'relative', paddingRight: '8px'}}>
                               <span style={{flex: 1, textAlign: 'center', paddingRight: '20px'}}>{dish.count.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</span>
-                              {dish.isNew || dish.rate !== 0 ? (
+                              {dish.isNew || (dish.rate > 0) || (dish.multiplier !== undefined && dish.multiplier > 1) ? (
                                 <span
                                   style={{
                                     display: 'inline-block',
@@ -1352,7 +1354,7 @@ const Popular = () => {
                                     right: 0
                                   }}
                                 >
-                                  {dish.isNew ? '✦신규' : dish.multiplier ? (dish.multiplier >= 1 ? `▴${dish.multiplier}배` : `▾${dish.multiplier}배`) : ''}
+                                  {dish.isNew ? '✦신규' : dish.multiplier && dish.multiplier > 1 ? `▴${dish.multiplier}배` : dish.rate > 0 ? `▴${dish.rate}%` : ''}
                                 </span>
                               ) : null}
                             </div>
@@ -1394,7 +1396,7 @@ const Popular = () => {
                           <td className="py-1.5 px-2 text-center text-[#444] font-normal whitespace-nowrap">
                             <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', position: 'relative', paddingRight: '8px'}}>
                               <span style={{flex: 1, textAlign: 'center', paddingRight: '20px'}}>{theme.count.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</span>
-                              {theme.isNew || theme.rate !== 0 ? (
+                              {theme.isNew || (theme.rate > 0) || (theme.multiplier !== undefined && theme.multiplier > 1) ? (
                                 <span
                                   style={{
                                     display: 'inline-block',
@@ -1409,7 +1411,7 @@ const Popular = () => {
                                     right: 0
                                   }}
                                 >
-                                  {theme.isNew ? '✦신규' : theme.multiplier ? (theme.multiplier >= 1 ? `▴${theme.multiplier}배` : `▾${theme.multiplier}배`) : ''}
+                                  {theme.isNew ? '✦신규' : theme.multiplier && theme.multiplier > 1 ? `▴${theme.multiplier}배` : theme.rate > 0 ? `▴${theme.rate}%` : ''}
                                 </span>
                               ) : null}
                             </div>
