@@ -109,10 +109,10 @@ function AppContent() {
         }
       >
         <Routes>
-          {/* 홈 페이지 - RecipeList로 리다이렉트 */}
+          {/* 홈 페이지 - MyFridge로 랜딩 */}
           <Route 
             path={ROUTES.HOME} 
-            element={<RecipeList />} 
+            element={<MyFridge />} 
           />
           
           {/* 로그인 페이지 */}
