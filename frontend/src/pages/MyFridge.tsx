@@ -626,7 +626,7 @@ const MyFridge: React.FC = () => {
               />
               {showDropdown && combinedFiltered.length > 0 && (
                 <div 
-                  className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-[10] custom-scrollbar" 
+                  className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-[10] autocomplete-scrollbar" 
                   style={{ 
                     maxHeight: '96px', // 3개 항목 기준 (각 항목 약 32px: py-2 = 8px*2 + 텍스트 높이)
                     overflowY: 'scroll', // 'auto' 대신 'scroll'로 변경하여 항상 스크롤바 표시
@@ -634,7 +634,7 @@ const MyFridge: React.FC = () => {
                     position: 'absolute',
                     // 스크롤바 항상 표시 강제
                     scrollbarWidth: 'thin',
-                    scrollbarColor: '#bdbdbd #f3f4f6',
+                    scrollbarColor: '#9e9e9e #e5e7eb', // 더 진한 색상으로 변경
                     WebkitOverflowScrolling: 'touch' // 모바일 스크롤 부드럽게
                   }}
                 >

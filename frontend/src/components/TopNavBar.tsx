@@ -11,7 +11,12 @@ const TopNavBar: React.FC = () => (
       right: 0,
       zIndex: 1000,
       maxWidth: '100%',
-      margin: '0 auto'
+      margin: '0 auto',
+      willChange: 'transform',
+      transform: 'translateZ(0)',
+      WebkitTransform: 'translateZ(0)',
+      backfaceVisibility: 'hidden',
+      WebkitBackfaceVisibility: 'hidden'
     }}
   >
     <img src={logoImg} alt="냉털이 로고" className="h-4 w-auto min-w-[16px]" />
