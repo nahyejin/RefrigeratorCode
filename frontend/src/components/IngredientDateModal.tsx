@@ -168,17 +168,8 @@ export default function IngredientDateModal({ type, isOpen, onClose, onComplete,
             <img src={backIcon} alt="뒤로가기" style={STYLES.backIcon} />
           </button>
         </div>
-        <div className="absolute top-1 right-1 flex gap-1 z-10">
-          <button
-            onClick={onClose}
-            className="p-1 text-gray-400 hover:text-gray-700 bg-transparent border-none outline-none text-base"
-            style={STYLES.button}
-            aria-label="닫기"
-          >
-            ×
-          </button>
-        </div>
-        <div className="text-center text-[16px] font-bold mb-4 mt-2">{TEXTS.title}</div>
+        <span className="absolute top-3 right-3 w-6 h-6 text-gray-400 text-xl cursor-pointer select-none" onClick={onClose} role="button" aria-label="닫기">×</span>
+        <div className="text-center font-bold text-[14px] mb-4">일자를 선택하세요</div>
         <hr className="mb-4" />
         <div className="mb-2 text-[14px] font-semibold text-[#404040]">
           {type === 'expiry' ? TEXTS.expiryQuestion : TEXTS.purchaseQuestion}

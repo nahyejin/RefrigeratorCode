@@ -619,12 +619,8 @@ const Popular = () => {
   const [dateModalOpen, setDateModalOpen] = useState(false);
   const [dateRange, setDateRange] = useState<[Date|null, Date|null]>([null, null]);
   const [tempDateRange, setTempDateRange] = useState<[Date|null, Date|null]>([null, null]); // 모달 내 임시 상태
-  const [dateInputStart, setDateInputStart] = useState('');
-  const [dateInputEnd, setDateInputEnd] = useState('');
-  const [calendarStartOpen, setCalendarStartOpen] = useState(false);
-  const [calendarEndOpen, setCalendarEndOpen] = useState(false);
-  const calendarStartRef = React.useRef<HTMLDivElement>(null);
-  const calendarEndRef = React.useRef<HTMLDivElement>(null);
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const calendarRef = React.useRef<HTMLDivElement>(null);
   const today = new Date();
   today.setHours(23, 59, 59, 999);
   const [toast, setToast] = useState('');
@@ -667,22 +663,19 @@ const Popular = () => {
   // 달력 외부 클릭 감지
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (calendarStartRef.current && !calendarStartRef.current.contains(event.target as Node)) {
-        setCalendarStartOpen(false);
-      }
-      if (calendarEndRef.current && !calendarEndRef.current.contains(event.target as Node)) {
-        setCalendarEndOpen(false);
+      if (calendarRef.current && !calendarRef.current.contains(event.target as Node)) {
+        setCalendarOpen(false);
       }
     };
 
-    if (calendarStartOpen || calendarEndOpen) {
+    if (calendarOpen) {
       document.addEventListener('mousedown', handleClickOutside);
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [calendarStartOpen, calendarEndOpen]);
+  }, [calendarOpen]);
 
   // 날짜 포맷팅 유틸리티
   const formatDateForInput = (date: Date): string => {
@@ -711,29 +704,23 @@ const Popular = () => {
     const val = e.target.value;
     setPeriod(val);
     if (val === 'custom') {
-      // 모달 열 때 현재 dateRange 값을 input에 반영
+      // 모달 열 때 현재 dateRange 값을 tempDateRange에 반영
       if (dateRange[0] && dateRange[1]) {
-        setDateInputStart(formatDateForInput(dateRange[0]));
-        setDateInputEnd(formatDateForInput(dateRange[1]));
         setTempDateRange([dateRange[0], dateRange[1]]);
       } else {
-        setDateInputStart('');
-        setDateInputEnd('');
         setTempDateRange([null, null]);
       }
       setDateModalOpen(true);
     } else {
       // 기간이 변경되면 랭킹을 다시 계산하도록 트리거
       setDateRange([null, null]);
-      setDateInputStart('');
-      setDateInputEnd('');
       setTempDateRange([null, null]);
     }
   };
 
   // 모달이 열려있을 때 body 스크롤 막기
   React.useEffect(() => {
-    if (dateModalOpen || calendarStartOpen || calendarEndOpen) {
+    if (dateModalOpen || calendarOpen) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
@@ -741,7 +728,7 @@ const Popular = () => {
     return () => {
       document.body.style.overflow = '';
     };
-  }, [dateModalOpen, calendarStartOpen, calendarEndOpen]);
+  }, [dateModalOpen, calendarOpen]);
 
   // 기간 라벨 표시
   let periodLabel = periodOptions.find(o => o.value === period)?.label || '';
@@ -1068,14 +1055,10 @@ const Popular = () => {
               key={opt.value}
               onClick={() => {
                 if (opt.value === 'custom') {
-                  // 모달 열 때 현재 dateRange 값을 input에 반영
+                  // 모달 열 때 현재 dateRange 값을 tempDateRange에 반영
                   if (dateRange[0] && dateRange[1]) {
-                    setDateInputStart(formatDateForInput(dateRange[0]));
-                    setDateInputEnd(formatDateForInput(dateRange[1]));
                     setTempDateRange([dateRange[0], dateRange[1]]);
                   } else {
-                    setDateInputStart('');
-                    setDateInputEnd('');
                     setTempDateRange([null, null]);
                   }
                   setDateModalOpen(true);
@@ -1083,8 +1066,6 @@ const Popular = () => {
                   // 다른 기간 선택 시
                   setPeriod(opt.value);
                   setDateRange([null, null]);
-                  setDateInputStart('');
-                  setDateInputEnd('');
                   setTempDateRange([null, null]);
                 }
               }}
@@ -1124,198 +1105,66 @@ const Popular = () => {
           <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center" style={{ zIndex: 1001 }} onClick={() => {
             setDateModalOpen(false);
             // 모달을 닫을 때 임시 상태를 원래 상태로 복원
-            if (dateRange[0] && dateRange[1]) {
-              setDateInputStart(formatDateForInput(dateRange[0]));
-              setDateInputEnd(formatDateForInput(dateRange[1]));
-              setTempDateRange([dateRange[0], dateRange[1]]);
-            } else {
-              setDateInputStart('');
-              setDateInputEnd('');
-              setTempDateRange([null, null]);
-            }
+            setTempDateRange([dateRange[0], dateRange[1]]);
           }}>
-            <div className="bg-white rounded-xl shadow-lg p-6 w-[380px] max-w-[95vw] relative" onClick={e => e.stopPropagation()}>
-              <span className="absolute top-3 right-3 w-6 h-6 text-gray-400 text-xl cursor-pointer select-none" onClick={() => {
-                setDateModalOpen(false);
-                // 모달을 닫을 때 임시 상태를 원래 상태로 복원
-                if (dateRange[0] && dateRange[1]) {
-                  setDateInputStart(formatDateForInput(dateRange[0]));
-                  setDateInputEnd(formatDateForInput(dateRange[1]));
-                  setTempDateRange([dateRange[0], dateRange[1]]);
-                } else {
-                  setDateInputStart('');
-                  setDateInputEnd('');
-                  setTempDateRange([null, null]);
-                }
-              }} role="button" aria-label="닫기">×</span>
-              <div className="text-center font-bold text-[14px] mb-4">기간을 입력하세요</div>
-              
-              {/* 날짜 입력 필드 */}
-              <div className="flex items-center gap-2 mb-4 w-full">
-                <div className="flex-1 min-w-0 relative">
-                  <input
-                    type="text"
-                    value={dateInputStart}
-                    onChange={e => {
-                      const formatted = formatInputValue(e.target.value);
-                      setDateInputStart(formatted);
-                      if (isValidDateString(formatted)) {
-                        const date = new Date(formatted);
-                        date.setHours(0, 0, 0, 0);
-                        setTempDateRange([date, tempDateRange[1]]);
+            <div className="bg-white rounded-xl shadow-lg px-0 py-0 w-auto max-w-[95vw] relative" onClick={e => e.stopPropagation()}>
+              {/* 단일 달력 - 기간 선택 가능 */}
+              <div className="flex justify-center">
+                <div ref={calendarRef}>
+                  <CustomCalendar
+                    selectedDate={tempDateRange[0]}
+                    mode="range"
+                    selectedStartDate={tempDateRange[0]}
+                    selectedEndDate={tempDateRange[1]}
+                    onDateSelect={(date) => {
+                      // 단일 날짜 선택 시 시작일과 종료일을 동일하게 설정 (임시 상태만 업데이트)
+                      const startDate = new Date(date);
+                      startDate.setHours(0, 0, 0, 0);
+                      const endDate = new Date(date);
+                      endDate.setHours(23, 59, 59, 999);
+                      setTempDateRange([startDate, endDate]);
+                    }}
+                    onRangeSelect={(startDate, endDate) => {
+                      console.log('onRangeSelect called:', startDate, endDate);
+                      if (startDate && endDate) {
+                        // 기간 선택 완료 (임시 상태만 업데이트)
+                        const start = new Date(startDate);
+                        start.setHours(0, 0, 0, 0);
+                        const end = new Date(endDate);
+                        end.setHours(23, 59, 59, 999);
+                        console.log('Setting range:', start, end);
+                        setTempDateRange([start, end]);
+                      } else if (startDate) {
+                        // 시작일만 선택된 경우 (종료일은 null)
+                        const start = new Date(startDate);
+                        start.setHours(0, 0, 0, 0);
+                        console.log('Setting start only:', start);
+                        setTempDateRange([start, null]);
+                      } else {
+                        // 모두 초기화
+                        setTempDateRange([null, null]);
                       }
                     }}
-                    placeholder="yyyy-mm-dd"
-                    maxLength={10}
-                    className="w-full h-10 border border-gray-300 rounded-lg px-4 text-[14px] pr-10"
-                    style={{ 
-                      boxSizing: 'border-box',
-                      width: '100%'
-                    }}
-                  />
-                  {/* 달력 아이콘 버튼 */}
-                  <button
-                    type="button"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-700"
-                    onClick={() => {
-                      setCalendarStartOpen(!calendarStartOpen);
-                      setCalendarEndOpen(false);
-                    }}
-                    tabIndex={-1}
-                    aria-label="달력 열기"
-                  >
-                    <svg 
-                      style={{ width: 20, height: 20 }}
-                      fill="none" 
-                      viewBox="0 0 24 24" 
-                      stroke="currentColor"
-                    >
-                      <rect x="3" y="5" width="18" height="16" rx="2" strokeWidth="2"/>
-                      <path d="M16 3v4M8 3v4M3 9h18" strokeWidth="2"/>
-                    </svg>
-                  </button>
-                  {/* 달력 팝업 */}
-                  {calendarStartOpen && (
-                    <>
-                      <div 
-                        className="fixed inset-0 bg-black bg-opacity-30"
-                        style={{ zIndex: 1002 }}
-                        onClick={() => setCalendarStartOpen(false)}
-                      />
-                      <div 
-                        ref={calendarStartRef}
-                        className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <CustomCalendar
-                          selectedDate={isValidDateString(dateInputStart) ? new Date(dateInputStart) : null}
-                          onDateSelect={(date) => {
-                            const formatted = formatDateForInput(date);
-                            setDateInputStart(formatted);
-                            date.setHours(0, 0, 0, 0);
-                            setTempDateRange([date, tempDateRange[1]]);
-                            setCalendarStartOpen(false);
-                          }}
-                          onClose={() => setCalendarStartOpen(false)}
-                          type="range-start"
-                          minDate={new Date(1900, 0, 1)}
-                          maxDate={today}
-                        />
-                      </div>
-                    </>
-                  )}
-                </div>
-                <span className="text-gray-500 text-[14px] whitespace-nowrap flex-shrink-0">~</span>
-                <div className="flex-1 min-w-0 relative">
-                  <input
-                    type="text"
-                    value={dateInputEnd}
-                    onChange={e => {
-                      const formatted = formatInputValue(e.target.value);
-                      setDateInputEnd(formatted);
-                      if (isValidDateString(formatted)) {
-                        const date = new Date(formatted);
-                        date.setHours(23, 59, 59, 999);
-                        setTempDateRange([tempDateRange[0], date]);
-                      }
-                    }}
-                    placeholder="yyyy-mm-dd"
-                    maxLength={10}
-                    className="w-full h-10 border border-gray-300 rounded-lg px-4 text-[14px] pr-10"
-                    style={{ 
-                      boxSizing: 'border-box',
-                      width: '100%'
-                    }}
-                  />
-                  {/* 달력 아이콘 버튼 */}
-                  <button
-                    type="button"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-700"
-                    onClick={() => {
-                      setCalendarEndOpen(!calendarEndOpen);
-                      setCalendarStartOpen(false);
-                    }}
-                    tabIndex={-1}
-                    aria-label="달력 열기"
-                  >
-                    <svg 
-                      style={{ width: 20, height: 20 }}
-                      fill="none" 
-                      viewBox="0 0 24 24" 
-                      stroke="currentColor"
-                    >
-                      <rect x="3" y="5" width="18" height="16" rx="2" strokeWidth="2"/>
-                      <path d="M16 3v4M8 3v4M3 9h18" strokeWidth="2"/>
-                    </svg>
-                  </button>
-                  {/* 달력 팝업 */}
-                  {calendarEndOpen && (
-                    <>
-                      <div 
-                        className="fixed inset-0 bg-black bg-opacity-30"
-                        style={{ zIndex: 1002 }}
-                        onClick={() => setCalendarEndOpen(false)}
-                      />
-                      <div 
-                        ref={calendarEndRef}
-                        className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <CustomCalendar
-                          selectedDate={isValidDateString(dateInputEnd) ? new Date(dateInputEnd) : null}
-                          onDateSelect={(date) => {
-                            const formatted = formatDateForInput(date);
-                            setDateInputEnd(formatted);
-                            date.setHours(23, 59, 59, 999);
-                            setTempDateRange([tempDateRange[0], date]);
-                            setCalendarEndOpen(false);
-                          }}
-                          onClose={() => setCalendarEndOpen(false)}
-                          type="range-end"
-                          minDate={tempDateRange[0] || new Date(1900, 0, 1)}
-                          maxDate={today}
-                        />
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-              
-              {/* 확인 버튼 */}
-              <div className="flex mt-4">
-                <button
-                  className="flex-1 h-10 bg-blue-500 text-white rounded-lg flex items-center justify-center"
-                  onClick={() => {
-                    if (tempDateRange[0] && tempDateRange[1]) {
-                      setDateRange([tempDateRange[0], tempDateRange[1]]);
-                      setPeriod('custom');
+                    onClose={() => {
+                      // 취소 버튼 클릭 시 모달 닫기 (변경사항 무시)
                       setDateModalOpen(false);
-                    }
-                  }}
-                  disabled={!(tempDateRange[0] && tempDateRange[1])}
-                >
-                  확인
-                </button>
+                      setTempDateRange([dateRange[0], dateRange[1]]);
+                    }}
+                    onSelect={() => {
+                      // 선택 버튼 클릭 시 실제 적용
+                      if (tempDateRange[0]) {
+                        const finalEndDate = tempDateRange[1] || tempDateRange[0];
+                        finalEndDate.setHours(23, 59, 59, 999);
+                        setDateRange([tempDateRange[0], finalEndDate]);
+                        setPeriod('custom');
+                        setDateModalOpen(false);
+                      }
+                    }}
+                    type="range"
+                    minDate={new Date(1900, 0, 1)}
+                    maxDate={today}
+                  />
+                </div>
               </div>
             </div>
           </div>

@@ -4,9 +4,15 @@ type CustomCalendarProps = {
   selectedDate: Date | null;
   onDateSelect: (date: Date) => void;
   onClose: () => void;
-  type?: 'expiry' | 'purchase' | 'range-start' | 'range-end';
+  type?: 'expiry' | 'purchase' | 'range-start' | 'range-end' | 'range';
   minDate?: Date;
   maxDate?: Date;
+  // 기간 선택 모드
+  mode?: 'single' | 'range';
+  selectedStartDate?: Date | null;
+  selectedEndDate?: Date | null;
+  onRangeSelect?: (startDate: Date | null, endDate: Date | null) => void;
+  onSelect?: () => void; // 선택 버튼 클릭 시 호출
 };
 
 // 유틸리티 함수들
@@ -50,15 +56,35 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
   onClose, 
   type,
   minDate,
-  maxDate
+  maxDate,
+  mode = 'single',
+  selectedStartDate,
+  selectedEndDate,
+  onRangeSelect,
+  onSelect
 }) => {
   const today = new Date();
   const [currentMonth, setCurrentMonth] = useState(
     selectedDate 
       ? new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1) 
+      : selectedStartDate
+      ? new Date(selectedStartDate.getFullYear(), selectedStartDate.getMonth(), 1)
       : new Date(today.getFullYear(), today.getMonth(), 1)
   );
   const [selectedDateState, setSelectedDateState] = useState<Date | null>(selectedDate);
+  const [rangeStartDate, setRangeStartDate] = useState<Date | null>(() => {
+    if (mode === 'range' && selectedStartDate) {
+      return new Date(selectedStartDate.getFullYear(), selectedStartDate.getMonth(), selectedStartDate.getDate());
+    }
+    return null;
+  });
+  const [rangeEndDate, setRangeEndDate] = useState<Date | null>(() => {
+    if (mode === 'range' && selectedEndDate) {
+      return new Date(selectedEndDate.getFullYear(), selectedEndDate.getMonth(), selectedEndDate.getDate());
+    }
+    return null;
+  });
+  const [isSelectingRange, setIsSelectingRange] = useState(false);
   const [showYearDropdown, setShowYearDropdown] = useState(false);
   const [showMonthDropdown, setShowMonthDropdown] = useState(false);
   const yearDropdownRef = useRef<HTMLDivElement>(null);
@@ -134,14 +160,90 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
   };
 
   const handleDateClick = (date: Date) => {
-    if (Utils.isValidDateRange(date, type, minDate, maxDate)) {
+    if (!Utils.isValidDateRange(date, type, minDate, maxDate)) {
+      return;
+    }
+
+    if (mode === 'range') {
+      // 기간 선택 모드
+      // 날짜만 비교 (시간 제외)
+      const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      
+      console.log('handleDateClick - range mode:', {
+        dateOnly,
+        rangeStartDate,
+        rangeEndDate,
+        hasStart: !!rangeStartDate,
+        hasEnd: !!rangeEndDate
+      });
+      
+      if (!rangeStartDate || (rangeStartDate && rangeEndDate)) {
+        // 시작일 선택 또는 재선택
+        console.log('Setting start date:', dateOnly);
+        setRangeStartDate(dateOnly);
+        setRangeEndDate(null);
+        setIsSelectingRange(true);
+        if (onRangeSelect) {
+          onRangeSelect(dateOnly, null);
+        }
+      } else if (rangeStartDate && !rangeEndDate) {
+        // 종료일 선택
+        const startOnly = new Date(rangeStartDate.getFullYear(), rangeStartDate.getMonth(), rangeStartDate.getDate());
+        
+        if (dateOnly.getTime() < startOnly.getTime()) {
+          // 종료일이 시작일보다 이전이면 시작일과 종료일 교체
+          console.log('Reversing range:', dateOnly, startOnly);
+          setRangeEndDate(startOnly);
+          setRangeStartDate(dateOnly);
+          setIsSelectingRange(false);
+          if (onRangeSelect) {
+            onRangeSelect(dateOnly, startOnly);
+          }
+        } else if (dateOnly.getTime() === startOnly.getTime()) {
+          // 같은 날짜를 다시 클릭하면 단일 날짜로 유지
+          console.log('Same date clicked, keeping single');
+          setRangeEndDate(null);
+          setIsSelectingRange(false);
+          if (onRangeSelect) {
+            onRangeSelect(dateOnly, null);
+          }
+        } else {
+          // 정상적인 종료일 선택
+          console.log('Setting end date:', startOnly, dateOnly);
+          setRangeEndDate(dateOnly);
+          setIsSelectingRange(false);
+          if (onRangeSelect) {
+            onRangeSelect(startOnly, dateOnly);
+          }
+        }
+      }
+    } else {
+      // 단일 날짜 선택 모드
       setSelectedDateState(date);
     }
   };
 
   const handleSelect = () => {
-    if (selectedDateState) {
-      onDateSelect(selectedDateState);
+    if (onSelect) {
+      // onSelect가 제공되면 그것을 호출 (외부에서 처리)
+      onSelect();
+    } else {
+      // 기존 로직 (onSelect가 없을 때만)
+      if (mode === 'range') {
+        // 기간 선택 모드: 시작일이 있으면 적용
+        if (rangeStartDate) {
+          const finalEndDate = rangeEndDate || rangeStartDate;
+          onDateSelect(rangeStartDate);
+          if (onRangeSelect) {
+            onRangeSelect(rangeStartDate, finalEndDate);
+          }
+        }
+      } else {
+        // 단일 날짜 선택 모드
+        if (selectedDateState) {
+          onDateSelect(selectedDateState);
+        }
+      }
     }
   };
 
@@ -153,8 +255,78 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
   };
 
   const isSelected = (date: Date | null) => {
-    if (!date || !selectedDateState) return false;
-    return date.toDateString() === selectedDateState.toDateString();
+    if (!date) return false;
+    
+    if (mode === 'range') {
+      // 기간 선택 모드
+      // 날짜만 비교 (시간 제외)
+      const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      
+      if (rangeStartDate) {
+        const startOnly = new Date(rangeStartDate.getFullYear(), rangeStartDate.getMonth(), rangeStartDate.getDate());
+        
+        // 시작일 확인
+        if (dateOnly.getTime() === startOnly.getTime()) {
+          return true;
+        }
+        
+        // 종료일이 있으면 기간 내 날짜 확인
+        if (rangeEndDate) {
+          const endOnly = new Date(rangeEndDate.getFullYear(), rangeEndDate.getMonth(), rangeEndDate.getDate());
+          
+          // 종료일 확인
+          if (dateOnly.getTime() === endOnly.getTime()) {
+            return true;
+          }
+          
+          // 기간 내 날짜 확인 (시작일과 종료일 사이)
+          const dateTime = dateOnly.getTime();
+          const startTime = startOnly.getTime();
+          const endTime = endOnly.getTime();
+          return dateTime >= startTime && dateTime <= endTime;
+        }
+      }
+      return false;
+    } else {
+      // 단일 날짜 선택 모드
+      if (!selectedDateState) return false;
+      return date.toDateString() === selectedDateState.toDateString();
+    }
+  };
+
+  const isInRange = (date: Date | null) => {
+    if (!date || mode !== 'range') return false;
+    if (!rangeStartDate || !rangeEndDate) return false;
+    
+    // 날짜만 비교 (시간 제외)
+    const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const startOnly = new Date(rangeStartDate.getFullYear(), rangeStartDate.getMonth(), rangeStartDate.getDate());
+    const endOnly = new Date(rangeEndDate.getFullYear(), rangeEndDate.getMonth(), rangeEndDate.getDate());
+    
+    const dateTime = dateOnly.getTime();
+    const startTime = startOnly.getTime();
+    const endTime = endOnly.getTime();
+    
+    // 시작일과 종료일 사이의 날짜 (시작일과 종료일 제외)
+    return dateTime > startTime && dateTime < endTime;
+  };
+  
+  // 기간 내 날짜인지 확인 (시작일과 종료일 포함)
+  const isInSelectedRange = (date: Date | null) => {
+    if (!date || mode !== 'range') return false;
+    if (!rangeStartDate || !rangeEndDate) return false;
+    
+    // 날짜만 비교 (시간 제외)
+    const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const startOnly = new Date(rangeStartDate.getFullYear(), rangeStartDate.getMonth(), rangeStartDate.getDate());
+    const endOnly = new Date(rangeEndDate.getFullYear(), rangeEndDate.getMonth(), rangeEndDate.getDate());
+    
+    const dateTime = dateOnly.getTime();
+    const startTime = startOnly.getTime();
+    const endTime = endOnly.getTime();
+    
+    // 시작일과 종료일 사이의 날짜 (시작일과 종료일 포함)
+    return dateTime >= startTime && dateTime <= endTime;
   };
 
   const isDisabled = (date: Date | null) => {
@@ -163,12 +335,19 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-lg p-4 w-[320px] custom-calendar-container">
+    <div className="bg-white rounded-xl p-4 w-[320px] custom-calendar-container relative" style={{ boxShadow: 'none' }} data-calendar-range-mode={mode === 'range' ? 'true' : 'false'}>
+      {/* 상단 제목 영역 */}
+      <div className="relative mb-4">
+        <div className="text-center font-bold text-[14px]">일자를 선택하세요</div>
+        {/* 상단 X 버튼 */}
+        <span className="absolute top-0 right-0 w-6 h-6 text-gray-400 text-xl cursor-pointer select-none" onClick={onClose} role="button" aria-label="닫기">×</span>
+      </div>
       {/* 상단: < > 버튼과 년도/월 드롭다운 */}
       <div className="flex items-center justify-between mb-4">
         <button
           onClick={handlePrevMonth}
-          className="p-2 hover:bg-gray-100 rounded"
+          className="p-2 hover:bg-gray-100 rounded border-none outline-none"
+          style={{ border: 'none', outline: 'none', boxShadow: 'none' }}
           aria-label="이전 달"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -354,7 +533,8 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
 
         <button
           onClick={handleNextMonth}
-          className="p-2 hover:bg-gray-100 rounded"
+          className="p-2 hover:bg-gray-100 rounded border-none outline-none"
+          style={{ border: 'none', outline: 'none', boxShadow: 'none' }}
           aria-label="다음 달"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -381,7 +561,31 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
 
           const disabled = isDisabled(date);
           const selected = isSelected(date);
+          const inRange = isInRange(date);
+          const inSelectedRange = isInSelectedRange(date);
           const today = isToday(date);
+          // 날짜만 비교 (시간 제외)
+          const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+          const isStartDate = mode === 'range' && rangeStartDate && 
+            dateOnly.getTime() === new Date(rangeStartDate.getFullYear(), rangeStartDate.getMonth(), rangeStartDate.getDate()).getTime();
+          const isEndDate = mode === 'range' && rangeEndDate && 
+            dateOnly.getTime() === new Date(rangeEndDate.getFullYear(), rangeEndDate.getMonth(), rangeEndDate.getDate()).getTime();
+          
+          // 기간 내 날짜인지 확인 (시작일과 종료일 제외)
+          const isMiddleDate = mode === 'range' && rangeStartDate && rangeEndDate && inSelectedRange && !isStartDate && !isEndDate;
+          
+          // 디버깅: 특정 날짜에 대해 로그 출력
+          if (mode === 'range' && rangeStartDate && rangeEndDate && date.getDate() >= 1 && date.getDate() <= 11 && date.getMonth() === 11) {
+            console.log(`Date ${date.getDate()}:`, {
+              isStartDate,
+              isEndDate,
+              isMiddleDate,
+              inRange,
+              inSelectedRange,
+              rangeStartDate: rangeStartDate.getDate(),
+              rangeEndDate: rangeEndDate.getDate()
+            });
+          }
 
           let buttonStyle: React.CSSProperties = {};
           let buttonClassName = 'aspect-square rounded-lg text-[14px] font-medium ';
@@ -389,7 +593,28 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
           if (disabled) {
             buttonClassName += 'text-gray-300 cursor-not-allowed';
             buttonStyle.color = '#D1D5DB'; // gray-300
-          } else if (selected) {
+          } else if (mode === 'range' && (isStartDate || isEndDate)) {
+            // 기간 선택 모드: 시작일 또는 종료일 (짙은 파란색) - 최우선
+            buttonClassName += 'bg-blue-500 text-white hover:bg-blue-600';
+            buttonStyle.color = '#FFFFFF'; // white
+            buttonStyle.backgroundColor = '#3B82F6'; // blue-500
+          } else if (mode === 'range' && rangeStartDate && rangeEndDate && (isMiddleDate || inRange)) {
+            // 기간 선택 모드: 기간 내 날짜 (연한 파란색) - 시작일과 종료일 사이
+            // rangeStartDate와 rangeEndDate가 모두 있을 때만 표시
+            buttonClassName += 'bg-blue-100 text-blue-700 hover:bg-blue-200';
+            // 인라인 스타일로 명시적으로 설정 (CSS 클래스보다 우선순위 높음)
+            buttonStyle.backgroundColor = '#DBEAFE'; // blue-100
+            buttonStyle.color = '#1E40AF'; // blue-800
+            buttonStyle.border = 'none';
+            buttonStyle.outline = 'none';
+            buttonStyle.boxShadow = 'none';
+          } else if (mode === 'range' && selected && !rangeEndDate) {
+            // 기간 선택 모드에서 시작일만 선택된 경우 (단일 날짜)
+            buttonClassName += 'bg-blue-500 text-white hover:bg-blue-600';
+            buttonStyle.color = '#FFFFFF'; // white
+            buttonStyle.backgroundColor = '#3B82F6'; // blue-500
+          } else if (selected && mode !== 'range') {
+            // 단일 선택 모드
             buttonClassName += 'bg-blue-500 text-white hover:bg-blue-600';
             buttonStyle.color = '#FFFFFF'; // white
             buttonStyle.backgroundColor = '#3B82F6'; // blue-500
@@ -402,13 +627,23 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
             buttonStyle.color = '#374151'; // gray-700 명시적 색상
           }
 
+          // 인라인 스타일이 확실히 적용되도록 명시적으로 설정
+          const finalStyle: React.CSSProperties = {
+            ...buttonStyle,
+            backgroundColor: buttonStyle.backgroundColor || undefined,
+            color: buttonStyle.color || undefined,
+            border: buttonStyle.border || undefined,
+            outline: buttonStyle.outline || undefined,
+            boxShadow: buttonStyle.boxShadow || undefined
+          };
+
           return (
             <button
               key={idx}
               onClick={() => handleDateClick(date)}
               disabled={disabled}
               className={buttonClassName}
-              style={buttonStyle}
+              style={finalStyle}
             >
               {date.getDate()}
             </button>
@@ -430,9 +665,9 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
         </button>
         <button
           onClick={handleSelect}
-          disabled={!selectedDateState}
+          disabled={mode === 'single' ? !selectedDateState : !rangeStartDate}
           className={`flex-1 h-10 rounded-lg text-[14px] font-medium text-white ${
-            selectedDateState
+            (mode === 'single' && selectedDateState) || (mode === 'range' && rangeStartDate)
               ? 'bg-blue-500 hover:bg-blue-600'
               : 'bg-gray-300 cursor-not-allowed'
           }`}

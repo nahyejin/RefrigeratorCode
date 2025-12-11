@@ -414,28 +414,43 @@ const MyFridge: React.FC = () => {
     if (showDropdown && dropdownRef.current && combinedFiltered.length > 3) {
       // 드롭다운이 열리고 항목이 3개 이상일 때만 스크롤바 표시
       const dropdown = dropdownRef.current;
-      // 여러 번 스크롤을 트리거하여 스크롤바를 확실히 표시
+      
+      // 스크롤바를 확실히 표시하기 위한 함수
       const triggerScrollbar = () => {
-        if (dropdown.scrollHeight > dropdown.clientHeight) {
-          // 작은 값으로 스크롤하여 스크롤바 표시
-          dropdown.scrollTop = 0.5;
-          requestAnimationFrame(() => {
+        if (dropdown && dropdown.scrollHeight > dropdown.clientHeight) {
+          // 1. 먼저 아래로 스크롤
+          dropdown.scrollTop = 3;
+          // 2. 즉시 다시 위로 (사용자는 변화를 느끼지 못함)
+          setTimeout(() => {
             dropdown.scrollTop = 0;
-            // 한 번 더 트리거
+            // 3. 한 번 더 트리거
             setTimeout(() => {
-              dropdown.scrollTop = 0.5;
-              requestAnimationFrame(() => {
+              dropdown.scrollTop = 2;
+              setTimeout(() => {
                 dropdown.scrollTop = 0;
-              });
-            }, 100);
-          });
+                // 4. 마지막으로 한 번 더
+                setTimeout(() => {
+                  dropdown.scrollTop = 1;
+                  setTimeout(() => {
+                    dropdown.scrollTop = 0;
+                  }, 10);
+                }, 10);
+              }, 10);
+            }, 10);
+          }, 10);
         }
       };
       
-      // DOM이 완전히 렌더링된 후 실행
-      setTimeout(triggerScrollbar, 50);
-      setTimeout(triggerScrollbar, 150);
-      setTimeout(triggerScrollbar, 300);
+      // DOM이 완전히 렌더링된 후 즉시 실행
+      const timer1 = setTimeout(triggerScrollbar, 50);
+      const timer2 = setTimeout(triggerScrollbar, 150);
+      const timer3 = setTimeout(triggerScrollbar, 300);
+      
+      return () => {
+        clearTimeout(timer1);
+        clearTimeout(timer2);
+        clearTimeout(timer3);
+      };
     }
   }, [showDropdown, combinedFiltered.length]);
 
@@ -634,7 +649,7 @@ const MyFridge: React.FC = () => {
               maxWidth: 360,
               margin: '0 auto',
               justifyContent: 'center',
-              alignItems: 'center',
+              alignItems: 'flex-start',
             }}
           >
             <div style={{ position: 'relative', width: '100%', maxWidth: 250, minWidth: 0, flex: '0 1 auto', overflow: 'visible', zIndex: 10 }}>
@@ -665,11 +680,11 @@ const MyFridge: React.FC = () => {
                     overflowX: 'hidden',
                     position: 'absolute',
                     // 스크롤바 항상 표시 강제
-                    scrollbarWidth: 'thin',
-                    scrollbarColor: '#9e9e9e #e5e7eb', // 더 진한 색상으로 변경
+                    scrollbarWidth: 'auto', // thin 대신 auto로 변경
+                    scrollbarColor: '#6b7280 #f3f4f6', // 더 진한 색상으로 변경
                     WebkitOverflowScrolling: 'touch', // 모바일 스크롤 부드럽게
                     // 스크롤 가능함을 시각적으로 표시
-                    paddingRight: combinedFiltered.length > 3 ? '14px' : '0',
+                    paddingRight: combinedFiltered.length > 3 ? '16px' : '0',
                     boxSizing: 'border-box'
                   }}
                 >
@@ -697,7 +712,7 @@ const MyFridge: React.FC = () => {
             <button
               type="button"
               className="bg-[#FFD600] text-[#222] font-bold rounded-full px-5 py-2 text-sm shadow hover:bg-yellow-300 transition whitespace-nowrap"
-              style={{ display: 'flex', alignItems: 'center', height: 40, padding: '0 18px', fontSize: 15, marginLeft: 0 }}
+              style={{ display: 'flex', alignItems: 'center', height: 40, padding: '0 18px', fontSize: 15, marginLeft: 0, alignSelf: 'flex-start' }}
               onClick={() => combinedFiltered.length > 0 && handleSelect(combinedFiltered[0])}
               disabled={combinedFiltered.length === 0}
             >
@@ -706,7 +721,7 @@ const MyFridge: React.FC = () => {
             <button
               type="button"
               className="bg-[#e5e5e5] text-[#222] font-bold rounded-2xl px-2 py-2 text-sm shadow transition whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-[#ccc] focus:border-[#ccc]"
-              style={{ display: 'flex', alignItems: 'center', height: 40, minWidth: 40, padding: 0, fontSize: 15, marginLeft: 0, border: '1px solid #e5e5e5', justifyContent: 'center', borderRadius: 20 }}
+              style={{ display: 'flex', alignItems: 'center', height: 40, minWidth: 40, padding: 0, fontSize: 15, marginLeft: 0, border: '1px solid #e5e5e5', justifyContent: 'center', borderRadius: 20, alignSelf: 'flex-start' }}
               onClick={() => alert('영수증 인식 기능은 곧 지원될 예정입니다!')}
               title="영수증 인식(구현 예정)"
             >
