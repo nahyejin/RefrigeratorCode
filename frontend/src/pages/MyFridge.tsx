@@ -636,9 +636,9 @@ const MyFridge: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-white">
-      <div className="bg-white w-full p-0 m-0 pb-24" style={{ marginTop: '56px' }}>
+      <div className="bg-white w-full p-0 m-0 pb-24" style={{ paddingTop: 92 }}>
         {/* 타이틀+입력창 그룹 */}
-        <div className="flex flex-col items-center justify-center w-full" style={{ marginTop: 40, marginBottom: 40 }}>
+        <div className="flex flex-col items-center justify-center w-full" style={{ marginBottom: 40 }}>
           <h1 className="text-[18px] font-bold text-[#111] text-center mb-2">내 냉장고 재료 추가</h1>
         </div>
         <div style={{ maxWidth: 360, margin: '0 auto', paddingLeft: 20, paddingRight: 20, width: '100%' }}>

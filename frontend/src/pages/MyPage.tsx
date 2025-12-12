@@ -283,6 +283,10 @@ const MyPage: React.FC = () => {
   const [pendingRecipe, setPendingRecipe] = useState<any>(null);
   const [myIngredients, setMyIngredients] = React.useState<string[]>(getMyIngredientsSafe());
   const [substituteTable, setSubstituteTable] = useState<{ [key: string]: { ingredient_b: string } }>({});
+  const [showPassword, setShowPassword] = useState(false);
+  const [showPassword2, setShowPassword2] = useState(false);
+  const [checkingNickname, setCheckingNickname] = useState(false);
+  const [nicknameCheckResult, setNicknameCheckResult] = useState<{ available: boolean; message: string } | null>(null);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -300,13 +304,41 @@ const MyPage: React.FC = () => {
   };
 
   /**
+   * 닉네임 중복 체크
+   */
+  const handleCheckNickname = async () => {
+    if (!edit.nickname || edit.nickname.trim() === '') {
+      setNicknameCheckResult({ available: false, message: '닉네임을 입력해주세요.' });
+      return;
+    }
+
+    setCheckingNickname(true);
+    setNicknameCheckResult(null);
+
+    // 시뮬레이션: 실제로는 API 호출
+    setTimeout(() => {
+      setCheckingNickname(false);
+      // 임시로 랜덤하게 성공/실패 시뮬레이션 (실제로는 API 응답에 따라 결정)
+      const isAvailable = Math.random() > 0.5; // 50% 확률로 사용 가능
+      if (isAvailable) {
+        setNicknameCheckResult({ available: true, message: '사용 가능한 닉네임입니다.' });
+        showToast('사용 가능한 닉네임입니다.');
+      } else {
+        setNicknameCheckResult({ available: false, message: '이미 사용 중인 닉네임입니다.' });
+        showToast('이미 사용 중인 닉네임입니다.');
+      }
+    }, 1000);
+  };
+
+  /**
    * 정보 수정 모달 저장
    */
   const handleSave = () => {
     let valid = true;
     const newError: ErrorState = { password: '', phone: '' };
     
-    if (edit.password && edit.password.length < 6) {
+    // 비밀번호가 입력된 경우에만 검증
+    if (edit.password && edit.password !== '●●●●●●●' && edit.password.length < 6) {
       newError.password = '비밀번호는 6자 이상이어야 합니다.';
       valid = false;
     }
@@ -314,7 +346,10 @@ const MyPage: React.FC = () => {
     setError(newError);
     if (!valid) return;
     
+    // 회원 정보 저장
     setUser({ ...user, nickname: edit.nickname });
+    
+    // 모달 닫기
     setEditOpen(false);
   };
 
@@ -515,18 +550,13 @@ const MyPage: React.FC = () => {
       </header>
       
       {/* 프로필 영역 */}
-      <section className="flex flex-col items-center justify-center gap-3 mb-[70px]" style={{ marginTop: '64px' }}>
-        <img 
-          src={myProfileImg} 
-          alt="프로필" 
-          className="w-36 h-36 rounded-full border-2 border-gray-200 mb-2" 
-        />
-        <div className="flex flex-col items-center mb-2">
+      <section className="flex flex-col items-center justify-center mb-[70px]" style={{ marginTop: '130px' }}>
+        <div className="flex flex-col items-center">
           <div className="text-[18px] font-bold text-gray-700 mb-1">{user.nickname}</div>
-          <div className="text-[15px] text-gray-500">{user.userid}</div>
+          <div className="text-[15px] text-gray-500 mb-2">{user.userid}</div>
         </div>
         <button
-          className="mt-1 px-3 h-7 bg-[#FFD600] text-[#222] rounded-full text-[13px] font-bold flex items-center gap-1 border-none shadow hover:bg-yellow-300 transition"
+          className="px-3 h-7 bg-[#FFD600] text-[#222] rounded-full text-[13px] font-bold flex items-center gap-1 border-none shadow hover:bg-yellow-300 transition"
           style={{ 
             minWidth: 0, 
             height: 28, 
@@ -536,16 +566,7 @@ const MyPage: React.FC = () => {
           }}
           onClick={() => setEditOpen(true)}
         >
-          내 정보 수정 
-          <span style={{
-            fontFamily:'inherit', 
-            fontWeight:500, 
-            fontSize:15, 
-            color:'#222', 
-            marginLeft:2
-          }}>
-            〉
-          </span>
+          내 정보 수정
         </button>
       </section>
       
@@ -760,7 +781,7 @@ const MyPage: React.FC = () => {
       
       {/* 내 정보 수정 모달 */}
       {editOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-start justify-center" style={{ zIndex: 1001 }}>
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center" style={{ zIndex: 1001 }}>
           <div 
             className="bg-white rounded-xl shadow-lg w-[370px] max-w-[95vw] relative max-h-[90vh] overflow-y-auto scrollbar-none" 
             style={{scrollbarWidth:'none'}} 
@@ -779,78 +800,149 @@ const MyPage: React.FC = () => {
               <div className="text-center font-bold text-[18px]">내 정보 수정</div>
             </div>
             <div className="p-6 pt-2">
-              {/* 프로필 이미지 + 사진 변경 */}
-              <div className="flex flex-col items-center mb-5">
-                <img
-                  src={profilePreview || myProfileImg}
-                  alt="프로필 미리보기"
-                  className="w-24 h-24 rounded-full border-2 border-gray-200 object-cover mb-2"
-                />
-                <label className="inline-block px-4 py-1 bg-gray-200 text-gray-700 rounded-full text-[13px] font-medium cursor-pointer hover:bg-gray-300 transition">
-                  사진 변경
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={e => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        const reader = new FileReader();
-                        reader.onload = ev => setProfilePreview(ev.target?.result as string);
-                        reader.readAsDataURL(file);
-                      }
-                    }}
-                  />
-                </label>
-              </div>
-              
               {/* 닉네임 + 중복체크 */}
-              <div className="mb-3 flex items-center gap-2">
-                <div className="flex-1">
-                  <label className="block text-[15px] font-semibold mb-1">닉네임</label>
-                  <input 
-                    className="w-full h-10 border border-gray-300 rounded-lg px-4 text-[15px]" 
-                    value={edit.nickname} 
-                    onChange={e => setEdit({ ...edit, nickname: e.target.value })} 
-                  />
+              <div className="mb-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="flex-1">
+                    <label className="block text-[15px] font-semibold mb-1">닉네임</label>
+                    <input 
+                      className="w-full h-10 border border-gray-300 rounded-lg px-4 text-[15px]" 
+                      value={edit.nickname} 
+                      onChange={e => {
+                        setEdit({ ...edit, nickname: e.target.value });
+                        setNicknameCheckResult(null); // 입력 변경 시 결과 초기화
+                      }}
+                    />
+                  </div>
+                  <button 
+                    className="h-10 px-3 bg-[#FFD600] text-[#222] rounded-lg text-[14px] font-semibold whitespace-nowrap mt-6 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    onClick={handleCheckNickname}
+                    disabled={checkingNickname || !edit.nickname || edit.nickname.trim() === ''}
+                    style={{ 
+                      outline: 'none', 
+                      border: 'none',
+                      opacity: checkingNickname ? 0.7 : 1,
+                      minWidth: '100px'
+                    }}
+                  >
+                    중복 체크
+                    {checkingNickname && (
+                      <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 44 44"
+                        xmlns="http://www.w3.org/2000/svg"
+                        aria-label="로딩 중"
+                      >
+                        <g fill="none" fillRule="evenodd" strokeWidth="4">
+                          <circle cx="22" cy="22" r="20" stroke="#e5e7eb" />
+                          <path d="M42 22c0-11.046-8.954-20-20-20" stroke="#9ca3af">
+                            <animateTransform
+                              attributeName="transform"
+                              type="rotate"
+                              from="0 22 22"
+                              to="360 22 22"
+                              dur="0.8s"
+                              repeatCount="indefinite"
+                            />
+                          </path>
+                        </g>
+                      </svg>
+                    )}
+                  </button>
                 </div>
-                <button className="h-10 px-3 bg-blue-500 text-white rounded-lg text-[14px] font-semibold whitespace-nowrap mt-6">
-                  닉네임 중복 체크
-                </button>
+                {nicknameCheckResult && (
+                  <div 
+                    className={`text-[13px] mt-1 px-2 py-1 rounded ${
+                      nicknameCheckResult.available 
+                        ? 'text-green-600 bg-green-50' 
+                        : 'text-red-600 bg-red-50'
+                    }`}
+                  >
+                    {nicknameCheckResult.message}
+                  </div>
+                )}
               </div>
               
               {/* 아이디 (회색, 읽기전용) */}
               <div className="mb-3">
                 <label className="block text-[15px] font-semibold mb-1">아이디</label>
                 <input 
-                  className="w-full h-10 border border-gray-200 rounded-lg px-4 text-[15px] bg-gray-200 text-gray-400" 
+                  className="w-full h-10 border border-gray-200 rounded-lg px-4 text-[15px] bg-gray-50 text-gray-400 cursor-not-allowed" 
                   value={edit.userid} 
                   readOnly 
+                  disabled
+                  style={{
+                    backgroundColor: '#F9FAFB',
+                    borderColor: '#E5E7EB',
+                    color: '#9CA3AF',
+                    opacity: 0.7
+                  }}
                 />
               </div>
               
-              {/* 비밀번호 */}
+              {/* 비밀번호 변경 */}
               <div className="mb-3">
-                <label className="block text-[15px] font-semibold mb-1">비밀번호</label>
-                <input 
-                  type="password" 
-                  className="w-full h-10 border border-gray-300 rounded-lg px-4 text-[15px]" 
-                  value={edit.password} 
-                  onChange={e => setEdit({ ...edit, password: e.target.value })} 
-                  placeholder="Password" 
-                />
+                <label className="block text-[15px] font-semibold mb-1">비밀번호 변경</label>
+                <div className="relative">
+                  <input 
+                    type={showPassword ? "text" : "password"} 
+                    className="w-full h-10 border border-gray-300 rounded-lg px-4 pr-10 text-[15px]" 
+                    value={edit.password === '' ? '●●●●●●●' : edit.password} 
+                    onChange={e => {
+                      const newValue = e.target.value;
+                      if (newValue !== '●●●●●●●') {
+                        setEdit({ ...edit, password: newValue });
+                      }
+                    }}
+                    onFocus={e => {
+                      if (e.target.value === '●●●●●●●') {
+                        setEdit({ ...edit, password: '' });
+                        e.target.value = '';
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: '18px' }}
+                  >
+                    {showPassword ? '👁️' : '👁️‍🗨️'}
+                  </button>
+                </div>
               </div>
               
-              {/* 비밀번호 확인 */}
+              {/* 비밀번호 변경 확인 */}
               <div className="mb-3">
-                <label className="block text-[15px] font-semibold mb-1">비밀번호 확인</label>
-                <input 
-                  type="password" 
-                  className="w-full h-10 border border-gray-300 rounded-lg px-4 text-[15px]" 
-                  value={edit.password2} 
-                  onChange={e => setEdit({ ...edit, password2: e.target.value })} 
-                  placeholder="Re Password" 
-                />
+                <label className="block text-[15px] font-semibold mb-1">비밀번호 변경 확인</label>
+                <div className="relative">
+                  <input 
+                    type={showPassword2 ? "text" : "password"} 
+                    className="w-full h-10 border border-gray-300 rounded-lg px-4 pr-10 text-[15px]" 
+                    value={edit.password2 === '' ? '●●●●●●●' : edit.password2} 
+                    onChange={e => {
+                      const newValue = e.target.value;
+                      if (newValue !== '●●●●●●●') {
+                        setEdit({ ...edit, password2: newValue });
+                      }
+                    }}
+                    onFocus={e => {
+                      if (e.target.value === '●●●●●●●') {
+                        setEdit({ ...edit, password2: '' });
+                        e.target.value = '';
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                    onClick={() => setShowPassword2(!showPassword2)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: '18px' }}
+                  >
+                    {showPassword2 ? '👁️' : '👁️‍🗨️'}
+                  </button>
+                </div>
               </div>
               
               {/* 연락처 */}
@@ -878,42 +970,32 @@ const MyPage: React.FC = () => {
                 </div>
               </div>
               
-              {/* 우편번호 + 확인 */}
-              <div className="mb-3 flex items-center gap-2">
-                <div className="flex-1">
-                  <label className="block text-[15px] font-semibold mb-1">우편번호</label>
-                  <input 
-                    className="w-full h-10 border border-gray-300 rounded-lg px-4 text-[15px]" 
-                    value={edit.zipcode} 
-                    onChange={e => setEdit({ ...edit, zipcode: e.target.value.replace(/[^0-9]/g, '') })} 
-                  />
-                </div>
-                <button className="h-10 px-3 bg-blue-500 text-white rounded-lg text-[14px] font-semibold whitespace-nowrap mt-6">
-                  우편번호 찾기
+              {/* 취소/적용 버튼 */}
+              <div className="flex gap-2 mt-4">
+                <button 
+                  className="flex-1 h-11 bg-white text-[#222] border border-gray-300 rounded-lg text-[16px] font-bold"
+                  onClick={() => setEditOpen(false)}
+                >
+                  취소
+                </button>
+                <button 
+                  className="flex-1 h-11 bg-[#FFD600] text-[#222] rounded-lg text-[16px] font-bold"
+                  onClick={handleSave}
+                  style={{ outline: 'none', border: 'none' }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.outline = 'none';
+                    e.currentTarget.style.border = 'none';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.outline = 'none';
+                    e.currentTarget.style.border = 'none';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
+                >
+                  적용
                 </button>
               </div>
-              
-              {/* 주소 */}
-              <div className="mb-3">
-                <label className="block text-[15px] font-semibold mb-1">주소</label>
-                <input 
-                  className="w-full h-10 border border-gray-300 rounded-lg px-4 text-[15px] mb-2" 
-                  value={edit.address1} 
-                  onChange={e => setEdit({ ...edit, address1: e.target.value })} 
-                  placeholder="주소" 
-                />
-                <input 
-                  className="w-full h-10 border border-gray-300 rounded-lg px-4 text-[15px]" 
-                  value={edit.address2} 
-                  onChange={e => setEdit({ ...edit, address2: e.target.value })} 
-                  placeholder="상세 주소" 
-                />
-              </div>
-              
-              {/* 저장 버튼 */}
-              <button className="w-full h-11 bg-green-600 text-white rounded-lg text-[16px] font-bold mt-4">
-                수정하기
-              </button>
             </div>
           </div>
           <style>{`
