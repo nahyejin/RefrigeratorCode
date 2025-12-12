@@ -25,6 +25,8 @@ import RecipeSortBar from '../components/RecipeSortBar';
 import backIcon from '../assets/뒤로가기.png';
 import VirtualizedHorizontalRecipeList from '../components/VirtualizedHorizontalRecipeList';
 import { decodeRecipesText } from '../utils/textUtils';
+import { useAuth } from '../context/AuthContext';
+import RegisterPromptModal from '../components/RegisterPromptModal';
 
 // Add CSS for loader-toast with dots
 const loaderStyle = `
@@ -618,6 +620,10 @@ const Popular = () => {
   const nickname = "닉네임"; // 실제 닉네임 연동 필요
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  const { isLoggedIn } = useAuth();
+  const [showRegisterModal, setShowRegisterModal] = useState(false);
+  const [registerModalMessage, setRegisterModalMessage] = useState('');
+  const [pendingRecipe, setPendingRecipe] = useState<{ id: number; type: 'done' | 'write'; recipe: any } | null>(null);
 
   // 필터 관련 상태 (RecipeList.tsx와 동일)
   const [filterOpen, setFilterOpen] = useState(false);
@@ -748,18 +754,24 @@ const Popular = () => {
 
   // Update handleRecipeAction to use correct localStorage keys and sync properly
   const handleRecipeAction = (id: number, action: { action: 'done' | 'write' | 'share' }) => {
-    setButtonStates(prev => {
-      const prevState = prev[id] || getRecipeActionState(id);
-      let newState = { ...prevState };
-      if (action.action === 'done') {
-        const recipe = youtubeRecipes.find(r => r.id === id) || naverRecipes.find(r => r.id === id);
-        if (prevState.done) {
-          // 완료 취소
-          removeRecipeFromLocalStorage('done', id);
-          setToast('레시피 완료를 취소했습니다!');
-        } else {
-          // 완료 추가
-          if (recipe && !getRecipesFromLocalStorage('done').some((r: any) => r.id === id)) {
+    const prevState = buttonStates[id] || getRecipeActionState(id);
+    
+    if (action.action === 'done') {
+      const recipe = youtubeRecipes.find(r => r.id === id) || naverRecipes.find(r => r.id === id);
+      if (prevState.done) {
+        // 완료 취소
+        removeRecipeFromLocalStorage('done', id);
+        setButtonStates(prev => ({ ...prev, [id]: { ...prev[id], done: false } }));
+        setToast('레시피 완료를 취소했습니다!');
+      } else {
+        // 완료 추가 전에 5개 조건 체크
+        if (recipe && !getRecipesFromLocalStorage('done').some((r: any) => r.id === id)) {
+          const currentCount = getRecipesFromLocalStorage('done').length;
+          const totalCount = currentCount + 1;
+          
+          // 완료한 레시피 5개 이상 시 회원가입 유도 (비회원일 때만)
+          if (totalCount >= 5 && !isLoggedIn) {
+            // 레시피 저장 전에 모달 표시
             const normalized = {
               id: recipe.id,
               title: recipe.title,
@@ -790,21 +802,65 @@ const Popular = () => {
               hits: recipe.hits || 0,
               action: recipe.action,
             };
-            addRecipeToLocalStorage('done', normalized);
-            setToast('레시피를 완료했습니다!');
+            setPendingRecipe({ id, type: 'done', recipe: normalized });
+            setRegisterModalMessage('더 많은 레시피를 완료하려면');
+            setShowRegisterModal(true);
+            return;
           }
+          
+          // 조건 통과 시 레시피 저장
+          const normalized = {
+            id: recipe.id,
+            title: recipe.title,
+            content: recipe.content || '',
+            author: recipe.author || '',
+            date: recipe.date || '',
+            body: recipe.body || recipe.content || recipe.description || '',
+            description: recipe.description || '',
+            thumbnail: recipe.thumbnail || '',
+            used_ingredients: recipe.used_ingredients || '',
+            used_ingredients_block: recipe.used_ingredients_block || '',
+            block_reason: recipe.block_reason || '',
+            link: recipe.link || '',
+            platform: recipe.platform || 'youtube',
+            channel: recipe.channel || 'youtube',
+            likes: recipe.likes || 0,
+            comments: recipe.comments || 0,
+            substitutes: recipe.substitutes || [],
+            match_rate: recipe.match_rate || 0,
+            my_ingredients: recipe.my_ingredients || [],
+            need_ingredients: recipe.need_ingredients || [],
+            created_at: recipe.created_at || '',
+            updated_at: recipe.updated_at || '',
+            like_count: recipe.like_count || 0,
+            comment_count: recipe.comment_count || 0,
+            post_time: recipe.post_time || '',
+            collected_at: recipe.collected_at || '',
+            hits: recipe.hits || 0,
+            action: recipe.action,
+          };
+          addRecipeToLocalStorage('done', normalized);
+          setButtonStates(prev => ({ ...prev, [id]: { ...prev[id], done: true } }));
+          setToast('레시피를 완료했습니다!');
         }
-        newState.done = !prevState.done;
       }
-      if (action.action === 'write') {
-        const recipe = youtubeRecipes.find(r => r.id === id) || naverRecipes.find(r => r.id === id);
-        if (prevState.write) {
-          // 기록 취소
-          removeRecipeFromLocalStorage('write', id);
-          setToast('레시피 기록을 취소했습니다!');
-        } else {
-          // 기록 추가
-          if (recipe && !getRecipesFromLocalStorage('write').some((r: any) => r.id === id)) {
+    }
+    if (action.action === 'write') {
+      const recipe = youtubeRecipes.find(r => r.id === id) || naverRecipes.find(r => r.id === id);
+      if (prevState.write) {
+        // 기록 취소
+        removeRecipeFromLocalStorage('write', id);
+        setButtonStates(prev => ({ ...prev, [id]: { ...prev[id], write: false } }));
+        setToast('레시피 기록을 취소했습니다!');
+      } else {
+        // 기록 추가 전에 5개 조건 체크
+        if (recipe && !getRecipesFromLocalStorage('write').some((r: any) => r.id === id)) {
+          const currentCount = getRecipesFromLocalStorage('write').length;
+          const totalCount = currentCount + 1;
+          
+          // 기록한 레시피 5개 이상 시 회원가입 유도 (비회원일 때만)
+          if (totalCount >= 5 && !isLoggedIn) {
+            // 레시피 저장 전에 모달 표시
             const normalized = {
               id: recipe.id,
               title: recipe.title,
@@ -835,22 +891,57 @@ const Popular = () => {
               hits: recipe.hits || 0,
               action: recipe.action,
             };
-            addRecipeToLocalStorage('write', normalized);
-            setToast('레시피를 기록했습니다!');
+            setPendingRecipe({ id, type: 'write', recipe: normalized });
+            setRegisterModalMessage('더 많은 레시피를 기록하려면');
+            setShowRegisterModal(true);
+            return;
           }
+          
+          // 조건 통과 시 레시피 저장
+          const normalized = {
+            id: recipe.id,
+            title: recipe.title,
+            content: recipe.content || '',
+            author: recipe.author || '',
+            date: recipe.date || '',
+            body: recipe.body || recipe.content || recipe.description || '',
+            description: recipe.description || '',
+            thumbnail: recipe.thumbnail || '',
+            used_ingredients: recipe.used_ingredients || '',
+            used_ingredients_block: recipe.used_ingredients_block || '',
+            block_reason: recipe.block_reason || '',
+            link: recipe.link || '',
+            platform: recipe.platform || 'youtube',
+            channel: recipe.channel || 'youtube',
+            likes: recipe.likes || 0,
+            comments: recipe.comments || 0,
+            substitutes: recipe.substitutes || [],
+            match_rate: recipe.match_rate || 0,
+            my_ingredients: recipe.my_ingredients || [],
+            need_ingredients: recipe.need_ingredients || [],
+            created_at: recipe.created_at || '',
+            updated_at: recipe.updated_at || '',
+            like_count: recipe.like_count || 0,
+            comment_count: recipe.comment_count || 0,
+            post_time: recipe.post_time || '',
+            collected_at: recipe.collected_at || '',
+            hits: recipe.hits || 0,
+            action: recipe.action,
+          };
+          addRecipeToLocalStorage('write', normalized);
+          setButtonStates(prev => ({ ...prev, [id]: { ...prev[id], write: true } }));
+          setToast('레시피를 기록했습니다!');
         }
-        newState.write = !prevState.write;
       }
-      if (action.action === 'share') {
-        const recipe = youtubeRecipes.find(r => r.id === id) || naverRecipes.find(r => r.id === id);
-        if (recipe) {
-          copyRecipeUrlToClipboard(recipe);
-          setToast('URL이 복사되었습니다!');
-        }
+    }
+    if (action.action === 'share') {
+      const recipe = youtubeRecipes.find(r => r.id === id) || naverRecipes.find(r => r.id === id);
+      if (recipe) {
+        copyRecipeUrlToClipboard(recipe);
+        setToast('URL이 복사되었습니다!');
+        setTimeout(() => setToast(''), 1500);
       }
-      setTimeout(() => setToast(''), 1500);
-      return { ...prev, [id]: newState };
-    });
+    }
   };
 
   // 기간 워딩 함수
@@ -1531,6 +1622,29 @@ const Popular = () => {
           </div>
         </div>
       )}
+      
+      {/* 회원가입 유도 모달 */}
+      <RegisterPromptModal
+        visible={showRegisterModal}
+        onClose={() => {
+          setShowRegisterModal(false);
+          setPendingRecipe(null);
+        }}
+        onConfirm={() => {
+          // 회원가입하기를 누르면 레시피 저장 진행
+          if (pendingRecipe) {
+            if (pendingRecipe.type === 'done') {
+              addRecipeToLocalStorage('done', pendingRecipe.recipe);
+              setButtonStates(prev => ({ ...prev, [pendingRecipe.id]: { ...prev[pendingRecipe.id], done: true } }));
+            } else if (pendingRecipe.type === 'write') {
+              addRecipeToLocalStorage('write', pendingRecipe.recipe);
+              setButtonStates(prev => ({ ...prev, [pendingRecipe.id]: { ...prev[pendingRecipe.id], write: true } }));
+            }
+            setPendingRecipe(null);
+          }
+        }}
+        message={registerModalMessage || '더 많은 기능을 사용하려면'}
+      />
       <BottomNavBar activeTab="popularity" />
     </>
   );

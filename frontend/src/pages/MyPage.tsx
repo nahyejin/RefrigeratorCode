@@ -17,6 +17,8 @@ import { getProxiedImageUrl } from '../utils/imageUtils';
 import naverLogo from '../assets/썸네일_naverlogo.png';
 import youtubeLogo from '../assets/썸네일_youtubelogo.png';
 import { addRecipeToLocalStorage, removeRecipeFromLocalStorage, getRecipesFromLocalStorage, copyRecipeUrlToClipboard } from '../utils/recipeStorage';
+import { useAuth } from '../context/AuthContext';
+import RegisterPromptModal from '../components/RegisterPromptModal';
 
 // =====================
 // 상수
@@ -287,9 +289,13 @@ const MyPage: React.FC = () => {
   const [showPassword2, setShowPassword2] = useState(false);
   const [checkingNickname, setCheckingNickname] = useState(false);
   const [nicknameCheckResult, setNicknameCheckResult] = useState<{ available: boolean; message: string } | null>(null);
+  const [showRegisterModal, setShowRegisterModal] = useState(false);
+  const [registerModalMessage, setRegisterModalMessage] = useState('');
+  const [pendingRegisterRecipe, setPendingRegisterRecipe] = useState<{ id: number; type: 'done' | 'write'; recipe: any } | null>(null);
 
   const navigate = useNavigate();
   const location = useLocation();
+  const { isLoggedIn } = useAuth();
 
   // =====================
   // 이벤트 핸들러
@@ -365,26 +371,36 @@ const MyPage: React.FC = () => {
       return;
     }
     
-    setDoneStates(prev => {
-      const isActive = !!prev[id];
-      const newState = { ...prev, [id]: !isActive };
-      
-      if (!isActive) {
-        // 완료 추가: completedRecipes에만 추가(중복 추가 방지)
-        const recipe = recordedRecipes.find(r => r.id === id) || completedRecipes.find(r => r.id === id);
-        if (recipe && !getRecipesFromLocalStorage('done').some(r => r.id === id)) {
-          addRecipeToLocalStorage('done', recipe);
-          const updatedCompleted = [...completedRecipes, recipe];
-          setCompletedRecipes(updatedCompleted);
+    const isActive = doneStates[id];
+    
+    if (!isActive) {
+      // 완료 추가 전에 5개 조건 체크
+      const recipe = recordedRecipes.find(r => r.id === id) || completedRecipes.find(r => r.id === id);
+      if (recipe && !getRecipesFromLocalStorage('done').some(r => r.id === id)) {
+        const currentCount = getRecipesFromLocalStorage('done').length;
+        const totalCount = currentCount + 1;
+        
+        // 완료한 레시피 5개 이상 시 회원가입 유도 (비회원일 때만)
+        if (totalCount >= 5 && !isLoggedIn) {
+          // 레시피 저장 전에 모달 표시
+          setPendingRegisterRecipe({ id, type: 'done', recipe });
+          setRegisterModalMessage('더 많은 레시피를 완료하려면');
+          setShowRegisterModal(true);
+          return;
         }
+        
+        // 조건 통과 시 레시피 저장
+        addRecipeToLocalStorage('done', recipe);
+        const updatedCompleted = [...completedRecipes, recipe];
+        setCompletedRecipes(updatedCompleted);
+        setDoneStates(prev => ({ ...prev, [id]: true }));
         showToast('레시피를 완료했습니다!');
-      } else {
-        setPendingRemove({ type: 'done', id });
-        setPendingRecipe(completedRecipes.find(r => r.id === id));
       }
-      
-      return newState;
-    });
+    } else {
+      setDoneStates(prev => ({ ...prev, [id]: false }));
+      setPendingRemove({ type: 'done', id });
+      setPendingRecipe(completedRecipes.find(r => r.id === id));
+    }
   };
 
   /**
@@ -399,26 +415,36 @@ const MyPage: React.FC = () => {
       return;
     }
     
-    setWriteStates(prev => {
-      const isActive = !!prev[id];
-      const newState = { ...prev, [id]: !isActive };
-      
-      if (!isActive) {
-        // 기록 추가: recordedRecipes에만 추가(중복 추가 방지)
-        const recipe = completedRecipes.find(r => r.id === id) || recordedRecipes.find(r => r.id === id);
-        if (recipe && !getRecipesFromLocalStorage('write').some(r => r.id === id)) {
-          addRecipeToLocalStorage('write', recipe);
-          const updatedRecorded = [...recordedRecipes, recipe];
-          setRecordedRecipes(updatedRecorded);
+    const isActive = writeStates[id];
+    
+    if (!isActive) {
+      // 기록 추가 전에 5개 조건 체크
+      const recipe = completedRecipes.find(r => r.id === id) || recordedRecipes.find(r => r.id === id);
+      if (recipe && !getRecipesFromLocalStorage('write').some(r => r.id === id)) {
+        const currentCount = getRecipesFromLocalStorage('write').length;
+        const totalCount = currentCount + 1;
+        
+        // 기록한 레시피 5개 이상 시 회원가입 유도 (비회원일 때만)
+        if (totalCount >= 5 && !isLoggedIn) {
+          // 레시피 저장 전에 모달 표시
+          setPendingRegisterRecipe({ id, type: 'write', recipe });
+          setRegisterModalMessage('더 많은 레시피를 기록하려면');
+          setShowRegisterModal(true);
+          return;
         }
+        
+        // 조건 통과 시 레시피 저장
+        addRecipeToLocalStorage('write', recipe);
+        const updatedRecorded = [...recordedRecipes, recipe];
+        setRecordedRecipes(updatedRecorded);
+        setWriteStates(prev => ({ ...prev, [id]: true }));
         showToast('레시피를 기록했습니다!');
-      } else {
-        setPendingRemove({ type: 'write', id });
-        setPendingRecipe(recordedRecipes.find(r => r.id === id));
       }
-      
-      return newState;
-    });
+    } else {
+      setWriteStates(prev => ({ ...prev, [id]: false }));
+      setPendingRemove({ type: 'write', id });
+      setPendingRecipe(recordedRecipes.find(r => r.id === id));
+    }
   };
 
   /**
@@ -1078,6 +1104,33 @@ const MyPage: React.FC = () => {
           </div>
         </div>
       )}
+      
+      {/* 회원가입 유도 모달 */}
+      <RegisterPromptModal
+        visible={showRegisterModal}
+        onClose={() => {
+          setShowRegisterModal(false);
+          setPendingRegisterRecipe(null);
+        }}
+        onConfirm={() => {
+          // 회원가입하기를 누르면 레시피 저장 진행
+          if (pendingRegisterRecipe) {
+            if (pendingRegisterRecipe.type === 'done') {
+              addRecipeToLocalStorage('done', pendingRegisterRecipe.recipe);
+              const updatedCompleted = [...completedRecipes, pendingRegisterRecipe.recipe];
+              setCompletedRecipes(updatedCompleted);
+              setDoneStates(prev => ({ ...prev, [pendingRegisterRecipe.id]: true }));
+            } else if (pendingRegisterRecipe.type === 'write') {
+              addRecipeToLocalStorage('write', pendingRegisterRecipe.recipe);
+              const updatedRecorded = [...recordedRecipes, pendingRegisterRecipe.recipe];
+              setRecordedRecipes(updatedRecorded);
+              setWriteStates(prev => ({ ...prev, [pendingRegisterRecipe.id]: true }));
+            }
+            setPendingRegisterRecipe(null);
+          }
+        }}
+        message={registerModalMessage || '더 많은 기능을 사용하려면'}
+      />
     </div>
   );
 };

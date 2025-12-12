@@ -3,6 +3,7 @@ import { Suspense, lazy } from 'react';
 import SplashScreen from '../components/SplashScreen';
 import ScrollToTop from '../components/ScrollToTop';
 import TopNavBar from '../components/TopNavBar';
+import { AuthProvider } from '../context/AuthContext';
 import Login from '../pages/Login';
 import FridgeSelect from '../pages/FridgeSelect';
 import IngredientInput from '../pages/IngredientInput';
@@ -188,10 +189,12 @@ function AppContent() {
 
 function AppRouter() {
   return (
-    <Router>
-      <ScrollToTop />
-      <AppContent />
-    </Router>
+    <AuthProvider>
+      <Router>
+        <ScrollToTop />
+        <AppContent />
+      </Router>
+    </AuthProvider>
   );
 }
 
