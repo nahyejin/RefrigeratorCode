@@ -534,7 +534,7 @@ const MyPage: React.FC = () => {
     <div className="bg-white min-h-screen max-w-[430px] mx-auto pb-24 relative">
       {/* 상단 네비 - 고정 */}
       <header 
-        className="w-full h-[56px] flex items-center justify-between px-5 bg-white"
+        className="w-full h-[56px] flex items-center px-5 bg-white"
         style={{
           position: 'fixed',
           top: 0,
@@ -546,7 +546,6 @@ const MyPage: React.FC = () => {
         }}
       >
         <img src={logoImg} alt="냉털이 로고" className="h-4 w-auto" style={{ minWidth: 16 }} />
-        <img src={searchIcon} alt="검색" className="h-4 w-4 mr-1 cursor-pointer" />
       </header>
       
       {/* 프로필 영역 */}
