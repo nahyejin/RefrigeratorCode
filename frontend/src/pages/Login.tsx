@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
-import logoWithCharacter from '../assets/냉털이로고및캐릭터.png';
 import googleLogo from '../assets/구글로고.png';
 import kakaoLogo from '../assets/카카오톡로고.png';
 import naverLogo from '../assets/네이버로고.png';
@@ -11,8 +10,8 @@ import NeangteolInput from '../components/NeangteolInput';
 // 상수
 // =====================
 
-const LOGO_SIZE = { width: '170px', height: 'auto', maxWidth: '100%' };
 const BUTTON_HEIGHT = 'h-[44px]';
+const SSO_BUTTON_HEIGHT = 'h-[36px]';
 const INPUT_HEIGHT = 'h-[44px]';
 const CONTAINER_WIDTH = 'w-[260px]';
 const MAX_CONTAINER_WIDTH = 'max-w-[320px]';
@@ -27,7 +26,8 @@ const SSO_BUTTONS = [
     alt: 'Google',
     color: 'bg-white',
     textColor: 'text-black',
-    text: 'Google로 시작하기'
+    text: 'Google로 시작하기',
+    border: true
   },
   {
     icon: kakaoLogo,
@@ -60,28 +60,25 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-[#f4f0e6]">
-      <div className="w-full max-w-[390px] flex flex-col items-center justify-center mx-auto py-6">
-        {/* 상단 로고/캐릭터 */}
-        <div className="flex flex-col items-center mb-8 mt-2">
-          <img
-            src={logoWithCharacter}
-            alt="냉털이 로고 및 캐릭터"
-            className="mb-4"
-            style={LOGO_SIZE}
-            draggable={false}
-          />
+    <div className="min-h-screen w-full flex items-center justify-center bg-white">
+      <div className="w-full max-w-[390px] flex flex-col items-center mx-auto py-6" style={{ minHeight: '100vh' }}>
+        {/* 상단 여백 - 인풋창을 중앙으로 이동 */}
+        <div style={{ flex: '1', minHeight: '250px' }}></div>
+        
+        {/* 유도 메시지 */}
+        <div className={`w-full ${MAX_CONTAINER_WIDTH} text-center text-[13px] text-gray-500 mb-6 mx-auto font-normal`}>
+          로그인하여 내냉장고를 더 똑똑하게 관리하세요
         </div>
         
         {/* 로그인 입력+버튼 세로배치 */}
         <div className={`flex flex-col ${CONTAINER_WIDTH} items-center gap-2 mb-3 mx-auto`}>
           <NeangteolInput 
-            placeholder="아이디 또는 이메일" 
+            placeholder="이메일 입력" 
             className={`w-full ${INPUT_HEIGHT} px-4`} 
           />
           <NeangteolInput 
             type="password" 
-            placeholder="비밀번호" 
+            placeholder="비밀번호 입력" 
             className={`w-full ${INPUT_HEIGHT} px-4`} 
           />
           <NeangteolButton 
@@ -94,46 +91,59 @@ const Login: React.FC = () => {
         </div>
         
         {/* 체크박스 */}
-        <div className={`flex flex-row items-center justify-center gap-2 w-full ${MAX_CONTAINER_WIDTH} mb-2 px-1`}>
+        <div className={`flex flex-row items-center justify-center gap-2 w-full ${MAX_CONTAINER_WIDTH} mb-2 px-1 mx-auto`}>
           <label className="flex items-center gap-1 text-[12px] text-[#444] font-normal">
             <input type="checkbox" className="w-4 h-4 accent-[#222]" /> 
-            아이디 저장
-          </label>
-          <label className="flex items-center gap-1 text-[12px] text-[#444] font-normal">
-            <input type="checkbox" className="w-4 h-4 accent-[#222]" /> 
-            자동 로그인
+            로그인 항상 유지
           </label>
         </div>
         
         {/* 하단 링크 */}
-        <div className={`w-full ${MAX_CONTAINER_WIDTH} text-center text-[12px] text-[#333] mb-1 leading-tight`}>
-          아직 회원이 아니신가요? 
-          <span className="underline font-bold cursor-pointer">3초 회원가입</span>
+        <div className={`w-full ${MAX_CONTAINER_WIDTH} text-center text-[12px] text-[#333] mb-1 leading-tight mx-auto`}>
+          아직 회원이 아니신가요? <span className="underline font-bold cursor-pointer">3초 회원가입</span>
         </div>
-        <div className={`w-full ${MAX_CONTAINER_WIDTH} flex justify-center gap-2 text-[12px] text-[#333] mb-4 leading-tight`}>
-          <span className="underline cursor-pointer">아이디 찾기</span>
+        <div className={`w-full ${MAX_CONTAINER_WIDTH} flex justify-center gap-2 text-[12px] text-[#333] mb-4 leading-tight mx-auto`}>
+          <span className="underline cursor-pointer">이메일 찾기</span>
           <span>|</span>
           <span className="underline cursor-pointer">비밀번호 찾기</span>
         </div>
         
-        {/* SSO/비회원 버튼 세로배치 */}
-        <div className={`flex flex-col gap-3 ${CONTAINER_WIDTH} mt-2 items-center`}>
+        {/* 하단 여백 - 간편 로그인을 하단으로 이동 */}
+        <div style={{ flex: '1', minHeight: '100px' }}></div>
+        
+        {/* 간편 로그인 구분선 */}
+        <div className="relative w-full max-w-[320px] my-4 mx-auto">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-300"></div>
+          </div>
+          <div className="relative flex justify-center">
+            <span className="bg-white px-3 text-gray-500 text-[11px]">간편 로그인</span>
+          </div>
+        </div>
+        
+        {/* SSO 버튼 세로배치 */}
+        <div className={`flex flex-col gap-3 ${CONTAINER_WIDTH} mt-2 items-center mx-auto`}>
           {SSO_BUTTONS.map((button, index) => (
             <NeangteolButton
               key={index}
-              icon={<img src={button.icon} alt={button.alt} className="w-6 h-6" />}
+              icon={<img src={button.icon} alt={button.alt} className="w-4 h-4" />}
               color={button.color}
               textColor={button.textColor}
-              className={`w-full ${BUTTON_HEIGHT} px-4`}
+              className={`w-full ${SSO_BUTTON_HEIGHT} px-4 text-[13px]`}
+              border={button.border || false}
             >
               {button.text}
             </NeangteolButton>
           ))}
+        </div>
+        
+        {/* 비회원으로 계속하기 버튼 (하단 분리) */}
+        <div className={`flex flex-col gap-3 ${CONTAINER_WIDTH} mt-16 mb-8 items-center`}>
           <NeangteolButton 
             border 
-            color="bg-white" 
-            textColor="text-black" 
-            className={`w-full ${BUTTON_HEIGHT} px-4`} 
+            color="bg-gray-100" 
+            textColor="text-gray-400" 
+            className={`w-full ${SSO_BUTTON_HEIGHT} px-4 text-[13px]`} 
             onClick={handleGuestLogin}
           >
             비회원으로 계속하기

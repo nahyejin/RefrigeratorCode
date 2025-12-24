@@ -1,12 +1,14 @@
 import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import logoImg from '../assets/냉털이 로고 white.png';
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from './NotificationBell';
 
 const TopNavBar: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { isLoggedIn, user, logout } = useAuth();
+  const isLoginPage = location.pathname === '/login';
 
   return (
     <header 
@@ -26,7 +28,12 @@ const TopNavBar: React.FC = () => {
         WebkitBackfaceVisibility: 'hidden'
       }}
     >
-      <img src={logoImg} alt="냉털이 로고" className="h-4 w-auto min-w-[16px]" />
+      <img 
+        src={logoImg} 
+        alt="냉털이 로고" 
+        className="h-4 w-auto min-w-[16px] cursor-pointer" 
+        onClick={() => navigate('/my-fridge')}
+      />
       
       <div className="flex items-center gap-3">
         {isLoggedIn ? (
@@ -44,13 +51,21 @@ const TopNavBar: React.FC = () => {
             </div>
           </>
         ) : (
-          <button
-            onClick={() => navigate('/login')}
-            className="text-sm font-medium text-gray-700 hover:text-gray-900"
-            style={{ outline: 'none', border: 'none', background: 'none', cursor: 'pointer' }}
-          >
-            로그인
-          </button>
+          !isLoginPage && (
+            <button
+              onClick={() => navigate('/login')}
+              className="font-normal text-gray-700 hover:text-gray-900"
+              style={{ 
+                outline: 'none', 
+                border: 'none', 
+                background: 'none', 
+                cursor: 'pointer',
+                fontSize: '11px'
+              }}
+            >
+              로그인/회원가입
+            </button>
+          )
         )}
       </div>
     </header>
