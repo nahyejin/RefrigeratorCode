@@ -14,7 +14,7 @@ import { fetchRecipesDummy } from '../utils/dummyData';
 import RecipeCard from '../components/RecipeCard';
 import VirtualizedRecipeList, { VirtualizedRecipeListRef } from '../components/VirtualizedRecipeList';
 import { Recipe, RecipeActionState, FilterState, SubstituteInfo } from '../types/recipe';
-import { getMyIngredients, sortRecipes, calculateMatchRate } from '../utils/recipeUtils';
+import { getMyIngredients, sortRecipes, calculateMatchRate, initializeDefaultIngredients } from '../utils/recipeUtils';
 import RecipeToast from '../components/RecipeToast';
 // import Slider from 'rc-slider';
 // import 'rc-slider/assets/index.css';
@@ -431,27 +431,108 @@ const RecipeList: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // 컴포넌트 마운트 시 재료 상태 확인 및 초기 재료 설정
+  useEffect(() => {
+    const checkAndInitializeIngredients = async () => {
+      // 먼저 현재 재료 확인
+      let ingredients = getMyIngredients();
+      console.log('[RecipeList] 마운트 시 재료 확인:', {
+        count: ingredients.length,
+        ingredients: ingredients,
+        localStorageKeys: Object.keys(localStorage),
+        hasMyFridgeKey: localStorage.getItem('myfridge_ingredients') !== null
+      });
+      
+      // 재료가 없으면 초기 재료 설정
+      console.log('[RecipeList] 재료 개수 체크:', {
+        length: ingredients.length,
+        isEmpty: ingredients.length === 0,
+        ingredients: ingredients
+      });
+      
+      if (ingredients.length === 0) {
+        console.log('[RecipeList] 재료가 없음 - 초기 재료 설정 시작');
+        
+        try {
+          // CSV 파일 로드하여 재료 사전 구축
+          const csvResponse = await fetch(CSV_INGREDIENT_URL);
+          const csv = await csvResponse.text();
+          
+          const lines = csv.split('\n');
+          const header = lines[0].split(',');
+          const nameIdx = header.indexOf('keyword');
+          const synonymsIdx = header.indexOf('synonyms');
+          const categoryIdx = header.indexOf('대분류');
+          
+          const ingredientDict: { [key: string]: string } = {};
+          
+          lines.slice(1).forEach(line => {
+            const values = line.split(',');
+            const keyword = values[nameIdx]?.trim();
+            const synonyms = values[synonymsIdx]?.split(',').map(s => s.trim());
+            const category = values[categoryIdx]?.trim();
+            
+            if (keyword && category === '재료') {
+              ingredientDict[keyword] = keyword;
+              if (synonyms) {
+                synonyms.forEach(synonym => {
+                  ingredientDict[synonym] = keyword;
+                });
+              }
+            }
+          });
+          
+          // 초기 재료 설정
+          const initialized = initializeDefaultIngredients(ingredientDict);
+          if (initialized) {
+            console.log('[RecipeList] 초기 재료 설정 완료');
+            // 재료 다시 읽기
+            ingredients = getMyIngredients();
+            setMyIngredients(ingredients);
+          }
+        } catch (error) {
+          console.error('[RecipeList] 초기 재료 설정 실패:', error);
+        }
+      } else {
+        setMyIngredients(ingredients);
+      }
+    };
+    
+    checkAndInitializeIngredients();
+  }, []);
+
   // localStorage 변경 감지 및 myIngredients 업데이트
   useEffect(() => {
     const updateMyIngredients = () => {
-      setMyIngredients(getMyIngredients());
+      const ingredients = getMyIngredients();
+      console.log('[RecipeList] 재료 업데이트:', {
+        count: ingredients.length,
+        ingredients: ingredients,
+        localStorageKeys: Object.keys(localStorage),
+        hasMyFridgeKey: localStorage.getItem('myfridge_ingredients') !== null
+      });
+      setMyIngredients(ingredients);
     };
 
     // 페이지 포커스 시 업데이트
     const handleFocus = () => {
+      console.log('[RecipeList] 페이지 포커스 - 재료 업데이트');
       updateMyIngredients();
     };
 
     // storage 이벤트 리스너 (다른 탭에서 변경 시)
     const handleStorageChange = (e: StorageEvent) => {
+      console.log('[RecipeList] storage 이벤트:', e.key);
       if (e.key === 'myfridge_ingredients') {
         updateMyIngredients();
       }
     };
 
     // CustomEvent 리스너 (같은 탭에서 변경 시)
-    const handleLocalStorageChange = (e: CustomEvent) => {
-      if (e.detail?.key === 'myfridge_ingredients') {
+    const handleLocalStorageChange = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      console.log('[RecipeList] localStorageChange 이벤트:', customEvent.detail);
+      if (customEvent.detail?.key === 'myfridge_ingredients') {
         updateMyIngredients();
       }
     };
@@ -459,16 +540,29 @@ const RecipeList: React.FC = () => {
     // location 변경 시 업데이트 (페이지 이동 시)
     updateMyIngredients();
 
+    // 주기적으로 재료 확인 (localStorage 동기화 문제 해결)
+    const intervalId = setInterval(() => {
+      const current = getMyIngredients();
+      if (current.length !== myIngredients.length) {
+        console.log('[RecipeList] 주기적 재료 확인 - 변경 감지:', {
+          before: myIngredients.length,
+          after: current.length
+        });
+        updateMyIngredients();
+      }
+    }, 1000); // 1초마다 확인
+
     window.addEventListener('focus', handleFocus);
     window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('localStorageChange', handleLocalStorageChange as EventListener);
+    window.addEventListener('localStorageChange', handleLocalStorageChange);
 
     return () => {
+      clearInterval(intervalId);
       window.removeEventListener('focus', handleFocus);
       window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('localStorageChange', handleLocalStorageChange as EventListener);
+      window.removeEventListener('localStorageChange', handleLocalStorageChange);
     };
-  }, [location]);
+  }, [location, myIngredients.length]);
 
   // =====================
   // 이벤트 핸들러

@@ -363,6 +363,13 @@ const MyFridge: React.FC = () => {
     // 데이터가 있으면 초기 로드 완료로 표시 (CSV 로드 후 초기 재료 추가가 필요 없음)
     if (hasData) {
       isInitialLoad.current = false;
+      // 재료가 있으면 localStorage에 강제로 저장 (동기화 보장)
+      console.log('[MyFridge] 기존 재료 발견 - localStorage에 저장:', {
+        frozen: loaded.frozen.length,
+        fridge: loaded.fridge.length,
+        room: loaded.room.length
+      });
+      saveIngredients(loaded.frozen, loaded.fridge, loaded.room);
     }
     // 데이터가 없으면 CSV 로드 후 초기 재료 추가가 필요하므로 플래그 유지
     

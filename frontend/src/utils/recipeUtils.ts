@@ -37,13 +37,93 @@ export interface FilterKeywordTree {
 // =====================
 
 /**
+ * 초기 재료를 설정한다 (재료가 없을 때만)
+ */
+export function initializeDefaultIngredients(ingredientDict: { [key: string]: string }): boolean {
+  const STORAGE_KEY = 'myfridge_ingredients';
+  
+  try {
+    // 이미 재료가 있는지 확인
+    const existing = localStorage.getItem(STORAGE_KEY);
+    if (existing) {
+      const data = JSON.parse(existing);
+      const hasData = (Array.isArray(data.frozen) && data.frozen.length > 0) ||
+                     (Array.isArray(data.fridge) && data.fridge.length > 0) ||
+                     (Array.isArray(data.room) && data.room.length > 0);
+      if (hasData) {
+        return false; // 이미 재료가 있음
+      }
+    }
+    
+    // 재료 이름을 keyword로 변환
+    const convertToKeyword = (name: string): string => {
+      if (ingredientDict[name]) {
+        return ingredientDict[name];
+      }
+      const foundKey = Object.keys(ingredientDict).find(
+        key => key.toLowerCase().trim() === name.toLowerCase().trim()
+      );
+      if (foundKey) {
+        return ingredientDict[foundKey];
+      }
+      const foundKeyNoSpace = Object.keys(ingredientDict).find(
+        key => key.replace(/\s/g, '').toLowerCase() === name.replace(/\s/g, '').toLowerCase()
+      );
+      if (foundKeyNoSpace) {
+        return ingredientDict[foundKeyNoSpace];
+      }
+      return name;
+    };
+    
+    // 기본 재료 목록 (총 9개)
+    const defaultRoomIngredients = ['소금', '설탕', '간장', '식용유', '참기름'];
+    const defaultFridgeIngredients = ['마늘', '대파', '달걀', '된장'];
+    
+    const newRoom = defaultRoomIngredients.map((name, index) => ({
+      id: `room-${Date.now()}-${index}`,
+      name: convertToKeyword(name)
+    }));
+    
+    const newFridge = defaultFridgeIngredients.map((name, index) => ({
+      id: `fridge-${Date.now()}-${index}`,
+      name: convertToKeyword(name)
+    }));
+    
+    const data = {
+      frozen: [],
+      fridge: newFridge,
+      room: newRoom
+    };
+    
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    
+    // 같은 탭에서 변경을 알리기 위해 CustomEvent 발생
+    window.dispatchEvent(new CustomEvent('localStorageChange', {
+      detail: { key: STORAGE_KEY }
+    }));
+    
+    console.log('[initializeDefaultIngredients] 초기 재료 설정 완료:', {
+      room: newRoom.map(r => r.name),
+      fridge: newFridge.map(r => r.name)
+    });
+    
+    return true; // 초기 재료 설정 완료
+  } catch (error) {
+    console.error('[initializeDefaultIngredients] 에러:', error);
+    return false;
+  }
+}
+
+/**
  * 냉장고 내 내 재료 목록을 localStorage에서 불러온다.
  */
 export function getMyIngredients(): string[] {
   try {
+    const STORAGE_KEY = 'myfridge_ingredients';
+    
     // localStorage의 모든 키 확인
     const allKeys = Object.keys(localStorage);
-    const rawValue = localStorage.getItem('myfridge_ingredients');
+    const rawValue = localStorage.getItem(STORAGE_KEY);
     const hasKey = rawValue !== null;
     
     console.log('[getMyIngredients] localStorage 상태 확인:', {
@@ -54,14 +134,21 @@ export function getMyIngredients(): string[] {
       rawValueLength: rawValue?.length || 0,
       localStorageLength: localStorage.length,
       currentUrl: window.location.href,
-      currentOrigin: window.location.origin
+      currentOrigin: window.location.origin,
+      storageKey: STORAGE_KEY
     });
     
-    const rawData = localStorage.getItem('myfridge_ingredients');
+    const rawData = localStorage.getItem(STORAGE_KEY);
     
     // 디버깅: localStorage에서 읽은 원시 데이터 확인
     if (!rawData) {
       console.log('[getMyIngredients] localStorage에 데이터 없음 - 모든 키:', allKeys);
+      console.log('[getMyIngredients] 키 검색 시도:', {
+        directGet: localStorage.getItem(STORAGE_KEY),
+        directGetLength: localStorage.getItem(STORAGE_KEY)?.length,
+        allKeysIncludes: allKeys.includes(STORAGE_KEY),
+        allKeysFiltered: allKeys.filter(k => k.includes('fridge') || k.includes('ingredient'))
+      });
       return [];
     }
     
