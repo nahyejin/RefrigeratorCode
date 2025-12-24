@@ -41,17 +41,80 @@ export interface FilterKeywordTree {
  */
 export function getMyIngredients(): string[] {
   try {
-    const data = JSON.parse(localStorage.getItem('myfridge_ingredients') || 'null');
-    if (data && Array.isArray(data.frozen) && Array.isArray(data.fridge) && Array.isArray(data.room)) {
+    // localStorage의 모든 키 확인
+    const allKeys = Object.keys(localStorage);
+    const rawValue = localStorage.getItem('myfridge_ingredients');
+    const hasKey = rawValue !== null;
+    
+    console.log('[getMyIngredients] localStorage 상태 확인:', {
+      allKeys: allKeys,
+      allKeysCount: allKeys.length,
+      hasMyFridgeKey: hasKey,
+      myFridgeKeyValue: rawValue ? rawValue.substring(0, 100) : null,
+      rawValueLength: rawValue?.length || 0,
+      localStorageLength: localStorage.length,
+      currentUrl: window.location.href,
+      currentOrigin: window.location.origin
+    });
+    
+    const rawData = localStorage.getItem('myfridge_ingredients');
+    
+    // 디버깅: localStorage에서 읽은 원시 데이터 확인
+    if (!rawData) {
+      console.log('[getMyIngredients] localStorage에 데이터 없음 - 모든 키:', allKeys);
+      return [];
+    }
+    
+    console.log('[getMyIngredients] localStorage에서 데이터 읽음:', {
+      rawDataLength: rawData.length,
+      rawDataPreview: rawData.substring(0, 200) // 처음 200자만
+    });
+    
+    const data = JSON.parse(rawData);
+    if (data && typeof data === 'object') {
+      // 데이터 구조 확인 및 정규화
+      const frozen = Array.isArray(data.frozen) ? data.frozen : [];
+      const fridge = Array.isArray(data.fridge) ? data.fridge : [];
+      const room = Array.isArray(data.room) ? data.room : [];
+      
+      console.log('[getMyIngredients] 파싱된 데이터:', {
+        frozenCount: frozen.length,
+        fridgeCount: fridge.length,
+        roomCount: room.length,
+        frozenSample: frozen.slice(0, 3),
+        fridgeSample: fridge.slice(0, 3),
+        roomSample: room.slice(0, 3)
+      });
+      
       const ingredients = [
-        ...data.frozen,
-        ...data.fridge,
-        ...data.room
-      ].map(i => (typeof i === 'string' ? i : i.name));
+        ...frozen,
+        ...fridge,
+        ...room
+      ].map(i => {
+        if (typeof i === 'string') {
+          return i;
+        } else if (i && typeof i === 'object' && i.name) {
+          return i.name;
+        }
+        return String(i);
+      }).filter(Boolean);
+      
+      // 디버깅: 재료 읽기 확인
+      console.log('[getMyIngredients] 최종 재료 목록:', {
+        count: ingredients.length,
+        ingredients: ingredients
+      });
+      
       return ingredients;
+    } else {
+      // 데이터 형식이 잘못된 경우
+      console.warn('[getMyIngredients] 데이터 형식 오류:', {
+        data: data,
+        dataType: typeof data
+      });
     }
   } catch (error) {
-    // 에러는 콘솔에만 출력
+    console.error('[getMyIngredients] 에러:', error);
   }
   return [];
 }

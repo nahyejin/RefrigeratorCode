@@ -75,9 +75,57 @@ function saveIngredients(
   room: Ingredient[]
 ) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ frozen, fridge, room }));
+    const data = { frozen, fridge, room };
+    const jsonString = JSON.stringify(data);
+    
+    console.log('[saveIngredients] 저장 시도:', {
+      key: STORAGE_KEY,
+      frozenCount: frozen.length,
+      fridgeCount: fridge.length,
+      roomCount: room.length,
+      jsonLength: jsonString.length,
+      allKeysBefore: Object.keys(localStorage)
+    });
+    
+    localStorage.setItem(STORAGE_KEY, jsonString);
+    
+    // 저장 확인 - 즉시 확인
+    const saved = localStorage.getItem(STORAGE_KEY);
+    const allKeysAfter = Object.keys(localStorage);
+    
+    console.log('[saveIngredients] 저장 후 확인:', {
+      saved: saved ? '있음' : '없음',
+      savedLength: saved?.length || 0,
+      allKeysAfter: allKeysAfter,
+      hasKey: allKeysAfter.includes(STORAGE_KEY),
+      keyValue: saved ? saved.substring(0, 100) : null
+    });
+    
+    if (saved) {
+      console.log('[saveIngredients] 저장 성공:', {
+        frozenCount: frozen.length,
+        fridgeCount: fridge.length,
+        roomCount: room.length,
+        savedLength: saved.length
+      });
+      
+      // 같은 탭에서 변경을 알리기 위해 CustomEvent 발생
+      window.dispatchEvent(new CustomEvent('localStorageChange', {
+        detail: { key: STORAGE_KEY }
+      }));
+    } else {
+      console.error('[saveIngredients] 저장 실패: localStorage.getItem이 null 반환');
+      console.error('[saveIngredients] localStorage 상태:', {
+        allKeys: Object.keys(localStorage),
+        length: localStorage.length,
+        quotaExceeded: false // 직접 확인 불가능하지만 로그에 표시
+      });
+    }
   } catch (error) {
     console.error('[Storage] 재료 데이터 저장 실패:', error);
+    if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+      console.error('[Storage] localStorage 용량 초과!');
+    }
   }
 }
 
@@ -282,6 +330,8 @@ const IngredientPill: React.FC<IngredientPillProps> = ({ item, onRemove, onInfoC
 // =====================
 
 const MyFridge: React.FC = () => {
+  console.log('[MyFridge] 컴포넌트 렌더링 시작');
+  
   const [frozen, setFrozen] = React.useState<Ingredient[] | null>(null);
   const [fridge, setFridge] = React.useState<Ingredient[] | null>(null);
   const [room, setRoom] = React.useState<Ingredient[] | null>(null);
@@ -304,9 +354,18 @@ const MyFridge: React.FC = () => {
   const [pendingIngredient, setPendingIngredient] = useState<{ ingredient: string; storageType: StorageBox; hasExpiration: boolean; date: string | null; } | null>(null);
   const { isLoggedIn } = useAuth();
   const navigate = useNavigate();
+  const isInitialLoad = React.useRef(true); // 초기 로드 플래그
 
   React.useEffect(() => {
     const loaded = loadIngredients();
+    const hasData = loaded.frozen.length > 0 || loaded.fridge.length > 0 || loaded.room.length > 0;
+    
+    // 데이터가 있으면 초기 로드 완료로 표시 (CSV 로드 후 초기 재료 추가가 필요 없음)
+    if (hasData) {
+      isInitialLoad.current = false;
+    }
+    // 데이터가 없으면 CSV 로드 후 초기 재료 추가가 필요하므로 플래그 유지
+    
     setFrozen(loaded.frozen);
     setFridge(loaded.fridge);
     setRoom(loaded.room);
@@ -315,9 +374,11 @@ const MyFridge: React.FC = () => {
   }, []);
 
   React.useEffect(() => {
+    console.log('[MyFridge] 두 번째 useEffect 실행 - CSV 파일 로드 시작');
     fetch('/ingredient_profile_dict_with_substitutes.csv')
       .then(res => res.text())
       .then(csv => {
+        console.log('[MyFridge] CSV 파일 로드 완료, 파싱 시작');
         const lines = csv.split('\n');
         const header = lines[0].split(',');
         const nameIdx = header.indexOf('keyword');
@@ -344,33 +405,164 @@ const MyFridge: React.FC = () => {
         
         setIngredientDict(ingredients);
         
-        // 재료 사전 로드 후, 초기 진입 시 '냉장보관'에 '계란'이 없으면 추가
+        // 재료 사전 로드 후, 초기 진입 시 기본 재료가 없으면 추가
         const loaded = loadIngredients();
-        const hasEgg = loaded.fridge && loaded.fridge.some(ing => {
-          const ingName = typeof ing === 'string' ? ing : ing.name;
-          // '계란' 또는 '달걀'이 있는지 확인
-          return ingName === '계란' || ingName === '달걀' || 
-                 ingredients[ingName] === '달걀' || ingredients[ingName] === '계란';
-        });
+        const isEmpty = (!loaded.fridge || loaded.fridge.length === 0) && 
+                        (!loaded.room || loaded.room.length === 0) && 
+                        (!loaded.frozen || loaded.frozen.length === 0);
         
-        if (!hasEgg && (!loaded.fridge || loaded.fridge.length === 0)) {
-          // '계란'을 keyword로 변환 (synonym -> keyword)
-          const eggKeyword = ingredients['계란'] || '달걀'; // '계란'이 synonym이면 keyword인 '달걀'로 변환
-          const eggId = `egg-${Date.now()}`;
-          const newFridge = [{ id: eggId, name: eggKeyword }];
+        if (isEmpty) {
+          // 초기 재료 추가 중이므로 useEffect에서 저장하지 않도록 플래그 설정
+          isInitialLoad.current = true;
+          
+          // 기본 재료 목록 정의 (총 9개로 제한 - 회원가입 유도 방지)
+          // 실온보관: 5개
+          const defaultRoomIngredients = [
+            '소금', '설탕', '간장', '식용유', '참기름'
+          ];
+          // 냉장보관: 4개
+          const defaultFridgeIngredients = [
+            '마늘', '대파', '달걀', '된장'
+          ];
+          
+          // 재료 이름을 keyword로 변환 (synonym -> keyword)
+          // 재료 사전에 없으면 원래 이름 사용
+          const convertToKeyword = (name: string): string => {
+            // 직접 매칭 시도
+            if (ingredients[name]) {
+              return ingredients[name];
+            }
+            // 대소문자 무시하고 찾기
+            const foundKey = Object.keys(ingredients).find(
+              key => key.toLowerCase().trim() === name.toLowerCase().trim()
+            );
+            if (foundKey) {
+              return ingredients[foundKey];
+            }
+            // 공백 제거 후 찾기
+            const foundKeyNoSpace = Object.keys(ingredients).find(
+              key => key.replace(/\s/g, '').toLowerCase() === name.replace(/\s/g, '').toLowerCase()
+            );
+            if (foundKeyNoSpace) {
+              return ingredients[foundKeyNoSpace];
+            }
+            // 못 찾으면 원래 이름 반환
+            console.warn(`[MyFridge] 재료 사전에서 "${name}"을 찾을 수 없습니다. 원래 이름 사용.`);
+            return name;
+          };
+          
+          // 실온보관 재료 추가
+          const newRoom = defaultRoomIngredients.map((name, index) => ({
+            id: `room-${Date.now()}-${index}`,
+            name: convertToKeyword(name)
+          }));
+          
+          // 냉장보관 재료 추가
+          const newFridge = defaultFridgeIngredients.map((name, index) => ({
+            id: `fridge-${Date.now()}-${index}`,
+            name: convertToKeyword(name)
+          }));
+          
+          // 디버깅: 저장되는 재료 이름 확인
+          console.log('[MyFridge] 초기 재료 추가:', {
+            room: newRoom.map(r => r.name),
+            fridge: newFridge.map(r => r.name),
+            ingredientDictSample: Object.keys(ingredients).slice(0, 30) // 재료 사전 샘플 확인
+          });
+          
+          // 재료 사전에서 특정 재료 찾기 테스트
+          console.log('[MyFridge] 재료 사전 검색 테스트:', {
+            '소금': ingredients['소금'],
+            '설탕': ingredients['설탕'],
+            '간장': ingredients['간장'],
+            '식용유': ingredients['식용유'],
+            '참기름': ingredients['참기름'],
+            '후추': ingredients['후추'],
+            '밥': ingredients['밥'],
+            '양파': ingredients['양파'],
+            '감자': ingredients['감자'],
+            '식초': ingredients['식초'],
+            '고춧가루': ingredients['고춧가루'],
+            '밀가루': ingredients['밀가루'],
+            '마늘': ingredients['마늘'],
+            '케첩': ingredients['케첩'],
+            '우유': ingredients['우유'],
+            '된장': ingredients['된장'],
+            '고추장': ingredients['고추장'],
+            '참치캔': ingredients['참치캔'],
+            '대파': ingredients['대파'],
+            '청양고추': ingredients['청양고추'],
+            '달걀': ingredients['달걀'],
+            '계란': ingredients['계란']
+          });
+          
+          setRoom(newRoom);
           setFridge(newFridge);
-          // localStorage에도 저장
-          saveIngredients(loaded.frozen, newFridge, loaded.room);
+          
+          // localStorage에도 저장 (즉시 저장)
+          console.log('[MyFridge] 초기 재료 저장 시작:', {
+            frozen: loaded.frozen.length,
+            fridge: newFridge.length,
+            room: newRoom.length
+          });
+          
+          saveIngredients(loaded.frozen, newFridge, newRoom);
+          
+          // 초기 재료 추가 완료 후 초기 로드 플래그 해제
+          isInitialLoad.current = false;
+          
+          // 저장 확인 (약간의 지연 후)
+          setTimeout(() => {
+            const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+            console.log('[MyFridge] localStorage 저장 확인:', {
+              saved: saved,
+              savedKeys: saved ? Object.keys(saved) : null,
+              newRoom: newRoom,
+              newFridge: newFridge,
+              roomCount: newRoom.length,
+              fridgeCount: newFridge.length,
+              savedRoomCount: saved?.room?.length || 0,
+              savedFridgeCount: saved?.fridge?.length || 0,
+              rawStorage: localStorage.getItem(STORAGE_KEY)?.substring(0, 100) // 처음 100자만
+            });
+            
+            // 같은 탭에서 변경을 알리기 위해 CustomEvent 발생
+            window.dispatchEvent(new CustomEvent('localStorageChange', {
+              detail: { key: STORAGE_KEY }
+            }));
+          }, 100);
+        } else {
+          // 재료가 이미 있으면 초기 로드 완료
+          isInitialLoad.current = false;
         }
       })
       .catch(error => {
         console.error('Error loading ingredient dictionary:', error);
+        isInitialLoad.current = false; // 에러 발생 시에도 플래그 해제
       });
   }, []);
 
   React.useEffect(() => {
-    if (frozen !== null && fridge !== null && room !== null) {
-      saveIngredients(frozen, fridge, room);
+    // 초기 로드가 완료된 후에만 저장 (초기 로드 시에는 저장하지 않음)
+    // 또한 빈 배열로 덮어쓰는 것을 방지 (데이터가 실제로 있을 때만 저장)
+    if (!isInitialLoad.current && frozen !== null && fridge !== null && room !== null) {
+      const hasData = frozen.length > 0 || fridge.length > 0 || room.length > 0;
+      // 빈 배열로 저장하는 것을 방지 (데이터가 실제로 있을 때만 저장)
+      if (hasData) {
+        console.log('[MyFridge] useEffect에서 재료 저장:', {
+          frozenCount: frozen.length,
+          fridgeCount: fridge.length,
+          roomCount: room.length
+        });
+        saveIngredients(frozen, fridge, room);
+      } else {
+        console.log('[MyFridge] useEffect에서 재료 저장 스킵 (빈 배열):', {
+          frozenCount: frozen.length,
+          fridgeCount: fridge.length,
+          roomCount: room.length,
+          isInitialLoad: isInitialLoad.current
+        });
+      }
     }
   }, [frozen, fridge, room]);
 

@@ -35,24 +35,48 @@ def setup_logger(name):
     return logger
     
 def get_chrome_options() -> Options:
-    """Chrome 옵션 설정"""
+    """Chrome 옵션 설정 - Windows에서 창이 절대 뜨지 않도록 강력한 headless 설정"""
     import os
+    import sys
     options = Options()
     
+    # Windows에서 강제 headless 모드
     # --headless=new가 가장 안정적 (Chrome 109+)
     options.add_argument('--headless=new')
+    # Windows에서 창이 뜨지 않도록 추가 옵션
+    options.add_argument('--no-startup-window')
+    options.add_argument('--disable-gpu')
+    options.add_argument('--disable-software-rasterizer')
     
     options.add_argument('--no-sandbox')
     options.add_argument('--disable-dev-shm-usage')
-    options.add_argument('--disable-gpu')
     options.add_argument('--window-size=1920,1080')
     options.add_argument('--disable-infobars')
     options.add_argument('--disable-notifications')
     options.add_argument('--disable-blink-features=AutomationControlled')
-    options.add_argument('--no-startup-window')  # 시작 창 완전 비활성화
     options.add_argument('--disable-web-security')
     options.add_argument('--allow-running-insecure-content')
     options.add_argument('--disable-site-isolation-trials')
+    options.add_argument('--disable-extensions')
+    options.add_argument('--disable-plugins')
+    options.add_argument('--disable-logging')
+    options.add_argument('--log-level=3')
+    options.add_argument('--disable-background-timer-throttling')
+    options.add_argument('--disable-backgrounding-occluded-windows')
+    options.add_argument('--disable-renderer-backgrounding')
+    options.add_argument('--disable-setuid-sandbox')
+    options.add_argument('--no-first-run')
+    options.add_argument('--no-default-browser-check')
+    options.add_argument('--disable-default-apps')
+    
+    # Windows에서 백그라운드 실행 강제
+    if sys.platform == 'win32':
+        options.add_argument('--disable-background-networking')
+        options.add_argument('--disable-sync')
+        # Windows에서 창이 절대 뜨지 않도록 환경 변수 설정
+        os.environ['CHROME_HEADLESS'] = '1'
+        os.environ['DISPLAY'] = ':0'
+    
     # 디버깅 포트는 제거 (0으로 설정하면 문제 발생 가능)
     options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
     options.add_experimental_option('excludeSwitches', ['enable-logging', 'enable-automation'])

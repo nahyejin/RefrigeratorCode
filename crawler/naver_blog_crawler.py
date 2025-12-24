@@ -274,6 +274,28 @@ class NaverBlogCrawler(BaseCrawler):
                             # Windows에서 창이 뜨지 않도록 설정
                             if sys.platform == 'win32':
                                 self.service_args = []
+                        
+                        def start(self):
+                            """Windows에서 CREATE_NO_WINDOW 플래그로 subprocess 시작"""
+                            import subprocess
+                            if sys.platform == 'win32' and hasattr(subprocess, 'CREATE_NO_WINDOW'):
+                                # 원본 start 메서드의 subprocess.Popen 호출을 가로채기
+                                original_popen = subprocess.Popen
+                                def patched_popen(*args, **kwargs):
+                                    if 'creationflags' not in kwargs:
+                                        kwargs['creationflags'] = subprocess.CREATE_NO_WINDOW
+                                    return original_popen(*args, **kwargs)
+                                
+                                # start 메서드 실행 중에만 패치 적용
+                                subprocess.Popen = patched_popen
+                                try:
+                                    os.environ['CHROME_HEADLESS'] = '1'
+                                    super().start()
+                                finally:
+                                    # 패치 복원
+                                    subprocess.Popen = original_popen
+                            else:
+                                super().start()
                     
                     service = NoWindowService(
                         driver_manager.install(),

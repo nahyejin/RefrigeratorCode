@@ -449,15 +449,24 @@ const RecipeList: React.FC = () => {
       }
     };
 
+    // CustomEvent 리스너 (같은 탭에서 변경 시)
+    const handleLocalStorageChange = (e: CustomEvent) => {
+      if (e.detail?.key === 'myfridge_ingredients') {
+        updateMyIngredients();
+      }
+    };
+
     // location 변경 시 업데이트 (페이지 이동 시)
     updateMyIngredients();
 
     window.addEventListener('focus', handleFocus);
     window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('localStorageChange', handleLocalStorageChange as EventListener);
 
     return () => {
       window.removeEventListener('focus', handleFocus);
       window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('localStorageChange', handleLocalStorageChange as EventListener);
     };
   }, [location]);
 
