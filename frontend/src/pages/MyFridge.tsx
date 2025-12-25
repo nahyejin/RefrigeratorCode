@@ -1269,11 +1269,27 @@ const MyFridge: React.FC = () => {
             } else {
               setShowGuide(false);
               localStorage.setItem('myfridge_guide_shown', 'true');
+              // 내냉장고 가이드 완료 표시 - navigate 전에 설정
+              localStorage.setItem('myfridge_guide_completed', 'true');
+              console.log('[MyFridge] 가이드 완료 - 플래그 설정:', localStorage.getItem('myfridge_guide_completed'));
+              // 내냉장고 가이드 완료 후 냉장고 요리 페이지로 이동
+              setTimeout(() => {
+                console.log('[MyFridge] 냉장고 요리 페이지로 이동');
+                navigate('/recipe-list');
+              }, 300);
             }
           }}
           onClose={() => {
             setShowGuide(false);
             localStorage.setItem('myfridge_guide_shown', 'true');
+            // 내냉장고 가이드 완료 표시 - navigate 전에 설정
+            localStorage.setItem('myfridge_guide_completed', 'true');
+            console.log('[MyFridge] 가이드 닫기 - 플래그 설정:', localStorage.getItem('myfridge_guide_completed'));
+            // 내냉장고 가이드 완료 후 냉장고 요리 페이지로 이동
+            setTimeout(() => {
+              console.log('[MyFridge] 냉장고 요리 페이지로 이동');
+              navigate('/recipe-list');
+            }, 300);
           }}
           steps={guideSteps}
         />

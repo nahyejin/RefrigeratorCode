@@ -618,6 +618,7 @@ const RecipeSortBar = ({
               setMatchRateModalOpen(true);
             }}
             aria-label="재료 매칭도 설정 모달 열기"
+            data-guide-target="match-rate-button"
           >
             재료 매칭도 설정
           </button>
@@ -628,6 +629,7 @@ const RecipeSortBar = ({
               setExpiryModalOpen(true);
             }}
             aria-label="임박 재료 설정 모달 열기"
+            data-guide-target="expiry-button"
           >
             임박 재료 설정
           </button>
@@ -638,6 +640,7 @@ const RecipeSortBar = ({
             <button
               onClick={() => setIsSortDropdownOpen(!isSortDropdownOpen)}
               style={{ ...STYLES.select, position: 'relative', textAlign: 'left' }}
+              data-guide-target="sort-dropdown"
             >
               <span>{sortType === 'latest' ? '최신순' :
                sortType === 'like' ? '좋아요순' :
@@ -720,6 +723,7 @@ const RecipeSortBar = ({
           style={STYLES.filterButton}
           onClick={() => setFilterModalOpen(true)}
           aria-label="필터 모달 열기"
+          data-guide-target="filter-button"
         >
           필터
         </button>

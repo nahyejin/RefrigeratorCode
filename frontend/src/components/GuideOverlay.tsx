@@ -122,7 +122,7 @@ const GuideOverlay: React.FC<GuideOverlayProps> = ({
   const getTooltipStyle = (): React.CSSProperties => {
     if (!targetRect) return { display: 'none' };
 
-    const tooltipWidth = 280;
+    const tooltipWidth = 320; // 가로폭 넓힘
     const tooltipHeight = 100;
     const spacing = 12;
     let top = 0;
@@ -221,7 +221,7 @@ const GuideOverlay: React.FC<GuideOverlayProps> = ({
             left: '-2px',
             right: '-2px',
             bottom: '-2px',
-            backgroundColor: 'rgba(255, 214, 0, 0.3)',
+            backgroundColor: 'rgba(255, 214, 0, 0.6)',
             borderRadius: '10px',
             border: '2px solid #FFD600',
           }} />
@@ -236,33 +236,25 @@ const GuideOverlay: React.FC<GuideOverlayProps> = ({
         <div
           className="bg-white rounded-lg shadow-lg p-4"
           style={{
-            width: step.targetSelector.includes('settings-icon') ? '320px' : '280px',
+            width: step.targetSelector.includes('settings-icon') ? '340px' : '320px',
             fontSize: '13px',
             lineHeight: '1.6',
             color: '#333',
+            maxWidth: 'calc(100vw - 32px)', // 화면 너비를 넘지 않도록
           }}
         >
-          <div className="mb-3" style={{ textAlign: 'left', whiteSpace: 'pre-line' }}>
+          <div className="mb-3" style={{ textAlign: 'left', whiteSpace: 'pre-line', wordBreak: 'keep-all' }}>
             {typeof step.message === 'string' ? step.message : step.message}
           </div>
           <div className="flex gap-2 justify-end">
             {currentStep < steps.length - 1 ? (
-              <>
-                <button
-                  onClick={onClose}
-                  className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800"
-                  style={{ outline: 'none', border: 'none', background: 'none', cursor: 'pointer' }}
-                >
-                  건너뛰기
-                </button>
-                <button
-                  onClick={onNext}
-                  className="px-4 py-1.5 bg-[#FFD600] text-[#222] rounded-lg text-sm font-medium hover:bg-yellow-300 transition"
-                  style={{ outline: 'none', border: 'none', cursor: 'pointer' }}
-                >
-                  다음
-                </button>
-              </>
+              <button
+                onClick={onNext}
+                className="px-4 py-1.5 bg-[#FFD600] text-[#222] rounded-lg text-sm font-medium hover:bg-yellow-300 transition"
+                style={{ outline: 'none', border: 'none', cursor: 'pointer' }}
+              >
+                다음
+              </button>
             ) : (
               <button
                 onClick={onClose}
