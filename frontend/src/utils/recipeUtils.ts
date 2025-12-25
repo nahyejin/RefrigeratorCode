@@ -97,9 +97,10 @@ export function initializeDefaultIngredients(ingredientDict: { [key: string]: st
       return name;
     };
     
-    // 기본 재료 목록 (총 9개)
-    const defaultRoomIngredients = ['소금', '설탕', '간장', '식용유', '참기름'];
-    const defaultFridgeIngredients = ['마늘', '대파', '달걀', '된장'];
+    // 기본 재료 목록
+    const defaultRoomIngredients = ['소금', '설탕', '간장', '식용유', '참기름', '후추', '올리고당', '물엿', '식초', '라면'];
+    const defaultFridgeIngredients = ['마늘', '대파', '달걀', '된장', '고추장', '고춧가루', '밀가루', '전분', '미림', '맛술', '양파', '감자', '당근', '두부', '우유', '김치'];
+    const defaultFrozenIngredients = ['돼지고기', '닭고기', '만두'];
     
     const newRoom = defaultRoomIngredients.map((name, index) => ({
       id: `room-${Date.now()}-${index}`,
@@ -111,8 +112,13 @@ export function initializeDefaultIngredients(ingredientDict: { [key: string]: st
       name: convertToKeyword(name)
     }));
     
+    const newFrozen = defaultFrozenIngredients.map((name, index) => ({
+      id: `frozen-${Date.now()}-${index}`,
+      name: convertToKeyword(name)
+    }));
+    
     const data = {
-      frozen: [],
+      frozen: newFrozen,
       fridge: newFridge,
       room: newRoom
     };
@@ -127,6 +133,7 @@ export function initializeDefaultIngredients(ingredientDict: { [key: string]: st
     console.log('[initializeDefaultIngredients] 초기 재료 설정 완료:', {
       room: newRoom.map(r => r.name),
       fridge: newFridge.map(r => r.name),
+      frozen: newFrozen.map(r => r.name),
       ingredientDictSize: ingredientDict ? Object.keys(ingredientDict).length : 0
     });
     

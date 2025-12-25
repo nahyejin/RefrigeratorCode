@@ -8,6 +8,8 @@ import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import RegisterPromptModal from '../components/RegisterPromptModal';
+import WelcomeModal from '../components/WelcomeModal';
+import GuideOverlay from '../components/GuideOverlay';
 
 // =====================
 // 상수
@@ -15,6 +17,20 @@ import RegisterPromptModal from '../components/RegisterPromptModal';
 
 const STORAGE_KEY = 'myfridge_ingredients';
 const TOAST_DURATION = 10000;
+
+// 가이드 단계 정의
+const guideSteps = [
+  {
+    targetSelector: 'input[placeholder="추가할 재료명을 입력하세요"]',
+    message: '여기에 재료명을 입력하면 내 냉장고에 재료를 추가할 수 있어요.',
+    position: 'bottom' as const,
+  },
+  {
+    targetSelector: '[data-guide-target="settings-icon"]',
+    message: '재료 옆의 설정 아이콘 (⚙️)을 누르면\n보관공간, 유통기한, 구매기한을 변경할 수 있어요.',
+    position: 'left' as const,
+  },
+];
 
 // =====================
 // 타입 정의
@@ -256,9 +272,10 @@ interface IngredientPillProps {
   onRemove: (id: string) => void;
   onInfoClick: (item: Ingredient) => void;
   onSettingsClick: (item: Ingredient) => void;
+  isFirstInFridge?: boolean;
 }
 
-const IngredientPill: React.FC<IngredientPillProps> = ({ item, onRemove, onInfoClick, onSettingsClick }) => {
+const IngredientPill: React.FC<IngredientPillProps> = ({ item, onRemove, onInfoClick, onSettingsClick, isFirstInFridge = false }) => {
   return (
     <div style={{ display: 'inline-flex', alignItems: 'center', gap: 0, marginRight: 8, marginBottom: 4 }}>
       <TagPill 
@@ -318,6 +335,7 @@ const IngredientPill: React.FC<IngredientPillProps> = ({ item, onRemove, onInfoC
         }}
         onClick={e => { e.stopPropagation(); onSettingsClick(item); }}
         title="설정"
+        {...(isFirstInFridge ? { 'data-guide-target': 'settings-icon' } : {})}
       >
         ⚙︎
       </span>
@@ -352,6 +370,9 @@ const MyFridge: React.FC = () => {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
   const [pendingIngredient, setPendingIngredient] = useState<{ ingredient: string; storageType: StorageBox; hasExpiration: boolean; date: string | null; } | null>(null);
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
+  const [guideStep, setGuideStep] = useState(0);
   const { isLoggedIn } = useAuth();
   const navigate = useNavigate();
   const isInitialLoad = React.useRef(true); // 초기 로드 플래그
@@ -396,14 +417,18 @@ const MyFridge: React.FC = () => {
           // 초기 재료 추가 중이므로 useEffect에서 저장하지 않도록 플래그 설정
           isInitialLoad.current = true;
           
-          // 기본 재료 목록 정의 (총 9개로 제한 - 회원가입 유도 방지)
-          // 실온보관: 5개
+          // 기본 재료 목록 정의
+          // 실온보관: 10개
           const defaultRoomIngredients = [
-            '소금', '설탕', '간장', '식용유', '참기름'
+            '소금', '설탕', '간장', '식용유', '참기름', '후추', '올리고당', '물엿', '식초', '라면'
           ];
-          // 냉장보관: 4개
+          // 냉장보관: 16개
           const defaultFridgeIngredients = [
-            '마늘', '대파', '달걀', '된장'
+            '마늘', '대파', '달걀', '된장', '고추장', '고춧가루', '밀가루', '전분', '미림', '맛술', '양파', '감자', '당근', '두부', '우유', '김치'
+          ];
+          // 냉동보관: 3개
+          const defaultFrozenIngredients = [
+            '돼지고기', '닭고기', '만두'
           ];
           
           // 재료 이름을 keyword로 변환 (synonym -> keyword)
@@ -444,6 +469,12 @@ const MyFridge: React.FC = () => {
             name: convertToKeyword(name)
           }));
           
+          // 냉동보관 재료 추가
+          const newFrozen = defaultFrozenIngredients.map((name, index) => ({
+            id: `frozen-${Date.now()}-${index}`,
+            name: convertToKeyword(name)
+          }));
+          
           // 디버깅: 저장되는 재료 이름 확인
           console.log('[MyFridge] 초기 재료 추가:', {
             room: newRoom.map(r => r.name),
@@ -479,18 +510,35 @@ const MyFridge: React.FC = () => {
           
           setRoom(newRoom);
           setFridge(newFridge);
+          setFrozen(newFrozen);
           
           // localStorage에도 저장 (즉시 저장)
           console.log('[MyFridge] 초기 재료 저장 시작:', {
-            frozen: loaded.frozen.length,
+            frozen: newFrozen.length,
             fridge: newFridge.length,
             room: newRoom.length
           });
           
-          saveIngredients(loaded.frozen, newFridge, newRoom);
+          saveIngredients(newFrozen, newFridge, newRoom);
           
           // 초기 재료 추가 완료 후 초기 로드 플래그 해제
           isInitialLoad.current = false;
+          
+          // 처음 방문한 사용자에게만 Welcome 모달 표시
+          // 개발/테스트용: URL에 ?showWelcome=true 추가하면 강제로 모달 표시
+          const urlParams = new URLSearchParams(window.location.search);
+          const forceShowWelcome = urlParams.get('showWelcome') === 'true';
+          const welcomeModalShown = localStorage.getItem('welcome_modal_shown');
+          
+          if (forceShowWelcome || !welcomeModalShown) {
+            // 약간의 지연 후 모달 표시 (재료가 화면에 렌더링된 후)
+            setTimeout(() => {
+              setShowWelcomeModal(true);
+              if (!forceShowWelcome) {
+                localStorage.setItem('welcome_modal_shown', 'true');
+              }
+            }, 500);
+          }
           
           // 저장 확인 (약간의 지연 후)
           setTimeout(() => {
@@ -560,6 +608,19 @@ const MyFridge: React.FC = () => {
         initializeIngredients({});
       });
   }, []);
+
+  // URL 파라미터로 모달 강제 표시 (개발/테스트용)
+  React.useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const forceShowWelcome = urlParams.get('showWelcome') === 'true';
+    
+    if (forceShowWelcome && !loading) {
+      // 페이지 로드 완료 후 모달 표시
+      setTimeout(() => {
+        setShowWelcomeModal(true);
+      }, 500);
+    }
+  }, [loading]);
 
   React.useEffect(() => {
     // 초기 로드가 완료된 후에만 저장 (초기 로드 시에는 저장하지 않음)
@@ -1044,6 +1105,7 @@ const MyFridge: React.FC = () => {
                   onRemove={(id) => removeTag('frozen', id)}
                   onInfoClick={handleTagInfo}
                   onSettingsClick={handleTagClick}
+                  data-guide-target="settings-icon"
                 />
               ))}
             </div>
@@ -1080,13 +1142,14 @@ const MyFridge: React.FC = () => {
               {fridge && fridge.length === 0 && (
                 <div className="text-gray-400 text-xs py-1">재료가 아직 없어요</div>
               )}
-              {sortIngredients(fridge ?? [], fridgeSort).map((item) => (
+              {sortIngredients(fridge ?? [], fridgeSort).map((item, index) => (
                 <IngredientPill
                   key={`${item.id}-${item.name}`}
                   item={item}
                   onRemove={(id) => removeTag('fridge', id)}
                   onInfoClick={handleTagInfo}
                   onSettingsClick={handleTagClick}
+                  isFirstInFridge={index === 0}
                 />
               ))}
             </div>
@@ -1130,6 +1193,7 @@ const MyFridge: React.FC = () => {
                   onRemove={(id) => removeTag('room', id)}
                   onInfoClick={handleTagInfo}
                   onSettingsClick={handleTagClick}
+                  data-guide-target="settings-icon"
                 />
               ))}
             </div>
@@ -1173,6 +1237,45 @@ const MyFridge: React.FC = () => {
             }
           }}
           message="더 많은 재료를 저장하려면"
+        />
+        
+        {/* 환영 모달 - 처음 방문한 사용자에게만 표시 */}
+        <WelcomeModal
+          visible={showWelcomeModal}
+          onClose={() => {
+            setShowWelcomeModal(false);
+            // 모달 닫으면 가이드 시작
+            const urlParams = new URLSearchParams(window.location.search);
+            const forceShowWelcome = urlParams.get('showWelcome') === 'true';
+            const guideShown = localStorage.getItem('myfridge_guide_shown');
+            
+            // 강제 표시 모드이거나 가이드가 아직 표시되지 않았으면 가이드 시작
+            if (forceShowWelcome || !guideShown) {
+              setTimeout(() => {
+                setShowGuide(true);
+                setGuideStep(0);
+              }, 300);
+            }
+          }}
+        />
+        
+        {/* 사용 가이드 오버레이 */}
+        <GuideOverlay
+          visible={showGuide}
+          currentStep={guideStep}
+          onNext={() => {
+            if (guideStep < guideSteps.length - 1) {
+              setGuideStep(guideStep + 1);
+            } else {
+              setShowGuide(false);
+              localStorage.setItem('myfridge_guide_shown', 'true');
+            }
+          }}
+          onClose={() => {
+            setShowGuide(false);
+            localStorage.setItem('myfridge_guide_shown', 'true');
+          }}
+          steps={guideSteps}
         />
       </div>
       <BottomNavBar activeTab="myfridge" />
