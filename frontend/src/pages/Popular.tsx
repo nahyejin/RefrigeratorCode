@@ -756,16 +756,16 @@ const Popular = () => {
   const handleRecipeAction = (id: number, action: { action: 'done' | 'write' | 'share' }) => {
     const prevState = buttonStates[id] || getRecipeActionState(id);
     
-    if (action.action === 'done') {
-      const recipe = youtubeRecipes.find(r => r.id === id) || naverRecipes.find(r => r.id === id);
-      if (prevState.done) {
-        // 완료 취소
-        removeRecipeFromLocalStorage('done', id);
+      if (action.action === 'done') {
+        const recipe = youtubeRecipes.find(r => r.id === id) || naverRecipes.find(r => r.id === id);
+        if (prevState.done) {
+          // 완료 취소
+          removeRecipeFromLocalStorage('done', id);
         setButtonStates(prev => ({ ...prev, [id]: { ...prev[id], done: false } }));
-        setToast('레시피 완료를 취소했습니다!');
-      } else {
+          setToast('레시피 완료를 취소했습니다!');
+        } else {
         // 완료 추가 전에 5개 조건 체크
-        if (recipe && !getRecipesFromLocalStorage('done').some((r: any) => r.id === id)) {
+          if (recipe && !getRecipesFromLocalStorage('done').some((r: any) => r.id === id)) {
           const currentCount = getRecipesFromLocalStorage('done').length;
           const totalCount = currentCount + 1;
           
@@ -809,52 +809,52 @@ const Popular = () => {
           }
           
           // 조건 통과 시 레시피 저장
-          const normalized = {
-            id: recipe.id,
-            title: recipe.title,
-            content: recipe.content || '',
-            author: recipe.author || '',
-            date: recipe.date || '',
-            body: recipe.body || recipe.content || recipe.description || '',
-            description: recipe.description || '',
-            thumbnail: recipe.thumbnail || '',
-            used_ingredients: recipe.used_ingredients || '',
-            used_ingredients_block: recipe.used_ingredients_block || '',
-            block_reason: recipe.block_reason || '',
-            link: recipe.link || '',
-            platform: recipe.platform || 'youtube',
-            channel: recipe.channel || 'youtube',
-            likes: recipe.likes || 0,
-            comments: recipe.comments || 0,
-            substitutes: recipe.substitutes || [],
-            match_rate: recipe.match_rate || 0,
-            my_ingredients: recipe.my_ingredients || [],
-            need_ingredients: recipe.need_ingredients || [],
-            created_at: recipe.created_at || '',
-            updated_at: recipe.updated_at || '',
-            like_count: recipe.like_count || 0,
-            comment_count: recipe.comment_count || 0,
-            post_time: recipe.post_time || '',
-            collected_at: recipe.collected_at || '',
-            hits: recipe.hits || 0,
-            action: recipe.action,
-          };
-          addRecipeToLocalStorage('done', normalized);
+            const normalized = {
+              id: recipe.id,
+              title: recipe.title,
+              content: recipe.content || '',
+              author: recipe.author || '',
+              date: recipe.date || '',
+              body: recipe.body || recipe.content || recipe.description || '',
+              description: recipe.description || '',
+              thumbnail: recipe.thumbnail || '',
+              used_ingredients: recipe.used_ingredients || '',
+              used_ingredients_block: recipe.used_ingredients_block || '',
+              block_reason: recipe.block_reason || '',
+              link: recipe.link || '',
+              platform: recipe.platform || 'youtube',
+              channel: recipe.channel || 'youtube',
+              likes: recipe.likes || 0,
+              comments: recipe.comments || 0,
+              substitutes: recipe.substitutes || [],
+              match_rate: recipe.match_rate || 0,
+              my_ingredients: recipe.my_ingredients || [],
+              need_ingredients: recipe.need_ingredients || [],
+              created_at: recipe.created_at || '',
+              updated_at: recipe.updated_at || '',
+              like_count: recipe.like_count || 0,
+              comment_count: recipe.comment_count || 0,
+              post_time: recipe.post_time || '',
+              collected_at: recipe.collected_at || '',
+              hits: recipe.hits || 0,
+              action: recipe.action,
+            };
+            addRecipeToLocalStorage('done', normalized);
           setButtonStates(prev => ({ ...prev, [id]: { ...prev[id], done: true } }));
-          setToast('레시피를 완료했습니다!');
+            setToast('레시피를 완료했습니다!');
+          }
         }
       }
-    }
-    if (action.action === 'write') {
-      const recipe = youtubeRecipes.find(r => r.id === id) || naverRecipes.find(r => r.id === id);
-      if (prevState.write) {
-        // 기록 취소
-        removeRecipeFromLocalStorage('write', id);
+      if (action.action === 'write') {
+        const recipe = youtubeRecipes.find(r => r.id === id) || naverRecipes.find(r => r.id === id);
+        if (prevState.write) {
+          // 기록 취소
+          removeRecipeFromLocalStorage('write', id);
         setButtonStates(prev => ({ ...prev, [id]: { ...prev[id], write: false } }));
-        setToast('레시피 기록을 취소했습니다!');
-      } else {
+          setToast('레시피 기록을 취소했습니다!');
+        } else {
         // 기록 추가 전에 5개 조건 체크
-        if (recipe && !getRecipesFromLocalStorage('write').some((r: any) => r.id === id)) {
+          if (recipe && !getRecipesFromLocalStorage('write').some((r: any) => r.id === id)) {
           const currentCount = getRecipesFromLocalStorage('write').length;
           const totalCount = currentCount + 1;
           
@@ -898,50 +898,50 @@ const Popular = () => {
           }
           
           // 조건 통과 시 레시피 저장
-          const normalized = {
-            id: recipe.id,
-            title: recipe.title,
-            content: recipe.content || '',
-            author: recipe.author || '',
-            date: recipe.date || '',
-            body: recipe.body || recipe.content || recipe.description || '',
-            description: recipe.description || '',
-            thumbnail: recipe.thumbnail || '',
-            used_ingredients: recipe.used_ingredients || '',
-            used_ingredients_block: recipe.used_ingredients_block || '',
-            block_reason: recipe.block_reason || '',
-            link: recipe.link || '',
-            platform: recipe.platform || 'youtube',
-            channel: recipe.channel || 'youtube',
-            likes: recipe.likes || 0,
-            comments: recipe.comments || 0,
-            substitutes: recipe.substitutes || [],
-            match_rate: recipe.match_rate || 0,
-            my_ingredients: recipe.my_ingredients || [],
-            need_ingredients: recipe.need_ingredients || [],
-            created_at: recipe.created_at || '',
-            updated_at: recipe.updated_at || '',
-            like_count: recipe.like_count || 0,
-            comment_count: recipe.comment_count || 0,
-            post_time: recipe.post_time || '',
-            collected_at: recipe.collected_at || '',
-            hits: recipe.hits || 0,
-            action: recipe.action,
-          };
-          addRecipeToLocalStorage('write', normalized);
+            const normalized = {
+              id: recipe.id,
+              title: recipe.title,
+              content: recipe.content || '',
+              author: recipe.author || '',
+              date: recipe.date || '',
+              body: recipe.body || recipe.content || recipe.description || '',
+              description: recipe.description || '',
+              thumbnail: recipe.thumbnail || '',
+              used_ingredients: recipe.used_ingredients || '',
+              used_ingredients_block: recipe.used_ingredients_block || '',
+              block_reason: recipe.block_reason || '',
+              link: recipe.link || '',
+              platform: recipe.platform || 'youtube',
+              channel: recipe.channel || 'youtube',
+              likes: recipe.likes || 0,
+              comments: recipe.comments || 0,
+              substitutes: recipe.substitutes || [],
+              match_rate: recipe.match_rate || 0,
+              my_ingredients: recipe.my_ingredients || [],
+              need_ingredients: recipe.need_ingredients || [],
+              created_at: recipe.created_at || '',
+              updated_at: recipe.updated_at || '',
+              like_count: recipe.like_count || 0,
+              comment_count: recipe.comment_count || 0,
+              post_time: recipe.post_time || '',
+              collected_at: recipe.collected_at || '',
+              hits: recipe.hits || 0,
+              action: recipe.action,
+            };
+            addRecipeToLocalStorage('write', normalized);
           setButtonStates(prev => ({ ...prev, [id]: { ...prev[id], write: true } }));
-          setToast('레시피를 기록했습니다!');
+            setToast('레시피를 기록했습니다!');
+          }
         }
       }
-    }
-    if (action.action === 'share') {
-      const recipe = youtubeRecipes.find(r => r.id === id) || naverRecipes.find(r => r.id === id);
-      if (recipe) {
-        copyRecipeUrlToClipboard(recipe);
-        setToast('URL이 복사되었습니다!');
+      if (action.action === 'share') {
+        const recipe = youtubeRecipes.find(r => r.id === id) || naverRecipes.find(r => r.id === id);
+        if (recipe) {
+          copyRecipeUrlToClipboard(recipe);
+          setToast('URL이 복사되었습니다!');
         setTimeout(() => setToast(''), 1500);
+        }
       }
-    }
   };
 
   // 기간 워딩 함수
@@ -1206,25 +1206,25 @@ const Popular = () => {
           <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center" style={{ zIndex: 1001 }} onClick={() => {
             setDateModalOpen(false);
             // 모달을 닫을 때 임시 상태를 원래 상태로 복원
-            setTempDateRange([dateRange[0], dateRange[1]]);
+              setTempDateRange([dateRange[0], dateRange[1]]);
           }}>
             <div className="bg-white rounded-xl shadow-lg px-0 py-0 w-auto max-w-[95vw] relative" onClick={e => e.stopPropagation()}>
               {/* 단일 달력 - 기간 선택 가능 */}
               <div className="flex justify-center">
                 <div ref={calendarRef}>
-                  <CustomCalendar
+                        <CustomCalendar
                     selectedDate={tempDateRange[0]}
                     mode="range"
                     selectedStartDate={tempDateRange[0]}
                     selectedEndDate={tempDateRange[1]}
-                    onDateSelect={(date) => {
+                          onDateSelect={(date) => {
                       // 단일 날짜 선택 시 시작일과 종료일을 동일하게 설정 (임시 상태만 업데이트)
                       const startDate = new Date(date);
                       startDate.setHours(0, 0, 0, 0);
                       const endDate = new Date(date);
                       endDate.setHours(23, 59, 59, 999);
                       setTempDateRange([startDate, endDate]);
-                    }}
+                          }}
                     onRangeSelect={(startDate, endDate) => {
                       console.log('onRangeSelect called:', startDate, endDate);
                       if (startDate && endDate) {
@@ -1250,17 +1250,17 @@ const Popular = () => {
                       // 취소 버튼 클릭 시 모달 닫기 (변경사항 무시)
                       setDateModalOpen(false);
                       setTempDateRange([dateRange[0], dateRange[1]]);
-                    }}
+                          }}
                     onSelect={() => {
                       // 선택 버튼 클릭 시 실제 적용
                       if (tempDateRange[0]) {
                         const finalEndDate = tempDateRange[1] || tempDateRange[0];
                         finalEndDate.setHours(23, 59, 59, 999);
                         setDateRange([tempDateRange[0], finalEndDate]);
-                        setPeriod('custom');
-                        setDateModalOpen(false);
-                      }
-                    }}
+                      setPeriod('custom');
+                      setDateModalOpen(false);
+                    }
+                  }}
                     type="range"
                     minDate={new Date(1900, 0, 1)}
                     maxDate={today}

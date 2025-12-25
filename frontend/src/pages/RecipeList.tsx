@@ -453,9 +453,14 @@ const RecipeList: React.FC = () => {
       if (ingredients.length === 0) {
         console.log('[RecipeList] 재료가 없음 - 초기 재료 설정 시작');
         
+        let ingredientDict: { [key: string]: string } = {};
+        
         try {
           // CSV 파일 로드하여 재료 사전 구축
           const csvResponse = await fetch(CSV_INGREDIENT_URL);
+          if (!csvResponse.ok) {
+            throw new Error(`CSV 파일 로드 실패: ${csvResponse.status} ${csvResponse.statusText}`);
+          }
           const csv = await csvResponse.text();
           
           const lines = csv.split('\n');
@@ -463,8 +468,6 @@ const RecipeList: React.FC = () => {
           const nameIdx = header.indexOf('keyword');
           const synonymsIdx = header.indexOf('synonyms');
           const categoryIdx = header.indexOf('대분류');
-          
-          const ingredientDict: { [key: string]: string } = {};
           
           lines.slice(1).forEach(line => {
             const values = line.split(',');
@@ -482,16 +485,21 @@ const RecipeList: React.FC = () => {
             }
           });
           
-          // 초기 재료 설정
-          const initialized = initializeDefaultIngredients(ingredientDict);
-          if (initialized) {
-            console.log('[RecipeList] 초기 재료 설정 완료');
-            // 재료 다시 읽기
-            ingredients = getMyIngredients();
-            setMyIngredients(ingredients);
-          }
+          console.log('[RecipeList] CSV 파일 로드 완료, 재료 사전 크기:', Object.keys(ingredientDict).length);
         } catch (error) {
-          console.error('[RecipeList] 초기 재료 설정 실패:', error);
+          console.error('[RecipeList] CSV 파일 로드 실패 - 빈 재료 사전으로 초기화 진행:', error);
+          // CSV 로드 실패해도 빈 사전으로 초기화 진행 (기본 재료 이름은 그대로 사용)
+        }
+        
+        // CSV 로드 성공/실패와 관계없이 초기 재료 설정 시도
+        const initialized = initializeDefaultIngredients(ingredientDict);
+        if (initialized) {
+          console.log('[RecipeList] 초기 재료 설정 완료');
+          // 재료 다시 읽기
+          ingredients = getMyIngredients();
+          setMyIngredients(ingredients);
+        } else {
+          console.warn('[RecipeList] 초기 재료 설정 실패 또는 이미 재료가 있음');
         }
       } else {
         setMyIngredients(ingredients);

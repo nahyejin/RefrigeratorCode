@@ -46,17 +46,38 @@ export function initializeDefaultIngredients(ingredientDict: { [key: string]: st
     // 이미 재료가 있는지 확인
     const existing = localStorage.getItem(STORAGE_KEY);
     if (existing) {
-      const data = JSON.parse(existing);
-      const hasData = (Array.isArray(data.frozen) && data.frozen.length > 0) ||
-                     (Array.isArray(data.fridge) && data.fridge.length > 0) ||
-                     (Array.isArray(data.room) && data.room.length > 0);
-      if (hasData) {
-        return false; // 이미 재료가 있음
+      try {
+        const data = JSON.parse(existing);
+        // 데이터 구조가 올바른지 확인
+        if (data && typeof data === 'object') {
+          const hasData = (Array.isArray(data.frozen) && data.frozen.length > 0) ||
+                         (Array.isArray(data.fridge) && data.fridge.length > 0) ||
+                         (Array.isArray(data.room) && data.room.length > 0);
+          if (hasData) {
+            console.log('[initializeDefaultIngredients] 이미 재료가 있어서 초기화 건너뜀:', {
+              frozen: data.frozen?.length || 0,
+              fridge: data.fridge?.length || 0,
+              room: data.room?.length || 0
+            });
+            return false; // 이미 재료가 있음
+          }
+          // 빈 데이터가 있으면 덮어쓰기 (초기화)
+          console.log('[initializeDefaultIngredients] 빈 데이터 발견 - 초기 재료로 덮어쓰기');
+        }
+      } catch (parseError) {
+        // 파싱 에러가 있으면 잘못된 데이터이므로 초기화 진행
+        console.warn('[initializeDefaultIngredients] localStorage 데이터 파싱 실패 - 초기화 진행:', parseError);
       }
     }
     
     // 재료 이름을 keyword로 변환
+    // ingredientDict가 비어있어도 기본 재료 이름을 그대로 사용
     const convertToKeyword = (name: string): string => {
+      if (!ingredientDict || Object.keys(ingredientDict).length === 0) {
+        console.warn('[initializeDefaultIngredients] 재료 사전이 비어있음 - 원래 이름 사용:', name);
+        return name;
+      }
+      
       if (ingredientDict[name]) {
         return ingredientDict[name];
       }
@@ -72,6 +93,7 @@ export function initializeDefaultIngredients(ingredientDict: { [key: string]: st
       if (foundKeyNoSpace) {
         return ingredientDict[foundKeyNoSpace];
       }
+      // 못 찾아도 원래 이름 반환 (기본 재료 이름은 이미 keyword일 가능성이 높음)
       return name;
     };
     
@@ -104,7 +126,8 @@ export function initializeDefaultIngredients(ingredientDict: { [key: string]: st
     
     console.log('[initializeDefaultIngredients] 초기 재료 설정 완료:', {
       room: newRoom.map(r => r.name),
-      fridge: newFridge.map(r => r.name)
+      fridge: newFridge.map(r => r.name),
+      ingredientDictSize: ingredientDict ? Object.keys(ingredientDict).length : 0
     });
     
     return true; // 초기 재료 설정 완료

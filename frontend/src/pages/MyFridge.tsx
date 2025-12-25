@@ -382,43 +382,17 @@ const MyFridge: React.FC = () => {
 
   React.useEffect(() => {
     console.log('[MyFridge] 두 번째 useEffect 실행 - CSV 파일 로드 시작');
-    fetch('/ingredient_profile_dict_with_substitutes.csv')
-      .then(res => res.text())
-      .then(csv => {
-        console.log('[MyFridge] CSV 파일 로드 완료, 파싱 시작');
-        const lines = csv.split('\n');
-        const header = lines[0].split(',');
-        const nameIdx = header.indexOf('keyword');
-        const synonymsIdx = header.indexOf('synonyms');
-        const categoryIdx = header.indexOf('대분류');
-        
-        const ingredients = {};
-        
-        lines.slice(1).forEach(line => {
-          const values = line.split(',');
-          const keyword = values[nameIdx]?.trim();
-          const synonyms = values[synonymsIdx]?.split(',').map(s => s.trim());
-          const category = values[categoryIdx]?.trim();
-          
-          if (keyword && category === '재료') {
-            ingredients[keyword] = keyword;
-            if (synonyms) {
-              synonyms.forEach(synonym => {
-                ingredients[synonym] = keyword;
-              });
-            }
-          }
-        });
-        
-        setIngredientDict(ingredients);
-        
-        // 재료 사전 로드 후, 초기 진입 시 기본 재료가 없으면 추가
-        const loaded = loadIngredients();
-        const isEmpty = (!loaded.fridge || loaded.fridge.length === 0) && 
-                        (!loaded.room || loaded.room.length === 0) && 
-                        (!loaded.frozen || loaded.frozen.length === 0);
-        
-        if (isEmpty) {
+    
+    const initializeIngredients = (ingredients: { [key: string]: string }) => {
+      setIngredientDict(ingredients);
+      
+      // 재료 사전 로드 후, 초기 진입 시 기본 재료가 없으면 추가
+      const loaded = loadIngredients();
+      const isEmpty = (!loaded.fridge || loaded.fridge.length === 0) && 
+                      (!loaded.room || loaded.room.length === 0) && 
+                      (!loaded.frozen || loaded.frozen.length === 0);
+      
+      if (isEmpty) {
           // 초기 재료 추가 중이므로 useEffect에서 저장하지 않도록 플래그 설정
           isInitialLoad.current = true;
           
@@ -542,10 +516,48 @@ const MyFridge: React.FC = () => {
           // 재료가 이미 있으면 초기 로드 완료
           isInitialLoad.current = false;
         }
+    };
+    
+    fetch('/ingredient_profile_dict_with_substitutes.csv')
+      .then(res => {
+        if (!res.ok) {
+          throw new Error(`CSV 파일 로드 실패: ${res.status} ${res.statusText}`);
+        }
+        return res.text();
+      })
+      .then(csv => {
+        console.log('[MyFridge] CSV 파일 로드 완료, 파싱 시작');
+        const lines = csv.split('\n');
+        const header = lines[0].split(',');
+        const nameIdx = header.indexOf('keyword');
+        const synonymsIdx = header.indexOf('synonyms');
+        const categoryIdx = header.indexOf('대분류');
+        
+        const ingredients = {};
+        
+        lines.slice(1).forEach(line => {
+          const values = line.split(',');
+          const keyword = values[nameIdx]?.trim();
+          const synonyms = values[synonymsIdx]?.split(',').map(s => s.trim());
+          const category = values[categoryIdx]?.trim();
+          
+          if (keyword && category === '재료') {
+            ingredients[keyword] = keyword;
+            if (synonyms) {
+              synonyms.forEach(synonym => {
+                ingredients[synonym] = keyword;
+              });
+            }
+          }
+        });
+        
+        console.log('[MyFridge] CSV 파싱 완료, 재료 사전 크기:', Object.keys(ingredients).length);
+        initializeIngredients(ingredients);
       })
       .catch(error => {
-        console.error('Error loading ingredient dictionary:', error);
-        isInitialLoad.current = false; // 에러 발생 시에도 플래그 해제
+        console.error('[MyFridge] CSV 파일 로드 실패 - 빈 재료 사전으로 초기화 진행:', error);
+        // CSV 로드 실패해도 빈 사전으로 초기화 진행 (기본 재료 이름은 그대로 사용)
+        initializeIngredients({});
       });
   }, []);
 
@@ -561,7 +573,7 @@ const MyFridge: React.FC = () => {
           fridgeCount: fridge.length,
           roomCount: room.length
         });
-        saveIngredients(frozen, fridge, room);
+      saveIngredients(frozen, fridge, room);
       } else {
         console.log('[MyFridge] useEffect에서 재료 저장 스킵 (빈 배열):', {
           frozenCount: frozen.length,
