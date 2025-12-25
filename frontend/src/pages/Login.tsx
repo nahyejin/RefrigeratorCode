@@ -62,8 +62,8 @@ const Login: React.FC = () => {
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-white">
       <div className="w-full max-w-[390px] flex flex-col items-center mx-auto py-6" style={{ minHeight: '100vh' }}>
-        {/* 상단 여백 - 인풋창을 중앙으로 이동 */}
-        <div style={{ flex: '1', minHeight: '250px' }}></div>
+        {/* 상단 여백 - 더 줄임 */}
+        <div style={{ flex: '0.3', minHeight: '80px' }}></div>
         
         {/* 유도 메시지 */}
         <div className={`w-full ${MAX_CONTAINER_WIDTH} text-center text-[13px] text-gray-500 mb-6 mx-auto font-normal`}>
@@ -108,11 +108,11 @@ const Login: React.FC = () => {
           <span className="underline cursor-pointer">비밀번호 찾기</span>
         </div>
         
-        {/* 하단 여백 - 간편 로그인을 하단으로 이동 */}
-        <div style={{ flex: '1', minHeight: '100px' }}></div>
+        {/* 하단 여백 - 더 줄임 */}
+        <div style={{ flex: '0.2', minHeight: '20px' }}></div>
         
         {/* 간편 로그인 구분선 */}
-        <div className="relative w-full max-w-[320px] my-4 mx-auto">
+        <div className="relative w-full max-w-[320px] my-2 mx-auto">
           <div className="absolute inset-0 flex items-center">
             <div className="w-full border-t border-gray-300"></div>
           </div>
@@ -138,7 +138,7 @@ const Login: React.FC = () => {
         </div>
         
         {/* 비회원으로 계속하기 버튼 (하단 분리) */}
-        <div className={`flex flex-col gap-3 ${CONTAINER_WIDTH} mt-16 mb-8 items-center`}>
+        <div className={`flex flex-col gap-3 ${CONTAINER_WIDTH} mt-8 mb-8 items-center`}>
           <NeangteolButton 
             border 
             color="bg-gray-100" 
