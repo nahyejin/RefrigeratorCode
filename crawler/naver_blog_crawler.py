@@ -1037,12 +1037,18 @@ class NaverBlogCrawler(BaseCrawler):
             else:
                 print(f"⚠️ 저장 완료 - 게시일 없음 (현재 날짜로 대체: {post_time_to_save})")
         except pymysql.err.OperationalError as e:
-            if "table 'recipes' is full" in str(e).lower():
+            error_msg = str(e).lower()
+            if "table 'recipes' is full" in error_msg:
                 print(f"⚠️ 테이블 용량 부족 - 저장 건너뛰기: {recipe.link}")
                 print("💡 해결 방법: check_db_status.py를 실행하여 데이터베이스 상태를 확인하세요.")
+            elif "duplicate entry" in error_msg or "1062" in str(e):
+                # 중복 키 오류 (UNIQUE 제약조건 위반) - 이미 중복 체크를 했지만 혹시 모를 경우
+                print(f"⏭️ 중복 데이터 건너뛰기 (DB 제약조건): {recipe.link}")
             else:
-                print(f"❌ 데이터베이스 오류: {e}")
-                raise
+                print(f"⚠️ 데이터베이스 오류 (계속 진행): {e}")
+                # 크롤링은 계속 진행하되, 오류는 로그만 남김
+                import traceback
+                print(traceback.format_exc())
         except Exception as e:
             print(f"❌ 저장 실패: {e}")
             # 오류가 발생해도 크롤링은 계속 진행

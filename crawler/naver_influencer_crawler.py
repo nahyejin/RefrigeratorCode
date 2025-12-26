@@ -168,6 +168,21 @@ class NaverInfluencerCrawler:
 
     def _save_to_db(self, data: Dict):
         """데이터를 DB에 저장 (필터 없이 모두 저장)"""
+        # 중복 체크 추가
+        conn = self._connect_db()
+        if not conn:
+            return
+        
+        try:
+            with conn.cursor() as cursor:
+                # 먼저 중복 확인
+                check_query = "SELECT id FROM recipes WHERE link = %s LIMIT 1"
+                cursor.execute(check_query, (data['link'],))
+                existing = cursor.fetchone()
+                
+                if existing:
+                    logger.info(f"⏭️ 중복 데이터 건너뛰기: {data['link']}")
+                    return
         if not data:
             return
 
@@ -178,8 +193,6 @@ class NaverInfluencerCrawler:
         if not conn:
             return
 
-        try:
-            with conn.cursor() as cursor:
                 sql = """
                 INSERT INTO recipes (
                     title, link, content, used_ingredients, used_ingredients_block, block_reason,
@@ -204,9 +217,17 @@ class NaverInfluencerCrawler:
                     data['collected_at']
                 ))
             conn.commit()
-            logger.info(f"Successfully saved recipe: {data['title']}")
+            logger.info(f"✅ 저장 완료: {data['title']}")
+        except pymysql.err.OperationalError as e:
+            error_msg = str(e).lower()
+            if "table 'recipes' is full" in error_msg:
+                logger.warning(f"⚠️ 테이블 용량 부족 - 저장 건너뛰기: {data['link']}")
+            elif "duplicate entry" in error_msg or "1062" in str(e):
+                logger.info(f"⏭️ 중복 데이터 건너뛰기 (DB 제약조건): {data['link']}")
+            else:
+                logger.error(f"⚠️ 데이터베이스 오류 (계속 진행): {e}")
         except Exception as e:
-            logger.error(f"Error saving to database: {str(e)}")
+            logger.error(f"❌ 저장 실패: {str(e)}")
         finally:
             conn.close()
 

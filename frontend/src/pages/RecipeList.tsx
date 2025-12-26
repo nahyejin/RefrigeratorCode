@@ -298,7 +298,20 @@ async function loadRecipesPaged(
   } = {}
 ): Promise<{recipes: any[], total: number}> {
   try {
-    const apiUrl = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'https://refrigeratorcode-production.up.railway.app';
+    // 환경변수가 없거나 빈 문자열이면 프로덕션 URL 사용
+    // 로컬 개발 시 백엔드가 실행 중이면 localhost:5000 사용, 아니면 프로덕션 URL 사용
+    const envApiUrl = import.meta.env?.VITE_API_BASE_URL;
+    let apiUrl = 'https://refrigeratorcode-production.up.railway.app'; // 기본값: 프로덕션
+    
+    if (envApiUrl && envApiUrl.trim() !== '') {
+      const trimmedUrl = envApiUrl.trim();
+      // localhost:5000이 설정되어 있으면 그대로 사용 (백엔드 서버 실행 필요)
+      if (trimmedUrl.includes('localhost:5000')) {
+        apiUrl = trimmedUrl;
+      } else {
+        apiUrl = trimmedUrl;
+      }
+    }
     
     // 필터링 API 사용 - 필터가 가장 우선적으로 적용
     const params = new URLSearchParams({
@@ -351,6 +364,8 @@ async function loadRecipesPaged(
         params.append('my_ingredients', my.join(','));
       }
     } catch {}
+    
+    console.log('[RecipeList] loadRecipesPaged - API URL:', apiUrl, 'env:', import.meta.env?.VITE_API_BASE_URL, 'fullUrl:', `${apiUrl}/api/recipes/filter?${params.toString().substring(0, 100)}...`);
     
     const response: AxiosResponse<any> = await axios.get(`${apiUrl}/api/recipes/filter?${params}`);
     console.log('RecipeList API 응답:', response.data);

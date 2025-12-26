@@ -1,8 +1,12 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, redirect, session
 from flask_cors import CORS
 import pymysql
 import os
 from dotenv import load_dotenv
+import requests
+import jwt
+import secrets
+from datetime import datetime, timedelta
 
 # 환경변수 로드
 # - 개발환경에서만 현재 디렉토리의 .env를 로드
@@ -11,6 +15,7 @@ if os.getenv('FLASK_ENV', '').lower() == 'development':
     load_dotenv()
 
 app = Flask(__name__)
+app.secret_key = os.getenv('SECRET_KEY', secrets.token_hex(32))
 
 # 한글이 유니코드 이스케이프 시퀀스로 변환되지 않도록 설정
 app.config['JSON_AS_ASCII'] = False
@@ -396,6 +401,346 @@ def get_filtered_recipes():
 
     db.close()
     return jsonify({"recipes": rows, "total": total, "page": page, "size": size})
+
+# =====================
+# 소셜 로그인 설정
+# =====================
+
+# OAuth 클라이언트 ID 및 시크릿 (환경변수에서 가져오기)
+GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID', '')
+GOOGLE_CLIENT_SECRET = os.getenv('GOOGLE_CLIENT_SECRET', '')
+KAKAO_CLIENT_ID = os.getenv('KAKAO_CLIENT_ID', '')
+KAKAO_CLIENT_SECRET = os.getenv('KAKAO_CLIENT_SECRET', '')
+NAVER_CLIENT_ID = os.getenv('NAVER_CLIENT_ID', '')
+NAVER_CLIENT_SECRET = os.getenv('NAVER_CLIENT_SECRET', '')
+
+# 프론트엔드 URL (콜백용)
+FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5178')
+
+def generate_jwt_token(user_id, email, nickname):
+    """JWT 토큰 생성"""
+    payload = {
+        'user_id': user_id,
+        'email': email,
+        'nickname': nickname,
+        'exp': datetime.utcnow() + timedelta(days=30),
+        'iat': datetime.utcnow()
+    }
+    secret_key = os.getenv('JWT_SECRET_KEY', app.secret_key)
+    return jwt.encode(payload, secret_key, algorithm='HS256')
+
+def ensure_users_table():
+    """users 테이블이 없으면 생성"""
+    db = get_db()
+    cursor = db.cursor()
+    
+    try:
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                email VARCHAR(255) NOT NULL,
+                nickname VARCHAR(255) NOT NULL,
+                provider VARCHAR(50) NOT NULL,
+                provider_id VARCHAR(255) NOT NULL,
+                created_at DATETIME NOT NULL,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                UNIQUE KEY unique_provider_user (email, provider),
+                INDEX idx_provider_id (provider, provider_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        """)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        print(f"Error creating users table: {e}")
+    finally:
+        db.close()
+
+def get_or_create_user(email, nickname, provider, provider_id):
+    """사용자 조회 또는 생성"""
+    # 테이블이 없으면 생성
+    ensure_users_table()
+    
+    db = get_db()
+    cursor = db.cursor()
+    
+    try:
+        # 기존 사용자 조회
+        cursor.execute(
+            "SELECT id, email, nickname FROM users WHERE email = %s AND provider = %s",
+            (email, provider)
+        )
+        user = cursor.fetchone()
+        
+        if user:
+            db.commit()
+            return user
+        
+        # 새 사용자 생성
+        cursor.execute(
+            "INSERT INTO users (email, nickname, provider, provider_id, created_at) VALUES (%s, %s, %s, %s, NOW())",
+            (email, nickname, provider, provider_id)
+        )
+        user_id = cursor.lastrowid
+        db.commit()
+        
+        return {
+            'id': user_id,
+            'email': email,
+            'nickname': nickname
+        }
+    except Exception as e:
+        db.rollback()
+        raise e
+    finally:
+        db.close()
+
+# =====================
+# 구글 로그인
+# =====================
+
+@app.route('/api/auth/google')
+def google_login():
+    """구글 로그인 시작 - 인증 URL로 리다이렉트"""
+    if not GOOGLE_CLIENT_ID:
+        return jsonify({'error': 'Google OAuth not configured'}), 500
+    
+    # CSRF 방지를 위한 state 생성
+    state = secrets.token_urlsafe(32)
+    session['oauth_state'] = state
+    session['oauth_provider'] = 'google'
+    
+    redirect_uri = f"{FRONTEND_URL}/auth/callback/google"
+    google_auth_url = (
+        f"https://accounts.google.com/o/oauth2/v2/auth?"
+        f"client_id={GOOGLE_CLIENT_ID}&"
+        f"redirect_uri={redirect_uri}&"
+        f"response_type=code&"
+        f"scope=openid email profile&"
+        f"state={state}"
+    )
+    
+    return redirect(google_auth_url)
+
+@app.route('/api/auth/google/callback')
+def google_callback():
+    """구글 로그인 콜백 처리"""
+    code = request.args.get('code')
+    state = request.args.get('state')
+    
+    # State 검증
+    if state != session.get('oauth_state'):
+        return jsonify({'error': 'Invalid state'}), 400
+    
+    if not code:
+        return jsonify({'error': 'Authorization code not provided'}), 400
+    
+    try:
+        # 토큰 교환
+        redirect_uri = f"{FRONTEND_URL}/auth/callback/google"
+        token_response = requests.post('https://oauth2.googleapis.com/token', data={
+            'client_id': GOOGLE_CLIENT_ID,
+            'client_secret': GOOGLE_CLIENT_SECRET,
+            'code': code,
+            'grant_type': 'authorization_code',
+            'redirect_uri': redirect_uri
+        })
+        
+        token_data = token_response.json()
+        if 'access_token' not in token_data:
+            return jsonify({'error': 'Failed to get access token'}), 400
+        
+        # 사용자 정보 가져오기
+        user_response = requests.get(
+            'https://www.googleapis.com/oauth2/v2/userinfo',
+            headers={'Authorization': f"Bearer {token_data['access_token']}"}
+        )
+        user_data = user_response.json()
+        
+        # 사용자 조회 또는 생성
+        user = get_or_create_user(
+            email=user_data.get('email'),
+            nickname=user_data.get('name', user_data.get('email', '').split('@')[0]),
+            provider='google',
+            provider_id=user_data.get('id')
+        )
+        
+        # JWT 토큰 생성
+        token = generate_jwt_token(user['id'], user['email'], user['nickname'])
+        
+        # 프론트엔드로 리다이렉트 (토큰을 쿼리 파라미터로 전달)
+        return redirect(f"{FRONTEND_URL}/auth/success?token={token}")
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# =====================
+# 카카오 로그인
+# =====================
+
+@app.route('/api/auth/kakao')
+def kakao_login():
+    """카카오 로그인 시작"""
+    if not KAKAO_CLIENT_ID:
+        return jsonify({'error': 'Kakao OAuth not configured'}), 500
+    
+    state = secrets.token_urlsafe(32)
+    session['oauth_state'] = state
+    session['oauth_provider'] = 'kakao'
+    
+    redirect_uri = f"{FRONTEND_URL}/auth/callback/kakao"
+    kakao_auth_url = (
+        f"https://kauth.kakao.com/oauth/authorize?"
+        f"client_id={KAKAO_CLIENT_ID}&"
+        f"redirect_uri={redirect_uri}&"
+        f"response_type=code&"
+        f"state={state}"
+    )
+    
+    return redirect(kakao_auth_url)
+
+@app.route('/api/auth/kakao/callback')
+def kakao_callback():
+    """카카오 로그인 콜백 처리"""
+    code = request.args.get('code')
+    state = request.args.get('state')
+    
+    if state != session.get('oauth_state'):
+        return jsonify({'error': 'Invalid state'}), 400
+    
+    if not code:
+        return jsonify({'error': 'Authorization code not provided'}), 400
+    
+    try:
+        # 토큰 교환
+        redirect_uri = f"{FRONTEND_URL}/auth/callback/kakao"
+        token_response = requests.post('https://kauth.kakao.com/oauth/token', data={
+            'grant_type': 'authorization_code',
+            'client_id': KAKAO_CLIENT_ID,
+            'client_secret': KAKAO_CLIENT_SECRET,
+            'redirect_uri': redirect_uri,
+            'code': code
+        })
+        
+        token_data = token_response.json()
+        if 'access_token' not in token_data:
+            return jsonify({'error': 'Failed to get access token'}), 400
+        
+        # 사용자 정보 가져오기
+        user_response = requests.get(
+            'https://kapi.kakao.com/v2/user/me',
+            headers={'Authorization': f"Bearer {token_data['access_token']}"}
+        )
+        user_data = user_response.json()
+        
+        kakao_account = user_data.get('kakao_account', {})
+        email = kakao_account.get('email', '')
+        nickname = kakao_account.get('profile', {}).get('nickname', '')
+        
+        if not email:
+            email = f"kakao_{user_data.get('id')}@kakao.com"
+        if not nickname:
+            nickname = f"카카오사용자_{user_data.get('id')}"
+        
+        # 사용자 조회 또는 생성
+        user = get_or_create_user(
+            email=email,
+            nickname=nickname,
+            provider='kakao',
+            provider_id=str(user_data.get('id'))
+        )
+        
+        # JWT 토큰 생성
+        token = generate_jwt_token(user['id'], user['email'], user['nickname'])
+        
+        return redirect(f"{FRONTEND_URL}/auth/success?token={token}")
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# =====================
+# 네이버 로그인
+# =====================
+
+@app.route('/api/auth/naver')
+def naver_login():
+    """네이버 로그인 시작"""
+    if not NAVER_CLIENT_ID:
+        return jsonify({'error': 'Naver OAuth not configured'}), 500
+    
+    state = secrets.token_urlsafe(32)
+    session['oauth_state'] = state
+    session['oauth_provider'] = 'naver'
+    
+    redirect_uri = f"{FRONTEND_URL}/auth/callback/naver"
+    naver_auth_url = (
+        f"https://nid.naver.com/oauth2.0/authorize?"
+        f"response_type=code&"
+        f"client_id={NAVER_CLIENT_ID}&"
+        f"redirect_uri={redirect_uri}&"
+        f"state={state}"
+    )
+    
+    return redirect(naver_auth_url)
+
+@app.route('/api/auth/naver/callback')
+def naver_callback():
+    """네이버 로그인 콜백 처리"""
+    code = request.args.get('code')
+    state = request.args.get('state')
+    
+    if state != session.get('oauth_state'):
+        return jsonify({'error': 'Invalid state'}), 400
+    
+    if not code:
+        return jsonify({'error': 'Authorization code not provided'}), 400
+    
+    try:
+        # 토큰 교환
+        redirect_uri = f"{FRONTEND_URL}/auth/callback/naver"
+        token_response = requests.post('https://nid.naver.com/oauth2.0/token', data={
+            'grant_type': 'authorization_code',
+            'client_id': NAVER_CLIENT_ID,
+            'client_secret': NAVER_CLIENT_SECRET,
+            'redirect_uri': redirect_uri,
+            'code': code,
+            'state': state
+        })
+        
+        token_data = token_response.json()
+        if 'access_token' not in token_data:
+            return jsonify({'error': 'Failed to get access token'}), 400
+        
+        # 사용자 정보 가져오기
+        user_response = requests.get(
+            'https://openapi.naver.com/v1/nid/me',
+            headers={'Authorization': f"Bearer {token_data['access_token']}"}
+        )
+        user_data = user_response.json()
+        
+        response_data = user_data.get('response', {})
+        email = response_data.get('email', '')
+        nickname = response_data.get('nickname', '')
+        
+        if not email:
+            email = f"naver_{response_data.get('id')}@naver.com"
+        if not nickname:
+            nickname = f"네이버사용자_{response_data.get('id')}"
+        
+        # 사용자 조회 또는 생성
+        user = get_or_create_user(
+            email=email,
+            nickname=nickname,
+            provider='naver',
+            provider_id=response_data.get('id')
+        )
+        
+        # JWT 토큰 생성
+        token = generate_jwt_token(user['id'], user['email'], user['nickname'])
+        
+        return redirect(f"{FRONTEND_URL}/auth/success?token={token}")
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/health')
 def health_check():

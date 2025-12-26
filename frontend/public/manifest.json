@@ -99,13 +99,5 @@
       ]
     }
   ],
-  "screenshots": [
-    {
-      "src": "/open_loading_page.png",
-      "sizes": "1280x720",
-      "type": "image/png",
-      "form_factor": "wide",
-      "label": "쿡매치 메인 화면"
-    }
-  ]
+  "screenshots": []
 } 

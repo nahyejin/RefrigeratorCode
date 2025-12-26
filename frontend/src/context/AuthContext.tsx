@@ -13,6 +13,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   register: (email: string, password: string, nickname: string) => Promise<void>;
+  loginWithToken: (token: string) => Promise<void>;
   loading: boolean;
 }
 
@@ -108,6 +109,42 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setUser(null);
   };
 
+  const loginWithToken = async (token: string) => {
+    try {
+      // JWT 토큰 디코딩하여 사용자 정보 추출
+      // 실제로는 백엔드에서 토큰 검증 API를 호출해야 하지만,
+      // 여기서는 간단히 토큰을 디코딩하여 사용자 정보를 가져옵니다.
+      
+      // JWT 토큰 파싱 (간단한 방법 - 실제로는 jwt-decode 라이브러리 사용 권장)
+      const base64Url = token.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(
+        atob(base64)
+          .split('')
+          .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+          .join('')
+      );
+      
+      const payload = JSON.parse(jsonPayload);
+      
+      const user: User = {
+        id: String(payload.user_id),
+        email: payload.email,
+        nickname: payload.nickname,
+      };
+      
+      localStorage.setItem('auth_token', token);
+      localStorage.setItem('user', JSON.stringify(user));
+      setUser(user);
+      
+      // 마이그레이션 실행
+      await migrateLocalDataToServer(user.id);
+    } catch (error) {
+      console.error('Token login failed:', error);
+      throw error;
+    }
+  };
+
   // 로컬 데이터를 서버로 마이그레이션
   const migrateLocalDataToServer = async (userId: string) => {
     try {
@@ -151,7 +188,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoggedIn: !!user, login, logout, register, loading }}>
+    <AuthContext.Provider value={{ user, isLoggedIn: !!user, login, logout, register, loginWithToken, loading }}>
       {children}
     </AuthContext.Provider>
   );

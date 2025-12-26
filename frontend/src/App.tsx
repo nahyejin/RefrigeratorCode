@@ -20,7 +20,11 @@ function App() {
     if (!showSplash) return;
 
     // 실제 API 연동: 전체 레시피 개수 가져오기
-    const apiUrl = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'https://refrigeratorcode-production.up.railway.app';
+    // 환경변수가 없으면 프로덕션 URL 사용 (로컬 개발 시 백엔드 서버 실행 필요)
+    const apiUrl = import.meta.env.VITE_API_BASE_URL || 'https://refrigeratorcode-production.up.railway.app';
+    
+    console.log('[App] API URL:', apiUrl);
+    
     fetch(`${apiUrl}/api/recipes`)
       .then(res => res.json())
       .then(data => {

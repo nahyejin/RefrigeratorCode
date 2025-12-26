@@ -59,6 +59,14 @@ const Login: React.FC = () => {
     navigate('/my-fridge');
   };
 
+  /**
+   * 소셜 로그인 시작
+   */
+  const handleSocialLogin = (provider: 'google' | 'kakao' | 'naver') => {
+    const apiUrl = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'https://refrigeratorcode-production.up.railway.app';
+    window.location.href = `${apiUrl}/api/auth/${provider}`;
+  };
+
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-white">
       <div className="w-full max-w-[390px] flex flex-col items-center mx-auto py-6" style={{ minHeight: '100vh' }}>
@@ -123,18 +131,22 @@ const Login: React.FC = () => {
         
         {/* SSO 버튼 세로배치 */}
         <div className={`flex flex-col gap-3 ${CONTAINER_WIDTH} mt-2 items-center mx-auto`}>
-          {SSO_BUTTONS.map((button, index) => (
-            <NeangteolButton
-              key={index}
-              icon={<img src={button.icon} alt={button.alt} className="w-4 h-4" />}
-              color={button.color}
-              textColor={button.textColor}
-              className={`w-full ${SSO_BUTTON_HEIGHT} px-4 text-[13px]`}
-              border={button.border || false}
-            >
-              {button.text}
-            </NeangteolButton>
-          ))}
+          {SSO_BUTTONS.map((button, index) => {
+            const provider = button.alt.toLowerCase() as 'google' | 'kakao' | 'naver';
+            return (
+              <NeangteolButton
+                key={index}
+                icon={<img src={button.icon} alt={button.alt} className="w-4 h-4" />}
+                color={button.color}
+                textColor={button.textColor}
+                className={`w-full ${SSO_BUTTON_HEIGHT} px-4 text-[13px]`}
+                border={button.border || false}
+                onClick={() => handleSocialLogin(provider)}
+              >
+                {button.text}
+              </NeangteolButton>
+            );
+          })}
         </div>
         
         {/* 비회원으로 계속하기 버튼 (하단 분리) */}

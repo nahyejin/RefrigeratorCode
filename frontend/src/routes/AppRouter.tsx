@@ -10,6 +10,7 @@ import IngredientInput from '../pages/IngredientInput';
 import RecipeList from '../pages/RecipeList';
 import MyPage from '../pages/MyPage';
 import IngredientDetail from '../pages/IngredientDetail';
+import AuthSuccess from '../pages/AuthSuccess';
 
 // =====================
 // 라우트 상수
@@ -120,6 +121,18 @@ function AppContent() {
           <Route 
             path={ROUTES.LOGIN} 
             element={<Login />} 
+          />
+          
+          {/* 소셜 로그인 콜백 */}
+          <Route 
+            path="/auth/callback/:provider" 
+            element={<AuthSuccess />} 
+          />
+          
+          {/* 소셜 로그인 성공 */}
+          <Route 
+            path="/auth/success" 
+            element={<AuthSuccess />} 
           />
           
           {/* 내 냉장고 페이지 */}
