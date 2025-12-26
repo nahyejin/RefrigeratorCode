@@ -190,6 +190,14 @@ class NaverInfluencerCrawler:
                 # 추출된 데이터 로그로 출력
                 logger.info(f"Saving to DB: {json.dumps(data, ensure_ascii=False)}")
                 
+                # used_ingredients가 리스트인 경우 콤마로 구분된 문자열로 변환
+                used_ingredients_str = None
+                if data.get('used_ingredients'):
+                    if isinstance(data['used_ingredients'], list):
+                        used_ingredients_str = ','.join(data['used_ingredients'])
+                    else:
+                        used_ingredients_str = data['used_ingredients']
+                
                 sql = """
                 INSERT INTO recipes (
                     title, link, content, used_ingredients, used_ingredients_block, block_reason,
@@ -202,7 +210,7 @@ class NaverInfluencerCrawler:
                     data['title'],
                     data['link'],
                     data['content'],
-                    data.get('used_ingredients'),
+                    used_ingredients_str,
                     data.get('used_ingredients_block'),
                     data.get('block_reason'),
                     data['author'],

@@ -440,6 +440,25 @@ class YouTubeCrawler:
         """영상 데이터를 데이터베이스에 저장"""
         logger.info(f"데이터베이스에 저장 시작: {video_data['title']}")
         try:
+            cursor = self.db.cursor()
+            
+            # 먼저 중복 확인
+            check_query = "SELECT id FROM recipes WHERE link = %s LIMIT 1"
+            cursor.execute(check_query, (video_data['link'],))
+            existing = cursor.fetchone()
+            
+            if existing:
+                logger.info(f"⏭️ 중복 데이터 건너뛰기: {video_data['link']}")
+                return False
+            
+            # used_ingredients가 리스트인 경우 콤마로 구분된 문자열로 변환
+            used_ingredients_str = None
+            if video_data.get('used_ingredients'):
+                if isinstance(video_data['used_ingredients'], list):
+                    used_ingredients_str = ','.join(video_data['used_ingredients'])
+                else:
+                    used_ingredients_str = video_data['used_ingredients']
+            
             sql = """
             INSERT INTO recipes (
                 title, link, content, used_ingredients, used_ingredients_block, block_reason,
@@ -449,11 +468,11 @@ class YouTubeCrawler:
             """
             # post_time은 DATE 컬럼이므로 YYYY-MM-DD 형태로 저장
             post_date = str(video_data['post_time'])[:10]
-            self.db.cursor().execute(sql, (
+            cursor.execute(sql, (
                 video_data['title'],
                 video_data['link'],
                 video_data['description'] or '',
-                video_data.get('used_ingredients'),
+                used_ingredients_str,
                 video_data.get('used_ingredients_block'),
                 video_data.get('block_reason'),
                 video_data['author'],
