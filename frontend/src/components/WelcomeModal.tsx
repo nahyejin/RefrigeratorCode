@@ -24,15 +24,17 @@ const WelcomeModal: React.FC<WelcomeModalProps> = ({
       }}
     >
       <div 
-        className="text-white rounded-lg px-5 py-4 shadow-lg"
+        className="rounded-lg px-5 py-4 shadow-lg"
         style={{ 
-          background: 'rgba(255, 214, 0, 0.85)',
+          background: '#ffffff',
           fontSize: '13px',
           fontWeight: 400,
           lineHeight: '1.5',
           textAlign: 'center',
           whiteSpace: 'normal',
-          wordBreak: 'keep-all'
+          wordBreak: 'keep-all',
+          border: '1px solid #e5e7eb',
+          color: '#222'
         }}
       >
         <div className="flex flex-col items-center gap-3">
@@ -44,7 +46,7 @@ const WelcomeModal: React.FC<WelcomeModalProps> = ({
           <div className="flex gap-2 mt-1">
             <button
               onClick={onClose}
-              className="px-4 py-1.5 bg-white bg-opacity-20 text-white rounded-lg text-sm font-medium hover:bg-opacity-30 transition"
+              className="px-4 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition"
               style={{ outline: 'none', border: 'none', cursor: 'pointer' }}
             >
               닫기
@@ -54,7 +56,7 @@ const WelcomeModal: React.FC<WelcomeModalProps> = ({
                 onClose();
                 navigate('/login');
               }}
-              className="px-4 py-1.5 bg-white text-[#222] rounded-lg text-sm font-medium hover:bg-gray-100 transition"
+              className="px-4 py-1.5 bg-[#FFD600] text-[#222] rounded-lg text-sm font-medium hover:bg-[#FFE033] transition"
               style={{ outline: 'none', border: 'none', cursor: 'pointer' }}
             >
               로그인하기

@@ -19,7 +19,8 @@ const GuideOverlay: React.FC<GuideOverlayProps> = ({
   currentStep,
   onNext,
   onClose,
-  steps
+  steps,
+  isLastStepConfirm = false
 }) => {
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -243,26 +244,48 @@ const GuideOverlay: React.FC<GuideOverlayProps> = ({
             maxWidth: 'calc(100vw - 32px)', // 화면 너비를 넘지 않도록
           }}
         >
-          <div className="mb-3" style={{ textAlign: 'left', whiteSpace: 'pre-line', wordBreak: 'keep-all' }}>
-            {typeof step.message === 'string' ? step.message : step.message}
+          <div className="mb-3" style={{ textAlign: 'left', wordBreak: 'keep-all' }}>
+            {typeof step.message === 'string' ? (
+              <div style={{ whiteSpace: 'pre-line' }}>{step.message}</div>
+            ) : (
+              step.message
+            )}
           </div>
           <div className="flex gap-2 justify-end">
             {currentStep < steps.length - 1 ? (
-              <button
-                onClick={onNext}
-                className="px-4 py-1.5 bg-[#FFD600] text-[#222] rounded-lg text-sm font-medium hover:bg-yellow-300 transition"
-                style={{ outline: 'none', border: 'none', cursor: 'pointer' }}
-              >
-                다음
-              </button>
+              <>
+                <button
+                  onClick={onClose}
+                  className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg bg-white"
+                  style={{ outline: 'none', cursor: 'pointer' }}
+                >
+                  설명 건너뛰기
+                </button>
+                <button
+                  onClick={onNext}
+                  className="px-4 py-1.5 bg-[#FFD600] text-[#222] rounded-lg text-sm font-medium hover:bg-yellow-300 transition"
+                  style={{ outline: 'none', border: 'none', cursor: 'pointer' }}
+                >
+                  다음
+                </button>
+              </>
             ) : (
-              <button
-                onClick={onClose}
-                className="px-4 py-1.5 bg-[#FFD600] text-[#222] rounded-lg text-sm font-medium hover:bg-yellow-300 transition"
-                style={{ outline: 'none', border: 'none', cursor: 'pointer' }}
-              >
-                확인
-              </button>
+              <>
+                <button
+                  onClick={onClose}
+                  className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg bg-white"
+                  style={{ outline: 'none', cursor: 'pointer' }}
+                >
+                  설명 건너뛰기
+                </button>
+                <button
+                  onClick={onNext}
+                  className="px-4 py-1.5 bg-[#FFD600] text-[#222] rounded-lg text-sm font-medium hover:bg-yellow-300 transition"
+                  style={{ outline: 'none', border: 'none', cursor: 'pointer' }}
+                >
+                  {isLastStepConfirm ? '확인' : '다음'}
+                </button>
+              </>
             )}
           </div>
         </div>

@@ -22,7 +22,7 @@ const TOAST_DURATION = 10000;
 const guideSteps = [
   {
     targetSelector: 'input[placeholder="추가할 재료명을 입력하세요"]',
-    message: '여기에 재료명을 입력하면 내 냉장고에 재료를 추가할 수 있어요.',
+    message: '재료명을 입력해서 내냉장고에 추가할 수 있어요.',
     position: 'bottom' as const,
   },
   {
@@ -1267,31 +1267,27 @@ const MyFridge: React.FC = () => {
             if (guideStep < guideSteps.length - 1) {
               setGuideStep(guideStep + 1);
             } else {
+              // 마지막 단계에서 '다음' 버튼을 누르면 가이드 완료 처리
               setShowGuide(false);
               localStorage.setItem('myfridge_guide_shown', 'true');
               // 내냉장고 가이드 완료 표시 - navigate 전에 설정
               localStorage.setItem('myfridge_guide_completed', 'true');
               console.log('[MyFridge] 가이드 완료 - 플래그 설정:', localStorage.getItem('myfridge_guide_completed'));
-              // 내냉장고 가이드 완료 후 냉장고 요리 페이지로 이동
+              // 내냉장고 가이드 완료 후 냉장고 요리 페이지로 이동 (URL 파라미터 추가)
               setTimeout(() => {
                 console.log('[MyFridge] 냉장고 요리 페이지로 이동');
-                navigate('/recipe-list');
-              }, 300);
+                navigate('/recipe-list?fromGuide=true');
+              }, 500);
             }
           }}
           onClose={() => {
+            // '설명 건너뛰기' 버튼을 누르면 가이드만 닫고 페이지 이동하지 않음
             setShowGuide(false);
             localStorage.setItem('myfridge_guide_shown', 'true');
-            // 내냉장고 가이드 완료 표시 - navigate 전에 설정
-            localStorage.setItem('myfridge_guide_completed', 'true');
-            console.log('[MyFridge] 가이드 닫기 - 플래그 설정:', localStorage.getItem('myfridge_guide_completed'));
-            // 내냉장고 가이드 완료 후 냉장고 요리 페이지로 이동
-            setTimeout(() => {
-              console.log('[MyFridge] 냉장고 요리 페이지로 이동');
-              navigate('/recipe-list');
-            }, 300);
+            console.log('[MyFridge] 가이드 건너뛰기 - 페이지 이동 없음');
           }}
           steps={guideSteps}
+          isLastStepConfirm={false}
         />
       </div>
       <BottomNavBar activeTab="myfridge" />

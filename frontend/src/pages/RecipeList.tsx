@@ -748,37 +748,52 @@ const RecipeList: React.FC = () => {
   const guideSteps = [
     {
       targetSelector: '[data-guide-target="match-rate-button"]',
-      message: '재료 매칭도 설정 버튼을 누르면\n내 냉장고 재료와 레시피의 매칭률을\n조정할 수 있어요.',
+      message: '내 냉장고 재료와 레시피의 매칭률을\n조정할 수 있어요.',
       position: 'bottom' as const,
     },
     {
       targetSelector: '[data-guide-target="expiry-button"]',
-      message: '임박 재료 설정 버튼을 누르면\n유통기한이 임박한 재료를 선택해서\n그 재료를 활용한 레시피를 우선 볼 수 있어요.',
+      message: '유통기한이 임박한 재료를 선택해서\n그 재료를 활용한 레시피를 우선 볼 수 있어요.',
       position: 'bottom' as const,
     },
     {
       targetSelector: '[data-guide-target="sort-dropdown"]',
-      message: '여기서 레시피 정렬 기준을 선택할 수 있어요.\n재료매칭률순, 임박재료활용순, 최신순 등\n다양한 기준으로 정렬할 수 있어요.',
+      message: '여기서 레시피 정렬 기준을 선택할 수 있어요.',
       position: 'bottom' as const,
     },
     {
       targetSelector: '[data-guide-target="filter-button"]',
-      message: '필터 버튼을 누르면 효능, 영양분, 대상, TPO 등\n다양한 조건으로 레시피를 필터링할 수 있어요.',
+      message: '효능, 영양분, 대상, TPO 등\n다양한 조건으로 레시피를 필터링할 수 있어요.',
       position: 'bottom' as const,
     },
     {
       targetSelector: '[data-guide-target="recipe-done-button"]',
-      message: '완료 버튼을 누르면 이 레시피를 완료한 것으로\n기록할 수 있어요. 완료한 레시피는\n마이페이지에서 확인할 수 있어요.',
+      message: (
+        <>
+          완료(<span style={{ color: '#000' }}>✓</span>) 버튼을 누르면 레시피를 완료 상태로 저장해요.<br />
+          완료 레시피는 마이페이지에서 확인할 수 있어요.
+        </>
+      ),
       position: 'left' as const,
     },
     {
       targetSelector: '[data-guide-target="recipe-share-button"]',
-      message: '공유 버튼을 누르면 레시피 링크를 복사해서\n다른 사람과 공유할 수 있어요.',
+      message: (
+        <>
+          공유(<span style={{ color: '#000' }}>➣</span>) 레시피 링크를 복사해서<br />
+          다른 사람과 공유할 수 있어요.
+        </>
+      ),
       position: 'left' as const,
     },
     {
       targetSelector: '[data-guide-target="recipe-write-button"]',
-      message: '기록 버튼을 누르면 이 레시피를 기록할 수 있어요.\n기록한 레시피는 마이페이지에서\n다시 확인할 수 있어요.',
+      message: (
+        <>
+          기록(<span style={{ color: '#000' }}>⟎</span>) 버튼을 누르면 레시피를 기록 상태로 저장해요.<br />
+          기록한 레시피는 마이페이지에서 확인할 수 있어요.
+        </>
+      ),
       position: 'left' as const,
     },
   ];
@@ -787,6 +802,7 @@ const RecipeList: React.FC = () => {
   React.useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const forceShowGuide = urlParams.get('showGuide') === 'true';
+    const fromGuide = urlParams.get('fromGuide') === 'true';
     const guideShown = localStorage.getItem('recipe_guide_shown');
     const myFridgeGuideCompleted = localStorage.getItem('myfridge_guide_completed');
 
@@ -794,53 +810,66 @@ const RecipeList: React.FC = () => {
       myFridgeGuideCompleted,
       guideShown,
       forceShowGuide,
+      fromGuide,
       loading,
       filteredRecipesLength: filteredRecipes.length,
-      recipesLength: recipes.length
+      recipesLength: recipes.length,
+      showGuideState: showGuide
     });
 
-    // 가이드가 이미 표시되었거나 이미 본 경우 스킵
-    if (showGuide || guideShown) {
+    // 강제 표시 또는 내냉장고 가이드에서 온 경우에는 guideShown 무시
+    const shouldForceShow = forceShowGuide || fromGuide || myFridgeGuideCompleted === 'true';
+    
+    // 가이드가 이미 표시 중이거나, 강제 표시가 아닌데 이미 본 경우 스킵
+    if (showGuide || (!shouldForceShow && guideShown)) {
       return;
     }
 
-    // 내냉장고 가이드가 완료되었거나 강제 표시인 경우
-    if (myFridgeGuideCompleted === 'true' || forceShowGuide || !guideShown) {
+    // 내냉장고 가이드에서 온 경우 또는 플래그가 있는 경우
+    const shouldShowGuide = shouldForceShow;
+
+    if (shouldShowGuide) {
       // 레시피가 로드된 후 가이드 표시
-      if (!loading && (filteredRecipes.length > 0 || recipes.length > 0)) {
-        console.log('[RecipeList] 레시피 로드 완료 - 가이드 표시 예정');
-        if (myFridgeGuideCompleted === 'true') {
-          localStorage.removeItem('myfridge_guide_completed');
+      const showGuideWhenReady = () => {
+        if (!loading && (filteredRecipes.length > 0 || recipes.length > 0)) {
+          console.log('[RecipeList] 레시피 로드 완료 - 가이드 표시 예정');
+          if (myFridgeGuideCompleted === 'true') {
+            localStorage.removeItem('myfridge_guide_completed');
+          }
+          // URL 파라미터 제거
+          if (fromGuide) {
+            window.history.replaceState({}, '', '/recipe-list');
+          }
+          setTimeout(() => {
+            console.log('[RecipeList] 가이드 표시 실행');
+            setShowGuide(true);
+            setGuideStep(0);
+          }, 2000); // 웹에서 더 긴 대기 시간
+          return true;
         }
-        setTimeout(() => {
-          console.log('[RecipeList] 가이드 표시 실행');
-          setShowGuide(true);
-          setGuideStep(0);
-        }, 1500);
-      } else {
+        return false;
+      };
+
+      // 즉시 체크
+      if (!showGuideWhenReady()) {
         console.log('[RecipeList] 레시피가 아직 로드되지 않음 - 대기 중');
         // 레시피가 아직 로드되지 않았으면 주기적으로 체크
         const checkInterval = setInterval(() => {
-          if (!loading && (filteredRecipes.length > 0 || recipes.length > 0)) {
-            console.log('[RecipeList] 레시피 로드 완료 (재시도) - 가이드 표시');
+          if (showGuideWhenReady()) {
             clearInterval(checkInterval);
-            if (localStorage.getItem('myfridge_guide_completed') === 'true') {
-              localStorage.removeItem('myfridge_guide_completed');
-            }
-            setTimeout(() => {
-              setShowGuide(true);
-              setGuideStep(0);
-            }, 1500);
           }
         }, 500);
         
-        // 최대 20초 대기
+        // 최대 30초 대기 (웹에서 더 긴 대기)
         setTimeout(() => {
           clearInterval(checkInterval);
           if (localStorage.getItem('myfridge_guide_completed') === 'true') {
             localStorage.removeItem('myfridge_guide_completed');
           }
-        }, 20000);
+          if (fromGuide) {
+            window.history.replaceState({}, '', '/recipe-list');
+          }
+        }, 30000);
         
         return () => clearInterval(checkInterval);
       }
@@ -1466,6 +1495,7 @@ const RecipeList: React.FC = () => {
           localStorage.setItem('recipe_guide_shown', 'true');
         }}
         steps={guideSteps}
+        isLastStepConfirm={true}
       />
     </>
   );
