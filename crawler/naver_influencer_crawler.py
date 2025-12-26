@@ -168,6 +168,9 @@ class NaverInfluencerCrawler:
 
     def _save_to_db(self, data: Dict):
         """데이터를 DB에 저장 (필터 없이 모두 저장)"""
+        if not data:
+            return
+        
         # 중복 체크 추가
         conn = self._connect_db()
         if not conn:
@@ -183,16 +186,10 @@ class NaverInfluencerCrawler:
                 if existing:
                     logger.info(f"⏭️ 중복 데이터 건너뛰기: {data['link']}")
                     return
-        if not data:
-            return
-
-        # 추출된 데이터 로그로 출력
-        logger.info(f"Saving to DB: {json.dumps(data, ensure_ascii=False)}")
-
-        conn = self._connect_db()
-        if not conn:
-            return
-
+                
+                # 추출된 데이터 로그로 출력
+                logger.info(f"Saving to DB: {json.dumps(data, ensure_ascii=False)}")
+                
                 sql = """
                 INSERT INTO recipes (
                     title, link, content, used_ingredients, used_ingredients_block, block_reason,
@@ -429,8 +426,8 @@ class NaverInfluencerCrawler:
                         # headless 옵션 설정 (창이 절대 뜨지 않도록 강제)
                         chrome_options.add_argument('--headless')
                         chrome_options.add_argument('--disable-gpu')
-                        # remote-debugging-port를 명시적으로 설정 (고정 포트 사용)
-                        chrome_options.add_argument('--remote-debugging-port=9223')
+                        # remote-debugging-port 제거 (포트 충돌 방지)
+                        # chrome_options.add_argument('--remote-debugging-port=9223')
                         chrome_options.add_argument('--disable-background-timer-throttling')
                         chrome_options.add_argument('--disable-backgrounding-occluded-windows')
                         chrome_options.add_argument('--disable-renderer-backgrounding')
@@ -795,8 +792,8 @@ class NaverInfluencerCrawler:
         # Windows에서 headless 모드 강제 적용 (창이 절대 뜨지 않도록)
         # --headless=new 대신 일반 --headless 사용 (호환성 문제 해결)
         options.add_argument('--headless')
-        # remote-debugging-port를 명시적으로 설정 (고정 포트 사용)
-        options.add_argument('--remote-debugging-port=9222')
+        # remote-debugging-port 제거 (포트 충돌 방지)
+        # options.add_argument('--remote-debugging-port=9222')
         
         options.add_argument('--no-sandbox')
         options.add_argument('--disable-dev-shm-usage')
