@@ -12,6 +12,9 @@ interface GuideOverlayProps {
   onNext: () => void;
   onClose: () => void;
   steps: GuideStep[];
+  isLastStepConfirm?: boolean;
+  totalSteps?: number; // 전체 가이드 단계 수 (기본값: steps.length)
+  startStepOffset?: number; // 시작 단계 오프셋 (기본값: 0)
 }
 
 const GuideOverlay: React.FC<GuideOverlayProps> = ({
@@ -20,7 +23,9 @@ const GuideOverlay: React.FC<GuideOverlayProps> = ({
   onNext,
   onClose,
   steps,
-  isLastStepConfirm = false
+  isLastStepConfirm = false,
+  totalSteps,
+  startStepOffset = 0
 }) => {
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -250,6 +255,10 @@ const GuideOverlay: React.FC<GuideOverlayProps> = ({
             ) : (
               step.message
             )}
+          </div>
+          {/* 진행 상황 표시 */}
+          <div className="mb-3 text-right" style={{ fontSize: '12px', color: '#666' }}>
+            ({currentStep + startStepOffset + 1}/{totalSteps || steps.length})
           </div>
           <div className="flex gap-2 justify-end">
             {currentStep < steps.length - 1 ? (

@@ -1496,6 +1496,8 @@ const RecipeList: React.FC = () => {
         }}
         steps={guideSteps}
         isLastStepConfirm={true}
+        totalSteps={9}
+        startStepOffset={2}
       />
     </>
   );

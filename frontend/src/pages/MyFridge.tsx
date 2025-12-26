@@ -1288,6 +1288,8 @@ const MyFridge: React.FC = () => {
           }}
           steps={guideSteps}
           isLastStepConfirm={false}
+          totalSteps={9}
+          startStepOffset={0}
         />
       </div>
       <BottomNavBar activeTab="myfridge" />
