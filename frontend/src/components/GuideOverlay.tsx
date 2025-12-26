@@ -145,7 +145,13 @@ const GuideOverlay: React.FC<GuideOverlayProps> = ({
         break;
       case 'left':
         // 모달을 타겟 위쪽으로 배치하여 하이라이트를 가리지 않도록
-        top = targetRect.top - tooltipHeight - spacing - 20; // 더 위로 올림
+        // 설정버튼, 완료/공유/기록 버튼의 경우 더 높게 배치
+        const isSettingsOrActionButton = steps[currentStep].targetSelector.includes('settings-icon') || 
+                                         steps[currentStep].targetSelector.includes('recipe-done-button') ||
+                                         steps[currentStep].targetSelector.includes('recipe-share-button') ||
+                                         steps[currentStep].targetSelector.includes('recipe-write-button');
+        const extraOffset = isSettingsOrActionButton ? 60 : 20; // 버튼 가이드는 더 높게
+        top = targetRect.top - tooltipHeight - spacing - extraOffset;
         left = targetRect.left + (targetRect.width / 2) - (tooltipWidth / 2);
         // 화면 왼쪽 경계 체크
         if (left < 16) {
@@ -240,16 +246,16 @@ const GuideOverlay: React.FC<GuideOverlayProps> = ({
         onClick={(e) => e.stopPropagation()}
       >
         <div
-          className="bg-white rounded-lg shadow-lg p-4"
+          className="bg-white rounded-lg shadow-lg p-3"
           style={{
             width: step.targetSelector.includes('settings-icon') ? '340px' : '320px',
             fontSize: '13px',
-            lineHeight: '1.6',
+            lineHeight: '1.5',
             color: '#333',
             maxWidth: 'calc(100vw - 32px)', // 화면 너비를 넘지 않도록
           }}
         >
-          <div className="mb-3" style={{ textAlign: 'left', wordBreak: 'keep-all' }}>
+          <div className="mb-1.5" style={{ textAlign: 'left', wordBreak: 'keep-all' }}>
             {typeof step.message === 'string' ? (
               <div style={{ whiteSpace: 'pre-line' }}>{step.message}</div>
             ) : (
@@ -257,7 +263,7 @@ const GuideOverlay: React.FC<GuideOverlayProps> = ({
             )}
           </div>
           {/* 진행 상황 표시 */}
-          <div className="mb-3 text-right" style={{ fontSize: '12px', color: '#666' }}>
+          <div className="mb-2 text-right" style={{ fontSize: '12px', color: '#666' }}>
             ({currentStep + startStepOffset + 1}/{totalSteps || steps.length})
           </div>
           <div className="flex gap-2 justify-end">
