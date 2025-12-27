@@ -612,12 +612,14 @@ def kakao_login():
     session['oauth_provider'] = 'kakao'
     
     redirect_uri = f"{BACKEND_URL}/api/auth/kakao/callback"
+    # 카카오 로그인에서 이메일과 닉네임을 받기 위한 scope 설정
     kakao_auth_url = (
         f"https://kauth.kakao.com/oauth/authorize?"
         f"client_id={KAKAO_CLIENT_ID}&"
         f"redirect_uri={redirect_uri}&"
         f"response_type=code&"
-        f"state={state}"
+        f"state={state}&"
+        f"scope=profile_nickname,account_email"
     )
     
     return redirect(kakao_auth_url)
@@ -649,16 +651,20 @@ def kakao_callback():
         if 'access_token' not in token_data:
             return jsonify({'error': 'Failed to get access token'}), 400
         
-        # 사용자 정보 가져오기
+        # 사용자 정보 가져오기 (이메일과 닉네임을 받기 위해 property_keys 지정)
         user_response = requests.get(
             'https://kapi.kakao.com/v2/user/me',
-            headers={'Authorization': f"Bearer {token_data['access_token']}"}
+            headers={'Authorization': f"Bearer {token_data['access_token']}"},
+            params={'property_keys': '["kakao_account.email", "kakao_account.profile.nickname"]'}
         )
         user_data = user_response.json()
         
+        print(f"[Kakao Callback] User data: {user_data}")  # 디버깅용
+        
         kakao_account = user_data.get('kakao_account', {})
         email = kakao_account.get('email', '')
-        nickname = kakao_account.get('profile', {}).get('nickname', '')
+        profile = kakao_account.get('profile', {})
+        nickname = profile.get('nickname', '') if profile else ''
         
         if not email:
             email = f"kakao_{user_data.get('id')}@kakao.com"
