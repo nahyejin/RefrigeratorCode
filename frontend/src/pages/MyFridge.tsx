@@ -460,7 +460,37 @@ const MyFridge: React.FC = () => {
 
   React.useEffect(() => {
     const loadData = async () => {
-      // 로그인한 경우 DB에서 먼저 로드 시도
+      // 먼저 localStorage에서 즉시 로드 (빠른 초기 렌더링)
+      const loaded = loadIngredients();
+      const hasLocalData = loaded.frozen.length > 0 || loaded.fridge.length > 0 || loaded.room.length > 0;
+      
+      if (hasLocalData) {
+        // localStorage에 데이터가 있으면 먼저 표시 (즉시 렌더링)
+        setFrozen(loaded.frozen);
+        setFridge(loaded.fridge);
+        setRoom(loaded.room);
+        isInitialLoad.current = false;
+        setLoading(false);
+        
+        // 로그인한 경우 백그라운드에서 DB 확인 및 동기화
+        if (isLoggedIn && user?.id) {
+          const dbData = await loadIngredientsFromDB();
+          if (dbData && (dbData.frozen.length > 0 || dbData.fridge.length > 0 || dbData.room.length > 0)) {
+            // DB에 데이터가 있으면 DB 데이터로 업데이트
+            setFrozen(dbData.frozen);
+            setFridge(dbData.fridge);
+            setRoom(dbData.room);
+            saveIngredients(dbData.frozen, dbData.fridge, dbData.room);
+          } else {
+            // DB에 데이터가 없으면 localStorage 데이터를 DB에 저장
+            await saveIngredientsToDB(loaded.frozen, loaded.fridge, loaded.room);
+          }
+        }
+        return;
+      }
+      
+      // localStorage에 데이터가 없는 경우
+      // 로그인한 경우 DB에서 로드 시도
       if (isLoggedIn && user?.id) {
         const dbData = await loadIngredientsFromDB();
         if (dbData && (dbData.frozen.length > 0 || dbData.fridge.length > 0 || dbData.room.length > 0)) {
@@ -468,7 +498,6 @@ const MyFridge: React.FC = () => {
           setFrozen(dbData.frozen);
           setFridge(dbData.fridge);
           setRoom(dbData.room);
-          // localStorage에도 백업 저장
           saveIngredients(dbData.frozen, dbData.fridge, dbData.room);
           isInitialLoad.current = false;
           setLoading(false);
@@ -476,45 +505,104 @@ const MyFridge: React.FC = () => {
         }
       }
       
-      // DB에 없거나 비로그인인 경우 localStorage에서 로드
-      const loaded = loadIngredients();
-      const hasData = loaded.frozen.length > 0 || loaded.fridge.length > 0 || loaded.room.length > 0;
-      
-      if (hasData) {
-        isInitialLoad.current = false;
-        console.log('[MyFridge] 기존 재료 발견 - localStorage에서 로드:', {
-          frozen: loaded.frozen.length,
-          fridge: loaded.fridge.length,
-          room: loaded.room.length
-        });
-        saveIngredients(loaded.frozen, loaded.fridge, loaded.room);
-        // 로그인한 경우 DB에도 저장 (DB에 데이터가 없을 때만)
-        if (isLoggedIn && user?.id) {
-          await saveIngredientsToDB(loaded.frozen, loaded.fridge, loaded.room);
-        }
-      }
-      
-      setFrozen(loaded.frozen);
-      setFridge(loaded.fridge);
-      setRoom(loaded.room);
-      // 로컬 스토리지에서 로드하는 것은 즉시 완료되므로 로딩 종료
+      // DB에도 없으면 빈 상태로 시작
+      setFrozen([]);
+      setFridge([]);
+      setRoom([]);
+      isInitialLoad.current = false;
       setLoading(false);
     };
     
     loadData();
-  }, []);
+  }, [isLoggedIn, user?.id]);
 
   React.useEffect(() => {
-    console.log('[MyFridge] 두 번째 useEffect 실행 - CSV 파일 로드 시작');
+    console.log('[MyFridge] CSV 파일 로드 시작');
+    
+    // CSV 파일을 localStorage에 캐싱하여 한 번만 로드
+    const CSV_CACHE_KEY = 'ingredient_dict_cache';
+    const CSV_CACHE_VERSION = '1.0'; // CSV 파일이 업데이트되면 버전 변경
+    
+    const loadCachedCSV = async () => {
+      try {
+        // 캐시 확인
+        const cached = localStorage.getItem(CSV_CACHE_KEY);
+        if (cached) {
+          const parsedCache = JSON.parse(cached);
+          if (parsedCache.version === CSV_CACHE_VERSION && parsedCache.data) {
+            console.log('[MyFridge] 캐시된 재료 사전 사용');
+            initializeIngredients(parsedCache.data);
+            return;
+          }
+        }
+        
+        // 캐시가 없거나 버전이 다르면 새로 로드
+        console.log('[MyFridge] CSV 파일 새로 로드');
+        const response = await fetch('/ingredient_profile_dict_with_substitutes.csv');
+        if (!response.ok) {
+          throw new Error(`CSV 파일 로드 실패: ${response.status} ${response.statusText}`);
+        }
+        
+        const csv = await response.text();
+        console.log('[MyFridge] CSV 파일 로드 완료, 파싱 시작');
+        
+        const lines = csv.split('\n');
+        const header = lines[0].split(',');
+        const nameIdx = header.indexOf('keyword');
+        const synonymsIdx = header.indexOf('synonyms');
+        const categoryIdx = header.indexOf('대분류');
+        
+        const ingredients = {};
+        
+        lines.slice(1).forEach(line => {
+          const values = line.split(',');
+          const keyword = values[nameIdx]?.trim();
+          const synonyms = values[synonymsIdx]?.split(',').map(s => s.trim());
+          const category = values[categoryIdx]?.trim();
+          
+          if (keyword && category === '재료') {
+            ingredients[keyword] = keyword;
+            if (synonyms) {
+              synonyms.forEach(synonym => {
+                ingredients[synonym] = keyword;
+              });
+            }
+          }
+        });
+        
+        console.log('[MyFridge] CSV 파싱 완료, 재료 사전 크기:', Object.keys(ingredients).length);
+        
+        // 캐시에 저장
+        localStorage.setItem(CSV_CACHE_KEY, JSON.stringify({
+          version: CSV_CACHE_VERSION,
+          data: ingredients,
+          timestamp: Date.now()
+        }));
+        
+        initializeIngredients(ingredients);
+      } catch (error) {
+        console.error('[MyFridge] CSV 파일 로드 실패 - 빈 재료 사전으로 초기화 진행:', error);
+        initializeIngredients({});
+      }
+    };
     
     const initializeIngredients = (ingredients: { [key: string]: string }) => {
       setIngredientDict(ingredients);
       
-      // 재료 사전 로드 후, 초기 진입 시 기본 재료가 없으면 추가
-      const loaded = loadIngredients();
-      const isEmpty = (!loaded.fridge || loaded.fridge.length === 0) && 
-                      (!loaded.room || loaded.room.length === 0) && 
-                      (!loaded.frozen || loaded.frozen.length === 0);
+      // 재료 사전만 설정하고, 초기 재료 추가는 별도 useEffect에서 처리
+      // (재료 데이터가 로드된 후에만 실행되도록)
+    };
+    
+    loadCachedCSV();
+  }, []); // CSV는 한 번만 로드
+  
+  // 초기 재료 추가는 별도 useEffect로 분리
+  React.useEffect(() => {
+    // 재료 사전이 로드되고, 재료가 비어있고, 로딩이 완료된 경우에만 초기 재료 추가
+    if (!loading && Object.keys(ingredientDict).length > 0) {
+      const isEmpty = (!fridge || fridge.length === 0) && 
+                      (!room || room.length === 0) && 
+                      (!frozen || frozen.length === 0);
       
       if (isEmpty) {
           // 초기 재료 추가 중이므로 useEffect에서 저장하지 않도록 플래그 설정
@@ -667,54 +755,9 @@ const MyFridge: React.FC = () => {
               detail: { key: STORAGE_KEY }
             }));
           }, 100);
-        } else {
-          // 재료가 이미 있으면 초기 로드 완료
-          isInitialLoad.current = false;
         }
-    };
-    
-    fetch('/ingredient_profile_dict_with_substitutes.csv')
-      .then(res => {
-        if (!res.ok) {
-          throw new Error(`CSV 파일 로드 실패: ${res.status} ${res.statusText}`);
-        }
-        return res.text();
-      })
-      .then(csv => {
-        console.log('[MyFridge] CSV 파일 로드 완료, 파싱 시작');
-        const lines = csv.split('\n');
-        const header = lines[0].split(',');
-        const nameIdx = header.indexOf('keyword');
-        const synonymsIdx = header.indexOf('synonyms');
-        const categoryIdx = header.indexOf('대분류');
-        
-        const ingredients = {};
-        
-        lines.slice(1).forEach(line => {
-          const values = line.split(',');
-          const keyword = values[nameIdx]?.trim();
-          const synonyms = values[synonymsIdx]?.split(',').map(s => s.trim());
-          const category = values[categoryIdx]?.trim();
-          
-          if (keyword && category === '재료') {
-            ingredients[keyword] = keyword;
-            if (synonyms) {
-              synonyms.forEach(synonym => {
-                ingredients[synonym] = keyword;
-              });
-            }
-          }
-        });
-        
-        console.log('[MyFridge] CSV 파싱 완료, 재료 사전 크기:', Object.keys(ingredients).length);
-        initializeIngredients(ingredients);
-      })
-      .catch(error => {
-        console.error('[MyFridge] CSV 파일 로드 실패 - 빈 재료 사전으로 초기화 진행:', error);
-        // CSV 로드 실패해도 빈 사전으로 초기화 진행 (기본 재료 이름은 그대로 사용)
-        initializeIngredients({});
-      });
-  }, []);
+    }
+  }, [loading, ingredientDict, frozen, fridge, room, isLoggedIn, user?.id]);
 
   // URL 파라미터로 모달 강제 표시 (개발/테스트용)
   React.useEffect(() => {
