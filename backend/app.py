@@ -420,7 +420,7 @@ FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5178')
 # 백엔드 URL (OAuth 콜백용)
 BACKEND_URL = os.getenv('BACKEND_URL', 'http://localhost:5000')
 
-def generate_jwt_token(user_id, email, nickname):
+def generate_jwt_token(user_id, email, nickname, provider=None):
     """JWT 토큰 생성"""
     payload = {
         'user_id': user_id,
@@ -429,6 +429,8 @@ def generate_jwt_token(user_id, email, nickname):
         'exp': datetime.utcnow() + timedelta(days=30),
         'iat': datetime.utcnow()
     }
+    if provider:
+        payload['provider'] = provider
     secret_key = os.getenv('JWT_SECRET_KEY', app.secret_key)
     return jwt.encode(payload, secret_key, algorithm='HS256')
 
@@ -583,7 +585,7 @@ def google_callback():
         print(f"[Google Callback] User created/found: {user}")
         
         # JWT 토큰 생성
-        token = generate_jwt_token(user['id'], user['email'], user['nickname'])
+        token = generate_jwt_token(user['id'], user['email'], user['nickname'], provider='google')
         print(f"[Google Callback] JWT token generated")
         
         # 프론트엔드로 리다이렉트 (토큰을 쿼리 파라미터로 전달)
@@ -672,7 +674,7 @@ def kakao_callback():
         )
         
         # JWT 토큰 생성
-        token = generate_jwt_token(user['id'], user['email'], user['nickname'])
+        token = generate_jwt_token(user['id'], user['email'], user['nickname'], provider='kakao')
         
         return redirect(f"{FRONTEND_URL}/auth/success?token={token}")
         
@@ -757,7 +759,7 @@ def naver_callback():
         )
         
         # JWT 토큰 생성
-        token = generate_jwt_token(user['id'], user['email'], user['nickname'])
+        token = generate_jwt_token(user['id'], user['email'], user['nickname'], provider='naver')
         
         return redirect(f"{FRONTEND_URL}/auth/success?token={token}")
         

@@ -5,6 +5,7 @@ interface User {
   email: string;
   nickname: string;
   phone?: string;
+  provider?: string; // 'google', 'kakao', 'naver' 또는 undefined (일반 로그인)
 }
 
 interface AuthContextType {
@@ -131,6 +132,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         id: String(payload.user_id),
         email: payload.email,
         nickname: payload.nickname,
+        provider: payload.provider, // 'google', 'kakao', 'naver' 또는 undefined
       };
       
       localStorage.setItem('auth_token', token);

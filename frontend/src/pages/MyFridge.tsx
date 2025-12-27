@@ -367,7 +367,6 @@ const MyFridge: React.FC = () => {
   const [fridgeSort, setFridgeSort] = React.useState<SortType>('expiry');
   const [roomSort, setRoomSort] = React.useState<SortType>('expiry');
   const [loading, setLoading] = useState(true);
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
   const [pendingIngredient, setPendingIngredient] = useState<{ ingredient: string; storageType: StorageBox; hasExpiration: boolean; date: string | null; } | null>(null);
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
@@ -756,7 +755,6 @@ const MyFridge: React.FC = () => {
     if (box === 'frozen') setFrozen(newTags);
     if (box === 'fridge') setFridge(newTags);
     if (box === 'room') setRoom(newTags);
-    setHasUnsavedChanges(true);
     showToast('삭제됨.', deleted);
   };
 
@@ -774,7 +772,6 @@ const MyFridge: React.FC = () => {
     if (box === 'frozen') setFrozen([]);
     if (box === 'fridge') setFridge([]);
     if (box === 'room') setRoom([]);
-    setHasUnsavedChanges(true);
     showToast('모두 삭제됨.', deleted, 7000);
   };
 
@@ -875,7 +872,6 @@ const MyFridge: React.FC = () => {
       if (data.storageType === 'frozen') setFrozen(prev => prev ? [...prev, updatedIngredient] : [updatedIngredient]);
       if (data.storageType === 'fridge') setFridge(prev => prev ? [...prev, updatedIngredient] : [updatedIngredient]);
       if (data.storageType === 'room') setRoom(prev => prev ? [...prev, updatedIngredient] : [updatedIngredient]);
-      setHasUnsavedChanges(true);
     } else {
       // 새 재료 추가 전에 10개 조건 체크 (skipCheck가 false일 때만)
       if (!skipCheck) {
@@ -904,7 +900,6 @@ const MyFridge: React.FC = () => {
       if (data.storageType === 'frozen') setFrozen(prev => prev ? [...prev, obj] : [obj]);
       if (data.storageType === 'fridge') setFridge(prev => prev ? [...prev, obj] : [obj]);
       if (data.storageType === 'room') setRoom(prev => prev ? [...prev, obj] : [obj]);
-      setHasUnsavedChanges(true);
     }
     
     setModalOpen(false);
@@ -940,31 +935,8 @@ const MyFridge: React.FC = () => {
       <div className="bg-white w-full p-0 m-0 pb-24" style={{ paddingTop: 92 }}>
         {/* 타이틀+입력창 그룹 */}
         <div className="flex flex-col items-center justify-center w-full" style={{ marginBottom: 40 }}>
-          <div className="flex items-center justify-between w-full max-w-[360px] px-5 mb-2">
-            <h1 className="text-[18px] font-bold text-[#111] text-center flex-1">내 냉장고 재료 추가</h1>
-            {isLoggedIn && (
-              <button
-                onClick={async () => {
-                  try {
-                    // TODO: API 호출로 서버에 저장
-                    // await api.post('/api/family/ingredients', { frozen, fridge, room });
-                    setHasUnsavedChanges(false);
-                    setInfoToast({ text: '저장되었습니다!' });
-                  } catch (error) {
-                    setInfoToast({ text: '저장 중 오류가 발생했습니다.' });
-                  }
-                }}
-                disabled={!hasUnsavedChanges}
-                className={`px-4 py-1.5 rounded-lg text-sm font-semibold ${
-                  hasUnsavedChanges 
-                    ? 'bg-[#FFD600] text-[#222] hover:bg-yellow-300' 
-                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                }`}
-                style={{ outline: 'none', border: 'none' }}
-              >
-                {hasUnsavedChanges ? '💾 저장하기' : '✓ 저장됨'}
-              </button>
-            )}
+          <div className="flex items-center justify-center w-full max-w-[360px] px-5 mb-2">
+            <h1 className="text-[18px] font-bold text-[#111] text-center">내 냉장고 재료 추가</h1>
           </div>
         </div>
         <div style={{ maxWidth: 360, margin: '0 auto', paddingLeft: 20, paddingRight: 20, width: '100%' }}>

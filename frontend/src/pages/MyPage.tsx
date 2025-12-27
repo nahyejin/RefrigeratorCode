@@ -43,7 +43,7 @@ interface RecipeCardData {
 
 interface User {
   nickname: string;
-  userid: string;
+  email: string;
   phone: string;
 }
 
@@ -91,7 +91,7 @@ const CARD_STYLE = {
 
 const dummyUser: User = {
   nickname: '홍길동',
-  userid: 'honggildong123',
+  email: 'honggildong123@example.com',
   phone: '010-1234-5678',
 };
 
@@ -256,11 +256,36 @@ const MyPage: React.FC = () => {
   // 상태 관리
   // =====================
   
+  const { isLoggedIn, user: authUser } = useAuth();
+  
+  // 소셜 로그인 여부 확인
+  const isSocialLogin = Boolean(authUser?.provider && ['google', 'kakao', 'naver'].includes(authUser.provider));
+  
+  // 디버깅용 (개발 환경에서만)
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[MyPage] 소셜 로그인 여부:', {
+        isSocialLogin,
+        provider: authUser?.provider,
+        authUser
+      });
+    }
+  }, [isSocialLogin, authUser]);
   const [editOpen, setEditOpen] = useState(false);
-  const [user, setUser] = useState<User>(dummyUser);
+  const [user, setUser] = useState<User>(() => {
+    // 로그인한 사용자가 있으면 실제 정보 사용, 없으면 더미 데이터
+    if (authUser) {
+      return {
+        nickname: authUser.nickname,
+        email: authUser.email,
+        phone: authUser.phone || '',
+      };
+    }
+    return dummyUser;
+  });
   const [edit, setEdit] = useState<EditForm>({
     nickname: user.nickname,
-    userid: user.userid,
+    userid: user.email, // userid 필드에 email 값 저장 (표시용)
     password: '',
     password2: '',
     phone1: '010',
@@ -295,7 +320,22 @@ const MyPage: React.FC = () => {
 
   const navigate = useNavigate();
   const location = useLocation();
-  const { isLoggedIn } = useAuth();
+
+  // 로그인한 사용자 정보가 변경되면 user 상태 업데이트
+  useEffect(() => {
+    if (authUser) {
+      setUser({
+        nickname: authUser.nickname,
+        email: authUser.email,
+        phone: authUser.phone || '',
+      });
+      setEdit(prev => ({
+        ...prev,
+        nickname: authUser.nickname,
+        userid: authUser.email,
+      }));
+    }
+  }, [authUser]);
 
   // =====================
   // 이벤트 핸들러
@@ -578,7 +618,7 @@ const MyPage: React.FC = () => {
       <section className="flex flex-col items-center justify-center mb-[70px]" style={{ marginTop: '130px' }}>
         <div className="flex flex-col items-center">
           <div className="text-[18px] font-bold text-gray-700 mb-1">{user.nickname}</div>
-          <div className="text-[15px] text-gray-500 mb-2">{user.userid}</div>
+          <div className="text-[15px] text-gray-500 mb-2">{user.email}</div>
         </div>
         <button
           className="px-3 h-7 bg-[#FFD600] text-[#222] rounded-full text-[13px] font-bold flex items-center gap-1 border-none shadow hover:bg-yellow-300 transition"
@@ -839,44 +879,48 @@ const MyPage: React.FC = () => {
                       }}
                     />
                   </div>
-                  <button 
-                    className="h-10 px-3 bg-[#FFD600] text-[#222] rounded-lg text-[14px] font-semibold whitespace-nowrap mt-6 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                    onClick={handleCheckNickname}
-                    disabled={checkingNickname || !edit.nickname || edit.nickname.trim() === ''}
-                    style={{ 
-                      outline: 'none', 
-                      border: 'none',
-                      opacity: checkingNickname ? 0.7 : 1,
-                      minWidth: '100px'
-                    }}
-                  >
-                    중복 체크
-                    {checkingNickname && (
-                      <svg
-                        width="16"
-                        height="16"
-                        viewBox="0 0 44 44"
-                        xmlns="http://www.w3.org/2000/svg"
-                        aria-label="로딩 중"
-                      >
-                        <g fill="none" fillRule="evenodd" strokeWidth="4">
-                          <circle cx="22" cy="22" r="20" stroke="#e5e7eb" />
-                          <path d="M42 22c0-11.046-8.954-20-20-20" stroke="#9ca3af">
-                            <animateTransform
-                              attributeName="transform"
-                              type="rotate"
-                              from="0 22 22"
-                              to="360 22 22"
-                              dur="0.8s"
-                              repeatCount="indefinite"
-                            />
-                          </path>
-                        </g>
-                      </svg>
-                    )}
-                  </button>
+                  {/* 소셜 로그인 사용자는 중복 체크 버튼 숨김 (선택 사항) */}
+                  {!isSocialLogin && (
+                    <button 
+                      className="h-10 px-3 bg-[#FFD600] text-[#222] rounded-lg text-[14px] font-semibold whitespace-nowrap mt-6 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      onClick={handleCheckNickname}
+                      disabled={checkingNickname || !edit.nickname || edit.nickname.trim() === ''}
+                      style={{ 
+                        outline: 'none', 
+                        border: 'none',
+                        opacity: checkingNickname ? 0.7 : 1,
+                        minWidth: '100px'
+                      }}
+                    >
+                      중복 체크
+                      {checkingNickname && (
+                        <svg
+                          width="16"
+                          height="16"
+                          viewBox="0 0 44 44"
+                          xmlns="http://www.w3.org/2000/svg"
+                          aria-label="로딩 중"
+                        >
+                          <g fill="none" fillRule="evenodd" strokeWidth="4">
+                            <circle cx="22" cy="22" r="20" stroke="#e5e7eb" />
+                            <path d="M42 22c0-11.046-8.954-20-20-20" stroke="#9ca3af">
+                              <animateTransform
+                                attributeName="transform"
+                                type="rotate"
+                                from="0 22 22"
+                                to="360 22 22"
+                                dur="0.8s"
+                                repeatCount="indefinite"
+                              />
+                            </path>
+                          </g>
+                        </svg>
+                      )}
+                    </button>
+                  )}
                 </div>
-                {nicknameCheckResult && (
+                {/* 중복 체크 결과 메시지 (일반 로그인 사용자만 표시) */}
+                {!isSocialLogin && nicknameCheckResult && (
                   <div 
                     className={`text-[13px] mt-1 px-2 py-1 rounded ${
                       nicknameCheckResult.available 
@@ -891,7 +935,7 @@ const MyPage: React.FC = () => {
               
               {/* 아이디 (회색, 읽기전용) */}
               <div className="mb-3">
-                <label className="block text-[15px] font-semibold mb-1">아이디</label>
+                <label className="block text-[15px] font-semibold mb-1">이메일</label>
                 <input 
                   className="w-full h-10 border border-gray-200 rounded-lg px-4 text-[15px] bg-gray-50 text-gray-400 cursor-not-allowed" 
                   value={edit.userid} 
@@ -906,94 +950,100 @@ const MyPage: React.FC = () => {
                 />
               </div>
               
-              {/* 비밀번호 변경 */}
-              <div className="mb-3">
-                <label className="block text-[15px] font-semibold mb-1">비밀번호 변경</label>
-                <div className="relative">
-                  <input 
-                    type={showPassword ? "text" : "password"} 
-                    className="w-full h-10 border border-gray-300 rounded-lg px-4 pr-10 text-[15px]" 
-                    value={edit.password === '' ? '●●●●●●●' : edit.password} 
-                    onChange={e => {
-                      const newValue = e.target.value;
-                      if (newValue !== '●●●●●●●') {
-                        setEdit({ ...edit, password: newValue });
-                      }
-                    }}
-                    onFocus={e => {
-                      if (e.target.value === '●●●●●●●') {
-                        setEdit({ ...edit, password: '' });
-                        e.target.value = '';
-                      }
-                    }}
-                  />
-                  <button
-                    type="button"
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                    onClick={() => setShowPassword(!showPassword)}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: '18px' }}
-                  >
-                    {showPassword ? '👁️' : '👁️‍🗨️'}
-                  </button>
-                </div>
-              </div>
+              {/* 비밀번호 변경 (일반 로그인 사용자만 표시) */}
+              {!isSocialLogin && (
+                <>
+                  <div className="mb-3">
+                    <label className="block text-[15px] font-semibold mb-1">비밀번호 변경</label>
+                    <div className="relative">
+                      <input 
+                        type={showPassword ? "text" : "password"} 
+                        className="w-full h-10 border border-gray-300 rounded-lg px-4 pr-10 text-[15px]" 
+                        value={edit.password === '' ? '●●●●●●●' : edit.password} 
+                        onChange={e => {
+                          const newValue = e.target.value;
+                          if (newValue !== '●●●●●●●') {
+                            setEdit({ ...edit, password: newValue });
+                          }
+                        }}
+                        onFocus={e => {
+                          if (e.target.value === '●●●●●●●') {
+                            setEdit({ ...edit, password: '' });
+                            e.target.value = '';
+                          }
+                        }}
+                      />
+                      <button
+                        type="button"
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                        onClick={() => setShowPassword(!showPassword)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: '18px' }}
+                      >
+                        {showPassword ? '👁️' : '👁️‍🗨️'}
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {/* 비밀번호 변경 확인 */}
+                  <div className="mb-3">
+                    <label className="block text-[15px] font-semibold mb-1">비밀번호 변경 확인</label>
+                    <div className="relative">
+                      <input 
+                        type={showPassword2 ? "text" : "password"} 
+                        className="w-full h-10 border border-gray-300 rounded-lg px-4 pr-10 text-[15px]" 
+                        value={edit.password2 === '' ? '●●●●●●●' : edit.password2} 
+                        onChange={e => {
+                          const newValue = e.target.value;
+                          if (newValue !== '●●●●●●●') {
+                            setEdit({ ...edit, password2: newValue });
+                          }
+                        }}
+                        onFocus={e => {
+                          if (e.target.value === '●●●●●●●') {
+                            setEdit({ ...edit, password2: '' });
+                            e.target.value = '';
+                          }
+                        }}
+                      />
+                      <button
+                        type="button"
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                        onClick={() => setShowPassword2(!showPassword2)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: '18px' }}
+                      >
+                        {showPassword2 ? '👁️' : '👁️‍🗨️'}
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
               
-              {/* 비밀번호 변경 확인 */}
-              <div className="mb-3">
-                <label className="block text-[15px] font-semibold mb-1">비밀번호 변경 확인</label>
-                <div className="relative">
-                  <input 
-                    type={showPassword2 ? "text" : "password"} 
-                    className="w-full h-10 border border-gray-300 rounded-lg px-4 pr-10 text-[15px]" 
-                    value={edit.password2 === '' ? '●●●●●●●' : edit.password2} 
-                    onChange={e => {
-                      const newValue = e.target.value;
-                      if (newValue !== '●●●●●●●') {
-                        setEdit({ ...edit, password2: newValue });
-                      }
-                    }}
-                    onFocus={e => {
-                      if (e.target.value === '●●●●●●●') {
-                        setEdit({ ...edit, password2: '' });
-                        e.target.value = '';
-                      }
-                    }}
-                  />
-                  <button
-                    type="button"
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                    onClick={() => setShowPassword2(!showPassword2)}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: '18px' }}
-                  >
-                    {showPassword2 ? '👁️' : '👁️‍🗨️'}
-                  </button>
+              {/* 연락처 (일반 로그인 사용자만 표시) */}
+              {!isSocialLogin && (
+                <div className="mb-3">
+                  <label className="block text-[15px] font-semibold mb-1">연락처</label>
+                  <div className="flex gap-2">
+                    <input 
+                      className="w-[70px] h-10 border border-gray-300 rounded-lg px-3 text-[15px]" 
+                      maxLength={3} 
+                      value={edit.phone1} 
+                      onChange={e => setEdit({ ...edit, phone1: e.target.value.replace(/[^0-9]/g, '') })} 
+                    />
+                    <input 
+                      className="w-[90px] h-10 border border-gray-300 rounded-lg px-3 text-[15px]" 
+                      maxLength={4} 
+                      value={edit.phone2} 
+                      onChange={e => setEdit({ ...edit, phone2: e.target.value.replace(/[^0-9]/g, '') })} 
+                    />
+                    <input 
+                      className="w-[90px] h-10 border border-gray-300 rounded-lg px-3 text-[15px]" 
+                      maxLength={4} 
+                      value={edit.phone3} 
+                      onChange={e => setEdit({ ...edit, phone3: e.target.value.replace(/[^0-9]/g, '') })} 
+                    />
+                  </div>
                 </div>
-              </div>
-              
-              {/* 연락처 */}
-              <div className="mb-3">
-                <label className="block text-[15px] font-semibold mb-1">연락처</label>
-                <div className="flex gap-2">
-                  <input 
-                    className="w-[70px] h-10 border border-gray-300 rounded-lg px-3 text-[15px]" 
-                    maxLength={3} 
-                    value={edit.phone1} 
-                    onChange={e => setEdit({ ...edit, phone1: e.target.value.replace(/[^0-9]/g, '') })} 
-                  />
-                  <input 
-                    className="w-[90px] h-10 border border-gray-300 rounded-lg px-3 text-[15px]" 
-                    maxLength={4} 
-                    value={edit.phone2} 
-                    onChange={e => setEdit({ ...edit, phone2: e.target.value.replace(/[^0-9]/g, '') })} 
-                  />
-                  <input 
-                    className="w-[90px] h-10 border border-gray-300 rounded-lg px-3 text-[15px]" 
-                    maxLength={4} 
-                    value={edit.phone3} 
-                    onChange={e => setEdit({ ...edit, phone3: e.target.value.replace(/[^0-9]/g, '') })} 
-                  />
-                </div>
-              </div>
+              )}
               
               {/* 취소/적용 버튼 */}
               <div className="flex gap-2 mt-4">

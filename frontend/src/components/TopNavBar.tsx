@@ -2,7 +2,6 @@ import * as React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import logoImg from '../assets/냉털이 로고 white.png';
 import { useAuth } from '../context/AuthContext';
-import NotificationBell from './NotificationBell';
 
 const TopNavBar: React.FC = () => {
   const navigate = useNavigate();
@@ -37,19 +36,22 @@ const TopNavBar: React.FC = () => {
       
       <div className="flex items-center gap-3">
         {isLoggedIn ? (
-          <>
-            <NotificationBell />
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-700">{user?.nickname}</span>
-              <button
-                onClick={logout}
-                className="text-sm text-gray-600 hover:text-gray-800"
-                style={{ outline: 'none', border: 'none', background: 'none', cursor: 'pointer' }}
-              >
-                로그아웃
-              </button>
-            </div>
-          </>
+          <div className="flex items-center gap-2">
+            <span className="font-normal text-gray-700 hover:text-gray-900" style={{ fontSize: '11px' }}>{user?.nickname}</span>
+            <button
+              onClick={logout}
+              className="font-normal text-gray-700 hover:text-gray-900"
+              style={{ 
+                outline: 'none', 
+                border: 'none', 
+                background: 'none', 
+                cursor: 'pointer',
+                fontSize: '11px'
+              }}
+            >
+              로그아웃
+            </button>
+          </div>
         ) : (
           !isLoginPage && (
             <button
