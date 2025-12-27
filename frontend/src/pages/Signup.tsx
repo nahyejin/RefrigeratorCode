@@ -29,6 +29,14 @@ const Signup: React.FC = () => {
   const [loading, setLoading] = React.useState(false);
   const [passwordError, setPasswordError] = React.useState('');
   
+  // 필수 입력란 에러 상태
+  const [fieldErrors, setFieldErrors] = React.useState<{
+    email?: string;
+    nickname?: string;
+    password?: string;
+    confirmPassword?: string;
+  }>({});
+  
   // 이메일 중복 체크
   const [emailCheckResult, setEmailCheckResult] = React.useState<{available: boolean, message: string} | null>(null);
   const [checkingEmail, setCheckingEmail] = React.useState(false);
@@ -173,20 +181,43 @@ const Signup: React.FC = () => {
    * 회원가입 처리
    */
   const handleSignup = async () => {
-    // 유효성 검사
-    if (!email || !password || !confirmPassword) {
-      setError('모든 필드를 입력해주세요.');
-      return;
+    // 필수 입력란 검증
+    const newFieldErrors: typeof fieldErrors = {};
+    let hasError = false;
+
+    if (!email || !email.trim()) {
+      newFieldErrors.email = '이메일을 입력해주세요.';
+      hasError = true;
+    } else if (!email.includes('@')) {
+      newFieldErrors.email = '올바른 이메일 형식을 입력해주세요.';
+      hasError = true;
     }
 
-    // 비밀번호 유효성 검사
-    if (password.length < 4) {
-      setError('비밀번호는 최소 4자 이상이어야 합니다.');
-      return;
+    if (!nickname || !nickname.trim()) {
+      newFieldErrors.nickname = '닉네임을 입력해주세요.';
+      hasError = true;
     }
 
-    if (password !== confirmPassword) {
-      setError('비밀번호가 일치하지 않습니다.');
+    if (!password || !password.trim()) {
+      newFieldErrors.password = '비밀번호를 입력해주세요.';
+      hasError = true;
+    } else if (password.length < 4) {
+      newFieldErrors.password = '비밀번호는 최소 4자 이상이어야 합니다.';
+      hasError = true;
+    }
+
+    if (!confirmPassword || !confirmPassword.trim()) {
+      newFieldErrors.confirmPassword = '비밀번호 확인을 입력해주세요.';
+      hasError = true;
+    } else if (password !== confirmPassword) {
+      newFieldErrors.confirmPassword = '비밀번호가 일치하지 않습니다.';
+      hasError = true;
+    }
+
+    setFieldErrors(newFieldErrors);
+
+    if (hasError) {
+      setError('필수 입력란을 모두 입력해주세요.');
       return;
     }
 
@@ -214,9 +245,9 @@ const Signup: React.FC = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          email,
+          email: email.trim(),
           password,
-          nickname: nickname || email.split('@')[0], // 닉네임이 없으면 이메일 앞부분 사용
+          nickname: nickname.trim(),
         }),
       });
 
@@ -258,7 +289,7 @@ const Signup: React.FC = () => {
             <div className="flex items-center gap-2 mb-1 w-full">
               <div className="flex-1 min-w-0">
                 <NeangteolInput 
-                  placeholder="이메일 입력" 
+                  placeholder="이메일 입력 *" 
                   type="email"
                   value={email}
                   onChange={(e) => {
@@ -266,8 +297,11 @@ const Signup: React.FC = () => {
                     setEmailCheckResult(null);
                     setEmailVerified(false);
                     setVerificationCode('');
+                    if (fieldErrors.email) {
+                      setFieldErrors({ ...fieldErrors, email: undefined });
+                    }
                   }}
-                  className={`w-full ${INPUT_HEIGHT} px-4`} 
+                  className={`w-full ${INPUT_HEIGHT} px-4 ${fieldErrors.email ? 'border-red-500' : ''}`} 
                 />
               </div>
               <button
@@ -279,7 +313,12 @@ const Signup: React.FC = () => {
                 {checkingEmail ? '확인 중...' : '중복 체크'}
               </button>
             </div>
-            {emailCheckResult && (
+            {fieldErrors.email && (
+              <div className="text-[12px] text-red-600 mt-1 px-2">
+                {fieldErrors.email}
+              </div>
+            )}
+            {emailCheckResult && !fieldErrors.email && (
               <div className={`text-[12px] mt-1 px-2 py-1 rounded ${
                 emailCheckResult.available 
                   ? 'text-green-600 bg-green-50' 
@@ -346,22 +385,38 @@ const Signup: React.FC = () => {
             </div>
           )}
 
-          <NeangteolInput 
-            placeholder="닉네임 입력 (선택사항)" 
-            value={nickname}
-            onChange={(e) => setNickname(e.target.value)}
-            className={`w-full ${INPUT_HEIGHT} px-4`} 
-          />
+          {/* 닉네임 입력 */}
+          <div className="w-full">
+            <NeangteolInput 
+              placeholder="닉네임 입력 *" 
+              value={nickname}
+              onChange={(e) => {
+                setNickname(e.target.value);
+                if (fieldErrors.nickname) {
+                  setFieldErrors({ ...fieldErrors, nickname: undefined });
+                }
+              }}
+              className={`w-full ${INPUT_HEIGHT} px-4 ${fieldErrors.nickname ? 'border-red-500' : ''}`} 
+            />
+            {fieldErrors.nickname && (
+              <div className="text-[12px] text-red-600 mt-1 px-2">
+                {fieldErrors.nickname}
+              </div>
+            )}
+          </div>
           
           {/* 비밀번호 입력 */}
           <div className="w-full">
             <NeangteolInput 
               type="password" 
-              placeholder="비밀번호 입력 (최소 4자 이상)" 
+              placeholder="비밀번호 입력 * (최소 4자 이상)" 
               value={password}
               onChange={(e) => {
                 const value = e.target.value;
                 setPassword(value);
+                if (fieldErrors.password) {
+                  setFieldErrors({ ...fieldErrors, password: undefined });
+                }
                 if (value.length > 0 && value.length < 4) {
                   setPasswordError('비밀번호는 최소 4자 이상이어야 합니다.');
                 } else {
@@ -369,14 +424,19 @@ const Signup: React.FC = () => {
                 }
               }}
               showPasswordToggle={true}
-              className={`w-full ${INPUT_HEIGHT} px-4`} 
+              className={`w-full ${INPUT_HEIGHT} px-4 ${fieldErrors.password ? 'border-red-500' : ''}`} 
             />
-            {passwordError && (
+            {fieldErrors.password && (
+              <div className="text-[12px] text-red-600 mt-1 px-2">
+                {fieldErrors.password}
+              </div>
+            )}
+            {passwordError && !fieldErrors.password && (
               <div className="text-[12px] text-red-500 mt-1 px-2">
                 {passwordError}
               </div>
             )}
-            {password.length >= 4 && !passwordError && (
+            {password.length >= 4 && !passwordError && !fieldErrors.password && (
               <div className="text-[12px] text-green-600 mt-1 px-2">
                 ✓ 사용 가능한 비밀번호입니다.
               </div>
@@ -387,11 +447,14 @@ const Signup: React.FC = () => {
           <div className="w-full">
             <NeangteolInput 
               type="password" 
-              placeholder="비밀번호 확인" 
+              placeholder="비밀번호 확인 *" 
               value={confirmPassword}
               onChange={(e) => {
                 const value = e.target.value;
                 setConfirmPassword(value);
+                if (fieldErrors.confirmPassword) {
+                  setFieldErrors({ ...fieldErrors, confirmPassword: undefined });
+                }
                 if (password && value && password !== value) {
                   setError('비밀번호가 일치하지 않습니다.');
                 } else {
@@ -399,9 +462,14 @@ const Signup: React.FC = () => {
                 }
               }}
               showPasswordToggle={true}
-              className={`w-full ${INPUT_HEIGHT} px-4`} 
+              className={`w-full ${INPUT_HEIGHT} px-4 ${fieldErrors.confirmPassword ? 'border-red-500' : ''}`} 
             />
-            {confirmPassword && password === confirmPassword && password.length >= 4 && (
+            {fieldErrors.confirmPassword && (
+              <div className="text-[12px] text-red-600 mt-1 px-2">
+                {fieldErrors.confirmPassword}
+              </div>
+            )}
+            {confirmPassword && password === confirmPassword && password.length >= 4 && !fieldErrors.confirmPassword && (
               <div className="text-[12px] text-green-600 mt-1 px-2">
                 ✓ 비밀번호가 일치합니다.
               </div>

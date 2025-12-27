@@ -838,7 +838,7 @@ def signup():
             return jsonify({'error': '이메일과 비밀번호를 입력해주세요.'}), 400
         
         if not nickname:
-            nickname = email.split('@')[0]  # 닉네임이 없으면 이메일 앞부분 사용
+            return jsonify({'error': '닉네임을 입력해주세요.'}), 400
         
         # 이메일 형식 검사 (간단한 검사)
         if '@' not in email:
