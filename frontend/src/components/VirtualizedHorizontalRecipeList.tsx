@@ -322,7 +322,7 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
           style={{
             position: 'absolute',
             left: '8px',
-            top: '50%',
+            top: '35%',
             transform: 'translateY(-50%)',
             pointerEvents: 'auto',
             zIndex: 10,
@@ -510,7 +510,7 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
           style={{
             position: 'absolute',
             right: '8px',
-            top: '50%',
+            top: '35%',
             transform: 'translateY(-50%)',
             pointerEvents: 'auto',
             zIndex: 10,

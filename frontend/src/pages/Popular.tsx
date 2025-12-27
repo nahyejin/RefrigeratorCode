@@ -454,15 +454,7 @@ const getPlatformLogo = (platform: string | undefined) => {
 };
 
 // Update helper function to use correct localStorage keys
-function getRecipeActionState(recipeId: number) {
-  const completedRecipes = JSON.parse(localStorage.getItem('my_completed_recipes') || '[]');
-  const recordedRecipes = JSON.parse(localStorage.getItem('my_recorded_recipes') || '[]');
-  return {
-    done: completedRecipes.some((r: any) => r.id === recipeId),
-    write: recordedRecipes.some((r: any) => r.id === recipeId),
-    share: false,
-  };
-}
+// 이 함수는 컴포넌트 내부에서 사용자별로 관리되므로 여기서는 제거됨
 
 // CSV에서 '대분류'가 '요리이름'인 'keyword'와 'synonyms' 추출
 function extractDishKeywordsFromCSV(csv: string): { keyword: string; synonyms: string[] }[] {
@@ -620,10 +612,14 @@ const Popular = () => {
   const nickname = "닉네임"; // 실제 닉네임 연동 필요
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, user: authUser } = useAuth();
   const [showRegisterModal, setShowRegisterModal] = useState(false);
   const [registerModalMessage, setRegisterModalMessage] = useState('');
   const [pendingRecipe, setPendingRecipe] = useState<{ id: number; type: 'done' | 'write'; recipe: any } | null>(null);
+  
+  // 사용자별 레시피 상태 (DB 또는 localStorage)
+  const [userCompletedRecipes, setUserCompletedRecipes] = useState<number[]>([]);
+  const [userRecordedRecipes, setUserRecordedRecipes] = useState<number[]>([]);
 
   // 필터 관련 상태 (RecipeList.tsx와 동일)
   const [filterOpen, setFilterOpen] = useState(false);
@@ -753,7 +749,7 @@ const Popular = () => {
   }
 
   // Update handleRecipeAction to use correct localStorage keys and sync properly
-  const handleRecipeAction = (id: number, action: { action: 'done' | 'write' | 'share' }) => {
+  const handleRecipeAction = async (id: number, action: { action: 'done' | 'write' | 'share' }) => {
     const prevState = buttonStates[id] || getRecipeActionState(id);
     
       if (action.action === 'done') {
@@ -761,6 +757,24 @@ const Popular = () => {
         if (prevState.done) {
           // 완료 취소
           removeRecipeFromLocalStorage('done', id);
+          setUserCompletedRecipes(prev => prev.filter(rid => rid !== id));
+          
+          // 로그인한 경우 DB에서도 삭제
+          if (isLoggedIn && authUser?.id) {
+            try {
+              const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+              if (token) {
+                const apiUrl = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'https://refrigeratorcode-production.up.railway.app';
+                await fetch(`${apiUrl}/api/users/${authUser.id}/completed-recipes/${id}`, {
+                  method: 'DELETE',
+                  headers: { 'Authorization': `Bearer ${token}` },
+                });
+              }
+            } catch (error) {
+              console.error('[Popular] 완료 레시피 삭제 실패:', error);
+            }
+          }
+          
         setButtonStates(prev => ({ ...prev, [id]: { ...prev[id], done: false } }));
           setToast('레시피 완료를 취소했습니다!');
         } else {
@@ -840,6 +854,28 @@ const Popular = () => {
               action: recipe.action,
             };
             addRecipeToLocalStorage('done', normalized);
+            setUserCompletedRecipes(prev => [...prev, id]);
+            
+            // 로그인한 경우 DB에도 저장
+            if (isLoggedIn && authUser?.id) {
+              try {
+                const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+                if (token) {
+                  const apiUrl = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'https://refrigeratorcode-production.up.railway.app';
+                  await fetch(`${apiUrl}/api/users/${authUser.id}/completed-recipes`, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({ recipe_id: id }),
+                  });
+                }
+              } catch (error) {
+                console.error('[Popular] 완료 레시피 저장 실패:', error);
+              }
+            }
+            
           setButtonStates(prev => ({ ...prev, [id]: { ...prev[id], done: true } }));
             setToast('레시피를 완료했습니다!');
           }
@@ -850,6 +886,24 @@ const Popular = () => {
         if (prevState.write) {
           // 기록 취소
           removeRecipeFromLocalStorage('write', id);
+          setUserRecordedRecipes(prev => prev.filter(rid => rid !== id));
+          
+          // 로그인한 경우 DB에서도 삭제
+          if (isLoggedIn && authUser?.id) {
+            try {
+              const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+              if (token) {
+                const apiUrl = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'https://refrigeratorcode-production.up.railway.app';
+                await fetch(`${apiUrl}/api/users/${authUser.id}/recorded-recipes/${id}`, {
+                  method: 'DELETE',
+                  headers: { 'Authorization': `Bearer ${token}` },
+                });
+              }
+            } catch (error) {
+              console.error('[Popular] 기록 레시피 삭제 실패:', error);
+            }
+          }
+          
         setButtonStates(prev => ({ ...prev, [id]: { ...prev[id], write: false } }));
           setToast('레시피 기록을 취소했습니다!');
         } else {
@@ -929,6 +983,28 @@ const Popular = () => {
               action: recipe.action,
             };
             addRecipeToLocalStorage('write', normalized);
+            setUserRecordedRecipes(prev => [...prev, id]);
+            
+            // 로그인한 경우 DB에도 저장
+            if (isLoggedIn && authUser?.id) {
+              try {
+                const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+                if (token) {
+                  const apiUrl = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'https://refrigeratorcode-production.up.railway.app';
+                  await fetch(`${apiUrl}/api/users/${authUser.id}/recorded-recipes`, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({ recipe_id: id }),
+                  });
+                }
+              } catch (error) {
+                console.error('[Popular] 기록 레시피 저장 실패:', error);
+              }
+            }
+            
           setButtonStates(prev => ({ ...prev, [id]: { ...prev[id], write: true } }));
             setToast('레시피를 기록했습니다!');
           }
@@ -1130,14 +1206,70 @@ const Popular = () => {
     }));
   }, [sortType, matchRange, maxLack, appliedExpiryIngredients, expirySortType]);
 
-  // Add useEffect to initialize buttonStates from localStorage on mount
+  // 사용자별 레시피 상태 로드 (로그인한 경우 DB에서, 비로그인은 localStorage에서)
+  useEffect(() => {
+    const loadUserRecipes = async () => {
+      if (isLoggedIn && authUser?.id) {
+        // 로그인한 경우 DB에서 로드
+        try {
+          const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+          if (!token) return;
+          
+          const apiUrl = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'https://refrigeratorcode-production.up.railway.app';
+          
+          // 기록한 레시피
+          const recordedResponse = await fetch(`${apiUrl}/api/users/${authUser.id}/recorded-recipes`, {
+            headers: { 'Authorization': `Bearer ${token}` },
+          });
+          if (recordedResponse.ok) {
+            const recordedData = await recordedResponse.json();
+            if (recordedData.recipes) {
+              setUserRecordedRecipes(recordedData.recipes.map((r: any) => r.id));
+            }
+          }
+          
+          // 완료한 레시피
+          const completedResponse = await fetch(`${apiUrl}/api/users/${authUser.id}/completed-recipes`, {
+            headers: { 'Authorization': `Bearer ${token}` },
+          });
+          if (completedResponse.ok) {
+            const completedData = await completedResponse.json();
+            if (completedData.recipes) {
+              setUserCompletedRecipes(completedData.recipes.map((r: any) => r.id));
+            }
+          }
+        } catch (error) {
+          console.error('[Popular] 사용자 레시피 로드 실패:', error);
+        }
+      } else {
+        // 비로그인인 경우 localStorage에서 로드
+        const completedRecipes = JSON.parse(localStorage.getItem('my_completed_recipes') || '[]');
+        const recordedRecipes = JSON.parse(localStorage.getItem('my_recorded_recipes') || '[]');
+        setUserCompletedRecipes(completedRecipes.map((r: any) => r.id));
+        setUserRecordedRecipes(recordedRecipes.map((r: any) => r.id));
+      }
+    };
+    
+    loadUserRecipes();
+  }, [isLoggedIn, authUser?.id]);
+
+  // 레시피 액션 상태 가져오기 함수 (사용자별)
+  const getRecipeActionState = (recipeId: number) => {
+    return {
+      done: userCompletedRecipes.includes(recipeId),
+      write: userRecordedRecipes.includes(recipeId),
+      share: false,
+    };
+  };
+
+  // Add useEffect to initialize buttonStates from user recipes
   useEffect(() => {
     const initialButtonStates: { [id: number]: { done: boolean; write: boolean; share: boolean } } = {};
-    youtubeRecipes.forEach(recipe => {
+    [...youtubeRecipes, ...naverRecipes].forEach(recipe => {
       initialButtonStates[recipe.id] = getRecipeActionState(recipe.id);
     });
     setButtonStates(initialButtonStates);
-  }, [youtubeRecipes]);
+  }, [youtubeRecipes, naverRecipes, userCompletedRecipes, userRecordedRecipes]);
 
   return (
     <>
