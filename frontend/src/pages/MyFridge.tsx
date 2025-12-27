@@ -372,32 +372,136 @@ const MyFridge: React.FC = () => {
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
   const [guideStep, setGuideStep] = useState(0);
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, user } = useAuth();
   const navigate = useNavigate();
   const isInitialLoad = React.useRef(true); // 초기 로드 플래그
 
-  React.useEffect(() => {
-    const loaded = loadIngredients();
-    const hasData = loaded.frozen.length > 0 || loaded.fridge.length > 0 || loaded.room.length > 0;
+  // DB에서 재료 로드
+  const loadIngredientsFromDB = async () => {
+    if (!isLoggedIn || !user?.id) return null;
     
-    // 데이터가 있으면 초기 로드 완료로 표시 (CSV 로드 후 초기 재료 추가가 필요 없음)
-    if (hasData) {
-      isInitialLoad.current = false;
-      // 재료가 있으면 localStorage에 강제로 저장 (동기화 보장)
-      console.log('[MyFridge] 기존 재료 발견 - localStorage에 저장:', {
-        frozen: loaded.frozen.length,
-        fridge: loaded.fridge.length,
-        room: loaded.room.length
+    try {
+      const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+      if (!token) return null;
+      
+      const apiUrl = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'https://refrigeratorcode-production.up.railway.app';
+      const response = await fetch(`${apiUrl}/api/users/${user.id}/ingredients`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
       });
-      saveIngredients(loaded.frozen, loaded.fridge, loaded.room);
+      
+      if (response.ok) {
+        const data = await response.json();
+        return {
+          frozen: data.frozen || [],
+          fridge: data.fridge || [],
+          room: data.room || [],
+        };
+      }
+    } catch (error) {
+      console.error('[MyFridge] DB에서 재료 로드 실패:', error);
     }
-    // 데이터가 없으면 CSV 로드 후 초기 재료 추가가 필요하므로 플래그 유지
+    return null;
+  };
+
+  // DB에 재료 저장
+  const saveIngredientsToDB = async (frozen: Ingredient[], fridge: Ingredient[], room: Ingredient[]) => {
+    if (!isLoggedIn || !user?.id) return;
     
-    setFrozen(loaded.frozen);
-    setFridge(loaded.fridge);
-    setRoom(loaded.room);
-    // 로컬 스토리지에서 로드하는 것은 즉시 완료되므로 로딩 종료
-    setLoading(false);
+    try {
+      const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+      if (!token) return;
+      
+      const apiUrl = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'https://refrigeratorcode-production.up.railway.app';
+      await fetch(`${apiUrl}/api/users/${user.id}/ingredients`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          ingredients: { frozen, fridge, room },
+        }),
+      });
+    } catch (error) {
+      console.error('[MyFridge] DB에 재료 저장 실패:', error);
+    }
+  };
+
+  // 로그인 상태 변경 시 localStorage → DB 동기화
+  React.useEffect(() => {
+    const syncLocalStorageToDB = async () => {
+      // 비회원 → 회원 전환 시 localStorage 데이터를 DB에 저장
+      if (isLoggedIn && user?.id) {
+        const localData = loadIngredients();
+        const hasLocalData = localData.frozen.length > 0 || localData.fridge.length > 0 || localData.room.length > 0;
+        
+        if (hasLocalData) {
+          // DB에 데이터가 있는지 확인
+          const dbData = await loadIngredientsFromDB();
+          const hasDbData = dbData && (dbData.frozen.length > 0 || dbData.fridge.length > 0 || dbData.room.length > 0);
+          
+          // DB에 데이터가 없으면 localStorage 데이터를 DB에 저장
+          if (!hasDbData) {
+            console.log('[MyFridge] 비회원 → 회원 전환: localStorage 데이터를 DB에 동기화:', {
+              frozen: localData.frozen.length,
+              fridge: localData.fridge.length,
+              room: localData.room.length
+            });
+            await saveIngredientsToDB(localData.frozen, localData.fridge, localData.room);
+          }
+        }
+      }
+    };
+    
+    syncLocalStorageToDB();
+  }, [isLoggedIn, user?.id]);
+
+  React.useEffect(() => {
+    const loadData = async () => {
+      // 로그인한 경우 DB에서 먼저 로드 시도
+      if (isLoggedIn && user?.id) {
+        const dbData = await loadIngredientsFromDB();
+        if (dbData && (dbData.frozen.length > 0 || dbData.fridge.length > 0 || dbData.room.length > 0)) {
+          // DB에 데이터가 있으면 DB 데이터 사용
+          setFrozen(dbData.frozen);
+          setFridge(dbData.fridge);
+          setRoom(dbData.room);
+          // localStorage에도 백업 저장
+          saveIngredients(dbData.frozen, dbData.fridge, dbData.room);
+          isInitialLoad.current = false;
+          setLoading(false);
+          return;
+        }
+      }
+      
+      // DB에 없거나 비로그인인 경우 localStorage에서 로드
+      const loaded = loadIngredients();
+      const hasData = loaded.frozen.length > 0 || loaded.fridge.length > 0 || loaded.room.length > 0;
+      
+      if (hasData) {
+        isInitialLoad.current = false;
+        console.log('[MyFridge] 기존 재료 발견 - localStorage에서 로드:', {
+          frozen: loaded.frozen.length,
+          fridge: loaded.fridge.length,
+          room: loaded.room.length
+        });
+        saveIngredients(loaded.frozen, loaded.fridge, loaded.room);
+        // 로그인한 경우 DB에도 저장 (DB에 데이터가 없을 때만)
+        if (isLoggedIn && user?.id) {
+          await saveIngredientsToDB(loaded.frozen, loaded.fridge, loaded.room);
+        }
+      }
+      
+      setFrozen(loaded.frozen);
+      setFridge(loaded.fridge);
+      setRoom(loaded.room);
+      // 로컬 스토리지에서 로드하는 것은 즉시 완료되므로 로딩 종료
+      setLoading(false);
+    };
+    
+    loadData();
   }, []);
 
   React.useEffect(() => {
@@ -519,6 +623,10 @@ const MyFridge: React.FC = () => {
           });
           
           saveIngredients(newFrozen, newFridge, newRoom);
+          // 로그인한 경우 DB에도 저장
+          if (isLoggedIn && user?.id) {
+            saveIngredientsToDB(newFrozen, newFridge, newRoom);
+          }
           
           // 초기 재료 추가 완료 후 초기 로드 플래그 해제
           isInitialLoad.current = false;
@@ -634,6 +742,10 @@ const MyFridge: React.FC = () => {
           roomCount: room.length
         });
       saveIngredients(frozen, fridge, room);
+      // 로그인한 경우 DB에도 저장
+      if (isLoggedIn && user?.id) {
+        saveIngredientsToDB(frozen, fridge, room);
+      }
       } else {
         console.log('[MyFridge] useEffect에서 재료 저장 스킵 (빈 배열):', {
           frozenCount: frozen.length,

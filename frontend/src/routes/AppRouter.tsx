@@ -5,6 +5,9 @@ import ScrollToTop from '../components/ScrollToTop';
 import TopNavBar from '../components/TopNavBar';
 import { AuthProvider } from '../context/AuthContext';
 import Login from '../pages/Login';
+import Signup from '../pages/Signup';
+import FindEmail from '../pages/FindEmail';
+import ResetPassword from '../pages/ResetPassword';
 import FridgeSelect from '../pages/FridgeSelect';
 import IngredientInput from '../pages/IngredientInput';
 import RecipeList from '../pages/RecipeList';
@@ -19,6 +22,9 @@ import AuthSuccess from '../pages/AuthSuccess';
 const ROUTES = {
   HOME: '/',
   LOGIN: '/login',
+  SIGNUP: '/signup',
+  FIND_EMAIL: '/find-email',
+  RESET_PASSWORD: '/reset-password',
   MY_FRIDGE: '/my-fridge',
   FRIDGE_SELECT: '/fridge-select',
   INGREDIENT_INPUT: '/ingredient-input',
@@ -121,6 +127,24 @@ function AppContent() {
           <Route 
             path={ROUTES.LOGIN} 
             element={<Login />} 
+          />
+          
+          {/* 회원가입 페이지 */}
+          <Route 
+            path={ROUTES.SIGNUP} 
+            element={<Signup />} 
+          />
+          
+          {/* 이메일 찾기 페이지 */}
+          <Route 
+            path={ROUTES.FIND_EMAIL} 
+            element={<FindEmail />} 
+          />
+          
+          {/* 비밀번호 찾기 페이지 */}
+          <Route 
+            path={ROUTES.RESET_PASSWORD} 
+            element={<ResetPassword />} 
           />
           
           {/* 소셜 로그인 콜백 */}

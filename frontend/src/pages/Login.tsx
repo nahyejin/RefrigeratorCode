@@ -5,6 +5,7 @@ import kakaoLogo from '../assets/카카오톡로고.png';
 import naverLogo from '../assets/네이버로고.png';
 import NeangteolButton from '../components/NeangteolButton';
 import NeangteolInput from '../components/NeangteolInput';
+import { useAuth } from '../context/AuthContext';
 
 // =====================
 // 상수
@@ -51,6 +52,58 @@ const SSO_BUTTONS = [
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
+  const { loginWithToken } = useAuth();
+  
+  const [email, setEmail] = React.useState('');
+  const [password, setPassword] = React.useState('');
+  const [error, setError] = React.useState('');
+  const [loading, setLoading] = React.useState(false);
+  const [rememberMe, setRememberMe] = React.useState(false);
+
+  /**
+   * 일반 로그인 처리
+   */
+  const handleLogin = async () => {
+    if (!email || !password) {
+      setError('이메일과 비밀번호를 입력해주세요.');
+      return;
+    }
+
+    setError('');
+    setLoading(true);
+
+    try {
+      const apiUrl = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'https://refrigeratorcode-production.up.railway.app';
+      const response = await fetch(`${apiUrl}/api/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || '로그인에 실패했습니다.');
+        setLoading(false);
+        return;
+      }
+
+      // 로그인 처리
+      if (data.token) {
+        await loginWithToken(data.token, rememberMe);
+        navigate('/my-fridge');
+      }
+    } catch (err) {
+      console.error('Login error:', err);
+      setError('로그인 중 오류가 발생했습니다.');
+      setLoading(false);
+    }
+  };
 
   /**
    * 비회원으로 계속하기 클릭 처리
@@ -82,38 +135,62 @@ const Login: React.FC = () => {
         <div className={`flex flex-col ${CONTAINER_WIDTH} items-center gap-2 mb-3 mx-auto`}>
           <NeangteolInput 
             placeholder="이메일 입력" 
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             className={`w-full ${INPUT_HEIGHT} px-4`} 
           />
           <NeangteolInput 
             type="password" 
             placeholder="비밀번호 입력" 
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter') {
+                handleLogin();
+              }
+            }}
+            showPasswordToggle={true}
             className={`w-full ${INPUT_HEIGHT} px-4`} 
           />
+          
+          {/* 에러 메시지 */}
+          {error && (
+            <div className="w-full text-[12px] text-red-500 text-center mt-1">
+              {error}
+            </div>
+          )}
+          
           <NeangteolButton 
             color="bg-[#3c3c3c]" 
             textColor="text-white" 
             className={`w-full ${BUTTON_HEIGHT} rounded-xl text-[15px] mt-1 px-4`}
+            onClick={handleLogin}
+            disabled={loading}
           >
-            로그인
+            {loading ? '로그인 중...' : '로그인'}
           </NeangteolButton>
         </div>
         
         {/* 체크박스 */}
         <div className={`flex flex-row items-center justify-center gap-2 w-full ${MAX_CONTAINER_WIDTH} mb-2 px-1 mx-auto`}>
-          <label className="flex items-center gap-1 text-[12px] text-[#444] font-normal">
-            <input type="checkbox" className="w-4 h-4 accent-[#222]" /> 
+          <label className="flex items-center gap-1 text-[12px] text-[#444] font-normal cursor-pointer">
+            <input 
+              type="checkbox" 
+              className="w-4 h-4 accent-[#222] cursor-pointer" 
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+            /> 
             로그인 항상 유지
           </label>
         </div>
         
         {/* 하단 링크 */}
         <div className={`w-full ${MAX_CONTAINER_WIDTH} text-center text-[12px] text-[#333] mb-1 leading-tight mx-auto`}>
-          아직 회원이 아니신가요? <span className="underline font-bold cursor-pointer">3초 회원가입</span>
+          아직 회원이 아니신가요? <span className="underline font-bold cursor-pointer" onClick={() => navigate('/signup')}>3초 회원가입</span>
         </div>
-        <div className={`w-full ${MAX_CONTAINER_WIDTH} flex justify-center gap-2 text-[12px] text-[#333] mb-4 leading-tight mx-auto`}>
-          <span className="underline cursor-pointer">이메일 찾기</span>
-          <span>|</span>
-          <span className="underline cursor-pointer">비밀번호 찾기</span>
+        <div className={`w-full ${MAX_CONTAINER_WIDTH} text-center text-[12px] text-[#333] mb-4 leading-tight mx-auto`}>
+          <span className="underline cursor-pointer" onClick={() => navigate('/reset-password')}>비밀번호 찾기</span>
         </div>
         
         {/* 하단 여백 - 더 줄임 */}

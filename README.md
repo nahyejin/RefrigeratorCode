@@ -347,11 +347,179 @@ RefrigeratorCode/
 └── PROJECT_OVERVIEW              # 프로젝트 설명 문서
 ```
 
-````````````````````````````````````````````````````````````````````````````````````````````````## MySQL 데이터베이스 구조 및 recipes 테이블 설명
+````````````````````````````````````````````````````````````````````````````````````````````````## MySQL 데이터베이스 구조
 
-### 스키마: refrigerator
+### 스키마: railway (Railway MySQL)
 
-#### 테이블: recipes
+### 📊 데이터베이스 테이블 구조
+
+#### 1. `users` 테이블 - 회원 정보
+| 컬럼명 | 타입 | 설명 |
+|--------|------|------|
+| id | int AI PK | 사용자 고유 ID (자동 증가) |
+| email | varchar(255) | 이메일 주소 |
+| nickname | varchar(255) | 닉네임 |
+| provider | varchar(50) | 로그인 방식 ('local', 'google', 'kakao', 'naver') |
+| provider_id | varchar(255) | 소셜 로그인 ID 또는 이메일 |
+| password | varchar(255) | 비밀번호 해시 (일반 로그인만, 소셜 로그인은 NULL) |
+| created_at | datetime | 가입일시 |
+| updated_at | datetime | 수정일시 |
+
+**특징:**
+- 같은 이메일이라도 로그인 방식(`provider`)별로 별도 계정으로 저장 가능
+- 비밀번호는 `werkzeug.security`로 해싱되어 저장
+- 소셜 로그인 사용자는 `password` 필드가 NULL
+
+#### 2. `user_ingredients` 테이블 - 사용자별 재료 저장
+| 컬럼명 | 타입 | 설명 |
+|--------|------|------|
+| id | int AI PK | 재료 고유 ID (자동 증가) |
+| user_id | int | 사용자 ID (users.id 참조) |
+| name | varchar(255) | 재료명 |
+| storage_box | ENUM | 보관 공간 ('frozen', 'fridge', 'room') |
+| expiry_date | date | 유통기한 (선택) |
+| purchase_date | date | 구매일 (선택) |
+| created_at | datetime | 추가일시 |
+| updated_at | datetime | 수정일시 |
+
+**특징:**
+- 각 사용자(`user_id`)별로 재료가 저장됨
+- Foreign Key로 사용자 삭제 시 관련 재료도 자동 삭제
+- 보관 공간별로 분류되어 저장
+
+#### 3. `user_recorded_recipes` 테이블 - 사용자별 기록한 레시피
+| 컬럼명 | 타입 | 설명 |
+|--------|------|------|
+| id | int AI PK | 기록 고유 ID (자동 증가) |
+| user_id | int | 사용자 ID (users.id 참조) |
+| recipe_id | int | 레시피 ID (recipes.id 참조) |
+| created_at | datetime | 기록일시 |
+
+**특징:**
+- 각 사용자(`user_id`)별로 기록한 레시피가 저장됨
+- `(user_id, recipe_id)` 조합이 유일하도록 제약 (중복 방지)
+- Foreign Key로 사용자 삭제 시 관련 기록도 자동 삭제
+
+#### 4. `user_completed_recipes` 테이블 - 사용자별 완료한 레시피
+| 컬럼명 | 타입 | 설명 |
+|--------|------|------|
+| id | int AI PK | 완료 고유 ID (자동 증가) |
+| user_id | int | 사용자 ID (users.id 참조) |
+| recipe_id | int | 레시피 ID (recipes.id 참조) |
+| created_at | datetime | 완료일시 |
+
+**특징:**
+- 각 사용자(`user_id`)별로 완료한 레시피가 저장됨
+- `(user_id, recipe_id)` 조합이 유일하도록 제약 (중복 방지)
+- Foreign Key로 사용자 삭제 시 관련 완료 기록도 자동 삭제
+
+### 📊 데이터 저장 및 동기화 방식
+
+#### 재료 데이터 (`user_ingredients`)
+**저장 우선순위:**
+1. **로그인한 사용자**: DB에 저장 (Railway MySQL)
+2. **비로그인 사용자**: localStorage에만 저장
+
+**동기화 로직:**
+- **비회원 → 회원 전환 시**: localStorage에 있던 재료가 DB에 자동 저장됨
+- **로그인 상태**: DB에 데이터가 있으면 DB 데이터 우선, 없으면 localStorage에서 로드 후 DB에 저장
+- **재료 변경 시**: 로그인한 경우 DB와 localStorage 모두 업데이트
+
+**예시 시나리오:**
+```
+1. 비회원 상태에서 재료 추가 → localStorage에 저장
+2. 로그인 → localStorage 재료가 DB에 자동 저장됨
+3. 이후 재료 변경 → DB와 localStorage 모두 업데이트
+```
+
+#### 레시피 데이터 (`user_recorded_recipes`, `user_completed_recipes`)
+**저장 방식:**
+- **로그인한 사용자**: DB에 저장
+- **비로그인 사용자**: localStorage에만 저장 (`my_recorded_recipes`, `my_completed_recipes`)
+
+**동기화 로직:**
+- 로그인 시 DB에서 레시피 로드
+- 레시피 기록/완료 시 DB에 저장 (로그인한 경우)
+- 레시피 삭제 시 DB에서도 삭제 (로그인한 경우)
+
+### 🔍 데이터 확인 방법
+
+**MySQL에서 특정 사용자의 데이터 확인:**
+```sql
+-- 사용자 ID 확인
+SELECT id, email, nickname FROM users WHERE email = '사용자이메일@example.com';
+
+-- 특정 사용자의 재료 확인
+SELECT * FROM user_ingredients WHERE user_id = {사용자ID};
+
+-- 특정 사용자가 기록한 레시피 확인
+SELECT * FROM user_recorded_recipes WHERE user_id = {사용자ID};
+
+-- 특정 사용자가 완료한 레시피 확인
+SELECT * FROM user_completed_recipes WHERE user_id = {사용자ID};
+```
+
+### 💡 데이터 저장 원칙
+
+1. **회원 데이터**: DB에 저장 (영구 보관, 여러 기기에서 접근 가능)
+2. **비회원 데이터**: localStorage에만 저장 (브라우저 종료 시 유지, 다른 기기에서는 접근 불가)
+3. **동기화**: 비회원 → 회원 전환 시 localStorage 데이터가 DB로 자동 마이그레이션
+
+## 🚀 배포 환경 설정
+
+### 배포 URL
+- **프론트엔드**: https://refrigerator-code.vercel.app
+- **백엔드**: https://refrigeratorcode-production.up.railway.app
+
+### 배포 환경에서 작동하는 기능
+
+#### ✅ 자동으로 작동하는 기능
+- 모든 API 호출은 `VITE_API_BASE_URL` 환경변수 또는 기본값(`https://refrigeratorcode-production.up.railway.app`) 사용
+- CORS 설정에 Vercel 도메인 포함됨
+- 데이터베이스 연결 (Railway MySQL)
+
+#### ⚠️ 배포 시 확인 필요 사항
+
+**1. Vercel 환경변수 설정**
+Vercel 대시보드에서 다음 환경변수를 설정해야 합니다:
+```
+VITE_API_BASE_URL=https://refrigeratorcode-production.up.railway.app
+```
+
+**2. Railway 환경변수 설정**
+Railway 대시보드에서 다음 환경변수를 설정해야 합니다:
+```
+FRONTEND_URL=https://refrigerator-code.vercel.app
+BACKEND_URL=https://refrigeratorcode-production.up.railway.app
+```
+
+**3. OAuth 리다이렉트 URI 확인**
+- **Google**: `https://refrigeratorcode-production.up.railway.app/api/auth/google/callback`
+- **Kakao**: `https://refrigeratorcode-production.up.railway.app/api/auth/kakao/callback`
+- **Naver**: `https://refrigeratorcode-production.up.railway.app/api/auth/naver/callback`
+
+### 배포 환경에서 작동하는 모든 기능
+
+✅ **인증 기능**
+- 소셜 로그인 (Google, Kakao, Naver)
+- 일반 회원가입/로그인
+- 이메일 인증
+- 비밀번호 찾기/재설정
+- 회원탈퇴
+- 로그인 항상 유지
+
+✅ **데이터 저장**
+- 사용자 재료 DB 저장 (`user_ingredients`)
+- 기록한 레시피 DB 저장 (`user_recorded_recipes`)
+- 완료한 레시피 DB 저장 (`user_completed_recipes`)
+- 비회원 → 회원 전환 시 localStorage → DB 동기화
+
+✅ **기타 기능**
+- 레시피 조회/필터링
+- 재료 관리
+- 마이페이지 기능
+
+#### 5. `recipes` 테이블 - 레시피 데이터
 
 | 컬럼명                  | 타입                | 설명                                                         |
 |------------------------|---------------------|--------------------------------------------------------------|

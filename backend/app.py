@@ -7,6 +7,12 @@ import requests
 import jwt
 import secrets
 from datetime import datetime, timedelta
+from werkzeug.security import generate_password_hash, check_password_hash
+import random
+import string
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 # 환경변수 로드
 # - 개발환경에서만 현재 디렉토리의 .env를 로드
@@ -14,6 +20,11 @@ from datetime import datetime, timedelta
 # .env 파일이 있으면 로드 (기존 환경변수는 덮어쓰지 않음)
 if os.getenv('FLASK_ENV', '').lower() == 'development' or not os.getenv('GOOGLE_CLIENT_ID'):
     load_dotenv(override=False)  # 기존 환경변수가 있으면 덮어쓰지 않음
+
+# SMTP 설정 확인 (디버깅용)
+print(f"[환경변수 로드 확인] SMTP_HOST: {os.getenv('SMTP_HOST', 'NOT SET')}")
+print(f"[환경변수 로드 확인] SMTP_USER: {os.getenv('SMTP_USER', 'NOT SET')}")
+print(f"[환경변수 로드 확인] SMTP_PASSWORD: {'SET' if os.getenv('SMTP_PASSWORD') else 'NOT SET'}")
 
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', secrets.token_hex(32))
@@ -434,12 +445,24 @@ def generate_jwt_token(user_id, email, nickname, provider=None):
     secret_key = os.getenv('JWT_SECRET_KEY', app.secret_key)
     return jwt.encode(payload, secret_key, algorithm='HS256')
 
+def verify_jwt_token(token):
+    """JWT 토큰 검증"""
+    try:
+        secret_key = os.getenv('JWT_SECRET_KEY', app.secret_key)
+        payload = jwt.decode(token, secret_key, algorithms=['HS256'])
+        return payload
+    except jwt.ExpiredSignatureError:
+        return None
+    except jwt.InvalidTokenError:
+        return None
+
 def ensure_users_table():
-    """users 테이블이 없으면 생성"""
+    """users 테이블이 없으면 생성하고, password 필드가 없으면 추가"""
     db = get_db()
     cursor = db.cursor()
     
     try:
+        # 테이블 생성
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -447,6 +470,7 @@ def ensure_users_table():
                 nickname VARCHAR(255) NOT NULL,
                 provider VARCHAR(50) NOT NULL,
                 provider_id VARCHAR(255) NOT NULL,
+                password VARCHAR(255) NULL,
                 created_at DATETIME NOT NULL,
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 UNIQUE KEY unique_provider_user (email, provider),
@@ -454,6 +478,16 @@ def ensure_users_table():
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         """)
         db.commit()
+        
+        # password 필드가 없으면 추가 (기존 테이블 마이그레이션)
+        try:
+            cursor.execute("ALTER TABLE users ADD COLUMN password VARCHAR(255) NULL")
+            db.commit()
+        except Exception as e:
+            # 필드가 이미 존재하면 무시
+            if 'Duplicate column name' not in str(e):
+                print(f"Error adding password column: {e}")
+            db.rollback()
     except Exception as e:
         db.rollback()
         print(f"Error creating users table: {e}")
@@ -771,6 +805,1056 @@ def naver_callback():
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+# =====================
+# 일반 회원가입/로그인
+# =====================
+
+@app.route('/api/auth/signup', methods=['POST'])
+def signup():
+    """일반 회원가입"""
+    try:
+        data = request.get_json()
+        email = data.get('email', '').strip()
+        password = data.get('password', '').strip()
+        nickname = data.get('nickname', '').strip()
+        
+        # 유효성 검사
+        if not email or not password:
+            return jsonify({'error': '이메일과 비밀번호를 입력해주세요.'}), 400
+        
+        if not nickname:
+            nickname = email.split('@')[0]  # 닉네임이 없으면 이메일 앞부분 사용
+        
+        # 이메일 형식 검사 (간단한 검사)
+        if '@' not in email:
+            return jsonify({'error': '올바른 이메일 형식이 아닙니다.'}), 400
+        
+        # 비밀번호 길이 검사
+        if len(password) < 4:
+            return jsonify({'error': '비밀번호는 최소 4자 이상이어야 합니다.'}), 400
+        
+        # 이메일 인증 확인 (운영 환경에서만 필수, 개발 환경에서는 선택)
+        require_email_verification = os.getenv('REQUIRE_EMAIL_VERIFICATION', 'false').lower() == 'true'
+        if require_email_verification:
+            if email not in email_verification_codes:
+                return jsonify({'error': '이메일 인증이 필요합니다.'}), 400
+            
+            verification_data = email_verification_codes[email]
+            if not verification_data.get('verified', False):
+                return jsonify({'error': '이메일 인증이 완료되지 않았습니다.'}), 400
+            
+            # 인증 완료 후 코드 삭제
+            del email_verification_codes[email]
+        
+        ensure_users_table()
+        db = get_db()
+        cursor = db.cursor()
+        
+        try:
+            # 이미 존재하는 사용자 확인 (같은 이메일, 같은 provider)
+            cursor.execute(
+                "SELECT id FROM users WHERE email = %s AND provider = 'local'",
+                (email,)
+            )
+            existing_user = cursor.fetchone()
+            
+            if existing_user:
+                return jsonify({'error': '이미 가입된 이메일입니다.'}), 400
+            
+            # 비밀번호 해싱
+            password_hash = generate_password_hash(password)
+            print(f"[회원가입] 이메일: {email}, 비밀번호 해시 생성 완료, 해시 길이: {len(password_hash)}")
+            
+            # 사용자 생성
+            cursor.execute(
+                "INSERT INTO users (email, nickname, provider, provider_id, password, created_at) VALUES (%s, %s, 'local', %s, %s, NOW())",
+                (email, nickname, email, password_hash)  # provider_id는 이메일 사용
+            )
+            user_id = cursor.lastrowid
+            db.commit()
+            print(f"[회원가입] 사용자 생성 완료, ID: {user_id}")
+            
+            # JWT 토큰 생성
+            token = generate_jwt_token(user_id, email, nickname, provider='local')
+            
+            return jsonify({
+                'message': '회원가입이 완료되었습니다.',
+                'token': token,
+                'user': {
+                    'id': user_id,
+                    'email': email,
+                    'nickname': nickname
+                }
+            }), 201
+            
+        except Exception as e:
+            db.rollback()
+            print(f"Signup error: {e}")
+            return jsonify({'error': '회원가입 중 오류가 발생했습니다.'}), 500
+        finally:
+            db.close()
+            
+    except Exception as e:
+        print(f"Signup error: {e}")
+        return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
+
+@app.route('/api/auth/login', methods=['POST'])
+def login():
+    """일반 로그인"""
+    try:
+        data = request.get_json()
+        email = data.get('email', '').strip()
+        password = data.get('password', '').strip()
+        
+        # 유효성 검사
+        if not email or not password:
+            return jsonify({'error': '이메일과 비밀번호를 입력해주세요.'}), 400
+        
+        ensure_users_table()
+        db = get_db()
+        cursor = db.cursor()
+        
+        try:
+            # 사용자 조회
+            cursor.execute(
+                "SELECT id, email, nickname, password FROM users WHERE email = %s AND provider = 'local'",
+                (email,)
+            )
+            user = cursor.fetchone()
+            
+            if not user:
+                return jsonify({'error': '이메일 또는 비밀번호가 올바르지 않습니다.'}), 401
+            
+            # DictCursor를 사용하므로 딕셔너리로 접근
+            user_id = user['id']
+            user_email = user['email']
+            user_nickname = user['nickname']
+            password_hash = user['password']
+            
+            # 디버깅 로그
+            print(f"[로그인 시도] 이메일: {email}, 비밀번호 해시 존재: {bool(password_hash)}, 해시 길이: {len(str(password_hash)) if password_hash else 0}, 해시 값: {str(password_hash)[:20] if password_hash else 'None'}...")
+            
+            # 비밀번호 확인
+            if not password_hash:
+                print(f"[로그인 실패] 비밀번호 해시가 없습니다.")
+                return jsonify({'error': '이메일 또는 비밀번호가 올바르지 않습니다.'}), 401
+            
+            password_match = check_password_hash(password_hash, password)
+            print(f"[비밀번호 검증] 결과: {password_match}, 입력 비밀번호 길이: {len(password)}")
+            
+            if not password_match:
+                print(f"[로그인 실패] 비밀번호가 일치하지 않습니다.")
+                return jsonify({'error': '이메일 또는 비밀번호가 올바르지 않습니다.'}), 401
+            
+            # JWT 토큰 생성
+            token = generate_jwt_token(user_id, user_email, user_nickname, provider='local')
+            
+            return jsonify({
+                'message': '로그인되었습니다.',
+                'token': token,
+                'user': {
+                    'id': user_id,
+                    'email': user_email,
+                    'nickname': user_nickname
+                }
+            }), 200
+            
+        except Exception as e:
+            print(f"Login error: {e}")
+            return jsonify({'error': '로그인 중 오류가 발생했습니다.'}), 500
+        finally:
+            db.close()
+            
+    except Exception as e:
+        print(f"Login error: {e}")
+        return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
+
+# =====================
+# 이메일 중복 체크 및 인증
+# =====================
+
+# 인증 코드 저장소 (실제 운영에서는 Redis 등을 사용하는 것이 좋습니다)
+email_verification_codes = {}
+
+def generate_verification_code():
+    """6자리 인증 코드 생성"""
+    return ''.join(random.choices(string.digits, k=6))
+
+def send_verification_email(email, code):
+    """인증 코드 이메일 발송"""
+    try:
+        smtp_host = os.getenv('SMTP_HOST', '')
+        smtp_port = int(os.getenv('SMTP_PORT', '587'))
+        smtp_user = os.getenv('SMTP_USER', '')
+        smtp_password = os.getenv('SMTP_PASSWORD', '')
+        smtp_from = os.getenv('SMTP_FROM', smtp_user)
+        
+        print(f"[이메일 발송 시도] SMTP_HOST: {smtp_host}, SMTP_USER: {smtp_user}, 이메일: {email}")
+        
+        # SMTP 설정이 없으면 콘솔에 출력 (개발용)
+        if not smtp_host or not smtp_user:
+            print(f"[이메일 인증 코드 - SMTP 미설정] {email}: {code}")
+            return True
+        
+        print(f"[이메일 발송 시작] {email}로 인증 코드 발송 시도...")
+        
+        # 이메일 발송
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = '[Cookmatch] 이메일 인증 코드'
+        msg['From'] = smtp_from
+        msg['To'] = email
+        
+        html_content = f"""
+        <html>
+          <body>
+            <h2>이메일 인증 코드</h2>
+            <p>안녕하세요,</p>
+            <p>Cookmatch 인증 코드입니다.</p>
+            <p style="font-size: 24px; font-weight: bold; color: #3c3c3c; letter-spacing: 4px;">{code}</p>
+            <p>이 코드는 10분간 유효합니다.</p>
+            <p>본인이 요청하지 않은 경우 이 이메일을 무시하세요.</p>
+          </body>
+        </html>
+        """
+        
+        text_content = f"""
+이메일 인증 코드
+
+안녕하세요,
+
+Cookmatch 인증 코드입니다.
+
+{code}
+
+이 코드는 10분간 유효합니다.
+
+본인이 요청하지 않은 경우 이 이메일을 무시하세요.
+        """
+        
+        part1 = MIMEText(text_content, 'plain', 'utf-8')
+        part2 = MIMEText(html_content, 'html', 'utf-8')
+        
+        msg.attach(part1)
+        msg.attach(part2)
+        
+        print(f"[SMTP 연결 시도] {smtp_host}:{smtp_port}")
+        with smtplib.SMTP(smtp_host, smtp_port) as server:
+            print(f"[TLS 시작]")
+            server.starttls()
+            print(f"[로그인 시도] 사용자: {smtp_user}")
+            server.login(smtp_user, smtp_password)
+            print(f"[이메일 발송] {email}로 메시지 전송 중...")
+            server.send_message(msg)
+            print(f"[이메일 발송 성공] {email}로 인증 코드 발송 완료")
+        
+        return True
+    except smtplib.SMTPAuthenticationError as e:
+        print(f"[이메일 발송 오류 - 인증 실패] {e}")
+        print(f"[개발 모드] 이메일 인증 코드: {email}: {code}")
+        return False
+    except smtplib.SMTPException as e:
+        print(f"[이메일 발송 오류 - SMTP 오류] {e}")
+        print(f"[개발 모드] 이메일 인증 코드: {email}: {code}")
+        return False
+    except Exception as e:
+        import traceback
+        print(f"[이메일 발송 오류] {e}")
+        print(f"[트레이스백] {traceback.format_exc()}")
+        print(f"[개발 모드] 이메일 인증 코드: {email}: {code}")
+        # 개발 환경에서는 오류가 나도 계속 진행
+        if os.getenv('FLASK_ENV', '').lower() == 'development':
+            return True
+        return False
+
+@app.route('/api/auth/check-email', methods=['POST'])
+def check_email():
+    """이메일 중복 체크"""
+    try:
+        data = request.get_json()
+        email = data.get('email', '').strip()
+        
+        if not email:
+            return jsonify({'error': '이메일을 입력해주세요.'}), 400
+        
+        if '@' not in email:
+            return jsonify({'error': '올바른 이메일 형식이 아닙니다.'}), 400
+        
+        ensure_users_table()
+        db = get_db()
+        cursor = db.cursor()
+        
+        try:
+            # 일반 회원가입 사용자 확인
+            cursor.execute(
+                "SELECT id FROM users WHERE email = %s AND provider = 'local'",
+                (email,)
+            )
+            existing_user = cursor.fetchone()
+            
+            if existing_user:
+                return jsonify({
+                    'available': False,
+                    'message': '이미 사용 중인 이메일입니다.'
+                }), 200
+            
+            return jsonify({
+                'available': True,
+                'message': '사용 가능한 이메일입니다.'
+            }), 200
+            
+        except Exception as e:
+            print(f"Check email error: {e}")
+            return jsonify({'error': '이메일 확인 중 오류가 발생했습니다.'}), 500
+        finally:
+            db.close()
+            
+    except Exception as e:
+        print(f"Check email error: {e}")
+        return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
+
+@app.route('/api/auth/send-verification-code', methods=['POST'])
+def send_verification_code():
+    """이메일 인증 코드 발송"""
+    try:
+        data = request.get_json()
+        email = data.get('email', '').strip()
+        
+        if not email:
+            return jsonify({'error': '이메일을 입력해주세요.'}), 400
+        
+        if '@' not in email:
+            return jsonify({'error': '올바른 이메일 형식이 아닙니다.'}), 400
+        
+        # 인증 코드 생성
+        code = generate_verification_code()
+        
+        # 인증 코드 저장 (10분 유효)
+        email_verification_codes[email] = {
+            'code': code,
+            'expires_at': datetime.utcnow() + timedelta(minutes=10),
+            'verified': False
+        }
+        
+        # 이메일 발송
+        print(f"[인증 코드 발송 API] 이메일: {email}, 코드 생성 완료: {code}")
+        send_result = send_verification_email(email, code)
+        print(f"[인증 코드 발송 API] 이메일 발송 결과: {send_result}")
+        
+        # 개발 환경에서는 인증 코드를 응답에 포함
+        is_development = os.getenv('FLASK_ENV', '').lower() == 'development'
+        smtp_configured = bool(os.getenv('SMTP_HOST', '') and os.getenv('SMTP_USER', ''))
+        
+        print(f"[인증 코드 발송 API] 개발 모드: {is_development}, SMTP 설정됨: {smtp_configured}")
+        
+        response_data = {
+            'message': '인증 코드가 발송되었습니다.',
+            'email': email
+        }
+        
+        # 개발 환경이고 SMTP가 설정되지 않았으면 코드를 응답에 포함
+        if is_development and not smtp_configured:
+            response_data['dev_code'] = code  # 개발용: 인증 코드를 응답에 포함
+            response_data['dev_message'] = '개발 모드: 인증 코드가 화면에 표시됩니다.'
+        
+        # 개발 환경에서는 이메일 발송 실패해도 코드를 응답에 포함
+        if is_development:
+            if not send_result:
+                print(f"[인증 코드 발송 API] 개발 모드: 이메일 발송 실패했지만 코드를 응답에 포함")
+                response_data['dev_code'] = code
+                response_data['dev_message'] = '개발 모드: 이메일 발송 실패, 인증 코드가 화면에 표시됩니다.'
+            return jsonify(response_data), 200
+        
+        if send_result:
+            return jsonify(response_data), 200
+        else:
+            return jsonify({'error': '이메일 발송에 실패했습니다.'}), 500
+            
+    except Exception as e:
+        import traceback
+        print(f"[인증 코드 발송 API] 오류 발생: {e}")
+        print(f"[인증 코드 발송 API] 트레이스백:\n{traceback.format_exc()}")
+        return jsonify({'error': f'서버 오류가 발생했습니다: {str(e)}'}), 500
+
+@app.route('/api/auth/verify-email-code', methods=['POST'])
+def verify_email_code():
+    """이메일 인증 코드 검증"""
+    try:
+        data = request.get_json()
+        email = data.get('email', '').strip()
+        code = data.get('code', '').strip()
+        
+        if not email or not code:
+            return jsonify({'error': '이메일과 인증 코드를 입력해주세요.'}), 400
+        
+        # 인증 코드 확인
+        if email not in email_verification_codes:
+            return jsonify({'error': '인증 코드가 만료되었거나 존재하지 않습니다.'}), 400
+        
+        verification_data = email_verification_codes[email]
+        
+        # 만료 확인
+        if datetime.utcnow() > verification_data['expires_at']:
+            del email_verification_codes[email]
+            return jsonify({'error': '인증 코드가 만료되었습니다.'}), 400
+        
+        # 코드 확인
+        if verification_data['code'] != code:
+            return jsonify({'error': '인증 코드가 올바르지 않습니다.'}), 400
+        
+        # 인증 완료 표시
+        email_verification_codes[email]['verified'] = True
+        
+        return jsonify({
+            'message': '이메일 인증이 완료되었습니다.',
+            'verified': True
+        }), 200
+        
+    except Exception as e:
+        print(f"Verify email code error: {e}")
+        return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
+
+# =====================
+# 사용자 정보 관리
+# =====================
+
+@app.route('/api/auth/check-nickname', methods=['POST'])
+def check_nickname():
+    """닉네임 중복 체크"""
+    try:
+        data = request.get_json()
+        nickname = data.get('nickname', '').strip()
+        
+        if not nickname:
+            return jsonify({'error': '닉네임을 입력해주세요.'}), 400
+        
+        ensure_users_table()
+        db = get_db()
+        cursor = db.cursor()
+        
+        try:
+            # 닉네임 중복 확인
+            cursor.execute(
+                "SELECT id FROM users WHERE nickname = %s",
+                (nickname,)
+            )
+            existing_user = cursor.fetchone()
+            
+            if existing_user:
+                return jsonify({
+                    'available': False,
+                    'message': '이미 사용 중인 닉네임입니다.'
+                }), 200
+            
+            return jsonify({
+                'available': True,
+                'message': '사용 가능한 닉네임입니다.'
+            }), 200
+            
+        except Exception as e:
+            print(f"Check nickname error: {e}")
+            return jsonify({'error': '닉네임 확인 중 오류가 발생했습니다.'}), 500
+        finally:
+            db.close()
+            
+    except Exception as e:
+        print(f"Check nickname error: {e}")
+        return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
+
+@app.route('/api/auth/delete-account', methods=['POST'])
+def delete_account():
+    """회원탈퇴"""
+    try:
+        # JWT 토큰 확인
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({'error': '인증이 필요합니다.'}), 401
+        
+        token = auth_header.split(' ')[1]
+        payload = verify_jwt_token(token)
+        
+        if not payload:
+            return jsonify({'error': '유효하지 않은 토큰입니다.'}), 401
+        
+        user_id = payload.get('user_id')
+        email = payload.get('email')
+        provider = payload.get('provider', 'local')
+        
+        ensure_users_table()
+        db = get_db()
+        cursor = db.cursor()
+        
+        try:
+            # 사용자 삭제
+            cursor.execute(
+                "DELETE FROM users WHERE id = %s AND email = %s AND provider = %s",
+                (user_id, email, provider)
+            )
+            
+            if cursor.rowcount == 0:
+                return jsonify({'error': '사용자를 찾을 수 없습니다.'}), 404
+            
+            db.commit()
+            
+            return jsonify({
+                'message': '회원탈퇴가 완료되었습니다.'
+            }), 200
+            
+        except Exception as e:
+            db.rollback()
+            print(f"Delete account error: {e}")
+            return jsonify({'error': '회원탈퇴 중 오류가 발생했습니다.'}), 500
+        finally:
+            db.close()
+            
+    except Exception as e:
+        print(f"Delete account error: {e}")
+        return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
+
+@app.route('/api/auth/find-email', methods=['POST'])
+def find_email():
+    """이메일 찾기 (닉네임으로)"""
+    try:
+        data = request.get_json()
+        nickname = data.get('nickname', '').strip()
+        
+        if not nickname:
+            return jsonify({'error': '닉네임을 입력해주세요.'}), 400
+        
+        ensure_users_table()
+        db = get_db()
+        cursor = db.cursor()
+        
+        try:
+            # 일반 로그인 사용자만 조회 (소셜 로그인은 이메일 찾기 불필요)
+            cursor.execute(
+                "SELECT email FROM users WHERE nickname = %s AND provider = 'local'",
+                (nickname,)
+            )
+            user = cursor.fetchone()
+            
+            if not user:
+                return jsonify({'error': '해당 닉네임으로 등록된 이메일을 찾을 수 없습니다.'}), 404
+            
+            email = user[0]
+            # 이메일 일부 마스킹 (예: abc@example.com -> ab***@example.com)
+            email_parts = email.split('@')
+            if len(email_parts[0]) > 2:
+                masked_email = email_parts[0][:2] + '*' * (len(email_parts[0]) - 2) + '@' + email_parts[1]
+            else:
+                masked_email = '*' * len(email_parts[0]) + '@' + email_parts[1]
+            
+            return jsonify({
+                'email': masked_email,
+                'full_email': email  # 실제 이메일도 반환 (보안상 주의 필요)
+            }), 200
+            
+        except Exception as e:
+            print(f"Find email error: {e}")
+            return jsonify({'error': '이메일 찾기 중 오류가 발생했습니다.'}), 500
+        finally:
+            db.close()
+            
+    except Exception as e:
+        print(f"Find email error: {e}")
+        return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
+
+@app.route('/api/auth/reset-password', methods=['POST'])
+def reset_password():
+    """비밀번호 재설정"""
+    try:
+        data = request.get_json()
+        email = data.get('email', '').strip()
+        code = data.get('code', '').strip()
+        new_password = data.get('new_password', '').strip()
+        
+        if not email or not code or not new_password:
+            return jsonify({'error': '이메일, 인증 코드, 새 비밀번호를 모두 입력해주세요.'}), 400
+        
+        # 비밀번호 길이 검사
+        if len(new_password) < 4:
+            return jsonify({'error': '비밀번호는 최소 4자 이상이어야 합니다.'}), 400
+        
+        # 인증 코드 확인
+        if email not in email_verification_codes:
+            return jsonify({'error': '인증 코드가 만료되었거나 존재하지 않습니다.'}), 400
+        
+        verification_data = email_verification_codes[email]
+        
+        # 만료 시간 확인
+        if datetime.utcnow() > verification_data['expires_at']:
+            del email_verification_codes[email]
+            return jsonify({'error': '인증 코드가 만료되었습니다.'}), 400
+        
+        # 인증 코드 확인
+        if verification_data['code'] != code:
+            return jsonify({'error': '인증 코드가 올바르지 않습니다.'}), 400
+        
+        # 인증 완료 확인
+        if not verification_data.get('verified', False):
+            return jsonify({'error': '이메일 인증이 완료되지 않았습니다.'}), 400
+        
+        ensure_users_table()
+        db = get_db()
+        cursor = db.cursor()
+        
+        try:
+            # 사용자 확인 (일반 로그인 사용자만)
+            cursor.execute(
+                "SELECT id FROM users WHERE email = %s AND provider = 'local'",
+                (email,)
+            )
+            user = cursor.fetchone()
+            
+            if not user:
+                return jsonify({'error': '해당 이메일로 등록된 사용자를 찾을 수 없습니다.'}), 404
+            
+            # 비밀번호 해싱 및 업데이트
+            password_hash = generate_password_hash(new_password)
+            print(f"[비밀번호 재설정] 이메일: {email}, 새 비밀번호 해시 생성 완료, 해시 길이: {len(password_hash)}")
+            cursor.execute(
+                "UPDATE users SET password = %s WHERE email = %s AND provider = 'local'",
+                (password_hash, email)
+            )
+            db.commit()
+            print(f"[비밀번호 재설정] 비밀번호 업데이트 완료")
+            
+            # 인증 코드 삭제
+            del email_verification_codes[email]
+            
+            return jsonify({
+                'message': '비밀번호가 성공적으로 변경되었습니다.'
+            }), 200
+            
+        except Exception as e:
+            db.rollback()
+            print(f"Reset password error: {e}")
+            return jsonify({'error': '비밀번호 재설정 중 오류가 발생했습니다.'}), 500
+        finally:
+            db.close()
+            
+    except Exception as e:
+        print(f"Reset password error: {e}")
+        return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
+
+# =====================
+# 사용자 재료 및 레시피 관리
+# =====================
+
+def ensure_user_data_tables():
+    """사용자 재료 및 레시피 테이블 생성"""
+    db = get_db()
+    cursor = db.cursor()
+    
+    try:
+        # 사용자 재료 테이블
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS user_ingredients (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                name VARCHAR(255) NOT NULL,
+                storage_box ENUM('frozen', 'fridge', 'room') NOT NULL,
+                expiry_date DATE NULL,
+                purchase_date DATE NULL,
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_user_id (user_id),
+                INDEX idx_storage_box (storage_box),
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        """)
+        
+        # 사용자 기록한 레시피 테이블
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS user_recorded_recipes (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                recipe_id INT NOT NULL,
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY unique_user_recipe (user_id, recipe_id),
+                INDEX idx_user_id (user_id),
+                INDEX idx_recipe_id (recipe_id),
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        """)
+        
+        # 사용자 완료한 레시피 테이블
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS user_completed_recipes (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                recipe_id INT NOT NULL,
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY unique_user_recipe (user_id, recipe_id),
+                INDEX idx_user_id (user_id),
+                INDEX idx_recipe_id (recipe_id),
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        """)
+        
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        print(f"Error creating user data tables: {e}")
+    finally:
+        db.close()
+
+@app.route('/api/users/<int:user_id>/ingredients', methods=['GET'])
+def get_user_ingredients(user_id):
+    """사용자 재료 조회"""
+    try:
+        # JWT 토큰 확인
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({'error': '인증이 필요합니다.'}), 401
+        
+        token = auth_header.split(' ')[1]
+        payload = verify_jwt_token(token)
+        
+        if not payload or payload.get('user_id') != user_id:
+            return jsonify({'error': '권한이 없습니다.'}), 403
+        
+        ensure_user_data_tables()
+        db = get_db()
+        cursor = db.cursor()
+        
+        try:
+            cursor.execute(
+                "SELECT id, name, storage_box, expiry_date, purchase_date FROM user_ingredients WHERE user_id = %s ORDER BY created_at DESC",
+                (user_id,)
+            )
+            ingredients = cursor.fetchall()
+            
+            # storage_box별로 그룹화
+            result = {
+                'frozen': [],
+                'fridge': [],
+                'room': []
+            }
+            
+            for ing in ingredients:
+                box = ing['storage_box']
+                result[box].append({
+                    'id': str(ing['id']),
+                    'name': ing['name'],
+                    'expiry': ing['expiry_date'].strftime('%Y-%m-%d') if ing['expiry_date'] else None,
+                    'purchase': ing['purchase_date'].strftime('%Y-%m-%d') if ing['purchase_date'] else None,
+                })
+            
+            return jsonify(result), 200
+            
+        except Exception as e:
+            print(f"Get user ingredients error: {e}")
+            return jsonify({'error': '재료 조회 중 오류가 발생했습니다.'}), 500
+        finally:
+            db.close()
+            
+    except Exception as e:
+        print(f"Get user ingredients error: {e}")
+        return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
+
+@app.route('/api/users/<int:user_id>/ingredients', methods=['POST'])
+def save_user_ingredients(user_id):
+    """사용자 재료 저장"""
+    try:
+        # JWT 토큰 확인
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({'error': '인증이 필요합니다.'}), 401
+        
+        token = auth_header.split(' ')[1]
+        payload = verify_jwt_token(token)
+        
+        if not payload or payload.get('user_id') != user_id:
+            return jsonify({'error': '권한이 없습니다.'}), 403
+        
+        data = request.get_json()
+        ingredients = data.get('ingredients', {})
+        
+        ensure_user_data_tables()
+        db = get_db()
+        cursor = db.cursor()
+        
+        try:
+            # 기존 재료 삭제
+            cursor.execute("DELETE FROM user_ingredients WHERE user_id = %s", (user_id,))
+            
+            # 새 재료 저장
+            for box in ['frozen', 'fridge', 'room']:
+                box_ingredients = ingredients.get(box, [])
+                for ing in box_ingredients:
+                    expiry_date = ing.get('expiry') if ing.get('expiry') else None
+                    purchase_date = ing.get('purchase') if ing.get('purchase') else None
+                    
+                    cursor.execute(
+                        """INSERT INTO user_ingredients (user_id, name, storage_box, expiry_date, purchase_date) 
+                           VALUES (%s, %s, %s, %s, %s)""",
+                        (user_id, ing['name'], box, expiry_date, purchase_date)
+                    )
+            
+            db.commit()
+            return jsonify({'message': '재료가 저장되었습니다.'}), 200
+            
+        except Exception as e:
+            db.rollback()
+            print(f"Save user ingredients error: {e}")
+            return jsonify({'error': '재료 저장 중 오류가 발생했습니다.'}), 500
+        finally:
+            db.close()
+            
+    except Exception as e:
+        print(f"Save user ingredients error: {e}")
+        return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
+
+@app.route('/api/users/<int:user_id>/recorded-recipes', methods=['GET'])
+def get_user_recorded_recipes(user_id):
+    """사용자 기록한 레시피 조회"""
+    try:
+        # JWT 토큰 확인
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({'error': '인증이 필요합니다.'}), 401
+        
+        token = auth_header.split(' ')[1]
+        payload = verify_jwt_token(token)
+        
+        if not payload or payload.get('user_id') != user_id:
+            return jsonify({'error': '권한이 없습니다.'}), 403
+        
+        ensure_user_data_tables()
+        db = get_db()
+        cursor = db.cursor()
+        
+        try:
+            cursor.execute(
+                """SELECT r.* FROM recipes r
+                   INNER JOIN user_recorded_recipes urr ON r.id = urr.recipe_id
+                   WHERE urr.user_id = %s
+                   ORDER BY urr.created_at DESC""",
+                (user_id,)
+            )
+            recipes = cursor.fetchall()
+            
+            return jsonify({'recipes': recipes}), 200
+            
+        except Exception as e:
+            print(f"Get user recorded recipes error: {e}")
+            return jsonify({'error': '레시피 조회 중 오류가 발생했습니다.'}), 500
+        finally:
+            db.close()
+            
+    except Exception as e:
+        print(f"Get user recorded recipes error: {e}")
+        return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
+
+@app.route('/api/users/<int:user_id>/recorded-recipes', methods=['POST'])
+def add_user_recorded_recipe(user_id):
+    """사용자 기록한 레시피 추가"""
+    try:
+        # JWT 토큰 확인
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({'error': '인증이 필요합니다.'}), 401
+        
+        token = auth_header.split(' ')[1]
+        payload = verify_jwt_token(token)
+        
+        if not payload or payload.get('user_id') != user_id:
+            return jsonify({'error': '권한이 없습니다.'}), 403
+        
+        data = request.get_json()
+        recipe_id = data.get('recipe_id')
+        
+        if not recipe_id:
+            return jsonify({'error': '레시피 ID가 필요합니다.'}), 400
+        
+        ensure_user_data_tables()
+        db = get_db()
+        cursor = db.cursor()
+        
+        try:
+            cursor.execute(
+                """INSERT INTO user_recorded_recipes (user_id, recipe_id) 
+                   VALUES (%s, %s)
+                   ON DUPLICATE KEY UPDATE created_at = created_at""",
+                (user_id, recipe_id)
+            )
+            db.commit()
+            return jsonify({'message': '레시피가 기록되었습니다.'}), 200
+            
+        except Exception as e:
+            db.rollback()
+            print(f"Add user recorded recipe error: {e}")
+            return jsonify({'error': '레시피 기록 중 오류가 발생했습니다.'}), 500
+        finally:
+            db.close()
+            
+    except Exception as e:
+        print(f"Add user recorded recipe error: {e}")
+        return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
+
+@app.route('/api/users/<int:user_id>/recorded-recipes/<int:recipe_id>', methods=['DELETE'])
+def remove_user_recorded_recipe(user_id, recipe_id):
+    """사용자 기록한 레시피 삭제"""
+    try:
+        # JWT 토큰 확인
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({'error': '인증이 필요합니다.'}), 401
+        
+        token = auth_header.split(' ')[1]
+        payload = verify_jwt_token(token)
+        
+        if not payload or payload.get('user_id') != user_id:
+            return jsonify({'error': '권한이 없습니다.'}), 403
+        
+        ensure_user_data_tables()
+        db = get_db()
+        cursor = db.cursor()
+        
+        try:
+            cursor.execute(
+                "DELETE FROM user_recorded_recipes WHERE user_id = %s AND recipe_id = %s",
+                (user_id, recipe_id)
+            )
+            db.commit()
+            return jsonify({'message': '레시피 기록이 삭제되었습니다.'}), 200
+            
+        except Exception as e:
+            db.rollback()
+            print(f"Remove user recorded recipe error: {e}")
+            return jsonify({'error': '레시피 삭제 중 오류가 발생했습니다.'}), 500
+        finally:
+            db.close()
+            
+    except Exception as e:
+        print(f"Remove user recorded recipe error: {e}")
+        return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
+
+@app.route('/api/users/<int:user_id>/completed-recipes', methods=['GET'])
+def get_user_completed_recipes(user_id):
+    """사용자 완료한 레시피 조회"""
+    try:
+        # JWT 토큰 확인
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({'error': '인증이 필요합니다.'}), 401
+        
+        token = auth_header.split(' ')[1]
+        payload = verify_jwt_token(token)
+        
+        if not payload or payload.get('user_id') != user_id:
+            return jsonify({'error': '권한이 없습니다.'}), 403
+        
+        ensure_user_data_tables()
+        db = get_db()
+        cursor = db.cursor()
+        
+        try:
+            cursor.execute(
+                """SELECT r.* FROM recipes r
+                   INNER JOIN user_completed_recipes ucr ON r.id = ucr.recipe_id
+                   WHERE ucr.user_id = %s
+                   ORDER BY ucr.created_at DESC""",
+                (user_id,)
+            )
+            recipes = cursor.fetchall()
+            
+            return jsonify({'recipes': recipes}), 200
+            
+        except Exception as e:
+            print(f"Get user completed recipes error: {e}")
+            return jsonify({'error': '레시피 조회 중 오류가 발생했습니다.'}), 500
+        finally:
+            db.close()
+            
+    except Exception as e:
+        print(f"Get user completed recipes error: {e}")
+        return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
+
+@app.route('/api/users/<int:user_id>/completed-recipes', methods=['POST'])
+def add_user_completed_recipe(user_id):
+    """사용자 완료한 레시피 추가"""
+    try:
+        # JWT 토큰 확인
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({'error': '인증이 필요합니다.'}), 401
+        
+        token = auth_header.split(' ')[1]
+        payload = verify_jwt_token(token)
+        
+        if not payload or payload.get('user_id') != user_id:
+            return jsonify({'error': '권한이 없습니다.'}), 403
+        
+        data = request.get_json()
+        recipe_id = data.get('recipe_id')
+        
+        if not recipe_id:
+            return jsonify({'error': '레시피 ID가 필요합니다.'}), 400
+        
+        ensure_user_data_tables()
+        db = get_db()
+        cursor = db.cursor()
+        
+        try:
+            cursor.execute(
+                """INSERT INTO user_completed_recipes (user_id, recipe_id) 
+                   VALUES (%s, %s)
+                   ON DUPLICATE KEY UPDATE created_at = created_at""",
+                (user_id, recipe_id)
+            )
+            db.commit()
+            return jsonify({'message': '레시피가 완료되었습니다.'}), 200
+            
+        except Exception as e:
+            db.rollback()
+            print(f"Add user completed recipe error: {e}")
+            return jsonify({'error': '레시피 완료 처리 중 오류가 발생했습니다.'}), 500
+        finally:
+            db.close()
+            
+    except Exception as e:
+        print(f"Add user completed recipe error: {e}")
+        return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
+
+@app.route('/api/users/<int:user_id>/completed-recipes/<int:recipe_id>', methods=['DELETE'])
+def remove_user_completed_recipe(user_id, recipe_id):
+    """사용자 완료한 레시피 삭제"""
+    try:
+        # JWT 토큰 확인
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({'error': '인증이 필요합니다.'}), 401
+        
+        token = auth_header.split(' ')[1]
+        payload = verify_jwt_token(token)
+        
+        if not payload or payload.get('user_id') != user_id:
+            return jsonify({'error': '권한이 없습니다.'}), 403
+        
+        ensure_user_data_tables()
+        db = get_db()
+        cursor = db.cursor()
+        
+        try:
+            cursor.execute(
+                "DELETE FROM user_completed_recipes WHERE user_id = %s AND recipe_id = %s",
+                (user_id, recipe_id)
+            )
+            db.commit()
+            return jsonify({'message': '레시피 완료가 취소되었습니다.'}), 200
+            
+        except Exception as e:
+            db.rollback()
+            print(f"Remove user completed recipe error: {e}")
+            return jsonify({'error': '레시피 삭제 중 오류가 발생했습니다.'}), 500
+        finally:
+            db.close()
+            
+    except Exception as e:
+        print(f"Remove user completed recipe error: {e}")
+        return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
 
 @app.route('/api/health')
 def health_check():

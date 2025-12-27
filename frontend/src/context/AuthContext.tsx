@@ -14,7 +14,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   register: (email: string, password: string, nickname: string) => Promise<void>;
-  loginWithToken: (token: string) => Promise<void>;
+  loginWithToken: (token: string, rememberMe?: boolean) => Promise<void>;
   loading: boolean;
 }
 
@@ -38,17 +38,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // 초기 로드 시 토큰 확인
   useEffect(() => {
-    const token = localStorage.getItem('auth_token');
-    if (token) {
-      // TODO: 토큰 검증 및 사용자 정보 로드
-      // 임시로 로컬 스토리지에서 사용자 정보 로드
-      const savedUser = localStorage.getItem('user');
-      if (savedUser) {
-        try {
-          setUser(JSON.parse(savedUser));
-        } catch (e) {
-          console.error('Failed to parse user data:', e);
-        }
+    // localStorage 먼저 확인 (로그인 항상 유지)
+    let token = localStorage.getItem('auth_token');
+    let savedUser = localStorage.getItem('user');
+    
+    // localStorage에 없으면 sessionStorage 확인 (일시적 로그인)
+    if (!token) {
+      token = sessionStorage.getItem('auth_token');
+      savedUser = sessionStorage.getItem('user');
+    }
+    
+    if (token && savedUser) {
+      try {
+        setUser(JSON.parse(savedUser));
+      } catch (e) {
+        console.error('Failed to parse user data:', e);
       }
     }
     setLoading(false);
@@ -107,10 +111,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = () => {
     localStorage.removeItem('auth_token');
     localStorage.removeItem('user');
+    sessionStorage.removeItem('auth_token');
+    sessionStorage.removeItem('user');
     setUser(null);
   };
 
-  const loginWithToken = async (token: string) => {
+  const loginWithToken = async (token: string, rememberMe: boolean = true) => {
     try {
       // JWT 토큰 디코딩하여 사용자 정보 추출
       // 실제로는 백엔드에서 토큰 검증 API를 호출해야 하지만,
@@ -135,8 +141,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         provider: payload.provider, // 'google', 'kakao', 'naver' 또는 undefined
       };
       
-      localStorage.setItem('auth_token', token);
-      localStorage.setItem('user', JSON.stringify(user));
+      // rememberMe에 따라 localStorage 또는 sessionStorage 사용
+      if (rememberMe) {
+        localStorage.setItem('auth_token', token);
+        localStorage.setItem('user', JSON.stringify(user));
+        // sessionStorage 정리 (혹시 남아있을 수 있음)
+        sessionStorage.removeItem('auth_token');
+        sessionStorage.removeItem('user');
+      } else {
+        sessionStorage.setItem('auth_token', token);
+        sessionStorage.setItem('user', JSON.stringify(user));
+        // localStorage 정리 (혹시 남아있을 수 있음)
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('user');
+      }
+      
       setUser(user);
       
       // 마이그레이션 실행

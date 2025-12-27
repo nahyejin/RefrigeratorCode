@@ -256,10 +256,102 @@ const MyPage: React.FC = () => {
   // 상태 관리
   // =====================
   
-  const { isLoggedIn, user: authUser } = useAuth();
+  const { isLoggedIn, user: authUser, logout } = useAuth();
   
   // 소셜 로그인 여부 확인
   const isSocialLogin = Boolean(authUser?.provider && ['google', 'kakao', 'naver'].includes(authUser.provider));
+
+  // DB에서 레시피 로드
+  const loadRecipesFromDB = async () => {
+    if (!isLoggedIn || !authUser?.id) return;
+    
+    try {
+      const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+      if (!token) return;
+      
+      const apiUrl = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'https://refrigeratorcode-production.up.railway.app';
+      
+      // 기록한 레시피
+      const recordedResponse = await fetch(`${apiUrl}/api/users/${authUser.id}/recorded-recipes`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (recordedResponse.ok) {
+        const recordedData = await recordedResponse.json();
+        if (recordedData.recipes && recordedData.recipes.length > 0) {
+          setRecordedRecipes(recordedData.recipes);
+          recordedData.recipes.forEach((r: any) => {
+            addRecipeToLocalStorage('write', r);
+          });
+        }
+      }
+      
+      // 완료한 레시피
+      const completedResponse = await fetch(`${apiUrl}/api/users/${authUser.id}/completed-recipes`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (completedResponse.ok) {
+        const completedData = await completedResponse.json();
+        if (completedData.recipes && completedData.recipes.length > 0) {
+          setCompletedRecipes(completedData.recipes);
+          completedData.recipes.forEach((r: any) => {
+            addRecipeToLocalStorage('done', r);
+          });
+        }
+      }
+    } catch (error) {
+      console.error('[MyPage] DB에서 레시피 로드 실패:', error);
+    }
+  };
+
+  // DB에 레시피 추가
+  const addRecipeToDB = async (type: 'write' | 'done', recipeId: number) => {
+    if (!isLoggedIn || !authUser?.id) return;
+    
+    try {
+      const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+      if (!token) return;
+      
+      const apiUrl = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'https://refrigeratorcode-production.up.railway.app';
+      const endpoint = type === 'write' 
+        ? `${apiUrl}/api/users/${authUser.id}/recorded-recipes`
+        : `${apiUrl}/api/users/${authUser.id}/completed-recipes`;
+      
+      await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ recipe_id: recipeId }),
+      });
+    } catch (error) {
+      console.error(`[MyPage] DB에 레시피 추가 실패 (${type}):`, error);
+    }
+  };
+
+  // DB에서 레시피 삭제
+  const removeRecipeFromDB = async (type: 'write' | 'done', recipeId: number) => {
+    if (!isLoggedIn || !authUser?.id) return;
+    
+    try {
+      const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+      if (!token) return;
+      
+      const apiUrl = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'https://refrigeratorcode-production.up.railway.app';
+      const endpoint = type === 'write'
+        ? `${apiUrl}/api/users/${authUser.id}/recorded-recipes/${recipeId}`
+        : `${apiUrl}/api/users/${authUser.id}/completed-recipes/${recipeId}`;
+      
+      await fetch(endpoint, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+    } catch (error) {
+      console.error(`[MyPage] DB에서 레시피 삭제 실패 (${type}):`, error);
+    }
+  };
   
   // 디버깅용 (개발 환경에서만)
   useEffect(() => {
@@ -317,11 +409,13 @@ const MyPage: React.FC = () => {
   const [showRegisterModal, setShowRegisterModal] = useState(false);
   const [registerModalMessage, setRegisterModalMessage] = useState('');
   const [pendingRegisterRecipe, setPendingRegisterRecipe] = useState<{ id: number; type: 'done' | 'write'; recipe: any } | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   const navigate = useNavigate();
   const location = useLocation();
 
-  // 로그인한 사용자 정보가 변경되면 user 상태 업데이트
+  // 로그인한 사용자 정보가 변경되면 user 상태 업데이트 및 레시피 로드
   useEffect(() => {
     if (authUser) {
       setUser({
@@ -334,6 +428,9 @@ const MyPage: React.FC = () => {
         nickname: authUser.nickname,
         userid: authUser.email,
       }));
+      
+      // DB에서 레시피 로드
+      loadRecipesFromDB();
     }
   }, [authUser]);
 
@@ -358,22 +455,33 @@ const MyPage: React.FC = () => {
       return;
     }
 
+    // 현재 닉네임과 동일하면 체크하지 않음
+    if (edit.nickname === user.nickname) {
+      setNicknameCheckResult({ available: true, message: '현재 사용 중인 닉네임입니다.' });
+      return;
+    }
+
     setCheckingNickname(true);
     setNicknameCheckResult(null);
 
-    // 시뮬레이션: 실제로는 API 호출
-    setTimeout(() => {
+    try {
+      const apiUrl = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'https://refrigeratorcode-production.up.railway.app';
+      const response = await fetch(`${apiUrl}/api/auth/check-nickname`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ nickname: edit.nickname }),
+      });
+
+      const data = await response.json();
+      setNicknameCheckResult(data);
+    } catch (err) {
+      console.error('Check nickname error:', err);
+      setNicknameCheckResult({ available: false, message: '닉네임 확인 중 오류가 발생했습니다.' });
+    } finally {
       setCheckingNickname(false);
-      // 임시로 랜덤하게 성공/실패 시뮬레이션 (실제로는 API 응답에 따라 결정)
-      const isAvailable = Math.random() > 0.5; // 50% 확률로 사용 가능
-      if (isAvailable) {
-        setNicknameCheckResult({ available: true, message: '사용 가능한 닉네임입니다.' });
-        showToast('사용 가능한 닉네임입니다.');
-      } else {
-        setNicknameCheckResult({ available: false, message: '이미 사용 중인 닉네임입니다.' });
-        showToast('이미 사용 중인 닉네임입니다.');
-      }
-    }, 1000);
+    }
   };
 
   /**
@@ -384,9 +492,17 @@ const MyPage: React.FC = () => {
     const newError: ErrorState = { password: '', phone: '' };
     
     // 비밀번호가 입력된 경우에만 검증
-    if (edit.password && edit.password !== '●●●●●●●' && edit.password.length < 6) {
-      newError.password = '비밀번호는 6자 이상이어야 합니다.';
+    if (edit.password && edit.password !== '●●●●●●●' && edit.password.length < 4) {
+      newError.password = '비밀번호는 최소 4자 이상이어야 합니다.';
       valid = false;
+    }
+    
+    // 닉네임이 변경된 경우 중복 체크 확인
+    if (edit.nickname !== user.nickname) {
+      if (!nicknameCheckResult || !nicknameCheckResult.available) {
+        showToast('닉네임 중복 체크를 완료해주세요.');
+        valid = false;
+      }
     }
     
     setError(newError);
@@ -397,6 +513,54 @@ const MyPage: React.FC = () => {
     
     // 모달 닫기
     setEditOpen(false);
+  };
+
+  /**
+   * 회원탈퇴 처리
+   */
+  const handleDeleteAccount = async () => {
+    setDeletingAccount(true);
+    
+    try {
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        showToast('로그인이 필요합니다.');
+        return;
+      }
+
+      const apiUrl = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'https://refrigeratorcode-production.up.railway.app';
+      const response = await fetch(`${apiUrl}/api/auth/delete-account`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        showToast(data.error || '회원탈퇴에 실패했습니다.');
+        setDeletingAccount(false);
+        return;
+      }
+
+      // 로그아웃 처리
+      logout();
+      
+      // 모달 닫기
+      setEditOpen(false);
+      setShowDeleteConfirm(false);
+      
+      // 홈으로 이동
+      navigate('/');
+      showToast('회원탈퇴가 완료되었습니다.');
+    } catch (err) {
+      console.error('Delete account error:', err);
+      showToast('회원탈퇴 중 오류가 발생했습니다.');
+    } finally {
+      setDeletingAccount(false);
+    }
   };
 
   /**
@@ -431,6 +595,7 @@ const MyPage: React.FC = () => {
         
         // 조건 통과 시 레시피 저장
         addRecipeToLocalStorage('done', recipe);
+        addRecipeToDB('done', id);
         const updatedCompleted = [...completedRecipes, recipe];
         setCompletedRecipes(updatedCompleted);
         setDoneStates(prev => ({ ...prev, [id]: true }));
@@ -475,6 +640,7 @@ const MyPage: React.FC = () => {
         
         // 조건 통과 시 레시피 저장
         addRecipeToLocalStorage('write', recipe);
+        addRecipeToDB('write', id);
         const updatedRecorded = [...recordedRecipes, recipe];
         setRecordedRecipes(updatedRecorded);
         setWriteStates(prev => ({ ...prev, [id]: true }));
@@ -496,11 +662,13 @@ const MyPage: React.FC = () => {
     if (pendingRemove.type === 'done') {
       setDoneStates(prev => ({ ...prev, [pendingRemove.id]: false }));
       removeRecipeFromLocalStorage('done', pendingRemove.id);
+      removeRecipeFromDB('done', pendingRemove.id);
       const updated = completedRecipes.filter((r: any) => String(r.id) !== String(pendingRemove.id));
       setCompletedRecipes(updated);
     } else if (pendingRemove.type === 'write') {
       setWriteStates(prev => ({ ...prev, [pendingRemove.id]: false }));
       removeRecipeFromLocalStorage('write', pendingRemove.id);
+      removeRecipeFromDB('write', pendingRemove.id);
       const updated = recordedRecipes.filter((r: any) => String(r.id) !== String(pendingRemove.id));
       setRecordedRecipes(updated);
     }
@@ -879,48 +1047,46 @@ const MyPage: React.FC = () => {
                       }}
                     />
                   </div>
-                  {/* 소셜 로그인 사용자는 중복 체크 버튼 숨김 (선택 사항) */}
-                  {!isSocialLogin && (
-                    <button 
-                      className="h-10 px-3 bg-[#FFD600] text-[#222] rounded-lg text-[14px] font-semibold whitespace-nowrap mt-6 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                      onClick={handleCheckNickname}
-                      disabled={checkingNickname || !edit.nickname || edit.nickname.trim() === ''}
-                      style={{ 
-                        outline: 'none', 
-                        border: 'none',
-                        opacity: checkingNickname ? 0.7 : 1,
-                        minWidth: '100px'
-                      }}
-                    >
-                      중복 체크
-                      {checkingNickname && (
-                        <svg
-                          width="16"
-                          height="16"
-                          viewBox="0 0 44 44"
-                          xmlns="http://www.w3.org/2000/svg"
-                          aria-label="로딩 중"
-                        >
-                          <g fill="none" fillRule="evenodd" strokeWidth="4">
-                            <circle cx="22" cy="22" r="20" stroke="#e5e7eb" />
-                            <path d="M42 22c0-11.046-8.954-20-20-20" stroke="#9ca3af">
-                              <animateTransform
-                                attributeName="transform"
-                                type="rotate"
-                                from="0 22 22"
-                                to="360 22 22"
-                                dur="0.8s"
-                                repeatCount="indefinite"
-                              />
-                            </path>
-                          </g>
-                        </svg>
-                      )}
-                    </button>
-                  )}
+                  {/* 모든 사용자에게 중복 체크 버튼 표시 */}
+                  <button 
+                    className="h-10 px-3 bg-[#FFD600] text-[#222] rounded-lg text-[14px] font-semibold whitespace-nowrap mt-6 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    onClick={handleCheckNickname}
+                    disabled={checkingNickname || !edit.nickname || edit.nickname.trim() === ''}
+                    style={{ 
+                      outline: 'none', 
+                      border: 'none',
+                      opacity: checkingNickname ? 0.7 : 1,
+                      minWidth: '100px'
+                    }}
+                  >
+                    중복 체크
+                    {checkingNickname && (
+                      <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 44 44"
+                        xmlns="http://www.w3.org/2000/svg"
+                        aria-label="로딩 중"
+                      >
+                        <g fill="none" fillRule="evenodd" strokeWidth="4">
+                          <circle cx="22" cy="22" r="20" stroke="#e5e7eb" />
+                          <path d="M42 22c0-11.046-8.954-20-20-20" stroke="#9ca3af">
+                            <animateTransform
+                              attributeName="transform"
+                              type="rotate"
+                              from="0 22 22"
+                              to="360 22 22"
+                              dur="0.8s"
+                              repeatCount="indefinite"
+                            />
+                          </path>
+                        </g>
+                      </svg>
+                    )}
+                  </button>
                 </div>
-                {/* 중복 체크 결과 메시지 (일반 로그인 사용자만 표시) */}
-                {!isSocialLogin && nicknameCheckResult && (
+                {/* 중복 체크 결과 메시지 (모든 사용자에게 표시) */}
+                {nicknameCheckResult && (
                   <div 
                     className={`text-[13px] mt-1 px-2 py-1 rounded ${
                       nicknameCheckResult.available 
@@ -1071,6 +1237,17 @@ const MyPage: React.FC = () => {
                   적용
                 </button>
               </div>
+              
+              {/* 회원탈퇴 버튼 */}
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <button
+                  className="w-full h-11 bg-red-50 text-red-600 border border-red-200 rounded-lg text-[14px] font-semibold hover:bg-red-100 transition"
+                  onClick={() => setShowDeleteConfirm(true)}
+                  style={{ outline: 'none' }}
+                >
+                  회원탈퇴
+                </button>
+              </div>
             </div>
           </div>
           <style>{`
@@ -1167,11 +1344,13 @@ const MyPage: React.FC = () => {
           if (pendingRegisterRecipe) {
             if (pendingRegisterRecipe.type === 'done') {
               addRecipeToLocalStorage('done', pendingRegisterRecipe.recipe);
+              addRecipeToDB('done', pendingRegisterRecipe.id);
               const updatedCompleted = [...completedRecipes, pendingRegisterRecipe.recipe];
               setCompletedRecipes(updatedCompleted);
               setDoneStates(prev => ({ ...prev, [pendingRegisterRecipe.id]: true }));
             } else if (pendingRegisterRecipe.type === 'write') {
               addRecipeToLocalStorage('write', pendingRegisterRecipe.recipe);
+              addRecipeToDB('write', pendingRegisterRecipe.id);
               const updatedRecorded = [...recordedRecipes, pendingRegisterRecipe.recipe];
               setRecordedRecipes(updatedRecorded);
               setWriteStates(prev => ({ ...prev, [pendingRegisterRecipe.id]: true }));
@@ -1181,6 +1360,37 @@ const MyPage: React.FC = () => {
         }}
         message={registerModalMessage || '더 많은 기능을 사용하려면'}
       />
+      
+      {/* 회원탈퇴 확인 모달 */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[1002]">
+          <div className="bg-white rounded-xl shadow-lg w-[320px] max-w-[90vw] p-6">
+            <div className="text-center mb-4">
+              <div className="text-[18px] font-bold text-[#222] mb-2">회원탈퇴</div>
+              <div className="text-[14px] text-gray-600">
+                정말 회원탈퇴를 하시겠습니까?<br />
+                탈퇴 후 모든 데이터가 삭제되며 복구할 수 없습니다.
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button
+                className="flex-1 h-11 bg-white text-[#222] border border-gray-300 rounded-lg text-[15px] font-semibold"
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={deletingAccount}
+              >
+                취소
+              </button>
+              <button
+                className="flex-1 h-11 bg-red-500 text-white rounded-lg text-[15px] font-semibold disabled:opacity-50"
+                onClick={handleDeleteAccount}
+                disabled={deletingAccount}
+              >
+                {deletingAccount ? '처리 중...' : '탈퇴하기'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
