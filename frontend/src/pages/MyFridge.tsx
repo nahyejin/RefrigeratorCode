@@ -67,6 +67,16 @@ export interface ToastState {
  */
 function loadIngredients() {
   try {
+    // 모바일 환경에서 localStorage 접근이 실패할 수 있으므로 안전하게 처리
+    if (typeof window === 'undefined' || !window.localStorage) {
+      console.warn('[Storage] localStorage를 사용할 수 없습니다.');
+      return {
+        frozen: [],
+        fridge: [],
+        room: [],
+      };
+    }
+    
     const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
     if (data && data.frozen && data.fridge && data.room) {
       return data;
@@ -91,6 +101,12 @@ function saveIngredients(
   room: Ingredient[]
 ) {
   try {
+    // 모바일 환경에서 localStorage 접근이 실패할 수 있으므로 안전하게 처리
+    if (typeof window === 'undefined' || !window.localStorage) {
+      console.warn('[Storage] localStorage를 사용할 수 없습니다.');
+      return;
+    }
+    
     const data = { frozen, fridge, room };
     const jsonString = JSON.stringify(data);
     
@@ -460,57 +476,77 @@ const MyFridge: React.FC = () => {
 
   React.useEffect(() => {
     const loadData = async () => {
-      // 먼저 localStorage에서 즉시 로드 (빠른 초기 렌더링)
-      const loaded = loadIngredients();
-      const hasLocalData = loaded.frozen.length > 0 || loaded.fridge.length > 0 || loaded.room.length > 0;
-      
-      if (hasLocalData) {
-        // localStorage에 데이터가 있으면 먼저 표시 (즉시 렌더링)
-        setFrozen(loaded.frozen);
-        setFridge(loaded.fridge);
-        setRoom(loaded.room);
-        isInitialLoad.current = false;
-        setLoading(false);
+      try {
+        // 먼저 localStorage에서 즉시 로드 (빠른 초기 렌더링)
+        const loaded = loadIngredients();
+        const hasLocalData = loaded.frozen.length > 0 || loaded.fridge.length > 0 || loaded.room.length > 0;
         
-        // 로그인한 경우 백그라운드에서 DB 확인 및 동기화
-        if (isLoggedIn && user?.id) {
-          const dbData = await loadIngredientsFromDB();
-          if (dbData && (dbData.frozen.length > 0 || dbData.fridge.length > 0 || dbData.room.length > 0)) {
-            // DB에 데이터가 있으면 DB 데이터로 업데이트
-            setFrozen(dbData.frozen);
-            setFridge(dbData.fridge);
-            setRoom(dbData.room);
-            saveIngredients(dbData.frozen, dbData.fridge, dbData.room);
-          } else {
-            // DB에 데이터가 없으면 localStorage 데이터를 DB에 저장
-            await saveIngredientsToDB(loaded.frozen, loaded.fridge, loaded.room);
-          }
-        }
-        return;
-      }
-      
-      // localStorage에 데이터가 없는 경우
-      // 로그인한 경우 DB에서 로드 시도
-      if (isLoggedIn && user?.id) {
-        const dbData = await loadIngredientsFromDB();
-        if (dbData && (dbData.frozen.length > 0 || dbData.fridge.length > 0 || dbData.room.length > 0)) {
-          // DB에 데이터가 있으면 DB 데이터 사용
-          setFrozen(dbData.frozen);
-          setFridge(dbData.fridge);
-          setRoom(dbData.room);
-          saveIngredients(dbData.frozen, dbData.fridge, dbData.room);
+        if (hasLocalData) {
+          // localStorage에 데이터가 있으면 먼저 표시 (즉시 렌더링)
+          setFrozen(loaded.frozen);
+          setFridge(loaded.fridge);
+          setRoom(loaded.room);
           isInitialLoad.current = false;
           setLoading(false);
+          
+          // 로그인한 경우 백그라운드에서 DB 확인 및 동기화
+          if (isLoggedIn && user?.id) {
+            try {
+              const dbData = await loadIngredientsFromDB();
+              if (dbData && (dbData.frozen.length > 0 || dbData.fridge.length > 0 || dbData.room.length > 0)) {
+                // DB에 데이터가 있으면 DB 데이터로 업데이트
+                setFrozen(dbData.frozen);
+                setFridge(dbData.fridge);
+                setRoom(dbData.room);
+                saveIngredients(dbData.frozen, dbData.fridge, dbData.room);
+              } else {
+                // DB에 데이터가 없으면 localStorage 데이터를 DB에 저장
+                await saveIngredientsToDB(loaded.frozen, loaded.fridge, loaded.room);
+              }
+            } catch (dbError) {
+              console.error('[MyFridge] DB 동기화 실패:', dbError);
+              // DB 동기화 실패해도 localStorage 데이터는 표시됨
+            }
+          }
           return;
         }
+        
+        // localStorage에 데이터가 없는 경우
+        // 로그인한 경우 DB에서 로드 시도
+        if (isLoggedIn && user?.id) {
+          try {
+            const dbData = await loadIngredientsFromDB();
+            if (dbData && (dbData.frozen.length > 0 || dbData.fridge.length > 0 || dbData.room.length > 0)) {
+              // DB에 데이터가 있으면 DB 데이터 사용
+              setFrozen(dbData.frozen);
+              setFridge(dbData.fridge);
+              setRoom(dbData.room);
+              saveIngredients(dbData.frozen, dbData.fridge, dbData.room);
+              isInitialLoad.current = false;
+              setLoading(false);
+              return;
+            }
+          } catch (dbError) {
+            console.error('[MyFridge] DB에서 재료 로드 실패:', dbError);
+            // DB 로드 실패 시 빈 상태로 시작
+          }
+        }
+        
+        // DB에도 없으면 빈 상태로 시작
+        setFrozen([]);
+        setFridge([]);
+        setRoom([]);
+        isInitialLoad.current = false;
+        setLoading(false);
+      } catch (error) {
+        console.error('[MyFridge] 데이터 로드 중 오류 발생:', error);
+        // 에러 발생 시에도 빈 상태로 시작하여 화면이 표시되도록 함
+        setFrozen([]);
+        setFridge([]);
+        setRoom([]);
+        isInitialLoad.current = false;
+        setLoading(false);
       }
-      
-      // DB에도 없으면 빈 상태로 시작
-      setFrozen([]);
-      setFridge([]);
-      setRoom([]);
-      isInitialLoad.current = false;
-      setLoading(false);
     };
     
     loadData();
@@ -525,15 +561,21 @@ const MyFridge: React.FC = () => {
     
     const loadCachedCSV = async () => {
       try {
-        // 캐시 확인
-        const cached = localStorage.getItem(CSV_CACHE_KEY);
-        if (cached) {
+        // 모바일 환경에서 localStorage 접근이 실패할 수 있으므로 안전하게 처리
+        if (typeof window === 'undefined' || !window.localStorage) {
+          console.warn('[MyFridge] localStorage를 사용할 수 없습니다. CSV 파일을 새로 로드합니다.');
+          // localStorage가 없으면 바로 CSV 파일 로드
+        } else {
+          // 캐시 확인
+          const cached = localStorage.getItem(CSV_CACHE_KEY);
+          if (cached) {
           const parsedCache = JSON.parse(cached);
           if (parsedCache.version === CSV_CACHE_VERSION && parsedCache.data) {
             console.log('[MyFridge] 캐시된 재료 사전 사용');
             initializeIngredients(parsedCache.data);
             return;
           }
+        }
         }
         
         // 캐시가 없거나 버전이 다르면 새로 로드
@@ -572,12 +614,18 @@ const MyFridge: React.FC = () => {
         
         console.log('[MyFridge] CSV 파싱 완료, 재료 사전 크기:', Object.keys(ingredients).length);
         
-        // 캐시에 저장
-        localStorage.setItem(CSV_CACHE_KEY, JSON.stringify({
-          version: CSV_CACHE_VERSION,
-          data: ingredients,
-          timestamp: Date.now()
-        }));
+        // 캐시에 저장 (localStorage가 사용 가능한 경우에만)
+        if (typeof window !== 'undefined' && window.localStorage) {
+          try {
+            localStorage.setItem(CSV_CACHE_KEY, JSON.stringify({
+              version: CSV_CACHE_VERSION,
+              data: ingredients,
+              timestamp: Date.now()
+            }));
+          } catch (storageError) {
+            console.warn('[MyFridge] CSV 캐시 저장 실패:', storageError);
+          }
+        }
         
         initializeIngredients(ingredients);
       } catch (error) {
@@ -1081,8 +1129,19 @@ const MyFridge: React.FC = () => {
     }
   };
 
-  if (frozen === null || fridge === null || room === null) {
-    return <div>로딩 중...</div>;
+  if (frozen === null || fridge === null || room === null || loading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="loader-dots mx-auto mb-4">
+            <div></div>
+            <div></div>
+            <div></div>
+          </div>
+          <p className="text-gray-600">로딩 중...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
