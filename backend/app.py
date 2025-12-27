@@ -11,8 +11,9 @@ from datetime import datetime, timedelta
 # 환경변수 로드
 # - 개발환경에서만 현재 디렉토리의 .env를 로드
 # - 배포환경(Railway 등)에서는 플랫폼이 주입한 환경변수 사용
-if os.getenv('FLASK_ENV', '').lower() == 'development':
-    load_dotenv()
+# .env 파일이 있으면 로드 (기존 환경변수는 덮어쓰지 않음)
+if os.getenv('FLASK_ENV', '').lower() == 'development' or not os.getenv('GOOGLE_CLIENT_ID'):
+    load_dotenv(override=False)  # 기존 환경변수가 있으면 덮어쓰지 않음
 
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', secrets.token_hex(32))
@@ -416,6 +417,8 @@ NAVER_CLIENT_SECRET = os.getenv('NAVER_CLIENT_SECRET', '')
 
 # 프론트엔드 URL (콜백용)
 FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5178')
+# 백엔드 URL (OAuth 콜백용)
+BACKEND_URL = os.getenv('BACKEND_URL', 'http://localhost:5000')
 
 def generate_jwt_token(user_id, email, nickname):
     """JWT 토큰 생성"""
@@ -509,7 +512,7 @@ def google_login():
     session['oauth_state'] = state
     session['oauth_provider'] = 'google'
     
-    redirect_uri = f"{FRONTEND_URL}/auth/callback/google"
+    redirect_uri = f"{BACKEND_URL}/api/auth/google/callback"
     google_auth_url = (
         f"https://accounts.google.com/o/oauth2/v2/auth?"
         f"client_id={GOOGLE_CLIENT_ID}&"
@@ -527,16 +530,25 @@ def google_callback():
     code = request.args.get('code')
     state = request.args.get('state')
     
+    print(f"[Google Callback] Code: {code[:20] if code else None}...")
+    print(f"[Google Callback] State: {state}")
+    print(f"[Google Callback] Session state: {session.get('oauth_state')}")
+    
     # State 검증
     if state != session.get('oauth_state'):
+        print(f"[Google Callback] State mismatch!")
         return jsonify({'error': 'Invalid state'}), 400
     
     if not code:
+        print(f"[Google Callback] No code provided!")
         return jsonify({'error': 'Authorization code not provided'}), 400
     
     try:
         # 토큰 교환
-        redirect_uri = f"{FRONTEND_URL}/auth/callback/google"
+        redirect_uri = f"{BACKEND_URL}/api/auth/google/callback"
+        print(f"[Google Callback] Redirect URI: {redirect_uri}")
+        print(f"[Google Callback] Client ID: {GOOGLE_CLIENT_ID[:20] if GOOGLE_CLIENT_ID else 'None'}...")
+        
         token_response = requests.post('https://oauth2.googleapis.com/token', data={
             'client_id': GOOGLE_CLIENT_ID,
             'client_secret': GOOGLE_CLIENT_SECRET,
@@ -545,33 +557,43 @@ def google_callback():
             'redirect_uri': redirect_uri
         })
         
+        print(f"[Google Callback] Token response status: {token_response.status_code}")
         token_data = token_response.json()
+        print(f"[Google Callback] Token response: {token_data}")
+        
         if 'access_token' not in token_data:
-            return jsonify({'error': 'Failed to get access token'}), 400
+            return jsonify({'error': 'Failed to get access token', 'details': token_data}), 400
         
         # 사용자 정보 가져오기
         user_response = requests.get(
             'https://www.googleapis.com/oauth2/v2/userinfo',
             headers={'Authorization': f"Bearer {token_data['access_token']}"}
         )
+        print(f"[Google Callback] User response status: {user_response.status_code}")
         user_data = user_response.json()
+        print(f"[Google Callback] User data: {user_data}")
         
         # 사용자 조회 또는 생성
         user = get_or_create_user(
             email=user_data.get('email'),
             nickname=user_data.get('name', user_data.get('email', '').split('@')[0]),
             provider='google',
-            provider_id=user_data.get('id')
+            provider_id=str(user_data.get('id'))
         )
+        print(f"[Google Callback] User created/found: {user}")
         
         # JWT 토큰 생성
         token = generate_jwt_token(user['id'], user['email'], user['nickname'])
+        print(f"[Google Callback] JWT token generated")
         
         # 프론트엔드로 리다이렉트 (토큰을 쿼리 파라미터로 전달)
         return redirect(f"{FRONTEND_URL}/auth/success?token={token}")
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        import traceback
+        print(f"[Google Callback] Error: {str(e)}")
+        print(f"[Google Callback] Traceback: {traceback.format_exc()}")
+        return jsonify({'error': str(e), 'traceback': traceback.format_exc()}), 500
 
 # =====================
 # 카카오 로그인
@@ -587,7 +609,7 @@ def kakao_login():
     session['oauth_state'] = state
     session['oauth_provider'] = 'kakao'
     
-    redirect_uri = f"{FRONTEND_URL}/auth/callback/kakao"
+    redirect_uri = f"{BACKEND_URL}/api/auth/kakao/callback"
     kakao_auth_url = (
         f"https://kauth.kakao.com/oauth/authorize?"
         f"client_id={KAKAO_CLIENT_ID}&"
@@ -612,7 +634,7 @@ def kakao_callback():
     
     try:
         # 토큰 교환
-        redirect_uri = f"{FRONTEND_URL}/auth/callback/kakao"
+        redirect_uri = f"{BACKEND_URL}/api/auth/kakao/callback"
         token_response = requests.post('https://kauth.kakao.com/oauth/token', data={
             'grant_type': 'authorization_code',
             'client_id': KAKAO_CLIENT_ID,
@@ -671,7 +693,7 @@ def naver_login():
     session['oauth_state'] = state
     session['oauth_provider'] = 'naver'
     
-    redirect_uri = f"{FRONTEND_URL}/auth/callback/naver"
+    redirect_uri = f"{BACKEND_URL}/api/auth/naver/callback"
     naver_auth_url = (
         f"https://nid.naver.com/oauth2.0/authorize?"
         f"response_type=code&"
@@ -696,7 +718,7 @@ def naver_callback():
     
     try:
         # 토큰 교환
-        redirect_uri = f"{FRONTEND_URL}/auth/callback/naver"
+        redirect_uri = f"{BACKEND_URL}/api/auth/naver/callback"
         token_response = requests.post('https://nid.naver.com/oauth2.0/token', data={
             'grant_type': 'authorization_code',
             'client_id': NAVER_CLIENT_ID,

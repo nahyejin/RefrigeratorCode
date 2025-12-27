@@ -170,12 +170,12 @@ class NaverInfluencerCrawler:
         """데이터를 DB에 저장 (필터 없이 모두 저장)"""
         if not data:
             return
-        
+
         # 중복 체크 추가
         conn = self._connect_db()
         if not conn:
             return
-        
+
         try:
             with conn.cursor() as cursor:
                 # 먼저 중복 확인
@@ -351,18 +351,18 @@ class NaverInfluencerCrawler:
                     if os.path.exists(chrome_path):
                         # 방법 1: wmic을 사용하여 파일 버전 정보 가져오기 (Chrome이 실행 중이어도 작동)
                         try:
-                            result = subprocess.run(
+                        result = subprocess.run(
                                 ['wmic', 'datafile', 'where', f'name="{chrome_path.replace(chr(92), chr(92)+chr(92))}"', 'get', 'Version'],
-                                capture_output=True,
-                                text=True,
+                            capture_output=True,
+                            text=True,
                                 timeout=10,
                                 shell=False
-                            )
+                        )
                             if result.returncode == 0 and result.stdout:
-                                version_match = re.search(r'(\d+)\.(\d+)\.(\d+)\.(\d+)', result.stdout)
-                                if version_match:
+                            version_match = re.search(r'(\d+)\.(\d+)\.(\d+)\.(\d+)', result.stdout)
+                            if version_match:
                                     chrome_full_version = version_match.group(0)
-                                    chrome_version = version_match.group(1)
+                                chrome_version = version_match.group(1)
                                     logger.info(f"🔍 Chrome 버전 감지 (wmic): {chrome_full_version} (메이저: {chrome_version})")
                         except Exception as wmic_error:
                             logger.debug(f"wmic 방법 실패: {wmic_error}")
@@ -857,18 +857,18 @@ class NaverInfluencerCrawler:
             if os.path.exists(chrome_path):
                 # 방법 1: wmic을 사용하여 파일 버전 정보 가져오기 (Chrome이 실행 중이어도 작동)
                 try:
-                    result = subprocess.run(
+                result = subprocess.run(
                         ['wmic', 'datafile', 'where', f'name="{chrome_path.replace(chr(92), chr(92)+chr(92))}"', 'get', 'Version'],
-                        capture_output=True,
-                        text=True,
+                    capture_output=True,
+                    text=True,
                         timeout=10,
                         shell=False
-                    )
+                )
                     if result.returncode == 0 and result.stdout:
-                        version_match = re.search(r'(\d+)\.(\d+)\.(\d+)\.(\d+)', result.stdout)
-                        if version_match:
+                    version_match = re.search(r'(\d+)\.(\d+)\.(\d+)\.(\d+)', result.stdout)
+                    if version_match:
                             chrome_full_version = version_match.group(0)
-                            chrome_version = version_match.group(1)
+                        chrome_version = version_match.group(1)
                             logger.info(f"🔍 Chrome 버전 감지 (wmic): {chrome_full_version} (메이저: {chrome_version})")
                 except Exception as wmic_error:
                     logger.debug(f"wmic 방법 실패: {wmic_error}")
@@ -978,7 +978,7 @@ class NaverInfluencerCrawler:
                 
                 logger.info("🔄 ChromeDriver 초기화 중...")
                 try:
-                    driver = webdriver.Chrome(service=service, options=options)
+                driver = webdriver.Chrome(service=service, options=options)
                     self._driver = driver  # 인스턴스 변수에 저장
                     
                     # Windows에서 드라이버 생성 직후 즉시 모든 Chrome 창 숨기기

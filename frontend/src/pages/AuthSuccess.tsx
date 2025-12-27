@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -10,10 +10,23 @@ const AuthSuccess: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { loginWithToken } = useAuth();
+  const processedRef = useRef(false);
 
   useEffect(() => {
+    // 이미 처리했으면 중복 실행 방지
+    if (processedRef.current) {
+      return;
+    }
+
     const token = searchParams.get('token');
     const error = searchParams.get('error');
+
+    // token이나 error가 없으면 아직 처리할 수 없음
+    if (!token && !error) {
+      return;
+    }
+
+    processedRef.current = true;
 
     if (error) {
       console.error('OAuth error:', error);
@@ -35,7 +48,8 @@ const AuthSuccess: React.FC = () => {
       // 토큰이 없으면 로그인 페이지로
       navigate('/login');
     }
-  }, [searchParams, navigate, loginWithToken]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // 한 번만 실행 (의존성 배열 비움으로써 무한 루프 방지)
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-white">
