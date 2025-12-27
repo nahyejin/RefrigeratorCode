@@ -26,6 +26,13 @@ print(f"[환경변수 로드 확인] SMTP_HOST: {os.getenv('SMTP_HOST', 'NOT SET
 print(f"[환경변수 로드 확인] SMTP_USER: {os.getenv('SMTP_USER', 'NOT SET')}")
 print(f"[환경변수 로드 확인] SMTP_PASSWORD: {'SET' if os.getenv('SMTP_PASSWORD') else 'NOT SET'}")
 
+# OAuth 환경변수 확인 (디버깅용)
+print(f"[환경변수 로드 확인] GOOGLE_CLIENT_ID: {'SET' if os.getenv('GOOGLE_CLIENT_ID') else 'NOT SET'}")
+print(f"[환경변수 로드 확인] KAKAO_CLIENT_ID: {'SET' if os.getenv('KAKAO_CLIENT_ID') else 'NOT SET'}")
+print(f"[환경변수 로드 확인] NAVER_CLIENT_ID: {'SET' if os.getenv('NAVER_CLIENT_ID') else 'NOT SET'}")
+print(f"[환경변수 로드 확인] FLASK_ENV: {os.getenv('FLASK_ENV', 'NOT SET')}")
+print(f"[환경변수 로드 확인] RAILWAY_ENVIRONMENT: {os.getenv('RAILWAY_ENVIRONMENT', 'NOT SET')}")
+
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', secrets.token_hex(32))
 
@@ -425,6 +432,13 @@ KAKAO_CLIENT_ID = os.getenv('KAKAO_CLIENT_ID', '')
 KAKAO_CLIENT_SECRET = os.getenv('KAKAO_CLIENT_SECRET', '')
 NAVER_CLIENT_ID = os.getenv('NAVER_CLIENT_ID', '')
 NAVER_CLIENT_SECRET = os.getenv('NAVER_CLIENT_SECRET', '')
+
+# 환경변수 로드 확인 (디버깅용)
+print(f"[OAuth 환경변수 확인] GOOGLE_CLIENT_ID: {'SET (' + str(len(GOOGLE_CLIENT_ID)) + ' chars)' if GOOGLE_CLIENT_ID else 'NOT SET'}")
+print(f"[OAuth 환경변수 확인] KAKAO_CLIENT_ID: {'SET (' + str(len(KAKAO_CLIENT_ID)) + ' chars)' if KAKAO_CLIENT_ID else 'NOT SET'}")
+print(f"[OAuth 환경변수 확인] NAVER_CLIENT_ID: {'SET (' + str(len(NAVER_CLIENT_ID)) + ' chars)' if NAVER_CLIENT_ID else 'NOT SET'}")
+print(f"[OAuth 환경변수 확인] FRONTEND_URL: {os.getenv('FRONTEND_URL', 'NOT SET')}")
+print(f"[OAuth 환경변수 확인] BACKEND_URL: {os.getenv('BACKEND_URL', 'NOT SET')}")
 
 # 프론트엔드 URL (콜백용)
 FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5178')
