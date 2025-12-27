@@ -256,7 +256,7 @@ const MyPage: React.FC = () => {
   // 상태 관리
   // =====================
   
-  const { isLoggedIn, user: authUser, logout } = useAuth();
+  const { isLoggedIn, user: authUser, logout, updateUser } = useAuth();
   
   // 소셜 로그인 여부 확인
   const isSocialLogin = Boolean(authUser?.provider && ['google', 'kakao', 'naver'].includes(authUser.provider));
@@ -387,6 +387,8 @@ const MyPage: React.FC = () => {
     address1: '',
     address2: '',
   });
+  // 원본 데이터 저장 (변경 사항 추적용)
+  const [originalEdit, setOriginalEdit] = useState<EditForm>(edit);
   const [error, setError] = useState<ErrorState>({ password: '', phone: '' });
   const [doneStates, setDoneStates] = useState<{ [id: number]: boolean }>({});
   const [writeStates, setWriteStates] = useState<{ [id: number]: boolean }>({});
@@ -423,16 +425,70 @@ const MyPage: React.FC = () => {
         email: authUser.email,
         phone: authUser.phone || '',
       });
-      setEdit(prev => ({
-        ...prev,
+      const newEdit = {
         nickname: authUser.nickname,
         userid: authUser.email,
-      }));
+        password: '',
+        password2: '',
+        phone1: '010',
+        phone2: '',
+        phone3: '',
+        zipcode: '',
+        address1: '',
+        address2: '',
+      };
+      setEdit(newEdit);
+      setOriginalEdit(newEdit); // 원본 데이터도 업데이트
       
       // DB에서 레시피 로드
       loadRecipesFromDB();
     }
   }, [authUser]);
+  
+  // 모달이 열릴 때 원본 데이터 저장 및 edit 상태 초기화
+  useEffect(() => {
+    if (editOpen && authUser) {
+      // 모달이 열릴 때 사용자 정보로 edit 상태 초기화 (authUser 사용 - 최신 정보)
+      const initialEdit = {
+        nickname: authUser.nickname,
+        userid: authUser.email,
+        password: '',
+        password2: '',
+        phone1: '010',
+        phone2: '',
+        phone3: '',
+        zipcode: '',
+        address1: '',
+        address2: '',
+      };
+      setEdit(initialEdit);
+      // 원본 데이터로 저장 (변경 사항 추적용)
+      setOriginalEdit(initialEdit);
+      setNicknameCheckResult(null); // 닉네임 체크 결과 초기화
+      setError({ password: '', phone: '' }); // 에러 상태 초기화
+    }
+  }, [editOpen, authUser]);
+  
+  // 변경 사항이 있는지 확인
+  const hasChanges = () => {
+    // 닉네임 변경 확인
+    if (edit.nickname !== originalEdit.nickname) {
+      return true;
+    }
+    
+    // 비밀번호 변경 확인 (일반 로그인 사용자만)
+    if (!isSocialLogin) {
+      // 비밀번호가 실제로 입력되었는지 확인 (●●●●●●●는 변경 없음)
+      const passwordChanged = edit.password !== '' && 
+                              edit.password !== '●●●●●●●' && 
+                              edit.password !== originalEdit.password;
+      if (passwordChanged) {
+        return true;
+      }
+    }
+    
+    return false;
+  };
 
   // =====================
   // 이벤트 핸들러
@@ -485,9 +541,20 @@ const MyPage: React.FC = () => {
   };
 
   /**
+   * 정보 수정 모달 취소
+   */
+  const handleCancel = () => {
+    // 원본 데이터로 복원
+    setEdit({ ...originalEdit });
+    setNicknameCheckResult(null);
+    setError({ password: '', phone: '' });
+    setEditOpen(false);
+  };
+
+  /**
    * 정보 수정 모달 저장
    */
-  const handleSave = () => {
+  const handleSave = async () => {
     let valid = true;
     const newError: ErrorState = { password: '', phone: '' };
     
@@ -508,11 +575,61 @@ const MyPage: React.FC = () => {
     setError(newError);
     if (!valid) return;
     
-    // 회원 정보 저장
-    setUser({ ...user, nickname: edit.nickname });
-    
-    // 모달 닫기
-    setEditOpen(false);
+    // 백엔드에 프로필 업데이트 요청
+    try {
+      const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+      if (!token) {
+        showToast('로그인이 필요합니다.');
+        return;
+      }
+
+      const apiUrl = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'https://refrigeratorcode-production.up.railway.app';
+      const requestBody: any = {
+        nickname: edit.nickname,
+      };
+      
+      // 비밀번호가 입력된 경우에만 포함 (일반 로그인 사용자만)
+      if (!isSocialLogin && edit.password && edit.password !== '●●●●●●●') {
+        requestBody.password = edit.password;
+      }
+
+      const response = await fetch(`${apiUrl}/api/auth/update-profile`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        showToast(data.error || '프로필 업데이트에 실패했습니다.');
+        return;
+      }
+
+      // 성공 시 AuthContext의 사용자 정보 업데이트
+      if (data.user) {
+        updateUser({
+          nickname: data.user.nickname,
+        });
+      }
+
+      // 로컬 user 상태도 업데이트
+      setUser({ ...user, nickname: edit.nickname });
+      
+      // 저장 후 originalEdit 업데이트 (다음 모달 열 때 변경 사항 추적을 위해)
+      setOriginalEdit({ ...edit });
+      
+      showToast('프로필이 업데이트되었습니다.');
+      
+      // 모달 닫기
+      setEditOpen(false);
+    } catch (error) {
+      console.error('Update profile error:', error);
+      showToast('프로필 업데이트 중 오류가 발생했습니다.');
+    }
   };
 
   /**
@@ -1023,7 +1140,7 @@ const MyPage: React.FC = () => {
             <div className="sticky top-0 left-0 right-0 z-20 bg-white border-b border-gray-200 rounded-t-xl w-full" style={{minHeight: 56, paddingTop: 18, paddingBottom: 8}}>
               <span 
                 className="absolute top-3 right-3 w-6 h-6 text-gray-400 text-xl cursor-pointer select-none" 
-                onClick={() => setEditOpen(false)} 
+                onClick={handleCancel} 
                 role="button" 
                 aria-label="닫기" 
                 style={{zIndex: 20}}
@@ -1049,13 +1166,17 @@ const MyPage: React.FC = () => {
                   </div>
                   {/* 모든 사용자에게 중복 체크 버튼 표시 */}
                   <button 
-                    className="h-10 px-3 bg-[#FFD600] text-[#222] rounded-lg text-[14px] font-semibold whitespace-nowrap mt-6 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    className={`h-10 px-3 rounded-lg text-[14px] font-semibold whitespace-nowrap mt-6 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${
+                      edit.nickname !== originalEdit.nickname && edit.nickname.trim() !== ''
+                        ? 'bg-[#FFD600] text-[#222]'
+                        : 'bg-gray-200 text-gray-400'
+                    }`}
                     onClick={handleCheckNickname}
-                    disabled={checkingNickname || !edit.nickname || edit.nickname.trim() === ''}
+                    disabled={checkingNickname || !edit.nickname || edit.nickname.trim() === '' || edit.nickname === originalEdit.nickname}
                     style={{ 
                       outline: 'none', 
                       border: 'none',
-                      opacity: checkingNickname ? 0.7 : 1,
+                      opacity: checkingNickname ? 0.7 : (edit.nickname === originalEdit.nickname ? 0.5 : 1),
                       minWidth: '100px'
                     }}
                   >
@@ -1184,49 +1305,29 @@ const MyPage: React.FC = () => {
                 </>
               )}
               
-              {/* 연락처 (일반 로그인 사용자만 표시) */}
-              {!isSocialLogin && (
-                <div className="mb-3">
-                  <label className="block text-[15px] font-semibold mb-1">연락처</label>
-                  <div className="flex gap-2">
-                    <input 
-                      className="w-[70px] h-10 border border-gray-300 rounded-lg px-3 text-[15px]" 
-                      maxLength={3} 
-                      value={edit.phone1} 
-                      onChange={e => setEdit({ ...edit, phone1: e.target.value.replace(/[^0-9]/g, '') })} 
-                    />
-                    <input 
-                      className="w-[90px] h-10 border border-gray-300 rounded-lg px-3 text-[15px]" 
-                      maxLength={4} 
-                      value={edit.phone2} 
-                      onChange={e => setEdit({ ...edit, phone2: e.target.value.replace(/[^0-9]/g, '') })} 
-                    />
-                    <input 
-                      className="w-[90px] h-10 border border-gray-300 rounded-lg px-3 text-[15px]" 
-                      maxLength={4} 
-                      value={edit.phone3} 
-                      onChange={e => setEdit({ ...edit, phone3: e.target.value.replace(/[^0-9]/g, '') })} 
-                    />
-                  </div>
-                </div>
-              )}
-              
               {/* 취소/적용 버튼 */}
               <div className="flex gap-2 mt-4">
                 <button 
                   className="flex-1 h-11 bg-white text-[#222] border border-gray-300 rounded-lg text-[16px] font-bold"
-                  onClick={() => setEditOpen(false)}
+                  onClick={handleCancel}
                 >
                   취소
                 </button>
                 <button 
-                  className="flex-1 h-11 bg-[#FFD600] text-[#222] rounded-lg text-[16px] font-bold"
+                  className={`flex-1 h-11 rounded-lg text-[16px] font-bold ${
+                    hasChanges() 
+                      ? 'bg-[#FFD600] text-[#222] cursor-pointer' 
+                      : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  }`}
                   onClick={handleSave}
+                  disabled={!hasChanges()}
                   style={{ outline: 'none', border: 'none' }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.outline = 'none';
-                    e.currentTarget.style.border = 'none';
-                    e.currentTarget.style.boxShadow = 'none';
+                    if (hasChanges()) {
+                      e.currentTarget.style.outline = 'none';
+                      e.currentTarget.style.border = 'none';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.outline = 'none';
@@ -1239,11 +1340,11 @@ const MyPage: React.FC = () => {
               </div>
               
               {/* 회원탈퇴 버튼 */}
-              <div className="mt-4 pt-4 border-t border-gray-200">
+              <div className="mt-6 pt-4 text-center">
                 <button
-                  className="w-full h-11 bg-red-50 text-red-600 border border-red-200 rounded-lg text-[14px] font-semibold hover:bg-red-100 transition"
+                  className="text-[12px] text-red-600 underline cursor-pointer hover:text-red-700 transition"
                   onClick={() => setShowDeleteConfirm(true)}
-                  style={{ outline: 'none' }}
+                  style={{ outline: 'none', background: 'none', border: 'none', padding: 0 }}
                 >
                   회원탈퇴
                 </button>
@@ -1366,10 +1467,10 @@ const MyPage: React.FC = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[1002]">
           <div className="bg-white rounded-xl shadow-lg w-[320px] max-w-[90vw] p-6">
             <div className="text-center mb-4">
-              <div className="text-[18px] font-bold text-[#222] mb-2">회원탈퇴</div>
-              <div className="text-[14px] text-gray-600">
+              <div className="text-[18px] font-bold text-[#222] mb-3">회원탈퇴</div>
+              <div className="text-[14px] text-gray-600 leading-relaxed">
                 정말 회원탈퇴를 하시겠습니까?<br />
-                탈퇴 후 모든 데이터가 삭제되며 복구할 수 없습니다.
+                모든 데이터가 삭제되며 복구 불가 합니다.
               </div>
             </div>
             <div className="flex gap-2">

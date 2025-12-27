@@ -475,13 +475,16 @@ const MyFridge: React.FC = () => {
   }, [isLoggedIn, user?.id]);
 
   React.useEffect(() => {
+    let isMounted = true; // 컴포넌트가 마운트되어 있는지 추적
+    let timeoutId: NodeJS.Timeout | null = null;
+    
     const loadData = async () => {
       try {
         // 먼저 localStorage에서 즉시 로드 (빠른 초기 렌더링)
         const loaded = loadIngredients();
         const hasLocalData = loaded.frozen.length > 0 || loaded.fridge.length > 0 || loaded.room.length > 0;
         
-        if (hasLocalData) {
+        if (hasLocalData && isMounted) {
           // localStorage에 데이터가 있으면 먼저 표시 (즉시 렌더링)
           setFrozen(loaded.frozen);
           setFridge(loaded.fridge);
@@ -493,13 +496,13 @@ const MyFridge: React.FC = () => {
           if (isLoggedIn && user?.id) {
             try {
               const dbData = await loadIngredientsFromDB();
-              if (dbData && (dbData.frozen.length > 0 || dbData.fridge.length > 0 || dbData.room.length > 0)) {
+              if (isMounted && dbData && (dbData.frozen.length > 0 || dbData.fridge.length > 0 || dbData.room.length > 0)) {
                 // DB에 데이터가 있으면 DB 데이터로 업데이트
                 setFrozen(dbData.frozen);
                 setFridge(dbData.fridge);
                 setRoom(dbData.room);
                 saveIngredients(dbData.frozen, dbData.fridge, dbData.room);
-              } else {
+              } else if (isMounted) {
                 // DB에 데이터가 없으면 localStorage 데이터를 DB에 저장
                 await saveIngredientsToDB(loaded.frozen, loaded.fridge, loaded.room);
               }
@@ -516,7 +519,7 @@ const MyFridge: React.FC = () => {
         if (isLoggedIn && user?.id) {
           try {
             const dbData = await loadIngredientsFromDB();
-            if (dbData && (dbData.frozen.length > 0 || dbData.fridge.length > 0 || dbData.room.length > 0)) {
+            if (isMounted && dbData && (dbData.frozen.length > 0 || dbData.fridge.length > 0 || dbData.room.length > 0)) {
               // DB에 데이터가 있으면 DB 데이터 사용
               setFrozen(dbData.frozen);
               setFridge(dbData.fridge);
@@ -533,23 +536,46 @@ const MyFridge: React.FC = () => {
         }
         
         // DB에도 없으면 빈 상태로 시작
-        setFrozen([]);
-        setFridge([]);
-        setRoom([]);
-        isInitialLoad.current = false;
-        setLoading(false);
+        if (isMounted) {
+          setFrozen([]);
+          setFridge([]);
+          setRoom([]);
+          isInitialLoad.current = false;
+          setLoading(false);
+        }
       } catch (error) {
         console.error('[MyFridge] 데이터 로드 중 오류 발생:', error);
         // 에러 발생 시에도 빈 상태로 시작하여 화면이 표시되도록 함
+        if (isMounted) {
+          setFrozen([]);
+          setFridge([]);
+          setRoom([]);
+          isInitialLoad.current = false;
+          setLoading(false);
+        }
+      }
+    };
+    
+    // 타임아웃 설정: 5초 후에는 무조건 화면 표시
+    timeoutId = setTimeout(() => {
+      if (isMounted && (frozen === null || fridge === null || room === null || loading)) {
+        console.warn('[MyFridge] 로딩 타임아웃 - 빈 상태로 강제 표시');
         setFrozen([]);
         setFridge([]);
         setRoom([]);
         isInitialLoad.current = false;
         setLoading(false);
       }
-    };
+    }, 5000);
     
     loadData();
+    
+    return () => {
+      isMounted = false;
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
   }, [isLoggedIn, user?.id]);
 
   React.useEffect(() => {
@@ -673,23 +699,24 @@ const MyFridge: React.FC = () => {
           // 재료 이름을 keyword로 변환 (synonym -> keyword)
           // 재료 사전에 없으면 원래 이름 사용
           const convertToKeyword = (name: string): string => {
+            // ingredientDict 상태 사용
             // 직접 매칭 시도
-            if (ingredients[name]) {
-              return ingredients[name];
+            if (ingredientDict[name]) {
+              return ingredientDict[name];
             }
             // 대소문자 무시하고 찾기
-            const foundKey = Object.keys(ingredients).find(
+            const foundKey = Object.keys(ingredientDict).find(
               key => key.toLowerCase().trim() === name.toLowerCase().trim()
             );
             if (foundKey) {
-              return ingredients[foundKey];
+              return ingredientDict[foundKey];
             }
             // 공백 제거 후 찾기
-            const foundKeyNoSpace = Object.keys(ingredients).find(
+            const foundKeyNoSpace = Object.keys(ingredientDict).find(
               key => key.replace(/\s/g, '').toLowerCase() === name.replace(/\s/g, '').toLowerCase()
             );
             if (foundKeyNoSpace) {
-              return ingredients[foundKeyNoSpace];
+              return ingredientDict[foundKeyNoSpace];
             }
             // 못 찾으면 원래 이름 반환
             console.warn(`[MyFridge] 재료 사전에서 "${name}"을 찾을 수 없습니다. 원래 이름 사용.`);
@@ -718,33 +745,33 @@ const MyFridge: React.FC = () => {
           console.log('[MyFridge] 초기 재료 추가:', {
             room: newRoom.map(r => r.name),
             fridge: newFridge.map(r => r.name),
-            ingredientDictSample: Object.keys(ingredients).slice(0, 30) // 재료 사전 샘플 확인
+            ingredientDictSample: Object.keys(ingredientDict).slice(0, 30) // 재료 사전 샘플 확인
           });
           
           // 재료 사전에서 특정 재료 찾기 테스트
           console.log('[MyFridge] 재료 사전 검색 테스트:', {
-            '소금': ingredients['소금'],
-            '설탕': ingredients['설탕'],
-            '간장': ingredients['간장'],
-            '식용유': ingredients['식용유'],
-            '참기름': ingredients['참기름'],
-            '후추': ingredients['후추'],
-            '밥': ingredients['밥'],
-            '양파': ingredients['양파'],
-            '감자': ingredients['감자'],
-            '식초': ingredients['식초'],
-            '고춧가루': ingredients['고춧가루'],
-            '밀가루': ingredients['밀가루'],
-            '마늘': ingredients['마늘'],
-            '케첩': ingredients['케첩'],
-            '우유': ingredients['우유'],
-            '된장': ingredients['된장'],
-            '고추장': ingredients['고추장'],
-            '참치캔': ingredients['참치캔'],
-            '대파': ingredients['대파'],
-            '청양고추': ingredients['청양고추'],
-            '달걀': ingredients['달걀'],
-            '계란': ingredients['계란']
+            '소금': ingredientDict['소금'],
+            '설탕': ingredientDict['설탕'],
+            '간장': ingredientDict['간장'],
+            '식용유': ingredientDict['식용유'],
+            '참기름': ingredientDict['참기름'],
+            '후추': ingredientDict['후추'],
+            '밥': ingredientDict['밥'],
+            '양파': ingredientDict['양파'],
+            '감자': ingredientDict['감자'],
+            '식초': ingredientDict['식초'],
+            '고춧가루': ingredientDict['고춧가루'],
+            '밀가루': ingredientDict['밀가루'],
+            '마늘': ingredientDict['마늘'],
+            '케첩': ingredientDict['케첩'],
+            '우유': ingredientDict['우유'],
+            '된장': ingredientDict['된장'],
+            '고추장': ingredientDict['고추장'],
+            '참치캔': ingredientDict['참치캔'],
+            '대파': ingredientDict['대파'],
+            '청양고추': ingredientDict['청양고추'],
+            '달걀': ingredientDict['달걀'],
+            '계란': ingredientDict['계란']
           });
           
           setRoom(newRoom);
@@ -1129,7 +1156,25 @@ const MyFridge: React.FC = () => {
     }
   };
 
-  if (frozen === null || fridge === null || room === null || loading) {
+  // 초기 로딩 상태 체크 - 타임아웃 보호 추가
+  const isLoading = frozen === null || fridge === null || room === null || loading;
+  
+  // 5초 이상 로딩 중이면 강제로 빈 상태로 표시
+  React.useEffect(() => {
+    if (isLoading) {
+      const timeout = setTimeout(() => {
+        console.warn('[MyFridge] 로딩 타임아웃 - 강제로 빈 상태 표시');
+        if (frozen === null) setFrozen([]);
+        if (fridge === null) setFridge([]);
+        if (room === null) setRoom([]);
+        setLoading(false);
+      }, 5000);
+      
+      return () => clearTimeout(timeout);
+    }
+  }, [isLoading, frozen, fridge, room]);
+  
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">

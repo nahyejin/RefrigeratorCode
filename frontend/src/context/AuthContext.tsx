@@ -15,6 +15,7 @@ interface AuthContextType {
   logout: () => void;
   register: (email: string, password: string, nickname: string) => Promise<void>;
   loginWithToken: (token: string, rememberMe?: boolean) => Promise<void>;
+  updateUser: (userData: Partial<User>) => void;
   loading: boolean;
 }
 
@@ -166,6 +167,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  // 사용자 정보 업데이트
+  const updateUser = (userData: Partial<User>) => {
+    if (!user) return;
+    
+    const updatedUser = { ...user, ...userData };
+    setUser(updatedUser);
+    
+    // localStorage/sessionStorage에도 업데이트
+    const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+    if (token) {
+      if (localStorage.getItem('auth_token')) {
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+      } else {
+        sessionStorage.setItem('user', JSON.stringify(updatedUser));
+      }
+    }
+  };
+
   // 로컬 데이터를 서버로 마이그레이션
   const migrateLocalDataToServer = async (userId: string) => {
     try {
@@ -209,7 +228,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoggedIn: !!user, login, logout, register, loginWithToken, loading }}>
+    <AuthContext.Provider value={{ user, isLoggedIn: !!user, login, logout, register, loginWithToken, updateUser, loading }}>
       {children}
     </AuthContext.Provider>
   );

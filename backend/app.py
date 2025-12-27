@@ -1373,6 +1373,94 @@ def find_email():
         print(f"Find email error: {e}")
         return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
 
+@app.route('/api/auth/update-profile', methods=['POST'])
+def update_profile():
+    """사용자 프로필 업데이트 (닉네임, 비밀번호)"""
+    try:
+        # JWT 토큰 확인
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({'error': '인증이 필요합니다.'}), 401
+        
+        token = auth_header.split(' ')[1]
+        payload = verify_jwt_token(token)
+        
+        if not payload:
+            return jsonify({'error': '유효하지 않은 토큰입니다.'}), 401
+        
+        user_id = payload.get('user_id')
+        email = payload.get('email')
+        provider = payload.get('provider', 'local')
+        
+        data = request.get_json()
+        nickname = data.get('nickname', '').strip()
+        password = data.get('password', '').strip()
+        
+        if not nickname:
+            return jsonify({'error': '닉네임을 입력해주세요.'}), 400
+        
+        ensure_users_table()
+        db = get_db()
+        cursor = db.cursor()
+        
+        try:
+            # 닉네임 중복 확인 (현재 사용자 제외)
+            cursor.execute(
+                "SELECT id FROM users WHERE nickname = %s AND id != %s",
+                (nickname, user_id)
+            )
+            existing_user = cursor.fetchone()
+            
+            if existing_user:
+                return jsonify({
+                    'error': '이미 사용 중인 닉네임입니다.'
+                }), 400
+            
+            # 업데이트할 필드 구성
+            update_fields = []
+            update_values = []
+            
+            # 닉네임 업데이트
+            update_fields.append("nickname = %s")
+            update_values.append(nickname)
+            
+            # 비밀번호 업데이트 (일반 로그인 사용자만, 비밀번호가 제공된 경우만)
+            if provider == 'local' and password:
+                if len(password) < 4:
+                    return jsonify({'error': '비밀번호는 최소 4자 이상이어야 합니다.'}), 400
+                from werkzeug.security import generate_password_hash
+                password_hash = generate_password_hash(password)
+                update_fields.append("password = %s")
+                update_values.append(password_hash)
+            
+            # 업데이트 실행
+            update_values.append(user_id)
+            update_query = f"UPDATE users SET {', '.join(update_fields)} WHERE id = %s"
+            cursor.execute(update_query, update_values)
+            db.commit()
+            
+            return jsonify({
+                'success': True,
+                'message': '프로필이 업데이트되었습니다.',
+                'user': {
+                    'id': user_id,
+                    'email': email,
+                    'nickname': nickname,
+                    'provider': provider
+                }
+            }), 200
+            
+        except Exception as e:
+            db.rollback()
+            print(f"Update profile error: {e}")
+            return jsonify({'error': '프로필 업데이트 중 오류가 발생했습니다.'}), 500
+        finally:
+            db.close()
+            
+    except Exception as e:
+        print(f"Update profile error: {e}")
+        return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
+
 @app.route('/api/auth/reset-password', methods=['POST'])
 def reset_password():
     """비밀번호 재설정"""

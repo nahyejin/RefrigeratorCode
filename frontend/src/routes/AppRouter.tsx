@@ -3,6 +3,7 @@ import { Suspense, lazy } from 'react';
 import SplashScreen from '../components/SplashScreen';
 import ScrollToTop from '../components/ScrollToTop';
 import TopNavBar from '../components/TopNavBar';
+import ErrorBoundary from '../components/ErrorBoundary';
 import { AuthProvider } from '../context/AuthContext';
 import Login from '../pages/Login';
 import Signup from '../pages/Signup';
@@ -120,7 +121,11 @@ function AppContent() {
           {/* 홈 페이지 - MyFridge로 랜딩 */}
           <Route 
             path={ROUTES.HOME} 
-            element={<MyFridge />} 
+            element={
+              <ErrorBoundary>
+                <MyFridge />
+              </ErrorBoundary>
+            } 
           />
           
           {/* 로그인 페이지 */}
@@ -162,7 +167,11 @@ function AppContent() {
           {/* 내 냉장고 페이지 */}
           <Route 
             path={ROUTES.MY_FRIDGE} 
-            element={<MyFridge />} 
+            element={
+              <ErrorBoundary>
+                <MyFridge />
+              </ErrorBoundary>
+            } 
           />
           
           {/* 냉장고 선택 페이지 */}
