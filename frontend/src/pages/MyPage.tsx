@@ -885,7 +885,7 @@ const MyPage: React.FC = () => {
     <div className="bg-white min-h-screen max-w-[430px] mx-auto pb-24 relative">
       {/* 상단 네비 - 고정 */}
       <header 
-        className="w-full h-[56px] flex items-center px-5 bg-white"
+        className="w-full h-[56px] flex items-center justify-between px-5 bg-white"
         style={{
           position: 'fixed',
           top: 0,
@@ -896,31 +896,96 @@ const MyPage: React.FC = () => {
           margin: '0 auto'
         }}
       >
-        <img src={logoImg} alt="냉털이 로고" className="h-4 w-auto" style={{ minWidth: 16 }} />
+        <img 
+          src={logoImg} 
+          alt="냉털이 로고" 
+          className="h-4 w-auto cursor-pointer" 
+          style={{ minWidth: 16 }}
+          onClick={() => navigate('/my-fridge')}
+        />
+        <div className="flex items-center gap-3">
+          {isLoggedIn ? (
+            <div className="flex items-center gap-2">
+              <span className="font-normal text-gray-700 hover:text-gray-900" style={{ fontSize: '11px' }}>{authUser?.nickname}</span>
+              <button
+                onClick={logout}
+                className="font-normal text-gray-700 hover:text-gray-900"
+                style={{ 
+                  outline: 'none', 
+                  border: 'none', 
+                  background: 'none', 
+                  cursor: 'pointer',
+                  fontSize: '11px'
+                }}
+              >
+                로그아웃
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => navigate('/login')}
+              className="font-normal text-gray-700 hover:text-gray-900"
+              style={{ 
+                outline: 'none', 
+                border: 'none', 
+                background: 'none', 
+                cursor: 'pointer',
+                fontSize: '11px'
+              }}
+            >
+              로그인/회원가입
+            </button>
+          )}
+        </div>
       </header>
       
       {/* 프로필 영역 */}
-      <section className="flex flex-col items-center justify-center mb-[70px]" style={{ marginTop: '130px' }}>
-        <div className="flex flex-col items-center">
-          <div className="text-[18px] font-bold text-gray-700 mb-1">{user.nickname}</div>
-          <div className="text-[15px] text-gray-500 mb-2">{user.email}</div>
-        </div>
-        <button
-          className="px-3 h-7 bg-[#FFD600] text-[#222] rounded-full text-[13px] font-bold flex items-center gap-1 border-none shadow hover:bg-yellow-300 transition"
-          style={{ 
-            minWidth: 0, 
-            height: 28, 
-            paddingLeft: 14, 
-            paddingRight: 14, 
-            fontFamily: 'inherit' 
-          }}
-          onClick={() => setEditOpen(true)}
-        >
-          내 정보 수정
-        </button>
-      </section>
+      {isLoggedIn ? (
+        <section className="flex flex-col items-center justify-center mb-[70px]" style={{ marginTop: '130px' }}>
+          <div className="flex flex-col items-center">
+            <div className="text-[18px] font-bold text-gray-700 mb-1">{user.nickname}</div>
+            <div className="text-[15px] text-gray-500 mb-2">{user.email}</div>
+          </div>
+          <button
+            className="px-3 h-7 bg-[#FFD600] text-[#222] rounded-full text-[13px] font-bold flex items-center gap-1 border-none shadow hover:bg-yellow-300 transition"
+            style={{ 
+              minWidth: 0, 
+              height: 28, 
+              paddingLeft: 14, 
+              paddingRight: 14, 
+              fontFamily: 'inherit' 
+            }}
+            onClick={() => setEditOpen(true)}
+          >
+            내 정보 수정
+          </button>
+        </section>
+      ) : (
+        <section className="flex flex-col items-center justify-center mb-[70px]" style={{ marginTop: '130px' }}>
+          <div className="flex flex-col items-center max-w-[280px]">
+            <div className="text-center leading-relaxed mb-4">
+              <div className="text-[13px] text-gray-600 mb-1">
+                기록 및 완료 내역을 안전히 관리하려면
+              </div>
+              <div className="text-[15px] font-bold text-gray-900">
+                로그인이 필요합니다
+              </div>
+            </div>
+            <button
+              className="px-5 h-9 bg-[#FFD600] text-[#222] rounded-full text-[14px] font-bold flex items-center justify-center gap-1 border-none shadow-sm hover:bg-yellow-400 hover:shadow-md transition-all duration-200"
+              style={{ 
+                fontFamily: 'inherit',
+                minWidth: '140px'
+              }}
+              onClick={() => navigate('/login')}
+            >
+              로그인/회원가입
+            </button>
+          </div>
+        </section>
+      )}
       
-      {/* 레시피 그룹 */}
+      {/* 레시피 그룹 - 비회원도 localStorage로 관리하므로 항상 표시 */}
       <div style={{ marginTop: 56 }}>
         {/* 내가 기록한 레시피 */}
         <div style={{ paddingLeft: 32, paddingRight: 32, marginTop: 0, marginBottom: 8 }}>
