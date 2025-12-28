@@ -263,7 +263,14 @@ const MyPage: React.FC = () => {
 
   // DB에서 레시피 로드
   const loadRecipesFromDB = async () => {
-    if (!isLoggedIn || !authUser?.id) return;
+    if (!isLoggedIn || !authUser?.id) {
+      // 로그인하지 않은 경우 localStorage에서 로드
+      const localRecorded = JSON.parse(localStorage.getItem(STORAGE_KEY_RECORDED) || '[]');
+      const localCompleted = JSON.parse(localStorage.getItem(STORAGE_KEY_COMPLETED) || '[]');
+      setRecordedRecipes(localRecorded);
+      setCompletedRecipes(localCompleted);
+      return;
+    }
     
     try {
       const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
@@ -277,12 +284,16 @@ const MyPage: React.FC = () => {
       });
       if (recordedResponse.ok) {
         const recordedData = await recordedResponse.json();
-        if (recordedData.recipes && recordedData.recipes.length > 0) {
-          setRecordedRecipes(recordedData.recipes);
-          recordedData.recipes.forEach((r: any) => {
-            addRecipeToLocalStorage('write', r);
-          });
-        }
+        // DB에 레시피가 있으면 DB 데이터 사용, 없으면 빈 배열로 초기화
+        const recipes = recordedData.recipes || [];
+        setRecordedRecipes(recipes);
+        // DB 데이터를 localStorage에도 동기화 (하지만 DB 우선)
+        recipes.forEach((r: any) => {
+          addRecipeToLocalStorage('write', r);
+        });
+      } else {
+        // API 호출 실패 시 빈 배열로 초기화
+        setRecordedRecipes([]);
       }
       
       // 완료한 레시피
@@ -291,15 +302,27 @@ const MyPage: React.FC = () => {
       });
       if (completedResponse.ok) {
         const completedData = await completedResponse.json();
-        if (completedData.recipes && completedData.recipes.length > 0) {
-          setCompletedRecipes(completedData.recipes);
-          completedData.recipes.forEach((r: any) => {
+        // DB에 레시피가 있으면 DB 데이터 사용, 없으면 빈 배열로 명시적 초기화
+        const recipes = completedData.recipes || [];
+        setCompletedRecipes(recipes);
+        // DB 데이터를 localStorage에도 동기화 (하지만 DB 우선)
+        // 기존 localStorage 데이터를 먼저 정리하고 새 데이터만 추가
+        const existingLocal = JSON.parse(localStorage.getItem(STORAGE_KEY_COMPLETED) || '[]');
+        const existingIds = new Set(existingLocal.map((r: any) => r.id));
+        recipes.forEach((r: any) => {
+          if (!existingIds.has(r.id)) {
             addRecipeToLocalStorage('done', r);
-          });
-        }
+          }
+        });
+      } else {
+        // API 호출 실패 시 빈 배열로 초기화
+        setCompletedRecipes([]);
       }
     } catch (error) {
       console.error('[MyPage] DB에서 레시피 로드 실패:', error);
+      // 에러 발생 시 빈 배열로 초기화
+      setRecordedRecipes([]);
+      setCompletedRecipes([]);
     }
   };
 
@@ -394,12 +417,9 @@ const MyPage: React.FC = () => {
   const [writeStates, setWriteStates] = useState<{ [id: number]: boolean }>({});
   const [toast, setToast] = useState('');
   const [profilePreview, setProfilePreview] = useState<string | null>(null);
-  const [recordedRecipes, setRecordedRecipes] = useState<any[]>(() => {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY_RECORDED) || '[]');
-  });
-  const [completedRecipes, setCompletedRecipes] = useState<any[]>(() => {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY_COMPLETED) || '[]');
-  });
+  // 초기 상태는 빈 배열로 시작 (사용자별로 useEffect에서 로드)
+  const [recordedRecipes, setRecordedRecipes] = useState<any[]>([]);
+  const [completedRecipes, setCompletedRecipes] = useState<any[]>([]);
   const [pendingRemove, setPendingRemove] = useState<PendingRemove | null>(null);
   const [pendingRecipe, setPendingRecipe] = useState<any>(null);
   const [myIngredients, setMyIngredients] = React.useState<string[]>(getMyIngredientsSafe());
@@ -440,10 +460,22 @@ const MyPage: React.FC = () => {
       setEdit(newEdit);
       setOriginalEdit(newEdit); // 원본 데이터도 업데이트
       
+      // 사용자가 변경되면 레시피 상태를 먼저 초기화 (이전 사용자 데이터 제거)
+      setRecordedRecipes([]);
+      setCompletedRecipes([]);
+      
       // DB에서 레시피 로드
       loadRecipesFromDB();
+    } else {
+      // 로그아웃 시 레시피 상태 초기화 및 localStorage에서 로드
+      setRecordedRecipes([]);
+      setCompletedRecipes([]);
+      const localRecorded = JSON.parse(localStorage.getItem(STORAGE_KEY_RECORDED) || '[]');
+      const localCompleted = JSON.parse(localStorage.getItem(STORAGE_KEY_COMPLETED) || '[]');
+      setRecordedRecipes(localRecorded);
+      setCompletedRecipes(localCompleted);
     }
-  }, [authUser]);
+  }, [authUser?.id]); // authUser.id가 변경될 때만 실행 (사용자 변경 감지)
   
   // 모달이 열릴 때 원본 데이터 저장 및 edit 상태 초기화
   useEffect(() => {
