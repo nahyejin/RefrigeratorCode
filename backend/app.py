@@ -311,16 +311,54 @@ def get_filtered_recipes():
             where_clauses.append("FIND_IN_SET(%s, REPLACE(used_ingredients,' ','')) = 0")
             base_params.append(ing)
     
-    # 카테고리 키워드 필터 (OR 조건: 하나라도 포함)
+    # 카테고리 키워드 필터 (FULLTEXT 인덱스 사용으로 성능 최적화)
     if category_keywords:
-        keyword_conditions = []
+        print(f"[필터링] category_keywords 수신: {category_keywords}")
+        fulltext_keywords = []
         for category, keywords in category_keywords.items():
             if keywords and len(keywords) > 0:
-                for kw in keywords:
+                print(f"[필터링] 카테고리 '{category}'의 키워드들: {keywords}")
+                fulltext_keywords.extend(keywords)
+        
+        if fulltext_keywords:
+            # FULLTEXT 인덱스 존재 여부 확인
+            # 인덱스가 없으면 LIKE로 폴백
+            use_fulltext = False
+            try:
+                # FULLTEXT 인덱스 존재 여부 확인 쿼리
+                check_index_sql = """
+                    SELECT COUNT(*) as cnt 
+                    FROM information_schema.statistics 
+                    WHERE table_schema = DATABASE() 
+                    AND table_name = 'recipes' 
+                    AND index_name = 'ft_title_content'
+                """
+                cursor.execute(check_index_sql)
+                index_exists = cursor.fetchone()['cnt'] > 0
+                
+                if index_exists:
+                    use_fulltext = True
+                    # 모든 키워드를 공백으로 연결하여 FULLTEXT 검색
+                    keyword_string = ' '.join(fulltext_keywords)
+                    # BOOLEAN MODE에서 공백은 OR 의미
+                    where_clauses.append("MATCH(title, content) AGAINST(%s IN BOOLEAN MODE)")
+                    base_params.append(keyword_string)
+                    print(f"[필터링] FULLTEXT 검색 사용, 키워드 수: {len(fulltext_keywords)}")
+                else:
+                    print(f"[필터링] FULLTEXT 인덱스 없음, LIKE로 폴백")
+            except Exception as e:
+                print(f"[필터링] FULLTEXT 인덱스 확인 실패, LIKE로 폴백: {e}")
+                use_fulltext = False
+            
+            if not use_fulltext:
+                # LIKE로 폴백
+                keyword_conditions = []
+                for kw in fulltext_keywords:
                     keyword_conditions.append("(title LIKE %s OR content LIKE %s)")
                     base_params.extend([f"%{kw}%", f"%{kw}%"])
-        if keyword_conditions:
-            where_clauses.append(f"({' OR '.join(keyword_conditions)})")
+                if keyword_conditions:
+                    where_clauses.append(f"({' OR '.join(keyword_conditions)})")
+                    print(f"[필터링] LIKE 조건 추가됨, 총 {len(keyword_conditions)}개 조건")
     
     # 임박재료 필터 (OR 조건: 하나라도 포함)
     if applied_expiry_ingredients:
@@ -366,17 +404,22 @@ def get_filtered_recipes():
     else:
         order_by = "post_time DESC"
 
-    # match_rate 필터를 위한 서브쿼리 (HAVING 절 사용)
-    # total COUNT (match_rate 필터 포함)
-    count_sql = f"""
-      SELECT COUNT(*) AS total
-      FROM (
-        SELECT {match_rate_expr} AS match_rate
-        FROM recipes
-        WHERE {where_sql}
-      ) AS subquery
-    """
-    count_params = (my_ingredients if my_ingredients else []) + base_params
+    # COUNT 쿼리 최적화: match_rate 필터가 없으면 서브쿼리 제거하여 성능 향상
+    if match_rate_min is None and match_rate_max is None:
+        # match_rate 필터가 없으면 서브쿼리 없이 직접 COUNT
+        count_sql = f"SELECT COUNT(*) AS total FROM recipes WHERE {where_sql}"
+        count_params = base_params
+    else:
+        # match_rate 필터가 있으면 서브쿼리 필요
+        count_sql = f"""
+          SELECT COUNT(*) AS total
+          FROM (
+            SELECT {match_rate_expr} AS match_rate
+            FROM recipes
+            WHERE {where_sql}
+          ) AS subquery
+        """
+        count_params = (my_ingredients if my_ingredients else []) + base_params
     if match_rate_min is not None or match_rate_max is not None:
         having_clauses = []
         if match_rate_min is not None:
@@ -390,6 +433,7 @@ def get_filtered_recipes():
             count_params = count_params + [match_rate_max]
     cursor.execute(count_sql, count_params)
     total = cursor.fetchone()['total']
+    print(f"[필터링] 필터링된 전체 개수 (total): {total}")
 
     # 메인 쿼리: 필요한 컬럼만 + LIMIT/OFFSET
     select_cols = "id, title, thumbnail, platform, likes, comments, hits, post_time, used_ingredients, content, link"

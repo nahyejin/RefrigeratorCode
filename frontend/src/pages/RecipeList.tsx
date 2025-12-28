@@ -14,7 +14,7 @@ import { fetchRecipesDummy } from '../utils/dummyData';
 import RecipeCard from '../components/RecipeCard';
 import VirtualizedRecipeList, { VirtualizedRecipeListRef } from '../components/VirtualizedRecipeList';
 import { Recipe, RecipeActionState, FilterState, SubstituteInfo } from '../types/recipe';
-import { getMyIngredients, sortRecipes, calculateMatchRate, initializeDefaultIngredients } from '../utils/recipeUtils';
+import { getMyIngredients, sortRecipes, calculateMatchRate, initializeDefaultIngredients, extractKeywordsAndSynonyms, FilterKeywordTree, getDictCategoryKey } from '../utils/recipeUtils';
 import RecipeToast from '../components/RecipeToast';
 // import Slider from 'rc-slider';
 // import 'rc-slider/assets/index.css';
@@ -295,7 +295,8 @@ async function loadRecipesPaged(
     excludeIngredients?: string[];
     categoryKeywords?: Record<string, string[]>;
     appliedExpiryIngredients?: string[];
-  } = {}
+  } = {},
+  categoryKeywordTree?: FilterKeywordTree | null
 ): Promise<{recipes: any[], total: number}> {
   try {
     // 환경변수가 없거나 빈 문자열이면 프로덕션 URL 사용
@@ -348,7 +349,20 @@ async function loadRecipesPaged(
     if (filters.categoryKeywords && Object.keys(filters.categoryKeywords).length > 0) {
       const hasAnyKeyword = Object.values(filters.categoryKeywords).some(keywords => keywords.length > 0);
       if (hasAnyKeyword) {
-        params.append('category_keywords', JSON.stringify(filters.categoryKeywords));
+        // 동의어를 포함하여 키워드 확장
+        const expanded: Record<string, string[]> = {};
+        Object.entries(filters.categoryKeywords).forEach(([category, keywords]) => {
+          if (keywords && keywords.length > 0) {
+            console.log('[loadRecipesPaged] 키워드 확장 전:', { category, keywords, hasTree: !!categoryKeywordTree });
+            const expandedKeywords = categoryKeywordTree
+              ? extractKeywordsAndSynonyms(category, keywords, categoryKeywordTree)
+              : keywords;
+            console.log('[loadRecipesPaged] 키워드 확장 후:', { category, expandedKeywords });
+            expanded[category] = expandedKeywords;
+          }
+        });
+        console.log('[loadRecipesPaged] 최종 확장된 categoryKeywords:', expanded);
+        params.append('category_keywords', JSON.stringify(expanded));
       }
     }
 
@@ -368,7 +382,10 @@ async function loadRecipesPaged(
     console.log('[RecipeList] loadRecipesPaged - API URL:', apiUrl, 'env:', import.meta.env?.VITE_API_BASE_URL, 'fullUrl:', `${apiUrl}/api/recipes/filter?${params.toString().substring(0, 100)}...`);
     
     const response: AxiosResponse<any> = await axios.get(`${apiUrl}/api/recipes/filter?${params}`);
-    console.log('RecipeList API 응답:', response.data);
+    console.log('[RecipeList] API 전체 응답:', response.data);
+    console.log('[RecipeList] API 응답 total:', response.data?.total);
+    console.log('[RecipeList] API 응답 recipes 개수:', Array.isArray(response.data) ? response.data.length : (response.data?.recipes?.length || 0));
+    console.log('[RecipeList] 요청 파라미터:', { page, size, filters });
     
     // response.data가 직접 배열인 경우와 response.data.recipes인 경우 모두 처리
     const recipesData = Array.isArray(response.data) ? response.data : (response.data.recipes || []);
@@ -385,11 +402,14 @@ async function loadRecipesPaged(
       const platform = recipe.platform || 'unknown';
       platformCounts[platform] = (platformCounts[platform] || 0) + 1;
     });
-    console.log('RecipeList API 응답 플랫폼별 분포:', platformCounts);
+    console.log('[RecipeList] API 응답 플랫폼별 분포:', platformCounts);
+    
+    const total = response.data?.total || recipes.length;
+    console.log('[RecipeList] 최종 반환값:', { recipesCount: recipes.length, total });
     
     return {
       recipes,
-      total: response.data.total || recipes.length
+      total
     };
   } catch (error) {
     console.warn('[RecipeList] API 레시피 로드 실패, 더미 데이터 사용:', error);
@@ -438,6 +458,7 @@ const RecipeList: React.FC = () => {
   const [includeIngredients, setIncludeIngredients] = useState<string[]>([]);
   const [excludeIngredients, setExcludeIngredients] = useState<string[]>([]);
   const [selectedCategoryKeywords, setSelectedCategoryKeywords] = useState<FilterState>(initialFilterState);
+  const [categoryKeywordTree, setCategoryKeywordTree] = useState<FilterKeywordTree | null>(null);
   // 페이징 관련 상태
   const [page, setPage] = useState(1);
   const [size] = useState(100); // 서버 사이드 페이지네이션용 크기
@@ -590,6 +611,71 @@ const RecipeList: React.FC = () => {
     };
   }, [location, myIngredients.length]);
 
+  // Filter_Keywords.csv 로드
+  useEffect(() => {
+    fetch('/Filter_Keywords.csv')
+      .then(res => res.text())
+      .then(csv => {
+        const lines = csv.split('\n').filter(Boolean);
+        const header = lines[0].split(',').map(h => h.trim());
+        const idxMap = {
+          대분류: header.indexOf('대분류'),
+          중분류: header.indexOf('중분류'),
+          키워드: header.indexOf('키워드'),
+          동의어: header.indexOf('동의어'),
+        };
+        const tree: FilterKeywordTree = {};
+        
+        // CSV 파싱 헬퍼 함수 (따옴표 안의 쉼표 처리)
+        const parseCSVLine = (line: string): string[] => {
+          const result: string[] = [];
+          let current = '';
+          let inQuotes = false;
+          
+          for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            
+            if (char === '"') {
+              inQuotes = !inQuotes;
+            } else if (char === ',' && !inQuotes) {
+              result.push(current);
+              current = '';
+            } else {
+              current += char;
+            }
+          }
+          result.push(current);
+          
+          return result;
+        };
+        
+        for (let i = 1; i < lines.length; ++i) {
+          const cols = parseCSVLine(lines[i]);
+          const main = cols[idxMap.대분류]?.trim();
+          const sub = cols[idxMap.중분류]?.trim();
+          const keyword = cols[idxMap.키워드]?.trim();
+          
+          let synonymText = cols[idxMap.동의어]?.trim() || '';
+          synonymText = synonymText.replace(/^["']|["']$/g, '');
+          const synonyms = synonymText
+            .split(/[,/|]/)
+            .map(s => s.trim())
+            .filter(Boolean);
+          
+          if (!main || !sub || !keyword) continue;
+          
+          if (!tree[main]) tree[main] = {};
+          if (!tree[main][sub]) tree[main][sub] = [];
+          tree[main][sub].push({ keyword, synonyms });
+        }
+        
+        setCategoryKeywordTree(tree);
+      })
+      .catch(error => {
+        console.error('Failed to load Filter_Keywords.csv:', error);
+      });
+  }, []);
+
   // =====================
   // 이벤트 핸들러
   // =====================
@@ -729,8 +815,16 @@ const RecipeList: React.FC = () => {
     loadSubstituteTable().then(setSubstituteTable);
   }, []);
 
+  // 초기 로드 완료 여부 추적 (중복 쿼리 방지)
+  const initialLoadDone = useRef(false);
+  
   // 레시피 데이터 로드 (초기 로드) - 페이지네이션 사용
   useEffect(() => {
+    // 이미 초기 로드가 완료되었거나 필터가 설정되어 있으면 스킵
+    if (initialLoadDone.current || (selectedCategoryKeywords && Object.keys(selectedCategoryKeywords).length > 0)) {
+      return;
+    }
+    
     setLoading(true);
     setRecipes([]);
     setFilteredRecipes([]);
@@ -748,16 +842,17 @@ const RecipeList: React.FC = () => {
       appliedExpiryIngredients: appliedExpiryIngredients.length > 0 ? appliedExpiryIngredients : undefined
     };
     
-    loadRecipesPaged(1, size, filterParams).then(({recipes, total}) => {
+    loadRecipesPaged(1, size, filterParams, categoryKeywordTree).then(({recipes, total}) => {
       setRecipes(recipes);
       setTotal(total);
       setPage(1);
       setLoading(false);
+      initialLoadDone.current = true;
     }).catch(error => {
       console.error('Error loading recipes:', error);
       setLoading(false);
     });
-  }, []); // 초기 로드만 실행
+  }, []); // 마운트 시 한 번만 실행
 
   // 가이드 단계 정의
   const guideSteps = [
@@ -915,7 +1010,7 @@ const RecipeList: React.FC = () => {
       appliedExpiryIngredients: appliedExpiryIngredients.length > 0 ? appliedExpiryIngredients : undefined
     };
     
-    loadRecipesPaged(1, size, filterParams).then(({recipes, total}) => {
+    loadRecipesPaged(1, size, filterParams, categoryKeywordTree).then(({recipes, total}) => {
       setRecipes(recipes);
       setTotal(total);
       setPage(1);
@@ -924,7 +1019,14 @@ const RecipeList: React.FC = () => {
       console.error('Error loading recipes:', error);
       setLoading(false);
     });
-  }, [selectedChannel, includeKeyword, includeIngredients, excludeIngredients, selectedCategoryKeywords, matchRange, sortType, appliedExpiryIngredients]);
+  }, [selectedChannel, includeKeyword, includeIngredients, excludeIngredients, selectedCategoryKeywords, matchRange, sortType, appliedExpiryIngredients, categoryKeywordTree]);
+  
+  // 필터가 변경되면 초기 로드 플래그 리셋 (필터 적용 시 다시 로드)
+  useEffect(() => {
+    if (selectedCategoryKeywords && Object.keys(selectedCategoryKeywords).length > 0) {
+      initialLoadDone.current = false;
+    }
+  }, [selectedCategoryKeywords]);
   
   // RecipeSortBar에서 임박 재료와 maxLack 필터를 적용하여 filteredRecipes를 업데이트함
   // 재료 매칭도 필터는 서버에서 적용됨
@@ -948,7 +1050,7 @@ const RecipeList: React.FC = () => {
     };
     
     try {
-      const {recipes: newRecipes, total: newTotal} = await loadRecipesPaged(1, 1000, filters);
+      const {recipes: newRecipes, total: newTotal} = await loadRecipesPaged(1, 1000, filters, categoryKeywordTree);
       setRecipes(newRecipes);
       setTotal(newTotal);
       setPage(1);
@@ -1003,11 +1105,31 @@ const RecipeList: React.FC = () => {
       keyword: includeKeyword || undefined,
       includeIngredients: includeIngredients.length > 0 ? includeIngredients : undefined,
       excludeIngredients: excludeIngredients.length > 0 ? excludeIngredients : undefined,
-      categoryKeywords: selectedCategoryKeywords && Object.keys(selectedCategoryKeywords).length > 0 ? selectedCategoryKeywords : undefined,
+      categoryKeywords: (() => {
+        if (!selectedCategoryKeywords || Object.keys(selectedCategoryKeywords).length === 0) {
+          return undefined;
+        }
+        
+        // 동의어를 포함하여 키워드 확장
+        const expanded: Record<string, string[]> = {};
+        Object.entries(selectedCategoryKeywords).forEach(([category, keywords]) => {
+          if (keywords && keywords.length > 0) {
+            console.log('[RecipeList] 키워드 확장 전:', { category, keywords, hasTree: !!categoryKeywordTree });
+            const expandedKeywords = categoryKeywordTree
+              ? extractKeywordsAndSynonyms(category, keywords, categoryKeywordTree)
+              : keywords;
+            console.log('[RecipeList] 키워드 확장 후:', { category, expandedKeywords });
+            expanded[category] = expandedKeywords;
+          }
+        });
+        
+        console.log('[RecipeList] 최종 확장된 categoryKeywords:', expanded);
+        return Object.keys(expanded).length > 0 ? expanded : undefined;
+      })(),
       appliedExpiryIngredients: appliedExpiryIngredients.length > 0 ? appliedExpiryIngredients : undefined
     };
     
-    loadRecipesPaged(newPage, size, filterParams).then(({recipes, total}) => {
+    loadRecipesPaged(newPage, size, filterParams, categoryKeywordTree).then(({recipes, total}) => {
       setRecipes(recipes);
       setTotal(total);
       setLoading(false);

@@ -437,9 +437,17 @@ export function getIngredientPillInfo({
 
 /**
  * 카테고리명을 트리의 key로 변환한다.
+ * FilterState의 카테고리명을 Filter_Keywords.csv의 대분류명으로 매핑
  */
 export function getDictCategoryKey(category: string): string {
-  return category;
+  const categoryMap: Record<string, string> = {
+    '효능': '요리효능',
+    '영양분': '요리영양분',
+    '대상': '식사대상',
+    'TPO': '요리TPO',
+    '스타일': '요리스타일'
+  };
+  return categoryMap[category] || category;
 }
 
 /**

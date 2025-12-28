@@ -1,5 +1,5 @@
 import { Recipe } from '../types/recipe';
-import { sortRecipes, calculateMatchRate } from './recipeUtils';
+import { sortRecipes, calculateMatchRate, extractKeywordsAndSynonyms, FilterKeywordTree } from './recipeUtils';
 
 // =====================
 // 상수
@@ -36,6 +36,7 @@ export interface FilterOptions {
   includeIngredients?: string[];
   excludeIngredients?: string[];
   categoryKeywords?: CategoryKeywords;
+  filterKeywordTree?: FilterKeywordTree | null;
 }
 
 // =====================
@@ -156,9 +157,9 @@ function filterByIncludeIngredients(recipe: Recipe, includeIngredients: string[]
 }
 
 /**
- * 카테고리 키워드 필터
+ * 카테고리 키워드 필터 (동의어 포함)
  */
-function filterByCategoryKeywords(recipe: Recipe, categoryKeywords: CategoryKeywords): boolean {
+function filterByCategoryKeywords(recipe: Recipe, categoryKeywords: CategoryKeywords, filterKeywordTree?: FilterKeywordTree | null): boolean {
   console.log(`[키워드 필터 시작] 함수 호출됨 - 레시피: "${recipe.title}"`);
   console.log(`[키워드 필터 시작] categoryKeywords:`, categoryKeywords);
   console.log(`[키워드 필터 시작] categoryKeywords 키 개수:`, Object.keys(categoryKeywords).length);
@@ -177,20 +178,26 @@ function filterByCategoryKeywords(recipe: Recipe, categoryKeywords: CategoryKeyw
     
     console.log(`[키워드 필터] 카테고리 "${category}"의 키워드들:`, keywords);
     
-    return keywords.some(keywordObj => {
-      const keyword = typeof keywordObj === 'string' 
-        ? keywordObj 
-        : (keywordObj as KeywordObject).keyword;
-      
-      if (!keyword) {
-        console.warn(`[필터 경고] 키워드가 없습니다:`, keywordObj);
-        return false;
-      }
+    // 키워드 문자열 배열로 변환
+    const keywordStrings = keywords.map(keywordObj => 
+      typeof keywordObj === 'string' ? keywordObj : (keywordObj as KeywordObject).keyword
+    ).filter(Boolean);
+    
+    // 동의어 포함하여 확장된 키워드 목록 생성
+    const expandedKeywords = filterKeywordTree 
+      ? extractKeywordsAndSynonyms(category, keywordStrings, filterKeywordTree)
+      : keywordStrings;
+    
+    console.log(`[키워드 필터] 확장된 키워드 목록 (동의어 포함):`, expandedKeywords);
+    
+    // 확장된 키워드 중 하나라도 매칭되면 통과
+    return expandedKeywords.some(keyword => {
+      if (!keyword) return false;
       
       const matchCount = getKeywordMatchCount(text, keyword);
-      console.log(`[키워드 필터] "${keyword}" 매칭 횟수: ${matchCount} (최소 필요: 2)`);
+      console.log(`[키워드 필터] "${keyword}" 매칭 횟수: ${matchCount} (최소 필요: 1)`);
       
-      const isMatch = matchCount >= 2; // 최소 2번 이상 나타나야 매칭
+      const isMatch = matchCount >= 1; // 최소 1번 이상 나타나면 매칭
       if (isMatch) {
         console.log(`[키워드 필터] ✅ "${keyword}" 매칭 성공 - 레시피: "${recipe.title}"`);
       }
@@ -237,7 +244,8 @@ export function filterRecipes(recipes: Recipe[], options: FilterOptions): Recipe
     includeKeyword = '',
     includeIngredients = [],
     excludeIngredients = [],
-    categoryKeywords = {}
+    categoryKeywords = {},
+    filterKeywordTree = null
   } = options;
   
   console.log('Destructured categoryKeywords:', categoryKeywords);
@@ -287,7 +295,7 @@ export function filterRecipes(recipes: Recipe[], options: FilterOptions): Recipe
     if (!excludeIngredientsResult) return false;
     
     console.log(`  - 🔍 키워드 필터링 시작! categoryKeywords:`, categoryKeywords);
-    const categoryKeywordsResult = filterByCategoryKeywords(recipe, categoryKeywords);
+    const categoryKeywordsResult = filterByCategoryKeywords(recipe, categoryKeywords, filterKeywordTree);
     console.log(`  - categoryKeywords 결과: ${categoryKeywordsResult}`);
     
     return categoryKeywordsResult;
