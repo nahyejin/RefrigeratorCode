@@ -485,10 +485,12 @@ def ensure_users_table():
                 provider VARCHAR(50) NOT NULL,
                 provider_id VARCHAR(255) NOT NULL,
                 password VARCHAR(255) NULL,
+                deleted_at DATETIME NULL,
                 created_at DATETIME NOT NULL,
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 UNIQUE KEY unique_provider_user (email, provider),
-                INDEX idx_provider_id (provider, provider_id)
+                INDEX idx_provider_id (provider, provider_id),
+                INDEX idx_deleted_at (deleted_at)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         """)
         db.commit()
@@ -502,6 +504,17 @@ def ensure_users_table():
             if 'Duplicate column name' not in str(e):
                 print(f"Error adding password column: {e}")
             db.rollback()
+        
+        # deleted_at 필드가 없으면 추가 (기존 테이블 마이그레이션)
+        try:
+            cursor.execute("ALTER TABLE users ADD COLUMN deleted_at DATETIME NULL")
+            cursor.execute("ALTER TABLE users ADD INDEX idx_deleted_at (deleted_at)")
+            db.commit()
+        except Exception as e:
+            # 필드가 이미 존재하면 무시
+            if 'Duplicate column name' not in str(e):
+                print(f"Error adding deleted_at column: {e}")
+            db.rollback()
     except Exception as e:
         db.rollback()
         print(f"Error creating users table: {e}")
@@ -509,7 +522,7 @@ def ensure_users_table():
         db.close()
 
 def get_or_create_user(email, nickname, provider, provider_id):
-    """사용자 조회 또는 생성"""
+    """사용자 조회 또는 생성 (탈퇴한 사용자 제외)"""
     # 테이블이 없으면 생성
     ensure_users_table()
     
@@ -517,9 +530,9 @@ def get_or_create_user(email, nickname, provider, provider_id):
     cursor = db.cursor()
     
     try:
-        # 기존 사용자 조회
+        # 기존 사용자 조회 (탈퇴하지 않은 사용자만)
         cursor.execute(
-            "SELECT id, email, nickname FROM users WHERE email = %s AND provider = %s",
+            "SELECT id, email, nickname FROM users WHERE email = %s AND provider = %s AND deleted_at IS NULL",
             (email, provider)
         )
         user = cursor.fetchone()
@@ -527,6 +540,28 @@ def get_or_create_user(email, nickname, provider, provider_id):
         if user:
             db.commit()
             return user
+        
+        # 탈퇴한 사용자가 있는지 확인
+        cursor.execute(
+            "SELECT id, email, nickname FROM users WHERE email = %s AND provider = %s AND deleted_at IS NOT NULL",
+            (email, provider)
+        )
+        deleted_user = cursor.fetchone()
+        
+        if deleted_user:
+            # 탈퇴한 사용자가 있으면 새로 생성 (이메일 재사용 가능)
+            cursor.execute(
+                "INSERT INTO users (email, nickname, provider, provider_id, created_at) VALUES (%s, %s, %s, %s, NOW())",
+                (email, nickname, provider, provider_id)
+            )
+            user_id = cursor.lastrowid
+            db.commit()
+            
+            return {
+                'id': user_id,
+                'email': email,
+                'nickname': nickname
+            }
         
         # 새 사용자 생성
         cursor.execute(
@@ -866,9 +901,9 @@ def signup():
         cursor = db.cursor()
         
         try:
-            # 이미 존재하는 사용자 확인 (같은 이메일, 같은 provider)
+            # 이미 존재하는 사용자 확인 (같은 이메일, 같은 provider, 탈퇴하지 않은 사용자만)
             cursor.execute(
-                "SELECT id FROM users WHERE email = %s AND provider = 'local'",
+                "SELECT id FROM users WHERE email = %s AND provider = 'local' AND deleted_at IS NULL",
                 (email,)
             )
             existing_user = cursor.fetchone()
@@ -876,18 +911,36 @@ def signup():
             if existing_user:
                 return jsonify({'error': '이미 가입된 이메일입니다.'}), 400
             
+            # 탈퇴한 사용자가 있는지 확인
+            cursor.execute(
+                "SELECT id FROM users WHERE email = %s AND provider = 'local' AND deleted_at IS NOT NULL",
+                (email,)
+            )
+            deleted_user = cursor.fetchone()
+            
             # 비밀번호 해싱
             password_hash = generate_password_hash(password)
             print(f"[회원가입] 이메일: {email}, 비밀번호 해시 생성 완료, 해시 길이: {len(password_hash)}")
             
-            # 사용자 생성
-            cursor.execute(
-                "INSERT INTO users (email, nickname, provider, provider_id, password, created_at) VALUES (%s, %s, 'local', %s, %s, NOW())",
-                (email, nickname, email, password_hash)  # provider_id는 이메일 사용
-            )
-            user_id = cursor.lastrowid
-            db.commit()
-            print(f"[회원가입] 사용자 생성 완료, ID: {user_id}")
+            if deleted_user:
+                # 탈퇴한 사용자가 있으면 재활성화 (deleted_at을 NULL로 설정하고 정보 업데이트)
+                # 이렇게 하면 같은 user_id를 유지하여 관련 데이터(user_ingredients 등) 연결 유지
+                cursor.execute(
+                    "UPDATE users SET nickname = %s, password = %s, deleted_at = NULL, updated_at = NOW() WHERE id = %s",
+                    (nickname, password_hash, deleted_user['id'])
+                )
+                user_id = deleted_user['id']
+                db.commit()
+                print(f"[회원가입] 탈퇴한 사용자 재활성화 완료, ID: {user_id}")
+            else:
+                # 새 사용자 생성
+                cursor.execute(
+                    "INSERT INTO users (email, nickname, provider, provider_id, password, created_at) VALUES (%s, %s, 'local', %s, %s, NOW())",
+                    (email, nickname, email, password_hash)  # provider_id는 이메일 사용
+                )
+                user_id = cursor.lastrowid
+                db.commit()
+                print(f"[회원가입] 사용자 생성 완료, ID: {user_id}")
             
             # JWT 토큰 생성
             token = generate_jwt_token(user_id, email, nickname, provider='local')
@@ -932,7 +985,7 @@ def login():
         try:
             # 사용자 조회
             cursor.execute(
-                "SELECT id, email, nickname, password FROM users WHERE email = %s AND provider = 'local'",
+                "SELECT id, email, nickname, password FROM users WHERE email = %s AND provider = 'local' AND deleted_at IS NULL",
                 (email,)
             )
             user = cursor.fetchone()
@@ -1099,9 +1152,9 @@ def check_email():
         cursor = db.cursor()
         
         try:
-            # 일반 회원가입 사용자 확인
+            # 일반 회원가입 사용자 확인 (탈퇴하지 않은 사용자만)
             cursor.execute(
-                "SELECT id FROM users WHERE email = %s AND provider = 'local'",
+                "SELECT id FROM users WHERE email = %s AND provider = 'local' AND deleted_at IS NULL",
                 (email,)
             )
             existing_user = cursor.fetchone()
@@ -1247,9 +1300,9 @@ def check_nickname():
         cursor = db.cursor()
         
         try:
-            # 닉네임 중복 확인
+            # 닉네임 중복 확인 (탈퇴하지 않은 사용자만)
             cursor.execute(
-                "SELECT id FROM users WHERE nickname = %s",
+                "SELECT id FROM users WHERE nickname = %s AND deleted_at IS NULL",
                 (nickname,)
             )
             existing_user = cursor.fetchone()
@@ -1299,14 +1352,28 @@ def delete_account():
         cursor = db.cursor()
         
         try:
-            # 사용자 삭제
+            # 사용자 존재 확인 (탈퇴하지 않은 사용자만)
             cursor.execute(
-                "DELETE FROM users WHERE id = %s AND email = %s AND provider = %s",
+                "SELECT id FROM users WHERE id = %s AND email = %s AND provider = %s AND deleted_at IS NULL",
                 (user_id, email, provider)
             )
+            user = cursor.fetchone()
             
-            if cursor.rowcount == 0:
+            if not user:
                 return jsonify({'error': '사용자를 찾을 수 없습니다.'}), 404
+            
+            # Soft Delete: 실제 삭제 대신 deleted_at을 현재 시간으로 설정 (한국 시간대)
+            # UTC+9 시간대 적용 (한국 시간)
+            from datetime import datetime, timezone, timedelta
+            
+            # 한국 시간대 (KST, UTC+9)
+            kst = timezone(timedelta(hours=9))
+            current_time_kst = datetime.now(kst)
+            
+            cursor.execute(
+                "UPDATE users SET deleted_at = %s WHERE id = %s AND email = %s AND provider = %s",
+                (current_time_kst.strftime('%Y-%m-%d %H:%M:%S'), user_id, email, provider)
+            )
             
             db.commit()
             
@@ -1340,9 +1407,9 @@ def find_email():
         cursor = db.cursor()
         
         try:
-            # 일반 로그인 사용자만 조회 (소셜 로그인은 이메일 찾기 불필요)
+            # 일반 로그인 사용자만 조회 (소셜 로그인은 이메일 찾기 불필요, 탈퇴하지 않은 사용자만)
             cursor.execute(
-                "SELECT email FROM users WHERE nickname = %s AND provider = 'local'",
+                "SELECT email FROM users WHERE nickname = %s AND provider = 'local' AND deleted_at IS NULL",
                 (nickname,)
             )
             user = cursor.fetchone()
@@ -1404,9 +1471,9 @@ def update_profile():
         cursor = db.cursor()
         
         try:
-            # 닉네임 중복 확인 (현재 사용자 제외)
+            # 닉네임 중복 확인 (현재 사용자 제외, 탈퇴하지 않은 사용자만)
             cursor.execute(
-                "SELECT id FROM users WHERE nickname = %s AND id != %s",
+                "SELECT id FROM users WHERE nickname = %s AND id != %s AND deleted_at IS NULL",
                 (nickname, user_id)
             )
             existing_user = cursor.fetchone()
@@ -1501,9 +1568,9 @@ def reset_password():
         cursor = db.cursor()
         
         try:
-            # 사용자 확인 (일반 로그인 사용자만)
+            # 사용자 확인 (일반 로그인 사용자만, 탈퇴하지 않은 사용자만)
             cursor.execute(
-                "SELECT id FROM users WHERE email = %s AND provider = 'local'",
+                "SELECT id FROM users WHERE email = %s AND provider = 'local' AND deleted_at IS NULL",
                 (email,)
             )
             user = cursor.fetchone()

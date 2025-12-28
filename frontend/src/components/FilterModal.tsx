@@ -52,10 +52,33 @@ interface FilterModalProps {
   setSelectedChannel: (channels: string[]) => void;
 }
 
+// CSV 라인 파싱 헬퍼 함수 (따옴표 안의 쉼표 처리)
+function parseCSVLine(line: string): string[] {
+  const result: string[] = [];
+  let current = '';
+  let inQuotes = false;
+  
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    
+    if (char === '"') {
+      inQuotes = !inQuotes;
+    } else if (char === ',' && !inQuotes) {
+      result.push(current);
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  result.push(current); // 마지막 컬럼
+  
+  return result;
+}
+
 // CSV 파싱 및 트리 구조 변환 함수
 function parseFilterKeywordsCSV(csv: string): Record<string, Record<string, { keyword: string, synonyms: string[] }[]>> {
   const lines = csv.split('\n').filter(Boolean);
-  const header = lines[0].split(',');
+  const header = parseCSVLine(lines[0]);
   const idxMap = {
     대분류: header.indexOf('대분류'),
     중분류: header.indexOf('중분류'),
@@ -65,11 +88,21 @@ function parseFilterKeywordsCSV(csv: string): Record<string, Record<string, { ke
   const tree: Record<string, Record<string, { keyword: string, synonyms: string[] }[]>> = {};
   
   for (let i = 1; i < lines.length; ++i) {
-    const cols = lines[i].split(',');
+    // CSV 파싱: 따옴표 안의 쉼표를 고려하여 파싱
+    const cols = parseCSVLine(lines[i]);
     const main = cols[idxMap.대분류]?.trim();
     const sub = cols[idxMap.중분류]?.trim();
     const keyword = cols[idxMap.키워드]?.trim();
-    const synonyms = cols[idxMap.동의어]?.split('/').map(s => s.trim()).filter(Boolean) || [];
+    
+    // 동의어 파싱: 쉼표, 슬래시, 파이프 모두 지원
+    let synonymText = cols[idxMap.동의어]?.trim() || '';
+    // 따옴표 제거
+    synonymText = synonymText.replace(/^["']|["']$/g, '');
+    // 쉼표, 슬래시, 파이프로 분리
+    const synonyms = synonymText
+      .split(/[,/|]/)
+      .map(s => s.trim())
+      .filter(Boolean);
     
     if (!main || !sub || !keyword) continue;
     

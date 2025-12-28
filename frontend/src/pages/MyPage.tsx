@@ -671,9 +671,11 @@ const MyPage: React.FC = () => {
     setDeletingAccount(true);
     
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
       if (!token) {
         showToast('로그인이 필요합니다.');
+        setDeletingAccount(false);
+        setShowDeleteConfirm(false);
         return;
       }
 
@@ -691,6 +693,7 @@ const MyPage: React.FC = () => {
       if (!response.ok) {
         showToast(data.error || '회원탈퇴에 실패했습니다.');
         setDeletingAccount(false);
+        setShowDeleteConfirm(false);
         return;
       }
 
@@ -707,6 +710,7 @@ const MyPage: React.FC = () => {
     } catch (err) {
       console.error('Delete account error:', err);
       showToast('회원탈퇴 중 오류가 발생했습니다.');
+      setShowDeleteConfirm(false);
     } finally {
       setDeletingAccount(false);
     }

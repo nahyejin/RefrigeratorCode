@@ -334,10 +334,42 @@ const calculateThemeRankings = async (recipes: Recipe[], dateRange: { start: Dat
     // 키워드와 동의어를 매핑하는 객체 생성
     const keywordMap = new Map<string, Set<string>>();
     
+    // CSV 라인 파싱 헬퍼 함수 (따옴표 안의 쉼표 처리)
+    const parseCSVLine = (line: string): string[] => {
+      const result: string[] = [];
+      let current = '';
+      let inQuotes = false;
+      
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        
+        if (char === '"') {
+          inQuotes = !inQuotes;
+        } else if (char === ',' && !inQuotes) {
+          result.push(current);
+          current = '';
+        } else {
+          current += char;
+        }
+      }
+      result.push(current); // 마지막 컬럼
+      
+      return result;
+    };
+    
     lines.slice(1).forEach(line => {
-      const columns = line.split(',').map(col => col.trim());
+      const columns = parseCSVLine(line).map(col => col.trim());
       const keyword = columns[keywordIdx];
-      const synonyms = columns[synonymIdx] ? columns[synonymIdx].split('|').filter(Boolean) : [];
+      
+      // 동의어 파싱: 쉼표, 슬래시, 파이프 모두 지원
+      let synonymText = columns[synonymIdx]?.trim() || '';
+      // 따옴표 제거
+      synonymText = synonymText.replace(/^["']|["']$/g, '');
+      // 쉼표, 슬래시, 파이프로 분리
+      const synonyms = synonymText
+        .split(/[,/|]/)
+        .map(s => s.trim())
+        .filter(Boolean);
       
       if (keyword) {
         const keywordSet = new Set([keyword, ...synonyms]);
