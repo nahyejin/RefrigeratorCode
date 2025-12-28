@@ -445,6 +445,26 @@ const MyFridge: React.FC = () => {
     }
   };
 
+  // 로그인 후 가이드 표시 로직
+  React.useEffect(() => {
+    // 로그인 상태가 변경되고, 로그인 후 가이드를 표시해야 하는 플래그가 있으면 가이드 표시
+    if (isLoggedIn && user?.id) {
+      const showGuideAfterLogin = localStorage.getItem('show_guide_after_login');
+      const guideShown = localStorage.getItem('myfridge_guide_shown');
+      
+      if (showGuideAfterLogin === 'true' && !guideShown) {
+        // 플래그 제거
+        localStorage.removeItem('show_guide_after_login');
+        
+        // 약간의 지연 후 가이드 표시 (페이지 렌더링 완료 후)
+        setTimeout(() => {
+          setShowGuide(true);
+          setGuideStep(0);
+        }, 500);
+      }
+    }
+  }, [isLoggedIn, user?.id]);
+
   // 로그인 상태 변경 시 localStorage → DB 동기화
   React.useEffect(() => {
     const syncLocalStorageToDB = async () => {

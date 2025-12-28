@@ -53,6 +53,11 @@ const WelcomeModal: React.FC<WelcomeModalProps> = ({
             </button>
             <button
               onClick={() => {
+                // 로그인 후 가이드를 표시하기 위한 플래그 저장
+                const guideShown = localStorage.getItem('myfridge_guide_shown');
+                if (!guideShown) {
+                  localStorage.setItem('show_guide_after_login', 'true');
+                }
                 onClose();
                 navigate('/login');
               }}
