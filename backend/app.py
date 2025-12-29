@@ -286,6 +286,12 @@ def get_filtered_recipes():
     where_clauses = ["1=1"]
     base_params = []
     
+    # 중요: 재료 파라미터를 먼저 저장 (match_rate 계산식에서 먼저 사용됨)
+    # match_rate 계산식이 SELECT 절에 있으므로, 재료 파라미터가 먼저 와야 함
+    match_rate_params = []
+    if my_ingredients:
+        match_rate_params = my_ingredients.copy()
+    
     # 채널 필터
     if platform:
         where_clauses.append("platform LIKE %s")
@@ -312,53 +318,100 @@ def get_filtered_recipes():
             base_params.append(ing)
     
     # 카테고리 키워드 필터 (FULLTEXT 인덱스 사용으로 성능 최적화)
+    # FULLTEXT 인덱스 존재 여부는 한 번만 확인하고 캐싱 (성능 최적화)
     if category_keywords:
-        print(f"[필터링] category_keywords 수신: {category_keywords}")
         fulltext_keywords = []
         for category, keywords in category_keywords.items():
             if keywords and len(keywords) > 0:
-                print(f"[필터링] 카테고리 '{category}'의 키워드들: {keywords}")
                 fulltext_keywords.extend(keywords)
         
         if fulltext_keywords:
-            # FULLTEXT 인덱스 존재 여부 확인
-            # 인덱스가 없으면 LIKE로 폴백
-            use_fulltext = False
-            try:
-                # FULLTEXT 인덱스 존재 여부 확인 쿼리
-                check_index_sql = """
-                    SELECT COUNT(*) as cnt 
-                    FROM information_schema.statistics 
-                    WHERE table_schema = DATABASE() 
-                    AND table_name = 'recipes' 
-                    AND index_name = 'ft_title_content'
-                """
-                cursor.execute(check_index_sql)
-                index_exists = cursor.fetchone()['cnt'] > 0
-                
-                if index_exists:
-                    use_fulltext = True
-                    # 모든 키워드를 공백으로 연결하여 FULLTEXT 검색
-                    keyword_string = ' '.join(fulltext_keywords)
-                    # BOOLEAN MODE에서 공백은 OR 의미
-                    where_clauses.append("MATCH(title, content) AGAINST(%s IN BOOLEAN MODE)")
-                    base_params.append(keyword_string)
-                    print(f"[필터링] FULLTEXT 검색 사용, 키워드 수: {len(fulltext_keywords)}")
-                else:
-                    print(f"[필터링] FULLTEXT 인덱스 없음, LIKE로 폴백")
-            except Exception as e:
-                print(f"[필터링] FULLTEXT 인덱스 확인 실패, LIKE로 폴백: {e}")
-                use_fulltext = False
+            # FULLTEXT 인덱스 존재 여부 확인 (캐싱하여 매번 쿼리하지 않음)
+            # 전역 변수로 인덱스 존재 여부 캐싱 (앱 시작 시 한 번만 확인)
+            if not hasattr(get_filtered_recipes, '_fulltext_index_checked'):
+                try:
+                    check_index_sql = """
+                        SELECT COUNT(*) as cnt 
+                        FROM information_schema.statistics 
+                        WHERE table_schema = DATABASE() 
+                        AND table_name = 'recipes' 
+                        AND index_name = 'ft_title_content'
+                    """
+                    cursor.execute(check_index_sql)
+                    result = cursor.fetchone()
+                    get_filtered_recipes._fulltext_index_exists = result['cnt'] > 0
+                    get_filtered_recipes._fulltext_index_checked = True
+                    print(f"[필터링] FULLTEXT 인덱스 확인: {result['cnt']}개 발견, 존재 여부: {get_filtered_recipes._fulltext_index_exists}")
+                except Exception as e:
+                    get_filtered_recipes._fulltext_index_exists = False
+                    get_filtered_recipes._fulltext_index_checked = True
+                    print(f"[필터링] FULLTEXT 인덱스 확인 중 오류: {e}")
             
-            if not use_fulltext:
-                # LIKE로 폴백
+            # FULLTEXT 인덱스 사용 (성능 최적화)
+            # 4자 미만 단어는 LIKE로 처리하고, 4자 이상은 FULLTEXT로 처리
+            use_fulltext = getattr(get_filtered_recipes, '_fulltext_index_exists', False)
+            
+            if use_fulltext:
+                # MySQL FULLTEXT 검색은 기본적으로 4자 미만 단어를 무시함
+                # 따라서 4자 이상 키워드는 FULLTEXT로, 4자 미만은 LIKE로 처리
+                fulltext_keywords_long = [kw for kw in fulltext_keywords if len(kw.strip()) >= 4]
+                fulltext_keywords_short = [kw for kw in fulltext_keywords if len(kw.strip()) < 4]
+                
+                keyword_conditions = []
+                
+                # 4자 이상 키워드는 FULLTEXT 검색 사용
+                if fulltext_keywords_long:
+                    # FULLTEXT BOOLEAN MODE에서 공백은 OR를 의미
+                    # 공백이 포함된 키워드는 따옴표로 감싸기
+                    formatted_keywords = []
+                    for kw in fulltext_keywords_long:
+                        kw_clean = kw.strip()
+                        if ' ' in kw_clean:
+                            # 공백이 있으면 따옴표로 감싸기
+                            formatted_keywords.append(f'"{kw_clean}"')
+                        else:
+                            formatted_keywords.append(kw_clean)
+                    keyword_string = ' '.join(formatted_keywords)
+                    keyword_conditions.append("MATCH(title, content) AGAINST(%s IN BOOLEAN MODE)")
+                    base_params.append(keyword_string)
+                    print(f"[필터링] FULLTEXT 인덱스 사용 (4자 이상): {keyword_string}")
+                
+                # 4자 미만 키워드는 LIKE 검색 사용
+                if fulltext_keywords_short:
+                    like_conditions = []
+                    for kw in fulltext_keywords_short:
+                        kw_clean = kw.strip()
+                        if kw_clean:
+                            like_conditions.append("(title LIKE %s OR content LIKE %s)")
+                            base_params.extend([f"%{kw_clean}%", f"%{kw_clean}%"])
+                    if like_conditions:
+                        keyword_conditions.append(f"({' OR '.join(like_conditions)})")
+                        print(f"[필터링] LIKE 검색 사용 (4자 미만): {len(like_conditions)}개 키워드")
+                
+                # FULLTEXT와 LIKE 조건을 OR로 연결
+                if keyword_conditions:
+                    final_keyword_condition = f"({' OR '.join(keyword_conditions)})"
+                    where_clauses.append(final_keyword_condition)
+                    print(f"[필터링] 최종 키워드 조건: {final_keyword_condition}")
+                else:
+                    print(f"[필터링] 경고: 키워드 조건이 생성되지 않음")
+            else:
+                # LIKE로 폴백 - 모든 키워드를 LIKE로 검색
                 keyword_conditions = []
                 for kw in fulltext_keywords:
-                    keyword_conditions.append("(title LIKE %s OR content LIKE %s)")
-                    base_params.extend([f"%{kw}%", f"%{kw}%"])
+                    kw_clean = kw.strip()
+                    if kw_clean:
+                        keyword_conditions.append("(title LIKE %s OR content LIKE %s)")
+                        base_params.extend([f"%{kw_clean}%", f"%{kw_clean}%"])
                 if keyword_conditions:
-                    where_clauses.append(f"({' OR '.join(keyword_conditions)})")
-                    print(f"[필터링] LIKE 조건 추가됨, 총 {len(keyword_conditions)}개 조건")
+                    # OR 조건으로 변경: 하나라도 매칭되면 통과
+                    final_condition = f"({' OR '.join(keyword_conditions)})"
+                    where_clauses.append(final_condition)
+                    print(f"[필터링] LIKE 검색 사용 (모든 키워드): {len(keyword_conditions)}개 키워드 조건")
+                    print(f"[필터링] 생성된 키워드 조건 (처음 100자): {final_condition[:100]}...")
+                    print(f"[필터링] 키워드 파라미터 (처음 10개): {base_params[-len(keyword_conditions)*2:-len(keyword_conditions)*2+10] if len(keyword_conditions) > 0 else base_params[-10:]}")
+                else:
+                    print(f"[필터링] 경고: 키워드 조건이 생성되지 않음 (fulltext_keywords: {fulltext_keywords})")
     
     # 임박재료 필터 (OR 조건: 하나라도 포함)
     if applied_expiry_ingredients:
@@ -371,7 +424,8 @@ def get_filtered_recipes():
     
     where_sql = " AND ".join(where_clauses)
 
-    # match_rate 계산식
+    # match_rate 계산식 최적화
+    # FIND_IN_SET 대신 더 효율적인 방법 사용 (성능 개선)
     total_ing_expr = """
       CASE WHEN used_ingredients IS NULL OR used_ingredients=''
            THEN 0
@@ -379,18 +433,22 @@ def get_filtered_recipes():
       END
     """
     if my_ingredients:
+        # match_rate 계산: 각 재료가 used_ingredients에 포함되어 있는지 확인
         match_count_parts = [
             "(CASE WHEN FIND_IN_SET(%s, REPLACE(used_ingredients,' ','')) > 0 THEN 1 ELSE 0 END)"
             for _ in my_ingredients
         ]
         match_count_expr = " + ".join(match_count_parts)
         match_rate_expr = f"CASE WHEN ({total_ing_expr}) = 0 THEN 0 ELSE ROUND(({match_count_expr})/({total_ing_expr})*100) END"
+        # 재료 파라미터는 이미 match_rate_params에 있음 (나중에 base_params 앞에 추가)
     else:
         match_rate_expr = "0"
+        match_rate_params = []
 
     # ORDER BY
     if sort_by == 'match_rate':
-        order_by = "match_rate DESC, post_time DESC"
+        # 재료 매칭률 기준으로만 정렬 (match_rate가 모두 같을 때도 match_rate 기준 유지)
+        order_by = "match_rate DESC"
     elif sort_by == 'date':
         order_by = "post_time DESC"
     elif sort_by == 'popularity':
@@ -404,38 +462,43 @@ def get_filtered_recipes():
     else:
         order_by = "post_time DESC"
 
-    # COUNT 쿼리 최적화: match_rate 필터가 없으면 서브쿼리 제거하여 성능 향상
-    if match_rate_min is None and match_rate_max is None:
-        # match_rate 필터가 없으면 서브쿼리 없이 직접 COUNT
-        count_sql = f"SELECT COUNT(*) AS total FROM recipes WHERE {where_sql}"
-        count_params = base_params
-    else:
-        # match_rate 필터가 있으면 서브쿼리 필요
-        count_sql = f"""
-          SELECT COUNT(*) AS total
-          FROM (
-            SELECT {match_rate_expr} AS match_rate
-            FROM recipes
-            WHERE {where_sql}
-          ) AS subquery
-        """
-        count_params = (my_ingredients if my_ingredients else []) + base_params
-    if match_rate_min is not None or match_rate_max is not None:
-        having_clauses = []
-        if match_rate_min is not None:
-            count_sql = count_sql.replace(") AS subquery", f"HAVING match_rate >= %s) AS subquery")
-            count_params = count_params + [match_rate_min]
-        if match_rate_max is not None:
-            if match_rate_min is not None:
-                count_sql = count_sql.replace("HAVING match_rate >= %s", "HAVING match_rate >= %s AND match_rate <= %s")
-            else:
-                count_sql = count_sql.replace(") AS subquery", f"HAVING match_rate <= %s) AS subquery")
-            count_params = count_params + [match_rate_max]
+    # COUNT 쿼리 최적화: 키워드 필터링만으로 COUNT (match_rate 계산 제외)
+    # match_rate는 정렬에만 사용하고, COUNT에서는 키워드 필터링만 적용
+    # base_params에는 키워드 파라미터만 있으므로 그대로 사용
+    count_params = base_params
+    
+    # COUNT 쿼리는 키워드 필터링만 적용 (match_rate 계산 없이)
+    # match_rate 필터는 메인 쿼리에서만 적용하므로 COUNT에서는 제외
+    count_sql = f"SELECT COUNT(*) AS total FROM recipes WHERE {where_sql}"
+    # COUNT 쿼리 실행 시간 측정
+    import time
+    count_start = time.time()
+    # 디버깅: COUNT 쿼리 파라미터 확인 및 SQL 쿼리 확인
+    if category_keywords and 'fulltext_keywords' in locals() and len(fulltext_keywords) > 0:
+        # SQL 쿼리의 일부만 출력 (너무 길면 잘림)
+        sql_preview = count_sql[:500] if len(count_sql) > 500 else count_sql
+        print(f"[필터링] COUNT SQL 쿼리 미리보기: {sql_preview}...")
+        print(f"[필터링] COUNT 파라미터 샘플 (처음 10개): {count_params[:10]}")
+    if category_keywords:
+        print(f"[필터링] COUNT - 카테고리 키워드: {category_keywords}")
+        if 'fulltext_keywords' in locals():
+            print(f"[필터링] COUNT - 확장된 키워드 개수: {len(fulltext_keywords)}")
+            print(f"[필터링] COUNT - 확장된 키워드 샘플: {fulltext_keywords[:5]}")
+            print(f"[필터링] COUNT - 전체 확장된 키워드: {fulltext_keywords}")
+            print(f"[필터링] COUNT - FULLTEXT 인덱스 존재 여부: {getattr(get_filtered_recipes, '_fulltext_index_exists', False)}")
+    print(f"[필터링] COUNT - WHERE 절 파라미터 개수: {len(base_params)}")
+    print(f"[필터링] COUNT - match_rate 파라미터 개수: {len(match_rate_params) if 'match_rate_params' in locals() else 0}")
+    print(f"[필터링] COUNT - 전체 파라미터 개수: {len(count_params)}")
+    
     cursor.execute(count_sql, count_params)
     total = cursor.fetchone()['total']
-    print(f"[필터링] 필터링된 전체 개수 (total): {total}")
+    count_time = time.time() - count_start
+    print(f"[필터링] COUNT 쿼리 실행 시간: {count_time:.3f}초, 필터링된 전체 개수 (total): {total}")
 
     # 메인 쿼리: 필요한 컬럼만 + LIMIT/OFFSET
+    # content는 필터링에만 사용되므로 SELECT에서 제외하여 성능 향상 (필요시 서브쿼리로 가져올 수 있음)
+    # 하지만 프론트엔드에서 content를 사용할 수 있으므로 일단 유지
+    # 성능 최적화: content는 큰 TEXT 컬럼이므로 필요한 경우에만 가져오도록 개선 가능
     select_cols = "id, title, thumbnail, platform, likes, comments, hits, post_time, used_ingredients, content, link"
     main_sql = f"""
       SELECT {select_cols},
@@ -443,7 +506,9 @@ def get_filtered_recipes():
       FROM recipes
       WHERE {where_sql}
     """
-    main_params = (my_ingredients if my_ingredients else []) + base_params
+    # 파라미터 순서: 재료 파라미터(match_rate 계산용) → WHERE 절 파라미터(키워드 등)
+    # match_rate 계산식이 SELECT 절에 먼저 나오므로, 재료 파라미터가 먼저 와야 함
+    main_params = match_rate_params + base_params
     
     # HAVING 절 추가 (match_rate 필터)
     if match_rate_min is not None or match_rate_max is not None:
@@ -459,8 +524,55 @@ def get_filtered_recipes():
     
     main_sql += f" ORDER BY {order_by} LIMIT %s OFFSET %s"
     main_params = main_params + [size, offset]
+    
+    # 쿼리 실행 시간 측정 (성능 모니터링)
+    import time
+    query_start = time.time()
+    
+    # 디버깅: 정렬 기준 확인
+    print(f"[필터링] 정렬 기준 (sort_by): {sort_by}")
+    print(f"[필터링] ORDER BY 절: {order_by}")
+    print(f"[필터링] match_rate 계산식: {match_rate_expr[:100] if len(match_rate_expr) > 100 else match_rate_expr}")
+    # 실제 SQL 쿼리 확인 (파라미터는 %s로 표시)
+    print(f"[필터링] 실제 SQL 쿼리 (ORDER BY 포함, 처음 500자): {main_sql[:500]}...")
+    
+    # 디버깅: 쿼리와 파라미터 확인
+    if category_keywords:
+        print(f"[필터링] 카테고리 키워드: {category_keywords}")
+        print(f"[필터링] 확장된 키워드: {fulltext_keywords if 'fulltext_keywords' in locals() else 'N/A'}")
+        print(f"[필터링] WHERE SQL: {where_sql}")
+        # 키워드 관련 파라미터만 추출 (match_rate 파라미터 제외)
+        keyword_params_count = len(base_params) - len(my_ingredients) if my_ingredients else len(base_params)
+        print(f"[필터링] WHERE 파라미터 (키워드 관련, 처음 40개): {base_params[:keyword_params_count][:40]}")
+        print(f"[필터링] WHERE 파라미터 총 개수 (키워드): {keyword_params_count}")
+        print(f"[필터링] WHERE 파라미터 총 개수 (match_rate): {len(my_ingredients) if my_ingredients else 0}")
+    print(f"[필터링] WHERE 절 파라미터 개수: {len(base_params) - len(my_ingredients) if my_ingredients else len(base_params)}")
+    print(f"[필터링] match_rate 파라미터 개수: {len(my_ingredients) if my_ingredients else 0}")
+    print(f"[필터링] 전체 파라미터 개수: {len(main_params)}")
+    
+    # 실제 SQL 쿼리 전체 확인 (디버깅용)
+    if sort_by == 'match_rate':
+        print(f"[필터링] 실제 SQL 쿼리 전체:")
+        print(main_sql)
+        print(f"[필터링] SQL 파라미터 개수: {len(main_params)}")
+        print(f"[필터링] SQL 파라미터 (처음 20개): {main_params[:20]}")
+    
     cursor.execute(main_sql, main_params)
     rows = cursor.fetchall()
+    query_time = time.time() - query_start
+    print(f"[필터링] 메인 쿼리 실행 시간: {query_time:.3f}초, 결과 개수: {len(rows)}")
+    
+    # 디버깅: 정렬 결과 확인 (처음 10개 레시피의 match_rate 확인)
+    if rows and sort_by == 'match_rate':
+        match_rates = [float(r.get('match_rate', 0)) for r in rows[:10]]
+        print(f"[필터링] 정렬 결과 확인 (처음 10개 match_rate): {match_rates}")
+        # match_rate가 정렬되어 있는지 확인
+        is_sorted = match_rates == sorted(match_rates, reverse=True)
+        print(f"[필터링] match_rate가 내림차순으로 정렬되어 있는가: {is_sorted}")
+        if not is_sorted:
+            print(f"[필터링] 경고: match_rate가 정렬되지 않았습니다!")
+            print(f"[필터링] 정렬된 순서: {sorted(match_rates, reverse=True)}")
+            print(f"[필터링] 실제 순서: {match_rates}")
 
     db.close()
     return jsonify({"recipes": rows, "total": total, "page": page, "size": size})

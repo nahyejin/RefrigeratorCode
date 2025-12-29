@@ -203,7 +203,7 @@ const Login: React.FC = () => {
           </div>
           <div className="relative flex justify-center">
             <span className="bg-white px-3 text-gray-500 text-[11px]">간편 로그인</span>
-          </div>
+        </div>
         </div>
         
         {/* SSO 버튼 세로배치 */}
@@ -211,17 +211,17 @@ const Login: React.FC = () => {
           {SSO_BUTTONS.map((button, index) => {
             const provider = button.alt.toLowerCase() as 'google' | 'kakao' | 'naver';
             return (
-              <NeangteolButton
-                key={index}
+            <NeangteolButton
+              key={index}
                 icon={<img src={button.icon} alt={button.alt} className="w-4 h-4" />}
-                color={button.color}
-                textColor={button.textColor}
+              color={button.color}
+              textColor={button.textColor}
                 className={`w-full ${SSO_BUTTON_HEIGHT} px-4 text-[13px]`}
                 border={button.border || false}
                 onClick={() => handleSocialLogin(provider)}
-              >
-                {button.text}
-              </NeangteolButton>
+            >
+              {button.text}
+            </NeangteolButton>
             );
           })}
         </div>
