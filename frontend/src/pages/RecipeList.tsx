@@ -142,28 +142,12 @@ function getDDay(expiry: string): string {
  * 정렬/필터바 초기 상태를 가져온다
  */
 function getInitialSortBarState() {
-  // sessionStorage에서 저장된 상태를 읽어온다
-  try {
-    const saved = sessionStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      // 저장된 matchRange가 있으면 사용, 없으면 기본값 [0, 100]
-      return {
-        sortType: parsed.sortType || 'match',
-        matchRange: parsed.matchRange || [0, 100],
-        maxLack: parsed.maxLack || 'unlimited',
-        appliedExpiryIngredients: parsed.appliedExpiryIngredients || [],
-        expirySortType: parsed.expirySortType || 'expiry',
-      };
-    }
-  } catch (error) {
-    console.warn('[RecipeList] 저장된 상태 로드 실패:', error);
-  }
-  
-  // 기본값: 재료 매칭률 0~100%, 정렬 기준 '재료매칭률순', 임박재료 없음, 필터 없음
+  // 초기 로드 시 항상 기본값 사용 (30~100%, 재료매칭률순)
+  // 이후 사용자가 변경한 값은 sessionStorage에 저장되어 유지됨
+  // 하지만 초기 로드 시에는 항상 기본값을 사용하여 성능 최적화
   return {
     sortType: 'match', // 재료매칭률순
-    matchRange: [0, 100], // 0~100%
+    matchRange: [30, 100], // 30~100%
     maxLack: 'unlimited',
     appliedExpiryIngredients: [], // 임박재료 없음
     expirySortType: 'expiry',
@@ -925,41 +909,7 @@ const RecipeList: React.FC = () => {
   // 초기 로드 완료 여부 추적 (중복 쿼리 방지)
   const initialLoadDone = useRef(false);
   
-  // 레시피 데이터 로드 (초기 로드) - 페이지네이션 사용
-  useEffect(() => {
-    // 이미 초기 로드가 완료되었거나 필터가 설정되어 있으면 스킵
-    if (initialLoadDone.current || (selectedCategoryKeywords && Object.keys(selectedCategoryKeywords).length > 0)) {
-      return;
-    }
-    
-    setLoading(true);
-    setRecipes([]);
-    setFilteredRecipes([]);
-    
-    // 초기 로드 시 디폴트 값으로 서버에 요청
-    const filterParams = {
-      matchRateMin: matchRange[0],
-      matchRateMax: matchRange[1],
-      sortBy: sortType === 'match' ? 'match_rate' : 
-              sortType === 'latest' ? 'date' : 
-              sortType === 'like' ? 'like' : 
-              sortType === 'comment' ? 'comment' : 
-              sortType === 'hits' ? 'hits' : 
-              sortType === 'expiry' ? 'match_rate' : 'match_rate',
-      appliedExpiryIngredients: appliedExpiryIngredients.length > 0 ? appliedExpiryIngredients : undefined
-    };
-    
-    loadRecipesPaged(1, size, filterParams, categoryKeywordTree).then(({recipes, total}) => {
-      setRecipes(recipes);
-      setTotal(total);
-      setPage(1);
-      setLoading(false);
-      initialLoadDone.current = true;
-    }).catch(error => {
-      console.error('Error loading recipes:', error);
-      setLoading(false);
-    });
-  }, []); // 마운트 시 한 번만 실행
+  // 초기 로드는 필터 조건 변경 useEffect에서 처리하므로 별도의 초기 로드 useEffect 제거
 
   // 가이드 단계 정의
   const guideSteps = [
@@ -1094,22 +1044,26 @@ const RecipeList: React.FC = () => {
   }, [filteredRecipes.length, recipes.length, loading, showGuide]);
 
   // 필터 조건 변경 감지 (정렬 기준 제외)
+  // 초기 로드 시에도 기본값 [30, 100]을 사용하도록 보장
   const filterHash = useMemo(() => {
+    // 초기 로드 시 기본값 강제 적용 (sessionStorage에 저장된 값이 있어도 초기 로드 시에는 기본값 사용)
+    const effectiveMatchRange = initialLoadDone.current ? matchRange : [30, 100];
+    
     return JSON.stringify({
       selectedChannel,
       includeKeyword,
       includeIngredients,
       excludeIngredients,
       selectedCategoryKeywords,
-      matchRange,
+      matchRange: effectiveMatchRange,
       appliedExpiryIngredients
     });
   }, [selectedChannel, includeKeyword, includeIngredients, excludeIngredients, selectedCategoryKeywords, matchRange, appliedExpiryIngredients]);
 
   // 필터 조건이 변경되면 전체 필터링된 결과를 한 번에 받아서 캐싱
   useEffect(() => {
-    // 필터 조건이 변경되지 않았으면 스킵
-    if (filterHash === lastFilterHash && cachedFilteredRecipes.length > 0) {
+    // 필터 조건이 변경되지 않았으면 스킵 (단, 초기 로드 시에는 실행)
+    if (filterHash === lastFilterHash && cachedFilteredRecipes.length > 0 && initialLoadDone.current) {
       return;
     }
 
@@ -1119,9 +1073,11 @@ const RecipeList: React.FC = () => {
     setCachedFilteredRecipes([]);
     
     // 필터 조건과 재료 매칭도 필터를 서버에 전달 (정렬은 기본값 'match_rate'로)
+    // 초기 로드 시 기본값 [30, 100] 강제 적용 (initialLoadDone이 false일 때)
+    const effectiveMatchRange = initialLoadDone.current ? matchRange : [30, 100];
     const filterParams = {
-      matchRateMin: matchRange[0],
-      matchRateMax: matchRange[1],
+      matchRateMin: effectiveMatchRange[0],
+      matchRateMax: effectiveMatchRange[1],
       sortBy: 'match_rate', // 필터링 시에는 항상 기본 정렬로 받아서 캐싱
       platform: selectedChannel.length > 0 ? selectedChannel[0] : undefined,
       keyword: includeKeyword || undefined,
@@ -1131,12 +1087,21 @@ const RecipeList: React.FC = () => {
       appliedExpiryIngredients: appliedExpiryIngredients.length > 0 ? appliedExpiryIngredients : undefined
     };
     
-    // 전체 필터링된 결과를 한 번에 받기 위해 큰 size 사용 (최대 10000개)
-    loadRecipesPaged(1, 10000, filterParams, categoryKeywordTree).then(({recipes, total}) => {
+    // 전체 필터링된 결과를 한 번에 받기 위해 큰 size 사용
+    // 먼저 total을 확인하기 위해 작은 size로 요청한 후, 실제 total만큼 받기
+    loadRecipesPaged(1, 1, filterParams, categoryKeywordTree).then(({total: initialTotal}) => {
+      // total이 확인되면 실제 전체 개수만큼만 받기 (최대 10000개로 제한하여 성능 보호)
+      const actualSize = Math.min(initialTotal, 10000);
+      return loadRecipesPaged(1, actualSize, filterParams, categoryKeywordTree);
+    }).then(({recipes, total}) => {
       setCachedFilteredRecipes(recipes);
       setTotal(total);
       setPage(1);
       setLastFilterHash(filterHash);
+      // 초기 로드 완료 표시
+      if (!initialLoadDone.current) {
+        initialLoadDone.current = true;
+      }
       setLoading(false);
     }).catch(error => {
       console.error('Error loading recipes:', error);
@@ -1150,10 +1115,13 @@ const RecipeList: React.FC = () => {
       return;
     }
 
+    // 초기 로드 시 기본값 'match' 강제 적용 (initialLoadDone이 false일 때)
+    const effectiveSortType = initialLoadDone.current ? sortType : 'match';
+    
     // 캐시된 데이터를 클라이언트에서 정렬
     const sortedRecipes = sortRecipes(
       cachedFilteredRecipes,
-      sortType,
+      effectiveSortType,
       myIngredients,
       appliedExpiryIngredients
     );

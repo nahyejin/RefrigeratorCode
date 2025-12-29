@@ -407,11 +407,6 @@ def get_filtered_recipes():
                     # OR 조건으로 변경: 하나라도 매칭되면 통과
                     final_condition = f"({' OR '.join(keyword_conditions)})"
                     where_clauses.append(final_condition)
-                    print(f"[필터링] LIKE 검색 사용 (모든 키워드): {len(keyword_conditions)}개 키워드 조건")
-                    print(f"[필터링] 생성된 키워드 조건 (처음 100자): {final_condition[:100]}...")
-                    print(f"[필터링] 키워드 파라미터 (처음 10개): {base_params[-len(keyword_conditions)*2:-len(keyword_conditions)*2+10] if len(keyword_conditions) > 0 else base_params[-10:]}")
-                else:
-                    print(f"[필터링] 경고: 키워드 조건이 생성되지 않음 (fulltext_keywords: {fulltext_keywords})")
     
     # 임박재료 필터 (OR 조건: 하나라도 포함)
     if applied_expiry_ingredients:
@@ -462,33 +457,37 @@ def get_filtered_recipes():
     else:
         order_by = "post_time DESC"
 
-    # COUNT 쿼리 최적화: 키워드 필터링만으로 COUNT (match_rate 계산 제외)
-    # match_rate는 정렬에만 사용하고, COUNT에서는 키워드 필터링만 적용
-    # base_params에는 키워드 파라미터만 있으므로 그대로 사용
-    count_params = base_params
+    # COUNT 쿼리: match_rate 필터도 포함하여 정확한 개수 계산
+    # match_rate 계산과 HAVING 절을 포함한 서브쿼리 사용
+    count_params = match_rate_params + base_params
     
-    # COUNT 쿼리는 키워드 필터링만 적용 (match_rate 계산 없이)
-    # match_rate 필터는 메인 쿼리에서만 적용하므로 COUNT에서는 제외
-    count_sql = f"SELECT COUNT(*) AS total FROM recipes WHERE {where_sql}"
+    # COUNT 쿼리는 메인 쿼리와 동일한 조건을 사용하되, COUNT만 수행
+    # 서브쿼리 안에 HAVING 절을 넣어야 match_rate를 참조할 수 있음
+    count_sql = f"""
+      SELECT COUNT(*) AS total 
+      FROM (
+        SELECT {match_rate_expr} AS match_rate
+        FROM recipes
+        WHERE {where_sql}
+    """
+    
+    # HAVING 절 추가 (match_rate 필터) - 서브쿼리 안에 추가
+    if match_rate_min is not None or match_rate_max is not None:
+        having_clauses = []
+        if match_rate_min is not None:
+            having_clauses.append("match_rate >= %s")
+            count_params = count_params + [match_rate_min]
+        if match_rate_max is not None:
+            having_clauses.append("match_rate <= %s")
+            count_params = count_params + [match_rate_max]
+        if having_clauses:
+            count_sql += " HAVING " + " AND ".join(having_clauses)
+    
+    count_sql += " ) AS subquery"
+    
     # COUNT 쿼리 실행 시간 측정
     import time
     count_start = time.time()
-    # 디버깅: COUNT 쿼리 파라미터 확인 및 SQL 쿼리 확인
-    if category_keywords and 'fulltext_keywords' in locals() and len(fulltext_keywords) > 0:
-        # SQL 쿼리의 일부만 출력 (너무 길면 잘림)
-        sql_preview = count_sql[:500] if len(count_sql) > 500 else count_sql
-        print(f"[필터링] COUNT SQL 쿼리 미리보기: {sql_preview}...")
-        print(f"[필터링] COUNT 파라미터 샘플 (처음 10개): {count_params[:10]}")
-    if category_keywords:
-        print(f"[필터링] COUNT - 카테고리 키워드: {category_keywords}")
-        if 'fulltext_keywords' in locals():
-            print(f"[필터링] COUNT - 확장된 키워드 개수: {len(fulltext_keywords)}")
-            print(f"[필터링] COUNT - 확장된 키워드 샘플: {fulltext_keywords[:5]}")
-            print(f"[필터링] COUNT - 전체 확장된 키워드: {fulltext_keywords}")
-            print(f"[필터링] COUNT - FULLTEXT 인덱스 존재 여부: {getattr(get_filtered_recipes, '_fulltext_index_exists', False)}")
-    print(f"[필터링] COUNT - WHERE 절 파라미터 개수: {len(base_params)}")
-    print(f"[필터링] COUNT - match_rate 파라미터 개수: {len(match_rate_params) if 'match_rate_params' in locals() else 0}")
-    print(f"[필터링] COUNT - 전체 파라미터 개수: {len(count_params)}")
     
     cursor.execute(count_sql, count_params)
     total = cursor.fetchone()['total']
@@ -529,50 +528,10 @@ def get_filtered_recipes():
     import time
     query_start = time.time()
     
-    # 디버깅: 정렬 기준 확인
-    print(f"[필터링] 정렬 기준 (sort_by): {sort_by}")
-    print(f"[필터링] ORDER BY 절: {order_by}")
-    print(f"[필터링] match_rate 계산식: {match_rate_expr[:100] if len(match_rate_expr) > 100 else match_rate_expr}")
-    # 실제 SQL 쿼리 확인 (파라미터는 %s로 표시)
-    print(f"[필터링] 실제 SQL 쿼리 (ORDER BY 포함, 처음 500자): {main_sql[:500]}...")
-    
-    # 디버깅: 쿼리와 파라미터 확인
-    if category_keywords:
-        print(f"[필터링] 카테고리 키워드: {category_keywords}")
-        print(f"[필터링] 확장된 키워드: {fulltext_keywords if 'fulltext_keywords' in locals() else 'N/A'}")
-        print(f"[필터링] WHERE SQL: {where_sql}")
-        # 키워드 관련 파라미터만 추출 (match_rate 파라미터 제외)
-        keyword_params_count = len(base_params) - len(my_ingredients) if my_ingredients else len(base_params)
-        print(f"[필터링] WHERE 파라미터 (키워드 관련, 처음 40개): {base_params[:keyword_params_count][:40]}")
-        print(f"[필터링] WHERE 파라미터 총 개수 (키워드): {keyword_params_count}")
-        print(f"[필터링] WHERE 파라미터 총 개수 (match_rate): {len(my_ingredients) if my_ingredients else 0}")
-    print(f"[필터링] WHERE 절 파라미터 개수: {len(base_params) - len(my_ingredients) if my_ingredients else len(base_params)}")
-    print(f"[필터링] match_rate 파라미터 개수: {len(my_ingredients) if my_ingredients else 0}")
-    print(f"[필터링] 전체 파라미터 개수: {len(main_params)}")
-    
-    # 실제 SQL 쿼리 전체 확인 (디버깅용)
-    if sort_by == 'match_rate':
-        print(f"[필터링] 실제 SQL 쿼리 전체:")
-        print(main_sql)
-        print(f"[필터링] SQL 파라미터 개수: {len(main_params)}")
-        print(f"[필터링] SQL 파라미터 (처음 20개): {main_params[:20]}")
-    
     cursor.execute(main_sql, main_params)
     rows = cursor.fetchall()
     query_time = time.time() - query_start
     print(f"[필터링] 메인 쿼리 실행 시간: {query_time:.3f}초, 결과 개수: {len(rows)}")
-    
-    # 디버깅: 정렬 결과 확인 (처음 10개 레시피의 match_rate 확인)
-    if rows and sort_by == 'match_rate':
-        match_rates = [float(r.get('match_rate', 0)) for r in rows[:10]]
-        print(f"[필터링] 정렬 결과 확인 (처음 10개 match_rate): {match_rates}")
-        # match_rate가 정렬되어 있는지 확인
-        is_sorted = match_rates == sorted(match_rates, reverse=True)
-        print(f"[필터링] match_rate가 내림차순으로 정렬되어 있는가: {is_sorted}")
-        if not is_sorted:
-            print(f"[필터링] 경고: match_rate가 정렬되지 않았습니다!")
-            print(f"[필터링] 정렬된 순서: {sorted(match_rates, reverse=True)}")
-            print(f"[필터링] 실제 순서: {match_rates}")
 
     db.close()
     return jsonify({"recipes": rows, "total": total, "page": page, "size": size})
