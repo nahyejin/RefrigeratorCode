@@ -4,6 +4,7 @@ import { fetchRecipesDummy } from '../utils/dummyData';
 import RecipeCard from '../components/RecipeCard';
 import { getMyIngredients } from '../utils/recipeUtils';
 import { Recipe, RecipeActionState } from '../types/recipe';
+import CoupangAd from '../components/CoupangAd';
 
 // =====================
 // 상수
@@ -107,6 +108,14 @@ const RecipeDetail: React.FC = () => {
         }}
         isLast={true}
         myIngredients={myIngredients}
+      />
+      
+      {/* 쿠팡 광고 */}
+      <CoupangAd 
+        style={{ 
+          marginTop: '24px',
+          marginBottom: '24px'
+        }} 
       />
       
       <div className="mt-6 text-xs text-gray-400">

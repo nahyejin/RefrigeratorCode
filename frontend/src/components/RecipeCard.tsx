@@ -4,6 +4,7 @@ import { getProxiedImageUrl } from '../utils/imageUtils';
 import { getPlatformLogo } from '../utils/platform';
 import { calculateMatchRate } from '../utils/recipeUtils';
 import IngredientPillGroup from './IngredientPillGroup';
+import CoupangProductAd from './CoupangProductAd';
 import 완료하기버튼 from '../assets/완료하기버튼.png';
 import 공유하기버튼 from '../assets/공유하기버튼.png';
 import 기록하기버튼 from '../assets/기록하기버튼.png';
@@ -257,6 +258,37 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
       ? recipe.used_ingredients.join(',')
       : recipe.used_ingredients || ''
   );
+  
+  // 부족한 재료가 정확히 1개인지 확인 (대체 가능한 재료 제외)
+  const getLackingIngredients = () => {
+    if (!match.need_ingredients || match.need_ingredients.length === 0) {
+      return [];
+    }
+    
+    // 대체 가능한 재료는 제외 (substituteTable 확인)
+    const normalize = (s: string) => (s || '').trim().toLowerCase();
+    const mySet = new Set(myIngredients.map(normalize));
+    const normalizedSubTable: { [key: string]: string } = {};
+    
+    if (substituteTable) {
+      Object.keys(substituteTable).forEach(key => {
+        const normKey = normalize(key);
+        if (substituteTable[key]?.ingredient_b) {
+          normalizedSubTable[normKey] = normalize(substituteTable[key].ingredient_b);
+        }
+      });
+    }
+    
+    // 대체 불가능한 부족한 재료만 필터링
+    return match.need_ingredients.filter(ing => {
+      const normIng = normalize(ing);
+      // 대체 가능한 재료인지 확인
+      const hasSubstitute = normalizedSubTable[normIng] && mySet.has(normalizedSubTable[normIng]);
+      return !hasSubstitute;
+    });
+  };
+  
+  const lackingIngredients = getLackingIngredients();
 
   const handleCardClick = (e: React.MouseEvent<HTMLDivElement>) => {
     // 버튼 영역 클릭 시 카드 클릭 이벤트 무시
@@ -271,13 +303,18 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
     }
   };
 
+  // 광고가 표시될 경우를 대비해 overflow와 min-height 조정
+  const hasAd = lackingIngredients.length === 1;
+  
   return (
     <div
-      className="bg-white rounded-[20px] shadow-sm min-h-[280px] relative p-4 block hover:shadow-md transition cursor-pointer"
+      className="bg-white rounded-[20px] shadow-sm relative p-4 block hover:shadow-md transition cursor-pointer"
       style={{
         ...(isLast ? STYLES.lastCard : STYLES.card),
+        marginBottom: 0, // 프리미엄 요리 섹션에서 간격 제거
         touchAction: 'pan-y pan-x', // 세로 및 가로 스크롤 모두 허용
-        overflowY: 'hidden',
+        overflowY: hasAd ? 'visible' : 'hidden', // 광고가 있으면 visible로 변경
+        minHeight: hasAd ? 'auto' : '280px', // 광고가 있으면 auto로 변경
         WebkitOverflowScrolling: 'touch' // iOS 부드러운 스크롤
       }}
       onClick={handleCardClick}
@@ -379,6 +416,14 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
         <div className="custom-scrollbar pr-1" style={{ display: 'flex', flexWrap: 'nowrap', gap: 4, marginBottom: 4, overflowX: 'auto', maxWidth: '100%', scrollbarWidth: 'auto', alignItems: 'center', paddingBottom: 4 }}>
           <span className="bg-customGray text-white rounded-full px-3 py-0.5 font-normal" style={{ fontSize: '10.4px', lineHeight: 1.3, whiteSpace: 'nowrap', height: 22, display: 'inline-flex', alignItems: 'center', textShadow: 'none', border: 'none' }}>재료 정보 없음</span>
         </div>
+      )}
+      
+      {/* 쿠팡 광고: 부족한 재료가 정확히 1개일 때만 표시 (대체 가능한 재료 제외) */}
+      {lackingIngredients.length === 1 && (
+        <CoupangProductAd 
+          ingredientName={lackingIngredients[0]}
+          style={{ marginTop: '12px' }}
+        />
       )}
     </div>
   );

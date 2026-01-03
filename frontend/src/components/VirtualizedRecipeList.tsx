@@ -20,7 +20,7 @@ export interface VirtualizedRecipeListRef {
 
 // 상수 정의
 const CONSTANTS = {
-  ITEM_HEIGHT: 320, // 각 레시피 카드의 높이 (픽셀)
+  ITEM_HEIGHT: 420, // 각 레시피 카드의 높이 (픽셀) - 광고 포함 시를 대비해 증가
   HEADER_OFFSET: 300, // 헤더/네비게이션 영역 높이
   OVERSCAN_COUNT: 5 // 추가로 렌더링할 아이템 수
 } as const;

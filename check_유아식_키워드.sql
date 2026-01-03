@@ -170,3 +170,5 @@ WHERE title LIKE '%무염 반찬%' OR content LIKE '%무염 반찬%'
 ORDER BY count DESC;
 
 
+
+

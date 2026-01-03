@@ -19,6 +19,7 @@ import youtubeLogo from '../assets/썸네일_youtubelogo.png';
 import { addRecipeToLocalStorage, removeRecipeFromLocalStorage, getRecipesFromLocalStorage, copyRecipeUrlToClipboard } from '../utils/recipeStorage';
 import { useAuth } from '../context/AuthContext';
 import RegisterPromptModal from '../components/RegisterPromptModal';
+import BottomCoupangAd from '../components/BottomCoupangAd';
 
 // =====================
 // 상수
@@ -918,7 +919,7 @@ const MyPage: React.FC = () => {
   // =====================
 
   return (
-    <div className="bg-white min-h-screen max-w-[430px] mx-auto pb-24 relative">
+    <div className="bg-white min-h-screen max-w-[400px] mx-auto pb-24 relative" style={{ boxSizing: 'border-box' }}>
       {/* 상단 네비 - 고정 */}
       <header 
         className="w-full h-[56px] flex items-center justify-between px-5 bg-white"
@@ -928,7 +929,7 @@ const MyPage: React.FC = () => {
           left: 0,
           right: 0,
           zIndex: 1000,
-          maxWidth: '430px',
+          maxWidth: '400px',
           margin: '0 auto'
         }}
       >
@@ -1024,7 +1025,7 @@ const MyPage: React.FC = () => {
       {/* 레시피 그룹 - 비회원도 localStorage로 관리하므로 항상 표시 */}
       <div style={{ marginTop: 56 }}>
         {/* 내가 기록한 레시피 */}
-        <div style={{ paddingLeft: 32, paddingRight: 32, marginTop: 0, marginBottom: 8 }}>
+        <div style={{ paddingLeft: 14, paddingRight: 14, marginTop: 0, marginBottom: 8 }}>
           <div className="flex items-center justify-between mb-0">
             <h2 className="text-[16px] font-bold text-[#111] flex items-center gap-1">
               <img 
@@ -1126,7 +1127,7 @@ const MyPage: React.FC = () => {
         </div>
         
         {/* 내가 완료한 레시피 */}
-        <div style={{ paddingLeft: 32, paddingRight: 32, marginTop: 0 }}>
+        <div style={{ paddingLeft: 14, paddingRight: 14, marginTop: 0 }}>
           <div className="flex items-center justify-between mb-0">
             <h2 className="text-[16px] font-bold text-[#111] flex items-center gap-1">
               <img 
@@ -1226,6 +1227,8 @@ const MyPage: React.FC = () => {
             }
           />
         </div>
+        {/* 쿠팡 광고 - 페이지 맨 끝에 도달했을 때만 표시 */}
+        <BottomCoupangAd showCondition={true} />
       </div>
       
       <BottomNavBar activeTab="mypage" />

@@ -27,6 +27,9 @@ import VirtualizedHorizontalRecipeList from '../components/VirtualizedHorizontal
 import { decodeRecipesText } from '../utils/textUtils';
 import { useAuth } from '../context/AuthContext';
 import RegisterPromptModal from '../components/RegisterPromptModal';
+import { hasPremiumIngredient, getPremiumIngredients } from '../utils/premiumIngredients';
+import CoupangProductAd from '../components/CoupangProductAd';
+import BottomCoupangAd from '../components/BottomCoupangAd';
 
 // Add CSS for loader-toast with dots
 const loaderStyle = `
@@ -693,6 +696,60 @@ const Popular = () => {
   const [naverRecipes, setNaverRecipes] = useState<any[]>([]);
   // 썸네일 로드 실패한 레시피 ID 추적 (404 등)
   const [failedThumbnailIds, setFailedThumbnailIds] = useState<Set<number>>(new Set());
+  // 프리미엄 요리 섹션 스크롤 상태
+  const premiumScrollRef = React.useRef<HTMLDivElement>(null);
+  const [showPremiumLeftButton, setShowPremiumLeftButton] = useState(false);
+  const [showPremiumRightButton, setShowPremiumRightButton] = useState(true);
+
+  // 프리미엄 요리 섹션 스크롤 상태 체크
+  useEffect(() => {
+    const checkScroll = () => {
+      if (premiumScrollRef.current) {
+        const { scrollLeft, scrollWidth, clientWidth } = premiumScrollRef.current;
+        setShowPremiumLeftButton(scrollLeft > 0);
+        setShowPremiumRightButton(scrollLeft < scrollWidth - clientWidth - 10);
+      }
+    };
+
+    const container = premiumScrollRef.current;
+    if (container) {
+      checkScroll();
+      container.addEventListener('scroll', checkScroll);
+      window.addEventListener('resize', checkScroll);
+    }
+
+    return () => {
+      if (container) {
+        container.removeEventListener('scroll', checkScroll);
+        window.removeEventListener('resize', checkScroll);
+      }
+    };
+  }, [youtubeRecipes, naverRecipes]);
+
+  // 프리미엄 요리 섹션 스크롤 상태 체크
+  useEffect(() => {
+    const checkScroll = () => {
+      if (premiumScrollRef.current) {
+        const { scrollLeft, scrollWidth, clientWidth } = premiumScrollRef.current;
+        setShowPremiumLeftButton(scrollLeft > 0);
+        setShowPremiumRightButton(scrollLeft < scrollWidth - clientWidth - 10);
+      }
+    };
+
+    const container = premiumScrollRef.current;
+    if (container) {
+      checkScroll();
+      container.addEventListener('scroll', checkScroll);
+      window.addEventListener('resize', checkScroll);
+    }
+
+    return () => {
+      if (container) {
+        container.removeEventListener('scroll', checkScroll);
+        window.removeEventListener('resize', checkScroll);
+      }
+    };
+  }, [youtubeRecipes, naverRecipes]);
 
   useEffect(() => {
     fetch('/ingredient_profile_dict_with_substitutes.csv')
@@ -1305,7 +1362,7 @@ const Popular = () => {
 
   return (
     <>
-      <div className="popular-page" style={{padding: '88px 32px 80px 32px', maxWidth: 900, margin: '0 auto'}}>
+      <div className="popular-page" style={{padding: '88px 14px 80px 14px', maxWidth: 400, margin: '0 auto', boxSizing: 'border-box'}}>
         {/* 상단 타이틀 */}
         <header style={{marginBottom: 32}}>
           <h2 className="text-lg font-bold mb-4 text-center" style={{marginBottom: 32}}>
@@ -1435,6 +1492,218 @@ const Popular = () => {
           </div>
         )}
 
+        {/* ⭐ 특별한 날 특별한 음식 섹션 */}
+        {(() => {
+          // 프리미엄 재료가 포함된 레시피 필터링
+          const allRecipes = [...youtubeRecipes, ...naverRecipes];
+          const premiumRecipes = allRecipes.filter(recipe => {
+            if (!recipe.used_ingredients) return false;
+            const ingredients = Array.isArray(recipe.used_ingredients)
+              ? recipe.used_ingredients
+              : recipe.used_ingredients.split(',').map((i: string) => i.trim());
+            return hasPremiumIngredient(ingredients);
+          }).slice(0, 20); // 최대 20개
+
+          if (premiumRecipes.length === 0) return null;
+
+          return (
+            <section style={{marginBottom: 48}}>
+              <div style={{marginBottom: 8, display: 'flex', alignItems: 'center'}}>
+                <h2
+                  className="text-[16px] font-bold text-[#111] mb-2"
+                  style={{
+                    display: 'inline',
+                    verticalAlign: 'middle',
+                    lineHeight: '1',
+                    fontSize: 16,
+                    position: 'relative',
+                    top: 6,
+                  }}
+                >
+                  ⭐ 특별한 날 특별한 음식
+                </h2>
+              </div>
+              <div style={{height: 2, width: '100%', background: '#E5E5E5', marginBottom: 16}} />
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, marginTop: 8 }}>
+                <span style={{ color: '#666', fontSize: '12px' }}>총 {premiumRecipes.length}건</span>
+              </div>
+              
+              {/* 가로 스크롤 컨테이너 (버튼 포함) */}
+              <div style={{ position: 'relative' }}>
+                <div
+                  ref={premiumScrollRef}
+                  style={{
+                    display: 'flex',
+                    overflowX: 'auto',
+                    overflowY: 'hidden',
+                    gap: '16px',
+                    paddingBottom: '8px',
+                    WebkitOverflowScrolling: 'touch',
+                    scrollbarWidth: 'thin',
+                    scrollbarColor: '#ccc transparent',
+                    scrollBehavior: 'smooth'
+                  }}
+                  className="custom-scrollbar"
+                >
+                  {premiumRecipes
+                    .filter(recipe => !failedThumbnailIds.has(recipe.id))
+                    .map((recipe, index) => {
+                      const ingredients = Array.isArray(recipe.used_ingredients)
+                        ? recipe.used_ingredients
+                        : recipe.used_ingredients.split(',').map((i: string) => i.trim());
+                      const premiumIngs = getPremiumIngredients(ingredients);
+                      
+                      return (
+                        <div
+                          key={recipe.id}
+                          style={{
+                            flex: '0 0 320px',
+                            minWidth: '320px',
+                            maxWidth: '320px',
+                            border: '1px solid #f5f5f5',
+                            borderRadius: '12px',
+                            padding: '8px',
+                            backgroundColor: '#fff',
+                            display: 'flex',
+                            flexDirection: 'column'
+                          }}
+                        >
+                          {/* 레시피 카드 */}
+                          <div style={{ flex: '0 0 auto' }}>
+                            <div style={{ marginBottom: '-40px' }}>
+                              <RecipeCard
+                                recipe={recipe}
+                                index={index}
+                                recipeActionState={buttonStates[recipe.id]}
+                                onRecipeAction={(recipeWithAction) => handleRecipeAction(recipe.id, { action: recipeWithAction.action })}
+                                isLast={true}
+                                myIngredients={myIngredients}
+                                substituteTable={{}}
+                                showRank={false}
+                                onThumbnailError={(recipeId) => {
+                                  setFailedThumbnailIds(prev => new Set([...prev, recipeId]));
+                                }}
+                              />
+                            </div>
+                          </div>
+                          
+                          {/* 프리미엄 재료 광고 (1개만) */}
+                          {premiumIngs.length > 0 && (
+                            <div style={{
+                              marginTop: '20px',
+                              paddingTop: '20px',
+                              borderTop: '1px solid #f0f0f0',
+                              flex: '0 0 auto'
+                            }}>
+                              <CoupangProductAd
+                                ingredientName={premiumIngs[0]}
+                                style={{ margin: 0 }}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                </div>
+
+                {/* 왼쪽 스크롤 버튼 */}
+                {showPremiumLeftButton && (
+                  <div
+                    onClick={() => {
+                      if (premiumScrollRef.current) {
+                        premiumScrollRef.current.scrollBy({ left: -336, behavior: 'smooth' });
+                      }
+                    }}
+                    style={{
+                      position: 'absolute',
+                      left: '8px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      zIndex: 10,
+                      pointerEvents: 'auto',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: '40px',
+                        height: '40px',
+                        borderRadius: '50%',
+                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        pointerEvents: 'auto',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: '24px',
+                          color: '#666666',
+                          fontWeight: 400,
+                          lineHeight: 1,
+                          pointerEvents: 'none'
+                        }}
+                      >
+                        ‹
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* 오른쪽 스크롤 버튼 */}
+                {showPremiumRightButton && (
+                  <div
+                    onClick={() => {
+                      if (premiumScrollRef.current) {
+                        premiumScrollRef.current.scrollBy({ left: 336, behavior: 'smooth' });
+                      }
+                    }}
+                    style={{
+                      position: 'absolute',
+                      right: '8px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      zIndex: 10,
+                      pointerEvents: 'auto',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: '40px',
+                        height: '40px',
+                        borderRadius: '50%',
+                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        pointerEvents: 'auto',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: '24px',
+                          color: '#666666',
+                          fontWeight: 400,
+                          lineHeight: 1,
+                          pointerEvents: 'none'
+                        }}
+                      >
+                        ›
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </section>
+          );
+        })()}
+
         {/* ⓑ 유튜브 인기 레시피 섹션 */}
         <section style={{marginBottom: 48}}>
           <div style={{marginBottom: 8, display: 'flex', alignItems: 'center'}}>
@@ -1560,6 +1829,7 @@ const Popular = () => {
              }}
            />
         </section>
+
 
         {/* 인기 급상승 요리 TOP 10 섹션 */}
         <section style={{marginBottom: 48}}>
@@ -1752,6 +2022,9 @@ const Popular = () => {
             </button>
           </div>
         </section>
+        
+        {/* 쿠팡 광고 - 페이지 맨 끝에 도달했을 때만 표시 */}
+        <BottomCoupangAd showCondition={true} />
       </div>
       {toast && (
         <div style={{

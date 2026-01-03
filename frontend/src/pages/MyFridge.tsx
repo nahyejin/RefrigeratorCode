@@ -10,6 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import RegisterPromptModal from '../components/RegisterPromptModal';
 import WelcomeModal from '../components/WelcomeModal';
 import GuideOverlay from '../components/GuideOverlay';
+import BottomCoupangAd from '../components/BottomCoupangAd';
 
 // =====================
 // 상수
@@ -1228,16 +1229,16 @@ const MyFridge: React.FC = () => {
       <div className="bg-white w-full p-0 m-0 pb-24" style={{ paddingTop: 92 }}>
         {/* 타이틀+입력창 그룹 */}
         <div className="flex flex-col items-center justify-center w-full" style={{ marginBottom: 40 }}>
-          <div className="flex items-center justify-center w-full max-w-[360px] px-5 mb-2">
+          <div className="flex items-center justify-center w-full max-w-[400px] px-5 mb-2">
             <h1 className="text-[18px] font-bold text-[#111] text-center">내 냉장고 재료 추가</h1>
           </div>
         </div>
-        <div style={{ maxWidth: 360, margin: '0 auto', paddingLeft: 20, paddingRight: 20, width: '100%' }}>
+        <div style={{ maxWidth: 400, margin: '0 auto', paddingLeft: 14, paddingRight: 14, width: '100%', boxSizing: 'border-box' }}>
           <div
             className="flex gap-2 mb-4"
             style={{
               width: '100%',
-              maxWidth: 360,
+              maxWidth: 400,
               margin: '0 auto',
               justifyContent: 'center',
               alignItems: 'flex-start',
@@ -1328,7 +1329,7 @@ const MyFridge: React.FC = () => {
           onComplete={handleModalComplete}
         />
         {/* 재고 관리 구역 */}
-        <div style={{ maxWidth: 360, margin: '0 auto', paddingLeft: 16, paddingRight: 16, width: '100%', marginTop: 48 }}>
+        <div style={{ maxWidth: 400, margin: '0 auto', paddingLeft: 14, paddingRight: 14, width: '100%', marginTop: 48, boxSizing: 'border-box' }}>
           <h2 className="text-[16px] font-bold text-[#111] mb-2">내 냉장고 재고 관리</h2>
           <div style={{height: 2, width: '100%', background: '#E5E5E5', marginBottom: 16}} />
           {/* 냉동보관 */}
@@ -1462,6 +1463,11 @@ const MyFridge: React.FC = () => {
                 />
               ))}
             </div>
+          </div>
+          
+          {/* 쿠팡 광고 - 실온 보관 영역 바로 아래 */}
+          <div style={{ marginTop: 32, marginBottom: 24 }}>
+            <BottomCoupangAd showCondition={true} />
           </div>
         </div>
         {/* 하단 내비게이션 */}
