@@ -218,13 +218,13 @@ class NaverBlogCrawler(BaseCrawler):
                 # 방법 1: PowerShell을 사용하여 파일 버전 정보 가져오기 (Windows에서 가장 안정적)
                 try:
                     ps_command = f"(Get-ItemProperty '{chrome_path}').VersionInfo.FileVersion"
-                result = subprocess.run(
+                    result = subprocess.run(
                         ['powershell.exe', '-Command', ps_command],
-                    capture_output=True,
-                    text=True,
+                        capture_output=True,
+                        text=True,
                         timeout=10,
                         shell=False
-                )
+                    )
                     if result.returncode == 0 and result.stdout:
                         version_text = result.stdout.strip()
                         version_match = re.search(r'(\d+)\.(\d+)\.(\d+)\.(\d+)', version_text)
@@ -244,8 +244,8 @@ class NaverBlogCrawler(BaseCrawler):
                             shell=True
                         )
                         if result.returncode == 0 and result.stdout:
-                    version_match = re.search(r'(\d+)\.(\d+)\.(\d+)\.(\d+)', result.stdout)
-                    if version_match:
+                            version_match = re.search(r'(\d+)\.(\d+)\.(\d+)\.(\d+)', result.stdout)
+                            if version_match:
                                 chrome_full_version = version_match.group(0)
                                 chrome_version = version_match.group(1)
                                 print(f"🔍 Chrome 버전 감지 (wmic): {chrome_full_version} (메이저: {chrome_version})")
@@ -372,7 +372,7 @@ class NaverBlogCrawler(BaseCrawler):
                     if sys.platform == 'win32':
                         # Chrome 프로세스를 CREATE_NO_WINDOW 플래그로 시작
                         # 하지만 Selenium이 직접 제어하므로, 드라이버 생성 후 즉시 창 숨기기
-                self.driver = webdriver.Chrome(service=service, options=options)
+                        self.driver = webdriver.Chrome(service=service, options=options)
                         # 드라이버 생성 직후 즉시 모든 Chrome 창 숨기기
                         time.sleep(0.1)
                         for _ in range(10):  # 10번 반복하여 확실히 숨기기
@@ -557,13 +557,13 @@ class NaverBlogCrawler(BaseCrawler):
             
             while retry_count < max_retries and not page_loaded:
                 try:
-            self.driver.get(url)
+                    self.driver.get(url)
                     # 페이지 로드 후 즉시 창 숨기기
                     if WINDOWS:
                         hide_chrome_windows(self.driver)
                     WebDriverWait(self.driver, 15).until(
-                EC.presence_of_element_located((By.CLASS_NAME, "info_post"))
-            )
+                        EC.presence_of_element_located((By.CLASS_NAME, "info_post"))
+                    )
                     page_loaded = True
                 except Exception as load_error:
                     retry_count += 1
@@ -608,11 +608,11 @@ class NaverBlogCrawler(BaseCrawler):
                 
                 while retry_count < max_retries and not page_loaded:
                     try:
-                self.driver.get(link)
+                        self.driver.get(link)
                         # 페이지 로드 후 즉시 창 숨기기
                         if WINDOWS:
                             hide_chrome_windows(self.driver)
-                time.sleep(2)
+                        time.sleep(2)
                         page_loaded = True
                     except Exception as load_error:
                         retry_count += 1
@@ -816,8 +816,8 @@ class NaverBlogCrawler(BaseCrawler):
         
         while retry_count < max_retries and not page_loaded:
             try:
-        self.driver.get(link)
-        time.sleep(2)
+                self.driver.get(link)
+                time.sleep(2)
                 page_loaded = True
             except Exception as load_error:
                 retry_count += 1
@@ -1045,18 +1045,18 @@ class NaverBlogCrawler(BaseCrawler):
         post_time_to_save = recipe.post_time if recipe.post_time else datetime.now().strftime("%Y-%m-%d")
         
         try:
-        self.cursor.execute(insert_query, (
-            recipe.title, recipe.link, recipe.content, 
-            used_ingredients_str, recipe.used_ingredients_block, recipe.block_reason,
-            recipe.author, recipe.thumbnail, recipe.platform, 
-            recipe.likes, recipe.comments, post_time_to_save, datetime.now()
-        ))
+            self.cursor.execute(insert_query, (
+                recipe.title, recipe.link, recipe.content, 
+                used_ingredients_str, recipe.used_ingredients_block, recipe.block_reason,
+                recipe.author, recipe.thumbnail, recipe.platform, 
+                recipe.likes, recipe.comments, post_time_to_save, datetime.now()
+            ))
             self.cursor.connection.commit()
-        
-        if recipe.post_time:
-            print(f"✅ 저장 완료 - 게시일: {recipe.post_time}")
-        else:
-            print(f"⚠️ 저장 완료 - 게시일 없음 (현재 날짜로 대체: {post_time_to_save})")
+            
+            if recipe.post_time:
+                print(f"✅ 저장 완료 - 게시일: {recipe.post_time}")
+            else:
+                print(f"⚠️ 저장 완료 - 게시일 없음 (현재 날짜로 대체: {post_time_to_save})")
         except pymysql.err.OperationalError as e:
             error_msg = str(e).lower()
             if "table 'recipes' is full" in error_msg:
