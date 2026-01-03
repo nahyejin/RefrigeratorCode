@@ -517,6 +517,8 @@ const RecipeList: React.FC = () => {
   const [total, setTotal] = useState(0); // 서버에서 필터링된 전체 개수
   const [loading, setLoading] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0); // 로딩 진행률 (0-100)
+  const progressAnimationRef = useRef<NodeJS.Timeout | null>(null); // 프로그레스 애니메이션 ref
+  const currentProgressRef = useRef(0); // 현재 진행률을 추적하는 ref (애니메이션 충돌 방지)
   const listRef = useRef<VirtualizedRecipeListRef>(null);
 
   const [myIngredients, setMyIngredients] = useState<string[]>(getMyIngredients());
@@ -1178,7 +1180,13 @@ const RecipeList: React.FC = () => {
     }
 
     setLoading(true);
+    // 기존 애니메이션 정리
+    if (progressAnimationRef.current) {
+      clearInterval(progressAnimationRef.current);
+      progressAnimationRef.current = null;
+    }
     setLoadingProgress(0);
+    currentProgressRef.current = 0; // ref도 초기화
     setRecipes([]);
     setFilteredRecipes([]);
     setCachedFilteredRecipes([]);
@@ -1198,16 +1206,79 @@ const RecipeList: React.FC = () => {
       appliedExpiryIngredients: appliedExpiryIngredients.length > 0 ? appliedExpiryIngredients : undefined
     };
     
+    // 프로그레스 바를 부드럽게 증가시키는 헬퍼 함수
+    const animateProgress = (targetProgress: number, duration: number = 500) => {
+      // 기존 애니메이션 정리
+      if (progressAnimationRef.current) {
+        clearInterval(progressAnimationRef.current);
+        progressAnimationRef.current = null;
+      }
+      
+      // ref에서 현재 진행률 가져오기 (항상 최신 값)
+      const startProgress = currentProgressRef.current;
+      const difference = targetProgress - startProgress;
+      
+      // 차이가 너무 작으면 애니메이션 생략
+      if (Math.abs(difference) < 1) {
+        setLoadingProgress(targetProgress);
+        currentProgressRef.current = targetProgress;
+        return;
+      }
+      
+      const steps = Math.max(10, Math.min(30, Math.abs(difference) * 2)); // 차이에 따라 단계 수 조정
+      const stepDuration = duration / steps;
+      const stepIncrement = difference / steps;
+      
+      let currentStep = 0;
+      progressAnimationRef.current = setInterval(() => {
+        currentStep++;
+        const newProgress = Math.min(
+          Math.max(startProgress + (stepIncrement * currentStep), 0),
+          targetProgress
+        );
+        const roundedProgress = Math.round(newProgress);
+        setLoadingProgress(roundedProgress);
+        currentProgressRef.current = roundedProgress; // ref 업데이트
+        
+        if (currentStep >= steps || newProgress >= targetProgress) {
+          setLoadingProgress(targetProgress);
+          currentProgressRef.current = targetProgress;
+          if (progressAnimationRef.current) {
+            clearInterval(progressAnimationRef.current);
+            progressAnimationRef.current = null;
+          }
+        }
+      }, stepDuration);
+    };
+    
     // 전체 필터링된 결과를 한 번에 받기 위해 큰 size 사용
     // 먼저 total을 확인하기 위해 작은 size로 요청한 후, 실제 total만큼 받기
-    setLoadingProgress(10); // 초기 진행률
+    animateProgress(10, 200); // 초기 진행률
     loadRecipesPaged(1, 1, filterParams, categoryKeywordTree).then(({total: initialTotal}) => {
-      setLoadingProgress(30); // total 확인 완료
+      animateProgress(30, 300); // total 확인 완료
       // total이 확인되면 실제 전체 개수만큼만 받기 (최대 10000개로 제한하여 성능 보호)
       const actualSize = Math.min(initialTotal, 10000);
-      return loadRecipesPaged(1, actualSize, filterParams, categoryKeywordTree);
+      
+      // 데이터 로드 시작 시 중간 단계 추가
+      const loadPromise = loadRecipesPaged(1, actualSize, filterParams, categoryKeywordTree);
+      
+      // 데이터 로드 중간에 진행률 업데이트 (시간 기반)
+      const progressInterval = setInterval(() => {
+        const current = currentProgressRef.current;
+        if (current < 60) {
+          animateProgress(60, 500); // 데이터 로드 중 60%
+        } else if (current < 80) {
+          animateProgress(80, 500); // 데이터 로드 중 80%
+        }
+      }, 800); // 0.8초마다 체크
+      
+      return loadPromise.then((result) => {
+        clearInterval(progressInterval); // 인터벌 정리
+        return result;
+      });
     }).then(({recipes, total}) => {
-      setLoadingProgress(90); // 데이터 로드 완료
+      // 데이터 로드 완료 시 90%로 이동
+      animateProgress(90, 300);
       setCachedFilteredRecipes(recipes);
       setTotal(total);
       setPage(1);
@@ -1216,16 +1287,31 @@ const RecipeList: React.FC = () => {
       if (!initialLoadDone.current) {
         initialLoadDone.current = true;
       }
-      setLoadingProgress(100); // 완료
+      // 약간의 지연 후 100%로
+      setTimeout(() => {
+        animateProgress(100, 200); // 완료
+      }, 100);
       // 약간의 지연 후 로딩 상태 해제 (프로그레스 바가 100%까지 보이도록)
       setTimeout(() => {
         setLoading(false);
         setLoadingProgress(0);
-      }, 300);
+        currentProgressRef.current = 0;
+        // 애니메이션 정리
+        if (progressAnimationRef.current) {
+          clearInterval(progressAnimationRef.current);
+          progressAnimationRef.current = null;
+        }
+      }, 500);
     }).catch(error => {
       console.error('Error loading recipes:', error);
       setLoading(false);
       setLoadingProgress(0);
+      currentProgressRef.current = 0;
+      // 애니메이션 정리
+      if (progressAnimationRef.current) {
+        clearInterval(progressAnimationRef.current);
+        progressAnimationRef.current = null;
+      }
     });
   }, [filterHash, lastFilterHash, cachedFilteredRecipes.length, selectedChannel, includeKeyword, includeIngredients, excludeIngredients, selectedCategoryKeywords, matchRange, appliedExpiryIngredients, categoryKeywordTree, loadRecipesPaged]);
   
