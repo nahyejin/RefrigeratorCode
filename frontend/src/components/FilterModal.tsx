@@ -539,7 +539,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                   onKeyDown={AutoCompleteUtils.createInputHandler(tempIncludeInput, includeCandidates, ingredientDict, setTempIncludeIngredients, setTempIncludeInput, setIncludeFocus)}
                 />
                 {includeFocus && includeCandidates.length > 0 && (
-                  <ul className="absolute left-0 right-0 bg-white border border-gray-200 rounded-lg mt-1 shadow z-10 max-h-32 overflow-y-auto custom-scrollbar">
+                  <ul className="absolute left-0 right-0 bg-white border border-gray-200 rounded-lg mt-1 shadow z-30 max-h-32 overflow-y-auto custom-scrollbar">
                     {includeCandidates.map(item => (
                       <li
                         key={item}
@@ -577,7 +577,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                   onKeyDown={AutoCompleteUtils.createInputHandler(tempExcludeInput, excludeCandidates, ingredientDict, setTempExcludeIngredients, setTempExcludeInput, setExcludeFocus)}
                 />
                 {excludeFocus && excludeCandidates.length > 0 && (
-                  <ul className="absolute left-0 right-0 bg-white border border-gray-200 rounded-lg mt-1 shadow z-10 max-h-32 overflow-y-auto custom-scrollbar">
+                  <ul className="absolute left-0 right-0 bg-white border border-gray-200 rounded-lg mt-1 shadow z-30 max-h-32 overflow-y-auto custom-scrollbar">
                     {excludeCandidates.map(item => (
                       <li
                         key={item}
