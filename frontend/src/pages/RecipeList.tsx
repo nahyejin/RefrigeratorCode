@@ -556,19 +556,24 @@ const RecipeList: React.FC = () => {
         // 상태 복원
         if (parsedState.cachedFilteredRecipes && parsedState.cachedFilteredRecipes.length > 0) {
           console.log('[RecipeList] 상태 복원 시작 - 레시피 즉시 표시');
+          isRestoringState.current = true; // 복원 중 플래그 설정
+          
+          // 먼저 lastFilterHash를 설정하여 필터 변경 useEffect가 실행되지 않도록 함
+          setLastFilterHash(parsedState.lastFilterHash || '');
+          initialLoadDone.current = true; // 복원했으므로 초기 로드 완료로 표시
+          
+          // 상태 복원
           setCachedFilteredRecipes(parsedState.cachedFilteredRecipes);
           setTotal(parsedState.total || 0);
           setPage(parsedState.page || 1);
           setSortType(parsedState.sortType || 'match');
           setMatchRange(parsedState.matchRange || [30, 100]);
-          setLastFilterHash(parsedState.lastFilterHash || '');
           setSelectedChannel(parsedState.selectedChannel || []);
           setIncludeKeyword(parsedState.includeKeyword || '');
           setIncludeIngredients(parsedState.includeIngredients || []);
           setExcludeIngredients(parsedState.excludeIngredients || []);
           setSelectedCategoryKeywords(parsedState.selectedCategoryKeywords || initialFilterState);
           setAppliedExpiryIngredients(parsedState.appliedExpiryIngredients || []);
-          initialLoadDone.current = true; // 복원했으므로 초기 로드 완료로 표시
           previousIngredientsHashRef.current = currentIngredientsHash;
           
           // 복원된 데이터로 즉시 레시피 표시 (정렬 useEffect가 실행되기 전에 미리 설정)
@@ -597,8 +602,14 @@ const RecipeList: React.FC = () => {
           console.log('[RecipeList] 상태 복원 완료 - 레시피 즉시 표시됨:', {
             recipesCount: paginatedRecipes.length,
             total: parsedState.total,
-            page: restoredPage
+            page: restoredPage,
+            lastFilterHash: parsedState.lastFilterHash
           });
+          
+          // 복원 완료 후 플래그 해제 (다음 렌더링 사이클에서)
+          setTimeout(() => {
+            isRestoringState.current = false;
+          }, 100);
           
           return; // 복원했으면 초기 재료 설정 스킵
         }
@@ -999,6 +1010,7 @@ const RecipeList: React.FC = () => {
 
   // 초기 로드 완료 여부 추적 (중복 쿼리 방지)
   const initialLoadDone = useRef(false);
+  const isRestoringState = useRef(false); // 상태 복원 중인지 여부
   
   // 초기 로드는 필터 조건 변경 useEffect에서 처리하므로 별도의 초기 로드 useEffect 제거
 
@@ -1153,6 +1165,12 @@ const RecipeList: React.FC = () => {
 
   // 필터 조건이 변경되면 전체 필터링된 결과를 한 번에 받아서 캐싱
   useEffect(() => {
+    // 상태 복원 중이면 스킵
+    if (isRestoringState.current) {
+      console.log('[RecipeList] 상태 복원 중 - 필터 변경 useEffect 스킵');
+      return;
+    }
+    
     // 필터 조건이 변경되지 않았으면 스킵 (단, 초기 로드 시에는 실행)
     if (filterHash === lastFilterHash && cachedFilteredRecipes.length > 0 && initialLoadDone.current) {
       return;
