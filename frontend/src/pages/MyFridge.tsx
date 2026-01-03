@@ -1056,6 +1056,20 @@ const MyFridge: React.FC = () => {
   };
 
   const handleSelect = (item: string) => {
+    // 이미 등록된 재료인지 확인
+    const allIngredients = [
+      ...(frozen || []).map(i => typeof i === 'string' ? i : i.name),
+      ...(fridge || []).map(i => typeof i === 'string' ? i : i.name),
+      ...(room || []).map(i => typeof i === 'string' ? i : i.name)
+    ];
+    
+    if (allIngredients.includes(item)) {
+      alert('이미 존재하는 재료입니다.');
+      setInputValue('');
+      setShowDropdown(false);
+      return;
+    }
+    
     setModalIngredient(item);
     setModalOpen(true);
     setInputValue('');

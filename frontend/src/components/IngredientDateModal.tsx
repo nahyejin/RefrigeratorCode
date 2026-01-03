@@ -236,7 +236,8 @@ export default function IngredientDateModal({ type, isOpen, onClose, onComplete,
           </button>
           {type === 'purchase' && (
             <button
-              className="w-[120px] h-10 border border-gray-300 rounded-[10px] text-[12px] text-gray-600 ml-2 flex items-center justify-center"
+              className="w-[120px] h-10 bg-white border border-gray-300 rounded-[10px] text-[12px] text-gray-600 ml-2 flex items-center justify-center"
+              style={{ backgroundColor: '#ffffff', borderColor: '#d1d5db' }}
               onClick={handleUnknown}
             >
               {TEXTS.unknown}
