@@ -515,11 +515,102 @@ const RecipeList: React.FC = () => {
   const [size] = useState(30); // 서버 사이드 페이지네이션용 크기
   const [total, setTotal] = useState(0); // 서버에서 필터링된 전체 개수
   const [loading, setLoading] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState(0); // 로딩 진행률 (0-100)
   const listRef = useRef<VirtualizedRecipeListRef>(null);
 
   const [myIngredients, setMyIngredients] = useState<string[]>(getMyIngredients());
   const navigate = useNavigate();
   const location = useLocation();
+  
+  // 페이지 상태 저장/복원을 위한 키
+  const STORAGE_KEY_RECIPE_LIST = 'recipe_list_state';
+  const STORAGE_KEY_INGREDIENTS_HASH = 'recipe_list_ingredients_hash';
+  
+  // 재료 목록의 해시값 계산 (변경 감지용)
+  const getIngredientsHash = useCallback(() => {
+    const ingredients = getMyIngredients();
+    return JSON.stringify(ingredients.sort());
+  }, []);
+  
+  // 이전 재료 목록 해시값 저장
+  const previousIngredientsHashRef = useRef<string>(getIngredientsHash());
+  
+  // 컴포넌트 마운트 시 sessionStorage에서 상태 복원
+  useEffect(() => {
+    try {
+      const savedState = sessionStorage.getItem(STORAGE_KEY_RECIPE_LIST);
+      const savedIngredientsHash = sessionStorage.getItem(STORAGE_KEY_INGREDIENTS_HASH);
+      const currentIngredientsHash = getIngredientsHash();
+      
+      // 재료 목록이 변경되지 않았고 저장된 상태가 있으면 복원
+      if (savedState && savedIngredientsHash === currentIngredientsHash) {
+        const parsedState = JSON.parse(savedState);
+        console.log('[RecipeList] 저장된 상태 복원:', {
+          cachedRecipesCount: parsedState.cachedFilteredRecipes?.length || 0,
+          total: parsedState.total,
+          page: parsedState.page,
+          sortType: parsedState.sortType,
+          matchRange: parsedState.matchRange
+        });
+        
+        // 상태 복원
+        if (parsedState.cachedFilteredRecipes && parsedState.cachedFilteredRecipes.length > 0) {
+          console.log('[RecipeList] 상태 복원 시작 - 레시피 즉시 표시');
+          setCachedFilteredRecipes(parsedState.cachedFilteredRecipes);
+          setTotal(parsedState.total || 0);
+          setPage(parsedState.page || 1);
+          setSortType(parsedState.sortType || 'match');
+          setMatchRange(parsedState.matchRange || [30, 100]);
+          setLastFilterHash(parsedState.lastFilterHash || '');
+          setSelectedChannel(parsedState.selectedChannel || []);
+          setIncludeKeyword(parsedState.includeKeyword || '');
+          setIncludeIngredients(parsedState.includeIngredients || []);
+          setExcludeIngredients(parsedState.excludeIngredients || []);
+          setSelectedCategoryKeywords(parsedState.selectedCategoryKeywords || initialFilterState);
+          setAppliedExpiryIngredients(parsedState.appliedExpiryIngredients || []);
+          initialLoadDone.current = true; // 복원했으므로 초기 로드 완료로 표시
+          previousIngredientsHashRef.current = currentIngredientsHash;
+          
+          // 복원된 데이터로 즉시 레시피 표시 (정렬 useEffect가 실행되기 전에 미리 설정)
+          const restoredRecipes = parsedState.cachedFilteredRecipes;
+          const restoredPage = parsedState.page || 1;
+          const restoredSortType = parsedState.sortType || 'match';
+          const restoredMyIngredients = getMyIngredients();
+          const restoredAppliedExpiry = parsedState.appliedExpiryIngredients || [];
+          
+          // 클라이언트에서 정렬
+          const sortedRecipes = sortRecipes(
+            restoredRecipes,
+            restoredSortType,
+            restoredMyIngredients,
+            restoredAppliedExpiry
+          );
+          
+          // 페이지네이션 적용
+          const startIndex = (restoredPage - 1) * size;
+          const endIndex = startIndex + size;
+          const paginatedRecipes = sortedRecipes.slice(startIndex, endIndex);
+          
+          setRecipes(paginatedRecipes);
+          setMyIngredients(restoredMyIngredients);
+          
+          console.log('[RecipeList] 상태 복원 완료 - 레시피 즉시 표시됨:', {
+            recipesCount: paginatedRecipes.length,
+            total: parsedState.total,
+            page: restoredPage
+          });
+          
+          return; // 복원했으면 초기 재료 설정 스킵
+        }
+      } else {
+        // 재료 목록이 변경되었거나 저장된 상태가 없으면 재료 해시 업데이트
+        sessionStorage.setItem(STORAGE_KEY_INGREDIENTS_HASH, currentIngredientsHash);
+        previousIngredientsHashRef.current = currentIngredientsHash;
+      }
+    } catch (error) {
+      console.warn('[RecipeList] 상태 복원 실패:', error);
+    }
+  }, []); // 마운트 시 한 번만 실행
 
   // 컴포넌트 마운트 시 재료 상태 확인 및 초기 재료 설정
   useEffect(() => {
@@ -1068,6 +1159,7 @@ const RecipeList: React.FC = () => {
     }
 
     setLoading(true);
+    setLoadingProgress(0);
     setRecipes([]);
     setFilteredRecipes([]);
     setCachedFilteredRecipes([]);
@@ -1089,11 +1181,14 @@ const RecipeList: React.FC = () => {
     
     // 전체 필터링된 결과를 한 번에 받기 위해 큰 size 사용
     // 먼저 total을 확인하기 위해 작은 size로 요청한 후, 실제 total만큼 받기
+    setLoadingProgress(10); // 초기 진행률
     loadRecipesPaged(1, 1, filterParams, categoryKeywordTree).then(({total: initialTotal}) => {
+      setLoadingProgress(30); // total 확인 완료
       // total이 확인되면 실제 전체 개수만큼만 받기 (최대 10000개로 제한하여 성능 보호)
       const actualSize = Math.min(initialTotal, 10000);
       return loadRecipesPaged(1, actualSize, filterParams, categoryKeywordTree);
     }).then(({recipes, total}) => {
+      setLoadingProgress(90); // 데이터 로드 완료
       setCachedFilteredRecipes(recipes);
       setTotal(total);
       setPage(1);
@@ -1102,12 +1197,131 @@ const RecipeList: React.FC = () => {
       if (!initialLoadDone.current) {
         initialLoadDone.current = true;
       }
-      setLoading(false);
+      setLoadingProgress(100); // 완료
+      // 약간의 지연 후 로딩 상태 해제 (프로그레스 바가 100%까지 보이도록)
+      setTimeout(() => {
+        setLoading(false);
+        setLoadingProgress(0);
+      }, 300);
     }).catch(error => {
       console.error('Error loading recipes:', error);
       setLoading(false);
+      setLoadingProgress(0);
     });
   }, [filterHash, lastFilterHash, cachedFilteredRecipes.length, selectedChannel, includeKeyword, includeIngredients, excludeIngredients, selectedCategoryKeywords, matchRange, appliedExpiryIngredients, categoryKeywordTree, loadRecipesPaged]);
+  
+  // 상태가 변경될 때마다 sessionStorage에 저장
+  useEffect(() => {
+    if (cachedFilteredRecipes.length > 0 && initialLoadDone.current) {
+      try {
+        const stateToSave = {
+          cachedFilteredRecipes,
+          total,
+          page,
+          sortType,
+          matchRange,
+          lastFilterHash,
+          selectedChannel,
+          includeKeyword,
+          includeIngredients,
+          excludeIngredients,
+          selectedCategoryKeywords,
+          appliedExpiryIngredients,
+          ingredientsHash: getIngredientsHash()
+        };
+        sessionStorage.setItem(STORAGE_KEY_RECIPE_LIST, JSON.stringify(stateToSave));
+        sessionStorage.setItem(STORAGE_KEY_INGREDIENTS_HASH, getIngredientsHash());
+        previousIngredientsHashRef.current = getIngredientsHash();
+      } catch (error) {
+        console.warn('[RecipeList] 상태 저장 실패:', error);
+      }
+    }
+  }, [cachedFilteredRecipes, total, page, sortType, matchRange, lastFilterHash, selectedChannel, includeKeyword, includeIngredients, excludeIngredients, selectedCategoryKeywords, appliedExpiryIngredients, getIngredientsHash]);
+  
+  // 재료 목록 변경 감지 및 처리 (localStorage 변경 이벤트 감지)
+  useEffect(() => {
+    const handleLocalStorageChange = (e: CustomEvent) => {
+      // myfridge_ingredients가 변경되었는지 확인
+      if (e.detail?.key === STORAGE_KEY_MYFRIDGE) {
+        const currentIngredientsHash = getIngredientsHash();
+        
+        // 재료 목록이 변경되었는지 확인
+        if (previousIngredientsHashRef.current !== currentIngredientsHash) {
+          console.log('[RecipeList] 재료 목록 변경 감지 (CustomEvent) - 상태 초기화 및 다시 로드');
+          
+          // 재료 목록이 변경되었으면 상태 초기화 및 다시 로드
+          setCachedFilteredRecipes([]);
+          setRecipes([]);
+          setFilteredRecipes([]);
+          setLastFilterHash('');
+          initialLoadDone.current = false;
+          
+          // sessionStorage 초기화
+          sessionStorage.removeItem(STORAGE_KEY_RECIPE_LIST);
+          sessionStorage.setItem(STORAGE_KEY_INGREDIENTS_HASH, currentIngredientsHash);
+          previousIngredientsHashRef.current = currentIngredientsHash;
+          
+          // 재료 목록 업데이트
+          setMyIngredients(getMyIngredients());
+        }
+      }
+    };
+    
+    const handleStorageChange = (e: StorageEvent) => {
+      // 다른 탭에서 변경된 경우
+      if (e.key === STORAGE_KEY_MYFRIDGE || e.key === null) {
+        const currentIngredientsHash = getIngredientsHash();
+        
+        if (previousIngredientsHashRef.current !== currentIngredientsHash) {
+          console.log('[RecipeList] 재료 목록 변경 감지 (StorageEvent) - 상태 초기화 및 다시 로드');
+          
+          setCachedFilteredRecipes([]);
+          setRecipes([]);
+          setFilteredRecipes([]);
+          setLastFilterHash('');
+          initialLoadDone.current = false;
+          
+          sessionStorage.removeItem(STORAGE_KEY_RECIPE_LIST);
+          sessionStorage.setItem(STORAGE_KEY_INGREDIENTS_HASH, currentIngredientsHash);
+          previousIngredientsHashRef.current = currentIngredientsHash;
+          
+          setMyIngredients(getMyIngredients());
+        }
+      }
+    };
+    
+    // CustomEvent 리스너 등록 (같은 탭에서 변경된 경우)
+    window.addEventListener('localStorageChange', handleLocalStorageChange as EventListener);
+    
+    // StorageEvent 리스너 등록 (다른 탭에서 변경된 경우)
+    window.addEventListener('storage', handleStorageChange);
+    
+    // 주기적으로 재료 목록 변경 확인 (백업용)
+    const checkInterval = setInterval(() => {
+      const currentIngredientsHash = getIngredientsHash();
+      if (previousIngredientsHashRef.current !== currentIngredientsHash) {
+        console.log('[RecipeList] 재료 목록 변경 감지 (polling) - 상태 초기화 및 다시 로드');
+        
+        setCachedFilteredRecipes([]);
+        setRecipes([]);
+        setFilteredRecipes([]);
+        setLastFilterHash('');
+        initialLoadDone.current = false;
+        
+        sessionStorage.removeItem(STORAGE_KEY_RECIPE_LIST);
+        sessionStorage.setItem(STORAGE_KEY_INGREDIENTS_HASH, currentIngredientsHash);
+        previousIngredientsHashRef.current = currentIngredientsHash;
+        
+        setMyIngredients(getMyIngredients());
+      }
+    }, 2000); // 2초마다 확인 (성능 고려)
+    
+    return () => {
+      window.removeEventListener('localStorageChange', handleLocalStorageChange as EventListener);
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(checkInterval);
+    };
+  }, [getIngredientsHash]);
 
   // 정렬 기준만 변경되면 캐시된 데이터를 클라이언트에서 정렬
   useEffect(() => {
@@ -1650,11 +1864,69 @@ const RecipeList: React.FC = () => {
       {toast && <RecipeToast message={toast} />}
         {/* Loading animation - 초기 로드/필터 변경/페이지 변경 시 표시 */}
         {loading && (
-          <div className="loader-toast" style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 1000 }}>
+          <div className="loader-toast" style={{ 
+            position: 'fixed', 
+            top: '50%', 
+            left: '50%', 
+            transform: 'translate(-50%, -50%)', 
+            zIndex: 1000,
+            background: 'rgba(255, 255, 255, 0.98)',
+            padding: '16px 20px',
+            borderRadius: '12px',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '12px',
+            minWidth: '200px',
+            maxWidth: '240px',
+            border: '1px solid rgba(0, 0, 0, 0.05)'
+          }}>
             <div className="loader-dots">
               <div></div>
               <div></div>
               <div></div>
+            </div>
+            <div style={{ 
+              textAlign: 'center',
+              fontSize: '13px',
+              color: '#666',
+              lineHeight: '1.4'
+            }}>
+              <div style={{ fontWeight: '600', marginBottom: '2px', color: '#222', fontSize: '14px' }}>
+                레시피를 불러오는 중...
+              </div>
+              <div style={{ fontSize: '11px', color: '#888' }}>
+                재료 수에 따라<br />
+                시간이 걸릴 수 있습니다
+              </div>
+            </div>
+            {/* 프로그레스 바 */}
+            <div style={{
+              width: '100%',
+              height: '6px',
+              background: '#f0f0f0',
+              borderRadius: '3px',
+              overflow: 'hidden',
+              marginTop: '4px',
+              position: 'relative'
+            }}>
+              <div style={{
+                height: '100%',
+                width: `${loadingProgress}%`,
+                background: 'linear-gradient(90deg, #FFD600 0%, #FFC107 100%)',
+                borderRadius: '3px',
+                transition: 'width 0.3s ease-out'
+              }}></div>
+            </div>
+            {/* 진행률 텍스트 */}
+            <div style={{
+              fontSize: '12px',
+              fontWeight: '600',
+              color: '#FFD600',
+              marginTop: '-4px'
+            }}>
+              {loadingProgress}%
             </div>
           </div>
         )}

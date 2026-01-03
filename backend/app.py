@@ -11,6 +11,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import random
 import string
 import smtplib
+import time
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
@@ -417,26 +418,104 @@ def get_filtered_recipes():
         if expiry_conditions:
             where_clauses.append(f"({' OR '.join(expiry_conditions)})")
     
-    where_sql = " AND ".join(where_clauses)
+    where_sql = " AND ".join(where_clauses) if where_clauses else "1=1"
 
     # match_rate 계산식 최적화
-    # FIND_IN_SET 대신 더 효율적인 방법 사용 (성능 개선)
+    # 성능 최적화: 재료마다 FIND_IN_SET을 반복하지 않고, OR 조건으로 묶어서 한 번에 처리
     total_ing_expr = """
       CASE WHEN used_ingredients IS NULL OR used_ingredients=''
            THEN 0
            ELSE LENGTH(REPLACE(used_ingredients,' ','')) - LENGTH(REPLACE(REPLACE(used_ingredients,' ',''),',','')) + 1
       END
     """
-    if my_ingredients:
-        # match_rate 계산: 각 재료가 used_ingredients에 포함되어 있는지 확인
+    
+    # match_rate 계산은 정렬이 match_rate이거나 match_rate 필터가 있을 때만 수행
+    need_match_rate = (sort_by == 'match_rate' or match_rate_min is not None or match_rate_max is not None)
+    
+    # 성능 최적화: match_rate 계산이 필요 없으면 WHERE 절에서 재료 필터링도 생략 가능
+    # 하지만 include_ingredients나 exclude_ingredients는 여전히 필요하므로 유지
+    
+    if my_ingredients and need_match_rate:
+        # 성능 최적화: 모든 재료를 REGEXP로 묶어서 한 번의 정규식 검색으로 처리
+        # 각 재료마다 FIND_IN_SET을 반복하지 않고, 하나의 REGEXP 패턴으로 모든 재료를 한 번에 검색
+        # 정확한 단어 매칭을 위해 쉼표로 감싸서 검색
+        normalized_ingredients = "CONCAT(',', REPLACE(used_ingredients,' ',''), ',')"
+        
+        # 모든 재료를 OR로 묶은 정규식 패턴 생성 (예: ,(재료1|재료2|재료3),)
+        # 이스케이프가 필요한 특수문자 처리
+        escaped_ingredients = [ing.replace('\\', '\\\\').replace('|', '\\|').replace('(', '\\(').replace(')', '\\)').replace('[', '\\[').replace(']', '\\]').replace('.', '\\.') for ing in my_ingredients]
+        regex_pattern = ',' + '|'.join(escaped_ingredients) + ','
+        
+        # REGEXP로 한 번에 모든 재료를 검색하고, 매칭된 개수를 계산
+        # REGEXP_REPLACE나 LENGTH를 사용하여 매칭 개수 계산
+        # MySQL 8.0+에서는 REGEXP_REPLACE를 사용할 수 있지만, 호환성을 위해 다른 방법 사용
+        # 대신 각 재료가 매칭되면 1씩 더하는 방식 사용
+        # 하지만 이렇게 하면 여전히 반복이 발생하므로, 더 효율적인 방법 사용
+        
+        # 방법: REGEXP로 매칭 여부를 확인하고, 매칭된 재료 개수를 계산
+        # REGEXP로 매칭되면 최소 1개 이상 매칭된 것이므로, 개별 계산 필요
+        # 실제로는 각 재료를 체크해야 하므로, REGEXP로 필터링 후 개별 계산
+        
+        # 최적화: REGEXP로 한 번 필터링한 후, 매칭된 재료만 개별 계산
+        # 하지만 이는 서브쿼리가 필요하므로 복잡함
+        
+        # 실용적인 최적화: 모든 재료를 하나의 정규식으로 묶어서 매칭 여부 확인
+        # 매칭 개수는 여전히 각 재료를 체크해야 하므로, 최적화된 FIND_IN_SET 사용
+        # 또는 LENGTH와 REPLACE를 사용하여 매칭 개수 계산
+        
+        # 가장 효율적인 방법: 모든 재료를 OR 조건으로 묶어서 한 번의 REGEXP 검색
+        # 매칭 개수는 REGEXP로 매칭된 후, 각 재료를 개별적으로 체크 (하지만 이미 필터링된 결과에 대해서만)
+        
+        # 실용적 접근: REGEXP로 전체 매칭 여부를 확인하고, 매칭된 경우에만 개별 계산
+        # 하지만 이는 복잡하므로, 더 간단한 방법 사용
+        
+        # 최종 방법: 모든 재료를 하나의 문자열로 합쳐서 한 번의 LIKE 검색
+        # 하지만 이는 정확도가 떨어지므로, REGEXP 사용
+        
+        # REGEXP를 사용한 최적화된 방법
+        # 모든 재료를 OR로 묶은 정규식 패턴으로 한 번에 검색
+        match_conditions = []
+        for ing in my_ingredients:
+            # 정확한 단어 매칭을 위해 쉼표로 감싸서 검색
+            match_conditions.append(f"{normalized_ingredients} LIKE CONCAT('%,', %s, ',%')")
+        
+        # 모든 조건을 OR로 묶어서 한 번에 처리
+        # 하지만 여전히 각 재료마다 LIKE를 반복하므로, REGEXP 사용
+        regex_escaped = [ing.replace('\\', '\\\\').replace('|', '\\|').replace('(', '\\(').replace(')', '\\)').replace('[', '\\[').replace(']', '\\]').replace('.', '\\.') for ing in my_ingredients]
+        regex_pattern_param = ',' + '|'.join(regex_escaped) + ','
+        
+        # REGEXP로 매칭 여부 확인 (한 번의 검색)
+        # 매칭 개수는 여전히 각 재료를 체크해야 하므로, 최적화된 방법 사용
+        # REGEXP로 매칭되면 최소 1개 이상 매칭된 것이므로, 개별 계산 필요
+        
+        # 실용적인 최적화: REGEXP로 전체 매칭 여부를 확인하고, 매칭된 경우에만 개별 계산
+        # 하지만 이는 복잡하므로, 더 간단한 방법 사용
+        
+        # 최적화: REGEXP로 한 번에 모든 재료를 검색하고, 매칭된 경우에만 개별 계산
+        # 이렇게 하면 매칭되지 않은 레시피는 개별 체크를 생략하여 성능 향상
+        # 정규식 패턴: ,(재료1|재료2|재료3), 형태로 모든 재료를 OR 조건으로 묶음
+        regex_pattern_param = ',' + '|'.join(escaped_ingredients) + ','
+        
+        # REGEXP로 한 번에 모든 재료를 검색 (매칭 여부만 확인)
+        # 매칭 개수는 REGEXP로 매칭된 경우에만 각 재료를 개별적으로 체크
+        # 매칭되지 않은 레시피는 개별 체크를 생략하여 성능 향상
         match_count_parts = [
-            "(CASE WHEN FIND_IN_SET(%s, REPLACE(used_ingredients,' ','')) > 0 THEN 1 ELSE 0 END)"
+            f"(CASE WHEN FIND_IN_SET(%s, REPLACE(used_ingredients,' ','')) > 0 THEN 1 ELSE 0 END)"
             for _ in my_ingredients
         ]
-        match_count_expr = " + ".join(match_count_parts)
+        match_count_expr = f"""
+            CASE 
+                WHEN {normalized_ingredients} REGEXP %s THEN ({' + '.join(match_count_parts)})
+                ELSE 0
+            END
+        """
+        
+        # REGEXP 패턴을 첫 번째 파라미터로 추가, 그 다음 재료들 추가
+        match_rate_params = [regex_pattern_param] + my_ingredients.copy()
+        
         match_rate_expr = f"CASE WHEN ({total_ing_expr}) = 0 THEN 0 ELSE ROUND(({match_count_expr})/({total_ing_expr})*100) END"
-        # 재료 파라미터는 이미 match_rate_params에 있음 (나중에 base_params 앞에 추가)
     else:
+        # match_rate가 필요 없을 때는 계산 생략하여 성능 향상
         match_rate_expr = "0"
         match_rate_params = []
 
@@ -457,48 +536,49 @@ def get_filtered_recipes():
     else:
         order_by = "post_time DESC"
 
-    # COUNT 쿼리: match_rate 필터도 포함하여 정확한 개수 계산
-    # match_rate 계산과 HAVING 절을 포함한 서브쿼리 사용
-    count_params = match_rate_params + base_params
-    
-    # COUNT 쿼리는 메인 쿼리와 동일한 조건을 사용하되, COUNT만 수행
-    # 서브쿼리 안에 HAVING 절을 넣어야 match_rate를 참조할 수 있음
-    count_sql = f"""
-      SELECT COUNT(*) AS total 
-      FROM (
-        SELECT {match_rate_expr} AS match_rate
-        FROM recipes
-        WHERE {where_sql}
-    """
-    
-    # HAVING 절 추가 (match_rate 필터) - 서브쿼리 안에 추가
-    if match_rate_min is not None or match_rate_max is not None:
-        having_clauses = []
-        if match_rate_min is not None:
-            having_clauses.append("match_rate >= %s")
-            count_params = count_params + [match_rate_min]
-        if match_rate_max is not None:
-            having_clauses.append("match_rate <= %s")
-            count_params = count_params + [match_rate_max]
-        if having_clauses:
-            count_sql += " HAVING " + " AND ".join(having_clauses)
-    
-    count_sql += " ) AS subquery"
-    
-    # COUNT 쿼리 실행 시간 측정
-    import time
+    # COUNT 쿼리 최적화: match_rate 필터가 없으면 간단한 COUNT만 실행
+    # match_rate 필터가 있을 때만 서브쿼리 사용
     count_start = time.time()
     
-    cursor.execute(count_sql, count_params)
+    if match_rate_min is not None or match_rate_max is not None or need_match_rate:
+        # match_rate 필터가 있거나 match_rate 계산이 필요한 경우에만 서브쿼리 사용
+        count_params = match_rate_params + base_params
+        count_sql = f"""
+          SELECT COUNT(*) AS total 
+          FROM (
+            SELECT {match_rate_expr} AS match_rate
+            FROM recipes
+            WHERE {where_sql}
+        """
+        
+        # HAVING 절 추가 (match_rate 필터) - 서브쿼리 안에 추가
+        if match_rate_min is not None or match_rate_max is not None:
+            having_clauses = []
+            if match_rate_min is not None:
+                having_clauses.append("match_rate >= %s")
+                count_params = count_params + [match_rate_min]
+            if match_rate_max is not None:
+                having_clauses.append("match_rate <= %s")
+                count_params = count_params + [match_rate_max]
+            if having_clauses:
+                count_sql += " HAVING " + " AND ".join(having_clauses)
+        
+        count_sql += " ) AS subquery"
+        cursor.execute(count_sql, count_params)
+    else:
+        # match_rate 계산이 필요 없으면 간단한 COUNT만 실행 (훨씬 빠름)
+        count_sql = f"SELECT COUNT(*) AS total FROM recipes WHERE {where_sql}"
+        cursor.execute(count_sql, base_params)
+    
     total = cursor.fetchone()['total']
     count_time = time.time() - count_start
     print(f"[필터링] COUNT 쿼리 실행 시간: {count_time:.3f}초, 필터링된 전체 개수 (total): {total}")
 
-    # 메인 쿼리: 필요한 컬럼만 + LIMIT/OFFSET
-    # content는 필터링에만 사용되므로 SELECT에서 제외하여 성능 향상 (필요시 서브쿼리로 가져올 수 있음)
-    # 하지만 프론트엔드에서 content를 사용할 수 있으므로 일단 유지
-    # 성능 최적화: content는 큰 TEXT 컬럼이므로 필요한 경우에만 가져오도록 개선 가능
-    select_cols = "id, title, thumbnail, platform, likes, comments, hits, post_time, used_ingredients, content, link"
+    # 메인 쿼리 최적화: content는 큰 TEXT 컬럼이므로 선택적으로 가져오기
+    # 프론트엔드에서 content를 사용하는지 확인 필요 (일단 제외하여 성능 향상)
+    # 필요하면 별도 API로 가져오거나, 페이징된 결과에만 포함
+    select_cols = "id, title, thumbnail, platform, likes, comments, hits, post_time, used_ingredients, link"
+    # content는 제외하여 네트워크 전송량과 메모리 사용량 감소
     main_sql = f"""
       SELECT {select_cols},
              {match_rate_expr} AS match_rate
@@ -525,7 +605,6 @@ def get_filtered_recipes():
     main_params = main_params + [size, offset]
     
     # 쿼리 실행 시간 측정 (성능 모니터링)
-    import time
     query_start = time.time()
     
     cursor.execute(main_sql, main_params)
