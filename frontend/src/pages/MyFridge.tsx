@@ -4,6 +4,7 @@ import TagPill from '../components/TagPill';
 import IngredientDetailModal from '../components/IngredientDetailModal';
 import SortDropdown, { SortType } from '../components/SortDropdown';
 import receiptImg from '../assets/영수증.png';
+import saveIcon from '../assets/saveicon.png';
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -389,24 +390,35 @@ const MyFridge: React.FC = () => {
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
   const [guideStep, setGuideStep] = useState(0);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
+  const [hasChanges, setHasChanges] = useState(false); // 변경사항 추적
+  const lastSavedDataRef = React.useRef<{frozen: Ingredient[], fridge: Ingredient[], room: Ingredient[]} | null>(null);
   const { isLoggedIn, user } = useAuth();
   const navigate = useNavigate();
   const isInitialLoad = React.useRef(true); // 초기 로드 플래그
 
-  // DB에서 재료 로드
-  const loadIngredientsFromDB = async () => {
+  // DB에서 재료 로드 (토큰 대기 포함)
+  const loadIngredientsFromDB = async (maxWaitForToken = 3000) => {
     if (!isLoggedIn || !user?.id) {
       console.log('[MyFridge] DB 로드 스킵: 로그인하지 않음');
       return null;
     }
     
+    // 토큰이 준비될 때까지 대기 (최대 3초)
+    let token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+    const startTime = Date.now();
+    while (!token && (Date.now() - startTime) < maxWaitForToken) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+      token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+    }
+    
+    if (!token) {
+      console.error('[MyFridge] DB 로드 실패: 토큰 없음 (대기 시간 초과)');
+      return null;
+    }
+    
     try {
-      const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
-      if (!token) {
-        console.error('[MyFridge] DB 로드 실패: 토큰 없음');
-        return null;
-      }
-      
       const apiUrl = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'https://refrigeratorcode-production.up.railway.app';
       const response = await fetch(`${apiUrl}/api/users/${user.id}/ingredients`, {
         headers: {
@@ -416,19 +428,22 @@ const MyFridge: React.FC = () => {
       
       if (response.ok) {
         const data = await response.json();
+        // 백엔드는 항상 {frozen: [], fridge: [], room: []} 형식으로 반환
         const result = {
-          frozen: data.frozen || [],
-          fridge: data.fridge || [],
-          room: data.room || [],
+          frozen: Array.isArray(data.frozen) ? data.frozen : [],
+          fridge: Array.isArray(data.fridge) ? data.fridge : [],
+          room: Array.isArray(data.room) ? data.room : [],
         };
         console.log('[MyFridge] DB에서 재료 로드 성공:', {
           frozen: result.frozen.length,
           fridge: result.fridge.length,
-          room: result.room.length
+          room: result.room.length,
+          hasData: result.frozen.length > 0 || result.fridge.length > 0 || result.room.length > 0
         });
         return result;
       } else {
-        console.error('[MyFridge] DB 로드 실패: HTTP', response.status, response.statusText);
+        const errorText = await response.text();
+        console.error('[MyFridge] DB 로드 실패: HTTP', response.status, response.statusText, errorText);
         if (response.status === 401) {
           console.error('[MyFridge] 인증 실패 - 토큰이 만료되었을 수 있습니다.');
         }
@@ -441,15 +456,31 @@ const MyFridge: React.FC = () => {
   };
 
   // DB에 재료 저장 (재시도 로직 포함)
-  const saveIngredientsToDB = async (frozen: Ingredient[], fridge: Ingredient[], room: Ingredient[], retryCount = 0) => {
-    if (!isLoggedIn || !user?.id) return false;
+  const saveIngredientsToDB = async (frozen: Ingredient[], fridge: Ingredient[], room: Ingredient[], retryCount = 0, showStatus = false) => {
+    if (!isLoggedIn || !user?.id) {
+      if (showStatus) {
+        setSaveStatus('error');
+        setTimeout(() => setSaveStatus('idle'), 3000);
+      }
+      return false;
+    }
     
     const MAX_RETRIES = 3;
+    
+    if (showStatus && retryCount === 0) {
+      setIsSaving(true);
+      setSaveStatus('saving');
+    }
     
     try {
       const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
       if (!token) {
         console.error('[MyFridge] DB 저장 실패: 토큰 없음');
+        if (showStatus) {
+          setIsSaving(false);
+          setSaveStatus('error');
+          setTimeout(() => setSaveStatus('idle'), 3000);
+        }
         return false;
       }
       
@@ -466,10 +497,25 @@ const MyFridge: React.FC = () => {
       });
       
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[MyFridge] DB 저장 실패 응답:', errorText);
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
       
-      console.log('[MyFridge] DB에 재료 저장 성공');
+      console.log('[MyFridge] DB에 재료 저장 성공:', {
+        frozen: frozen.length,
+        fridge: fridge.length,
+        room: room.length
+      });
+      
+      if (showStatus) {
+        setIsSaving(false);
+        setSaveStatus('success');
+        // 저장 완료 후 1초 후 idle로 변경 (비활성화 상태 유지)
+        setTimeout(() => {
+          setSaveStatus('idle');
+        }, 1000);
+      }
       return true;
     } catch (error) {
       console.error('[MyFridge] DB에 재료 저장 실패:', error);
@@ -479,13 +525,87 @@ const MyFridge: React.FC = () => {
         const delay = Math.pow(2, retryCount) * 1000; // 지수 백오프: 1초, 2초, 4초
         console.log(`[MyFridge] ${delay}ms 후 재시도 (${retryCount + 1}/${MAX_RETRIES})`);
         await new Promise(resolve => setTimeout(resolve, delay));
-        return saveIngredientsToDB(frozen, fridge, room, retryCount + 1);
+        return saveIngredientsToDB(frozen, fridge, room, retryCount + 1, showStatus);
       }
       
       console.error('[MyFridge] DB 저장 최종 실패: 모든 재시도 소진');
+      if (showStatus) {
+        setIsSaving(false);
+        setSaveStatus('error');
+        setTimeout(() => setSaveStatus('idle'), 3000);
+      }
       return false;
     }
   };
+
+  // 저장 버튼 클릭 핸들러
+  const handleSaveClick = async () => {
+    if (!isLoggedIn || !user?.id) {
+      alert('로그인이 필요합니다.');
+      return;
+    }
+    
+    if (frozen === null || fridge === null || room === null) {
+      return;
+    }
+    
+    // 저장 중 토스트 표시
+    setInfoToast({ text: '재료 저장중...' });
+    
+    const success = await saveIngredientsToDB(frozen, fridge, room, 0, true);
+    if (success) {
+      // 저장 성공 시 마지막 저장된 데이터 업데이트
+      lastSavedDataRef.current = {
+        frozen: [...frozen],
+        fridge: [...fridge],
+        room: [...room]
+      };
+      setHasChanges(false);
+      
+      // 저장 완료 표시
+      setInfoToast({ text: '재료 저장완료' });
+      setTimeout(() => setInfoToast(null), 3000);
+    } else {
+      setInfoToast({ text: '저장 실패' });
+      setTimeout(() => setInfoToast(null), 3000);
+      alert('저장에 실패했습니다. 네트워크 연결을 확인해주세요.');
+    }
+  };
+
+  // 변경사항 감지
+  React.useEffect(() => {
+    if (isInitialLoad.current || frozen === null || fridge === null || room === null) {
+      return;
+    }
+
+    // 마지막 저장된 데이터와 비교
+    if (lastSavedDataRef.current === null) {
+      // 아직 저장된 적이 없으면 변경사항 있음으로 표시
+      setHasChanges(true);
+      return;
+    }
+
+    // 데이터 비교 함수
+    const compareIngredients = (a: Ingredient[], b: Ingredient[]): boolean => {
+      if (a.length !== b.length) return false;
+      const sortedA = [...a].sort((x, y) => x.id.localeCompare(y.id));
+      const sortedB = [...b].sort((x, y) => x.id.localeCompare(y.id));
+      return sortedA.every((ing, idx) => {
+        const other = sortedB[idx];
+        return ing.id === other.id && 
+               ing.name === other.name && 
+               ing.expiry === other.expiry && 
+               ing.purchase === other.purchase;
+      });
+    };
+
+    const hasChanged = 
+      !compareIngredients(frozen, lastSavedDataRef.current.frozen) ||
+      !compareIngredients(fridge, lastSavedDataRef.current.fridge) ||
+      !compareIngredients(room, lastSavedDataRef.current.room);
+
+    setHasChanges(hasChanged);
+  }, [frozen, fridge, room]);
 
   // 로그인 후 가이드 표시 로직
   React.useEffect(() => {
@@ -544,70 +664,82 @@ const MyFridge: React.FC = () => {
       try {
         // 로그인한 사용자는 DB를 우선적으로 사용
         if (isLoggedIn && user?.id) {
-          try {
-            const dbData = await loadIngredientsFromDB();
-            if (isMounted) {
-              if (dbData && (dbData.frozen.length > 0 || dbData.fridge.length > 0 || dbData.room.length > 0)) {
-                // DB에 데이터가 있으면 DB 데이터 사용 (우선)
-                console.log('[MyFridge] DB에서 재료 로드 성공:', {
-                  frozen: dbData.frozen.length,
-                  fridge: dbData.fridge.length,
-                  room: dbData.room.length
-                });
-                setFrozen(dbData.frozen);
-                setFridge(dbData.fridge);
-                setRoom(dbData.room);
-                // DB 데이터를 localStorage에도 동기화 (백업용)
-                saveIngredients(dbData.frozen, dbData.fridge, dbData.room);
-                isInitialLoad.current = false;
-                setLoading(false);
-                return;
-              } else {
-                // DB에 데이터가 없으면 localStorage 확인
-                const localData = loadIngredients();
-                const hasLocalData = localData.frozen.length > 0 || localData.fridge.length > 0 || localData.room.length > 0;
-                
-                if (hasLocalData) {
-                  // localStorage에 데이터가 있으면 DB에 동기화
-                  console.log('[MyFridge] localStorage 데이터를 DB에 동기화:', {
-                    frozen: localData.frozen.length,
-                    fridge: localData.fridge.length,
-                    room: localData.room.length
-                  });
-                  setFrozen(localData.frozen);
-                  setFridge(localData.fridge);
-                  setRoom(localData.room);
-                  isInitialLoad.current = false;
-                  setLoading(false);
-                  // DB에 저장 시도
-                  await saveIngredientsToDB(localData.frozen, localData.fridge, localData.room);
-                  return;
-                }
+          // DB 로드를 최대 3번 재시도
+          let dbData = null;
+          let retryCount = 0;
+          const MAX_RETRIES = 3;
+          
+          while (retryCount < MAX_RETRIES && !dbData) {
+            try {
+              dbData = await loadIngredientsFromDB();
+              if (dbData !== null) {
+                // DB 데이터를 성공적으로 로드했으면 반복 종료
+                break;
               }
+            } catch (dbError) {
+              console.error(`[MyFridge] DB 로드 시도 ${retryCount + 1}/${MAX_RETRIES} 실패:`, dbError);
             }
-          } catch (dbError) {
-            console.error('[MyFridge] DB에서 재료 로드 실패:', dbError);
-            // DB 로드 실패 시 localStorage 확인
-            const localData = loadIngredients();
-            const hasLocalData = localData.frozen.length > 0 || localData.fridge.length > 0 || localData.room.length > 0;
             
-            if (isMounted && hasLocalData) {
-              // localStorage 데이터를 임시로 사용
-              console.log('[MyFridge] DB 로드 실패, localStorage 데이터 사용:', {
-                frozen: localData.frozen.length,
-                fridge: localData.fridge.length,
-                room: localData.room.length
+            // 재시도 전 대기
+            if (retryCount < MAX_RETRIES - 1) {
+              await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1))); // 지수 백오프
+            }
+            retryCount++;
+          }
+          
+          if (isMounted) {
+            if (dbData !== null) {
+              // DB 데이터가 있으면 (빈 배열이어도) DB 데이터 사용 (우선)
+              console.log('[MyFridge] DB에서 재료 로드 성공:', {
+                frozen: dbData.frozen.length,
+                fridge: dbData.fridge.length,
+                room: dbData.room.length
               });
-              setFrozen(localData.frozen);
-              setFridge(localData.fridge);
-              setRoom(localData.room);
+              setFrozen(dbData.frozen);
+              setFridge(dbData.fridge);
+              setRoom(dbData.room);
+              // DB 데이터를 localStorage에도 동기화 (백업용)
+              saveIngredients(dbData.frozen, dbData.fridge, dbData.room);
+              // 마지막 저장된 데이터로 설정 (변경사항 없음)
+              lastSavedDataRef.current = {
+                frozen: [...dbData.frozen],
+                fridge: [...dbData.fridge],
+                room: [...dbData.room]
+              };
+              setHasChanges(false);
               isInitialLoad.current = false;
               setLoading(false);
-              // 백그라운드에서 DB에 저장 시도
-              saveIngredientsToDB(localData.frozen, localData.fridge, localData.room).catch(err => {
-                console.error('[MyFridge] 백그라운드 DB 저장 실패:', err);
-              });
               return;
+            } else {
+              // DB 로드가 완전히 실패한 경우에만 localStorage 확인
+              console.warn('[MyFridge] DB 로드 실패 - localStorage 확인');
+              const localData = loadIngredients();
+              const hasLocalData = localData.frozen.length > 0 || localData.fridge.length > 0 || localData.room.length > 0;
+              
+              if (hasLocalData) {
+                // localStorage에 데이터가 있으면 DB에 동기화
+                console.log('[MyFridge] localStorage 데이터를 DB에 동기화:', {
+                  frozen: localData.frozen.length,
+                  fridge: localData.fridge.length,
+                  room: localData.room.length
+                });
+                setFrozen(localData.frozen);
+                setFridge(localData.fridge);
+                setRoom(localData.room);
+                lastSavedDataRef.current = {
+                  frozen: [...localData.frozen],
+                  fridge: [...localData.fridge],
+                  room: [...localData.room]
+                };
+                setHasChanges(false);
+                isInitialLoad.current = false;
+                setLoading(false);
+                // DB에 저장 시도
+                saveIngredientsToDB(localData.frozen, localData.fridge, localData.room).catch(err => {
+                  console.error('[MyFridge] DB 저장 실패:', err);
+                });
+                return;
+              }
             }
           }
         } else {
@@ -956,13 +1088,12 @@ const MyFridge: React.FC = () => {
         // localStorage에 저장 (비로그인 사용자용 + 백업용)
         saveIngredients(frozen, fridge, room);
         
-        // 로그인한 경우 DB에 저장 (우선순위 높음)
+        // 로그인한 경우 DB에 자동 저장 (백그라운드, 실패해도 조용히 처리)
+        // 명시적 저장은 저장 버튼을 통해 수행
         if (isLoggedIn && user?.id) {
-          saveIngredientsToDB(frozen, fridge, room).then(success => {
-            if (!success) {
-              console.error('[MyFridge] DB 저장 실패 - 재료가 DB에 저장되지 않았습니다. 네트워크를 확인해주세요.');
-              // TODO: 사용자에게 알림 표시 (선택사항)
-            }
+          // 자동 저장은 조용히 수행 (사용자 알림 없음)
+          saveIngredientsToDB(frozen, fridge, room, 0, false).catch(err => {
+            console.error('[MyFridge] 자동 저장 실패 (사용자 알림 없음):', err);
           });
         }
       } else {
@@ -1309,8 +1440,45 @@ const MyFridge: React.FC = () => {
       <div className="bg-white w-full p-0 m-0 pb-24" style={{ paddingTop: 92 }}>
         {/* 타이틀+입력창 그룹 */}
         <div className="flex flex-col items-center justify-center w-full" style={{ marginBottom: 40 }}>
-          <div className="flex items-center justify-center w-full max-w-[400px] px-5 mb-2">
-            <h1 className="text-[18px] font-bold text-[#111] text-center">내 냉장고 재료 추가</h1>
+          <div className="flex items-center justify-between w-full max-w-[400px] px-5 mb-2" style={{ position: 'relative' }}>
+            <h1 className="text-[18px] font-bold text-[#111] text-center" style={{ flex: 1 }}>내 냉장고 재료 추가</h1>
+            {/* 저장 버튼 (로그인한 경우만 표시, 우측 상단) */}
+            {isLoggedIn && user?.id && (
+              <button
+                onClick={handleSaveClick}
+                disabled={isSaving || !hasChanges || frozen === null || fridge === null || room === null}
+                title={isSaving ? '저장 중...' : saveStatus === 'success' ? '저장 완료!' : saveStatus === 'error' ? '저장 실패' : hasChanges ? '저장하기' : '변경사항 없음'}
+                style={{
+                  position: 'absolute',
+                  right: 14,
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  width: 32,
+                  height: 32,
+                  backgroundColor: 'transparent',
+                  border: 'none',
+                  borderRadius: 8,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: (isSaving || !hasChanges) ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.3s',
+                  padding: 0
+                }}
+              >
+                <img 
+                  src={saveIcon} 
+                  alt="저장" 
+                  style={{ 
+                    width: 20, 
+                    height: 20, 
+                    objectFit: 'contain',
+                    opacity: (isSaving || !hasChanges) ? 0.4 : 1,
+                    transition: 'all 0.3s'
+                  }} 
+                />
+              </button>
+            )}
           </div>
         </div>
         <div style={{ maxWidth: 400, margin: '0 auto', paddingLeft: 14, paddingRight: 14, width: '100%', boxSizing: 'border-box' }}>
@@ -1558,7 +1726,28 @@ const MyFridge: React.FC = () => {
           <Toast message={toast.message} onUndo={handleCancelDelete} onClose={undoDelete} />
         )}
         {infoToast && (
-          <div className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-white border border-gray-300 rounded-lg px-6 py-3 text-[#404040] text-sm shadow-lg z-[9999]" style={{ fontWeight: 400 }}>
+          <div
+            style={{
+              position: 'fixed',
+              bottom: 100,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              background: 'rgba(34,34,34,0.9)',
+              color: '#fff',
+              padding: '12px 24px',
+              borderRadius: 12,
+              fontWeight: 400,
+              fontSize: 15,
+              zIndex: 9999,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+              maxWidth: 320,
+              width: 'max-content',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              textAlign: 'center',
+            }}
+          >
             {infoToast.text}
           </div>
         )}
