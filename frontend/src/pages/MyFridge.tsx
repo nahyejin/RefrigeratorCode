@@ -1442,43 +1442,6 @@ const MyFridge: React.FC = () => {
         <div className="flex flex-col items-center justify-center w-full" style={{ marginBottom: 40 }}>
           <div className="flex items-center justify-between w-full max-w-[400px] px-5 mb-2" style={{ position: 'relative' }}>
             <h1 className="text-[18px] font-bold text-[#111] text-center" style={{ flex: 1 }}>내 냉장고 재료 추가</h1>
-            {/* 저장 버튼 (로그인한 경우만 표시, 우측 상단) */}
-            {isLoggedIn && user?.id && (
-              <button
-                onClick={handleSaveClick}
-                disabled={isSaving || !hasChanges || frozen === null || fridge === null || room === null}
-                title={isSaving ? '저장 중...' : saveStatus === 'success' ? '저장 완료!' : saveStatus === 'error' ? '저장 실패' : hasChanges ? '저장하기' : '변경사항 없음'}
-                style={{
-                  position: 'absolute',
-                  right: 14,
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  width: 32,
-                  height: 32,
-                  backgroundColor: 'transparent',
-                  border: 'none',
-                  borderRadius: 8,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: (isSaving || !hasChanges) ? 'not-allowed' : 'pointer',
-                  transition: 'all 0.3s',
-                  padding: 0
-                }}
-              >
-                <img 
-                  src={saveIcon} 
-                  alt="저장" 
-                  style={{ 
-                    width: 20, 
-                    height: 20, 
-                    objectFit: 'contain',
-                    opacity: (isSaving || !hasChanges) ? 0.4 : 1,
-                    transition: 'all 0.3s'
-                  }} 
-                />
-              </button>
-            )}
           </div>
         </div>
         <div style={{ maxWidth: 400, margin: '0 auto', paddingLeft: 14, paddingRight: 14, width: '100%', boxSizing: 'border-box' }}>
@@ -1578,7 +1541,54 @@ const MyFridge: React.FC = () => {
         />
         {/* 재고 관리 구역 */}
         <div style={{ maxWidth: 400, margin: '0 auto', paddingLeft: 14, paddingRight: 14, width: '100%', marginTop: 48, boxSizing: 'border-box' }}>
-          <h2 className="text-[16px] font-bold text-[#111] mb-2">내 냉장고 재고 관리</h2>
+          <div className="flex items-center justify-between mb-2" style={{ position: 'relative' }}>
+            <h2 className="text-[16px] font-bold text-[#111]">내 냉장고 재고 관리</h2>
+            {/* 저장 버튼 (로그인한 경우만 표시, 우측) */}
+            {isLoggedIn && user?.id && (
+              <button
+                onClick={handleSaveClick}
+                disabled={isSaving || !hasChanges || frozen === null || fridge === null || room === null}
+                title={isSaving ? '저장 중...' : saveStatus === 'success' ? '저장 완료!' : saveStatus === 'error' ? '저장 실패' : hasChanges ? '저장하기' : '변경사항 없음'}
+                style={{
+                  width: 28,
+                  height: 28,
+                  backgroundColor: (isSaving || !hasChanges) ? '#E5E5E5' : '#F5F6F8',
+                  border: '1px solid #E5E7EB',
+                  borderRadius: 6,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: (isSaving || !hasChanges) ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.3s',
+                  padding: 0,
+                  boxShadow: (isSaving || !hasChanges) ? 'none' : '0 1px 2px rgba(0,0,0,0.05)',
+                  opacity: (isSaving || !hasChanges) ? 0.6 : 1,
+                  marginLeft: 'auto'
+                }}
+                onMouseEnter={(e) => {
+                  if (!isSaving && hasChanges && frozen !== null && fridge !== null && room !== null) {
+                    e.currentTarget.style.backgroundColor = '#E5E7EB';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isSaving && hasChanges && frozen !== null && fridge !== null && room !== null) {
+                    e.currentTarget.style.backgroundColor = '#F5F6F8';
+                  }
+                }}
+              >
+                <img 
+                  src={saveIcon} 
+                  alt="저장" 
+                  style={{ 
+                    width: 16, 
+                    height: 16, 
+                    objectFit: 'contain',
+                    transition: 'all 0.3s'
+                  }} 
+                />
+              </button>
+            )}
+          </div>
           <div style={{height: 2, width: '100%', background: '#E5E5E5', marginBottom: 16}} />
           {/* 냉동보관 */}
           <div className="mb-4">
