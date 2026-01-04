@@ -110,10 +110,37 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const logout = () => {
+    // 인증 정보 제거
     localStorage.removeItem('auth_token');
     localStorage.removeItem('user');
     sessionStorage.removeItem('auth_token');
     sessionStorage.removeItem('user');
+    
+    // 사용자 데이터 초기화 (비회원 상태로 복원)
+    // 내냉장고 재료 초기화 (초기 재료가 자동으로 추가됨)
+    localStorage.removeItem('myfridge_ingredients');
+    
+    // 마이페이지 레시피 초기화
+    localStorage.removeItem('my_recorded_recipes');
+    localStorage.removeItem('my_completed_recipes');
+    
+    // 세션 스토리지의 레시피 리스트 캐시도 초기화
+    sessionStorage.removeItem('recipe_list_state');
+    sessionStorage.removeItem('recipe_list_ingredients_hash');
+    
+    // localStorage 변경 이벤트 발생 (다른 컴포넌트에 알림)
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('localStorageChange', {
+        detail: { key: 'myfridge_ingredients' }
+      }));
+      window.dispatchEvent(new CustomEvent('localStorageChange', {
+        detail: { key: 'my_recorded_recipes' }
+      }));
+      window.dispatchEvent(new CustomEvent('localStorageChange', {
+        detail: { key: 'my_completed_recipes' }
+      }));
+    }
+    
     setUser(null);
   };
 

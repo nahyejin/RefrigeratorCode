@@ -774,6 +774,15 @@ const MyFridge: React.FC = () => {
     let isMounted = true; // 컴포넌트가 마운트되어 있는지 추적
     let timeoutId: NodeJS.Timeout | null = null;
     
+    // 로그인 상태 변경 시 ref 초기화
+    if (!isLoggedIn || !user?.id) {
+      // 로그아웃 시 ref 초기화
+      isInitialLoad.current = true;
+      dataLoadedRef.current = false;
+      dbLoadAttempted.current = false;
+      dbLoadFailed.current = false;
+    }
+    
     const loadData = async () => {
       try {
         // 로그인한 사용자는 DB를 우선적으로 사용
