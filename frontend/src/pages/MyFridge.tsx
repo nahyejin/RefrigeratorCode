@@ -395,11 +395,17 @@ const MyFridge: React.FC = () => {
 
   // DB에서 재료 로드
   const loadIngredientsFromDB = async () => {
-    if (!isLoggedIn || !user?.id) return null;
+    if (!isLoggedIn || !user?.id) {
+      console.log('[MyFridge] DB 로드 스킵: 로그인하지 않음');
+      return null;
+    }
     
     try {
       const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
-      if (!token) return null;
+      if (!token) {
+        console.error('[MyFridge] DB 로드 실패: 토큰 없음');
+        return null;
+      }
       
       const apiUrl = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'https://refrigeratorcode-production.up.railway.app';
       const response = await fetch(`${apiUrl}/api/users/${user.id}/ingredients`, {
@@ -410,28 +416,45 @@ const MyFridge: React.FC = () => {
       
       if (response.ok) {
         const data = await response.json();
-        return {
+        const result = {
           frozen: data.frozen || [],
           fridge: data.fridge || [],
           room: data.room || [],
         };
+        console.log('[MyFridge] DB에서 재료 로드 성공:', {
+          frozen: result.frozen.length,
+          fridge: result.fridge.length,
+          room: result.room.length
+        });
+        return result;
+      } else {
+        console.error('[MyFridge] DB 로드 실패: HTTP', response.status, response.statusText);
+        if (response.status === 401) {
+          console.error('[MyFridge] 인증 실패 - 토큰이 만료되었을 수 있습니다.');
+        }
+        return null;
       }
     } catch (error) {
       console.error('[MyFridge] DB에서 재료 로드 실패:', error);
+      return null;
     }
-    return null;
   };
 
-  // DB에 재료 저장
-  const saveIngredientsToDB = async (frozen: Ingredient[], fridge: Ingredient[], room: Ingredient[]) => {
-    if (!isLoggedIn || !user?.id) return;
+  // DB에 재료 저장 (재시도 로직 포함)
+  const saveIngredientsToDB = async (frozen: Ingredient[], fridge: Ingredient[], room: Ingredient[], retryCount = 0) => {
+    if (!isLoggedIn || !user?.id) return false;
+    
+    const MAX_RETRIES = 3;
     
     try {
       const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
-      if (!token) return;
+      if (!token) {
+        console.error('[MyFridge] DB 저장 실패: 토큰 없음');
+        return false;
+      }
       
       const apiUrl = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'https://refrigeratorcode-production.up.railway.app';
-      await fetch(`${apiUrl}/api/users/${user.id}/ingredients`, {
+      const response = await fetch(`${apiUrl}/api/users/${user.id}/ingredients`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -441,8 +464,26 @@ const MyFridge: React.FC = () => {
           ingredients: { frozen, fridge, room },
         }),
       });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      console.log('[MyFridge] DB에 재료 저장 성공');
+      return true;
     } catch (error) {
       console.error('[MyFridge] DB에 재료 저장 실패:', error);
+      
+      // 재시도 로직
+      if (retryCount < MAX_RETRIES) {
+        const delay = Math.pow(2, retryCount) * 1000; // 지수 백오프: 1초, 2초, 4초
+        console.log(`[MyFridge] ${delay}ms 후 재시도 (${retryCount + 1}/${MAX_RETRIES})`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        return saveIngredientsToDB(frozen, fridge, room, retryCount + 1);
+      }
+      
+      console.error('[MyFridge] DB 저장 최종 실패: 모든 재시도 소진');
+      return false;
     }
   };
 
@@ -501,62 +542,88 @@ const MyFridge: React.FC = () => {
     
     const loadData = async () => {
       try {
-        // 먼저 localStorage에서 즉시 로드 (빠른 초기 렌더링)
-        const loaded = loadIngredients();
-        const hasLocalData = loaded.frozen.length > 0 || loaded.fridge.length > 0 || loaded.room.length > 0;
-        
-        if (hasLocalData && isMounted) {
-          // localStorage에 데이터가 있으면 먼저 표시 (즉시 렌더링)
-          setFrozen(loaded.frozen);
-          setFridge(loaded.fridge);
-          setRoom(loaded.room);
-          isInitialLoad.current = false;
-          setLoading(false);
-          
-          // 로그인한 경우 백그라운드에서 DB 확인 및 동기화
-          if (isLoggedIn && user?.id) {
-            try {
-              const dbData = await loadIngredientsFromDB();
-              if (isMounted && dbData && (dbData.frozen.length > 0 || dbData.fridge.length > 0 || dbData.room.length > 0)) {
-                // DB에 데이터가 있으면 DB 데이터로 업데이트
-                setFrozen(dbData.frozen);
-                setFridge(dbData.fridge);
-                setRoom(dbData.room);
-                saveIngredients(dbData.frozen, dbData.fridge, dbData.room);
-              } else if (isMounted) {
-                // DB에 데이터가 없으면 localStorage 데이터를 DB에 저장
-                await saveIngredientsToDB(loaded.frozen, loaded.fridge, loaded.room);
-              }
-            } catch (dbError) {
-              console.error('[MyFridge] DB 동기화 실패:', dbError);
-              // DB 동기화 실패해도 localStorage 데이터는 표시됨
-            }
-          }
-          return;
-        }
-        
-        // localStorage에 데이터가 없는 경우
-        // 로그인한 경우 DB에서 로드 시도
+        // 로그인한 사용자는 DB를 우선적으로 사용
         if (isLoggedIn && user?.id) {
           try {
             const dbData = await loadIngredientsFromDB();
-            if (isMounted && dbData && (dbData.frozen.length > 0 || dbData.fridge.length > 0 || dbData.room.length > 0)) {
-              // DB에 데이터가 있으면 DB 데이터 사용
-              setFrozen(dbData.frozen);
-              setFridge(dbData.fridge);
-              setRoom(dbData.room);
-              saveIngredients(dbData.frozen, dbData.fridge, dbData.room);
-              isInitialLoad.current = false;
-              setLoading(false);
-              return;
+            if (isMounted) {
+              if (dbData && (dbData.frozen.length > 0 || dbData.fridge.length > 0 || dbData.room.length > 0)) {
+                // DB에 데이터가 있으면 DB 데이터 사용 (우선)
+                console.log('[MyFridge] DB에서 재료 로드 성공:', {
+                  frozen: dbData.frozen.length,
+                  fridge: dbData.fridge.length,
+                  room: dbData.room.length
+                });
+                setFrozen(dbData.frozen);
+                setFridge(dbData.fridge);
+                setRoom(dbData.room);
+                // DB 데이터를 localStorage에도 동기화 (백업용)
+                saveIngredients(dbData.frozen, dbData.fridge, dbData.room);
+                isInitialLoad.current = false;
+                setLoading(false);
+                return;
+              } else {
+                // DB에 데이터가 없으면 localStorage 확인
+                const localData = loadIngredients();
+                const hasLocalData = localData.frozen.length > 0 || localData.fridge.length > 0 || localData.room.length > 0;
+                
+                if (hasLocalData) {
+                  // localStorage에 데이터가 있으면 DB에 동기화
+                  console.log('[MyFridge] localStorage 데이터를 DB에 동기화:', {
+                    frozen: localData.frozen.length,
+                    fridge: localData.fridge.length,
+                    room: localData.room.length
+                  });
+                  setFrozen(localData.frozen);
+                  setFridge(localData.fridge);
+                  setRoom(localData.room);
+                  isInitialLoad.current = false;
+                  setLoading(false);
+                  // DB에 저장 시도
+                  await saveIngredientsToDB(localData.frozen, localData.fridge, localData.room);
+                  return;
+                }
+              }
             }
           } catch (dbError) {
             console.error('[MyFridge] DB에서 재료 로드 실패:', dbError);
-            // DB 로드 실패 시 빈 상태로 시작
+            // DB 로드 실패 시 localStorage 확인
+            const localData = loadIngredients();
+            const hasLocalData = localData.frozen.length > 0 || localData.fridge.length > 0 || localData.room.length > 0;
+            
+            if (isMounted && hasLocalData) {
+              // localStorage 데이터를 임시로 사용
+              console.log('[MyFridge] DB 로드 실패, localStorage 데이터 사용:', {
+                frozen: localData.frozen.length,
+                fridge: localData.fridge.length,
+                room: localData.room.length
+              });
+              setFrozen(localData.frozen);
+              setFridge(localData.fridge);
+              setRoom(localData.room);
+              isInitialLoad.current = false;
+              setLoading(false);
+              // 백그라운드에서 DB에 저장 시도
+              saveIngredientsToDB(localData.frozen, localData.fridge, localData.room).catch(err => {
+                console.error('[MyFridge] 백그라운드 DB 저장 실패:', err);
+              });
+              return;
+            }
+          }
+        } else {
+          // 비로그인 사용자는 localStorage만 사용
+          const loaded = loadIngredients();
+          if (isMounted) {
+            setFrozen(loaded.frozen);
+            setFridge(loaded.fridge);
+            setRoom(loaded.room);
+            isInitialLoad.current = false;
+            setLoading(false);
+            return;
           }
         }
         
-        // DB에도 없으면 빈 상태로 시작
+        // DB에도 localStorage에도 없으면 빈 상태로 시작
         if (isMounted) {
           setFrozen([]);
           setFridge([]);
@@ -809,7 +876,11 @@ const MyFridge: React.FC = () => {
           saveIngredients(newFrozen, newFridge, newRoom);
           // 로그인한 경우 DB에도 저장
           if (isLoggedIn && user?.id) {
-            saveIngredientsToDB(newFrozen, newFridge, newRoom);
+            saveIngredientsToDB(newFrozen, newFridge, newRoom).then(success => {
+              if (!success) {
+                console.error('[MyFridge] 초기 재료 DB 저장 실패');
+              }
+            });
           }
           
           // 초기 재료 추가 완료 후 초기 로드 플래그 해제
@@ -878,13 +949,22 @@ const MyFridge: React.FC = () => {
         console.log('[MyFridge] useEffect에서 재료 저장:', {
           frozenCount: frozen.length,
           fridgeCount: fridge.length,
-          roomCount: room.length
+          roomCount: room.length,
+          isLoggedIn: isLoggedIn
         });
-      saveIngredients(frozen, fridge, room);
-      // 로그인한 경우 DB에도 저장
-      if (isLoggedIn && user?.id) {
-        saveIngredientsToDB(frozen, fridge, room);
-      }
+        
+        // localStorage에 저장 (비로그인 사용자용 + 백업용)
+        saveIngredients(frozen, fridge, room);
+        
+        // 로그인한 경우 DB에 저장 (우선순위 높음)
+        if (isLoggedIn && user?.id) {
+          saveIngredientsToDB(frozen, fridge, room).then(success => {
+            if (!success) {
+              console.error('[MyFridge] DB 저장 실패 - 재료가 DB에 저장되지 않았습니다. 네트워크를 확인해주세요.');
+              // TODO: 사용자에게 알림 표시 (선택사항)
+            }
+          });
+        }
       } else {
         console.log('[MyFridge] useEffect에서 재료 저장 스킵 (빈 배열):', {
           frozenCount: frozen.length,
@@ -894,7 +974,7 @@ const MyFridge: React.FC = () => {
         });
       }
     }
-  }, [frozen, fridge, room]);
+  }, [frozen, fridge, room, isLoggedIn, user?.id]);
 
   // Modify the autocomplete logic to use the synonyms
   const combinedFiltered = Object.entries(ingredientDict)

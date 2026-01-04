@@ -1434,12 +1434,32 @@ const RecipeList: React.FC = () => {
       return;
     }
 
+    // maxLack 필터 적용 (cachedFilteredRecipes에 적용)
+    let filteredByMaxLack = [...cachedFilteredRecipes];
+    if (maxLack !== 'unlimited') {
+      filteredByMaxLack = filteredByMaxLack.filter(recipe => {
+        // need_ingredients가 없으면 calculateMatchRate를 사용하여 계산
+        let needIngredients = recipe.need_ingredients;
+        if (!needIngredients || needIngredients.length === 0) {
+          const matchResult = calculateMatchRate(myIngredients, recipe.used_ingredients || []);
+          needIngredients = matchResult.need_ingredients;
+        }
+        
+        const lackCount = needIngredients.length;
+        // maxLack === 5는 '최대 5개 부족'을 의미하므로 <= 5로 처리
+        return lackCount <= maxLack;
+      });
+    }
+
+    // maxLack 필터가 적용된 후의 총 개수를 total로 업데이트
+    setTotal(filteredByMaxLack.length);
+
     // 초기 로드 시 기본값 'match' 강제 적용 (initialLoadDone이 false일 때)
     const effectiveSortType = initialLoadDone.current ? sortType : 'match';
     
-    // 캐시된 데이터를 클라이언트에서 정렬
+    // maxLack 필터가 적용된 데이터를 클라이언트에서 정렬
     const sortedRecipes = sortRecipes(
-      cachedFilteredRecipes,
+      filteredByMaxLack,
       effectiveSortType,
       myIngredients,
       appliedExpiryIngredients
@@ -1451,7 +1471,7 @@ const RecipeList: React.FC = () => {
     const paginatedRecipes = sortedRecipes.slice(startIndex, endIndex);
 
     setRecipes(paginatedRecipes);
-  }, [sortType, cachedFilteredRecipes, page, size, myIngredients, appliedExpiryIngredients]);
+  }, [sortType, cachedFilteredRecipes, page, size, myIngredients, appliedExpiryIngredients, maxLack]);
   
   // 필터가 변경되면 초기 로드 플래그 리셋 (필터 적용 시 다시 로드)
   useEffect(() => {

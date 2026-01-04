@@ -639,7 +639,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
             className="custom-scrollbar"
             style={{
               ...STYLES.scrollContainer,
-              maxHeight: isMobile ? '100px' : '150px', // 모바일에서 더 작게
+              maxHeight: isMobile ? '200px' : '280px', // 테마 선택란을 더 넓게
               paddingTop: 8,
               paddingBottom: 10,
               marginBottom: 2,

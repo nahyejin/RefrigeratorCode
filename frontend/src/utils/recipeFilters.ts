@@ -6,7 +6,6 @@ import { sortRecipes, calculateMatchRate, extractKeywordsAndSynonyms, FilterKeyw
 // =====================
 
 const MIN_KEYWORD_MATCH_COUNT = 2;
-const MAX_LACK_THRESHOLD = 5;
 
 // =====================
 // 타입 정의
@@ -98,11 +97,7 @@ function filterByLackCount(recipe: Recipe, maxLack: number | 'unlimited'): boole
   const lackCount = recipe.need_ingredients ? recipe.need_ingredients.length : 0;
   console.log(`  [maxLack 필터] 레시피: "${recipe.title}", maxLack: ${maxLack}, lackCount: ${lackCount}, need_ingredients:`, recipe.need_ingredients);
   
-  if (maxLack === MAX_LACK_THRESHOLD) {
-    const result = lackCount >= MAX_LACK_THRESHOLD;
-    console.log(`  [maxLack 필터] 5개 이상 부족 조건: ${lackCount} >= ${MAX_LACK_THRESHOLD} = ${result}`);
-    return result;
-  }
+  // maxLack === 5는 '최대 5개 부족'을 의미하므로 <= 5로 처리
   const result = lackCount <= maxLack;
   console.log(`  [maxLack 필터] 최대 ${maxLack}개 부족 조건: ${lackCount} <= ${maxLack} = ${result}`);
   return result;

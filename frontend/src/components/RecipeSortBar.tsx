@@ -34,7 +34,7 @@ import Slider from 'rc-slider';
 import 'rc-slider/assets/index.css';
 import { Recipe } from '../types/recipe';
 import { filterRecipes } from '../utils/recipeFilters';
-import { getDictCategoryKey, getDDay, FilterKeywordTree, FilterKeywordNode } from '../utils/recipeUtils';
+import { getDictCategoryKey, getDDay, FilterKeywordTree, FilterKeywordNode, calculateMatchRate } from '../utils/recipeUtils';
 import { FilterState } from './FilterModal';
 
 /**
@@ -576,34 +576,18 @@ const RecipeSortBar = ({
     };
   }, [isSortDropdownOpen]);
 
-  // 재료 매칭도 필터와 임박 재료 필터는 서버에서 적용되므로, 여기서는 maxLack 필터만 적용
-  // 정렬도 서버에서 적용되므로 여기서는 필터링만 수행
+  // recipes는 이미 maxLack 필터가 적용된 상태이므로 그대로 전달
+  // (maxLack 필터는 RecipeList에서 cachedFilteredRecipes에 적용됨)
   useEffect(() => {
     if (!recipes || recipes.length === 0) {
       onFilteredRecipesChange([]);
       return;
     }
     
-    // 서버에서 이미 필터링된 데이터를 받았으므로, maxLack 필터만 적용
-    let filtered = [...recipes];
-    
-    // maxLack 필터
-    if (maxLack !== 'unlimited') {
-      filtered = filtered.filter(recipe => {
-        // need_ingredients가 계산되어 있어야 함
-        const needIngredients = recipe.need_ingredients || [];
-        const lackCount = needIngredients.length;
-        if (maxLack === 5) {
-          return lackCount >= 5;
-        }
-        return lackCount <= maxLack;
-      });
-    }
-    
-    onFilteredRecipesChange(filtered);
+    // recipes는 이미 maxLack 필터가 적용된 상태이므로 그대로 전달
+    onFilteredRecipesChange([...recipes]);
   }, [
     recipes,
-    maxLack,
     onFilteredRecipesChange
   ]);
 
@@ -826,7 +810,7 @@ const RecipeSortBar = ({
               ))}
               <label style={STYLES.radioLabel}>
                 <input type="radio" name="maxLack" checked={maxLack === 5} onChange={() => setMaxLack(5)} />
-                5개 이상 부족
+                최대 5개 부족
               </label>
               <label style={STYLES.radioLabel}>
                 <input type="radio" name="maxLack" checked={maxLack === 'unlimited'} onChange={() => setMaxLack('unlimited')} />
