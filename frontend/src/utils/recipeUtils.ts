@@ -473,4 +473,163 @@ export function extractKeywordsAndSynonyms(
     }
   });
   return result;
+}
+
+/**
+ * 동의어 사전을 로드한다 (캐싱 적용)
+ */
+export async function loadIngredientSynonymDict(): Promise<{ [key: string]: string }> {
+  const CACHE_KEY = 'ingredient_synonym_dict_cache';
+  const CACHE_VERSION = '1.1'; // CSV 파싱 로직 개선으로 버전 업데이트
+  
+  try {
+    // 캐시 확인
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const cached = localStorage.getItem(CACHE_KEY);
+      if (cached) {
+        try {
+          const parsedCache = JSON.parse(cached);
+          if (parsedCache.version === CACHE_VERSION && parsedCache.data) {
+            return parsedCache.data;
+          }
+        } catch (e) {
+          // 캐시 파싱 실패 시 무시하고 새로 로드
+        }
+      }
+    }
+    
+    // 캐시가 없으면 새로 로드
+    const response = await fetch('/ingredient_profile_dict_with_substitutes.csv');
+    const csv = await response.text();
+    
+    const lines = csv.split('\n');
+    const header = lines[0].split(',');
+    const nameIdx = header.indexOf('keyword');
+    const synonymsIdx = header.indexOf('synonyms');
+    const categoryIdx = header.indexOf('대분류');
+    
+    // CSV 파싱 함수 (따옴표로 감싸진 필드 처리)
+    const parseCSVLine = (line: string): string[] => {
+      const result: string[] = [];
+      let current = '';
+      let inQuotes = false;
+      
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        if (char === '"') {
+          inQuotes = !inQuotes;
+        } else if (char === ',' && !inQuotes) {
+          result.push(current.trim());
+          current = '';
+        } else {
+          current += char;
+        }
+      }
+      result.push(current.trim()); // 마지막 필드
+      return result;
+    };
+    
+    const ingredientDict: { [key: string]: string } = {};
+    
+    lines.slice(1).forEach(line => {
+      if (!line.trim()) return; // 빈 줄 스킵
+      
+      const values = parseCSVLine(line);
+      const keyword = values[nameIdx]?.trim();
+      const synonymsStr = values[synonymsIdx]?.trim();
+      const category = values[categoryIdx]?.trim();
+      
+      if (keyword && category === '재료') {
+        // keyword를 keyword로 매핑
+        ingredientDict[keyword] = keyword;
+        
+        // synonyms 파싱 (쉼표로 구분, 빈 값 제거)
+        if (synonymsStr) {
+          const synonyms = synonymsStr.split(',').map(s => s.trim()).filter(s => s.length > 0);
+          synonyms.forEach(synonym => {
+            if (synonym) {
+              ingredientDict[synonym] = keyword;
+            }
+          });
+        }
+      }
+    });
+    
+    // 캐시에 저장
+    if (typeof window !== 'undefined' && window.localStorage) {
+      try {
+        localStorage.setItem(CACHE_KEY, JSON.stringify({
+          version: CACHE_VERSION,
+          data: ingredientDict
+        }));
+      } catch (e) {
+        console.warn('[recipeUtils] 동의어 사전 캐시 저장 실패:', e);
+      }
+    }
+    
+    return ingredientDict;
+  } catch (error) {
+    console.warn('[recipeUtils] 동의어 사전 로드 실패:', error);
+    return {};
+  }
+}
+
+// 동의어 사전을 메모이제이션
+let ingredientSynonymDictCache: { [key: string]: string } | null = null;
+let loadingSynonymDict = false;
+
+/**
+ * 동의어를 keyword로 변환한다
+ * @param ingredientName 재료명 (동의어일 수 있음)
+ * @returns keyword (표준 재료명)
+ */
+export async function convertSynonymToKeyword(ingredientName: string): Promise<string> {
+  if (!ingredientName) return ingredientName;
+  
+  // 캐시가 없으면 로드
+  if (!ingredientSynonymDictCache && !loadingSynonymDict) {
+    loadingSynonymDict = true;
+    ingredientSynonymDictCache = await loadIngredientSynonymDict();
+    loadingSynonymDict = false;
+  }
+  
+  // 동기적으로 사용할 수 있도록 즉시 반환 (캐시가 있으면)
+  if (ingredientSynonymDictCache) {
+    return ingredientSynonymDictCache[ingredientName] || ingredientName;
+  }
+  
+  // 캐시가 없으면 비동기로 로드 후 반환
+  if (!ingredientSynonymDictCache) {
+    ingredientSynonymDictCache = await loadIngredientSynonymDict();
+  }
+  
+  return ingredientSynonymDictCache[ingredientName] || ingredientName;
+}
+
+/**
+ * 동의어를 keyword로 변환한다 (동기 버전, 캐시가 이미 로드되어 있어야 함)
+ * @param ingredientName 재료명 (동의어일 수 있음)
+ * @param dict 동의어 사전 (선택사항, 없으면 캐시 사용)
+ * @returns keyword (표준 재료명)
+ */
+export function convertSynonymToKeywordSync(ingredientName: string, dict?: { [key: string]: string }): string {
+  if (!ingredientName) return ingredientName;
+  
+  const synonymDict = dict || ingredientSynonymDictCache;
+  if (synonymDict) {
+    return synonymDict[ingredientName] || ingredientName;
+  }
+  
+  return ingredientName;
+}
+
+/**
+ * 동의어 사전을 미리 로드한다 (선택사항)
+ */
+export async function preloadIngredientSynonymDict(): Promise<void> {
+  if (!ingredientSynonymDictCache && !loadingSynonymDict) {
+    loadingSynonymDict = true;
+    ingredientSynonymDictCache = await loadIngredientSynonymDict();
+    loadingSynonymDict = false;
+  }
 } 

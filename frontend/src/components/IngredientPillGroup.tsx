@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { getUniversalIngredientPillInfo } from '../utils/ingredientPillUtils';
+import { convertSynonymToKeywordSync, preloadIngredientSynonymDict, loadIngredientSynonymDict } from '../utils/recipeUtils';
 
 interface IngredientPillGroupProps {
   needIngredients: string[];
@@ -8,8 +9,70 @@ interface IngredientPillGroupProps {
   style?: React.CSSProperties;
 }
 
+// 전역 동의어 사전 캐시 (모든 IngredientPillGroup 인스턴스가 공유)
+let globalSynonymDict: { [key: string]: string } | null = null;
+let globalSynonymDictLoading = false;
+let globalSynonymDictPromise: Promise<{ [key: string]: string }> | null = null;
+
 const IngredientPillGroup: React.FC<IngredientPillGroupProps> = ({ needIngredients, myIngredients, substituteTable, style }) => {
-  const pillInfo = getUniversalIngredientPillInfo({ needIngredients, myIngredients, substituteTable });
+  const [synonymDict, setSynonymDict] = useState<{ [key: string]: string } | null>(globalSynonymDict);
+  const [isDictLoaded, setIsDictLoaded] = useState(!!globalSynonymDict);
+  
+  // 동의어 사전 미리 로드 (전역 캐시 사용)
+  useEffect(() => {
+    // 이미 전역 캐시에 있으면 사용
+    if (globalSynonymDict) {
+      setSynonymDict(globalSynonymDict);
+      setIsDictLoaded(true);
+      return;
+    }
+    
+    // 이미 로딩 중이면 기다림
+    if (globalSynonymDictLoading && globalSynonymDictPromise) {
+      globalSynonymDictPromise.then(dict => {
+        setSynonymDict(dict);
+        setIsDictLoaded(true);
+      });
+      return;
+    }
+    
+    // 새로 로드
+    globalSynonymDictLoading = true;
+    globalSynonymDictPromise = loadIngredientSynonymDict();
+    
+    globalSynonymDictPromise.then(dict => {
+      globalSynonymDict = dict;
+      globalSynonymDictLoading = false;
+      setSynonymDict(dict);
+      setIsDictLoaded(true);
+      // 첫 로드 시에만 로그 출력 (중복 로그 방지)
+      console.log('[IngredientPillGroup] 동의어 사전 로드 완료 (전역 캐시):', Object.keys(dict).length, '개');
+    }).catch(e => {
+      console.error('[IngredientPillGroup] 동의어 사전 로드 실패:', e);
+      globalSynonymDictLoading = false;
+    });
+  }, []);
+  
+  // 동의어를 keyword로 변환
+  const convertedNeedIngredients = React.useMemo(() => {
+    if (!isDictLoaded || !synonymDict) {
+      // 사전이 로드되지 않았으면 원본 반환 (나중에 다시 렌더링됨)
+      return needIngredients;
+    }
+    return needIngredients.map(ing => {
+      const converted = convertSynonymToKeywordSync(ing, synonymDict);
+      if (converted !== ing) {
+        console.log(`[IngredientPillGroup] 동의어 변환: "${ing}" → "${converted}"`);
+      }
+      return converted;
+    });
+  }, [needIngredients, synonymDict, isDictLoaded]);
+  
+  const pillInfo = getUniversalIngredientPillInfo({ 
+    needIngredients: convertedNeedIngredients, 
+    myIngredients, 
+    substituteTable 
+  });
   const normalize = (s: string) => (s || '').trim().toLowerCase();
   const mySet = new Set(myIngredients.map(normalize));
   const scrollContainerRef = useRef<HTMLDivElement>(null);

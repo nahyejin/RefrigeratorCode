@@ -14,7 +14,7 @@ import { fetchRecipesDummy } from '../utils/dummyData';
 import RecipeCard from '../components/RecipeCard';
 import VirtualizedRecipeList, { VirtualizedRecipeListRef } from '../components/VirtualizedRecipeList';
 import { Recipe, RecipeActionState, FilterState, SubstituteInfo } from '../types/recipe';
-import { getMyIngredients, sortRecipes, calculateMatchRate, initializeDefaultIngredients, extractKeywordsAndSynonyms, FilterKeywordTree, getDictCategoryKey } from '../utils/recipeUtils';
+import { getMyIngredients, sortRecipes, calculateMatchRate, initializeDefaultIngredients, extractKeywordsAndSynonyms, FilterKeywordTree, getDictCategoryKey, preloadIngredientSynonymDict } from '../utils/recipeUtils';
 import RecipeToast from '../components/RecipeToast';
 // import Slider from 'rc-slider';
 // import 'rc-slider/assets/index.css';
@@ -695,17 +695,45 @@ const RecipeList: React.FC = () => {
           const synonymsIdx = header.indexOf('synonyms');
           const categoryIdx = header.indexOf('대분류');
           
+          // CSV 파싱 함수 (따옴표로 감싸진 필드 처리)
+          const parseCSVLine = (line: string): string[] => {
+            const result: string[] = [];
+            let current = '';
+            let inQuotes = false;
+            
+            for (let i = 0; i < line.length; i++) {
+              const char = line[i];
+              if (char === '"') {
+                inQuotes = !inQuotes;
+              } else if (char === ',' && !inQuotes) {
+                result.push(current.trim());
+                current = '';
+              } else {
+                current += char;
+              }
+            }
+            result.push(current.trim()); // 마지막 필드
+            return result;
+          };
+          
           lines.slice(1).forEach(line => {
-            const values = line.split(',');
+            if (!line.trim()) return; // 빈 줄 스킵
+            
+            const values = parseCSVLine(line);
             const keyword = values[nameIdx]?.trim();
-            const synonyms = values[synonymsIdx]?.split(',').map(s => s.trim());
+            const synonymsStr = values[synonymsIdx]?.trim();
             const category = values[categoryIdx]?.trim();
             
             if (keyword && category === '재료') {
               ingredientDict[keyword] = keyword;
-              if (synonyms) {
+              
+              // synonyms 파싱 (쉼표로 구분, 빈 값 제거)
+              if (synonymsStr) {
+                const synonyms = synonymsStr.split(',').map(s => s.trim()).filter(s => s.length > 0);
                 synonyms.forEach(synonym => {
-                  ingredientDict[synonym] = keyword;
+                  if (synonym) {
+                    ingredientDict[synonym] = keyword;
+                  }
                 });
               }
             }
@@ -1032,7 +1060,8 @@ const RecipeList: React.FC = () => {
     // 두 CSV 파일을 병렬로 로드하여 로딩 시간 단축
     Promise.all([
       loadIngredientDictionary(),
-      loadSubstituteTable()
+      loadSubstituteTable(),
+      preloadIngredientSynonymDict() // 동의어 사전도 미리 로드
     ]).then(([ingredients, substitutes]) => {
       setAllIngredients(ingredients);
       setSubstituteTable(substitutes);

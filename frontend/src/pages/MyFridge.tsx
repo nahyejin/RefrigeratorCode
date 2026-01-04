@@ -962,7 +962,7 @@ const MyFridge: React.FC = () => {
     
     // CSV 파일을 localStorage에 캐싱하여 한 번만 로드
     const CSV_CACHE_KEY = 'ingredient_dict_cache';
-    const CSV_CACHE_VERSION = '1.0'; // CSV 파일이 업데이트되면 버전 변경
+    const CSV_CACHE_VERSION = '1.1'; // CSV 파싱 로직 개선으로 버전 업데이트
     
     const loadCachedCSV = async () => {
       try {
@@ -999,19 +999,48 @@ const MyFridge: React.FC = () => {
         const synonymsIdx = header.indexOf('synonyms');
         const categoryIdx = header.indexOf('대분류');
         
+        // CSV 파싱 함수 (따옴표로 감싸진 필드 처리)
+        const parseCSVLine = (line: string): string[] => {
+          const result: string[] = [];
+          let current = '';
+          let inQuotes = false;
+          
+          for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            if (char === '"') {
+              inQuotes = !inQuotes;
+            } else if (char === ',' && !inQuotes) {
+              result.push(current.trim());
+              current = '';
+            } else {
+              current += char;
+            }
+          }
+          result.push(current.trim()); // 마지막 필드
+          return result;
+        };
+        
         const ingredients = {};
         
         lines.slice(1).forEach(line => {
-          const values = line.split(',');
+          if (!line.trim()) return; // 빈 줄 스킵
+          
+          const values = parseCSVLine(line);
           const keyword = values[nameIdx]?.trim();
-          const synonyms = values[synonymsIdx]?.split(',').map(s => s.trim());
+          const synonymsStr = values[synonymsIdx]?.trim();
           const category = values[categoryIdx]?.trim();
           
           if (keyword && category === '재료') {
+            // keyword를 keyword로 매핑
             ingredients[keyword] = keyword;
-            if (synonyms) {
+            
+            // synonyms 파싱 (쉼표로 구분, 빈 값 제거)
+            if (synonymsStr) {
+              const synonyms = synonymsStr.split(',').map(s => s.trim()).filter(s => s.length > 0);
               synonyms.forEach(synonym => {
-                ingredients[synonym] = keyword;
+                if (synonym) {
+                  ingredients[synonym] = keyword;
+                }
               });
             }
           }
@@ -1275,34 +1304,43 @@ const MyFridge: React.FC = () => {
   }, [frozen, fridge, room, isLoggedIn, user?.id]);
 
   // Modify the autocomplete logic to use the synonyms
+  // ingredientDict 구조: { '동의어': 'keyword', 'keyword': 'keyword' }
+  // 예: { '계란': '달걀', '달걀': '달걀' }
   const combinedFiltered = Object.entries(ingredientDict)
-    .filter(([key, value]) => 
-      inputValue && 
-      (key.includes(inputValue) || value.includes(inputValue))
-    )
-    .map(([key, value]) => value)
+    .filter(([key, value]) => {
+      if (!inputValue) return false;
+      const inputLower = inputValue.toLowerCase();
+      const keyLower = key.toLowerCase();
+      const valueLower = value.toLowerCase();
+      // 동의어(key)나 keyword(value)에 입력값이 포함되어 있으면 표시
+      return keyLower.includes(inputLower) || valueLower.includes(inputLower);
+    })
+    .map(([key, value]) => value) // keyword만 반환
     .filter((value, index, self) => self.indexOf(value) === index) // Remove duplicates
     .sort((a, b) => {
       if (!inputValue) return 0;
+      const inputLower = inputValue.toLowerCase();
+      const aLower = a.toLowerCase();
+      const bLower = b.toLowerCase();
       
       // 입력값의 첫 글자
       const firstChar = inputValue[0];
       
-      // 1순위: 정확한 매칭
-      const aExact = a === inputValue;
-      const bExact = b === inputValue;
+      // 1순위: 정확한 매칭 (대소문자 무시)
+      const aExact = aLower === inputLower;
+      const bExact = bLower === inputLower;
       if (aExact && !bExact) return -1;
       if (!aExact && bExact) return 1;
       
-      // 2순위: 첫 글자로 시작하는 단어들 (가OOO 형태)
+      // 2순위: 첫 글자로 시작하는 단어들
       const aStartsWithFirstChar = a.startsWith(firstChar);
       const bStartsWithFirstChar = b.startsWith(firstChar);
       if (aStartsWithFirstChar && !bStartsWithFirstChar) return -1;
       if (!aStartsWithFirstChar && bStartsWithFirstChar) return 1;
       
       // 3순위: 입력값으로 시작하는 단어들
-      const aStartsWithInput = a.startsWith(inputValue);
-      const bStartsWithInput = b.startsWith(inputValue);
+      const aStartsWithInput = aLower.startsWith(inputLower);
+      const bStartsWithInput = bLower.startsWith(inputLower);
       if (aStartsWithInput && !bStartsWithInput) return -1;
       if (!aStartsWithInput && bStartsWithInput) return 1;
       
@@ -1311,11 +1349,15 @@ const MyFridge: React.FC = () => {
     });
 
   // 디버깅용: 입력값과 매칭되는 항목들 확인
-  console.log('입력값:', inputValue);
-  console.log('필터링된 결과:', combinedFiltered);
-  console.log('ingredientDict:', ingredientDict);
-  console.log('combinedFiltered:', combinedFiltered);
-  console.log('Checking mapping for 계란:', ingredientDict['계란']);
+  console.log('[MyFridge] 자동완성 디버깅:', {
+    입력값: inputValue,
+    필터링된결과: combinedFiltered,
+    ingredientDict크기: Object.keys(ingredientDict).length,
+    계란매핑: ingredientDict['계란'],
+    달걀매핑: ingredientDict['달걀'],
+    계란으로시작하는키: Object.keys(ingredientDict).filter(k => k.includes('계란')),
+    달걀으로시작하는키: Object.keys(ingredientDict).filter(k => k.includes('달걀'))
+  });
 
   // 드롭다운이 열릴 때 스크롤바를 표시하기 위해 미세한 스크롤 트리거
   React.useEffect(() => {
