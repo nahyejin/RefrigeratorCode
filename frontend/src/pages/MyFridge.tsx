@@ -413,31 +413,61 @@ const MyFridge: React.FC = () => {
   const dbLoadFailed = React.useRef(false); // DB 로드 실패 여부
 
   // DB에서 재료 로드 (토큰 대기 포함)
-  const loadIngredientsFromDB = async (maxWaitForToken = 3000) => {
+  const loadIngredientsFromDB = async (maxWaitForToken = 5000) => {
     if (!isLoggedIn || !user?.id) {
-      console.log('[MyFridge] DB 로드 스킵: 로그인하지 않음');
+      console.log('[MyFridge] DB 로드 스킵: 로그인하지 않음', { isLoggedIn, userId: user?.id });
       return null;
     }
     
-    // 토큰이 준비될 때까지 대기 (최대 3초)
+    console.log('[MyFridge] DB 로드 시작:', {
+      userId: user.id,
+      isLoggedIn,
+      localStorageAvailable: typeof window !== 'undefined' && window.localStorage,
+      sessionStorageAvailable: typeof window !== 'undefined' && window.sessionStorage
+    });
+    
+    // 토큰이 준비될 때까지 대기 (최대 5초로 증가)
     let token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
     const startTime = Date.now();
     while (!token && (Date.now() - startTime) < maxWaitForToken) {
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 200));
       token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
     }
     
     if (!token) {
-      console.error('[MyFridge] DB 로드 실패: 토큰 없음 (대기 시간 초과)');
+      console.error('[MyFridge] DB 로드 실패: 토큰 없음 (대기 시간 초과)', {
+        waitedFor: Date.now() - startTime,
+        localStorageKeys: typeof window !== 'undefined' && window.localStorage ? Object.keys(localStorage) : [],
+        sessionStorageKeys: typeof window !== 'undefined' && window.sessionStorage ? Object.keys(sessionStorage) : []
+      });
       return null;
     }
     
+    console.log('[MyFridge] 토큰 확인 완료, API 요청 시작');
+    
     try {
       const apiUrl = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'https://refrigeratorcode-production.up.railway.app';
-      const response = await fetch(`${apiUrl}/api/users/${user.id}/ingredients`, {
+      const requestUrl = `${apiUrl}/api/users/${user.id}/ingredients`;
+      
+      console.log('[MyFridge] API 요청:', {
+        url: requestUrl,
+        userId: user.id,
+        apiUrl: apiUrl,
+        hasToken: !!token,
+        tokenLength: token?.length
+      });
+      
+      const response = await fetch(requestUrl, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
+      });
+      
+      console.log('[MyFridge] API 응답:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok,
+        headers: Object.fromEntries(response.headers.entries())
       });
       
       if (response.ok) {
@@ -464,15 +494,27 @@ const MyFridge: React.FC = () => {
           errorText: errorText,
           userId: user?.id,
           apiUrl: apiUrl,
-          hasToken: !!token
+          requestUrl: requestUrl,
+          hasToken: !!token,
+          tokenPreview: token ? `${token.substring(0, 20)}...` : 'none'
         });
         if (response.status === 401) {
           console.error('[MyFridge] 인증 실패 - 토큰이 만료되었을 수 있습니다.');
+        } else if (response.status === 404) {
+          console.error('[MyFridge] 사용자 또는 재료를 찾을 수 없습니다.');
+        } else if (response.status >= 500) {
+          console.error('[MyFridge] 서버 오류 발생');
         }
         return null;
       }
     } catch (error) {
-      console.error('[MyFridge] DB에서 재료 로드 실패:', error);
+      console.error('[MyFridge] DB에서 재료 로드 실패 (네트워크 오류):', {
+        error: error,
+        errorMessage: error instanceof Error ? error.message : String(error),
+        errorStack: error instanceof Error ? error.stack : undefined,
+        userId: user?.id,
+        apiUrl: (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'https://refrigeratorcode-production.up.railway.app'
+      });
       return null;
     }
   };
@@ -815,13 +857,22 @@ const MyFridge: React.FC = () => {
                 });
                 return;
               } else {
-                // localStorage에도 없으면 빈 상태로 유지 (초기 재료 추가 안 함)
-                console.log('[MyFridge] DB와 localStorage 모두 비어있음 - 빈 상태로 유지');
+                // localStorage에도 없으면 빈 상태로 유지
+                // 하지만 사용자에게 알림을 표시하거나 재시도 로직 추가
+                console.error('[MyFridge] DB와 localStorage 모두 비어있음 - 빈 상태로 유지', {
+                  userId: user?.id,
+                  isLoggedIn,
+                  dbLoadAttempted: dbLoadAttempted.current,
+                  dbLoadFailed: dbLoadFailed.current,
+                  warning: 'DB에서 재료를 로드할 수 없습니다. 네트워크 연결을 확인해주세요.'
+                });
                 setFrozen([]);
                 setFridge([]);
                 setRoom([]);
                 isInitialLoad.current = false;
                 setLoading(false);
+                // 사용자에게 알림 (선택사항)
+                // setInfoToast({ text: '재료를 불러올 수 없습니다. 네트워크를 확인해주세요.' });
                 return;
               }
             }

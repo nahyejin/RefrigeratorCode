@@ -1910,13 +1910,17 @@ def get_user_ingredients(user_id):
         # JWT 토큰 확인
         auth_header = request.headers.get('Authorization')
         if not auth_header or not auth_header.startswith('Bearer '):
+            print(f"[get_user_ingredients] 인증 실패: Authorization 헤더 없음, user_id={user_id}")
             return jsonify({'error': '인증이 필요합니다.'}), 401
         
         token = auth_header.split(' ')[1]
         payload = verify_jwt_token(token)
         
         if not payload or payload.get('user_id') != user_id:
+            print(f"[get_user_ingredients] 권한 없음: user_id={user_id}, payload={payload}")
             return jsonify({'error': '권한이 없습니다.'}), 403
+        
+        print(f"[get_user_ingredients] 재료 조회 시작: user_id={user_id}")
         
         ensure_user_data_tables()
         db = get_db()
@@ -1928,6 +1932,8 @@ def get_user_ingredients(user_id):
                 (user_id,)
             )
             ingredients = cursor.fetchall()
+            
+            print(f"[get_user_ingredients] DB 조회 결과: user_id={user_id}, count={len(ingredients)}")
             
             # storage_box별로 그룹화
             result = {
@@ -1944,6 +1950,8 @@ def get_user_ingredients(user_id):
                     'expiry': ing['expiry_date'].strftime('%Y-%m-%d') if ing['expiry_date'] else None,
                     'purchase': ing['purchase_date'].strftime('%Y-%m-%d') if ing['purchase_date'] else None,
                 })
+            
+            print(f"[get_user_ingredients] 재료 조회 완료: user_id={user_id}, frozen={len(result['frozen'])}, fridge={len(result['fridge'])}, room={len(result['room'])}")
             
             return jsonify(result), 200
             
