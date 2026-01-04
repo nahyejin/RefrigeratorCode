@@ -409,6 +409,8 @@ const MyFridge: React.FC = () => {
   const { isLoggedIn, user } = useAuth();
   const navigate = useNavigate();
   const isInitialLoad = React.useRef(true); // 초기 로드 플래그
+  const dbLoadAttempted = React.useRef(false); // DB 로드 시도 여부
+  const dbLoadFailed = React.useRef(false); // DB 로드 실패 여부
 
   // DB에서 재료 로드 (토큰 대기 포함)
   const loadIngredientsFromDB = async (maxWaitForToken = 3000) => {
@@ -450,12 +452,20 @@ const MyFridge: React.FC = () => {
           frozen: result.frozen.length,
           fridge: result.fridge.length,
           room: result.room.length,
-          hasData: result.frozen.length > 0 || result.fridge.length > 0 || result.room.length > 0
+          hasData: result.frozen.length > 0 || result.fridge.length > 0 || result.room.length > 0,
+          rawData: data,
+          userId: user?.id,
+          apiUrl: apiUrl
         });
         return result;
       } else {
         const errorText = await response.text();
-        console.error('[MyFridge] DB 로드 실패: HTTP', response.status, response.statusText, errorText);
+        console.error('[MyFridge] DB 로드 실패: HTTP', response.status, response.statusText, {
+          errorText: errorText,
+          userId: user?.id,
+          apiUrl: apiUrl,
+          hasToken: !!token
+        });
         if (response.status === 401) {
           console.error('[MyFridge] 인증 실패 - 토큰이 만료되었을 수 있습니다.');
         }
@@ -725,6 +735,7 @@ const MyFridge: React.FC = () => {
       try {
         // 로그인한 사용자는 DB를 우선적으로 사용
         if (isLoggedIn && user?.id) {
+          dbLoadAttempted.current = true; // DB 로드 시도 표시
           // DB 로드를 최대 3번 재시도
           let dbData = null;
           let retryCount = 0;
@@ -735,6 +746,7 @@ const MyFridge: React.FC = () => {
               dbData = await loadIngredientsFromDB();
               if (dbData !== null) {
                 // DB 데이터를 성공적으로 로드했으면 반복 종료
+                dbLoadFailed.current = false; // 성공
                 break;
               }
             } catch (dbError) {
@@ -769,10 +781,12 @@ const MyFridge: React.FC = () => {
               };
               setHasChanges(false);
               isInitialLoad.current = false;
+              dbLoadFailed.current = false; // 성공
               setLoading(false);
               return;
             } else {
-              // DB 로드가 완전히 실패한 경우에만 localStorage 확인
+              // DB 로드가 완전히 실패
+              dbLoadFailed.current = true;
               console.warn('[MyFridge] DB 로드 실패 - localStorage 확인');
               const localData = loadIngredients();
               const hasLocalData = localData.frozen.length > 0 || localData.fridge.length > 0 || localData.room.length > 0;
@@ -799,6 +813,15 @@ const MyFridge: React.FC = () => {
                 saveIngredientsToDB(localData.frozen, localData.fridge, localData.room).catch(err => {
                   console.error('[MyFridge] DB 저장 실패:', err);
                 });
+                return;
+              } else {
+                // localStorage에도 없으면 빈 상태로 유지 (초기 재료 추가 안 함)
+                console.log('[MyFridge] DB와 localStorage 모두 비어있음 - 빈 상태로 유지');
+                setFrozen([]);
+                setFridge([]);
+                setRoom([]);
+                isInitialLoad.current = false;
+                setLoading(false);
                 return;
               }
             }
@@ -954,12 +977,20 @@ const MyFridge: React.FC = () => {
   // 초기 재료 추가는 별도 useEffect로 분리
   React.useEffect(() => {
     // 재료 사전이 로드되고, 재료가 비어있고, 로딩이 완료된 경우에만 초기 재료 추가
+    // 로그인한 사용자는 DB 로드가 완전히 실패하고 localStorage에도 없을 때만 초기 재료 추가
     if (!loading && Object.keys(ingredientDict).length > 0) {
       const isEmpty = (!fridge || fridge.length === 0) && 
                       (!room || room.length === 0) && 
                       (!frozen || frozen.length === 0);
       
-      if (isEmpty) {
+      // 로그인한 사용자는 DB 로드가 완전히 실패하고 localStorage에도 없을 때만 초기 재료 추가
+      // (DB 로드가 진행 중이거나 성공했으면 초기 재료 추가 안 함)
+      const shouldAddInitialIngredients = isEmpty && (
+        !isLoggedIn || !user?.id || // 비회원
+        (dbLoadAttempted.current && dbLoadFailed.current && loadIngredients().frozen.length === 0 && loadIngredients().fridge.length === 0 && loadIngredients().room.length === 0) // 회원이지만 DB 로드 실패하고 localStorage도 비어있음
+      );
+      
+      if (shouldAddInitialIngredients) {
           // 초기 재료 추가 중이므로 useEffect에서 저장하지 않도록 플래그 설정
           isInitialLoad.current = true;
           
