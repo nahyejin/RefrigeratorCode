@@ -538,12 +538,19 @@ const RecipeList: React.FC = () => {
   // 이전 재료 목록 해시값 저장
   const previousIngredientsHashRef = useRef<string>(getIngredientsHash());
   
-  // 컴포넌트 마운트 시 sessionStorage에서 상태 복원
+  // 컴포넌트 마운트 시 sessionStorage에서 상태 복원 (재료 변경 감지 포함)
   useEffect(() => {
     try {
       const savedState = sessionStorage.getItem(STORAGE_KEY_RECIPE_LIST);
       const savedIngredientsHash = sessionStorage.getItem(STORAGE_KEY_INGREDIENTS_HASH);
       const currentIngredientsHash = getIngredientsHash();
+      
+      console.log('[RecipeList] 마운트 시 재료 해시 확인:', {
+        savedHash: savedIngredientsHash,
+        currentHash: currentIngredientsHash,
+        isMatch: savedIngredientsHash === currentIngredientsHash,
+        hasSavedState: !!savedState
+      });
       
       // 재료 목록이 변경되지 않았고 저장된 상태가 있으면 복원
       if (savedState && savedIngredientsHash === currentIngredientsHash) {
@@ -623,13 +630,32 @@ const RecipeList: React.FC = () => {
         }
       } else {
         // 재료 목록이 변경되었거나 저장된 상태가 없으면 재료 해시 업데이트
+        console.log('[RecipeList] 재료 목록이 변경되었거나 저장된 상태 없음 - 다시 로드 필요:', {
+          savedHash: savedIngredientsHash,
+          currentHash: currentIngredientsHash,
+          hasSavedState: !!savedState
+        });
+        
+        // 재료가 변경되었으면 상태 초기화 및 다시 로드
+        if (savedIngredientsHash && savedIngredientsHash !== currentIngredientsHash) {
+          console.log('[RecipeList] 재료 목록 변경 감지 (마운트 시) - 상태 초기화 및 다시 로드');
+          setCachedFilteredRecipes([]);
+          setRecipes([]);
+          setFilteredRecipes([]);
+          setLastFilterHash('');
+          initialLoadDone.current = false;
+          
+          // sessionStorage 초기화
+          sessionStorage.removeItem(STORAGE_KEY_RECIPE_LIST);
+        }
+        
         sessionStorage.setItem(STORAGE_KEY_INGREDIENTS_HASH, currentIngredientsHash);
         previousIngredientsHashRef.current = currentIngredientsHash;
       }
     } catch (error) {
       console.warn('[RecipeList] 상태 복원 실패:', error);
     }
-  }, []); // 마운트 시 한 번만 실행
+  }, [getIngredientsHash]); // 재료 해시가 변경될 때마다 확인
 
   // 컴포넌트 마운트 시 재료 상태 확인 및 초기 재료 설정
   useEffect(() => {
@@ -1261,8 +1287,12 @@ const RecipeList: React.FC = () => {
     animateProgress(10, 200); // 초기 진행률
     loadRecipesPaged(1, 1, filterParams, categoryKeywordTree).then(({total: initialTotal}) => {
       animateProgress(30, 300); // total 확인 완료
-      // total이 확인되면 실제 전체 개수만큼만 받기 (최대 10000개로 제한하여 성능 보호)
-      const actualSize = Math.min(initialTotal, 10000);
+      // total이 확인되면 실제 전체 개수만큼 받기 (제한 없음)
+      const actualSize = initialTotal;
+      console.log('[RecipeList] 레시피 로드:', {
+        total: initialTotal,
+        actualSize: actualSize
+      });
       
       // 데이터 로드 시작 시 중간 단계 추가
       const loadPromise = loadRecipesPaged(1, actualSize, filterParams, categoryKeywordTree);

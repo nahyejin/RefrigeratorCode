@@ -20,8 +20,8 @@ import BottomCoupangAd from '../components/BottomCoupangAd';
 const STORAGE_KEY = 'myfridge_ingredients';
 const TOAST_DURATION = 10000;
 
-// 가이드 단계 정의
-const guideSteps = [
+// 가이드 단계 정의 (기본 - 비회원용)
+const baseGuideSteps = [
   {
     targetSelector: 'input[placeholder="추가할 재료명을 입력하세요"]',
     message: '재료명을 입력해서 내냉장고에 추가할 수 있어요.',
@@ -33,6 +33,13 @@ const guideSteps = [
     position: 'left' as const,
   },
 ];
+
+// 저장 버튼 가이드 단계 (로그인한 회원용)
+const saveButtonGuideStep = {
+  targetSelector: '[data-guide-target="save-button"]',
+  message: '저장버튼을 눌러 재료 정보를 저장할 수 있어요',
+  position: 'left' as const,
+};
 
 // =====================
 // 타입 정의
@@ -1627,7 +1634,7 @@ const MyFridge: React.FC = () => {
         />
         {/* 재고 관리 구역 */}
         <div style={{ maxWidth: 400, margin: '0 auto', paddingLeft: 14, paddingRight: 14, width: '100%', marginTop: 48, boxSizing: 'border-box' }}>
-          <div className="flex items-center justify-between mb-2" style={{ position: 'relative' }}>
+          <div className="flex items-center justify-between mb-2" style={{ position: 'relative', width: '100%' }}>
             <h2 className="text-[16px] font-bold text-[#111]">내 냉장고 재고 관리</h2>
             {/* 저장 버튼 (로그인한 경우만 표시, 우측) */}
             {isLoggedIn && user?.id && (
@@ -1635,6 +1642,7 @@ const MyFridge: React.FC = () => {
                 onClick={handleSaveClick}
                 disabled={isSaving || !hasChanges || frozen === null || fridge === null || room === null}
                 title={isSaving ? '저장 중...' : saveStatus === 'success' ? '저장 완료!' : saveStatus === 'error' ? '저장 실패' : hasChanges ? '저장하기' : '변경사항 없음'}
+                data-guide-target="save-button"
                 style={{
                   width: 28,
                   height: 28,
@@ -1649,7 +1657,8 @@ const MyFridge: React.FC = () => {
                   padding: 0,
                   boxShadow: (isSaving || !hasChanges) ? 'none' : '0 1px 2px rgba(0,0,0,0.05)',
                   opacity: (isSaving || !hasChanges) ? 0.6 : 1,
-                  marginLeft: 'auto'
+                  marginLeft: 'auto',
+                  flexShrink: 0
                 }}
                 onMouseEnter={(e) => {
                   if (!isSaving && hasChanges && frozen !== null && fridge !== null && room !== null) {
@@ -1900,6 +1909,11 @@ const MyFridge: React.FC = () => {
           visible={showGuide}
           currentStep={guideStep}
           onNext={() => {
+            // 로그인한 경우 저장 버튼 가이드 포함, 비회원은 기본 가이드만
+            const guideSteps = isLoggedIn && user?.id 
+              ? [...baseGuideSteps, saveButtonGuideStep]
+              : baseGuideSteps;
+            
             if (guideStep < guideSteps.length - 1) {
               setGuideStep(guideStep + 1);
             } else {
@@ -1922,9 +1936,11 @@ const MyFridge: React.FC = () => {
             localStorage.setItem('myfridge_guide_shown', 'true');
             console.log('[MyFridge] 가이드 건너뛰기 - 페이지 이동 없음');
           }}
-          steps={guideSteps}
+          steps={isLoggedIn && user?.id 
+            ? [...baseGuideSteps, saveButtonGuideStep]
+            : baseGuideSteps}
           isLastStepConfirm={false}
-          totalSteps={9}
+          totalSteps={isLoggedIn && user?.id ? 10 : 9}
           startStepOffset={0}
         />
       </div>

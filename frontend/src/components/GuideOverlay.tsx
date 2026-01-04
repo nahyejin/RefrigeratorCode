@@ -145,12 +145,15 @@ const GuideOverlay: React.FC<GuideOverlayProps> = ({
         break;
       case 'left':
         // 모달을 타겟 위쪽으로 배치하여 하이라이트를 가리지 않도록
-        // 설정버튼, 완료/공유/기록 버튼의 경우 더 높게 배치
+        // 설정버튼, 저장버튼, 완료/공유/기록 버튼의 경우 더 높게 배치
         const isSettingsOrActionButton = steps[currentStep].targetSelector.includes('settings-icon') || 
+                                         steps[currentStep].targetSelector.includes('save-button') ||
                                          steps[currentStep].targetSelector.includes('recipe-done-button') ||
                                          steps[currentStep].targetSelector.includes('recipe-share-button') ||
                                          steps[currentStep].targetSelector.includes('recipe-write-button');
-        const extraOffset = isSettingsOrActionButton ? 60 : 20; // 버튼 가이드는 더 높게
+        // 저장 버튼은 바로 위에 붙도록 offset을 작게 설정
+        const extraOffset = steps[currentStep].targetSelector.includes('save-button') ? 10 : 
+                           (isSettingsOrActionButton ? 60 : 20);
         top = targetRect.top - tooltipHeight - spacing - extraOffset;
         left = targetRect.left + (targetRect.width / 2) - (tooltipWidth / 2);
         // 화면 왼쪽 경계 체크
@@ -257,7 +260,7 @@ const GuideOverlay: React.FC<GuideOverlayProps> = ({
         >
           <div className="mb-1.5" style={{ textAlign: 'left', wordBreak: 'keep-all' }}>
             {typeof step.message === 'string' ? (
-              <div style={{ whiteSpace: 'pre-line' }}>{step.message}</div>
+              <div style={{ whiteSpace: step.targetSelector.includes('save-button') ? 'nowrap' : 'pre-line' }}>{step.message}</div>
             ) : (
               step.message
             )}
