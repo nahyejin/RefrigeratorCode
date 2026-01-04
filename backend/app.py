@@ -1821,11 +1821,52 @@ def ensure_user_data_tables():
                 purchase_date DATE NULL,
                 created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                saved_at DATETIME NULL COMMENT '사용자가 저장 버튼을 눌러 저장한 시점',
                 INDEX idx_user_id (user_id),
                 INDEX idx_storage_box (storage_box),
+                INDEX idx_saved_at (saved_at),
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         """)
+        
+        # 기존 테이블에 saved_at 컬럼이 없으면 추가
+        try:
+            cursor.execute("""
+                SELECT COUNT(*) as count 
+                FROM INFORMATION_SCHEMA.COLUMNS 
+                WHERE TABLE_SCHEMA = DATABASE() 
+                AND TABLE_NAME = 'user_ingredients' 
+                AND COLUMN_NAME = 'saved_at'
+            """)
+            result = cursor.fetchone()
+            if result and result['count'] == 0:
+                print("[ensure_user_data_tables] saved_at 컬럼 추가 시작")
+                cursor.execute("""
+                    ALTER TABLE user_ingredients 
+                    ADD COLUMN saved_at DATETIME NULL COMMENT '사용자가 저장 버튼을 눌러 저장한 시점' AFTER updated_at
+                """)
+                # 인덱스가 이미 존재하는지 확인 후 추가
+                try:
+                    cursor.execute("""
+                        SELECT COUNT(*) as count 
+                        FROM INFORMATION_SCHEMA.STATISTICS 
+                        WHERE TABLE_SCHEMA = DATABASE() 
+                        AND TABLE_NAME = 'user_ingredients' 
+                        AND INDEX_NAME = 'idx_saved_at'
+                    """)
+                    idx_result = cursor.fetchone()
+                    if not idx_result or idx_result['count'] == 0:
+                        cursor.execute("""
+                            ALTER TABLE user_ingredients 
+                            ADD INDEX idx_saved_at (saved_at)
+                        """)
+                except Exception as idx_error:
+                    print(f"[ensure_user_data_tables] 인덱스 추가 중 오류 (무시 가능): {idx_error}")
+                db.commit()
+                print("[ensure_user_data_tables] saved_at 컬럼 추가 완료")
+        except Exception as e:
+            print(f"[ensure_user_data_tables] saved_at 컬럼 추가 중 오류: {e}")
+            db.rollback()
         
         # 사용자 기록한 레시피 테이블
         cursor.execute("""
@@ -1939,6 +1980,9 @@ def save_user_ingredients(user_id):
         cursor = db.cursor()
         
         try:
+            # 저장 시점 기록
+            saved_at = datetime.now()
+            
             # 기존 재료 삭제
             cursor.execute("DELETE FROM user_ingredients WHERE user_id = %s", (user_id,))
             
@@ -1950,13 +1994,13 @@ def save_user_ingredients(user_id):
                     purchase_date = ing.get('purchase') if ing.get('purchase') else None
                     
                     cursor.execute(
-                        """INSERT INTO user_ingredients (user_id, name, storage_box, expiry_date, purchase_date) 
-                           VALUES (%s, %s, %s, %s, %s)""",
-                        (user_id, ing['name'], box, expiry_date, purchase_date)
+                        """INSERT INTO user_ingredients (user_id, name, storage_box, expiry_date, purchase_date, saved_at) 
+                           VALUES (%s, %s, %s, %s, %s, %s)""",
+                        (user_id, ing['name'], box, expiry_date, purchase_date, saved_at)
                     )
             
             db.commit()
-            return jsonify({'message': '재료가 저장되었습니다.'}), 200
+            return jsonify({'message': '재료가 저장되었습니다.', 'saved_at': saved_at.strftime('%Y-%m-%d %H:%M:%S')}), 200
             
         except Exception as e:
             db.rollback()
