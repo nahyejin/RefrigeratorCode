@@ -330,13 +330,32 @@ export function sortRecipes(
       });
       break;
     case 'match':
-      sorted.sort((a, b) => (b.match_rate || 0) - (a.match_rate || 0));
+      sorted.sort((a, b) => {
+        const aMatchRate = b.match_rate || 0;
+        const bMatchRate = a.match_rate || 0;
+        // 매칭률이 다르면 매칭률순으로 정렬
+        if (aMatchRate !== bMatchRate) {
+          return aMatchRate - bMatchRate;
+        }
+        // 매칭률이 같으면 최신순으로 정렬 (created_at 기준)
+        const aDate = new Date(a.created_at || 0).getTime();
+        const bDate = new Date(b.created_at || 0).getTime();
+        return bDate - aDate;
+      });
       break;
     case 'expiry':
       sorted.sort((a, b) => {
         // 임박재료가 선택되지 않은 경우 매칭률순으로 정렬
         if (appliedExpiryIngredients.length === 0) {
-          return (b.match_rate || 0) - (a.match_rate || 0);
+          const aMatchRate = b.match_rate || 0;
+          const bMatchRate = a.match_rate || 0;
+          if (aMatchRate !== bMatchRate) {
+            return aMatchRate - bMatchRate;
+          }
+          // 매칭률이 같으면 최신순으로 정렬 (created_at 기준)
+          const aDate = new Date(a.created_at || 0).getTime();
+          const bDate = new Date(b.created_at || 0).getTime();
+          return bDate - aDate;
         }
         
         const aIngredients = Array.isArray(a.used_ingredients)
@@ -356,11 +375,30 @@ export function sortRecipes(
         }
         
         // 임박재료 개수가 같으면 매칭률순으로 정렬
-        return (b.match_rate || 0) - (a.match_rate || 0);
+        const aMatchRate = b.match_rate || 0;
+        const bMatchRate = a.match_rate || 0;
+        if (aMatchRate !== bMatchRate) {
+          return aMatchRate - bMatchRate;
+        }
+        // 매칭률이 같으면 최신순으로 정렬 (created_at 기준)
+        const aDate = new Date(a.created_at || 0).getTime();
+        const bDate = new Date(b.created_at || 0).getTime();
+        return bDate - aDate;
       });
       break;
     default:
-      sorted.sort((a, b) => (b.match_rate || 0) - (a.match_rate || 0));
+      sorted.sort((a, b) => {
+        const aMatchRate = b.match_rate || 0;
+        const bMatchRate = a.match_rate || 0;
+        // 매칭률이 다르면 매칭률순으로 정렬
+        if (aMatchRate !== bMatchRate) {
+          return aMatchRate - bMatchRate;
+        }
+        // 매칭률이 같으면 최신순으로 정렬 (created_at 기준)
+        const aDate = new Date(a.created_at || 0).getTime();
+        const bDate = new Date(b.created_at || 0).getTime();
+        return bDate - aDate;
+      });
   }
   return sorted;
 }
