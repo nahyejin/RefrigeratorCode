@@ -380,6 +380,11 @@ const MyFridge: React.FC = () => {
   const toastTimeout = React.useRef<NodeJS.Timeout | null>(null);
   const [modalOpen, setModalOpen] = React.useState(false);
   const [modalIngredient, setModalIngredient] = React.useState<string | null>(null);
+  const [modalInitialData, setModalInitialData] = React.useState<{
+    storageType?: 'frozen' | 'fridge' | 'room' | null;
+    date?: string | null;
+    dateType?: 'expiry' | 'purchase' | null;
+  } | null>(null);
   const [infoToast, setInfoToast] = React.useState<{text: string} | null>(null);
   const [frozenSort, setFrozenSort] = React.useState<SortType>('expiry');
   const [fridgeSort, setFridgeSort] = React.useState<SortType>('expiry');
@@ -1434,7 +1439,32 @@ const MyFridge: React.FC = () => {
 
   // 재료 pill 클릭 시 모달 열기
   const handleTagClick = (item: Ingredient) => {
+    // 재료가 어느 보관 공간에 있는지 찾기
+    let currentStorageType: 'frozen' | 'fridge' | 'room' | null = null;
+    if (frozen && frozen.some(ing => ing.id === item.id)) {
+      currentStorageType = 'frozen';
+    } else if (fridge && fridge.some(ing => ing.id === item.id)) {
+      currentStorageType = 'fridge';
+    } else if (room && room.some(ing => ing.id === item.id)) {
+      currentStorageType = 'room';
+    }
+    
+    // 날짜 정보 확인 (yyyy.mm.dd 형식을 yyyy-mm-dd로 변환)
+    const hasExpiry = !!item.expiry;
+    const hasPurchase = !!item.purchase;
+    const dateType = hasExpiry ? 'expiry' : (hasPurchase ? 'purchase' : null);
+    let date = item.expiry || item.purchase || null;
+    // 날짜가 yyyy.mm.dd 형식이면 yyyy-mm-dd로 변환
+    if (date) {
+      date = date.replace(/\./g, '-');
+    }
+    
     setModalIngredient(item.name);
+    setModalInitialData({
+      storageType: currentStorageType,
+      date: date,
+      dateType: dateType
+    });
     setModalOpen(true);
   };
 
@@ -1584,8 +1614,15 @@ const MyFridge: React.FC = () => {
         {/* IngredientDetailModal */}
         <IngredientDetailModal
           isOpen={modalOpen}
-          onClose={() => { setModalOpen(false); setModalIngredient(null); }}
+          onClose={() => { 
+            setModalOpen(false); 
+            setModalIngredient(null);
+            setModalInitialData(null);
+          }}
           ingredient={modalIngredient || ''}
+          initialStorageType={modalInitialData?.storageType || null}
+          initialDate={modalInitialData?.date || null}
+          initialDateType={modalInitialData?.dateType || null}
           onComplete={handleModalComplete}
         />
         {/* 재고 관리 구역 */}

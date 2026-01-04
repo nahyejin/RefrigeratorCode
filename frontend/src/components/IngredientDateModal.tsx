@@ -8,6 +8,7 @@ type Props = {
   onClose: () => void;
   onComplete: (date: string | null) => void;
   onBack?: () => void;
+  initialDate?: string | null;
 };
 
 // 상수 정의
@@ -96,11 +97,30 @@ const TEXTS = {
 } as const;
 
 
-export default function IngredientDateModal({ type, isOpen, onClose, onComplete, onBack }: Props) {
+export default function IngredientDateModal({ type, isOpen, onClose, onComplete, onBack, initialDate = null }: Props) {
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const calendarRef = useRef<HTMLDivElement>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+
+  // 모달이 열릴 때 초기 날짜 설정
+  useEffect(() => {
+    if (isOpen && initialDate) {
+      // initialDate가 yyyy.mm.dd 형식이면 yyyy-mm-dd로 변환
+      const formattedDate = initialDate.replace(/\./g, '-');
+      if (Utils.isValidDateString(formattedDate)) {
+        setInputValue(formattedDate);
+        const date = new Date(formattedDate);
+        if (!isNaN(date.getTime())) {
+          setSelectedDate(date);
+        }
+      }
+    } else if (isOpen && !initialDate) {
+      // 초기 날짜가 없으면 초기화
+      setInputValue('');
+      setSelectedDate(null);
+    }
+  }, [isOpen, initialDate]);
 
   // 달력 외부 클릭 시 닫기
   useEffect(() => {

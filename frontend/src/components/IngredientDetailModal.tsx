@@ -8,6 +8,9 @@ interface IngredientDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   ingredient: string;
+  initialStorageType?: 'frozen' | 'fridge' | 'room' | null;
+  initialDate?: string | null;
+  initialDateType?: 'expiry' | 'purchase' | null;
   onComplete: (data: {
     ingredient: string;
     storageType: 'frozen' | 'fridge' | 'room';
@@ -68,11 +71,40 @@ const EXPIRATION_OPTIONS = [
   }
 ] as const;
 
-export default function IngredientDetailModal({ isOpen, onClose, ingredient, onComplete }: IngredientDetailModalProps) {
+export default function IngredientDetailModal({ 
+  isOpen, 
+  onClose, 
+  ingredient, 
+  initialStorageType = null,
+  initialDate = null,
+  initialDateType = null,
+  onComplete 
+}: IngredientDetailModalProps) {
   const [storageType, setStorageType] = useState<'frozen' | 'fridge' | 'room' | null>(null);
   const [hasExpiration, setHasExpiration] = useState<boolean | null>(null);
   const [step, setStep] = useState<'select' | 'date'>('select');
   const [dateType, setDateType] = useState<'expiry' | 'purchase'>('expiry');
+
+  // 모달이 열릴 때 초기값 설정
+  React.useEffect(() => {
+    if (isOpen) {
+      // 보관 공간 초기값 설정
+      if (initialStorageType) {
+        setStorageType(initialStorageType);
+      }
+      // 날짜 정보 초기값 설정 (하지만 첫 번째 화면부터 시작)
+      if (initialDate) {
+        // 날짜가 있으면 유통기한 또는 구매일이 있다는 의미
+        setHasExpiration(initialDateType === 'expiry' ? true : false);
+        setDateType(initialDateType || 'expiry');
+      } else {
+        // 날짜가 없으면 초기 상태 유지
+        setHasExpiration(null);
+      }
+      // 항상 첫 번째 화면(선택 화면)부터 시작
+      setStep('select');
+    }
+  }, [isOpen, initialStorageType, initialDate, initialDateType]);
 
   const handleStorageSelect = (type: 'frozen' | 'fridge' | 'room') => {
     setStorageType(type);
@@ -190,6 +222,7 @@ export default function IngredientDetailModal({ isOpen, onClose, ingredient, onC
           onClose={onClose}
           onComplete={handleDateComplete}
           onBack={() => setStep('select')}
+          initialDate={initialDate}
         />
       )}
     </>

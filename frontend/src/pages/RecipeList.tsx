@@ -561,6 +561,11 @@ const RecipeList: React.FC = () => {
           console.log('[RecipeList] 상태 복원 시작 - 레시피 즉시 표시');
           isRestoringState.current = true; // 복원 중 플래그 설정
           
+          // 로딩 상태 및 프로그레스 바 초기화 (프로그레스 바가 표시되지 않도록)
+          setLoading(false);
+          setLoadingProgress(0);
+          currentProgressRef.current = 0;
+          
           // 먼저 lastFilterHash를 설정하여 필터 변경 useEffect가 실행되지 않도록 함
           setLastFilterHash(parsedState.lastFilterHash || '');
           initialLoadDone.current = true; // 복원했으므로 초기 로드 완료로 표시
@@ -609,10 +614,10 @@ const RecipeList: React.FC = () => {
             lastFilterHash: parsedState.lastFilterHash
           });
           
-          // 복원 완료 후 플래그 해제 (다음 렌더링 사이클에서)
+          // 복원 완료 후 플래그 해제 (필터 변경 useEffect가 실행되지 않도록 충분한 시간 확보)
           setTimeout(() => {
             isRestoringState.current = false;
-          }, 100);
+          }, 500);
           
           return; // 복원했으면 초기 재료 설정 스킵
         }
