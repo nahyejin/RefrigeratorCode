@@ -485,27 +485,50 @@ const MyFridge: React.FC = () => {
       }
       
       const apiUrl = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'https://refrigeratorcode-production.up.railway.app';
+      const requestBody = {
+        ingredients: { frozen, fridge, room },
+      };
+      
+      console.log('[MyFridge] DB 저장 요청 시작:', {
+        url: `${apiUrl}/api/users/${user.id}/ingredients`,
+        userId: user.id,
+        frozenCount: frozen.length,
+        fridgeCount: fridge.length,
+        roomCount: room.length,
+        hasToken: !!token
+      });
+      
       const response = await fetch(`${apiUrl}/api/users/${user.id}/ingredients`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          ingredients: { frozen, fridge, room },
-        }),
+        body: JSON.stringify(requestBody),
+      });
+      
+      console.log('[MyFridge] DB 저장 응답:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok
       });
       
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('[MyFridge] DB 저장 실패 응답:', errorText);
+        console.error('[MyFridge] DB 저장 실패 응답:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorText: errorText
+        });
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
       
+      const responseData = await response.json().catch(() => null);
       console.log('[MyFridge] DB에 재료 저장 성공:', {
         frozen: frozen.length,
         fridge: fridge.length,
-        room: room.length
+        room: room.length,
+        responseData: responseData
       });
       
       if (showStatus) {
@@ -540,12 +563,22 @@ const MyFridge: React.FC = () => {
 
   // 저장 버튼 클릭 핸들러
   const handleSaveClick = async () => {
+    console.log('[MyFridge] 저장 버튼 클릭:', {
+      isLoggedIn,
+      userId: user?.id,
+      frozen: frozen?.length,
+      fridge: fridge?.length,
+      room: room?.length,
+      hasChanges
+    });
+    
     if (!isLoggedIn || !user?.id) {
       alert('로그인이 필요합니다.');
       return;
     }
     
     if (frozen === null || fridge === null || room === null) {
+      console.error('[MyFridge] 저장 실패: 재료 데이터가 null');
       return;
     }
     
@@ -553,6 +586,8 @@ const MyFridge: React.FC = () => {
     setInfoToast({ text: '재료 저장중...' });
     
     const success = await saveIngredientsToDB(frozen, fridge, room, 0, true);
+    console.log('[MyFridge] 저장 결과:', success);
+    
     if (success) {
       // 저장 성공 시 마지막 저장된 데이터 업데이트
       lastSavedDataRef.current = {
@@ -565,10 +600,24 @@ const MyFridge: React.FC = () => {
       // 저장 완료 표시
       setInfoToast({ text: '재료 저장완료' });
       setTimeout(() => setInfoToast(null), 3000);
+      
+      // 저장 후 DB에서 다시 로드하여 확인
+      setTimeout(async () => {
+        const verifyData = await loadIngredientsFromDB();
+        if (verifyData) {
+          console.log('[MyFridge] 저장 후 검증 - DB에서 로드한 데이터:', {
+            frozen: verifyData.frozen.length,
+            fridge: verifyData.fridge.length,
+            room: verifyData.room.length
+          });
+        } else {
+          console.warn('[MyFridge] 저장 후 검증 실패 - DB에서 데이터를 로드할 수 없음');
+        }
+      }, 1000);
     } else {
       setInfoToast({ text: '저장 실패' });
       setTimeout(() => setInfoToast(null), 3000);
-      alert('저장에 실패했습니다. 네트워크 연결을 확인해주세요.');
+      alert('저장에 실패했습니다. 브라우저 콘솔을 확인해주세요.');
     }
   };
 
