@@ -411,6 +411,7 @@ const MyFridge: React.FC = () => {
   const isInitialLoad = React.useRef(true); // 초기 로드 플래그
   const dbLoadAttempted = React.useRef(false); // DB 로드 시도 여부
   const dbLoadFailed = React.useRef(false); // DB 로드 실패 여부
+  const dataLoadedRef = React.useRef(false); // 데이터 로드 완료 여부
 
   // DB에서 재료 로드 (토큰 대기 포함)
   const loadIngredientsFromDB = async (maxWaitForToken = 5000) => {
@@ -810,6 +811,7 @@ const MyFridge: React.FC = () => {
                 fridge: dbData.fridge.length,
                 room: dbData.room.length
               });
+              dataLoadedRef.current = true; // 데이터 로드 완료 표시
               setFrozen(dbData.frozen);
               setFridge(dbData.fridge);
               setRoom(dbData.room);
@@ -840,6 +842,7 @@ const MyFridge: React.FC = () => {
                   fridge: localData.fridge.length,
                   room: localData.room.length
                 });
+                dataLoadedRef.current = true; // 데이터 로드 완료 표시
                 setFrozen(localData.frozen);
                 setFridge(localData.fridge);
                 setRoom(localData.room);
@@ -866,6 +869,7 @@ const MyFridge: React.FC = () => {
                   dbLoadFailed: dbLoadFailed.current,
                   warning: 'DB에서 재료를 로드할 수 없습니다. 네트워크 연결을 확인해주세요.'
                 });
+                dataLoadedRef.current = true; // 빈 상태라도 로드 완료 표시
                 setFrozen([]);
                 setFridge([]);
                 setRoom([]);
@@ -881,6 +885,7 @@ const MyFridge: React.FC = () => {
           // 비로그인 사용자는 localStorage만 사용
           const loaded = loadIngredients();
           if (isMounted) {
+            dataLoadedRef.current = true; // 데이터 로드 완료 표시
             setFrozen(loaded.frozen);
             setFridge(loaded.fridge);
             setRoom(loaded.room);
@@ -892,6 +897,7 @@ const MyFridge: React.FC = () => {
         
         // DB에도 localStorage에도 없으면 빈 상태로 시작
         if (isMounted) {
+          dataLoadedRef.current = true; // 빈 상태라도 로드 완료 표시
           setFrozen([]);
           setFridge([]);
           setRoom([]);
@@ -911,17 +917,26 @@ const MyFridge: React.FC = () => {
       }
     };
     
-    // 타임아웃 설정: 5초 후에는 무조건 화면 표시
+    // 타임아웃 설정: 10초 후에는 무조건 화면 표시 (단, 데이터가 이미 로드되었으면 스킵)
     timeoutId = setTimeout(() => {
-      if (isMounted && (frozen === null || fridge === null || room === null || loading)) {
-        console.warn('[MyFridge] 로딩 타임아웃 - 빈 상태로 강제 표시');
+      if (isMounted && !dataLoadedRef.current && (frozen === null || fridge === null || room === null || loading)) {
+        console.warn('[MyFridge] 로딩 타임아웃 - 빈 상태로 강제 표시', {
+          dataLoaded: dataLoadedRef.current,
+          frozen: frozen,
+          fridge: fridge,
+          room: room,
+          loading: loading
+        });
+        dataLoadedRef.current = true; // 타임아웃으로 인한 로드 완료 표시
         setFrozen([]);
         setFridge([]);
         setRoom([]);
         isInitialLoad.current = false;
         setLoading(false);
+      } else if (isMounted && dataLoadedRef.current) {
+        console.log('[MyFridge] 타임아웃 발생했지만 데이터가 이미 로드됨 - 스킵');
       }
-    }, 5000);
+    }, 10000); // 5초 -> 10초로 증가
     
     loadData();
     
