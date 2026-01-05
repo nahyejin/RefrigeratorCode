@@ -1734,11 +1734,21 @@ const RecipeList: React.FC = () => {
                   myIngredients: myIngredients,
                   hasOnlyDefaultEgg,
                   currentRecipesLength: currentRecipes.length,
+                  cachedFilteredRecipesLength: cachedFilteredRecipes.length,
                   hasNoRecipes,
                   hasNoIngredients,
                   hasIngredientsButNoRecipes,
-                  shouldShowNoIngredientsMessage
+                  shouldShowNoIngredientsMessage,
+                  loading
                 });
+                
+                // 로딩이 완료되었고 캐시된 데이터가 있을 때만 "노데이터" 화면 표시
+                // (로딩 중이거나 데이터가 로드 중일 때는 표시하지 않음)
+                if (cachedFilteredRecipes.length === 0 && !loading) {
+                  // 데이터 로드가 완료되었지만 캐시가 비어있으면 빈 화면 표시하지 않음
+                  // (로딩 화면이 계속 표시됨)
+                  return null;
+                }
                 
                 if (shouldShowNoIngredientsMessage) {
                   return (

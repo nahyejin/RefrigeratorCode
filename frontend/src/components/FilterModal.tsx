@@ -229,7 +229,7 @@ const STYLES = {
     margin: '0 8px',
     // 스크롤바 항상 표시
     scrollbarWidth: 'thin' as const,
-    scrollbarColor: '#bdbdbd #f3f4f6'
+    scrollbarColor: '#9e9e9e #e5e7eb' // 모바일에서 더 잘 보이도록 진한 색상
   },
   applyButton: {
     maxWidth: 320
@@ -643,9 +643,9 @@ const FilterModal: React.FC<FilterModalProps> = ({
               paddingTop: 8,
               paddingBottom: 10,
               marginBottom: 2,
-              // 스크롤바 항상 표시
+              // 스크롤바 항상 표시 (모바일에서 더 잘 보이도록 진한 색상)
               scrollbarWidth: 'thin',
-              scrollbarColor: '#bdbdbd #f3f4f6'
+              scrollbarColor: '#9e9e9e #e5e7eb'
             }}
           >
             {/* 기존 카테고리~채널선택 내용 */}
