@@ -303,14 +303,11 @@ def get_filtered_recipes():
         where_clauses.append("(title LIKE %s OR content LIKE %s)")
         base_params.extend([f"%{keyword}%", f"%{keyword}%"])
     
-    # 포함할 재료 필터 (OR 조건: 하나라도 포함)
+    # 포함할 재료 필터 (AND 조건: 모두 포함)
     if include_ingredients:
-        include_conditions = []
         for ing in include_ingredients:
-            include_conditions.append("FIND_IN_SET(%s, REPLACE(used_ingredients,' ','')) > 0")
+            where_clauses.append("FIND_IN_SET(%s, REPLACE(used_ingredients,' ','')) > 0")
             base_params.append(ing)
-        if include_conditions:
-            where_clauses.append(f"({' OR '.join(include_conditions)})")
     
     # 제외할 재료 필터 (AND 조건: 모두 제외)
     if exclude_ingredients:

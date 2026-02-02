@@ -116,33 +116,46 @@ function parseFilterKeywordsCSV(csv: string): Record<string, Record<string, { ke
 
 // 자동완성 필터링 유틸리티
 const AutoCompleteUtils = {
-  getFilteredCandidates: (input: string, excludeList: string[], ingredientDict: string[]) => {
+  // 동의어를 고려한 필터링 (MyFridge와 동일한 로직)
+  // ingredientDict 구조: { '동의어': 'keyword', 'keyword': 'keyword' }
+  // 예: { '계란': '달걀', '깐대파': '파', '파': '파' }
+  getFilteredCandidates: (input: string, excludeList: string[], ingredientDict: { [key: string]: string }) => {
     if (!input) return [];
     
-    // 입력값의 첫 글자
+    const inputLower = input.toLowerCase();
     const firstChar = input[0];
     
-    return ingredientDict
-      .filter(item => 
-        item.includes(input) && 
-        !excludeList.includes(item)
-      )
+    // Object.entries를 사용하여 동의어(key)나 keyword(value)에 입력값이 포함되어 있으면 표시
+    const filtered = Object.entries(ingredientDict)
+      .filter(([key, value]) => {
+        const keyLower = key.toLowerCase();
+        const valueLower = value.toLowerCase();
+        // 동의어(key)나 keyword(value)에 입력값이 포함되어 있으면 표시
+        const matches = keyLower.includes(inputLower) || valueLower.includes(inputLower);
+        // 이미 선택된 재료는 제외
+        return matches && !excludeList.includes(value);
+      })
+      .map(([key, value]) => value) // keyword만 반환
+      .filter((value, index, self) => self.indexOf(value) === index) // 중복 제거
       .sort((a, b) => {
-        // 1순위: 정확한 매칭
-        const aExact = a === input;
-        const bExact = b === input;
+        const aLower = a.toLowerCase();
+        const bLower = b.toLowerCase();
+        
+        // 1순위: 정확한 매칭 (대소문자 무시)
+        const aExact = aLower === inputLower;
+        const bExact = bLower === inputLower;
         if (aExact && !bExact) return -1;
         if (!aExact && bExact) return 1;
         
-        // 2순위: 첫 글자로 시작하는 단어들 (가OOO 형태)
+        // 2순위: 첫 글자로 시작하는 단어들
         const aStartsWithFirstChar = a.startsWith(firstChar);
         const bStartsWithFirstChar = b.startsWith(firstChar);
         if (aStartsWithFirstChar && !bStartsWithFirstChar) return -1;
         if (!aStartsWithFirstChar && bStartsWithFirstChar) return 1;
         
         // 3순위: 입력값으로 시작하는 단어들
-        const aStartsWithInput = a.startsWith(input);
-        const bStartsWithInput = b.startsWith(input);
+        const aStartsWithInput = aLower.startsWith(inputLower);
+        const bStartsWithInput = bLower.startsWith(inputLower);
         if (aStartsWithInput && !bStartsWithInput) return -1;
         if (!aStartsWithInput && bStartsWithInput) return 1;
         
@@ -150,46 +163,57 @@ const AutoCompleteUtils = {
         return a.length - b.length;
       })
       .slice(0, 8);
+    
+    return filtered;
   },
 
-  // 자동완성 입력 핸들러 생성
+  // 자동완성 입력 핸들러 생성 (복수 선택 지원)
   createInputHandler: (
     inputValue: string,
     candidates: string[],
-    ingredientDict: string[],
-    setIngredients: (ingredients: string[]) => void,
+    ingredientDict: { [key: string]: string },
+    setIngredients: (ingredients: string[] | ((prev: string[]) => string[])) => void,
+    currentIngredients: string[],
     setInput: (input: string) => void,
     setFocus: (focus: boolean) => void
   ) => {
     return (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (e.key === 'Enter') {
-        if (candidates.length > 0) {
-          setIngredients([...candidates.slice(0, 1)]);
+        const valueToAdd = candidates.length > 0 ? candidates[0] : inputValue.trim();
+        if (valueToAdd) {
+          // 동의어를 keyword로 변환 (MyFridge와 동일한 로직)
+          const keyword = ingredientDict[valueToAdd] || valueToAdd;
+          setIngredients((prev: string[]) => {
+            if (!prev.includes(keyword)) {
+              return [...prev, keyword];
+            }
+            return prev;
+          });
           setInput('');
           setFocus(false);
-        } else if (inputValue.trim()) {
-          const exactMatch = ingredientDict.find(item => item === inputValue.trim());
-          if (exactMatch) {
-            setIngredients([exactMatch]);
-            setInput('');
-            setFocus(false);
-          } else {
-            alert('사전에 등록되지 않은 재료입니다. 자동완성 목록에서 선택해주세요.');
-          }
+        } else {
+          alert('사전에 등록되지 않은 재료입니다. 자동완성 목록에서 선택해주세요.');
         }
       }
     };
   },
 
-  // 자동완성 아이템 클릭 핸들러 생성
+  // 자동완성 아이템 클릭 핸들러 생성 (복수 선택 지원)
   createItemClickHandler: (
     item: string,
+    ingredientDict: { [key: string]: string },
     setIngredients: (ingredients: string[]) => void,
+    currentIngredients: string[],
     setInput: (input: string) => void,
     setFocus: (focus: boolean) => void
   ) => {
     return () => {
-      setIngredients([item]);
+      // 동의어를 keyword로 변환 (MyFridge와 동일한 로직)
+      const keyword = ingredientDict[item] || item;
+      // 이미 선택된 재료가 아니면 추가
+      if (!currentIngredients.includes(keyword)) {
+        setIngredients([...currentIngredients, keyword]);
+      }
       setInput('');
       setFocus(false);
     };
@@ -296,7 +320,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
   const [includeFocus, setIncludeFocus] = useState(false);
   const [excludeFocus, setExcludeFocus] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [ingredientDict, setIngredientDict] = useState<string[]>([]);
+  const [ingredientDict, setIngredientDict] = useState<{ [key: string]: string }>({});
   const [isMobile, setIsMobile] = useState(false);
   
   // 모달 내부 임시 상태 (적용 버튼을 눌러야만 실제 상태에 반영)
@@ -331,33 +355,111 @@ const FilterModal: React.FC<FilterModalProps> = ({
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
   
-  // 재료 사전 로드
+  // 재료 사전 로드 (동의어 포함, MyFridge와 동일한 로직)
   useEffect(() => {
+    const CSV_CACHE_KEY = 'ingredient_dict_cache';
+    const CACHE_VERSION = '1.0';
+    const CACHE_EXPIRY = 24 * 60 * 60 * 1000; // 24시간
+    
+    // 캐시 확인
+    if (typeof window !== 'undefined' && window.localStorage) {
+      try {
+        const cached = localStorage.getItem(CSV_CACHE_KEY);
+        if (cached) {
+          const { data, version, timestamp } = JSON.parse(cached);
+          if (version === CACHE_VERSION && Date.now() - timestamp < CACHE_EXPIRY) {
+            console.log('[FilterModal] 재료 사전 캐시에서 로드');
+            setIngredientDict(data);
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn('[FilterModal] 캐시 읽기 실패:', e);
+      }
+    }
+    
     fetch('/ingredient_profile_dict_with_substitutes.csv')
       .then(res => res.text())
       .then(csv => {
-        const lines = csv.split('\n');
+        const lines = csv.split('\n').filter(Boolean);
         const header = lines[0].split(',');
         const nameIdx = header.indexOf('keyword');
+        const synonymsIdx = header.indexOf('synonyms');
         const categoryIdx = header.indexOf('대분류');
-        if (nameIdx === -1 || categoryIdx === -1) return;
         
-        const ingredients = lines.slice(1)
-          .map(line => {
-            const values = line.split(',');
-            return {
-              keyword: values[nameIdx]?.trim(),
-              category: values[categoryIdx]?.trim()
-            };
-          })
-          .filter(item => 
-            item.keyword && 
-            item.keyword !== 'keyword' && 
-            item.category === '재료'
-          )
-          .map(item => item.keyword);
+        if (nameIdx === -1 || categoryIdx === -1) {
+          console.warn('[FilterModal] CSV 헤더를 찾을 수 없습니다');
+          return;
+        }
+        
+        // CSV 파싱 함수 (따옴표로 감싸진 필드 처리)
+        const parseCSVLine = (line: string): string[] => {
+          const result: string[] = [];
+          let current = '';
+          let inQuotes = false;
+          
+          for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            
+            if (char === '"') {
+              inQuotes = !inQuotes;
+            } else if (char === ',' && !inQuotes) {
+              result.push(current);
+              current = '';
+            } else {
+              current += char;
+            }
+          }
+          result.push(current);
+          
+          return result;
+        };
+        
+        const ingredients: { [key: string]: string } = {};
+        
+        lines.slice(1).forEach(line => {
+          if (!line.trim()) return; // 빈 줄 스킵
+          
+          const values = parseCSVLine(line);
+          const keyword = values[nameIdx]?.trim();
+          const synonymsStr = values[synonymsIdx]?.trim();
+          const category = values[categoryIdx]?.trim();
+          
+          if (keyword && category === '재료') {
+            // keyword를 keyword로 매핑
+            ingredients[keyword] = keyword;
+            
+            // synonyms 파싱 (쉼표로 구분, 빈 값 제거)
+            if (synonymsStr) {
+              const synonyms = synonymsStr.split(',').map(s => s.trim()).filter(s => s.length > 0);
+              synonyms.forEach(synonym => {
+                if (synonym) {
+                  ingredients[synonym] = keyword;
+                }
+              });
+            }
+          }
+        });
+        
+        console.log('[FilterModal] CSV 파싱 완료, 재료 사전 크기:', Object.keys(ingredients).length);
+        
+        // 캐시에 저장
+        if (typeof window !== 'undefined' && window.localStorage) {
+          try {
+            localStorage.setItem(CSV_CACHE_KEY, JSON.stringify({
+              data: ingredients,
+              version: CACHE_VERSION,
+              timestamp: Date.now()
+            }));
+          } catch (e) {
+            console.warn('[FilterModal] 캐시 저장 실패:', e);
+          }
+        }
         
         setIngredientDict(ingredients);
+      })
+      .catch(error => {
+        console.error('[FilterModal] CSV 파일 로드 실패:', error);
       });
   }, []);
 
@@ -536,7 +638,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                   onChange={e => setTempIncludeInput(e.target.value)}
                   onFocus={() => setIncludeFocus(true)}
                   onBlur={() => setTimeout(() => setIncludeFocus(false), 150)}
-                  onKeyDown={AutoCompleteUtils.createInputHandler(tempIncludeInput, includeCandidates, ingredientDict, setTempIncludeIngredients, setTempIncludeInput, setIncludeFocus)}
+                  onKeyDown={AutoCompleteUtils.createInputHandler(tempIncludeInput, includeCandidates, ingredientDict, setTempIncludeIngredients, tempIncludeIngredients, setTempIncludeInput, setIncludeFocus)}
                 />
                 {includeFocus && includeCandidates.length > 0 && (
                   <ul className="absolute left-0 right-0 bg-white border border-gray-200 rounded-lg mt-1 shadow z-30 max-h-32 overflow-y-auto custom-scrollbar">
@@ -544,7 +646,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                       <li
                         key={item}
                         className="px-4 py-2 hover:bg-[#f4f0e6] cursor-pointer text-[12px]"
-                        onMouseDown={AutoCompleteUtils.createItemClickHandler(item, setTempIncludeIngredients, setTempIncludeInput, setIncludeFocus)}
+                        onMouseDown={AutoCompleteUtils.createItemClickHandler(item, ingredientDict, setTempIncludeIngredients, tempIncludeIngredients, setTempIncludeInput, setIncludeFocus)}
                       >{item}</li>
                     ))}
                   </ul>
@@ -574,7 +676,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                   onChange={e => setTempExcludeInput(e.target.value)}
                   onFocus={() => setExcludeFocus(true)}
                   onBlur={() => setTimeout(() => setExcludeFocus(false), 150)}
-                  onKeyDown={AutoCompleteUtils.createInputHandler(tempExcludeInput, excludeCandidates, ingredientDict, setTempExcludeIngredients, setTempExcludeInput, setExcludeFocus)}
+                  onKeyDown={AutoCompleteUtils.createInputHandler(tempExcludeInput, excludeCandidates, ingredientDict, setTempExcludeIngredients, tempExcludeIngredients, setTempExcludeInput, setExcludeFocus)}
                 />
                 {excludeFocus && excludeCandidates.length > 0 && (
                   <ul className="absolute left-0 right-0 bg-white border border-gray-200 rounded-lg mt-1 shadow z-30 max-h-32 overflow-y-auto custom-scrollbar">
@@ -582,7 +684,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                       <li
                         key={item}
                         className="px-4 py-2 hover:bg-[#f4f0e6] cursor-pointer text-[12px]"
-                        onMouseDown={AutoCompleteUtils.createItemClickHandler(item, setTempExcludeIngredients, setTempExcludeInput, setExcludeFocus)}
+                        onMouseDown={AutoCompleteUtils.createItemClickHandler(item, ingredientDict, setTempExcludeIngredients, tempExcludeIngredients, setTempExcludeInput, setExcludeFocus)}
                       >{item}</li>
                     ))}
                   </ul>
@@ -605,58 +707,60 @@ const FilterModal: React.FC<FilterModalProps> = ({
               </div>
             </div>
           </div>
-          {/* 고정: 선택된 키워드 pill (sticky) */}
-          <div className="mt-2 border-t border-gray-200 pt-1"></div>
-          <div
-            className="flex flex-wrap gap-2 mb-1 justify-center sticky top-0 z-10 bg-white"
-            style={{ minHeight: 24 }}
-          >
-            {selectedKeywordPills.length === 0 ? (
-              <span className="text-gray-400 text-[13px]">테마를 선택해 주세요</span>
-            ) : (
-              selectedKeywordPills.map(({ main, keyword }) => (
-                <span
-                  key={main + '-' + keyword}
-                  className="px-2 py-[2px] bg-yellow-100 text-yellow-800 rounded-full text-[13px] font-medium border border-yellow-300 flex items-center"
-                  style={STYLES.keywordPill}
-                >
-                  {keyword}
-                  <button
-                    type="button"
-                    className="ml-1 text-yellow-700 hover:text-yellow-900 focus:outline-none"
-                    aria-label="선택 해제"
-                    style={STYLES.chipButton}
-                    onClick={() => handleKeywordRemove(main, keyword)}
+          {/* 테마 선택: 채널 선택, 꼭 포함할 키워드 등과 같은 레벨로 이동 */}
+          <div className="mt-2 border-t border-gray-200 pt-2">
+            <div className="font-bold text-[11.2px] mb-2">■ 테마 선택</div>
+            {/* 고정: 선택된 키워드 pill (sticky) */}
+            <div
+              className="flex flex-wrap gap-2 mb-2 justify-center"
+              style={{ minHeight: 24 }}
+            >
+              {selectedKeywordPills.length === 0 ? (
+                <span className="text-gray-400 text-[13px]">테마를 선택해 주세요</span>
+              ) : (
+                selectedKeywordPills.map(({ main, keyword }) => (
+                  <span
+                    key={main + '-' + keyword}
+                    className="px-2 py-[2px] bg-yellow-100 text-yellow-800 rounded-full text-[13px] font-medium border border-yellow-300 flex items-center"
+                    style={STYLES.keywordPill}
                   >
-                    ×
-                  </button>
-                </span>
-              ))
-            )}
-          </div>
-          {/* 스크롤: 카테고리별 키워드~채널선택 */}
-          <div
-            className="custom-scrollbar"
-            style={{
-              ...STYLES.scrollContainer,
-              maxHeight: isMobile ? '100px' : '150px', // 테마 선택란 높이
-              paddingTop: 8,
-              paddingBottom: 10,
-              marginBottom: 2,
-              // 스크롤바 항상 표시 (모바일에서 더 잘 보이도록 진한 색상)
-              scrollbarWidth: 'thin',
-              scrollbarColor: '#9e9e9e #e5e7eb'
-            }}
-          >
-            {/* 기존 카테고리~채널선택 내용 */}
-            {isLoading ? (
-              <div className="flex justify-center items-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-              </div>
-            ) : (
-              <>
-                {/* 카테고리별 태그 */}
-                <div className="px-4">
+                    {keyword}
+                    <button
+                      type="button"
+                      className="ml-1 text-yellow-700 hover:text-yellow-900 focus:outline-none"
+                      aria-label="선택 해제"
+                      style={STYLES.chipButton}
+                      onClick={() => handleKeywordRemove(main, keyword)}
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))
+              )}
+            </div>
+            {/* 스크롤: 카테고리별 키워드 */}
+            <div
+              className="custom-scrollbar"
+              style={{
+                ...STYLES.scrollContainer,
+                maxHeight: isMobile ? '100px' : '150px', // 테마 선택란 높이
+                paddingTop: 8,
+                paddingBottom: 10,
+                marginBottom: 2,
+                // 스크롤바 항상 표시 (모바일에서 더 잘 보이도록 진한 색상)
+                scrollbarWidth: 'thin',
+                scrollbarColor: '#9e9e9e #e5e7eb'
+              }}
+            >
+              {/* 기존 카테고리~채널선택 내용 */}
+              {isLoading ? (
+                <div className="flex justify-center items-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+                </div>
+              ) : (
+                <>
+                  {/* 카테고리별 태그 */}
+                  <div className="px-4">
                   {filterKeywordTree && typeof filterKeywordTree === 'object' && Object.keys(filterKeywordTree).length > 0
                     ? Object.entries(filterKeywordTree).map(([main, subTree]) => (
                         <div key={main}>
@@ -684,9 +788,10 @@ const FilterModal: React.FC<FilterModalProps> = ({
                         </div>
                       ))
                     : <div className="text-center text-gray-500 py-4">필터 키워드를 불러오는 중입니다...</div>}
-                </div>
-              </>
-            )}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
         <div className="sticky bottom-0 left-0 w-full bg-white p-2 flex justify-center z-20 border-t border-gray-200">

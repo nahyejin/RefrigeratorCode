@@ -14,7 +14,7 @@ import { fetchRecipesDummy } from '../utils/dummyData';
 import RecipeCard from '../components/RecipeCard';
 import VirtualizedRecipeList, { VirtualizedRecipeListRef } from '../components/VirtualizedRecipeList';
 import { Recipe, RecipeActionState, FilterState, SubstituteInfo } from '../types/recipe';
-import { getMyIngredients, sortRecipes, calculateMatchRate, initializeDefaultIngredients, extractKeywordsAndSynonyms, FilterKeywordTree, getDictCategoryKey, preloadIngredientSynonymDict } from '../utils/recipeUtils';
+import { getMyIngredients, sortRecipes, calculateMatchRate, initializeDefaultIngredients, extractKeywordsAndSynonyms, FilterKeywordTree, getDictCategoryKey, preloadIngredientSynonymDict, ingredientSynonymDictCache } from '../utils/recipeUtils';
 import RecipeToast from '../components/RecipeToast';
 // import Slider from 'rc-slider';
 // import 'rc-slider/assets/index.css';
@@ -1340,13 +1340,27 @@ const RecipeList: React.FC = () => {
     setFilteredRecipes([]);
     setCachedFilteredRecipes([]);
     
-    // 필터 조건과 재료 매칭도 필터를 서버에 전달 (정렬은 기본값 'match_rate'로)
+    // 필터 조건과 재료 매칭도 필터를 서버에 전달 (사용자가 선택한 정렬 기준 사용)
     // 초기 로드 시 기본값 [30, 100] 강제 적용 (initialLoadDone이 false일 때)
     const effectiveMatchRange = initialLoadDone.current ? matchRange : [30, 100];
+    
+    // sortType을 서버 API의 sort_by 형식으로 변환
+    const getSortByForAPI = (sortType: string): string => {
+      switch (sortType) {
+        case 'match': return 'match_rate';
+        case 'latest': return 'date';
+        case 'like': return 'like';
+        case 'comment': return 'comment';
+        case 'hits': return 'hits';
+        case 'expiry': return 'match_rate'; // expiry는 임박재료 우선, 그 다음 매칭률
+        default: return 'match_rate';
+      }
+    };
+    
     const filterParams = {
       matchRateMin: effectiveMatchRange[0],
       matchRateMax: effectiveMatchRange[1],
-      sortBy: 'match_rate', // 필터링 시에는 항상 기본 정렬로 받아서 캐싱
+      sortBy: getSortByForAPI(sortType), // 사용자가 선택한 정렬 기준 사용
       platform: selectedChannel.length > 0 ? selectedChannel[0] : undefined,
       keyword: includeKeyword || undefined,
       includeIngredients: includeIngredients.length > 0 ? includeIngredients : undefined,
@@ -1400,7 +1414,7 @@ const RecipeList: React.FC = () => {
       }, stepDuration);
     };
     
-    // 전체 필터링된 결과를 한 번에 받기 위해 큰 size 사용
+    // 전체 필터링된 결과를 한 번에 받기 위해 큰 size 사용 (서버에서 정렬된 상태로)
     // 먼저 total을 확인하기 위해 작은 size로 요청한 후, 실제 total만큼 받기
     animateProgress(10, 200); // 초기 진행률
     loadRecipesPaged(1, 1, filterParams, categoryKeywordTree).then(({total: initialTotal}) => {
@@ -1432,9 +1446,10 @@ const RecipeList: React.FC = () => {
     }).then(({recipes, total}) => {
       // 데이터 로드 완료 시 90%로 이동
       animateProgress(90, 300);
+      // 서버에서 정렬된 전체 데이터를 캐시에 저장
       setCachedFilteredRecipes(recipes);
       setTotal(total);
-      setPage(1);
+      setPage(1); // 필터 변경 시 항상 1페이지로 리셋
       setLastFilterHash(filterHash);
       // 초기 로드 완료 표시
       if (!initialLoadDone.current) {
@@ -1581,7 +1596,8 @@ const RecipeList: React.FC = () => {
     };
   }, [getIngredientsHash]);
 
-  // 정렬 기준만 변경되면 캐시된 데이터를 클라이언트에서 정렬
+  // 정렬 기준만 변경되면 캐시된 데이터를 클라이언트에서 정렬 (서버에서 이미 정렬된 데이터 사용)
+  // 페이지 변경 시에도 캐시된 데이터에서 페이지네이션
   useEffect(() => {
     if (cachedFilteredRecipes.length === 0) {
       return;
@@ -1607,12 +1623,29 @@ const RecipeList: React.FC = () => {
     // maxLack 필터가 적용된 후의 총 개수를 total로 업데이트
     setTotal(filteredByMaxLack.length);
 
-    // 초기 로드 시 기본값 'match' 강제 적용 (initialLoadDone이 false일 때)
+    // 서버에서 정렬된 데이터이지만, 동의어 처리를 고려하여 프론트엔드에서 다시 정렬해야 함
+    // 서버는 동의어를 고려하지 않고 match_rate를 계산하므로, 프론트엔드에서 동의어를 고려한 매칭률로 재정렬 필요
     const effectiveSortType = initialLoadDone.current ? sortType : 'match';
     
-    // maxLack 필터가 적용된 데이터를 클라이언트에서 정렬
+    // 동의어를 고려하여 매칭률을 다시 계산하고 정렬
+    // 먼저 모든 레시피에 대해 동의어를 고려한 매칭률 계산
+    const recipesWithCorrectMatchRate = filteredByMaxLack.map(recipe => {
+      const matchResult = calculateMatchRate(
+        myIngredients,
+        recipe.used_ingredients || '',
+        ingredientSynonymDictCache // 동의어 사전 사용
+      );
+      return {
+        ...recipe,
+        match_rate: matchResult.rate, // 동의어를 고려한 정확한 매칭률
+        my_ingredients: matchResult.my_ingredients,
+        need_ingredients: matchResult.need_ingredients
+      };
+    });
+    
+    // 정렬 기준에 따라 정렬
     const sortedRecipes = sortRecipes(
-      filteredByMaxLack,
+      recipesWithCorrectMatchRate,
       effectiveSortType,
       myIngredients,
       appliedExpiryIngredients
@@ -1624,7 +1657,7 @@ const RecipeList: React.FC = () => {
     const paginatedRecipes = sortedRecipes.slice(startIndex, endIndex);
 
     setRecipes(paginatedRecipes);
-  }, [sortType, cachedFilteredRecipes, page, size, myIngredients, appliedExpiryIngredients, maxLack]);
+  }, [sortType, cachedFilteredRecipes, page, size, myIngredients, appliedExpiryIngredients, maxLack, initialLoadDone]);
   
   // 필터가 변경되면 초기 로드 플래그 리셋 (필터 적용 시 다시 로드)
   useEffect(() => {

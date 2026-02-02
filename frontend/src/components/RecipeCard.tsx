@@ -2,7 +2,7 @@ import React from 'react';
 import { Recipe, RecipeActionState } from '../types/recipe';
 import { getProxiedImageUrl } from '../utils/imageUtils';
 import { getPlatformLogo } from '../utils/platform';
-import { calculateMatchRate } from '../utils/recipeUtils';
+import { calculateMatchRate, loadIngredientSynonymDict, ingredientSynonymDictCache } from '../utils/recipeUtils';
 import IngredientPillGroup from './IngredientPillGroup';
 import CoupangProductAd from './CoupangProductAd';
 import 완료하기버튼 from '../assets/완료하기버튼.png';
@@ -208,9 +208,13 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
   hideIndexNumber = false,
   showRank = false,
   onThumbnailError,
+  hasAd: hasAdProp,
 }) => {
   // 썸네일 로드 상태 추적 (null: 검증 중, true: 성공, false: 실패)
   const [thumbnailStatus, setThumbnailStatus] = React.useState<boolean | null>(null);
+  
+  // 동의어 사전 로드 (한 번만) - 모든 hook은 early return 이전에 호출되어야 함
+  const [synonymDict, setSynonymDict] = React.useState<{ [key: string]: string } | null>(ingredientSynonymDictCache);
   
   // 이미지 로드 전 사전 검증
   React.useEffect(() => {
@@ -238,6 +242,20 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
     img.src = getProxiedImageUrl(recipe.thumbnail);
   }, [recipe.thumbnail, recipe.id, onThumbnailError]);
   
+  // 동의어 사전 로드
+  React.useEffect(() => {
+    // 이미 캐시에 있으면 사용
+    if (ingredientSynonymDictCache) {
+      setSynonymDict(ingredientSynonymDictCache);
+      return;
+    }
+    
+    // 동의어 사전 로드
+    loadIngredientSynonymDict().then(dict => {
+      setSynonymDict(dict);
+    });
+  }, []);
+  
   // 썸네일이 실패했거나 아직 검증 중인 경우 카드를 렌더링하지 않음
   if (thumbnailStatus === false || thumbnailStatus === null) {
     return null;
@@ -256,7 +274,8 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
     myIngredients,
     Array.isArray(recipe.used_ingredients)
       ? recipe.used_ingredients.join(',')
-      : recipe.used_ingredients || ''
+      : recipe.used_ingredients || '',
+    synonymDict || undefined
   );
   
   // 부족한 재료가 정확히 1개인지 확인 (대체 가능한 재료 제외)
@@ -311,13 +330,14 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
   
   return (
     <div
-      className="bg-white rounded-[20px] shadow-sm relative p-4 block hover:shadow-md transition cursor-pointer"
+      className="bg-white rounded-[20px] shadow-sm relative block hover:shadow-md transition cursor-pointer"
       style={{
         ...(isLast ? STYLES.lastCard : STYLES.card),
-        marginBottom: 0, // 프리미엄 요리 섹션에서 간격 제거
+        padding: '16px', // p-4 대신 명시적으로 설정
+        marginBottom: hasAd ? 16 : 8, // 광고가 있으면 16px, 없으면 8px로 간격 축소
         touchAction: 'pan-y pan-x', // 세로 및 가로 스크롤 모두 허용
-        overflowY: hasAd ? 'visible' : 'hidden', // 광고가 있으면 visible로 변경
-        minHeight: hasAd ? 'auto' : '280px', // 광고가 있으면 auto로 변경
+        overflow: hasAd ? 'visible' : 'hidden', // 광고가 있으면 visible, 없으면 hidden
+        boxSizing: 'border-box' as const, // padding 포함한 크기 계산
         WebkitOverflowScrolling: 'touch' // iOS 부드러운 스크롤
       }}
       onClick={handleCardClick}
@@ -422,12 +442,13 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
       )}
       
       {/* 쿠팡 광고: 부족한 재료가 정확히 1개일 때만 표시 (대체 가능한 재료 제외) */}
-      {lackingIngredients.length === 1 && (
-        <CoupangProductAd 
-          ingredientName={lackingIngredients[0]}
-          style={{ marginTop: '12px' }}
-        />
-      )}
+      {lackingIngredients.length === 1 ? (
+        <div style={{ marginTop: '12px' }}>
+          <CoupangProductAd 
+            ingredientName={lackingIngredients[0]}
+          />
+        </div>
+      ) : null}
     </div>
   );
 };

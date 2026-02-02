@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef, useImperativeHandle, forwardRef } from 'react';
-import { FixedSizeList as List, ListRef } from 'react-window';
+import React, { useState, useEffect, useRef, useImperativeHandle, forwardRef, useMemo } from 'react';
+import { VariableSizeList as List, ListRef } from 'react-window';
 import RecipeCard from './RecipeCard';
 import { Recipe, RecipeActionState } from '../types/recipe';
+import { calculateMatchRate } from '../utils/recipeUtils';
 
 interface VirtualizedRecipeListProps {
   recipes: Recipe[];
@@ -20,7 +21,8 @@ export interface VirtualizedRecipeListRef {
 
 // 상수 정의
 const CONSTANTS = {
-  ITEM_HEIGHT: 420, // 각 레시피 카드의 높이 (픽셀) - 광고 포함 시를 대비해 증가
+  ITEM_HEIGHT_WITH_AD: 450, // 광고가 있을 때 레시피 카드의 높이 (픽셀) - 여유 공간 포함
+  ITEM_HEIGHT_WITHOUT_AD: 300, // 광고가 없을 때 레시피 카드의 높이 (픽셀) - 실제 카드 높이에 맞춤
   HEADER_OFFSET: 300, // 헤더/네비게이션 영역 높이
   PAGINATION_OFFSET: 120, // 페이지네이션 영역 높이 (여백 포함)
   OVERSCAN_COUNT: 5 // 추가로 렌더링할 아이템 수
@@ -77,8 +79,9 @@ const VirtualizedRecipeList = forwardRef<VirtualizedRecipeListRef, VirtualizedRe
       }
     },
     getVisibleItemIndex: () => {
-      // 현재 보이는 아이템의 인덱스 계산
-      return Math.floor(scrollOffsetRef.current / CONSTANTS.ITEM_HEIGHT);
+      // 현재 보이는 아이템의 인덱스 계산 (평균 높이 사용)
+      const avgHeight = (CONSTANTS.ITEM_HEIGHT_WITH_AD + CONSTANTS.ITEM_HEIGHT_WITHOUT_AD) / 2;
+      return Math.floor(scrollOffsetRef.current / avgHeight);
     }
   }));
 
@@ -117,13 +120,61 @@ const VirtualizedRecipeList = forwardRef<VirtualizedRecipeListRef, VirtualizedRe
     return () => clearTimeout(timeoutId);
   }, [recipes.length]);
 
+  // 각 레시피의 광고 유무를 확인하는 함수
+  const getHasAd = (recipe: Recipe): boolean => {
+    const match = calculateMatchRate(
+      myIngredients,
+      Array.isArray(recipe.used_ingredients)
+        ? recipe.used_ingredients.join(',')
+        : recipe.used_ingredients || ''
+    );
+    
+    if (!match.need_ingredients || match.need_ingredients.length === 0) {
+      return false;
+    }
+    
+    // 대체 가능한 재료는 제외 (substituteTable 확인)
+    const normalize = (s: string) => (s || '').trim().toLowerCase();
+    const mySet = new Set(myIngredients.map(normalize));
+    
+    // 대체 불가능한 부족한 재료만 필터링
+    const lackingIngredients = match.need_ingredients.filter(ing => {
+      const normIng = normalize(ing);
+      
+      // substituteTable에서 해당 재료의 대체제 찾기
+      if (substituteTable && typeof substituteTable === 'object') {
+        const originalKey = Object.keys(substituteTable).find(k => normalize(k) === normIng);
+        const substituteList = originalKey ? (substituteTable as any)[originalKey] : undefined;
+        
+        if (substituteList && Array.isArray(substituteList)) {
+          // 내 냉장고에 있는 대체제가 있는지 확인
+          const hasSubstitute = substituteList.some((sub: any) => mySet.has(normalize(sub.ingredient_b)));
+          if (hasSubstitute) {
+            return false; // 대체 가능하므로 제외
+          }
+        }
+      }
+      
+      return true; // 대체 불가능한 재료
+    });
+    
+    return lackingIngredients.length === 1;
+  };
+
   const Row = ({ index, style }: { index: number; style: React.CSSProperties }) => {
     const recipe = recipes[index];
     
     if (!recipe) return null;
 
+    const hasAd = getHasAd(recipe);
+
     return (
-      <div style={{ ...style, pointerEvents: 'auto' }}>
+      <div style={{ 
+        ...style, 
+        pointerEvents: 'auto',
+        overflow: 'visible', // react-window가 제공하는 높이 내에서 visible로 설정
+        minHeight: hasAd ? CONSTANTS.ITEM_HEIGHT_WITH_AD : CONSTANTS.ITEM_HEIGHT_WITHOUT_AD // 최소 높이 보장
+      }}>
         <RecipeCard
           recipe={recipe}
           index={index}
@@ -132,6 +183,7 @@ const VirtualizedRecipeList = forwardRef<VirtualizedRecipeListRef, VirtualizedRe
           isLast={Utils.isLastItem(index, recipes.length)}
           myIngredients={myIngredients}
           substituteTable={substituteTable}
+          hasAd={hasAd}
         />
       </div>
     );
@@ -142,13 +194,22 @@ const VirtualizedRecipeList = forwardRef<VirtualizedRecipeListRef, VirtualizedRe
     scrollOffsetRef.current = scrollOffset;
   };
 
+  // 각 아이템의 높이를 계산하는 함수
+  const getItemSize = (index: number): number => {
+    const recipe = recipes[index];
+    if (!recipe) return CONSTANTS.ITEM_HEIGHT_WITHOUT_AD;
+    
+    const hasAd = getHasAd(recipe);
+    return hasAd ? CONSTANTS.ITEM_HEIGHT_WITH_AD : CONSTANTS.ITEM_HEIGHT_WITHOUT_AD;
+  };
+
   return (
     <div id="virtualized-recipe-list-container" style={{ pointerEvents: 'auto', marginBottom: '0' }}>
       <List
         ref={listRef}
         height={listHeight}
         itemCount={recipes.length}
-        itemSize={CONSTANTS.ITEM_HEIGHT}
+        itemSize={getItemSize}
         width="100%"
         overscanCount={CONSTANTS.OVERSCAN_COUNT}
         onScroll={handleScroll}

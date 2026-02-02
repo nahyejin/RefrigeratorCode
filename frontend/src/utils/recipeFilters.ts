@@ -1,5 +1,5 @@
 import { Recipe } from '../types/recipe';
-import { sortRecipes, calculateMatchRate, extractKeywordsAndSynonyms, FilterKeywordTree } from './recipeUtils';
+import { sortRecipes, calculateMatchRate, extractKeywordsAndSynonyms, FilterKeywordTree, loadIngredientSynonymDict, ingredientSynonymDictCache } from './recipeUtils';
 
 // =====================
 // 상수
@@ -247,9 +247,12 @@ export function filterRecipes(recipes: Recipe[], options: FilterOptions): Recipe
   console.log('categoryKeywords type:', typeof categoryKeywords);
   console.log('categoryKeywords is empty?', Object.keys(categoryKeywords).length === 0);
 
-  // 각 레시피에 match_rate, my_ingredients, need_ingredients 추가
+  // 동의어 사전 사용 (이미 로드된 캐시 사용)
+  const synonymDict = ingredientSynonymDictCache || null;
+
+  // 각 레시피에 match_rate, my_ingredients, need_ingredients 추가 (동의어 고려)
   const recipesWithMatch = recipes.map(recipe => {
-    const match = calculateMatchRate(myIngredients, recipe.used_ingredients || '');
+    const match = calculateMatchRate(myIngredients, recipe.used_ingredients || '', synonymDict || undefined);
     return {
       ...recipe,
       match_rate: match.rate,

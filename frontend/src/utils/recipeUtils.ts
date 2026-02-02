@@ -238,25 +238,37 @@ export function getMyIngredients(): string[] {
 
 /**
  * 내 재료와 레시피 재료를 비교해 매칭률(%)과 보유/부족 재료를 반환한다.
+ * 동의어를 고려하여 매칭률을 계산합니다.
  */
-export function calculateMatchRate(myIngredients: string[], recipeIngredients: string | string[]): RecipeMatchResult {
+export function calculateMatchRate(myIngredients: string[], recipeIngredients: string | string[], synonymDict?: { [key: string]: string }): RecipeMatchResult {
   const recipeArr = Array.isArray(recipeIngredients)
     ? recipeIngredients
     : recipeIngredients.split(',');
   const recipeList = recipeArr.map((i: string) => i.trim()).filter(Boolean);
   const recipeSet = new Set(recipeList);
   
-  // 정규화된 비교를 위한 Set 생성
-  const mySet = new Set(myIngredients.map(i => normalize(i)));
+  // 동의어 사전 사용 (전달받은 dict 또는 캐시 사용)
+  const dict = synonymDict || ingredientSynonymDictCache;
+  
+  // 내 재료를 keyword로 변환하여 Set 생성 (동의어 고려)
+  const mySet = new Set(
+    myIngredients.map(ing => {
+      const converted = dict ? convertSynonymToKeywordSync(ing, dict) : ing;
+      return normalize(converted);
+    })
+  );
   
   // 매칭된 재료와 부족한 재료 분리 (원본 재료명 유지)
   const matched: string[] = [];
   const needIngredients: string[] = [];
   
   recipeList.forEach(ingredient => {
-    const normalized = normalize(ingredient);
+    // 레시피 재료도 keyword로 변환 (동의어 고려)
+    const convertedIngredient = dict ? convertSynonymToKeywordSync(ingredient, dict) : ingredient;
+    const normalized = normalize(convertedIngredient);
+    
     if (mySet.has(normalized)) {
-      matched.push(ingredient);
+      matched.push(ingredient); // 원본 재료명 유지
     } else {
       needIngredients.push(ingredient);
     }
@@ -331,11 +343,11 @@ export function sortRecipes(
       break;
     case 'match':
       sorted.sort((a, b) => {
-        const aMatchRate = b.match_rate || 0;
-        const bMatchRate = a.match_rate || 0;
-        // 매칭률이 다르면 매칭률순으로 정렬
+        const aMatchRate = a.match_rate || 0;
+        const bMatchRate = b.match_rate || 0;
+        // 매칭률이 다르면 매칭률 내림차순으로 정렬 (높은 매칭률이 먼저)
         if (aMatchRate !== bMatchRate) {
-          return aMatchRate - bMatchRate;
+          return bMatchRate - aMatchRate; // 내림차순: b - a
         }
         // 매칭률이 같으면 최신순으로 정렬 (created_at 기준)
         const aDate = new Date(a.created_at || 0).getTime();
@@ -345,12 +357,12 @@ export function sortRecipes(
       break;
     case 'expiry':
       sorted.sort((a, b) => {
-        // 임박재료가 선택되지 않은 경우 매칭률순으로 정렬
+        // 임박재료가 선택되지 않은 경우 매칭률 내림차순으로 정렬 (높은 매칭률이 먼저)
         if (appliedExpiryIngredients.length === 0) {
-          const aMatchRate = b.match_rate || 0;
-          const bMatchRate = a.match_rate || 0;
+          const aMatchRate = a.match_rate || 0;
+          const bMatchRate = b.match_rate || 0;
           if (aMatchRate !== bMatchRate) {
-            return aMatchRate - bMatchRate;
+            return bMatchRate - aMatchRate; // 내림차순: b - a
           }
           // 매칭률이 같으면 최신순으로 정렬 (created_at 기준)
           const aDate = new Date(a.created_at || 0).getTime();
@@ -374,11 +386,11 @@ export function sortRecipes(
           return bCount - aCount;
         }
         
-        // 임박재료 개수가 같으면 매칭률순으로 정렬
-        const aMatchRate = b.match_rate || 0;
-        const bMatchRate = a.match_rate || 0;
+        // 임박재료 개수가 같으면 매칭률 내림차순으로 정렬 (높은 매칭률이 먼저)
+        const aMatchRate = a.match_rate || 0;
+        const bMatchRate = b.match_rate || 0;
         if (aMatchRate !== bMatchRate) {
-          return aMatchRate - bMatchRate;
+          return bMatchRate - aMatchRate; // 내림차순: b - a
         }
         // 매칭률이 같으면 최신순으로 정렬 (created_at 기준)
         const aDate = new Date(a.created_at || 0).getTime();
@@ -388,11 +400,11 @@ export function sortRecipes(
       break;
     default:
       sorted.sort((a, b) => {
-        const aMatchRate = b.match_rate || 0;
-        const bMatchRate = a.match_rate || 0;
-        // 매칭률이 다르면 매칭률순으로 정렬
+        const aMatchRate = a.match_rate || 0;
+        const bMatchRate = b.match_rate || 0;
+        // 매칭률이 다르면 매칭률 내림차순으로 정렬 (높은 매칭률이 먼저)
         if (aMatchRate !== bMatchRate) {
-          return aMatchRate - bMatchRate;
+          return bMatchRate - aMatchRate; // 내림차순: b - a
         }
         // 매칭률이 같으면 최신순으로 정렬 (created_at 기준)
         const aDate = new Date(a.created_at || 0).getTime();
@@ -635,7 +647,7 @@ export async function loadIngredientSynonymDict(): Promise<{ [key: string]: stri
 }
 
 // 동의어 사전을 메모이제이션
-let ingredientSynonymDictCache: { [key: string]: string } | null = null;
+export let ingredientSynonymDictCache: { [key: string]: string } | null = null;
 let loadingSynonymDict = false;
 
 /**
