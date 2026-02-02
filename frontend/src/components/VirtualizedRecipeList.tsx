@@ -22,14 +22,15 @@ export interface VirtualizedRecipeListRef {
 const CONSTANTS = {
   ITEM_HEIGHT: 420, // 각 레시피 카드의 높이 (픽셀) - 광고 포함 시를 대비해 증가
   HEADER_OFFSET: 300, // 헤더/네비게이션 영역 높이
+  PAGINATION_OFFSET: 120, // 페이지네이션 영역 높이 (여백 포함)
   OVERSCAN_COUNT: 5 // 추가로 렌더링할 아이템 수
 } as const;
 
 // 유틸리티 함수들
 const Utils = {
-  // 화면 높이에서 헤더 영역을 제외한 리스트 높이 계산
+  // 화면 높이에서 헤더 영역과 페이지네이션 영역을 제외한 리스트 높이 계산
   calculateListHeight: (): number => {
-    return window.innerHeight - CONSTANTS.HEADER_OFFSET;
+    return window.innerHeight - CONSTANTS.HEADER_OFFSET - CONSTANTS.PAGINATION_OFFSET;
   },
 
   // 마지막 아이템인지 확인
@@ -142,7 +143,7 @@ const VirtualizedRecipeList = forwardRef<VirtualizedRecipeListRef, VirtualizedRe
   };
 
   return (
-    <div id="virtualized-recipe-list-container" style={{ pointerEvents: 'auto' }}>
+    <div id="virtualized-recipe-list-container" style={{ pointerEvents: 'auto', marginBottom: '0' }}>
       <List
         ref={listRef}
         height={listHeight}

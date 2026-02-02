@@ -1,5 +1,5 @@
 import axios, { AxiosResponse } from 'axios';
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef, useLayoutEffect } from 'react';
 import BottomNavBar from '../components/BottomNavBar';
 import { useNavigate, useLocation } from 'react-router-dom';
 import doneIcon from '../assets/done.svg';
@@ -1693,11 +1693,62 @@ const RecipeList: React.FC = () => {
 
   // 페이지 변경 핸들러 (클라이언트 사이드 페이지네이션)
   const handlePageChange = (newPage: number) => {
+    // 페이지 상단으로 즉시 스크롤 (페이지 변경 전에)
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    
+    // VirtualizedRecipeList의 스크롤도 제어
+    if (listRef.current) {
+      listRef.current.scrollToOffset(0);
+    }
+    
     setPage(newPage);
     // 페이지 변경은 위의 useEffect에서 자동으로 처리됨
-    // 페이지 상단으로 스크롤
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  // 페이지 변경 시 데이터 로딩 완료 후 스크롤 (useLayoutEffect로 DOM 업데이트 직후 실행)
+  useLayoutEffect(() => {
+    // 페이지가 변경되었을 때만 스크롤
+    if (!loading && filteredRecipes.length > 0) {
+      // 레이아웃이 완전히 렌더링된 후 상단으로 스크롤
+      const scrollToTop = () => {
+        // window 스크롤
+        window.scrollTo({ top: 0, behavior: 'instant' });
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+        
+        // VirtualizedRecipeList의 스크롤도 제어
+        if (listRef.current) {
+          listRef.current.scrollToOffset(0);
+        }
+        
+        // 모든 스크롤 가능한 요소도 확인
+        const scrollableElements = document.querySelectorAll('[data-scroll-container], .custom-scrollbar, [style*="overflow"]');
+        scrollableElements.forEach((el: any) => {
+          if (el.scrollTop !== undefined) {
+            el.scrollTop = 0;
+          }
+        });
+      };
+      
+      // 즉시 실행
+      scrollToTop();
+      
+      // requestAnimationFrame으로 한 번 더
+      requestAnimationFrame(() => {
+        scrollToTop();
+        // 추가로 약간의 지연 후 한 번 더 (레이아웃 완전 반영 대기)
+        setTimeout(() => {
+          scrollToTop();
+        }, 50);
+        // 더 긴 지연 후 한 번 더 (가상화 리스트 렌더링 완료 대기)
+        setTimeout(() => {
+          scrollToTop();
+        }, 200);
+      });
+    }
+  }, [page, loading, filteredRecipes.length]);
 
   // =====================
   // 렌더링
@@ -1915,10 +1966,9 @@ const RecipeList: React.FC = () => {
               })()}
             </div>
           )}
-        </div>
-        
-        {/* 페이지네이션 - 이미지 형식 */}
-        {!loading && total > 0 && (() => {
+          
+          {/* 페이지네이션 - 이미지 형식 */}
+          {!loading && total > 0 && (() => {
           const totalPages = Math.ceil(total / size);
           const getPageNumbers = () => {
             const pages: number[] = [];
@@ -1959,7 +2009,8 @@ const RecipeList: React.FC = () => {
               justifyContent: 'center', 
               alignItems: 'center', 
               gap: '4px', 
-              margin: '32px 0',
+              marginTop: '0px',
+              marginBottom: '8px',
               width: '100%',
               maxWidth: '400px',
               marginLeft: 'auto',
@@ -2146,6 +2197,7 @@ const RecipeList: React.FC = () => {
             </div>
           );
         })()}
+        </div>
         
         {/* 쿠팡 광고 - 페이지네이션 아래, 페이지 맨 끝에 도달했을 때만 표시 */}
         <BottomCoupangAd 
