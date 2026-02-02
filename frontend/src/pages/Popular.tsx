@@ -692,6 +692,7 @@ const Popular = () => {
   const [themeRankings, setThemeRankings] = useState<any[]>([]);
   const [dishKeywords, setDishKeywords] = useState<{ keyword: string; synonyms: string[] }[]>([]);
   const [dishRankings, setDishRankings] = useState<any[]>([]);
+  const [substituteTable, setSubstituteTable] = useState<{ [key: string]: { ingredient_b: string; similarity_score?: number }[] }>({});
   const [youtubeRecipes, setYoutubeRecipes] = useState<any[]>([]);
   const [naverRecipes, setNaverRecipes] = useState<any[]>([]);
   // 썸네일 로드 실패한 레시피 ID 추적 (404 등)
@@ -758,6 +759,126 @@ const Popular = () => {
         setAllIngredients(parseIngredientNames(csv));
         setDishKeywords(extractDishKeywordsFromCSV(csv));
       });
+  }, []);
+
+  // 대체재료 테이블 로드
+  useEffect(() => {
+    const loadSubstituteTable = async () => {
+      const CACHE_KEY = 'substitute_table_cache';
+      const CACHE_VERSION = '2.1'; // 배열 구조 및 유사도 점수 포함으로 버전 업데이트
+      
+      try {
+        // 캐시 확인
+        if (typeof window !== 'undefined' && window.localStorage) {
+          const cached = localStorage.getItem(CACHE_KEY);
+          if (cached) {
+            try {
+              const parsedCache = JSON.parse(cached);
+              if (parsedCache.version === CACHE_VERSION && parsedCache.data) {
+                console.log('[Popular] 캐시된 대체재료 테이블 사용', Object.keys(parsedCache.data).length, '개 재료');
+                setSubstituteTable(parsedCache.data);
+                return;
+              } else {
+                console.log('[Popular] 캐시 버전 불일치, 새로 로드합니다. (기존:', parsedCache.version, ', 새:', CACHE_VERSION, ')');
+              }
+            } catch (e) {
+              console.warn('[Popular] 캐시 파싱 실패:', e);
+            }
+          }
+        }
+        
+        // 캐시가 없으면 새로 로드
+        const response = await fetch('/ingredient_substitute_table.csv');
+        const csv = await response.text();
+        
+        const lines = csv.split('\n').filter(line => line.trim());
+        const header = lines[0].split(',').map(h => h.trim().toLowerCase());
+        const aIdx = header.indexOf('ingredient_a');
+        const bIdx = header.indexOf('ingredient_b');
+        const scoreIdx = header.indexOf('similarity_score');
+        
+        if (aIdx === -1 || bIdx === -1) {
+          console.warn('[Popular] CSV 헤더에서 필요한 컬럼을 찾을 수 없습니다.');
+          return;
+        }
+        
+        // CSV 파싱 함수 (따옴표로 감싸진 필드 처리)
+        const parseCSVLine = (line: string): string[] => {
+          const result: string[] = [];
+          let current = '';
+          let inQuotes = false;
+          
+          for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            if (char === '"') {
+              inQuotes = !inQuotes;
+            } else if (char === ',' && !inQuotes) {
+              result.push(current.trim());
+              current = '';
+            } else {
+              current += char;
+            }
+          }
+          result.push(current.trim());
+          return result;
+        };
+        
+        const table: { [key: string]: { ingredient_b: string; similarity_score?: number }[] } = {};
+        lines.slice(1).forEach(line => {
+          const cols = parseCSVLine(line);
+          const a = cols[aIdx]?.trim();
+          const b = cols[bIdx]?.trim();
+          const scoreStr = scoreIdx >= 0 ? cols[scoreIdx]?.trim() : undefined;
+          
+          if (a && b) {
+            const score = scoreStr ? parseFloat(scoreStr) : undefined;
+            
+            if (!table[a]) {
+              table[a] = [];
+            }
+            table[a].push({
+              ingredient_b: b,
+              similarity_score: isNaN(score as number) ? undefined : score
+            });
+          }
+        });
+        
+        // 각 재료별로 유사도 점수 순으로 정렬 (높은 순)
+        Object.keys(table).forEach(key => {
+          table[key].sort((a, b) => {
+            const scoreA = a.similarity_score ?? 0;
+            const scoreB = b.similarity_score ?? 0;
+            return scoreB - scoreA;
+          });
+        });
+        
+        console.log('[Popular] 대체재료 테이블 로드 완료', Object.keys(table).length, '개 재료');
+        // 샘플 데이터 확인
+        const sampleKeys = Object.keys(table).slice(0, 3);
+        sampleKeys.forEach(key => {
+          console.log(`[Popular] 샘플: "${key}" → ${table[key].length}개 대체제`, table[key]);
+        });
+        
+        // 캐시에 저장
+        if (typeof window !== 'undefined' && window.localStorage) {
+          try {
+            localStorage.setItem(CACHE_KEY, JSON.stringify({
+              version: CACHE_VERSION,
+              data: table
+            }));
+            console.log('[Popular] 대체재료 테이블 캐시 저장 완료');
+          } catch (e) {
+            console.warn('[Popular] 캐시 저장 실패:', e);
+          }
+        }
+        
+        setSubstituteTable(table);
+      } catch (error) {
+        console.error('[Popular] 대체재료 테이블 로드 실패:', error);
+      }
+    };
+    
+    loadSubstituteTable();
   }, []);
 
   // 기간 드롭다운 핸들러
@@ -1578,7 +1699,7 @@ const Popular = () => {
                                 onRecipeAction={(recipeWithAction) => handleRecipeAction(recipe.id, { action: recipeWithAction.action })}
                                 isLast={true}
                                 myIngredients={myIngredients}
-                                substituteTable={{}}
+                                substituteTable={substituteTable}
                                 showRank={false}
                                 onThumbnailError={(recipeId) => {
                                   setFailedThumbnailIds(prev => new Set([...prev, recipeId]));
@@ -1754,7 +1875,7 @@ const Popular = () => {
            <VirtualizedHorizontalRecipeList
              recipes={youtubeRecipes.filter(recipe => !failedThumbnailIds.has(recipe.id))}
              myIngredients={myIngredients}
-             substituteTable={{}}
+             substituteTable={substituteTable}
              recipeActionStates={buttonStates}
              onRecipeAction={(recipe, action) => handleRecipeAction(recipe.id, { action: action as 'done' | 'write' | 'share' })}
              cardWidth={320}
@@ -1817,7 +1938,7 @@ const Popular = () => {
            <VirtualizedHorizontalRecipeList
              recipes={naverRecipes.filter(recipe => !failedThumbnailIds.has(recipe.id))}
              myIngredients={myIngredients}
-             substituteTable={{}}
+             substituteTable={substituteTable}
              recipeActionStates={buttonStates}
              onRecipeAction={(recipe, action) => handleRecipeAction(recipe.id, { action: action as 'done' | 'write' | 'share' })}
              cardWidth={320}

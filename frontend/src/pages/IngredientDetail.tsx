@@ -303,7 +303,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
   const [excludeInput, setExcludeInput] = useState('');
   const [allIngredients, setAllIngredients] = useState<string[]>([]);
   const [recipes, setRecipes] = useState<any[]>([]);
-  const [substituteTable, setSubstituteTable] = useState<{ [key: string]: { ingredient_b: string } }>({});
+  const [substituteTable, setSubstituteTable] = useState<{ [key: string]: { ingredient_b: string; similarity_score?: number }[] }>({});
   const [buttonStates, setButtonStates] = useState<{ [id: number]: RecipeActionState }>({});
   const [toast, setToast] = useState('');
   const [includeKeyword, setIncludeKeyword] = useState('');
@@ -604,26 +604,65 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
         const header = lines[0].split(',').map(h => h.trim().toLowerCase());
         const aIdx = header.indexOf('ingredient_a');
         const bIdx = header.indexOf('ingredient_b');
+        const scoreIdx = header.indexOf('similarity_score');
         
         if (aIdx === -1 || bIdx === -1) return;
         
-        const table: { [key: string]: { ingredient_b: string } } = {};
+        // CSV 파싱 함수 (따옴표로 감싸진 필드 처리)
+        const parseCSVLine = (line: string): string[] => {
+          const result: string[] = [];
+          let current = '';
+          let inQuotes = false;
+          
+          for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            if (char === '"') {
+              inQuotes = !inQuotes;
+            } else if (char === ',' && !inQuotes) {
+              result.push(current.trim());
+              current = '';
+            } else {
+              current += char;
+            }
+          }
+          result.push(current.trim());
+          return result;
+        };
+        
+        const table: { [key: string]: { ingredient_b: string; similarity_score?: number }[] } = {};
         
         // 첫 번째 줄(헤더)을 제외하고 처리
         for (let i = 1; i < lines.length; i++) {
           const line = lines[i].trim();
           if (!line) continue;
 
-          const values = line.split(',');
-          const ingredient_a = values[aIdx]?.trim();
-          const ingredient_b = values[bIdx]?.trim();
+          const cols = parseCSVLine(line);
+          const ingredient_a = cols[aIdx]?.trim();
+          const ingredient_b = cols[bIdx]?.trim();
+          const scoreStr = scoreIdx >= 0 ? cols[scoreIdx]?.trim() : undefined;
 
           if (ingredient_a && ingredient_b) {
-            table[ingredient_a] = {
-              ingredient_b: ingredient_b
-            };
+            const score = scoreStr ? parseFloat(scoreStr) : undefined;
+            
+            if (!table[ingredient_a]) {
+              table[ingredient_a] = [];
+            }
+            table[ingredient_a].push({
+              ingredient_b: ingredient_b,
+              similarity_score: isNaN(score as number) ? undefined : score
+            });
           }
         }
+        
+        // 각 재료별로 유사도 점수 순으로 정렬 (높은 순)
+        Object.keys(table).forEach(key => {
+          table[key].sort((a, b) => {
+            const scoreA = a.similarity_score ?? 0;
+            const scoreB = b.similarity_score ?? 0;
+            return scoreB - scoreA;
+          });
+        });
+        
         setSubstituteTable(table);
       } catch (error) {
         // 에러 발생 시 콘솔에만 출력

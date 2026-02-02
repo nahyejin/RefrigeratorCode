@@ -5,7 +5,7 @@ import { convertSynonymToKeywordSync, preloadIngredientSynonymDict, loadIngredie
 interface IngredientPillGroupProps {
   needIngredients: string[];
   myIngredients: string[];
-  substituteTable: { [key: string]: { ingredient_b: string } };
+  substituteTable: { [key: string]: { ingredient_b: string; similarity_score?: number }[] };
   style?: React.CSSProperties;
 }
 
@@ -47,34 +47,68 @@ const IngredientPillGroup: React.FC<IngredientPillGroupProps> = ({ needIngredien
       setIsDictLoaded(true);
       // 첫 로드 시에만 로그 출력 (중복 로그 방지)
       console.log('[IngredientPillGroup] 동의어 사전 로드 완료 (전역 캐시):', Object.keys(dict).length, '개');
+      // 샘플 데이터 확인
+      const sampleKeys = ['깐대파', '대파', '파'];
+      sampleKeys.forEach(key => {
+        if (dict[key]) {
+          console.log(`[IngredientPillGroup] 동의어 샘플: "${key}" → "${dict[key]}"`);
+        }
+      });
     }).catch(e => {
       console.error('[IngredientPillGroup] 동의어 사전 로드 실패:', e);
       globalSynonymDictLoading = false;
     });
   }, []);
   
-  // 동의어를 keyword로 변환
-  const convertedNeedIngredients = React.useMemo(() => {
+  // 동의어를 keyword로 변환 (레시피 재료) - 원본과 변환된 것 매핑
+  const { convertedNeedIngredients, originalToConverted } = React.useMemo(() => {
     if (!isDictLoaded || !synonymDict) {
       // 사전이 로드되지 않았으면 원본 반환 (나중에 다시 렌더링됨)
-      return needIngredients;
+      const mapping = new Map<string, string>();
+      needIngredients.forEach(ing => mapping.set(ing, ing));
+      return { convertedNeedIngredients: needIngredients, originalToConverted: mapping };
     }
-    return needIngredients.map(ing => {
+    const converted = needIngredients.map(ing => {
       const converted = convertSynonymToKeywordSync(ing, synonymDict);
       if (converted !== ing) {
-        console.log(`[IngredientPillGroup] 동의어 변환: "${ing}" → "${converted}"`);
+        console.log(`[IngredientPillGroup] 레시피 재료 동의어 변환: "${ing}" → "${converted}"`);
       }
       return converted;
     });
+    const mapping = new Map<string, string>();
+    needIngredients.forEach((original, idx) => {
+      mapping.set(converted[idx], original); // 변환된 것 → 원본 매핑
+    });
+    return { convertedNeedIngredients: converted, originalToConverted: mapping };
   }, [needIngredients, synonymDict, isDictLoaded]);
+  
+  // 동의어를 keyword로 변환 (내 냉장고 재료)
+  const convertedMyIngredients = React.useMemo(() => {
+    if (!isDictLoaded || !synonymDict) {
+      // 사전이 로드되지 않았으면 원본 반환 (나중에 다시 렌더링됨)
+      return myIngredients;
+    }
+    return myIngredients.map(ing => {
+      const converted = convertSynonymToKeywordSync(ing, synonymDict);
+      if (converted !== ing) {
+        console.log(`[IngredientPillGroup] 내 냉장고 재료 동의어 변환: "${ing}" → "${converted}"`);
+      }
+      return converted;
+    });
+  }, [myIngredients, synonymDict, isDictLoaded]);
   
   const pillInfo = getUniversalIngredientPillInfo({ 
     needIngredients: convertedNeedIngredients, 
-    myIngredients, 
+    myIngredients: convertedMyIngredients, 
     substituteTable 
   });
+  
+  // 디버깅: 대체제 정보 확인
+  if (pillInfo.substitutes.length > 0) {
+    console.log('[IngredientPillGroup] 대체제 발견:', pillInfo.substitutes);
+  }
   const normalize = (s: string) => (s || '').trim().toLowerCase();
-  const mySet = new Set(myIngredients.map(normalize));
+  const mySet = new Set(convertedMyIngredients.map(normalize));
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [showScrollIndicator, setShowScrollIndicator] = useState(false);
 
@@ -124,17 +158,20 @@ const IngredientPillGroup: React.FC<IngredientPillGroupProps> = ({ needIngredien
           }}
         >
           {pillInfo.pills.map((ing) => {
+            // 변환된 재료명을 원본 재료명으로 변환 (표시용)
+            const displayName = originalToConverted.get(ing) || ing;
+            
             if (mySet.has(normalize(ing))) {
               return (
-                <span key={ing} className="bg-customYellow text-[#444] rounded-full px-3 py-0.5 font-normal" style={{ fontSize: '10.4px', lineHeight: 1.3, whiteSpace: 'nowrap', height: 22, display: 'inline-flex', alignItems: 'center', textShadow: 'none', border: 'none' }}>{ing}</span>
+                <span key={ing} className="bg-customYellow text-[#444] rounded-full px-3 py-0.5 font-normal" style={{ fontSize: '10.4px', lineHeight: 1.3, whiteSpace: 'nowrap', height: 22, display: 'inline-flex', alignItems: 'center', textShadow: 'none', border: 'none' }}>{displayName}</span>
               );
             } else if (pillInfo.notMineSub.map(normalize).includes(normalize(ing))) {
               return (
-                <span key={ing} className="bg-customDarkGray text-white rounded-full px-3 py-0.5 font-normal" style={{ fontSize: '10.4px', lineHeight: 1.3, whiteSpace: 'nowrap', height: 22, display: 'inline-flex', alignItems: 'center', textShadow: 'none', border: 'none' }}>{ing}</span>
+                <span key={ing} className="bg-customDarkGray text-white rounded-full px-3 py-0.5 font-normal" style={{ fontSize: '10.4px', lineHeight: 1.3, whiteSpace: 'nowrap', height: 22, display: 'inline-flex', alignItems: 'center', textShadow: 'none', border: 'none' }}>{displayName}</span>
               );
             } else {
               return (
-                <span key={ing} className="bg-customGray text-white rounded-full px-3 py-0.5 font-normal" style={{ fontSize: '10.4px', lineHeight: 1.3, whiteSpace: 'nowrap', height: 22, display: 'inline-flex', alignItems: 'center', textShadow: 'none', border: 'none' }}>{ing}</span>
+                <span key={ing} className="bg-customGray text-white rounded-full px-3 py-0.5 font-normal" style={{ fontSize: '10.4px', lineHeight: 1.3, whiteSpace: 'nowrap', height: 22, display: 'inline-flex', alignItems: 'center', textShadow: 'none', border: 'none' }}>{displayName}</span>
               );
             }
           })}

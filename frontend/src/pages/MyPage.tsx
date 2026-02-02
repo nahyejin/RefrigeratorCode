@@ -157,7 +157,7 @@ function getPlatformLogo(platform: string | undefined): string {
 /**
  * 대체재료 테이블을 로드한다
  */
-async function loadSubstituteTable(): Promise<{ [key: string]: { ingredient_b: string } }> {
+async function loadSubstituteTable(): Promise<{ [key: string]: { ingredient_b: string; similarity_score?: number }[] }> {
   try {
     const response = await fetch(CSV_SUBSTITUTE_URL);
     const csv = await response.text();
@@ -166,20 +166,58 @@ async function loadSubstituteTable(): Promise<{ [key: string]: { ingredient_b: s
     const header = lines[0].split(',').map(h => h.trim().toLowerCase());
     const aIdx = header.indexOf('ingredient_a');
     const bIdx = header.indexOf('ingredient_b');
+    const scoreIdx = header.indexOf('similarity_score');
     
     if (aIdx === -1 || bIdx === -1) return {};
     
-    const table: { [key: string]: { ingredient_b: string } } = {};
+    // CSV 파싱 함수 (따옴표로 감싸진 필드 처리)
+    const parseCSVLine = (line: string): string[] => {
+      const result: string[] = [];
+      let current = '';
+      let inQuotes = false;
+      
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        if (char === '"') {
+          inQuotes = !inQuotes;
+        } else if (char === ',' && !inQuotes) {
+          result.push(current.trim());
+          current = '';
+        } else {
+          current += char;
+        }
+      }
+      result.push(current.trim());
+      return result;
+    };
+    
+    const table: { [key: string]: { ingredient_b: string; similarity_score?: number }[] } = {};
     lines.slice(1).forEach(line => {
-      const cols = line.split(',');
+      const cols = parseCSVLine(line);
       const a = cols[aIdx]?.trim();
       const b = cols[bIdx]?.trim();
+      const scoreStr = scoreIdx >= 0 ? cols[scoreIdx]?.trim() : undefined;
       
       if (a && b) {
-        table[a] = {
-          ingredient_b: b
-        };
+        const score = scoreStr ? parseFloat(scoreStr) : undefined;
+        
+        if (!table[a]) {
+          table[a] = [];
+        }
+        table[a].push({
+          ingredient_b: b,
+          similarity_score: isNaN(score as number) ? undefined : score
+        });
       }
+    });
+    
+    // 각 재료별로 유사도 점수 순으로 정렬 (높은 순)
+    Object.keys(table).forEach(key => {
+      table[key].sort((a, b) => {
+        const scoreA = a.similarity_score ?? 0;
+        const scoreB = b.similarity_score ?? 0;
+        return scoreB - scoreA;
+      });
     });
     
     return table;
@@ -424,7 +462,7 @@ const MyPage: React.FC = () => {
   const [pendingRemove, setPendingRemove] = useState<PendingRemove | null>(null);
   const [pendingRecipe, setPendingRecipe] = useState<any>(null);
   const [myIngredients, setMyIngredients] = React.useState<string[]>(getMyIngredientsSafe());
-  const [substituteTable, setSubstituteTable] = useState<{ [key: string]: { ingredient_b: string } }>({});
+  const [substituteTable, setSubstituteTable] = useState<{ [key: string]: { ingredient_b: string; similarity_score?: number }[] }>({});
   const [showPassword, setShowPassword] = useState(false);
   const [showPassword2, setShowPassword2] = useState(false);
   const [checkingNickname, setCheckingNickname] = useState(false);

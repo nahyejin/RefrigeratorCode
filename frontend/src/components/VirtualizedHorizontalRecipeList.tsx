@@ -6,7 +6,7 @@ import { Recipe, RecipeActionState } from '../types/recipe';
 interface VirtualizedHorizontalRecipeListProps {
   recipes: Recipe[];
   myIngredients: string[];
-  substituteTable: Record<string, string[]>;
+  substituteTable: { [key: string]: { ingredient_b: string; similarity_score?: number }[] };
   recipeActionStates: Record<number, RecipeActionState>;
   onRecipeAction: (recipe: Recipe, action: string) => void;
   cardWidth?: number;

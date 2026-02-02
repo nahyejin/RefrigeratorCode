@@ -15,7 +15,7 @@ export interface IngredientPillInfo {
 export interface UniversalIngredientPillParams {
   needIngredients: string[];
   myIngredients: string[];
-  substituteTable: SubstituteTable;
+  substituteTable: { [key: string]: { ingredient_b: string; similarity_score?: number }[] };
 }
 
 // =====================
@@ -55,10 +55,15 @@ function findSubstituteIngredients(
   needIngredients: string[],
   mySet: Set<string>,
   mineSet: Set<string>,
-  substituteTable: SubstituteTable
+  substituteTable: { [key: string]: { ingredient_b: string; similarity_score?: number }[] }
 ): { substituteTargets: string[]; substitutes: string[] } {
   const substituteTargets: string[] = [];
   const substitutes: string[] = [];
+
+  // 디버깅: substituteTable이 비어있는지 확인
+  if (Object.keys(substituteTable).length === 0) {
+    console.warn('[findSubstituteIngredients] substituteTable이 비어있습니다.');
+  }
 
   needIngredients.forEach(needRaw => {
     const need = normalize(needRaw);
@@ -66,11 +71,56 @@ function findSubstituteIngredients(
 
     // substituteTable의 키를 normalize해서 접근
     const originalKey = Object.keys(substituteTable).find(k => normalize(k) === need);
-    const substituteInfo = originalKey ? substituteTable[originalKey] : undefined;
+    const substituteList = originalKey ? substituteTable[originalKey] : undefined;
     
-    if (substituteInfo && mySet.has(normalize(substituteInfo.ingredient_b))) {
+    // 디버깅: 대체제 찾기 과정
+    if (needRaw === '설탕' || needRaw.includes('설탕')) {
+      console.log(`[findSubstituteIngredients] "${needRaw}" 검색 중:`, {
+        normalized: need,
+        originalKey: originalKey,
+        substituteList: substituteList,
+        substituteTableKeys: Object.keys(substituteTable).slice(0, 10)
+      });
+    }
+    
+    if (!substituteList || !Array.isArray(substituteList)) {
+      // 디버깅: 대체제를 찾지 못한 경우
+      if (originalKey) {
+        console.log(`[findSubstituteIngredients] "${needRaw}"의 대체제 리스트가 배열이 아닙니다:`, substituteList);
+      } else if (Object.keys(substituteTable).length > 0) {
+        // 대체제 테이블은 있지만 해당 재료가 없는 경우
+        const similarKeys = Object.keys(substituteTable).filter(k => 
+          normalize(k).includes(need) || need.includes(normalize(k))
+        ).slice(0, 3);
+        if (similarKeys.length > 0) {
+          console.log(`[findSubstituteIngredients] "${needRaw}" (정규화: "${need}")의 대체제를 찾지 못했습니다. 유사한 키:`, similarKeys);
+        }
+      }
+      return;
+    }
+    
+    // 내 냉장고에 있는 대체제 중 유사도 점수가 가장 높은 것만 선택
+    const availableSubstitutes = substituteList
+      .filter(sub => {
+        const hasSubstitute = mySet.has(normalize(sub.ingredient_b));
+        if (hasSubstitute) {
+          console.log(`[findSubstituteIngredients] 대체제 발견: "${needRaw}" → "${sub.ingredient_b}" (유사도: ${sub.similarity_score ?? 'N/A'})`);
+        }
+        return hasSubstitute;
+      })
+      .sort((a, b) => {
+        // 유사도 점수가 높은 순으로 정렬 (없으면 0으로 처리)
+        const scoreA = a.similarity_score ?? 0;
+        const scoreB = b.similarity_score ?? 0;
+        return scoreB - scoreA;
+      });
+    
+    if (availableSubstitutes.length > 0) {
+      // 유사도 점수가 가장 높은 것만 사용
+      const bestSubstitute = availableSubstitutes[0];
       substituteTargets.push(needRaw);
-      substitutes.push(`${needRaw}→${substituteInfo.ingredient_b}`);
+      substitutes.push(`${needRaw}→${bestSubstitute.ingredient_b}`);
+      console.log(`[findSubstituteIngredients] 최종 선택: "${needRaw}" → "${bestSubstitute.ingredient_b}"`);
     }
   });
 
@@ -105,6 +155,18 @@ export function getUniversalIngredientPillInfo({
 }: UniversalIngredientPillParams): IngredientPillInfo {
   const mySet = new Set(myIngredients.map(normalize));
 
+  // 디버깅: 입력 데이터 확인
+  if (needIngredients.length > 0 && myIngredients.length > 0) {
+    console.log('[getUniversalIngredientPillInfo] 입력 확인:', {
+      needIngredientsCount: needIngredients.length,
+      myIngredientsCount: myIngredients.length,
+      substituteTableKeys: Object.keys(substituteTable).length,
+      sampleNeedIngredients: needIngredients.slice(0, 3),
+      sampleMyIngredients: myIngredients.slice(0, 3),
+      sampleSubstituteTableKeys: Object.keys(substituteTable).slice(0, 3)
+    });
+  }
+
   // 내가 가진 재료 찾기
   const mine = findMyIngredients(needIngredients, mySet);
   const mineSet = new Set(mine.map(normalize));
@@ -116,6 +178,16 @@ export function getUniversalIngredientPillInfo({
     mineSet,
     substituteTable
   );
+  
+  // 디버깅: 결과 확인
+  if (substitutes.length > 0) {
+    console.log('[getUniversalIngredientPillInfo] 대체제 발견:', substitutes);
+  } else if (needIngredients.length > 0 && Object.keys(substituteTable).length > 0) {
+    console.log('[getUniversalIngredientPillInfo] 대체제 없음 - 확인 필요:', {
+      needIngredients: needIngredients,
+      substituteTableSample: Object.keys(substituteTable).slice(0, 5)
+    });
+  }
 
   // 대체 가능한 재료 목록
   const substituteTargetsSet = new Set(substituteTargets.map(normalize));

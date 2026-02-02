@@ -18,7 +18,7 @@ function normalize(s: string): string {
 // =====================
 
 export interface SubstituteTable {
-  [key: string]: { ingredient_b: string };
+  [key: string]: { ingredient_b: string; similarity_score?: number }[];
 }
 
 export interface FilterKeywordNode {
@@ -431,30 +431,37 @@ export function getIngredientPillInfo({
 }) {
   const mySet = new Set(myIngredients.map(normalize));
 
-  // substituteTable도 정규화된 키로 변환
-  const normalizedSubTable: SubstituteTable = {};
-  Object.keys(substituteTable).forEach(key => {
-    const normKey = normalize(key);
-    normalizedSubTable[normKey] = { ingredient_b: normalize(substituteTable[key].ingredient_b) };
-  });
-
-  // 대체 가능한 재료 찾기
-  let substituteTargets: string[] = [];
-  let substitutes: string[] = [];
-
   // 먼저 내가 가진 재료 찾기
   const mine = needIngredients.filter(i => mySet.has(normalize(i)));
   const mineSet = new Set(mine.map(normalize));
 
   // 대체 가능한 재료 찾기
+  let substituteTargets: string[] = [];
+  let substitutes: string[] = [];
+
   needIngredients.forEach(needRaw => {
     const need = normalize(needRaw);
     if (mineSet.has(need)) return;
-    const substituteInfo = normalizedSubTable[need];
-    if (substituteInfo && mySet.has(substituteInfo.ingredient_b)) {
+    
+    // substituteTable의 키를 normalize해서 접근
+    const originalKey = Object.keys(substituteTable).find(k => normalize(k) === need);
+    const substituteList = originalKey ? substituteTable[originalKey] : undefined;
+    
+    if (!substituteList || !Array.isArray(substituteList)) return;
+    
+    // 내 냉장고에 있는 대체제 중 유사도 점수가 가장 높은 것만 선택
+    const availableSubstitutes = substituteList
+      .filter(sub => mySet.has(normalize(sub.ingredient_b)))
+      .sort((a, b) => {
+        const scoreA = a.similarity_score ?? 0;
+        const scoreB = b.similarity_score ?? 0;
+        return scoreB - scoreA;
+      });
+    
+    if (availableSubstitutes.length > 0) {
+      const bestSubstitute = availableSubstitutes[0];
       substituteTargets.push(needRaw);
-      const displaySub = substituteTable[needRaw]?.ingredient_b || substituteInfo.ingredient_b;
-      substitutes.push(`${needRaw}→${displaySub}`);
+      substitutes.push(`${needRaw}→${bestSubstitute.ingredient_b}`);
     }
   });
 
@@ -568,11 +575,17 @@ export async function loadIngredientSynonymDict(): Promise<{ [key: string]: stri
     };
     
     const ingredientDict: { [key: string]: string } = {};
+    let processedCount = 0;
+    let synonymCount = 0;
     
-    lines.slice(1).forEach(line => {
+    lines.slice(1).forEach((line, lineIdx) => {
       if (!line.trim()) return; // 빈 줄 스킵
       
       const values = parseCSVLine(line);
+      if (values.length <= Math.max(nameIdx, synonymsIdx, categoryIdx)) {
+        return; // 컬럼 수 부족
+      }
+      
       const keyword = values[nameIdx]?.trim();
       const synonymsStr = values[synonymsIdx]?.trim();
       const category = values[categoryIdx]?.trim();
@@ -580,18 +593,27 @@ export async function loadIngredientSynonymDict(): Promise<{ [key: string]: stri
       if (keyword && category === '재료') {
         // keyword를 keyword로 매핑
         ingredientDict[keyword] = keyword;
+        processedCount++;
         
         // synonyms 파싱 (쉼표로 구분, 빈 값 제거)
         if (synonymsStr) {
           const synonyms = synonymsStr.split(',').map(s => s.trim()).filter(s => s.length > 0);
           synonyms.forEach(synonym => {
-            if (synonym) {
+            if (synonym && synonym !== keyword) { // 중복 제거
               ingredientDict[synonym] = keyword;
+              synonymCount++;
+              
+              // 디버깅: 처음 몇 개만 로그
+              if (synonymCount <= 5 || synonym === '깐대파' || synonym === '대파') {
+                console.log(`[loadIngredientSynonymDict] 동의어 매핑: "${synonym}" → "${keyword}"`);
+              }
             }
           });
         }
       }
     });
+    
+    console.log(`[loadIngredientSynonymDict] 동의어 사전 로드 완료: ${processedCount}개 재료, ${synonymCount}개 동의어`);
     
     // 캐시에 저장
     if (typeof window !== 'undefined' && window.localStorage) {

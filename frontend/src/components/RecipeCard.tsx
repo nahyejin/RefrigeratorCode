@@ -190,7 +190,7 @@ export interface RecipeCardProps {
   onRecipeAction: (recipe: Recipe & { action: 'done' | 'share' | 'write' }) => void;
   isLast: boolean;
   myIngredients?: string[];
-  substituteTable?: { [key: string]: any };
+  substituteTable?: { [key: string]: { ingredient_b: string; similarity_score?: number }[] };
   hideIndexNumber?: boolean;
   showRank?: boolean;
   onThumbnailError?: (recipeId: number) => void;
@@ -268,23 +268,26 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
     // 대체 가능한 재료는 제외 (substituteTable 확인)
     const normalize = (s: string) => (s || '').trim().toLowerCase();
     const mySet = new Set(myIngredients.map(normalize));
-    const normalizedSubTable: { [key: string]: string } = {};
-    
-    if (substituteTable) {
-      Object.keys(substituteTable).forEach(key => {
-        const normKey = normalize(key);
-        if (substituteTable[key]?.ingredient_b) {
-          normalizedSubTable[normKey] = normalize(substituteTable[key].ingredient_b);
-        }
-      });
-    }
     
     // 대체 불가능한 부족한 재료만 필터링
     return match.need_ingredients.filter(ing => {
       const normIng = normalize(ing);
-      // 대체 가능한 재료인지 확인
-      const hasSubstitute = normalizedSubTable[normIng] && mySet.has(normalizedSubTable[normIng]);
-      return !hasSubstitute;
+      
+      // substituteTable에서 해당 재료의 대체제 찾기
+      if (substituteTable) {
+        const originalKey = Object.keys(substituteTable).find(k => normalize(k) === normIng);
+        const substituteList = originalKey ? substituteTable[originalKey] : undefined;
+        
+        if (substituteList && Array.isArray(substituteList)) {
+          // 내 냉장고에 있는 대체제가 있는지 확인 (유사도 점수 높은 순으로 정렬되어 있음)
+          const hasSubstitute = substituteList.some(sub => mySet.has(normalize(sub.ingredient_b)));
+          if (hasSubstitute) {
+            return false; // 대체 가능하므로 제외
+          }
+        }
+      }
+      
+      return true; // 대체 불가능한 재료
     });
   };
   
