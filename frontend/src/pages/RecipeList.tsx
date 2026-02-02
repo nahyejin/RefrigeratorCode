@@ -29,7 +29,6 @@ import {
 import { useAuth } from '../context/AuthContext';
 import RegisterPromptModal from '../components/RegisterPromptModal';
 import GuideOverlay from '../components/GuideOverlay';
-import BottomCoupangAd from '../components/BottomCoupangAd';
 
 // =====================
 // 상수
@@ -2232,10 +2231,6 @@ const RecipeList: React.FC = () => {
         })()}
         </div>
         
-        {/* 쿠팡 광고 - 페이지네이션 아래, 페이지 맨 끝에 도달했을 때만 표시 */}
-        <BottomCoupangAd 
-          showCondition={!loading && total > 0 && filteredRecipes.length > 0}
-        />
       </div>
       
       <BottomNavBar activeTab="recipe" />
