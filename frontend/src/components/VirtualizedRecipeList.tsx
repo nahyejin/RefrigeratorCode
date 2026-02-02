@@ -24,7 +24,7 @@ const CONSTANTS = {
   ITEM_HEIGHT_WITH_AD: 450, // 광고가 있을 때 레시피 카드의 높이 (픽셀) - 여유 공간 포함
   ITEM_HEIGHT_WITHOUT_AD: 300, // 광고가 없을 때 레시피 카드의 높이 (픽셀) - 실제 카드 높이에 맞춤
   HEADER_OFFSET: 300, // 헤더/네비게이션 영역 높이
-  PAGINATION_OFFSET: 120, // 페이지네이션 영역 높이 (여백 포함)
+  PAGINATION_OFFSET: 60, // 페이지네이션 영역 높이 (여백 포함) - 쿠팡 광고 제거로 감소
   OVERSCAN_COUNT: 5 // 추가로 렌더링할 아이템 수
 } as const;
 
