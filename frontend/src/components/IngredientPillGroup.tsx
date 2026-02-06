@@ -207,17 +207,15 @@ const IngredientPillGroup: React.FC<IngredientPillGroupProps> = ({ needIngredien
           </div>
         )}
       </div>
-      {/* 대체 가능 태그 */}
-      <div className="mt-1 custom-scrollbar pr-1" style={{ display: 'flex', flexWrap: 'nowrap', gap: 4, overflowX: 'auto', maxWidth: '100%', alignItems: 'center', paddingBottom: 4 }}>
-        <span className="bg-[#555] text-white rounded px-2 py-0.5 font-normal" style={{ fontSize: '12px', flex: '0 0 auto', textShadow: 'none', border: 'none' }}>대체 가능 :</span>
-        {pillInfo.substitutes.length > 0 ? (
-          pillInfo.substitutes.map((sub, idx) => (
+      {/* 대체 가능 태그 - 대체제가 있을 때만 표시 */}
+      {pillInfo.substitutes.length > 0 && (
+        <div className="mt-1 custom-scrollbar pr-1" style={{ display: 'flex', flexWrap: 'nowrap', gap: 4, overflowX: 'auto', maxWidth: '100%', alignItems: 'center', paddingBottom: 4 }}>
+          <span className="bg-[#555] text-white rounded px-2 py-0.5 font-normal" style={{ fontSize: '12px', flex: '0 0 auto', textShadow: 'none', border: 'none' }}>대체 가능 :</span>
+          {pillInfo.substitutes.map((sub, idx) => (
             <span key={sub} className="ml-2 font-semibold text-[#444]" style={{ fontSize: '12px', flex: '0 0 auto' }}>{sub}</span>
-          ))
-        ) : (
-          <span className="ml-2 text-[12px] text-[#B0B0B0] font-normal" style={{ flex: '0 0 auto' }}>(내 냉장고에 대체 가능한 재료가 없습니다)</span>
-        )}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

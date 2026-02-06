@@ -340,15 +340,22 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
   
   return (
     <div
-      className="bg-white rounded-[20px] shadow-sm relative block hover:shadow-md transition cursor-pointer"
+      className="bg-white rounded-[20px] relative block transition-all duration-300 cursor-pointer"
       style={{
         ...(isLast ? STYLES.lastCard : STYLES.card),
-        padding: '16px', // p-4 대신 명시적으로 설정
-        marginBottom: 2, // 광고 유무와 상관없이 카드 간 간격을 2px로 최소화
+        padding: '3px 8px', // 상하 3px, 좌우 8px
+        marginBottom: 8, // 카드 간 간격을 8px로 설정
         touchAction: 'pan-y pan-x', // 세로 및 가로 스크롤 모두 허용
         overflow: 'visible', // 항상 visible로 설정하여 광고가 잘리지 않도록
         boxSizing: 'border-box' as const, // padding 포함한 크기 계산
-        WebkitOverflowScrolling: 'touch' // iOS 부드러운 스크롤
+        WebkitOverflowScrolling: 'touch', // iOS 부드러운 스크롤
+        border: '0.5px solid rgba(0, 0, 0, 0.06)'
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = 'translateY(-2px)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = 'translateY(0)';
       }}
       onClick={handleCardClick}
       onMouseDown={(e) => {

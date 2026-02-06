@@ -600,6 +600,7 @@ const RecipeList: React.FC = () => {
   const progressAnimationRef = useRef<NodeJS.Timeout | null>(null); // 프로그레스 애니메이션 ref
   const currentProgressRef = useRef(0); // 현재 진행률을 추적하는 ref (애니메이션 충돌 방지)
   const listRef = useRef<VirtualizedRecipeListRef>(null);
+  const backgroundLoadingRef = useRef<{ cancelled: boolean }>({ cancelled: false }); // 백그라운드 로딩 취소 플래그
 
   const [myIngredients, setMyIngredients] = useState<string[]>(getMyIngredients());
   const navigate = useNavigate();
@@ -1297,7 +1298,7 @@ const RecipeList: React.FC = () => {
     }
   }, [filteredRecipes.length, recipes.length, loading, showGuide]);
 
-  // 필터 조건 변경 감지 (정렬 기준 제외)
+  // 필터 조건 및 정렬 기준 변경 감지
   // 초기 로드 시에도 기본값 [30, 100]을 사용하도록 보장
   const filterHash = useMemo(() => {
     // 초기 로드 시 기본값 강제 적용 (sessionStorage에 저장된 값이 있어도 초기 로드 시에는 기본값 사용)
@@ -1310,9 +1311,10 @@ const RecipeList: React.FC = () => {
       excludeIngredients,
       selectedCategoryKeywords,
       matchRange: effectiveMatchRange,
-      appliedExpiryIngredients
+      appliedExpiryIngredients,
+      sortType // 정렬 기준도 필터 해시에 포함
     });
-  }, [selectedChannel, includeKeyword, includeIngredients, excludeIngredients, selectedCategoryKeywords, matchRange, appliedExpiryIngredients]);
+  }, [selectedChannel, includeKeyword, includeIngredients, excludeIngredients, selectedCategoryKeywords, matchRange, appliedExpiryIngredients, sortType]);
 
   // 필터 조건이 변경되면 전체 필터링된 결과를 한 번에 받아서 캐싱
   useEffect(() => {
@@ -1333,6 +1335,9 @@ const RecipeList: React.FC = () => {
       clearInterval(progressAnimationRef.current);
       progressAnimationRef.current = null;
     }
+    // 백그라운드 로딩 취소
+    backgroundLoadingRef.current.cancelled = true;
+    backgroundLoadingRef.current = { cancelled: false }; // 새 인스턴스 생성
     setLoadingProgress(0);
     currentProgressRef.current = 0; // ref도 초기화
     setRecipes([]);
@@ -1413,52 +1418,31 @@ const RecipeList: React.FC = () => {
       }, stepDuration);
     };
     
-    // 전체 필터링된 결과를 한 번에 받기 위해 큰 size 사용 (서버에서 정렬된 상태로)
-    // 먼저 total을 확인하기 위해 작은 size로 요청한 후, 실제 total만큼 받기
+    // 1페이지만 먼저 로드하여 사용자에게 즉시 표시
+    const PAGE_SIZE = 20;
     animateProgress(10, 200); // 초기 진행률
-    loadRecipesPaged(1, 1, filterParams, categoryKeywordTree).then(({total: initialTotal}) => {
-      animateProgress(30, 300); // total 확인 완료
-      // total이 확인되면 실제 전체 개수만큼 받기 (제한 없음)
-      const actualSize = initialTotal;
-      console.log('[RecipeList] 레시피 로드:', {
-        total: initialTotal,
-        actualSize: actualSize
+    
+    // 1페이지만 먼저 로드
+    loadRecipesPaged(1, PAGE_SIZE, filterParams, categoryKeywordTree).then(({recipes: firstPageRecipes, total: initialTotal}) => {
+      animateProgress(50, 300); // 1페이지 로드 완료
+      console.log('[RecipeList] 1페이지 로드 완료:', {
+        recipesCount: firstPageRecipes.length,
+        total: initialTotal
       });
       
-      // 데이터 로드 시작 시 중간 단계 추가
-      const loadPromise = loadRecipesPaged(1, actualSize, filterParams, categoryKeywordTree);
-      
-      // 데이터 로드 중간에 진행률 업데이트 (시간 기반)
-      const progressInterval = setInterval(() => {
-        const current = currentProgressRef.current;
-        if (current < 60) {
-          animateProgress(60, 500); // 데이터 로드 중 60%
-        } else if (current < 80) {
-          animateProgress(80, 500); // 데이터 로드 중 80%
-        }
-      }, 800); // 0.8초마다 체크
-      
-      return loadPromise.then((result) => {
-        clearInterval(progressInterval); // 인터벌 정리
-        return result;
-      });
-    }).then(({recipes, total}) => {
-      // 데이터 로드 완료 시 90%로 이동
-      animateProgress(90, 300);
-      // 서버에서 정렬된 전체 데이터를 캐시에 저장
-      setCachedFilteredRecipes(recipes);
-      setTotal(total);
+      // 1페이지를 즉시 캐시에 저장하고 표시
+      setCachedFilteredRecipes(firstPageRecipes);
+      setTotal(initialTotal);
       setPage(1); // 필터 변경 시 항상 1페이지로 리셋
       setLastFilterHash(filterHash);
-      // 초기 로드 완료 표시
+      
+      // 초기 로드 완료 표시 (1페이지가 로드되었으므로)
       if (!initialLoadDone.current) {
         initialLoadDone.current = true;
       }
-      // 약간의 지연 후 100%로
-      setTimeout(() => {
-        animateProgress(100, 200); // 완료
-      }, 100);
-      // 약간의 지연 후 로딩 상태 해제 (프로그레스 바가 100%까지 보이도록)
+      
+      // 로딩 상태 해제 (1페이지가 표시되므로)
+      animateProgress(100, 200);
       setTimeout(() => {
         setLoading(false);
         setLoadingProgress(0);
@@ -1468,7 +1452,57 @@ const RecipeList: React.FC = () => {
           clearInterval(progressAnimationRef.current);
           progressAnimationRef.current = null;
         }
-      }, 500);
+      }, 300);
+      
+      // 백그라운드에서 나머지 페이지들 로드
+      if (initialTotal > PAGE_SIZE) {
+        const totalPages = Math.ceil(initialTotal / PAGE_SIZE);
+        console.log('[RecipeList] 백그라운드에서 나머지 페이지 로드 시작:', totalPages - 1, '페이지');
+        
+        // 2페이지부터 순차적으로 로드
+        const loadRemainingPages = async () => {
+          const allRecipes = [...firstPageRecipes];
+          const loadingRef = backgroundLoadingRef.current; // 현재 로딩 세션의 ref 참조
+          
+          for (let page = 2; page <= totalPages; page++) {
+            // 로딩이 취소되었는지 확인
+            if (loadingRef.cancelled) {
+              console.log(`[RecipeList] 백그라운드 로딩 취소됨 (페이지 ${page} 이전)`);
+              return;
+            }
+            
+            try {
+              const {recipes: pageRecipes} = await loadRecipesPaged(page, PAGE_SIZE, filterParams, categoryKeywordTree);
+              
+              // 로딩이 취소되었는지 다시 확인 (로드 중에 취소되었을 수 있음)
+              if (loadingRef.cancelled) {
+                console.log(`[RecipeList] 백그라운드 로딩 취소됨 (페이지 ${page} 로드 후)`);
+                return;
+              }
+              
+              allRecipes.push(...pageRecipes);
+              
+              // 각 페이지가 로드될 때마다 캐시 업데이트 (점진적 로딩)
+              setCachedFilteredRecipes([...allRecipes]);
+              
+              console.log(`[RecipeList] 페이지 ${page}/${totalPages} 로드 완료 (백그라운드)`);
+            } catch (error) {
+              console.error(`[RecipeList] 페이지 ${page} 로드 실패:`, error);
+              // 실패해도 계속 진행 (단, 취소되지 않은 경우에만)
+              if (loadingRef.cancelled) {
+                return;
+              }
+            }
+          }
+          
+          if (!loadingRef.cancelled) {
+            console.log('[RecipeList] 모든 페이지 로드 완료 (백그라운드):', allRecipes.length, '개 레시피');
+          }
+        };
+        
+        // 백그라운드 로딩 시작 (비동기로 실행, 사용자 경험에 영향 없음)
+        loadRemainingPages();
+      }
     }).catch(error => {
       console.error('Error loading recipes:', error);
       setLoading(false);
