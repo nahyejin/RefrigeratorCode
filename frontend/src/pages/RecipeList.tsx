@@ -1794,9 +1794,9 @@ const RecipeList: React.FC = () => {
           maxWidth: 400,
           minHeight: '100vh',
           boxSizing: 'border-box',
-          paddingLeft: 14,
-          paddingRight: 14,
-          paddingTop: 88, // 헤더 높이(56px) + 여백(32px)
+          paddingLeft: 20,
+          paddingRight: 20,
+          paddingTop: 76, // 헤더 높이(56px) + 여백(20px)
         }}
       >
         <h2 className="text-lg font-bold mb-4 text-center">

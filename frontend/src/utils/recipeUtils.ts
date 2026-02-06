@@ -704,4 +704,129 @@ export async function preloadIngredientSynonymDict(): Promise<void> {
     ingredientSynonymDictCache = await loadIngredientSynonymDict();
     loadingSynonymDict = false;
   }
+}
+
+/**
+ * 재료별 쿠팡 파트너스 링크를 로드한다 (캐싱 적용)
+ */
+export async function loadCoupangLinks(): Promise<{ [key: string]: string }> {
+  const CACHE_KEY = 'coupang_links_cache';
+  const CACHE_VERSION = '1.1'; // CSV 링크 추가로 버전 업데이트
+  
+  try {
+    // 캐시 확인
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const cached = localStorage.getItem(CACHE_KEY);
+      if (cached) {
+        try {
+          const parsedCache = JSON.parse(cached);
+          if (parsedCache.version === CACHE_VERSION && parsedCache.data) {
+            return parsedCache.data;
+          }
+        } catch (e) {
+          // 캐시 파싱 실패 시 무시하고 새로 로드
+        }
+      }
+    }
+    
+    // 캐시가 없으면 새로 로드
+    const response = await fetch('/ingredient_profile_dict_with_substitutes.csv');
+    const csv = await response.text();
+    
+    const lines = csv.split('\n');
+    const header = lines[0].split(',');
+    const nameIdx = header.indexOf('keyword');
+    const linkIdx = header.indexOf('coupang_link');
+    const categoryIdx = header.indexOf('대분류');
+    
+    // coupang_link 컬럼이 없으면 빈 객체 반환
+    if (linkIdx === -1) {
+      console.log('[loadCoupangLinks] coupang_link 컬럼이 없습니다. CSV에 컬럼을 추가해주세요.');
+      return {};
+    }
+    
+    // CSV 파싱 함수 (따옴표로 감싸진 필드 처리)
+    const parseCSVLine = (line: string): string[] => {
+      const result: string[] = [];
+      let current = '';
+      let inQuotes = false;
+      
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        if (char === '"') {
+          inQuotes = !inQuotes;
+        } else if (char === ',' && !inQuotes) {
+          result.push(current.trim());
+          current = '';
+        } else {
+          current += char;
+        }
+      }
+      result.push(current.trim()); // 마지막 필드
+      return result;
+    };
+    
+    const linksDict: { [key: string]: string } = {};
+    let processedCount = 0;
+    
+    lines.slice(1).forEach((line) => {
+      if (!line.trim()) return; // 빈 줄 스킵
+      
+      const values = parseCSVLine(line);
+      if (values.length <= Math.max(nameIdx, linkIdx, categoryIdx)) {
+        return; // 컬럼 수 부족
+      }
+      
+      const keyword = values[nameIdx]?.trim();
+      const link = values[linkIdx]?.trim();
+      const category = values[categoryIdx]?.trim();
+      
+      // 재료이고 링크가 있으면 저장
+      if (keyword && category === '재료' && link) {
+        linksDict[keyword] = link;
+        processedCount++;
+        // 디버깅: 설탕 링크 확인
+        if (keyword === '설탕') {
+          console.log(`[loadCoupangLinks] 설탕 링크 발견: ${link}`);
+        }
+      }
+    });
+    
+    console.log(`[loadCoupangLinks] 쿠팡 링크 로드 완료: ${processedCount}개 재료`);
+    
+    // 전역 캐시 업데이트
+    coupangLinksCache = linksDict;
+    
+    // 캐시에 저장
+    if (typeof window !== 'undefined' && window.localStorage) {
+      try {
+        localStorage.setItem(CACHE_KEY, JSON.stringify({
+          version: CACHE_VERSION,
+          data: linksDict
+        }));
+      } catch (e) {
+        console.warn('[recipeUtils] 쿠팡 링크 캐시 저장 실패:', e);
+      }
+    }
+    
+    return linksDict;
+  } catch (error) {
+    console.warn('[recipeUtils] 쿠팡 링크 로드 실패:', error);
+    return {};
+  }
+}
+
+// 쿠팡 링크 캐시
+export let coupangLinksCache: { [key: string]: string } | null = null;
+let loadingCoupangLinks = false;
+
+/**
+ * 쿠팡 링크를 미리 로드한다 (선택사항)
+ */
+export async function preloadCoupangLinks(): Promise<void> {
+  if (!coupangLinksCache && !loadingCoupangLinks) {
+    loadingCoupangLinks = true;
+    coupangLinksCache = await loadCoupangLinks();
+    loadingCoupangLinks = false;
+  }
 } 

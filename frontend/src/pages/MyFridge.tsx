@@ -1671,14 +1671,14 @@ const MyFridge: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-white">
-      <div className="bg-white w-full p-0 m-0 pb-24" style={{ paddingTop: 92 }}>
+      <div className="bg-white w-full p-0 m-0 pb-24" style={{ paddingTop: 80 }}>
         {/* 타이틀+입력창 그룹 */}
         <div className="flex flex-col items-center justify-center w-full" style={{ marginBottom: 40 }}>
           <div className="flex items-center justify-between w-full max-w-[400px] px-5 mb-2" style={{ position: 'relative' }}>
             <h1 className="text-[18px] font-bold text-[#111] text-center" style={{ flex: 1 }}>내 냉장고 재료 추가</h1>
           </div>
         </div>
-        <div style={{ maxWidth: 400, margin: '0 auto', paddingLeft: 14, paddingRight: 14, width: '100%', boxSizing: 'border-box' }}>
+        <div style={{ maxWidth: 400, margin: '0 auto', paddingLeft: 20, paddingRight: 20, width: '100%', boxSizing: 'border-box' }}>
           <div
             className="flex gap-2 mb-4"
             style={{
@@ -1781,7 +1781,7 @@ const MyFridge: React.FC = () => {
           onComplete={handleModalComplete}
         />
         {/* 재고 관리 구역 */}
-        <div style={{ maxWidth: 400, margin: '0 auto', paddingLeft: 14, paddingRight: 14, width: '100%', marginTop: 48, boxSizing: 'border-box' }}>
+        <div style={{ maxWidth: 400, margin: '0 auto', paddingLeft: 20, paddingRight: 20, width: '100%', marginTop: 48, boxSizing: 'border-box' }}>
           <div className="flex items-center justify-between mb-2" style={{ position: 'relative', width: '100%' }}>
             <h2 className="text-[16px] font-bold text-[#111]">내 냉장고 재고 관리</h2>
             {/* 저장 버튼 (로그인한 경우만 표시, 우측) */}

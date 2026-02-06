@@ -44,7 +44,8 @@ const STYLES = {
     fontSize: CONSTANTS.EMPTY_MESSAGE_FONT_SIZE
   }),
   listContainer: (cardHeight: number) => ({
-    height: cardHeight,
+    height: 'auto', // 광고가 있는 카드를 위해 auto로 변경
+    minHeight: cardHeight, // 최소 높이 유지
     width: '100%'
   })
 };
@@ -207,7 +208,7 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
         ...style,
         ...STYLES.cardContainer(cardWidth, gap, cardHeight),
         touchAction: 'pan-x', // 가로 스크롤 허용
-        overflowY: 'hidden'
+        overflowY: 'visible' // 광고가 잘리지 않도록 visible로 변경
       }}>
         <RecipeCard
           recipe={recipe}
@@ -254,7 +255,7 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
         ref={containerRef} 
         style={{
           ...STYLES.listContainer(cardHeight),
-          overflowY: 'hidden',
+          overflowY: 'visible', // 광고가 잘리지 않도록 visible로 변경
           overflowX: 'auto',
           touchAction: 'pan-x pan-y', // 가로 스크롤 우선, 세로 스크롤도 허용
           WebkitOverflowScrolling: 'touch',
@@ -263,7 +264,7 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
       >
         <List
           ref={listRef}
-          height={cardHeight}
+          height={cardHeight + 80}
           itemCount={recipes.length}
           itemSize={itemSize}
           layout="horizontal"

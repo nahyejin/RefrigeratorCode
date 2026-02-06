@@ -34,7 +34,7 @@ const STYLES = {
     color: 'inherit'
   },
   lastCard: {
-    marginBottom: 40,
+    marginBottom: 20,
     marginLeft: 'auto',
     marginRight: 'auto',
     minWidth: 0,
@@ -46,11 +46,11 @@ const STYLES = {
   imageContainer: {
     position: 'relative' as const,
     width: '100%',
-    height: 180
+    height: 120
   },
   thumbnail: {
     width: '100%',
-    height: 180,
+    height: 120,
     objectFit: 'cover' as const,
     borderRadius: 12,
     marginBottom: 12
@@ -194,6 +194,7 @@ export interface RecipeCardProps {
   hideIndexNumber?: boolean;
   showRank?: boolean;
   onThumbnailError?: (recipeId: number) => void;
+  hasAd?: boolean; // 광고 표시 여부
 }
 
 // RecipeCard는 UI만 담당, 상태/스토리지/토스트 등은 상위에서 관리
@@ -311,10 +312,19 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
   };
   
   const lackingIngredients = getLackingIngredients();
+  // 광고용 대상 재료 선택: 부족한 재료가 1개 이상이면 그 중 하나를 선택 (여러 개일 경우 랜덤 선택)
+  const adIngredient =
+    lackingIngredients.length > 0
+      ? lackingIngredients[Math.floor(Math.random() * lackingIngredients.length)]
+      : null;
 
   const handleCardClick = (e: React.MouseEvent<HTMLDivElement>) => {
     // 버튼 영역 클릭 시 카드 클릭 이벤트 무시
     if ((e.target as HTMLElement).closest('.action-buttons')) {
+      return;
+    }
+    // 쿠팡 광고 영역 클릭 시 카드 클릭 이벤트 무시 (링크가 정상 작동하도록)
+    if ((e.target as HTMLElement).closest('.coupang-product-ad')) {
       return;
     }
     // 썸네일 이미지나 제목 클릭 시 새 창 열기
@@ -334,9 +344,9 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
       style={{
         ...(isLast ? STYLES.lastCard : STYLES.card),
         padding: '16px', // p-4 대신 명시적으로 설정
-        marginBottom: hasAd ? 16 : 8, // 광고가 있으면 16px, 없으면 8px로 간격 축소
+        marginBottom: 2, // 광고 유무와 상관없이 카드 간 간격을 2px로 최소화
         touchAction: 'pan-y pan-x', // 세로 및 가로 스크롤 모두 허용
-        overflow: hasAd ? 'visible' : 'hidden', // 광고가 있으면 visible, 없으면 hidden
+        overflow: 'visible', // 항상 visible로 설정하여 광고가 잘리지 않도록
         boxSizing: 'border-box' as const, // padding 포함한 크기 계산
         WebkitOverflowScrolling: 'touch' // iOS 부드러운 스크롤
       }}
@@ -441,11 +451,11 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
         </div>
       )}
       
-      {/* 쿠팡 광고: 부족한 재료가 정확히 1개일 때만 표시 (대체 가능한 재료 제외) */}
-      {lackingIngredients.length === 1 ? (
-        <div style={{ marginTop: '12px' }}>
+      {/* 쿠팡 광고: 부족한 재료가 1개 이상일 때 표시 (여러 개면 그중 하나를 랜덤 선택, 대체 가능한 재료 제외) */}
+      {adIngredient ? (
+        <div style={{ marginTop: '8px' }}>
           <CoupangProductAd 
-            ingredientName={lackingIngredients[0]}
+            ingredientName={adIngredient}
           />
         </div>
       ) : null}

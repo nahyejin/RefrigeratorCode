@@ -1483,7 +1483,7 @@ const Popular = () => {
 
   return (
     <>
-      <div className="popular-page" style={{padding: '88px 14px 80px 14px', maxWidth: 400, margin: '0 auto', boxSizing: 'border-box'}}>
+      <div className="popular-page" style={{padding: '76px 20px 80px 20px', maxWidth: 400, margin: '0 auto', boxSizing: 'border-box'}}>
         {/* 상단 타이틀 */}
         <header style={{marginBottom: 32}}>
           <h2 className="text-lg font-bold mb-4 text-center" style={{marginBottom: 32}}>
@@ -1628,7 +1628,7 @@ const Popular = () => {
           if (premiumRecipes.length === 0) return null;
 
           return (
-            <section style={{marginBottom: 48}}>
+            <section style={{marginBottom: 24}}>
               <div style={{marginBottom: 8, display: 'flex', alignItems: 'center'}}>
                 <h2
                   className="text-[16px] font-bold text-[#111] mb-2"
@@ -1645,10 +1645,25 @@ const Popular = () => {
                 </h2>
               </div>
               <div style={{height: 2, width: '100%', background: '#E5E5E5', marginBottom: 16}} />
+              {/* 범례 + 총 건수 (유튜브/네이버 섹션과 동일한 형식) */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, marginTop: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <span style={{ width: 24, height: 14, borderRadius: 7, background: '#D1D1D1', display: 'inline-block', marginRight: 2 }}></span>
+                    <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>부족 재료</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <span style={{ width: 24, height: 14, borderRadius: 7, background: '#555', display: 'inline-block', marginRight: 2 }}></span>
+                    <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>대체 가능</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <span style={{ width: 24, height: 14, borderRadius: 7, background: '#FFD600', display: 'inline-block', marginRight: 2 }}></span>
+                    <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>보유 재료</span>
+                  </div>
+                </div>
                 <span style={{ color: '#666', fontSize: '12px' }}>총 {premiumRecipes.length}건</span>
               </div>
-              
+
               {/* 가로 스크롤 컨테이너 (버튼 포함) */}
               <div style={{ position: 'relative' }}>
                 <div
@@ -1681,47 +1696,23 @@ const Popular = () => {
                             flex: '0 0 320px',
                             minWidth: '320px',
                             maxWidth: '320px',
-                            border: '1px solid #f5f5f5',
-                            borderRadius: '12px',
-                            padding: '8px',
-                            backgroundColor: '#fff',
                             display: 'flex',
                             flexDirection: 'column'
                           }}
                         >
-                          {/* 레시피 카드 */}
-                          <div style={{ flex: '0 0 auto' }}>
-                            <div style={{ marginBottom: '-40px' }}>
-                              <RecipeCard
-                                recipe={recipe}
-                                index={index}
-                                recipeActionState={buttonStates[recipe.id]}
-                                onRecipeAction={(recipeWithAction) => handleRecipeAction(recipe.id, { action: recipeWithAction.action })}
-                                isLast={true}
-                                myIngredients={myIngredients}
-                                substituteTable={substituteTable}
-                                showRank={false}
-                                onThumbnailError={(recipeId) => {
-                                  setFailedThumbnailIds(prev => new Set([...prev, recipeId]));
-                                }}
-                              />
-                            </div>
-                          </div>
-                          
-                          {/* 프리미엄 재료 광고 (1개만) */}
-                          {premiumIngs.length > 0 && (
-                            <div style={{
-                              marginTop: '20px',
-                              paddingTop: '20px',
-                              borderTop: '1px solid #f0f0f0',
-                              flex: '0 0 auto'
-                            }}>
-                              <CoupangProductAd
-                                ingredientName={premiumIngs[0]}
-                                style={{ margin: 0 }}
-                              />
-                            </div>
-                          )}
+                          <RecipeCard
+                            recipe={recipe}
+                            index={index}
+                            recipeActionState={buttonStates[recipe.id]}
+                            onRecipeAction={(recipeWithAction) => handleRecipeAction(recipe.id, { action: recipeWithAction.action })}
+                            isLast={true}
+                            myIngredients={myIngredients}
+                            substituteTable={substituteTable}
+                            showRank={false}
+                            onThumbnailError={(recipeId) => {
+                              setFailedThumbnailIds(prev => new Set([...prev, recipeId]));
+                            }}
+                          />
                         </div>
                       );
                     })}
@@ -1879,7 +1870,7 @@ const Popular = () => {
              recipeActionStates={buttonStates}
              onRecipeAction={(recipe, action) => handleRecipeAction(recipe.id, { action: action as 'done' | 'write' | 'share' })}
              cardWidth={320}
-             cardHeight={320}
+             cardHeight={280}
              gap={16}
              showRank={true}
              onThumbnailError={(recipeId) => {
@@ -1942,7 +1933,7 @@ const Popular = () => {
              recipeActionStates={buttonStates}
              onRecipeAction={(recipe, action) => handleRecipeAction(recipe.id, { action: action as 'done' | 'write' | 'share' })}
              cardWidth={320}
-             cardHeight={320}
+             cardHeight={280}
              gap={16}
              showRank={true}
              onThumbnailError={(recipeId) => {
