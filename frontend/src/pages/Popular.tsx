@@ -1628,7 +1628,7 @@ const Popular = () => {
           if (premiumRecipes.length === 0) return null;
 
           return (
-            <section style={{marginBottom: 24}}>
+            <section style={{marginBottom: 6}}>
               <div style={{marginBottom: 8, display: 'flex', alignItems: 'center'}}>
                 <h2
                   className="text-[16px] font-bold text-[#111] mb-2"
@@ -1663,7 +1663,7 @@ const Popular = () => {
                 </div>
                 <span style={{ color: '#666', fontSize: '12px' }}>총 {premiumRecipes.length}건</span>
               </div>
-
+              
               {/* 가로 스크롤 컨테이너 (버튼 포함) */}
               <div style={{ position: 'relative' }}>
                 <div
@@ -1693,26 +1693,27 @@ const Popular = () => {
                         <div
                           key={recipe.id}
                           style={{
-                            flex: '0 0 320px',
-                            minWidth: '320px',
-                            maxWidth: '320px',
+                            flex: '0 0 280px',
+                            minWidth: '280px',
+                            maxWidth: '280px',
                             display: 'flex',
                             flexDirection: 'column'
                           }}
                         >
-                          <RecipeCard
-                            recipe={recipe}
-                            index={index}
-                            recipeActionState={buttonStates[recipe.id]}
-                            onRecipeAction={(recipeWithAction) => handleRecipeAction(recipe.id, { action: recipeWithAction.action })}
-                            isLast={true}
-                            myIngredients={myIngredients}
+                              <RecipeCard
+                                recipe={recipe}
+                                index={index}
+                                recipeActionState={buttonStates[recipe.id]}
+                                onRecipeAction={(recipeWithAction) => handleRecipeAction(recipe.id, { action: recipeWithAction.action })}
+                                isLast={true}
+                                myIngredients={myIngredients}
                             substituteTable={substituteTable}
-                            showRank={false}
-                            onThumbnailError={(recipeId) => {
-                              setFailedThumbnailIds(prev => new Set([...prev, recipeId]));
-                            }}
-                          />
+                                showRank={false}
+                                isHorizontal={true}
+                                onThumbnailError={(recipeId) => {
+                                  setFailedThumbnailIds(prev => new Set([...prev, recipeId]));
+                                }}
+                              />
                         </div>
                       );
                     })}
@@ -1723,7 +1724,7 @@ const Popular = () => {
                   <div
                     onClick={() => {
                       if (premiumScrollRef.current) {
-                        premiumScrollRef.current.scrollBy({ left: -336, behavior: 'smooth' });
+                        premiumScrollRef.current.scrollBy({ left: -296, behavior: 'smooth' });
                       }
                     }}
                     style={{
@@ -1770,7 +1771,7 @@ const Popular = () => {
                   <div
                     onClick={() => {
                       if (premiumScrollRef.current) {
-                        premiumScrollRef.current.scrollBy({ left: 336, behavior: 'smooth' });
+                        premiumScrollRef.current.scrollBy({ left: 296, behavior: 'smooth' });
                       }
                     }}
                     style={{
@@ -1817,7 +1818,7 @@ const Popular = () => {
         })()}
 
         {/* ⓑ 유튜브 인기 레시피 섹션 */}
-        <section style={{marginBottom: 48}}>
+        <section style={{marginBottom: 6}}>
           <div style={{marginBottom: 8, display: 'flex', alignItems: 'center'}}>
             <span
               style={{
@@ -1869,7 +1870,7 @@ const Popular = () => {
              substituteTable={substituteTable}
              recipeActionStates={buttonStates}
              onRecipeAction={(recipe, action) => handleRecipeAction(recipe.id, { action: action as 'done' | 'write' | 'share' })}
-             cardWidth={320}
+             cardWidth={280}
              cardHeight={280}
              gap={16}
              showRank={true}
@@ -1880,7 +1881,7 @@ const Popular = () => {
         </section>
 
         {/* ⓒ 네이버 인기 레시피 섹션 */}
-        <section style={{marginBottom: 48}}>
+        <section style={{marginBottom: 6}}>
           <div style={{marginBottom: 8, display: 'flex', alignItems: 'center'}}>
             <span
               style={{
@@ -1932,7 +1933,7 @@ const Popular = () => {
              substituteTable={substituteTable}
              recipeActionStates={buttonStates}
              onRecipeAction={(recipe, action) => handleRecipeAction(recipe.id, { action: action as 'done' | 'write' | 'share' })}
-             cardWidth={320}
+             cardWidth={280}
              cardHeight={280}
              gap={16}
              showRank={true}
@@ -1954,17 +1955,17 @@ const Popular = () => {
                 <table className="w-full max-w-[280px] mx-auto border-collapse text-[13px] font-sans" style={{background: '#fff'}}>
                   <thead>
                     <tr style={{borderTop: '1px solid #E5E5E5', borderBottom: '1px solid #E5E5E5', background: '#F7F7F9'}}>
-                      <th className="py-1.5 px-2 text-center font-medium text-[#222] whitespace-nowrap">순위</th>
-                      <th className="py-1.5 px-2 text-center font-medium text-[#222] whitespace-nowrap">요리명</th>
-                      <th className="py-1.5 px-2 text-center font-medium text-[#222] whitespace-nowrap">레시피 수</th>
+                      <th className="py-1 px-2 text-center font-medium text-[#222] whitespace-nowrap">순위</th>
+                      <th className="py-1 px-2 text-center font-medium text-[#222] whitespace-nowrap">요리명</th>
+                      <th className="py-1 px-2 text-center font-medium text-[#222] whitespace-nowrap">레시피 수</th>
                     </tr>
                   </thead>
                   <tbody>
                     {dishRankings.length > 0 ? (
                       dishRankings.map((dish, idx) => (
                         <tr key={dish.name}>
-                          <td className="py-1.5 px-2 text-center text-[#444] font-normal whitespace-nowrap">{idx + 1}</td>
-                          <td className="py-1.5 px-2 text-center text-[#444] font-normal whitespace-nowrap">
+                          <td className="py-1 px-2 text-center text-[#444] font-normal whitespace-nowrap">{idx + 1}</td>
+                          <td className="py-1 px-2 text-center text-[#444] font-normal whitespace-nowrap">
                             <span
                               style={{ cursor: 'pointer', textDecoration: 'none' }}
                               onClick={() => navigate(`/ingredient/${encodeURIComponent(dish.name)}?minCount=2`)}
@@ -1973,7 +1974,7 @@ const Popular = () => {
                               {dish.name}
                             </span>
                           </td>
-                          <td className="py-1.5 px-2 text-center text-[#444] font-normal whitespace-nowrap">
+                          <td className="py-1 px-2 text-center text-[#444] font-normal whitespace-nowrap">
                             <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', position: 'relative', paddingRight: '8px'}}>
                               <span style={{flex: 1, textAlign: 'center', paddingRight: '20px'}}>{dish.count.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</span>
                               {dish.isNew || (dish.rate > 0) || (dish.multiplier !== undefined && dish.multiplier > 1) ? (
@@ -2015,22 +2016,22 @@ const Popular = () => {
                 <table className="w-full max-w-[280px] mx-auto border-collapse text-[13px] font-sans" style={{background: '#fff'}}>
                   <thead>
                     <tr style={{borderTop: '1px solid #E5E5E5', borderBottom: '1px solid #E5E5E5', background: '#F7F7F9'}}>
-                      <th className="py-1.5 px-2 text-center font-medium text-[#222] whitespace-nowrap">순위</th>
-                      <th className="py-1.5 px-2 text-center font-medium text-[#222] whitespace-nowrap">테마명</th>
-                      <th className="py-1.5 px-2 text-center font-medium text-[#222] whitespace-nowrap">레시피 수</th>
+                      <th className="py-1 px-2 text-center font-medium text-[#222] whitespace-nowrap">순위</th>
+                      <th className="py-1 px-2 text-center font-medium text-[#222] whitespace-nowrap">테마명</th>
+                      <th className="py-1 px-2 text-center font-medium text-[#222] whitespace-nowrap">레시피 수</th>
                     </tr>
                   </thead>
                   <tbody>
                     {themeRankings.length > 0 ? (
                       themeRankings.map((theme, idx) => (
                         <tr key={theme.id}>
-                          <td className="py-1.5 px-2 text-center text-[#444] font-normal whitespace-nowrap">{idx + 1}</td>
-                          <td className="py-1.5 px-2 text-center text-[#444] font-normal whitespace-nowrap">
+                          <td className="py-1 px-2 text-center text-[#444] font-normal whitespace-nowrap">{idx + 1}</td>
+                          <td className="py-1 px-2 text-center text-[#444] font-normal whitespace-nowrap">
                             <span style={{ cursor: 'pointer', textDecoration: 'none' }} onClick={() => navigate(`/ingredient/${encodeURIComponent(theme.name)}`)}>
                               {theme.name}
                             </span>
                           </td>
-                          <td className="py-1.5 px-2 text-center text-[#444] font-normal whitespace-nowrap">
+                          <td className="py-1 px-2 text-center text-[#444] font-normal whitespace-nowrap">
                             <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', position: 'relative', paddingRight: '8px'}}>
                               <span style={{flex: 1, textAlign: 'center', paddingRight: '20px'}}>{theme.count.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</span>
                               {theme.isNew || (theme.rate > 0) || (theme.multiplier !== undefined && theme.multiplier > 1) ? (

@@ -195,6 +195,7 @@ export interface RecipeCardProps {
   showRank?: boolean;
   onThumbnailError?: (recipeId: number) => void;
   hasAd?: boolean; // 광고 표시 여부
+  isHorizontal?: boolean; // 가로 스크롤형 카드 여부 (썸네일 높이 조정용)
 }
 
 // RecipeCard는 UI만 담당, 상태/스토리지/토스트 등은 상위에서 관리
@@ -210,6 +211,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
   showRank = false,
   onThumbnailError,
   hasAd: hasAdProp,
+  isHorizontal = false,
 }) => {
   // 썸네일 로드 상태 추적 (null: 검증 중, true: 성공, false: 실패)
   const [thumbnailStatus, setThumbnailStatus] = React.useState<boolean | null>(null);
@@ -365,7 +367,10 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
         }
       }}
     >
-      <div style={STYLES.imageContainer}>
+      <div style={{
+        ...STYLES.imageContainer,
+        height: isHorizontal ? 100 : STYLES.imageContainer.height
+      }}>
         <img
           src={getProxiedImageUrl(recipe.thumbnail || '')}
           alt="썸네일"
@@ -378,7 +383,8 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
             e.currentTarget.onerror = null; // 무한 루프 방지
           }}
           style={{ 
-            ...STYLES.thumbnail, 
+            ...STYLES.thumbnail,
+            height: isHorizontal ? 100 : STYLES.thumbnail.height,
             cursor: 'pointer',
             touchAction: 'pan-y', // 세로 스크롤 허용
             userSelect: 'none', // 이미지 선택 방지

@@ -219,6 +219,7 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
           myIngredients={myIngredients}
           substituteTable={substituteTable}
           showRank={showRank}
+          isHorizontal={true}
           onThumbnailError={onThumbnailError}
         />
       </div>

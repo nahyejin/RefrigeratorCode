@@ -197,7 +197,7 @@ const CoupangProductAd: React.FC<CoupangProductAdProps> = ({
         lineHeight: '1.3',
         whiteSpace: 'pre-line'
       }}>
-        이 게시물은 쿠팡 파트너스의 활동의 일환으로,{'\n'}이에 따른 일정액의 수수료를 제공받습니다.
+        이 게시물은 쿠팡 파트너스 활동의 일환으로,{'\n'}이에 따른 일정액의 수수료를 제공받습니다.
       </div>
     </div>
   );
