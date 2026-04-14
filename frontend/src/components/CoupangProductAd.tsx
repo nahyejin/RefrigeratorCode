@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
-import { loadCoupangLinks, coupangLinksCache, preloadCoupangLinks, convertSynonymToKeywordSync, ingredientSynonymDictCache, loadIngredientSynonymDict } from '../utils/recipeUtils';
+import { loadCoupangLinks, coupangLinksCache, convertSynonymToKeywordSync, ingredientSynonymDictCache, loadIngredientSynonymDict } from '../utils/recipeUtils';
 
 interface CoupangProductAdProps {
   /** 재료명 (쿠팡에서 검색할 키워드) */
@@ -27,14 +27,24 @@ const CoupangProductAd: React.FC<CoupangProductAdProps> = ({
   className = '',
   partnerId
 }) => {
+  console.log(`[CoupangProductAd] 컴포넌트 렌더링: ingredientName=${ingredientName}`);
+  
   const adRef = useRef<HTMLDivElement>(null);
   const partnerIdFinal = partnerId || import.meta.env.VITE_COUPANG_PARTNER_ID || '';
   const [coupangLinks, setCoupangLinks] = useState<{ [key: string]: string } | null>(null);
   const [isLoadingLinks, setIsLoadingLinks] = useState(false);
   const [synonymDict, setSynonymDict] = useState<{ [key: string]: string } | null>(null);
+  
+  console.log(`[CoupangProductAd] 초기 상태:`, {
+    coupangLinks: coupangLinks ? `객체 (${Object.keys(coupangLinks).length}개 키)` : 'null',
+    isLoadingLinks,
+    coupangLinksCache: coupangLinksCache ? `객체 (${Object.keys(coupangLinksCache).length}개 키)` : 'null'
+  });
 
   // 동의어 사전 및 쿠팡 링크 로드
   useEffect(() => {
+    console.log(`[CoupangProductAd] ⚡ useEffect 실행됨!`);
+    
     // 동의어 사전 로드
     if (ingredientSynonymDictCache) {
       setSynonymDict(ingredientSynonymDictCache);
@@ -44,21 +54,44 @@ const CoupangProductAd: React.FC<CoupangProductAdProps> = ({
       });
     }
 
-    // 쿠팡 링크 로드
+    // 쿠팡 링크 로드 (항상 최신 데이터를 위해 항상 로드)
+    console.log(`[CoupangProductAd] useEffect 실행 - isLoadingLinks: ${isLoadingLinks}, coupangLinksCache 존재: ${!!coupangLinksCache}, coupangLinksCache 타입: ${typeof coupangLinksCache}, coupangLinksCache 키 개수: ${coupangLinksCache ? Object.keys(coupangLinksCache).length : 'N/A'}`);
+    
+    // coupangLinksCache가 있으면 먼저 설정 (빠른 표시)
     if (coupangLinksCache) {
+      console.log(`[CoupangProductAd] 캐시된 링크 먼저 설정:`, {
+        keysCount: Object.keys(coupangLinksCache).length,
+        hasSugar: '설탕' in coupangLinksCache,
+        sugarLink: coupangLinksCache['설탕']
+      });
       setCoupangLinks(coupangLinksCache);
-      return;
     }
-
-    // 캐시가 없으면 로드
+    
+    // 항상 최신 데이터를 위해 loadCoupangLinks 호출
     if (!isLoadingLinks) {
       setIsLoadingLinks(true);
+      console.log(`[CoupangProductAd] loadCoupangLinks() 호출 시작`);
       loadCoupangLinks().then(links => {
         // coupangLinksCache는 loadCoupangLinks 내부에서 업데이트됨
+        console.log(`[CoupangProductAd] 쿠팡 링크 로드 완료:`, {
+          linksCount: Object.keys(links).length,
+          hasSugar: '설탕' in links,
+          sugarLink: links['설탕'],
+          allKeys: Object.keys(links).slice(0, 10)
+        });
         setCoupangLinks(links);
         setIsLoadingLinks(false);
-      }).catch(() => {
+      }).catch((error) => {
+        console.error('[CoupangProductAd] 쿠팡 링크 로드 실패:', error);
         setIsLoadingLinks(false);
+        // 실패 시 캐시 사용
+        if (coupangLinksCache) {
+          console.log(`[CoupangProductAd] 실패 시 캐시 사용:`, {
+            hasSugar: '설탕' in coupangLinksCache,
+            sugarLink: coupangLinksCache['설탕']
+          });
+          setCoupangLinks(coupangLinksCache);
+        }
       });
     }
   }, []);
@@ -108,13 +141,29 @@ const CoupangProductAd: React.FC<CoupangProductAdProps> = ({
 
   // coupangLinks가 로드될 때마다 링크 재생성
   const partnerLink = useMemo(() => {
+    // coupangLinks가 아직 로드 중이면 null 반환 (로딩 완료 후 재생성)
+    if (coupangLinks === null && isLoadingLinks) {
+      console.log(`[CoupangProductAd] 쿠팡 링크 로딩 중...`);
+      return null;
+    }
     const link = generatePartnerLink(ingredientName);
     console.log(`[CoupangProductAd] 최종 생성된 링크: ${link}`);
+    console.log(`[CoupangProductAd] 링크 타입: ${link?.startsWith('https://link.coupang.com/a/dHedi7') ? 'CSV 링크' : link?.includes('linkCode=as2') ? 'Fallback 링크' : '기타'}`);
     return link;
-  }, [ingredientName, coupangLinks, synonymDict, partnerIdFinal]);
+  }, [ingredientName, coupangLinks, synonymDict, partnerIdFinal, isLoadingLinks]);
 
-  // 파트너 ID가 없으면 개발 모드에서만 표시
-  if (!partnerIdFinal) {
+  // 링크가 아직 준비되지 않았으면 렌더링하지 않음
+  if (!partnerLink) {
+    return null;
+  }
+
+  // 파트너 ID가 없고 fallback 링크만 가능한 상황이면 개발 모드에서만 안내 표시
+  const hasCsvLink = !!(coupangLinks && (() => {
+    const keyword = synonymDict ? convertSynonymToKeywordSync(ingredientName, synonymDict) : ingredientName;
+    return coupangLinks[keyword];
+  })());
+
+  if (!partnerIdFinal && !hasCsvLink) {
     if (import.meta.env.DEV) {
       return (
         <div 

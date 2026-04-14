@@ -711,7 +711,9 @@ export async function preloadIngredientSynonymDict(): Promise<void> {
  */
 export async function loadCoupangLinks(): Promise<{ [key: string]: string }> {
   const CACHE_KEY = 'coupang_links_cache';
-  const CACHE_VERSION = '1.1'; // CSV 링크 추가로 버전 업데이트
+  const CACHE_VERSION = '1.4'; // 캐시 강제 무효화 - 설탕 링크 문제 해결
+  
+  console.log(`[loadCoupangLinks] 함수 호출됨 - 캐시 버전: ${CACHE_VERSION}`);
   
   try {
     // 캐시 확인
@@ -720,12 +722,28 @@ export async function loadCoupangLinks(): Promise<{ [key: string]: string }> {
       if (cached) {
         try {
           const parsedCache = JSON.parse(cached);
+          console.log(`[loadCoupangLinks] 캐시 발견:`, {
+            version: parsedCache.version,
+            expectedVersion: CACHE_VERSION,
+            dataCount: parsedCache.data ? Object.keys(parsedCache.data).length : 0,
+            hasSugar: parsedCache.data ? '설탕' in parsedCache.data : false
+          });
           if (parsedCache.version === CACHE_VERSION && parsedCache.data) {
+            if (parsedCache.data['설탕']) {
+              console.log(`[loadCoupangLinks] ✅ 캐시에서 설탕 링크 확인:`, parsedCache.data['설탕']);
+            } else {
+              console.log(`[loadCoupangLinks] ⚠️ 캐시에 설탕 링크 없음, 새로 로드 필요`);
+            }
             return parsedCache.data;
+          } else {
+            console.log(`[loadCoupangLinks] 캐시 버전 불일치 (${parsedCache.version} !== ${CACHE_VERSION}), 새로 로드`);
           }
         } catch (e) {
+          console.log(`[loadCoupangLinks] 캐시 파싱 실패:`, e);
           // 캐시 파싱 실패 시 무시하고 새로 로드
         }
+      } else {
+        console.log(`[loadCoupangLinks] 캐시 없음, 새로 로드`);
       }
     }
     
@@ -768,12 +786,20 @@ export async function loadCoupangLinks(): Promise<{ [key: string]: string }> {
     
     const linksDict: { [key: string]: string } = {};
     let processedCount = 0;
+    let skippedCount = 0;
     
-    lines.slice(1).forEach((line) => {
+    console.log(`[loadCoupangLinks] CSV 파싱 시작 - 총 ${lines.length - 1}개 행`);
+    console.log(`[loadCoupangLinks] 컬럼 인덱스: keyword=${nameIdx}, coupang_link=${linkIdx}, 대분류=${categoryIdx}`);
+    
+    lines.slice(1).forEach((line, lineIndex) => {
       if (!line.trim()) return; // 빈 줄 스킵
       
       const values = parseCSVLine(line);
       if (values.length <= Math.max(nameIdx, linkIdx, categoryIdx)) {
+        skippedCount++;
+        if (lineIndex < 5) {
+          console.log(`[loadCoupangLinks] 컬럼 수 부족 스킵 (행 ${lineIndex + 2}): ${values.length}개 컬럼`);
+        }
         return; // 컬럼 수 부족
       }
       
@@ -781,18 +807,45 @@ export async function loadCoupangLinks(): Promise<{ [key: string]: string }> {
       const link = values[linkIdx]?.trim();
       const category = values[categoryIdx]?.trim();
       
+      // 디버깅: 설탕 행 확인
+      if (keyword === '설탕' || (lineIndex < 5 && keyword)) {
+        console.log(`[loadCoupangLinks] 행 ${lineIndex + 2} 파싱:`, {
+          keyword,
+          category,
+          link,
+          linkLength: link?.length,
+          hasLink: !!link && link.trim() !== '',
+          valuesLength: values.length
+        });
+      }
+      
       // 재료이고 링크가 있으면 저장
-      if (keyword && category === '재료' && link) {
-        linksDict[keyword] = link;
+      if (keyword && category === '재료' && link && link.trim() !== '') {
+        linksDict[keyword] = link.trim();
         processedCount++;
         // 디버깅: 설탕 링크 확인
         if (keyword === '설탕') {
-          console.log(`[loadCoupangLinks] 설탕 링크 발견: ${link}`);
+          console.log(`[loadCoupangLinks] ✅ 설탕 링크 발견: ${link.trim()}`);
+          console.log(`[loadCoupangLinks] 설탕 링크가 linksDict에 저장됨:`, linksDict['설탕']);
         }
+      } else if (keyword === '설탕') {
+        console.log(`[loadCoupangLinks] ⚠️ 설탕 행 처리 실패:`, {
+          keyword,
+          category,
+          link,
+          categoryMatch: category === '재료',
+          hasLink: !!link && link.trim() !== ''
+        });
       }
     });
     
-    console.log(`[loadCoupangLinks] 쿠팡 링크 로드 완료: ${processedCount}개 재료`);
+    console.log(`[loadCoupangLinks] 쿠팡 링크 로드 완료: ${processedCount}개 재료, ${skippedCount}개 행 스킵`);
+    console.log(`[loadCoupangLinks] 로드된 링크 키 목록:`, Object.keys(linksDict).slice(0, 10));
+    if (linksDict['설탕']) {
+      console.log(`[loadCoupangLinks] ✅ 최종 확인 - 설탕 링크:`, linksDict['설탕']);
+    } else {
+      console.log(`[loadCoupangLinks] ❌ 설탕 링크가 최종 딕셔너리에 없습니다!`);
+    }
     
     // 전역 캐시 업데이트
     coupangLinksCache = linksDict;

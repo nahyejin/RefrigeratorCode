@@ -340,6 +340,10 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
   // 광고가 표시될 경우를 대비해 overflow와 min-height 조정
   const hasAd = lackingIngredients.length === 1;
   
+  const horizontalIngredientSectionStyle = isHorizontal
+    ? { minHeight: 54 }
+    : undefined;
+
   return (
     <div
       className="bg-white rounded-[20px] relative block transition-all duration-300 cursor-pointer"
@@ -452,17 +456,19 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
       <div style={STYLES.stats}>
         {Utils.getStatsText(recipe)}
       </div>
-      {usedIngredientList.length > 0 ? (
-        <IngredientPillGroup
-          needIngredients={usedIngredientList}
-          myIngredients={myIngredients}
-          substituteTable={substituteTable}
-        />
-      ) : (
-        <div className="custom-scrollbar pr-1" style={{ display: 'flex', flexWrap: 'nowrap', gap: 4, marginBottom: 4, overflowX: 'auto', maxWidth: '100%', scrollbarWidth: 'auto', alignItems: 'center', paddingBottom: 4 }}>
-          <span className="bg-customGray text-white rounded-full px-3 py-0.5 font-normal" style={{ fontSize: '10.4px', lineHeight: 1.3, whiteSpace: 'nowrap', height: 22, display: 'inline-flex', alignItems: 'center', textShadow: 'none', border: 'none' }}>재료 정보 없음</span>
-        </div>
-      )}
+      <div style={horizontalIngredientSectionStyle}>
+        {usedIngredientList.length > 0 ? (
+          <IngredientPillGroup
+            needIngredients={usedIngredientList}
+            myIngredients={myIngredients}
+            substituteTable={substituteTable}
+          />
+        ) : (
+          <div className="custom-scrollbar pr-1" style={{ display: 'flex', flexWrap: 'nowrap', gap: 4, marginBottom: 4, overflowX: 'auto', maxWidth: '100%', scrollbarWidth: 'auto', alignItems: 'center', paddingBottom: 4 }}>
+            <span className="bg-customGray text-white rounded-full px-3 py-0.5 font-normal" style={{ fontSize: '10.4px', lineHeight: 1.3, whiteSpace: 'nowrap', height: 22, display: 'inline-flex', alignItems: 'center', textShadow: 'none', border: 'none' }}>재료 정보 없음</span>
+          </div>
+        )}
+      </div>
       
       {/* 쿠팡 광고: 부족한 재료가 1개 이상일 때 표시 (여러 개면 그중 하나를 랜덤 선택, 대체 가능한 재료 제외) */}
       {adIngredient ? (
