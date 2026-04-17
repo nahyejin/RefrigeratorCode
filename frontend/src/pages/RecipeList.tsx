@@ -1653,13 +1653,12 @@ const RecipeList: React.FC = () => {
       });
     }
 
-    // maxLack 필터가 적용된 후의 총 개수를 total로 업데이트
-    setTotal(filteredByMaxLack.length);
-
     // 서버에서 정렬된 데이터이지만, 동의어 처리를 고려하여 프론트엔드에서 다시 정렬해야 함
     // 서버는 동의어를 고려하지 않고 match_rate를 계산하므로, 프론트엔드에서 동의어를 고려한 매칭률로 재정렬 필요
     const effectiveSortType = initialLoadDone.current ? sortType : 'match';
-    
+    const effectiveMatchRange = initialLoadDone.current ? matchRange : [30, 100];
+    const [matchMin, matchMax] = effectiveMatchRange;
+
     // 동의어를 고려하여 매칭률을 다시 계산하고 정렬
     // 먼저 모든 레시피에 대해 동의어를 고려한 매칭률 계산
     const recipesWithCorrectMatchRate = filteredByMaxLack.map(recipe => {
@@ -1675,10 +1674,18 @@ const RecipeList: React.FC = () => {
         need_ingredients: matchResult.need_ingredients
       };
     });
-    
+
+    // 동의어 반영 후 매칭률이 바뀌므로, 사용자가 고른 구간(예: 60~90%)을 클라이언트에서 다시 적용
+    const inMatchRange = recipesWithCorrectMatchRate.filter(r => {
+      const rate = typeof r.match_rate === 'number' ? r.match_rate : 0;
+      return rate >= matchMin && rate <= matchMax;
+    });
+
+    setTotal(inMatchRange.length);
+
     // 정렬 기준에 따라 정렬
     const sortedRecipes = sortRecipes(
-      recipesWithCorrectMatchRate,
+      inMatchRange,
       effectiveSortType,
       myIngredients,
       appliedExpiryIngredients
@@ -1690,7 +1697,7 @@ const RecipeList: React.FC = () => {
     const paginatedRecipes = sortedRecipes.slice(startIndex, endIndex);
 
     setRecipes(paginatedRecipes);
-  }, [sortType, cachedFilteredRecipes, page, size, myIngredients, appliedExpiryIngredients, maxLack, initialLoadDone]);
+  }, [sortType, cachedFilteredRecipes, page, size, myIngredients, appliedExpiryIngredients, maxLack, initialLoadDone, matchRange]);
   
   // 필터가 변경되면 초기 로드 플래그 리셋 (필터 적용 시 다시 로드)
   useEffect(() => {
