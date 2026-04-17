@@ -419,6 +419,36 @@ class YouTubeCrawler:
                 continue
         
         return all_videos
+
+    def _get_row_value(self, row, *aliases):
+        """CSV 행에서 별칭 컬럼값 조회 (공백/대소문자 무시)"""
+        normalized_aliases = {alias.strip().lower() for alias in aliases if alias}
+        for key in row.index:
+            key_norm = str(key).strip().lower()
+            if key_norm in normalized_aliases:
+                value = row[key]
+                if pd.isna(value):
+                    return ""
+                return str(value).strip()
+        return ""
+
+    def _resolve_channel_id_from_row(self, row):
+        """CSV 한 행에서 channel_id를 우선 사용하고, 없으면 URL에서 추출"""
+        channel_id = self._get_row_value(row, 'channel_id', 'channel id', '채널id', '채널 id')
+        if channel_id:
+            # URL 전체가 들어온 실수 데이터도 방어
+            if '/channel/' in channel_id:
+                channel_id = channel_id.split('/channel/')[-1].split('/')[0]
+            channel_id = channel_id.strip().rstrip('/').split('/')[-1]
+            if channel_id.startswith('UC'):
+                return channel_id, ""
+            logger.warning(f"형식이 올바르지 않은 channel_id 스킵: {channel_id}")
+
+        channel_url = self._get_row_value(row, 'URL', 'url', '채널URL', '채널 URL')
+        if not channel_url:
+            return None, ""
+        channel_url = channel_url.strip()
+        return self.get_channel_id_from_url(channel_url), channel_url
         
     def get_existing_video_ids(self):
         """DB에서 기존 영상 ID 목록 가져오기"""
@@ -497,7 +527,7 @@ class YouTubeCrawler:
             existing_ids = self.get_existing_video_ids()
             logger.info(f"기존 영상 수: {len(existing_ids)}")  # 추가된 로그
             
-            df = pd.read_csv(r'C:\Users\user\Desktop\RefrigeratorCode\frontend\public\YouTube_Cooking_influencer.csv')
+            df = pd.read_csv(csv_path)
             total_influencers = len(df)
             processed_count = 0
             new_videos_count = 0
@@ -512,13 +542,15 @@ class YouTubeCrawler:
                     logger.warning(f"할당량 초과로 조기 종료 (처리된 인플루언서: {processed_count}/{total_influencers})")
                     break
                 
-                channel_url = row['URL']
-                logger.info(f"[진행상황] {idx+1}/{total_influencers} 처리 중: {channel_url}")  # 추가된 로그
+                row_channel_id = self._get_row_value(row, 'channel_id', 'channel id', '채널id', '채널 id')
+                row_url = self._get_row_value(row, 'URL', 'url', '채널URL', '채널 URL')
+                log_target = row_channel_id or row_url or '(empty-row)'
+                logger.info(f"[진행상황] {idx+1}/{total_influencers} 처리 중: {log_target}")  # 추가된 로그
                 
                 try:
-                    channel_id = self.get_channel_id_from_url(channel_url)
+                    channel_id, channel_url = self._resolve_channel_id_from_row(row)
                     if not channel_id:
-                        logger.warning(f"채널 ID를 찾을 수 없음: {channel_url}")  # 추가된 로그
+                        logger.warning(f"채널 ID를 찾을 수 없음 (URL/ID 확인 필요): {log_target}")  # 추가된 로그
                         continue
                     
                     # 영상 목록 가져오기
@@ -574,7 +606,7 @@ class YouTubeCrawler:
                     logger.info(f"새로 저장된 영상: {saved_count}개")  # 추가된 로그
                     
                 except Exception as e:
-                    logger.error(f"Error processing channel {channel_url}: {e}")
+                    logger.error(f"Error processing channel {log_target}: {e}")
                     continue
                 
             logger.info("모든 인플루언서 처리 완료")  # 추가된 로그

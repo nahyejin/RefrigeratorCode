@@ -58,7 +58,7 @@ const Login: React.FC = () => {
   const [password, setPassword] = React.useState('');
   const [error, setError] = React.useState('');
   const [loading, setLoading] = React.useState(false);
-  const [rememberMe, setRememberMe] = React.useState(false);
+  const [rememberMe, setRememberMe] = React.useState(true);
 
   /**
    * 일반 로그인 처리

@@ -765,7 +765,7 @@ const Popular = () => {
   useEffect(() => {
     const loadSubstituteTable = async () => {
       const CACHE_KEY = 'substitute_table_cache';
-      const CACHE_VERSION = '2.1'; // 배열 구조 및 유사도 점수 포함으로 버전 업데이트
+      const CACHE_VERSION = '2.3'; // 대체재 양방향(단맛 조미) 테이블 반영
       
       try {
         // 캐시 확인

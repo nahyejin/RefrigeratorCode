@@ -199,31 +199,83 @@ def is_substitute_direction_valid(ingredient_a: str, ingredient_b: str,
                                    features_a: set, features_b: set) -> bool:
     """대체 방향이 유효한지 확인 (일반 재료 → 특수/대체 재료)"""
     
-    # ingredient_b가 대체재 관련 키워드를 포함하는지 확인
-    has_substitute_keyword = (
+    # 대체재 성격 여부 판별
+    is_substitute_a = (
+        '대체' in category_a or
+        any('대체' in f or '저당' in f or '저칼로리' in f for f in features_a)
+    )
+    is_substitute_b = (
         '대체' in category_b or
         any('대체' in f or '저당' in f or '저칼로리' in f for f in features_b)
     )
+
+    # ingredient_b가 대체재 관련 키워드를 포함하는지 확인
+    has_substitute_keyword = is_substitute_b
     
     # ingredient_a가 일반 재료인지 확인
-    is_general = (
-        '대체' not in category_a and
-        not any('대체' in f for f in features_a)
-    )
+    is_general = not is_substitute_a
     
     # 일반 재료 → 대체재 방향이면 True
     if is_general and has_substitute_keyword:
         return True
     
-    # 둘 다 일반 재료이거나 둘 다 대체재인 경우, 같은 분류면 허용
+    # 둘 다 같은 성격(일반↔일반, 대체↔대체)이고 같은 분류면 허용
     if category_a == category_b:
         return True
     
-    # 특수 케이스: 간장 → 쯔유 같은 경우 (둘 다 일반 재료지만 유사)
-    if not has_substitute_keyword and not is_general:
-        return True
-    
     return False
+
+
+def should_emit_bidirectional(info_a: dict, info_b: dict) -> bool:
+    """설탕류 ↔ 대체당 등 '단맛 조미' 동일 소분류는 양방향 대체 추천이 모두 의미 있음."""
+    if (info_a.get('소분류') or '') != (info_b.get('소분류') or ''):
+        return False
+    if info_a.get('소분류') != '단맛 조미':
+        return False
+    ca = (info_a.get('세분류') or '').strip()
+    cb = (info_b.get('세분류') or '').strip()
+    sweet = ('설탕류', '대체당')
+    return ca in sweet and cb in sweet
+
+
+def build_substitute_directions(
+    keyword_a: str,
+    keyword_b: str,
+    info_a: dict,
+    info_b: dict,
+) -> List[Tuple[str, str, dict, dict]]:
+    """(레시피 필요 재료 → 냉장고 대체재) 방향 목록. 단맛 조미 계열은 양방향 포함."""
+    pairs: List[Tuple[str, str, dict, dict]] = []
+
+    def add(ka: str, kb: str, ia: dict, ib: dict) -> None:
+        pairs.append((ka, kb, ia, ib))
+
+    if is_substitute_direction_valid(
+        keyword_a, keyword_b,
+        info_a['세분류'], info_b['세분류'],
+        set(info_a['features']), set(info_b['features'])
+    ):
+        add(keyword_a, keyword_b, info_a, info_b)
+    if is_substitute_direction_valid(
+        keyword_b, keyword_a,
+        info_b['세분류'], info_a['세분류'],
+        set(info_b['features']), set(info_a['features'])
+    ):
+        add(keyword_b, keyword_a, info_b, info_a)
+    if should_emit_bidirectional(info_a, info_b):
+        if not any(p[0] == keyword_a and p[1] == keyword_b for p in pairs):
+            add(keyword_a, keyword_b, info_a, info_b)
+        if not any(p[0] == keyword_b and p[1] == keyword_a for p in pairs):
+            add(keyword_b, keyword_a, info_b, info_a)
+
+    seen: set = set()
+    out: List[Tuple[str, str, dict, dict]] = []
+    for p in pairs:
+        key = (p[0], p[1])
+        if key not in seen:
+            seen.add(key)
+            out.append(p)
+    return out
 
 
 def generate_substitutes() -> List[Dict]:
@@ -295,39 +347,18 @@ def generate_substitutes() -> List[Dict]:
                 if similarity < 0.3:
                     continue
                 
-                # 대체 방향 결정
-                if is_substitute_direction_valid(
-                    keyword_a, keyword_b,
-                    info_a['세분류'], info_b['세분류'],
-                    info_a['features'], info_b['features']
-                ):
-                    ingredient_a, ingredient_b = keyword_a, keyword_b
-                elif is_substitute_direction_valid(
-                    keyword_b, keyword_a,
-                    info_b['세분류'], info_a['세분류'],
-                    info_b['features'], info_a['features']
-                ):
-                    ingredient_a, ingredient_b = keyword_b, keyword_a
-                    info_a, info_b = info_b, info_a
-                else:
-                    # 양방향 모두 유효하지 않으면 스킵
-                    continue
-                
-                # 대체 사유 생성
-                reason = get_substitution_reason(
-                    info_a['features'], 
-                    info_b['features'],
-                    info_b['세분류']
+                directions = build_substitute_directions(
+                    keyword_a, keyword_b, info_a, info_b
                 )
-                
+                if not directions:
+                    continue
+
                 # 공통 Feature 추출 (리스트에서)
                 features_a_set = set(info_a['features'])
                 features_b_set = set(info_b['features'])
                 common_features = features_a_set & features_b_set
-                only_a_features = features_a_set - features_b_set
-                only_b_features = features_b_set - features_a_set
-                
-                # 계산 상세 내역 생성
+
+                # 계산 상세 내역 생성 (쌍 단위로 동일)
                 calc_details = []
                 calc_details.append(f"Feature유사도: {feature_sim:.2f}")
                 calc_details.append(f"분류유사도: {category_sim:.2f} ({match_level})")
@@ -336,19 +367,25 @@ def generate_substitutes() -> List[Dict]:
                     calc_details.append(f"공통특성: {', '.join(sorted(common_features))}")
                 if match_details:
                     calc_details.append(f"분류일치: {match_details}")
-                
-                substitutes.append({
-                    'ingredient_a': ingredient_a,
-                    'ingredient_b': ingredient_b,
-                    'substitution_direction': f"{ingredient_a}→{ingredient_b}",
-                    'similarity_score': round(similarity, 2),
-                    'substitution_reason': reason,
-                    'feature_similarity': round(feature_sim, 2),
-                    'category_similarity': round(category_sim, 2),
-                    'category_match_level': match_level,
-                    'calculation_details': " | ".join(calc_details)
-                })
-                
+
+                for ingredient_a, ingredient_b, ia, ib in directions:
+                    reason = get_substitution_reason(
+                        ia['features'],
+                        ib['features'],
+                        ib['세분류']
+                    )
+                    substitutes.append({
+                        'ingredient_a': ingredient_a,
+                        'ingredient_b': ingredient_b,
+                        'substitution_direction': f"{ingredient_a}→{ingredient_b}",
+                        'similarity_score': round(similarity, 2),
+                        'substitution_reason': reason,
+                        'feature_similarity': round(feature_sim, 2),
+                        'category_similarity': round(category_sim, 2),
+                        'category_match_level': match_level,
+                        'calculation_details': " | ".join(calc_details)
+                    })
+
                 processed_pairs.add(pair_key)
     
     # 2. 같은 소분류 내에서 매칭 (중분류와 다른 경우)
@@ -380,37 +417,17 @@ def generate_substitutes() -> List[Dict]:
                 
                 if similarity < 0.3:
                     continue
-                
-                if is_substitute_direction_valid(
-                    keyword_a, keyword_b,
-                    info_a['세분류'], info_b['세분류'],
-                    info_a['features'], info_b['features']
-                ):
-                    ingredient_a, ingredient_b = keyword_a, keyword_b
-                elif is_substitute_direction_valid(
-                    keyword_b, keyword_a,
-                    info_b['세분류'], info_a['세분류'],
-                    info_b['features'], info_a['features']
-                ):
-                    ingredient_a, ingredient_b = keyword_b, keyword_a
-                    info_a, info_b = info_b, info_a
-                else:
-                    continue
-                
-                reason = get_substitution_reason(
-                    info_a['features'], 
-                    info_b['features'],
-                    info_b['세분류']
+
+                directions = build_substitute_directions(
+                    keyword_a, keyword_b, info_a, info_b
                 )
-                
-                # 공통 Feature 추출 (리스트에서)
+                if not directions:
+                    continue
+
                 features_a_set = set(info_a['features'])
                 features_b_set = set(info_b['features'])
                 common_features = features_a_set & features_b_set
-                only_a_features = features_a_set - features_b_set
-                only_b_features = features_b_set - features_a_set
-                
-                # 계산 상세 내역 생성
+
                 calc_details = []
                 calc_details.append(f"Feature유사도: {feature_sim:.2f}")
                 calc_details.append(f"분류유사도: {category_sim:.2f} ({match_level})")
@@ -419,19 +436,25 @@ def generate_substitutes() -> List[Dict]:
                     calc_details.append(f"공통특성: {', '.join(sorted(common_features))}")
                 if match_details:
                     calc_details.append(f"분류일치: {match_details}")
-                
-                substitutes.append({
-                    'ingredient_a': ingredient_a,
-                    'ingredient_b': ingredient_b,
-                    'substitution_direction': f"{ingredient_a}→{ingredient_b}",
-                    'similarity_score': round(similarity, 2),
-                    'substitution_reason': reason,
-                    'feature_similarity': round(feature_sim, 2),
-                    'category_similarity': round(category_sim, 2),
-                    'category_match_level': match_level,
-                    'calculation_details': " | ".join(calc_details)
-                })
-                
+
+                for ingredient_a, ingredient_b, ia, ib in directions:
+                    reason = get_substitution_reason(
+                        ia['features'],
+                        ib['features'],
+                        ib['세분류']
+                    )
+                    substitutes.append({
+                        'ingredient_a': ingredient_a,
+                        'ingredient_b': ingredient_b,
+                        'substitution_direction': f"{ingredient_a}→{ingredient_b}",
+                        'similarity_score': round(similarity, 2),
+                        'substitution_reason': reason,
+                        'feature_similarity': round(feature_sim, 2),
+                        'category_similarity': round(category_sim, 2),
+                        'category_match_level': match_level,
+                        'calculation_details': " | ".join(calc_details)
+                    })
+
                 processed_pairs.add(pair_key)
     
     # 유사도 순으로 정렬
