@@ -225,30 +225,57 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         console.log('Migrating ingredients:', localIngredients);
       }
 
-      // 레시피 마이그레이션
+      const token =
+        typeof window !== 'undefined'
+          ? localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
+          : null;
+      if (!token) {
+        return;
+      }
+
+      const apiUrl =
+        (import.meta.env && import.meta.env.VITE_API_BASE_URL) ||
+        'https://refrigeratorcode-production.up.railway.app';
+
       const localRecorded = JSON.parse(
         localStorage.getItem('my_recorded_recipes') || '[]'
-      );
+      ) as { id?: number }[];
       const localCompleted = JSON.parse(
         localStorage.getItem('my_completed_recipes') || '[]'
-      );
+      ) as { id?: number }[];
+
+      const postRecipeIds = async (
+        type: 'write' | 'done',
+        items: { id?: number }[]
+      ) => {
+        const endpoint =
+          type === 'write'
+            ? `${apiUrl}/api/users/${userId}/recorded-recipes`
+            : `${apiUrl}/api/users/${userId}/completed-recipes`;
+        for (const item of items) {
+          const rid = item?.id;
+          if (rid == null || Number.isNaN(Number(rid))) continue;
+          try {
+            await fetch(endpoint, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({ recipe_id: Number(rid) }),
+            });
+          } catch (e) {
+            console.warn(`[migrateLocalDataToServer] ${type} recipe ${rid} sync failed`, e);
+          }
+        }
+      };
 
       if (localRecorded.length > 0) {
-        // TODO: API 호출
-        // await api.post(`/api/users/${userId}/recipes/migrate`, { type: 'recorded', recipes: localRecorded });
-        console.log('Migrating recorded recipes:', localRecorded);
+        await postRecipeIds('write', localRecorded);
       }
-
       if (localCompleted.length > 0) {
-        // TODO: API 호출
-        // await api.post(`/api/users/${userId}/recipes/migrate`, { type: 'completed', recipes: localCompleted });
-        console.log('Migrating completed recipes:', localCompleted);
+        await postRecipeIds('done', localCompleted);
       }
-
-      // 마이그레이션 완료 후 로컬 데이터 정리 (선택적 - 백업용으로 남길 수도 있음)
-      // localStorage.removeItem('myfridge_ingredients');
-      // localStorage.removeItem('my_recorded_recipes');
-      // localStorage.removeItem('my_completed_recipes');
     } catch (error) {
       console.error('Migration failed:', error);
     }

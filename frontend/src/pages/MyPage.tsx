@@ -31,6 +31,23 @@ const STORAGE_KEY_MYFRIDGE = 'myfridge_ingredients';
 const STORAGE_KEY_RECORDED = 'my_recorded_recipes';
 const STORAGE_KEY_COMPLETED = 'my_completed_recipes';
 
+/** DB 행과 로컬(풀 객체)을 id 기준으로 합침. 같은 id면 로컬 필드가 덮어써서 카드 표시용 필드 유지 */
+function mergeRecipeListsFromDbAndLocal(dbList: any[], localList: any[]): any[] {
+  const map = new Map<string, any>();
+  for (const r of dbList || []) {
+    if (r?.id != null) {
+      map.set(String(r.id), { ...r });
+    }
+  }
+  for (const r of localList || []) {
+    if (r?.id == null) continue;
+    const id = String(r.id);
+    const fromDb = map.get(id);
+    map.set(id, fromDb ? { ...fromDb, ...r } : { ...r });
+  }
+  return Array.from(map.values());
+}
+
 // =====================
 // 타입 정의
 // =====================
@@ -302,66 +319,64 @@ const MyPage: React.FC = () => {
 
   // DB에서 레시피 로드
   const loadRecipesFromDB = async () => {
+    const localRecorded = JSON.parse(localStorage.getItem(STORAGE_KEY_RECORDED) || '[]');
+    const localCompleted = JSON.parse(localStorage.getItem(STORAGE_KEY_COMPLETED) || '[]');
+
     if (!isLoggedIn || !authUser?.id) {
-      // 로그인하지 않은 경우 localStorage에서 로드
-      const localRecorded = JSON.parse(localStorage.getItem(STORAGE_KEY_RECORDED) || '[]');
-      const localCompleted = JSON.parse(localStorage.getItem(STORAGE_KEY_COMPLETED) || '[]');
       setRecordedRecipes(localRecorded);
       setCompletedRecipes(localCompleted);
       return;
     }
-    
+
+    const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+    if (!token) {
+      setRecordedRecipes(localRecorded);
+      setCompletedRecipes(localCompleted);
+      return;
+    }
+
+    const apiUrl = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'https://refrigeratorcode-production.up.railway.app';
+
     try {
-      const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
-      if (!token) return;
-      
-      const apiUrl = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'https://refrigeratorcode-production.up.railway.app';
-      
       // 기록한 레시피
       const recordedResponse = await fetch(`${apiUrl}/api/users/${authUser.id}/recorded-recipes`, {
-        headers: { 'Authorization': `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${token}` },
       });
       if (recordedResponse.ok) {
         const recordedData = await recordedResponse.json();
-        // DB에 레시피가 있으면 DB 데이터 사용, 없으면 빈 배열로 초기화
-        const recipes = recordedData.recipes || [];
-        setRecordedRecipes(recipes);
-        // DB 데이터를 localStorage에도 동기화 (하지만 DB 우선)
-        recipes.forEach((r: any) => {
+        const fromDb = recordedData.recipes || [];
+        const merged = mergeRecipeListsFromDbAndLocal(fromDb, localRecorded);
+        setRecordedRecipes(merged);
+        fromDb.forEach((r: any) => {
           addRecipeToLocalStorage('write', r);
         });
       } else {
-        // API 호출 실패 시 빈 배열로 초기화
-        setRecordedRecipes([]);
+        setRecordedRecipes(localRecorded);
       }
-      
+
       // 완료한 레시피
       const completedResponse = await fetch(`${apiUrl}/api/users/${authUser.id}/completed-recipes`, {
-        headers: { 'Authorization': `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${token}` },
       });
       if (completedResponse.ok) {
         const completedData = await completedResponse.json();
-        // DB에 레시피가 있으면 DB 데이터 사용, 없으면 빈 배열로 명시적 초기화
-        const recipes = completedData.recipes || [];
-        setCompletedRecipes(recipes);
-        // DB 데이터를 localStorage에도 동기화 (하지만 DB 우선)
-        // 기존 localStorage 데이터를 먼저 정리하고 새 데이터만 추가
+        const fromDb = completedData.recipes || [];
+        const merged = mergeRecipeListsFromDbAndLocal(fromDb, localCompleted);
+        setCompletedRecipes(merged);
         const existingLocal = JSON.parse(localStorage.getItem(STORAGE_KEY_COMPLETED) || '[]');
         const existingIds = new Set(existingLocal.map((r: any) => r.id));
-        recipes.forEach((r: any) => {
+        fromDb.forEach((r: any) => {
           if (!existingIds.has(r.id)) {
             addRecipeToLocalStorage('done', r);
           }
         });
       } else {
-        // API 호출 실패 시 빈 배열로 초기화
-        setCompletedRecipes([]);
+        setCompletedRecipes(localCompleted);
       }
     } catch (error) {
       console.error('[MyPage] DB에서 레시피 로드 실패:', error);
-      // 에러 발생 시 빈 배열로 초기화
-      setRecordedRecipes([]);
-      setCompletedRecipes([]);
+      setRecordedRecipes(localRecorded);
+      setCompletedRecipes(localCompleted);
     }
   };
 

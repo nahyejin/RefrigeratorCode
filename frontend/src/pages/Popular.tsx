@@ -1419,37 +1419,45 @@ const Popular = () => {
   // 사용자별 레시피 상태 로드 (로그인한 경우 DB에서, 비로그인은 localStorage에서)
   useEffect(() => {
     const loadUserRecipes = async () => {
+      const localCompletedIds = JSON.parse(localStorage.getItem('my_completed_recipes') || '[]').map((r: any) => r.id);
+      const localRecordedIds = JSON.parse(localStorage.getItem('my_recorded_recipes') || '[]').map((r: any) => r.id);
+
       if (isLoggedIn && authUser?.id) {
-        // 로그인한 경우 DB에서 로드
         try {
           const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
-          if (!token) return;
-          
+          if (!token) {
+            setUserRecordedRecipes(localRecordedIds);
+            setUserCompletedRecipes(localCompletedIds);
+            return;
+          }
+
           const apiUrl = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'https://refrigeratorcode-production.up.railway.app';
-          
-          // 기록한 레시피
+
           const recordedResponse = await fetch(`${apiUrl}/api/users/${authUser.id}/recorded-recipes`, {
             headers: { 'Authorization': `Bearer ${token}` },
           });
           if (recordedResponse.ok) {
             const recordedData = await recordedResponse.json();
-            if (recordedData.recipes) {
-              setUserRecordedRecipes(recordedData.recipes.map((r: any) => r.id));
-            }
+            const dbIds = (recordedData.recipes || []).map((r: any) => r.id);
+            setUserRecordedRecipes([...new Set([...dbIds, ...localRecordedIds])]);
+          } else {
+            setUserRecordedRecipes(localRecordedIds);
           }
-          
-          // 완료한 레시피
+
           const completedResponse = await fetch(`${apiUrl}/api/users/${authUser.id}/completed-recipes`, {
             headers: { 'Authorization': `Bearer ${token}` },
           });
           if (completedResponse.ok) {
             const completedData = await completedResponse.json();
-            if (completedData.recipes) {
-              setUserCompletedRecipes(completedData.recipes.map((r: any) => r.id));
-            }
+            const dbIds = (completedData.recipes || []).map((r: any) => r.id);
+            setUserCompletedRecipes([...new Set([...dbIds, ...localCompletedIds])]);
+          } else {
+            setUserCompletedRecipes(localCompletedIds);
           }
         } catch (error) {
           console.error('[Popular] 사용자 레시피 로드 실패:', error);
+          setUserRecordedRecipes(localRecordedIds);
+          setUserCompletedRecipes(localCompletedIds);
         }
       } else {
         // 비로그인인 경우 localStorage에서 로드
