@@ -32,6 +32,7 @@ import {
   getPremiumIngredients,
   getPremiumTierRank,
 } from '../utils/premiumIngredients';
+import { parseUsedIngredientsForPills } from '../utils/ingredientPillNoise';
 import CoupangProductAd from '../components/CoupangProductAd';
 import BottomCoupangAd from '../components/BottomCoupangAd';
 
@@ -168,12 +169,7 @@ const calculateIngredientRankings = (recipes: Recipe[], dateRange: { start: Date
   
   currentRecipes.forEach(recipe => {
     if (recipe.used_ingredients) {
-      let ingredients: string[] = [];
-      if (typeof recipe.used_ingredients === 'string' && recipe.used_ingredients.trim()) {
-        ingredients = recipe.used_ingredients.split(',').map((i: string) => i.trim()).filter(i => i);
-      } else if (Array.isArray(recipe.used_ingredients)) {
-        ingredients = recipe.used_ingredients.map((i: string) => i.trim()).filter(i => i);
-      }
+      const ingredients = parseUsedIngredientsForPills(recipe.used_ingredients);
       ingredients.forEach((ingredient: string) => {
         currentIngredientCounts[ingredient] = (currentIngredientCounts[ingredient] || 0) + 1;
       });
@@ -185,12 +181,7 @@ const calculateIngredientRankings = (recipes: Recipe[], dateRange: { start: Date
     const previousRecipes = RecipeFilterUtils.filterByDateRange(recipes, previousRange);
     previousRecipes.forEach(recipe => {
       if (recipe.used_ingredients) {
-        let ingredients: string[] = [];
-        if (typeof recipe.used_ingredients === 'string' && recipe.used_ingredients.trim()) {
-          ingredients = recipe.used_ingredients.split(',').map((i: string) => i.trim()).filter(i => i);
-        } else if (Array.isArray(recipe.used_ingredients)) {
-          ingredients = recipe.used_ingredients.map((i: string) => i.trim()).filter(i => i);
-        }
+        const ingredients = parseUsedIngredientsForPills(recipe.used_ingredients);
         ingredients.forEach((ingredient: string) => {
           previousIngredientCounts[ingredient] = (previousIngredientCounts[ingredient] || 0) + 1;
         });
@@ -1637,9 +1628,7 @@ const Popular = () => {
 
           const getIngs = (recipe: Recipe) => {
             if (!recipe.used_ingredients) return [] as string[];
-            return Array.isArray(recipe.used_ingredients)
-              ? recipe.used_ingredients
-              : recipe.used_ingredients.split(',').map((i: string) => i.trim());
+            return parseUsedIngredientsForPills(recipe.used_ingredients);
           };
 
           const premiumCandidates = allRecipes.filter((recipe: Recipe) => {
@@ -1718,9 +1707,7 @@ const Popular = () => {
                   {premiumRecipes
                     .filter(recipe => !failedThumbnailIds.has(recipe.id))
                     .map((recipe, index) => {
-                      const ingredients = Array.isArray(recipe.used_ingredients)
-                        ? recipe.used_ingredients
-                        : recipe.used_ingredients.split(',').map((i: string) => i.trim());
+                      const ingredients = parseUsedIngredientsForPills(recipe.used_ingredients);
                       const premiumIngs = getPremiumIngredients(ingredients);
                       
                       return (

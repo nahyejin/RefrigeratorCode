@@ -4,6 +4,7 @@ import { getProxiedImageUrl } from '../utils/imageUtils';
 import { getPlatformLogo } from '../utils/platform';
 import { calculateMatchRate, loadIngredientSynonymDict, ingredientSynonymDictCache } from '../utils/recipeUtils';
 import IngredientPillGroup from './IngredientPillGroup';
+import { parseUsedIngredientsForPills } from '../utils/ingredientPillNoise';
 import CoupangProductAd from './CoupangProductAd';
 import 완료하기버튼 from '../assets/완료하기버튼.png';
 import 공유하기버튼 from '../assets/공유하기버튼.png';
@@ -159,14 +160,6 @@ const Utils = {
     return `${rank}위`;
   },
 
-  // 재료 목록 파싱
-  parseIngredients: (ingredients: string | string[] | undefined): string[] => {
-    if (Array.isArray(ingredients)) {
-      return ingredients.map(i => i.trim()).filter(Boolean);
-    }
-    return (ingredients || '').split(',').map(i => i.trim()).filter(Boolean);
-  },
-
   // 플랫폼 체크
   isYouTube: (platform?: string) => {
     return platform && (platform.toLowerCase().includes('youtube') || platform.includes('유튜브'));
@@ -267,8 +260,8 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
     return null;
   }
   
-  // used_ingredients 파싱
-  const usedIngredientList = Utils.parseIngredients(recipe.used_ingredients);
+  // used_ingredients 파싱 (pill용: 한글 한 글자 토큰은 ` 한글 ` 쉼표 구간만 노이즈 제외)
+  const usedIngredientList = parseUsedIngredientsForPills(recipe.used_ingredients);
 
   // 버튼 클릭 핸들러 하나로 통합
   const handleActionButtonClick = (action: 'done' | 'share' | 'write', e: React.MouseEvent) => {

@@ -20,6 +20,7 @@ import { addRecipeToLocalStorage, removeRecipeFromLocalStorage, getRecipesFromLo
 import { useAuth } from '../context/AuthContext';
 import RegisterPromptModal from '../components/RegisterPromptModal';
 import BottomCoupangAd from '../components/BottomCoupangAd';
+import { parseUsedIngredientsForPills } from '../utils/ingredientPillNoise';
 
 // =====================
 // 상수
@@ -123,7 +124,10 @@ const dummyUser: User = {
 function parseIngredients(recipe: any): string[] {
   if (Array.isArray(recipe.mainIngredients)) return recipe.mainIngredients;
   if (typeof recipe.used_ingredients === 'string') {
-    return recipe.used_ingredients.split(',').map((i: string) => i.trim()).filter(Boolean);
+    return parseUsedIngredientsForPills(recipe.used_ingredients);
+  }
+  if (Array.isArray(recipe.used_ingredients)) {
+    return parseUsedIngredientsForPills(recipe.used_ingredients);
   }
   if (Array.isArray(recipe.need_ingredients)) return recipe.need_ingredients;
   if (typeof recipe.need_ingredients === 'string') {
