@@ -1982,7 +1982,7 @@ const Popular = () => {
 
         {/* 인기 급상승 요리 TOP 10 — 상단 여백은 위 섹션과만 맞춤 */}
         <section style={{ marginTop: 4, marginBottom: 48 }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 48 }}>
             {/* 인기 급상승 요리 */}
             <div>
               <h2 className="text-[16px] font-bold text-[#111] mb-2 text-left"><span className="mr-1">📈</span>인기 급상승 요리 TOP 10</h2>
