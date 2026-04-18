@@ -1935,7 +1935,9 @@ const RecipeList: React.FC = () => {
                 // 재료가 없거나, 디폴트 '달걀'만 있고 레시피가 없을 때 안내 문구 표시
                 const hasOnlyDefaultEgg = myIngredients.length === 1 && 
                   (myIngredients[0] === '달걀' || myIngredients[0] === '계란');
-                const currentRecipes = filteredRecipes.length > 0 ? filteredRecipes : recipes;
+                // RecipeSortBar는 recipes를 useEffect에서 filteredRecipes로 복사만 함.
+                // 이전 렌더의 filteredRecipes가 남아 있으면 매칭률 필터 직후에도 옛 목록이 그려짐 → 항상 recipes 사용
+                const currentRecipes = recipes;
                 const hasNoRecipes = currentRecipes.length === 0;
                 const hasNoIngredients = myIngredients.length === 0;
                 const hasIngredientsButNoRecipes = !hasNoIngredients && !hasOnlyDefaultEgg && hasNoRecipes;

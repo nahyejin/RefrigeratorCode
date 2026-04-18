@@ -27,7 +27,7 @@
  * />
  */
 
-import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useState, useMemo, useCallback, useRef } from 'react';
 import RecipeCard from './RecipeCard';
 import FilterModal from './FilterModal';
 import Slider from 'rc-slider';
@@ -578,18 +578,15 @@ const RecipeSortBar = ({
 
   // recipes는 이미 maxLack 필터가 적용된 상태이므로 그대로 전달
   // (maxLack 필터는 RecipeList에서 cachedFilteredRecipes에 적용됨)
-  useEffect(() => {
+  // useLayoutEffect: 부모가 recipes를 갱신한 직후 동일 프레임에 filteredRecipes를 맞춤 (옛 목록 잔상 방지)
+  useLayoutEffect(() => {
     if (!recipes || recipes.length === 0) {
       onFilteredRecipesChange([]);
       return;
     }
-    
-    // recipes는 이미 maxLack 필터가 적용된 상태이므로 그대로 전달
+
     onFilteredRecipesChange([...recipes]);
-  }, [
-    recipes,
-    onFilteredRecipesChange
-  ]);
+  }, [recipes, onFilteredRecipesChange]);
 
   return (
     <>
