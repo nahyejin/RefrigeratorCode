@@ -27,7 +27,11 @@ import VirtualizedHorizontalRecipeList from '../components/VirtualizedHorizontal
 import { decodeRecipesText } from '../utils/textUtils';
 import { useAuth } from '../context/AuthContext';
 import RegisterPromptModal from '../components/RegisterPromptModal';
-import { hasPremiumIngredient, getPremiumIngredients } from '../utils/premiumIngredients';
+import {
+  hasPremiumIngredient,
+  getPremiumIngredients,
+  getPremiumTierRank,
+} from '../utils/premiumIngredients';
 import CoupangProductAd from '../components/CoupangProductAd';
 import BottomCoupangAd from '../components/BottomCoupangAd';
 
@@ -1623,21 +1627,43 @@ const Popular = () => {
 
         {/* ⭐ 특별한 날 특별한 음식 섹션 */}
         {(() => {
-          // 프리미엄 재료가 포함된 레시피 필터링
+          // 프리미엄 재료 포함 레시피 — 비싼 재료 우선 정렬(premiumIngredients.ts 순서).
+          // 유튜브/네이버 인기 상단과 겹치는 항목은 뒤로 밀어 같은 카드가 연달아 보이는 느낌 완화.
           const allRecipes = [...youtubeRecipes, ...naverRecipes];
-          const premiumRecipes = allRecipes.filter(recipe => {
-            if (!recipe.used_ingredients) return false;
-            const ingredients = Array.isArray(recipe.used_ingredients)
+          const popularHeadIds = new Set([
+            ...youtubeRecipes.slice(0, 15).map((r: { id: number }) => r.id),
+            ...naverRecipes.slice(0, 15).map((r: { id: number }) => r.id),
+          ]);
+
+          const getIngs = (recipe: Recipe) => {
+            if (!recipe.used_ingredients) return [] as string[];
+            return Array.isArray(recipe.used_ingredients)
               ? recipe.used_ingredients
               : recipe.used_ingredients.split(',').map((i: string) => i.trim());
-            return hasPremiumIngredient(ingredients);
-          }).slice(0, 20); // 최대 20개
+          };
+
+          const premiumCandidates = allRecipes.filter((recipe: Recipe) => {
+            const ingredients = getIngs(recipe);
+            return ingredients.length > 0 && hasPremiumIngredient(ingredients);
+          });
+
+          const byTier = (a: Recipe, b: Recipe) => {
+            const ra = getPremiumTierRank(getIngs(a));
+            const rb = getPremiumTierRank(getIngs(b));
+            if (ra !== rb) return ra - rb;
+            return (a.id ?? 0) - (b.id ?? 0);
+          };
+
+          const sorted = [...premiumCandidates].sort(byTier);
+          const notInPopularHead = sorted.filter(r => !popularHeadIds.has(r.id));
+          const inPopularHead = sorted.filter(r => popularHeadIds.has(r.id));
+          const premiumRecipes = [...notInPopularHead, ...inPopularHead].slice(0, 20);
 
           if (premiumRecipes.length === 0) return null;
 
           return (
-            <section style={{marginBottom: 6}}>
-              <div style={{marginBottom: 8, display: 'flex', alignItems: 'center'}}>
+            <section style={{ marginBottom: 6 }}>
+              <div style={{ marginBottom: 8, display: 'flex', alignItems: 'center' }}>
                 <h2
                   className="text-[16px] font-bold text-[#111] mb-2"
                   style={{
@@ -1652,7 +1678,7 @@ const Popular = () => {
                   ⭐ 특별한 날 특별한 음식
                 </h2>
               </div>
-              <div style={{height: 2, width: '100%', background: '#E5E5E5', marginBottom: 16}} />
+              <div style={{ height: 2, width: '100%', background: '#E5E5E5', marginBottom: 16 }} />
               {/* 범례 + 총 건수 (유튜브/네이버 섹션과 동일한 형식) */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, marginTop: 8 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -1826,8 +1852,8 @@ const Popular = () => {
         })()}
 
         {/* ⓑ 유튜브 인기 레시피 섹션 */}
-        <section style={{marginBottom: 6}}>
-          <div style={{marginBottom: 8, display: 'flex', alignItems: 'center'}}>
+        <section style={{ marginTop: 4, marginBottom: 0 }}>
+          <div style={{ marginBottom: 8, display: 'flex', alignItems: 'center' }}>
             <span
               style={{
                 display: 'inline-block',
@@ -1853,7 +1879,7 @@ const Popular = () => {
               유튜브 인기 레시피
             </h2>
           </div>
-          <div style={{height: 2, width: '100%', background: '#E5E5E5', marginBottom: 16}} />
+          <div style={{ height: 2, width: '100%', background: '#E5E5E5', marginBottom: 16 }} />
           {/* 범례: 가로형 레시피 카드 위, 왼쪽 정렬 */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, marginTop: 8 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -1890,8 +1916,8 @@ const Popular = () => {
         </section>
 
         {/* ⓒ 네이버 인기 레시피 섹션 */}
-        <section style={{marginBottom: 6}}>
-          <div style={{marginBottom: 8, display: 'flex', alignItems: 'center'}}>
+        <section style={{ marginTop: 4, marginBottom: 0 }}>
+          <div style={{ marginBottom: 8, display: 'flex', alignItems: 'center' }}>
             <span
               style={{
                 display: 'inline-block',
@@ -1917,7 +1943,7 @@ const Popular = () => {
               네이버 인기 레시피
             </h2>
           </div>
-          <div style={{height: 2, width: '100%', background: '#E5E5E5', marginBottom: 16}} />
+          <div style={{ height: 2, width: '100%', background: '#E5E5E5', marginBottom: 16 }} />
           {/* 범례: 가로형 레시피 카드 위, 왼쪽 정렬 */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, marginTop: 8 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -1954,13 +1980,13 @@ const Popular = () => {
         </section>
 
 
-        {/* 인기 급상승 요리 TOP 10 섹션 — 상단 여백은 위 섹션(marginBottom 6)과만 맞춤 */}
-        <section style={{ marginTop: 0, marginBottom: 48 }}>
-          <div style={{display: 'flex', flexDirection: 'column', gap: 8}}>
+        {/* 인기 급상승 요리 TOP 10 — 상단 여백은 위 섹션과만 맞춤 */}
+        <section style={{ marginTop: 4, marginBottom: 48 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {/* 인기 급상승 요리 */}
             <div>
               <h2 className="text-[16px] font-bold text-[#111] mb-2 text-left"><span className="mr-1">📈</span>인기 급상승 요리 TOP 10</h2>
-              <div style={{height: 2, width: '100%', background: '#E5E5E5', marginBottom: 16}} />
+              <div style={{ height: 2, width: '100%', background: '#E5E5E5', marginBottom: 16 }} />
               <div className="mt-4">
                 <table className="w-full max-w-[280px] mx-auto border-collapse text-[13px] font-sans" style={{background: '#fff'}}>
                   <thead>
@@ -2021,7 +2047,7 @@ const Popular = () => {
             {/* 인기 급상승 테마 */}
             <div>
               <h2 className="text-[16px] font-bold text-[#111] mb-2 text-left"><span className="mr-1">📈</span>인기 급상승 테마 TOP 10</h2>
-              <div style={{height: 2, width: '100%', background: '#E5E5E5', marginBottom: 16}} />
+              <div style={{ height: 2, width: '100%', background: '#E5E5E5', marginBottom: 16 }} />
               <div className="mt-4">
                 <table className="w-full max-w-[280px] mx-auto border-collapse text-[13px] font-sans" style={{background: '#fff'}}>
                   <thead>

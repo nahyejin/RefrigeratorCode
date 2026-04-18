@@ -21,6 +21,9 @@ const ACTIONS = [
 const BUTTON_SIZE = 26;
 const ICON_SIZE = 19;
 
+/** 가로형 카드: 쿠팡 노출 여부와 무관하게 동일 하단 영역(쿠팡 블록 실제 높이에 맞춤·과도한 빈칸 방지) */
+const HORIZONTAL_COUPANG_SLOT_MIN_HEIGHT_PX = 62;
+
 // 스타일 상수
 const STYLES = {
   card: {
@@ -350,7 +353,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
       style={{
         ...(isLast ? STYLES.lastCard : STYLES.card),
         padding: '3px 8px', // 상하 3px, 좌우 8px
-        marginBottom: 8, // 카드 간 간격을 8px로 설정
+        marginBottom: isHorizontal ? 0 : 8, // 가로 리스트: 행 높이 안에서 카드~스크롤바 사이 빈칸 방지
         touchAction: 'pan-y pan-x', // 세로 및 가로 스크롤 모두 허용
         overflow: 'visible', // 항상 visible로 설정하여 광고가 잘리지 않도록
         boxSizing: 'border-box' as const, // padding 포함한 크기 계산
@@ -470,12 +473,22 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
         )}
       </div>
       
-      {/* 쿠팡 광고: 부족한 재료가 1개 이상일 때 표시 (여러 개면 그중 하나를 랜덤 선택, 대체 가능한 재료 제외) */}
-      {adIngredient ? (
+      {/* 쿠팡 광고: 가로형은 슬롯 높이 고정(광고 없을 때도 빈 영역 동일). 세로형은 기존처럼 광고 있을 때만 */}
+      {isHorizontal ? (
+        <div
+          style={{
+            marginTop: 8,
+            minHeight: HORIZONTAL_COUPANG_SLOT_MIN_HEIGHT_PX,
+            boxSizing: 'border-box',
+          }}
+        >
+          {adIngredient ? (
+            <CoupangProductAd ingredientName={adIngredient} />
+          ) : null}
+        </div>
+      ) : adIngredient ? (
         <div style={{ marginTop: '8px' }}>
-          <CoupangProductAd 
-            ingredientName={adIngredient}
-          />
+          <CoupangProductAd ingredientName={adIngredient} />
         </div>
       ) : null}
     </div>

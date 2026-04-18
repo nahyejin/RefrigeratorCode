@@ -1102,7 +1102,7 @@ const MyPage: React.FC = () => {
               ☰
             </button>
           </div>
-          <div style={{height: 2, width: '100%', background: '#E5E5E5', marginBottom: 16}} />
+          <div style={{ height: 2, width: '100%', background: '#E5E5E5', marginBottom: 16 }} />
           
           {/* 범례 */}
           <div style={{ 
@@ -1168,7 +1168,7 @@ const MyPage: React.FC = () => {
             }}
             onRecipeAction={handleRecipeAction}
             cardWidth={300}
-            cardHeight={320}
+            cardHeight={280}
             gap={16}
             compactSectionGap
             emptyMessage={
@@ -1181,7 +1181,7 @@ const MyPage: React.FC = () => {
         </div>
         
         {/* 내가 완료한 레시피 */}
-        <div style={{ paddingLeft: 14, paddingRight: 14, marginTop: 0 }}>
+        <div style={{ paddingLeft: 14, paddingRight: 14, marginTop: 4 }}>
           <div className="flex items-center justify-between mb-0">
             <h2 className="text-[16px] font-bold text-[#111] flex items-center gap-1">
               <img 
@@ -1205,7 +1205,7 @@ const MyPage: React.FC = () => {
               ☰
             </button>
           </div>
-          <div style={{height: 2, width: '100%', background: '#E5E5E5', marginBottom: 16}} />
+          <div style={{ height: 2, width: '100%', background: '#E5E5E5', marginBottom: 16 }} />
           
           {/* 범례 */}
           <div style={{ 
@@ -1271,7 +1271,7 @@ const MyPage: React.FC = () => {
             }}
             onRecipeAction={handleRecipeAction}
             cardWidth={300}
-            cardHeight={320}
+            cardHeight={280}
             gap={16}
             compactSectionGap
             emptyMessage={

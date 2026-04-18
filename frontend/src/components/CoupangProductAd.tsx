@@ -193,8 +193,8 @@ const CoupangProductAd: React.FC<CoupangProductAdProps> = ({
       ref={adRef}
       className={`coupang-product-ad ${className}`}
       style={{
-        margin: '12px 0',
-        padding: '4px 12px 0px 12px',
+        margin: '2px 0 0 0',
+        padding: '2px 6px 0 6px',
         backgroundColor: '#fff',
         border: 'none',
         borderRadius: '8px',
@@ -215,12 +215,12 @@ const CoupangProductAd: React.FC<CoupangProductAdProps> = ({
         }}
         style={{
           display: 'inline-block',
-          padding: '8px 16px',
+          padding: '6px 12px',
           backgroundColor: '#FF6B00',
           color: '#fff',
           textDecoration: 'none',
           borderRadius: '6px',
-          fontSize: '13px',
+          fontSize: '12px',
           fontWeight: '600',
           transition: 'background-color 0.2s',
           width: '100%',
@@ -236,17 +236,20 @@ const CoupangProductAd: React.FC<CoupangProductAdProps> = ({
       >
         {ingredientName} 쿠팡에서 구매하기
       </a>
-      <div style={{
-        fontSize: '9px',
-        color: '#999',
-        marginTop: '4px',
-        marginBottom: '0',
-        paddingBottom: '0',
-        textAlign: 'center',
-        lineHeight: '1.3',
-        whiteSpace: 'pre-line'
-      }}>
-        이 게시물은 쿠팡 파트너스 활동의 일환으로,{'\n'}이에 따른 일정액의 수수료를 제공받습니다.
+      <div
+        style={{
+          fontSize: '7px',
+          color: '#999',
+          marginTop: '1px',
+          marginBottom: 0,
+          paddingBottom: 0,
+          textAlign: 'center',
+          lineHeight: 1.12,
+          letterSpacing: '-0.02em',
+          wordBreak: 'keep-all',
+        }}
+      >
+        이 게시물은 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다.
       </div>
     </div>
   );

@@ -15,11 +15,11 @@ interface VirtualizedHorizontalRecipeListProps {
   showRank?: boolean;
   emptyMessage?: string | React.ReactNode;
   onThumbnailError?: (recipeId: number) => void;
-  /** react-window List 높이 = cardHeight + 이 값(광고·여백). 기본 80, 좁은 섹션 간격은 더 작게 */
+  /** react-window List 높이 = cardHeight + 이 값(광고·여백). 기본 64, compact 시 비율 적용 */
   listHeightExtra?: number;
   /**
-   * 요즘인기 '특별한 날' 가로 스크롤과 동일한 세로 리듬: List 높이는 cardHeight만 쓰고,
-   * 루트에 paddingBottom 8px(프리미엄 섹션 스크롤 영역과 동일). 섹션 간 빈 공간 과다 방지.
+   * 요즘인기·마이페이지 등: compact 시 카드~스크롤바 간격 최소(하단 패딩 없음).
+   * RecipeCard 가로형 하단 쿠팡 슬롯(minHeight)에 맞춰 List 높이를 cardHeight+여백으로 잡음.
    */
   compactSectionGap?: boolean;
 }
@@ -35,13 +35,6 @@ const CONSTANTS = {
 
 // 스타일 상수
 const STYLES = {
-  cardContainer: (cardWidth: number, gap: number, cardHeight: number) => ({
-    width: cardWidth,
-    marginRight: gap,
-    display: 'inline-block' as const,
-    height: 'auto',
-    minHeight: cardHeight
-  }),
   emptyContainer: (cardHeight: number) => ({
     display: 'flex' as const,
     alignItems: 'center' as const,
@@ -50,9 +43,9 @@ const STYLES = {
     color: '#bbb',
     fontSize: CONSTANTS.EMPTY_MESSAGE_FONT_SIZE
   }),
-  listContainer: (cardHeight: number) => ({
+  listContainer: (cardHeight: number, listExtra: number) => ({
     height: 'auto', // 광고가 있는 카드를 위해 auto로 변경
-    minHeight: cardHeight, // 최소 높이 유지
+    minHeight: cardHeight + listExtra, // 가로형 쿠팡 슬롯 포함 최소 높이
     width: '100%'
   })
 };
@@ -89,10 +82,13 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
   showRank = false,
   emptyMessage = '레시피가 없습니다',
   onThumbnailError,
-  listHeightExtra = 80,
+  listHeightExtra = 64,
   compactSectionGap = false
 }) => {
-  const resolvedListHeightExtra = compactSectionGap ? 0 : listHeightExtra;
+  /** compact: List 높이 = cardHeight + extra. cardHeight는 가로 카드 실세로 요즘인기와 맞출 것(불필요하게 크면 빈 띠). */
+  const resolvedListHeightExtra = compactSectionGap
+    ? Math.max(5, Math.round(cardHeight * 0.022))
+    : listHeightExtra;
   const containerRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<any>(null);
   const scrollIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -213,13 +209,18 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
     const recipe = recipes[index];
     if (!recipe) return null;
 
+    // react-window가 넘기는 height/width를 유지해야 함. cardContainer의 height:'auto'·minHeight가 덮어쓰면
+    // 행이 List 높이만큼 비어 보이고 스크롤바가 카드에서 멀어짐.
     return (
-      <div style={{
-        ...style,
-        ...STYLES.cardContainer(cardWidth, gap, cardHeight),
-        touchAction: 'pan-x', // 가로 스크롤 허용
-        overflowY: 'visible' // 광고가 잘리지 않도록 visible로 변경
-      }}>
+      <div
+        style={{
+          ...style,
+          width: cardWidth,
+          marginRight: gap,
+          touchAction: 'pan-x',
+          overflowY: 'visible',
+        } as React.CSSProperties}
+      >
         <RecipeCard
           recipe={recipe}
           index={index}
@@ -264,13 +265,13 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
     <div
       style={{
         position: 'relative',
-        ...(compactSectionGap ? { paddingBottom: 8 } : {}),
+        ...(compactSectionGap ? { paddingBottom: 0 } : {}),
       }}
     >
       <div 
         ref={containerRef} 
         style={{
-          ...STYLES.listContainer(cardHeight),
+          ...STYLES.listContainer(cardHeight, resolvedListHeightExtra),
           overflowY: 'visible', // 광고가 잘리지 않도록 visible로 변경
           overflowX: 'auto',
           touchAction: 'pan-x pan-y', // 가로 스크롤 우선, 세로 스크롤도 허용
