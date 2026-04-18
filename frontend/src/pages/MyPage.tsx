@@ -1078,7 +1078,7 @@ const MyPage: React.FC = () => {
       {/* 레시피 그룹 - 비회원도 localStorage로 관리하므로 항상 표시 */}
       <div style={{ marginTop: 56 }}>
         {/* 내가 기록한 레시피 */}
-        <div style={{ paddingLeft: 14, paddingRight: 14, marginTop: 0, marginBottom: 0 }}>
+        <div style={{ paddingLeft: 14, paddingRight: 14, marginTop: 0, marginBottom: 6 }}>
           <div className="flex items-center justify-between mb-0">
             <h2 className="text-[16px] font-bold text-[#111] flex items-center gap-1">
               <img 
@@ -1170,6 +1170,7 @@ const MyPage: React.FC = () => {
             cardWidth={300}
             cardHeight={320}
             gap={16}
+            listHeightExtra={8}
             emptyMessage={
               <>
                 <div>기록된 레시피가 없습니다.</div>
@@ -1180,7 +1181,7 @@ const MyPage: React.FC = () => {
         </div>
         
         {/* 내가 완료한 레시피 */}
-        <div style={{ paddingLeft: 14, paddingRight: 14, marginTop: -40 }}>
+        <div style={{ paddingLeft: 14, paddingRight: 14, marginTop: 0 }}>
           <div className="flex items-center justify-between mb-0">
             <h2 className="text-[16px] font-bold text-[#111] flex items-center gap-1">
               <img 
@@ -1272,6 +1273,7 @@ const MyPage: React.FC = () => {
             cardWidth={300}
             cardHeight={320}
             gap={16}
+            listHeightExtra={8}
             emptyMessage={
               <>
                 <div>완료된 레시피가 없습니다.</div>

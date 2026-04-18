@@ -15,6 +15,8 @@ interface VirtualizedHorizontalRecipeListProps {
   showRank?: boolean;
   emptyMessage?: string | React.ReactNode;
   onThumbnailError?: (recipeId: number) => void;
+  /** react-window List 높이 = cardHeight + 이 값(광고·여백). 기본 80, 좁은 섹션 간격은 더 작게 */
+  listHeightExtra?: number;
 }
 
 // 상수 정의
@@ -81,7 +83,8 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
   gap = CONSTANTS.DEFAULT_GAP,
   showRank = false,
   emptyMessage = '레시피가 없습니다',
-  onThumbnailError
+  onThumbnailError,
+  listHeightExtra = 80
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<any>(null);
@@ -265,7 +268,7 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
       >
         <List
           ref={listRef}
-          height={cardHeight + 80}
+          height={cardHeight + listHeightExtra}
           itemCount={recipes.length}
           itemSize={itemSize}
           layout="horizontal"
