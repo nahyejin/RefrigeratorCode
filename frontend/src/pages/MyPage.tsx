@@ -1170,7 +1170,7 @@ const MyPage: React.FC = () => {
             cardWidth={300}
             cardHeight={320}
             gap={16}
-            listHeightExtra={8}
+            compactSectionGap
             emptyMessage={
               <>
                 <div>기록된 레시피가 없습니다.</div>
@@ -1273,7 +1273,7 @@ const MyPage: React.FC = () => {
             cardWidth={300}
             cardHeight={320}
             gap={16}
-            listHeightExtra={8}
+            compactSectionGap
             emptyMessage={
               <>
                 <div>완료된 레시피가 없습니다.</div>

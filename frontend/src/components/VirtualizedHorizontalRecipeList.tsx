@@ -17,6 +17,11 @@ interface VirtualizedHorizontalRecipeListProps {
   onThumbnailError?: (recipeId: number) => void;
   /** react-window List 높이 = cardHeight + 이 값(광고·여백). 기본 80, 좁은 섹션 간격은 더 작게 */
   listHeightExtra?: number;
+  /**
+   * 요즘인기 '특별한 날' 가로 스크롤과 동일한 세로 리듬: List 높이는 cardHeight만 쓰고,
+   * 루트에 paddingBottom 8px(프리미엄 섹션 스크롤 영역과 동일). 섹션 간 빈 공간 과다 방지.
+   */
+  compactSectionGap?: boolean;
 }
 
 // 상수 정의
@@ -84,8 +89,10 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
   showRank = false,
   emptyMessage = '레시피가 없습니다',
   onThumbnailError,
-  listHeightExtra = 80
+  listHeightExtra = 80,
+  compactSectionGap = false
 }) => {
+  const resolvedListHeightExtra = compactSectionGap ? 0 : listHeightExtra;
   const containerRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<any>(null);
   const scrollIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -254,7 +261,12 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
   }
 
   return (
-    <div style={{ position: 'relative' }}>
+    <div
+      style={{
+        position: 'relative',
+        ...(compactSectionGap ? { paddingBottom: 8 } : {}),
+      }}
+    >
       <div 
         ref={containerRef} 
         style={{
@@ -268,7 +280,7 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
       >
         <List
           ref={listRef}
-          height={cardHeight + listHeightExtra}
+          height={cardHeight + resolvedListHeightExtra}
           itemCount={recipes.length}
           itemSize={itemSize}
           layout="horizontal"

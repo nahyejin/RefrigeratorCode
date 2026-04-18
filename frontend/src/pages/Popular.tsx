@@ -1882,7 +1882,7 @@ const Popular = () => {
              cardHeight={280}
              gap={16}
              showRank={true}
-             listHeightExtra={8}
+             compactSectionGap
              onThumbnailError={(recipeId) => {
                setFailedThumbnailIds(prev => new Set([...prev, recipeId]));
              }}
@@ -1946,7 +1946,7 @@ const Popular = () => {
              cardHeight={280}
              gap={16}
              showRank={true}
-             listHeightExtra={8}
+             compactSectionGap
              onThumbnailError={(recipeId) => {
                setFailedThumbnailIds(prev => new Set([...prev, recipeId]));
              }}
@@ -1954,8 +1954,8 @@ const Popular = () => {
         </section>
 
 
-        {/* 인기 급상승 요리 TOP 10 섹션 */}
-        <section style={{marginBottom: 48}}>
+        {/* 인기 급상승 요리 TOP 10 섹션 — 상단 여백은 위 섹션(marginBottom 6)과만 맞춤 */}
+        <section style={{ marginTop: 0, marginBottom: 48 }}>
           <div style={{display: 'flex', flexDirection: 'column', gap: 8}}>
             {/* 인기 급상승 요리 */}
             <div>
