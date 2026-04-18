@@ -1,17 +1,35 @@
+"""
+본문(content)에서 재료 블록·used_ingredients 추출.
+
+- 사전: frontend/public/ingredient_profile_dict_with_substitutes.csv
+- 한 글자 재료 중 `SHORT_HANGUL_REQUIRES_SPACES_BOTH_SIDES`(기본: 게)는
+  본문 줄 안에서 ` 공백+글자+공백 ` 패턴만 인정. 그 외 한 글자(파·무 등)는 기존 단어 경계 규칙.
+
+DB 전체 재계산 (환경변수로 DB 접속):
+  python update_used_ingredients_batch.py --dry-run
+  python update_used_ingredients_batch.py --limit 200
+  python update_used_ingredients_batch.py
+"""
+
 import pandas as pd
 import pymysql
 import re
 import sys
 import os
+import argparse
 
 # 상위 디렉토리 경로 추가
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(_PROJECT_ROOT)
 
 # ingredient_text_utils 모듈 import
 from backend.backend.ingredient_text_utils import unit_keywords, normalize_quantity_expression
 
-# ✅ 사전 불러오기
-ingredient_df = pd.read_csv(r'C:\Users\user\Desktop\RefrigeratorCode\frontend\public\ingredient_profile_dict_with_substitutes.csv', encoding='utf-8')
+# ✅ 사전 불러오기 (프로젝트 루트 기준 경로)
+_INGREDIENT_CSV = os.path.join(
+    _PROJECT_ROOT, "frontend", "public", "ingredient_profile_dict_with_substitutes.csv"
+)
+ingredient_df = pd.read_csv(_INGREDIENT_CSV, encoding="utf-8")
 
 # ✅ 컬럼명 정리: '1keyword'를 'keyword'로 변경
 if '1keyword' in ingredient_df.columns:
@@ -39,10 +57,24 @@ for _, row in ingredient_df_filtered.iterrows():
         else:
             normal_dict[name] = base_name
             
-# ✅ 한 글자 재료는 "단독 단어" + "짧은 문장"에서만 인정
+# ✅ 한 글자 재료: 기본은 비한글 접두·접미(단어 경계) + 짧은 줄.
+# ✅ 아래 집합에 든 한 글자(예: 게)는 본문에 '공백+글자+공백' 패턴만 인정 — 조사/오인 매칭 완화.
+#    (파·무·굴 등은 쉼표 나열에 공백 없이 자주 나와 양쪽 공백 규칙을 적용하지 않음)
+SHORT_HANGUL_REQUIRES_SPACES_BOTH_SIDES = frozenset({"게"})
+
+
 def is_valid_short_match(word, line):
+    if not word:
+        return False
+    if len(line.strip()) > 25:
+        return False
+    if len(word) == 1 and re.match(r"^[가-힣]$", word):
+        if word in SHORT_HANGUL_REQUIRES_SPACES_BOTH_SIDES:
+            return bool(re.search(rf"(?<=\s){re.escape(word)}(?=\s)", line))
+        pattern = rf"(?<![가-힣A-Za-z]){re.escape(word)}(?![가-힣A-Za-z])"
+        return bool(re.search(pattern, line))
     pattern = rf"(?<![가-힣A-Za-z]){re.escape(word)}(?![가-힣A-Za-z])"
-    return bool(re.search(pattern, line)) and len(line.strip()) <= 25
+    return bool(re.search(pattern, line))
 
 # ✅ 의미 키워드 줄 정제 함수
 def clean_meaning_line(line):
@@ -179,118 +211,173 @@ def extract_ingredients(text):
                 
     return list(ingredients)
 
-# ✅ 메인 처리 (직접 실행할 때만)
-if __name__ == "__main__":
-    # ✅ DB 연결 (환경변수 우선)
-    db_host = (
-        os.getenv('DB_HOST')
-        or os.getenv('MYSQLHOST')
-        or os.getenv('MYSQL_HOST')
-        or 'caboose.proxy.rlwy.net'
-    )
-    db_user = (
-        os.getenv('DB_USER')
-        or os.getenv('MYSQLUSER')
-        or os.getenv('MYSQL_USER')
-        or 'root'
-    )
-    db_password = (
-        os.getenv('DB_PASSWORD')
-        or os.getenv('MYSQLPASSWORD')
-        or os.getenv('MYSQL_PASSWORD')
-        or 'HkqYFCoKPPPxgryxiEbUYxcYynQXxeRF'
-    )
-    db_name = (
-        os.getenv('DB_NAME')
-        or os.getenv('MYSQLDATABASE')
-        or os.getenv('MYSQL_DATABASE')
-        or 'railway'
-    )
-    db_port = int(
-        os.getenv('DB_PORT')
-        or os.getenv('MYSQLPORT')
-        or os.getenv('MYSQL_PORT')
-        or 47779
-    )
-
-    db = pymysql.connect(
+def _connect_db(*, read_timeout_sec: int = 600):
+    """대량 본문 fetch·배치용으로 read_timeout 기본 10분."""
+    db_host = os.getenv("DB_HOST") or os.getenv("MYSQLHOST") or os.getenv("MYSQL_HOST")
+    db_user = os.getenv("DB_USER") or os.getenv("MYSQLUSER") or os.getenv("MYSQL_USER")
+    db_password = os.getenv("DB_PASSWORD") or os.getenv("MYSQLPASSWORD") or os.getenv("MYSQL_PASSWORD")
+    db_name = os.getenv("DB_NAME") or os.getenv("MYSQLDATABASE") or os.getenv("MYSQL_DATABASE")
+    db_port = os.getenv("DB_PORT") or os.getenv("MYSQLPORT") or os.getenv("MYSQL_PORT")
+    if not all([db_host, db_user, db_password is not None, db_name]):
+        raise SystemExit(
+            "DB 환경변수를 설정하세요: DB_HOST, DB_USER, DB_PASSWORD, DB_NAME (및 선택 DB_PORT)"
+        )
+    return pymysql.connect(
         host=db_host,
         user=db_user,
         password=db_password,
         db=db_name,
-        port=db_port,
-        charset='utf8mb4',
+        port=int(db_port) if db_port else 3306,
+        charset="utf8mb4",
         cursorclass=pymysql.cursors.DictCursor,
-        connect_timeout=10,
-        read_timeout=120,
+        connect_timeout=30,
+        read_timeout=read_timeout_sec,
         write_timeout=120,
-        autocommit=False
+        autocommit=False,
     )
-    cursor = db.cursor()
 
-    # ✅ 레시피 불러오기
-    cursor.execute("SELECT id, content FROM recipes")
-    recipes = cursor.fetchall()
 
-    total_recipes = len(recipes)
-    for i, recipe in enumerate(recipes, 1):
-        if i % 10 == 0:
-            print(f"진행 중: {i}/{total_recipes} ({round(i/total_recipes*100)}%) 완료")
-            
-        recipe_id = recipe['id']
-        content = recipe['content']
-        
-        # 재료 블록 추출
-        block, reason = extract_best_ingredient_block(content)
-        
-        # 재료 목록 추출
-        ingredients = extract_ingredients(block)
-        
-        # DB 업데이트
-        try:
-            # 연결이 끊겨있으면 자동으로 재연결
-            db.ping(reconnect=True)
-            cursor.execute("""
-                UPDATE recipes 
-                SET used_ingredients = %s,
-                    used_ingredients_block = %s,
-                    block_reason = %s
-                WHERE id = %s
-            """, (
-                ",".join(ingredients) if ingredients else None,
-                block if block else None,
-                reason,
-                recipe_id
-            ))
-            db.commit()  # 각 업데이트 후에 커밋
-        except pymysql.err.OperationalError as e:
-            print(f"Error updating recipe {recipe_id}: {e}")
-            # 롤백 시 이미 끊겨 있을 수 있으므로 방어
-            try:
-                db.rollback()
-            except Exception:
-                pass
-            # 1회 재시도
-            try:
-                db.ping(reconnect=True)
-                cursor.execute("""
-                    UPDATE recipes 
-                    SET used_ingredients = %s,
-                        used_ingredients_block = %s,
-                        block_reason = %s
-                    WHERE id = %s
-                """, (
-                    ",".join(ingredients) if ingredients else None,
-                    block if block else None,
-                    reason,
-                    recipe_id
-                ))
-                db.commit()
-            except Exception as e2:
-                print(f"Retry failed for recipe {recipe_id}: {e2}")
-    
-    print("used_ingredients, used_ingredients_block, block_reason 업데이트 완료!")
+def _used_ingredient_token_set(s):
+    if not s:
+        return frozenset()
+    return frozenset(x.strip() for x in str(s).split(",") if x.strip())
 
-    # 연결 종료
-    cursor.close()
-    db.close() 
+
+def recompute_recipe_row(content):
+    """본문으로부터 블록·재료·사유를 다시 계산 (DB 반영은 호출 측)."""
+    block, reason = extract_best_ingredient_block(content or "")
+    ingredients = extract_ingredients(block) if block else []
+    used_str = ",".join(sorted(ingredients)) if ingredients else None
+    return used_str, block if block else None, reason
+
+
+# ✅ 메인: 본문 기준으로 used_ingredients 전면 재계산 후 DB UPDATE
+if __name__ == "__main__":
+    try:
+        from dotenv import load_dotenv
+
+        load_dotenv(os.path.join(_PROJECT_ROOT, "backend", ".env"))
+        load_dotenv(os.path.join(_PROJECT_ROOT, ".env"))
+    except ImportError:
+        pass
+
+    parser = argparse.ArgumentParser(
+        description="recipes.content 기준으로 used_ingredients / block / block_reason 재생성"
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="변경 건수만 출력하고 UPDATE 하지 않음",
+    )
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=0,
+        help="처리할 최대 행 수 (0=전체)",
+    )
+    args = parser.parse_args()
+
+    print(
+        "※ 방금까지 말 없었으면: pandas·재료 CSV 로드 시간입니다. 다음부터 단계별 로그가 나옵니다.",
+        flush=True,
+    )
+    print(
+        "※ 줄바꿈이 바로 안 보이면: python -u update_used_ingredients_batch.py ...",
+        flush=True,
+    )
+    # SELECT 스트림이 열린 동안 같은 연결에서 UPDATE하면 MySQL 오류 → 읽기/쓰기 연결 분리
+    print("DB 연결 중 (읽기 + 쓰기)...", flush=True)
+    db_read = _connect_db()
+    db_write = _connect_db() if not args.dry_run else None
+    cursor = db_read.cursor()
+
+    limit_sql = f" LIMIT {int(args.limit)} " if args.limit and args.limit > 0 else ""
+    FETCH_BATCH = 150
+
+    print(
+        "SQL 실행 후 행을 여러 번에 나누어 받습니다(배치마다 로그).",
+        flush=True,
+    )
+    cursor.execute(
+        f"SELECT id, content, used_ingredients FROM recipes ORDER BY id{limit_sql}"
+    )
+    print("쿼리 실행됨. 첫 번째 행 묶음이 오기까지 잠시 걸릴 수 있습니다...", flush=True)
+
+    total = 0
+    changed = 0
+    batch_idx = 0
+    cur_write = db_write.cursor() if db_write else None
+
+    try:
+        while True:
+            rows = cursor.fetchmany(FETCH_BATCH)
+            if not rows:
+                break
+            batch_idx += 1
+            print(
+                f"  DB 수신 배치 {batch_idx}: +{len(rows)}행 (누적 {total + len(rows)}행까지 처리 예정)",
+                flush=True,
+            )
+            for recipe in rows:
+                total += 1
+                recipe_id = recipe["id"]
+                content = recipe["content"]
+                old_used = recipe.get("used_ingredients")
+
+                used_str, block, reason = recompute_recipe_row(content)
+
+                if _used_ingredient_token_set(old_used) != _used_ingredient_token_set(used_str):
+                    changed += 1
+
+                if args.dry_run:
+                    continue
+
+                assert cur_write is not None
+                try:
+                    db_write.ping(reconnect=True)
+                    cur_write.execute(
+                        """
+                        UPDATE recipes
+                        SET used_ingredients = %s,
+                            used_ingredients_block = %s,
+                            block_reason = %s
+                        WHERE id = %s
+                        """,
+                        (used_str, block, reason, recipe_id),
+                    )
+                    db_write.commit()
+                except pymysql.err.OperationalError as e:
+                    print(f"Error updating recipe {recipe_id}: {e}", flush=True)
+                    try:
+                        db_write.rollback()
+                    except Exception:
+                        pass
+                    try:
+                        db_write.ping(reconnect=True)
+                        cur_write.execute(
+                            """
+                            UPDATE recipes
+                            SET used_ingredients = %s,
+                                used_ingredients_block = %s,
+                                block_reason = %s
+                            WHERE id = %s
+                            """,
+                            (used_str, block, reason, recipe_id),
+                        )
+                        db_write.commit()
+                    except Exception as e2:
+                        print(f"Retry failed for recipe {recipe_id}: {e2}", flush=True)
+
+                if total % 500 == 0:
+                    print(f"  재계산·저장 진행: {total}행", flush=True)
+    finally:
+        cursor.close()
+        db_read.close()
+        if cur_write:
+            cur_write.close()
+        if db_write:
+            db_write.close()
+
+    print(f"완료. 처리 행: {total}, 재료 집합이 달라지는 행: {changed}", flush=True)
+    if args.dry_run:
+        print("(dry-run 이므로 DB 미반영)", flush=True) 
