@@ -2041,8 +2041,8 @@ const MyFridge: React.FC = () => {
               setPendingIngredient(null);
             }
           }}
-          message="더 많은 재료를 안전히 저장하려면 회원가입이 필요해요"
-          subMessage={null}
+          message="더 많은 재료를 안전히 저장하려면"
+          subMessage="회원가입이 필요해요"
           dismissLabel="나중에"
           confirmLabel="3초 회원가입"
         />
