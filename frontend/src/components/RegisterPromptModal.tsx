@@ -6,7 +6,10 @@ interface RegisterPromptModalProps {
   onClose: () => void;
   onConfirm?: () => void;
   message: string;
-  subMessage?: string;
+  /** 두 번째 줄. `null`이면 두 번째 줄 없음(첫 줄만). 미전달 시 기본: 회원가입이 필요해요 */
+  subMessage?: string | null;
+  dismissLabel?: string;
+  confirmLabel?: string;
 }
 
 const RegisterPromptModal: React.FC<RegisterPromptModalProps> = ({
@@ -14,39 +17,46 @@ const RegisterPromptModal: React.FC<RegisterPromptModalProps> = ({
   onClose,
   onConfirm,
   message,
-  subMessage
+  subMessage,
+  dismissLabel = '나중에',
+  confirmLabel = '회원가입하기',
 }) => {
   const navigate = useNavigate();
 
   if (!visible) return null;
 
+  const showSecondLine = subMessage !== null;
+  const secondLineText = subMessage === undefined || subMessage === '' ? '회원가입이 필요해요' : subMessage;
+
   return (
-    <div 
-      className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center" 
+    <div
+      className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center"
       style={{ zIndex: 1001 }}
       onClick={onClose}
     >
-      <div 
+      <div
         className="bg-white rounded-xl shadow-lg w-[320px] max-w-[95vw] p-6"
         onClick={e => e.stopPropagation()}
       >
         <div className="text-center mb-4">
           <div className="text-sm text-gray-600" style={{ lineHeight: '1.4' }}>
             <div>{message}</div>
-            <div style={{ marginTop: '2px' }}>
-              {subMessage || '회원가입이 필요해요'}
-            </div>
+            {showSecondLine && (
+              <div style={{ marginTop: '2px' }}>{secondLineText}</div>
+            )}
           </div>
         </div>
         <div className="flex gap-2">
           <button
+            type="button"
             onClick={onClose}
             className="flex-1 h-10 bg-white text-gray-700 border border-gray-300 rounded-lg text-sm font-semibold hover:bg-gray-50"
             style={{ outline: 'none' }}
           >
-            나중에
+            {dismissLabel}
           </button>
           <button
+            type="button"
             onClick={() => {
               if (onConfirm) {
                 onConfirm();
@@ -57,7 +67,7 @@ const RegisterPromptModal: React.FC<RegisterPromptModalProps> = ({
             className="flex-1 h-10 bg-[#FFD600] text-[#222] rounded-lg text-sm font-semibold hover:bg-yellow-300"
             style={{ outline: 'none', border: 'none' }}
           >
-            회원가입하기
+            {confirmLabel}
           </button>
         </div>
       </div>
@@ -66,4 +76,3 @@ const RegisterPromptModal: React.FC<RegisterPromptModalProps> = ({
 };
 
 export default RegisterPromptModal;
-

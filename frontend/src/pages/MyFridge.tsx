@@ -2028,16 +2028,23 @@ const MyFridge: React.FC = () => {
           visible={showRegisterModal}
           onClose={() => {
             setShowRegisterModal(false);
+            // 나중에/배경 닫기: 비로그인 유지하되 방금 확정하려던 재료는 로컬에 반영
+            if (pendingIngredient) {
+              handleModalComplete(pendingIngredient, true);
+            }
             setPendingIngredient(null);
           }}
           onConfirm={() => {
-            // 회원가입하기를 누르면 재료 추가 진행 (조건 체크 건너뛰기)
+            // 3초 회원가입: 재료 반영 후 로그인으로 이동
             if (pendingIngredient) {
               handleModalComplete(pendingIngredient, true);
               setPendingIngredient(null);
             }
           }}
-          message="더 많은 재료를 저장하려면"
+          message="더 많은 재료를 안전히 저장하려면 회원가입이 필요해요"
+          subMessage={null}
+          dismissLabel="나중에"
+          confirmLabel="3초 회원가입"
         />
         
         {/* 환영 모달 - 처음 방문한 사용자에게만 표시 */}
