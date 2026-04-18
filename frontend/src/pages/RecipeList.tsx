@@ -1220,6 +1220,10 @@ const RecipeList: React.FC = () => {
     },
   ];
 
+  /** 내냉장고에서 끝난 단계 수(저장 버튼 포함 여부) + 냉장고요리 가이드 = 전체 진행률 */
+  const myFridgeGuideStepCount = isLoggedIn ? 4 : 3;
+  const fullGuideTotalSteps = myFridgeGuideStepCount + guideSteps.length;
+
   // 가이드 표시 로직
   React.useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -2374,6 +2378,7 @@ const RecipeList: React.FC = () => {
       <GuideOverlay
         visible={showGuide}
         currentStep={guideStep}
+        onPrevious={() => setGuideStep((s) => Math.max(0, s - 1))}
         onNext={() => {
           if (guideStep < guideSteps.length - 1) {
             setGuideStep(guideStep + 1);
@@ -2388,8 +2393,8 @@ const RecipeList: React.FC = () => {
         }}
         steps={guideSteps}
         isLastStepConfirm={true}
-        totalSteps={9}
-        startStepOffset={2}
+        totalSteps={fullGuideTotalSteps}
+        startStepOffset={myFridgeGuideStepCount}
       />
     </>
   );

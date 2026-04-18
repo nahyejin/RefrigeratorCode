@@ -23,6 +23,12 @@ const TOAST_DURATION = 10000;
 // 가이드 단계 정의 (기본 - 비회원용)
 const baseGuideSteps = [
   {
+    targetSelector: '[data-guide-target="storage-areas"]',
+    message:
+      '재료는 냉동·냉장·실온 세 칸으로 나뉘어 있어요.\n처음엔 자주 쓰는 재료를 예시로 넣어 두었으니,\n내 냉장고 상황에 맞게 삭제·수정해서 쓰시면 돼요.\n사진으로 한번에 파악하기 기능은 추후 추가 계획입니다.',
+    position: 'top' as const,
+  },
+  {
     targetSelector: 'input[placeholder="추가할 재료명을 입력하세요"]',
     message: '재료명을 입력해서 내냉장고에 추가할 수 있어요.',
     position: 'bottom' as const,
@@ -1833,6 +1839,7 @@ const MyFridge: React.FC = () => {
             )}
           </div>
           <div style={{height: 2, width: '100%', background: '#E5E5E5', marginBottom: 16}} />
+          <div data-guide-target="storage-areas">
           {/* 냉동보관 */}
           <div className="mb-4">
             <div className="text-[16px] font-bold mb-2 flex items-center">
@@ -1965,6 +1972,7 @@ const MyFridge: React.FC = () => {
               ))}
             </div>
           </div>
+          </div>
           
           {/* 쿠팡 광고 - 실온 보관 영역 바로 아래 */}
           <div style={{ marginTop: 32, marginBottom: 24 }}>
@@ -2056,6 +2064,7 @@ const MyFridge: React.FC = () => {
         <GuideOverlay
           visible={showGuide}
           currentStep={guideStep}
+          onPrevious={() => setGuideStep((s) => Math.max(0, s - 1))}
           onNext={() => {
             // 로그인한 경우 저장 버튼 가이드 포함, 비회원은 기본 가이드만
             const guideSteps = isLoggedIn && user?.id 
@@ -2088,7 +2097,7 @@ const MyFridge: React.FC = () => {
             ? [...baseGuideSteps, saveButtonGuideStep]
             : baseGuideSteps}
           isLastStepConfirm={false}
-          totalSteps={isLoggedIn && user?.id ? 10 : 9}
+          totalSteps={isLoggedIn && user?.id ? 11 : 10}
           startStepOffset={0}
         />
       </div>

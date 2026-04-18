@@ -11,10 +11,27 @@ interface GuideOverlayProps {
   currentStep: number;
   onNext: () => void;
   onClose: () => void;
+  /** 이전 단계 (첫 단계에서는 버튼 숨김) */
+  onPrevious?: () => void;
   steps: GuideStep[];
   isLastStepConfirm?: boolean;
   totalSteps?: number; // 전체 가이드 단계 수 (기본값: steps.length)
   startStepOffset?: number; // 시작 단계 오프셋 (기본값: 0)
+}
+
+/** 하단 고정 탭 높이만큼 위까지를 안전 영역으로 봄 */
+const BOTTOM_TAB_RESERVE_PX = 80;
+
+/**
+ * 스크롤을 움직이지 않을 때도, 화면에 보이는 구간 + 탭 위까지만 하이라이트.
+ * 긴 요소는 뷰포트와 교차하는 세로 구간만 노란 박스로 잘림.
+ */
+function clipGuideHighlightRect(rect: DOMRect): DOMRect {
+  const maxBottom = window.innerHeight - BOTTOM_TAB_RESERVE_PX;
+  const top = Math.max(rect.top, 0);
+  const bottom = Math.min(rect.bottom, maxBottom);
+  const height = Math.max(0, bottom - top);
+  return new DOMRect(rect.left, top, rect.width, height);
 }
 
 const GuideOverlay: React.FC<GuideOverlayProps> = ({
@@ -22,6 +39,7 @@ const GuideOverlay: React.FC<GuideOverlayProps> = ({
   currentStep,
   onNext,
   onClose,
+  onPrevious,
   steps,
   isLastStepConfirm = false,
   totalSteps,
@@ -84,15 +102,18 @@ const GuideOverlay: React.FC<GuideOverlayProps> = ({
       }
       
       if (target) {
-        const rect = target.getBoundingClientRect();
-        console.log('[GuideOverlay] 타겟 위치:', {
-          top: rect.top,
-          left: rect.left,
-          width: rect.width,
-          height: rect.height,
-          element: target
-        });
-        setTargetRect(rect);
+        const applyRect = () => {
+          const rect = clipGuideHighlightRect(target!.getBoundingClientRect());
+          console.log('[GuideOverlay] 타겟 위치:', {
+            top: rect.top,
+            left: rect.left,
+            width: rect.width,
+            height: rect.height,
+            element: target
+          });
+          setTargetRect(rect);
+        };
+        applyRect();
       } else {
         console.warn('[GuideOverlay] 타겟 요소를 찾을 수 없습니다:', steps[currentStep].targetSelector);
         console.log('[GuideOverlay] 현재 페이지의 모든 [title="설정"] 요소:', document.querySelectorAll('[title="설정"]'));
@@ -128,16 +149,49 @@ const GuideOverlay: React.FC<GuideOverlayProps> = ({
   const getTooltipStyle = (): React.CSSProperties => {
     if (!targetRect) return { display: 'none' };
 
-    const tooltipWidth = 320; // 가로폭 넓힘
-    const tooltipHeight = 100;
+    const isStorageAreas = steps[currentStep].targetSelector.includes('storage-areas');
+    const tooltipWidth = isStorageAreas || steps[currentStep].targetSelector.includes('settings-icon') ? 340 : 320;
+    const tooltipHeight = isStorageAreas ? 220 : 100;
     const spacing = 12;
     let top = 0;
     let left = 0;
+
+    // 재고 영역 첫 안내: 하이라이트 바로 옆(아래 우선)에 붙임 — 'top' 배치 + 상단 클램프로 화면 최상단에 뜨는 현상 방지
+    if (isStorageAreas) {
+      const gap = 10;
+      const th = tooltipHeight;
+      const maxTop = window.innerHeight - BOTTOM_TAB_RESERVE_PX - 8 - th;
+
+      let t = targetRect.bottom + gap;
+      if (t > maxTop) {
+        t = targetRect.top - gap - th;
+      }
+      if (t < 16) {
+        t = Math.min(targetRect.bottom + gap, maxTop);
+      }
+      t = Math.max(16, Math.min(t, maxTop));
+
+      let l = targetRect.left + targetRect.width / 2 - tooltipWidth / 2;
+      if (l < 16) l = 16;
+      if (l + tooltipWidth > window.innerWidth - 16) {
+        l = window.innerWidth - tooltipWidth - 16;
+      }
+
+      return {
+        position: 'fixed',
+        top: `${t}px`,
+        left: `${l}px`,
+        zIndex: 10002,
+      };
+    }
 
     switch (position) {
       case 'top':
         top = targetRect.top - tooltipHeight - spacing;
         left = targetRect.left + (targetRect.width / 2) - (tooltipWidth / 2);
+        if (top < 16) {
+          top = targetRect.bottom + spacing;
+        }
         break;
       case 'bottom':
         top = targetRect.bottom + spacing;
@@ -251,7 +305,7 @@ const GuideOverlay: React.FC<GuideOverlayProps> = ({
         <div
           className="bg-white rounded-lg shadow-lg p-3"
           style={{
-            width: step.targetSelector.includes('settings-icon') ? '340px' : '320px',
+            width: step.targetSelector.includes('settings-icon') || step.targetSelector.includes('storage-areas') ? '340px' : '320px',
             fontSize: '13px',
             lineHeight: '1.5',
             color: '#333',
@@ -269,42 +323,42 @@ const GuideOverlay: React.FC<GuideOverlayProps> = ({
           <div className="mb-2 text-right" style={{ fontSize: '12px', color: '#666' }}>
             ({currentStep + startStepOffset + 1}/{totalSteps || steps.length})
           </div>
-          <div className="flex gap-2 justify-end">
-            {currentStep < steps.length - 1 ? (
-              <>
+          <div
+            className="flex flex-row items-center justify-between gap-2 w-full"
+            style={{ flexWrap: 'wrap', rowGap: 8 }}
+          >
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg bg-white"
+              style={{ outline: 'none', cursor: 'pointer', alignSelf: 'center' }}
+            >
+              설명 건너뛰기
+            </button>
+            <div className="flex items-center gap-2 shrink-0">
+              {currentStep > 0 && onPrevious ? (
                 <button
-                  onClick={onClose}
+                  type="button"
+                  onClick={onPrevious}
                   className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg bg-white"
                   style={{ outline: 'none', cursor: 'pointer' }}
                 >
-                  설명 건너뛰기
+                  이전
                 </button>
-                <button
-                  onClick={onNext}
-                  className="px-4 py-1.5 bg-[#FFD600] text-[#222] rounded-lg text-sm font-medium hover:bg-yellow-300 transition"
-                  style={{ outline: 'none', border: 'none', cursor: 'pointer' }}
-                >
-                  다음
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  onClick={onClose}
-                  className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg bg-white"
-                  style={{ outline: 'none', cursor: 'pointer' }}
-                >
-                  설명 건너뛰기
-                </button>
-                <button
-                  onClick={onNext}
-                  className="px-4 py-1.5 bg-[#FFD600] text-[#222] rounded-lg text-sm font-medium hover:bg-yellow-300 transition"
-                  style={{ outline: 'none', border: 'none', cursor: 'pointer' }}
-                >
-                  {isLastStepConfirm ? '확인' : '다음'}
-                </button>
-              </>
-            )}
+              ) : null}
+              <button
+                type="button"
+                onClick={onNext}
+                className="px-4 py-1.5 bg-[#FFD600] text-[#222] rounded-lg text-sm font-medium hover:bg-yellow-300 transition"
+                style={{ outline: 'none', border: 'none', cursor: 'pointer' }}
+              >
+                {currentStep < steps.length - 1
+                  ? '다음'
+                  : isLastStepConfirm
+                    ? '확인'
+                    : '다음'}
+              </button>
+            </div>
           </div>
         </div>
       </div>
