@@ -298,10 +298,14 @@ if __name__ == "__main__":
         "SQL 실행 후 행을 여러 번에 나누어 받습니다(배치마다 로그).",
         flush=True,
     )
+    print(
+        "SELECT 전송 중… (원격 DB가 쿼리를 받아 실행하기까지 1~수 분 멈춘 것처럼 보일 수 있음)",
+        flush=True,
+    )
     cursor.execute(
         f"SELECT id, content, used_ingredients FROM recipes ORDER BY id{limit_sql}"
     )
-    print("쿼리 실행됨. 첫 번째 행 묶음이 오기까지 잠시 걸릴 수 있습니다...", flush=True)
+    print("SELECT 수락됨. 첫 데이터 묶음 수신 시작…", flush=True)
 
     total = 0
     changed = 0
