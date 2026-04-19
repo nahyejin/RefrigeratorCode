@@ -86,6 +86,18 @@ for (const { rank, name } of PREMIUM_INGREDIENT_DEFS) {
   PREMIUM_RANK.set(key, rank);
 }
 
+/**
+ * `used_ingredients`에서 쪼갠 재료 토큰(= 카드 pill과 동일 출처)이 프리미엄 키워드를 **포함**할 때만 매칭.
+ * - 예: 토큰 `대게`, `황대게` → `대게` 프리미엄 O / 역방향 `premium.includes(토큰)` 은 쓰지 않음 (`게`만 있을 때 `대게`로 오인 방지)
+ * - 카드 pill과 다른 규칙을 두지 않음(동의어 치환 없이, 파싱된 문자열 기준).
+ */
+function tokenMatchesPremiumToken(ing: string, premium: string): boolean {
+  const i = ing.trim().toLowerCase();
+  const p = premium.trim().toLowerCase();
+  if (!i || !p) return false;
+  return i.includes(p);
+}
+
 /** 매칭 시 이 순서로 순회(표시용). 정렬 우선순위는 항상 `rank`. */
 export const PREMIUM_INGREDIENTS: string[] = [...PREMIUM_INGREDIENT_DEFS]
   .sort((a, b) => a.rank - b.rank || a.name.localeCompare(b.name))
@@ -97,9 +109,7 @@ export const PREMIUM_INGREDIENTS: string[] = [...PREMIUM_INGREDIENT_DEFS]
 export function hasPremiumIngredient(ingredients: string[]): boolean {
   const normalizedIngredients = ingredients.map(ing => ing.trim().toLowerCase());
   return PREMIUM_INGREDIENT_DEFS.some(({ name: premium }) =>
-    normalizedIngredients.some(
-      ing => ing.includes(premium.toLowerCase()) || premium.toLowerCase().includes(ing)
-    )
+    normalizedIngredients.some(ing => tokenMatchesPremiumToken(ing, premium))
   );
 }
 
@@ -109,9 +119,7 @@ export function hasPremiumIngredient(ingredients: string[]): boolean {
 export function getPremiumIngredients(recipeIngredients: string[]): string[] {
   const normalizedIngredients = recipeIngredients.map(ing => ing.trim().toLowerCase());
   const matched = PREMIUM_INGREDIENT_DEFS.filter(({ name: premium }) =>
-    normalizedIngredients.some(
-      ing => ing.includes(premium.toLowerCase()) || premium.toLowerCase().includes(ing)
-    )
+    normalizedIngredients.some(ing => tokenMatchesPremiumToken(ing, premium))
   ).map(d => d.name);
   return matched.sort(
     (a, b) =>

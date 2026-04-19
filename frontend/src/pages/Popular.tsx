@@ -29,7 +29,6 @@ import { useAuth } from '../context/AuthContext';
 import RegisterPromptModal from '../components/RegisterPromptModal';
 import {
   hasPremiumIngredient,
-  getPremiumIngredients,
   getPremiumTierRank,
 } from '../utils/premiumIngredients';
 import { parseUsedIngredientsForPills } from '../utils/ingredientPillNoise';
@@ -1707,9 +1706,6 @@ const Popular = () => {
                   {premiumRecipes
                     .filter(recipe => !failedThumbnailIds.has(recipe.id))
                     .map((recipe, index) => {
-                      const ingredients = parseUsedIngredientsForPills(recipe.used_ingredients);
-                      const premiumIngs = getPremiumIngredients(ingredients);
-                      
                       return (
                         <div
                           key={recipe.id}
