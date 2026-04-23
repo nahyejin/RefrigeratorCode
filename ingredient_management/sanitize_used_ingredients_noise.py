@@ -3,16 +3,18 @@ DB recipes.used_ingredients 정제.
 
 [기본] 프론트 ingredientPillNoise.ts 와 동일: 쉼표 구간이 ` 한글1자 ` (앞·뒤 공백)인 토큰만 제거.
 
-[선택] --strip-tokens 게
-  쉼표로 나눈 토큰 trim 이 **지정한 글자와 정확히 일치**할 때만 제거.
+[기본] `게` 한 글자 토큰은 항상 제거 (~~한 게 등 조사 오분절·구버전 사전 잔재).
+
+[선택] --strip-tokens 도,술
+  쉼표로 나눈 토큰 trim 이 **지정한 글자와 정확히 일치**할 때만 추가 제거.
   ※ "한글 1자 전부" 옵션은 파·무·굴 같은 **정상 재료까지 지우므로 넣지 않음**.
 
 분석 시 [2]는 참고용(파·무 등 1음절 재료 포함 행), [3]이 실제 `게` 단독 토큰 행.
 
 사용:
   python sanitize_used_ingredients_noise.py --analyze
-  python sanitize_used_ingredients_noise.py --dry-run --strip-tokens 게
-  python sanitize_used_ingredients_noise.py --strip-tokens 게
+  python sanitize_used_ingredients_noise.py --dry-run
+  python sanitize_used_ingredients_noise.py
 
 DB: 환경변수 DB_* / MYSQL* , backend/.env
 """
@@ -71,6 +73,8 @@ def parse_used_ingredients(
         if not t:
             continue
         if is_spaced_standalone_single_hangul_noise(seg):
+            continue
+        if t == "게":
             continue
         if strip_tokens and t in strip_tokens:
             continue
@@ -161,7 +165,7 @@ def analyze_rows(rows: list) -> None:
         for rid, snippet in game_samples:
             print(f"      id={rid}  {snippet!r}")
     print(
-        "\n※ DB 일괄 정리 예:  python sanitize_used_ingredients_noise.py --dry-run --strip-tokens 게"
+        "\n※ DB 일괄 정리:  python sanitize_used_ingredients_noise.py --dry-run  (게 단독은 기본 제거)"
     )
 
 
@@ -221,7 +225,7 @@ def main() -> None:
         if strip_tokens:
             print(f"strip-tokens: {sorted(strip_tokens)!r}")
         else:
-            print("strip-tokens: (없음) — 띄어쓰기 한글1자 노이즈만 제거")
+            print("strip-tokens: (없음) — 게 단독 + 띄어쓰기 한글1자 노이즈 제거")
         print(f"정제 후 문자열이 달라지는 행: {len(to_change)}")
 
         if args.dry_run:

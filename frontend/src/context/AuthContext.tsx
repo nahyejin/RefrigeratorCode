@@ -37,26 +37,89 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const decodeUserFromToken = (token: string): User | null => {
+    try {
+      const parts = token.split('.');
+      if (parts.length < 2) return null;
+
+      const base64Url = parts[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
+      const jsonPayload = decodeURIComponent(
+        atob(padded)
+          .split('')
+          .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+          .join('')
+      );
+      const payload = JSON.parse(jsonPayload);
+
+      if (!payload?.user_id) return null;
+      return {
+        id: String(payload.user_id),
+        email: payload.email || '',
+        nickname: payload.nickname || '',
+        provider: payload.provider,
+      };
+    } catch (e) {
+      console.warn('[Auth] 토큰 디코딩 실패:', e);
+      return null;
+    }
+  };
+
   // 초기 로드 시 토큰 확인
   useEffect(() => {
-    // localStorage 먼저 확인 (로그인 항상 유지)
-    let token = localStorage.getItem('auth_token');
-    let savedUser = localStorage.getItem('user');
-    
-    // localStorage에 없으면 sessionStorage 확인 (일시적 로그인)
-    if (!token) {
-      token = sessionStorage.getItem('auth_token');
-      savedUser = sessionStorage.getItem('user');
-    }
-    
-    if (token && savedUser) {
-      try {
-        setUser(JSON.parse(savedUser));
-      } catch (e) {
-        console.error('Failed to parse user data:', e);
+    try {
+      // localStorage 우선, 없으면 sessionStorage fallback
+      let token = localStorage.getItem('auth_token');
+      let savedUser = localStorage.getItem('user');
+      let source: 'local' | 'session' = 'local';
+
+      if (!token) {
+        token = sessionStorage.getItem('auth_token');
+        savedUser = sessionStorage.getItem('user');
+        source = 'session';
       }
+
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+
+      let restoredUser: User | null = null;
+
+      if (savedUser) {
+        try {
+          restoredUser = JSON.parse(savedUser);
+        } catch (e) {
+          console.warn('[Auth] 저장된 user 파싱 실패, 토큰으로 재복원 시도:', e);
+        }
+      }
+
+      if (!restoredUser) {
+        restoredUser = decodeUserFromToken(token);
+      }
+
+      if (restoredUser) {
+        setUser(restoredUser);
+        // 앱 재실행 후에도 유지되도록 항상 localStorage에 정규화 저장
+        localStorage.setItem('auth_token', token);
+        localStorage.setItem('user', JSON.stringify(restoredUser));
+        if (source === 'session') {
+          sessionStorage.removeItem('auth_token');
+          sessionStorage.removeItem('user');
+        }
+      } else {
+        // 복원 불가능한 손상 데이터 정리
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('user');
+        sessionStorage.removeItem('auth_token');
+        sessionStorage.removeItem('user');
+      }
+    } catch (e) {
+      console.error('[Auth] 초기 로그인 복원 실패:', e);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
   const login = async (email: string, password: string) => {
@@ -146,28 +209,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const loginWithToken = async (token: string, rememberMe: boolean = true) => {
     try {
-      // JWT 토큰 디코딩하여 사용자 정보 추출
-      // 실제로는 백엔드에서 토큰 검증 API를 호출해야 하지만,
-      // 여기서는 간단히 토큰을 디코딩하여 사용자 정보를 가져옵니다.
-      
-      // JWT 토큰 파싱 (간단한 방법 - 실제로는 jwt-decode 라이브러리 사용 권장)
-      const base64Url = token.split('.')[1];
-      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-      const jsonPayload = decodeURIComponent(
-        atob(base64)
-          .split('')
-          .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-          .join('')
-      );
-      
-      const payload = JSON.parse(jsonPayload);
-      
-      const user: User = {
-        id: String(payload.user_id),
-        email: payload.email,
-        nickname: payload.nickname,
-        provider: payload.provider, // 'google', 'kakao', 'naver' 또는 undefined
-      };
+      const user = decodeUserFromToken(token);
+      if (!user) {
+        throw new Error('유효하지 않은 토큰입니다.');
+      }
       
       // rememberMe에 따라 localStorage 또는 sessionStorage 사용
       if (rememberMe) {

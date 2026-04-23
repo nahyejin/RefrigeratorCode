@@ -374,6 +374,104 @@ const IngredientPill: React.FC<IngredientPillProps> = ({ item, onRemove, onInfoC
   );
 };
 
+interface ScrollablePillSectionProps {
+  watchKey: number;
+  children: React.ReactNode;
+}
+
+const ScrollablePillSection: React.FC<ScrollablePillSectionProps> = ({ watchKey, children }) => {
+  const scrollRef = React.useRef<HTMLDivElement>(null);
+  const [scrollHint, setScrollHint] = React.useState<'down' | 'up' | null>(null);
+
+  const updateScrollHint = React.useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const hasOverflow = el.scrollHeight - el.clientHeight > 2;
+    const canScrollUp = el.scrollTop > 2;
+    const canScrollDown = el.scrollTop + el.clientHeight < el.scrollHeight - 2;
+    if (!hasOverflow) {
+      setScrollHint(null);
+      return;
+    }
+    setScrollHint(canScrollDown ? 'down' : (canScrollUp ? 'up' : null));
+  }, []);
+
+  React.useEffect(() => {
+    updateScrollHint();
+    const rafId = window.requestAnimationFrame(updateScrollHint);
+    window.addEventListener('resize', updateScrollHint);
+    return () => {
+      window.cancelAnimationFrame(rafId);
+      window.removeEventListener('resize', updateScrollHint);
+    };
+  }, [updateScrollHint, watchKey]);
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <div
+        ref={scrollRef}
+        onScroll={updateScrollHint}
+        style={{
+          background: '#F5F6F8',
+          borderRadius: 20,
+          boxShadow: '0 1px 4px rgba(0,0,0,0.03)',
+          padding: 16,
+          maxHeight: '140px',
+          minHeight: '140px',
+          border: 'none',
+          overflowY: 'auto',
+          overflowX: 'hidden',
+        }}
+        className="custom-scrollbar"
+      >
+        {children}
+      </div>
+      {scrollHint && (
+        <>
+          <div
+            style={{
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              bottom: 0,
+              height: 32,
+              pointerEvents: 'none',
+              borderBottomLeftRadius: 20,
+              borderBottomRightRadius: 20,
+              background: 'linear-gradient(to bottom, rgba(245,246,248,0), rgba(245,246,248,0.92))',
+            }}
+          />
+          <div
+            style={{
+              position: 'absolute',
+              left: '50%',
+              ...(scrollHint === 'down' ? { bottom: 6 } : { top: 6 }),
+              transform: 'translateX(-50%)',
+              pointerEvents: 'none',
+              width: 26,
+              height: 26,
+              borderRadius: '9999px',
+              background: 'rgba(255,255,255,0.92)',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#666666',
+              fontSize: 16,
+              fontWeight: 400,
+              lineHeight: 1,
+              zIndex: 2,
+            }}
+            aria-hidden="true"
+          >
+            {scrollHint === 'down' ? '∨' : '∧'}
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
 // =====================
 // 메인 컴포넌트
 // =====================
@@ -1105,13 +1203,13 @@ const MyFridge: React.FC = () => {
           isInitialLoad.current = true;
           
           // 기본 재료 목록 정의
-          // 실온보관: 10개
+          // 실온보관: 11개
           const defaultRoomIngredients = [
-            '소금', '설탕', '간장', '식용유', '참기름', '후추', '올리고당', '물엿', '식초', '라면'
+            '소금', '설탕', '간장', '식용유', '참기름', '후추', '올리고당', '물엿', '식초', '라면', '알룰로스'
           ];
-          // 냉장보관: 16개
+          // 냉장보관: 17개
           const defaultFridgeIngredients = [
-            '마늘', '대파', '달걀', '된장', '고추장', '고춧가루', '밀가루', '전분', '미림', '맛술', '양파', '감자', '당근', '두부', '우유', '김치'
+            '마늘', '대파', '달걀', '된장', '고추장', '고춧가루', '밀가루', '전분', '미림', '맛술', '양파', '감자', '당근', '두부', '우유', '김치', '멸치'
           ];
           // 냉동보관: 3개
           const defaultFrozenIngredients = [
@@ -1854,21 +1952,7 @@ const MyFridge: React.FC = () => {
                 </button>
               )}
             </div>
-            <div
-              style={{
-                background: '#F5F6F8',
-                borderRadius: 20,
-                boxShadow: '0 1px 4px rgba(0,0,0,0.03)',
-                padding: 16,
-                maxHeight: '140px',
-                minHeight: '140px',
-                border: 'none',
-                marginBottom: 16,
-                overflowY: 'auto',
-                overflowX: 'hidden',
-              }}
-              className="custom-scrollbar"
-            >
+            <ScrollablePillSection watchKey={(frozen ?? []).length}>
               {(frozen ?? []).length === 0 && (
                 <div className="text-gray-400 text-xs py-1">재료가 아직 없어요</div>
               )}
@@ -1882,7 +1966,7 @@ const MyFridge: React.FC = () => {
                   data-guide-target="settings-icon"
                 />
               ))}
-            </div>
+            </ScrollablePillSection>
           </div>
           {/* 냉장보관 */}
           <div className="mb-4">
@@ -1898,21 +1982,7 @@ const MyFridge: React.FC = () => {
                 </button>
               )}
             </div>
-            <div
-              style={{
-                background: '#F5F6F8',
-                borderRadius: 20,
-                boxShadow: '0 1px 4px rgba(0,0,0,0.03)',
-                padding: 16,
-                maxHeight: '140px',
-                minHeight: '140px',
-                border: 'none',
-                marginBottom: 16,
-                overflowY: 'auto',
-                overflowX: 'hidden',
-              }}
-              className="custom-scrollbar"
-            >
+            <ScrollablePillSection watchKey={(fridge ?? []).length}>
               {fridge && fridge.length === 0 && (
                 <div className="text-gray-400 text-xs py-1">재료가 아직 없어요</div>
               )}
@@ -1926,7 +1996,7 @@ const MyFridge: React.FC = () => {
                   isFirstInFridge={index === 0}
                 />
               ))}
-            </div>
+            </ScrollablePillSection>
           </div>
           {/* 실온보관 */}
           <div className="mb-4">
@@ -1942,21 +2012,7 @@ const MyFridge: React.FC = () => {
                 </button>
               )}
             </div>
-            <div
-              style={{
-                background: '#F5F6F8',
-                borderRadius: 20,
-                boxShadow: '0 1px 4px rgba(0,0,0,0.03)',
-                padding: 16,
-                maxHeight: '140px',
-                minHeight: '140px',
-                border: 'none',
-                marginBottom: 16,
-                overflowY: 'auto',
-                overflowX: 'hidden',
-              }}
-              className="custom-scrollbar"
-            >
+            <ScrollablePillSection watchKey={(room ?? []).length}>
               {room && room.length === 0 && (
                 <div className="text-gray-400 text-xs py-1">재료가 아직 없어요</div>
               )}
@@ -1970,7 +2026,7 @@ const MyFridge: React.FC = () => {
                   data-guide-target="settings-icon"
                 />
               ))}
-            </div>
+            </ScrollablePillSection>
           </div>
           </div>
           

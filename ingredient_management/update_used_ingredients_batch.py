@@ -2,13 +2,17 @@
 본문(content)에서 재료 블록·used_ingredients 추출.
 
 - 사전: frontend/public/ingredient_profile_dict_with_substitutes.csv
-- 한 글자 재료 중 `SHORT_HANGUL_REQUIRES_SPACES_BOTH_SIDES`(기본: 게)는
-  본문 줄 안에서 ` 공백+글자+공백 ` 패턴만 인정. 그 외 한 글자(파·무 등)는 기존 단어 경계 규칙.
+- 한 글자 `게`는 조사(~~한 게) 오탐이 많아 사전·매칭에서 제외. 꽃게·대게·홍게 등은 각각 키워드로만 인식.
+- 그 외 한 글자(파·무 등)는 기존 단어 경계 규칙.
 
-DB 전체 재계산 (환경변수로 DB 접속):
+DB 전체 재계산 (환경변수로 DB 접속, 약 3만 건 전부 덮어쓰기):
   python update_used_ingredients_batch.py --dry-run
   python update_used_ingredients_batch.py --limit 200
-  python update_used_ingredients_batch.py
+  python -u update_used_ingredients_batch.py
+
+기존 `used_ingredients`에 남은 `게` 단독 토큰만 빠르게 정리할 때(선택):
+  python sanitize_used_ingredients_noise.py --dry-run
+  python sanitize_used_ingredients_noise.py
 """
 
 import pandas as pd
@@ -53,14 +57,15 @@ for _, row in ingredient_df_filtered.iterrows():
         if not name:
             continue
         if len(name) == 1:
+            # `게` 한 글자는 ~~한 게 / ~였던 게 등 조사로 자주 잡혀 제외 (꽃게·대게 등은 다글자 키워드로 별도 행)
+            if name == "게":
+                continue
             short_dict[name] = base_name
         else:
             normal_dict[name] = base_name
             
 # ✅ 한 글자 재료: 기본은 비한글 접두·접미(단어 경계) + 짧은 줄.
-# ✅ 아래 집합에 든 한 글자(예: 게)는 본문에 '공백+글자+공백' 패턴만 인정 — 조사/오인 매칭 완화.
 #    (파·무·굴 등은 쉼표 나열에 공백 없이 자주 나와 양쪽 공백 규칙을 적용하지 않음)
-SHORT_HANGUL_REQUIRES_SPACES_BOTH_SIDES = frozenset({"게"})
 
 
 def is_valid_short_match(word, line):
@@ -69,8 +74,6 @@ def is_valid_short_match(word, line):
     if len(line.strip()) > 25:
         return False
     if len(word) == 1 and re.match(r"^[가-힣]$", word):
-        if word in SHORT_HANGUL_REQUIRES_SPACES_BOTH_SIDES:
-            return bool(re.search(rf"(?<=\s){re.escape(word)}(?=\s)", line))
         pattern = rf"(?<![가-힣A-Za-z]){re.escape(word)}(?![가-힣A-Za-z])"
         return bool(re.search(pattern, line))
     pattern = rf"(?<![가-힣A-Za-z]){re.escape(word)}(?![가-힣A-Za-z])"
