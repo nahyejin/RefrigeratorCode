@@ -1873,7 +1873,8 @@ const Popular = () => {
           );
         })()}
 
-        {/* ⓑ 유튜브 인기 레시피 섹션 */}
+        {/* ⓑ 유튜브 인기 레시피 섹션 (데이터 있을 때만 노출) */}
+        {youtubeRecipes.length > 0 && (
         <section style={{ marginTop: 4, marginBottom: 0 }}>
           <div style={{ marginBottom: 8, display: 'flex', alignItems: 'center' }}>
             <span
@@ -1936,8 +1937,10 @@ const Popular = () => {
              }}
            />
         </section>
+        )}
 
-        {/* ⓒ 네이버 인기 레시피 섹션 */}
+        {/* ⓒ 네이버 인기 레시피 섹션 (데이터 있을 때만 노출) */}
+        {naverRecipes.length > 0 && (
         <section style={{ marginTop: 4, marginBottom: 0 }}>
           <div style={{ marginBottom: 8, display: 'flex', alignItems: 'center' }}>
             <span
@@ -2000,6 +2003,7 @@ const Popular = () => {
              }}
            />
         </section>
+        )}
 
 
         {/* 인기 급상승 TOP10: 데이터가 있을 때만 노출 */}
