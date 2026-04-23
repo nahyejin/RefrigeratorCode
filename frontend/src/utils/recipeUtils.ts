@@ -869,9 +869,118 @@ export async function loadCoupangLinks(): Promise<{ [key: string]: string }> {
   }
 }
 
+export type CoupangAdEntry = {
+  url: string;
+  priority: number;
+};
+
+export type CoupangAdsMap = {
+  [ingredientKeyword: string]: CoupangAdEntry[];
+};
+
+/**
+ * 별도 광고 운영 CSV(coupang_ads.csv) 로드
+ * - 컬럼: ingredient_keyword,coupang_url,priority,active
+ * - active !== 'Y' 는 제외
+ * - ingredient별 priority 오름차순 정렬
+ */
+export async function loadCoupangAds(): Promise<CoupangAdsMap> {
+  const CACHE_KEY = 'coupang_ads_cache';
+  const CACHE_VERSION = '1.0';
+
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const cached = localStorage.getItem(CACHE_KEY);
+      if (cached) {
+        try {
+          const parsedCache = JSON.parse(cached);
+          if (parsedCache.version === CACHE_VERSION && parsedCache.data) {
+            return parsedCache.data as CoupangAdsMap;
+          }
+        } catch {
+          // ignore broken cache
+        }
+      }
+    }
+
+    const response = await fetch('/coupang_ads.csv');
+    if (!response.ok) {
+      return {};
+    }
+    const csv = await response.text();
+    const lines = csv.split('\n').filter(line => line.trim());
+    if (lines.length < 2) {
+      return {};
+    }
+
+    const parseCSVLine = (line: string): string[] => {
+      const result: string[] = [];
+      let current = '';
+      let inQuotes = false;
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        if (char === '"') inQuotes = !inQuotes;
+        else if (char === ',' && !inQuotes) {
+          result.push(current.trim());
+          current = '';
+        } else current += char;
+      }
+      result.push(current.trim());
+      return result;
+    };
+
+    const header = parseCSVLine(lines[0]).map(h => h.trim().toLowerCase());
+    const ingredientIdx = header.indexOf('ingredient_keyword');
+    const urlIdx = header.indexOf('coupang_url');
+    const priorityIdx = header.indexOf('priority');
+    const activeIdx = header.indexOf('active');
+    if (ingredientIdx === -1 || urlIdx === -1) {
+      return {};
+    }
+
+    const adsMap: CoupangAdsMap = {};
+    for (const line of lines.slice(1)) {
+      const values = parseCSVLine(line);
+      const ingredient = values[ingredientIdx]?.trim();
+      const url = values[urlIdx]?.trim();
+      const activeRaw = activeIdx >= 0 ? values[activeIdx]?.trim() : 'Y';
+      const isActive = (activeRaw || 'Y').toUpperCase() === 'Y';
+      const priorityRaw = (priorityIdx >= 0 ? values[priorityIdx]?.trim() : '') || '';
+      const priorityUpper = priorityRaw.toUpperCase();
+      const letterPriorityMap: { [k: string]: number } = { A: 1, B: 2, C: 3, D: 4 };
+      const priority = priorityUpper in letterPriorityMap
+        ? letterPriorityMap[priorityUpper]
+        : (Number.isFinite(Number(priorityRaw)) ? Number(priorityRaw) : 1000);
+
+      if (!ingredient || !url || !isActive) continue;
+      if (!adsMap[ingredient]) adsMap[ingredient] = [];
+      adsMap[ingredient].push({ url, priority });
+    }
+
+    Object.keys(adsMap).forEach(key => {
+      adsMap[key].sort((a, b) => a.priority - b.priority);
+    });
+
+    coupangAdsCache = adsMap;
+    if (typeof window !== 'undefined' && window.localStorage) {
+      try {
+        localStorage.setItem(CACHE_KEY, JSON.stringify({ version: CACHE_VERSION, data: adsMap }));
+      } catch {
+        // ignore local cache write failures
+      }
+    }
+    return adsMap;
+  } catch (error) {
+    console.warn('[recipeUtils] 쿠팡 광고 CSV 로드 실패:', error);
+    return {};
+  }
+}
+
 // 쿠팡 링크 캐시
 export let coupangLinksCache: { [key: string]: string } | null = null;
 let loadingCoupangLinks = false;
+export let coupangAdsCache: CoupangAdsMap | null = null;
+let loadingCoupangAds = false;
 
 /**
  * 쿠팡 링크를 미리 로드한다 (선택사항)
@@ -883,3 +992,11 @@ export async function preloadCoupangLinks(): Promise<void> {
     loadingCoupangLinks = false;
   }
 } 
+
+export async function preloadCoupangAds(): Promise<void> {
+  if (!coupangAdsCache && !loadingCoupangAds) {
+    loadingCoupangAds = true;
+    coupangAdsCache = await loadCoupangAds();
+    loadingCoupangAds = false;
+  }
+}

@@ -310,11 +310,6 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
   };
   
   const lackingIngredients = getLackingIngredients();
-  // 광고용 대상 재료 선택: 부족한 재료가 1개 이상이면 그 중 하나를 선택 (여러 개일 경우 랜덤 선택)
-  const adIngredient =
-    lackingIngredients.length > 0
-      ? lackingIngredients[Math.floor(Math.random() * lackingIngredients.length)]
-      : null;
 
   const handleCardClick = (e: React.MouseEvent<HTMLDivElement>) => {
     // 버튼 영역 클릭 시 카드 클릭 이벤트 무시
@@ -333,9 +328,6 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
     }
   };
 
-  // 광고가 표시될 경우를 대비해 overflow와 min-height 조정
-  const hasAd = lackingIngredients.length === 1;
-  
   const horizontalIngredientSectionStyle = isHorizontal
     ? { minHeight: 54 }
     : undefined;
@@ -475,13 +467,19 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
             boxSizing: 'border-box',
           }}
         >
-          {adIngredient ? (
-            <CoupangProductAd ingredientName={adIngredient} />
+          {lackingIngredients.length > 0 ? (
+            <CoupangProductAd
+              ingredientCandidates={lackingIngredients}
+              seedKey={recipe.id}
+            />
           ) : null}
         </div>
-      ) : adIngredient ? (
+      ) : lackingIngredients.length > 0 ? (
         <div style={{ marginTop: '8px' }}>
-          <CoupangProductAd ingredientName={adIngredient} />
+          <CoupangProductAd
+            ingredientCandidates={lackingIngredients}
+            seedKey={recipe.id}
+          />
         </div>
       ) : null}
     </div>

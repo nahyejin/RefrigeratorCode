@@ -439,7 +439,7 @@ const calculateThemeRankings = async (recipes: Recipe[], dateRange: { start: Dat
       multiplier: r.multiplier
     })));
     
-    const result = results
+    const risingOnly = results
       .filter(item => {
         // 신규이거나 상승한 것만 필터링 (rate > 0 또는 multiplier > 1)
         // multiplier가 1이면 변화 없음이므로 제외
@@ -464,9 +464,29 @@ const calculateThemeRankings = async (recipes: Recipe[], dateRange: { start: Dat
         multiplier: item.multiplier,
         thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80"
       }));
-    
-    console.log('계산된 테마 랭킹:', result);
-    return result;
+
+    // 상승/신규가 아예 없으면 빈 화면 대신 "현재 레시피 수 상위"로 fallback
+    if (risingOnly.length > 0) {
+      console.log('계산된 테마 랭킹(상승/신규 기준):', risingOnly);
+      return risingOnly;
+    }
+
+    const fallbackByCount = results
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10)
+      .map((item, index) => ({
+        id: index + 1,
+        rank: index + 1,
+        name: item.name,
+        count: item.count,
+        rate: item.rate,
+        isNew: item.isNew,
+        multiplier: item.multiplier,
+        thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80"
+      }));
+
+    console.log('계산된 테마 랭킹(fallback: count 기준):', fallbackByCount);
+    return fallbackByCount;
 
   } catch (error) {
     console.error('Error calculating theme rankings:', error);
@@ -609,7 +629,7 @@ function calculateDishRankings(recipes: Recipe[], dishKeywords: { keyword: strin
     multiplier: r.multiplier
   })));
   
-  return results
+  const risingOnly = results
     .filter(item => {
       // 신규이거나 상승한 것만 필터링 (rate > 0 또는 multiplier > 1)
       // multiplier가 1이면 변화 없음이므로 제외
@@ -623,6 +643,25 @@ function calculateDishRankings(recipes: Recipe[], dishKeywords: { keyword: strin
       // 같은 타입이면 sortValue로 정렬
       return b.sortValue - a.sortValue;
     })
+    .slice(0, 10)
+    .map((item, index) => ({
+      id: index + 1,
+      rank: index + 1,
+      name: item.name,
+      count: item.count,
+      rate: item.rate,
+      isNew: item.isNew,
+      multiplier: item.multiplier,
+      thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80"
+    }));
+
+  if (risingOnly.length > 0) {
+    return risingOnly;
+  }
+
+  // 상승/신규가 없을 때는 현재 기간 레시피 수 상위로 fallback
+  return results
+    .sort((a, b) => b.count - a.count)
     .slice(0, 10)
     .map((item, index) => ({
       id: index + 1,
@@ -1963,10 +2002,12 @@ const Popular = () => {
         </section>
 
 
-        {/* 인기 급상승 요리 TOP 10 — 상단 여백은 위 섹션과만 맞춤 */}
+        {/* 인기 급상승 TOP10: 데이터가 있을 때만 노출 */}
+        {(dishRankings.length > 0 || themeRankings.length > 0) && (
         <section style={{ marginTop: 4, marginBottom: 48 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 48 }}>
             {/* 인기 급상승 요리 */}
+            {dishRankings.length > 0 && (
             <div>
               <h2 className="text-[16px] font-bold text-[#111] mb-2 text-left"><span className="mr-1">📈</span>인기 급상승 요리 TOP 10</h2>
               <div style={{ height: 2, width: '100%', background: '#E5E5E5', marginBottom: 16 }} />
@@ -1980,8 +2021,7 @@ const Popular = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {dishRankings.length > 0 ? (
-                      dishRankings.map((dish, idx) => (
+                    {dishRankings.map((dish, idx) => (
                         <tr key={dish.name}>
                           <td className="py-1 px-2 text-center text-[#444] font-normal whitespace-nowrap">{idx + 1}</td>
                           <td className="py-1 px-2 text-center text-[#444] font-normal whitespace-nowrap">
@@ -2017,17 +2057,14 @@ const Popular = () => {
                             </div>
                           </td>
                         </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={3} className="text-center" style={{height: 320, color: 'rgb(187, 187, 187)', fontSize: '13px', whiteSpace: 'nowrap', verticalAlign: 'middle', textAlign: 'center'}}>데이터가 없습니다</td>
-                      </tr>
-                    )}
+                      ))}
                   </tbody>
                 </table>
               </div>
             </div>
+            )}
             {/* 인기 급상승 테마 */}
+            {themeRankings.length > 0 && (
             <div>
               <h2 className="text-[16px] font-bold text-[#111] mb-2 text-left"><span className="mr-1">📈</span>인기 급상승 테마 TOP 10</h2>
               <div style={{ height: 2, width: '100%', background: '#E5E5E5', marginBottom: 16 }} />
@@ -2041,8 +2078,7 @@ const Popular = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {themeRankings.length > 0 ? (
-                      themeRankings.map((theme, idx) => (
+                    {themeRankings.map((theme, idx) => (
                         <tr key={theme.id}>
                           <td className="py-1 px-2 text-center text-[#444] font-normal whitespace-nowrap">{idx + 1}</td>
                           <td className="py-1 px-2 text-center text-[#444] font-normal whitespace-nowrap">
@@ -2074,31 +2110,15 @@ const Popular = () => {
                             </div>
                           </td>
                         </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td
-                          colSpan={4}
-                          className="text-center"
-                          style={{
-                            height: 320,
-                            color: 'rgb(187, 187, 187)',
-                            fontSize: '13px',
-                            whiteSpace: 'nowrap',
-                            verticalAlign: 'middle',
-                            textAlign: 'center'
-                          }}
-                        >
-                          데이터가 없습니다
-                        </td>
-                      </tr>
-                    )}
+                      ))}
                   </tbody>
                 </table>
               </div>
             </div>
+            )}
           </div>
         </section>
+        )}
 
         {/* 인기 레시피 직접 찾아보기 검색창 */}
         <section style={{marginBottom: 48}}>
