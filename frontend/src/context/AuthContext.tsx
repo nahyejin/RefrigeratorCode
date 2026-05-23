@@ -291,13 +291,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       const postRecipeIds = async (
         type: 'write' | 'done',
-        items: { id?: number }[]
+        items: { id?: number; user_saved_at?: string; saved_at?: string }[]
       ) => {
         const endpoint =
           type === 'write'
             ? `${apiUrl}/api/users/${userId}/recorded-recipes`
             : `${apiUrl}/api/users/${userId}/completed-recipes`;
-        for (const item of [...items].reverse()) {
+
+        const hasSavedAt = items.some(item => item?.user_saved_at || item?.saved_at);
+        const orderedItems = hasSavedAt
+          ? [...items].sort((a, b) => {
+              const aTime = new Date(a.user_saved_at || a.saved_at || 0).getTime();
+              const bTime = new Date(b.user_saved_at || b.saved_at || 0).getTime();
+              return aTime - bTime;
+            })
+          : items;
+
+        for (const item of orderedItems) {
           const rid = item?.id;
           if (rid == null || Number.isNaN(Number(rid))) continue;
           try {
