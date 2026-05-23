@@ -11,6 +11,7 @@ const STORAGE_KEYS = {
 } as const;
 
 const DEFAULT_RECIPE_URL = '/recipe/';
+const USER_SAVED_AT_FIELD = 'user_saved_at';
 
 // =====================
 // 타입 정의
@@ -68,6 +69,44 @@ function removeRecipeById(recipes: Recipe[], recipeId: number): Recipe[] {
   return recipes.filter((r) => r.id !== recipeId);
 }
 
+function getSavedAtValue(recipe: Partial<Recipe>): string | undefined {
+  return (
+    recipe.user_saved_at ||
+    recipe.saved_at ||
+    recipe.recorded_at ||
+    recipe.completed_at
+  );
+}
+
+function getSavedAtTime(recipe: Partial<Recipe>): number {
+  const savedAt = getSavedAtValue(recipe);
+  if (!savedAt) return 0;
+
+  const time = new Date(savedAt).getTime();
+  return Number.isNaN(time) ? 0 : time;
+}
+
+export function withUserSavedAt<T extends Partial<Recipe>>(recipe: T, savedAt = new Date().toISOString()): T & { user_saved_at: string } {
+  return {
+    ...recipe,
+    [USER_SAVED_AT_FIELD]: recipe.user_saved_at || savedAt,
+  } as T & { user_saved_at: string };
+}
+
+export function sortRecipesByUserSavedAtDesc<T extends Partial<Recipe>>(recipes: T[]): T[] {
+  return [...recipes]
+    .map((recipe, index) => ({ recipe, index, savedAtTime: getSavedAtTime(recipe) }))
+    .sort((a, b) => {
+      if (a.savedAtTime !== b.savedAtTime) {
+        return b.savedAtTime - a.savedAtTime;
+      }
+
+      // 기존 로컬 데이터에는 저장 시각이 없으므로, 예전 push 순서 기준 최신 항목을 앞으로 보낸다.
+      return b.index - a.index;
+    })
+    .map(({ recipe }) => recipe);
+}
+
 // =====================
 // 레시피 액션 관련 함수
 // =====================
@@ -91,12 +130,10 @@ export function getRecipeActionState(recipeId: number): RecipeActionState {
  */
 export function addRecipeToLocalStorage(type: StorageType, recipe: Recipe): void {
   const key = STORAGE_KEYS[type];
-  const recipes = getRecipesFromLocalStorage(type);
+  const recipes = removeRecipeById(getRecipesFromLocalStorage(type), recipe.id);
+  const savedRecipe = withUserSavedAt(recipe);
   
-  if (!hasRecipeById(recipes, recipe.id)) {
-    recipes.push(recipe);
-    safeJsonSet(key, recipes);
-  }
+  safeJsonSet(key, sortRecipesByUserSavedAtDesc([savedRecipe, ...recipes]));
 }
 
 /**
@@ -126,7 +163,7 @@ export function getRecipesFromLocalStorage(type: StorageType): Recipe[] {
   const recipes = safeJsonParse<Recipe[]>(key, []);
   
   if (Array.isArray(recipes)) {
-    return recipes;
+    return sortRecipesByUserSavedAtDesc(recipes);
   }
   
   console.warn(`[Storage] 잘못된 레시피 데이터 형식: ${key}`);

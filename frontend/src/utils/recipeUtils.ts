@@ -293,7 +293,11 @@ export function sortRecipes(
   const sorted = [...recipes];
   switch (sortType) {
     case 'latest':
-      sorted.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      sorted.sort((a, b) => {
+        const aDate = new Date(a.user_saved_at || a.saved_at || a.created_at || 0).getTime();
+        const bDate = new Date(b.user_saved_at || b.saved_at || b.created_at || 0).getTime();
+        return bDate - aDate;
+      });
       break;
     case 'like':
       sorted.sort((a, b) => {

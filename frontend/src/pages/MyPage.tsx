@@ -16,7 +16,14 @@ import IngredientPillGroup from '../components/IngredientPillGroup';
 import { getProxiedImageUrl } from '../utils/imageUtils';
 import naverLogo from '../assets/썸네일_naverlogo.png';
 import youtubeLogo from '../assets/썸네일_youtubelogo.png';
-import { addRecipeToLocalStorage, removeRecipeFromLocalStorage, getRecipesFromLocalStorage, copyRecipeUrlToClipboard } from '../utils/recipeStorage';
+import {
+  addRecipeToLocalStorage,
+  removeRecipeFromLocalStorage,
+  getRecipesFromLocalStorage,
+  copyRecipeUrlToClipboard,
+  sortRecipesByUserSavedAtDesc,
+  withUserSavedAt
+} from '../utils/recipeStorage';
 import { useAuth } from '../context/AuthContext';
 import RegisterPromptModal from '../components/RegisterPromptModal';
 import BottomCoupangAd from '../components/BottomCoupangAd';
@@ -44,9 +51,9 @@ function mergeRecipeListsFromDbAndLocal(dbList: any[], localList: any[]): any[] 
     if (r?.id == null) continue;
     const id = String(r.id);
     const fromDb = map.get(id);
-    map.set(id, fromDb ? { ...fromDb, ...r } : { ...r });
+    map.set(id, fromDb ? { ...fromDb, ...r, user_saved_at: fromDb.user_saved_at || r.user_saved_at } : { ...r });
   }
-  return Array.from(map.values());
+  return sortRecipesByUserSavedAtDesc(Array.from(map.values()));
 }
 
 // =====================
@@ -327,15 +334,15 @@ const MyPage: React.FC = () => {
     const localCompleted = JSON.parse(localStorage.getItem(STORAGE_KEY_COMPLETED) || '[]');
 
     if (!isLoggedIn || !authUser?.id) {
-      setRecordedRecipes(localRecorded);
-      setCompletedRecipes(localCompleted);
+      setRecordedRecipes(sortRecipesByUserSavedAtDesc(localRecorded));
+      setCompletedRecipes(sortRecipesByUserSavedAtDesc(localCompleted));
       return;
     }
 
     const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
     if (!token) {
-      setRecordedRecipes(localRecorded);
-      setCompletedRecipes(localCompleted);
+      setRecordedRecipes(sortRecipesByUserSavedAtDesc(localRecorded));
+      setCompletedRecipes(sortRecipesByUserSavedAtDesc(localCompleted));
       return;
     }
 
@@ -351,11 +358,12 @@ const MyPage: React.FC = () => {
         const fromDb = recordedData.recipes || [];
         const merged = mergeRecipeListsFromDbAndLocal(fromDb, localRecorded);
         setRecordedRecipes(merged);
+        localStorage.setItem(STORAGE_KEY_RECORDED, JSON.stringify(merged));
         fromDb.forEach((r: any) => {
           addRecipeToLocalStorage('write', r);
         });
       } else {
-        setRecordedRecipes(localRecorded);
+        setRecordedRecipes(sortRecipesByUserSavedAtDesc(localRecorded));
       }
 
       // 완료한 레시피
@@ -367,6 +375,7 @@ const MyPage: React.FC = () => {
         const fromDb = completedData.recipes || [];
         const merged = mergeRecipeListsFromDbAndLocal(fromDb, localCompleted);
         setCompletedRecipes(merged);
+        localStorage.setItem(STORAGE_KEY_COMPLETED, JSON.stringify(merged));
         const existingLocal = JSON.parse(localStorage.getItem(STORAGE_KEY_COMPLETED) || '[]');
         const existingIds = new Set(existingLocal.map((r: any) => r.id));
         fromDb.forEach((r: any) => {
@@ -375,12 +384,12 @@ const MyPage: React.FC = () => {
           }
         });
       } else {
-        setCompletedRecipes(localCompleted);
+        setCompletedRecipes(sortRecipesByUserSavedAtDesc(localCompleted));
       }
     } catch (error) {
       console.error('[MyPage] DB에서 레시피 로드 실패:', error);
-      setRecordedRecipes(localRecorded);
-      setCompletedRecipes(localCompleted);
+      setRecordedRecipes(sortRecipesByUserSavedAtDesc(localRecorded));
+      setCompletedRecipes(sortRecipesByUserSavedAtDesc(localCompleted));
     }
   };
 
@@ -530,8 +539,8 @@ const MyPage: React.FC = () => {
       setCompletedRecipes([]);
       const localRecorded = JSON.parse(localStorage.getItem(STORAGE_KEY_RECORDED) || '[]');
       const localCompleted = JSON.parse(localStorage.getItem(STORAGE_KEY_COMPLETED) || '[]');
-      setRecordedRecipes(localRecorded);
-      setCompletedRecipes(localCompleted);
+      setRecordedRecipes(sortRecipesByUserSavedAtDesc(localRecorded));
+      setCompletedRecipes(sortRecipesByUserSavedAtDesc(localCompleted));
     }
   }, [authUser?.id]); // authUser.id가 변경될 때만 실행 (사용자 변경 감지)
   
@@ -805,9 +814,10 @@ const MyPage: React.FC = () => {
         }
         
         // 조건 통과 시 레시피 저장
-        addRecipeToLocalStorage('done', recipe);
+        const savedRecipe = withUserSavedAt(recipe);
+        addRecipeToLocalStorage('done', savedRecipe);
         addRecipeToDB('done', id);
-        const updatedCompleted = [...completedRecipes, recipe];
+        const updatedCompleted = sortRecipesByUserSavedAtDesc([savedRecipe, ...completedRecipes]);
         setCompletedRecipes(updatedCompleted);
         setDoneStates(prev => ({ ...prev, [id]: true }));
         showToast('레시피를 완료했습니다!');
@@ -850,9 +860,10 @@ const MyPage: React.FC = () => {
         }
         
         // 조건 통과 시 레시피 저장
-        addRecipeToLocalStorage('write', recipe);
+        const savedRecipe = withUserSavedAt(recipe);
+        addRecipeToLocalStorage('write', savedRecipe);
         addRecipeToDB('write', id);
-        const updatedRecorded = [...recordedRecipes, recipe];
+        const updatedRecorded = sortRecipesByUserSavedAtDesc([savedRecipe, ...recordedRecipes]);
         setRecordedRecipes(updatedRecorded);
         setWriteStates(prev => ({ ...prev, [id]: true }));
         showToast('레시피를 기록했습니다!');
@@ -1607,15 +1618,17 @@ const MyPage: React.FC = () => {
           // 회원가입하기를 누르면 레시피 저장 진행
           if (pendingRegisterRecipe) {
             if (pendingRegisterRecipe.type === 'done') {
-              addRecipeToLocalStorage('done', pendingRegisterRecipe.recipe);
+              const savedRecipe = withUserSavedAt(pendingRegisterRecipe.recipe);
+              addRecipeToLocalStorage('done', savedRecipe);
               addRecipeToDB('done', pendingRegisterRecipe.id);
-              const updatedCompleted = [...completedRecipes, pendingRegisterRecipe.recipe];
+              const updatedCompleted = sortRecipesByUserSavedAtDesc([savedRecipe, ...completedRecipes]);
               setCompletedRecipes(updatedCompleted);
               setDoneStates(prev => ({ ...prev, [pendingRegisterRecipe.id]: true }));
             } else if (pendingRegisterRecipe.type === 'write') {
-              addRecipeToLocalStorage('write', pendingRegisterRecipe.recipe);
+              const savedRecipe = withUserSavedAt(pendingRegisterRecipe.recipe);
+              addRecipeToLocalStorage('write', savedRecipe);
               addRecipeToDB('write', pendingRegisterRecipe.id);
-              const updatedRecorded = [...recordedRecipes, pendingRegisterRecipe.recipe];
+              const updatedRecorded = sortRecipesByUserSavedAtDesc([savedRecipe, ...recordedRecipes]);
               setRecordedRecipes(updatedRecorded);
               setWriteStates(prev => ({ ...prev, [pendingRegisterRecipe.id]: true }));
             }

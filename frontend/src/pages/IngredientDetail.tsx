@@ -24,7 +24,8 @@ import {
   removeRecipeFromLocalStorage, 
   getRecipesFromLocalStorage, 
   copyRecipeUrlToClipboard, 
-  getMyFridgeIngredients 
+  getMyFridgeIngredients,
+  sortRecipesByUserSavedAtDesc
 } from '../utils/recipeStorage';
 
 // =====================
@@ -291,6 +292,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
   const { name = '' } = useParams<{ name: string }>();
   const navigate = useNavigate();
   const location = useLocation();
+  const isMyPageRecipeList = location.pathname === '/mypage/recorded' || location.pathname === '/mypage/completed';
   const searchParams = new URLSearchParams(location.search);
   const startDate = searchParams.get('start_date');
   const endDate = searchParams.get('end_date');
@@ -477,14 +479,16 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
   useEffect(() => {
     if (location.pathname === '/mypage/recorded') {
       const arr = JSON.parse(localStorage.getItem('my_recorded_recipes') || '[]');
-      setRecipes(arr);
+      setRecipes(sortRecipesByUserSavedAtDesc(arr));
+      setSortType('latest');
       setLoading(false);
       return;
     }
     
     if (location.pathname === '/mypage/completed') {
       const arr = JSON.parse(localStorage.getItem('my_completed_recipes') || '[]');
-      setRecipes(arr);
+      setRecipes(sortRecipesByUserSavedAtDesc(arr));
+      setSortType('latest');
       setLoading(false);
       return;
     }
@@ -689,6 +693,11 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
 
   // 정렬/필터 상태 복원
   useEffect(() => {
+    if (isMyPageRecipeList) {
+      setSortType('latest');
+      return;
+    }
+
     const saved = loadSortFilterState();
     if (saved) {
       if (saved.sortType) setSortType(saved.sortType);
@@ -697,10 +706,12 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
       if (saved.appliedExpiryIngredients) setAppliedExpiryIngredients(saved.appliedExpiryIngredients);
       if (saved.expirySortType) setExpirySortType(saved.expirySortType);
     }
-  }, []);
+  }, [isMyPageRecipeList]);
 
   // 정렬/필터 상태 저장
   useEffect(() => {
+    if (isMyPageRecipeList) return;
+
     saveSortFilterState({
       sortType,
       matchRange,
@@ -767,7 +778,9 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
     }
 
     // 정렬
-    if (sortType === 'match') {
+    if (isMyPageRecipeList && sortType === 'latest') {
+      arr = sortRecipesByUserSavedAtDesc(arr);
+    } else if (sortType === 'match') {
       arr.sort((a, b) => b.match_rate - a.match_rate);
     } else if (sortType === 'expiry') {
       arr.sort((a, b) => 0);
@@ -776,7 +789,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
     }
 
     return arr;
-  }, [recipes, myIngredients, sortType, selectedChannel, appliedExpiryIngredients]);
+  }, [recipes, myIngredients, sortType, selectedChannel, appliedExpiryIngredients, isMyPageRecipeList]);
 
   // =====================
   // 렌더링

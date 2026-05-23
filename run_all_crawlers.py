@@ -53,6 +53,8 @@ def run_ingredients_batch():
 def main():
     """모든 크롤러를 순차적으로 실행"""
     try:
+        os.chdir(os.path.dirname(os.path.abspath(__file__)))
+
         # 네이버 주제별보기 크롤러
         naver_blog = NaverBlogCrawler()
         run_crawler(naver_blog, "네이버(주제별보기) 크롤러")

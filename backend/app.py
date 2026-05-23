@@ -2039,10 +2039,10 @@ def get_user_recorded_recipes(user_id):
         
         try:
             cursor.execute(
-                """SELECT r.* FROM recipes r
+                """SELECT r.*, urr.created_at AS user_saved_at FROM recipes r
                    INNER JOIN user_recorded_recipes urr ON r.id = urr.recipe_id
                    WHERE urr.user_id = %s
-                   ORDER BY urr.created_at DESC""",
+                   ORDER BY urr.created_at DESC, urr.id DESC""",
                 (user_id,)
             )
             recipes = cursor.fetchall()
@@ -2164,10 +2164,10 @@ def get_user_completed_recipes(user_id):
         
         try:
             cursor.execute(
-                """SELECT r.* FROM recipes r
+                """SELECT r.*, ucr.created_at AS user_saved_at FROM recipes r
                    INNER JOIN user_completed_recipes ucr ON r.id = ucr.recipe_id
                    WHERE ucr.user_id = %s
-                   ORDER BY ucr.created_at DESC""",
+                   ORDER BY ucr.created_at DESC, ucr.id DESC""",
                 (user_id,)
             )
             recipes = cursor.fetchall()

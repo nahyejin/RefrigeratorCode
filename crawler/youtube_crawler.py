@@ -526,8 +526,15 @@ class YouTubeCrawler:
             # 시작할 때 한 번만 DB에서 기존 영상 ID들을 가져옴
             existing_ids = self.get_existing_video_ids()
             logger.info(f"기존 영상 수: {len(existing_ids)}")  # 추가된 로그
-            
-            df = pd.read_csv(csv_path)
+
+            path = Path(csv_path)
+            if not path.is_absolute():
+                path = Path(__file__).resolve().parent.parent / path
+            if not path.exists():
+                raise FileNotFoundError(f"인플루언서 CSV를 찾을 수 없습니다: {path}")
+            logger.info(f"인플루언서 CSV 경로: {path}")
+
+            df = pd.read_csv(path)
             total_influencers = len(df)
             processed_count = 0
             new_videos_count = 0

@@ -297,7 +297,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           type === 'write'
             ? `${apiUrl}/api/users/${userId}/recorded-recipes`
             : `${apiUrl}/api/users/${userId}/completed-recipes`;
-        for (const item of items) {
+        for (const item of [...items].reverse()) {
           const rid = item?.id;
           if (rid == null || Number.isNaN(Number(rid))) continue;
           try {

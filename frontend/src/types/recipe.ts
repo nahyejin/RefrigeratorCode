@@ -65,6 +65,10 @@ export interface Recipe {
   updated_at: string;
   post_time?: string;
   collected_at?: string;
+  user_saved_at?: string;
+  saved_at?: string;
+  recorded_at?: string;
+  completed_at?: string;
   
   // 액션 정보
   action?: Action;
