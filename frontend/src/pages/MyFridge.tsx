@@ -2198,7 +2198,7 @@ const MyFridge: React.FC = () => {
             ? [...baseGuideSteps, saveButtonGuideStep]
             : baseGuideSteps}
           isLastStepConfirm={false}
-          totalSteps={isLoggedIn && user?.id ? 11 : 10}
+          totalSteps={isLoggedIn && user?.id ? 12 : 11}
           startStepOffset={0}
         />
       </div>

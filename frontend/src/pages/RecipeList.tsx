@@ -1263,6 +1263,17 @@ const RecipeList: React.FC = () => {
       position: 'bottom' as const,
     },
     {
+      targetSelector: '[data-guide-target="recipe-favorite-button"]',
+      message: (
+        <>
+          즐겨찾기(☆) 버튼을 누르면 레시피가 즐겨찾기 되어요.
+          <br />
+          즐겨찾는 레시피는 마이페이지에서 확인할 수 있어요.
+        </>
+      ),
+      position: 'left' as const,
+    },
+    {
       targetSelector: '[data-guide-target="recipe-done-button"]',
       message: (
         <>

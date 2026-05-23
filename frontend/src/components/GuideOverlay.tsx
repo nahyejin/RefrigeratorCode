@@ -210,6 +210,7 @@ const GuideOverlay: React.FC<GuideOverlayProps> = ({
         // 설정버튼, 저장버튼, 완료/공유/기록 버튼의 경우 더 높게 배치
         const isSettingsOrActionButton = steps[currentStep].targetSelector.includes('settings-icon') || 
                                          steps[currentStep].targetSelector.includes('save-button') ||
+                                         steps[currentStep].targetSelector.includes('recipe-favorite-button') ||
                                          steps[currentStep].targetSelector.includes('recipe-done-button') ||
                                          steps[currentStep].targetSelector.includes('recipe-share-button') ||
                                          steps[currentStep].targetSelector.includes('recipe-write-button');
