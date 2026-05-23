@@ -147,7 +147,15 @@ const GuideOverlay: React.FC<GuideOverlayProps> = ({
 
   // 툴팁 위치 계산
   const getTooltipStyle = (): React.CSSProperties => {
-    if (!targetRect) return { display: 'none' };
+    if (!targetRect) {
+      return {
+        position: 'fixed',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        zIndex: 10002,
+      };
+    }
 
     const isStorageAreas = steps[currentStep].targetSelector.includes('storage-areas');
     const tooltipWidth = isStorageAreas || steps[currentStep].targetSelector.includes('settings-icon') ? 340 : 320;

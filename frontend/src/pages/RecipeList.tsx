@@ -31,6 +31,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import RegisterPromptModal from '../components/RegisterPromptModal';
 import GuideOverlay from '../components/GuideOverlay';
+import { markUsageGuideFinished, markUsageGuideOpened } from '../utils/onboardingPrompts';
 
 // =====================
 // 상수
@@ -1328,52 +1329,24 @@ const RecipeList: React.FC = () => {
     const shouldShowGuide = shouldForceShow;
 
     if (shouldShowGuide) {
-      // 레시피가 로드된 후 가이드 표시
-      const showGuideWhenReady = () => {
-        if (!loading && (filteredRecipes.length > 0 || recipes.length > 0)) {
-          console.log('[RecipeList] 레시피 로드 완료 - 가이드 표시 예정');
-          if (myFridgeGuideCompleted === 'true') {
-            localStorage.removeItem('myfridge_guide_completed');
-          }
-          // URL 파라미터 제거
-          if (fromGuide) {
-            window.history.replaceState({}, '', '/recipe-list');
-          }
-          setTimeout(() => {
-            console.log('[RecipeList] 가이드 표시 실행');
-            setShowGuide(true);
-            setGuideStep(0);
-          }, 2000); // 웹에서 더 긴 대기 시간
-          return true;
-        }
-        return false;
-      };
-
-      // 즉시 체크
-      if (!showGuideWhenReady()) {
-        console.log('[RecipeList] 레시피가 아직 로드되지 않음 - 대기 중');
-        // 레시피가 아직 로드되지 않았으면 주기적으로 체크
-        const checkInterval = setInterval(() => {
-          if (showGuideWhenReady()) {
-            clearInterval(checkInterval);
-          }
-        }, 500);
-        
-        // 최대 30초 대기 (웹에서 더 긴 대기)
-        setTimeout(() => {
-          clearInterval(checkInterval);
-          if (localStorage.getItem('myfridge_guide_completed') === 'true') {
-            localStorage.removeItem('myfridge_guide_completed');
-          }
-          if (fromGuide) {
-            window.history.replaceState({}, '', '/recipe-list');
-          }
-        }, 30000);
-        
-        return () => clearInterval(checkInterval);
+      if (myFridgeGuideCompleted === 'true') {
+        localStorage.removeItem('myfridge_guide_completed');
       }
+
+      if (fromGuide) {
+        window.history.replaceState({}, '', '/recipe-list');
+      }
+
+      const timer = setTimeout(() => {
+        console.log('[RecipeList] 가이드 표시 실행');
+        markUsageGuideOpened();
+        setShowGuide(true);
+        setGuideStep(0);
+      }, 300);
+
+      return () => clearTimeout(timer);
     }
-  }, [filteredRecipes.length, recipes.length, loading, showGuide]);
+  }, [showGuide]);
 
   // 필터 조건 및 정렬 기준 변경 감지
   // 초기 로드 시에도 기본값 [30, 100]을 사용하도록 보장
@@ -2458,11 +2431,13 @@ const RecipeList: React.FC = () => {
           } else {
             setShowGuide(false);
             localStorage.setItem('recipe_guide_shown', 'true');
+            markUsageGuideFinished();
           }
         }}
         onClose={() => {
           setShowGuide(false);
           localStorage.setItem('recipe_guide_shown', 'true');
+          markUsageGuideFinished();
         }}
         steps={guideSteps}
         isLastStepConfirm={true}

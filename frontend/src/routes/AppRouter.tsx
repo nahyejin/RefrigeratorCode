@@ -1,9 +1,10 @@
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
-import { Suspense, lazy } from 'react';
+import { Suspense, lazy, useState } from 'react';
 import SplashScreen from '../components/SplashScreen';
 import ScrollToTop from '../components/ScrollToTop';
 import TopNavBar from '../components/TopNavBar';
 import ErrorBoundary from '../components/ErrorBoundary';
+import HomeInstallPrompt from '../components/HomeInstallPrompt';
 import { AuthProvider } from '../context/AuthContext';
 import Login from '../pages/Login';
 import Signup from '../pages/Signup';
@@ -15,6 +16,7 @@ import RecipeList from '../pages/RecipeList';
 import MyPage from '../pages/MyPage';
 import IngredientDetail from '../pages/IngredientDetail';
 import AuthSuccess from '../pages/AuthSuccess';
+import { evaluateVisitForUsageGuide } from '../utils/onboardingPrompts';
 
 // =====================
 // 라우트 상수
@@ -61,6 +63,7 @@ const SHOW_NAVBAR_PATHS = ['/', '/recipe-list', '/my-fridge', '/popular', '/my-p
 function AppContent() {
   const location = useLocation();
   const showNavBar = SHOW_NAVBAR_PATHS.some(path => location.pathname.startsWith(path));
+  useState(() => evaluateVisitForUsageGuide());
   
   return (
     <>
@@ -236,6 +239,7 @@ function AppContent() {
           />
         </Routes>
       </Suspense>
+      <HomeInstallPrompt />
     </>
   );
 }

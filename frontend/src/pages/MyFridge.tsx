@@ -12,6 +12,12 @@ import RegisterPromptModal from '../components/RegisterPromptModal';
 import WelcomeModal from '../components/WelcomeModal';
 import GuideOverlay from '../components/GuideOverlay';
 import BottomCoupangAd from '../components/BottomCoupangAd';
+import {
+  isUsageGuideDueThisVisit,
+  markUsageGuideFinished,
+  markUsageGuideOpened,
+  ONBOARDING_KEYS,
+} from '../utils/onboardingPrompts';
 
 // =====================
 // 상수
@@ -838,12 +844,38 @@ const MyFridge: React.FC = () => {
         
         // 약간의 지연 후 가이드 표시 (페이지 렌더링 완료 후)
         setTimeout(() => {
+          markUsageGuideOpened();
           setShowGuide(true);
           setGuideStep(0);
         }, 500);
       }
     }
   }, [isLoggedIn, user?.id]);
+
+  React.useEffect(() => {
+    if (loading || showWelcomeModal || showGuide) return;
+    if (!isUsageGuideDueThisVisit()) return;
+    if (sessionStorage.getItem(ONBOARDING_KEYS.usageGuideStartedThisVisit) === 'true') return;
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const forceShowWelcome = urlParams.get('showWelcome') === 'true';
+    const welcomeModalShown = localStorage.getItem('welcome_modal_shown');
+
+    if (forceShowWelcome || !welcomeModalShown) {
+      markUsageGuideOpened();
+      localStorage.setItem('welcome_modal_shown', 'true');
+      const timer = setTimeout(() => setShowWelcomeModal(true), 500);
+      return () => clearTimeout(timer);
+    }
+
+    const timer = setTimeout(() => {
+      markUsageGuideOpened();
+      setShowGuide(true);
+      setGuideStep(0);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [loading, showWelcomeModal, showGuide]);
 
   // 로그인 상태 변경 시 localStorage → DB 동기화
   React.useEffect(() => {
@@ -1325,12 +1357,13 @@ const MyFridge: React.FC = () => {
           const welcomeModalShown = localStorage.getItem('welcome_modal_shown');
           
           if (forceShowWelcome || !welcomeModalShown) {
+            markUsageGuideOpened();
+            if (!forceShowWelcome) {
+              localStorage.setItem('welcome_modal_shown', 'true');
+            }
             // 약간의 지연 후 모달 표시 (재료가 화면에 렌더링된 후)
             setTimeout(() => {
               setShowWelcomeModal(true);
-              if (!forceShowWelcome) {
-                localStorage.setItem('welcome_modal_shown', 'true');
-              }
             }, 500);
           }
           
@@ -1366,6 +1399,7 @@ const MyFridge: React.FC = () => {
     if (forceShowWelcome && !loading) {
       // 페이지 로드 완료 후 모달 표시
       setTimeout(() => {
+        markUsageGuideOpened();
         setShowWelcomeModal(true);
       }, 500);
     }
@@ -2116,9 +2150,12 @@ const MyFridge: React.FC = () => {
             // 강제 표시 모드이거나 가이드가 아직 표시되지 않았으면 가이드 시작
             if (forceShowWelcome || !guideShown) {
               setTimeout(() => {
+                markUsageGuideOpened();
                 setShowGuide(true);
                 setGuideStep(0);
               }, 300);
+            } else {
+              markUsageGuideFinished();
             }
           }}
         />
@@ -2154,6 +2191,7 @@ const MyFridge: React.FC = () => {
             // '설명 건너뛰기' 버튼을 누르면 가이드만 닫고 페이지 이동하지 않음
             setShowGuide(false);
             localStorage.setItem('myfridge_guide_shown', 'true');
+            markUsageGuideFinished();
             console.log('[MyFridge] 가이드 건너뛰기 - 페이지 이동 없음');
           }}
           steps={isLoggedIn && user?.id 
