@@ -36,6 +36,7 @@ const ROUTES = {
   INGREDIENT_DETAIL: '/ingredient/:name',
   MY_RECORDED: '/mypage/recorded',
   MY_COMPLETED: '/mypage/completed',
+  MY_FAVORITE: '/mypage/favorite',
 } as const;
 
 // =====================
@@ -226,6 +227,12 @@ function AppContent() {
           <Route 
             path={ROUTES.MY_COMPLETED} 
             element={<IngredientDetail customTitle="내가 완료한 레시피" />} 
+          />
+
+          {/* 내가 즐겨찾는 레시피 */}
+          <Route 
+            path={ROUTES.MY_FAVORITE} 
+            element={<IngredientDetail customTitle="내가 즐겨찾는 레시피" />} 
           />
         </Routes>
       </Suspense>

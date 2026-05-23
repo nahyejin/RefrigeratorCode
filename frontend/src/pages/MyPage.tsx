@@ -1207,6 +1207,13 @@ const MyPage: React.FC = () => {
               </svg>
               내가 즐겨찾는 레시피
             </h2>
+            <button
+              className="text-[#888] text-[20px] font-bold px-2 py-0 bg-transparent border-none outline-none cursor-pointer"
+              aria-label="내가 즐겨찾는 레시피 전체보기"
+              onClick={() => navigate('/mypage/favorite')}
+            >
+              ☰
+            </button>
           </div>
           <div style={{ height: 2, width: '100%', background: '#E5E5E5', marginBottom: 16 }} />
 

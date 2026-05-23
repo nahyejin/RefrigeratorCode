@@ -294,7 +294,15 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
   const { name = '' } = useParams<{ name: string }>();
   const navigate = useNavigate();
   const location = useLocation();
-  const isMyPageRecipeList = location.pathname === '/mypage/recorded' || location.pathname === '/mypage/completed';
+  const myPageRecipeStorageType =
+    location.pathname === '/mypage/recorded'
+      ? 'write'
+      : location.pathname === '/mypage/completed'
+        ? 'done'
+        : location.pathname === '/mypage/favorite'
+          ? 'favorite'
+          : null;
+  const isMyPageRecipeList = myPageRecipeStorageType !== null;
   const searchParams = new URLSearchParams(location.search);
   const startDate = searchParams.get('start_date');
   const endDate = searchParams.get('end_date');
@@ -457,6 +465,10 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
       showToast('레시피 기록을 취소했습니다!');
     } else if (pendingRemove.type === 'favorite') {
       removeRecipeFromLocalStorage('favorite', pendingRemove.id);
+      if (location.pathname === '/mypage/favorite') {
+        setRecipes(prev => prev.filter(r => r.id !== pendingRemove.id));
+        setFilteredRecipes(prev => prev.filter(r => r.id !== pendingRemove.id));
+      }
       setButtonStates(prev => ({ ...prev, [pendingRemove.id]: getRecipeActionState(pendingRemove.id) }));
       showToast('레시피 즐겨찾기를 취소했습니다!');
     }
@@ -489,18 +501,16 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
 
   // 레시피 데이터 로드
   useEffect(() => {
-    if (location.pathname === '/mypage/recorded') {
-      const arr = JSON.parse(localStorage.getItem('my_recorded_recipes') || '[]');
-      setRecipes(sortRecipesByUserSavedAtDesc(arr));
+    if (myPageRecipeStorageType) {
+      const storageKeyByType = {
+        write: 'my_recorded_recipes',
+        done: 'my_completed_recipes',
+        favorite: 'my_favorite_recipes',
+      } as const;
+      const arr = JSON.parse(localStorage.getItem(storageKeyByType[myPageRecipeStorageType]) || '[]');
+      setRecipes(Array.isArray(arr) ? arr : []);
       setSortType('latest');
-      setLoading(false);
-      return;
-    }
-    
-    if (location.pathname === '/mypage/completed') {
-      const arr = JSON.parse(localStorage.getItem('my_completed_recipes') || '[]');
-      setRecipes(sortRecipesByUserSavedAtDesc(arr));
-      setSortType('latest');
+      setTotal(0);
       setLoading(false);
       return;
     }
@@ -569,7 +579,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
     prevNameRef.current = name;
     
     fetchData();
-  }, [name, location.pathname, location.search, startDate, endDate, page]);
+  }, [name, location.pathname, location.search, myPageRecipeStorageType, startDate, endDate, page]);
 
   // 페이지 변경 핸들러
   const handlePageChange = (newPage: number) => {
@@ -822,7 +832,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
     }
 
     // 정렬
-    if (isMyPageRecipeList && sortType === 'latest') {
+    if (isMyPageRecipeList) {
       arr = sortRecipesByUserSavedAtDesc(arr);
     } else if (sortType === 'match') {
       arr.sort((a, b) => b.match_rate - a.match_rate);
