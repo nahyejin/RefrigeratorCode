@@ -366,9 +366,6 @@ const MyPage: React.FC = () => {
         const merged = mergeRecipeListsFromDbAndLocal(fromDb, localFavorite);
         setFavoriteRecipes(merged);
         localStorage.setItem(STORAGE_KEY_FAVORITE, JSON.stringify(merged));
-        fromDb.forEach((r: any) => {
-          addRecipeToLocalStorage('favorite', r);
-        });
       } else {
         setFavoriteRecipes(sortRecipesByUserSavedAtDesc(localFavorite));
       }
@@ -383,9 +380,6 @@ const MyPage: React.FC = () => {
         const merged = mergeRecipeListsFromDbAndLocal(fromDb, localRecorded);
         setRecordedRecipes(merged);
         localStorage.setItem(STORAGE_KEY_RECORDED, JSON.stringify(merged));
-        fromDb.forEach((r: any) => {
-          addRecipeToLocalStorage('write', r);
-        });
       } else {
         setRecordedRecipes(sortRecipesByUserSavedAtDesc(localRecorded));
       }
@@ -400,13 +394,6 @@ const MyPage: React.FC = () => {
         const merged = mergeRecipeListsFromDbAndLocal(fromDb, localCompleted);
         setCompletedRecipes(merged);
         localStorage.setItem(STORAGE_KEY_COMPLETED, JSON.stringify(merged));
-        const existingLocal = JSON.parse(localStorage.getItem(STORAGE_KEY_COMPLETED) || '[]');
-        const existingIds = new Set(existingLocal.map((r: any) => r.id));
-        fromDb.forEach((r: any) => {
-          if (!existingIds.has(r.id)) {
-            addRecipeToLocalStorage('done', r);
-          }
-        });
       } else {
         setCompletedRecipes(sortRecipesByUserSavedAtDesc(localCompleted));
       }
@@ -583,19 +570,6 @@ const MyPage: React.FC = () => {
   };
 
   useEffect(() => {
-    if (location.pathname !== '/my-page' && !location.pathname.startsWith('/mypage')) {
-      return;
-    }
-
-    if (authUser?.id) {
-      loadRecipesFromDB();
-      return;
-    }
-
-    reloadLocalRecipeLists();
-  }, [location.pathname, authUser?.id]);
-
-  useEffect(() => {
     const handleRecipeStorageChange = (event: Event) => {
       const key = (event as CustomEvent<{ key?: string }>).detail?.key;
       if (
@@ -603,11 +577,7 @@ const MyPage: React.FC = () => {
         key === STORAGE_KEY_COMPLETED ||
         key === STORAGE_KEY_FAVORITE
       ) {
-        if (authUser?.id) {
-          loadRecipesFromDB();
-        } else {
-          reloadLocalRecipeLists();
-        }
+        reloadLocalRecipeLists();
       }
     };
 

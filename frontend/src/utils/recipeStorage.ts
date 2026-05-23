@@ -142,11 +142,19 @@ export function buildRecipeActionStatesForRecipes(
   recipes: Array<{ id: number | string }>
 ): Record<number, RecipeActionState> {
   const states: Record<number, RecipeActionState> = {};
+  const completedIds = new Set(getRecipesFromLocalStorage('done').map((recipe) => normalizeRecipeId(recipe.id)));
+  const recordedIds = new Set(getRecipesFromLocalStorage('write').map((recipe) => normalizeRecipeId(recipe.id)));
+  const favoriteIds = new Set(getRecipesFromLocalStorage('favorite').map((recipe) => normalizeRecipeId(recipe.id)));
 
   for (const recipe of recipes) {
     const id = normalizeRecipeId(recipe?.id);
     if (!Number.isNaN(id)) {
-      states[id] = getRecipeActionState(id);
+      states[id] = {
+        done: completedIds.has(id),
+        write: recordedIds.has(id),
+        favorite: favoriteIds.has(id),
+        share: false,
+      };
     }
   }
 
