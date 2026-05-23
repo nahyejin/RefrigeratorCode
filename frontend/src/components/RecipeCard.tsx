@@ -437,9 +437,9 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
                   >
                     <path
                       d="M12 2.75l2.72 5.51 6.08.88-4.4 4.29 1.04 6.05L12 16.62 6.56 19.48l1.04-6.05-4.4-4.29 6.08-.88L12 2.75z"
-                      fill={recipeActionState?.favorite ? '#FFFFFF' : 'none'}
+                      fill="none"
                       stroke="#FFFFFF"
-                      strokeWidth="1.8"
+                      strokeWidth="2"
                       strokeLinejoin="round"
                     />
                   </svg>

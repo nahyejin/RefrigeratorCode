@@ -4,6 +4,11 @@ import { fetchRecipesDummy } from '../utils/dummyData';
 import RecipeCard from '../components/RecipeCard';
 import { getMyIngredients } from '../utils/recipeUtils';
 import { Recipe, RecipeActionState } from '../types/recipe';
+import {
+  getRecipeActionState,
+  addRecipeToLocalStorage,
+  removeRecipeFromLocalStorage,
+} from '../utils/recipeStorage';
 import CoupangAd from '../components/CoupangAd';
 
 // =====================
@@ -49,8 +54,23 @@ const RecipeDetail: React.FC = () => {
   /**
    * 레시피 액션 처리
    */
-  const handleAction = (action: keyof RecipeActionState) => {
-    setActionState((prev) => ({ ...prev, [action]: !prev[action] }));
+  const handleRecipeAction = (recipeWithAction: Recipe & { action: keyof RecipeActionState }) => {
+    if (!recipe) return;
+
+    const action = recipeWithAction.action;
+    if (action === 'share') {
+      return;
+    }
+
+    const current = getRecipeActionState(recipe.id);
+    if (action === 'favorite' || action === 'done' || action === 'write') {
+      if (current[action]) {
+        removeRecipeFromLocalStorage(action, recipe.id);
+      } else {
+        addRecipeToLocalStorage(action, recipe);
+      }
+      setActionState(getRecipeActionState(recipe.id));
+    }
   };
 
   // =====================
@@ -74,6 +94,27 @@ const RecipeDetail: React.FC = () => {
       loadRecipe();
     }
   }, [id]);
+
+  useEffect(() => {
+    if (recipe?.id != null) {
+      setActionState(getRecipeActionState(recipe.id));
+    }
+  }, [recipe?.id]);
+
+  useEffect(() => {
+    const syncActionState = () => {
+      if (recipe?.id != null) {
+        setActionState(getRecipeActionState(recipe.id));
+      }
+    };
+
+    window.addEventListener('localStorageChange', syncActionState);
+    window.addEventListener('focus', syncActionState);
+    return () => {
+      window.removeEventListener('localStorageChange', syncActionState);
+      window.removeEventListener('focus', syncActionState);
+    };
+  }, [recipe?.id]);
 
   // =====================
   // 렌더링
@@ -103,10 +144,7 @@ const RecipeDetail: React.FC = () => {
         recipe={recipe}
         index={0}
         recipeActionState={actionState}
-        onRecipeAction={(recipeWithAction) => {
-          const action = recipeWithAction.action;
-          setActionState((prev) => ({ ...prev, [action]: !prev[action] }));
-        }}
+        onRecipeAction={handleRecipeAction}
         isLast={true}
         myIngredients={myIngredients}
       />

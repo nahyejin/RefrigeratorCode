@@ -18,7 +18,7 @@ import youtubeLogo from '../assets/썸네일_youtubelogo.png';
 import RecipeCard from '../components/RecipeCard';
 import youtubeTitleImg from '../assets/유튜브제목이미지.png';
 import naverTitleImg from '../assets/네이버제목이미지.png';
-import { addRecipeToLocalStorage, removeRecipeFromLocalStorage, getRecipesFromLocalStorage, copyRecipeUrlToClipboard, getMyFridgeIngredients } from '../utils/recipeStorage';
+import { addRecipeToLocalStorage, removeRecipeFromLocalStorage, getRecipesFromLocalStorage, copyRecipeUrlToClipboard, getMyFridgeIngredients, buildRecipeActionStatesForRecipes, getRecipeActionState } from '../utils/recipeStorage';
 import VirtualizedRecipeList from '../components/VirtualizedRecipeList';
 import RecipeToast from '../components/RecipeToast';
 import RecipeSortBar from '../components/RecipeSortBar';
@@ -1017,7 +1017,7 @@ const Popular = () => {
             }
           }
 
-          setButtonStates(prev => ({ ...prev, [id]: { ...prev[id], favorite: false } }));
+          setButtonStates(prev => ({ ...prev, [id]: getRecipeActionState(id) }));
           setToast('레시피 즐겨찾기를 취소했습니다!');
         } else if (recipe && !getRecipesFromLocalStorage('favorite').some((r: any) => r.id === id)) {
           const normalized = {
@@ -1072,7 +1072,7 @@ const Popular = () => {
             }
           }
 
-          setButtonStates(prev => ({ ...prev, [id]: { ...prev[id], favorite: true } }));
+          setButtonStates(prev => ({ ...prev, [id]: getRecipeActionState(id) }));
           setToast('레시피를 즐겨찾기에 추가했습니다!');
         }
       }
@@ -1100,7 +1100,7 @@ const Popular = () => {
             }
           }
           
-        setButtonStates(prev => ({ ...prev, [id]: { ...prev[id], done: false } }));
+        setButtonStates(prev => ({ ...prev, [id]: getRecipeActionState(id) }));
           setToast('레시피 완료를 취소했습니다!');
         } else {
         // 완료 추가 전에 5개 조건 체크
@@ -1201,7 +1201,7 @@ const Popular = () => {
               }
             }
             
-          setButtonStates(prev => ({ ...prev, [id]: { ...prev[id], done: true } }));
+          setButtonStates(prev => ({ ...prev, [id]: getRecipeActionState(id) }));
             setToast('레시피를 완료했습니다!');
           }
         }
@@ -1229,7 +1229,7 @@ const Popular = () => {
             }
           }
           
-        setButtonStates(prev => ({ ...prev, [id]: { ...prev[id], write: false } }));
+        setButtonStates(prev => ({ ...prev, [id]: getRecipeActionState(id) }));
           setToast('레시피 기록을 취소했습니다!');
         } else {
         // 기록 추가 전에 5개 조건 체크
@@ -1330,7 +1330,7 @@ const Popular = () => {
               }
             }
             
-          setButtonStates(prev => ({ ...prev, [id]: { ...prev[id], write: true } }));
+          setButtonStates(prev => ({ ...prev, [id]: getRecipeActionState(id) }));
             setToast('레시피를 기록했습니다!');
           }
         }
@@ -1602,24 +1602,53 @@ const Popular = () => {
     loadUserRecipes();
   }, [isLoggedIn, authUser?.id]);
 
-  // 레시피 액션 상태 가져오기 함수 (사용자별)
-  const getRecipeActionState = (recipeId: number) => {
-    return {
-      done: userCompletedRecipes.includes(recipeId),
-      write: userRecordedRecipes.includes(recipeId),
-      favorite: userFavoriteRecipes.includes(recipeId),
-      share: false,
-    };
-  };
-
-  // Add useEffect to initialize buttonStates from user recipes
+  // 레시피 액션 상태 동기화
   useEffect(() => {
-    const initialButtonStates: { [id: number]: { done: boolean; write: boolean; share: boolean; favorite: boolean } } = {};
-    [...youtubeRecipes, ...naverRecipes].forEach(recipe => {
-      initialButtonStates[recipe.id] = getRecipeActionState(recipe.id);
-    });
-    setButtonStates(initialButtonStates);
-  }, [youtubeRecipes, naverRecipes, userCompletedRecipes, userRecordedRecipes, userFavoriteRecipes]);
+    const syncButtonStates = () => {
+      setButtonStates(buildRecipeActionStatesForRecipes([...youtubeRecipes, ...naverRecipes]));
+    };
+
+    syncButtonStates();
+
+    const handleRecipeStorageChange = (event: Event) => {
+      const key = (event as CustomEvent<{ key?: string }>).detail?.key;
+      if (
+        key === 'my_recorded_recipes' ||
+        key === 'my_completed_recipes' ||
+        key === 'my_favorite_recipes'
+      ) {
+        syncButtonStates();
+      }
+    };
+
+    const handleStorageChange = (event: StorageEvent) => {
+      if (
+        event.key === 'my_recorded_recipes' ||
+        event.key === 'my_completed_recipes' ||
+        event.key === 'my_favorite_recipes'
+      ) {
+        syncButtonStates();
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        syncButtonStates();
+      }
+    };
+
+    window.addEventListener('localStorageChange', handleRecipeStorageChange);
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('focus', syncButtonStates);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('localStorageChange', handleRecipeStorageChange);
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('focus', syncButtonStates);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [youtubeRecipes, naverRecipes]);
 
   return (
     <>
@@ -2327,10 +2356,10 @@ const Popular = () => {
           if (pendingRecipe) {
             if (pendingRecipe.type === 'done') {
               addRecipeToLocalStorage('done', pendingRecipe.recipe);
-              setButtonStates(prev => ({ ...prev, [pendingRecipe.id]: { ...prev[pendingRecipe.id], done: true } }));
+              setButtonStates(prev => ({ ...prev, [pendingRecipe.id]: getRecipeActionState(pendingRecipe.id) }));
             } else if (pendingRecipe.type === 'write') {
               addRecipeToLocalStorage('write', pendingRecipe.recipe);
-              setButtonStates(prev => ({ ...prev, [pendingRecipe.id]: { ...prev[pendingRecipe.id], write: true } }));
+              setButtonStates(prev => ({ ...prev, [pendingRecipe.id]: getRecipeActionState(pendingRecipe.id) }));
             }
             setPendingRecipe(null);
           }

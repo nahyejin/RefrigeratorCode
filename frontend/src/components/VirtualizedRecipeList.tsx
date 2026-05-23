@@ -1,6 +1,7 @@
 import React, { forwardRef, useImperativeHandle, useRef } from 'react';
 import RecipeCard from './RecipeCard';
 import { Recipe, RecipeActionState } from '../types/recipe';
+import { lookupRecipeActionState } from '../utils/recipeStorage';
 
 interface VirtualizedRecipeListProps {
   recipes: Recipe[];
@@ -74,7 +75,7 @@ const VirtualizedRecipeList = forwardRef<VirtualizedRecipeListRef, VirtualizedRe
           <RecipeCard
             recipe={recipe}
             index={index}
-            recipeActionState={recipeActionStates[recipe.id]}
+            recipeActionState={lookupRecipeActionState(recipeActionStates, recipe.id)}
             onRecipeAction={({ action }) => onRecipeAction(recipe, action)}
             isLast={index === recipes.length - 1}
             myIngredients={myIngredients}

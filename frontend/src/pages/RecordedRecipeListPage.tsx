@@ -15,7 +15,9 @@ import {
   removeRecipeFromLocalStorage, 
   getRecipesFromLocalStorage, 
   copyRecipeUrlToClipboard, 
-  getMyFridgeIngredients 
+  getMyFridgeIngredients,
+  buildRecipeActionStatesForRecipes,
+  getRecipeActionState,
 } from '../utils/recipeStorage';
 
 // =====================
@@ -250,7 +252,7 @@ const RecordedRecipeListPage: React.FC = () => {
       if (recipe && !getRecipesFromLocalStorage('done').some((r: any) => r.id === id)) {
         addRecipeToLocalStorage('done', recipe);
       }
-      setRecipeActionStates(s => ({ ...s, [id]: { ...prev, done: true } }));
+      setRecipeActionStates(s => ({ ...s, [id]: getRecipeActionState(id) }));
       showToast('레시피를 완료했습니다!');
     } else {
       // 완료 취소: 확인 모달만 세팅
@@ -273,7 +275,7 @@ const RecordedRecipeListPage: React.FC = () => {
       if (recipe && !getRecipesFromLocalStorage('write').some((r: any) => r.id === id)) {
         addRecipeToLocalStorage('write', recipe);
       }
-      setRecipeActionStates(s => ({ ...s, [id]: { ...prev, write: true } }));
+      setRecipeActionStates(s => ({ ...s, [id]: getRecipeActionState(id) }));
       showToast('레시피를 기록했습니다!');
     } else {
       // 기록 취소: 확인 모달만 세팅
@@ -306,7 +308,7 @@ const RecordedRecipeListPage: React.FC = () => {
       if (recipe && !getRecipesFromLocalStorage('favorite').some((r: any) => r.id === id)) {
         addRecipeToLocalStorage('favorite', recipe);
       }
-      setRecipeActionStates(s => ({ ...s, [id]: { ...prev, favorite: true } }));
+      setRecipeActionStates(s => ({ ...s, [id]: getRecipeActionState(id) }));
       showToast('레시피를 즐겨찾기에 추가했습니다!');
     } else {
       setPendingRemove({ type: 'favorite', id });
@@ -322,19 +324,19 @@ const RecordedRecipeListPage: React.FC = () => {
     if (!pendingRemove) return;
     
     if (pendingRemove.type === 'done') {
-      setRecipeActionStates(s => ({ ...s, [pendingRemove.id]: { ...s[pendingRemove.id], done: false } }));
+      setRecipeActionStates(s => ({ ...s, [pendingRemove.id]: getRecipeActionState(pendingRemove.id) }));
       removeRecipeFromLocalStorage('done', pendingRemove.id);
       setRecipes(prev => prev.filter(r => r.id !== pendingRemove.id));
       setFilteredRecipes(prev => prev.filter(r => r.id !== pendingRemove.id));
       showToast('레시피 완료를 취소했습니다!');
     } else if (pendingRemove.type === 'write') {
-      setRecipeActionStates(s => ({ ...s, [pendingRemove.id]: { ...s[pendingRemove.id], write: false } }));
+      setRecipeActionStates(s => ({ ...s, [pendingRemove.id]: getRecipeActionState(pendingRemove.id) }));
       removeRecipeFromLocalStorage('write', pendingRemove.id);
       setRecipes(prev => prev.filter(r => r.id !== pendingRemove.id));
       setFilteredRecipes(prev => prev.filter(r => r.id !== pendingRemove.id));
       showToast('레시피 기록을 취소했습니다!');
     } else if (pendingRemove.type === 'favorite') {
-      setRecipeActionStates(s => ({ ...s, [pendingRemove.id]: { ...s[pendingRemove.id], favorite: false } }));
+      setRecipeActionStates(s => ({ ...s, [pendingRemove.id]: getRecipeActionState(pendingRemove.id) }));
       removeRecipeFromLocalStorage('favorite', pendingRemove.id);
       showToast('레시피 즐겨찾기를 취소했습니다!');
     }
@@ -391,8 +393,16 @@ const RecordedRecipeListPage: React.FC = () => {
     }
     load();
     window.addEventListener('storage', load);
-    return () => window.removeEventListener('storage', load);
+    window.addEventListener('localStorageChange', load);
+    return () => {
+      window.removeEventListener('storage', load);
+      window.removeEventListener('localStorageChange', load);
+    };
   }, []);
+
+  useEffect(() => {
+    setRecipeActionStates(buildRecipeActionStatesForRecipes(recipes));
+  }, [recipes]);
 
   // 재료 사전 로드
   useEffect(() => {

@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import { FixedSizeList as List } from 'react-window';
 import RecipeCard from './RecipeCard';
 import { Recipe, RecipeActionState } from '../types/recipe';
+import { lookupRecipeActionState } from '../utils/recipeStorage';
 
 interface VirtualizedHorizontalRecipeListProps {
   recipes: Recipe[];
@@ -225,7 +226,9 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
         <RecipeCard
           recipe={recipe}
           index={index}
-          recipeActionState={recipeActionStates[recipe.id] || Utils.getDefaultRecipeActionState()}
+          recipeActionState={
+            lookupRecipeActionState(recipeActionStates, recipe.id) || Utils.getDefaultRecipeActionState()
+          }
           onRecipeAction={({ action }) => onRecipeAction(recipe, action)}
           isLast={Utils.isLastItem(index, recipes.length)}
           myIngredients={myIngredients}

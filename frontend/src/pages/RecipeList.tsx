@@ -23,7 +23,9 @@ import { getIngredientPillInfo } from '../utils/recipeUtils';
 import { 
   addRecipeToLocalStorage, 
   removeRecipeFromLocalStorage, 
-  getRecipesFromLocalStorage, 
+  getRecipesFromLocalStorage,
+  getRecipeActionState,
+  buildRecipeActionStatesForRecipes,
   copyRecipeUrlToClipboard 
 } from '../utils/recipeStorage';
 import { useAuth } from '../context/AuthContext';
@@ -1023,7 +1025,7 @@ const RecipeList: React.FC = () => {
    * 즐겨찾기 버튼 클릭 처리
    */
   const handleFavoriteClick = (id: number) => {
-    const isActive = recipeActionStates[id]?.favorite;
+    const isActive = getRecipeActionState(id).favorite;
     const recipe = recipes.find(r => r.id === id);
 
     if (!isActive) {
@@ -1031,11 +1033,11 @@ const RecipeList: React.FC = () => {
         const normalized = normalizeRecipe(recipe);
         addRecipeToLocalStorage('favorite', normalized);
       }
-      setRecipeActionStates(prev => ({ ...prev, [id]: { ...prev[id], favorite: true } }));
+      setRecipeActionStates(prev => ({ ...prev, [id]: getRecipeActionState(id) }));
       showToast('레시피를 즐겨찾기에 추가했습니다!');
     } else {
       removeRecipeFromLocalStorage('favorite', id);
-      setRecipeActionStates(prev => ({ ...prev, [id]: { ...prev[id], favorite: false } }));
+      setRecipeActionStates(prev => ({ ...prev, [id]: getRecipeActionState(id) }));
       showToast('레시피 즐겨찾기를 취소했습니다!');
     }
   };
@@ -1044,7 +1046,7 @@ const RecipeList: React.FC = () => {
    * 완료 버튼 클릭 처리
    */
   const handleDoneClick = (id: number) => {
-    const isActive = recipeActionStates[id]?.done;
+    const isActive = getRecipeActionState(id).done;
     
     if (!isActive) {
       // 완료 추가 전에 5개 조건 체크
@@ -1066,13 +1068,13 @@ const RecipeList: React.FC = () => {
         // 조건 통과 시 레시피 저장
         const normalized = normalizeRecipe(recipe);
         addRecipeToLocalStorage('done', normalized);
-        setRecipeActionStates(prev => ({ ...prev, [id]: { ...prev[id], done: true } }));
+        setRecipeActionStates(prev => ({ ...prev, [id]: getRecipeActionState(id) }));
         showToast('레시피를 완료했습니다!');
       }
     } else {
       // 완료 취소
       removeRecipeFromLocalStorage('done', id);
-      setRecipeActionStates(prev => ({ ...prev, [id]: { ...prev[id], done: false } }));
+      setRecipeActionStates(prev => ({ ...prev, [id]: getRecipeActionState(id) }));
       showToast('레시피 완료를 취소했습니다!');
     }
   };
@@ -1081,7 +1083,7 @@ const RecipeList: React.FC = () => {
    * 기록 버튼 클릭 처리
    */
   const handleWriteClick = (id: number) => {
-    const isActive = recipeActionStates[id]?.write;
+    const isActive = getRecipeActionState(id).write;
     
     if (!isActive) {
       // 기록 추가 전에 5개 조건 체크
@@ -1103,13 +1105,13 @@ const RecipeList: React.FC = () => {
         // 조건 통과 시 레시피 저장
         const normalized = normalizeRecipe(recipe);
         addRecipeToLocalStorage('write', normalized);
-        setRecipeActionStates(prev => ({ ...prev, [id]: { ...prev[id], write: true } }));
+        setRecipeActionStates(prev => ({ ...prev, [id]: getRecipeActionState(id) }));
         showToast('레시피를 기록했습니다!');
       }
     } else {
       // 기록 취소
       removeRecipeFromLocalStorage('write', id);
-      setRecipeActionStates(prev => ({ ...prev, [id]: { ...prev[id], write: false } }));
+      setRecipeActionStates(prev => ({ ...prev, [id]: getRecipeActionState(id) }));
       showToast('레시피 기록을 취소했습니다!');
     }
   };
@@ -1145,6 +1147,53 @@ const RecipeList: React.FC = () => {
         break;
     }
   };
+
+  useEffect(() => {
+    const syncActionStates = () => {
+      setRecipeActionStates(buildRecipeActionStatesForRecipes(recipes));
+    };
+
+    syncActionStates();
+
+    const handleRecipeStorageChange = (event: Event) => {
+      const key = (event as CustomEvent<{ key?: string }>).detail?.key;
+      if (
+        key === 'my_recorded_recipes' ||
+        key === 'my_completed_recipes' ||
+        key === 'my_favorite_recipes'
+      ) {
+        syncActionStates();
+      }
+    };
+
+    const handleStorageChange = (event: StorageEvent) => {
+      if (
+        event.key === 'my_recorded_recipes' ||
+        event.key === 'my_completed_recipes' ||
+        event.key === 'my_favorite_recipes'
+      ) {
+        syncActionStates();
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        syncActionStates();
+      }
+    };
+
+    window.addEventListener('localStorageChange', handleRecipeStorageChange);
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('focus', syncActionStates);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('localStorageChange', handleRecipeStorageChange);
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('focus', syncActionStates);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [recipes]);
 
   // Reverting changes made to the filter button functionality
   // Remove the handleFilterButtonClick function and FilterModal rendering

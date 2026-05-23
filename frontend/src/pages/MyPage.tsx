@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import BottomNavBar from '../components/BottomNavBar';
 import logoImg from '../assets/냉털이 로고 white.png';
 import searchIcon from '../assets/navigator_search.png';
@@ -22,7 +22,10 @@ import {
   getRecipesFromLocalStorage,
   copyRecipeUrlToClipboard,
   sortRecipesByUserSavedAtDesc,
-  withUserSavedAt
+  withUserSavedAt,
+  buildRecipeActionStatesForRecipes,
+  getRecipeActionState,
+  normalizeRecipeId,
 } from '../utils/recipeStorage';
 import { useAuth } from '../context/AuthContext';
 import RegisterPromptModal from '../components/RegisterPromptModal';
@@ -506,9 +509,6 @@ const MyPage: React.FC = () => {
   // 원본 데이터 저장 (변경 사항 추적용)
   const [originalEdit, setOriginalEdit] = useState<EditForm>(edit);
   const [error, setError] = useState<ErrorState>({ password: '', phone: '' });
-  const [doneStates, setDoneStates] = useState<{ [id: number]: boolean }>({});
-  const [writeStates, setWriteStates] = useState<{ [id: number]: boolean }>({});
-  const [favoriteStates, setFavoriteStates] = useState<{ [id: number]: boolean }>({});
   const [toast, setToast] = useState('');
   const [profilePreview, setProfilePreview] = useState<string | null>(null);
   // 초기 상태는 빈 배열로 시작 (사용자별로 useEffect에서 로드)
@@ -575,6 +575,53 @@ const MyPage: React.FC = () => {
       setCompletedRecipes(sortRecipesByUserSavedAtDesc(localCompleted));
     }
   }, [authUser?.id]); // authUser.id가 변경될 때만 실행 (사용자 변경 감지)
+
+  const reloadLocalRecipeLists = () => {
+    setFavoriteRecipes(sortRecipesByUserSavedAtDesc(getRecipesFromLocalStorage('favorite')));
+    setRecordedRecipes(sortRecipesByUserSavedAtDesc(getRecipesFromLocalStorage('write')));
+    setCompletedRecipes(sortRecipesByUserSavedAtDesc(getRecipesFromLocalStorage('done')));
+  };
+
+  useEffect(() => {
+    if (location.pathname !== '/my-page' && !location.pathname.startsWith('/mypage')) {
+      return;
+    }
+
+    if (authUser?.id) {
+      loadRecipesFromDB();
+      return;
+    }
+
+    reloadLocalRecipeLists();
+  }, [location.pathname, authUser?.id]);
+
+  useEffect(() => {
+    const handleRecipeStorageChange = (event: Event) => {
+      const key = (event as CustomEvent<{ key?: string }>).detail?.key;
+      if (
+        key === STORAGE_KEY_RECORDED ||
+        key === STORAGE_KEY_COMPLETED ||
+        key === STORAGE_KEY_FAVORITE
+      ) {
+        if (authUser?.id) {
+          loadRecipesFromDB();
+        } else {
+          reloadLocalRecipeLists();
+        }
+      }
+    };
+
+    window.addEventListener('localStorageChange', handleRecipeStorageChange);
+    return () => window.removeEventListener('localStorageChange', handleRecipeStorageChange);
+  }, [authUser?.id]);
+
+  const recipeActionStates = useMemo(() => {
+    const allRecipes = [...favoriteRecipes, ...recordedRecipes, ...completedRecipes];
+    const uniqueRecipes = Array.from(
+      new Map(allRecipes.map(recipe => [normalizeRecipeId(recipe.id), recipe])).values()
+    );
+    return buildRecipeActionStatesForRecipes(uniqueRecipes);
+  }, [favoriteRecipes, recordedRecipes, completedRecipes]);
   
   // 모달이 열릴 때 원본 데이터 저장 및 edit 상태 초기화
   useEffect(() => {
@@ -838,7 +885,6 @@ const MyPage: React.FC = () => {
       addRecipeToDB('favorite', id);
       const updatedFavorite = sortRecipesByUserSavedAtDesc([savedRecipe, ...favoriteRecipes]);
       setFavoriteRecipes(updatedFavorite);
-      setFavoriteStates(prev => ({ ...prev, [id]: true }));
       showToast('레시피를 즐겨찾기에 추가했습니다!');
     }
   };
@@ -855,7 +901,7 @@ const MyPage: React.FC = () => {
       return;
     }
     
-    const isActive = doneStates[id];
+    const isActive = getRecipeActionState(id).done;
     
     if (!isActive) {
       // 완료 추가 전에 5개 조건 체크
@@ -879,11 +925,9 @@ const MyPage: React.FC = () => {
         addRecipeToDB('done', id);
         const updatedCompleted = sortRecipesByUserSavedAtDesc([savedRecipe, ...completedRecipes]);
         setCompletedRecipes(updatedCompleted);
-        setDoneStates(prev => ({ ...prev, [id]: true }));
         showToast('레시피를 완료했습니다!');
       }
     } else {
-      setDoneStates(prev => ({ ...prev, [id]: false }));
       setPendingRemove({ type: 'done', id });
       setPendingRecipe(completedRecipes.find(r => r.id === id));
     }
@@ -901,7 +945,7 @@ const MyPage: React.FC = () => {
       return;
     }
     
-    const isActive = writeStates[id];
+    const isActive = getRecipeActionState(id).write;
     
     if (!isActive) {
       // 기록 추가 전에 5개 조건 체크
@@ -925,11 +969,9 @@ const MyPage: React.FC = () => {
         addRecipeToDB('write', id);
         const updatedRecorded = sortRecipesByUserSavedAtDesc([savedRecipe, ...recordedRecipes]);
         setRecordedRecipes(updatedRecorded);
-        setWriteStates(prev => ({ ...prev, [id]: true }));
         showToast('레시피를 기록했습니다!');
       }
     } else {
-      setWriteStates(prev => ({ ...prev, [id]: false }));
       setPendingRemove({ type: 'write', id });
       setPendingRecipe(recordedRecipes.find(r => r.id === id));
     }
@@ -942,19 +984,16 @@ const MyPage: React.FC = () => {
     if (!pendingRemove) return;
     
     if (pendingRemove.type === 'done') {
-      setDoneStates(prev => ({ ...prev, [pendingRemove.id]: false }));
       removeRecipeFromLocalStorage('done', pendingRemove.id);
       removeRecipeFromDB('done', pendingRemove.id);
       const updated = completedRecipes.filter((r: any) => String(r.id) !== String(pendingRemove.id));
       setCompletedRecipes(updated);
     } else if (pendingRemove.type === 'write') {
-      setWriteStates(prev => ({ ...prev, [pendingRemove.id]: false }));
       removeRecipeFromLocalStorage('write', pendingRemove.id);
       removeRecipeFromDB('write', pendingRemove.id);
       const updated = recordedRecipes.filter((r: any) => String(r.id) !== String(pendingRemove.id));
       setRecordedRecipes(updated);
     } else if (pendingRemove.type === 'favorite') {
-      setFavoriteStates(prev => ({ ...prev, [pendingRemove.id]: false }));
       removeRecipeFromLocalStorage('favorite', pendingRemove.id);
       removeRecipeFromDB('favorite', pendingRemove.id);
       const updated = favoriteRecipes.filter((r: any) => String(r.id) !== String(pendingRemove.id));
@@ -969,16 +1008,6 @@ const MyPage: React.FC = () => {
    * 삭제 취소 처리
    */
   const handleRemoveUndo = () => {
-    if (!pendingRemove) return;
-    
-    if (pendingRemove.type === 'done') {
-      setDoneStates(prev => ({ ...prev, [pendingRemove.id]: true }));
-    } else if (pendingRemove.type === 'write') {
-      setWriteStates(prev => ({ ...prev, [pendingRemove.id]: true }));
-    } else if (pendingRemove.type === 'favorite') {
-      setFavoriteStates(prev => ({ ...prev, [pendingRemove.id]: true }));
-    }
-    
     setPendingRemove(null);
     setPendingRecipe(null);
   };
@@ -1211,17 +1240,7 @@ const MyPage: React.FC = () => {
             recipes={favoriteRecipes}
             myIngredients={myIngredients}
             substituteTable={substituteTable}
-            recipeActionStates={{
-              ...Object.fromEntries(favoriteRecipes.map(recipe => [
-                recipe.id,
-                {
-                  done: doneStates[recipe.id],
-                  write: writeStates[recipe.id],
-                  favorite: favoriteStates[recipe.id] ?? true,
-                  share: false
-                }
-              ]))
-            }}
+            recipeActionStates={recipeActionStates}
             onRecipeAction={handleRecipeAction}
             cardWidth={300}
             cardHeight={280}
@@ -1315,17 +1334,7 @@ const MyPage: React.FC = () => {
             recipes={recordedRecipes}
             myIngredients={myIngredients}
             substituteTable={substituteTable}
-            recipeActionStates={{ 
-              ...Object.fromEntries(recordedRecipes.map(recipe => [
-                recipe.id, 
-                { 
-                  done: doneStates[recipe.id], 
-                  write: writeStates[recipe.id], 
-                  favorite: favoriteStates[recipe.id] ?? getRecipesFromLocalStorage('favorite').some(r => r.id === recipe.id),
-                  share: false 
-                }
-              ]))
-            }}
+            recipeActionStates={recipeActionStates}
             onRecipeAction={handleRecipeAction}
             cardWidth={300}
             cardHeight={280}
@@ -1419,17 +1428,7 @@ const MyPage: React.FC = () => {
             recipes={completedRecipes}
             myIngredients={myIngredients}
             substituteTable={substituteTable}
-            recipeActionStates={{ 
-              ...Object.fromEntries(completedRecipes.map(recipe => [
-                recipe.id, 
-                { 
-                  done: doneStates[recipe.id], 
-                  write: writeStates[recipe.id], 
-                  favorite: favoriteStates[recipe.id] ?? getRecipesFromLocalStorage('favorite').some(r => r.id === recipe.id),
-                  share: false 
-                }
-              ]))
-            }}
+            recipeActionStates={recipeActionStates}
             onRecipeAction={handleRecipeAction}
             cardWidth={300}
             cardHeight={280}
@@ -1773,14 +1772,12 @@ const MyPage: React.FC = () => {
               addRecipeToDB('done', pendingRegisterRecipe.id);
               const updatedCompleted = sortRecipesByUserSavedAtDesc([savedRecipe, ...completedRecipes]);
               setCompletedRecipes(updatedCompleted);
-              setDoneStates(prev => ({ ...prev, [pendingRegisterRecipe.id]: true }));
             } else if (pendingRegisterRecipe.type === 'write') {
               const savedRecipe = withUserSavedAt(pendingRegisterRecipe.recipe);
               addRecipeToLocalStorage('write', savedRecipe);
               addRecipeToDB('write', pendingRegisterRecipe.id);
               const updatedRecorded = sortRecipesByUserSavedAtDesc([savedRecipe, ...recordedRecipes]);
               setRecordedRecipes(updatedRecorded);
-              setWriteStates(prev => ({ ...prev, [pendingRegisterRecipe.id]: true }));
             }
             setPendingRegisterRecipe(null);
           }

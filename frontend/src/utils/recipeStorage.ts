@@ -56,18 +56,29 @@ function safeJsonSet(key: string, value: any): void {
   }
 }
 
+export function normalizeRecipeId(id: number | string | null | undefined): number {
+  if (id == null) return NaN;
+  if (typeof id === 'number') return id;
+  const parsed = Number(id);
+  return Number.isNaN(parsed) ? NaN : parsed;
+}
+
 /**
  * 레시피 배열에서 특정 ID의 레시피 존재 여부 확인
  */
-function hasRecipeById(recipes: Recipe[], recipeId: number): boolean {
-  return recipes.some((r) => r.id === recipeId);
+function hasRecipeById(recipes: Recipe[], recipeId: number | string): boolean {
+  const targetId = normalizeRecipeId(recipeId);
+  if (Number.isNaN(targetId)) return false;
+  return recipes.some((r) => normalizeRecipeId(r.id) === targetId);
 }
 
 /**
  * 레시피 배열에서 특정 ID의 레시피 제거
  */
-function removeRecipeById(recipes: Recipe[], recipeId: number): Recipe[] {
-  return recipes.filter((r) => r.id !== recipeId);
+function removeRecipeById(recipes: Recipe[], recipeId: number | string): Recipe[] {
+  const targetId = normalizeRecipeId(recipeId);
+  if (Number.isNaN(targetId)) return recipes;
+  return recipes.filter((r) => normalizeRecipeId(r.id) !== targetId);
 }
 
 function getSavedAtValue(recipe: Partial<Recipe>): string | undefined {
@@ -115,7 +126,7 @@ export function sortRecipesByUserSavedAtDesc<T extends Partial<Recipe>>(recipes:
 /**
  * 레시피의 액션 상태를 가져온다 (완료, 기록, 공유)
  */
-export function getRecipeActionState(recipeId: number): RecipeActionState {
+export function getRecipeActionState(recipeId: number | string): RecipeActionState {
   const completedRecipes = getRecipesFromLocalStorage('done');
   const recordedRecipes = getRecipesFromLocalStorage('write');
   
@@ -127,32 +138,72 @@ export function getRecipeActionState(recipeId: number): RecipeActionState {
   };
 }
 
+export function buildRecipeActionStatesForRecipes(
+  recipes: Array<{ id: number | string }>
+): Record<number, RecipeActionState> {
+  const states: Record<number, RecipeActionState> = {};
+
+  for (const recipe of recipes) {
+    const id = normalizeRecipeId(recipe?.id);
+    if (!Number.isNaN(id)) {
+      states[id] = getRecipeActionState(id);
+    }
+  }
+
+  return states;
+}
+
+export function lookupRecipeActionState(
+  states: Record<number, RecipeActionState>,
+  recipeId: number | string
+): RecipeActionState | undefined {
+  const id = normalizeRecipeId(recipeId);
+  if (Number.isNaN(id)) return undefined;
+  return states[id];
+}
+
+function notifyRecipeStorageChange(type: StorageType): void {
+  if (typeof window === 'undefined') return;
+
+  window.dispatchEvent(
+    new CustomEvent('localStorageChange', {
+      detail: { key: STORAGE_KEYS[type] },
+    })
+  );
+}
+
 /**
  * 레시피를 localStorage에 추가한다
  */
 export function addRecipeToLocalStorage(type: StorageType, recipe: Recipe): void {
   const key = STORAGE_KEYS[type];
-  const recipes = removeRecipeById(getRecipesFromLocalStorage(type), recipe.id);
-  const savedRecipe = withUserSavedAt(recipe);
+  const normalizedId = normalizeRecipeId(recipe.id);
+  const recipes = removeRecipeById(getRecipesFromLocalStorage(type), normalizedId);
+  const savedRecipe = withUserSavedAt({
+    ...recipe,
+    id: Number.isNaN(normalizedId) ? recipe.id : normalizedId,
+  });
   
   safeJsonSet(key, sortRecipesByUserSavedAtDesc([savedRecipe, ...recipes]));
+  notifyRecipeStorageChange(type);
 }
 
 /**
  * localStorage에서 레시피를 제거한다
  */
-export function removeRecipeFromLocalStorage(type: StorageType, recipeId: number): void {
+export function removeRecipeFromLocalStorage(type: StorageType, recipeId: number | string): void {
   const key = STORAGE_KEYS[type];
   const recipes = getRecipesFromLocalStorage(type);
   const filteredRecipes = removeRecipeById(recipes, recipeId);
   
   safeJsonSet(key, filteredRecipes);
+  notifyRecipeStorageChange(type);
 }
 
 /**
  * localStorage에 레시피가 존재하는지 확인한다
  */
-export function isRecipeInLocalStorage(type: StorageType, recipeId: number): boolean {
+export function isRecipeInLocalStorage(type: StorageType, recipeId: number | string): boolean {
   const recipes = getRecipesFromLocalStorage(type);
   return hasRecipeById(recipes, recipeId);
 }
