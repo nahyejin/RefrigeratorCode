@@ -1892,6 +1892,20 @@ def ensure_user_data_tables():
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         """)
+
+        # 사용자 즐겨찾기 레시피 테이블
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS user_favorite_recipes (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                recipe_id INT NOT NULL,
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY unique_user_recipe (user_id, recipe_id),
+                INDEX idx_user_id (user_id),
+                INDEX idx_recipe_id (recipe_id),
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        """)
         
         db.commit()
     except Exception as e:
@@ -2266,6 +2280,128 @@ def remove_user_completed_recipe(user_id, recipe_id):
             
     except Exception as e:
         print(f"Remove user completed recipe error: {e}")
+        return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
+
+@app.route('/api/users/<int:user_id>/favorite-recipes', methods=['GET'])
+def get_user_favorite_recipes(user_id):
+    """사용자 즐겨찾기 레시피 조회"""
+    try:
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({'error': '인증이 필요합니다.'}), 401
+
+        token = auth_header.split(' ')[1]
+        payload = verify_jwt_token(token)
+
+        if not payload or payload.get('user_id') != user_id:
+            return jsonify({'error': '권한이 없습니다.'}), 403
+
+        ensure_user_data_tables()
+        db = get_db()
+        cursor = db.cursor()
+
+        try:
+            cursor.execute(
+                """SELECT r.*, ufr.created_at AS user_saved_at FROM recipes r
+                   INNER JOIN user_favorite_recipes ufr ON r.id = ufr.recipe_id
+                   WHERE ufr.user_id = %s
+                   ORDER BY ufr.created_at DESC, ufr.id DESC""",
+                (user_id,)
+            )
+            recipes = cursor.fetchall()
+
+            return jsonify({'recipes': recipes}), 200
+
+        except Exception as e:
+            print(f"Get user favorite recipes error: {e}")
+            return jsonify({'error': '레시피 조회 중 오류가 발생했습니다.'}), 500
+        finally:
+            db.close()
+
+    except Exception as e:
+        print(f"Get user favorite recipes error: {e}")
+        return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
+
+@app.route('/api/users/<int:user_id>/favorite-recipes', methods=['POST'])
+def add_user_favorite_recipe(user_id):
+    """사용자 즐겨찾기 레시피 추가"""
+    try:
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({'error': '인증이 필요합니다.'}), 401
+
+        token = auth_header.split(' ')[1]
+        payload = verify_jwt_token(token)
+
+        if not payload or payload.get('user_id') != user_id:
+            return jsonify({'error': '권한이 없습니다.'}), 403
+
+        data = request.get_json()
+        recipe_id = data.get('recipe_id')
+
+        if not recipe_id:
+            return jsonify({'error': '레시피 ID가 필요합니다.'}), 400
+
+        ensure_user_data_tables()
+        db = get_db()
+        cursor = db.cursor()
+
+        try:
+            cursor.execute(
+                """INSERT INTO user_favorite_recipes (user_id, recipe_id)
+                   VALUES (%s, %s)
+                   ON DUPLICATE KEY UPDATE created_at = CURRENT_TIMESTAMP""",
+                (user_id, recipe_id)
+            )
+            db.commit()
+            return jsonify({'message': '레시피가 즐겨찾기에 추가되었습니다.'}), 200
+
+        except Exception as e:
+            db.rollback()
+            print(f"Add user favorite recipe error: {e}")
+            return jsonify({'error': '레시피 즐겨찾기 중 오류가 발생했습니다.'}), 500
+        finally:
+            db.close()
+
+    except Exception as e:
+        print(f"Add user favorite recipe error: {e}")
+        return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
+
+@app.route('/api/users/<int:user_id>/favorite-recipes/<int:recipe_id>', methods=['DELETE'])
+def remove_user_favorite_recipe(user_id, recipe_id):
+    """사용자 즐겨찾기 레시피 삭제"""
+    try:
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({'error': '인증이 필요합니다.'}), 401
+
+        token = auth_header.split(' ')[1]
+        payload = verify_jwt_token(token)
+
+        if not payload or payload.get('user_id') != user_id:
+            return jsonify({'error': '권한이 없습니다.'}), 403
+
+        ensure_user_data_tables()
+        db = get_db()
+        cursor = db.cursor()
+
+        try:
+            cursor.execute(
+                "DELETE FROM user_favorite_recipes WHERE user_id = %s AND recipe_id = %s",
+                (user_id, recipe_id)
+            )
+            db.commit()
+            return jsonify({'message': '레시피 즐겨찾기가 취소되었습니다.'}), 200
+
+        except Exception as e:
+            db.rollback()
+            print(f"Remove user favorite recipe error: {e}")
+            return jsonify({'error': '레시피 삭제 중 오류가 발생했습니다.'}), 500
+        finally:
+            db.close()
+
+    except Exception as e:
+        print(f"Remove user favorite recipe error: {e}")
         return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
 
 @app.route('/api/health')

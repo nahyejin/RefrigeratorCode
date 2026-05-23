@@ -14,6 +14,7 @@ import youtubeLogo from '../assets/썸네일_youtubelogo.png';
 
 // 버튼/아이콘/스타일 상수화
 const ACTIONS = [
+  { key: 'favorite', title: '즐겨찾기', icon: null },
   { key: 'done', title: '완료', icon: 완료하기버튼 },
   { key: 'share', title: '공유', icon: 공유하기버튼 },
   { key: 'write', title: '기록', icon: 기록하기버튼 },
@@ -183,7 +184,7 @@ export interface RecipeCardProps {
   recipe: Recipe;
   index: number;
   recipeActionState?: RecipeActionState;
-  onRecipeAction: (recipe: Recipe & { action: 'done' | 'share' | 'write' }) => void;
+  onRecipeAction: (recipe: Recipe & { action: 'done' | 'share' | 'write' | 'favorite' }) => void;
   isLast: boolean;
   myIngredients?: string[];
   substituteTable?: { [key: string]: { ingredient_b: string; similarity_score?: number }[] };
@@ -264,7 +265,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
   const usedIngredientList = parseUsedIngredientsForPills(recipe.used_ingredients);
 
   // 버튼 클릭 핸들러 하나로 통합
-  const handleActionButtonClick = (action: 'done' | 'share' | 'write', e: React.MouseEvent) => {
+  const handleActionButtonClick = (action: 'done' | 'share' | 'write' | 'favorite', e: React.MouseEvent) => {
     e.preventDefault();
     onRecipeAction({ ...recipe, action });
   };
@@ -406,7 +407,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
           style={STYLES.platformLogo}
           onError={e => { e.currentTarget.src = naverLogo; }}
         />
-        {/* 완료/공유/기록 버튼 */}
+        {/* 즐겨찾기/완료/공유/기록 버튼 */}
         <div className="action-buttons" style={STYLES.actionButtons}>
           {ACTIONS.map(({ key, title, icon }) => (
             <span key={key} style={STYLES.actionButtonWrapper}>
@@ -422,17 +423,39 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
                 }}
                 {...(index === 0 ? { 'data-guide-target': `recipe-${key}-button` } : {})}
               >
-                <img
-                  src={icon}
-                  alt={title}
-                  width={ICON_SIZE}
-                  height={ICON_SIZE}
-                  style={{
-                    ...STYLES.actionIcon,
-                    opacity: recipeActionState?.[key] ? 0.5 : 1,
-                    filter: recipeActionState?.[key] ? 'brightness(0.6)' : 'none'
-                  }}
-                />
+                {key === 'favorite' ? (
+                  <svg
+                    width={ICON_SIZE}
+                    height={ICON_SIZE}
+                    viewBox="0 0 24 24"
+                    aria-label={title}
+                    style={{
+                      ...STYLES.actionIcon,
+                      opacity: recipeActionState?.favorite ? 0.5 : 1,
+                      filter: recipeActionState?.favorite ? 'brightness(0.6)' : 'none'
+                    }}
+                  >
+                    <path
+                      d="M12 2.75l2.72 5.51 6.08.88-4.4 4.29 1.04 6.05L12 16.62 6.56 19.48l1.04-6.05-4.4-4.29 6.08-.88L12 2.75z"
+                      fill={recipeActionState?.favorite ? '#FFFFFF' : 'none'}
+                      stroke="#FFFFFF"
+                      strokeWidth="1.8"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                ) : (
+                  <img
+                    src={icon}
+                    alt={title}
+                    width={ICON_SIZE}
+                    height={ICON_SIZE}
+                    style={{
+                      ...STYLES.actionIcon,
+                      opacity: recipeActionState?.[key] ? 0.5 : 1,
+                      filter: recipeActionState?.[key] ? 'brightness(0.6)' : 'none'
+                    }}
+                  />
+                )}
               </button>
             </span>
           ))}

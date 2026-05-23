@@ -40,7 +40,7 @@ interface FilterState {
 }
 
 interface PendingRemove {
-  type: 'done' | 'write';
+  type: 'done' | 'write' | 'favorite';
   id: number;
 }
 
@@ -260,7 +260,7 @@ const CompletedRecipeListPage: React.FC = () => {
    * 완료 버튼 클릭 처리
    */
   const handleDoneClick = (id: number) => {
-    const prev = recipeActionStates[id] || { done: false, write: false, share: false };
+    const prev = recipeActionStates[id] || { done: false, write: false, share: false, favorite: false };
     
     if (!prev.done) {
       // 완료 추가
@@ -281,7 +281,7 @@ const CompletedRecipeListPage: React.FC = () => {
    * 기록 버튼 클릭 처리
    */
   const handleWriteClick = (id: number) => {
-    const prev = recipeActionStates[id] || { done: false, write: false, share: false };
+    const prev = recipeActionStates[id] || { done: false, write: false, share: false, favorite: false };
     
     if (!prev.write) {
       // 기록 추가
@@ -313,6 +313,22 @@ const CompletedRecipeListPage: React.FC = () => {
     }
   };
 
+  const handleFavoriteClick = (id: number) => {
+    const prev = recipeActionStates[id] || { done: false, write: false, share: false, favorite: false };
+    const recipe = recipes.find(r => r.id === id);
+
+    if (!prev.favorite) {
+      if (recipe && !getRecipesFromLocalStorage('favorite').some((r: any) => r.id === id)) {
+        addRecipeToLocalStorage('favorite', recipe);
+      }
+      setRecipeActionStates(s => ({ ...s, [id]: { ...prev, favorite: true } }));
+      showToast('레시피를 즐겨찾기에 추가했습니다!');
+    } else {
+      setPendingRemove({ type: 'favorite', id });
+      setPendingRecipe(recipe || null);
+    }
+  };
+
   /**
    * 삭제 확인 처리
    */
@@ -331,6 +347,10 @@ const CompletedRecipeListPage: React.FC = () => {
       setRecipes(prev => prev.filter(r => r.id !== pendingRemove.id));
       setFilteredRecipes(prev => prev.filter(r => r.id !== pendingRemove.id));
       showToast('레시피 기록을 취소했습니다!');
+    } else if (pendingRemove.type === 'favorite') {
+      setRecipeActionStates(s => ({ ...s, [pendingRemove.id]: { ...s[pendingRemove.id], favorite: false } }));
+      removeRecipeFromLocalStorage('favorite', pendingRemove.id);
+      showToast('레시피 즐겨찾기를 취소했습니다!');
     }
     
     setPendingRemove(null);
@@ -358,6 +378,9 @@ const CompletedRecipeListPage: React.FC = () => {
    */
   const handleRecipeAction = (recipe: Recipe, action: string) => {
     switch (action) {
+      case 'favorite':
+        handleFavoriteClick(recipe.id);
+        break;
       case 'done':
         handleDoneClick(recipe.id);
         break;

@@ -29,7 +29,8 @@ const RecipeDetail: React.FC = () => {
   const [actionState, setActionState] = useState<RecipeActionState>({ 
     done: false, 
     share: false, 
-    write: false 
+    write: false,
+    favorite: false
   });
   const navigate = useNavigate();
   const myIngredients = getMyIngredients();

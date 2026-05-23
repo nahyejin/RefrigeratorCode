@@ -11,6 +11,7 @@ export const ACTIONS = {
   DONE: 'done',
   SHARE: 'share',
   WRITE: 'write',
+  FAVORITE: 'favorite',
 } as const;
 
 // =====================
@@ -92,6 +93,7 @@ export interface RecipeActionState {
   done: boolean;
   share: boolean;
   write: boolean;
+  favorite: boolean;
 }
 
 /**

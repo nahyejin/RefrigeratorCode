@@ -61,7 +61,8 @@ const Utils = {
   getDefaultRecipeActionState: (): RecipeActionState => ({
     done: false,
     write: false,
-    share: false
+    share: false,
+    favorite: false
   }),
 
   // 아이템 크기 계산 (카드 너비 + 간격)

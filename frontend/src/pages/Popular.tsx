@@ -688,6 +688,7 @@ const Popular = () => {
   // 사용자별 레시피 상태 (DB 또는 localStorage)
   const [userCompletedRecipes, setUserCompletedRecipes] = useState<number[]>([]);
   const [userRecordedRecipes, setUserRecordedRecipes] = useState<number[]>([]);
+  const [userFavoriteRecipes, setUserFavoriteRecipes] = useState<number[]>([]);
 
   // 필터 관련 상태 (RecipeList.tsx와 동일)
   const [filterOpen, setFilterOpen] = useState(false);
@@ -706,8 +707,8 @@ const Popular = () => {
   const [toast, setToast] = useState('');
   const [includeKeyword, setIncludeKeyword] = useState('');
 
-  // 버튼 상태 통일: {done, write, share}
-  const [buttonStates, setButtonStates] = useState<{ [id: number]: { done: boolean; write: boolean; share: boolean } }>({});
+  // 버튼 상태 통일: {done, write, share, favorite}
+  const [buttonStates, setButtonStates] = useState<{ [id: number]: { done: boolean; write: boolean; share: boolean; favorite: boolean } }>({});
 
   // 내 냉장고 재료 불러오기 (RecipeList.tsx와 동일)
   function getMyIngredients() {
@@ -992,8 +993,89 @@ const Popular = () => {
   }
 
   // Update handleRecipeAction to use correct localStorage keys and sync properly
-  const handleRecipeAction = async (id: number, action: { action: 'done' | 'write' | 'share' }) => {
+  const handleRecipeAction = async (id: number, action: { action: 'done' | 'write' | 'share' | 'favorite' }) => {
     const prevState = buttonStates[id] || getRecipeActionState(id);
+
+      if (action.action === 'favorite') {
+        const recipe = youtubeRecipes.find(r => r.id === id) || naverRecipes.find(r => r.id === id);
+        if (prevState.favorite) {
+          removeRecipeFromLocalStorage('favorite', id);
+          setUserFavoriteRecipes(prev => prev.filter(rid => rid !== id));
+
+          if (isLoggedIn && authUser?.id) {
+            try {
+              const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+              if (token) {
+                const apiUrl = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'https://refrigeratorcode-production.up.railway.app';
+                await fetch(`${apiUrl}/api/users/${authUser.id}/favorite-recipes/${id}`, {
+                  method: 'DELETE',
+                  headers: { 'Authorization': `Bearer ${token}` },
+                });
+              }
+            } catch (error) {
+              console.error('[Popular] 즐겨찾기 레시피 삭제 실패:', error);
+            }
+          }
+
+          setButtonStates(prev => ({ ...prev, [id]: { ...prev[id], favorite: false } }));
+          setToast('레시피 즐겨찾기를 취소했습니다!');
+        } else if (recipe && !getRecipesFromLocalStorage('favorite').some((r: any) => r.id === id)) {
+          const normalized = {
+            id: recipe.id,
+            title: recipe.title,
+            content: recipe.content || '',
+            author: recipe.author || '',
+            date: recipe.date || '',
+            body: recipe.body || recipe.content || recipe.description || '',
+            description: recipe.description || '',
+            thumbnail: recipe.thumbnail || '',
+            used_ingredients: recipe.used_ingredients || '',
+            used_ingredients_block: recipe.used_ingredients_block || '',
+            block_reason: recipe.block_reason || '',
+            link: recipe.link || '',
+            platform: recipe.platform || 'youtube',
+            channel: recipe.channel || 'youtube',
+            likes: recipe.likes || 0,
+            comments: recipe.comments || 0,
+            substitutes: recipe.substitutes || [],
+            match_rate: recipe.match_rate || 0,
+            my_ingredients: recipe.my_ingredients || [],
+            need_ingredients: recipe.need_ingredients || [],
+            created_at: recipe.created_at || '',
+            updated_at: recipe.updated_at || '',
+            like_count: recipe.like_count || 0,
+            comment_count: recipe.comment_count || 0,
+            post_time: recipe.post_time || '',
+            collected_at: recipe.collected_at || '',
+            hits: recipe.hits || 0,
+            action: recipe.action,
+          };
+          addRecipeToLocalStorage('favorite', normalized);
+          setUserFavoriteRecipes(prev => [...prev, id]);
+
+          if (isLoggedIn && authUser?.id) {
+            try {
+              const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+              if (token) {
+                const apiUrl = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'https://refrigeratorcode-production.up.railway.app';
+                await fetch(`${apiUrl}/api/users/${authUser.id}/favorite-recipes`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                  },
+                  body: JSON.stringify({ recipe_id: id }),
+                });
+              }
+            } catch (error) {
+              console.error('[Popular] 즐겨찾기 레시피 저장 실패:', error);
+            }
+          }
+
+          setButtonStates(prev => ({ ...prev, [id]: { ...prev[id], favorite: true } }));
+          setToast('레시피를 즐겨찾기에 추가했습니다!');
+        }
+      }
     
       if (action.action === 'done') {
         const recipe = youtubeRecipes.find(r => r.id === id) || naverRecipes.find(r => r.id === id);
@@ -1454,6 +1536,7 @@ const Popular = () => {
     const loadUserRecipes = async () => {
       const localCompletedIds = JSON.parse(localStorage.getItem('my_completed_recipes') || '[]').map((r: any) => r.id);
       const localRecordedIds = JSON.parse(localStorage.getItem('my_recorded_recipes') || '[]').map((r: any) => r.id);
+      const localFavoriteIds = JSON.parse(localStorage.getItem('my_favorite_recipes') || '[]').map((r: any) => r.id);
 
       if (isLoggedIn && authUser?.id) {
         try {
@@ -1461,6 +1544,7 @@ const Popular = () => {
           if (!token) {
             setUserRecordedRecipes(localRecordedIds);
             setUserCompletedRecipes(localCompletedIds);
+            setUserFavoriteRecipes(localFavoriteIds);
             return;
           }
 
@@ -1487,17 +1571,31 @@ const Popular = () => {
           } else {
             setUserCompletedRecipes(localCompletedIds);
           }
+
+          const favoriteResponse = await fetch(`${apiUrl}/api/users/${authUser.id}/favorite-recipes`, {
+            headers: { 'Authorization': `Bearer ${token}` },
+          });
+          if (favoriteResponse.ok) {
+            const favoriteData = await favoriteResponse.json();
+            const dbIds = (favoriteData.recipes || []).map((r: any) => r.id);
+            setUserFavoriteRecipes([...new Set([...dbIds, ...localFavoriteIds])]);
+          } else {
+            setUserFavoriteRecipes(localFavoriteIds);
+          }
         } catch (error) {
           console.error('[Popular] 사용자 레시피 로드 실패:', error);
           setUserRecordedRecipes(localRecordedIds);
           setUserCompletedRecipes(localCompletedIds);
+          setUserFavoriteRecipes(localFavoriteIds);
         }
       } else {
         // 비로그인인 경우 localStorage에서 로드
         const completedRecipes = JSON.parse(localStorage.getItem('my_completed_recipes') || '[]');
         const recordedRecipes = JSON.parse(localStorage.getItem('my_recorded_recipes') || '[]');
+        const favoriteRecipes = JSON.parse(localStorage.getItem('my_favorite_recipes') || '[]');
         setUserCompletedRecipes(completedRecipes.map((r: any) => r.id));
         setUserRecordedRecipes(recordedRecipes.map((r: any) => r.id));
+        setUserFavoriteRecipes(favoriteRecipes.map((r: any) => r.id));
       }
     };
     
@@ -1509,18 +1607,19 @@ const Popular = () => {
     return {
       done: userCompletedRecipes.includes(recipeId),
       write: userRecordedRecipes.includes(recipeId),
+      favorite: userFavoriteRecipes.includes(recipeId),
       share: false,
     };
   };
 
   // Add useEffect to initialize buttonStates from user recipes
   useEffect(() => {
-    const initialButtonStates: { [id: number]: { done: boolean; write: boolean; share: boolean } } = {};
+    const initialButtonStates: { [id: number]: { done: boolean; write: boolean; share: boolean; favorite: boolean } } = {};
     [...youtubeRecipes, ...naverRecipes].forEach(recipe => {
       initialButtonStates[recipe.id] = getRecipeActionState(recipe.id);
     });
     setButtonStates(initialButtonStates);
-  }, [youtubeRecipes, naverRecipes, userCompletedRecipes, userRecordedRecipes]);
+  }, [youtubeRecipes, naverRecipes, userCompletedRecipes, userRecordedRecipes, userFavoriteRecipes]);
 
   return (
     <>
@@ -1926,7 +2025,7 @@ const Popular = () => {
              myIngredients={myIngredients}
              substituteTable={substituteTable}
              recipeActionStates={buttonStates}
-             onRecipeAction={(recipe, action) => handleRecipeAction(recipe.id, { action: action as 'done' | 'write' | 'share' })}
+             onRecipeAction={(recipe, action) => handleRecipeAction(recipe.id, { action: action as 'done' | 'write' | 'share' | 'favorite' })}
              cardWidth={280}
              cardHeight={280}
              gap={16}
@@ -1992,7 +2091,7 @@ const Popular = () => {
              myIngredients={myIngredients}
              substituteTable={substituteTable}
              recipeActionStates={buttonStates}
-             onRecipeAction={(recipe, action) => handleRecipeAction(recipe.id, { action: action as 'done' | 'write' | 'share' })}
+             onRecipeAction={(recipe, action) => handleRecipeAction(recipe.id, { action: action as 'done' | 'write' | 'share' | 'favorite' })}
              cardWidth={280}
              cardHeight={280}
              gap={16}

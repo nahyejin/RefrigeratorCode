@@ -186,6 +186,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // 마이페이지 레시피 초기화
     localStorage.removeItem('my_recorded_recipes');
     localStorage.removeItem('my_completed_recipes');
+    localStorage.removeItem('my_favorite_recipes');
     
     // 세션 스토리지의 레시피 리스트 캐시도 초기화
     sessionStorage.removeItem('recipe_list_state');
@@ -201,6 +202,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }));
       window.dispatchEvent(new CustomEvent('localStorageChange', {
         detail: { key: 'my_completed_recipes' }
+      }));
+      window.dispatchEvent(new CustomEvent('localStorageChange', {
+        detail: { key: 'my_favorite_recipes' }
       }));
     }
     
@@ -288,15 +292,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const localCompleted = JSON.parse(
         localStorage.getItem('my_completed_recipes') || '[]'
       ) as { id?: number }[];
+      const localFavorite = JSON.parse(
+        localStorage.getItem('my_favorite_recipes') || '[]'
+      ) as { id?: number }[];
 
       const postRecipeIds = async (
-        type: 'write' | 'done',
+        type: 'write' | 'done' | 'favorite',
         items: { id?: number; user_saved_at?: string; saved_at?: string }[]
       ) => {
-        const endpoint =
-          type === 'write'
-            ? `${apiUrl}/api/users/${userId}/recorded-recipes`
-            : `${apiUrl}/api/users/${userId}/completed-recipes`;
+        const endpoint = type === 'write'
+          ? `${apiUrl}/api/users/${userId}/recorded-recipes`
+          : type === 'done'
+            ? `${apiUrl}/api/users/${userId}/completed-recipes`
+            : `${apiUrl}/api/users/${userId}/favorite-recipes`;
 
         const hasSavedAt = items.some(item => item?.user_saved_at || item?.saved_at);
         const orderedItems = hasSavedAt
@@ -330,6 +338,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
       if (localCompleted.length > 0) {
         await postRecipeIds('done', localCompleted);
+      }
+      if (localFavorite.length > 0) {
+        await postRecipeIds('favorite', localFavorite);
       }
     } catch (error) {
       console.error('Migration failed:', error);

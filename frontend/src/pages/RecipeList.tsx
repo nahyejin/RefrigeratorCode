@@ -1020,6 +1020,27 @@ const RecipeList: React.FC = () => {
   };
 
   /**
+   * 즐겨찾기 버튼 클릭 처리
+   */
+  const handleFavoriteClick = (id: number) => {
+    const isActive = recipeActionStates[id]?.favorite;
+    const recipe = recipes.find(r => r.id === id);
+
+    if (!isActive) {
+      if (recipe && !getRecipesFromLocalStorage('favorite').some((r: any) => r.id === id)) {
+        const normalized = normalizeRecipe(recipe);
+        addRecipeToLocalStorage('favorite', normalized);
+      }
+      setRecipeActionStates(prev => ({ ...prev, [id]: { ...prev[id], favorite: true } }));
+      showToast('레시피를 즐겨찾기에 추가했습니다!');
+    } else {
+      removeRecipeFromLocalStorage('favorite', id);
+      setRecipeActionStates(prev => ({ ...prev, [id]: { ...prev[id], favorite: false } }));
+      showToast('레시피 즐겨찾기를 취소했습니다!');
+    }
+  };
+
+  /**
    * 완료 버튼 클릭 처리
    */
   const handleDoneClick = (id: number) => {
@@ -1110,6 +1131,9 @@ const RecipeList: React.FC = () => {
    */
   const handleRecipeAction = (recipe: any, action: string) => {
     switch (action) {
+      case 'favorite':
+        handleFavoriteClick(recipe.id);
+        break;
       case 'done':
         handleDoneClick(recipe.id);
         break;

@@ -7,6 +7,7 @@ import { Recipe, RecipeActionState } from '../types/recipe';
 const STORAGE_KEYS = {
   done: 'my_completed_recipes',
   write: 'my_recorded_recipes',
+  favorite: 'my_favorite_recipes',
   myfridge: 'myfridge_ingredients',
 } as const;
 
@@ -17,7 +18,7 @@ const USER_SAVED_AT_FIELD = 'user_saved_at';
 // 타입 정의
 // =====================
 
-export type StorageType = 'done' | 'write';
+export type StorageType = 'done' | 'write' | 'favorite';
 
 export interface FridgeIngredient {
   name?: string;
@@ -121,6 +122,7 @@ export function getRecipeActionState(recipeId: number): RecipeActionState {
   return {
     done: hasRecipeById(completedRecipes, recipeId),
     write: hasRecipeById(recordedRecipes, recipeId),
+    favorite: hasRecipeById(getRecipesFromLocalStorage('favorite'), recipeId),
     share: false,
   };
 }

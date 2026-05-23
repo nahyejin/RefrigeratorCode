@@ -70,7 +70,7 @@ interface IngredientDetailProps {
 }
 
 interface PendingRemove {
-  type: 'done' | 'write';
+  type: 'done' | 'write' | 'favorite';
   id: number;
 }
 
@@ -374,10 +374,25 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
   /**
    * 레시피 액션 처리
    */
-  const handleRecipeAction = (id: number, action: { action: 'done' | 'write' | 'share' }) => {
+  const handleRecipeAction = (id: number, action: { action: 'done' | 'write' | 'share' | 'favorite' }) => {
     setButtonStates(prev => {
-      const prevState = prev[id] || { done: false, write: false, share: false };
+      const prevState = prev[id] || { done: false, write: false, share: false, favorite: false };
       let newState = { ...prevState };
+
+      if (action.action === 'favorite') {
+        if (!prevState.favorite) {
+          const recipe = recipes.find(r => r.id === id);
+          if (recipe && !getRecipesFromLocalStorage('favorite').some((r: any) => r.id === id)) {
+            addRecipeToLocalStorage('favorite', recipe);
+          }
+          newState.favorite = true;
+          showToast('레시피를 즐겨찾기에 추가했습니다!');
+        } else {
+          setPendingRemove({ type: 'favorite', id });
+          setPendingRecipe(recipes.find(r => r.id === id));
+          return prev;
+        }
+      }
       
       if (action.action === 'done') {
         if (!prevState.done) {
@@ -447,6 +462,10 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
       setRecipes(prev => prev.filter(r => r.id !== pendingRemove.id));
       setFilteredRecipes(prev => prev.filter(r => r.id !== pendingRemove.id));
       showToast('레시피 기록을 취소했습니다!');
+    } else if (pendingRemove.type === 'favorite') {
+      setButtonStates(s => ({ ...s, [pendingRemove.id]: { ...s[pendingRemove.id], favorite: false } }));
+      removeRecipeFromLocalStorage('favorite', pendingRemove.id);
+      showToast('레시피 즐겨찾기를 취소했습니다!');
     }
     
     setPendingRemove(null);
@@ -730,12 +749,14 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
   useEffect(() => {
     const doneList = getRecipesFromLocalStorage('done');
     const writeList = getRecipesFromLocalStorage('write');
+    const favoriteList = getRecipesFromLocalStorage('favorite');
     const newStates: { [id: number]: RecipeActionState } = {};
     
     recipes.forEach(recipe => {
       newStates[recipe.id] = {
         done: doneList.some((r: any) => r.id === recipe.id),
         write: writeList.some((r: any) => r.id === recipe.id),
+        favorite: favoriteList.some((r: any) => r.id === recipe.id),
         share: false // 공유는 토글이 아니므로 false로 고정
       };
     });
@@ -922,7 +943,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
               myIngredients={myIngredients}
               substituteTable={substituteTable}
               recipeActionStates={buttonStates}
-              onRecipeAction={(recipe, action) => handleRecipeAction(recipe.id, { action: action as 'done' | 'write' | 'share' })}
+              onRecipeAction={(recipe, action) => handleRecipeAction(recipe.id, { action: action as 'done' | 'write' | 'share' | 'favorite' })}
             />
             
             {/* 페이지네이션 */}
@@ -1160,7 +1181,11 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
             display: 'inline-block',
             fontWeight: 400
           }}>
-            {pendingRemove.type === 'done' ? '레시피 완료를 취소하시겠어요?' : '레시피 기록을 취소하시겠어요?'}
+            {pendingRemove.type === 'done'
+              ? '레시피 완료를 취소하시겠어요?'
+              : pendingRemove.type === 'write'
+                ? '레시피 기록을 취소하시겠어요?'
+                : '레시피 즐겨찾기를 취소하시겠어요?'}
           </span>
           <div style={{display:'flex',flexDirection:'row',gap:12,justifyContent:'center',width:'100%'}}>
             <button 

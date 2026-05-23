@@ -38,6 +38,7 @@ const CSV_SUBSTITUTE_URL = '/ingredient_substitute_table.csv';
 const STORAGE_KEY_MYFRIDGE = 'myfridge_ingredients';
 const STORAGE_KEY_RECORDED = 'my_recorded_recipes';
 const STORAGE_KEY_COMPLETED = 'my_completed_recipes';
+const STORAGE_KEY_FAVORITE = 'my_favorite_recipes';
 
 /** DB 행과 로컬(풀 객체)을 id 기준으로 합침. 같은 id면 로컬 필드가 덮어써서 카드 표시용 필드 유지 */
 function mergeRecipeListsFromDbAndLocal(dbList: any[], localList: any[]): any[] {
@@ -92,7 +93,7 @@ interface ErrorState {
 }
 
 interface PendingRemove {
-  type: 'done' | 'write';
+  type: 'done' | 'write' | 'favorite';
   id: number;
 }
 
@@ -332,8 +333,10 @@ const MyPage: React.FC = () => {
   const loadRecipesFromDB = async () => {
     const localRecorded = JSON.parse(localStorage.getItem(STORAGE_KEY_RECORDED) || '[]');
     const localCompleted = JSON.parse(localStorage.getItem(STORAGE_KEY_COMPLETED) || '[]');
+    const localFavorite = JSON.parse(localStorage.getItem(STORAGE_KEY_FAVORITE) || '[]');
 
     if (!isLoggedIn || !authUser?.id) {
+      setFavoriteRecipes(sortRecipesByUserSavedAtDesc(localFavorite));
       setRecordedRecipes(sortRecipesByUserSavedAtDesc(localRecorded));
       setCompletedRecipes(sortRecipesByUserSavedAtDesc(localCompleted));
       return;
@@ -341,6 +344,7 @@ const MyPage: React.FC = () => {
 
     const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
     if (!token) {
+      setFavoriteRecipes(sortRecipesByUserSavedAtDesc(localFavorite));
       setRecordedRecipes(sortRecipesByUserSavedAtDesc(localRecorded));
       setCompletedRecipes(sortRecipesByUserSavedAtDesc(localCompleted));
       return;
@@ -349,6 +353,23 @@ const MyPage: React.FC = () => {
     const apiUrl = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'https://refrigeratorcode-production.up.railway.app';
 
     try {
+      // 즐겨찾는 레시피
+      const favoriteResponse = await fetch(`${apiUrl}/api/users/${authUser.id}/favorite-recipes`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (favoriteResponse.ok) {
+        const favoriteData = await favoriteResponse.json();
+        const fromDb = favoriteData.recipes || [];
+        const merged = mergeRecipeListsFromDbAndLocal(fromDb, localFavorite);
+        setFavoriteRecipes(merged);
+        localStorage.setItem(STORAGE_KEY_FAVORITE, JSON.stringify(merged));
+        fromDb.forEach((r: any) => {
+          addRecipeToLocalStorage('favorite', r);
+        });
+      } else {
+        setFavoriteRecipes(sortRecipesByUserSavedAtDesc(localFavorite));
+      }
+
       // 기록한 레시피
       const recordedResponse = await fetch(`${apiUrl}/api/users/${authUser.id}/recorded-recipes`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -388,13 +409,14 @@ const MyPage: React.FC = () => {
       }
     } catch (error) {
       console.error('[MyPage] DB에서 레시피 로드 실패:', error);
+      setFavoriteRecipes(sortRecipesByUserSavedAtDesc(localFavorite));
       setRecordedRecipes(sortRecipesByUserSavedAtDesc(localRecorded));
       setCompletedRecipes(sortRecipesByUserSavedAtDesc(localCompleted));
     }
   };
 
   // DB에 레시피 추가
-  const addRecipeToDB = async (type: 'write' | 'done', recipeId: number) => {
+  const addRecipeToDB = async (type: 'write' | 'done' | 'favorite', recipeId: number) => {
     if (!isLoggedIn || !authUser?.id) return;
     
     try {
@@ -402,9 +424,11 @@ const MyPage: React.FC = () => {
       if (!token) return;
       
       const apiUrl = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'https://refrigeratorcode-production.up.railway.app';
-      const endpoint = type === 'write' 
+      const endpoint = type === 'write'
         ? `${apiUrl}/api/users/${authUser.id}/recorded-recipes`
-        : `${apiUrl}/api/users/${authUser.id}/completed-recipes`;
+        : type === 'done'
+          ? `${apiUrl}/api/users/${authUser.id}/completed-recipes`
+          : `${apiUrl}/api/users/${authUser.id}/favorite-recipes`;
       
       await fetch(endpoint, {
         method: 'POST',
@@ -420,7 +444,7 @@ const MyPage: React.FC = () => {
   };
 
   // DB에서 레시피 삭제
-  const removeRecipeFromDB = async (type: 'write' | 'done', recipeId: number) => {
+  const removeRecipeFromDB = async (type: 'write' | 'done' | 'favorite', recipeId: number) => {
     if (!isLoggedIn || !authUser?.id) return;
     
     try {
@@ -430,7 +454,9 @@ const MyPage: React.FC = () => {
       const apiUrl = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'https://refrigeratorcode-production.up.railway.app';
       const endpoint = type === 'write'
         ? `${apiUrl}/api/users/${authUser.id}/recorded-recipes/${recipeId}`
-        : `${apiUrl}/api/users/${authUser.id}/completed-recipes/${recipeId}`;
+        : type === 'done'
+          ? `${apiUrl}/api/users/${authUser.id}/completed-recipes/${recipeId}`
+          : `${apiUrl}/api/users/${authUser.id}/favorite-recipes/${recipeId}`;
       
       await fetch(endpoint, {
         method: 'DELETE',
@@ -482,9 +508,11 @@ const MyPage: React.FC = () => {
   const [error, setError] = useState<ErrorState>({ password: '', phone: '' });
   const [doneStates, setDoneStates] = useState<{ [id: number]: boolean }>({});
   const [writeStates, setWriteStates] = useState<{ [id: number]: boolean }>({});
+  const [favoriteStates, setFavoriteStates] = useState<{ [id: number]: boolean }>({});
   const [toast, setToast] = useState('');
   const [profilePreview, setProfilePreview] = useState<string | null>(null);
   // 초기 상태는 빈 배열로 시작 (사용자별로 useEffect에서 로드)
+  const [favoriteRecipes, setFavoriteRecipes] = useState<any[]>([]);
   const [recordedRecipes, setRecordedRecipes] = useState<any[]>([]);
   const [completedRecipes, setCompletedRecipes] = useState<any[]>([]);
   const [pendingRemove, setPendingRemove] = useState<PendingRemove | null>(null);
@@ -528,6 +556,7 @@ const MyPage: React.FC = () => {
       setOriginalEdit(newEdit); // 원본 데이터도 업데이트
       
       // 사용자가 변경되면 레시피 상태를 먼저 초기화 (이전 사용자 데이터 제거)
+      setFavoriteRecipes([]);
       setRecordedRecipes([]);
       setCompletedRecipes([]);
       
@@ -535,10 +564,13 @@ const MyPage: React.FC = () => {
       loadRecipesFromDB();
     } else {
       // 로그아웃 시 레시피 상태 초기화 및 localStorage에서 로드
+      setFavoriteRecipes([]);
       setRecordedRecipes([]);
       setCompletedRecipes([]);
+      const localFavorite = JSON.parse(localStorage.getItem(STORAGE_KEY_FAVORITE) || '[]');
       const localRecorded = JSON.parse(localStorage.getItem(STORAGE_KEY_RECORDED) || '[]');
       const localCompleted = JSON.parse(localStorage.getItem(STORAGE_KEY_COMPLETED) || '[]');
+      setFavoriteRecipes(sortRecipesByUserSavedAtDesc(localFavorite));
       setRecordedRecipes(sortRecipesByUserSavedAtDesc(localRecorded));
       setCompletedRecipes(sortRecipesByUserSavedAtDesc(localCompleted));
     }
@@ -784,6 +816,34 @@ const MyPage: React.FC = () => {
   };
 
   /**
+   * 즐겨찾기 버튼 클릭 처리
+   */
+  const handleFavoriteClick = (id: number) => {
+    const isAlreadyFavorite = getRecipesFromLocalStorage('favorite').some(r => r.id === id);
+
+    if (isAlreadyFavorite) {
+      setPendingRemove({ type: 'favorite', id });
+      setPendingRecipe(favoriteRecipes.find(r => r.id === id));
+      return;
+    }
+
+    const recipe =
+      favoriteRecipes.find(r => r.id === id) ||
+      recordedRecipes.find(r => r.id === id) ||
+      completedRecipes.find(r => r.id === id);
+
+    if (recipe) {
+      const savedRecipe = withUserSavedAt(recipe);
+      addRecipeToLocalStorage('favorite', savedRecipe);
+      addRecipeToDB('favorite', id);
+      const updatedFavorite = sortRecipesByUserSavedAtDesc([savedRecipe, ...favoriteRecipes]);
+      setFavoriteRecipes(updatedFavorite);
+      setFavoriteStates(prev => ({ ...prev, [id]: true }));
+      showToast('레시피를 즐겨찾기에 추가했습니다!');
+    }
+  };
+
+  /**
    * 완료 버튼 클릭 처리
    */
   const handleDoneClick = (id: number) => {
@@ -893,6 +953,12 @@ const MyPage: React.FC = () => {
       removeRecipeFromDB('write', pendingRemove.id);
       const updated = recordedRecipes.filter((r: any) => String(r.id) !== String(pendingRemove.id));
       setRecordedRecipes(updated);
+    } else if (pendingRemove.type === 'favorite') {
+      setFavoriteStates(prev => ({ ...prev, [pendingRemove.id]: false }));
+      removeRecipeFromLocalStorage('favorite', pendingRemove.id);
+      removeRecipeFromDB('favorite', pendingRemove.id);
+      const updated = favoriteRecipes.filter((r: any) => String(r.id) !== String(pendingRemove.id));
+      setFavoriteRecipes(updated);
     }
     
     setPendingRemove(null);
@@ -909,6 +975,8 @@ const MyPage: React.FC = () => {
       setDoneStates(prev => ({ ...prev, [pendingRemove.id]: true }));
     } else if (pendingRemove.type === 'write') {
       setWriteStates(prev => ({ ...prev, [pendingRemove.id]: true }));
+    } else if (pendingRemove.type === 'favorite') {
+      setFavoriteStates(prev => ({ ...prev, [pendingRemove.id]: true }));
     }
     
     setPendingRemove(null);
@@ -932,6 +1000,9 @@ const MyPage: React.FC = () => {
    */
   const handleRecipeAction = (recipe: any, action: string) => {
     switch (action) {
+      case 'favorite':
+        handleFavoriteClick(recipe.id);
+        break;
       case 'done':
         handleDoneClick(recipe.id);
         break;
@@ -1092,6 +1163,79 @@ const MyPage: React.FC = () => {
       
       {/* 레시피 그룹 - 비회원도 localStorage로 관리하므로 항상 표시 */}
       <div style={{ marginTop: 56 }}>
+        {/* 내가 즐겨찾는 레시피 */}
+        <div style={{ paddingLeft: 14, paddingRight: 14, marginTop: 0, marginBottom: 6 }}>
+          <div className="flex items-center justify-between mb-0">
+            <h2 className="text-[16px] font-bold text-[#111] flex items-center gap-1">
+              <svg width="21" height="21" viewBox="0 0 24 24" style={{ marginRight: 4, marginBottom: 2 }}>
+                <path
+                  d="M12 2.75l2.72 5.51 6.08.88-4.4 4.29 1.04 6.05L12 16.62 6.56 19.48l1.04-6.05-4.4-4.29 6.08-.88L12 2.75z"
+                  fill="none"
+                  stroke="#222"
+                  strokeWidth="1.8"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              내가 즐겨찾는 레시피
+            </h2>
+          </div>
+          <div style={{ height: 2, width: '100%', background: '#E5E5E5', marginBottom: 16 }} />
+
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: 16,
+            marginTop: 8
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <span style={{ width: 24, height: 14, borderRadius: 7, background: '#D1D1D1', display: 'inline-block', marginRight: 2 }}></span>
+                <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>부족 재료</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <span style={{ width: 24, height: 14, borderRadius: 7, background: '#555', display: 'inline-block', marginRight: 2 }}></span>
+                <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>대체 가능</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <span style={{ width: 24, height: 14, borderRadius: 7, background: '#FFD600', display: 'inline-block', marginRight: 2 }}></span>
+                <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>보유 재료</span>
+              </div>
+            </div>
+            <span style={{ color: '#666', fontSize: '12px', marginRight: 32 }}>
+              총 {favoriteRecipes.length.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}건
+            </span>
+          </div>
+
+          <VirtualizedHorizontalRecipeList
+            recipes={favoriteRecipes}
+            myIngredients={myIngredients}
+            substituteTable={substituteTable}
+            recipeActionStates={{
+              ...Object.fromEntries(favoriteRecipes.map(recipe => [
+                recipe.id,
+                {
+                  done: doneStates[recipe.id],
+                  write: writeStates[recipe.id],
+                  favorite: favoriteStates[recipe.id] ?? true,
+                  share: false
+                }
+              ]))
+            }}
+            onRecipeAction={handleRecipeAction}
+            cardWidth={300}
+            cardHeight={280}
+            gap={16}
+            compactSectionGap
+            emptyMessage={
+              <>
+                <div>즐겨찾는 레시피가 없습니다.</div>
+                <div>별 아이콘을 눌러 추가해주세요.</div>
+              </>
+            }
+          />
+        </div>
+
         {/* 내가 기록한 레시피 */}
         <div style={{ paddingLeft: 14, paddingRight: 14, marginTop: 0, marginBottom: 6 }}>
           <div className="flex items-center justify-between mb-0">
@@ -1177,6 +1321,7 @@ const MyPage: React.FC = () => {
                 { 
                   done: doneStates[recipe.id], 
                   write: writeStates[recipe.id], 
+                  favorite: favoriteStates[recipe.id] ?? getRecipesFromLocalStorage('favorite').some(r => r.id === recipe.id),
                   share: false 
                 }
               ]))
@@ -1280,6 +1425,7 @@ const MyPage: React.FC = () => {
                 { 
                   done: doneStates[recipe.id], 
                   write: writeStates[recipe.id], 
+                  favorite: favoriteStates[recipe.id] ?? getRecipesFromLocalStorage('favorite').some(r => r.id === recipe.id),
                   share: false 
                 }
               ]))
@@ -1587,7 +1733,11 @@ const MyPage: React.FC = () => {
             whiteSpace: 'nowrap',
             display: 'inline-block',
           }}>
-            {pendingRemove.type === 'done' ? '레시피 완료를 취소하시겠어요?' : '레시피 기록을 취소하시겠어요?'}
+            {pendingRemove.type === 'done'
+              ? '레시피 완료를 취소하시겠어요?'
+              : pendingRemove.type === 'write'
+                ? '레시피 기록을 취소하시겠어요?'
+                : '레시피 즐겨찾기를 취소하시겠어요?'}
           </span>
           <div style={{display:'flex',flexDirection:'row',gap:12,justifyContent:'center',width:'100%'}}>
             <button 
