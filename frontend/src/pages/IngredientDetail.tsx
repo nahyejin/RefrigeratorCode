@@ -18,7 +18,7 @@ import TopNavBar from '../components/TopNavBar';
 import RecipeToast from '../components/RecipeToast';
 import backIcon from '../assets/뒤로가기.png';
 import axios from 'axios';
-import { calculateMatchRate, getMyIngredients, sortRecipes } from '../utils/recipeUtils';
+import { calculateMatchRate, compareByMatchBandThenLatest, getMyIngredients, sortRecipes } from '../utils/recipeUtils';
 import { 
   addRecipeToLocalStorage, 
   removeRecipeFromLocalStorage, 
@@ -835,7 +835,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
     if (isMyPageRecipeList) {
       arr = sortRecipesByUserSavedAtDesc(arr);
     } else if (sortType === 'match') {
-      arr.sort((a, b) => b.match_rate - a.match_rate);
+      arr.sort(compareByMatchBandThenLatest);
     } else if (sortType === 'expiry') {
       arr.sort((a, b) => 0);
     } else {

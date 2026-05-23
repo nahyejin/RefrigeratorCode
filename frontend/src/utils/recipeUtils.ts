@@ -6,6 +6,50 @@ import { Recipe, RecipeMatchResult } from '../types/recipe';
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
+function getRecipePublishedTime(recipe: Recipe): number {
+  const dateValue =
+    recipe.post_time ||
+    recipe.collected_at ||
+    recipe.created_at ||
+    recipe.date ||
+    recipe.updated_at;
+
+  if (!dateValue) return 0;
+  const time = new Date(dateValue).getTime();
+  return Number.isNaN(time) ? 0 : time;
+}
+
+function getMatchRateBand(matchRate: number): number {
+  if (matchRate >= 90) return 4;
+  if (matchRate >= 75) return 3;
+  if (matchRate >= 60) return 2;
+  if (matchRate >= 30) return 1;
+  return 0;
+}
+
+export function compareByMatchBandThenLatest(a: Recipe, b: Recipe): number {
+  const aMatchRate = a.match_rate || 0;
+  const bMatchRate = b.match_rate || 0;
+  const aBand = getMatchRateBand(aMatchRate);
+  const bBand = getMatchRateBand(bMatchRate);
+
+  if (aBand !== bBand) {
+    return bBand - aBand;
+  }
+
+  const aTime = getRecipePublishedTime(a);
+  const bTime = getRecipePublishedTime(b);
+  if (aTime !== bTime) {
+    return bTime - aTime;
+  }
+
+  if (aMatchRate !== bMatchRate) {
+    return bMatchRate - aMatchRate;
+  }
+
+  return (b.like_count ?? b.likes ?? 0) - (a.like_count ?? a.likes ?? 0);
+}
+
 /**
  * 문자열 정규화: 앞뒤 공백 제거 + 소문자 변환
  */
@@ -346,32 +390,13 @@ export function sortRecipes(
       });
       break;
     case 'match':
-      sorted.sort((a, b) => {
-        const aMatchRate = a.match_rate || 0;
-        const bMatchRate = b.match_rate || 0;
-        // 매칭률이 다르면 매칭률 내림차순으로 정렬 (높은 매칭률이 먼저)
-        if (aMatchRate !== bMatchRate) {
-          return bMatchRate - aMatchRate; // 내림차순: b - a
-        }
-        // 매칭률이 같으면 최신순으로 정렬 (created_at 기준)
-        const aDate = new Date(a.created_at || 0).getTime();
-        const bDate = new Date(b.created_at || 0).getTime();
-        return bDate - aDate;
-      });
+      sorted.sort(compareByMatchBandThenLatest);
       break;
     case 'expiry':
       sorted.sort((a, b) => {
         // 임박재료가 선택되지 않은 경우 매칭률 내림차순으로 정렬 (높은 매칭률이 먼저)
         if (appliedExpiryIngredients.length === 0) {
-          const aMatchRate = a.match_rate || 0;
-          const bMatchRate = b.match_rate || 0;
-          if (aMatchRate !== bMatchRate) {
-            return bMatchRate - aMatchRate; // 내림차순: b - a
-          }
-          // 매칭률이 같으면 최신순으로 정렬 (created_at 기준)
-          const aDate = new Date(a.created_at || 0).getTime();
-          const bDate = new Date(b.created_at || 0).getTime();
-          return bDate - aDate;
+          return compareByMatchBandThenLatest(a, b);
         }
         
         const aIngredients = Array.isArray(a.used_ingredients)
@@ -390,31 +415,11 @@ export function sortRecipes(
           return bCount - aCount;
         }
         
-        // 임박재료 개수가 같으면 매칭률 내림차순으로 정렬 (높은 매칭률이 먼저)
-        const aMatchRate = a.match_rate || 0;
-        const bMatchRate = b.match_rate || 0;
-        if (aMatchRate !== bMatchRate) {
-          return bMatchRate - aMatchRate; // 내림차순: b - a
-        }
-        // 매칭률이 같으면 최신순으로 정렬 (created_at 기준)
-        const aDate = new Date(a.created_at || 0).getTime();
-        const bDate = new Date(b.created_at || 0).getTime();
-        return bDate - aDate;
+        return compareByMatchBandThenLatest(a, b);
       });
       break;
     default:
-      sorted.sort((a, b) => {
-        const aMatchRate = a.match_rate || 0;
-        const bMatchRate = b.match_rate || 0;
-        // 매칭률이 다르면 매칭률 내림차순으로 정렬 (높은 매칭률이 먼저)
-        if (aMatchRate !== bMatchRate) {
-          return bMatchRate - aMatchRate; // 내림차순: b - a
-        }
-        // 매칭률이 같으면 최신순으로 정렬 (created_at 기준)
-        const aDate = new Date(a.created_at || 0).getTime();
-        const bDate = new Date(b.created_at || 0).getTime();
-        return bDate - aDate;
-      });
+      sorted.sort(compareByMatchBandThenLatest);
   }
   return sorted;
 }
