@@ -6,7 +6,7 @@ import RecipeCard from '../components/RecipeCard';
 import VirtualizedRecipeList from '../components/VirtualizedRecipeList';
 import { Recipe, RecipeActionState } from '../types/recipe';
 import RecipeToast from '../components/RecipeToast';
-import { getMyIngredients } from '../utils/recipeUtils';
+import { getMyIngredients, sortRecipes } from '../utils/recipeUtils';
 import FilterModal from '../components/FilterModal';
 import RecipeSortBar from '../components/RecipeSortBar';
 import backIcon from '../assets/뒤로가기.png';
@@ -108,30 +108,6 @@ function getMatchRate(myIngredients: string[], recipeIngredients: string) {
  */
 function getMyIngredientObjects() {
   return getMyFridgeIngredients();
-}
-
-/**
- * 정렬된 레시피 목록을 반환한다
- */
-function getSortedRecipes(recipes: Recipe[], sortType: string): Recipe[] {
-  return [...recipes].sort((a, b) => {
-    const matchA = a.match_rate ?? 0;
-    const matchB = b.match_rate ?? 0;
-    
-    switch (sortType) {
-      case 'match':
-        return matchB - matchA;
-      case 'expiry':
-      case 'latest':
-        return new Date(b.date).getTime() - new Date(a.date).getTime();
-      case 'like':
-        return (b.likes ?? 0) - (a.likes ?? 0);
-      case 'comment':
-        return (b.comments ?? 0) - (a.comments ?? 0);
-      default:
-        return 0;
-    }
-  });
 }
 
 /**
@@ -243,8 +219,8 @@ const CompletedRecipeListPage: React.FC = () => {
   // =====================
 
   const processedRecipes = useMemo(() => {
-    return getSortedRecipes(recipes, sortType);
-  }, [recipes, sortType]);
+    return sortRecipes([...recipes], sortType, myIngredients, appliedExpiryIngredients);
+  }, [recipes, sortType, myIngredients, appliedExpiryIngredients]);
 
   // =====================
   // 이벤트 핸들러

@@ -19,6 +19,16 @@ function getRecipePublishedTime(recipe: Recipe): number {
   return Number.isNaN(time) ? 0 : time;
 }
 
+/** 1차 비교값이 같으면 게시/수집일 기준 최신순 */
+function comparePrimaryThenLatest(primary: number, a: Recipe, b: Recipe): number {
+  if (primary !== 0) return primary;
+  return getRecipePublishedTime(b) - getRecipePublishedTime(a);
+}
+
+export function compareByLatest(a: Recipe, b: Recipe): number {
+  return comparePrimaryThenLatest(0, a, b);
+}
+
 export function compareByMatchRateThenLatest(a: Recipe, b: Recipe): number {
   const aMatchRate = a.match_rate || 0;
   const bMatchRate = b.match_rate || 0;
@@ -27,11 +37,8 @@ export function compareByMatchRateThenLatest(a: Recipe, b: Recipe): number {
     return bMatchRate - aMatchRate;
   }
 
-  const aTime = getRecipePublishedTime(a);
-  const bTime = getRecipePublishedTime(b);
-  if (aTime !== bTime) {
-    return bTime - aTime;
-  }
+  const byLatest = compareByLatest(a, b);
+  if (byLatest !== 0) return byLatest;
 
   return (b.like_count ?? b.likes ?? 0) - (a.like_count ?? a.likes ?? 0);
 }
@@ -333,14 +340,14 @@ export function sortRecipes(
       sorted.sort((a, b) => {
         const aLike = a.like_count ?? a.likes ?? 0;
         const bLike = b.like_count ?? b.likes ?? 0;
-        return bLike - aLike;
+        return comparePrimaryThenLatest(bLike - aLike, a, b);
       });
       break;
     case 'comment':
       sorted.sort((a, b) => {
         const aComment = a.comment_count ?? a.comments ?? 0;
         const bComment = b.comment_count ?? b.comments ?? 0;
-        return bComment - aComment;
+        return comparePrimaryThenLatest(bComment - aComment, a, b);
       });
       break;
     case 'hits':
@@ -357,14 +364,14 @@ export function sortRecipes(
         if (aIsYoutube && bIsYoutube) {
           const aHits = a.hits || 0;
           const bHits = b.hits || 0;
-          return bHits - aHits;
+          return comparePrimaryThenLatest(bHits - aHits, a, b);
         }
         
         // 둘 다 네이버인 경우 likes로 정렬
         if (!aIsYoutube && !bIsYoutube) {
           const aLike = a.like_count ?? a.likes ?? 0;
           const bLike = b.like_count ?? b.likes ?? 0;
-          return bLike - aLike;
+          return comparePrimaryThenLatest(bLike - aLike, a, b);
         }
         
         // 유튜브가 네이버보다 우선 (유튜브가 위로)
@@ -400,8 +407,11 @@ export function sortRecipes(
         if (aCount !== bCount) {
           return bCount - aCount;
         }
-        
-        return compareByMatchRateThenLatest(a, b);
+
+        const byLatest = compareByLatest(a, b);
+        if (byLatest !== 0) return byLatest;
+
+        return (b.match_rate || 0) - (a.match_rate || 0);
       });
       break;
     default:

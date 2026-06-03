@@ -6,7 +6,7 @@ import RecipeCard from '../components/RecipeCard';
 import VirtualizedRecipeList from '../components/VirtualizedRecipeList';
 import { Recipe, RecipeActionState } from '../types/recipe';
 import RecipeToast from '../components/RecipeToast';
-import { getMyIngredients } from '../utils/recipeUtils';
+import { getMyIngredients, sortRecipes } from '../utils/recipeUtils';
 import RecipeSortBar from '../components/RecipeSortBar';
 import FilterModal from '../components/FilterModal';
 import backIcon from '../assets/뒤로가기.png';
@@ -204,28 +204,8 @@ const RecordedRecipeListPage: React.FC = () => {
       });
     }
     
-    // 정렬
-    arr.sort((a, b) => {
-      const matchA = a.match_rate ?? 0;
-      const matchB = b.match_rate ?? 0;
-      
-      if (sortType === 'match') {
-        return matchB - matchA;
-      } else if (sortType === 'expiry') {
-        return new Date(b.date).getTime() - new Date(a.date).getTime();
-      } else if (sortType === 'like') {
-        return (b.likes ?? 0) - (a.likes ?? 0);
-      } else if (sortType === 'comment') {
-        return (b.comments ?? 0) - (a.comments ?? 0);
-      } else if (sortType === 'latest') {
-        return new Date(b.date).getTime() - new Date(a.date).getTime();
-      }
-      
-      return 0;
-    });
-    
-    return arr;
-  }, [recipes, sortType, selectedChannel]);
+    return sortRecipes(arr, sortType, myIngredients, appliedExpiryIngredients);
+  }, [recipes, sortType, selectedChannel, myIngredients, appliedExpiryIngredients]);
 
   // =====================
   // 이벤트 핸들러
