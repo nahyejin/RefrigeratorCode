@@ -19,32 +19,18 @@ function getRecipePublishedTime(recipe: Recipe): number {
   return Number.isNaN(time) ? 0 : time;
 }
 
-function getMatchRateBand(matchRate: number): number {
-  if (matchRate >= 90) return 4;
-  if (matchRate >= 75) return 3;
-  if (matchRate >= 60) return 2;
-  if (matchRate >= 30) return 1;
-  return 0;
-}
-
-export function compareByMatchBandThenLatest(a: Recipe, b: Recipe): number {
+export function compareByMatchRateThenLatest(a: Recipe, b: Recipe): number {
   const aMatchRate = a.match_rate || 0;
   const bMatchRate = b.match_rate || 0;
-  const aBand = getMatchRateBand(aMatchRate);
-  const bBand = getMatchRateBand(bMatchRate);
 
-  if (aBand !== bBand) {
-    return bBand - aBand;
+  if (aMatchRate !== bMatchRate) {
+    return bMatchRate - aMatchRate;
   }
 
   const aTime = getRecipePublishedTime(a);
   const bTime = getRecipePublishedTime(b);
   if (aTime !== bTime) {
     return bTime - aTime;
-  }
-
-  if (aMatchRate !== bMatchRate) {
-    return bMatchRate - aMatchRate;
   }
 
   return (b.like_count ?? b.likes ?? 0) - (a.like_count ?? a.likes ?? 0);
@@ -390,13 +376,13 @@ export function sortRecipes(
       });
       break;
     case 'match':
-      sorted.sort(compareByMatchBandThenLatest);
+      sorted.sort(compareByMatchRateThenLatest);
       break;
     case 'expiry':
       sorted.sort((a, b) => {
         // 임박재료가 선택되지 않은 경우 매칭률 내림차순으로 정렬 (높은 매칭률이 먼저)
         if (appliedExpiryIngredients.length === 0) {
-          return compareByMatchBandThenLatest(a, b);
+          return compareByMatchRateThenLatest(a, b);
         }
         
         const aIngredients = Array.isArray(a.used_ingredients)
@@ -415,11 +401,11 @@ export function sortRecipes(
           return bCount - aCount;
         }
         
-        return compareByMatchBandThenLatest(a, b);
+        return compareByMatchRateThenLatest(a, b);
       });
       break;
     default:
-      sorted.sort(compareByMatchBandThenLatest);
+      sorted.sort(compareByMatchRateThenLatest);
   }
   return sorted;
 }
