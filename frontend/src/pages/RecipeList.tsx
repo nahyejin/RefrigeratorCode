@@ -144,7 +144,13 @@ function getDDay(expiry: string): string {
 /**
  * 정렬/필터바 초기 상태를 가져온다
  */
-function getInitialSortBarState() {
+function getInitialSortBarState(): {
+  sortType: string;
+  matchRange: [number, number];
+  maxLack: number | 'unlimited';
+  appliedExpiryIngredients: string[];
+  expirySortType: 'expiry' | 'purchase';
+} {
   // 초기 로드 시 항상 기본값 사용 (30~100%, 재료매칭률순)
   // 이후 사용자가 변경한 값은 sessionStorage에 저장되어 유지됨
   // 하지만 초기 로드 시에는 항상 기본값을 사용하여 성능 최적화
@@ -578,6 +584,7 @@ const RecipeList: React.FC = () => {
   const [recipeActionStates, setRecipeActionStates] = useState<Record<number, RecipeActionState>>({});
   const [toast, setToast] = useState('');
   const [includeKeyword, setIncludeKeyword] = useState('');
+  const [keywordSearchInput, setKeywordSearchInput] = useState('');
   const [allIngredients, setAllIngredients] = useState<string[]>([]);
   const [substituteTable, setSubstituteTable] = useState<{ [key: string]: { ingredient_b: string; similarity_score?: number }[] }>({});
   const [matchRateModalOpen, setMatchRateModalOpen] = useState(false);
@@ -621,6 +628,16 @@ const RecipeList: React.FC = () => {
   
   // 이전 재료 목록 해시값 저장
   const previousIngredientsHashRef = useRef<string>(getIngredientsHash());
+
+  useEffect(() => {
+    setKeywordSearchInput(includeKeyword);
+  }, [includeKeyword]);
+
+  const handleKeywordSearchSubmit = useCallback((event?: React.FormEvent<HTMLFormElement>) => {
+    event?.preventDefault();
+    setPage(1);
+    setIncludeKeyword(keywordSearchInput.trim());
+  }, [keywordSearchInput]);
   
   // 컴포넌트 마운트 시 sessionStorage에서 상태 복원 (재료 변경 감지 포함)
   useEffect(() => {
@@ -1904,6 +1921,56 @@ const RecipeList: React.FC = () => {
         <h2 className="text-lg font-bold mb-4 text-center">
           내 냉장고 기반 레시피 추천
         </h2>
+
+        <form
+          onSubmit={handleKeywordSearchSubmit}
+          style={{
+            position: 'relative',
+            width: '100%',
+            marginBottom: 14
+          }}
+        >
+          <input
+            type="text"
+            value={keywordSearchInput}
+            onChange={e => setKeywordSearchInput(e.target.value)}
+            placeholder="꼭 포함할 키워드를 입력해 주세요"
+            aria-label="꼭 포함할 키워드 검색"
+            className="w-full border border-gray-300 rounded-full text-sm placeholder-[#9CA3AF] focus:outline-none focus:border-gray-400"
+            style={{
+              height: 42,
+              padding: '0 46px 0 18px',
+              backgroundColor: '#fff',
+              color: '#222',
+              boxSizing: 'border-box'
+            }}
+          />
+          <button
+            type="submit"
+            aria-label="키워드 검색"
+            style={{
+              position: 'absolute',
+              right: 14,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              width: 28,
+              height: 28,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              border: 'none',
+              background: 'transparent',
+              color: '#6B7280',
+              cursor: 'pointer',
+              padding: 0
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
+              <path d="M16.5 16.5L21 21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+          </button>
+        </form>
         
         <RecipeSortBar
           recipes={recipes}

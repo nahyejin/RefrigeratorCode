@@ -614,20 +614,9 @@ const FilterModal: React.FC<FilterModalProps> = ({
               </label>
             </div>
           </div>
-          {/* 고정: 키워드/재료 입력 */}
+          {/* 고정: 재료 입력 */}
           <div>
             <div className="mt-1 border-t border-gray-200"></div>
-            <div className="mb-2 mt-2">
-              <label className="block font-bold text-[11.2px] mb-1">
-                ■ 꼭 포함할 키워드 (게시글 제목 혹은 본문)
-              </label>
-              <input
-                className="w-full border rounded px-3 py-1.5 text-[10px]"
-                placeholder="필수 키워드 입력"
-                value={tempIncludeKeyword || ''}
-                onChange={e => setTempIncludeKeyword(e.target.value)}
-              />
-            </div>
             <div className="mt-1">
               <div className="font-bold text-[11.2px] mb-1">■ 꼭 포함할 재료</div>
               <div className="relative mb-2">
