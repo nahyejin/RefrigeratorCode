@@ -16,8 +16,15 @@ class BaseCrawler(ABC):
     
     def extract_ingredients(self, content: str) -> List[str]:
         """Extract ingredients from the content."""
-        # TODO: Implement ingredient extraction logic
-        pass
+        from ingredient_management.update_used_ingredients_batch import (
+            extract_best_ingredient_block,
+            extract_ingredients,
+        )
+
+        ingredient_block, _ = extract_best_ingredient_block(content or "")
+        if not ingredient_block:
+            return []
+        return extract_ingredients(ingredient_block)
     
     def save_to_database(self, recipe: Dict):
         """Save the recipe data to the database."""

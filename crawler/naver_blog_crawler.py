@@ -862,6 +862,16 @@ class NaverBlogCrawler(BaseCrawler):
         
         # Switch back to default content
         self.driver.switch_to.default_content()
+
+        used_ingredients_block, block_reason = extract_best_ingredient_block(content)
+        if not used_ingredients_block or len(used_ingredients_block.strip()) < 10:
+            print(f"❌ 재료 정보가 없어 저장하지 않음: {link}")
+            return None
+
+        used_ingredients = extract_ingredients(used_ingredients_block)
+        if not used_ingredients or len(used_ingredients) <= 3:
+            print(f"❌ 추출된 재료가 3개 이하여서 저장하지 않음: {link} (재료: {used_ingredients})")
+            return None
         
         # Create Recipe object
         return Recipe(
@@ -873,8 +883,10 @@ class NaverBlogCrawler(BaseCrawler):
             comments=comments,
             post_time=post_time,
             platform=platform,
-            used_ingredients=self.extract_ingredients(content),
-            link=link
+            used_ingredients=used_ingredients,
+            link=link,
+            used_ingredients_block=used_ingredients_block,
+            block_reason=block_reason,
         )
     
     def _get_post_content(self) -> str:
