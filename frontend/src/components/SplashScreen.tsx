@@ -62,15 +62,15 @@ const STYLES = {
   },
   label: {
     color: '#9A9A9A',
-    fontSize: 'clamp(12px, 2.6vw, 14px)',
+    fontSize: 'clamp(14px, 3.2vw, 17px)',
     fontWeight: 600,
     letterSpacing: '0.02em',
-    marginBottom: 6,
+    marginBottom: 8,
   },
   numberDisplay: {
     color: '#1a1a1a',
     fontWeight: 800,
-    fontSize: 'clamp(32px, 8vw, 48px)',
+    fontSize: 'clamp(40px, 10.5vw, 64px)',
     textAlign: 'center' as const,
     fontFamily: 'inherit',
     letterSpacing: '-0.01em',
@@ -79,7 +79,7 @@ const STYLES = {
   },
   descriptionText: {
     color: '#B0B0B0',
-    fontSize: 'clamp(12px, 2.4vw, 14px)',
+    fontSize: 'clamp(14px, 3vw, 17px)',
     fontWeight: 400,
     textAlign: 'center' as const,
     lineHeight: '1.6',
