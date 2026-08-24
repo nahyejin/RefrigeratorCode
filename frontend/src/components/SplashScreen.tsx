@@ -52,7 +52,7 @@ const STYLES = {
   },
   statGroup: {
     position: 'absolute' as const,
-    top: '78%',
+    top: '64%',
     left: '50%',
     transform: 'translate(-50%, -50%)',
     display: 'flex' as const,
