@@ -1,4 +1,3 @@
-import mysql.connector
 import logging
 from typing import Dict, Optional
 from datetime import datetime

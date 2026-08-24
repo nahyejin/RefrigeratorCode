@@ -114,6 +114,33 @@ def _extract_json_array(text):
     return [str(x).strip() for x in data if str(x).strip()]
 
 
+def _extract_json_object(text):
+    """배치 응답: {"0": [...], "1": [...], ...} 형태를 파싱."""
+    if not text:
+        return {}
+    cleaned = text.strip()
+    fenced = re.search(r"```(?:json)?\s*([\s\S]*?)```", cleaned)
+    if fenced:
+        cleaned = fenced.group(1).strip()
+    try:
+        data = json.loads(cleaned)
+    except json.JSONDecodeError:
+        match = re.search(r"\{[\s\S]*\}", cleaned)
+        if not match:
+            return {}
+        try:
+            data = json.loads(match.group(0))
+        except json.JSONDecodeError:
+            return {}
+    if not isinstance(data, dict):
+        return {}
+    result = {}
+    for k, v in data.items():
+        if isinstance(v, list):
+            result[str(k)] = [str(x).strip() for x in v if str(x).strip()]
+    return result
+
+
 PROMPT_TEMPLATE = """너는 레시피 본문에서 실제로 요리에 사용되는 재료만 뽑아내는 어시스턴트다.
 
 아래는 블로그/영상 설명에서 가져온 레시피 본문이다.
@@ -130,6 +157,25 @@ PROMPT_TEMPLATE = """너는 레시피 본문에서 실제로 요리에 사용되
 
 아래 JSON 배열만 출력해라. 다른 텍스트는 출력하지 마라.
 예: ["돼지고기", "김치", "대파", "고춧가루"]
+"""
+
+BATCH_PROMPT_TEMPLATE = """너는 여러 개의 레시피 본문 각각에서 실제로 요리에 사용되는 재료만 뽑아내는 어시스턴트다.
+
+아래는 번호가 매겨진 레시피 본문 {n}개다. 각 본문은 서로 다른 레시피이며 완전히 독립적으로 처리해야 한다.
+
+{numbered_bodies}
+
+규칙:
+- 각 번호의 재료는 그 번호의 본문에서만 뽑는다 (다른 번호 본문과 절대 섞지 않는다).
+- 실제로 그 요리를 만드는 데 쓰이는 재료만 포함한다 (양념/조미료 포함).
+- 재료 이름만 적는다. 수량, 단위, 손질법, 괄호 설명은 빼고 순수 재료명만.
+- 완성 사진 캡션, 다른 레시피 추천, 광고/구독 유도 문구에서 나온 단어는 재료가 아니면 제외한다.
+- 같은 재료가 여러 번 나오면 한 번만 적는다.
+- 확신이 없으면 포함하지 않는다. 본문에 재료가 안 보이면 빈 배열을 출력한다.
+- 반드시 0부터 {n_minus_1}까지 모든 번호에 대해 결과를 포함해야 한다. 하나도 빠뜨리지 마라.
+
+아래 JSON 객체만 출력해라. key는 번호(문자열), value는 그 본문의 재료 배열. 다른 텍스트는 출력하지 마라.
+예: {{"0": ["돼지고기", "김치"], "1": [], "2": ["대파", "고춧가루"]}}
 """
 
 
@@ -179,6 +225,53 @@ class GeminiExtractor:
                 time.sleep(2 ** attempt)
         return [], last_err
 
+    def extract_batch(self, contents, retries=5):
+        """여러 본문을 한 번의 호출로 처리해 API 호출 횟수(=일일 한도 소모)를 줄인다.
+        반환: (raw_ingredients_per_index: list[list[str]], err_per_index: list[str|None])
+        배치 호출 자체가 실패하면 전체가 동일한 err를 갖고, 일부 번호만 응답에서 빠지면
+        그 번호만 개별 err를 갖는다 (나머지는 정상 처리됨).
+        """
+        n = len(contents)
+        texts = [(c or "")[:CONTENT_CHAR_LIMIT] for c in contents]
+        numbered_bodies = "\n\n".join(f"[{i}]\n{t}" for i, t in enumerate(texts))
+        prompt = BATCH_PROMPT_TEMPLATE.format(n=n, n_minus_1=n - 1, numbered_bodies=numbered_bodies)
+        url = (
+            f"https://generativelanguage.googleapis.com/v1beta/models/"
+            f"{self.model}:generateContent?key={self.api_key}"
+        )
+        payload = {
+            "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+            "generationConfig": {"temperature": 0.1, "responseMimeType": "application/json"},
+        }
+        last_err = None
+        for attempt in range(retries):
+            self._throttle()
+            try:
+                res = requests.post(url, json=payload, timeout=60)
+                if res.status_code in (429, 500, 503):
+                    last_err = f"HTTP {res.status_code}"
+                    time.sleep(2 ** attempt)
+                    continue
+                res.raise_for_status()
+                data = res.json()
+                parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
+                raw = "".join(p.get("text", "") for p in parts)
+                obj = _extract_json_object(raw)
+                raw_list = []
+                err_list = []
+                for i in range(n):
+                    if str(i) in obj:
+                        raw_list.append(obj[str(i)])
+                        err_list.append(None)
+                    else:
+                        raw_list.append([])
+                        err_list.append("batch response missing this index")
+                return raw_list, err_list
+            except Exception as e:  # noqa: BLE001
+                last_err = str(e)
+                time.sleep(2 ** attempt)
+        return [[] for _ in range(n)], [last_err for _ in range(n)]
+
 
 def normalize_llm_ingredients(raw_ingredients, alias_to_canonical):
     canonical_set = set()
@@ -215,7 +308,7 @@ def _preview_text(text, limit=500):
     return text[:limit]
 
 
-def run(*, limit, start_after_id, order, output_path, commit, rpm, concurrency, model, ids=None):
+def run(*, limit, start_after_id, order, output_path, commit, rpm, concurrency, model, ids=None, pending_only=False, batch_size=8):
     _load_env_files()
     api_key = (os.getenv("GEMINI_API_KEY") or "").strip()
     if not api_key:
@@ -238,7 +331,12 @@ def run(*, limit, start_after_id, order, output_path, commit, rpm, concurrency, 
         )
     else:
         order_clause = "id DESC" if order == "recent" else "id ASC"
-        where_clause = f"WHERE id > {int(start_after_id)}" if start_after_id else ""
+        conditions = []
+        if pending_only:
+            conditions.append("llm_ingredients_done = 0")
+        if start_after_id:
+            conditions.append(f"id > {int(start_after_id)}")
+        where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
         cursor.execute(
             f"""
             SELECT id, title, link, platform, used_ingredients, content
@@ -263,10 +361,21 @@ def run(*, limit, start_after_id, order, output_path, commit, rpm, concurrency, 
         "error", "content_preview",
     ]
 
-    def process(row):
-        raw, err = extractor.extract(row.get("content") or "")
-        new_used, unmapped = normalize_llm_ingredients(raw, alias_to_canonical)
-        return row["id"], raw, new_used, unmapped, err
+    batch_size = max(1, batch_size)
+    chunks = [rows[i:i + batch_size] for i in range(0, len(rows), batch_size)]
+
+    def process_chunk(chunk):
+        if len(chunk) == 1:
+            raw, err = extractor.extract(chunk[0].get("content") or "")
+            results = [(raw, err)]
+        else:
+            raw_list, err_list = extractor.extract_batch([r.get("content") or "" for r in chunk])
+            results = list(zip(raw_list, err_list))
+        out = []
+        for row, (raw, err) in zip(chunk, results):
+            new_used, unmapped = normalize_llm_ingredients(raw, alias_to_canonical)
+            out.append((row["id"], raw, new_used, unmapped, err))
+        return out
 
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     write_conn = _connect_db(read_timeout_sec=120) if commit else None
@@ -285,83 +394,99 @@ def run(*, limit, start_after_id, order, output_path, commit, rpm, concurrency, 
             writer.writeheader()
 
             with ThreadPoolExecutor(max_workers=max(1, concurrency)) as pool:
-                futures = {pool.submit(process, row): row for row in rows}
+                futures = {pool.submit(process_chunk, chunk): chunk for chunk in chunks}
                 for fut in as_completed(futures):
-                    row = futures[fut]
+                    chunk = futures[fut]
                     try:
-                        rid, raw, new_used, unmapped, err = fut.result()
+                        chunk_results = fut.result()
                     except Exception as e:  # noqa: BLE001
-                        rid, raw, new_used, unmapped, err = row["id"], [], None, [], str(e)
+                        chunk_results = [(row["id"], [], None, [], str(e)) for row in chunk]
 
-                    old_used = row.get("used_ingredients")
-                    old_was_empty = not bool((old_used or "").strip())
-                    new_is_empty = not new_used
-                    # 룰베이스(old)와 LLM(new)이 둘 다 "재료 없음"에 동의하면 → 애초에 레시피가
-                    # 아닌 본문(홍보 영상 등)일 가능성이 높으므로 행 자체를 삭제한다.
-                    # old에는 재료가 있었는데 new만 비어 있는 경우는 "동의"가 아니라 LLM 쪽의
-                    # 파싱 실패/이상 응답일 수 있어 삭제하지 않고 검토 대상으로만 남긴다
-                    # (기존 값을 그대로 보존 — 위 id=1326 사고와 동일한 패턴이라 신뢰하지 않음).
-                    should_delete = (not err) and new_is_empty and old_was_empty
-                    suspicious_empty = (not err) and new_is_empty and not old_was_empty
-                    if err:
-                        changed_label = "ERROR"
-                        added, removed = "", ""
-                        display_new_used = old_used
-                        errors += 1
-                    elif should_delete:
-                        changed_label = "DELETED"
-                        added, removed = "", ""
-                        display_new_used = ""
-                    elif suspicious_empty:
-                        changed_label = "NEEDS_REVIEW"
-                        added, removed = "", ""
-                        display_new_used = old_used
-                    else:
-                        old_set = _used_ingredient_token_set(old_used)
-                        new_set = _used_ingredient_token_set(new_used)
-                        changed = old_set != new_set
-                        if changed:
-                            changed_count += 1
-                        changed_label = "Y" if changed else "N"
-                        added = ",".join(sorted(new_set - old_set))
-                        removed = ",".join(sorted(old_set - new_set))
-                        display_new_used = new_used
+                    row_by_id = {row["id"]: row for row in chunk}
+                    for rid, raw, new_used, unmapped, err in chunk_results:
+                        row = row_by_id[rid]
 
-                    writer.writerow({
-                        "id": rid,
-                        "title": row.get("title"),
-                        "platform": row.get("platform"),
-                        "link": row.get("link"),
-                        "changed": changed_label,
-                        "old_used_ingredients": old_used,
-                        "new_used_ingredients": display_new_used,
-                        "added_ingredients": added,
-                        "removed_ingredients": removed,
-                        "llm_raw_ingredients": ", ".join(raw),
-                        "unmapped_ingredients": ", ".join(unmapped),
-                        "error": err or "",
-                        "content_preview": _preview_text(row.get("content")),
-                    })
-                    f.flush()
+                        old_used = row.get("used_ingredients")
+                        old_was_empty = not bool((old_used or "").strip())
+                        new_is_empty = not new_used
+                        # 룰베이스(old)와 LLM(new)이 둘 다 "재료 없음"에 동의하면 → 애초에 레시피가
+                        # 아닌 본문(홍보 영상 등)일 가능성이 높으므로 행 자체를 삭제한다.
+                        # old에는 재료가 있었는데 new만 비어 있는 경우는 "동의"가 아니라 LLM 쪽의
+                        # 파싱 실패/이상 응답일 수 있어 삭제하지 않고 검토 대상으로만 남긴다
+                        # (기존 값을 그대로 보존 — 위 id=1326 사고와 동일한 패턴이라 신뢰하지 않음).
+                        should_delete = (not err) and new_is_empty and old_was_empty
+                        suspicious_empty = (not err) and new_is_empty and not old_was_empty
+                        if err:
+                            changed_label = "ERROR"
+                            added, removed = "", ""
+                            display_new_used = old_used
+                            errors += 1
+                        elif should_delete:
+                            changed_label = "DELETED"
+                            added, removed = "", ""
+                            display_new_used = ""
+                        elif suspicious_empty:
+                            changed_label = "NEEDS_REVIEW"
+                            added, removed = "", ""
+                            display_new_used = old_used
+                        else:
+                            old_set = _used_ingredient_token_set(old_used)
+                            new_set = _used_ingredient_token_set(new_used)
+                            changed = old_set != new_set
+                            if changed:
+                                changed_count += 1
+                            changed_label = "Y" if changed else "N"
+                            added = ",".join(sorted(new_set - old_set))
+                            removed = ",".join(sorted(old_set - new_set))
+                            display_new_used = new_used
 
-                    if commit and should_delete:
-                        write_cursor.execute("DELETE FROM recipes WHERE id = %s", (rid,))
-                        deleted_count += 1
-                        since_commit += 1
-                    elif commit and not err and not suspicious_empty:
-                        write_cursor.execute(
-                            "UPDATE recipes SET used_ingredients = %s WHERE id = %s",
-                            (new_used, rid),
-                        )
-                        since_commit += 1
-                        # 장시간 배치에서 중간에 죽어도 그동안 처리한 건 DB에 남도록 주기적으로 커밋
-                        if since_commit >= 30:
+                        writer.writerow({
+                            "id": rid,
+                            "title": row.get("title"),
+                            "platform": row.get("platform"),
+                            "link": row.get("link"),
+                            "changed": changed_label,
+                            "old_used_ingredients": old_used,
+                            "new_used_ingredients": display_new_used,
+                            "added_ingredients": added,
+                            "removed_ingredients": removed,
+                            "llm_raw_ingredients": ", ".join(raw),
+                            "unmapped_ingredients": ", ".join(unmapped),
+                            "error": err or "",
+                            "content_preview": _preview_text(row.get("content")),
+                        })
+                        f.flush()
+
+                        if commit and should_delete:
+                            write_cursor.execute("DELETE FROM recipes WHERE id = %s", (rid,))
+                            deleted_count += 1
+                            since_commit += 1
+                        elif commit and not err and suspicious_empty:
+                            # 애매해서 값은 안 건드리지만, 계속 재시도 대상으로 남겨두면 무료 한도를
+                            # 매일 갉아먹을 수 있어 done=1로 표시해 다음 실행부터는 건너뛴다.
+                            # (필요하면 --ids 로 특정 id만 다시 돌릴 수 있음)
+                            write_cursor.execute(
+                                "UPDATE recipes SET llm_ingredients_done = 1 WHERE id = %s",
+                                (rid,),
+                            )
+                            since_commit += 1
+                        elif commit and not err:
+                            write_cursor.execute(
+                                "UPDATE recipes SET used_ingredients = %s, llm_ingredients_done = 1 WHERE id = %s",
+                                (new_used, rid),
+                            )
+                            since_commit += 1
+                        # err(일시적 오류)는 llm_ingredients_done을 건드리지 않아
+                        # --pending-only 다음 실행에서 자동으로 재시도된다.
+
+                        if commit and since_commit >= 30:
+                            # 장시간 배치에서 중간에 죽어도 그동안 처리한 건 DB에 남도록 주기적으로 커밋
                             write_conn.commit()
                             since_commit = 0
 
-                    done += 1
-                    if done % 10 == 0 or done == len(rows):
-                        print(f"  진행: {done}/{len(rows)} (오류 {errors}건, 마지막 id={rid})", flush=True)
+                        done += 1
+                        if done % 10 == 0 or done == len(rows):
+                            print(f"  진행: {done}/{len(rows)} (오류 {errors}건, 마지막 id={rid})", flush=True)
 
         if commit and since_commit > 0:
             write_conn.commit()
@@ -394,6 +519,15 @@ def main():
     parser.add_argument("--concurrency", type=int, default=4, help="동시 호출 스레드 수")
     parser.add_argument("--model", default="gemini-3.5-flash-lite")
     parser.add_argument("--ids", help="콤마로 구분된 recipe id 목록 (실패한 행만 재시도할 때 사용)")
+    parser.add_argument(
+        "--pending-only",
+        action="store_true",
+        help="llm_ingredients_done=0 인 행만 처리 (크롤러가 매일 신규 수집분만 무료 한도 내에서 처리할 때 사용)",
+    )
+    parser.add_argument(
+        "--batch-size", type=int, default=8,
+        help="호출 1번에 묶어서 처리할 레시피 수 (일일 호출 횟수 한도를 아끼기 위함, 기본 8)",
+    )
     args = parser.parse_args()
 
     ids = [int(x) for x in args.ids.split(",") if x.strip()] if args.ids else None
@@ -408,6 +542,8 @@ def main():
         concurrency=args.concurrency,
         model=args.model,
         ids=ids,
+        pending_only=args.pending_only,
+        batch_size=args.batch_size,
     )
 
 

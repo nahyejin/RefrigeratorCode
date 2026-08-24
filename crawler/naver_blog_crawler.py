@@ -215,8 +215,30 @@ class NaverBlogCrawler(BaseCrawler):
         try:
             chrome_path = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
             if os.path.exists(chrome_path):
-                # 방법 1: PowerShell을 사용하여 파일 버전 정보 가져오기 (Windows에서 가장 안정적)
+                # 방법 0: 레지스트리에서 읽기 (서브프로세스/인코딩 문제 없이 가장 안정적)
                 try:
+                    import winreg
+                    for hive, subkey in [
+                        (winreg.HKEY_CURRENT_USER, r"Software\Google\Chrome\BLBeacon"),
+                        (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Google\Chrome\BLBeacon"),
+                    ]:
+                        try:
+                            with winreg.OpenKey(hive, subkey) as key:
+                                version_text, _ = winreg.QueryValueEx(key, "version")
+                            version_match = re.search(r'(\d+)\.(\d+)\.(\d+)\.(\d+)', version_text)
+                            if version_match:
+                                chrome_full_version = version_match.group(0)
+                                chrome_version = version_match.group(1)
+                                print(f"🔍 Chrome 버전 감지 (레지스트리): {chrome_full_version} (메이저: {chrome_version})")
+                                break
+                        except OSError:
+                            continue
+                except Exception as reg_error:
+                    print(f"⚠️ 레지스트리 방법 실패: {reg_error}")
+
+                # 방법 1: PowerShell을 사용하여 파일 버전 정보 가져오기 (Windows에서 가장 안정적)
+                if not chrome_version:
+                  try:
                     ps_command = f"(Get-ItemProperty '{chrome_path}').VersionInfo.FileVersion"
                     result = subprocess.run(
                         ['powershell.exe', '-Command', ps_command],
@@ -232,7 +254,7 @@ class NaverBlogCrawler(BaseCrawler):
                             chrome_full_version = version_match.group(0)
                             chrome_version = version_match.group(1)
                             print(f"🔍 Chrome 버전 감지 (PowerShell): {chrome_full_version} (메이저: {chrome_version})")
-                except Exception as ps_error:
+                  except Exception as ps_error:
                     print(f"⚠️ PowerShell 방법 실패: {ps_error}")
                     # 방법 1-1: wmic을 사용하여 파일 버전 정보 가져오기 (대체 방법)
                     try:
@@ -296,14 +318,15 @@ class NaverBlogCrawler(BaseCrawler):
                 # webdriver_manager 최신 버전 사용
                 # webdriver-manager 4.0+ 버전은 자동으로 Chrome 버전을 감지하고 맞는 ChromeDriver를 다운로드합니다
                 print(f"🔍 Chrome 버전 정보: 메이저={chrome_version}, 전체={chrome_full_version}")
-                if chrome_version and int(chrome_version) >= 115:
-                    print(f"🔧 Chrome {chrome_version} 감지 - ChromeDriverManager가 자동으로 맞는 버전을 다운로드합니다")
-                    # 버전이 감지되면 명시적으로 전달하지 않음 (webdriver-manager가 자동 감지)
-                    driver_manager = ChromeDriverManager()
+                if chrome_full_version and chrome_version and int(chrome_version) >= 115:
+                    print(f"🔧 Chrome {chrome_full_version} 감지 - 정확히 일치하는 ChromeDriver를 요청합니다")
+                    # webdriver-manager 자체 자동 감지가 설치된 Chrome과 다른(더 최신) 버전을
+                    # 잘못 골라오는 경우가 있어, 실제로 감지한 전체 버전을 명시적으로 전달한다.
+                    driver_manager = ChromeDriverManager(driver_version=chrome_full_version)
                 else:
                     print(f"⚠️ Chrome 버전 감지 실패 - ChromeDriverManager가 자동으로 Chrome 버전을 감지합니다")
                     # 버전 감지 실패 시에도 webdriver-manager가 자동으로 감지하도록 함
-                driver_manager = ChromeDriverManager()
+                    driver_manager = ChromeDriverManager()
                 
                 # 캐시 삭제 후 재시도 (첫 번째 시도가 아닌 경우)
                 if attempt > 0:

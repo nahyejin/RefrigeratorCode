@@ -349,24 +349,46 @@ class NaverInfluencerCrawler:
                 try:
                     chrome_path = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
                     if os.path.exists(chrome_path):
-                        # 방법 1: wmic을 사용하여 파일 버전 정보 가져오기 (Chrome이 실행 중이어도 작동)
+                        # 방법 0: 레지스트리에서 읽기 (서브프로세스/인코딩 문제 없이 가장 안정적)
                         try:
-                            result = subprocess.run(
-                                ['wmic', 'datafile', 'where', f'name="{chrome_path.replace(chr(92), chr(92)+chr(92))}"', 'get', 'Version'],
-                                capture_output=True,
-                                text=True,
-                                timeout=10,
-                                shell=False
-                            )
-                            if result.returncode == 0 and result.stdout:
-                                version_match = re.search(r'(\d+)\.(\d+)\.(\d+)\.(\d+)', result.stdout)
-                                if version_match:
-                                    chrome_full_version = version_match.group(0)
-                                    chrome_version = version_match.group(1)
-                                    logger.info(f"🔍 Chrome 버전 감지 (wmic): {chrome_full_version} (메이저: {chrome_version})")
-                        except Exception as wmic_error:
-                            logger.debug(f"wmic 방법 실패: {wmic_error}")
-                        
+                            import winreg
+                            for hive, subkey in [
+                                (winreg.HKEY_CURRENT_USER, r"Software\Google\Chrome\BLBeacon"),
+                                (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Google\Chrome\BLBeacon"),
+                            ]:
+                                try:
+                                    with winreg.OpenKey(hive, subkey) as key:
+                                        version_text, _ = winreg.QueryValueEx(key, "version")
+                                    version_match = re.search(r'(\d+)\.(\d+)\.(\d+)\.(\d+)', version_text)
+                                    if version_match:
+                                        chrome_full_version = version_match.group(0)
+                                        chrome_version = version_match.group(1)
+                                        logger.info(f"🔍 Chrome 버전 감지 (레지스트리): {chrome_full_version} (메이저: {chrome_version})")
+                                        break
+                                except OSError:
+                                    continue
+                        except Exception as reg_error:
+                            logger.debug(f"레지스트리 방법 실패: {reg_error}")
+
+                        # 방법 1: wmic을 사용하여 파일 버전 정보 가져오기 (Chrome이 실행 중이어도 작동)
+                        if not chrome_version:
+                            try:
+                                result = subprocess.run(
+                                    ['wmic', 'datafile', 'where', f'name="{chrome_path.replace(chr(92), chr(92)+chr(92))}"', 'get', 'Version'],
+                                    capture_output=True,
+                                    text=True,
+                                    timeout=10,
+                                    shell=False
+                                )
+                                if result.returncode == 0 and result.stdout:
+                                    version_match = re.search(r'(\d+)\.(\d+)\.(\d+)\.(\d+)', result.stdout)
+                                    if version_match:
+                                        chrome_full_version = version_match.group(0)
+                                        chrome_version = version_match.group(1)
+                                        logger.info(f"🔍 Chrome 버전 감지 (wmic): {chrome_full_version} (메이저: {chrome_version})")
+                            except Exception as wmic_error:
+                                logger.debug(f"wmic 방법 실패: {wmic_error}")
+
                         # 방법 2: --version 명령어 시도 (Chrome이 실행 중이 아닐 때만 작동)
                         if not chrome_version:
                             try:
@@ -410,12 +432,12 @@ class NaverInfluencerCrawler:
                         # webdriver_manager 최신 버전 사용
                         # webdriver-manager 4.0+ 버전은 자동으로 Chrome 버전을 감지하고 맞는 ChromeDriver를 다운로드합니다
                         logger.info(f"🔍 Chrome 버전 정보: 메이저={chrome_version}, 전체={chrome_full_version}")
-                        if chrome_version and int(chrome_version) >= 115:
-                            logger.info(f"🔧 Chrome {chrome_version} 감지 - ChromeDriverManager가 자동으로 맞는 버전을 다운로드합니다")
+                        if chrome_full_version and chrome_version and int(chrome_version) >= 115:
+                            logger.info(f"🔧 Chrome {chrome_full_version} 감지 - 정확히 일치하는 ChromeDriver를 요청합니다")
+                            driver_manager = ChromeDriverManager(driver_version=chrome_full_version)
                         else:
                             logger.warning(f"⚠️ Chrome 버전 감지 실패 또는 구버전 - 기본 ChromeDriverManager 사용")
-                        # webdriver-manager가 자동으로 Chrome 버전을 감지하고 맞는 ChromeDriver를 다운로드
-                        driver_manager = ChromeDriverManager()
+                            driver_manager = ChromeDriverManager()
                         
                         # 캐시 삭제 후 재시도 (첫 번째 시도가 아닌 경우)
                         if attempt > 0:
@@ -855,24 +877,46 @@ class NaverInfluencerCrawler:
         try:
             chrome_path = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
             if os.path.exists(chrome_path):
-                # 방법 1: wmic을 사용하여 파일 버전 정보 가져오기 (Chrome이 실행 중이어도 작동)
+                # 방법 0: 레지스트리에서 읽기 (서브프로세스/인코딩 문제 없이 가장 안정적)
                 try:
-                    result = subprocess.run(
-                        ['wmic', 'datafile', 'where', f'name="{chrome_path.replace(chr(92), chr(92)+chr(92))}"', 'get', 'Version'],
-                        capture_output=True,
-                        text=True,
-                        timeout=10,
-                        shell=False
-                    )
-                    if result.returncode == 0 and result.stdout:
-                        version_match = re.search(r'(\d+)\.(\d+)\.(\d+)\.(\d+)', result.stdout)
-                        if version_match:
-                            chrome_full_version = version_match.group(0)
-                            chrome_version = version_match.group(1)
-                            logger.info(f"🔍 Chrome 버전 감지 (wmic): {chrome_full_version} (메이저: {chrome_version})")
-                except Exception as wmic_error:
-                    logger.debug(f"wmic 방법 실패: {wmic_error}")
-                
+                    import winreg
+                    for hive, subkey in [
+                        (winreg.HKEY_CURRENT_USER, r"Software\Google\Chrome\BLBeacon"),
+                        (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Google\Chrome\BLBeacon"),
+                    ]:
+                        try:
+                            with winreg.OpenKey(hive, subkey) as key:
+                                version_text, _ = winreg.QueryValueEx(key, "version")
+                            version_match = re.search(r'(\d+)\.(\d+)\.(\d+)\.(\d+)', version_text)
+                            if version_match:
+                                chrome_full_version = version_match.group(0)
+                                chrome_version = version_match.group(1)
+                                logger.info(f"🔍 Chrome 버전 감지 (레지스트리): {chrome_full_version} (메이저: {chrome_version})")
+                                break
+                        except OSError:
+                            continue
+                except Exception as reg_error:
+                    logger.debug(f"레지스트리 방법 실패: {reg_error}")
+
+                # 방법 1: wmic을 사용하여 파일 버전 정보 가져오기 (Chrome이 실행 중이어도 작동)
+                if not chrome_version:
+                    try:
+                        result = subprocess.run(
+                            ['wmic', 'datafile', 'where', f'name="{chrome_path.replace(chr(92), chr(92)+chr(92))}"', 'get', 'Version'],
+                            capture_output=True,
+                            text=True,
+                            timeout=10,
+                            shell=False
+                        )
+                        if result.returncode == 0 and result.stdout:
+                            version_match = re.search(r'(\d+)\.(\d+)\.(\d+)\.(\d+)', result.stdout)
+                            if version_match:
+                                chrome_full_version = version_match.group(0)
+                                chrome_version = version_match.group(1)
+                                logger.info(f"🔍 Chrome 버전 감지 (wmic): {chrome_full_version} (메이저: {chrome_version})")
+                    except Exception as wmic_error:
+                        logger.debug(f"wmic 방법 실패: {wmic_error}")
+
                 # 방법 2: --version 명령어 시도 (Chrome이 실행 중이 아닐 때만 작동)
                 if not chrome_version:
                     try:
@@ -916,12 +960,12 @@ class NaverInfluencerCrawler:
                 # webdriver_manager 최신 버전 사용
                 # webdriver-manager 4.0+ 버전은 자동으로 Chrome 버전을 감지하고 맞는 ChromeDriver를 다운로드합니다
                 logger.info(f"🔍 Chrome 버전 정보: 메이저={chrome_version}, 전체={chrome_full_version}")
-                if chrome_version and int(chrome_version) >= 115:
-                    logger.info(f"🔧 Chrome {chrome_version} 감지 - ChromeDriverManager가 자동으로 맞는 버전을 다운로드합니다")
+                if chrome_full_version and chrome_version and int(chrome_version) >= 115:
+                    logger.info(f"🔧 Chrome {chrome_full_version} 감지 - 정확히 일치하는 ChromeDriver를 요청합니다")
+                    driver_manager = ChromeDriverManager(driver_version=chrome_full_version)
                 else:
                     logger.warning(f"⚠️ Chrome 버전 감지 실패 또는 구버전 - 기본 ChromeDriverManager 사용")
-                # webdriver-manager가 자동으로 Chrome 버전을 감지하고 맞는 ChromeDriver를 다운로드
-                driver_manager = ChromeDriverManager()
+                    driver_manager = ChromeDriverManager()
                 
                 # 캐시 삭제 후 재시도 (첫 번째 시도가 아닌 경우)
                 if attempt > 0:
