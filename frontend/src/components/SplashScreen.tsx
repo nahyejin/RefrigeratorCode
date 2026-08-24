@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import cookmatchIcon from '../assets/cookmatch_icon.png';
+import cookmatchWordmark from '../assets/냉털이 로고 white.png';
 
 interface SplashScreenProps {
   recipeCount: number;
@@ -39,11 +40,10 @@ const STYLES = {
     display: 'block' as const,
   },
   wordmark: {
-    fontSize: 'clamp(24px, 6vw, 32px)',
-    fontWeight: 800,
-    color: '#1a1a1a',
-    letterSpacing: '-0.02em',
+    height: 'clamp(28px, 7vw, 38px)',
+    width: 'auto',
     marginBottom: 48,
+    display: 'block' as const,
   },
   labelPill: {
     display: 'inline-block' as const,
@@ -138,7 +138,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ recipeCount }) => {
       <div style={STYLES.iconWrap}>
         <img src={cookmatchIcon} alt="CookMatch" style={STYLES.icon} draggable={false} />
       </div>
-      <div style={STYLES.wordmark}>CookMatch</div>
+      <img src={cookmatchWordmark} alt="CookMatch" style={STYLES.wordmark} draggable={false} />
       <div style={STYLES.labelPill}>누적 레시피 수</div>
       <div style={STYLES.numberDisplay}>{formatted}</div>
       <div style={STYLES.descriptionText}>
