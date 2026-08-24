@@ -2404,6 +2404,13 @@ def remove_user_favorite_recipe(user_id, recipe_id):
         print(f"Remove user favorite recipe error: {e}")
         return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
 
+@app.route('/api/chat', methods=['POST'])
+def chat_with_recipes():
+    """냉장고 재료 + 대화 의도로 레시피 DB를 검색해 링크를 돌려준다."""
+    from chat_service import handle_chat
+    return handle_chat(get_db)
+
+
 @app.route('/api/health')
 def health_check():
     return jsonify({

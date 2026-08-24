@@ -5,6 +5,7 @@ import ScrollToTop from '../components/ScrollToTop';
 import TopNavBar from '../components/TopNavBar';
 import ErrorBoundary from '../components/ErrorBoundary';
 import HomeInstallPrompt from '../components/HomeInstallPrompt';
+import RecipeChatWidget from '../components/RecipeChatWidget';
 import { AuthProvider } from '../context/AuthContext';
 import Login from '../pages/Login';
 import Signup from '../pages/Signup';
@@ -240,6 +241,7 @@ function AppContent() {
         </Routes>
       </Suspense>
       <HomeInstallPrompt />
+      <RecipeChatWidget />
     </>
   );
 }
