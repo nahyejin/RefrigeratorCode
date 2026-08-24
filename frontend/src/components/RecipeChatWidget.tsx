@@ -340,9 +340,8 @@ const RecipeChatWidget: React.FC = () => {
                       className="truncate"
                       style={{
                         textShadow: 'none',
-                        fontSize: 17,
-                        fontWeight: 800,
-                        letterSpacing: '-0.02em',
+                        fontSize: 18,
+                        fontWeight: 700,
                         color: '#111',
                       }}
                     >
