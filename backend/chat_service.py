@@ -11,6 +11,7 @@ KST = timezone(timedelta(hours=9))
 MAX_HISTORY = 10
 MAX_INGREDIENTS = 40
 SEARCH_LIMIT = 8
+FRIDGE_MATCH_FLOOR = 25  # 냉장고 우선 모드에서 키워드 없이도 보여줄 최소 매칭률(%)
 
 _rate_lock = threading.Lock()
 _rate_day = None
@@ -140,6 +141,11 @@ def _build_prompt(messages, ingredients):
 레시피 링크를 만들지 마라. 없는 글 제목을 지어내지 마라.
 검색은 서버가 우리 DB에서 한다. 너는 검색에 쓸 키워드만 고른다.
 
+기본적으로는 사용자가 지금 냉장고에 가진 재료를 최대한 활용하는 레시피를 우선해서 찾는다.
+다만 사용자가 "재료 상관없이", "냉장고에 없어도", "그냥 맛있는 걸로" 처럼
+보유 재료를 무시해도 된다고 명시적으로 말하면 ignore_fridge를 true로 설정한다.
+그 외에는 항상 ignore_fridge를 false로 둔다.
+
 냉장고 재료: {fridge}
 
 최근 대화:
@@ -150,22 +156,18 @@ def _build_prompt(messages, ingredients):
   "reply": "사용자에게 할 말. 2~4문장. 친근한 한국어. 링크/URL 금지. 구체적인 레시피 제목을 단정하지 말 것. 취향을 반영해 찾아보겠다는 톤.",
   "keyword": "title/content 검색용 한국어 키워드 1개. 예: 매운, 찌개, 파스타. 없으면 빈 문자열",
   "include_ingredients": ["검색에 꼭 넣고 싶은 재료"],
-  "exclude_ingredients": ["빼고 싶은 재료"]
+  "exclude_ingredients": ["빼고 싶은 재료"],
+  "ignore_fridge": false
 }}
 """
 
 
-def _search_recipes(get_db, keyword, include_ingredients, exclude_ingredients, my_ingredients):
+def _search_recipes(get_db, keyword, include_ingredients, exclude_ingredients, my_ingredients, ignore_fridge=False):
     db = get_db()
     cursor = db.cursor()
     try:
         where = ['1=1']
         params = []
-
-        if keyword:
-            like = f'%{keyword}%'
-            where.append('(title LIKE %s OR content LIKE %s OR used_ingredients LIKE %s)')
-            params.extend([like, like, like])
 
         for ing in include_ingredients[:8]:
             where.append("FIND_IN_SET(%s, REPLACE(used_ingredients,' ','')) > 0")
@@ -175,8 +177,19 @@ def _search_recipes(get_db, keyword, include_ingredients, exclude_ingredients, m
             where.append("FIND_IN_SET(%s, REPLACE(used_ingredients,' ','')) = 0")
             params.append(ing)
 
-        fridge = [i for i in my_ingredients if i][:20]
+        fridge = [] if ignore_fridge else [i for i in my_ingredients if i][:20]
+        keyword_clause = None
+        keyword_params = []
+        if keyword:
+            like = f'%{keyword}%'
+            keyword_clause = '(title LIKE %s OR content LIKE %s OR used_ingredients LIKE %s)'
+            keyword_params = [like, like, like]
+
         if fridge:
+            # 재료 매칭 우선 모드: 냉장고 재료로 매칭률을 계산해 정렬 1순위로 쓰고,
+            # 키워드는 결과를 아예 걸러내는 강제 필터가 아니라
+            # "키워드에 맞거나, 매칭률이 충분히 높으면" 통과시키는 소프트 조건으로 쓴다.
+            # (매칭률 높은 레시피가 키워드 한 단어 안 맞는다고 통째로 사라지는 걸 방지)
             match_parts = [
                 "(CASE WHEN FIND_IN_SET(%s, REPLACE(used_ingredients,' ','')) > 0 THEN 1 ELSE 0 END)"
                 for _ in fridge
@@ -192,21 +205,34 @@ def _search_recipes(get_db, keyword, include_ingredients, exclude_ingredients, m
             match_rate = f"CASE WHEN ({total_ing}) = 0 THEN 0 ELSE ROUND(({match_count})/({total_ing})*100) END"
             select_params = fridge[:]
             order_by = 'match_rate DESC, post_time DESC'
+
+            having_parts = [f'match_rate >= {FRIDGE_MATCH_FLOOR}']
+            having_params = []
+            if keyword_clause:
+                having_parts.append(keyword_clause)
+                having_params = keyword_params
+            having_sql = f"HAVING ({' OR '.join(having_parts)})"
         else:
             match_rate = '0'
             select_params = []
             order_by = 'post_time DESC'
+            having_sql = ''
+            having_params = []
+            if keyword_clause:
+                where.append(keyword_clause)
+                params.extend(keyword_params)
 
         sql = f"""
-            SELECT id, title, thumbnail, platform, likes, comments, hits,
+            SELECT id, title, content, thumbnail, platform, likes, comments, hits,
                    post_time, used_ingredients, link,
                    {match_rate} AS match_rate
             FROM recipes
             WHERE {' AND '.join(where)}
+            {having_sql}
             ORDER BY {order_by}
             LIMIT %s
         """
-        cursor.execute(sql, select_params + params + [SEARCH_LIMIT])
+        cursor.execute(sql, select_params + params + having_params + [SEARCH_LIMIT])
         rows = cursor.fetchall() or []
         recipes = []
         for row in rows:
@@ -279,6 +305,7 @@ def handle_chat(get_db):
         'keyword': '',
         'include_ingredients': [],
         'exclude_ingredients': [],
+        'ignore_fridge': False,
     }
     try:
         prompt = _build_prompt(messages, ingredients)
@@ -295,6 +322,7 @@ def handle_chat(get_db):
             values = extracted.get(key) or []
             if isinstance(values, list):
                 parsed[key] = [str(v).strip() for v in values if str(v).strip()][:8]
+        parsed['ignore_fridge'] = bool(extracted.get('ignore_fridge'))
     except Exception as e:
         print(f'[chat] LLM 호출 실패: {e}')
         parsed['keyword'] = last_user[:20]
@@ -306,10 +334,14 @@ def handle_chat(get_db):
         parsed['include_ingredients'],
         parsed['exclude_ingredients'],
         ingredients,
+        parsed['ignore_fridge'],
     )
 
     if not recipes and parsed['keyword']:
-        recipes = _search_recipes(get_db, '', [], [], ingredients)
+        recipes = _search_recipes(get_db, '', [], [], ingredients, parsed['ignore_fridge'])
+    if not recipes and not parsed['ignore_fridge'] and ingredients:
+        # 냉장고 우선 모드에서도 결과가 없으면 재료 조건 없이 한 번 더 시도
+        recipes = _search_recipes(get_db, parsed['keyword'], [], [], ingredients, True)
 
     if not recipes:
         parsed['reply'] = (
@@ -333,6 +365,7 @@ def handle_chat(get_db):
         'reply': parsed['reply'],
         'recipes': recipes,
         'keyword': parsed['keyword'],
+        'ignore_fridge': parsed['ignore_fridge'],
         'provider': provider,
         'remaining': remaining_quota(),
     })
