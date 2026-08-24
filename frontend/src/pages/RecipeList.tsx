@@ -1922,6 +1922,19 @@ const RecipeList: React.FC = () => {
           내 냉장고 기반 레시피 추천
         </h2>
 
+        <div
+          style={{
+            position: 'sticky',
+            top: 56,
+            zIndex: 40,
+            background: '#fff',
+            marginLeft: -20,
+            marginRight: -20,
+            paddingLeft: 20,
+            paddingRight: 20,
+            paddingTop: 8,
+          }}
+        >
         <form
           onSubmit={handleKeywordSearchSubmit}
           style={{
@@ -2007,14 +2020,13 @@ const RecipeList: React.FC = () => {
           }}
         />
         
-        {/* 재료 pill 범례와 카드 리스트를 같은 부모 div 안에 배치 */}
-        <div>
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'space-between', 
-            marginBottom: 16, 
-            marginTop: 8 
+        {/* 재료 pill 범례 (검색창/필터와 함께 sticky 영역에 포함) */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: 16,
+            marginTop: 8
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -2055,7 +2067,8 @@ const RecipeList: React.FC = () => {
               총 {total.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}건
             </span>
           </div>
-          
+        </div>
+
           {/* Render recipe cards only when not loading */}
           {!loading && (
             <div className="flex flex-col gap-2">
@@ -2401,9 +2414,7 @@ const RecipeList: React.FC = () => {
           );
         })()}
         </div>
-        
-      </div>
-      
+
       <BottomNavBar activeTab="recipe" />
       
       {toast && <RecipeToast message={toast} />}
