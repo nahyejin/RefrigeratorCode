@@ -39,23 +39,40 @@ type ChatThread = {
   messages: ChatMessage[];
 };
 
-const SparklesIcon: React.FC<{ size?: number; className?: string }> = ({ size = 24, className }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
-    <path
-      className="ai-fab-icon-main"
-      d="M9.81 15.9L9 18.75l-.81-2.85a4.5 4.5 0 00-3.09-3.09L2.25 12l2.85-.81a4.5 4.5 0 003.09-3.09L9 5.25l.81 2.85a4.5 4.5 0 003.09 3.09l2.85.81-2.85.81a4.5 4.5 0 00-3.09 3.09z"
-      fill="currentColor"
-    />
+const CookingPotIcon: React.FC<{ size?: number; className?: string }> = ({ size = 24, className }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    className={className}
+    style={{ width: size, height: size, flexShrink: 0, display: 'block' }}
+  >
     <path
       className="ai-fab-icon-spark"
-      d="M18.26 8.72L18 9.75l-.26-1.03a3.38 3.38 0 00-2.46-2.46L14.25 6l1.03-.26a3.38 3.38 0 002.46-2.46L18 2.25l.26 1.03a3.38 3.38 0 002.46 2.46L21.75 6l-1.03.26a3.38 3.38 0 00-2.46 2.46z"
+      d="M9.3 2.6c0 .9-1 .9-1 1.8s1 .9 1 1.8M14.7 2.6c0 .9-1 .9-1 1.8s1 .9 1 1.8"
+      stroke="currentColor"
+      strokeWidth="1.3"
+      strokeLinecap="round"
+    />
+    <circle className="ai-fab-icon-main" cx="12" cy="7.4" r="1.05" fill="currentColor" />
+    <rect className="ai-fab-icon-main" x="5" y="8.6" width="14" height="1.9" rx="0.95" fill="currentColor" />
+    <path
+      className="ai-fab-icon-main"
+      d="M6 11.2h12l-0.95 7.3A2 2 0 0115.07 20H8.93a2 2 0 01-1.98-1.5L6 11.2z"
       fill="currentColor"
     />
   </svg>
 );
 
 const HistoryIcon: React.FC<{ size?: number }> = ({ size = 16 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    style={{ width: size, height: size, flexShrink: 0, display: 'block' }}
+  >
     <path
       d="M12 8v5l3 2M20 12a8 8 0 11-2.34-5.66M20 4v5h-5"
       stroke="currentColor"
@@ -63,6 +80,18 @@ const HistoryIcon: React.FC<{ size?: number }> = ({ size = 16 }) => (
       strokeLinecap="round"
       strokeLinejoin="round"
     />
+  </svg>
+);
+
+const PlusIcon: React.FC<{ size?: number }> = ({ size = 16 }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    style={{ width: size, height: size, flexShrink: 0, display: 'block' }}
+  >
+    <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
   </svg>
 );
 
@@ -269,7 +298,7 @@ const RecipeChatWidget: React.FC = () => {
             bottom: 76,
             maxWidth: 420,
             margin: '0 auto',
-            height: 'min(70vh, 560px)',
+            height: 'min(84vh, 700px)',
             borderRadius: 16,
             boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
           }}
@@ -297,16 +326,26 @@ const RecipeChatWidget: React.FC = () => {
                   <div
                     className="flex items-center justify-center flex-shrink-0"
                     style={{
-                      width: 28,
-                      height: 28,
+                      width: 36,
+                      height: 36,
                       borderRadius: 9999,
                       background: 'linear-gradient(135deg, #2a2a2c 0%, #0d0d0e 60%, #000 100%)',
+                      boxShadow: '0 0 0 1px rgba(255,214,0,0.35)',
                     }}
                   >
-                    <SparklesIcon size={16} />
+                    <CookingPotIcon size={21} />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-sm font-bold text-gray-900 truncate" style={{ textShadow: 'none' }}>
+                    <p
+                      className="truncate"
+                      style={{
+                        textShadow: 'none',
+                        fontSize: 17,
+                        fontWeight: 800,
+                        letterSpacing: '-0.02em',
+                        color: '#111',
+                      }}
+                    >
                       AI 요리 챗
                     </p>
                     <p className="text-[11px] text-gray-400 truncate" style={{ textShadow: 'none' }}>
@@ -316,31 +355,32 @@ const RecipeChatWidget: React.FC = () => {
                 </>
               )}
             </div>
-            <div className="flex items-center gap-1 flex-shrink-0">
+            <div className="flex items-center gap-1.5 flex-shrink-0">
               {view === 'chat' && (
                 <button
                   type="button"
                   aria-label="지난 대화 보기"
-                  className="text-gray-500"
-                  style={{ background: 'none', border: 'none', padding: 6, cursor: 'pointer' }}
+                  className="flex items-center justify-center text-gray-600 bg-gray-100 flex-shrink-0"
+                  style={{ width: 38, height: 38, borderRadius: 9999, border: 'none', cursor: 'pointer' }}
                   onClick={() => setView('history')}
                 >
-                  <HistoryIcon size={17} />
+                  <HistoryIcon size={21} />
                 </button>
               )}
               <button
                 type="button"
-                className="text-[11px] text-gray-500 whitespace-nowrap"
-                style={{ background: 'none', border: 'none', padding: 4, cursor: 'pointer' }}
+                aria-label="새 대화 시작"
+                className="flex items-center justify-center text-gray-600 bg-gray-100 flex-shrink-0"
+                style={{ width: 38, height: 38, borderRadius: 9999, border: 'none', cursor: 'pointer' }}
                 onClick={startNewThread}
               >
-                새 대화
+                <PlusIcon size={21} />
               </button>
               <button
                 type="button"
                 aria-label="닫기"
-                className="text-gray-500 text-lg leading-none"
-                style={{ background: 'none', border: 'none', padding: 4, cursor: 'pointer' }}
+                className="flex items-center justify-center text-gray-500 flex-shrink-0"
+                style={{ width: 38, height: 38, fontSize: 22, border: 'none', background: 'none', cursor: 'pointer' }}
                 onClick={() => setOpen(false)}
               >
                 ×
@@ -398,7 +438,7 @@ const RecipeChatWidget: React.FC = () => {
               {messages.length === 0 && (
                 <div className="space-y-2">
                   <p className="text-xs text-gray-500" style={{ textShadow: 'none' }}>
-                    어느 탭에 있어도 바로 물어볼 수 있어요.
+                    뭐 먹을지 고민될 때, 냉장고 재료로 딱 맞는 레시피를 찾아드릴게요.
                   </p>
                   <div className="flex flex-wrap gap-2">
                     {SUGGESTIONS.map((hint) => (
@@ -425,14 +465,14 @@ const RecipeChatWidget: React.FC = () => {
                     <div
                       className="flex items-center justify-center flex-shrink-0"
                       style={{
-                        width: 22,
-                        height: 22,
+                        width: 26,
+                        height: 26,
                         marginTop: 1,
                         borderRadius: 9999,
                         background: 'linear-gradient(135deg, #2a2a2c 0%, #0d0d0e 60%, #000 100%)',
                       }}
                     >
-                      <SparklesIcon size={13} />
+                      <CookingPotIcon size={16} />
                     </div>
                   )}
                   <div className={`max-w-[82%] ${msg.role === 'user' ? '' : 'w-full'}`}>
@@ -515,7 +555,7 @@ const RecipeChatWidget: React.FC = () => {
                 ref={inputRef}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="먹고 싶은 맛을 말해 보세요"
+                placeholder="먹고 싶은 걸 편하게 말해보세요"
                 className="flex-1 text-[13px] px-3 py-2 rounded-full bg-gray-100 outline-none"
                 style={{ border: 'none', textShadow: 'none' }}
                 disabled={loading}
@@ -548,7 +588,7 @@ const RecipeChatWidget: React.FC = () => {
             className="ai-fab-button"
             onClick={openWidget}
           >
-            <SparklesIcon size={24} />
+            <CookingPotIcon size={29} />
           </button>
           <span className="ai-fab-badge" style={{ textShadow: 'none' }}>AI</span>
         </div>
