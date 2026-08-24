@@ -20,10 +20,16 @@ const STYLES = {
     position: 'relative' as const,
     background: '#ffffff',
     overflow: 'hidden',
+  },
+  brandGroup: {
+    position: 'absolute' as const,
+    top: '34%',
+    left: '50%',
+    transform: 'translate(-50%, -50%)',
     display: 'flex' as const,
     flexDirection: 'column' as const,
     alignItems: 'center' as const,
-    justifyContent: 'center' as const,
+    width: '90%',
   },
   iconWrap: {
     width: 'clamp(140px, 42vw, 200px)',
@@ -42,25 +48,29 @@ const STYLES = {
   wordmark: {
     height: 'clamp(28px, 7vw, 38px)',
     width: 'auto',
-    marginBottom: 48,
     display: 'block' as const,
   },
-  labelPill: {
-    display: 'inline-block' as const,
-    backgroundColor: '#FFD600',
-    color: '#1a1a1a',
-    fontSize: 'clamp(13px, 3vw, 15px)',
-    fontWeight: 700,
-    padding: '6px 16px',
-    borderRadius: 999,
-    textAlign: 'center' as const,
-    whiteSpace: 'nowrap' as const,
-    marginBottom: 12,
+  statGroup: {
+    position: 'absolute' as const,
+    top: '78%',
+    left: '50%',
+    transform: 'translate(-50%, -50%)',
+    display: 'flex' as const,
+    flexDirection: 'column' as const,
+    alignItems: 'center' as const,
+    width: '90%',
+  },
+  label: {
+    color: '#9A9A9A',
+    fontSize: 'clamp(12px, 2.6vw, 14px)',
+    fontWeight: 600,
+    letterSpacing: '0.02em',
+    marginBottom: 6,
   },
   numberDisplay: {
     color: '#1a1a1a',
     fontWeight: 800,
-    fontSize: 'clamp(36px, 9vw, 56px)',
+    fontSize: 'clamp(32px, 8vw, 48px)',
     textAlign: 'center' as const,
     fontFamily: 'inherit',
     letterSpacing: '-0.01em',
@@ -68,7 +78,7 @@ const STYLES = {
     lineHeight: '1.2',
   },
   descriptionText: {
-    color: '#8A8A8A',
+    color: '#B0B0B0',
     fontSize: 'clamp(12px, 2.4vw, 14px)',
     fontWeight: 400,
     textAlign: 'center' as const,
@@ -135,15 +145,19 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ recipeCount }) => {
 
   return (
     <div style={STYLES.container}>
-      <div style={STYLES.iconWrap}>
-        <img src={cookmatchIcon} alt="CookMatch" style={STYLES.icon} draggable={false} />
+      <div style={STYLES.brandGroup}>
+        <div style={STYLES.iconWrap}>
+          <img src={cookmatchIcon} alt="CookMatch" style={STYLES.icon} draggable={false} />
+        </div>
+        <img src={cookmatchWordmark} alt="CookMatch" style={STYLES.wordmark} draggable={false} />
       </div>
-      <img src={cookmatchWordmark} alt="CookMatch" style={STYLES.wordmark} draggable={false} />
-      <div style={STYLES.labelPill}>누적 레시피 수</div>
-      <div style={STYLES.numberDisplay}>{formatted}</div>
-      <div style={STYLES.descriptionText}>
-        리뷰수·조회수·구독자수 등을 고려하여<br />
-        검증된 레시피를 매일 수집하고 있어요
+      <div style={STYLES.statGroup}>
+        <div style={STYLES.label}>누적 레시피 수</div>
+        <div style={STYLES.numberDisplay}>{formatted}</div>
+        <div style={STYLES.descriptionText}>
+          리뷰수·조회수·구독자수 등을 고려하여<br />
+          검증된 레시피를 매일 수집하고 있어요
+        </div>
       </div>
     </div>
   );
