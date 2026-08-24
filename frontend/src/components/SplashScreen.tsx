@@ -23,7 +23,7 @@ const STYLES = {
   },
   brandGroup: {
     position: 'absolute' as const,
-    top: '34%',
+    top: '42%',
     left: '50%',
     transform: 'translate(-50%, -50%)',
     display: 'flex' as const,
@@ -52,7 +52,7 @@ const STYLES = {
   },
   statGroup: {
     position: 'absolute' as const,
-    top: '64%',
+    top: '73%',
     left: '50%',
     transform: 'translate(-50%, -50%)',
     display: 'flex' as const,
