@@ -10,9 +10,10 @@ interface TagPillProps {
 const BASE_STYLE: React.CSSProperties = {
   fontFamily: 'Noto Sans KR, Arial, system-ui, sans-serif',
   fontSize: 14,
-  fontWeight: 200,
-  color: '#fff',
-  background: '#444',
+  fontWeight: 400,
+  color: '#3A3A3A',
+  background: '#EFEFF2',
+  border: '1px solid #E3E3E7',
   borderRadius: 999,
   display: 'inline-flex',
   alignItems: 'center',

@@ -153,13 +153,13 @@ const STYLES = {
   },
   filterButton: {
     height: 28,
-    border: '1px solid #D1D5DB',
+    border: 'none',
     borderRadius: 999,
     fontSize: 12,
-    padding: '0 12px',
-    fontWeight: 600,
-    background: '#fff',
-    color: '#222',
+    padding: '0 14px',
+    fontWeight: 700,
+    background: '#222',
+    color: '#fff',
     minWidth: 50,
     whiteSpace: 'nowrap' as const,
     lineHeight: '28px',
@@ -168,7 +168,8 @@ const STYLES = {
     marginLeft: 'auto',
     display: 'flex' as const,
     alignItems: 'center' as const,
-    justifyContent: 'center' as const
+    justifyContent: 'center' as const,
+    gap: 4
   },
   modal: {
     position: 'fixed' as const,
@@ -601,7 +602,8 @@ const RecipeSortBar = ({
             aria-label="재료 매칭도 설정 모달 열기"
             data-guide-target="match-rate-button"
           >
-            재료 매칭도 설정
+            <span aria-hidden="true" style={{ marginRight: 4 }}>%</span>
+            매칭도
           </button>
           <button
             style={STYLES.button}
@@ -612,7 +614,8 @@ const RecipeSortBar = ({
             aria-label="임박 재료 설정 모달 열기"
             data-guide-target="expiry-button"
           >
-            임박 재료 설정
+            <span aria-hidden="true" style={{ marginRight: 4 }}>⏱</span>
+            임박 재료
           </button>
           <div style={{
             ...STYLES.selectContainer,
@@ -706,6 +709,9 @@ const RecipeSortBar = ({
           aria-label="필터 모달 열기"
           data-guide-target="filter-button"
         >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M3 5h18M6 12h12M10 19h4" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" />
+          </svg>
           필터
         </button>
       </div>

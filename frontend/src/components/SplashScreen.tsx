@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import splashImg from '../assets/open_loading_page.png';
+import cookmatchIcon from '../assets/cookmatch_icon.png';
 
 interface SplashScreenProps {
   recipeCount: number;
@@ -9,96 +9,76 @@ interface SplashScreenProps {
 const CONSTANTS = {
   ROULETTE_DURATION: 400,
   DIGIT_LENGTH: 4,
-  // 반응형 글자 크기: 화면 너비의 8% (최소 32px, 최대 64px)
-  FONT_SIZE_MIN: 32,
-  FONT_SIZE_MAX: 64,
-  FONT_SIZE_VW: 8, // 화면 너비의 8%
-  // 반응형 위치: 화면 높이의 74%에서 고정
-  TOP_POSITION_VH: 74,
-  LETTER_SPACING_VW: 0.2, // 화면 너비의 0.2%
-  TEXT_SHADOW: '0 2px 8px #fff9e5, 0 0px 2px #fff9e5'
 } as const;
 
-// 스타일 상수
+// 스타일 상수 (앱 본편과 동일한 화이트/블랙/옐로우 톤)
 const STYLES = {
   container: {
     width: '100vw',
     height: '100vh',
     position: 'relative' as const,
-    background: '#f4f0e6',
-    overflow: 'hidden'
-  },
-  backgroundImage: {
-    position: 'absolute' as const,
-    left: 0,
-    top: 0,
-    width: '100vw',
-    height: '100vh',
-    objectFit: 'contain' as const,
-    zIndex: 1,
-    pointerEvents: 'none' as const,
-    userSelect: 'none' as const
-  },
-  // 중앙 컨테이너 (모든 요소를 세로로 배치, 아래쪽으로 위치)
-  contentContainer: {
-    position: 'absolute' as const,
-    left: '50%',
-    top: '80%', // 훨씬 더 아래로 이동
-    transform: 'translate(-50%, -50%)',
+    background: '#ffffff',
+    overflow: 'hidden',
     display: 'flex' as const,
     flexDirection: 'column' as const,
     alignItems: 'center' as const,
-    gap: 'clamp(6px, 1vh, 10px)', // 줄간격을 더 좁게 조정
-    zIndex: 2,
-    width: '90%',
-    maxWidth: '600px'
+    justifyContent: 'center' as const,
   },
-  // "누적 레시피 수" 최신 UI 트렌드 스타일 (미묘한 glassmorphism)
+  iconWrap: {
+    width: 84,
+    height: 84,
+    borderRadius: 22,
+    overflow: 'hidden' as const,
+    boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+    marginBottom: 20,
+  },
+  icon: {
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover' as const,
+    display: 'block' as const,
+  },
+  wordmark: {
+    fontSize: 'clamp(24px, 6vw, 32px)',
+    fontWeight: 800,
+    color: '#1a1a1a',
+    letterSpacing: '-0.02em',
+    marginBottom: 48,
+  },
   labelPill: {
     display: 'inline-block' as const,
-    backgroundColor: 'rgba(255, 255, 255, 0.6)', // 매우 연한 반투명 배경
-    color: '#555555', // 부드러운 회색 텍스트
-    fontSize: 'clamp(19px, 3.6vw, 26px)', // 글자 크기 20% 증가
-    fontWeight: 500,
-    padding: 'clamp(4px, 0.8vh, 7px) clamp(14px, 3.5vw, 22px)', // 패딩 축소
-    borderRadius: '30px', // 부드러운 둥근 모서리
+    backgroundColor: '#FFD600',
+    color: '#1a1a1a',
+    fontSize: 'clamp(13px, 3vw, 15px)',
+    fontWeight: 700,
+    padding: '6px 16px',
+    borderRadius: 999,
     textAlign: 'center' as const,
     whiteSpace: 'nowrap' as const,
-    border: '0.5px solid rgba(0, 0, 0, 0.06)', // 거의 보이지 않는 얇은 테두리
-    backdropFilter: 'blur(8px)', // 미묘한 블러
-    WebkitBackdropFilter: 'blur(8px)', // Safari 지원
-    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)' // 거의 보이지 않는 매우 부드러운 그림자
+    marginBottom: 12,
   },
-  // 숫자 표시 스타일 (회색)
   numberDisplay: {
-    color: '#444444', // 검정에서 회색으로 변경
-    fontWeight: 700,
-    fontSize: `clamp(38px, 9.6vw, 77px)`, // 글자 크기 20% 증가 (32px→38px, 8vw→9.6vw, 64px→77px)
+    color: '#1a1a1a',
+    fontWeight: 800,
+    fontSize: 'clamp(36px, 9vw, 56px)',
     textAlign: 'center' as const,
     fontFamily: 'inherit',
-    letterSpacing: `${CONSTANTS.LETTER_SPACING_VW}vw`,
+    letterSpacing: '-0.01em',
     whiteSpace: 'nowrap' as const,
-    lineHeight: '1.2'
+    lineHeight: '1.2',
   },
-  // 하단 설명 텍스트 스타일 (회색)
   descriptionText: {
-    color: '#666666',
-    fontSize: 'clamp(13px, 2.16vw, 17px)', // 글자 크기 20% 증가 (11px→13px, 1.8vw→2.16vw, 14px→17px)
+    color: '#8A8A8A',
+    fontSize: 'clamp(12px, 2.4vw, 14px)',
     fontWeight: 400,
     textAlign: 'center' as const,
     lineHeight: '1.6',
-    width: '100%'
-  }
+    marginTop: 10,
+  },
 };
 
 // 유틸리티 함수들
 const Utils = {
-  // 숫자를 지정된 자릿수로 패딩
-  padNumber: (num: number, length: number): string => {
-    return num.toString().padStart(length, '0');
-  },
-
-  // 숫자에 쉼표 추가 (1000단위)
   formatNumberWithComma: (digits: string[]): string => {
     const numberStr = digits.join('');
     const num = parseInt(numberStr, 10);
@@ -106,11 +86,9 @@ const Utils = {
     if (num === 0 && digits.length === 4) return '0,000';
     return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   },
-
-  // 랜덤 숫자 배열 생성
   generateRandomDigits: (length: number): string[] => {
     return Array.from({ length }, () => Math.floor(Math.random() * 10).toString());
-  }
+  },
 };
 
 const SplashScreen: React.FC<SplashScreenProps> = ({ recipeCount }) => {
@@ -128,10 +106,10 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ recipeCount }) => {
 
     setStage('roulette');
     rouletteStartTime.current = Date.now();
-    
+
     const animate = () => {
       const elapsed = Date.now() - rouletteStartTime.current;
-      
+
       if (elapsed < CONSTANTS.ROULETTE_DURATION) {
         const randomDigits = Utils.generateRandomDigits(CONSTANTS.DIGIT_LENGTH);
         setDisplayDigits(randomDigits);
@@ -141,7 +119,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ recipeCount }) => {
         setDisplayDigits(recipeCount.toString().split(''));
       }
     };
-    
+
     animationRef.current = requestAnimationFrame(animate);
 
     return () => {
@@ -151,37 +129,24 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ recipeCount }) => {
     };
   }, [recipeCount]);
 
-  // 쉼표 추가된 포맷팅
-  const formatted = stage === 'final' 
-    ? recipeCount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') 
+  const formatted = stage === 'final'
+    ? recipeCount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')
     : Utils.formatNumberWithComma(displayDigits);
 
   return (
     <div style={STYLES.container}>
-      <img
-        src={splashImg}
-        alt="CookMatch Splash"
-        style={STYLES.backgroundImage}
-        draggable={false}
-      />
-      {/* 중앙 컨테이너: 세로로 배치 */}
-      <div style={STYLES.contentContainer}>
-        {/* 노란색 pill: "누적 레시피 수" */}
-        <div style={STYLES.labelPill}>
-          누적 레시피 수
-        </div>
-        {/* 검은색 숫자 */}
-        <div style={STYLES.numberDisplay}>
-          {formatted}
-        </div>
-        {/* 회색 안내문구 */}
-        <div style={STYLES.descriptionText}>
-          리뷰수·조회수·구독자수 등을 고려하여<br />
-          검증된 레시피를 매일 수집하고 있어요
-        </div>
+      <div style={STYLES.iconWrap}>
+        <img src={cookmatchIcon} alt="CookMatch" style={STYLES.icon} draggable={false} />
+      </div>
+      <div style={STYLES.wordmark}>CookMatch</div>
+      <div style={STYLES.labelPill}>누적 레시피 수</div>
+      <div style={STYLES.numberDisplay}>{formatted}</div>
+      <div style={STYLES.descriptionText}>
+        리뷰수·조회수·구독자수 등을 고려하여<br />
+        검증된 레시피를 매일 수집하고 있어요
       </div>
     </div>
   );
 };
 
-export default SplashScreen; 
+export default SplashScreen;

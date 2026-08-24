@@ -128,7 +128,7 @@ const HomeInstallPrompt: React.FC = () => {
       style={{
         position: 'fixed',
         inset: 0,
-        zIndex: 10020,
+        zIndex: 10060,
         background: 'rgba(0,0,0,0.42)',
         display: 'flex',
         alignItems: 'flex-end',

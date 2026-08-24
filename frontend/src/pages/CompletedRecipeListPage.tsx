@@ -562,7 +562,7 @@ const CompletedRecipeListPage: React.FC = () => {
                       width: 24, 
                       height: 14, 
                       borderRadius: 7, 
-                      background: '#D1D1D1', 
+                      background: '#D1D1D1', border: '1px solid #C4C4C8', 
                       display: 'inline-block', 
                       marginRight: 2 
                     }}></span>

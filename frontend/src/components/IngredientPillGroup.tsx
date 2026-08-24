@@ -171,7 +171,7 @@ const IngredientPillGroup: React.FC<IngredientPillGroupProps> = ({ needIngredien
               );
             } else {
               return (
-                <span key={ing} className="bg-customGray text-white rounded-full px-3 py-0.5 font-normal" style={{ fontSize: '10.4px', lineHeight: 1.3, whiteSpace: 'nowrap', height: 22, display: 'inline-flex', alignItems: 'center', textShadow: 'none', border: 'none' }}>{displayName}</span>
+                <span key={ing} className="bg-customGray text-[#555] rounded-full px-3 py-0.5 font-normal" style={{ fontSize: '10.4px', lineHeight: 1.3, whiteSpace: 'nowrap', height: 22, display: 'inline-flex', alignItems: 'center', textShadow: 'none', border: '1px solid #C4C4C8' }}>{displayName}</span>
               );
             }
           })}
