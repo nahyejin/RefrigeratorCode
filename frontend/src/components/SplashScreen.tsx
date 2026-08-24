@@ -25,12 +25,12 @@ const STYLES = {
     justifyContent: 'center' as const,
   },
   iconWrap: {
-    width: 84,
-    height: 84,
-    borderRadius: 22,
+    width: 'clamp(140px, 42vw, 200px)',
+    height: 'clamp(140px, 42vw, 200px)',
+    borderRadius: '26%',
     overflow: 'hidden' as const,
-    boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-    marginBottom: 20,
+    boxShadow: '0 12px 32px rgba(0,0,0,0.14)',
+    marginBottom: 28,
   },
   icon: {
     width: '100%',
