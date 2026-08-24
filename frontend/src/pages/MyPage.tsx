@@ -519,6 +519,14 @@ const MyPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // GNB에서 닉네임을 눌러 /my-page?openEdit=true 로 들어온 경우 자동으로 수정 모달 열기
+  useEffect(() => {
+    if (new URLSearchParams(location.search).get('openEdit') === 'true') {
+      setEditOpen(true);
+      navigate('/my-page', { replace: true });
+    }
+  }, [location.search, navigate]);
+
   // 로그인한 사용자 정보가 변경되면 user 상태 업데이트 및 레시피 로드
   useEffect(() => {
     if (authUser) {
@@ -1631,10 +1639,10 @@ const MyPage: React.FC = () => {
                     e.currentTarget.style.boxShadow = 'none';
                   }}
                 >
-                  적용
+                  변경 적용
                 </button>
               </div>
-              
+
               {/* 회원탈퇴 버튼 */}
               <div className="mt-6 pt-4 text-center">
                 <button

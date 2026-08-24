@@ -37,7 +37,20 @@ const TopNavBar: React.FC = () => {
       <div className="flex items-center gap-3">
         {isLoggedIn ? (
           <div className="flex items-center gap-2">
-            <span className="font-normal text-gray-700 hover:text-gray-900" style={{ fontSize: '11px' }}>{user?.nickname}</span>
+            <button
+              onClick={() => navigate('/my-page?openEdit=true')}
+              className="font-normal text-gray-700 hover:text-gray-900"
+              style={{
+                fontSize: '11px',
+                outline: 'none',
+                border: 'none',
+                background: 'none',
+                cursor: 'pointer',
+                padding: 0,
+              }}
+            >
+              {user?.nickname}
+            </button>
             <button
               onClick={logout}
               className="font-normal text-gray-700 hover:text-gray-900"
