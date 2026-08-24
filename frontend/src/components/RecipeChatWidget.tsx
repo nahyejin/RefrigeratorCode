@@ -39,7 +39,7 @@ type ChatThread = {
   messages: ChatMessage[];
 };
 
-const CookingPotIcon: React.FC<{ size?: number; className?: string }> = ({ size = 24, className }) => (
+const CookMatchMarkIcon: React.FC<{ size?: number; className?: string }> = ({ size = 24, className }) => (
   <svg
     width={size}
     height={size}
@@ -48,18 +48,18 @@ const CookingPotIcon: React.FC<{ size?: number; className?: string }> = ({ size 
     className={className}
     style={{ width: size, height: size, flexShrink: 0, display: 'block' }}
   >
+    {/* 쿡매치 메인 아이콘(집 지붕 + 밥그릇) 모티프 */}
     <path
       className="ai-fab-icon-spark"
-      d="M9.3 2.6c0 .9-1 .9-1 1.8s1 .9 1 1.8M14.7 2.6c0 .9-1 .9-1 1.8s1 .9 1 1.8"
+      d="M5.3 11L12 4.6L18.7 11M7 9.5V13M17 9.5V13"
       stroke="currentColor"
-      strokeWidth="1.3"
+      strokeWidth="2"
       strokeLinecap="round"
+      strokeLinejoin="round"
     />
-    <circle className="ai-fab-icon-main" cx="12" cy="7.4" r="1.05" fill="currentColor" />
-    <rect className="ai-fab-icon-main" x="5" y="8.6" width="14" height="1.9" rx="0.95" fill="currentColor" />
     <path
       className="ai-fab-icon-main"
-      d="M6 11.2h12l-0.95 7.3A2 2 0 0115.07 20H8.93a2 2 0 01-1.98-1.5L6 11.2z"
+      d="M5.4 13.6h13.2c.4 0 .7.4.6.8-.7 3.3-3.6 5.7-7 5.7h-.4c-3.4 0-6.3-2.4-7-5.7-.1-.4.2-.8.6-.8z"
       fill="currentColor"
     />
   </svg>
@@ -333,7 +333,7 @@ const RecipeChatWidget: React.FC = () => {
                       boxShadow: '0 0 0 1px rgba(255,214,0,0.35)',
                     }}
                   >
-                    <CookingPotIcon size={21} />
+                    <CookMatchMarkIcon size={21} />
                   </div>
                   <div className="min-w-0">
                     <p
@@ -346,7 +346,7 @@ const RecipeChatWidget: React.FC = () => {
                         color: '#111',
                       }}
                     >
-                      AI 요리 챗
+                      쿡매치 AI
                     </p>
                     <p className="text-[11px] text-gray-400 truncate" style={{ textShadow: 'none' }}>
                       오늘 뭐 먹을지, 냉장고 재료로 같이 찾아볼게요 🍳
@@ -472,7 +472,7 @@ const RecipeChatWidget: React.FC = () => {
                         background: 'linear-gradient(135deg, #2a2a2c 0%, #0d0d0e 60%, #000 100%)',
                       }}
                     >
-                      <CookingPotIcon size={16} />
+                      <CookMatchMarkIcon size={16} />
                     </div>
                   )}
                   <div className={`max-w-[82%] ${msg.role === 'user' ? '' : 'w-full'}`}>
@@ -588,7 +588,7 @@ const RecipeChatWidget: React.FC = () => {
             className="ai-fab-button"
             onClick={openWidget}
           >
-            <CookingPotIcon size={29} />
+            <CookMatchMarkIcon size={29} />
           </button>
           <span className="ai-fab-badge" style={{ textShadow: 'none' }}>AI</span>
         </div>

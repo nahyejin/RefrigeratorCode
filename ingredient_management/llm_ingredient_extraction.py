@@ -293,12 +293,19 @@ def run(*, limit, start_after_id, order, output_path, commit, rpm, concurrency, 
                         rid, raw, new_used, unmapped, err = row["id"], [], None, [], str(e)
 
                     old_used = row.get("used_ingredients")
+                    # LLM이 빈 배열을 반환했는데 원래 재료가 있던 행은 신뢰하지 않는다.
+                    # (JSON 파싱 실패나 모델의 이상 응답이 "재료 없음"으로 조용히 둔갑해
+                    #  기존에 있던 값을 지워버리는 사고를 막기 위한 안전장치)
+                    suspicious_empty = (not err) and (not new_used) and bool((old_used or "").strip())
                     if err:
-                        # 오류난 행은 old_used를 그대로 유지 (DB 미반영) — "변경됨"으로 오표시하지 않는다
                         changed_label = "ERROR"
                         added, removed = "", ""
                         display_new_used = old_used
                         errors += 1
+                    elif suspicious_empty:
+                        changed_label = "NEEDS_REVIEW"
+                        added, removed = "", ""
+                        display_new_used = old_used
                     else:
                         old_set = _used_ingredient_token_set(old_used)
                         new_set = _used_ingredient_token_set(new_used)
@@ -327,7 +334,7 @@ def run(*, limit, start_after_id, order, output_path, commit, rpm, concurrency, 
                     })
                     f.flush()
 
-                    if commit and not err:
+                    if commit and not err and not suspicious_empty:
                         write_cursor.execute(
                             "UPDATE recipes SET used_ingredients = %s WHERE id = %s",
                             (new_used, rid),
