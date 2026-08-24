@@ -272,6 +272,7 @@ def run(*, limit, start_after_id, order, output_path, commit, rpm, concurrency, 
     write_conn = _connect_db(read_timeout_sec=120) if commit else None
     write_cursor = write_conn.cursor() if write_conn else None
     changed_count = 0
+    deleted_count = 0
     errors = 0
     done = 0
     since_commit = 0
@@ -293,15 +294,24 @@ def run(*, limit, start_after_id, order, output_path, commit, rpm, concurrency, 
                         rid, raw, new_used, unmapped, err = row["id"], [], None, [], str(e)
 
                     old_used = row.get("used_ingredients")
-                    # LLM이 빈 배열을 반환했는데 원래 재료가 있던 행은 신뢰하지 않는다.
-                    # (JSON 파싱 실패나 모델의 이상 응답이 "재료 없음"으로 조용히 둔갑해
-                    #  기존에 있던 값을 지워버리는 사고를 막기 위한 안전장치)
-                    suspicious_empty = (not err) and (not new_used) and bool((old_used or "").strip())
+                    old_was_empty = not bool((old_used or "").strip())
+                    new_is_empty = not new_used
+                    # 룰베이스(old)와 LLM(new)이 둘 다 "재료 없음"에 동의하면 → 애초에 레시피가
+                    # 아닌 본문(홍보 영상 등)일 가능성이 높으므로 행 자체를 삭제한다.
+                    # old에는 재료가 있었는데 new만 비어 있는 경우는 "동의"가 아니라 LLM 쪽의
+                    # 파싱 실패/이상 응답일 수 있어 삭제하지 않고 검토 대상으로만 남긴다
+                    # (기존 값을 그대로 보존 — 위 id=1326 사고와 동일한 패턴이라 신뢰하지 않음).
+                    should_delete = (not err) and new_is_empty and old_was_empty
+                    suspicious_empty = (not err) and new_is_empty and not old_was_empty
                     if err:
                         changed_label = "ERROR"
                         added, removed = "", ""
                         display_new_used = old_used
                         errors += 1
+                    elif should_delete:
+                        changed_label = "DELETED"
+                        added, removed = "", ""
+                        display_new_used = ""
                     elif suspicious_empty:
                         changed_label = "NEEDS_REVIEW"
                         added, removed = "", ""
@@ -334,7 +344,11 @@ def run(*, limit, start_after_id, order, output_path, commit, rpm, concurrency, 
                     })
                     f.flush()
 
-                    if commit and not err and not suspicious_empty:
+                    if commit and should_delete:
+                        write_cursor.execute("DELETE FROM recipes WHERE id = %s", (rid,))
+                        deleted_count += 1
+                        since_commit += 1
+                    elif commit and not err and not suspicious_empty:
                         write_cursor.execute(
                             "UPDATE recipes SET used_ingredients = %s WHERE id = %s",
                             (new_used, rid),
@@ -357,7 +371,11 @@ def run(*, limit, start_after_id, order, output_path, commit, rpm, concurrency, 
         if write_conn:
             write_conn.close()
 
-    print(f"완료. 처리 {len(rows)}건, 재료 집합 변경 {changed_count}건, LLM 오류 {errors}건", flush=True)
+    print(
+        f"완료. 처리 {len(rows)}건, 재료 집합 변경 {changed_count}건, "
+        f"레시피 아님(삭제) {deleted_count}건, LLM 오류 {errors}건",
+        flush=True,
+    )
     print(f"미리보기 CSV: {output_path}", flush=True)
     if commit:
         print("DB에 반영했습니다 (used_ingredients).", flush=True)
