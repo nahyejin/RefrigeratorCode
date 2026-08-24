@@ -1,0 +1,374 @@
+"""
+LLM(Gemini)으로 recipes.content에서 "실제로 요리에 쓰이는 재료"를 뽑아내고,
+기존 재료 사전(ingredient_profile_dict_with_substitutes.csv)으로 정규화해서
+used_ingredients를 다시 만드는 스크립트.
+
+역할 분리:
+- LLM: 지저분한 본문을 읽고 "이 레시피에 실제로 필요한 재료가 뭔지" 자연어로 이해해서 뽑아냄
+  (기존 update_used_ingredients_batch.py의 룰베이스가 못하는 부분)
+- 사전(dict) 매칭: LLM이 뽑은 재료명을 사전의 대표 keyword로 정규화 (100% 결정론적, LLM 관여 없음)
+  → 사전에 없는 건 버리고 "사전 후보"로만 CSV에 남김 (used_ingredients에는 안 들어감)
+
+출력 포맷은 기존과 동일하게 유지한다: 콤마 구분, 공백 없음, 정렬됨.
+→ 프론트 pill 매칭(split(','))과 백엔드 매칭률 SQL(FIND_IN_SET)을 손댈 필요 없음.
+
+기본은 미리보기(CSV)만 만들고 DB는 건드리지 않는다. DB 반영은 --commit을 명시해야 한다.
+
+사용 예:
+  # 소량 샘플로 품질 확인 (DB 미반영)
+  python -u ingredient_management/llm_ingredient_extraction.py --limit 20
+
+  # 이어서 처리 (id 100 초과부터)
+  python -u ingredient_management/llm_ingredient_extraction.py --limit 500 --start-after-id 100
+
+  # 실제 DB 반영 (신중하게, 먼저 --limit으로 소량 검증 후)
+  python -u ingredient_management/llm_ingredient_extraction.py --limit 500 --commit
+"""
+
+import argparse
+import csv
+import json
+import os
+import re
+import sys
+import threading
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime
+
+import pandas as pd
+import pymysql
+import requests
+
+try:
+    from dotenv import load_dotenv
+except ImportError:  # pragma: no cover
+    load_dotenv = None
+
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _PROJECT_ROOT not in sys.path:
+    sys.path.append(_PROJECT_ROOT)
+
+from ingredient_management.update_used_ingredients_batch import (
+    _connect_db,
+    _used_ingredient_token_set,
+)
+
+CONTENT_CHAR_LIMIT = 4000  # 본문이 너무 길면 앞부분만 (재료는 보통 본문 앞쪽에 나옴)
+_INGREDIENT_CSV = os.path.join(
+    _PROJECT_ROOT, "frontend", "public", "ingredient_profile_dict_with_substitutes.csv"
+)
+
+
+def _normalize_key(name):
+    return re.sub(r"\s+", "", str(name).strip())
+
+
+def load_alias_to_canonical():
+    """사전 CSV에서 (동의어 포함) 이름 -> 대표 keyword 매핑을 만든다. LLM 관여 없는 순수 결정론적 매핑."""
+    df = pd.read_csv(_INGREDIENT_CSV, encoding="utf-8")
+    if "1keyword" in df.columns:
+        df = df.rename(columns={"1keyword": "keyword"})
+    df = df[df["대분류"].isin(["재료", "포장/제품"])]
+
+    alias_to_canonical = {}
+    for _, row in df.iterrows():
+        if pd.isna(row["keyword"]):
+            continue
+        canonical = str(row["keyword"]).strip()
+        if not canonical:
+            continue
+        synonyms = str(row["synonyms"]).split(", ") if not pd.isna(row["synonyms"]) else []
+        for name in [canonical] + synonyms:
+            key = _normalize_key(name)
+            if key:
+                alias_to_canonical[key] = canonical
+    return alias_to_canonical
+
+
+def _extract_json_array(text):
+    if not text:
+        return []
+    cleaned = text.strip()
+    fenced = re.search(r"```(?:json)?\s*([\s\S]*?)```", cleaned)
+    if fenced:
+        cleaned = fenced.group(1).strip()
+    try:
+        data = json.loads(cleaned)
+    except json.JSONDecodeError:
+        match = re.search(r"\[[\s\S]*\]", cleaned)
+        if not match:
+            return []
+        try:
+            data = json.loads(match.group(0))
+        except json.JSONDecodeError:
+            return []
+    if isinstance(data, dict):
+        # 혹시 {"ingredients": [...]} 형태로 나와도 복구
+        for v in data.values():
+            if isinstance(v, list):
+                data = v
+                break
+    if not isinstance(data, list):
+        return []
+    return [str(x).strip() for x in data if str(x).strip()]
+
+
+PROMPT_TEMPLATE = """너는 레시피 본문에서 실제로 요리에 사용되는 재료만 뽑아내는 어시스턴트다.
+
+아래는 블로그/영상 설명에서 가져온 레시피 본문이다.
+
+본문:
+{content}
+
+규칙:
+- 실제로 이 요리를 만드는 데 쓰이는 재료만 포함한다 (양념/조미료 포함).
+- 재료 이름만 적는다. 수량, 단위, 손질법, 괄호 설명은 빼고 순수 재료명만.
+- 완성 사진 캡션, 다른 레시피 추천, 광고/구독 유도 문구에서 나온 단어는 재료가 아니면 제외한다.
+- 같은 재료가 여러 번 나오면 한 번만 적는다.
+- 확신이 없으면 포함하지 않는다. 본문에 재료가 안 보이면 빈 배열을 출력한다.
+
+아래 JSON 배열만 출력해라. 다른 텍스트는 출력하지 마라.
+예: ["돼지고기", "김치", "대파", "고춧가루"]
+"""
+
+
+class GeminiExtractor:
+    def __init__(self, api_key, model="gemini-3.5-flash-lite", rpm=60):
+        self.api_key = api_key
+        self.model = model
+        self._lock = threading.Lock()
+        self._min_interval = 60.0 / max(1, rpm)
+        self._last_call = 0.0
+
+    def _throttle(self):
+        with self._lock:
+            now = time.monotonic()
+            wait = self._last_call + self._min_interval - now
+            if wait > 0:
+                time.sleep(wait)
+            self._last_call = time.monotonic()
+
+    def extract(self, content, retries=3):
+        text = (content or "")[:CONTENT_CHAR_LIMIT]
+        prompt = PROMPT_TEMPLATE.format(content=text)
+        url = (
+            f"https://generativelanguage.googleapis.com/v1beta/models/"
+            f"{self.model}:generateContent?key={self.api_key}"
+        )
+        payload = {
+            "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+            "generationConfig": {"temperature": 0.1, "responseMimeType": "application/json"},
+        }
+        last_err = None
+        for attempt in range(retries):
+            self._throttle()
+            try:
+                res = requests.post(url, json=payload, timeout=30)
+                if res.status_code in (429, 500, 503):
+                    last_err = f"HTTP {res.status_code}"
+                    time.sleep(2 ** attempt)
+                    continue
+                res.raise_for_status()
+                data = res.json()
+                parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
+                raw = "".join(p.get("text", "") for p in parts)
+                return _extract_json_array(raw), None
+            except Exception as e:  # noqa: BLE001
+                last_err = str(e)
+                time.sleep(2 ** attempt)
+        return [], last_err
+
+
+def normalize_llm_ingredients(raw_ingredients, alias_to_canonical):
+    canonical_set = set()
+    unmapped = []
+    for name in raw_ingredients:
+        key = _normalize_key(name)
+        if not key:
+            continue
+        canonical = alias_to_canonical.get(key)
+        if canonical:
+            canonical_set.add(canonical)
+        else:
+            unmapped.append(name)
+    used_str = ",".join(sorted(canonical_set)) if canonical_set else None
+    return used_str, unmapped
+
+
+def _load_env_files():
+    if load_dotenv is None:
+        return
+    load_dotenv(os.path.join(_PROJECT_ROOT, "backend", ".env"))
+    load_dotenv(os.path.join(_PROJECT_ROOT, ".env"))
+
+
+def _default_output_path(limit):
+    stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    return os.path.join(
+        _PROJECT_ROOT, "ingredient_management", f"llm_used_ingredients_preview_{limit}_{stamp}.csv"
+    )
+
+
+def _preview_text(text, limit=500):
+    text = (text or "").replace("\r\n", "\n").replace("\r", "\n")
+    return text[:limit]
+
+
+def run(*, limit, start_after_id, order, output_path, commit, rpm, concurrency, model):
+    _load_env_files()
+    api_key = (os.getenv("GEMINI_API_KEY") or "").strip()
+    if not api_key:
+        raise SystemExit("GEMINI_API_KEY가 필요합니다 (backend/.env 또는 .env).")
+
+    alias_to_canonical = load_alias_to_canonical()
+    extractor = GeminiExtractor(api_key, model=model, rpm=rpm)
+
+    order_clause = "id DESC" if order == "recent" else "id ASC"
+    where_clause = f"WHERE id > {int(start_after_id)}" if start_after_id else ""
+
+    conn = _connect_db(read_timeout_sec=120)
+    cursor = conn.cursor()
+    cursor.execute(
+        f"""
+        SELECT id, title, link, platform, used_ingredients, content
+        FROM recipes
+        {where_clause}
+        ORDER BY {order_clause}
+        LIMIT %s
+        """,
+        (limit,),
+    )
+    rows = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    print(f"대상 {len(rows)}건, model={model}, rpm={rpm}, concurrency={concurrency}, commit={commit}", flush=True)
+
+    fieldnames = [
+        "id", "title", "platform", "link", "changed",
+        "old_used_ingredients", "new_used_ingredients",
+        "added_ingredients", "removed_ingredients",
+        "llm_raw_ingredients", "unmapped_ingredients",
+        "error", "content_preview",
+    ]
+
+    results = {}
+    errors = 0
+    lock = threading.Lock()
+
+    def process(row):
+        raw, err = extractor.extract(row.get("content") or "")
+        new_used, unmapped = normalize_llm_ingredients(raw, alias_to_canonical)
+        return row["id"], raw, new_used, unmapped, err
+
+    with ThreadPoolExecutor(max_workers=max(1, concurrency)) as pool:
+        futures = {pool.submit(process, row): row for row in rows}
+        done = 0
+        for fut in as_completed(futures):
+            row = futures[fut]
+            try:
+                rid, raw, new_used, unmapped, err = fut.result()
+            except Exception as e:  # noqa: BLE001
+                rid, raw, new_used, unmapped, err = row["id"], [], None, [], str(e)
+            with lock:
+                results[rid] = (raw, new_used, unmapped, err)
+                if err:
+                    errors += 1
+                done += 1
+                if done % 10 == 0 or done == len(rows):
+                    print(f"  진행: {done}/{len(rows)} (오류 {errors}건)", flush=True)
+
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    write_conn = _connect_db(read_timeout_sec=120) if commit else None
+    write_cursor = write_conn.cursor() if write_conn else None
+    changed_count = 0
+
+    try:
+        with open(output_path, "w", encoding="utf-8-sig", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            for row in rows:
+                raw, new_used, unmapped, err = results.get(row["id"], ([], None, [], "no result"))
+                old_used = row.get("used_ingredients")
+
+                if err:
+                    # 오류난 행은 old_used를 그대로 유지 (DB 미반영) — "변경됨"으로 오표시하지 않는다
+                    changed_label = "ERROR"
+                    added, removed = "", ""
+                    display_new_used = old_used
+                else:
+                    old_set = _used_ingredient_token_set(old_used)
+                    new_set = _used_ingredient_token_set(new_used)
+                    changed = old_set != new_set
+                    if changed:
+                        changed_count += 1
+                    changed_label = "Y" if changed else "N"
+                    added = ",".join(sorted(new_set - old_set))
+                    removed = ",".join(sorted(old_set - new_set))
+                    display_new_used = new_used
+
+                writer.writerow({
+                    "id": row["id"],
+                    "title": row.get("title"),
+                    "platform": row.get("platform"),
+                    "link": row.get("link"),
+                    "changed": changed_label,
+                    "old_used_ingredients": old_used,
+                    "new_used_ingredients": display_new_used,
+                    "added_ingredients": added,
+                    "removed_ingredients": removed,
+                    "llm_raw_ingredients": ", ".join(raw),
+                    "unmapped_ingredients": ", ".join(unmapped),
+                    "error": err or "",
+                    "content_preview": _preview_text(row.get("content")),
+                })
+
+                if commit and not err:
+                    write_cursor.execute(
+                        "UPDATE recipes SET used_ingredients = %s WHERE id = %s",
+                        (new_used, row["id"]),
+                    )
+        if commit:
+            write_conn.commit()
+    finally:
+        if write_cursor:
+            write_cursor.close()
+        if write_conn:
+            write_conn.close()
+
+    print(f"완료. 처리 {len(rows)}건, 재료 집합 변경 {changed_count}건, LLM 오류 {errors}건", flush=True)
+    print(f"미리보기 CSV: {output_path}", flush=True)
+    if commit:
+        print("DB에 반영했습니다 (used_ingredients).", flush=True)
+    else:
+        print("DB 미반영 (미리보기만). 반영하려면 --commit 을 추가하세요.", flush=True)
+
+
+def main():
+    parser = argparse.ArgumentParser(description="LLM 기반 used_ingredients 재추출 (사전으로 정규화)")
+    parser.add_argument("--limit", type=int, default=20, help="처리할 recipes 행 수")
+    parser.add_argument("--start-after-id", type=int, default=0, help="이 id보다 큰 행부터 (이어서 처리용)")
+    parser.add_argument("--order", choices=["id", "recent"], default="id")
+    parser.add_argument("--output", help="CSV 저장 경로")
+    parser.add_argument("--commit", action="store_true", help="DB에 실제로 반영 (기본은 미리보기만)")
+    parser.add_argument("--rpm", type=int, default=60, help="분당 최대 LLM 호출 수")
+    parser.add_argument("--concurrency", type=int, default=4, help="동시 호출 스레드 수")
+    parser.add_argument("--model", default="gemini-3.5-flash-lite")
+    args = parser.parse_args()
+
+    output_path = args.output or _default_output_path(args.limit)
+    run(
+        limit=args.limit,
+        start_after_id=args.start_after_id,
+        order=args.order,
+        output_path=output_path,
+        commit=args.commit,
+        rpm=args.rpm,
+        concurrency=args.concurrency,
+        model=args.model,
+    )
+
+
+if __name__ == "__main__":
+    main()
