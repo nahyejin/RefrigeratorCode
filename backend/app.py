@@ -1027,8 +1027,9 @@ def naver_callback():
         
         if not email:
             email = f"naver_{response_data.get('id')}@naver.com"
-        if not nickname:
-            nickname = f"네이버사용자_{response_data.get('id')}"
+        # 네이버는 별명을 '9208****' 처럼 마스킹해서 내려주는 경우가 있어 그대로 쓰면 안 됨
+        if not nickname or '*' in nickname:
+            nickname = email.split('@')[0] or f"네이버사용자_{response_data.get('id')}"
         
         # 사용자 조회 또는 생성
         user = get_or_create_user(
