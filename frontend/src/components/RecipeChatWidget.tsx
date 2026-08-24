@@ -161,6 +161,27 @@ const RecipeChatWidget: React.FC = () => {
   const [error, setError] = useState('');
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [viewportInfo, setViewportInfo] = useState<{ height: number; keyboardInset: number } | null>(null);
+
+  // 모바일 키보드가 뜨면 visualViewport가 줄어드는데, 100vh 기준 높이는 이걸 반영하지
+  // 못해서 패널 위쪽이 키보드 뒤로 잘려 보인다 — 실제 보이는 뷰포트를 추적해서
+  // 패널 높이/위치를 그때그때 맞춘다.
+  useEffect(() => {
+    if (!open) return;
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const update = () => {
+      const keyboardInset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      setViewportInfo({ height: vv.height, keyboardInset });
+    };
+    update();
+    vv.addEventListener('resize', update);
+    vv.addEventListener('scroll', update);
+    return () => {
+      vv.removeEventListener('resize', update);
+      vv.removeEventListener('scroll', update);
+    };
+  }, [open]);
 
   const hideOnAuth =
     location.pathname.startsWith('/login') ||
@@ -282,6 +303,12 @@ const RecipeChatWidget: React.FC = () => {
     void sendMessage(input);
   };
 
+  const keyboardOpen = !!viewportInfo && viewportInfo.keyboardInset > 60;
+  const panelBottom = keyboardOpen ? viewportInfo!.keyboardInset + 8 : 76;
+  const panelHeight = viewportInfo
+    ? Math.min(Math.max(320, viewportInfo.height - panelBottom - 16), 640)
+    : 'min(80dvh, 640px)';
+
   return (
     <>
       {open && (
@@ -295,12 +322,13 @@ const RecipeChatWidget: React.FC = () => {
         <section
           className="fixed left-3 right-3 z-[10040] flex flex-col bg-white overflow-hidden"
           style={{
-            bottom: 76,
+            bottom: panelBottom,
             maxWidth: 420,
             margin: '0 auto',
-            height: 'min(84vh, 700px)',
+            height: panelHeight,
             borderRadius: 16,
             boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+            transition: 'bottom 120ms ease-out, height 120ms ease-out',
           }}
           onClick={(e) => e.stopPropagation()}
         >
@@ -388,7 +416,7 @@ const RecipeChatWidget: React.FC = () => {
           </header>
 
           {view === 'history' ? (
-            <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
+            <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2" style={{ minHeight: 0 }}>
               {threads.length === 0 && (
                 <p className="text-xs text-gray-400 text-center py-10" style={{ textShadow: 'none' }}>
                   최근 {HISTORY_RETENTION_DAYS}일 안에 나눈 대화가 없어요.
@@ -433,7 +461,7 @@ const RecipeChatWidget: React.FC = () => {
               ))}
             </div>
           ) : (
-            <div ref={listRef} className="flex-1 overflow-y-auto px-3 py-3 space-y-3">
+            <div ref={listRef} className="flex-1 overflow-y-auto px-3 py-3 space-y-3" style={{ minHeight: 0 }}>
               {messages.length === 0 && (
                 <div className="space-y-2">
                   <p className="text-xs text-gray-500" style={{ textShadow: 'none' }}>
