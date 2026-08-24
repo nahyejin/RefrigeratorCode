@@ -149,7 +149,7 @@ class GeminiExtractor:
                 time.sleep(wait)
             self._last_call = time.monotonic()
 
-    def extract(self, content, retries=3):
+    def extract(self, content, retries=5):
         text = (content or "")[:CONTENT_CHAR_LIMIT]
         prompt = PROMPT_TEMPLATE.format(content=text)
         url = (
@@ -215,7 +215,7 @@ def _preview_text(text, limit=500):
     return text[:limit]
 
 
-def run(*, limit, start_after_id, order, output_path, commit, rpm, concurrency, model):
+def run(*, limit, start_after_id, order, output_path, commit, rpm, concurrency, model, ids=None):
     _load_env_files()
     api_key = (os.getenv("GEMINI_API_KEY") or "").strip()
     if not api_key:
@@ -224,21 +224,31 @@ def run(*, limit, start_after_id, order, output_path, commit, rpm, concurrency, 
     alias_to_canonical = load_alias_to_canonical()
     extractor = GeminiExtractor(api_key, model=model, rpm=rpm)
 
-    order_clause = "id DESC" if order == "recent" else "id ASC"
-    where_clause = f"WHERE id > {int(start_after_id)}" if start_after_id else ""
-
     conn = _connect_db(read_timeout_sec=120)
     cursor = conn.cursor()
-    cursor.execute(
-        f"""
-        SELECT id, title, link, platform, used_ingredients, content
-        FROM recipes
-        {where_clause}
-        ORDER BY {order_clause}
-        LIMIT %s
-        """,
-        (limit,),
-    )
+    if ids:
+        placeholders = ",".join(["%s"] * len(ids))
+        cursor.execute(
+            f"""
+            SELECT id, title, link, platform, used_ingredients, content
+            FROM recipes
+            WHERE id IN ({placeholders})
+            """,
+            tuple(ids),
+        )
+    else:
+        order_clause = "id DESC" if order == "recent" else "id ASC"
+        where_clause = f"WHERE id > {int(start_after_id)}" if start_after_id else ""
+        cursor.execute(
+            f"""
+            SELECT id, title, link, platform, used_ingredients, content
+            FROM recipes
+            {where_clause}
+            ORDER BY {order_clause}
+            LIMIT %s
+            """,
+            (limit,),
+        )
     rows = cursor.fetchall()
     cursor.close()
     conn.close()
@@ -253,83 +263,86 @@ def run(*, limit, start_after_id, order, output_path, commit, rpm, concurrency, 
         "error", "content_preview",
     ]
 
-    results = {}
-    errors = 0
-    lock = threading.Lock()
-
     def process(row):
         raw, err = extractor.extract(row.get("content") or "")
         new_used, unmapped = normalize_llm_ingredients(raw, alias_to_canonical)
         return row["id"], raw, new_used, unmapped, err
 
-    with ThreadPoolExecutor(max_workers=max(1, concurrency)) as pool:
-        futures = {pool.submit(process, row): row for row in rows}
-        done = 0
-        for fut in as_completed(futures):
-            row = futures[fut]
-            try:
-                rid, raw, new_used, unmapped, err = fut.result()
-            except Exception as e:  # noqa: BLE001
-                rid, raw, new_used, unmapped, err = row["id"], [], None, [], str(e)
-            with lock:
-                results[rid] = (raw, new_used, unmapped, err)
-                if err:
-                    errors += 1
-                done += 1
-                if done % 10 == 0 or done == len(rows):
-                    print(f"  진행: {done}/{len(rows)} (오류 {errors}건)", flush=True)
-
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     write_conn = _connect_db(read_timeout_sec=120) if commit else None
     write_cursor = write_conn.cursor() if write_conn else None
     changed_count = 0
+    errors = 0
+    done = 0
+    since_commit = 0
 
+    # 결과가 완료되는 대로 즉시 CSV에 쓰고(flush) DB에도 바로 반영한다.
+    # (한 번에 다 모았다가 마지막에 몰아 쓰면, 중간에 죽었을 때 그동안 처리한 게 전부 날아간다)
     try:
         with open(output_path, "w", encoding="utf-8-sig", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
-            for row in rows:
-                raw, new_used, unmapped, err = results.get(row["id"], ([], None, [], "no result"))
-                old_used = row.get("used_ingredients")
 
-                if err:
-                    # 오류난 행은 old_used를 그대로 유지 (DB 미반영) — "변경됨"으로 오표시하지 않는다
-                    changed_label = "ERROR"
-                    added, removed = "", ""
-                    display_new_used = old_used
-                else:
-                    old_set = _used_ingredient_token_set(old_used)
-                    new_set = _used_ingredient_token_set(new_used)
-                    changed = old_set != new_set
-                    if changed:
-                        changed_count += 1
-                    changed_label = "Y" if changed else "N"
-                    added = ",".join(sorted(new_set - old_set))
-                    removed = ",".join(sorted(old_set - new_set))
-                    display_new_used = new_used
+            with ThreadPoolExecutor(max_workers=max(1, concurrency)) as pool:
+                futures = {pool.submit(process, row): row for row in rows}
+                for fut in as_completed(futures):
+                    row = futures[fut]
+                    try:
+                        rid, raw, new_used, unmapped, err = fut.result()
+                    except Exception as e:  # noqa: BLE001
+                        rid, raw, new_used, unmapped, err = row["id"], [], None, [], str(e)
 
-                writer.writerow({
-                    "id": row["id"],
-                    "title": row.get("title"),
-                    "platform": row.get("platform"),
-                    "link": row.get("link"),
-                    "changed": changed_label,
-                    "old_used_ingredients": old_used,
-                    "new_used_ingredients": display_new_used,
-                    "added_ingredients": added,
-                    "removed_ingredients": removed,
-                    "llm_raw_ingredients": ", ".join(raw),
-                    "unmapped_ingredients": ", ".join(unmapped),
-                    "error": err or "",
-                    "content_preview": _preview_text(row.get("content")),
-                })
+                    old_used = row.get("used_ingredients")
+                    if err:
+                        # 오류난 행은 old_used를 그대로 유지 (DB 미반영) — "변경됨"으로 오표시하지 않는다
+                        changed_label = "ERROR"
+                        added, removed = "", ""
+                        display_new_used = old_used
+                        errors += 1
+                    else:
+                        old_set = _used_ingredient_token_set(old_used)
+                        new_set = _used_ingredient_token_set(new_used)
+                        changed = old_set != new_set
+                        if changed:
+                            changed_count += 1
+                        changed_label = "Y" if changed else "N"
+                        added = ",".join(sorted(new_set - old_set))
+                        removed = ",".join(sorted(old_set - new_set))
+                        display_new_used = new_used
 
-                if commit and not err:
-                    write_cursor.execute(
-                        "UPDATE recipes SET used_ingredients = %s WHERE id = %s",
-                        (new_used, row["id"]),
-                    )
-        if commit:
+                    writer.writerow({
+                        "id": rid,
+                        "title": row.get("title"),
+                        "platform": row.get("platform"),
+                        "link": row.get("link"),
+                        "changed": changed_label,
+                        "old_used_ingredients": old_used,
+                        "new_used_ingredients": display_new_used,
+                        "added_ingredients": added,
+                        "removed_ingredients": removed,
+                        "llm_raw_ingredients": ", ".join(raw),
+                        "unmapped_ingredients": ", ".join(unmapped),
+                        "error": err or "",
+                        "content_preview": _preview_text(row.get("content")),
+                    })
+                    f.flush()
+
+                    if commit and not err:
+                        write_cursor.execute(
+                            "UPDATE recipes SET used_ingredients = %s WHERE id = %s",
+                            (new_used, rid),
+                        )
+                        since_commit += 1
+                        # 장시간 배치에서 중간에 죽어도 그동안 처리한 건 DB에 남도록 주기적으로 커밋
+                        if since_commit >= 30:
+                            write_conn.commit()
+                            since_commit = 0
+
+                    done += 1
+                    if done % 10 == 0 or done == len(rows):
+                        print(f"  진행: {done}/{len(rows)} (오류 {errors}건, 마지막 id={rid})", flush=True)
+
+        if commit and since_commit > 0:
             write_conn.commit()
     finally:
         if write_cursor:
@@ -355,8 +368,10 @@ def main():
     parser.add_argument("--rpm", type=int, default=60, help="분당 최대 LLM 호출 수")
     parser.add_argument("--concurrency", type=int, default=4, help="동시 호출 스레드 수")
     parser.add_argument("--model", default="gemini-3.5-flash-lite")
+    parser.add_argument("--ids", help="콤마로 구분된 recipe id 목록 (실패한 행만 재시도할 때 사용)")
     args = parser.parse_args()
 
+    ids = [int(x) for x in args.ids.split(",") if x.strip()] if args.ids else None
     output_path = args.output or _default_output_path(args.limit)
     run(
         limit=args.limit,
@@ -367,6 +382,7 @@ def main():
         rpm=args.rpm,
         concurrency=args.concurrency,
         model=args.model,
+        ids=ids,
     )
 
 

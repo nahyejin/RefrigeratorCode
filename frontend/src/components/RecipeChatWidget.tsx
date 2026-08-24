@@ -310,7 +310,7 @@ const RecipeChatWidget: React.FC = () => {
                       AI 요리 챗
                     </p>
                     <p className="text-[11px] text-gray-400 truncate" style={{ textShadow: 'none' }}>
-                      냉장고 재료로 레시피를 찾아드려요
+                      오늘 뭐 먹을지, 냉장고 재료로 같이 찾아볼게요 🍳
                     </p>
                   </div>
                 </>
