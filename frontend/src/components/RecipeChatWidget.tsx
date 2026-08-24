@@ -25,6 +25,21 @@ type ChatRecipe = {
   match_rate: number;
 };
 
+const SparklesIcon: React.FC<{ size?: number; className?: string }> = ({ size = 24, className }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
+    <path
+      className="ai-fab-icon-main"
+      d="M9.81 15.9L9 18.75l-.81-2.85a4.5 4.5 0 00-3.09-3.09L2.25 12l2.85-.81a4.5 4.5 0 003.09-3.09L9 5.25l.81 2.85a4.5 4.5 0 003.09 3.09l2.85.81-2.85.81a4.5 4.5 0 00-3.09 3.09z"
+      fill="currentColor"
+    />
+    <path
+      className="ai-fab-icon-spark"
+      d="M18.26 8.72L18 9.75l-.26-1.03a3.38 3.38 0 00-2.46-2.46L14.25 6l1.03-.26a3.38 3.38 0 002.46-2.46L18 2.25l.26 1.03a3.38 3.38 0 002.46 2.46L21.75 6l-1.03.26a3.38 3.38 0 00-2.46 2.46z"
+      fill="currentColor"
+    />
+  </svg>
+);
+
 type ChatMessage = {
   role: 'user' | 'assistant';
   content: string;
@@ -170,13 +185,26 @@ const RecipeChatWidget: React.FC = () => {
           onClick={(e) => e.stopPropagation()}
         >
           <header className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-            <div>
-              <p className="text-sm font-bold text-gray-900" style={{ textShadow: 'none' }}>
-                요리 챗
-              </p>
-              <p className="text-[11px] text-gray-400" style={{ textShadow: 'none' }}>
-                냉장고 재료로 레시피를 찾아드려요
-              </p>
+            <div className="flex items-center gap-2">
+              <div
+                className="flex items-center justify-center flex-shrink-0"
+                style={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: 9999,
+                  background: 'linear-gradient(135deg, #2a2a2c 0%, #0d0d0e 60%, #000 100%)',
+                }}
+              >
+                <SparklesIcon size={16} />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-gray-900" style={{ textShadow: 'none' }}>
+                  AI 요리 챗
+                </p>
+                <p className="text-[11px] text-gray-400" style={{ textShadow: 'none' }}>
+                  냉장고 재료로 레시피를 찾아드려요
+                </p>
+              </div>
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -227,9 +255,23 @@ const RecipeChatWidget: React.FC = () => {
             {messages.map((msg, index) => (
               <div
                 key={`${msg.role}-${index}`}
-                className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                className={`flex items-start gap-1.5 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
-                <div className={`max-w-[88%] ${msg.role === 'user' ? '' : 'w-full'}`}>
+                {msg.role === 'assistant' && (
+                  <div
+                    className="flex items-center justify-center flex-shrink-0"
+                    style={{
+                      width: 22,
+                      height: 22,
+                      marginTop: 1,
+                      borderRadius: 9999,
+                      background: 'linear-gradient(135deg, #2a2a2c 0%, #0d0d0e 60%, #000 100%)',
+                    }}
+                  >
+                    <SparklesIcon size={13} />
+                  </div>
+                )}
+                <div className={`max-w-[82%] ${msg.role === 'user' ? '' : 'w-full'}`}>
                   <div
                     className={`text-[13px] leading-5 px-3 py-2 rounded-2xl whitespace-pre-wrap ${
                       msg.role === 'user'
@@ -319,30 +361,19 @@ const RecipeChatWidget: React.FC = () => {
       )}
 
       {!open && (
-        <button
-          type="button"
-          aria-label="요리 챗 열기"
-          className="fixed z-[10050] text-white shadow-lg"
-          style={{
-            right: 16,
-            bottom: 80,
-            width: 56,
-            height: 56,
-            padding: 0,
-            borderRadius: 9999,
-            background: '#222',
-            border: 'none',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-          onClick={() => setOpen(true)}
-        >
-          <span className="text-[11px] font-bold leading-tight" style={{ textShadow: 'none' }}>
-            챗
-          </span>
-        </button>
+        <div className="ai-fab-outer">
+          <div className="ai-fab-glow" />
+          <div className="ai-fab-ring-spin" />
+          <button
+            type="button"
+            aria-label="AI 요리 챗봇 열기"
+            className="ai-fab-button"
+            onClick={() => setOpen(true)}
+          >
+            <SparklesIcon size={24} />
+          </button>
+          <span className="ai-fab-badge" style={{ textShadow: 'none' }}>AI</span>
+        </div>
       )}
     </>
   );
