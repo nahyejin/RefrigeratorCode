@@ -1,7 +1,0 @@
-{
-  "dependencies": {
-    "@types/rc-slider": "^9.3.0",
-    "rc-slider": "^11.1.8",
-    "react-loader-spinner": "^6.1.6"
-  }
-}
