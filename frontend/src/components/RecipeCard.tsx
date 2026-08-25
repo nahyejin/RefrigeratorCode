@@ -408,13 +408,21 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
             fontSize: 13,
           }}
         >
-          {lackingIngredients.length === 0 ? (
-            <>바로 만들 수 있어요</>
-          ) : (
-            <>
-              <span>{lackingIngredients.length}개만 더</span>
-              <span style={{ opacity: 0.55, fontWeight: 500, fontSize: 12 }}>· {match.rate}%</span>
-            </>
+          <span style={{ fontWeight: 500, fontSize: 12, opacity: 0.75 }}>재료 매칭률</span>
+          <span
+            style={{
+              fontWeight: 800,
+              fontSize: 16,
+              letterSpacing: '0.2px',
+              color: lackingIngredients.length === 0 ? 'var(--ink-900)' : 'var(--brand)',
+            }}
+          >
+            {match.rate}%
+          </span>
+          {lackingIngredients.length > 0 && (
+            <span style={{ opacity: 0.6, fontWeight: 500, fontSize: 12 }}>
+              · {lackingIngredients.length}개 부족
+            </span>
           )}
         </div>
         {/* 플랫폼 로고 */}
