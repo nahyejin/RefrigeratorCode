@@ -1,6 +1,7 @@
 import * as React from 'react';
 import Portal from '../Portal';
 import Button from './Button';
+import CloseButton from './CloseButton';
 
 export interface DialogAction {
   label: string;
@@ -21,6 +22,8 @@ interface DialogProps {
   /** 배경 클릭으로 닫기 (기본 true) */
   closeOnBackdrop?: boolean;
   width?: number;
+  /** actions 가 비었을 때 하단에 자동으로 넣는 나가기 버튼의 문구 */
+  dismissLabel?: string;
 }
 
 /**
@@ -40,6 +43,7 @@ const Dialog: React.FC<DialogProps> = ({
   children,
   actions = [],
   showClose = true,
+  dismissLabel = '취소',
   closeOnBackdrop = true,
   width = 340,
 }) => {
@@ -92,32 +96,7 @@ const Dialog: React.FC<DialogProps> = ({
           animation: 'dialog-pop 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
         }}
       >
-        {showClose && (
-          <button
-            type="button"
-            aria-label="닫기"
-            onClick={onClose}
-            style={{
-              position: 'absolute',
-              top: 8,
-              right: 8,
-              width: 40,
-              height: 40,
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: 'transparent',
-              border: 'none',
-              borderRadius: 9999,
-              cursor: 'pointer',
-              color: 'var(--ink-500)',
-            }}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-              <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-            </svg>
-          </button>
-        )}
+        {showClose && <CloseButton onClick={onClose} />}
 
         {title && (
           <div
@@ -150,9 +129,15 @@ const Dialog: React.FC<DialogProps> = ({
           </div>
         )}
 
-        {actions.length > 0 && (
-          <div style={{ display: 'flex', gap: 8 }}>
-            {actions.map((a, i) => (
+        {/* 하단에는 항상 나갈 수 있는 버튼이 있어야 한다.
+            (팝업마다 나갈 방법이 있는 곳/없는 곳이 섞여 있던 문제) */}
+        <div style={{ display: 'flex', gap: 8 }}>
+          {actions.length === 0 ? (
+            <Button variant="outline" size="md" block onClick={onClose}>
+              {dismissLabel}
+            </Button>
+          ) : (
+            actions.map((a, i) => (
               <Button
                 key={a.label}
                 variant={a.variant || (i === actions.length - 1 ? 'primary' : 'outline')}
@@ -162,9 +147,9 @@ const Dialog: React.FC<DialogProps> = ({
               >
                 {a.label}
               </Button>
-            ))}
-          </div>
-        )}
+            ))
+          )}
+        </div>
       </div>
     </Portal>
   );

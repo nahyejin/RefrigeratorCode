@@ -1,5 +1,7 @@
 import * as React from 'react';
 import Portal from '../Portal';
+import Button from './Button';
+import CloseButton from './CloseButton';
 
 interface SheetProps {
   open: boolean;
@@ -10,6 +12,8 @@ interface SheetProps {
   children: React.ReactNode;
   /** 화면 높이 대비 최대 높이 (기본 88%) */
   maxHeight?: string;
+  /** footer 가 없을 때 하단에 자동으로 넣는 나가기 버튼 문구 */
+  dismissLabel?: string;
 }
 
 /**
@@ -28,6 +32,7 @@ const Sheet: React.FC<SheetProps> = ({
   footer,
   children,
   maxHeight = '88dvh',
+  dismissLabel = '닫기',
 }) => {
   // 시트가 열려 있는 동안 뒤 페이지 스크롤 잠금
   React.useEffect(() => {
@@ -76,10 +81,11 @@ const Sheet: React.FC<SheetProps> = ({
           paddingBottom: 'env(safe-area-inset-bottom)',
         }}
       >
-        {/* 손잡이 */}
+        {/* 손잡이 + 우상단 닫기 (모든 팝업에 X 가 있어야 한다는 규칙) */}
         <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0 2px' }}>
           <span style={{ width: 40, height: 4, borderRadius: 9999, background: 'var(--line-300)' }} />
         </div>
+        <CloseButton onClick={onClose} style={{ top: 8, right: 10 }} />
 
         {title && (
           <div
@@ -99,9 +105,14 @@ const Sheet: React.FC<SheetProps> = ({
           {children}
         </div>
 
-        {footer && (
-          <div style={{ padding: '12px 20px 16px', borderTop: '1px solid var(--line-200)' }}>{footer}</div>
-        )}
+        {/* 하단에는 항상 나갈 수 있는 버튼을 둔다 */}
+        <div style={{ padding: '12px 20px 16px', borderTop: '1px solid var(--line-200)' }}>
+          {footer || (
+            <Button variant="outline" size="lg" block onClick={onClose}>
+              {dismissLabel}
+            </Button>
+          )}
+        </div>
       </div>
     </Portal>
   );

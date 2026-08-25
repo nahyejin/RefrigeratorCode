@@ -579,9 +579,15 @@ const FilterModal: React.FC<FilterModalProps> = ({
       onClose={handleClose}
       title="필터를 설정해 주세요"
       footer={
-        <Button variant="secondary" size="lg" block onClick={handleApplyFilters}>
-          적용
-        </Button>
+        // 하단에 나갈 수 있는 버튼(취소)을 항상 함께 둔다
+        <div style={{ display: 'flex', gap: 8 }}>
+          <Button variant="outline" size="lg" block onClick={handleClose}>
+            취소
+          </Button>
+          <Button variant="secondary" size="lg" block onClick={handleApplyFilters}>
+            적용
+          </Button>
+        </div>
       }
     >
         <div>

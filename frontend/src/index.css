@@ -854,13 +854,38 @@ div[style*="overflow"]:not([style*="layout: horizontal"]):not([style*="overflow-
   box-shadow: 0 0 0 3px rgba(255, 214, 0, 0.25);
 }
 
-/* 움직임 최소화 설정을 켠 사용자에게는 애니메이션을 줄인다 */
+/* 움직임 최소화(iOS "동작 줄이기" / Windows "애니메이션 표시" 끄기)를 켠 사용자 대응.
+   주의: 예전에는 `*` 로 모든 애니메이션을 죽였는데, 그러면 로딩 표시와 FAB 처럼
+   "지금 동작 중"임을 알려주는 필수 피드백까지 멈춰버려 앱이 고장 난 것처럼 보였다.
+   (실제로 이 설정을 켠 기기에서 로딩 점과 FAB 가 정지한 채로 보였음)
+   → 장식적인 움직임만 줄이고, 상태를 알리는 표시는 예외로 둔다. */
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+  *:not(.loading-dots):not(.loading-dots > span):not(.ai-fab-button):not(.ai-fab-glow):not(.skeleton-block),
+  *::before {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+
+  /* 상태 표시는 계속 움직이되, 이동 폭을 줄이고 밝기 변화 위주로 */
+  .loading-dots > span {
+    animation: loading-fade 1.1s ease-in-out infinite both !important;
+  }
+  .ai-fab-button {
+    animation: ai-fab-shimmer 4.2s ease-in-out infinite !important;
+  }
+  .ai-fab-glow {
+    animation: ai-fab-pulse 2.6s ease-in-out infinite !important;
+  }
+  .skeleton-block {
+    animation: skeleton-shine 1.4s ease-in-out infinite !important;
+  }
+}
+
+/* 움직임 최소화 시 점이 튀는 대신 밝기만 변하도록 */
+@keyframes loading-fade {
+  0%, 80%, 100% { opacity: 0.3; }
+  40%           { opacity: 1; }
 }
 
 /* 로딩 스켈레톤 — 빛이 훑고 지나가는 형태 */
