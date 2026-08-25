@@ -203,9 +203,12 @@ export default function IngredientDetailModal({
             <CloseButton onClick={onClose} />
 
             {/* 타이틀 */}
-            {/* 제목이 우상단 닫기 버튼과 겹쳐 잘려 보였음 → 좌우 여백을 두고 공통 제목 규격(17px) 적용 */}
+            {/* 제목이 우상단 닫기 버튼과 겹쳐 잘려 보였음 → 좌우 여백을 두고 공통 제목 규격(17px) 적용.
+                또한 예전에는 "재료의 상세정보를 선택해 주세요" 만 떠서, 어떤 재료에 대한 것인지,
+                새로 넣는 것인지 이미 있는 걸 고치는 것인지 알 수 없었음 →
+                재료 이름을 제목으로 올리고, 신규/수정 여부를 부제로 밝힌다. */}
             <div
-              className="mb-4"
+              className="mb-1"
               style={{
                 textAlign: 'center',
                 fontSize: 17,
@@ -216,7 +219,18 @@ export default function IngredientDetailModal({
                 wordBreak: 'keep-all',
               }}
             >
-              재료의 상세정보를 선택해 주세요
+              {ingredient || '재료'}
+            </div>
+            <div
+              className="mb-4"
+              style={{
+                textAlign: 'center',
+                fontSize: 13,
+                color: 'var(--ink-500)',
+                padding: '0 44px',
+              }}
+            >
+              {initialStorageType ? '보관 정보를 수정합니다' : '어디에 보관할지 알려주세요'}
             </div>
             <hr className="mb-4" />
 

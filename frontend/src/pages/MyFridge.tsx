@@ -1617,6 +1617,10 @@ const MyFridge: React.FC = () => {
       return;
     }
     
+    // 모바일에서 입력창에 포커스가 남아 있으면 키보드가 그대로 떠서 팝업을 가린다.
+    // 팝업을 열기 전에 포커스를 풀어 키보드를 내린다.
+    (document.activeElement as HTMLElement | null)?.blur?.();
+
     setModalIngredient(item);
     setModalOpen(true);
     setInputValue('');
@@ -1740,6 +1744,8 @@ const MyFridge: React.FC = () => {
       date = date.replace(/\./g, '-');
     }
     
+    (document.activeElement as HTMLElement | null)?.blur?.();
+
     setModalIngredient(item.name);
     setModalInitialData({
       storageType: currentStorageType,
