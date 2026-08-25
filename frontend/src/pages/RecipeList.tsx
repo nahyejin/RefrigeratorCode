@@ -2378,7 +2378,7 @@ const RecipeList: React.FC = () => {
         })()}
         </div>
 
-      <CoupangDisclaimer />
+      {!loading && <CoupangDisclaimer />}
       <BottomNavBar activeTab="recipe" />
       
       {toast && <RecipeToast message={toast} />}

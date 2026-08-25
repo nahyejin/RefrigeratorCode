@@ -381,6 +381,7 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
             </button>
             {showYearDropdown && (
               <div 
+                className="custom-scrollbar"
                 style={{ 
                   position: 'absolute',
                   top: '100%',
@@ -468,6 +469,7 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
             </button>
             {showMonthDropdown && (
               <div 
+                className="custom-scrollbar"
                 style={{ 
                   position: 'absolute',
                   top: '100%',

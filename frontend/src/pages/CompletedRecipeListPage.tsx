@@ -537,7 +537,7 @@ const CompletedRecipeListPage: React.FC = () => {
         )}
       </div>
       
-      <CoupangDisclaimer />
+      {!loading && <CoupangDisclaimer />}
       <BottomNavBar activeTab="mypage" />
       
       {toast && <RecipeToast message={toast} />}

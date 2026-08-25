@@ -1,9 +1,46 @@
 import React, { useState } from 'react';
 import CloseButton from './ui/CloseButton';
 import Portal from './Portal';
-import frozenIcon from '../assets/Frozen_storage.png';
-import refrigeratedIcon from '../assets/Refrigerated_storage.png';
-import roomIcon from '../assets/Store_at_room_temperature.png';
+// 예전엔 이모지풍 PNG(얼음/눈송이/온도계) 3장을 썼는데, 그림체가 앱의 다른 요소와
+// 따로 놀아 촌스러워 보였음 → 선으로 그린 SVG 아이콘으로 교체 (색은 토큰을 따름)
+const StorageIcon: React.FC<{ kind: 'frozen' | 'fridge' | 'room' }> = ({ kind }) => {
+  const common = {
+    width: 26,
+    height: 26,
+    viewBox: '0 0 24 24',
+    fill: 'none',
+    stroke: 'currentColor',
+    strokeWidth: 1.7,
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
+    style: { width: 26, height: 26, flexShrink: 0, display: 'block' },
+  };
+  if (kind === 'frozen') {
+    // 눈결정
+    return (
+      <svg {...common} aria-hidden>
+        <path d="M12 3v18M4.2 7.5l15.6 9M19.8 7.5l-15.6 9" />
+        <path d="M12 6.6l-2 -2M12 6.6l2 -2M12 17.4l-2 2M12 17.4l2 2" />
+      </svg>
+    );
+  }
+  if (kind === 'fridge') {
+    // 냉장고
+    return (
+      <svg {...common} aria-hidden>
+        <rect x="5.5" y="2.8" width="13" height="18.4" rx="2.6" />
+        <path d="M5.5 10.6h13M9 6.4v2M9 13.4v2.4" />
+      </svg>
+    );
+  }
+  // 실온 — 온도계
+  return (
+    <svg {...common} aria-hidden>
+      <path d="M10 14.2V5.4a2 2 0 1 1 4 0v8.8a3.6 3.6 0 1 1-4 0z" />
+      <path d="M12 9.4v5" />
+    </svg>
+  );
+};
 import IngredientDateModal from './IngredientDateModal';
 
 interface IngredientDetailModalProps {
@@ -52,9 +89,9 @@ const STYLES = {
 
 // 보관 공간 옵션 데이터
 const STORAGE_OPTIONS = [
-  { key: 'frozen', label: '냉동보관', icon: frozenIcon },
-  { key: 'fridge', label: '냉장보관', icon: refrigeratedIcon },
-  { key: 'room', label: '실온보관', icon: roomIcon }
+  { key: 'frozen', label: '냉동보관' },
+  { key: 'fridge', label: '냉장보관' },
+  { key: 'room', label: '실온보관' }
 ] as const;
 
 // 소비 기한 옵션 데이터
@@ -183,23 +220,35 @@ export default function IngredientDetailModal({
 
             {/* 보관 공간 */}
             <div className="mb-2 text-[15px] font-semibold text-[#3A3A42]">보관 공간</div>
-            <div className="flex justify-between items-end mb-6">
+            <div className="mb-6" style={{ display: 'flex', gap: 8 }}>
               {STORAGE_OPTIONS.map(opt => (
-                <div
+                <button
                   key={opt.key}
-                  className={`flex flex-col items-center flex-1 cursor-pointer transition
-                    ${storageType === opt.key ? 'ring-2 ring-blue-400 bg-blue-50' : ''}
-                  `}
+                  type="button"
                   onClick={() => setStorageType(opt.key as 'frozen' | 'fridge' | 'room')}
+                  aria-pressed={storageType === opt.key}
+                  style={{
+                    flex: 1,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8,
+                    padding: '14px 6px',
+                    borderRadius: 14,
+                    cursor: 'pointer',
+                    // 선택 상태를 파란 ring 대신 브랜드 톤으로 (앱 전체와 통일)
+                    background: storageType === opt.key ? 'var(--brand-soft)' : 'var(--surface)',
+                    border: `1px solid ${storageType === opt.key ? 'var(--brand-strong)' : 'var(--line-200)'}`,
+                    color: storageType === opt.key ? 'var(--brand-on-soft)' : 'var(--ink-500)',
+                    transition: 'background 0.15s ease, border-color 0.15s ease, color 0.15s ease',
+                  }}
                 >
-                  <img 
-                    src={opt.icon} 
-                    alt={opt.label} 
-                    className="w-16 h-16 mb-2" 
-                    style={{ width: CONSTANTS.ICON_SIZE, height: CONSTANTS.ICON_SIZE }}
-                  />
-                  <span className="text-[15px] font-medium text-[#3A3A42]">{opt.label}</span>
-                </div>
+                  <StorageIcon kind={opt.key as 'frozen' | 'fridge' | 'room'} />
+                  <span style={{ fontSize: 14, fontWeight: storageType === opt.key ? 700 : 500 }}>
+                    {opt.label}
+                  </span>
+                </button>
               ))}
             </div>
 

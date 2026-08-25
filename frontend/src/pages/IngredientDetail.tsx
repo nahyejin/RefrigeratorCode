@@ -1114,7 +1114,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
         </div>
       </div>
       
-      <CoupangDisclaimer />
+      {!loading && <CoupangDisclaimer />}
       <BottomNavBar activeTab={location.pathname.startsWith('/mypage') ? 'mypage' : 'popularity'} />
       
       {toast && <RecipeToast message={toast} />}

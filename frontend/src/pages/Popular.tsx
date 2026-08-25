@@ -2167,7 +2167,7 @@ const Popular = () => {
       {/* Loading animation */}
       {loading && (
         <div className="loader-toast">
-          <LoadingIndicator dotsOnly />
+          <LoadingIndicator />
         </div>
       )}
       
@@ -2193,7 +2193,7 @@ const Popular = () => {
         }}
         message={registerModalMessage || '더 많은 기능을 사용하려면'}
       />
-      <CoupangDisclaimer />
+      {!loading && <CoupangDisclaimer />}
       <BottomNavBar activeTab="popularity" />
     </>
   );

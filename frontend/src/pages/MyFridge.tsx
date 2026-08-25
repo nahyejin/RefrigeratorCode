@@ -2078,7 +2078,7 @@ const MyFridge: React.FC = () => {
         {/* Loading animation */}
         {loading && (
           <div className="loader-toast">
-            <LoadingIndicator dotsOnly />
+            <LoadingIndicator />
           </div>
         )}
         
