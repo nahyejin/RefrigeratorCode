@@ -562,8 +562,9 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
       
       {/* 쿠팡 광고.
           예전엔 모든 카드에 전체폭 CTA + 2줄 고지문이 붙어 목록이 광고로 무거웠음.
-          이제 부족 재료 pill 자체가 구매 동선이므로, 별도 CTA 는 "하나만 사면 완성"에
-          가까운 카드(부족 1~2개)에만 남긴다 — 구매 전환이 실제로 일어나는 구간. */}
+          이제 부족 재료 pill 자체가 구매 동선이므로, 별도 CTA 는 "몇 개만 사면 완성"에
+          가까운 카드(부족 1~3개)에만 남긴다 — 구매 전환이 실제로 일어나는 구간.
+          (처음엔 1~2개로 잡았는데 노출이 과하게 줄어 1~3개로 넓힘) */}
       {isHorizontal ? (
         <div
           style={{
@@ -572,14 +573,14 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
             boxSizing: 'border-box',
           }}
         >
-          {lackingIngredients.length > 0 && lackingIngredients.length <= 2 ? (
+          {lackingIngredients.length > 0 && lackingIngredients.length <= 3 ? (
             <CoupangProductAd
               ingredientCandidates={lackingIngredients}
               seedKey={recipe.id}
             />
           ) : null}
         </div>
-      ) : lackingIngredients.length > 0 && lackingIngredients.length <= 2 ? (
+      ) : lackingIngredients.length > 0 && lackingIngredients.length <= 3 ? (
         <div style={{ marginTop: '8px' }}>
           <CoupangProductAd
             ingredientCandidates={lackingIngredients}
