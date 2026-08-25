@@ -143,7 +143,8 @@ const IngredientPillGroup: React.FC<IngredientPillGroupProps> = ({ needIngredien
 
   // 접힘 상태에서 보여줄 pill 개수. pills 는 [부족 → 대체가능 → 보유] 순이라
   // 잘리더라도 "무엇이 부족한지"가 먼저 보인다.
-  const COLLAPSED_COUNT = 8;
+  // 8개면 카드마다 3줄까지 늘어나 목록이 무거워진다는 피드백 → 6개(보통 2줄)로 줄임
+  const COLLAPSED_COUNT = 6;
   const [expanded, setExpanded] = useState(false);
   const overflowCount = pillInfo.pills.length - COLLAPSED_COUNT;
   const visiblePills = expanded ? pillInfo.pills : pillInfo.pills.slice(0, COLLAPSED_COUNT);

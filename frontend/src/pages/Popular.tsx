@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import LoadingIndicator from '../components/LoadingIndicator';
+import SectionHeader from '../components/SectionHeader';
 import Toast from '../components/Toast';
 import IngredientLegend from '../components/IngredientLegend';
 import BottomNavBar from '../components/BottomNavBar';
@@ -1778,22 +1780,10 @@ const Popular = () => {
 
           return (
             <section style={{ marginBottom: 6 }}>
-              <div style={{ marginBottom: 8, display: 'flex', alignItems: 'center' }}>
-                <h2
-                  className="text-[16px] font-bold text-[#1A1A1E] mb-2"
-                  style={{
-                    display: 'inline',
-                    verticalAlign: 'middle',
-                    lineHeight: '1',
-                    fontSize: 16,
-                    position: 'relative',
-                    top: 6,
-                  }}
-                >
-                  ⭐ 특별한 날 특별한 음식
-                </h2>
-              </div>
-              <div style={{ height: 2, width: '100%', background: '#E6E6EA', marginBottom: 16 }} />
+              <SectionHeader
+                title="특별한 날 특별한 음식"
+                description="값비싼 재료가 들어간 레시피를 모았어요"
+              />
               {/* 범례 + 총 건수 (유튜브/네이버 섹션과 동일한 형식) */}
               <IngredientLegend total={premiumRecipes.length} style={{ marginBottom: 6, marginTop: 8 }} />
               
@@ -1948,33 +1938,7 @@ const Popular = () => {
         {/* ⓑ 유튜브 인기 레시피 섹션 (데이터 있을 때만 노출) */}
         {youtubeRecipes.length > 0 && (
         <section style={{ marginTop: 4, marginBottom: 0 }}>
-          <div style={{ marginBottom: 8, display: 'flex', alignItems: 'center' }}>
-            <span
-              style={{
-                display: 'inline-block',
-                width: 20,
-                height: 20,
-                background: `url(${youtubeTitleImg}) no-repeat center/contain`,
-                marginRight: 6,
-                position: 'relative',
-                top: 2,
-              }}
-            />
-            <h2
-              className="text-[16px] font-bold text-[#1A1A1E] mb-2"
-              style={{
-                display: 'inline',
-                verticalAlign: 'middle',
-                lineHeight: '1',
-                fontSize: 16,
-                position: 'relative',
-                top: 6,
-              }}
-            >
-              유튜브 인기 레시피
-            </h2>
-          </div>
-          <div style={{ height: 2, width: '100%', background: '#E6E6EA', marginBottom: 16 }} />
+          <SectionHeader title="유튜브 인기 레시피" iconUrl={youtubeTitleImg} />
           {/* 범례: 가로형 레시피 카드 위, 왼쪽 정렬 */}
           <IngredientLegend total={youtubeRecipes.length} style={{ marginBottom: 6, marginTop: 8 }} />
            <VirtualizedHorizontalRecipeList
@@ -1983,7 +1947,7 @@ const Popular = () => {
              substituteTable={substituteTable}
              recipeActionStates={buttonStates}
              onRecipeAction={(recipe, action) => handleRecipeAction(recipe.id, { action: action as 'done' | 'write' | 'share' | 'favorite' })}
-             cardWidth={280}
+             cardWidth={300}
              cardHeight={280}
              gap={16}
              showRank={true}
@@ -1998,33 +1962,7 @@ const Popular = () => {
         {/* ⓒ 네이버 인기 레시피 섹션 (데이터 있을 때만 노출) */}
         {naverRecipes.length > 0 && (
         <section style={{ marginTop: 4, marginBottom: 0 }}>
-          <div style={{ marginBottom: 8, display: 'flex', alignItems: 'center' }}>
-            <span
-              style={{
-                display: 'inline-block',
-                width: 20,
-                height: 20,
-                background: `url(${naverTitleImg}) no-repeat center/contain`,
-                marginRight: 6,
-                position: 'relative',
-                top: 2,
-              }}
-            />
-            <h2
-              className="text-[16px] font-bold text-[#1A1A1E] mb-2"
-              style={{
-                display: 'inline',
-                verticalAlign: 'middle',
-                lineHeight: '1',
-                fontSize: 16,
-                position: 'relative',
-                top: 6,
-              }}
-            >
-              네이버 인기 레시피
-            </h2>
-          </div>
-          <div style={{ height: 2, width: '100%', background: '#E6E6EA', marginBottom: 16 }} />
+          <SectionHeader title="네이버 인기 레시피" iconUrl={naverTitleImg} />
           {/* 범례: 가로형 레시피 카드 위, 왼쪽 정렬 */}
           <IngredientLegend total={naverRecipes.length} style={{ marginBottom: 6, marginTop: 8 }} />
            <VirtualizedHorizontalRecipeList
@@ -2033,7 +1971,7 @@ const Popular = () => {
              substituteTable={substituteTable}
              recipeActionStates={buttonStates}
              onRecipeAction={(recipe, action) => handleRecipeAction(recipe.id, { action: action as 'done' | 'write' | 'share' | 'favorite' })}
-             cardWidth={280}
+             cardWidth={300}
              cardHeight={280}
              gap={16}
              showRank={true}
@@ -2054,7 +1992,7 @@ const Popular = () => {
             {dishRankings.length > 0 && (
             <div>
               <h2 className="text-[16px] font-bold text-[#1A1A1E] mb-2 text-left"><span className="mr-1">📈</span>인기 급상승 요리 TOP 10</h2>
-              <div style={{ height: 2, width: '100%', background: '#E6E6EA', marginBottom: 16 }} />
+              <div style={{ height: 1, width: '100%', background: 'var(--line-200)', marginBottom: 14 }} />
               <div className="mt-4">
                 <table className="w-full max-w-[280px] mx-auto border-collapse text-[15px] font-sans" style={{background: '#FFFFFF'}}>
                   <thead>
@@ -2111,7 +2049,7 @@ const Popular = () => {
             {themeRankings.length > 0 && (
             <div>
               <h2 className="text-[16px] font-bold text-[#1A1A1E] mb-2 text-left"><span className="mr-1">📈</span>인기 급상승 테마 TOP 10</h2>
-              <div style={{ height: 2, width: '100%', background: '#E6E6EA', marginBottom: 16 }} />
+              <div style={{ height: 1, width: '100%', background: 'var(--line-200)', marginBottom: 14 }} />
               <div className="mt-4">
                 <table className="w-full max-w-[280px] mx-auto border-collapse text-[15px] font-sans" style={{background: '#FFFFFF'}}>
                   <thead>
@@ -2167,7 +2105,7 @@ const Popular = () => {
         {/* 인기 레시피 직접 찾아보기 검색창 */}
         <section style={{marginBottom: 48}}>
           <h2 className="text-[16px] font-bold text-[#1A1A1E] mb-2 text-left"><span className="mr-1">🔍️</span>특정 재료·테마 등 키워드로 찾아보기</h2>
-          <div style={{height: 2, width: '100%', background: '#E6E6EA', marginBottom: 16}} />
+          <div style={{height: 1, width: '100%', background: 'var(--line-200)', marginBottom: 14}} />
           <div
             style={{
               display: 'flex',
@@ -2227,12 +2165,8 @@ const Popular = () => {
       )}
       {/* Loading animation */}
       {loading && (
-        <div className="loader-toast" style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 'var(--z-overlay)' }}>
-          <div className="loader-dots">
-            <div></div>
-            <div></div>
-            <div></div>
-          </div>
+        <div className="loader-toast">
+          <LoadingIndicator dotsOnly />
         </div>
       )}
       

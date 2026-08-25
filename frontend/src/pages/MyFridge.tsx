@@ -1,4 +1,5 @@
 import * as React from 'react';
+import LoadingIndicator from '../components/LoadingIndicator';
 import BottomNavBar from '../components/BottomNavBar';
 import TagPill from '../components/TagPill';
 import IngredientDetailModal from '../components/IngredientDetailModal';
@@ -1753,14 +1754,7 @@ const MyFridge: React.FC = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="loader-dots mx-auto mb-4">
-            <div></div>
-            <div></div>
-            <div></div>
-          </div>
-          <p className="text-gray-600">로딩 중...</p>
-        </div>
+        <LoadingIndicator fullscreen />
       </div>
     );
   }
@@ -1928,7 +1922,7 @@ const MyFridge: React.FC = () => {
               </button>
             )}
           </div>
-          <div style={{height: 2, width: '100%', background: '#E6E6EA', marginBottom: 16}} />
+          <div style={{height: 1, width: '100%', background: 'var(--line-200)', marginBottom: 14}} />
           <div data-guide-target="storage-areas">
           {/* 냉동보관 */}
           <div className="mb-4">
@@ -2062,12 +2056,8 @@ const MyFridge: React.FC = () => {
         )}
         {/* Loading animation */}
         {loading && (
-          <div className="loader-toast" style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 'var(--z-overlay)' }}>
-            <div className="loader-dots">
-              <div></div>
-              <div></div>
-              <div></div>
-            </div>
+          <div className="loader-toast">
+            <LoadingIndicator dotsOnly />
           </div>
         )}
         

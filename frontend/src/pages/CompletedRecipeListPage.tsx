@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import LoadingIndicator from '../components/LoadingIndicator';
 import IngredientLegend from '../components/IngredientLegend';
 import { useNavigate } from 'react-router-dom';
 import BottomNavBar from '../components/BottomNavBar';
@@ -466,13 +467,7 @@ const CompletedRecipeListPage: React.FC = () => {
         </div>
         
         {loading && (
-          <div className="loader-toast">
-            <div className="loader-dots">
-              <div></div>
-              <div></div>
-              <div></div>
-            </div>
-          </div>
+          <LoadingIndicator />
         )}
         
         {!loading && (

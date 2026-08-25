@@ -1195,7 +1195,7 @@ const MyPage: React.FC = () => {
               ☰
             </button>
           </div>
-          <div style={{ height: 2, width: '100%', background: '#E6E6EA', marginBottom: 16 }} />
+          <div style={{ height: 1, width: '100%', background: 'var(--line-200)', marginBottom: 14 }} />
 
           <IngredientLegend total={favoriteRecipes.length} style={{ marginBottom: 6, marginTop: 8 }} />
 
@@ -1243,7 +1243,7 @@ const MyPage: React.FC = () => {
               ☰
             </button>
           </div>
-          <div style={{ height: 2, width: '100%', background: '#E6E6EA', marginBottom: 16 }} />
+          <div style={{ height: 1, width: '100%', background: 'var(--line-200)', marginBottom: 14 }} />
           
           {/* 범례 */}
           <IngredientLegend total={recordedRecipes.length} style={{ marginBottom: 6, marginTop: 8 }} />
@@ -1292,7 +1292,7 @@ const MyPage: React.FC = () => {
               ☰
             </button>
           </div>
-          <div style={{ height: 2, width: '100%', background: '#E6E6EA', marginBottom: 16 }} />
+          <div style={{ height: 1, width: '100%', background: 'var(--line-200)', marginBottom: 14 }} />
           
           {/* 범례 */}
           <IngredientLegend total={completedRecipes.length} style={{ marginBottom: 6, marginTop: 8 }} />
