@@ -892,43 +892,57 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
           {customTitle || `${name} 관련 레시피`}
         </div>
         
-        <RecipeSortBar
-          recipes={processedRecipes}
-          myIngredients={myIngredients}
-          onFilteredRecipesChange={setFilteredRecipes}
-          sortType={sortType}
-          setSortType={setSortType}
-          matchRange={matchRange}
-          setMatchRange={setMatchRange}
-          maxLack={maxLack}
-          setMaxLack={setMaxLack}
-          appliedExpiryIngredients={appliedExpiryIngredients}
-          setAppliedExpiryIngredients={setAppliedExpiryIngredients}
-          expirySortType={expirySortType}
-          setExpirySortType={setExpirySortType}
-          selectedChannel={selectedChannel}
-          setSelectedChannel={setSelectedChannel}
-          includeKeyword={includeKeyword}
-          setIncludeKeyword={setIncludeKeyword}
-          includeIngredients={includeIngredients}
-          setIncludeIngredients={setIncludeIngredients}
-          excludeIngredients={excludeIngredients}
-          setExcludeIngredients={setExcludeIngredients}
-          selectedCategoryKeywords={selectedFilter}
-          setSelectedCategoryKeywords={setSelectedFilter}
-          includeInput={includeInput}
-          setIncludeInput={setIncludeInput}
-          excludeInput={excludeInput}
-          setExcludeInput={setExcludeInput}
-        />
-        
         <div>
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'space-between', 
-            marginBottom: 16, 
-            marginTop: 8 
+          {/* 정렬/필터 바 + 재료 pill 범례를 상단 고정 (냉장고요리 페이지와 동일) */}
+          <div
+            style={{
+              position: 'sticky',
+              top: 56,
+              zIndex: 40,
+              background: '#fff',
+              marginLeft: -14,
+              marginRight: -14,
+              paddingLeft: 14,
+              paddingRight: 14,
+              paddingTop: 8,
+              paddingBottom: 10, // 범례 아래 흰 여백
+            }}
+          >
+          <RecipeSortBar
+            recipes={processedRecipes}
+            myIngredients={myIngredients}
+            onFilteredRecipesChange={setFilteredRecipes}
+            sortType={sortType}
+            setSortType={setSortType}
+            matchRange={matchRange}
+            setMatchRange={setMatchRange}
+            maxLack={maxLack}
+            setMaxLack={setMaxLack}
+            appliedExpiryIngredients={appliedExpiryIngredients}
+            setAppliedExpiryIngredients={setAppliedExpiryIngredients}
+            expirySortType={expirySortType}
+            setExpirySortType={setExpirySortType}
+            selectedChannel={selectedChannel}
+            setSelectedChannel={setSelectedChannel}
+            includeKeyword={includeKeyword}
+            setIncludeKeyword={setIncludeKeyword}
+            includeIngredients={includeIngredients}
+            setIncludeIngredients={setIncludeIngredients}
+            excludeIngredients={excludeIngredients}
+            setExcludeIngredients={setExcludeIngredients}
+            selectedCategoryKeywords={selectedFilter}
+            setSelectedCategoryKeywords={setSelectedFilter}
+            includeInput={includeInput}
+            setIncludeInput={setIncludeInput}
+            excludeInput={excludeInput}
+            setExcludeInput={setExcludeInput}
+          />
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: 6,
+            marginTop: 8
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -969,7 +983,9 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
               총 {total > 0 ? total.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') : processedRecipes.length.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}건
             </span>
           </div>
-          
+          </div>
+          {/* /sticky */}
+
           <div className="mt-4 flex flex-col gap-2" style={{ marginTop: 0 }}>
             <VirtualizedRecipeList
               recipes={processedRecipes}

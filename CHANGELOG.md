@@ -140,3 +140,16 @@
 - `app.py` 네이버 콜백 수정: 닉네임이 비어 있거나 `*`를 포함하면 이메일 로컬 파트를 대신 사용
   → 이후 신규 네이버 가입자는 마스킹된 닉네임이 저장되지 않음
 - 기존에 저장된 값은 "내 정보 수정"에서 직접 변경 필요
+
+### Sticky 영역 여백 + 다른 목록 페이지에도 동일 적용
+- `RecipeList.tsx`: sticky 영역에 `paddingBottom: 10` 추가. 기존엔 범례의 `marginBottom`이
+  margin collapsing으로 sticky 컨테이너 밖으로 빠져나가서, 스크롤 시 카드가 "부족 재료 / 대체 가능 /
+  보유 재료" 글자에 바짝 붙어 지나갔음. 이제 범례 아래 흰 여백이 항상 유지됨
+- 같은 형식의 범례를 쓰는 나머지 목록 페이지에도 동일하게 sticky 적용
+  (정렬/필터 바 + 범례가 함께 상단 고정, top: 56px)
+  - `IngredientDetail.tsx` — 요즘인기 페이지 하단 검색 → `/ingredient/:name`으로 이동하는 페이지
+  - `RecordedRecipeListPage.tsx` — 내가 기록한 레시피
+  - `CompletedRecipeListPage.tsx` — 내가 완료한 레시피
+- `Popular.tsx`와 `MyPage.tsx`의 범례는 제외 — 이쪽은 섹션(유튜브 인기 / 네이버 인기 / 특별한 날 /
+  즐겨찾기 / 기록 / 완료)마다 각각 붙어 있는 가로 스크롤 캐러셀 헤더라, sticky로 만들면 범례 여러 개가
+  서로 밀어내며 겹침. 세로로 길게 스크롤되는 목록 페이지에만 적용하는 것이 맞음

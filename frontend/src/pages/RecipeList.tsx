@@ -1933,6 +1933,7 @@ const RecipeList: React.FC = () => {
             paddingLeft: 20,
             paddingRight: 20,
             paddingTop: 8,
+            paddingBottom: 10, // 범례 아래 흰 여백 (카드가 범례에 바짝 붙어 지나가지 않도록)
           }}
         >
         <form
@@ -2025,16 +2026,16 @@ const RecipeList: React.FC = () => {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            marginBottom: 16,
+            marginBottom: 6,
             marginTop: 8
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <span style={{ 
-                  width: 24, 
-                  height: 14, 
-                  borderRadius: 7, 
-                  background: '#D1D1D1', border: '1px solid #C4C4C8', 
+                <span style={{
+                  width: 24,
+                  height: 14,
+                  borderRadius: 7,
+                  background: '#D1D1D1', border: '1px solid #C4C4C8',
                   display: 'inline-block', 
                   marginRight: 2 
                 }}></span>
