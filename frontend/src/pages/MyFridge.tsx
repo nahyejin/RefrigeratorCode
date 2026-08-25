@@ -47,12 +47,7 @@ const baseGuideSteps = [
   },
 ];
 
-// 저장 버튼 가이드 단계 (로그인한 회원용)
-const saveButtonGuideStep = {
-  targetSelector: '[data-guide-target="save-button"]',
-  message: '저장버튼을 눌러 재료 정보를 저장할 수 있어요',
-  position: 'left' as const,
-};
+// (저장 버튼을 없애고 자동 저장으로 바꾸면서 관련 가이드 단계도 제거)
 
 // =====================
 // 타입 정의
@@ -502,6 +497,9 @@ const MyFridge: React.FC = () => {
   const [guideStep, setGuideStep] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
+  // 자동 저장: 연속 변경을 묶기 위한 타이머와, 응답 순서 역전을 막기 위한 일련번호
+  const autoSaveTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const autoSaveSeq = React.useRef(0);
   const [hasChanges, setHasChanges] = useState(false); // 변경사항 추적
   const lastSavedDataRef = React.useRef<{frozen: Ingredient[], fridge: Ingredient[], room: Ingredient[]} | null>(null);
   const { isLoggedIn, user } = useAuth();
@@ -1397,34 +1395,32 @@ const MyFridge: React.FC = () => {
     // 초기 로드가 완료된 후에만 저장 (초기 로드 시에는 저장하지 않음)
     // 또한 빈 배열로 덮어쓰는 것을 방지 (데이터가 실제로 있을 때만 저장)
     if (!isInitialLoad.current && frozen !== null && fridge !== null && room !== null) {
-      const hasData = frozen.length > 0 || fridge.length > 0 || room.length > 0;
-      // 빈 배열로 저장하는 것을 방지 (데이터가 실제로 있을 때만 저장)
-      if (hasData) {
-        console.log('[MyFridge] useEffect에서 재료 저장:', {
-          frozenCount: frozen.length,
-          fridgeCount: fridge.length,
-          roomCount: room.length,
-          isLoggedIn: isLoggedIn
-        });
-        
-        // localStorage에 저장 (비로그인 사용자용 + 백업용)
-        saveIngredients(frozen, fridge, room);
-        
-        // 로그인한 경우 DB에 자동 저장 (백그라운드, 실패해도 조용히 처리)
-        // 명시적 저장은 저장 버튼을 통해 수행
-        if (isLoggedIn && user?.id) {
-          // 자동 저장은 조용히 수행 (사용자 알림 없음)
-          saveIngredientsToDB(frozen, fridge, room, 0, false).catch(err => {
-            console.error('[MyFridge] 자동 저장 실패 (사용자 알림 없음):', err);
-          });
-        }
-      } else {
-        console.log('[MyFridge] useEffect에서 재료 저장 스킵 (빈 배열):', {
-          frozenCount: frozen.length,
-          fridgeCount: fridge.length,
-          roomCount: room.length,
-          isInitialLoad: isInitialLoad.current
-        });
+      // localStorage 는 항상 저장 (비로그인 사용자용 + 백업용)
+      saveIngredients(frozen, fridge, room);
+
+      // ⚠️ 예전에는 `hasData` 가 참일 때만 저장해서, 재료를 **전부 지우면 저장 자체를
+      //    건너뛰었다.** 서버엔 예전 목록이 남아 다음 로그인 때 지운 재료가 되살아났음.
+      //    빈 상태도 정상적인 상태이므로 그대로 저장한다.
+      if (isLoggedIn && user?.id) {
+        // 연속 변경 시 요청이 겹쳐 늦게 출발한 요청이 먼저 도착하면 옛 데이터가
+        // 최신을 덮어쓸 수 있음 → 짧게 묶어서(디바운스) 마지막 상태만 보낸다.
+        if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+        const snapshot = { frozen, fridge, room };
+        autoSaveTimer.current = setTimeout(() => {
+          const seq = ++autoSaveSeq.current;
+          setSaveStatus('saving');
+          saveIngredientsToDB(snapshot.frozen, snapshot.fridge, snapshot.room, 0, false)
+            .then((ok) => {
+              // 더 최신 저장이 이미 시작됐으면 이 결과는 버린다 (순서 역전 방지)
+              if (seq !== autoSaveSeq.current) return;
+              setSaveStatus(ok ? 'success' : 'error');
+              if (ok) setTimeout(() => setSaveStatus('idle'), 2000);
+            })
+            .catch(() => {
+              if (seq !== autoSaveSeq.current) return;
+              setSaveStatus('error');
+            });
+        }, 600);
       }
     }
   }, [frozen, fridge, room, isLoggedIn, user?.id]);
@@ -1902,52 +1898,49 @@ const MyFridge: React.FC = () => {
         <div style={{ maxWidth: 400, margin: '0 auto', paddingLeft: 20, paddingRight: 20, width: '100%', marginTop: 48, boxSizing: 'border-box' }}>
           <div className="flex items-center justify-between mb-2" style={{ position: 'relative', width: '100%' }}>
             <h2 className="text-[16px] font-bold text-[#1A1A1E]">내 냉장고 재고 관리</h2>
-            {/* 저장 버튼 (로그인한 경우만 표시, 우측) */}
-            {isLoggedIn && user?.id && (
-              <button
-                onClick={handleSaveClick}
-                disabled={isSaving || !hasChanges || frozen === null || fridge === null || room === null}
-                title={isSaving ? '저장 중...' : saveStatus === 'success' ? '저장 완료!' : saveStatus === 'error' ? '저장 실패' : hasChanges ? '저장하기' : '변경사항 없음'}
-                data-guide-target="save-button"
+            {/* 저장 버튼을 없애고 상태 표시로 교체.
+                재료가 바뀌면 자동으로 저장되므로 사용자가 누를 일이 없다.
+                다만 예전 자동 저장은 실패해도 콘솔에만 찍고 끝나서 저장이 안 된 걸
+                알 수 없었기 때문에(그래서 수동 저장 버튼이 생겼던 것),
+                이제 상태를 눈에 보이게 하고 실패 시 다시 시도할 수 있게 한다. */}
+            {isLoggedIn && user?.id && saveStatus !== 'idle' && (
+              <div
+                role="status"
                 style={{
-                  width: 28,
-                  height: 28,
-                  backgroundColor: (isSaving || !hasChanges) ? '#E6E6EA' : '#F5F5F7',
-                  border: '1px solid #E6E6EA',
-                  borderRadius: 6,
-                  display: 'flex',
+                  display: 'inline-flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: (isSaving || !hasChanges) ? 'not-allowed' : 'pointer',
-                  transition: 'all 0.3s',
-                  padding: 0,
-                  boxShadow: (isSaving || !hasChanges) ? 'none' : '0 1px 2px rgba(0,0,0,0.05)',
-                  opacity: (isSaving || !hasChanges) ? 0.6 : 1,
-                  marginLeft: 'auto',
-                  flexShrink: 0
-                }}
-                onMouseEnter={(e) => {
-                  if (!isSaving && hasChanges && frozen !== null && fridge !== null && room !== null) {
-                    e.currentTarget.style.backgroundColor = '#E6E6EA';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!isSaving && hasChanges && frozen !== null && fridge !== null && room !== null) {
-                    e.currentTarget.style.backgroundColor = '#F5F5F7';
-                  }
+                  gap: 6,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: saveStatus === 'error' ? 'var(--danger)' : 'var(--ink-400)',
                 }}
               >
-                <img 
-                  src={saveIcon} 
-                  alt="저장" 
-                  style={{ 
-                    width: 16, 
-                    height: 16, 
-                    objectFit: 'contain',
-                    transition: 'all 0.3s'
-                  }} 
-                />
-              </button>
+                {saveStatus === 'saving' && '저장 중…'}
+                {saveStatus === 'success' && '저장됨'}
+                {saveStatus === 'error' && (
+                  <>
+                    저장하지 못했어요
+                    <button
+                      type="button"
+                      onClick={handleSaveClick}
+                      style={{
+                        height: 26,
+                        padding: '0 10px',
+                        boxSizing: 'border-box',
+                        fontSize: 12,
+                        fontWeight: 600,
+                        color: 'var(--ink-900)',
+                        background: 'var(--surface-sub)',
+                        border: '1px solid var(--line-300)',
+                        borderRadius: 8,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      다시 시도
+                    </button>
+                  </>
+                )}
+              </div>
             )}
           </div>
           <div style={{height: 1, width: '100%', background: 'var(--line-200)', marginBottom: 14}} />
@@ -2139,10 +2132,7 @@ const MyFridge: React.FC = () => {
           currentStep={guideStep}
           onPrevious={() => setGuideStep((s) => Math.max(0, s - 1))}
           onNext={() => {
-            // 로그인한 경우 저장 버튼 가이드 포함, 비회원은 기본 가이드만
-            const guideSteps = isLoggedIn && user?.id 
-              ? [...baseGuideSteps, saveButtonGuideStep]
-              : baseGuideSteps;
+            const guideSteps = baseGuideSteps;
             
             if (guideStep < guideSteps.length - 1) {
               setGuideStep(guideStep + 1);
@@ -2167,9 +2157,7 @@ const MyFridge: React.FC = () => {
             markUsageGuideFinished();
             console.log('[MyFridge] 가이드 건너뛰기 - 페이지 이동 없음');
           }}
-          steps={isLoggedIn && user?.id 
-            ? [...baseGuideSteps, saveButtonGuideStep]
-            : baseGuideSteps}
+          steps={baseGuideSteps}
           isLastStepConfirm={false}
           totalSteps={isLoggedIn && user?.id ? 12 : 11}
           startStepOffset={0}
