@@ -27,8 +27,7 @@ const BASE_STYLE: React.CSSProperties = {
   WebkitFontSmoothing: 'antialiased',
   MozOsxFontSmoothing: 'grayscale',
   textRendering: 'optimizeLegibility',
-  textShadow: 'none',
-};
+  };
 
 const TagPill: React.FC<TagPillProps> = ({ children, onClick, className = '', style }) => (
   <span

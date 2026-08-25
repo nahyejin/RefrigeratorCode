@@ -372,7 +372,7 @@ const RecipeChatWidget: React.FC = () => {
                   >
                     ←
                   </button>
-                  <p className="text-sm font-bold text-gray-900" style={{ textShadow: 'none' }}>
+                  <p className="text-sm font-bold text-gray-900">
                     지난 대화
                   </p>
                 </>
@@ -389,7 +389,6 @@ const RecipeChatWidget: React.FC = () => {
                     <p
                       className="truncate"
                       style={{
-                        textShadow: 'none',
                         fontSize: 18,
                         fontWeight: 700,
                         color: '#111',
@@ -437,7 +436,7 @@ const RecipeChatWidget: React.FC = () => {
           {view === 'history' ? (
             <div className="ai-chat-scroll flex-1 overflow-y-auto px-3 py-3 space-y-2" style={{ minHeight: 0 }}>
               {threads.length === 0 && (
-                <p className="text-xs text-gray-400 text-center py-10" style={{ textShadow: 'none' }}>
+                <p className="text-xs text-gray-400 text-center py-10">
                   최근 {HISTORY_RETENTION_DAYS}일 안에 나눈 대화가 없어요.
                 </p>
               )}
@@ -453,10 +452,10 @@ const RecipeChatWidget: React.FC = () => {
                     style={{ background: 'none', border: 'none', cursor: 'pointer' }}
                     onClick={() => openThread(t)}
                   >
-                    <p className="text-[13px] font-medium text-gray-800 truncate" style={{ textShadow: 'none' }}>
+                    <p className="text-[13px] font-medium text-gray-800 truncate">
                       {threadTitle(t)}
                     </p>
-                    <p className="text-[11px] text-gray-400" style={{ textShadow: 'none' }}>
+                    <p className="text-[11px] text-gray-400">
                       {formatRelativeDate(t.updatedAt)} · 메시지 {t.messages.length}개
                     </p>
                   </button>
@@ -483,7 +482,7 @@ const RecipeChatWidget: React.FC = () => {
             <div ref={listRef} className="ai-chat-scroll flex-1 overflow-y-auto px-3 py-3 space-y-3" style={{ minHeight: 0 }}>
               {messages.length === 0 && (
                 <div className="space-y-2">
-                  <p className="text-xs text-gray-500" style={{ textShadow: 'none' }}>
+                  <p className="text-xs text-gray-500">
                     뭐 먹을지 고민될 때, 냉장고 재료로 딱 맞는 레시피를 찾아드릴게요.
                   </p>
                   <div className="flex flex-wrap gap-2">
@@ -523,7 +522,6 @@ const RecipeChatWidget: React.FC = () => {
                           ? 'bg-[#222] text-white rounded-br-sm'
                           : 'bg-gray-100 text-gray-800 rounded-bl-sm'
                       }`}
-                      style={{ textShadow: 'none' }}
                     >
                       {msg.content}
                     </div>
@@ -550,7 +548,6 @@ const RecipeChatWidget: React.FC = () => {
                             <div className="min-w-0 pr-2 py-1">
                               <p
                                 className="text-[12px] font-semibold text-gray-900 truncate"
-                                style={{ textShadow: 'none' }}
                               >
                                 {recipe.title}
                               </p>
@@ -558,12 +555,12 @@ const RecipeChatWidget: React.FC = () => {
                                 className="inline-flex items-center gap-1 rounded mt-1 px-1.5 py-0.5"
                                 style={{ background: 'rgba(68,68,68,0.85)' }}
                               >
-                                <span className="text-[9px] text-white font-medium" style={{ textShadow: 'none' }}>
+                                <span className="text-[9px] text-white font-medium">
                                   재료 매칭률
                                 </span>
                                 <span
                                   className="text-[10px] font-bold"
-                                  style={{ color: '#FFD600', textShadow: 'none', letterSpacing: '0.3px' }}
+                                  style={{ color: '#FFD600', letterSpacing: '0.3px' }}
                                 >
                                   {recipe.match_rate}%
                                 </span>
@@ -578,12 +575,12 @@ const RecipeChatWidget: React.FC = () => {
               ))}
 
               {loading && (
-                <p className="text-xs text-gray-400" style={{ textShadow: 'none' }}>
+                <p className="text-xs text-gray-400">
                   레시피를 찾고 있어요…
                 </p>
               )}
               {error && !loading && (
-                <p className="text-xs text-red-500" style={{ textShadow: 'none' }}>
+                <p className="text-xs text-red-500">
                   {error}
                 </p>
               )}
@@ -637,7 +634,7 @@ const RecipeChatWidget: React.FC = () => {
           >
             <ChatBubbleIcon size={26} />
           </button>
-          <span className="ai-fab-badge" style={{ textShadow: 'none' }}>AI</span>
+          <span className="ai-fab-badge">AI</span>
         </div>
       )}
     </>

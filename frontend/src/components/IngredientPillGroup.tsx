@@ -163,15 +163,15 @@ const IngredientPillGroup: React.FC<IngredientPillGroupProps> = ({ needIngredien
             
             if (mySet.has(normalize(ing))) {
               return (
-                <span key={ing} className="bg-customYellow text-[#444] rounded-full px-3 py-0.5 font-normal" style={{ fontSize: '10.4px', lineHeight: 1.3, whiteSpace: 'nowrap', height: 22, display: 'inline-flex', alignItems: 'center', textShadow: 'none', border: 'none' }}>{displayName}</span>
+                <span key={ing} className="bg-customYellow text-[#444] rounded-full px-3 py-0.5 font-normal" style={{ fontSize: '10.4px', lineHeight: 1.3, whiteSpace: 'nowrap', height: 22, display: 'inline-flex', alignItems: 'center', border: 'none' }}>{displayName}</span>
               );
             } else if (pillInfo.notMineSub.map(normalize).includes(normalize(ing))) {
               return (
-                <span key={ing} className="bg-customDarkGray text-white rounded-full px-3 py-0.5 font-normal" style={{ fontSize: '10.4px', lineHeight: 1.3, whiteSpace: 'nowrap', height: 22, display: 'inline-flex', alignItems: 'center', textShadow: 'none', border: 'none' }}>{displayName}</span>
+                <span key={ing} className="bg-customDarkGray text-white rounded-full px-3 py-0.5 font-normal" style={{ fontSize: '10.4px', lineHeight: 1.3, whiteSpace: 'nowrap', height: 22, display: 'inline-flex', alignItems: 'center', border: 'none' }}>{displayName}</span>
               );
             } else {
               return (
-                <span key={ing} className="bg-customGray text-[#555] rounded-full px-3 py-0.5 font-normal" style={{ fontSize: '10.4px', lineHeight: 1.3, whiteSpace: 'nowrap', height: 22, display: 'inline-flex', alignItems: 'center', textShadow: 'none', border: '1px solid #C4C4C8' }}>{displayName}</span>
+                <span key={ing} className="bg-customGray text-[#555] rounded-full px-3 py-0.5 font-normal" style={{ fontSize: '10.4px', lineHeight: 1.3, whiteSpace: 'nowrap', height: 22, display: 'inline-flex', alignItems: 'center', border: '1px solid #C4C4C8' }}>{displayName}</span>
               );
             }
           })}
@@ -210,7 +210,7 @@ const IngredientPillGroup: React.FC<IngredientPillGroupProps> = ({ needIngredien
       {/* 대체 가능 태그 - 대체제가 있을 때만 표시 */}
       {pillInfo.substitutes.length > 0 && (
         <div className="mt-1 custom-scrollbar pr-1" style={{ display: 'flex', flexWrap: 'nowrap', gap: 4, overflowX: 'auto', maxWidth: '100%', alignItems: 'center', paddingBottom: 4 }}>
-          <span className="bg-[#555] text-white rounded px-2 py-0.5 font-normal" style={{ fontSize: '12px', flex: '0 0 auto', textShadow: 'none', border: 'none' }}>대체 가능 :</span>
+          <span className="bg-[#555] text-white rounded px-2 py-0.5 font-normal" style={{ fontSize: '12px', flex: '0 0 auto', border: 'none' }}>대체 가능 :</span>
           {pillInfo.substitutes.map((sub, idx) => (
             <span key={sub} className="ml-2 font-semibold text-[#444]" style={{ fontSize: '12px', flex: '0 0 auto' }}>{sub}</span>
           ))}
