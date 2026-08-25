@@ -1,4 +1,5 @@
 import React from 'react';
+import Chip from './ui/Chip';
 
 interface TagPillProps {
   children: React.ReactNode;
@@ -7,36 +8,20 @@ interface TagPillProps {
   style?: React.CSSProperties;
 }
 
-const BASE_STYLE: React.CSSProperties = {
-  fontFamily: 'Noto Sans KR, Arial, system-ui, sans-serif',
-  fontSize: 15,
-  fontWeight: 400,
-  color: '#3A3A42',
-  background: '#F5F5F7',
-  border: '1px solid #E6E6EA',
-  borderRadius: 999,
-  display: 'inline-flex',
-  alignItems: 'center',
-  padding: '0 12px',
-  height: 28,
-  marginRight: 8,
-  marginBottom: 4,
-  whiteSpace: 'nowrap',
-  overflow: 'hidden',
-  letterSpacing: '-0.1px',
-  WebkitFontSmoothing: 'antialiased',
-  MozOsxFontSmoothing: 'grayscale',
-  textRendering: 'optimizeLegibility',
-  };
-
+/**
+ * 기존 호출부 호환용 래퍼. 신규 코드는 `ui/Chip` 을 직접 쓸 것.
+ * 예전엔 폰트를 'Noto Sans KR' 로 따로 지정하고 있어서 앱 전체(Pretendard)와 톤이 달랐음.
+ */
 const TagPill: React.FC<TagPillProps> = ({ children, onClick, className = '', style }) => (
-  <span
-    className={`custom-pill ${className}`}
-    style={{ ...BASE_STYLE, ...style }}
+  <Chip
+    size="sm"
+    interactive={!!onClick}
     onClick={onClick}
+    className={className}
+    style={{ marginRight: 8, marginBottom: 4, ...style }}
   >
     {children}
-  </span>
+  </Chip>
 );
 
-export default TagPill; 
+export default TagPill;
