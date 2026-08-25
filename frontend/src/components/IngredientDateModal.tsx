@@ -175,11 +175,22 @@ export default function IngredientDateModal({ type, isOpen, onClose, onComplete,
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center" style={{ zIndex: 'var(--z-modal)' }} onClick={onClose}>
+      {/* ⚠️ 예전에 `style` 속성이 두 번 있었다.
+          JSX 는 뒤에 온 것이 앞의 것을 통째로 덮어쓰기 때문에, 여백(padding)과 폭(width)
+          설정이 전부 사라지고 fontFamily 만 남아 있었음 → 콘텐츠가 팝업을 뚫고 나오는 것처럼 보였다. */}
       <div
         className="relative bg-white"
-        style={{ borderRadius: 20, padding: '24px 20px 20px', width: 'min(340px, calc(100vw - 40px))', boxShadow: '0 16px 48px rgba(0,0,0,0.22)' }}
+        style={{
+          borderRadius: 20,
+          padding: '24px 20px 20px',
+          width: 'min(340px, calc(100vw - 40px))',
+          boxSizing: 'border-box',
+          maxHeight: 'calc(100dvh - 64px)',
+          overflowY: 'auto',
+          boxShadow: '0 16px 48px rgba(0,0,0,0.22)',
+          fontFamily: 'Pretendard, sans-serif',
+        }}
         onClick={e => e.stopPropagation()}
-        style={{ fontFamily: 'Pretendard, sans-serif' }}
       >
         <div className="absolute top-1 left-1 flex gap-1 z-10">
           <button
