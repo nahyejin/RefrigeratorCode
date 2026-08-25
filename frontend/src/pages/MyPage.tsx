@@ -1323,7 +1323,7 @@ const MyPage: React.FC = () => {
       
       {/* 내 정보 수정 모달 */}
       {editOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center" style={{ zIndex: 'var(--z-modal)' }}>
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center" style={{ zIndex: 'var(--z-modal)' }}>
           <div 
             className="bg-white rounded-xl shadow-lg w-[370px] max-w-[95vw] relative max-h-[90vh] overflow-y-auto scrollbar-none" 
             style={{scrollbarWidth:'none'}} 

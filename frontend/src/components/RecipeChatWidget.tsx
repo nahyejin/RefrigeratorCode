@@ -340,7 +340,7 @@ const RecipeChatWidget: React.FC = () => {
     <>
       {open && (
         <div
-          className="fixed inset-0 bg-black/30 z-[var(--z-overlay)]"
+          className="fixed inset-0 bg-black/40 z-[var(--z-overlay)]"
           onClick={() => setOpen(false)}
         />
       )}

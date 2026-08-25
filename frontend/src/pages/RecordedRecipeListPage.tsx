@@ -591,7 +591,7 @@ const RecordedRecipeListPage: React.FC = () => {
       )}
       
       {matchRateModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center" style={{ zIndex: 'var(--z-modal)' }}>
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center" style={{ zIndex: 'var(--z-modal)' }}>
           <div className="bg-white rounded-xl shadow-lg p-6 w-[340px] max-w-[95vw] relative">
             <span 
               className="absolute top-3 right-3 w-6 h-6 text-gray-400 text-xl cursor-pointer" 
@@ -607,7 +607,7 @@ const RecordedRecipeListPage: React.FC = () => {
       )}
       
       {expiryModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center" style={{ zIndex: 'var(--z-modal)' }}>
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center" style={{ zIndex: 'var(--z-modal)' }}>
           <div className="bg-white rounded-xl shadow-lg p-6 w-[340px] max-w-[95vw] relative">
             <span 
               className="absolute top-3 right-3 w-6 h-6 text-gray-400 text-xl cursor-pointer" 

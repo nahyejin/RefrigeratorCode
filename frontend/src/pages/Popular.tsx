@@ -1676,7 +1676,7 @@ const Popular = () => {
 
         {/* 기간선택 모달 */}
         {dateModalOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center" style={{ zIndex: 'var(--z-modal)' }} onClick={() => {
+          <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center" style={{ zIndex: 'var(--z-modal)' }} onClick={() => {
             setDateModalOpen(false);
             // 모달을 닫을 때 임시 상태를 원래 상태로 복원
               setTempDateRange([dateRange[0], dateRange[1]]);

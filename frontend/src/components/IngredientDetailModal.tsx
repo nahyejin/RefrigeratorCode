@@ -147,7 +147,8 @@ export default function IngredientDetailModal({
         <Portal>
       <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center" style={{ zIndex: 'var(--z-modal)' }} onClick={onClose}>
           <div
-            className="relative bg-white rounded-2xl shadow-2xl w-[370px] max-w-[92vw] p-8"
+            className="relative bg-white"
+            style={{ borderRadius: 20, padding: '24px 20px 20px', width: 'min(340px, calc(100vw - 40px))', boxShadow: '0 16px 48px rgba(0,0,0,0.22)' }}
             onClick={e => e.stopPropagation()}
             style={{ fontFamily: 'Pretendard, sans-serif' }}
           >

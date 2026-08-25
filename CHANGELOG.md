@@ -420,3 +420,21 @@
 - **섹션 구분선 완화**: 2px 진한 회색 → 1px 옅은 선. 화면을 토막 내는 느낌 제거 (7곳)
 - **요즘인기 카드 가로폭** 280 → 300px (좁아서 내용이 답답하다는 피드백)
 - **재료 pill 접힘 기준** 8개 → 6개. 카드마다 3줄까지 늘어나 목록이 무거웠음
+
+### 피드백 반영 3차: 팝업 규격 통일
+- **팝업 6종의 수치가 전부 달랐음** — "다 제각각이라 촌스럽다"의 실제 원인
+  | | 딤 | 모서리 | 폭 | 여백 |
+  |---|---|---|---|---|
+  | RegisterPrompt | 30% | rounded-xl | 320px | p-6 |
+  | Welcome | (딤 없음) | rounded-lg | 가변 | px-5 py-4 |
+  | IngredientDetail | 40% | rounded-2xl | 370px | p-8 |
+  | IngredientDate | 40% | rounded-xl | 320px | p-6 |
+  닫기 버튼도 `×` 텍스트인 곳, 아예 없는 곳이 섞여 있었음
+- `ui/Dialog` 신설 — 확인/안내 팝업의 공통 규격
+  (딤 40% / 모서리 20 / 폭 min(340, 100vw-40) / 여백 24 / 등장 애니메이션 /
+  ESC 로 닫기 / 뒤 스크롤 잠금 / Portal / 하단 버튼은 `ui/Button` 사용)
+- `RegisterPromptModal`, `WelcomeModal` 을 `Dialog` 로 완전 이관
+- `IngredientDateModal`, `IngredientDetailModal` 은 내부 구조(달력·상세)가 복잡해
+  전면 이관 대신 **겉 규격만 Dialog 와 동일**하게 맞춤 (모서리·폭·여백·그림자)
+- 닫기 버튼 통일: `×` 텍스트 → 40×40 터치 영역의 SVG 아이콘 버튼 (`aria-label="닫기"`)
+- 딤 농도를 40% 로 통일 (6개 파일)

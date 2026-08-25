@@ -174,7 +174,8 @@ export default function IngredientDateModal({ type, isOpen, onClose, onComplete,
   return (
     <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center" style={{ zIndex: 'var(--z-modal)' }} onClick={onClose}>
       <div
-        className="relative bg-white rounded-xl shadow-2xl w-[320px] p-6"
+        className="relative bg-white"
+        style={{ borderRadius: 20, padding: '24px 20px 20px', width: 'min(340px, calc(100vw - 40px))', boxShadow: '0 16px 48px rgba(0,0,0,0.22)' }}
         onClick={e => e.stopPropagation()}
         style={{ fontFamily: 'Pretendard, sans-serif' }}
       >
@@ -227,7 +228,7 @@ export default function IngredientDateModal({ type, isOpen, onClose, onComplete,
           {calendarOpen && (
             <>
               <div 
-                className="fixed inset-0 bg-black bg-opacity-30"
+                className="fixed inset-0 bg-black bg-opacity-40"
                 style={{ zIndex: 'calc(var(--z-modal) + 1)' }}
                 onClick={() => setCalendarOpen(false)}
               />
