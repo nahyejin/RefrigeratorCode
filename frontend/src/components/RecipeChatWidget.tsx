@@ -211,9 +211,34 @@ const RecipeChatWidget: React.FC = () => {
     });
   }, [messages, threadId]);
 
+  // 패널이 열려 있는 동안 뒤 페이지 스크롤 잠금.
+  // 잠그지 않으면 모바일에서 패널 안을 드래그할 때 뒤 페이지가 같이 밀려서
+  // "패널이 안 스크롤된다"고 느껴짐
   useEffect(() => {
-    if (open && view === 'chat' && listRef.current) {
-      listRef.current.scrollTop = listRef.current.scrollHeight;
+    if (!open) return;
+    const { body } = document;
+    const prevOverflow = body.style.overflow;
+    body.style.overflow = 'hidden';
+    return () => {
+      body.style.overflow = prevOverflow;
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open || view !== 'chat' || !listRef.current) return;
+    const list = listRef.current;
+    const maxScroll = list.scrollHeight - list.clientHeight;
+    if (maxScroll <= 0) return;
+
+    // 답변이 길면 맨 아래로 보내지 않고 '마지막 질문'이 상단에 오도록 스크롤.
+    // 그래야 긴 답변을 처음부터 읽을 수 있고, 아래로 더 있다는 것도 인지됨
+    const userMsgs = list.querySelectorAll<HTMLElement>('[data-msg-role="user"]');
+    const lastUser = userMsgs[userMsgs.length - 1];
+    if (lastUser) {
+      const delta = lastUser.getBoundingClientRect().top - list.getBoundingClientRect().top;
+      list.scrollTop = Math.min(list.scrollTop + delta - 12, maxScroll);
+    } else {
+      list.scrollTop = maxScroll;
     }
   }, [open, view, messages, loading]);
 
@@ -410,7 +435,7 @@ const RecipeChatWidget: React.FC = () => {
           </header>
 
           {view === 'history' ? (
-            <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2" style={{ minHeight: 0 }}>
+            <div className="ai-chat-scroll flex-1 overflow-y-auto px-3 py-3 space-y-2" style={{ minHeight: 0 }}>
               {threads.length === 0 && (
                 <p className="text-xs text-gray-400 text-center py-10" style={{ textShadow: 'none' }}>
                   최근 {HISTORY_RETENTION_DAYS}일 안에 나눈 대화가 없어요.
@@ -455,7 +480,7 @@ const RecipeChatWidget: React.FC = () => {
               ))}
             </div>
           ) : (
-            <div ref={listRef} className="flex-1 overflow-y-auto px-3 py-3 space-y-3" style={{ minHeight: 0 }}>
+            <div ref={listRef} className="ai-chat-scroll flex-1 overflow-y-auto px-3 py-3 space-y-3" style={{ minHeight: 0 }}>
               {messages.length === 0 && (
                 <div className="space-y-2">
                   <p className="text-xs text-gray-500" style={{ textShadow: 'none' }}>
@@ -480,6 +505,7 @@ const RecipeChatWidget: React.FC = () => {
               {messages.map((msg, index) => (
                 <div
                   key={`${msg.role}-${index}`}
+                  data-msg-role={msg.role}
                   className={`flex items-start gap-1.5 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   {msg.role === 'assistant' && (
