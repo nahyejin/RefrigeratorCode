@@ -11,10 +11,16 @@ const STORAGE_THREADS = 'cookmatch_chat_threads';
 const HISTORY_RETENTION_DAYS = 30;
 const MAX_STORED_THREADS = 100;
 
+/** 첫 진입 시 보여주는 예시 질문 (맛 / 냉장고 / 대상 / 목적 / 상황을 고루 커버) */
 const SUGGESTIONS = [
   '오늘 매운 거 먹고 싶어',
   '있는 재료로 뭐 해먹을 수 있어?',
   '재료 상관없이 간단한 거 추천해줘',
+  '아이가 잘 먹는 반찬 알려줘',
+  '다이어트 중인데 뭐 먹지?',
+  '캠핑 가서 해먹기 좋은 요리',
+  '술안주로 괜찮은 거 추천해줘',
+  '15분이면 되는 자취 요리',
 ];
 
 type ChatRecipe = {
@@ -559,25 +565,32 @@ const RecipeChatWidget: React.FC = () => {
           )}
 
           {view === 'chat' && (
-            <form onSubmit={handleSubmit} className="flex gap-2 p-3 border-t border-gray-100">
+            <form
+              onSubmit={handleSubmit}
+              className="flex items-center gap-2 p-3"
+              style={{ borderTop: '1px solid #EDEDF0', background: '#FAFAFB' }}
+            >
               <input
                 ref={inputRef}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="먹고 싶은 걸 편하게 말해보세요"
-                className="flex-1 text-[13px] px-3 py-2 rounded-full bg-gray-100 outline-none"
-                style={{ border: 'none', textShadow: 'none' }}
+                className="ai-chat-input flex-1 text-[13px]"
                 disabled={loading}
               />
               <button
                 type="submit"
                 disabled={loading || !input.trim()}
-                className="text-[13px] font-semibold text-white px-3 rounded-full"
+                className="text-[13px] font-bold rounded-full flex-shrink-0"
                 style={{
-                  background: loading || !input.trim() ? '#bbb' : '#222',
+                  height: 40,
+                  minWidth: 56,
+                  padding: '0 14px',
+                  background: loading || !input.trim() ? '#E4E4E8' : '#FFD600',
+                  color: loading || !input.trim() ? '#9A9AA0' : '#1A1A1A',
                   border: 'none',
                   cursor: loading || !input.trim() ? 'default' : 'pointer',
-                  minWidth: 52,
+                  transition: 'background 0.15s ease, color 0.15s ease',
                 }}
               >
                 보내기
