@@ -849,10 +849,7 @@ div[style*="overflow"]:not([style*="layout: horizontal"]):not([style*="overflow-
 .ui-input::placeholder {
   color: var(--ink-400);
 }
-.ui-input:focus {
-  border-color: var(--brand) !important;
-  box-shadow: 0 0 0 3px rgba(255, 214, 0, 0.25);
-}
+
 
 /* 움직임 최소화(iOS "동작 줄이기" / Windows "애니메이션 표시" 끄기)를 켠 사용자 대응.
    주의: 예전에는 `*` 로 모든 애니메이션을 죽였는데, 그러면 로딩 표시와 FAB 처럼
@@ -976,4 +973,33 @@ select:focus-visible,
   background: var(--surface-sub) !important;
   color: var(--ink-700) !important;
   border: 1px solid var(--line-300) !important;
+}
+
+
+/* ============================================================
+   입력 요소 포커스 — 앱 전체 공통
+
+   정리 전에는 화면마다 제각각이었다:
+     노란 테두리 + 노란 글로우(챗 입력창, 공통 Input) /
+     파란 링(focus:ring-blue) / 초록 링 / 회색 테두리만 / 아무 표시 없음.
+   노란 링은 브랜드 컬러를 "지금 입력 중"이라는 흔한 상태에 써버려 과하게 튀었다.
+   → 테두리를 진하게 하고 아주 옅은 회색 링만 두는 절제된 방식으로 통일한다.
+   ============================================================ */
+input:focus,
+input:focus-visible,
+textarea:focus,
+textarea:focus-visible,
+select:focus,
+select:focus-visible {
+  border-color: var(--ink-700) !important;
+  box-shadow: 0 0 0 3px rgba(26, 26, 30, 0.07) !important;
+  outline: none !important;
+}
+
+/* 키보드 탐색으로 들어온 경우엔 조금 더 또렷하게 (접근성) */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  border-color: var(--ink-900) !important;
+  box-shadow: 0 0 0 3px rgba(26, 26, 30, 0.14) !important;
 }

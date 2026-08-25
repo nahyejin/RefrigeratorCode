@@ -1953,7 +1953,7 @@ const RecipeList: React.FC = () => {
             onChange={e => setKeywordSearchInput(e.target.value)}
             placeholder="꼭 포함할 키워드를 입력해 주세요"
             aria-label="꼭 포함할 키워드 검색"
-            className="w-full border border-gray-300 rounded-full text-sm placeholder-[#9A9AA2] focus:outline-none focus:border-gray-400"
+            className="w-full border border-gray-300 rounded-full text-sm placeholder-[#9A9AA2] focus:outline-none"
             style={{
               height: 42,
               padding: '0 46px 0 18px',

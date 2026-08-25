@@ -45,7 +45,7 @@ const SortDropdown: React.FC<SortDropdownProps> = ({ value, onChange, className 
     >
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="border border-gray-300 rounded h-6 py-0 pl-2 pr-6 text-[13px] font-medium bg-white text-[#3A3A42] focus:outline-none focus:ring-2 focus:ring-blue-200 transition min-w-[110px] relative"
+        className="border border-gray-300 rounded h-6 py-0 pl-2 pr-6 text-[13px] font-medium bg-white text-[#3A3A42] focus:outline-none transition min-w-[110px] relative"
         style={{ 
           textAlign: 'left',
           height: 28,

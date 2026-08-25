@@ -1805,7 +1805,7 @@ const MyFridge: React.FC = () => {
                 ref={inputRef}
                 type="text"
                 placeholder="추가할 재료명을 입력하세요"
-                className="border border-gray-300 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                className="border border-gray-300 rounded-full px-4 py-2 text-sm focus:outline-none"
                 style={{
                   width: '100%',
                   height: 40,
@@ -1868,7 +1868,7 @@ const MyFridge: React.FC = () => {
             </button>
             <button
               type="button"
-              className="bg-[#E6E6EA] text-[#1A1A1E] font-bold rounded-2xl px-2 py-2 text-sm shadow transition whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-[#D2D2D8] focus:border-[#D2D2D8]"
+              className="bg-[#E6E6EA] text-[#1A1A1E] font-bold rounded-2xl px-2 py-2 text-sm shadow transition whitespace-nowrap focus:outline-none"
               style={{ display: 'flex', alignItems: 'center', height: 40, minWidth: 40, padding: 0, fontSize: 16, marginLeft: 0, border: '1px solid #E6E6EA', justifyContent: 'center', borderRadius: 20, alignSelf: 'flex-start' }}
               onClick={() => alert('영수증 인식 기능은 곧 지원될 예정입니다!')}
               title="영수증 인식(구현 예정)"

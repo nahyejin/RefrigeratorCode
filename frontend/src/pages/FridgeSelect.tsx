@@ -37,19 +37,19 @@ const STORAGE_ZONES = [
     name: '냉동실',
     position: 'absolute left-0 top-0 w-full h-[38%] rounded-t-[18px]',
     hoverRing: 'hover:ring-4 hover:ring-blue-200/60',
-    focusRing: 'focus:ring-4 focus:ring-blue-300/80'
+    focusRing: '/80'
   },
   {
     name: '냉장실',
     position: 'absolute left-0 bottom-0 w-full h-[62%] rounded-b-[18px]',
     hoverRing: 'hover:ring-4 hover:ring-green-200/60',
-    focusRing: 'focus:ring-4 focus:ring-green-300/80'
+    focusRing: '/80'
   },
   {
     name: '실온 보관 공간',
     position: 'relative w-[120px] h-[320px] flex flex-col items-center justify-center group',
     hoverRing: 'group-hover:ring-4 group-hover:ring-yellow-200/60',
-    focusRing: 'group-focus:ring-4 group-focus:ring-yellow-300/80'
+    focusRing: 'group- group-/80'
   }
 ];
 

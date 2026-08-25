@@ -2121,7 +2121,7 @@ const Popular = () => {
             <input
               type="text"
               placeholder="관심 키워드를 입력해주세요"
-              className="border border-gray-300 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+              className="border border-gray-300 rounded-full px-4 py-2 text-sm focus:outline-none"
               style={{
                 maxWidth: 250,
                 minWidth: 0,
