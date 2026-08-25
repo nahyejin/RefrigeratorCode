@@ -8,6 +8,8 @@ interface IngredientPillGroupProps {
   myIngredients: string[];
   substituteTable: { [key: string]: { ingredient_b: string; similarity_score?: number }[] };
   style?: React.CSSProperties;
+  /** 부족 재료 pill 을 눌렀을 때 (구매 연결 등). 없으면 pill 은 표시 전용 */
+  onMissingClick?: (ingredient: string) => void;
 }
 
 // 전역 동의어 사전 캐시 (모든 IngredientPillGroup 인스턴스가 공유)
@@ -15,7 +17,7 @@ let globalSynonymDict: { [key: string]: string } | null = null;
 let globalSynonymDictLoading = false;
 let globalSynonymDictPromise: Promise<{ [key: string]: string }> | null = null;
 
-const IngredientPillGroup: React.FC<IngredientPillGroupProps> = ({ needIngredients, myIngredients, substituteTable, style }) => {
+const IngredientPillGroup: React.FC<IngredientPillGroupProps> = ({ needIngredients, myIngredients, substituteTable, style, onMissingClick }) => {
   const [synonymDict, setSynonymDict] = useState<{ [key: string]: string } | null>(globalSynonymDict);
   const [isDictLoaded, setIsDictLoaded] = useState(!!globalSynonymDict);
   
@@ -162,8 +164,23 @@ const IngredientPillGroup: React.FC<IngredientPillGroupProps> = ({ needIngredien
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 4, alignItems: 'center' }}>
         {visiblePills.map((ing) => {
           const displayName = originalToConverted.get(ing) || ing;
+          const state = stateOf(ing);
+          // 부족 재료는 "채워야 할 빈 칸" → 눌러서 바로 채울(구매할) 수 있게 한다.
+          const clickable = state === 'missing' && !!onMissingClick;
+          if (!clickable) {
+            return <span key={ing} style={pillStyle(state)}>{displayName}</span>;
+          }
           return (
-            <span key={ing} style={pillStyle(stateOf(ing))}>{displayName}</span>
+            <button
+              key={ing}
+              type="button"
+              title={`${displayName} 구매하러 가기`}
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); onMissingClick!(displayName); }}
+              style={{ ...pillStyle(state), cursor: 'pointer' }}
+            >
+              {displayName}
+              <span aria-hidden style={{ marginLeft: 5, opacity: 0.55, fontWeight: 700 }}>+</span>
+            </button>
           );
         })}
         {!expanded && overflowCount > 0 && (

@@ -6,6 +6,7 @@ import { calculateMatchRate, loadIngredientSynonymDict, ingredientSynonymDictCac
 import IngredientPillGroup from './IngredientPillGroup';
 import { parseUsedIngredientsForPills } from '../utils/ingredientPillNoise';
 import CoupangProductAd from './CoupangProductAd';
+import { resolveCoupangUrl } from '../utils/coupangLink';
 import 완료하기버튼 from '../assets/완료하기버튼.png';
 import 공유하기버튼 from '../assets/공유하기버튼.png';
 import 기록하기버튼 from '../assets/기록하기버튼.png';
@@ -13,12 +14,20 @@ import naverLogo from '../assets/썸네일_naverlogo.png';
 import youtubeLogo from '../assets/썸네일_youtubelogo.png';
 
 // 버튼/아이콘/스타일 상수화
-const ACTIONS = [
+// 액션 4개 중 '완료·기록·공유'는 요리한 *뒤*에 쓰는 동작인데도 목록을 훑는 내내
+// 썸네일 위에 떠서 음식 사진(레시피 선택의 주된 판단 근거)을 가리고 있었음.
+// 목록에서 실제로 쓰는 '즐겨찾기'만 썸네일에 남기고 나머지는 좋아요/댓글 줄로 내림.
+const THUMB_ACTIONS = [
   { key: 'favorite', title: '즐겨찾기', icon: null },
-  { key: 'done', title: '완료', icon: 완료하기버튼 },
-  { key: 'share', title: '공유', icon: 공유하기버튼 },
-  { key: 'write', title: '기록', icon: 기록하기버튼 },
 ] as const;
+
+const SECONDARY_ACTIONS = [
+  { key: 'done', title: '완료', icon: 완료하기버튼 },
+  { key: 'write', title: '기록', icon: 기록하기버튼 },
+  { key: 'share', title: '공유', icon: 공유하기버튼 },
+] as const;
+
+const ACTIONS = THUMB_ACTIONS;
 
 const BUTTON_SIZE = 26;
 const ICON_SIZE = 19;
@@ -489,8 +498,47 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
       <div style={{ ...STYLES.title, cursor: 'pointer' }}>
         {recipe.title}
       </div>
-      <div style={STYLES.stats}>
-        {Utils.getStatsText(recipe)}
+      <div style={{ ...STYLES.stats, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+        <span>{Utils.getStatsText(recipe)}</span>
+        {/* 완료 / 기록 / 공유 — 사진을 가리지 않도록 이 줄로 내림. 줄 높이를 그대로 써서
+            카드가 더 길어지지 않고, 터치 영역은 36px 로 확보 */}
+        <span style={{ display: 'flex', alignItems: 'center', gap: 2, flexShrink: 0 }}>
+          {SECONDARY_ACTIONS.map(({ key, title, icon }) => (
+            <button
+              key={key}
+              title={title}
+              aria-label={title}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleActionButtonClick(key, e);
+              }}
+              style={{
+                width: 36,
+                height: 36,
+                padding: 0,
+                border: 'none',
+                background: 'transparent',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                borderRadius: 9999,
+              }}
+            >
+              <img
+                src={icon}
+                alt={title}
+                width={18}
+                height={18}
+                style={{
+                  opacity: recipeActionState?.[key] ? 0.35 : 0.62,
+                  filter: 'grayscale(1)',
+                }}
+              />
+            </button>
+          ))}
+        </span>
       </div>
       <div style={horizontalIngredientSectionStyle}>
         {usedIngredientList.length > 0 ? (
@@ -498,6 +546,10 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
             needIngredients={usedIngredientList}
             myIngredients={myIngredients}
             substituteTable={substituteTable}
+            onMissingClick={(name) => {
+              const url = resolveCoupangUrl(name);
+              if (url) window.open(url, '_blank', 'noopener,noreferrer');
+            }}
           />
         ) : (
           <div className="custom-scrollbar pr-1" style={{ display: 'flex', flexWrap: 'nowrap', gap: 4, marginBottom: 4, overflowX: 'auto', maxWidth: '100%', scrollbarWidth: 'auto', alignItems: 'center', paddingBottom: 4 }}>
@@ -506,7 +558,10 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
         )}
       </div>
       
-      {/* 쿠팡 광고: 가로형은 슬롯 높이 고정(광고 없을 때도 빈 영역 동일). 세로형은 기존처럼 광고 있을 때만 */}
+      {/* 쿠팡 광고.
+          예전엔 모든 카드에 전체폭 CTA + 2줄 고지문이 붙어 목록이 광고로 무거웠음.
+          이제 부족 재료 pill 자체가 구매 동선이므로, 별도 CTA 는 "하나만 사면 완성"에
+          가까운 카드(부족 1~2개)에만 남긴다 — 구매 전환이 실제로 일어나는 구간. */}
       {isHorizontal ? (
         <div
           style={{
@@ -515,14 +570,14 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
             boxSizing: 'border-box',
           }}
         >
-          {lackingIngredients.length > 0 ? (
+          {lackingIngredients.length > 0 && lackingIngredients.length <= 2 ? (
             <CoupangProductAd
               ingredientCandidates={lackingIngredients}
               seedKey={recipe.id}
             />
           ) : null}
         </div>
-      ) : lackingIngredients.length > 0 ? (
+      ) : lackingIngredients.length > 0 && lackingIngredients.length <= 2 ? (
         <div style={{ marginTop: '8px' }}>
           <CoupangProductAd
             ingredientCandidates={lackingIngredients}

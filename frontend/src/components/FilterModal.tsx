@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import Portal from './Portal';
+import Sheet from './ui/Sheet';
+import Button from './ui/Button';
 import { getMyIngredients } from '../utils/recipeUtils';
 
 /*
@@ -571,23 +572,19 @@ const FilterModal: React.FC<FilterModalProps> = ({
   };
 
   return (
-    <Portal>
-      <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center" style={{ zIndex: 'var(--z-modal)' }}>
-      <div 
-        className="bg-white rounded-xl shadow-lg w-[340px] max-w-[95vw] relative" 
-        style={{
-          ...STYLES.modal,
-          maxHeight: isMobile ? 'calc(100vh - 80px)' : 'calc(100vh - 60px)', // 모달 높이 더 줄임
-          display: 'flex',
-          flexDirection: 'column'
-        }}
-      >
-        <div className="sticky top-0 z-10 bg-white" style={STYLES.header}>
-          <span className="absolute top-2 right-2 w-6 h-6 text-gray-400 text-xl cursor-pointer select-none" onClick={handleClose} role="button" aria-label="닫기" style={STYLES.closeButton}>×</span>
-          <div className="text-center font-bold text-[12.8px] mb-2 pt-1">필터를 설정해 주세요</div>
-          <div className="border-b border-gray-200"></div>
-        </div>
-        <div className="p-3 mb-1" style={{ flex: 1, overflowY: 'auto', minHeight: 0, paddingTop: 8, paddingBottom: 8 }}>
+    // 예전엔 화면 가운데 뜨는 모달이라 한 손으로 쓸 때 상단 항목에 엄지가 닿지 않았고,
+    // 내용이 길어지면 위아래가 잘렸음 → 바텀시트로 전환해 액션을 엄지 근처로 내림
+    <Sheet
+      open
+      onClose={handleClose}
+      title="필터를 설정해 주세요"
+      footer={
+        <Button variant="secondary" size="lg" block onClick={handleApplyFilters}>
+          적용
+        </Button>
+      }
+    >
+        <div>
           {/* 채널 선택: 맨 위로 이동 */}
           <div className="mb-2">
             <div className="font-bold text-[13px] mb-1">■ 채널선택</div>
@@ -785,18 +782,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
             </div>
           </div>
         </div>
-        <div className="sticky bottom-0 left-0 w-full bg-white p-2 flex justify-center z-20 border-t border-gray-200">
-          <button
-            className="w-full bg-[#3A3A42] text-white font-bold py-1.5 rounded-lg text-sm"
-            style={STYLES.applyButton}
-            onClick={handleApplyFilters}
-          >
-            적용
-          </button>
-        </div>
-      </div>
-    </div>
-    </Portal>
+    </Sheet>
   );
 };
 
