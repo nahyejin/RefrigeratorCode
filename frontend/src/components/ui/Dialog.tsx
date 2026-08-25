@@ -110,7 +110,7 @@ const Dialog: React.FC<DialogProps> = ({
               border: 'none',
               borderRadius: 9999,
               cursor: 'pointer',
-              color: 'var(--ink-400)',
+              color: 'var(--ink-500)',
             }}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>

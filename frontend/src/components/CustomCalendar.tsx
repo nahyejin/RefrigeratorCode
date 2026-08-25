@@ -348,7 +348,7 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
           style={{
             width: 40, height: 40, display: 'inline-flex', alignItems: 'center',
             justifyContent: 'center', background: 'transparent', border: 'none',
-            borderRadius: 9999, cursor: 'pointer', color: 'var(--ink-400)',
+            borderRadius: 9999, cursor: 'pointer', color: 'var(--ink-500)',
           }}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
