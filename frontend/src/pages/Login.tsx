@@ -162,7 +162,7 @@ const Login: React.FC = () => {
           )}
           
           <NeangteolButton 
-            color="bg-[#3c3c3c]" 
+            color="bg-[#3A3A42]" 
             textColor="text-white" 
             className={`w-full ${BUTTON_HEIGHT} rounded-xl text-[15px] mt-1 px-4`}
             onClick={handleLogin}
@@ -174,10 +174,10 @@ const Login: React.FC = () => {
         
         {/* 체크박스 */}
         <div className={`flex flex-row items-center justify-center gap-2 w-full ${MAX_CONTAINER_WIDTH} mb-2 px-1 mx-auto`}>
-          <label className="flex items-center gap-1 text-[12px] text-[#444] font-normal cursor-pointer">
+          <label className="flex items-center gap-1 text-[12px] text-[#3A3A42] font-normal cursor-pointer">
             <input 
               type="checkbox" 
-              className="w-4 h-4 accent-[#222] cursor-pointer" 
+              className="w-4 h-4 accent-[#1A1A1E] cursor-pointer" 
               checked={rememberMe}
               onChange={(e) => setRememberMe(e.target.checked)}
             /> 
@@ -186,10 +186,10 @@ const Login: React.FC = () => {
         </div>
         
         {/* 하단 링크 */}
-        <div className={`w-full ${MAX_CONTAINER_WIDTH} text-center text-[12px] text-[#333] mb-1 leading-tight mx-auto`}>
+        <div className={`w-full ${MAX_CONTAINER_WIDTH} text-center text-[12px] text-[#3A3A42] mb-1 leading-tight mx-auto`}>
           아직 회원이 아니신가요? <span className="underline font-bold cursor-pointer" onClick={() => navigate('/signup')}>3초 회원가입</span>
         </div>
-        <div className={`w-full ${MAX_CONTAINER_WIDTH} text-center text-[12px] text-[#333] mb-4 leading-tight mx-auto`}>
+        <div className={`w-full ${MAX_CONTAINER_WIDTH} text-center text-[12px] text-[#3A3A42] mb-4 leading-tight mx-auto`}>
           <span className="underline cursor-pointer" onClick={() => navigate('/reset-password')}>비밀번호 찾기</span>
         </div>
         

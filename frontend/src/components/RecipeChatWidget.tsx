@@ -391,7 +391,7 @@ const RecipeChatWidget: React.FC = () => {
                       style={{
                         fontSize: 18,
                         fontWeight: 700,
-                        color: '#111',
+                        color: '#1A1A1E',
                       }}
                     >
                       쿡매치 AI
@@ -466,7 +466,7 @@ const RecipeChatWidget: React.FC = () => {
                       background: 'none',
                       border: 'none',
                       cursor: 'pointer',
-                      color: '#aaa',
+                      color: '#9A9AA2',
                       fontSize: 16,
                       padding: 4,
                       flexShrink: 0,
@@ -519,7 +519,7 @@ const RecipeChatWidget: React.FC = () => {
                     <div
                       className={`text-[13px] leading-5 px-3 py-2 rounded-2xl whitespace-pre-wrap ${
                         msg.role === 'user'
-                          ? 'bg-[#222] text-white rounded-br-sm'
+                          ? 'bg-[#1A1A1E] text-white rounded-br-sm'
                           : 'bg-gray-100 text-gray-800 rounded-bl-sm'
                       }`}
                     >
@@ -591,7 +591,7 @@ const RecipeChatWidget: React.FC = () => {
             <form
               onSubmit={handleSubmit}
               className="flex items-center gap-2 p-3"
-              style={{ borderTop: '1px solid #EDEDF0', background: '#FAFAFB' }}
+              style={{ borderTop: '1px solid #E6E6EA', background: '#F5F5F7' }}
             >
               <input
                 ref={inputRef}
@@ -609,8 +609,8 @@ const RecipeChatWidget: React.FC = () => {
                   height: 40,
                   minWidth: 56,
                   padding: '0 14px',
-                  background: loading || !input.trim() ? '#E4E4E8' : '#FFD600',
-                  color: loading || !input.trim() ? '#9A9AA0' : '#1A1A1A',
+                  background: loading || !input.trim() ? '#E6E6EA' : '#FFD600',
+                  color: loading || !input.trim() ? '#9A9AA2' : '#1A1A1E',
                   border: 'none',
                   cursor: loading || !input.trim() ? 'default' : 'pointer',
                   transition: 'background 0.15s ease, color 0.15s ease',

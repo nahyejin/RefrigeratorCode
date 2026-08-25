@@ -191,7 +191,7 @@ export default function IngredientDateModal({ type, isOpen, onClose, onComplete,
         <span className="absolute top-3 right-3 w-6 h-6 text-gray-400 text-xl cursor-pointer select-none" onClick={onClose} role="button" aria-label="닫기">×</span>
         <div className="text-center font-bold text-[14px] mb-4">일자를 선택하세요</div>
         <hr className="mb-4" />
-        <div className="mb-2 text-[14px] font-semibold text-[#404040]">
+        <div className="mb-2 text-[14px] font-semibold text-[#3A3A42]">
           {type === 'expiry' ? TEXTS.expiryQuestion : TEXTS.purchaseQuestion}
         </div>
         <div className="relative mb-4">
@@ -257,7 +257,7 @@ export default function IngredientDateModal({ type, isOpen, onClose, onComplete,
           {type === 'purchase' && (
             <button
               className="w-[120px] h-10 bg-white border border-gray-300 rounded-[10px] text-[12px] text-gray-600 ml-2 flex items-center justify-center"
-              style={{ backgroundColor: '#ffffff', borderColor: '#d1d5db' }}
+              style={{ backgroundColor: '#ffffff', borderColor: '#D2D2D8' }}
               onClick={handleUnknown}
             >
               {TEXTS.unknown}

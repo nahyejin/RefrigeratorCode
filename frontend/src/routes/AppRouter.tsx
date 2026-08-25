@@ -105,8 +105,8 @@ function AppContent() {
                 aria-label="로딩 중"
               >
                 <g fill="none" fillRule="evenodd" strokeWidth="4">
-                  <circle cx="22" cy="22" r="20" stroke="#e5e7eb" />
-                  <path d="M42 22c0-11.046-8.954-20-20-20" stroke="#9ca3af">
+                  <circle cx="22" cy="22" r="20" stroke="#E6E6EA" />
+                  <path d="M42 22c0-11.046-8.954-20-20-20" stroke="#9A9AA2">
                     <animateTransform
                       attributeName="transform"
                       type="rotate"

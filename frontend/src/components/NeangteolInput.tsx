@@ -33,8 +33,8 @@ const NeangteolInput: React.FC<NeangteolInputProps> = ({
           value={value}
           onChange={onChange}
           onKeyPress={onKeyPress}
-          className={`w-full h-[44px] bg-white rounded-lg pl-4 pr-10 text-[15px] placeholder-[#999] border border-gray-300 focus:outline-none focus:ring-0 focus:border-gray-400 focus:shadow-none ${className}`}
-          style={{ backgroundColor: '#fff', boxShadow: 'none', outline: 'none' }}
+          className={`w-full h-[44px] bg-white rounded-lg pl-4 pr-10 text-[15px] placeholder-[#9A9AA2] border border-gray-300 focus:outline-none focus:ring-0 focus:border-gray-400 focus:shadow-none ${className}`}
+          style={{ backgroundColor: '#FFFFFF', boxShadow: 'none', outline: 'none' }}
         />
         <button
           type="button"
@@ -71,8 +71,8 @@ const NeangteolInput: React.FC<NeangteolInputProps> = ({
       value={value}
       onChange={onChange}
       onKeyPress={onKeyPress}
-      className={`${defaultWidthClass} h-[44px] bg-white rounded-lg px-4 text-[15px] placeholder-[#999] border border-gray-300 focus:outline-none focus:ring-0 focus:border-gray-400 focus:shadow-none ${className}`}
-      style={{ backgroundColor: '#fff', boxShadow: 'none', outline: 'none' }}
+      className={`${defaultWidthClass} h-[44px] bg-white rounded-lg px-4 text-[15px] placeholder-[#9A9AA2] border border-gray-300 focus:outline-none focus:ring-0 focus:border-gray-400 focus:shadow-none ${className}`}
+      style={{ backgroundColor: '#FFFFFF', boxShadow: 'none', outline: 'none' }}
     />
   );
 };

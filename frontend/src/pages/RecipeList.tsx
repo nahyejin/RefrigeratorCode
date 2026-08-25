@@ -1,4 +1,5 @@
 import axios, { AxiosResponse } from 'axios';
+import IngredientLegend from '../components/IngredientLegend';
 import React, { useState, useEffect, useMemo, useCallback, useRef, useLayoutEffect } from 'react';
 import BottomNavBar from '../components/BottomNavBar';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -1294,7 +1295,7 @@ const RecipeList: React.FC = () => {
       targetSelector: '[data-guide-target="recipe-done-button"]',
       message: (
         <>
-          완료(<span style={{ color: '#000' }}>✓</span>) 버튼을 누르면 레시피를 완료 상태로 저장해요.<br />
+          완료(<span style={{ color: '#1A1A1E' }}>✓</span>) 버튼을 누르면 레시피를 완료 상태로 저장해요.<br />
           완료 레시피는 마이페이지에서 확인할 수 있어요.
         </>
       ),
@@ -1304,7 +1305,7 @@ const RecipeList: React.FC = () => {
       targetSelector: '[data-guide-target="recipe-share-button"]',
       message: (
         <>
-          공유(<span style={{ color: '#000' }}>➣</span>) 레시피 링크를 복사해서<br />
+          공유(<span style={{ color: '#1A1A1E' }}>➣</span>) 레시피 링크를 복사해서<br />
           다른 사람과 공유할 수 있어요.
         </>
       ),
@@ -1314,7 +1315,7 @@ const RecipeList: React.FC = () => {
       targetSelector: '[data-guide-target="recipe-write-button"]',
       message: (
         <>
-          기록(<span style={{ color: '#000' }}>⟎</span>) 버튼을 누르면 레시피를 기록 상태로 저장해요.<br />
+          기록(<span style={{ color: '#1A1A1E' }}>⟎</span>) 버튼을 누르면 레시피를 기록 상태로 저장해요.<br />
           기록한 레시피는 마이페이지에서 확인할 수 있어요.
         </>
       ),
@@ -1927,7 +1928,7 @@ const RecipeList: React.FC = () => {
             position: 'sticky',
             top: 56,
             zIndex: 40,
-            background: '#fff',
+            background: '#FFFFFF',
             marginLeft: -20,
             marginRight: -20,
             paddingLeft: 20,
@@ -1950,12 +1951,12 @@ const RecipeList: React.FC = () => {
             onChange={e => setKeywordSearchInput(e.target.value)}
             placeholder="꼭 포함할 키워드를 입력해 주세요"
             aria-label="꼭 포함할 키워드 검색"
-            className="w-full border border-gray-300 rounded-full text-sm placeholder-[#9CA3AF] focus:outline-none focus:border-gray-400"
+            className="w-full border border-gray-300 rounded-full text-sm placeholder-[#9A9AA2] focus:outline-none focus:border-gray-400"
             style={{
               height: 42,
               padding: '0 46px 0 18px',
-              backgroundColor: '#fff',
-              color: '#222',
+              backgroundColor: '#FFFFFF',
+              color: '#1A1A1E',
               boxSizing: 'border-box'
             }}
           />
@@ -1974,7 +1975,7 @@ const RecipeList: React.FC = () => {
               justifyContent: 'center',
               border: 'none',
               background: 'transparent',
-              color: '#6B7280',
+              color: '#6A6A73',
               cursor: 'pointer',
               padding: 0
             }}
@@ -2022,52 +2023,7 @@ const RecipeList: React.FC = () => {
         />
         
         {/* 재료 pill 범례 (검색창/필터와 함께 sticky 영역에 포함) */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: 6,
-            marginTop: 8
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <span style={{
-                  width: 24,
-                  height: 14,
-                  borderRadius: 7,
-                  background: '#D1D1D1', border: '1px solid #C4C4C8',
-                  display: 'inline-block', 
-                  marginRight: 2 
-                }}></span>
-                <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>부족 재료</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <span style={{ 
-                  width: 24, 
-                  height: 14, 
-                  borderRadius: 7, 
-                  background: '#555', 
-                  display: 'inline-block', 
-                  marginRight: 2 
-                }}></span>
-                <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>대체 가능</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <span style={{ 
-                  width: 24, 
-                  height: 14, 
-                  borderRadius: 7, 
-                  background: '#FFD600', 
-                  display: 'inline-block', 
-                  marginRight: 2 
-                }}></span>
-                <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>보유 재료</span>
-              </div>
-            </div>
-            <span style={{ color: '#666', fontSize: '12px' }}>
-              총 {total.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}건
-            </span>
-          </div>
+          <IngredientLegend total={total} style={{ marginBottom: 6, marginTop: 8 }} />
         </div>
 
           {/* Render recipe cards only when not loading */}
@@ -2112,7 +2068,7 @@ const RecipeList: React.FC = () => {
                     <div style={{
                       textAlign: 'center',
                       padding: '180px 20px',
-                      color: '#666',
+                      color: '#6A6A73',
                       fontSize: '14px',
                       lineHeight: '1.6',
                       display: 'flex',
@@ -2142,7 +2098,7 @@ const RecipeList: React.FC = () => {
                     <div style={{
                       textAlign: 'center',
                       padding: '180px 20px',
-                      color: '#666',
+                      color: '#6A6A73',
                       fontSize: '14px',
                       lineHeight: '1.6',
                       display: 'flex',
@@ -2242,7 +2198,7 @@ const RecipeList: React.FC = () => {
                 style={{
                   padding: '6px 8px',
                   background: 'transparent',
-                  color: page === 1 ? '#d1d5db' : '#222',
+                  color: page === 1 ? '#D2D2D8' : '#1A1A1E',
                   fontWeight: '500',
                   border: 'none',
                   borderRadius: '6px',
@@ -2257,7 +2213,7 @@ const RecipeList: React.FC = () => {
                 }}
                 onMouseEnter={(e) => {
                   if (page !== 1) {
-                    e.currentTarget.style.background = '#f5f5f5';
+                    e.currentTarget.style.background = '#F5F5F7';
                   }
                 }}
                 onMouseLeave={(e) => {
@@ -2276,7 +2232,7 @@ const RecipeList: React.FC = () => {
                 style={{
                   padding: '6px 8px',
                   background: 'transparent',
-                  color: page === 1 ? '#d1d5db' : '#222',
+                  color: page === 1 ? '#D2D2D8' : '#1A1A1E',
                   fontWeight: '500',
                   border: 'none',
                   borderRadius: '6px',
@@ -2291,7 +2247,7 @@ const RecipeList: React.FC = () => {
                 }}
                 onMouseEnter={(e) => {
                   if (page !== 1) {
-                    e.currentTarget.style.background = '#f5f5f5';
+                    e.currentTarget.style.background = '#F5F5F7';
                   }
                 }}
                 onMouseLeave={(e) => {
@@ -2313,8 +2269,8 @@ const RecipeList: React.FC = () => {
                       onClick={() => handlePageChange(pageNum)}
                       style={{
                         padding: '6px 10px',
-                        background: isCurrentPage ? '#222' : 'transparent',
-                        color: isCurrentPage ? '#fff' : '#222',
+                        background: isCurrentPage ? '#1A1A1E' : 'transparent',
+                        color: isCurrentPage ? '#FFFFFF' : '#1A1A1E',
                         fontWeight: '500',
                         border: 'none',
                         borderRadius: '6px',
@@ -2329,7 +2285,7 @@ const RecipeList: React.FC = () => {
                       }}
                       onMouseEnter={(e) => {
                         if (!isCurrentPage) {
-                          e.currentTarget.style.background = '#f5f5f5';
+                          e.currentTarget.style.background = '#F5F5F7';
                         }
                       }}
                       onMouseLeave={(e) => {
@@ -2351,7 +2307,7 @@ const RecipeList: React.FC = () => {
                 style={{
                   padding: '6px 8px',
                   background: 'transparent',
-                  color: page >= totalPages ? '#d1d5db' : '#222',
+                  color: page >= totalPages ? '#D2D2D8' : '#1A1A1E',
                   fontWeight: '500',
                   border: 'none',
                   borderRadius: '6px',
@@ -2366,7 +2322,7 @@ const RecipeList: React.FC = () => {
                 }}
                 onMouseEnter={(e) => {
                   if (page < totalPages) {
-                    e.currentTarget.style.background = '#f5f5f5';
+                    e.currentTarget.style.background = '#F5F5F7';
                   }
                 }}
                 onMouseLeave={(e) => {
@@ -2385,7 +2341,7 @@ const RecipeList: React.FC = () => {
                 style={{
                   padding: '6px 8px',
                   background: 'transparent',
-                  color: page >= totalPages ? '#d1d5db' : '#222',
+                  color: page >= totalPages ? '#D2D2D8' : '#1A1A1E',
                   fontWeight: '500',
                   border: 'none',
                   borderRadius: '6px',
@@ -2400,7 +2356,7 @@ const RecipeList: React.FC = () => {
                 }}
                 onMouseEnter={(e) => {
                   if (page < totalPages) {
-                    e.currentTarget.style.background = '#f5f5f5';
+                    e.currentTarget.style.background = '#F5F5F7';
                   }
                 }}
                 onMouseLeave={(e) => {
@@ -2447,13 +2403,13 @@ const RecipeList: React.FC = () => {
             <div style={{ 
               textAlign: 'center',
               fontSize: '13px',
-              color: '#666',
+              color: '#6A6A73',
               lineHeight: '1.4'
             }}>
-              <div style={{ fontWeight: '600', marginBottom: '2px', color: '#222', fontSize: '14px' }}>
+              <div style={{ fontWeight: '600', marginBottom: '2px', color: '#1A1A1E', fontSize: '14px' }}>
                 레시피를 불러오는 중...
               </div>
-              <div style={{ fontSize: '11px', color: '#888' }}>
+              <div style={{ fontSize: '11px', color: '#9A9AA2' }}>
                 재료 수에 따라<br />
                 시간이 걸릴 수 있습니다
               </div>
@@ -2462,7 +2418,7 @@ const RecipeList: React.FC = () => {
             <div style={{
               width: '100%',
               height: '6px',
-              background: '#f0f0f0',
+              background: '#F5F5F7',
               borderRadius: '3px',
               overflow: 'hidden',
               marginTop: '4px',

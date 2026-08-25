@@ -64,7 +64,7 @@ const RegisterPromptModal: React.FC<RegisterPromptModalProps> = ({
               onClose();
               navigate('/login?redirect=' + encodeURIComponent(window.location.pathname));
             }}
-            className="flex-1 h-10 bg-[#FFD600] text-[#222] rounded-lg text-sm font-semibold hover:bg-yellow-300"
+            className="flex-1 h-10 bg-[#FFD600] text-[#1A1A1E] rounded-lg text-sm font-semibold hover:bg-yellow-300"
             style={{ outline: 'none', border: 'none' }}
           >
             {confirmLabel}

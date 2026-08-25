@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import IngredientLegend from '../components/IngredientLegend';
 import BottomNavBar from '../components/BottomNavBar';
 import logoImg from '../assets/냉털이 로고 white.png';
 import searchIcon from '../assets/navigator_search.png';
@@ -106,7 +107,7 @@ interface PendingRemove {
 
 const CARD_STYLE = {
   borderRadius: 20,
-  background: '#fff',
+  background: '#FFFFFF',
   boxShadow: '0 1px 4px rgba(0,0,0,0.03)',
   marginBottom: 4,
   minHeight: 144,
@@ -1130,7 +1131,7 @@ const MyPage: React.FC = () => {
             <div className="text-[15px] text-gray-500 mb-2">{user.email}</div>
           </div>
           <button
-            className="px-3 h-7 bg-[#FFD600] text-[#222] rounded-full text-[13px] font-bold flex items-center gap-1 border-none shadow hover:bg-yellow-300 transition"
+            className="px-3 h-7 bg-[#FFD600] text-[#1A1A1E] rounded-full text-[13px] font-bold flex items-center gap-1 border-none shadow hover:bg-yellow-300 transition"
             style={{ 
               minWidth: 0, 
               height: 28, 
@@ -1155,7 +1156,7 @@ const MyPage: React.FC = () => {
               </div>
             </div>
             <button
-              className="px-5 h-9 bg-[#FFD600] text-[#222] rounded-full text-[14px] font-bold flex items-center justify-center gap-1 border-none shadow-sm hover:bg-yellow-400 hover:shadow-md transition-all duration-200"
+              className="px-5 h-9 bg-[#FFD600] text-[#1A1A1E] rounded-full text-[14px] font-bold flex items-center justify-center gap-1 border-none shadow-sm hover:bg-yellow-400 hover:shadow-md transition-all duration-200"
               style={{ 
                 fontFamily: 'inherit',
                 minWidth: '140px'
@@ -1173,12 +1174,12 @@ const MyPage: React.FC = () => {
         {/* 내가 즐겨찾는 레시피 */}
         <div style={{ paddingLeft: 14, paddingRight: 14, marginTop: 0, marginBottom: 6 }}>
           <div className="flex items-center justify-between mb-0">
-            <h2 className="text-[16px] font-bold text-[#111] flex items-center gap-1">
+            <h2 className="text-[16px] font-bold text-[#1A1A1E] flex items-center gap-1">
               <svg width="21" height="21" viewBox="0 0 24 24" style={{ marginRight: 4, marginBottom: 2 }}>
                 <path
                   d="M12 2.75l2.72 5.51 6.08.88-4.4 4.29 1.04 6.05L12 16.62 6.56 19.48l1.04-6.05-4.4-4.29 6.08-.88L12 2.75z"
                   fill="none"
-                  stroke="#222"
+                  stroke="#1A1A1E"
                   strokeWidth="1.8"
                   strokeLinejoin="round"
                 />
@@ -1186,40 +1187,16 @@ const MyPage: React.FC = () => {
               내가 즐겨찾는 레시피
             </h2>
             <button
-              className="text-[#888] text-[20px] font-bold px-2 py-0 bg-transparent border-none outline-none cursor-pointer"
+              className="text-[#9A9AA2] text-[20px] font-bold px-2 py-0 bg-transparent border-none outline-none cursor-pointer"
               aria-label="내가 즐겨찾는 레시피 전체보기"
               onClick={() => navigate('/mypage/favorite')}
             >
               ☰
             </button>
           </div>
-          <div style={{ height: 2, width: '100%', background: '#E5E5E5', marginBottom: 16 }} />
+          <div style={{ height: 2, width: '100%', background: '#E6E6EA', marginBottom: 16 }} />
 
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: 16,
-            marginTop: 8
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <span style={{ width: 24, height: 14, borderRadius: 7, background: '#D1D1D1', border: '1px solid #C4C4C8', display: 'inline-block', marginRight: 2 }}></span>
-                <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>부족 재료</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <span style={{ width: 24, height: 14, borderRadius: 7, background: '#555', display: 'inline-block', marginRight: 2 }}></span>
-                <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>대체 가능</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <span style={{ width: 24, height: 14, borderRadius: 7, background: '#FFD600', display: 'inline-block', marginRight: 2 }}></span>
-                <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>보유 재료</span>
-              </div>
-            </div>
-            <span style={{ color: '#666', fontSize: '12px', marginRight: 32 }}>
-              총 {favoriteRecipes.length.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}건
-            </span>
-          </div>
+          <IngredientLegend total={favoriteRecipes.length} style={{ marginBottom: 6, marginTop: 8 }} />
 
           <VirtualizedHorizontalRecipeList
             recipes={favoriteRecipes}
@@ -1243,7 +1220,7 @@ const MyPage: React.FC = () => {
         {/* 내가 기록한 레시피 */}
         <div style={{ paddingLeft: 14, paddingRight: 14, marginTop: 0, marginBottom: 6 }}>
           <div className="flex items-center justify-between mb-0">
-            <h2 className="text-[16px] font-bold text-[#111] flex items-center gap-1">
+            <h2 className="text-[16px] font-bold text-[#1A1A1E] flex items-center gap-1">
               <img 
                 src={writeIcon} 
                 alt="기록 아이콘" 
@@ -1258,62 +1235,17 @@ const MyPage: React.FC = () => {
               내가 기록한 레시피
             </h2>
             <button
-              className="text-[#888] text-[20px] font-bold px-2 py-0 bg-transparent border-none outline-none cursor-pointer"
+              className="text-[#9A9AA2] text-[20px] font-bold px-2 py-0 bg-transparent border-none outline-none cursor-pointer"
               aria-label="내가 기록한 레시피 전체보기"
               onClick={() => navigate('/mypage/recorded')}
             >
               ☰
             </button>
           </div>
-          <div style={{ height: 2, width: '100%', background: '#E5E5E5', marginBottom: 16 }} />
+          <div style={{ height: 2, width: '100%', background: '#E6E6EA', marginBottom: 16 }} />
           
           {/* 범례 */}
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'space-between', 
-            marginBottom: 16, 
-            marginTop: 8 
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <span style={{ 
-                  width: 24, 
-                  height: 14, 
-                  borderRadius: 7, 
-                  background: '#D1D1D1', border: '1px solid #C4C4C8', 
-                  display: 'inline-block', 
-                  marginRight: 2 
-                }}></span>
-                <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>부족 재료</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <span style={{ 
-                  width: 24, 
-                  height: 14, 
-                  borderRadius: 7, 
-                  background: '#555', 
-                  display: 'inline-block', 
-                  marginRight: 2 
-                }}></span>
-                <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>대체 가능</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <span style={{ 
-                  width: 24, 
-                  height: 14, 
-                  borderRadius: 7, 
-                  background: '#FFD600', 
-                  display: 'inline-block', 
-                  marginRight: 2 
-                }}></span>
-                <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>보유 재료</span>
-              </div>
-            </div>
-            <span style={{ color: '#666', fontSize: '12px', marginRight: 32 }}>
-              총 {recordedRecipes.length.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}건
-            </span>
-          </div>
+          <IngredientLegend total={recordedRecipes.length} style={{ marginBottom: 6, marginTop: 8 }} />
           
           <VirtualizedHorizontalRecipeList
             recipes={recordedRecipes}
@@ -1337,7 +1269,7 @@ const MyPage: React.FC = () => {
         {/* 내가 완료한 레시피 */}
         <div style={{ paddingLeft: 14, paddingRight: 14, marginTop: 4 }}>
           <div className="flex items-center justify-between mb-0">
-            <h2 className="text-[16px] font-bold text-[#111] flex items-center gap-1">
+            <h2 className="text-[16px] font-bold text-[#1A1A1E] flex items-center gap-1">
               <img 
                 src={doneIcon} 
                 alt="완료 아이콘" 
@@ -1352,62 +1284,17 @@ const MyPage: React.FC = () => {
               내가 완료한 레시피
             </h2>
             <button
-              className="text-[#888] text-[20px] font-bold px-2 py-0 bg-transparent border-none outline-none cursor-pointer"
+              className="text-[#9A9AA2] text-[20px] font-bold px-2 py-0 bg-transparent border-none outline-none cursor-pointer"
               aria-label="내가 완료한 레시피 전체보기"
               onClick={() => navigate('/mypage/completed')}
             >
               ☰
             </button>
           </div>
-          <div style={{ height: 2, width: '100%', background: '#E5E5E5', marginBottom: 16 }} />
+          <div style={{ height: 2, width: '100%', background: '#E6E6EA', marginBottom: 16 }} />
           
           {/* 범례 */}
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'space-between', 
-            marginBottom: 16, 
-            marginTop: 8 
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <span style={{ 
-                  width: 24, 
-                  height: 14, 
-                  borderRadius: 7, 
-                  background: '#D1D1D1', border: '1px solid #C4C4C8', 
-                  display: 'inline-block', 
-                  marginRight: 2 
-                }}></span>
-                <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>부족 재료</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <span style={{ 
-                  width: 24, 
-                  height: 14, 
-                  borderRadius: 7, 
-                  background: '#555', 
-                  display: 'inline-block', 
-                  marginRight: 2 
-                }}></span>
-                <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>대체 가능</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <span style={{ 
-                  width: 24, 
-                  height: 14, 
-                  borderRadius: 7, 
-                  background: '#FFD600', 
-                  display: 'inline-block', 
-                  marginRight: 2 
-                }}></span>
-                <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>보유 재료</span>
-              </div>
-            </div>
-            <span style={{ color: '#666', fontSize: '12px', marginRight: 32 }}>
-              총 {completedRecipes.length.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}건
-            </span>
-          </div>
+          <IngredientLegend total={completedRecipes.length} style={{ marginBottom: 6, marginTop: 8 }} />
           
           <VirtualizedHorizontalRecipeList
             recipes={completedRecipes}
@@ -1472,7 +1359,7 @@ const MyPage: React.FC = () => {
                   <button 
                     className={`h-10 px-3 rounded-lg text-[14px] font-semibold whitespace-nowrap mt-6 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${
                       edit.nickname !== originalEdit.nickname && edit.nickname.trim() !== ''
-                        ? 'bg-[#FFD600] text-[#222]'
+                        ? 'bg-[#FFD600] text-[#1A1A1E]'
                         : 'bg-gray-200 text-gray-400'
                     }`}
                     onClick={handleCheckNickname}
@@ -1494,8 +1381,8 @@ const MyPage: React.FC = () => {
                         aria-label="로딩 중"
                       >
                         <g fill="none" fillRule="evenodd" strokeWidth="4">
-                          <circle cx="22" cy="22" r="20" stroke="#e5e7eb" />
-                          <path d="M42 22c0-11.046-8.954-20-20-20" stroke="#9ca3af">
+                          <circle cx="22" cy="22" r="20" stroke="#E6E6EA" />
+                          <path d="M42 22c0-11.046-8.954-20-20-20" stroke="#9A9AA2">
                             <animateTransform
                               attributeName="transform"
                               type="rotate"
@@ -1533,9 +1420,9 @@ const MyPage: React.FC = () => {
                   readOnly 
                   disabled
                   style={{
-                    backgroundColor: '#F9FAFB',
-                    borderColor: '#E5E7EB',
-                    color: '#9CA3AF',
+                    backgroundColor: '#F5F5F7',
+                    borderColor: '#E6E6EA',
+                    color: '#9A9AA2',
                     opacity: 0.7
                   }}
                 />
@@ -1612,7 +1499,7 @@ const MyPage: React.FC = () => {
               {/* 취소/적용 버튼 */}
               <div className="flex gap-2 mt-4">
                 <button 
-                  className="flex-1 h-11 bg-white text-[#222] border border-gray-300 rounded-lg text-[16px] font-bold"
+                  className="flex-1 h-11 bg-white text-[#1A1A1E] border border-gray-300 rounded-lg text-[16px] font-bold"
                   onClick={handleCancel}
                 >
                   취소
@@ -1620,7 +1507,7 @@ const MyPage: React.FC = () => {
                 <button 
                   className={`flex-1 h-11 rounded-lg text-[16px] font-bold ${
                     hasChanges() 
-                      ? 'bg-[#FFD600] text-[#222] cursor-pointer' 
+                      ? 'bg-[#FFD600] text-[#1A1A1E] cursor-pointer' 
                       : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                   }`}
                   onClick={handleSave}
@@ -1670,7 +1557,7 @@ const MyPage: React.FC = () => {
           left: '50%',
           transform: 'translateX(-50%)',
           background: 'rgba(34,34,34,0.9)',
-          color: '#fff',
+          color: '#FFFFFF',
           padding: '12px 24px',
           borderRadius: 12,
           fontSize: 15,
@@ -1694,7 +1581,7 @@ const MyPage: React.FC = () => {
           left: '50%',
           transform: 'translateX(-50%)',
           background: 'rgba(34, 34, 34, 0.9)',
-          color: '#fff',
+          color: '#FFFFFF',
           padding: '12px 24px',
           borderRadius: 12,
           fontSize: 15,
@@ -1711,7 +1598,7 @@ const MyPage: React.FC = () => {
           gap: 8,
         }}>
           <span style={{
-            color: '#fff',
+            color: '#FFFFFF',
             marginBottom: 6,
             letterSpacing: '0.04em',
             whiteSpace: 'nowrap',
@@ -1725,14 +1612,14 @@ const MyPage: React.FC = () => {
           </span>
           <div style={{display:'flex',flexDirection:'row',gap:12,justifyContent:'center',width:'100%'}}>
             <button 
-              className="inline-flex items-center justify-center bg-[#F5F6F8] text-gray-700 font-semibold rounded-lg px-3 py-1 text-sm border border-[#E5E7EB] shadow-none hover:bg-[#E5E7EB] transition whitespace-nowrap" 
+              className="inline-flex items-center justify-center bg-[#F5F5F7] text-gray-700 font-semibold rounded-lg px-3 py-1 text-sm border border-[#E6E6EA] shadow-none hover:bg-[#E6E6EA] transition whitespace-nowrap" 
               style={{marginRight:4}} 
               onClick={handleRemoveUndo}
             >
               아니요
             </button>
             <button 
-              className="inline-flex items-center justify-center bg-[#F5F6F8] text-gray-700 font-semibold rounded-lg px-3 py-1 text-sm border border-[#E5E7EB] shadow-none hover:bg-[#E5E7EB] transition whitespace-nowrap" 
+              className="inline-flex items-center justify-center bg-[#F5F5F7] text-gray-700 font-semibold rounded-lg px-3 py-1 text-sm border border-[#E6E6EA] shadow-none hover:bg-[#E6E6EA] transition whitespace-nowrap" 
               onClick={handleRemoveConfirm}
             >
               네
@@ -1775,7 +1662,7 @@ const MyPage: React.FC = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[1002]">
           <div className="bg-white rounded-xl shadow-lg w-[320px] max-w-[90vw] p-6">
             <div className="text-center mb-4">
-              <div className="text-[18px] font-bold text-[#222] mb-3">회원탈퇴</div>
+              <div className="text-[18px] font-bold text-[#1A1A1E] mb-3">회원탈퇴</div>
               <div className="text-[14px] text-gray-600 leading-relaxed">
                 정말 회원탈퇴를 하시겠습니까?<br />
                 모든 데이터가 삭제되며 복구 불가 합니다.
@@ -1783,7 +1670,7 @@ const MyPage: React.FC = () => {
             </div>
             <div className="flex gap-2">
               <button
-                className="flex-1 h-11 bg-white text-[#222] border border-gray-300 rounded-lg text-[15px] font-semibold"
+                className="flex-1 h-11 bg-white text-[#1A1A1E] border border-gray-300 rounded-lg text-[15px] font-semibold"
                 onClick={() => setShowDeleteConfirm(false)}
                 disabled={deletingAccount}
               >

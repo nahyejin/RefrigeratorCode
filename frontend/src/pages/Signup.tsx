@@ -278,7 +278,7 @@ const Signup: React.FC = () => {
         <div style={{ flex: '0.2', minHeight: '60px' }}></div>
         
         {/* 제목 */}
-        <div className={`w-full ${MAX_CONTAINER_WIDTH} text-center text-[20px] font-bold text-[#222] mb-6 mx-auto`}>
+        <div className={`w-full ${MAX_CONTAINER_WIDTH} text-center text-[20px] font-bold text-[#1A1A1E] mb-6 mx-auto`}>
           회원가입
         </div>
         
@@ -307,7 +307,7 @@ const Signup: React.FC = () => {
               <button
                 onClick={handleCheckEmail}
                 disabled={checkingEmail || !email || !email.includes('@')}
-                className="h-[44px] px-2 bg-[#FFD600] text-[#222] rounded-lg text-[12px] font-semibold whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+                className="h-[44px] px-2 bg-[#FFD600] text-[#1A1A1E] rounded-lg text-[12px] font-semibold whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
                 style={{ minWidth: '65px' }}
               >
                 {checkingEmail ? '확인 중...' : '중복 체크'}
@@ -369,7 +369,7 @@ const Signup: React.FC = () => {
                 <button
                   onClick={handleVerifyCode}
                   disabled={verifyingCode || verificationCode.length !== 6}
-                  className="h-[44px] px-2 bg-[#FFD600] text-[#222] rounded-lg text-[12px] font-semibold whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+                  className="h-[44px] px-2 bg-[#FFD600] text-[#1A1A1E] rounded-lg text-[12px] font-semibold whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
                   style={{ minWidth: '65px' }}
                 >
                   {verifyingCode ? '확인 중...' : '인증하기'}
@@ -484,7 +484,7 @@ const Signup: React.FC = () => {
           )}
           
           <NeangteolButton 
-            color="bg-[#3c3c3c]" 
+            color="bg-[#3A3A42]" 
             textColor="text-white" 
             className={`w-full ${BUTTON_HEIGHT} rounded-xl text-[15px] mt-2 px-4`}
             onClick={handleSignup}
@@ -495,7 +495,7 @@ const Signup: React.FC = () => {
         </div>
         
         {/* 로그인 링크 */}
-        <div className={`w-full ${MAX_CONTAINER_WIDTH} text-center text-[12px] text-[#333] mb-4 leading-tight mx-auto`}>
+        <div className={`w-full ${MAX_CONTAINER_WIDTH} text-center text-[12px] text-[#3A3A42] mb-4 leading-tight mx-auto`}>
           이미 회원이신가요? <span className="underline font-bold cursor-pointer" onClick={() => navigate('/login')}>로그인</span>
         </div>
         

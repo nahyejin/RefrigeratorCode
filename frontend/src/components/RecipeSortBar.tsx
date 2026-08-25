@@ -101,13 +101,13 @@ const STYLES = {
   },
   button: {
     height: 28,
-    border: '1px solid #D1D5DB',
+    border: '1px solid #D2D2D8',
     borderRadius: 6,
     fontSize: 12,
     padding: '0 8px',
     fontWeight: 600,
-    background: '#fff',
-    color: '#222',
+    background: '#FFFFFF',
+    color: '#1A1A1E',
     minWidth: 70,
     marginRight: 0,
     whiteSpace: 'nowrap' as const,
@@ -123,13 +123,13 @@ const STYLES = {
   },
   select: {
     height: 28,
-    border: '1px solid #D1D5DB',
+    border: '1px solid #D2D2D8',
     borderRadius: 6,
     fontSize: 12,
     padding: '0 22px 0 8px',
     fontWeight: 600,
-    background: '#fff',
-    color: '#222',
+    background: '#FFFFFF',
+    color: '#1A1A1E',
     minWidth: 80,
     marginRight: 0,
     appearance: 'none' as const,
@@ -148,7 +148,7 @@ const STYLES = {
     transform: 'translateY(-50%)',
     pointerEvents: 'none' as const,
     fontSize: 13,
-    color: '#888',
+    color: '#9A9AA2',
     marginLeft: 'auto'
   },
   filterButton: {
@@ -158,8 +158,8 @@ const STYLES = {
     fontSize: 12,
     padding: '0 14px',
     fontWeight: 700,
-    background: '#222',
-    color: '#fff',
+    background: '#1A1A1E',
+    color: '#FFFFFF',
     minWidth: 50,
     whiteSpace: 'nowrap' as const,
     lineHeight: '28px',
@@ -181,7 +181,7 @@ const STYLES = {
     zIndex: 1001
   },
   modalContent: {
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
     padding: 24,
@@ -195,7 +195,7 @@ const STYLES = {
     right: 12,
     width: 24,
     height: 24,
-    color: '#9CA3AF',
+    color: '#9A9AA2',
     fontSize: 20,
     cursor: 'pointer',
     border: 'none',
@@ -216,7 +216,7 @@ const STYLES = {
   numberInput: {
     width: 64,
     height: 40,
-    border: '1px solid #D1D5DB',
+    border: '1px solid #D2D2D8',
     borderRadius: 4,
     textAlign: 'center' as const,
     fontSize: 18
@@ -243,8 +243,8 @@ const STYLES = {
   },
   applyButton: {
     width: '100%',
-    backgroundColor: '#3c3c3c',
-    color: '#fff',
+    backgroundColor: '#3A3A42',
+    color: '#FFFFFF',
     fontWeight: 700,
     padding: '12px',
     borderRadius: 8,
@@ -258,16 +258,16 @@ const STYLES = {
     padding: '8px',
     fontSize: 14,
     fontWeight: 500,
-    border: '1px solid #D1D5DB',
+    border: '1px solid #D2D2D8',
     borderRadius: 8
   },
   tabButtonActive: {
-    backgroundColor: '#E5E7EB',
-    border: '2px solid #222'
+    backgroundColor: '#E6E6EA',
+    border: '2px solid #1A1A1E'
   },
   tabButtonInactive: {
-    backgroundColor: '#fff',
-    border: '1px solid #D1D5DB'
+    backgroundColor: '#FFFFFF',
+    border: '1px solid #D2D2D8'
   },
   modeGroup: {
     display: 'flex' as const,
@@ -292,7 +292,7 @@ const STYLES = {
   },
   ingredientPill: {
     padding: '2px 8px',
-    backgroundColor: '#FEF3C7',
+    backgroundColor: '#FFF6C2',
     color: '#92400E',
     borderRadius: 999,
     fontSize: 13,
@@ -331,7 +331,7 @@ const STYLES = {
     borderRadius: 4
   },
   ingredientItemSelected: {
-    backgroundColor: '#E5E7EB'
+    backgroundColor: '#E6E6EA'
   },
   ingredientName: {
     display: 'flex' as const,
@@ -345,7 +345,7 @@ const STYLES = {
   },
   ingredientDate: {
     fontSize: 12,
-    color: '#9CA3AF',
+    color: '#9A9AA2',
     marginLeft: 'auto',
     minWidth: 60,
     textAlign: 'right' as const
@@ -642,7 +642,7 @@ const RecipeSortBar = ({
                 right: 0,
                 marginTop: '4px',
                 backgroundColor: '#FFFFFF',
-                border: '1px solid #D1D5DB',
+                border: '1px solid #D2D2D8',
                 borderRadius: '0.5rem',
                 boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
                 zIndex: (isExpiryModalOpen || isMatchRateModalOpen || isFilterModalOpen) ? 1 : 20,
@@ -676,18 +676,18 @@ const RecipeSortBar = ({
                       textAlign: 'left',
                       fontSize: '12px',
                       fontWeight: 600,
-                      color: sortType === option.value ? '#2563EB' : '#222222',
+                      color: sortType === option.value ? '#2563EB' : '#1A1A1E',
                       backgroundColor: sortType === option.value ? '#EFF6FF' : '#FFFFFF',
                       border: 'none',
                       cursor: 'pointer',
-                      borderTop: option.value !== 'latest' ? '1px solid #F3F4F6' : 'none',
+                      borderTop: option.value !== 'latest' ? '1px solid #F5F5F7' : 'none',
                       whiteSpace: 'nowrap',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis'
                     }}
                     onMouseEnter={(e) => {
                       if (sortType !== option.value) {
-                        e.currentTarget.style.backgroundColor = '#F3F4F6';
+                        e.currentTarget.style.backgroundColor = '#F5F5F7';
                       }
                     }}
                     onMouseLeave={(e) => {
@@ -710,7 +710,7 @@ const RecipeSortBar = ({
           data-guide-target="filter-button"
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M3 5h18M6 12h12M10 19h4" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" />
+            <path d="M3 5h18M6 12h12M10 19h4" stroke="#FFFFFF" strokeWidth="2.2" strokeLinecap="round" />
           </svg>
           필터
         </button>
@@ -795,12 +795,12 @@ const RecipeSortBar = ({
                   }
                 }}
                 allowCross={false}
-                trackStyle={[{ backgroundColor: '#3c3c3c' }]}
+                trackStyle={[{ backgroundColor: '#3A3A42' }]}
                 handleStyle={[
-                  { borderColor: '#3c3c3c', backgroundColor: '#fff' },
-                  { borderColor: '#3c3c3c', backgroundColor: '#fff' }
+                  { borderColor: '#3A3A42', backgroundColor: '#FFFFFF' },
+                  { borderColor: '#3A3A42', backgroundColor: '#FFFFFF' }
                 ]}
-                railStyle={{ backgroundColor: '#eee' }}
+                railStyle={{ backgroundColor: '#E6E6EA' }}
               />
             </div>
             {/* 재료 부족 갯수 라디오 버튼 */}
@@ -898,12 +898,12 @@ const RecipeSortBar = ({
                     ×
                   </button>
                 </span>
-              )) : <span style={{color: '#9CA3AF', fontSize: 13}}>재료를 선택해 주세요</span>}
+              )) : <span style={{color: '#9A9AA2', fontSize: 13}}>재료를 선택해 주세요</span>}
             </div>
             {/* 재료 리스트 스크롤 영역 */}
             <div style={STYLES.ingredientList}>
               {(expirySortType === 'expiry' ? expirySortedIngredientList : purchaseSortedIngredientList).length === 0 && (
-                <div style={{...STYLES.ingredientItem, color: '#9CA3AF', fontSize: 12, textAlign: 'center', padding: 24}}>해당 정보가 입력된 재료가 없습니다.</div>
+                <div style={{...STYLES.ingredientItem, color: '#9A9AA2', fontSize: 12, textAlign: 'center', padding: 24}}>해당 정보가 입력된 재료가 없습니다.</div>
               )}
               {(expirySortType === 'expiry' ? expirySortedIngredientList : purchaseSortedIngredientList).map(item => (
                 <div

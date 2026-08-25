@@ -48,7 +48,7 @@ class ErrorBoundary extends Component<Props, State> {
                 this.setState({ hasError: false, error: null });
                 window.location.reload();
               }}
-              className="bg-[#FFD600] text-[#222] font-bold rounded-full px-6 py-2"
+              className="bg-[#FFD600] text-[#1A1A1E] font-bold rounded-full px-6 py-2"
             >
               새로고침
             </button>

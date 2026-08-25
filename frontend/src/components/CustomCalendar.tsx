@@ -386,7 +386,7 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
                   left: 0,
                   marginTop: '4px',
                   backgroundColor: 'white',
-                  border: '1px solid #d1d5db',
+                  border: '1px solid #D2D2D8',
                   borderRadius: '8px',
                   boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
                   zIndex: 9999,
@@ -398,7 +398,7 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
                   overflowX: 'hidden',
                   display: 'block',
                   scrollbarWidth: 'auto',
-                  scrollbarColor: '#6b7280 #f3f4f6'
+                  scrollbarColor: '#6A6A73 #F5F5F7'
                 }}
               >
                 {years.map((y) => (
@@ -416,18 +416,18 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
                       alignItems: 'center',
                       boxSizing: 'border-box',
                       background: y === year ? '#eff6ff' : 'transparent',
-                      color: y === year ? '#2563eb' : '#111',
+                      color: y === year ? '#2563eb' : '#1A1A1E',
                       cursor: 'pointer',
                       fontSize: '14px',
                       textAlign: 'left',
                       flexShrink: 0,
                       lineHeight: '36px',
                       border: 'none',
-                      borderBottom: '1px solid #f3f4f6'
+                      borderBottom: '1px solid #F5F5F7'
                     }}
                     onMouseEnter={(e) => {
                       if (y !== year) {
-                        e.currentTarget.style.backgroundColor = '#f9fafb';
+                        e.currentTarget.style.backgroundColor = '#F5F5F7';
                       }
                     }}
                     onMouseLeave={(e) => {
@@ -473,7 +473,7 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
                   left: 0,
                   marginTop: '4px',
                   backgroundColor: 'white',
-                  border: '1px solid #d1d5db',
+                  border: '1px solid #D2D2D8',
                   borderRadius: '8px',
                   boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
                   zIndex: 9999,
@@ -485,7 +485,7 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
                   overflowX: 'hidden',
                   display: 'block',
                   scrollbarWidth: 'auto',
-                  scrollbarColor: '#6b7280 #f3f4f6'
+                  scrollbarColor: '#6A6A73 #F5F5F7'
                 }}
               >
                 {months.map((m, idx) => (
@@ -503,18 +503,18 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
                       alignItems: 'center',
                       boxSizing: 'border-box',
                       background: idx === month ? '#eff6ff' : 'transparent',
-                      color: idx === month ? '#2563eb' : '#111',
+                      color: idx === month ? '#2563eb' : '#1A1A1E',
                       cursor: 'pointer',
                       fontSize: '14px',
                       textAlign: 'left',
                       flexShrink: 0,
                       lineHeight: '36px',
                       border: 'none',
-                      borderBottom: '1px solid #f3f4f6'
+                      borderBottom: '1px solid #F5F5F7'
                     }}
                     onMouseEnter={(e) => {
                       if (idx !== month) {
-                        e.currentTarget.style.backgroundColor = '#f9fafb';
+                        e.currentTarget.style.backgroundColor = '#F5F5F7';
                       }
                     }}
                     onMouseLeave={(e) => {
@@ -592,7 +592,7 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
           
           if (disabled) {
             buttonClassName += 'text-gray-300 cursor-not-allowed';
-            buttonStyle.color = '#D1D5DB'; // gray-300
+            buttonStyle.color = '#D2D2D8'; // gray-300
           } else if (mode === 'range' && (isStartDate || isEndDate)) {
             // 기간 선택 모드: 시작일 또는 종료일 (짙은 파란색) - 최우선
             buttonClassName += 'bg-blue-500 text-white hover:bg-blue-600';
@@ -624,7 +624,7 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
             buttonStyle.backgroundColor = '#EFF6FF'; // blue-50
           } else {
             buttonClassName += 'hover:bg-gray-100 cursor-pointer';
-            buttonStyle.color = '#374151'; // gray-700 명시적 색상
+            buttonStyle.color = '#3A3A42'; // gray-700 명시적 색상
           }
 
           // 인라인 스타일이 확실히 적용되도록 명시적으로 설정
@@ -657,8 +657,8 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
           onClick={onClose}
           className="flex-1 h-10 border border-gray-300 rounded-lg text-[14px] font-medium hover:bg-gray-50"
           style={{ 
-            color: '#374151', // gray-700 명시적 색상
-            borderColor: '#D1D5DB' // gray-300
+            color: '#3A3A42', // gray-700 명시적 색상
+            borderColor: '#D2D2D8' // gray-300
           }}
         >
           취소

@@ -234,7 +234,7 @@ const Toast = ({ message, onUndo, onClose }: { message: string; onUndo: () => vo
       left: '50%',
       transform: 'translateX(-50%)',
       background: 'rgba(34,34,34,0.9)',
-      color: '#fff',
+      color: '#FFFFFF',
       padding: '12px 24px',
       borderRadius: 12,
       fontWeight: 400,
@@ -252,9 +252,9 @@ const Toast = ({ message, onUndo, onClose }: { message: string; onUndo: () => vo
       gap: 12,
     }}
   >
-    <span style={{ fontWeight: 400, color: '#fff', marginRight: 8, letterSpacing: '0.04em', whiteSpace: 'nowrap', display: 'inline-block' }}>정말 삭제하시겠습니까?</span>
-    <button className="inline-flex items-center justify-center bg-[#F5F6F8] text-gray-700 font-semibold rounded-lg px-3 py-1 text-sm border border-[#E5E7EB] shadow-none hover:bg-[#E5E7EB] transition whitespace-nowrap" onClick={onUndo}>아니요</button>
-    <button className="inline-flex items-center justify-center bg-[#F5F6F8] text-gray-700 font-semibold rounded-lg px-3 py-1 text-sm border border-[#E5E7EB] shadow-none hover:bg-[#E5E7EB] transition whitespace-nowrap" onClick={onClose}>네</button>
+    <span style={{ fontWeight: 400, color: '#FFFFFF', marginRight: 8, letterSpacing: '0.04em', whiteSpace: 'nowrap', display: 'inline-block' }}>정말 삭제하시겠습니까?</span>
+    <button className="inline-flex items-center justify-center bg-[#F5F5F7] text-gray-700 font-semibold rounded-lg px-3 py-1 text-sm border border-[#E6E6EA] shadow-none hover:bg-[#E6E6EA] transition whitespace-nowrap" onClick={onUndo}>아니요</button>
+    <button className="inline-flex items-center justify-center bg-[#F5F5F7] text-gray-700 font-semibold rounded-lg px-3 py-1 text-sm border border-[#E6E6EA] shadow-none hover:bg-[#E6E6EA] transition whitespace-nowrap" onClick={onClose}>네</button>
   </div>
 );
 
@@ -418,7 +418,7 @@ const ScrollablePillSection: React.FC<ScrollablePillSectionProps> = ({ watchKey,
         ref={scrollRef}
         onScroll={updateScrollHint}
         style={{
-          background: '#F5F6F8',
+          background: '#F5F5F7',
           borderRadius: 20,
           boxShadow: '0 1px 4px rgba(0,0,0,0.03)',
           padding: 16,
@@ -462,7 +462,7 @@ const ScrollablePillSection: React.FC<ScrollablePillSectionProps> = ({ watchKey,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#666666',
+              color: '#6A6A73',
               fontSize: 16,
               fontWeight: 400,
               lineHeight: 1,
@@ -1813,7 +1813,7 @@ const MyFridge: React.FC = () => {
         {/* 타이틀+입력창 그룹 */}
         <div className="flex flex-col items-center justify-center w-full" style={{ marginBottom: 40 }}>
           <div className="flex items-center justify-between w-full max-w-[400px] px-5 mb-2" style={{ position: 'relative' }}>
-            <h1 className="text-[18px] font-bold text-[#111] text-center" style={{ flex: 1 }}>내 냉장고 재료 추가</h1>
+            <h1 className="text-[18px] font-bold text-[#1A1A1E] text-center" style={{ flex: 1 }}>내 냉장고 재료 추가</h1>
           </div>
         </div>
         <div style={{ maxWidth: 400, margin: '0 auto', paddingLeft: 20, paddingRight: 20, width: '100%', boxSizing: 'border-box' }}>
@@ -1856,7 +1856,7 @@ const MyFridge: React.FC = () => {
                     position: 'absolute',
                     // 스크롤바 항상 표시 강제
                     scrollbarWidth: 'auto', // thin 대신 auto로 변경
-                    scrollbarColor: '#6b7280 #f3f4f6', // 더 진한 색상으로 변경
+                    scrollbarColor: '#6A6A73 #F5F5F7', // 더 진한 색상으로 변경
                     WebkitOverflowScrolling: 'touch', // 모바일 스크롤 부드럽게
                     // 스크롤 가능함을 시각적으로 표시
                     paddingRight: combinedFiltered.length > 3 ? '16px' : '0',
@@ -1886,7 +1886,7 @@ const MyFridge: React.FC = () => {
             </div>
             <button
               type="button"
-              className="bg-[#FFD600] text-[#222] font-bold rounded-full px-5 py-2 text-sm shadow hover:bg-yellow-300 transition whitespace-nowrap"
+              className="bg-[#FFD600] text-[#1A1A1E] font-bold rounded-full px-5 py-2 text-sm shadow hover:bg-yellow-300 transition whitespace-nowrap"
               style={{ display: 'flex', alignItems: 'center', height: 40, padding: '0 18px', fontSize: 15, marginLeft: 0, alignSelf: 'flex-start' }}
               onClick={() => combinedFiltered.length > 0 && handleSelect(combinedFiltered[0])}
               disabled={combinedFiltered.length === 0}
@@ -1895,8 +1895,8 @@ const MyFridge: React.FC = () => {
             </button>
             <button
               type="button"
-              className="bg-[#e5e5e5] text-[#222] font-bold rounded-2xl px-2 py-2 text-sm shadow transition whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-[#ccc] focus:border-[#ccc]"
-              style={{ display: 'flex', alignItems: 'center', height: 40, minWidth: 40, padding: 0, fontSize: 15, marginLeft: 0, border: '1px solid #e5e5e5', justifyContent: 'center', borderRadius: 20, alignSelf: 'flex-start' }}
+              className="bg-[#E6E6EA] text-[#1A1A1E] font-bold rounded-2xl px-2 py-2 text-sm shadow transition whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-[#D2D2D8] focus:border-[#D2D2D8]"
+              style={{ display: 'flex', alignItems: 'center', height: 40, minWidth: 40, padding: 0, fontSize: 15, marginLeft: 0, border: '1px solid #E6E6EA', justifyContent: 'center', borderRadius: 20, alignSelf: 'flex-start' }}
               onClick={() => alert('영수증 인식 기능은 곧 지원될 예정입니다!')}
               title="영수증 인식(구현 예정)"
             >
@@ -1921,7 +1921,7 @@ const MyFridge: React.FC = () => {
         {/* 재고 관리 구역 */}
         <div style={{ maxWidth: 400, margin: '0 auto', paddingLeft: 20, paddingRight: 20, width: '100%', marginTop: 48, boxSizing: 'border-box' }}>
           <div className="flex items-center justify-between mb-2" style={{ position: 'relative', width: '100%' }}>
-            <h2 className="text-[16px] font-bold text-[#111]">내 냉장고 재고 관리</h2>
+            <h2 className="text-[16px] font-bold text-[#1A1A1E]">내 냉장고 재고 관리</h2>
             {/* 저장 버튼 (로그인한 경우만 표시, 우측) */}
             {isLoggedIn && user?.id && (
               <button
@@ -1932,8 +1932,8 @@ const MyFridge: React.FC = () => {
                 style={{
                   width: 28,
                   height: 28,
-                  backgroundColor: (isSaving || !hasChanges) ? '#E5E5E5' : '#F5F6F8',
-                  border: '1px solid #E5E7EB',
+                  backgroundColor: (isSaving || !hasChanges) ? '#E6E6EA' : '#F5F5F7',
+                  border: '1px solid #E6E6EA',
                   borderRadius: 6,
                   display: 'flex',
                   alignItems: 'center',
@@ -1948,12 +1948,12 @@ const MyFridge: React.FC = () => {
                 }}
                 onMouseEnter={(e) => {
                   if (!isSaving && hasChanges && frozen !== null && fridge !== null && room !== null) {
-                    e.currentTarget.style.backgroundColor = '#E5E7EB';
+                    e.currentTarget.style.backgroundColor = '#E6E6EA';
                   }
                 }}
                 onMouseLeave={(e) => {
                   if (!isSaving && hasChanges && frozen !== null && fridge !== null && room !== null) {
-                    e.currentTarget.style.backgroundColor = '#F5F6F8';
+                    e.currentTarget.style.backgroundColor = '#F5F5F7';
                   }
                 }}
               >
@@ -1970,7 +1970,7 @@ const MyFridge: React.FC = () => {
               </button>
             )}
           </div>
-          <div style={{height: 2, width: '100%', background: '#E5E5E5', marginBottom: 16}} />
+          <div style={{height: 2, width: '100%', background: '#E6E6EA', marginBottom: 16}} />
           <div data-guide-target="storage-areas">
           {/* 냉동보관 */}
           <div className="mb-4">
@@ -1979,7 +1979,7 @@ const MyFridge: React.FC = () => {
               <SortDropdown value={frozenSort} onChange={setFrozenSort} className="ml-2" />
               {(frozen ?? []).length > 0 && (
                 <button
-                  className="ml-2 h-6 px-2 py-0 text-xs font-medium rounded border border-gray-300 bg-white text-[#404040] hover:bg-[#F5F6F8] active:bg-[#E5E7EB] transition whitespace-nowrap"
+                  className="ml-2 h-6 px-2 py-0 text-xs font-medium rounded border border-gray-300 bg-white text-[#3A3A42] hover:bg-[#F5F5F7] active:bg-[#E6E6EA] transition whitespace-nowrap"
                   onClick={() => handleRemoveAll('frozen')}
                 >
                   모두삭제
@@ -2009,7 +2009,7 @@ const MyFridge: React.FC = () => {
               <SortDropdown value={fridgeSort} onChange={setFridgeSort} className="ml-2" />
               {fridge && fridge.length > 0 && (
                 <button
-                  className="ml-2 h-6 px-2 py-0 text-xs font-medium rounded border border-gray-300 bg-white text-[#404040] hover:bg-[#F5F6F8] active:bg-[#E5E7EB] transition whitespace-nowrap"
+                  className="ml-2 h-6 px-2 py-0 text-xs font-medium rounded border border-gray-300 bg-white text-[#3A3A42] hover:bg-[#F5F5F7] active:bg-[#E6E6EA] transition whitespace-nowrap"
                   onClick={() => handleRemoveAll('fridge')}
                 >
                   모두삭제
@@ -2039,7 +2039,7 @@ const MyFridge: React.FC = () => {
               <SortDropdown value={roomSort} onChange={setRoomSort} className="ml-2" />
               {room && room.length > 0 && (
                 <button
-                  className="ml-2 h-6 px-2 py-0 text-xs font-medium rounded border border-gray-300 bg-white text-[#404040] hover:bg-[#F5F6F8] active:bg-[#E5E7EB] transition whitespace-nowrap"
+                  className="ml-2 h-6 px-2 py-0 text-xs font-medium rounded border border-gray-300 bg-white text-[#3A3A42] hover:bg-[#F5F5F7] active:bg-[#E6E6EA] transition whitespace-nowrap"
                   onClick={() => handleRemoveAll('room')}
                 >
                   모두삭제
@@ -2084,7 +2084,7 @@ const MyFridge: React.FC = () => {
               left: '50%',
               transform: 'translateX(-50%)',
               background: 'rgba(34,34,34,0.9)',
-              color: '#fff',
+              color: '#FFFFFF',
               padding: '12px 24px',
               borderRadius: 12,
               fontWeight: 400,

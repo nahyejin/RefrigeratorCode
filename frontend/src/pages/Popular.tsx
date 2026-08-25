@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import IngredientLegend from '../components/IngredientLegend';
 import BottomNavBar from '../components/BottomNavBar';
 import FilterModal from '../components/FilterModal';
 import IngredientDateModal from '../components/IngredientDateModal';
@@ -1683,13 +1684,13 @@ const Popular = () => {
               }}
               style={{
                 height: 28,
-                border: period === opt.value ? '1px solid #6b7280' : '1px solid #D1D5DB',
+                border: period === opt.value ? '1px solid #6A6A73' : '1px solid #D2D2D8',
                 borderRadius: 6,
                 fontSize: 12,
                 padding: '0 8px',
                 fontWeight: 600,
-                background: period === opt.value ? '#6b7280' : '#fff',
-                color: period === opt.value ? '#fff' : '#222',
+                background: period === opt.value ? '#6A6A73' : '#FFFFFF',
+                color: period === opt.value ? '#FFFFFF' : '#1A1A1E',
                 cursor: 'pointer',
                 transition: 'all 0.2s',
                 whiteSpace: 'nowrap',
@@ -1698,12 +1699,12 @@ const Popular = () => {
               }}
               onMouseEnter={(e) => {
                 if (period !== opt.value) {
-                  e.currentTarget.style.background = '#f5f5f5';
+                  e.currentTarget.style.background = '#F5F5F7';
                 }
               }}
               onMouseLeave={(e) => {
                 if (period !== opt.value) {
-                  e.currentTarget.style.background = '#fff';
+                  e.currentTarget.style.background = '#FFFFFF';
                 }
               }}
             >
@@ -1820,7 +1821,7 @@ const Popular = () => {
             <section style={{ marginBottom: 6 }}>
               <div style={{ marginBottom: 8, display: 'flex', alignItems: 'center' }}>
                 <h2
-                  className="text-[16px] font-bold text-[#111] mb-2"
+                  className="text-[16px] font-bold text-[#1A1A1E] mb-2"
                   style={{
                     display: 'inline',
                     verticalAlign: 'middle',
@@ -1833,25 +1834,9 @@ const Popular = () => {
                   ⭐ 특별한 날 특별한 음식
                 </h2>
               </div>
-              <div style={{ height: 2, width: '100%', background: '#E5E5E5', marginBottom: 16 }} />
+              <div style={{ height: 2, width: '100%', background: '#E6E6EA', marginBottom: 16 }} />
               {/* 범례 + 총 건수 (유튜브/네이버 섹션과 동일한 형식) */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, marginTop: 8 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <span style={{ width: 24, height: 14, borderRadius: 7, background: '#D1D1D1', border: '1px solid #C4C4C8', display: 'inline-block', marginRight: 2 }}></span>
-                    <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>부족 재료</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <span style={{ width: 24, height: 14, borderRadius: 7, background: '#555', display: 'inline-block', marginRight: 2 }}></span>
-                    <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>대체 가능</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <span style={{ width: 24, height: 14, borderRadius: 7, background: '#FFD600', display: 'inline-block', marginRight: 2 }}></span>
-                    <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>보유 재료</span>
-                  </div>
-                </div>
-                <span style={{ color: '#666', fontSize: '12px' }}>총 {premiumRecipes.length}건</span>
-              </div>
+              <IngredientLegend total={premiumRecipes.length} style={{ marginBottom: 6, marginTop: 8 }} />
               
               {/* 가로 스크롤 컨테이너 (버튼 포함) */}
               <div style={{ position: 'relative' }}>
@@ -1865,7 +1850,7 @@ const Popular = () => {
                     paddingBottom: '8px',
                     WebkitOverflowScrolling: 'touch',
                     scrollbarWidth: 'thin',
-                    scrollbarColor: '#ccc transparent',
+                    scrollbarColor: '#D2D2D8 transparent',
                     scrollBehavior: 'smooth'
                   }}
                   className="custom-scrollbar"
@@ -1938,7 +1923,7 @@ const Popular = () => {
                       <span
                         style={{
                           fontSize: '24px',
-                          color: '#666666',
+                          color: '#6A6A73',
                           fontWeight: 400,
                           lineHeight: 1,
                           pointerEvents: 'none'
@@ -1985,7 +1970,7 @@ const Popular = () => {
                       <span
                         style={{
                           fontSize: '24px',
-                          color: '#666666',
+                          color: '#6A6A73',
                           fontWeight: 400,
                           lineHeight: 1,
                           pointerEvents: 'none'
@@ -2017,7 +2002,7 @@ const Popular = () => {
               }}
             />
             <h2
-              className="text-[16px] font-bold text-[#111] mb-2"
+              className="text-[16px] font-bold text-[#1A1A1E] mb-2"
               style={{
                 display: 'inline',
                 verticalAlign: 'middle',
@@ -2030,25 +2015,9 @@ const Popular = () => {
               유튜브 인기 레시피
             </h2>
           </div>
-          <div style={{ height: 2, width: '100%', background: '#E5E5E5', marginBottom: 16 }} />
+          <div style={{ height: 2, width: '100%', background: '#E6E6EA', marginBottom: 16 }} />
           {/* 범례: 가로형 레시피 카드 위, 왼쪽 정렬 */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, marginTop: 8 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <span style={{ width: 24, height: 14, borderRadius: 7, background: '#D1D1D1', border: '1px solid #C4C4C8', display: 'inline-block', marginRight: 2 }}></span>
-                <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>부족 재료</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <span style={{ width: 24, height: 14, borderRadius: 7, background: '#555', display: 'inline-block', marginRight: 2 }}></span>
-                <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>대체 가능</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <span style={{ width: 24, height: 14, borderRadius: 7, background: '#FFD600', display: 'inline-block', marginRight: 2 }}></span>
-                <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>보유 재료</span>
-              </div>
-            </div>
-            <span style={{ color: '#666', fontSize: '12px' }}>총 {youtubeRecipes.length}건</span>
-          </div>
+          <IngredientLegend total={youtubeRecipes.length} style={{ marginBottom: 6, marginTop: 8 }} />
            <VirtualizedHorizontalRecipeList
              recipes={youtubeRecipes.filter(recipe => !failedThumbnailIds.has(recipe.id))}
              myIngredients={myIngredients}
@@ -2083,7 +2052,7 @@ const Popular = () => {
               }}
             />
             <h2
-              className="text-[16px] font-bold text-[#111] mb-2"
+              className="text-[16px] font-bold text-[#1A1A1E] mb-2"
               style={{
                 display: 'inline',
                 verticalAlign: 'middle',
@@ -2096,25 +2065,9 @@ const Popular = () => {
               네이버 인기 레시피
             </h2>
           </div>
-          <div style={{ height: 2, width: '100%', background: '#E5E5E5', marginBottom: 16 }} />
+          <div style={{ height: 2, width: '100%', background: '#E6E6EA', marginBottom: 16 }} />
           {/* 범례: 가로형 레시피 카드 위, 왼쪽 정렬 */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, marginTop: 8 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <span style={{ width: 24, height: 14, borderRadius: 7, background: '#D1D1D1', border: '1px solid #C4C4C8', display: 'inline-block', marginRight: 2 }}></span>
-                <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>부족 재료</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <span style={{ width: 24, height: 14, borderRadius: 7, background: '#555', display: 'inline-block', marginRight: 2 }}></span>
-                <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>대체 가능</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <span style={{ width: 24, height: 14, borderRadius: 7, background: '#FFD600', display: 'inline-block', marginRight: 2 }}></span>
-                <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>보유 재료</span>
-              </div>
-            </div>
-            <span style={{ color: '#666', fontSize: '12px' }}>총 {naverRecipes.length}건</span>
-          </div>
+          <IngredientLegend total={naverRecipes.length} style={{ marginBottom: 6, marginTop: 8 }} />
            <VirtualizedHorizontalRecipeList
              recipes={naverRecipes.filter(recipe => !failedThumbnailIds.has(recipe.id))}
              myIngredients={myIngredients}
@@ -2141,22 +2094,22 @@ const Popular = () => {
             {/* 인기 급상승 요리 */}
             {dishRankings.length > 0 && (
             <div>
-              <h2 className="text-[16px] font-bold text-[#111] mb-2 text-left"><span className="mr-1">📈</span>인기 급상승 요리 TOP 10</h2>
-              <div style={{ height: 2, width: '100%', background: '#E5E5E5', marginBottom: 16 }} />
+              <h2 className="text-[16px] font-bold text-[#1A1A1E] mb-2 text-left"><span className="mr-1">📈</span>인기 급상승 요리 TOP 10</h2>
+              <div style={{ height: 2, width: '100%', background: '#E6E6EA', marginBottom: 16 }} />
               <div className="mt-4">
-                <table className="w-full max-w-[280px] mx-auto border-collapse text-[13px] font-sans" style={{background: '#fff'}}>
+                <table className="w-full max-w-[280px] mx-auto border-collapse text-[13px] font-sans" style={{background: '#FFFFFF'}}>
                   <thead>
-                    <tr style={{borderTop: '1px solid #E5E5E5', borderBottom: '1px solid #E5E5E5', background: '#F7F7F9'}}>
-                      <th className="py-1 px-2 text-center font-medium text-[#222] whitespace-nowrap">순위</th>
-                      <th className="py-1 px-2 text-center font-medium text-[#222] whitespace-nowrap">요리명</th>
-                      <th className="py-1 px-2 text-center font-medium text-[#222] whitespace-nowrap">레시피 수</th>
+                    <tr style={{borderTop: '1px solid #E6E6EA', borderBottom: '1px solid #E6E6EA', background: '#F5F5F7'}}>
+                      <th className="py-1 px-2 text-center font-medium text-[#1A1A1E] whitespace-nowrap">순위</th>
+                      <th className="py-1 px-2 text-center font-medium text-[#1A1A1E] whitespace-nowrap">요리명</th>
+                      <th className="py-1 px-2 text-center font-medium text-[#1A1A1E] whitespace-nowrap">레시피 수</th>
                     </tr>
                   </thead>
                   <tbody>
                     {dishRankings.map((dish, idx) => (
                         <tr key={dish.name}>
-                          <td className="py-1 px-2 text-center text-[#444] font-normal whitespace-nowrap">{idx + 1}</td>
-                          <td className="py-1 px-2 text-center text-[#444] font-normal whitespace-nowrap">
+                          <td className="py-1 px-2 text-center text-[#3A3A42] font-normal whitespace-nowrap">{idx + 1}</td>
+                          <td className="py-1 px-2 text-center text-[#3A3A42] font-normal whitespace-nowrap">
                             <span
                               style={{ cursor: 'pointer', textDecoration: 'none' }}
                               onClick={() => navigate(`/ingredient/${encodeURIComponent(dish.name)}?minCount=2`)}
@@ -2165,7 +2118,7 @@ const Popular = () => {
                               {dish.name}
                             </span>
                           </td>
-                          <td className="py-1 px-2 text-center text-[#444] font-normal whitespace-nowrap">
+                          <td className="py-1 px-2 text-center text-[#3A3A42] font-normal whitespace-nowrap">
                             <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', position: 'relative', paddingRight: '8px'}}>
                               <span style={{flex: 1, textAlign: 'center', paddingRight: '20px'}}>{dish.count.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</span>
                               {dish.isNew || (dish.rate > 0) || (dish.multiplier !== undefined && dish.multiplier > 1) ? (
@@ -2198,27 +2151,27 @@ const Popular = () => {
             {/* 인기 급상승 테마 */}
             {themeRankings.length > 0 && (
             <div>
-              <h2 className="text-[16px] font-bold text-[#111] mb-2 text-left"><span className="mr-1">📈</span>인기 급상승 테마 TOP 10</h2>
-              <div style={{ height: 2, width: '100%', background: '#E5E5E5', marginBottom: 16 }} />
+              <h2 className="text-[16px] font-bold text-[#1A1A1E] mb-2 text-left"><span className="mr-1">📈</span>인기 급상승 테마 TOP 10</h2>
+              <div style={{ height: 2, width: '100%', background: '#E6E6EA', marginBottom: 16 }} />
               <div className="mt-4">
-                <table className="w-full max-w-[280px] mx-auto border-collapse text-[13px] font-sans" style={{background: '#fff'}}>
+                <table className="w-full max-w-[280px] mx-auto border-collapse text-[13px] font-sans" style={{background: '#FFFFFF'}}>
                   <thead>
-                    <tr style={{borderTop: '1px solid #E5E5E5', borderBottom: '1px solid #E5E5E5', background: '#F7F7F9'}}>
-                      <th className="py-1 px-2 text-center font-medium text-[#222] whitespace-nowrap">순위</th>
-                      <th className="py-1 px-2 text-center font-medium text-[#222] whitespace-nowrap">테마명</th>
-                      <th className="py-1 px-2 text-center font-medium text-[#222] whitespace-nowrap">레시피 수</th>
+                    <tr style={{borderTop: '1px solid #E6E6EA', borderBottom: '1px solid #E6E6EA', background: '#F5F5F7'}}>
+                      <th className="py-1 px-2 text-center font-medium text-[#1A1A1E] whitespace-nowrap">순위</th>
+                      <th className="py-1 px-2 text-center font-medium text-[#1A1A1E] whitespace-nowrap">테마명</th>
+                      <th className="py-1 px-2 text-center font-medium text-[#1A1A1E] whitespace-nowrap">레시피 수</th>
                     </tr>
                   </thead>
                   <tbody>
                     {themeRankings.map((theme, idx) => (
                         <tr key={theme.id}>
-                          <td className="py-1 px-2 text-center text-[#444] font-normal whitespace-nowrap">{idx + 1}</td>
-                          <td className="py-1 px-2 text-center text-[#444] font-normal whitespace-nowrap">
+                          <td className="py-1 px-2 text-center text-[#3A3A42] font-normal whitespace-nowrap">{idx + 1}</td>
+                          <td className="py-1 px-2 text-center text-[#3A3A42] font-normal whitespace-nowrap">
                             <span style={{ cursor: 'pointer', textDecoration: 'none' }} onClick={() => navigate(`/ingredient/${encodeURIComponent(theme.name)}`)}>
                               {theme.name}
                             </span>
                           </td>
-                          <td className="py-1 px-2 text-center text-[#444] font-normal whitespace-nowrap">
+                          <td className="py-1 px-2 text-center text-[#3A3A42] font-normal whitespace-nowrap">
                             <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', position: 'relative', paddingRight: '8px'}}>
                               <span style={{flex: 1, textAlign: 'center', paddingRight: '20px'}}>{theme.count.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</span>
                               {theme.isNew || (theme.rate > 0) || (theme.multiplier !== undefined && theme.multiplier > 1) ? (
@@ -2254,8 +2207,8 @@ const Popular = () => {
 
         {/* 인기 레시피 직접 찾아보기 검색창 */}
         <section style={{marginBottom: 48}}>
-          <h2 className="text-[16px] font-bold text-[#111] mb-2 text-left"><span className="mr-1">🔍️</span>특정 재료·테마 등 키워드로 찾아보기</h2>
-          <div style={{height: 2, width: '100%', background: '#E5E5E5', marginBottom: 16}} />
+          <h2 className="text-[16px] font-bold text-[#1A1A1E] mb-2 text-left"><span className="mr-1">🔍️</span>특정 재료·테마 등 키워드로 찾아보기</h2>
+          <div style={{height: 2, width: '100%', background: '#E6E6EA', marginBottom: 16}} />
           <div
             style={{
               display: 'flex',
@@ -2287,7 +2240,7 @@ const Popular = () => {
               }}
             />
             <button
-              className="bg-[#FFD600] text-[#222] font-bold rounded-full px-5 py-2 text-sm shadow hover:bg-yellow-300 transition"
+              className="bg-[#FFD600] text-[#1A1A1E] font-bold rounded-full px-5 py-2 text-sm shadow hover:bg-yellow-300 transition"
               style={{
                 height: 40,
                 display: 'flex',
@@ -2317,7 +2270,7 @@ const Popular = () => {
           left: '50%',
           transform: 'translateX(-50%)',
           background: 'rgba(34,34,34,0.9)',
-          color: '#fff',
+          color: '#FFFFFF',
           padding: '12px 24px',
           borderRadius: 12,
           fontSize: 15,

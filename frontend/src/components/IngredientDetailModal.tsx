@@ -160,11 +160,11 @@ export default function IngredientDetailModal({
             </button>
 
             {/* 타이틀 */}
-            <div className="text-center text-[16px] font-bold mb-4 text-[#404040]">재료의 상세정보를 선택해 주세요</div>
+            <div className="text-center text-[16px] font-bold mb-4 text-[#3A3A42]">재료의 상세정보를 선택해 주세요</div>
             <hr className="mb-4" />
 
             {/* 보관 공간 */}
-            <div className="mb-2 text-[13px] font-semibold text-[#404040]">보관 공간</div>
+            <div className="mb-2 text-[13px] font-semibold text-[#3A3A42]">보관 공간</div>
             <div className="flex justify-between items-end mb-6">
               {STORAGE_OPTIONS.map(opt => (
                 <div
@@ -180,13 +180,13 @@ export default function IngredientDetailModal({
                     className="w-16 h-16 mb-2" 
                     style={{ width: CONSTANTS.ICON_SIZE, height: CONSTANTS.ICON_SIZE }}
                   />
-                  <span className="text-[13px] font-medium text-[#404040]">{opt.label}</span>
+                  <span className="text-[13px] font-medium text-[#3A3A42]">{opt.label}</span>
                 </div>
               ))}
             </div>
 
             {/* 소비 기한 */}
-            <div className="mb-2 text-[13px] font-semibold text-[#404040]">소비 기한</div>
+            <div className="mb-2 text-[13px] font-semibold text-[#3A3A42]">소비 기한</div>
             <div className="flex justify-between gap-8 mt-2">
               {EXPIRATION_OPTIONS.map(option => (
                 <button

@@ -55,7 +55,7 @@ const STYLES = {
     bottom: `${CONSTANTS.BORDER_OFFSET}rem`,
     left: 0,
     width: '100%',
-    borderTop: '1px solid #e5e7eb',
+    borderTop: '1px solid #E6E6EA',
     zIndex: 30
   },
   nav: {
@@ -64,7 +64,7 @@ const STYLES = {
     left: 0,
     width: '100%',
     height: `${CONSTANTS.NAV_HEIGHT}rem`,
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
     display: 'flex',
     justifyContent: 'space-around',
     alignItems: 'center',

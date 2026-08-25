@@ -41,7 +41,7 @@ const STYLES = {
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
     height: cardHeight,
-    color: '#bbb',
+    color: '#B8B8C0',
     fontSize: CONSTANTS.EMPTY_MESSAGE_FONT_SIZE
   }),
   listContainer: (cardHeight: number, listExtra: number) => ({
@@ -249,7 +249,7 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
         gap: 4,
         textAlign: 'center',
         padding: '50px 20px',
-        color: '#666',
+        color: '#6A6A73',
         fontSize: '14px',
         lineHeight: '1.6',
         whiteSpace: 'pre-line',
@@ -515,7 +515,7 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
             <span
               style={{
                 fontSize: '24px',
-                color: '#666666',
+                color: '#6A6A73',
                 fontWeight: 400,
                 lineHeight: 1,
                 pointerEvents: 'none'
@@ -705,7 +705,7 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
             <span
               style={{
                 fontSize: '24px',
-                color: '#666666',
+                color: '#6A6A73',
                 fontWeight: 400,
                 lineHeight: 1,
                 pointerEvents: 'none'

@@ -2,9 +2,52 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================================
+   디자인 토큰
+   예전엔 고유 색상이 252종(1,187곳)이라 톤이 화면마다 어긋나고,
+   색 하나 바꾸려면 수십 군데를 고쳐야 했음. 아래 팔레트로 통일함.
+   ※ 여기 값만 바꾸면 앱 전체 톤이 바뀐다.
+   ============================================================ */
+:root {
+  /* 글자 (진함 → 옅음) */
+  --ink-900: #1A1A1E;   /* 제목, 강조 본문 */
+  --ink-700: #3A3A42;   /* 일반 본문 */
+  --ink-500: #6A6A73;   /* 보조 설명 */
+  --ink-400: #9A9AA2;   /* 캡션, 비활성 */
+  --ink-300: #B8B8C0;   /* 더 옅은 비활성 */
+
+  /* 선 */
+  --line-200: #E6E6EA;  /* 기본 구분선 */
+  --line-300: #D2D2D8;  /* 강조 테두리 */
+
+  /* 면 */
+  --surface: #FFFFFF;
+  --surface-sub: #F5F5F7;   /* 옅은 배경 (입력창 뒤, 섹션 구분) */
+
+  /* 브랜드 */
+  --brand: #FFD600;
+  --brand-light: #FFE45C;
+  --brand-strong: #F2C200;  /* hover / press */
+  --brand-soft: #FFF6C2;    /* 연한 배경 — 정보량 많은 곳에서 원색 대신 사용 */
+  --brand-on-soft: #6B5200; /* --brand-soft 위 글자색 */
+
+  /* 상태 */
+  --success: #059669;
+  --warning: #F59E0B;
+  --danger: #E5484D;
+
+  /* 레이어 (3단계에서 사용) */
+  --z-base: 1;
+  --z-sticky: 100;
+  --z-header: 200;
+  --z-overlay: 300;
+  --z-modal: 400;
+  --z-toast: 500;
+}
+
 body {
   font-family: 'Pretendard', '맑은고딕', 'Malgun Gothic', 돋움, Dotum, 굴림, Gulim, AppleSDGothicNeo-Light, AppleGothic, Helvetica, Arial, HelveticaNeue-Light, sans-serif-light, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
-  color: #222;
+  color: #1A1A1E;
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
@@ -46,7 +89,7 @@ button {
   font-weight: 500;
   font-family: inherit;
   outline: none !important;
-  background-color: #1a1a1a;
+  background-color: #1A1A1E;
   cursor: pointer;
   transition: border-color 0.25s;
 }
@@ -69,7 +112,7 @@ button:active {
     color: #747bff;
   }
   button {
-    background-color: #f9f9f9;
+    background-color: #F5F5F7;
   }
 }
 
@@ -78,12 +121,12 @@ button:active {
   background-color: transparent !important;
   border: none !important;
   padding: 0 !important;
-  color: #374151 !important; /* gray-700 */
+  color: #3A3A42 !important; /* gray-700 */
   font-weight: 500 !important;
 }
 
 .custom-calendar-container button.aspect-square:disabled {
-  color: #D1D5DB !important; /* gray-300 */
+  color: #D2D2D8 !important; /* gray-300 */
   background-color: transparent !important;
 }
 
@@ -105,8 +148,8 @@ button:active {
 /* CustomCalendar 취소 버튼 스타일 (네비게이션 버튼 제외) */
 .custom-calendar-container button:not(.aspect-square):not(.bg-blue-500):not([aria-label="이전 달"]):not([aria-label="다음 달"]) {
   background-color: transparent !important;
-  border: 1px solid #D1D5DB !important; /* gray-300 */
-  color: #374151 !important; /* gray-700 */
+  border: 1px solid #D2D2D8 !important; /* gray-300 */
+  color: #3A3A42 !important; /* gray-700 */
 }
 
 /* CustomCalendar 네비게이션 버튼 (<, >) 스타일 */
@@ -127,7 +170,7 @@ button:active {
 }
 
 .custom-calendar-container button.bg-gray-300:not(.aspect-square) {
-  background-color: #D1D5DB !important; /* gray-300 */
+  background-color: #D2D2D8 !important; /* gray-300 */
   color: #FFFFFF !important;
   border: none !important;
 }
@@ -136,7 +179,7 @@ button:active {
 [class*="dropdown"], 
 .absolute.top-full,
 .absolute.bottom-full {
-  border: 1px solid #D1D5DB !important; /* gray-300 통일 */
+  border: 1px solid #D2D2D8 !important; /* gray-300 통일 */
   border-radius: 0.5rem !important; /* rounded-lg */
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important; /* shadow-lg */
   background-color: #FFFFFF !important;
@@ -171,7 +214,7 @@ div.relative > .absolute.bottom-full {
 
 /* CustomCalendar 드롭다운 스타일 통일 */
 .custom-calendar-container .absolute.top-full {
-  border: 1px solid #D1D5DB !important; /* gray-300 */
+  border: 1px solid #D2D2D8 !important; /* gray-300 */
   border-radius: 0.5rem !important;
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
   z-index: 9999 !important; /* 잘림 방지를 위한 높은 z-index */
@@ -180,7 +223,7 @@ div.relative > .absolute.bottom-full {
 
 /* MyFridge autocomplete 드롭다운 스타일 통일 */
 .absolute.top-full.left-0.right-0.mt-1 {
-  border: 1px solid #D1D5DB !important; /* gray-300 */
+  border: 1px solid #D2D2D8 !important; /* gray-300 */
   border-radius: 0.5rem !important;
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
   z-index: 9999 !important;
@@ -189,23 +232,23 @@ div.relative > .absolute.bottom-full {
 
 /* Select 드롭다운 스타일 통일 - RecipeSortBar 등 */
 select {
-  border: 1px solid #D1D5DB !important; /* gray-300 */
+  border: 1px solid #D2D2D8 !important; /* gray-300 */
   border-radius: 0.375rem !important; /* rounded-md */
   background-color: #FFFFFF !important;
-  color: #222222 !important;
+  color: #1A1A1E !important;
   z-index: 9999 !important;
 }
 
 select:focus {
   outline: none !important;
-  border-color: #D1D5DB !important;
+  border-color: #D2D2D8 !important;
   box-shadow: 0 0 0 2px rgba(209, 213, 219, 0.2) !important;
 }
 
 /* Select 옵션 스타일 */
 select option {
   background-color: #FFFFFF !important;
-  color: #222222 !important;
+  color: #1A1A1E !important;
   padding: 8px 12px !important;
   border: none !important;
 }
@@ -213,8 +256,8 @@ select option {
 select option:hover,
 select option:focus,
 select option:checked {
-  background-color: #F3F4F6 !important; /* gray-100 */
-  color: #222222 !important;
+  background-color: #F5F5F7 !important; /* gray-100 */
+  color: #1A1A1E !important;
 }
 
 /* Select 드롭다운이 잘리지 않도록 */
@@ -232,18 +275,18 @@ div[style*="position:relative"][style*="selectContainer"] {
 /* 스크롤바 항상 노출 (내용이 넘칠 때만, hover 없이) */
 .always-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: #bdbdbd #f3f4f6;
+  scrollbar-color: #B8B8C0 #F5F5F7;
 }
 .always-scrollbar::-webkit-scrollbar {
   width: 14px !important;
-  background: #f3f4f6 !important;
+  background: #F5F5F7 !important;
   border-radius: 12px !important;
 }
 .always-scrollbar::-webkit-scrollbar-thumb {
-  background: #bdbdbd !important;
+  background: #B8B8C0 !important;
   border-radius: 12px !important;
   min-height: 40px !important;
-  border: 4px solid #f3f4f6 !important;
+  border: 4px solid #F5F5F7 !important;
 }
 .always-scrollbar::-webkit-scrollbar-corner {
   background: transparent !important;
@@ -294,31 +337,31 @@ html, body, #root {
 /* Custom scrollbar for filter modal scroll area */
 .custom-scrollbar {
   scrollbar-width: thin !important;
-  scrollbar-color: #9e9e9e #e5e7eb !important; /* 모바일에서 더 잘 보이도록 진한 색상 */
+  scrollbar-color: #9A9AA2 #E6E6EA !important; /* 모바일에서 더 잘 보이도록 진한 색상 */
   /* 모바일에서도 스크롤바 강제 표시 */
   -webkit-overflow-scrolling: touch !important;
 }
 .custom-scrollbar::-webkit-scrollbar {
   width: 12px !important;
   height: 12px !important;
-  background: #e5e7eb !important; /* 더 진한 배경 */
+  background: #E6E6EA !important; /* 더 진한 배경 */
   display: block !important; /* 항상 표시 */
   -webkit-appearance: none !important;
 }
 .custom-scrollbar::-webkit-scrollbar-track {
-  background-color: #e5e7eb !important; /* 더 진한 배경 */
+  background-color: #E6E6EA !important; /* 더 진한 배경 */
   border-radius: 6px !important;
   -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.15) !important; /* 더 진한 그림자 */
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: #9e9e9e !important; /* 더 진한 회색 */
+  background-color: #9A9AA2 !important; /* 더 진한 회색 */
   border-radius: 6px !important;
-  border: 2px solid #e5e7eb !important;
+  border: 2px solid #E6E6EA !important;
   min-height: 40px !important;
   -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.4) !important; /* 더 진한 그림자 */
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: #757575 !important; /* 호버 시 더 진하게 */
+  background-color: #6A6A73 !important; /* 호버 시 더 진하게 */
 }
 /* 모바일 Safari에서 스크롤바 강제 표시 */
 @supports (-webkit-touch-callout: none) {
@@ -330,16 +373,16 @@ html, body, #root {
 /* 자동완성 드롭다운 전용 스크롤바 (모바일에서 더 잘 보이도록) */
 .autocomplete-scrollbar {
   scrollbar-width: auto !important; /* thin 대신 auto로 변경하여 더 두껍게 */
-  scrollbar-color: #6b7280 #f3f4f6 !important; /* 더 진한 색상 */
+  scrollbar-color: #6A6A73 #F5F5F7 !important; /* 더 진한 색상 */
   -webkit-overflow-scrolling: touch !important;
   /* 스크롤바 영역을 시각적으로 표시 */
-  border-right: 1px solid #d1d5db !important;
+  border-right: 1px solid #D2D2D8 !important;
 }
 
 .autocomplete-scrollbar::-webkit-scrollbar {
   width: 16px !important; /* 모바일에서 더 잘 보이도록 너비 증가 */
   height: 16px !important;
-  background: #f3f4f6 !important;
+  background: #F5F5F7 !important;
   display: block !important;
   -webkit-appearance: auto !important; /* iOS에서도 표시 */
   opacity: 1 !important;
@@ -347,16 +390,16 @@ html, body, #root {
 }
 
 .autocomplete-scrollbar::-webkit-scrollbar-track {
-  background-color: #f3f4f6 !important;
+  background-color: #F5F5F7 !important;
   border-radius: 8px !important;
-  border: 1px solid #e5e7eb !important;
+  border: 1px solid #E6E6EA !important;
   -webkit-box-shadow: inset 0 0 4px rgba(0,0,0,0.1) !important;
 }
 
 .autocomplete-scrollbar::-webkit-scrollbar-thumb {
-  background-color: #6b7280 !important; /* 더 진한 회색 */
+  background-color: #6A6A73 !important; /* 더 진한 회색 */
   border-radius: 8px !important;
-  border: 2px solid #f3f4f6 !important;
+  border: 2px solid #F5F5F7 !important;
   min-height: 50px !important;
   -webkit-box-shadow: inset 0 0 4px rgba(0,0,0,0.3) !important;
   opacity: 1 !important;
@@ -364,7 +407,7 @@ html, body, #root {
 }
 
 .autocomplete-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: #4b5563 !important; /* 호버 시 더 진하게 */
+  background-color: #6A6A73 !important; /* 호버 시 더 진하게 */
 }
 
 /* 모바일에서 자동완성 스크롤바 강제 표시 */
@@ -447,19 +490,19 @@ html, body, #root, * {
 
 /* 예전 pill/tag 폰트 강제 규칙 블록 제거 (죽은 코드).
    - 대상 클래스 pill-label / tag-label / filter-pill / small-pill 은 코드에서 사용처 0
-   - bg-[#444444] 도 사용처 0
-   - .bg-[#D1D1D1] 등 이스케이프 안 된 셀렉터가 목록에 섞여 규칙 전체가 무효였음
+   - bg-[#3A3A42] 도 사용처 0
+   - .bg-[#D2D2D8] 등 이스케이프 안 된 셀렉터가 목록에 섞여 규칙 전체가 무효였음
    실제 렌더는 전부 Pretendard 로 나오고 있었고, 이 블록은 적용된 적이 없음 */
 
 /* 로그인 input 파란색 배경 완전 차단 */
 input,
 input:focus,
 input:active {
-  background: #fff !important;
-  background-color: #fff !important;
+  background: #FFFFFF !important;
+  background-color: #FFFFFF !important;
   box-shadow: none !important;
   outline: none !important;
-  color: #222 !important;
+  color: #1A1A1E !important;
   transition: none !important;
 }
 
@@ -467,13 +510,13 @@ input:-webkit-autofill,
 input:-webkit-autofill:focus,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:active {
-  -webkit-box-shadow: 0 0 0 1000px #fff inset !important;
-  box-shadow: 0 0 0 1000px #fff inset !important;
-  background: #fff !important;
-  background-color: #fff !important;
-  color: #222 !important;
+  -webkit-box-shadow: 0 0 0 1000px #FFFFFF inset !important;
+  box-shadow: 0 0 0 1000px #FFFFFF inset !important;
+  background: #FFFFFF !important;
+  background-color: #FFFFFF !important;
+  color: #1A1A1E !important;
   outline: none !important;
-  -webkit-text-fill-color: #222 !important;
+  -webkit-text-fill-color: #1A1A1E !important;
   transition: background-color 9999s ease-in-out 0s;
 }
 
@@ -495,7 +538,7 @@ div[class*="ReactVirtualized__List"][style*="layout: horizontal"] {
 #virtualized-recipe-list-container > *,
 #virtualized-recipe-list-container > * > * {
   scrollbar-width: thin !important;
-  scrollbar-color: #bdbdbd #f3f4f6 !important;
+  scrollbar-color: #B8B8C0 #F5F5F7 !important;
   touch-action: pan-y !important; /* 세로 스크롤 우선 */
   -webkit-overflow-scrolling: touch !important; /* iOS 부드러운 스크롤 */
 }
@@ -504,7 +547,7 @@ div[class*="ReactVirtualized__List"][style*="layout: horizontal"] {
 #virtualized-recipe-list-container > *::-webkit-scrollbar,
 #virtualized-recipe-list-container > * > *::-webkit-scrollbar {
   width: 12px !important;
-  background: #f3f4f6 !important;
+  background: #F5F5F7 !important;
   border-radius: 6px !important;
   display: block !important;
 }
@@ -512,40 +555,40 @@ div[class*="ReactVirtualized__List"][style*="layout: horizontal"] {
 #virtualized-recipe-list-container::-webkit-scrollbar-thumb,
 #virtualized-recipe-list-container > *::-webkit-scrollbar-thumb,
 #virtualized-recipe-list-container > * > *::-webkit-scrollbar-thumb {
-  background: #bdbdbd !important;
+  background: #B8B8C0 !important;
   border-radius: 6px !important;
   min-height: 40px !important;
-  border: 2px solid #f3f4f6 !important;
+  border: 2px solid #F5F5F7 !important;
 }
 
 #virtualized-recipe-list-container::-webkit-scrollbar-thumb:hover,
 #virtualized-recipe-list-container > *::-webkit-scrollbar-thumb:hover,
 #virtualized-recipe-list-container > * > *::-webkit-scrollbar-thumb:hover {
-  background: #9e9e9e !important;
+  background: #9A9AA2 !important;
 }
 
 /* react-window의 내부 스크롤 컨테이너에도 적용 (세로 스크롤만) */
 div[style*="overflow"]:not([style*="layout: horizontal"]):not([style*="overflow-x"]) {
   scrollbar-width: thin !important;
-  scrollbar-color: #bdbdbd #f3f4f6 !important;
+  scrollbar-color: #B8B8C0 #F5F5F7 !important;
 }
 
 div[style*="overflow"]:not([style*="layout: horizontal"]):not([style*="overflow-x"])::-webkit-scrollbar {
   width: 12px !important;
-  background: #f3f4f6 !important;
+  background: #F5F5F7 !important;
   border-radius: 6px !important;
   display: block !important;
 }
 
 div[style*="overflow"]:not([style*="layout: horizontal"]):not([style*="overflow-x"])::-webkit-scrollbar-thumb {
-  background: #bdbdbd !important;
+  background: #B8B8C0 !important;
   border-radius: 6px !important;
   min-height: 40px !important;
-  border: 2px solid #f3f4f6 !important;
+  border: 2px solid #F5F5F7 !important;
 }
 
 div[style*="overflow"]:not([style*="layout: horizontal"]):not([style*="overflow-x"])::-webkit-scrollbar-thumb:hover {
-  background: #9e9e9e !important;
+  background: #9A9AA2 !important;
 }
 
 /* AI 요리 챗봇 FAB */
@@ -601,7 +644,7 @@ div[style*="overflow"]:not([style*="layout: horizontal"]):not([style*="overflow-
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  background: linear-gradient(120deg, #FFC800 0%, #FFE45C 25%, #FFF6C2 45%, #FFD600 65%, #F2C200 100%);
+  background: linear-gradient(120deg, #F2C200 0%, #FFE45C 25%, #FFF6C2 45%, #FFD600 65%, #F2C200 100%);
   background-size: 260% 260%;
   animation: ai-fab-shimmer 4.2s ease-in-out infinite;
   box-shadow:
@@ -635,7 +678,7 @@ div[style*="overflow"]:not([style*="layout: horizontal"]):not([style*="overflow-
 }
 /* FAB 말풍선 아이콘 (노란 버튼 위라 어두운색) */
 .ai-fab-bubble {
-  color: #1A1A1A;
+  color: #1A1A1E;
 }
 /* 말풍선 안쪽 점은 버튼 배경색으로 뚫어서 보이게 */
 .ai-fab-bubble-dot {
@@ -648,7 +691,7 @@ div[style*="overflow"]:not([style*="layout: horizontal"]):not([style*="overflow-
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
-  scrollbar-color: #C9C9D0 transparent;
+  scrollbar-color: #D2D2D8 transparent;
 }
 .ai-chat-scroll::-webkit-scrollbar {
   width: 6px;
@@ -657,7 +700,7 @@ div[style*="overflow"]:not([style*="layout: horizontal"]):not([style*="overflow-
   background: transparent;
 }
 .ai-chat-scroll::-webkit-scrollbar-thumb {
-  background: #C9C9D0;
+  background: #D2D2D8;
   border-radius: 9999px;
 }
 
@@ -666,11 +709,11 @@ div[style*="overflow"]:not([style*="layout: horizontal"]):not([style*="overflow-
   height: 40px;
   padding: 0 14px;
   border-radius: 9999px;
-  background: #fff;
-  border: 1px solid #D8D8DE;
+  background: #FFFFFF;
+  border: 1px solid #D2D2D8;
   outline: none;
   text-shadow: none;
-  color: #111;
+  color: #1A1A1E;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 .ai-chat-input::placeholder {
@@ -681,8 +724,8 @@ div[style*="overflow"]:not([style*="layout: horizontal"]):not([style*="overflow-
   box-shadow: 0 0 0 3px rgba(255, 214, 0, 0.25);
 }
 .ai-chat-input:disabled {
-  background: #F2F2F4;
-  color: #9A9AA0;
+  background: #F5F5F7;
+  color: #9A9AA2;
 }
 
 /* 패널 헤더 / 답변 말풍선의 AI 아바타 (FAB와 동일한 노란 원 + 말풍선) */
@@ -698,13 +741,13 @@ div[style*="overflow"]:not([style*="layout: horizontal"]):not([style*="overflow-
   position: absolute;
   top: -4px;
   right: -4px;
-  background: #1A1A1A;
+  background: #1A1A1E;
   color: #FFD600;
   font-size: 9px;
   font-weight: 800;
   padding: 1.5px 5px;
   border-radius: 9999px;
-  border: 2px solid #fff;
+  border: 2px solid #FFFFFF;
   letter-spacing: 0.3px;
   line-height: 1.1;
   z-index: 3;

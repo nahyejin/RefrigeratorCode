@@ -75,10 +75,10 @@ const CoupangAd: React.FC<CoupangAdProps> = ({
           style={{
             ...style,
             padding: '20px',
-            backgroundColor: '#f5f5f5',
-            border: '1px dashed #ccc',
+            backgroundColor: '#F5F5F7',
+            border: '1px dashed #D2D2D8',
             textAlign: 'center',
-            color: '#999',
+            color: '#9A9AA2',
             fontSize: '12px'
           }}
           className={className}

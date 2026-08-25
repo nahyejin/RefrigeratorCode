@@ -232,7 +232,7 @@ const STYLES = {
   },
   header: {
     paddingTop: 8,
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
     opacity: 1,
     minHeight: 36
   },
@@ -242,18 +242,18 @@ const STYLES = {
   scrollContainer: {
     maxHeight: 320,
     overflowY: 'scroll' as const,
-    borderBottom: '1px solid #eee',
+    borderBottom: '1px solid #E6E6EA',
     paddingTop: 16,
     paddingBottom: 24,
     marginBottom: 8,
-    background: '#f5f5f5',
+    background: '#F5F5F7',
     position: 'relative' as const,
     boxShadow: '0px -8px 16px -8px rgba(0,0,0,0.08) inset',
     borderRadius: '8px',
     margin: '0 8px',
     // 스크롤바 항상 표시
     scrollbarWidth: 'thin' as const,
-    scrollbarColor: '#9e9e9e #e5e7eb' // 모바일에서 더 잘 보이도록 진한 색상
+    scrollbarColor: '#9A9AA2 #E6E6EA' // 모바일에서 더 잘 보이도록 진한 색상
   },
   applyButton: {
     maxWidth: 320
@@ -281,7 +281,7 @@ const STYLES = {
     left: '50%',
     transform: 'translateX(-50%)',
     background: 'rgba(34,34,34,0.9)',
-    color: '#fff',
+    color: '#FFFFFF',
     padding: '12px 24px',
     borderRadius: 12,
     fontSize: 15,
@@ -738,7 +738,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                 marginBottom: 2,
                 // 스크롤바 항상 표시 (모바일에서 더 잘 보이도록 진한 색상)
                 scrollbarWidth: 'thin',
-                scrollbarColor: '#9e9e9e #e5e7eb'
+                scrollbarColor: '#9A9AA2 #E6E6EA'
               }}
             >
               {/* 기존 카테고리~채널선택 내용 */}
@@ -757,14 +757,14 @@ const FilterModal: React.FC<FilterModalProps> = ({
                           {subTree && typeof subTree === 'object'
                             ? Object.entries(subTree).map(([sub, keywordsArr]) => (
                                 <div key={sub} className="mb-0.5">
-                                  {sub && <div className="text-[10px] font-semibold text-[#444] mb-0.5 ml-1">- {sub}</div>}
+                                  {sub && <div className="text-[10px] font-semibold text-[#3A3A42] mb-0.5 ml-1">- {sub}</div>}
                                   <div className="flex flex-wrap gap-1 mb-0.5">
                                     {Array.isArray(keywordsArr)
                                       ? keywordsArr.map(({ keyword }) => (
                                           <button
                                             key={keyword}
                                             className={`rounded-full px-2.5 py-0.5 font-medium text-[10.4px] mb-0.5 transition-colors ${
-                                              ((tempFilterState || {})[main] || []).includes(keyword) ? 'bg-[#555] text-white' : 'bg-white text-[#555] shadow-sm'
+                                              ((tempFilterState || {})[main] || []).includes(keyword) ? 'bg-[#6A6A73] text-white' : 'bg-white text-[#6A6A73] shadow-sm'
                                             }`}
                                             onClick={() => handleKeywordToggle(main, keyword)}
                                           >{keyword}</button>
@@ -785,7 +785,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
         </div>
         <div className="sticky bottom-0 left-0 w-full bg-white p-2 flex justify-center z-20 border-t border-gray-200">
           <button
-            className="w-full bg-[#3c3c3c] text-white font-bold py-1.5 rounded-lg text-sm"
+            className="w-full bg-[#3A3A42] text-white font-bold py-1.5 rounded-lg text-sm"
             style={STYLES.applyButton}
             onClick={handleApplyFilters}
           >

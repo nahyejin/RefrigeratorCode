@@ -61,14 +61,14 @@ const STYLES = {
     width: '90%',
   },
   label: {
-    color: '#9A9A9A',
+    color: '#9A9AA2',
     fontSize: 'clamp(14px, 3.2vw, 17px)',
     fontWeight: 600,
     letterSpacing: '0.02em',
     marginBottom: 8,
   },
   numberDisplay: {
-    color: '#1a1a1a',
+    color: '#1A1A1E',
     fontWeight: 800,
     fontSize: 'clamp(40px, 10.5vw, 64px)',
     textAlign: 'center' as const,
@@ -78,7 +78,7 @@ const STYLES = {
     lineHeight: '1.2',
   },
   descriptionText: {
-    color: '#B0B0B0',
+    color: '#B8B8C0',
     fontSize: 'clamp(14px, 3vw, 17px)',
     fontWeight: 400,
     textAlign: 'center' as const,

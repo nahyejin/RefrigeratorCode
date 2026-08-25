@@ -45,17 +45,17 @@ const SortDropdown: React.FC<SortDropdownProps> = ({ value, onChange, className 
     >
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="border border-gray-300 rounded h-6 py-0 pl-2 pr-6 text-[11px] font-medium bg-white text-[#404040] focus:outline-none focus:ring-2 focus:ring-blue-200 transition min-w-[110px] relative"
+        className="border border-gray-300 rounded h-6 py-0 pl-2 pr-6 text-[11px] font-medium bg-white text-[#3A3A42] focus:outline-none focus:ring-2 focus:ring-blue-200 transition min-w-[110px] relative"
         style={{ 
           textAlign: 'left',
           height: 28,
-          border: '1px solid #D1D5DB',
+          border: '1px solid #D2D2D8',
           borderRadius: 6,
           fontSize: 12,
           padding: '0 22px 0 8px',
           fontWeight: 600,
-          background: '#fff',
-          color: '#222',
+          background: '#FFFFFF',
+          color: '#1A1A1E',
           minWidth: 100,
           appearance: 'none',
           WebkitAppearance: 'none',
@@ -75,7 +75,7 @@ const SortDropdown: React.FC<SortDropdownProps> = ({ value, onChange, className 
           transform: 'translateY(-50%)',
           pointerEvents: 'none',
           fontSize: 13,
-          color: '#888'
+          color: '#9A9AA2'
         }}>∨</span>
       </button>
       {isOpen && (
@@ -86,7 +86,7 @@ const SortDropdown: React.FC<SortDropdownProps> = ({ value, onChange, className 
           right: 0,
           marginTop: '4px',
           backgroundColor: '#FFFFFF',
-          border: '1px solid #D1D5DB',
+          border: '1px solid #D2D2D8',
           borderRadius: '0.5rem',
           boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
           zIndex: 10, // 드롭다운이 열렸을 때만 높은 z-index
@@ -106,18 +106,18 @@ const SortDropdown: React.FC<SortDropdownProps> = ({ value, onChange, className 
                 textAlign: 'left',
                 fontSize: '12px',
                 fontWeight: 600,
-                color: value === option.value ? '#2563EB' : '#222222',
+                color: value === option.value ? '#2563EB' : '#1A1A1E',
                 backgroundColor: value === option.value ? '#EFF6FF' : '#FFFFFF',
                 border: 'none',
                 cursor: 'pointer',
-                borderTop: option.value !== 'expiry' ? '1px solid #F3F4F6' : 'none',
+                borderTop: option.value !== 'expiry' ? '1px solid #F5F5F7' : 'none',
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis'
               }}
               onMouseEnter={(e) => {
                 if (value !== option.value) {
-                  e.currentTarget.style.backgroundColor = '#F3F4F6';
+                  e.currentTarget.style.backgroundColor = '#F5F5F7';
                 }
               }}
               onMouseLeave={(e) => {

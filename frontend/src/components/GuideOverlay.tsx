@@ -317,7 +317,7 @@ const GuideOverlay: React.FC<GuideOverlayProps> = ({
             width: step.targetSelector.includes('settings-icon') || step.targetSelector.includes('storage-areas') ? '340px' : '320px',
             fontSize: '13px',
             lineHeight: '1.5',
-            color: '#333',
+            color: '#3A3A42',
             maxWidth: 'calc(100vw - 32px)', // 화면 너비를 넘지 않도록
           }}
         >
@@ -329,7 +329,7 @@ const GuideOverlay: React.FC<GuideOverlayProps> = ({
             )}
           </div>
           {/* 진행 상황 표시 */}
-          <div className="mb-2 text-right" style={{ fontSize: '12px', color: '#666' }}>
+          <div className="mb-2 text-right" style={{ fontSize: '12px', color: '#6A6A73' }}>
             ({currentStep + startStepOffset + 1}/{totalSteps || steps.length})
           </div>
           <div
@@ -358,7 +358,7 @@ const GuideOverlay: React.FC<GuideOverlayProps> = ({
               <button
                 type="button"
                 onClick={onNext}
-                className="px-4 py-1.5 bg-[#FFD600] text-[#222] rounded-lg text-sm font-medium hover:bg-yellow-300 transition"
+                className="px-4 py-1.5 bg-[#FFD600] text-[#1A1A1E] rounded-lg text-sm font-medium hover:bg-yellow-300 transition"
                 style={{ outline: 'none', border: 'none', cursor: 'pointer' }}
               >
                 {currentStep < steps.length - 1

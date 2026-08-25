@@ -5,7 +5,7 @@ interface TextInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 }
 
 const BASE_STYLE =
-  'w-full h-11 px-4 border border-[#CCCCCC] rounded-md text-sm placeholder-gray-400';
+  'w-full h-11 px-4 border border-[#D2D2D8] rounded-md text-sm placeholder-gray-400';
 
 const TextInput: React.FC<TextInputProps> = ({ className = '', ...props }) => (
   <input

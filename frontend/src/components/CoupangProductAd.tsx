@@ -203,11 +203,11 @@ const CoupangProductAd: React.FC<CoupangProductAdProps> = ({
           style={{
             ...style,
             padding: '16px',
-            backgroundColor: '#f5f5f5',
-            border: '1px dashed #ccc',
+            backgroundColor: '#F5F5F7',
+            border: '1px dashed #D2D2D8',
             borderRadius: '8px',
             textAlign: 'center',
-            color: '#999',
+            color: '#9A9AA2',
             fontSize: '12px',
             margin: '12px 0'
           }}
@@ -228,7 +228,7 @@ const CoupangProductAd: React.FC<CoupangProductAdProps> = ({
       style={{
         margin: '2px 0 0 0',
         padding: '2px 6px 0 6px',
-        backgroundColor: '#fff',
+        backgroundColor: '#FFFFFF',
         border: 'none',
         borderRadius: '8px',
         ...style
@@ -241,25 +241,30 @@ const CoupangProductAd: React.FC<CoupangProductAdProps> = ({
         onClick={(e) => {
           e.stopPropagation();
         }}
+        // 예전엔 주황색 꽉 찬 버튼이라 카드에서 가장 눈에 띄었음 — 광고가 정작 주인공인
+        // 레시피보다 강조되는 문제. 외곽선 스타일로 낮춰 존재감만 남김
         style={{
           display: 'inline-block',
-          padding: '6px 12px',
-          backgroundColor: '#FF6B00',
-          color: '#fff',
+          padding: '7px 12px',
+          backgroundColor: '#FFFFFF',
+          color: '#FF6B00',
+          border: '1px solid #FFD3B0',
           textDecoration: 'none',
-          borderRadius: '6px',
+          borderRadius: '8px',
           fontSize: '12px',
-          fontWeight: '600',
-          transition: 'background-color 0.2s',
+          fontWeight: 600,
+          transition: 'background-color 0.15s, border-color 0.15s',
           width: '100%',
           textAlign: 'center',
           boxSizing: 'border-box'
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = '#E55A00';
+          e.currentTarget.style.backgroundColor = '#FFF6EF';
+          e.currentTarget.style.borderColor = '#FF6B00';
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = '#FF6B00';
+          e.currentTarget.style.backgroundColor = '#FFFFFF';
+          e.currentTarget.style.borderColor = '#FFD3B0';
         }}
       >
         {selectedAdInfo?.keyword || ingredientName} 쿠팡에서 구매하기
@@ -267,7 +272,7 @@ const CoupangProductAd: React.FC<CoupangProductAdProps> = ({
       <div
         style={{
           fontSize: '7px',
-          color: '#999',
+          color: '#9A9AA2',
           marginTop: '1px',
           marginBottom: 0,
           paddingBottom: 0,

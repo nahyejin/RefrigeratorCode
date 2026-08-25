@@ -146,7 +146,7 @@ const STYLES = {
   },
   stats: {
     fontSize: 13,
-    color: '#888',
+    color: '#9A9AA2',
     marginBottom: 4
   }
 };
@@ -387,7 +387,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
         {/* 순위 표시 (Popular 페이지에서만) */}
         {showRank && (
           <div 
-            className="absolute bg-[#444] bg-opacity-80 text-white font-bold rounded px-2 py-1 flex items-center gap-1" 
+            className="absolute bg-[#3A3A42] bg-opacity-80 text-white font-bold rounded px-2 py-1 flex items-center gap-1" 
             style={STYLES.rankBadge}
           >
             {Utils.getRankDisplay(index + 1)}
@@ -395,7 +395,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
         )}
         {/* 재료 매칭률 뱃지 */}
         <div 
-          className="absolute bg-[#444] bg-opacity-80 text-white font-medium rounded px-2 py-0.5 flex items-center gap-1" 
+          className="absolute bg-[#3A3A42] bg-opacity-80 text-white font-medium rounded px-2 py-0.5 flex items-center gap-1" 
           style={showRank ? STYLES.matchBadgeWithRank : STYLES.matchBadge}
         >
           재료 매칭률 <span className="text-[#FFD600] font-bold ml-1" style={{ letterSpacing: '0.5px' }}>{match.rate}%</span>
@@ -476,7 +476,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
           />
         ) : (
           <div className="custom-scrollbar pr-1" style={{ display: 'flex', flexWrap: 'nowrap', gap: 4, marginBottom: 4, overflowX: 'auto', maxWidth: '100%', scrollbarWidth: 'auto', alignItems: 'center', paddingBottom: 4 }}>
-            <span className="bg-customGray text-[#555] rounded-full px-3 py-0.5 font-normal" style={{ fontSize: '10.4px', lineHeight: 1.3, whiteSpace: 'nowrap', height: 22, display: 'inline-flex', alignItems: 'center', border: '1px solid #C4C4C8' }}>재료 정보 없음</span>
+            <span className="bg-customGray text-[#6A6A73] rounded-full px-3 py-0.5 font-normal" style={{ fontSize: '10.4px', lineHeight: 1.3, whiteSpace: 'nowrap', height: 22, display: 'inline-flex', alignItems: 'center', border: '1px solid #D2D2D8' }}>재료 정보 없음</span>
           </div>
         )}
       </div>

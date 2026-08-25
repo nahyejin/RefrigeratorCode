@@ -12,7 +12,7 @@ const BASE_STYLE: React.CSSProperties = {
   left: '50%',
   transform: 'translateX(-50%)',
   background: 'rgba(34,34,34,0.9)',
-  color: '#fff',
+  color: '#FFFFFF',
   padding: '12px 24px',
   borderRadius: 12,
   fontSize: 15,
@@ -30,7 +30,7 @@ const BASE_STYLE: React.CSSProperties = {
 };
 
 const MESSAGE_STYLE: React.CSSProperties = {
-  color: '#fff',
+  color: '#FFFFFF',
   marginRight: 8,
   letterSpacing: '0.04em',
   whiteSpace: 'nowrap',

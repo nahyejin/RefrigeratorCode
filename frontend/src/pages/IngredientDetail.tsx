@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import IngredientLegend from '../components/IngredientLegend';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import logoImg from '../assets/냉털이 로고 white.png';
 import searchIcon from '../assets/navigator_search.png';
@@ -899,7 +900,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
               position: 'sticky',
               top: 56,
               zIndex: 40,
-              background: '#fff',
+              background: '#FFFFFF',
               marginLeft: -14,
               marginRight: -14,
               paddingLeft: 14,
@@ -937,52 +938,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
             excludeInput={excludeInput}
             setExcludeInput={setExcludeInput}
           />
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: 6,
-            marginTop: 8
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <span style={{ 
-                  width: 24, 
-                  height: 14, 
-                  borderRadius: 7, 
-                  background: '#D1D1D1', border: '1px solid #C4C4C8', 
-                  display: 'inline-block', 
-                  marginRight: 2 
-                }}></span>
-                <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>부족 재료</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <span style={{ 
-                  width: 24, 
-                  height: 14, 
-                  borderRadius: 7, 
-                  background: '#555', 
-                  display: 'inline-block', 
-                  marginRight: 2 
-                }}></span>
-                <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>대체 가능</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <span style={{ 
-                  width: 24, 
-                  height: 14, 
-                  borderRadius: 7, 
-                  background: '#FFD600', 
-                  display: 'inline-block', 
-                  marginRight: 2 
-                }}></span>
-                <span style={{ color: '#222', fontSize: '12px', minWidth: 30 }}>보유 재료</span>
-              </div>
-            </div>
-            <span style={{ color: '#666', fontSize: '12px' }}>
-              총 {total > 0 ? total.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') : processedRecipes.length.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}건
-            </span>
-          </div>
+          <IngredientLegend total={total > 0 ? total : processedRecipes.length} style={{ marginBottom: 6, marginTop: 8 }} />
           </div>
           {/* /sticky */}
 
@@ -1023,7 +979,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
                     style={{
                       padding: '6px 8px',
                       background: 'transparent',
-                      color: page <= 1 ? '#d1d5db' : '#222',
+                      color: page <= 1 ? '#D2D2D8' : '#1A1A1E',
                       fontWeight: '500',
                       border: 'none',
                       borderRadius: '6px',
@@ -1038,7 +994,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
                     }}
                     onMouseEnter={(e) => {
                       if (page > 1) {
-                        e.currentTarget.style.background = '#f5f5f5';
+                        e.currentTarget.style.background = '#F5F5F7';
                       }
                     }}
                     onMouseLeave={(e) => {
@@ -1057,7 +1013,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
                     style={{
                       padding: '6px 8px',
                       background: 'transparent',
-                      color: page <= 1 ? '#d1d5db' : '#222',
+                      color: page <= 1 ? '#D2D2D8' : '#1A1A1E',
                       fontWeight: '500',
                       border: 'none',
                       borderRadius: '6px',
@@ -1072,7 +1028,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
                     }}
                     onMouseEnter={(e) => {
                       if (page > 1) {
-                        e.currentTarget.style.background = '#f5f5f5';
+                        e.currentTarget.style.background = '#F5F5F7';
                       }
                     }}
                     onMouseLeave={(e) => {
@@ -1092,7 +1048,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
                       style={{
                         padding: '6px 12px',
                         background: pageNum === page ? '#FFD600' : 'transparent',
-                        color: pageNum === page ? '#222' : '#222',
+                        color: pageNum === page ? '#1A1A1E' : '#1A1A1E',
                         fontWeight: pageNum === page ? '600' : '500',
                         border: 'none',
                         borderRadius: '6px',
@@ -1107,7 +1063,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
                       }}
                       onMouseEnter={(e) => {
                         if (pageNum !== page) {
-                          e.currentTarget.style.background = '#f5f5f5';
+                          e.currentTarget.style.background = '#F5F5F7';
                         }
                       }}
                       onMouseLeave={(e) => {
@@ -1127,7 +1083,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
                     style={{
                       padding: '6px 8px',
                       background: 'transparent',
-                      color: page >= totalPages ? '#d1d5db' : '#222',
+                      color: page >= totalPages ? '#D2D2D8' : '#1A1A1E',
                       fontWeight: '500',
                       border: 'none',
                       borderRadius: '6px',
@@ -1142,7 +1098,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
                     }}
                     onMouseEnter={(e) => {
                       if (page < totalPages) {
-                        e.currentTarget.style.background = '#f5f5f5';
+                        e.currentTarget.style.background = '#F5F5F7';
                       }
                     }}
                     onMouseLeave={(e) => {
@@ -1161,7 +1117,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
                     style={{
                       padding: '6px 8px',
                       background: 'transparent',
-                      color: page >= totalPages ? '#d1d5db' : '#222',
+                      color: page >= totalPages ? '#D2D2D8' : '#1A1A1E',
                       fontWeight: '500',
                       border: 'none',
                       borderRadius: '6px',
@@ -1176,7 +1132,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
                     }}
                     onMouseEnter={(e) => {
                       if (page < totalPages) {
-                        e.currentTarget.style.background = '#f5f5f5';
+                        e.currentTarget.style.background = '#F5F5F7';
                       }
                     }}
                     onMouseLeave={(e) => {
@@ -1205,7 +1161,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
           left: '50%',
           transform: 'translateX(-50%)',
           background: 'rgba(34, 34, 34, 0.9)',
-          color: '#fff',
+          color: '#FFFFFF',
           padding: '12px 24px',
           borderRadius: 12,
           fontSize: 15,
@@ -1223,7 +1179,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
           gap: 8,
         }}>
           <span style={{ 
-            color: '#fff', 
+            color: '#FFFFFF', 
             marginBottom: 6, 
             letterSpacing: '0.04em', 
             whiteSpace: 'nowrap', 
@@ -1238,14 +1194,14 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
           </span>
           <div style={{display:'flex',flexDirection:'row',gap:12,justifyContent:'center',width:'100%'}}>
             <button 
-              className="inline-flex items-center justify-center bg-[#F5F6F8] text-gray-700 font-semibold rounded-lg px-3 py-1 text-sm border border-[#E5E7EB] shadow-none hover:bg-[#E5E7EB] transition whitespace-nowrap" 
+              className="inline-flex items-center justify-center bg-[#F5F5F7] text-gray-700 font-semibold rounded-lg px-3 py-1 text-sm border border-[#E6E6EA] shadow-none hover:bg-[#E6E6EA] transition whitespace-nowrap" 
               style={{marginRight:4}} 
               onClick={handleRemoveUndo}
             >
               아니요
             </button>
             <button 
-              className="inline-flex items-center justify-center bg-[#F5F6F8] text-gray-700 font-semibold rounded-lg px-3 py-1 text-sm border border-[#E5E7EB] shadow-none hover:bg-[#E5E7EB] transition whitespace-nowrap" 
+              className="inline-flex items-center justify-center bg-[#F5F5F7] text-gray-700 font-semibold rounded-lg px-3 py-1 text-sm border border-[#E6E6EA] shadow-none hover:bg-[#E6E6EA] transition whitespace-nowrap" 
               onClick={handleRemoveConfirm}
             >
               네

@@ -60,7 +60,7 @@ const FindEmail: React.FC = () => {
         
         {/* 제목 */}
         <div className={`w-full ${MAX_CONTAINER_WIDTH} text-center mb-6 mx-auto`}>
-          <h1 className="text-[24px] font-bold text-[#222] mb-2">이메일 찾기</h1>
+          <h1 className="text-[24px] font-bold text-[#1A1A1E] mb-2">이메일 찾기</h1>
           <p className="text-[13px] text-gray-500">가입 시 사용한 닉네임을 입력해주세요</p>
         </div>
         
@@ -99,7 +99,7 @@ const FindEmail: React.FC = () => {
           )}
           
           <NeangteolButton 
-            color="bg-[#3c3c3c]" 
+            color="bg-[#3A3A42]" 
             textColor="text-white" 
             className={`w-full ${BUTTON_HEIGHT} rounded-xl text-[15px] mt-1 px-4`}
             onClick={handleFindEmail}
@@ -110,7 +110,7 @@ const FindEmail: React.FC = () => {
         </div>
         
         {/* 하단 링크 */}
-        <div className={`w-full ${MAX_CONTAINER_WIDTH} text-center text-[12px] text-[#333] mb-4 leading-tight mx-auto mt-4`}>
+        <div className={`w-full ${MAX_CONTAINER_WIDTH} text-center text-[12px] text-[#3A3A42] mb-4 leading-tight mx-auto mt-4`}>
           <span className="underline cursor-pointer" onClick={() => navigate('/login')}>로그인으로 돌아가기</span>
         </div>
         

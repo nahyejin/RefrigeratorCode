@@ -156,7 +156,7 @@ const ResetPassword: React.FC = () => {
         
         {/* 제목 */}
         <div className={`w-full ${MAX_CONTAINER_WIDTH} text-center mb-6 mx-auto`}>
-          <h1 className="text-[24px] font-bold text-[#222] mb-2">비밀번호 찾기</h1>
+          <h1 className="text-[24px] font-bold text-[#1A1A1E] mb-2">비밀번호 찾기</h1>
           <p className="text-[13px] text-gray-500">
             {step === 'email' && '가입 시 사용한 이메일을 입력해주세요'}
             {step === 'verify' && '이메일로 발송된 인증 코드를 입력해주세요'}
@@ -192,7 +192,7 @@ const ResetPassword: React.FC = () => {
               )}
               
               <NeangteolButton 
-                color="bg-[#3c3c3c]" 
+                color="bg-[#3A3A42]" 
                 textColor="text-white" 
                 className={`w-full ${BUTTON_HEIGHT} rounded-xl text-[15px] mt-1 px-4`}
                 onClick={handleSendVerificationCode}
@@ -232,7 +232,7 @@ const ResetPassword: React.FC = () => {
                   <button
                     onClick={handleVerifyCode}
                     disabled={verifyingCode || verificationCode.length !== 6}
-                    className="h-[44px] px-2 bg-[#FFD600] text-[#222] rounded-lg text-[12px] font-semibold whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+                    className="h-[44px] px-2 bg-[#FFD600] text-[#1A1A1E] rounded-lg text-[12px] font-semibold whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
                     style={{ minWidth: '65px' }}
                   >
                     {verifyingCode ? '확인 중...' : '인증하기'}
@@ -275,7 +275,7 @@ const ResetPassword: React.FC = () => {
                   이전
                 </NeangteolButton>
                 <NeangteolButton 
-                  color="bg-[#3c3c3c]" 
+                  color="bg-[#3A3A42]" 
                   textColor="text-white" 
                   className={`flex-1 ${BUTTON_HEIGHT} rounded-xl text-[15px] px-4`}
                   onClick={() => handleSendVerificationCode()}
@@ -339,7 +339,7 @@ const ResetPassword: React.FC = () => {
                   이전
                 </NeangteolButton>
                 <NeangteolButton 
-                  color="bg-[#3c3c3c]" 
+                  color="bg-[#3A3A42]" 
                   textColor="text-white" 
                   className={`flex-1 ${BUTTON_HEIGHT} rounded-xl text-[15px] px-4`}
                   onClick={handleResetPassword}
@@ -353,7 +353,7 @@ const ResetPassword: React.FC = () => {
         </div>
         
         {/* 하단 링크 */}
-        <div className={`w-full ${MAX_CONTAINER_WIDTH} text-center text-[12px] text-[#333] mb-4 leading-tight mx-auto mt-4`}>
+        <div className={`w-full ${MAX_CONTAINER_WIDTH} text-center text-[12px] text-[#3A3A42] mb-4 leading-tight mx-auto mt-4`}>
           <span className="underline cursor-pointer" onClick={() => navigate('/login')}>로그인으로 돌아가기</span>
         </div>
         
