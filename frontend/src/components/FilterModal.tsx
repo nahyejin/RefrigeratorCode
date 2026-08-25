@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Portal from './Portal';
 import { getMyIngredients } from '../utils/recipeUtils';
 
 /*
@@ -285,7 +286,7 @@ const STYLES = {
     padding: '12px 24px',
     borderRadius: 12,
     fontSize: 15,
-    zIndex: 9999,
+    zIndex: 'var(--z-toast)',
     maxWidth: 260,
     width: 'max-content',
     whiteSpace: 'nowrap' as const,
@@ -570,7 +571,8 @@ const FilterModal: React.FC<FilterModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center" style={{ zIndex: 1001 }}>
+    <Portal>
+      <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center" style={{ zIndex: 'var(--z-modal)' }}>
       <div 
         className="bg-white rounded-xl shadow-lg w-[340px] max-w-[95vw] relative" 
         style={{
@@ -794,6 +796,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
         </div>
       </div>
     </div>
+    </Portal>
   );
 };
 

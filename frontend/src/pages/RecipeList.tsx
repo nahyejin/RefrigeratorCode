@@ -1927,7 +1927,7 @@ const RecipeList: React.FC = () => {
           style={{
             position: 'sticky',
             top: 56,
-            zIndex: 40,
+            zIndex: 'var(--z-sticky)',
             background: '#FFFFFF',
             marginLeft: -20,
             marginRight: -20,
@@ -2382,7 +2382,7 @@ const RecipeList: React.FC = () => {
             top: '50%', 
             left: '50%', 
             transform: 'translate(-50%, -50%)', 
-            zIndex: 1000,
+            zIndex: 'var(--z-overlay)',
             background: 'rgba(255, 255, 255, 0.98)',
             padding: '16px 20px',
             borderRadius: '12px',

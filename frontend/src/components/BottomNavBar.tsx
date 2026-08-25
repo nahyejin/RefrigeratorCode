@@ -68,7 +68,7 @@ const STYLES = {
     display: 'flex',
     justifyContent: 'space-around',
     alignItems: 'center',
-    zIndex: 9999
+    zIndex: 'var(--z-nav)'
   },
   navButton: {
     display: 'flex',
@@ -101,7 +101,7 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({ activeTab }) => {
   return (
     <>
       <div className="fixed bottom-16 left-0 w-full border-t border-gray-200 z-30"></div>
-      <nav className="fixed bottom-0 left-0 w-full h-16 bg-white flex justify-around items-center z-[9999]">
+      <nav className="fixed bottom-0 left-0 w-full h-16 bg-white flex justify-around items-center z-[var(--z-nav)]">
         {NAVIGATION_ITEMS.map((nav) => {
           const isActive = activeTab === nav.key;
           return (

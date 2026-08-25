@@ -15,7 +15,7 @@ const BASE_STYLE: React.CSSProperties = {
   borderRadius: 12,
   fontSize: 15,
   fontWeight: 400,
-  zIndex: 9999,
+  zIndex: 'var(--z-toast)',
   maxWidth: 260,
   width: 'max-content',
   whiteSpace: 'pre-line', // 여러 줄 표시를 위해 pre-line 사용

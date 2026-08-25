@@ -84,7 +84,7 @@ function AppContent() {
               display: 'flex',
               justifyContent: 'center',
               alignItems: 'flex-start',
-              zIndex: 999,
+              zIndex: 'var(--z-nav)',
               backgroundColor: 'transparent',
               minHeight: showNavBar ? 'calc(100vh - 56px)' : '100vh'
             }}

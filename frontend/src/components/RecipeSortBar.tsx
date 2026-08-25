@@ -28,6 +28,7 @@
  */
 
 import React, { useEffect, useLayoutEffect, useState, useMemo, useCallback, useRef } from 'react';
+import Portal from './Portal';
 import RecipeCard from './RecipeCard';
 import FilterModal from './FilterModal';
 import Slider from 'rc-slider';
@@ -178,7 +179,7 @@ const STYLES = {
     display: 'flex' as const,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
-    zIndex: 1001
+    zIndex: 'var(--z-modal)'
   },
   modalContent: {
     backgroundColor: '#FFFFFF',
@@ -717,6 +718,7 @@ const RecipeSortBar = ({
       </div>
       {/* 매칭률 설정 모달 */}
       {isMatchRateModalOpen && (
+        <Portal>
         <div style={STYLES.modal}>
           <div style={STYLES.modalContent}>
             <span style={STYLES.closeButton} onClick={() => {
@@ -840,9 +842,11 @@ const RecipeSortBar = ({
             </button>
           </div>
         </div>
+        </Portal>
       )}
       {/* 임박 재료 설정 모달 */}
       {isExpiryModalOpen && (
+        <Portal>
         <div style={STYLES.modal}>
           <div style={STYLES.modalContent}>
             <span style={STYLES.closeButton} onClick={() => {
@@ -943,6 +947,7 @@ const RecipeSortBar = ({
             </button>
           </div>
         </div>
+        </Portal>
       )}
       {/* 필터 모달 */}
       {isFilterModalOpen && (

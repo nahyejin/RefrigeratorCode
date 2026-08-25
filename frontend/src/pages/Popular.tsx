@@ -1715,7 +1715,7 @@ const Popular = () => {
 
         {/* 기간선택 모달 */}
         {dateModalOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center" style={{ zIndex: 1001 }} onClick={() => {
+          <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center" style={{ zIndex: 'var(--z-modal)' }} onClick={() => {
             setDateModalOpen(false);
             // 모달을 닫을 때 임시 상태를 원래 상태로 복원
               setTempDateRange([dateRange[0], dateRange[1]]);
@@ -2275,7 +2275,7 @@ const Popular = () => {
           borderRadius: 12,
           fontSize: 15,
           fontWeight: 400,
-          zIndex: 9999,
+          zIndex: 'var(--z-toast)',
           maxWidth: 260,
           width: 'max-content',
           whiteSpace: 'nowrap',
@@ -2288,7 +2288,7 @@ const Popular = () => {
       )}
       {/* Loading animation */}
       {loading && (
-        <div className="loader-toast" style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 1000 }}>
+        <div className="loader-toast" style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 'var(--z-overlay)' }}>
           <div className="loader-dots">
             <div></div>
             <div></div>

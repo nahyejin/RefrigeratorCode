@@ -17,7 +17,7 @@ const BASE_STYLE: React.CSSProperties = {
   borderRadius: 12,
   fontSize: 15,
   fontWeight: 400,
-  zIndex: 9999,
+  zIndex: 'var(--z-toast)',
   maxWidth: 320,
   width: 'max-content',
   whiteSpace: 'nowrap',

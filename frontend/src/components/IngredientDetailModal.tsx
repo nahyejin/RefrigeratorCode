@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Portal from './Portal';
 import frozenIcon from '../assets/Frozen_storage.png';
 import refrigeratedIcon from '../assets/Refrigerated_storage.png';
 import roomIcon from '../assets/Store_at_room_temperature.png';
@@ -143,7 +144,8 @@ export default function IngredientDetailModal({
   return isOpen && (
     <>
       {step === 'select' && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center" style={{ zIndex: 1001 }} onClick={onClose}>
+        <Portal>
+      <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center" style={{ zIndex: 'var(--z-modal)' }} onClick={onClose}>
           <div
             className="relative bg-white rounded-2xl shadow-2xl w-[370px] max-w-[92vw] p-8"
             onClick={e => e.stopPropagation()}
@@ -214,6 +216,7 @@ export default function IngredientDetailModal({
             </div>
           </div>
         </div>
+    </Portal>
       )}
       {step === 'date' && (
         <IngredientDateModal

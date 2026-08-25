@@ -340,14 +340,14 @@ const RecipeChatWidget: React.FC = () => {
     <>
       {open && (
         <div
-          className="fixed inset-0 bg-black/30 z-[10030]"
+          className="fixed inset-0 bg-black/30 z-[var(--z-overlay)]"
           onClick={() => setOpen(false)}
         />
       )}
 
       {open && (
         <section
-          className="fixed left-3 right-3 z-[10040] flex flex-col bg-white overflow-hidden"
+          className="fixed left-3 right-3 z-[var(--z-modal)] flex flex-col bg-white overflow-hidden"
           style={{
             bottom: panelBottom,
             maxWidth: 420,

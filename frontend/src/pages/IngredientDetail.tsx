@@ -859,7 +859,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
           top: 0,
           left: 0,
           right: 0,
-          zIndex: 1000,
+          zIndex: 'var(--z-nav)',
           maxWidth: '100%',
           margin: '0 auto'
         }}
@@ -899,7 +899,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
             style={{
               position: 'sticky',
               top: 56,
-              zIndex: 40,
+              zIndex: 'var(--z-sticky)',
               background: '#FFFFFF',
               marginLeft: -14,
               marginRight: -14,
@@ -1166,7 +1166,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
           borderRadius: 12,
           fontSize: 15,
           fontWeight: 400,
-          zIndex: 9999,
+          zIndex: 'var(--z-toast)',
           maxWidth: 320,
           width: 'max-content',
           whiteSpace: 'nowrap',
@@ -1245,7 +1245,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
       )}
       {/* Loading animation */}
       {loading && (
-        <div className="loader-toast" style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 1000 }}>
+        <div className="loader-toast" style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 'var(--z-overlay)' }}>
           <div className="loader-dots">
             <div></div>
             <div></div>

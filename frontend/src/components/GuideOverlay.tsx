@@ -153,7 +153,7 @@ const GuideOverlay: React.FC<GuideOverlayProps> = ({
         top: '50%',
         left: '50%',
         transform: 'translate(-50%, -50%)',
-        zIndex: 10002,
+        zIndex: 'var(--z-modal)',
       };
     }
 
@@ -189,7 +189,7 @@ const GuideOverlay: React.FC<GuideOverlayProps> = ({
         position: 'fixed',
         top: `${t}px`,
         left: `${l}px`,
-        zIndex: 10002,
+        zIndex: 'var(--z-modal)',
       };
     }
 
@@ -248,7 +248,7 @@ const GuideOverlay: React.FC<GuideOverlayProps> = ({
       position: 'fixed',
       top: `${top}px`,
       left: `${left}px`,
-      zIndex: 10002, // 하이라이트(10001)보다 위에 표시
+      zIndex: 'var(--z-modal)', // 하이라이트(10001)보다 위에 표시
     };
   };
 
@@ -265,7 +265,7 @@ const GuideOverlay: React.FC<GuideOverlayProps> = ({
       left: `${targetRect.left}px`,
       width: `${Math.max(targetRect.width, 24)}px`, // 최소 너비 보장
       height: `${Math.max(targetRect.height, 24)}px`, // 최소 높이 보장
-      zIndex: 10001, // 배경 오버레이(9998) 위에, 툴팁(10002) 아래
+      zIndex: 'var(--z-modal)', // 배경 오버레이(9998) 위에, 툴팁(10002) 아래
       border: '3px solid #FFD600',
       borderRadius: '8px',
       pointerEvents: 'none' as const,
@@ -283,7 +283,7 @@ const GuideOverlay: React.FC<GuideOverlayProps> = ({
         ref={overlayRef}
         className="fixed inset-0"
         style={{
-          zIndex: 9998,
+          zIndex: 'var(--z-overlay)',
           backgroundColor: 'rgba(0, 0, 0, 0.5)',
         }}
         onClick={onClose}

@@ -239,7 +239,7 @@ const Toast = ({ message, onUndo, onClose }: { message: string; onUndo: () => vo
       borderRadius: 12,
       fontWeight: 400,
       fontSize: 15,
-      zIndex: 9999,
+      zIndex: 'var(--z-toast)',
       boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
       maxWidth: 320,
       width: 'max-content',
@@ -2089,7 +2089,7 @@ const MyFridge: React.FC = () => {
               borderRadius: 12,
               fontWeight: 400,
               fontSize: 15,
-              zIndex: 9999,
+              zIndex: 'var(--z-toast)',
               boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
               maxWidth: 320,
               width: 'max-content',
@@ -2104,7 +2104,7 @@ const MyFridge: React.FC = () => {
         )}
         {/* Loading animation */}
         {loading && (
-          <div className="loader-toast" style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 1000 }}>
+          <div className="loader-toast" style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 'var(--z-overlay)' }}>
             <div className="loader-dots">
               <div></div>
               <div></div>

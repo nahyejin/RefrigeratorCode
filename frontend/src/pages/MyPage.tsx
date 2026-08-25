@@ -1075,7 +1075,7 @@ const MyPage: React.FC = () => {
           top: 0,
           left: 0,
           right: 0,
-          zIndex: 1000,
+          zIndex: 'var(--z-nav)',
           maxWidth: '400px',
           margin: '0 auto'
         }}
@@ -1322,7 +1322,7 @@ const MyPage: React.FC = () => {
       
       {/* 내 정보 수정 모달 */}
       {editOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center" style={{ zIndex: 1001 }}>
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center" style={{ zIndex: 'var(--z-modal)' }}>
           <div 
             className="bg-white rounded-xl shadow-lg w-[370px] max-w-[95vw] relative max-h-[90vh] overflow-y-auto scrollbar-none" 
             style={{scrollbarWidth:'none'}} 
@@ -1561,7 +1561,7 @@ const MyPage: React.FC = () => {
           padding: '12px 24px',
           borderRadius: 12,
           fontSize: 15,
-          zIndex: 9999,
+          zIndex: 'var(--z-toast)',
           maxWidth: 260,
           width: 'max-content',
           whiteSpace: 'nowrap',
@@ -1585,7 +1585,7 @@ const MyPage: React.FC = () => {
           padding: '12px 24px',
           borderRadius: 12,
           fontSize: 15,
-          zIndex: 9999,
+          zIndex: 'var(--z-toast)',
           maxWidth: 320,
           width: 'max-content',
           whiteSpace: 'nowrap',
@@ -1659,7 +1659,7 @@ const MyPage: React.FC = () => {
       
       {/* 회원탈퇴 확인 모달 */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[1002]">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[calc(var(--z-modal) + 1)]">
           <div className="bg-white rounded-xl shadow-lg w-[320px] max-w-[90vw] p-6">
             <div className="text-center mb-4">
               <div className="text-[18px] font-bold text-[#1A1A1E] mb-3">회원탈퇴</div>

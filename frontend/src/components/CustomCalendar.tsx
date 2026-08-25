@@ -356,7 +356,7 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
         </button>
         
         <div className="flex items-center gap-2">
-          <div className="relative" ref={yearDropdownRef} style={{ overflow: 'visible', zIndex: 9999 }}>
+          <div className="relative" ref={yearDropdownRef} style={{ overflow: 'visible', zIndex: 'var(--z-dropdown)' }}>
             <button
               onClick={() => {
                 setShowYearDropdown(!showYearDropdown);
@@ -389,7 +389,7 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
                   border: '1px solid #D2D2D8',
                   borderRadius: '8px',
                   boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-                  zIndex: 9999,
+                  zIndex: 'var(--z-dropdown)',
                   minWidth: '100%',
                   width: '100%',
                   maxHeight: '180px',
@@ -443,7 +443,7 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
             )}
           </div>
           
-          <div className="relative" ref={monthDropdownRef} style={{ overflow: 'visible', zIndex: 9999 }}>
+          <div className="relative" ref={monthDropdownRef} style={{ overflow: 'visible', zIndex: 'var(--z-dropdown)' }}>
             <button
               onClick={() => {
                 setShowMonthDropdown(!showMonthDropdown);
@@ -476,7 +476,7 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
                   border: '1px solid #D2D2D8',
                   borderRadius: '8px',
                   boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-                  zIndex: 9999,
+                  zIndex: 'var(--z-dropdown)',
                   minWidth: '100%',
                   width: '100%',
                   maxHeight: '180px',

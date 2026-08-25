@@ -452,7 +452,7 @@ const CompletedRecipeListPage: React.FC = () => {
           top: 0,
           left: 0,
           right: 0,
-          zIndex: 1000,
+          zIndex: 'var(--z-nav)',
           maxWidth: '100%',
           margin: '0 auto'
         }}
@@ -525,7 +525,7 @@ const CompletedRecipeListPage: React.FC = () => {
                 style={{
                   position: 'sticky',
                   top: 56,
-                  zIndex: 40,
+                  zIndex: 'var(--z-sticky)',
                   background: '#FFFFFF',
                   marginLeft: -14,
                   marginRight: -14,
@@ -621,7 +621,7 @@ const CompletedRecipeListPage: React.FC = () => {
       )}
       
       {matchRateModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center" style={{ zIndex: 1001 }}>
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center" style={{ zIndex: 'var(--z-modal)' }}>
           <div className="bg-white rounded-xl shadow-lg p-6 w-[340px] max-w-[95vw] relative">
             <span 
               className="absolute top-3 right-3 w-6 h-6 text-gray-400 text-xl cursor-pointer" 
@@ -637,7 +637,7 @@ const CompletedRecipeListPage: React.FC = () => {
       )}
       
       {expiryModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center" style={{ zIndex: 1001 }}>
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center" style={{ zIndex: 'var(--z-modal)' }}>
           <div className="bg-white rounded-xl shadow-lg p-6 w-[340px] max-w-[95vw] relative">
             <span 
               className="absolute top-3 right-3 w-6 h-6 text-gray-400 text-xl cursor-pointer" 
@@ -663,7 +663,7 @@ const CompletedRecipeListPage: React.FC = () => {
           padding: '12px 24px',
           borderRadius: 12,
           fontSize: 15,
-          zIndex: 9999,
+          zIndex: 'var(--z-toast)',
           maxWidth: 320,
           width: 'max-content',
           whiteSpace: 'nowrap',

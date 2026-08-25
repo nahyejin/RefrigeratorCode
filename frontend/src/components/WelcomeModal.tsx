@@ -16,7 +16,7 @@ const WelcomeModal: React.FC<WelcomeModalProps> = ({
 
   return (
     <div 
-      className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9999]"
+      className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[var(--z-modal)]"
       style={{ 
         maxWidth: 'calc(100% - 32px)', 
         width: 'max-content',

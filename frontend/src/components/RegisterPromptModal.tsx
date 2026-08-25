@@ -31,7 +31,7 @@ const RegisterPromptModal: React.FC<RegisterPromptModalProps> = ({
   return (
     <div
       className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center"
-      style={{ zIndex: 1001 }}
+      style={{ zIndex: 'var(--z-modal)' }}
       onClick={onClose}
     >
       <div
