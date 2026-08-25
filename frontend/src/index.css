@@ -618,6 +618,18 @@ div[style*="overflow"]:not([style*="layout: horizontal"]):not([style*="overflow-
   0%, 100% { opacity: 0.55; transform: translateY(0); }
   50% { opacity: 1; transform: translateY(-1.5px); }
 }
+/* 노란 그라데이션이 버튼 위를 흐르듯 이동 */
+@keyframes ai-fab-shimmer {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+/* 버튼 위를 스쳐 지나가는 하이라이트 */
+@keyframes ai-fab-sheen {
+  0%        { transform: translateX(-120%) rotate(18deg); opacity: 0; }
+  12%       { opacity: 0.85; }
+  38%, 100% { transform: translateX(120%) rotate(18deg); opacity: 0; }
+}
 
 .ai-fab-outer {
   position: fixed;
@@ -649,12 +661,32 @@ div[style*="overflow"]:not([style*="layout: horizontal"]):not([style*="overflow-
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(160deg, #FFE45C 0%, #FFD600 55%, #F2C200 100%);
+  overflow: hidden;
+  background: linear-gradient(120deg, #FFC800 0%, #FFE45C 25%, #FFF6C2 45%, #FFD600 65%, #F2C200 100%);
+  background-size: 260% 260%;
+  animation: ai-fab-shimmer 4.2s ease-in-out infinite;
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,0.6),
     inset 0 0 0 1px rgba(0,0,0,0.06),
     0 6px 16px rgba(190,150,0,0.38);
   transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+/* 주기적으로 스쳐 지나가는 하이라이트 */
+.ai-fab-button::after {
+  content: '';
+  position: absolute;
+  top: -40%;
+  left: 0;
+  width: 45%;
+  height: 180%;
+  background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.75) 50%, rgba(255,255,255,0) 100%);
+  animation: ai-fab-sheen 4.2s ease-in-out infinite;
+  pointer-events: none;
+}
+/* 아이콘은 하이라이트 위로 (말풍선이 흐려지지 않도록) */
+.ai-fab-button > svg {
+  position: relative;
+  z-index: 1;
 }
 .ai-fab-button:active {
   transform: scale(0.94);
@@ -670,14 +702,14 @@ div[style*="overflow"]:not([style*="layout: horizontal"]):not([style*="overflow-
 .ai-fab-bubble-dot {
   fill: #FFD600;
 }
-/* 패널 헤더 / 말풍선 아바타의 쿡매치 마크 (어두운 원 위) */
-.ai-fab-icon-main {
-  color: #FFD600;
+/* 패널 헤더 / 답변 말풍선의 AI 아바타 (FAB와 동일한 노란 원 + 말풍선) */
+.ai-avatar-mark {
+  border-radius: 9999px;
+  background: linear-gradient(160deg, #FFE45C 0%, #FFD600 55%, #F2C200 100%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.55), 0 1px 3px rgba(190,150,0,0.3);
 }
-.ai-fab-icon-spark {
-  color: #FFF3B0;
-  transform-origin: center;
-  animation: ai-fab-twinkle 2.1s ease-in-out infinite;
+.ai-avatar-mark .ai-fab-bubble-dot {
+  fill: #FFD600;
 }
 .ai-fab-badge {
   position: absolute;

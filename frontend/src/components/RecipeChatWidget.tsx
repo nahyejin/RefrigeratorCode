@@ -39,33 +39,7 @@ type ChatThread = {
   messages: ChatMessage[];
 };
 
-const CookMatchMarkIcon: React.FC<{ size?: number; className?: string }> = ({ size = 24, className }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    className={className}
-    style={{ width: size, height: size, flexShrink: 0, display: 'block' }}
-  >
-    {/* 쿡매치 메인 아이콘(집 지붕 + 밥그릇) 모티프 */}
-    <path
-      className="ai-fab-icon-spark"
-      d="M5.3 11L12 4.6L18.7 11M7 9.5V13M17 9.5V13"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <path
-      className="ai-fab-icon-main"
-      d="M5.4 13.6h13.2c.4 0 .7.4.6.8-.7 3.3-3.6 5.7-7 5.7h-.4c-3.4 0-6.3-2.4-7-5.7-.1-.4.2-.8.6-.8z"
-      fill="currentColor"
-    />
-  </svg>
-);
-
-/** FAB 전용 말풍선 아이콘 (말풍선 + 말줄임 점 3개 + 반짝임) */
+/** 챗봇 아이덴티티 말풍선 아이콘 (말풍선 + 말줄임 점 3개 + 반짝임) */
 const ChatBubbleIcon: React.FC<{ size?: number }> = ({ size = 26 }) => (
   <svg
     width={size}
@@ -374,18 +348,13 @@ const RecipeChatWidget: React.FC = () => {
               ) : (
                 <>
                   <div
-                    className="flex items-center justify-center flex-shrink-0"
-                    style={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: 9999,
-                      background: 'linear-gradient(135deg, #2a2a2c 0%, #0d0d0e 60%, #000 100%)',
-                      boxShadow: '0 0 0 1px rgba(255,214,0,0.35)',
-                    }}
+                    className="ai-avatar-mark flex items-center justify-center flex-shrink-0"
+                    style={{ width: 36, height: 36 }}
                   >
-                    <CookMatchMarkIcon size={21} />
+                    <ChatBubbleIcon size={20} />
                   </div>
                   <div className="min-w-0">
+                    {/* 설명 문구는 본문 인트로와 중복되고 좁은 화면에서 말줄임되어 제거 */}
                     <p
                       className="truncate"
                       style={{
@@ -396,9 +365,6 @@ const RecipeChatWidget: React.FC = () => {
                       }}
                     >
                       쿡매치 AI
-                    </p>
-                    <p className="text-[11px] text-gray-400 truncate" style={{ textShadow: 'none' }}>
-                      오늘 뭐 먹을지, 냉장고 재료로 같이 찾아볼게요 🍳
                     </p>
                   </div>
                 </>
@@ -512,16 +478,10 @@ const RecipeChatWidget: React.FC = () => {
                 >
                   {msg.role === 'assistant' && (
                     <div
-                      className="flex items-center justify-center flex-shrink-0"
-                      style={{
-                        width: 26,
-                        height: 26,
-                        marginTop: 1,
-                        borderRadius: 9999,
-                        background: 'linear-gradient(135deg, #2a2a2c 0%, #0d0d0e 60%, #000 100%)',
-                      }}
+                      className="ai-avatar-mark flex items-center justify-center flex-shrink-0"
+                      style={{ width: 26, height: 26, marginTop: 1 }}
                     >
-                      <CookMatchMarkIcon size={16} />
+                      <ChatBubbleIcon size={15} />
                     </div>
                   )}
                   <div className={`max-w-[82%] ${msg.role === 'user' ? '' : 'w-full'}`}>
