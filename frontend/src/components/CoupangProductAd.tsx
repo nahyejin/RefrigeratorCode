@@ -9,6 +9,7 @@ import {
   coupangAdsCache,
   CoupangAdsMap,
 } from '../utils/recipeUtils';
+import { trackCoupangClick } from '../utils/trackCoupangClick';
 
 interface CoupangProductAdProps {
   /** 단일 재료명(하위호환) */
@@ -23,6 +24,10 @@ interface CoupangProductAdProps {
   className?: string;
   /** 쿠팡 파트너스 ID (없으면 환경변수 사용) */
   partnerId?: string;
+  /** 클릭 측정용 — 이 카드의 부족 재료 개수 */
+  lackingCount?: number;
+  /** 클릭 측정용 — 레시피 id */
+  recipeId?: number;
 }
 
 /**
@@ -40,7 +45,9 @@ const CoupangProductAd: React.FC<CoupangProductAdProps> = ({
   seedKey,
   style,
   className = '',
-  partnerId
+  partnerId,
+  lackingCount,
+  recipeId
 }) => {
   const adRef = useRef<HTMLDivElement>(null);
   const partnerIdFinal = partnerId || import.meta.env.VITE_COUPANG_PARTNER_ID || '';
@@ -240,6 +247,12 @@ const CoupangProductAd: React.FC<CoupangProductAdProps> = ({
         rel="noopener noreferrer"
         onClick={(e) => {
           e.stopPropagation();
+          trackCoupangClick({
+            source: 'card_cta',
+            ingredient: selectedAdInfo?.keyword || ingredientName,
+            lackingCount,
+            recipeId,
+          });
         }}
         // 예전엔 주황색 꽉 찬 버튼이라 카드에서 가장 눈에 띄었음 — 광고가 정작 주인공인
         // 레시피보다 강조되는 문제. 외곽선 스타일로 낮춰 존재감만 남김

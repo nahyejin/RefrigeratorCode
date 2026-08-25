@@ -2412,6 +2412,72 @@ def chat_with_recipes():
     return handle_chat(get_db)
 
 
+# =====================
+# 쿠팡 링크 클릭 측정
+# =====================
+
+def ensure_coupang_click_table():
+    """쿠팡 클릭 로그 테이블 생성 (없을 때만)"""
+    db = get_db()
+    cursor = db.cursor()
+    try:
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS coupang_clicks (
+                id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                source VARCHAR(20) NOT NULL,        -- 'pill' | 'card_cta'
+                ingredient VARCHAR(100) NULL,       -- 어떤 재료를 눌렀는지
+                lacking_count INT NULL,             -- 그 카드의 부족 재료 개수
+                recipe_id INT NULL,
+                page VARCHAR(120) NULL,             -- 어느 화면에서 눌렀는지
+                created_at DATETIME NOT NULL,
+                INDEX idx_created_at (created_at),
+                INDEX idx_source (source),
+                INDEX idx_ingredient (ingredient)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        """)
+        db.commit()
+    finally:
+        db.close()
+
+
+@app.route('/api/track/coupang-click', methods=['POST'])
+def track_coupang_click():
+    """쿠팡 링크 클릭을 기록한다.
+
+    광고 자리를 늘리기 전에 "어떤 경로가 실제로 눌리는지"를 알기 위한 것.
+    측정 실패가 사용자 동작을 막으면 안 되므로 어떤 경우에도 200 을 반환한다.
+    """
+    try:
+        data = request.get_json(silent=True) or {}
+        source = (data.get('source') or '')[:20]
+        if source not in ('pill', 'card_cta'):
+            return jsonify({'ok': True}), 200
+
+        ensure_coupang_click_table()
+        db = get_db()
+        cursor = db.cursor()
+        try:
+            cursor.execute(
+                """INSERT INTO coupang_clicks
+                   (source, ingredient, lacking_count, recipe_id, page, created_at)
+                   VALUES (%s, %s, %s, %s, %s, NOW())""",
+                (
+                    source,
+                    (data.get('ingredient') or '')[:100] or None,
+                    data.get('lackingCount') if isinstance(data.get('lackingCount'), int) else None,
+                    data.get('recipeId') if isinstance(data.get('recipeId'), int) else None,
+                    (data.get('page') or '')[:120] or None,
+                ),
+            )
+            db.commit()
+        finally:
+            db.close()
+        return jsonify({'ok': True}), 200
+    except Exception as e:
+        print(f"[track_coupang_click] {e}", flush=True)
+        return jsonify({'ok': True}), 200
+
+
 @app.route('/api/health')
 def health_check():
     return jsonify({

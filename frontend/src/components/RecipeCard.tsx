@@ -7,6 +7,7 @@ import IngredientPillGroup from './IngredientPillGroup';
 import { parseUsedIngredientsForPills } from '../utils/ingredientPillNoise';
 import CoupangProductAd from './CoupangProductAd';
 import { resolveCoupangUrl } from '../utils/coupangLink';
+import { trackCoupangClick } from '../utils/trackCoupangClick';
 import 완료하기버튼 from '../assets/완료하기버튼.png';
 import 공유하기버튼 from '../assets/공유하기버튼.png';
 import 기록하기버튼 from '../assets/기록하기버튼.png';
@@ -550,7 +551,14 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
             substituteTable={substituteTable}
             onMissingClick={(name) => {
               const url = resolveCoupangUrl(name);
-              if (url) window.open(url, '_blank', 'noopener,noreferrer');
+              if (!url) return;
+              trackCoupangClick({
+                source: 'pill',
+                ingredient: name,
+                lackingCount: lackingIngredients.length,
+                recipeId: recipe.id,
+              });
+              window.open(url, '_blank', 'noopener,noreferrer');
             }}
           />
         ) : (
@@ -577,6 +585,8 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
             <CoupangProductAd
               ingredientCandidates={lackingIngredients}
               seedKey={recipe.id}
+              lackingCount={lackingIngredients.length}
+              recipeId={recipe.id}
             />
           ) : null}
         </div>
@@ -585,6 +595,8 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
           <CoupangProductAd
             ingredientCandidates={lackingIngredients}
             seedKey={recipe.id}
+            lackingCount={lackingIngredients.length}
+            recipeId={recipe.id}
           />
         </div>
       ) : null}
