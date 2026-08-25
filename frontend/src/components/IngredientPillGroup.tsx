@@ -139,76 +139,81 @@ const IngredientPillGroup: React.FC<IngredientPillGroupProps> = ({ needIngredien
     };
   }, [pillInfo.pills]);
 
+  // 접힘 상태에서 보여줄 pill 개수. pills 는 [부족 → 대체가능 → 보유] 순이라
+  // 잘리더라도 "무엇이 부족한지"가 먼저 보인다.
+  const COLLAPSED_COUNT = 8;
+  const [expanded, setExpanded] = useState(false);
+  const overflowCount = pillInfo.pills.length - COLLAPSED_COUNT;
+  const visiblePills = expanded ? pillInfo.pills : pillInfo.pills.slice(0, COLLAPSED_COUNT);
+
+  const stateOf = (ing: string): PillState =>
+    mySet.has(normalize(ing))
+      ? 'owned'
+      : pillInfo.notMineSub.map(normalize).includes(normalize(ing))
+        ? 'substitutable'
+        : 'missing';
+
   return (
     <div style={style}>
-      {/* 재료 pill */}
-      <div style={{ position: 'relative' }}>
-        <div 
-          ref={scrollContainerRef}
-          className="custom-scrollbar pr-1" 
-          style={{ 
-            display: 'flex', 
-            flexWrap: 'nowrap', 
-            gap: 4, 
-            marginBottom: 4, 
-            overflowX: 'auto', 
-            maxWidth: '100%', 
-            scrollbarWidth: 'auto', 
-            alignItems: 'center', 
-            paddingBottom: 4 
-          }}
-        >
-          {pillInfo.pills.map((ing) => {
-            // 변환된 재료명을 원본 재료명으로 변환 (표시용)
-            const displayName = originalToConverted.get(ing) || ing;
-            
-            const state: PillState = mySet.has(normalize(ing))
-              ? 'owned'
-              : pillInfo.notMineSub.map(normalize).includes(normalize(ing))
-                ? 'substitutable'
-                : 'missing';
-            return (
-              <span key={ing} style={pillStyle(state)}>{displayName}</span>
-            );
-          })}
-        </div>
-        {/* Fade-out 그라데이션 + 화살표 텍스트 */}
-        {showScrollIndicator && (
-          <div
+      {/* 재료 pill.
+          예전엔 가로 스크롤(nowrap + overflowX)이라 이 앱의 핵심 정보인 재료 구성이
+          카드마다 잘려 있었고, 몇 개가 부족한지 보려면 카드마다 옆으로 밀어야 했음.
+          → 줄바꿈으로 한눈에 보이게 하고, 너무 많으면 "+N" 으로 접는다. */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 4, alignItems: 'center' }}>
+        {visiblePills.map((ing) => {
+          const displayName = originalToConverted.get(ing) || ing;
+          return (
+            <span key={ing} style={pillStyle(stateOf(ing))}>{displayName}</span>
+          );
+        })}
+        {!expanded && overflowCount > 0 && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setExpanded(true); }}
             style={{
-              position: 'absolute',
-              right: 0,
-              top: 0,
-              bottom: 4,
-              width: '50px',
-              background: 'linear-gradient(to right, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.6) 40%, rgba(255, 255, 255, 0.95) 100%)',
-              pointerEvents: 'none',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'flex-end',
-              paddingRight: '8px'
+              ...pillStyle('missing'),
+              background: 'transparent',
+              borderStyle: 'dashed',
+              color: 'var(--ink-500)',
+              cursor: 'pointer',
+              padding: '0 10px',
             }}
           >
-            <span
-              style={{
-                fontSize: '22px',
-                color: 'rgba(102, 102, 102, 0.85)',
-                fontWeight: 400,
-                lineHeight: 1,
-                pointerEvents: 'none'
-              }}
-            >
-              ›
-            </span>
-          </div>
+            +{overflowCount}
+          </button>
         )}
       </div>
-      {/* 대체 가능 태그 - 대체제가 있을 때만 표시 */}
+
+      {/* 대체 가능 — 부족한 재료를 무엇으로 바꿀 수 있는지가 이 앱의 핵심 기능이라
+          별도 줄로 분리하되 눈에 띄게 둔다. */}
       {pillInfo.substitutes.length > 0 && (
-        <div className="mt-1 custom-scrollbar pr-1" style={{ display: 'flex', flexWrap: 'nowrap', gap: 4, overflowX: 'auto', maxWidth: '100%', alignItems: 'center', paddingBottom: 4 }}>
-          <span className="bg-[#6A6A73] text-white rounded px-2 py-0.5 font-normal" style={{ fontSize: '13px', flex: '0 0 auto', border: 'none' }}>대체 가능 :</span>
-          {pillInfo.substitutes.map((sub, idx) => (
-            <span key={sub} className="ml-2 font-semibold text-[#3A3A42]" style={{ fontSize: '13px', flex: '0 0 auto' }}>{sub}</span>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginTop: 2 }}>
+          <span
+            style={{
+              fontSize: 12,
+              fontWeight: 600,
+              color: 'var(--ink-500)',
+              flex: '0 0 auto',
+            }}
+          >
+            대체 가능
+          </span>
+          {pillInfo.substitutes.map((sub) => (
+            <span
+              key={sub}
+              style={{
+                fontSize: 13,
+                fontWeight: 600,
+                color: 'var(--ink-900)',
+                background: 'var(--surface-sub)',
+                border: '1px solid var(--line-200)',
+                borderRadius: 9999,
+                padding: '2px 10px',
+                flex: '0 0 auto',
+              }}
+            >
+              {sub}
+            </span>
           ))}
         </div>
       )}

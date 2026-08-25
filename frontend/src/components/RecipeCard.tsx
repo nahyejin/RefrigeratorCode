@@ -393,12 +393,29 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
             {Utils.getRankDisplay(index + 1)}
           </div>
         )}
-        {/* 재료 매칭률 뱃지 */}
-        <div 
-          className="absolute bg-[#3A3A42] bg-opacity-80 text-white font-medium rounded px-2 py-0.5 flex items-center gap-1" 
-          style={showRank ? STYLES.matchBadgeWithRank : STYLES.matchBadge}
+        {/* 재료 상태 뱃지.
+            예전엔 "재료 매칭률 83%" 였는데, 냉털이 관점에서 실제로 필요한 정보는
+            비율이 아니라 "지금 만들 수 있나 / 몇 개를 더 사야 하나" 임.
+            부족 개수(대체 가능한 재료는 제외)를 앞세우고 매칭률은 보조로 둔다. */}
+        <div
+          className="absolute rounded flex items-center gap-1.5"
+          style={{
+            ...(showRank ? STYLES.matchBadgeWithRank : STYLES.matchBadge),
+            padding: '4px 10px',
+            background: lackingIngredients.length === 0 ? 'var(--brand)' : 'rgba(26,26,30,0.82)',
+            color: lackingIngredients.length === 0 ? 'var(--ink-900)' : '#FFFFFF',
+            fontWeight: 700,
+            fontSize: 13,
+          }}
         >
-          재료 매칭률 <span className="text-[#FFD600] font-bold ml-1" style={{ letterSpacing: '0.5px' }}>{match.rate}%</span>
+          {lackingIngredients.length === 0 ? (
+            <>바로 만들 수 있어요</>
+          ) : (
+            <>
+              <span>{lackingIngredients.length}개만 더</span>
+              <span style={{ opacity: 0.55, fontWeight: 500, fontSize: 12 }}>· {match.rate}%</span>
+            </>
+          )}
         </div>
         {/* 플랫폼 로고 */}
         <img
