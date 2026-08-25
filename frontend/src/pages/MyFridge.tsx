@@ -319,22 +319,43 @@ const IngredientPill: React.FC<IngredientPillProps> = ({ item, onRemove, onInfoC
           x
         </span>
       </TagPill>
-      <span
+      {/* 예전엔 `⚙︎` 문자에 padding 4px 뿐이라 터치 영역이 23px 남짓이었음.
+          유통기한을 자주 고치는 동선이라 제대로 된 버튼으로 키움 */}
+      <button
+        type="button"
+        aria-label={`${item.name} 유통기한 설정`}
+        title="유통기한·구매일 설정"
+        onClick={e => { e.stopPropagation(); onSettingsClick(item); }}
         style={{
-          fontSize: 15,
-          cursor: 'pointer',
-          lineHeight: 1,
-          padding: '4px',
+          width: 32,
+          height: 32,
+          marginLeft: 2,
+          padding: 0,
+          boxSizing: 'border-box',
           display: 'inline-flex',
           alignItems: 'center',
           justifyContent: 'center',
+          background: 'transparent',
+          border: 'none',
+          borderRadius: 9999,
+          cursor: 'pointer',
+          color: 'var(--ink-400)',
+          flexShrink: 0,
         }}
-        onClick={e => { e.stopPropagation(); onSettingsClick(item); }}
-        title="설정"
         {...(isFirstInFridge ? { 'data-guide-target': 'settings-icon' } : {})}
       >
-        ⚙︎
-      </span>
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          aria-hidden
+          style={{ width: 18, height: 18, flexShrink: 0, display: 'block' }}
+        >
+          <circle cx="12" cy="12" r="8.2" stroke="currentColor" strokeWidth="1.8" />
+          <path d="M12 7.6V12l2.8 1.7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
     </div>
   );
 };

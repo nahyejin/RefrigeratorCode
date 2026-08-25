@@ -25,7 +25,7 @@ interface IngredientDetailModalProps {
 const CONSTANTS = {
   BUTTON_WIDTH: 200,
   BUTTON_HEIGHT: 60,
-  ICON_SIZE: 64
+  ICON_SIZE: 52
 } as const;
 
 // 스타일 상수
@@ -62,13 +62,13 @@ const EXPIRATION_OPTIONS = [
   {
     key: true,
     label: '유통기한\n있어요',
-    className: 'bg-[#FF9800]',
+    className: 'expiry-yes',
     style: STYLES.expiryButton
   },
   {
     key: false,
     label: '유통기한\n없어요·몰라요',
-    className: 'bg-[#4FC3F7]',
+    className: 'expiry-no',
     style: STYLES.noExpiryButton
   }
 ] as const;
@@ -149,14 +149,36 @@ export default function IngredientDetailModal({
       <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center" style={{ zIndex: 'var(--z-modal)' }} onClick={onClose}>
           <div
             className="relative bg-white"
-            style={{ borderRadius: 20, padding: '24px 20px 20px', width: 'min(340px, calc(100vw - 40px))', boxShadow: '0 16px 48px rgba(0,0,0,0.22)' }}
+            style={{
+              borderRadius: 20,
+              // 3차에서 340px 로 줄였다가 내용(보관 3칸 + 유통기한 2칸)이 가로로 잘렸음.
+              // 이 팝업은 내용이 넓어 예외적으로 조금 더 넓게 둔다.
+              padding: '20px 16px 16px',
+              width: 'min(360px, calc(100vw - 24px))',
+              boxSizing: 'border-box',
+              boxShadow: '0 16px 48px rgba(0,0,0,0.22)',
+            }}
             onClick={e => e.stopPropagation()}
             style={{ fontFamily: 'Pretendard, sans-serif' }}
           >
             <CloseButton onClick={onClose} />
 
             {/* 타이틀 */}
-            <div className="text-center text-[16px] font-bold mb-4 text-[#3A3A42]">재료의 상세정보를 선택해 주세요</div>
+            {/* 제목이 우상단 닫기 버튼과 겹쳐 잘려 보였음 → 좌우 여백을 두고 공통 제목 규격(17px) 적용 */}
+            <div
+              className="mb-4"
+              style={{
+                textAlign: 'center',
+                fontSize: 17,
+                fontWeight: 700,
+                color: 'var(--ink-900)',
+                padding: '0 44px',
+                lineHeight: 1.35,
+                wordBreak: 'keep-all',
+              }}
+            >
+              재료의 상세정보를 선택해 주세요
+            </div>
             <hr className="mb-4" />
 
             {/* 보관 공간 */}
@@ -183,7 +205,7 @@ export default function IngredientDetailModal({
 
             {/* 소비 기한 */}
             <div className="mb-2 text-[15px] font-semibold text-[#3A3A42]">소비 기한</div>
-            <div className="flex justify-between gap-8 mt-2">
+            <div className="flex mt-2" style={{ gap: 10 }}>
               {EXPIRATION_OPTIONS.map(option => (
                 <button
                   key={String(option.key)}
@@ -195,7 +217,8 @@ export default function IngredientDetailModal({
                   `}
                   style={{
                     ...option.style,
-                    width: CONSTANTS.BUTTON_WIDTH,
+                    flex: 1,
+                    minWidth: 0,
                     height: CONSTANTS.BUTTON_HEIGHT
                   }}
                 >

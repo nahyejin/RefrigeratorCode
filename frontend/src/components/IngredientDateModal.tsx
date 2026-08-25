@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import CloseButton from './ui/CloseButton';
+import Button from './ui/Button';
 import backIcon from '../assets/뒤로가기_GREY.png';
 import CustomCalendar from './CustomCalendar';
 
@@ -191,10 +192,61 @@ export default function IngredientDateModal({ type, isOpen, onClose, onComplete,
           </button>
         </div>
         <CloseButton onClick={onClose} />
-        <div className="mb-4" style={{ textAlign: 'center', fontWeight: 700, fontSize: 17, color: 'var(--ink-900)' }}>일자를 선택하세요</div>
+        {/* 제목("일자를 선택하세요")과 바로 아래 질문("유통기한은 언제까지 인가요?")이
+            같은 말을 두 번 하고 있었음 → 제목은 무엇을 정하는지만 밝힌다 */}
+        <div className="mb-3" style={{ textAlign: 'center', fontWeight: 700, fontSize: 17, color: 'var(--ink-900)' }}>
+          {type === 'expiry' ? '유통기한' : '구매 시점'}
+        </div>
         <hr className="mb-4" />
         <div className="mb-2 text-[15px] font-semibold text-[#3A3A42]">
           {type === 'expiry' ? TEXTS.expiryQuestion : TEXTS.purchaseQuestion}
+        </div>
+
+        {/* 빠른 선택.
+            예전엔 `yyyy-mm-dd` 를 손으로 다 입력하거나 달력을 열어야만 해서,
+            "일주일 뒤" 같은 흔한 경우에도 손이 많이 갔음.
+            자주 쓰는 값은 한 번에 고를 수 있게 한다. */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
+          {(type === 'expiry'
+            ? [
+                { label: '3일 뒤', days: 3 },
+                { label: '1주일 뒤', days: 7 },
+                { label: '2주일 뒤', days: 14 },
+                { label: '1개월 뒤', days: 30 },
+              ]
+            : [
+                { label: '오늘', days: 0 },
+                { label: '어제', days: -1 },
+                { label: '3일 전', days: -3 },
+                { label: '1주일 전', days: -7 },
+              ]
+          ).map(({ label, days }) => (
+            <button
+              key={label}
+              type="button"
+              onClick={() => {
+                const d = new Date();
+                d.setDate(d.getDate() + days);
+                const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                setInputValue(iso);
+                setSelectedDate(d);
+              }}
+              style={{
+                height: 36,
+                padding: '0 12px',
+                boxSizing: 'border-box',
+                fontSize: 13,
+                fontWeight: 500,
+                color: 'var(--ink-700)',
+                background: 'var(--surface)',
+                border: '1px solid var(--line-300)',
+                borderRadius: 9999,
+                cursor: 'pointer',
+              }}
+            >
+              {label}
+            </button>
+          ))}
         </div>
         <div className="relative mb-4">
           <input
@@ -249,22 +301,15 @@ export default function IngredientDateModal({ type, isOpen, onClose, onComplete,
             </>
           )}
         </div>
-        <div className="flex gap-2 mt-2">
-          <button
-            className="flex-1 h-10 bg-blue-500 text-white rounded-lg flex items-center justify-center"
-            onClick={handleSubmit}
-          >
+        {/* 확인 버튼이 파란색이라 앱의 노랑/검정 체계와 따로 놀았음 → 공통 Button 사용.
+            "잘 모르겠어요" 는 유통기한에도 필요한 선택지라 두 유형 모두에 제공 */}
+        <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+          <Button variant="outline" size="md" block onClick={handleUnknown}>
+            {TEXTS.unknown}
+          </Button>
+          <Button variant="secondary" size="md" block onClick={handleSubmit}>
             {TEXTS.confirm}
-          </button>
-          {type === 'purchase' && (
-            <button
-              className="w-[120px] h-10 bg-white border border-gray-300 rounded-[10px] text-[13px] text-gray-600 ml-2 flex items-center justify-center"
-              style={{ backgroundColor: '#ffffff', borderColor: '#D2D2D8' }}
-              onClick={handleUnknown}
-            >
-              {TEXTS.unknown}
-            </button>
-          )}
+          </Button>
         </div>
       </div>
     </div>

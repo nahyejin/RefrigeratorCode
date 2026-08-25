@@ -963,3 +963,17 @@ select:focus-visible,
   from { opacity: 0; transform: translate(-50%, -50%) scale(0.96); }
   to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 }
+
+/* 재료 상세 팝업의 유통기한 선택.
+   예전엔 주황(#FF9800)/하늘색(#4FC3F7)이라 앱의 노랑·검정 체계와 완전히 따로 놀았음.
+   "있어요"는 브랜드 컬러(주 선택), "없어요"는 중립 톤으로 위계를 준다. */
+.expiry-yes {
+  background: var(--brand) !important;
+  color: var(--ink-900) !important;
+  border: 1px solid var(--brand-strong) !important;
+}
+.expiry-no {
+  background: var(--surface-sub) !important;
+  color: var(--ink-700) !important;
+  border: 1px solid var(--line-300) !important;
+}
