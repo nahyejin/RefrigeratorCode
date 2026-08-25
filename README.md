@@ -2,48 +2,59 @@
 
 ## 📁 프로젝트 폴더 구조
 
+> 2026-08-26 기준 실제 구조. 예전 README 에는 존재하지 않는 루트 `package.json`,
+> `database/DATABASE_SCHEMA.md`, `data/*.csv` 등이 적혀 있어 실제와 맞게 고쳤습니다.
+
 ```
 RefrigeratorCode/
-├── 📁 frontend/                    # React + TypeScript 프론트엔드
+├── 📁 frontend/                    # React + TypeScript (Vite, 개발 포트 5178)
 │   ├── 📁 src/
-│   │   ├── 📁 components/          # 재사용 가능한 UI 컴포넌트
-│   │   ├── 📁 pages/              # 페이지 컴포넌트
-│   │   ├── 📁 routes/             # 라우팅 설정
-│   │   ├── 📁 utils/              # 유틸리티 함수
-│   │   ├── 📁 types/              # TypeScript 타입 정의
-│   │   └── 📁 assets/             # 이미지, 아이콘 등 정적 파일
-│   ├── 📄 env.development         # 개발 환경 변수
-│   ├── 📄 env.production          # 운영 환경 변수
-│   ├── 📄 package.json            # 프론트엔드 의존성 및 스크립트
-│   └── 📄 vite.config.ts          # Vite 설정
+│   │   ├── 📁 components/          # 공용 컴포넌트
+│   │   │   └── 📁 ui/              # ★ 디자인 시스템 (Button/Input/Chip/
+│   │   │                           #   Dialog/Sheet/CloseButton/PopupHeader)
+│   │   ├── 📁 pages/               # 화면
+│   │   ├── 📁 routes/              # 라우팅
+│   │   ├── 📁 utils/               # 유틸 (재료 매칭, 쿠팡 링크, 클릭 측정 등)
+│   │   ├── 📁 styles/              # ingredientPill.ts (재료 pill 색 단일 소스)
+│   │   ├── 📁 types/               # 타입 정의
+│   │   ├── 📁 assets/              # 이미지·아이콘
+│   │   └── 📄 index.css            # ★ 디자인 토큰(:root) + 전역 스타일
+│   ├── 📄 tailwind.config.js       # 토큰 미러링
+│   └── 📄 vite.config.ts
 │
-├── 📁 backend/                     # Flask 백엔드
-│   ├── 📄 app.py                  # 메인 Flask 애플리케이션
-│   ├── 📄 run_dev.py              # 개발 서버 실행 스크립트
-│   ├── 📄 run_prod.py             # 운영 서버 실행 스크립트
-│   ├── 📄 env.development         # 개발 환경 변수
-│   └── 📄 env.production          # 운영 환경 변수
+├── 📁 backend/                     # Flask
+│   ├── 📄 app.py                   # API 전체 (인증/레시피/추적)
+│   ├── 📄 chat_service.py          # 챗봇 (Gemini) 검색·응답
+│   └── 📄 .env                     # 실제 환경변수 (git 제외)
 │
-├── 📁 database/                    # 데이터베이스 관련
-│   ├── 📄 DATABASE_SCHEMA.md      # DB 스키마 설계 문서
-│   └── 📄 setup_database.sql      # DB 초기 설정 스크립트
-│
-├── 📁 crawler/                     # 데이터 수집 크롤러
-│   ├── 📄 naver_influencer_crawler.py
+├── 📁 crawler/                     # 데이터 수집
 │   ├── 📄 naver_blog_crawler.py
+│   ├── 📄 naver_influencer_crawler.py
 │   ├── 📄 youtube_crawler.py
-│   └── 📄 database.py
+│   ├── 📄 database.py
+│   └── 📁 common/
 │
-├── 📁 data/                        # 데이터 파일
-│   ├── 📄 ingredient_profile_dict_with_substitutes.csv
-│   └── 📄 ingredient_substitute_table.csv
+├── 📁 ingredient_management/       # 재료 추출 파이프라인
+│   ├── 📄 update_used_ingredients_batch.py   # 룰베이스 (신규분 임시 채움)
+│   └── 📄 llm_ingredient_extraction.py       # LLM (매일 배치, 최종값)
 │
-├── 📄 requirements.txt             # Python 의존성
-├── 📄 package.json                 # 루트 Node.js 의존성
-├── 📄 .gitignore                   # Git 제외 파일
-├── 📄 README.md                    # 프로젝트 설명서
-├── 📄 ENVIRONMENT_SETUP.md         # 환경 설정 가이드
-└── 📄 start_dev.bat/.sh           # 개발 환경 실행 스크립트
+├── 📁 database/                    # SQL 스크립트
+│   └── 📄 create_user_tables.sql
+│
+├── 📁 data/                        # 수집 원본·중간 산출물
+├── 📁 scripts/                     # 점검·디버그용 스크립트 모음
+├── 📁 logs/
+│
+├── 📄 run_all_crawlers.py                 # 크롤링 + 룰베이스 재료 추출
+├── 📄 run_crawlers_scheduled.bat          # 주간 크롤러 (월 07:00)
+├── 📄 run_llm_ingredients_daily.bat       # 매일 LLM 재료 추출 (매일 03:00)
+├── 📄 requirements.txt
+├── 📄 README.md
+├── 📄 PROJECT_OVERVIEW.md          # 아키텍처·기능·파이프라인
+├── 📄 DATABASE_SCHEMA.md           # 실제 DB 스키마
+├── 📄 DEVELOPMENT_GUIDE.md         # 개발 워크플로우 + UI 체계 규칙
+├── 📄 ENVIRONMENT_SETUP.md
+└── 📄 CHANGELOG.md                 # 변경 이력
 ```
 
 ## 🔧 환경 분리 설정
@@ -98,7 +109,7 @@ DB_USER=root
 DB_PASSWORD=sk784512!!
 DB_NAME=refrigerator
 DB_PORT=3306
-CORS_ORIGIN=http://localhost:5173,http://localhost:5177
+CORS_ORIGIN=http://localhost:5173,http://localhost:5177,http://localhost:5178
 ```
 
 #### 운영 환경 (env.production)

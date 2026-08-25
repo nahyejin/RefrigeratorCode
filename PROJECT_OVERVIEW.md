@@ -150,14 +150,22 @@ RefrigeratorCode/
 
 ### 주요 테이블
 
+> 전체 스키마는 `DATABASE_SCHEMA.md` 참고 (실제 DB에서 뽑아 정리).
+
 #### 1. `recipes` - 레시피 데이터
 - **수집 소스**: 네이버 블로그, 네이버 인플루언서, YouTube
 - **주요 필드**:
   - `title`, `content`, `link`, `thumbnail`
-  - `used_ingredients`: 레시피에 필요한 재료 목록
+  - `used_ingredients`: 레시피에 필요한 재료 목록 — **화면의 재료 pill 이 읽는 유일한 열**
+  - `used_ingredients_block`, `block_reason`: 본문에서 잘라낸 재료 블록과 실패 사유
+  - `llm_ingredients_done`: LLM 재료 추출 완료 깃발(0/1)
   - `platform`: 수집 출처
   - `likes`, `comments`, `hits`: 인기도 지표
   - `post_time`: 게시일
+
+⚠️ **재료 열은 하나뿐입니다.** 룰베이스와 LLM 이 같은 `used_ingredients` 에 쓰므로,
+두 작업 모두 `llm_ingredients_done = 0` 인 행만 대상으로 삼아야 합니다.
+(이 조건이 빠지면 룰베이스가 LLM 결과를 덮어씁니다 — 실제로 있었던 버그)
 
 #### 2. `users` - 사용자 정보
 - **인증 방식**: 소셜 로그인, 일반 로그인
@@ -167,11 +175,16 @@ RefrigeratorCode/
 - **보관 공간**: frozen(냉동), fridge(냉장), room(실온)
 - **주요 필드**: `user_id`, `name`, `storage_box`, `expiry_date`, `purchase_date`, `saved_at`
 
-#### 4. `user_recorded_recipes` - 기록한 레시피
-- 사용자가 기록한 레시피 목록
+#### 4. 레시피 액션 테이블 3종
+- `user_favorite_recipes` (즐겨찾기) / `user_recorded_recipes` (기록) /
+  `user_completed_recipes` (완료) — 구조 동일 (`user_id`, `recipe_id`, `created_at`)
 
-#### 5. `user_completed_recipes` - 완료한 레시피
-- 사용자가 완료한 레시피 목록
+#### 5. `coupang_clicks` - 쿠팡 링크 클릭 로그
+- 광고 배치를 감이 아니라 숫자로 판단하기 위한 측정 테이블
+- 기록 항목: 경로(`pill` / `card_cta`), 재료명, 부족 재료 개수, 레시피 id, 화면 경로
+
+#### 6. YouTube 캐시 (`youtube_channel_cache`, `youtube_channel_meta`)
+- YouTube Data API 쿼터(하루 10,000 units) 절약용 캐시
 
 ---
 
@@ -194,6 +207,33 @@ RefrigeratorCode/
 - **필터**: 영상 설명에 재료 정보가 있는 영상만 수집
 - **메타데이터**: 조회수, 좋아요, 댓글수 자동 업데이트
 - **API 최적화**: 채널 ID 캐싱, 할당량 모니터링
+
+### 재료 추출 파이프라인 (중요)
+
+재료 추출은 **두 단계**이고, 서로 다른 주기로 돕니다.
+
+| 단계 | 스크립트 | 주기 | 대상 |
+|---|---|---|---|
+| 룰베이스 | `ingredient_management/update_used_ingredients_batch.py` | 주간 크롤러에 포함 | `llm_ingredients_done = 0` |
+| LLM | `ingredient_management/llm_ingredient_extraction.py` | **매일 새벽 3시 (별도 작업)** | `llm_ingredients_done = 0` |
+
+- 룰베이스는 **신규 수집분의 임시 채움** 역할입니다. LLM 이 나중에 더 정확한 값으로 대체합니다.
+- LLM 은 무료 티어 한도(하루 500회 호출) 안에서 **12건씩 묶어** 하루 약 5,400건 처리합니다.
+  (챗봇이 같은 키를 쓰므로 450회만 사용)
+- 처리 결과에 따른 분기
+  - 정상 추출 → 값 덮어쓰기 + `done = 1`
+  - 일시적 오류 → `done` 을 건드리지 않음 → 다음 실행에서 자동 재시도
+  - LLM 결과만 비고 기존 값은 있음 → **기존 값 보존** + `done = 1`
+  - 룰베이스도 LLM 도 둘 다 비어 있음 → **행 삭제** (레시피가 아닌 홍보성 본문으로 판단)
+
+### 자동 실행 (Windows 작업 스케줄러)
+
+| 작업 이름 | 주기 | 내용 |
+|---|---|---|
+| `CookMatch-WeeklyCrawler` | 매주 월요일 07:00 | 크롤링 + 룰베이스 재료 추출 |
+| `CookMatch-DailyLLMIngredients` | 매일 03:00 | LLM 재료 추출 |
+
+절전 상태면 깨워서 실행되지만(`WakeToRun`), **PC 가 완전히 꺼져 있으면 실행되지 않습니다.**
 
 ### 크롤러 실행
 ```bash

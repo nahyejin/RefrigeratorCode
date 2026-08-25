@@ -94,18 +94,30 @@ npx cap open ios
 - iOS에서 제한적 (Safari에서만 설치 가능)
 - 네이티브 기능 접근 제한
 
-### PWA 완성하기
+### PWA 현재 상태 (2026-08-26 실측)
 
-1. **Service Worker 설정 확인**
-   - `frontend/package.json`에 이미 `workbox-cli`가 있음
-   - `workbox-config.js` 파일 생성 필요
+| 항목 | 상태 |
+|---|---|
+| `frontend/public/manifest.json` | ✅ 있음 (이름·아이콘·테마색 `#FFD600`·standalone 설정 완료) |
+| `frontend/public/sw.js` | ✅ 파일은 있음 |
+| **Service Worker 등록 코드** | ❌ **없음** — `main.tsx` / `index.html` 어디에도 `register` 호출이 없어 실제로는 동작하지 않음 |
+| 홈 화면 추가 안내 | ✅ 있음 (`HomeInstallPrompt` 컴포넌트, 7일 스누즈 지원) |
+| HTTPS | ✅ Vercel 배포로 충족 |
 
-2. **manifest.json 완성**
-   - 아이콘 추가 (다양한 크기)
-   - 스플래시 스크린 설정
+**즉, 지금은 "설치는 되지만 오프라인 캐싱은 안 되는" 상태입니다.**
+오프라인 지원까지 필요하면 서비스 워커 등록만 추가하면 됩니다.
 
-3. **HTTPS 필수**
-   - 프로덕션 환경에서만 작동
+```ts
+// frontend/src/main.tsx 에 추가
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  });
+}
+```
+
+다만 서비스 워커는 **한 번 등록되면 캐시가 남아 배포 후에도 옛 화면이 보이는 문제**를
+일으킬 수 있으므로, 캐시 무효화 전략을 정한 뒤 넣는 것을 권합니다.
 
 ## 대안 방법 2: React Native (비추천)
 

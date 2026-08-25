@@ -615,3 +615,45 @@
   - LLM 결과만 비고 기존 값은 있음 → **값 보존** + `done=1` (무료 한도 낭비 방지)
   - 룰베이스도 비어 있고 LLM 도 비어 있음(둘 다 "재료 없음"에 동의) → **행 삭제**
     (레시피가 아닌 홍보성 본문으로 판단)
+
+### 문서 전면 점검 및 갱신 (2026-08-26)
+실제 코드·DB 와 대조해 문서를 최신 상태로 맞춤. 발견한 불일치는 아래와 같음.
+
+**`DATABASE_SCHEMA.md` — 전면 교체 (실제와 거의 전부 달랐음)**
+- `users`: 문서엔 `username`/`password_hash`/`phone`/`is_active` → 실제는
+  `email`/`nickname`/`provider`/`provider_id`/`password`/`deleted_at` (소셜 로그인 구조)
+- `user_ingredients`: 문서엔 `ingredient_name`/`category`/`quantity`/`unit`/`notes` →
+  실제는 `name`/`storage_box`/`expiry_date`/`purchase_date`/`saved_at`
+- 문서엔 `action_type` 을 가진 `user_recipes` 단일 테이블 → 실제는 즐겨찾기/기록/완료
+  **3개 테이블로 분리**되어 있음
+- 문서에 아예 없던 테이블: `recipes`(핵심!), `coupang_clicks`,
+  `youtube_channel_cache`, `youtube_channel_meta`
+- → 운영 DB 에서 직접 뽑아 다시 작성하고, `used_ingredients` 와 `llm_ingredients_done`
+  의 관계·주의사항을 명시
+
+**`PROJECT_OVERVIEW.md`**
+- 재료 추출이 룰베이스/LLM **두 단계이고 주기가 다르다**는 점이 문서에 없었음 → 표로 추가
+- 자동 실행 작업 2종(주간 크롤러 / 매일 LLM) 명시
+- `llm_ingredients_done` 조건이 빠지면 룰베이스가 LLM 결과를 덮어쓴다는 경고 추가
+
+**`DEVELOPMENT_GUIDE.md`**
+- 개발 서버 포트가 **5173 으로 적혀 있었으나 실제는 5178** (`vite.config.ts`) → 수정
+- 이번에 만든 **UI 체계 전체를 문서화**: 토큰 위치, `components/ui/` 7종,
+  지켜야 할 규칙 6가지(팝업은 Dialog/Sheet, sticky 안에서 모달 렌더 금지,
+  로딩은 하나만, reduced-motion 에서 `*` 금지, 포커스 개별 지정 금지, SVG 크기 고정)
+
+**`README.md`**
+- 폴더 구조도가 실제와 달랐음: 존재하지 않는 루트 `package.json`,
+  `database/DATABASE_SCHEMA.md`, `data/*.csv` 등이 적혀 있고,
+  실제로 있는 `ingredient_management/`, `scripts/`, `logs/`,
+  `frontend/src/ui`·`styles/` 는 빠져 있었음 → 실제 구조로 교체
+- CORS 예시에 5178 추가
+
+**`MOBILE_APP_GUIDE.md`**
+- "PWA 를 완성해야 한다"고 적혀 있었으나 실제로는 `manifest.json`·`sw.js` 가 이미 있음.
+  다만 **서비스 워커 등록 코드가 어디에도 없어 실제로는 동작하지 않는 상태** →
+  현재 상태를 표로 정리하고, 등록 시 캐시 무효화 주의사항 함께 기재
+
+**`PERFORMANCE_OPTIMIZATION.md`**
+- "FULLTEXT 인덱스 추가 (필수)" 로 남아 있었으나 실측 결과 `ft_title_content`
+  (title, content) 가 **이미 적용돼 있음** → 적용 상태 표시 추가

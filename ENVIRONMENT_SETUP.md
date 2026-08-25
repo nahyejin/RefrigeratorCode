@@ -27,7 +27,7 @@ python run_dev.py
 cd frontend
 npm run dev
 ```
-- URL: http://localhost:5173 또는 http://localhost:5177
+- URL: http://localhost:5178  (vite.config.ts 에 5178 로 고정)
 - API 호출: http://localhost:5000
 - Hot Reload: 활성화
 
@@ -98,7 +98,7 @@ DB_USER=root
 DB_PASSWORD=sk784512!!
 DB_NAME=refrigerator
 DB_PORT=3306
-CORS_ORIGIN=http://localhost:5173,http://localhost:5177
+CORS_ORIGIN=http://localhost:5173,http://localhost:5177,http://localhost:5178
 ```
 
 #### 운영 환경 (env.production)
@@ -123,7 +123,7 @@ CORS_ORIGIN=https://your-production-frontend-url.com
 
 | 구분 | 개발 환경 | 운영 환경 |
 |------|-----------|-----------|
-| **프론트엔드 URL** | http://localhost:5173/5177 | 실제 도메인 |
+| **프론트엔드 URL** | http://localhost:5178 | 실제 도메인 |
 | **백엔드 URL** | http://localhost:5000 | 실제 백엔드 URL |
 | **DB** | 로컬 MySQL | 운영 DB |
 | **Debug 모드** | 활성화 | 비활성화 |
