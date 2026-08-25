@@ -748,10 +748,7 @@ div[style*="overflow"]:not([style*="layout: horizontal"]):not([style*="overflow-
 .ai-chat-input::placeholder {
   color: #A5A5AC;
 }
-.ai-chat-input:focus {
-  border-color: #FFD600;
-  box-shadow: 0 0 0 3px rgba(255, 214, 0, 0.25);
-}
+/* (챗 입력창 전용 노란 포커스 규칙 제거 — 아래 공통 input:focus 규칙을 따른다) */
 .ai-chat-input:disabled {
   background: #F5F5F7;
   color: #9A9AA2;
