@@ -15,11 +15,18 @@ import type { CSSProperties } from 'react';
  */
 export type PillState = 'owned' | 'substitutable' | 'missing';
 
-export const PILL_COLORS: Record<PillState, { bg: string; fg: string; border: string; label: string }> = {
+export const PILL_COLORS: Record<
+  PillState,
+  { bg: string; fg: string; border: string; label: string; borderStyle?: 'solid' | 'dashed' }
+> = {
+  // 부족 재료는 "채워야 할 빈 칸"으로 읽히도록 흰 배경 + 점선 테두리.
+  // 예전엔 가장 옅은 회색 채움이라 배경으로 물러나 있었는데,
+  // 냉털이 판단에서 실제로 행동을 부르는 건 부족한 쪽이라 눈에 띄어야 한다.
   missing: {
-    bg: '#F0F0F3',
-    fg: '#8A8A93',
-    border: '#E1E1E6',
+    bg: '#FFFFFF',
+    fg: '#5A5A63',
+    border: '#A9A9B3',
+    borderStyle: 'dashed',
     label: '부족 재료',
   },
   substitutable: {
@@ -45,7 +52,7 @@ export function pillStyle(state: PillState): CSSProperties {
   return {
     background: c.bg,
     color: c.fg,
-    border: `1px solid ${c.border}`,
+    border: `1px ${c.borderStyle || 'solid'} ${c.border}`,
     borderRadius: 9999,
     padding: '0 11px',
     fontSize: 13,
@@ -67,7 +74,7 @@ export function legendSwatchStyle(state: PillState): CSSProperties {
     height: 13,
     borderRadius: 9999,
     background: c.bg,
-    border: `1px solid ${c.border}`,
+    border: `1px ${c.borderStyle || 'solid'} ${c.border}`,
     display: 'inline-block',
     flexShrink: 0,
   };
