@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import CloseButton from './ui/CloseButton';
 import { useLocation } from 'react-router-dom';
 import {
   dismissHomeInstallPromptForSession,
@@ -163,20 +164,7 @@ const HomeInstallPrompt: React.FC = () => {
           animation: 'home-install-slide-up 260ms cubic-bezier(0.2, 0.8, 0.2, 1)',
         }}
       >
-        <button
-          aria-label="홈 화면 추가 안내 닫기"
-          onClick={closeForSession}
-          className="absolute top-3 right-3 w-6 h-6 text-xl cursor-pointer select-none bg-transparent border-none outline-none"
-          style={{
-            lineHeight: 1,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'rgba(255,255,255,0.72)',
-          }}
-        >
-          ×
-        </button>
+        <CloseButton onClick={closeForSession} style={{ top: 10, right: 10 }} />
 
         <div style={{ paddingRight: 36 }}>
           <div

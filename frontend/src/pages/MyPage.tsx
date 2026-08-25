@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import CloseButton from '../components/ui/CloseButton';
 import CoupangDisclaimer from '../components/CoupangDisclaimer';
 import Toast from '../components/Toast';
 import IngredientLegend from '../components/IngredientLegend';
@@ -1332,15 +1333,7 @@ const MyPage: React.FC = () => {
             onClick={e => e.stopPropagation()}
           >
             <div className="sticky top-0 left-0 right-0 z-20 bg-white border-b border-gray-200 rounded-t-xl w-full" style={{minHeight: 56, paddingTop: 18, paddingBottom: 8}}>
-              <span 
-                className="absolute top-3 right-3 w-6 h-6 text-gray-400 text-xl cursor-pointer select-none" 
-                onClick={handleCancel} 
-                role="button" 
-                aria-label="닫기" 
-                style={{zIndex: 20}}
-              >
-                ×
-              </span>
+              <CloseButton onClick={handleCancel} style={{ top: 8, right: 8, zIndex: 20 }} />
               <div className="text-center font-bold text-[18px]">내 정보 수정</div>
             </div>
             <div className="p-6 pt-2">

@@ -499,3 +499,17 @@
   - 필터 시트 하단을 `취소` + `적용` 두 버튼으로 변경 (기존엔 적용만 있어 되돌릴 방법이 없었음)
 - X 아이콘이 빈 원으로만 보이던 문제: flex 컨테이너 안에서 SVG 가 0px 로 찌그러지는 현상 →
   크기를 인라인으로 고정 (예전 FAB 아이콘과 동일한 원인)
+
+### 피드백 반영 7차: 남아 있던 닫기 버튼 전부 교체
+- 6차에서 `Dialog`/`Sheet`/챗 패널만 공통 버튼으로 바꿨고, **자체 마크업을 쓰는 팝업들은
+  그대로 텍스트 `×` 였음** → 팝업마다 X 모양이 다른 상태가 계속됨
+- 아래 8곳을 모두 `ui/CloseButton` 으로 교체
+  - `RecipeSortBar` 매칭도 설정 / 임박 재료 설정 (텍스트 `×` 였음)
+  - `CustomCalendar` 기간선택 (직접 만든 18px SVG — 원만 보이고 X 가 안 보였음)
+  - `IngredientDetailModal`, `IngredientDateModal`
+  - `MyPage` 내 정보 수정 (텍스트 `×`)
+  - `RecordedRecipeListPage`, `CompletedRecipeListPage` 의 매칭률·임박재료 모달 (각 2곳)
+  - `HomeInstallPrompt` 홈 화면 추가 안내
+- 교체하지 않은 `×`: `FilterModal` 의 재료 칩 제거, `IngredientInput` 의 재료 삭제 —
+  팝업 닫기가 아니라 항목 삭제 용도라 성격이 다름
+- 검증: 매칭도 팝업에서 버튼 40×40 / SVG 22×22 / 배경 `#F5F5F7` 로 다른 팝업과 동일하게 렌더됨

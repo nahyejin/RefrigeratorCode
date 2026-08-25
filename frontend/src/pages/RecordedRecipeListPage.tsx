@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import CloseButton from '../components/ui/CloseButton';
 import CoupangDisclaimer from '../components/CoupangDisclaimer';
 import IngredientLegend from '../components/IngredientLegend';
 import { useNavigate } from 'react-router-dom';
@@ -595,12 +596,7 @@ const RecordedRecipeListPage: React.FC = () => {
       {matchRateModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center" style={{ zIndex: 'var(--z-modal)' }}>
           <div className="bg-white rounded-xl shadow-lg p-6 w-[340px] max-w-[95vw] relative">
-            <span 
-              className="absolute top-3 right-3 w-6 h-6 text-gray-400 text-xl cursor-pointer" 
-              onClick={() => setMatchRateModalOpen(false)}
-            >
-              ×
-            </span>
+            <CloseButton onClick={() => setMatchRateModalOpen(false)} />
             <div className="text-center font-bold text-[15px] mb-4">
               재료 매칭도 설정 (임시 모달)
             </div>
@@ -611,12 +607,7 @@ const RecordedRecipeListPage: React.FC = () => {
       {expiryModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center" style={{ zIndex: 'var(--z-modal)' }}>
           <div className="bg-white rounded-xl shadow-lg p-6 w-[340px] max-w-[95vw] relative">
-            <span 
-              className="absolute top-3 right-3 w-6 h-6 text-gray-400 text-xl cursor-pointer" 
-              onClick={() => setExpiryModalOpen(false)}
-            >
-              ×
-            </span>
+            <CloseButton onClick={() => setExpiryModalOpen(false)} />
             <div className="text-center font-bold text-[15px] mb-4">
               임박 재료 설정 (임시 모달)
             </div>

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import CloseButton from './ui/CloseButton';
 import Portal from './Portal';
 import frozenIcon from '../assets/Frozen_storage.png';
 import refrigeratedIcon from '../assets/Refrigerated_storage.png';
@@ -152,15 +153,7 @@ export default function IngredientDetailModal({
             onClick={e => e.stopPropagation()}
             style={{ fontFamily: 'Pretendard, sans-serif' }}
           >
-            {/* X 버튼 */}
-            <button
-              onClick={onClose}
-              className="absolute top-2 right-2 p-1 text-gray-400 hover:text-gray-700 bg-transparent border-none outline-none text-base"
-              style={STYLES.closeButton}
-              aria-label="닫기"
-            >
-              ×
-            </button>
+            <CloseButton onClick={onClose} />
 
             {/* 타이틀 */}
             <div className="text-center text-[16px] font-bold mb-4 text-[#3A3A42]">재료의 상세정보를 선택해 주세요</div>

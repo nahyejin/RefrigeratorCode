@@ -28,6 +28,7 @@
  */
 
 import React, { useEffect, useLayoutEffect, useState, useMemo, useCallback, useRef } from 'react';
+import CloseButton from './ui/CloseButton';
 import Portal from './Portal';
 import RecipeCard from './RecipeCard';
 import FilterModal from './FilterModal';
@@ -721,13 +722,13 @@ const RecipeSortBar = ({
         <Portal>
         <div style={STYLES.modal}>
           <div style={STYLES.modalContent}>
-            <span style={STYLES.closeButton} onClick={() => {
+            <CloseButton onClick={() => {
               // 모달 닫을 때 임시 상태를 원래 값으로 되돌림
               setTempMatchRange(matchRange);
               setTempMatchRangeMin(null);
               setTempMatchRangeMax(null);
               setMatchRateModalOpen(false);
-            }} aria-label="매칭률 모달 닫기" role="button">×</span>
+            }} />
             <div style={STYLES.modalTitle}>재료 매칭도 설정</div>
             <div style={STYLES.inputGroup}>
               <input
@@ -849,10 +850,10 @@ const RecipeSortBar = ({
         <Portal>
         <div style={STYLES.modal}>
           <div style={STYLES.modalContent}>
-            <span style={STYLES.closeButton} onClick={() => {
+            <CloseButton onClick={() => {
               setSelectedExpiryIngredients(appliedExpiryIngredients);
               setExpiryModalOpen(false);
-            }} aria-label="임박 재료 모달 닫기" role="button">×</span>
+            }} />
             <div style={STYLES.modalTitle}>임박 재료 설정</div>
             <div style={STYLES.modeGroup}>
               <button

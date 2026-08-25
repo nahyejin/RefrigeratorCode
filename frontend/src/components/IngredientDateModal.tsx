@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import CloseButton from './ui/CloseButton';
 import backIcon from '../assets/뒤로가기_GREY.png';
 import CustomCalendar from './CustomCalendar';
 
@@ -189,7 +190,7 @@ export default function IngredientDateModal({ type, isOpen, onClose, onComplete,
             <img src={backIcon} alt="뒤로가기" style={STYLES.backIcon} />
           </button>
         </div>
-        <span className="absolute top-3 right-3 w-6 h-6 text-gray-400 text-xl cursor-pointer select-none" onClick={onClose} role="button" aria-label="닫기">×</span>
+        <CloseButton onClick={onClose} />
         <div className="text-center font-bold text-[15px] mb-4">일자를 선택하세요</div>
         <hr className="mb-4" />
         <div className="mb-2 text-[15px] font-semibold text-[#3A3A42]">
