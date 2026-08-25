@@ -577,6 +577,8 @@ const FilterModal: React.FC<FilterModalProps> = ({
     <Sheet
       open
       onClose={handleClose}
+      // 선택 항목이 많은 화면이라 기본부터 넉넉하게 열고, 위로 끌면 더 펼쳐진다
+      maxHeight="82dvh"
       title="필터를 설정해 주세요"
       footer={
         // 하단에 나갈 수 있는 버튼(취소)을 항상 함께 둔다
@@ -737,7 +739,10 @@ const FilterModal: React.FC<FilterModalProps> = ({
               className="custom-scrollbar"
               style={{
                 ...STYLES.scrollContainer,
-                maxHeight: isMobile ? '100px' : '150px', // 테마 선택란 높이
+                // 예전엔 모바일에서 100px 로 고정돼 있어 테마 선택지가 두 줄도 안 보였고,
+                // 시트 안에서 또 스크롤해야 하는 이중 스크롤 구조였음.
+                // 시트 자체가 스크롤되고 위로 끌어 펼칠 수도 있으므로 넉넉하게 둔다.
+                maxHeight: isMobile ? '46dvh' : '150px',
                 paddingTop: 8,
                 paddingBottom: 10,
                 marginBottom: 2,

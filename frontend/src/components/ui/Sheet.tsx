@@ -37,22 +37,32 @@ const Sheet: React.FC<SheetProps> = ({
   // 아래로 밀어서 닫기.
   // 아래에서 올라온 시트는 아래로 미는 게 자연스러운 닫기 동작인데 지원되지 않았음.
   const [dragY, setDragY] = React.useState(0);
+  // 시트를 위로 끌면 더 넓게 펼쳐진다.
+  // 내용이 많은 필터 같은 화면에서 기본 높이로는 선택지가 잘 안 보인다는 피드백 반영.
+  const [expanded, setExpanded] = React.useState(false);
   const dragStartY = React.useRef<number | null>(null);
   const DISMISS_THRESHOLD = 90;
+  const EXPAND_THRESHOLD = 50;
 
   const onDragStart = (clientY: number) => {
     dragStartY.current = clientY;
   };
   const onDragMove = (clientY: number) => {
     if (dragStartY.current === null) return;
-    // 위로는 끌리지 않게 (아래로만)
-    setDragY(Math.max(0, clientY - dragStartY.current));
+    const delta = clientY - dragStartY.current;
+    // 이미 최대로 펼쳐졌으면 위로는 더 끌리지 않게 (고무줄처럼 조금만)
+    setDragY(expanded && delta < 0 ? delta / 4 : delta);
   };
   const onDragEnd = () => {
     if (dragStartY.current === null) return;
     dragStartY.current = null;
-    if (dragY > DISMISS_THRESHOLD) {
-      onClose();
+    if (dragY <= -EXPAND_THRESHOLD && !expanded) {
+      // 위로 끌었으면 펼치기
+      setExpanded(true);
+    } else if (dragY > DISMISS_THRESHOLD) {
+      // 펼친 상태에서 내리면 기본 높이로, 기본 높이에서 내리면 닫기
+      if (expanded) setExpanded(false);
+      else onClose();
     }
     setDragY(0);
   };
@@ -60,6 +70,7 @@ const Sheet: React.FC<SheetProps> = ({
   React.useEffect(() => {
     if (!open) return;
     setDragY(0);
+    setExpanded(false);
     dragStartY.current = null;
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -97,7 +108,8 @@ const Sheet: React.FC<SheetProps> = ({
           bottom: 0,
           margin: '0 auto',
           maxWidth: 460,
-          maxHeight,
+          maxHeight: expanded ? '95dvh' : maxHeight,
+          height: expanded ? '95dvh' : undefined,
           display: 'flex',
           flexDirection: 'column',
           background: 'var(--surface)',
@@ -109,13 +121,32 @@ const Sheet: React.FC<SheetProps> = ({
           paddingBottom: 'env(safe-area-inset-bottom)',
           transform: dragY ? `translateY(${dragY}px)` : undefined,
           // 손을 떼면 원위치로 스르르 돌아가고, 끄는 동안엔 손가락을 그대로 따라오게
-          transition: dragStartY.current === null ? 'transform 0.22s cubic-bezier(0.16, 1, 0.3, 1)' : 'none',
+          transition:
+            dragStartY.current === null
+              ? 'transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), height 0.24s cubic-bezier(0.16, 1, 0.3, 1), max-height 0.24s cubic-bezier(0.16, 1, 0.3, 1)'
+              : 'none',
         }}
       >
-        {/* 손잡이 */}
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0 2px', flexShrink: 0 }}>
+        {/* 손잡이 — 끌어서 펼치거나 내릴 수 있고, 탭으로도 펼침/접힘 전환 */}
+        <button
+          type="button"
+          aria-label={expanded ? '시트 접기' : '시트 펼치기'}
+          onClick={() => setExpanded((v) => !v)}
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            width: '100%',
+            height: 26,
+            padding: 0,
+            border: 'none',
+            background: 'transparent',
+            cursor: 'pointer',
+            flexShrink: 0,
+          }}
+        >
           <span style={{ width: 40, height: 4, borderRadius: 9999, background: 'var(--line-300)' }} />
-        </div>
+        </button>
         {/* 상단 바는 팝업 공통 규격(높이 52 / 제목 17px)을 따른다 */}
         <PopupHeader title={title ?? ''} onClose={onClose} />
 
