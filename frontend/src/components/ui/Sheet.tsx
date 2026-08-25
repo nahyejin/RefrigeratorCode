@@ -1,7 +1,7 @@
 import * as React from 'react';
 import Portal from '../Portal';
 import Button from './Button';
-import CloseButton from './CloseButton';
+import PopupHeader from './PopupHeader';
 
 interface SheetProps {
   open: boolean;
@@ -34,9 +34,33 @@ const Sheet: React.FC<SheetProps> = ({
   maxHeight = '88dvh',
   dismissLabel = '닫기',
 }) => {
+  // 아래로 밀어서 닫기.
+  // 아래에서 올라온 시트는 아래로 미는 게 자연스러운 닫기 동작인데 지원되지 않았음.
+  const [dragY, setDragY] = React.useState(0);
+  const dragStartY = React.useRef<number | null>(null);
+  const DISMISS_THRESHOLD = 90;
+
+  const onDragStart = (clientY: number) => {
+    dragStartY.current = clientY;
+  };
+  const onDragMove = (clientY: number) => {
+    if (dragStartY.current === null) return;
+    // 위로는 끌리지 않게 (아래로만)
+    setDragY(Math.max(0, clientY - dragStartY.current));
+  };
+  const onDragEnd = () => {
+    if (dragStartY.current === null) return;
+    dragStartY.current = null;
+    if (dragY > DISMISS_THRESHOLD) {
+      onClose();
+    }
+    setDragY(0);
+  };
   // 시트가 열려 있는 동안 뒤 페이지 스크롤 잠금
   React.useEffect(() => {
     if (!open) return;
+    setDragY(0);
+    dragStartY.current = null;
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => {
@@ -53,7 +77,7 @@ const Sheet: React.FC<SheetProps> = ({
         style={{
           position: 'fixed',
           inset: 0,
-          background: 'rgba(0,0,0,0.4)',
+          background: `rgba(0,0,0,${Math.max(0.12, 0.4 - dragY / 500)})`,
           zIndex: 'var(--z-overlay)' as unknown as number,
           animation: 'sheet-fade 0.18s ease-out',
         }}
@@ -62,6 +86,10 @@ const Sheet: React.FC<SheetProps> = ({
         role="dialog"
         aria-modal="true"
         onClick={(e) => e.stopPropagation()}
+        onTouchStart={(e) => onDragStart(e.touches[0].clientY)}
+        onTouchMove={(e) => onDragMove(e.touches[0].clientY)}
+        onTouchEnd={onDragEnd}
+        onTouchCancel={onDragEnd}
         style={{
           position: 'fixed',
           left: 0,
@@ -77,29 +105,19 @@ const Sheet: React.FC<SheetProps> = ({
           borderTopRightRadius: 20,
           boxShadow: '0 -8px 32px rgba(0,0,0,0.18)',
           zIndex: 'var(--z-modal)' as unknown as number,
-          animation: 'sheet-up 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
+          animation: dragY ? undefined : 'sheet-up 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
           paddingBottom: 'env(safe-area-inset-bottom)',
+          transform: dragY ? `translateY(${dragY}px)` : undefined,
+          // 손을 떼면 원위치로 스르르 돌아가고, 끄는 동안엔 손가락을 그대로 따라오게
+          transition: dragStartY.current === null ? 'transform 0.22s cubic-bezier(0.16, 1, 0.3, 1)' : 'none',
         }}
       >
-        {/* 손잡이 + 우상단 닫기 (모든 팝업에 X 가 있어야 한다는 규칙) */}
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0 2px' }}>
+        {/* 손잡이 */}
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0 2px', flexShrink: 0 }}>
           <span style={{ width: 40, height: 4, borderRadius: 9999, background: 'var(--line-300)' }} />
         </div>
-        <CloseButton onClick={onClose} style={{ top: 8, right: 10 }} />
-
-        {title && (
-          <div
-            style={{
-              padding: '6px 20px 14px',
-              fontSize: 18,
-              fontWeight: 700,
-              color: 'var(--ink-900)',
-              textAlign: 'center',
-            }}
-          >
-            {title}
-          </div>
-        )}
+        {/* 상단 바는 팝업 공통 규격(높이 52 / 제목 17px)을 따른다 */}
+        <PopupHeader title={title ?? ''} onClose={onClose} />
 
         <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, padding: '0 20px 16px' }} className="ai-chat-scroll">
           {children}

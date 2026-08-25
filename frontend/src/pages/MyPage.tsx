@@ -1334,7 +1334,7 @@ const MyPage: React.FC = () => {
           >
             <div className="sticky top-0 left-0 right-0 z-20 bg-white border-b border-gray-200 rounded-t-xl w-full" style={{minHeight: 56, paddingTop: 18, paddingBottom: 8}}>
               <CloseButton onClick={handleCancel} style={{ top: 8, right: 8, zIndex: 20 }} />
-              <div className="text-center font-bold text-[18px]">내 정보 수정</div>
+              <div style={{ textAlign: 'center', fontWeight: 700, fontSize: 17, color: 'var(--ink-900)' }}>내 정보 수정</div>
             </div>
             <div className="p-6 pt-2">
               {/* 닉네임 + 중복체크 */}

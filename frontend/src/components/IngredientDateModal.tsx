@@ -191,7 +191,7 @@ export default function IngredientDateModal({ type, isOpen, onClose, onComplete,
           </button>
         </div>
         <CloseButton onClick={onClose} />
-        <div className="text-center font-bold text-[15px] mb-4">일자를 선택하세요</div>
+        <div className="mb-4" style={{ textAlign: 'center', fontWeight: 700, fontSize: 17, color: 'var(--ink-900)' }}>일자를 선택하세요</div>
         <hr className="mb-4" />
         <div className="mb-2 text-[15px] font-semibold text-[#3A3A42]">
           {type === 'expiry' ? TEXTS.expiryQuestion : TEXTS.purchaseQuestion}

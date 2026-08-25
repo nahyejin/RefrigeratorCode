@@ -339,7 +339,7 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
     <div className="bg-white rounded-xl p-4 w-[320px] custom-calendar-container relative" style={{ boxShadow: 'none' }} data-calendar-range-mode={mode === 'range' ? 'true' : 'false'}>
       {/* 상단 제목 영역 */}
       <div className="relative mb-4">
-        <div className="text-center font-bold text-[15px]">일자를 선택하세요</div>
+        <div style={{ textAlign: 'center', fontWeight: 700, fontSize: 17, color: 'var(--ink-900)' }}>일자를 선택하세요</div>
         {/* 상단 X 버튼 */}
         <CloseButton onClick={onClose} style={{ top: 4, right: 4 }} />
       </div>

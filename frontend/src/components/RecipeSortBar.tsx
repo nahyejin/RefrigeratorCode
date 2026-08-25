@@ -204,9 +204,11 @@ const STYLES = {
     background: 'none'
   },
   modalTitle: {
+    // 팝업 제목은 공통 규격 17px (다른 팝업과 크기가 달라 보이던 문제)
     textAlign: 'center' as const,
     fontWeight: 700,
-    fontSize: 15,
+    fontSize: 17,
+    color: 'var(--ink-900)',
     marginBottom: 16
   },
   inputGroup: {

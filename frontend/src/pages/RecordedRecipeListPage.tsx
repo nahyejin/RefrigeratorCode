@@ -597,7 +597,7 @@ const RecordedRecipeListPage: React.FC = () => {
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center" style={{ zIndex: 'var(--z-modal)' }}>
           <div className="bg-white rounded-xl shadow-lg p-6 w-[340px] max-w-[95vw] relative">
             <CloseButton onClick={() => setMatchRateModalOpen(false)} />
-            <div className="text-center font-bold text-[15px] mb-4">
+            <div className="mb-4" style={{ textAlign: 'center', fontWeight: 700, fontSize: 17, color: 'var(--ink-900)' }}>
               재료 매칭도 설정 (임시 모달)
             </div>
           </div>
@@ -608,7 +608,7 @@ const RecordedRecipeListPage: React.FC = () => {
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center" style={{ zIndex: 'var(--z-modal)' }}>
           <div className="bg-white rounded-xl shadow-lg p-6 w-[340px] max-w-[95vw] relative">
             <CloseButton onClick={() => setExpiryModalOpen(false)} />
-            <div className="text-center font-bold text-[15px] mb-4">
+            <div className="mb-4" style={{ textAlign: 'center', fontWeight: 700, fontSize: 17, color: 'var(--ink-900)' }}>
               임박 재료 설정 (임시 모달)
             </div>
           </div>
