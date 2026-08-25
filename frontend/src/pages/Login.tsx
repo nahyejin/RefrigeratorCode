@@ -127,7 +127,7 @@ const Login: React.FC = () => {
         <div style={{ flex: '0.3', minHeight: '80px' }}></div>
         
         {/* 유도 메시지 */}
-        <div className={`w-full ${MAX_CONTAINER_WIDTH} text-center text-[13px] text-gray-500 mb-6 mx-auto font-normal`}>
+        <div className={`w-full ${MAX_CONTAINER_WIDTH} text-center text-[15px] text-gray-500 mb-6 mx-auto font-normal`}>
           로그인하여 내냉장고를 더 똑똑하게 관리하세요
         </div>
         
@@ -156,7 +156,7 @@ const Login: React.FC = () => {
           
           {/* 에러 메시지 */}
           {error && (
-            <div className="w-full text-[12px] text-red-500 text-center mt-1">
+            <div className="w-full text-[13px] text-red-500 text-center mt-1">
               {error}
             </div>
           )}
@@ -164,7 +164,7 @@ const Login: React.FC = () => {
           <NeangteolButton 
             color="bg-[#3A3A42]" 
             textColor="text-white" 
-            className={`w-full ${BUTTON_HEIGHT} rounded-xl text-[15px] mt-1 px-4`}
+            className={`w-full ${BUTTON_HEIGHT} rounded-xl text-[16px] mt-1 px-4`}
             onClick={handleLogin}
             disabled={loading}
           >
@@ -174,7 +174,7 @@ const Login: React.FC = () => {
         
         {/* 체크박스 */}
         <div className={`flex flex-row items-center justify-center gap-2 w-full ${MAX_CONTAINER_WIDTH} mb-2 px-1 mx-auto`}>
-          <label className="flex items-center gap-1 text-[12px] text-[#3A3A42] font-normal cursor-pointer">
+          <label className="flex items-center gap-1 text-[13px] text-[#3A3A42] font-normal cursor-pointer">
             <input 
               type="checkbox" 
               className="w-4 h-4 accent-[#1A1A1E] cursor-pointer" 
@@ -186,10 +186,10 @@ const Login: React.FC = () => {
         </div>
         
         {/* 하단 링크 */}
-        <div className={`w-full ${MAX_CONTAINER_WIDTH} text-center text-[12px] text-[#3A3A42] mb-1 leading-tight mx-auto`}>
+        <div className={`w-full ${MAX_CONTAINER_WIDTH} text-center text-[13px] text-[#3A3A42] mb-1 leading-tight mx-auto`}>
           아직 회원이 아니신가요? <span className="underline font-bold cursor-pointer" onClick={() => navigate('/signup')}>3초 회원가입</span>
         </div>
-        <div className={`w-full ${MAX_CONTAINER_WIDTH} text-center text-[12px] text-[#3A3A42] mb-4 leading-tight mx-auto`}>
+        <div className={`w-full ${MAX_CONTAINER_WIDTH} text-center text-[13px] text-[#3A3A42] mb-4 leading-tight mx-auto`}>
           <span className="underline cursor-pointer" onClick={() => navigate('/reset-password')}>비밀번호 찾기</span>
         </div>
         
@@ -202,7 +202,7 @@ const Login: React.FC = () => {
             <div className="w-full border-t border-gray-300"></div>
           </div>
           <div className="relative flex justify-center">
-            <span className="bg-white px-3 text-gray-500 text-[11px]">간편 로그인</span>
+            <span className="bg-white px-3 text-gray-500 text-[13px]">간편 로그인</span>
         </div>
         </div>
         
@@ -216,7 +216,7 @@ const Login: React.FC = () => {
                 icon={<img src={button.icon} alt={button.alt} className="w-4 h-4" />}
               color={button.color}
               textColor={button.textColor}
-                className={`w-full ${SSO_BUTTON_HEIGHT} px-4 text-[13px]`}
+                className={`w-full ${SSO_BUTTON_HEIGHT} px-4 text-[15px]`}
                 border={button.border || false}
                 onClick={() => handleSocialLogin(provider)}
             >
@@ -232,7 +232,7 @@ const Login: React.FC = () => {
             border 
             color="bg-gray-100" 
             textColor="text-gray-400" 
-            className={`w-full ${SSO_BUTTON_HEIGHT} px-4 text-[13px]`} 
+            className={`w-full ${SSO_BUTTON_HEIGHT} px-4 text-[15px]`} 
             onClick={handleGuestLogin}
           >
             비회원으로 계속하기

@@ -101,10 +101,10 @@ const STYLES = {
     gap: 6
   },
   button: {
-    height: 28,
+    height: 40,
     border: '1px solid #D2D2D8',
     borderRadius: 6,
-    fontSize: 12,
+    fontSize: 13,
     padding: '0 8px',
     fontWeight: 600,
     background: '#FFFFFF',
@@ -123,10 +123,10 @@ const STYLES = {
     zIndex: 10
   },
   select: {
-    height: 28,
+    height: 40,
     border: '1px solid #D2D2D8',
     borderRadius: 6,
-    fontSize: 12,
+    fontSize: 13,
     padding: '0 22px 0 8px',
     fontWeight: 600,
     background: '#FFFFFF',
@@ -148,15 +148,15 @@ const STYLES = {
     top: '50%',
     transform: 'translateY(-50%)',
     pointerEvents: 'none' as const,
-    fontSize: 13,
+    fontSize: 15,
     color: '#9A9AA2',
     marginLeft: 'auto'
   },
   filterButton: {
-    height: 28,
+    height: 40,
     border: 'none',
     borderRadius: 999,
-    fontSize: 12,
+    fontSize: 13,
     padding: '0 14px',
     fontWeight: 700,
     background: '#1A1A1E',
@@ -197,7 +197,7 @@ const STYLES = {
     width: 24,
     height: 24,
     color: '#9A9AA2',
-    fontSize: 20,
+    fontSize: 22,
     cursor: 'pointer',
     border: 'none',
     background: 'none'
@@ -205,7 +205,7 @@ const STYLES = {
   modalTitle: {
     textAlign: 'center' as const,
     fontWeight: 700,
-    fontSize: 14,
+    fontSize: 15,
     marginBottom: 16
   },
   inputGroup: {
@@ -233,7 +233,7 @@ const STYLES = {
     flexWrap: 'wrap' as const,
     gap: 8,
     marginTop: 8,
-    fontSize: 12,
+    fontSize: 13,
     justifyContent: 'center' as const
   },
   radioLabel: {
@@ -257,7 +257,7 @@ const STYLES = {
   tabButton: {
     flex: 1,
     padding: '8px',
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: 500,
     border: '1px solid #D2D2D8',
     borderRadius: 8
@@ -281,7 +281,7 @@ const STYLES = {
     display: 'flex' as const,
     alignItems: 'center' as const,
     gap: 4,
-    fontSize: 13
+    fontSize: 15
   },
   ingredientPills: {
     display: 'flex' as const,
@@ -289,14 +289,14 @@ const STYLES = {
     gap: 8,
     marginBottom: 8,
     justifyContent: 'center' as const,
-    minHeight: 28
+    minHeight: 40
   },
   ingredientPill: {
     padding: '2px 8px',
     backgroundColor: '#FFF6C2',
     color: '#92400E',
     borderRadius: 999,
-    fontSize: 13,
+    fontSize: 15,
     fontWeight: 500,
     border: '1px solid #F59E0B',
     display: 'flex' as const,
@@ -307,7 +307,7 @@ const STYLES = {
   removeButton: {
     marginLeft: 4,
     color: '#B45309',
-    fontSize: 14,
+    fontSize: 15,
     lineHeight: 1,
     padding: 0,
     width: 18,
@@ -337,7 +337,7 @@ const STYLES = {
   ingredientName: {
     display: 'flex' as const,
     alignItems: 'center' as const,
-    fontSize: 14
+    fontSize: 15
   },
   checkmark: {
     marginRight: 8,
@@ -345,7 +345,7 @@ const STYLES = {
     fontWeight: 700
   },
   ingredientDate: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#9A9AA2',
     marginLeft: 'auto',
     minWidth: 60,
@@ -675,7 +675,7 @@ const RecipeSortBar = ({
                       width: '100%',
                       padding: '8px 12px',
                       textAlign: 'left',
-                      fontSize: '12px',
+                      fontSize: '13px',
                       fontWeight: 600,
                       color: sortType === option.value ? '#2563EB' : '#1A1A1E',
                       backgroundColor: sortType === option.value ? '#EFF6FF' : '#FFFFFF',
@@ -902,12 +902,12 @@ const RecipeSortBar = ({
                     ×
                   </button>
                 </span>
-              )) : <span style={{color: '#9A9AA2', fontSize: 13}}>재료를 선택해 주세요</span>}
+              )) : <span style={{color: '#9A9AA2', fontSize: 15}}>재료를 선택해 주세요</span>}
             </div>
             {/* 재료 리스트 스크롤 영역 */}
             <div style={STYLES.ingredientList}>
               {(expirySortType === 'expiry' ? expirySortedIngredientList : purchaseSortedIngredientList).length === 0 && (
-                <div style={{...STYLES.ingredientItem, color: '#9A9AA2', fontSize: 12, textAlign: 'center', padding: 24}}>해당 정보가 입력된 재료가 없습니다.</div>
+                <div style={{...STYLES.ingredientItem, color: '#9A9AA2', fontSize: 13, textAlign: 'center', padding: 24}}>해당 정보가 입력된 재료가 없습니다.</div>
               )}
               {(expirySortType === 'expiry' ? expirySortedIngredientList : purchaseSortedIngredientList).map(item => (
                 <div

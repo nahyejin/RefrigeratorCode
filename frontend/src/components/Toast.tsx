@@ -18,7 +18,7 @@ const BASE_STYLE: React.CSSProperties = {
   color: '#FFFFFF',
   padding: '12px 24px',
   borderRadius: 12,
-  fontSize: 15,
+  fontSize: 16,
   fontWeight: 400,
   zIndex: 'var(--z-toast)',
   maxWidth: 320,

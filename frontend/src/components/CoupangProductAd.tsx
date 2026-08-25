@@ -208,7 +208,7 @@ const CoupangProductAd: React.FC<CoupangProductAdProps> = ({
             borderRadius: '8px',
             textAlign: 'center',
             color: '#9A9AA2',
-            fontSize: '12px',
+            fontSize: '13px',
             margin: '12px 0'
           }}
           className={className}
@@ -251,7 +251,7 @@ const CoupangProductAd: React.FC<CoupangProductAdProps> = ({
           border: '1px solid #FFD3B0',
           textDecoration: 'none',
           borderRadius: '8px',
-          fontSize: '12px',
+          fontSize: '13px',
           fontWeight: 600,
           transition: 'background-color 0.15s, border-color 0.15s',
           width: '100%',
@@ -271,7 +271,7 @@ const CoupangProductAd: React.FC<CoupangProductAdProps> = ({
       </a>
       <div
         style={{
-          fontSize: '7px',
+          fontSize: '12px',
           color: '#9A9AA2',
           marginTop: '1px',
           marginBottom: 0,

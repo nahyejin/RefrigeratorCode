@@ -278,7 +278,7 @@ const Signup: React.FC = () => {
         <div style={{ flex: '0.2', minHeight: '60px' }}></div>
         
         {/* 제목 */}
-        <div className={`w-full ${MAX_CONTAINER_WIDTH} text-center text-[20px] font-bold text-[#1A1A1E] mb-6 mx-auto`}>
+        <div className={`w-full ${MAX_CONTAINER_WIDTH} text-center text-[22px] font-bold text-[#1A1A1E] mb-6 mx-auto`}>
           회원가입
         </div>
         
@@ -307,19 +307,19 @@ const Signup: React.FC = () => {
               <button
                 onClick={handleCheckEmail}
                 disabled={checkingEmail || !email || !email.includes('@')}
-                className="h-[44px] px-2 bg-[#FFD600] text-[#1A1A1E] rounded-lg text-[12px] font-semibold whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+                className="h-[44px] px-2 bg-[#FFD600] text-[#1A1A1E] rounded-lg text-[13px] font-semibold whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
                 style={{ minWidth: '65px' }}
               >
                 {checkingEmail ? '확인 중...' : '중복 체크'}
               </button>
             </div>
             {fieldErrors.email && (
-              <div className="text-[12px] text-red-600 mt-1 px-2">
+              <div className="text-[13px] text-red-600 mt-1 px-2">
                 {fieldErrors.email}
               </div>
             )}
             {emailCheckResult && !fieldErrors.email && (
-              <div className={`text-[12px] mt-1 px-2 py-1 rounded ${
+              <div className={`text-[13px] mt-1 px-2 py-1 rounded ${
                 emailCheckResult.available 
                   ? 'text-green-600 bg-green-50' 
                   : 'text-red-600 bg-red-50'
@@ -335,16 +335,16 @@ const Signup: React.FC = () => {
               <button
                 onClick={handleSendVerificationCode}
                 disabled={sendingCode}
-                className="w-full h-[36px] px-4 bg-blue-500 text-white rounded-lg text-[13px] font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full h-[36px] px-4 bg-blue-500 text-white rounded-lg text-[15px] font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {sendingCode ? '발송 중...' : '인증 코드 발송'}
               </button>
               {/* 개발 모드: 인증 코드 표시 */}
               {devCode && (
                 <div className="w-full mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                  <div className="text-[12px] text-yellow-800 font-semibold mb-1">개발 모드 - 인증 코드:</div>
-                  <div className="text-[20px] font-bold text-yellow-900 text-center tracking-wider">{devCode}</div>
-                  <div className="text-[11px] text-yellow-700 mt-1 text-center">(실제 이메일 발송을 원하면 SMTP 설정이 필요합니다)</div>
+                  <div className="text-[13px] text-yellow-800 font-semibold mb-1">개발 모드 - 인증 코드:</div>
+                  <div className="text-[22px] font-bold text-yellow-900 text-center tracking-wider">{devCode}</div>
+                  <div className="text-[13px] text-yellow-700 mt-1 text-center">(실제 이메일 발송을 원하면 SMTP 설정이 필요합니다)</div>
                 </div>
               )}
             </div>
@@ -369,7 +369,7 @@ const Signup: React.FC = () => {
                 <button
                   onClick={handleVerifyCode}
                   disabled={verifyingCode || verificationCode.length !== 6}
-                  className="h-[44px] px-2 bg-[#FFD600] text-[#1A1A1E] rounded-lg text-[12px] font-semibold whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+                  className="h-[44px] px-2 bg-[#FFD600] text-[#1A1A1E] rounded-lg text-[13px] font-semibold whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
                   style={{ minWidth: '65px' }}
                 >
                   {verifyingCode ? '확인 중...' : '인증하기'}
@@ -380,7 +380,7 @@ const Signup: React.FC = () => {
 
           {/* 인증 완료 표시 */}
           {emailVerified && (
-            <div className="w-full text-[12px] text-green-600 bg-green-50 px-2 py-1 rounded">
+            <div className="w-full text-[13px] text-green-600 bg-green-50 px-2 py-1 rounded">
               ✓ 이메일 인증이 완료되었습니다.
             </div>
           )}
@@ -399,7 +399,7 @@ const Signup: React.FC = () => {
               className={`w-full ${INPUT_HEIGHT} px-4 ${fieldErrors.nickname ? 'border-red-500' : ''}`} 
             />
             {fieldErrors.nickname && (
-              <div className="text-[12px] text-red-600 mt-1 px-2">
+              <div className="text-[13px] text-red-600 mt-1 px-2">
                 {fieldErrors.nickname}
               </div>
             )}
@@ -427,17 +427,17 @@ const Signup: React.FC = () => {
               className={`w-full ${INPUT_HEIGHT} px-4 ${fieldErrors.password ? 'border-red-500' : ''}`} 
             />
             {fieldErrors.password && (
-              <div className="text-[12px] text-red-600 mt-1 px-2">
+              <div className="text-[13px] text-red-600 mt-1 px-2">
                 {fieldErrors.password}
               </div>
             )}
             {passwordError && !fieldErrors.password && (
-              <div className="text-[12px] text-red-500 mt-1 px-2">
+              <div className="text-[13px] text-red-500 mt-1 px-2">
                 {passwordError}
               </div>
             )}
             {password.length >= 4 && !passwordError && !fieldErrors.password && (
-              <div className="text-[12px] text-green-600 mt-1 px-2">
+              <div className="text-[13px] text-green-600 mt-1 px-2">
                 ✓ 사용 가능한 비밀번호입니다.
               </div>
             )}
@@ -465,12 +465,12 @@ const Signup: React.FC = () => {
               className={`w-full ${INPUT_HEIGHT} px-4 ${fieldErrors.confirmPassword ? 'border-red-500' : ''}`} 
             />
             {fieldErrors.confirmPassword && (
-              <div className="text-[12px] text-red-600 mt-1 px-2">
+              <div className="text-[13px] text-red-600 mt-1 px-2">
                 {fieldErrors.confirmPassword}
               </div>
             )}
             {confirmPassword && password === confirmPassword && password.length >= 4 && !fieldErrors.confirmPassword && (
-              <div className="text-[12px] text-green-600 mt-1 px-2">
+              <div className="text-[13px] text-green-600 mt-1 px-2">
                 ✓ 비밀번호가 일치합니다.
               </div>
             )}
@@ -478,7 +478,7 @@ const Signup: React.FC = () => {
           
           {/* 에러 메시지 */}
           {error && (
-            <div className="w-full text-[12px] text-red-500 text-center mt-1">
+            <div className="w-full text-[13px] text-red-500 text-center mt-1">
               {error}
             </div>
           )}
@@ -486,7 +486,7 @@ const Signup: React.FC = () => {
           <NeangteolButton 
             color="bg-[#3A3A42]" 
             textColor="text-white" 
-            className={`w-full ${BUTTON_HEIGHT} rounded-xl text-[15px] mt-2 px-4`}
+            className={`w-full ${BUTTON_HEIGHT} rounded-xl text-[16px] mt-2 px-4`}
             onClick={handleSignup}
             disabled={loading}
           >
@@ -495,7 +495,7 @@ const Signup: React.FC = () => {
         </div>
         
         {/* 로그인 링크 */}
-        <div className={`w-full ${MAX_CONTAINER_WIDTH} text-center text-[12px] text-[#3A3A42] mb-4 leading-tight mx-auto`}>
+        <div className={`w-full ${MAX_CONTAINER_WIDTH} text-center text-[13px] text-[#3A3A42] mb-4 leading-tight mx-auto`}>
           이미 회원이신가요? <span className="underline font-bold cursor-pointer" onClick={() => navigate('/login')}>로그인</span>
         </div>
         

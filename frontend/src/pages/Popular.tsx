@@ -1645,7 +1645,7 @@ const Popular = () => {
                 height: 28,
                 border: period === opt.value ? '1px solid #6A6A73' : '1px solid #D2D2D8',
                 borderRadius: 6,
-                fontSize: 12,
+                fontSize: 13,
                 padding: '0 8px',
                 fontWeight: 600,
                 background: period === opt.value ? '#6A6A73' : '#FFFFFF',
@@ -1881,7 +1881,7 @@ const Popular = () => {
                     >
                       <span
                         style={{
-                          fontSize: '24px',
+                          fontSize: '26px',
                           color: '#6A6A73',
                           fontWeight: 400,
                           lineHeight: 1,
@@ -1928,7 +1928,7 @@ const Popular = () => {
                     >
                       <span
                         style={{
-                          fontSize: '24px',
+                          fontSize: '26px',
                           color: '#6A6A73',
                           fontWeight: 400,
                           lineHeight: 1,
@@ -2056,7 +2056,7 @@ const Popular = () => {
               <h2 className="text-[16px] font-bold text-[#1A1A1E] mb-2 text-left"><span className="mr-1">📈</span>인기 급상승 요리 TOP 10</h2>
               <div style={{ height: 2, width: '100%', background: '#E6E6EA', marginBottom: 16 }} />
               <div className="mt-4">
-                <table className="w-full max-w-[280px] mx-auto border-collapse text-[13px] font-sans" style={{background: '#FFFFFF'}}>
+                <table className="w-full max-w-[280px] mx-auto border-collapse text-[15px] font-sans" style={{background: '#FFFFFF'}}>
                   <thead>
                     <tr style={{borderTop: '1px solid #E6E6EA', borderBottom: '1px solid #E6E6EA', background: '#F5F5F7'}}>
                       <th className="py-1 px-2 text-center font-medium text-[#1A1A1E] whitespace-nowrap">순위</th>
@@ -2086,7 +2086,7 @@ const Popular = () => {
                                     display: 'inline-block',
                                     padding: '2px 6px',
                                     borderRadius: '4px',
-                                    fontSize: '11px',
+                                    fontSize: '13px',
                                     fontWeight: 600,
                                     backgroundColor: (dish.isNew || dish.rate >= 0) ? '#FFF5F5' : '#EFF6FF',
                                     color: (dish.isNew || dish.rate >= 0) ? '#E85A4F' : '#3A6EA5',
@@ -2113,7 +2113,7 @@ const Popular = () => {
               <h2 className="text-[16px] font-bold text-[#1A1A1E] mb-2 text-left"><span className="mr-1">📈</span>인기 급상승 테마 TOP 10</h2>
               <div style={{ height: 2, width: '100%', background: '#E6E6EA', marginBottom: 16 }} />
               <div className="mt-4">
-                <table className="w-full max-w-[280px] mx-auto border-collapse text-[13px] font-sans" style={{background: '#FFFFFF'}}>
+                <table className="w-full max-w-[280px] mx-auto border-collapse text-[15px] font-sans" style={{background: '#FFFFFF'}}>
                   <thead>
                     <tr style={{borderTop: '1px solid #E6E6EA', borderBottom: '1px solid #E6E6EA', background: '#F5F5F7'}}>
                       <th className="py-1 px-2 text-center font-medium text-[#1A1A1E] whitespace-nowrap">순위</th>
@@ -2139,7 +2139,7 @@ const Popular = () => {
                                     display: 'inline-block',
                                     padding: '2px 6px',
                                     borderRadius: '4px',
-                                    fontSize: '11px',
+                                    fontSize: '13px',
                                     fontWeight: 600,
                                     backgroundColor: (theme.isNew || theme.rate >= 0) ? '#FFF5F5' : '#EFF6FF',
                                     color: (theme.isNew || theme.rate >= 0) ? '#E85A4F' : '#3A6EA5',

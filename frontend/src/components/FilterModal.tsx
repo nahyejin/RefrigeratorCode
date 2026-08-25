@@ -260,7 +260,7 @@ const STYLES = {
     maxWidth: 320
   },
   chipButton: {
-    fontSize: 14,
+    fontSize: 15,
     lineHeight: 1,
     padding: 0,
     width: 18,
@@ -285,7 +285,7 @@ const STYLES = {
     color: '#FFFFFF',
     padding: '12px 24px',
     borderRadius: 12,
-    fontSize: 15,
+    fontSize: 16,
     zIndex: 'var(--z-toast)',
     maxWidth: 260,
     width: 'max-content',
@@ -590,7 +590,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
         <div className="p-3 mb-1" style={{ flex: 1, overflowY: 'auto', minHeight: 0, paddingTop: 8, paddingBottom: 8 }}>
           {/* 채널 선택: 맨 위로 이동 */}
           <div className="mb-2">
-            <div className="font-bold text-[11.2px] mb-1">■ 채널선택</div>
+            <div className="font-bold text-[13px] mb-1">■ 채널선택</div>
             <div className="flex gap-4">
               <label className="flex items-center gap-2">
                 <input
@@ -601,7 +601,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                   onChange={e => handleChannelChange('youtube', e.target.checked)}
                   className="w-4 h-4"
                 />
-                <span className="text-[11.2px]">유튜브</span>
+                <span className="text-[13px]">유튜브</span>
               </label>
               <label className="flex items-center gap-2">
                 <input
@@ -612,7 +612,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                   onChange={e => handleChannelChange('naver', e.target.checked)}
                   className="w-4 h-4"
                 />
-                <span className="text-[11.2px]">네이버</span>
+                <span className="text-[13px]">네이버</span>
               </label>
             </div>
           </div>
@@ -620,10 +620,10 @@ const FilterModal: React.FC<FilterModalProps> = ({
           <div>
             <div className="mt-1 border-t border-gray-200"></div>
             <div className="mt-1">
-              <div className="font-bold text-[11.2px] mb-1">■ 꼭 포함할 재료</div>
+              <div className="font-bold text-[13px] mb-1">■ 꼭 포함할 재료</div>
               <div className="relative mb-2">
                 <input
-                  className="w-full border rounded px-3 py-1.5 text-[10px]"
+                  className="w-full border rounded px-3 py-1.5 text-[12px]"
                   placeholder="포함할 재료 입력"
                   value={tempIncludeInput || ''}
                   onChange={e => setTempIncludeInput(e.target.value)}
@@ -636,7 +636,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                     {includeCandidates.map(item => (
                       <li
                         key={item}
-                        className="px-4 py-2 hover:bg-[#f4f0e6] cursor-pointer text-[12px]"
+                        className="px-4 py-2 hover:bg-[#f4f0e6] cursor-pointer text-[13px]"
                         onMouseDown={AutoCompleteUtils.createItemClickHandler(item, ingredientDict, setTempIncludeIngredients, tempIncludeIngredients, setTempIncludeInput, setIncludeFocus)}
                       >{item}</li>
                     ))}
@@ -658,10 +658,10 @@ const FilterModal: React.FC<FilterModalProps> = ({
                   </span>
                 ))}
               </div>
-              <div className="font-bold text-[11.2px] mt-2 mb-1">■ 꼭 제외할 재료</div>
+              <div className="font-bold text-[13px] mt-2 mb-1">■ 꼭 제외할 재료</div>
               <div className="relative">
                 <input
-                  className="w-full border rounded px-3 py-1.5 text-[10px]"
+                  className="w-full border rounded px-3 py-1.5 text-[12px]"
                   placeholder="제외할 재료 입력"
                   value={tempExcludeInput || ''}
                   onChange={e => setTempExcludeInput(e.target.value)}
@@ -674,7 +674,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                     {excludeCandidates.map(item => (
                       <li
                         key={item}
-                        className="px-4 py-2 hover:bg-[#f4f0e6] cursor-pointer text-[12px]"
+                        className="px-4 py-2 hover:bg-[#f4f0e6] cursor-pointer text-[13px]"
                         onMouseDown={AutoCompleteUtils.createItemClickHandler(item, ingredientDict, setTempExcludeIngredients, tempExcludeIngredients, setTempExcludeInput, setExcludeFocus)}
                       >{item}</li>
                     ))}
@@ -700,19 +700,19 @@ const FilterModal: React.FC<FilterModalProps> = ({
           </div>
           {/* 테마 선택: 채널 선택, 꼭 포함할 키워드 등과 같은 레벨로 이동 */}
           <div className="mt-2 border-t border-gray-200 pt-2">
-            <div className="font-bold text-[11.2px] mb-2">■ 테마 선택</div>
+            <div className="font-bold text-[13px] mb-2">■ 테마 선택</div>
             {/* 고정: 선택된 키워드 pill (sticky) */}
             <div
               className="flex flex-wrap gap-2 mb-2 justify-center"
               style={{ minHeight: 24 }}
             >
               {selectedKeywordPills.length === 0 ? (
-                <span className="text-gray-400 text-[13px]">테마를 선택해 주세요</span>
+                <span className="text-gray-400 text-[15px]">테마를 선택해 주세요</span>
               ) : (
                 selectedKeywordPills.map(({ main, keyword }) => (
                   <span
                     key={main + '-' + keyword}
-                    className="px-2 py-[2px] bg-yellow-100 text-yellow-800 rounded-full text-[13px] font-medium border border-yellow-300 flex items-center"
+                    className="px-2 py-[2px] bg-yellow-100 text-yellow-800 rounded-full text-[15px] font-medium border border-yellow-300 flex items-center"
                     style={STYLES.keywordPill}
                   >
                     {keyword}
@@ -755,17 +755,17 @@ const FilterModal: React.FC<FilterModalProps> = ({
                   {filterKeywordTree && typeof filterKeywordTree === 'object' && Object.keys(filterKeywordTree).length > 0
                     ? Object.entries(filterKeywordTree).map(([main, subTree]) => (
                         <div key={main}>
-                          <div className="font-bold text-[11.2px] mb-1">■ {main}</div>
+                          <div className="font-bold text-[13px] mb-1">■ {main}</div>
                           {subTree && typeof subTree === 'object'
                             ? Object.entries(subTree).map(([sub, keywordsArr]) => (
                                 <div key={sub} className="mb-0.5">
-                                  {sub && <div className="text-[10px] font-semibold text-[#3A3A42] mb-0.5 ml-1">- {sub}</div>}
+                                  {sub && <div className="text-[12px] font-semibold text-[#3A3A42] mb-0.5 ml-1">- {sub}</div>}
                                   <div className="flex flex-wrap gap-1 mb-0.5">
                                     {Array.isArray(keywordsArr)
                                       ? keywordsArr.map(({ keyword }) => (
                                           <button
                                             key={keyword}
-                                            className={`rounded-full px-2.5 py-0.5 font-medium text-[10.4px] mb-0.5 transition-colors ${
+                                            className={`rounded-full px-2.5 py-0.5 font-medium text-[12px] mb-0.5 transition-colors ${
                                               ((tempFilterState || {})[main] || []).includes(keyword) ? 'bg-[#6A6A73] text-white' : 'bg-white text-[#6A6A73] shadow-sm'
                                             }`}
                                             onClick={() => handleKeywordToggle(main, keyword)}

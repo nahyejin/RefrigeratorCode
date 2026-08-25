@@ -338,7 +338,7 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
     <div className="bg-white rounded-xl p-4 w-[320px] custom-calendar-container relative" style={{ boxShadow: 'none' }} data-calendar-range-mode={mode === 'range' ? 'true' : 'false'}>
       {/* 상단 제목 영역 */}
       <div className="relative mb-4">
-        <div className="text-center font-bold text-[14px]">일자를 선택하세요</div>
+        <div className="text-center font-bold text-[15px]">일자를 선택하세요</div>
         {/* 상단 X 버튼 */}
         <span className="absolute top-0 right-0 w-6 h-6 text-gray-400 text-xl cursor-pointer select-none" onClick={onClose} role="button" aria-label="닫기">×</span>
       </div>
@@ -362,7 +362,7 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
                 setShowYearDropdown(!showYearDropdown);
                 setShowMonthDropdown(false);
               }}
-              className="px-3 py-1 hover:bg-gray-100 rounded text-[14px] font-medium whitespace-nowrap min-w-[70px] flex items-center gap-1"
+              className="px-3 py-1 hover:bg-gray-100 rounded text-[15px] font-medium whitespace-nowrap min-w-[70px] flex items-center gap-1"
             >
               <span>{year}년</span>
               <svg 
@@ -418,7 +418,7 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
                       background: y === year ? '#eff6ff' : 'transparent',
                       color: y === year ? '#2563eb' : '#1A1A1E',
                       cursor: 'pointer',
-                      fontSize: '14px',
+                      fontSize: '15px',
                       textAlign: 'left',
                       flexShrink: 0,
                       lineHeight: '36px',
@@ -449,7 +449,7 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
                 setShowMonthDropdown(!showMonthDropdown);
                 setShowYearDropdown(false);
               }}
-              className="px-3 py-1 hover:bg-gray-100 rounded text-[14px] font-medium whitespace-nowrap min-w-[60px] flex items-center gap-1"
+              className="px-3 py-1 hover:bg-gray-100 rounded text-[15px] font-medium whitespace-nowrap min-w-[60px] flex items-center gap-1"
             >
               <span>{month + 1}월</span>
               <svg 
@@ -505,7 +505,7 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
                       background: idx === month ? '#eff6ff' : 'transparent',
                       color: idx === month ? '#2563eb' : '#1A1A1E',
                       cursor: 'pointer',
-                      fontSize: '14px',
+                      fontSize: '15px',
                       textAlign: 'left',
                       flexShrink: 0,
                       lineHeight: '36px',
@@ -546,7 +546,7 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
       {/* 요일 헤더 */}
       <div className="grid grid-cols-7 gap-1 mb-2">
         {weekDays.map((day) => (
-          <div key={day} className="text-center text-[12px] font-medium text-gray-600 py-1">
+          <div key={day} className="text-center text-[13px] font-medium text-gray-600 py-1">
             {day}
           </div>
         ))}
@@ -588,7 +588,7 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
           }
 
           let buttonStyle: React.CSSProperties = {};
-          let buttonClassName = 'aspect-square rounded-lg text-[14px] font-medium ';
+          let buttonClassName = 'aspect-square rounded-lg text-[15px] font-medium ';
           
           if (disabled) {
             buttonClassName += 'text-gray-300 cursor-not-allowed';
@@ -655,7 +655,7 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
       <div className="flex gap-2">
         <button
           onClick={onClose}
-          className="flex-1 h-10 border border-gray-300 rounded-lg text-[14px] font-medium hover:bg-gray-50"
+          className="flex-1 h-10 border border-gray-300 rounded-lg text-[15px] font-medium hover:bg-gray-50"
           style={{ 
             color: '#3A3A42', // gray-700 명시적 색상
             borderColor: '#D2D2D8' // gray-300
@@ -666,7 +666,7 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
         <button
           onClick={handleSelect}
           disabled={mode === 'single' ? !selectedDateState : !rangeStartDate}
-          className={`flex-1 h-10 rounded-lg text-[14px] font-medium text-white ${
+          className={`flex-1 h-10 rounded-lg text-[15px] font-medium text-white ${
             (mode === 'single' && selectedDateState) || (mode === 'range' && rangeStartDate)
               ? 'bg-blue-500 hover:bg-blue-600'
               : 'bg-gray-300 cursor-not-allowed'

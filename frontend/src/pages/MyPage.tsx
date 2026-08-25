@@ -1091,7 +1091,7 @@ const MyPage: React.FC = () => {
         <div className="flex items-center gap-3">
           {isLoggedIn ? (
             <div className="flex items-center gap-2">
-              <span className="font-normal text-gray-700 hover:text-gray-900" style={{ fontSize: '11px' }}>{authUser?.nickname}</span>
+              <span className="font-normal text-gray-700 hover:text-gray-900" style={{ fontSize: '13px' }}>{authUser?.nickname}</span>
               <button
                 onClick={logout}
                 className="font-normal text-gray-700 hover:text-gray-900"
@@ -1100,7 +1100,7 @@ const MyPage: React.FC = () => {
                   border: 'none', 
                   background: 'none', 
                   cursor: 'pointer',
-                  fontSize: '11px'
+                  fontSize: '13px'
                 }}
               >
                 로그아웃
@@ -1115,7 +1115,7 @@ const MyPage: React.FC = () => {
                 border: 'none', 
                 background: 'none', 
                 cursor: 'pointer',
-                fontSize: '11px'
+                fontSize: '13px'
               }}
             >
               로그인/회원가입
@@ -1129,10 +1129,10 @@ const MyPage: React.FC = () => {
         <section className="flex flex-col items-center justify-center mb-[70px]" style={{ marginTop: '130px' }}>
           <div className="flex flex-col items-center">
             <div className="text-[18px] font-bold text-gray-700 mb-1">{user.nickname}</div>
-            <div className="text-[15px] text-gray-500 mb-2">{user.email}</div>
+            <div className="text-[16px] text-gray-500 mb-2">{user.email}</div>
           </div>
           <button
-            className="px-3 h-7 bg-[#FFD600] text-[#1A1A1E] rounded-full text-[13px] font-bold flex items-center gap-1 border-none shadow hover:bg-yellow-300 transition"
+            className="px-3 h-7 bg-[#FFD600] text-[#1A1A1E] rounded-full text-[15px] font-bold flex items-center gap-1 border-none shadow hover:bg-yellow-300 transition"
             style={{ 
               minWidth: 0, 
               height: 28, 
@@ -1149,15 +1149,15 @@ const MyPage: React.FC = () => {
         <section className="flex flex-col items-center justify-center mb-[70px]" style={{ marginTop: '130px' }}>
           <div className="flex flex-col items-center max-w-[280px]">
             <div className="text-center leading-relaxed mb-4">
-              <div className="text-[13px] text-gray-600 mb-1">
+              <div className="text-[15px] text-gray-600 mb-1">
                 기록 및 완료 내역을 안전히 관리하려면
               </div>
-              <div className="text-[15px] font-bold text-gray-900">
+              <div className="text-[16px] font-bold text-gray-900">
                 로그인이 필요합니다
               </div>
             </div>
             <button
-              className="px-5 h-9 bg-[#FFD600] text-[#1A1A1E] rounded-full text-[14px] font-bold flex items-center justify-center gap-1 border-none shadow-sm hover:bg-yellow-400 hover:shadow-md transition-all duration-200"
+              className="px-5 h-9 bg-[#FFD600] text-[#1A1A1E] rounded-full text-[15px] font-bold flex items-center justify-center gap-1 border-none shadow-sm hover:bg-yellow-400 hover:shadow-md transition-all duration-200"
               style={{ 
                 fontFamily: 'inherit',
                 minWidth: '140px'
@@ -1188,7 +1188,7 @@ const MyPage: React.FC = () => {
               내가 즐겨찾는 레시피
             </h2>
             <button
-              className="text-[#9A9AA2] text-[20px] font-bold px-2 py-0 bg-transparent border-none outline-none cursor-pointer"
+              className="text-[#9A9AA2] text-[22px] font-bold px-2 py-0 bg-transparent border-none outline-none cursor-pointer"
               aria-label="내가 즐겨찾는 레시피 전체보기"
               onClick={() => navigate('/mypage/favorite')}
             >
@@ -1236,7 +1236,7 @@ const MyPage: React.FC = () => {
               내가 기록한 레시피
             </h2>
             <button
-              className="text-[#9A9AA2] text-[20px] font-bold px-2 py-0 bg-transparent border-none outline-none cursor-pointer"
+              className="text-[#9A9AA2] text-[22px] font-bold px-2 py-0 bg-transparent border-none outline-none cursor-pointer"
               aria-label="내가 기록한 레시피 전체보기"
               onClick={() => navigate('/mypage/recorded')}
             >
@@ -1285,7 +1285,7 @@ const MyPage: React.FC = () => {
               내가 완료한 레시피
             </h2>
             <button
-              className="text-[#9A9AA2] text-[20px] font-bold px-2 py-0 bg-transparent border-none outline-none cursor-pointer"
+              className="text-[#9A9AA2] text-[22px] font-bold px-2 py-0 bg-transparent border-none outline-none cursor-pointer"
               aria-label="내가 완료한 레시피 전체보기"
               onClick={() => navigate('/mypage/completed')}
             >
@@ -1346,9 +1346,9 @@ const MyPage: React.FC = () => {
               <div className="mb-3">
                 <div className="flex items-center gap-2 mb-1">
                   <div className="flex-1">
-                    <label className="block text-[15px] font-semibold mb-1">닉네임</label>
+                    <label className="block text-[16px] font-semibold mb-1">닉네임</label>
                     <input 
-                      className="w-full h-10 border border-gray-300 rounded-lg px-4 text-[15px]" 
+                      className="w-full h-10 border border-gray-300 rounded-lg px-4 text-[16px]" 
                       value={edit.nickname} 
                       onChange={e => {
                         setEdit({ ...edit, nickname: e.target.value });
@@ -1358,7 +1358,7 @@ const MyPage: React.FC = () => {
                   </div>
                   {/* 모든 사용자에게 중복 체크 버튼 표시 */}
                   <button 
-                    className={`h-10 px-3 rounded-lg text-[14px] font-semibold whitespace-nowrap mt-6 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${
+                    className={`h-10 px-3 rounded-lg text-[15px] font-semibold whitespace-nowrap mt-6 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${
                       edit.nickname !== originalEdit.nickname && edit.nickname.trim() !== ''
                         ? 'bg-[#FFD600] text-[#1A1A1E]'
                         : 'bg-gray-200 text-gray-400'
@@ -1401,7 +1401,7 @@ const MyPage: React.FC = () => {
                 {/* 중복 체크 결과 메시지 (모든 사용자에게 표시) */}
                 {nicknameCheckResult && (
                   <div 
-                    className={`text-[13px] mt-1 px-2 py-1 rounded ${
+                    className={`text-[15px] mt-1 px-2 py-1 rounded ${
                       nicknameCheckResult.available 
                         ? 'text-green-600 bg-green-50' 
                         : 'text-red-600 bg-red-50'
@@ -1414,9 +1414,9 @@ const MyPage: React.FC = () => {
               
               {/* 아이디 (회색, 읽기전용) */}
               <div className="mb-3">
-                <label className="block text-[15px] font-semibold mb-1">이메일</label>
+                <label className="block text-[16px] font-semibold mb-1">이메일</label>
                 <input 
-                  className="w-full h-10 border border-gray-200 rounded-lg px-4 text-[15px] bg-gray-50 text-gray-400 cursor-not-allowed" 
+                  className="w-full h-10 border border-gray-200 rounded-lg px-4 text-[16px] bg-gray-50 text-gray-400 cursor-not-allowed" 
                   value={edit.userid} 
                   readOnly 
                   disabled
@@ -1433,11 +1433,11 @@ const MyPage: React.FC = () => {
               {!isSocialLogin && (
                 <>
                   <div className="mb-3">
-                    <label className="block text-[15px] font-semibold mb-1">비밀번호 변경</label>
+                    <label className="block text-[16px] font-semibold mb-1">비밀번호 변경</label>
                     <div className="relative">
                       <input 
                         type={showPassword ? "text" : "password"} 
-                        className="w-full h-10 border border-gray-300 rounded-lg px-4 pr-10 text-[15px]" 
+                        className="w-full h-10 border border-gray-300 rounded-lg px-4 pr-10 text-[16px]" 
                         value={edit.password === '' ? '●●●●●●●' : edit.password} 
                         onChange={e => {
                           const newValue = e.target.value;
@@ -1465,11 +1465,11 @@ const MyPage: React.FC = () => {
                   
                   {/* 비밀번호 변경 확인 */}
                   <div className="mb-3">
-                    <label className="block text-[15px] font-semibold mb-1">비밀번호 변경 확인</label>
+                    <label className="block text-[16px] font-semibold mb-1">비밀번호 변경 확인</label>
                     <div className="relative">
                       <input 
                         type={showPassword2 ? "text" : "password"} 
-                        className="w-full h-10 border border-gray-300 rounded-lg px-4 pr-10 text-[15px]" 
+                        className="w-full h-10 border border-gray-300 rounded-lg px-4 pr-10 text-[16px]" 
                         value={edit.password2 === '' ? '●●●●●●●' : edit.password2} 
                         onChange={e => {
                           const newValue = e.target.value;
@@ -1534,7 +1534,7 @@ const MyPage: React.FC = () => {
               {/* 회원탈퇴 버튼 */}
               <div className="mt-6 pt-4 text-center">
                 <button
-                  className="text-[12px] text-red-600 underline cursor-pointer hover:text-red-700 transition"
+                  className="text-[13px] text-red-600 underline cursor-pointer hover:text-red-700 transition"
                   onClick={() => setShowDeleteConfirm(true)}
                   style={{ outline: 'none', background: 'none', border: 'none', padding: 0 }}
                 >
@@ -1566,7 +1566,7 @@ const MyPage: React.FC = () => {
           color: '#FFFFFF',
           padding: '12px 24px',
           borderRadius: 12,
-          fontSize: 15,
+          fontSize: 16,
           zIndex: 'var(--z-toast)',
           maxWidth: 320,
           width: 'max-content',
@@ -1645,21 +1645,21 @@ const MyPage: React.FC = () => {
           <div className="bg-white rounded-xl shadow-lg w-[320px] max-w-[90vw] p-6">
             <div className="text-center mb-4">
               <div className="text-[18px] font-bold text-[#1A1A1E] mb-3">회원탈퇴</div>
-              <div className="text-[14px] text-gray-600 leading-relaxed">
+              <div className="text-[15px] text-gray-600 leading-relaxed">
                 정말 회원탈퇴를 하시겠습니까?<br />
                 모든 데이터가 삭제되며 복구 불가 합니다.
               </div>
             </div>
             <div className="flex gap-2">
               <button
-                className="flex-1 h-11 bg-white text-[#1A1A1E] border border-gray-300 rounded-lg text-[15px] font-semibold"
+                className="flex-1 h-11 bg-white text-[#1A1A1E] border border-gray-300 rounded-lg text-[16px] font-semibold"
                 onClick={() => setShowDeleteConfirm(false)}
                 disabled={deletingAccount}
               >
                 취소
               </button>
               <button
-                className="flex-1 h-11 bg-red-500 text-white rounded-lg text-[15px] font-semibold disabled:opacity-50"
+                className="flex-1 h-11 bg-red-500 text-white rounded-lg text-[16px] font-semibold disabled:opacity-50"
                 onClick={handleDeleteAccount}
                 disabled={deletingAccount}
               >

@@ -64,7 +64,7 @@ const STYLES = {
     position: 'absolute' as const,
     top: 8,
     left: 8,
-    fontSize: 13,
+    fontSize: 15,
     zIndex: 3,
     textShadow: '0 1px 2px rgba(0,0,0,0.3)'
   },
@@ -72,7 +72,7 @@ const STYLES = {
     position: 'absolute' as const,
     top: 8,
     left: 8,
-    fontSize: 12,
+    fontSize: 13,
     zIndex: 2,
     textShadow: '0 1px 2px rgba(0,0,0,0.12)'
   },
@@ -80,7 +80,7 @@ const STYLES = {
     position: 'absolute' as const,
     top: 40,
     left: 8,
-    fontSize: 12,
+    fontSize: 13,
     zIndex: 2,
     textShadow: '0 1px 2px rgba(0,0,0,0.12)'
   },
@@ -137,7 +137,7 @@ const STYLES = {
   },
   title: {
     fontWeight: 700,
-    fontSize: 15,
+    fontSize: 16,
     marginBottom: 4,
     whiteSpace: 'nowrap' as const,
     overflow: 'hidden',
@@ -145,7 +145,7 @@ const STYLES = {
     maxWidth: '100%'
   },
   stats: {
-    fontSize: 13,
+    fontSize: 15,
     color: '#9A9AA2',
     marginBottom: 4
   }
@@ -476,7 +476,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
           />
         ) : (
           <div className="custom-scrollbar pr-1" style={{ display: 'flex', flexWrap: 'nowrap', gap: 4, marginBottom: 4, overflowX: 'auto', maxWidth: '100%', scrollbarWidth: 'auto', alignItems: 'center', paddingBottom: 4 }}>
-            <span className="bg-customGray text-[#6A6A73] rounded-full px-3 py-0.5 font-normal" style={{ fontSize: '10.4px', lineHeight: 1.3, whiteSpace: 'nowrap', height: 22, display: 'inline-flex', alignItems: 'center', border: '1px solid #D2D2D8' }}>재료 정보 없음</span>
+            <span className="bg-customGray text-[#6A6A73] rounded-full px-3 py-0.5 font-normal" style={{ fontSize: '12px', lineHeight: 1.3, whiteSpace: 'nowrap', height: 22, display: 'inline-flex', alignItems: 'center', border: '1px solid #D2D2D8' }}>재료 정보 없음</span>
           </div>
         )}
       </div>

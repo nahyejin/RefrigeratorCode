@@ -79,7 +79,7 @@ const CoupangAd: React.FC<CoupangAdProps> = ({
             border: '1px dashed #D2D2D8',
             textAlign: 'center',
             color: '#9A9AA2',
-            fontSize: '12px'
+            fontSize: '13px'
           }}
           className={className}
         >

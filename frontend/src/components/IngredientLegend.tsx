@@ -28,14 +28,14 @@ const IngredientLegend: React.FC<IngredientLegendProps> = ({ total, style }) => 
       {LEGEND_ORDER.map((state) => (
         <div key={state} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <span style={legendSwatchStyle(state)} />
-          <span style={{ color: '#3A3A42', fontSize: 12, whiteSpace: 'nowrap' }}>
+          <span style={{ color: '#3A3A42', fontSize: 13, whiteSpace: 'nowrap' }}>
             {PILL_COLORS[state].label}
           </span>
         </div>
       ))}
     </div>
     {typeof total === 'number' && (
-      <span style={{ color: '#6A6A73', fontSize: 12, whiteSpace: 'nowrap', flexShrink: 0 }}>
+      <span style={{ color: '#6A6A73', fontSize: 13, whiteSpace: 'nowrap', flexShrink: 0 }}>
         총 {formatCount(total)}건
       </span>
     )}

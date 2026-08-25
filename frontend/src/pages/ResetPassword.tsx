@@ -156,8 +156,8 @@ const ResetPassword: React.FC = () => {
         
         {/* 제목 */}
         <div className={`w-full ${MAX_CONTAINER_WIDTH} text-center mb-6 mx-auto`}>
-          <h1 className="text-[24px] font-bold text-[#1A1A1E] mb-2">비밀번호 찾기</h1>
-          <p className="text-[13px] text-gray-500">
+          <h1 className="text-[26px] font-bold text-[#1A1A1E] mb-2">비밀번호 찾기</h1>
+          <p className="text-[15px] text-gray-500">
             {step === 'email' && '가입 시 사용한 이메일을 입력해주세요'}
             {step === 'verify' && '이메일로 발송된 인증 코드를 입력해주세요'}
             {step === 'reset' && '새로운 비밀번호를 입력해주세요'}
@@ -186,7 +186,7 @@ const ResetPassword: React.FC = () => {
               />
               
               {error && (
-                <div className="w-full text-[12px] text-red-500 text-center mt-1">
+                <div className="w-full text-[13px] text-red-500 text-center mt-1">
                   {error}
                 </div>
               )}
@@ -194,7 +194,7 @@ const ResetPassword: React.FC = () => {
               <NeangteolButton 
                 color="bg-[#3A3A42]" 
                 textColor="text-white" 
-                className={`w-full ${BUTTON_HEIGHT} rounded-xl text-[15px] mt-1 px-4`}
+                className={`w-full ${BUTTON_HEIGHT} rounded-xl text-[16px] mt-1 px-4`}
                 onClick={handleSendVerificationCode}
                 disabled={sendingCode || !email || !email.includes('@')}
               >
@@ -207,7 +207,7 @@ const ResetPassword: React.FC = () => {
           {step === 'verify' && (
             <>
               <div className="w-full">
-                <div className="text-[12px] text-gray-600 mb-2 text-center">
+                <div className="text-[13px] text-gray-600 mb-2 text-center">
                   {email}로 인증 코드를 발송했습니다.
                 </div>
                 <div className="flex items-center gap-2 mb-1 w-full">
@@ -232,7 +232,7 @@ const ResetPassword: React.FC = () => {
                   <button
                     onClick={handleVerifyCode}
                     disabled={verifyingCode || verificationCode.length !== 6}
-                    className="h-[44px] px-2 bg-[#FFD600] text-[#1A1A1E] rounded-lg text-[12px] font-semibold whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+                    className="h-[44px] px-2 bg-[#FFD600] text-[#1A1A1E] rounded-lg text-[13px] font-semibold whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
                     style={{ minWidth: '65px' }}
                   >
                     {verifyingCode ? '확인 중...' : '인증하기'}
@@ -242,20 +242,20 @@ const ResetPassword: React.FC = () => {
 
               {/* 개발 모드에서 인증 코드 표시 */}
               {devVerificationCode && (
-                <div className="w-full bg-yellow-50 border border-yellow-200 text-yellow-800 text-[12px] px-3 py-2 rounded-lg mt-2">
+                <div className="w-full bg-yellow-50 border border-yellow-200 text-yellow-800 text-[13px] px-3 py-2 rounded-lg mt-2">
                   <p className="font-bold">개발 모드 - 인증 코드: {devVerificationCode}</p>
                   <p className="text-gray-600">(실제 이메일 발송을 원하면 SMTP 설정이 필요합니다)</p>
                 </div>
               )}
 
               {error && (
-                <div className="w-full text-[12px] text-red-500 text-center mt-1">
+                <div className="w-full text-[13px] text-red-500 text-center mt-1">
                   {error}
                 </div>
               )}
 
               {emailVerified && (
-                <div className="w-full text-[12px] text-green-600 text-center mt-1 bg-green-50 px-3 py-2 rounded">
+                <div className="w-full text-[13px] text-green-600 text-center mt-1 bg-green-50 px-3 py-2 rounded">
                   인증이 완료되었습니다.
                 </div>
               )}
@@ -264,7 +264,7 @@ const ResetPassword: React.FC = () => {
                 <NeangteolButton 
                   color="bg-gray-100" 
                   textColor="text-gray-600" 
-                  className={`flex-1 ${BUTTON_HEIGHT} rounded-xl text-[14px] px-4`}
+                  className={`flex-1 ${BUTTON_HEIGHT} rounded-xl text-[15px] px-4`}
                   onClick={() => {
                     setStep('email');
                     setVerificationCode('');
@@ -277,7 +277,7 @@ const ResetPassword: React.FC = () => {
                 <NeangteolButton 
                   color="bg-[#3A3A42]" 
                   textColor="text-white" 
-                  className={`flex-1 ${BUTTON_HEIGHT} rounded-xl text-[15px] px-4`}
+                  className={`flex-1 ${BUTTON_HEIGHT} rounded-xl text-[16px] px-4`}
                   onClick={() => handleSendVerificationCode()}
                   disabled={sendingCode}
                 >
@@ -319,7 +319,7 @@ const ResetPassword: React.FC = () => {
               />
               
               {error && (
-                <div className="w-full text-[12px] text-red-500 text-center mt-1">
+                <div className="w-full text-[13px] text-red-500 text-center mt-1">
                   {error}
                 </div>
               )}
@@ -328,7 +328,7 @@ const ResetPassword: React.FC = () => {
                 <NeangteolButton 
                   color="bg-gray-100" 
                   textColor="text-gray-600" 
-                  className={`flex-1 ${BUTTON_HEIGHT} rounded-xl text-[14px] px-4`}
+                  className={`flex-1 ${BUTTON_HEIGHT} rounded-xl text-[15px] px-4`}
                   onClick={() => {
                     setStep('verify');
                     setNewPassword('');
@@ -341,7 +341,7 @@ const ResetPassword: React.FC = () => {
                 <NeangteolButton 
                   color="bg-[#3A3A42]" 
                   textColor="text-white" 
-                  className={`flex-1 ${BUTTON_HEIGHT} rounded-xl text-[15px] px-4`}
+                  className={`flex-1 ${BUTTON_HEIGHT} rounded-xl text-[16px] px-4`}
                   onClick={handleResetPassword}
                   disabled={loading || !newPassword || !confirmPassword}
                 >
@@ -353,7 +353,7 @@ const ResetPassword: React.FC = () => {
         </div>
         
         {/* 하단 링크 */}
-        <div className={`w-full ${MAX_CONTAINER_WIDTH} text-center text-[12px] text-[#3A3A42] mb-4 leading-tight mx-auto mt-4`}>
+        <div className={`w-full ${MAX_CONTAINER_WIDTH} text-center text-[13px] text-[#3A3A42] mb-4 leading-tight mx-auto mt-4`}>
           <span className="underline cursor-pointer" onClick={() => navigate('/login')}>로그인으로 돌아가기</span>
         </div>
         

@@ -238,7 +238,7 @@ const Toast = ({ message, onUndo, onClose }: { message: string; onUndo: () => vo
       padding: '12px 24px',
       borderRadius: 12,
       fontWeight: 400,
-      fontSize: 15,
+      fontSize: 16,
       zIndex: 'var(--z-toast)',
       boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
       maxWidth: 320,
@@ -274,7 +274,7 @@ const IngredientPill: React.FC<IngredientPillProps> = ({ item, onRemove, onInfoC
   return (
     <div style={{ display: 'inline-flex', alignItems: 'center', gap: 0, marginRight: 8, marginBottom: 4 }}>
       <TagPill 
-        style={{ fontSize: 11, cursor: 'default', marginRight: 0, marginBottom: 0 }}
+        style={{ fontSize: 13, cursor: 'default', marginRight: 0, marginBottom: 0 }}
       >
         <span 
           className="truncate max-w-[100px]"
@@ -320,7 +320,7 @@ const IngredientPill: React.FC<IngredientPillProps> = ({ item, onRemove, onInfoC
       </TagPill>
       <span
         style={{
-          fontSize: 14,
+          fontSize: 15,
           cursor: 'pointer',
           lineHeight: 1,
           padding: '4px',
@@ -1845,7 +1845,7 @@ const MyFridge: React.FC = () => {
             <button
               type="button"
               className="bg-[#FFD600] text-[#1A1A1E] font-bold rounded-full px-5 py-2 text-sm shadow hover:bg-yellow-300 transition whitespace-nowrap"
-              style={{ display: 'flex', alignItems: 'center', height: 40, padding: '0 18px', fontSize: 15, marginLeft: 0, alignSelf: 'flex-start' }}
+              style={{ display: 'flex', alignItems: 'center', height: 40, padding: '0 18px', fontSize: 16, marginLeft: 0, alignSelf: 'flex-start' }}
               onClick={() => combinedFiltered.length > 0 && handleSelect(combinedFiltered[0])}
               disabled={combinedFiltered.length === 0}
             >
@@ -1854,7 +1854,7 @@ const MyFridge: React.FC = () => {
             <button
               type="button"
               className="bg-[#E6E6EA] text-[#1A1A1E] font-bold rounded-2xl px-2 py-2 text-sm shadow transition whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-[#D2D2D8] focus:border-[#D2D2D8]"
-              style={{ display: 'flex', alignItems: 'center', height: 40, minWidth: 40, padding: 0, fontSize: 15, marginLeft: 0, border: '1px solid #E6E6EA', justifyContent: 'center', borderRadius: 20, alignSelf: 'flex-start' }}
+              style={{ display: 'flex', alignItems: 'center', height: 40, minWidth: 40, padding: 0, fontSize: 16, marginLeft: 0, border: '1px solid #E6E6EA', justifyContent: 'center', borderRadius: 20, alignSelf: 'flex-start' }}
               onClick={() => alert('영수증 인식 기능은 곧 지원될 예정입니다!')}
               title="영수증 인식(구현 예정)"
             >
@@ -2046,7 +2046,7 @@ const MyFridge: React.FC = () => {
               padding: '12px 24px',
               borderRadius: 12,
               fontWeight: 400,
-              fontSize: 15,
+              fontSize: 16,
               zIndex: 'var(--z-toast)',
               boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
               maxWidth: 320,

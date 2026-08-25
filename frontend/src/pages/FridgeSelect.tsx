@@ -81,7 +81,7 @@ const FridgeSelect: React.FC = () => {
       >
         {/* 상단 네비게이션 */}
         <div className="flex flex-row items-center justify-between w-full py-4 px-2">
-          <div className="flex gap-5 text-[15px] font-semibold text-[#1A1A1E]">
+          <div className="flex gap-5 text-[16px] font-semibold text-[#1A1A1E]">
             <span className="text-black border-b-2 border-black pb-1">내 냉장고</span>
             <span className="text-[#9A9AA2]">내 냉장고 털기</span>
             <span className="text-[#9A9AA2]">요즘 인기</span>
@@ -97,7 +97,7 @@ const FridgeSelect: React.FC = () => {
         
         {/* 안내문구 */}
         <div className="flex flex-col items-center text-center mt-2 mb-4 px-2">
-          <div className="text-[15px] text-[#1A1A1E] font-medium leading-tight">
+          <div className="text-[16px] text-[#1A1A1E] font-medium leading-tight">
             [사용자 닉네임]님의 보관 중인 재료를 냉장실, 냉동실, 실온으로 나눠 입력해보세요.<br />
             내가 갖고 있는 재료를 입력하면 더 정확한 레시피 추천을 받을 수 있어요.
           </div>

@@ -36,6 +36,21 @@
   --warning: #F59E0B;
   --danger: #E5484D;
 
+  /* ── 타이포 스케일 ───────────────────────────
+     실측 결과 전체 텍스트의 65%가 13px 미만이었고(11px가 248곳으로 최다, 7px도 존재),
+     이게 "글씨가 작다 / 옛날 앱 같다"의 직접 원인이었음.
+     본문 기준을 15px로 올리고 아래 7단계 안에서만 고를 것. 12px가 최소 판독 크기. */
+  --text-caption: 12px;  /* 고지문 등 최소 크기 */
+  --text-sm: 13px;       /* 보조 라벨, 메타 정보 */
+  --text-body: 15px;     /* 본문 기본 */
+  --text-md: 16px;       /* 강조 본문, 버튼 */
+  --text-lg: 18px;       /* 소제목 */
+  --text-xl: 22px;       /* 화면 제목 */
+  --text-2xl: 26px;      /* 대표 숫자 */
+
+  /* 터치 영역 최소 규격 (Apple HIG 44 / Material 48) */
+  --tap-min: 44px;
+
   /* ── 레이어 ──────────────────────────────────
      예전엔 z-index 값이 20종(1 ~ 10060)이 규칙 없이 흩어져 있어서,
      새 요소를 넣을 때마다 무엇 위에 와야 하는지 알 수 없었고
@@ -791,4 +806,22 @@ div[style*="overflow"]:not([style*="layout: horizontal"]):not([style*="overflow-
 @keyframes dot-blink {
   0%, 80%, 100% { opacity: 0; }
   40% { opacity: 1; }
+}
+
+/* 작은 아이콘 버튼의 실제 터치 영역을 44px로 넓힌다.
+   보이는 크기는 그대로 두고 투명한 히트 영역만 키우는 방식이라 레이아웃이 안 변한다.
+   (실측 시 내냉장고 화면의 터치 대상 143개 중 134개가 44px 미만이었음) */
+.tap-44 {
+  position: relative;
+}
+.tap-44::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  min-width: var(--tap-min);
+  min-height: var(--tap-min);
+  width: 100%;
+  height: 100%;
 }

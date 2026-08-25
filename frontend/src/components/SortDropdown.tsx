@@ -45,13 +45,13 @@ const SortDropdown: React.FC<SortDropdownProps> = ({ value, onChange, className 
     >
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="border border-gray-300 rounded h-6 py-0 pl-2 pr-6 text-[11px] font-medium bg-white text-[#3A3A42] focus:outline-none focus:ring-2 focus:ring-blue-200 transition min-w-[110px] relative"
+        className="border border-gray-300 rounded h-6 py-0 pl-2 pr-6 text-[13px] font-medium bg-white text-[#3A3A42] focus:outline-none focus:ring-2 focus:ring-blue-200 transition min-w-[110px] relative"
         style={{ 
           textAlign: 'left',
           height: 28,
           border: '1px solid #D2D2D8',
           borderRadius: 6,
-          fontSize: 12,
+          fontSize: 13,
           padding: '0 22px 0 8px',
           fontWeight: 600,
           background: '#FFFFFF',
@@ -74,7 +74,7 @@ const SortDropdown: React.FC<SortDropdownProps> = ({ value, onChange, className 
           top: '50%',
           transform: 'translateY(-50%)',
           pointerEvents: 'none',
-          fontSize: 13,
+          fontSize: 15,
           color: '#9A9AA2'
         }}>∨</span>
       </button>
@@ -104,7 +104,7 @@ const SortDropdown: React.FC<SortDropdownProps> = ({ value, onChange, className 
                 width: '100%',
                 padding: '8px 12px',
                 textAlign: 'left',
-                fontSize: '12px',
+                fontSize: '13px',
                 fontWeight: 600,
                 color: value === option.value ? '#2563EB' : '#1A1A1E',
                 backgroundColor: value === option.value ? '#EFF6FF' : '#FFFFFF',

@@ -22,7 +22,7 @@ const NeangteolButton: React.FC<NeangteolButtonProps> = ({
   return (
     <button
       type="button"
-      className={`w-[320px] h-[44px] rounded-lg flex items-center justify-center font-bold text-[15px] ${color} ${textColor} ${border ? 'border border-[#D2D2D8]' : ''} ${className}`}
+      className={`w-[320px] h-[44px] rounded-lg flex items-center justify-center font-bold text-[16px] ${color} ${textColor} ${border ? 'border border-[#D2D2D8]' : ''} ${className}`}
       onClick={onClick}
     >
       {icon && <span className="mr-2 flex items-center">{icon}</span>}

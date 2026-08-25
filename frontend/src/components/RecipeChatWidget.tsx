@@ -452,10 +452,10 @@ const RecipeChatWidget: React.FC = () => {
                     style={{ background: 'none', border: 'none', cursor: 'pointer' }}
                     onClick={() => openThread(t)}
                   >
-                    <p className="text-[13px] font-medium text-gray-800 truncate">
+                    <p className="text-[15px] font-medium text-gray-800 truncate">
                       {threadTitle(t)}
                     </p>
-                    <p className="text-[11px] text-gray-400">
+                    <p className="text-[13px] text-gray-400">
                       {formatRelativeDate(t.updatedAt)} · 메시지 {t.messages.length}개
                     </p>
                   </button>
@@ -517,7 +517,7 @@ const RecipeChatWidget: React.FC = () => {
                   )}
                   <div className={`max-w-[82%] ${msg.role === 'user' ? '' : 'w-full'}`}>
                     <div
-                      className={`text-[13px] leading-5 px-3 py-2 rounded-2xl whitespace-pre-wrap ${
+                      className={`text-[15px] leading-5 px-3 py-2 rounded-2xl whitespace-pre-wrap ${
                         msg.role === 'user'
                           ? 'bg-[#1A1A1E] text-white rounded-br-sm'
                           : 'bg-gray-100 text-gray-800 rounded-bl-sm'
@@ -547,7 +547,7 @@ const RecipeChatWidget: React.FC = () => {
                             )}
                             <div className="min-w-0 pr-2 py-1">
                               <p
-                                className="text-[12px] font-semibold text-gray-900 truncate"
+                                className="text-[13px] font-semibold text-gray-900 truncate"
                               >
                                 {recipe.title}
                               </p>
@@ -555,11 +555,11 @@ const RecipeChatWidget: React.FC = () => {
                                 className="inline-flex items-center gap-1 rounded mt-1 px-1.5 py-0.5"
                                 style={{ background: 'rgba(68,68,68,0.85)' }}
                               >
-                                <span className="text-[9px] text-white font-medium">
+                                <span className="text-[12px] text-white font-medium">
                                   재료 매칭률
                                 </span>
                                 <span
-                                  className="text-[10px] font-bold"
+                                  className="text-[12px] font-bold"
                                   style={{ color: '#FFD600', letterSpacing: '0.3px' }}
                                 >
                                   {recipe.match_rate}%
@@ -598,13 +598,13 @@ const RecipeChatWidget: React.FC = () => {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="먹고 싶은 걸 편하게 말해보세요"
-                className="ai-chat-input flex-1 text-[13px]"
+                className="ai-chat-input flex-1 text-[15px]"
                 disabled={loading}
               />
               <button
                 type="submit"
                 disabled={loading || !input.trim()}
-                className="text-[13px] font-bold rounded-full flex-shrink-0"
+                className="text-[15px] font-bold rounded-full flex-shrink-0"
                 style={{
                   height: 40,
                   minWidth: 56,

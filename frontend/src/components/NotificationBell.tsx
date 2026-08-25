@@ -97,7 +97,7 @@ const NotificationBell: React.FC = () => {
         </svg>
         {unreadCount > 0 && (
           <span
-            className="absolute top-0 right-0 w-4 h-4 bg-red-500 rounded-full text-white text-[10px] flex items-center justify-center"
+            className="absolute top-0 right-0 w-4 h-4 bg-red-500 rounded-full text-white text-[12px] flex items-center justify-center"
             style={{ transform: 'translate(25%, -25%)' }}
           >
             {unreadCount > 9 ? '9+' : unreadCount}
@@ -141,17 +141,17 @@ const NotificationBell: React.FC = () => {
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         {notification.type === 'ingredient' && (
-                          <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
+                          <span className="text-[12px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
                             재료
                           </span>
                         )}
                         {notification.type === 'recipe' && (
-                          <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded">
+                          <span className="text-[12px] bg-green-100 text-green-700 px-2 py-0.5 rounded">
                             레시피
                           </span>
                         )}
                         {notification.type === 'family' && (
-                          <span className="text-[10px] bg-purple-100 text-purple-700 px-2 py-0.5 rounded">
+                          <span className="text-[12px] bg-purple-100 text-purple-700 px-2 py-0.5 rounded">
                             공유그룹
                           </span>
                         )}

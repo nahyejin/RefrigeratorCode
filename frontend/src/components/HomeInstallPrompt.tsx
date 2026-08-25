@@ -54,7 +54,7 @@ function ShareIcon() {
 
 function MenuIcon() {
   return (
-    <span aria-hidden="true" style={{ fontSize: 21, lineHeight: 1, fontWeight: 300, color: 'rgba(255,255,255,0.82)' }}>
+    <span aria-hidden="true" style={{ fontSize: 22, lineHeight: 1, fontWeight: 300, color: 'rgba(255,255,255,0.82)' }}>
       ⋮
     </span>
   );
@@ -185,7 +185,7 @@ const HomeInstallPrompt: React.FC = () => {
               alignItems: 'center',
               flexWrap: 'wrap',
               gap: 3,
-              fontSize: 17,
+              fontSize: 18,
               fontWeight: 300,
               marginBottom: 8,
               lineHeight: 1.35,
@@ -203,7 +203,7 @@ const HomeInstallPrompt: React.FC = () => {
           </div>
           <div
             style={{
-              fontSize: 13,
+              fontSize: 15,
               lineHeight: 1.55,
               color: 'rgba(255,255,255,0.66)',
               wordBreak: 'keep-all',
@@ -228,7 +228,7 @@ const HomeInstallPrompt: React.FC = () => {
               boxShadow: 'inset 0 0 0 0.5px rgba(255,255,255,0.08)',
               background: '#3A3A42',
               color: '#D2D2D8',
-              fontSize: 13,
+              fontSize: 15,
               fontWeight: 300,
               cursor: 'pointer',
             }}
@@ -244,7 +244,7 @@ const HomeInstallPrompt: React.FC = () => {
               border: 'none',
               background: '#6B5200',
               color: '#1A1A1E',
-              fontSize: 13,
+              fontSize: 15,
               fontWeight: 300,
               cursor: 'pointer',
             }}

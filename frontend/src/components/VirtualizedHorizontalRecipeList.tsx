@@ -250,7 +250,7 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
         textAlign: 'center',
         padding: '50px 20px',
         color: '#6A6A73',
-        fontSize: '14px',
+        fontSize: '15px',
         lineHeight: '1.6',
         whiteSpace: 'pre-line',
         justifyContent: 'flex-start',
@@ -514,7 +514,7 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
           >
             <span
               style={{
-                fontSize: '24px',
+                fontSize: '26px',
                 color: '#6A6A73',
                 fontWeight: 400,
                 lineHeight: 1,
@@ -704,7 +704,7 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
           >
             <span
               style={{
-                fontSize: '24px',
+                fontSize: '26px',
                 color: '#6A6A73',
                 fontWeight: 400,
                 lineHeight: 1,

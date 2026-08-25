@@ -35,7 +35,7 @@ const WelcomeModal: React.FC<WelcomeModalProps> = ({
         className="rounded-lg px-5 py-4 shadow-lg"
         style={{ 
           background: '#ffffff',
-          fontSize: '13px',
+          fontSize: '15px',
           fontWeight: 400,
           lineHeight: '1.5',
           textAlign: 'center',

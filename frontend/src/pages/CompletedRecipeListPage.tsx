@@ -433,7 +433,7 @@ const CompletedRecipeListPage: React.FC = () => {
             height: 28, 
             border: '1px solid #D2D2D8', 
             borderRadius: 999, 
-            fontSize: 12, 
+            fontSize: 13, 
             padding: '0 12px', 
             fontWeight: 600, 
             background: '#FFFFFF', 
@@ -587,7 +587,7 @@ const CompletedRecipeListPage: React.FC = () => {
             >
               ×
             </span>
-            <div className="text-center font-bold text-[14px] mb-4">
+            <div className="text-center font-bold text-[15px] mb-4">
               재료 매칭도 설정 (임시 모달)
             </div>
           </div>
@@ -603,7 +603,7 @@ const CompletedRecipeListPage: React.FC = () => {
             >
               ×
             </span>
-            <div className="text-center font-bold text-[14px] mb-4">
+            <div className="text-center font-bold text-[15px] mb-4">
               임박 재료 설정 (임시 모달)
             </div>
           </div>
@@ -620,7 +620,7 @@ const CompletedRecipeListPage: React.FC = () => {
           color: '#FFFFFF',
           padding: '12px 24px',
           borderRadius: 12,
-          fontSize: 15,
+          fontSize: 16,
           zIndex: 'var(--z-toast)',
           maxWidth: 320,
           width: 'max-content',

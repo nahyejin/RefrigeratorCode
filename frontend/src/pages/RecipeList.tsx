@@ -2069,7 +2069,7 @@ const RecipeList: React.FC = () => {
                       textAlign: 'center',
                       padding: '180px 20px',
                       color: '#6A6A73',
-                      fontSize: '14px',
+                      fontSize: '15px',
                       lineHeight: '1.6',
                       display: 'flex',
                       flexDirection: 'column',
@@ -2099,7 +2099,7 @@ const RecipeList: React.FC = () => {
                       textAlign: 'center',
                       padding: '180px 20px',
                       color: '#6A6A73',
-                      fontSize: '14px',
+                      fontSize: '15px',
                       lineHeight: '1.6',
                       display: 'flex',
                       flexDirection: 'column',
@@ -2202,7 +2202,7 @@ const RecipeList: React.FC = () => {
                   fontWeight: '500',
                   border: 'none',
                   borderRadius: '6px',
-                  fontSize: '14px',
+                  fontSize: '15px',
                   cursor: page === 1 ? 'not-allowed' : 'pointer',
                   transition: 'all 0.2s',
                   display: 'flex',
@@ -2236,7 +2236,7 @@ const RecipeList: React.FC = () => {
                   fontWeight: '500',
                   border: 'none',
                   borderRadius: '6px',
-                  fontSize: '14px',
+                  fontSize: '15px',
                   cursor: page === 1 ? 'not-allowed' : 'pointer',
                   transition: 'all 0.2s',
                   display: 'flex',
@@ -2274,7 +2274,7 @@ const RecipeList: React.FC = () => {
                         fontWeight: '500',
                         border: 'none',
                         borderRadius: '6px',
-                        fontSize: '13px',
+                        fontSize: '15px',
                         cursor: 'pointer',
                         minWidth: '32px',
                         height: '32px',
@@ -2311,7 +2311,7 @@ const RecipeList: React.FC = () => {
                   fontWeight: '500',
                   border: 'none',
                   borderRadius: '6px',
-                  fontSize: '14px',
+                  fontSize: '15px',
                   cursor: page >= totalPages ? 'not-allowed' : 'pointer',
                   transition: 'all 0.2s',
                   display: 'flex',
@@ -2345,7 +2345,7 @@ const RecipeList: React.FC = () => {
                   fontWeight: '500',
                   border: 'none',
                   borderRadius: '6px',
-                  fontSize: '14px',
+                  fontSize: '15px',
                   cursor: page >= totalPages ? 'not-allowed' : 'pointer',
                   transition: 'all 0.2s',
                   display: 'flex',
@@ -2402,14 +2402,14 @@ const RecipeList: React.FC = () => {
             </div>
             <div style={{ 
               textAlign: 'center',
-              fontSize: '13px',
+              fontSize: '15px',
               color: '#6A6A73',
               lineHeight: '1.4'
             }}>
-              <div style={{ fontWeight: '600', marginBottom: '2px', color: '#1A1A1E', fontSize: '14px' }}>
+              <div style={{ fontWeight: '600', marginBottom: '2px', color: '#1A1A1E', fontSize: '15px' }}>
                 레시피를 불러오는 중...
               </div>
-              <div style={{ fontSize: '11px', color: '#9A9AA2' }}>
+              <div style={{ fontSize: '13px', color: '#9A9AA2' }}>
                 재료 수에 따라<br />
                 시간이 걸릴 수 있습니다
               </div>
@@ -2434,7 +2434,7 @@ const RecipeList: React.FC = () => {
             </div>
             {/* 진행률 텍스트 */}
             <div style={{
-              fontSize: '12px',
+              fontSize: '13px',
               fontWeight: '600',
               color: '#FFD600',
               marginTop: '-4px'

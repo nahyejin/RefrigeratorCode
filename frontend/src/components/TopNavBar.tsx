@@ -41,7 +41,7 @@ const TopNavBar: React.FC = () => {
               onClick={() => navigate('/my-page?openEdit=true')}
               className="font-normal text-gray-700 hover:text-gray-900"
               style={{
-                fontSize: '11px',
+                fontSize: '13px',
                 outline: 'none',
                 border: 'none',
                 background: 'none',
@@ -59,7 +59,7 @@ const TopNavBar: React.FC = () => {
                 border: 'none', 
                 background: 'none', 
                 cursor: 'pointer',
-                fontSize: '11px'
+                fontSize: '13px'
               }}
             >
               로그아웃
@@ -75,7 +75,7 @@ const TopNavBar: React.FC = () => {
                 border: 'none', 
                 background: 'none', 
                 cursor: 'pointer',
-                fontSize: '11px'
+                fontSize: '13px'
               }}
             >
               로그인/회원가입

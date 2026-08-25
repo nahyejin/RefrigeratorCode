@@ -16,6 +16,18 @@ export default {
       fontFamily: {
         sans: ['Pretendard', 'sans-serif'],
       },
+      // 타이포 스케일 — src/index.css 의 --text-* 토큰과 같은 값 유지.
+      // 기존 Tailwind 기본값(xs 12 / sm 14 / base 16)보다 한 단계씩 키움:
+      // 실측 시 본문의 65%가 13px 미만이라 전체적으로 작아 보였기 때문.
+      fontSize: {
+        caption: ['12px', { lineHeight: '1.45' }],
+        xs: ['13px', { lineHeight: '1.45' }],
+        sm: ['15px', { lineHeight: '1.5' }],
+        base: ['16px', { lineHeight: '1.5' }],
+        lg: ['18px', { lineHeight: '1.4' }],
+        xl: ['22px', { lineHeight: '1.35' }],
+        '2xl': ['26px', { lineHeight: '1.3' }],
+      },
       colors: {
         ink: {
           900: '#1A1A1E',

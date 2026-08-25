@@ -60,8 +60,8 @@ const FindEmail: React.FC = () => {
         
         {/* 제목 */}
         <div className={`w-full ${MAX_CONTAINER_WIDTH} text-center mb-6 mx-auto`}>
-          <h1 className="text-[24px] font-bold text-[#1A1A1E] mb-2">이메일 찾기</h1>
-          <p className="text-[13px] text-gray-500">가입 시 사용한 닉네임을 입력해주세요</p>
+          <h1 className="text-[26px] font-bold text-[#1A1A1E] mb-2">이메일 찾기</h1>
+          <p className="text-[15px] text-gray-500">가입 시 사용한 닉네임을 입력해주세요</p>
         </div>
         
         {/* 입력 폼 */}
@@ -85,14 +85,14 @@ const FindEmail: React.FC = () => {
           
           {/* 에러 메시지 */}
           {error && (
-            <div className="w-full text-[12px] text-red-500 text-center mt-1">
+            <div className="w-full text-[13px] text-red-500 text-center mt-1">
               {error}
             </div>
           )}
           
           {/* 찾은 이메일 표시 */}
           {foundEmail && (
-            <div className="w-full text-[14px] text-center mt-2 p-4 bg-green-50 border border-green-200 rounded-lg">
+            <div className="w-full text-[15px] text-center mt-2 p-4 bg-green-50 border border-green-200 rounded-lg">
               <p className="text-gray-700 mb-1">등록된 이메일</p>
               <p className="text-[16px] font-semibold text-green-700">{foundEmail}</p>
             </div>
@@ -101,7 +101,7 @@ const FindEmail: React.FC = () => {
           <NeangteolButton 
             color="bg-[#3A3A42]" 
             textColor="text-white" 
-            className={`w-full ${BUTTON_HEIGHT} rounded-xl text-[15px] mt-1 px-4`}
+            className={`w-full ${BUTTON_HEIGHT} rounded-xl text-[16px] mt-1 px-4`}
             onClick={handleFindEmail}
             disabled={loading}
           >
@@ -110,7 +110,7 @@ const FindEmail: React.FC = () => {
         </div>
         
         {/* 하단 링크 */}
-        <div className={`w-full ${MAX_CONTAINER_WIDTH} text-center text-[12px] text-[#3A3A42] mb-4 leading-tight mx-auto mt-4`}>
+        <div className={`w-full ${MAX_CONTAINER_WIDTH} text-center text-[13px] text-[#3A3A42] mb-4 leading-tight mx-auto mt-4`}>
           <span className="underline cursor-pointer" onClick={() => navigate('/login')}>로그인으로 돌아가기</span>
         </div>
         
