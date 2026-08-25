@@ -501,11 +501,22 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
       <div style={{ ...STYLES.title, cursor: 'pointer' }}>
         {recipe.title}
       </div>
-      <div style={{ ...STYLES.stats, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-        <span>{Utils.getStatsText(recipe)}</span>
+      <div style={{ ...STYLES.stats, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, minWidth: 0 }}>
+        {/* 좋아요·댓글·조회수가 줄바꿈되면 카드 높이가 들쭉날쭉해져 한 줄로 고정 */}
+        <span
+          style={{
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            minWidth: 0,
+            fontSize: 14,
+          }}
+        >
+          {Utils.getStatsText(recipe)}
+        </span>
         {/* 완료 / 기록 / 공유 — 사진을 가리지 않도록 이 줄로 내림. 줄 높이를 그대로 써서
             카드가 더 길어지지 않고, 터치 영역은 36px 로 확보 */}
-        <span style={{ display: 'flex', alignItems: 'center', gap: 2, flexShrink: 0 }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 0, flexShrink: 0, marginRight: -6 }}>
           {SECONDARY_ACTIONS.map(({ key, title, icon }) => (
             <button
               key={key}
@@ -517,8 +528,8 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
                 handleActionButtonClick(key, e);
               }}
               style={{
-                width: 36,
-                height: 36,
+                width: 34,
+                height: 34,
                 padding: 0,
                 border: 'none',
                 background: 'transparent',
@@ -532,10 +543,10 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
               <img
                 src={icon}
                 alt={title}
-                width={18}
-                height={18}
+                width={22}
+                height={22}
                 style={{
-                  opacity: recipeActionState?.[key] ? 0.35 : 0.62,
+                  opacity: recipeActionState?.[key] ? 0.32 : 0.7,
                   filter: 'grayscale(1)',
                 }}
               />

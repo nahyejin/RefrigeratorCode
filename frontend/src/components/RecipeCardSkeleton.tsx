@@ -17,7 +17,26 @@ const Line: React.FC<{ w: string; h?: number; r?: number }> = ({ w, h = 12, r = 
  * 내용이 채워질 때 레이아웃이 흔들리지 않는다.
  */
 const RecipeCardSkeleton: React.FC<RecipeCardSkeletonProps> = ({ count = 4 }) => (
-  <div className="flex flex-col gap-2" aria-hidden>
+  <div className="flex flex-col gap-2">
+    {/* 뼈대만 있으면 "멈춘 화면"처럼 보인다는 피드백 → 진행 중임을 알리는 문구를 함께 표시 */}
+    <div
+      role="status"
+      aria-live="polite"
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        padding: '10px 0 14px',
+        color: 'var(--ink-500)',
+        fontSize: 14,
+        fontWeight: 600,
+        letterSpacing: '0.2px',
+      }}
+    >
+      <span className="loading-spin" aria-hidden />
+      Loading...
+    </div>
     {Array.from({ length: count }).map((_, i) => (
       <div
         key={i}
@@ -36,7 +55,7 @@ const RecipeCardSkeleton: React.FC<RecipeCardSkeletonProps> = ({ count = 4 }) =>
         <Line w="40%" h={12} />
         <div style={{ height: 10 }} />
         {/* 재료 pill */}
-        <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }} aria-hidden>
           {[54, 46, 62, 50, 44].map((w, j) => (
             <div key={j} className="skeleton-block" style={{ width: w, height: 26, borderRadius: 9999 }} />
           ))}

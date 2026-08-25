@@ -628,9 +628,15 @@ div[style*="overflow"]:not([style*="layout: horizontal"]):not([style*="overflow-
 }
 /* 버튼 위를 스쳐 지나가는 하이라이트 */
 @keyframes ai-fab-sheen {
-  0%        { transform: translateX(-120%) rotate(18deg); opacity: 0; }
-  12%       { opacity: 0.85; }
-  38%, 100% { transform: translateX(120%) rotate(18deg); opacity: 0; }
+  0%        { transform: translateX(-130%) rotate(18deg); opacity: 0; }
+  8%        { opacity: 1; }
+  30%, 100% { transform: translateX(130%) rotate(18deg); opacity: 0; }
+}
+/* 버튼 자체가 아주 살짝 숨쉬듯 — 노란 버튼 위 노란 그라데이션은 대비가 낮아
+   shimmer 만으로는 "움직이고 있다"가 잘 인지되지 않았음 */
+@keyframes ai-fab-breathe {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.045); }
 }
 
 .ai-fab-outer {
@@ -645,7 +651,7 @@ div[style*="overflow"]:not([style*="layout: horizontal"]):not([style*="overflow-
   position: absolute;
   inset: -10px;
   border-radius: 9999px;
-  background: radial-gradient(circle, rgba(255,214,0,0.5) 0%, rgba(255,214,0,0) 72%);
+  background: radial-gradient(circle, rgba(255,214,0,0.75) 0%, rgba(255,214,0,0) 72%);
   animation: ai-fab-pulse 2.6s ease-in-out infinite;
   pointer-events: none;
 }
@@ -666,7 +672,9 @@ div[style*="overflow"]:not([style*="layout: horizontal"]):not([style*="overflow-
   overflow: hidden;
   background: linear-gradient(120deg, #F2C200 0%, #FFE45C 25%, #FFF6C2 45%, #FFD600 65%, #F2C200 100%);
   background-size: 260% 260%;
-  animation: ai-fab-shimmer 4.2s ease-in-out infinite;
+  animation:
+    ai-fab-shimmer 4.2s ease-in-out infinite,
+    ai-fab-breathe 2.8s ease-in-out infinite;
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,0.6),
     inset 0 0 0 1px rgba(0,0,0,0.06),
@@ -691,6 +699,7 @@ div[style*="overflow"]:not([style*="layout: horizontal"]):not([style*="overflow-
   z-index: 1;
 }
 .ai-fab-button:active {
+  animation-play-state: paused;
   transform: scale(0.94);
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,0.4),
@@ -899,4 +908,19 @@ select:focus-visible,
 .recipe-card-press:active {
   transform: scale(0.985);
   opacity: 0.92;
+}
+
+/* 로딩 스피너 — 브랜드 컬러 링이 도는 형태 */
+@keyframes loading-spin {
+  to { transform: rotate(360deg); }
+}
+.loading-spin {
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  border: 2px solid var(--line-200);
+  border-top-color: var(--brand);
+  animation: loading-spin 0.7s linear infinite;
+  display: inline-block;
+  flex-shrink: 0;
 }
