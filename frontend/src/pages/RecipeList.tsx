@@ -1,4 +1,5 @@
 import axios, { AxiosResponse } from 'axios';
+import RecipeCardSkeleton from '../components/RecipeCardSkeleton';
 import IngredientLegend from '../components/IngredientLegend';
 import React, { useState, useEffect, useMemo, useCallback, useRef, useLayoutEffect } from 'react';
 import BottomNavBar from '../components/BottomNavBar';
@@ -2026,7 +2027,11 @@ const RecipeList: React.FC = () => {
           <IngredientLegend total={total} style={{ marginBottom: 6, marginTop: 8 }} />
         </div>
 
-          {/* Render recipe cards only when not loading */}
+          {/* 로딩 중에는 실제 카드와 같은 모양의 뼈대를 목록 자리에 보여준다.
+              (예전엔 화면 한가운데 스피너만 떠서 무엇이 로딩 중인지 알 수 없었고,
+               로딩이 끝나는 순간 화면이 통째로 바뀌어 이동이 크게 느껴졌음) */}
+          {loading && <RecipeCardSkeleton count={4} />}
+
           {!loading && (
             <div className="flex flex-col gap-2">
               {(() => {
@@ -2375,74 +2380,7 @@ const RecipeList: React.FC = () => {
       <BottomNavBar activeTab="recipe" />
       
       {toast && <RecipeToast message={toast} />}
-        {/* Loading animation - 초기 로드/필터 변경/페이지 변경 시 표시 */}
-        {loading && (
-          <div className="loader-toast" style={{ 
-            position: 'fixed', 
-            top: '50%', 
-            left: '50%', 
-            transform: 'translate(-50%, -50%)', 
-            zIndex: 'var(--z-overlay)',
-            background: 'rgba(255, 255, 255, 0.98)',
-            padding: '16px 20px',
-            borderRadius: '12px',
-            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08)',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '12px',
-            minWidth: '200px',
-            maxWidth: '240px',
-            border: '1px solid rgba(0, 0, 0, 0.05)'
-          }}>
-            <div className="loader-dots">
-              <div></div>
-              <div></div>
-              <div></div>
-            </div>
-            <div style={{ 
-              textAlign: 'center',
-              fontSize: '15px',
-              color: '#6A6A73',
-              lineHeight: '1.4'
-            }}>
-              <div style={{ fontWeight: '600', marginBottom: '2px', color: '#1A1A1E', fontSize: '15px' }}>
-                레시피를 불러오는 중...
-              </div>
-              <div style={{ fontSize: '13px', color: '#9A9AA2' }}>
-                재료 수에 따라<br />
-                시간이 걸릴 수 있습니다
-              </div>
-            </div>
-            {/* 프로그레스 바 */}
-            <div style={{
-              width: '100%',
-              height: '6px',
-              background: '#F5F5F7',
-              borderRadius: '3px',
-              overflow: 'hidden',
-              marginTop: '4px',
-              position: 'relative'
-            }}>
-              <div style={{
-                height: '100%',
-                width: `${loadingProgress}%`,
-                background: 'linear-gradient(90deg, #FFD600 0%, #FFC107 100%)',
-                borderRadius: '3px',
-                transition: 'width 0.3s ease-out'
-              }}></div>
-            </div>
-            {/* 진행률 텍스트 */}
-            <div style={{
-              fontSize: '13px',
-              fontWeight: '600',
-              color: '#FFD600',
-              marginTop: '-4px'
-            }}>
-              {loadingProgress}%
-            </div>
-          </div>
-        )}
+
       {/* 회원가입 유도 모달 */}
       <RegisterPromptModal
         visible={showRegisterModal}

@@ -853,3 +853,50 @@ div[style*="overflow"]:not([style*="layout: horizontal"]):not([style*="overflow-
     transition-duration: 0.01ms !important;
   }
 }
+
+/* 로딩 스켈레톤 — 빛이 훑고 지나가는 형태 */
+@keyframes skeleton-shine {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.skeleton-block {
+  background: linear-gradient(
+    90deg,
+    var(--surface-sub) 25%,
+    #ECECF0 37%,
+    var(--surface-sub) 63%
+  );
+  background-size: 400% 100%;
+  animation: skeleton-shine 1.4s ease-in-out infinite;
+}
+
+/* 썸네일이 갑자기 튀어나오지 않도록 부드럽게 나타남 */
+@keyframes img-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.img-fade-in {
+  animation: img-fade-in 0.35s ease-out;
+}
+
+/* 접근성: 예전엔 outline 을 전역 !important 로 죽여 놔서 키보드 사용자가
+   지금 어디에 포커스가 있는지 알 수 없었음. 마우스 클릭 시에는 안 보이고
+   키보드 이동 시에만 보이는 :focus-visible 로 복원 */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid var(--brand-strong) !important;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* 카드 누름 반응 — 탭했을 때 반응이 없으면 "먹통인가?" 하고 다시 누르게 됨 */
+.recipe-card-press {
+  transition: transform 0.12s ease, opacity 0.12s ease;
+}
+.recipe-card-press:active {
+  transform: scale(0.985);
+  opacity: 0.92;
+}

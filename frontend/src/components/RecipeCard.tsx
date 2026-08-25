@@ -344,7 +344,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
 
   return (
     <div
-      className="bg-white rounded-[20px] relative block transition-all duration-300 cursor-pointer"
+      className="recipe-card-press bg-white rounded-[20px] relative block cursor-pointer"
       style={{
         ...(isLast ? STYLES.lastCard : STYLES.card),
         padding: '3px 8px', // 상하 3px, 좌우 8px
@@ -376,6 +376,8 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
         <img
           src={getProxiedImageUrl(recipe.thumbnail || '')}
           alt="썸네일"
+          className="img-fade-in"
+          loading="lazy"
           onError={e => {
             // 썸네일 로드 실패 시 상위 컴포넌트에 알림 (레시피 숨기기용)
             if (onThumbnailError && recipe.id) {

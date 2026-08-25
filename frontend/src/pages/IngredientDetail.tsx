@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import RecipeCardSkeleton from '../components/RecipeCardSkeleton';
 import IngredientLegend from '../components/IngredientLegend';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import logoImg from '../assets/냉털이 로고 white.png';
@@ -901,6 +902,9 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
           {/* /sticky */}
 
           <div className="mt-4 flex flex-col gap-2" style={{ marginTop: 0 }}>
+            {/* 로딩 중에는 실제 카드와 같은 모양의 뼈대를 목록 자리에 보여준다 */}
+            {loading && <RecipeCardSkeleton count={4} />}
+            {!loading && (
             <VirtualizedRecipeList
               recipes={processedRecipes}
               myIngredients={myIngredients}
@@ -908,7 +912,8 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
               recipeActionStates={buttonStates}
               onRecipeAction={(recipe, action) => handleRecipeAction(recipe.id, { action: action as 'done' | 'write' | 'share' | 'favorite' })}
             />
-            
+            )}
+
             {/* 페이지네이션 */}
             {!loading && total > 0 && location.pathname.startsWith('/ingredient/') && (() => {
               const totalPages = Math.ceil(total / pageSize);
@@ -1200,16 +1205,6 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
             setFilterOpen(false);
           }}
         />
-      )}
-      {/* Loading animation */}
-      {loading && (
-        <div className="loader-toast" style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 'var(--z-overlay)' }}>
-          <div className="loader-dots">
-            <div></div>
-            <div></div>
-            <div></div>
-          </div>
-        </div>
       )}
     </>
   );
