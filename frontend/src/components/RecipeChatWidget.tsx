@@ -65,6 +65,28 @@ const CookMatchMarkIcon: React.FC<{ size?: number; className?: string }> = ({ si
   </svg>
 );
 
+/** FAB 전용 말풍선 아이콘 (말풍선 + 말줄임 점 3개 + 반짝임) */
+const ChatBubbleIcon: React.FC<{ size?: number }> = ({ size = 26 }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    style={{ width: size, height: size, flexShrink: 0, display: 'block' }}
+  >
+    {/* 말풍선 본체 + 왼쪽 아래 꼬리 */}
+    <path
+      className="ai-fab-bubble"
+      d="M4.6 3.9h14.8c1 0 1.9.9 1.9 1.9v9.1c0 1-.9 1.9-1.9 1.9H9.9l-4.1 3.3c-.6.5-1.5.1-1.5-.7v-2.6h-.6c-.6-.3-1-.9-1-1.6V5.8c0-1 .9-1.9 1.9-1.9z"
+      fill="currentColor"
+    />
+    {/* 말줄임 점 3개 (말풍선 안쪽, 버튼 배경색으로 뚫음) */}
+    <circle className="ai-fab-bubble-dot" cx="8.4" cy="10.4" r="1.35" />
+    <circle className="ai-fab-bubble-dot" cx="12" cy="10.4" r="1.35" />
+    <circle className="ai-fab-bubble-dot" cx="15.6" cy="10.4" r="1.35" />
+  </svg>
+);
+
 const HistoryIcon: React.FC<{ size?: number }> = ({ size = 16 }) => (
   <svg
     width={size}
@@ -608,14 +630,13 @@ const RecipeChatWidget: React.FC = () => {
       {!open && (
         <div className="ai-fab-outer">
           <div className="ai-fab-glow" />
-          <div className="ai-fab-ring-spin" />
           <button
             type="button"
             aria-label="AI 요리 챗봇 열기"
             className="ai-fab-button"
             onClick={openWidget}
           >
-            <CookMatchMarkIcon size={29} />
+            <ChatBubbleIcon size={26} />
           </button>
           <span className="ai-fab-badge" style={{ textShadow: 'none' }}>AI</span>
         </div>
