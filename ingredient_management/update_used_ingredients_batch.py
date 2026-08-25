@@ -307,8 +307,15 @@ if __name__ == "__main__":
         "SELECT 전송 중… (원격 DB가 쿼리를 받아 실행하기까지 1~수 분 멈춘 것처럼 보일 수 있음)",
         flush=True,
     )
+    # ⚠️ 중요: LLM이 이미 처리한 행(llm_ingredients_done = 1)은 건드리지 않는다.
+    #
+    #  룰베이스와 LLM이 같은 `used_ingredients` 열을 쓰기 때문에, 조건 없이 전체를 돌면
+    #  LLM이 며칠에 걸쳐 채워 넣은 결과를 룰베이스가 다시 덮어써 버린다.
+    #  (주 1회 크롤러가 돌 때마다 그동안의 LLM 작업이 무효화되는 상태였음)
+    #  룰베이스는 "아직 LLM이 손대지 않은 신규 수집분"의 임시 채움 역할만 한다.
     cursor.execute(
-        f"SELECT id, content, used_ingredients FROM recipes ORDER BY id{limit_sql}"
+        f"SELECT id, content, used_ingredients FROM recipes "
+        f"WHERE COALESCE(llm_ingredients_done, 0) = 0 ORDER BY id{limit_sql}"
     )
     print("SELECT 수락됨. 첫 데이터 묶음 수신 시작…", flush=True)
 
