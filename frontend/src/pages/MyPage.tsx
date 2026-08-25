@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import CoupangDisclaimer from '../components/CoupangDisclaimer';
 import Toast from '../components/Toast';
 import IngredientLegend from '../components/IngredientLegend';
 import BottomNavBar from '../components/BottomNavBar';
@@ -1319,6 +1320,7 @@ const MyPage: React.FC = () => {
         <BottomCoupangAd showCondition={true} />
       </div>
       
+      <CoupangDisclaimer />
       <BottomNavBar activeTab="mypage" />
       
       {/* 내 정보 수정 모달 */}

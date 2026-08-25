@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import CoupangDisclaimer from '../components/CoupangDisclaimer';
 import LoadingIndicator from '../components/LoadingIndicator';
 import SectionHeader from '../components/SectionHeader';
 import Toast from '../components/Toast';
@@ -2192,6 +2193,7 @@ const Popular = () => {
         }}
         message={registerModalMessage || '더 많은 기능을 사용하려면'}
       />
+      <CoupangDisclaimer />
       <BottomNavBar activeTab="popularity" />
     </>
   );

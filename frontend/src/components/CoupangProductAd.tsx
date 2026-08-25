@@ -282,21 +282,8 @@ const CoupangProductAd: React.FC<CoupangProductAdProps> = ({
       >
         {selectedAdInfo?.keyword || ingredientName} 쿠팡에서 구매하기
       </a>
-      <div
-        style={{
-          fontSize: '12px',
-          color: '#9A9AA2',
-          marginTop: '1px',
-          marginBottom: 0,
-          paddingBottom: 0,
-          textAlign: 'center',
-          lineHeight: 1.12,
-          letterSpacing: '-0.02em',
-          wordBreak: 'keep-all',
-        }}
-      >
-        이 게시물은 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다.
-      </div>
+      {/* 파트너스 고지 문구는 카드마다 반복하지 않고 목록 하단에 1회만 노출한다.
+          → components/CoupangDisclaimer.tsx (각 목록 화면 하단에 배치) */}
     </div>
   );
 };

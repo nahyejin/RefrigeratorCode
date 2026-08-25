@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import CoupangDisclaimer from '../components/CoupangDisclaimer';
 import LoadingIndicator from '../components/LoadingIndicator';
 import IngredientLegend from '../components/IngredientLegend';
 import { useNavigate } from 'react-router-dom';
@@ -535,6 +536,7 @@ const CompletedRecipeListPage: React.FC = () => {
         )}
       </div>
       
+      <CoupangDisclaimer />
       <BottomNavBar activeTab="mypage" />
       
       {toast && <RecipeToast message={toast} />}

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import CoupangDisclaimer from '../components/CoupangDisclaimer';
 import RecipeCardSkeleton from '../components/RecipeCardSkeleton';
 import IngredientLegend from '../components/IngredientLegend';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
@@ -1113,6 +1114,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
         </div>
       </div>
       
+      <CoupangDisclaimer />
       <BottomNavBar activeTab={location.pathname.startsWith('/mypage') ? 'mypage' : 'popularity'} />
       
       {toast && <RecipeToast message={toast} />}

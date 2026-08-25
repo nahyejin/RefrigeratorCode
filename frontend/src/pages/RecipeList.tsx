@@ -1,4 +1,5 @@
 import axios, { AxiosResponse } from 'axios';
+import CoupangDisclaimer from '../components/CoupangDisclaimer';
 import RecipeCardSkeleton from '../components/RecipeCardSkeleton';
 import IngredientLegend from '../components/IngredientLegend';
 import React, { useState, useEffect, useMemo, useCallback, useRef, useLayoutEffect } from 'react';
@@ -2377,6 +2378,7 @@ const RecipeList: React.FC = () => {
         })()}
         </div>
 
+      <CoupangDisclaimer />
       <BottomNavBar activeTab="recipe" />
       
       {toast && <RecipeToast message={toast} />}
