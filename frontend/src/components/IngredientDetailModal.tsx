@@ -194,9 +194,11 @@ export default function IngredientDetailModal({
               width: 'min(360px, calc(100vw - 24px))',
               boxSizing: 'border-box',
               boxShadow: '0 16px 48px rgba(0,0,0,0.22)',
+              maxHeight: 'calc(100dvh - 64px)',
+              overflowY: 'auto',
+              fontFamily: 'Pretendard, sans-serif',
             }}
             onClick={e => e.stopPropagation()}
-            style={{ fontFamily: 'Pretendard, sans-serif' }}
           >
             <CloseButton onClick={onClose} />
 

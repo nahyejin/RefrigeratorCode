@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import BackButton from './ui/BackButton';
 import { useLocation } from 'react-router-dom';
 import { getProxiedImageUrl } from '../utils/imageUtils';
 import CloseButton from './ui/CloseButton';
@@ -368,15 +369,11 @@ const RecipeChatWidget: React.FC = () => {
             <div className="flex items-center gap-2 min-w-0">
               {view === 'history' ? (
                 <>
-                  <button
-                    type="button"
-                    aria-label="대화로 돌아가기"
-                    className="text-gray-500 flex-shrink-0"
-                    style={{ background: 'none', border: 'none', padding: 4, cursor: 'pointer', fontSize: 18 }}
+                  <BackButton
                     onClick={() => setView('chat')}
-                  >
-                    ←
-                  </button>
+                    absolute={false}
+                    label="대화로 돌아가기"
+                  />
                   <p className="text-sm font-bold text-gray-900">
                     지난 대화
                   </p>

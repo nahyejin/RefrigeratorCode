@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import BackButton from '../components/ui/BackButton';
 import CloseButton from '../components/ui/CloseButton';
 import CoupangDisclaimer from '../components/CoupangDisclaimer';
 import LoadingIndicator from '../components/LoadingIndicator';
@@ -13,7 +14,6 @@ import RecipeToast from '../components/RecipeToast';
 import { getMyIngredients, sortRecipes } from '../utils/recipeUtils';
 import FilterModal from '../components/FilterModal';
 import RecipeSortBar from '../components/RecipeSortBar';
-import backIcon from '../assets/뒤로가기.png';
 import { 
   addRecipeToLocalStorage, 
   removeRecipeFromLocalStorage, 
@@ -418,18 +418,7 @@ const CompletedRecipeListPage: React.FC = () => {
           margin: '0 auto'
         }}
       >
-        <button
-          className="px-2 focus:outline-none bg-transparent border-none shadow-none ml-2"
-          style={{ minWidth: 40, background: 'transparent' }}
-          onClick={() => navigate(-1)}
-          aria-label="뒤로가기"
-        >
-          <img
-            src={backIcon}
-            alt="뒤로가기"
-            style={{ height: 13, width: 13, objectFit: 'contain', background: 'transparent' }}
-          />
-        </button>
+        <BackButton onClick={() => navigate(-1)} absolute={false} style={{ marginLeft: 8 }} />
         <button
           aria-label="필터 모달 열기"
           style={{ 

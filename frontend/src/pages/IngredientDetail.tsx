@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import BackButton from '../components/ui/BackButton';
 import CoupangDisclaimer from '../components/CoupangDisclaimer';
 import RecipeCardSkeleton from '../components/RecipeCardSkeleton';
 import IngredientLegend from '../components/IngredientLegend';
@@ -19,7 +20,6 @@ import { Recipe, RecipeActionState } from '../types/recipe';
 import RecipeSortBar from '../components/RecipeSortBar';
 import TopNavBar from '../components/TopNavBar';
 import RecipeToast from '../components/RecipeToast';
-import backIcon from '../assets/뒤로가기.png';
 import axios from 'axios';
 import { calculateMatchRate, compareByMatchRateThenLatest, getMyIngredients, sortRecipes } from '../utils/recipeUtils';
 import { 
@@ -824,18 +824,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
           margin: '0 auto'
         }}
       >
-        <button
-          className="px-2 focus:outline-none bg-transparent border-none shadow-none ml-2"
-          style={{ minWidth: 40, background: 'transparent' }}
-          onClick={() => navigate(-1)}
-          aria-label="뒤로가기"
-        >
-          <img
-            src={backIcon}
-            alt="뒤로가기"
-            style={{ height: 13, width: 13, objectFit: 'contain', background: 'transparent' }}
-          />
-        </button>
+        <BackButton onClick={() => navigate(-1)} absolute={false} style={{ marginLeft: 8 }} />
       </header>
       
       <div 

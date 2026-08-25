@@ -27,7 +27,6 @@ import { addRecipeToLocalStorage, removeRecipeFromLocalStorage, getRecipesFromLo
 import VirtualizedRecipeList from '../components/VirtualizedRecipeList';
 import RecipeToast from '../components/RecipeToast';
 import RecipeSortBar from '../components/RecipeSortBar';
-import backIcon from '../assets/뒤로가기.png';
 import VirtualizedHorizontalRecipeList from '../components/VirtualizedHorizontalRecipeList';
 import { decodeRecipesText } from '../utils/textUtils';
 import { useAuth } from '../context/AuthContext';

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
+import BackButton from './ui/BackButton';
 import CloseButton from './ui/CloseButton';
 import Button from './ui/Button';
-import backIcon from '../assets/뒤로가기_GREY.png';
 import CustomCalendar from './CustomCalendar';
 
 type Props = {
@@ -24,22 +24,6 @@ const CONSTANTS = {
 
 // 스타일 상수
 const STYLES = {
-  button: {
-    background: 'none',
-    border: 'none',
-    padding: 0,
-    width: CONSTANTS.BUTTON_SIZE,
-    height: CONSTANTS.BUTTON_SIZE,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center'
-  },
-  backIcon: {
-    width: CONSTANTS.ICON_SIZE,
-    height: CONSTANTS.ICON_SIZE,
-    objectFit: 'contain' as const,
-    display: 'block'
-  },
   calendarIcon: {
     width: CONSTANTS.CALENDAR_ICON_SIZE,
     height: CONSTANTS.CALENDAR_ICON_SIZE
@@ -192,16 +176,7 @@ export default function IngredientDateModal({ type, isOpen, onClose, onComplete,
         }}
         onClick={e => e.stopPropagation()}
       >
-        <div className="absolute top-1 left-1 flex gap-1 z-10">
-          <button
-            onClick={onBack ? onBack : onClose}
-            className="p-1 text-gray-400 hover:text-gray-700 bg-transparent border-none outline-none text-base"
-            style={STYLES.button}
-            aria-label="뒤로가기"
-          >
-            <img src={backIcon} alt="뒤로가기" style={STYLES.backIcon} />
-          </button>
-        </div>
+        <BackButton onClick={onBack ? onBack : onClose} />
         <CloseButton onClick={onClose} />
         {/* 제목("일자를 선택하세요")과 바로 아래 질문("유통기한은 언제까지 인가요?")이
             같은 말을 두 번 하고 있었음 → 제목은 무엇을 정하는지만 밝힌다 */}
