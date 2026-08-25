@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import Toast from '../components/Toast';
 import IngredientLegend from '../components/IngredientLegend';
 import BottomNavBar from '../components/BottomNavBar';
 import logoImg from '../assets/냉털이 로고 white.png';
@@ -1551,26 +1552,7 @@ const MyPage: React.FC = () => {
       
       {/* Toast Popup */}
       {toast && (
-        <div style={{
-          position: 'fixed',
-          bottom: 100,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          background: 'rgba(34,34,34,0.9)',
-          color: '#FFFFFF',
-          padding: '12px 24px',
-          borderRadius: 12,
-          fontSize: 15,
-          zIndex: 'var(--z-toast)',
-          maxWidth: 260,
-          width: 'max-content',
-          whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          textAlign: 'center',
-        }}>
-          {toast}
-        </div>
+        <Toast message={toast} />
       )}
       
       {/* 삭제 확인 토스트 */}

@@ -2494,42 +2494,4 @@ const RecipeList: React.FC = () => {
   );
 };
 
-// 로더 스타일 추가
-const loaderStyle = `
-  .loader-dots {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-
-  .loader-dots div {
-    width: 12px;
-    height: 12px;
-    margin: 2px;
-    border-radius: 50%;
-    background-color: #FFD600;
-    animation: dot-blink 1.2s infinite ease-in-out both;
-  }
-
-  .loader-dots div:nth-child(1) { animation-delay: -0.32s; }
-  .loader-dots div:nth-child(2) { animation-delay: -0.16s; }
-
-  @keyframes dot-blink {
-    0%, 80%, 100% { opacity: 0; }
-    40% { opacity: 1; }
-  }
-`;
-
-// 스타일을 문서에 주입
-if (typeof document !== 'undefined') {
-  const styleId = 'recipe-list-loader-style';
-  if (!document.getElementById(styleId)) {
-    const styleSheet = document.createElement("style");
-    styleSheet.id = styleId;
-    styleSheet.type = "text/css";
-    styleSheet.innerText = loaderStyle;
-    document.head.appendChild(styleSheet);
-  }
-}
-
 export default RecipeList; 

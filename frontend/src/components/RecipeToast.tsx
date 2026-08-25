@@ -1,32 +1,17 @@
 import React from 'react';
+import Toast from './Toast';
 
 interface RecipeToastProps {
   message: string;
 }
 
-const BASE_STYLE: React.CSSProperties = {
-  position: 'fixed',
-  bottom: 100,
-  left: '50%',
-  transform: 'translateX(-50%)',
-  background: 'rgba(34,34,34,0.9)',
-  color: '#FFFFFF',
-  padding: '12px 24px',
-  borderRadius: 12,
-  fontSize: 15,
-  fontWeight: 400,
-  zIndex: 'var(--z-toast)',
-  maxWidth: 260,
-  width: 'max-content',
-  whiteSpace: 'pre-line', // 여러 줄 표시를 위해 pre-line 사용
-  textAlign: 'center',
-  lineHeight: 1.5, // 줄 간격 추가
-};
-
+/**
+ * 레시피 동작 안내용 토스트.
+ * 예전엔 Toast.tsx 와 거의 같은 스타일 정의를 각자 들고 있었음 → Toast 로 위임한다.
+ * (여러 줄 메시지를 그대로 보여줘야 해서 multiline 만 다름)
+ */
 const RecipeToast: React.FC<RecipeToastProps> = ({ message }) => (
-  <div style={BASE_STYLE}>
-    {message}
-  </div>
+  <Toast message={message} multiline style={{ maxWidth: 260 }} />
 );
 
-export default RecipeToast; 
+export default RecipeToast;

@@ -258,48 +258,6 @@ const Toast = ({ message, onUndo, onClose }: { message: string; onUndo: () => vo
   </div>
 );
 
-// Add CSS for loader-toast with dots
-const loaderStyle = `
-  .loader-toast {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .loader-dots {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-
-  .loader-dots div {
-    width: 12px;
-    height: 12px;
-    margin: 2px;
-    border-radius: 50%;
-    background-color: #FFD600;
-    animation: dot-blink 1.2s infinite ease-in-out both;
-  }
-
-  .loader-dots div:nth-child(1) { animation-delay: -0.32s; }
-  .loader-dots div:nth-child(2) { animation-delay: -0.16s; }
-
-  @keyframes dot-blink {
-    0%, 80%, 100% { opacity: 0; }
-    40% { opacity: 1; }
-  }
-`;
-
-// Inject style into the document
-const styleSheet = document.createElement("style");
-styleSheet.type = "text/css";
-styleSheet.innerText = loaderStyle;
-document.head.appendChild(styleSheet);
-
 // =====================
 // IngredientPill 컴포넌트
 // =====================

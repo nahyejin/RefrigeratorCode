@@ -758,3 +758,37 @@ div[style*="overflow"]:not([style*="layout: horizontal"]):not([style*="overflow-
   z-index: 3;
   pointer-events: none;
 }
+
+/* 로딩 점 애니메이션.
+   예전엔 이 CSS 문자열이 5개 페이지 파일에 각각 복붙되어 있었고, 모듈 최상위에서
+   document.createElement('style') 로 <head>에 주입하고 있었음 →
+   페이지를 하나만 열어도 동일한 <style> 태그가 여러 개 쌓였음. 여기로 옮김. */
+.loader-toast {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: var(--z-overlay);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.loader-dots {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.loader-dots div {
+  width: 12px;
+  height: 12px;
+  margin: 2px;
+  border-radius: 50%;
+  background-color: var(--brand);
+  animation: dot-blink 1.2s infinite ease-in-out both;
+}
+.loader-dots div:nth-child(1) { animation-delay: -0.32s; }
+.loader-dots div:nth-child(2) { animation-delay: -0.16s; }
+@keyframes dot-blink {
+  0%, 80%, 100% { opacity: 0; }
+  40% { opacity: 1; }
+}

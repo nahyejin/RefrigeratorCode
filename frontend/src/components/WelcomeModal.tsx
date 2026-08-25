@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import Portal from './Portal';
 
 interface WelcomeModalProps {
   visible: boolean;
@@ -15,10 +16,17 @@ const WelcomeModal: React.FC<WelcomeModalProps> = ({
   if (!visible) return null;
 
   return (
-    <div 
+    <Portal>
+      {/* 예전엔 딤 배경 없이 흰 카드만 떠 있어서 모달인지 페이지 일부인지 구분이 안 됐음 */}
+      <div
+        className="fixed inset-0"
+        style={{ background: 'rgba(0,0,0,0.35)', zIndex: 'var(--z-overlay)' }}
+        onClick={onClose}
+      />
+    <div
       className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[var(--z-modal)]"
-      style={{ 
-        maxWidth: 'calc(100% - 32px)', 
+      style={{
+        maxWidth: 'calc(100% - 32px)',
         width: 'max-content',
         minWidth: '280px'
       }}
@@ -70,6 +78,7 @@ const WelcomeModal: React.FC<WelcomeModalProps> = ({
         </div>
       </div>
     </div>
+    </Portal>
   );
 };
 

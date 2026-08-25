@@ -1,4 +1,5 @@
 import React from 'react';
+import Portal from './Portal';
 import { useNavigate } from 'react-router-dom';
 
 interface RegisterPromptModalProps {
@@ -29,7 +30,8 @@ const RegisterPromptModal: React.FC<RegisterPromptModalProps> = ({
   const secondLineText = subMessage === undefined || subMessage === '' ? '회원가입이 필요해요' : subMessage;
 
   return (
-    <div
+    <Portal>
+      <div
       className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center"
       style={{ zIndex: 'var(--z-modal)' }}
       onClick={onClose}
@@ -72,6 +74,7 @@ const RegisterPromptModal: React.FC<RegisterPromptModalProps> = ({
         </div>
       </div>
     </div>
+    </Portal>
   );
 };
 

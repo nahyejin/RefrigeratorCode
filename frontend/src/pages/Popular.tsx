@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import Toast from '../components/Toast';
 import IngredientLegend from '../components/IngredientLegend';
 import BottomNavBar from '../components/BottomNavBar';
 import FilterModal from '../components/FilterModal';
@@ -35,48 +36,6 @@ import {
 import { parseUsedIngredientsForPills } from '../utils/ingredientPillNoise';
 import CoupangProductAd from '../components/CoupangProductAd';
 import BottomCoupangAd from '../components/BottomCoupangAd';
-
-// Add CSS for loader-toast with dots
-const loaderStyle = `
-  .loader-toast {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .loader-dots {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-
-  .loader-dots div {
-    width: 12px;
-    height: 12px;
-    margin: 2px;
-    border-radius: 50%;
-    background-color: #FFD600;
-    animation: dot-blink 1.2s infinite ease-in-out both;
-  }
-
-  .loader-dots div:nth-child(1) { animation-delay: -0.32s; }
-  .loader-dots div:nth-child(2) { animation-delay: -0.16s; }
-
-  @keyframes dot-blink {
-    0%, 80%, 100% { opacity: 0; }
-    40% { opacity: 1; }
-  }
-`;
-
-// Inject style into the document
-const styleSheet = document.createElement("style");
-styleSheet.type = "text/css";
-styleSheet.innerText = loaderStyle;
-document.head.appendChild(styleSheet);
 
 // 필터 상태 타입 및 초기값
 type FilterState = {
@@ -2264,27 +2223,7 @@ const Popular = () => {
         <BottomCoupangAd showCondition={true} />
       </div>
       {toast && (
-        <div style={{
-          position: 'fixed',
-          bottom: 100,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          background: 'rgba(34,34,34,0.9)',
-          color: '#FFFFFF',
-          padding: '12px 24px',
-          borderRadius: 12,
-          fontSize: 15,
-          fontWeight: 400,
-          zIndex: 'var(--z-toast)',
-          maxWidth: 260,
-          width: 'max-content',
-          whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          textAlign: 'center',
-        }}>
-          {toast}
-        </div>
+        <Toast message={toast} />
       )}
       {/* Loading animation */}
       {loading && (

@@ -253,3 +253,19 @@
   → `Portal` 컴포넌트 신설(`createPortal`로 `document.body` 직속 렌더)하고
   FilterModal / IngredientDetailModal / RecipeSortBar의 매칭도·임박재료 모달에 적용.
   수정 후 히트 테스트로 헤더·네비·FAB 위치 모두 모달 딤이 덮는 것 확인
+
+### 4단계: 남은 중복 제거
+- **런타임 `<style>` 주입 제거**: 로딩 점 애니메이션 CSS가 5개 페이지 파일에 각각 복붙되어 있고,
+  모듈 최상위에서 `document.createElement('style')` 로 `<head>` 에 주입하고 있었음
+  (페이지를 옮겨 다니면 동일한 `<style>` 태그가 계속 쌓임) → `index.css` 로 옮기고 주입 코드 삭제.
+  점 색상도 `var(--brand)` 로, z-index 도 `var(--z-overlay)` 로 토큰화
+- **Toast / RecipeToast 통합**: 두 컴포넌트가 거의 같은 스타일 정의를 각자 들고 있었음
+  → `RecipeToast` 가 `Toast` 에 위임하도록 변경(여러 줄 표시 옵션만 다름)
+- `Toast` 를 `Portal` 로 감쌈 — sticky/transform 조상 안에서 호출돼도 층위에 갇히지 않도록
+- 페이지에 인라인으로 복붙돼 있던 토스트 마크업 중 형태가 동일한 2곳을 `<Toast />` 로 교체
+
+### 5단계: 화면 정리
+- **`WelcomeModal` 에 딤 배경 추가**: 흰 카드만 화면 가운데 떠 있어서 모달인지 페이지 일부인지
+  구분이 안 되는 상태였음(딤 배경이 처음부터 없었음) → 반투명 배경 추가 + 배경 클릭 시 닫힘 +
+  `Portal` 적용
+- `RegisterPromptModal` 도 `Portal` 적용 — 어디서 호출되든 층위 문제가 생기지 않도록
