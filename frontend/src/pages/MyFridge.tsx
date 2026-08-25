@@ -266,31 +266,76 @@ const Toast = ({ message, onUndo, onClose }: { message: string; onUndo: () => vo
 interface IngredientPillProps {
   item: Ingredient;
   onRemove: (id: string) => void;
-  onInfoClick: (item: Ingredient) => void;
   onSettingsClick: (item: Ingredient) => void;
   isFirstInFridge?: boolean;
 }
 
-const IngredientPill: React.FC<IngredientPillProps> = ({ item, onRemove, onInfoClick, onSettingsClick, isFirstInFridge = false }) => {
+/** 유통기한까지 남은 일수를 D-표기로. 날짜가 없으면 null */
+function getDdayLabel(item: Ingredient): { text: string; urgent: boolean } | null {
+  const raw = item.expiry;
+  if (!raw) return null;
+  const d = new Date(String(raw).replace(/\./g, '-'));
+  if (isNaN(d.getTime())) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  d.setHours(0, 0, 0, 0);
+  const days = Math.round((d.getTime() - today.getTime()) / 86400000);
+  if (days < 0) return { text: '지남', urgent: true };
+  if (days === 0) return { text: 'D-day', urgent: true };
+  return { text: `D-${days}`, urgent: days <= 3 };
+}
+
+const IngredientPill: React.FC<IngredientPillProps> = ({ item, onRemove, onSettingsClick, isFirstInFridge = false }) => {
+  const dday = getDdayLabel(item);
+
   return (
-    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 0, marginRight: 8, marginBottom: 4 }}>
-      <TagPill 
-        style={{ fontSize: 13, cursor: 'default', marginRight: 0, marginBottom: 0 }}
+    <div style={{ display: 'inline-flex', alignItems: 'center', marginRight: 8, marginBottom: 4 }}>
+      {/* 예전에는 pill 안에 동작이 3개였다 —
+          이름 탭(토스트로 날짜 보여주기) / 시계 버튼(설정 팝업) / X(삭제).
+          토스트는 "보여주기만" 하고 고칠 수는 없어 설정 팝업의 열화판이었고,
+          시계 버튼은 pill 과 떨어져 있어 무엇인지 알기 어려웠다.
+          → pill 을 누르면 바로 설정 팝업이 열리도록 합치고 시계 버튼을 없앴다. */}
+      <TagPill
+        style={{ fontSize: 13, cursor: 'pointer', marginRight: 0, marginBottom: 0 }}
       >
-        <span 
+        <span
           className="truncate max-w-[100px]"
           style={{ cursor: 'pointer', userSelect: 'none', flex: 1 }}
           onClick={(e) => {
-            // X 버튼 영역이 아닐 때만 정보 표시
             const target = e.target as HTMLElement;
             if (!target.closest('span[title="삭제"]')) {
               e.stopPropagation();
-              onInfoClick(item);
+              onSettingsClick(item);
             }
           }}
+          {...(isFirstInFridge ? { 'data-guide-target': 'settings-icon' } : {})}
         >
           {item.name}
         </span>
+
+        {/* 날짜를 설정한 재료에만 D-표기를 붙인다.
+            실측상 유통기한을 넣는 비율이 매우 낮아, 없는 재료에까지 자리표시를 두면
+            거의 모든 pill 에 붙어 시계 아이콘과 같은 문제가 반복된다. */}
+        {dday && (
+          <span
+            style={{
+              marginLeft: 6,
+              padding: '0 6px',
+              height: 18,
+              display: 'inline-flex',
+              alignItems: 'center',
+              borderRadius: 9999,
+              fontSize: 11,
+              fontWeight: 700,
+              flexShrink: 0,
+              background: dday.urgent ? '#FFE7E4' : 'var(--surface-sub)',
+              color: dday.urgent ? '#C4342B' : 'var(--ink-500)',
+            }}
+          >
+            {dday.text}
+          </span>
+        )}
+
         <span
           style={{
             fontSize: 16,
@@ -298,17 +343,17 @@ const IngredientPill: React.FC<IngredientPillProps> = ({ item, onRemove, onInfoC
             cursor: 'pointer',
             lineHeight: 1,
             padding: 0,
-            marginLeft: 4,
+            marginLeft: 6,
             display: 'inline-block',
             width: '16px',
             height: '16px',
             textAlign: 'center',
             flexShrink: 0,
           }}
-          onClick={e => { 
-            e.stopPropagation(); 
+          onClick={e => {
+            e.stopPropagation();
             e.preventDefault();
-            onRemove(item.id); 
+            onRemove(item.id);
           }}
           onMouseDown={e => {
             e.stopPropagation();
@@ -319,43 +364,6 @@ const IngredientPill: React.FC<IngredientPillProps> = ({ item, onRemove, onInfoC
           x
         </span>
       </TagPill>
-      {/* 예전엔 `⚙︎` 문자에 padding 4px 뿐이라 터치 영역이 23px 남짓이었음.
-          유통기한을 자주 고치는 동선이라 제대로 된 버튼으로 키움 */}
-      <button
-        type="button"
-        aria-label={`${item.name} 유통기한 설정`}
-        title="유통기한·구매일 설정"
-        onClick={e => { e.stopPropagation(); onSettingsClick(item); }}
-        style={{
-          width: 32,
-          height: 32,
-          marginLeft: 2,
-          padding: 0,
-          boxSizing: 'border-box',
-          display: 'inline-flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: 'transparent',
-          border: 'none',
-          borderRadius: 9999,
-          cursor: 'pointer',
-          color: 'var(--ink-400)',
-          flexShrink: 0,
-        }}
-        {...(isFirstInFridge ? { 'data-guide-target': 'settings-icon' } : {})}
-      >
-        <svg
-          width="18"
-          height="18"
-          viewBox="0 0 24 24"
-          fill="none"
-          aria-hidden
-          style={{ width: 18, height: 18, flexShrink: 0, display: 'block' }}
-        >
-          <circle cx="12" cy="12" r="8.2" stroke="currentColor" strokeWidth="1.8" />
-          <path d="M12 7.6V12l2.8 1.7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </button>
     </div>
   );
 };
@@ -1741,13 +1749,6 @@ const MyFridge: React.FC = () => {
     setModalOpen(true);
   };
 
-  const handleTagInfo = (item: Ingredient) => {
-    if (item.expiry) setInfoToast({ text: `유통기한 : ${item.expiry}` });
-    else if (item.purchase) setInfoToast({ text: `구매시점 : ${item.purchase}` });
-    else setInfoToast({ text: '날짜 정보가 없습니다.' });
-    setTimeout(() => setInfoToast(null), 3000);
-  };
-
   const handleRemoveAll = (box: StorageBox) => {
     if (window.confirm('정말 삭제하시겠습니까?')) {
       removeAll(box);
@@ -1968,7 +1969,6 @@ const MyFridge: React.FC = () => {
                   key={`${item.id}-${item.name}`}
                   item={item}
                   onRemove={(id) => removeTag('frozen', id)}
-                  onInfoClick={handleTagInfo}
                   onSettingsClick={handleTagClick}
                   data-guide-target="settings-icon"
                 />
@@ -1998,7 +1998,6 @@ const MyFridge: React.FC = () => {
                   key={`${item.id}-${item.name}`}
                   item={item}
                   onRemove={(id) => removeTag('fridge', id)}
-                  onInfoClick={handleTagInfo}
                   onSettingsClick={handleTagClick}
                   isFirstInFridge={index === 0}
                 />
@@ -2028,7 +2027,6 @@ const MyFridge: React.FC = () => {
                   key={`${item.id}-${item.name}`}
                   item={item}
                   onRemove={(id) => removeTag('room', id)}
-                  onInfoClick={handleTagInfo}
                   onSettingsClick={handleTagClick}
                   data-guide-target="settings-icon"
                 />
