@@ -178,7 +178,10 @@ const AutoCompleteUtils = {
     setIngredients: (ingredients: string[] | ((prev: string[]) => string[])) => void,
     currentIngredients: string[],
     setInput: (input: string) => void,
-    setFocus: (focus: boolean) => void
+    setFocus: (focus: boolean) => void,
+    /** 반대쪽(포함↔제외)에 이미 고른 재료 — 여기에 있으면 추가하지 않는다 */
+    blockedIngredients: string[] = [],
+    onBlocked?: (name: string) => void
   ) => {
     return (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (e.key === 'Enter') {
@@ -186,6 +189,15 @@ const AutoCompleteUtils = {
         if (valueToAdd) {
           // 동의어를 keyword로 변환 (MyFridge와 동일한 로직)
           const keyword = ingredientDict[valueToAdd] || valueToAdd;
+          // 드롭다운에서는 이미 걸러 두지만, 자동완성 후보가 없을 때 입력값이 그대로
+          // 들어오는 경로가 남아 있어 여기서 한 번 더 막는다.
+          // (포함과 제외에 같은 재료가 들어가면 결과가 항상 0건이 된다)
+          if (blockedIngredients.includes(keyword)) {
+            onBlocked?.(keyword);
+            setInput('');
+            setFocus(false);
+            return;
+          }
           setIngredients((prev: string[]) => {
             if (!prev.includes(keyword)) {
               return [...prev, keyword];
@@ -330,12 +342,21 @@ const FilterModal: React.FC<FilterModalProps> = ({
   const [tempFilterState, setTempFilterState] = useState<FilterState>(filterState);
   const [tempIncludeIngredients, setTempIncludeIngredients] = useState<string[]>(includeIngredients);
   const [tempExcludeIngredients, setTempExcludeIngredients] = useState<string[]>(excludeIngredients);
+  /** 포함↔제외에 같은 재료를 넣으려 했을 때 알려 주는 문구 (잠깐 떴다 사라짐) */
+  const [blockedNotice, setBlockedNotice] = useState<string>('');
   const [tempIncludeInput, setTempIncludeInput] = useState<string>(includeInput);
   const [tempExcludeInput, setTempExcludeInput] = useState<string>(excludeInput);
   const [tempIncludeKeyword, setTempIncludeKeyword] = useState<string>(includeKeyword);
   const [tempSelectedChannel, setTempSelectedChannel] = useState<string[]>(selectedChannel);
   
   // 모달이 열릴 때 초기 상태 저장
+  // 안내 문구는 잠깐 보이고 사라진다 (닫기 버튼까지 둘 만큼 중요한 알림은 아님)
+  useEffect(() => {
+    if (!blockedNotice) return;
+    const t = setTimeout(() => setBlockedNotice(''), 3500);
+    return () => clearTimeout(t);
+  }, [blockedNotice]);
+
   useEffect(() => {
     if (open) {
       setTempFilterState(filterState);
@@ -482,8 +503,25 @@ const FilterModal: React.FC<FilterModalProps> = ({
       });
   }, [setFilterKeywordTree]);
 
-  const includeCandidates = AutoCompleteUtils.getFilteredCandidates(tempIncludeInput, tempIncludeIngredients, ingredientDict);
-  const excludeCandidates = AutoCompleteUtils.getFilteredCandidates(tempExcludeInput, tempExcludeIngredients, ingredientDict);
+  /**
+   * 자동완성 후보에서 **반대쪽에 이미 고른 재료도 함께 제외**한다.
+   *
+   * 예전에는 각 입력창이 자기 쪽 선택 목록만 걸러서, `가지` 를 포함에 넣어 두고
+   * 제외에도 `가지` 를 넣을 수 있었다. 그러면 SQL 이
+   * `used_ingredients 에 가지가 있고 AND 없고` 가 되어 **결과가 항상 0건**이 된다.
+   * 사용자는 왜 아무것도 안 나오는지 알 길이 없다.
+   * → 고를 수 없게 막는 쪽이 맞다. 이미 고른 것은 목록에 아예 띄우지 않는다.
+   */
+  const includeCandidates = AutoCompleteUtils.getFilteredCandidates(
+    tempIncludeInput,
+    [...(tempIncludeIngredients || []), ...(tempExcludeIngredients || [])],
+    ingredientDict
+  );
+  const excludeCandidates = AutoCompleteUtils.getFilteredCandidates(
+    tempExcludeInput,
+    [...(tempExcludeIngredients || []), ...(tempIncludeIngredients || [])],
+    ingredientDict
+  );
 
   // 선택된 키워드 pills 생성 (임시 상태 사용)
   const selectedKeywordPills: { main: string; keyword: string }[] = [];
@@ -676,6 +714,23 @@ const FilterModal: React.FC<FilterModalProps> = ({
           {/* 재료: 포함/제외를 한 묶음으로 (예전엔 각각 별도 섹션이라 관계가 안 보였음) */}
           <FilterGroup index={2} title="재료" hint="선택은 드롭다운에서">
             <div>
+              {blockedNotice && (
+                <div
+                  role="status"
+                  style={{
+                    marginBottom: 10,
+                    padding: '9px 12px',
+                    borderRadius: 8,
+                    background: '#FFF3E0',
+                    color: '#9A5B00',
+                    fontSize: 13,
+                    lineHeight: 1.45,
+                    wordBreak: 'keep-all',
+                  }}
+                >
+                  {blockedNotice} 한 재료를 포함과 제외에 함께 넣으면 결과가 하나도 나오지 않아요.
+                </div>
+              )}
               <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-700)', marginBottom: 6 }}>
                 꼭 포함할 재료
               </div>
@@ -689,7 +744,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                   onChange={e => setTempIncludeInput(e.target.value)}
                   onFocus={() => setIncludeFocus(true)}
                   onBlur={() => setTimeout(() => setIncludeFocus(false), 150)}
-                  onKeyDown={AutoCompleteUtils.createInputHandler(tempIncludeInput, includeCandidates, ingredientDict, setTempIncludeIngredients, tempIncludeIngredients, setTempIncludeInput, setIncludeFocus)}
+                  onKeyDown={AutoCompleteUtils.createInputHandler(tempIncludeInput, includeCandidates, ingredientDict, setTempIncludeIngredients, tempIncludeIngredients, setTempIncludeInput, setIncludeFocus, tempExcludeIngredients || [], (name) => setBlockedNotice(`'${name}' 은(는) 제외 재료로 골라 뒀어요.`))}
                 />
                 {includeFocus && includeCandidates.length > 0 && (
                   <ul className="absolute left-0 right-0 bg-white border border-gray-200 rounded-lg mt-1 shadow z-30 max-h-32 overflow-y-auto custom-scrollbar">
@@ -733,7 +788,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                   onChange={e => setTempExcludeInput(e.target.value)}
                   onFocus={() => setExcludeFocus(true)}
                   onBlur={() => setTimeout(() => setExcludeFocus(false), 150)}
-                  onKeyDown={AutoCompleteUtils.createInputHandler(tempExcludeInput, excludeCandidates, ingredientDict, setTempExcludeIngredients, tempExcludeIngredients, setTempExcludeInput, setExcludeFocus)}
+                  onKeyDown={AutoCompleteUtils.createInputHandler(tempExcludeInput, excludeCandidates, ingredientDict, setTempExcludeIngredients, tempExcludeIngredients, setTempExcludeInput, setExcludeFocus, tempIncludeIngredients || [], (name) => setBlockedNotice(`'${name}' 은(는) 포함 재료로 골라 뒀어요.`))}
                 />
                 {excludeFocus && excludeCandidates.length > 0 && (
                   <ul className="absolute left-0 right-0 bg-white border border-gray-200 rounded-lg mt-1 shadow z-30 max-h-32 overflow-y-auto custom-scrollbar">

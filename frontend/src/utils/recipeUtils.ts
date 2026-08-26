@@ -887,13 +887,17 @@ export type CoupangAdsMap = {
 
 /**
  * 별도 광고 운영 CSV(coupang_ads.csv) 로드
- * - 컬럼: ingredient_keyword,coupang_url,priority,active
+ * - 컬럼: ingredient_keyword,coupang_url,priority,active (+ recipe_count, rank 는 참고용)
  * - active !== 'Y' 는 제외
+ * - coupang_url 이 빈 행은 건너뛴다 → 링크를 아직 안 채운 재료는 광고가 뜨지 않음
  * - ingredient별 priority 오름차순 정렬
+ *
+ * 컬럼은 헤더 이름으로 찾으므로 참고용 컬럼(recipe_count, rank)이 늘어도 영향 없다.
  */
 export async function loadCoupangAds(): Promise<CoupangAdsMap> {
   const CACHE_KEY = 'coupang_ads_cache';
-  const CACHE_VERSION = '1.0';
+  // 광고 후보 목록을 레시피 사용 빈도 기준으로 다시 만들면서 캐시 무효화
+  const CACHE_VERSION = '1.1';
 
   try {
     if (typeof window !== 'undefined' && window.localStorage) {
