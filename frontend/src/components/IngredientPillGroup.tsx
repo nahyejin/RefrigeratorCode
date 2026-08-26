@@ -10,6 +10,8 @@ interface IngredientPillGroupProps {
   style?: React.CSSProperties;
   /** 부족 재료 pill 을 눌렀을 때 (구매 연결 등). 없으면 pill 은 표시 전용 */
   onMissingClick?: (ingredient: string) => void;
+  /** 가로 목록처럼 카드 높이를 일정하게 유지해야 하는 곳에서 켠다 */
+  compact?: boolean;
 }
 
 // 전역 동의어 사전 캐시 (모든 IngredientPillGroup 인스턴스가 공유)
@@ -17,7 +19,7 @@ let globalSynonymDict: { [key: string]: string } | null = null;
 let globalSynonymDictLoading = false;
 let globalSynonymDictPromise: Promise<{ [key: string]: string }> | null = null;
 
-const IngredientPillGroup: React.FC<IngredientPillGroupProps> = ({ needIngredients, myIngredients, substituteTable, style, onMissingClick }) => {
+const IngredientPillGroup: React.FC<IngredientPillGroupProps> = ({ needIngredients, myIngredients, substituteTable, style, onMissingClick, compact = false }) => {
   const [synonymDict, setSynonymDict] = useState<{ [key: string]: string } | null>(globalSynonymDict);
   const [isDictLoaded, setIsDictLoaded] = useState(!!globalSynonymDict);
   
@@ -203,7 +205,14 @@ const IngredientPillGroup: React.FC<IngredientPillGroupProps> = ({ needIngredien
       </div>
 
       {/* 대체 가능 — 부족한 재료를 무엇으로 바꿀 수 있는지가 이 앱의 핵심 기능이라
-          별도 줄로 분리하되 눈에 띄게 둔다. */}
+          별도 줄로 분리하되 눈에 띄게 둔다.
+
+          가로 카드에서는 개수를 제한한다:
+          이 줄이 여러 줄로 늘어나면 카드마다 높이가 달라진다.
+          실측해보니 가로 목록의 카드 높이가 228~324px 로 벌어져 있었고,
+          목록이 잡아 둔 슬롯(280px)을 넘는 카드는 아래가 잘려 나가고 있었다.
+          가로 목록은 훑어보는 자리이므로 여기서는 대표 하나만 보이고,
+          나머지는 개수로 알린다(전체는 카드를 눌러 상세에서 확인). */}
       {pillInfo.substitutes.length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginTop: 2 }}>
           <span
@@ -216,7 +225,7 @@ const IngredientPillGroup: React.FC<IngredientPillGroupProps> = ({ needIngredien
           >
             대체 가능
           </span>
-          {pillInfo.substitutes.map((sub) => (
+          {(compact ? pillInfo.substitutes.slice(0, 1) : pillInfo.substitutes).map((sub) => (
             <span
               key={sub}
               style={{
@@ -233,6 +242,11 @@ const IngredientPillGroup: React.FC<IngredientPillGroupProps> = ({ needIngredien
               {sub}
             </span>
           ))}
+          {compact && pillInfo.substitutes.length > 1 && (
+            <span style={{ fontSize: 12, color: 'var(--ink-400)', flex: '0 0 auto' }}>
+              외 {pillInfo.substitutes.length - 1}개
+            </span>
+          )}
         </div>
       )}
     </div>

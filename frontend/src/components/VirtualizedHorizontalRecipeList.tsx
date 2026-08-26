@@ -1,6 +1,8 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { FixedSizeList as List } from 'react-window';
 import RecipeCard from './RecipeCard';
+import CoupangAdCard from './CoupangAdCard';
+import { getLackingIngredients, pickAdIngredient } from '../utils/lackingIngredients';
 import { Recipe, RecipeActionState } from '../types/recipe';
 import { lookupRecipeActionState } from '../utils/recipeStorage';
 
@@ -23,6 +25,12 @@ interface VirtualizedHorizontalRecipeListProps {
    * RecipeCard 가로형 하단 쿠팡 슬롯(minHeight)에 맞춰 List 높이를 cardHeight+여백으로 잡음.
    */
   compactSectionGap?: boolean;
+  /**
+   * 목록 사이에 쿠팡 광고 카드를 끼울지. 기본 true.
+   * 마이페이지의 '내가 즐겨찾는/기록한/완료한' 처럼 사용자가 직접 담아 둔 목록에서는
+   * 끄는 편이 낫다 — 내가 모아 둔 것들 사이에 광고가 섞이면 목록의 성격이 흐려진다.
+   */
+  showAds?: boolean;
 }
 
 // 상수 정의
@@ -56,6 +64,11 @@ const STYLES = {
     width: '100%'
   })
 };
+
+/** 광고 카드를 처음 끼울 수 있는 위치(레시피 인덱스). 첫 화면에는 광고를 두지 않는다 */
+const AD_FIRST_SLOT = 2;
+/** 광고와 광고 사이 최소 레시피 수 */
+const AD_MIN_GAP = 4;
 
 // 유틸리티 함수들
 const Utils = {
@@ -91,7 +104,8 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
   emptyMessage = '레시피가 없습니다',
   onThumbnailError,
   listHeightExtra = 64,
-  compactSectionGap = false
+  compactSectionGap = false,
+  showAds = true
 }) => {
   /** compact: List 높이 = cardHeight + extra. cardHeight는 가로 카드 실세로 요즘인기와 맞출 것(불필요하게 크면 빈 띠). */
   const resolvedListHeightExtra = compactSectionGap
@@ -104,6 +118,44 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
   const [showScrollIndicator, setShowScrollIndicator] = useState(false);
   const [showLeftScrollIndicator, setShowLeftScrollIndicator] = useState(false);
   const itemSize = Utils.calculateItemSize(cardWidth, gap);
+
+  /**
+   * 목록에 실제로 그릴 항목들 — 레시피 사이사이에 광고 카드를 끼워 넣는다.
+   *
+   * 규칙: 어떤 레시피의 부족 재료가 1~3개면 **그 카드 바로 뒤**에
+   *       그중 한 재료의 광고 카드를 한 장 넣는다.
+   *       0개면 광고에 쓸 재료가 없고, 4개 이상이면 "몇 개만 사면 완성" 이 아니라서 제외.
+   *
+   * 광고가 지나치게 잦으면 목록이 광고판이 되므로 최소 간격을 둔다.
+   */
+  const items = React.useMemo(() => {
+    type Item =
+      | { kind: 'recipe'; recipe: Recipe; recipeIndex: number }
+      | { kind: 'ad'; ingredient: string; recipeId?: number; lackingCount: number };
+
+    const out: Item[] = [];
+    let sinceLastAd = Number.MAX_SAFE_INTEGER;
+
+    recipes.forEach((recipe, i) => {
+      out.push({ kind: 'recipe', recipe, recipeIndex: i });
+      sinceLastAd += 1;
+
+      if (!showAds) return;
+      // 첫 화면부터 광고가 보이면 목록보다 광고가 먼저 읽힌다 → 두 장 지난 뒤부터
+      if (i < AD_FIRST_SLOT) return;
+      if (sinceLastAd < AD_MIN_GAP) return;
+
+      const lacking = getLackingIngredients(recipe, myIngredients, substituteTable as any);
+      const ingredient = pickAdIngredient(lacking, recipe.id ?? i);
+      if (!ingredient) return;
+
+      out.push({ kind: 'ad', ingredient, recipeId: recipe.id, lackingCount: lacking.length });
+      sinceLastAd = 0;
+    });
+
+    return out;
+  }, [recipes, myIngredients, substituteTable, showAds]);
+
 
   useEffect(() => {
     const updateWidth = () => {
@@ -214,8 +266,32 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
   }, [recipes.length, containerWidth, itemSize]);
 
   const Row = ({ index, style }: { index: number; style: React.CSSProperties }) => {
-    const recipe = recipes[index];
-    if (!recipe) return null;
+    const item = items[index];
+    if (!item) return null;
+
+    if (item.kind === 'ad') {
+      return (
+        <div
+          style={{
+            ...style,
+            width: cardWidth,
+            marginRight: gap,
+            touchAction: 'pan-x pan-y',
+            overflowY: 'visible',
+          } as React.CSSProperties}
+        >
+          <CoupangAdCard
+            ingredient={item.ingredient}
+            recipeId={item.recipeId}
+            lackingCount={item.lackingCount}
+            width={cardWidth}
+            height={cardHeight}
+          />
+        </div>
+      );
+    }
+
+    const recipe = item.recipe;
 
     // react-window가 넘기는 height/width를 유지해야 함. cardContainer의 height:'auto'·minHeight가 덮어쓰면
     // 행이 List 높이만큼 비어 보이고 스크롤바가 카드에서 멀어짐.
@@ -234,12 +310,12 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
       >
         <RecipeCard
           recipe={recipe}
-          index={index}
+          index={item.recipeIndex}
           recipeActionState={
             lookupRecipeActionState(recipeActionStates, recipe.id) || Utils.getDefaultRecipeActionState()
           }
           onRecipeAction={({ action }) => onRecipeAction(recipe, action)}
-          isLast={Utils.isLastItem(index, recipes.length)}
+          isLast={Utils.isLastItem(item.recipeIndex, recipes.length)}
           myIngredients={myIngredients}
           substituteTable={substituteTable}
           showRank={showRank}
@@ -295,7 +371,7 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
         <List
           ref={listRef}
           height={cardHeight + resolvedListHeightExtra}
-          itemCount={recipes.length}
+          itemCount={items.length}
           itemSize={itemSize}
           layout="horizontal"
           width={containerWidth}

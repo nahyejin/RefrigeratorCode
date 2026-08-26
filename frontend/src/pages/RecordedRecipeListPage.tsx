@@ -520,6 +520,8 @@ const RecordedRecipeListPage: React.FC = () => {
             excludeInput={excludeInput}
             setExcludeInput={setExcludeInput}
           />
+          {/* 대가성 문구는 광고보다 위에 — 가이드가 "제목 또는 첫 부분" 을 요구한다 */}
+          <CoupangDisclaimer style={{ textAlign: 'left', padding: 0 }} />
           <IngredientLegend total={recipes.length} style={{ marginBottom: 6, marginTop: 8 }} />
           </div>
           {/* /sticky */}
@@ -536,7 +538,6 @@ const RecordedRecipeListPage: React.FC = () => {
         </div>
       </div>
       
-      <CoupangDisclaimer />
       <BottomNavBar activeTab="mypage" />
       
       {toast && <RecipeToast message={toast} />}

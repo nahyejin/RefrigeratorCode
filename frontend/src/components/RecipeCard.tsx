@@ -5,9 +5,7 @@ import { getPlatformLogo } from '../utils/platform';
 import { calculateMatchRate, loadIngredientSynonymDict, ingredientSynonymDictCache } from '../utils/recipeUtils';
 import IngredientPillGroup from './IngredientPillGroup';
 import { parseUsedIngredientsForPills } from '../utils/ingredientPillNoise';
-import CoupangProductAd from './CoupangProductAd';
-import { resolveCoupangUrl } from '../utils/coupangLink';
-import { trackCoupangClick } from '../utils/trackCoupangClick';
+import CoupangAdSheet from './CoupangAdSheet';
 import 완료하기버튼 from '../assets/완료하기버튼.png';
 import 공유하기버튼 from '../assets/공유하기버튼.png';
 import 기록하기버튼 from '../assets/기록하기버튼.png';
@@ -215,6 +213,9 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
   hasAd: hasAdProp,
   isHorizontal = false,
 }) => {
+  // 부족 재료 pill 을 눌렀을 때 열리는 구매 안내 시트의 대상 재료
+  const [adIngredient, setAdIngredient] = React.useState<string | null>(null);
+
   // 썸네일 로드 상태 추적 (null: 검증 중, true: 성공, false: 실패)
   const [thumbnailStatus, setThumbnailStatus] = React.useState<boolean | null>(null);
   
@@ -555,17 +556,12 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
             needIngredients={usedIngredientList}
             myIngredients={myIngredients}
             substituteTable={substituteTable}
-            onMissingClick={(name) => {
-              const url = resolveCoupangUrl(name);
-              if (!url) return;
-              trackCoupangClick({
-                source: 'pill',
-                ingredient: name,
-                lackingCount: lackingIngredients.length,
-                recipeId: recipe.id,
-              });
-              window.open(url, '_blank', 'noopener,noreferrer');
-            }}
+            // 예전에는 여기서 곧바로 쿠팡 창을 열었다. 하지만 pill 은 "없는 재료" 를
+            // 알려주는 정보 표시로 보이기 때문에, 누른 사람이 광고 클릭을 의도했다고 보기 어렵다.
+            // 쿠팡 파트너스 운영정책은 광고 클릭이 사용자의 의도일 때만 발생할 것을 요구한다.
+            // → 시트로 광고를 보여주고, 쿠팡으로 나가는 클릭은 사용자가 직접 하게 한다.
+            onMissingClick={(name) => setAdIngredient(name)}
+            compact={isHorizontal}
           />
         ) : (
           <div className="custom-scrollbar pr-1" style={{ display: 'flex', flexWrap: 'nowrap', gap: 4, marginBottom: 4, overflowX: 'auto', maxWidth: '100%', scrollbarWidth: 'auto', alignItems: 'center', paddingBottom: 4 }}>
@@ -574,42 +570,19 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
         )}
       </div>
       
-      {/* 쿠팡 광고.
-          예전엔 모든 카드에 전체폭 CTA + 2줄 고지문이 붙어 목록이 광고로 무거웠음.
-          이제 부족 재료 pill 자체가 구매 동선이므로, 별도 CTA 는 "몇 개만 사면 완성"에
-          가까운 카드(부족 1~3개)에만 남긴다 — 구매 전환이 실제로 일어나는 구간.
-          (처음엔 1~2개로 잡았는데 노출이 과하게 줄어 1~3개로 넓힘) */}
-      {isHorizontal ? (
-        <div
-          style={{
-            marginTop: 8,
-            // 예전에는 광고가 없어도 62px 자리를 항상 비워 뒀다(`minHeight`).
-            // 그런데 CoupangProductAd 는 링크가 없으면 아무것도 렌더하지 않으므로,
-            // 광고가 거의 안 뜨는 상태에서는 카드마다 빈 공간만 남아
-            // 화면이 벙벙해 보이고 세로 간격도 들쭉날쭉해 보였다.
-            // 슬롯 높이 예약을 없애고 실제 내용이 있을 때만 자리를 차지하게 한다.
-            boxSizing: 'border-box',
-          }}
-        >
-          {lackingIngredients.length > 0 && lackingIngredients.length <= 3 ? (
-            <CoupangProductAd
-              ingredientCandidates={lackingIngredients}
-              seedKey={recipe.id}
-              lackingCount={lackingIngredients.length}
-              recipeId={recipe.id}
-            />
-          ) : null}
-        </div>
-      ) : lackingIngredients.length > 0 && lackingIngredients.length <= 3 ? (
-        <div style={{ marginTop: '8px' }}>
-          <CoupangProductAd
-            ingredientCandidates={lackingIngredients}
-            seedKey={recipe.id}
-            lackingCount={lackingIngredients.length}
-            recipeId={recipe.id}
-          />
-        </div>
-      ) : null}
+      {/* 카드 하단 쿠팡 CTA 는 제거했다.
+          - 부족 재료 pill 이 이미 같은 재료의 같은 목적지로 가는 동선이라 중복이었고,
+          - CTA 유무에 따라 카드 높이가 달라져 가로 캐러셀의 고정 높이를 쓸 수 없었다.
+            (실측: 슬롯 286px / 실제 카드 236~239px → 카드마다 47px 이 빈 채로 남음)
+          광고는 목록 안에 카드 규격 그대로 끼우는 CoupangAdCard 로 옮겼다. */}
+
+      {/* 부족 재료를 눌렀을 때 뜨는 구매 안내 */}
+      <CoupangAdSheet
+        ingredient={adIngredient}
+        onClose={() => setAdIngredient(null)}
+        recipeId={recipe.id}
+        lackingCount={lackingIngredients.length}
+      />
     </div>
   );
 };

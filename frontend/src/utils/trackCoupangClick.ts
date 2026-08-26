@@ -2,7 +2,13 @@ const API_BASE_URL =
   (import.meta.env && import.meta.env.VITE_API_BASE_URL) ||
   'https://refrigeratorcode-production.up.railway.app';
 
-export type CoupangClickSource = 'pill' | 'card_cta';
+export type CoupangClickSource =
+  /** 부족 재료 pill 을 눌러 열린 구매 안내 시트에서 나간 클릭 */
+  | 'pill'
+  /** 목록 사이에 끼운 광고 카드에서 나간 클릭 */
+  | 'feed_card'
+  /** (제거됨) 레시피 카드 하단에 붙어 있던 CTA — 과거 데이터 비교용으로만 남김 */
+  | 'card_cta';
 
 interface CoupangClickPayload {
   source: CoupangClickSource;

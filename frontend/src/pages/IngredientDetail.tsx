@@ -877,6 +877,8 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
             excludeInput={excludeInput}
             setExcludeInput={setExcludeInput}
           />
+          {/* 대가성 문구는 광고보다 위에 — 가이드가 "제목 또는 첫 부분" 을 요구한다 */}
+          <CoupangDisclaimer style={{ textAlign: 'left', padding: 0 }} />
           <IngredientLegend total={total > 0 ? total : processedRecipes.length} style={{ marginBottom: 6, marginTop: 8 }} />
           </div>
           {/* /sticky */}
@@ -1093,7 +1095,6 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
         </div>
       </div>
       
-      {!loading && <CoupangDisclaimer />}
       <BottomNavBar activeTab={location.pathname.startsWith('/mypage') ? 'mypage' : 'popularity'} />
       
       {toast && <RecipeToast message={toast} />}

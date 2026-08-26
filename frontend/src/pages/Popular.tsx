@@ -1802,6 +1802,9 @@ const Popular = () => {
           </div>
         )}
 
+        {/* 대가성 문구는 광고보다 **위**에 둔다 — 가이드가 "제목 또는 첫 부분" 을 요구한다 */}
+        <CoupangDisclaimer style={{ textAlign: 'left', padding: 0 }} />
+
         {/* 특별한 날 특별한 음식 섹션 */}
         {(() => {
           if (premiumRecipes.length === 0) return null;
@@ -2236,7 +2239,6 @@ const Popular = () => {
         }}
         message={registerModalMessage || '더 많은 기능을 사용하려면'}
       />
-      {!loading && <CoupangDisclaimer />}
       <BottomNavBar activeTab="popularity" />
     </>
   );
