@@ -426,7 +426,9 @@ export function sortRecipes(
 export function getDDay(expiry: string): string {
   if (!expiry) return '';
   const today = new Date();
-  const exp = new Date(expiry);
+  // 앱에서 날짜는 'yyyy.mm.dd' 로 저장한다. 점 표기는 브라우저마다 해석이 달라질 수 있어
+  // 대시로 바꿔서 넘긴다 (안 바꾸면 일부 환경에서 Invalid Date 가 되어 날짜가 그대로 노출됨)
+  const exp = new Date(String(expiry).replace(/\./g, '-'));
   if (isNaN(exp.getTime())) return expiry;
   const diff = Math.floor((exp.getTime() - today.setHours(0,0,0,0)) / MS_PER_DAY);
   if (diff > 0) return `D-${diff}`;

@@ -232,6 +232,20 @@ const STYLES = {
     padding: '0 8px',
     marginTop: 14
   },
+  /** 팝업 상단 도움말 상자 (매칭도 팝업과 같은 규격) */
+  helpBox: {
+    display: 'flex' as const,
+    gap: 8,
+    padding: '12px 14px',
+    marginBottom: 16,
+    borderRadius: 10,
+    background: 'var(--surface-sub)',
+    fontSize: 13,
+    lineHeight: 1.55,
+    color: 'var(--ink-700)',
+    textAlign: 'left' as const,
+    wordBreak: 'keep-all' as const
+  },
   /** 무엇을 정하는 칸인지 밝히는 소제목 */
   fieldLabel: {
     fontSize: 13,
@@ -764,21 +778,7 @@ const RecipeSortBar = ({
                 이 값은 앱의 핵심 지표인데 "어떻게 계산했는지" 를 어디에서도 말하지 않고 있었다.
                 스플래시나 첫 방문 안내에 넣으면 정작 궁금해질 때는 이미 지나가 버리므로,
                 사용자가 이 숫자를 만지러 오는 바로 이 자리에 둔다. */}
-            <div
-              style={{
-                display: 'flex',
-                gap: 8,
-                padding: '12px 14px',
-                marginBottom: 16,
-                borderRadius: 10,
-                background: 'var(--surface-sub)',
-                fontSize: 13,
-                lineHeight: 1.55,
-                color: 'var(--ink-700)',
-                textAlign: 'left',
-                wordBreak: 'keep-all',
-              }}
-            >
+            <div style={STYLES.helpBox}>
               <span aria-hidden style={{ flexShrink: 0, fontWeight: 700, color: 'var(--ink-500)' }}>i</span>
               <span>
                 매칭률은 <b style={{ fontWeight: 700 }}>레시피 본문에서 뽑아낸 재료</b>와 내 냉장고 재료를
@@ -932,6 +932,18 @@ const RecipeSortBar = ({
               setExpiryModalOpen(false);
             }} />
             <div style={STYLES.modalTitle}>임박 재료 설정</div>
+
+            {/* 이 목록에 "직접 넣지도 않은 유통기한" 이 왜 떠 있는지 밝힌다.
+                구매일만 넣어 둔 재료도 추정 기한으로 이 목록에 들어오기 때문에,
+                설명이 없으면 "내가 언제 이걸 입력했지?" 가 된다. */}
+            <div style={STYLES.helpBox}>
+              <span aria-hidden style={{ flexShrink: 0, fontWeight: 700, color: 'var(--ink-500)' }}>i</span>
+              <span>
+                유통기한을 직접 넣은 재료뿐 아니라, <b style={{ fontWeight: 700 }}>구매일만 넣어 둔 재료</b>도
+                재료 종류와 보관 방법으로 기한을 짐작해 함께 계산해요. 짐작한 값은 <b style={{ fontWeight: 700 }}>약 D-00</b> 으로 표시돼요.
+              </span>
+            </div>
+
             <div style={STYLES.modeGroup}>
               <button
                 style={{
@@ -952,16 +964,39 @@ const RecipeSortBar = ({
                 구매일 오래된순
               </button>
             </div>
-            {/* AND/OR 선택 */}
-            <div style={STYLES.modeGroup}>
-              <label style={STYLES.modeLabel}>
-                <input type="radio" name="expiryIngredientMode" value="and" checked={expiryIngredientMode==='and'} onChange={()=>setExpiryIngredientMode('and')} />
-                모두 포함(AND)
-              </label>
-              <label style={STYLES.modeLabel}>
-                <input type="radio" name="expiryIngredientMode" value="or" checked={expiryIngredientMode==='or'} onChange={()=>setExpiryIngredientMode('or')} />
-                하나라도 포함(OR)
-              </label>
+            {/* 선택한 재료를 어떻게 묶을지.
+                기본 라디오 버튼은 13px 남짓이라 누르기 어렵고 브라우저 기본 파란색이라
+                앱의 다른 컨트롤과 색이 따로 놀았음 → 매칭도 팝업과 같은 칩 토글로 통일 */}
+            <div style={STYLES.fieldLabel}>선택한 재료를</div>
+            <div style={{ ...STYLES.chipGroup, marginBottom: 18 }}>
+              {([
+                { key: 'and', label: '모두 포함' },
+                { key: 'or', label: '하나라도 포함' },
+              ] as const).map(({ key, label }) => {
+                const on = expiryIngredientMode === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => setExpiryIngredientMode(key)}
+                    style={{
+                      height: 38,
+                      padding: '0 14px',
+                      boxSizing: 'border-box',
+                      borderRadius: 9999,
+                      fontSize: 13,
+                      fontWeight: on ? 700 : 500,
+                      cursor: 'pointer',
+                      background: on ? 'var(--ink-900)' : 'var(--surface)',
+                      color: on ? '#FFFFFF' : 'var(--ink-700)',
+                      border: `1px solid ${on ? 'var(--ink-900)' : 'var(--line-300)'}`,
+                    }}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
             </div>
             {/* 선택된 재료 pill 나열 - 항상 보이게, 중앙정렬 */}
             <div style={STYLES.ingredientPills}>
@@ -1009,9 +1044,20 @@ const RecipeSortBar = ({
                     {item.name}
                   </span>
                   <span style={STYLES.ingredientDate}>
+                    {/* 예전엔 구매일 탭에서 `2026.08.12` 같은 날짜를 그대로 보여줬는데,
+                        머릿속으로 며칠 지났는지 빼야 해서 한눈에 안 들어왔다.
+                        두 탭 모두 D-표기로 통일한다 (구매일은 지난 날짜라 D+N 으로 나온다) */}
                     {expirySortType === 'expiry'
-                      ? (item.expiry ? getDDay(item.expiry) : `약 ${getDDay(item.estimatedExpiry)}`)
-                      : (item.purchase || '')}
+                      ? (() => {
+                          // 같은 `D+1` 이라도 유통기한 탭에서는 "1일 지남", 구매일 탭에서는
+                          // "산 지 1일" 이라 뜻이 정반대다. 기한이 지난 것은 글자로 못박는다.
+                          const raw = item.expiry || item.estimatedExpiry || '';
+                          const dday = getDDay(raw);
+                          const estimated = !item.expiry;
+                          if (dday.startsWith('D+')) return estimated ? '약 지남' : '지남';
+                          return estimated ? `약 ${dday}` : dday;
+                        })()
+                      : getDDay(item.purchase || '')}
                   </span>
                 </div>
               ))}
