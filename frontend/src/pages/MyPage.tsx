@@ -1070,62 +1070,10 @@ const MyPage: React.FC = () => {
 
   return (
     <div className="bg-white min-h-screen max-w-[400px] mx-auto pb-24 relative" style={{ boxSizing: 'border-box' }}>
-      {/* 상단 네비 - 고정 */}
-      <header 
-        className="w-full h-[56px] flex items-center justify-between px-5 bg-white"
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          zIndex: 'var(--z-nav)',
-          maxWidth: '400px',
-          margin: '0 auto'
-        }}
-      >
-        <img 
-          src={logoImg} 
-          alt="냉털이 로고" 
-          className="h-4 w-auto cursor-pointer" 
-          style={{ minWidth: 16 }}
-          onClick={() => navigate('/my-fridge')}
-        />
-        <div className="flex items-center gap-3">
-          {isLoggedIn ? (
-            <div className="flex items-center gap-2">
-              <span className="font-normal text-gray-700 hover:text-gray-900" style={{ fontSize: '13px' }}>{authUser?.nickname}</span>
-              <button
-                onClick={logout}
-                className="font-normal text-gray-700 hover:text-gray-900"
-                style={{ 
-                  outline: 'none', 
-                  border: 'none', 
-                  background: 'none', 
-                  cursor: 'pointer',
-                  fontSize: '13px'
-                }}
-              >
-                로그아웃
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => navigate('/login')}
-              className="font-normal text-gray-700 hover:text-gray-900"
-              style={{ 
-                outline: 'none', 
-                border: 'none', 
-                background: 'none', 
-                cursor: 'pointer',
-                fontSize: '13px'
-              }}
-            >
-              로그인/회원가입
-            </button>
-          )}
-        </div>
-      </header>
-      
+      {/* 상단 GNB 는 AppRouter 의 TopNavBar 하나만 쓴다.
+          예전에는 마이페이지가 똑같은 헤더를 하나 더 그리고 있어 두 개가 겹쳐 있었고,
+          복제본은 폭이 400px 로 제한돼 있어 넓은 화면에서 정렬도 달라 보였다. */}
+
       {/* 프로필 영역 */}
       {isLoggedIn ? (
         <section className="flex flex-col items-center justify-center mb-[70px]" style={{ marginTop: '130px' }}>

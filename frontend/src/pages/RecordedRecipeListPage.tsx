@@ -431,19 +431,26 @@ const RecordedRecipeListPage: React.FC = () => {
 
   return (
     <>
-      <header 
-        className="w-full h-[56px] flex items-center px-2 bg-white"
+      {/* 예전에는 top:0 자체 고정 헤더가 공통 GNB 와 정확히 겹쳤다(둘 다 56px, 같은 z-index).
+          → 헤더를 없애고 뒤로가기·필터를 본문 제목 줄로 옮긴다. */}
+      
+      <div 
+        className="mx-auto pb-20 bg-white"
         style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          zIndex: 'var(--z-nav)',
-          maxWidth: '100%',
-          margin: '0 auto'
+          maxWidth: 400,
+          minHeight: '100vh',
+          boxSizing: 'border-box',
+          paddingLeft: 14,
+          paddingRight: 14,
+          paddingTop: 72, // 공통 GNB(56px) + 여백(16px)
         }}
       >
-        <BackButton onClick={() => navigate(-1)} absolute={false} style={{ marginLeft: 8 }} />
+        <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 18, minHeight: 40 }}>
+          <BackButton onClick={() => navigate(-1)} style={{ left: 0, top: 2 }} />
+          <div style={{ fontWeight: 700, fontSize: 18, textAlign: 'center', padding: '0 56px' }}>
+            내가 기록한 레시피
+          </div>
+          <div style={{ position: 'absolute', right: 0, top: 0 }}>
         <button
           aria-label="필터 모달 열기"
           style={{ 
@@ -465,21 +472,7 @@ const RecordedRecipeListPage: React.FC = () => {
         >
           <span style={{ fontWeight: 600 }}>필터</span>
         </button>
-      </header>
-      
-      <div 
-        className="mx-auto pb-20 bg-white"
-        style={{
-          maxWidth: 400,
-          minHeight: '100vh',
-          boxSizing: 'border-box',
-          paddingLeft: 14,
-          paddingRight: 14,
-          paddingTop: 88, // 헤더 높이(56px) + 여백(32px)
-        }}
-      >
-        <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 18, textAlign: 'center' }}>
-          내가 기록한 레시피
+          </div>
         </div>
         
         <div>

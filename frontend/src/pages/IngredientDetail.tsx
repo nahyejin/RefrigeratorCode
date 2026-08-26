@@ -812,21 +812,8 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
 
   return (
     <>
-      <header 
-        className="w-full h-[56px] flex items-center px-2 bg-white"
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          zIndex: 'var(--z-nav)',
-          maxWidth: '100%',
-          margin: '0 auto'
-        }}
-      >
-        <BackButton onClick={() => navigate(-1)} absolute={false} style={{ marginLeft: 8 }} />
-      </header>
-      
+      {/* 예전에는 이 페이지가 top:0 에 자체 고정 헤더를 그려서 공통 GNB 와 정확히 겹쳤다.
+          (둘 다 높이 56px, 같은 z-index) → 헤더를 없애고 뒤로가기는 본문 제목 줄에 둔다. */}
       <div 
         className="mx-auto pb-20 bg-white"
         style={{
@@ -835,11 +822,14 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
           boxSizing: 'border-box',
           paddingLeft: 14,
           paddingRight: 14,
-          paddingTop: 88, // 헤더 높이(56px) + 여백(32px)
+          paddingTop: 72, // 공통 GNB(56px) + 여백(16px)
         }}
       >
-        <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 18, textAlign: 'center' }}>
-          {customTitle || `${name} 관련 레시피`}
+        <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 18, minHeight: 36 }}>
+          <BackButton onClick={() => navigate(-1)} style={{ left: 0, top: 0 }} />
+          <div style={{ fontWeight: 700, fontSize: 18, textAlign: 'center', padding: '0 44px' }}>
+            {customTitle || `${name} 관련 레시피`}
+          </div>
         </div>
         
         <div>
