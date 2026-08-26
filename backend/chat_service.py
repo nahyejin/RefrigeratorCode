@@ -1,3 +1,4 @@
+import csv
 import json
 import os
 import re
@@ -21,6 +22,13 @@ W_TITLE, W_INGREDIENT, W_CONTENT = 3, 2, 1
 # 관련도 1점 차이를 매칭률 10%p 와 같게 본다.
 # (매칭률만 보면 주제와 무관한 글이 올라오고, 관련도만 보면 만들 수 없는 글이 올라온다)
 RELEVANCE_WEIGHT = 10
+# 같은 요리가 몇 개까지 나올 수 있는지.
+#   레시피 글은 같은 요리를 여러 사람이 쓴 경우가 매우 많아서, 관련도와 매칭률이
+#   비슷한 것들이 한 요리로 몰린다(실제로 "매운 거" 검색 결과 8건이 전부 감자조림이었음).
+#   같은 요리만 늘어서면 "추천" 으로서 값이 없다.
+MAX_PER_DISH = 2
+# 다양성 필터로 걸러낼 것을 감안해 넉넉히 가져온다
+FETCH_MULTIPLIER = 5
 
 _rate_lock = threading.Lock()
 _rate_day = None
@@ -281,7 +289,9 @@ def _search_recipes(get_db, keywords, include_ingredients, exclude_ingredients, 
             ORDER BY {order_by}
             LIMIT %s
         """
-        params = relevance_params + match_params + where_params + [SEARCH_LIMIT]
+        # 다양성 필터로 걸러낼 몫까지 감안해 넉넉히 가져온다.
+        # (WHERE/HAVING 스캔이 비용의 대부분이라 LIMIT 을 늘려도 거의 차이 없음)
+        params = relevance_params + match_params + where_params + [SEARCH_LIMIT * FETCH_MULTIPLIER]
         cursor.execute(sql, params)
 
         rows = cursor.fetchall() or []
@@ -299,9 +309,85 @@ def _search_recipes(get_db, keywords, include_ingredients, exclude_ingredients, 
                 'match_rate': int(row.get('match_rate') or 0),
                 'used_ingredients': row.get('used_ingredients') or '',
             })
-        return recipes
+        # 같은 요리가 화면을 다 채우지 않도록 추린다
+        return _diversify(recipes, SEARCH_LIMIT)
     finally:
         db.close()
+
+
+_dish_names = None
+
+
+def _load_dish_names():
+    """재료 사전에서 `대분류 = 요리이름` 인 낱말만 뽑아 둔다 (994개).
+
+    제목에서 "무슨 요리인지" 를 알아내는 데 쓴다. 레시피 제목은
+    `매운 감자조림 만드는법 고기없이도 짱맛! 고추장 양념 정호영 감자조림 레시피` 처럼
+    검색어가 잔뜩 붙어 있어서, 사전 없이 글자만 비교하면 같은 요리를 골라내기 어렵다.
+
+    파일을 못 찾아도 검색이 멈추면 안 되므로, 그때는 빈 목록을 쓰고
+    다양성 필터만 동작하지 않게 한다.
+    """
+    global _dish_names
+    if _dish_names is not None:
+        return _dish_names
+
+    here = os.path.dirname(os.path.abspath(__file__))
+    candidates = [
+        os.path.join(here, '..', 'frontend', 'public', 'ingredient_profile_dict_with_substitutes.csv'),
+        os.path.join(here, 'ingredient_profile_dict_with_substitutes.csv'),
+    ]
+    names = []
+    for path in candidates:
+        try:
+            with open(path, encoding='utf-8-sig') as f:
+                for row in csv.DictReader(f):
+                    if (row.get('대분류') or '').strip() == '요리이름':
+                        kw = (row.get('keyword') or '').strip()
+                        if len(kw) >= 2:
+                            names.append(kw)
+            if names:
+                break
+        except (OSError, csv.Error):
+            continue
+
+    # 긴 이름부터 찾아야 `감자조림` 을 `조림` 으로 잘못 잡지 않는다
+    names.sort(key=len, reverse=True)
+    _dish_names = names
+    if not names:
+        print('[chat] 요리명 사전을 찾지 못했습니다 — 결과 다양성 필터를 건너뜁니다.')
+    return _dish_names
+
+
+def _dish_key(title):
+    """제목에서 요리 이름 하나를 찾아 낸다. 못 찾으면 None(= 각자 다른 요리로 취급)."""
+    for name in _load_dish_names():
+        if name in title:
+            return name
+    return None
+
+
+def _diversify(recipes, limit):
+    """같은 요리가 `MAX_PER_DISH` 개를 넘지 않도록 추린다.
+
+    순서는 그대로 두고 넘치는 것만 뒤로 미룬다. 그렇게 하고도 개수가 모자라면
+    미뤄 둔 것들로 채운다 — 결과가 줄어드는 것보다는 겹치더라도 채우는 편이 낫다.
+    """
+    picked, spare, seen = [], [], {}
+    for r in recipes:
+        key = _dish_key(r.get('title') or '')
+        if key is None:
+            picked.append(r)
+        elif seen.get(key, 0) < MAX_PER_DISH:
+            seen[key] = seen.get(key, 0) + 1
+            picked.append(r)
+        else:
+            spare.append(r)
+        if len(picked) >= limit:
+            break
+    if len(picked) < limit:
+        picked.extend(spare[:limit - len(picked)])
+    return picked[:limit]
 
 
 def _remember(session_id, messages):

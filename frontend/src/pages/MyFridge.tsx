@@ -1289,11 +1289,39 @@ const MyFridge: React.FC = () => {
             name: convertToKeyword(name)
           }));
           
+          /**
+           * 기본 재료 중 **두 가지에만** 구매일을 넣어 둔다.
+           *
+           * 왜 두 개만:
+           *   D-표기가 어떤 기능인지는 실제로 하나 붙어 있어야 알 수 있다.
+           *   그렇다고 전부 넣으면 화면이 D-표기로 뒤덮이고, 앱을 오래 안 열면
+           *   전부 `지남` 으로 바뀌어 고장난 것처럼 보인다.
+           *
+           * 왜 유통기한이 아니라 구매일:
+           *   사용자가 직접 넣지도 않은 유통기한을 채워 두면 거짓 정보가 된다.
+           *   구매일(= 앱을 처음 연 날)은 사실이고, 거기서 짐작한 값은 `약 D-30` 처럼
+           *   추정임을 밝혀 표시되므로 오해가 없다.
+           *
+           * 왜 달걀·감자:
+           *   냉장 기준 30일·21일이라 한동안 의미 있는 숫자가 보인다.
+           *   우유(7일) 같은 것은 일주일 만에 `지남` 이 되어 예시로 쓰기 나쁘다.
+           */
+          const today = new Date();
+          const todayStr = `${today.getFullYear()}.${String(today.getMonth() + 1).padStart(2, '0')}.${String(today.getDate()).padStart(2, '0')}`;
+          const SAMPLE_PURCHASE_ITEMS = ['달걀', '감자'];
+
           // 냉장보관 재료 추가
-          const newFridge = defaultFridgeIngredients.map((name, index) => ({
-            id: `fridge-${Date.now()}-${index}`,
-            name: convertToKeyword(name)
-          }));
+          const newFridge = defaultFridgeIngredients.map((name, index) => {
+            const keyword = convertToKeyword(name);
+            const item: Ingredient = {
+              id: `fridge-${Date.now()}-${index}`,
+              name: keyword
+            };
+            if (SAMPLE_PURCHASE_ITEMS.includes(name)) {
+              item.purchase = todayStr;
+            }
+            return item;
+          });
           
           // 냉동보관 재료 추가
           const newFrozen = defaultFrozenIngredients.map((name, index) => ({
