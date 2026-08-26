@@ -32,7 +32,11 @@ const CoupangDisclaimer: React.FC<{ style?: React.CSSProperties; compact?: boole
       ...style,
     }}
   >
-    이 광고는 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다.
+    {/* 한 줄로 흘리면 폭에 따라 아무 데서나 감겨 읽기 나쁘다.
+        쉼표 뒤에서 끊어 두 줄로 고정한다. */}
+    이 광고는 쿠팡 파트너스 활동의 일환으로,
+    <br />
+    이에 따른 일정액의 수수료를 제공받습니다.
   </p>
 );
 

@@ -1596,13 +1596,17 @@ const MyFridge: React.FC = () => {
     
     // 모바일에서 입력창에 포커스가 남아 있으면 키보드가 그대로 떠서 팝업을 가린다.
     // 팝업을 열기 전에 포커스를 풀어 키보드를 내린다.
+    //
+    // ⚠️ 예전에는 바로 아래에서 `inputRef.current?.focus()` 를 다시 불러
+    // **방금 내린 키보드를 도로 올리고 있었다.** (다음 재료를 이어서 입력하라고 넣은
+    // 코드였는데, 팝업이 뜨는 흐름에서는 키보드가 팝업을 가려 버린다.)
+    // 다음 입력을 위한 포커스는 팝업을 닫은 뒤에 준다.
     (document.activeElement as HTMLElement | null)?.blur?.();
 
     setModalIngredient(item);
     setModalOpen(true);
     setInputValue('');
     setShowDropdown(false);
-    inputRef.current?.focus();
   };
 
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -1883,7 +1887,9 @@ const MyFridge: React.FC = () => {
                     <div
                       key={item}
                       className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                      onClick={() => handleSelect(item)}
+                      // onClick 은 입력창의 onBlur 뒤에 실행돼 순서 경합이 생긴다.
+                      // onMouseDown 은 blur 보다 먼저라 선택이 확실히 잡힌다.
+                      onMouseDown={(e) => { e.preventDefault(); handleSelect(item); }}
                       style={{ 
                         whiteSpace: 'nowrap', 
                         overflow: 'hidden', 

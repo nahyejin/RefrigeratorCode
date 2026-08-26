@@ -47,6 +47,15 @@ const BottomCoupangAd: React.FC<{
     return null;
   }
 
+  // 광고 단위 ID 가 없으면 배너는 아무것도 그리지 않는다(CoupangAd 내부 규칙).
+  // 그런데 고지 문구는 이 컴포넌트가 그리고 있어서,
+  // **광고가 하나도 없는데 "수수료를 제공받습니다" 만 덩그러니 남아 있었다.**
+  // (내냉장고 화면에서 이 상태로 보였음)
+  // 광고가 없으면 고지문도 필요 없다 — 통째로 렌더하지 않는다.
+  if (!(import.meta.env.VITE_COUPANG_AD_UNIT_ID || '')) {
+    return null;
+  }
+
   return (
     <div style={{ marginTop: 24, marginBottom: 24 }}>
       {/* 이 배너도 광고이므로 대가성 문구를 바로 위에 둔다.
