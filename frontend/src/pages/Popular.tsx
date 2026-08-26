@@ -1614,6 +1614,54 @@ const Popular = () => {
     };
   }, [youtubeRecipes, naverRecipes]);
 
+  /**
+   * 특별한 날 특별한 음식 목록 — 비싼 재료 우선 정렬(premiumIngredients.ts 순서).
+   * 유튜브/네이버 인기 상단과 겹치는 항목은 뒤로 밀어 같은 카드가 연달아 보이는 느낌을 줄인다.
+   *
+   * 예전에는 이 계산이 JSX 안의 즉시실행 함수 안에 있어서 (a) 렌더마다 다시 돌고
+   * (b) 바깥에서 "이 섹션이 그려지는지" 를 알 수 없었다. 첫 섹션 판정에 필요해 끌어올린다.
+   */
+  const premiumRecipes = React.useMemo(() => {
+    const allRecipes = [...youtubeRecipes, ...naverRecipes];
+    const popularHeadIds = new Set([
+      ...youtubeRecipes.slice(0, 15).map((r: { id: number }) => r.id),
+      ...naverRecipes.slice(0, 15).map((r: { id: number }) => r.id),
+    ]);
+
+    const getIngs = (recipe: Recipe) => {
+      if (!recipe.used_ingredients) return [] as string[];
+      return parseUsedIngredientsForPills(recipe.used_ingredients);
+    };
+
+    const premiumCandidates = allRecipes.filter((recipe: Recipe) => {
+      const ingredients = getIngs(recipe);
+      return ingredients.length > 0 && hasPremiumIngredient(ingredients);
+    });
+
+    const byTier = (a: Recipe, b: Recipe) => {
+      const ra = getPremiumTierRank(getIngs(a));
+      const rb = getPremiumTierRank(getIngs(b));
+      if (ra !== rb) return ra - rb;
+      return (a.id ?? 0) - (b.id ?? 0);
+    };
+
+    const sorted = [...premiumCandidates].sort(byTier);
+    const notInPopularHead = sorted.filter(r => !popularHeadIds.has(r.id));
+    const inPopularHead = sorted.filter(r => popularHeadIds.has(r.id));
+    return [...notInPopularHead, ...inPopularHead].slice(0, 20);
+  }, [youtubeRecipes, naverRecipes]);
+
+  // 화면에서 첫 번째로 그려지는 섹션. 섹션 앞머리의 구분 밴드는
+  // "앞 내용과 나뉜다" 는 뜻이라, 맨 위 섹션에 붙으면 기간 컨트롤과 콘텐츠를 갈라놓아
+  // 기간 바가 아래와 무관한 별도 영역처럼 보이게 된다.
+  const firstSectionKey =
+    premiumRecipes.length > 0 ? 'premium'
+    : youtubeRecipes.length > 0 ? 'youtube'
+    : naverRecipes.length > 0 ? 'naver'
+    : dishRankings.length > 0 ? 'dish'
+    : themeRankings.length > 0 ? 'theme'
+    : 'search';
+
   return (
     <>
       <div className="popular-page" style={{padding: '76px 20px 80px 20px', maxWidth: 400, margin: '0 auto', boxSizing: 'border-box'}}>
@@ -1625,8 +1673,15 @@ const Popular = () => {
           </h2>
         </header>
 
-        {/* 정렬/필터 바 */}
-        <div style={{display: 'flex', gap: 8, alignItems: 'center', marginBottom: 24, justifyContent: 'flex-end'}}>
+        {/* 기간 선택 바.
+            이 컨트롤은 아래의 모든 섹션에 함께 적용되는 **화면 전체 조건**인데,
+            예전에는 오른쪽 끝에 라벨 없이 28px 짜리 작은 버튼으로만 놓여 있어서
+            무엇을 제어하는지도, 어디까지 영향을 주는지도 알 수 없었다.
+            게다가 냉장고요리 탭의 같은 성격 컨트롤(높이 40, 선택 시 검정)과
+            규격이 달라(높이 28, 선택 시 회색) 이 화면만 다른 앱처럼 보였다.
+            → 라벨을 붙이고 왼쪽으로 정렬하며, 규격을 냉장고요리와 맞춘다. */}
+        <div style={{display: 'flex', gap: 8, alignItems: 'center', marginBottom: 20, justifyContent: 'flex-start', flexWrap: 'wrap'}}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-500)', marginRight: 2 }}>기간</span>
           {periodOptions.map(opt => (
             <button
               key={opt.value}
@@ -1647,18 +1702,18 @@ const Popular = () => {
                 }
               }}
               style={{
-                height: 28,
-                border: period === opt.value ? '1px solid #6A6A73' : '1px solid #D2D2D8',
+                // 냉장고요리 탭의 컨트롤 칩과 동일 규격 (높이 40 / radius 6 / 선택 시 잉크색)
+                height: 40,
+                border: period === opt.value ? '1px solid var(--ink-900)' : '1px solid #D2D2D8',
                 borderRadius: 6,
                 fontSize: 13,
-                padding: '0 8px',
+                padding: '0 12px',
                 fontWeight: 600,
-                background: period === opt.value ? '#6A6A73' : '#FFFFFF',
+                background: period === opt.value ? 'var(--ink-900)' : '#FFFFFF',
                 color: period === opt.value ? '#FFFFFF' : '#1A1A1E',
                 cursor: 'pointer',
                 transition: 'all 0.2s',
                 whiteSpace: 'nowrap',
-                lineHeight: '28px',
                 boxSizing: 'border-box'
               }}
               onMouseEnter={(e) => {
@@ -1749,41 +1804,11 @@ const Popular = () => {
 
         {/* 특별한 날 특별한 음식 섹션 */}
         {(() => {
-          // 프리미엄 재료 포함 레시피 — 비싼 재료 우선 정렬(premiumIngredients.ts 순서).
-          // 유튜브/네이버 인기 상단과 겹치는 항목은 뒤로 밀어 같은 카드가 연달아 보이는 느낌 완화.
-          const allRecipes = [...youtubeRecipes, ...naverRecipes];
-          const popularHeadIds = new Set([
-            ...youtubeRecipes.slice(0, 15).map((r: { id: number }) => r.id),
-            ...naverRecipes.slice(0, 15).map((r: { id: number }) => r.id),
-          ]);
-
-          const getIngs = (recipe: Recipe) => {
-            if (!recipe.used_ingredients) return [] as string[];
-            return parseUsedIngredientsForPills(recipe.used_ingredients);
-          };
-
-          const premiumCandidates = allRecipes.filter((recipe: Recipe) => {
-            const ingredients = getIngs(recipe);
-            return ingredients.length > 0 && hasPremiumIngredient(ingredients);
-          });
-
-          const byTier = (a: Recipe, b: Recipe) => {
-            const ra = getPremiumTierRank(getIngs(a));
-            const rb = getPremiumTierRank(getIngs(b));
-            if (ra !== rb) return ra - rb;
-            return (a.id ?? 0) - (b.id ?? 0);
-          };
-
-          const sorted = [...premiumCandidates].sort(byTier);
-          const notInPopularHead = sorted.filter(r => !popularHeadIds.has(r.id));
-          const inPopularHead = sorted.filter(r => popularHeadIds.has(r.id));
-          const premiumRecipes = [...notInPopularHead, ...inPopularHead].slice(0, 20);
-
           if (premiumRecipes.length === 0) return null;
 
           return (
             <section style={{ marginBottom: 0 }}>
-              <SectionBand bleed={20} />
+              {firstSectionKey !== 'premium' && <SectionBand bleed={20} />}
               {/* 문구 변천:
                   ① "값비싼 재료가 들어간 레시피를 모았어요" — 비싼 재료를 사게 하려는
                      의도가 그대로 드러나 보였음
@@ -1952,7 +1977,7 @@ const Popular = () => {
         {/* ⓑ 유튜브 인기 레시피 섹션 (데이터 있을 때만 노출) */}
         {youtubeRecipes.length > 0 && (
         <section style={{ marginBottom: 0 }}>
-          <SectionBand bleed={20} />
+          {firstSectionKey !== 'youtube' && <SectionBand bleed={20} />}
           <SectionHeader title="유튜브 인기 레시피" iconUrl={youtubeTitleImg} />
           {/* 범례: 가로형 레시피 카드 위, 왼쪽 정렬 */}
           <IngredientLegend total={youtubeRecipes.length} style={{ marginBottom: 6, marginTop: 8 }} />
@@ -1977,7 +2002,7 @@ const Popular = () => {
         {/* ⓒ 네이버 인기 레시피 섹션 (데이터 있을 때만 노출) */}
         {naverRecipes.length > 0 && (
         <section style={{ marginBottom: 0 }}>
-          <SectionBand bleed={20} />
+          {firstSectionKey !== 'naver' && <SectionBand bleed={20} />}
           <SectionHeader title="네이버 인기 레시피" iconUrl={naverTitleImg} />
           {/* 범례: 가로형 레시피 카드 위, 왼쪽 정렬 */}
           <IngredientLegend total={naverRecipes.length} style={{ marginBottom: 6, marginTop: 8 }} />
@@ -2003,7 +2028,7 @@ const Popular = () => {
         {/* 인기 급상승 TOP10: 데이터가 있을 때만 노출 */}
         {dishRankings.length > 0 && (
         <section style={{ marginBottom: 0 }}>
-          <SectionBand bleed={20} />
+          {firstSectionKey !== 'dish' && <SectionBand bleed={20} />}
           <div>
             {/* 인기 급상승 요리 */}
             <div>
@@ -2065,7 +2090,7 @@ const Popular = () => {
 
         {themeRankings.length > 0 && (
         <section style={{ marginBottom: 0 }}>
-          <SectionBand bleed={20} />
+          {firstSectionKey !== 'theme' && <SectionBand bleed={20} />}
           <div>
             {/* 인기 급상승 테마 */}
             <div>
@@ -2123,7 +2148,7 @@ const Popular = () => {
 
         {/* 인기 레시피 직접 찾아보기 검색창 */}
         <section style={{ marginBottom: 0 }}>
-          <SectionBand bleed={20} />
+          {firstSectionKey !== 'search' && <SectionBand bleed={20} />}
           <SectionHeader icon={<SectionIcon kind="search" />} title="특정 재료·테마 등 키워드로 찾아보기" />
           <div
             style={{
