@@ -24,6 +24,13 @@ interface DialogProps {
   width?: number;
   /** actions 가 비었을 때 하단에 자동으로 넣는 나가기 버튼의 문구 */
   dismissLabel?: string;
+  /**
+   * 이미 열려 있는 다른 모달 **위에** 띄우는 팝업인지.
+   * 같은 z-index 끼리는 나중에 그려진 쪽이 이기지만, 그건 DOM 순서에 기대는 것이라
+   * 부모 모달이 어디에 렌더되느냐에 따라 뒤로 숨는 사고가 난다.
+   * 이 옵션을 켜면 한 단계 위 층(--z-modal-nested)에 올려 순서와 무관하게 위에 온다.
+   */
+  nested?: boolean;
 }
 
 /**
@@ -46,6 +53,7 @@ const Dialog: React.FC<DialogProps> = ({
   dismissLabel = '취소',
   closeOnBackdrop = true,
   width = 340,
+  nested = false,
 }) => {
   // ESC 로 닫기 + 뒤 페이지 스크롤 잠금
   React.useEffect(() => {
@@ -72,7 +80,7 @@ const Dialog: React.FC<DialogProps> = ({
           position: 'fixed',
           inset: 0,
           background: 'rgba(0,0,0,0.4)',
-          zIndex: 'var(--z-overlay)' as unknown as number,
+          zIndex: (nested ? 'var(--z-modal-dim-nested)' : 'var(--z-overlay)') as unknown as number,
           animation: 'sheet-fade 0.16s ease-out',
         }}
       />
@@ -92,7 +100,7 @@ const Dialog: React.FC<DialogProps> = ({
           borderRadius: 20,
           padding: '24px 20px 20px',
           boxShadow: '0 16px 48px rgba(0,0,0,0.22)',
-          zIndex: 'var(--z-modal)' as unknown as number,
+          zIndex: (nested ? 'var(--z-modal-nested)' : 'var(--z-modal)') as unknown as number,
           animation: 'dialog-pop 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
         }}
       >

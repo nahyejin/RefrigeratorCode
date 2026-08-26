@@ -636,6 +636,16 @@ FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5178')
 # 백엔드 URL (OAuth 콜백용)
 BACKEND_URL = os.getenv('BACKEND_URL', 'http://localhost:5000')
 
+# JWT 서명 키가 없으면 app.secret_key(기동할 때마다 새로 만드는 난수)로 떨어진다.
+# 이 경우 서버를 재시작하는 순간 **이미 발급한 토큰이 전부 무효**가 되는데,
+# 프론트는 토큰을 서버에 확인하지 않고 payload 만 읽어 쓰기 때문에
+# 화면에는 여전히 로그인 상태로 보이고, 인증이 필요한 동작에서만
+# "유효하지 않은 토큰입니다" 가 뜬다. 원인을 찾기 매우 어려운 형태라 기동 시 경고한다.
+if not os.getenv('JWT_SECRET_KEY'):
+    print('[경고] JWT_SECRET_KEY 가 설정되지 않았습니다. '
+          '서버를 재시작하면 발급된 로그인 토큰이 모두 무효가 됩니다.')
+
+
 def generate_jwt_token(user_id, email, nickname, provider=None):
     """JWT 토큰 생성"""
     payload = {
@@ -1631,6 +1641,45 @@ def find_email():
     except Exception as e:
         print(f"Find email error: {e}")
         return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
+
+@app.route('/api/auth/me', methods=['GET'])
+def get_me():
+    """토큰이 아직 유효한지 확인하고 현재 사용자 정보를 돌려준다.
+
+    프론트는 저장된 JWT 의 payload 만 base64 로 풀어 화면을 그리기 때문에,
+    서명이 깨진(=서버가 거부하는) 토큰을 들고도 로그인 상태로 보인다.
+    앱을 열 때 이 엔드포인트로 한 번 확인해서 죽은 세션을 정리하도록 한다.
+    """
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({'error': '인증이 필요합니다.'}), 401
+
+    payload = verify_jwt_token(auth_header.split(' ')[1])
+    if not payload:
+        return jsonify({'error': '유효하지 않은 토큰입니다.'}), 401
+
+    db = get_db()
+    cursor = db.cursor()
+    try:
+        cursor.execute(
+            "SELECT id, email, nickname, provider FROM users WHERE id = %s AND deleted_at IS NULL",
+            (payload.get('user_id'),)
+        )
+        user = cursor.fetchone()
+    finally:
+        db.close()
+
+    # 토큰은 멀쩡한데 계정이 사라진 경우(탈퇴 등)도 로그인 상태로 두면 안 된다
+    if not user:
+        return jsonify({'error': '존재하지 않는 계정입니다.'}), 401
+
+    return jsonify({'user': {
+        'id': user['id'],
+        'email': user['email'],
+        'nickname': user['nickname'],
+        'provider': user['provider'],
+    }}), 200
+
 
 @app.route('/api/auth/update-profile', methods=['POST'])
 def update_profile():

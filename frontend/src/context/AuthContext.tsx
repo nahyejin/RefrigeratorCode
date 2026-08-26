@@ -108,6 +108,44 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           sessionStorage.removeItem('auth_token');
           sessionStorage.removeItem('user');
         }
+
+        // 여기까지는 토큰의 payload 를 그냥 base64 로 푼 것뿐이라,
+        // **서버가 거부하는 토큰이어도 로그인한 것처럼 보인다.**
+        // (서명 키가 바뀌었거나 토큰이 만료된 경우가 그렇다)
+        // 그래서 화면에는 멀쩡히 로그인돼 있는데 닉네임 변경 같은 동작에서만
+        // "유효하지 않은 토큰입니다" 가 떴다.
+        // 앱을 열 때 서버에 한 번 물어보고, 죽은 세션이면 조용히 정리한다.
+        const apiUrl =
+          (import.meta.env && import.meta.env.VITE_API_BASE_URL) ||
+          'https://refrigeratorcode-production.up.railway.app';
+        fetch(`${apiUrl}/api/auth/me`, { headers: { Authorization: `Bearer ${token}` } })
+          .then(async (res) => {
+            if (res.status === 401) {
+              console.warn('[Auth] 서버가 토큰을 거부함 → 로그인 상태 해제');
+              localStorage.removeItem('auth_token');
+              localStorage.removeItem('user');
+              sessionStorage.removeItem('auth_token');
+              sessionStorage.removeItem('user');
+              setUser(null);
+              return;
+            }
+            if (!res.ok) return; // 서버 장애 등은 로그아웃 사유가 아니다
+            const data = await res.json();
+            if (data?.user) {
+              // 서버 쪽 정보가 최신이므로 화면 표시도 맞춘다
+              const fresh: User = {
+                id: String(data.user.id),
+                email: data.user.email || '',
+                nickname: data.user.nickname || '',
+                provider: data.user.provider,
+              };
+              setUser(fresh);
+              localStorage.setItem('user', JSON.stringify(fresh));
+            }
+          })
+          .catch(() => {
+            // 네트워크가 끊긴 상태에서 로그아웃시키면 오히려 불편하다 → 그대로 둔다
+          });
       } else {
         // 복원 불가능한 손상 데이터 정리
         localStorage.removeItem('auth_token');

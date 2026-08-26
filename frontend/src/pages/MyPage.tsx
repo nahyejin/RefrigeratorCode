@@ -7,6 +7,7 @@ import SectionHeader from '../components/SectionHeader';
 import SectionIcon from '../components/ui/SectionIcon';
 import SectionBand from '../components/ui/SectionBand';
 import Button from '../components/ui/Button';
+import Dialog from '../components/ui/Dialog';
 import BottomNavBar from '../components/BottomNavBar';
 import logoImg from '../assets/냉털이 로고 white.png';
 import searchIcon from '../assets/navigator_search.png';
@@ -769,6 +770,16 @@ const MyPage: React.FC = () => {
       const data = await response.json();
 
       if (!response.ok) {
+        // 401 은 "닉네임이 잘못됐다" 가 아니라 **로그인 세션이 끝났다** 는 뜻이다.
+        // 예전에는 백엔드 문구("유효하지 않은 토큰입니다")를 그대로 띄워서,
+        // 사용자는 소셜 로그인이라 닉네임을 못 바꾸는 줄로 오해하게 됐다.
+        if (response.status === 401) {
+          showToast('로그인이 만료되었어요. 다시 로그인해 주세요.');
+          setEditOpen(false);
+          logout();
+          navigate('/login');
+          return;
+        }
         showToast(data.error || '프로필 업데이트에 실패했습니다.');
         return;
       }
@@ -1663,36 +1674,27 @@ const MyPage: React.FC = () => {
         message={registerModalMessage || '더 많은 기능을 사용하려면'}
       />
       
-      {/* 회원탈퇴 확인 모달 */}
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[calc(var(--z-modal) + 1)]">
-          <div className="bg-white rounded-xl shadow-lg w-[320px] max-w-[90vw] p-6">
-            <div className="text-center mb-4">
-              <div className="text-[18px] font-bold text-[#1A1A1E] mb-3">회원탈퇴</div>
-              <div className="text-[15px] text-gray-600 leading-relaxed">
-                정말 회원탈퇴를 하시겠습니까?<br />
-                모든 데이터가 삭제되며 복구 불가 합니다.
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <button
-                className="flex-1 h-11 bg-white text-[#1A1A1E] border border-gray-300 rounded-lg text-[16px] font-semibold"
-                onClick={() => setShowDeleteConfirm(false)}
-                disabled={deletingAccount}
-              >
-                취소
-              </button>
-              <button
-                className="flex-1 h-11 bg-red-500 text-white rounded-lg text-[16px] font-semibold disabled:opacity-50"
-                onClick={handleDeleteAccount}
-                disabled={deletingAccount}
-              >
-                {deletingAccount ? '처리 중...' : '탈퇴하기'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* 회원탈퇴 확인 모달.
+          예전에는 `z-[calc(var(--z-modal) + 1)]` 이라고 적혀 있었는데,
+          Tailwind 의 임의값([])은 **공백을 포함할 수 없다**. 그래서 이 클래스는
+          아예 만들어지지 않았고, 결과적으로 z-index 가 `auto` 였다.
+          부모인 '내 정보 수정' 모달은 z-index 600 이라, 확인 팝업이 그 뒤에 숨어
+          보이지도 눌리지도 않았다. (실측: 화면 가운데를 찍으면 정보수정 모달의 입력칸이 잡힘)
+          → 공용 Dialog + nested 로 교체해 규격과 층위를 동시에 맞춘다. */}
+      <Dialog
+        open={showDeleteConfirm}
+        nested
+        onClose={() => { if (!deletingAccount) setShowDeleteConfirm(false); }}
+        title="회원탈퇴"
+        actions={[
+          { label: '취소', onClick: () => setShowDeleteConfirm(false), variant: 'outline' },
+          { label: deletingAccount ? '처리 중...' : '탈퇴하기', onClick: handleDeleteAccount, variant: 'danger' },
+        ]}
+      >
+        정말 회원탈퇴를 하시겠습니까?
+        <br />
+        모든 데이터가 삭제되며 복구할 수 없습니다.
+      </Dialog>
     </div>
   );
 };
