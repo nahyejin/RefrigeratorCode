@@ -1513,6 +1513,18 @@ const MyFridge: React.FC = () => {
     toastTimeout.current = setTimeout(() => setToast(null), duration ?? TOAST_DURATION);
   };
 
+  const prepNoticeTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  /**
+   * "아직 준비 중인 기능" 안내.
+   * `showToast` 는 '삭제 취소' 버튼이 함께 붙는 토스트라 단순 안내에는 맞지 않고,
+   * `alert` 는 OS 창이라 앱 밖의 일처럼 보이고 확인을 눌러야만 사라진다.
+   */
+  const showPrepNotice = (text: string) => {
+    setInfoToast({ text });
+    if (prepNoticeTimer.current) clearTimeout(prepNoticeTimer.current);
+    prepNoticeTimer.current = setTimeout(() => setInfoToast(null), 3000);
+  };
+
   const removeTag = (box: StorageBox, tag: string) => {
     let prev: Ingredient[] = [];
     if (box === 'frozen') prev = frozen || [];
@@ -1915,14 +1927,33 @@ const MyFridge: React.FC = () => {
             >
               입력
             </button>
+            {/* 준비 중인 입력 방식 두 가지.
+                지금은 눌러도 안내만 뜨지만, 이런 방법이 생긴다는 것을 미리 알려 두면
+                "재료를 하나씩 쳐야 하나" 하고 지레 포기하는 일이 줄어든다.
+                alert 대신 토스트를 쓰는 이유: alert 는 OS 창이라 앱 밖의 일처럼 보이고
+                확인을 눌러야만 사라진다. */}
             <button
               type="button"
               className="bg-[#E6E6EA] text-[#1A1A1E] font-bold rounded-2xl px-2 py-2 text-sm shadow transition whitespace-nowrap focus:outline-none"
               style={{ display: 'flex', alignItems: 'center', height: 40, minWidth: 40, padding: 0, fontSize: 16, marginLeft: 0, border: '1px solid #E6E6EA', justifyContent: 'center', borderRadius: 20, alignSelf: 'flex-start' }}
-              onClick={() => alert('영수증 인식 기능은 곧 지원될 예정입니다!')}
-              title="영수증 인식(구현 예정)"
+              onClick={() => showPrepNotice('영수증을 찍으면 재료를 자동으로 담아 주는 기능을 준비하고 있어요.')}
+              title="영수증 인식(준비 중)"
+              aria-label="영수증으로 재료 담기(준비 중)"
             >
-              <img src={receiptImg} alt="영수증" style={{ width: 22, height: 22, objectFit: 'contain', display: 'block' }} />
+              <img src={receiptImg} alt="" aria-hidden style={{ width: 22, height: 22, objectFit: 'contain', display: 'block' }} />
+            </button>
+            <button
+              type="button"
+              className="bg-[#E6E6EA] text-[#1A1A1E] font-bold rounded-2xl px-2 py-2 text-sm shadow transition whitespace-nowrap focus:outline-none"
+              style={{ display: 'flex', alignItems: 'center', height: 40, minWidth: 40, padding: 0, fontSize: 16, marginLeft: 0, border: '1px solid #E6E6EA', justifyContent: 'center', borderRadius: 20, alignSelf: 'flex-start' }}
+              onClick={() => showPrepNotice('재료 사진을 찍으면 알아서 인식해 담아 주는 기능을 준비하고 있어요.')}
+              title="사진으로 재료 인식(준비 중)"
+              aria-label="사진으로 재료 담기(준비 중)"
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1A1A1E" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M4 8.2h3.1l1.5-2.2h6.8l1.5 2.2H20a1.6 1.6 0 0 1 1.6 1.6v8.4A1.6 1.6 0 0 1 20 19.8H4a1.6 1.6 0 0 1-1.6-1.6V9.8A1.6 1.6 0 0 1 4 8.2z" />
+                <circle cx="12" cy="13.6" r="3.4" />
+              </svg>
             </button>
           </div>
         </div>
