@@ -487,10 +487,15 @@ const RecipeSortBar = ({
 
   const myFridgeIngredientList = useMemo(() => Utils.parseMyFridgeIngredients(), []);
 
+  // 구매일로 짐작한 기한(estimatedExpiry)도 임박 재료로 함께 본다.
+  // 유통기한을 직접 넣는 사용자가 드물어서, 직접 넣은 것만 세면
+  // 임박 재료 목록이 거의 항상 비어 이 기능 자체가 동작하지 않았다.
   const expirySortedIngredientList = useMemo(() =>
     myFridgeIngredientList
-      .filter(i => i.expiry)
-      .sort((a, b) => new Date(a.expiry).getTime() - new Date(b.expiry).getTime()),
+      .filter(i => i.expiry || i.estimatedExpiry)
+      .sort((a, b) =>
+        new Date(a.expiry || a.estimatedExpiry).getTime() -
+        new Date(b.expiry || b.estimatedExpiry).getTime()),
     [myFridgeIngredientList]
   );
 
@@ -934,7 +939,9 @@ const RecipeSortBar = ({
                     {item.name}
                   </span>
                   <span style={STYLES.ingredientDate}>
-                    {expirySortType === 'expiry' ? getDDay(item.expiry) : (item.purchase || '')}
+                    {expirySortType === 'expiry'
+                      ? (item.expiry ? getDDay(item.expiry) : `약 ${getDDay(item.estimatedExpiry)}`)
+                      : (item.purchase || '')}
                   </span>
                 </div>
               ))}

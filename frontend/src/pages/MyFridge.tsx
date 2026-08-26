@@ -14,6 +14,7 @@ import RegisterPromptModal from '../components/RegisterPromptModal';
 import WelcomeModal from '../components/WelcomeModal';
 import GuideOverlay from '../components/GuideOverlay';
 import BottomCoupangAd from '../components/BottomCoupangAd';
+import { loadIngredientCategoryMap, estimateExpiry, type CategoryMap } from '../utils/shelfLife';
 import {
   isUsageGuideDueThisVisit,
   markUsageGuideFinished,
@@ -59,6 +60,8 @@ export interface Ingredient {
   name: string;
   expiry?: string;
   purchase?: string;
+  /** 구매일 + 재료 카테고리로 짐작한 유통기한. 사용자가 직접 넣은 expiry 와 구분해서 보관한다 */
+  estimatedExpiry?: string;
 }
 
 export type StorageBox = 'frozen' | 'fridge' | 'room';
@@ -185,11 +188,15 @@ function saveIngredients(
 function sortIngredients(arr: Ingredient[], sort: SortType): Ingredient[] {
   if (!arr) return [];
   
+  // 짐작한 기한도 D-표기로 보이므로 정렬에서 빼면 안 된다.
+  // 빼 두면 `약 D-2` 재료가 `D-30` 재료보다 아래로 밀려 임박 재료를 놓친다.
+  const effectiveExpiry = (i: Ingredient) => i.expiry || i.estimatedExpiry;
+
   if (sort === 'expiry') {
-    const withExpiry = arr.filter(i => i.expiry);
-    const withoutExpiry = arr.filter(i => !i.expiry);
+    const withExpiry = arr.filter(i => effectiveExpiry(i));
+    const withoutExpiry = arr.filter(i => !effectiveExpiry(i));
     // 유통기한 있는 것들을 날짜순으로 정렬 (임박한 것부터)
-    withExpiry.sort((a, b) => (a.expiry! > b.expiry! ? 1 : -1));
+    withExpiry.sort((a, b) => (effectiveExpiry(a)! > effectiveExpiry(b)! ? 1 : -1));
     // 유통기한 없는 것들은 원래 순서 유지 (재료 추가한 순)
     // 배열의 원래 인덱스를 유지하기 위해 필터링 전 인덱스를 저장
     const originalIndices = new Map<Ingredient, number>();
@@ -208,9 +215,9 @@ function sortIngredients(arr: Ingredient[], sort: SortType): Ingredient[] {
     const withoutPurchase = arr.filter(i => !i.purchase);
     withPurchase.sort((a, b) => (a.purchase! > b.purchase! ? 1 : -1));
     // 구매일 없는 재료 중 유통기한 있는 것, 없는 것 분리
-    const withExpiry = withoutPurchase.filter(i => i.expiry);
-    const noDate = withoutPurchase.filter(i => !i.expiry);
-    withExpiry.sort((a, b) => (a.expiry! > b.expiry! ? 1 : -1));
+    const withExpiry = withoutPurchase.filter(i => effectiveExpiry(i));
+    const noDate = withoutPurchase.filter(i => !effectiveExpiry(i));
+    withExpiry.sort((a, b) => (effectiveExpiry(a)! > effectiveExpiry(b)! ? 1 : -1));
     noDate.sort((a, b) => a.name.localeCompare(b.name, 'ko'));
     return [...withPurchase, ...withExpiry, ...noDate];
   } else {
@@ -266,9 +273,17 @@ interface IngredientPillProps {
   isFirstInFridge?: boolean;
 }
 
-/** 유통기한까지 남은 일수를 D-표기로. 날짜가 없으면 null */
-function getDdayLabel(item: Ingredient): { text: string; urgent: boolean } | null {
-  const raw = item.expiry;
+/**
+ * 유통기한까지 남은 일수를 D-표기로. 날짜가 없으면 null.
+ *
+ * 사용자가 직접 넣은 유통기한(expiry)이 항상 우선이고,
+ * 없을 때만 구매일로 짐작한 값(estimatedExpiry)을 쓴다.
+ * 짐작한 값은 `약 D-5` 처럼 표시해서 단정하지 않는다 —
+ * 추정을 확정처럼 보여주면 멀쩡한 재료를 버리게 된다.
+ */
+function getDdayLabel(item: Ingredient): { text: string; urgent: boolean; estimated: boolean } | null {
+  const estimated = !item.expiry && !!item.estimatedExpiry;
+  const raw = item.expiry || item.estimatedExpiry;
   if (!raw) return null;
   const d = new Date(String(raw).replace(/\./g, '-'));
   if (isNaN(d.getTime())) return null;
@@ -276,9 +291,10 @@ function getDdayLabel(item: Ingredient): { text: string; urgent: boolean } | nul
   today.setHours(0, 0, 0, 0);
   d.setHours(0, 0, 0, 0);
   const days = Math.round((d.getTime() - today.getTime()) / 86400000);
-  if (days < 0) return { text: '지남', urgent: true };
-  if (days === 0) return { text: 'D-day', urgent: true };
-  return { text: `D-${days}`, urgent: days <= 3 };
+  const prefix = estimated ? '약 ' : '';
+  if (days < 0) return { text: estimated ? '약 지남' : '지남', urgent: true, estimated };
+  if (days === 0) return { text: `${prefix}D-day`, urgent: true, estimated };
+  return { text: `${prefix}D-${days}`, urgent: days <= 3, estimated };
 }
 
 const IngredientPill: React.FC<IngredientPillProps> = ({ item, onRemove, onSettingsClick, isFirstInFridge = false }) => {
@@ -324,8 +340,10 @@ const IngredientPill: React.FC<IngredientPillProps> = ({ item, onRemove, onSetti
               fontSize: 11,
               fontWeight: 700,
               flexShrink: 0,
-              background: dday.urgent ? '#FFE7E4' : 'var(--surface-sub)',
-              color: dday.urgent ? '#C4342B' : 'var(--ink-500)',
+              // 짐작한 기한까지 빨갛게 칠하면 확정된 사실처럼 읽히므로,
+              // 추정값은 급해도 붉은색 대신 옅은 주황으로 한 단계 낮춘다
+              background: dday.urgent ? (dday.estimated ? '#FFF3E0' : '#FFE7E4') : 'var(--surface-sub)',
+              color: dday.urgent ? (dday.estimated ? '#9A5B00' : '#C4342B') : 'var(--ink-500)',
             }}
           >
             {dday.text}
@@ -469,6 +487,8 @@ const ScrollablePillSection: React.FC<ScrollablePillSectionProps> = ({ watchKey,
 const MyFridge: React.FC = () => {
   console.log('[MyFridge] 컴포넌트 렌더링 시작');
   
+  // 재료 카테고리 표 (유통기한 추정용). 앱 전체가 같은 CSV 를 쓰므로 유틸에서 캐시한다
+  const [categoryMap, setCategoryMap] = React.useState<CategoryMap>({});
   const [frozen, setFrozen] = React.useState<Ingredient[] | null>(null);
   const [fridge, setFridge] = React.useState<Ingredient[] | null>(null);
   const [room, setRoom] = React.useState<Ingredient[] | null>(null);
@@ -1606,6 +1626,55 @@ const MyFridge: React.FC = () => {
     }
   };
 
+  // 재료 카테고리 표를 한 번 받아 둔다 (유통기한 추정에 필요)
+  React.useEffect(() => {
+    let alive = true;
+    loadIngredientCategoryMap()
+      .then(map => { if (alive) setCategoryMap(map); })
+      .catch(() => { /* 표를 못 받으면 추정만 못 할 뿐, 나머지 기능은 그대로 동작 */ });
+    return () => { alive = false; };
+  }, []);
+
+  /**
+   * 이미 담겨 있는 재료의 추정 유통기한을 채운다.
+   *
+   * 이 기능이 생기기 전에 구매일만 넣어 둔 재료가 이미 있고, 그 재료들은
+   * 저장 시점에 추정값을 계산할 기회가 없었다. 카테고리 표가 도착하면 한 번 훑어서
+   * 채워 준다. 추정 기준이 바뀌었을 때 값이 갱신되도록 이미 있는 값도 다시 계산한다.
+   */
+  React.useEffect(() => {
+    if (!Object.keys(categoryMap).length) return;
+
+    const fill = (list: Ingredient[] | null, storage: StorageBox): Ingredient[] | null => {
+      if (!list) return list;
+      let changed = false;
+      const next = list.map(item => {
+        // 직접 넣은 유통기한이 있으면 추정하지 않는다
+        if (item.expiry || !item.purchase) {
+          if (item.estimatedExpiry) {
+            changed = true;
+            const { estimatedExpiry, ...rest } = item;
+            return rest as Ingredient;
+          }
+          return item;
+        }
+        const est = estimateExpiry(item.name, storage, item.purchase, categoryMap);
+        if (est === (item.estimatedExpiry ?? null)) return item;
+        changed = true;
+        if (!est) {
+          const { estimatedExpiry, ...rest } = item;
+          return rest as Ingredient;
+        }
+        return { ...item, estimatedExpiry: est };
+      });
+      return changed ? next : list;
+    };
+
+    setFrozen(prev => fill(prev, 'frozen'));
+    setFridge(prev => fill(prev, 'fridge'));
+    setRoom(prev => fill(prev, 'room'));
+  }, [categoryMap]);
+
   const handleModalComplete = (data: { ingredient: string; storageType: StorageBox; hasExpiration: boolean; date: string | null; }, skipCheck: boolean = false) => {
     // 재료 사전에서 keyword로 변환 (synonym -> keyword)
     const ingredientKeyword = ingredientDict[data.ingredient] || data.ingredient;
@@ -1621,12 +1690,18 @@ const MyFridge: React.FC = () => {
       if (data.hasExpiration && data.date) {
         updatedIngredient.expiry = data.date;
         delete updatedIngredient.purchase;
+        delete updatedIngredient.estimatedExpiry;
       } else if (!data.hasExpiration && data.date) {
         updatedIngredient.purchase = data.date;
         delete updatedIngredient.expiry;
+        // 구매일만 알아도 재료 종류와 보관 방법으로 기한을 짐작해 D-표기를 띄운다
+        const est = estimateExpiry(ingredientKeyword, data.storageType, data.date, categoryMap);
+        if (est) updatedIngredient.estimatedExpiry = est;
+        else delete updatedIngredient.estimatedExpiry;
       } else {
         delete updatedIngredient.expiry;
         delete updatedIngredient.purchase;
+        delete updatedIngredient.estimatedExpiry;
       }
       
       // 기존 위치에서 제거
@@ -1668,7 +1743,11 @@ const MyFridge: React.FC = () => {
         name: ingredientKeyword 
       } as Ingredient;
       if (data.hasExpiration && data.date) obj.expiry = data.date;
-      if (!data.hasExpiration && data.date) obj.purchase = data.date;
+      if (!data.hasExpiration && data.date) {
+        obj.purchase = data.date;
+        const est = estimateExpiry(ingredientKeyword, data.storageType, data.date, categoryMap);
+        if (est) obj.estimatedExpiry = est;
+      }
       if (data.storageType === 'frozen') setFrozen(prev => prev ? [...prev, obj] : [obj]);
       if (data.storageType === 'fridge') setFridge(prev => prev ? [...prev, obj] : [obj]);
       if (data.storageType === 'room') setRoom(prev => prev ? [...prev, obj] : [obj]);

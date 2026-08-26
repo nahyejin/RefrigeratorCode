@@ -160,13 +160,11 @@ const STYLES = {
 
 // 유틸리티 함수들
 const Utils = {
-  // 순위 표시 로직
-  getRankDisplay: (rank: number) => {
-    if (rank === 1) return "1위🥇";
-    if (rank === 2) return "2위🥈";
-    if (rank === 3) return "3위🥉";
-    return `${rank}위`;
-  },
+  // 순위 표시 로직.
+  // 1~3위에 메달 이모지를 붙였었는데, 기기마다 그림체와 크기가 달라
+  // 같은 줄의 글자와 높이가 안 맞고 앱의 다른 표식들과 톤이 겉돌았다.
+  // 순위 자체가 이미 정보라 장식을 덧붙이지 않는다.
+  getRankDisplay: (rank: number) => `${rank}위`,
 
   // 플랫폼 체크
   isYouTube: (platform?: string) => {

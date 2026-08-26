@@ -3,6 +3,10 @@ import CloseButton from '../components/ui/CloseButton';
 import CoupangDisclaimer from '../components/CoupangDisclaimer';
 import Toast from '../components/Toast';
 import IngredientLegend from '../components/IngredientLegend';
+import SectionHeader from '../components/SectionHeader';
+import SectionIcon from '../components/ui/SectionIcon';
+import SectionBand from '../components/ui/SectionBand';
+import Button from '../components/ui/Button';
 import BottomNavBar from '../components/BottomNavBar';
 import logoImg from '../assets/냉털이 로고 white.png';
 import searchIcon from '../assets/navigator_search.png';
@@ -1074,78 +1078,141 @@ const MyPage: React.FC = () => {
           예전에는 마이페이지가 똑같은 헤더를 하나 더 그리고 있어 두 개가 겹쳐 있었고,
           복제본은 폭이 400px 로 제한돼 있어 넓은 화면에서 정렬도 달라 보였다. */}
 
-      {/* 프로필 영역 */}
+      {/* 프로필 영역.
+          예전에는 위 130px + 아래 70px 을 비우고 가운데에 닉네임·이메일·노란 버튼만
+          세로로 쌓아 둬서, 화면을 열면 200px 짜리 빈 구역이 먼저 보였다.
+          게다가 이 화면의 목적은 "내가 저장한 레시피 보기" 인데 노란색(브랜드 강조색)이
+          '내 정보 수정' 에만 칠해져 있어, 가장 눈에 띄는 것이 가장 덜 중요한 기능이었다.
+          → 프로필은 한 줄로 접고, 강조색은 로그인처럼 실제로 유도할 행동에만 남긴다. */}
       {isLoggedIn ? (
-        <section className="flex flex-col items-center justify-center mb-[70px]" style={{ marginTop: '130px' }}>
-          <div className="flex flex-col items-center">
-            <div className="text-[18px] font-bold text-gray-700 mb-1">{user.nickname}</div>
-            <div className="text-[16px] text-gray-500 mb-2">{user.email}</div>
+        <section
+          style={{
+            margin: '72px 14px 0',
+            padding: '14px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            background: 'var(--surface-sub)',
+            borderRadius: 14,
+          }}
+        >
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div
+              style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink-900)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+            >
+              {user.nickname}
+            </div>
+            <div
+              style={{ fontSize: 13, color: 'var(--ink-500)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+            >
+              {user.email}
+            </div>
           </div>
-          <button
-            className="px-3 h-7 bg-[#FFD600] text-[#1A1A1E] rounded-full text-[15px] font-bold flex items-center gap-1 border-none shadow hover:bg-yellow-300 transition"
-            style={{ 
-              minWidth: 0, 
-              height: 28, 
-              paddingLeft: 20, 
-              paddingRight: 20, 
-              fontFamily: 'inherit' 
-            }}
-            onClick={() => setEditOpen(true)}
-          >
-            내 정보 수정
-          </button>
+          <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
+            정보 수정
+          </Button>
         </section>
       ) : (
-        <section className="flex flex-col items-center justify-center mb-[70px]" style={{ marginTop: '130px' }}>
-          <div className="flex flex-col items-center max-w-[280px]">
-            <div className="text-center leading-relaxed mb-4">
-              <div className="text-[15px] text-gray-600 mb-1">
-                기록 및 완료 내역을 안전히 관리하려면
-              </div>
-              <div className="text-[16px] font-bold text-gray-900">
-                로그인이 필요합니다
-              </div>
+        <section
+          style={{
+            margin: '72px 14px 0',
+            padding: '18px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            background: 'var(--surface-sub)',
+            borderRadius: 14,
+          }}
+        >
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink-900)' }}>로그인이 필요합니다</div>
+            <div style={{ fontSize: 13, color: 'var(--ink-500)', marginTop: 3, lineHeight: 1.45 }}>
+              기록·완료 내역을 안전하게 보관하려면
             </div>
-            <button
-              className="px-5 h-9 bg-[#FFD600] text-[#1A1A1E] rounded-full text-[15px] font-bold flex items-center justify-center gap-1 border-none shadow-sm hover:bg-yellow-400 hover:shadow-md transition-all duration-200"
-              style={{ 
-                fontFamily: 'inherit',
-                minWidth: '140px'
-              }}
-              onClick={() => navigate('/login')}
-            >
-              로그인/회원가입
-            </button>
           </div>
+          <Button variant="primary" size="sm" onClick={() => navigate('/login')}>
+            로그인
+          </Button>
         </section>
       )}
+
+      {/* 이 화면이 무엇을 담고 있는지 한눈에 알려주는 요약 줄.
+          예전에는 스크롤을 내려 봐야 각 목록에 뭐가 몇 개 있는지 알 수 있었다. */}
+      <nav
+        style={{
+          display: 'flex',
+          margin: '12px 14px 0',
+          border: '1px solid var(--line-200)',
+          borderRadius: 14,
+          overflow: 'hidden',
+        }}
+      >
+        {[
+          { label: '즐겨찾기', count: favoriteRecipes.length, to: '/mypage/favorite' },
+          { label: '기록', count: recordedRecipes.length, to: '/mypage/recorded' },
+          { label: '완료', count: completedRecipes.length, to: '/mypage/completed' },
+        ].map(({ label, count, to }, i) => (
+          <button
+            key={label}
+            type="button"
+            onClick={() => navigate(to)}
+            style={{
+              flex: 1,
+              height: 62,
+              padding: 0,
+              boxSizing: 'border-box',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 2,
+              background: 'var(--surface)',
+              border: 'none',
+              borderLeft: i === 0 ? 'none' : '1px solid var(--line-200)',
+              cursor: 'pointer',
+            }}
+          >
+            <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink-900)', lineHeight: 1.2 }}>{count}</span>
+            <span style={{ fontSize: 12, color: 'var(--ink-500)' }}>{label}</span>
+          </button>
+        ))}
+      </nav>
       
       {/* 레시피 그룹 - 비회원도 localStorage로 관리하므로 항상 표시 */}
-      <div style={{ marginTop: 56 }}>
+      <div style={{ marginTop: 0 }}>
         {/* 내가 즐겨찾는 레시피 */}
-        <div style={{ paddingLeft: 14, paddingRight: 14, marginTop: 0, marginBottom: 6 }}>
-          <div className="flex items-center justify-between mb-0">
-            <h2 className="text-[16px] font-bold text-[#1A1A1E] flex items-center gap-1">
-              <svg width="21" height="21" viewBox="0 0 24 24" style={{ marginRight: 4, marginBottom: 2 }}>
-                <path
-                  d="M12 2.75l2.72 5.51 6.08.88-4.4 4.29 1.04 6.05L12 16.62 6.56 19.48l1.04-6.05-4.4-4.29 6.08-.88L12 2.75z"
-                  fill="none"
-                  stroke="#1A1A1E"
-                  strokeWidth="1.8"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              내가 즐겨찾는 레시피
-            </h2>
+        <div style={{ paddingLeft: 14, paddingRight: 14 }}>
+          <SectionBand bleed={14} />
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
+            <SectionHeader icon={<SectionIcon kind="favorite" />} title="내가 즐겨찾는 레시피" />
+            {/* 예전엔 전체보기가 `☰` 글자 하나였다. 햄버거는 '메뉴' 를 뜻하는 기호라
+                '이 목록 전부 보기' 와 뜻이 맞지 않고, 무엇보다 무슨 버튼인지 알 수 없었다. */}
             <button
-              className="text-[#9A9AA2] text-[22px] font-bold px-2 py-0 bg-transparent border-none outline-none cursor-pointer"
+              type="button"
               aria-label="내가 즐겨찾는 레시피 전체보기"
               onClick={() => navigate('/mypage/favorite')}
+              style={{
+                flexShrink: 0,
+                height: 32,
+                padding: '0 4px',
+                boxSizing: 'border-box',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 2,
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: 13,
+                fontWeight: 600,
+                color: 'var(--ink-500)',
+              }}
             >
-              ☰
+              전체보기
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M9 5l7 7-7 7" />
+              </svg>
             </button>
           </div>
-          <div style={{ height: 1, width: '100%', background: 'var(--line-200)', marginBottom: 14 }} />
 
           <IngredientLegend total={favoriteRecipes.length} style={{ marginBottom: 6, marginTop: 8 }} />
 
@@ -1169,31 +1236,38 @@ const MyPage: React.FC = () => {
         </div>
 
         {/* 내가 기록한 레시피 */}
-        <div style={{ paddingLeft: 14, paddingRight: 14, marginTop: 0, marginBottom: 6 }}>
-          <div className="flex items-center justify-between mb-0">
-            <h2 className="text-[16px] font-bold text-[#1A1A1E] flex items-center gap-1">
-              <img 
-                src={writeIcon} 
-                alt="기록 아이콘" 
-                className="inline-block align-middle" 
-                style={{
-                  width: 18, 
-                  height: 18, 
-                  marginRight: 4, 
-                  marginBottom: 2
-                }} 
-              />
-              내가 기록한 레시피
-            </h2>
+        <div style={{ paddingLeft: 14, paddingRight: 14 }}>
+          <SectionBand bleed={14} />
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
+            <SectionHeader icon={<SectionIcon kind="recorded" />} title="내가 기록한 레시피" />
+            {/* 예전엔 전체보기가 `☰` 글자 하나였다. 햄버거는 '메뉴' 를 뜻하는 기호라
+                '이 목록 전부 보기' 와 뜻이 맞지 않고, 무엇보다 무슨 버튼인지 알 수 없었다. */}
             <button
-              className="text-[#9A9AA2] text-[22px] font-bold px-2 py-0 bg-transparent border-none outline-none cursor-pointer"
+              type="button"
               aria-label="내가 기록한 레시피 전체보기"
               onClick={() => navigate('/mypage/recorded')}
+              style={{
+                flexShrink: 0,
+                height: 32,
+                padding: '0 4px',
+                boxSizing: 'border-box',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 2,
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: 13,
+                fontWeight: 600,
+                color: 'var(--ink-500)',
+              }}
             >
-              ☰
+              전체보기
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M9 5l7 7-7 7" />
+              </svg>
             </button>
           </div>
-          <div style={{ height: 1, width: '100%', background: 'var(--line-200)', marginBottom: 14 }} />
           
           {/* 범례 */}
           <IngredientLegend total={recordedRecipes.length} style={{ marginBottom: 6, marginTop: 8 }} />
@@ -1218,31 +1292,38 @@ const MyPage: React.FC = () => {
         </div>
         
         {/* 내가 완료한 레시피 */}
-        <div style={{ paddingLeft: 14, paddingRight: 14, marginTop: 4 }}>
-          <div className="flex items-center justify-between mb-0">
-            <h2 className="text-[16px] font-bold text-[#1A1A1E] flex items-center gap-1">
-              <img 
-                src={doneIcon} 
-                alt="완료 아이콘" 
-                className="inline-block align-middle" 
-                style={{
-                  width: 18, 
-                  height: 18, 
-                  marginRight: 4, 
-                  marginBottom: 2
-                }} 
-              />
-              내가 완료한 레시피
-            </h2>
+        <div style={{ paddingLeft: 14, paddingRight: 14 }}>
+          <SectionBand bleed={14} />
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
+            <SectionHeader icon={<SectionIcon kind="completed" />} title="내가 완료한 레시피" />
+            {/* 예전엔 전체보기가 `☰` 글자 하나였다. 햄버거는 '메뉴' 를 뜻하는 기호라
+                '이 목록 전부 보기' 와 뜻이 맞지 않고, 무엇보다 무슨 버튼인지 알 수 없었다. */}
             <button
-              className="text-[#9A9AA2] text-[22px] font-bold px-2 py-0 bg-transparent border-none outline-none cursor-pointer"
+              type="button"
               aria-label="내가 완료한 레시피 전체보기"
               onClick={() => navigate('/mypage/completed')}
+              style={{
+                flexShrink: 0,
+                height: 32,
+                padding: '0 4px',
+                boxSizing: 'border-box',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 2,
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: 13,
+                fontWeight: 600,
+                color: 'var(--ink-500)',
+              }}
             >
-              ☰
+              전체보기
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M9 5l7 7-7 7" />
+              </svg>
             </button>
           </div>
-          <div style={{ height: 1, width: '100%', background: 'var(--line-200)', marginBottom: 14 }} />
           
           {/* 범례 */}
           <IngredientLegend total={completedRecipes.length} style={{ marginBottom: 6, marginTop: 8 }} />

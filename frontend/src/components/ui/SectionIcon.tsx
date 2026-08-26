@@ -7,7 +7,9 @@ export type SectionIconKind =
   | 'special'     // 특별한 날
   | 'favorite'    // 즐겨찾기
   | 'recorded'    // 기록
-  | 'completed';  // 완료
+  | 'completed'   // 완료
+  | 'trending'    // 인기 급상승
+  | 'search';     // 키워드로 찾아보기
 
 interface SectionIconProps {
   kind: SectionIconKind;
@@ -78,6 +80,20 @@ const SectionIcon: React.FC<SectionIconProps> = ({ kind, size = 19, color = 'cur
         <svg {...base}>
           <path d="M5.5 4.6h9.2l4.3 4.3v10.5a1.6 1.6 0 0 1-1.6 1.6H5.5a1.6 1.6 0 0 1-1.6-1.6V6.2a1.6 1.6 0 0 1 1.6-1.6z" />
           <path d="M14.4 4.6v4.6h4.6M7.8 13h8M7.8 16.6h5.4" />
+        </svg>
+      );
+    case 'trending': // 오름세 꺾은선
+      return (
+        <svg {...base}>
+          <path d="M3.6 16.4l5-5 3.4 3.4 7-7" />
+          <path d="M14.6 7.8H19v4.4" />
+        </svg>
+      );
+    case 'search': // 돋보기
+      return (
+        <svg {...base}>
+          <circle cx="11" cy="11" r="6.6" />
+          <path d="M15.8 15.8l4.4 4.4" />
         </svg>
       );
     case 'completed': // 체크

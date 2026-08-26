@@ -3,6 +3,7 @@ import SectionIcon from '../components/ui/SectionIcon';
 import CoupangDisclaimer from '../components/CoupangDisclaimer';
 import LoadingIndicator from '../components/LoadingIndicator';
 import SectionHeader from '../components/SectionHeader';
+import SectionBand from '../components/ui/SectionBand';
 import Toast from '../components/Toast';
 import IngredientLegend from '../components/IngredientLegend';
 import BottomNavBar from '../components/BottomNavBar';
@@ -1617,8 +1618,9 @@ const Popular = () => {
     <>
       <div className="popular-page" style={{padding: '76px 20px 80px 20px', maxWidth: 400, margin: '0 auto', boxSizing: 'border-box'}}>
         {/* 상단 타이틀 */}
-        <header style={{marginBottom: 32}}>
-          <h2 className="text-lg font-bold mb-4 text-center" style={{marginBottom: 32}}>
+        <header style={{marginBottom: 20}}>
+          {/* header 와 h2 가 각각 marginBottom 32 를 걸고 있어 64px 이 비어 있었음 */}
+          <h2 className="text-lg font-bold text-center" style={{marginBottom: 0}}>
             인기 요리·재료부터 테마 추천까지
           </h2>
         </header>
@@ -1780,14 +1782,19 @@ const Popular = () => {
           if (premiumRecipes.length === 0) return null;
 
           return (
-            <section style={{ marginBottom: 32 }}>
-              {/* 예전 설명 문구가 "값비싼 재료가 들어간 레시피를 모았어요" 였는데,
-                  비싼 재료를 사게 하려는 의도가 그대로 드러나 보였음 →
-                  사용자가 얻는 것(특별한 날의 기분)을 말하도록 바꿈 */}
+            <section style={{ marginBottom: 0 }}>
+              <SectionBand bleed={20} />
+              {/* 문구 변천:
+                  ① "값비싼 재료가 들어간 레시피를 모았어요" — 비싼 재료를 사게 하려는
+                     의도가 그대로 드러나 보였음
+                  ② "기념일이나 손님상에 어울리는 레시피예요" — 기념일/손님상으로 못박으니
+                     "그런 날" 이 아닌 사람에게는 남의 이야기가 됨. 실제로는 아이에게 잘
+                     먹이고 싶은 날처럼 아무 날에도 보게 되는 목록임
+                  → 상황을 한정하지 말고 재료의 성격만 말한다 */}
               <SectionHeader
                 icon={<SectionIcon kind="special" />}
                 title="특별한 날 특별한 음식"
-                description="기념일이나 손님상에 어울리는 레시피예요"
+                description="평소엔 잘 안 쓰는 재료로 만드는 요리예요"
               />
               {/* 범례 + 총 건수 (유튜브/네이버 섹션과 동일한 형식) */}
               <IngredientLegend total={premiumRecipes.length} style={{ marginBottom: 6, marginTop: 8 }} />
@@ -1942,7 +1949,8 @@ const Popular = () => {
 
         {/* ⓑ 유튜브 인기 레시피 섹션 (데이터 있을 때만 노출) */}
         {youtubeRecipes.length > 0 && (
-        <section style={{ marginBottom: 32 }}>
+        <section style={{ marginBottom: 0 }}>
+          <SectionBand bleed={20} />
           <SectionHeader title="유튜브 인기 레시피" iconUrl={youtubeTitleImg} />
           {/* 범례: 가로형 레시피 카드 위, 왼쪽 정렬 */}
           <IngredientLegend total={youtubeRecipes.length} style={{ marginBottom: 6, marginTop: 8 }} />
@@ -1966,7 +1974,8 @@ const Popular = () => {
 
         {/* ⓒ 네이버 인기 레시피 섹션 (데이터 있을 때만 노출) */}
         {naverRecipes.length > 0 && (
-        <section style={{ marginBottom: 32 }}>
+        <section style={{ marginBottom: 0 }}>
+          <SectionBand bleed={20} />
           <SectionHeader title="네이버 인기 레시피" iconUrl={naverTitleImg} />
           {/* 범례: 가로형 레시피 카드 위, 왼쪽 정렬 */}
           <IngredientLegend total={naverRecipes.length} style={{ marginBottom: 6, marginTop: 8 }} />
@@ -1990,15 +1999,14 @@ const Popular = () => {
 
 
         {/* 인기 급상승 TOP10: 데이터가 있을 때만 노출 */}
-        {(dishRankings.length > 0 || themeRankings.length > 0) && (
-        <section style={{ marginBottom: 32 }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 48 }}>
+        {dishRankings.length > 0 && (
+        <section style={{ marginBottom: 0 }}>
+          <SectionBand bleed={20} />
+          <div>
             {/* 인기 급상승 요리 */}
-            {dishRankings.length > 0 && (
             <div>
-              <h2 className="text-[16px] font-bold text-[#1A1A1E] mb-2 text-left"><span className="mr-1">📈</span>인기 급상승 요리 TOP 10</h2>
-              <div style={{ height: 1, width: '100%', background: 'var(--line-200)', marginBottom: 14 }} />
-              <div className="mt-4">
+              <SectionHeader icon={<SectionIcon kind="trending" />} title="인기 급상승 요리 TOP 10" />
+              <div>
                 <table className="w-full max-w-[280px] mx-auto border-collapse text-[15px] font-sans" style={{background: '#FFFFFF'}}>
                   <thead>
                     <tr style={{borderTop: '1px solid #E6E6EA', borderBottom: '1px solid #E6E6EA', background: '#F5F5F7'}}>
@@ -2049,13 +2057,18 @@ const Popular = () => {
                 </table>
               </div>
             </div>
-            )}
+          </div>
+        </section>
+        )}
+
+        {themeRankings.length > 0 && (
+        <section style={{ marginBottom: 0 }}>
+          <SectionBand bleed={20} />
+          <div>
             {/* 인기 급상승 테마 */}
-            {themeRankings.length > 0 && (
             <div>
-              <h2 className="text-[16px] font-bold text-[#1A1A1E] mb-2 text-left"><span className="mr-1">📈</span>인기 급상승 테마 TOP 10</h2>
-              <div style={{ height: 1, width: '100%', background: 'var(--line-200)', marginBottom: 14 }} />
-              <div className="mt-4">
+              <SectionHeader icon={<SectionIcon kind="trending" />} title="인기 급상승 테마 TOP 10" />
+              <div>
                 <table className="w-full max-w-[280px] mx-auto border-collapse text-[15px] font-sans" style={{background: '#FFFFFF'}}>
                   <thead>
                     <tr style={{borderTop: '1px solid #E6E6EA', borderBottom: '1px solid #E6E6EA', background: '#F5F5F7'}}>
@@ -2102,15 +2115,14 @@ const Popular = () => {
                 </table>
               </div>
             </div>
-            )}
           </div>
         </section>
         )}
 
         {/* 인기 레시피 직접 찾아보기 검색창 */}
-        <section style={{ marginBottom: 32 }}>
-          <h2 className="text-[16px] font-bold text-[#1A1A1E] mb-2 text-left"><span className="mr-1">🔍️</span>특정 재료·테마 등 키워드로 찾아보기</h2>
-          <div style={{height: 1, width: '100%', background: 'var(--line-200)', marginBottom: 14}} />
+        <section style={{ marginBottom: 0 }}>
+          <SectionBand bleed={20} />
+          <SectionHeader icon={<SectionIcon kind="search" />} title="특정 재료·테마 등 키워드로 찾아보기" />
           <div
             style={{
               display: 'flex',

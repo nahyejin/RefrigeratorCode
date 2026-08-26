@@ -1839,7 +1839,10 @@ const RecipeList: React.FC = () => {
   const myIngredientObjects = getMyIngredientObjects();
   const sortedExpiryList = useMemo(() => {
     if (expirySortType === 'expiry') {
-      return myIngredientObjects.filter(i => i.expiry).sort((a, b) => (a.expiry > b.expiry ? 1 : -1));
+      // 구매일로 짐작한 기한도 임박 재료에 포함 (RecipeSortBar 와 같은 기준)
+      return myIngredientObjects
+        .filter(i => i.expiry || i.estimatedExpiry)
+        .sort((a, b) => ((a.expiry || a.estimatedExpiry) > (b.expiry || b.estimatedExpiry) ? 1 : -1));
     } else {
       return myIngredientObjects.filter(i => i.purchase).sort((a, b) => (a.purchase > b.purchase ? 1 : -1));
     }

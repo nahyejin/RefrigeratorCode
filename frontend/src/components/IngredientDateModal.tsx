@@ -188,6 +188,32 @@ export default function IngredientDateModal({ type, isOpen, onClose, onComplete,
           {type === 'expiry' ? TEXTS.expiryQuestion : TEXTS.purchaseQuestion}
         </div>
 
+        {/* 구매일자를 왜 묻는지 밝혀 준다.
+            이 화면만 봐서는 "구매일을 적어서 뭐 하려고?" 가 되기 때문에,
+            적어 두면 무엇이 돌아오는지(대략적인 유통기한 계산)를 함께 말한다. */}
+        {type === 'purchase' && (
+          <div
+            style={{
+              display: 'flex',
+              gap: 8,
+              padding: '10px 12px',
+              marginBottom: 12,
+              borderRadius: 10,
+              background: 'var(--surface-sub)',
+              fontSize: 13,
+              lineHeight: 1.5,
+              color: 'var(--ink-700)',
+            }}
+          >
+            <span aria-hidden style={{ flexShrink: 0, fontWeight: 700, color: 'var(--ink-500)' }}>i</span>
+            <span>
+              구매일자를 입력하면 쿡매치가 재료 종류와 보관 방법에 맞춰
+              <b style={{ fontWeight: 700 }}> 대략적인 유통기한을 짐작해 계산</b>해 드려요.
+              실제 표기된 기한과는 다를 수 있어요.
+            </span>
+          </div>
+        )}
+
         {/* 빠른 선택.
             예전엔 `yyyy-mm-dd` 를 손으로 다 입력하거나 달력을 열어야만 해서,
             "일주일 뒤" 같은 흔한 경우에도 손이 많이 갔음.

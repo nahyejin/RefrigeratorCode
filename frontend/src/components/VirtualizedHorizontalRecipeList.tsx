@@ -36,11 +36,17 @@ const CONSTANTS = {
 
 // 스타일 상수
 const STYLES = {
-  emptyContainer: (cardHeight: number) => ({
+  // 비어 있을 때 카드 한 장 높이(280px)를 그대로 비워 두고 있었다.
+  // 마이페이지처럼 세 목록이 모두 비어 있는 화면에서는 840px, 화면 한 장을 통째로
+  // 넘는 빈 공간이 생겨 "여기 뭐가 있는 화면인지" 를 알 수 없었다.
+  // 안내 문구를 담을 만큼만 차지하게 한다.
+  emptyContainer: (_cardHeight: number) => ({
     display: 'flex' as const,
+    flexDirection: 'column' as const,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
-    height: cardHeight,
+    minHeight: 96,
+    padding: '20px 12px',
     color: '#B8B8C0',
     fontSize: CONSTANTS.EMPTY_MESSAGE_FONT_SIZE
   }),
@@ -248,16 +254,16 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
     return (
       <div style={{
         ...STYLES.emptyContainer(cardHeight),
-        flexDirection: 'column',
         gap: 4,
         textAlign: 'center',
-        padding: '50px 20px',
-        color: '#6A6A73',
-        fontSize: '15px',
+        color: 'var(--ink-500)',
+        fontSize: '14px',
         lineHeight: '1.6',
         whiteSpace: 'pre-line',
-        justifyContent: 'flex-start',
-        alignItems: 'center'
+        // 안내 문구만 있는 영역이라 배경을 옅게 깔아 "비어 있는 목록" 임을 명시한다.
+        // 아무 표시도 없으면 그냥 여백으로 보여서 목록이 있다는 것조차 알 수 없다.
+        background: 'var(--surface-sub)',
+        borderRadius: 12
       }}>
         {typeof emptyMessage === 'string' ? (
           <div>{emptyMessage}</div>
