@@ -4,6 +4,8 @@ interface SectionHeaderProps {
   title: string;
   /** 왼쪽 아이콘 이미지 URL (플랫폼 로고 등). 없으면 제목만 */
   iconUrl?: string;
+  /** 이미지 대신 직접 넣는 아이콘 노드 (SectionIcon 등) */
+  icon?: React.ReactNode;
   /** 제목 아래 한 줄 설명 */
   description?: string;
 }
@@ -19,9 +21,10 @@ interface SectionHeaderProps {
  * 여기서: 아이콘은 이미지로만(의미 있는 것만), 이모지는 쓰지 않고,
  * 구분선은 옅은 1px 로 낮춘다.
  */
-const SectionHeader: React.FC<SectionHeaderProps> = ({ title, iconUrl, description }) => (
+const SectionHeader: React.FC<SectionHeaderProps> = ({ title, iconUrl, icon, description }) => (
   <div style={{ marginBottom: 12 }}>
     <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+      {icon}
       {iconUrl && (
         <span
           aria-hidden

@@ -1,4 +1,5 @@
 import * as React from 'react';
+import SectionIcon from '../components/ui/SectionIcon';
 import LoadingIndicator from '../components/LoadingIndicator';
 import BottomNavBar from '../components/BottomNavBar';
 import TagPill from '../components/TagPill';
@@ -1481,50 +1482,10 @@ const MyFridge: React.FC = () => {
     달걀으로시작하는키: Object.keys(ingredientDict).filter(k => k.includes('달걀'))
   });
 
-  // 드롭다운이 열릴 때 스크롤바를 표시하기 위해 미세한 스크롤 트리거
-  React.useEffect(() => {
-    if (showDropdown && dropdownRef.current && combinedFiltered.length > 3) {
-      // 드롭다운이 열리고 항목이 3개 이상일 때만 스크롤바 표시
-      const dropdown = dropdownRef.current;
-      
-      // 스크롤바를 확실히 표시하기 위한 함수
-      const triggerScrollbar = () => {
-        if (dropdown && dropdown.scrollHeight > dropdown.clientHeight) {
-          // 1. 먼저 아래로 스크롤
-          dropdown.scrollTop = 3;
-          // 2. 즉시 다시 위로 (사용자는 변화를 느끼지 못함)
-          setTimeout(() => {
-            dropdown.scrollTop = 0;
-            // 3. 한 번 더 트리거
-            setTimeout(() => {
-              dropdown.scrollTop = 2;
-              setTimeout(() => {
-                dropdown.scrollTop = 0;
-                // 4. 마지막으로 한 번 더
-                setTimeout(() => {
-                  dropdown.scrollTop = 1;
-                  setTimeout(() => {
-                    dropdown.scrollTop = 0;
-                  }, 10);
-                }, 10);
-              }, 10);
-            }, 10);
-          }, 10);
-        }
-      };
-      
-      // DOM이 완전히 렌더링된 후 즉시 실행
-      const timer1 = setTimeout(triggerScrollbar, 50);
-      const timer2 = setTimeout(triggerScrollbar, 150);
-      const timer3 = setTimeout(triggerScrollbar, 300);
-      
-      return () => {
-        clearTimeout(timer1);
-        clearTimeout(timer2);
-        clearTimeout(timer3);
-      };
-    }
-  }, [showDropdown, combinedFiltered.length]);
+  // (제거됨) 예전에는 스크롤바를 강제로 보이게 하려고 드롭다운이 열릴 때
+  //   scrollTop 을 3 → 0 → 2 → 0 → 1 → 0 으로 튕기고, 그걸 50ms·150ms·300ms
+  //   세 번 반복 실행했다. 그래서 드롭다운이 열릴 때마다 목록이 눈에 띄게 떨렸다.
+  //   스크롤바는 CSS(.custom-scrollbar)로 표시하면 되므로 이 조작은 필요 없다.
 
   const showToast = (message: string, deleted: DeletedInfo, duration?: number) => {
     setToast({ visible: true, message, deleted });
@@ -1824,7 +1785,7 @@ const MyFridge: React.FC = () => {
               {showDropdown && combinedFiltered.length > 0 && (
                 <div 
                   ref={dropdownRef}
-                  className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-[10] autocomplete-scrollbar" 
+                  className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-[10] custom-scrollbar" 
                   style={{ 
                     maxHeight: '96px', // 3개 항목 기준 (각 항목 약 32px: py-2 = 8px*2 + 텍스트 높이)
                     overflowY: 'scroll', // 'auto' 대신 'scroll'로 변경하여 항상 스크롤바 표시
@@ -1948,7 +1909,7 @@ const MyFridge: React.FC = () => {
           {/* 냉동보관 */}
           <div className="mb-4">
             <div className="text-[16px] font-bold mb-2 flex items-center">
-              <span className="mr-1">🧊</span>냉동보관
+              <SectionIcon kind="frozen" /><span style={{ marginLeft: 6 }}>냉동보관</span>
               <SortDropdown value={frozenSort} onChange={setFrozenSort} className="ml-2" />
               {(frozen ?? []).length > 0 && (
                 <button
@@ -1977,7 +1938,7 @@ const MyFridge: React.FC = () => {
           {/* 냉장보관 */}
           <div className="mb-4">
             <div className="text-[16px] font-bold mb-2 flex items-center">
-              <span className="mr-1">❄️</span>냉장보관
+              <SectionIcon kind="fridge" /><span style={{ marginLeft: 6 }}>냉장보관</span>
               <SortDropdown value={fridgeSort} onChange={setFridgeSort} className="ml-2" />
               {fridge && fridge.length > 0 && (
                 <button
@@ -2006,7 +1967,7 @@ const MyFridge: React.FC = () => {
           {/* 실온보관 */}
           <div className="mb-4">
             <div className="text-[16px] font-bold mb-2 flex items-center">
-              <span className="mr-1">🌡️</span>실온보관
+              <SectionIcon kind="room" /><span style={{ marginLeft: 6 }}>실온보관</span>
               <SortDropdown value={roomSort} onChange={setRoomSort} className="ml-2" />
               {room && room.length > 0 && (
                 <button

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import SectionIcon from '../components/ui/SectionIcon';
 import CoupangDisclaimer from '../components/CoupangDisclaimer';
 import LoadingIndicator from '../components/LoadingIndicator';
 import SectionHeader from '../components/SectionHeader';
@@ -1744,7 +1745,7 @@ const Popular = () => {
           </div>
         )}
 
-        {/* ⭐ 특별한 날 특별한 음식 섹션 */}
+        {/* 특별한 날 특별한 음식 섹션 */}
         {(() => {
           // 프리미엄 재료 포함 레시피 — 비싼 재료 우선 정렬(premiumIngredients.ts 순서).
           // 유튜브/네이버 인기 상단과 겹치는 항목은 뒤로 밀어 같은 카드가 연달아 보이는 느낌 완화.
@@ -1780,9 +1781,13 @@ const Popular = () => {
 
           return (
             <section style={{ marginBottom: 6 }}>
+              {/* 예전 설명 문구가 "값비싼 재료가 들어간 레시피를 모았어요" 였는데,
+                  비싼 재료를 사게 하려는 의도가 그대로 드러나 보였음 →
+                  사용자가 얻는 것(특별한 날의 기분)을 말하도록 바꿈 */}
               <SectionHeader
+                icon={<SectionIcon kind="special" />}
                 title="특별한 날 특별한 음식"
-                description="값비싼 재료가 들어간 레시피를 모았어요"
+                description="기념일이나 손님상에 어울리는 레시피예요"
               />
               {/* 범례 + 총 건수 (유튜브/네이버 섹션과 동일한 형식) */}
               <IngredientLegend total={premiumRecipes.length} style={{ marginBottom: 6, marginTop: 8 }} />

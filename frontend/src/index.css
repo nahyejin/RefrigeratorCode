@@ -993,8 +993,10 @@ textarea:focus,
 textarea:focus-visible,
 select:focus,
 select:focus-visible {
-  border-color: var(--ink-700) !important;
-  box-shadow: 0 0 0 3px rgba(26, 26, 30, 0.07) !important;
+  /* 진한 회색 테두리 + 링은 "굵어지고 칙칙해" 보인다는 피드백 →
+     테두리는 한 단계만 진해지고(선 굵기는 그대로), 링은 아주 옅게. */
+  border-color: var(--ink-400) !important;
+  box-shadow: 0 0 0 3px rgba(26, 26, 30, 0.05) !important;
   outline: none !important;
 }
 
@@ -1002,6 +1004,6 @@ select:focus-visible {
 input:focus-visible,
 textarea:focus-visible,
 select:focus-visible {
-  border-color: var(--ink-900) !important;
-  box-shadow: 0 0 0 3px rgba(26, 26, 30, 0.14) !important;
+  border-color: var(--ink-700) !important;
+  box-shadow: 0 0 0 3px rgba(26, 26, 30, 0.10) !important;
 }
