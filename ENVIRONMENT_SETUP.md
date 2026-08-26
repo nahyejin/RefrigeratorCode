@@ -113,6 +113,33 @@ DB_PORT=3306
 CORS_ORIGIN=https://your-production-frontend-url.com
 ```
 
+### **LLM(Gemini) 키 — 두 개로 나눠 쓰기 권장**
+
+| 환경변수 | 쓰는 곳 | 없으면 |
+|---|---|---|
+| `GEMINI_API_KEY` | 재료 추출 배치(`llm_ingredient_extraction.py`) | 배치가 동작하지 않음 |
+| `GEMINI_API_KEY_CHAT` | **요리 챗봇(`/api/chat`) 전용** | `GEMINI_API_KEY` 를 함께 씀 |
+| `LLM_DAILY_LIMIT` | 챗봇의 앱 자체 호출 상한 (기본 250) | 250 |
+
+**왜 나눠야 하나**: 무료 티어 한도(하루 500회)는 **API 키 단위**입니다.
+재료 추출 배치가 하루 450회를 쓰도록 잡혀 있어서, 같은 키를 공유하면 챗봇 몫이
+50회뿐입니다. 실제로 이게 소진돼 챗봇이 하루 종일 `429 Quota exceeded` 로
+응답하지 못한 일이 있었습니다.
+
+**키 하나 더 만드는 방법** (5분)
+1. [Google AI Studio](https://aistudio.google.com/apikey) 접속 → 구글 계정 로그인
+2. `Create API key` → **`Create API key in new project`** 를 고름
+   (⚠️ 기존 프로젝트에 키를 하나 더 만들면 **한도를 공유**해서 의미가 없습니다.
+   반드시 **새 프로젝트**로 만들어야 별도 500회를 받습니다)
+3. 만들어진 키를 복사
+4. 넣을 곳
+   - 로컬: `backend/.env` 에 `GEMINI_API_KEY_CHAT=붙여넣기`
+   - 운영: Railway → 프로젝트 → **Variables** → `GEMINI_API_KEY_CHAT` 추가
+5. 백엔드 재시작(로컬) / 자동 재배포(Railway) 후, 챗봇에 아무 말이나 걸어 확인
+
+> 새 키를 만들어도 **배치가 쓰는 `GEMINI_API_KEY` 는 그대로 두세요.**
+> 둘 다 있어야 배치와 챗봇이 각자의 한도를 씁니다.
+
 ### **운영 환경 설정 시 주의사항**
 1. `backend/env.production` 파일에서 실제 DB 정보 입력
 2. `frontend/env.production` 파일에서 실제 백엔드 URL 입력

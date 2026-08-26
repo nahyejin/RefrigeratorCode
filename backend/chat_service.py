@@ -62,8 +62,14 @@ def _consume_quota():
 
 def _provider_and_key():
     provider = (os.getenv('LLM_PROVIDER') or '').strip().lower()
-    gemini_key = (os.getenv('GEMINI_API_KEY') or '').strip()
-    groq_key = (os.getenv('GROQ_API_KEY') or '').strip()
+    # 챗봇 전용 키를 따로 둘 수 있게 한다.
+    #
+    # 왜 필요한가: 재료 추출 배치와 챗봇이 같은 키를 쓰면 **무료 티어 하루 500회를
+    # 나눠 쓰게 된다.** 배치가 하루 450회를 쓰도록 잡혀 있어서 챗봇 몫은 50회뿐이고,
+    # 실제로 그게 소진돼 챗봇이 하루 종일 응답하지 못하는 일이 있었다(429).
+    # GEMINI_API_KEY_CHAT 을 넣으면 챗봇만 그 키를 쓰고, 없으면 예전처럼 공용 키를 쓴다.
+    gemini_key = (os.getenv('GEMINI_API_KEY_CHAT') or os.getenv('GEMINI_API_KEY') or '').strip()
+    groq_key = (os.getenv('GROQ_API_KEY_CHAT') or os.getenv('GROQ_API_KEY') or '').strip()
     if provider == 'groq' and groq_key:
         return 'groq', groq_key
     if provider == 'gemini' and gemini_key:
