@@ -5,7 +5,6 @@ import BottomNavBar from '../components/BottomNavBar';
 import TagPill from '../components/TagPill';
 import IngredientDetailModal from '../components/IngredientDetailModal';
 import SortDropdown, { SortType } from '../components/SortDropdown';
-import receiptImg from '../assets/영수증.png';
 import saveIcon from '../assets/saveicon.png';
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
@@ -507,6 +506,8 @@ const MyFridge: React.FC = () => {
     dateType?: 'expiry' | 'purchase' | null;
   } | null>(null);
   const [infoToast, setInfoToast] = React.useState<{text: string} | null>(null);
+  /** 자동완성 목록을 끝까지 내렸는지 — '아래로 더 있음' 표시를 감추는 데 쓴다 */
+  const [dropdownAtEnd, setDropdownAtEnd] = React.useState(false);
   const [frozenSort, setFrozenSort] = React.useState<SortType>('expiry');
   const [fridgeSort, setFridgeSort] = React.useState<SortType>('expiry');
   const [roomSort, setRoomSort] = React.useState<SortType>('expiry');
@@ -1859,11 +1860,14 @@ const MyFridge: React.FC = () => {
               alignItems: 'flex-start',
             }}
           >
-            <div style={{ position: 'relative', width: '100%', maxWidth: 250, minWidth: 0, flex: '0 1 auto', overflow: 'visible', zIndex: 10 }}>
+            {/* 버튼이 하나 늘면서 입력창이 눌려 플레이스홀더조차 잘렸다.
+                (한 줄 폭 360px 에 입력 250 + 입력버튼 70 + 아이콘 40×2 + 여백 = 424px)
+                입력창이 남는 폭을 다 갖도록 flex 를 바꾸고, 나머지를 조금씩 줄인다. */}
+            <div style={{ position: 'relative', width: '100%', minWidth: 0, flex: '1 1 auto', overflow: 'visible', zIndex: 10 }}>
               <input
                 ref={inputRef}
                 type="text"
-                placeholder="추가할 재료명을 입력하세요"
+                placeholder="재료명을 입력하세요"
                 className="border border-gray-300 rounded-full px-4 py-2 text-sm focus:outline-none"
                 style={{
                   width: '100%',
@@ -1872,20 +1876,32 @@ const MyFridge: React.FC = () => {
                 }}
                 value={inputValue}
                 onChange={handleInputChange}
-                onFocus={() => setShowDropdown(true)}
+                onFocus={() => { setShowDropdown(true); setDropdownAtEnd(false); }}
                 onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
                 onKeyDown={handleInputKeyDown}
                 autoComplete="off"
               />
               {showDropdown && combinedFiltered.length > 0 && (
+                /* 모바일은 스크롤바가 '만졌을 때만' 잠깐 나타나는 방식이라,
+                   목록이 더 있다는 사실이 손을 대기 전에는 보이지 않았다.
+                   (CSS 로 스크롤바를 상시 표시하려 해도 iOS/안드로이드는 OS 방식이 이긴다)
+                   → 아래쪽에 흐려지는 띠를 얹어 "아래로 더 있다" 를 눈으로 알린다.
+                   맨 아래까지 내리면 띠를 없애 다 봤다는 것도 알 수 있게 한다. */
+                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4 }}>
                 <div 
                   ref={dropdownRef}
-                  className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-[10] custom-scrollbar" 
+                  className="bg-white border border-gray-300 rounded-lg shadow-lg z-[10] custom-scrollbar" 
+                  onScroll={(e) => {
+                    const el = e.currentTarget;
+                    setDropdownAtEnd(el.scrollTop + el.clientHeight >= el.scrollHeight - 2);
+                  }}
                   style={{ 
                     maxHeight: '96px', // 3개 항목 기준 (각 항목 약 32px: py-2 = 8px*2 + 텍스트 높이)
                     overflowY: 'scroll', // 'auto' 대신 'scroll'로 변경하여 항상 스크롤바 표시
                     overflowX: 'hidden',
-                    position: 'absolute',
+                    // 바깥 래퍼가 이미 절대 배치라, 여기까지 absolute 로 두면
+                    // 래퍼 높이가 0이 되어 아래쪽 '더 있음' 표시가 엉뚱한 곳에 붙는다
+                    position: 'relative',
                     // 스크롤바 항상 표시 강제
                     scrollbarWidth: 'auto', // thin 대신 auto로 변경
                     scrollbarColor: '#6A6A73 #F5F5F7', // 더 진한 색상으로 변경
@@ -1916,6 +1932,57 @@ const MyFridge: React.FC = () => {
                     </div>
                   ))}
                 </div>
+                {combinedFiltered.length > 3 && !dropdownAtEnd && (
+                  <div
+                    aria-hidden
+                    style={{
+                      position: 'absolute',
+                      left: 1,
+                      right: 1,
+                      bottom: 1,
+                      height: 30,
+                      borderBottomLeftRadius: 8,
+                      borderBottomRightRadius: 8,
+                      // 흐려지는 띠까지 깔았더니 마지막 항목 글자가 씻겨 나가 읽기 어려웠다.
+                      // 알약 표시만으로도 "더 있다" 는 충분히 전달되므로 띠는 걷어낸다.
+                      background: 'transparent',
+                      display: 'flex',
+                      alignItems: 'flex-end',
+                      // 가운데 두면 마지막 항목 글자를 가린다 → 오른쪽으로 붙인다
+                      justifyContent: 'flex-end',
+                      paddingRight: 8,
+                      paddingBottom: 5,
+                      pointerEvents: 'none',
+                      // 목록에 `z-[10]` 이 걸려 있어서, z-index 를 안 주면
+                      // 이 표시가 목록 뒤로 깔려 화면에 보이지 않는다
+                      zIndex: 11,
+                    }}
+                  >
+                    {/* 옅은 화살표만 두니 흰 배경에 묻혀 보이지 않았다.
+                        회색 알약 안에 넣어 "여기 더 있다" 가 확실히 눈에 걸리게 한다. */}
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 3,
+                        height: 20,
+                        padding: '0 8px',
+                        borderRadius: 9999,
+                        background: 'var(--ink-700)',
+                        color: '#FFFFFF',
+                        fontSize: 11,
+                        fontWeight: 700,
+                        lineHeight: 1,
+                      }}
+                    >
+                      {combinedFiltered.length - 3}개 더
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M6 9.5l6 6 6-6" />
+                      </svg>
+                    </span>
+                  </div>
+                )}
+                </div>
               )}
             </div>
             <button
@@ -1935,17 +2002,23 @@ const MyFridge: React.FC = () => {
             <button
               type="button"
               className="bg-[#E6E6EA] text-[#1A1A1E] font-bold rounded-2xl px-2 py-2 text-sm shadow transition whitespace-nowrap focus:outline-none"
-              style={{ display: 'flex', alignItems: 'center', height: 40, minWidth: 40, padding: 0, fontSize: 16, marginLeft: 0, border: '1px solid #E6E6EA', justifyContent: 'center', borderRadius: 20, alignSelf: 'flex-start' }}
+              style={{ display: 'flex', alignItems: 'center', height: 40, width: 40, minWidth: 40, flexShrink: 0, padding: 0, marginLeft: 0, border: '1px solid #E6E6EA', justifyContent: 'center', borderRadius: 20, alignSelf: 'flex-start' }}
               onClick={() => showPrepNotice('영수증을 찍으면 재료를 자동으로 담아 주는 기능을 준비하고 있어요.')}
               title="영수증 인식(준비 중)"
               aria-label="영수증으로 재료 담기(준비 중)"
             >
-              <img src={receiptImg} alt="" aria-hidden style={{ width: 22, height: 22, objectFit: 'contain', display: 'block' }} />
+              {/* 예전에는 영수증만 PNG 이미지였다. 카메라는 선으로 그린 SVG 라
+                  선 굵기와 농도가 서로 달라 나란히 두니 톤이 어긋나 보였음
+                  → 둘 다 같은 굵기(1.7)의 선 아이콘으로 맞춘다 */}
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1A1A1E" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M5.5 3.4l1.6 1.3 1.6-1.3 1.6 1.3 1.6-1.3 1.6 1.3 1.6-1.3 1.6 1.3V19a1.6 1.6 0 0 1-1.6 1.6H7.1A1.6 1.6 0 0 1 5.5 19z" />
+                <path d="M8.6 8.2h6.8M8.6 11.6h6.8M8.6 15h4.2" />
+              </svg>
             </button>
             <button
               type="button"
               className="bg-[#E6E6EA] text-[#1A1A1E] font-bold rounded-2xl px-2 py-2 text-sm shadow transition whitespace-nowrap focus:outline-none"
-              style={{ display: 'flex', alignItems: 'center', height: 40, minWidth: 40, padding: 0, fontSize: 16, marginLeft: 0, border: '1px solid #E6E6EA', justifyContent: 'center', borderRadius: 20, alignSelf: 'flex-start' }}
+              style={{ display: 'flex', alignItems: 'center', height: 40, width: 40, minWidth: 40, flexShrink: 0, padding: 0, marginLeft: 0, border: '1px solid #E6E6EA', justifyContent: 'center', borderRadius: 20, alignSelf: 'flex-start' }}
               onClick={() => showPrepNotice('재료 사진을 찍으면 알아서 인식해 담아 주는 기능을 준비하고 있어요.')}
               title="사진으로 재료 인식(준비 중)"
               aria-label="사진으로 재료 담기(준비 중)"
@@ -2138,11 +2211,11 @@ const MyFridge: React.FC = () => {
               fontSize: 16,
               zIndex: 'var(--z-toast)',
               boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-              maxWidth: 320,
-              width: 'max-content',
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
+              // 예전에는 `nowrap` + `말줄임` 이라 안내가 통째로 잘려
+              // 무슨 말인지 알 수 없었다. 안내문은 길 수 있으므로 줄바꿈을 허용한다.
+              maxWidth: 'min(320px, calc(100vw - 40px))',
+              lineHeight: 1.5,
+              wordBreak: 'keep-all',
               textAlign: 'center',
             }}
           >
