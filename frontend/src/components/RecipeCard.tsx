@@ -33,9 +33,6 @@ const ACTIONS = THUMB_ACTIONS;
 const BUTTON_SIZE = 26;
 const ICON_SIZE = 19;
 
-/** 가로형 카드: 쿠팡 노출 여부와 무관하게 동일 하단 영역(쿠팡 블록 실제 높이에 맞춤·과도한 빈칸 방지) */
-const HORIZONTAL_COUPANG_SLOT_MIN_HEIGHT_PX = 62;
-
 // 스타일 상수
 const STYLES = {
   card: {
@@ -588,7 +585,11 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
         <div
           style={{
             marginTop: 8,
-            minHeight: HORIZONTAL_COUPANG_SLOT_MIN_HEIGHT_PX,
+            // 예전에는 광고가 없어도 62px 자리를 항상 비워 뒀다(`minHeight`).
+            // 그런데 CoupangProductAd 는 링크가 없으면 아무것도 렌더하지 않으므로,
+            // 광고가 거의 안 뜨는 상태에서는 카드마다 빈 공간만 남아
+            // 화면이 벙벙해 보이고 세로 간격도 들쭉날쭉해 보였다.
+            // 슬롯 높이 예약을 없애고 실제 내용이 있을 때만 자리를 차지하게 한다.
             boxSizing: 'border-box',
           }}
         >

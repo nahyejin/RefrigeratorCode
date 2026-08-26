@@ -219,7 +219,10 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
           ...style,
           width: cardWidth,
           marginRight: gap,
-          touchAction: 'pan-x',
+          // 카드 하나하나에 `pan-x` 만 허용해 두면, 카드 위에서 시작한 세로 스와이프가
+          // 아무 데도 전달되지 않아 페이지 스크롤이 막힌다.
+          // 가로 캐러셀 안이라도 세로 스크롤은 페이지로 넘어가야 한다.
+          touchAction: 'pan-x pan-y',
           overflowY: 'visible',
         } as React.CSSProperties}
       >

@@ -1780,7 +1780,7 @@ const Popular = () => {
           if (premiumRecipes.length === 0) return null;
 
           return (
-            <section style={{ marginBottom: 6 }}>
+            <section style={{ marginBottom: 32 }}>
               {/* 예전 설명 문구가 "값비싼 재료가 들어간 레시피를 모았어요" 였는데,
                   비싼 재료를 사게 하려는 의도가 그대로 드러나 보였음 →
                   사용자가 얻는 것(특별한 날의 기분)을 말하도록 바꿈 */}
@@ -1942,7 +1942,7 @@ const Popular = () => {
 
         {/* ⓑ 유튜브 인기 레시피 섹션 (데이터 있을 때만 노출) */}
         {youtubeRecipes.length > 0 && (
-        <section style={{ marginTop: 4, marginBottom: 0 }}>
+        <section style={{ marginBottom: 32 }}>
           <SectionHeader title="유튜브 인기 레시피" iconUrl={youtubeTitleImg} />
           {/* 범례: 가로형 레시피 카드 위, 왼쪽 정렬 */}
           <IngredientLegend total={youtubeRecipes.length} style={{ marginBottom: 6, marginTop: 8 }} />
@@ -1966,7 +1966,7 @@ const Popular = () => {
 
         {/* ⓒ 네이버 인기 레시피 섹션 (데이터 있을 때만 노출) */}
         {naverRecipes.length > 0 && (
-        <section style={{ marginTop: 4, marginBottom: 0 }}>
+        <section style={{ marginBottom: 32 }}>
           <SectionHeader title="네이버 인기 레시피" iconUrl={naverTitleImg} />
           {/* 범례: 가로형 레시피 카드 위, 왼쪽 정렬 */}
           <IngredientLegend total={naverRecipes.length} style={{ marginBottom: 6, marginTop: 8 }} />
@@ -1991,7 +1991,7 @@ const Popular = () => {
 
         {/* 인기 급상승 TOP10: 데이터가 있을 때만 노출 */}
         {(dishRankings.length > 0 || themeRankings.length > 0) && (
-        <section style={{ marginTop: 4, marginBottom: 48 }}>
+        <section style={{ marginBottom: 32 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 48 }}>
             {/* 인기 급상승 요리 */}
             {dishRankings.length > 0 && (
@@ -2108,7 +2108,7 @@ const Popular = () => {
         )}
 
         {/* 인기 레시피 직접 찾아보기 검색창 */}
-        <section style={{marginBottom: 48}}>
+        <section style={{ marginBottom: 32 }}>
           <h2 className="text-[16px] font-bold text-[#1A1A1E] mb-2 text-left"><span className="mr-1">🔍️</span>특정 재료·테마 등 키워드로 찾아보기</h2>
           <div style={{height: 1, width: '100%', background: 'var(--line-200)', marginBottom: 14}} />
           <div
