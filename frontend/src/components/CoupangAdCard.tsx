@@ -78,22 +78,34 @@ const CoupangAdCard: React.FC<CoupangAdCardProps> = ({ ingredient, recipeId, lac
       {/* 대가성 문구는 카드의 **첫 부분** 에 — 구매 버튼을 누르기 전에 보이도록 */}
       <CoupangDisclaimer compact style={{ marginBottom: 14 }} />
 
-      <div style={{ fontSize: 13, color: 'var(--ink-500)', marginBottom: 4 }}>앞 레시피에 부족한 재료</div>
+      {/* 예전엔 "앞 레시피에 부족한 재료" 라고 적었는데, 이건 우리가 이 재료를 고른
+          **내부 규칙**이지 사용자가 알아야 할 정보가 아니다.
+          사용자에게 필요한 건 "무엇에 대한 광고인가" 하나뿐이라 재료명만 남긴다.
+
+          위아래로 여백을 똑같이 나눠 재료명을 카드 가운데에 둔다
+          (아래로만 밀면 문구와 버튼 사이가 텅 비어 보인다) */}
       <div
         style={{
-          fontSize: 20,
-          fontWeight: 700,
-          color: 'var(--ink-900)',
-          lineHeight: 1.3,
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
+          flex: 1,
+          display: 'flex',
+          alignItems: 'center',
+          minHeight: 0,
         }}
       >
-        {ingredient}
+        <div
+          style={{
+            fontSize: 22,
+            fontWeight: 700,
+            color: 'var(--ink-900)',
+            lineHeight: 1.3,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {ingredient}
+        </div>
       </div>
-
-      <div style={{ flex: 1 }} />
 
       <a
         href={url}

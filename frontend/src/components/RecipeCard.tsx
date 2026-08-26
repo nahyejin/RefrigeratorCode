@@ -196,6 +196,13 @@ export interface RecipeCardProps {
   onThumbnailError?: (recipeId: number) => void;
   hasAd?: boolean; // 광고 표시 여부
   isHorizontal?: boolean; // 가로 스크롤형 카드 여부 (썸네일 높이 조정용)
+  /**
+   * 가로 목록에서 카드 높이를 이 값으로 고정한다.
+   * 재료 pill 이 몇 줄로 감기느냐에 따라 카드 높이가 228~280px 로 들쭉날쭉했고,
+   * 그 사이에 규격이 같아야 할 광고 카드가 끼면 높이 차이가 그대로 드러났다.
+   * 목록이 잡아 둔 슬롯 높이와 카드 높이를 같게 맞춰 한 줄로 가지런하게 만든다.
+   */
+  fixedHeight?: number;
 }
 
 // RecipeCard는 UI만 담당, 상태/스토리지/토스트 등은 상위에서 관리
@@ -212,6 +219,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
   onThumbnailError,
   hasAd: hasAdProp,
   isHorizontal = false,
+  fixedHeight,
 }) => {
   // 부족 재료 pill 을 눌렀을 때 열리는 구매 안내 시트의 대상 재료
   const [adIngredient, setAdIngredient] = React.useState<string | null>(null);
@@ -347,7 +355,11 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
         padding: '3px 8px', // 상하 3px, 좌우 8px
         marginBottom: isHorizontal ? 0 : 8, // 가로 리스트: 행 높이 안에서 카드~스크롤바 사이 빈칸 방지
         touchAction: 'pan-y pan-x', // 세로 및 가로 스크롤 모두 허용
-        overflow: 'visible', // 항상 visible로 설정하여 광고가 잘리지 않도록
+        // 가로 목록에서는 높이를 고정해 모든 카드(광고 카드 포함)를 같은 규격으로 맞춘다.
+        // 내용이 적은 카드는 아래가 남지만, 높이가 제각각인 것보다 훨씬 정돈돼 보인다.
+        ...(isHorizontal && fixedHeight
+          ? { height: fixedHeight, overflow: 'hidden' as const }
+          : { overflow: 'visible' as const }),
         boxSizing: 'border-box' as const, // padding 포함한 크기 계산
         WebkitOverflowScrolling: 'touch', // iOS 부드러운 스크롤
         border: '0.5px solid rgba(0, 0, 0, 0.06)'

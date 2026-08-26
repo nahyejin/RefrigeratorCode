@@ -229,7 +229,28 @@ const STYLES = {
     display: 'flex' as const,
     alignItems: 'center' as const,
     gap: 8,
-    padding: '0 8px'
+    padding: '0 8px',
+    marginTop: 14
+  },
+  /** 무엇을 정하는 칸인지 밝히는 소제목 */
+  fieldLabel: {
+    fontSize: 13,
+    fontWeight: 700,
+    color: 'var(--ink-700)',
+    marginBottom: 10,
+    textAlign: 'left' as const
+  },
+  /** 설정 묶음 사이의 숨 쉴 틈 */
+  fieldDivider: {
+    height: 1,
+    background: 'var(--line-200)',
+    margin: '22px 0'
+  },
+  chipGroup: {
+    display: 'flex' as const,
+    flexWrap: 'wrap' as const,
+    gap: 8,
+    justifyContent: 'flex-start' as const
   },
   radioGroup: {
     display: 'flex' as const,
@@ -247,12 +268,13 @@ const STYLES = {
   },
   applyButton: {
     width: '100%',
-    backgroundColor: '#3A3A42',
+    backgroundColor: 'var(--ink-900)',
     color: '#FFFFFF',
     fontWeight: 700,
-    padding: '12px',
-    borderRadius: 8,
-    marginTop: 8,
+    height: 48,
+    borderRadius: 10,
+    // 바로 위 선택지와 8px 밖에 안 떨어져 있어 붙어 보였음
+    marginTop: 24,
     fontSize: 16,
     border: 'none',
     cursor: 'pointer'
@@ -764,6 +786,10 @@ const RecipeSortBar = ({
                 빠질 수 있어요.
               </span>
             </div>
+            {/* 예전에는 라벨이 하나도 없어서 "30 % ~ 100 %" 두 칸이 무엇을 정하는 건지,
+                아래 라디오가 무엇을 고르는 건지 알 수 없었다.
+                게다가 두 묶음이 간격 0~8px 로 붙어 있어 하나의 덩어리처럼 보였다. */}
+            <div style={STYLES.fieldLabel}>매칭률 범위</div>
             <div style={STYLES.inputGroup}>
               <input
                 type="number"
@@ -840,22 +866,39 @@ const RecipeSortBar = ({
                 railStyle={{ backgroundColor: '#E6E6EA' }}
               />
             </div>
-            {/* 재료 부족 갯수 라디오 버튼 */}
-            <div style={STYLES.radioGroup}>
-              {[1,2,3,4].map(n => (
-                <label key={n} style={STYLES.radioLabel}>
-                  <input type="radio" name="maxLack" checked={maxLack === n} onChange={() => setMaxLack(n)} />
-                  최대 {n}개 부족
-                </label>
-              ))}
-              <label style={STYLES.radioLabel}>
-                <input type="radio" name="maxLack" checked={maxLack === 5} onChange={() => setMaxLack(5)} />
-                최대 5개 부족
-              </label>
-              <label style={STYLES.radioLabel}>
-                <input type="radio" name="maxLack" checked={maxLack === 'unlimited'} onChange={() => setMaxLack('unlimited')} />
-                제한 없음
-              </label>
+            <div style={STYLES.fieldDivider} />
+
+            {/* 부족 재료 개수.
+                기본 라디오 버튼은 지름이 13px 남짓이라 손가락으로 정확히 누르기 어렵고,
+                브라우저 기본 파란색이라 앱의 다른 컨트롤과 색이 따로 놀았다.
+                앱에서 이미 쓰는 칩 토글로 바꾼다. */}
+            <div style={STYLES.fieldLabel}>부족해도 되는 재료</div>
+            <div style={STYLES.chipGroup}>
+              {([1, 2, 3, 4, 5, 'unlimited'] as const).map(n => {
+                const on = maxLack === n;
+                return (
+                  <button
+                    key={String(n)}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => setMaxLack(n as any)}
+                    style={{
+                      height: 38,
+                      padding: '0 14px',
+                      boxSizing: 'border-box',
+                      borderRadius: 9999,
+                      fontSize: 13,
+                      fontWeight: on ? 700 : 500,
+                      cursor: 'pointer',
+                      background: on ? 'var(--ink-900)' : 'var(--surface)',
+                      color: on ? '#FFFFFF' : 'var(--ink-700)',
+                      border: `1px solid ${on ? 'var(--ink-900)' : 'var(--line-300)'}`,
+                    }}
+                  >
+                    {n === 'unlimited' ? '제한 없음' : `${n}개까지`}
+                  </button>
+                );
+              })}
             </div>
             <button
               style={STYLES.applyButton}
