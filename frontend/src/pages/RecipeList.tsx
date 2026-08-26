@@ -1,5 +1,4 @@
 import axios, { AxiosResponse } from 'axios';
-import CoupangDisclaimer from '../components/CoupangDisclaimer';
 import RecipeCardSkeleton from '../components/RecipeCardSkeleton';
 import IngredientLegend from '../components/IngredientLegend';
 import React, { useState, useEffect, useMemo, useCallback, useRef, useLayoutEffect } from 'react';
@@ -1992,9 +1991,6 @@ const RecipeList: React.FC = () => {
           </button>
         </form>
         
-        {/* 대가성 문구는 광고보다 **위**에 둔다 — 가이드가 "제목 또는 첫 부분" 을 요구한다 */}
-        <CoupangDisclaimer style={{ textAlign: 'left', padding: 0 }} />
-
         <RecipeSortBar
           recipes={recipes}
           myIngredients={myIngredients}

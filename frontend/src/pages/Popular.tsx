@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import SectionIcon from '../components/ui/SectionIcon';
-import CoupangDisclaimer from '../components/CoupangDisclaimer';
 import LoadingIndicator from '../components/LoadingIndicator';
 import SectionHeader from '../components/SectionHeader';
 import SectionBand from '../components/ui/SectionBand';
@@ -1680,8 +1679,25 @@ const Popular = () => {
             게다가 냉장고요리 탭의 같은 성격 컨트롤(높이 40, 선택 시 검정)과
             규격이 달라(높이 28, 선택 시 회색) 이 화면만 다른 앱처럼 보였다.
             → 라벨을 붙이고 왼쪽으로 정렬하며, 규격을 냉장고요리와 맞춘다. */}
-        <div style={{display: 'flex', gap: 8, alignItems: 'center', marginBottom: 20, justifyContent: 'flex-start', flexWrap: 'wrap'}}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-500)', marginRight: 2 }}>기간</span>
+        {/* 이 줄은 "아래 전체에 걸리는 조건" 이다.
+            좌측 정렬만으로는 가운데 정렬된 제목과 축이 어긋나 어중간해 보였고,
+            바로 아래 섹션과 붙어 어디까지가 컨트롤인지도 불분명했다.
+            → 옅은 판 위에 얹어 한 덩어리로 묶고, 아래 섹션과 충분히 띄운다. */}
+        <div
+          style={{
+            display: 'flex',
+            gap: 8,
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            justifyContent: 'flex-start',
+            padding: '10px 12px',
+            borderRadius: 12,
+            background: 'var(--surface-sub)',
+            border: '1px solid var(--line-200)',
+            marginBottom: 36,
+          }}
+        >
+          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-700)', marginRight: 4 }}>기간</span>
           {periodOptions.map(opt => (
             <button
               key={opt.value}
@@ -1703,7 +1719,7 @@ const Popular = () => {
               }}
               style={{
                 // 냉장고요리 탭의 컨트롤 칩과 동일 규격 (높이 40 / radius 6 / 선택 시 잉크색)
-                height: 40,
+                height: 38,
                 border: period === opt.value ? '1px solid var(--ink-900)' : '1px solid #D2D2D8',
                 borderRadius: 6,
                 fontSize: 13,
@@ -1801,9 +1817,6 @@ const Popular = () => {
             </div>
           </div>
         )}
-
-        {/* 대가성 문구는 광고보다 **위**에 둔다 — 가이드가 "제목 또는 첫 부분" 을 요구한다 */}
-        <CoupangDisclaimer style={{ textAlign: 'left', padding: 0 }} />
 
         {/* 특별한 날 특별한 음식 섹션 */}
         {(() => {

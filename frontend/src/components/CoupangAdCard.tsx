@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { resolveCoupangUrl } from '../utils/coupangLink';
 import { trackCoupangClick } from '../utils/trackCoupangClick';
+import CoupangDisclaimer from './CoupangDisclaimer';
 
 interface CoupangAdCardProps {
   /** 광고할 재료 (바로 앞 레시피 카드의 부족 재료 중 하나) */
@@ -74,6 +75,9 @@ const CoupangAdCard: React.FC<CoupangAdCardProps> = ({ ingredient, recipeId, lac
         <span style={{ fontSize: 12, color: 'var(--ink-400)' }}>쿠팡 파트너스</span>
       </div>
 
+      {/* 대가성 문구는 카드의 **첫 부분** 에 — 구매 버튼을 누르기 전에 보이도록 */}
+      <CoupangDisclaimer compact style={{ marginBottom: 14 }} />
+
       <div style={{ fontSize: 13, color: 'var(--ink-500)', marginBottom: 4 }}>앞 레시피에 부족한 재료</div>
       <div
         style={{
@@ -121,19 +125,6 @@ const CoupangAdCard: React.FC<CoupangAdCardProps> = ({ ingredient, recipeId, lac
       >
         쿠팡에서 보기
       </a>
-
-      {/* 대가성 문구 — 목록 상단에도 있지만, 이 카드만 보고 지나가는 경우를 위해 함께 둔다 */}
-      <p
-        style={{
-          margin: '10px 0 0',
-          fontSize: 11,
-          lineHeight: 1.45,
-          color: 'var(--ink-400)',
-          wordBreak: 'keep-all',
-        }}
-      >
-        이 광고는 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다.
-      </p>
     </div>
   );
 };

@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import BackButton from '../components/ui/BackButton';
 import CloseButton from '../components/ui/CloseButton';
-import CoupangDisclaimer from '../components/CoupangDisclaimer';
 import LoadingIndicator from '../components/LoadingIndicator';
 import IngredientLegend from '../components/IngredientLegend';
 import { useNavigate } from 'react-router-dom';
@@ -501,8 +500,6 @@ const CompletedRecipeListPage: React.FC = () => {
                 excludeInput={excludeInput}
                 setExcludeInput={setExcludeInput}
               />
-              {/* 대가성 문구는 광고보다 위에 — 가이드가 "제목 또는 첫 부분" 을 요구한다 */}
-              <CoupangDisclaimer style={{ textAlign: 'left', padding: 0 }} />
               <IngredientLegend total={recipes.length} style={{ marginBottom: 6, marginTop: 8 }} />
               </div>
               {/* /sticky */}

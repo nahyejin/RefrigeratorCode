@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import BackButton from '../components/ui/BackButton';
-import CoupangDisclaimer from '../components/CoupangDisclaimer';
 import RecipeCardSkeleton from '../components/RecipeCardSkeleton';
 import IngredientLegend from '../components/IngredientLegend';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
@@ -877,8 +876,6 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
             excludeInput={excludeInput}
             setExcludeInput={setExcludeInput}
           />
-          {/* 대가성 문구는 광고보다 위에 — 가이드가 "제목 또는 첫 부분" 을 요구한다 */}
-          <CoupangDisclaimer style={{ textAlign: 'left', padding: 0 }} />
           <IngredientLegend total={total > 0 ? total : processedRecipes.length} style={{ marginBottom: 6, marginTop: 8 }} />
           </div>
           {/* /sticky */}

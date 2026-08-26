@@ -737,6 +737,33 @@ const RecipeSortBar = ({
               setMatchRateModalOpen(false);
             }} />
             <div style={STYLES.modalTitle}>재료 매칭도 설정</div>
+
+            {/* 매칭률이 어떻게 나온 숫자인지 밝힌다.
+                이 값은 앱의 핵심 지표인데 "어떻게 계산했는지" 를 어디에서도 말하지 않고 있었다.
+                스플래시나 첫 방문 안내에 넣으면 정작 궁금해질 때는 이미 지나가 버리므로,
+                사용자가 이 숫자를 만지러 오는 바로 이 자리에 둔다. */}
+            <div
+              style={{
+                display: 'flex',
+                gap: 8,
+                padding: '12px 14px',
+                marginBottom: 16,
+                borderRadius: 10,
+                background: 'var(--surface-sub)',
+                fontSize: 13,
+                lineHeight: 1.55,
+                color: 'var(--ink-700)',
+                textAlign: 'left',
+                wordBreak: 'keep-all',
+              }}
+            >
+              <span aria-hidden style={{ flexShrink: 0, fontWeight: 700, color: 'var(--ink-500)' }}>i</span>
+              <span>
+                매칭률은 <b style={{ fontWeight: 700 }}>레시피 본문에서 뽑아낸 재료</b>와 내 냉장고 재료를
+                비교해 계산해요. 재료는 AI가 본문을 읽고 정리하기 때문에, 글쓴이가 적지 않은 재료는
+                빠질 수 있어요.
+              </span>
+            </div>
             <div style={STYLES.inputGroup}>
               <input
                 type="number"

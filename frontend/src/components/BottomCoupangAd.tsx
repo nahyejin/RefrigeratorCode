@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import CoupangAd from './CoupangAd';
+import CoupangDisclaimer from './CoupangDisclaimer';
 
 /**
  * 페이지 맨 끝에 도달했을 때만 표시되는 쿠팡 광고 컴포넌트
@@ -47,13 +48,13 @@ const BottomCoupangAd: React.FC<{
   }
 
   return (
-    <CoupangAd 
-      style={{ 
-        marginTop: '24px',
-        marginBottom: '24px',
-        ...style
-      }} 
-    />
+    <div style={{ marginTop: 24, marginBottom: 24 }}>
+      {/* 이 배너도 광고이므로 대가성 문구를 바로 위에 둔다.
+          예전에는 페이지 맨 아래(또는 맨 위)에 페이지 단위로 한 번만 있었는데,
+          광고가 없는 화면에서도 문구가 보여 서비스 전체가 광고처럼 읽혔다. */}
+      <CoupangDisclaimer compact style={{ marginBottom: 8, textAlign: 'center' }} />
+      <CoupangAd style={style} />
+    </div>
   );
 };
 
