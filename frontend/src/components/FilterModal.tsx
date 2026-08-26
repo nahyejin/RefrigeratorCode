@@ -721,7 +721,9 @@ const FilterModal: React.FC<FilterModalProps> = ({
               <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-700)', margin: '14px 0 6px' }}>
                 꼭 제외할 재료
               </div>
-              <div className="relative">
+              {/* '꼭 포함할 재료' 입력창에는 mb-2 가 있는데 여기만 빠져 있어서,
+                  선택한 재료 pill 이 입력창에 바짝 붙어 나왔다 */}
+              <div className="relative mb-2">
                 <input
                   className="w-full"
                   // 12px 는 iOS 에서 포커스 시 화면이 확대되고, 높이도 30px 남짓이라 누르기 어려웠음
