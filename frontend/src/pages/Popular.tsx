@@ -1790,11 +1790,13 @@ const Popular = () => {
                   ② "기념일이나 손님상에 어울리는 레시피예요" — 기념일/손님상으로 못박으니
                      "그런 날" 이 아닌 사람에게는 남의 이야기가 됨. 실제로는 아이에게 잘
                      먹이고 싶은 날처럼 아무 날에도 보게 되는 목록임
-                  → 상황을 한정하지 말고 재료의 성격만 말한다 */}
+                  ③ "평소엔 잘 안 쓰는 재료로 만드는 요리예요" — 자주 쓰는 재료가 들어간
+                     경우도 있어 사실과 어긋남
+                  → 단정할 수 있는 만큼만 말한다 */}
               <SectionHeader
                 icon={<SectionIcon kind="special" />}
                 title="특별한 날 특별한 음식"
-                description="평소엔 잘 안 쓰는 재료로 만드는 요리예요"
+                description="특별한 재료로 만드는 요리예요"
               />
               {/* 범례 + 총 건수 (유튜브/네이버 섹션과 동일한 형식) */}
               <IngredientLegend total={premiumRecipes.length} style={{ marginBottom: 6, marginTop: 8 }} />
