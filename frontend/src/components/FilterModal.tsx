@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Sheet from './ui/Sheet';
+import FilterGroup, { AndDivider } from './ui/FilterGroup';
 import Button from './ui/Button';
 import { getMyIngredients } from '../utils/recipeUtils';
 
@@ -593,42 +594,96 @@ const FilterModal: React.FC<FilterModalProps> = ({
       }
     >
         <div>
-          {/* 채널 선택: 맨 위로 이동 */}
-          <div className="mb-2">
-            <div className="font-bold text-[13px] mb-1">■ 채널선택</div>
-            <div className="flex gap-4">
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  name="channel"
-                  value="youtube"
-                  checked={(tempSelectedChannel || []).includes('youtube')}
-                  onChange={e => handleChannelChange('youtube', e.target.checked)}
-                  className="w-4 h-4"
-                />
-                <span className="text-[13px]">유튜브</span>
-              </label>
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  name="channel"
-                  value="naver"
-                  checked={(tempSelectedChannel || []).includes('naver')}
-                  onChange={e => handleChannelChange('naver', e.target.checked)}
-                  className="w-4 h-4"
-                />
-                <span className="text-[13px]">네이버</span>
-              </label>
+          {/* 지금 적용 중인 검색어.
+              검색 입력창은 화면 상단(냉장고요리 검색창)에 이미 있고 같은 값을 조작하므로,
+              시트 안에 또 만들면 한 값을 고치는 입력창이 두 곳이 된다.
+              여기서는 **확인과 해제만** 할 수 있게 두고, 맨 위에 둬서
+              "이 검색어에 더해서 조건을 좁힌다" 는 흐름이 먼저 읽히게 한다. */}
+          {(tempIncludeKeyword || '').trim() && (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 12, color: 'var(--ink-400)', fontWeight: 600 }}>지금 적용 중</span>
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    height: 30,
+                    padding: '0 6px 0 12px',
+                    borderRadius: 9999,
+                    background: 'var(--brand-soft)',
+                    border: '1px solid var(--brand-strong)',
+                    color: 'var(--brand-on-soft)',
+                    fontSize: 13,
+                    fontWeight: 600,
+                  }}
+                >
+                  검색어: {tempIncludeKeyword}
+                  <button
+                    type="button"
+                    aria-label="검색어 해제"
+                    onClick={() => setTempIncludeKeyword('')}
+                    style={{
+                      width: 20, height: 20, padding: 0, boxSizing: 'border-box',
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                      background: 'transparent', border: 'none', cursor: 'pointer',
+                      color: 'var(--brand-on-soft)', fontSize: 14, lineHeight: 1,
+                    }}
+                  >
+                    ×
+                  </button>
+                </span>
+              </div>
+              <AndDivider />
+            </>
+          )}
+
+          <FilterGroup index={1} title="채널" hint="고르지 않으면 전체">
+            <div style={{ display: 'flex', gap: 8 }}>
+              {[
+                { key: 'youtube', label: '유튜브' },
+                { key: 'naver', label: '네이버' },
+              ].map(({ key, label }) => {
+                const on = (tempSelectedChannel || []).includes(key);
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => handleChannelChange(key, !on)}
+                    aria-pressed={on}
+                    style={{
+                      height: 38,
+                      padding: '0 16px',
+                      boxSizing: 'border-box',
+                      borderRadius: 9999,
+                      fontSize: 14,
+                      fontWeight: on ? 700 : 500,
+                      cursor: 'pointer',
+                      background: on ? 'var(--ink-900)' : 'var(--surface)',
+                      color: on ? '#FFFFFF' : 'var(--ink-700)',
+                      border: `1px solid ${on ? 'var(--ink-900)' : 'var(--line-300)'}`,
+                      transition: 'background 0.15s ease, color 0.15s ease',
+                    }}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
             </div>
-          </div>
-          {/* 고정: 재료 입력 */}
-          <div>
-            <div className="mt-1 border-t border-gray-200"></div>
-            <div className="mt-1">
-              <div className="font-bold text-[13px] mb-1">■ 꼭 포함할 재료</div>
+          </FilterGroup>
+
+          <AndDivider />
+          {/* 재료: 포함/제외를 한 묶음으로 (예전엔 각각 별도 섹션이라 관계가 안 보였음) */}
+          <FilterGroup index={2} title="재료" hint="선택은 드롭다운에서">
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-700)', marginBottom: 6 }}>
+                꼭 포함할 재료
+              </div>
               <div className="relative mb-2">
                 <input
-                  className="w-full border rounded px-3 py-1.5 text-[12px]"
+                  className="w-full"
+                  // 12px 는 iOS 에서 포커스 시 화면이 확대되고, 높이도 30px 남짓이라 누르기 어려웠음
+                  style={{ height: 44, padding: '0 14px', boxSizing: 'border-box', fontSize: 16, borderRadius: 10, border: '1px solid var(--line-300)', background: 'var(--surface)' }}
                   placeholder="포함할 재료 입력"
                   value={tempIncludeInput || ''}
                   onChange={e => setTempIncludeInput(e.target.value)}
@@ -663,10 +718,14 @@ const FilterModal: React.FC<FilterModalProps> = ({
                   </span>
                 ))}
               </div>
-              <div className="font-bold text-[13px] mt-2 mb-1">■ 꼭 제외할 재료</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-700)', margin: '14px 0 6px' }}>
+                꼭 제외할 재료
+              </div>
               <div className="relative">
                 <input
-                  className="w-full border rounded px-3 py-1.5 text-[12px]"
+                  className="w-full"
+                  // 12px 는 iOS 에서 포커스 시 화면이 확대되고, 높이도 30px 남짓이라 누르기 어려웠음
+                  style={{ height: 44, padding: '0 14px', boxSizing: 'border-box', fontSize: 16, borderRadius: 10, border: '1px solid var(--line-300)', background: 'var(--surface)' }}
                   placeholder="제외할 재료 입력"
                   value={tempExcludeInput || ''}
                   onChange={e => setTempExcludeInput(e.target.value)}
@@ -702,10 +761,12 @@ const FilterModal: React.FC<FilterModalProps> = ({
                 ))}
               </div>
             </div>
-          </div>
-          {/* 테마 선택: 채널 선택, 꼭 포함할 키워드 등과 같은 레벨로 이동 */}
-          <div className="mt-2 border-t border-gray-200 pt-2">
-            <div className="font-bold text-[13px] mb-2">■ 테마 선택</div>
+          </FilterGroup>
+
+          <AndDivider />
+
+          <FilterGroup index={3} title="테마" hint="여러 개 선택 가능">
+            <div>
             {/* 고정: 선택된 키워드 pill (sticky) */}
             <div
               className="flex flex-wrap gap-2 mb-2 justify-center"
@@ -763,19 +824,32 @@ const FilterModal: React.FC<FilterModalProps> = ({
                   {filterKeywordTree && typeof filterKeywordTree === 'object' && Object.keys(filterKeywordTree).length > 0
                     ? Object.entries(filterKeywordTree).map(([main, subTree]) => (
                         <div key={main}>
-                          <div className="font-bold text-[13px] mb-1">■ {main}</div>
+                          {/* ■ / - 같은 문자 표식 대신 굵기·색으로 층위를 구분한다 */}
+                          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-900)', margin: '10px 0 6px' }}>{main}</div>
                           {subTree && typeof subTree === 'object'
                             ? Object.entries(subTree).map(([sub, keywordsArr]) => (
                                 <div key={sub} className="mb-0.5">
-                                  {sub && <div className="text-[12px] font-semibold text-[#3A3A42] mb-0.5 ml-1">- {sub}</div>}
+                                  {sub && <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--ink-500)', marginBottom: 4 }}>{sub}</div>}
                                   <div className="flex flex-wrap gap-1 mb-0.5">
                                     {Array.isArray(keywordsArr)
                                       ? keywordsArr.map(({ keyword }) => (
                                           <button
                                             key={keyword}
-                                            className={`rounded-full px-2.5 py-0.5 font-medium text-[12px] mb-0.5 transition-colors ${
-                                              ((tempFilterState || {})[main] || []).includes(keyword) ? 'bg-[#6A6A73] text-white' : 'bg-white text-[#6A6A73] shadow-sm'
-                                            }`}
+                                            // 예전엔 py-0.5 라 높이가 20px 남짓이라 손가락으로 정확히 누르기 어려웠음
+                                            className="rounded-full transition-colors"
+                                            style={(() => {
+                                              const on = ((tempFilterState || {})[main] || []).includes(keyword);
+                                              return {
+                                                height: 34,
+                                                padding: '0 12px',
+                                                boxSizing: 'border-box' as const,
+                                                fontSize: 13,
+                                                fontWeight: on ? 700 : 500,
+                                                background: on ? 'var(--ink-900)' : 'var(--surface)',
+                                                color: on ? '#FFFFFF' : 'var(--ink-700)',
+                                                border: `1px solid ${on ? 'var(--ink-900)' : 'var(--line-300)'}`,
+                                              };
+                                            })()}
                                             onClick={() => handleKeywordToggle(main, keyword)}
                                           >{keyword}</button>
                                         ))
@@ -791,7 +865,8 @@ const FilterModal: React.FC<FilterModalProps> = ({
                 </>
               )}
             </div>
-          </div>
+            </div>
+          </FilterGroup>
         </div>
     </Sheet>
   );
