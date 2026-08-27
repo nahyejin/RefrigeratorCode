@@ -216,6 +216,15 @@ DB 검색은 글자가 그대로 들어 있는지만 보기 때문에, 사용자
 보유 재료를 무시해도 된다고 명시적으로 말하면 ignore_fridge를 true로 설정한다.
 그 외에는 항상 ignore_fridge를 false로 둔다.
 
+아래 "최근 대화"에 네가 한 답변(도우미:)이 이미 있으면, 새 메시지를 이전 요청에 대한
+**수정**으로 봐라. 예를 들어 사용자가 "그중에 A는 빼고 B는 꼭 넣어서 다시 줘" 처럼 말하면
+A를 exclude_ingredients에, B를 include_ingredients에 넣어라(A, B는 실제 대화에 나온 재료로
+바꿔 생각해라). 사용자가 취소하지 않은 이전 조건(맛, 포함/제외 재료)은 새 요청에도 이어서
+반영하고, 매 턴을 완전히 새로운 질문처럼 처음부터 다시 판단하지 마라.
+**주의**: "최근 대화"에 네 답변(도우미:)이 하나도 없다면 — 즉 지금이 대화의 첫 메시지라면 —
+이 수정 규칙은 해당 없다. 그때는 존재하지 않는 이전 요청을 상상하지 말고, 그냥 새 요청으로
+봐라.
+
 냉장고 재료: {fridge}
 
 최근 대화:
@@ -446,6 +455,33 @@ def _diversify(recipes, limit):
     return picked[:limit]
 
 
+def _top_matched_ingredients(recipes, my_ingredients, exclude_ingredients=None, limit=3):
+    """검색 결과 상위권에 실제로 겹친 보유 재료를 추려 답변에 밝힐 때 쓴다.
+
+    "냉장고 재료를 반영했다"는 게 말뿐이 아니라는 걸 사용자가 확인할 수 있게,
+    어떤 재료를 근거로 골랐는지 답변에 넣기 위한 재료다. 등장 빈도가 높은 재료를
+    먼저 두고, 빈도가 같으면 사용자가 냉장고에 등록한 순서(먼저 넣었으면 더
+    중요하게 여겼을 가능성)를 따른다.
+
+    exclude_ingredients 는 방금 사용자가 "빼달라"고 한 재료다. LLM이 검색 조건에서
+    빼지 못했더라도(예: SQL은 안 걸렀는데 우연히 결과에 남은 경우), 방금 빼달라고
+    한 재료를 "이 재료 위주로 골랐다"고 다시 언급하면 앞뒤가 안 맞아 보이므로
+    집계 대상에서도 함께 제외한다.
+    """
+    if not recipes or not my_ingredients:
+        return []
+    excluded = {e.strip() for e in (exclude_ingredients or []) if e.strip()}
+    my_order = {name: i for i, name in enumerate(my_ingredients) if name not in excluded}
+    counts = {}
+    for r in recipes:
+        used = {tok.strip() for tok in (r.get('used_ingredients') or '').split(',') if tok.strip()}
+        for name in used:
+            if name in my_order:
+                counts[name] = counts.get(name, 0) + 1
+    ranked = sorted(counts.items(), key=lambda kv: (-kv[1], my_order[kv[0]]))
+    return [name for name, _ in ranked[:limit]]
+
+
 def _remember(session_id, messages):
     if not session_id:
         return
@@ -556,11 +592,21 @@ def handle_chat(get_db):
         # 냉장고 우선 모드에서도 결과가 없으면 재료 조건 없이 한 번 더 시도
         recipes = _search_recipes(get_db, parsed['keywords'], [], [], ingredients, True)
 
+    # 검색 결과가 나온 지금, 실제로 매칭에 쓰인 보유 재료를 추린다.
+    # ("냉장고 재료를 반영했다"는 말이 뭉뚱그린 느낌이라는 지적이 있었음 —
+    #  구체적으로 어떤 재료를 봤는지 답변에 밝혀서 확인할 수 있게 한다)
+    matched_names = [] if parsed['ignore_fridge'] else _top_matched_ingredients(
+        recipes, ingredients, parsed['exclude_ingredients'],
+    )
+    matched_phrase = f"{', '.join(matched_names)} 위주로" if matched_names else None
+
     if is_broad:
-        # LLM을 안 거쳤으니 검색이 끝난 지금, 실제로 몇 건 찾았는지를 보고 문구를 정한다.
+        # LLM을 안 거쳤으니 검색이 끝난 지금, 실제로 몇 건/무엇을 찾았는지를 보고 문구를 정한다.
         # (LLM 경로의 reply는 검색 전에 쓰여져서 "이래서 추천해요" 가 애초에 불가능했는데,
-        #  이 경로는 결과를 안 뒤에 문구를 만드니 최소한 "뭘 봤는지는 아는" 느낌을 줄 수 있다)
-        if recipes and ingredients:
+        #  이 경로는 결과를 안 뒤에 문구를 만드니 "뭘 보고 골랐는지"까지 밝힐 수 있다)
+        if recipes and matched_phrase:
+            parsed['reply'] = f'가지고 계신 재료 중 {matched_phrase} 만들 수 있는 레시피 {len(recipes)}개를 찾았어요. 매칭률 높은 순으로 보여드릴게요!'
+        elif recipes and ingredients:
             parsed['reply'] = f'냉장고에 있는 재료 기준으로 만들 수 있는 레시피 {len(recipes)}개를 찾았어요. 매칭률 높은 순으로 보여드릴게요!'
         elif recipes:
             parsed['reply'] = '지금 찾을 수 있는 레시피를 보여드릴게요! 냉장고에 재료를 등록해두면 갖고 계신 재료 기준으로 더 정확하게 추천해드릴 수 있어요.'
@@ -571,6 +617,10 @@ def handle_chat(get_db):
             parsed['reply']
             + '\n\n조건에 맞는 글을 바로 찾지는 못했어요. 맛이나 재료를 조금만 더 구체적으로 말해 줄래요?'
         )
+    elif matched_phrase:
+        # LLM 경로: LLM이 검색 전에 쓴 답변 뒤에, 검색이 끝난 지금 알 수 있는
+        # "실제로 뭘 근거로 골랐는지 · 어떻게 정렬했는지"를 서버가 덧붙인다.
+        parsed['reply'] = parsed['reply'].rstrip() + f'\n\n가지고 계신 재료 중 {matched_phrase} 골랐고, 매칭률 높은 순으로 정렬했어요.'
 
     allowed_links = {r['link'] for r in recipes}
     parsed['reply'] = re.sub(
