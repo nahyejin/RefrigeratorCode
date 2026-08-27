@@ -14,6 +14,36 @@ import myProfileImg from '../assets/profile_default.png'; // 기본 프로필 �
 import 완료하기버튼 from '../assets/완료하기버튼.svg';
 import 공유하기버튼 from '../assets/공유하기버튼.svg';
 import 기록하기버튼 from '../assets/기록하기버튼.svg';
+
+// 마이페이지 빈 목록 안내에서 "레시피 카드의 이 버튼을 누르라"는 걸 글자가 아니라
+// 실제 버튼 모양(카드 썸네일 위 어두운 원 + 흰 별 윤곽)으로 보여주기 위한 미니 사본.
+// 진짜 버튼(RecipeCard.tsx)과 배경·별 모양을 맞춰서, 카드에서 봤을 때 바로 알아볼 수 있게 한다.
+const FavoriteButtonHint: React.FC = () => (
+  <span
+    aria-hidden="true"
+    style={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: 22,
+      height: 22,
+      borderRadius: '50%',
+      background: 'rgba(34,34,34,0.7)',
+      verticalAlign: 'middle',
+      margin: '0 3px',
+    }}
+  >
+    <svg width={14} height={14} viewBox="0 0 24 24">
+      <path
+        d="M12 2.75l2.72 5.51 6.08.88-4.4 4.29 1.04 6.05L12 16.62 6.56 19.48l1.04-6.05-4.4-4.29 6.08-.88L12 2.75z"
+        fill="none"
+        stroke="#FFFFFF"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+    </svg>
+  </span>
+);
 import writeIcon from '../assets/write.svg';
 import doneIcon from '../assets/done.svg';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -1243,7 +1273,11 @@ const MyPage: React.FC = () => {
             emptyMessage={
               <>
                 <div>즐겨찾는 레시피가 없습니다.</div>
-                <div>별 아이콘을 눌러 추가해주세요.</div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  레시피 카드의
+                  <FavoriteButtonHint />
+                  버튼을 눌러 추가해주세요.
+                </div>
               </>
             }
           />
@@ -1303,7 +1337,11 @@ const MyPage: React.FC = () => {
             emptyMessage={
               <>
                 <div>기록된 레시피가 없습니다.</div>
-                <div>레시피를 기록해주세요.</div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  레시피 카드의
+                  <img src={기록하기버튼} alt="기록" width={20} height={20} style={{ margin: '0 3px', verticalAlign: 'middle' }} />
+                  버튼을 눌러 추가해주세요.
+                </div>
               </>
             }
           />
@@ -1363,7 +1401,11 @@ const MyPage: React.FC = () => {
             emptyMessage={
               <>
                 <div>완료된 레시피가 없습니다.</div>
-                <div>레시피를 완료해주세요.</div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  레시피 카드의
+                  <img src={완료하기버튼} alt="완료" width={20} height={20} style={{ margin: '0 3px', verticalAlign: 'middle' }} />
+                  버튼을 눌러 추가해주세요.
+                </div>
               </>
             }
           />
