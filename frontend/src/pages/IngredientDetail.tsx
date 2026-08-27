@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import BackButton from '../components/ui/BackButton';
+import Dialog from '../components/ui/Dialog';
 import RecipeCardSkeleton from '../components/RecipeCardSkeleton';
 import IngredientLegend from '../components/IngredientLegend';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
@@ -21,15 +22,16 @@ import TopNavBar from '../components/TopNavBar';
 import RecipeToast from '../components/RecipeToast';
 import axios from 'axios';
 import { calculateMatchRate, compareByMatchRateThenLatest, getMyIngredients, sortRecipes } from '../utils/recipeUtils';
-import { 
-  addRecipeToLocalStorage, 
-  removeRecipeFromLocalStorage, 
-  getRecipesFromLocalStorage, 
-  copyRecipeUrlToClipboard, 
+import {
+  addRecipeToLocalStorage,
+  removeRecipeFromLocalStorage,
+  getRecipesFromLocalStorage,
+  copyRecipeUrlToClipboard,
   getMyFridgeIngredients,
   sortRecipesByUserSavedAtDesc,
   buildRecipeActionStatesForRecipes,
   getRecipeActionState,
+  clearRecipesFromLocalStorage,
 } from '../utils/recipeStorage';
 
 // =====================
@@ -289,6 +291,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
   const [filteredRecipes, setFilteredRecipes] = useState<any[]>([]);
   const [pendingRemove, setPendingRemove] = useState<PendingRemove | null>(null);
   const [pendingRecipe, setPendingRecipe] = useState<any>(null);
+  const [confirmClearAllOpen, setConfirmClearAllOpen] = useState(false);
   const [selectedChannel, setSelectedChannel] = useState<string[]>([]);
   const [includeIngredients, setIncludeIngredients] = useState<string[]>([]);
   const [excludeIngredients, setExcludeIngredients] = useState<string[]>([]);
@@ -443,6 +446,23 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
   const handleRemoveUndo = () => {
     setPendingRemove(null);
     setPendingRecipe(null);
+  };
+
+  /**
+   * 마이페이지 "전체보기" 목록 전체삭제
+   */
+  const handleClearAll = () => {
+    if (!myPageRecipeStorageType) return;
+
+    clearRecipesFromLocalStorage(myPageRecipeStorageType);
+    setRecipes([]);
+    setFilteredRecipes([]);
+    setButtonStates({});
+    setConfirmClearAllOpen(false);
+
+    const clearedLabel =
+      myPageRecipeStorageType === 'done' ? '완료' : myPageRecipeStorageType === 'write' ? '기록' : '즐겨찾기';
+    showToast(`${clearedLabel} 목록을 전체 삭제했습니다.`);
   };
 
   /**
@@ -826,9 +846,31 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
       >
         <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 18, minHeight: 36 }}>
           <BackButton onClick={() => navigate(-1)} style={{ left: 0, top: 0 }} />
-          <div style={{ fontWeight: 700, fontSize: 18, textAlign: 'center', padding: '0 44px' }}>
+          <div style={{ fontWeight: 700, fontSize: 18, textAlign: 'center', padding: isMyPageRecipeList ? '0 60px 0 44px' : '0 44px' }}>
             {customTitle || `${name} 관련 레시피`}
           </div>
+          {isMyPageRecipeList && processedRecipes.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setConfirmClearAllOpen(true)}
+              style={{
+                position: 'absolute',
+                right: 0,
+                top: 0,
+                height: 36,
+                padding: '0 2px',
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--ink-500)',
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              전체삭제
+            </button>
+          )}
         </div>
         
         <div>
@@ -1152,6 +1194,16 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
         </div>
       )}
       
+      <Dialog
+        open={confirmClearAllOpen}
+        onClose={() => setConfirmClearAllOpen(false)}
+        title="정말 삭제하시겠습니까?"
+        actions={[
+          { label: '취소', variant: 'outline', onClick: () => setConfirmClearAllOpen(false) },
+          { label: '확인', variant: 'danger', onClick: handleClearAll },
+        ]}
+      />
+
       {filterOpen && (
         <FilterModal
           open={filterOpen}

@@ -16,9 +16,11 @@ import 공유하기버튼 from '../assets/공유하기버튼.svg';
 import 기록하기버튼 from '../assets/기록하기버튼.svg';
 
 // 마이페이지 빈 목록 안내에서 "레시피 카드의 이 버튼을 누르라"는 걸 글자가 아니라
-// 실제 버튼 모양(카드 썸네일 위 어두운 원 + 흰 별 윤곽)으로 보여주기 위한 미니 사본.
-// 진짜 버튼(RecipeCard.tsx)과 배경·별 모양을 맞춰서, 카드에서 봤을 때 바로 알아볼 수 있게 한다.
-const FavoriteButtonHint: React.FC = () => (
+// 실제 버튼 모양(카드 썸네일 위 어두운 원 + 흰 아이콘)으로 보여주기 위한 미니 사본.
+// 즐겨찾기·기록·완료 세 아이콘이 원래는 카드 위 배경이 서로 달라(즐겨찾기만 어두운 원 배지),
+// 여기 안내에서까지 그대로 두면 셋 중 하나만 배지가 있어 통일감이 없어 보인다.
+// → 안내에서는 셋 다 같은 어두운 원 배지로 감싸 "이 버튼을 누르라"는 신호를 동일하게 준다.
+const EmptyStateIconHint: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <span
     aria-hidden="true"
     style={{
@@ -33,6 +35,12 @@ const FavoriteButtonHint: React.FC = () => (
       margin: '0 3px',
     }}
   >
+    {children}
+  </span>
+);
+
+const FavoriteButtonHint: React.FC = () => (
+  <EmptyStateIconHint>
     <svg width={14} height={14} viewBox="0 0 24 24">
       <path
         d="M12 2.75l2.72 5.51 6.08.88-4.4 4.29 1.04 6.05L12 16.62 6.56 19.48l1.04-6.05-4.4-4.29 6.08-.88L12 2.75z"
@@ -42,7 +50,7 @@ const FavoriteButtonHint: React.FC = () => (
         strokeLinejoin="round"
       />
     </svg>
-  </span>
+  </EmptyStateIconHint>
 );
 import writeIcon from '../assets/write.svg';
 import doneIcon from '../assets/done.svg';
@@ -507,6 +515,12 @@ const MyPage: React.FC = () => {
       });
     }
   }, [isSocialLogin, authUser]);
+
+  // 다른 탭(내냉장고/냉장고요리/요즘인기)에 있다가 하단 네비로 넘어오면,
+  // 브라우저가 이 경로의 예전 스크롤 위치(맨 아래 등)를 되살릴 때가 있어 매번 최상단으로 고정한다.
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
   const [editOpen, setEditOpen] = useState(false);
   const [user, setUser] = useState<User>(() => {
     // 로그인한 사용자가 있으면 실제 정보 사용, 없으면 더미 데이터
@@ -1339,7 +1353,9 @@ const MyPage: React.FC = () => {
                 <div>기록된 레시피가 없습니다.</div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   레시피 카드의
-                  <img src={기록하기버튼} alt="기록" width={20} height={20} style={{ margin: '0 3px', verticalAlign: 'middle' }} />
+                  <EmptyStateIconHint>
+                    <img src={기록하기버튼} alt="기록" width={14} height={14} />
+                  </EmptyStateIconHint>
                   버튼을 눌러 추가해주세요.
                 </div>
               </>
@@ -1403,7 +1419,9 @@ const MyPage: React.FC = () => {
                 <div>완료된 레시피가 없습니다.</div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   레시피 카드의
-                  <img src={완료하기버튼} alt="완료" width={20} height={20} style={{ margin: '0 3px', verticalAlign: 'middle' }} />
+                  <EmptyStateIconHint>
+                    <img src={완료하기버튼} alt="완료" width={14} height={14} />
+                  </EmptyStateIconHint>
                   버튼을 눌러 추가해주세요.
                 </div>
               </>

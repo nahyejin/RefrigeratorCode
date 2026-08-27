@@ -203,8 +203,17 @@ export function removeRecipeFromLocalStorage(type: StorageType, recipeId: number
   const key = STORAGE_KEYS[type];
   const recipes = getRecipesFromLocalStorage(type);
   const filteredRecipes = removeRecipeById(recipes, recipeId);
-  
+
   safeJsonSet(key, filteredRecipes);
+  notifyRecipeStorageChange(type);
+}
+
+/**
+ * 해당 타입(즐겨찾기/기록/완료)의 레시피를 전부 지운다 (마이페이지 "전체보기" 목록의 전체삭제용)
+ */
+export function clearRecipesFromLocalStorage(type: StorageType): void {
+  const key = STORAGE_KEYS[type];
+  safeJsonSet(key, []);
   notifyRecipeStorageChange(type);
 }
 
