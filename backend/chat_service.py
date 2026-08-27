@@ -30,6 +30,51 @@ MAX_PER_DISH = 2
 # 다양성 필터로 걸러낼 것을 감안해 넉넉히 가져온다
 FETCH_MULTIPLIER = 5
 
+# 거의 모든 집에 있어서 "매칭 여부"가 큰 의미가 없는 조미료.
+#   기존 매칭률은 재료 개수 비율이라 소금·후추도 새우·소고기와 똑같은 가중치를 가져서,
+#   조미료 몇 개 없다고 매칭률이 크게 깎이거나(부족 재료로 표시), 반대로 조미료만
+#   있어도 매칭률이 올라가는 문제가 있었다. 여기 있는 것만 매칭 계산에서 제외한다
+#   (분모·분자 둘 다에서 뺀다). 고추장/된장/고춧가루처럼 요리의 정체성을 결정하는
+#   양념은 일부러 뺐다 — "매운 거" 검색이 고추장 매칭에 기대는 부분이 있어서다.
+COMMON_SEASONINGS = ['소금', '후추', '설탕', '식용유', '참기름', '들기름', '맛술', '미림', '식초', '물']
+
+# 사용자가 특정 맛/재료/요리명 없이 "그냥 있는 걸로 뭐 해먹을 수 있어?" 식으로
+# 넓게 물을 때를 감지한다.
+#
+# 왜 필요한가: 이런 질문을 LLM에게 그대로 넘기면 keywords 를 비워야 순수 냉장고
+# 매칭(match_rate DESC)으로 검색되는데, 모델이 "재료"/"추천" 같은 낱말을 지어내
+# keywords 에 채우는 경우가 있었다. keywords 가 하나라도 있으면 `HAVING relevance > 0`
+# 이 강제로 걸려서, 그 낱말과 무관한 관련도 필터링이 우선시되고 정작 냉장고 매칭은
+# 뒷전으로 밀린다 — "내가 가진 재료를 제대로 모르는 것 같다"는 느낌의 실제 원인.
+#
+# 이런 광범위한 패턴은 애초에 LLM에게 묻지 않고 서버가 바로 판단해서 keywords 를
+# 확정으로 비운다. 부수 효과로 LLM 호출(하루 한도)도 아낀다.
+# 범위를 일부러 좁게 잡았다 — 오탐(구체적 요청을 광범위로 오판)이 더 위험하므로,
+# 여기 안 걸리는 표현은 그냥 기존처럼 LLM 이 처리한다(기능 후퇴 없음).
+_BROAD_FRIDGE_FILLERS = [
+    '냉장고에 있는 재료로', '냉장고에 있는 걸로', '냉장고 재료로',
+    '지금 있는 재료로', '지금 있는 걸로',
+    '있는 재료로', '있는 걸로', '있는거로', '가진 재료로', '가진 걸로',
+    '냉장고에', '냉장고', '지금은', '지금', '오늘은', '오늘',
+    '그냥', '일단', '음', '아무거나', '아무', '레시피',
+]
+_BROAD_FRIDGE_RE = re.compile(
+    r'^(뭐|뭘)?\s*(해\s*먹|먹|만들|요리)(을|를)?[\s가-힣]{0,10}$'
+    r'|^추천[\s가-힣]{0,6}$'
+)
+
+
+def _is_broad_fridge_request(text):
+    if not text:
+        return False
+    normalized = text.strip()
+    for filler in _BROAD_FRIDGE_FILLERS:
+        normalized = normalized.replace(filler, ' ')
+    normalized = re.sub(r'[?!.~ㅠㅜ,]', '', normalized).strip()
+    normalized = re.sub(r'\s+', ' ', normalized)
+    return bool(_BROAD_FRIDGE_RE.match(normalized))
+
+
 _rate_lock = threading.Lock()
 _rate_day = None
 _rate_count = 0
@@ -237,17 +282,28 @@ def _search_recipes(get_db, keywords, include_ingredients, exclude_ingredients, 
         relevance = ' + '.join(relevance_parts) if relevance_parts else '0'
 
         # ── 냉장고 재료 매칭률
+        # 조미료(COMMON_SEASONINGS)는 분모·분자 둘 다에서 뺀 문자열로 계산한다.
+        # 콤마로 앞뒤를 감싸서(",a,b,") 정확히 그 항목만 지운다 — 부분 문자열로
+        # 다른 재료 이름 일부가 잘리는 일이 없게. 값은 고정 상수(사용자 입력 아님)라
+        # SQL에 직접 넣어도 인젝션 위험이 없다.
+        seasoning_free = "CONCAT(',', REPLACE(used_ingredients,' ',''), ',')"
+        for _seasoning in COMMON_SEASONINGS:
+            _quoted = "'" + _seasoning.replace("\\", "\\\\").replace("'", "\\'") + "'"
+            seasoning_free = f"REPLACE({seasoning_free}, CONCAT(',', {_quoted}, ','), ',')"
+
         fridge = [] if ignore_fridge else [i for i in my_ingredients if i][:20]
         if fridge:
             match_parts = [
-                "(CASE WHEN FIND_IN_SET(%s, REPLACE(used_ingredients,' ','')) > 0 THEN 1 ELSE 0 END)"
+                f"(CASE WHEN FIND_IN_SET(%s, {seasoning_free}) > 0 THEN 1 ELSE 0 END)"
                 for _ in fridge
             ]
-            total_ing = """
+            # 콤마로 감쌌으므로 항목 수 = 콤마 개수 - 1 (양 끝에 콤마가 하나씩 더 있음)
+            total_ing = f"""
               CASE WHEN used_ingredients IS NULL OR used_ingredients=''
+                        OR {seasoning_free} = ',,'
                    THEN 0
-                   ELSE LENGTH(REPLACE(used_ingredients,' ',''))
-                        - LENGTH(REPLACE(REPLACE(used_ingredients,' ',''),',','')) + 1
+                   ELSE LENGTH({seasoning_free})
+                        - LENGTH(REPLACE({seasoning_free}, ',', '')) - 1
               END
             """
             match_rate = (
@@ -431,11 +487,10 @@ def handle_chat(get_db):
             'error': 'LLM 키가 없습니다. backend .env에 GEMINI_API_KEY 또는 GROQ_API_KEY를 넣어 주세요.',
         }), 503
 
-    if not _consume_quota():
-        return jsonify({
-            'error': f'오늘 무료 한도({_daily_limit()}회)를 다 썼어요. 내일 다시 시도해 주세요.',
-            'remaining': 0,
-        }), 429
+    # "그냥 있는 걸로 뭐 해먹을 수 있어?" 식 광범위한 질문은 LLM에게 묻지 않고
+    # 서버가 바로 keywords=[] 로 확정한다 (자세한 이유는 _is_broad_fridge_request 주석 참고).
+    # LLM을 안 부르므로 오늘 호출 한도도 쓰지 않는다.
+    is_broad = _is_broad_fridge_request(last_user)
 
     parsed = {
         'reply': '냉장고 재료 기준으로 레시피를 찾아볼게요.',
@@ -444,31 +499,39 @@ def handle_chat(get_db):
         'exclude_ingredients': [],
         'ignore_fridge': False,
     }
-    try:
-        prompt = _build_prompt(messages, ingredients)
-        if provider == 'gemini':
-            raw = _call_gemini(api_key, prompt)
-        else:
-            raw = _call_groq(api_key, prompt)
-        extracted = _extract_json(raw) or {}
-        if isinstance(extracted.get('reply'), str) and extracted['reply'].strip():
-            parsed['reply'] = extracted['reply'].strip()
-        # 예전 프롬프트는 낱말 하나(keyword)만 받았다. 모델이 옛 형식으로 답하는 경우도
-        # 있으므로 둘 다 받아 준다.
-        raw_keywords = extracted.get('keywords')
-        if isinstance(raw_keywords, list):
-            parsed['keywords'] = [str(k).strip()[:40] for k in raw_keywords if str(k).strip()][:MAX_KEYWORDS]
-        elif isinstance(extracted.get('keyword'), str) and extracted['keyword'].strip():
-            parsed['keywords'] = [extracted['keyword'].strip()[:40]]
-        for key in ('include_ingredients', 'exclude_ingredients'):
-            values = extracted.get(key) or []
-            if isinstance(values, list):
-                parsed[key] = [str(v).strip() for v in values if str(v).strip()][:8]
-        parsed['ignore_fridge'] = bool(extracted.get('ignore_fridge'))
-    except Exception as e:
-        print(f'[chat] LLM 호출 실패: {e}')
-        parsed['keywords'] = [last_user[:20]] if last_user else []
-        parsed['reply'] = '취향 기준으로 레시피를 찾아봤어요. 아래 글을 눌러 보세요.'
+
+    if not is_broad:
+        if not _consume_quota():
+            return jsonify({
+                'error': f'오늘 무료 한도({_daily_limit()}회)를 다 썼어요. 내일 다시 시도해 주세요.',
+                'remaining': 0,
+            }), 429
+
+        try:
+            prompt = _build_prompt(messages, ingredients)
+            if provider == 'gemini':
+                raw = _call_gemini(api_key, prompt)
+            else:
+                raw = _call_groq(api_key, prompt)
+            extracted = _extract_json(raw) or {}
+            if isinstance(extracted.get('reply'), str) and extracted['reply'].strip():
+                parsed['reply'] = extracted['reply'].strip()
+            # 예전 프롬프트는 낱말 하나(keyword)만 받았다. 모델이 옛 형식으로 답하는 경우도
+            # 있으므로 둘 다 받아 준다.
+            raw_keywords = extracted.get('keywords')
+            if isinstance(raw_keywords, list):
+                parsed['keywords'] = [str(k).strip()[:40] for k in raw_keywords if str(k).strip()][:MAX_KEYWORDS]
+            elif isinstance(extracted.get('keyword'), str) and extracted['keyword'].strip():
+                parsed['keywords'] = [extracted['keyword'].strip()[:40]]
+            for key in ('include_ingredients', 'exclude_ingredients'):
+                values = extracted.get(key) or []
+                if isinstance(values, list):
+                    parsed[key] = [str(v).strip() for v in values if str(v).strip()][:8]
+            parsed['ignore_fridge'] = bool(extracted.get('ignore_fridge'))
+        except Exception as e:
+            print(f'[chat] LLM 호출 실패: {e}')
+            parsed['keywords'] = [last_user[:20]] if last_user else []
+            parsed['reply'] = '취향 기준으로 레시피를 찾아봤어요. 아래 글을 눌러 보세요.'
 
     recipes = _search_recipes(
         get_db,
@@ -493,7 +556,17 @@ def handle_chat(get_db):
         # 냉장고 우선 모드에서도 결과가 없으면 재료 조건 없이 한 번 더 시도
         recipes = _search_recipes(get_db, parsed['keywords'], [], [], ingredients, True)
 
-    if not recipes:
+    if is_broad:
+        # LLM을 안 거쳤으니 검색이 끝난 지금, 실제로 몇 건 찾았는지를 보고 문구를 정한다.
+        # (LLM 경로의 reply는 검색 전에 쓰여져서 "이래서 추천해요" 가 애초에 불가능했는데,
+        #  이 경로는 결과를 안 뒤에 문구를 만드니 최소한 "뭘 봤는지는 아는" 느낌을 줄 수 있다)
+        if recipes and ingredients:
+            parsed['reply'] = f'냉장고에 있는 재료 기준으로 만들 수 있는 레시피 {len(recipes)}개를 찾았어요. 매칭률 높은 순으로 보여드릴게요!'
+        elif recipes:
+            parsed['reply'] = '지금 찾을 수 있는 레시피를 보여드릴게요! 냉장고에 재료를 등록해두면 갖고 계신 재료 기준으로 더 정확하게 추천해드릴 수 있어요.'
+        else:
+            parsed['reply'] = '조건에 맞는 글을 바로 찾지는 못했어요. 냉장고에 재료를 등록해두거나, 원하는 맛이나 요리를 조금 더 말씀해 주실래요?'
+    elif not recipes:
         parsed['reply'] = (
             parsed['reply']
             + '\n\n조건에 맞는 글을 바로 찾지는 못했어요. 맛이나 재료를 조금만 더 구체적으로 말해 줄래요?'
