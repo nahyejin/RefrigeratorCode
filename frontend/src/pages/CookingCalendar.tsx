@@ -472,7 +472,7 @@ const CookingCalendar: React.FC = () => {
               💰 지금까지 예상 절약액 약 {formatWon(estimatedSavings)}원
             </div>
             <div style={{ fontSize: 11, color: 'var(--ink-500)', marginTop: 3, lineHeight: 1.5 }}>
-              외식·배달 대비 1인 한 끼 {formatWon(savingsPerMeal)}원 추정 × {monthlyTotal}회 × 식구 {familySize}명
+              외식·배달 대비 1인 한 끼 {formatWon(savingsPerMeal)}원 절약 추정 × {monthlyTotal}회 × 식구 {familySize}명
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
               {editingSavingsPerMeal ? (
