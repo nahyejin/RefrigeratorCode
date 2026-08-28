@@ -9,6 +9,7 @@ import Button from '../components/ui/Button';
 import Dialog from '../components/ui/Dialog';
 import BottomNavBar from '../components/BottomNavBar';
 import HouseholdSection from '../components/HouseholdSection';
+import PullToRefresh from '../components/PullToRefresh';
 import logoImg from '../assets/냉털이 로고 white.png';
 import searchIcon from '../assets/navigator_search.png';
 import myProfileImg from '../assets/profile_default.png'; // 기본 프로필 이미지(없으면 대체)
@@ -491,6 +492,13 @@ const MyPage: React.FC = () => {
     } catch (error) {
       console.warn('[MyPage] 그룹 레시피 목록 조회 실패:', error);
     }
+  };
+
+  // 당겨서 새로고침용 — 다른 그룹원이 방금 즐겨찾기·완료·기록했을 수 있으니
+  // 그룹 활동 피드와(내 로컬 목록도 혹시 다른 기기에서 바뀌었을 수 있어 함께)
+  // 둘 다 다시 불러온다.
+  const refreshMyPage = async () => {
+    await Promise.all([loadRecipesFromDB(), loadHouseholdRecipeFeeds()]);
   };
 
   // 레시피 카드에 붙일 배지 — 이 항목을 한 사람의 닉네임.
@@ -1248,6 +1256,10 @@ const MyPage: React.FC = () => {
       {/* 상단 GNB 는 AppRouter 의 TopNavBar 하나만 쓴다.
           예전에는 마이페이지가 똑같은 헤더를 하나 더 그리고 있어 두 개가 겹쳐 있었고,
           복제본은 폭이 400px 로 제한돼 있어 넓은 화면에서 정렬도 달라 보였다. */}
+      {/* 다른 그룹원이 즐겨찾기·완료·기록을 방금 했을 수 있는데, 예전엔
+          이 화면을 나갔다 다시 들어와야만 반영됐다 — 당겨서 새로고침으로
+          그 자리에서 바로 다시 불러올 수 있게 한다. */}
+      <PullToRefresh onRefresh={refreshMyPage}>
 
       {/* 프로필 영역.
           예전에는 위 130px + 아래 70px 을 비우고 가운데에 닉네임·이메일·노란 버튼만
@@ -1613,7 +1625,8 @@ const MyPage: React.FC = () => {
         {/* 쿠팡 광고 - 페이지 맨 끝에 도달했을 때만 표시 */}
         <BottomCoupangAd showCondition={true} />
       </div>
-      
+      </PullToRefresh>
+
       <BottomNavBar activeTab="mypage" />
       {/* 공유 요청 팝업은 AppRouter에 전역으로 마운트된 <ShareRequestPopup/>이
           담당한다 — 마이페이지에 들어와야만 뜨던 걸 앱 어느 탭에서든 뜨게

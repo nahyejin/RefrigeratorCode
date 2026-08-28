@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import BottomNavBar from '../components/BottomNavBar';
+import PullToRefresh from '../components/PullToRefresh';
 import { useAuth } from '../context/AuthContext';
 import { getProxiedImageUrl } from '../utils/imageUtils';
 
@@ -372,6 +373,10 @@ const CookingCalendar: React.FC = () => {
 
   return (
     <div style={{ maxWidth: 480, margin: '0 auto', paddingTop: 72, paddingBottom: 84 }}>
+      {/* 다른 그룹원이 완료·기록·즐겨찾기를 하면 이 화면 내용이 바뀌는데, 그걸
+          보려면 예전엔 탭을 벗어났다 돌아오는 수밖에 없었다 — 당겨서
+          새로고침으로 그 자리에서 바로 다시 불러올 수 있게 한다. */}
+      <PullToRefresh onRefresh={loadCalendar}>
       {/* 월 목표는 "이번 달" 이라는 더 큰 단위 얘기라, 일/주/월 중 무엇을 보고
           있든 항상 같은 값이어야 맞다 — 그래서 일/주/월 전환 버튼보다 위,
           가장 먼저 오는 자리에 두고 "몇 월 목표"인지 숫자로 못 박아 둔다.
@@ -492,7 +497,7 @@ const CookingCalendar: React.FC = () => {
                     type="button"
                     onClick={handleSaveSavingsPerMeal}
                     aria-label="1인 한 끼 추정액 적용"
-                    style={{ width: 20, height: 20, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#1A1A1E', background: 'var(--brand)', border: 'none', cursor: 'pointer' }}
+                    style={{ height: 22, padding: '0 8px', borderRadius: 6, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#1A1A1E', background: 'var(--brand)', border: 'none', cursor: 'pointer' }}
                   >
                     ✓
                   </button>
@@ -527,7 +532,7 @@ const CookingCalendar: React.FC = () => {
                     type="button"
                     onClick={handleSaveFamilySize}
                     aria-label="식구 수 적용"
-                    style={{ width: 20, height: 20, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#1A1A1E', background: 'var(--brand)', border: 'none', cursor: 'pointer' }}
+                    style={{ height: 22, padding: '0 8px', borderRadius: 6, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#1A1A1E', background: 'var(--brand)', border: 'none', cursor: 'pointer' }}
                   >
                     ✓
                   </button>
@@ -792,6 +797,7 @@ const CookingCalendar: React.FC = () => {
         </div>
         )}
       </div>
+      </PullToRefresh>
 
       <BottomNavBar activeTab="cooking-calendar" />
     </div>

@@ -46,7 +46,7 @@ RefrigeratorCode/
 ├── 📁 logs/
 │
 ├── 📄 run_all_crawlers.py                 # 크롤링 + 룰베이스 재료 추출
-├── 📄 run_crawlers_scheduled.bat          # 주간 크롤러 (월 07:00)
+├── 📄 run_crawlers_scheduled.bat          # 크롤러 (원래 주간·월 07:00, 2026-08-29부터 당분간 매일 07:00로 임시 변경 — Windows 작업 스케줄러 "CookMatch-WeeklyCrawler" 트리거 참고)
 ├── 📄 run_llm_ingredients_daily.bat       # 매일 LLM 재료 추출 (매일 03:00)
 ├── 📄 requirements.txt
 ├── 📄 README.md
