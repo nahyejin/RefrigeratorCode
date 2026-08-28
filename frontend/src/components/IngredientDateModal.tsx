@@ -225,6 +225,9 @@ export default function IngredientDateModal({ type, isOpen, onClose, onComplete,
                 { label: '1주일 뒤', days: 7 },
                 { label: '2주일 뒤', days: 14 },
                 { label: '1개월 뒤', days: 30 },
+                { label: '3개월 뒤', days: 90 },
+                { label: '6개월 뒤', days: 180 },
+                { label: '1년 뒤', days: 365 },
               ]
             : [
                 { label: '오늘', days: 0 },

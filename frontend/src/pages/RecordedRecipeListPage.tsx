@@ -175,7 +175,6 @@ const RecordedRecipeListPage: React.FC = () => {
   const [matchRange, setMatchRange] = useState<[number, number]>([30, 100]);
   const [maxLack, setMaxLack] = useState<number | 'unlimited'>('unlimited');
   const [appliedExpiryIngredients, setAppliedExpiryIngredients] = useState<string[]>([]);
-  const [expirySortType, setExpirySortType] = useState<'expiry' | 'purchase'>('expiry');
   const [pendingRemove, setPendingRemove] = useState<PendingRemove | null>(null);
   const [pendingRecipe, setPendingRecipe] = useState<any>(null);
   const [includeIngredients, setIncludeIngredients] = useState<string[]>([]);
@@ -399,7 +398,6 @@ const RecordedRecipeListPage: React.FC = () => {
       if (saved.matchRange) setMatchRange(saved.matchRange);
       if (saved.maxLack !== undefined) setMaxLack(saved.maxLack);
       if (saved.appliedExpiryIngredients) setAppliedExpiryIngredients(saved.appliedExpiryIngredients);
-      if (saved.expirySortType) setExpirySortType(saved.expirySortType);
     }
   }, []);
 
@@ -408,11 +406,10 @@ const RecordedRecipeListPage: React.FC = () => {
     saveSortFilterState({
       sortType, 
       matchRange, 
-      maxLack, 
-      appliedExpiryIngredients, 
-      expirySortType
+      maxLack,
+      appliedExpiryIngredients,
     });
-  }, [sortType, matchRange, maxLack, appliedExpiryIngredients, expirySortType]);
+  }, [sortType, matchRange, maxLack, appliedExpiryIngredients]);
 
   // 페이지 상단으로 스크롤
   useEffect(() => {
@@ -502,8 +499,6 @@ const RecordedRecipeListPage: React.FC = () => {
             setMaxLack={setMaxLack}
             appliedExpiryIngredients={appliedExpiryIngredients}
             setAppliedExpiryIngredients={setAppliedExpiryIngredients}
-            expirySortType={expirySortType}
-            setExpirySortType={setExpirySortType}
             selectedChannel={selectedChannel}
             setSelectedChannel={setSelectedChannel}
             includeKeyword={includeKeyword}

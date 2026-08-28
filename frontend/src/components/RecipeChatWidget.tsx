@@ -99,11 +99,28 @@ const PlusIcon: React.FC<{ size?: number }> = ({ size = 16 }) => (
   </svg>
 );
 
+/**
+ * 유통기한(직접 입력 또는 구매일로 짐작한 값)이 이미 지난 재료인지 본다.
+ * 지난 재료는 실제로는 못 쓸 가능성이 높으니 챗봇 추천의 "보유 재료"에서 뺀다
+ * (MyFridge.tsx의 getDdayLabel과 같은 기준: expiry 우선, 없으면 estimatedExpiry).
+ */
+function isExpired(item: { expiry?: string; estimatedExpiry?: string }): boolean {
+  const raw = item.expiry || item.estimatedExpiry;
+  if (!raw) return false;
+  const d = new Date(String(raw).replace(/\./g, '-'));
+  if (isNaN(d.getTime())) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  d.setHours(0, 0, 0, 0);
+  return d.getTime() < today.getTime();
+}
+
 function getFridgeIngredientNames(): string[] {
   try {
     const data = JSON.parse(localStorage.getItem(STORAGE_FRIDGE) || 'null');
     if (!data) return [];
     return [...(data.frozen || []), ...(data.fridge || []), ...(data.room || [])]
+      .filter((item: { expiry?: string; estimatedExpiry?: string }) => !isExpired(item))
       .map((item: { name?: string }) => (item?.name || '').trim())
       .filter(Boolean);
   } catch {

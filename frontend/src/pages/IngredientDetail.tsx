@@ -85,7 +85,6 @@ interface SortFilterState {
   matchRange: [number, number];
   maxLack: number | 'unlimited';
   appliedExpiryIngredients: string[];
-  expirySortType: 'expiry' | 'purchase';
 }
 
 // =====================
@@ -283,7 +282,6 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
   const [includeKeyword, setIncludeKeyword] = useState('');
   const [matchRange, setMatchRange] = useState<[number, number]>([30, 100]);
   const [maxLack, setMaxLack] = useState<number | 'unlimited'>('unlimited');
-  const [expirySortType, setExpirySortType] = useState<'expiry'|'purchase'>('expiry');
   const [selectedExpiryIngredients, setSelectedExpiryIngredients] = useState<string[]>([]);
   const [appliedExpiryIngredients, setAppliedExpiryIngredients] = useState<string[]>([]);
   const [matchRateModalOpen, setMatchRateModalOpen] = useState(false);
@@ -706,7 +704,6 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
       if (saved.matchRange) setMatchRange(saved.matchRange);
       if (saved.maxLack !== undefined) setMaxLack(saved.maxLack);
       if (saved.appliedExpiryIngredients) setAppliedExpiryIngredients(saved.appliedExpiryIngredients);
-      if (saved.expirySortType) setExpirySortType(saved.expirySortType);
     }
   }, [isMyPageRecipeList]);
 
@@ -719,9 +716,8 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
       matchRange,
       maxLack,
       appliedExpiryIngredients,
-      expirySortType,
     });
-  }, [sortType, matchRange, maxLack, appliedExpiryIngredients, expirySortType]);
+  }, [sortType, matchRange, maxLack, appliedExpiryIngredients]);
 
   // 페이지 상단으로 스크롤
   useEffect(() => {
@@ -901,8 +897,6 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
             setMaxLack={setMaxLack}
             appliedExpiryIngredients={appliedExpiryIngredients}
             setAppliedExpiryIngredients={setAppliedExpiryIngredients}
-            expirySortType={expirySortType}
-            setExpirySortType={setExpirySortType}
             selectedChannel={selectedChannel}
             setSelectedChannel={setSelectedChannel}
             includeKeyword={includeKeyword}

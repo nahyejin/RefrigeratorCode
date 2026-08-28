@@ -66,8 +66,6 @@ interface RecipeSortBarProps {
   setMaxLack: (v: number | 'unlimited') => void;
   appliedExpiryIngredients: string[];
   setAppliedExpiryIngredients: (v: string[]) => void;
-  expirySortType: 'expiry' | 'purchase';
-  setExpirySortType: (v: 'expiry' | 'purchase') => void;
   selectedChannel: string[];
   setSelectedChannel: (channels: string[]) => void;
   includeKeyword: string;
@@ -293,29 +291,6 @@ const STYLES = {
     border: 'none',
     cursor: 'pointer'
   },
-  tabButton: {
-    flex: 1,
-    padding: '8px',
-    fontSize: 15,
-    fontWeight: 500,
-    border: '1px solid #D2D2D8',
-    borderRadius: 8
-  },
-  tabButtonActive: {
-    backgroundColor: '#E6E6EA',
-    border: '2px solid #1A1A1E'
-  },
-  tabButtonInactive: {
-    backgroundColor: '#FFFFFF',
-    border: '1px solid #D2D2D8'
-  },
-  modeGroup: {
-    display: 'flex' as const,
-    gap: 12,
-    alignItems: 'center' as const,
-    marginBottom: 8,
-    justifyContent: 'center' as const
-  },
   modeLabel: {
     display: 'flex' as const,
     alignItems: 'center' as const,
@@ -479,10 +454,8 @@ const RecipeSortBar = ({
   setMatchRange, 
   maxLack, 
   setMaxLack, 
-  appliedExpiryIngredients, 
-  setAppliedExpiryIngredients, 
-  expirySortType, 
-  setExpirySortType,
+  appliedExpiryIngredients,
+  setAppliedExpiryIngredients,
   selectedChannel,
   setSelectedChannel,
   includeKeyword,
@@ -526,19 +499,18 @@ const RecipeSortBar = ({
   // 구매일로 짐작한 기한(estimatedExpiry)도 임박 재료로 함께 본다.
   // 유통기한을 직접 넣는 사용자가 드물어서, 직접 넣은 것만 세면
   // 임박 재료 목록이 거의 항상 비어 이 기능 자체가 동작하지 않았다.
+  //
+  // 예전엔 이 목록과 별개로 "구매일 오래된순"(purchaseSortedIngredientList) 탭이
+  // 따로 있었다. 그런데 구매일을 넣으면 그 자리에서 바로 estimatedExpiry 를 함께
+  // 계산해 저장하므로(MyFridge.tsx), 구매일이 있는 재료는 결국 이 목록에도 다
+  // 들어온다 — 사실상 같은 걸 두 가지 기준으로 보여주기만 했다. 탭을 없애고
+  // 이 하나로 통합한다.
   const expirySortedIngredientList = useMemo(() =>
     myFridgeIngredientList
       .filter(i => i.expiry || i.estimatedExpiry)
       .sort((a, b) =>
         new Date(a.expiry || a.estimatedExpiry).getTime() -
         new Date(b.expiry || b.estimatedExpiry).getTime()),
-    [myFridgeIngredientList]
-  );
-
-  const purchaseSortedIngredientList = useMemo(() =>
-    myFridgeIngredientList
-      .filter(i => i.purchase)
-      .sort((a, b) => new Date(a.purchase).getTime() - new Date(b.purchase).getTime()),
     [myFridgeIngredientList]
   );
 
@@ -601,9 +573,9 @@ const RecipeSortBar = ({
   // localStorage 저장
   useEffect(() => {
     localStorage.setItem('recipe_sortbar_state_fridge', JSON.stringify({
-      sortType, matchRange, maxLack, appliedExpiryIngredients, expirySortType, expiryIngredientMode
+      sortType, matchRange, maxLack, appliedExpiryIngredients, expiryIngredientMode
     }));
-  }, [sortType, matchRange, maxLack, appliedExpiryIngredients, expirySortType, expiryIngredientMode]);
+  }, [sortType, matchRange, maxLack, appliedExpiryIngredients, expiryIngredientMode]);
 
   // 드롭다운 외부 클릭 감지
   useEffect(() => {
@@ -944,26 +916,6 @@ const RecipeSortBar = ({
               </span>
             </div>
 
-            <div style={STYLES.modeGroup}>
-              <button
-                style={{
-                  ...STYLES.tabButton,
-                  ...(expirySortType === 'expiry' ? STYLES.tabButtonActive : STYLES.tabButtonInactive)
-                }}
-                onClick={() => setExpirySortType('expiry')}
-              >
-                유통기한 임박순
-              </button>
-              <button
-                style={{
-                  ...STYLES.tabButton,
-                  ...(expirySortType === 'purchase' ? STYLES.tabButtonActive : STYLES.tabButtonInactive)
-                }}
-                onClick={() => setExpirySortType('purchase')}
-              >
-                구매일 오래된순
-              </button>
-            </div>
             {/* 선택한 재료를 어떻게 묶을지.
                 기본 라디오 버튼은 13px 남짓이라 누르기 어렵고 브라우저 기본 파란색이라
                 앱의 다른 컨트롤과 색이 따로 놀았음 → 매칭도 팝업과 같은 칩 토글로 통일 */}
@@ -1019,10 +971,10 @@ const RecipeSortBar = ({
             </div>
             {/* 재료 리스트 스크롤 영역 */}
             <div style={STYLES.ingredientList}>
-              {(expirySortType === 'expiry' ? expirySortedIngredientList : purchaseSortedIngredientList).length === 0 && (
+              {expirySortedIngredientList.length === 0 && (
                 <div style={{...STYLES.ingredientItem, color: '#9A9AA2', fontSize: 13, textAlign: 'center', padding: 24}}>해당 정보가 입력된 재료가 없습니다.</div>
               )}
-              {(expirySortType === 'expiry' ? expirySortedIngredientList : purchaseSortedIngredientList).map(item => (
+              {expirySortedIngredientList.map(item => (
                 <div
                   key={item.name}
                   style={{
@@ -1044,20 +996,13 @@ const RecipeSortBar = ({
                     {item.name}
                   </span>
                   <span style={STYLES.ingredientDate}>
-                    {/* 예전엔 구매일 탭에서 `2026.08.12` 같은 날짜를 그대로 보여줬는데,
-                        머릿속으로 며칠 지났는지 빼야 해서 한눈에 안 들어왔다.
-                        두 탭 모두 D-표기로 통일한다 (구매일은 지난 날짜라 D+N 으로 나온다) */}
-                    {expirySortType === 'expiry'
-                      ? (() => {
-                          // 같은 `D+1` 이라도 유통기한 탭에서는 "1일 지남", 구매일 탭에서는
-                          // "산 지 1일" 이라 뜻이 정반대다. 기한이 지난 것은 글자로 못박는다.
-                          const raw = item.expiry || item.estimatedExpiry || '';
-                          const dday = getDDay(raw);
-                          const estimated = !item.expiry;
-                          if (dday.startsWith('D+')) return estimated ? '약 지남' : '지남';
-                          return estimated ? `약 ${dday}` : dday;
-                        })()
-                      : getDDay(item.purchase || '')}
+                    {(() => {
+                      const raw = item.expiry || item.estimatedExpiry || '';
+                      const dday = getDDay(raw);
+                      const estimated = !item.expiry;
+                      if (dday.startsWith('D+')) return estimated ? '약 지남' : '지남';
+                      return estimated ? `약 ${dday}` : dday;
+                    })()}
                   </span>
                 </div>
               ))}

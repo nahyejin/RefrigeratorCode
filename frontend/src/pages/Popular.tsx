@@ -1470,7 +1470,6 @@ const Popular = () => {
   const [matchRange, setMatchRange] = useState<[number, number]>([30, 100]);
   const [maxLack, setMaxLack] = useState<number | 'unlimited'>('unlimited');
   const [appliedExpiryIngredients, setAppliedExpiryIngredients] = useState<string[]>([]);
-  const [expirySortType, setExpirySortType] = useState<'expiry'|'purchase'>('expiry');
 
   // Restore sort/filter state from localStorage on mount
   useEffect(() => {
@@ -1482,7 +1481,6 @@ const Popular = () => {
         if (state.matchRange) setMatchRange(state.matchRange);
         if (state.maxLack !== undefined) setMaxLack(state.maxLack);
         if (state.appliedExpiryIngredients) setAppliedExpiryIngredients(state.appliedExpiryIngredients);
-        if (state.expirySortType) setExpirySortType(state.expirySortType);
       } catch {}
     }
   }, []);
@@ -1490,9 +1488,9 @@ const Popular = () => {
   // Save sort/filter state to localStorage on change
   useEffect(() => {
     localStorage.setItem('recipe_sortbar_state_popular', JSON.stringify({
-      sortType, matchRange, maxLack, appliedExpiryIngredients, expirySortType
+      sortType, matchRange, maxLack, appliedExpiryIngredients
     }));
-  }, [sortType, matchRange, maxLack, appliedExpiryIngredients, expirySortType]);
+  }, [sortType, matchRange, maxLack, appliedExpiryIngredients]);
 
   // 사용자별 레시피 상태 로드 (로그인한 경우 DB에서, 비로그인은 localStorage에서)
   useEffect(() => {

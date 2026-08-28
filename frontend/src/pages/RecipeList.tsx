@@ -151,7 +151,6 @@ function getInitialSortBarState(): {
   matchRange: [number, number];
   maxLack: number | 'unlimited';
   appliedExpiryIngredients: string[];
-  expirySortType: 'expiry' | 'purchase';
 } {
   // 초기 로드 시 항상 기본값 사용 (30~100%, 재료매칭률순)
   // 이후 사용자가 변경한 값은 sessionStorage에 저장되어 유지됨
@@ -161,7 +160,6 @@ function getInitialSortBarState(): {
     matchRange: [30, 100], // 30~100%
     maxLack: 'unlimited',
     appliedExpiryIngredients: [], // 임박재료 없음
-    expirySortType: 'expiry',
   };
 }
 
@@ -573,7 +571,6 @@ const RecipeList: React.FC = () => {
   const [matchRange, setMatchRange] = useState(initialSortBarState.matchRange);
   const [maxLack, setMaxLack] = useState(initialSortBarState.maxLack);
   const [appliedExpiryIngredients, setAppliedExpiryIngredients] = useState(initialSortBarState.appliedExpiryIngredients);
-  const [expirySortType, setExpirySortType] = useState(initialSortBarState.expirySortType);
   const [filterOpen, setFilterOpen] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState<FilterState>(initialFilterState);
   const [includeInput, setIncludeInput] = useState('');
@@ -1826,26 +1823,15 @@ const RecipeList: React.FC = () => {
       matchRange,
       maxLack,
       appliedExpiryIngredients,
-      expirySortType
     };
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }, [sortType, matchRange, maxLack, appliedExpiryIngredients, expirySortType]);
+  }, [sortType, matchRange, maxLack, appliedExpiryIngredients]);
 
   // =====================
   // 계산된 값
   // =====================
 
   const myIngredientObjects = getMyIngredientObjects();
-  const sortedExpiryList = useMemo(() => {
-    if (expirySortType === 'expiry') {
-      // 구매일로 짐작한 기한도 임박 재료에 포함 (RecipeSortBar 와 같은 기준)
-      return myIngredientObjects
-        .filter(i => i.expiry || i.estimatedExpiry)
-        .sort((a, b) => ((a.expiry || a.estimatedExpiry) > (b.expiry || b.estimatedExpiry) ? 1 : -1));
-    } else {
-      return myIngredientObjects.filter(i => i.purchase).sort((a, b) => (a.purchase > b.purchase ? 1 : -1));
-    }
-  }, [myIngredientObjects, expirySortType]);
 
   // 페이지 변경 핸들러 (클라이언트 사이드 페이지네이션)
   const handlePageChange = (newPage: number) => {
@@ -2004,8 +1990,6 @@ const RecipeList: React.FC = () => {
           setMaxLack={setMaxLack}
           appliedExpiryIngredients={appliedExpiryIngredients}
           setAppliedExpiryIngredients={setAppliedExpiryIngredients}
-          expirySortType={expirySortType}
-          setExpirySortType={setExpirySortType}
           selectedChannel={selectedChannel}
           setSelectedChannel={setSelectedChannel}
           includeKeyword={includeKeyword}
