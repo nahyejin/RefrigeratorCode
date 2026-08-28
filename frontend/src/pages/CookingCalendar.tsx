@@ -86,12 +86,22 @@ const CookingCalendar: React.FC = () => {
   const [viewMode, setViewMode] = React.useState<ViewMode>('month');
   const [anchorDate, setAnchorDate] = React.useState(() => new Date());
   const [entries, setEntries] = React.useState<CalendarEntry[]>([]);
-  const [goals, setGoals] = React.useState<Record<string, number>>({});
+  // 그룹이 있으면 groupGoal(그룹 전체가 공유하는 하나의 값)을 쓰고,
+  // 없으면 personalGoal(내 개인 목표)을 쓴다 — 개인별로 따로 두지 않는다.
+  const [groupGoal, setGroupGoal] = React.useState<number | null>(null);
+  const [personalGoal, setPersonalGoal] = React.useState<number>(20);
+  const [householdSize, setHouseholdSize] = React.useState(1);
+  const [memberIds, setMemberIds] = React.useState<number[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [selectedDay, setSelectedDay] = React.useState<string>(() => toDateKey(new Date()));
   const [isInHousehold, setIsInHousehold] = React.useState(false);
   const [editingGoal, setEditingGoal] = React.useState(false);
   const [goalInput, setGoalInput] = React.useState('');
+  // 절약액 계산에 곱하는 "실제 같이 먹는 식구 수". 연동 계정 수와 다를 수 있어
+  // (아이가 있으면 계정 없이 같이 먹음) 그룹원이 직접 조정할 수 있게 뒀다.
+  const [familySize, setFamilySize] = React.useState(1);
+  const [editingFamilySize, setEditingFamilySize] = React.useState(false);
+  const [familySizeInput, setFamilySizeInput] = React.useState('');
 
   const monthStart = new Date(anchorDate.getFullYear(), anchorDate.getMonth(), 1);
   const monthEnd = new Date(anchorDate.getFullYear(), anchorDate.getMonth() + 1, 0);
@@ -108,6 +118,7 @@ const CookingCalendar: React.FC = () => {
       });
       const me = meRes.ok ? await meRes.json() : null;
       setIsInHousehold(!!me?.in_household);
+      setMemberIds(me?.in_household ? (me.members || []).map((m: any) => m.id).sort((a: number, b: number) => a - b) : []);
 
       const params = new URLSearchParams({ start: toDateKey(monthStart), end: toDateKey(monthEnd) });
       const res = await fetch(`${apiUrl}/api/households/me/completed-calendar?${params.toString()}`, {
@@ -116,7 +127,10 @@ const CookingCalendar: React.FC = () => {
       if (res.ok) {
         const data = await res.json();
         setEntries(data.entries || []);
-        setGoals(data.goals || {});
+        setGroupGoal(typeof data.group_goal === 'number' ? data.group_goal : null);
+        setPersonalGoal(typeof data.my_personal_goal === 'number' ? data.my_personal_goal : 20);
+        setHouseholdSize(data.household_size || 1);
+        setFamilySize(typeof data.family_size === 'number' ? data.family_size : 1);
       }
     } catch (e) {
       console.warn('[CookingCalendar] 조회 실패:', e);
@@ -130,10 +144,6 @@ const CookingCalendar: React.FC = () => {
     loadCalendar();
   }, [loadCalendar]);
 
-  const memberIds = React.useMemo(
-    () => Object.keys(goals).map(Number).sort((a, b) => a - b),
-    [goals]
-  );
   const nicknameById = React.useMemo(() => {
     const map = new Map<number, string>();
     for (const e of entries) map.set(e.user_id, e.nickname);
@@ -170,7 +180,8 @@ const CookingCalendar: React.FC = () => {
     return { total, byUser };
   }, [entries, visibleRange]);
 
-  const myGoal = authUser?.id ? goals[String(authUser.id)] ?? 20 : 20;
+  // 그룹에 속해 있으면 groupGoal(그룹 전체 공동 목표)을, 아니면 개인 목표를 쓴다.
+  const myGoal = isInHousehold ? groupGoal ?? 20 : personalGoal;
 
   // 목표는 "이 달" 단위 개념이라, 지금 일/주/월 중 뭘 보고 있는지와 무관하게
   // 이 달 전체(entries는 애초에 이 달 범위만 불러온 것) 기준으로 계산한다.
@@ -196,7 +207,7 @@ const CookingCalendar: React.FC = () => {
     });
   }, [monthlyByUser, myGoal]);
   const groupAchievementRate = myGoal > 0 ? Math.min(100, Math.round((monthlyTotal / myGoal) * 100)) : 0;
-  const estimatedSavings = monthlyTotal * ESTIMATED_SAVINGS_PER_MEAL;
+  const estimatedSavings = monthlyTotal * ESTIMATED_SAVINGS_PER_MEAL * familySize;
 
   const shiftAnchor = (dir: 1 | -1) => {
     if (viewMode === 'month') {
@@ -222,16 +233,48 @@ const CookingCalendar: React.FC = () => {
     }
     try {
       const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
-      await fetch(`${getApiUrl()}/api/users/${authUser.id}/monthly-goal`, {
+      // 그룹에 속해 있으면 그룹 공동 목표를(households.monthly_cooking_goal,
+      // 누가 바꾸든 모두에게 적용), 아니면 내 개인 목표를 갱신한다.
+      const url = isInHousehold
+        ? `${getApiUrl()}/api/households/goal`
+        : `${getApiUrl()}/api/users/${authUser.id}/monthly-goal`;
+      const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ monthly_cooking_goal: goal }),
       });
-      setGoals((prev) => ({ ...prev, [String(authUser.id)]: goal }));
+      if (res.ok) {
+        if (isInHousehold) setGroupGoal(goal);
+        else setPersonalGoal(goal);
+      }
     } catch (e) {
       console.warn('[CookingCalendar] 목표 저장 실패:', e);
     } finally {
       setEditingGoal(false);
+    }
+  };
+
+  const handleSaveFamilySize = async () => {
+    const size = parseInt(familySizeInput, 10);
+    if (Number.isNaN(size) || size < 1 || size > 20 || !authUser?.id) {
+      setEditingFamilySize(false);
+      return;
+    }
+    try {
+      const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+      const url = isInHousehold
+        ? `${getApiUrl()}/api/households/family-size`
+        : `${getApiUrl()}/api/users/${authUser.id}/family-size`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ family_size: size }),
+      });
+      if (res.ok) setFamilySize(size);
+    } catch (e) {
+      console.warn('[CookingCalendar] 식구 수 저장 실패:', e);
+    } finally {
+      setEditingFamilySize(false);
     }
   };
 
@@ -365,92 +408,127 @@ const CookingCalendar: React.FC = () => {
           </div>
         )}
         {/* 절약액은 재료 가격 데이터가 없어 정확한 계산이 아니라 대략적인
-            추정치다 — 그렇게 명시해서 실제 계산인 것처럼 오해하지 않게 한다. */}
+            추정치다 — 그렇게 명시해서 실제 계산인 것처럼 오해하지 않게 한다.
+            식구 수(family_size)는 연동 계정 수와 다를 수 있어(아이는 계정 없이도
+            같이 먹음) 작게 수정 가능한 컨트롤을 바로 옆에 뒀다. */}
         {monthlyTotal > 0 && (
-          <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink-700)', marginTop: 10 }}>
-            💰 이번 달 예상 절약액 약 {formatWon(estimatedSavings)}원
-            <span style={{ fontWeight: 500, color: 'var(--ink-500)' }}>
-              {' '}(외식·배달 대비 한 끼 {formatWon(ESTIMATED_SAVINGS_PER_MEAL)}원 추정 × {monthlyTotal}회)
-            </span>
+          <div style={{ marginTop: 10 }}>
+            <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink-700)' }}>
+              💰 이번 달 예상 절약액 약 {formatWon(estimatedSavings)}원
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--ink-500)', marginTop: 3, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 4 }}>
+              <span>
+                외식·배달 대비 한 끼 {formatWon(ESTIMATED_SAVINGS_PER_MEAL)}원 추정 × {monthlyTotal}회 × 식구
+              </span>
+              {editingFamilySize ? (
+                <input
+                  type="number"
+                  value={familySizeInput}
+                  onChange={(e) => setFamilySizeInput(e.target.value)}
+                  onBlur={handleSaveFamilySize}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+                  }}
+                  autoFocus
+                  style={{ width: 40, height: 20, borderRadius: 5, border: '1px solid var(--line-300)', textAlign: 'center', fontSize: 11 }}
+                />
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFamilySizeInput(String(familySize));
+                    setEditingFamilySize(true);
+                  }}
+                  style={{ height: 20, padding: '0 6px', borderRadius: 5, fontSize: 11, fontWeight: 600, color: 'var(--ink-700)', background: '#FFFFFF', border: '1px solid var(--line-300)', cursor: 'pointer' }}
+                >
+                  {familySize}명
+                </button>
+              )}
+              <span>기준</span>
+            </div>
           </div>
         )}
         <div style={{ fontSize: 11, color: 'var(--ink-500)', marginTop: 6, lineHeight: 1.5 }}>
-          매월 1일에 진행률이 다시 0%부터 시작돼요. 목표는 계정별 개인 설정이라
-          그룹원마다 따로 정할 수 있어요(공동 목표 아님).
+          {isInHousehold
+            ? '매월 1일에 진행률이 다시 0%부터 시작돼요. 이 목표는 그룹 전체가 공유하는 값이라 누가 바꿔도 모두에게 적용돼요.'
+            : '매월 1일에 진행률이 다시 0%부터 시작돼요. 그룹에 참여하면 이 목표를 그룹 전체가 함께 쓰게 돼요.'}
         </div>
       </div>
 
-      {/* 일/주/월 전환 — 목표(달 단위)보다 한 단계 아래, "지금 뭘 보고 있는지"를
-          고르는 자리 */}
-      <div style={{ display: 'flex', gap: 6, padding: '14px 14px 0' }}>
-        {([
-          { key: 'day', label: '일' },
-          { key: 'week', label: '주' },
-          { key: 'month', label: '월' },
-        ] as const).map(({ key, label }) => {
-          const on = viewMode === key;
-          return (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setViewMode(key)}
-              style={{
-                height: 32,
-                padding: '0 14px',
-                borderRadius: 9999,
-                fontSize: 13,
-                fontWeight: on ? 700 : 500,
-                background: on ? 'var(--ink-900)' : 'var(--surface-sub)',
-                color: on ? '#FFFFFF' : 'var(--ink-700)',
-                border: 'none',
-                cursor: 'pointer',
-              }}
-            >
-              {label}
-            </button>
-          );
-        })}
-      </div>
+      {/* 목표 카드와 명확히 분리된 별도 카드에 캘린더를 담아, 모바일 화면에서
+          두 영역이 붙어 보이지 않고 한 화면에 같이 들어오게 했다. */}
+      <div style={{ margin: '14px 14px 0', borderRadius: 14, border: '1px solid var(--line-200)', background: '#FFFFFF', overflow: 'hidden' }}>
+        {/* 일/주/월 전환 — 목표(달 단위)보다 한 단계 아래, "지금 뭘 보고 있는지"를
+            고르는 자리 */}
+        <div style={{ display: 'flex', gap: 6, padding: '12px 14px 0' }}>
+          {([
+            { key: 'day', label: '일' },
+            { key: 'week', label: '주' },
+            { key: 'month', label: '월' },
+          ] as const).map(({ key, label }) => {
+            const on = viewMode === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setViewMode(key)}
+                style={{
+                  height: 30,
+                  padding: '0 14px',
+                  borderRadius: 9999,
+                  fontSize: 13,
+                  fontWeight: on ? 700 : 500,
+                  background: on ? 'var(--ink-900)' : 'var(--surface-sub)',
+                  color: on ? '#FFFFFF' : 'var(--ink-700)',
+                  border: 'none',
+                  cursor: 'pointer',
+                }}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
 
-      {/* 이전/다음 + 현재 범위 표시 */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px 0' }}>
-        <button type="button" onClick={() => shiftAnchor(-1)} aria-label="이전" style={{ width: 32, height: 32, border: 'none', background: 'transparent', cursor: 'pointer' }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1A1A1E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
-        </button>
-        <span style={{ fontSize: 15, fontWeight: 700, color: '#1A1A1E' }}>
-          {viewMode === 'month' && `${anchorDate.getFullYear()}년 ${anchorDate.getMonth() + 1}월`}
-          {viewMode === 'week' && `${visibleRange.start} ~ ${visibleRange.end}`}
-          {viewMode === 'day' && selectedDay}
-        </span>
-        <button type="button" onClick={() => shiftAnchor(1)} aria-label="다음" style={{ width: 32, height: 32, border: 'none', background: 'transparent', cursor: 'pointer' }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1A1A1E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6" /></svg>
-        </button>
-      </div>
+        {/* 이전/다음 + 현재 범위 표시 */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 14px 0' }}>
+          <button type="button" onClick={() => shiftAnchor(-1)} aria-label="이전" style={{ width: 32, height: 32, border: 'none', background: 'transparent', cursor: 'pointer' }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1A1A1E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
+          </button>
+          <span style={{ fontSize: 15, fontWeight: 700, color: '#1A1A1E' }}>
+            {viewMode === 'month' && `${anchorDate.getFullYear()}년 ${anchorDate.getMonth() + 1}월`}
+            {viewMode === 'week' && `${visibleRange.start} ~ ${visibleRange.end}`}
+            {viewMode === 'day' && selectedDay}
+          </span>
+          <button type="button" onClick={() => shiftAnchor(1)} aria-label="다음" style={{ width: 32, height: 32, border: 'none', background: 'transparent', cursor: 'pointer' }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1A1A1E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6" /></svg>
+          </button>
+        </div>
 
-      {/* 그룹 요약 + 인원별 색 범례 */}
-      <div style={{ margin: '10px 14px 0', padding: '10px 14px', borderRadius: 12, background: 'var(--surface-sub)', fontSize: 13, color: 'var(--ink-700)' }}>
-        {summary.total === 0 ? (
-          <span style={{ color: 'var(--ink-500)' }}>이 기간엔 완료한 레시피가 없어요.</span>
-        ) : (
-          <span>총 {summary.total}회</span>
-        )}
-        {isInHousehold && summary.byUser.size > 0 && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 8 }}>
-            {Array.from(summary.byUser.entries()).map(([uid, count]) => (
-              <span key={uid} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12 }}>
-                <span style={{ width: 8, height: 8, borderRadius: '50%', background: colorForUser(uid, memberIds), flexShrink: 0 }} />
-                {nicknameById.get(uid) || '?'} {count}회
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
+        {/* 그룹 요약 + 인원별 색 범례 */}
+        <div style={{ margin: '8px 14px 0', padding: '10px 14px', borderRadius: 12, background: 'var(--surface-sub)', fontSize: 13, color: 'var(--ink-700)' }}>
+          {summary.total === 0 ? (
+            <span style={{ color: 'var(--ink-500)' }}>이 기간엔 완료한 레시피가 없어요.</span>
+          ) : (
+            <span>총 {summary.total}회</span>
+          )}
+          {isInHousehold && summary.byUser.size > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 8 }}>
+              {Array.from(summary.byUser.entries()).map(([uid, count]) => (
+                <span key={uid} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12 }}>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: colorForUser(uid, memberIds), flexShrink: 0 }} />
+                  {nicknameById.get(uid) || '?'} {count}회
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
 
-      {loading && <div style={{ textAlign: 'center', padding: 24, color: 'var(--ink-500)', fontSize: 13 }}>불러오는 중...</div>}
+        {loading && <div style={{ textAlign: 'center', padding: 24, color: 'var(--ink-500)', fontSize: 13 }}>불러오는 중...</div>}
 
-      {/* 월 보기 */}
-      {viewMode === 'month' && (
-        <div style={{ padding: '12px 14px 0' }}>
+        {/* 월 보기 */}
+        {viewMode === 'month' && (
+          <div style={{ padding: '12px 14px 14px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 4, marginBottom: 4 }}>
             {WEEKDAY_LABELS.map((w) => (
               <div key={w} style={{ textAlign: 'center', fontSize: 11, color: 'var(--ink-500)', padding: '4px 0' }}>{w}</div>
@@ -570,7 +648,8 @@ const CookingCalendar: React.FC = () => {
             ))
           )}
         </div>
-      )}
+        )}
+      </div>
 
       <BottomNavBar activeTab="cooking-calendar" />
     </div>

@@ -87,7 +87,7 @@ const JoinHousehold: React.FC = () => {
     <div className="min-h-screen w-full flex items-center justify-center bg-white">
       <div className="w-full max-w-[340px] mx-auto px-6 text-center">
         <div style={{ fontSize: 17, fontWeight: 700, color: '#1A1A1E', marginBottom: 8 }}>
-          가족 그룹 초대
+          식구 그룹 초대
         </div>
 
         {!code ? (

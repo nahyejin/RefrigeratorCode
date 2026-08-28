@@ -30,9 +30,9 @@ function getToken(): string | null {
 }
 
 /**
- * 마이페이지에 들어가는 "가족 그룹" 관리 카드.
+ * 마이페이지에 들어가는 "식구 그룹" 관리 카드.
  *
- * 냉장고 재료는 계정 기준으로 저장되기 때문에, 가족이 각자 계정으로 접속해도
+ * 냉장고 재료는 계정 기준으로 저장되기 때문에, 식구가 각자 계정으로 접속해도
  * 재료를 같이 보려면 결국 하나의 저장 공간을 공유해야 한다. 이 컴포넌트는
  * 그 저장 공간(household)을 만들고, 초대 코드로 다른 계정을 그 공간에
  * 연결하고, 필요하면 다시 빠져나오는 화면을 담당한다. 실제 공유 로직(같은
@@ -64,6 +64,11 @@ const HouseholdSection: React.FC<HouseholdSectionProps> = ({ onChange }) => {
   const [statsFor, setStatsFor] = React.useState<HouseholdMember | null>(null);
   const [memberStats, setMemberStats] = React.useState<{ favorite: number; completed: number; recorded: number } | null>(null);
   const [requestSent, setRequestSent] = React.useState(false);
+  // 그룹에 속해 있으면 초대 코드/멤버 목록/토글/버튼까지 다 붙어서 마이페이지가
+  // 계속 길어진다. 기본은 접어 두고 제목+한 줄 설명만 보여준 뒤, 필요할 때만
+  // 펼치게 한다. 그룹이 없을 때는 애초에 짧아서(설명 한 줄 + 버튼 2개) 접을
+  // 필요가 없다.
+  const [expanded, setExpanded] = React.useState(false);
 
   const authedFetch = React.useCallback((path: string, options: RequestInit = {}) => {
     const token = getToken();
@@ -123,7 +128,7 @@ const HouseholdSection: React.FC<HouseholdSectionProps> = ({ onChange }) => {
       setCreateInfoOpen(false);
       await loadInfo();
       onChange?.();
-      showToast('그룹을 만들었어요. 초대 코드를 가족에게 알려주세요.');
+      showToast('그룹을 만들었어요. 초대 코드를 식구에게 알려주세요.');
     } catch (e) {
       showToast('그룹 생성 중 오류가 발생했어요.');
     } finally {
@@ -175,10 +180,10 @@ const HouseholdSection: React.FC<HouseholdSectionProps> = ({ onChange }) => {
   const handleShareInvite = async () => {
     if (!info?.invite_code) return;
     const url = `${window.location.origin}/join-household?code=${info.invite_code}`;
-    const text = `쿡매치 가족 그룹에 초대할게요! 아래 링크를 눌러 참여해주세요.\n${url}`;
+    const text = `쿡매치 식구 그룹에 초대할게요! 아래 링크를 눌러 참여해주세요.\n${url}`;
     if (typeof navigator.share === 'function') {
       try {
-        await navigator.share({ title: '쿡매치 가족 그룹 초대', text, url });
+        await navigator.share({ title: '쿡매치 식구 그룹 초대', text, url });
         return;
       } catch (e) {
         // 사용자가 공유를 취소한 경우 등 — 조용히 클립보드 복사로 대체
@@ -312,18 +317,55 @@ const HouseholdSection: React.FC<HouseholdSectionProps> = ({ onChange }) => {
         background: 'var(--surface)',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-        <span style={{ fontSize: 15, fontWeight: 700, color: '#1A1A1E' }}>가족 그룹</span>
+      <div
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginBottom: 4 }}
+      >
+        <span style={{ fontSize: 15, fontWeight: 700, color: '#1A1A1E' }}>식구 그룹</span>
+        {info?.in_household && (
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            aria-label={expanded ? '식구 그룹 정보 접기' : '식구 그룹 정보 펼치기'}
+            aria-expanded={expanded}
+            style={{
+              width: 28,
+              height: 28,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              flexShrink: 0,
+            }}
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="var(--ink-500)"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              style={{ transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }}
+            >
+              <path d="M6 9l6 6 6-6" />
+            </svg>
+          </button>
+        )}
       </div>
 
       {loading && !info ? (
         <div style={{ fontSize: 13, color: 'var(--ink-500)', padding: '8px 0' }}>불러오는 중...</div>
       ) : info?.in_household ? (
         <div>
-          <p style={{ fontSize: 13, color: 'var(--ink-500)', marginBottom: 10 }}>
-            같은 초대 코드로 들어온 가족과 냉장고 재료를 함께 관리하고 있어요.
+          <p style={{ fontSize: 13, color: 'var(--ink-500)', marginBottom: expanded ? 10 : 0 }}>
+            같은 초대 코드로 들어온 식구와 냉장고 재료를 함께 관리하고 있어요.
           </p>
 
+          {expanded && (
+          <>
           <div
             style={{
               display: 'flex',
@@ -406,11 +448,13 @@ const HouseholdSection: React.FC<HouseholdSectionProps> = ({ onChange }) => {
               그룹 나가기
             </Button>
           </div>
+          </>
+          )}
         </div>
       ) : (
         <div>
           <p style={{ fontSize: 13, color: 'var(--ink-500)', marginBottom: 12 }}>
-            그룹을 만들거나 초대 코드로 참여하면, 가족이 각자 계정으로 접속해도
+            그룹을 만들거나 초대 코드로 참여하면, 식구가 각자 계정으로 접속해도
             같은 냉장고 재료를 함께 관리할 수 있어요. 즐겨찾기·완료·기록한
             레시피도 원하면 "OO님도 즐겨찾기함" 처럼 서로 볼 수 있어요.
           </p>
@@ -428,7 +472,7 @@ const HouseholdSection: React.FC<HouseholdSectionProps> = ({ onChange }) => {
       <Dialog
         open={createInfoOpen}
         onClose={() => setCreateInfoOpen(false)}
-        title="가족 그룹 만들기"
+        title="식구 그룹 만들기"
         actions={[
           { label: '취소', onClick: () => setCreateInfoOpen(false), variant: 'outline' },
           { label: '만들기', onClick: handleCreate, variant: 'primary' },
@@ -436,7 +480,7 @@ const HouseholdSection: React.FC<HouseholdSectionProps> = ({ onChange }) => {
       >
         <div style={{ textAlign: 'left' }}>
           <p style={{ fontSize: 13, color: 'var(--ink-500)', marginBottom: 16 }}>
-            초대 코드가 만들어져요. 가족에게 보내서 함께 냉장고를 관리해보세요.
+            초대 코드가 만들어져요. 식구에게 보내서 함께 냉장고를 관리해보세요.
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <Toggle

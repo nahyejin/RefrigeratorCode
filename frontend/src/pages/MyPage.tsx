@@ -1341,6 +1341,43 @@ const MyPage: React.FC = () => {
         </div>
       )}
 
+      {/* 그룹에 속해 있을 때만: 즐겨찾기/기록/완료 세 영역을 "우리 식구 모두"
+          볼지 "나의 것만" 볼지 고르는 상위 토글. 세 영역이 각각 따로 그룹
+          여부를 결정하면 헷갈리므로 하나로 묶어서 관리한다.
+          이 토글이 아래 요약 숫자와 목록 전체의 기준이 되므로, 숫자보다
+          먼저(위에) 와야 "이 기준으로 센 숫자구나"라고 읽힌다 — 전에는
+          숫자 카드 아래에 있어서 원인(토글)과 결과(숫자)의 순서가 거꾸로였다. */}
+      {isInHousehold && (
+        <div style={{ display: 'flex', gap: 6, margin: '12px 14px 0' }}>
+          {([
+            { key: 'all', label: '우리 식구 모두 보기' },
+            { key: 'mine', label: '나의 것만 보기' },
+          ] as const).map(({ key, label }) => {
+            const on = householdViewMode === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setHouseholdViewMode(key)}
+                style={{
+                  height: 30,
+                  padding: '0 12px',
+                  borderRadius: 9999,
+                  fontSize: 12.5,
+                  fontWeight: on ? 700 : 500,
+                  background: on ? 'var(--ink-900)' : 'var(--surface-sub)',
+                  color: on ? '#FFFFFF' : 'var(--ink-700)',
+                  border: 'none',
+                  cursor: 'pointer',
+                }}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* 이 화면이 무엇을 담고 있는지 한눈에 알려주는 요약 줄.
           예전에는 스크롤을 내려 봐야 각 목록에 뭐가 몇 개 있는지 알 수 있었다. */}
       <nav
@@ -1382,46 +1419,15 @@ const MyPage: React.FC = () => {
           </button>
         ))}
       </nav>
-      
-      {/* 그룹에 속해 있을 때만: 즐겨찾기/기록/완료 세 영역을 "우리 식구 모두"
-          볼지 "나의 것만" 볼지 고르는 상위 토글. 세 영역이 각각 따로 그룹
-          여부를 결정하면 헷갈리므로 하나로 묶어서 관리한다. */}
-      {isInHousehold && (
-        <div style={{ display: 'flex', gap: 6, padding: '12px 14px 0' }}>
-          {([
-            { key: 'all', label: '우리 식구 모두 보기' },
-            { key: 'mine', label: '나의 것만 보기' },
-          ] as const).map(({ key, label }) => {
-            const on = householdViewMode === key;
-            return (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setHouseholdViewMode(key)}
-                style={{
-                  height: 30,
-                  padding: '0 12px',
-                  borderRadius: 9999,
-                  fontSize: 12.5,
-                  fontWeight: on ? 700 : 500,
-                  background: on ? 'var(--ink-900)' : 'var(--surface-sub)',
-                  color: on ? '#FFFFFF' : 'var(--ink-700)',
-                  border: 'none',
-                  cursor: 'pointer',
-                }}
-              >
-                {label}
-              </button>
-            );
-          })}
-        </div>
-      )}
 
-      {/* 레시피 그룹 - 비회원도 localStorage로 관리하므로 항상 표시 */}
-      <div style={{ marginTop: 0 }}>
+      {/* 레시피 그룹 - 비회원도 localStorage로 관리하므로 항상 표시.
+          위 토글·요약 숫자는 아래 세 목록을 소개하는 같은 이야기의 일부라,
+          SectionBand(면 구분선)로 끊지 않고 여백만 준다 — 구분선을 쓰면
+          "여기서부터 완전히 다른 얘기"로 오해할 수 있다. 목록들 사이(즐겨찾기→
+          기록→완료)는 서로 다른 섹션이라 그대로 SectionBand를 쓴다. */}
+      <div style={{ marginTop: 20 }}>
         {/* 내가 즐겨찾는 레시피 */}
         <div style={{ paddingLeft: 14, paddingRight: 14 }}>
-          <SectionBand bleed={14} />
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
             <SectionHeader icon={<SectionIcon kind="favorite" />} title={showAllHousehold ? '우리 식구가 즐겨찾는 레시피' : '내가 즐겨찾는 레시피'} />
             {/* 예전엔 전체보기가 `☰` 글자 하나였다. 햄버거는 '메뉴' 를 뜻하는 기호라
