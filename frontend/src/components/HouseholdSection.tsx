@@ -193,7 +193,11 @@ const HouseholdSection: React.FC<HouseholdSectionProps> = ({ onChange }) => {
     const text = `쿡매치 식구 그룹에 초대할게요! 아래 링크를 눌러 참여해주세요.\n${url}`;
     if (typeof navigator.share === 'function') {
       try {
-        await navigator.share({ title: '쿡매치 식구 그룹 초대', text, url });
+        // text 안에 이미 url을 넣어 뒀는데 navigator.share의 url 필드에도
+        // 같은 링크를 또 넘기면, 카카오톡 등 일부 공유 대상은 text와 url을
+        // 각각 이어 붙여 링크가 메시지에 두 번 들어간다("링크가 두 번
+        // 간다"는 제보의 원인). url 필드는 넘기지 않고 text 하나로만 보낸다.
+        await navigator.share({ title: '쿡매치 식구 그룹 초대', text });
         return;
       } catch (e) {
         // 사용자가 공유를 취소한 경우 등 — 조용히 클립보드 복사로 대체
