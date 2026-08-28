@@ -164,7 +164,7 @@ const HomeInstallPrompt: React.FC = () => {
           animation: 'home-install-slide-up 260ms cubic-bezier(0.2, 0.8, 0.2, 1)',
         }}
       >
-        <CloseButton onClick={closeForSession} style={{ top: 10, right: 10 }} />
+        <CloseButton onClick={closeForSession} dark style={{ top: 10, right: 10 }} />
 
         <div style={{ paddingRight: 36 }}>
           <div
@@ -229,11 +229,16 @@ const HomeInstallPrompt: React.FC = () => {
               flex: 1,
               height: 38,
               borderRadius: 12,
-              border: 'none',
-              background: '#6B5200',
-              color: '#1A1A1E',
+              // 어두운 배경(#6B5200) 위에 어두운 글자(#1A1A1E)를 올렸더니 버튼
+              // 자체도 카드 배경과 거의 구분이 안 되고 글자도 안 읽힌다는
+              // 지적을 받았다 — 옆의 "이번엔 닫기"(#3A3A42 배경 + 밝은 회색
+              // 글자)만큼 또렷하게, 브랜드색을 옅게 깐 배경 + 밝은 브랜드색
+              // 글자로 바꿔 대비를 확실히 냈다.
+              border: '1px solid rgba(255, 214, 0, 0.4)',
+              background: 'rgba(255, 214, 0, 0.16)',
+              color: 'var(--brand)',
               fontSize: 15,
-              fontWeight: 300,
+              fontWeight: 400,
               cursor: 'pointer',
             }}
           >
