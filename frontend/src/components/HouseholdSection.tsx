@@ -193,11 +193,14 @@ const HouseholdSection: React.FC<HouseholdSectionProps> = ({ onChange }) => {
     const text = `쿡매치 식구 그룹에 초대할게요! 아래 링크를 눌러 참여해주세요.\n${url}`;
     if (typeof navigator.share === 'function') {
       try {
-        // text 안에 이미 url을 넣어 뒀는데 navigator.share의 url 필드에도
-        // 같은 링크를 또 넘기면, 카카오톡 등 일부 공유 대상은 text와 url을
-        // 각각 이어 붙여 링크가 메시지에 두 번 들어간다("링크가 두 번
-        // 간다"는 제보의 원인). url 필드는 넘기지 않고 text 하나로만 보낸다.
-        await navigator.share({ title: '쿡매치 식구 그룹 초대', text });
+        // url 필드를 따로 넘겼을 때 카카오톡에서 링크가 두 번 갔던 문제를
+        // 고쳤는데도("메시지 보내기 2/2"로 뜬다는 제보) 여전히 재현됐다 —
+        // 원인은 url이 아니라 title이었다. Android 공유 인텐트는 title을
+        // EXTRA_SUBJECT, text를 EXTRA_TEXT로 각각 별도 값에 담아 전달하는데,
+        // 카카오톡 공유 대상이 이 둘을 서로 다른 두 개의 전송 항목("2/2")으로
+        // 처리해 메시지를 두 번 보냈다. title 없이 text 하나만 넘긴다 —
+        // 필요한 정보(초대 문구+링크)는 이미 text 안에 다 들어 있다.
+        await navigator.share({ text });
         return;
       } catch (e) {
         // 사용자가 공유를 취소한 경우 등 — 조용히 클립보드 복사로 대체
