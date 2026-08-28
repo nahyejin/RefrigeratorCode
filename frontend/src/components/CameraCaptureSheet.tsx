@@ -1,7 +1,5 @@
 import React, { useRef, useState } from 'react';
 import Sheet from './ui/Sheet';
-import { isStandaloneAppMode } from '../utils/onboardingPrompts';
-import { showInstallPrompt } from '../utils/pwa';
 
 export type CaptureMode = 'receipt' | 'food-single' | 'food-multi' | 'file';
 
@@ -11,10 +9,6 @@ interface CameraCaptureSheetProps {
   /** 사진을 실제로 받은 뒤 호출된다. AI 인식은 아직 없으므로, 호출한 쪽에서
    * "준비 중" 안내를 보여주면 된다. */
   onCaptured: (mode: CaptureMode, file: File) => void;
-}
-
-function isIOS(): boolean {
-  return /iPad|iPhone|iPod/.test(navigator.userAgent);
 }
 
 const ReceiptIcon: React.FC = () => (
@@ -62,8 +56,9 @@ const OPTIONS: { key: Extract<CaptureMode, 'receipt' | 'food-single' | 'food-mul
  * 촬영/선택 자체는 표준 <input type=file> 로 처리한다(capture 속성으로 카메라
  * 바로 열기, 없으면 앨범/파일 선택). 실제 OS 위젯(홈 화면 위젯, 다른 앱 위에
  * 떠 있는 플로팅 버튼)은 PWA 만으로는 만들 수 없다 — 네이티브 앱(Capacitor로
- * 감싼 뒤 iOS/Android 각각 위젯 코드)이 있어야 한다. 지금 할 수 있는 것은
- * "홈 화면에 추가"(PWA 설치) 안내뿐이라, 정직하게 그 수준으로만 안내한다.
+ * 감싼 뒤 iOS/Android 각각 위젯 코드)이 있어야 한다. "홈 화면에 추가" PWA
+ * 설치 안내는 다른 화면(HomeInstallPrompt 등)에서 이미 하고 있어 여기서는
+ * 반복하지 않고, 위젯이 계획돼 있다는 사실만 짧게 알려 둔다.
  */
 const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose, onCaptured }) => {
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -82,8 +77,6 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
     e.target.value = '';
     if (file) onCaptured(mode, file);
   };
-
-  const installed = isStandaloneAppMode();
 
   return (
     <Sheet open={isOpen} onClose={onClose} title="사진으로 재료 담기" maxHeight="70dvh" hideFooter>
@@ -187,49 +180,20 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
           fontSize: 13,
           fontWeight: 600,
           cursor: 'pointer',
-          marginBottom: installed ? 4 : 14,
+          marginBottom: 14,
         }}
       >
         사진 앨범/파일에서 선택
       </button>
 
       {/* 진짜 "홈 화면 위젯"(다른 앱 위에 떠 있는 버튼 포함)은 PWA 로는 만들 수
-          없다 — 네이티브 앱이어야 한다. 지금 당장 줄 수 있는 건 홈 화면 설치
-          뿐이지만, 위젯 자체가 계획돼 있다는 것도 여기서 분명히 밝혀 둔다. */}
-      {!installed && (
-        <div
-          style={{
-            display: 'flex',
-            gap: 8,
-            alignItems: 'flex-start',
-            padding: '10px 12px',
-            borderRadius: 12,
-            background: 'var(--surface-sub)',
-            fontSize: 12.5,
-            lineHeight: 1.5,
-            color: 'var(--ink-700)',
-            marginBottom: 8,
-          }}
-        >
-          <span aria-hidden style={{ flexShrink: 0, fontWeight: 700, color: 'var(--ink-500)' }}>i</span>
-          <span>
-            홈 화면에 추가해두면 앱을 처음부터 안 열어도 이 카메라 버튼에 더 빠르게 올 수 있어요.{' '}
-            {isIOS() ? (
-              '하단 공유 아이콘 → "홈 화면에 추가"로 등록할 수 있어요.'
-            ) : (
-              <button
-                type="button"
-                onClick={showInstallPrompt}
-                style={{ background: 'none', border: 'none', padding: 0, color: '#1A1A1E', fontWeight: 700, textDecoration: 'underline', cursor: 'pointer' }}
-              >
-                지금 추가하기
-              </button>
-            )}
-          </span>
-        </div>
-      )}
-      <div style={{ textAlign: 'center', fontSize: 12, color: 'var(--ink-500)' }}>
-        📱 바탕화면에 바로 찍는 위젯도 준비 중이에요. 앱 출시 후 지원될 예정이에요.
+          없다 — 네이티브 앱이어야 한다. 이 시트에서는 "홈 화면에 추가" 같은
+          PWA 설치 안내는 굳이 반복하지 않고, 위젯 자체가 계획돼 있다는 것만
+          짧게 알려 둔다(설치 안내는 다른 화면에서 이미 하고 있음). */}
+      <div style={{ textAlign: 'center', fontSize: 12, color: 'var(--ink-500)', lineHeight: 1.5 }}>
+        📱 바탕화면에 바로 찍는 위젯도 준비 중이에요.
+        <br />
+        앱 출시 후 지원될 예정이에요.
       </div>
     </Sheet>
   );

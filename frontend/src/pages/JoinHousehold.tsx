@@ -39,6 +39,7 @@ const JoinHousehold: React.FC = () => {
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState('');
   const [done, setDone] = React.useState(false);
+  const [mergeDenied, setMergeDenied] = React.useState(false);
 
   React.useEffect(() => {
     if (codeFromUrl) {
@@ -70,8 +71,9 @@ const JoinHousehold: React.FC = () => {
         return;
       }
       clearPendingInviteCode();
+      setMergeDenied(!!data.merge_denied_by_policy);
       setDone(true);
-      setTimeout(() => navigate('/my-page'), 1200);
+      setTimeout(() => navigate('/my-page'), 1600);
     } catch (e) {
       setError('그룹 참여 중 오류가 발생했어요.');
     } finally {
@@ -112,7 +114,9 @@ const JoinHousehold: React.FC = () => {
           </>
         ) : done ? (
           <p style={{ fontSize: 14, color: 'var(--ink-700)', lineHeight: 1.6 }}>
-            그룹에 참여했어요! 마이페이지로 이동할게요.
+            그룹에 참여했어요!{' '}
+            {mergeDenied && '이 그룹은 재료 합치기를 막아 둬서, 내 재료는 그대로 보존돼요. '}
+            마이페이지로 이동할게요.
           </p>
         ) : (
           <>

@@ -75,11 +75,10 @@ const SectionIcon: React.FC<SectionIconProps> = ({ kind, size = 19, color = 'cur
           <path d="M12 2.9l2.7 5.5 6.1.9-4.4 4.3 1 6.1L12 16.8l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z" />
         </svg>
       );
-    case 'recorded': // 메모
+    case 'recorded': // 북마크(리본) — 레시피 카드의 '기록' 버튼 아이콘과 모양을 맞춤
       return (
         <svg {...base}>
-          <path d="M5.5 4.6h9.2l4.3 4.3v10.5a1.6 1.6 0 0 1-1.6 1.6H5.5a1.6 1.6 0 0 1-1.6-1.6V6.2a1.6 1.6 0 0 1 1.6-1.6z" />
-          <path d="M14.4 4.6v4.6h4.6M7.8 13h8M7.8 16.6h5.4" />
+          <path d="M6.5 4.4h11v15.2l-5.5-4.8-5.5 4.8z" />
         </svg>
       );
     case 'trending': // 오름세 꺾은선

@@ -14,6 +14,8 @@ interface HouseholdInfo {
   in_household: boolean;
   invite_code?: string;
   members?: HouseholdMember[];
+  allow_ingredient_merge?: boolean;
+  my_ingredients_merged?: boolean;
 }
 
 function getApiUrl(): string {
@@ -151,11 +153,15 @@ const HouseholdSection: React.FC<HouseholdSectionProps> = ({ onChange }) => {
       setJoinCode('');
       await loadInfo();
       onChange?.();
-      showToast(
-        mergeIngredients
-          ? '그룹에 참여했어요. 냉장고 재료가 하나로 합쳐졌어요.'
-          : '그룹에 참여했어요. 그룹의 기존 재료를 보게 돼요.'
-      );
+      if (data.merge_denied_by_policy) {
+        showToast('그룹에 참여했어요. 이 그룹은 재료 합치기를 막아 둬서, 내 재료는 그대로 보존돼요.');
+      } else {
+        showToast(
+          mergeIngredients
+            ? '그룹에 참여했어요. 냉장고 재료가 하나로 합쳐졌어요.'
+            : '그룹에 참여했어요. 그룹의 기존 재료를 보게 돼요.'
+        );
+      }
     } catch (e) {
       setJoinError('그룹 참여 중 오류가 발생했어요.');
     } finally {
@@ -218,6 +224,27 @@ const HouseholdSection: React.FC<HouseholdSectionProps> = ({ onChange }) => {
       showToast('초대 코드 재발급 중 오류가 발생했어요.');
     } finally {
       setBusy(false);
+    }
+  };
+
+  const handleToggleMergePolicy = async (next: boolean) => {
+    // 낙관적으로 먼저 반영 — 실패하면 loadInfo가 다시 불러와 되돌린다
+    setInfo((prev) => (prev ? { ...prev, allow_ingredient_merge: next } : prev));
+    try {
+      const res = await authedFetch('/api/households/settings', {
+        method: 'POST',
+        body: JSON.stringify({ allow_ingredient_merge: next }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        showToast(data.error || '설정 변경에 실패했어요.');
+        await loadInfo();
+        return;
+      }
+      showToast(next ? '새 참여자의 재료 합치기를 허용했어요.' : '새 참여자의 재료 합치기를 막았어요.');
+    } catch (e) {
+      showToast('설정 변경 중 오류가 발생했어요.');
+      await loadInfo();
     }
   };
 
@@ -284,43 +311,37 @@ const HouseholdSection: React.FC<HouseholdSectionProps> = ({ onChange }) => {
           </div>
 
           {!!info.members?.length && (
-            <div style={{ marginBottom: 14 }}>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 6 }}>
-                {info.members.map((m) => (
-                  <span
-                    key={m.id}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 5,
-                      fontSize: 12,
-                      fontWeight: 600,
-                      color: 'var(--ink-700)',
-                      background: 'var(--surface-sub)',
-                      border: '1px solid var(--line-200)',
-                      borderRadius: 9999,
-                      padding: '4px 10px',
-                    }}
-                  >
-                    <span
-                      aria-hidden
-                      style={{
-                        width: 6,
-                        height: 6,
-                        borderRadius: '50%',
-                        background: m.share_recipe_actions ? '#22C55E' : 'var(--line-300)',
-                        flexShrink: 0,
-                      }}
-                    />
-                    {m.nickname}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
+              {info.members.map((m) => (
+                <div
+                  key={m.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 8,
+                    padding: '6px 10px',
+                    borderRadius: 10,
+                    background: 'var(--surface-sub)',
+                  }}
+                >
+                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-700)' }}>{m.nickname}</span>
+                  <span style={{ fontSize: 11.5, fontWeight: 600, color: m.share_recipe_actions ? '#16A34A' : 'var(--ink-500)' }}>
+                    즐겨찾기·완료·기록 {m.share_recipe_actions ? '공유 중' : '비공개'}
                   </span>
-                ))}
-              </div>
-              <div style={{ fontSize: 11, color: 'var(--ink-500)' }}>
-                🟢 즐겨찾기·완료·기록을 그룹에 공유 중 · ⚪ 비공개
-              </div>
+                </div>
+              ))}
             </div>
           )}
+
+          <div style={{ marginBottom: 14 }}>
+            <Toggle
+              checked={info.allow_ingredient_merge !== false}
+              onChange={handleToggleMergePolicy}
+              label="새로 참여하는 사람의 재료 합치기 허용"
+              hint="꺼두면 누가 참여하든 항상 재료를 따로 보존해요."
+            />
+          </div>
 
           <div style={{ display: 'flex', gap: 8 }}>
             <Button variant="outline" size="sm" onClick={handleRegenerate} disabled={busy}>
@@ -443,9 +464,11 @@ const HouseholdSection: React.FC<HouseholdSectionProps> = ({ onChange }) => {
           { label: '나가기', onClick: handleLeave, variant: 'danger' },
         ]}
       >
-        그룹 재료는 복사해서 가져가고, 그룹에는 그대로 남아요.
-        <br />
-        즐겨찾기·완료·기록은 원래 그대로예요.
+        {info?.my_ingredients_merged === false ? (
+          <>보존해 둔 내 재료를 그대로 돌려받아요. 즐겨찾기·완료·기록은 원래 그대로예요.</>
+        ) : (
+          <>지금 그룹 재료를 복사해서 가져가요(그룹에는 그대로 남아요). 즐겨찾기·완료·기록은 원래 그대로예요.</>
+        )}
       </Dialog>
 
       {toast && (

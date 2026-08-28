@@ -2041,6 +2041,27 @@ def ensure_households_table():
         """)
         db.commit()
 
+        # 새로 참여하는 사람이 자기 재료를 그룹 재료에 합칠 수 있는지.
+        # 기존 그룹원 입장에서는 낯선 사람의 재료가 마음대로 섞이는 게 싫을 수
+        # 있으므로, 그룹 차원에서 아예 막아 둘 수 있게 한다(그룹원 누구나 변경 가능
+        # — "모두 동등" 원칙). 꺼두면 참여자가 뭘 선택하든 항상 개인 재료를
+        # 보존한 채로 참여하게 된다.
+        try:
+            cursor.execute("""
+                SELECT COUNT(*) as count
+                FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                AND TABLE_NAME = 'households'
+                AND COLUMN_NAME = 'allow_ingredient_merge'
+            """)
+            result = cursor.fetchone()
+            if result and result['count'] == 0:
+                cursor.execute("ALTER TABLE households ADD COLUMN allow_ingredient_merge TINYINT(1) NOT NULL DEFAULT 1")
+                db.commit()
+        except Exception as e:
+            print(f"[ensure_households_table] allow_ingredient_merge 컬럼 추가 중 오류: {e}")
+            db.rollback()
+
         # 기존 users 테이블에 household_id 컬럼이 없으면 추가
         try:
             cursor.execute("""
@@ -2158,14 +2179,17 @@ def get_my_household():
                 return jsonify({'in_household': False}), 200
 
             cursor.execute(
-                """SELECT id, nickname, share_recipe_actions FROM users
+                """SELECT id, nickname, share_recipe_actions, ingredients_merged FROM users
                    WHERE household_id = %s AND deleted_at IS NULL ORDER BY id ASC""",
                 (household['id'],)
             )
             members = cursor.fetchall()
+            my_row = next((m for m in members if m['id'] == user_id), None)
             return jsonify({
                 'in_household': True,
                 'invite_code': household['invite_code'],
+                'allow_ingredient_merge': bool(household.get('allow_ingredient_merge', 1)),
+                'my_ingredients_merged': bool(my_row['ingredients_merged']) if my_row else False,
                 'members': [
                     {'id': m['id'], 'nickname': m['nickname'], 'share_recipe_actions': bool(m['share_recipe_actions'])}
                     for m in members
@@ -2278,6 +2302,13 @@ def join_household():
             if not household:
                 return jsonify({'error': '유효하지 않은 초대 코드입니다.'}), 404
 
+            # 그룹이 "새로 들어오는 사람 재료 합치기"를 아예 막아 뒀으면, 참여자가
+            # 뭘 골랐든 무시하고 항상 보존(merge 안 함)으로 강제한다 — 기존
+            # 그룹원 동의 없이 낯선 재료가 섞이는 걸 막기 위함.
+            merge_denied_by_policy = merge_ingredients and not household.get('allow_ingredient_merge', 1)
+            if merge_denied_by_policy:
+                merge_ingredients = False
+
             storage_user_id = household['storage_user_id']
 
             if merge_ingredients:
@@ -2319,7 +2350,10 @@ def join_household():
                 (household['id'], 1 if share_recipe_actions else 0, 1 if merge_ingredients else 0, user_id)
             )
             db.commit()
-            return jsonify({'message': '그룹에 참여했습니다.'}), 200
+            return jsonify({
+                'message': '그룹에 참여했습니다.',
+                'merge_denied_by_policy': merge_denied_by_policy,
+            }), 200
         except Exception as e:
             db.rollback()
             print(f"Join household error: {e}")
@@ -2460,6 +2494,50 @@ def regenerate_household_code():
             db.close()
     except Exception as e:
         print(f"Regenerate household code error: {e}")
+        return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
+
+
+@app.route('/api/households/settings', methods=['POST'])
+def update_household_settings():
+    """그룹 설정 변경. 지금은 allow_ingredient_merge 하나뿐 — 새로 들어오는
+    사람이 자기 재료를 그룹 재료에 합칠 수 있게 허용할지. 그룹원 누구나 바꿀 수
+    있다("모두 동등" 원칙)."""
+    try:
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({'error': '인증이 필요합니다.'}), 401
+        payload = verify_jwt_token(auth_header.split(' ')[1])
+        if not payload:
+            return jsonify({'error': '권한이 없습니다.'}), 403
+        user_id = payload.get('user_id')
+
+        data = request.get_json() or {}
+        if 'allow_ingredient_merge' not in data:
+            return jsonify({'error': '변경할 설정이 없습니다.'}), 400
+        allow_ingredient_merge = bool(data.get('allow_ingredient_merge'))
+
+        ensure_households_table()
+        db = get_db()
+        cursor = db.cursor()
+        try:
+            household = get_household_by_user(cursor, user_id)
+            if not household:
+                return jsonify({'error': '속한 그룹이 없습니다.'}), 400
+
+            cursor.execute(
+                "UPDATE households SET allow_ingredient_merge = %s WHERE id = %s",
+                (1 if allow_ingredient_merge else 0, household['id'])
+            )
+            db.commit()
+            return jsonify({'allow_ingredient_merge': allow_ingredient_merge}), 200
+        except Exception as e:
+            db.rollback()
+            print(f"Update household settings error: {e}")
+            return jsonify({'error': '설정 변경 중 오류가 발생했습니다.'}), 500
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"Update household settings error: {e}")
         return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
 
 

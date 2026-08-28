@@ -1336,7 +1336,7 @@ const MyPage: React.FC = () => {
         <div style={{ paddingLeft: 14, paddingRight: 14 }}>
           <SectionBand bleed={14} />
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
-            <SectionHeader icon={<SectionIcon kind="favorite" />} title={isInHousehold ? '우리 가족이 즐겨찾는 레시피' : '내가 즐겨찾는 레시피'} />
+            <SectionHeader icon={<SectionIcon kind="favorite" />} title={isInHousehold ? '우리 식구가 즐겨찾는 레시피' : '내가 즐겨찾는 레시피'} />
             {/* 예전엔 전체보기가 `☰` 글자 하나였다. 햄버거는 '메뉴' 를 뜻하는 기호라
                 '이 목록 전부 보기' 와 뜻이 맞지 않고, 무엇보다 무슨 버튼인지 알 수 없었다. */}
             <button
@@ -1400,7 +1400,7 @@ const MyPage: React.FC = () => {
         <div style={{ paddingLeft: 14, paddingRight: 14 }}>
           <SectionBand bleed={14} />
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
-            <SectionHeader icon={<SectionIcon kind="recorded" />} title={isInHousehold ? '우리 가족이 기록한 레시피' : '내가 기록한 레시피'} />
+            <SectionHeader icon={<SectionIcon kind="recorded" />} title={isInHousehold ? '우리 식구가 기록한 레시피' : '내가 기록한 레시피'} />
             {/* 예전엔 전체보기가 `☰` 글자 하나였다. 햄버거는 '메뉴' 를 뜻하는 기호라
                 '이 목록 전부 보기' 와 뜻이 맞지 않고, 무엇보다 무슨 버튼인지 알 수 없었다. */}
             <button
@@ -1467,7 +1467,7 @@ const MyPage: React.FC = () => {
         <div style={{ paddingLeft: 14, paddingRight: 14 }}>
           <SectionBand bleed={14} />
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
-            <SectionHeader icon={<SectionIcon kind="completed" />} title={isInHousehold ? '우리 가족이 완료한 레시피' : '내가 완료한 레시피'} />
+            <SectionHeader icon={<SectionIcon kind="completed" />} title={isInHousehold ? '우리 식구가 완료한 레시피' : '내가 완료한 레시피'} />
             <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
               {/* 완료 기록을 날짜별로 돌아보는 화면으로 가는 입구.
                   하단 탭을 새로 만들기엔 자주 쓰는 동선이 아니라, 이미 있는
