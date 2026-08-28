@@ -8,6 +8,7 @@ import SectionBand from '../components/ui/SectionBand';
 import Button from '../components/ui/Button';
 import Dialog from '../components/ui/Dialog';
 import BottomNavBar from '../components/BottomNavBar';
+import HouseholdSection from '../components/HouseholdSection';
 import logoImg from '../assets/냉털이 로고 white.png';
 import searchIcon from '../assets/navigator_search.png';
 import myProfileImg from '../assets/profile_default.png'; // 기본 프로필 이미지(없으면 대체)
@@ -1188,6 +1189,12 @@ const MyPage: React.FC = () => {
             로그인
           </Button>
         </section>
+      )}
+
+      {isLoggedIn && (
+        <div style={{ margin: '12px 14px 0' }}>
+          <HouseholdSection />
+        </div>
       )}
 
       {/* 이 화면이 무엇을 담고 있는지 한눈에 알려주는 요약 줄.

@@ -2007,6 +2007,327 @@ def ensure_user_data_tables():
     finally:
         db.close()
 
+
+# =====================
+# 가족 그룹(household) / 초대 코드
+#
+# 같은 냉장고를 쓰는 가족이 각자 계정으로 접속해도 재료를 공유할 수 있게
+# 하는 기능. 스키마를 크게 바꾸는 대신, "그룹에 속한 사용자의 냉장고 재료는
+# 그룹을 만든 사람(storage_user_id)의 user_ingredients 행을 그대로 읽고
+# 쓴다"는 리다이렉션 방식을 쓴다 — user_ingredients 테이블 구조도, 기존
+# get/save 엔드포인트를 부르는 프론트 코드도 전혀 바꿀 필요가 없다.
+#
+# 즐겨찾기/완료/기록 레시피는 의도적으로 그룹과 무관하게 계정별로 그대로
+# 둔다 — 취향 데이터라 합치면 "누가 좋아했는지"가 사라지기 때문. 그룹
+# 화면에서 "OO님이 즐겨찾기함" 배지로 보여주는 건 범위 밖으로 남겨둔다.
+# =====================
+
+def ensure_households_table():
+    """households 테이블 생성 + users.household_id 컬럼 추가"""
+    db = get_db()
+    cursor = db.cursor()
+
+    try:
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS households (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                invite_code VARCHAR(12) NOT NULL,
+                storage_user_id INT NOT NULL COMMENT '이 그룹의 냉장고 재료가 실제로 저장되는 계정',
+                created_by INT NOT NULL,
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY unique_invite_code (invite_code),
+                INDEX idx_storage_user_id (storage_user_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        """)
+        db.commit()
+
+        # 기존 users 테이블에 household_id 컬럼이 없으면 추가
+        try:
+            cursor.execute("""
+                SELECT COUNT(*) as count
+                FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                AND TABLE_NAME = 'users'
+                AND COLUMN_NAME = 'household_id'
+            """)
+            result = cursor.fetchone()
+            if result and result['count'] == 0:
+                cursor.execute("ALTER TABLE users ADD COLUMN household_id INT NULL")
+                cursor.execute("ALTER TABLE users ADD INDEX idx_household_id (household_id)")
+                db.commit()
+        except Exception as e:
+            print(f"[ensure_households_table] household_id 컬럼 추가 중 오류: {e}")
+            db.rollback()
+    except Exception as e:
+        db.rollback()
+        print(f"Error creating households table: {e}")
+    finally:
+        db.close()
+
+
+def generate_invite_code():
+    """0/O, 1/I/L처럼 헷갈리기 쉬운 문자를 뺀 8자리 초대 코드"""
+    alphabet = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
+    return ''.join(secrets.choice(alphabet) for _ in range(8))
+
+
+def get_household_by_user(cursor, user_id):
+    """user_id가 속한 household row (없으면 None)"""
+    cursor.execute(
+        """SELECT h.* FROM households h
+           INNER JOIN users u ON u.household_id = h.id
+           WHERE u.id = %s""",
+        (user_id,)
+    )
+    return cursor.fetchone()
+
+
+def resolve_ingredient_storage_user_id(cursor, user_id):
+    """이 user의 냉장고 재료를 실제로 읽고 쓸 user_id.
+    그룹에 속해 있으면 그룹의 storage_user_id, 아니면 자기 자신."""
+    household = get_household_by_user(cursor, user_id)
+    return household['storage_user_id'] if household else user_id
+
+
+def _issue_unique_invite_code(cursor):
+    invite_code = generate_invite_code()
+    for _ in range(5):
+        cursor.execute("SELECT id FROM households WHERE invite_code = %s", (invite_code,))
+        if not cursor.fetchone():
+            break
+        invite_code = generate_invite_code()
+    return invite_code
+
+
+@app.route('/api/households/me', methods=['GET'])
+def get_my_household():
+    """내가 속한 그룹 정보. 그룹이 없으면 in_household: false"""
+    try:
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({'error': '인증이 필요합니다.'}), 401
+        payload = verify_jwt_token(auth_header.split(' ')[1])
+        if not payload:
+            return jsonify({'error': '권한이 없습니다.'}), 403
+        user_id = payload.get('user_id')
+
+        ensure_households_table()
+        db = get_db()
+        cursor = db.cursor()
+        try:
+            household = get_household_by_user(cursor, user_id)
+            if not household:
+                return jsonify({'in_household': False}), 200
+
+            cursor.execute(
+                "SELECT id, nickname FROM users WHERE household_id = %s AND deleted_at IS NULL ORDER BY id ASC",
+                (household['id'],)
+            )
+            members = cursor.fetchall()
+            return jsonify({
+                'in_household': True,
+                'invite_code': household['invite_code'],
+                'members': [{'id': m['id'], 'nickname': m['nickname']} for m in members],
+            }), 200
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"Get my household error: {e}")
+        return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
+
+
+@app.route('/api/households', methods=['POST'])
+def create_household():
+    """새 그룹 만들기. 이미 그룹에 속해 있으면 에러."""
+    try:
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({'error': '인증이 필요합니다.'}), 401
+        payload = verify_jwt_token(auth_header.split(' ')[1])
+        if not payload:
+            return jsonify({'error': '권한이 없습니다.'}), 403
+        user_id = payload.get('user_id')
+
+        ensure_households_table()
+        db = get_db()
+        cursor = db.cursor()
+        try:
+            cursor.execute("SELECT household_id FROM users WHERE id = %s", (user_id,))
+            row = cursor.fetchone()
+            if row and row['household_id']:
+                return jsonify({'error': '이미 그룹에 속해 있습니다. 먼저 그룹에서 나가주세요.'}), 400
+
+            invite_code = _issue_unique_invite_code(cursor)
+            cursor.execute(
+                "INSERT INTO households (invite_code, storage_user_id, created_by, created_at) VALUES (%s, %s, %s, NOW())",
+                (invite_code, user_id, user_id)
+            )
+            household_id = cursor.lastrowid
+            cursor.execute("UPDATE users SET household_id = %s WHERE id = %s", (household_id, user_id))
+            db.commit()
+            return jsonify({'invite_code': invite_code}), 201
+        except Exception as e:
+            db.rollback()
+            print(f"Create household error: {e}")
+            return jsonify({'error': '그룹 생성 중 오류가 발생했습니다.'}), 500
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"Create household error: {e}")
+        return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
+
+
+@app.route('/api/households/join', methods=['POST'])
+def join_household():
+    """초대 코드로 그룹 참여.
+    참여하는 사람이 개인적으로 갖고 있던 재료는 그룹 재료로 합친다 —
+    이름+보관위치가 같으면 하나로 취급하고, 유통기한이 있는 쪽(둘 다 있으면
+    더 임박한 날짜)을 남긴다."""
+    try:
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({'error': '인증이 필요합니다.'}), 401
+        payload = verify_jwt_token(auth_header.split(' ')[1])
+        if not payload:
+            return jsonify({'error': '권한이 없습니다.'}), 403
+        user_id = payload.get('user_id')
+
+        data = request.get_json() or {}
+        invite_code = (data.get('invite_code') or '').strip().upper()
+        if not invite_code:
+            return jsonify({'error': '초대 코드를 입력해주세요.'}), 400
+
+        ensure_households_table()
+        ensure_user_data_tables()
+        db = get_db()
+        cursor = db.cursor()
+        try:
+            cursor.execute("SELECT household_id FROM users WHERE id = %s", (user_id,))
+            row = cursor.fetchone()
+            if row and row['household_id']:
+                return jsonify({'error': '이미 그룹에 속해 있습니다. 먼저 그룹에서 나가주세요.'}), 400
+
+            cursor.execute("SELECT * FROM households WHERE invite_code = %s", (invite_code,))
+            household = cursor.fetchone()
+            if not household:
+                return jsonify({'error': '유효하지 않은 초대 코드입니다.'}), 404
+
+            storage_user_id = household['storage_user_id']
+
+            cursor.execute(
+                "SELECT name, storage_box, expiry_date, purchase_date FROM user_ingredients WHERE user_id = %s",
+                (user_id,)
+            )
+            personal = cursor.fetchall()
+            cursor.execute(
+                "SELECT name, storage_box, expiry_date, purchase_date FROM user_ingredients WHERE user_id = %s",
+                (storage_user_id,)
+            )
+            group_ings = cursor.fetchall()
+
+            def better(a, b):
+                if a['expiry_date'] and b['expiry_date']:
+                    return a if a['expiry_date'] <= b['expiry_date'] else b
+                return a if a['expiry_date'] else b
+
+            merged = {}
+            for ing in group_ings + personal:
+                key = (ing['name'], ing['storage_box'])
+                merged[key] = better(merged[key], ing) if key in merged else ing
+
+            saved_at = datetime.now()
+            cursor.execute("DELETE FROM user_ingredients WHERE user_id = %s", (storage_user_id,))
+            for ing in merged.values():
+                cursor.execute(
+                    """INSERT INTO user_ingredients (user_id, name, storage_box, expiry_date, purchase_date, saved_at)
+                       VALUES (%s, %s, %s, %s, %s, %s)""",
+                    (storage_user_id, ing['name'], ing['storage_box'], ing['expiry_date'], ing['purchase_date'], saved_at)
+                )
+
+            cursor.execute("UPDATE users SET household_id = %s WHERE id = %s", (household['id'], user_id))
+            db.commit()
+            return jsonify({'message': '그룹에 참여했습니다.'}), 200
+        except Exception as e:
+            db.rollback()
+            print(f"Join household error: {e}")
+            return jsonify({'error': '그룹 참여 중 오류가 발생했습니다.'}), 500
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"Join household error: {e}")
+        return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
+
+
+@app.route('/api/households/leave', methods=['POST'])
+def leave_household():
+    """그룹에서 나가기. 그룹의 공유 재료는 그대로 남고, 내 계정만 빠진다."""
+    try:
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({'error': '인증이 필요합니다.'}), 401
+        payload = verify_jwt_token(auth_header.split(' ')[1])
+        if not payload:
+            return jsonify({'error': '권한이 없습니다.'}), 403
+        user_id = payload.get('user_id')
+
+        ensure_households_table()
+        db = get_db()
+        cursor = db.cursor()
+        try:
+            cursor.execute("SELECT household_id FROM users WHERE id = %s", (user_id,))
+            row = cursor.fetchone()
+            if not row or not row['household_id']:
+                return jsonify({'error': '속한 그룹이 없습니다.'}), 400
+
+            cursor.execute("UPDATE users SET household_id = NULL WHERE id = %s", (user_id,))
+            db.commit()
+            return jsonify({'message': '그룹에서 나갔습니다.'}), 200
+        except Exception as e:
+            db.rollback()
+            print(f"Leave household error: {e}")
+            return jsonify({'error': '그룹 나가기 중 오류가 발생했습니다.'}), 500
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"Leave household error: {e}")
+        return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
+
+
+@app.route('/api/households/regenerate-code', methods=['POST'])
+def regenerate_household_code():
+    """초대 코드 재발급 (코드가 원치 않는 곳에 퍼졌을 때 등). 그룹원 누구나 가능."""
+    try:
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({'error': '인증이 필요합니다.'}), 401
+        payload = verify_jwt_token(auth_header.split(' ')[1])
+        if not payload:
+            return jsonify({'error': '권한이 없습니다.'}), 403
+        user_id = payload.get('user_id')
+
+        ensure_households_table()
+        db = get_db()
+        cursor = db.cursor()
+        try:
+            household = get_household_by_user(cursor, user_id)
+            if not household:
+                return jsonify({'error': '속한 그룹이 없습니다.'}), 400
+
+            invite_code = _issue_unique_invite_code(cursor)
+            cursor.execute("UPDATE households SET invite_code = %s WHERE id = %s", (invite_code, household['id']))
+            db.commit()
+            return jsonify({'invite_code': invite_code}), 200
+        except Exception as e:
+            db.rollback()
+            print(f"Regenerate household code error: {e}")
+            return jsonify({'error': '초대 코드 재발급 중 오류가 발생했습니다.'}), 500
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"Regenerate household code error: {e}")
+        return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
+
+
 @app.route('/api/users/<int:user_id>/ingredients', methods=['GET'])
 def get_user_ingredients(user_id):
     """사용자 재료 조회"""
@@ -2025,19 +2346,22 @@ def get_user_ingredients(user_id):
             return jsonify({'error': '권한이 없습니다.'}), 403
         
         print(f"[get_user_ingredients] 재료 조회 시작: user_id={user_id}")
-        
+
         ensure_user_data_tables()
+        ensure_households_table()
         db = get_db()
         cursor = db.cursor()
-        
+
         try:
+            # 그룹에 속해 있으면 그룹의 공유 재료를 읽는다.
+            storage_user_id = resolve_ingredient_storage_user_id(cursor, user_id)
             cursor.execute(
                 "SELECT id, name, storage_box, expiry_date, purchase_date FROM user_ingredients WHERE user_id = %s ORDER BY created_at DESC",
-                (user_id,)
+                (storage_user_id,)
             )
             ingredients = cursor.fetchall()
-            
-            print(f"[get_user_ingredients] DB 조회 결과: user_id={user_id}, count={len(ingredients)}")
+
+            print(f"[get_user_ingredients] DB 조회 결과: user_id={user_id}, storage_user_id={storage_user_id}, count={len(ingredients)}")
             
             # storage_box별로 그룹화
             result = {
@@ -2086,29 +2410,33 @@ def save_user_ingredients(user_id):
         
         data = request.get_json()
         ingredients = data.get('ingredients', {})
-        
+
         ensure_user_data_tables()
+        ensure_households_table()
         db = get_db()
         cursor = db.cursor()
-        
+
         try:
+            # 그룹에 속해 있으면 그룹의 공유 재료에 쓴다.
+            storage_user_id = resolve_ingredient_storage_user_id(cursor, user_id)
+
             # 저장 시점 기록
             saved_at = datetime.now()
-            
+
             # 기존 재료 삭제
-            cursor.execute("DELETE FROM user_ingredients WHERE user_id = %s", (user_id,))
-            
+            cursor.execute("DELETE FROM user_ingredients WHERE user_id = %s", (storage_user_id,))
+
             # 새 재료 저장
             for box in ['frozen', 'fridge', 'room']:
                 box_ingredients = ingredients.get(box, [])
                 for ing in box_ingredients:
                     expiry_date = ing.get('expiry') if ing.get('expiry') else None
                     purchase_date = ing.get('purchase') if ing.get('purchase') else None
-                    
+
                     cursor.execute(
-                        """INSERT INTO user_ingredients (user_id, name, storage_box, expiry_date, purchase_date, saved_at) 
+                        """INSERT INTO user_ingredients (user_id, name, storage_box, expiry_date, purchase_date, saved_at)
                            VALUES (%s, %s, %s, %s, %s, %s)""",
-                        (user_id, ing['name'], box, expiry_date, purchase_date, saved_at)
+                        (storage_user_id, ing['name'], box, expiry_date, purchase_date, saved_at)
                     )
             
             db.commit()
