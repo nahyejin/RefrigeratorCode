@@ -318,10 +318,25 @@ const CookingCalendar: React.FC = () => {
   if (authLoading) return null;
 
   if (!isLoggedIn) {
+    // 요리 캘린더는 냉장고/레시피 목록과 달리 보여줄 로컬(localStorage)
+    // 데이터가 아예 없다 — 완료 기록·목표·절약액이 전부 서버 계정에
+    // 묶여 있어서 그냥 "로그인 후 볼 수 있어요"라고만 하면 로그인해서
+    // 뭘 얻는지 와닿지 않는다. 로그인하면 실제로 뭘 할 수 있는지(이력
+    // 관리, 절약액 확인, 목표 설정)를 구체적으로 안내한다.
     return (
       <div className="min-h-screen w-full flex items-center justify-center bg-white">
-        <div style={{ textAlign: 'center' }}>
-          <p style={{ fontSize: 14, color: 'var(--ink-500)', marginBottom: 12 }}>로그인 후 볼 수 있어요.</p>
+        <div style={{ textAlign: 'center', padding: '0 32px' }}>
+          <div style={{ fontSize: 32, marginBottom: 12 }}>📅</div>
+          <p style={{ fontSize: 15, fontWeight: 700, color: '#1A1A1E', marginBottom: 8 }}>
+            로그인하면 요리 캘린더를 쓸 수 있어요
+          </p>
+          <p style={{ fontSize: 13.5, color: 'var(--ink-500)', lineHeight: 1.6, wordBreak: 'keep-all', marginBottom: 20 }}>
+            내가 완료한 요리 이력을 날짜별로 관리하고,
+            <br />
+            그동안 요리로 아낀 절약액을 확인하고,
+            <br />
+            이번 달 요리 목표도 설정할 수 있어요.
+          </p>
           <button
             type="button"
             onClick={() => navigate('/login')}
