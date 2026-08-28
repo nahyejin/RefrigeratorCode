@@ -1,0 +1,283 @@
+import React, { useRef, useState } from 'react';
+import CloseButton from './ui/CloseButton';
+import { isStandaloneAppMode } from '../utils/onboardingPrompts';
+import { showInstallPrompt } from '../utils/pwa';
+
+export type CaptureMode = 'receipt' | 'food-single' | 'food-multi' | 'gallery' | 'file';
+
+interface CameraCaptureSheetProps {
+  isOpen: boolean;
+  onClose: () => void;
+  /** 사진을 실제로 받은 뒤 호출된다. AI 인식은 아직 없으므로, 호출한 쪽에서
+   * "준비 중" 안내를 보여주면 된다. */
+  onCaptured: (mode: CaptureMode, file: File) => void;
+}
+
+function isIOS(): boolean {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent);
+}
+
+const ReceiptIcon: React.FC = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1A1A1E" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <path d="M5.5 3.4l1.6 1.3 1.6-1.3 1.6 1.3 1.6-1.3 1.6 1.3 1.6-1.3 1.6 1.3V19a1.6 1.6 0 0 1-1.6 1.6H7.1A1.6 1.6 0 0 1 5.5 19z" />
+    <path d="M8.6 8.2h6.8M8.6 11.6h6.8M8.6 15h4.2" />
+  </svg>
+);
+
+const FoodSingleIcon: React.FC = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1A1A1E" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <path d="M4 8.2h3.1l1.5-2.2h6.8l1.5 2.2H20a1.6 1.6 0 0 1 1.6 1.6v8.4A1.6 1.6 0 0 1 20 19.8H4a1.6 1.6 0 0 1-1.6-1.6V9.8A1.6 1.6 0 0 1 4 8.2z" />
+    <circle cx="12" cy="13.6" r="3.4" />
+  </svg>
+);
+
+const FoodMultiIcon: React.FC = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1A1A1E" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <rect x="3" y="3" width="8" height="8" rx="1.6" />
+    <rect x="13" y="3" width="8" height="8" rx="1.6" />
+    <rect x="3" y="13" width="8" height="8" rx="1.6" />
+    <rect x="13" y="13" width="8" height="8" rx="1.6" />
+  </svg>
+);
+
+const OPTIONS: { key: Extract<CaptureMode, 'receipt' | 'food-single' | 'food-multi'>; label: string; hint: string; icon: React.FC }[] = [
+  { key: 'receipt', label: '영수증', hint: '영수증 한 장을 찍어요', icon: ReceiptIcon },
+  { key: 'food-single', label: '음식 (재료 1개)', hint: '재료 하나만 나온 사진', icon: FoodSingleIcon },
+  { key: 'food-multi', label: '음식 (재료 여러 개)', hint: '여러 재료가 함께 나온 사진', icon: FoodMultiIcon },
+];
+
+/**
+ * 카메라로 재료를 담는 입구를 하나로 모은 시트.
+ *
+ * 예전엔 "영수증 인식"/"사진으로 재료 인식" 아이콘 버튼 두 개가 따로 있었는데,
+ * 어차피 둘 다 눌러도 "준비 중" 안내만 뜨는 자리였다. 실제 인식 기능이 들어올
+ * 자리를 미리 만들어 두는 것이라면, 버튼을 하나로 모으고 "뭘 찍을지"를 먼저
+ * 고르게 하는 편이 — 나중에 AI가 알아서 구분하는 기능이 생기기 전까지는 —
+ * 사용자에게도 무엇을 찍어야 인식이 잘 될지 알려주는 역할을 겸한다.
+ *
+ * 촬영/선택 자체는 표준 <input type=file> 로 처리한다(capture 속성으로 카메라
+ * 바로 열기, 없으면 앨범/파일 선택). 실제 OS 위젯(홈 화면 위젯, 다른 앱 위에
+ * 떠 있는 플로팅 버튼)은 PWA 만으로는 만들 수 없다 — 네이티브 앱(Capacitor로
+ * 감싼 뒤 iOS/Android 각각 위젯 코드)이 있어야 한다. 지금 할 수 있는 것은
+ * "홈 화면에 추가"(PWA 설치) 안내뿐이라, 정직하게 그 수준으로만 안내한다.
+ */
+const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose, onCaptured }) => {
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [pendingMode, setPendingMode] = useState<CaptureMode>('food-single');
+
+  if (!isOpen) return null;
+
+  const openCameraFor = (mode: CaptureMode) => {
+    setPendingMode(mode);
+    // 같은 모드를 연달아 찍어도 change 이벤트가 다시 뜨도록 비워 둔다.
+    if (cameraInputRef.current) cameraInputRef.current.value = '';
+    cameraInputRef.current?.click();
+  };
+
+  const makeChangeHandler = (mode: CaptureMode) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (file) onCaptured(mode, file);
+  };
+
+  const installed = isStandaloneAppMode();
+
+  return (
+    <>
+      {/* 실제 촬영/선택은 숨겨진 input 세 개가 담당한다.
+          capture="environment" 는 모바일에서 바로 후면 카메라를 연다 —
+          없으면 대부분 브라우저가 "카메라로 찍기/앨범에서 선택"을 물어본다. */}
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        style={{ display: 'none' }}
+        onChange={makeChangeHandler(pendingMode)}
+      />
+      <input
+        ref={galleryInputRef}
+        type="file"
+        accept="image/*"
+        style={{ display: 'none' }}
+        onChange={makeChangeHandler('gallery')}
+      />
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        style={{ display: 'none' }}
+        onChange={makeChangeHandler('file')}
+      />
+
+      <div
+        className="fixed inset-0"
+        style={{ zIndex: 'var(--z-overlay)', background: 'rgba(0,0,0,0.45)' }}
+        onClick={onClose}
+      />
+      <div
+        role="dialog"
+        aria-label="사진으로 재료 담기"
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          position: 'fixed',
+          bottom: 0,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: '100%',
+          maxWidth: 400,
+          background: '#FFFFFF',
+          borderRadius: '22px 22px 0 0',
+          boxShadow: '0 -12px 30px rgba(0,0,0,0.18)',
+          padding: '20px 18px calc(16px + env(safe-area-inset-bottom))',
+          zIndex: 'var(--z-modal)',
+          boxSizing: 'border-box',
+        }}
+      >
+        <CloseButton onClick={onClose} style={{ top: 10, right: 10 }} />
+
+        {/* 아직 실제 인식 기능은 없다는 걸, 개발 중인 영역임을 한눈에 알 수 있게
+            살짝 기울어진 배지로 밝혀 둔다. */}
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
+          <span
+            style={{
+              display: 'inline-block',
+              transform: 'rotate(-4deg)',
+              background: '#FFD600',
+              color: '#1A1A1E',
+              fontSize: 12,
+              fontWeight: 700,
+              padding: '4px 12px',
+              borderRadius: 9999,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            ✨ AI 이미지 자동인식 기능을 준비하고 있어요
+          </span>
+        </div>
+
+        <div style={{ textAlign: 'center', fontWeight: 700, fontSize: 17, marginBottom: 16, color: '#1A1A1E' }}>
+          무엇을 찍을까요?
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
+          {OPTIONS.map(({ key, label, hint, icon: Icon }) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => openCameraFor(key)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                width: '100%',
+                padding: '12px 14px',
+                borderRadius: 14,
+                border: '1px solid var(--line-200)',
+                background: 'var(--surface-sub)',
+                cursor: 'pointer',
+                textAlign: 'left',
+              }}
+            >
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 40,
+                  height: 40,
+                  borderRadius: '50%',
+                  background: '#FFFFFF',
+                  border: '1px solid var(--line-200)',
+                  flexShrink: 0,
+                }}
+              >
+                <Icon />
+              </span>
+              <span style={{ minWidth: 0 }}>
+                <span style={{ display: 'block', fontSize: 15, fontWeight: 700, color: '#1A1A1E' }}>{label}</span>
+                <span style={{ display: 'block', fontSize: 12, color: 'var(--ink-500)' }}>{hint}</span>
+              </span>
+            </button>
+          ))}
+        </div>
+
+        <div style={{ display: 'flex', gap: 8, marginBottom: installed ? 4 : 14 }}>
+          <button
+            type="button"
+            onClick={() => galleryInputRef.current?.click()}
+            style={{
+              flex: 1,
+              height: 38,
+              borderRadius: 10,
+              border: '1px solid var(--line-200)',
+              background: '#FFFFFF',
+              color: 'var(--ink-700)',
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
+            사진 앨범에서 선택
+          </button>
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            style={{
+              flex: 1,
+              height: 38,
+              borderRadius: 10,
+              border: '1px solid var(--line-200)',
+              background: '#FFFFFF',
+              color: 'var(--ink-700)',
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
+            파일에서 추가
+          </button>
+        </div>
+
+        {/* 진짜 "홈 화면 위젯"/"다른 앱 위에 떠 있는 버튼"은 PWA 로는 만들 수 없다
+            (네이티브 앱이어야 함). 지금 할 수 있는 최선은 홈 화면 설치 안내뿐이라,
+            그 이상을 약속하지 않고 정직하게 이 수준으로만 안내한다. */}
+        {!installed && (
+          <div
+            style={{
+              display: 'flex',
+              gap: 8,
+              alignItems: 'flex-start',
+              padding: '10px 12px',
+              borderRadius: 12,
+              background: 'var(--surface-sub)',
+              fontSize: 12.5,
+              lineHeight: 1.5,
+              color: 'var(--ink-700)',
+            }}
+          >
+            <span aria-hidden style={{ flexShrink: 0, fontWeight: 700, color: 'var(--ink-500)' }}>i</span>
+            <span>
+              홈 화면에 추가해두면 앱을 처음부터 안 열어도 이 카메라 버튼에 더 빠르게 올 수 있어요.{' '}
+              {isIOS() ? (
+                '하단 공유 아이콘 → "홈 화면에 추가"로 등록할 수 있어요.'
+              ) : (
+                <button
+                  type="button"
+                  onClick={showInstallPrompt}
+                  style={{ background: 'none', border: 'none', padding: 0, color: '#1A1A1E', fontWeight: 700, textDecoration: 'underline', cursor: 'pointer' }}
+                >
+                  지금 추가하기
+                </button>
+              )}
+            </span>
+          </div>
+        )}
+      </div>
+    </>
+  );
+};
+
+export default CameraCaptureSheet;

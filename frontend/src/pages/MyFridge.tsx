@@ -13,6 +13,7 @@ import RegisterPromptModal from '../components/RegisterPromptModal';
 import WelcomeModal from '../components/WelcomeModal';
 import GuideOverlay from '../components/GuideOverlay';
 import BottomCoupangAd from '../components/BottomCoupangAd';
+import CameraCaptureSheet, { type CaptureMode } from '../components/CameraCaptureSheet';
 import { loadIngredientCategoryMap, estimateExpiry, type CategoryMap } from '../utils/shelfLife';
 import {
   isUsageGuideDueThisVisit,
@@ -1587,6 +1588,20 @@ const MyFridge: React.FC = () => {
     prepNoticeTimer.current = setTimeout(() => setInfoToast(null), 3000);
   };
 
+  // 카메라로 재료 담기 시트. 영수증/음식(1개)/음식(여러개) 입구를 하나로 모았다.
+  const [cameraSheetOpen, setCameraSheetOpen] = useState(false);
+  const handleCameraCaptured = (mode: CaptureMode) => {
+    setCameraSheetOpen(false);
+    const message: Record<CaptureMode, string> = {
+      receipt: '영수증을 찍으면 재료를 자동으로 담아 주는 기능을 준비하고 있어요.',
+      'food-single': '재료 사진을 찍으면 알아서 인식해 담아 주는 기능을 준비하고 있어요.',
+      'food-multi': '여러 재료가 담긴 사진도 한 번에 인식하는 기능을 준비하고 있어요.',
+      gallery: '앨범 사진으로 재료를 자동으로 담아 주는 기능을 준비하고 있어요.',
+      file: '사진 파일로 재료를 자동으로 담아 주는 기능을 준비하고 있어요.',
+    };
+    showPrepNotice(message[mode]);
+  };
+
   const removeTag = (box: StorageBox, tag: string) => {
     let prev: Ingredient[] = [];
     if (box === 'frozen') prev = frozen || [];
@@ -2055,34 +2070,17 @@ const MyFridge: React.FC = () => {
             >
               입력
             </button>
-            {/* 준비 중인 입력 방식 두 가지.
-                지금은 눌러도 안내만 뜨지만, 이런 방법이 생긴다는 것을 미리 알려 두면
-                "재료를 하나씩 쳐야 하나" 하고 지레 포기하는 일이 줄어든다.
-                alert 대신 토스트를 쓰는 이유: alert 는 OS 창이라 앱 밖의 일처럼 보이고
-                확인을 눌러야만 사라진다. */}
+            {/* 예전엔 "영수증 인식"/"사진으로 재료 인식" 버튼이 따로 있었는데,
+                실제 인식 기능이 들어오기 전까진 어차피 준비 중 안내만 뜨는 자리였다.
+                버튼 하나로 모으고, 눌렀을 때 "뭘 찍을지" 먼저 고르게 한다
+                (CameraCaptureSheet). */}
             <button
               type="button"
               className="bg-[#E6E6EA] text-[#1A1A1E] font-bold rounded-2xl px-2 py-2 text-sm shadow transition whitespace-nowrap focus:outline-none"
               style={{ display: 'flex', alignItems: 'center', height: 40, width: 40, minWidth: 40, flexShrink: 0, padding: 0, marginLeft: 0, border: '1px solid #E6E6EA', justifyContent: 'center', borderRadius: 20, alignSelf: 'flex-start' }}
-              onClick={() => showPrepNotice('영수증을 찍으면 재료를 자동으로 담아 주는 기능을 준비하고 있어요.')}
-              title="영수증 인식(준비 중)"
-              aria-label="영수증으로 재료 담기(준비 중)"
-            >
-              {/* 예전에는 영수증만 PNG 이미지였다. 카메라는 선으로 그린 SVG 라
-                  선 굵기와 농도가 서로 달라 나란히 두니 톤이 어긋나 보였음
-                  → 둘 다 같은 굵기(1.7)의 선 아이콘으로 맞춘다 */}
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1A1A1E" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                <path d="M5.5 3.4l1.6 1.3 1.6-1.3 1.6 1.3 1.6-1.3 1.6 1.3 1.6-1.3 1.6 1.3V19a1.6 1.6 0 0 1-1.6 1.6H7.1A1.6 1.6 0 0 1 5.5 19z" />
-                <path d="M8.6 8.2h6.8M8.6 11.6h6.8M8.6 15h4.2" />
-              </svg>
-            </button>
-            <button
-              type="button"
-              className="bg-[#E6E6EA] text-[#1A1A1E] font-bold rounded-2xl px-2 py-2 text-sm shadow transition whitespace-nowrap focus:outline-none"
-              style={{ display: 'flex', alignItems: 'center', height: 40, width: 40, minWidth: 40, flexShrink: 0, padding: 0, marginLeft: 0, border: '1px solid #E6E6EA', justifyContent: 'center', borderRadius: 20, alignSelf: 'flex-start' }}
-              onClick={() => showPrepNotice('재료 사진을 찍으면 알아서 인식해 담아 주는 기능을 준비하고 있어요.')}
-              title="사진으로 재료 인식(준비 중)"
-              aria-label="사진으로 재료 담기(준비 중)"
+              onClick={() => setCameraSheetOpen(true)}
+              title="사진으로 재료 담기"
+              aria-label="사진으로 재료 담기"
             >
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1A1A1E" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                 <path d="M4 8.2h3.1l1.5-2.2h6.8l1.5 2.2H20a1.6 1.6 0 0 1 1.6 1.6v8.4A1.6 1.6 0 0 1 20 19.8H4a1.6 1.6 0 0 1-1.6-1.6V9.8A1.6 1.6 0 0 1 4 8.2z" />
@@ -2091,6 +2089,11 @@ const MyFridge: React.FC = () => {
             </button>
           </div>
         </div>
+        <CameraCaptureSheet
+          isOpen={cameraSheetOpen}
+          onClose={() => setCameraSheetOpen(false)}
+          onCaptured={(mode) => handleCameraCaptured(mode)}
+        />
         {/* IngredientDetailModal */}
         <IngredientDetailModal
           isOpen={modalOpen}
