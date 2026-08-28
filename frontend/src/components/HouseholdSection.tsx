@@ -37,13 +37,16 @@ function getToken(): string | null {
  * 보여주면 된다.
  */
 const HouseholdSection: React.FC = () => {
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, user } = useAuth();
   const [info, setInfo] = React.useState<HouseholdInfo | null>(null);
   const [loading, setLoading] = React.useState(false);
+  const [createInfoOpen, setCreateInfoOpen] = React.useState(false);
   const [joinOpen, setJoinOpen] = React.useState(false);
   const [leaveOpen, setLeaveOpen] = React.useState(false);
   const [joinCode, setJoinCode] = React.useState('');
   const [joinError, setJoinError] = React.useState('');
+  const [mergeIngredients, setMergeIngredients] = React.useState(true);
+  const [shareRecipeActions, setShareRecipeActions] = React.useState(true);
   const [busy, setBusy] = React.useState(false);
   const [toast, setToast] = React.useState('');
 
@@ -77,7 +80,10 @@ const HouseholdSection: React.FC = () => {
 
   React.useEffect(() => {
     loadInfo();
-  }, [loadInfo]);
+    // user?.nickname 을 의존성에 넣어서, 내 정보 수정에서 닉네임을 바꾸면
+    // 페이지 이동 없이도 그룹 멤버 목록(닉네임 배지)이 바로 갱신되게 한다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadInfo, user?.nickname]);
 
   const showToast = (text: string) => {
     setToast(text);
@@ -93,6 +99,7 @@ const HouseholdSection: React.FC = () => {
         showToast(data.error || '그룹 생성에 실패했어요.');
         return;
       }
+      setCreateInfoOpen(false);
       await loadInfo();
       showToast('그룹을 만들었어요. 초대 코드를 가족에게 알려주세요.');
     } catch (e) {
@@ -112,7 +119,11 @@ const HouseholdSection: React.FC = () => {
     try {
       const res = await authedFetch('/api/households/join', {
         method: 'POST',
-        body: JSON.stringify({ invite_code: joinCode.trim() }),
+        body: JSON.stringify({
+          invite_code: joinCode.trim(),
+          merge_ingredients: mergeIngredients,
+          share_recipe_actions: shareRecipeActions,
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -122,11 +133,35 @@ const HouseholdSection: React.FC = () => {
       setJoinOpen(false);
       setJoinCode('');
       await loadInfo();
-      showToast('그룹에 참여했어요. 냉장고 재료가 하나로 합쳐졌어요.');
+      showToast(
+        mergeIngredients
+          ? '그룹에 참여했어요. 냉장고 재료가 하나로 합쳐졌어요.'
+          : '그룹에 참여했어요. 그룹의 기존 재료를 보게 돼요.'
+      );
     } catch (e) {
       setJoinError('그룹 참여 중 오류가 발생했어요.');
     } finally {
       setBusy(false);
+    }
+  };
+
+  const handleShareInvite = async () => {
+    if (!info?.invite_code) return;
+    const url = `${window.location.origin}/join-household?code=${info.invite_code}`;
+    const text = `쿡매치 가족 그룹에 초대할게요! 아래 링크를 눌러 참여해주세요.\n${url}`;
+    if (typeof navigator.share === 'function') {
+      try {
+        await navigator.share({ title: '쿡매치 가족 그룹 초대', text, url });
+        return;
+      } catch (e) {
+        // 사용자가 공유를 취소한 경우 등 — 조용히 클립보드 복사로 대체
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      showToast('초대 링크를 복사했어요. 카카오톡 등에 붙여넣어 보내주세요.');
+    } catch (e) {
+      showToast(url);
     }
   };
 
@@ -219,9 +254,14 @@ const HouseholdSection: React.FC = () => {
                 {info.invite_code}
               </div>
             </div>
-            <Button variant="outline" size="sm" onClick={handleCopyCode}>
-              복사
-            </Button>
+            <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+              <Button variant="outline" size="sm" onClick={handleCopyCode}>
+                복사
+              </Button>
+              <Button variant="secondary" size="sm" onClick={handleShareInvite}>
+                초대 보내기
+              </Button>
+            </div>
           </div>
 
           {!!info.members?.length && (
@@ -258,10 +298,11 @@ const HouseholdSection: React.FC = () => {
         <div>
           <p style={{ fontSize: 13, color: 'var(--ink-500)', marginBottom: 12 }}>
             그룹을 만들거나 초대 코드로 참여하면, 가족이 각자 계정으로 접속해도
-            같은 냉장고 재료를 함께 관리할 수 있어요.
+            같은 냉장고 재료를 함께 관리할 수 있어요. 즐겨찾기·완료·기록한
+            레시피도 원하면 "OO님도 즐겨찾기함" 처럼 서로 볼 수 있어요.
           </p>
           <div style={{ display: 'flex', gap: 8 }}>
-            <Button variant="secondary" size="sm" onClick={handleCreate} disabled={busy}>
+            <Button variant="secondary" size="sm" onClick={() => setCreateInfoOpen(true)} disabled={busy}>
               그룹 만들기
             </Button>
             <Button variant="outline" size="sm" onClick={() => setJoinOpen(true)} disabled={busy}>
@@ -270,6 +311,31 @@ const HouseholdSection: React.FC = () => {
           </div>
         </div>
       )}
+
+      <Dialog
+        open={createInfoOpen}
+        onClose={() => setCreateInfoOpen(false)}
+        title="가족 그룹 만들기"
+        actions={[
+          { label: '취소', onClick: () => setCreateInfoOpen(false), variant: 'outline' },
+          { label: '만들기', onClick: handleCreate, variant: 'primary' },
+        ]}
+      >
+        <div style={{ textAlign: 'left', fontSize: 13, color: 'var(--ink-700)', lineHeight: 1.6 }}>
+          <p style={{ marginBottom: 8 }}>
+            지금 누르면 우리 가족만의 <b>초대 코드</b>가 바로 만들어져요.
+          </p>
+          <p style={{ marginBottom: 8 }}>
+            그 코드를 가족에게 카카오톡이나 문자로 보내주면(초대 코드 생성 후
+            "초대 보내기" 버튼으로 바로 공유할 수 있어요), 가족이 링크를 눌러
+            들어오거나 코드를 직접 입력해서 참여할 수 있어요.
+          </p>
+          <p>
+            참여한 가족과는 냉장고 재료를 함께 보고 관리하게 돼요. 즐겨찾기·완료·
+            기록은 계정별로 그대로 남고, 그룹 화면에서 배지로만 표시돼요.
+          </p>
+        </div>
+      </Dialog>
 
       <Dialog
         open={joinOpen}
@@ -287,8 +353,6 @@ const HouseholdSection: React.FC = () => {
         <div style={{ textAlign: 'left' }}>
           <p style={{ fontSize: 13, color: 'var(--ink-500)', marginBottom: 10, textAlign: 'center' }}>
             가족에게 받은 8자리 초대 코드를 입력해주세요.
-            <br />
-            지금 갖고 있는 내 재료는 그룹 재료로 합쳐져요.
           </p>
           <input
             type="text"
@@ -306,10 +370,43 @@ const HouseholdSection: React.FC = () => {
               letterSpacing: 2,
               textAlign: 'center',
               boxSizing: 'border-box',
+              marginBottom: 14,
             }}
           />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 13, color: 'var(--ink-700)' }}>
+              <input
+                type="checkbox"
+                checked={mergeIngredients}
+                onChange={(e) => setMergeIngredients(e.target.checked)}
+                style={{ marginTop: 2 }}
+              />
+              <span>
+                지금 내 냉장고 재료를 그룹 재료에 합치기
+                <br />
+                <span style={{ color: 'var(--ink-500)', fontSize: 12 }}>
+                  (끄면 내 재료는 그대로 두고, 그룹의 기존 재료만 보게 돼요)
+                </span>
+              </span>
+            </label>
+            <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 13, color: 'var(--ink-700)' }}>
+              <input
+                type="checkbox"
+                checked={shareRecipeActions}
+                onChange={(e) => setShareRecipeActions(e.target.checked)}
+                style={{ marginTop: 2 }}
+              />
+              <span>
+                내 즐겨찾기·완료·기록을 그룹원에게도 보여주기
+                <br />
+                <span style={{ color: 'var(--ink-500)', fontSize: 12 }}>
+                  (기록 자체는 합쳐지지 않고 계정별로 그대로 유지돼요)
+                </span>
+              </span>
+            </label>
+          </div>
           {joinError && (
-            <div style={{ fontSize: 12.5, color: 'var(--danger)', marginTop: 8, textAlign: 'center' }}>
+            <div style={{ fontSize: 12.5, color: 'var(--danger)', marginTop: 10, textAlign: 'center' }}>
               {joinError}
             </div>
           )}
@@ -325,9 +422,13 @@ const HouseholdSection: React.FC = () => {
           { label: '나가기', onClick: handleLeave, variant: 'danger' },
         ]}
       >
-        나가도 그룹의 공유 재료는 그대로 남아요.
+        지금 그룹 냉장고에 있는 재료는 그대로 복사돼서
         <br />
-        다시 참여하려면 초대 코드가 다시 필요해요.
+        내 개인 냉장고로 옮겨져요. 그룹에는 그대로 남고요.
+        <br />
+        즐겨찾기·완료·기록은 원래 계정별 기록이라 바뀌지 않아요.
+        <br />
+        다시 함께 쓰려면 초대 코드가 다시 필요해요.
       </Dialog>
 
       {toast && (

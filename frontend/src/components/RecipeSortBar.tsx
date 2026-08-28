@@ -113,7 +113,14 @@ const STYLES = {
     whiteSpace: 'nowrap' as const,
     lineHeight: '28px',
     boxSizing: 'border-box' as const,
-    cursor: 'pointer'
+    cursor: 'pointer',
+    // 아이콘(inline svg)과 글자가 그냥 인라인으로 흐르면, 좁은 화면·큰 글꼴
+    // 설정에서 줄바꿈 여지가 생겨 버튼이 두 줄로 부풀어 보이는 문제가 있었다.
+    // flex 로 한 줄에 고정한다.
+    display: 'inline-flex' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    flexShrink: 0
   },
   selectContainer: {
     position: 'relative' as const,

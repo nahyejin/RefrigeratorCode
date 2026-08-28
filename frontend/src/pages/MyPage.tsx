@@ -452,6 +452,38 @@ const MyPage: React.FC = () => {
     }
   };
 
+  // 가족 그룹원들의 즐겨찾기/완료/기록 현황 로드 (배지 표시용).
+  // 그룹이 없으면 서버가 빈 값을 주므로 그대로 null 취급해도 안전하다.
+  const loadHouseholdActions = async () => {
+    if (!isLoggedIn || !authUser?.id) {
+      setHouseholdActions(null);
+      return;
+    }
+    try {
+      const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+      const apiUrl = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'https://refrigeratorcode-production.up.railway.app';
+      const res = await fetch(`${apiUrl}/api/households/me/recipe-actions`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        setHouseholdActions(await res.json());
+      }
+    } catch (error) {
+      console.warn('[MyPage] 그룹 활동 조회 실패:', error);
+    }
+  };
+
+  // 레시피 카드에 붙일 "OO님도 즐겨찾기함" 배지 문구를 만든다.
+  // 나 말고 다른 그룹원이 같은 항목에 같은 행동을 했을 때만 표시한다 —
+  // 나 혼자 한 것까지 배지로 띄우면 당연한 정보라 소음만 된다.
+  const buildAttributionLabel = (action: 'favorite' | 'completed' | 'recorded') => (recipe: any) => {
+    const names = householdActions?.[action]?.[String(recipe.id)] || [];
+    const others = Array.from(new Set(names.filter((n) => n && n !== authUser?.nickname)));
+    if (!others.length) return undefined;
+    const verb = action === 'favorite' ? '즐겨찾기함' : action === 'completed' ? '완료함' : '기록함';
+    return `${others.join('·')}님도 ${verb}`;
+  };
+
   // DB에 레시피 추가
   const addRecipeToDB = async (type: 'write' | 'done' | 'favorite', recipeId: number) => {
     if (!isLoggedIn || !authUser?.id) return;
@@ -568,6 +600,14 @@ const MyPage: React.FC = () => {
   const [pendingRegisterRecipe, setPendingRegisterRecipe] = useState<{ id: number; type: 'done' | 'write'; recipe: any } | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
+  // 가족 그룹에 속해 있을 때, 레시피별로 그룹원 중 누가 즐겨찾기/완료/기록했는지.
+  // 즐겨찾기 등 자체는 계정별 개인 기록 그대로 두고, 카드에 "OO님도 즐겨찾기함"
+  // 배지를 붙이는 용도로만 쓴다(HouseholdSection 참고).
+  const [householdActions, setHouseholdActions] = useState<{
+    favorite: Record<string, string[]>;
+    completed: Record<string, string[]>;
+    recorded: Record<string, string[]>;
+  } | null>(null);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -610,11 +650,13 @@ const MyPage: React.FC = () => {
       
       // DB에서 레시피 로드
       loadRecipesFromDB();
+      loadHouseholdActions();
     } else {
       // 로그아웃 시 레시피 상태 초기화 및 localStorage에서 로드
       setFavoriteRecipes([]);
       setRecordedRecipes([]);
       setCompletedRecipes([]);
+      setHouseholdActions(null);
       const localFavorite = JSON.parse(localStorage.getItem(STORAGE_KEY_FAVORITE) || '[]');
       const localRecorded = JSON.parse(localStorage.getItem(STORAGE_KEY_RECORDED) || '[]');
       const localCompleted = JSON.parse(localStorage.getItem(STORAGE_KEY_COMPLETED) || '[]');
@@ -1287,6 +1329,7 @@ const MyPage: React.FC = () => {
             cardHeight={280}
             gap={16}
             compactSectionGap
+            getAttributionLabel={buildAttributionLabel('favorite')}
             // 내가 즐겨찾고·기록하고·완료한 목록은 사용자가 직접 모아 둔 것이다.
             // 그 사이에 광고 카드를 끼우면 목록의 성격이 흐려지므로 여기서는 끈다.
             // (부족 재료를 눌렀을 때 뜨는 구매 안내는 그대로 동작한다)
@@ -1351,6 +1394,7 @@ const MyPage: React.FC = () => {
             cardHeight={280}
             gap={16}
             compactSectionGap
+            getAttributionLabel={buildAttributionLabel('recorded')}
             // 내가 즐겨찾고·기록하고·완료한 목록은 사용자가 직접 모아 둔 것이다.
             // 그 사이에 광고 카드를 끼우면 목록의 성격이 흐려지므로 여기서는 끈다.
             // (부족 재료를 눌렀을 때 뜨는 구매 안내는 그대로 동작한다)
@@ -1417,6 +1461,7 @@ const MyPage: React.FC = () => {
             cardHeight={280}
             gap={16}
             compactSectionGap
+            getAttributionLabel={buildAttributionLabel('completed')}
             // 내가 즐겨찾고·기록하고·완료한 목록은 사용자가 직접 모아 둔 것이다.
             // 그 사이에 광고 카드를 끼우면 목록의 성격이 흐려지므로 여기서는 끈다.
             // (부족 재료를 눌렀을 때 뜨는 구매 안내는 그대로 동작한다)

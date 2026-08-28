@@ -2058,6 +2058,24 @@ def ensure_households_table():
         except Exception as e:
             print(f"[ensure_households_table] household_id 컬럼 추가 중 오류: {e}")
             db.rollback()
+
+        # 그룹에서 내 즐겨찾기/완료/기록을 다른 멤버에게도 보여줄지(배지 표시용).
+        # 참여할 때 사용자가 고를 수 있고, 기본값은 보여주기(1).
+        try:
+            cursor.execute("""
+                SELECT COUNT(*) as count
+                FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                AND TABLE_NAME = 'users'
+                AND COLUMN_NAME = 'share_recipe_actions'
+            """)
+            result = cursor.fetchone()
+            if result and result['count'] == 0:
+                cursor.execute("ALTER TABLE users ADD COLUMN share_recipe_actions TINYINT(1) NOT NULL DEFAULT 1")
+                db.commit()
+        except Exception as e:
+            print(f"[ensure_households_table] share_recipe_actions 컬럼 추가 중 오류: {e}")
+            db.rollback()
     except Exception as e:
         db.rollback()
         print(f"Error creating households table: {e}")
@@ -2180,9 +2198,15 @@ def create_household():
 @app.route('/api/households/join', methods=['POST'])
 def join_household():
     """초대 코드로 그룹 참여.
-    참여하는 사람이 개인적으로 갖고 있던 재료는 그룹 재료로 합친다 —
-    이름+보관위치가 같으면 하나로 취급하고, 유통기한이 있는 쪽(둘 다 있으면
-    더 임박한 날짜)을 남긴다."""
+
+    두 가지를 참여자가 직접 고를 수 있다:
+    - merge_ingredients(기본 true): 지금 갖고 있던 개인 재료를 그룹 재료로
+      합칠지. 합치면 이름+보관위치가 같은 항목은 하나로 취급하고, 유통기한이
+      있는 쪽(둘 다 있으면 더 임박한 날짜)을 남긴다. false면 내 개인 재료는
+      건드리지 않고 그룹의 기존 재료만 그대로 보게 된다.
+    - share_recipe_actions(기본 true): 내 즐겨찾기·완료·기록을 다른
+      그룹원이 배지로 볼 수 있게 할지. 실제 데이터를 합치는 게 아니라
+      계정별 기록은 그대로 두고 조회 시점에만 표시 여부를 결정한다."""
     try:
         auth_header = request.headers.get('Authorization')
         if not auth_header or not auth_header.startswith('Bearer '):
@@ -2196,6 +2220,8 @@ def join_household():
         invite_code = (data.get('invite_code') or '').strip().upper()
         if not invite_code:
             return jsonify({'error': '초대 코드를 입력해주세요.'}), 400
+        merge_ingredients = data.get('merge_ingredients', True)
+        share_recipe_actions = data.get('share_recipe_actions', True)
 
         ensure_households_table()
         ensure_user_data_tables()
@@ -2214,37 +2240,44 @@ def join_household():
 
             storage_user_id = household['storage_user_id']
 
-            cursor.execute(
-                "SELECT name, storage_box, expiry_date, purchase_date FROM user_ingredients WHERE user_id = %s",
-                (user_id,)
-            )
-            personal = cursor.fetchall()
-            cursor.execute(
-                "SELECT name, storage_box, expiry_date, purchase_date FROM user_ingredients WHERE user_id = %s",
-                (storage_user_id,)
-            )
-            group_ings = cursor.fetchall()
-
-            def better(a, b):
-                if a['expiry_date'] and b['expiry_date']:
-                    return a if a['expiry_date'] <= b['expiry_date'] else b
-                return a if a['expiry_date'] else b
-
-            merged = {}
-            for ing in group_ings + personal:
-                key = (ing['name'], ing['storage_box'])
-                merged[key] = better(merged[key], ing) if key in merged else ing
-
-            saved_at = datetime.now()
-            cursor.execute("DELETE FROM user_ingredients WHERE user_id = %s", (storage_user_id,))
-            for ing in merged.values():
+            if merge_ingredients:
                 cursor.execute(
-                    """INSERT INTO user_ingredients (user_id, name, storage_box, expiry_date, purchase_date, saved_at)
-                       VALUES (%s, %s, %s, %s, %s, %s)""",
-                    (storage_user_id, ing['name'], ing['storage_box'], ing['expiry_date'], ing['purchase_date'], saved_at)
+                    "SELECT name, storage_box, expiry_date, purchase_date FROM user_ingredients WHERE user_id = %s",
+                    (user_id,)
                 )
+                personal = cursor.fetchall()
+                cursor.execute(
+                    "SELECT name, storage_box, expiry_date, purchase_date FROM user_ingredients WHERE user_id = %s",
+                    (storage_user_id,)
+                )
+                group_ings = cursor.fetchall()
 
-            cursor.execute("UPDATE users SET household_id = %s WHERE id = %s", (household['id'], user_id))
+                def better(a, b):
+                    if a['expiry_date'] and b['expiry_date']:
+                        return a if a['expiry_date'] <= b['expiry_date'] else b
+                    return a if a['expiry_date'] else b
+
+                merged = {}
+                for ing in group_ings + personal:
+                    key = (ing['name'], ing['storage_box'])
+                    merged[key] = better(merged[key], ing) if key in merged else ing
+
+                saved_at = datetime.now()
+                cursor.execute("DELETE FROM user_ingredients WHERE user_id = %s", (storage_user_id,))
+                for ing in merged.values():
+                    cursor.execute(
+                        """INSERT INTO user_ingredients (user_id, name, storage_box, expiry_date, purchase_date, saved_at)
+                           VALUES (%s, %s, %s, %s, %s, %s)""",
+                        (storage_user_id, ing['name'], ing['storage_box'], ing['expiry_date'], ing['purchase_date'], saved_at)
+                    )
+            # merge_ingredients가 false면 내 개인 재료는 그대로 두고 아무것도
+            # 옮기지 않는다 — 그룹에 들어가는 순간부터는 어차피 storage_user_id로
+            # 리다이렉션되어 그룹의 기존 재료를 보게 된다.
+
+            cursor.execute(
+                "UPDATE users SET household_id = %s, share_recipe_actions = %s WHERE id = %s",
+                (household['id'], 1 if share_recipe_actions else 0, user_id)
+            )
             db.commit()
             return jsonify({'message': '그룹에 참여했습니다.'}), 200
         except Exception as e:
@@ -2258,9 +2291,38 @@ def join_household():
         return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
 
 
+def _copy_ingredients(cursor, from_user_id, to_user_id, saved_at):
+    """from_user_id의 현재 재료를 그대로 to_user_id 소유로 복사(덮어쓰기)."""
+    cursor.execute(
+        "SELECT name, storage_box, expiry_date, purchase_date FROM user_ingredients WHERE user_id = %s",
+        (from_user_id,)
+    )
+    rows = cursor.fetchall()
+    cursor.execute("DELETE FROM user_ingredients WHERE user_id = %s", (to_user_id,))
+    for row in rows:
+        cursor.execute(
+            """INSERT INTO user_ingredients (user_id, name, storage_box, expiry_date, purchase_date, saved_at)
+               VALUES (%s, %s, %s, %s, %s, %s)""",
+            (to_user_id, row['name'], row['storage_box'], row['expiry_date'], row['purchase_date'], saved_at)
+        )
+
+
 @app.route('/api/households/leave', methods=['POST'])
 def leave_household():
-    """그룹에서 나가기. 그룹의 공유 재료는 그대로 남고, 내 계정만 빠진다."""
+    """그룹에서 나가기.
+
+    나가는 사람은 "그동안 같이 관리하던 그룹 재료"를 그대로 들고 나간다 —
+    가입 전 개인 재료로 되돌아가는 게 아니라, 나가는 시점의 그룹 재료
+    스냅샷이 그 사람의 개인 재료가 된다(가족과 물리적으로 냉장고를 나눠
+    쓰다가 분가하면서 지금 있는 재료를 그대로 챙겨 나가는 것과 같은 그림).
+
+    나가는 사람이 그룹의 저장 계정(storage_user_id)이었다면, 남은 멤버가
+    계속 같은 데이터를 보게 해야 하므로 다른 남은 멤버에게 저장 위치를
+    옮겨준다.
+
+    즐겨찾기/완료/기록은 애초에 그룹과 무관하게 항상 계정별 개인 기록이었으므로
+    나가도 전혀 바뀌지 않는다.
+    """
     try:
         auth_header = request.headers.get('Authorization')
         if not auth_header or not auth_header.startswith('Bearer '):
@@ -2271,13 +2333,36 @@ def leave_household():
         user_id = payload.get('user_id')
 
         ensure_households_table()
+        ensure_user_data_tables()
         db = get_db()
         cursor = db.cursor()
         try:
-            cursor.execute("SELECT household_id FROM users WHERE id = %s", (user_id,))
-            row = cursor.fetchone()
-            if not row or not row['household_id']:
+            household = get_household_by_user(cursor, user_id)
+            if not household:
                 return jsonify({'error': '속한 그룹이 없습니다.'}), 400
+
+            storage_user_id = household['storage_user_id']
+            saved_at = datetime.now()
+
+            if storage_user_id == user_id:
+                # 내가 이 그룹의 저장 계정이었던 경우, 남은 멤버가 있으면
+                # 그 사람 쪽으로 저장 위치를 옮겨준다(데이터는 그대로 복사).
+                cursor.execute(
+                    "SELECT id FROM users WHERE household_id = %s AND id != %s ORDER BY id ASC LIMIT 1",
+                    (household['id'], user_id)
+                )
+                next_owner = cursor.fetchone()
+                if next_owner:
+                    _copy_ingredients(cursor, storage_user_id, next_owner['id'], saved_at)
+                    cursor.execute(
+                        "UPDATE households SET storage_user_id = %s WHERE id = %s",
+                        (next_owner['id'], household['id'])
+                    )
+                # 남은 멤버가 없으면 내 재료가 곧 그룹 재료였으므로 따로 복사할 것도 없다.
+            else:
+                # 저장 계정이 아니었다면, 지금 보고 있던 그룹 재료를 내 개인
+                # 재료로 그대로 복사해 온다.
+                _copy_ingredients(cursor, storage_user_id, user_id, saved_at)
 
             cursor.execute("UPDATE users SET household_id = NULL WHERE id = %s", (user_id,))
             db.commit()
@@ -2325,6 +2410,68 @@ def regenerate_household_code():
             db.close()
     except Exception as e:
         print(f"Regenerate household code error: {e}")
+        return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
+
+
+@app.route('/api/households/me/recipe-actions', methods=['GET'])
+def get_household_recipe_actions():
+    """그룹원 전체의 즐겨찾기/완료/기록 레시피 id + 누가 남겼는지.
+
+    즐겨찾기 등 자체는 계정별 개인 기록으로 그대로 두고(합치지 않음),
+    화면에서 "OO님이 즐겨찾기함" 배지를 붙일 수 있도록 조회만 모아서 준다.
+    그룹이 없으면(=혼자) 빈 값을 준다 — 이 경우 프론트는 배지를 표시할 필요가
+    없다."""
+    try:
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({'error': '인증이 필요합니다.'}), 401
+        payload = verify_jwt_token(auth_header.split(' ')[1])
+        if not payload:
+            return jsonify({'error': '권한이 없습니다.'}), 403
+        user_id = payload.get('user_id')
+
+        ensure_households_table()
+        ensure_user_data_tables()
+        db = get_db()
+        cursor = db.cursor()
+        try:
+            household = get_household_by_user(cursor, user_id)
+            if not household:
+                return jsonify({'favorite': {}, 'completed': {}, 'recorded': {}}), 200
+
+            cursor.execute(
+                """SELECT id, nickname FROM users
+                   WHERE household_id = %s AND deleted_at IS NULL AND share_recipe_actions = 1""",
+                (household['id'],)
+            )
+            members = {m['id']: m['nickname'] for m in cursor.fetchall()}
+            member_ids = list(members.keys())
+            if not member_ids:
+                return jsonify({'favorite': {}, 'completed': {}, 'recorded': {}}), 200
+
+            table_map = {
+                'favorite': 'user_favorite_recipes',
+                'completed': 'user_completed_recipes',
+                'recorded': 'user_recorded_recipes',
+            }
+            result = {}
+            placeholders = ','.join(['%s'] * len(member_ids))
+            for key, table in table_map.items():
+                cursor.execute(
+                    f"SELECT recipe_id, user_id FROM {table} WHERE user_id IN ({placeholders})",
+                    member_ids
+                )
+                by_recipe = {}
+                for row in cursor.fetchall():
+                    rid = str(row['recipe_id'])
+                    by_recipe.setdefault(rid, []).append(members.get(row['user_id'], ''))
+                result[key] = by_recipe
+
+            return jsonify(result), 200
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"Get household recipe actions error: {e}")
         return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
 
 

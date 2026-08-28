@@ -17,6 +17,7 @@ import RecipeList from '../pages/RecipeList';
 import MyPage from '../pages/MyPage';
 import IngredientDetail from '../pages/IngredientDetail';
 import AuthSuccess from '../pages/AuthSuccess';
+import JoinHousehold from '../pages/JoinHousehold';
 import { evaluateVisitForUsageGuide } from '../utils/onboardingPrompts';
 
 // =====================
@@ -40,6 +41,7 @@ const ROUTES = {
   MY_RECORDED: '/mypage/recorded',
   MY_COMPLETED: '/mypage/completed',
   MY_FAVORITE: '/mypage/favorite',
+  JOIN_HOUSEHOLD: '/join-household',
 } as const;
 
 // =====================
@@ -164,11 +166,17 @@ function AppContent() {
           />
           
           {/* 소셜 로그인 성공 */}
-          <Route 
-            path="/auth/success" 
-            element={<AuthSuccess />} 
+          <Route
+            path="/auth/success"
+            element={<AuthSuccess />}
           />
-          
+
+          {/* 가족 그룹 초대 링크로 진입 */}
+          <Route
+            path={ROUTES.JOIN_HOUSEHOLD}
+            element={<JoinHousehold />}
+          />
+
           {/* 내 냉장고 페이지 */}
           <Route 
             path={ROUTES.MY_FRIDGE} 

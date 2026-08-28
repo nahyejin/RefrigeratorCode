@@ -3,7 +3,7 @@ import CloseButton from './ui/CloseButton';
 import { isStandaloneAppMode } from '../utils/onboardingPrompts';
 import { showInstallPrompt } from '../utils/pwa';
 
-export type CaptureMode = 'receipt' | 'food-single' | 'food-multi' | 'gallery' | 'file';
+export type CaptureMode = 'receipt' | 'food-single' | 'food-multi' | 'file';
 
 interface CameraCaptureSheetProps {
   isOpen: boolean;
@@ -18,21 +18,21 @@ function isIOS(): boolean {
 }
 
 const ReceiptIcon: React.FC = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1A1A1E" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+  <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#1A1A1E" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
     <path d="M5.5 3.4l1.6 1.3 1.6-1.3 1.6 1.3 1.6-1.3 1.6 1.3 1.6-1.3 1.6 1.3V19a1.6 1.6 0 0 1-1.6 1.6H7.1A1.6 1.6 0 0 1 5.5 19z" />
     <path d="M8.6 8.2h6.8M8.6 11.6h6.8M8.6 15h4.2" />
   </svg>
 );
 
 const FoodSingleIcon: React.FC = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1A1A1E" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+  <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#1A1A1E" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
     <path d="M4 8.2h3.1l1.5-2.2h6.8l1.5 2.2H20a1.6 1.6 0 0 1 1.6 1.6v8.4A1.6 1.6 0 0 1 20 19.8H4a1.6 1.6 0 0 1-1.6-1.6V9.8A1.6 1.6 0 0 1 4 8.2z" />
     <circle cx="12" cy="13.6" r="3.4" />
   </svg>
 );
 
 const FoodMultiIcon: React.FC = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1A1A1E" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+  <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#1A1A1E" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
     <rect x="3" y="3" width="8" height="8" rx="1.6" />
     <rect x="13" y="3" width="8" height="8" rx="1.6" />
     <rect x="3" y="13" width="8" height="8" rx="1.6" />
@@ -40,10 +40,10 @@ const FoodMultiIcon: React.FC = () => (
   </svg>
 );
 
-const OPTIONS: { key: Extract<CaptureMode, 'receipt' | 'food-single' | 'food-multi'>; label: string; hint: string; icon: React.FC }[] = [
-  { key: 'receipt', label: '영수증', hint: '영수증 한 장을 찍어요', icon: ReceiptIcon },
-  { key: 'food-single', label: '음식 (재료 1개)', hint: '재료 하나만 나온 사진', icon: FoodSingleIcon },
-  { key: 'food-multi', label: '음식 (재료 여러 개)', hint: '여러 재료가 함께 나온 사진', icon: FoodMultiIcon },
+const OPTIONS: { key: Extract<CaptureMode, 'receipt' | 'food-single' | 'food-multi'>; label: string; icon: React.FC }[] = [
+  { key: 'receipt', label: '영수증', icon: ReceiptIcon },
+  { key: 'food-single', label: '음식 1개', icon: FoodSingleIcon },
+  { key: 'food-multi', label: '음식 여러 개', icon: FoodMultiIcon },
 ];
 
 /**
@@ -63,7 +63,6 @@ const OPTIONS: { key: Extract<CaptureMode, 'receipt' | 'food-single' | 'food-mul
  */
 const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose, onCaptured }) => {
   const cameraInputRef = useRef<HTMLInputElement>(null);
-  const galleryInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [pendingMode, setPendingMode] = useState<CaptureMode>('food-single');
 
@@ -86,9 +85,10 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
 
   return (
     <>
-      {/* 실제 촬영/선택은 숨겨진 input 세 개가 담당한다.
-          capture="environment" 는 모바일에서 바로 후면 카메라를 연다 —
-          없으면 대부분 브라우저가 "카메라로 찍기/앨범에서 선택"을 물어본다. */}
+      {/* 실제 촬영/선택은 숨겨진 input 두 개가 담당한다.
+          capture="environment" 는 모바일에서 바로 후면 카메라를 연다.
+          아래쪽 것은 capture가 없어 앨범·파일 앱을 그대로 보여준다 — 모바일에서는
+          이 하나로 앨범/파일 선택이 다 되므로 버튼을 둘로 나눌 필요가 없다. */}
       <input
         ref={cameraInputRef}
         type="file"
@@ -96,13 +96,6 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
         capture="environment"
         style={{ display: 'none' }}
         onChange={makeChangeHandler(pendingMode)}
-      />
-      <input
-        ref={galleryInputRef}
-        type="file"
-        accept="image/*"
-        style={{ display: 'none' }}
-        onChange={makeChangeHandler('gallery')}
       />
       <input
         ref={fileInputRef}
@@ -162,23 +155,27 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
           무엇을 찍을까요?
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
-          {OPTIONS.map(({ key, label, hint, icon: Icon }) => (
+        {/* 카드를 눌러야 찍힌다는 게 한눈에 들어오도록, 글줄보다 아이콘을 훨씬
+            크게 키운 정사각 타일 3개를 나란히 둔다(설명문처럼 가로로 긴 줄
+            형태였던 이전 버전은 "눌러서 촬영"이라는 느낌이 잘 안 살았다). */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 14 }}>
+          {OPTIONS.map(({ key, label, icon: Icon }) => (
             <button
               key={key}
               type="button"
               onClick={() => openCameraFor(key)}
               style={{
                 display: 'flex',
+                flexDirection: 'column',
                 alignItems: 'center',
-                gap: 12,
-                width: '100%',
-                padding: '12px 14px',
-                borderRadius: 14,
+                justifyContent: 'center',
+                gap: 8,
+                aspectRatio: '1 / 1',
+                padding: '10px 6px',
+                borderRadius: 16,
                 border: '1px solid var(--line-200)',
                 background: 'var(--surface-sub)',
                 cursor: 'pointer',
-                textAlign: 'left',
               }}
             >
               <span
@@ -186,8 +183,8 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
                   display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  width: 40,
-                  height: 40,
+                  width: 56,
+                  height: 56,
                   borderRadius: '50%',
                   background: '#FFFFFF',
                   border: '1px solid var(--line-200)',
@@ -196,50 +193,29 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
               >
                 <Icon />
               </span>
-              <span style={{ minWidth: 0 }}>
-                <span style={{ display: 'block', fontSize: 15, fontWeight: 700, color: '#1A1A1E' }}>{label}</span>
-                <span style={{ display: 'block', fontSize: 12, color: 'var(--ink-500)' }}>{hint}</span>
-              </span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#1A1A1E', textAlign: 'center' }}>{label}</span>
             </button>
           ))}
         </div>
 
-        <div style={{ display: 'flex', gap: 8, marginBottom: installed ? 4 : 14 }}>
-          <button
-            type="button"
-            onClick={() => galleryInputRef.current?.click()}
-            style={{
-              flex: 1,
-              height: 38,
-              borderRadius: 10,
-              border: '1px solid var(--line-200)',
-              background: '#FFFFFF',
-              color: 'var(--ink-700)',
-              fontSize: 13,
-              fontWeight: 600,
-              cursor: 'pointer',
-            }}
-          >
-            사진 앨범에서 선택
-          </button>
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            style={{
-              flex: 1,
-              height: 38,
-              borderRadius: 10,
-              border: '1px solid var(--line-200)',
-              background: '#FFFFFF',
-              color: 'var(--ink-700)',
-              fontSize: 13,
-              fontWeight: 600,
-              cursor: 'pointer',
-            }}
-          >
-            파일에서 추가
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          style={{
+            width: '100%',
+            height: 40,
+            borderRadius: 10,
+            border: '1px solid var(--line-200)',
+            background: '#FFFFFF',
+            color: 'var(--ink-700)',
+            fontSize: 13,
+            fontWeight: 600,
+            cursor: 'pointer',
+            marginBottom: installed ? 4 : 14,
+          }}
+        >
+          사진 앨범/파일에서 선택
+        </button>
 
         {/* 진짜 "홈 화면 위젯"/"다른 앱 위에 떠 있는 버튼"은 PWA 로는 만들 수 없다
             (네이티브 앱이어야 함). 지금 할 수 있는 최선은 홈 화면 설치 안내뿐이라,

@@ -31,6 +31,8 @@ interface VirtualizedHorizontalRecipeListProps {
    * 끄는 편이 낫다 — 내가 모아 둔 것들 사이에 광고가 섞이면 목록의 성격이 흐려진다.
    */
   showAds?: boolean;
+  /** 카드에 "OO님도 즐겨찾기함" 같은 배지를 붙일 문구. undefined면 배지 없음. */
+  getAttributionLabel?: (recipe: Recipe) => string | undefined;
 }
 
 // 상수 정의
@@ -105,7 +107,8 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
   onThumbnailError,
   listHeightExtra = 64,
   compactSectionGap = false,
-  showAds = true
+  showAds = true,
+  getAttributionLabel
 }) => {
   /** compact: List 높이 = cardHeight + extra. cardHeight는 가로 카드 실세로 요즘인기와 맞출 것(불필요하게 크면 빈 띠). */
   const resolvedListHeightExtra = compactSectionGap
@@ -322,6 +325,7 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
           isHorizontal={true}
           fixedHeight={cardHeight}
           onThumbnailError={onThumbnailError}
+          attributionLabel={getAttributionLabel?.(recipe)}
         />
       </div>
     );

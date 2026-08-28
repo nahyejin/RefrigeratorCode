@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { getPostLoginRedirectPath } from '../utils/householdInvite';
 
 /**
  * 소셜 로그인 성공 페이지
@@ -38,7 +39,7 @@ const AuthSuccess: React.FC = () => {
       // 토큰으로 로그인 처리
       loginWithToken(token)
         .then(() => {
-          navigate('/my-fridge');
+          navigate(getPostLoginRedirectPath('/my-fridge'));
         })
         .catch((err) => {
           console.error('Login failed:', err);

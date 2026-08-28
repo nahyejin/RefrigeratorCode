@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import NeangteolButton from '../components/NeangteolButton';
 import NeangteolInput from '../components/NeangteolInput';
 import { useAuth } from '../context/AuthContext';
+import { getPostLoginRedirectPath } from '../utils/householdInvite';
 
 // =====================
 // 상수
@@ -262,7 +263,7 @@ const Signup: React.FC = () => {
       // 로그인 처리
       if (data.token) {
         await loginWithToken(data.token);
-        navigate('/my-fridge');
+        navigate(getPostLoginRedirectPath('/my-fridge'));
       }
     } catch (err) {
       console.error('Signup error:', err);

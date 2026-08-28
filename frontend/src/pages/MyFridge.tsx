@@ -1596,8 +1596,7 @@ const MyFridge: React.FC = () => {
       receipt: '영수증을 찍으면 재료를 자동으로 담아 주는 기능을 준비하고 있어요.',
       'food-single': '재료 사진을 찍으면 알아서 인식해 담아 주는 기능을 준비하고 있어요.',
       'food-multi': '여러 재료가 담긴 사진도 한 번에 인식하는 기능을 준비하고 있어요.',
-      gallery: '앨범 사진으로 재료를 자동으로 담아 주는 기능을 준비하고 있어요.',
-      file: '사진 파일로 재료를 자동으로 담아 주는 기능을 준비하고 있어요.',
+      file: '앨범·파일 사진으로 재료를 자동으로 담아 주는 기능을 준비하고 있어요.',
     };
     showPrepNotice(message[mode]);
   };
@@ -2074,19 +2073,25 @@ const MyFridge: React.FC = () => {
                 실제 인식 기능이 들어오기 전까진 어차피 준비 중 안내만 뜨는 자리였다.
                 버튼 하나로 모으고, 눌렀을 때 "뭘 찍을지" 먼저 고르게 한다
                 (CameraCaptureSheet). */}
-            <button
-              type="button"
-              className="bg-[#E6E6EA] text-[#1A1A1E] font-bold rounded-2xl px-2 py-2 text-sm shadow transition whitespace-nowrap focus:outline-none"
-              style={{ display: 'flex', alignItems: 'center', height: 40, width: 40, minWidth: 40, flexShrink: 0, padding: 0, marginLeft: 0, border: '1px solid #E6E6EA', justifyContent: 'center', borderRadius: 20, alignSelf: 'flex-start' }}
-              onClick={() => setCameraSheetOpen(true)}
-              title="사진으로 재료 담기"
-              aria-label="사진으로 재료 담기"
-            >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1A1A1E" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                <path d="M4 8.2h3.1l1.5-2.2h6.8l1.5 2.2H20a1.6 1.6 0 0 1 1.6 1.6v8.4A1.6 1.6 0 0 1 20 19.8H4a1.6 1.6 0 0 1-1.6-1.6V9.8A1.6 1.6 0 0 1 4 8.2z" />
-                <circle cx="12" cy="13.6" r="3.4" />
-              </svg>
-            </button>
+            {/* AI 인식 예정 영역임을 챗봇 FAB과 같은 시각 언어(노란 셰이머 애니메이션 +
+                "AI" 배지)로 알려준다 — 같은 앱 안에서 "AI가 관여하는 자리" 는
+                항상 같은 방식으로 표시되도록. */}
+            <div style={{ position: 'relative', width: 40, height: 40, flexShrink: 0, alignSelf: 'flex-start' }}>
+              <div className="ai-fab-glow" />
+              <button
+                type="button"
+                className="ai-fab-button"
+                onClick={() => setCameraSheetOpen(true)}
+                title="사진으로 재료 담기"
+                aria-label="사진으로 재료 담기"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1A1A1E" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <path d="M4 8.2h3.1l1.5-2.2h6.8l1.5 2.2H20a1.6 1.6 0 0 1 1.6 1.6v8.4A1.6 1.6 0 0 1 20 19.8H4a1.6 1.6 0 0 1-1.6-1.6V9.8A1.6 1.6 0 0 1 4 8.2z" />
+                  <circle cx="12" cy="13.6" r="3.4" />
+                </svg>
+              </button>
+              <span className="ai-fab-badge">AI</span>
+            </div>
           </div>
         </div>
         <CameraCaptureSheet

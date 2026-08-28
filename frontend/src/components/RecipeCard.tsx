@@ -197,6 +197,12 @@ export interface RecipeCardProps {
   hasAd?: boolean; // 광고 표시 여부
   isHorizontal?: boolean; // 가로 스크롤형 카드 여부 (썸네일 높이 조정용)
   /**
+   * "OO님이 즐겨찾기함" 처럼, 가족 그룹에서 이 항목을 누가 남겼는지 보여주는
+   * 작은 배지 문구. 그룹에 속하지 않았거나 본인 것만 있으면 상위에서 아예
+   * 넘기지 않으면 된다(그때는 아무것도 렌더링하지 않음).
+   */
+  attributionLabel?: string;
+  /**
    * 가로 목록에서 카드 높이를 이 값으로 고정한다.
    * 재료 pill 이 몇 줄로 감기느냐에 따라 카드 높이가 228~280px 로 들쭉날쭉했고,
    * 그 사이에 규격이 같아야 할 광고 카드가 끼면 높이 차이가 그대로 드러났다.
@@ -220,6 +226,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
   hasAd: hasAdProp,
   isHorizontal = false,
   fixedHeight,
+  attributionLabel,
 }) => {
   // 부족 재료 pill 을 눌렀을 때 열리는 구매 안내 시트의 대상 재료
   const [adIngredient, setAdIngredient] = React.useState<string | null>(null);
@@ -509,6 +516,24 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
       <div style={{ ...STYLES.title, cursor: 'pointer' }}>
         {recipe.title}
       </div>
+      {attributionLabel && (
+        <div style={{ marginBottom: 4 }}>
+          <span
+            style={{
+              display: 'inline-block',
+              fontSize: 11,
+              fontWeight: 700,
+              color: 'var(--ink-700)',
+              background: 'var(--surface-sub)',
+              border: '1px solid var(--line-200)',
+              borderRadius: 9999,
+              padding: '2px 8px',
+            }}
+          >
+            {attributionLabel}
+          </span>
+        </div>
+      )}
       <div style={{ ...STYLES.stats, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, minWidth: 0 }}>
         {/* 좋아요·댓글·조회수가 줄바꿈되면 카드 높이가 들쭉날쭉해져 한 줄로 고정 */}
         <span
