@@ -547,6 +547,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
                 cursor: 'pointer',
                 borderRadius: 9999,
               }}
+              {...(index === 0 ? { 'data-guide-target': `recipe-${key}-button` } : {})}
             >
               <img
                 src={icon}

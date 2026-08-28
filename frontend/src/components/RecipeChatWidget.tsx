@@ -11,7 +11,7 @@ const API_BASE_URL =
 const STORAGE_FRIDGE = 'myfridge_ingredients';
 const STORAGE_THREADS = 'cookmatch_chat_threads';
 const HISTORY_RETENTION_DAYS = 30;
-const MAX_STORED_THREADS = 100;
+const MAX_STORED_THREADS = 30;
 
 /** 첫 진입 시 보여주는 예시 질문 (맛 / 냉장고 / 대상 / 목적 / 상황을 고루 커버) */
 const SUGGESTIONS = [
@@ -494,6 +494,11 @@ const RecipeChatWidget: React.FC = () => {
                   </button>
                 </div>
               ))}
+              {threads.length > 0 && (
+                <p className="text-[11px] text-gray-400 text-center pt-2 pb-1">
+                  최근 대화 {MAX_STORED_THREADS}개까지만 보관돼요. 그 이전 대화는 자동으로 지워져요.
+                </p>
+              )}
             </div>
           ) : (
             <div ref={listRef} className="ai-chat-scroll flex-1 overflow-y-auto px-3 py-3 space-y-3" style={{ minHeight: 0 }}>

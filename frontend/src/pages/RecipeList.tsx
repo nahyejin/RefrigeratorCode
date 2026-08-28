@@ -4,13 +4,10 @@ import IngredientLegend from '../components/IngredientLegend';
 import React, { useState, useEffect, useMemo, useCallback, useRef, useLayoutEffect } from 'react';
 import BottomNavBar from '../components/BottomNavBar';
 import { useNavigate, useLocation } from 'react-router-dom';
-import doneIcon from '../assets/done.svg';
-import shareIcon from '../assets/share.svg';
-import writeIcon from '../assets/write.svg';
-import doneBlackIcon from '../assets/done_black.svg';
-import shareBlackIcon from '../assets/share_black.svg';
-import writeBlackIcon from '../assets/write_black.svg';
 import nodataImg from '../assets/nodata.png';
+import 완료하기버튼 from '../assets/완료하기버튼.png';
+import 공유하기버튼 from '../assets/공유하기버튼.png';
+import 기록하기버튼 from '../assets/기록하기버튼.png';
 import FilterModal from '../components/FilterModal';
 import { fetchRecipesDummy } from '../utils/dummyData';
 import RecipeCard from '../components/RecipeCard';
@@ -34,6 +31,46 @@ import { useAuth } from '../context/AuthContext';
 import RegisterPromptModal from '../components/RegisterPromptModal';
 import GuideOverlay from '../components/GuideOverlay';
 import { markUsageGuideFinished, markUsageGuideOpened } from '../utils/onboardingPrompts';
+
+// 사용법 안내(GuideOverlay)에서 "즐겨찾기(☆)" 처럼 글자로 아이콘을 대신 적어 두면
+// 실제 버튼 모양과 안 맞거나(즐겨찾기는 카드 위 어두운 원+별) 폰트에 따라 글자가
+// 깨져 보일 수 있다(기록 안내의 `⟎`가 그랬다). 카드에 실제로 쓰는 아이콘을 그대로 보여준다.
+const GuideFavoriteIcon: React.FC = () => (
+  <span
+    aria-hidden="true"
+    style={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: 20,
+      height: 20,
+      borderRadius: '50%',
+      background: 'rgba(34,34,34,0.7)',
+      verticalAlign: 'middle',
+      margin: '0 2px',
+    }}
+  >
+    <svg width={13} height={13} viewBox="0 0 24 24">
+      <path
+        d="M12 2.75l2.72 5.51 6.08.88-4.4 4.29 1.04 6.05L12 16.62 6.56 19.48l1.04-6.05-4.4-4.29 6.08-.88L12 2.75z"
+        fill="none"
+        stroke="#FFFFFF"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+    </svg>
+  </span>
+);
+
+const GuideActionIcon: React.FC<{ src: string; alt: string }> = ({ src, alt }) => (
+  <img
+    src={src}
+    alt={alt}
+    width={18}
+    height={18}
+    style={{ verticalAlign: 'middle', margin: '0 2px' }}
+  />
+);
 
 // =====================
 // 상수
@@ -1303,7 +1340,7 @@ const RecipeList: React.FC = () => {
       targetSelector: '[data-guide-target="recipe-favorite-button"]',
       message: (
         <>
-          즐겨찾기(☆) 버튼을 누르면 레시피가 즐겨찾기 되어요.
+          <GuideFavoriteIcon /> 버튼을 누르면 레시피가 즐겨찾기 되어요.
           <br />
           즐겨찾는 레시피는 마이페이지에서 확인할 수 있어요.
         </>
@@ -1314,7 +1351,7 @@ const RecipeList: React.FC = () => {
       targetSelector: '[data-guide-target="recipe-done-button"]',
       message: (
         <>
-          완료(<span style={{ color: '#1A1A1E' }}>✓</span>) 버튼을 누르면 레시피를 완료 상태로 저장해요.<br />
+          <GuideActionIcon src={완료하기버튼} alt="완료" /> 버튼을 누르면 레시피를 완료 상태로 저장해요.<br />
           완료 레시피는 마이페이지에서 확인할 수 있어요.
         </>
       ),
@@ -1324,7 +1361,7 @@ const RecipeList: React.FC = () => {
       targetSelector: '[data-guide-target="recipe-share-button"]',
       message: (
         <>
-          공유(<span style={{ color: '#1A1A1E' }}>➣</span>) 레시피 링크를 복사해서<br />
+          <GuideActionIcon src={공유하기버튼} alt="공유" /> 버튼을 누르면 레시피 링크를 복사해서<br />
           다른 사람과 공유할 수 있어요.
         </>
       ),
@@ -1334,7 +1371,7 @@ const RecipeList: React.FC = () => {
       targetSelector: '[data-guide-target="recipe-write-button"]',
       message: (
         <>
-          기록(<span style={{ color: '#1A1A1E' }}>⟎</span>) 버튼을 누르면 레시피를 기록 상태로 저장해요.<br />
+          <GuideActionIcon src={기록하기버튼} alt="기록" /> 버튼을 누르면 레시피를 기록 상태로 저장해요.<br />
           기록한 레시피는 마이페이지에서 확인할 수 있어요.
         </>
       ),

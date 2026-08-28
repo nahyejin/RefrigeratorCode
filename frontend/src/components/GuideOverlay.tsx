@@ -115,6 +115,11 @@ const GuideOverlay: React.FC<GuideOverlayProps> = ({
         };
         applyRect();
       } else {
+        // 이번 단계의 타겟을 못 찾으면 targetRect 를 반드시 비워야 한다.
+        // 안 비우면 직전 단계에서 찾았던 위치가 그대로 남아, 노란 하이라이트가
+        // 엉뚱한(이전 단계) 요소 자리에 떠 있는 것처럼 보인다 — 실제로 UI가
+        // 바뀌어 selector 가 안 맞게 됐을 때 이 증상으로 나타났다.
+        setTargetRect(null);
         console.warn('[GuideOverlay] 타겟 요소를 찾을 수 없습니다:', steps[currentStep].targetSelector);
         console.log('[GuideOverlay] 현재 페이지의 모든 [title="설정"] 요소:', document.querySelectorAll('[title="설정"]'));
         console.log('[GuideOverlay] 현재 페이지의 모든 [data-guide-target] 요소:', document.querySelectorAll('[data-guide-target]'));

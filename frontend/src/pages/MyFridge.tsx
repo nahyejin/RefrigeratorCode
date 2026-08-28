@@ -43,7 +43,7 @@ const baseGuideSteps = [
   },
   {
     targetSelector: '[data-guide-target="settings-icon"]',
-    message: '재료 옆의 설정 아이콘 (⚙️)을 누르면\n보관공간, 유통기한, 구매기한을 변경할 수 있어요.',
+    message: '이 재료 배지를 누르면\n보관공간, 유통기한, 구매기한을 변경할 수 있어요.',
     position: 'left' as const,
   },
 ];
