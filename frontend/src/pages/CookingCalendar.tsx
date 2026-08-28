@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
-import BottomNavBar from '../components/BottomNavBar';
+import BottomNavBar, { CALENDAR_ICON_PATHS } from '../components/BottomNavBar';
 import PullToRefresh from '../components/PullToRefresh';
 import { useAuth } from '../context/AuthContext';
 import { getProxiedImageUrl } from '../utils/imageUtils';
@@ -61,6 +61,22 @@ function colorForUser(userId: number, orderedIds: number[]): string {
   const idx = orderedIds.indexOf(userId);
   return MEMBER_COLORS[idx % MEMBER_COLORS.length];
 }
+
+// ✓/✎ 같은 유니코드 기호 대신 SectionIcon과 같은 선 아이콘 스타일(24 뷰박스)로
+// 그린다 — 유니코드 기호도 폰트/OS에 따라 이모지 스타일로 렌더될 수 있어
+// "이모지는 최대한 쓰지 말아 달라"는 요청에 맞춰 전부 SVG로 통일했다.
+const CheckIcon: React.FC = () => (
+  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <path d="M4.4 12.6l5.2 5.2 10-11.6" />
+  </svg>
+);
+
+const PencilIcon: React.FC = () => (
+  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <path d="M4 20l.9-4.5L16.2 4.2a1.8 1.8 0 0 1 2.6 0l1 1a1.8 1.8 0 0 1 0 2.6L8.5 19.1z" />
+    <path d="M14.5 6.5l3 3" />
+  </svg>
+);
 
 // 절약액 추정치. 재료 가격 데이터가 없어 정확한 계산은 못 하지만, "외식/배달
 // 한 끼 평균 비용 - 집밥 한 끼 평균 재료비" 정도의 대략적인 추정은 완료
@@ -326,7 +342,20 @@ const CookingCalendar: React.FC = () => {
     return (
       <div className="min-h-screen w-full flex items-center justify-center bg-white">
         <div style={{ textAlign: 'center', padding: '0 32px' }}>
-          <div style={{ fontSize: 32, marginBottom: 12 }}>📅</div>
+          <svg
+            width="40"
+            height="40"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#1A1A1E"
+            strokeWidth="1"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden
+            style={{ marginBottom: 12 }}
+          >
+            {CALENDAR_ICON_PATHS}
+          </svg>
           <p style={{ fontSize: 15, fontWeight: 700, color: '#1A1A1E', marginBottom: 8 }}>
             로그인하면 요리 캘린더를 쓸 수 있어요
           </p>
@@ -488,8 +517,16 @@ const CookingCalendar: React.FC = () => {
             있게 했다. 목표·달성률·절약액까지는 카드를 접어도 항상 보인다. */}
         {monthlyTotal > 0 && (
           <div style={{ marginTop: 10 }}>
-            <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink-700)' }}>
-              💰 지금까지 예상 절약액 약 {formatWon(estimatedSavings)}원
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12.5, fontWeight: 600, color: 'var(--ink-700)' }}>
+              {/* 이모지(💰)는 기기·OS마다 그림체가 달라 앱의 다른 검정 선
+                  아이콘과 톤이 안 맞는다는 지적을 받아, SectionIcon과 같은
+                  선 아이콘 스타일(24 뷰박스, strokeWidth 1.7)로 통일했다. */}
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden style={{ flexShrink: 0 }}>
+                <ellipse cx="12" cy="17" rx="7" ry="3" />
+                <ellipse cx="12" cy="12" rx="7" ry="3" />
+                <path d="M5 12v5M19 12v5" />
+              </svg>
+              지금까지 예상 절약액 약 {formatWon(estimatedSavings)}원
             </div>
             <div style={{ fontSize: 11, color: 'var(--ink-500)', marginTop: 3, lineHeight: 1.5 }}>
               외식·배달 대비 1인 한 끼 {formatWon(savingsPerMeal)}원 절약 추정 × {monthlyTotal}회 × 식구 {familySize}명
@@ -514,7 +551,7 @@ const CookingCalendar: React.FC = () => {
                     aria-label="1인 한 끼 추정액 적용"
                     style={{ height: 22, padding: '0 8px', borderRadius: 6, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#1A1A1E', background: 'var(--brand)', border: 'none', cursor: 'pointer' }}
                   >
-                    ✓
+                    <CheckIcon />
                   </button>
                 </span>
               ) : (
@@ -527,7 +564,7 @@ const CookingCalendar: React.FC = () => {
                   style={{ display: 'inline-flex', alignItems: 'center', gap: 4, height: 26, padding: '0 10px', borderRadius: 9999, fontSize: 11.5, fontWeight: 600, color: 'var(--ink-700)', background: 'var(--surface)', border: '1px solid var(--line-300)', cursor: 'pointer' }}
                 >
                   1인 한 끼 {formatWon(savingsPerMeal)}원
-                  <span aria-hidden style={{ color: 'var(--ink-500)' }}>✎</span>
+                  <span aria-hidden style={{ color: 'var(--ink-500)', display: 'inline-flex' }}><PencilIcon /></span>
                 </button>
               )}
               {editingFamilySize ? (
@@ -549,7 +586,7 @@ const CookingCalendar: React.FC = () => {
                     aria-label="식구 수 적용"
                     style={{ height: 22, padding: '0 8px', borderRadius: 6, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#1A1A1E', background: 'var(--brand)', border: 'none', cursor: 'pointer' }}
                   >
-                    ✓
+                    <CheckIcon />
                   </button>
                 </span>
               ) : (
@@ -562,7 +599,7 @@ const CookingCalendar: React.FC = () => {
                   style={{ display: 'inline-flex', alignItems: 'center', gap: 4, height: 26, padding: '0 10px', borderRadius: 9999, fontSize: 11.5, fontWeight: 600, color: 'var(--ink-700)', background: 'var(--surface)', border: '1px solid var(--line-300)', cursor: 'pointer' }}
                 >
                   식구 {familySize}명
-                  <span aria-hidden style={{ color: 'var(--ink-500)' }}>✎</span>
+                  <span aria-hidden style={{ color: 'var(--ink-500)', display: 'inline-flex' }}><PencilIcon /></span>
                 </button>
               )}
             </div>

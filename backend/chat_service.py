@@ -201,7 +201,46 @@ def _call_groq(api_key, prompt):
     return res.json()['choices'][0]['message']['content']
 
 
-def _build_prompt(messages, ingredients):
+def _fridge_detail_block(ingredients, expiry_days):
+    """답변(reply) 문장에서 재료를 이름으로 부를 때 참고할 우선순위 목록을 만든다.
+
+    규칙(기획 요청): 조미료보다 일반 식재료를 먼저 언급하고, 그중에서는 유통기한이
+    임박한 것을 우선한다. 검색 자체(keywords/include/exclude_ingredients)에는 쓰지
+    않는다 — 그건 이미 별도 규칙(수정 요청 처리 등)으로 결정되고, 여기 목록은 오직
+    "이번 답변에서 어떤 재료를 이름으로 부를지" 고르는 데만 참고자료로 준다.
+
+    정렬 순서: 일반 식재료(유통기한 아는 순 → 짧게 남은 것부터) → 일반 식재료(유통기한
+    모름) → 조미료(양념). 조미료를 맨 뒤에 두는 것 자체가 "우선순위 낮음"을 뜻한다.
+    """
+    if not ingredients:
+        return '(아직 냉장고 재료 없음)'
+
+    seasoning_set = _load_seasoning_set()
+    core, core_unknown, seasoning = [], [], []
+    for name in ingredients[:MAX_INGREDIENTS]:
+        days = expiry_days.get(name)
+        is_seasoning = name in seasoning_set
+        if is_seasoning:
+            seasoning.append((name, days))
+        elif days is not None:
+            core.append((name, days))
+        else:
+            core_unknown.append((name, days))
+    core.sort(key=lambda item: item[1])
+
+    lines = []
+    for name, days in core:
+        urgent = ' (임박)' if days <= 3 else ''
+        lines.append(f'- {name} | 식재료 | D-{days}{urgent}')
+    for name, _ in core_unknown:
+        lines.append(f'- {name} | 식재료 | 유통기한 정보 없음')
+    for name, days in seasoning:
+        tag = f'D-{days}' if days is not None else '유통기한 정보 없음'
+        lines.append(f'- {name} | 조미료(이름으로 언급 우선순위 낮음) | {tag}')
+    return '\n'.join(lines)
+
+
+def _build_prompt(messages, ingredients, last_turn=None, expiry_days=None):
     history = []
     for msg in messages[-MAX_HISTORY:]:
         role = '사용자' if msg.get('role') == 'user' else '도우미'
@@ -209,6 +248,32 @@ def _build_prompt(messages, ingredients):
         if content:
             history.append(f'{role}: {content}')
     fridge = ', '.join(ingredients[:MAX_INGREDIENTS]) if ingredients else '(아직 냉장고 재료 없음)'
+    fridge_detail = _fridge_detail_block(ingredients, expiry_days or {})
+
+    # 직전 턴에 실제로 검색·표시했던 결과를 그대로 근거로 준다.
+    #
+    # 왜 필요한가: "최근 대화" 텍스트만으로는 직전에 어떤 레시피/재료를 실제로 보여줬는지
+    # 알 수 없다 — 도우미의 답변 문장이 항상 구체적인 재료명을 언급하는 건 아니기 때문이다.
+    # "너가 준 재료 중에 감자는 빼줘" 처럼 직전 결과를 가리키는 말은, 실제로 그때 검색에
+    # 쓴 조건과 화면에 뜬 레시피가 있어야 정확히 해석할 수 있다. 세션(대화창)별로 직전
+    # 검색 결과를 서버가 기억해 뒀다가 여기에 그대로 다시 넣어준다.
+    if last_turn and (last_turn.get('recipes') or last_turn.get('keywords')
+                       or last_turn.get('include_ingredients') or last_turn.get('exclude_ingredients')):
+        recipe_lines = [
+            f"{i}. {r.get('title') or '(제목 없음)'} (재료: {r.get('used_ingredients') or '정보 없음'})"
+            for i, r in enumerate(last_turn.get('recipes') or [], 1)
+        ]
+        last_turn_block = f"""
+직전 검색 결과 (사용자가 "너가 준 재료", "방금 그 레시피들" 이라고 말하면 이걸 가리키는 것이다):
+- 그때 쓴 검색어: {last_turn.get('keywords') or []}
+- 그때 꼭 포함시킨 재료: {last_turn.get('include_ingredients') or []}
+- 그때 제외한 재료: {last_turn.get('exclude_ingredients') or []}
+- 그때 실제로 보여준 레시피:
+{chr(10).join(recipe_lines) if recipe_lines else '(없음)'}
+"""
+    else:
+        last_turn_block = '\n직전 검색 결과: (없음 — 지금이 이 대화의 첫 검색이다)\n'
+
     return f"""너는 쿡매치 앱의 요리 도우미다.
 사용자는 냉장고 재료로 뭘 해먹을지 채팅으로 묻는다.
 레시피 링크를 만들지 마라. 없는 글 제목을 지어내지 마라.
@@ -221,25 +286,59 @@ DB 검색은 글자가 그대로 들어 있는지만 보기 때문에, 사용자
 보유 재료를 무시해도 된다고 명시적으로 말하면 ignore_fridge를 true로 설정한다.
 그 외에는 항상 ignore_fridge를 false로 둔다.
 
-아래 "최근 대화"에 네가 한 답변(도우미:)이 이미 있으면, 새 메시지를 이전 요청에 대한
-**수정**으로 봐라. 예를 들어 사용자가 "그중에 A는 빼고 B는 꼭 넣어서 다시 줘" 처럼 말하면
-A를 exclude_ingredients에, B를 include_ingredients에 넣어라(A, B는 실제 대화에 나온 재료로
-바꿔 생각해라). 사용자가 취소하지 않은 이전 조건(맛, 포함/제외 재료)은 새 요청에도 이어서
-반영하고, 매 턴을 완전히 새로운 질문처럼 처음부터 다시 판단하지 마라.
-**주의**: "최근 대화"에 네 답변(도우미:)이 하나도 없다면 — 즉 지금이 대화의 첫 메시지라면 —
-이 수정 규칙은 해당 없다. 그때는 존재하지 않는 이전 요청을 상상하지 말고, 그냥 새 요청으로
-봐라.
+너는 오직 이 대화방 안에서 요리/재료/레시피에 대해서만 판단한다. 요리와 무관한 잡담이나
+다른 화제로 새지 마라 — 사용자가 엉뚱한 걸 물어도 요리 도우미로서만 답하면 된다.
+
+아래 "직전 검색 결과"가 있으면, 새 메시지가 그 결과에 대한 **수정 요청**인지부터 판단해라.
+"그중에 A는 빼줘", "B도 꼭 들어간 걸로", "더 매운/간단한 걸로", "그거 말고 다른 거" 처럼
+직전 결과를 전제로 한 말이면 수정 요청이다. 이때는:
+  - 직전 검색어/포함재료/제외재료를 기본값으로 이어받고, 이번 메시지에서 말한 변경사항만
+    반영해라(A를 exclude_ingredients에 추가, B를 include_ingredients에 추가하는 식). A, B는
+    반드시 직전 결과나 냉장고 재료에 실제로 있는 이름으로 판단해라.
+  - **사용자가 명시적으로 말하지 않은 재료를 include_ingredients에 새로 채워 넣지 마라.**
+    예를 들어 "감자만 빼줘"는 감자를 exclude_ingredients에 넣으라는 뜻이지, 냉장고에 남은
+    다른 재료를 전부 include_ingredients에 넣어 "이 재료들이 전부 들어간 레시피만" 찾으라는
+    뜻이 아니다. 그렇게 하면 조건이 너무 좁아져 검색 결과가 0건이 되기 쉽다. include는
+    사용자가 "꼭 넣어줘/포함해줘" 처럼 명시적으로 요구한 재료에만 써라.
+  - reply는 "취향을 반영해 찾아볼게요" 같은 정해진 문구를 반복하지 말고, 이번에 실제로
+    뭘 바꿔서 다시 찾는지 짧게 확인해주는 자연스러운 톤으로 써라(예: "감자는 빼고 다시
+    찾아볼게요!"). 직전 답변을 그대로 되풀이하지 마라.
+사용자의 새 메시지가 직전 결과와 무관한 새로운 주제(다른 요리, 다른 상황 등)면 수정 요청이
+아니다 — 이전 조건에 얽매이지 말고 이번 메시지만 기준으로 새로 판단해라.
+**주의**: "직전 검색 결과"가 없다면 — 즉 지금이 대화의 첫 검색이라면 — 위 수정 규칙은 해당
+없다. 존재하지 않는 이전 요청을 상상하지 말고 그냥 새 요청으로 봐라. 이때 reply는 취향을
+반영해 찾아보겠다는 톤으로 써도 된다.
+
+reply 문장에서 냉장고 재료를 구체적인 이름으로 언급할 때는(예: "감자, 양파로 만들 수 있는
+요리를 찾아볼게요") 아래 "냉장고 재료 상세" 목록만 참고해서 골라라. 이 목록은 오직 reply의
+문구를 정할 때만 쓰고, keywords/include_ingredients/exclude_ingredients 판단에는 영향을
+주면 안 된다(그건 위 규칙대로만 정해라):
+  1) 목록에 "조미료"로 표시된 재료보다 "식재료"로 표시된 것을 먼저 언급해라. 조미료는 그
+     요리의 핵심 재료가 아닌 이상 이름으로 부르지 마라.
+  2) 식재료 중에서는 목록 순서(유통기한이 짧게 남은 것부터)를 우선으로 언급해라.
+  3) 다만 사용자가 이번 메시지에서 구체적인 목표나 조건을 말했다면(예: "다이어트식
+     추천해줘", "매운 거", 특정 재료를 콕 집어 말한 경우 등) 그 조건에 맞는 재료를 먼저
+     고르고, 유통기한 임박 재료를 억지로 끼워 넣지 마라 — 그 경우 유통기한은 무시해도 된다.
+  4) **유통기한 임박이 실제로 이번 답변에서 재료를 고르는 데 결정적이었다면** (사용자가
+     특별히 요청하지 않았는데 유통기한 때문에 그 재료를 우선 언급했다면) reply 끝에 그
+     사실을 한 문장으로 짧게 밝혀라(예: "유통기한이 임박한 두부를 먼저 고려해서
+     답변드렸어요."). 그래야 사용자가 원치 않으면 "유통기한 신경 쓰지 말고 답해줘" 처럼
+     바로 되물을 수 있다. 실제로 영향을 주지 않았다면(사용자 요청이 우선이었거나, 애초에
+     임박한 재료가 없었다면) 이 문구를 넣지 마라 — 사실이 아닌 걸 습관적으로 붙이지 마라.
 
 냉장고 재료: {fridge}
 
+냉장고 재료 상세 (reply에서 재료 이름을 고를 때만 참고 — 검색 조건 판단에는 쓰지 말 것):
+{fridge_detail}
+{last_turn_block}
 최근 대화:
 {chr(10).join(history) if history else '(없음)'}
 
 아래 JSON만 출력해라.
 {{
-  "reply": "사용자에게 할 말. 2~4문장. 친근한 한국어. 링크/URL 금지. 구체적인 레시피 제목을 단정하지 말 것. 취향을 반영해 찾아보겠다는 톤.",
+  "reply": "사용자에게 할 말. 2~4문장. 친근한 한국어. 링크/URL 금지. 구체적인 레시피 제목을 단정하지 말 것. 새 검색이면 취향을 반영해 찾아보겠다는 톤, 수정 요청이면 무엇을 바꿔 다시 찾는지 확인해주는 톤. 재료를 이름으로 부를 때는 위 '냉장고 재료 상세' 우선순위 규칙을 따를 것.",
   "keywords": ["검색용 한국어 낱말 1~5개. **첫 번째가 가장 중요한 말**. 사용자가 쓴 표현 그대로만 넣지 말고, 같은 뜻으로 글에 쓰일 만한 말을 함께 넣어라. 예: '매운 거' -> [\"매운\", \"매콤\", \"얼큰\", \"칼칼\", \"청양고추\"], '국물' -> [\"국물\", \"찌개\", \"탕\", \"전골\"]. 요리 이름이면 그 이름과 흔한 표기를 넣어라. 해당 없으면 빈 배열"],
-  "include_ingredients": ["검색에 꼭 넣고 싶은 재료"],
+  "include_ingredients": ["사용자가 명시적으로 꼭 넣어달라고 한 재료만. 해당 없으면 빈 배열"],
   "exclude_ingredients": ["빼고 싶은 재료"],
   "ignore_fridge": false
 }}
@@ -533,13 +632,29 @@ def _top_matched_ingredients(recipes, my_ingredients, exclude_ingredients=None, 
     return [name for name, _ in ranked[:limit]]
 
 
-def _remember(session_id, messages):
+def _get_last_turn(session_id):
+    """이 대화창(session_id)에서 직전에 실제로 검색·표시했던 결과를 가져온다.
+
+    프론트가 매번 메시지 텍스트만 보내고 레시피 데이터는 다시 보내지 않기 때문에
+    (recipes는 화면 표시용일 뿐 다음 /api/chat 요청에 포함되지 않는다), 팔로우업
+    질문("너가 준 재료 중에 감자는 빼줘")이 정확히 무엇을 가리키는지 서버가 직접
+    기억해 뒀다가 다음 프롬프트에 근거로 넣어줘야 한다.
+    """
+    if not session_id:
+        return None
+    with _sessions_lock:
+        entry = _sessions.get(session_id)
+        return entry.get('last_turn') if entry else None
+
+
+def _remember(session_id, messages, last_turn=None):
     if not session_id:
         return
     with _sessions_lock:
         _sessions[session_id] = {
             'messages': messages[-MAX_HISTORY:],
             'updated': datetime.now(KST).isoformat(),
+            'last_turn': last_turn,
         }
         if len(_sessions) > 200:
             oldest = sorted(_sessions.items(), key=lambda item: item[1].get('updated') or '')[:50]
@@ -558,6 +673,20 @@ def handle_chat(get_db):
         if str(name).strip()
     ][:MAX_INGREDIENTS]
     session_id = (body.get('session_id') or '').strip()
+
+    # 재료별 유통기한(D-day). reply 문장에서 어떤 재료를 이름으로 부를지 정할 때만 쓴다
+    # (검색 조건에는 안 씀 — _fridge_detail_block 참고). 형식이 이상한 항목은 조용히 건너뛴다.
+    expiry_days = {}
+    for item in (body.get('ingredient_expiry') or []):
+        if not isinstance(item, dict):
+            continue
+        name = str(item.get('name') or '').strip()
+        try:
+            days = int(item.get('days_left'))
+        except (TypeError, ValueError):
+            continue
+        if name:
+            expiry_days[name] = days
 
     if not messages or not any(m.get('role') == 'user' and (m.get('content') or '').strip() for m in messages):
         return jsonify({'error': '메시지를 입력해 주세요.'}), 400
@@ -579,6 +708,9 @@ def handle_chat(get_db):
     # LLM을 안 부르므로 오늘 호출 한도도 쓰지 않는다.
     is_broad = _is_broad_fridge_request(last_user)
 
+    # 이 대화창에서 직전에 실제로 검색·표시했던 결과 (팔로우업 질문의 근거).
+    last_turn = _get_last_turn(session_id)
+
     parsed = {
         'reply': '냉장고 재료 기준으로 레시피를 찾아볼게요.',
         'keywords': [],
@@ -595,7 +727,7 @@ def handle_chat(get_db):
             }), 429
 
         try:
-            prompt = _build_prompt(messages, ingredients)
+            prompt = _build_prompt(messages, ingredients, last_turn, expiry_days)
             if provider == 'gemini':
                 raw = _call_gemini(api_key, prompt)
             else:
@@ -630,18 +762,40 @@ def handle_chat(get_db):
     )
 
     # 관련도를 필수 조건으로 바꿨기 때문에 아주 좁은 말에서는 0건이 나올 수 있다.
-    # 그럴 때는 가장 중요한 낱말 하나만 남겨 한 번 더 넓혀 본다.
+    # 그럴 때는 조건을 하나씩 완화해서 다시 찾는다.
+    #
+    # **exclude_ingredients는 매 단계에서 그대로 지킨다.** 예전에는 이 완화 과정에서
+    # keywords/include와 함께 exclude_ingredients까지 통째로 날려버렸다 — 그 결과
+    # "감자는 빼줘" 처럼 사용자가 명시적으로 뺀 재료가, 검색이 0건이라 완화되는 순간
+    # 도로 결과에 섞여 들어왔다(실측으로 확인된 버그: LLM은 exclude_ingredients=["감자"]를
+    # 정확히 뽑았지만, include_ingredients에 냉장고의 나머지 재료가 함께 딸려와 조건이
+    # 너무 좁아졌고, 0건이 되자 이 코드가 exclude까지 지워서 원래의 감자 포함 결과를
+    # 그대로 다시 보여줬다). include/keywords처럼 검색을 "좁히기만" 하는 조건부터
+    # 먼저 풀고, 사용자가 "빼달라"고 한 재료는 정말 아무 것도 안 나올 때만 최후 수단으로 푼다.
     if not recipes and len(parsed['keywords']) > 1:
         recipes = _search_recipes(
             get_db, parsed['keywords'][:1], parsed['include_ingredients'],
             parsed['exclude_ingredients'], ingredients, parsed['ignore_fridge'],
         )
+    if not recipes and parsed['include_ingredients']:
+        # 포함 재료 조건이 너무 좁았을 수 있다 — 그것부터 풀어본다 (exclude는 유지)
+        recipes = _search_recipes(
+            get_db, parsed['keywords'], [], parsed['exclude_ingredients'],
+            ingredients, parsed['ignore_fridge'],
+        )
     if not recipes and parsed['keywords']:
-        # 낱말을 다 빼고 냉장고 재료만으로
-        recipes = _search_recipes(get_db, [], [], [], ingredients, parsed['ignore_fridge'])
+        # 낱말도 빼고 냉장고 재료 매칭 + exclude 조건만으로
+        recipes = _search_recipes(
+            get_db, [], [], parsed['exclude_ingredients'], ingredients, parsed['ignore_fridge'],
+        )
     if not recipes and not parsed['ignore_fridge'] and ingredients:
-        # 냉장고 우선 모드에서도 결과가 없으면 재료 조건 없이 한 번 더 시도
-        recipes = _search_recipes(get_db, parsed['keywords'], [], [], ingredients, True)
+        # 냉장고 우선 모드에서도 결과가 없으면 재료 매칭 조건 없이 한 번 더 (exclude는 유지)
+        recipes = _search_recipes(
+            get_db, [], [], parsed['exclude_ingredients'], ingredients, True,
+        )
+    if not recipes and parsed['exclude_ingredients']:
+        # 정말 아무 것도 없을 때만 마지막으로 제외 조건까지 푼다 (극히 드문 경우).
+        recipes = _search_recipes(get_db, [], [], [], ingredients, True)
 
     # 검색 결과가 나온 지금, 실제로 매칭에 쓰인 보유 재료를 추린다.
     # ("냉장고 재료를 반영했다"는 말이 뭉뚱그린 느낌이라는 지적이 있었음 —
@@ -683,7 +837,20 @@ def handle_chat(get_db):
     assistant_msg = {'role': 'assistant', 'content': parsed['reply']}
     stored = [m for m in messages if m.get('role') in ('user', 'assistant')]
     stored.append(assistant_msg)
-    _remember(session_id, stored)
+
+    # 다음 팔로우업 질문이 "너가 준 재료/레시피" 를 정확히 가리킬 수 있도록,
+    # 이번에 실제로 쓴 검색 조건과 실제로 보여준 레시피를 함께 기억해 둔다.
+    last_turn_record = {
+        'keywords': parsed['keywords'],
+        'include_ingredients': parsed['include_ingredients'],
+        'exclude_ingredients': parsed['exclude_ingredients'],
+        'ignore_fridge': parsed['ignore_fridge'],
+        'recipes': [
+            {'title': r.get('title') or '', 'used_ingredients': r.get('used_ingredients') or ''}
+            for r in recipes
+        ],
+    }
+    _remember(session_id, stored, last_turn_record)
 
     return jsonify({
         'reply': parsed['reply'],

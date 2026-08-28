@@ -99,33 +99,72 @@ const PlusIcon: React.FC<{ size?: number }> = ({ size = 16 }) => (
   </svg>
 );
 
+type FridgeRawItem = { name?: string; expiry?: string; estimatedExpiry?: string };
+
+/**
+ * expiry(직접 입력) 우선, 없으면 estimatedExpiry(구매일로 짐작한 값)를 써서
+ * 자정 기준 Date로 돌려준다. 둘 다 없거나 형식이 이상하면 null
+ * (MyFridge.tsx의 getDdayLabel과 같은 기준).
+ */
+function parseExpiryDate(item: FridgeRawItem): Date | null {
+  const raw = item.expiry || item.estimatedExpiry;
+  if (!raw) return null;
+  const d = new Date(String(raw).replace(/\./g, '-'));
+  if (isNaN(d.getTime())) return null;
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
 /**
  * 유통기한(직접 입력 또는 구매일로 짐작한 값)이 이미 지난 재료인지 본다.
- * 지난 재료는 실제로는 못 쓸 가능성이 높으니 챗봇 추천의 "보유 재료"에서 뺀다
- * (MyFridge.tsx의 getDdayLabel과 같은 기준: expiry 우선, 없으면 estimatedExpiry).
+ * 지난 재료는 실제로는 못 쓸 가능성이 높으니 챗봇 추천의 "보유 재료"에서 뺀다.
  */
-function isExpired(item: { expiry?: string; estimatedExpiry?: string }): boolean {
-  const raw = item.expiry || item.estimatedExpiry;
-  if (!raw) return false;
-  const d = new Date(String(raw).replace(/\./g, '-'));
-  if (isNaN(d.getTime())) return false;
+function isExpired(item: FridgeRawItem): boolean {
+  const d = parseExpiryDate(item);
+  if (!d) return false;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  d.setHours(0, 0, 0, 0);
   return d.getTime() < today.getTime();
 }
 
-function getFridgeIngredientNames(): string[] {
+/**
+ * 냉장고 재료 목록(냉동/냉장/실온) 중 유통기한이 지나지 않은 것만, 이름과
+ * 남은 일수(daysLeft, 정보 없으면 null)와 함께 돌려준다. 챗봇에 보내는
+ * ingredients(이름만)와 ingredient_expiry(유통기한 임박도)가 여기서 갈라져 나온다 —
+ * 서버가 답변 문장에서 어떤 재료를 이름으로 부를지 정할 때(조미료 제외, 유통기한
+ * 임박 우선) 참고하도록 남은 일수를 함께 보낸다.
+ */
+function getFridgeItems(): { name: string; daysLeft: number | null }[] {
   try {
     const data = JSON.parse(localStorage.getItem(STORAGE_FRIDGE) || 'null');
     if (!data) return [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     return [...(data.frozen || []), ...(data.fridge || []), ...(data.room || [])]
-      .filter((item: { expiry?: string; estimatedExpiry?: string }) => !isExpired(item))
-      .map((item: { name?: string }) => (item?.name || '').trim())
-      .filter(Boolean);
+      .filter((item: FridgeRawItem) => !isExpired(item))
+      .map((item: FridgeRawItem) => {
+        const name = (item?.name || '').trim();
+        const expiryDate = parseExpiryDate(item);
+        const daysLeft = expiryDate
+          ? Math.round((expiryDate.getTime() - today.getTime()) / 86400000)
+          : null;
+        return { name, daysLeft };
+      })
+      .filter((item) => Boolean(item.name));
   } catch {
     return [];
   }
+}
+
+function getFridgeIngredientNames(): string[] {
+  return getFridgeItems().map((item) => item.name);
+}
+
+/** 유통기한 정보가 있는 재료만, 이름과 남은 일수로 서버에 보낼 형태로 추려낸다. */
+function getFridgeIngredientExpiry(): { name: string; days_left: number }[] {
+  return getFridgeItems()
+    .filter((item): item is { name: string; daysLeft: number } => item.daysLeft !== null)
+    .map((item) => ({ name: item.name, days_left: item.daysLeft }));
 }
 
 function createThreadId(): string {
@@ -318,6 +357,7 @@ const RecipeChatWidget: React.FC = () => {
           session_id: threadId,
           messages: nextMessages.map(({ role, content: body }) => ({ role, content: body })),
           ingredients: getFridgeIngredientNames(),
+          ingredient_expiry: getFridgeIngredientExpiry(),
         }),
       });
       const data = await response.json();

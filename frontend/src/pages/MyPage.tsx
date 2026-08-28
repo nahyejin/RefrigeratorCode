@@ -54,6 +54,25 @@ const FavoriteButtonHint: React.FC = () => (
     </svg>
   </EmptyStateIconHint>
 );
+// 비밀번호 보이기/숨기기 버튼. 전엔 👁️/👁️‍🗨️ 이모지를 썼는데, 이모지는
+// 기기·OS마다 그림체가 달라(게다가 "숨김" 상태를 나타내는 데 말풍선-눈
+// 조합은 뜻이 잘 안 읽히기도 했다) 앱의 다른 검정 선 아이콘과 통일감이
+// 없다는 지적을 받아 SVG로 바꿨다.
+const EyeIcon: React.FC = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <path d="M2.5 12s3.5-7 9.5-7 9.5 7 9.5 7-3.5 7-9.5 7-9.5-7-9.5-7z" />
+    <circle cx="12" cy="12" r="3" />
+  </svg>
+);
+
+const EyeOffIcon: React.FC = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <path d="M3 3l18 18" />
+    <path d="M10.6 5.2A9.8 9.8 0 0 1 12 5c6 0 9.5 7 9.5 7a16.6 16.6 0 0 1-3.2 4.1M6.5 6.9C3.7 8.8 2.5 12 2.5 12s3.5 7 9.5 7a9.6 9.6 0 0 0 3.9-.8" />
+    <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" />
+  </svg>
+);
+
 import writeIcon from '../assets/write.svg';
 import doneIcon from '../assets/done.svg';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -1761,7 +1780,7 @@ const MyPage: React.FC = () => {
                         onClick={() => setShowPassword(!showPassword)}
                         style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: '18px' }}
                       >
-                        {showPassword ? '👁️' : '👁️‍🗨️'}
+                        {showPassword ? <EyeIcon /> : <EyeOffIcon />}
                       </button>
                     </div>
                   </div>
@@ -1793,7 +1812,7 @@ const MyPage: React.FC = () => {
                         onClick={() => setShowPassword2(!showPassword2)}
                         style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: '18px' }}
                       >
-                        {showPassword2 ? '👁️' : '👁️‍🗨️'}
+                        {showPassword2 ? <EyeIcon /> : <EyeOffIcon />}
                       </button>
                     </div>
                   </div>

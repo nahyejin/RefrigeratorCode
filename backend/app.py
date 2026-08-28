@@ -119,7 +119,12 @@ def get_db():
         connect_timeout=10,
         read_timeout=120,
         write_timeout=120,
-        autocommit=False
+        autocommit=False,
+        # Railway MySQL 서버 시계가 UTC라, 세션 타임존을 KST로 고정해 둔다.
+        # 이걸 안 하면 NOW()/CURRENT_TIMESTAMP로 채워지는 모든 created_at/updated_at이
+        # 한국 시간보다 9시간 느리게 찍혀서 SELECT로 직접 봐도, 날짜별로 묶는 화면
+        # (요리 캘린더 등)에서도 자정~오전9시 기록이 하루 전으로 새는 문제가 있었다.
+        init_command="SET time_zone = '+09:00'"
     )
 
 @app.route('/api/recipes')
@@ -3080,10 +3085,15 @@ def get_household_completed_calendar():
                 raw_savings_per_meal = row.get('savings_per_meal') if row else None
                 savings_per_meal = raw_savings_per_meal if raw_savings_per_meal else ESTIMATED_SAVINGS_PER_MEAL_DEFAULT
 
+            # DB 커넥션 자체를 KST(+09:00)로 고정해 두고(get_db() 참고), 과거 데이터도
+            # 한 번 KST로 보정해 뒀기 때문에 created_at은 이미 KST 기준 값이다.
+            # (예전엔 서버 시계가 UTC라 여기서 매번 +9시간을 더해야 했다 — 이제는 저장값
+            # 자체가 KST라 이 쿼리에서 따로 보정할 필요가 없다.)
             placeholders = ','.join(['%s'] * len(member_ids))
             cursor.execute(
-                f"""SELECT DATE(action.created_at) AS day, action.created_at, r.id AS recipe_id,
-                           r.title, r.thumbnail, action.user_id, u.nickname
+                f"""SELECT DATE(action.created_at) AS day,
+                           action.created_at AS created_at,
+                           r.id AS recipe_id, r.title, r.thumbnail, action.user_id, u.nickname
                     FROM user_completed_recipes action
                     INNER JOIN recipes r ON r.id = action.recipe_id
                     INNER JOIN users u ON u.id = action.user_id

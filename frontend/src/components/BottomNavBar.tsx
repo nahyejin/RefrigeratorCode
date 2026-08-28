@@ -18,7 +18,11 @@ import mypageBlack from '../assets/navigator_mypage_black.png';
 // (몸통 사각형 + 위쪽 손잡이 2개)을 비활성은 얇은 선(strokeWidth 1 —
 // 1.3도 다른 탭보다 두껍다는 피드백을 받아 더 낮춤)으로, 활성은 그 도형
 // 그대로 단색 채움으로만 그린다.
-const CALENDAR_ICON_PATHS = (
+// 다른 화면(요리 캘린더 로그인 안내 등)에서도 같은 달력 모양을 써야 할 때
+// 이모지(📅) 대신 이 도형을 재사용한다 — 이모지는 폰트/OS마다 그림체가
+// 달라 앱의 다른 검정 선 아이콘들과 톤이 안 맞고 "이모지 느낌"이 난다는
+// 지적을 받았다.
+export const CALENDAR_ICON_PATHS = (
   <>
     <rect x="3.5" y="5" width="17" height="15" rx="2.2" />
     <rect x="7.2" y="3" width="1.8" height="3.6" rx="0.9" />
