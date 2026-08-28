@@ -339,7 +339,7 @@ const HouseholdSection: React.FC<HouseholdSectionProps> = ({ onChange }) => {
               checked={info.allow_ingredient_merge !== false}
               onChange={handleToggleMergePolicy}
               label="새로 참여하는 사람의 재료 합치기 허용"
-              hint="꺼두면 누가 참여하든 항상 재료를 따로 보존해요."
+              hint="꺼두면 누가 참여하든 그 사람이 갖고 있던 재료는 합쳐지지 않고 그대로 보존돼요."
             />
           </div>
 

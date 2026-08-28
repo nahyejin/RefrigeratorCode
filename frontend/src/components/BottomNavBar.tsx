@@ -124,12 +124,16 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({ activeTab }) => {
               WebkitTapHighlightColor: 'transparent',
             }}
           >
-            <img
-              src={isActive ? nav.icon : nav.iconInactive}
-              alt=""
-              aria-hidden
-              style={{ height: 22, width: 'auto', display: 'block' }}
-            />
+            {'renderIcon' in nav ? (
+              nav.renderIcon(isActive)
+            ) : (
+              <img
+                src={isActive ? nav.icon : nav.iconInactive}
+                alt=""
+                aria-hidden
+                style={{ height: 22, width: 'auto', display: 'block' }}
+              />
+            )}
             <span
               style={{
                 fontSize: 12,

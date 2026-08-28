@@ -266,56 +266,14 @@ const CookingCalendar: React.FC = () => {
 
   return (
     <div style={{ maxWidth: 480, margin: '0 auto', paddingTop: 72, paddingBottom: 84 }}>
-      {/* 상단 퀵버튼: 일/주/월 전환. 다른 탭들과 같은 좌우 여백(14px)을 쓴다. */}
-      <div style={{ display: 'flex', gap: 6, padding: '0 14px' }}>
-        {([
-          { key: 'day', label: '일' },
-          { key: 'week', label: '주' },
-          { key: 'month', label: '월' },
-        ] as const).map(({ key, label }) => {
-          const on = viewMode === key;
-          return (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setViewMode(key)}
-              style={{
-                height: 32,
-                padding: '0 14px',
-                borderRadius: 9999,
-                fontSize: 13,
-                fontWeight: on ? 700 : 500,
-                background: on ? 'var(--ink-900)' : 'var(--surface-sub)',
-                color: on ? '#FFFFFF' : 'var(--ink-700)',
-                border: 'none',
-                cursor: 'pointer',
-              }}
-            >
-              {label}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* 이전/다음 + 현재 범위 표시 */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 14px 0' }}>
-        <button type="button" onClick={() => shiftAnchor(-1)} aria-label="이전" style={{ width: 32, height: 32, border: 'none', background: 'transparent', cursor: 'pointer' }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1A1A1E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
-        </button>
-        <span style={{ fontSize: 15, fontWeight: 700, color: '#1A1A1E' }}>
-          {viewMode === 'month' && `${anchorDate.getFullYear()}년 ${anchorDate.getMonth() + 1}월`}
-          {viewMode === 'week' && `${visibleRange.start} ~ ${visibleRange.end}`}
-          {viewMode === 'day' && selectedDay}
-        </span>
-        <button type="button" onClick={() => shiftAnchor(1)} aria-label="다음" style={{ width: 32, height: 32, border: 'none', background: 'transparent', cursor: 'pointer' }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1A1A1E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6" /></svg>
-        </button>
-      </div>
-
-      {/* 이번 달 목표 달성률 (나 기준) */}
-      <div style={{ margin: '12px 14px 0', padding: '12px 14px', borderRadius: 12, background: 'var(--surface-sub)' }}>
+      {/* 월 목표는 "이번 달" 이라는 더 큰 단위 얘기라, 일/주/월 중 무엇을 보고
+          있든 항상 같은 값이어야 맞다 — 그래서 일/주/월 전환 버튼보다 위,
+          가장 먼저 오는 자리에 두고 "몇 월 목표"인지 숫자로 못 박아 둔다.
+          (전에는 이 아래 있어서 "왜 주간 보기에서도 월 목표가 나오지" 라는
+          혼란이 있었음) */}
+      <div style={{ margin: '0 14px', padding: '12px 14px', borderRadius: 12, background: 'var(--surface-sub)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: '#1A1A1E' }}>이번 달 목표</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: '#1A1A1E' }}>{anchorDate.getMonth() + 1}월 목표</span>
           {editingGoal ? (
             <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <input
@@ -346,6 +304,53 @@ const CookingCalendar: React.FC = () => {
         <div style={{ fontSize: 12, color: 'var(--ink-500)', marginTop: 6 }}>
           {myMonthCount}회 / {myGoal}회 달성 ({myAchievementRate}%)
         </div>
+      </div>
+
+      {/* 일/주/월 전환 — 목표(달 단위)보다 한 단계 아래, "지금 뭘 보고 있는지"를
+          고르는 자리 */}
+      <div style={{ display: 'flex', gap: 6, padding: '14px 14px 0' }}>
+        {([
+          { key: 'day', label: '일' },
+          { key: 'week', label: '주' },
+          { key: 'month', label: '월' },
+        ] as const).map(({ key, label }) => {
+          const on = viewMode === key;
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setViewMode(key)}
+              style={{
+                height: 32,
+                padding: '0 14px',
+                borderRadius: 9999,
+                fontSize: 13,
+                fontWeight: on ? 700 : 500,
+                background: on ? 'var(--ink-900)' : 'var(--surface-sub)',
+                color: on ? '#FFFFFF' : 'var(--ink-700)',
+                border: 'none',
+                cursor: 'pointer',
+              }}
+            >
+              {label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* 이전/다음 + 현재 범위 표시 */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px 0' }}>
+        <button type="button" onClick={() => shiftAnchor(-1)} aria-label="이전" style={{ width: 32, height: 32, border: 'none', background: 'transparent', cursor: 'pointer' }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1A1A1E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
+        </button>
+        <span style={{ fontSize: 15, fontWeight: 700, color: '#1A1A1E' }}>
+          {viewMode === 'month' && `${anchorDate.getFullYear()}년 ${anchorDate.getMonth() + 1}월`}
+          {viewMode === 'week' && `${visibleRange.start} ~ ${visibleRange.end}`}
+          {viewMode === 'day' && selectedDay}
+        </span>
+        <button type="button" onClick={() => shiftAnchor(1)} aria-label="다음" style={{ width: 32, height: 32, border: 'none', background: 'transparent', cursor: 'pointer' }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1A1A1E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6" /></svg>
+        </button>
       </div>
 
       {/* 그룹 요약 + 인원별 색 범례 */}
