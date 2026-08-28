@@ -61,6 +61,16 @@ function colorForUser(userId: number, orderedIds: number[]): string {
   return MEMBER_COLORS[idx % MEMBER_COLORS.length];
 }
 
+// 절약액 추정치. 재료 가격 데이터가 없어 정확한 계산은 못 하지만, "외식/배달
+// 한 끼 평균 비용 - 집밥 한 끼 평균 재료비" 정도의 대략적인 추정은 완료
+// 횟수만으로도 낼 수 있다. 화면에는 반드시 "추정치"라고 밝혀서 실제 계산인
+// 것처럼 오해하지 않게 한다.
+const ESTIMATED_SAVINGS_PER_MEAL = 8000; // 원, 외식/배달 대비 집밥 한 끼당 대략적인 절약분
+
+function formatWon(n: number): string {
+  return n.toLocaleString('ko-KR');
+}
+
 /**
  * 요리 캘린더 — 완료한 레시피를 날짜별로 돌아보는 화면.
  *
@@ -160,16 +170,33 @@ const CookingCalendar: React.FC = () => {
     return { total, byUser };
   }, [entries, visibleRange]);
 
-  const myGoal = authUser?.id ? goals[String(authUser.id)] ?? 12 : 12;
-  const myMonthCount = React.useMemo(() => {
-    if (!authUser?.id) return 0;
-    let count = 0;
-    for (const e of entries) {
-      if (String(e.user_id) === String(authUser.id)) count += 1;
-    }
-    return count;
-  }, [entries, authUser?.id]);
-  const myAchievementRate = myGoal > 0 ? Math.min(100, Math.round((myMonthCount / myGoal) * 100)) : 0;
+  const myGoal = authUser?.id ? goals[String(authUser.id)] ?? 20 : 20;
+
+  // 목표는 "이 달" 단위 개념이라, 지금 일/주/월 중 뭘 보고 있는지와 무관하게
+  // 이 달 전체(entries는 애초에 이 달 범위만 불러온 것) 기준으로 계산한다.
+  // summary(위)는 반대로 지금 보고 있는 범위 기준이라 여기 쓰면 안 된다.
+  const monthlyByUser = React.useMemo(() => {
+    const map = new Map<number, number>();
+    for (const e of entries) map.set(e.user_id, (map.get(e.user_id) || 0) + 1);
+    return map;
+  }, [entries]);
+  const monthlyTotal = entries.length;
+
+  // 그룹이면 목표 게이지를 인원별로 색을 나눠 채운다 — 완료 횟수가 많은
+  // 순서대로 앞에서부터 채우고, 합이 목표(100%)를 넘으면 시각적으로만 잘라낸다.
+  const goalSegments = React.useMemo(() => {
+    if (myGoal <= 0) return [];
+    const sorted = Array.from(monthlyByUser.entries()).sort((a, b) => b[1] - a[1]);
+    let used = 0;
+    return sorted.map(([uid, count]) => {
+      const rawPct = (count / myGoal) * 100;
+      const pct = Math.max(0, Math.min(rawPct, 100 - used));
+      used += pct;
+      return { uid, count, pct };
+    });
+  }, [monthlyByUser, myGoal]);
+  const groupAchievementRate = myGoal > 0 ? Math.min(100, Math.round((monthlyTotal / myGoal) * 100)) : 0;
+  const estimatedSavings = monthlyTotal * ESTIMATED_SAVINGS_PER_MEAL;
 
   const shiftAnchor = (dir: 1 | -1) => {
     if (viewMode === 'month') {
@@ -304,12 +331,49 @@ const CookingCalendar: React.FC = () => {
             </span>
           )}
         </div>
-        <div style={{ height: 8, borderRadius: 9999, background: 'var(--line-200)', overflow: 'hidden' }}>
-          <div style={{ height: '100%', width: `${myAchievementRate}%`, background: 'var(--brand)', borderRadius: 9999, transition: 'width 0.2s ease' }} />
+        {/* 그룹이면 완료 횟수가 많은 사람부터 순서대로 색을 나눠 채운다.
+            혼자면(그룹 아님) 단색 막대 그대로. */}
+        <div style={{ display: 'flex', height: 8, borderRadius: 9999, background: 'var(--line-200)', overflow: 'hidden' }}>
+          {isInHousehold ? (
+            goalSegments.map((seg) => (
+              <div
+                key={seg.uid}
+                style={{
+                  height: '100%',
+                  width: `${seg.pct}%`,
+                  background: colorForUser(seg.uid, memberIds),
+                  transition: 'width 0.2s ease',
+                }}
+              />
+            ))
+          ) : (
+            <div style={{ height: '100%', width: `${groupAchievementRate}%`, background: 'var(--brand)', borderRadius: 9999, transition: 'width 0.2s ease' }} />
+          )}
         </div>
         <div style={{ fontSize: 12, color: 'var(--ink-500)', marginTop: 6 }}>
-          {myMonthCount}회 / {myGoal}회 달성 ({myAchievementRate}%)
+          {monthlyTotal}회 / {myGoal}회 달성 ({groupAchievementRate}%)
         </div>
+        {/* 인원별 색 범례 — 게이지 색과 같은 순서(완료 많은 순) */}
+        {isInHousehold && goalSegments.length > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 8 }}>
+            {goalSegments.map((seg) => (
+              <span key={seg.uid} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--ink-700)' }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: colorForUser(seg.uid, memberIds), flexShrink: 0 }} />
+                {nicknameById.get(seg.uid) || '?'} {seg.count}회
+              </span>
+            ))}
+          </div>
+        )}
+        {/* 절약액은 재료 가격 데이터가 없어 정확한 계산이 아니라 대략적인
+            추정치다 — 그렇게 명시해서 실제 계산인 것처럼 오해하지 않게 한다. */}
+        {monthlyTotal > 0 && (
+          <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink-700)', marginTop: 10 }}>
+            💰 이번 달 예상 절약액 약 {formatWon(estimatedSavings)}원
+            <span style={{ fontWeight: 500, color: 'var(--ink-500)' }}>
+              {' '}(외식·배달 대비 한 끼 {formatWon(ESTIMATED_SAVINGS_PER_MEAL)}원 추정 × {monthlyTotal}회)
+            </span>
+          </div>
+        )}
         <div style={{ fontSize: 11, color: 'var(--ink-500)', marginTop: 6, lineHeight: 1.5 }}>
           매월 1일에 진행률이 다시 0%부터 시작돼요. 목표는 계정별 개인 설정이라
           그룹원마다 따로 정할 수 있어요(공동 목표 아님).
@@ -387,12 +451,12 @@ const CookingCalendar: React.FC = () => {
       {/* 월 보기 */}
       {viewMode === 'month' && (
         <div style={{ padding: '12px 14px 0' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4, marginBottom: 4 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 4, marginBottom: 4 }}>
             {WEEKDAY_LABELS.map((w) => (
               <div key={w} style={{ textAlign: 'center', fontSize: 11, color: 'var(--ink-500)', padding: '4px 0' }}>{w}</div>
             ))}
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 4 }}>
             {gridDays.map((d) => {
               const key = toDateKey(d);
               const inMonth = d.getMonth() === anchorDate.getMonth();
