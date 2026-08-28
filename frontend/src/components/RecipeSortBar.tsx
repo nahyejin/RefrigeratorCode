@@ -631,7 +631,20 @@ const RecipeSortBar = ({
             aria-label="임박 재료 설정 모달 열기"
             data-guide-target="expiry-button"
           >
-            <span aria-hidden="true" style={{ marginRight: 4 }}>⏱</span>
+            {/* 이모지(⏱)는 알록달록해서 검정 테두리로 통일된 다른 아이콘들 사이에서
+                혼자 튀어 보였다. 같은 톤의 선 아이콘(시계)으로 교체 */}
+            <svg
+              aria-hidden="true"
+              width={14}
+              height={14}
+              viewBox="0 0 24 24"
+              fill="none"
+              style={{ marginRight: 4, verticalAlign: -2 }}
+            >
+              <circle cx="12" cy="13" r="8" stroke="#1A1A1E" strokeWidth="1.8" />
+              <path d="M12 9v4l3 2" stroke="#1A1A1E" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M9 2h6" stroke="#1A1A1E" strokeWidth="1.8" strokeLinecap="round" />
+            </svg>
             임박 재료
           </button>
           <div style={{
