@@ -129,7 +129,7 @@ const JoinHousehold: React.FC = () => {
                 checked={mergeIngredients}
                 onChange={setMergeIngredients}
                 label="내 재료를 그룹 재료에 합치기"
-                hint="꺼두면 내 재료는 지워지지 않고 보존되고, 대신 그룹의 기존 재료를 함께 보게 돼요. 그룹 재료는 바뀌지 않고, 나중에 나가면 내 재료를 그대로 돌려받아요."
+                hint="이걸 켜면 내 냉장고 재료가 그룹 재료와 합쳐져요."
               />
               <Toggle
                 checked={shareRecipeActions}
