@@ -2117,6 +2117,24 @@ def ensure_households_table():
         except Exception as e:
             print(f"[ensure_households_table] ingredients_merged 컬럼 추가 중 오류: {e}")
             db.rollback()
+
+        # 요리 캘린더의 "이번 달 목표" 달성률용. 처음부터 설정해야 하는 건
+        # 번거로우니 기본값(월 12회 = 대략 주 3회)을 채워 둔다.
+        try:
+            cursor.execute("""
+                SELECT COUNT(*) as count
+                FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                AND TABLE_NAME = 'users'
+                AND COLUMN_NAME = 'monthly_cooking_goal'
+            """)
+            result = cursor.fetchone()
+            if result and result['count'] == 0:
+                cursor.execute("ALTER TABLE users ADD COLUMN monthly_cooking_goal INT NOT NULL DEFAULT 12")
+                db.commit()
+        except Exception as e:
+            print(f"[ensure_households_table] monthly_cooking_goal 컬럼 추가 중 오류: {e}")
+            db.rollback()
     except Exception as e:
         db.rollback()
         print(f"Error creating households table: {e}")
@@ -2671,20 +2689,27 @@ def get_household_completed_calendar():
             household = get_household_by_user(cursor, user_id)
             if household:
                 cursor.execute(
-                    """SELECT id FROM users WHERE household_id = %s AND deleted_at IS NULL
-                       AND (share_recipe_actions = 1 OR id = %s)""",
+                    """SELECT id, nickname, monthly_cooking_goal FROM users WHERE household_id = %s
+                       AND deleted_at IS NULL AND (share_recipe_actions = 1 OR id = %s)""",
                     (household['id'], user_id)
                 )
-                member_ids = [r['id'] for r in cursor.fetchall()]
+                member_rows = cursor.fetchall()
             else:
-                member_ids = []
+                member_rows = []
+            member_ids = [r['id'] for r in member_rows]
             if user_id not in member_ids:
-                member_ids.append(user_id)
+                cursor.execute("SELECT id, nickname, monthly_cooking_goal FROM users WHERE id = %s", (user_id,))
+                me = cursor.fetchone()
+                if me:
+                    member_rows.append(me)
+                    member_ids.append(user_id)
+
+            goals = {str(r['id']): r['monthly_cooking_goal'] for r in member_rows}
 
             placeholders = ','.join(['%s'] * len(member_ids))
             cursor.execute(
-                f"""SELECT DATE(action.created_at) AS day, r.id AS recipe_id, r.title, r.thumbnail,
-                           action.user_id, u.nickname
+                f"""SELECT DATE(action.created_at) AS day, action.created_at, r.id AS recipe_id,
+                           r.title, r.thumbnail, action.user_id, u.nickname
                     FROM user_completed_recipes action
                     INNER JOIN recipes r ON r.id = action.recipe_id
                     INNER JOIN users u ON u.id = action.user_id
@@ -2696,12 +2721,48 @@ def get_household_completed_calendar():
             rows = cursor.fetchall()
             for row in rows:
                 row['day'] = row['day'].isoformat()
+                row['created_at'] = row['created_at'].isoformat()
 
-            return jsonify({'entries': rows}), 200
+            return jsonify({'entries': rows, 'goals': goals}), 200
         finally:
             db.close()
     except Exception as e:
         print(f"Get household completed calendar error: {e}")
+        return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
+
+
+@app.route('/api/users/<int:user_id>/monthly-goal', methods=['POST'])
+def update_monthly_cooking_goal(user_id):
+    """요리 캘린더의 이번 달 목표(완료 횟수) 변경. 기본값 12(주 3회 정도)로
+    이미 채워져 있어서, 안 바꿔도 캘린더의 달성률 표시는 바로 동작한다."""
+    try:
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({'error': '인증이 필요합니다.'}), 401
+        payload = verify_jwt_token(auth_header.split(' ')[1])
+        if not payload or payload.get('user_id') != user_id:
+            return jsonify({'error': '권한이 없습니다.'}), 403
+
+        data = request.get_json() or {}
+        goal = data.get('monthly_cooking_goal')
+        if not isinstance(goal, int) or goal < 0 or goal > 200:
+            return jsonify({'error': '목표는 0~200 사이의 숫자여야 합니다.'}), 400
+
+        ensure_households_table()
+        db = get_db()
+        cursor = db.cursor()
+        try:
+            cursor.execute("UPDATE users SET monthly_cooking_goal = %s WHERE id = %s", (goal, user_id))
+            db.commit()
+            return jsonify({'monthly_cooking_goal': goal}), 200
+        except Exception as e:
+            db.rollback()
+            print(f"Update monthly cooking goal error: {e}")
+            return jsonify({'error': '목표 저장 중 오류가 발생했습니다.'}), 500
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"Update monthly cooking goal error: {e}")
         return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
 
 

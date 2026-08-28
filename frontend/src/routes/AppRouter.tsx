@@ -43,7 +43,7 @@ const ROUTES = {
   MY_COMPLETED: '/mypage/completed',
   MY_FAVORITE: '/mypage/favorite',
   JOIN_HOUSEHOLD: '/join-household',
-  COOKING_CALENDAR: '/mypage/cooking-calendar',
+  COOKING_CALENDAR: '/cooking-calendar',
 } as const;
 
 // =====================

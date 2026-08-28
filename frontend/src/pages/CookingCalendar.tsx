@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
+import BottomNavBar from '../components/BottomNavBar';
 import { useAuth } from '../context/AuthContext';
 import { getProxiedImageUrl } from '../utils/imageUtils';
 
@@ -7,6 +8,7 @@ type ViewMode = 'day' | 'week' | 'month';
 
 interface CalendarEntry {
   day: string; // YYYY-MM-DD
+  created_at: string; // ISO timestamp
   recipe_id: number;
   title: string;
   thumbnail: string;
@@ -28,6 +30,13 @@ function toDateKey(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
+function formatTime(iso: string): string {
+  const d = new Date(iso);
+  const h = String(d.getHours()).padStart(2, '0');
+  const m = String(d.getMinutes()).padStart(2, '0');
+  return `${h}:${m}`;
+}
+
 function startOfWeek(d: Date): Date {
   const out = new Date(d);
   out.setDate(out.getDate() - out.getDay());
@@ -43,21 +52,22 @@ function addDays(d: Date, n: number): Date {
 
 const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
 
-const CalendarIcon: React.FC<{ size?: number }> = ({ size = 16 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="#1A1A1E" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-    <rect x="3.5" y="5" width="17" height="15" rx="2.2" />
-    <path d="M3.5 9.5h17" />
-    <path d="M8 3v3.4M16 3v3.4" />
-  </svg>
-);
+// 그룹원을 색으로 구분하기 위한 팔레트. 인원이 적어(보통 2~4명) 이 정도면 충분하고,
+// 브랜드 강조색(노랑)과 겹치지 않는 톤으로 골랐다.
+const MEMBER_COLORS = ['#3B82F6', '#F97316', '#22C55E', '#A855F7', '#EF4444', '#06B6D4'];
+
+function colorForUser(userId: number, orderedIds: number[]): string {
+  const idx = orderedIds.indexOf(userId);
+  return MEMBER_COLORS[idx % MEMBER_COLORS.length];
+}
 
 /**
  * 요리 캘린더 — 완료한 레시피를 날짜별로 돌아보는 화면.
  *
- * 마이페이지 "완료한 레시피" 섹션의 데이터를 다른 방식(달력)으로 보여주는
- * 것이라 별도 하단 탭을 만들지 않고, 마이페이지에서 들어오는 하위 화면으로
- * 둔다. 그룹에 속해 있으면(공유 설정한 멤버 기준) 날짜별로 누가 뭘
- * 완료했는지 배지가 붙고, 상단 요약에 인원별 완료 횟수가 함께 뜬다.
+ * 처음엔 마이페이지 하위 화면으로 뒀는데, 기능이 생각보다 커져서(일/주/월,
+ * 그룹원별 통계, 월 목표) 하단 탭으로 옮겼다. 그룹에 속해 있으면(공유
+ * 설정한 멤버 기준) 날짜별로 누가 뭘 완료했는지 멤버별 색으로 구분해 보여주고,
+ * 이번 달 목표 대비 달성률도 함께 보여준다.
  */
 const CookingCalendar: React.FC = () => {
   const navigate = useNavigate();
@@ -66,52 +76,59 @@ const CookingCalendar: React.FC = () => {
   const [viewMode, setViewMode] = React.useState<ViewMode>('month');
   const [anchorDate, setAnchorDate] = React.useState(() => new Date());
   const [entries, setEntries] = React.useState<CalendarEntry[]>([]);
+  const [goals, setGoals] = React.useState<Record<string, number>>({});
   const [loading, setLoading] = React.useState(false);
   const [selectedDay, setSelectedDay] = React.useState<string>(() => toDateKey(new Date()));
   const [isInHousehold, setIsInHousehold] = React.useState(false);
+  const [editingGoal, setEditingGoal] = React.useState(false);
+  const [goalInput, setGoalInput] = React.useState('');
 
-  // 항상 anchorDate가 속한 "달" 전체를 불러온다 — 일/주 보기로 전환해도
-  // 같은 달 안에서는 다시 불러올 필요가 없다.
   const monthStart = new Date(anchorDate.getFullYear(), anchorDate.getMonth(), 1);
   const monthEnd = new Date(anchorDate.getFullYear(), anchorDate.getMonth() + 1, 0);
 
-  React.useEffect(() => {
+  const loadCalendar = React.useCallback(async () => {
     if (!isLoggedIn || !authUser?.id) return;
-    let cancelled = false;
     setLoading(true);
-    (async () => {
-      try {
-        const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
-        const apiUrl = getApiUrl();
+    try {
+      const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+      const apiUrl = getApiUrl();
 
-        const meRes = await fetch(`${apiUrl}/api/households/me`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const me = meRes.ok ? await meRes.json() : null;
-        if (!cancelled) setIsInHousehold(!!me?.in_household);
+      const meRes = await fetch(`${apiUrl}/api/households/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const me = meRes.ok ? await meRes.json() : null;
+      setIsInHousehold(!!me?.in_household);
 
-        const params = new URLSearchParams({
-          start: toDateKey(monthStart),
-          end: toDateKey(monthEnd),
-        });
-        const res = await fetch(`${apiUrl}/api/households/me/completed-calendar?${params.toString()}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (res.ok) {
-          const data = await res.json();
-          if (!cancelled) setEntries(data.entries || []);
-        }
-      } catch (e) {
-        console.warn('[CookingCalendar] 조회 실패:', e);
-      } finally {
-        if (!cancelled) setLoading(false);
+      const params = new URLSearchParams({ start: toDateKey(monthStart), end: toDateKey(monthEnd) });
+      const res = await fetch(`${apiUrl}/api/households/me/completed-calendar?${params.toString()}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setEntries(data.entries || []);
+        setGoals(data.goals || {});
       }
-    })();
-    return () => {
-      cancelled = true;
-    };
+    } catch (e) {
+      console.warn('[CookingCalendar] 조회 실패:', e);
+    } finally {
+      setLoading(false);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoggedIn, authUser?.id, monthStart.getTime(), monthEnd.getTime()]);
+
+  React.useEffect(() => {
+    loadCalendar();
+  }, [loadCalendar]);
+
+  const memberIds = React.useMemo(
+    () => Object.keys(goals).map(Number).sort((a, b) => a - b),
+    [goals]
+  );
+  const nicknameById = React.useMemo(() => {
+    const map = new Map<number, string>();
+    for (const e of entries) map.set(e.user_id, e.nickname);
+    return map;
+  }, [entries]);
 
   const entriesByDay = React.useMemo(() => {
     const map = new Map<string, CalendarEntry[]>();
@@ -123,7 +140,6 @@ const CookingCalendar: React.FC = () => {
     return map;
   }, [entries]);
 
-  // 화면에 보이는 범위(달/주/일)에 맞춰 요약을 다시 계산한다.
   const visibleRange = React.useMemo(() => {
     if (viewMode === 'day') return { start: selectedDay, end: selectedDay };
     if (viewMode === 'week') {
@@ -134,21 +150,26 @@ const CookingCalendar: React.FC = () => {
   }, [viewMode, selectedDay, monthStart, monthEnd]);
 
   const summary = React.useMemo(() => {
-    const byNickname = new Map<string, number>();
+    const byUser = new Map<number, number>();
     let total = 0;
     for (const e of entries) {
       if (e.day < visibleRange.start || e.day > visibleRange.end) continue;
       total += 1;
-      byNickname.set(e.nickname, (byNickname.get(e.nickname) || 0) + 1);
+      byUser.set(e.user_id, (byUser.get(e.user_id) || 0) + 1);
     }
-    return { total, byNickname: Array.from(byNickname.entries()).sort((a, b) => b[1] - a[1]) };
+    return { total, byUser };
   }, [entries, visibleRange]);
 
-  const goToday = () => {
-    const today = new Date();
-    setAnchorDate(today);
-    setSelectedDay(toDateKey(today));
-  };
+  const myGoal = authUser?.id ? goals[String(authUser.id)] ?? 12 : 12;
+  const myMonthCount = React.useMemo(() => {
+    if (!authUser?.id) return 0;
+    let count = 0;
+    for (const e of entries) {
+      if (String(e.user_id) === String(authUser.id)) count += 1;
+    }
+    return count;
+  }, [entries, authUser?.id]);
+  const myAchievementRate = myGoal > 0 ? Math.min(100, Math.round((myMonthCount / myGoal) * 100)) : 0;
 
   const shiftAnchor = (dir: 1 | -1) => {
     if (viewMode === 'month') {
@@ -163,6 +184,27 @@ const CookingCalendar: React.FC = () => {
       const next = addDays(new Date(selectedDay), dir);
       setAnchorDate(next);
       setSelectedDay(toDateKey(next));
+    }
+  };
+
+  const handleSaveGoal = async () => {
+    const goal = parseInt(goalInput, 10);
+    if (Number.isNaN(goal) || goal < 0 || goal > 200 || !authUser?.id) {
+      setEditingGoal(false);
+      return;
+    }
+    try {
+      const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+      await fetch(`${getApiUrl()}/api/users/${authUser.id}/monthly-goal`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ monthly_cooking_goal: goal }),
+      });
+      setGoals((prev) => ({ ...prev, [String(authUser.id)]: goal }));
+    } catch (e) {
+      console.warn('[CookingCalendar] 목표 저장 실패:', e);
+    } finally {
+      setEditingGoal(false);
     }
   };
 
@@ -185,30 +227,47 @@ const CookingCalendar: React.FC = () => {
     );
   }
 
-  // 월 그리드: 그 달 1일이 있는 주의 일요일부터 시작해, 6주(42칸)를 채운다.
   const gridStart = startOfWeek(monthStart);
   const gridDays = Array.from({ length: 42 }, (_, i) => addDays(gridStart, i));
 
-  return (
-    <div style={{ maxWidth: 480, margin: '0 auto', paddingBottom: 40 }}>
-      {/* 헤더 */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '16px 16px 0' }}>
-        <button
-          type="button"
-          onClick={() => navigate(-1)}
-          aria-label="뒤로가기"
-          style={{ width: 32, height: 32, borderRadius: 8, border: 'none', background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1A1A1E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M15 18l-6-6 6-6" />
-          </svg>
-        </button>
-        <CalendarIcon size={18} />
-        <span style={{ fontSize: 17, fontWeight: 700, color: '#1A1A1E' }}>요리 캘린더</span>
-      </div>
+  // 하루 셀에 넣을 멤버별 점(최대 3명, 넘치면 +N)
+  const renderDayDots = (dayEntries: CalendarEntry[]) => {
+    const counts = new Map<number, number>();
+    for (const e of dayEntries) counts.set(e.user_id, (counts.get(e.user_id) || 0) + 1);
+    const uids = Array.from(counts.keys());
+    const shown = uids.slice(0, 3);
+    const extra = uids.length - shown.length;
+    return (
+      <span style={{ display: 'flex', gap: 2, alignItems: 'center', justifyContent: 'center' }}>
+        {shown.map((uid) => (
+          <span
+            key={uid}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              minWidth: 12,
+              height: 12,
+              borderRadius: 6,
+              padding: '0 2px',
+              fontSize: 8,
+              fontWeight: 700,
+              color: '#FFFFFF',
+              background: colorForUser(uid, memberIds),
+            }}
+          >
+            {(counts.get(uid) || 0) > 1 ? counts.get(uid) : ''}
+          </span>
+        ))}
+        {extra > 0 && <span style={{ fontSize: 9, color: 'var(--ink-500)' }}>+{extra}</span>}
+      </span>
+    );
+  };
 
-      {/* 퀵버튼: 일/주/월 전환 */}
-      <div style={{ display: 'flex', gap: 6, padding: '12px 16px 0' }}>
+  return (
+    <div style={{ maxWidth: 480, margin: '0 auto', paddingTop: 72, paddingBottom: 84 }}>
+      {/* 상단 퀵버튼: 일/주/월 전환. 다른 탭들과 같은 좌우 여백(14px)을 쓴다. */}
+      <div style={{ display: 'flex', gap: 6, padding: '0 14px' }}>
         {([
           { key: 'day', label: '일' },
           { key: 'week', label: '주' },
@@ -236,17 +295,10 @@ const CookingCalendar: React.FC = () => {
             </button>
           );
         })}
-        <button
-          type="button"
-          onClick={goToday}
-          style={{ height: 32, padding: '0 12px', borderRadius: 9999, fontSize: 13, fontWeight: 600, background: 'transparent', color: 'var(--ink-500)', border: '1px solid var(--line-200)', cursor: 'pointer', marginLeft: 'auto' }}
-        >
-          오늘
-        </button>
       </div>
 
       {/* 이전/다음 + 현재 범위 표시 */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px 0' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 14px 0' }}>
         <button type="button" onClick={() => shiftAnchor(-1)} aria-label="이전" style={{ width: 32, height: 32, border: 'none', background: 'transparent', cursor: 'pointer' }}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1A1A1E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
         </button>
@@ -260,16 +312,58 @@ const CookingCalendar: React.FC = () => {
         </button>
       </div>
 
-      {/* 요약 */}
-      <div style={{ margin: '12px 16px 0', padding: '10px 14px', borderRadius: 12, background: 'var(--surface-sub)', fontSize: 13, color: 'var(--ink-700)' }}>
+      {/* 이번 달 목표 달성률 (나 기준) */}
+      <div style={{ margin: '12px 14px 0', padding: '12px 14px', borderRadius: 12, background: 'var(--surface-sub)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: '#1A1A1E' }}>이번 달 목표</span>
+          {editingGoal ? (
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <input
+                type="number"
+                value={goalInput}
+                onChange={(e) => setGoalInput(e.target.value)}
+                autoFocus
+                style={{ width: 52, height: 26, borderRadius: 6, border: '1px solid var(--line-300)', textAlign: 'center', fontSize: 12 }}
+              />
+              <button type="button" onClick={handleSaveGoal} style={{ fontSize: 12, fontWeight: 700, color: '#1A1A1E', background: 'none', border: 'none', cursor: 'pointer' }}>저장</button>
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                setGoalInput(String(myGoal));
+                setEditingGoal(true);
+              }}
+              style={{ fontSize: 12, color: 'var(--ink-500)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
+            >
+              목표 {myGoal}회 수정
+            </button>
+          )}
+        </div>
+        <div style={{ height: 8, borderRadius: 9999, background: 'var(--line-200)', overflow: 'hidden' }}>
+          <div style={{ height: '100%', width: `${myAchievementRate}%`, background: 'var(--brand)', borderRadius: 9999, transition: 'width 0.2s ease' }} />
+        </div>
+        <div style={{ fontSize: 12, color: 'var(--ink-500)', marginTop: 6 }}>
+          {myMonthCount}회 / {myGoal}회 달성 ({myAchievementRate}%)
+        </div>
+      </div>
+
+      {/* 그룹 요약 + 인원별 색 범례 */}
+      <div style={{ margin: '10px 14px 0', padding: '10px 14px', borderRadius: 12, background: 'var(--surface-sub)', fontSize: 13, color: 'var(--ink-700)' }}>
         {summary.total === 0 ? (
           <span style={{ color: 'var(--ink-500)' }}>이 기간엔 완료한 레시피가 없어요.</span>
-        ) : isInHousehold ? (
-          <span>
-            총 {summary.total}회 · {summary.byNickname.map(([name, count]) => `${name} ${count}회`).join(' · ')}
-          </span>
         ) : (
-          <span>이 기간에 {summary.total}개 완료했어요.</span>
+          <span>총 {summary.total}회</span>
+        )}
+        {isInHousehold && summary.byUser.size > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 8 }}>
+            {Array.from(summary.byUser.entries()).map(([uid, count]) => (
+              <span key={uid} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12 }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: colorForUser(uid, memberIds), flexShrink: 0 }} />
+                {nicknameById.get(uid) || '?'} {count}회
+              </span>
+            ))}
+          </div>
         )}
       </div>
 
@@ -277,7 +371,7 @@ const CookingCalendar: React.FC = () => {
 
       {/* 월 보기 */}
       {viewMode === 'month' && (
-        <div style={{ padding: '12px 16px 0' }}>
+        <div style={{ padding: '12px 14px 0' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4, marginBottom: 4 }}>
             {WEEKDAY_LABELS.map((w) => (
               <div key={w} style={{ textAlign: 'center', fontSize: 11, color: 'var(--ink-500)', padding: '4px 0' }}>{w}</div>
@@ -307,27 +401,13 @@ const CookingCalendar: React.FC = () => {
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: 2,
+                    gap: 3,
                     cursor: 'pointer',
                     opacity: inMonth ? 1 : 0.35,
                   }}
                 >
                   <span style={{ fontSize: 13, fontWeight: isToday ? 700 : 500, color: '#1A1A1E' }}>{d.getDate()}</span>
-                  {dayEntries.length > 0 && (
-                    <span
-                      style={{
-                        fontSize: 10,
-                        fontWeight: 700,
-                        color: '#1A1A1E',
-                        background: 'var(--brand)',
-                        borderRadius: 9999,
-                        padding: '0 5px',
-                        lineHeight: '14px',
-                      }}
-                    >
-                      {dayEntries.length}
-                    </span>
-                  )}
+                  {dayEntries.length > 0 && renderDayDots(dayEntries)}
                 </button>
               );
             })}
@@ -337,7 +417,7 @@ const CookingCalendar: React.FC = () => {
 
       {/* 주 보기 */}
       {viewMode === 'week' && (
-        <div style={{ padding: '12px 16px 0', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ padding: '12px 14px 0', display: 'flex', flexDirection: 'column', gap: 8 }}>
           {Array.from({ length: 7 }, (_, i) => addDays(startOfWeek(new Date(selectedDay)), i)).map((d) => {
             const key = toDateKey(d);
             const dayEntries = entriesByDay.get(key) || [];
@@ -368,11 +448,7 @@ const CookingCalendar: React.FC = () => {
                 <span style={{ fontSize: 12.5, color: dayEntries.length ? 'var(--ink-700)' : 'var(--ink-500)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {dayEntries.length === 0 ? '기록 없음' : dayEntries.map((e) => e.title).join(', ')}
                 </span>
-                {dayEntries.length > 0 && (
-                  <span style={{ fontSize: 11, fontWeight: 700, color: '#1A1A1E', background: 'var(--brand)', borderRadius: 9999, padding: '2px 8px', flexShrink: 0 }}>
-                    {dayEntries.length}
-                  </span>
-                )}
+                {dayEntries.length > 0 && renderDayDots(dayEntries)}
               </button>
             );
           })}
@@ -381,7 +457,7 @@ const CookingCalendar: React.FC = () => {
 
       {/* 일 보기 */}
       {viewMode === 'day' && (
-        <div style={{ padding: '12px 16px 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ padding: '12px 14px 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
           {(entriesByDay.get(selectedDay) || []).length === 0 ? (
             <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--ink-500)', fontSize: 13 }}>
               이 날은 완료한 레시피가 없어요.
@@ -401,15 +477,23 @@ const CookingCalendar: React.FC = () => {
                   <div style={{ fontSize: 14, fontWeight: 600, color: '#1A1A1E', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {e.title}
                   </div>
-                  {isInHousehold && (
-                    <div style={{ fontSize: 12, color: 'var(--ink-500)', marginTop: 2 }}>{e.nickname}님이 완료</div>
-                  )}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
+                    {isInHousehold && (
+                      <span style={{ width: 7, height: 7, borderRadius: '50%', background: colorForUser(e.user_id, memberIds), flexShrink: 0 }} />
+                    )}
+                    <span style={{ fontSize: 12, color: 'var(--ink-500)' }}>
+                      {formatTime(e.created_at)}
+                      {isInHousehold ? ` · ${e.nickname}` : ''}
+                    </span>
+                  </div>
                 </div>
               </div>
             ))
           )}
         </div>
       )}
+
+      <BottomNavBar activeTab="cooking-calendar" />
     </div>
   );
 };

@@ -9,6 +9,27 @@ import popularityBlack from '../assets/navigator_popularity_black.png';
 import mypageWhite from '../assets/navigator_mypage_white.png';
 import mypageBlack from '../assets/navigator_mypage_black.png';
 
+// 요리 캘린더는 PNG 아이콘 세트가 없어 인라인 SVG로 그린다. 다른 탭 PNG들과
+// 같은 규칙(활성 = 짙은 채움, 비활성 = 옅은 회색 선 — 파일명은 "_white"지만
+// 실제로는 흰 배경 위 회색/검정 선 아이콘이라, 흰 선을 쓰면 안 보인다)을 따른다.
+const CalendarNavIcon: React.FC<{ active: boolean }> = ({ active }) =>
+  active ? (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="#1A1A1E" aria-hidden>
+      <rect x="3" y="4.5" width="18" height="16" rx="2.4" />
+      <rect x="3" y="4.5" width="18" height="4.6" rx="2.2" fill="#1A1A1E" />
+      <rect x="6.5" y="12" width="3" height="3" fill="#FFFFFF" />
+      <rect x="10.5" y="12" width="3" height="3" fill="#FFFFFF" />
+      <rect x="14.5" y="12" width="3" height="3" fill="#FFFFFF" />
+      <rect x="6.5" y="16.2" width="3" height="3" fill="#FFFFFF" />
+    </svg>
+  ) : (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9A9AA2" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <rect x="3.5" y="5" width="17" height="15" rx="2.2" />
+      <path d="M3.5 9.5h17" />
+      <path d="M8 3v3.4M16 3v3.4" />
+    </svg>
+  );
+
 // 네비게이션 데이터
 const NAVIGATION_ITEMS = [
   {
@@ -31,6 +52,12 @@ const NAVIGATION_ITEMS = [
     icon: popularityBlack,
     iconInactive: popularityWhite,
     path: '/popular'
+  },
+  {
+    key: 'cooking-calendar',
+    label: '요리 캘린더',
+    renderIcon: (active: boolean) => <CalendarNavIcon active={active} />,
+    path: '/cooking-calendar'
   },
   {
     key: 'mypage',

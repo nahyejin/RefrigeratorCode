@@ -1469,33 +1469,8 @@ const MyPage: React.FC = () => {
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
             <SectionHeader icon={<SectionIcon kind="completed" />} title={isInHousehold ? '우리 식구가 완료한 레시피' : '내가 완료한 레시피'} />
             <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-              {/* 완료 기록을 날짜별로 돌아보는 화면으로 가는 입구.
-                  하단 탭을 새로 만들기엔 자주 쓰는 동선이 아니라, 이미 있는
-                  "완료한 레시피" 섹션 옆에 붙여 둔다. */}
-              <button
-                type="button"
-                aria-label="요리 캘린더 보기"
-                title="요리 캘린더"
-                onClick={() => navigate('/mypage/cooking-calendar')}
-                style={{
-                  width: 32,
-                  height: 32,
-                  padding: 0,
-                  boxSizing: 'border-box',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  background: 'transparent',
-                  border: 'none',
-                  cursor: 'pointer',
-                }}
-              >
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#1A1A1E" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                  <rect x="3.5" y="5" width="17" height="15" rx="2.2" />
-                  <path d="M3.5 9.5h17" />
-                  <path d="M8 3v3.4M16 3v3.4" />
-                </svg>
-              </button>
+              {/* 완료 기록을 날짜별로 돌아보는 화면(요리 캘린더)은 하단 탭으로
+                  옮겼다 — 여기 아이콘 입구는 눈에 잘 안 띈다는 지적이 있어 없앰. */}
               {/* 예전엔 전체보기가 `☰` 글자 하나였다. 햄버거는 '메뉴' 를 뜻하는 기호라
                   '이 목록 전부 보기' 와 뜻이 맞지 않고, 무엇보다 무슨 버튼인지 알 수 없었다. */}
               <button
