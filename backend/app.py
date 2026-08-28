@@ -578,9 +578,22 @@ def get_filtered_recipes():
 
     # COUNT 쿼리 최적화: match_rate 필터가 없으면 간단한 COUNT만 실행
     # match_rate 필터가 있을 때만 서브쿼리 사용
+    #
+    # 추가 최적화: 프론트(RecipeList.tsx)는 1페이지만 total을 실제로 쓰고
+    # 백그라운드로 이어받는 2페이지 이후는 total을 아예 무시한다(같은 필터
+    # 조건이라 1페이지에서 이미 받았으므로). 그런데도 이 COUNT 서브쿼리는
+    # match_rate 계산식을 전체 매칭 행에 대해 다시 실행하는 무거운 연산이라,
+    # 페이지마다 매번 다시 돌리면 "페이지가 늘어날수록 다음 페이지가 점점
+    # 느려진다" — 매 요청이 거의 전체 재계산과 맞먹는 비용을 다시 치르기
+    # 때문. page>1이면 이 무거운 COUNT를 건너뛰고 이전에 이미 받은 total을
+    # 그대로 쓰게 한다(0으로 반환 — 프론트가 어차피 안 씀).
     count_start = time.time()
-    
-    if match_rate_min is not None or match_rate_max is not None or need_match_rate:
+
+    if page > 1:
+        total = 0
+        count_time = time.time() - count_start
+        print(f"[필터링] COUNT 쿼리 생략(page={page} > 1, 프론트가 total을 안 씀)")
+    elif match_rate_min is not None or match_rate_max is not None or need_match_rate:
         # match_rate 필터가 있거나 match_rate 계산이 필요한 경우에만 서브쿼리 사용
         count_params = match_rate_params + base_params
         count_sql = f"""
@@ -609,10 +622,11 @@ def get_filtered_recipes():
         # match_rate 계산이 필요 없으면 간단한 COUNT만 실행 (훨씬 빠름)
         count_sql = f"SELECT COUNT(*) AS total FROM recipes WHERE {where_sql}"
         cursor.execute(count_sql, base_params)
-    
-    total = cursor.fetchone()['total']
-    count_time = time.time() - count_start
-    print(f"[필터링] COUNT 쿼리 실행 시간: {count_time:.3f}초, 필터링된 전체 개수 (total): {total}")
+
+    if page <= 1:
+        total = cursor.fetchone()['total']
+        count_time = time.time() - count_start
+        print(f"[필터링] COUNT 쿼리 실행 시간: {count_time:.3f}초, 필터링된 전체 개수 (total): {total}")
 
     # 메인 쿼리 최적화: content는 큰 TEXT 컬럼이므로 선택적으로 가져오기
     # 프론트엔드에서 content를 사용하는지 확인 필요 (일단 제외하여 성능 향상)

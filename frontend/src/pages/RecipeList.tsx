@@ -668,6 +668,21 @@ const RecipeList: React.FC = () => {
   // 이전 재료 목록 해시값 저장
   const previousIngredientsHashRef = useRef<string>(getIngredientsHash());
 
+  // 매칭률 계산 캐시 — 레시피 id -> 계산 결과.
+  // 예전엔 백그라운드에서 20개씩 페이지가 도착할 때마다, 그때까지 쌓인
+  // 레시피 "전체"에 대해 calculateMatchRate를 처음부터 다시 계산했다
+  // (아래 큰 useEffect 참고). 페이지가 늘어날수록 매번 처음부터 다시
+  // 계산하는 양도 늘어나서, 전체 페이지 수에 비례해 총 계산량이 제곱으로
+  // 늘어났다 — "처음엔 빠른데 갈수록 느려지다가 멈춘 것처럼 보인다"는
+  // 증상의 원인. 내 재료(myIngredients)와 동의어 사전이 그대로인 동안은
+  // 같은 레시피의 매칭 결과도 그대로이므로, id별로 한 번 계산한 결과를
+  // 캐시해 두고 재사용한다 — 내 재료가 바뀌면(캐시 키가 바뀌면) 전체를
+  // 비우고 다시 계산한다.
+  const matchRateCacheRef = useRef<{ key: string; map: Map<number, { rate: number; my_ingredients: string[]; need_ingredients: string[] }> }>({
+    key: '',
+    map: new Map(),
+  });
+
   useEffect(() => {
     setKeywordSearchInput(includeKeyword);
   }, [includeKeyword]);
@@ -1771,37 +1786,34 @@ const RecipeList: React.FC = () => {
       return;
     }
 
-    // maxLack 필터 적용 (cachedFilteredRecipes에 적용)
-    let filteredByMaxLack = [...cachedFilteredRecipes];
-    if (maxLack !== 'unlimited') {
-      filteredByMaxLack = filteredByMaxLack.filter(recipe => {
-        // need_ingredients가 없으면 calculateMatchRate를 사용하여 계산
-        let needIngredients = recipe.need_ingredients;
-        if (!needIngredients || needIngredients.length === 0) {
-          const matchResult = calculateMatchRate(myIngredients, recipe.used_ingredients || []);
-          needIngredients = matchResult.need_ingredients;
-        }
-        
-        const lackCount = needIngredients.length;
-        // maxLack === 5는 '최대 5개 부족'을 의미하므로 <= 5로 처리
-        return lackCount <= maxLack;
-      });
+    // 내 재료가 그대로면 이전에 계산해 둔 매칭 결과를 그대로 쓴다. 예전엔
+    // 백그라운드 페이지가 도착할 때마다(20개씩) 이 시점까지 쌓인 레시피
+    // "전체"를 매번 calculateMatchRate로 처음부터 다시 계산했다 — 페이지가
+    // 늘어날수록 매번 다시 계산하는 양도 함께 늘어 총 계산량이 페이지
+    // 수의 제곱에 비례했다("처음 20개는 빠른데 갈수록 느려지다 멈춘 것
+    // 같다"는 증상의 원인). 레시피 id별로 계산 결과를 캐시해 두고, 새로
+    // 도착한 레시피만 계산하도록 바꿨다. 내 재료가 바뀌면 캐시 키가
+    // 달라지므로 그때만 전체를 다시 계산한다.
+    const ingredientsCacheKey = JSON.stringify([...myIngredients].sort());
+    if (matchRateCacheRef.current.key !== ingredientsCacheKey) {
+      matchRateCacheRef.current = { key: ingredientsCacheKey, map: new Map() };
     }
+    const matchRateCache = matchRateCacheRef.current.map;
 
-    // 서버에서 정렬된 데이터이지만, 동의어 처리를 고려하여 프론트엔드에서 다시 정렬해야 함
-    // 서버는 동의어를 고려하지 않고 match_rate를 계산하므로, 프론트엔드에서 동의어를 고려한 매칭률로 재정렬 필요
-    const effectiveSortType = initialLoadDone.current ? sortType : 'match';
-    const effectiveMatchRange = initialLoadDone.current ? matchRange : [30, 100];
-    const [matchMin, matchMax] = effectiveMatchRange;
-
-    // 동의어를 고려하여 매칭률을 다시 계산하고 정렬
-    // 먼저 모든 레시피에 대해 동의어를 고려한 매칭률 계산
-    const recipesWithCorrectMatchRate = filteredByMaxLack.map(recipe => {
-      const matchResult = calculateMatchRate(
-        myIngredients,
-        recipe.used_ingredients || '',
-        ingredientSynonymDictCache // 동의어 사전 사용
-      );
+    // 동의어를 고려한 매칭률을 레시피 id별로 한 번만 계산(캐시 적중 시 재사용).
+    // 서버는 동의어를 고려하지 않고 match_rate를 계산하므로, 프론트엔드에서
+    // 동의어를 고려한 매칭률로 다시 계산해 둬야 한다(부족 재료 개수 필터,
+    // 매칭 구간 필터, 정렬이 전부 이 값을 기준으로 하기 때문).
+    const recipesWithCorrectMatchRate = cachedFilteredRecipes.map(recipe => {
+      let matchResult = matchRateCache.get(recipe.id);
+      if (!matchResult) {
+        matchResult = calculateMatchRate(
+          myIngredients,
+          recipe.used_ingredients || '',
+          ingredientSynonymDictCache // 동의어 사전 사용
+        );
+        matchRateCache.set(recipe.id, matchResult);
+      }
       return {
         ...recipe,
         match_rate: matchResult.rate, // 동의어를 고려한 정확한 매칭률
@@ -1810,8 +1822,25 @@ const RecipeList: React.FC = () => {
       };
     });
 
+    // maxLack 필터 적용 — need_ingredients는 위에서 이미(캐시 포함) 계산해
+    // 뒀으므로 여기서 calculateMatchRate를 또 호출할 필요가 없다(전엔 이
+    // 필터가 별도로 한 번 더 전체 재계산을 했었다).
+    let filteredByMaxLack = recipesWithCorrectMatchRate;
+    if (maxLack !== 'unlimited') {
+      filteredByMaxLack = filteredByMaxLack.filter(recipe => {
+        const lackCount = recipe.need_ingredients?.length || 0;
+        // maxLack === 5는 '최대 5개 부족'을 의미하므로 <= 5로 처리
+        return lackCount <= maxLack;
+      });
+    }
+
+    // 서버에서 정렬된 데이터이지만, 동의어 처리를 고려하여 프론트엔드에서 다시 정렬해야 함
+    const effectiveSortType = initialLoadDone.current ? sortType : 'match';
+    const effectiveMatchRange = initialLoadDone.current ? matchRange : [30, 100];
+    const [matchMin, matchMax] = effectiveMatchRange;
+
     // 동의어 반영 후 매칭률이 바뀌므로, 사용자가 고른 구간(예: 60~90%)을 클라이언트에서 다시 적용
-    const inMatchRange = recipesWithCorrectMatchRate.filter(r => {
+    const inMatchRange = filteredByMaxLack.filter(r => {
       const rate = typeof r.match_rate === 'number' ? r.match_rate : 0;
       return rate >= matchMin && rate <= matchMax;
     });
