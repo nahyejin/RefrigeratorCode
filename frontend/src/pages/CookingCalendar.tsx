@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
-import BottomNavBar, { CALENDAR_ICON_PATHS } from '../components/BottomNavBar';
+import BottomNavBar from '../components/BottomNavBar';
 import PullToRefresh from '../components/PullToRefresh';
 import { useAuth } from '../context/AuthContext';
 import { getProxiedImageUrl } from '../utils/imageUtils';
@@ -342,20 +342,6 @@ const CookingCalendar: React.FC = () => {
     return (
       <div className="min-h-screen w-full flex items-center justify-center bg-white">
         <div style={{ textAlign: 'center', padding: '0 32px' }}>
-          <svg
-            width="40"
-            height="40"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="#1A1A1E"
-            strokeWidth="1"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden
-            style={{ marginBottom: 12 }}
-          >
-            {CALENDAR_ICON_PATHS}
-          </svg>
           <p style={{ fontSize: 15, fontWeight: 700, color: '#1A1A1E', marginBottom: 8 }}>
             로그인하면 요리 캘린더를 쓸 수 있어요
           </p>
