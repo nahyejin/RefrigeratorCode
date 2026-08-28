@@ -1,4 +1,9 @@
-const CACHE_NAME = 'cookmatch-v1.0.0';
+// 배포할 때마다 이 값을 올려야 새 코드가 실제로 반영된다 — 아래 fetch 핸들러가
+// HTML 문서를 "캐시 우선"으로 서빙해서, 값이 그대로면 activate 의 캐시 정리도
+// 안 걸리고 사용자는 예전에 저장된 index.html(예전 빌드의 JS/CSS 경로를 가리킴)을
+// 계속 받는다. 실제로 이것 때문에 여러 버그 수정을 배포해도 PWA로 설치했거나
+// 예전에 한 번 방문한 사용자에게는 반영되지 않는 문제가 있었다.
+const CACHE_NAME = 'cookmatch-v1.0.1';
 const urlsToCache = [
   '/',
   '/manifest.json',
@@ -78,7 +83,28 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 정적 리소스는 캐시 우선
+  // HTML 문서(페이지 이동)는 네트워크 우선으로.
+  // 캐시 우선으로 두면, index.html 이 한 번 캐시된 뒤로는 새로 배포해서 JS/CSS
+  // 파일이 바뀌어도 브라우저가 계속 예전 index.html(예전 파일 경로를 가리킴)을
+  // 받아서, 새 코드가 배포돼도 반영되지 않는 문제가 있었다(실제로 겪음).
+  // 온라인이면 항상 최신 문서를, 오프라인일 때만 캐시로 폴백한다.
+  if (event.request.mode === 'navigate' || event.request.destination === 'document') {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (response && response.status === 200 && response.type === 'basic') {
+            const responseToCache = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseToCache));
+          }
+          return response;
+        })
+        .catch(() => caches.match(event.request).then((cached) => cached || caches.match('/')))
+    );
+    return;
+  }
+
+  // 그 외 정적 리소스(해시된 JS/CSS, 이미지 등)는 캐시 우선 — Vite가 파일명에
+  // 콘텐츠 해시를 붙이므로 내용이 바뀌면 파일명도 바뀌어 안전하게 오래 캐시해도 된다.
   event.respondWith(
     caches.match(event.request)
       .then((response) => {
