@@ -592,6 +592,9 @@ const RecipeList: React.FC = () => {
   const [showRegisterModal, setShowRegisterModal] = useState(false);
   const [registerModalMessage, setRegisterModalMessage] = useState('');
   const [pendingRecipe, setPendingRecipe] = useState<{ id: number; type: 'done' | 'write'; recipe: any } | null>(null);
+  // 즐겨찾기/완료/기록 취소 확인 (누르면 바로 지워지지 않고 한 번 더 확인한다 —
+  // 마이페이지 전체보기 목록과 같은 규격)
+  const [pendingRemove, setPendingRemove] = useState<{ type: 'done' | 'write' | 'favorite'; id: number } | null>(null);
   const [showGuide, setShowGuide] = useState(false);
   const [guideStep, setGuideStep] = useState(0);
   const { isLoggedIn } = useAuth();
@@ -1031,6 +1034,30 @@ const RecipeList: React.FC = () => {
   // =====================
 
   /**
+   * 즐겨찾기/완료/기록 취소 확인
+   */
+  const handleRemoveConfirm = () => {
+    if (!pendingRemove) return;
+    removeRecipeFromLocalStorage(pendingRemove.type, pendingRemove.id);
+    setRecipeActionStates(prev => ({ ...prev, [pendingRemove.id]: getRecipeActionState(pendingRemove.id) }));
+    showToast(
+      pendingRemove.type === 'done'
+        ? '레시피 완료를 취소했습니다!'
+        : pendingRemove.type === 'write'
+          ? '레시피 기록을 취소했습니다!'
+          : '레시피 즐겨찾기를 취소했습니다!'
+    );
+    setPendingRemove(null);
+  };
+
+  /**
+   * 즐겨찾기/완료/기록 취소 안 함
+   */
+  const handleRemoveUndo = () => {
+    setPendingRemove(null);
+  };
+
+  /**
    * 토스트 메시지를 표시한다
    */
   const showToast = (message: string) => {
@@ -1053,9 +1080,7 @@ const RecipeList: React.FC = () => {
       setRecipeActionStates(prev => ({ ...prev, [id]: getRecipeActionState(id) }));
       showToast('레시피를 즐겨찾기에 추가했습니다!');
     } else {
-      removeRecipeFromLocalStorage('favorite', id);
-      setRecipeActionStates(prev => ({ ...prev, [id]: getRecipeActionState(id) }));
-      showToast('레시피 즐겨찾기를 취소했습니다!');
+      setPendingRemove({ type: 'favorite', id });
     }
   };
 
@@ -1090,9 +1115,7 @@ const RecipeList: React.FC = () => {
       }
     } else {
       // 완료 취소
-      removeRecipeFromLocalStorage('done', id);
-      setRecipeActionStates(prev => ({ ...prev, [id]: getRecipeActionState(id) }));
-      showToast('레시피 완료를 취소했습니다!');
+      setPendingRemove({ type: 'done', id });
     }
   };
 
@@ -1127,9 +1150,7 @@ const RecipeList: React.FC = () => {
       }
     } else {
       // 기록 취소
-      removeRecipeFromLocalStorage('write', id);
-      setRecipeActionStates(prev => ({ ...prev, [id]: getRecipeActionState(id) }));
-      showToast('레시피 기록을 취소했습니다!');
+      setPendingRemove({ type: 'write', id });
     }
   };
 
@@ -2367,6 +2388,62 @@ const RecipeList: React.FC = () => {
       <BottomNavBar activeTab="recipe" />
       
       {toast && <RecipeToast message={toast} />}
+
+      {pendingRemove && (
+        <div style={{
+          position: 'fixed',
+          bottom: 100,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'rgba(34, 34, 34, 0.9)',
+          color: '#FFFFFF',
+          padding: '12px 24px',
+          borderRadius: 12,
+          fontSize: 16,
+          fontWeight: 400,
+          zIndex: 'var(--z-toast)',
+          maxWidth: 320,
+          width: 'max-content',
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          textAlign: 'center',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 8,
+        }}>
+          <span style={{
+            color: '#FFFFFF',
+            marginBottom: 6,
+            letterSpacing: '0.04em',
+            whiteSpace: 'nowrap',
+            display: 'inline-block',
+            fontWeight: 400
+          }}>
+            {pendingRemove.type === 'done'
+              ? '레시피 완료를 취소하시겠어요?'
+              : pendingRemove.type === 'write'
+                ? '레시피 기록을 취소하시겠어요?'
+                : '레시피 즐겨찾기를 취소하시겠어요?'}
+          </span>
+          <div style={{ display: 'flex', flexDirection: 'row', gap: 12, justifyContent: 'center', width: '100%' }}>
+            <button
+              className="inline-flex items-center justify-center bg-[#F5F5F7] text-gray-700 font-semibold rounded-lg px-3 py-1 text-sm border border-[#E6E6EA] shadow-none hover:bg-[#E6E6EA] transition whitespace-nowrap"
+              style={{ marginRight: 4 }}
+              onClick={handleRemoveUndo}
+            >
+              아니요
+            </button>
+            <button
+              className="inline-flex items-center justify-center bg-[#F5F5F7] text-gray-700 font-semibold rounded-lg px-3 py-1 text-sm border border-[#E6E6EA] shadow-none hover:bg-[#E6E6EA] transition whitespace-nowrap"
+              onClick={handleRemoveConfirm}
+            >
+              네
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* 회원가입 유도 모달 */}
       <RegisterPromptModal

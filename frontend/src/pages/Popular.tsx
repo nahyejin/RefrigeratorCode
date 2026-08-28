@@ -647,6 +647,9 @@ const Popular = () => {
   const [showRegisterModal, setShowRegisterModal] = useState(false);
   const [registerModalMessage, setRegisterModalMessage] = useState('');
   const [pendingRecipe, setPendingRecipe] = useState<{ id: number; type: 'done' | 'write'; recipe: any } | null>(null);
+  // 즐겨찾기/완료/기록 취소 확인 (누르면 바로 지워지지 않고 한 번 더 확인한다 —
+  // 마이페이지 전체보기 목록과 같은 규격)
+  const [pendingRemove, setPendingRemove] = useState<{ type: 'done' | 'write' | 'favorite'; id: number } | null>(null);
   
   // 사용자별 레시피 상태 (DB 또는 localStorage)
   const [userCompletedRecipes, setUserCompletedRecipes] = useState<number[]>([]);
@@ -955,33 +958,59 @@ const Popular = () => {
     periodLabel = `${dateRange[0].getFullYear()}.${String(dateRange[0].getMonth()+1).padStart(2,'0')}.${String(dateRange[0].getDate()).padStart(2,'0')}~${dateRange[1].getFullYear()}.${String(dateRange[1].getMonth()+1).padStart(2,'0')}.${String(dateRange[1].getDate()).padStart(2,'0')}`;
   }
 
+  /**
+   * 즐겨찾기/완료/기록 취소를 실제로 수행한다 (확인 팝업에서 "네"를 눌렀을 때).
+   * 세 가지가 로컬스토리지 키·DB 엔드포인트·상태 setter만 다르고 나머지 흐름은
+   * 같아서 하나로 묶었다.
+   */
+  const performRemoval = async (type: 'favorite' | 'done' | 'write', id: number) => {
+    removeRecipeFromLocalStorage(type, id);
+    if (type === 'favorite') setUserFavoriteRecipes(prev => prev.filter(rid => rid !== id));
+    else if (type === 'done') setUserCompletedRecipes(prev => prev.filter(rid => rid !== id));
+    else setUserRecordedRecipes(prev => prev.filter(rid => rid !== id));
+
+    if (isLoggedIn && authUser?.id) {
+      try {
+        const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+        if (token) {
+          const apiUrl = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'https://refrigeratorcode-production.up.railway.app';
+          const endpoint = type === 'favorite' ? 'favorite-recipes' : type === 'done' ? 'completed-recipes' : 'recorded-recipes';
+          await fetch(`${apiUrl}/api/users/${authUser.id}/${endpoint}/${id}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` },
+          });
+        }
+      } catch (error) {
+        console.error(`[Popular] ${type} 레시피 삭제 실패:`, error);
+      }
+    }
+
+    setButtonStates(prev => ({ ...prev, [id]: getRecipeActionState(id) }));
+    setToast(
+      type === 'done'
+        ? '레시피 완료를 취소했습니다!'
+        : type === 'write'
+          ? '레시피 기록을 취소했습니다!'
+          : '레시피 즐겨찾기를 취소했습니다!'
+    );
+  };
+
+  const handleRemoveConfirm = () => {
+    if (!pendingRemove) return;
+    performRemoval(pendingRemove.type, pendingRemove.id);
+    setPendingRemove(null);
+  };
+
+  const handleRemoveUndo = () => setPendingRemove(null);
+
   // Update handleRecipeAction to use correct localStorage keys and sync properly
   const handleRecipeAction = async (id: number, action: { action: 'done' | 'write' | 'share' | 'favorite' }) => {
     const prevState = buttonStates[id] || getRecipeActionState(id);
 
       if (action.action === 'favorite') {
-        const recipe = youtubeRecipes.find(r => r.id === id) || naverRecipes.find(r => r.id === id);
+        const recipe = youtubeRecipes.find(r => r.id === id) || naverRecipes.find(r => r.id === id) || premiumRecipes.find(r => r.id === id);
         if (prevState.favorite) {
-          removeRecipeFromLocalStorage('favorite', id);
-          setUserFavoriteRecipes(prev => prev.filter(rid => rid !== id));
-
-          if (isLoggedIn && authUser?.id) {
-            try {
-              const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
-              if (token) {
-                const apiUrl = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'https://refrigeratorcode-production.up.railway.app';
-                await fetch(`${apiUrl}/api/users/${authUser.id}/favorite-recipes/${id}`, {
-                  method: 'DELETE',
-                  headers: { 'Authorization': `Bearer ${token}` },
-                });
-              }
-            } catch (error) {
-              console.error('[Popular] 즐겨찾기 레시피 삭제 실패:', error);
-            }
-          }
-
-          setButtonStates(prev => ({ ...prev, [id]: getRecipeActionState(id) }));
-          setToast('레시피 즐겨찾기를 취소했습니다!');
+          setPendingRemove({ type: 'favorite', id });
         } else if (recipe && !getRecipesFromLocalStorage('favorite').some((r: any) => r.id === id)) {
           const normalized = {
             id: recipe.id,
@@ -1041,30 +1070,10 @@ const Popular = () => {
       }
     
       if (action.action === 'done') {
-        const recipe = youtubeRecipes.find(r => r.id === id) || naverRecipes.find(r => r.id === id);
+        const recipe = youtubeRecipes.find(r => r.id === id) || naverRecipes.find(r => r.id === id) || premiumRecipes.find(r => r.id === id);
         if (prevState.done) {
           // 완료 취소
-          removeRecipeFromLocalStorage('done', id);
-          setUserCompletedRecipes(prev => prev.filter(rid => rid !== id));
-          
-          // 로그인한 경우 DB에서도 삭제
-          if (isLoggedIn && authUser?.id) {
-            try {
-              const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
-              if (token) {
-                const apiUrl = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'https://refrigeratorcode-production.up.railway.app';
-                await fetch(`${apiUrl}/api/users/${authUser.id}/completed-recipes/${id}`, {
-                  method: 'DELETE',
-                  headers: { 'Authorization': `Bearer ${token}` },
-                });
-              }
-            } catch (error) {
-              console.error('[Popular] 완료 레시피 삭제 실패:', error);
-            }
-          }
-          
-        setButtonStates(prev => ({ ...prev, [id]: getRecipeActionState(id) }));
-          setToast('레시피 완료를 취소했습니다!');
+          setPendingRemove({ type: 'done', id });
         } else {
         // 완료 추가 전에 5개 조건 체크
           if (recipe && !getRecipesFromLocalStorage('done').some((r: any) => r.id === id)) {
@@ -1170,30 +1179,10 @@ const Popular = () => {
         }
       }
       if (action.action === 'write') {
-        const recipe = youtubeRecipes.find(r => r.id === id) || naverRecipes.find(r => r.id === id);
+        const recipe = youtubeRecipes.find(r => r.id === id) || naverRecipes.find(r => r.id === id) || premiumRecipes.find(r => r.id === id);
         if (prevState.write) {
           // 기록 취소
-          removeRecipeFromLocalStorage('write', id);
-          setUserRecordedRecipes(prev => prev.filter(rid => rid !== id));
-          
-          // 로그인한 경우 DB에서도 삭제
-          if (isLoggedIn && authUser?.id) {
-            try {
-              const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
-              if (token) {
-                const apiUrl = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'https://refrigeratorcode-production.up.railway.app';
-                await fetch(`${apiUrl}/api/users/${authUser.id}/recorded-recipes/${id}`, {
-                  method: 'DELETE',
-                  headers: { 'Authorization': `Bearer ${token}` },
-                });
-              }
-            } catch (error) {
-              console.error('[Popular] 기록 레시피 삭제 실패:', error);
-            }
-          }
-          
-        setButtonStates(prev => ({ ...prev, [id]: getRecipeActionState(id) }));
-          setToast('레시피 기록을 취소했습니다!');
+          setPendingRemove({ type: 'write', id });
         } else {
         // 기록 추가 전에 5개 조건 체크
           if (recipe && !getRecipesFromLocalStorage('write').some((r: any) => r.id === id)) {
@@ -1299,7 +1288,7 @@ const Popular = () => {
         }
       }
       if (action.action === 'share') {
-        const recipe = youtubeRecipes.find(r => r.id === id) || naverRecipes.find(r => r.id === id);
+        const recipe = youtubeRecipes.find(r => r.id === id) || naverRecipes.find(r => r.id === id) || premiumRecipes.find(r => r.id === id);
         if (recipe) {
           copyRecipeUrlToClipboard(recipe);
           setToast('URL이 복사되었습니다!');
@@ -2220,6 +2209,61 @@ const Popular = () => {
       </div>
       {toast && (
         <Toast message={toast} />
+      )}
+      {pendingRemove && (
+        <div style={{
+          position: 'fixed',
+          bottom: 100,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'rgba(34, 34, 34, 0.9)',
+          color: '#FFFFFF',
+          padding: '12px 24px',
+          borderRadius: 12,
+          fontSize: 16,
+          fontWeight: 400,
+          zIndex: 'var(--z-toast)',
+          maxWidth: 320,
+          width: 'max-content',
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          textAlign: 'center',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 8,
+        }}>
+          <span style={{
+            color: '#FFFFFF',
+            marginBottom: 6,
+            letterSpacing: '0.04em',
+            whiteSpace: 'nowrap',
+            display: 'inline-block',
+            fontWeight: 400
+          }}>
+            {pendingRemove.type === 'done'
+              ? '레시피 완료를 취소하시겠어요?'
+              : pendingRemove.type === 'write'
+                ? '레시피 기록을 취소하시겠어요?'
+                : '레시피 즐겨찾기를 취소하시겠어요?'}
+          </span>
+          <div style={{ display: 'flex', flexDirection: 'row', gap: 12, justifyContent: 'center', width: '100%' }}>
+            <button
+              className="inline-flex items-center justify-center bg-[#F5F5F7] text-gray-700 font-semibold rounded-lg px-3 py-1 text-sm border border-[#E6E6EA] shadow-none hover:bg-[#E6E6EA] transition whitespace-nowrap"
+              style={{ marginRight: 4 }}
+              onClick={handleRemoveUndo}
+            >
+              아니요
+            </button>
+            <button
+              className="inline-flex items-center justify-center bg-[#F5F5F7] text-gray-700 font-semibold rounded-lg px-3 py-1 text-sm border border-[#E6E6EA] shadow-none hover:bg-[#E6E6EA] transition whitespace-nowrap"
+              onClick={handleRemoveConfirm}
+            >
+              네
+            </button>
+          </div>
+        </div>
       )}
       {/* Loading animation */}
       {loading && (
