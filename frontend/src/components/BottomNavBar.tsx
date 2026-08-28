@@ -10,26 +10,30 @@ import mypageWhite from '../assets/navigator_mypage_white.png';
 import mypageBlack from '../assets/navigator_mypage_black.png';
 
 // 요리 캘린더는 PNG 아이콘 세트가 없어 인라인 SVG로 그린다.
-// 다른 탭 PNG(예: navigator_mypage_white.png)를 직접 열어서 확인해 보니
-// "_white"라는 이름과 달리 실제로는 흰 배경 위 **검정** 선 아이콘이었다 —
-// 활성/비활성은 색이 아니라 "채움(활성) vs 얇은 검정 선(비활성)"으로만
-// 구분되고 있었다. 회색(#9A9AA2)으로 칠했던 이전 버전은 이 관례에서
-// 벗어나 있었다. 또 채운 상태가 눈금 없이 단색 사각형처럼 보인다는 지적도
-// 있어, 안쪽에 흰색으로 헤더 띠 + 손잡이를 "파낸" 것처럼 그려 채운
-// 상태에서도 달력 모양이 읽히게 했다.
+// 다른 탭 PNG(navigator_popularity_black/white.png 등)를 직접 열어서 비교해
+// 보니, 두 상태의 차이는 오직 "같은 모양을 얇은 검정 선으로 그리느냐(비활성)
+// vs 그 모양을 통째로 검정으로 채우느냐(활성)" 뿐이었다 — 흰색 파냄이나
+// 다른 색 포인트가 전혀 없었다. 이전 버전은 채운 상태에 흰색 헤더 띠를
+// "파내" 그려서 이모지처럼 알록달록해 보인다는 지적을 받았다. 같은 도형
+// (몸통 사각형 + 위쪽 손잡이 2개)을 비활성은 얇은 선(strokeWidth 1.3 —
+// 참고 PNG들의 선 굵기 비율에 맞춤)으로, 활성은 그 도형 그대로 단색
+// 채움으로만 그린다.
+const CALENDAR_ICON_PATHS = (
+  <>
+    <rect x="3.5" y="5" width="17" height="15" rx="2.2" />
+    <rect x="7.2" y="3" width="1.8" height="3.6" rx="0.9" />
+    <rect x="15" y="3" width="1.8" height="3.6" rx="0.9" />
+  </>
+);
+
 const CalendarNavIcon: React.FC<{ active: boolean }> = ({ active }) =>
   active ? (
-    <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden>
-      <rect x="3.5" y="5" width="17" height="15" rx="2.2" fill="#1A1A1E" />
-      <rect x="3.5" y="5" width="17" height="4.4" rx="2.2" fill="#FFFFFF" />
-      <rect x="7.2" y="3" width="1.8" height="3.6" rx="0.9" fill="#1A1A1E" />
-      <rect x="15" y="3" width="1.8" height="3.6" rx="0.9" fill="#1A1A1E" />
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="#1A1A1E" aria-hidden>
+      {CALENDAR_ICON_PATHS}
     </svg>
   ) : (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1A1A1E" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <rect x="3.5" y="5" width="17" height="15" rx="2.2" />
-      <path d="M3.5 9.5h17" />
-      <path d="M8 3v3.4M16 3v3.4" />
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1A1A1E" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      {CALENDAR_ICON_PATHS}
     </svg>
   );
 

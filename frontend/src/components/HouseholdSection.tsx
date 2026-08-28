@@ -266,6 +266,34 @@ const HouseholdSection: React.FC<HouseholdSectionProps> = ({ onChange }) => {
     }
   };
 
+  // 내 즐겨찾기·완료·기록 공유를 내가 직접 켜고 끈다. 전에는 한번 꺼두면
+  // 다른 그룹원이 "공유 요청"을 보내고 내가 수락해야만 다시 켜지는 경로뿐이라,
+  // 정작 본인이 스스로 켜고 싶을 때 방법이 없었다.
+  const handleToggleMySharing = async (next: boolean) => {
+    setInfo((prev) =>
+      prev
+        ? { ...prev, members: prev.members?.map((m) => (m.id === Number(user?.id) ? { ...m, share_recipe_actions: next } : m)) }
+        : prev
+    );
+    try {
+      const res = await authedFetch('/api/households/my-sharing', {
+        method: 'POST',
+        body: JSON.stringify({ share_recipe_actions: next }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        showToast(data.error || '설정 변경에 실패했어요.');
+        await loadInfo();
+        return;
+      }
+      showToast(next ? '즐겨찾기·완료·기록을 공유해요.' : '즐겨찾기·완료·기록을 비공개로 바꿨어요.');
+      onChange?.();
+    } catch (e) {
+      showToast('설정 변경 중 오류가 발생했어요.');
+      await loadInfo();
+    }
+  };
+
   // 비공개(share_recipe_actions=false) 멤버를 누르면 그 사람의 활동 요약을
   // 보고, "공유 요청하기" 버튼으로 요청을 보낼 수 있다.
   const handleOpenMemberStats = async (member: HouseholdMember) => {
@@ -320,31 +348,35 @@ const HouseholdSection: React.FC<HouseholdSectionProps> = ({ onChange }) => {
       <div
         style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginBottom: 4 }}
       >
-        <span style={{ fontSize: 15, fontWeight: 700, color: '#1A1A1E' }}>식구 그룹</span>
+        <span style={{ fontSize: 15, fontWeight: 700, color: '#1A1A1E' }}>그룹 설정</span>
         {info?.in_household && (
           <button
             type="button"
             onClick={() => setExpanded((v) => !v)}
-            aria-label={expanded ? '식구 그룹 정보 접기' : '식구 그룹 정보 펼치기'}
             aria-expanded={expanded}
             style={{
-              width: 28,
-              height: 28,
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              background: 'transparent',
+              gap: 4,
+              height: 28,
+              padding: '0 10px',
+              borderRadius: 9999,
+              background: 'var(--surface-sub)',
               border: 'none',
               cursor: 'pointer',
               flexShrink: 0,
+              fontSize: 12.5,
+              fontWeight: 600,
+              color: 'var(--ink-700)',
             }}
           >
+            {expanded ? '접기' : '펼치기'}
             <svg
-              width="16"
-              height="16"
+              width="14"
+              height="14"
               viewBox="0 0 24 24"
               fill="none"
-              stroke="var(--ink-500)"
+              stroke="var(--ink-700)"
               strokeWidth="2.2"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -397,15 +429,24 @@ const HouseholdSection: React.FC<HouseholdSectionProps> = ({ onChange }) => {
           {!!info.members?.length && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
               {info.members.map((m) => {
-                // 본인이거나 이미 공유 중인 사람은 요청할 게 없으니 그냥 표시만.
-                // 비공개인 다른 멤버만 눌러서 공유를 요청할 수 있게 한다.
-                const clickable = m.id !== Number(user?.id) && !m.share_recipe_actions;
+                const isSelf = m.id === Number(user?.id);
+                // 본인 행은 눌러서 내 공유를 직접 켜고 끈다. 전에는 이 스위치가
+                // 없어서, 한번 꺼두면 다른 그룹원이 요청을 보내야만 다시 켤 수
+                // 있었다 — 정작 본인이 스스로 켜고 싶을 때 방법이 없었다.
+                // 비공개인 다른 멤버는 눌러서 공유를 요청할 수 있다.
+                const clickable = isSelf || !m.share_recipe_actions;
                 const Wrapper: any = clickable ? 'button' : 'div';
                 return (
                   <Wrapper
                     key={m.id}
                     type={clickable ? 'button' : undefined}
-                    onClick={clickable ? () => handleOpenMemberStats(m) : undefined}
+                    onClick={
+                      isSelf
+                        ? () => handleToggleMySharing(!m.share_recipe_actions)
+                        : clickable
+                        ? () => handleOpenMemberStats(m)
+                        : undefined
+                    }
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -420,10 +461,13 @@ const HouseholdSection: React.FC<HouseholdSectionProps> = ({ onChange }) => {
                       cursor: clickable ? 'pointer' : 'default',
                     }}
                   >
-                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-700)' }}>{m.nickname}</span>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-700)' }}>
+                      {m.nickname}
+                      {isSelf ? ' (나)' : ''}
+                    </span>
                     <span style={{ fontSize: 11.5, fontWeight: 600, color: m.share_recipe_actions ? '#16A34A' : 'var(--ink-500)' }}>
                       즐겨찾기·완료·기록 {m.share_recipe_actions ? '공유 중' : '비공개'}
-                      {clickable ? ' · 요청하기 >' : ''}
+                      {isSelf ? ` · 클릭해서 ${m.share_recipe_actions ? '끄기' : '켜기'}` : clickable ? ' · 요청하기 >' : ''}
                     </span>
                   </Wrapper>
                 );

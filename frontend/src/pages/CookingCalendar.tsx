@@ -102,6 +102,10 @@ const CookingCalendar: React.FC = () => {
   const [familySize, setFamilySize] = React.useState(1);
   const [editingFamilySize, setEditingFamilySize] = React.useState(false);
   const [familySizeInput, setFamilySizeInput] = React.useState('');
+  // 목표 카드가 인원별 범례·안내 문구까지 다 펼쳐지면 길어져서 달력이 한
+  // 화면에 안 들어온다. 목표·달성률·절약액까지는 항상 보이고, 그 아래
+  // 범례/안내 문구만 기본으로 접어 둔다.
+  const [goalCardExpanded, setGoalCardExpanded] = React.useState(false);
 
   const monthStart = new Date(anchorDate.getFullYear(), anchorDate.getMonth(), 1);
   const monthEnd = new Date(anchorDate.getFullYear(), anchorDate.getMonth() + 1, 0);
@@ -396,21 +400,11 @@ const CookingCalendar: React.FC = () => {
         <div style={{ fontSize: 12, color: 'var(--ink-500)', marginTop: 6 }}>
           {monthlyTotal}회 / {myGoal}회 달성 ({groupAchievementRate}%)
         </div>
-        {/* 인원별 색 범례 — 게이지 색과 같은 순서(완료 많은 순) */}
-        {isInHousehold && goalSegments.length > 0 && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 8 }}>
-            {goalSegments.map((seg) => (
-              <span key={seg.uid} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--ink-700)' }}>
-                <span style={{ width: 8, height: 8, borderRadius: '50%', background: colorForUser(seg.uid, memberIds), flexShrink: 0 }} />
-                {nicknameById.get(seg.uid) || '?'} {seg.count}회
-              </span>
-            ))}
-          </div>
-        )}
         {/* 절약액은 재료 가격 데이터가 없어 정확한 계산이 아니라 대략적인
             추정치다 — 그렇게 명시해서 실제 계산인 것처럼 오해하지 않게 한다.
             식구 수(family_size)는 연동 계정 수와 다를 수 있어(아이는 계정 없이도
-            같이 먹음) 작게 수정 가능한 컨트롤을 바로 옆에 뒀다. */}
+            같이 먹음) 눈에 띄는 [식구수 수정] 버튼으로 조정할 수 있게 뒀다.
+            목표·달성률·절약액까지는 카드를 접어도 항상 보인다. */}
         {monthlyTotal > 0 && (
           <div style={{ marginTop: 10 }}>
             <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink-700)' }}>
@@ -418,7 +412,7 @@ const CookingCalendar: React.FC = () => {
             </div>
             <div style={{ fontSize: 11, color: 'var(--ink-500)', marginTop: 3, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 4 }}>
               <span>
-                외식·배달 대비 한 끼 {formatWon(ESTIMATED_SAVINGS_PER_MEAL)}원 추정 × {monthlyTotal}회 × 식구
+                외식·배달 대비 한 끼 {formatWon(ESTIMATED_SAVINGS_PER_MEAL)}원 추정 × {monthlyTotal}회 × 식구 {familySize}명
               </span>
               {editingFamilySize ? (
                 <input
@@ -439,20 +433,74 @@ const CookingCalendar: React.FC = () => {
                     setFamilySizeInput(String(familySize));
                     setEditingFamilySize(true);
                   }}
-                  style={{ height: 20, padding: '0 6px', borderRadius: 5, fontSize: 11, fontWeight: 600, color: 'var(--ink-700)', background: '#FFFFFF', border: '1px solid var(--line-300)', cursor: 'pointer' }}
+                  style={{ height: 22, padding: '0 8px', borderRadius: 6, fontSize: 11, fontWeight: 600, color: 'var(--ink-700)', background: '#FFFFFF', border: '1px solid var(--line-300)', cursor: 'pointer' }}
                 >
-                  {familySize}명
+                  식구수 수정
                 </button>
               )}
-              <span>기준</span>
             </div>
           </div>
         )}
-        <div style={{ fontSize: 11, color: 'var(--ink-500)', marginTop: 6, lineHeight: 1.5 }}>
-          {isInHousehold
-            ? '매월 1일에 진행률이 다시 0%부터 시작돼요. 이 목표는 그룹 전체가 공유하는 값이라 누가 바꿔도 모두에게 적용돼요.'
-            : '매월 1일에 진행률이 다시 0%부터 시작돼요. 그룹에 참여하면 이 목표를 그룹 전체가 함께 쓰게 돼요.'}
-        </div>
+
+        {/* 인원별 색 범례 + 안내 문구는 목표 카드를 계속 길게 만들어 달력이
+            한 화면에 안 들어오게 하는 주범이라, 기본으로 접어 두고 필요할
+            때만 펼친다. 눈에 잘 띄도록 텍스트+화살표가 있는 알약 버튼으로. */}
+        <button
+          type="button"
+          onClick={() => setGoalCardExpanded((v) => !v)}
+          aria-expanded={goalCardExpanded}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
+            height: 26,
+            padding: '0 10px',
+            marginTop: 10,
+            borderRadius: 9999,
+            background: 'var(--surface)',
+            border: '1px solid var(--line-300)',
+            cursor: 'pointer',
+            fontSize: 11.5,
+            fontWeight: 600,
+            color: 'var(--ink-700)',
+          }}
+        >
+          {goalCardExpanded ? '자세히 접기' : '자세히 보기'}
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="var(--ink-700)"
+            strokeWidth="2.4"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            style={{ transform: goalCardExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }}
+          >
+            <path d="M6 9l6 6 6-6" />
+          </svg>
+        </button>
+
+        {goalCardExpanded && (
+          <>
+            {/* 인원별 색 범례 — 게이지 색과 같은 순서(완료 많은 순) */}
+            {isInHousehold && goalSegments.length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 10 }}>
+                {goalSegments.map((seg) => (
+                  <span key={seg.uid} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--ink-700)' }}>
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: colorForUser(seg.uid, memberIds), flexShrink: 0 }} />
+                    {nicknameById.get(seg.uid) || '?'} {seg.count}회
+                  </span>
+                ))}
+              </div>
+            )}
+            <div style={{ fontSize: 11, color: 'var(--ink-500)', marginTop: 8, lineHeight: 1.5 }}>
+              {isInHousehold
+                ? '매월 1일에 진행률이 다시 0%부터 시작돼요. 이 목표는 그룹 전체가 공유하는 값이라 누가 바꿔도 모두에게 적용돼요.'
+                : '매월 1일에 진행률이 다시 0%부터 시작돼요. 그룹에 참여하면 이 목표를 그룹 전체가 함께 쓰게 돼요.'}
+            </div>
+          </>
+        )}
       </div>
 
       {/* 목표 카드와 명확히 분리된 별도 카드에 캘린더를 담아, 모바일 화면에서

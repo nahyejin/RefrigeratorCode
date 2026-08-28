@@ -2823,6 +2823,44 @@ def respond_share_request(request_id):
         return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
 
 
+@app.route('/api/households/my-sharing', methods=['POST'])
+def update_my_sharing():
+    """내 즐겨찾기·완료·기록 공유 여부를 내가 직접 켜고 끈다.
+
+    전에는 끄고 나면 다른 그룹원이 "공유 요청"을 보내고 내가 수락해야만
+    다시 켜지는 경로만 있었다 — 정작 본인이 스스로 켜고 싶을 때 그럴
+    방법이 없었다. 그룹 여부와 무관하게(그룹을 나중에 만들 수도 있으니)
+    항상 허용한다."""
+    try:
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({'error': '인증이 필요합니다.'}), 401
+        payload = verify_jwt_token(auth_header.split(' ')[1])
+        if not payload:
+            return jsonify({'error': '권한이 없습니다.'}), 403
+        user_id = payload.get('user_id')
+
+        data = request.get_json() or {}
+        share = bool(data.get('share_recipe_actions'))
+
+        ensure_households_table()
+        db = get_db()
+        cursor = db.cursor()
+        try:
+            cursor.execute("UPDATE users SET share_recipe_actions = %s WHERE id = %s", (1 if share else 0, user_id))
+            db.commit()
+            return jsonify({'share_recipe_actions': share}), 200
+        except Exception as e:
+            db.rollback()
+            print(f"Update my sharing error: {e}")
+            return jsonify({'error': '설정 변경 중 오류가 발생했습니다.'}), 500
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"Update my sharing error: {e}")
+        return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
+
+
 _HOUSEHOLD_ACTION_TABLES = {
     'favorite': 'user_favorite_recipes',
     'completed': 'user_completed_recipes',
