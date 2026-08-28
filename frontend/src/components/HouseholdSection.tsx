@@ -105,6 +105,16 @@ const HouseholdSection: React.FC<HouseholdSectionProps> = ({ onChange }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadInfo, user?.nickname]);
 
+  // 전역 공유 요청 팝업(ShareRequestPopup)에서 수락이 일어나면, 지금 이 카드가
+  // 이미 화면에 떠 있어도 그 결과를 알 방법이 없어 계속 "비공개"로 보이는
+  // 문제가 있었다 — 서버 값은 이미 바뀌었는데 화면만 안 따라간 것. 이벤트로
+  // 알림받아 멤버 목록을 다시 불러온다.
+  React.useEffect(() => {
+    const handleShareUpdated = () => loadInfo();
+    window.addEventListener('household-share-updated', handleShareUpdated);
+    return () => window.removeEventListener('household-share-updated', handleShareUpdated);
+  }, [loadInfo]);
+
   const showToast = (text: string) => {
     setToast(text);
     setTimeout(() => setToast(''), 2500);
@@ -436,14 +446,16 @@ const HouseholdSection: React.FC<HouseholdSectionProps> = ({ onChange }) => {
                 // 없었다. 상태 텍스트와 같은 줄에 "· 클릭해서 끄기"처럼 글자로만
                 // 붙여 뒀더니 상태 표시인지 버튼인지 헷갈린다는 지적을 받아,
                 // 실제 버튼 엘리먼트로 분리했다.
-                // 비공개인 다른 멤버는 행 전체를 눌러서 공유를 요청할 수 있다.
+                // 비공개인 다른 멤버는 오른쪽에 별도 [공개 요청] 버튼으로 요청을
+                // 보낼 수 있다. 전에는 "비공개 · 요청하기 >"처럼 상태 텍스트
+                // 뒤에 글자로만 붙여 뒀는데, "비공개 요청하기"라는 하나의
+                // 버튼처럼 읽힌다는 지적을 받았다(정반대 의미라 헷갈림) —
+                // 본인 행의 [켜기]/[끄기]와 같은 방식으로 실제 버튼 엘리먼트로
+                // 분리했다.
                 const requestable = !isSelf && !m.share_recipe_actions;
-                const Wrapper: any = requestable ? 'button' : 'div';
                 return (
-                  <Wrapper
+                  <div
                     key={m.id}
-                    type={requestable ? 'button' : undefined}
-                    onClick={requestable ? () => handleOpenMemberStats(m) : undefined}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -452,10 +464,6 @@ const HouseholdSection: React.FC<HouseholdSectionProps> = ({ onChange }) => {
                       padding: '6px 10px',
                       borderRadius: 10,
                       background: 'var(--surface-sub)',
-                      border: 'none',
-                      width: '100%',
-                      textAlign: 'left',
-                      cursor: requestable ? 'pointer' : 'default',
                     }}
                   >
                     <span style={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0 }}>
@@ -465,7 +473,6 @@ const HouseholdSection: React.FC<HouseholdSectionProps> = ({ onChange }) => {
                       </span>
                       <span style={{ fontSize: 11.5, fontWeight: 600, color: m.share_recipe_actions ? '#16A34A' : 'var(--ink-500)' }}>
                         즐겨찾기·완료·기록 {m.share_recipe_actions ? '공유 중' : '비공개'}
-                        {requestable ? ' · 요청하기 >' : ''}
                       </span>
                     </span>
                     {isSelf && (
@@ -488,7 +495,27 @@ const HouseholdSection: React.FC<HouseholdSectionProps> = ({ onChange }) => {
                         {m.share_recipe_actions ? '끄기' : '켜기'}
                       </button>
                     )}
-                  </Wrapper>
+                    {requestable && (
+                      <button
+                        type="button"
+                        onClick={() => handleOpenMemberStats(m)}
+                        style={{
+                          flexShrink: 0,
+                          height: 26,
+                          padding: '0 10px',
+                          borderRadius: 8,
+                          fontSize: 11.5,
+                          fontWeight: 700,
+                          color: '#1A1A1E',
+                          background: 'var(--brand)',
+                          border: 'none',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        공개 요청
+                      </button>
+                    )}
+                  </div>
                 );
               })}
             </div>

@@ -4,6 +4,7 @@ import Dialog from '../components/ui/Dialog';
 import RecipeCardSkeleton from '../components/RecipeCardSkeleton';
 import IngredientLegend from '../components/IngredientLegend';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import logoImg from '../assets/냉털이 로고 white.png';
 import searchIcon from '../assets/navigator_search.png';
 import BottomNavBar from '../components/BottomNavBar';
@@ -255,6 +256,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
   const { name = '' } = useParams<{ name: string }>();
   const navigate = useNavigate();
   const location = useLocation();
+  const { user: authUser } = useAuth();
   const myPageRecipeStorageType =
     location.pathname === '/mypage/recorded'
       ? 'write'
@@ -264,6 +266,19 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
           ? 'favorite'
           : null;
   const isMyPageRecipeList = myPageRecipeStorageType !== null;
+  // 마이페이지 "전체보기"에서 넘어올 때, 지금 보고 있던 목록(개인 것만 vs
+  // "우리 식구 모두 보기")을 그대로 넘겨받는다 — 전에는 이 상태 없이
+  // 무조건 내 localStorage만 읽어서, 식구 모두 보기로 보다가 전체보기를
+  // 누르면 다시 "나의 것만"으로 되돌아가 버리는 문제가 있었다.
+  const navState = location.state as { recipes?: any[]; isHouseholdView?: boolean } | null;
+  const householdRecipesFromState = navState?.recipes;
+  const isHouseholdView = !!navState?.isHouseholdView;
+  // 마이페이지 인라인 섹션 제목("우리 식구가 즐겨찾는 레시피" 등)과 맞춘다 —
+  // customTitle은 라우트에 고정으로 박혀 있어("내가 즐겨찾는 레시피") 모두
+  // 보기 모드로 넘어왔을 때도 그대로면 화면 안에서 표현이 어긋난다.
+  const householdTitleByType = { favorite: '우리 식구가 즐겨찾는 레시피', write: '우리 식구가 기록한 레시피', done: '우리 식구가 완료한 레시피' } as const;
+  const displayTitle =
+    isHouseholdView && myPageRecipeStorageType ? householdTitleByType[myPageRecipeStorageType] : undefined;
   const searchParams = new URLSearchParams(location.search);
   const startDate = searchParams.get('start_date');
   const endDate = searchParams.get('end_date');
@@ -480,6 +495,16 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
   // 레시피 데이터 로드
   useEffect(() => {
     if (myPageRecipeStorageType) {
+      // 마이페이지에서 지금 보고 있던 목록을 그대로 넘겨받았으면(모두 보기든
+      // 나의 것만이든) 그걸 쓴다 — localStorage를 다시 읽으면 무조건 "내
+      // 것만"으로 되돌아가 버린다.
+      if (Array.isArray(householdRecipesFromState)) {
+        setRecipes(householdRecipesFromState);
+        setSortType('latest');
+        setTotal(0);
+        setLoading(false);
+        return;
+      }
       const storageKeyByType = {
         write: 'my_recorded_recipes',
         done: 'my_completed_recipes',
@@ -557,7 +582,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
     prevNameRef.current = name;
     
     fetchData();
-  }, [name, location.pathname, location.search, myPageRecipeStorageType, startDate, endDate, page]);
+  }, [name, location.pathname, location.search, location.state, myPageRecipeStorageType, startDate, endDate, page]);
 
   // 페이지 변경 핸들러
   const handlePageChange = (newPage: number) => {
@@ -821,6 +846,17 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
     return arr;
   }, [recipes, myIngredients, sortType, selectedChannel, appliedExpiryIngredients, isMyPageRecipeList]);
 
+  // "우리 식구 모두 보기"로 넘어온 목록은 각 항목에 `acted_by`(누가 했는지
+  // 닉네임 배열)가 붙어 있다. 마이페이지의 인라인 미리보기와 같은 규칙으로
+  // 배지를 만든다(내 이름은 굳이 또 안 띄움).
+  const getAttributionLabel = (recipe: any) => {
+    if (!isHouseholdView) return undefined;
+    const names: string[] = recipe?.acted_by || [];
+    const others = Array.from(new Set(names.filter((n) => n && n !== authUser?.nickname)));
+    if (!others.length) return undefined;
+    return others.join('·');
+  };
+
   // =====================
   // 렌더링
   // =====================
@@ -843,9 +879,12 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
         <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 18, minHeight: 36 }}>
           <BackButton onClick={() => navigate(-1)} style={{ left: 0, top: 0 }} />
           <div style={{ fontWeight: 700, fontSize: 18, textAlign: 'center', padding: isMyPageRecipeList ? '0 60px 0 44px' : '0 44px' }}>
-            {customTitle || `${name} 관련 레시피`}
+            {displayTitle || customTitle || `${name} 관련 레시피`}
           </div>
-          {isMyPageRecipeList && processedRecipes.length > 0 && (
+          {/* "우리 식구 모두 보기" 목록은 내 것만이 아니라 그룹원 전체 항목이
+              섞여 있어, "전체삭제"(내 localStorage만 지움)를 누르면 화면과
+              실제 결과가 어긋난다 — 이 모드에서는 숨긴다. */}
+          {isMyPageRecipeList && !isHouseholdView && processedRecipes.length > 0 && (
             <button
               type="button"
               onClick={() => setConfirmClearAllOpen(true)}
@@ -926,6 +965,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
               substituteTable={substituteTable}
               recipeActionStates={buttonStates}
               onRecipeAction={(recipe, action) => handleRecipeAction(recipe.id, { action: action as 'done' | 'write' | 'share' | 'favorite' })}
+              getAttributionLabel={getAttributionLabel}
             />
             )}
 

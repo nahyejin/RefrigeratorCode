@@ -6,6 +6,7 @@ import TopNavBar from '../components/TopNavBar';
 import ErrorBoundary from '../components/ErrorBoundary';
 import HomeInstallPrompt from '../components/HomeInstallPrompt';
 import RecipeChatWidget from '../components/RecipeChatWidget';
+import ShareRequestPopup from '../components/ShareRequestPopup';
 import { AuthProvider } from '../context/AuthContext';
 import Login from '../pages/Login';
 import Signup from '../pages/Signup';
@@ -258,6 +259,7 @@ function AppContent() {
       </Suspense>
       <HomeInstallPrompt />
       <RecipeChatWidget />
+      <ShareRequestPopup />
     </>
   );
 }

@@ -506,45 +506,6 @@ const MyPage: React.FC = () => {
     return others.join('·');
   };
 
-  // 마이페이지에 들어올 때, 다른 그룹원이 보낸 공유 요청이 있는지 확인.
-  const checkPendingShareRequests = async () => {
-    if (!isLoggedIn || !authUser?.id) return;
-    try {
-      const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
-      const apiUrl = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'https://refrigeratorcode-production.up.railway.app';
-      const res = await fetch(`${apiUrl}/api/households/share-requests/pending`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setPendingShareRequests(data.requests || []);
-      }
-    } catch (error) {
-      console.warn('[MyPage] 공유 요청 조회 실패:', error);
-    }
-  };
-
-  const respondShareRequest = async (requestId: number, accept: boolean) => {
-    setRespondingRequestId(requestId);
-    try {
-      const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
-      const apiUrl = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'https://refrigeratorcode-production.up.railway.app';
-      await fetch(`${apiUrl}/api/households/share-requests/${requestId}/respond`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ accept }),
-      });
-      setPendingShareRequests((prev) => prev.filter((r) => r.id !== requestId));
-      if (accept) {
-        loadHouseholdRecipeFeeds();
-      }
-    } catch (error) {
-      console.warn('[MyPage] 공유 요청 응답 실패:', error);
-    } finally {
-      setRespondingRequestId(null);
-    }
-  };
-
   // DB에 레시피 추가
   const addRecipeToDB = async (type: 'write' | 'done' | 'favorite', recipeId: number) => {
     if (!isLoggedIn || !authUser?.id) return;
@@ -671,12 +632,6 @@ const MyPage: React.FC = () => {
   // 그룹에 속해 있을 때 "우리 식구 모두 보기" / "나의 것만 보기" 중 어느 쪽으로
   // 즐겨찾기·기록·완료 세 영역을 볼지. 기본은 모두 보기.
   const [householdViewMode, setHouseholdViewMode] = useState<'all' | 'mine'>('all');
-  // 다른 그룹원이 보낸 "즐겨찾기 등 공유해 달라" 요청. 앱 전체를 켤 때마다
-  // 뜨는 푸시는 아니고, 마이페이지에 들어올 때 확인해서 팝업으로 물어본다.
-  const [pendingShareRequests, setPendingShareRequests] = useState<
-    { id: number; requester_id: number; requester_nickname: string }[]
-  >([]);
-  const [respondingRequestId, setRespondingRequestId] = useState<number | null>(null);
   const [householdFavoriteRecipes, setHouseholdFavoriteRecipes] = useState<any[]>([]);
   const [householdRecordedRecipes, setHouseholdRecordedRecipes] = useState<any[]>([]);
   const [householdCompletedRecipes, setHouseholdCompletedRecipes] = useState<any[]>([]);
@@ -723,7 +678,6 @@ const MyPage: React.FC = () => {
       // DB에서 레시피 로드
       loadRecipesFromDB();
       loadHouseholdRecipeFeeds();
-      checkPendingShareRequests();
     } else {
       // 로그아웃 시 레시피 상태 초기화 및 localStorage에서 로드
       setFavoriteRecipes([]);
@@ -741,6 +695,24 @@ const MyPage: React.FC = () => {
       setCompletedRecipes(sortRecipesByUserSavedAtDesc(localCompleted));
     }
   }, [authUser?.id]); // authUser.id가 변경될 때만 실행 (사용자 변경 감지)
+
+  // 다른 그룹원의 공유 요청 팝업(ShareRequestPopup, 앱 전역에 하나만 마운트)이
+  // 지금 이 화면 위에서 수락되면, 이 화면의 그룹 활동 피드도 즉시 새로
+  // 불러온다. HouseholdSection도 같은 이벤트를 들어서 자기 멤버 목록을
+  // 새로고침한다 — 서로 다른 컴포넌트라 prop으로 알려줄 방법이 없어 이벤트로
+  // 연결했다.
+  // loadHouseholdRecipeFeeds는 useCallback으로 감싸지 않은 일반 함수라 매
+  // 렌더마다 새로 만들어진다 — 의존성 배열을 []로 두면 "마운트 시점의"
+  // isLoggedIn/authUser를 가둔 첫 렌더의 함수가 계속 쓰이는 stale closure
+  // 버그가 생긴다(실제로 겪음: 인증이 아직 안 잡힌 첫 렌더의 함수가 붙잡혀서,
+  // 나중에 이벤트가 와도 매번 "로그인 안 됨" 분기로 빠져 isInHousehold를
+  // false로 초기화해 버렸다). 실제 의존값(isLoggedIn, authUser?.id)을 넣어
+  // 그 값이 바뀔 때마다 최신 함수로 다시 구독한다.
+  useEffect(() => {
+    const handleShareUpdated = () => loadHouseholdRecipeFeeds();
+    window.addEventListener('household-share-updated', handleShareUpdated);
+    return () => window.removeEventListener('household-share-updated', handleShareUpdated);
+  }, [isLoggedIn, authUser?.id]);
 
   const reloadLocalRecipeLists = () => {
     setFavoriteRecipes(sortRecipesByUserSavedAtDesc(getRecipesFromLocalStorage('favorite')));
@@ -1400,14 +1372,14 @@ const MyPage: React.FC = () => {
         }}
       >
         {[
-          { label: '즐겨찾기', count: displayFavoriteRecipes.length, to: '/mypage/favorite' },
-          { label: '기록', count: displayRecordedRecipes.length, to: '/mypage/recorded' },
-          { label: '완료', count: displayCompletedRecipes.length, to: '/mypage/completed' },
-        ].map(({ label, count, to }, i) => (
+          { label: '즐겨찾기', count: displayFavoriteRecipes.length, to: '/mypage/favorite', recipes: displayFavoriteRecipes },
+          { label: '기록', count: displayRecordedRecipes.length, to: '/mypage/recorded', recipes: displayRecordedRecipes },
+          { label: '완료', count: displayCompletedRecipes.length, to: '/mypage/completed', recipes: displayCompletedRecipes },
+        ].map(({ label, count, to, recipes }, i) => (
           <button
             key={label}
             type="button"
-            onClick={() => navigate(to)}
+            onClick={() => navigate(to, { state: { recipes, isHouseholdView: showAllHousehold } })}
             style={{
               flex: 1,
               height: 62,
@@ -1447,7 +1419,7 @@ const MyPage: React.FC = () => {
             <button
               type="button"
               aria-label="내가 즐겨찾는 레시피 전체보기"
-              onClick={() => navigate('/mypage/favorite')}
+              onClick={() => navigate('/mypage/favorite', { state: { recipes: displayFavoriteRecipes, isHouseholdView: showAllHousehold } })}
               style={{
                 flexShrink: 0,
                 height: 32,
@@ -1511,7 +1483,7 @@ const MyPage: React.FC = () => {
             <button
               type="button"
               aria-label="내가 기록한 레시피 전체보기"
-              onClick={() => navigate('/mypage/recorded')}
+              onClick={() => navigate('/mypage/recorded', { state: { recipes: displayRecordedRecipes, isHouseholdView: showAllHousehold } })}
               style={{
                 flexShrink: 0,
                 height: 32,
@@ -1581,7 +1553,7 @@ const MyPage: React.FC = () => {
               <button
                 type="button"
                 aria-label="내가 완료한 레시피 전체보기"
-                onClick={() => navigate('/mypage/completed')}
+                onClick={() => navigate('/mypage/completed', { state: { recipes: displayCompletedRecipes, isHouseholdView: showAllHousehold } })}
                 style={{
                   flexShrink: 0,
                   height: 32,
@@ -1643,33 +1615,9 @@ const MyPage: React.FC = () => {
       </div>
       
       <BottomNavBar activeTab="mypage" />
-
-      {/* 다른 그룹원이 보낸 공유 요청. 대기 중인 게 여러 개면 하나씩 순서대로. */}
-      {pendingShareRequests.length > 0 && (
-        <Dialog
-          open
-          onClose={() => {}}
-          showClose={false}
-          closeOnBackdrop={false}
-          title={`${pendingShareRequests[0].requester_nickname}님의 요청`}
-          actions={[
-            {
-              label: '거절',
-              variant: 'outline',
-              onClick: () => respondShareRequest(pendingShareRequests[0].id, false),
-            },
-            {
-              label: '수락',
-              variant: 'primary',
-              onClick: () => respondShareRequest(pendingShareRequests[0].id, true),
-            },
-          ]}
-        >
-          {respondingRequestId === pendingShareRequests[0].id
-            ? '처리 중...'
-            : `${pendingShareRequests[0].requester_nickname}님이 내 즐겨찾기·완료·기록을 그룹에 공유해 달라고 요청했어요. 수락하면 그룹원들이 내가 즐겨찾기·완료·기록한 레시피를 볼 수 있어요.`}
-        </Dialog>
-      )}
+      {/* 공유 요청 팝업은 AppRouter에 전역으로 마운트된 <ShareRequestPopup/>이
+          담당한다 — 마이페이지에 들어와야만 뜨던 걸 앱 어느 탭에서든 뜨게
+          하려고 이 화면 밖으로 옮겼다. */}
 
       {/* 내 정보 수정 모달 */}
       {editOpen && (

@@ -9,6 +9,8 @@ interface VirtualizedRecipeListProps {
   substituteTable: { [key: string]: { ingredient_b: string; similarity_score?: number }[] };
   recipeActionStates: Record<number, RecipeActionState>;
   onRecipeAction: (recipe: Recipe, action: string) => void;
+  /** 그룹(식구) 목록에서 "누가 했는지" 배지. 없으면 배지 없음. */
+  getAttributionLabel?: (recipe: Recipe) => string | undefined;
 }
 
 export interface VirtualizedRecipeListRef {
@@ -24,6 +26,7 @@ const VirtualizedRecipeList = forwardRef<VirtualizedRecipeListRef, VirtualizedRe
   substituteTable,
   recipeActionStates,
   onRecipeAction,
+  getAttributionLabel,
 }, ref) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -80,6 +83,7 @@ const VirtualizedRecipeList = forwardRef<VirtualizedRecipeListRef, VirtualizedRe
             isLast={index === recipes.length - 1}
             myIngredients={myIngredients}
             substituteTable={substituteTable}
+            attributionLabel={getAttributionLabel?.(recipe)}
           />
         </div>
       ))}

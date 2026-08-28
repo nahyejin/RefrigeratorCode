@@ -440,24 +440,44 @@ const CookingCalendar: React.FC = () => {
         <div style={{ fontSize: 12, color: 'var(--ink-500)', marginTop: 6 }}>
           {monthlyTotal}회 / {myGoal}회 달성 ({groupAchievementRate}%)
         </div>
+        {/* 인원별 색 범례 — 게이지 색과 같은 순서(완료 많은 순). 한때 "자세히
+            보기" 접힘 영역 안에 넣었더니 "이건 게이지 바로 옆에 항상 붙어
+            있어야지 숨기면 안 된다"는 지적을 받았다 — 누가 몇 회 했는지는
+            게이지가 보여주는 핵심 정보의 일부라, 계산식 설명 문구와는 무게가
+            다르다. 그래서 게이지 바로 아래, 항상 보이는 자리로 옮겼다. */}
+        {isInHousehold && goalSegments.length > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 8 }}>
+            {goalSegments.map((seg) => (
+              <span key={seg.uid} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--ink-700)' }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: colorForUser(seg.uid, memberIds), flexShrink: 0 }} />
+                {nicknameById.get(seg.uid) || '?'} {seg.count}회
+              </span>
+            ))}
+          </div>
+        )}
         {/* 절약액은 재료 가격 데이터가 없어 정확한 계산이 아니라 대략적인
             추정치다 — 그렇게 명시해서 실제 계산인 것처럼 오해하지 않게 한다.
             "목표를 달성하면 얼마인지"가 아니라 "지금까지 완료한 횟수 기준"
             이라는 게 헷갈린다는 지적을 받아 "지금까지"를 헤드라인에 직접
             박아 뒀다(아래 계산식 줄의 × {monthlyTotal}회 도 같은 의미).
             한 끼 추정액도 1인 기준(식구 수를 곱하므로)임을 명시했다.
-            한 끼 추정액과 식구 수(family_size) 둘 다 지역/식습관/가구 구성에
-            따라 체감이 달라, 눈에 띄는 [OO 수정] 버튼으로 각각 조정할 수
-            있게 뒀다. 목표·달성률·절약액까지는 카드를 접어도 항상 보인다. */}
+            계산식 문장 안에 수정 버튼을 끼워 넣었더니 문장이 이상한
+            지점에서 줄바꿈되고 어수선해 보인다는 지적을 받아, 문장(읽기)과
+            수정 조작(칩 버튼 2개)을 분리했다 — 문장은 그냥 텍스트로 온전히
+            보여주고, 그 아래 알약 모양 칩으로 값만 눌러서 바로 고칠 수
+            있게 했다. 목표·달성률·절약액까지는 카드를 접어도 항상 보인다. */}
         {monthlyTotal > 0 && (
           <div style={{ marginTop: 10 }}>
             <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink-700)' }}>
               💰 지금까지 예상 절약액 약 {formatWon(estimatedSavings)}원
             </div>
-            <div style={{ fontSize: 11, color: 'var(--ink-500)', marginTop: 3, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 4 }}>
-              <span>외식·배달 대비 1인 한 끼</span>
+            <div style={{ fontSize: 11, color: 'var(--ink-500)', marginTop: 3, lineHeight: 1.5 }}>
+              외식·배달 대비 1인 한 끼 {formatWon(savingsPerMeal)}원 추정 × {monthlyTotal}회 × 식구 {familySize}명
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
               {editingSavingsPerMeal ? (
-                <>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, height: 26, padding: '0 4px 0 10px', borderRadius: 9999, background: 'var(--surface)', border: '1px solid var(--brand)' }}>
+                  <span style={{ fontSize: 11, color: 'var(--ink-500)' }}>1인 한 끼</span>
                   <input
                     type="number"
                     value={savingsPerMealInput}
@@ -466,34 +486,33 @@ const CookingCalendar: React.FC = () => {
                       if (e.key === 'Enter') handleSaveSavingsPerMeal();
                     }}
                     autoFocus
-                    style={{ width: 60, height: 20, borderRadius: 5, border: '1px solid var(--line-300)', textAlign: 'center', fontSize: 11 }}
+                    style={{ width: 56, height: 20, borderRadius: 5, border: '1px solid var(--line-300)', textAlign: 'center', fontSize: 11, padding: 0 }}
                   />
                   <button
                     type="button"
                     onClick={handleSaveSavingsPerMeal}
-                    style={{ height: 22, padding: '0 8px', borderRadius: 6, fontSize: 11, fontWeight: 700, color: '#1A1A1E', background: 'var(--brand)', border: 'none', cursor: 'pointer' }}
+                    aria-label="1인 한 끼 추정액 적용"
+                    style={{ width: 20, height: 20, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#1A1A1E', background: 'var(--brand)', border: 'none', cursor: 'pointer' }}
                   >
-                    적용
+                    ✓
                   </button>
-                </>
+                </span>
               ) : (
-                <>
-                  <span>{formatWon(savingsPerMeal)}원</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSavingsPerMealInput(String(savingsPerMeal));
-                      setEditingSavingsPerMeal(true);
-                    }}
-                    style={{ height: 22, padding: '0 8px', borderRadius: 6, fontSize: 11, fontWeight: 600, color: 'var(--ink-700)', background: '#FFFFFF', border: '1px solid var(--line-300)', cursor: 'pointer' }}
-                  >
-                    추정액 수정
-                  </button>
-                </>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSavingsPerMealInput(String(savingsPerMeal));
+                    setEditingSavingsPerMeal(true);
+                  }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 4, height: 26, padding: '0 10px', borderRadius: 9999, fontSize: 11.5, fontWeight: 600, color: 'var(--ink-700)', background: 'var(--surface)', border: '1px solid var(--line-300)', cursor: 'pointer' }}
+                >
+                  1인 한 끼 {formatWon(savingsPerMeal)}원
+                  <span aria-hidden style={{ color: 'var(--ink-500)' }}>✎</span>
+                </button>
               )}
-              <span>추정 × {monthlyTotal}회 × 식구</span>
               {editingFamilySize ? (
-                <>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, height: 26, padding: '0 4px 0 10px', borderRadius: 9999, background: 'var(--surface)', border: '1px solid var(--brand)' }}>
+                  <span style={{ fontSize: 11, color: 'var(--ink-500)' }}>식구</span>
                   <input
                     type="number"
                     value={familySizeInput}
@@ -502,38 +521,37 @@ const CookingCalendar: React.FC = () => {
                       if (e.key === 'Enter') handleSaveFamilySize();
                     }}
                     autoFocus
-                    style={{ width: 40, height: 20, borderRadius: 5, border: '1px solid var(--line-300)', textAlign: 'center', fontSize: 11 }}
+                    style={{ width: 36, height: 20, borderRadius: 5, border: '1px solid var(--line-300)', textAlign: 'center', fontSize: 11, padding: 0 }}
                   />
                   <button
                     type="button"
                     onClick={handleSaveFamilySize}
-                    style={{ height: 22, padding: '0 8px', borderRadius: 6, fontSize: 11, fontWeight: 700, color: '#1A1A1E', background: 'var(--brand)', border: 'none', cursor: 'pointer' }}
+                    aria-label="식구 수 적용"
+                    style={{ width: 20, height: 20, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#1A1A1E', background: 'var(--brand)', border: 'none', cursor: 'pointer' }}
                   >
-                    적용
+                    ✓
                   </button>
-                </>
+                </span>
               ) : (
-                <>
-                  <span>{familySize}명</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setFamilySizeInput(String(familySize));
-                      setEditingFamilySize(true);
-                    }}
-                    style={{ height: 22, padding: '0 8px', borderRadius: 6, fontSize: 11, fontWeight: 600, color: 'var(--ink-700)', background: '#FFFFFF', border: '1px solid var(--line-300)', cursor: 'pointer' }}
-                  >
-                    식구수 수정
-                  </button>
-                </>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFamilySizeInput(String(familySize));
+                    setEditingFamilySize(true);
+                  }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 4, height: 26, padding: '0 10px', borderRadius: 9999, fontSize: 11.5, fontWeight: 600, color: 'var(--ink-700)', background: 'var(--surface)', border: '1px solid var(--line-300)', cursor: 'pointer' }}
+                >
+                  식구 {familySize}명
+                  <span aria-hidden style={{ color: 'var(--ink-500)' }}>✎</span>
+                </button>
               )}
             </div>
           </div>
         )}
 
-        {/* 인원별 색 범례 + 안내 문구는 목표 카드를 계속 길게 만들어 달력이
-            한 화면에 안 들어오게 하는 주범이라, 기본으로 접어 두고 필요할
-            때만 펼친다. 눈에 잘 띄도록 텍스트+화살표가 있는 알약 버튼으로. */}
+        {/* 안내 문구(매월 1일 초기화, 공동 목표 여부)만 접어 둔다 — 인원별
+            범례는 게이지가 보여주는 핵심 정보라 항상 위에 노출한다(위 참고).
+            눈에 잘 띄도록 텍스트+화살표가 있는 알약 버튼으로. */}
         <button
           type="button"
           onClick={() => setGoalCardExpanded((v) => !v)}
@@ -571,24 +589,11 @@ const CookingCalendar: React.FC = () => {
         </button>
 
         {goalCardExpanded && (
-          <>
-            {/* 인원별 색 범례 — 게이지 색과 같은 순서(완료 많은 순) */}
-            {isInHousehold && goalSegments.length > 0 && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 10 }}>
-                {goalSegments.map((seg) => (
-                  <span key={seg.uid} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--ink-700)' }}>
-                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: colorForUser(seg.uid, memberIds), flexShrink: 0 }} />
-                    {nicknameById.get(seg.uid) || '?'} {seg.count}회
-                  </span>
-                ))}
-              </div>
-            )}
-            <div style={{ fontSize: 11, color: 'var(--ink-500)', marginTop: 8, lineHeight: 1.5 }}>
-              {isInHousehold
-                ? '매월 1일에 진행률이 다시 0%부터 시작돼요. 이 목표는 그룹 전체가 공유하는 값이라 누가 바꿔도 모두에게 적용돼요.'
-                : '매월 1일에 진행률이 다시 0%부터 시작돼요. 그룹에 참여하면 이 목표를 그룹 전체가 함께 쓰게 돼요.'}
-            </div>
-          </>
+          <div style={{ fontSize: 11, color: 'var(--ink-500)', marginTop: 10, lineHeight: 1.5 }}>
+            {isInHousehold
+              ? '매월 1일에 진행률이 다시 0%부터 시작돼요. 이 목표는 그룹 전체가 공유하는 값이라 누가 바꿔도 모두에게 적용돼요.'
+              : '매월 1일에 진행률이 다시 0%부터 시작돼요. 그룹에 참여하면 이 목표를 그룹 전체가 함께 쓰게 돼요.'}
+          </div>
         )}
       </div>
 
