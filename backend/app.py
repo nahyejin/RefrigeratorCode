@@ -2076,6 +2076,26 @@ def ensure_households_table():
         except Exception as e:
             print(f"[ensure_households_table] share_recipe_actions 컬럼 추가 중 오류: {e}")
             db.rollback()
+
+        # 그룹 참여 시 "내 재료를 그룹에 합쳤는지" 기록.
+        # 합친 적이 없으면(merge_ingredients=false로 참여), 그룹을 나갈 때 그룹의
+        # 현재 재료가 아니라 참여 전 내 개인 재료를 그대로 돌려받아야 한다 —
+        # 한 번도 섞이지 않았던 재료이므로 원래 그대로 보존해 주는 게 맞다.
+        try:
+            cursor.execute("""
+                SELECT COUNT(*) as count
+                FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                AND TABLE_NAME = 'users'
+                AND COLUMN_NAME = 'ingredients_merged'
+            """)
+            result = cursor.fetchone()
+            if result and result['count'] == 0:
+                cursor.execute("ALTER TABLE users ADD COLUMN ingredients_merged TINYINT(1) NOT NULL DEFAULT 0")
+                db.commit()
+        except Exception as e:
+            print(f"[ensure_households_table] ingredients_merged 컬럼 추가 중 오류: {e}")
+            db.rollback()
     except Exception as e:
         db.rollback()
         print(f"Error creating households table: {e}")
@@ -2275,8 +2295,8 @@ def join_household():
             # 리다이렉션되어 그룹의 기존 재료를 보게 된다.
 
             cursor.execute(
-                "UPDATE users SET household_id = %s, share_recipe_actions = %s WHERE id = %s",
-                (household['id'], 1 if share_recipe_actions else 0, user_id)
+                "UPDATE users SET household_id = %s, share_recipe_actions = %s, ingredients_merged = %s WHERE id = %s",
+                (household['id'], 1 if share_recipe_actions else 0, 1 if merge_ingredients else 0, user_id)
             )
             db.commit()
             return jsonify({'message': '그룹에 참여했습니다.'}), 200
@@ -2311,14 +2331,16 @@ def _copy_ingredients(cursor, from_user_id, to_user_id, saved_at):
 def leave_household():
     """그룹에서 나가기.
 
-    나가는 사람은 "그동안 같이 관리하던 그룹 재료"를 그대로 들고 나간다 —
-    가입 전 개인 재료로 되돌아가는 게 아니라, 나가는 시점의 그룹 재료
-    스냅샷이 그 사람의 개인 재료가 된다(가족과 물리적으로 냉장고를 나눠
-    쓰다가 분가하면서 지금 있는 재료를 그대로 챙겨 나가는 것과 같은 그림).
-
-    나가는 사람이 그룹의 저장 계정(storage_user_id)이었다면, 남은 멤버가
-    계속 같은 데이터를 보게 해야 하므로 다른 남은 멤버에게 저장 위치를
-    옮겨준다.
+    - 참여할 때 내 재료를 그룹에 합쳤던 사람(ingredients_merged=1): 나가는 시점의
+      **그룹 재료 스냅샷**을 그대로 들고 나간다 — 가족과 냉장고를 나눠 쓰다가
+      분가하면서 지금 있는 재료를 챙겨 나가는 것과 같은 그림.
+    - 합친 적이 없는 사람(merge_ingredients=false로 참여): 애초에 자기 재료를
+      그룹에 섞은 적이 없으므로, **참여 전 개인 재료**가 그대로 보존돼 있다가
+      그대로 돌아온다 — 나갈 때 그룹의 최신 상태로 덮어쓰지 않는다.
+    - 그룹을 만든 사람(그룹의 storage_user_id 본인)이 나가는 경우: 남은 멤버가
+      있으면 그 사람 쪽으로 저장 위치를 옮겨준다(데이터는 그대로 복사) — 남은
+      사람들이 계속 같은 데이터를 보게 하기 위함. 내 몫은 원래 있던 자리에
+      그대로 남으므로(같은 행이었으므로) 따로 처리할 게 없다.
 
     즐겨찾기/완료/기록은 애초에 그룹과 무관하게 항상 계정별 개인 기록이었으므로
     나가도 전혀 바뀌지 않는다.
@@ -2341,6 +2363,10 @@ def leave_household():
             if not household:
                 return jsonify({'error': '속한 그룹이 없습니다.'}), 400
 
+            cursor.execute("SELECT ingredients_merged FROM users WHERE id = %s", (user_id,))
+            row = cursor.fetchone()
+            ingredients_merged = bool(row and row['ingredients_merged'])
+
             storage_user_id = household['storage_user_id']
             saved_at = datetime.now()
 
@@ -2359,12 +2385,16 @@ def leave_household():
                         (next_owner['id'], household['id'])
                     )
                 # 남은 멤버가 없으면 내 재료가 곧 그룹 재료였으므로 따로 복사할 것도 없다.
-            else:
-                # 저장 계정이 아니었다면, 지금 보고 있던 그룹 재료를 내 개인
-                # 재료로 그대로 복사해 온다.
+            elif ingredients_merged:
+                # 예전에 내 재료를 그룹에 합쳤다면, 지금 그룹 재료를 그대로 복사해 온다.
                 _copy_ingredients(cursor, storage_user_id, user_id, saved_at)
+            # else: 합친 적이 없으면 내 user_ingredients 행은 참여 이후 한 번도
+            # 건드리지 않았으므로 — 참여 전 재료가 이미 그대로 보존돼 있다.
 
-            cursor.execute("UPDATE users SET household_id = NULL WHERE id = %s", (user_id,))
+            cursor.execute(
+                "UPDATE users SET household_id = NULL, ingredients_merged = 0 WHERE id = %s",
+                (user_id,)
+            )
             db.commit()
             return jsonify({'message': '그룹에서 나갔습니다.'}), 200
         except Exception as e:

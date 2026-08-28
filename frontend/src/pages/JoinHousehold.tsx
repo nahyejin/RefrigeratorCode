@@ -130,7 +130,10 @@ const JoinHousehold: React.FC = () => {
                 <span>
                   지금 내 냉장고에 있는 재료를 그룹 재료에 합치기
                   <br />
-                  <span style={{ color: 'var(--ink-500)' }}>(끄면 내 재료는 그대로 두고 그룹 재료만 보게 돼요)</span>
+                  <span style={{ color: 'var(--ink-500)' }}>
+                    꺼두면 내 재료는 삭제되지 않고 그대로 보존돼요(그룹에는 안 보임).
+                    나중에 그룹을 나가면 그 재료를 그대로 돌려받아요.
+                  </span>
                 </span>
               </label>
               <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 13, color: 'var(--ink-700)' }}>

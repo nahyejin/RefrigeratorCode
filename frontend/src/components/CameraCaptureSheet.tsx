@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import CloseButton from './ui/CloseButton';
+import Sheet from './ui/Sheet';
 import { isStandaloneAppMode } from '../utils/onboardingPrompts';
 import { showInstallPrompt } from '../utils/pwa';
 
@@ -55,6 +55,10 @@ const OPTIONS: { key: Extract<CaptureMode, 'receipt' | 'food-single' | 'food-mul
  * 고르게 하는 편이 — 나중에 AI가 알아서 구분하는 기능이 생기기 전까지는 —
  * 사용자에게도 무엇을 찍어야 인식이 잘 될지 알려주는 역할을 겸한다.
  *
+ * 위로 열리는 바텀시트라 "필터"처럼 손잡이를 잡고 아래로 끌면 닫혀야 자연스럽다
+ * — 직접 구현하지 않고, 그 동작을 이미 갖춘 공용 `Sheet`(FilterModal 등이 쓰는 것과
+ * 동일)를 그대로 쓴다.
+ *
  * 촬영/선택 자체는 표준 <input type=file> 로 처리한다(capture 속성으로 카메라
  * 바로 열기, 없으면 앨범/파일 선택). 실제 OS 위젯(홈 화면 위젯, 다른 앱 위에
  * 떠 있는 플로팅 버튼)은 PWA 만으로는 만들 수 없다 — 네이티브 앱(Capacitor로
@@ -65,8 +69,6 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [pendingMode, setPendingMode] = useState<CaptureMode>('food-single');
-
-  if (!isOpen) return null;
 
   const openCameraFor = (mode: CaptureMode) => {
     setPendingMode(mode);
@@ -84,7 +86,7 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
   const installed = isStandaloneAppMode();
 
   return (
-    <>
+    <Sheet open={isOpen} onClose={onClose} title="사진으로 재료 담기" maxHeight="70dvh">
       {/* 실제 촬영/선택은 숨겨진 input 두 개가 담당한다.
           capture="environment" 는 모바일에서 바로 후면 카메라를 연다.
           아래쪽 것은 capture가 없어 앨범·파일 앱을 그대로 보여준다 — 모바일에서는
@@ -105,154 +107,127 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
         onChange={makeChangeHandler('file')}
       />
 
-      <div
-        className="fixed inset-0"
-        style={{ zIndex: 'var(--z-overlay)', background: 'rgba(0,0,0,0.45)' }}
-        onClick={onClose}
-      />
-      <div
-        role="dialog"
-        aria-label="사진으로 재료 담기"
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          position: 'fixed',
-          bottom: 0,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          width: '100%',
-          maxWidth: 400,
-          background: '#FFFFFF',
-          borderRadius: '22px 22px 0 0',
-          boxShadow: '0 -12px 30px rgba(0,0,0,0.18)',
-          padding: '20px 18px calc(16px + env(safe-area-inset-bottom))',
-          zIndex: 'var(--z-modal)',
-          boxSizing: 'border-box',
-        }}
-      >
-        <CloseButton onClick={onClose} style={{ top: 10, right: 10 }} />
-
-        {/* 아직 실제 인식 기능은 없다는 걸, 개발 중인 영역임을 한눈에 알 수 있게
-            살짝 기울어진 배지로 밝혀 둔다. */}
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
-          <span
-            style={{
-              display: 'inline-block',
-              transform: 'rotate(-4deg)',
-              background: '#FFD600',
-              color: '#1A1A1E',
-              fontSize: 12,
-              fontWeight: 700,
-              padding: '4px 12px',
-              borderRadius: 9999,
-              whiteSpace: 'nowrap',
-            }}
-          >
-            ✨ AI 이미지 자동인식 기능을 준비하고 있어요
-          </span>
-        </div>
-
-        <div style={{ textAlign: 'center', fontWeight: 700, fontSize: 17, marginBottom: 16, color: '#1A1A1E' }}>
-          무엇을 찍을까요?
-        </div>
-
-        {/* 카드를 눌러야 찍힌다는 게 한눈에 들어오도록, 글줄보다 아이콘을 훨씬
-            크게 키운 정사각 타일 3개를 나란히 둔다(설명문처럼 가로로 긴 줄
-            형태였던 이전 버전은 "눌러서 촬영"이라는 느낌이 잘 안 살았다). */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 14 }}>
-          {OPTIONS.map(({ key, label, icon: Icon }) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => openCameraFor(key)}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 8,
-                aspectRatio: '1 / 1',
-                padding: '10px 6px',
-                borderRadius: 16,
-                border: '1px solid var(--line-200)',
-                background: 'var(--surface-sub)',
-                cursor: 'pointer',
-              }}
-            >
-              <span
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: 56,
-                  height: 56,
-                  borderRadius: '50%',
-                  background: '#FFFFFF',
-                  border: '1px solid var(--line-200)',
-                  flexShrink: 0,
-                }}
-              >
-                <Icon />
-              </span>
-              <span style={{ fontSize: 13, fontWeight: 700, color: '#1A1A1E', textAlign: 'center' }}>{label}</span>
-            </button>
-          ))}
-        </div>
-
-        <button
-          type="button"
-          onClick={() => fileInputRef.current?.click()}
+      {/* 아직 실제 인식 기능은 없다는 걸, 개발 중인 영역임을 한눈에 알 수 있게
+          살짝 기울어진 배지로 밝혀 둔다. */}
+      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 14 }}>
+        <span
           style={{
-            width: '100%',
-            height: 40,
-            borderRadius: 10,
-            border: '1px solid var(--line-200)',
-            background: '#FFFFFF',
-            color: 'var(--ink-700)',
-            fontSize: 13,
-            fontWeight: 600,
-            cursor: 'pointer',
-            marginBottom: installed ? 4 : 14,
+            display: 'inline-block',
+            transform: 'rotate(-4deg)',
+            background: '#FFD600',
+            color: '#1A1A1E',
+            fontSize: 12,
+            fontWeight: 700,
+            padding: '4px 12px',
+            borderRadius: 9999,
+            whiteSpace: 'nowrap',
           }}
         >
-          사진 앨범/파일에서 선택
-        </button>
+          ✨ AI 이미지 자동인식 기능을 준비하고 있어요
+        </span>
+      </div>
 
-        {/* 진짜 "홈 화면 위젯"/"다른 앱 위에 떠 있는 버튼"은 PWA 로는 만들 수 없다
-            (네이티브 앱이어야 함). 지금 할 수 있는 최선은 홈 화면 설치 안내뿐이라,
-            그 이상을 약속하지 않고 정직하게 이 수준으로만 안내한다. */}
-        {!installed && (
-          <div
+      <div style={{ textAlign: 'center', fontWeight: 700, fontSize: 17, marginBottom: 16, color: '#1A1A1E' }}>
+        무엇을 찍을까요?
+      </div>
+
+      {/* 카드를 눌러야 찍힌다는 게 한눈에 들어오도록, 글줄보다 아이콘을 훨씬
+          크게 키운 정사각 타일 3개를 나란히 둔다(설명문처럼 가로로 긴 줄
+          형태였던 이전 버전은 "눌러서 촬영"이라는 느낌이 잘 안 살았다). */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 14 }}>
+        {OPTIONS.map(({ key, label, icon: Icon }) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => openCameraFor(key)}
             style={{
               display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
               gap: 8,
-              alignItems: 'flex-start',
-              padding: '10px 12px',
-              borderRadius: 12,
+              aspectRatio: '1 / 1',
+              padding: '10px 6px',
+              borderRadius: 16,
+              border: '1px solid var(--line-200)',
               background: 'var(--surface-sub)',
-              fontSize: 12.5,
-              lineHeight: 1.5,
-              color: 'var(--ink-700)',
+              cursor: 'pointer',
             }}
           >
-            <span aria-hidden style={{ flexShrink: 0, fontWeight: 700, color: 'var(--ink-500)' }}>i</span>
-            <span>
-              홈 화면에 추가해두면 앱을 처음부터 안 열어도 이 카메라 버튼에 더 빠르게 올 수 있어요.{' '}
-              {isIOS() ? (
-                '하단 공유 아이콘 → "홈 화면에 추가"로 등록할 수 있어요.'
-              ) : (
-                <button
-                  type="button"
-                  onClick={showInstallPrompt}
-                  style={{ background: 'none', border: 'none', padding: 0, color: '#1A1A1E', fontWeight: 700, textDecoration: 'underline', cursor: 'pointer' }}
-                >
-                  지금 추가하기
-                </button>
-              )}
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 56,
+                height: 56,
+                borderRadius: '50%',
+                background: '#FFFFFF',
+                border: '1px solid var(--line-200)',
+                flexShrink: 0,
+              }}
+            >
+              <Icon />
             </span>
-          </div>
-        )}
+            <span style={{ fontSize: 13, fontWeight: 700, color: '#1A1A1E', textAlign: 'center' }}>{label}</span>
+          </button>
+        ))}
       </div>
-    </>
+
+      <button
+        type="button"
+        onClick={() => fileInputRef.current?.click()}
+        style={{
+          width: '100%',
+          height: 40,
+          borderRadius: 10,
+          border: '1px solid var(--line-200)',
+          background: '#FFFFFF',
+          color: 'var(--ink-700)',
+          fontSize: 13,
+          fontWeight: 600,
+          cursor: 'pointer',
+          marginBottom: installed ? 4 : 14,
+        }}
+      >
+        사진 앨범/파일에서 선택
+      </button>
+
+      {/* 진짜 "홈 화면 위젯"/"다른 앱 위에 떠 있는 버튼"은 PWA 로는 만들 수 없다
+          (네이티브 앱이어야 함). 지금 할 수 있는 최선은 홈 화면 설치 안내뿐이라,
+          그 이상을 약속하지 않고 정직하게 이 수준으로만 안내한다. */}
+      {!installed && (
+        <div
+          style={{
+            display: 'flex',
+            gap: 8,
+            alignItems: 'flex-start',
+            padding: '10px 12px',
+            borderRadius: 12,
+            background: 'var(--surface-sub)',
+            fontSize: 12.5,
+            lineHeight: 1.5,
+            color: 'var(--ink-700)',
+          }}
+        >
+          <span aria-hidden style={{ flexShrink: 0, fontWeight: 700, color: 'var(--ink-500)' }}>i</span>
+          <span>
+            홈 화면에 추가해두면 앱을 처음부터 안 열어도 이 카메라 버튼에 더 빠르게 올 수 있어요.{' '}
+            {isIOS() ? (
+              '하단 공유 아이콘 → "홈 화면에 추가"로 등록할 수 있어요.'
+            ) : (
+              <button
+                type="button"
+                onClick={showInstallPrompt}
+                style={{ background: 'none', border: 'none', padding: 0, color: '#1A1A1E', fontWeight: 700, textDecoration: 'underline', cursor: 'pointer' }}
+              >
+                지금 추가하기
+              </button>
+            )}
+          </span>
+        </div>
+      )}
+    </Sheet>
   );
 };
 
