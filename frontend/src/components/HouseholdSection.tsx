@@ -61,6 +61,9 @@ const HouseholdSection: React.FC<HouseholdSectionProps> = ({ onChange }) => {
   const [createShareRecipeActions, setCreateShareRecipeActions] = React.useState(true);
   const [busy, setBusy] = React.useState(false);
   const [toast, setToast] = React.useState('');
+  const [statsFor, setStatsFor] = React.useState<HouseholdMember | null>(null);
+  const [memberStats, setMemberStats] = React.useState<{ favorite: number; completed: number; recorded: number } | null>(null);
+  const [requestSent, setRequestSent] = React.useState(false);
 
   const authedFetch = React.useCallback((path: string, options: RequestInit = {}) => {
     const token = getToken();
@@ -258,6 +261,45 @@ const HouseholdSection: React.FC<HouseholdSectionProps> = ({ onChange }) => {
     }
   };
 
+  // 비공개(share_recipe_actions=false) 멤버를 누르면 그 사람의 활동 요약을
+  // 보고, "공유 요청하기" 버튼으로 요청을 보낼 수 있다.
+  const handleOpenMemberStats = async (member: HouseholdMember) => {
+    setStatsFor(member);
+    setMemberStats(null);
+    setRequestSent(false);
+    try {
+      const res = await authedFetch(`/api/households/members/${member.id}/stats`);
+      if (res.ok) {
+        const data = await res.json();
+        setMemberStats({ favorite: data.favorite, completed: data.completed, recorded: data.recorded });
+      }
+    } catch (e) {
+      console.warn('[HouseholdSection] 멤버 통계 조회 실패:', e);
+    }
+  };
+
+  const handleSendShareRequest = async () => {
+    if (!statsFor) return;
+    setBusy(true);
+    try {
+      const res = await authedFetch('/api/households/share-requests', {
+        method: 'POST',
+        body: JSON.stringify({ target_id: statsFor.id }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showToast(data.error || '요청 전송에 실패했어요.');
+        return;
+      }
+      setRequestSent(true);
+      showToast(`${statsFor.nickname}님에게 공유 요청을 보냈어요.`);
+    } catch (e) {
+      showToast('요청 전송 중 오류가 발생했어요.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   if (!isLoggedIn) return null;
 
   return (
@@ -312,25 +354,38 @@ const HouseholdSection: React.FC<HouseholdSectionProps> = ({ onChange }) => {
 
           {!!info.members?.length && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
-              {info.members.map((m) => (
-                <div
-                  key={m.id}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: 8,
-                    padding: '6px 10px',
-                    borderRadius: 10,
-                    background: 'var(--surface-sub)',
-                  }}
-                >
-                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-700)' }}>{m.nickname}</span>
-                  <span style={{ fontSize: 11.5, fontWeight: 600, color: m.share_recipe_actions ? '#16A34A' : 'var(--ink-500)' }}>
-                    즐겨찾기·완료·기록 {m.share_recipe_actions ? '공유 중' : '비공개'}
-                  </span>
-                </div>
-              ))}
+              {info.members.map((m) => {
+                // 본인이거나 이미 공유 중인 사람은 요청할 게 없으니 그냥 표시만.
+                // 비공개인 다른 멤버만 눌러서 공유를 요청할 수 있게 한다.
+                const clickable = m.id !== Number(user?.id) && !m.share_recipe_actions;
+                const Wrapper: any = clickable ? 'button' : 'div';
+                return (
+                  <Wrapper
+                    key={m.id}
+                    type={clickable ? 'button' : undefined}
+                    onClick={clickable ? () => handleOpenMemberStats(m) : undefined}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 8,
+                      padding: '6px 10px',
+                      borderRadius: 10,
+                      background: 'var(--surface-sub)',
+                      border: 'none',
+                      width: '100%',
+                      textAlign: 'left',
+                      cursor: clickable ? 'pointer' : 'default',
+                    }}
+                  >
+                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-700)' }}>{m.nickname}</span>
+                    <span style={{ fontSize: 11.5, fontWeight: 600, color: m.share_recipe_actions ? '#16A34A' : 'var(--ink-500)' }}>
+                      즐겨찾기·완료·기록 {m.share_recipe_actions ? '공유 중' : '비공개'}
+                      {clickable ? ' · 요청하기 >' : ''}
+                    </span>
+                  </Wrapper>
+                );
+              })}
             </div>
           )}
 
@@ -339,7 +394,7 @@ const HouseholdSection: React.FC<HouseholdSectionProps> = ({ onChange }) => {
               checked={info.allow_ingredient_merge !== false}
               onChange={handleToggleMergePolicy}
               label="새로 참여하는 사람의 재료 합치기 허용"
-              hint="꺼두면 누가 참여하든 그 사람이 갖고 있던 재료는 합쳐지지 않고 그대로 보존돼요."
+              hint="꺼두면 참여자의 기존 재료는 지워지지 않고 그대로 보존되고, 대신 우리 그룹의 기존 재료를 함께 보게 돼요. 우리 쪽 재료는 전혀 바뀌지 않아요."
             />
           </div>
 
@@ -438,7 +493,7 @@ const HouseholdSection: React.FC<HouseholdSectionProps> = ({ onChange }) => {
               checked={mergeIngredients}
               onChange={setMergeIngredients}
               label="내 재료를 그룹 재료에 합치기"
-              hint="꺼두면 내 재료는 그대로 보존되고, 나갈 때 돌려받아요."
+              hint="꺼두면 내 재료는 지워지지 않고 보존되고, 대신 그룹의 기존 재료를 함께 보게 돼요. 그룹 재료는 바뀌지 않고, 나중에 나가면 내 재료를 그대로 돌려받아요."
             />
             <Toggle
               checked={shareRecipeActions}
@@ -468,6 +523,49 @@ const HouseholdSection: React.FC<HouseholdSectionProps> = ({ onChange }) => {
           <>보존해 둔 내 재료를 그대로 돌려받아요. 즐겨찾기·완료·기록은 원래 그대로예요.</>
         ) : (
           <>지금 그룹 재료를 복사해서 가져가요(그룹에는 그대로 남아요). 즐겨찾기·완료·기록은 원래 그대로예요.</>
+        )}
+      </Dialog>
+
+      <Dialog
+        open={!!statsFor}
+        onClose={() => setStatsFor(null)}
+        title={statsFor ? `${statsFor.nickname}님` : ''}
+        actions={
+          requestSent
+            ? [{ label: '닫기', onClick: () => setStatsFor(null), variant: 'outline' }]
+            : [
+                { label: '취소', onClick: () => setStatsFor(null), variant: 'outline' },
+                { label: '공유 요청하기', onClick: handleSendShareRequest, variant: 'primary' },
+              ]
+        }
+      >
+        {!memberStats ? (
+          <div style={{ fontSize: 13, color: 'var(--ink-500)', padding: '8px 0' }}>불러오는 중...</div>
+        ) : requestSent ? (
+          <div style={{ fontSize: 13, color: 'var(--ink-700)' }}>
+            요청을 보냈어요. {statsFor?.nickname}님이 앱을 열면 수락/거절을 고를 수 있어요.
+          </div>
+        ) : (
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-around', marginBottom: 12 }}>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 18, fontWeight: 700, color: '#1A1A1E' }}>{memberStats.favorite}</div>
+                <div style={{ fontSize: 12, color: 'var(--ink-500)' }}>즐겨찾기</div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 18, fontWeight: 700, color: '#1A1A1E' }}>{memberStats.recorded}</div>
+                <div style={{ fontSize: 12, color: 'var(--ink-500)' }}>기록</div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 18, fontWeight: 700, color: '#1A1A1E' }}>{memberStats.completed}</div>
+                <div style={{ fontSize: 12, color: 'var(--ink-500)' }}>완료</div>
+              </div>
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--ink-500)' }}>
+              지금은 비공개예요. 요청을 보내면 {statsFor?.nickname}님이 앱을 열었을 때
+              공유 여부를 직접 고를 수 있어요.
+            </div>
+          </div>
         )}
       </Dialog>
 

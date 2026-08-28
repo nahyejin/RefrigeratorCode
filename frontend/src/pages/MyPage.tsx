@@ -493,15 +493,56 @@ const MyPage: React.FC = () => {
     }
   };
 
-  // 레시피 카드에 붙일 "OO님도 즐겨찾기함" 배지 문구.
-  // 나 혼자 한 것까지 배지로 띄우면 당연한 정보라 소음만 되므로, 나 말고
-  // 다른 그룹원이 같은 행동을 했을 때만 표시한다.
-  const buildAttributionLabel = (action: 'favorite' | 'completed' | 'recorded') => (recipe: any) => {
+  // 레시피 카드에 붙일 배지 — 이 항목을 한 사람의 닉네임.
+  // 전에는 "OO님도 즐겨찾기함"처럼 문장으로 붙였는데, 세 영역(즐겨찾기/기록/
+  // 완료)마다 반복되면 카드가 문장으로 뒤덮여 오히려 안 읽혔다. 이 카드가 어느
+  // 영역에 있는지는 섹션 제목이 이미 말해주므로, 배지는 누가 했는지(닉네임)만
+  // 짧게 보여주면 충분하다. 나만 한 경우엔 굳이 내 이름을 또 띄울 필요가
+  // 없어서 생략한다.
+  const buildAttributionLabel = (_action: 'favorite' | 'completed' | 'recorded') => (recipe: any) => {
     const names: string[] = recipe?.acted_by || [];
     const others = Array.from(new Set(names.filter((n) => n && n !== authUser?.nickname)));
     if (!others.length) return undefined;
-    const verb = action === 'favorite' ? '즐겨찾기함' : action === 'completed' ? '완료함' : '기록함';
-    return `${others.join('·')}님도 ${verb}`;
+    return others.join('·');
+  };
+
+  // 마이페이지에 들어올 때, 다른 그룹원이 보낸 공유 요청이 있는지 확인.
+  const checkPendingShareRequests = async () => {
+    if (!isLoggedIn || !authUser?.id) return;
+    try {
+      const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+      const apiUrl = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'https://refrigeratorcode-production.up.railway.app';
+      const res = await fetch(`${apiUrl}/api/households/share-requests/pending`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setPendingShareRequests(data.requests || []);
+      }
+    } catch (error) {
+      console.warn('[MyPage] 공유 요청 조회 실패:', error);
+    }
+  };
+
+  const respondShareRequest = async (requestId: number, accept: boolean) => {
+    setRespondingRequestId(requestId);
+    try {
+      const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+      const apiUrl = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'https://refrigeratorcode-production.up.railway.app';
+      await fetch(`${apiUrl}/api/households/share-requests/${requestId}/respond`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ accept }),
+      });
+      setPendingShareRequests((prev) => prev.filter((r) => r.id !== requestId));
+      if (accept) {
+        loadHouseholdRecipeFeeds();
+      }
+    } catch (error) {
+      console.warn('[MyPage] 공유 요청 응답 실패:', error);
+    } finally {
+      setRespondingRequestId(null);
+    }
   };
 
   // DB에 레시피 추가
@@ -627,6 +668,15 @@ const MyPage: React.FC = () => {
   // favoriteRecipes 등(내 것만 있는 배열)은 그대로 두고 액션 상태(내가 눌렀는지)
   // 판단에 계속 쓴다 — 이 목록만 화면 표시용으로 별도로 둔다.
   const [isInHousehold, setIsInHousehold] = useState(false);
+  // 그룹에 속해 있을 때 "우리 식구 모두 보기" / "나의 것만 보기" 중 어느 쪽으로
+  // 즐겨찾기·기록·완료 세 영역을 볼지. 기본은 모두 보기.
+  const [householdViewMode, setHouseholdViewMode] = useState<'all' | 'mine'>('all');
+  // 다른 그룹원이 보낸 "즐겨찾기 등 공유해 달라" 요청. 앱 전체를 켤 때마다
+  // 뜨는 푸시는 아니고, 마이페이지에 들어올 때 확인해서 팝업으로 물어본다.
+  const [pendingShareRequests, setPendingShareRequests] = useState<
+    { id: number; requester_id: number; requester_nickname: string }[]
+  >([]);
+  const [respondingRequestId, setRespondingRequestId] = useState<number | null>(null);
   const [householdFavoriteRecipes, setHouseholdFavoriteRecipes] = useState<any[]>([]);
   const [householdRecordedRecipes, setHouseholdRecordedRecipes] = useState<any[]>([]);
   const [householdCompletedRecipes, setHouseholdCompletedRecipes] = useState<any[]>([]);
@@ -673,6 +723,7 @@ const MyPage: React.FC = () => {
       // DB에서 레시피 로드
       loadRecipesFromDB();
       loadHouseholdRecipeFeeds();
+      checkPendingShareRequests();
     } else {
       // 로그아웃 시 레시피 상태 초기화 및 localStorage에서 로드
       setFavoriteRecipes([]);
@@ -740,10 +791,12 @@ const MyPage: React.FC = () => {
     householdCompletedRecipes,
   ]);
 
-  // 그룹에 속해 있으면 화면에는 그룹 전체(+나) 목록을, 아니면 내 개인 목록을 보여준다.
-  const displayFavoriteRecipes = isInHousehold ? householdFavoriteRecipes : favoriteRecipes;
-  const displayRecordedRecipes = isInHousehold ? householdRecordedRecipes : recordedRecipes;
-  const displayCompletedRecipes = isInHousehold ? householdCompletedRecipes : completedRecipes;
+  // 그룹에 속해 있으면 기본으로 그룹 전체(+나) 목록을 보여주되, "나의 것만
+  // 보기"로 바꾸면 원래의 개인 목록으로 되돌아간다.
+  const showAllHousehold = isInHousehold && householdViewMode === 'all';
+  const displayFavoriteRecipes = showAllHousehold ? householdFavoriteRecipes : favoriteRecipes;
+  const displayRecordedRecipes = showAllHousehold ? householdRecordedRecipes : recordedRecipes;
+  const displayCompletedRecipes = showAllHousehold ? householdCompletedRecipes : completedRecipes;
   
   // 모달이 열릴 때 원본 데이터 저장 및 edit 상태 초기화
   useEffect(() => {
@@ -1330,13 +1383,47 @@ const MyPage: React.FC = () => {
         ))}
       </nav>
       
+      {/* 그룹에 속해 있을 때만: 즐겨찾기/기록/완료 세 영역을 "우리 식구 모두"
+          볼지 "나의 것만" 볼지 고르는 상위 토글. 세 영역이 각각 따로 그룹
+          여부를 결정하면 헷갈리므로 하나로 묶어서 관리한다. */}
+      {isInHousehold && (
+        <div style={{ display: 'flex', gap: 6, padding: '12px 14px 0' }}>
+          {([
+            { key: 'all', label: '우리 식구 모두 보기' },
+            { key: 'mine', label: '나의 것만 보기' },
+          ] as const).map(({ key, label }) => {
+            const on = householdViewMode === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setHouseholdViewMode(key)}
+                style={{
+                  height: 30,
+                  padding: '0 12px',
+                  borderRadius: 9999,
+                  fontSize: 12.5,
+                  fontWeight: on ? 700 : 500,
+                  background: on ? 'var(--ink-900)' : 'var(--surface-sub)',
+                  color: on ? '#FFFFFF' : 'var(--ink-700)',
+                  border: 'none',
+                  cursor: 'pointer',
+                }}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* 레시피 그룹 - 비회원도 localStorage로 관리하므로 항상 표시 */}
       <div style={{ marginTop: 0 }}>
         {/* 내가 즐겨찾는 레시피 */}
         <div style={{ paddingLeft: 14, paddingRight: 14 }}>
           <SectionBand bleed={14} />
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
-            <SectionHeader icon={<SectionIcon kind="favorite" />} title={isInHousehold ? '우리 식구가 즐겨찾는 레시피' : '내가 즐겨찾는 레시피'} />
+            <SectionHeader icon={<SectionIcon kind="favorite" />} title={showAllHousehold ? '우리 식구가 즐겨찾는 레시피' : '내가 즐겨찾는 레시피'} />
             {/* 예전엔 전체보기가 `☰` 글자 하나였다. 햄버거는 '메뉴' 를 뜻하는 기호라
                 '이 목록 전부 보기' 와 뜻이 맞지 않고, 무엇보다 무슨 버튼인지 알 수 없었다. */}
             <button
@@ -1400,7 +1487,7 @@ const MyPage: React.FC = () => {
         <div style={{ paddingLeft: 14, paddingRight: 14 }}>
           <SectionBand bleed={14} />
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
-            <SectionHeader icon={<SectionIcon kind="recorded" />} title={isInHousehold ? '우리 식구가 기록한 레시피' : '내가 기록한 레시피'} />
+            <SectionHeader icon={<SectionIcon kind="recorded" />} title={showAllHousehold ? '우리 식구가 기록한 레시피' : '내가 기록한 레시피'} />
             {/* 예전엔 전체보기가 `☰` 글자 하나였다. 햄버거는 '메뉴' 를 뜻하는 기호라
                 '이 목록 전부 보기' 와 뜻이 맞지 않고, 무엇보다 무슨 버튼인지 알 수 없었다. */}
             <button
@@ -1467,7 +1554,7 @@ const MyPage: React.FC = () => {
         <div style={{ paddingLeft: 14, paddingRight: 14 }}>
           <SectionBand bleed={14} />
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
-            <SectionHeader icon={<SectionIcon kind="completed" />} title={isInHousehold ? '우리 식구가 완료한 레시피' : '내가 완료한 레시피'} />
+            <SectionHeader icon={<SectionIcon kind="completed" />} title={showAllHousehold ? '우리 식구가 완료한 레시피' : '내가 완료한 레시피'} />
             <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
               {/* 완료 기록을 날짜별로 돌아보는 화면(요리 캘린더)은 하단 탭으로
                   옮겼다 — 여기 아이콘 입구는 눈에 잘 안 띈다는 지적이 있어 없앰. */}
@@ -1538,7 +1625,34 @@ const MyPage: React.FC = () => {
       </div>
       
       <BottomNavBar activeTab="mypage" />
-      
+
+      {/* 다른 그룹원이 보낸 공유 요청. 대기 중인 게 여러 개면 하나씩 순서대로. */}
+      {pendingShareRequests.length > 0 && (
+        <Dialog
+          open
+          onClose={() => {}}
+          showClose={false}
+          closeOnBackdrop={false}
+          title={`${pendingShareRequests[0].requester_nickname}님의 요청`}
+          actions={[
+            {
+              label: '거절',
+              variant: 'outline',
+              onClick: () => respondShareRequest(pendingShareRequests[0].id, false),
+            },
+            {
+              label: '수락',
+              variant: 'primary',
+              onClick: () => respondShareRequest(pendingShareRequests[0].id, true),
+            },
+          ]}
+        >
+          {respondingRequestId === pendingShareRequests[0].id
+            ? '처리 중...'
+            : `${pendingShareRequests[0].requester_nickname}님이 내 즐겨찾기·완료·기록을 그룹에 공유해 달라고 요청했어요. 수락하면 그룹원들이 내가 즐겨찾기·완료·기록한 레시피를 볼 수 있어요.`}
+        </Dialog>
+      )}
+
       {/* 내 정보 수정 모달 */}
       {editOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center" style={{ zIndex: 'var(--z-modal)' }}>

@@ -2119,7 +2119,8 @@ def ensure_households_table():
             db.rollback()
 
         # 요리 캘린더의 "이번 달 목표" 달성률용. 처음부터 설정해야 하는 건
-        # 번거로우니 기본값(월 12회 = 대략 주 3회)을 채워 둔다.
+        # 번거로우니 기본값(월 20회)을 채워 둔다. 계정별 개인 목표이며,
+        # 그룹 공동 목표는 아니다(캘린더 화면에 안내 문구로 명시).
         try:
             cursor.execute("""
                 SELECT COUNT(*) as count
@@ -2130,10 +2131,32 @@ def ensure_households_table():
             """)
             result = cursor.fetchone()
             if result and result['count'] == 0:
-                cursor.execute("ALTER TABLE users ADD COLUMN monthly_cooking_goal INT NOT NULL DEFAULT 12")
+                cursor.execute("ALTER TABLE users ADD COLUMN monthly_cooking_goal INT NOT NULL DEFAULT 20")
                 db.commit()
         except Exception as e:
             print(f"[ensure_households_table] monthly_cooking_goal 컬럼 추가 중 오류: {e}")
+            db.rollback()
+
+        # 즐겨찾기/완료/기록 비공개인 멤버에게 "공유해 달라"고 요청하는 기능용.
+        # 앱을 완전히 꺼도 오는 푸시 알림까지는 아니고, 앱을 열었을 때(마이페이지
+        # 진입 시) 대기 중인 요청이 있으면 팝업으로 물어보는 정도로 범위를 좁혔다.
+        try:
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS household_share_requests (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    household_id INT NOT NULL,
+                    requester_id INT NOT NULL,
+                    target_id INT NOT NULL,
+                    status VARCHAR(20) NOT NULL DEFAULT 'pending',
+                    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    responded_at DATETIME NULL,
+                    INDEX idx_target_status (target_id, status),
+                    INDEX idx_household (household_id)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            """)
+            db.commit()
+        except Exception as e:
+            print(f"[ensure_households_table] household_share_requests 생성 중 오류: {e}")
             db.rollback()
     except Exception as e:
         db.rollback()
@@ -2556,6 +2579,192 @@ def update_household_settings():
             db.close()
     except Exception as e:
         print(f"Update household settings error: {e}")
+        return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
+
+
+@app.route('/api/households/members/<int:member_id>/stats', methods=['GET'])
+def get_household_member_stats(member_id):
+    """같은 그룹원의 즐겨찾기/완료/기록 개수 요약. 공유 요청 팝업에서
+    "이 사람 활동이 이 정도예요" 를 보여주는 용도라 개수만 준다(목록 아님)."""
+    try:
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({'error': '인증이 필요합니다.'}), 401
+        payload = verify_jwt_token(auth_header.split(' ')[1])
+        if not payload:
+            return jsonify({'error': '권한이 없습니다.'}), 403
+        user_id = payload.get('user_id')
+
+        ensure_households_table()
+        ensure_user_data_tables()
+        db = get_db()
+        cursor = db.cursor()
+        try:
+            household = get_household_by_user(cursor, user_id)
+            if not household:
+                return jsonify({'error': '속한 그룹이 없습니다.'}), 400
+            cursor.execute(
+                "SELECT id, nickname FROM users WHERE id = %s AND household_id = %s",
+                (member_id, household['id'])
+            )
+            member = cursor.fetchone()
+            if not member:
+                return jsonify({'error': '같은 그룹의 멤버가 아닙니다.'}), 403
+
+            counts = {}
+            for key, table in _HOUSEHOLD_ACTION_TABLES.items():
+                cursor.execute(f"SELECT COUNT(*) as c FROM {table} WHERE user_id = %s", (member_id,))
+                counts[key] = cursor.fetchone()['c']
+
+            return jsonify({'nickname': member['nickname'], **counts}), 200
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"Get household member stats error: {e}")
+        return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
+
+
+@app.route('/api/households/share-requests', methods=['POST'])
+def create_share_request():
+    """"내 즐겨찾기 등을 그룹에 공유해 달라" 요청 보내기. 대상이 이미
+    공유 중이면(share_recipe_actions=1) 보낼 이유가 없으니 막는다."""
+    try:
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({'error': '인증이 필요합니다.'}), 401
+        payload = verify_jwt_token(auth_header.split(' ')[1])
+        if not payload:
+            return jsonify({'error': '권한이 없습니다.'}), 403
+        user_id = payload.get('user_id')
+
+        data = request.get_json() or {}
+        target_id = data.get('target_id')
+        if not target_id:
+            return jsonify({'error': 'target_id가 필요합니다.'}), 400
+
+        ensure_households_table()
+        db = get_db()
+        cursor = db.cursor()
+        try:
+            household = get_household_by_user(cursor, user_id)
+            if not household:
+                return jsonify({'error': '속한 그룹이 없습니다.'}), 400
+
+            cursor.execute(
+                "SELECT id, share_recipe_actions FROM users WHERE id = %s AND household_id = %s",
+                (target_id, household['id'])
+            )
+            target = cursor.fetchone()
+            if not target:
+                return jsonify({'error': '같은 그룹의 멤버가 아닙니다.'}), 403
+            if target['share_recipe_actions']:
+                return jsonify({'error': '이미 공유 중인 멤버예요.'}), 400
+
+            cursor.execute(
+                """SELECT id FROM household_share_requests
+                   WHERE household_id = %s AND requester_id = %s AND target_id = %s AND status = 'pending'""",
+                (household['id'], user_id, target_id)
+            )
+            if cursor.fetchone():
+                return jsonify({'error': '이미 요청을 보냈어요. 응답을 기다려주세요.'}), 400
+
+            cursor.execute(
+                """INSERT INTO household_share_requests (household_id, requester_id, target_id, created_at)
+                   VALUES (%s, %s, %s, NOW())""",
+                (household['id'], user_id, target_id)
+            )
+            db.commit()
+            return jsonify({'message': '공유 요청을 보냈어요.'}), 201
+        except Exception as e:
+            db.rollback()
+            print(f"Create share request error: {e}")
+            return jsonify({'error': '요청 중 오류가 발생했습니다.'}), 500
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"Create share request error: {e}")
+        return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
+
+
+@app.route('/api/households/share-requests/pending', methods=['GET'])
+def get_pending_share_requests():
+    """내가 응답해야 할(target_id=나) 대기 중인 공유 요청. 앱을 열 때(마이페이지
+    진입 시) 이걸 확인해서 팝업으로 물어본다."""
+    try:
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({'error': '인증이 필요합니다.'}), 401
+        payload = verify_jwt_token(auth_header.split(' ')[1])
+        if not payload:
+            return jsonify({'error': '권한이 없습니다.'}), 403
+        user_id = payload.get('user_id')
+
+        ensure_households_table()
+        db = get_db()
+        cursor = db.cursor()
+        try:
+            cursor.execute(
+                """SELECT r.id, r.requester_id, u.nickname AS requester_nickname, r.created_at
+                   FROM household_share_requests r
+                   INNER JOIN users u ON u.id = r.requester_id
+                   WHERE r.target_id = %s AND r.status = 'pending'
+                   ORDER BY r.created_at ASC""",
+                (user_id,)
+            )
+            rows = cursor.fetchall()
+            for row in rows:
+                row['created_at'] = row['created_at'].isoformat()
+            return jsonify({'requests': rows}), 200
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"Get pending share requests error: {e}")
+        return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
+
+
+@app.route('/api/households/share-requests/<int:request_id>/respond', methods=['POST'])
+def respond_share_request(request_id):
+    """공유 요청 수락/거절. 수락하면 내(target) share_recipe_actions를 켠다."""
+    try:
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({'error': '인증이 필요합니다.'}), 401
+        payload = verify_jwt_token(auth_header.split(' ')[1])
+        if not payload:
+            return jsonify({'error': '권한이 없습니다.'}), 403
+        user_id = payload.get('user_id')
+
+        data = request.get_json() or {}
+        accept = bool(data.get('accept'))
+
+        ensure_households_table()
+        db = get_db()
+        cursor = db.cursor()
+        try:
+            cursor.execute(
+                "SELECT * FROM household_share_requests WHERE id = %s AND target_id = %s AND status = 'pending'",
+                (request_id, user_id)
+            )
+            req = cursor.fetchone()
+            if not req:
+                return jsonify({'error': '요청을 찾을 수 없습니다.'}), 404
+
+            cursor.execute(
+                "UPDATE household_share_requests SET status = %s, responded_at = NOW() WHERE id = %s",
+                ('accepted' if accept else 'declined', request_id)
+            )
+            if accept:
+                cursor.execute("UPDATE users SET share_recipe_actions = 1 WHERE id = %s", (user_id,))
+            db.commit()
+            return jsonify({'accepted': accept}), 200
+        except Exception as e:
+            db.rollback()
+            print(f"Respond share request error: {e}")
+            return jsonify({'error': '응답 중 오류가 발생했습니다.'}), 500
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"Respond share request error: {e}")
         return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
 
 

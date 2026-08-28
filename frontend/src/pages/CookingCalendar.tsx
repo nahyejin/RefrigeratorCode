@@ -273,29 +273,35 @@ const CookingCalendar: React.FC = () => {
           혼란이 있었음) */}
       <div style={{ margin: '0 14px', padding: '12px 14px', borderRadius: 12, background: 'var(--surface-sub)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: '#1A1A1E' }}>{anchorDate.getMonth() + 1}월 목표</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: '#1A1A1E' }}>
+            {anchorDate.getFullYear()}년 {anchorDate.getMonth() + 1}월 목표
+          </span>
           {editingGoal ? (
-            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <input
-                type="number"
-                value={goalInput}
-                onChange={(e) => setGoalInput(e.target.value)}
-                autoFocus
-                style={{ width: 52, height: 26, borderRadius: 6, border: '1px solid var(--line-300)', textAlign: 'center', fontSize: 12 }}
-              />
-              <button type="button" onClick={handleSaveGoal} style={{ fontSize: 12, fontWeight: 700, color: '#1A1A1E', background: 'none', border: 'none', cursor: 'pointer' }}>저장</button>
-            </span>
-          ) : (
-            <button
-              type="button"
-              onClick={() => {
-                setGoalInput(String(myGoal));
-                setEditingGoal(true);
+            <input
+              type="number"
+              value={goalInput}
+              onChange={(e) => setGoalInput(e.target.value)}
+              onBlur={handleSaveGoal}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
               }}
-              style={{ fontSize: 12, color: 'var(--ink-500)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
-            >
-              목표 {myGoal}회 수정
-            </button>
+              autoFocus
+              style={{ width: 56, height: 28, borderRadius: 6, border: '1px solid var(--line-300)', textAlign: 'center', fontSize: 13 }}
+            />
+          ) : (
+            <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#1A1A1E' }}>목표 {myGoal}회</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setGoalInput(String(myGoal));
+                  setEditingGoal(true);
+                }}
+                style={{ height: 24, padding: '0 8px', borderRadius: 6, fontSize: 11.5, fontWeight: 600, color: 'var(--ink-700)', background: '#FFFFFF', border: '1px solid var(--line-300)', cursor: 'pointer' }}
+              >
+                목표수정
+              </button>
+            </span>
           )}
         </div>
         <div style={{ height: 8, borderRadius: 9999, background: 'var(--line-200)', overflow: 'hidden' }}>
@@ -303,6 +309,10 @@ const CookingCalendar: React.FC = () => {
         </div>
         <div style={{ fontSize: 12, color: 'var(--ink-500)', marginTop: 6 }}>
           {myMonthCount}회 / {myGoal}회 달성 ({myAchievementRate}%)
+        </div>
+        <div style={{ fontSize: 11, color: 'var(--ink-500)', marginTop: 6, lineHeight: 1.5 }}>
+          매월 1일에 진행률이 다시 0%부터 시작돼요. 목표는 계정별 개인 설정이라
+          그룹원마다 따로 정할 수 있어요(공동 목표 아님).
         </div>
       </div>
 
