@@ -18,6 +18,7 @@ import MyPage from '../pages/MyPage';
 import IngredientDetail from '../pages/IngredientDetail';
 import AuthSuccess from '../pages/AuthSuccess';
 import JoinHousehold from '../pages/JoinHousehold';
+import CookingCalendar from '../pages/CookingCalendar';
 import { evaluateVisitForUsageGuide } from '../utils/onboardingPrompts';
 
 // =====================
@@ -42,6 +43,7 @@ const ROUTES = {
   MY_COMPLETED: '/mypage/completed',
   MY_FAVORITE: '/mypage/favorite',
   JOIN_HOUSEHOLD: '/join-household',
+  COOKING_CALENDAR: '/mypage/cooking-calendar',
 } as const;
 
 // =====================
@@ -175,6 +177,12 @@ function AppContent() {
           <Route
             path={ROUTES.JOIN_HOUSEHOLD}
             element={<JoinHousehold />}
+          />
+
+          {/* 요리 캘린더 */}
+          <Route
+            path={ROUTES.COOKING_CALENDAR}
+            element={<CookingCalendar />}
           />
 
           {/* 내 냉장고 페이지 */}

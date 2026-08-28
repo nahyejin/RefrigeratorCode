@@ -2558,6 +2558,75 @@ def get_household_recorded_recipes():
     return _household_action_recipes_endpoint('recorded')
 
 
+@app.route('/api/households/me/completed-calendar', methods=['GET'])
+def get_household_completed_calendar():
+    """요리 캘린더용: 날짜별로 누가 어떤 레시피를 완료했는지.
+
+    `/completed-recipes`(레시피별로 묶어서 한 장씩)와 달리, 여기서는 레시피
+    단위로 합치지 않는다 — 같은 레시피를 여러 명이 다른 날 완료했으면 각각
+    별도 행으로 준다(달력에 날짜별로 찍어야 하므로 날짜 정보를 뭉개면 안 됨).
+
+    쿼리 파라미터: start, end (YYYY-MM-DD, 둘 다 포함). 기본값은 이번 달."""
+    try:
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({'error': '인증이 필요합니다.'}), 401
+        payload = verify_jwt_token(auth_header.split(' ')[1])
+        if not payload:
+            return jsonify({'error': '권한이 없습니다.'}), 403
+        user_id = payload.get('user_id')
+
+        today = datetime.now().date()
+        start_str = request.args.get('start') or today.replace(day=1).isoformat()
+        end_str = request.args.get('end') or today.isoformat()
+        try:
+            start_date = datetime.strptime(start_str, '%Y-%m-%d').date()
+            end_date = datetime.strptime(end_str, '%Y-%m-%d').date()
+        except ValueError:
+            return jsonify({'error': 'start/end는 YYYY-MM-DD 형식이어야 합니다.'}), 400
+
+        ensure_households_table()
+        ensure_user_data_tables()
+        db = get_db()
+        cursor = db.cursor()
+        try:
+            household = get_household_by_user(cursor, user_id)
+            if household:
+                cursor.execute(
+                    """SELECT id FROM users WHERE household_id = %s AND deleted_at IS NULL
+                       AND (share_recipe_actions = 1 OR id = %s)""",
+                    (household['id'], user_id)
+                )
+                member_ids = [r['id'] for r in cursor.fetchall()]
+            else:
+                member_ids = []
+            if user_id not in member_ids:
+                member_ids.append(user_id)
+
+            placeholders = ','.join(['%s'] * len(member_ids))
+            cursor.execute(
+                f"""SELECT DATE(action.created_at) AS day, r.id AS recipe_id, r.title, r.thumbnail,
+                           action.user_id, u.nickname
+                    FROM user_completed_recipes action
+                    INNER JOIN recipes r ON r.id = action.recipe_id
+                    INNER JOIN users u ON u.id = action.user_id
+                    WHERE action.user_id IN ({placeholders})
+                      AND DATE(action.created_at) BETWEEN %s AND %s
+                    ORDER BY action.created_at ASC""",
+                member_ids + [start_date, end_date]
+            )
+            rows = cursor.fetchall()
+            for row in rows:
+                row['day'] = row['day'].isoformat()
+
+            return jsonify({'entries': rows}), 200
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"Get household completed calendar error: {e}")
+        return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
+
+
 @app.route('/api/users/<int:user_id>/ingredients', methods=['GET'])
 def get_user_ingredients(user_id):
     """사용자 재료 조회"""
