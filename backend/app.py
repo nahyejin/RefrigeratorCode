@@ -2443,14 +2443,66 @@ def regenerate_household_code():
         return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
 
 
-@app.route('/api/households/me/recipe-actions', methods=['GET'])
-def get_household_recipe_actions():
-    """그룹원 전체의 즐겨찾기/완료/기록 레시피 id + 누가 남겼는지.
+_HOUSEHOLD_ACTION_TABLES = {
+    'favorite': 'user_favorite_recipes',
+    'completed': 'user_completed_recipes',
+    'recorded': 'user_recorded_recipes',
+}
 
-    즐겨찾기 등 자체는 계정별 개인 기록으로 그대로 두고(합치지 않음),
-    화면에서 "OO님이 즐겨찾기함" 배지를 붙일 수 있도록 조회만 모아서 준다.
-    그룹이 없으면(=혼자) 빈 값을 준다 — 이 경우 프론트는 배지를 표시할 필요가
-    없다."""
+
+def _get_household_action_recipes(user_id, action):
+    """그룹원 전체(+나 자신은 항상 포함)의 즐겨찾기/완료/기록 레시피를
+    하나로 합친 목록. 같은 레시피를 여러 명이 했으면 한 장으로 합치고
+    'acted_by'에 누가 했는지 닉네임을 전부 담아 준다.
+
+    실제로 레코드를 합치는 게 아니라 조회 시점에만 모으는 것이라, 계정별
+    user_favorite_recipes 등은 그대로 유지된다(개인 기록 원칙). 그룹이
+    없으면 자연스럽게 "내 기록만 있는 목록"이 된다.
+
+    share_recipe_actions=0인 멤버는 **다른 사람에게는** 안 보이지만, 본인
+    자신에게는 항상 보여야 하므로 요청한 user_id는 그 값과 무관하게 포함한다.
+    """
+    table = _HOUSEHOLD_ACTION_TABLES[action]
+    ensure_households_table()
+    ensure_user_data_tables()
+    db = get_db()
+    cursor = db.cursor()
+    try:
+        household = get_household_by_user(cursor, user_id)
+        if household:
+            cursor.execute(
+                """SELECT id FROM users WHERE household_id = %s AND deleted_at IS NULL
+                   AND (share_recipe_actions = 1 OR id = %s)""",
+                (household['id'], user_id)
+            )
+            member_ids = [r['id'] for r in cursor.fetchall()]
+        else:
+            member_ids = []
+        if user_id not in member_ids:
+            member_ids.append(user_id)
+
+        placeholders = ','.join(['%s'] * len(member_ids))
+        cursor.execute(
+            f"""SELECT r.*, MAX(action.created_at) AS user_saved_at,
+                       GROUP_CONCAT(DISTINCT u.nickname ORDER BY u.nickname SEPARATOR '||') AS acted_by_raw
+                FROM recipes r
+                INNER JOIN {table} action ON r.id = action.recipe_id
+                INNER JOIN users u ON u.id = action.user_id
+                WHERE action.user_id IN ({placeholders})
+                GROUP BY r.id
+                ORDER BY user_saved_at DESC, r.id DESC""",
+            member_ids
+        )
+        rows = cursor.fetchall()
+        for row in rows:
+            raw = row.pop('acted_by_raw', None) or ''
+            row['acted_by'] = raw.split('||') if raw else []
+        return rows
+    finally:
+        db.close()
+
+
+def _household_action_recipes_endpoint(action):
     try:
         auth_header = request.headers.get('Authorization')
         if not auth_header or not auth_header.startswith('Bearer '):
@@ -2460,49 +2512,30 @@ def get_household_recipe_actions():
             return jsonify({'error': '권한이 없습니다.'}), 403
         user_id = payload.get('user_id')
 
-        ensure_households_table()
-        ensure_user_data_tables()
-        db = get_db()
-        cursor = db.cursor()
-        try:
-            household = get_household_by_user(cursor, user_id)
-            if not household:
-                return jsonify({'favorite': {}, 'completed': {}, 'recorded': {}}), 200
-
-            cursor.execute(
-                """SELECT id, nickname FROM users
-                   WHERE household_id = %s AND deleted_at IS NULL AND share_recipe_actions = 1""",
-                (household['id'],)
-            )
-            members = {m['id']: m['nickname'] for m in cursor.fetchall()}
-            member_ids = list(members.keys())
-            if not member_ids:
-                return jsonify({'favorite': {}, 'completed': {}, 'recorded': {}}), 200
-
-            table_map = {
-                'favorite': 'user_favorite_recipes',
-                'completed': 'user_completed_recipes',
-                'recorded': 'user_recorded_recipes',
-            }
-            result = {}
-            placeholders = ','.join(['%s'] * len(member_ids))
-            for key, table in table_map.items():
-                cursor.execute(
-                    f"SELECT recipe_id, user_id FROM {table} WHERE user_id IN ({placeholders})",
-                    member_ids
-                )
-                by_recipe = {}
-                for row in cursor.fetchall():
-                    rid = str(row['recipe_id'])
-                    by_recipe.setdefault(rid, []).append(members.get(row['user_id'], ''))
-                result[key] = by_recipe
-
-            return jsonify(result), 200
-        finally:
-            db.close()
+        recipes = _get_household_action_recipes(user_id, action)
+        return jsonify({'recipes': recipes}), 200
     except Exception as e:
-        print(f"Get household recipe actions error: {e}")
+        print(f"Get household {action} recipes error: {e}")
         return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
+
+
+@app.route('/api/households/me/favorite-recipes', methods=['GET'])
+def get_household_favorite_recipes():
+    """그룹원 전체(+나)의 즐겨찾기 레시피를 합친 목록. 마이페이지의
+    '내가 즐겨찾는 레시피' 영역이 그룹에 속해 있을 때 이 엔드포인트를 쓴다."""
+    return _household_action_recipes_endpoint('favorite')
+
+
+@app.route('/api/households/me/completed-recipes', methods=['GET'])
+def get_household_completed_recipes():
+    """그룹원 전체(+나)의 완료 레시피를 합친 목록."""
+    return _household_action_recipes_endpoint('completed')
+
+
+@app.route('/api/households/me/recorded-recipes', methods=['GET'])
+def get_household_recorded_recipes():
+    """그룹원 전체(+나)의 기록 레시피를 합친 목록."""
+    return _household_action_recipes_endpoint('recorded')
 
 
 @app.route('/api/users/<int:user_id>/ingredients', methods=['GET'])

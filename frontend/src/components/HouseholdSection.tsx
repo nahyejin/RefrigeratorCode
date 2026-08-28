@@ -36,7 +36,13 @@ function getToken(): string | null {
  * 여기서는 "지금 그룹에 속해 있는지 + 누구랑 같이 있는지 + 초대 코드"만
  * 보여주면 된다.
  */
-const HouseholdSection: React.FC = () => {
+interface HouseholdSectionProps {
+  /** 그룹 생성/참여/나가기가 성공했을 때 호출된다. 마이페이지가 그룹
+   * 전체 즐겨찾기/기록/완료 목록을 다시 불러오는 데 쓴다. */
+  onChange?: () => void;
+}
+
+const HouseholdSection: React.FC<HouseholdSectionProps> = ({ onChange }) => {
   const { isLoggedIn, user } = useAuth();
   const [info, setInfo] = React.useState<HouseholdInfo | null>(null);
   const [loading, setLoading] = React.useState(false);
@@ -101,6 +107,7 @@ const HouseholdSection: React.FC = () => {
       }
       setCreateInfoOpen(false);
       await loadInfo();
+      onChange?.();
       showToast('그룹을 만들었어요. 초대 코드를 가족에게 알려주세요.');
     } catch (e) {
       showToast('그룹 생성 중 오류가 발생했어요.');
@@ -133,6 +140,7 @@ const HouseholdSection: React.FC = () => {
       setJoinOpen(false);
       setJoinCode('');
       await loadInfo();
+      onChange?.();
       showToast(
         mergeIngredients
           ? '그룹에 참여했어요. 냉장고 재료가 하나로 합쳐졌어요.'
@@ -176,6 +184,7 @@ const HouseholdSection: React.FC = () => {
       }
       setLeaveOpen(false);
       await loadInfo();
+      onChange?.();
       showToast('그룹에서 나갔어요.');
     } catch (e) {
       showToast('그룹 나가기 중 오류가 발생했어요.');

@@ -452,32 +452,52 @@ const MyPage: React.FC = () => {
     }
   };
 
-  // 가족 그룹원들의 즐겨찾기/완료/기록 현황 로드 (배지 표시용).
-  // 그룹이 없으면 서버가 빈 값을 주므로 그대로 null 취급해도 안전하다.
-  const loadHouseholdActions = async () => {
+  // 가족 그룹에 속해 있으면, "내가 즐겨찾는/기록한/완료한" 영역에 그룹원
+  // 전체(+나)의 항목을 합쳐서 보여준다. 그룹이 없으면 목록을 비우고
+  // isInHousehold를 꺼서, 아래 렌더링에서 자동으로 개인 목록(favoriteRecipes 등)을
+  // 쓰게 한다.
+  const loadHouseholdRecipeFeeds = async () => {
     if (!isLoggedIn || !authUser?.id) {
-      setHouseholdActions(null);
+      setIsInHousehold(false);
+      setHouseholdFavoriteRecipes([]);
+      setHouseholdRecordedRecipes([]);
+      setHouseholdCompletedRecipes([]);
       return;
     }
     try {
       const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
       const apiUrl = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'https://refrigeratorcode-production.up.railway.app';
-      const res = await fetch(`${apiUrl}/api/households/me/recipe-actions`, {
+      const meRes = await fetch(`${apiUrl}/api/households/me`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (res.ok) {
-        setHouseholdActions(await res.json());
+      const me = meRes.ok ? await meRes.json() : null;
+      const inHousehold = !!me?.in_household;
+      setIsInHousehold(inHousehold);
+      if (!inHousehold) {
+        setHouseholdFavoriteRecipes([]);
+        setHouseholdRecordedRecipes([]);
+        setHouseholdCompletedRecipes([]);
+        return;
       }
+
+      const [favRes, recRes, doneRes] = await Promise.all([
+        fetch(`${apiUrl}/api/households/me/favorite-recipes`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${apiUrl}/api/households/me/recorded-recipes`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${apiUrl}/api/households/me/completed-recipes`, { headers: { Authorization: `Bearer ${token}` } }),
+      ]);
+      setHouseholdFavoriteRecipes(favRes.ok ? (await favRes.json()).recipes || [] : []);
+      setHouseholdRecordedRecipes(recRes.ok ? (await recRes.json()).recipes || [] : []);
+      setHouseholdCompletedRecipes(doneRes.ok ? (await doneRes.json()).recipes || [] : []);
     } catch (error) {
-      console.warn('[MyPage] 그룹 활동 조회 실패:', error);
+      console.warn('[MyPage] 그룹 레시피 목록 조회 실패:', error);
     }
   };
 
-  // 레시피 카드에 붙일 "OO님도 즐겨찾기함" 배지 문구를 만든다.
-  // 나 말고 다른 그룹원이 같은 항목에 같은 행동을 했을 때만 표시한다 —
-  // 나 혼자 한 것까지 배지로 띄우면 당연한 정보라 소음만 된다.
+  // 레시피 카드에 붙일 "OO님도 즐겨찾기함" 배지 문구.
+  // 나 혼자 한 것까지 배지로 띄우면 당연한 정보라 소음만 되므로, 나 말고
+  // 다른 그룹원이 같은 행동을 했을 때만 표시한다.
   const buildAttributionLabel = (action: 'favorite' | 'completed' | 'recorded') => (recipe: any) => {
-    const names = householdActions?.[action]?.[String(recipe.id)] || [];
+    const names: string[] = recipe?.acted_by || [];
     const others = Array.from(new Set(names.filter((n) => n && n !== authUser?.nickname)));
     if (!others.length) return undefined;
     const verb = action === 'favorite' ? '즐겨찾기함' : action === 'completed' ? '완료함' : '기록함';
@@ -600,14 +620,16 @@ const MyPage: React.FC = () => {
   const [pendingRegisterRecipe, setPendingRegisterRecipe] = useState<{ id: number; type: 'done' | 'write'; recipe: any } | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
-  // 가족 그룹에 속해 있을 때, 레시피별로 그룹원 중 누가 즐겨찾기/완료/기록했는지.
-  // 즐겨찾기 등 자체는 계정별 개인 기록 그대로 두고, 카드에 "OO님도 즐겨찾기함"
-  // 배지를 붙이는 용도로만 쓴다(HouseholdSection 참고).
-  const [householdActions, setHouseholdActions] = useState<{
-    favorite: Record<string, string[]>;
-    completed: Record<string, string[]>;
-    recorded: Record<string, string[]>;
-  } | null>(null);
+  // 가족 그룹에 속해 있으면, "내가 즐겨찾는/기록한/완료한" 영역을 그룹원
+  // 전체(+나) 걸 합친 목록으로 보여준다. 각 레시피에 누가 했는지(acted_by)가
+  // 같이 오므로 카드에 "OO님도 즐겨찾기함" 배지를 붙일 수 있다.
+  // 즐겨찾기 등 자체는 계정별 개인 기록 그대로이고(합쳐지지 않음), 여기 쓰이는
+  // favoriteRecipes 등(내 것만 있는 배열)은 그대로 두고 액션 상태(내가 눌렀는지)
+  // 판단에 계속 쓴다 — 이 목록만 화면 표시용으로 별도로 둔다.
+  const [isInHousehold, setIsInHousehold] = useState(false);
+  const [householdFavoriteRecipes, setHouseholdFavoriteRecipes] = useState<any[]>([]);
+  const [householdRecordedRecipes, setHouseholdRecordedRecipes] = useState<any[]>([]);
+  const [householdCompletedRecipes, setHouseholdCompletedRecipes] = useState<any[]>([]);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -650,13 +672,16 @@ const MyPage: React.FC = () => {
       
       // DB에서 레시피 로드
       loadRecipesFromDB();
-      loadHouseholdActions();
+      loadHouseholdRecipeFeeds();
     } else {
       // 로그아웃 시 레시피 상태 초기화 및 localStorage에서 로드
       setFavoriteRecipes([]);
       setRecordedRecipes([]);
       setCompletedRecipes([]);
-      setHouseholdActions(null);
+      setIsInHousehold(false);
+      setHouseholdFavoriteRecipes([]);
+      setHouseholdRecordedRecipes([]);
+      setHouseholdCompletedRecipes([]);
       const localFavorite = JSON.parse(localStorage.getItem(STORAGE_KEY_FAVORITE) || '[]');
       const localRecorded = JSON.parse(localStorage.getItem(STORAGE_KEY_RECORDED) || '[]');
       const localCompleted = JSON.parse(localStorage.getItem(STORAGE_KEY_COMPLETED) || '[]');
@@ -689,12 +714,36 @@ const MyPage: React.FC = () => {
   }, [authUser?.id]);
 
   const recipeActionStates = useMemo(() => {
-    const allRecipes = [...favoriteRecipes, ...recordedRecipes, ...completedRecipes];
+    // 그룹 목록에서 온 레시피(내가 아직 안 눌러본 것 포함)도 액션 상태 맵에
+    // 포함시켜야, 카드 위 즐겨찾기/완료/기록 버튼을 눌렀을 때 정상 반영된다.
+    // 실제 참/거짓 값은 buildRecipeActionStatesForRecipes 내부에서 항상 내
+    // localStorage 기준으로만 계산되므로, 남이 한 행동이 내 상태로 잘못
+    // 표시될 위험은 없다.
+    const allRecipes = [
+      ...favoriteRecipes,
+      ...recordedRecipes,
+      ...completedRecipes,
+      ...householdFavoriteRecipes,
+      ...householdRecordedRecipes,
+      ...householdCompletedRecipes,
+    ];
     const uniqueRecipes = Array.from(
       new Map(allRecipes.map(recipe => [normalizeRecipeId(recipe.id), recipe])).values()
     );
     return buildRecipeActionStatesForRecipes(uniqueRecipes);
-  }, [favoriteRecipes, recordedRecipes, completedRecipes]);
+  }, [
+    favoriteRecipes,
+    recordedRecipes,
+    completedRecipes,
+    householdFavoriteRecipes,
+    householdRecordedRecipes,
+    householdCompletedRecipes,
+  ]);
+
+  // 그룹에 속해 있으면 화면에는 그룹 전체(+나) 목록을, 아니면 내 개인 목록을 보여준다.
+  const displayFavoriteRecipes = isInHousehold ? householdFavoriteRecipes : favoriteRecipes;
+  const displayRecordedRecipes = isInHousehold ? householdRecordedRecipes : recordedRecipes;
+  const displayCompletedRecipes = isInHousehold ? householdCompletedRecipes : completedRecipes;
   
   // 모달이 열릴 때 원본 데이터 저장 및 edit 상태 초기화
   useEffect(() => {
@@ -1235,7 +1284,7 @@ const MyPage: React.FC = () => {
 
       {isLoggedIn && (
         <div style={{ margin: '12px 14px 0' }}>
-          <HouseholdSection />
+          <HouseholdSection onChange={loadHouseholdRecipeFeeds} />
         </div>
       )}
 
@@ -1251,9 +1300,9 @@ const MyPage: React.FC = () => {
         }}
       >
         {[
-          { label: '즐겨찾기', count: favoriteRecipes.length, to: '/mypage/favorite' },
-          { label: '기록', count: recordedRecipes.length, to: '/mypage/recorded' },
-          { label: '완료', count: completedRecipes.length, to: '/mypage/completed' },
+          { label: '즐겨찾기', count: displayFavoriteRecipes.length, to: '/mypage/favorite' },
+          { label: '기록', count: displayRecordedRecipes.length, to: '/mypage/recorded' },
+          { label: '완료', count: displayCompletedRecipes.length, to: '/mypage/completed' },
         ].map(({ label, count, to }, i) => (
           <button
             key={label}
@@ -1287,7 +1336,7 @@ const MyPage: React.FC = () => {
         <div style={{ paddingLeft: 14, paddingRight: 14 }}>
           <SectionBand bleed={14} />
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
-            <SectionHeader icon={<SectionIcon kind="favorite" />} title="내가 즐겨찾는 레시피" />
+            <SectionHeader icon={<SectionIcon kind="favorite" />} title={isInHousehold ? '우리 가족이 즐겨찾는 레시피' : '내가 즐겨찾는 레시피'} />
             {/* 예전엔 전체보기가 `☰` 글자 하나였다. 햄버거는 '메뉴' 를 뜻하는 기호라
                 '이 목록 전부 보기' 와 뜻이 맞지 않고, 무엇보다 무슨 버튼인지 알 수 없었다. */}
             <button
@@ -1317,10 +1366,10 @@ const MyPage: React.FC = () => {
             </button>
           </div>
 
-          <IngredientLegend total={favoriteRecipes.length} style={{ marginBottom: 6, marginTop: 8 }} />
+          <IngredientLegend total={displayFavoriteRecipes.length} style={{ marginBottom: 6, marginTop: 8 }} />
 
           <VirtualizedHorizontalRecipeList
-            recipes={favoriteRecipes}
+            recipes={displayFavoriteRecipes}
             myIngredients={myIngredients}
             substituteTable={substituteTable}
             recipeActionStates={recipeActionStates}
@@ -1351,7 +1400,7 @@ const MyPage: React.FC = () => {
         <div style={{ paddingLeft: 14, paddingRight: 14 }}>
           <SectionBand bleed={14} />
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
-            <SectionHeader icon={<SectionIcon kind="recorded" />} title="내가 기록한 레시피" />
+            <SectionHeader icon={<SectionIcon kind="recorded" />} title={isInHousehold ? '우리 가족이 기록한 레시피' : '내가 기록한 레시피'} />
             {/* 예전엔 전체보기가 `☰` 글자 하나였다. 햄버거는 '메뉴' 를 뜻하는 기호라
                 '이 목록 전부 보기' 와 뜻이 맞지 않고, 무엇보다 무슨 버튼인지 알 수 없었다. */}
             <button
@@ -1382,10 +1431,10 @@ const MyPage: React.FC = () => {
           </div>
           
           {/* 범례 */}
-          <IngredientLegend total={recordedRecipes.length} style={{ marginBottom: 6, marginTop: 8 }} />
+          <IngredientLegend total={displayRecordedRecipes.length} style={{ marginBottom: 6, marginTop: 8 }} />
           
           <VirtualizedHorizontalRecipeList
-            recipes={recordedRecipes}
+            recipes={displayRecordedRecipes}
             myIngredients={myIngredients}
             substituteTable={substituteTable}
             recipeActionStates={recipeActionStates}
@@ -1418,7 +1467,7 @@ const MyPage: React.FC = () => {
         <div style={{ paddingLeft: 14, paddingRight: 14 }}>
           <SectionBand bleed={14} />
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
-            <SectionHeader icon={<SectionIcon kind="completed" />} title="내가 완료한 레시피" />
+            <SectionHeader icon={<SectionIcon kind="completed" />} title={isInHousehold ? '우리 가족이 완료한 레시피' : '내가 완료한 레시피'} />
             {/* 예전엔 전체보기가 `☰` 글자 하나였다. 햄버거는 '메뉴' 를 뜻하는 기호라
                 '이 목록 전부 보기' 와 뜻이 맞지 않고, 무엇보다 무슨 버튼인지 알 수 없었다. */}
             <button
@@ -1449,10 +1498,10 @@ const MyPage: React.FC = () => {
           </div>
           
           {/* 범례 */}
-          <IngredientLegend total={completedRecipes.length} style={{ marginBottom: 6, marginTop: 8 }} />
+          <IngredientLegend total={displayCompletedRecipes.length} style={{ marginBottom: 6, marginTop: 8 }} />
           
           <VirtualizedHorizontalRecipeList
-            recipes={completedRecipes}
+            recipes={displayCompletedRecipes}
             myIngredients={myIngredients}
             substituteTable={substituteTable}
             recipeActionStates={recipeActionStates}
