@@ -245,7 +245,14 @@ const Login: React.FC = () => {
             );
           })}
         </div>
-        
+
+        {/* 냉장고 재료·즐겨찾기는 계정 기준으로 저장되므로, 식구와 하나의
+            계정을 같이 쓰면 냉장고를 함께 관리할 수 있다는 걸 알려준다. */}
+        <p className={`w-full ${MAX_CONTAINER_WIDTH} text-center text-[12px] text-gray-400 mt-3 mx-auto leading-snug`}>
+          함께 냉장고를 쓰는 가족과 이용하시려면,<br />
+          한 계정으로 같이 로그인하시면 돼요.
+        </p>
+
         {/* 비회원으로 계속하기 버튼 (하단 분리) */}
         <div className={`flex flex-col gap-3 ${CONTAINER_WIDTH} mt-8 mb-8 items-center`}>
           <NeangteolButton 

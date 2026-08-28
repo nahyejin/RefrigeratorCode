@@ -914,6 +914,39 @@ const MyFridge: React.FC = () => {
     syncLocalStorageToDB();
   }, [isLoggedIn, user?.id]);
 
+  // 앱을 다시 열 때(포그라운드로 돌아올 때) 최신 상태로 새로고침한다.
+  // 가족 등 다른 기기에서 로그인해서 그새 재료를 바꿨을 수 있는데, 지금은
+  // 실시간 동기화가 아니라 "불러올 때만" 갱신되는 구조라, 최소한 "다시 열 때"는
+  // 최신으로 맞춘다. 저장 중이거나 이 기기에 아직 저장 안 된 변경사항이 있으면
+  // 덮어써서 손실될 수 있으니 그때는 건너뛴다.
+  React.useEffect(() => {
+    if (!isLoggedIn || !user?.id) return;
+
+    const refreshOnResume = async () => {
+      if (document.visibilityState !== 'visible') return;
+      if (loading || isSaving || hasChanges) return;
+      const dbData = await loadIngredientsFromDB();
+      if (dbData) {
+        setFrozen(dbData.frozen);
+        setFridge(dbData.fridge);
+        setRoom(dbData.room);
+        saveIngredients(dbData.frozen, dbData.fridge, dbData.room);
+        lastSavedDataRef.current = {
+          frozen: [...dbData.frozen],
+          fridge: [...dbData.fridge],
+          room: [...dbData.room],
+        };
+      }
+    };
+
+    document.addEventListener('visibilitychange', refreshOnResume);
+    window.addEventListener('focus', refreshOnResume);
+    return () => {
+      document.removeEventListener('visibilitychange', refreshOnResume);
+      window.removeEventListener('focus', refreshOnResume);
+    };
+  }, [isLoggedIn, user?.id, loading, isSaving, hasChanges]);
+
   React.useEffect(() => {
     let isMounted = true; // 컴포넌트가 마운트되어 있는지 추적
     let timeoutId: NodeJS.Timeout | null = null;
