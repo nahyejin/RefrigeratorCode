@@ -93,6 +93,30 @@
 `RecipeChatWidget.tsx`의 `getFridgeItems()`/`getFridgeIngredientExpiry()`가
 `estimatedExpiry`/`expiry`에서 D-day를 계산해 `ingredient_expiry`로 전송한다.
 
+## 지식/조언성 질문은 검색을 안 한다 (`recipe_search`, 2026-08-29 추가)
+
+**증상**: "너가 추천하는 다이어트용 양념은 뭐야?" 같은 질문에 `reply`는 "식초,
+알룰로스" 처럼 구체적으로 답하는데, 그 아래 뜨는 레시피 카드는 그 답변과 전혀
+무관했다. 원인은 이런 지식성 질문도 매 턴 똑같이 `keywords`/`include_ingredients`를
+뽑아 검색을 강행했기 때문 — `reply`에서 언급한 구체적인 이름과 검색에 쓴 낱말이
+서로 다른 것이었다(LLM이 reply와 keywords를 독립적으로 지어냄).
+
+LLM 출력에 `recipe_search`(boolean, 기본 true) 필드를 추가했다:
+- 사용자의 메시지가 레시피/요리를 찾아달라는 게 아니라 재료·양념·손질법·대체재에
+  대한 지식성 질문("~는 뭐가 있어?", "~대신 뭐 써?", "~어떻게 손질해?")이면 LLM이
+  이걸 false로 내려준다. 이때 `reply`는 검색을 예고하지 않고 질문에 바로 직접
+  답하고, 서버는 `_search_recipes`를 아예 건너뛴다(레시피 카드 없음, "못 찾았다"는
+  문구도 안 붙임).
+- 그 외(레시피 요청, 직전 결과에 대한 수정 요청)는 항상 true — 기존 흐름과 동일.
+- `recipe_search`가 true인데 `reply`가 구체적인 재료/양념/요리 이름을 언급했다면,
+  `keywords`나 `include_ingredients` 중 하나는 그 이름과 실제로 겹쳐야 한다고
+  프롬프트에 명시해 뒀다 — reply와 검색어가 서로 다른 걸 지어내지 못하게 하는
+  이중 안전장치.
+- `recipe_search=false`인 턴은 `_remember`에 저장하는 "직전 검색 결과"를 갱신하지
+  않고 그 이전 값을 그대로 들고 간다 — 지식성 질문이 중간에 끼어도 그다음
+  "그중에 감자는 빼줘" 같은 팔로우업이 여전히 그 이전의 진짜 검색 결과를 가리킬 수
+  있게 하기 위함.
+
 ## 자주 헷갈리는 부분
 
 - **`ingredients`(검색용)와 `ingredient_expiry`(답변 문구용)는 역할이 다르다.**

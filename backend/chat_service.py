@@ -309,6 +309,22 @@ DB 검색은 글자가 그대로 들어 있는지만 보기 때문에, 사용자
 없다. 존재하지 않는 이전 요청을 상상하지 말고 그냥 새 요청으로 봐라. 이때 reply는 취향을
 반영해 찾아보겠다는 톤으로 써도 된다.
 
+사용자의 새 메시지가 레시피/요리를 찾아달라는 요청이 아니라, 재료·양념·손질법·대체재
+같은 것에 대한 지식성 질문이면(예: "다이어트용 양념은 뭐가 좋아?", "이거 대신 뭐 쓸 수
+있어?", "이 재료 어떻게 손질해?") recipe_search를 false로 설정해라. 이때는:
+  - reply에서 질문에 바로 직접 답해라(예: 실제로 어떤 양념/재료 이름인지 알려준다).
+    "찾아볼게요", "추천해드릴게요" 처럼 검색을 예고하며 얼버무리지 말고, 아는 대로
+    바로 답하는 톤으로 써라.
+  - keywords/include_ingredients/exclude_ingredients는 신경 쓰지 않아도 된다(검색을
+    안 하므로 무시된다).
+그 외의 경우 — 레시피/요리를 찾아달라는 요청이거나 직전 결과에 대한 수정 요청이면 —
+recipe_search는 항상 true로 둬라(이게 기본값이다).
+
+**recipe_search가 true일 때**, reply에서 구체적인 재료·양념·요리 이름을 언급했다면
+keywords나 include_ingredients 중 하나는 **반드시 그 언급한 이름과 실제로 겹쳐야**
+한다. reply에서는 A 얘기를 해놓고 keywords/include_ingredients는 A와 무관한 낱말을
+지어내지 마라 — 그러면 화면에 뜨는 레시피가 방금 한 말과 안 맞는 것처럼 보인다.
+
 reply 문장에서 냉장고 재료를 구체적인 이름으로 언급할 때는(예: "감자, 양파로 만들 수 있는
 요리를 찾아볼게요") 아래 "냉장고 재료 상세" 목록만 참고해서 골라라. 이 목록은 오직 reply의
 문구를 정할 때만 쓰고, keywords/include_ingredients/exclude_ingredients 판단에는 영향을
@@ -340,7 +356,8 @@ reply 문장에서 냉장고 재료를 구체적인 이름으로 언급할 때�
   "keywords": ["검색용 한국어 낱말 1~5개. **첫 번째가 가장 중요한 말**. 사용자가 쓴 표현 그대로만 넣지 말고, 같은 뜻으로 글에 쓰일 만한 말을 함께 넣어라. 예: '매운 거' -> [\"매운\", \"매콤\", \"얼큰\", \"칼칼\", \"청양고추\"], '국물' -> [\"국물\", \"찌개\", \"탕\", \"전골\"]. 요리 이름이면 그 이름과 흔한 표기를 넣어라. 해당 없으면 빈 배열"],
   "include_ingredients": ["사용자가 명시적으로 꼭 넣어달라고 한 재료만. 해당 없으면 빈 배열"],
   "exclude_ingredients": ["빼고 싶은 재료"],
-  "ignore_fridge": false
+  "ignore_fridge": false,
+  "recipe_search": true
 }}
 """
 
@@ -717,6 +734,9 @@ def handle_chat(get_db):
         'include_ingredients': [],
         'exclude_ingredients': [],
         'ignore_fridge': False,
+        # 레시피 검색이 필요한 요청인지. 기본은 true(기존과 동일) — "다이어트용
+        # 양념이 뭐야?" 같은 지식성 질문일 때만 LLM이 false로 내려준다(아래 참고).
+        'recipe_search': True,
     }
 
     if not is_broad:
@@ -747,55 +767,66 @@ def handle_chat(get_db):
                 if isinstance(values, list):
                     parsed[key] = [str(v).strip() for v in values if str(v).strip()][:8]
             parsed['ignore_fridge'] = bool(extracted.get('ignore_fridge'))
+            if isinstance(extracted.get('recipe_search'), bool):
+                parsed['recipe_search'] = extracted['recipe_search']
         except Exception as e:
             print(f'[chat] LLM 호출 실패: {e}')
             parsed['keywords'] = [last_user[:20]] if last_user else []
             parsed['reply'] = '취향 기준으로 레시피를 찾아봤어요. 아래 글을 눌러 보세요.'
 
-    recipes = _search_recipes(
-        get_db,
-        parsed['keywords'],
-        parsed['include_ingredients'],
-        parsed['exclude_ingredients'],
-        ingredients,
-        parsed['ignore_fridge'],
-    )
+    if parsed['recipe_search']:
+        recipes = _search_recipes(
+            get_db,
+            parsed['keywords'],
+            parsed['include_ingredients'],
+            parsed['exclude_ingredients'],
+            ingredients,
+            parsed['ignore_fridge'],
+        )
 
-    # 관련도를 필수 조건으로 바꿨기 때문에 아주 좁은 말에서는 0건이 나올 수 있다.
-    # 그럴 때는 조건을 하나씩 완화해서 다시 찾는다.
-    #
-    # **exclude_ingredients는 매 단계에서 그대로 지킨다.** 예전에는 이 완화 과정에서
-    # keywords/include와 함께 exclude_ingredients까지 통째로 날려버렸다 — 그 결과
-    # "감자는 빼줘" 처럼 사용자가 명시적으로 뺀 재료가, 검색이 0건이라 완화되는 순간
-    # 도로 결과에 섞여 들어왔다(실측으로 확인된 버그: LLM은 exclude_ingredients=["감자"]를
-    # 정확히 뽑았지만, include_ingredients에 냉장고의 나머지 재료가 함께 딸려와 조건이
-    # 너무 좁아졌고, 0건이 되자 이 코드가 exclude까지 지워서 원래의 감자 포함 결과를
-    # 그대로 다시 보여줬다). include/keywords처럼 검색을 "좁히기만" 하는 조건부터
-    # 먼저 풀고, 사용자가 "빼달라"고 한 재료는 정말 아무 것도 안 나올 때만 최후 수단으로 푼다.
-    if not recipes and len(parsed['keywords']) > 1:
-        recipes = _search_recipes(
-            get_db, parsed['keywords'][:1], parsed['include_ingredients'],
-            parsed['exclude_ingredients'], ingredients, parsed['ignore_fridge'],
-        )
-    if not recipes and parsed['include_ingredients']:
-        # 포함 재료 조건이 너무 좁았을 수 있다 — 그것부터 풀어본다 (exclude는 유지)
-        recipes = _search_recipes(
-            get_db, parsed['keywords'], [], parsed['exclude_ingredients'],
-            ingredients, parsed['ignore_fridge'],
-        )
-    if not recipes and parsed['keywords']:
-        # 낱말도 빼고 냉장고 재료 매칭 + exclude 조건만으로
-        recipes = _search_recipes(
-            get_db, [], [], parsed['exclude_ingredients'], ingredients, parsed['ignore_fridge'],
-        )
-    if not recipes and not parsed['ignore_fridge'] and ingredients:
-        # 냉장고 우선 모드에서도 결과가 없으면 재료 매칭 조건 없이 한 번 더 (exclude는 유지)
-        recipes = _search_recipes(
-            get_db, [], [], parsed['exclude_ingredients'], ingredients, True,
-        )
-    if not recipes and parsed['exclude_ingredients']:
-        # 정말 아무 것도 없을 때만 마지막으로 제외 조건까지 푼다 (극히 드문 경우).
-        recipes = _search_recipes(get_db, [], [], [], ingredients, True)
+        # 관련도를 필수 조건으로 바꿨기 때문에 아주 좁은 말에서는 0건이 나올 수 있다.
+        # 그럴 때는 조건을 하나씩 완화해서 다시 찾는다.
+        #
+        # **exclude_ingredients는 매 단계에서 그대로 지킨다.** 예전에는 이 완화 과정에서
+        # keywords/include와 함께 exclude_ingredients까지 통째로 날려버렸다 — 그 결과
+        # "감자는 빼줘" 처럼 사용자가 명시적으로 뺀 재료가, 검색이 0건이라 완화되는 순간
+        # 도로 결과에 섞여 들어왔다(실측으로 확인된 버그: LLM은 exclude_ingredients=["감자"]를
+        # 정확히 뽑았지만, include_ingredients에 냉장고의 나머지 재료가 함께 딸려와 조건이
+        # 너무 좁아졌고, 0건이 되자 이 코드가 exclude까지 지워서 원래의 감자 포함 결과를
+        # 그대로 다시 보여줬다). include/keywords처럼 검색을 "좁히기만" 하는 조건부터
+        # 먼저 풀고, 사용자가 "빼달라"고 한 재료는 정말 아무 것도 안 나올 때만 최후 수단으로 푼다.
+        if not recipes and len(parsed['keywords']) > 1:
+            recipes = _search_recipes(
+                get_db, parsed['keywords'][:1], parsed['include_ingredients'],
+                parsed['exclude_ingredients'], ingredients, parsed['ignore_fridge'],
+            )
+        if not recipes and parsed['include_ingredients']:
+            # 포함 재료 조건이 너무 좁았을 수 있다 — 그것부터 풀어본다 (exclude는 유지)
+            recipes = _search_recipes(
+                get_db, parsed['keywords'], [], parsed['exclude_ingredients'],
+                ingredients, parsed['ignore_fridge'],
+            )
+        if not recipes and parsed['keywords']:
+            # 낱말도 빼고 냉장고 재료 매칭 + exclude 조건만으로
+            recipes = _search_recipes(
+                get_db, [], [], parsed['exclude_ingredients'], ingredients, parsed['ignore_fridge'],
+            )
+        if not recipes and not parsed['ignore_fridge'] and ingredients:
+            # 냉장고 우선 모드에서도 결과가 없으면 재료 매칭 조건 없이 한 번 더 (exclude는 유지)
+            recipes = _search_recipes(
+                get_db, [], [], parsed['exclude_ingredients'], ingredients, True,
+            )
+        if not recipes and parsed['exclude_ingredients']:
+            # 정말 아무 것도 없을 때만 마지막으로 제외 조건까지 푼다 (극히 드문 경우).
+            recipes = _search_recipes(get_db, [], [], [], ingredients, True)
+    else:
+        # 지식/조언성 질문("다이어트용 양념이 뭐야?" 등) — 레시피를 찾아달라는 요청이
+        # 아니므로 검색 자체를 안 한다. reply가 이미 질문에 직접 답했으니, 여기서 억지로
+        # 검색해서 방금 답변과 무관한 카드를 붙이면 오히려 "동문서답"으로 보인다
+        # (실측으로 확인된 버그: "다이어트용 양념 추천해줘"에 reply는 "식초, 알룰로스"를
+        # 구체적으로 짚었는데, keywords는 "양념/소스/드레싱" 같은 일반 낱말이라 검색
+        # 결과가 그 답변과 무관했다).
+        recipes = []
 
     # 검색 결과가 나온 지금, 실제로 매칭에 쓰인 보유 재료를 추린다.
     # ("냉장고 재료를 반영했다"는 말이 뭉뚱그린 느낌이라는 지적이 있었음 —
@@ -817,6 +848,10 @@ def handle_chat(get_db):
             parsed['reply'] = '지금 찾을 수 있는 레시피를 보여드릴게요! 냉장고에 재료를 등록해두면 갖고 계신 재료 기준으로 더 정확하게 추천해드릴 수 있어요.'
         else:
             parsed['reply'] = '조건에 맞는 글을 바로 찾지는 못했어요. 냉장고에 재료를 등록해두거나, 원하는 맛이나 요리를 조금 더 말씀해 주실래요?'
+    elif not parsed['recipe_search']:
+        # 지식/조언성 질문 — 애초에 검색을 안 했으니 "못 찾았다"는 문구를 붙이면
+        # 오히려 이상하다. reply가 이미 직접 답했으니 그대로 둔다.
+        pass
     elif not recipes:
         parsed['reply'] = (
             parsed['reply']
@@ -840,16 +875,26 @@ def handle_chat(get_db):
 
     # 다음 팔로우업 질문이 "너가 준 재료/레시피" 를 정확히 가리킬 수 있도록,
     # 이번에 실제로 쓴 검색 조건과 실제로 보여준 레시피를 함께 기억해 둔다.
-    last_turn_record = {
-        'keywords': parsed['keywords'],
-        'include_ingredients': parsed['include_ingredients'],
-        'exclude_ingredients': parsed['exclude_ingredients'],
-        'ignore_fridge': parsed['ignore_fridge'],
-        'recipes': [
-            {'title': r.get('title') or '', 'used_ingredients': r.get('used_ingredients') or ''}
-            for r in recipes
-        ],
-    }
+    #
+    # recipe_search가 false였던 턴(지식성 질문)은 실제로 검색을 안 했으므로 그대로
+    # 기억하면 "직전 검색 결과"가 빈 값으로 덮어써진다 — 그러면 이 지식성 질문 바로
+    # 다음에 "그중에 감자는 빼줘" 처럼 그 이전 진짜 검색 결과를 가리키는 팔로우업이
+    # 와도 근거를 잃는다. 그래서 이번 턴이 검색을 안 했으면 이전 last_turn을 그대로
+    # 들고 간다(대화 중간에 조언성 질문이 끼어도 "직전 검색 결과"는 그 전의 진짜
+    # 검색을 계속 가리킨다).
+    if parsed['recipe_search']:
+        last_turn_record = {
+            'keywords': parsed['keywords'],
+            'include_ingredients': parsed['include_ingredients'],
+            'exclude_ingredients': parsed['exclude_ingredients'],
+            'ignore_fridge': parsed['ignore_fridge'],
+            'recipes': [
+                {'title': r.get('title') or '', 'used_ingredients': r.get('used_ingredients') or ''}
+                for r in recipes
+            ],
+        }
+    else:
+        last_turn_record = last_turn
     _remember(session_id, stored, last_turn_record)
 
     return jsonify({
