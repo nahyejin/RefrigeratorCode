@@ -53,12 +53,22 @@ const SSO_BUTTONS = [
 const Login: React.FC = () => {
   const navigate = useNavigate();
   const { loginWithToken } = useAuth();
-  
+
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [error, setError] = React.useState('');
   const [loading, setLoading] = React.useState(false);
   const [rememberMe, setRememberMe] = React.useState(true);
+
+  // 이 기기에서 마지막으로 로그인한 방법 — 카카오/구글/네이버가 나란히 있으면
+  // 다음에 뭘 눌러야 하는지 헷갈리기 쉬워서, 해당 버튼에 배지로 표시해 준다.
+  const lastLoginMethod = React.useMemo(() => {
+    try {
+      return localStorage.getItem('cookmatch_last_login_method');
+    } catch {
+      return null;
+    }
+  }, []);
 
   /**
    * 일반 로그인 처리
@@ -210,18 +220,28 @@ const Login: React.FC = () => {
         <div className={`flex flex-col gap-3 ${CONTAINER_WIDTH} mt-2 items-center mx-auto`}>
           {SSO_BUTTONS.map((button, index) => {
             const provider = button.alt.toLowerCase() as 'google' | 'kakao' | 'naver';
+            const isLastUsed = lastLoginMethod === provider;
             return (
-            <NeangteolButton
-              key={index}
+            <div key={index} className="relative w-full">
+              {isLastUsed && (
+                <span
+                  className="absolute -top-2 right-2 bg-[#1A1A1E] text-white text-[11px] font-semibold px-2 py-[2px] rounded-full whitespace-nowrap"
+                  style={{ zIndex: 1 }}
+                >
+                  최근 로그인
+                </span>
+              )}
+              <NeangteolButton
                 icon={<img src={button.icon} alt={button.alt} className="w-4 h-4" />}
-              color={button.color}
-              textColor={button.textColor}
+                color={button.color}
+                textColor={button.textColor}
                 className={`w-full ${SSO_BUTTON_HEIGHT} px-4 text-[15px]`}
                 border={button.border || false}
                 onClick={() => handleSocialLogin(provider)}
-            >
-              {button.text}
-            </NeangteolButton>
+              >
+                {button.text}
+              </NeangteolButton>
+            </div>
             );
           })}
         </div>

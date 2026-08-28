@@ -272,7 +272,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
       
       setUser(user);
-      
+
+      // 이 기기에서 마지막으로 로그인한 방법을 기억해 둔다.
+      // 카카오/구글/네이버가 나란히 있으면 다음에 뭘로 로그인했었는지 헷갈리기
+      // 쉬워서, 로그인 화면에 배지로 표시해 준다(Login.tsx). 기기별 표시라
+      // (계정 정보가 아니라) localStorage 에 둔다.
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('cookmatch_last_login_method', user.provider || 'email');
+      }
+
       // 마이그레이션 실행
       await migrateLocalDataToServer(user.id);
     } catch (error) {
