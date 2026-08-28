@@ -64,8 +64,10 @@ function colorForUser(userId: number, orderedIds: number[]): string {
 // 절약액 추정치. 재료 가격 데이터가 없어 정확한 계산은 못 하지만, "외식/배달
 // 한 끼 평균 비용 - 집밥 한 끼 평균 재료비" 정도의 대략적인 추정은 완료
 // 횟수만으로도 낼 수 있다. 화면에는 반드시 "추정치"라고 밝혀서 실제 계산인
-// 것처럼 오해하지 않게 한다.
-const ESTIMATED_SAVINGS_PER_MEAL = 8000; // 원, 외식/배달 대비 집밥 한 끼당 대략적인 절약분
+// 것처럼 오해하지 않게 한다. 한 끼당 절약액은 지역/식습관에 따라 체감이
+// 달라 식구 수처럼 직접 조정 가능하다 — 이 값은 서버에서 안 내려온 동안(첫
+// 로딩 중) 쓰는 기본값일 뿐, 실제 값은 households/users.savings_per_meal.
+const ESTIMATED_SAVINGS_PER_MEAL_DEFAULT = 8000; // 원, 외식/배달 대비 집밥 한 끼당 대략적인 절약분
 
 function formatWon(n: number): string {
   return n.toLocaleString('ko-KR');
@@ -102,6 +104,11 @@ const CookingCalendar: React.FC = () => {
   const [familySize, setFamilySize] = React.useState(1);
   const [editingFamilySize, setEditingFamilySize] = React.useState(false);
   const [familySizeInput, setFamilySizeInput] = React.useState('');
+  // 한 끼당 절약액 추정치. 지역/식습관에 따라 체감이 달라 식구 수처럼
+  // 그룹(또는 혼자면 개인)이 직접 조정할 수 있게 뒀다.
+  const [savingsPerMeal, setSavingsPerMeal] = React.useState(ESTIMATED_SAVINGS_PER_MEAL_DEFAULT);
+  const [editingSavingsPerMeal, setEditingSavingsPerMeal] = React.useState(false);
+  const [savingsPerMealInput, setSavingsPerMealInput] = React.useState('');
   // 목표 카드가 인원별 범례·안내 문구까지 다 펼쳐지면 길어져서 달력이 한
   // 화면에 안 들어온다. 목표·달성률·절약액까지는 항상 보이고, 그 아래
   // 범례/안내 문구만 기본으로 접어 둔다.
@@ -135,6 +142,7 @@ const CookingCalendar: React.FC = () => {
         setPersonalGoal(typeof data.my_personal_goal === 'number' ? data.my_personal_goal : 20);
         setHouseholdSize(data.household_size || 1);
         setFamilySize(typeof data.family_size === 'number' ? data.family_size : 1);
+        setSavingsPerMeal(typeof data.savings_per_meal === 'number' ? data.savings_per_meal : ESTIMATED_SAVINGS_PER_MEAL_DEFAULT);
       }
     } catch (e) {
       console.warn('[CookingCalendar] 조회 실패:', e);
@@ -211,7 +219,7 @@ const CookingCalendar: React.FC = () => {
     });
   }, [monthlyByUser, myGoal]);
   const groupAchievementRate = myGoal > 0 ? Math.min(100, Math.round((monthlyTotal / myGoal) * 100)) : 0;
-  const estimatedSavings = monthlyTotal * ESTIMATED_SAVINGS_PER_MEAL * familySize;
+  const estimatedSavings = monthlyTotal * savingsPerMeal * familySize;
 
   const shiftAnchor = (dir: 1 | -1) => {
     if (viewMode === 'month') {
@@ -279,6 +287,30 @@ const CookingCalendar: React.FC = () => {
       console.warn('[CookingCalendar] 식구 수 저장 실패:', e);
     } finally {
       setEditingFamilySize(false);
+    }
+  };
+
+  const handleSaveSavingsPerMeal = async () => {
+    const amount = parseInt(savingsPerMealInput, 10);
+    if (Number.isNaN(amount) || amount < 0 || amount > 100000 || !authUser?.id) {
+      setEditingSavingsPerMeal(false);
+      return;
+    }
+    try {
+      const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+      const url = isInHousehold
+        ? `${getApiUrl()}/api/households/savings-per-meal`
+        : `${getApiUrl()}/api/users/${authUser.id}/savings-per-meal`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ savings_per_meal: amount }),
+      });
+      if (res.ok) setSavingsPerMeal(amount);
+    } catch (e) {
+      console.warn('[CookingCalendar] 한 끼 추정액 저장 실패:', e);
+    } finally {
+      setEditingSavingsPerMeal(false);
     }
   };
 
@@ -410,19 +442,56 @@ const CookingCalendar: React.FC = () => {
         </div>
         {/* 절약액은 재료 가격 데이터가 없어 정확한 계산이 아니라 대략적인
             추정치다 — 그렇게 명시해서 실제 계산인 것처럼 오해하지 않게 한다.
-            식구 수(family_size)는 연동 계정 수와 다를 수 있어(아이는 계정 없이도
-            같이 먹음) 눈에 띄는 [식구수 수정] 버튼으로 조정할 수 있게 뒀다.
-            목표·달성률·절약액까지는 카드를 접어도 항상 보인다. */}
+            "목표를 달성하면 얼마인지"가 아니라 "지금까지 완료한 횟수 기준"
+            이라는 게 헷갈린다는 지적을 받아 "지금까지"를 헤드라인에 직접
+            박아 뒀다(아래 계산식 줄의 × {monthlyTotal}회 도 같은 의미).
+            한 끼 추정액도 1인 기준(식구 수를 곱하므로)임을 명시했다.
+            한 끼 추정액과 식구 수(family_size) 둘 다 지역/식습관/가구 구성에
+            따라 체감이 달라, 눈에 띄는 [OO 수정] 버튼으로 각각 조정할 수
+            있게 뒀다. 목표·달성률·절약액까지는 카드를 접어도 항상 보인다. */}
         {monthlyTotal > 0 && (
           <div style={{ marginTop: 10 }}>
             <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink-700)' }}>
-              💰 이번 달 예상 절약액 약 {formatWon(estimatedSavings)}원
+              💰 지금까지 예상 절약액 약 {formatWon(estimatedSavings)}원
             </div>
             <div style={{ fontSize: 11, color: 'var(--ink-500)', marginTop: 3, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 4 }}>
-              <span>
-                외식·배달 대비 한 끼 {formatWon(ESTIMATED_SAVINGS_PER_MEAL)}원 추정 × {monthlyTotal}회 × 식구
-                {editingFamilySize ? '' : ` ${familySize}명`}
-              </span>
+              <span>외식·배달 대비 1인 한 끼</span>
+              {editingSavingsPerMeal ? (
+                <>
+                  <input
+                    type="number"
+                    value={savingsPerMealInput}
+                    onChange={(e) => setSavingsPerMealInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleSaveSavingsPerMeal();
+                    }}
+                    autoFocus
+                    style={{ width: 60, height: 20, borderRadius: 5, border: '1px solid var(--line-300)', textAlign: 'center', fontSize: 11 }}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleSaveSavingsPerMeal}
+                    style={{ height: 22, padding: '0 8px', borderRadius: 6, fontSize: 11, fontWeight: 700, color: '#1A1A1E', background: 'var(--brand)', border: 'none', cursor: 'pointer' }}
+                  >
+                    적용
+                  </button>
+                </>
+              ) : (
+                <>
+                  <span>{formatWon(savingsPerMeal)}원</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSavingsPerMealInput(String(savingsPerMeal));
+                      setEditingSavingsPerMeal(true);
+                    }}
+                    style={{ height: 22, padding: '0 8px', borderRadius: 6, fontSize: 11, fontWeight: 600, color: 'var(--ink-700)', background: '#FFFFFF', border: '1px solid var(--line-300)', cursor: 'pointer' }}
+                  >
+                    추정액 수정
+                  </button>
+                </>
+              )}
+              <span>추정 × {monthlyTotal}회 × 식구</span>
               {editingFamilySize ? (
                 <>
                   <input
@@ -444,16 +513,19 @@ const CookingCalendar: React.FC = () => {
                   </button>
                 </>
               ) : (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFamilySizeInput(String(familySize));
-                    setEditingFamilySize(true);
-                  }}
-                  style={{ height: 22, padding: '0 8px', borderRadius: 6, fontSize: 11, fontWeight: 600, color: 'var(--ink-700)', background: '#FFFFFF', border: '1px solid var(--line-300)', cursor: 'pointer' }}
-                >
-                  식구수 수정
-                </button>
+                <>
+                  <span>{familySize}명</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFamilySizeInput(String(familySize));
+                      setEditingFamilySize(true);
+                    }}
+                    style={{ height: 22, padding: '0 8px', borderRadius: 6, fontSize: 11, fontWeight: 600, color: 'var(--ink-700)', background: '#FFFFFF', border: '1px solid var(--line-300)', cursor: 'pointer' }}
+                  >
+                    식구수 수정
+                  </button>
+                </>
               )}
             </div>
           </div>

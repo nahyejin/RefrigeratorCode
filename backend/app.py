@@ -679,6 +679,10 @@ FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5178')
 # 백엔드 URL (OAuth 콜백용)
 BACKEND_URL = os.getenv('BACKEND_URL', 'http://localhost:5000')
 
+# 요리 캘린더 절약액 추정의 기본 "한 끼당 절약액"(원). households/users의
+# savings_per_meal이 NULL(직접 설정 안 함)일 때만 이 기본값을 쓴다.
+ESTIMATED_SAVINGS_PER_MEAL_DEFAULT = 8000
+
 # JWT 서명 키가 없으면 app.secret_key(기동할 때마다 새로 만드는 난수)로 떨어진다.
 # 이 경우 서버를 재시작하는 순간 **이미 발급한 토큰이 전부 무효**가 되는데,
 # 프론트는 토큰을 서버에 확인하지 않고 payload 만 읽어 쓰기 때문에
@@ -2192,6 +2196,41 @@ def ensure_households_table():
             print(f"[ensure_households_table] users.family_size 컬럼 추가 중 오류: {e}")
             db.rollback()
 
+        # 절약액 추정에 쓰는 "한 끼당 절약액". 기본은 8,000원이지만 지역/식습관에
+        # 따라 체감이 다를 수 있어 식구 수처럼 직접 조정 가능하게 한다. NULL이면
+        # ESTIMATED_SAVINGS_PER_MEAL_DEFAULT(8,000원)를 대신 쓴다.
+        try:
+            cursor.execute("""
+                SELECT COUNT(*) as count
+                FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                AND TABLE_NAME = 'households'
+                AND COLUMN_NAME = 'savings_per_meal'
+            """)
+            result = cursor.fetchone()
+            if result and result['count'] == 0:
+                cursor.execute("ALTER TABLE households ADD COLUMN savings_per_meal INT NULL")
+                db.commit()
+        except Exception as e:
+            print(f"[ensure_households_table] households.savings_per_meal 컬럼 추가 중 오류: {e}")
+            db.rollback()
+
+        try:
+            cursor.execute("""
+                SELECT COUNT(*) as count
+                FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                AND TABLE_NAME = 'users'
+                AND COLUMN_NAME = 'savings_per_meal'
+            """)
+            result = cursor.fetchone()
+            if result and result['count'] == 0:
+                cursor.execute("ALTER TABLE users ADD COLUMN savings_per_meal INT NULL")
+                db.commit()
+        except Exception as e:
+            print(f"[ensure_households_table] users.savings_per_meal 컬럼 추가 중 오류: {e}")
+            db.rollback()
+
         # 즐겨찾기/완료/기록 비공개인 멤버에게 "공유해 달라"고 요청하는 기능용.
         # 앱을 완전히 꺼도 오는 푸시 알림까지는 아니고, 앱을 열었을 때(마이페이지
         # 진입 시) 대기 중인 요청이 있으면 팝업으로 물어보는 정도로 범위를 좁혔다.
@@ -3014,14 +3053,18 @@ def get_household_completed_calendar():
                 household_size = len(member_ids)
                 raw_family_size = household.get('family_size')
                 family_size = raw_family_size if raw_family_size else household_size
+                raw_savings_per_meal = household.get('savings_per_meal')
+                savings_per_meal = raw_savings_per_meal if raw_savings_per_meal else ESTIMATED_SAVINGS_PER_MEAL_DEFAULT
             else:
-                cursor.execute("SELECT monthly_cooking_goal, family_size FROM users WHERE id = %s", (user_id,))
+                cursor.execute("SELECT monthly_cooking_goal, family_size, savings_per_meal FROM users WHERE id = %s", (user_id,))
                 row = cursor.fetchone()
                 group_goal = None
                 my_personal_goal = row['monthly_cooking_goal'] if row else 20
                 household_size = 1
                 raw_family_size = row.get('family_size') if row else None
                 family_size = raw_family_size if raw_family_size else 1
+                raw_savings_per_meal = row.get('savings_per_meal') if row else None
+                savings_per_meal = raw_savings_per_meal if raw_savings_per_meal else ESTIMATED_SAVINGS_PER_MEAL_DEFAULT
 
             placeholders = ','.join(['%s'] * len(member_ids))
             cursor.execute(
@@ -3047,6 +3090,8 @@ def get_household_completed_calendar():
                 'household_size': household_size,
                 'family_size': family_size,
                 'family_size_is_custom': bool(raw_family_size),
+                'savings_per_meal': savings_per_meal,
+                'savings_per_meal_is_custom': bool(raw_savings_per_meal),
             }), 200
         finally:
             db.close()
@@ -3210,6 +3255,86 @@ def update_user_family_size(user_id):
             db.close()
     except Exception as e:
         print(f"Update user family size error: {e}")
+        return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
+
+
+@app.route('/api/households/savings-per-meal', methods=['POST'])
+def update_household_savings_per_meal():
+    """절약액 추정에 쓰는 "한 끼당 절약액"을 그룹 전체가 공유하는 값으로
+    변경. family_size와 같은 패턴 — 그룹원 누구나 바꿀 수 있고, null을
+    보내면 기본값(ESTIMATED_SAVINGS_PER_MEAL_DEFAULT)으로 되돌아간다."""
+    try:
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({'error': '인증이 필요합니다.'}), 401
+        payload = verify_jwt_token(auth_header.split(' ')[1])
+        if not payload:
+            return jsonify({'error': '권한이 없습니다.'}), 403
+        user_id = payload.get('user_id')
+
+        data = request.get_json() or {}
+        savings_per_meal = data.get('savings_per_meal')
+        if savings_per_meal is not None:
+            if not isinstance(savings_per_meal, int) or savings_per_meal < 0 or savings_per_meal > 100000:
+                return jsonify({'error': '한 끼 추정액은 0~100,000원 사이의 숫자여야 합니다.'}), 400
+
+        ensure_households_table()
+        db = get_db()
+        cursor = db.cursor()
+        try:
+            household = get_household_by_user(cursor, user_id)
+            if not household:
+                return jsonify({'error': '속한 그룹이 없습니다.'}), 400
+            cursor.execute(
+                "UPDATE households SET savings_per_meal = %s WHERE id = %s",
+                (savings_per_meal, household['id'])
+            )
+            db.commit()
+            return jsonify({'savings_per_meal': savings_per_meal}), 200
+        except Exception as e:
+            db.rollback()
+            print(f"Update household savings per meal error: {e}")
+            return jsonify({'error': '저장 중 오류가 발생했습니다.'}), 500
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"Update household savings per meal error: {e}")
+        return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
+
+
+@app.route('/api/users/<int:user_id>/savings-per-meal', methods=['POST'])
+def update_user_savings_per_meal(user_id):
+    """혼자(그룹 미가입) 쓰는 한 끼당 절약액 — households.savings_per_meal과
+    같은 용도의 개인용 버전."""
+    try:
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({'error': '인증이 필요합니다.'}), 401
+        payload = verify_jwt_token(auth_header.split(' ')[1])
+        if not payload or payload.get('user_id') != user_id:
+            return jsonify({'error': '권한이 없습니다.'}), 403
+
+        data = request.get_json() or {}
+        savings_per_meal = data.get('savings_per_meal')
+        if savings_per_meal is not None:
+            if not isinstance(savings_per_meal, int) or savings_per_meal < 0 or savings_per_meal > 100000:
+                return jsonify({'error': '한 끼 추정액은 0~100,000원 사이의 숫자여야 합니다.'}), 400
+
+        ensure_households_table()
+        db = get_db()
+        cursor = db.cursor()
+        try:
+            cursor.execute("UPDATE users SET savings_per_meal = %s WHERE id = %s", (savings_per_meal, user_id))
+            db.commit()
+            return jsonify({'savings_per_meal': savings_per_meal}), 200
+        except Exception as e:
+            db.rollback()
+            print(f"Update user savings per meal error: {e}")
+            return jsonify({'error': '저장 중 오류가 발생했습니다.'}), 500
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"Update user savings per meal error: {e}")
         return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
 
 

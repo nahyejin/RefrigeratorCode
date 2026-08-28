@@ -118,26 +118,33 @@ def resolve_ingredient_storage_user_id(cursor, user_id):
 `my_personal_goal` 중 그룹 여부에 따라 프론트가 알맞은 값을 쓴다
 (`isInHousehold ? groupGoal : personalGoal`).
 
-## 5. 절약액 추정 — "식구 수" 개념
+## 5. 절약액 추정 — "한 끼 추정액" × "식구 수"
 
 완료 횟수만으로는 실제 재료 가격을 알 수 없어 정확한 절약액 계산은
 불가능하다. 대신 **대략적인 추정치**를 보여준다:
 
 ```
-추정 절약액 = 이번 달 완료 횟수 × ESTIMATED_SAVINGS_PER_MEAL(8,000원) × family_size
+추정 절약액 = 이번 달 완료 횟수 × savings_per_meal × family_size
 ```
 
-`family_size`(식구 수)는 **그룹에 연동된 계정 수와 다를 수 있다** — 아이가
-있는 집은 계정이 없어도 같이 먹기 때문이다. 그래서 계정 수와 별개로 그룹(또는
-혼자면 개인)이 직접 조정하는 값이다.
+두 계수(`savings_per_meal`, `family_size`) 모두 **그룹(또는 혼자면 개인)이
+직접 조정하는 값**이고, 저장/폴백/변경 방식이 완전히 같은 패턴이다:
 
-| 상황 | 저장 위치 | 값이 없을 때(NULL) 기본값 | 변경 엔드포인트 |
-|---|---|---|---|
-| 그룹 있음 | `households.family_size` | 그룹 연동 계정 수 | `POST /api/households/family-size` (그룹원 누구나) |
-| 혼자 | `users.family_size` | 1 | `POST /api/users/<id>/family-size` (본인만) |
+- **`savings_per_meal`**(한 끼당 절약액, 기본 8,000원): 외식/배달 대비 집밥
+  한 끼의 체감 절약액은 지역·식습관에 따라 다를 수 있어 직접 조정 가능.
+- **`family_size`**(식구 수): **그룹에 연동된 계정 수와 다를 수 있다** —
+  아이가 있는 집은 계정이 없어도 같이 먹기 때문이다. 그래서 계정 수와
+  별개로 조정하는 값이다.
 
-캘린더 응답의 `family_size_is_custom` 필드로 "직접 설정한 값인지, 기본값을
-쓰고 있는지"를 구분할 수 있다.
+| 계수 | 상황 | 저장 위치 | 값이 없을 때(NULL) 기본값 | 변경 엔드포인트 |
+|---|---|---|---|---|
+| 한 끼 추정액 | 그룹 있음 | `households.savings_per_meal` | 8,000원 (`ESTIMATED_SAVINGS_PER_MEAL_DEFAULT`) | `POST /api/households/savings-per-meal` (그룹원 누구나) |
+| 한 끼 추정액 | 혼자 | `users.savings_per_meal` | 8,000원 | `POST /api/users/<id>/savings-per-meal` (본인만) |
+| 식구 수 | 그룹 있음 | `households.family_size` | 그룹 연동 계정 수 | `POST /api/households/family-size` (그룹원 누구나) |
+| 식구 수 | 혼자 | `users.family_size` | 1 | `POST /api/users/<id>/family-size` (본인만) |
+
+캘린더 응답의 `family_size_is_custom` / `savings_per_meal_is_custom` 필드로
+각각 "직접 설정한 값인지, 기본값을 쓰고 있는지"를 구분할 수 있다.
 
 ## 6. 요리 캘린더 화면 구조 (`CookingCalendar.tsx`)
 
@@ -150,10 +157,11 @@ def resolve_ingredient_storage_user_id(cursor, user_id):
 2. **캘린더 카드** (흰 배경 + 테두리): 일/주/월 전환, 이전/다음 탐색, 그룹
    요약, 실제 달력 그리드. 목표 카드와 시각적으로 분리돼 있다.
 
-목표 수정("목표수정")과 식구 수 수정("식구수 수정")은 둘 다 같은 패턴이다:
-버튼을 누르면 숫자 입력 박스 + **[적용]** 버튼이 나타나고, [적용]을 누르거나
-입력창에서 Enter를 눌러야 저장된다(포커스를 잃는 것만으로는 저장되지
-않는다 — 실수로 값이 바뀌는 걸 막기 위함).
+목표 수정("목표수정"), 한 끼 추정액 수정("추정액 수정"), 식구 수 수정
+("식구수 수정") 셋 다 같은 패턴이다: 버튼을 누르면 숫자 입력 박스 +
+**[적용]** 버튼이 나타나고, [적용]을 누르거나 입력창에서 Enter를 눌러야
+저장된다(포커스를 잃는 것만으로는 저장되지 않는다 — 실수로 값이 바뀌는
+걸 막기 위함).
 
 ## 7. 그룹 설정 카드 (`HouseholdSection.tsx`, 마이페이지)
 
@@ -201,13 +209,15 @@ def resolve_ingredient_storage_user_id(cursor, user_id):
 | `POST /api/users/<id>/monthly-goal` | 개인(혼자) 월 목표 변경 |
 | `POST /api/households/family-size` | 그룹 식구 수 변경 |
 | `POST /api/users/<id>/family-size` | 개인(혼자) 식구 수 변경 |
+| `POST /api/households/savings-per-meal` | 그룹의 한 끼당 절약액 추정치 변경 |
+| `POST /api/users/<id>/savings-per-meal` | 개인(혼자)의 한 끼당 절약액 추정치 변경 |
 | `POST /api/households/my-sharing` | 내 즐겨찾기·완료·기록 공유를 직접 켜고 끔 |
 | `GET /api/households/members/<id>/stats` | 비공개 멤버의 활동 요약(요청 전 미리보기) |
 | `POST /api/households/share-requests` | 다른 사람에게 공유 요청 보내기 |
 | `GET /api/households/share-requests/pending` | 나에게 온 대기 중 요청 |
 | `POST /api/households/share-requests/<id>/respond` | 요청 수락/거절(수락 시 내 공유 자동 켜짐) |
 | `GET /api/households/me/{favorite,completed,recorded}-recipes` | 그룹 전체 활동 피드(레시피 단위로 합침) |
-| `GET /api/households/me/completed-calendar` | 캘린더용 완료 내역(날짜·사람 단위, 안 합침) + 목표/식구수 |
+| `GET /api/households/me/completed-calendar` | 캘린더용 완료 내역(날짜·사람 단위, 안 합침) + 목표/식구수/한끼추정액 |
 
 ## 10. 테스트 시 주의사항
 
