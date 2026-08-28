@@ -38,7 +38,14 @@ type ChatMessage = {
   role: 'user' | 'assistant';
   content: string;
   recipes?: ChatRecipe[];
+  /** 타이핑 애니메이션용. content는 fullContent를 향해 점점 채워지는 중간 상태다. */
+  fullContent?: string;
+  typing?: boolean;
 };
+
+/** 타이핑 애니메이션 속도 — 한 번에 채우는 글자 수 / 그 간격(ms) */
+const TYPING_CHARS_PER_TICK = 2;
+const TYPING_TICK_MS = 24;
 
 type ChatThread = {
   id: string;
@@ -300,6 +307,41 @@ const RecipeChatWidget: React.FC = () => {
     }
   }, [open, view, messages, loading]);
 
+  // 챗봇 답변을 한 번에 다 보여주지 않고, 제미나이처럼 글자가 순차적으로
+  // 채워지는 것처럼 보이게 한다. content를 fullContent를 향해 조금씩
+  // 늘려가는 방식이라 실제 스트리밍은 아니지만(백엔드가 JSON 응답 전체를
+  // 한 번에 주기 때문), 사용자가 보는 화면은 동일한 타이핑 효과를 낸다.
+  useEffect(() => {
+    const lastIndex = messages.length - 1;
+    const last = messages[lastIndex];
+    if (!last || last.role !== 'assistant' || !last.typing) return;
+
+    const full = last.fullContent ?? '';
+    if (last.content.length >= full.length) {
+      setMessages((prev) => {
+        const target = prev[lastIndex];
+        if (!target || !target.typing) return prev;
+        const next = [...prev];
+        next[lastIndex] = { ...target, typing: false };
+        return next;
+      });
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setMessages((prev) => {
+        const target = prev[lastIndex];
+        if (!target || !target.typing) return prev;
+        const targetFull = target.fullContent ?? '';
+        const nextLen = Math.min(target.content.length + TYPING_CHARS_PER_TICK, targetFull.length);
+        const next = [...prev];
+        next[lastIndex] = { ...target, content: targetFull.slice(0, nextLen) };
+        return next;
+      });
+    }, TYPING_TICK_MS);
+    return () => clearTimeout(timer);
+  }, [messages]);
+
   useEffect(() => {
     if (open && view === 'chat') {
       setTimeout(() => inputRef.current?.focus(), 50);
@@ -368,7 +410,9 @@ const RecipeChatWidget: React.FC = () => {
         ...prev,
         {
           role: 'assistant',
-          content: data.reply || '레시피를 찾아봤어요.',
+          content: '',
+          fullContent: data.reply || '레시피를 찾아봤어요.',
+          typing: true,
           recipes: Array.isArray(data.recipes) ? data.recipes : [],
         },
       ]);
@@ -587,7 +631,7 @@ const RecipeChatWidget: React.FC = () => {
                     >
                       {msg.content}
                     </div>
-                    {msg.recipes && msg.recipes.length > 0 && (
+                    {!msg.typing && msg.recipes && msg.recipes.length > 0 && (
                       <div className="mt-2 space-y-2">
                         {msg.recipes.map((recipe) => (
                           <a
