@@ -488,6 +488,7 @@ python run_dev.py
 - `README.md`: 프로젝트 전체 가이드
 - `DATABASE_SCHEMA.md`: 데이터베이스 스키마
 - `DEVELOPMENT_GUIDE.md`: 개발 가이드
+- `HOUSEHOLD_FEATURE.md`: 식구 그룹(다중 계정 공유) + 요리 캘린더 기능 동작 방식
 - `MOBILE_APP_GUIDE.md`: 모바일 앱 출시 가이드
 - `PERFORMANCE_OPTIMIZATION.md`: 성능 최적화 가이드
 

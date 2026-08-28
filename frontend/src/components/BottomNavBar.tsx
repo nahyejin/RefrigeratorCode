@@ -15,9 +15,9 @@ import mypageBlack from '../assets/navigator_mypage_black.png';
 // vs 그 모양을 통째로 검정으로 채우느냐(활성)" 뿐이었다 — 흰색 파냄이나
 // 다른 색 포인트가 전혀 없었다. 이전 버전은 채운 상태에 흰색 헤더 띠를
 // "파내" 그려서 이모지처럼 알록달록해 보인다는 지적을 받았다. 같은 도형
-// (몸통 사각형 + 위쪽 손잡이 2개)을 비활성은 얇은 선(strokeWidth 1.3 —
-// 참고 PNG들의 선 굵기 비율에 맞춤)으로, 활성은 그 도형 그대로 단색
-// 채움으로만 그린다.
+// (몸통 사각형 + 위쪽 손잡이 2개)을 비활성은 얇은 선(strokeWidth 1 —
+// 1.3도 다른 탭보다 두껍다는 피드백을 받아 더 낮춤)으로, 활성은 그 도형
+// 그대로 단색 채움으로만 그린다.
 const CALENDAR_ICON_PATHS = (
   <>
     <rect x="3.5" y="5" width="17" height="15" rx="2.2" />
@@ -32,7 +32,7 @@ const CalendarNavIcon: React.FC<{ active: boolean }> = ({ active }) =>
       {CALENDAR_ICON_PATHS}
     </svg>
   ) : (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1A1A1E" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1A1A1E" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
       {CALENDAR_ICON_PATHS}
     </svg>
   );

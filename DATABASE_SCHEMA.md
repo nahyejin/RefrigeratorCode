@@ -1,9 +1,13 @@
 # 🗄️ 데이터베이스 스키마
 
 > **이 문서는 실제 운영 DB(Railway MySQL)에서 그대로 뽑아 정리한 것입니다.**
-> 2026-08-26 기준. 예전 버전은 실제와 다른 설계안(username/password_hash/phone,
-> `user_recipes` 단일 테이블 등)이 적혀 있어 전면 교체했습니다.
-> 스키마를 바꾸면 이 문서도 함께 고쳐 주세요.
+> 2026-08-26 기준, `households`/`household_share_requests`와 `users`의 그룹
+> 관련 컬럼은 2026-08-28 추가분까지 반영. 예전 버전은 실제와 다른 설계안
+> (username/password_hash/phone, `user_recipes` 단일 테이블 등)이 적혀 있어
+> 전면 교체했습니다. 스키마를 바꾸면 이 문서도 함께 고쳐 주세요.
+> 식구 그룹/요리 캘린더 기능의 **동작 방식**(공유 판정, 목표·식구수가 개인값과
+> 그룹값 중 어느 쪽을 쓰는지 등)은 스키마가 아니라 동작 설명이라 여기 대신
+> [`HOUSEHOLD_FEATURE.md`](HOUSEHOLD_FEATURE.md)에 정리했습니다.
 
 ## 테이블 한눈에
 
@@ -11,6 +15,8 @@
 |---|---|---|
 | `recipes` | 44,509 | 크롤링한 레시피 본문·재료 |
 | `users` | 6 | 계정 (소셜 + 일반) |
+| `households` | — | 식구 그룹 (2026-08-27 신설) |
+| `household_share_requests` | — | 즐겨찾기·완료·기록 공유 요청 (2026-08-27 신설) |
 | `user_ingredients` | 172 | 내 냉장고 재료 |
 | `user_favorite_recipes` | 2 | 즐겨찾기 |
 | `user_recorded_recipes` | 16 | 기록한 레시피 |
@@ -62,15 +68,20 @@ llm_ingredients_done    TINYINT(1)    NOT NULL   -- ★ LLM 처리 여부 깃발
 ## 2. `users` — 계정
 
 ```sql
-id           INT           PK
-email        VARCHAR(255)  NOT NULL  INDEX
-nickname     VARCHAR(255)  NOT NULL
-provider     VARCHAR(50)   NOT NULL  INDEX   -- google / kakao / naver / local
-provider_id  VARCHAR(255)  NOT NULL
-password     VARCHAR(255)  NULL              -- provider='local' 일 때만 사용(해시)
-deleted_at   DATETIME      NULL      INDEX   -- 소프트 삭제
-created_at   DATETIME      NOT NULL
-updated_at   DATETIME      NULL
+id                      INT           PK
+email                   VARCHAR(255)  NOT NULL  INDEX
+nickname                VARCHAR(255)  NOT NULL
+provider                VARCHAR(50)   NOT NULL  INDEX   -- google / kakao / naver / local
+provider_id             VARCHAR(255)  NOT NULL
+password                VARCHAR(255)  NULL              -- provider='local' 일 때만 사용(해시)
+deleted_at              DATETIME      NULL      INDEX   -- 소프트 삭제
+created_at              DATETIME      NOT NULL
+updated_at              DATETIME      NULL
+household_id            INT           NULL      -- 속한 그룹(households.id). NULL이면 혼자
+share_recipe_actions    TINYINT(1)    NOT NULL DEFAULT 1  -- 내 즐겨찾기·완료·기록을 그룹원에게 보여줄지
+ingredients_merged      TINYINT(1)    NOT NULL DEFAULT 0  -- 그룹 참여 시 내 재료를 그룹에 합쳤는지(나갈 때 분기용)
+monthly_cooking_goal    INT           NOT NULL DEFAULT 20 -- 혼자일 때만 쓰는 개인 목표(그룹이면 households 쪽 값 사용)
+family_size             INT           NULL              -- 혼자일 때 절약액 계산용 식구 수. NULL이면 1
 UNIQUE KEY (email, provider)
 ```
 
@@ -78,10 +89,54 @@ UNIQUE KEY (email, provider)
   같은 이메일·제공자로 재가입하면 기존 행을 되살립니다.
 - 네이버 로그인은 프로필 API 가 별명을 `9208****` 처럼 마스킹해서 주기 때문에,
   마스킹된 값이면 **이메일 로컬 파트**를 닉네임으로 씁니다.
+- `household_id`~`family_size` 는 2026-08-27~28에 걸쳐 추가된 "식구 그룹"
+  기능용 컬럼입니다. 자세한 동작(공유 판정, 목표/식구수가 개인값과 그룹값 중
+  어느 쪽을 쓰는지 등)은 [`HOUSEHOLD_FEATURE.md`](HOUSEHOLD_FEATURE.md) 참고.
 
 ---
 
-## 3. `user_ingredients` — 내 냉장고
+## 3. `households` — 식구 그룹
+
+```sql
+id                     INT           PK
+invite_code            VARCHAR(12)   UNIQUE  NOT NULL   -- 참여 코드(8자리 영숫자)
+storage_user_id        INT           NOT NULL           -- 그룹의 냉장고 재료가 실제로 저장되는 계정(보통 창설자)
+created_by             INT           NOT NULL           -- 최초 생성자 user_id (나가도 그룹은 유지됨)
+allow_ingredient_merge TINYINT(1)    NOT NULL DEFAULT 1  -- 새로 참여하는 사람의 재료 합치기를 그룹 차원에서 허용할지
+monthly_cooking_goal   INT           NOT NULL DEFAULT 20 -- 그룹 전체가 공유하는 이번 달 목표(개인별 아님)
+family_size            INT           NULL               -- 그룹의 식구 수(절약액 계산용). NULL이면 연동 계정 수를 대신 씀
+created_at             DATETIME      NOT NULL
+```
+
+- 그룹원 전체가 **동등한 권한**을 가진다 — `created_by`만 특별한 권한을 갖지
+  않으며, `allow_ingredient_merge`/`monthly_cooking_goal`/`family_size` 모두
+  그룹원 누구나 바꿀 수 있다.
+- 재료 공유는 이 테이블에 재료를 직접 넣는 게 아니라, 그룹원 전체의
+  `user_ingredients` 조회/저장을 `storage_user_id` 계정으로 **리다이렉션**하는
+  방식이다(`resolve_ingredient_storage_user_id()`).
+
+---
+
+## 4. `household_share_requests` — 즐겨찾기·완료·기록 공유 요청
+
+```sql
+id            INT       PK
+requester_id  INT       NOT NULL   -- 요청 보낸 사람
+target_id     INT       NOT NULL   -- 요청 받은 사람(비공개인 그룹원)
+status        VARCHAR(20)  NOT NULL DEFAULT 'pending'  -- pending | accepted | declined
+created_at    DATETIME  NOT NULL
+responded_at  DATETIME  NULL
+```
+
+- 다른 그룹원의 `share_recipe_actions`가 꺼져 있을 때, "공유해 달라"고
+  요청하는 용도. 앱을 켰을 때 팝업으로 표시된다(푸시 알림 아님).
+- 본인이 직접 자기 공유를 켜고 싶을 땐 이 요청 없이 `POST
+  /api/households/my-sharing`으로 바로 켤 수 있다 — 자세한 내용은
+  [`HOUSEHOLD_FEATURE.md`](HOUSEHOLD_FEATURE.md) 참고.
+
+---
+
+## 5. `user_ingredients` — 내 냉장고
 
 ```sql
 id             INT                                  PK
@@ -100,7 +155,7 @@ saved_at       DATETIME      NULL
 
 ---
 
-## 4. 레시피 액션 테이블 3종
+## 6. 레시피 액션 테이블 3종
 
 `user_favorite_recipes` / `user_recorded_recipes` / `user_completed_recipes` 는
 구조가 동일합니다. (예전 문서엔 `action_type` 을 가진 단일 테이블로 적혀 있었으나 실제는 3개 분리)
@@ -114,7 +169,7 @@ created_at  DATETIME  NOT NULL
 
 ---
 
-## 5. `coupang_clicks` — 쿠팡 링크 클릭 로그
+## 7. `coupang_clicks` — 쿠팡 링크 클릭 로그
 
 ```sql
 id             BIGINT        PK
@@ -132,7 +187,7 @@ created_at     DATETIME      NOT NULL  INDEX
 
 ---
 
-## 6. YouTube 캐시 2종
+## 8. YouTube 캐시 2종
 
 ```sql
 -- youtube_channel_cache : 채널 URL -> 채널 ID

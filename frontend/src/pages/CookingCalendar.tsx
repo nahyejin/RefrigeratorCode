@@ -351,17 +351,25 @@ const CookingCalendar: React.FC = () => {
             {anchorDate.getFullYear()}년 {anchorDate.getMonth() + 1}월 목표
           </span>
           {editingGoal ? (
-            <input
-              type="number"
-              value={goalInput}
-              onChange={(e) => setGoalInput(e.target.value)}
-              onBlur={handleSaveGoal}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
-              }}
-              autoFocus
-              style={{ width: 56, height: 28, borderRadius: 6, border: '1px solid var(--line-300)', textAlign: 'center', fontSize: 13 }}
-            />
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <input
+                type="number"
+                value={goalInput}
+                onChange={(e) => setGoalInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleSaveGoal();
+                }}
+                autoFocus
+                style={{ width: 56, height: 28, borderRadius: 6, border: '1px solid var(--line-300)', textAlign: 'center', fontSize: 13 }}
+              />
+              <button
+                type="button"
+                onClick={handleSaveGoal}
+                style={{ height: 28, padding: '0 10px', borderRadius: 6, fontSize: 12, fontWeight: 700, color: '#1A1A1E', background: 'var(--brand)', border: 'none', cursor: 'pointer' }}
+              >
+                적용
+              </button>
+            </span>
           ) : (
             <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ fontSize: 13, fontWeight: 700, color: '#1A1A1E' }}>목표 {myGoal}회</span>
@@ -412,20 +420,29 @@ const CookingCalendar: React.FC = () => {
             </div>
             <div style={{ fontSize: 11, color: 'var(--ink-500)', marginTop: 3, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 4 }}>
               <span>
-                외식·배달 대비 한 끼 {formatWon(ESTIMATED_SAVINGS_PER_MEAL)}원 추정 × {monthlyTotal}회 × 식구 {familySize}명
+                외식·배달 대비 한 끼 {formatWon(ESTIMATED_SAVINGS_PER_MEAL)}원 추정 × {monthlyTotal}회 × 식구
+                {editingFamilySize ? '' : ` ${familySize}명`}
               </span>
               {editingFamilySize ? (
-                <input
-                  type="number"
-                  value={familySizeInput}
-                  onChange={(e) => setFamilySizeInput(e.target.value)}
-                  onBlur={handleSaveFamilySize}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
-                  }}
-                  autoFocus
-                  style={{ width: 40, height: 20, borderRadius: 5, border: '1px solid var(--line-300)', textAlign: 'center', fontSize: 11 }}
-                />
+                <>
+                  <input
+                    type="number"
+                    value={familySizeInput}
+                    onChange={(e) => setFamilySizeInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleSaveFamilySize();
+                    }}
+                    autoFocus
+                    style={{ width: 40, height: 20, borderRadius: 5, border: '1px solid var(--line-300)', textAlign: 'center', fontSize: 11 }}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleSaveFamilySize}
+                    style={{ height: 22, padding: '0 8px', borderRadius: 6, fontSize: 11, fontWeight: 700, color: '#1A1A1E', background: 'var(--brand)', border: 'none', cursor: 'pointer' }}
+                  >
+                    적용
+                  </button>
+                </>
               ) : (
                 <button
                   type="button"

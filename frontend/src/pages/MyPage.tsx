@@ -1434,7 +1434,9 @@ const MyPage: React.FC = () => {
           위 토글·요약 숫자는 아래 세 목록을 소개하는 같은 이야기의 일부라,
           SectionBand(면 구분선)로 끊지 않고 여백만 준다 — 구분선을 쓰면
           "여기서부터 완전히 다른 얘기"로 오해할 수 있다. 목록들 사이(즐겨찾기→
-          기록→완료)는 서로 다른 섹션이라 그대로 SectionBand를 쓴다. */}
+          기록→완료)는 하위 구분일 뿐 셋 다 같은 "레시피 활용 내역" 얘기라,
+          굵은 면 대신 얇은 선(subtle)을 쓴다 — 굵은 면을 반복해서 썼더니
+          셋이 서로 완전히 무관한 영역처럼 보인다는 지적을 받았다. */}
       <div style={{ marginTop: 20 }}>
         {/* 내가 즐겨찾는 레시피 */}
         <div style={{ paddingLeft: 14, paddingRight: 14 }}>
@@ -1501,7 +1503,7 @@ const MyPage: React.FC = () => {
 
         {/* 내가 기록한 레시피 */}
         <div style={{ paddingLeft: 14, paddingRight: 14 }}>
-          <SectionBand bleed={14} />
+          <SectionBand bleed={14} subtle />
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
             <SectionHeader icon={<SectionIcon kind="recorded" />} title={showAllHousehold ? '우리 식구가 기록한 레시피' : '내가 기록한 레시피'} />
             {/* 예전엔 전체보기가 `☰` 글자 하나였다. 햄버거는 '메뉴' 를 뜻하는 기호라
@@ -1568,7 +1570,7 @@ const MyPage: React.FC = () => {
         
         {/* 내가 완료한 레시피 */}
         <div style={{ paddingLeft: 14, paddingRight: 14 }}>
-          <SectionBand bleed={14} />
+          <SectionBand bleed={14} subtle />
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
             <SectionHeader icon={<SectionIcon kind="completed" />} title={showAllHousehold ? '우리 식구가 완료한 레시피' : '내가 완료한 레시피'} />
             <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>

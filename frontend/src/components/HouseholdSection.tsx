@@ -430,23 +430,20 @@ const HouseholdSection: React.FC<HouseholdSectionProps> = ({ onChange }) => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
               {info.members.map((m) => {
                 const isSelf = m.id === Number(user?.id);
-                // 본인 행은 눌러서 내 공유를 직접 켜고 끈다. 전에는 이 스위치가
-                // 없어서, 한번 꺼두면 다른 그룹원이 요청을 보내야만 다시 켤 수
-                // 있었다 — 정작 본인이 스스로 켜고 싶을 때 방법이 없었다.
-                // 비공개인 다른 멤버는 눌러서 공유를 요청할 수 있다.
-                const clickable = isSelf || !m.share_recipe_actions;
-                const Wrapper: any = clickable ? 'button' : 'div';
+                // 본인 행에는 내 공유를 직접 켜고 끄는 버튼을 따로 둔다. 전에는
+                // 이 스위치가 없어서, 한번 꺼두면 다른 그룹원이 요청을 보내야만
+                // 다시 켤 수 있었다 — 정작 본인이 스스로 켜고 싶을 때 방법이
+                // 없었다. 상태 텍스트와 같은 줄에 "· 클릭해서 끄기"처럼 글자로만
+                // 붙여 뒀더니 상태 표시인지 버튼인지 헷갈린다는 지적을 받아,
+                // 실제 버튼 엘리먼트로 분리했다.
+                // 비공개인 다른 멤버는 행 전체를 눌러서 공유를 요청할 수 있다.
+                const requestable = !isSelf && !m.share_recipe_actions;
+                const Wrapper: any = requestable ? 'button' : 'div';
                 return (
                   <Wrapper
                     key={m.id}
-                    type={clickable ? 'button' : undefined}
-                    onClick={
-                      isSelf
-                        ? () => handleToggleMySharing(!m.share_recipe_actions)
-                        : clickable
-                        ? () => handleOpenMemberStats(m)
-                        : undefined
-                    }
+                    type={requestable ? 'button' : undefined}
+                    onClick={requestable ? () => handleOpenMemberStats(m) : undefined}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -458,17 +455,39 @@ const HouseholdSection: React.FC<HouseholdSectionProps> = ({ onChange }) => {
                       border: 'none',
                       width: '100%',
                       textAlign: 'left',
-                      cursor: clickable ? 'pointer' : 'default',
+                      cursor: requestable ? 'pointer' : 'default',
                     }}
                   >
-                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-700)' }}>
-                      {m.nickname}
-                      {isSelf ? ' (나)' : ''}
+                    <span style={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0 }}>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-700)' }}>
+                        {m.nickname}
+                        {isSelf ? ' (나)' : ''}
+                      </span>
+                      <span style={{ fontSize: 11.5, fontWeight: 600, color: m.share_recipe_actions ? '#16A34A' : 'var(--ink-500)' }}>
+                        즐겨찾기·완료·기록 {m.share_recipe_actions ? '공유 중' : '비공개'}
+                        {requestable ? ' · 요청하기 >' : ''}
+                      </span>
                     </span>
-                    <span style={{ fontSize: 11.5, fontWeight: 600, color: m.share_recipe_actions ? '#16A34A' : 'var(--ink-500)' }}>
-                      즐겨찾기·완료·기록 {m.share_recipe_actions ? '공유 중' : '비공개'}
-                      {isSelf ? ` · 클릭해서 ${m.share_recipe_actions ? '끄기' : '켜기'}` : clickable ? ' · 요청하기 >' : ''}
-                    </span>
+                    {isSelf && (
+                      <button
+                        type="button"
+                        onClick={() => handleToggleMySharing(!m.share_recipe_actions)}
+                        style={{
+                          flexShrink: 0,
+                          height: 26,
+                          padding: '0 10px',
+                          borderRadius: 8,
+                          fontSize: 11.5,
+                          fontWeight: 700,
+                          color: m.share_recipe_actions ? 'var(--ink-700)' : '#1A1A1E',
+                          background: m.share_recipe_actions ? '#FFFFFF' : 'var(--brand)',
+                          border: m.share_recipe_actions ? '1px solid var(--line-300)' : 'none',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {m.share_recipe_actions ? '끄기' : '켜기'}
+                      </button>
+                    )}
                   </Wrapper>
                 );
               })}
@@ -608,9 +627,21 @@ const HouseholdSection: React.FC<HouseholdSectionProps> = ({ onChange }) => {
         ]}
       >
         {info?.my_ingredients_merged === false ? (
-          <>보존해 둔 내 재료를 그대로 돌려받아요. 즐겨찾기·완료·기록은 원래 그대로예요.</>
+          <>
+            보존해 둔 내 재료를 그대로 돌려받아요.
+            <br />
+            <br />
+            즐겨찾기·완료·기록은 원래 그대로예요.
+          </>
         ) : (
-          <>지금 그룹 재료를 복사해서 가져가요(그룹에는 그대로 남아요). 즐겨찾기·완료·기록은 원래 그대로예요.</>
+          <>
+            지금 그룹 재료를 복사해서 가져가요.
+            <br />
+            그룹에는 그대로 남아요.
+            <br />
+            <br />
+            즐겨찾기·완료·기록은 원래 그대로예요.
+          </>
         )}
       </Dialog>
 
