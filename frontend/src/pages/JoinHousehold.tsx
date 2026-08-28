@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import Button from '../components/ui/Button';
+import Toggle from '../components/ui/Toggle';
 import { useAuth } from '../context/AuthContext';
 import {
   stashPendingInviteCode,
@@ -119,36 +120,19 @@ const JoinHousehold: React.FC = () => {
               초대 코드 <b style={{ color: '#1A1A1E' }}>{code}</b> 그룹에 참여할까요?
             </p>
 
-            <div style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
-              <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 13, color: 'var(--ink-700)' }}>
-                <input
-                  type="checkbox"
-                  checked={mergeIngredients}
-                  onChange={(e) => setMergeIngredients(e.target.checked)}
-                  style={{ marginTop: 2 }}
-                />
-                <span>
-                  지금 내 냉장고에 있는 재료를 그룹 재료에 합치기
-                  <br />
-                  <span style={{ color: 'var(--ink-500)' }}>
-                    꺼두면 내 재료는 삭제되지 않고 그대로 보존돼요(그룹에는 안 보임).
-                    나중에 그룹을 나가면 그 재료를 그대로 돌려받아요.
-                  </span>
-                </span>
-              </label>
-              <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 13, color: 'var(--ink-700)' }}>
-                <input
-                  type="checkbox"
-                  checked={shareRecipeActions}
-                  onChange={(e) => setShareRecipeActions(e.target.checked)}
-                  style={{ marginTop: 2 }}
-                />
-                <span>
-                  내 즐겨찾기·완료·기록을 그룹원에게도 보여주기
-                  <br />
-                  <span style={{ color: 'var(--ink-500)' }}>(기록 자체는 계정별로 그대로 유지돼요)</span>
-                </span>
-              </label>
+            <div style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 20 }}>
+              <Toggle
+                checked={mergeIngredients}
+                onChange={setMergeIngredients}
+                label="내 재료를 그룹 재료에 합치기"
+                hint="꺼두면 내 재료는 그대로 보존되고, 나갈 때 돌려받아요."
+              />
+              <Toggle
+                checked={shareRecipeActions}
+                onChange={setShareRecipeActions}
+                label="즐겨찾기·완료·기록 그룹에 공유"
+                hint="기록은 계정별로 그대로 남고, 서로 보이기만 해요."
+              />
             </div>
 
             {error && (

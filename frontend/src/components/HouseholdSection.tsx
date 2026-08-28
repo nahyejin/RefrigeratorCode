@@ -1,11 +1,13 @@
 import * as React from 'react';
 import Dialog from './ui/Dialog';
 import Button from './ui/Button';
+import Toggle from './ui/Toggle';
 import { useAuth } from '../context/AuthContext';
 
 interface HouseholdMember {
   id: number;
   nickname: string;
+  share_recipe_actions: boolean;
 }
 
 interface HouseholdInfo {
@@ -53,6 +55,8 @@ const HouseholdSection: React.FC<HouseholdSectionProps> = ({ onChange }) => {
   const [joinError, setJoinError] = React.useState('');
   const [mergeIngredients, setMergeIngredients] = React.useState(true);
   const [shareRecipeActions, setShareRecipeActions] = React.useState(true);
+  const [createKeepIngredients, setCreateKeepIngredients] = React.useState(true);
+  const [createShareRecipeActions, setCreateShareRecipeActions] = React.useState(true);
   const [busy, setBusy] = React.useState(false);
   const [toast, setToast] = React.useState('');
 
@@ -99,7 +103,13 @@ const HouseholdSection: React.FC<HouseholdSectionProps> = ({ onChange }) => {
   const handleCreate = async () => {
     setBusy(true);
     try {
-      const res = await authedFetch('/api/households', { method: 'POST' });
+      const res = await authedFetch('/api/households', {
+        method: 'POST',
+        body: JSON.stringify({
+          keep_ingredients: createKeepIngredients,
+          share_recipe_actions: createShareRecipeActions,
+        }),
+      });
       const data = await res.json();
       if (!res.ok) {
         showToast(data.error || '그룹 생성에 실패했어요.');
@@ -274,23 +284,41 @@ const HouseholdSection: React.FC<HouseholdSectionProps> = ({ onChange }) => {
           </div>
 
           {!!info.members?.length && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
-              {info.members.map((m) => (
-                <span
-                  key={m.id}
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 600,
-                    color: 'var(--ink-700)',
-                    background: 'var(--surface-sub)',
-                    border: '1px solid var(--line-200)',
-                    borderRadius: 9999,
-                    padding: '4px 10px',
-                  }}
-                >
-                  {m.nickname}
-                </span>
-              ))}
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 6 }}>
+                {info.members.map((m) => (
+                  <span
+                    key={m.id}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 5,
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: 'var(--ink-700)',
+                      background: 'var(--surface-sub)',
+                      border: '1px solid var(--line-200)',
+                      borderRadius: 9999,
+                      padding: '4px 10px',
+                    }}
+                  >
+                    <span
+                      aria-hidden
+                      style={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: '50%',
+                        background: m.share_recipe_actions ? '#22C55E' : 'var(--line-300)',
+                        flexShrink: 0,
+                      }}
+                    />
+                    {m.nickname}
+                  </span>
+                ))}
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--ink-500)' }}>
+                🟢 즐겨찾기·완료·기록을 그룹에 공유 중 · ⚪ 비공개
+              </div>
             </div>
           )}
 
@@ -330,19 +358,24 @@ const HouseholdSection: React.FC<HouseholdSectionProps> = ({ onChange }) => {
           { label: '만들기', onClick: handleCreate, variant: 'primary' },
         ]}
       >
-        <div style={{ textAlign: 'left', fontSize: 13, color: 'var(--ink-700)', lineHeight: 1.6 }}>
-          <p style={{ marginBottom: 8 }}>
-            지금 누르면 우리 가족만의 <b>초대 코드</b>가 바로 만들어져요.
+        <div style={{ textAlign: 'left' }}>
+          <p style={{ fontSize: 13, color: 'var(--ink-500)', marginBottom: 16 }}>
+            초대 코드가 만들어져요. 가족에게 보내서 함께 냉장고를 관리해보세요.
           </p>
-          <p style={{ marginBottom: 8 }}>
-            그 코드를 가족에게 카카오톡이나 문자로 보내주면(초대 코드 생성 후
-            "초대 보내기" 버튼으로 바로 공유할 수 있어요), 가족이 링크를 눌러
-            들어오거나 코드를 직접 입력해서 참여할 수 있어요.
-          </p>
-          <p>
-            참여한 가족과는 냉장고 재료를 함께 보고 관리하게 돼요. 즐겨찾기·완료·
-            기록은 계정별로 그대로 남고, 그룹 화면에서 배지로만 표시돼요.
-          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <Toggle
+              checked={createKeepIngredients}
+              onChange={setCreateKeepIngredients}
+              label="지금 내 재료를 그룹 재료로 쓰기"
+              hint="끄면 지금 재료는 지워지고 빈 상태로 시작해요."
+            />
+            <Toggle
+              checked={createShareRecipeActions}
+              onChange={setCreateShareRecipeActions}
+              label="즐겨찾기·완료·기록 그룹에 공유"
+              hint="기록은 계정별로 그대로 남고, 서로 보이기만 해요."
+            />
+          </div>
         </div>
       </Dialog>
 
@@ -360,14 +393,11 @@ const HouseholdSection: React.FC<HouseholdSectionProps> = ({ onChange }) => {
         ]}
       >
         <div style={{ textAlign: 'left' }}>
-          <p style={{ fontSize: 13, color: 'var(--ink-500)', marginBottom: 10, textAlign: 'center' }}>
-            가족에게 받은 8자리 초대 코드를 입력해주세요.
-          </p>
           <input
             type="text"
             value={joinCode}
             onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-            placeholder="예: AB12CD34"
+            placeholder="초대 코드 입력 (예: AB12CD34)"
             maxLength={12}
             style={{
               width: '100%',
@@ -379,46 +409,25 @@ const HouseholdSection: React.FC<HouseholdSectionProps> = ({ onChange }) => {
               letterSpacing: 2,
               textAlign: 'center',
               boxSizing: 'border-box',
-              marginBottom: 14,
+              marginBottom: 16,
             }}
           />
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 13, color: 'var(--ink-700)' }}>
-              <input
-                type="checkbox"
-                checked={mergeIngredients}
-                onChange={(e) => setMergeIngredients(e.target.checked)}
-                style={{ marginTop: 2 }}
-              />
-              <span>
-                지금 내 냉장고 재료를 그룹 재료에 합치기
-                <br />
-                <span style={{ color: 'var(--ink-500)', fontSize: 12 }}>
-                  꺼두면 내 재료는 삭제되지 않고 그대로 보존돼요(그룹에는 안 보임).
-                  나중에 그룹을 나가면 그 재료를 그대로 돌려받아요. 켜두면 지금
-                  재료가 그룹 재료에 합쳐지고, 나갈 때는 그 시점 그룹 재료를
-                  대신 가져가게 돼요.
-                </span>
-              </span>
-            </label>
-            <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 13, color: 'var(--ink-700)' }}>
-              <input
-                type="checkbox"
-                checked={shareRecipeActions}
-                onChange={(e) => setShareRecipeActions(e.target.checked)}
-                style={{ marginTop: 2 }}
-              />
-              <span>
-                내 즐겨찾기·완료·기록을 그룹원에게도 보여주기
-                <br />
-                <span style={{ color: 'var(--ink-500)', fontSize: 12 }}>
-                  (기록 자체는 합쳐지지 않고 계정별로 그대로 유지돼요)
-                </span>
-              </span>
-            </label>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <Toggle
+              checked={mergeIngredients}
+              onChange={setMergeIngredients}
+              label="내 재료를 그룹 재료에 합치기"
+              hint="꺼두면 내 재료는 그대로 보존되고, 나갈 때 돌려받아요."
+            />
+            <Toggle
+              checked={shareRecipeActions}
+              onChange={setShareRecipeActions}
+              label="즐겨찾기·완료·기록 그룹에 공유"
+              hint="기록은 계정별로 그대로 남고, 서로 보이기만 해요."
+            />
           </div>
           {joinError && (
-            <div style={{ fontSize: 12.5, color: 'var(--danger)', marginTop: 10, textAlign: 'center' }}>
+            <div style={{ fontSize: 12.5, color: 'var(--danger)', marginTop: 12, textAlign: 'center' }}>
               {joinError}
             </div>
           )}
@@ -434,13 +443,9 @@ const HouseholdSection: React.FC<HouseholdSectionProps> = ({ onChange }) => {
           { label: '나가기', onClick: handleLeave, variant: 'danger' },
         ]}
       >
-        지금 그룹 냉장고에 있는 재료는 그대로 복사돼서
+        그룹 재료는 복사해서 가져가고, 그룹에는 그대로 남아요.
         <br />
-        내 개인 냉장고로 옮겨져요. 그룹에는 그대로 남고요.
-        <br />
-        즐겨찾기·완료·기록은 원래 계정별 기록이라 바뀌지 않아요.
-        <br />
-        다시 함께 쓰려면 초대 코드가 다시 필요해요.
+        즐겨찾기·완료·기록은 원래 그대로예요.
       </Dialog>
 
       {toast && (

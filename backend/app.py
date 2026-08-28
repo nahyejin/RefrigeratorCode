@@ -2158,14 +2158,18 @@ def get_my_household():
                 return jsonify({'in_household': False}), 200
 
             cursor.execute(
-                "SELECT id, nickname FROM users WHERE household_id = %s AND deleted_at IS NULL ORDER BY id ASC",
+                """SELECT id, nickname, share_recipe_actions FROM users
+                   WHERE household_id = %s AND deleted_at IS NULL ORDER BY id ASC""",
                 (household['id'],)
             )
             members = cursor.fetchall()
             return jsonify({
                 'in_household': True,
                 'invite_code': household['invite_code'],
-                'members': [{'id': m['id'], 'nickname': m['nickname']} for m in members],
+                'members': [
+                    {'id': m['id'], 'nickname': m['nickname'], 'share_recipe_actions': bool(m['share_recipe_actions'])}
+                    for m in members
+                ],
             }), 200
         finally:
             db.close()
@@ -2176,7 +2180,13 @@ def get_my_household():
 
 @app.route('/api/households', methods=['POST'])
 def create_household():
-    """새 그룹 만들기. 이미 그룹에 속해 있으면 에러."""
+    """새 그룹 만들기. 이미 그룹에 속해 있으면 에러.
+
+    keep_ingredients(기본 true): 지금 내 재료를 그대로 그룹 재료로 쓸지.
+    false면 빈 상태로 시작한다(내 재료를 비운다 — 그룹의 저장 계정이 곧
+    내 계정이라, "가져가지 않기"는 곧 지금 재료를 없애는 것과 같다).
+    share_recipe_actions(기본 true): 내 즐겨찾기·완료·기록을 그룹원에게
+    보여줄지."""
     try:
         auth_header = request.headers.get('Authorization')
         if not auth_header or not auth_header.startswith('Bearer '):
@@ -2186,7 +2196,12 @@ def create_household():
             return jsonify({'error': '권한이 없습니다.'}), 403
         user_id = payload.get('user_id')
 
+        data = request.get_json(silent=True) or {}
+        keep_ingredients = data.get('keep_ingredients', True)
+        share_recipe_actions = data.get('share_recipe_actions', True)
+
         ensure_households_table()
+        ensure_user_data_tables()
         db = get_db()
         cursor = db.cursor()
         try:
@@ -2201,7 +2216,12 @@ def create_household():
                 (invite_code, user_id, user_id)
             )
             household_id = cursor.lastrowid
-            cursor.execute("UPDATE users SET household_id = %s WHERE id = %s", (household_id, user_id))
+            cursor.execute(
+                "UPDATE users SET household_id = %s, share_recipe_actions = %s WHERE id = %s",
+                (household_id, 1 if share_recipe_actions else 0, user_id)
+            )
+            if not keep_ingredients:
+                cursor.execute("DELETE FROM user_ingredients WHERE user_id = %s", (user_id,))
             db.commit()
             return jsonify({'invite_code': invite_code}), 201
         except Exception as e:

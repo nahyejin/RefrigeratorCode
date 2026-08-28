@@ -14,6 +14,8 @@ interface SheetProps {
   maxHeight?: string;
   /** footer 가 없을 때 하단에 자동으로 넣는 나가기 버튼 문구 */
   dismissLabel?: string;
+  /** 상단에 이미 닫기(×) 버튼이 있어 하단 나가기 버튼이 불필요할 때 끈다 */
+  hideFooter?: boolean;
 }
 
 /**
@@ -33,6 +35,7 @@ const Sheet: React.FC<SheetProps> = ({
   children,
   maxHeight = '88dvh',
   dismissLabel = '닫기',
+  hideFooter = false,
 }) => {
   // 아래로 밀어서 닫기.
   // 아래에서 올라온 시트는 아래로 미는 게 자연스러운 닫기 동작인데 지원되지 않았음.
@@ -217,14 +220,17 @@ const Sheet: React.FC<SheetProps> = ({
           {children}
         </div>
 
-        {/* 하단에는 항상 나갈 수 있는 버튼을 둔다 */}
-        <div style={{ padding: '12px 20px 16px', borderTop: '1px solid var(--line-200)' }}>
-          {footer || (
-            <Button variant="outline" size="lg" block onClick={onClose}>
-              {dismissLabel}
-            </Button>
-          )}
-        </div>
+        {/* 하단에는 보통 나갈 수 있는 버튼을 둔다 — 단, 상단에 이미 닫기(×)가
+            있고 다른 액션도 없는 시트는 hideFooter로 이 영역 자체를 없앤다 */}
+        {!hideFooter && (
+          <div style={{ padding: '12px 20px 16px', borderTop: '1px solid var(--line-200)' }}>
+            {footer || (
+              <Button variant="outline" size="lg" block onClick={onClose}>
+                {dismissLabel}
+              </Button>
+            )}
+          </div>
+        )}
       </div>
     </Portal>
   );

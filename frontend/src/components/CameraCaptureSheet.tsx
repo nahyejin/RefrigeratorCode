@@ -86,7 +86,7 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
   const installed = isStandaloneAppMode();
 
   return (
-    <Sheet open={isOpen} onClose={onClose} title="사진으로 재료 담기" maxHeight="70dvh">
+    <Sheet open={isOpen} onClose={onClose} title="사진으로 재료 담기" maxHeight="70dvh" hideFooter>
       {/* 실제 촬영/선택은 숨겨진 input 두 개가 담당한다.
           capture="environment" 는 모바일에서 바로 후면 카메라를 연다.
           아래쪽 것은 capture가 없어 앨범·파일 앱을 그대로 보여준다 — 모바일에서는
@@ -193,9 +193,9 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
         사진 앨범/파일에서 선택
       </button>
 
-      {/* 진짜 "홈 화면 위젯"/"다른 앱 위에 떠 있는 버튼"은 PWA 로는 만들 수 없다
-          (네이티브 앱이어야 함). 지금 할 수 있는 최선은 홈 화면 설치 안내뿐이라,
-          그 이상을 약속하지 않고 정직하게 이 수준으로만 안내한다. */}
+      {/* 진짜 "홈 화면 위젯"(다른 앱 위에 떠 있는 버튼 포함)은 PWA 로는 만들 수
+          없다 — 네이티브 앱이어야 한다. 지금 당장 줄 수 있는 건 홈 화면 설치
+          뿐이지만, 위젯 자체가 계획돼 있다는 것도 여기서 분명히 밝혀 둔다. */}
       {!installed && (
         <div
           style={{
@@ -208,6 +208,7 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
             fontSize: 12.5,
             lineHeight: 1.5,
             color: 'var(--ink-700)',
+            marginBottom: 8,
           }}
         >
           <span aria-hidden style={{ flexShrink: 0, fontWeight: 700, color: 'var(--ink-500)' }}>i</span>
@@ -227,6 +228,9 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
           </span>
         </div>
       )}
+      <div style={{ textAlign: 'center', fontSize: 12, color: 'var(--ink-500)' }}>
+        📱 바탕화면에 바로 찍는 위젯도 준비 중이에요. 앱 출시 후 지원될 예정이에요.
+      </div>
     </Sheet>
   );
 };
