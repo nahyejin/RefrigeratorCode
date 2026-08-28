@@ -54,6 +54,7 @@ RefrigeratorCode/
 ├── 📄 DATABASE_SCHEMA.md           # 실제 DB 스키마
 ├── 📄 DEVELOPMENT_GUIDE.md         # 개발 워크플로우 + UI 체계 규칙
 ├── 📄 HOUSEHOLD_FEATURE.md         # 식구 그룹 + 요리 캘린더 기능 동작 방식
+├── 📄 CHATBOT_FEATURE.md           # AI 요리 챗봇 동작 방식 (프롬프트·검색·팔로우업)
 ├── 📄 ENVIRONMENT_SETUP.md
 └── 📄 CHANGELOG.md                 # 변경 이력
 ```

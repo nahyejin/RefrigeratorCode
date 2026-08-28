@@ -489,6 +489,7 @@ python run_dev.py
 - `DATABASE_SCHEMA.md`: 데이터베이스 스키마
 - `DEVELOPMENT_GUIDE.md`: 개발 가이드
 - `HOUSEHOLD_FEATURE.md`: 식구 그룹(다중 계정 공유) + 요리 캘린더 기능 동작 방식
+- `CHATBOT_FEATURE.md`: AI 요리 챗봇 동작 방식 (프롬프트 설계, 검색 로직, 팔로우업 질문 처리, 재료 언급 우선순위)
 - `MOBILE_APP_GUIDE.md`: 모바일 앱 출시 가이드
 - `PERFORMANCE_OPTIMIZATION.md`: 성능 최적화 가이드
 
