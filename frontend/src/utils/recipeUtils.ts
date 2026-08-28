@@ -50,6 +50,27 @@ function normalize(s: string): string {
   return (s || '').trim().toLowerCase();
 }
 
+// 매칭률 계산에서 재료마다 가중치를 다르게 준다: 조미료는 낮게, 나머지 식재료는 높게.
+// 소금·후추 몇 개 없다고 매칭률이 크게 깎이거나, 반대로 조미료만 있어도 매칭률이
+// 올라가는 문제를 줄인다.
+//
+// 챗봇(backend/chat_service.py)의 _load_seasoning_set() 과 반드시 같은 재료로
+// 맞춘다 — 하나만 고치면 챗봇과 냉장고요리/요즘인기 화면의 매칭률이 서로 달라진다.
+// 재료 사전엔 이 카테고리(대분류=재료, 중분류=양념/조미료)에 287개가 있지만,
+// 챗봇 쪽은 그 전부를 SQL 실시간 계산에 쓰면 응답이 25초 넘게 걸려(실측) 목록을
+// 이만큼으로 줄였다 — 여기도 같은 크기로 맞춘 것이지, 프론트만 따로 다 쓸 수
+// 있어서 안 쓴 게 아니다.
+const SEASONING_WEIGHT = 0.3;
+const CORE_WEIGHT = 1.0;
+const SEASONING_INGREDIENTS = new Set([
+  '소금', '후추', '설탕', '식용유', '참기름', '들기름', '맛술', '미림',
+  '식초', '물', '간장', '올리고당', '굴소스', '다시다', '미원',
+]);
+
+function ingredientWeight(name: string): number {
+  return SEASONING_INGREDIENTS.has(name.trim()) ? SEASONING_WEIGHT : CORE_WEIGHT;
+}
+
 // =====================
 // 타입 정의
 // =====================
@@ -282,8 +303,7 @@ export function calculateMatchRate(myIngredients: string[], recipeIngredients: s
     ? recipeIngredients
     : recipeIngredients.split(',');
   const recipeList = recipeArr.map((i: string) => i.trim()).filter(Boolean);
-  const recipeSet = new Set(recipeList);
-  
+
   // 동의어 사전 사용 (전달받은 dict 또는 캐시 사용)
   const dict = synonymDict || ingredientSynonymDictCache;
   
@@ -298,21 +318,26 @@ export function calculateMatchRate(myIngredients: string[], recipeIngredients: s
   // 매칭된 재료와 부족한 재료 분리 (원본 재료명 유지)
   const matched: string[] = [];
   const needIngredients: string[] = [];
-  
+  let matchedWeight = 0;
+  let totalWeight = 0;
+
   recipeList.forEach(ingredient => {
     // 레시피 재료도 keyword로 변환 (동의어 고려)
     const convertedIngredient = dict ? convertSynonymToKeywordSync(ingredient, dict) : ingredient;
     const normalized = normalize(convertedIngredient);
-    
+    const weight = ingredientWeight(ingredient);
+    totalWeight += weight;
+
     if (mySet.has(normalized)) {
       matched.push(ingredient); // 원본 재료명 유지
+      matchedWeight += weight;
     } else {
       needIngredients.push(ingredient);
     }
   });
-  
+
   return {
-    rate: recipeSet.size === 0 ? 0 : Math.round((matched.length / recipeSet.size) * 100),
+    rate: totalWeight === 0 ? 0 : Math.round((matchedWeight / totalWeight) * 100),
     my_ingredients: matched,
     need_ingredients: needIngredients, // 부족한 재료만 반환 (원본 재료명 유지)
   };

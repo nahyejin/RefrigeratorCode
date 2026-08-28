@@ -30,13 +30,18 @@ MAX_PER_DISH = 2
 # 다양성 필터로 걸러낼 것을 감안해 넉넉히 가져온다
 FETCH_MULTIPLIER = 5
 
-# 거의 모든 집에 있어서 "매칭 여부"가 큰 의미가 없는 조미료.
+# 재료마다 매칭 가중치를 다르게 준다.
 #   기존 매칭률은 재료 개수 비율이라 소금·후추도 새우·소고기와 똑같은 가중치를 가져서,
 #   조미료 몇 개 없다고 매칭률이 크게 깎이거나(부족 재료로 표시), 반대로 조미료만
-#   있어도 매칭률이 올라가는 문제가 있었다. 여기 있는 것만 매칭 계산에서 제외한다
-#   (분모·분자 둘 다에서 뺀다). 고추장/된장/고춧가루처럼 요리의 정체성을 결정하는
-#   양념은 일부러 뺐다 — "매운 거" 검색이 고추장 매칭에 기대는 부분이 있어서다.
-COMMON_SEASONINGS = ['소금', '후추', '설탕', '식용유', '참기름', '들기름', '맛술', '미림', '식초', '물']
+#   있어도 매칭률이 올라가는 문제가 있었다.
+#   재료 사전(ingredient_profile_dict_with_substitutes.csv)의 대분류=재료 /
+#   중분류=양념·조미료 분류를 그대로 써서, 그 카테고리에 속한 재료는 낮은 가중치를,
+#   나머지 식재료는 높은 가중치를 준다(_load_seasoning_set 참고).
+#   0으로 완전히 빼지 않은 이유: 고추장처럼 요리의 정체성을 결정하는 양념도 이
+#   카테고리에 섞여 있어서, 아예 무시하면 "매운 거" 검색이 고추장 매칭에 기대는
+#   부분이 깨진다. 낮게만 반영한다.
+SEASONING_WEIGHT = 0.3
+CORE_WEIGHT = 1.0
 
 # 사용자가 특정 맛/재료/요리명 없이 "그냥 있는 걸로 뭐 해먹을 수 있어?" 식으로
 # 넓게 물을 때를 감지한다.
@@ -290,24 +295,37 @@ def _search_recipes(get_db, keywords, include_ingredients, exclude_ingredients, 
                 relevance_params.append(like)
         relevance = ' + '.join(relevance_parts) if relevance_parts else '0'
 
-        # ── 냉장고 재료 매칭률
-        # 조미료(COMMON_SEASONINGS)는 분모·분자 둘 다에서 뺀 문자열로 계산한다.
-        # 콤마로 앞뒤를 감싸서(",a,b,") 정확히 그 항목만 지운다 — 부분 문자열로
-        # 다른 재료 이름 일부가 잘리는 일이 없게. 값은 고정 상수(사용자 입력 아님)라
-        # SQL에 직접 넣어도 인젝션 위험이 없다.
+        # ── 냉장고 재료 매칭률 (재료별 가중치 적용)
+        seasoning_set = _load_seasoning_set()
+
+        # 콤마로 앞뒤를 감싸서(",a,b,") 조미료만 정확히 지운 문자열을 만든다 —
+        # 부분 문자열로 다른 재료 이름 일부가 잘리는 일이 없게. 사전 값은 고정
+        # 상수(사용자 입력 아님)라 SQL에 직접 넣어도 인젝션 위험이 없다.
         seasoning_free = "CONCAT(',', REPLACE(used_ingredients,' ',''), ',')"
-        for _seasoning in COMMON_SEASONINGS:
+        for _seasoning in seasoning_set:
             _quoted = "'" + _seasoning.replace("\\", "\\\\").replace("'", "\\'") + "'"
             seasoning_free = f"REPLACE({seasoning_free}, CONCAT(',', {_quoted}, ','), ',')"
 
         fridge = [] if ignore_fridge else [i for i in my_ingredients if i][:20]
         if fridge:
             match_parts = [
-                f"(CASE WHEN FIND_IN_SET(%s, {seasoning_free}) > 0 THEN 1 ELSE 0 END)"
-                for _ in fridge
+                f"(CASE WHEN FIND_IN_SET(%s, REPLACE(used_ingredients,' ','')) > 0 "
+                f"THEN {SEASONING_WEIGHT if ing in seasoning_set else CORE_WEIGHT} ELSE 0 END)"
+                for ing in fridge
             ]
-            # 콤마로 감쌌으므로 항목 수 = 콤마 개수 - 1 (양 끝에 콤마가 하나씩 더 있음)
-            total_ing = f"""
+            match_params = fridge[:]
+
+            # 레시피 전체 재료 개수(가중치 없음)
+            total_ing = """
+              CASE WHEN used_ingredients IS NULL OR used_ingredients=''
+                   THEN 0
+                   ELSE LENGTH(REPLACE(used_ingredients,' ',''))
+                        - LENGTH(REPLACE(REPLACE(used_ingredients,' ',''),',',''))  + 1
+              END
+            """
+            # 그중 조미료가 아닌 것의 개수 (조미료만 지운 문자열의 항목 수.
+            # 콤마로 감쌌으므로 항목 수 = 콤마 개수 - 1, 양 끝에 콤마가 하나씩 더 있음)
+            non_seasoning_count = f"""
               CASE WHEN used_ingredients IS NULL OR used_ingredients=''
                         OR {seasoning_free} = ',,'
                    THEN 0
@@ -315,11 +333,16 @@ def _search_recipes(get_db, keywords, include_ingredients, exclude_ingredients, 
                         - LENGTH(REPLACE({seasoning_free}, ',', '')) - 1
               END
             """
-            match_rate = (
-                f"CASE WHEN ({total_ing}) = 0 THEN 0 "
-                f"ELSE ROUND(({' + '.join(match_parts)})/({total_ing})*100) END"
+            # 가중치 적용 분모 = 조미료 아닌 개수*CORE_WEIGHT + 조미료 개수*SEASONING_WEIGHT
+            #                = 전체*SEASONING_WEIGHT + (조미료 아닌 개수)*(CORE_WEIGHT - SEASONING_WEIGHT)
+            weighted_total = (
+                f"(({total_ing}) * {SEASONING_WEIGHT} "
+                f"+ ({non_seasoning_count}) * {CORE_WEIGHT - SEASONING_WEIGHT})"
             )
-            match_params = fridge[:]
+            match_rate = (
+                f"CASE WHEN ({weighted_total}) = 0 THEN 0 "
+                f"ELSE ROUND(({' + '.join(match_parts)})/({weighted_total})*100) END"
+            )
         else:
             match_rate = '0'
             match_params = []
@@ -422,6 +445,34 @@ def _load_dish_names():
     if not names:
         print('[chat] 요리명 사전을 찾지 못했습니다 — 결과 다양성 필터를 건너뜁니다.')
     return _dish_names
+
+
+def _load_seasoning_set():
+    """매칭률 계산에서 낮은 가중치(SEASONING_WEIGHT)를 줄 조미료 목록.
+
+    재료 사전(`ingredient_profile_dict_with_substitutes.csv`)에는 `대분류=재료,
+    중분류=양념/조미료` 로 분류된 낱말이 287개 있다 — 이 프로젝트가 이미 갖고 있는
+    "정식" 분류라 처음엔 이걸 그대로 썼다.
+
+    **실측 결과 SQL에 못 썼다.** 냉장고 우선 검색(키워드 없이 재료만으로 찾는 경우)은
+    조건절로 좁혀지지 않아 recipes 테이블 대부분을 훑는데, 그 각 행마다 287개 낱말을
+    대조하는 연산(REPLACE 체인이든 FIND_IN_SET 합산이든 방식은 무관 — 둘 다 실측)이
+    행 수 × 287번 실행돼 응답이 25~27초까지 걸렸다(정상은 2초 안팎). 10~20개 수준까지
+    줄이면 2~3초대로 돌아온다 — 즉 "몇 개짜리 목록이냐" 자체가 성능을 좌우한다.
+
+    그래서 여기서는 사전 대신, 실측으로 성능이 확인된 크기의 목록을 직접 골라 쓴다.
+    이 목록은 프론트(`frontend/src/utils/recipeUtils.ts`)의 SEASONING_WEIGHTS 와
+    **같은 재료로 맞춰야** 앱 전체에서 매칭률이 같은 기준으로 보인다 — 둘 중 하나만
+    고치면 챗봇과 냉장고요리/요즘인기 화면의 매칭률이 서로 달라진다.
+
+    287개 전체를 실시간 쿼리에 쓰려면 이 계산을 recipes 테이블에 미리 컬럼으로
+    저장해 두는 방식(배치로 한 번 계산 후 DB에 반영)으로 바꿔야 한다 — 지금은
+    범위 밖으로 남겨둔다.
+    """
+    return {
+        '소금', '후추', '설탕', '식용유', '참기름', '들기름', '맛술', '미림',
+        '식초', '물', '간장', '올리고당', '굴소스', '다시다', '미원',
+    }
 
 
 def _dish_key(title):
