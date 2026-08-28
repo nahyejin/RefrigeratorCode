@@ -37,6 +37,20 @@ print(f"[환경변수 로드 확인] RAILWAY_ENVIRONMENT: {os.getenv('RAILWAY_EN
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', secrets.token_hex(32))
 
+# 재료 매칭률 계산에서 조미료는 낮은 가중치, 나머지 식재료는 높은 가중치를 준다.
+# chat_service.py의 _load_seasoning_set() / frontend/src/utils/recipeUtils.ts의
+# SEASONING_INGREDIENTS 와 반드시 같은 재료·같은 가중치로 맞춘다 — 셋 중 하나만
+# 고치면 챗봇/냉장고요리·요즘인기 서버 정렬/카드 표시 매칭률이 서로 달라진다.
+# (재료 사전엔 이 분류가 287개 있지만, 여긴 사용자가 가진 재료 수만큼만 반복하므로
+# chat_service.py 와 달리 성능 문제는 없다 — 그래도 세 곳의 숫자를 갈라지게 두지
+# 않으려고 일부러 같은 15개로 맞췄다)
+SEASONING_WEIGHT = 0.3
+CORE_WEIGHT = 1.0
+SEASONING_INGREDIENTS = {
+    '소금', '후추', '설탕', '식용유', '참기름', '들기름', '맛술', '미림',
+    '식초', '물', '간장', '올리고당', '굴소스', '다시다', '미원',
+}
+
 # 한글이 유니코드 이스케이프 시퀀스로 변환되지 않도록 설정
 app.config['JSON_AS_ASCII'] = False
 
@@ -425,6 +439,29 @@ def get_filtered_recipes():
            ELSE LENGTH(REPLACE(used_ingredients,' ','')) - LENGTH(REPLACE(REPLACE(used_ingredients,' ',''),',','')) + 1
       END
     """
+
+    # 조미료만 지운 문자열(재료 가중치 계산용). 콤마로 앞뒤를 감싸서(",a,b,")
+    # 정확히 그 항목만 지운다 — 부분 문자열로 다른 재료 이름 일부가 잘리지 않게.
+    # SEASONING_INGREDIENTS는 고정 상수(사용자 입력 아님)라 SQL에 직접 넣어도
+    # 인젝션 위험이 없다.
+    _seasoning_free_expr = "CONCAT(',', REPLACE(used_ingredients,' ',''), ',')"
+    for _seasoning in SEASONING_INGREDIENTS:
+        _quoted = "'" + _seasoning.replace("\\", "\\\\").replace("'", "\\'") + "'"
+        _seasoning_free_expr = f"REPLACE({_seasoning_free_expr}, CONCAT(',', {_quoted}, ','), ',')"
+    non_seasoning_ing_expr = f"""
+      CASE WHEN used_ingredients IS NULL OR used_ingredients=''
+                OR {_seasoning_free_expr} = ',,'
+           THEN 0
+           ELSE LENGTH({_seasoning_free_expr})
+                - LENGTH(REPLACE({_seasoning_free_expr}, ',', '')) - 1
+      END
+    """
+    # 가중치 적용 분모 = 조미료 아닌 개수*CORE_WEIGHT + 조미료 개수*SEASONING_WEIGHT
+    #                = 전체*SEASONING_WEIGHT + (조미료 아닌 개수)*(CORE_WEIGHT - SEASONING_WEIGHT)
+    weighted_total_ing_expr = (
+        f"(({total_ing_expr}) * {SEASONING_WEIGHT} "
+        f"+ ({non_seasoning_ing_expr}) * {CORE_WEIGHT - SEASONING_WEIGHT})"
+    )
     
     # match_rate 계산은 정렬이 match_rate이거나 match_rate 필터가 있을 때만 수행
     need_match_rate = (sort_by == 'match_rate' or match_rate_min is not None or match_rate_max is not None)
@@ -496,21 +533,27 @@ def get_filtered_recipes():
         # REGEXP로 한 번에 모든 재료를 검색 (매칭 여부만 확인)
         # 매칭 개수는 REGEXP로 매칭된 경우에만 각 재료를 개별적으로 체크
         # 매칭되지 않은 레시피는 개별 체크를 생략하여 성능 향상
+        # 재료마다 가중치를 다르게 준다: 조미료는 SEASONING_WEIGHT, 나머지는 CORE_WEIGHT
         match_count_parts = [
-            f"(CASE WHEN FIND_IN_SET(%s, REPLACE(used_ingredients,' ','')) > 0 THEN 1 ELSE 0 END)"
-            for _ in my_ingredients
+            f"(CASE WHEN FIND_IN_SET(%s, REPLACE(used_ingredients,' ','')) > 0 "
+            f"THEN {SEASONING_WEIGHT if ing in SEASONING_INGREDIENTS else CORE_WEIGHT} ELSE 0 END)"
+            for ing in my_ingredients
         ]
         match_count_expr = f"""
-            CASE 
+            CASE
                 WHEN {normalized_ingredients} REGEXP %s THEN ({' + '.join(match_count_parts)})
                 ELSE 0
             END
         """
-        
+
         # REGEXP 패턴을 첫 번째 파라미터로 추가, 그 다음 재료들 추가
         match_rate_params = [regex_pattern_param] + my_ingredients.copy()
-        
-        match_rate_expr = f"CASE WHEN ({total_ing_expr}) = 0 THEN 0 ELSE ROUND(({match_count_expr})/({total_ing_expr})*100) END"
+
+        # weighted_total_ing_expr(가중치 적용 분모)는 used_ingredients가 있으면
+        # SEASONING_WEIGHT > 0 이라 항상 0보다 크다 — "0인지" 재확인 대신 이미 계산해
+        # 둔 total_ing_expr의 0/공백 체크를 그대로 재사용해서, 무거운 조미료 제외
+        # 문자열(weighted_total_ing_expr 안의 REPLACE 체인)을 한 번만 평가한다.
+        match_rate_expr = f"CASE WHEN used_ingredients IS NULL OR used_ingredients='' THEN 0 ELSE ROUND(({match_count_expr})/({weighted_total_ing_expr})*100) END"
     else:
         # match_rate가 필요 없을 때는 계산 생략하여 성능 향상
         match_rate_expr = "0"
