@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
+import BackButton from '../components/ui/BackButton';
 import NeangteolButton from '../components/NeangteolButton';
 import NeangteolInput from '../components/NeangteolInput';
 import { useAuth } from '../context/AuthContext';
@@ -274,6 +275,10 @@ const Signup: React.FC = () => {
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-white">
+      {/* 공통 GNB(고정 헤더, z-index 200) 바로 아래 고정. 콘텐츠가 세로 중앙
+          정렬이라 화면 높이에 따라 위치가 들쭉날쭉해지는 것을 피하려고
+          문서 흐름이 아닌 고정 위치로 둔다 */}
+      <BackButton onClick={() => navigate(-1)} style={{ position: 'fixed', top: 64, left: 12, zIndex: 201 }} />
       <div className="w-full max-w-[390px] flex flex-col items-center mx-auto py-6" style={{ minHeight: '100vh' }}>
         {/* 상단 여백 */}
         <div style={{ flex: '0.2', minHeight: '60px' }}></div>

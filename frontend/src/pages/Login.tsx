@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
+import BackButton from '../components/ui/BackButton';
 import googleLogo from '../assets/구글로고.png';
 import kakaoLogo from '../assets/카카오톡로고.png';
 import naverLogo from '../assets/네이버로고.png';
@@ -133,6 +134,10 @@ const Login: React.FC = () => {
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-white">
+      {/* 공통 GNB(고정 헤더, z-index 200) 바로 아래 고정. 콘텐츠가 세로 중앙
+          정렬이라 화면 높이에 따라 위치가 들쭉날쭉해지는 것을 피하려고
+          문서 흐름이 아닌 고정 위치로 둔다 */}
+      <BackButton onClick={() => navigate(-1)} style={{ position: 'fixed', top: 64, left: 12, zIndex: 201 }} />
       <div className="w-full max-w-[390px] flex flex-col items-center mx-auto py-6" style={{ minHeight: '100vh' }}>
         {/* 상단 여백 - 더 줄임 */}
         <div style={{ flex: '0.3', minHeight: '80px' }}></div>
