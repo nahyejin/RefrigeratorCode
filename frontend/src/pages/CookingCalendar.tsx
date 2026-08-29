@@ -530,8 +530,8 @@ const CookingCalendar: React.FC = () => {
         )}
         {/* 절약액은 재료 가격 데이터가 없어 정확한 계산이 아니라 대략적인
             추정치다 — 그렇게 명시해서 실제 계산인 것처럼 오해하지 않게 한다.
-            "목표를 달성하면 얼마인지"가 아니라 "지금까지 완료한 횟수 기준"
-            이라는 게 헷갈린다는 지적을 받아 "지금까지"를 헤드라인에 직접
+            "목표를 달성하면 얼마인지"가 아니라 "이번 달 완료한 횟수 기준"
+            이라는 게 헷갈린다는 지적을 받아 "이번달"을 헤드라인에 직접
             박아 뒀다(아래 계산식 줄의 × {monthlyTotal}회 도 같은 의미).
             한 끼 추정액도 1인 기준(식구 수를 곱하므로)임을 명시했다.
             계산식 문장 안에 수정 버튼을 끼워 넣었더니 문장이 이상한
@@ -550,7 +550,7 @@ const CookingCalendar: React.FC = () => {
                 <ellipse cx="12" cy="12" rx="7" ry="3" />
                 <path d="M5 12v5M19 12v5" />
               </svg>
-              지금까지 예상 절약액 약 {formatWon(estimatedSavings)}원
+              이번달 예상 절약액 약 {formatWon(estimatedSavings)}원
             </div>
             <div style={{ fontSize: 11, color: 'var(--ink-500)', marginTop: 3, lineHeight: 1.5 }}>
               외식·배달 대비 1인 한 끼 {formatWon(savingsPerMeal)}원 절약 추정 × {monthlyTotal}회 × 식구 {familySize}명
