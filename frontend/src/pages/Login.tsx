@@ -252,15 +252,6 @@ const Login: React.FC = () => {
           })}
         </div>
 
-        {/* 식구 그룹(초대 코드로 서로 다른 계정끼리 냉장고를 공유하는) 기능이
-            이미 있는데, 예전 문구는 "한 계정을 같이 쓰라"고 안내하고 있어서
-            실제 기능과 달랐다 — 각자 계정으로 로그인 후 그룹 초대로 연결하는
-            방식이 맞는 안내다. */}
-        <p className={`w-full ${MAX_CONTAINER_WIDTH} text-center text-[12px] text-gray-400 mt-3 mx-auto leading-snug`}>
-          함께 냉장고를 쓰는 가족과 이용하시려면,<br />
-          각자 계정으로 로그인한 뒤 식구 그룹 초대로 연결하시면 돼요.
-        </p>
-
         {/* 비회원으로 계속하기 버튼 (하단 분리) */}
         <div className={`flex flex-col gap-3 ${CONTAINER_WIDTH} mt-8 mb-8 items-center`}>
           <NeangteolButton 
