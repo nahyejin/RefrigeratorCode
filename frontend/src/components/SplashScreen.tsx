@@ -103,13 +103,13 @@ const Utils = {
 
 const SplashScreen: React.FC<SplashScreenProps> = ({ recipeCount }) => {
   const [stage, setStage] = useState<'roulette' | 'final'>('roulette');
-  const [displayDigits, setDisplayDigits] = useState<string[]>(['0', '0', '0', '0']);
+  const [displayDigits, setDisplayDigits] = useState<string[]>(['0']);
   const animationRef = useRef<number | undefined>(undefined);
   const rouletteStartTime = useRef<number>(0);
 
   useEffect(() => {
     if (recipeCount === 0) {
-      setDisplayDigits(['0', '0', '0', '0']);
+      setDisplayDigits(['0']);
       setStage('roulette');
       return;
     }
