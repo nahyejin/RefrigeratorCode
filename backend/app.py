@@ -2470,12 +2470,16 @@ def join_household():
                     "SELECT name, storage_box, expiry_date, purchase_date FROM user_ingredients WHERE user_id = %s",
                     (user_id,)
                 )
-                personal = cursor.fetchall()
+                # pymysql은 결과가 0건이면 fetchall()이 list가 아니라 빈 tuple을
+                # 돌려준다 — 그 상태로 아래에서 group_ings + personal 을 하면
+                # "새 계정이라 개인 재료가 0개"인 아주 흔한 경우에 list+tuple
+                # TypeError로 죽는다. list()로 감싸 항상 list를 보장한다.
+                personal = list(cursor.fetchall())
                 cursor.execute(
                     "SELECT name, storage_box, expiry_date, purchase_date FROM user_ingredients WHERE user_id = %s",
                     (storage_user_id,)
                 )
-                group_ings = cursor.fetchall()
+                group_ings = list(cursor.fetchall())
 
                 def better(a, b):
                     if a['expiry_date'] and b['expiry_date']:
@@ -3053,7 +3057,9 @@ def get_household_completed_calendar():
                        AND deleted_at IS NULL AND (share_recipe_actions = 1 OR id = %s)""",
                     (household['id'], user_id)
                 )
-                member_rows = cursor.fetchall()
+                # fetchall()이 0건일 때 tuple을 돌려주는 pymysql 특성 때문에
+                # 아래 member_rows.append(me)가 터질 수 있어 list로 감싼다.
+                member_rows = list(cursor.fetchall())
             else:
                 member_rows = []
             member_ids = [r['id'] for r in member_rows]
