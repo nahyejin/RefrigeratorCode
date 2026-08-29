@@ -1487,10 +1487,6 @@ const MyPage: React.FC = () => {
             gap={16}
             compactSectionGap
             getAttributionLabel={buildAttributionLabel('favorite')}
-            // 내가 즐겨찾고·기록하고·완료한 목록은 사용자가 직접 모아 둔 것이다.
-            // 그 사이에 광고 카드를 끼우면 목록의 성격이 흐려지므로 여기서는 끈다.
-            // (부족 재료를 눌렀을 때 뜨는 구매 안내는 그대로 동작한다)
-            showAds={false}
             emptyMessage={
               <>
                 <div>즐겨찾는 레시피가 없습니다.</div>
@@ -1552,10 +1548,6 @@ const MyPage: React.FC = () => {
             gap={16}
             compactSectionGap
             getAttributionLabel={buildAttributionLabel('recorded')}
-            // 내가 즐겨찾고·기록하고·완료한 목록은 사용자가 직접 모아 둔 것이다.
-            // 그 사이에 광고 카드를 끼우면 목록의 성격이 흐려지므로 여기서는 끈다.
-            // (부족 재료를 눌렀을 때 뜨는 구매 안내는 그대로 동작한다)
-            showAds={false}
             emptyMessage={
               <>
                 <div>기록된 레시피가 없습니다.</div>
@@ -1623,10 +1615,6 @@ const MyPage: React.FC = () => {
             gap={16}
             compactSectionGap
             getAttributionLabel={buildAttributionLabel('completed')}
-            // 내가 즐겨찾고·기록하고·완료한 목록은 사용자가 직접 모아 둔 것이다.
-            // 그 사이에 광고 카드를 끼우면 목록의 성격이 흐려지므로 여기서는 끈다.
-            // (부족 재료를 눌렀을 때 뜨는 구매 안내는 그대로 동작한다)
-            showAds={false}
             emptyMessage={
               <>
                 <div>완료된 레시피가 없습니다.</div>

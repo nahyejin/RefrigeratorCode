@@ -9,8 +9,8 @@ interface CoupangAdCardProps {
   /** 광고를 고른 근거가 된 레시피 — 측정용 */
   recipeId?: number;
   lackingCount?: number;
-  width: number;
-  height: number;
+  width: number | string;
+  height: number | string;
 }
 
 /**
