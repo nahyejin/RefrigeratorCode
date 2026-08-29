@@ -130,6 +130,12 @@ const CookingCalendar: React.FC = () => {
   // 화면에 안 들어온다. 목표·달성률·절약액까지는 항상 보이고, 그 아래
   // 범례/안내 문구만 기본으로 접어 둔다.
   const [goalCardExpanded, setGoalCardExpanded] = React.useState(false);
+  // 완료 버튼을 실제로 요리한 날 바로 안 누르면 캘린더에 엉뚱한 날짜로
+  // 찍힌다 — 일 보기에서 내가 완료한 기록만 날짜를 직접 고칠 수 있게 한다.
+  // 키는 "recipe_id-user_id" (완료 기록은 user_id+recipe_id로 유일함).
+  const [editingDateKey, setEditingDateKey] = React.useState<string | null>(null);
+  const [dateInput, setDateInput] = React.useState('');
+  const [savingDate, setSavingDate] = React.useState(false);
 
   const monthStart = new Date(anchorDate.getFullYear(), anchorDate.getMonth(), 1);
   const monthEnd = new Date(anchorDate.getFullYear(), anchorDate.getMonth() + 1, 0);
@@ -172,6 +178,35 @@ const CookingCalendar: React.FC = () => {
   React.useEffect(() => {
     loadCalendar();
   }, [loadCalendar]);
+
+  const handleSaveCompletedDate = async (entry: CalendarEntry) => {
+    if (!authUser?.id || !dateInput) return;
+    setSavingDate(true);
+    try {
+      const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+      const apiUrl = getApiUrl();
+      const res = await fetch(
+        `${apiUrl}/api/users/${authUser.id}/completed-recipes/${entry.recipe_id}/date`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ date: dateInput }),
+        }
+      );
+      if (res.ok) {
+        setEditingDateKey(null);
+        await loadCalendar();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || '완료 날짜 수정에 실패했어요.');
+      }
+    } catch (e) {
+      console.warn('[CookingCalendar] 완료 날짜 수정 실패:', e);
+      alert('완료 날짜 수정 중 오류가 발생했어요.');
+    } finally {
+      setSavingDate(false);
+    }
+  };
 
   const nicknameById = React.useMemo(() => {
     const map = new Map<number, string>();
@@ -808,7 +843,11 @@ const CookingCalendar: React.FC = () => {
               이 날은 완료한 레시피가 없어요.
             </div>
           ) : (
-            (entriesByDay.get(selectedDay) || []).map((e, i) => (
+            (entriesByDay.get(selectedDay) || []).map((e, i) => {
+              const dateKey = `${e.recipe_id}-${e.user_id}`;
+              const isMine = authUser?.id != null && e.user_id === Number(authUser.id);
+              const isEditing = editingDateKey === dateKey;
+              return (
               <div
                 key={`${e.recipe_id}-${e.user_id}-${i}`}
                 style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 12, border: '1px solid var(--line-200)' }}
@@ -832,8 +871,47 @@ const CookingCalendar: React.FC = () => {
                     </span>
                   </div>
                 </div>
+                {/* 완료 버튼을 실제로 요리한 날 바로 안 누르면 캘린더에 엉뚱한
+                    날짜로 찍힌다 — 내가 완료한 기록만 날짜를 고칠 수 있게 한다
+                    (다른 식구의 기록은 본인만 고칠 수 있음). */}
+                {isMine && (
+                  isEditing ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                      <input
+                        type="date"
+                        value={dateInput}
+                        max={toDateKey(new Date())}
+                        onChange={(ev) => setDateInput(ev.target.value)}
+                        style={{ height: 28, borderRadius: 6, border: '1px solid var(--brand)', fontSize: 12, padding: '0 6px' }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleSaveCompletedDate(e)}
+                        disabled={savingDate}
+                        aria-label="완료 날짜 적용"
+                        style={{ width: 26, height: 26, borderRadius: 6, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1A1A1E', background: 'var(--brand)', border: 'none', cursor: savingDate ? 'default' : 'pointer', opacity: savingDate ? 0.6 : 1 }}
+                      >
+                        <CheckIcon />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDateInput(e.day);
+                        setEditingDateKey(dateKey);
+                      }}
+                      aria-label="완료일자 수정"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 4, height: 26, padding: '0 8px', borderRadius: 9999, flexShrink: 0, fontSize: 11, fontWeight: 600, color: 'var(--ink-700)', background: 'var(--surface-sub)', border: '1px solid var(--line-300)', cursor: 'pointer' }}
+                    >
+                      <PencilIcon />
+                      완료일자 수정
+                    </button>
+                  )
+                )}
               </div>
-            ))
+              );
+            })
           )}
         </div>
         )}

@@ -73,7 +73,7 @@ CORS(app,
      origins=[origin.strip() for origin in cors_origins if origin.strip()], 
      supports_credentials=True,
      allow_headers=['Content-Type', 'Authorization'],
-     methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'])
+     methods=['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'])
 
 def get_db():
     host = (
@@ -3735,6 +3735,70 @@ def remove_user_completed_recipe(user_id, recipe_id):
             
     except Exception as e:
         print(f"Remove user completed recipe error: {e}")
+        return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
+
+@app.route('/api/users/<int:user_id>/completed-recipes/<int:recipe_id>/date', methods=['PATCH'])
+def update_user_completed_recipe_date(user_id, recipe_id):
+    """완료 기록의 날짜만 수정한다(시각은 기존 값 유지).
+
+    완료 버튼을 실제로 요리한 날 바로 안 누르고 나중에(예: 하루 지나서) 누르면
+    캘린더에 엉뚱한 날짜로 찍힌다 — 이 엔드포인트로 사용자가 직접 날짜를
+    바로잡을 수 있게 한다."""
+    try:
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({'error': '인증이 필요합니다.'}), 401
+
+        token = auth_header.split(' ')[1]
+        payload = verify_jwt_token(token)
+
+        if not payload or payload.get('user_id') != user_id:
+            return jsonify({'error': '권한이 없습니다.'}), 403
+
+        data = request.get_json() or {}
+        new_date_str = (data.get('date') or '').strip()
+
+        try:
+            new_date = datetime.strptime(new_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            return jsonify({'error': '날짜 형식이 올바르지 않습니다(YYYY-MM-DD).'}), 400
+
+        if new_date > datetime.now().date():
+            return jsonify({'error': '미래 날짜로는 수정할 수 없습니다.'}), 400
+
+        ensure_user_data_tables()
+        db = get_db()
+        cursor = db.cursor()
+
+        try:
+            cursor.execute(
+                "SELECT created_at FROM user_completed_recipes WHERE user_id = %s AND recipe_id = %s",
+                (user_id, recipe_id)
+            )
+            row = cursor.fetchone()
+            if not row:
+                return jsonify({'error': '완료 기록을 찾을 수 없습니다.'}), 404
+
+            # 시각은 원래 완료 버튼을 누른 시각을 그대로 두고 날짜만 바꾼다.
+            existing_time = row['created_at'].time()
+            new_created_at = datetime.combine(new_date, existing_time)
+
+            cursor.execute(
+                "UPDATE user_completed_recipes SET created_at = %s WHERE user_id = %s AND recipe_id = %s",
+                (new_created_at, user_id, recipe_id)
+            )
+            db.commit()
+            return jsonify({'message': '완료 날짜가 수정되었습니다.', 'created_at': new_created_at.isoformat()}), 200
+
+        except Exception as e:
+            db.rollback()
+            print(f"Update completed recipe date error: {e}")
+            return jsonify({'error': '날짜 수정 중 오류가 발생했습니다.'}), 500
+        finally:
+            db.close()
+
+    except Exception as e:
+        print(f"Update completed recipe date error: {e}")
         return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
 
 @app.route('/api/users/<int:user_id>/favorite-recipes', methods=['GET'])
