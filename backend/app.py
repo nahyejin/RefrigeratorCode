@@ -1614,11 +1614,13 @@ def delete_account():
         user_id = payload.get('user_id')
         email = payload.get('email')
         provider = payload.get('provider', 'local')
-        
+
         ensure_users_table()
+        ensure_households_table()
+        ensure_user_data_tables()
         db = get_db()
         cursor = db.cursor()
-        
+
         try:
             # 사용자 존재 확인 (탈퇴하지 않은 사용자만)
             cursor.execute(
@@ -1626,23 +1628,48 @@ def delete_account():
                 (user_id, email, provider)
             )
             user = cursor.fetchone()
-            
+
             if not user:
                 return jsonify({'error': '사용자를 찾을 수 없습니다.'}), 404
-            
+
+            # 그룹에 속해 있는데 그룹을 나가지 않고 바로 탈퇴하면, 이 사람이
+            # 그룹의 재료 저장 계정(storage_user_id)이었을 경우 그룹 재료가
+            # 탈퇴한 계정에 그대로 남아 아무도 못 보게 된다 — leave_household()와
+            # 같은 방식으로 남은 멤버에게 저장 위치를 넘겨준다(데이터는 복사).
+            # 남은 멤버가 없으면(그룹에 혼자였으면) 그룹 자체를 정리한다.
+            household = get_household_by_user(cursor, user_id)
+            if household and household['storage_user_id'] == user_id:
+                cursor.execute(
+                    "SELECT id FROM users WHERE household_id = %s AND id != %s ORDER BY id ASC LIMIT 1",
+                    (household['id'], user_id)
+                )
+                next_owner = cursor.fetchone()
+                if next_owner:
+                    _copy_ingredients(cursor, user_id, next_owner['id'], datetime.now())
+                    cursor.execute(
+                        "UPDATE households SET storage_user_id = %s WHERE id = %s",
+                        (next_owner['id'], household['id'])
+                    )
+                else:
+                    cursor.execute("DELETE FROM households WHERE id = %s", (household['id'],))
+
             # Soft Delete: 실제 삭제 대신 deleted_at을 현재 시간으로 설정 (한국 시간대)
             # UTC+9 시간대 적용 (한국 시간)
-            from datetime import datetime, timezone, timedelta
-            
+            # (datetime/timedelta는 파일 상단에서 이미 import됨 — 여기서 다시
+            # `from datetime import datetime, ...`을 하면 그 순간부터 datetime이
+            # 이 함수 전체에서 지역 변수 취급돼, 위에서 먼저 쓴 datetime.now()가
+            # UnboundLocalError로 터진다. timezone만 추가로 가져온다.)
+            from datetime import timezone
+
             # 한국 시간대 (KST, UTC+9)
             kst = timezone(timedelta(hours=9))
             current_time_kst = datetime.now(kst)
-            
+
             cursor.execute(
-                "UPDATE users SET deleted_at = %s WHERE id = %s AND email = %s AND provider = %s",
+                "UPDATE users SET deleted_at = %s, household_id = NULL, ingredients_merged = 0 WHERE id = %s AND email = %s AND provider = %s",
                 (current_time_kst.strftime('%Y-%m-%d %H:%M:%S'), user_id, email, provider)
             )
-            
+
             db.commit()
             
             return jsonify({

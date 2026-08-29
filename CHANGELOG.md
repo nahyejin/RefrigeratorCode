@@ -3214,3 +3214,35 @@ id=8)이 그룹에서 안 나가고 바로 회원탈퇴(soft delete)돼 있었�
 - 프로덕션 DB에서 실제 재현 계정으로 수정 전(TypeError 재현)/수정 후
   (예외 없이 완주) 대조 확인 — 실제 커밋 없이 트랜잭션 롤백으로 진행
 - `python -m py_compile` 에러 0건
+
+### 회원탈퇴 시 내가 그룹장이면 그룹 재료가 고아가 되던 문제 수정
+그룹에서 안 나가고 바로 회원탈퇴하면, 내가 그 그룹의 재료 저장 계정
+(storage_user_id)이었을 경우 그룹 재료가 탈퇴한(soft delete된) 계정에
+그대로 남아 아무도 못 보게 되는 문제. `leave_household()`는 그룹장이
+나갈 때 남은 멤버에게 저장 위치를 넘기는데, `delete_account()`는 이
+처리를 전혀 안 하고 있었다.
+
+`delete_account()`에 동일한 handoff 로직 추가: 탈퇴하는 사람이 그룹의
+storage_user_id이면 (1) 남은 멤버가 있으면 그 사람에게 재료를 복사하고
+storage_user_id를 옮김, (2) 남은 멤버가 없으면(그룹에 혼자였으면) 그룹
+행 자체를 삭제. 탈퇴하는 사람의 `household_id`/`ingredients_merged`도
+같이 초기화.
+
+**구현 중 발견한 2차 버그**: 이 로직을 넣으며 앞쪽에서 `datetime.now()`를
+먼저 쓰고, 뒤에서 기존 코드가 `from datetime import datetime, timezone,
+timedelta`로 다시 import하고 있었다 — 파이썬은 함수 안에서 어디서든
+재할당(import 포함)되는 이름은 그 함수 전체에서 지역 변수로 취급하므로,
+앞의 `datetime.now()` 호출이 `UnboundLocalError`로 죽는다. 뒤쪽 import를
+이미 파일 상단에 있는 `datetime`/`timedelta`는 다시 안 가져오고 없던
+`timezone`만 추가로 가져오도록 수정.
+
+**실제로 이미 이 상태로 깨져 있던 그룹 발견**: household id=11(초대코드
+SPMT3ZY9)이 정확히 이 시나리오였다 — storage_user_id=8 계정이 그룹에
+멤버 2명(id=1, id=4)을 남겨둔 채 그룹을 안 나가고 바로 탈퇴해서, 그
+그룹의 재료(44개)가 탈퇴한 계정 밑에 그대로 있었다. 코드 수정과는
+별도로, 이 기존 데이터도 실제로 복구할지는 사용자 확인 후 진행 예정.
+
+#### 검증 (실측)
+- 프로덕션 DB에 대고 실제 handoff 로직(재료 복사 + storage_user_id 이전)을
+  트랜잭션으로 실행해 예외 없이 끝까지 도는 것을 확인 — 커밋은 안 하고 롤백
+- `python -m py_compile` 에러 0건
