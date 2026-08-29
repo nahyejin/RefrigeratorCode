@@ -340,26 +340,29 @@ const CookingCalendar: React.FC = () => {
     // 뭘 얻는지 와닿지 않는다. 로그인하면 실제로 뭘 할 수 있는지(이력
     // 관리, 절약액 확인, 목표 설정)를 구체적으로 안내한다.
     return (
-      <div className="min-h-screen w-full flex items-center justify-center bg-white">
-        <div style={{ textAlign: 'center', padding: '0 32px' }}>
-          <p style={{ fontSize: 15, fontWeight: 700, color: '#1A1A1E', marginBottom: 8 }}>
-            로그인하면 요리 캘린더를 쓸 수 있어요
-          </p>
-          <p style={{ fontSize: 13.5, color: 'var(--ink-500)', lineHeight: 1.6, wordBreak: 'keep-all', marginBottom: 20 }}>
-            내가 완료한 요리 이력을 날짜별로 관리하고,
-            <br />
-            그동안 요리로 아낀 절약액을 확인하고,
-            <br />
-            이번 달 요리 목표도 설정할 수 있어요.
-          </p>
-          <button
-            type="button"
-            onClick={() => navigate('/login')}
-            style={{ height: 40, padding: '0 16px', borderRadius: 10, background: 'var(--brand)', border: 'none', fontWeight: 700 }}
-          >
-            로그인
-          </button>
+      <div className="min-h-screen w-full flex flex-col">
+        <div className="flex-1 w-full flex items-center justify-center bg-white">
+          <div style={{ textAlign: 'center', padding: '0 32px' }}>
+            <p style={{ fontSize: 15, fontWeight: 700, color: '#1A1A1E', marginBottom: 8 }}>
+              로그인하면 요리 캘린더를 쓸 수 있어요
+            </p>
+            <p style={{ fontSize: 13.5, color: 'var(--ink-500)', lineHeight: 1.6, wordBreak: 'keep-all', marginBottom: 20 }}>
+              내가 완료한 요리 이력을 날짜별로 관리하고,
+              <br />
+              그동안 요리로 아낀 절약액을 확인하고,
+              <br />
+              이번 달 요리 목표도 설정할 수 있어요.
+            </p>
+            <button
+              type="button"
+              onClick={() => navigate('/login')}
+              style={{ height: 40, padding: '0 16px', borderRadius: 10, background: 'var(--brand)', border: 'none', fontWeight: 700 }}
+            >
+              로그인
+            </button>
+          </div>
         </div>
+        <BottomNavBar activeTab="cooking-calendar" />
       </div>
     );
   }
