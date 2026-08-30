@@ -728,6 +728,32 @@ export function convertSynonymToKeywordSync(ingredientName: string, dict?: { [ke
 }
 
 /**
+ * 서버로 보낼 "내 재료"를 재료 사전의 대표어로 맞춰서 돌려준다.
+ *
+ * 왜 필요한가: 백엔드(app.py)는 재료 사전을 모르고 my_ingredients 문자열을
+ * 그대로 FIND_IN_SET / REGEXP 로 비교한다. 반면 레시피의 used_ingredients 는
+ * 사전 대표어로 저장돼 있다. 그래서 냉장고에 옛 대표어나 동의어가 저장돼
+ * 있으면(사전이 바뀌면 생긴다) 서버 기준 매칭률·정렬·필터에서 그 재료가 통째로
+ * 빠진다. 화면 매칭률은 calculateMatchRate 가 양쪽을 다시 변환해 맞히기 때문에
+ * "카드의 %는 맞는데 정렬은 이상한" 상태가 된다.
+ *
+ * 사전 캐시가 아직 안 올라왔으면 원래 이름을 그대로 쓴다 (기존 동작과 동일).
+ */
+export function getMyIngredientsAsKeywords(): string[] {
+  const raw = getMyIngredients();
+  const seen = new Set<string>();
+  const result: string[] = [];
+  raw.forEach(name => {
+    const keyword = convertSynonymToKeywordSync(name);
+    if (keyword && !seen.has(keyword)) {
+      seen.add(keyword);
+      result.push(keyword);
+    }
+  });
+  return result;
+}
+
+/**
  * 동의어 사전을 미리 로드한다 (선택사항)
  */
 export async function preloadIngredientSynonymDict(): Promise<void> {

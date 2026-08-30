@@ -13,7 +13,7 @@ import { fetchRecipesDummy } from '../utils/dummyData';
 import RecipeCard from '../components/RecipeCard';
 import VirtualizedRecipeList, { VirtualizedRecipeListRef } from '../components/VirtualizedRecipeList';
 import { Recipe, RecipeActionState, FilterState, SubstituteInfo } from '../types/recipe';
-import { getMyIngredients, sortRecipes, calculateMatchRate, initializeDefaultIngredients, extractKeywordsAndSynonyms, FilterKeywordTree, getDictCategoryKey, preloadIngredientSynonymDict, ingredientSynonymDictCache } from '../utils/recipeUtils';
+import { getMyIngredients, getMyIngredientsAsKeywords, sortRecipes, calculateMatchRate, initializeDefaultIngredients, extractKeywordsAndSynonyms, FilterKeywordTree, getDictCategoryKey, preloadIngredientSynonymDict, ingredientSynonymDictCache } from '../utils/recipeUtils';
 import RecipeToast from '../components/RecipeToast';
 // import Slider from 'rc-slider';
 // import 'rc-slider/assets/index.css';
@@ -547,9 +547,11 @@ async function loadRecipesPaged(
       params.append('applied_expiry_ingredients', filters.appliedExpiryIngredients.join(','));
     }
 
-    // 서버가 매칭률을 계산할 수 있도록 내 보유 재료 전달
+    // 서버가 매칭률을 계산할 수 있도록 내 보유 재료 전달.
+    // 서버는 재료 사전을 모르고 문자열을 그대로 비교하므로, 여기서 대표어로
+    // 맞춰서 보낸다 (안 그러면 동의어·옛 대표어가 서버 매칭에서 통째로 빠진다).
     try {
-      const my = getMyIngredients();
+      const my = getMyIngredientsAsKeywords();
       if (my && my.length > 0) {
         params.append('my_ingredients', my.join(','));
       }
