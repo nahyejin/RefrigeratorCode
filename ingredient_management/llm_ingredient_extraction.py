@@ -87,6 +87,21 @@ def load_alias_to_canonical():
             key = _normalize_key(name)
             if key:
                 alias_to_canonical[key] = canonical
+
+    # 연쇄 해소: 대표어로 지정된 값이 그 자체로 또 다른 대표어의 별칭인 경우가 있다.
+    # (예: 볶은참깨 -> 통깨 인데 통깨 -> 참깨) 이대로 두면 같은 재료가 본문 표기에
+    # 따라 서로 다른 pill 로 나와 냉장고 매칭이 어긋난다. 끝까지 따라가 최종 대표어로 접는다.
+    for key, canonical in list(alias_to_canonical.items()):
+        seen = {canonical}
+        final = canonical
+        while True:
+            nxt = alias_to_canonical.get(_normalize_key(final))
+            if not nxt or nxt == final or nxt in seen:
+                break
+            final = nxt
+            seen.add(final)
+        if final != canonical:
+            alias_to_canonical[key] = final
     return alias_to_canonical
 
 
@@ -332,14 +347,49 @@ class GeminiExtractor:
         return [[] for _ in range(n)], [last_err for _ in range(n)]
 
 
+# 재료명 앞에 붙는 손질/상태 수식어. "다진 생강"은 사전에 없지만 "생강"은 있으므로,
+# 사전 조회에 실패하면 이 접두어들을 떼고 한 번 더 조회한다.
+# (LLM 호출 없는 순수 결정론적 보강 — 사전에 실제로 있는 재료만 잡히므로 오탐이 없다)
+#
+# 주의: 접두어를 떼면 다른 재료가 되어버리는 말은 넣으면 안 된다.
+#   예) "생"을 넣으면 생강 -> 강, 생수 -> 수 처럼 망가진다. 그래서 접두어 목록 자체를
+#       보수적으로 두고, 떼어낸 결과가 사전에 실제로 있을 때만 채택한다.
+#       ("다진파 -> 파" 처럼 한 글자만 남는 경우도 사전에 있으면 유효하다)
+_PREP_PREFIXES = (
+    "다진", "채썬", "채썰은", "슬라이스", "삶은", "데친", "구운", "볶은", "튀긴",
+    "냉동", "냉장", "말린", "불린", "손질", "으깬", "저민", "편썬",
+    "고운", "굵은", "잘게", "곱게", "신", "묵은", "건",
+)
+
+
+def _resolve_canonical(name, alias_to_canonical):
+    """사전에서 대표 keyword를 찾는다. 정확히 없으면 손질 수식어를 떼고 재시도."""
+    key = _normalize_key(name)
+    if not key:
+        return None
+    canonical = alias_to_canonical.get(key)
+    if canonical:
+        return canonical
+    stripped = key
+    while True:
+        for prefix in _PREP_PREFIXES:
+            if stripped.startswith(prefix) and len(stripped) - len(prefix) >= 1:
+                stripped = stripped[len(prefix):]
+                break
+        else:
+            break
+    if stripped != key:
+        return alias_to_canonical.get(stripped)
+    return None
+
+
 def normalize_llm_ingredients(raw_ingredients, alias_to_canonical):
     canonical_set = set()
     unmapped = []
     for name in raw_ingredients:
-        key = _normalize_key(name)
-        if not key:
+        if not _normalize_key(name):
             continue
-        canonical = alias_to_canonical.get(key)
+        canonical = _resolve_canonical(name, alias_to_canonical)
         if canonical:
             canonical_set.add(canonical)
         else:

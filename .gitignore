@@ -19,4 +19,5 @@ ingredient_management/llm_full_run_*.csv
 
 # LLM 배치가 매 실행마다 남기는 미리보기 결과물 (재생성 가능)
 ingredient_management/llm_used_ingredients_preview_*.csv
+ingredient_management/renormalize_preview_*.csv
 llm_ingredients.log
