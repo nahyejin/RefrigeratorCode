@@ -55,6 +55,10 @@ from ingredient_management.update_used_ingredients_batch import (
 )
 
 CONTENT_CHAR_LIMIT = 4000  # 본문이 너무 길면 앞부분만 (재료는 보통 본문 앞쪽에 나옴)
+
+# 일일 호출 한도가 바닥나면 남은 호출은 시도조차 하지 않고 이 에러로 표시한다.
+# (한도 소진은 자정(PT)까지 안 풀려서 재시도 백오프 31초가 전부 헛돌기 때문)
+QUOTA_EXHAUSTED_ERR = "daily quota exhausted (skipped)"
 _INGREDIENT_CSV = os.path.join(
     _PROJECT_ROOT, "frontend", "public", "ingredient_profile_dict_with_substitutes.csv"
 )
@@ -186,6 +190,8 @@ class GeminiExtractor:
         self._lock = threading.Lock()
         self._min_interval = 60.0 / max(1, rpm)
         self._last_call = 0.0
+        # 일일 한도가 소진된 순간부터는 남은 호출을 전부 즉시 포기한다 (스레드 공유 플래그)
+        self._quota_exhausted = threading.Event()
 
     def _throttle(self):
         with self._lock:
@@ -194,6 +200,33 @@ class GeminiExtractor:
             if wait > 0:
                 time.sleep(wait)
             self._last_call = time.monotonic()
+
+    @property
+    def quota_exhausted(self):
+        return self._quota_exhausted.is_set()
+
+    def _trip_quota(self, reason):
+        """일일 한도 소진 확정. 최초 1회만 로그를 남기고 이후 호출은 전부 건너뛴다."""
+        if not self._quota_exhausted.is_set():
+            self._quota_exhausted.set()
+            print(
+                f"  [중단] 일일 호출 한도 소진으로 판단 ({reason}). "
+                f"남은 건은 호출하지 않고 건너뜁니다 (다음 실행에서 자동 재시도).",
+                flush=True,
+            )
+
+    @staticmethod
+    def _quota_scope(res):
+        """429 응답의 quotaId로 제한 종류를 구분한다: 'day' | 'minute' | None(불명)."""
+        try:
+            body = res.text.replace(" ", "").lower()
+        except Exception:  # noqa: BLE001
+            return None
+        if "perday" in body:
+            return "day"
+        if "perminute" in body:
+            return "minute"
+        return None
 
     def extract(self, content, retries=5):
         text = (content or "")[:CONTENT_CHAR_LIMIT]
@@ -206,13 +239,21 @@ class GeminiExtractor:
             "contents": [{"role": "user", "parts": [{"text": prompt}]}],
             "generationConfig": {"temperature": 0.1, "responseMimeType": "application/json"},
         }
+        if self._quota_exhausted.is_set():
+            return [], QUOTA_EXHAUSTED_ERR
         last_err = None
+        scope_429 = None
         for attempt in range(retries):
             self._throttle()
             try:
                 res = requests.post(url, json=payload, timeout=30)
                 if res.status_code in (429, 500, 503):
                     last_err = f"HTTP {res.status_code}"
+                    if res.status_code == 429:
+                        scope_429 = self._quota_scope(res)
+                    if scope_429 == "day":
+                        self._trip_quota("429 응답의 quotaId가 일일 한도")
+                        return [], QUOTA_EXHAUSTED_ERR
                     time.sleep(2 ** attempt)
                     continue
                 res.raise_for_status()
@@ -223,6 +264,11 @@ class GeminiExtractor:
             except Exception as e:  # noqa: BLE001
                 last_err = str(e)
                 time.sleep(2 ** attempt)
+        if last_err == "HTTP 429" and scope_429 != "minute":
+            # 백오프(총 31초)를 다 쓰고도 429면 일일 한도로 본다.
+            # 단 quotaId가 분당 제한이라고 명시한 경우는 제외 — 분당 제한은 곧 풀리는데
+            # 이걸 일일 한도로 오판하면 그날 작업 전체를 통째로 조기 중단시키게 된다.
+            self._trip_quota("재시도 소진 후에도 429")
         return [], last_err
 
     def extract_batch(self, contents, retries=5):
@@ -232,6 +278,8 @@ class GeminiExtractor:
         그 번호만 개별 err를 갖는다 (나머지는 정상 처리됨).
         """
         n = len(contents)
+        if self._quota_exhausted.is_set():
+            return [[] for _ in range(n)], [QUOTA_EXHAUSTED_ERR for _ in range(n)]
         texts = [(c or "")[:CONTENT_CHAR_LIMIT] for c in contents]
         numbered_bodies = "\n\n".join(f"[{i}]\n{t}" for i, t in enumerate(texts))
         prompt = BATCH_PROMPT_TEMPLATE.format(n=n, n_minus_1=n - 1, numbered_bodies=numbered_bodies)
@@ -244,12 +292,18 @@ class GeminiExtractor:
             "generationConfig": {"temperature": 0.1, "responseMimeType": "application/json"},
         }
         last_err = None
+        scope_429 = None
         for attempt in range(retries):
             self._throttle()
             try:
                 res = requests.post(url, json=payload, timeout=60)
                 if res.status_code in (429, 500, 503):
                     last_err = f"HTTP {res.status_code}"
+                    if res.status_code == 429:
+                        scope_429 = self._quota_scope(res)
+                    if scope_429 == "day":
+                        self._trip_quota("429 응답의 quotaId가 일일 한도")
+                        return [[] for _ in range(n)], [QUOTA_EXHAUSTED_ERR for _ in range(n)]
                     time.sleep(2 ** attempt)
                     continue
                 res.raise_for_status()
@@ -270,6 +324,11 @@ class GeminiExtractor:
             except Exception as e:  # noqa: BLE001
                 last_err = str(e)
                 time.sleep(2 ** attempt)
+        if last_err == "HTTP 429" and scope_429 != "minute":
+            # 백오프(총 31초)를 다 쓰고도 429면 일일 한도로 본다.
+            # 단 quotaId가 분당 제한이라고 명시한 경우는 제외 — 분당 제한은 곧 풀리는데
+            # 이걸 일일 한도로 오판하면 그날 작업 전체를 통째로 조기 중단시키게 된다.
+            self._trip_quota("재시도 소진 후에도 429")
         return [[] for _ in range(n)], [last_err for _ in range(n)]
 
 
@@ -383,6 +442,7 @@ def run(*, limit, start_after_id, order, output_path, commit, rpm, concurrency, 
     changed_count = 0
     deleted_count = 0
     errors = 0
+    quota_skipped = 0
     done = 0
     since_commit = 0
 
@@ -421,6 +481,8 @@ def run(*, limit, start_after_id, order, output_path, commit, rpm, concurrency, 
                             added, removed = "", ""
                             display_new_used = old_used
                             errors += 1
+                            if err == QUOTA_EXHAUSTED_ERR:
+                                quota_skipped += 1
                         elif should_delete:
                             changed_label = "DELETED"
                             added, removed = "", ""
@@ -496,9 +558,10 @@ def run(*, limit, start_after_id, order, output_path, commit, rpm, concurrency, 
         if write_conn:
             write_conn.close()
 
+    quota_note = f" (그 중 일일 한도 소진으로 건너뜀 {quota_skipped}건)" if quota_skipped else ""
     print(
         f"완료. 처리 {len(rows)}건, 재료 집합 변경 {changed_count}건, "
-        f"레시피 아님(삭제) {deleted_count}건, LLM 오류 {errors}건",
+        f"레시피 아님(삭제) {deleted_count}건, LLM 오류 {errors}건{quota_note}",
         flush=True,
     )
     print(f"미리보기 CSV: {output_path}", flush=True)
