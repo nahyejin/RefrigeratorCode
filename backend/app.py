@@ -816,14 +816,31 @@ def get_or_create_user(email, nickname, provider, provider_id):
         deleted_user = cursor.fetchone()
         
         if deleted_user:
-            # 탈퇴한 사용자가 있으면 새로 생성 (이메일 재사용 가능)
+            # 탈퇴한 사용자가 같은 이메일을 붙들고 있으면 새 계정을 만들 수 없다.
+            #
+            # 유니크 키가 `unique_provider_user (email, provider)` 뿐이라
+            # deleted_at 을 구분하지 않기 때문이다. 예전 코드는 여기서 그냥
+            # INSERT 를 해서 재가입할 때마다
+            #   (1062, "Duplicate entry '...-kakao' for key 'users.unique_provider_user'")
+            # 로 로그인 자체가 막혔다.
+            #
+            # 그래서 탈퇴 행의 email 을 비켜 놓아 자리를 비운 뒤 새 계정을 만든다.
+            # 탈퇴 행은 그대로 남으므로 그 계정에 딸린 데이터(재료·즐겨찾기 등)는
+            # 새 계정에 딸려 오지 않는다 — "탈퇴했으면 새로 시작" 이라는 뜻.
+            # id 를 접두어에 넣어 같은 이메일이 여러 번 탈퇴해도 서로 부딪히지 않는다.
+            released_email = f"deleted+{deleted_user['id']}+{email}"[:255]
+            cursor.execute(
+                "UPDATE users SET email = %s, updated_at = NOW() WHERE id = %s",
+                (released_email, deleted_user['id'])
+            )
             cursor.execute(
                 "INSERT INTO users (email, nickname, provider, provider_id, created_at) VALUES (%s, %s, %s, %s, NOW())",
                 (email, nickname, provider, provider_id)
             )
             user_id = cursor.lastrowid
             db.commit()
-            
+            print(f"[로그인] 탈퇴 계정(id={deleted_user['id']}) 이메일을 비우고 새 계정 생성: id={user_id}")
+
             return {
                 'id': user_id,
                 'email': email,
