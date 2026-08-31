@@ -14,6 +14,8 @@ import WelcomeModal from '../components/WelcomeModal';
 import GuideOverlay from '../components/GuideOverlay';
 import BottomCoupangAd from '../components/BottomCoupangAd';
 import CameraCaptureSheet, { type CaptureMode } from '../components/CameraCaptureSheet';
+import IngredientRecognitionSheet, { type RecognizedIngredient } from '../components/IngredientRecognitionSheet';
+import { shrinkImageForUpload } from '../utils/imageUtils';
 import { loadIngredientCategoryMap, estimateExpiry, type CategoryMap } from '../utils/shelfLife';
 import {
   isUsageGuideDueThisVisit,
@@ -1590,15 +1592,98 @@ const MyFridge: React.FC = () => {
 
   // 카메라로 재료 담기 시트. 영수증/음식(1개)/음식(여러개) 입구를 하나로 모았다.
   const [cameraSheetOpen, setCameraSheetOpen] = useState(false);
-  const handleCameraCaptured = (mode: CaptureMode) => {
+  const [recognitionOpen, setRecognitionOpen] = useState(false);
+  const [recognitionLoading, setRecognitionLoading] = useState(false);
+  const [recognized, setRecognized] = useState<RecognizedIngredient[]>([]);
+  const [recognizedUnmatched, setRecognizedUnmatched] = useState<string[]>([]);
+  const [recognitionError, setRecognitionError] = useState<string | null>(null);
+
+  /**
+   * 찍은 사진을 서버로 보내 재료를 인식한다.
+   *
+   * 인식 결과를 바로 담지 않고 확인 시트를 띄운다 — OCR 은 반드시 틀리고,
+   * 사용자가 모르는 사이에 없는 재료가 들어가면 추천 품질이 통째로 어긋난다.
+   */
+  const handleCameraCaptured = async (mode: CaptureMode, file: File) => {
     setCameraSheetOpen(false);
-    const message: Record<CaptureMode, string> = {
-      receipt: '영수증을 찍으면 재료를 자동으로 담아 주는 기능을 준비하고 있어요.',
-      'food-single': '재료 사진을 찍으면 알아서 인식해 담아 주는 기능을 준비하고 있어요.',
-      'food-multi': '여러 재료가 담긴 사진도 한 번에 인식하는 기능을 준비하고 있어요.',
-      file: '앨범·파일 사진으로 재료를 자동으로 담아 주는 기능을 준비하고 있어요.',
-    };
-    showPrepNotice(message[mode]);
+
+    // 지금은 영수증만 실제로 인식한다. 서버는 음식 사진 프롬프트도 갖고 있지만,
+    // 인식 품질을 아직 확인하지 않아 열지 않았다 (열 때는 이 조건만 풀면 된다).
+    if (mode !== 'receipt') {
+      const message: Record<CaptureMode, string> = {
+        receipt: '',
+        'food-single': '재료 사진을 찍으면 알아서 인식해 담아 주는 기능을 준비하고 있어요.',
+        'food-multi': '여러 재료가 담긴 사진도 한 번에 인식하는 기능을 준비하고 있어요.',
+        file: '앨범·파일 사진 인식은 준비 중이에요. 지금은 영수증 촬영만 지원해요.',
+      };
+      showPrepNotice(message[mode]);
+      return;
+    }
+
+    setRecognized([]);
+    setRecognizedUnmatched([]);
+    setRecognitionError(null);
+    setRecognitionLoading(true);
+    setRecognitionOpen(true);
+
+    try {
+      // 폰 원본은 3~5MB라 그대로 올리면 느리다. 긴 변 1600px로 줄여 보낸다.
+      const shrunk = await shrinkImageForUpload(file);
+      const form = new FormData();
+      form.append('image', shrunk);
+      form.append('mode', mode);
+
+      const apiUrl = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'https://refrigeratorcode-production.up.railway.app';
+      const res = await fetch(`${apiUrl}/api/ingredients/recognize`, { method: 'POST', body: form });
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        setRecognitionError((data && data.error) || '사진을 읽지 못했어요. 다시 찍어 주세요.');
+      } else {
+        setRecognized((data && data.ingredients) || []);
+        setRecognizedUnmatched((data && data.unmatched) || []);
+      }
+    } catch {
+      setRecognitionError('네트워크 상태를 확인하고 다시 시도해 주세요.');
+    } finally {
+      setRecognitionLoading(false);
+    }
+  };
+
+  /** 확인 시트에서 고른 재료를 한 번에 담는다. */
+  const handleRecognizedConfirm = (names: string[], storage: StorageBox) => {
+    setRecognitionOpen(false);
+    const today = new Date().toISOString().slice(0, 10);
+    const already = new Set(
+      [...(frozen || []), ...(fridge || []), ...(room || [])].map(i => i.name)
+    );
+    const fresh = names.filter(name => !already.has(name));
+    if (fresh.length === 0) {
+      showPrepNotice('고른 재료가 이미 냉장고에 있어요.');
+      return;
+    }
+
+    const objs = fresh.map((name, idx) => {
+      const obj = {
+        id: `${name}-${Date.now()}-${idx}`,
+        name,
+        purchase: today,
+      } as Ingredient;
+      const est = estimateExpiry(name, storage, today, categoryMap);
+      if (est) obj.estimatedExpiry = est;
+      return obj;
+    });
+
+    if (storage === 'frozen') setFrozen(prev => (prev ? [...prev, ...objs] : objs));
+    if (storage === 'fridge') setFridge(prev => (prev ? [...prev, ...objs] : objs));
+    if (storage === 'room') setRoom(prev => (prev ? [...prev, ...objs] : objs));
+
+    const skipped = names.length - fresh.length;
+    showPrepNotice(
+      skipped > 0
+        ? `${fresh.length}개를 담았어요. ${skipped}개는 이미 있어서 건너뛰었어요.`
+        : `${fresh.length}개를 담았어요.`
+    );
   };
 
   const removeTag = (box: StorageBox, tag: string) => {
@@ -2094,10 +2179,19 @@ const MyFridge: React.FC = () => {
             </div>
           </div>
         </div>
+        <IngredientRecognitionSheet
+          isOpen={recognitionOpen}
+          onClose={() => setRecognitionOpen(false)}
+          loading={recognitionLoading}
+          ingredients={recognized}
+          unmatched={recognizedUnmatched}
+          errorText={recognitionError}
+          onConfirm={handleRecognizedConfirm}
+        />
         <CameraCaptureSheet
           isOpen={cameraSheetOpen}
           onClose={() => setCameraSheetOpen(false)}
-          onCaptured={(mode) => handleCameraCaptured(mode)}
+          onCaptured={(mode, file) => { void handleCameraCaptured(mode, file); }}
         />
         {/* IngredientDetailModal */}
         <IngredientDetailModal

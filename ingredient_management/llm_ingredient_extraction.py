@@ -362,8 +362,40 @@ _PREP_PREFIXES = (
 )
 
 
+def _token_fallback(name, alias_to_canonical):
+    """띄어쓰기로 나뉜 이름에서 사전에 있는 부분만 골라낸다.
+
+    "다시다 감칠맛" 처럼 재료명 뒤에 맛/용도 설명이 붙거나, "돼지고기 목살" 처럼
+    분류어와 부위가 함께 적히는 경우를 잡기 위한 마지막 보완이다.
+
+    한국어는 보통 뒤쪽 말이 핵심이므로(돼지고기 "목살"), 뒤에서 시작하는 후보를
+    먼저 채택한다. 다만 뒤쪽이 사전에 없으면 앞쪽이 채택된다("다시다" 감칠맛).
+    사전에 실제로 있는 조각만 받아들이므로 없는 말을 지어내지는 않는다.
+    """
+    tokens = str(name).strip().split()
+    if len(tokens) < 2:
+        return None
+    n = len(tokens)
+    best = None  # (시작 인덱스, 길이, 대표어)
+    for start in range(n):
+        for end in range(n, start, -1):
+            if start == 0 and end == n:
+                continue  # 전체 문자열은 이미 앞에서 시도했다
+            candidate = _normalize_key("".join(tokens[start:end]))
+            if not candidate or candidate not in alias_to_canonical:
+                continue
+            length = end - start
+            if best is None or start > best[0] or (start == best[0] and length > best[1]):
+                best = (start, length, alias_to_canonical[candidate])
+    return best[2] if best else None
+
+
 def _resolve_canonical(name, alias_to_canonical):
-    """사전에서 대표 keyword를 찾는다. 정확히 없으면 손질 수식어를 떼고 재시도."""
+    """사전에서 대표 keyword를 찾는다.
+
+    1) 정확히 일치 → 2) 손질 수식어를 떼고 재시도 → 3) 띄어쓰기 조각으로 재시도.
+    어느 단계든 사전에 실제로 있는 결과만 채택한다.
+    """
     key = _normalize_key(name)
     if not key:
         return None
@@ -379,8 +411,10 @@ def _resolve_canonical(name, alias_to_canonical):
         else:
             break
     if stripped != key:
-        return alias_to_canonical.get(stripped)
-    return None
+        canonical = alias_to_canonical.get(stripped)
+        if canonical:
+            return canonical
+    return _token_fallback(name, alias_to_canonical)
 
 
 def normalize_llm_ingredients(raw_ingredients, alias_to_canonical):

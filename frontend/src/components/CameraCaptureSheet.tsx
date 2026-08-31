@@ -116,7 +116,7 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
             whiteSpace: 'nowrap',
           }}
         >
-          ✨ AI 이미지 자동인식 기능을 준비하고 있어요
+          ✨ 영수증은 지금 바로 인식돼요 · 음식 사진은 준비 중
         </span>
       </div>
 

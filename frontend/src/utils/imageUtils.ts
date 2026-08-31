@@ -137,3 +137,56 @@ export function hasValidThumbnail(recipe: { thumbnail?: string | null }): boolea
 export function filterRecipesWithValidThumbnails<T extends { thumbnail?: string | null }>(recipes: T[]): T[] {
   return recipes.filter(recipe => hasValidThumbnail(recipe));
 } 
+/**
+ * 업로드 전에 사진을 줄인다.
+ *
+ * 폰 카메라 원본은 3~5MB(4000px 급)라 그대로 올리면 업로드가 느리고, 인식에
+ * 필요한 해상도보다 훨씬 크다. 영수증 글자가 뭉개지지 않을 만큼(긴 변 1600px)만
+ * 남기고 JPEG 으로 다시 뽑는다.
+ *
+ * 원본이 이미 작으면 그대로 돌려준다. 브라우저가 canvas/toBlob 을 못 쓰는 등
+ * 어떤 이유로든 실패하면 원본 File 을 그대로 돌려주므로 호출한 쪽은 신경 쓸 게 없다.
+ */
+export async function shrinkImageForUpload(
+  file: File,
+  maxEdge: number = 1600,
+  quality: number = 0.85
+): Promise<File> {
+  try {
+    if (!file.type.startsWith('image/')) return file;
+
+    const bitmap = await createImageBitmap(file);
+    const longest = Math.max(bitmap.width, bitmap.height);
+    if (longest <= maxEdge && file.size <= 1_500_000) {
+      bitmap.close?.();
+      return file;
+    }
+
+    const scale = Math.min(1, maxEdge / longest);
+    const width = Math.round(bitmap.width * scale);
+    const height = Math.round(bitmap.height * scale);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      bitmap.close?.();
+      return file;
+    }
+    ctx.drawImage(bitmap, 0, 0, width, height);
+    bitmap.close?.();
+
+    const blob: Blob | null = await new Promise(resolve =>
+      canvas.toBlob(b => resolve(b), 'image/jpeg', quality)
+    );
+    if (!blob) return file;
+
+    // 줄였는데 오히려 커지면(작은 PNG 등) 원본을 쓴다.
+    if (blob.size >= file.size) return file;
+
+    return new File([blob], 'capture.jpg', { type: 'image/jpeg' });
+  } catch {
+    return file;
+  }
+}

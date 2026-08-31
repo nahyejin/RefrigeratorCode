@@ -3963,6 +3963,54 @@ def chat_with_recipes():
     return handle_chat(get_db)
 
 
+@app.route('/api/ingredients/recognize', methods=['POST'])
+def recognize_ingredients_from_image():
+    """사진(영수증/재료)에서 재료를 인식해 담을 후보를 돌려준다.
+
+    담는 것까지 하지 않고 후보만 돌려준다 — OCR 은 반드시 틀리므로 사용자가
+    확인한 뒤에 담아야 한다. 재료명은 레시피와 같은 사전으로 정규화되므로
+    여기서 담은 재료는 그대로 레시피 매칭에 쓰인다.
+    """
+    import chat_service
+    from ingredient_vision import (
+        ALLOWED_MIME, MAX_IMAGE_BYTES, QuotaExceeded, recognize,
+    )
+
+    upload = request.files.get('image')
+    if upload is None:
+        return jsonify({'error': '이미지가 없습니다.'}), 400
+
+    image_bytes = upload.read()
+    if not image_bytes:
+        return jsonify({'error': '이미지가 비어 있습니다.'}), 400
+    if len(image_bytes) > MAX_IMAGE_BYTES:
+        return jsonify({'error': '이미지가 너무 큽니다. 8MB 이하로 올려 주세요.'}), 413
+
+    mime_type = (upload.mimetype or '').lower()
+    if mime_type not in ALLOWED_MIME:
+        return jsonify({'error': '지원하지 않는 이미지 형식입니다.'}), 415
+
+    # 챗봇과 같은 하루 한도를 공유한다 (같은 무료 키를 쓰므로).
+    if not chat_service._consume_quota():
+        return jsonify({
+            'error': f'오늘 무료 한도({chat_service._daily_limit()}회)를 다 썼어요. 내일 다시 시도해 주세요.',
+        }), 429
+
+    mode = (request.form.get('mode') or 'receipt').strip()
+    try:
+        result = recognize(image_bytes, mime_type, mode=mode)
+    except QuotaExceeded:
+        return jsonify({'error': '지금 요청이 몰려 있어요. 잠시 후 다시 시도해 주세요.'}), 429
+    except RuntimeError as e:
+        print(f"Recognize ingredients config error: {e}")
+        return jsonify({'error': '이미지 인식이 아직 설정되지 않았습니다.'}), 503
+    except Exception as e:
+        print(f"Recognize ingredients error: {e}")
+        return jsonify({'error': '이미지를 읽지 못했어요. 다시 찍어 주세요.'}), 502
+
+    return jsonify(result)
+
+
 # =====================
 # 쿠팡 링크 클릭 측정
 # =====================
