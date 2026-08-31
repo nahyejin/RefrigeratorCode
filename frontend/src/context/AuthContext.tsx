@@ -100,6 +100,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       if (restoredUser) {
+        // 앱을 다시 열었을 때도 계정 전환을 확인한다 (다른 계정으로 로그인한 뒤
+        // 앱을 껐다 켠 경우 등). 같은 계정이면 아무것도 지우지 않는다.
+        clearDataOfOtherAccount(restoredUser.id);
         setUser(restoredUser);
         // 앱 재실행 후에도 유지되도록 항상 localStorage에 정규화 저장
         localStorage.setItem('auth_token', token);
@@ -210,7 +213,51 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  /**
+   * 계정이 바뀌면 이전 계정의 로컬 데이터를 지운다.
+   *
+   * 왜 필요한가: 냉장고 재료는 `myfridge_ingredients` 한 칸에만 저장되고 계정별로
+   * 나뉘어 있지 않다. 그런데 지우는 건 로그아웃할 때뿐이라, 비회원으로 쓰다가
+   * 가입하거나 다른 계정으로 들어오면 **이전 재료가 그대로 남는다.**
+   *
+   * 그러면 내 냉장고 페이지는 DB(비어 있음)를 보여주는데 냉장고 요리·요즘 인기·
+   * 챗봇은 localStorage 를 읽어서, 재료가 없는데도 매칭률이 100%/65% 처럼 뜬다.
+   * 실제로 그렇게 보고됐다.
+   */
+  const clearDataOfOtherAccount = (userId?: string | number | null) => {
+    const KEY = 'last_active_user_id';
+    const current = userId ? String(userId) : 'guest';
+    try {
+      if (localStorage.getItem(KEY) === current) return;
+
+      localStorage.removeItem('myfridge_ingredients');
+      localStorage.removeItem('my_recorded_recipes');
+      localStorage.removeItem('my_completed_recipes');
+      localStorage.removeItem('my_favorite_recipes');
+      // 목록 화면이 들고 있는 계산 결과(매칭률 포함) 캐시도 같이 버린다.
+      sessionStorage.removeItem('recipe_list_state');
+      sessionStorage.removeItem('recipe_list_ingredients_hash');
+      localStorage.setItem(KEY, current);
+    } catch {
+      // localStorage 를 못 쓰는 환경이면 넘어간다.
+      return;
+    }
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('localStorageChange', {
+        detail: { key: 'myfridge_ingredients' }
+      }));
+    }
+  };
+
   const logout = () => {
+    // 다음에 들어오는 사람은 비회원이다 (계정 전환 감지 기준값도 맞춰 둔다)
+    try {
+      localStorage.setItem('last_active_user_id', 'guest');
+    } catch {
+      // 무시
+    }
+
     // 인증 정보 제거
     localStorage.removeItem('auth_token');
     localStorage.removeItem('user');
@@ -271,6 +318,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         localStorage.removeItem('user');
       }
       
+      // 다른 계정(또는 비회원)으로 쓰던 로컬 데이터가 남아 있으면 지운다.
+      clearDataOfOtherAccount(user.id);
       setUser(user);
 
       // 이 기기에서 마지막으로 로그인한 방법을 기억해 둔다.

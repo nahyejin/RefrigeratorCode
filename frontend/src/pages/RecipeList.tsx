@@ -189,12 +189,16 @@ function getInitialSortBarState(): {
   maxLack: number | 'unlimited';
   appliedExpiryIngredients: string[];
 } {
-  // 초기 로드 시 항상 기본값 사용 (30~100%, 재료매칭률순)
+  // 냉장고가 비어 있으면 매칭률순 + 30~100% 필터로 시작하면 안 된다.
+  // 내 재료가 하나도 없으면 모든 레시피의 매칭률이 0% 이고, 30% 미만은 필터에서
+  // 전부 걸러져 화면에 아무것도 안 뜬다(로딩이 안 끝난 것처럼 보인다).
+  // 그럴 땐 최신순으로 시작하고 매칭 구간도 열어 둔다.
+  const hasIngredients = getMyIngredients().length > 0;
+
   // 이후 사용자가 변경한 값은 sessionStorage에 저장되어 유지됨
-  // 하지만 초기 로드 시에는 항상 기본값을 사용하여 성능 최적화
   return {
-    sortType: 'match', // 재료매칭률순
-    matchRange: [30, 100], // 30~100%
+    sortType: hasIngredients ? 'match' : 'latest',
+    matchRange: (hasIngredients ? [30, 100] : [0, 100]) as [number, number],
     maxLack: 'unlimited',
     appliedExpiryIngredients: [], // 임박재료 없음
   };
@@ -1497,8 +1501,12 @@ const RecipeList: React.FC = () => {
     setCachedFilteredRecipes([]);
     
     // 필터 조건과 재료 매칭도 필터를 서버에 전달 (사용자가 선택한 정렬 기준 사용)
-    // 초기 로드 시 기본값 [30, 100] 강제 적용 (initialLoadDone이 false일 때)
-    const effectiveMatchRange = initialLoadDone.current ? matchRange : [30, 100];
+    // 초기 로드 시에는 기본값을 강제 적용한다.
+    // 냉장고가 비어 있으면 그 기본값이 [0, 100] 이라 아무것도 안 걸러진다
+    // (getInitialSortBarState 설명 참고).
+    const effectiveMatchRange = initialLoadDone.current
+      ? matchRange
+      : initialSortBarState.matchRange;
     
     // sortType을 서버 API의 sort_by 형식으로 변환
     const getSortByForAPI = (sortType: string): string => {

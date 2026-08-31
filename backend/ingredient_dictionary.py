@@ -22,10 +22,39 @@ import os
 import re
 import threading
 
-_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-INGREDIENT_CSV = os.path.join(
-    _PROJECT_ROOT, "frontend", "public", "ingredient_profile_dict_with_substitutes.csv"
-)
+_HERE = os.path.dirname(os.path.abspath(__file__))
+_PROJECT_ROOT = os.path.dirname(_HERE)
+_CSV_NAME = "ingredient_profile_dict_with_substitutes.csv"
+
+# 사전 파일을 찾을 후보들. 배포 환경에 따라 frontend/ 가 함께 올라가지 않는
+# 경우가 있어(chat_service 도 같은 이유로 후보 목록을 쓴다) 여러 곳을 본다.
+# INGREDIENT_DICT_CSV 환경변수로 직접 지정할 수도 있다.
+def _candidate_paths():
+    override = (os.getenv("INGREDIENT_DICT_CSV") or "").strip()
+    paths = [override] if override else []
+    paths += [
+        os.path.join(_PROJECT_ROOT, "frontend", "public", _CSV_NAME),
+        os.path.join(_HERE, _CSV_NAME),
+        os.path.join(_PROJECT_ROOT, _CSV_NAME),
+    ]
+    return paths
+
+
+class DictionaryUnavailable(Exception):
+    """재료 사전 CSV 를 어디서도 찾지 못함."""
+
+
+def _find_csv():
+    tried = _candidate_paths()
+    for path in tried:
+        if path and os.path.exists(path):
+            return path
+    raise DictionaryUnavailable(
+        "재료 사전 CSV 를 찾지 못했습니다. 확인한 경로: " + " | ".join(tried)
+    )
+
+
+INGREDIENT_CSV = os.path.join(_PROJECT_ROOT, "frontend", "public", _CSV_NAME)
 
 # 사전에 담는 것은 실제 재료뿐이다. `요리이름`, `단위`, `TPO` 같은 분류는 제외한다.
 _MATERIAL_CATEGORIES = ("재료", "포장/제품")
@@ -64,7 +93,7 @@ def load_alias_to_canonical(path=None):
 
     LLM 이 전혀 관여하지 않는 순수 결정론적 매핑이다.
     """
-    csv_path = path or INGREDIENT_CSV
+    csv_path = path or _find_csv()
     alias_to_canonical = {}
 
     with open(csv_path, encoding="utf-8", newline="") as f:

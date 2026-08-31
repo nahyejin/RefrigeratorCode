@@ -4051,11 +4051,24 @@ def recognize_ingredients_from_image():
     except QuotaExceeded:
         return jsonify({'error': '지금 요청이 몰려 있어요. 잠시 후 다시 시도해 주세요.'}), 429
     except RuntimeError as e:
-        print(f"Recognize ingredients config error: {e}")
+        print(f"[recognize] 설정 오류: {e}")
         return jsonify({'error': '이미지 인식이 아직 설정되지 않았습니다.'}), 503
     except Exception as e:
-        print(f"Recognize ingredients error: {e}")
-        return jsonify({'error': '이미지를 읽지 못했어요. 다시 찍어 주세요.'}), 502
+        # 원인을 응답으로 구분할 수 있게 나눠 둔다. 예전엔 전부 같은 502 라
+        # "사전 파일이 없다" 와 "LLM 호출이 실패했다" 를 구별할 수 없었고,
+        # 배포 로그를 볼 수 없는 상황에서 원인을 좁히지 못했다.
+        import traceback
+        from ingredient_dictionary import DictionaryUnavailable
+
+        traceback.print_exc()
+        if isinstance(e, DictionaryUnavailable):
+            print(f"[recognize] 재료 사전 없음: {e}")
+            return jsonify({'error': '재료 사전을 불러오지 못했어요. 관리자에게 알려 주세요.'}), 503
+        print(f"[recognize] 인식 실패: {type(e).__name__}: {e}")
+        return jsonify({
+            'error': '이미지를 읽지 못했어요. 다시 찍어 주세요.',
+            'detail': type(e).__name__,
+        }), 502
 
     return jsonify(result)
 
