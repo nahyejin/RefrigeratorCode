@@ -230,7 +230,7 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
           marginBottom: 14,
         }}
       >
-        사진 앨범/파일에서 선택 (최대 {maxFiles}장)
+        여러 장 한 번에 고르기 (최대 {maxFiles}장)
       </button>
 
       {/* 진짜 "홈 화면 위젯"(다른 앱 위에 떠 있는 버튼 포함)은 PWA 로는 만들 수
@@ -254,6 +254,11 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
       nested
       dismissLabel="취소"
     >
+      {/* 고른 종류는 그때 선택한 사진 **전체**에 적용된다. 여러 장을 한 번의 호출로
+          처리하느라 프롬프트가 하나뿐이라서, 종류를 섞으면 인식이 나빠진다. */}
+      <div style={{ fontSize: 13, color: 'var(--ink-500)', marginBottom: 12, wordBreak: 'keep-all' }}>
+        고른 종류가 사진 전체에 적용돼요. <b>같은 종류끼리</b> 골라 주세요.
+      </div>
       <div style={{ display: 'grid', gap: 8 }}>
         {OPTIONS.map(({ key, label, icon: Icon }) => (
           <button
