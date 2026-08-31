@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Sheet from './ui/Sheet';
 
 export type CaptureMode = 'receipt' | 'food-single' | 'food-multi' | 'file';
@@ -77,7 +77,13 @@ const JUST_TAKEN_MS = 2 * 60 * 1000;
  * 이미 받은 사진을 그대로 들고 있다가 고른 모드로 보낸다.
  */
 const looksJustTaken = (files: File[]) =>
-  files.length > 0 && files.every(f => f.lastModified > 0 && Date.now() - f.lastModified < JUST_TAKEN_MS);
+  files.length > 0 &&
+  files.some(f => {
+    // 시각을 못 읽는 기기도 있다. 그럴 땐 "오래된 사진" 이라고 단정할 수 없으므로
+    // 물어보는 쪽으로 기운다 — 잘못 물어봐야 탭 한 번이고, 안 물어보면 분기가 통째로 빠진다.
+    if (!f.lastModified) return true;
+    return Date.now() - f.lastModified < JUST_TAKEN_MS;
+  });
 
 const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose, onCaptured, maxFiles = 5 }) => {
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -85,6 +91,18 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
   const [pendingMode, setPendingMode] = useState<CaptureMode>('food-single');
   /** 방금 찍은 것으로 보여 모드를 물어보는 중인 사진들 */
   const [awaitingMode, setAwaitingMode] = useState<File[] | null>(null);
+  /** 물어보는 동안 보여줄 미리보기. "사진이 잘 찍혔고 우리가 갖고 있다" 를 눈으로 알려 준다 */
+  const [previews, setPreviews] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!awaitingMode) {
+      setPreviews([]);
+      return;
+    }
+    const urls = awaitingMode.map(f => URL.createObjectURL(f));
+    setPreviews(urls);
+    return () => urls.forEach(u => URL.revokeObjectURL(u));
+  }, [awaitingMode]);
 
   const openCameraFor = (mode: CaptureMode) => {
     // 모드를 물어보는 중이면, 타일을 누른 건 "이 사진은 이거예요" 라는 뜻이다.
@@ -185,9 +203,46 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
         {awaitingMode ? '방금 찍은 사진, 무엇인가요?' : '무엇을 찍을까요?'}
       </div>
       {awaitingMode && (
-        <div style={{ textAlign: 'center', fontSize: 13, color: 'var(--ink-500)', marginBottom: 14, lineHeight: 1.5 }}>
-          사진은 그대로 두었어요. 다시 찍지 않아도 돼요.
-        </div>
+        <>
+          {previews.length > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 10 }}>
+              {previews.slice(0, 3).map((src, i) => (
+                <img
+                  key={src}
+                  src={src}
+                  alt={`찍은 사진 ${i + 1}`}
+                  style={{
+                    width: 64, height: 64, objectFit: 'cover',
+                    borderRadius: 10, border: '2px solid #FFD600',
+                  }}
+                />
+              ))}
+              {previews.length > 3 && (
+                <span style={{ alignSelf: 'center', fontSize: 13, color: 'var(--ink-500)' }}>
+                  +{previews.length - 3}
+                </span>
+              )}
+            </div>
+          )}
+          <div
+            style={{
+              margin: '0 0 14px',
+              padding: '10px 12px',
+              borderRadius: 10,
+              background: '#FFF8D6',
+              border: '1px solid #FFD600',
+              color: '#1A1A1E',
+              fontSize: 13,
+              lineHeight: 1.5,
+              textAlign: 'center',
+              wordBreak: 'keep-all',
+            }}
+          >
+            사진은 잘 받았어요. <b>다시 찍지 않아도 돼요.</b>
+            <br />
+            아래에서 <b>무엇을 찍었는지</b> 골라 주세요.
+          </div>
+        </>
       )}
 
       {/* 카드를 눌러야 찍힌다는 게 한눈에 들어오도록, 글줄보다 아이콘을 훨씬
