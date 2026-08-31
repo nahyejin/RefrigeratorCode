@@ -121,6 +121,7 @@ CORS_ORIGIN=https://your-production-frontend-url.com
 | `GEMINI_API_KEY_CHAT` | **요리 챗봇(`/api/chat`) 전용** | `GEMINI_API_KEY` 를 함께 씀 |
 | `GEMINI_API_KEY_VISION` | **사진 재료 인식(`/api/ingredients/recognize`) 전용** | `GEMINI_API_KEY_CHAT` → `GEMINI_API_KEY` 순으로 내려감 |
 | `GEMINI_VISION_MODEL` | 이미지 인식에 쓸 모델 | `GEMINI_MODEL` → `gemini-3.5-flash-lite` |
+| `INGREDIENT_DICT_CSV` | 재료 사전 CSV 경로를 직접 지정 | `frontend/public/` → `backend/` → 루트 순으로 탐색 |
 | `LLM_DAILY_LIMIT` | 챗봇 + 사진 인식의 앱 자체 호출 상한 (기본 250) | 250 |
 
 > 사진 인식은 챗봇과 **같은 하루 한도**를 공유합니다. 사진을 여러 장 올려도
