@@ -16,20 +16,11 @@ import base64
 import json
 import os
 import re
-import sys
-import threading
 from datetime import date, datetime, timedelta
 
 import requests
 
-_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if _PROJECT_ROOT not in sys.path:
-    sys.path.append(_PROJECT_ROOT)
-
-from ingredient_management.llm_ingredient_extraction import (  # noqa: E402
-    _resolve_canonical,
-    load_alias_to_canonical,
-)
+from ingredient_dictionary import get_alias_to_canonical, resolve_canonical
 
 # 업로드 상한. 폰 원본 사진은 3~5MB 라 프론트에서 줄여서 보내는 걸 전제로 하되,
 # 안 줄이고 올려도 서버가 죽지 않도록 여유를 둔다.
@@ -44,19 +35,6 @@ MAX_TOTAL_BYTES = 16 * 1024 * 1024
 ALLOWED_MIME = {"image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"}
 
 SUPPORTED_MODES = ("receipt", "food-single", "food-multi", "file")
-
-_alias_lock = threading.Lock()
-_alias_cache = None
-
-
-def _alias_to_canonical():
-    """사전은 프로세스 수명 동안 한 번만 읽는다 (2,900행 CSV 파싱이 매 요청마다 돌면 느리다)."""
-    global _alias_cache
-    with _alias_lock:
-        if _alias_cache is None:
-            _alias_cache = load_alias_to_canonical()
-        return _alias_cache
-
 
 _OUTPUT_SPEC = """
 아래 JSON 객체만 출력해라. 다른 텍스트는 출력하지 마라.
@@ -270,7 +248,7 @@ def recognize(images, mode="receipt"):
     raw_text = _call_gemini_vision(api_key, _prompt_for(mode), images)
     parsed = _parse_response(raw_text)
 
-    alias = _alias_to_canonical()
+    alias = get_alias_to_canonical()
     seen = set()
     ingredients = []
     unmatched = []
@@ -279,7 +257,7 @@ def recognize(images, mode="receipt"):
         if not name:
             continue
         expiry = _clean_expiry(item.get("expiry"))
-        canonical = _resolve_canonical(name, alias)
+        canonical = resolve_canonical(name, alias)
         if not canonical:
             # 사전에 없는 것도 그대로 돌려준다 — 사용자가 화면에서 직접 고쳐 담을 수 있다.
             if not any(u["raw"] == name for u in unmatched):

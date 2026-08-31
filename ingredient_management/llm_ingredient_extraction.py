@@ -36,7 +36,6 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 
-import pandas as pd
 import pymysql
 import requests
 
@@ -66,50 +65,19 @@ CONTENT_CHAR_LIMIT = 4000  # 본문이 너무 길면 앞부분만 (재료는 보
 # 일일 호출 한도가 바닥나면 남은 호출은 시도조차 하지 않고 이 에러로 표시한다.
 # (한도 소진은 자정(PT)까지 안 풀려서 재시도 백오프 31초가 전부 헛돌기 때문)
 QUOTA_EXHAUSTED_ERR = "daily quota exhausted (skipped)"
-_INGREDIENT_CSV = os.path.join(
-    _PROJECT_ROOT, "frontend", "public", "ingredient_profile_dict_with_substitutes.csv"
+
+
+# 사전 정규화는 backend/ingredient_dictionary.py 한 곳에만 둔다.
+# (웹 서버도 같은 기준을 써야 하는데, 이 파일은 배치용이라 pandas 와 다른 배치
+#  모듈을 끌고 와서 서버가 가져다 쓰기에 무겁고 배포에서 잘 깨졌다.)
+# 예전 이름을 그대로 쓰던 스크립트들이 있어 별칭으로 남겨 둔다.
+from backend.ingredient_dictionary import (  # noqa: E402
+    PREP_PREFIXES as _PREP_PREFIXES,
+    load_alias_to_canonical,
+    normalize_key as _normalize_key,
+    resolve_canonical as _resolve_canonical,
+    token_fallback as _token_fallback,
 )
-
-
-def _normalize_key(name):
-    return re.sub(r"\s+", "", str(name).strip())
-
-
-def load_alias_to_canonical():
-    """사전 CSV에서 (동의어 포함) 이름 -> 대표 keyword 매핑을 만든다. LLM 관여 없는 순수 결정론적 매핑."""
-    df = pd.read_csv(_INGREDIENT_CSV, encoding="utf-8")
-    if "1keyword" in df.columns:
-        df = df.rename(columns={"1keyword": "keyword"})
-    df = df[df["대분류"].isin(["재료", "포장/제품"])]
-
-    alias_to_canonical = {}
-    for _, row in df.iterrows():
-        if pd.isna(row["keyword"]):
-            continue
-        canonical = str(row["keyword"]).strip()
-        if not canonical:
-            continue
-        synonyms = str(row["synonyms"]).split(", ") if not pd.isna(row["synonyms"]) else []
-        for name in [canonical] + synonyms:
-            key = _normalize_key(name)
-            if key:
-                alias_to_canonical[key] = canonical
-
-    # 연쇄 해소: 대표어로 지정된 값이 그 자체로 또 다른 대표어의 별칭인 경우가 있다.
-    # (예: 볶은참깨 -> 통깨 인데 통깨 -> 참깨) 이대로 두면 같은 재료가 본문 표기에
-    # 따라 서로 다른 pill 로 나와 냉장고 매칭이 어긋난다. 끝까지 따라가 최종 대표어로 접는다.
-    for key, canonical in list(alias_to_canonical.items()):
-        seen = {canonical}
-        final = canonical
-        while True:
-            nxt = alias_to_canonical.get(_normalize_key(final))
-            if not nxt or nxt == final or nxt in seen:
-                break
-            final = nxt
-            seen.add(final)
-        if final != canonical:
-            alias_to_canonical[key] = final
-    return alias_to_canonical
 
 
 def _extract_json_array(text):

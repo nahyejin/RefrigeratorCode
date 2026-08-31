@@ -71,15 +71,8 @@ def allowed_removals(old_dict_path):
     이 집합 밖의 재료가 사라지는 행은 사전 보강으로 설명되지 않는 변화이므로
     건드리지 않고 넘긴다 (룰베이스 값이 남아 있던 행에서 재료를 잃는 사고 방지).
     """
-    import ingredient_management.llm_ingredient_extraction as _M
-
     new_alias = load_alias_to_canonical()
-    real_csv = _M._INGREDIENT_CSV
-    _M._INGREDIENT_CSV = old_dict_path
-    try:
-        old_alias = _M.load_alias_to_canonical()
-    finally:
-        _M._INGREDIENT_CSV = real_csv
+    old_alias = load_alias_to_canonical(old_dict_path)
 
     allowed = set()
     for key, old_canonical in old_alias.items():

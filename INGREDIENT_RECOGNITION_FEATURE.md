@@ -74,8 +74,9 @@
 레시피의 `used_ingredients` 도 **같은 사전**
 (`frontend/public/ingredient_profile_dict_with_substitutes.csv`)의 대표어로
 저장된다. 여기서 다른 기준을 쓰면 **인식해서 담아 준 재료가 정작 레시피와
-매칭되지 않는다.** 그래서 `llm_ingredient_extraction.load_alias_to_canonical()` /
-`_resolve_canonical()` 을 그대로 재사용한다.
+매칭되지 않는다.** 그래서 `backend/ingredient_dictionary.py` 의
+`get_alias_to_canonical()` / `resolve_canonical()` 을 그대로 쓴다 — 레시피 재료
+배치도 같은 모듈을 쓴다.
 
 LLM 은 "이미지에서 이름을 읽는" 것까지만 하고, 사전 매칭은 결정론적으로
 처리한다 — 모델이 사전에 없는 재료를 지어내 담는 걸 막기 위해서다.
@@ -83,13 +84,16 @@ LLM 은 "이미지에서 이름을 읽는" 것까지만 하고, 사전 매칭은
 사전은 프로세스 수명 동안 **한 번만** 읽는다(2,900행 CSV 파싱이 매 요청마다
 돌면 느리다). 사전을 고쳤으면 서버를 다시 띄워야 반영된다.
 
-> **주의**: `ingredient_vision` 은 `llm_ingredient_extraction` 의 정규화 부분만
-> 쓴다. 그쪽이 `update_used_ingredients_batch` 를 최상단에서 가져오면 배치용
-> 모듈까지 함께 로드되는데(그 모듈은 import 시점에 CSV 를 읽고
-> `backend.backend.*` 까지 끌어온다), 배포 환경에서 그 사슬 중 하나라도
-> 어긋나면 서버가 500 을 내며 원인이 응답에 전혀 안 남는다. 실제로 그렇게
-> 한 번 헤맸고, 지금은 그 import 를 `_batch_helpers()` 안으로 옮겨 두었다.
-> **다시 최상단으로 올리지 마세요.**
+> **주의**: 사전 정규화는 `backend/ingredient_dictionary.py` 한 곳에만 있다.
+> 표준 라이브러리(csv)만 쓰고 다른 모듈에 의존하지 않는다.
+>
+> 원래는 `ingredient_management/llm_ingredient_extraction.py` 의 것을 가져다
+> 썼는데, 그건 배치 스크립트라 pandas 와 다른 배치 모듈(`backend.backend.*` 까지)
+> 을 함께 끌고 온다. 배포 환경에서 그 사슬이 끊기면서 서버가 500/503 을 냈고,
+> 로그로 원인을 좁히기도 어려웠다. 그래서 **의존이 가장 적은 곳으로 내렸다.**
+> 배치 쪽(`llm_ingredient_extraction`)이 이제 이 모듈을 가져다 쓴다.
+>
+> **웹 서버가 `ingredient_management` 를 import 하게 만들지 마세요.**
 
 ---
 
@@ -154,9 +158,15 @@ LLM 은 "이미지에서 이름을 읽는" 것까지만 하고, 사전 매칭은
 디코딩하지 못할 수 있는데, 그 경우 원본이 그대로 가고 서버·Gemini 둘 다 HEIC 을
 받으므로 문제없다.
 
-> 파일 선택 `accept` 를 `image/*` 대신 형식 목록으로 좁혀 두었다. `image/*` 이면
-> OS 선택 메뉴에 "사진 찍기"가 함께 나오는데, 촬영은 위쪽 타일이 맡고 있어
-> 중복이기 때문이다. **다만 그 메뉴는 OS 가 그리는 것이라 강제할 수는 없다.**
+> **"사진 찍기"는 웹에서 없앨 수 없다.** 파일 선택을 누르면 OS 가 자기 메뉴
+> (사진 보관함 / 사진 찍기 / 파일 선택)를 띄우는데, `<input type="file">` 이
+> 이미지를 받는 한 촬영 항목은 항상 함께 나온다. `accept` 를 형식 목록으로
+> 좁혀도(실제로 시도해 봤다) 사라지지 않는다 — `capture` 속성은 촬영을 **강제**
+> 하는 것이지 그 반대를 지정하는 표준 방법은 없다.
+>
+> 그래도 무해하다: 거기서 찍어도 `mode=file` 로 들어와 자동 판별을 타므로 위쪽
+> 카메라 타일과 결과가 같다. 중복이 거슬리면 우리 쪽 카메라 타일을 없애고
+> 입구를 이 버튼 하나로 합치는 선택지가 있다.
 
 ---
 

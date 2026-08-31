@@ -1267,11 +1267,32 @@ const MyFridge: React.FC = () => {
                       (!room || room.length === 0) && 
                       (!frozen || frozen.length === 0);
       
-      // 로그인한 사용자는 DB 로드가 완전히 실패하고 localStorage에도 없을 때만 초기 재료 추가
-      // (DB 로드가 진행 중이거나 성공했으면 초기 재료 추가 안 함)
-      const shouldAddInitialIngredients = isEmpty && (
+      // 이 계정(비회원이면 이 기기)에 기본 재료를 한 번이라도 넣은 적이 있는지.
+      //
+      // 왜 표시를 남기나: "재료가 비었다"만 보고 넣으면, 사용자가 일부러 전부
+      // 지웠을 때 새로고침만 해도 기본 재료가 되살아난다. 한 번 넣었으면 다시는
+      // 넣지 않도록 계정별로 표시를 남긴다.
+      const seedKey = isLoggedIn && user?.id ? `myfridge_seeded_${user.id}` : 'myfridge_seeded_guest';
+      let alreadySeeded = false;
+      try {
+        alreadySeeded = localStorage.getItem(seedKey) === '1';
+      } catch {
+        // localStorage 를 못 쓰는 환경이면 표시를 못 남긴다. 그래도 비어 있으면
+        // 넣어 주는 쪽이 "처음인데 아무것도 없다" 보다 낫다.
+      }
+
+      const localStored = loadIngredients();
+      const localEmpty =
+        localStored.frozen.length === 0 &&
+        localStored.fridge.length === 0 &&
+        localStored.room.length === 0;
+
+      // 회원은 DB 조회가 끝난 뒤에 판단한다. 예전엔 DB 로드가 **실패**했을 때만
+      // 넣도록 돼 있어서, 갓 만든 계정처럼 "조회는 성공했는데 재료가 0건" 인
+      // 경우가 통째로 빠졌다 — 로그인해도 냉장고가 텅 비어 있던 원인.
+      const shouldAddInitialIngredients = isEmpty && !alreadySeeded && (
         !isLoggedIn || !user?.id || // 비회원
-        (dbLoadAttempted.current && dbLoadFailed.current && loadIngredients().frozen.length === 0 && loadIngredients().fridge.length === 0 && loadIngredients().room.length === 0) // 회원이지만 DB 로드 실패하고 localStorage도 비어있음
+        (dbLoadAttempted.current && localEmpty) // 회원: DB 조회를 마쳤고 로컬에도 없음
       );
       
       if (shouldAddInitialIngredients) {
@@ -1419,6 +1440,13 @@ const MyFridge: React.FC = () => {
             });
           }
           
+          // 이 계정에는 기본 재료를 넣었다고 표시해 둔다 (위 설명 참고).
+          try {
+            localStorage.setItem(seedKey, '1');
+          } catch {
+            // 표시를 못 남겨도 동작 자체에는 문제가 없다.
+          }
+
           // 초기 재료 추가 완료 후 초기 로드 플래그 해제
           isInitialLoad.current = false;
           

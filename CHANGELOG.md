@@ -3742,3 +3742,60 @@ JPEG 으로 다시 뽑으므로 실제로 받는 형식은 이 목록보다 넓�
   - 새 계정 생성, 그 계정의 재료 0건
   - 로그인 조회(`deleted_at IS NULL`)가 새 계정을 반환하는 것 확인
 - 롤백 후 DB 원상태 확인 (users 8행, 테스트 잔재 0건)
+
+### 사진 인식이 배포에서 계속 죽던 문제 — 의존 사슬을 끊어서 해결
+
+지연 로드까지 넣었는데도 배포된 백엔드는 여전히 503(모듈 로드 실패)이었다.
+Railway 로그를 볼 수 없어 원인을 특정하기 어려웠고, 후보(pandas 실패 /
+`ingredient_management` 미배포 / 그 밖)를 하나씩 확인하려면 매번 배포를 기다려야
+했다.
+
+그래서 **원인을 좁히는 대신 구조를 바꿔 후보를 전부 없앴다.**
+
+`backend/ingredient_dictionary.py` 신설 — 재료 사전 정규화를 **표준 라이브러리
+(csv)만으로** 구현하고, 웹 서버와 배치가 **함께 쓰는 단 하나의 구현**으로 삼았다.
+
+| | 전 | 후 |
+|---|---|---|
+| 백엔드가 import 하는 것 | `ingredient_management.llm_ingredient_extraction` (→ pandas, pymysql, 배치 모듈) | `backend/ingredient_dictionary` (stdlib only) |
+| 구현 위치 | 배치 스크립트 안 | 의존이 가장 적은 곳 |
+
+- `ingredient_vision` 은 이제 `ingredient_dictionary` 만 가져온다.
+  실측: import 후 `pandas` / `pymysql` / `ingredient_management` 셋 다 **로드 안 됨**.
+- `llm_ingredient_extraction` 은 자기 구현을 지우고 이 모듈에 위임한다.
+  예전 이름(`_normalize_key`, `_resolve_canonical`, `_PREP_PREFIXES`,
+  `_token_fallback`, `load_alias_to_canonical`)은 별칭으로 남겨 기존 스크립트가
+  그대로 돌아간다.
+- `renormalize_used_ingredients.allowed_removals()` 가 모듈 상수를 갈아끼우는
+  방식(`_M._INGREDIENT_CSV = ...`)을 쓰고 있었는데, 이제 `load_alias_to_canonical(path)`
+  로 경로를 직접 넘긴다.
+
+**동작이 하나도 안 바뀌었다는 걸 실측으로 확인했다.**
+- 별칭 1,818개 — 기존에만 있는 키 0, 신규에만 있는 키 0, 값이 다른 키 0
+- 코퍼스 고유 재료명 **13,876종 전부 resolve 결과 일치** (불일치 0)
+- 배치 3종(`llm_ingredient_extraction`, `renormalize`, `migrate`, 룰베이스 배치) 정상 동작
+- 로컬 엔드포인트: 이미지 없이 400, 영수증 → 200 + 구매일자 `2026-08-29` 인식
+
+### 로그인해도 기본 재료가 안 채워지던 문제 수정
+
+새 계정으로 로그인하면 내 냉장고가 텅 비어 있었다.
+
+초기 재료 투입 조건이 **"DB 로드가 실패했을 때"** 로만 돼 있어서
+(`dbLoadAttempted && dbLoadFailed && localStorage 비어있음`), 갓 만든 계정처럼
+**"조회는 성공했는데 재료가 0건"** 인 경우가 통째로 빠졌다.
+
+조건을 "DB 조회를 마쳤고(성공/실패 무관) 로컬에도 없으면" 으로 고쳤다.
+
+여기에 **계정별 표시**(`myfridge_seeded_{userId}`, 비회원은 `myfridge_seeded_guest`)
+를 함께 뒀다. "비었으면 넣는다"만으로는 사용자가 일부러 전부 지웠을 때 새로고침만
+해도 기본 재료가 되살아나기 때문이다. 한 번 넣었으면 다시 넣지 않는다.
+
+### "사진 찍기"는 웹에서 없앨 수 없음 (확인)
+
+`accept` 를 형식 목록으로 좁혀 봤지만 OS 선택 메뉴의 "사진 찍기"는 그대로 나온다.
+`<input type="file">` 이 이미지를 받는 한 촬영 항목은 OS 가 항상 붙이며,
+`capture` 속성은 촬영을 **강제**하는 것이지 그 반대를 지정하는 표준 방법은 없다.
+
+동작상 무해하다 — 거기서 찍어도 `mode=file` 로 들어와 자동 판별을 타므로 위쪽
+카메라 타일과 결과가 같다. 문서에 이 사실과, 중복이 거슬리면 카메라 타일을 없애고
+입구를 하나로 합치는 선택지가 있다는 것을 적어 뒀다.
