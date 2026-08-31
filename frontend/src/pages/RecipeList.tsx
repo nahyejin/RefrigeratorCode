@@ -2050,7 +2050,6 @@ const RecipeList: React.FC = () => {
                 cursor: 'pointer',
               }}
             >
-              <span aria-hidden style={{ flexShrink: 0 }}>🧊</span>
               <span style={{ flex: 1, wordBreak: 'keep-all' }}>
                 내 냉장고에 재료를 등록하면 매칭률순으로 볼 수 있어요.
               </span>

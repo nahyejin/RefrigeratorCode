@@ -4087,7 +4087,7 @@ const shouldShowNoIngredientsMessage = (hasNoIngredients || hasOnlyDefaultEgg) &
 목록 위에 얇은 배너 한 줄을 둔다.
 
 ```
-🧊  내 냉장고에 재료를 등록하면 매칭률순으로 볼 수 있어요.      등록하기 ›
+내 냉장고에 재료를 등록하면 매칭률순으로 볼 수 있어요.      등록하기 ›
 ```
 
 - 재료가 **0개이고 보여줄 레시피가 있을 때만** 나온다. 재료가 하나라도 생기면 사라진다.
