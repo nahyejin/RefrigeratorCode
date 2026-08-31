@@ -762,6 +762,20 @@ def ensure_users_table():
         """)
         db.commit()
         
+        # 기본 재료를 한 번이라도 넣어 준 계정인지 (기존 테이블 마이그레이션)
+        #
+        # 왜 서버에 두나: 예전엔 이 표시를 브라우저 localStorage 에만 뒀다. 그래서
+        # 재료를 전부 지운 뒤 **앱을 지우거나 캐시를 비우면 표시도 함께 사라져**,
+        # 다시 들어올 때 기본 재료가 되살아났다(실제로 그렇게 보고됨).
+        # 계정에 딸린 사실이므로 계정과 함께 남아야 한다.
+        try:
+            cursor.execute(
+                "ALTER TABLE users ADD COLUMN fridge_seeded TINYINT(1) NOT NULL DEFAULT 0"
+            )
+            db.commit()
+        except Exception:
+            pass  # 이미 있으면 무시
+
         # password 필드가 없으면 추가 (기존 테이블 마이그레이션)
         try:
             cursor.execute("ALTER TABLE users ADD COLUMN password VARCHAR(255) NULL")
@@ -3475,6 +3489,17 @@ def get_user_ingredients(user_id):
                     'purchase': ing['purchase_date'].strftime('%Y-%m-%d') if ing['purchase_date'] else None,
                 })
             
+            # 기본 재료를 넣어 준 적이 있는 계정인지 함께 알려 준다.
+            # 프론트는 이 값으로 "이미 초기화된 계정" 을 판단한다 (기기를 바꾸거나
+            # 앱을 지워도 유지돼야 하므로 localStorage 표시로는 부족하다).
+            try:
+                cursor.execute("SELECT fridge_seeded FROM users WHERE id = %s", (user_id,))
+                row = cursor.fetchone()
+                result['fridge_seeded'] = bool(row and row.get('fridge_seeded'))
+            except Exception as e:
+                print(f"[get_user_ingredients] fridge_seeded 조회 실패(무시): {e}")
+                result['fridge_seeded'] = False
+
             print(f"[get_user_ingredients] 재료 조회 완료: user_id={user_id}, frozen={len(result['frozen'])}, fridge={len(result['fridge'])}, room={len(result['room'])}")
             
             return jsonify(result), 200
@@ -3535,6 +3560,13 @@ def save_user_ingredients(user_id):
                         (storage_user_id, ing['name'], box, expiry_date, purchase_date, saved_at)
                     )
             
+            # 한 번이라도 저장했으면 이 계정은 초기화가 끝난 것이다. 표시를 남겨야
+            # 나중에 재료를 전부 지우고 앱을 지웠다 다시 들어와도 기본 재료가
+            # 되살아나지 않는다. (빈 목록 저장도 "내가 정한 상태" 이므로 포함)
+            try:
+                cursor.execute('UPDATE users SET fridge_seeded = 1 WHERE id = %s', (user_id,))
+            except Exception as e:
+                print(f'[save_user_ingredients] fridge_seeded 표시 실패(무시): {e}')
             db.commit()
             return jsonify({'message': '재료가 저장되었습니다.', 'saved_at': saved_at.strftime('%Y-%m-%d %H:%M:%S')}), 200
             

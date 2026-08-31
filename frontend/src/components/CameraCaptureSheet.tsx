@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import Sheet from './ui/Sheet';
 
 export type CaptureMode = 'receipt' | 'food-single' | 'food-multi' | 'file';
@@ -62,55 +62,38 @@ const OPTIONS: { key: Extract<CaptureMode, 'receipt' | 'food-single' | 'food-mul
  * 설치 안내는 다른 화면(HomeInstallPrompt 등)에서 이미 하고 있어 여기서는
  * 반복하지 않고, 위젯이 계획돼 있다는 사실만 짧게 알려 둔다.
  */
-/** 방금 찍은 사진으로 볼 시간 간격 (파일이 만들어진 지 이 정도 안쪽이면 촬영으로 본다) */
-const JUST_TAKEN_MS = 2 * 60 * 1000;
-
-/**
- * 파일 선택으로 들어온 사진이 "방금 찍은 것" 인지 짐작한다.
- *
- * 왜 필요한가: 파일 선택을 누르면 OS 가 `사진 보관함 / 사진 찍기 / 파일 선택` 메뉴를
- * 띄우는데, 웹에서 촬영 항목만 빼는 표준 방법이 없다. 그런데 거기서 찍으면 위쪽
- * 타일(영수증/음식1개/음식여러개)을 거치지 않아 **무엇을 찍었는지 모른 채** 처리된다.
- *
- * 촬영으로 들어온 파일은 만들어진 시각이 방금이다(앨범 사진은 대개 예전 날짜).
- * 그걸 단서로 "방금 찍으셨네요, 무엇인가요?" 를 한 번 물어본다. **다시 찍게 하지 않고**
- * 이미 받은 사진을 그대로 들고 있다가 고른 모드로 보낸다.
- */
-const looksJustTaken = (files: File[]) =>
-  files.length > 0 &&
-  files.some(f => {
-    // 시각을 못 읽는 기기도 있다. 그럴 땐 "오래된 사진" 이라고 단정할 수 없으므로
-    // 물어보는 쪽으로 기운다 — 잘못 물어봐야 탭 한 번이고, 안 물어보면 분기가 통째로 빠진다.
-    if (!f.lastModified) return true;
-    return Date.now() - f.lastModified < JUST_TAKEN_MS;
-  });
-
 const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose, onCaptured, maxFiles = 5 }) => {
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [pendingMode, setPendingMode] = useState<CaptureMode>('food-single');
-  /** 방금 찍은 것으로 보여 모드를 물어보는 중인 사진들 */
-  const [awaitingMode, setAwaitingMode] = useState<File[] | null>(null);
-  /** 물어보는 동안 보여줄 미리보기. "사진이 잘 찍혔고 우리가 갖고 있다" 를 눈으로 알려 준다 */
-  const [previews, setPreviews] = useState<string[]>([]);
+  /**
+   * 앨범/파일 버튼을 누른 뒤, **사진을 고르기 전에** 모드를 먼저 묻는 중인지.
+   *
+   * 왜 먼저 묻나: 파일 선택을 누르면 OS 가 `사진 보관함 / 사진 찍기 / 파일 선택` 을
+   * 띄우는데, 웹에서 촬영 항목만 빼는 표준 방법이 없다. 거기서 찍으면 위쪽 타일을
+   * 거치지 않아 **무엇을 찍었는지 모른 채** 처리된다(타일마다 프롬프트가 다르다).
+   *
+   * 예전엔 사진이 들어온 뒤 파일 시각으로 "방금 찍은 것" 을 짐작해 되물었는데,
+   * 기기에 따라 그 시각이 없거나 촬영 중 화면 상태가 날아가 물어보지 못하는 경우가
+   * 있었다. 그래서 **순서를 뒤집었다** — 고르기 전에 정하면 OS 메뉴에서 무엇을
+   * 누르든(보관함이든 촬영이든) 모드가 이미 정해져 있다.
+   */
+  const [choosingForPicker, setChoosingForPicker] = useState(false);
+  /** 파일 선택창을 열 때 정해 둔 모드 */
+  const pickerModeRef = useRef<CaptureMode>('file');
 
-  useEffect(() => {
-    if (!awaitingMode) {
-      setPreviews([]);
-      return;
-    }
-    const urls = awaitingMode.map(f => URL.createObjectURL(f));
-    setPreviews(urls);
-    return () => urls.forEach(u => URL.revokeObjectURL(u));
-  }, [awaitingMode]);
+  /** 정한 모드로 앨범/파일 선택창을 연다 */
+  const openPickerWith = (mode: CaptureMode) => {
+    pickerModeRef.current = mode;
+    setChoosingForPicker(false);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    fileInputRef.current?.click();
+  };
 
   const openCameraFor = (mode: CaptureMode) => {
-    // 모드를 물어보는 중이면, 타일을 누른 건 "이 사진은 이거예요" 라는 뜻이다.
-    // 다시 찍게 하지 않고 들고 있던 사진을 그대로 보낸다.
-    if (awaitingMode) {
-      const files = awaitingMode;
-      setAwaitingMode(null);
-      onCaptured(mode, files);
+    // 앨범/파일용 모드를 고르는 중이면, 타일을 누른 건 "이런 사진을 고를 거예요" 라는 뜻이다.
+    if (choosingForPicker) {
+      openPickerWith(mode);
       return;
     }
     setPendingMode(mode);
@@ -125,17 +108,12 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
     if (picked.length === 0) return;
     // 너무 많이 고르면 앞에서부터 자른다 (서버도 같은 수로 막고 있다).
     const files = picked.slice(0, maxFiles);
-    // 앨범/파일 경로인데 방금 찍은 사진이면, OS 메뉴에서 '사진 찍기' 로 들어온 것이다.
-    // 타일을 안 거쳤으므로 무엇을 찍었는지 여기서 한 번 묻는다.
-    if (mode === 'file' && looksJustTaken(files)) {
-      setAwaitingMode(files);
-      return;
-    }
-    onCaptured(mode, files);
+    // 앨범/파일 경로는 열기 전에 정해 둔 모드를 쓴다 (OS 메뉴에서 촬영을 골랐어도 동일).
+    onCaptured(mode === 'file' ? pickerModeRef.current : mode, files);
   };
 
   const handleClose = () => {
-    setAwaitingMode(null);
+    setChoosingForPicker(false);
     onClose();
   };
 
@@ -199,50 +177,28 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
         </span>
       </div>
 
-      <div style={{ textAlign: 'center', fontWeight: 700, fontSize: 17, marginBottom: awaitingMode ? 6 : 16, color: '#1A1A1E' }}>
-        {awaitingMode ? '방금 찍은 사진, 무엇인가요?' : '무엇을 찍을까요?'}
+      <div style={{ textAlign: 'center', fontWeight: 700, fontSize: 17, marginBottom: choosingForPicker ? 6 : 16, color: '#1A1A1E' }}>
+        {choosingForPicker ? '어떤 사진을 고르실 건가요?' : '무엇을 찍을까요?'}
       </div>
-      {awaitingMode && (
-        <>
-          {previews.length > 0 && (
-            <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 10 }}>
-              {previews.slice(0, 3).map((src, i) => (
-                <img
-                  key={src}
-                  src={src}
-                  alt={`찍은 사진 ${i + 1}`}
-                  style={{
-                    width: 64, height: 64, objectFit: 'cover',
-                    borderRadius: 10, border: '2px solid #FFD600',
-                  }}
-                />
-              ))}
-              {previews.length > 3 && (
-                <span style={{ alignSelf: 'center', fontSize: 13, color: 'var(--ink-500)' }}>
-                  +{previews.length - 3}
-                </span>
-              )}
-            </div>
-          )}
-          <div
-            style={{
-              margin: '0 0 14px',
-              padding: '10px 12px',
-              borderRadius: 10,
-              background: '#FFF8D6',
-              border: '1px solid #FFD600',
-              color: '#1A1A1E',
-              fontSize: 13,
-              lineHeight: 1.5,
-              textAlign: 'center',
-              wordBreak: 'keep-all',
-            }}
-          >
-            사진은 잘 받았어요. <b>다시 찍지 않아도 돼요.</b>
-            <br />
-            아래에서 <b>무엇을 찍었는지</b> 골라 주세요.
-          </div>
-        </>
+      {choosingForPicker && (
+        <div
+          style={{
+            margin: '0 0 14px',
+            padding: '10px 12px',
+            borderRadius: 10,
+            background: '#FFF8D6',
+            border: '1px solid #FFD600',
+            color: '#1A1A1E',
+            fontSize: 13,
+            lineHeight: 1.5,
+            textAlign: 'center',
+            wordBreak: 'keep-all',
+          }}
+        >
+          먼저 <b>종류</b>를 골라 주세요. 그다음 사진을 고르는 창이 열려요.
+          <br />
+          (거기서 바로 찍어도 괜찮아요)
+        </div>
       )}
 
       {/* 카드를 눌러야 찍힌다는 게 한눈에 들어오도록, 글줄보다 아이콘을 훨씬
@@ -253,7 +209,7 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
           <button
             key={key}
             type="button"
-            className={awaitingMode ? 'cookmatch-tile-blink' : undefined}
+            className={choosingForPicker ? 'cookmatch-tile-blink' : undefined}
             onClick={() => openCameraFor(key)}
             style={{
               display: 'flex',
@@ -292,14 +248,13 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
       <button
         type="button"
         onClick={() => {
-          if (awaitingMode) {
-            // 고르기 싫으면 모델이 알아서 판단하게 한다 (앨범 경로와 같은 처리).
-            const files = awaitingMode;
-            setAwaitingMode(null);
-            onCaptured('file', files);
+          if (choosingForPicker) {
+            // 고르기 싫으면 모델이 알아서 판단하게 한다.
+            openPickerWith('file');
             return;
           }
-          fileInputRef.current?.click();
+          // 바로 창을 열지 않고 먼저 종류를 묻는다 (openPickerWith 설명 참고).
+          setChoosingForPicker(true);
         }}
         style={{
           width: '100%',
@@ -314,7 +269,7 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
           marginBottom: 14,
         }}
       >
-        {awaitingMode
+        {choosingForPicker
           ? '모르겠어요 · 알아서 인식해 주세요'
           : `사진 앨범/파일에서 선택 (최대 ${maxFiles}장)`}
       </button>

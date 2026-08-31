@@ -488,6 +488,14 @@ const MyFridge: React.FC = () => {
    */
   const seedDecidedRef = React.useRef(false);
   /**
+   * 서버가 알려준 "이 계정에는 기본 재료를 이미 넣어 줬다" 표시.
+   *
+   * 예전엔 이 사실을 브라우저 localStorage 에만 뒀다. 그래서 재료를 전부 지운 뒤
+   * **앱을 지우거나 캐시를 비우면 표시가 함께 사라져** 다시 들어올 때 기본 재료가
+   * 되살아났다. 계정에 딸린 사실이므로 서버(users.fridge_seeded)가 들고 있어야 한다.
+   */
+  const serverSeededRef = React.useRef(false);
+  /**
    * 이 기기에서 재료를 건드렸고 아직 서버에 저장이 끝나지 않았는지.
    *
    * 아래 `refreshOnResume`(앱으로 돌아오면 DB에서 최신화) 때문에 필요하다.
@@ -577,6 +585,8 @@ const MyFridge: React.FC = () => {
           fridge: Array.isArray(data.fridge) ? data.fridge : [],
           room: Array.isArray(data.room) ? data.room : [],
         };
+        // 이 계정에 기본 재료를 이미 넣어 줬는지 (서버 기준). 위 serverSeededRef 설명 참고.
+        serverSeededRef.current = data.fridge_seeded === true;
         console.log('[MyFridge] DB에서 재료 로드 성공:', {
           frozen: result.frozen.length,
           fridge: result.fridge.length,
@@ -1282,7 +1292,11 @@ const MyFridge: React.FC = () => {
         }
       }
 
-      const shouldAddInitialIngredients = !seedDecidedRef.current && isEmpty && !alreadySeeded && (
+      // 로그인 사용자는 **서버 표시가 최종 기준**이다. 기기를 바꾸거나 앱을 지워도
+      // 유지돼야 하는 판단이라 localStorage 표시만으로는 부족하다.
+      const seededSomewhere = alreadySeeded || (isLoggedIn && !!user?.id && serverSeededRef.current);
+
+      const shouldAddInitialIngredients = !seedDecidedRef.current && isEmpty && !seededSomewhere && (
         !isLoggedIn || !user?.id || // 비회원
         (dbLoadAttempted.current && localEmpty) // 회원: DB 조회를 마쳤고 로컬에도 없음
       );
