@@ -44,10 +44,34 @@ class DictionaryUnavailable(Exception):
     """재료 사전 CSV 를 어디서도 찾지 못함."""
 
 
+def _warn_if_copies_differ(chosen):
+    """원본(frontend/public)과 백엔드 사본이 다르면 알린다.
+
+    백엔드 배포에는 frontend/ 가 올라가지 않아서 backend/ 에 사본을 하나 더 둔다.
+    사전을 고친 뒤  를 안 돌리면 화면과
+    서버가 서로 다른 사전을 쓰게 되는데, 조용히 어긋나면 찾기가 매우 어렵다.
+    """
+    front = os.path.join(_PROJECT_ROOT, "frontend", "public", _CSV_NAME)
+    back = os.path.join(_HERE, _CSV_NAME)
+    if not (os.path.exists(front) and os.path.exists(back)):
+        return
+    try:
+        with open(front, "rb") as f1, open(back, "rb") as f2:
+            if f1.read() != f2.read():
+                print(
+                    "[ingredient_dictionary] 경고: frontend/public 원본과 backend 사본이 "
+                    f"다릅니다. 지금 쓰는 파일: {chosen}. "
+                    "scripts/sync_ingredient_dict.py --write 로 맞춰 주세요."
+                )
+    except OSError:
+        pass
+
+
 def _find_csv():
     tried = _candidate_paths()
     for path in tried:
         if path and os.path.exists(path):
+            _warn_if_copies_differ(path)
             return path
     raise DictionaryUnavailable(
         "재료 사전 CSV 를 찾지 못했습니다. 확인한 경로: " + " | ".join(tried)
