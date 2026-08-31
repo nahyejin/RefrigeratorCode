@@ -2038,7 +2038,16 @@ const RecipeList: React.FC = () => {
                 const hasNoRecipes = currentRecipes.length === 0;
                 const hasNoIngredients = myIngredients.length === 0;
                 const hasIngredientsButNoRecipes = !hasNoIngredients && !hasOnlyDefaultEgg && hasNoRecipes;
-                const shouldShowNoIngredientsMessage = hasNoIngredients || (hasOnlyDefaultEgg && hasNoRecipes);
+                /**
+                 * 재료가 없다고 해서 레시피를 감추지는 않는다.
+                 *
+                 * 예전엔 재료가 0개면 레시피가 있든 없든 "등록된 재료가 없습니다" 안내로
+                 * 화면을 덮었다. 그런데 재료가 없으면 정렬이 최신순으로 시작하고 모든
+                 * 레시피의 매칭률이 0% 로 계산될 뿐, **보여줄 레시피는 멀쩡히 있다**
+                 * (서버도 총 44,930건을 match_rate=0 으로 정상 반환한다).
+                 * 그래서 안내는 **보여줄 레시피까지 없을 때만** 띄운다.
+                 */
+                const shouldShowNoIngredientsMessage = (hasNoIngredients || hasOnlyDefaultEgg) && hasNoRecipes;
                 
                 // 디버깅용 로그
                 console.log('RecipeList 안내 문구 체크:', {

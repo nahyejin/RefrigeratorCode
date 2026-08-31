@@ -4058,3 +4058,25 @@ window.addEventListener('focus', refreshOnResume);
 
 같은 확인에서 **정렬 기본값(최신순)과 삭제 확인 팝업은 의도대로 동작**하는 것도
 실측했다 — `냉동 재료를 모두 지울까요? / 3개를 지웁니다. / [취소] [모두 지우기]`.
+
+### 재료가 없으면 레시피를 아예 안 보여주던 문제
+
+재료를 모두 지우면 정렬이 최신순으로 시작하도록 고쳐 뒀는데, 정작 화면에는
+`등록된 재료가 없습니다` 안내만 뜨고 레시피가 하나도 안 나왔다.
+
+```js
+const shouldShowNoIngredientsMessage = hasNoIngredients || (hasOnlyDefaultEgg && hasNoRecipes);
+```
+
+재료가 0개면 **레시피가 있든 없든** 안내로 화면을 덮고 있었다. 하지만 재료가
+없다는 건 "매칭률이 전부 0%" 라는 뜻일 뿐, 보여줄 레시피가 없다는 뜻이 아니다.
+서버도 정상적으로 응답한다 — `sort_by=date` 로 **총 44,930건, 각 `match_rate=0`**
+(실측).
+
+안내는 **보여줄 레시피까지 없을 때만** 띄우도록 조건을 바꿨다.
+
+```js
+const shouldShowNoIngredientsMessage = (hasNoIngredients || hasOnlyDefaultEgg) && hasNoRecipes;
+```
+
+이제 냉장고가 비어 있으면 최신순으로 레시피가 쭉 나오고 매칭률은 0% 로 표시된다.
