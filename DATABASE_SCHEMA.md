@@ -148,6 +148,13 @@ responded_at  DATETIME  NULL
 
 ## 5. `user_ingredients` — 내 냉장고
 
+> 사진(영수증/포장지)으로 담은 재료도 같은 테이블에 들어갑니다. 영수증에서
+> 거래일시를 읽으면 `purchase_date` 에, 포장지에서 유통기한을 읽으면
+> `expiry_date` 에 그 값이 들어가고, 못 읽으면 업로드 시점이 `purchase_date`
+> 가 됩니다. `name` 은 항상 재료 사전의 대표어입니다 —
+> 사전이 바뀌면 `ingredient_management/migrate_user_ingredients.py` 로 맞춰
+> 주세요(백엔드 매칭은 사전을 거치지 않고 문자열을 그대로 비교합니다).
+
 ```sql
 id             INT                                  PK
 user_id        INT           NOT NULL               INDEX

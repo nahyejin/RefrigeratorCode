@@ -49,10 +49,17 @@ _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _PROJECT_ROOT not in sys.path:
     sys.path.append(_PROJECT_ROOT)
 
-from ingredient_management.update_used_ingredients_batch import (
-    _connect_db,
-    _used_ingredient_token_set,
-)
+# 이 두 함수는 배치 실행(run)에서만 쓴다. 모듈 최상단에서 가져오면
+# update_used_ingredients_batch 가 함께 로드되는데, 그쪽은 import 시점에
+# 재료 사전 CSV 를 읽고 backend.backend.* 까지 끌어온다. 백엔드 서버는 이
+# 파일의 "사전 정규화" 부분만 쓰므로, 그 무거운 사슬 때문에 서버가 죽지
+# 않도록 실제로 필요할 때 가져온다.
+def _batch_helpers():
+    from ingredient_management.update_used_ingredients_batch import (
+        _connect_db,
+        _used_ingredient_token_set,
+    )
+    return _connect_db, _used_ingredient_token_set
 
 CONTENT_CHAR_LIMIT = 4000  # 본문이 너무 길면 앞부분만 (재료는 보통 본문 앞쪽에 나옴)
 
@@ -460,6 +467,7 @@ def run(*, limit, start_after_id, order, output_path, commit, rpm, concurrency, 
     alias_to_canonical = load_alias_to_canonical()
     extractor = GeminiExtractor(api_key, model=model, rpm=rpm)
 
+    _connect_db, _used_ingredient_token_set = _batch_helpers()
     conn = _connect_db(read_timeout_sec=120)
     cursor = conn.cursor()
     if ids:

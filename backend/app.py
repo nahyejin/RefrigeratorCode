@@ -3971,11 +3971,21 @@ def recognize_ingredients_from_image():
     확인한 뒤에 담아야 한다. 재료명은 레시피와 같은 사전으로 정규화되므로
     여기서 담은 재료는 그대로 레시피 매칭에 쓰인다.
     """
-    import chat_service
-    from ingredient_vision import (
-        ALLOWED_MIME, MAX_IMAGE_BYTES, MAX_IMAGES, MAX_TOTAL_BYTES,
-        QuotaExceeded, recognize,
-    )
+    # 이미지 인식 모듈은 pandas 와 재료 사전 CSV 를 쓴다. 배포 환경에서 그 중
+    # 하나라도 없으면 import 자체가 터지는데, 그대로 두면 라우트가 500 을 내며
+    # 원인이 응답에 전혀 안 남는다(실제로 그렇게 한 번 헤맸다). 여기서 잡아
+    # 로그를 남기고 사용자에게는 "설정이 안 됐다"고 알려 준다.
+    try:
+        import chat_service
+        from ingredient_vision import (
+            ALLOWED_MIME, MAX_IMAGE_BYTES, MAX_IMAGES, MAX_TOTAL_BYTES,
+            QuotaExceeded, recognize,
+        )
+    except Exception as e:
+        import traceback
+        print(f"[recognize] 모듈 로드 실패: {e}")
+        traceback.print_exc()
+        return jsonify({'error': '이미지 인식이 아직 준비되지 않았어요. 잠시 후 다시 시도해 주세요.'}), 503
 
     uploads = request.files.getlist('image')
     if not uploads:

@@ -55,6 +55,7 @@ RefrigeratorCode/
 ├── 📄 DEVELOPMENT_GUIDE.md         # 개발 워크플로우 + UI 체계 규칙
 ├── 📄 HOUSEHOLD_FEATURE.md         # 식구 그룹 + 요리 캘린더 기능 동작 방식
 ├── 📄 CHATBOT_FEATURE.md           # AI 요리 챗봇 동작 방식 (프롬프트·검색·팔로우업)
+├── 📄 INGREDIENT_RECOGNITION_FEATURE.md  # 사진으로 재료 담기 (영수증·유통기한 인식)
 ├── 📄 ENVIRONMENT_SETUP.md
 └── 📄 CHANGELOG.md                 # 변경 이력
 ```

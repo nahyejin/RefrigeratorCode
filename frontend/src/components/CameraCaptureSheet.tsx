@@ -97,11 +97,18 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
         onChange={makeChangeHandler(pendingMode)}
       />
       {/* 앨범 선택은 여러 장을 고를 수 있게 한다. 여러 장이어도 LLM 호출은
-          1회라(한 요청에 이미지를 여러 개 넣는다) 한도가 장수만큼 늘지 않는다. */}
+          1회라(한 요청에 이미지를 여러 개 넣는다) 한도가 장수만큼 늘지 않는다.
+
+          accept 를 `image/*` 대신 형식 목록으로 좁힌 이유: `image/*` 이면 OS 가
+          띄우는 선택 메뉴에 "사진 찍기"가 함께 나온다. 촬영은 바로 위 타일들이
+          맡고 있어 여기서는 중복이라, 형식을 명시해 보관함/파일 쪽으로 유도한다.
+          (메뉴 자체는 OS 가 그리는 것이라 강제할 수는 없다.)
+          어차피 업로드 직전에 전부 JPEG 으로 다시 뽑으므로 실제로 받는 형식은
+          이 목록보다 넓다. */}
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/*"
+        accept="image/png,image/jpeg,image/webp,image/heic,image/heif"
         multiple
         style={{ display: 'none' }}
         onChange={makeChangeHandler('file')}
