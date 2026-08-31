@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import Sheet from './ui/Sheet';
+import Dialog from './ui/Dialog';
 
 export type CaptureMode = 'receipt' | 'food-single' | 'food-multi' | 'file';
 
@@ -91,11 +92,6 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
   };
 
   const openCameraFor = (mode: CaptureMode) => {
-    // 앨범/파일용 모드를 고르는 중이면, 타일을 누른 건 "이런 사진을 고를 거예요" 라는 뜻이다.
-    if (choosingForPicker) {
-      openPickerWith(mode);
-      return;
-    }
     setPendingMode(mode);
     // 같은 모드를 연달아 찍어도 change 이벤트가 다시 뜨도록 비워 둔다.
     if (cameraInputRef.current) cameraInputRef.current.value = '';
@@ -118,15 +114,8 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
   };
 
   return (
+    <>
     <Sheet open={isOpen} onClose={handleClose} title="사진으로 재료 담기" maxHeight="70dvh" hideFooter>
-      {/* 모드를 물어보는 동안 타일이 눈에 띄도록 하는 깜빡임 */}
-      <style>{`
-        @keyframes cookmatch-tile-blink {
-          0%, 100% { box-shadow: 0 0 0 0 rgba(255, 214, 0, 0); }
-          50%      { box-shadow: 0 0 0 4px rgba(255, 214, 0, 0.85); }
-        }
-        .cookmatch-tile-blink { animation: cookmatch-tile-blink 1.1s ease-in-out infinite; }
-      `}</style>
       {/* 실제 촬영/선택은 숨겨진 input 두 개가 담당한다.
           capture="environment" 는 모바일에서 바로 후면 카메라를 연다.
           아래쪽 것은 capture가 없어 앨범·파일 앱을 그대로 보여준다 — 모바일에서는
@@ -177,29 +166,9 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
         </span>
       </div>
 
-      <div style={{ textAlign: 'center', fontWeight: 700, fontSize: 17, marginBottom: choosingForPicker ? 6 : 16, color: '#1A1A1E' }}>
-        {choosingForPicker ? '어떤 사진을 고르실 건가요?' : '무엇을 찍을까요?'}
+      <div style={{ textAlign: 'center', fontWeight: 700, fontSize: 17, marginBottom: 16, color: '#1A1A1E' }}>
+        무엇을 찍을까요?
       </div>
-      {choosingForPicker && (
-        <div
-          style={{
-            margin: '0 0 14px',
-            padding: '10px 12px',
-            borderRadius: 10,
-            background: '#FFF8D6',
-            border: '1px solid #FFD600',
-            color: '#1A1A1E',
-            fontSize: 13,
-            lineHeight: 1.5,
-            textAlign: 'center',
-            wordBreak: 'keep-all',
-          }}
-        >
-          먼저 <b>종류</b>를 골라 주세요. 그다음 사진을 고르는 창이 열려요.
-          <br />
-          (거기서 바로 찍어도 괜찮아요)
-        </div>
-      )}
 
       {/* 카드를 눌러야 찍힌다는 게 한눈에 들어오도록, 글줄보다 아이콘을 훨씬
           크게 키운 정사각 타일 3개를 나란히 둔다(설명문처럼 가로로 긴 줄
@@ -209,7 +178,6 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
           <button
             key={key}
             type="button"
-            className={choosingForPicker ? 'cookmatch-tile-blink' : undefined}
             onClick={() => openCameraFor(key)}
             style={{
               display: 'flex',
@@ -247,15 +215,8 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
 
       <button
         type="button"
-        onClick={() => {
-          if (choosingForPicker) {
-            // 고르기 싫으면 모델이 알아서 판단하게 한다.
-            openPickerWith('file');
-            return;
-          }
-          // 바로 창을 열지 않고 먼저 종류를 묻는다 (openPickerWith 설명 참고).
-          setChoosingForPicker(true);
-        }}
+        // 바로 선택창을 열지 않고 먼저 종류를 묻는다 (openPickerWith 설명 참고).
+        onClick={() => setChoosingForPicker(true)}
         style={{
           width: '100%',
           height: 40,
@@ -269,9 +230,7 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
           marginBottom: 14,
         }}
       >
-        {choosingForPicker
-          ? '모르겠어요 · 알아서 인식해 주세요'
-          : `사진 앨범/파일에서 선택 (최대 ${maxFiles}장)`}
+        사진 앨범/파일에서 선택 (최대 {maxFiles}장)
       </button>
 
       {/* 진짜 "홈 화면 위젯"(다른 앱 위에 떠 있는 버튼 포함)은 PWA 로는 만들 수
@@ -284,6 +243,56 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
         앱 출시 후 지원될 예정이에요.
       </div>
     </Sheet>
+
+    {/* 앨범/파일에서 고르기 전에 종류를 정하는 팝업.
+        시트 위에 뜨므로 nested 로 한 단계 위 층에 올린다.
+        고르지 않으면 선택창이 열리지 않는다 — 모드 없이 처리되는 길을 없앴다. */}
+    <Dialog
+      open={choosingForPicker}
+      onClose={() => setChoosingForPicker(false)}
+      title="어떤 사진을 고르실 건가요?"
+      nested
+      dismissLabel="취소"
+    >
+      <div style={{ display: 'grid', gap: 8 }}>
+        {OPTIONS.map(({ key, label, icon: Icon }) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => openPickerWith(key)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              width: '100%',
+              height: 56,
+              padding: '0 14px',
+              borderRadius: 12,
+              border: '1px solid var(--line-200)',
+              background: '#FFFFFF',
+              cursor: 'pointer',
+            }}
+          >
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 36,
+                height: 36,
+                borderRadius: '50%',
+                background: 'var(--surface-sub)',
+                flexShrink: 0,
+              }}
+            >
+              <Icon />
+            </span>
+            <span style={{ fontSize: 15, fontWeight: 700, color: '#1A1A1E' }}>{label}</span>
+          </button>
+        ))}
+      </div>
+    </Dialog>
+    </>
   );
 };
 
