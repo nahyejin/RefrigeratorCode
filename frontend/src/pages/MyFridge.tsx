@@ -1647,6 +1647,13 @@ const MyFridge: React.FC = () => {
   const [recognized, setRecognized] = useState<RecognizedIngredient[]>([]);
   const [recognizedUnmatched, setRecognizedUnmatched] = useState<UnmatchedIngredient[]>([]);
   const [recognizedPurchaseDate, setRecognizedPurchaseDate] = useState<string | null>(null);
+  /**
+   * 구매일자를 재료마다 따로 받을지.
+   *
+   * 영수증은 한 번에 산 목록이라 위에서 한 번만 정하면 되지만, 음식 사진은
+   * 재료마다 산 날이 다를 수 있어 한 값으로 묶으면 유통기한 추정이 어긋난다.
+   */
+  const [recognitionPerItemDate, setRecognitionPerItemDate] = useState(false);
   const [recognitionError, setRecognitionError] = useState<string | null>(null);
 
   /**
@@ -1674,6 +1681,8 @@ const MyFridge: React.FC = () => {
     setRecognized([]);
     setRecognizedUnmatched([]);
     setRecognizedPurchaseDate(null);
+    // 영수증/앨범(자동판별)은 한 번에 산 것으로 보고 일괄, 음식 사진은 행마다.
+    setRecognitionPerItemDate(mode === 'food-single' || mode === 'food-multi');
     setRecognitionError(null);
     setRecognitionLoading(true);
     setRecognitionOpen(true);
@@ -1710,10 +1719,7 @@ const MyFridge: React.FC = () => {
    * 재료별로 짐작한 값을 시트에서 사용자가 확인·수정하므로, 여기서는 항목에
    * 실려 온 보관함을 그대로 쓰고 칸별로 나눠 담는다.
    */
-  const handleRecognizedConfirm = (
-    items: ConfirmedIngredient[],
-    purchaseDate: string
-  ) => {
+  const handleRecognizedConfirm = (items: ConfirmedIngredient[]) => {
     setRecognitionOpen(false);
     localEditPendingRef.current = true;
     const already = new Set(
@@ -1731,13 +1737,14 @@ const MyFridge: React.FC = () => {
       const obj = {
         id: `${item.name}-${Date.now()}-${idx}`,
         name: item.name,
-        purchase: purchaseDate,
+        purchase: item.purchase,
       } as Ingredient;
       if (item.expiry) {
         // 포장지에서 실제로 읽은 날짜라 짐작값(estimatedExpiry)보다 정확하다.
-        obj.expiry = item.expiry;
+        // 서버는 ISO 로 주지만 앱의 표기는 yyyy.mm.dd 다 — 여기서 맞춰 둔다.
+        obj.expiry = item.expiry.replace(/-/g, '.');
       } else {
-        const est = estimateExpiry(item.name, storage, purchaseDate, categoryMap);
+        const est = estimateExpiry(item.name, storage, item.purchase, categoryMap);
         if (est) obj.estimatedExpiry = est;
       }
       buckets[storage].push(obj);
@@ -2241,6 +2248,7 @@ const MyFridge: React.FC = () => {
           ingredients={recognized}
           unmatched={recognizedUnmatched}
           purchaseDate={recognizedPurchaseDate}
+          datePerItem={recognitionPerItemDate}
           errorText={recognitionError}
           ingredientDict={ingredientDict}
           onConfirm={handleRecognizedConfirm}

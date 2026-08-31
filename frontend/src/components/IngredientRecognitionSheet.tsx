@@ -27,6 +27,8 @@ export interface ConfirmedIngredient {
   name: string;
   expiry?: string | null;
   storage: StorageBox;
+  /** 이 재료의 구매일자 (yyyy.mm.dd). 영수증이면 전부 같은 값이다 */
+  purchase: string;
 }
 
 interface Props {
@@ -37,10 +39,18 @@ interface Props {
   unmatched: UnmatchedIngredient[];
   /** 영수증에서 읽은 구매일자 (YYYY-MM-DD). 없으면 null */
   purchaseDate: string | null;
+  /**
+   * 구매일자를 재료마다 따로 정할지.
+   *
+   * 영수증은 한 장에 찍힌 것을 한 번에 산 것이므로 위에서 한 번만 정해 전부에
+   * 적용한다. 반면 음식 사진 여러 장은 서로 다른 날 산 재료가 섞여 있을 수 있어
+   * 한 값으로 묶으면 유통기한 추정이 통째로 어긋난다 — 그래서 행마다 둔다.
+   */
+  datePerItem: boolean;
   errorText: string | null;
   /** 재료 사전 { 동의어 또는 대표어: 대표어 } — 고쳐 담을 때 검색에 쓴다 */
   ingredientDict: { [key: string]: string };
-  onConfirm: (items: ConfirmedIngredient[], purchaseDate: string) => void;
+  onConfirm: (items: ConfirmedIngredient[]) => void;
 }
 
 const BOXES: { key: StorageBox; label: string }[] = [
@@ -49,13 +59,20 @@ const BOXES: { key: StorageBox; label: string }[] = [
   { key: 'room', label: '실온' },
 ];
 
-const todayStr = () => new Date().toISOString().slice(0, 10);
+/** 앱 전체가 쓰는 날짜 표기는 yyyy.mm.dd 다 (IngredientDateModal 도 이걸 돌려준다) */
+const todayStr = () => {
+  const d = new Date();
+  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
+};
+
+/** 서버는 ISO(2026-09-05)로 준다. 앱 표기(2026.09.05)로 맞춘다 */
+const toDots = (v: string) => v.replace(/-/g, '.');
 
 const isStorage = (v: unknown): v is StorageBox =>
   v === 'fridge' || v === 'frozen' || v === 'room';
 
-/** 화면에 보여줄 짧은 날짜 (2026-09-05 -> 09.05) */
-const shortDate = (iso: string) => iso.slice(5).replace('-', '.');
+/** 화면에 보여줄 짧은 날짜 (2026-09-05 또는 2026.09.05 -> 09.05) */
+const shortDate = (value: string) => toDots(value).slice(5);
 
 /**
  * 재료 사전에서 검색해 고르는 입력.
@@ -163,8 +180,17 @@ interface Row {
   expiry?: string | null;
   /** 이 재료를 어디에 담을지. 모델 짐작값으로 시작하고 사용자가 바꿀 수 있다 */
   storage: StorageBox;
+  /** 이 재료의 구매일자 (yyyy.mm.dd) */
+  purchase: string;
   checked: boolean;
 }
+
+/** 행 안의 작은 조작 버튼들이 같은 높이·모양을 갖도록 한 곳에 모아 둔다 */
+const chipStyle: React.CSSProperties = {
+  flexShrink: 0, height: 30, padding: '0 10px', borderRadius: 8,
+  border: '1px solid var(--line-200)', background: '#FFFFFF',
+  fontSize: 12, fontWeight: 600, color: 'var(--ink-700)', cursor: 'pointer',
+};
 
 /**
  * 사진에서 인식한 재료를 사용자가 검토하고 담는 시트.
@@ -177,22 +203,30 @@ interface Row {
  * 사용자가 직접 맞는 재료를 지정하면 담을 수 있다. 고칠 게 없으면 바로 반영하면 된다.
  */
 const IngredientRecognitionSheet: React.FC<Props> = ({
-  isOpen, onClose, loading, ingredients, unmatched, purchaseDate, errorText, ingredientDict, onConfirm,
+  isOpen, onClose, loading, ingredients, unmatched, purchaseDate, datePerItem,
+  errorText, ingredientDict, onConfirm,
 }) => {
   const [rows, setRows] = useState<Row[]>([]);
   const [editing, setEditing] = useState<number | null>(null);
+  /** 위쪽 일괄 구매일자 (영수증 등). 행별 모드에서는 쓰이지 않는다 */
   const [purchase, setPurchase] = useState<string>(todayStr());
-  const [dateModalOpen, setDateModalOpen] = useState(false);
+  /**
+   * 지금 날짜를 고치는 대상. 'all' = 위쪽 일괄, 숫자 = 그 행, null = 안 열림.
+   * 어느 날짜를 고치는 중인지 모달 하나로 처리하려고 대상만 들고 있는다.
+   */
+  const [dateTarget, setDateTarget] = useState<number | 'all' | null>(null);
 
   // 새로 인식할 때마다 초기화한다. 사전에 잡힌 것은 켜진 상태, 못 잡은 것은 꺼진 상태로
   // 둔다 (사용자가 재료를 지정해야 담을 수 있으므로).
   useEffect(() => {
+    const base = purchaseDate ? toDots(purchaseDate) : todayStr();
     setRows([
       ...ingredients.map(i => ({
         name: i.name,
         raw: i.raw,
         expiry: i.expiry ?? null,
         storage: (isStorage(i.storage) ? i.storage : 'fridge') as StorageBox,
+        purchase: base,
         checked: true,
       })),
       ...unmatched.map(u => ({
@@ -200,11 +234,13 @@ const IngredientRecognitionSheet: React.FC<Props> = ({
         raw: u.raw,
         expiry: u.expiry ?? null,
         storage: (isStorage(u.storage) ? u.storage : 'fridge') as StorageBox,
+        purchase: base,
         checked: false,
       })),
     ]);
     setEditing(null);
-    setPurchase(purchaseDate || todayStr());
+    setDateTarget(null);
+    setPurchase(base);
   }, [ingredients, unmatched, purchaseDate]);
 
   const selected = rows.filter(r => r.checked && r.name);
@@ -213,6 +249,19 @@ const IngredientRecognitionSheet: React.FC<Props> = ({
   const update = (idx: number, patch: Partial<Row>) => {
     setRows(prev => prev.map((r, i) => (i === idx ? { ...r, ...patch } : r)));
   };
+
+  /** 날짜 모달에서 고른 값을 대상에 적는다. 일괄이면 모든 행에 함께 적용한다. */
+  const applyDate = (date: string) => {
+    if (dateTarget === 'all') {
+      setPurchase(date);
+      setRows(prev => prev.map(r => ({ ...r, purchase: date })));
+    } else if (typeof dateTarget === 'number') {
+      update(dateTarget, { purchase: date });
+    }
+  };
+
+  const dateTargetValue =
+    typeof dateTarget === 'number' ? rows[dateTarget]?.purchase || purchase : purchase;
 
   const body = () => {
     if (loading) {
@@ -245,28 +294,31 @@ const IngredientRecognitionSheet: React.FC<Props> = ({
           {readCount}개를 읽었어요. 틀린 항목은 눌러서 고칠 수 있어요.
         </div>
 
-        {/* 구매일자 — 영수증에서 읽었으면 그 날짜, 아니면 오늘. 직접 고칠 수도 있다. */}
-        <div style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#1A1A1E', marginBottom: 6 }}>구매일자</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            {/* 날짜 고르기는 앱의 기존 모달을 그대로 쓴다. 예전엔 <input type="date">
-                였는데 OS 기본 달력이 떠서 닫기 버튼도 없고 버튼 양식도 앱과 달랐다. */}
-            <button
-              type="button"
-              onClick={() => setDateModalOpen(true)}
-              style={{
-                height: 40, minWidth: 140, borderRadius: 8, padding: '0 12px',
-                border: '1px solid var(--line-200)', background: '#FFFFFF',
-                fontSize: 14, fontWeight: 600, color: '#1A1A1E', cursor: 'pointer',
-              }}
-            >
-              {purchase.replace(/-/g, '.')}
-            </button>
-            <span style={{ fontSize: 12, color: 'var(--ink-500)' }}>
-              {purchaseDate ? '영수증에서 읽었어요' : '오늘 날짜로 넣었어요'}
-            </span>
+        {/* 구매일자(일괄) — 영수증은 한 번에 산 것이므로 여기서 한 번만 정해 전부에 적용한다.
+            음식 사진처럼 서로 다른 날 산 것이 섞일 수 있는 경우는 행마다 따로 둔다. */}
+        {!datePerItem && (
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#1A1A1E', marginBottom: 6 }}>구매일자</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              {/* 날짜 고르기는 앱의 기존 모달을 그대로 쓴다. 예전엔 <input type="date">
+                  였는데 OS 기본 달력이 떠서 닫기 버튼도 없고 버튼 양식도 앱과 달랐다. */}
+              <button
+                type="button"
+                onClick={() => setDateTarget('all')}
+                style={{
+                  height: 40, minWidth: 140, borderRadius: 8, padding: '0 12px',
+                  border: '1px solid var(--line-200)', background: '#FFFFFF',
+                  fontSize: 14, fontWeight: 600, color: '#1A1A1E', cursor: 'pointer',
+                }}
+              >
+                {purchase}
+              </button>
+              <span style={{ fontSize: 12, color: 'var(--ink-500)' }}>
+                {purchaseDate ? '영수증에서 읽었어요 · 눌러서 고치기' : '오늘 날짜예요 · 눌러서 고치기'}
+              </span>
+            </div>
           </div>
-        </div>
+        )}
 
         <div style={{ border: '1px solid var(--line-200)', borderRadius: 12, overflow: 'hidden', marginBottom: 18 }}>
           {rows.map((row, idx) => {
@@ -288,72 +340,75 @@ const IngredientRecognitionSheet: React.FC<Props> = ({
                     onCancel={() => setEditing(null)}
                   />
                 ) : (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <button
-                      type="button"
-                      onClick={() => row.name && update(idx, { checked: !row.checked })}
-                      disabled={!row.name}
-                      aria-label={row.checked ? '빼기' : '담기'}
-                      style={{
-                        width: 22, height: 22, flexShrink: 0, borderRadius: 6,
-                        border: row.checked ? 'none' : '1px solid var(--line-200)',
-                        background: row.checked ? '#FFD600' : '#FFFFFF',
-                        color: '#1A1A1E', fontSize: 13, fontWeight: 700, lineHeight: '22px',
-                        padding: 0, cursor: row.name ? 'pointer' : 'default',
-                      }}
-                    >
-                      {row.checked ? '✓' : ''}
-                    </button>
+                  /* 두 줄로 나눈다. 재료명과 조작 버튼을 한 줄에 몰아넣으면 폭이 좁은 폰에서
+                     이름이 몇 글자 만에 잘린다 — "재료명 고치기"처럼 뜻이 분명한 문구를 쓰면
+                     더 그렇다. 윗줄은 무엇인지, 아랫줄은 어떻게 할지. */
+                  <>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <button
+                        type="button"
+                        onClick={() => row.name && update(idx, { checked: !row.checked })}
+                        disabled={!row.name}
+                        aria-label={row.checked ? '빼기' : '담기'}
+                        style={{
+                          width: 22, height: 22, flexShrink: 0, borderRadius: 6,
+                          border: row.checked ? 'none' : '1px solid var(--line-200)',
+                          background: row.checked ? '#FFD600' : '#FFFFFF',
+                          color: '#1A1A1E', fontSize: 13, fontWeight: 700, lineHeight: '22px',
+                          padding: 0, cursor: row.name ? 'pointer' : 'default',
+                        }}
+                      >
+                        {row.checked ? '✓' : ''}
+                      </button>
 
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 15, fontWeight: 600, color: row.name ? '#1A1A1E' : 'var(--ink-500)' }}>
-                        {row.name || row.raw}
-                      </div>
-                      {(!row.name || row.raw !== row.name) && (
-                        <div style={{ fontSize: 11, color: 'var(--ink-500)', marginTop: 2 }}>
-                          {row.name ? '사진에서 읽은 표기: ' + row.raw : '사전에 없어요 · 눌러서 고르기'}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 15, fontWeight: 600, color: row.name ? '#1A1A1E' : 'var(--ink-500)' }}>
+                          {row.name || row.raw}
                         </div>
+                        {(!row.name || row.raw !== row.name) && (
+                          <div style={{ fontSize: 11, color: 'var(--ink-500)', marginTop: 2 }}>
+                            {row.name ? '사진에서 읽은 표기: ' + row.raw : '사전에 없어요 · 눌러서 고르기'}
+                          </div>
+                        )}
+                      </div>
+
+                      {row.expiry && (
+                        <span style={{
+                          flexShrink: 0, fontSize: 11, fontWeight: 700, color: '#1A1A1E',
+                          background: '#FFF3B0', borderRadius: 6, padding: '3px 7px',
+                        }}>
+                          ~{shortDate(row.expiry)}
+                        </span>
                       )}
                     </div>
 
-                    {row.expiry && (
-                      <span style={{
-                        flexShrink: 0, fontSize: 11, fontWeight: 700, color: '#1A1A1E',
-                        background: '#FFF3B0', borderRadius: 6, padding: '3px 7px',
-                      }}>
-                        ~{shortDate(row.expiry)}
-                      </span>
-                    )}
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8, paddingLeft: 32 }}>
+                      {/* 구매일자(행별) — 재료마다 산 날이 다를 수 있는 경우에만 나온다 */}
+                      {datePerItem && (
+                        <button type="button" onClick={() => setDateTarget(idx)} style={chipStyle}>
+                          구매 {shortDate(row.purchase)}
+                        </button>
+                      )}
 
-                    {/* 보관함은 재료마다 다르다. 모델이 짐작한 값으로 시작하고,
-                        틀리면 여기서 바로 바꿀 수 있다. */}
-                    <select
-                      value={row.storage}
-                      onChange={e => update(idx, { storage: e.target.value as StorageBox })}
-                      aria-label="보관함"
-                      style={{
-                        flexShrink: 0, height: 30, borderRadius: 8, padding: '0 6px',
-                        border: '1px solid var(--line-200)', background: '#FFFFFF',
-                        fontSize: 12, fontWeight: 600, color: 'var(--ink-700)', cursor: 'pointer',
-                      }}
-                    >
-                      {BOXES.map(({ key, label }) => (
-                        <option key={key} value={key}>{label}</option>
-                      ))}
-                    </select>
+                      {/* 보관함은 재료마다 다르다. 모델이 짐작한 값으로 시작하고,
+                          틀리면 여기서 바로 바꿀 수 있다. */}
+                      <select
+                        value={row.storage}
+                        onChange={e => update(idx, { storage: e.target.value as StorageBox })}
+                        aria-label="보관함"
+                        style={{ ...chipStyle, padding: '0 6px' }}
+                      >
+                        {BOXES.map(({ key, label }) => (
+                          <option key={key} value={key}>{label}</option>
+                        ))}
+                      </select>
 
-                    <button
-                      type="button"
-                      onClick={() => setEditing(idx)}
-                      style={{
-                        flexShrink: 0, height: 30, padding: '0 10px', borderRadius: 8,
-                        border: '1px solid var(--line-200)', background: '#FFFFFF',
-                        fontSize: 12, fontWeight: 600, color: 'var(--ink-700)', cursor: 'pointer',
-                      }}
-                    >
-                      {row.name ? '고치기' : '고르기'}
-                    </button>
-                  </div>
+                      {/* "고치기" 만으로는 무엇을 고치는지 알 수 없다는 지적을 받아 대상까지 밝힌다 */}
+                      <button type="button" onClick={() => setEditing(idx)} style={chipStyle}>
+                        {row.name ? '재료명 고치기' : '재료명 고르기'}
+                      </button>
+                    </div>
+                  </>
                 )}
               </div>
             );
@@ -369,8 +424,8 @@ const IngredientRecognitionSheet: React.FC<Props> = ({
                 name: r.name as string,
                 expiry: r.expiry ?? null,
                 storage: r.storage,
-              })),
-              purchase
+                purchase: r.purchase,
+              }))
             )
           }
           style={{
@@ -392,14 +447,17 @@ const IngredientRecognitionSheet: React.FC<Props> = ({
       <Sheet open={isOpen} onClose={onClose} title="사진에서 찾은 재료" maxHeight="86dvh" hideFooter>
         {body()}
       </Sheet>
+      {/* nested — 시트 위에 떠야 한다. 같은 층위면 Portal 로 나중에 그려지는 시트가
+          위로 올라가, 날짜 버튼을 눌러도 아무 일도 안 일어나는 것처럼 보인다. */}
       <IngredientDateModal
         type="purchase"
-        isOpen={dateModalOpen}
-        onClose={() => setDateModalOpen(false)}
-        initialDate={purchase}
+        nested
+        isOpen={dateTarget !== null}
+        onClose={() => setDateTarget(null)}
+        initialDate={dateTargetValue}
         onComplete={date => {
-          if (date) setPurchase(date);
-          setDateModalOpen(false);
+          if (date) applyDate(date);
+          setDateTarget(null);
         }}
       />
     </>

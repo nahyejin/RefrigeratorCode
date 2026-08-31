@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import Portal from './Portal';
 import BackButton from './ui/BackButton';
 import CloseButton from './ui/CloseButton';
 import Button from './ui/Button';
@@ -11,6 +12,16 @@ type Props = {
   onComplete: (date: string | null) => void;
   onBack?: () => void;
   initialDate?: string | null;
+  /**
+   * 이미 떠 있는 시트/모달 **위에** 띄울 때 켠다.
+   *
+   * 기본 z-index 는 시트와 같은 `--z-modal`(600) 인데, 바텀시트는 Portal 로
+   * body 직속에 붙어 **더 나중에 그려진다.** 같은 층위면 나중 것이 위로 올라가므로,
+   * 시트 안에서 이 모달을 열면 시트 뒤에 깔려 "눌러도 아무 반응이 없는" 것처럼
+   * 보이고, 시트를 닫는 순간에야 나타난다(실제로 그렇게 보고됐다).
+   * 켜면 한 층 위(`--z-modal-nested`)로 올라가고 Portal 로 body 직속에 붙는다.
+   */
+  nested?: boolean;
 };
 
 // 상수 정의
@@ -83,7 +94,7 @@ const TEXTS = {
 } as const;
 
 
-export default function IngredientDateModal({ type, isOpen, onClose, onComplete, onBack, initialDate = null }: Props) {
+export default function IngredientDateModal({ type, isOpen, onClose, onComplete, onBack, initialDate = null, nested = false }: Props) {
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const calendarRef = useRef<HTMLDivElement>(null);
@@ -157,8 +168,12 @@ export default function IngredientDateModal({ type, isOpen, onClose, onComplete,
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center" style={{ zIndex: 'var(--z-modal)' }} onClick={onClose}>
+  const content = (
+    <div
+      className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center"
+      style={{ zIndex: nested ? 'var(--z-modal-nested)' : 'var(--z-modal)' }}
+      onClick={onClose}
+    >
       {/* ⚠️ 예전에 `style` 속성이 두 번 있었다.
           JSX 는 뒤에 온 것이 앞의 것을 통째로 덮어쓰기 때문에, 여백(padding)과 폭(width)
           설정이 전부 사라지고 fontFamily 만 남아 있었음 → 콘텐츠가 팝업을 뚫고 나오는 것처럼 보였다. */}
@@ -329,4 +344,6 @@ export default function IngredientDateModal({ type, isOpen, onClose, onComplete,
       </div>
     </div>
   );
+
+  return nested ? <Portal>{content}</Portal> : content;
 } 
