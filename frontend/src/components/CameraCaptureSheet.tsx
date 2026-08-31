@@ -216,6 +216,11 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
       <button
         type="button"
         // 바로 선택창을 열지 않고 먼저 종류를 묻는다 (openPickerWith 설명 참고).
+        //
+        // 이름을 "사진 추가" 로 둔 이유: 이 버튼을 누르면 OS 가 보관함/촬영/파일을
+        // 함께 띄우는데 그 메뉴는 웹에서 손댈 수 없다. "앨범/파일에서 선택" 이라고 하면
+        // 촬영이 나오는 게 앞뒤가 안 맞고, "여러 장 고르기" 라고 하면 촬영은 한 장이라
+        // 또 어긋난다. 세 경로를 다 포괄하는 말이어야 한다.
         onClick={() => setChoosingForPicker(true)}
         style={{
           width: '100%',
@@ -230,7 +235,7 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
           marginBottom: 14,
         }}
       >
-        여러 장 한 번에 고르기 (최대 {maxFiles}장)
+        사진 추가 (최대 {maxFiles}장)
       </button>
 
       {/* 진짜 "홈 화면 위젯"(다른 앱 위에 떠 있는 버튼 포함)은 PWA 로는 만들 수
