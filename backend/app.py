@@ -827,6 +827,7 @@ def get_or_create_user(email, nickname, provider, provider_id):
             # 그래서 탈퇴 행의 email 을 비켜 놓아 자리를 비운 뒤 새 계정을 만든다.
             # 탈퇴 행은 그대로 남으므로 그 계정에 딸린 데이터(재료·즐겨찾기 등)는
             # 새 계정에 딸려 오지 않는다 — "탈퇴했으면 새로 시작" 이라는 뜻.
+            # 로컬(이메일) 가입도 같은 정책이다 (/api/auth/signup).
             # id 를 접두어에 넣어 같은 이메일이 여러 번 탈퇴해도 서로 부딪히지 않는다.
             released_email = f"deleted+{deleted_user['id']}+{email}"[:255]
             cursor.execute(
@@ -1208,15 +1209,26 @@ def signup():
             print(f"[회원가입] 이메일: {email}, 비밀번호 해시 생성 완료, 해시 길이: {len(password_hash)}")
             
             if deleted_user:
-                # 탈퇴한 사용자가 있으면 재활성화 (deleted_at을 NULL로 설정하고 정보 업데이트)
-                # 이렇게 하면 같은 user_id를 유지하여 관련 데이터(user_ingredients 등) 연결 유지
+                # 탈퇴한 계정으로 다시 가입하면 **새 계정으로 시작한다.**
+                # (소셜 로그인 get_or_create_user() 와 같은 정책 — 예전엔 여기만
+                #  재활성화라 같은 이메일이어도 로그인 수단에 따라 결과가 달랐다)
+                #
+                # 유니크 키가 (email, provider) 뿐이라 탈퇴 행이 그 이메일을 붙들고
+                # 있으면 새 행을 넣을 수 없으므로, 탈퇴 행의 email 을 비켜 놓아
+                # 자리를 비운 뒤 새로 만든다. 탈퇴 행은 그대로 남으므로 그 계정에
+                # 딸린 데이터(재료·즐겨찾기 등)는 새 계정에 딸려 오지 않는다.
+                released_email = f"deleted+{deleted_user['id']}+{email}"[:255]
                 cursor.execute(
-                    "UPDATE users SET nickname = %s, password = %s, deleted_at = NULL, updated_at = NOW() WHERE id = %s",
-                    (nickname, password_hash, deleted_user['id'])
+                    "UPDATE users SET email = %s, updated_at = NOW() WHERE id = %s",
+                    (released_email, deleted_user['id'])
                 )
-                user_id = deleted_user['id']
+                cursor.execute(
+                    "INSERT INTO users (email, nickname, provider, provider_id, password, created_at) VALUES (%s, %s, 'local', %s, %s, NOW())",
+                    (email, nickname, email, password_hash)
+                )
+                user_id = cursor.lastrowid
                 db.commit()
-                print(f"[회원가입] 탈퇴한 사용자 재활성화 완료, ID: {user_id}")
+                print(f"[회원가입] 탈퇴 계정(id={deleted_user['id']}) 이메일을 비우고 새 계정 생성: id={user_id}")
             else:
                 # 새 사용자 생성
                 cursor.execute(
