@@ -6,9 +6,11 @@ export type CaptureMode = 'receipt' | 'food-single' | 'food-multi' | 'file';
 interface CameraCaptureSheetProps {
   isOpen: boolean;
   onClose: () => void;
-  /** 사진을 실제로 받은 뒤 호출된다. AI 인식은 아직 없으므로, 호출한 쪽에서
-   * "준비 중" 안내를 보여주면 된다. */
-  onCaptured: (mode: CaptureMode, file: File) => void;
+  /** 사진을 받은 뒤 호출된다. 앨범/파일 선택은 여러 장을 고를 수 있어 항상 배열로 넘긴다
+   * (카메라 촬영은 한 장이라 길이 1). */
+  onCaptured: (mode: CaptureMode, files: File[]) => void;
+  /** 앨범에서 한 번에 고를 수 있는 최대 장수 */
+  maxFiles?: number;
 }
 
 const ReceiptIcon: React.FC = () => (
@@ -60,7 +62,7 @@ const OPTIONS: { key: Extract<CaptureMode, 'receipt' | 'food-single' | 'food-mul
  * 설치 안내는 다른 화면(HomeInstallPrompt 등)에서 이미 하고 있어 여기서는
  * 반복하지 않고, 위젯이 계획돼 있다는 사실만 짧게 알려 둔다.
  */
-const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose, onCaptured }) => {
+const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose, onCaptured, maxFiles = 5 }) => {
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [pendingMode, setPendingMode] = useState<CaptureMode>('food-single');
@@ -73,9 +75,11 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
   };
 
   const makeChangeHandler = (mode: CaptureMode) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    const picked = Array.from(e.target.files || []);
     e.target.value = '';
-    if (file) onCaptured(mode, file);
+    if (picked.length === 0) return;
+    // 너무 많이 고르면 앞에서부터 자른다 (서버도 같은 수로 막고 있다).
+    onCaptured(mode, picked.slice(0, maxFiles));
   };
 
   return (
@@ -92,10 +96,13 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
         style={{ display: 'none' }}
         onChange={makeChangeHandler(pendingMode)}
       />
+      {/* 앨범 선택은 여러 장을 고를 수 있게 한다. 여러 장이어도 LLM 호출은
+          1회라(한 요청에 이미지를 여러 개 넣는다) 한도가 장수만큼 늘지 않는다. */}
       <input
         ref={fileInputRef}
         type="file"
         accept="image/*"
+        multiple
         style={{ display: 'none' }}
         onChange={makeChangeHandler('file')}
       />
@@ -183,7 +190,7 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
           marginBottom: 14,
         }}
       >
-        사진 앨범/파일에서 선택
+        사진 앨범/파일에서 선택 (최대 {maxFiles}장)
       </button>
 
       {/* 진짜 "홈 화면 위젯"(다른 앱 위에 떠 있는 버튼 포함)은 PWA 로는 만들 수

@@ -1604,19 +1604,19 @@ const MyFridge: React.FC = () => {
    * 인식 결과를 바로 담지 않고 확인 시트를 띄운다 — OCR 은 반드시 틀리고,
    * 사용자가 모르는 사이에 없는 재료가 들어가면 추천 품질이 통째로 어긋난다.
    */
-  const handleCameraCaptured = async (mode: CaptureMode, file: File) => {
+  const handleCameraCaptured = async (mode: CaptureMode, files: File[]) => {
     setCameraSheetOpen(false);
+    if (files.length === 0) return;
 
-    // 지금은 영수증만 실제로 인식한다. 서버는 음식 사진 프롬프트도 갖고 있지만,
-    // 인식 품질을 아직 확인하지 않아 열지 않았다 (열 때는 이 조건만 풀면 된다).
-    if (mode !== 'receipt') {
-      const message: Record<CaptureMode, string> = {
-        receipt: '',
-        'food-single': '재료 사진을 찍으면 알아서 인식해 담아 주는 기능을 준비하고 있어요.',
-        'food-multi': '여러 재료가 담긴 사진도 한 번에 인식하는 기능을 준비하고 있어요.',
-        file: '앨범·파일 사진 인식은 준비 중이에요. 지금은 영수증 촬영만 지원해요.',
-      };
-      showPrepNotice(message[mode]);
+    // 카메라의 "음식" 타일은 아직 열지 않았다 — 서버에 음식 사진 프롬프트는
+    // 있지만 인식 품질을 확인하지 않았다. 앨범(file)은 무엇을 골랐는지 알 수
+    // 없으므로 모델이 영수증인지 음식인지 판단하게 한다.
+    if (mode === 'food-single' || mode === 'food-multi') {
+      showPrepNotice(
+        mode === 'food-single'
+          ? '재료 사진을 찍으면 알아서 인식해 담아 주는 기능을 준비하고 있어요.'
+          : '여러 재료가 담긴 사진도 한 번에 인식하는 기능을 준비하고 있어요.'
+      );
       return;
     }
 
@@ -1627,10 +1627,11 @@ const MyFridge: React.FC = () => {
     setRecognitionOpen(true);
 
     try {
-      // 폰 원본은 3~5MB라 그대로 올리면 느리다. 긴 변 1600px로 줄여 보낸다.
-      const shrunk = await shrinkImageForUpload(file);
+      // 폰 원본은 3~5MB라 그대로 올리면 느리다. 긴 변 1600px JPEG로 줄여 보낸다.
+      // 여러 장이어도 서버가 한 번의 LLM 호출로 처리하므로 그대로 다 실어 보낸다.
+      const shrunk = await Promise.all(files.map(f => shrinkImageForUpload(f)));
       const form = new FormData();
-      form.append('image', shrunk);
+      shrunk.forEach(f => form.append('image', f));
       form.append('mode', mode);
 
       const apiUrl = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'https://refrigeratorcode-production.up.railway.app';
@@ -2191,7 +2192,7 @@ const MyFridge: React.FC = () => {
         <CameraCaptureSheet
           isOpen={cameraSheetOpen}
           onClose={() => setCameraSheetOpen(false)}
-          onCaptured={(mode, file) => { void handleCameraCaptured(mode, file); }}
+          onCaptured={(mode, files) => { void handleCameraCaptured(mode, files); }}
         />
         {/* IngredientDetailModal */}
         <IngredientDetailModal

@@ -33,6 +33,12 @@ from ingredient_management.llm_ingredient_extraction import (  # noqa: E402
 # 안 줄이고 올려도 서버가 죽지 않도록 여유를 둔다.
 MAX_IMAGE_BYTES = 8 * 1024 * 1024
 
+# 여러 장을 한 번에 받는다. 이미지는 base64 로 실려 나가면서 1/3 쯤 커지므로
+# 장수와 합계 용량을 함께 제한한다. (여러 장이어도 LLM 호출은 1회다 —
+# 한 요청의 parts 에 이미지를 여러 개 넣을 수 있어서, 장수만큼 한도를 쓰지 않는다.)
+MAX_IMAGES = 5
+MAX_TOTAL_BYTES = 16 * 1024 * 1024
+
 ALLOWED_MIME = {"image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"}
 
 SUPPORTED_MODES = ("receipt", "food-single", "food-multi", "file")
@@ -77,8 +83,32 @@ _FOOD_PROMPT = """이 사진에 보이는 식재료의 이름을 뽑아내라.
 아래 JSON 배열만 출력해라. 다른 텍스트는 출력하지 마라.
 예: ["양파", "당근", "감자"]"""
 
+_AUTO_PROMPT = """아래 이미지들은 마트 영수증이거나 식재료 사진이다.
+무엇인지 스스로 판단해서, 모든 이미지를 합쳐 담아야 할 식재료 이름만
+하나의 목록으로 뽑아라.
+
+영수증이면:
+- 식재료가 아닌 항목은 제외한다 (비닐봉투, 종량제봉투, 할인, 적립, 포인트,
+  합계, 부가세, 카드번호, 매장명 등).
+- 브랜드명, 용량, 수량, 규격, 가격은 빼고 재료 이름만 남긴다.
+  예) "CJ 백설 물엿 700g" -> "물엿"
+
+식재료 사진이면:
+- 사진에 실제로 보이는 식재료만 적는다. 추측하지 않는다.
+- 조리된 완성 요리라면 요리 이름이 아니라 눈에 보이는 재료를 적는다.
+
+공통:
+- 여러 이미지에 같은 재료가 나오면 한 번만 적는다.
+- 확신이 없으면 포함하지 않는다. 재료를 못 찾으면 빈 배열을 출력한다.
+
+아래 JSON 배열만 출력해라. 다른 텍스트는 출력하지 마라.
+예: ["물엿", "대파", "양파"]"""
+
 
 def _prompt_for(mode):
+    # 앨범/파일에서 고른 사진은 무엇인지 알 수 없으므로 모델이 판단하게 한다.
+    if mode == "file":
+        return _AUTO_PROMPT
     return _RECEIPT_PROMPT if mode == "receipt" else _FOOD_PROMPT
 
 
@@ -93,20 +123,21 @@ def _api_key():
     ).strip()
 
 
-def _call_gemini_vision(api_key, prompt, image_bytes, mime_type):
+def _call_gemini_vision(api_key, prompt, images):
+    """images: [(bytes, mime_type), ...] — 여러 장이어도 호출은 1회다."""
     model = os.getenv("GEMINI_VISION_MODEL") or os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
     url = (
         f"https://generativelanguage.googleapis.com/v1beta/models/"
         f"{model}:generateContent?key={api_key}"
     )
+    parts = [{"text": prompt}]
+    for image_bytes, mime_type in images:
+        parts.append({"inline_data": {
+            "mime_type": mime_type,
+            "data": base64.b64encode(image_bytes).decode(),
+        }})
     payload = {
-        "contents": [{"role": "user", "parts": [
-            {"text": prompt},
-            {"inline_data": {
-                "mime_type": mime_type,
-                "data": base64.b64encode(image_bytes).decode(),
-            }},
-        ]}],
+        "contents": [{"role": "user", "parts": parts}],
         "generationConfig": {"temperature": 0.1, "responseMimeType": "application/json"},
     }
     res = requests.post(url, json=payload, timeout=60)
@@ -122,9 +153,10 @@ class QuotaExceeded(Exception):
     """LLM 일일/분당 호출 한도 소진."""
 
 
-def recognize(image_bytes, mime_type, mode="receipt"):
-    """이미지에서 재료 후보를 뽑아 사전 대표어로 정규화한다.
+def recognize(images, mode="receipt"):
+    """이미지(여러 장 가능)에서 재료 후보를 뽑아 사전 대표어로 정규화한다.
 
+    images: [(bytes, mime_type), ...]
     반환: {
       "ingredients": [{"name": 대표어, "raw": 인식된 원본 이름}, ...],
       "unmatched":   [사전에 없어서 담을 수 없는 이름, ...],
@@ -132,11 +164,13 @@ def recognize(image_bytes, mime_type, mode="receipt"):
     """
     if mode not in SUPPORTED_MODES:
         mode = "receipt"
+    if not images:
+        return {"ingredients": [], "unmatched": []}
     api_key = _api_key()
     if not api_key:
         raise RuntimeError("GEMINI_API_KEY가 없습니다.")
 
-    raw_text = _call_gemini_vision(api_key, _prompt_for(mode), image_bytes, mime_type)
+    raw_text = _call_gemini_vision(api_key, _prompt_for(mode), images)
     names = _extract_json_array(raw_text)
 
     alias = _alias_to_canonical()

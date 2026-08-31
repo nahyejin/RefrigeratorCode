@@ -138,14 +138,19 @@ export function filterRecipesWithValidThumbnails<T extends { thumbnail?: string 
   return recipes.filter(recipe => hasValidThumbnail(recipe));
 } 
 /**
- * 업로드 전에 사진을 줄인다.
+ * 업로드 전에 사진을 줄이고 JPEG 으로 맞춘다.
  *
- * 폰 카메라 원본은 3~5MB(4000px 급)라 그대로 올리면 업로드가 느리고, 인식에
- * 필요한 해상도보다 훨씬 크다. 영수증 글자가 뭉개지지 않을 만큼(긴 변 1600px)만
- * 남기고 JPEG 으로 다시 뽑는다.
+ * 두 가지를 한다:
+ * 1) 크기 축소 — 폰 카메라 원본은 3~5MB(4000px 급)라 그대로 올리면 느리고,
+ *    인식에 필요한 해상도보다 훨씬 크다. 영수증 글자가 뭉개지지 않을 만큼
+ *    (긴 변 1600px)만 남긴다.
+ * 2) 형식 통일 — 파일 선택은 `image/*` 라 GIF·BMP·AVIF 등 무엇이든 고를 수 있는데
+ *    서버는 몇 가지 형식만 받는다. 브라우저가 그릴 수 있으면 무조건 JPEG 으로
+ *    다시 뽑아서, 형식 때문에 튕기는 일이 없게 한다.
  *
- * 원본이 이미 작으면 그대로 돌려준다. 브라우저가 canvas/toBlob 을 못 쓰는 등
- * 어떤 이유로든 실패하면 원본 File 을 그대로 돌려주므로 호출한 쪽은 신경 쓸 게 없다.
+ * 아이폰 HEIC 은 브라우저가 디코딩하지 못할 수 있는데(크롬), 그 경우 원본을
+ * 그대로 돌려준다 — 서버와 Gemini 둘 다 HEIC 을 받으므로 문제없다.
+ * 그 밖에 어떤 이유로든 실패해도 원본을 돌려주므로 호출한 쪽은 신경 쓸 게 없다.
  */
 export async function shrinkImageForUpload(
   file: File,
@@ -157,7 +162,8 @@ export async function shrinkImageForUpload(
 
     const bitmap = await createImageBitmap(file);
     const longest = Math.max(bitmap.width, bitmap.height);
-    if (longest <= maxEdge && file.size <= 1_500_000) {
+    // 이미 JPEG 이고 충분히 작으면 그대로 쓴다 (다시 뽑아봐야 화질만 깎인다).
+    if (file.type === 'image/jpeg' && longest <= maxEdge && file.size <= 1_500_000) {
       bitmap.close?.();
       return file;
     }
@@ -182,9 +188,8 @@ export async function shrinkImageForUpload(
     );
     if (!blob) return file;
 
-    // 줄였는데 오히려 커지면(작은 PNG 등) 원본을 쓴다.
-    if (blob.size >= file.size) return file;
-
+    // 다시 뽑았더니 오히려 커지는 경우가 있는데(작은 PNG 등), 그래도 서버가
+    // 확실히 받는 형식이어야 하므로 JPEG 쪽을 쓴다. 용량 차이는 크지 않다.
     return new File([blob], 'capture.jpg', { type: 'image/jpeg' });
   } catch {
     return file;

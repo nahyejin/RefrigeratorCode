@@ -3973,24 +3973,34 @@ def recognize_ingredients_from_image():
     """
     import chat_service
     from ingredient_vision import (
-        ALLOWED_MIME, MAX_IMAGE_BYTES, QuotaExceeded, recognize,
+        ALLOWED_MIME, MAX_IMAGE_BYTES, MAX_IMAGES, MAX_TOTAL_BYTES,
+        QuotaExceeded, recognize,
     )
 
-    upload = request.files.get('image')
-    if upload is None:
+    uploads = request.files.getlist('image')
+    if not uploads:
         return jsonify({'error': '이미지가 없습니다.'}), 400
+    if len(uploads) > MAX_IMAGES:
+        return jsonify({'error': f'사진은 한 번에 {MAX_IMAGES}장까지 올릴 수 있어요.'}), 413
 
-    image_bytes = upload.read()
-    if not image_bytes:
-        return jsonify({'error': '이미지가 비어 있습니다.'}), 400
-    if len(image_bytes) > MAX_IMAGE_BYTES:
-        return jsonify({'error': '이미지가 너무 큽니다. 8MB 이하로 올려 주세요.'}), 413
-
-    mime_type = (upload.mimetype or '').lower()
-    if mime_type not in ALLOWED_MIME:
-        return jsonify({'error': '지원하지 않는 이미지 형식입니다.'}), 415
+    images = []
+    total = 0
+    for upload in uploads:
+        image_bytes = upload.read()
+        if not image_bytes:
+            return jsonify({'error': '이미지가 비어 있습니다.'}), 400
+        if len(image_bytes) > MAX_IMAGE_BYTES:
+            return jsonify({'error': '이미지가 너무 큽니다. 8MB 이하로 올려 주세요.'}), 413
+        total += len(image_bytes)
+        if total > MAX_TOTAL_BYTES:
+            return jsonify({'error': '사진 용량이 너무 커요. 장수를 줄여 주세요.'}), 413
+        mime_type = (upload.mimetype or '').lower()
+        if mime_type not in ALLOWED_MIME:
+            return jsonify({'error': '지원하지 않는 이미지 형식입니다.'}), 415
+        images.append((image_bytes, mime_type))
 
     # 챗봇과 같은 하루 한도를 공유한다 (같은 무료 키를 쓰므로).
+    # 여러 장이어도 LLM 호출은 1회라 한도도 1만 쓴다.
     if not chat_service._consume_quota():
         return jsonify({
             'error': f'오늘 무료 한도({chat_service._daily_limit()}회)를 다 썼어요. 내일 다시 시도해 주세요.',
@@ -3998,7 +4008,7 @@ def recognize_ingredients_from_image():
 
     mode = (request.form.get('mode') or 'receipt').strip()
     try:
-        result = recognize(image_bytes, mime_type, mode=mode)
+        result = recognize(images, mode=mode)
     except QuotaExceeded:
         return jsonify({'error': '지금 요청이 몰려 있어요. 잠시 후 다시 시도해 주세요.'}), 429
     except RuntimeError as e:
