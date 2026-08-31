@@ -15,6 +15,7 @@ import GuideOverlay from '../components/GuideOverlay';
 import BottomCoupangAd from '../components/BottomCoupangAd';
 import CameraCaptureSheet, { type CaptureMode } from '../components/CameraCaptureSheet';
 import IngredientRecognitionSheet, { type RecognizedIngredient, type UnmatchedIngredient, type ConfirmedIngredient } from '../components/IngredientRecognitionSheet';
+import Dialog from '../components/ui/Dialog';
 import { shrinkImageForUpload } from '../utils/imageUtils';
 import { loadIngredientCategoryMap, estimateExpiry, type CategoryMap } from '../utils/shelfLife';
 import {
@@ -577,6 +578,8 @@ const MyFridge: React.FC = () => {
    * **동기적으로** 세우는 ref 를 따로 둔다. 저장이 끝나면 내린다.
    */
   const localEditPendingRef = React.useRef(false);
+  /** [모두삭제] 확인 팝업이 어느 칸을 대상으로 열려 있는지 */
+  const [removeAllTarget, setRemoveAllTarget] = useState<StorageBox | null>(null);
   const [hasChanges, setHasChanges] = useState(false); // 변경사항 추적
   const lastSavedDataRef = React.useRef<{frozen: Ingredient[], fridge: Ingredient[], room: Ingredient[]} | null>(null);
   const { isLoggedIn, user } = useAuth();
@@ -2116,18 +2119,29 @@ const MyFridge: React.FC = () => {
   };
 
   /**
-   * [모두삭제].
+   * [모두삭제] — 앱 자체 확인 팝업을 띄운다.
    *
-   * 예전엔 `window.confirm` 으로 한 번 더 물었는데 두 가지 문제가 있었다.
-   *  1) 삭제 직후 뜨는 되돌리기 토스트가 같은 질문을 또 해서 확인을 두 번 받았다.
-   *  2) 더 나빴던 건, 확인창이 뜨면 창이 포커스를 잃었다가 확인을 누르면 다시
-   *     얻는데 그 focus 이벤트로 `refreshOnResume` 이 돌아 **DB의 옛 목록으로
-   *     방금 지운 상태를 덮어썼다.** 삭제해도 재료가 되살아나던 원인.
+   * 예전엔 `window.confirm` 을 썼는데 두 가지가 문제였다.
+   *  1) 확인창이 뜨면 창이 포커스를 잃었다가 확인을 누르면 다시 얻는데, 그 focus
+   *     이벤트로 `refreshOnResume` 이 돌아 **DB의 옛 목록으로 방금 지운 상태를
+   *     덮어썼다.** 삭제해도 재료가 되살아나던 원인.
+   *  2) OS 창이라 앱 밖의 일처럼 보이고, 공용 `Dialog`("새 팝업은 반드시 이
+   *     컴포넌트를 쓸 것") 규칙에서도 벗어나 있었다.
    *
-   * 지금은 바로 지우고, 되돌리기 토스트(7초)가 안전장치 역할을 한다.
+   * 한 번에 여러 개를 지우는 데다 버튼이 작아 잘못 누르기 쉬우므로 확인 자체는
+   * 남긴다. 지운 뒤 뜨는 되돌리기 토스트가 두 번째 안전장치다.
    */
   const handleRemoveAll = (box: StorageBox) => {
-    removeAll(box);
+    setRemoveAllTarget(box);
+  };
+
+  const BOX_LABEL: Record<StorageBox, string> = { frozen: '냉동', fridge: '냉장', room: '실온' };
+
+  const removeAllCount = (box: StorageBox | null) => {
+    if (box === 'frozen') return (frozen ?? []).length;
+    if (box === 'fridge') return (fridge ?? []).length;
+    if (box === 'room') return (room ?? []).length;
+    return 0;
   };
 
   // 초기 로딩 상태 체크 - 타임아웃 보호 추가
@@ -2514,6 +2528,26 @@ const MyFridge: React.FC = () => {
         <div className="w-full">
           <BottomNavBar activeTab="myfridge" />
         </div>
+        <Dialog
+          open={removeAllTarget !== null}
+          onClose={() => setRemoveAllTarget(null)}
+          title={removeAllTarget ? `${BOX_LABEL[removeAllTarget]} 재료를 모두 지울까요?` : ''}
+          actions={[
+            { label: '취소', variant: 'outline', onClick: () => setRemoveAllTarget(null) },
+            {
+              label: '모두 지우기',
+              variant: 'danger',
+              onClick: () => {
+                if (removeAllTarget) removeAll(removeAllTarget);
+                setRemoveAllTarget(null);
+              },
+            },
+          ]}
+        >
+          {removeAllTarget
+            ? `${removeAllCount(removeAllTarget)}개를 지웁니다. 지운 뒤 잠깐 동안 되돌릴 수 있어요.`
+            : ''}
+        </Dialog>
         {toast && toast.visible && (
           <Toast message={toast.message} onUndo={handleCancelDelete} onClose={undoDelete} />
         )}
