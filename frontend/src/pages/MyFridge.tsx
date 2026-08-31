@@ -14,7 +14,7 @@ import WelcomeModal from '../components/WelcomeModal';
 import GuideOverlay from '../components/GuideOverlay';
 import BottomCoupangAd from '../components/BottomCoupangAd';
 import CameraCaptureSheet, { type CaptureMode } from '../components/CameraCaptureSheet';
-import IngredientRecognitionSheet, { type RecognizedIngredient } from '../components/IngredientRecognitionSheet';
+import IngredientRecognitionSheet, { type RecognizedIngredient, type UnmatchedIngredient, type ConfirmedIngredient } from '../components/IngredientRecognitionSheet';
 import { shrinkImageForUpload } from '../utils/imageUtils';
 import { loadIngredientCategoryMap, estimateExpiry, type CategoryMap } from '../utils/shelfLife';
 import {
@@ -1595,7 +1595,8 @@ const MyFridge: React.FC = () => {
   const [recognitionOpen, setRecognitionOpen] = useState(false);
   const [recognitionLoading, setRecognitionLoading] = useState(false);
   const [recognized, setRecognized] = useState<RecognizedIngredient[]>([]);
-  const [recognizedUnmatched, setRecognizedUnmatched] = useState<string[]>([]);
+  const [recognizedUnmatched, setRecognizedUnmatched] = useState<UnmatchedIngredient[]>([]);
+  const [recognizedPurchaseDate, setRecognizedPurchaseDate] = useState<string | null>(null);
   const [recognitionError, setRecognitionError] = useState<string | null>(null);
 
   /**
@@ -1622,6 +1623,7 @@ const MyFridge: React.FC = () => {
 
     setRecognized([]);
     setRecognizedUnmatched([]);
+    setRecognizedPurchaseDate(null);
     setRecognitionError(null);
     setRecognitionLoading(true);
     setRecognitionOpen(true);
@@ -1643,6 +1645,7 @@ const MyFridge: React.FC = () => {
       } else {
         setRecognized((data && data.ingredients) || []);
         setRecognizedUnmatched((data && data.unmatched) || []);
+        setRecognizedPurchaseDate((data && data.purchase_date) || null);
       }
     } catch {
       setRecognitionError('네트워크 상태를 확인하고 다시 시도해 주세요.');
@@ -1651,27 +1654,35 @@ const MyFridge: React.FC = () => {
     }
   };
 
-  /** 확인 시트에서 고른 재료를 한 번에 담는다. */
-  const handleRecognizedConfirm = (names: string[], storage: StorageBox) => {
+  /** 확인 시트에서 검토를 마친 재료를 한 번에 담는다. */
+  const handleRecognizedConfirm = (
+    items: ConfirmedIngredient[],
+    storage: StorageBox,
+    purchaseDate: string
+  ) => {
     setRecognitionOpen(false);
-    const today = new Date().toISOString().slice(0, 10);
     const already = new Set(
       [...(frozen || []), ...(fridge || []), ...(room || [])].map(i => i.name)
     );
-    const fresh = names.filter(name => !already.has(name));
+    const fresh = items.filter(item => !already.has(item.name));
     if (fresh.length === 0) {
       showPrepNotice('고른 재료가 이미 냉장고에 있어요.');
       return;
     }
 
-    const objs = fresh.map((name, idx) => {
+    const objs = fresh.map((item, idx) => {
       const obj = {
-        id: `${name}-${Date.now()}-${idx}`,
-        name,
-        purchase: today,
+        id: `${item.name}-${Date.now()}-${idx}`,
+        name: item.name,
+        purchase: purchaseDate,
       } as Ingredient;
-      const est = estimateExpiry(name, storage, today, categoryMap);
-      if (est) obj.estimatedExpiry = est;
+      if (item.expiry) {
+        // 포장지에서 실제로 읽은 날짜라 짐작값(estimatedExpiry)보다 정확하다.
+        obj.expiry = item.expiry;
+      } else {
+        const est = estimateExpiry(item.name, storage, purchaseDate, categoryMap);
+        if (est) obj.estimatedExpiry = est;
+      }
       return obj;
     });
 
@@ -1679,7 +1690,7 @@ const MyFridge: React.FC = () => {
     if (storage === 'fridge') setFridge(prev => (prev ? [...prev, ...objs] : objs));
     if (storage === 'room') setRoom(prev => (prev ? [...prev, ...objs] : objs));
 
-    const skipped = names.length - fresh.length;
+    const skipped = items.length - fresh.length;
     showPrepNotice(
       skipped > 0
         ? `${fresh.length}개를 담았어요. ${skipped}개는 이미 있어서 건너뛰었어요.`
@@ -2186,7 +2197,9 @@ const MyFridge: React.FC = () => {
           loading={recognitionLoading}
           ingredients={recognized}
           unmatched={recognizedUnmatched}
+          purchaseDate={recognizedPurchaseDate}
           errorText={recognitionError}
+          ingredientDict={ingredientDict}
           onConfirm={handleRecognizedConfirm}
         />
         <CameraCaptureSheet
