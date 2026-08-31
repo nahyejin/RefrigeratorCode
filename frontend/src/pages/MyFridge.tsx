@@ -232,35 +232,65 @@ function sortIngredients(arr: Ingredient[], sort: SortType): Ingredient[] {
 // Toast 컴포넌트
 // =====================
 
+/**
+ * 삭제 후 잠깐 뜨는 되돌리기 안내.
+ *
+ * 예전엔 이 토스트가 `정말 삭제하시겠습니까?` 를 **또** 물었다. 삭제 직전에
+ * 시스템 확인창이 이미 같은 질문을 하므로 같은 걸 두 번 묻는 셈이었고, 넘겨받은
+ * `message` 는 쓰지도 않았다. 게다가 하단에 낮게 깔려 잘 보이지도 않아서
+ * "삭제했는데 뭔가 떴다가 사라진다" 는 인상만 줬다.
+ *
+ * 확인은 시스템 확인창이 이미 받았으므로, 여기서는 **무엇이 지워졌는지 알려주고
+ * 되돌릴 기회만** 준다.
+ */
 const Toast = ({ message, onUndo, onClose }: { message: string; onUndo: () => void; onClose: () => void }) => (
   <div
     style={{
       position: 'fixed',
-      bottom: 100,
+      // 하단 내비게이션과 겹치지 않게 띄우고, 홈 인디케이터 영역도 피한다.
+      bottom: 'calc(104px + env(safe-area-inset-bottom, 0px))',
       left: '50%',
       transform: 'translateX(-50%)',
-      background: 'rgba(34,34,34,0.9)',
+      background: '#1A1A1E',
       color: '#FFFFFF',
-      padding: '12px 24px',
-      borderRadius: 12,
-      fontWeight: 400,
-      fontSize: 16,
+      padding: '14px 16px 14px 20px',
+      borderRadius: 14,
+      fontSize: 15,
       zIndex: 'var(--z-toast)',
-      boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-      maxWidth: 320,
+      // 흐릿하게 깔리지 않도록 그림자를 뚜렷하게 준다.
+      boxShadow: '0 8px 24px rgba(0,0,0,0.35)',
+      maxWidth: 'min(360px, calc(100vw - 32px))',
       width: 'max-content',
-      whiteSpace: 'nowrap',
-      overflow: 'hidden',
-      textOverflow: 'ellipsis',
-      textAlign: 'center',
       display: 'flex',
       alignItems: 'center',
       gap: 12,
     }}
+    role="status"
   >
-    <span style={{ fontWeight: 400, color: '#FFFFFF', marginRight: 8, letterSpacing: '0.04em', whiteSpace: 'nowrap', display: 'inline-block' }}>정말 삭제하시겠습니까?</span>
-    <button className="inline-flex items-center justify-center bg-[#F5F5F7] text-gray-700 font-semibold rounded-lg px-3 py-1 text-sm border border-[#E6E6EA] shadow-none hover:bg-[#E6E6EA] transition whitespace-nowrap" onClick={onUndo}>아니요</button>
-    <button className="inline-flex items-center justify-center bg-[#F5F5F7] text-gray-700 font-semibold rounded-lg px-3 py-1 text-sm border border-[#E6E6EA] shadow-none hover:bg-[#E6E6EA] transition whitespace-nowrap" onClick={onClose}>네</button>
+    <span style={{ fontWeight: 600, color: '#FFFFFF', wordBreak: 'keep-all' }}>{message}</span>
+    <button
+      type="button"
+      onClick={onUndo}
+      style={{
+        flexShrink: 0, height: 32, padding: '0 12px', borderRadius: 8,
+        border: 'none', background: '#FFD600', color: '#1A1A1E',
+        fontSize: 14, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
+      }}
+    >
+      되돌리기
+    </button>
+    <button
+      type="button"
+      onClick={onClose}
+      aria-label="닫기"
+      style={{
+        flexShrink: 0, width: 28, height: 28, borderRadius: 8,
+        border: 'none', background: 'transparent', color: '#FFFFFF',
+        fontSize: 18, lineHeight: '28px', padding: 0, cursor: 'pointer',
+      }}
+    >
+      ×
+    </button>
   </div>
 );
 
@@ -525,6 +555,15 @@ const MyFridge: React.FC = () => {
   // 자동 저장: 연속 변경을 묶기 위한 타이머와, 응답 순서 역전을 막기 위한 일련번호
   const autoSaveTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const autoSaveSeq = React.useRef(0);
+  /**
+   * 기본 재료 투입 여부 판단이 이 화면에서 이미 끝났는지.
+   *
+   * 투입 effect 는 재료 목록을 의존성으로 갖는다(로드가 끝난 뒤 판단해야 하므로).
+   * 그래서 **[모두 삭제] 로 재료가 비면 effect 가 다시 돌아** 기본 재료가 되살아났다
+   * — 사용자에게는 "삭제가 안 된다" 로 보였다. 한 번 판단했으면 이 화면에 있는 동안은
+   * 다시 넣지 않는다.
+   */
+  const seedDecidedRef = React.useRef(false);
   const [hasChanges, setHasChanges] = useState(false); // 변경사항 추적
   const lastSavedDataRef = React.useRef<{frozen: Ingredient[], fridge: Ingredient[], room: Ingredient[]} | null>(null);
   const { isLoggedIn, user } = useAuth();
@@ -1290,7 +1329,20 @@ const MyFridge: React.FC = () => {
       // 회원은 DB 조회가 끝난 뒤에 판단한다. 예전엔 DB 로드가 **실패**했을 때만
       // 넣도록 돼 있어서, 갓 만든 계정처럼 "조회는 성공했는데 재료가 0건" 인
       // 경우가 통째로 빠졌다 — 로그인해도 냉장고가 텅 비어 있던 원인.
-      const shouldAddInitialIngredients = isEmpty && !alreadySeeded && (
+      // 재료가 이미 있으면 이 계정은 초기화가 끝난 것이다. 표시를 남겨 둬야
+      // 나중에 사용자가 전부 지웠을 때 기본 재료가 되살아나지 않는다.
+      if (!isEmpty) {
+        seedDecidedRef.current = true;
+        if (!alreadySeeded) {
+          try {
+            localStorage.setItem(seedKey, '1');
+          } catch {
+            // 표시를 못 남겨도 동작 자체에는 문제가 없다.
+          }
+        }
+      }
+
+      const shouldAddInitialIngredients = !seedDecidedRef.current && isEmpty && !alreadySeeded && (
         !isLoggedIn || !user?.id || // 비회원
         (dbLoadAttempted.current && localEmpty) // 회원: DB 조회를 마쳤고 로컬에도 없음
       );
@@ -1341,9 +1393,28 @@ const MyFridge: React.FC = () => {
           };
           
           // 실온보관 재료 추가
-          const newRoom = defaultRoomIngredients.map((name, index) => ({
+          /**
+           * 대표어로 바꾸고 나면 서로 다른 이름이 같아지는 것들이 있다.
+           * (기본 목록의 `미림`·`맛술` 은 둘 다 대표어가 `맛술` 이라 그대로 두면
+           *  냉장고에 `맛술` 이 두 개 담긴다 — 실제로 그렇게 담겨 있었다.)
+           * 변환한 뒤에 한 번 걸러 준다.
+           */
+          const toUniqueKeywords = (names: string[]) => {
+            const seen = new Set<string>();
+            const out: string[] = [];
+            names.forEach(name => {
+              const keyword = convertToKeyword(name);
+              if (keyword && !seen.has(keyword)) {
+                seen.add(keyword);
+                out.push(keyword);
+              }
+            });
+            return out;
+          };
+
+          const newRoom = toUniqueKeywords(defaultRoomIngredients).map((keyword, index) => ({
             id: `room-${Date.now()}-${index}`,
-            name: convertToKeyword(name)
+            name: keyword
           }));
           
           /**
@@ -1368,22 +1439,23 @@ const MyFridge: React.FC = () => {
           const SAMPLE_PURCHASE_ITEMS = ['달걀', '감자'];
 
           // 냉장보관 재료 추가
-          const newFridge = defaultFridgeIngredients.map((name, index) => {
-            const keyword = convertToKeyword(name);
+          const newFridge = toUniqueKeywords(defaultFridgeIngredients).map((keyword, index) => {
             const item: Ingredient = {
               id: `fridge-${Date.now()}-${index}`,
               name: keyword
             };
-            if (SAMPLE_PURCHASE_ITEMS.includes(name)) {
+            // SAMPLE_PURCHASE_ITEMS 는 대표어 기준으로 비교한다 (달걀·감자는 그대로지만,
+            // 목록에 동의어가 들어와도 어긋나지 않도록).
+            if (SAMPLE_PURCHASE_ITEMS.map(convertToKeyword).includes(keyword)) {
               item.purchase = todayStr;
             }
             return item;
           });
           
           // 냉동보관 재료 추가
-          const newFrozen = defaultFrozenIngredients.map((name, index) => ({
+          const newFrozen = toUniqueKeywords(defaultFrozenIngredients).map((keyword, index) => ({
             id: `frozen-${Date.now()}-${index}`,
-            name: convertToKeyword(name)
+            name: keyword
           }));
           
           // 디버깅: 저장되는 재료 이름 확인
@@ -1441,6 +1513,7 @@ const MyFridge: React.FC = () => {
           }
           
           // 이 계정에는 기본 재료를 넣었다고 표시해 둔다 (위 설명 참고).
+          seedDecidedRef.current = true;
           try {
             localStorage.setItem(seedKey, '1');
           } catch {
@@ -1748,7 +1821,7 @@ const MyFridge: React.FC = () => {
     if (box === 'frozen') setFrozen(newTags);
     if (box === 'fridge') setFridge(newTags);
     if (box === 'room') setRoom(newTags);
-    showToast('삭제됨.', deleted);
+    showToast('재료를 지웠어요.', deleted);
   };
 
   const removeAll = (box: StorageBox) => {
@@ -1765,7 +1838,7 @@ const MyFridge: React.FC = () => {
     if (box === 'frozen') setFrozen([]);
     if (box === 'fridge') setFridge([]);
     if (box === 'room') setRoom([]);
-    showToast('모두 삭제됨.', deleted, 7000);
+    showToast('모두 지웠어요.', deleted, 7000);
   };
 
   // '네' 버튼 클릭 시 삭제 확정 (토스트만 닫기)
