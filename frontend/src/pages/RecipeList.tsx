@@ -13,7 +13,7 @@ import { fetchRecipesDummy } from '../utils/dummyData';
 import RecipeCard from '../components/RecipeCard';
 import VirtualizedRecipeList, { VirtualizedRecipeListRef } from '../components/VirtualizedRecipeList';
 import { Recipe, RecipeActionState, FilterState, SubstituteInfo } from '../types/recipe';
-import { getMyIngredients, getMyIngredientsAsKeywords, sortRecipes, calculateMatchRate, initializeDefaultIngredients, extractKeywordsAndSynonyms, FilterKeywordTree, getDictCategoryKey, preloadIngredientSynonymDict, ingredientSynonymDictCache } from '../utils/recipeUtils';
+import { getMyIngredients, getMyIngredientsAsKeywords, sortRecipes, calculateMatchRate, extractKeywordsAndSynonyms, FilterKeywordTree, getDictCategoryKey, preloadIngredientSynonymDict, ingredientSynonymDictCache } from '../utils/recipeUtils';
 import RecipeToast from '../components/RecipeToast';
 // import Slider from 'rc-slider';
 // import 'rc-slider/assets/index.css';
@@ -818,110 +818,20 @@ const RecipeList: React.FC = () => {
     }
   }, [getIngredientsHash]); // 재료 해시가 변경될 때마다 확인
 
-  // 컴포넌트 마운트 시 재료 상태 확인 및 초기 재료 설정
+  /**
+   * 마운트 시 내 재료를 읽어 온다.
+   *
+   * 여기서 **기본 재료를 채우지 않는다.** 예전에는 재료가 비어 있으면
+   * initializeDefaultIngredients() 로 기본 재료를 넣었는데, 그 바람에 내 냉장고에서
+   * [모두 지우기] 로 비운 직후 이 화면에 들어오면 재료가 되살아났다. 사용자에겐
+   * "지웠는데 매칭률이 계속 나온다" 로 보였다.
+   *
+   * 기본 재료 투입은 내 냉장고(MyFridge)의 몫이다. 거기에만 계정별 투입 표시와
+   * DB 상태 확인이 있어서 "한 번만" 넣는 판단을 할 수 있다. 목록 화면은 냉장고에
+   * 있는 그대로를 쓴다 — 비어 있으면 매칭률 0%, 정렬은 최신순으로 시작한다.
+   */
   useEffect(() => {
-    const checkAndInitializeIngredients = async () => {
-      // 먼저 현재 재료 확인
-      let ingredients = getMyIngredients();
-      console.log('[RecipeList] 마운트 시 재료 확인:', {
-        count: ingredients.length,
-        ingredients: ingredients,
-        localStorageKeys: Object.keys(localStorage),
-        hasMyFridgeKey: localStorage.getItem('myfridge_ingredients') !== null
-      });
-      
-      // 재료가 없으면 초기 재료 설정
-      console.log('[RecipeList] 재료 개수 체크:', {
-        length: ingredients.length,
-        isEmpty: ingredients.length === 0,
-        ingredients: ingredients
-      });
-      
-      if (ingredients.length === 0) {
-        console.log('[RecipeList] 재료가 없음 - 초기 재료 설정 시작');
-        
-        let ingredientDict: { [key: string]: string } = {};
-        
-        try {
-          // CSV 파일 로드하여 재료 사전 구축
-          const csvResponse = await fetch(CSV_INGREDIENT_URL);
-          if (!csvResponse.ok) {
-            throw new Error(`CSV 파일 로드 실패: ${csvResponse.status} ${csvResponse.statusText}`);
-          }
-          const csv = await csvResponse.text();
-          
-          const lines = csv.split('\n');
-          const header = lines[0].split(',');
-          const nameIdx = header.indexOf('keyword');
-          const synonymsIdx = header.indexOf('synonyms');
-          const categoryIdx = header.indexOf('대분류');
-          
-          // CSV 파싱 함수 (따옴표로 감싸진 필드 처리)
-          const parseCSVLine = (line: string): string[] => {
-            const result: string[] = [];
-            let current = '';
-            let inQuotes = false;
-            
-            for (let i = 0; i < line.length; i++) {
-              const char = line[i];
-              if (char === '"') {
-                inQuotes = !inQuotes;
-              } else if (char === ',' && !inQuotes) {
-                result.push(current.trim());
-                current = '';
-              } else {
-                current += char;
-              }
-            }
-            result.push(current.trim()); // 마지막 필드
-            return result;
-          };
-          
-          lines.slice(1).forEach(line => {
-            if (!line.trim()) return; // 빈 줄 스킵
-            
-            const values = parseCSVLine(line);
-            const keyword = values[nameIdx]?.trim();
-            const synonymsStr = values[synonymsIdx]?.trim();
-            const category = values[categoryIdx]?.trim();
-            
-            if (keyword && category === '재료') {
-              ingredientDict[keyword] = keyword;
-              
-              // synonyms 파싱 (쉼표로 구분, 빈 값 제거)
-              if (synonymsStr) {
-                const synonyms = synonymsStr.split(',').map(s => s.trim()).filter(s => s.length > 0);
-                synonyms.forEach(synonym => {
-                  if (synonym) {
-                    ingredientDict[synonym] = keyword;
-                  }
-                });
-              }
-            }
-          });
-          
-          console.log('[RecipeList] CSV 파일 로드 완료, 재료 사전 크기:', Object.keys(ingredientDict).length);
-        } catch (error) {
-          console.error('[RecipeList] CSV 파일 로드 실패 - 빈 재료 사전으로 초기화 진행:', error);
-          // CSV 로드 실패해도 빈 사전으로 초기화 진행 (기본 재료 이름은 그대로 사용)
-        }
-        
-        // CSV 로드 성공/실패와 관계없이 초기 재료 설정 시도
-        const initialized = initializeDefaultIngredients(ingredientDict);
-        if (initialized) {
-          console.log('[RecipeList] 초기 재료 설정 완료');
-          // 재료 다시 읽기
-          ingredients = getMyIngredients();
-          setMyIngredients(ingredients);
-        } else {
-          console.warn('[RecipeList] 초기 재료 설정 실패 또는 이미 재료가 있음');
-        }
-      } else {
-        setMyIngredients(ingredients);
-      }
-    };
-    
-    checkAndInitializeIngredients();
+    setMyIngredients(getMyIngredients());
   }, []);
 
   // localStorage 변경 감지 및 myIngredients 업데이트

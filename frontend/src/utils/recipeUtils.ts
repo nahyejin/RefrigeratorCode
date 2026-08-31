@@ -95,112 +95,16 @@ export interface FilterKeywordTree {
 // =====================
 
 /**
- * 초기 재료를 설정한다 (재료가 없을 때만)
+ * (제거됨) initializeDefaultIngredients
+ *
+ * 목록 화면에서 재료가 비어 있으면 기본 재료를 채우던 함수였다. 내 냉장고에서
+ * [모두 지우기] 로 비운 직후 목록 화면에 들어오면 재료가 되살아나, "지웠는데
+ * 매칭률이 계속 나온다" 는 문제를 만들었다.
+ *
+ * 기본 재료 투입은 MyFridge 한 곳에서만 한다. 거기에만 계정별 투입 표시
+ * (myfridge_seeded_*)와 DB 상태 확인이 있어서 "한 번만" 넣는 판단이 가능하다.
+ * 여기에 비슷한 함수를 다시 만들지 말 것.
  */
-export function initializeDefaultIngredients(ingredientDict: { [key: string]: string }): boolean {
-  const STORAGE_KEY = 'myfridge_ingredients';
-  
-  try {
-    // 이미 재료가 있는지 확인
-    const existing = localStorage.getItem(STORAGE_KEY);
-    if (existing) {
-      try {
-        const data = JSON.parse(existing);
-        // 데이터 구조가 올바른지 확인
-        if (data && typeof data === 'object') {
-          const hasData = (Array.isArray(data.frozen) && data.frozen.length > 0) ||
-                         (Array.isArray(data.fridge) && data.fridge.length > 0) ||
-                         (Array.isArray(data.room) && data.room.length > 0);
-          if (hasData) {
-            console.log('[initializeDefaultIngredients] 이미 재료가 있어서 초기화 건너뜀:', {
-              frozen: data.frozen?.length || 0,
-              fridge: data.fridge?.length || 0,
-              room: data.room?.length || 0
-            });
-            return false; // 이미 재료가 있음
-          }
-          // 빈 데이터가 있으면 덮어쓰기 (초기화)
-          console.log('[initializeDefaultIngredients] 빈 데이터 발견 - 초기 재료로 덮어쓰기');
-        }
-      } catch (parseError) {
-        // 파싱 에러가 있으면 잘못된 데이터이므로 초기화 진행
-        console.warn('[initializeDefaultIngredients] localStorage 데이터 파싱 실패 - 초기화 진행:', parseError);
-      }
-    }
-    
-    // 재료 이름을 keyword로 변환
-    // ingredientDict가 비어있어도 기본 재료 이름을 그대로 사용
-    const convertToKeyword = (name: string): string => {
-      if (!ingredientDict || Object.keys(ingredientDict).length === 0) {
-        console.warn('[initializeDefaultIngredients] 재료 사전이 비어있음 - 원래 이름 사용:', name);
-        return name;
-      }
-      
-      if (ingredientDict[name]) {
-        return ingredientDict[name];
-      }
-      const foundKey = Object.keys(ingredientDict).find(
-        key => key.toLowerCase().trim() === name.toLowerCase().trim()
-      );
-      if (foundKey) {
-        return ingredientDict[foundKey];
-      }
-      const foundKeyNoSpace = Object.keys(ingredientDict).find(
-        key => key.replace(/\s/g, '').toLowerCase() === name.replace(/\s/g, '').toLowerCase()
-      );
-      if (foundKeyNoSpace) {
-        return ingredientDict[foundKeyNoSpace];
-      }
-      // 못 찾아도 원래 이름 반환 (기본 재료 이름은 이미 keyword일 가능성이 높음)
-      return name;
-    };
-    
-    // 기본 재료 목록
-    const defaultRoomIngredients = ['소금', '설탕', '간장', '식용유', '참기름', '후추', '올리고당', '물엿', '식초', '라면'];
-    const defaultFridgeIngredients = ['마늘', '대파', '달걀', '된장', '고추장', '고춧가루', '밀가루', '전분', '미림', '맛술', '양파', '감자', '당근', '두부', '우유', '김치'];
-    const defaultFrozenIngredients = ['돼지고기', '닭고기', '만두'];
-    
-    const newRoom = defaultRoomIngredients.map((name, index) => ({
-      id: `room-${Date.now()}-${index}`,
-      name: convertToKeyword(name)
-    }));
-    
-    const newFridge = defaultFridgeIngredients.map((name, index) => ({
-      id: `fridge-${Date.now()}-${index}`,
-      name: convertToKeyword(name)
-    }));
-    
-    const newFrozen = defaultFrozenIngredients.map((name, index) => ({
-      id: `frozen-${Date.now()}-${index}`,
-      name: convertToKeyword(name)
-    }));
-    
-    const data = {
-      frozen: newFrozen,
-      fridge: newFridge,
-      room: newRoom
-    };
-    
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    
-    // 같은 탭에서 변경을 알리기 위해 CustomEvent 발생
-    window.dispatchEvent(new CustomEvent('localStorageChange', {
-      detail: { key: STORAGE_KEY }
-    }));
-    
-    console.log('[initializeDefaultIngredients] 초기 재료 설정 완료:', {
-      room: newRoom.map(r => r.name),
-      fridge: newFridge.map(r => r.name),
-      frozen: newFrozen.map(r => r.name),
-      ingredientDictSize: ingredientDict ? Object.keys(ingredientDict).length : 0
-    });
-    
-    return true; // 초기 재료 설정 완료
-  } catch (error) {
-    console.error('[initializeDefaultIngredients] 에러:', error);
-    return false;
-  }
-}
 
 /**
  * 냉장고 내 내 재료 목록을 localStorage에서 불러온다.
