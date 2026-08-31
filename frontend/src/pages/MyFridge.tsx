@@ -564,6 +564,19 @@ const MyFridge: React.FC = () => {
    * 다시 넣지 않는다.
    */
   const seedDecidedRef = React.useRef(false);
+  /**
+   * 이 기기에서 재료를 건드렸고 아직 서버에 저장이 끝나지 않았는지.
+   *
+   * 아래 `refreshOnResume`(앱으로 돌아오면 DB에서 최신화) 때문에 필요하다.
+   * `window.confirm` 이 뜨면 창이 포커스를 잃고, 확인을 누르면 다시 얻는다.
+   * 그 focus 이벤트로 최신화가 돌아 **방금 지운 상태를 DB의 옛 목록으로 덮어썼다**
+   * — [모두 삭제] 를 눌러도 재료가 되살아나던 원인.
+   *
+   * 상태(`hasChanges`)로는 못 막는다. 삭제 직후에는 아직 갱신되기 전이고,
+   * 이벤트 핸들러가 붙잡고 있는 값도 옛것이기 때문이다. 그래서 편집하는 순간
+   * **동기적으로** 세우는 ref 를 따로 둔다. 저장이 끝나면 내린다.
+   */
+  const localEditPendingRef = React.useRef(false);
   const [hasChanges, setHasChanges] = useState(false); // 변경사항 추적
   const lastSavedDataRef = React.useRef<{frozen: Ingredient[], fridge: Ingredient[], room: Ingredient[]} | null>(null);
   const { isLoggedIn, user } = useAuth();
@@ -967,6 +980,8 @@ const MyFridge: React.FC = () => {
     const refreshOnResume = async () => {
       if (document.visibilityState !== 'visible') return;
       if (loading || isSaving || hasChanges) return;
+      // 이 기기에서 방금 건드린 게 아직 저장 전이면 DB 값으로 덮지 않는다.
+      if (localEditPendingRef.current) return;
       const dbData = await loadIngredientsFromDB();
       if (dbData) {
         setFrozen(dbData.frozen);
@@ -1600,6 +1615,8 @@ const MyFridge: React.FC = () => {
             .then((ok) => {
               // 더 최신 저장이 이미 시작됐으면 이 결과는 버린다 (순서 역전 방지)
               if (seq !== autoSaveSeq.current) return;
+              // 서버까지 반영됐으면 이제 DB 값으로 최신화해도 안전하다.
+              if (ok) localEditPendingRef.current = false;
               setSaveStatus(ok ? 'success' : 'error');
               if (ok) setTimeout(() => setSaveStatus('idle'), 2000);
             })
@@ -1766,6 +1783,7 @@ const MyFridge: React.FC = () => {
     purchaseDate: string
   ) => {
     setRecognitionOpen(false);
+    localEditPendingRef.current = true;
     const already = new Set(
       [...(frozen || []), ...(fridge || []), ...(room || [])].map(i => i.name)
     );
@@ -1806,6 +1824,7 @@ const MyFridge: React.FC = () => {
   };
 
   const removeTag = (box: StorageBox, tag: string) => {
+    localEditPendingRef.current = true;
     let prev: Ingredient[] = [];
     if (box === 'frozen') prev = frozen || [];
     if (box === 'fridge') prev = fridge || [];
@@ -1825,6 +1844,7 @@ const MyFridge: React.FC = () => {
   };
 
   const removeAll = (box: StorageBox) => {
+    localEditPendingRef.current = true;
     let prev: Ingredient[] = [];
     if (box === 'frozen') prev = frozen || [];
     if (box === 'fridge') prev = fridge || [];
@@ -1848,6 +1868,7 @@ const MyFridge: React.FC = () => {
   
   // '아니요' 버튼 클릭 시 삭제 취소 (재료 복원)
   const handleCancelDelete = () => {
+    localEditPendingRef.current = true;
     if (!toast?.deleted) {
       setToast(null);
       return;
@@ -1978,6 +1999,7 @@ const MyFridge: React.FC = () => {
   }, [categoryMap, frozen, fridge, room]);
 
   const handleModalComplete = (data: { ingredient: string; storageType: StorageBox; hasExpiration: boolean; date: string | null; }, skipCheck: boolean = false) => {
+    localEditPendingRef.current = true;
     // 재료 사전에서 keyword로 변환 (synonym -> keyword)
     const ingredientKeyword = ingredientDict[data.ingredient] || data.ingredient;
     
@@ -2093,10 +2115,19 @@ const MyFridge: React.FC = () => {
     setModalOpen(true);
   };
 
+  /**
+   * [모두삭제].
+   *
+   * 예전엔 `window.confirm` 으로 한 번 더 물었는데 두 가지 문제가 있었다.
+   *  1) 삭제 직후 뜨는 되돌리기 토스트가 같은 질문을 또 해서 확인을 두 번 받았다.
+   *  2) 더 나빴던 건, 확인창이 뜨면 창이 포커스를 잃었다가 확인을 누르면 다시
+   *     얻는데 그 focus 이벤트로 `refreshOnResume` 이 돌아 **DB의 옛 목록으로
+   *     방금 지운 상태를 덮어썼다.** 삭제해도 재료가 되살아나던 원인.
+   *
+   * 지금은 바로 지우고, 되돌리기 토스트(7초)가 안전장치 역할을 한다.
+   */
   const handleRemoveAll = (box: StorageBox) => {
-    if (window.confirm('정말 삭제하시겠습니까?')) {
-      removeAll(box);
-    }
+    removeAll(box);
   };
 
   // 초기 로딩 상태 체크 - 타임아웃 보호 추가
