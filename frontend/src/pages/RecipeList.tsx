@@ -742,8 +742,18 @@ const RecipeList: React.FC = () => {
           setCachedFilteredRecipes(parsedState.cachedFilteredRecipes);
           setTotal(parsedState.total || 0);
           setPage(parsedState.page || 1);
-          setSortType(parsedState.sortType || 'match');
-          setMatchRange(parsedState.matchRange || [30, 100]);
+          // 냉장고가 비어 있으면 예전에 쓰던 매칭 기반 정렬/구간을 되살리면 안 된다.
+          // 전부 0% 라서 30~100% 구간에 아무것도 안 걸려 화면이 텅 빈다.
+          const fridgeEmptyOnRestore = getMyIngredients().length === 0;
+          const restoredSort = parsedState.sortType || 'match';
+          setSortType(
+            fridgeEmptyOnRestore && (restoredSort === 'match' || restoredSort === 'expiry')
+              ? 'latest'
+              : restoredSort
+          );
+          setMatchRange(
+            fridgeEmptyOnRestore ? [0, 100] : (parsedState.matchRange || [30, 100])
+          );
           setSelectedChannel(parsedState.selectedChannel || []);
           setIncludeKeyword(parsedState.includeKeyword || '');
           setIncludeIngredients(parsedState.includeIngredients || []);
@@ -833,6 +843,22 @@ const RecipeList: React.FC = () => {
   useEffect(() => {
     setMyIngredients(getMyIngredients());
   }, []);
+
+  /**
+   * 냉장고가 비어 있으면 정렬을 항상 최신순으로, 매칭 구간은 열어 둔다.
+   *
+   * 내 재료가 없으면 모든 레시피의 매칭률이 0% 다. 그 상태에서 매칭률순 +
+   * 30~100% 구간이 걸려 있으면 **아무것도 안 걸려 화면이 텅 빈다.** 기본값은
+   * getInitialSortBarState() 가 이미 그렇게 잡지만, 세션에 저장된 예전 설정이
+   * 복원되거나 재료를 지운 뒤 그대로 머무는 경우가 있어 여기서 한 번 더 맞춘다.
+   *
+   * 재료가 생기면 건드리지 않는다 — 그때부터는 사용자가 고른 정렬이 유효하다.
+   */
+  useEffect(() => {
+    if (myIngredients.length > 0) return;
+    setSortType(prev => (prev === 'match' || prev === 'expiry' ? 'latest' : prev));
+    setMatchRange(prev => (prev[0] > 0 ? [0, 100] : prev));
+  }, [myIngredients.length]);
 
   // localStorage 변경 감지 및 myIngredients 업데이트
   useEffect(() => {
@@ -1368,7 +1394,8 @@ const RecipeList: React.FC = () => {
   // 초기 로드 시에도 기본값 [30, 100]을 사용하도록 보장
   const filterHash = useMemo(() => {
     // 초기 로드 시 기본값 강제 적용 (sessionStorage에 저장된 값이 있어도 초기 로드 시에는 기본값 사용)
-    const effectiveMatchRange = initialLoadDone.current ? matchRange : [30, 100];
+    // 초기 로드 기본값은 냉장고 상태에 따라 갈린다 (getInitialSortBarState 참고).
+    const effectiveMatchRange = initialLoadDone.current ? matchRange : initialSortBarState.matchRange;
     
     return JSON.stringify({
       selectedChannel,
@@ -1756,7 +1783,8 @@ const RecipeList: React.FC = () => {
 
     // 서버에서 정렬된 데이터이지만, 동의어 처리를 고려하여 프론트엔드에서 다시 정렬해야 함
     const effectiveSortType = initialLoadDone.current ? sortType : 'match';
-    const effectiveMatchRange = initialLoadDone.current ? matchRange : [30, 100];
+    // 초기 로드 기본값은 냉장고 상태에 따라 갈린다 (getInitialSortBarState 참고).
+    const effectiveMatchRange = initialLoadDone.current ? matchRange : initialSortBarState.matchRange;
     const [matchMin, matchMax] = effectiveMatchRange;
 
     // 동의어 반영 후 매칭률이 바뀌므로, 사용자가 고른 구간(예: 60~90%)을 클라이언트에서 다시 적용
