@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Sheet from './ui/Sheet';
+import IngredientDateModal from './IngredientDateModal';
 
 /** MyFridge 의 보관함 구분. 저기서 import 하면 순환 참조가 되어 여기 다시 적는다. */
 export type StorageBox = 'frozen' | 'fridge' | 'room';
@@ -11,17 +12,21 @@ export interface RecognizedIngredient {
   raw: string;
   /** 포장지에서 읽은 유통기한 (YYYY-MM-DD). 없으면 null */
   expiry?: string | null;
+  /** 모델이 짐작한 보관함. 재료마다 다르므로 항목별로 받는다 */
+  storage?: StorageBox | null;
 }
 
 /** 사진에선 읽혔지만 사전에 없어 그대로는 담을 수 없는 항목 */
 export interface UnmatchedIngredient {
   raw: string;
   expiry?: string | null;
+  storage?: StorageBox | null;
 }
 
 export interface ConfirmedIngredient {
   name: string;
   expiry?: string | null;
+  storage: StorageBox;
 }
 
 interface Props {
@@ -35,7 +40,7 @@ interface Props {
   errorText: string | null;
   /** 재료 사전 { 동의어 또는 대표어: 대표어 } — 고쳐 담을 때 검색에 쓴다 */
   ingredientDict: { [key: string]: string };
-  onConfirm: (items: ConfirmedIngredient[], storage: StorageBox, purchaseDate: string) => void;
+  onConfirm: (items: ConfirmedIngredient[], purchaseDate: string) => void;
 }
 
 const BOXES: { key: StorageBox; label: string }[] = [
@@ -45,6 +50,9 @@ const BOXES: { key: StorageBox; label: string }[] = [
 ];
 
 const todayStr = () => new Date().toISOString().slice(0, 10);
+
+const isStorage = (v: unknown): v is StorageBox =>
+  v === 'fridge' || v === 'frozen' || v === 'room';
 
 /** 화면에 보여줄 짧은 날짜 (2026-09-05 -> 09.05) */
 const shortDate = (iso: string) => iso.slice(5).replace('-', '.');
@@ -153,6 +161,8 @@ interface Row {
   /** 사진에서 읽은 표기 */
   raw: string;
   expiry?: string | null;
+  /** 이 재료를 어디에 담을지. 모델 짐작값으로 시작하고 사용자가 바꿀 수 있다 */
+  storage: StorageBox;
   checked: boolean;
 }
 
@@ -170,16 +180,28 @@ const IngredientRecognitionSheet: React.FC<Props> = ({
   isOpen, onClose, loading, ingredients, unmatched, purchaseDate, errorText, ingredientDict, onConfirm,
 }) => {
   const [rows, setRows] = useState<Row[]>([]);
-  const [storage, setStorage] = useState<StorageBox>('fridge');
   const [editing, setEditing] = useState<number | null>(null);
   const [purchase, setPurchase] = useState<string>(todayStr());
+  const [dateModalOpen, setDateModalOpen] = useState(false);
 
   // 새로 인식할 때마다 초기화한다. 사전에 잡힌 것은 켜진 상태, 못 잡은 것은 꺼진 상태로
   // 둔다 (사용자가 재료를 지정해야 담을 수 있으므로).
   useEffect(() => {
     setRows([
-      ...ingredients.map(i => ({ name: i.name, raw: i.raw, expiry: i.expiry ?? null, checked: true })),
-      ...unmatched.map(u => ({ name: null, raw: u.raw, expiry: u.expiry ?? null, checked: false })),
+      ...ingredients.map(i => ({
+        name: i.name,
+        raw: i.raw,
+        expiry: i.expiry ?? null,
+        storage: (isStorage(i.storage) ? i.storage : 'fridge') as StorageBox,
+        checked: true,
+      })),
+      ...unmatched.map(u => ({
+        name: null,
+        raw: u.raw,
+        expiry: u.expiry ?? null,
+        storage: (isStorage(u.storage) ? u.storage : 'fridge') as StorageBox,
+        checked: false,
+      })),
     ]);
     setEditing(null);
     setPurchase(purchaseDate || todayStr());
@@ -227,16 +249,19 @@ const IngredientRecognitionSheet: React.FC<Props> = ({
         <div style={{ marginBottom: 16 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: '#1A1A1E', marginBottom: 6 }}>구매일자</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <input
-              type="date"
-              value={purchase}
-              max={todayStr()}
-              onChange={e => setPurchase(e.target.value)}
+            {/* 날짜 고르기는 앱의 기존 모달을 그대로 쓴다. 예전엔 <input type="date">
+                였는데 OS 기본 달력이 떠서 닫기 버튼도 없고 버튼 양식도 앱과 달랐다. */}
+            <button
+              type="button"
+              onClick={() => setDateModalOpen(true)}
               style={{
-                height: 40, borderRadius: 8, padding: '0 10px',
-                border: '1px solid var(--line-200)', fontSize: 14, color: '#1A1A1E',
+                height: 40, minWidth: 140, borderRadius: 8, padding: '0 12px',
+                border: '1px solid var(--line-200)', background: '#FFFFFF',
+                fontSize: 14, fontWeight: 600, color: '#1A1A1E', cursor: 'pointer',
               }}
-            />
+            >
+              {purchase.replace(/-/g, '.')}
+            </button>
             <span style={{ fontSize: 12, color: 'var(--ink-500)' }}>
               {purchaseDate ? '영수증에서 읽었어요' : '오늘 날짜로 넣었어요'}
             </span>
@@ -300,6 +325,23 @@ const IngredientRecognitionSheet: React.FC<Props> = ({
                       </span>
                     )}
 
+                    {/* 보관함은 재료마다 다르다. 모델이 짐작한 값으로 시작하고,
+                        틀리면 여기서 바로 바꿀 수 있다. */}
+                    <select
+                      value={row.storage}
+                      onChange={e => update(idx, { storage: e.target.value as StorageBox })}
+                      aria-label="보관함"
+                      style={{
+                        flexShrink: 0, height: 30, borderRadius: 8, padding: '0 6px',
+                        border: '1px solid var(--line-200)', background: '#FFFFFF',
+                        fontSize: 12, fontWeight: 600, color: 'var(--ink-700)', cursor: 'pointer',
+                      }}
+                    >
+                      {BOXES.map(({ key, label }) => (
+                        <option key={key} value={key}>{label}</option>
+                      ))}
+                    </select>
+
                     <button
                       type="button"
                       onClick={() => setEditing(idx)}
@@ -318,33 +360,16 @@ const IngredientRecognitionSheet: React.FC<Props> = ({
           })}
         </div>
 
-        <div style={{ fontSize: 13, fontWeight: 700, color: '#1A1A1E', marginBottom: 8 }}>어디에 담을까요?</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 18 }}>
-          {BOXES.map(({ key, label }) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setStorage(key)}
-              style={{
-                height: 42, borderRadius: 10,
-                border: storage === key ? '1px solid #1A1A1E' : '1px solid var(--line-200)',
-                background: storage === key ? '#1A1A1E' : '#FFFFFF',
-                color: storage === key ? '#FFFFFF' : 'var(--ink-700)',
-                fontSize: 14, fontWeight: 700, cursor: 'pointer',
-              }}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-
         <button
           type="button"
           disabled={selected.length === 0}
           onClick={() =>
             onConfirm(
-              selected.map(r => ({ name: r.name as string, expiry: r.expiry ?? null })),
-              storage,
+              selected.map(r => ({
+                name: r.name as string,
+                expiry: r.expiry ?? null,
+                storage: r.storage,
+              })),
               purchase
             )
           }
@@ -363,9 +388,21 @@ const IngredientRecognitionSheet: React.FC<Props> = ({
   };
 
   return (
-    <Sheet open={isOpen} onClose={onClose} title="사진에서 찾은 재료" maxHeight="86dvh" hideFooter>
-      {body()}
-    </Sheet>
+    <>
+      <Sheet open={isOpen} onClose={onClose} title="사진에서 찾은 재료" maxHeight="86dvh" hideFooter>
+        {body()}
+      </Sheet>
+      <IngredientDateModal
+        type="purchase"
+        isOpen={dateModalOpen}
+        onClose={() => setDateModalOpen(false)}
+        initialDate={purchase}
+        onComplete={date => {
+          if (date) setPurchase(date);
+          setDateModalOpen(false);
+        }}
+      />
+    </>
   );
 };
 

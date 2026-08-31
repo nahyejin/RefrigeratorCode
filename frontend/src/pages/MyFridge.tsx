@@ -1682,10 +1682,14 @@ const MyFridge: React.FC = () => {
     }
   };
 
-  /** 확인 시트에서 검토를 마친 재료를 한 번에 담는다. */
+  /** 확인 시트에서 검토를 마친 재료를 한 번에 담는다.
+   *
+   * 보관함은 재료마다 다르다(우유는 냉장, 만두는 냉동, 소금은 실온). 모델이
+   * 재료별로 짐작한 값을 시트에서 사용자가 확인·수정하므로, 여기서는 항목에
+   * 실려 온 보관함을 그대로 쓰고 칸별로 나눠 담는다.
+   */
   const handleRecognizedConfirm = (
     items: ConfirmedIngredient[],
-    storage: StorageBox,
     purchaseDate: string
   ) => {
     setRecognitionOpen(false);
@@ -1698,7 +1702,9 @@ const MyFridge: React.FC = () => {
       return;
     }
 
-    const objs = fresh.map((item, idx) => {
+    const buckets: Record<StorageBox, Ingredient[]> = { frozen: [], fridge: [], room: [] };
+    fresh.forEach((item, idx) => {
+      const storage = item.storage;
       const obj = {
         id: `${item.name}-${Date.now()}-${idx}`,
         name: item.name,
@@ -1711,12 +1717,12 @@ const MyFridge: React.FC = () => {
         const est = estimateExpiry(item.name, storage, purchaseDate, categoryMap);
         if (est) obj.estimatedExpiry = est;
       }
-      return obj;
+      buckets[storage].push(obj);
     });
 
-    if (storage === 'frozen') setFrozen(prev => (prev ? [...prev, ...objs] : objs));
-    if (storage === 'fridge') setFridge(prev => (prev ? [...prev, ...objs] : objs));
-    if (storage === 'room') setRoom(prev => (prev ? [...prev, ...objs] : objs));
+    if (buckets.frozen.length) setFrozen(prev => (prev ? [...prev, ...buckets.frozen] : buckets.frozen));
+    if (buckets.fridge.length) setFridge(prev => (prev ? [...prev, ...buckets.fridge] : buckets.fridge));
+    if (buckets.room.length) setRoom(prev => (prev ? [...prev, ...buckets.room] : buckets.room));
 
     const skipped = items.length - fresh.length;
     showPrepNotice(
@@ -1858,6 +1864,12 @@ const MyFridge: React.FC = () => {
    * 이 기능이 생기기 전에 구매일만 넣어 둔 재료가 이미 있고, 그 재료들은
    * 저장 시점에 추정값을 계산할 기회가 없었다. 카테고리 표가 도착하면 한 번 훑어서
    * 채워 준다. 추정 기준이 바뀌었을 때 값이 갱신되도록 이미 있는 값도 다시 계산한다.
+   *
+   * 재료 목록도 의존성에 넣는다. 예전엔 categoryMap 만 봐서, 표가 **먼저** 도착하고
+   * 그 뒤에 재료가 들어오면(기본 재료 자동 투입, 사진 인식으로 담기 등) 추정값이
+   * 영영 안 채워졌다 — 기본 재료의 D-표기가 안 보이던 원인.
+   * fill() 은 바뀐 게 없으면 같은 배열을 그대로 돌려주므로 setState 가 상태를
+   * 실제로 바꾸지 않아 반복 실행되지 않는다.
    */
   React.useEffect(() => {
     if (!Object.keys(categoryMap).length) return;
@@ -1890,7 +1902,7 @@ const MyFridge: React.FC = () => {
     setFrozen(prev => fill(prev, 'frozen'));
     setFridge(prev => fill(prev, 'fridge'));
     setRoom(prev => fill(prev, 'room'));
-  }, [categoryMap]);
+  }, [categoryMap, frozen, fridge, room]);
 
   const handleModalComplete = (data: { ingredient: string; storageType: StorageBox; hasExpiration: boolean; date: string | null; }, skipCheck: boolean = false) => {
     // 재료 사전에서 keyword로 변환 (synonym -> keyword)

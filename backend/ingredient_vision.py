@@ -39,10 +39,14 @@ SUPPORTED_MODES = ("receipt", "food-single", "food-multi", "file")
 _OUTPUT_SPEC = """
 아래 JSON 객체만 출력해라. 다른 텍스트는 출력하지 마라.
 - purchase_date: 영수증의 결제/구매 날짜. YYYY-MM-DD 형식. 안 보이면 null.
-- ingredients: 재료 목록. 각 항목의 expiry 는 그 재료에 적힌 유통기한(소비기한)이며,
-  YYYY-MM-DD 형식이고 안 보이면 null 이다.
+- ingredients: 재료 목록. 각 항목은 name / expiry / storage 를 갖는다.
+  - expiry: 그 재료에 적힌 유통기한(소비기한). YYYY-MM-DD 형식이고 안 보이면 null.
+  - storage: 그 재료를 보통 어디에 두는지. "fridge"(냉장) / "frozen"(냉동) /
+    "room"(실온) 중 하나. 한국 가정 기준으로 판단한다.
+    예) 우유·두부·나물 = fridge, 냉동만두·아이스크림 = frozen,
+        소금·설탕·라면·통조림·양파·감자 = room
 
-예: {"purchase_date": "2026-08-30", "ingredients": [{"name": "물엿", "expiry": null}, {"name": "우유", "expiry": "2026-09-05"}]}"""
+예: {"purchase_date": "2026-08-30", "ingredients": [{"name": "물엿", "expiry": null, "storage": "room"}, {"name": "우유", "expiry": "2026-09-05", "storage": "fridge"}]}"""
 
 _RECEIPT_PROMPT = """이 이미지는 마트/슈퍼 영수증이다. 구매한 식재료와 결제 날짜를 뽑아내라.
 
@@ -184,9 +188,13 @@ def _parse_response(text):
         if isinstance(x, dict):
             name = str(x.get("name") or "").strip()
             if name:
-                items.append({"name": name, "expiry": x.get("expiry")})
+                items.append({
+                    "name": name,
+                    "expiry": x.get("expiry"),
+                    "storage": x.get("storage"),
+                })
         elif str(x).strip():
-            items.append({"name": str(x).strip(), "expiry": None})
+            items.append({"name": str(x).strip(), "expiry": None, "storage": None})
     return {"purchase_date": data.get("purchase_date"), "ingredients": items}
 
 
@@ -213,6 +221,15 @@ def _clean_purchase_date(value):
     if parsed < today - timedelta(days=365):
         return None
     return parsed.isoformat()
+
+
+_STORAGE_VALUES = ("fridge", "frozen", "room")
+
+
+def _clean_storage(value):
+    """모델이 고른 보관함. 이상한 값이면 냉장으로 둔다(가장 무난한 기본값)."""
+    v = str(value or "").strip().lower()
+    return v if v in _STORAGE_VALUES else "fridge"
 
 
 def _clean_expiry(value):
@@ -257,16 +274,19 @@ def recognize(images, mode="receipt"):
         if not name:
             continue
         expiry = _clean_expiry(item.get("expiry"))
+        storage = _clean_storage(item.get("storage"))
         canonical = resolve_canonical(name, alias)
         if not canonical:
             # 사전에 없는 것도 그대로 돌려준다 — 사용자가 화면에서 직접 고쳐 담을 수 있다.
             if not any(u["raw"] == name for u in unmatched):
-                unmatched.append({"raw": name, "expiry": expiry})
+                unmatched.append({"raw": name, "expiry": expiry, "storage": storage})
             continue
         if canonical in seen:
             continue
         seen.add(canonical)
-        ingredients.append({"name": canonical, "raw": name, "expiry": expiry})
+        ingredients.append({
+            "name": canonical, "raw": name, "expiry": expiry, "storage": storage,
+        })
 
     return {
         "ingredients": ingredients,

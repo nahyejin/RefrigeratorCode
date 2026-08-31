@@ -3992,6 +3992,72 @@ def chat_with_recipes():
     return handle_chat(get_db)
 
 
+def ensure_ingredient_miss_table():
+    """사진에서 읽혔지만 재료 사전에 없던 이름을 모아 두는 표."""
+    db = get_db()
+    cursor = db.cursor()
+    try:
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS ingredient_dictionary_misses (
+                id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                raw_name VARCHAR(255) NOT NULL,
+                hit_count INT NOT NULL DEFAULT 1,
+                last_mode VARCHAR(20) NULL,       -- receipt / file / food-*
+                first_seen DATETIME NOT NULL,
+                last_seen DATETIME NOT NULL,
+                UNIQUE KEY unique_raw_name (raw_name),
+                INDEX idx_hit_count (hit_count)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        """)
+        db.commit()
+    finally:
+        cursor.close()
+        db.close()
+
+
+def _record_dictionary_misses(unmatched, mode):
+    """사전에 없어서 담지 못한 이름을 쌓아 둔다.
+
+    왜 모으나: 사진 인식 품질은 모델보다 **사전이 얼마나 두꺼운지**에 더 크게
+    좌우된다(실측으로 확인됐다). 무엇이 자주 걸리는지 알아야 사전을 보강할 수
+    있는데, 그냥 흘려보내면 다시 알 방법이 없다.
+
+    조회:
+        SELECT raw_name, hit_count, last_seen
+        FROM ingredient_dictionary_misses ORDER BY hit_count DESC LIMIT 50;
+
+    기록에 실패해도 인식 자체는 성공시켜야 하므로 예외를 삼킨다.
+    """
+    names = [str(u.get('raw') or '').strip() for u in unmatched]
+    names = [n for n in names if n][:50]
+    if not names:
+        return
+    try:
+        ensure_ingredient_miss_table()
+        db = get_db()
+        cursor = db.cursor()
+        try:
+            for name in names:
+                cursor.execute(
+                    """
+                    INSERT INTO ingredient_dictionary_misses
+                        (raw_name, hit_count, last_mode, first_seen, last_seen)
+                    VALUES (%s, 1, %s, NOW(), NOW())
+                    ON DUPLICATE KEY UPDATE
+                        hit_count = hit_count + 1,
+                        last_mode = VALUES(last_mode),
+                        last_seen = NOW()
+                    """,
+                    (name[:255], (mode or '')[:20]),
+                )
+            db.commit()
+        finally:
+            cursor.close()
+            db.close()
+    except Exception as e:  # noqa: BLE001
+        print(f"[recognize] 미매칭 재료 기록 실패(무시): {e}")
+
+
 @app.route('/api/ingredients/recognize', methods=['POST'])
 def recognize_ingredients_from_image():
     """사진(영수증/재료)에서 재료를 인식해 담을 후보를 돌려준다.
@@ -4048,6 +4114,7 @@ def recognize_ingredients_from_image():
     mode = (request.form.get('mode') or 'receipt').strip()
     try:
         result = recognize(images, mode=mode)
+        _record_dictionary_misses(result.get('unmatched') or [], mode)
     except QuotaExceeded:
         return jsonify({'error': '지금 요청이 몰려 있어요. 잠시 후 다시 시도해 주세요.'}), 429
     except RuntimeError as e:
