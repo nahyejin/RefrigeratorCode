@@ -30,7 +30,6 @@ import {
 // =====================
 
 const STORAGE_KEY = 'myfridge_ingredients';
-const TOAST_DURATION = 10000;
 
 // 가이드 단계 정의 (기본 - 비회원용)
 const baseGuideSteps = [
@@ -68,19 +67,6 @@ export interface Ingredient {
 }
 
 export type StorageBox = 'frozen' | 'fridge' | 'room';
-
-export interface DeletedInfo {
-  type: 'single' | 'all';
-  box: StorageBox;
-  tags: string[];
-  ingredients?: Ingredient[]; // 삭제된 재료의 전체 정보 저장
-}
-
-export interface ToastState {
-  visible: boolean;
-  message: string;
-  deleted: DeletedInfo | null;
-}
 
 // =====================
 // 유틸리티 함수
@@ -232,68 +218,6 @@ function sortIngredients(arr: Ingredient[], sort: SortType): Ingredient[] {
 // =====================
 // Toast 컴포넌트
 // =====================
-
-/**
- * 삭제 후 잠깐 뜨는 되돌리기 안내.
- *
- * 예전엔 이 토스트가 `정말 삭제하시겠습니까?` 를 **또** 물었다. 삭제 직전에
- * 시스템 확인창이 이미 같은 질문을 하므로 같은 걸 두 번 묻는 셈이었고, 넘겨받은
- * `message` 는 쓰지도 않았다. 게다가 하단에 낮게 깔려 잘 보이지도 않아서
- * "삭제했는데 뭔가 떴다가 사라진다" 는 인상만 줬다.
- *
- * 확인은 시스템 확인창이 이미 받았으므로, 여기서는 **무엇이 지워졌는지 알려주고
- * 되돌릴 기회만** 준다.
- */
-const Toast = ({ message, onUndo, onClose }: { message: string; onUndo: () => void; onClose: () => void }) => (
-  <div
-    style={{
-      position: 'fixed',
-      // 하단 내비게이션과 겹치지 않게 띄우고, 홈 인디케이터 영역도 피한다.
-      bottom: 'calc(104px + env(safe-area-inset-bottom, 0px))',
-      left: '50%',
-      transform: 'translateX(-50%)',
-      background: '#1A1A1E',
-      color: '#FFFFFF',
-      padding: '14px 16px 14px 20px',
-      borderRadius: 14,
-      fontSize: 15,
-      zIndex: 'var(--z-toast)',
-      // 흐릿하게 깔리지 않도록 그림자를 뚜렷하게 준다.
-      boxShadow: '0 8px 24px rgba(0,0,0,0.35)',
-      maxWidth: 'min(360px, calc(100vw - 32px))',
-      width: 'max-content',
-      display: 'flex',
-      alignItems: 'center',
-      gap: 12,
-    }}
-    role="status"
-  >
-    <span style={{ fontWeight: 600, color: '#FFFFFF', wordBreak: 'keep-all' }}>{message}</span>
-    <button
-      type="button"
-      onClick={onUndo}
-      style={{
-        flexShrink: 0, height: 32, padding: '0 12px', borderRadius: 8,
-        border: 'none', background: '#FFD600', color: '#1A1A1E',
-        fontSize: 14, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
-      }}
-    >
-      되돌리기
-    </button>
-    <button
-      type="button"
-      onClick={onClose}
-      aria-label="닫기"
-      style={{
-        flexShrink: 0, width: 28, height: 28, borderRadius: 8,
-        border: 'none', background: 'transparent', color: '#FFFFFF',
-        fontSize: 18, lineHeight: '28px', padding: 0, cursor: 'pointer',
-      }}
-    >
-      ×
-    </button>
-  </div>
-);
 
 // =====================
 // IngredientPill 컴포넌트
@@ -530,8 +454,6 @@ const MyFridge: React.FC = () => {
   const [showDropdown, setShowDropdown] = React.useState(false);
   const inputRef = React.useRef<HTMLInputElement>(null);
   const dropdownRef = React.useRef<HTMLDivElement>(null);
-  const [toast, setToast] = React.useState<ToastState | null>(null);
-  const toastTimeout = React.useRef<NodeJS.Timeout | null>(null);
   const [modalOpen, setModalOpen] = React.useState(false);
   const [modalIngredient, setModalIngredient] = React.useState<string | null>(null);
   const [modalInitialData, setModalInitialData] = React.useState<{
@@ -1693,17 +1615,10 @@ const MyFridge: React.FC = () => {
   //   세 번 반복 실행했다. 그래서 드롭다운이 열릴 때마다 목록이 눈에 띄게 떨렸다.
   //   스크롤바는 CSS(.custom-scrollbar)로 표시하면 되므로 이 조작은 필요 없다.
 
-  const showToast = (message: string, deleted: DeletedInfo, duration?: number) => {
-    setToast({ visible: true, message, deleted });
-    if (toastTimeout.current) clearTimeout(toastTimeout.current);
-    toastTimeout.current = setTimeout(() => setToast(null), duration ?? TOAST_DURATION);
-  };
-
   const prepNoticeTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   /**
-   * "아직 준비 중인 기능" 안내.
-   * `showToast` 는 '삭제 취소' 버튼이 함께 붙는 토스트라 단순 안내에는 맞지 않고,
-   * `alert` 는 OS 창이라 앱 밖의 일처럼 보이고 확인을 눌러야만 사라진다.
+   * 짧은 안내 문구.
+   * `alert` 는 OS 창이라 앱 밖의 일처럼 보이고 확인을 눌러야만 사라져서 쓰지 않는다.
    */
   const showPrepNotice = (text: string) => {
     setInfoToast({ text });
@@ -1832,62 +1747,17 @@ const MyFridge: React.FC = () => {
     if (box === 'frozen') prev = frozen || [];
     if (box === 'fridge') prev = fridge || [];
     if (box === 'room') prev = room || [];
-    const deletedIngredient = prev.find(t => t.id === tag);
     const newTags = prev.filter(t => t.id !== tag);
-    const deleted: DeletedInfo = { 
-      type: 'single', 
-      box, 
-      tags: [tag],
-      ingredients: deletedIngredient ? [deletedIngredient] : []
-    };
     if (box === 'frozen') setFrozen(newTags);
     if (box === 'fridge') setFridge(newTags);
     if (box === 'room') setRoom(newTags);
-    showToast('재료를 지웠어요.', deleted);
   };
 
   const removeAll = (box: StorageBox) => {
     localEditPendingRef.current = true;
-    let prev: Ingredient[] = [];
-    if (box === 'frozen') prev = frozen || [];
-    if (box === 'fridge') prev = fridge || [];
-    if (box === 'room') prev = room || [];
-    const deleted: DeletedInfo = { 
-      type: 'all', 
-      box, 
-      tags: prev.map(t => t.id),
-      ingredients: [...prev] // 전체 재료 정보 저장
-    };
     if (box === 'frozen') setFrozen([]);
     if (box === 'fridge') setFridge([]);
     if (box === 'room') setRoom([]);
-    showToast('모두 지웠어요.', deleted, 7000);
-  };
-
-  // '네' 버튼 클릭 시 삭제 확정 (토스트만 닫기)
-  const undoDelete = () => {
-    setToast(null);
-  };
-  
-  // '아니요' 버튼 클릭 시 삭제 취소 (재료 복원)
-  const handleCancelDelete = () => {
-    localEditPendingRef.current = true;
-    if (!toast?.deleted) {
-      setToast(null);
-      return;
-    }
-    const deleted = toast.deleted;
-    if (deleted.ingredients && deleted.ingredients.length > 0) {
-      // 저장된 재료 정보를 사용하여 복원
-      if (deleted.box === 'frozen') {
-        setFrozen(prev => deleted.type === 'all' ? deleted.ingredients! : [...(prev ?? []), ...deleted.ingredients!]);
-      } else if (deleted.box === 'fridge') {
-        setFridge(prev => deleted.type === 'all' ? deleted.ingredients! : [...(prev ?? []), ...deleted.ingredients!]);
-      } else if (deleted.box === 'room') {
-        setRoom(prev => deleted.type === 'all' ? deleted.ingredients! : [...(prev ?? []), ...deleted.ingredients!]);
-      }
-    }
-    setToast(null);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -2544,13 +2414,8 @@ const MyFridge: React.FC = () => {
             },
           ]}
         >
-          {removeAllTarget
-            ? `${removeAllCount(removeAllTarget)}개를 지웁니다. 지운 뒤 잠깐 동안 되돌릴 수 있어요.`
-            : ''}
+          {removeAllTarget ? `${removeAllCount(removeAllTarget)}개를 지웁니다.` : ''}
         </Dialog>
-        {toast && toast.visible && (
-          <Toast message={toast.message} onUndo={handleCancelDelete} onClose={undoDelete} />
-        )}
         {infoToast && (
           <div
             style={{

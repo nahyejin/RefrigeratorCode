@@ -4007,3 +4007,26 @@ window.addEventListener('focus', refreshOnResume);
 
 개별 재료 삭제는 그대로 확인 없이 지우고 되돌리기 토스트만 띄운다. 하나짜리
 동작에까지 확인을 받으면 번거롭기만 하다 — 위험한 쪽에만 확인을 붙였다.
+
+### 되돌리기 토스트 제거, 삭제 확인 문구 정리
+
+"지우면 지우는 거지 되돌리는 건 또 뭐냐" — 되돌리기 기능을 아예 걷어냈다.
+지우기 전에 묻고, 누른 뒤에는 그대로 지운다. 안전장치를 두 겹으로 두는 대신
+**묻는 시점 한 곳으로 모았다.**
+
+지운 것:
+- `Toast` 컴포넌트, `showToast()`, `toast`/`toastTimeout` 상태
+- `undoDelete()` / `handleCancelDelete()`(복원 로직)
+- `DeletedInfo` / `ToastState` 타입, `TOAST_DURATION` 상수
+- 삭제된 재료를 되살리려고 들고 있던 사본(`ingredients: [...prev]`)
+
+`removeTag`/`removeAll` 은 이제 상태만 비운다. 짧은 안내 토스트(`showPrepNotice`)는
+삭제와 무관한 다른 안내에 쓰이므로 그대로 둔다.
+
+확인 팝업 문구:
+
+```
+냉장 재료를 모두 지울까요?
+17개를 지웁니다.
+        [취소]  [모두 지우기]
+```
