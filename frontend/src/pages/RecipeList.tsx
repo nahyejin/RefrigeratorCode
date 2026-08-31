@@ -2026,6 +2026,38 @@ const RecipeList: React.FC = () => {
                로딩이 끝나는 순간 화면이 통째로 바뀌어 이동이 크게 느껴졌음) */}
           {loading && <RecipeCardSkeleton count={4} />}
 
+          {/* 냉장고가 비면 모든 카드가 0% 로 뜬다. 그대로 두면 고장난 것처럼 보이므로
+              왜 그런지와 어디로 가면 되는지를 한 줄로 알려 준다. 목록을 가리지 않게
+              얇게 두고, 재료가 하나라도 생기면 사라진다. */}
+          {!loading && myIngredients.length === 0 && recipes.length > 0 && (
+            <button
+              type="button"
+              onClick={() => navigate('/my-fridge')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                width: '100%',
+                margin: '2px 0 8px',
+                padding: '10px 12px',
+                borderRadius: 10,
+                border: '1px solid var(--line-200)',
+                background: '#FFFBEA',
+                color: 'var(--ink-700)',
+                fontSize: 13,
+                lineHeight: 1.4,
+                textAlign: 'left',
+                cursor: 'pointer',
+              }}
+            >
+              <span aria-hidden style={{ flexShrink: 0 }}>🧊</span>
+              <span style={{ flex: 1, wordBreak: 'keep-all' }}>
+                내 냉장고에 재료를 등록하면 매칭률순으로 볼 수 있어요.
+              </span>
+              <span style={{ flexShrink: 0, fontWeight: 700, color: '#1A1A1E' }}>등록하기 ›</span>
+            </button>
+          )}
+
           {!loading && (
             <div className="flex flex-col gap-2">
               {(() => {
