@@ -187,7 +187,7 @@ interface Row {
 
 /** 행 안의 작은 조작 버튼들이 같은 높이·모양을 갖도록 한 곳에 모아 둔다 */
 const chipStyle: React.CSSProperties = {
-  flexShrink: 0, height: 30, padding: '0 10px', borderRadius: 8,
+  flexShrink: 0, height: 30, padding: '0 8px', borderRadius: 8,
   border: '1px solid var(--line-200)', background: '#FFFFFF',
   fontSize: 12, fontWeight: 600, color: 'var(--ink-700)', cursor: 'pointer',
 };
@@ -211,10 +211,12 @@ const IngredientRecognitionSheet: React.FC<Props> = ({
   /** 위쪽 일괄 구매일자 (영수증 등). 행별 모드에서는 쓰이지 않는다 */
   const [purchase, setPurchase] = useState<string>(todayStr());
   /**
-   * 지금 날짜를 고치는 대상. 'all' = 위쪽 일괄, 숫자 = 그 행, null = 안 열림.
-   * 어느 날짜를 고치는 중인지 모달 하나로 처리하려고 대상만 들고 있는다.
+   * 지금 날짜를 고치는 대상. 모달은 하나만 두고 대상만 바꿔 끼운다.
+   *  - kind: 구매일자냐 유통기한이냐 (모달의 안내 문구와 빠른 선택지가 다르다)
+   *  - idx: 'all' = 위쪽 일괄, 숫자 = 그 행
    */
-  const [dateTarget, setDateTarget] = useState<number | 'all' | null>(null);
+  const [dateTarget, setDateTarget] =
+    useState<{ kind: 'purchase' | 'expiry'; idx: number | 'all' } | null>(null);
 
   // 새로 인식할 때마다 초기화한다. 사전에 잡힌 것은 켜진 상태, 못 잡은 것은 꺼진 상태로
   // 둔다 (사용자가 재료를 지정해야 담을 수 있으므로).
@@ -250,18 +252,36 @@ const IngredientRecognitionSheet: React.FC<Props> = ({
     setRows(prev => prev.map((r, i) => (i === idx ? { ...r, ...patch } : r)));
   };
 
-  /** 날짜 모달에서 고른 값을 대상에 적는다. 일괄이면 모든 행에 함께 적용한다. */
-  const applyDate = (date: string) => {
-    if (dateTarget === 'all') {
+  /**
+   * 날짜 모달에서 고른 값을 대상에 적는다. 구매일자 일괄이면 모든 행에 함께 적용한다.
+   *
+   * `date` 가 null 이면 "잘 모르겠어요" 다.
+   *  - 유통기한: 지운다. 그러면 구매일 + 카테고리로 짐작하는 값(약 D-21)으로 돌아간다.
+   *  - 구매일자: 비울 수 없다(유통기한 짐작의 근거라 하나는 있어야 한다). 그냥 둔다.
+   */
+  const applyDate = (date: string | null) => {
+    if (!dateTarget) return;
+    const { kind, idx } = dateTarget;
+
+    if (kind === 'expiry') {
+      if (typeof idx === 'number') update(idx, { expiry: date });
+      return;
+    }
+    if (!date) return;
+    if (idx === 'all') {
       setPurchase(date);
       setRows(prev => prev.map(r => ({ ...r, purchase: date })));
-    } else if (typeof dateTarget === 'number') {
-      update(dateTarget, { purchase: date });
+    } else {
+      update(idx, { purchase: date });
     }
   };
 
-  const dateTargetValue =
-    typeof dateTarget === 'number' ? rows[dateTarget]?.purchase || purchase : purchase;
+  const dateTargetValue = (() => {
+    if (!dateTarget) return purchase;
+    const { kind, idx } = dateTarget;
+    if (typeof idx !== 'number') return purchase;
+    return (kind === 'expiry' ? rows[idx]?.expiry : rows[idx]?.purchase) || null;
+  })();
 
   const body = () => {
     if (loading) {
@@ -304,7 +324,7 @@ const IngredientRecognitionSheet: React.FC<Props> = ({
                   였는데 OS 기본 달력이 떠서 닫기 버튼도 없고 버튼 양식도 앱과 달랐다. */}
               <button
                 type="button"
-                onClick={() => setDateTarget('all')}
+                onClick={() => setDateTarget({ kind: 'purchase', idx: 'all' })}
                 style={{
                   height: 40, minWidth: 140, borderRadius: 8, padding: '0 12px',
                   border: '1px solid var(--line-200)', background: '#FFFFFF',
@@ -316,6 +336,13 @@ const IngredientRecognitionSheet: React.FC<Props> = ({
               <span style={{ fontSize: 12, color: 'var(--ink-500)' }}>
                 {purchaseDate ? '영수증에서 읽었어요 · 눌러서 고치기' : '오늘 날짜예요 · 눌러서 고치기'}
               </span>
+            </div>
+            {/* 구매일자와 유통기한이 어떤 관계인지 한 줄로 밝힌다.
+                둘 다 날짜라 "어느 쪽이 이기지?" 하고 헷갈릴 수 있는데, 규칙은 단순하다 —
+                직접 넣은 기한이 언제나 이긴다. */}
+            <div style={{ fontSize: 12, color: 'var(--ink-500)', marginTop: 6, lineHeight: 1.5 }}>
+              기한을 넣지 않은 재료는 이 날짜로 <b style={{ fontWeight: 700 }}>기한을 짐작</b>해요.
+              제품에 적힌 날짜는 <b style={{ fontWeight: 700 }}>기한 +</b> 를 눌러 넣어 주세요 — 그 값이 우선해요.
             </div>
           </div>
         )}
@@ -340,75 +367,106 @@ const IngredientRecognitionSheet: React.FC<Props> = ({
                     onCancel={() => setEditing(null)}
                   />
                 ) : (
-                  /* 두 줄로 나눈다. 재료명과 조작 버튼을 한 줄에 몰아넣으면 폭이 좁은 폰에서
-                     이름이 몇 글자 만에 잘린다 — "재료명 고치기"처럼 뜻이 분명한 문구를 쓰면
-                     더 그렇다. 윗줄은 무엇인지, 아랫줄은 어떻게 할지. */
-                  <>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <button
-                        type="button"
-                        onClick={() => row.name && update(idx, { checked: !row.checked })}
-                        disabled={!row.name}
-                        aria-label={row.checked ? '빼기' : '담기'}
+                  /* 한 행은 반드시 한 줄이다.
+                     잠깐 두 줄(이름 / 조작 버튼)로 나눠 봤는데, 항목이 10개 넘는 영수증에서
+                     목록이 두 배로 길어져 훑어보기가 나빠졌다. 대신 이름 칸만 줄어들게 두고
+                     (minWidth:0 + 말줄임) 조작 버튼들은 절대 안 줄어들게 고정한다. */
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'nowrap' }}>
+                    <button
+                      type="button"
+                      onClick={() => row.name && update(idx, { checked: !row.checked })}
+                      disabled={!row.name}
+                      aria-label={row.checked ? '빼기' : '담기'}
+                      style={{
+                        width: 22, height: 22, flexShrink: 0, borderRadius: 6,
+                        border: row.checked ? 'none' : '1px solid var(--line-200)',
+                        background: row.checked ? '#FFD600' : '#FFFFFF',
+                        color: '#1A1A1E', fontSize: 13, fontWeight: 700, lineHeight: '22px',
+                        padding: 0, cursor: row.name ? 'pointer' : 'default',
+                      }}
+                    >
+                      {row.checked ? '✓' : ''}
+                    </button>
+
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div
                         style={{
-                          width: 22, height: 22, flexShrink: 0, borderRadius: 6,
-                          border: row.checked ? 'none' : '1px solid var(--line-200)',
-                          background: row.checked ? '#FFD600' : '#FFFFFF',
-                          color: '#1A1A1E', fontSize: 13, fontWeight: 700, lineHeight: '22px',
-                          padding: 0, cursor: row.name ? 'pointer' : 'default',
+                          fontSize: 15, fontWeight: 600,
+                          color: row.name ? '#1A1A1E' : 'var(--ink-500)',
+                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                         }}
                       >
-                        {row.checked ? '✓' : ''}
-                      </button>
-
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 15, fontWeight: 600, color: row.name ? '#1A1A1E' : 'var(--ink-500)' }}>
-                          {row.name || row.raw}
-                        </div>
-                        {(!row.name || row.raw !== row.name) && (
-                          <div style={{ fontSize: 11, color: 'var(--ink-500)', marginTop: 2 }}>
-                            {row.name ? '사진에서 읽은 표기: ' + row.raw : '사전에 없어요 · 눌러서 고르기'}
-                          </div>
-                        )}
+                        {row.name || row.raw}
                       </div>
-
-                      {row.expiry && (
-                        <span style={{
-                          flexShrink: 0, fontSize: 11, fontWeight: 700, color: '#1A1A1E',
-                          background: '#FFF3B0', borderRadius: 6, padding: '3px 7px',
-                        }}>
-                          ~{shortDate(row.expiry)}
-                        </span>
+                      {(!row.name || row.raw !== row.name) && (
+                        <div
+                          style={{
+                            fontSize: 11, color: 'var(--ink-500)', marginTop: 2,
+                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {row.name ? '사진에서 읽은 표기: ' + row.raw : '사전에 없어요 · 눌러서 고르기'}
+                        </div>
                       )}
                     </div>
 
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8, paddingLeft: 32 }}>
-                      {/* 구매일자(행별) — 재료마다 산 날이 다를 수 있는 경우에만 나온다 */}
-                      {datePerItem && (
-                        <button type="button" onClick={() => setDateTarget(idx)} style={chipStyle}>
-                          구매 {shortDate(row.purchase)}
-                        </button>
-                      )}
+                    {/* 유통기한(행별).
+                        영수증 한 장으로 산 것이라도 제품마다 기한은 제각각이다. 그리고
+                        사용자가 직접 넣은 기한은 구매일로 짐작한 값보다 언제나 정확하므로,
+                        여기서 넣으면 그 행은 짐작을 버리고 이 값을 쓴다.
+                        새 칸을 만들지 않고 기존 배지 자리를 그대로 버튼으로 쓴다 — 한 줄을
+                        지키기 위해서다. */}
+                    <button
+                      type="button"
+                      onClick={() => setDateTarget({ kind: 'expiry', idx })}
+                      aria-label="유통기한"
+                      style={
+                        row.expiry
+                          ? {
+                              flexShrink: 0, fontSize: 11, fontWeight: 700, color: '#1A1A1E',
+                              background: '#FFF3B0', border: '1px solid #FFD600',
+                              borderRadius: 6, padding: '4px 6px', cursor: 'pointer',
+                            }
+                          : {
+                              flexShrink: 0, fontSize: 11, fontWeight: 600, color: 'var(--ink-500)',
+                              background: '#FFFFFF', border: '1px dashed var(--line-300)',
+                              borderRadius: 6, padding: '4px 6px', cursor: 'pointer',
+                            }
+                      }
+                    >
+                      {row.expiry ? `~${shortDate(row.expiry)}` : '기한 +'}
+                    </button>
 
-                      {/* 보관함은 재료마다 다르다. 모델이 짐작한 값으로 시작하고,
-                          틀리면 여기서 바로 바꿀 수 있다. */}
-                      <select
-                        value={row.storage}
-                        onChange={e => update(idx, { storage: e.target.value as StorageBox })}
-                        aria-label="보관함"
-                        style={{ ...chipStyle, padding: '0 6px' }}
+                    {/* 구매일자(행별) — 재료마다 산 날이 다를 수 있는 경우에만 나온다 */}
+                    {datePerItem && (
+                      <button
+                        type="button"
+                        onClick={() => setDateTarget({ kind: 'purchase', idx })}
+                        aria-label="구매일자"
+                        style={chipStyle}
                       >
-                        {BOXES.map(({ key, label }) => (
-                          <option key={key} value={key}>{label}</option>
-                        ))}
-                      </select>
-
-                      {/* "고치기" 만으로는 무엇을 고치는지 알 수 없다는 지적을 받아 대상까지 밝힌다 */}
-                      <button type="button" onClick={() => setEditing(idx)} style={chipStyle}>
-                        {row.name ? '재료명 고치기' : '재료명 고르기'}
+                        {shortDate(row.purchase)}
                       </button>
-                    </div>
-                  </>
+                    )}
+
+                    {/* 보관함은 재료마다 다르다. 모델이 짐작한 값으로 시작하고,
+                        틀리면 여기서 바로 바꿀 수 있다. */}
+                    <select
+                      value={row.storage}
+                      onChange={e => update(idx, { storage: e.target.value as StorageBox })}
+                      aria-label="보관함"
+                      style={{ ...chipStyle, padding: '0 2px' }}
+                    >
+                      {BOXES.map(({ key, label }) => (
+                        <option key={key} value={key}>{label}</option>
+                      ))}
+                    </select>
+
+                    {/* "고치기" 만으로는 무엇을 고치는지 알 수 없다는 지적을 받아 대상까지 밝힌다 */}
+                    <button type="button" onClick={() => setEditing(idx)} style={chipStyle}>
+                      {row.name ? '재료명 고치기' : '재료명 고르기'}
+                    </button>
+                  </div>
                 )}
               </div>
             );
@@ -450,13 +508,13 @@ const IngredientRecognitionSheet: React.FC<Props> = ({
       {/* nested — 시트 위에 떠야 한다. 같은 층위면 Portal 로 나중에 그려지는 시트가
           위로 올라가, 날짜 버튼을 눌러도 아무 일도 안 일어나는 것처럼 보인다. */}
       <IngredientDateModal
-        type="purchase"
+        type={dateTarget?.kind === 'expiry' ? 'expiry' : 'purchase'}
         nested
         isOpen={dateTarget !== null}
         onClose={() => setDateTarget(null)}
         initialDate={dateTargetValue}
         onComplete={date => {
-          if (date) applyDate(date);
+          applyDate(date);
           setDateTarget(null);
         }}
       />

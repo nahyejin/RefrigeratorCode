@@ -40,7 +40,7 @@ const baseGuideSteps = [
     position: 'top' as const,
   },
   {
-    targetSelector: 'input[placeholder="추가할 재료명을 입력하세요"]',
+    targetSelector: '[data-guide-target="ingredient-input"]',
     message: '재료명을 입력해서 내냉장고에 추가할 수 있어요.',
     position: 'bottom' as const,
   },
@@ -258,7 +258,13 @@ const IngredientPill: React.FC<IngredientPillProps> = ({ item, onRemove, onSetti
   const dday = getDdayLabel(item);
 
   return (
-    <div style={{ display: 'inline-flex', alignItems: 'center', marginRight: 8, marginBottom: 4 }}>
+    <div
+      style={{ display: 'inline-flex', alignItems: 'center', marginRight: 8, marginBottom: 4 }}
+      /* 가이드("이 재료 배지를 누르면...")는 **배지 전체**를 감싸야 한다.
+         예전엔 이 속성이 안쪽 이름 <span> 에 붙어 있어서, 노란 테두리가 글자
+         "감자" 에만 걸리고 D-표기와 X 는 밖에 남아 무엇을 가리키는지 알 수 없었다. */
+      {...(isFirstInFridge ? { 'data-guide-target': 'settings-icon' } : {})}
+    >
       {/* 예전에는 pill 안에 동작이 3개였다 —
           이름 탭(토스트로 날짜 보여주기) / 시계 버튼(설정 팝업) / X(삭제).
           토스트는 "보여주기만" 하고 고칠 수는 없어 설정 팝업의 열화판이었고,
@@ -277,7 +283,6 @@ const IngredientPill: React.FC<IngredientPillProps> = ({ item, onRemove, onSetti
               onSettingsClick(item);
             }
           }}
-          {...(isFirstInFridge ? { 'data-guide-target': 'settings-icon' } : {})}
         >
           {item.name}
         </span>
@@ -2089,6 +2094,11 @@ const MyFridge: React.FC = () => {
               <input
                 ref={inputRef}
                 type="text"
+                /* 가이드가 이 입력창을 가리킨다. 예전엔 placeholder 문구로 찾고 있었는데
+                   문구를 "추가할 재료명을 입력하세요" -> "재료명을 입력하세요" 로 다듬는
+                   순간 선택자가 안 맞아 하이라이트가 통째로 사라졌다. 화면 문구는 언제든
+                   바뀌므로 가이드는 반드시 data-guide-target 으로만 찾는다. */
+                data-guide-target="ingredient-input"
                 placeholder="재료명을 입력하세요"
                 className="border border-gray-300 rounded-full px-4 py-2 text-sm focus:outline-none"
                 style={{
@@ -2347,7 +2357,6 @@ const MyFridge: React.FC = () => {
                   item={item}
                   onRemove={(id) => removeTag('frozen', id)}
                   onSettingsClick={handleTagClick}
-                  data-guide-target="settings-icon"
                 />
               ))}
             </ScrollablePillSection>
@@ -2405,7 +2414,6 @@ const MyFridge: React.FC = () => {
                   item={item}
                   onRemove={(id) => removeTag('room', id)}
                   onSettingsClick={handleTagClick}
-                  data-guide-target="settings-icon"
                 />
               ))}
             </ScrollablePillSection>

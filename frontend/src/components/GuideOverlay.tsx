@@ -23,15 +23,18 @@ interface GuideOverlayProps {
 const BOTTOM_TAB_RESERVE_PX = 80;
 
 /**
- * 스크롤을 움직이지 않을 때도, 화면에 보이는 구간 + 탭 위까지만 하이라이트.
- * 긴 요소는 뷰포트와 교차하는 세로 구간만 노란 박스로 잘림.
+ * 화면에 보이는 구간 + 탭 위까지만 하이라이트.
+ * 긴 요소(보관 칸 전체 등)는 뷰포트와 교차하는 세로 구간만 노란 박스로 잘림.
  */
 function clipGuideHighlightRect(rect: DOMRect): DOMRect {
-  const maxBottom = window.innerHeight - BOTTOM_TAB_RESERVE_PX;
   const top = Math.max(rect.top, 0);
-  const bottom = Math.min(rect.bottom, maxBottom);
-  const height = Math.max(0, bottom - top);
-  return new DOMRect(rect.left, top, rect.width, height);
+  const preferredBottom = Math.min(rect.bottom, window.innerHeight - BOTTOM_TAB_RESERVE_PX);
+  // 탭 위까지만 잘랐더니 남는 높이가 없는 경우 — 작은 버튼이 문서 끝이라 더 스크롤할
+  // 수 없어 탭 근처에 걸린 때다. 그럴 땐 화면 끝까지 허용한다.
+  // 하단 탭에 조금 겹치는 게, 상자를 아예 안 그려서 무엇을 가리키는지 모르는 것보다 낫다.
+  const bottom =
+    preferredBottom - top >= 16 ? preferredBottom : Math.min(rect.bottom, window.innerHeight);
+  return new DOMRect(rect.left, top, rect.width, Math.max(0, bottom - top));
 }
 
 const GuideOverlay: React.FC<GuideOverlayProps> = ({
@@ -47,101 +50,92 @@ const GuideOverlay: React.FC<GuideOverlayProps> = ({
 }) => {
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
+  /**
+   * 이번 단계에서 이미 스크롤을 맞췄는지.
+   * 매번 맞추면 scroll 이벤트가 다시 이 함수를 부르면서 끝없이 되돌아온다.
+   */
+  const scrolledForStep = useRef<number | null>(null);
 
   useEffect(() => {
     if (!visible || currentStep >= steps.length) return;
 
-    const updateTargetPosition = () => {
-      let target: Element | null = null;
-      
-      if (steps[currentStep].targetSelector.includes('settings-icon')) {
-        // data-guide-target 속성이 있는 설정 아이콘 찾기 (냉장보관 첫 번째 재료)
-        target = document.querySelector('[data-guide-target="settings-icon"]');
-        console.log('[GuideOverlay] data-guide-target으로 찾은 타겟:', target);
-        
-        // 위 방법이 실패하면 title="설정"인 요소 찾기
-        if (!target) {
-          const allSettings = document.querySelectorAll('[title="설정"]');
-          console.log('[GuideOverlay] title="설정"인 요소 개수:', allSettings.length);
-          
-          if (allSettings.length > 0) {
-            // 냉장보관 섹션 찾기 - 더 정확한 방법
-            const allDivs = Array.from(document.querySelectorAll('div'));
-            const fridgeSection = allDivs.find(div => {
-              const text = div.textContent || '';
-              return text.includes('냉장보관') && (text.includes('❄️') || text.includes('❄'));
-            });
-            
-            console.log('[GuideOverlay] 냉장보관 섹션 찾음:', fridgeSection);
-            
-            if (fridgeSection) {
-              // 냉장보관 섹션의 부모나 형제 요소에서 설정 아이콘 찾기
-              let searchContainer: Element | null = fridgeSection.parentElement;
-              let depth = 0;
-              while (searchContainer && depth < 5) {
-                const settingsInContainer = searchContainer.querySelectorAll('[title="설정"]');
-                if (settingsInContainer.length > 0) {
-                  target = settingsInContainer[0];
-                  console.log('[GuideOverlay] 냉장보관 섹션 내에서 찾은 타겟:', target);
-                  break;
-                }
-                searchContainer = searchContainer.parentElement;
-                depth++;
-              }
-            }
-            
-            // 여전히 못 찾으면 첫 번째 설정 아이콘 사용
-            if (!target && allSettings.length > 0) {
-              target = allSettings[0];
-              console.log('[GuideOverlay] 첫 번째 설정 아이콘 사용:', target);
-            }
-          }
-        }
-      } else {
-        target = document.querySelector(steps[currentStep].targetSelector);
-      }
-      
-      if (target) {
-        const applyRect = () => {
-          const rect = clipGuideHighlightRect(target!.getBoundingClientRect());
-          console.log('[GuideOverlay] 타겟 위치:', {
-            top: rect.top,
-            left: rect.left,
-            width: rect.width,
-            height: rect.height,
-            element: target
-          });
-          setTargetRect(rect);
-        };
-        applyRect();
-      } else {
+    const selector = steps[currentStep].targetSelector;
+    scrolledForStep.current = null;
+
+    /** 타겟을 찾아 위치를 잰다. 못 찾았으면 false */
+    const updateTargetPosition = (): boolean => {
+      const target = document.querySelector(selector);
+
+      if (!target) {
         // 이번 단계의 타겟을 못 찾으면 targetRect 를 반드시 비워야 한다.
         // 안 비우면 직전 단계에서 찾았던 위치가 그대로 남아, 노란 하이라이트가
         // 엉뚱한(이전 단계) 요소 자리에 떠 있는 것처럼 보인다 — 실제로 UI가
         // 바뀌어 selector 가 안 맞게 됐을 때 이 증상으로 나타났다.
         setTargetRect(null);
-        console.warn('[GuideOverlay] 타겟 요소를 찾을 수 없습니다:', steps[currentStep].targetSelector);
-        console.log('[GuideOverlay] 현재 페이지의 모든 [title="설정"] 요소:', document.querySelectorAll('[title="설정"]'));
-        console.log('[GuideOverlay] 현재 페이지의 모든 [data-guide-target] 요소:', document.querySelectorAll('[data-guide-target]'));
+        return false;
       }
+
+      // 화면 밖에 있는 것을 가리키면 안 된다.
+      // 예전엔 스크롤을 전혀 건드리지 않아서, 타겟이 접힌 화면 아래에 있으면
+      // clipGuideHighlightRect 가 높이 0 으로 잘라 냈고 → 최소 크기(24px) 상자가
+      // **화면 맨 위**에 그려졌다. 안내 문구와 상관없는 자리에 노란 상자가 뜨는
+      // 증상이 이것이었다. 그러니 재기 전에 먼저 보이는 자리로 끌어온다.
+      if (scrolledForStep.current !== currentStep) {
+        scrolledForStep.current = currentStep;
+        const safeTop = 16;
+        const safeBottom = window.innerHeight - BOTTOM_TAB_RESERVE_PX - 8;
+        const r = target.getBoundingClientRect();
+        if (r.top < safeTop || r.bottom > safeBottom) {
+          // 1) 먼저 안쪽 스크롤 상자를 맞춘다. inline:'nearest' 라 재료 배지처럼
+          //    가로 스크롤 안에 있는 것을 가리켜도 가로로 튀지 않는다.
+          target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+          // 2) 그다음 페이지를 움직여 **안전 구간(고정 헤더 아래 ~ 하단 탭 위)의
+          //    가운데**로 가져온다. scrollIntoView 의 'center' 는 뷰포트 기준이라
+          //    하단 탭에 가려지는 자리로 데려다 놓는 경우가 있다.
+          const r2 = target.getBoundingClientRect();
+          const want = safeTop + (safeBottom - safeTop) / 2 - r2.height / 2;
+          window.scrollBy({ top: r2.top - want });
+        }
+      }
+
+      const rect = clipGuideHighlightRect(target.getBoundingClientRect());
+      // 스크롤을 맞췄는데도 볼 수 있는 높이가 남지 않으면(고정 헤더에 완전히 가림 등)
+      // 엉뚱한 자리에 상자를 그리느니 아예 그리지 않는다. 문구는 화면 가운데로 간다.
+      setTargetRect(rect.height >= 8 ? rect : null);
+      return true;
     };
 
     updateTargetPosition();
-    window.addEventListener('scroll', updateTargetPosition);
+    // capture 단계로 듣는다 — 페이지가 아니라 안쪽 스크롤 상자가 움직일 때도
+    // (재료 배지 가로 스크롤 등) 위치를 다시 재야 하기 때문이다.
+    window.addEventListener('scroll', updateTargetPosition, true);
     window.addEventListener('resize', updateTargetPosition);
 
-    // 약간의 지연 후 위치 업데이트 (렌더링 완료 대기)
-    // 여러 번 시도하여 요소가 렌더링될 때까지 기다림
-    const timer1 = setTimeout(updateTargetPosition, 100);
-    const timer2 = setTimeout(updateTargetPosition, 300);
-    const timer3 = setTimeout(updateTargetPosition, 500);
+    /**
+     * 이 단계가 떠 있는 동안 계속 다시 잰다.
+     *
+     * 한 번만 재면 안 되는 이유가 둘 있다.
+     *  1) 타겟이 **늦게 생긴다.** 레시피 카드(RecipeCard)는 썸네일이 실제로 뜨는지
+     *     확인될 때까지 null 을 돌려주므로, 가이드가 시작되는 시점엔 즐겨찾기·완료·
+     *     공유·기록 버튼이 아직 문서에 없다. 예전엔 여기서 포기해 하이라이트가
+     *     아예 안 나왔다.
+     *  2) 타겟이 **자리를 옮긴다.** 위쪽 카드가 뒤늦게 렌더되면 아래가 밀린다.
+     */
+    let tries = 0;
+    let warned = false;
+    const tick = setInterval(() => {
+      const ok = updateTargetPosition();
+      tries += 1;
+      if (!ok && !warned && tries >= 40) {
+        warned = true;
+        console.warn('[GuideOverlay] 타겟 요소를 찾을 수 없습니다:', selector);
+      }
+    }, 250);
 
     return () => {
-      window.removeEventListener('scroll', updateTargetPosition);
+      window.removeEventListener('scroll', updateTargetPosition, true);
       window.removeEventListener('resize', updateTargetPosition);
-      clearTimeout(timer1);
-      clearTimeout(timer2);
-      clearTimeout(timer3);
+      clearInterval(tick);
     };
   }, [visible, currentStep, steps]);
 
@@ -260,7 +254,6 @@ const GuideOverlay: React.FC<GuideOverlayProps> = ({
   // 하이라이트 영역 스타일
   const getHighlightStyle = (): React.CSSProperties => {
     if (!targetRect) {
-      console.log('[GuideOverlay] targetRect이 null입니다');
       return { display: 'none' };
     }
 
@@ -276,8 +269,7 @@ const GuideOverlay: React.FC<GuideOverlayProps> = ({
       pointerEvents: 'none' as const,
       backgroundColor: 'transparent',
     };
-    
-    console.log('[GuideOverlay] 하이라이트 스타일:', style);
+
     return style;
   };
 
