@@ -62,12 +62,39 @@ const OPTIONS: { key: Extract<CaptureMode, 'receipt' | 'food-single' | 'food-mul
  * 설치 안내는 다른 화면(HomeInstallPrompt 등)에서 이미 하고 있어 여기서는
  * 반복하지 않고, 위젯이 계획돼 있다는 사실만 짧게 알려 둔다.
  */
+/** 방금 찍은 사진으로 볼 시간 간격 (파일이 만들어진 지 이 정도 안쪽이면 촬영으로 본다) */
+const JUST_TAKEN_MS = 2 * 60 * 1000;
+
+/**
+ * 파일 선택으로 들어온 사진이 "방금 찍은 것" 인지 짐작한다.
+ *
+ * 왜 필요한가: 파일 선택을 누르면 OS 가 `사진 보관함 / 사진 찍기 / 파일 선택` 메뉴를
+ * 띄우는데, 웹에서 촬영 항목만 빼는 표준 방법이 없다. 그런데 거기서 찍으면 위쪽
+ * 타일(영수증/음식1개/음식여러개)을 거치지 않아 **무엇을 찍었는지 모른 채** 처리된다.
+ *
+ * 촬영으로 들어온 파일은 만들어진 시각이 방금이다(앨범 사진은 대개 예전 날짜).
+ * 그걸 단서로 "방금 찍으셨네요, 무엇인가요?" 를 한 번 물어본다. **다시 찍게 하지 않고**
+ * 이미 받은 사진을 그대로 들고 있다가 고른 모드로 보낸다.
+ */
+const looksJustTaken = (files: File[]) =>
+  files.length > 0 && files.every(f => f.lastModified > 0 && Date.now() - f.lastModified < JUST_TAKEN_MS);
+
 const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose, onCaptured, maxFiles = 5 }) => {
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [pendingMode, setPendingMode] = useState<CaptureMode>('food-single');
+  /** 방금 찍은 것으로 보여 모드를 물어보는 중인 사진들 */
+  const [awaitingMode, setAwaitingMode] = useState<File[] | null>(null);
 
   const openCameraFor = (mode: CaptureMode) => {
+    // 모드를 물어보는 중이면, 타일을 누른 건 "이 사진은 이거예요" 라는 뜻이다.
+    // 다시 찍게 하지 않고 들고 있던 사진을 그대로 보낸다.
+    if (awaitingMode) {
+      const files = awaitingMode;
+      setAwaitingMode(null);
+      onCaptured(mode, files);
+      return;
+    }
     setPendingMode(mode);
     // 같은 모드를 연달아 찍어도 change 이벤트가 다시 뜨도록 비워 둔다.
     if (cameraInputRef.current) cameraInputRef.current.value = '';
@@ -79,11 +106,31 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
     e.target.value = '';
     if (picked.length === 0) return;
     // 너무 많이 고르면 앞에서부터 자른다 (서버도 같은 수로 막고 있다).
-    onCaptured(mode, picked.slice(0, maxFiles));
+    const files = picked.slice(0, maxFiles);
+    // 앨범/파일 경로인데 방금 찍은 사진이면, OS 메뉴에서 '사진 찍기' 로 들어온 것이다.
+    // 타일을 안 거쳤으므로 무엇을 찍었는지 여기서 한 번 묻는다.
+    if (mode === 'file' && looksJustTaken(files)) {
+      setAwaitingMode(files);
+      return;
+    }
+    onCaptured(mode, files);
+  };
+
+  const handleClose = () => {
+    setAwaitingMode(null);
+    onClose();
   };
 
   return (
-    <Sheet open={isOpen} onClose={onClose} title="사진으로 재료 담기" maxHeight="70dvh" hideFooter>
+    <Sheet open={isOpen} onClose={handleClose} title="사진으로 재료 담기" maxHeight="70dvh" hideFooter>
+      {/* 모드를 물어보는 동안 타일이 눈에 띄도록 하는 깜빡임 */}
+      <style>{`
+        @keyframes cookmatch-tile-blink {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(255, 214, 0, 0); }
+          50%      { box-shadow: 0 0 0 4px rgba(255, 214, 0, 0.85); }
+        }
+        .cookmatch-tile-blink { animation: cookmatch-tile-blink 1.1s ease-in-out infinite; }
+      `}</style>
       {/* 실제 촬영/선택은 숨겨진 input 두 개가 담당한다.
           capture="environment" 는 모바일에서 바로 후면 카메라를 연다.
           아래쪽 것은 capture가 없어 앨범·파일 앱을 그대로 보여준다 — 모바일에서는
@@ -134,9 +181,14 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
         </span>
       </div>
 
-      <div style={{ textAlign: 'center', fontWeight: 700, fontSize: 17, marginBottom: 16, color: '#1A1A1E' }}>
-        무엇을 찍을까요?
+      <div style={{ textAlign: 'center', fontWeight: 700, fontSize: 17, marginBottom: awaitingMode ? 6 : 16, color: '#1A1A1E' }}>
+        {awaitingMode ? '방금 찍은 사진, 무엇인가요?' : '무엇을 찍을까요?'}
       </div>
+      {awaitingMode && (
+        <div style={{ textAlign: 'center', fontSize: 13, color: 'var(--ink-500)', marginBottom: 14, lineHeight: 1.5 }}>
+          사진은 그대로 두었어요. 다시 찍지 않아도 돼요.
+        </div>
+      )}
 
       {/* 카드를 눌러야 찍힌다는 게 한눈에 들어오도록, 글줄보다 아이콘을 훨씬
           크게 키운 정사각 타일 3개를 나란히 둔다(설명문처럼 가로로 긴 줄
@@ -146,6 +198,7 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
           <button
             key={key}
             type="button"
+            className={awaitingMode ? 'cookmatch-tile-blink' : undefined}
             onClick={() => openCameraFor(key)}
             style={{
               display: 'flex',
@@ -183,7 +236,16 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
 
       <button
         type="button"
-        onClick={() => fileInputRef.current?.click()}
+        onClick={() => {
+          if (awaitingMode) {
+            // 고르기 싫으면 모델이 알아서 판단하게 한다 (앨범 경로와 같은 처리).
+            const files = awaitingMode;
+            setAwaitingMode(null);
+            onCaptured('file', files);
+            return;
+          }
+          fileInputRef.current?.click();
+        }}
         style={{
           width: '100%',
           height: 40,
@@ -197,7 +259,9 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
           marginBottom: 14,
         }}
       >
-        사진 앨범/파일에서 선택 (최대 {maxFiles}장)
+        {awaitingMode
+          ? '모르겠어요 · 알아서 인식해 주세요'
+          : `사진 앨범/파일에서 선택 (최대 ${maxFiles}장)`}
       </button>
 
       {/* 진짜 "홈 화면 위젯"(다른 앱 위에 떠 있는 버튼 포함)은 PWA 로는 만들 수
