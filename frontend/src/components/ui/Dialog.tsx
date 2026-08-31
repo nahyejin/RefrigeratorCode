@@ -130,7 +130,10 @@ const Dialog: React.FC<DialogProps> = ({
               color: 'var(--ink-700)',
               textAlign: 'center',
               wordBreak: 'keep-all',
-              marginBottom: actions.length ? 20 : 0,
+              // 하단 버튼은 actions 를 넘기지 않아도 (자동 나가기 버튼으로) 항상 있다.
+              // 예전엔 actions 가 있을 때만 여백을 줘서, 자동 버튼일 때 본문이 버튼에
+              // 딱 붙어 보였다.
+              marginBottom: 20,
             }}
           >
             {children}
