@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import { UsageLine } from './UsageMeter';
 import Sheet from './ui/Sheet';
 import Dialog from './ui/Dialog';
 
@@ -158,9 +159,11 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
       {/* 예전엔 여기에 "영수증은 지금 바로 인식돼요 · 음식 사진은 준비 중" 노랑 배지가
           있었다. 세 모드가 모두 동작하게 되면서 알릴 내용이 없어져 걷어냈다.
           (시트를 여는 버튼 자체가 이미 "AI" 배지를 달고 있어 중복이기도 했다.) */}
-      <div style={{ textAlign: 'center', fontWeight: 700, fontSize: 17, marginBottom: 16, color: '#1A1A1E' }}>
+      <div style={{ textAlign: 'center', fontWeight: 700, fontSize: 17, marginBottom: 6, color: '#1A1A1E' }}>
         무엇을 찍을까요?
       </div>
+      {/* 기능을 쓰려고 연 시점이 남은 양을 알려주기 가장 좋은 때다 */}
+      <UsageLine style={{ justifyContent: 'center', marginBottom: 16 }} />
 
       {/* 카드를 눌러야 찍힌다는 게 한눈에 들어오도록, 글줄보다 아이콘을 훨씬
           크게 키운 타일 3개를 나란히 둔다(설명문처럼 가로로 긴 줄 형태였던

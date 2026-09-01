@@ -72,7 +72,10 @@ if os.getenv('RAILWAY_ENVIRONMENT') or os.getenv('RAILWAY_ENVIRONMENT_NAME'):
 CORS(app, 
      origins=[origin.strip() for origin in cors_origins if origin.strip()], 
      supports_credentials=True,
-     allow_headers=['Content-Type', 'Authorization'],
+     # X-Device-Id: 비회원 사용량을 세기 위한 기기 식별자.
+     # 여기 빠뜨리면 브라우저가 preflight 에서 막아 요청 자체가 안 나간다
+     # (서버에서 직접 호출하면 CORS 가 없어 멀쩡히 되므로 원인을 찾기 어렵다).
+     allow_headers=['Content-Type', 'Authorization', 'X-Device-Id'],
      methods=['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'])
 
 def get_db():

@@ -17,6 +17,8 @@ import CameraCaptureSheet, { type CaptureMode } from '../components/CameraCaptur
 import IngredientRecognitionSheet, { type RecognizedIngredient, type UnmatchedIngredient, type ConfirmedIngredient } from '../components/IngredientRecognitionSheet';
 import Dialog from '../components/ui/Dialog';
 import { shrinkImageForUpload } from '../utils/imageUtils';
+import { applyUsage, usageHeaders } from '../utils/usage';
+import { UsageBadge } from '../components/UsageMeter';
 import { loadIngredientCategoryMap, estimateExpiry, type CategoryMap } from '../utils/shelfLife';
 import {
   isUsageGuideDueThisVisit,
@@ -1694,8 +1696,14 @@ const MyFridge: React.FC = () => {
       form.append('mode', mode);
 
       const apiUrl = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'https://refrigeratorcode-production.up.railway.app';
-      const res = await fetch(`${apiUrl}/api/ingredients/recognize`, { method: 'POST', body: form });
+      // 사용량 한도는 사용자별이다. 로그인했으면 토큰으로, 아니면 기기 식별자로 센다.
+      const res = await fetch(`${apiUrl}/api/ingredients/recognize`, {
+        method: 'POST', body: form, headers: usageHeaders(),
+      });
       const data = await res.json().catch(() => null);
+
+      // 성공이든 한도 초과(429)든 서버가 최신 사용량을 함께 보낸다.
+      applyUsage(data?.usage);
 
       if (!res.ok) {
         setRecognitionError((data && data.error) || '사진을 읽지 못했어요. 다시 찍어 주세요.');
@@ -2261,6 +2269,8 @@ const MyFridge: React.FC = () => {
                 </svg>
               </button>
               <span className="ai-fab-badge">AI</span>
+              {/* 남은 사용량이 20% 이하로 떨어질 때만 나온다. 평소엔 아무것도 안 그린다 */}
+              <UsageBadge />
             </div>
           </div>
         </div>

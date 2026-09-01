@@ -10,6 +10,7 @@ import Dialog from '../components/ui/Dialog';
 import BottomNavBar from '../components/BottomNavBar';
 import HouseholdSection from '../components/HouseholdSection';
 import PullToRefresh from '../components/PullToRefresh';
+import UsageGauge from '../components/UsageMeter';
 import logoImg from '../assets/냉털이 로고 white.png';
 import searchIcon from '../assets/navigator_search.png';
 import myProfileImg from '../assets/profile_default.png'; // 기본 프로필 이미지(없으면 대체)
@@ -1337,6 +1338,14 @@ const MyPage: React.FC = () => {
           </Button>
         </section>
       )}
+
+      {/* AI 사용량. 로그인 여부와 무관하게 보여준다 — 비회원도 한도가 있고,
+          그 값을 보여줘야 "가입하면 더 쓸 수 있다"고 말할 수 있다.
+          "더 필요해요" 버튼은 요청 폼(4단계)이 생기면 onRequestMore 로 붙인다.
+          지금 붙이면 눌러도 아무 일도 안 일어나는 버튼이 된다. */}
+      <div style={{ margin: '12px 14px 0' }}>
+        <UsageGauge />
+      </div>
 
       {isLoggedIn && (
         <div style={{ margin: '12px 14px 0' }}>

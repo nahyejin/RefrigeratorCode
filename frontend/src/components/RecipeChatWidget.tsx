@@ -1,4 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { applyUsage, usageHeaders } from '../utils/usage';
+import { UsageBadge, UsageLine } from './UsageMeter';
 import BackButton from './ui/BackButton';
 import { useLocation } from 'react-router-dom';
 import { getProxiedImageUrl } from '../utils/imageUtils';
@@ -394,7 +396,8 @@ const RecipeChatWidget: React.FC = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/api/chat`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        // 사용량 한도는 사용자별이다. 로그인했으면 토큰으로, 아니면 기기 식별자로 센다.
+        headers: { 'Content-Type': 'application/json', ...usageHeaders() },
         body: JSON.stringify({
           session_id: threadId,
           messages: nextMessages.map(({ role, content: body }) => ({ role, content: body })),
@@ -403,6 +406,9 @@ const RecipeChatWidget: React.FC = () => {
         }),
       });
       const data = await response.json();
+      // 성공이든 한도 초과(429)든 서버가 최신 사용량을 함께 보낸다 — 다시 조회하지
+      // 않고 그대로 반영해서, 화면 세 곳이 곧바로 같은 값을 보이게 한다.
+      applyUsage(data?.usage);
       if (!response.ok) {
         throw new Error(data.error || '채팅 요청에 실패했습니다.');
       }
@@ -499,6 +505,8 @@ const RecipeChatWidget: React.FC = () => {
                     >
                       쿡매치 AI
                     </p>
+                    {/* 기능을 쓰려고 연 시점이 남은 양을 알려주기 가장 좋은 때다 */}
+                    <UsageLine />
                   </div>
                 </>
               )}
@@ -741,6 +749,8 @@ const RecipeChatWidget: React.FC = () => {
             <ChatBubbleIcon size={26} />
           </button>
           <span className="ai-fab-badge">AI</span>
+          {/* 남은 사용량이 20% 이하일 때만 나온다. 평소엔 아무것도 안 그린다 */}
+          <UsageBadge />
         </div>
       )}
     </>
