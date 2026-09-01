@@ -59,8 +59,10 @@ export const UsageBadge: React.FC = () => {
       aria-label={`남은 사용량 ${left}`}
       style={{
         position: 'absolute',
-        top: -4,
-        right: -4,
+        // 우상단은 "AI" 배지(.ai-fab-badge, top/right -4)가 이미 쓰고 있다.
+        // 같은 자리에 두면 겹쳐서 보이지 않는다 — 실제로 그렇게 만들었다가 고쳤다.
+        bottom: -5,
+        left: -5,
         minWidth: 18,
         height: 18,
         padding: '0 5px',
@@ -72,7 +74,8 @@ export const UsageBadge: React.FC = () => {
         lineHeight: '18px',
         textAlign: 'center',
         pointerEvents: 'none',
-        boxShadow: '0 0 0 2px var(--surface, #FFFFFF)',
+        border: '2px solid #FFFFFF',
+        zIndex: 1,
       }}
     >
       {left}
