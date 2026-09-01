@@ -270,6 +270,75 @@ def register(app, get_db):
             ],
         })
 
+    @app.route('/api/admin/requests', methods=['GET'])
+    def admin_requests():
+        """한도 추가 요청 목록. 기본은 대기 중인 것만."""
+        _, err = guard()
+        if err:
+            return err
+
+        usage_quota.ensure_tables(get_db)
+        status = (request.args.get('status') or 'open').strip()
+        db = get_db()
+        cursor = db.cursor()
+        try:
+            cursor.execute(
+                """
+                SELECT r.id, r.user_id, r.message, r.status, r.created_at,
+                       r.handled_by, r.handled_at,
+                       u.email, u.nickname, u.provider,
+                       COALESCE(q.plan, 'free') AS plan
+                FROM usage_requests r
+                JOIN users u ON u.id = r.user_id
+                LEFT JOIN user_quota q ON q.user_id = r.user_id
+                WHERE (%s = 'all' OR r.status = %s)
+                ORDER BY r.created_at DESC LIMIT 200
+                """,
+                (status, status),
+            )
+            rows = cursor.fetchall()
+        finally:
+            cursor.close()
+            db.close()
+
+        return jsonify({'requests': [
+            {
+                **r,
+                'email': _clean_email(r['email']),
+                'created_at': r['created_at'].isoformat() if r['created_at'] else None,
+                'handled_at': r['handled_at'].isoformat() if r['handled_at'] else None,
+            }
+            for r in rows
+        ]})
+
+    @app.route('/api/admin/requests/<int:request_id>', methods=['PUT'])
+    def admin_handle_request(request_id):
+        """요청을 처리 완료/거절로 닫는다. 한도 조정 자체는 별도 API 로 한다 —
+        "올려 줬다" 와 "요청을 닫았다" 는 다른 일이라 섞지 않는다."""
+        admin, err = guard()
+        if err:
+            return err
+
+        body = request.get_json(silent=True) or {}
+        status = (body.get('status') or '').strip()
+        if status not in ('done', 'rejected', 'open'):
+            return jsonify({'error': "status 는 'done' / 'rejected' / 'open' 이어야 합니다."}), 400
+
+        usage_quota.ensure_tables(get_db)
+        db = get_db()
+        cursor = db.cursor()
+        try:
+            cursor.execute(
+                "UPDATE usage_requests SET status=%s, handled_by=%s, "
+                "handled_at=CASE WHEN %s='open' THEN NULL ELSE NOW() END WHERE id=%s",
+                (status, admin[0], status, request_id),
+            )
+            db.commit()
+        finally:
+            cursor.close()
+            db.close()
+        return jsonify({'ok': True, 'status': status})
+
     @app.route('/api/admin/dashboard', methods=['GET'])
     def admin_dashboard():
         """대시보드 — 가입/탈퇴, 사용량, 쿠팡 클릭, 사전 미매칭 상위.

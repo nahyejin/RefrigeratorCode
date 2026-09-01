@@ -210,6 +210,96 @@ const UsageHistory: React.FC<{ userId: number }> = ({ userId }) => {
   );
 };
 
+
+/**
+ * 한도 추가 요청 목록.
+ *
+ * 결제를 붙이지 않기로 했으므로 여기가 "유료 전환" 자리를 대신한다. 요청이
+ * 꾸준히 들어오기 시작하면 그때 결제를 붙일 근거가 생긴다 —
+ * 그 전까지는 이 목록 자체가 수요 측정이다.
+ */
+const Requests: React.FC = () => {
+  const [rows, setRows] = React.useState<any[] | null>(null);
+  const [showAll, setShowAll] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+
+  const load = React.useCallback(() => {
+    api(`/api/admin/requests?status=${showAll ? 'all' : 'open'}`)
+      .then(d => setRows(d.requests || []))
+      .catch(e => setError(e.message));
+  }, [showAll]);
+
+  React.useEffect(load, [load]);
+
+  const handle = async (id: number, status: string) => {
+    await api(`/api/admin/requests/${id}`, { method: 'PUT', body: JSON.stringify({ status }) });
+    load();
+  };
+
+  if (error) return <div style={S.card}>{error}</div>;
+  if (!rows) return <div style={S.card}>불러오는 중...</div>;
+
+  return (
+    <>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10 }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--ink-500)' }}>
+          <input type="checkbox" checked={showAll} onChange={e => setShowAll(e.target.checked)} />
+          처리한 것도 보기
+        </label>
+      </div>
+
+      {rows.length === 0 ? (
+        <div style={S.card}>
+          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 6 }}>대기 중인 요청이 없어요</div>
+          <div style={{ fontSize: 13, color: 'var(--ink-500)', lineHeight: 1.6 }}>
+            요청이 주 5건을 넘기 시작하면 결제를 붙일 때가 된 것입니다
+            (USAGE_QUOTA_PLAN.md 6절).
+          </div>
+        </div>
+      ) : (
+        <div style={{ ...S.card, padding: 0, overflowX: 'auto' }}>
+          <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 640 }}>
+            <thead>
+              <tr>{['요청일', '이메일', '닉네임', '플랜', '사유', '상태', ''].map(h => (
+                <th key={h} style={S.th}>{h}</th>
+              ))}</tr>
+            </thead>
+            <tbody>
+              {rows.map(r => (
+                <tr key={r.id} style={{ opacity: r.status === 'open' ? 1 : 0.55 }}>
+                  <td style={S.td}>{shortDate(r.created_at)}</td>
+                  <td style={S.td}>{r.email}</td>
+                  <td style={S.td}>{r.nickname}</td>
+                  <td style={S.td}>{r.plan}</td>
+                  <td style={{ ...S.td, whiteSpace: 'normal', maxWidth: 260 }}>{r.message || '-'}</td>
+                  <td style={S.td}>{r.status}</td>
+                  <td style={S.td}>
+                    {r.status === 'open' ? (
+                      <span style={{ display: 'flex', gap: 6 }}>
+                        <button type="button" style={{ ...S.primary, height: 28 }}
+                                onClick={() => handle(r.id, 'done')}>처리함</button>
+                        <button type="button" style={{ ...S.btn, height: 28, padding: '0 10px' }}
+                                onClick={() => handle(r.id, 'rejected')}>거절</button>
+                      </span>
+                    ) : (
+                      <button type="button" style={{ ...S.btn, height: 28, padding: '0 10px' }}
+                              onClick={() => handle(r.id, 'open')}>되돌리기</button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <div style={{ fontSize: 12, color: 'var(--ink-500)', padding: '0 4px' }}>
+        한도를 실제로 올리는 건 <b>사용자 탭 → 자세히 → 한도 조정</b>에서 합니다.
+        "올려 줬다"와 "요청을 닫았다"는 다른 일이라 섞지 않았습니다.
+      </div>
+    </>
+  );
+};
+
 const Dashboard: React.FC = () => {
   const [data, setData] = React.useState<any>(null);
   const [error, setError] = React.useState<string | null>(null);
@@ -332,7 +422,7 @@ const Dashboard: React.FC = () => {
 const Admin: React.FC = () => {
   const navigate = useNavigate();
   const [allowed, setAllowed] = React.useState<boolean | null>(null);
-  const [tab, setTab] = React.useState<'users' | 'dashboard'>('users');
+  const [tab, setTab] = React.useState<'users' | 'requests' | 'dashboard'>('users');
   const [users, setUsers] = React.useState<AdminUser[] | null>(null);
   const [keyword, setKeyword] = React.useState('');
   const [showDeleted, setShowDeleted] = React.useState(false);
@@ -383,7 +473,7 @@ const Admin: React.FC = () => {
       </div>
 
       <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
-        {([['users', '사용자'], ['dashboard', '대시보드']] as const).map(([key, label]) => (
+        {([['users', '사용자'], ['requests', '요청'], ['dashboard', '대시보드']] as const).map(([key, label]) => (
           <button
             key={key}
             type="button"
@@ -402,6 +492,8 @@ const Admin: React.FC = () => {
 
       {tab === 'dashboard' ? (
         <Dashboard />
+      ) : tab === 'requests' ? (
+        <Requests />
       ) : (
         <>
           <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>

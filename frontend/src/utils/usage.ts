@@ -134,3 +134,37 @@ export function resetLabel(u: Usage | null): string {
   const days = ['일', '월', '화', '수', '목', '금', '토'];
   return `${d.getMonth() + 1}월 ${d.getDate()}일 ${days[d.getDay()]}요일`;
 }
+
+// ── 한도 추가 요청 ────────────────────────────────────────────
+//
+// 결제를 붙이지 않기로 했으므로, 더 필요한 사람은 관리자에게 말하고 관리자가
+// 손으로 올려 준다 (USAGE_QUOTA_PLAN.md 6절). 부수 효과가 더 중요하다 —
+// **실제 수요가 있는지 측정된다.**
+
+/** 이미 접수된 요청이 있는지. 로그인 안 했으면 false. */
+export async function hasPendingRequest(): Promise<boolean> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/usage/request`, { headers: usageHeaders() });
+    if (!res.ok) return false;
+    const data = await res.json();
+    return !!data?.pending;
+  } catch {
+    return false;
+  }
+}
+
+/** 요청을 남긴다. 이미 대기 중이면 새로 만들지 않고 그 사실을 알려 준다. */
+export async function requestMoreUsage(message: string): Promise<{ ok: boolean; text: string }> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/usage/request`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...usageHeaders() },
+      body: JSON.stringify({ message }),
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) return { ok: false, text: data?.error || '요청을 남기지 못했어요.' };
+    return { ok: true, text: data?.message || '요청을 남겼어요.' };
+  } catch {
+    return { ok: false, text: '네트워크 상태를 확인하고 다시 시도해 주세요.' };
+  }
+}

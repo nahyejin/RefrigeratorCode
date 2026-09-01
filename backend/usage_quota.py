@@ -250,6 +250,24 @@ def ensure_tables(get_db):
                 if not cursor.fetchone():
                     cursor.execute(f"ALTER TABLE llm_usage ADD COLUMN {col} {ddl}")
 
+            # 한도를 더 달라는 요청. 결제 대신 **사람이 처리**하는 창구다
+            # (USAGE_QUOTA_PLAN.md 6절 — 지금은 결제를 붙이지 않는다).
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS usage_requests (
+                    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                    user_id INT NOT NULL,
+                    message VARCHAR(500) NULL,
+                    status VARCHAR(16) NOT NULL DEFAULT 'open',  -- open | done | rejected
+                    created_at DATETIME NOT NULL,
+                    handled_by INT NULL,
+                    handled_at DATETIME NULL,
+                    INDEX idx_status_time (status, created_at),
+                    INDEX idx_user (user_id)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+                """
+            )
+
             # 어드민 구분. 이미 있으면 조용히 넘어간다.
             cursor.execute("SHOW COLUMNS FROM users LIKE 'is_admin'")
             if not cursor.fetchone():
@@ -409,3 +427,54 @@ def denied_message(exc):
         f"이번 주 사용량({st['weekly_limit']})을 다 쓰셨어요. 월요일에 다시 채워져요. "
         "더 필요하시면 마이페이지에서 알려 주세요."
     )
+
+
+# ── 한도 추가 요청 ────────────────────────────────────────────────
+#
+# 결제를 붙이지 않기로 했으므로(USAGE_QUOTA_PLAN.md 6절), 더 필요한 사람은
+# 관리자에게 말하고 관리자가 손으로 올려 준다. 이 표는 그 창구다.
+#
+# 부수 효과가 더 중요하다: **실제 수요가 있는지 측정된다.** 요청이 꾸준히
+# 들어오기 시작하면 그때 결제를 붙일 근거가 생긴다.
+
+def open_request(get_db, user_id):
+    """이 사용자에게 아직 처리 안 된 요청이 있으면 그 행."""
+    ensure_tables(get_db)
+    db = get_db()
+    cursor = db.cursor()
+    try:
+        cursor.execute(
+            "SELECT id, message, created_at FROM usage_requests "
+            "WHERE user_id = %s AND status = 'open' ORDER BY created_at DESC LIMIT 1",
+            (user_id,),
+        )
+        return cursor.fetchone()
+    finally:
+        cursor.close()
+        db.close()
+
+
+def create_request(get_db, user_id, message):
+    """요청을 남긴다. 이미 대기 중이면 새로 만들지 않는다.
+
+    같은 사람이 여러 번 눌러 목록이 지저분해지는 걸 막는다 — 관리자가 처리해야
+    할 것은 "사람" 이지 "클릭 횟수" 가 아니다.
+    """
+    existing = open_request(get_db, user_id)
+    if existing:
+        return existing, False
+
+    db = get_db()
+    cursor = db.cursor()
+    try:
+        cursor.execute(
+            "INSERT INTO usage_requests (user_id, message, status, created_at) "
+            "VALUES (%s, %s, 'open', %s)",
+            (user_id, (str(message)[:500] if message else None),
+             datetime.now(KST).replace(tzinfo=None)),
+        )
+        db.commit()
+    finally:
+        cursor.close()
+        db.close()
+    return open_request(get_db, user_id), True

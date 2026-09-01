@@ -4194,6 +4194,40 @@ def recognize_ingredients_from_image():
     return jsonify(result)
 
 
+@app.route('/api/usage/request', methods=['GET', 'POST'])
+def usage_request():
+    """한도를 더 달라는 요청. 결제 대신 **사람이 처리**하는 창구다.
+
+    로그인한 사용자만 받는다 — 비회원은 애초에 "가입하면 더 쓸 수 있다"가 답이라
+    요청을 받을 이유가 없다.
+
+    같은 사람이 여러 번 눌러도 대기 중인 요청은 하나만 남는다. 관리자가 처리해야
+    할 것은 "사람" 이지 "클릭 횟수" 가 아니다.
+    """
+    try:
+        import usage_quota
+
+        user_id, _ = usage_quota.caller_identity()
+        if user_id is None:
+            return jsonify({'error': '로그인이 필요해요.'}), 401
+
+        if request.method == 'GET':
+            pending = usage_quota.open_request(get_db, user_id)
+            return jsonify({'pending': bool(pending)})
+
+        body = request.get_json(silent=True) or {}
+        row, created = usage_quota.create_request(get_db, user_id, body.get('message'))
+        return jsonify({
+            'pending': True,
+            'created': created,
+            'message': ('요청을 남겼어요. 확인하고 늘려 드릴게요.'
+                        if created else '이미 요청이 접수돼 있어요. 확인 중이에요.'),
+        })
+    except Exception as e:  # noqa: BLE001
+        print(f"[usage_request] {e}", flush=True)
+        return jsonify({'error': '요청을 남기지 못했어요. 잠시 후 다시 시도해 주세요.'}), 503
+
+
 # 어드민 라우트(/api/admin/*)는 별도 파일에 모아 둔다 — 나중에 프론트만 떼거나
 # 그 경로만 IP 제한 뒤로 넣기 쉽도록. 권한 검사는 모든 엔드포인트에서 서버가 한다.
 try:

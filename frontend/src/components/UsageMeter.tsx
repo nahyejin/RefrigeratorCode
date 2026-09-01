@@ -2,9 +2,11 @@ import React from 'react';
 import {
   type Usage,
   getCachedUsage,
+  hasPendingRequest,
   isLow,
   refreshUsage,
   remainingRatio,
+  requestMoreUsage,
   resetLabel,
   subscribeUsage,
 } from '../utils/usage';
@@ -127,12 +129,36 @@ export const UsageLine: React.FC<{ style?: React.CSSProperties }> = ({ style }) 
  * 여기가 "내 계정 상태"를 보는 자리다. 남은 양과 리셋 시각, 그리고 더 필요할 때
  * 무엇을 하면 되는지까지 한 덩어리로 보여준다.
  */
-export const UsageGauge: React.FC<{ onRequestMore?: () => void }> = ({ onRequestMore }) => {
+export const UsageGauge: React.FC = () => {
   const usage = useUsage();
+  /**
+   * 한도 추가 요청 상태.
+   *  null   = 아직 확인 안 함
+   *  false  = 요청 가능
+   *  true   = 이미 접수됨 (같은 사람이 여러 번 남기지 않도록 서버도 막는다)
+   */
+  const [pending, setPending] = React.useState<boolean | null>(null);
+  const [asking, setAsking] = React.useState(false);
+  const [reason, setReason] = React.useState('');
+  const [result, setResult] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     void refreshUsage();
   }, []);
+
+  React.useEffect(() => {
+    if (usage && !usage.is_guest) void hasPendingRequest().then(setPending);
+  }, [usage?.is_guest]);
+
+  const submit = async () => {
+    const res = await requestMoreUsage(reason.trim());
+    setResult(res.text);
+    if (res.ok) {
+      setPending(true);
+      setAsking(false);
+      setReason('');
+    }
+  };
 
   if (!usage) return null;
 
@@ -188,28 +214,61 @@ export const UsageGauge: React.FC<{ onRequestMore?: () => void }> = ({ onRequest
         <div style={{ fontSize: 12, color: 'var(--ink-700)', fontWeight: 600 }}>
           로그인하면 훨씬 넉넉하게 쓸 수 있어요.
         </div>
-      ) : (
-        onRequestMore && (
-          <button
-            type="button"
-            onClick={onRequestMore}
+      ) : pending ? (
+        /* 이미 요청이 접수된 상태. 버튼을 계속 보여주면 또 누르게 되고,
+           관리자 목록만 지저분해진다 (서버도 중복을 막는다). */
+        <div style={{ fontSize: 12, color: 'var(--ink-700)', fontWeight: 600 }}>
+          요청이 접수됐어요. 확인하고 늘려 드릴게요.
+        </div>
+      ) : asking ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <input
+            value={reason}
+            onChange={e => setReason(e.target.value)}
+            placeholder="어떤 용도로 더 필요하신가요? (선택)"
             style={{
-              alignSelf: 'flex-start',
-              height: 34,
-              padding: '0 12px',
-              borderRadius: 8,
-              border: '1px solid var(--line-200)',
-              background: '#FFFFFF',
-              fontSize: 13,
-              fontWeight: 600,
-              color: 'var(--ink-700)',
-              cursor: 'pointer',
+              height: 36, borderRadius: 8, border: '1px solid var(--line-200)',
+              padding: '0 10px', fontSize: 13, width: '100%', boxSizing: 'border-box',
             }}
-          >
-            더 필요해요
-          </button>
-        )
+          />
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button type="button" onClick={submit} style={{
+              height: 34, padding: '0 14px', borderRadius: 8, border: 'none',
+              background: '#FFD600', color: '#1A1A1E', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+            }}>
+              요청 보내기
+            </button>
+            <button type="button" onClick={() => { setAsking(false); setResult(null); }} style={{
+              height: 34, padding: '0 12px', borderRadius: 8,
+              border: '1px solid var(--line-200)', background: '#FFFFFF',
+              fontSize: 13, fontWeight: 600, color: 'var(--ink-500)', cursor: 'pointer',
+            }}>
+              취소
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setAsking(true)}
+          style={{
+            alignSelf: 'flex-start',
+            height: 34,
+            padding: '0 12px',
+            borderRadius: 8,
+            border: '1px solid var(--line-200)',
+            background: '#FFFFFF',
+            fontSize: 13,
+            fontWeight: 600,
+            color: 'var(--ink-700)',
+            cursor: 'pointer',
+          }}
+        >
+          더 필요해요
+        </button>
       )}
+
+      {result && <div style={{ fontSize: 12, color: 'var(--ink-500)' }}>{result}</div>}
     </div>
   );
 };
