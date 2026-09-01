@@ -4136,14 +4136,29 @@ def recognize_ingredients_from_image():
             return jsonify({'error': '지원하지 않는 이미지 형식입니다.'}), 415
         images.append((image_bytes, mime_type))
 
-    # 챗봇과 같은 하루 한도를 공유한다 (같은 무료 키를 쓰므로).
-    # 여러 장이어도 LLM 호출은 1회라 한도도 1만 쓴다.
-    if not chat_service._consume_quota():
-        return jsonify({
-            'error': f'오늘 무료 한도({chat_service._daily_limit()}회)를 다 썼어요. 내일 다시 시도해 주세요.',
-        }), 429
-
     mode = (request.form.get('mode') or 'receipt').strip()
+
+    # 챗봇과 **같은 지갑**을 쓴다 (usage_quota). 사용자에게는 "이번 주 62/100"
+    # 하나로만 보이는 편이 이해하기 쉽고, 실제로 같은 무료 키를 나눠 쓴다.
+    # 여러 장이어도 LLM 호출은 1회라 크레딧도 장수와 무관하게 고정이다.
+    import usage_quota
+    quota_user_id, quota_device_id = usage_quota.caller_identity()
+    try:
+        usage = usage_quota.consume(
+            get_db, 'vision',
+            user_id=quota_user_id, device_id=quota_device_id,
+            detail=f'{mode}/{len(images)}',
+        )
+    except usage_quota.QuotaDenied as denied:
+        return jsonify({
+            'error': usage_quota.denied_message(denied),
+            'usage': denied.status,
+        }), 429
+    except Exception as e:  # noqa: BLE001
+        # 한도 계산이 깨졌다고 인식을 막지는 않는다 (표가 아직 없는 첫 배포 등).
+        print(f"[recognize] 사용량 차감 실패(무시): {e}", flush=True)
+        usage = None
+
     try:
         result = recognize(images, mode=mode)
         _record_dictionary_misses(result.get('unmatched') or [], mode)
@@ -4169,7 +4184,25 @@ def recognize_ingredients_from_image():
             'detail': type(e).__name__,
         }), 502
 
+    result['usage'] = usage
     return jsonify(result)
+
+
+@app.route('/api/usage', methods=['GET'])
+def get_usage():
+    """이번 주 남은 AI 사용량. 화면 세 곳(아이콘 배지 / 시트 헤더 / 마이페이지)이
+    같은 값을 쓰도록 한 곳에서만 계산한다.
+
+    로그인 여부와 무관하게 200을 준다 — 비회원도 한도가 있고, 그 값을 보여줘야
+    "가입하면 더 쓸 수 있다"고 말할 수 있다.
+    """
+    try:
+        import usage_quota
+        user_id, device_id = usage_quota.caller_identity()
+        return jsonify(usage_quota.status(get_db, user_id=user_id, device_id=device_id))
+    except Exception as e:  # noqa: BLE001
+        print(f"[usage] 조회 실패: {e}", flush=True)
+        return jsonify({'error': '사용량을 불러오지 못했어요.'}), 503
 
 
 # =====================

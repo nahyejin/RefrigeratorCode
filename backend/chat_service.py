@@ -80,42 +80,15 @@ def _is_broad_fridge_request(text):
     return bool(_BROAD_FRIDGE_RE.match(normalized))
 
 
-_rate_lock = threading.Lock()
-_rate_day = None
-_rate_count = 0
+# 대화 세션 보관 (한도 계산은 usage_quota 모듈로 옮겼다).
+#
+# 예전엔 여기에 프로세스 전역 카운터(_rate_count / _daily_limit / _consume_quota)가
+# 있었다. 챗봇과 사진 인식이 그 하나를 **모든 사용자와 함께** 나눠 썼고, 메모리에만
+# 있어서 배포할 때마다 리셋됐으며, 누가 얼마나 썼는지 기록도 없었다.
+# 사용자별 주/일 한도로 바꾸면서 backend/usage_quota.py 로 옮겼다.
+# ⚠️ 여기에 다시 전역 카운터를 만들지 말 것.
 _sessions = {}
 _sessions_lock = threading.Lock()
-
-
-def _today_kst():
-    return datetime.now(KST).date().isoformat()
-
-
-def _daily_limit():
-    return int(os.getenv('LLM_DAILY_LIMIT', '250'))
-
-
-def remaining_quota():
-    global _rate_day, _rate_count
-    today = _today_kst()
-    with _rate_lock:
-        if _rate_day != today:
-            _rate_day = today
-            _rate_count = 0
-        return max(0, _daily_limit() - _rate_count)
-
-
-def _consume_quota():
-    global _rate_day, _rate_count
-    today = _today_kst()
-    with _rate_lock:
-        if _rate_day != today:
-            _rate_day = today
-            _rate_count = 0
-        if _rate_count >= _daily_limit():
-            return False
-        _rate_count += 1
-        return True
 
 
 def _provider_and_key():
@@ -682,7 +655,11 @@ def _remember(session_id, messages, last_turn=None):
 def handle_chat(get_db):
     from flask import request
 
+    import usage_quota
+
     body = request.get_json(silent=True) or {}
+    quota_user_id, quota_device_id = usage_quota.caller_identity()
+    usage = None
     messages = body.get('messages') or []
     ingredients = [
         str(name).strip()
@@ -740,11 +717,22 @@ def handle_chat(get_db):
     }
 
     if not is_broad:
-        if not _consume_quota():
+        # 한도는 **사용자별**이다. 예전엔 프로세스 전역 카운터 하나를 모든
+        # 사용자가 나눠 썼다 (usage_quota 모듈 머리말 참고).
+        try:
+            usage = usage_quota.consume(
+                get_db, 'chat', user_id=quota_user_id, device_id=quota_device_id
+            )
+        except usage_quota.QuotaDenied as denied:
             return jsonify({
-                'error': f'오늘 무료 한도({_daily_limit()}회)를 다 썼어요. 내일 다시 시도해 주세요.',
+                'error': usage_quota.denied_message(denied),
+                'usage': denied.status,
                 'remaining': 0,
             }), 429
+        except Exception as e:  # noqa: BLE001
+            # 한도 계산이 깨졌다고 챗봇을 막지는 않는다 (표가 아직 없는 첫 배포 등).
+            print(f"[chat] 사용량 차감 실패(무시): {e}", flush=True)
+            usage = None
 
         try:
             prompt = _build_prompt(messages, ingredients, last_turn, expiry_days)
@@ -905,5 +893,6 @@ def handle_chat(get_db):
         'keyword': parsed['keywords'][0] if parsed['keywords'] else '',
         'ignore_fridge': parsed['ignore_fridge'],
         'provider': provider,
-        'remaining': remaining_quota(),
+        'usage': usage,
+        'remaining': (usage or {}).get('weekly_remaining', 0),
     })
