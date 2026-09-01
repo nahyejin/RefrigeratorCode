@@ -1673,18 +1673,9 @@ const MyFridge: React.FC = () => {
     setCameraSheetOpen(false);
     if (files.length === 0) return;
 
-    // 카메라의 "음식" 타일은 아직 열지 않았다 — 서버에 음식 사진 프롬프트는
-    // 있지만 인식 품질을 확인하지 않았다. 앨범(file)은 무엇을 골랐는지 알 수
-    // 없으므로 모델이 영수증인지 음식인지 판단하게 한다.
-    if (mode === 'food-single' || mode === 'food-multi') {
-      showPrepNotice(
-        mode === 'food-single'
-          ? '재료 사진을 찍으면 알아서 인식해 담아 주는 기능을 준비하고 있어요.'
-          : '여러 재료가 담긴 사진도 한 번에 인식하는 기능을 준비하고 있어요.'
-      );
-      return;
-    }
-
+    // 네 모드(영수증 / 음식 1개 / 음식 여러 개 / 앨범)를 모두 서버로 보낸다.
+    // 서버는 모드마다 다른 프롬프트를 쓴다 — 그래서 화면에서 먼저 무엇을 찍을지
+    // 물어보는 것이다. 앨범(file)만은 무엇을 골랐는지 알 수 없어 모델이 판단한다.
     setRecognized([]);
     setRecognizedUnmatched([]);
     setRecognizedPurchaseDate(null);

@@ -37,10 +37,19 @@ const FoodMultiIcon: React.FC = () => (
   </svg>
 );
 
-const OPTIONS: { key: Extract<CaptureMode, 'receipt' | 'food-single' | 'food-multi'>; label: string; icon: React.FC }[] = [
-  { key: 'receipt', label: '영수증', icon: ReceiptIcon },
-  { key: 'food-single', label: '음식 1개', icon: FoodSingleIcon },
-  { key: 'food-multi', label: '음식 여러 개', icon: FoodMultiIcon },
+// 세 모드는 서버에서 **서로 다른 프롬프트**를 쓴다. 무엇을 시키느냐가 달라서
+// 결과도 크게 달라진다 — 영수증은 "산 목록을 읽어라", 음식 1개는 "가운데 것
+// 하나만", 음식 여러 개는 "보이는 것을 빠짐없이". 그래서 찍기 전에 먼저 묻고,
+// 타일에도 언제 무엇을 고르는지 한 줄로 적어 둔다.
+const OPTIONS: {
+  key: Extract<CaptureMode, 'receipt' | 'food-single' | 'food-multi'>;
+  label: string;
+  hint: string;
+  icon: React.FC;
+}[] = [
+  { key: 'receipt', label: '영수증', hint: '산 것 전부', icon: ReceiptIcon },
+  { key: 'food-single', label: '음식 1개', hint: '하나만 크게', icon: FoodSingleIcon },
+  { key: 'food-multi', label: '음식 여러 개', hint: '펼쳐 놓고', icon: FoodMultiIcon },
 ];
 
 /**
@@ -146,8 +155,9 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
         onChange={makeChangeHandler('file')}
       />
 
-      {/* 아직 실제 인식 기능은 없다는 걸, 개발 중인 영역임을 한눈에 알 수 있게
-          살짝 기울어진 배지로 밝혀 둔다. */}
+      {/* AI가 관여하는 자리라는 걸 앱 공통의 시각 언어(노랑 배지)로 알려 둔다.
+          예전엔 "음식 사진은 준비 중" 이라고 적혀 있었는데, 이제 세 모드가 모두
+          실제로 동작하므로 무엇을 해 주는지만 말한다. */}
       <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 14 }}>
         <span
           style={{
@@ -162,7 +172,7 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
             whiteSpace: 'nowrap',
           }}
         >
-          ✨ 영수증은 지금 바로 인식돼요 · 음식 사진은 준비 중
+          ✨ 사진에서 재료를 찾아 담아 드려요
         </span>
       </div>
 
@@ -174,7 +184,7 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
           크게 키운 정사각 타일 3개를 나란히 둔다(설명문처럼 가로로 긴 줄
           형태였던 이전 버전은 "눌러서 촬영"이라는 느낌이 잘 안 살았다). */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 14 }}>
-        {OPTIONS.map(({ key, label, icon: Icon }) => (
+        {OPTIONS.map(({ key, label, hint, icon: Icon }) => (
           <button
             key={key}
             type="button"
@@ -209,6 +219,7 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
               <Icon />
             </span>
             <span style={{ fontSize: 13, fontWeight: 700, color: '#1A1A1E', textAlign: 'center' }}>{label}</span>
+            <span style={{ fontSize: 11, color: 'var(--ink-500)', textAlign: 'center', marginTop: -4 }}>{hint}</span>
           </button>
         ))}
       </div>
