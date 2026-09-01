@@ -263,8 +263,12 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
     >
       {/* 고른 종류는 그때 선택한 사진 **전체**에 적용된다. 여러 장을 한 번의 호출로
           처리하느라 프롬프트가 하나뿐이라서, 종류를 섞으면 인식이 나빠진다. */}
-      <div style={{ fontSize: 13, color: 'var(--ink-500)', marginBottom: 12, wordBreak: 'keep-all' }}>
-        고른 종류가 사진 전체에 적용돼요. <b>같은 종류끼리</b> 골라 주세요.
+      {/* 두 문장은 하는 말이 다르다 — 앞은 "이렇게 동작한다", 뒤는 "이렇게 해 달라".
+          한 줄로 이어 붙이면 부탁이 설명에 묻혀서, 줄을 나눠 둔다. */}
+      <div style={{ fontSize: 13, color: 'var(--ink-500)', marginBottom: 12, wordBreak: 'keep-all', lineHeight: 1.6 }}>
+        고른 종류가 사진 전체에 적용돼요.
+        <br />
+        <b>같은 종류끼리</b> 골라 주세요.
       </div>
       <div style={{ display: 'grid', gap: 8 }}>
         {OPTIONS.map(({ key, label, icon: Icon }) => (
