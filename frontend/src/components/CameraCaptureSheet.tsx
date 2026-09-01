@@ -155,35 +155,27 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
         onChange={makeChangeHandler('file')}
       />
 
-      {/* AI가 관여하는 자리라는 걸 앱 공통의 시각 언어(노랑 배지)로 알려 둔다.
-          예전엔 "음식 사진은 준비 중" 이라고 적혀 있었는데, 이제 세 모드가 모두
-          실제로 동작하므로 무엇을 해 주는지만 말한다. */}
-      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 14 }}>
-        <span
-          style={{
-            display: 'inline-block',
-            transform: 'rotate(-4deg)',
-            background: '#FFD600',
-            color: '#1A1A1E',
-            fontSize: 12,
-            fontWeight: 700,
-            padding: '4px 12px',
-            borderRadius: 9999,
-            whiteSpace: 'nowrap',
-          }}
-        >
-          ✨ 사진에서 재료를 찾아 담아 드려요
-        </span>
-      </div>
-
+      {/* 예전엔 여기에 "영수증은 지금 바로 인식돼요 · 음식 사진은 준비 중" 노랑 배지가
+          있었다. 세 모드가 모두 동작하게 되면서 알릴 내용이 없어져 걷어냈다.
+          (시트를 여는 버튼 자체가 이미 "AI" 배지를 달고 있어 중복이기도 했다.) */}
       <div style={{ textAlign: 'center', fontWeight: 700, fontSize: 17, marginBottom: 16, color: '#1A1A1E' }}>
         무엇을 찍을까요?
       </div>
 
       {/* 카드를 눌러야 찍힌다는 게 한눈에 들어오도록, 글줄보다 아이콘을 훨씬
-          크게 키운 정사각 타일 3개를 나란히 둔다(설명문처럼 가로로 긴 줄
-          형태였던 이전 버전은 "눌러서 촬영"이라는 느낌이 잘 안 살았다). */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 14 }}>
+          크게 키운 타일 3개를 나란히 둔다(설명문처럼 가로로 긴 줄 형태였던
+          이전 버전은 "눌러서 촬영"이라는 느낌이 잘 안 살았다).
+
+          ⚠️ `1fr` 이 아니라 `minmax(0, 1fr)` 이어야 한다.
+          `1fr` 의 자동 최소 크기는 **min-content** 라 칸이 내용보다 작아질 수 없다.
+          예전엔 타일에 `aspect-ratio: 1/1` 이 걸려 있어서, 타일이 세로로 길어지면
+          그 높이가 **가로 최소 폭**으로 되돌아왔다. 힌트 한 줄(`펼쳐 놓고`)을
+          더했더니 내용 높이가 102 -> 125px 이 되면서 칸도 125px 을 요구했고,
+          3칸 합이 시트보다 59px 넓어져 **시트가 좌우로 흔들렸다**(바텀시트 본문은
+          overflow-y:auto 라 가로도 자동으로 스크롤된다).
+          지금은 `minmax(0, ...)` 로 칸이 줄어들 수 있게 하고, 정사각 고정 대신
+          내용에 맞춰 높이가 정해지게 두었다(그리드가 세 칸 높이를 알아서 맞춘다). */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8, marginBottom: 14 }}>
         {OPTIONS.map(({ key, label, hint, icon: Icon }) => (
           <button
             key={key}
@@ -194,9 +186,8 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: 8,
-              aspectRatio: '1 / 1',
-              padding: '10px 6px',
+              gap: 6,
+              padding: '16px 6px',
               borderRadius: 16,
               border: '1px solid var(--line-200)',
               background: 'var(--surface-sub)',
