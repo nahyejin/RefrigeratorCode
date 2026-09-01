@@ -10,7 +10,7 @@ import Dialog from '../components/ui/Dialog';
 import BottomNavBar from '../components/BottomNavBar';
 import HouseholdSection from '../components/HouseholdSection';
 import PullToRefresh from '../components/PullToRefresh';
-import UsageGauge from '../components/UsageMeter';
+import UsageGauge, { useIsAdmin } from '../components/UsageMeter';
 import logoImg from '../assets/냉털이 로고 white.png';
 import searchIcon from '../assets/navigator_search.png';
 import myProfileImg from '../assets/profile_default.png'; // 기본 프로필 이미지(없으면 대체)
@@ -666,6 +666,8 @@ const MyPage: React.FC = () => {
 
   const navigate = useNavigate();
   const location = useLocation();
+  /** 관리자에게만 어드민 입구를 보여준다 (실제 권한 검사는 서버가 한다) */
+  const isAdmin = useIsAdmin();
 
   // GNB에서 닉네임을 눌러 /my-page?openEdit=true 로 들어온 경우 자동으로 수정 모달 열기
   useEffect(() => {
@@ -1346,6 +1348,31 @@ const MyPage: React.FC = () => {
       <div style={{ margin: '12px 14px 0' }}>
         <UsageGauge />
       </div>
+
+      {/* 어드민 입구. 관리자에게만 보인다.
+          경로(/admin)를 아는 것만으로는 아무것도 볼 수 없다 — 서버가
+          /api/admin/* 마다 is_admin 을 확인하므로, 여기서 감추는 건
+          "찾기 쉽게" 하려는 것이지 보안 장치가 아니다. */}
+      {isAdmin && (
+        <div style={{ margin: '12px 14px 0' }}>
+          <button
+            type="button"
+            onClick={() => navigate('/admin')}
+            style={{
+              width: '100%', height: 46, borderRadius: 14,
+              border: '1px solid var(--line-200)', background: 'var(--surface)',
+              fontSize: 14, fontWeight: 700, color: 'var(--ink-900)', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '0 18px',
+            }}
+          >
+            <span>어드민</span>
+            <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--ink-500)' }}>
+              사용자 · 요청 · 대시보드 ›
+            </span>
+          </button>
+        </div>
+      )}
 
       {isLoggedIn && (
         <div style={{ margin: '12px 14px 0' }}>

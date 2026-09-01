@@ -23,6 +23,41 @@ import {
  * 두 곳에서 세면 반드시 어긋난다.
  */
 
+const API_BASE_URL =
+  (import.meta.env && import.meta.env.VITE_API_BASE_URL) ||
+  'https://refrigeratorcode-production.up.railway.app';
+
+/**
+ * 이 계정이 관리자인지. 관리자에게만 어드민 입구를 보여주기 위한 것이다.
+ *
+ * ⚠️ 이건 **화면 편의일 뿐 보안이 아니다.** 실제 권한은 서버가 `/api/admin/*`
+ * 마다 DB 의 is_admin 을 확인한다. 여기서 참이 나와도 서버가 거부하면 못 본다.
+ */
+export function useIsAdmin(): boolean {
+  const [isAdmin, setIsAdmin] = React.useState(false);
+
+  React.useEffect(() => {
+    let alive = true;
+    const token = (() => {
+      try {
+        return localStorage.getItem('token');
+      } catch {
+        return null;
+      }
+    })();
+    if (!token) return;
+    fetch(`${API_BASE_URL}/api/admin/me`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => alive && setIsAdmin(!!d?.is_admin))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  return isAdmin;
+}
+
 /** 사용량을 구독한다. 화면 어디서 갱신되든 함께 바뀐다. */
 export function useUsage(): Usage | null {
   const [usage, setUsage] = React.useState<Usage | null>(getCachedUsage());
