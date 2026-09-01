@@ -54,6 +54,9 @@ const ROUTES = {
 const Popular = lazy(() => import('../pages/Popular'));
 const MyFridge = lazy(() => import('../pages/MyFridge'));
 const RecipeDetail = lazy(() => import('../pages/RecipeDetail'));
+// 어드민은 반드시 lazy 로 둔다 — 일반 사용자 번들에 관리자 화면 코드가 실리면
+// 용량도 늘고 내부 구조가 그대로 노출된다. (권한 검사는 서버가 따로 한다)
+const Admin = lazy(() => import('../pages/Admin'));
 
 // =====================
 // 라우터 컴포넌트
@@ -255,6 +258,10 @@ function AppContent() {
             path={ROUTES.MY_FAVORITE} 
             element={<IngredientDetail customTitle="내가 즐겨찾는 레시피" />} 
           />
+
+          {/* 어드민. 서버가 /api/admin/* 마다 is_admin 을 확인하므로 경로를
+              아는 것만으로는 아무것도 볼 수 없다. */}
+          <Route path="/admin" element={<Admin />} />
         </Routes>
       </Suspense>
       <HomeInstallPrompt />

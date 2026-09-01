@@ -4194,6 +4194,16 @@ def recognize_ingredients_from_image():
     return jsonify(result)
 
 
+# 어드민 라우트(/api/admin/*)는 별도 파일에 모아 둔다 — 나중에 프론트만 떼거나
+# 그 경로만 IP 제한 뒤로 넣기 쉽도록. 권한 검사는 모든 엔드포인트에서 서버가 한다.
+try:
+    import admin_api
+
+    admin_api.register(app, get_db)
+except Exception as _e:  # noqa: BLE001
+    print(f"[admin] 라우트 등록 실패(어드민만 비활성): {_e}", flush=True)
+
+
 @app.route('/api/usage', methods=['GET'])
 def get_usage():
     """이번 주 남은 AI 사용량. 화면 세 곳(아이콘 배지 / 시트 헤더 / 마이페이지)이
