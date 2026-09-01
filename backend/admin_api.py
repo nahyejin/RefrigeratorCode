@@ -80,7 +80,9 @@ def _clean_email(email):
     화면에서만 접두어를 벗겨 보여준다.
     """
     text = str(email or '')
-    if text.startswith('deleted+'):
+    # `deleted+` = 사용자가 직접 탈퇴 / `merged+` = 중복 계정을 합치면서 닫음.
+    # 둘 다 원래 주소를 보여줘야 어드민에서 누구인지 알 수 있다.
+    if text.startswith('deleted+') or text.startswith('merged+'):
         parts = text.split('+', 2)
         if len(parts) == 3:
             return parts[2]
