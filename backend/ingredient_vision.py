@@ -232,8 +232,23 @@ def _clean_storage(value):
     return v if v in _STORAGE_VALUES else "fridge"
 
 
-def _clean_expiry(value):
-    """유통기한은 과거일 수 없고(이미 지난 걸 담을 리 없다), 10년 뒤도 오독으로 본다."""
+def _clean_expiry(value, purchase_date=None):
+    """유통기한으로 받아들일 수 있는 값인지 거른다.
+
+    - 과거는 버린다 (이미 지난 걸 담을 리 없다).
+    - 10년 뒤도 오독으로 본다.
+    - **구매일자와 같거나 그보다 이르면 버린다.** 이게 실제로 문제를 냈다:
+      영수증에는 유통기한이 없는데, 모델이 영수증에 큼직하게 찍힌 **거래일시를
+      각 재료의 유통기한으로** 적어 보내는 경우가 있다. 그 날짜는 대개 오늘이라
+      `parsed < today` 검사를 그냥 통과했고, 그대로 담기면서 방금 넣은 재료가
+      "D-day" 나 "지남" 으로 빨갛게 떴다.
+      산 날과 같은 날 상하는 식품은 사실상 없으니, 이런 값은 유통기한이 아니라
+      날짜를 잘못 읽은 것으로 본다. 버리면 구매일 + 재료 특성으로 짐작한
+      값(estimatedExpiry)으로 돌아가므로 손해가 없다.
+
+    purchase_date: 정리된 구매일자(YYYY-MM-DD) 또는 None. None 이면 오늘로 본다
+                   (프론트가 구매일자를 오늘로 채우기 때문).
+    """
     parsed = _as_date(value)
     if parsed is None:
         return None
@@ -241,6 +256,9 @@ def _clean_expiry(value):
     if parsed < today:
         return None
     if parsed > today + timedelta(days=3650):
+        return None
+    floor = _as_date(purchase_date) or today
+    if parsed <= floor:
         return None
     return parsed.isoformat()
 
@@ -266,6 +284,9 @@ def recognize(images, mode="receipt"):
     parsed = _parse_response(raw_text)
 
     alias = get_alias_to_canonical()
+    # 유통기한 검사가 구매일자를 봐야 하므로(영수증 거래일시를 유통기한으로
+    # 잘못 읽는 경우를 거른다) 구매일자를 먼저 정리한다.
+    purchase_date = _clean_purchase_date(parsed["purchase_date"])
     seen = set()
     ingredients = []
     unmatched = []
@@ -273,7 +294,7 @@ def recognize(images, mode="receipt"):
         name = item.get("name")
         if not name:
             continue
-        expiry = _clean_expiry(item.get("expiry"))
+        expiry = _clean_expiry(item.get("expiry"), purchase_date)
         storage = _clean_storage(item.get("storage"))
         canonical = resolve_canonical(name, alias)
         if not canonical:
@@ -291,5 +312,5 @@ def recognize(images, mode="receipt"):
     return {
         "ingredients": ingredients,
         "unmatched": unmatched,
-        "purchase_date": _clean_purchase_date(parsed["purchase_date"]),
+        "purchase_date": purchase_date,
     }

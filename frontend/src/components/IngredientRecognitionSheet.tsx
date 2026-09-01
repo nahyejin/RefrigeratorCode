@@ -75,6 +75,29 @@ const isStorage = (v: unknown): v is StorageBox =>
 const shortDate = (value: string) => toDots(value).slice(5);
 
 /**
+ * 사진에서 읽은 유통기한을 그대로 믿을지 판단한다.
+ *
+ * 영수증에는 유통기한이 없는데, 모델이 영수증에 큼직하게 찍힌 **거래일시를 각
+ * 재료의 유통기한으로** 적어 보내는 일이 있었다. 그러면 방금 담은 재료가 곧바로
+ * "D-day" 나 "지남" 으로 빨갛게 뜬다(실제로 그렇게 보고됐다).
+ *
+ * 산 날과 같은 날 상하는 식품은 사실상 없으니, 구매일자와 같거나 그보다 이른
+ * 값은 유통기한이 아니라 날짜를 잘못 읽은 것으로 본다. 버려도 손해가 없다 —
+ * 구매일 + 재료 특성으로 짐작한 값으로 돌아갈 뿐이고, 사용자가 실제 기한을
+ * 알면 `기한 +` 로 직접 넣으면 된다.
+ *
+ * 날짜 표기가 ISO(2026-09-05)와 점(2026.09.05)으로 섞여 들어오므로 비교 전에
+ * 하나로 맞춘다. 두 표기 모두 자리수가 고정이라 문자열 비교로 대소가 맞는다.
+ *
+ * ⚠️ 이 검사는 **사진에서 읽은 값에만** 건다. 사용자가 직접 고른 날짜는
+ *    (마감 임박 식품처럼 오늘이 기한인 경우가 있으므로) 그대로 존중한다.
+ */
+const usableExpiry = (expiry: string | null | undefined, purchase: string): string | null => {
+  if (!expiry) return null;
+  return toDots(expiry) > toDots(purchase) ? expiry : null;
+};
+
+/**
  * 재료 사전에서 검색해 고르는 입력.
  *
  * 내 냉장고의 재료 추가 입력과 같은 방식이다 — 사전(동의어 포함)에서 찾아
@@ -226,7 +249,7 @@ const IngredientRecognitionSheet: React.FC<Props> = ({
       ...ingredients.map(i => ({
         name: i.name,
         raw: i.raw,
-        expiry: i.expiry ?? null,
+        expiry: usableExpiry(i.expiry, base),
         storage: (isStorage(i.storage) ? i.storage : 'fridge') as StorageBox,
         purchase: base,
         checked: true,
@@ -234,7 +257,7 @@ const IngredientRecognitionSheet: React.FC<Props> = ({
       ...unmatched.map(u => ({
         name: null,
         raw: u.raw,
-        expiry: u.expiry ?? null,
+        expiry: usableExpiry(u.expiry, base),
         storage: (isStorage(u.storage) ? u.storage : 'fridge') as StorageBox,
         purchase: base,
         checked: false,

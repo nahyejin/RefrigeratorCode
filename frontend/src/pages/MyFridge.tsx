@@ -1871,6 +1871,24 @@ const MyFridge: React.FC = () => {
       if (!list) return list;
       let changed = false;
       const next = list.map(item => {
+        /**
+         * 구매일과 **똑같은** 유통기한은 잘못 저장된 값이다.
+         *
+         * 사진 인식이 영수증의 거래일시를 각 재료의 유통기한으로 읽어 넣는 버그가
+         * 있었다. 그러면 방금 담은 재료가 곧바로 "D-day"/"지남" 으로 빨갛게 떴다.
+         * 인식 쪽은 고쳤지만 그때 담긴 재료에는 이미 그 값이 남아 있으므로,
+         * 여기서 한 번 걷어내고 짐작값으로 되돌린다.
+         * (산 날과 같은 날 상하는 식품은 사실상 없어서 오탐 위험이 낮다.
+         *  실제로 그런 재료라면 배지를 눌러 다시 넣으면 된다.)
+         */
+        const boughtSameDay = !!item.expiry && !!item.purchase && item.expiry === item.purchase;
+        if (boughtSameDay) {
+          changed = true;
+          const est = estimateExpiry(item.name, storage, item.purchase as string, categoryMap);
+          const { expiry, estimatedExpiry, ...rest } = item;
+          return (est ? { ...rest, estimatedExpiry: est } : rest) as Ingredient;
+        }
+
         // 직접 넣은 유통기한이 있으면 추정하지 않는다
         if (item.expiry || !item.purchase) {
           if (item.estimatedExpiry) {
