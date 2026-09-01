@@ -127,21 +127,59 @@ def _daily_limit():
 
 ```sql
 CREATE TABLE llm_usage (
-  id          BIGINT AUTO_INCREMENT PRIMARY KEY,
-  user_id     INT NULL,                 -- 비회원이면 NULL
-  device_id   VARCHAR(64) NULL,         -- 비회원 식별용 (클라이언트 생성 UUID)
-  kind        VARCHAR(16) NOT NULL,     -- 'chat' | 'vision'
-  credits     INT NOT NULL,
-  detail      VARCHAR(64) NULL,         -- vision 이면 mode, 사진 장수 등
-  created_at  DATETIME NOT NULL,
+  id            BIGINT AUTO_INCREMENT PRIMARY KEY,
+  user_id       INT NULL,                 -- 비회원이면 NULL
+  device_id     VARCHAR(64) NULL,         -- 비회원 식별용 (클라이언트 생성 UUID)
+  kind          VARCHAR(16) NOT NULL,     -- 'chat' | 'vision'
+  credits       INT NOT NULL,             -- 우리가 정한 환산값
+  detail        VARCHAR(64) NULL,         -- vision 이면 'mode/장수'
+  model         VARCHAR(48) NULL,         -- 어느 모델을 썼는지
+  images        INT NULL,                 -- 사진 장수
+  prompt_tokens INT NULL,                 -- ↓ 실제로 쓴 양 (응답의 usageMetadata)
+  output_tokens INT NULL,
+  total_tokens  INT NULL,
+  created_at    DATETIME NOT NULL,
   INDEX idx_user_time (user_id, created_at),
-  INDEX idx_device_time (device_id, created_at)
+  INDEX idx_device_time (device_id, created_at),
+  INDEX idx_time (created_at)
 );
 ```
 
 **카운터가 아니라 원장을 둔다.** 카운터만 두면 "주별을 월별로 바꾸자", "지난달에
 누가 많이 썼지" 가 전부 불가능하다. 원장이 있으면 집계 기준을 언제든 바꿀 수
 있고, 어드민 통계가 전부 여기 한 곳에서 나온다.
+
+### 크레딧과 토큰을 **둘 다** 남긴다
+
+`credits` 는 우리가 정한 환산값이고, `*_tokens` 는 **실제로 쓴 양**이다.
+크레딧만 남기면 "사진 2크레딧이 적정한가", "유료 티어로 넘어가면 원가가 얼마인가"
+를 감으로밖에 못 정한다.
+
+Gemini 응답의 `usageMetadata` 를 그대로 받아 적는다. 호출 함수의 반환값을
+바꾸면 호출부를 전부 고쳐야 해서, 같은 스레드에서만 보이는 자리에 흘려 두고
+(`note_gemini_usage`) 호출이 끝난 쪽에서 원장 행에 붙인다(`attach_tokens`).
+기록이 실패해도 사용자 요청은 성공시킨다.
+
+실측 예 (사진 2장, `food-multi`):
+
+| kind | credits | images | prompt | output | total |
+|---|---|---|---|---|---|
+| vision | 2 | 2 | 2,841 | 18 | 2,859 |
+
+**환산이 맞는지 확인하는 쿼리** — 크레딧당 실제 토큰이 종류별로 얼마나 차이 나는지:
+
+```sql
+SELECT kind,
+       COUNT(*) n,
+       ROUND(AVG(total_tokens))            avg_tokens,
+       ROUND(AVG(total_tokens / credits))  tokens_per_credit
+FROM llm_usage
+WHERE total_tokens IS NOT NULL
+GROUP BY kind;
+```
+
+`tokens_per_credit` 이 종류별로 크게 벌어지면 `CREDITS_VISION` 을 조정한다.
+**감으로 바꾸지 말고 이 쿼리를 먼저 본다.**
 
 ### `user_quota` — 플랜과 수동 조정
 
@@ -256,7 +294,7 @@ ALTER TABLE users ADD COLUMN is_admin TINYINT(1) NOT NULL DEFAULT 0;
 
 | # | 할 일 | 상태 |
 |---|---|---|
-| 1 | `llm_usage` · `user_quota` 테이블, 서버에서 사용자별 차감 | |
+| 1 | `llm_usage` · `user_quota` 테이블, 서버에서 사용자별 차감, 토큰 실측 기록 | ✅ 2026-09-02 |
 | 2 | `/api/usage` 엔드포인트 + 화면 표시 3곳 | |
 | 3 | 어드민 `/admin` (목록 · 상세 · 대시보드) | |
 | 4 | 추가 요청 폼 | |

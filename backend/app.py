@@ -4161,6 +4161,9 @@ def recognize_ingredients_from_image():
 
     try:
         result = recognize(images, mode=mode)
+        # 실제로 쓴 토큰을 원장 행에 붙인다 (크레딧 환산이 맞는지 나중에 검증용)
+        if usage:
+            usage_quota.attach_tokens(get_db, usage.get('usage_id'))
         _record_dictionary_misses(result.get('unmatched') or [], mode)
     except QuotaExceeded:
         return jsonify({'error': '지금 요청이 몰려 있어요. 잠시 후 다시 시도해 주세요.'}), 429

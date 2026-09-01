@@ -147,6 +147,9 @@ def _call_gemini(api_key, prompt):
     res = requests.post(url, json=payload, timeout=30)
     res.raise_for_status()
     data = res.json()
+    # 실제로 몇 토큰을 썼는지 원장에 남기기 위해 흘려 둔다 (usage_quota 참고).
+    import usage_quota
+    usage_quota.note_gemini_usage(data, model=model)
     parts = data.get('candidates', [{}])[0].get('content', {}).get('parts', [])
     return ''.join(part.get('text', '') for part in parts)
 
@@ -740,6 +743,9 @@ def handle_chat(get_db):
                 raw = _call_gemini(api_key, prompt)
             else:
                 raw = _call_groq(api_key, prompt)
+            # 실제로 쓴 토큰을 원장 행에 붙인다 (크레딧 환산이 맞는지 나중에 검증용)
+            if usage:
+                usage_quota.attach_tokens(get_db, usage.get('usage_id'))
             extracted = _extract_json(raw) or {}
             if isinstance(extracted.get('reply'), str) and extracted['reply'].strip():
                 parsed['reply'] = extracted['reply'].strip()

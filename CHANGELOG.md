@@ -4578,3 +4578,26 @@ marginBottom: actions.length ? 20 : 0,
 
 옛 전역 카운터(`_rate_count` / `_daily_limit` / `_consume_quota`)는 삭제하고,
 같은 자리에 "다시 만들지 말 것" 주석을 남겼다.
+
+### 사용량 원장에 실제 토큰까지 기록
+
+크레딧만 남기고 있었다. 크레딧은 **우리가 정한 환산값**이라, 그것만으로는
+"사진 2크레딧이 적정한가", "유료 티어로 넘어가면 원가가 얼마인가" 를 감으로밖에
+못 정한다.
+
+- `llm_usage` 에 `model` / `images` / `prompt_tokens` / `output_tokens` /
+  `total_tokens` 추가 (이미 만들어진 표에는 `ALTER` 로 채운다)
+- Gemini 응답의 `usageMetadata` 를 그대로 받아 적는다. 호출 함수의 반환값을
+  바꾸면 호출부를 전부 고쳐야 해서, 같은 스레드에서만 보이는 자리에 흘려 두고
+  (`note_gemini_usage`) 호출이 끝난 쪽에서 원장 행에 붙인다(`attach_tokens`)
+- 챗봇·사진 인식 양쪽 모두 적용. 기록이 실패해도 사용자 요청은 성공시킨다
+
+실호출 검증 (사진 2장, `food-multi`):
+
+| kind | credits | images | prompt | output | total |
+|---|---|---|---|---|---|
+| vision | 2 | 2 | 2,841 | 18 | 2,859 |
+
+환산이 맞는지 확인하는 쿼리를 `USAGE_QUOTA_PLAN.md` 에 함께 적어 뒀다 —
+`tokens_per_credit` 이 종류별로 벌어지면 그때 `CREDITS_VISION` 을 조정한다.
+**감으로 바꾸지 말 것.**

@@ -92,6 +92,72 @@ def caller_identity():
         return None, device_id
 
 
+# ── 실제 토큰 사용량 ──────────────────────────────────────────────
+#
+# 크레딧은 우리가 정한 환산값이고, 토큰은 **실제로 쓴 양**이다. 둘을 함께 남겨야
+# "사진 2크레딧이 적정한가", "유료 티어로 넘어가면 얼마인가" 를 감이 아니라
+# 근거로 판단할 수 있다.
+#
+# LLM 호출 함수는 응답의 usageMetadata 를 `note_tokens()` 로 흘려 두고, 호출이
+# 끝난 쪽에서 `attach_tokens()` 로 원장 행에 붙인다. 호출 함수의 반환값을 바꾸면
+# 호출부를 전부 고쳐야 해서, 같은 스레드 안에서만 보이는 자리를 하나 둔다.
+_local = threading.local()
+
+
+def note_tokens(prompt=None, output=None, total=None, model=None, images=None):
+    _local.tokens = {
+        "prompt_tokens": prompt,
+        "output_tokens": output,
+        "total_tokens": total,
+        "model": model,
+        "images": images,
+    }
+
+
+def note_gemini_usage(data, model=None, images=None):
+    """Gemini 응답 JSON에서 usageMetadata 를 꺼내 기록한다."""
+    meta = (data or {}).get("usageMetadata") or {}
+    note_tokens(
+        prompt=meta.get("promptTokenCount"),
+        output=meta.get("candidatesTokenCount"),
+        total=meta.get("totalTokenCount"),
+        model=model,
+        images=images,
+    )
+
+
+def attach_tokens(get_db, usage_id):
+    """직전 호출의 토큰 실측치를 원장 행에 붙인다. 없으면 아무것도 안 한다."""
+    tokens = getattr(_local, "tokens", None)
+    _local.tokens = None
+    if not usage_id or not tokens:
+        return
+    try:
+        db = get_db()
+        cursor = db.cursor()
+        try:
+            cursor.execute(
+                "UPDATE llm_usage SET model=%s, images=%s, prompt_tokens=%s, "
+                "output_tokens=%s, total_tokens=%s WHERE id=%s",
+                (
+                    (str(tokens.get("model"))[:48] if tokens.get("model") else None),
+                    tokens.get("images"),
+                    tokens.get("prompt_tokens"),
+                    tokens.get("output_tokens"),
+                    tokens.get("total_tokens"),
+                    usage_id,
+                ),
+            )
+            db.commit()
+        finally:
+            cursor.close()
+            db.close()
+    except Exception as e:  # noqa: BLE001
+        # 토큰 기록이 실패했다고 사용자 요청을 실패시키지는 않는다.
+        print(f"[usage] 토큰 기록 실패(무시): {e}", flush=True)
+
+
+
 class QuotaDenied(Exception):
     """한도 초과. `scope` 는 'weekly' 또는 'daily'."""
 
@@ -145,6 +211,11 @@ def ensure_tables(get_db):
                     kind VARCHAR(16) NOT NULL,
                     credits INT NOT NULL,
                     detail VARCHAR(64) NULL,
+                    model VARCHAR(48) NULL,
+                    images INT NULL,
+                    prompt_tokens INT NULL,
+                    output_tokens INT NULL,
+                    total_tokens INT NULL,
                     created_at DATETIME NOT NULL,
                     INDEX idx_user_time (user_id, created_at),
                     INDEX idx_device_time (device_id, created_at),
@@ -165,6 +236,20 @@ def ensure_tables(get_db):
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
                 """
             )
+            # 이미 만들어진 llm_usage 에 토큰 컬럼이 없으면 채운다.
+            # 크레딧만으로는 "환산이 맞는지"를 검증할 수 없다 — 실제로 몇 토큰을
+            # 썼는지 남겨야 나중에 크레딧 가중치나 유료 전환 원가를 근거로 정할 수 있다.
+            for col, ddl in (
+                ("model", "VARCHAR(48) NULL"),
+                ("images", "INT NULL"),
+                ("prompt_tokens", "INT NULL"),
+                ("output_tokens", "INT NULL"),
+                ("total_tokens", "INT NULL"),
+            ):
+                cursor.execute(f"SHOW COLUMNS FROM llm_usage LIKE '{col}'")
+                if not cursor.fetchone():
+                    cursor.execute(f"ALTER TABLE llm_usage ADD COLUMN {col} {ddl}")
+
             # 어드민 구분. 이미 있으면 조용히 넘어간다.
             cursor.execute("SHOW COLUMNS FROM users LIKE 'is_admin'")
             if not cursor.fetchone():
@@ -295,11 +380,14 @@ def consume(get_db, kind, user_id=None, device_id=None, detail=None):
                 datetime.now(KST).replace(tzinfo=None),
             ),
         )
+        usage_id = cursor.lastrowid
         db.commit()
     finally:
         cursor.close()
         db.close()
 
+    # 호출이 끝난 뒤 attach_tokens(get_db, usage_id) 로 실측 토큰을 붙인다.
+    st["usage_id"] = usage_id
     st["weekly_used"] += cost
     st["daily_used"] += cost
     st["weekly_remaining"] = max(0, st["weekly_limit"] - st["weekly_used"])

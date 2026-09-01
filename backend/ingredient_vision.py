@@ -175,6 +175,15 @@ def _call_gemini_vision(api_key, prompt, images):
         raise QuotaExceeded()
     res.raise_for_status()
     data = res.json()
+    # 실제로 몇 토큰을 썼는지 원장에 남기기 위해 흘려 둔다 (usage_quota 참고).
+    # 사진 장수도 함께 남긴다 — "사진 2크레딧" 환산이 맞는지 나중에 검증하려면
+    # 장수별 토큰이 필요하다.
+    try:
+        import usage_quota
+
+        usage_quota.note_gemini_usage(data, model=model, images=len(images))
+    except Exception:  # noqa: BLE001  (기록 실패가 인식을 막으면 안 된다)
+        pass
     parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
     return "".join(part.get("text", "") for part in parts)
 
