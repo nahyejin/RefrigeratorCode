@@ -257,12 +257,16 @@ const GuideOverlay: React.FC<GuideOverlayProps> = ({
       return { display: 'none' };
     }
 
+    // 요소에 딱 붙이지 않고 조금 여유를 준다.
+    // 붙여 그리면 요소 밖으로 삐져나온 장식(카메라 버튼의 "AI" 배지처럼 음수
+    // top/right 로 얹힌 것)이 노란 상자 밖에 잘려 걸쳐, 오류처럼 보인다.
+    const PAD = 6;
       const style = {
       position: 'fixed' as const,
-      top: `${targetRect.top}px`,
-      left: `${targetRect.left}px`,
-      width: `${Math.max(targetRect.width, 24)}px`, // 최소 너비 보장
-      height: `${Math.max(targetRect.height, 24)}px`, // 최소 높이 보장
+      top: `${targetRect.top - PAD}px`,
+      left: `${targetRect.left - PAD}px`,
+      width: `${Math.max(targetRect.width, 24) + PAD * 2}px`, // 최소 너비 보장
+      height: `${Math.max(targetRect.height, 24) + PAD * 2}px`, // 최소 높이 보장
       zIndex: 'var(--z-modal)', // 배경 오버레이(9998) 위에, 툴팁(10002) 아래
       border: '3px solid #FFD600',
       borderRadius: '8px',

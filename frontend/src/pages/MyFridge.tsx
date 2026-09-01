@@ -36,12 +36,14 @@ const baseGuideSteps = [
   {
     targetSelector: '[data-guide-target="storage-areas"]',
     message:
-      '재료는 냉동·냉장·실온 세 칸으로 나뉘어 있어요.\n처음엔 자주 쓰는 재료를 예시로 넣어 두었으니,\n내 냉장고 상황에 맞게 삭제·수정해서 쓰시면 돼요.\n사진으로 한번에 파악하기 기능은 추후 추가 계획입니다.',
+      '재료는 냉동·냉장·실온 세 칸으로 나뉘어 있어요.\n처음엔 자주 쓰는 재료를 예시로 넣어 두었으니,\n내 냉장고 상황에 맞게 삭제·수정해서 쓰시면 돼요.',
     position: 'top' as const,
   },
   {
-    targetSelector: '[data-guide-target="ingredient-input"]',
-    message: '재료명을 입력해서 내냉장고에 추가할 수 있어요.',
+    // 입력창 하나가 아니라 **입력 줄 전체**를 가리킨다 — 안내 문구가 재료명 입력과
+    // 사진 찍기를 함께 말하므로 카메라 버튼까지 하이라이트 안에 들어와야 한다.
+    targetSelector: '[data-guide-target="ingredient-add-row"]',
+    message: '재료명을 입력하거나, 영수증/음식 사진을 찍어서\n재료를 내냉장고에 추가할 수 있어요.',
     position: 'bottom' as const,
   },
   {
@@ -2097,6 +2099,13 @@ const MyFridge: React.FC = () => {
         <div style={{ maxWidth: 400, margin: '0 auto', paddingLeft: 20, paddingRight: 20, width: '100%', boxSizing: 'border-box' }}>
           <div
             className="flex gap-2 mb-4"
+            /* 가이드가 이 줄 전체(입력창 + 입력 + 카메라)를 가리킨다.
+               안내 문구가 "재료명을 입력하거나, 사진을 찍어서" 라고 둘 다 말하므로
+               입력창만 감싸면 카메라 버튼이 하이라이트 밖에 남는다.
+               ⚠️ 화면 문구(placeholder 등)로 찾지 말 것 — 예전에 placeholder 를
+                  "추가할 재료명을 입력하세요" → "재료명을 입력하세요" 로 다듬는 순간
+                  선택자가 안 맞아 이 단계의 하이라이트가 통째로 사라진 적이 있다. */
+            data-guide-target="ingredient-add-row"
             style={{
               width: '100%',
               maxWidth: 400,
@@ -2112,11 +2121,6 @@ const MyFridge: React.FC = () => {
               <input
                 ref={inputRef}
                 type="text"
-                /* 가이드가 이 입력창을 가리킨다. 예전엔 placeholder 문구로 찾고 있었는데
-                   문구를 "추가할 재료명을 입력하세요" -> "재료명을 입력하세요" 로 다듬는
-                   순간 선택자가 안 맞아 하이라이트가 통째로 사라졌다. 화면 문구는 언제든
-                   바뀌므로 가이드는 반드시 data-guide-target 으로만 찾는다. */
-                data-guide-target="ingredient-input"
                 placeholder="재료명을 입력하세요"
                 className="border border-gray-300 rounded-full px-4 py-2 text-sm focus:outline-none"
                 style={{
