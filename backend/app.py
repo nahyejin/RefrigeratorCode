@@ -805,8 +805,15 @@ def ensure_users_table():
     finally:
         db.close()
 
-def get_or_create_user(email, nickname, provider, provider_id):
-    """사용자 조회 또는 생성 (탈퇴한 사용자 제외)"""
+def get_or_create_user(email, nickname, provider, provider_id, email_verified=False):
+    """사용자 조회 또는 생성 (탈퇴한 사용자 제외)
+
+    같은 이메일이면 **로그인 수단이 달라도 같은 계정**으로 들어간다.
+    예전에는 유니크 키가 `(email, provider)` 라 네이버로 로그인한 계정과 그
+    이메일로 직접 가입한 계정이 서로 다른 냉장고를 갖게 됐다 — 사용자가
+    예상하지 못하는 동작이었다. 이미 갈라진 것은
+    `scripts/merge_duplicate_accounts.py` 로 합쳤다.
+    """
     # 테이블이 없으면 생성
     ensure_users_table()
     
@@ -824,7 +831,31 @@ def get_or_create_user(email, nickname, provider, provider_id):
         if user:
             db.commit()
             return user
-        
+
+        # 같은 이메일의 **다른 로그인 수단** 계정이 이미 있으면 그리로 들어간다.
+        #
+        # ⚠️ `email_verified` 일 때만 한다. 여기서 "확인됐다"는 **그 제공자가
+        # 이메일 소유를 확인해 줬다**는 뜻이다. 확인 안 된 이메일로 계정을 연결해
+        # 주면, 남의 이메일을 적어 둔 계정으로 로그인해 그 사람의 계정에 들어갈
+        # 수 있다. 판단은 각 로그인 콜백이 한다:
+        #   구글  — userinfo 의 verified_email (없으면 참으로 본다)
+        #   네이버 — 이메일을 실제로 받았을 때만 (없으면 아이디로 만들어 내는데,
+        #           그건 진짜 이메일이 아니라 연결하면 안 된다)
+        #   카카오 — kakao_account.is_email_verified (이메일이 선택 항목이라 미확인 가능)
+        if email_verified:
+            cursor.execute(
+                "SELECT id, email, nickname, provider FROM users "
+                "WHERE email = %s AND provider <> %s AND deleted_at IS NULL "
+                "ORDER BY created_at LIMIT 1",
+                (email, provider)
+            )
+            linked = cursor.fetchone()
+            if linked:
+                db.commit()
+                print(f"[로그인] {provider} 로 들어왔지만 같은 이메일의 기존 계정으로 연결: "
+                      f"id={linked['id']} (원래 {linked['provider']})")
+                return {'id': linked['id'], 'email': linked['email'], 'nickname': linked['nickname']}
+
         # 탈퇴한 사용자가 있는지 확인
         cursor.execute(
             "SELECT id, email, nickname FROM users WHERE email = %s AND provider = %s AND deleted_at IS NOT NULL",
@@ -965,7 +996,9 @@ def google_callback():
             email=user_data.get('email'),
             nickname=user_data.get('name', user_data.get('email', '').split('@')[0]),
             provider='google',
-            provider_id=str(user_data.get('id'))
+            provider_id=str(user_data.get('id')),
+            # 구글은 계정 이메일을 확인해 준다. 필드가 없으면 참으로 본다.
+            email_verified=bool(user_data.get('verified_email', True)),
         )
         print(f"[Google Callback] User created/found: {user}")
         
@@ -1057,11 +1090,15 @@ def kakao_callback():
             nickname = f"카카오사용자_{user_data.get('id')}"
         
         # 사용자 조회 또는 생성
+        # 카카오 이메일은 선택 항목이라 없거나 미확인일 수 있다. 확인된 경우에만
+        # 같은 이메일의 기존 계정으로 연결한다 (EMAIL_TRUSTED_PROVIDERS 설명 참고).
+        kakao_email_verified = bool(kakao_account.get('is_email_verified'))
         user = get_or_create_user(
             email=email,
             nickname=nickname,
             provider='kakao',
-            provider_id=str(user_data.get('id'))
+            provider_id=str(user_data.get('id')),
+            email_verified=kakao_email_verified,
         )
         
         # JWT 토큰 생성
@@ -1136,6 +1173,9 @@ def naver_callback():
         email = response_data.get('email', '')
         nickname = response_data.get('nickname', '')
         
+        # 이메일이 없으면 아이디로 만들어 낸다. **그건 진짜 이메일이 아니므로**
+        # 같은 이메일의 기존 계정으로 연결해서는 안 된다.
+        naver_real_email = bool(email)
         if not email:
             email = f"naver_{response_data.get('id')}@naver.com"
         # 네이버는 별명을 '9208****' 처럼 마스킹해서 내려주는 경우가 있어 그대로 쓰면 안 됨
@@ -1147,7 +1187,8 @@ def naver_callback():
             email=email,
             nickname=nickname,
             provider='naver',
-            provider_id=response_data.get('id')
+            provider_id=response_data.get('id'),
+            email_verified=naver_real_email,
         )
         
         # JWT 토큰 생성
@@ -1213,6 +1254,28 @@ def signup():
             
             if existing_user:
                 return jsonify({'error': '이미 가입된 이메일입니다.'}), 400
+
+            # 같은 이메일이 소셜로 이미 가입돼 있으면 **새로 만들지 않고 안내한다.**
+            #
+            # 예전에는 그냥 새 계정이 만들어졌고, 같은 이메일인데 냉장고가 둘이
+            # 되어 사용자가 헷갈렸다(실제로 그런 계정이 둘 있어서
+            # scripts/merge_duplicate_accounts.py 로 합쳤다).
+            # 소셜 쪽에서는 이메일이 확인되면 자동으로 연결되므로, 여기서는
+            # 기존 방법으로 들어오게 안내하는 것이 맞다.
+            cursor.execute(
+                "SELECT provider FROM users WHERE email = %s AND provider <> 'local' "
+                "AND deleted_at IS NULL ORDER BY created_at LIMIT 1",
+                (email,)
+            )
+            social = cursor.fetchone()
+            if social:
+                label = {'google': '구글', 'kakao': '카카오', 'naver': '네이버'}.get(
+                    social['provider'], social['provider']
+                )
+                return jsonify({
+                    'error': f'이 이메일은 {label} 로그인으로 가입돼 있어요. {label}로 로그인해 주세요.',
+                    'provider': social['provider'],
+                }), 409
             
             # 탈퇴한 사용자가 있는지 확인
             cursor.execute(
