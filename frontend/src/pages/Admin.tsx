@@ -136,6 +136,10 @@ const QuotaEditor: React.FC<{ user: AdminUser; onSaved: () => void }> = ({ user,
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ fontSize: 12, color: 'var(--ink-500)', lineHeight: 1.6 }}>
+        플랜 기본값은 <b>free 주 100 / 일 40</b>, <b>plus 주 400 / 일 100</b> 이에요.
+        숫자를 직접 적으면 이 사람에게만 그 값이 적용됩니다 (요청이 오면 여기서 늘려 주세요).
+      </div>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
         <select value={plan} onChange={e => setPlan(e.target.value)} style={S.input}>
           <option value="free">free</option>
@@ -150,11 +154,14 @@ const QuotaEditor: React.FC<{ user: AdminUser; onSaved: () => void }> = ({ user,
           <input value={daily} onChange={e => setDaily(e.target.value)} style={{ ...S.input, width: 72 }} />
         </label>
       </div>
+      {/* width:100% 만 주면 표 칸(td) 안에서 내용 너비를 밀어내 표 전체가
+          가로로 늘어난다. 최대 폭을 묶고 box-sizing 을 맞춰야 좁은 화면에서
+          제자리에 머문다. */}
       <input
         value={note}
         onChange={e => setNote(e.target.value)}
-        placeholder="왜 바꾸는지 (필수) — 예: 베타 테스터 요청, 2026-09-02"
-        style={{ ...S.input, width: '100%' }}
+        placeholder="왜 바꾸는지 (필수)"
+        style={{ ...S.input, width: '100%', maxWidth: 420, boxSizing: 'border-box' }}
       />
       {user.note && (
         <div style={{ fontSize: 12, color: 'var(--ink-500)' }}>지난 메모: {user.note}</div>
@@ -693,10 +700,12 @@ const Maintenance: React.FC = () => {
 
 const Dashboard: React.FC = () => {
   const [data, setData] = React.useState<any>(null);
+  const [act, setAct] = React.useState<any>(null);
   const [error, setError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     api('/api/admin/dashboard').then(setData).catch(e => setError(e.message));
+    api('/api/admin/activity').then(setAct).catch(() => {});
   }, []);
 
   if (error) return <div style={S.card}>{error}</div>;
@@ -710,6 +719,89 @@ const Dashboard: React.FC = () => {
 
   return (
     <>
+      {act && (
+        <>
+          <div style={S.card}>
+            <h2 style={S.h2}>어디까지 오고 어디서 멈추나</h2>
+            <div style={{ fontSize: 12, color: 'var(--ink-500)', marginBottom: 12, lineHeight: 1.6 }}>
+              가입한 사람이 각 단계까지 얼마나 오는지예요. <b>많이 줄어드는 칸이 고칠 곳</b>입니다.
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {(act.steps || []).map((st: any, i: number) => {
+                const base = act.steps[0]?.count || 1;
+                const pct = Math.round((st.count / base) * 100);
+                const prev = i > 0 ? act.steps[i - 1].count : null;
+                const drop = prev !== null && prev > 0 ? Math.round(((prev - st.count) / prev) * 100) : null;
+                return (
+                  <div key={st.label} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 76, fontSize: 13, fontWeight: 600, flexShrink: 0 }}>{st.label}</div>
+                    <div style={{ flex: 1, minWidth: 0, height: 22, background: 'var(--line-200)',
+                                  borderRadius: 6, overflow: 'hidden' }}>
+                      <div style={{ width: pct + '%', height: '100%', background: '#FFD600' }} />
+                    </div>
+                    <div style={{ width: 108, textAlign: 'right', fontSize: 12,
+                                  fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
+                      <b>{st.count}</b>명 · {pct}%
+                      {drop !== null && drop > 0 && (
+                        <span style={{ color: '#D14343' }}>{' -' + drop + '%'}</span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--ink-500)', marginTop: 10, lineHeight: 1.6 }}>
+              탈퇴 {act.churned}명.
+              <br />
+              <b>아직 못 보는 것</b>: {(act.blind_spots || []).join(' / ')}
+              <br />
+              이걸 보려면 화면 진입·행동을 남기는 기록이 따로 필요해요.
+            </div>
+          </div>
+
+          {(act.features || []).length > 0 && (
+            <div style={S.card}>
+              <h2 style={S.h2}>어떤 기능을 쓰나</h2>
+              <table style={{ borderCollapse: 'collapse', width: '100%' }}>
+                <thead><tr>{['기능', '쓴 사람', '호출', '크레딧'].map(h => (
+                  <th key={h} style={S.th}>{h}</th>))}</tr></thead>
+                <tbody>
+                  {act.features.map((f: any) => (
+                    <tr key={f.kind}>
+                      <td style={S.td}>{f.kind === 'vision' ? '사진 인식' : '요리 챗봇'}</td>
+                      <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums' }}>{f.users}</td>
+                      <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums' }}>{num(f.calls)}</td>
+                      <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums' }}>{num(f.credits)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          <div style={{ ...S.card, padding: 0, overflowX: 'auto' }}>
+            <h2 style={{ ...S.h2, padding: '16px 16px 0', margin: 0 }}>사람별 활동</h2>
+            <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 620, marginTop: 10 }}>
+              <thead><tr>{['닉네임', '재료', '즐겨찾기', '완료', '기록', 'AI', '마지막 활동'].map(h => (
+                <th key={h} style={S.th}>{h}</th>))}</tr></thead>
+              <tbody>
+                {(act.people || []).map((u: any) => (
+                  <tr key={u.id}>
+                    <td style={S.td}>{u.nickname}</td>
+                    <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums' }}>{u.ingredients}</td>
+                    <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums' }}>{u.favorites}</td>
+                    <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums' }}>{u.completed}</td>
+                    <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums' }}>{u.recorded}</td>
+                    <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums' }}>{u.credits}</td>
+                    <td style={S.td}>{String(u.last_active || '').replace('T', ' ').slice(0, 16)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+
       <div style={S.card}>
         <h2 style={S.h2}>한눈에</h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 10 }}>
@@ -784,16 +876,6 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {data.dictionary_miss_count > 0 && (
-        <div style={S.card}>
-          <h2 style={S.h2}>사전에 없던 이름 {data.dictionary_miss_count}개</h2>
-          <div style={{ fontSize: 13, color: 'var(--ink-500)', lineHeight: 1.6 }}>
-            사진에서 읽혔지만 사전에 없어 담지 못한 이름이 쌓여 있어요.
-            <b> 사전</b> 탭에서 고르고 반영하세요.
-          </div>
-        </div>
-      )}
-
     </>
   );
 };
@@ -801,7 +883,9 @@ const Dashboard: React.FC = () => {
 const Admin: React.FC = () => {
   const navigate = useNavigate();
   const [allowed, setAllowed] = React.useState<boolean | null>(null);
-  const [tab, setTab] = React.useState<'users' | 'requests' | 'dictionary' | 'ops' | 'dashboard'>('users');
+  // 대시보드가 첫 탭이다 — 어드민을 여는 이유는 대개 "지금 어떤 상태지" 이기 때문.
+  // 사전은 가끔 손보는 것이라 맨 뒤.
+  const [tab, setTab] = React.useState<'dashboard' | 'users' | 'requests' | 'ops' | 'dictionary'>('dashboard');
   const [users, setUsers] = React.useState<AdminUser[] | null>(null);
   const [keyword, setKeyword] = React.useState('');
   const [showDeleted, setShowDeleted] = React.useState(false);
@@ -852,7 +936,7 @@ const Admin: React.FC = () => {
       </div>
 
       <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
-        {([['users', '사용자'], ['requests', '요청'], ['dictionary', '사전'], ['ops', '운영'], ['dashboard', '대시보드']] as const).map(([key, label]) => (
+        {([['dashboard', '대시보드'], ['users', '사용자'], ['requests', '요청'], ['ops', '운영'], ['dictionary', '사전']] as const).map(([key, label]) => (
           <button
             key={key}
             type="button"
@@ -912,7 +996,7 @@ const Admin: React.FC = () => {
               <thead>
                 <tr>
                   {['id', '이메일', '닉네임', '가입', '경로', '재료',
-                    '오늘 (일 상한)', '이번 주 (주 한도)', '토큰', '플랜', '탈퇴', ''].map(h => (
+                    '오늘 (일 상한)', '이번 주 (주 한도)', '토큰', '플랜', '탈퇴', '관리'].map(h => (
                     <th key={h} style={S.th}>{h}</th>
                   ))}
                 </tr>
@@ -959,7 +1043,10 @@ const Admin: React.FC = () => {
                     {openId === u.id && (
                       <tr>
                         <td colSpan={12} style={{ padding: 14, background: 'var(--surface-sub)' }}>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                          {/* 표는 가로로 스크롤되지만 상세 패널까지 늘어나면
+                              내용이 화면 밖으로 나간다. 보이는 폭에 묶어 둔다. */}
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 14,
+                                        maxWidth: 'min(560px, calc(100vw - 60px))' }}>
                             <div>
                               <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>한도 조정</div>
                               <QuotaEditor user={u} onSaved={loadUsers} />

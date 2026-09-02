@@ -588,6 +588,110 @@ def register(app, get_db):
         payload['recorded_at'] = row['updated_at'].isoformat() if row['updated_at'] else None
         return jsonify({'status': payload})
 
+    @app.route('/api/admin/activity', methods=['GET'])
+    def admin_activity():
+        """사용자가 어디까지 오고 어디서 멈추는지.
+
+        **지금 데이터로 알 수 있는 것과 없는 것을 구분해 둔다.**
+        화면 진입·이탈 같은 것은 기록이 없어서 알 수 없다(그러려면 이벤트 로깅이
+        따로 필요하다). 대신 이미 쌓이는 것들 — 재료를 넣었는지, 레시피에
+        반응했는지, AI 를 써 봤는지 — 로 **단계별 도달률**을 만든다.
+        어느 단계에서 사람이 줄어드는지가 곧 고쳐야 할 곳이다.
+        """
+        _, err = guard()
+        if err:
+            return err
+
+        usage_quota.ensure_tables(get_db)
+        db = get_db()
+        cursor = db.cursor()
+        try:
+            cursor.execute("SELECT COUNT(*) n FROM users WHERE deleted_at IS NULL")
+            total = cursor.fetchone()['n'] or 0
+
+            def count(sql):
+                cursor.execute(sql)
+                return cursor.fetchone()['n'] or 0
+
+            steps = [
+                ('가입', total, '탈퇴하지 않은 계정'),
+                ('재료 등록', count(
+                    "SELECT COUNT(DISTINCT i.user_id) n FROM user_ingredients i "
+                    "JOIN users u ON u.id = i.user_id AND u.deleted_at IS NULL"),
+                 '냉장고에 재료를 하나라도 넣은 사람'),
+                ('레시피 반응', count(
+                    "SELECT COUNT(DISTINCT user_id) n FROM ("
+                    "  SELECT user_id FROM user_favorite_recipes"
+                    "  UNION SELECT user_id FROM user_completed_recipes"
+                    "  UNION SELECT user_id FROM user_recorded_recipes) x "
+                    "JOIN users u ON u.id = x.user_id AND u.deleted_at IS NULL"),
+                 '즐겨찾기·완료·기록 중 하나라도 한 사람'),
+                ('AI 사용', count(
+                    "SELECT COUNT(DISTINCT l.user_id) n FROM llm_usage l "
+                    "JOIN users u ON u.id = l.user_id AND u.deleted_at IS NULL"),
+                 '챗봇이나 사진 인식을 써 본 사람'),
+                ('식구 그룹', count(
+                    "SELECT COUNT(*) n FROM users WHERE household_id IS NOT NULL AND deleted_at IS NULL"),
+                 '다른 사람과 냉장고를 공유하는 사람'),
+            ]
+
+            cursor.execute("SELECT COUNT(*) n FROM users WHERE deleted_at IS NOT NULL "
+                           "AND email NOT LIKE 'merged+%%'")
+            churned = cursor.fetchone()['n'] or 0
+
+            # 기능별 사용량
+            cursor.execute(
+                "SELECT kind, COUNT(*) calls, COALESCE(SUM(credits),0) credits, "
+                "COUNT(DISTINCT COALESCE(user_id, 0)) users FROM llm_usage GROUP BY kind"
+            )
+            features = cursor.fetchall()
+
+            # 사람별 활동. "누가 실제로 쓰고 있나" 를 한눈에 본다.
+            cursor.execute(
+                """
+                SELECT u.id, u.nickname, u.email, u.created_at,
+                       (SELECT COUNT(*) FROM user_ingredients WHERE user_id=u.id) ingredients,
+                       (SELECT COUNT(*) FROM user_favorite_recipes WHERE user_id=u.id) favorites,
+                       (SELECT COUNT(*) FROM user_completed_recipes WHERE user_id=u.id) completed,
+                       (SELECT COUNT(*) FROM user_recorded_recipes WHERE user_id=u.id) recorded,
+                       (SELECT COALESCE(SUM(credits),0) FROM llm_usage WHERE user_id=u.id) credits,
+                       GREATEST(
+                         COALESCE((SELECT MAX(updated_at) FROM user_ingredients WHERE user_id=u.id), u.created_at),
+                         COALESCE((SELECT MAX(created_at) FROM user_completed_recipes WHERE user_id=u.id), u.created_at),
+                         COALESCE((SELECT MAX(created_at) FROM user_recorded_recipes WHERE user_id=u.id), u.created_at),
+                         COALESCE((SELECT MAX(created_at) FROM llm_usage WHERE user_id=u.id), u.created_at)
+                       ) AS last_active
+                FROM users u
+                WHERE u.deleted_at IS NULL
+                ORDER BY last_active DESC
+                LIMIT 100
+                """
+            )
+            people = cursor.fetchall()
+        finally:
+            cursor.close()
+            db.close()
+
+        return jsonify({
+            'total': total,
+            'churned': churned,
+            'steps': [{'label': a, 'count': b, 'why': c} for a, b, c in steps],
+            'features': features,
+            'people': [
+                {**r,
+                 'email': _clean_email(r['email']),
+                 'created_at': r['created_at'].isoformat() if r['created_at'] else None,
+                 'last_active': r['last_active'].isoformat() if r['last_active'] else None}
+                for r in people
+            ],
+            # 지금 데이터로는 못 보는 것. 화면에 함께 적어 오해를 막는다.
+            'blind_spots': [
+                '어느 화면에서 나갔는지 — 화면 진입 기록이 없다',
+                '레시피를 열어 봤는지 — 조회 기록이 없다(즐겨찾기·완료·기록만 남는다)',
+                '비회원이 무엇을 했는지 — 계정이 없어 이어붙일 수 없다',
+            ],
+        })
+
     @app.route('/api/admin/dashboard', methods=['GET'])
     def admin_dashboard():
         """대시보드 — 가입/탈퇴, 사용량, 쿠팡 클릭, 사전 미매칭 상위.
@@ -654,13 +758,8 @@ def register(app, get_db):
                 cursor.execute("SELECT COUNT(*) n FROM coupang_clicks WHERE created_at >= %s", (since,))
                 out['coupang_clicks_30d'] = cursor.fetchone()['n']
 
-            # 사전 미매칭 목록은 '사전' 탭에서 직접 다룬다(고르고, 제안받고, 반영).
-            # 여기서 또 보여주면 같은 것을 두 곳에서 보게 되고, 정작 손댈 수는
-            # 없어서 "그래서 어떻게 하라는 거지" 가 된다. 개수만 알린다.
-            cursor.execute("SHOW TABLES LIKE 'ingredient_dictionary_misses'")
-            if cursor.fetchone():
-                cursor.execute("SELECT COUNT(*) n FROM ingredient_dictionary_misses")
-                out['dictionary_miss_count'] = cursor.fetchone()['n']
+            # 사전 미매칭은 '사전' 탭 전용이다. 대시보드는 사용자 현황을 보는
+            # 자리라, 손댈 수도 없는 목록을 여기 두면 초점이 흐려진다.
         finally:
             cursor.close()
             db.close()
