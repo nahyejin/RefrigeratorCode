@@ -22,6 +22,8 @@ import os
 
 import pymysql
 
+from datetime import datetime
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CSV_PATH = os.path.join(ROOT, "frontend", "public", "ingredient_profile_dict_with_substitutes.csv")
 
@@ -79,6 +81,18 @@ def main():
         fieldnames = reader.fieldnames
         rows = list(reader)
 
+    # `추가일자` 열이 없으면 만든다.
+    #
+    # 왜 CSV 에도 남기나: DB 만 보면 "이 재료가 언제 들어왔는지" 를 알려고 매번
+    # DB 를 열어야 한다. 사전 파일 자체를 열었을 때도 보이는 편이 낫다 —
+    # 사전은 사람이 직접 열어 보는 파일이다.
+    # (프론트·배치 모두 열 **이름**으로 읽으므로 열을 더해도 안전하다)
+    if "추가일자" not in fieldnames:
+        fieldnames = list(fieldnames) + ["추가일자"]
+        for row in rows:
+            row.setdefault("추가일자", "")
+
+    today = datetime.now().strftime("%Y-%m-%d")
     by_keyword = {r["keyword"].strip(): r for r in rows if r.get("keyword")}
     added, extended, skipped = [], [], []
 
@@ -97,6 +111,8 @@ def main():
                 continue
             current.append(raw)
             target["synonyms"] = ", ".join(current)
+            # 기존 행에 동의어만 보탠 경우에도 손댄 날짜를 남긴다
+            target["추가일자"] = today
             extended.append((raw, keyword))
         else:  # 새 대표어
             if keyword in by_keyword:
@@ -108,6 +124,7 @@ def main():
             for col in ("중분류", "소분류", "세분류", "세세분류"):
                 row[col] = (item.get(col) or "").strip()
             row["hyperonym"] = (item.get("hyperonym") or "").strip()
+            row["추가일자"] = today
             if raw != keyword:
                 row["synonyms"] = raw
             rows.append(row)
@@ -132,16 +149,27 @@ def main():
         writer.writerows(rows)
     print(f"\nCSV 를 고쳤습니다: {CSV_PATH}")
 
+    # 성공한 것만 반영 표시하고, 못 넣은 것은 **이유를 남긴다.**
+    # 그래야 관리자가 "왜 아직 대기지" 를 화면에서 알 수 있고, 원인을 고친 뒤
+    # 다음 실행에 다시 시도된다(applied_to_csv 가 0 이면 계속 대상이다).
     conn = db()
     try:
         cursor = conn.cursor()
-        done = [a["raw_name"] for a in additions]
-        placeholders = ",".join(["%s"] * len(done))
-        cursor.execute(
-            f"UPDATE ingredient_dictionary_additions SET applied_to_csv = 1 "
-            f"WHERE raw_name IN ({placeholders})",
-            tuple(done),
-        )
+        done = [raw for raw, _ in added] + [raw for raw, _ in extended]
+        if done:
+            placeholders = ",".join(["%s"] * len(done))
+            cursor.execute(
+                f"UPDATE ingredient_dictionary_additions "
+                f"SET applied_to_csv = 1, applied_at = NOW(), apply_error = NULL "
+                f"WHERE raw_name IN ({placeholders})",
+                tuple(done),
+            )
+        for raw, why in skipped:
+            cursor.execute(
+                "UPDATE ingredient_dictionary_additions SET apply_error = %s "
+                "WHERE raw_name = %s",
+                (why[:255], raw),
+            )
         conn.commit()
     finally:
         conn.close()

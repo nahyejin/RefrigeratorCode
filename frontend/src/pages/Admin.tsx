@@ -751,6 +751,20 @@ const Dictionary: React.FC = () => {
     setSuggestions(prev => (prev || []).map(x => (x.raw === raw ? { ...x, ...patch } : x)));
   };
 
+  /** 사전에 보탠 것을 되돌린다 (아직 파일에 안 들어간 것만). */
+  const cancelAddition = async (raw: string) => {
+    try {
+      await api('/api/admin/dictionary/additions', {
+        method: 'DELETE', body: JSON.stringify({ raw_name: raw }),
+      });
+      setNote(raw + ' 을(를) 되돌렸어요.');
+      api('/api/admin/dictionary/additions').then(x => setAdditions(x.additions || [])).catch(() => {});
+      load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '되돌리지 못했어요.');
+    }
+  };
+
   /**
    * 판단을 바꿨을 때 그 한 건만 다시 물어본다.
    *
@@ -850,33 +864,62 @@ const Dictionary: React.FC = () => {
       {additions && additions.length > 0 && (
         <div style={S.card}>
           <h2 style={S.h2}>사전에 보탠 것 {additions.length}건</h2>
-          <div style={{ fontSize: 12, color: 'var(--ink-500)', marginBottom: 10, lineHeight: 1.6 }}>
-            <b>바로</b> 는 이미 인식에 쓰이고 있다는 뜻이고, <b>대기</b> 는 저장소의 사전
-            파일로 아직 안 옮겨졌다는 뜻이에요 — 매일 새벽 4시 30분에 자동으로 옮겨집니다.
+          <div style={{ fontSize: 12, color: 'var(--ink-500)', marginBottom: 10, lineHeight: 1.7 }}>
+            승인한 순간 <b>바로 인식에 쓰입니다.</b> 아래 <b>파일 반영</b>은 그것과
+            별개로, 저장소의 사전 파일(CSV)에 옮겨졌는지예요 —
+            <b> 매일 새벽 4시 30분</b>에 자동으로 옮겨집니다.
             (서버가 도는 곳은 파일시스템이 임시라 서버가 직접 못 고쳐요)
+            <br />
+            <b style={{ color: '#D14343' }}>실패</b>가 뜨면 이유가 함께 나와요. 원인을 고치면
+            다음 새벽에 자동으로 다시 시도합니다. 아니면 <b>되돌리기</b>로 치우세요.
           </div>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 520 }}>
-              <thead><tr>{['이름', '어디로', '분류', '파일 반영'].map(h => (
-                <th key={h} style={S.th}>{h}</th>))}</tr></thead>
-              <tbody>
-                {additions.map((a: any) => (
-                  <tr key={a.raw_name}>
-                    <td style={S.td}><b>{a.raw_name}</b></td>
-                    <td style={S.td}>
-                      {a.kind === 'synonym' ? a.keyword + ' 의 다른 이름' : '새 재료 ' + a.keyword}
-                    </td>
-                    <td style={{ ...S.td, fontSize: 12, color: 'var(--ink-500)' }}>
-                      {[a['중분류'], a['소분류']].filter(Boolean).join(' › ') || '-'}
-                    </td>
-                    <td style={{ ...S.td, color: a.applied_to_csv ? 'var(--ink-500)' : '#B4780A',
-                                 fontWeight: a.applied_to_csv ? 400 : 700 }}>
-                      {a.applied_to_csv ? '완료' : '대기'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+
+          {/* 카드로 둔다. 표로 두면 좁은 화면에서 가로 스크롤이 생기고
+              첫 열(이름)이 화면 밖으로 밀려 무엇에 대한 줄인지 안 보였다. */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {additions.map((a: any) => {
+              const failed = !!a.apply_error;
+              return (
+                <div key={a.raw_name} style={{
+                  border: '1px solid var(--line-200)', borderRadius: 10, padding: '10px 12px',
+                  display: 'flex', flexDirection: 'column', gap: 4,
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <b style={{ fontSize: 14 }}>{a.raw_name}</b>
+                    <span style={{
+                      fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 9999,
+                      background: a.applied_to_csv ? '#E8F0E4' : failed ? '#FBE3E0' : '#FFF3B0',
+                      color: a.applied_to_csv ? '#3A6B2E' : failed ? '#B03A28' : '#7A5C00',
+                    }}>
+                      {a.applied_to_csv ? '파일 반영 완료' : failed ? '반영 실패' : '반영 대기'}
+                    </span>
+                    {!a.applied_to_csv && (
+                      <button
+                        type="button"
+                        onClick={() => { void cancelAddition(a.raw_name); }}
+                        style={{ ...S.btn, height: 26, padding: '0 10px', fontSize: 12 }}
+                      >
+                        되돌리기
+                      </button>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 12.5, color: 'var(--ink-700)' }}>
+                    {a.kind === 'synonym' ? a.keyword + ' 의 다른 이름' : '새 재료 ' + a.keyword}
+                    {' · '}
+                    <span style={{ color: 'var(--ink-500)' }}>
+                      {[a['중분류'], a['소분류']].filter(Boolean).join(' › ') || '분류 없음'}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 11.5, color: 'var(--ink-500)' }}>
+                    승인 {String(a.created_at || '').replace('T', ' ').slice(0, 16)}
+                    {a.applied_at && ' · 파일 반영 ' + String(a.applied_at).replace('T', ' ').slice(0, 16)}
+                  </div>
+                  {failed && (
+                    <div style={{ fontSize: 12, color: '#D14343' }}>실패 이유 — {a.apply_error}</div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

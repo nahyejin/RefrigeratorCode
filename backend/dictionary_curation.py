@@ -65,10 +65,24 @@ def ensure_table(get_db):
                     created_by INT NULL,
                     created_at DATETIME NOT NULL,
                     applied_to_csv TINYINT(1) NOT NULL DEFAULT 0,
+                    applied_at DATETIME NULL,          -- 사전 파일에 실제로 들어간 시각
+                    apply_error VARCHAR(255) NULL,     -- 못 넣었으면 왜
                     UNIQUE KEY unique_raw (raw_name)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
                 """
             )
+            # 이미 만들어진 표에 없으면 채운다.
+            # "언제 반영됐는지 / 왜 실패했는지" 를 못 보면 관리자는 승인해 놓고
+            # 그게 실제로 들어갔는지 확인할 방법이 없다.
+            for col, ddl in (("applied_at", "DATETIME NULL"),
+                             ("apply_error", "VARCHAR(255) NULL")):
+                cursor.execute(
+                    f"SHOW COLUMNS FROM ingredient_dictionary_additions LIKE '{col}'"
+                )
+                if not cursor.fetchone():
+                    cursor.execute(
+                        f"ALTER TABLE ingredient_dictionary_additions ADD COLUMN {col} {ddl}"
+                    )
             db.commit()
             _ddl_done = True
         finally:

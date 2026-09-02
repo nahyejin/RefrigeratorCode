@@ -575,7 +575,8 @@ def register(app, get_db):
         cursor = db.cursor()
         try:
             cursor.execute(
-                "SELECT raw_name, kind, keyword, 중분류, 소분류, reason, created_at, applied_to_csv "
+                "SELECT raw_name, kind, keyword, 중분류, 소분류, reason, created_at, "
+                "applied_to_csv, applied_at, apply_error "
                 "FROM ingredient_dictionary_additions ORDER BY created_at DESC LIMIT 200"
             )
             rows = cursor.fetchall()
@@ -583,9 +584,54 @@ def register(app, get_db):
             cursor.close()
             db.close()
         return jsonify({'additions': [
-            {**r, 'created_at': r['created_at'].isoformat() if r['created_at'] else None}
+            {**r,
+             'created_at': r['created_at'].isoformat() if r['created_at'] else None,
+             'applied_at': r['applied_at'].isoformat() if r.get('applied_at') else None}
             for r in rows
         ]})
+
+    @app.route('/api/admin/dictionary/additions', methods=['DELETE'])
+    def admin_dictionary_cancel_addition():
+        """사전에 보탠 것을 되돌린다.
+
+        잘못 넣었거나 사전 파일 반영이 계속 실패하는 항목을 치우기 위한 것이다.
+        DB 에서 지우면 사전에서도 즉시 빠진다. 이미 사전 **파일**에 들어간 것은
+        파일을 직접 고쳐야 하므로, 그 경우는 안내만 하고 지우지 않는다.
+        """
+        _, err = guard()
+        if err:
+            return err
+        name = ((request.get_json(silent=True) or {}).get('raw_name') or '').strip()
+        if not name:
+            return jsonify({'error': '무엇을 되돌릴지 알려 주세요.'}), 400
+
+        db = get_db()
+        cursor = db.cursor()
+        try:
+            cursor.execute(
+                "SELECT applied_to_csv FROM ingredient_dictionary_additions WHERE raw_name = %s",
+                (name,),
+            )
+            row = cursor.fetchone()
+            if not row:
+                return jsonify({'error': '이미 없는 항목이에요.'}), 404
+            if row['applied_to_csv']:
+                return jsonify({
+                    'error': '이미 사전 파일에 들어간 항목이라 여기서는 못 지워요. '
+                             '사전 CSV 를 직접 고쳐 주세요.'
+                }), 400
+            cursor.execute(
+                "DELETE FROM ingredient_dictionary_additions WHERE raw_name = %s", (name,)
+            )
+            db.commit()
+        finally:
+            cursor.close()
+            db.close()
+
+        import ingredient_dictionary
+
+        ingredient_dictionary.reset_cache()
+        return jsonify({'ok': True})
 
     @app.route('/api/admin/maintenance', methods=['GET'])
     def admin_maintenance():
