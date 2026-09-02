@@ -195,6 +195,27 @@ class QuotaExceeded(Exception):
 _DATE_RE = re.compile(r"^(\d{4})-(\d{2})-(\d{2})$")
 
 
+def _items_from(raw_items):
+    """재료 목록을 {name, expiry, storage} 로 다듬는다.
+
+    응답이 어떤 모양으로 오든 **이름을 만드는 규칙은 하나**여야 한다.
+    갈래마다 따로 만들다가, 한 갈래에서 객체를 통째로 이름으로 쓰는 일이 있었다.
+    """
+    items = []
+    for x in raw_items or []:
+        if isinstance(x, dict):
+            name = str(x.get("name") or "").strip()
+            if name:
+                items.append({
+                    "name": name,
+                    "expiry": x.get("expiry"),
+                    "storage": x.get("storage"),
+                })
+        elif str(x).strip():
+            items.append({"name": str(x).strip(), "expiry": None, "storage": None})
+    return items
+
+
 def _parse_response(text):
     """모델 응답에서 {purchase_date, ingredients:[{name, expiry}]} 를 꺼낸다.
 
@@ -221,27 +242,35 @@ def _parse_response(text):
     if data is None:
         return empty
 
-    if isinstance(data, list):  # 옛 형식: ["물엿", "대파"]
-        return {"purchase_date": None,
-                "ingredients": [{"name": str(x).strip(), "expiry": None}
-                                for x in data if str(x).strip()]}
+    if isinstance(data, list):
+        # 배열로 오는 경우가 두 가지다.
+        #
+        #  (1) 옛 형식 — 이름만: ["물엿", "대파"]
+        #  (2) **사진마다 객체 하나씩**:
+        #      [{"purchase_date": ..., "ingredients": [...]}, {...}]
+        #
+        # 전에는 둘을 구분하지 않고 원소를 통째로 `str()` 해서 이름으로 썼다.
+        # (2) 가 오면 **응답 전체가 재료 이름 하나**가 된다. 실제로 그렇게 저장돼
+        # "사전에 없던 이름" 목록에 `{'purchase_date': '2026-04-01', ...}` 가
+        # 255자로 잘려 쌓여 있었다.
+        if any(isinstance(x, dict) and ("ingredients" in x or "purchase_date" in x)
+               for x in data):
+            purchase_date = None
+            items = []
+            for x in data:
+                if not isinstance(x, dict):
+                    continue
+                # 사진이 여러 장이면 구매일자는 처음 찍힌 것을 쓴다.
+                purchase_date = purchase_date or x.get("purchase_date")
+                items.extend(_items_from(x.get("ingredients")))
+            return {"purchase_date": purchase_date, "ingredients": items}
+        return {"purchase_date": None, "ingredients": _items_from(data)}
+
     if not isinstance(data, dict):
         return empty
 
-    raw_items = data.get("ingredients") or []
-    items = []
-    for x in raw_items:
-        if isinstance(x, dict):
-            name = str(x.get("name") or "").strip()
-            if name:
-                items.append({
-                    "name": name,
-                    "expiry": x.get("expiry"),
-                    "storage": x.get("storage"),
-                })
-        elif str(x).strip():
-            items.append({"name": str(x).strip(), "expiry": None, "storage": None})
-    return {"purchase_date": data.get("purchase_date"), "ingredients": items}
+    return {"purchase_date": data.get("purchase_date"),
+            "ingredients": _items_from(data.get("ingredients"))}
 
 
 def _as_date(value):

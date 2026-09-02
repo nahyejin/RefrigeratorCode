@@ -49,6 +49,11 @@ def db():
         port=int(os.getenv("DB_PORT") or 47779),
         charset="utf8mb4",
         cursorclass=pymysql.cursors.DictCursor,
+        # 서버 시계가 UTC 라 세션 타임존을 KST 로 고정한다(backend/app.py 와 동일).
+        # 이걸 빠뜨리면 이 스크립트가 쓰는 NOW() 만 9시간 느리게 찍혀서, 앱이 쓴
+        # 시각과 나란히 놓았을 때 앞뒤가 뒤집힌다 — 실제로 사전 반영 시각이 승인
+        # 시각보다 먼저인 것처럼 보였다.
+        init_command="SET time_zone = '+09:00'",
     )
 
 

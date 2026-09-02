@@ -4157,6 +4157,9 @@ def ensure_ingredient_miss_table():
         db.close()
 
 
+_NOT_A_NAME = ('{', '}', '[', ']', '"', "':")
+
+
 def _record_dictionary_misses(unmatched, mode):
     """사전에 없어서 담지 못한 이름을 쌓아 둔다.
 
@@ -4171,7 +4174,13 @@ def _record_dictionary_misses(unmatched, mode):
     기록에 실패해도 인식 자체는 성공시켜야 하므로 예외를 삼킨다.
     """
     names = [str(u.get('raw') or '').strip() for u in unmatched]
-    names = [n for n in names if n][:50]
+    # **이름 같지 않은 것은 남기지 않는다.**
+    #
+    # 파싱이 어긋나면 응답 덩어리가 이름으로 흘러들어 온다. 한 번 저장되면
+    # 관리자 화면의 "사전에 없던 이름" 목록을 채워 버리고 사람이 하나씩 지워야
+    # 한다. 들어오는 자리에서 막는 편이 싸다.
+    names = [n for n in names
+             if n and len(n) <= 40 and not any(m in n for m in _NOT_A_NAME)][:50]
     if not names:
         return
     try:
