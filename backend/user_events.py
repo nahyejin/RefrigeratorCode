@@ -127,6 +127,31 @@ def record(get_db, events, user_id=None, device_id=None):
     db = get_db()
     cursor = db.cursor()
     try:
+        # 같은 방문의 앞선 기록에서 **누구인지 물려받는다.**
+        #
+        # 나가는 순간의 기록은 `sendBeacon` 으로 오는데, beacon 은 헤더를 못 붙여서
+        # 로그인 토큰이 안 온다. 그대로 두면 회원의 이탈 기록만 비회원처럼 남아,
+        # 한 사람이 둘로 세어진다. 방문(session)은 한 사람의 것이므로 그 방문에
+        # 이미 붙어 있는 값을 쓴다.
+        if user_id is None:
+            session_ids = {r[2] for r in rows if r[2]}
+            if session_ids:
+                marks = ",".join(["%s"] * len(session_ids))
+                cursor.execute(
+                    f"SELECT session_id, MAX(user_id) uid, MAX(device_id) did "
+                    f"FROM user_events WHERE session_id IN ({marks}) GROUP BY session_id",
+                    tuple(session_ids),
+                )
+                known = {r["session_id"]: r for r in cursor.fetchall()}
+                rows = [
+                    (
+                        r[0] if r[0] is not None else (known.get(r[2]) or {}).get("uid"),
+                        r[1] or (known.get(r[2]) or {}).get("did"),
+                        *r[2:],
+                    )
+                    for r in rows
+                ]
+
         cursor.executemany(
             "INSERT INTO user_events "
             "(user_id, device_id, session_id, name, screen, detail, source, created_at) "

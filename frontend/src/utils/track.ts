@@ -88,6 +88,12 @@ function sessionId(): string {
 function payload(events: Event[]) {
   const now = Date.now();
   return JSON.stringify({
+    // 기기 식별자를 **몸통에도** 싣는다.
+    //
+    // 나가는 순간의 기록은 `sendBeacon` 으로 보내는데, beacon 은 헤더를 붙일 수
+    // 없다. 헤더로만 보내면 하필 가장 궁금한 "어디서 나갔나" 가 누구 것인지
+    // 모르는 채로 도착한다. 서버는 헤더를 먼저 보고 없으면 이 값을 쓴다.
+    device_id: getDeviceId(),
     events: events.map(e => ({
       name: e.name,
       screen: e.screen,
