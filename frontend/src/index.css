@@ -1009,3 +1009,55 @@ select:focus-visible {
   border-color: var(--ink-700) !important;
   box-shadow: 0 0 0 3px rgba(26, 26, 30, 0.10) !important;
 }
+
+/* 사진에서 재료를 읽는 동안 보여 주는 스캔 애니메이션.
+   AI 가 몇 초씩 걸리는데 화면이 정지해 있으면 멈춘 줄 안다. 무엇을 하는 중인지
+   보이게 한다 — 빛줄기가 사진을 위아래로 훑는다. */
+@keyframes scan-sweep {
+  0%   { transform: translateY(-6%);  opacity: 0; }
+  12%  { opacity: 1; }
+  88%  { opacity: 1; }
+  100% { transform: translateY(106%); opacity: 0; }
+}
+.scan-frame {
+  position: relative;
+  width: 92px;
+  height: 116px;
+  border-radius: 12px;
+  border: 2px solid var(--line-200);
+  background: var(--surface-sub);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+/* 사진 속 글자를 흉내 낸 선들 — 무엇을 읽고 있는지 한눈에 읽히게 */
+.scan-frame i {
+  position: absolute;
+  left: 14px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--line-200);
+}
+.scan-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 26px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 214, 0, 0) 0%,
+    rgba(255, 214, 0, 0.55) 55%,
+    rgba(255, 214, 0, 0) 100%
+  );
+  border-bottom: 2px solid #FFD600;
+  animation: scan-sweep 1.9s ease-in-out infinite;
+}
+
+/* 움직임 최소화: 훑는 대신 밝기만 숨 쉬게 한다. 위아래로 움직이는 요소는
+   전정기관에 민감한 사람에게 불편할 수 있다. */
+@media (prefers-reduced-motion: reduce) {
+  .scan-line {
+    animation: loading-fade 1.6s ease-in-out infinite !important;
+    transform: none !important;
+    top: 45%;
+  }
+}

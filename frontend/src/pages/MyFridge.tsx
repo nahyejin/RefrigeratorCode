@@ -1654,6 +1654,8 @@ const MyFridge: React.FC = () => {
   const [cameraSheetOpen, setCameraSheetOpen] = useState(false);
   const [recognitionOpen, setRecognitionOpen] = useState(false);
   const [recognitionLoading, setRecognitionLoading] = useState(false);
+  // 로딩 화면에서 "3장을 함께 읽고 있어요" 라고 말해 주기 위해 장수를 들고 있는다.
+  const [recognitionPhotoCount, setRecognitionPhotoCount] = useState(0);
   const [recognized, setRecognized] = useState<RecognizedIngredient[]>([]);
   const [recognizedUnmatched, setRecognizedUnmatched] = useState<UnmatchedIngredient[]>([]);
   const [recognizedPurchaseDate, setRecognizedPurchaseDate] = useState<string | null>(null);
@@ -1685,6 +1687,7 @@ const MyFridge: React.FC = () => {
     // 영수증/앨범(자동판별)은 한 번에 산 것으로 보고 일괄, 음식 사진은 행마다.
     setRecognitionPerItemDate(mode === 'food-single' || mode === 'food-multi');
     setRecognitionError(null);
+    setRecognitionPhotoCount(files.length);
     setRecognitionLoading(true);
     setRecognitionOpen(true);
 
@@ -2280,6 +2283,7 @@ const MyFridge: React.FC = () => {
           isOpen={recognitionOpen}
           onClose={() => setRecognitionOpen(false)}
           loading={recognitionLoading}
+          photoCount={recognitionPhotoCount}
           ingredients={recognized}
           unmatched={recognizedUnmatched}
           purchaseDate={recognizedPurchaseDate}

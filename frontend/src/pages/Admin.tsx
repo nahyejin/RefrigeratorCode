@@ -811,10 +811,15 @@ const Dictionary: React.FC = () => {
     <>
       <div style={S.card}>
         <h2 style={S.h2}>사전에 없던 이름</h2>
-        <div style={{ fontSize: 13, color: 'var(--ink-500)', lineHeight: 1.6, marginBottom: 12 }}>
-          사진에서 읽혔지만 사전에 없어 담지 못한 것들이에요. 넣을 것을 고른 뒤
-          <b> 제안 받기</b>를 누르면 어느 분류에 넣을지, 기존 재료의 다른 이름인지를
-          알려 줘요. <b>승인한 것만</b> 사전에 들어갑니다.
+        <div style={{ fontSize: 13, color: 'var(--ink-500)', lineHeight: 1.7, marginBottom: 12 }}>
+          <b>사진</b>에서 읽혔거나 <b>레시피 본문</b>에서 뽑혔는데, 사전에 없어서
+          버려진 이름들이에요. 넣을 것을 고른 뒤 <b>제안 받기</b>를 누르면 어느
+          분류에 넣을지, 기존 재료의 다른 이름인지를 알려 줘요.
+          <b> 승인한 것만</b> 사전에 들어갑니다.
+          <br />
+          <b>많이 나온 순</b>으로 정렬돼 있어요. 위쪽부터 보시면 됩니다 —
+          한 번 나온 오타를 고치는 것보다 <b>천 번 버려진 이름</b>을 넣는 게
+          훨씬 많이 바뀝니다.
           <br />
           요리 이름·주류 브랜드처럼 <b>일부러 안 넣을 것</b>은 목록에서 지워 두세요.
           안 지우면 볼 때마다 다시 판단하게 됩니다.
@@ -845,33 +850,88 @@ const Dictionary: React.FC = () => {
 
         {misses.length === 0 ? (
           <div style={{ fontSize: 13, color: 'var(--ink-500)' }}>지금은 못 잡은 이름이 없어요.</div>
-        ) : (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-            {misses.map(m => {
-              const on = picked.has(m.raw_name);
-              const solved = !!m.now_resolves_to;
-              return (
-                <button
-                  key={m.raw_name}
-                  type="button"
-                  onClick={() => { if (!solved) toggle(m.raw_name); }}
-                  title={solved ? ('이제 ' + m.now_resolves_to + ' 로 잡혀요') : (m.hit_count + '번 걸림')}
-                  style={{
-                    fontSize: 12, padding: '5px 10px', borderRadius: 9999,
-                    cursor: solved ? 'default' : 'pointer',
-                    border: on ? '1px solid #1A1A1E' : '1px dashed var(--line-300)',
-                    background: on ? '#FFD600' : solved ? 'var(--surface-sub)' : '#FFFFFF',
-                    color: solved ? 'var(--ink-500)' : 'var(--ink-900)',
-                    textDecoration: solved ? 'line-through' : 'none',
-                  }}
-                >
-                  {m.raw_name} <b>{m.hit_count}</b>
-                  {solved ? ' → ' + m.now_resolves_to : ''}
-                </button>
-              );
-            })}
-          </div>
-        )}
+        ) : (() => {
+          // 표로 둔다.
+          //
+          // 알약으로 늘어놓으면 **몇 번 나온 것인지가 안 읽힌다.** 숫자가 이름
+          // 뒤에 붙어 있어 줄이 안 맞고, 15,000번짜리와 1번짜리가 똑같은 크기의
+          // 알약으로 나란히 있어 무엇부터 볼지 판단이 안 된다. 지금은 후보가
+          // 수천 종이라 더 그렇다.
+          const total = (m: any) => (m.total_hits ?? ((m.hit_count || 0) + (m.recipe_hits || 0)));
+          const peak = Math.max(1, ...misses.map(total));
+          return (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 460 }}>
+                <thead>
+                  <tr>
+                    <th style={{ ...S.th, width: 34 }} />
+                    <th style={S.th}>이름</th>
+                    <th style={S.th}>나온 횟수</th>
+                    <th style={S.th}>어디서</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {misses.map(m => {
+                    const on = picked.has(m.raw_name);
+                    const solved = !!m.now_resolves_to;
+                    const n = total(m);
+                    return (
+                      <tr
+                        key={m.raw_name}
+                        onClick={() => { if (!solved) toggle(m.raw_name); }}
+                        style={{
+                          cursor: solved ? 'default' : 'pointer',
+                          background: on ? '#FFF8CC' : 'transparent',
+                        }}
+                      >
+                        <td style={{ ...S.td, textAlign: 'center' }}>
+                          <input
+                            type="checkbox"
+                            checked={on}
+                            disabled={solved}
+                            onChange={() => { if (!solved) toggle(m.raw_name); }}
+                            onClick={e => e.stopPropagation()}
+                            aria-label={m.raw_name}
+                          />
+                        </td>
+                        <td style={{
+                          ...S.td,
+                          color: solved ? 'var(--ink-500)' : 'var(--ink-900)',
+                          textDecoration: solved ? 'line-through' : 'none',
+                        }}>
+                          {m.raw_name}
+                          {solved && (
+                            <span style={{ fontSize: 11, color: 'var(--ink-500)', textDecoration: 'none' }}>
+                              {' → ' + m.now_resolves_to + ' 로 이제 잡혀요'}
+                            </span>
+                          )}
+                        </td>
+                        {/* 숫자만 있으면 15,000 과 800 의 차이가 안 와닿는다.
+                            막대를 옆에 둬서 눈으로 바로 크기를 재게 한다. */}
+                        <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums', width: 140 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span style={{ minWidth: 46, textAlign: 'right' }}>{num(n)}</span>
+                            <span style={{ flex: 1, height: 4, borderRadius: 2,
+                                           background: 'var(--line-200)', minWidth: 40 }}>
+                              <span style={{ display: 'block', width: (n / peak) * 100 + '%',
+                                             height: '100%', borderRadius: 2, background: '#FFD600' }} />
+                            </span>
+                          </div>
+                        </td>
+                        <td style={{ ...S.td, fontSize: 11.5, color: 'var(--ink-500)' }}>
+                          {[
+                            (m.recipe_hits || 0) > 0 ? '레시피 ' + num(m.recipe_hits) : '',
+                            (m.hit_count || 0) > 0 ? '사진 ' + num(m.hit_count) : '',
+                          ].filter(Boolean).join(' · ') || '-'}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          );
+        })()}
       </div>
 
       {additions && additions.length > 0 && (

@@ -459,9 +459,16 @@ def register(app, get_db):
             cursor.execute("SHOW TABLES LIKE 'ingredient_dictionary_misses'")
             if not cursor.fetchone():
                 return jsonify({'misses': []})
+            # 사진과 레시피 본문 양쪽을 합친 횟수로 줄을 세운다.
+            #
+            # 물량은 레시피 본문 쪽이 압도적이다(사진 수십 건 vs 본문 수만 건).
+            # 사진 것만 보고 있으면 정작 고쳐야 할 이름은 화면에 뜨지도 않는다.
             cursor.execute(
-                "SELECT raw_name, hit_count, last_mode, first_seen, last_seen "
-                "FROM ingredient_dictionary_misses ORDER BY hit_count DESC, last_seen DESC LIMIT 200"
+                "SELECT raw_name, hit_count, COALESCE(recipe_hits, 0) recipe_hits, "
+                "       hit_count + COALESCE(recipe_hits, 0) AS total_hits, "
+                "       last_mode, first_seen, last_seen "
+                "FROM ingredient_dictionary_misses "
+                "ORDER BY total_hits DESC, last_seen DESC LIMIT 300"
             )
             rows = cursor.fetchall()
         finally:

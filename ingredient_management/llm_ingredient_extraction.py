@@ -26,6 +26,7 @@ used_ingredients를 다시 만드는 스크립트.
 """
 
 import argparse
+from collections import Counter
 import csv
 import json
 import os
@@ -502,6 +503,8 @@ def run(*, limit, start_after_id, order, output_path, commit, rpm, concurrency, 
     changed_count = 0
     deleted_count = 0
     errors = 0
+    # 사전에 없어 버려진 이름 (이름 -> 몇 번). 끝에 한 번에 표로 보낸다.
+    recipe_misses = Counter()
     quota_skipped = 0
     done = 0
     since_commit = 0
@@ -597,6 +600,8 @@ def run(*, limit, start_after_id, order, output_path, commit, rpm, concurrency, 
                                 "UPDATE recipes SET used_ingredients = %s, llm_ingredients_done = 1 WHERE id = %s",
                                 (new_used, rid),
                             )
+                            # 사전에 없어 버린 이름을 세어 둔다 (끝에 한 번에 저장)
+                            recipe_misses.update(unmapped)
                             since_commit += 1
                         # err(일시적 오류)는 llm_ingredients_done을 건드리지 않아
                         # --pending-only 다음 실행에서 자동으로 재시도된다.
@@ -625,10 +630,68 @@ def run(*, limit, start_after_id, order, output_path, commit, rpm, concurrency, 
         flush=True,
     )
     print(f"미리보기 CSV: {output_path}", flush=True)
+    if commit and recipe_misses:
+        try:
+            kinds = record_recipe_misses(recipe_misses)
+            print(
+                f"사전에 없던 이름 {kinds}종 / {sum(recipe_misses.values())}회를 "
+                f"어드민 '사전' 탭에 올렸습니다.",
+                flush=True,
+            )
+        except Exception as e:  # noqa: BLE001
+            # 여기서 실패해도 본작업(used_ingredients)은 이미 끝났다. 막지 않는다.
+            print(f"사전 후보 기록 실패(무시): {e}", flush=True)
     if commit:
         print("DB에 반영했습니다 (used_ingredients).", flush=True)
     else:
         print("DB 미반영 (미리보기만). 반영하려면 --commit 을 추가하세요.", flush=True)
+
+
+# 이름 같지 않은 것은 사전 후보로도 남기지 않는다.
+# (backend/app.py 의 사진 인식 쪽과 같은 규칙 — 파싱이 어긋나면 응답 덩어리가
+#  이름으로 흘러들어 오고, 한 번 저장되면 사람이 하나씩 지워야 한다)
+_NOT_A_NAME = ("{", "}", "[", "]", chr(34), "':")
+
+
+def _looks_like_name(text):
+    text = (text or "").strip()
+    return bool(text) and len(text) <= 40 and not any(m in text for m in _NOT_A_NAME)
+
+
+def record_recipe_misses(counter):
+    """레시피 본문에서 뽑혔지만 **사전에 없어 버려진** 이름을 표에 쌓는다.
+
+    왜 남기나:
+        지금까지 이 이름들은 미리보기 CSV 에만 있었다. 로컬 파일이라 어드민
+        화면에서는 안 보였고, 그래서 "사전에 없던 이름" 목록에는 사진에서 읽힌
+        수십 건만 떴다. **물량은 레시피 본문 쪽이 압도적이다**(누적 8만 회 이상).
+        정작 고쳐야 할 이름이 화면에 뜨지도 않는 상태였다.
+
+    왜 마지막에 한 번에 쓰나:
+        건마다 UPSERT 를 날리면 배치가 그만큼 느려진다. 세어 두었다가 끝에 보낸다.
+    """
+    items = [(name[:255], n) for name, n in counter.items() if _looks_like_name(name)]
+    if not items:
+        return 0
+    conn = _connect_db(read_timeout_sec=120)
+    cursor = conn.cursor()
+    try:
+        cursor.executemany(
+            """
+            INSERT INTO ingredient_dictionary_misses
+                (raw_name, hit_count, recipe_hits, last_mode, first_seen, last_seen)
+            VALUES (%s, 0, %s, 'recipe', NOW(), NOW())
+            ON DUPLICATE KEY UPDATE
+                recipe_hits = recipe_hits + VALUES(recipe_hits),
+                last_seen = NOW()
+            """,
+            items,
+        )
+        conn.commit()
+    finally:
+        cursor.close()
+        conn.close()
+    return len(items)
 
 
 def main():

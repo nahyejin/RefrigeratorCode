@@ -4143,7 +4143,8 @@ def ensure_ingredient_miss_table():
             CREATE TABLE IF NOT EXISTS ingredient_dictionary_misses (
                 id BIGINT AUTO_INCREMENT PRIMARY KEY,
                 raw_name VARCHAR(255) NOT NULL,
-                hit_count INT NOT NULL DEFAULT 1,
+                hit_count INT NOT NULL DEFAULT 1,      -- 사진에서 읽힌 횟수
+                recipe_hits INT NOT NULL DEFAULT 0,    -- 레시피 본문에서 뽑힌 횟수
                 last_mode VARCHAR(20) NULL,       -- receipt / file / food-*
                 first_seen DATETIME NOT NULL,
                 last_seen DATETIME NOT NULL,
@@ -4151,6 +4152,16 @@ def ensure_ingredient_miss_table():
                 INDEX idx_hit_count (hit_count)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         """)
+        # 이미 만들어진 표에 없으면 채운다.
+        #
+        # 왜 칸을 나누나: 사진에서 3번 읽힌 것과 레시피 본문 1,799건에서 나온 것은
+        # **무게가 전혀 다르다.** 한 칸에 더해 버리면 어느 쪽이 급한지 못 가린다.
+        cursor.execute("SHOW COLUMNS FROM ingredient_dictionary_misses LIKE 'recipe_hits'")
+        if not cursor.fetchone():
+            cursor.execute(
+                "ALTER TABLE ingredient_dictionary_misses "
+                "ADD COLUMN recipe_hits INT NOT NULL DEFAULT 0"
+            )
         db.commit()
     finally:
         cursor.close()

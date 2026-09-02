@@ -35,6 +35,8 @@ interface Props {
   isOpen: boolean;
   onClose: () => void;
   loading: boolean;
+  /** 지금 읽고 있는 사진 장수. 여러 장이면 더 오래 걸린다고 말해 주기 위한 것. */
+  photoCount?: number;
   ingredients: RecognizedIngredient[];
   unmatched: UnmatchedIngredient[];
   /** 영수증에서 읽은 구매일자 (YYYY-MM-DD). 없으면 null */
@@ -225,8 +227,91 @@ const chipStyle: React.CSSProperties = {
  * 틀린 항목은 눌러서 사전에서 다시 고를 수 있고, 사전에 없어 못 담는 항목도
  * 사용자가 직접 맞는 재료를 지정하면 담을 수 있다. 고칠 게 없으면 바로 반영하면 된다.
  */
+/**
+ * 사진을 읽는 동안 보여 주는 화면.
+ *
+ * 왜 이렇게까지 하나:
+ *   AI 호출은 사진 한 장에 몇 초, 여러 장이면 십몇 초까지 걸린다. 그동안 글자
+ *   한 줄만 떠 있으면 **멈춘 것처럼 보인다.** 실제로 그런 지적을 받았다.
+ *   기다림 자체는 못 줄이니, 무슨 일이 일어나는 중인지 보이게 한다.
+ *
+ * 세 가지를 같이 쓴다:
+ *   - 훑는 애니메이션 — 지금 사진을 읽는 중이라는 신호
+ *   - 바뀌는 단계 문구 — 시간이 흘러도 **뭔가 진행되고 있다**는 감각
+ *   - 결과와 같은 모양의 스켈레톤 — 곧 무엇이 나올지 미리 알려 주고,
+ *     실제 결과로 바뀔 때 화면이 덜 튄다
+ *
+ * 가짜 진행바는 쓰지 않는다. 남은 시간을 모르면서 아는 척하면, 90% 에서
+ * 멈춰 있는 순간 오히려 더 고장 난 것처럼 보인다.
+ */
+const RecognitionLoading: React.FC<{ photoCount?: number }> = ({ photoCount }) => {
+  const [step, setStep] = useState(0);
+
+  // 단계는 실제 진행이 아니라 **경과 시간**에 맞춘 문구다.
+  // 서버가 중간 상태를 알려주지 않으므로 정직하게 시간 기준으로 둔다.
+  const steps = [
+    '사진을 보내는 중이에요',
+    '글자와 재료를 훑어보는 중이에요',
+    '재료 이름을 골라내는 중이에요',
+    '재료 사전과 맞춰 보는 중이에요',
+  ];
+
+  useEffect(() => {
+    const timers = [
+      setTimeout(() => setStep(1), 1200),
+      setTimeout(() => setStep(2), 4500),
+      setTimeout(() => setStep(3), 8500),
+      setTimeout(() => setStep(4), 14000),
+    ];
+    return () => timers.forEach(clearTimeout);
+  }, []);
+
+  return (
+    <div style={{ padding: '20px 0 8px' }} role="status" aria-live="polite">
+      <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginBottom: 22 }}>
+        <div className="scan-frame" aria-hidden>
+          <i style={{ top: 22, width: 52 }} />
+          <i style={{ top: 38, width: 38 }} />
+          <i style={{ top: 54, width: 58 }} />
+          <i style={{ top: 70, width: 30 }} />
+          <i style={{ top: 86, width: 46 }} />
+          <span className="scan-line" />
+        </div>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: '#1A1A1E', lineHeight: 1.45 }}>
+            {step >= 4 ? '거의 다 됐어요' : steps[step]}
+          </div>
+          <div style={{ fontSize: 12.5, color: 'var(--ink-500)', marginTop: 6, lineHeight: 1.6 }}>
+            {step >= 4
+              ? '사진이 여러 장이면 조금 더 걸려요. 그대로 두시면 됩니다.'
+              : (photoCount && photoCount > 1
+                  ? `사진 ${photoCount}장을 함께 읽고 있어요. 보통 10초쯤 걸려요.`
+                  : '보통 5~10초쯤 걸려요.')}
+          </div>
+        </div>
+      </div>
+
+      {/* 곧 나올 결과와 같은 모양. 무엇이 나올지 미리 알려 주고, 실제 값으로
+          바뀔 때 높이가 크게 안 튄다. */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }} aria-hidden>
+        {[0, 1, 2].map(i => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div className="skeleton-block" style={{ width: 18, height: 18, borderRadius: 5 }} />
+            <div className="skeleton-block"
+                 style={{ width: [92, 68, 104][i], height: 13, borderRadius: 6 }} />
+            <div className="skeleton-block"
+                 style={{ width: [56, 72, 48][i], height: 13, borderRadius: 6 }} />
+            <div className="skeleton-block"
+                 style={{ flex: 1, minWidth: 30, height: 13, borderRadius: 6 }} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 const IngredientRecognitionSheet: React.FC<Props> = ({
-  isOpen, onClose, loading, ingredients, unmatched, purchaseDate, datePerItem,
+  isOpen, onClose, loading, photoCount, ingredients, unmatched, purchaseDate, datePerItem,
   errorText, ingredientDict, onConfirm,
 }) => {
   const [rows, setRows] = useState<Row[]>([]);
@@ -308,11 +393,7 @@ const IngredientRecognitionSheet: React.FC<Props> = ({
 
   const body = () => {
     if (loading) {
-      return (
-        <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--ink-500)', fontSize: 14 }}>
-          사진에서 재료를 찾고 있어요...
-        </div>
-      );
+      return <RecognitionLoading photoCount={photoCount} />;
     }
     if (errorText) {
       return (
