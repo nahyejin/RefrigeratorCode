@@ -298,8 +298,13 @@ def _parse(text):
     return data if isinstance(data, list) else []
 
 
-def suggest(names):
-    """선택된 이름들에 대한 처리 제안. **쓰지는 않는다** — 사람이 승인해야 반영된다."""
+def suggest(names, force_decision=None):
+    """선택된 이름들에 대한 처리 제안. **쓰지는 않는다** — 사람이 승인해야 반영된다.
+
+    `force_decision` 이 주어지면 그 판단으로 강제하고 **나머지만 채우게** 한다.
+    관리자가 "이건 새 재료야" 라고 판단을 바꿨을 때, 분류까지 손으로 고르게 하면
+    329개 목록에서 찾아야 한다. 판단만 사람이 정하고 분류는 다시 물어보는 게 맞다.
+    """
     names = [str(n).strip() for n in names if str(n).strip()][:30]
     if not names:
         return []
@@ -324,8 +329,17 @@ def suggest(names):
         cands = similar_keywords(name)
         candidate_block.append(f"- {name} → 후보: {', '.join(cands) if cands else '(비슷한 것 없음)'}")
 
+    forced = ""
+    if force_decision == "keyword":
+        forced = ("\n\n[중요] 아래 이름들은 **반드시 decision=\"keyword\"(새 재료)** 로 판단해라.\n"
+                  "skip 이나 synonym 으로 내리지 말고, 가장 알맞은 분류를 골라 채워라.")
+    elif force_decision == "synonym":
+        forced = ("\n\n[중요] 아래 이름들은 **반드시 decision=\"synonym\"** 으로 판단해라.\n"
+                  "가장 가까운 기존 대표어를 골라 keyword 에 채워라. skip 하지 마라.")
+
     prompt = (
         _PROMPT
+        + forced
         + "\n\n[쓸 수 있는 분류]\n" + path_lines
         + "\n\n[사전에 이미 있는 재료 대표어 — synonym 은 반드시 이 중에서 골라라]\n"
         + ", ".join(all_keywords)
@@ -344,12 +358,23 @@ def suggest(names):
             continue
         decision = str(item.get("decision") or "skip").strip()
         keyword = str(item.get("keyword") or "").strip()
+        if force_decision:
+            decision = force_decision
 
         # LLM 이 지어낸 값을 걸러 낸다. 사전은 지어낸 값이 들어가면 안 되는 곳이다.
+        # 지어낸 값은 받아들이지 않는다. 다만 **사람이 판단을 정해 준 경우**
+        # (force_decision)에는 판단까지 되돌리지 않는다 — 관리자가 "이건 새 재료야"
+        # 라고 했는데 분류를 못 골랐다고 `건너뜀` 으로 바꿔 버리면, 관리자는
+        # 자기가 고른 게 왜 사라졌는지 알 수 없다. 못 채운 칸만 비워 두고
+        # 화면에서 직접 고르게 한다.
         if decision == "synonym":
             if not keyword or normalize_key(keyword) not in alias:
-                decision, keyword = "skip", ""
-                item["reason"] = "제안한 대표어가 사전에 없어 건너뜀"
+                keyword = ""
+                if force_decision:
+                    item["reason"] = "가까운 대표어를 못 찾았어요. 직접 골라 주세요"
+                else:
+                    decision = "skip"
+                    item["reason"] = "제안한 대표어가 사전에 없어 건너뜀"
             else:
                 keyword = alias[normalize_key(keyword)]
         elif decision == "keyword":
@@ -360,8 +385,14 @@ def suggest(names):
                 str(item.get("세세분류") or "").strip(),
             )
             if path not in valid_paths:
-                decision = "skip"
-                item["reason"] = "제안한 분류가 사전에 없는 조합이라 건너뜀"
+                for col in ("중분류", "소분류", "세분류", "세세분류"):
+                    item[col] = ""
+                if force_decision:
+                    keyword = keyword or name
+                    item["reason"] = "알맞은 분류를 못 찾았어요. 직접 골라 주세요"
+                else:
+                    decision = "skip"
+                    item["reason"] = "제안한 분류가 사전에 없는 조합이라 건너뜀"
             elif not keyword:
                 keyword = name
 
@@ -387,9 +418,9 @@ def suggest(names):
     handled = {o["raw"] for o in out}
     for name in names:
         if name not in handled:
-            out.append({"raw": name, "decision": "skip", "keyword": "",
+            out.append({"raw": name, "decision": force_decision or "skip", "keyword": "",
                         "중분류": "", "소분류": "", "세분류": "", "세세분류": "",
-                        "hyperonym": "", "reason": "모델이 판단하지 못함"})
+                        "hyperonym": "", "reason": "모델이 판단하지 못했어요. 직접 골라 주세요"})
     return out
 
 

@@ -479,11 +479,15 @@ def register(app, get_db):
         _, err = guard()
         if err:
             return err
-        names = (request.get_json(silent=True) or {}).get('names') or []
+        body = request.get_json(silent=True) or {}
+        names = body.get('names') or []
+        force = body.get('force')
+        if force not in ('keyword', 'synonym'):
+            force = None
         try:
             import dictionary_curation
 
-            return jsonify({'suggestions': dictionary_curation.suggest(names)})
+            return jsonify({'suggestions': dictionary_curation.suggest(names, force_decision=force)})
         except RuntimeError as e:
             print(f"[dictionary] 설정 오류: {e}", flush=True)
             return jsonify({'error': 'LLM 키가 설정되지 않았습니다.'}), 503

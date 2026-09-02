@@ -456,6 +456,85 @@ const Requests: React.FC = () => {
 
 
 
+
+/**
+ * 대표어 고르기 — 치면 걸러서 목록으로 보여준다.
+ *
+ * 처음엔 `<datalist>` 를 썼는데 브라우저마다 동작이 달라 목록이 아예 안 뜨거나
+ * 앞글자만 맞아야 걸리는 경우가 있었다. 1,300개 중에서 고르는 일이라 "치면 바로
+ * 후보가 보이는" 게 핵심이라 직접 만들었다.
+ */
+const KeywordPicker: React.FC<{
+  value: string;
+  keywords: string[];
+  onPick: (keyword: string) => void;
+}> = ({ value, keywords, onPick }) => {
+  const [text, setText] = React.useState(value || '');
+  const [open, setOpen] = React.useState(false);
+
+  React.useEffect(() => { setText(value || ''); }, [value]);
+
+  const matches = React.useMemo(() => {
+    const q = text.trim().toLowerCase();
+    if (!q) return [];
+    const hit = keywords.filter(k => k.toLowerCase().includes(q));
+    // 정확히 같은 것 → 앞에서 시작하는 것 → 나머지. 짧은 것 먼저.
+    return hit
+      .sort((a, b) => {
+        const rank = (k: string) =>
+          k.toLowerCase() === q ? 0 : k.toLowerCase().startsWith(q) ? 1 : 2;
+        return rank(a) !== rank(b) ? rank(a) - rank(b) : a.length - b.length;
+      })
+      .slice(0, 30);
+  }, [text, keywords]);
+
+  return (
+    <div style={{ position: 'relative', minWidth: 180, flex: '1 1 180px', maxWidth: 280 }}>
+      <input
+        value={text}
+        onChange={e => { setText(e.target.value); setOpen(true); }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        placeholder="대표어 검색 (예: 상추)"
+        style={{ ...S.input, height: 30, width: '100%', boxSizing: 'border-box' }}
+      />
+      {open && matches.length > 0 && (
+        <div style={{
+          position: 'absolute', top: 34, left: 0, right: 0, zIndex: 5,
+          maxHeight: 200, overflowY: 'auto', background: 'var(--surface)',
+          border: '1px solid var(--line-200)', borderRadius: 8,
+          boxShadow: '0 8px 24px rgba(0,0,0,.12)',
+        }}>
+          {matches.map(k => (
+            <button
+              key={k}
+              type="button"
+              onMouseDown={e => e.preventDefault()}
+              onClick={() => { setText(k); setOpen(false); onPick(k); }}
+              style={{
+                display: 'block', width: '100%', textAlign: 'left', border: 'none',
+                background: 'transparent', padding: '8px 10px', fontSize: 13, cursor: 'pointer',
+                color: 'var(--ink-900)',
+              }}
+            >
+              {k}
+            </button>
+          ))}
+        </div>
+      )}
+      {open && text.trim() && matches.length === 0 && (
+        <div style={{
+          position: 'absolute', top: 34, left: 0, right: 0, zIndex: 5,
+          background: 'var(--surface)', border: '1px solid var(--line-200)',
+          borderRadius: 8, padding: '8px 10px', fontSize: 12, color: 'var(--ink-500)',
+        }}>
+          사전에 없는 이름이에요. 새 재료로 추가하시겠어요?
+        </div>
+      )}
+    </div>
+  );
+};
+
 /** 대표어가 어느 분류에 있는지 (선택지 목록에서 찾는다) */
 function pathOfKeyword(keyword: string, opts: any) {
   if (!keyword || !opts?.keywordPaths) return null;
@@ -484,8 +563,28 @@ const SuggestionRow: React.FC<{
   opts: any;
   onPatch: (patch: any) => void;
   onTarget: (keyword: string) => void;
-}> = ({ sug, opts, onPatch, onTarget }) => {
+  onAsk: (decision: string) => Promise<void>;
+}> = ({ sug, opts, onPatch, onTarget, onAsk }) => {
   const skip = sug.decision === 'skip';
+  const [asking, setAsking] = React.useState(false);
+
+  /**
+   * 판단을 바꾸면 **분류도 다시 물어본다.**
+   *
+   * 관리자가 "이건 새 재료야" 라고만 정하고 분류는 329개 목록에서 직접 찾게 하면
+   * 사실상 못 쓴다. 판단은 사람이, 나머지는 AI 가 채우는 게 맞다.
+   * (채워진 뒤에도 아래 드롭다운으로 고칠 수 있다)
+   */
+  const changeDecision = async (next: string) => {
+    onPatch({ decision: next });
+    if (next === 'skip') return;
+    setAsking(true);
+    try {
+      await onAsk(next);
+    } finally {
+      setAsking(false);
+    }
+  };
   const paths: any[] = opts?.paths || [];
   const pathKey = (p: any) =>
     [p['중분류'], p['소분류'], p['세분류'], p['세세분류']].join('|');
@@ -499,25 +598,25 @@ const SuggestionRow: React.FC<{
         <b style={{ fontSize: 15 }}>{sug.raw}</b>
         <select
           value={sug.decision}
-          onChange={e => onPatch({ decision: e.target.value })}
+          onChange={e => { void changeDecision(e.target.value); }}
+          disabled={asking}
           style={{ ...S.input, height: 30 }}
         >
           <option value="synonym">기존 재료의 다른 이름</option>
           <option value="keyword">새 재료로 추가</option>
           <option value="skip">넣지 않음</option>
         </select>
+        {asking && <span style={{ fontSize: 12, color: 'var(--ink-500)' }}>AI가 분류를 정하는 중...</span>}
       </div>
 
       {sug.decision === 'synonym' && (
         <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 13, color: 'var(--ink-500)' }}>어느 재료의 다른 이름인가요?</span>
-            <input
-              list="dict-keywords"
+            <KeywordPicker
               value={sug.keyword || ''}
-              onChange={e => onTarget(e.target.value)}
-              placeholder="대표어 검색"
-              style={{ ...S.input, height: 30, minWidth: 160 }}
+              keywords={opts?.keywords || []}
+              onPick={onTarget}
             />
           </div>
           <div style={{ fontSize: 12.5, color: pathText(sug) ? 'var(--ink-700)' : '#D14343' }}>
@@ -652,6 +751,24 @@ const Dictionary: React.FC = () => {
     setSuggestions(prev => (prev || []).map(x => (x.raw === raw ? { ...x, ...patch } : x)));
   };
 
+  /**
+   * 판단을 바꿨을 때 그 한 건만 다시 물어본다.
+   *
+   * 판단(동의어냐 새 재료냐)은 사람이 정하고, 대표어·분류는 AI 가 채운다.
+   * 사람이 329개 분류 목록에서 직접 찾게 하면 사실상 쓰이지 않는다.
+   */
+  const askAgain = async (raw: string, decision: string) => {
+    try {
+      const d = await api('/api/admin/dictionary/suggest', {
+        method: 'POST', body: JSON.stringify({ names: [raw], force: decision }),
+      });
+      const got = (d.suggestions || [])[0];
+      if (got) patchSuggestion(raw, { ...got, decision });
+    } catch {
+      /* 실패하면 사람이 직접 고르면 된다 */
+    }
+  };
+
   /** 동의어 대상을 바꾸면 **그 대표어가 있는 분류**도 따라 바뀌어야 한다. */
   const setSynonymTarget = (raw: string, keyword: string) => {
     const path = pathOfKeyword(keyword, opts);
@@ -730,11 +847,6 @@ const Dictionary: React.FC = () => {
         )}
       </div>
 
-      {/* 동의어 대상 자동완성. 1,300개를 select 로 두면 못 고른다. */}
-      <datalist id="dict-keywords">
-        {(opts?.keywords || []).map(k => <option key={k} value={k} />)}
-      </datalist>
-
       {additions && additions.length > 0 && (
         <div style={S.card}>
           <h2 style={S.h2}>사전에 보탠 것 {additions.length}건</h2>
@@ -780,6 +892,7 @@ const Dictionary: React.FC = () => {
                 opts={opts}
                 onPatch={(patch: any) => patchSuggestion(sug.raw, patch)}
                 onTarget={(kw: string) => setSynonymTarget(sug.raw, kw)}
+                onAsk={(decision: string) => askAgain(sug.raw, decision)}
               />
             ))}
           </div>
