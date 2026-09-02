@@ -310,7 +310,13 @@ def suggest(names, force_decision=None):
         return []
 
     alias = get_alias_to_canonical()
-    paths = material_paths()[:60]
+    # 분류도 **전체**를 준다.
+    #
+    # 처음엔 많이 쓰이는 60개만 보여줬는데, 검증은 329개 전체로 하고 있었다.
+    # 그래서 모델이 61번째 이후에 있는 알맞은 분류를 골라도 "목록에 없는 조합"
+    # 으로 걸러졌고, 화면에는 분류가 빈 채로 "직접 골라 주세요" 만 떴다.
+    # **보여준 것과 받아들이는 것이 달라서 모델이 이길 수 없는 구조였다.**
+    paths = material_paths()
     # 재료 대표어 **전체**를 준다.
     #
     # 처음에는 글자가 겹치는 것만 후보로 줬는데, 그러면 뜻은 같은데 글자가 다른
@@ -385,14 +391,33 @@ def suggest(names, force_decision=None):
                 str(item.get("세세분류") or "").strip(),
             )
             if path not in valid_paths:
-                for col in ("중분류", "소분류", "세분류", "세세분류"):
-                    item[col] = ""
-                if force_decision:
-                    keyword = keyword or name
-                    item["reason"] = "알맞은 분류를 못 찾았어요. 직접 골라 주세요"
+                # 분류를 못 골랐을 때의 차선책 — **가장 가까운 기존 재료의 자리**를 쓴다.
+                #
+                # "새 재료로 추가" 로 강제하면 모델이 분류는 비운 채 가까운 기존
+                # 이름(대저토마토 → "토마토")만 돌려주는 일이 잦다. 그런데 그게 곧
+                # 답이다: 품종·부위가 다른 새 재료는 **원래 재료와 같은 칸**에 들어간다.
+                # 그 자리를 그대로 빌려 쓰고, 새 대표어 이름은 원래 이름으로 둔다.
+                borrowed = None
+                for candidate in ([keyword] if keyword else []) + similar_keywords(name, limit=5):
+                    found = path_of(candidate)
+                    if found and found.get("대분류") == "재료":
+                        borrowed = found
+                        break
+
+                if borrowed:
+                    for col in ("중분류", "소분류", "세분류", "세세분류"):
+                        item[col] = borrowed.get(col) or ""
+                    keyword = name
+                    item["reason"] = (item.get("reason") or "").strip() or "가까운 재료와 같은 분류로 넣어요"
                 else:
-                    decision = "skip"
-                    item["reason"] = "제안한 분류가 사전에 없는 조합이라 건너뜀"
+                    for col in ("중분류", "소분류", "세분류", "세세분류"):
+                        item[col] = ""
+                    if force_decision:
+                        keyword = keyword or name
+                        item["reason"] = "알맞은 분류를 못 찾았어요. 직접 골라 주세요"
+                    else:
+                        decision = "skip"
+                        item["reason"] = "제안한 분류가 사전에 없는 조합이라 건너뜀"
             elif not keyword:
                 keyword = name
 
