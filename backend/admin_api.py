@@ -109,6 +109,26 @@ def _clean_email(email):
     return text
 
 
+def _iso(value):
+    """DATETIME 을 문자열로. 값이 없으면 None (화면에서 '아직 없음' 으로 처리)."""
+    return value.isoformat() if value else None
+
+
+# 방문 하나의 **유입 출처**. 그 방문에서 처음 본 utm_source 를 대표로 삼는다.
+#
+# 왜 "처음": 한 방문 안에서 출처가 바뀌는 경우(앱 안에서 링크를 또 타는 등)에도
+# "이 사람을 데려온 건 무엇인가" 는 맨 처음 것이다. 나중 것으로 세면 광고 효과가
+# 엉뚱한 곳으로 옮겨 붙는다.
+#
+# 출처가 아예 없는 방문은 버리지 않고 `(직접)` 으로 묶는다. 버리면 표의 합이
+# 전체 방문과 안 맞아 "나머지는 어디 갔지" 를 매번 되짚게 된다.
+_SESSION_SOURCE = """
+  SELECT session_id,
+         COALESCE(SUBSTRING_INDEX(GROUP_CONCAT(source ORDER BY created_at), ',', 1), '(직접)') src
+  FROM user_events WHERE session_id IS NOT NULL GROUP BY session_id
+"""
+
+
 def register(app, get_db):
     """앱에 어드민 라우트를 붙인다. app.py 에서 한 번 호출한다."""
 
@@ -742,6 +762,8 @@ def register(app, get_db):
             # 사람별 활동. "누가 실제로 쓰고 있나" 를 한눈에 본다.
             # 화면 기록 — 어디를 보고 어디서 나갔나.
             screens, exits, sessions, sources = [], [], {}, []
+            screen_series, exit_series = [], []
+            events_range = {'a': None, 'b': None}
             cursor.execute("SHOW TABLES LIKE 'user_events'")
             if cursor.fetchone():
                 cursor.execute(
@@ -784,11 +806,104 @@ def register(app, get_db):
                 )
                 sessions['people'] = cursor.fetchone()['n'] or 0
 
+                cursor.execute("SELECT MIN(created_at) a, MAX(created_at) b FROM user_events")
+                events_range = cursor.fetchone() or {'a': None, 'b': None}
+
+                # 화면 진입을 **날짜별로** 남긴다.
+                #
+                # 월별·연도별은 따로 묻지 않고 화면에서 이 날짜를 접어 쓴다. 단위를
+                # 바꿀 때마다 서버에 다시 묻지 않아 드롭다운이 즉시 반응한다.
                 cursor.execute(
-                    "SELECT source, COUNT(DISTINCT session_id) n FROM user_events "
-                    "WHERE source IS NOT NULL GROUP BY source ORDER BY n DESC LIMIT 10"
+                    "SELECT DATE(created_at) d, screen, COUNT(*) views "
+                    "FROM user_events "
+                    "WHERE name = 'screen_view' AND screen IS NOT NULL "
+                    "  AND created_at >= (CURDATE() - INTERVAL 400 DAY) "
+                    "GROUP BY d, screen ORDER BY d"
+                )
+                screen_series = [
+                    {'date': r['d'].isoformat(), 'screen': r['screen'], 'views': r['views']}
+                    for r in cursor.fetchall()
+                ]
+
+                # 나간 자리도 같은 방식으로. 날짜는 그 방문이 **끝난** 날로 잡는다.
+                cursor.execute(
+                    """
+                    SELECT DATE(ended_at) d, last_screen AS screen, COUNT(*) views FROM (
+                      SELECT e.session_id,
+                             MAX(e.created_at) AS ended_at,
+                             SUBSTRING_INDEX(GROUP_CONCAT(e.screen ORDER BY e.created_at), ',', -1)
+                               AS last_screen
+                      FROM user_events e
+                      WHERE e.name = 'screen_view' AND e.screen IS NOT NULL
+                        AND e.session_id IS NOT NULL
+                        AND e.created_at >= (CURDATE() - INTERVAL 400 DAY)
+                      GROUP BY e.session_id
+                    ) x GROUP BY d, last_screen ORDER BY d
+                    """
+                )
+                exit_series = [
+                    {'date': r['d'].isoformat(), 'screen': r['screen'], 'views': r['views']}
+                    for r in cursor.fetchall()
+                ]
+
+                # 유입 출처별 **성적표**.
+                #
+                # 방문 수만 세면 "인스타에서 300명 왔다" 로 끝난다. 정작 알아야 할 건
+                # 그 300명이 재료를 담아 봤는지, 가입까지 갔는지다. 광고를 어디에 더
+                # 쓸지는 그 비율로 정한다.
+                cursor.execute(
+                    """
+                    SELECT s.src AS source,
+                           COUNT(DISTINCT e.session_id) sessions,
+                           COUNT(DISTINCT COALESCE(CONCAT('u', e.user_id),
+                                                   CONCAT('d', e.device_id))) people,
+                           SUM(e.name = 'screen_view') views,
+                           COUNT(DISTINCT CASE WHEN e.name = 'ingredient_add'
+                                               THEN e.session_id END) added,
+                           COUNT(DISTINCT CASE WHEN e.name IN ('vision_use', 'chat_use')
+                                               THEN e.session_id END) ai,
+                           COUNT(DISTINCT CASE WHEN e.name = 'signup'
+                                               THEN e.session_id END) signups,
+                           COUNT(DISTINCT CASE WHEN e.name = 'coupang_click'
+                                               THEN e.session_id END) coupang,
+                           MIN(e.created_at) first_at,
+                           MAX(e.created_at) last_at
+                    FROM user_events e
+                    JOIN (""" + _SESSION_SOURCE + """) s ON s.session_id = e.session_id
+                    GROUP BY s.src ORDER BY sessions DESC LIMIT 20
+                    """
                 )
                 sources = cursor.fetchall()
+
+                # 출처별로 **처음 닿은 화면**. 광고 링크가 엉뚱한 데로 떨어지고 있진
+                # 않은지, 그 화면이 첫인상으로 괜찮은지를 여기서 본다.
+                cursor.execute(
+                    """
+                    SELECT src, first_screen, COUNT(*) n FROM (
+                      SELECT s.src AS src,
+                             SUBSTRING_INDEX(GROUP_CONCAT(e.screen ORDER BY e.created_at), ',', 1)
+                               AS first_screen
+                      FROM user_events e
+                      JOIN (""" + _SESSION_SOURCE + """) s ON s.session_id = e.session_id
+                      WHERE e.name = 'screen_view' AND e.screen IS NOT NULL
+                      GROUP BY e.session_id, s.src
+                    ) x GROUP BY src, first_screen ORDER BY n DESC
+                    """
+                )
+                landing = {}
+                for r in cursor.fetchall():
+                    landing.setdefault(r['src'], r['first_screen'])
+
+                for r in sources:
+                    r['views'] = int(r['views'] or 0)
+                    r['landing'] = landing.get(r['source'])
+                    r['first_at'] = r['first_at'].isoformat() if r['first_at'] else None
+                    r['last_at'] = r['last_at'].isoformat() if r['last_at'] else None
+
+            cursor.execute("SELECT MIN(created_at) a, MAX(created_at) b FROM users")
+            users_range = cursor.fetchone() or {'a': None, 'b': None}
+            cursor.execute("SELECT MIN(created_at) a, MAX(created_at) b FROM llm_usage")
+            usage_range = cursor.fetchone() or {'a': None, 'b': None}
 
             cursor.execute(
                 """
@@ -832,6 +947,17 @@ def register(app, get_db):
             'exits': exits,
             'sessions': sessions,
             'sources': sources,
+            'screen_series': screen_series,
+            'exit_series': exit_series,
+            # 카드마다 집계 구간이 다르다. 화면에 그대로 적기 위해 함께 내려준다.
+            'periods': {
+                'now': datetime.now().isoformat(),
+                'users_from': _iso(users_range['a']),
+                'usage_from': _iso(usage_range['a']),
+                'usage_to': _iso(usage_range['b']),
+                'events_from': _iso(events_range['a']),
+                'events_to': _iso(events_range['b']),
+            },
             'blind_spots': [
                 '앱을 지우고 다시 깐 비회원 — 기기 식별자가 새로 만들어져 다른 사람으로 보인다',
                 '왜 나갔는지 — 화면과 순서는 알아도 이유는 물어봐야 안다',
@@ -903,6 +1029,19 @@ def register(app, get_db):
             if cursor.fetchone():
                 cursor.execute("SELECT COUNT(*) n FROM coupang_clicks WHERE created_at >= %s", (since,))
                 out['coupang_clicks_30d'] = cursor.fetchone()['n']
+
+            cursor.execute("SELECT MIN(created_at) a, MAX(created_at) b FROM llm_usage")
+            usage_range = cursor.fetchone() or {'a': None, 'b': None}
+            cursor.execute("SELECT MIN(created_at) a FROM users")
+            users_range = cursor.fetchone() or {'a': None}
+            out['periods'] = {
+                'now': datetime.now().isoformat(),
+                'since_30d': since.isoformat(),        # 가입 추이·쿠팡 클릭의 시작점
+                'week_start': week_start.isoformat(),  # '이번 주' 의 기준 (월요일 0시 KST)
+                'users_from': _iso(users_range['a']),
+                'usage_from': _iso(usage_range['a']),
+                'usage_to': _iso(usage_range['b']),
+            }
 
             # 사전 미매칭은 '사전' 탭 전용이다. 대시보드는 사용자 현황을 보는
             # 자리라, 손댈 수도 없는 목록을 여기 두면 초점이 흐려진다.

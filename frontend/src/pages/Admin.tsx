@@ -1114,10 +1114,290 @@ const Maintenance: React.FC = () => {
   );
 };
 
+/**
+ * 추이 그래프의 계열 색.
+ *
+ * 이웃한 두 색이 **색각 이상(적록·청황)에서도 구분되는지 검증한 조합**이라
+ * 순서를 바꾸거나 색을 갈아 끼우지 않는다. 계열이 5개를 넘으면 색을 새로
+ * 만들지 말고 상위 5개만 그리고 나머지는 아래 표로 보낸다 — 색을 늘리는 순간
+ * 어느 선이 어느 화면인지 아무도 못 읽는다.
+ */
+const SERIES_COLORS = ['#2563EB', '#B4780A', '#0F9D58', '#B0518A', '#7C3AED'];
+
+/**
+ * 계열마다 점 모양도 다르게 둔다.
+ *
+ * 색만으로 구분하게 두면 색각 이상이거나 흑백으로 뽑았을 때 선이 뒤섞인다.
+ * 모양은 색과 별개로 살아남는다.
+ */
+const SERIES_SHAPES = ['circle', 'square', 'triangle', 'diamond', 'donut'];
+
+const Mark: React.FC<{ shape: string; x: number; y: number; color: string; r?: number }> =
+  ({ shape, x, y, color, r = 4 }) => {
+    // 겹치는 점은 배경색 테두리로 떼어 놓는다. 안 그러면 두 선이 만나는 자리에서
+    // 한 덩어리로 뭉쳐 어느 쪽이 위인지 안 보인다.
+    const ring = { stroke: 'var(--surface)', strokeWidth: 2 };
+    if (shape === 'square') {
+      return <rect x={x - r} y={y - r} width={r * 2} height={r * 2} fill={color} {...ring} />;
+    }
+    if (shape === 'triangle') {
+      return <polygon points={`${x},${y - r - 1} ${x + r + 1},${y + r} ${x - r - 1},${y + r}`}
+                      fill={color} {...ring} />;
+    }
+    if (shape === 'diamond') {
+      return <polygon points={`${x},${y - r - 1.5} ${x + r + 1.5},${y} ${x},${y + r + 1.5} ${x - r - 1.5},${y}`}
+                      fill={color} {...ring} />;
+    }
+    if (shape === 'donut') {
+      return <circle cx={x} cy={y} r={r - 0.5} fill="var(--surface)" stroke={color} strokeWidth={2.5} />;
+    }
+    return <circle cx={x} cy={y} r={r} fill={color} {...ring} />;
+  };
+
+/** 보기 단위. `count` 는 가로축에 세울 칸 수. */
+const UNITS: Record<string, { label: string; count: number; note: string }> = {
+  day: { label: '일자별', count: 14, note: '최근 2주' },
+  month: { label: '월별', count: 12, note: '최근 12개월' },
+  year: { label: '년도별', count: 6, note: '최근 6년' },
+};
+
+const pad2 = (n: number) => String(n).padStart(2, '0');
+
+/** 날짜(YYYY-MM-DD)를 보기 단위의 칸 이름으로 접는다. */
+const bucketOf = (date: string, unit: string) =>
+  unit === 'year' ? date.slice(0, 4) : unit === 'month' ? date.slice(0, 7) : date;
+
+/**
+ * 빈 칸까지 포함한 가로축을 만든다.
+ *
+ * 기록이 있는 날만 이으면 **없는 날이 사라져** 선이 붙어 버린다. 뜸했던 기간이
+ * 활발했던 것처럼 보이는데, 그게 이 그래프로 가장 하기 쉬운 착각이다.
+ */
+const axisBuckets = (unit: string, oldest: string | null): string[] => {
+  const today = new Date();
+  const out: string[] = [];
+  const n = UNITS[unit].count;
+  if (unit === 'day') {
+    for (let i = n - 1; i >= 0; i--) {
+      const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - i);
+      out.push(`${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`);
+    }
+  } else if (unit === 'month') {
+    for (let i = n - 1; i >= 0; i--) {
+      const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+      out.push(`${d.getFullYear()}-${pad2(d.getMonth() + 1)}`);
+    }
+  } else {
+    const thisYear = today.getFullYear();
+    const first = oldest ? Number(oldest.slice(0, 4)) : thisYear;
+    for (let y = Math.max(first, thisYear - n + 1); y <= thisYear; y++) out.push(String(y));
+  }
+  return out;
+};
+
+const tickLabel = (b: string, unit: string) =>
+  unit === 'day' ? b.slice(5).replace('-', '/')
+    : unit === 'month' ? b.slice(2).replace('-', '/')
+      : b;
+
+const fullLabel = (b: string, unit: string) =>
+  unit === 'day' ? b
+    : unit === 'month' ? `${b.slice(0, 4)}년 ${Number(b.slice(5))}월`
+      : `${b}년`;
+
+/**
+ * 세로축 눈금 간격을 1·2·5·10… 중에서 고른다.
+ *
+ * 꼭대기만 올려 잡고 4등분하면 `0 / 13 / 25 / 38 / 50` 같은 눈금이 나온다.
+ * 읽을 때마다 머릿속에서 반올림해야 해서, 간격을 먼저 반듯한 수로 정하고
+ * 꼭대기를 거기에 맞춘다.
+ */
+const niceStep = (x: number) => {
+  if (!(x > 0)) return 1;
+  const mag = Math.pow(10, Math.floor(Math.log10(x)));
+  for (const m of [1, 2, 5, 10]) {
+    if (x <= mag * m) return mag * m;
+  }
+  return mag * 10;
+};
+
+/**
+ * 화면별 추이 꺾은선.
+ *
+ * 왜 표가 아니라 선인가: 표는 "지금 어느 화면이 많나" 에 답하지만
+ * **"늘고 있나 줄고 있나"** 에는 답하지 못한다. 광고를 켠 뒤 무엇이 달라졌는지는
+ * 시간축이 있어야 보인다.
+ */
+const TrendChart: React.FC<{ rows: any[]; unit: string }> = ({ rows, unit }) => {
+  const [at, setAt] = React.useState<number | null>(null);
+
+  const oldest = rows.length
+    ? rows.reduce((a: string, r: any) => (r.date < a ? r.date : a), rows[0].date)
+    : null;
+  const buckets = axisBuckets(unit, oldest);
+
+  // 계열은 **전 기간 합계** 상위 5개로 고정한다.
+  // 칸마다 순위로 색을 주면 단위를 바꿀 때마다 색이 옮겨 다녀, 같은 색이 어제는
+  // 홈이고 오늘은 레시피가 된다.
+  const totals = new Map<string, number>();
+  rows.forEach((r: any) => totals.set(r.screen, (totals.get(r.screen) || 0) + r.views));
+  const names = [...totals.entries()]
+    .sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1))
+    .slice(0, SERIES_COLORS.length)
+    .map(([k]) => k);
+
+  const cell = new Map<string, number>();
+  rows.forEach((r: any) => {
+    const k = r.screen + '|' + bucketOf(r.date, unit);
+    cell.set(k, (cell.get(k) || 0) + r.views);
+  });
+  const value = (screen: string, b: string) => cell.get(screen + '|' + b) || 0;
+
+  if (names.length === 0 || buckets.length === 0) {
+    return (
+      <div style={{ fontSize: 13, color: 'var(--ink-500)', padding: '18px 0' }}>
+        아직 화면 기록이 없어요. 앱을 몇 번 돌아다니면 여기에 쌓입니다.
+      </div>
+    );
+  }
+
+  const W = 720, H = 230, padL = 48, padR = 16, padT = 12, padB = 28;
+  const plotW = W - padL - padR, plotH = H - padT - padB;
+  const peak = Math.max(...names.flatMap(nm => buckets.map(b => value(nm, b))));
+  const gap = niceStep(Math.max(peak, 1) / 4);
+  const top = Math.max(gap, Math.ceil(peak / gap) * gap);
+  const x = (i: number) => buckets.length === 1
+    ? padL + plotW / 2
+    : padL + (i * plotW) / (buckets.length - 1);
+  const y = (v: number) => padT + plotH - (v / top) * plotH;
+  const ticks: number[] = [];
+  for (let t = 0; t <= top + 1e-9; t += gap) ticks.push(t);
+  const labelEvery = Math.ceil(buckets.length / 7);
+
+  const onMove = (e: React.PointerEvent<SVGSVGElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const vx = ((e.clientX - rect.left) / rect.width) * W;
+    const i = buckets.length === 1
+      ? 0
+      : Math.round(((vx - padL) / plotW) * (buckets.length - 1));
+    setAt(Math.max(0, Math.min(buckets.length - 1, i)));
+  };
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <svg
+        viewBox={`0 0 ${W} ${H}`}
+        style={{ width: '100%', height: 'auto', display: 'block', touchAction: 'none' }}
+        onPointerMove={onMove}
+        onPointerLeave={() => setAt(null)}
+        role="img"
+        aria-label="화면별 추이"
+      >
+        {/* 눈금은 뒤로 물러나 있어야 한다. 선을 읽는 걸 방해하면 안 된다. */}
+        {ticks.map(t => (
+          <g key={t}>
+            <line x1={padL} x2={W - padR} y1={y(t)} y2={y(t)}
+                  stroke="var(--line-200)" strokeWidth={1} />
+            <text x={padL - 8} y={y(t) + 4} textAnchor="end" fontSize={11} fill="var(--ink-500)">
+              {num(t)}
+            </text>
+          </g>
+        ))}
+        {buckets.map((b, i) => (
+          (i % labelEvery === 0 || i === buckets.length - 1) ? (
+            <text key={b} x={x(i)} y={H - 8} textAnchor="middle" fontSize={11} fill="var(--ink-500)">
+              {tickLabel(b, unit)}
+            </text>
+          ) : null
+        ))}
+        {at !== null && (
+          <line x1={x(at)} x2={x(at)} y1={padT} y2={padT + plotH}
+                stroke="var(--ink-500)" strokeWidth={1} strokeDasharray="3 3" />
+        )}
+        {names.map((nm, si) => (
+          <polyline key={nm} fill="none" stroke={SERIES_COLORS[si]} strokeWidth={2}
+                    strokeLinejoin="round" strokeLinecap="round"
+                    points={buckets.map((b, i) => `${x(i)},${y(value(nm, b))}`).join(' ')} />
+        ))}
+        {names.map((nm, si) => buckets.map((b, i) => (
+          <Mark key={nm + b} shape={SERIES_SHAPES[si]}
+                x={x(i)} y={y(value(nm, b))} color={SERIES_COLORS[si]} />
+        )))}
+      </svg>
+
+      {at !== null && (
+        <div style={{
+          position: 'absolute', top: 0,
+          left: `${(x(at) / W) * 100}%`,
+          transform: x(at) > W / 2 ? 'translateX(calc(-100% - 10px))' : 'translateX(10px)',
+          background: 'var(--surface)', border: '1px solid var(--line-200)', borderRadius: 10,
+          boxShadow: '0 6px 18px rgba(0,0,0,.10)', padding: '8px 10px',
+          pointerEvents: 'none', fontSize: 12, minWidth: 140, zIndex: 2,
+        }}>
+          <div style={{ fontWeight: 700, marginBottom: 4 }}>{fullLabel(buckets[at], unit)}</div>
+          {names.map((nm, si) => (
+            <div key={nm} style={{ display: 'flex', alignItems: 'center', gap: 6, lineHeight: 1.8 }}>
+              <svg width={11} height={11} viewBox="0 0 11 11" aria-hidden>
+                <Mark shape={SERIES_SHAPES[si]} x={5.5} y={5.5} r={4} color={SERIES_COLORS[si]} />
+              </svg>
+              <span style={{ flex: 1, color: 'var(--ink-700)', whiteSpace: 'nowrap' }}>{nm}</span>
+              <b style={{ fontVariantNumeric: 'tabular-nums' }}>{num(value(nm, buckets[at]))}</b>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* 색만으로는 못 읽는 사람이 있으므로 이름표는 항상 둔다. */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 14px', marginTop: 8 }}>
+        {names.map((nm, si) => (
+          <span key={nm} style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            fontSize: 12, color: 'var(--ink-700)',
+          }}>
+            <svg width={14} height={12} viewBox="0 0 14 12" aria-hidden>
+              <line x1={0} y1={6} x2={14} y2={6} stroke={SERIES_COLORS[si]} strokeWidth={2} />
+              <Mark shape={SERIES_SHAPES[si]} x={7} y={6} r={3.5} color={SERIES_COLORS[si]} />
+            </svg>
+            {nm}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+/** ISO 시각에서 날짜만. */
+const dayOf = (iso?: string | null) => (iso ? String(iso).slice(0, 10) : null);
+
+/** "2026-08-01 ~ 2026-09-02" 꼴. 기록이 없으면 그렇다고 말한다. */
+const spanOf = (from?: string | null, to?: string | null) =>
+  from ? `${dayOf(from)} ~ ${dayOf(to) || '오늘'}` : '아직 기록 없음';
+
+/**
+ * 이 카드의 숫자가 **언제부터 언제까지의 것인지** 적는 줄.
+ *
+ * 카드마다 집계 구간이 다르다(누적 / 이번 주 / 최근 30일 / 기록을 켠 뒤부터).
+ * 안 적어 두면 볼 때마다 "이게 언제 거지" 를 되묻게 되고, 결국 잘못 비교한다.
+ */
+const Range: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <div style={{
+    display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', margin: '-4px 0 12px',
+  }}>
+    <span style={{
+      fontSize: 10.5, fontWeight: 700, padding: '2px 7px', borderRadius: 9999,
+      background: 'var(--surface-sub)', color: 'var(--ink-500)', whiteSpace: 'nowrap',
+    }}>기간</span>
+    <span style={{ fontSize: 11.5, color: 'var(--ink-500)' }}>{children}</span>
+  </div>
+);
+
 const Dashboard: React.FC = () => {
   const [data, setData] = React.useState<any>(null);
   const [act, setAct] = React.useState<any>(null);
   const [error, setError] = React.useState<string | null>(null);
+  // 추이 그래프 보기. 기본은 일자별 — 어제 뭘 했는지가 가장 자주 궁금하다.
+  const [unit, setUnit] = React.useState<string>('day');
+  const [metric, setMetric] = React.useState<'views' | 'exits'>('views');
 
   React.useEffect(() => {
     api('/api/admin/dashboard').then(setData).catch(e => setError(e.message));
@@ -1126,6 +1406,9 @@ const Dashboard: React.FC = () => {
 
   if (error) return <div style={S.card}>{error}</div>;
   if (!data) return <div style={S.card}>불러오는 중...</div>;
+
+  const P = data.periods || {};
+  const AP = (act && act.periods) || {};
 
   const daily: any[] = data.usage_daily || [];
   const byDate = new Map<string, number>();
@@ -1139,6 +1422,9 @@ const Dashboard: React.FC = () => {
         <>
           <div style={S.card}>
             <h2 style={S.h2}>어디까지 오고 어디서 멈추나</h2>
+            <Range>
+              전체 기간 누적 · 첫 가입 {dayOf(AP.users_from) || '-'} ~ 오늘 {dayOf(AP.now) || '-'}
+            </Range>
             <div style={{ fontSize: 12, color: 'var(--ink-500)', marginBottom: 12, lineHeight: 1.6 }}>
               가입한 사람이 각 단계까지 얼마나 오는지예요. <b>많이 줄어드는 칸이 고칠 곳</b>입니다.
             </div>
@@ -1178,11 +1464,61 @@ const Dashboard: React.FC = () => {
           {(act.screens || []).length > 0 && (
             <div style={S.card}>
               <h2 style={S.h2}>어느 화면을 보고 어디서 나가나</h2>
+              <Range>
+                화면 기록을 켠 뒤부터 · {spanOf(AP.events_from, AP.events_to)}
+              </Range>
               <div style={{ fontSize: 12, color: 'var(--ink-500)', marginBottom: 12, lineHeight: 1.6 }}>
                 방문 {act.sessions?.total ?? 0}회 · 사람 {act.sessions?.people ?? 0}명 ·
                 두 번 이상 온 사람 <b>{act.sessions?.returning ?? 0}명</b>
                 {(act.sessions?.people ?? 0) > 0 &&
                   ' (' + Math.round(((act.sessions?.returning ?? 0) / act.sessions.people) * 100) + '%)'}
+              </div>
+
+              {/* 고르는 것들은 그래프 **위 한 줄**에 모은다. 흩어 두면 무엇이
+                  무엇을 바꾸는지 매번 찾아야 한다. */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8,
+                            alignItems: 'center', margin: '2px 0 10px' }}>
+                <div style={{ display: 'inline-flex', border: '1px solid var(--line-200)',
+                              borderRadius: 8, overflow: 'hidden' }}>
+                  {([['views', '화면 진입'], ['exits', '나간 자리']] as const).map(([k, label]) => (
+                    <button
+                      key={k}
+                      type="button"
+                      onClick={() => setMetric(k)}
+                      aria-pressed={metric === k}
+                      style={{
+                        height: 32, padding: '0 12px', border: 'none', cursor: 'pointer',
+                        fontSize: 12.5, fontWeight: metric === k ? 700 : 500, color: '#1A1A1E',
+                        background: metric === k ? '#FFD600' : 'var(--surface)',
+                      }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <select
+                  value={unit}
+                  onChange={e => setUnit(e.target.value)}
+                  aria-label="보기 단위"
+                  style={{ ...S.input, height: 32 }}
+                >
+                  {Object.keys(UNITS).map(k => (
+                    <option key={k} value={k}>{UNITS[k].label}</option>
+                  ))}
+                </select>
+                <span style={{ fontSize: 11.5, color: 'var(--ink-500)' }}>
+                  {UNITS[unit].note} · 많이 {metric === 'views' ? '본' : '나간'} 화면 5개만
+                </span>
+              </div>
+
+              <TrendChart
+                rows={metric === 'views' ? (act.screen_series || []) : (act.exit_series || [])}
+                unit={unit}
+              />
+              <div style={{ fontSize: 11.5, color: 'var(--ink-500)', margin: '6px 0 16px', lineHeight: 1.6 }}>
+                {metric === 'views'
+                  ? '그 칸 동안 각 화면에 들어온 횟수예요.'
+                  : '그 칸 동안 끝난 방문을, 마지막으로 본 화면으로 나눈 수예요. 높은 선이 사람을 놓치는 자리입니다.'}
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 18 }}>
@@ -1224,31 +1560,96 @@ const Dashboard: React.FC = () => {
                 </div>
               </div>
 
-              {(act.sources || []).length > 0 && (
-                <div style={{ marginTop: 18 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>어디서 들어왔나</div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                    {act.sources.map((r: any) => (
-                      <span key={r.source} style={{
-                        fontSize: 12, padding: '4px 10px', borderRadius: 9999,
-                        background: 'var(--surface-sub)', color: 'var(--ink-700)',
-                      }}>
-                        {r.source} <b>{r.n}</b>
-                      </span>
-                    ))}
+              {(act.sources || []).length > 0 && (() => {
+                // 광고를 어디에 더 쓸지는 **방문 수가 아니라 전환율**로 정한다.
+                // 3천 명이 들어와 아무도 재료를 안 담는 유입보다, 300명이 들어와
+                // 절반이 담는 유입이 낫다. 그래서 비율을 옆에 붙여 둔다.
+                const totalSessions = act.sources.reduce(
+                  (a: number, r: any) => a + (r.sessions || 0), 0) || 1;
+                const cols = ['유입', '방문', '사람', '방문당 화면',
+                              '재료 담기', 'AI 사용', '가입', '쿠팡', '첫 화면', '들어온 기간'];
+                return (
+                  <div style={{ marginTop: 18 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>어디서 들어왔나</div>
+                    <div style={{ fontSize: 12, color: 'var(--ink-500)', marginBottom: 10, lineHeight: 1.7 }}>
+                      방문이 시작될 때의 <code>utm_source</code> 로 나눴어요.
+                      표시가 없으면 <b>(직접)</b> — 주소를 직접 치거나 북마크·홈 화면
+                      아이콘으로 들어온 방문입니다.
+                      <br />
+                      괄호 안 비율은 모두 <b>그 유입의 방문 수 대비</b>예요.
+                      <b> 방문이 많은 쪽</b>이 아니라 <b>재료 담기·가입 비율이 높은 쪽</b>에
+                      광고를 더 쓰면 됩니다.
+                    </div>
+                    <div style={{ overflowX: 'auto' }}>
+                      <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 780 }}>
+                        <thead><tr>{cols.map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
+                        <tbody>
+                          {act.sources.map((r: any) => {
+                            const share = Math.round((r.sessions / totalSessions) * 100);
+                            const rate = (n: number) => (r.sessions ? Math.round((n / r.sessions) * 100) : 0);
+                            const cellNum = { ...S.td, fontVariantNumeric: 'tabular-nums' as const };
+                            const pct = (n: number) => (
+                              <>
+                                {num(n || 0)}
+                                <span style={{ fontSize: 11, color: 'var(--ink-500)' }}>
+                                  {' (' + rate(n || 0) + '%)'}
+                                </span>
+                              </>
+                            );
+                            return (
+                              <tr key={r.source}>
+                                <td style={S.td}><b>{r.source}</b></td>
+                                <td style={cellNum}>
+                                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
+                                    <span>{num(r.sessions)}</span>
+                                    <span style={{ fontSize: 11, color: 'var(--ink-500)' }}>{share}%</span>
+                                  </div>
+                                  <div style={{ height: 3, borderRadius: 2, background: 'var(--line-200)',
+                                                marginTop: 3, minWidth: 56 }}>
+                                    <div style={{ width: share + '%', height: '100%',
+                                                  borderRadius: 2, background: '#FFD600' }} />
+                                  </div>
+                                </td>
+                                <td style={cellNum}>{num(r.people || 0)}</td>
+                                <td style={cellNum}>
+                                  {r.sessions ? (r.views / r.sessions).toFixed(1) : '-'}
+                                </td>
+                                <td style={cellNum}>{pct(r.added)}</td>
+                                <td style={cellNum}>{pct(r.ai)}</td>
+                                <td style={cellNum}>{pct(r.signups)}</td>
+                                <td style={cellNum}>{pct(r.coupang)}</td>
+                                <td style={S.td}>{r.landing || '-'}</td>
+                                <td style={{ ...S.td, fontSize: 11.5, color: 'var(--ink-500)' }}>
+                                  {dayOf(r.first_at) || '-'} ~ {dayOf(r.last_at) || '-'}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--ink-500)', marginTop: 10, lineHeight: 1.7 }}>
+                      <b>방문당 화면</b>이 1에 가까우면 첫 화면만 보고 바로 나갔다는 뜻이에요 —
+                      그 유입은 사람은 데려오지만 앱을 못 붙잡고 있는 겁니다.
+                      <br />
+                      <b>첫 화면</b>은 그 유입으로 들어온 사람이 가장 먼저 닿은 화면이에요.
+                      광고 링크가 엉뚱한 곳으로 떨어지고 있진 않은지 여기서 확인하세요.
+                      <br />
+                      광고·게시물 링크 뒤에 <code>?utm_source=instagram</code> 처럼 붙이면
+                      어느 글에서 왔는지 이 표에 나뉘어 보입니다
+                      (<code>instagram_story</code>, <code>threads_0902</code> 처럼 글마다
+                      다르게 붙이면 글 단위로도 볼 수 있어요).
+                    </div>
                   </div>
-                  <div style={{ fontSize: 12, color: 'var(--ink-500)', marginTop: 8, lineHeight: 1.6 }}>
-                    광고·게시물 링크 뒤에 <code>?utm_source=instagram</code> 처럼 붙이면
-                    어느 글에서 왔는지 여기 나뉘어 보입니다.
-                  </div>
-                </div>
-              )}
+                );
+              })()}
             </div>
           )}
 
           {(act.features || []).length > 0 && (
             <div style={S.card}>
               <h2 style={S.h2}>어떤 기능을 쓰나</h2>
+              <Range>전체 기간 누적 · {spanOf(AP.usage_from, AP.usage_to)}</Range>
               <table style={{ borderCollapse: 'collapse', width: '100%' }}>
                 <thead><tr>{['기능', '쓴 사람', '호출', '크레딧'].map(h => (
                   <th key={h} style={S.th}>{h}</th>))}</tr></thead>
@@ -1268,6 +1669,9 @@ const Dashboard: React.FC = () => {
 
           <div style={{ ...S.card, padding: 0, overflowX: 'auto' }}>
             <h2 style={{ ...S.h2, padding: '16px 16px 0', margin: 0 }}>사람별 활동</h2>
+            <div style={{ padding: '0 16px' }}>
+              <Range>전체 기간 누적 · 마지막 활동이 최근인 100명</Range>
+            </div>
             <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 620, marginTop: 10 }}>
               <thead><tr>{['닉네임', '재료', '즐겨찾기', '완료', '기록', 'AI', '마지막 활동'].map(h => (
                 <th key={h} style={S.th}>{h}</th>))}</tr></thead>
@@ -1291,20 +1695,23 @@ const Dashboard: React.FC = () => {
 
       <div style={S.card}>
         <h2 style={S.h2}>한눈에</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 10 }}>
+        {/* 타일마다 집계 구간이 다르다. 한 줄로 뭉뚱그리면 '이번 주' 와 '누적' 이
+            나란히 놓인 걸 못 알아채므로 **타일마다** 적는다. */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10 }}>
           {[
-            ['전체 사용자', num(data.users?.total ?? 0)],
-            ['탈퇴', num(data.users?.deleted ?? 0)],
-            ['식구 그룹 소속', num(data.users?.in_household ?? 0)],
-            ['이번 주 크레딧', num(data.this_week?.credits ?? 0)],
-            ['이번 주 호출', num(data.this_week?.calls ?? 0)],
-            ['쿠팡 클릭(30일)', num(data.coupang_clicks_30d ?? 0)],
-          ].map(([label, value]) => (
+            ['전체 사용자', num(data.users?.total ?? 0), '누적 (탈퇴 포함)'],
+            ['탈퇴', num(data.users?.deleted ?? 0), '누적'],
+            ['식구 그룹 소속', num(data.users?.in_household ?? 0), '지금 이 순간'],
+            ['이번 주 크레딧', num(data.this_week?.credits ?? 0), `${dayOf(P.week_start) || '월요일'}부터`],
+            ['이번 주 호출', num(data.this_week?.calls ?? 0), `${dayOf(P.week_start) || '월요일'}부터`],
+            ['쿠팡 클릭', num(data.coupang_clicks_30d ?? 0), `${dayOf(P.since_30d) || '30일 전'}부터`],
+          ].map(([label, value, when]) => (
             <div key={label as string} style={{ background: 'var(--surface-sub)', borderRadius: 10, padding: '10px 12px' }}>
               <div style={{ fontSize: 11, color: 'var(--ink-500)' }}>{label}</div>
               <div style={{ fontSize: 19, fontWeight: 700, color: '#1A1A1E', fontVariantNumeric: 'tabular-nums' }}>
                 {value}
               </div>
+              <div style={{ fontSize: 10.5, color: 'var(--ink-500)', marginTop: 2 }}>{when}</div>
             </div>
           ))}
         </div>
@@ -1312,6 +1719,11 @@ const Dashboard: React.FC = () => {
 
       <div style={S.card}>
         <h2 style={S.h2}>일별 크레딧 (최근 2주)</h2>
+        <Range>
+          {recent.length
+            ? `${recent[0][0]} ~ ${recent[recent.length - 1][0]} (기록이 있는 날만)`
+            : '아직 기록 없음'}
+        </Range>
         {recent.length === 0 ? (
           <div style={{ fontSize: 13, color: 'var(--ink-500)' }}>아직 사용 기록이 없어요.</div>
         ) : (
@@ -1336,6 +1748,7 @@ const Dashboard: React.FC = () => {
           벌어지면 CREDITS_VISION 을 조정한다 — 감으로 바꾸지 말 것. */}
       <div style={S.card}>
         <h2 style={S.h2}>크레딧 환산 점검</h2>
+        <Range>전체 기간 누적 · {spanOf(P.usage_from, P.usage_to)}</Range>
         {(data.credit_check || []).length === 0 ? (
           <div style={{ fontSize: 13, color: 'var(--ink-500)' }}>토큰이 기록된 호출이 아직 없어요.</div>
         ) : (
