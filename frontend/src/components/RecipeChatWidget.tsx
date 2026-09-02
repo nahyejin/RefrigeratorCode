@@ -505,8 +505,9 @@ const RecipeChatWidget: React.FC = () => {
                     >
                       쿡매치 AI
                     </p>
-                    {/* 기능을 쓰려고 연 시점이 남은 양을 알려주기 가장 좋은 때다 */}
-                    <UsageLine />
+                    {/* 기능을 쓰려고 연 시점이 남은 양을 알려주기 가장 좋은 때다.
+                        헤더는 폭이 좁아 compact — 한 줄로 끝나는 것만 보여준다. */}
+                    <UsageLine compact />
                   </div>
                 </>
               )}

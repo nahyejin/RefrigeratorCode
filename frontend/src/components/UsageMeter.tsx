@@ -126,12 +126,32 @@ export const UsageBadge: React.FC = () => {
  * 기능을 쓰려고 연 시점이 알려주기 가장 좋은 때다. 다 썼을 때는 막다른 길로
  * 끝내지 않고 언제 다시 채워지는지 말해 준다.
  */
-export const UsageLine: React.FC<{ style?: React.CSSProperties }> = ({ style }) => {
+export const UsageLine: React.FC<{ style?: React.CSSProperties; compact?: boolean }> = ({
+  style,
+  compact = false,
+}) => {
   const usage = useUsage();
   if (!usage) return null;
 
   const out = usage.weekly_remaining <= 0 || usage.daily_remaining <= 0;
   const daily = usage.daily_remaining < usage.weekly_remaining;
+
+  /**
+   * `compact` — 챗 패널 헤더처럼 **폭이 좁은 자리**용.
+   *
+   * 헤더는 아바타(36)와 버튼 두 개(40×2) 사이에 끼어 있어 남는 폭이 150px 남짓이다.
+   * 거기에 "이번 주 0 / 15 · 오늘은 10번 더 · 로그인하면 더 넉넉해요" 를 다 넣으면
+   * 두세 줄로 접혀 제목을 밀어낸다(실제로 그랬다).
+   * 좁은 자리에서는 **한 줄로 끝나는 것만** 남기고, 자세한 안내는 넓은 자리
+   * (카메라 시트 · 마이페이지)에서 한다.
+   */
+  const parts: React.ReactNode[] = [];
+  if (out) {
+    parts.push(daily ? '내일 다시 이어서' : `${compact ? '월요일' : resetLabel(usage)}에 채워져요`);
+  } else if (!compact) {
+    if (daily) parts.push(`오늘은 ${usage.daily_remaining}번 더`);
+    if (usage.is_guest) parts.push('로그인하면 더 넉넉해요');
+  }
 
   return (
     <div
@@ -139,21 +159,23 @@ export const UsageLine: React.FC<{ style?: React.CSSProperties }> = ({ style }) 
         display: 'flex',
         alignItems: 'center',
         gap: 6,
-        flexWrap: 'wrap',
+        // 좁은 자리에서는 줄을 절대 늘리지 않는다. 넘치면 말줄임.
+        flexWrap: compact ? 'nowrap' : 'wrap',
+        overflow: compact ? 'hidden' : undefined,
+        whiteSpace: compact ? 'nowrap' : undefined,
+        textOverflow: compact ? 'ellipsis' : undefined,
+        minWidth: 0,
         fontSize: 12,
         color: 'var(--ink-500)',
         ...style,
       }}
     >
-      <span style={{ fontWeight: 600, color: out ? RED : 'var(--ink-700)' }}>
+      <span style={{ fontWeight: 600, color: out ? RED : 'var(--ink-700)', flexShrink: 0 }}>
         이번 주 {usage.weekly_used} / {usage.weekly_limit}
       </span>
-      {out ? (
-        <span>· {daily ? '내일 다시 이어서 쓸 수 있어요' : `${resetLabel(usage)}에 채워져요`}</span>
-      ) : (
-        daily && <span>· 오늘은 {usage.daily_remaining}번 더</span>
-      )}
-      {usage.is_guest && <span>· 로그인하면 더 넉넉해요</span>}
+      {parts.map((text, i) => (
+        <span key={i} style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>· {text}</span>
+      ))}
     </div>
   );
 };
