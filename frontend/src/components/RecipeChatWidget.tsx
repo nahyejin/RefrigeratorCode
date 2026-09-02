@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { track } from '../utils/track';
 import { applyUsage, usageHeaders } from '../utils/usage';
 import { UsageBadge, UsageLine } from './UsageMeter';
 import BackButton from './ui/BackButton';
@@ -409,6 +410,7 @@ const RecipeChatWidget: React.FC = () => {
       // 성공이든 한도 초과(429)든 서버가 최신 사용량을 함께 보낸다 — 다시 조회하지
       // 않고 그대로 반영해서, 화면 세 곳이 곧바로 같은 값을 보이게 한다.
       applyUsage(data?.usage);
+      track('chat_use');
       if (!response.ok) {
         throw new Error(data.error || '채팅 요청에 실패했습니다.');
       }

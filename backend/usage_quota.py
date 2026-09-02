@@ -66,13 +66,19 @@ def caller_identity():
     """
     from flask import request
 
-    device_id = (
-        request.headers.get('X-Device-Id')
-        or (request.form.get('device_id') if request.form else None)
-        or ((request.get_json(silent=True) or {}).get('device_id')
-            if request.is_json else None)
-        or ''
-    ).strip()[:64] or None
+    # ⚠️ 본문을 읽는 순서에 주의.
+    # `request.form` 을 먼저 건드리면 werkzeug 가 본문을 폼으로 파싱하면서
+    # **입력 스트림을 소비**한다. 그러면 뒤이어 부르는 `request.get_json()` 이
+    # 빈 값을 돌려주고, 그걸 쓰는 엔드포인트가 조용히 아무것도 안 하게 된다
+    # (실제로 이벤트 수집이 그렇게 "성공했는데 0건" 이 됐다).
+    # 그래서 헤더를 먼저 보고, 본문은 형식에 맞는 쪽만 본다.
+    device_id = request.headers.get('X-Device-Id') or ''
+    if not device_id:
+        if request.is_json:
+            device_id = (request.get_json(silent=True) or {}).get('device_id') or ''
+        elif request.mimetype in ('application/x-www-form-urlencoded', 'multipart/form-data'):
+            device_id = request.form.get('device_id') or ''
+    device_id = str(device_id).strip()[:64] or None
 
     auth = request.headers.get('Authorization') or ''
     if not auth.startswith('Bearer '):

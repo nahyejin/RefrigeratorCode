@@ -4291,6 +4291,31 @@ def recognize_ingredients_from_image():
     return jsonify(result)
 
 
+@app.route('/api/events', methods=['POST'])
+def collect_events():
+    """화면 진입·핵심 행동 기록을 받는다.
+
+    로그인하지 않아도 받는다 — **비회원이 어디서 나가는지가 오히려 더 궁금하다**
+    (광고로 들어온 사람은 대부분 비회원 상태로 둘러본다).
+
+    실패해도 절대 사용자에게 티나지 않게 한다. 기록은 부수적인 일이라, 이것 때문에
+    화면이 멈추거나 오류가 뜨면 본말이 전도된다. 항상 200 을 돌려준다.
+    """
+    try:
+        import usage_quota
+        import user_events
+
+        user_id, device_id = usage_quota.caller_identity()
+        body = request.get_json(silent=True) or {}
+        saved = user_events.record(
+            get_db, body.get('events'), user_id=user_id, device_id=device_id
+        )
+        return jsonify({'saved': saved})
+    except Exception as e:  # noqa: BLE001
+        print(f"[events] 기록 실패(무시): {e}", flush=True)
+        return jsonify({'saved': 0})
+
+
 @app.route('/api/usage/request', methods=['GET', 'POST'])
 def usage_request():
     """한도를 더 달라는 요청. 결제 대신 **사람이 처리**하는 창구다.

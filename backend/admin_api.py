@@ -661,6 +661,56 @@ def register(app, get_db):
             features = cursor.fetchall()
 
             # 사람별 활동. "누가 실제로 쓰고 있나" 를 한눈에 본다.
+            # 화면 기록 — 어디를 보고 어디서 나갔나.
+            screens, exits, sessions, sources = [], [], {}, []
+            cursor.execute("SHOW TABLES LIKE 'user_events'")
+            if cursor.fetchone():
+                cursor.execute(
+                    "SELECT screen, COUNT(*) views, COUNT(DISTINCT session_id) sessions "
+                    "FROM user_events WHERE name = 'screen_view' AND screen IS NOT NULL "
+                    "GROUP BY screen ORDER BY views DESC LIMIT 20"
+                )
+                screens = cursor.fetchall()
+
+                # 각 방문의 **마지막 화면** = 그 사람이 나간 자리.
+                cursor.execute(
+                    """
+                    SELECT last_screen AS screen, COUNT(*) n FROM (
+                      SELECT e.session_id,
+                             SUBSTRING_INDEX(GROUP_CONCAT(e.screen ORDER BY e.created_at), ',', -1)
+                               AS last_screen
+                      FROM user_events e
+                      WHERE e.name = 'screen_view' AND e.screen IS NOT NULL
+                        AND e.session_id IS NOT NULL
+                      GROUP BY e.session_id
+                    ) x GROUP BY last_screen ORDER BY n DESC LIMIT 12
+                    """
+                )
+                exits = cursor.fetchall()
+
+                cursor.execute(
+                    "SELECT COUNT(DISTINCT session_id) n FROM user_events "
+                    "WHERE session_id IS NOT NULL"
+                )
+                sessions['total'] = cursor.fetchone()['n'] or 0
+                cursor.execute(
+                    "SELECT COUNT(*) n FROM (SELECT COALESCE(user_id, device_id) who, "
+                    "COUNT(DISTINCT session_id) c FROM user_events "
+                    "WHERE session_id IS NOT NULL GROUP BY who HAVING c > 1) x"
+                )
+                sessions['returning'] = cursor.fetchone()['n'] or 0
+                cursor.execute(
+                    "SELECT COUNT(*) n FROM (SELECT COALESCE(user_id, device_id) who "
+                    "FROM user_events GROUP BY who) x"
+                )
+                sessions['people'] = cursor.fetchone()['n'] or 0
+
+                cursor.execute(
+                    "SELECT source, COUNT(DISTINCT session_id) n FROM user_events "
+                    "WHERE source IS NOT NULL GROUP BY source ORDER BY n DESC LIMIT 10"
+                )
+                sources = cursor.fetchall()
+
             cursor.execute(
                 """
                 SELECT u.id, u.nickname, u.email, u.created_at,
@@ -699,10 +749,13 @@ def register(app, get_db):
                 for r in people
             ],
             # 지금 데이터로는 못 보는 것. 화면에 함께 적어 오해를 막는다.
+            'screens': screens,
+            'exits': exits,
+            'sessions': sessions,
+            'sources': sources,
             'blind_spots': [
-                '어느 화면에서 나갔는지 — 화면 진입 기록이 없다',
-                '레시피를 열어 봤는지 — 조회 기록이 없다(즐겨찾기·완료·기록만 남는다)',
-                '비회원이 무엇을 했는지 — 계정이 없어 이어붙일 수 없다',
+                '앱을 지우고 다시 깐 비회원 — 기기 식별자가 새로 만들어져 다른 사람으로 보인다',
+                '왜 나갔는지 — 화면과 순서는 알아도 이유는 물어봐야 안다',
             ],
         })
 

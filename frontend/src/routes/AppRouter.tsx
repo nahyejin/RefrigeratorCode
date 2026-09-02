@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
-import { Suspense, lazy, useState } from 'react';
+import { installTrackingFlush, trackScreen } from '../utils/track';
+import { Suspense, lazy, useEffect, useState } from 'react';
 import SplashScreen from '../components/SplashScreen';
 import ScrollToTop from '../components/ScrollToTop';
 import TopNavBar from '../components/TopNavBar';
@@ -271,11 +272,35 @@ function AppContent() {
   );
 }
 
+/**
+ * 화면 진입을 기록한다.
+ *
+ * 경로가 바뀔 때마다 한 줄 남긴다. 이것만 있으면 "어디를 보고 어디서 나갔나"
+ * (그 방문의 마지막 화면)와 "얼마나 머물렀나"(진입 시각의 간격)가 나온다.
+ * 그래서 체류 시간을 따로 재지 않는다.
+ */
+function ScreenTracker() {
+  const location = useLocation();
+
+  // React 를 기본 임포트하지 않는 파일이라 `React.useEffect` 는 런타임에 없다.
+  // (타입체크는 UMD 전역 덕분에 통과해서 조용히 넘어간다 — 실제로 그렇게 놓쳤다)
+  useEffect(() => {
+    installTrackingFlush();
+  }, []);
+
+  useEffect(() => {
+    trackScreen(location.pathname);
+  }, [location.pathname]);
+
+  return null;
+}
+
 function AppRouter() {
   return (
     <AuthProvider>
       <Router>
         <ScrollToTop />
+        <ScreenTracker />
         <AppContent />
       </Router>
     </AuthProvider>

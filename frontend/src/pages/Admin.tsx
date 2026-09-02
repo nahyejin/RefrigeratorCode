@@ -862,6 +862,77 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
 
+          {(act.screens || []).length > 0 && (
+            <div style={S.card}>
+              <h2 style={S.h2}>어느 화면을 보고 어디서 나가나</h2>
+              <div style={{ fontSize: 12, color: 'var(--ink-500)', marginBottom: 12, lineHeight: 1.6 }}>
+                방문 {act.sessions?.total ?? 0}회 · 사람 {act.sessions?.people ?? 0}명 ·
+                두 번 이상 온 사람 <b>{act.sessions?.returning ?? 0}명</b>
+                {(act.sessions?.people ?? 0) > 0 &&
+                  ' (' + Math.round(((act.sessions?.returning ?? 0) / act.sessions.people) * 100) + '%)'}
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 18 }}>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>많이 본 화면</div>
+                  <table style={{ borderCollapse: 'collapse', width: '100%' }}>
+                    <thead><tr>{['화면', '진입', '방문'].map(h => (
+                      <th key={h} style={S.th}>{h}</th>))}</tr></thead>
+                    <tbody>
+                      {act.screens.map((r: any) => (
+                        <tr key={r.screen}>
+                          <td style={S.td}>{r.screen}</td>
+                          <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums' }}>{num(r.views)}</td>
+                          <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums' }}>{num(r.sessions)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div>
+                  {/* 방문의 마지막 화면 = 그 사람이 나간 자리.
+                      상위에 뜨는 화면이 곧 손볼 곳이다. */}
+                  <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>
+                    마지막으로 본 화면 <span style={{ fontWeight: 400, color: 'var(--ink-500)' }}>(= 나간 자리)</span>
+                  </div>
+                  <table style={{ borderCollapse: 'collapse', width: '100%' }}>
+                    <thead><tr>{['화면', '방문 수'].map(h => (
+                      <th key={h} style={S.th}>{h}</th>))}</tr></thead>
+                    <tbody>
+                      {(act.exits || []).map((r: any) => (
+                        <tr key={r.screen}>
+                          <td style={S.td}>{r.screen}</td>
+                          <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums' }}>{num(r.n)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {(act.sources || []).length > 0 && (
+                <div style={{ marginTop: 18 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>어디서 들어왔나</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                    {act.sources.map((r: any) => (
+                      <span key={r.source} style={{
+                        fontSize: 12, padding: '4px 10px', borderRadius: 9999,
+                        background: 'var(--surface-sub)', color: 'var(--ink-700)',
+                      }}>
+                        {r.source} <b>{r.n}</b>
+                      </span>
+                    ))}
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--ink-500)', marginTop: 8, lineHeight: 1.6 }}>
+                    광고·게시물 링크 뒤에 <code>?utm_source=instagram</code> 처럼 붙이면
+                    어느 글에서 왔는지 여기 나뉘어 보입니다.
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {(act.features || []).length > 0 && (
             <div style={S.card}>
               <h2 style={S.h2}>어떤 기능을 쓰나</h2>

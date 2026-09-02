@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { track } from '../utils/track';
 import SectionIcon from '../components/ui/SectionIcon';
 import LoadingIndicator from '../components/LoadingIndicator';
 import BottomNavBar from '../components/BottomNavBar';
@@ -1704,6 +1705,7 @@ const MyFridge: React.FC = () => {
 
       // 성공이든 한도 초과(429)든 서버가 최신 사용량을 함께 보낸다.
       applyUsage(data?.usage);
+      track('vision_use', mode);
 
       if (!res.ok) {
         setRecognitionError((data && data.error) || '사진을 읽지 못했어요. 다시 찍어 주세요.');
