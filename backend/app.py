@@ -58,6 +58,16 @@ app.config['JSON_AS_ASCII'] = False
 default_origins = 'http://localhost:5173,http://localhost:5177,http://localhost:5178,https://refrigerator-code.vercel.app'
 cors_origins = os.getenv('CORS_ORIGINS', default_origins).split(',')
 
+# 앱(Capacitor WebView)에서 오는 요청의 출처.
+#
+# 앱은 화면을 기기 안에서 띄우므로 웹 주소가 없다. 대신 안드로이드는
+# `https://localhost`, iOS 는 `capacitor://localhost` 라는 고정된 출처를 쓴다.
+# 여기 없으면 **앱의 모든 API 호출이 preflight 에서 막힌다** — 웹에서는 멀쩡한데
+# 앱에서만 전부 실패하는, 원인 찾기 제일 어려운 종류의 오류가 된다.
+for native_origin in ('https://localhost', 'capacitor://localhost', 'http://localhost'):
+    if native_origin not in cors_origins:
+        cors_origins.append(native_origin)
+
 # Railway 배포 환경에서는 Vercel 도메인 명시적으로 추가
 if os.getenv('RAILWAY_ENVIRONMENT') or os.getenv('RAILWAY_ENVIRONMENT_NAME'):
     if 'https://refrigerator-code.vercel.app' not in cors_origins:

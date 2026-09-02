@@ -4,8 +4,27 @@ export const isPWAInstalled = (): boolean => {
          (window.navigator as any).standalone === true;
 };
 
+/**
+ * 앱(Capacitor) 안에서 도는 중인가.
+ *
+ * Capacitor 가 전역을 심어 주므로 패키지를 가져오지 않고 확인한다 —
+ * 웹 번들에 앱 전용 코드를 끌어들이지 않기 위해서다.
+ */
+export const isNativeApp = (): boolean => {
+  const cap = (window as any).Capacitor;
+  return typeof cap?.isNativePlatform === 'function' ? !!cap.isNativePlatform() : false;
+};
+
 // 서비스 워커 등록
 export const registerServiceWorker = async (): Promise<void> => {
+  // 앱에서는 등록하지 않는다.
+  //
+  // 앱은 화면 파일을 이미 기기 안에 들고 있어서 캐시가 필요 없다. 그런데
+  // 서비스워커가 그 위에 또 캐시를 얹으면, **앱을 새 버전으로 갱신해도
+  // 옛 화면이 계속 뜬다.** 스토어 심사를 통과한 새 버전이 사용자에게는
+  // 반영 안 되는, 알아채기도 어려운 상태가 된다.
+  if (isNativeApp()) return;
+
   if ('serviceWorker' in navigator) {
     try {
       const registration = await navigator.serviceWorker.register('/sw.js');

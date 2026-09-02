@@ -2,3 +2,6 @@
 *.bat text eol=crlf
 *.cmd text eol=crlf
 *.ps1 text eol=crlf
+
+# gradlew 는 유닉스 셸 스크립트다. CRLF 로 바뀌면 맥/리눅스/CI 에서 실행이 깨진다.
+frontend/android/gradlew text eol=lf
