@@ -495,7 +495,18 @@ def register(app, get_db):
             import traceback
 
             traceback.print_exc()
-            return jsonify({'error': f'제안을 받지 못했어요: {type(e).__name__}'}), 502
+            # `HTTPError` 같은 예외 이름을 그대로 보여주면 관리자는 무엇을
+            # 해야 할지 알 수 없다. 무엇이 잘못됐고 어떻게 하면 되는지를 말한다.
+            status = getattr(getattr(e, 'response', None), 'status_code', None)
+            if status == 429:
+                message = '요청이 몰렸거나 오늘 한도를 다 썼어요. 잠시 뒤에 다시 눌러 주세요.'
+            elif status and 500 <= status < 600:
+                message = 'AI 쪽이 잠시 불안정해요. 잠시 뒤에 다시 눌러 주세요.'
+            elif status:
+                message = f'AI 호출이 거부됐어요 ({status}). 키 설정을 확인해 주세요.'
+            else:
+                message = f'제안을 받지 못했어요 ({type(e).__name__}). 잠시 뒤에 다시 눌러 주세요.'
+            return jsonify({'error': message}), 502
 
     @app.route('/api/admin/dictionary/options', methods=['GET'])
     def admin_dictionary_options():

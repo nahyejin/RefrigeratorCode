@@ -706,7 +706,8 @@ const Dictionary: React.FC = () => {
   };
 
   const ask = async () => {
-    setBusy('제안 받는 중...'); setError(null); setNote(null);
+    clearMessages();
+    setBusy('제안 받는 중...');
     try {
       const d = await api('/api/admin/dictionary/suggest', {
         method: 'POST', body: JSON.stringify({ names: [...picked] }),
@@ -718,6 +719,7 @@ const Dictionary: React.FC = () => {
   };
 
   const applyApproved = async () => {
+    clearMessages();
     const items = (suggestions || []).filter(x => x.decision !== 'skip');
     if (items.length === 0) { setNote('반영할 항목이 없어요.'); return; }
     setBusy('반영 중...');
@@ -734,6 +736,7 @@ const Dictionary: React.FC = () => {
   };
 
   const dropPicked = async () => {
+    clearMessages();
     setBusy('지우는 중...');
     try {
       const d = await api('/api/admin/dictionary/misses', {
@@ -751,8 +754,18 @@ const Dictionary: React.FC = () => {
     setSuggestions(prev => (prev || []).map(x => (x.raw === raw ? { ...x, ...patch } : x)));
   };
 
+  /**
+   * 지난 안내를 지운다.
+   *
+   * 이걸 안 하면 **앞선 동작의 오류가 화면에 남아** 방금 한 일이 실패한 것처럼
+   * 보인다. 실제로 "되돌리기" 는 성공했는데 이전 "제안 받기" 의 오류가 그대로
+   * 떠 있어서 되돌리기가 실패한 줄 알았던 일이 있었다.
+   */
+  const clearMessages = () => { setError(null); setNote(null); };
+
   /** 사전에 보탠 것을 되돌린다 (아직 파일에 안 들어간 것만). */
   const cancelAddition = async (raw: string) => {
+    clearMessages();
     try {
       await api('/api/admin/dictionary/additions', {
         method: 'DELETE', body: JSON.stringify({ raw_name: raw }),
