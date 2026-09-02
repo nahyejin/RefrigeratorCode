@@ -39,6 +39,21 @@ def _bearer_payload():
         return None
 
 
+def _bootstrap_emails():
+    """언제나 관리자로 보는 이메일 목록 (환경변수 `ADMIN_EMAILS`, 쉼표 구분).
+
+    왜 필요한가: 관리자 표시는 `users.is_admin` 한 곳에만 있어서, **그 계정이
+    탈퇴하면 어드민에 들어갈 수 있는 사람이 아무도 없어진다.** 새로 지정하려면
+    DB 를 직접 만져야 하는데, 그럴 수 없는 상황이 오면 손을 쓸 수 없다.
+    환경변수로 열어 두면 그 이메일로 가입/로그인하는 것만으로 되돌릴 수 있다.
+
+    ⚠️ 비밀번호가 아니라 **이메일 목록**이다. 그 이메일 계정에 로그인할 수 있는
+    사람만 통과하므로, 값이 새어도 그 자체로는 권한이 되지 않는다.
+    """
+    raw = os.getenv('ADMIN_EMAILS') or ''
+    return {e.strip().lower() for e in raw.split(',') if e.strip()}
+
+
 def current_admin(get_db):
     """관리자면 (user_id, nickname), 아니면 None.
 
@@ -55,21 +70,26 @@ def current_admin(get_db):
     cursor = db.cursor()
     try:
         cursor.execute(
-            "SELECT id, nickname, is_admin FROM users WHERE id = %s AND deleted_at IS NULL",
+            "SELECT id, nickname, email, is_admin FROM users WHERE id = %s AND deleted_at IS NULL",
             (user_id,),
         )
         row = cursor.fetchone()
+        if not row:
+            return None
+
+        if not row['is_admin']:
+            # 비상 통로: ADMIN_EMAILS 에 있으면 통과시키고 표시도 붙여 둔다.
+            # (다음부터는 DB 만 봐도 되게)
+            if (row['email'] or '').lower() not in _bootstrap_emails():
+                return None
+            cursor.execute("UPDATE users SET is_admin = 1 WHERE id = %s", (row['id'],))
+            db.commit()
+            print(f"[admin] ADMIN_EMAILS 로 관리자 승격: id={row['id']} {row['email']}")
+
+        return (row['id'], row['nickname'])
     finally:
         cursor.close()
         db.close()
-    if not row:
-        return None
-    is_admin = row['is_admin'] if isinstance(row, dict) else row[2]
-    if not is_admin:
-        return None
-    return (
-        (row['id'], row['nickname']) if isinstance(row, dict) else (row[0], row[1])
-    )
 
 
 def _clean_email(email):
@@ -340,6 +360,149 @@ def register(app, get_db):
             cursor.close()
             db.close()
         return jsonify({'ok': True, 'status': status})
+
+    # ── 재료 사전 보강 ────────────────────────────────────────
+    #
+    # 사진에서 읽혔지만 사전에 없던 이름을 LLM 이 **제안**하고 관리자가 **승인**한다.
+    # 바로 넣지 않는 이유는 사진 인식과 같다 — LLM 은 틀리고, 사전은 모든 사용자의
+    # 레시피 매칭 기준이라 한 번 잘못 들어가면 영향이 넓다.
+
+    @app.route('/api/admin/dictionary/misses', methods=['GET'])
+    def admin_dictionary_misses():
+        _, err = guard()
+        if err:
+            return err
+        db = get_db()
+        cursor = db.cursor()
+        try:
+            cursor.execute("SHOW TABLES LIKE 'ingredient_dictionary_misses'")
+            if not cursor.fetchone():
+                return jsonify({'misses': []})
+            cursor.execute(
+                "SELECT raw_name, hit_count, last_mode, first_seen, last_seen "
+                "FROM ingredient_dictionary_misses ORDER BY hit_count DESC, last_seen DESC LIMIT 200"
+            )
+            rows = cursor.fetchall()
+        finally:
+            cursor.close()
+            db.close()
+
+        # 그 사이 사전이 보강돼 이제는 잡히는 것도 있다. 구분해 줘야 헛일을 안 한다.
+        try:
+            from ingredient_dictionary import get_alias_to_canonical, resolve_canonical
+
+            alias = get_alias_to_canonical()
+        except Exception:  # noqa: BLE001
+            alias = None
+
+        out = []
+        for r in rows:
+            resolved = None
+            if alias:
+                try:
+                    resolved = resolve_canonical(r['raw_name'], alias)
+                except Exception:  # noqa: BLE001
+                    resolved = None
+            out.append({
+                'raw_name': r['raw_name'],
+                'hit_count': r['hit_count'],
+                'last_mode': r['last_mode'],
+                'last_seen': r['last_seen'].isoformat() if r['last_seen'] else None,
+                'now_resolves_to': resolved,
+            })
+        return jsonify({'misses': out})
+
+    @app.route('/api/admin/dictionary/suggest', methods=['POST'])
+    def admin_dictionary_suggest():
+        """고른 이름들을 어떻게 처리할지 LLM 에게 물어본다. **쓰지는 않는다.**"""
+        _, err = guard()
+        if err:
+            return err
+        names = (request.get_json(silent=True) or {}).get('names') or []
+        try:
+            import dictionary_curation
+
+            return jsonify({'suggestions': dictionary_curation.suggest(names)})
+        except RuntimeError as e:
+            print(f"[dictionary] 설정 오류: {e}", flush=True)
+            return jsonify({'error': 'LLM 키가 설정되지 않았습니다.'}), 503
+        except Exception as e:  # noqa: BLE001
+            import traceback
+
+            traceback.print_exc()
+            return jsonify({'error': f'제안을 받지 못했어요: {type(e).__name__}'}), 502
+
+    @app.route('/api/admin/dictionary/apply', methods=['POST'])
+    def admin_dictionary_apply():
+        """승인된 제안을 사전에 반영한다 (DB 에 쌓고 즉시 사전에 합쳐진다)."""
+        admin, err = guard()
+        if err:
+            return err
+        items = (request.get_json(silent=True) or {}).get('items') or []
+        try:
+            import dictionary_curation
+
+            saved = dictionary_curation.apply_items(get_db, items, admin[0])
+            return jsonify({'saved': saved})
+        except Exception as e:  # noqa: BLE001
+            print(f"[dictionary] 반영 실패: {e}", flush=True)
+            return jsonify({'error': '반영하지 못했어요.'}), 502
+
+    @app.route('/api/admin/dictionary/misses', methods=['DELETE'])
+    def admin_dictionary_drop_misses():
+        """사전에 넣지 않기로 한 이름을 목록에서 지운다.
+
+        요리 이름·주류 브랜드처럼 **일부러 안 넣는 것**이 계속 목록에 남아 있으면
+        볼 때마다 다시 판단하게 된다.
+        """
+        _, err = guard()
+        if err:
+            return err
+        names = (request.get_json(silent=True) or {}).get('names') or []
+        names = [str(n).strip() for n in names if str(n).strip()][:200]
+        if not names:
+            return jsonify({'deleted': 0})
+        db = get_db()
+        cursor = db.cursor()
+        try:
+            placeholders = ','.join(['%s'] * len(names))
+            deleted = cursor.execute(
+                f"DELETE FROM ingredient_dictionary_misses WHERE raw_name IN ({placeholders})",
+                tuple(names),
+            )
+            db.commit()
+        finally:
+            cursor.close()
+            db.close()
+        return jsonify({'deleted': deleted})
+
+    @app.route('/api/admin/dictionary/additions', methods=['GET'])
+    def admin_dictionary_additions():
+        """지금까지 사전에 보탠 것들. 저장소 CSV 로 접어 넣었는지도 함께 본다."""
+        _, err = guard()
+        if err:
+            return err
+        try:
+            import dictionary_curation
+
+            dictionary_curation.ensure_table(get_db)
+        except Exception:  # noqa: BLE001
+            return jsonify({'additions': []})
+        db = get_db()
+        cursor = db.cursor()
+        try:
+            cursor.execute(
+                "SELECT raw_name, kind, keyword, 중분류, 소분류, reason, created_at, applied_to_csv "
+                "FROM ingredient_dictionary_additions ORDER BY created_at DESC LIMIT 200"
+            )
+            rows = cursor.fetchall()
+        finally:
+            cursor.close()
+            db.close()
+        return jsonify({'additions': [
+            {**r, 'created_at': r['created_at'].isoformat() if r['created_at'] else None}
+            for r in rows
+        ]})
 
     @app.route('/api/admin/dashboard', methods=['GET'])
     def admin_dashboard():

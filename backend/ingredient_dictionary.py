@@ -156,15 +156,47 @@ def load_alias_to_canonical(path=None):
     return alias_to_canonical
 
 
+# 저장소 CSV 말고 **추가로** 합칠 별칭을 주는 함수. 어드민에서 승인한 항목이
+# DB 에 쌓이는데, 이 모듈이 DB 를 직접 알면 안 되므로(배포 환경마다 다르다)
+# 앱이 기동할 때 함수를 꽂아 준다.
+#
+# 왜 DB 인가: 서버가 도는 곳(Railway)은 파일시스템이 임시라 CSV 에 써도 다음
+# 배포에 사라지고 저장소에도 안 남는다. 그래서 승인분은 DB 에 쌓고 여기서 합친다.
+# 저장소 CSV 로 접어 넣는 건 scripts/apply_dictionary_additions.py 가 한다.
+_extra_provider = None
+
+
+def set_extra_aliases_provider(fn):
+    """추가 별칭 공급자를 등록한다. fn() -> {별칭: 대표어}"""
+    global _extra_provider
+    _extra_provider = fn
+    reset_cache()
+
+
+def reset_cache():
+    """다음 조회 때 사전을 다시 읽게 한다 (승인분이 늘었을 때)."""
+    global _cache
+    with _cache_lock:
+        _cache = None
+
+
 def get_alias_to_canonical():
     """프로세스 수명 동안 한 번만 읽어 두고 재사용한다 (요청마다 파싱하면 느리다).
 
     사전 CSV 를 고쳤으면 서버를 다시 띄워야 반영된다.
+    어드민에서 승인한 추가분은 `reset_cache()` 로 즉시 반영된다.
     """
     global _cache
     with _cache_lock:
         if _cache is None:
-            _cache = load_alias_to_canonical()
+            base = load_alias_to_canonical()
+            if _extra_provider:
+                try:
+                    base.update(_extra_provider() or {})
+                except Exception as e:  # noqa: BLE001
+                    # 추가분을 못 읽었다고 사전 전체를 못 쓰게 만들면 안 된다.
+                    print(f"[ingredient_dictionary] 추가분 병합 실패(무시): {e}")
+            _cache = base
         return _cache
 
 

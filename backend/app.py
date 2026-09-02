@@ -4331,6 +4331,13 @@ try:
     import admin_api
 
     admin_api.register(app, get_db)
+
+    # 어드민에서 승인한 사전 추가분을 사전 로더가 함께 읽도록 연결한다.
+    # (서버가 도는 곳은 파일시스템이 임시라 CSV 에 못 쓴다 — dictionary_curation 참고)
+    import dictionary_curation
+    from ingredient_dictionary import set_extra_aliases_provider
+
+    set_extra_aliases_provider(lambda: dictionary_curation.load_additions(get_db))
 except Exception as _e:  # noqa: BLE001
     print(f"[admin] 라우트 등록 실패(어드민만 비활성): {_e}", flush=True)
 

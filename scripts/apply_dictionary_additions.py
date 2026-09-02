@@ -1,0 +1,154 @@
+"""어드민에서 승인한 사전 추가분을 **저장소 CSV 로 접어 넣는다.**
+
+왜 따로 필요한가:
+    서버가 도는 Railway 는 파일시스템이 임시라, 거기서 CSV 에 써도 다음 배포에
+    사라지고 저장소에도 안 남는다. 그래서 승인분은 `ingredient_dictionary_additions`
+    표에 쌓고 사전을 읽을 때 합쳐 쓴다(`backend/dictionary_curation.py`).
+
+    다만 DB 에만 있으면 **저장소 CSV 가 진짜가 아니게 된다.** 배치 스크립트도,
+    브라우저도 CSV 를 직접 읽으므로 언젠가는 CSV 로 옮겨야 한다. 그 일을 이 스크립트가
+    한다 — 사람이 눈으로 보고 커밋하는 절차를 남겨 두려고 자동화하지 않았다.
+
+쓰는 법:
+    python scripts/apply_dictionary_additions.py            # 미리보기
+    python scripts/apply_dictionary_additions.py --write    # CSV 수정
+    python scripts/sync_ingredient_dict.py --write          # 백엔드 사본까지 맞추기
+"""
+
+import argparse
+import csv
+import io
+import os
+
+import pymysql
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+CSV_PATH = os.path.join(ROOT, "frontend", "public", "ingredient_profile_dict_with_substitutes.csv")
+
+
+def load_env():
+    for path in (os.path.join(ROOT, "backend", ".env"), os.path.join(ROOT, ".env")):
+        if not os.path.exists(path):
+            continue
+        with open(path, encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    key, value = line.split("=", 1)
+                    os.environ.setdefault(key.strip(), value.strip())
+
+
+def db():
+    return pymysql.connect(
+        host=os.getenv("DB_HOST") or "caboose.proxy.rlwy.net",
+        user=os.getenv("DB_USER") or "root",
+        password=os.getenv("DB_PASSWORD") or "",
+        db=os.getenv("DB_NAME") or "railway",
+        port=int(os.getenv("DB_PORT") or 47779),
+        charset="utf8mb4",
+        cursorclass=pymysql.cursors.DictCursor,
+    )
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--write", action="store_true", help="CSV 를 실제로 고친다")
+    args = parser.parse_args()
+
+    load_env()
+    conn = db()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SHOW TABLES LIKE 'ingredient_dictionary_additions'")
+        if not cursor.fetchone():
+            print("아직 승인된 추가분이 없습니다.")
+            return 0
+        cursor.execute(
+            "SELECT * FROM ingredient_dictionary_additions WHERE applied_to_csv = 0 ORDER BY created_at"
+        )
+        additions = cursor.fetchall()
+    finally:
+        conn.close()
+
+    if not additions:
+        print("CSV 에 아직 안 넣은 추가분이 없습니다.")
+        return 0
+
+    with io.open(CSV_PATH, encoding="utf-8", newline="") as f:
+        reader = csv.DictReader(f)
+        fieldnames = reader.fieldnames
+        rows = list(reader)
+
+    by_keyword = {r["keyword"].strip(): r for r in rows if r.get("keyword")}
+    added, extended, skipped = [], [], []
+
+    for item in additions:
+        raw = item["raw_name"].strip()
+        keyword = item["keyword"].strip()
+
+        if item["kind"] == "synonym":
+            target = by_keyword.get(keyword)
+            if not target:
+                skipped.append((raw, f"대표어 '{keyword}' 가 CSV 에 없음"))
+                continue
+            current = [s.strip() for s in (target.get("synonyms") or "").split(",") if s.strip()]
+            if raw in current or raw == keyword:
+                skipped.append((raw, "이미 들어 있음"))
+                continue
+            current.append(raw)
+            target["synonyms"] = ", ".join(current)
+            extended.append((raw, keyword))
+        else:  # 새 대표어
+            if keyword in by_keyword:
+                skipped.append((raw, f"'{keyword}' 는 이미 CSV 에 있음"))
+                continue
+            row = {name: "" for name in fieldnames}
+            row["keyword"] = keyword
+            row["대분류"] = "재료"
+            for col in ("중분류", "소분류", "세분류", "세세분류"):
+                row[col] = (item.get(col) or "").strip()
+            row["hyperonym"] = (item.get("hyperonym") or "").strip()
+            if raw != keyword:
+                row["synonyms"] = raw
+            rows.append(row)
+            by_keyword[keyword] = row
+            added.append((raw, keyword))
+
+    print(f"새 대표어 {len(added)} · 동의어 추가 {len(extended)} · 건너뜀 {len(skipped)}")
+    for raw, keyword in added:
+        print(f"  + 새 재료  {keyword}" + (f"  (동의어: {raw})" if raw != keyword else ""))
+    for raw, keyword in extended:
+        print(f"  + 동의어   {keyword} ← {raw}")
+    for raw, why in skipped:
+        print(f"  - 건너뜀   {raw}: {why}")
+
+    if not args.write:
+        print("\n미리보기입니다. 실제로 고치려면 --write 를 붙이세요.")
+        return 0
+
+    with io.open(CSV_PATH, "w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
+    print(f"\nCSV 를 고쳤습니다: {CSV_PATH}")
+
+    conn = db()
+    try:
+        cursor = conn.cursor()
+        done = [a["raw_name"] for a in additions]
+        placeholders = ",".join(["%s"] * len(done))
+        cursor.execute(
+            f"UPDATE ingredient_dictionary_additions SET applied_to_csv = 1 "
+            f"WHERE raw_name IN ({placeholders})",
+            tuple(done),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    print("이어서 `python scripts/sync_ingredient_dict.py --write` 로 백엔드 사본도 맞춰 주세요.")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

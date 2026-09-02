@@ -302,6 +302,199 @@ const Requests: React.FC = () => {
   );
 };
 
+
+/**
+ * 재료 사전 보강.
+ *
+ * 사진에서 읽혔지만 사전에 없던 이름들을 관리자가 골라 LLM 에게 물어보고,
+ * **승인한 것만** 사전에 들어간다. 바로 넣지 않는 이유는 사진 인식과 같다 —
+ * LLM 은 틀리고, 사전은 모든 사용자의 레시피 매칭 기준이라 영향이 넓다.
+ */
+const Dictionary: React.FC = () => {
+  const [misses, setMisses] = React.useState<any[] | null>(null);
+  const [picked, setPicked] = React.useState<Set<string>>(new Set());
+  const [suggestions, setSuggestions] = React.useState<any[] | null>(null);
+  const [busy, setBusy] = React.useState<string | null>(null);
+  const [note, setNote] = React.useState<string | null>(null);
+  const [error, setError] = React.useState<string | null>(null);
+
+  const load = React.useCallback(() => {
+    api('/api/admin/dictionary/misses')
+      .then(d => { setMisses(d.misses || []); setPicked(new Set()); setSuggestions(null); })
+      .catch(e => setError(e.message));
+  }, []);
+  React.useEffect(load, [load]);
+
+  const toggle = (name: string) => {
+    setPicked(prev => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+  };
+
+  const ask = async () => {
+    setBusy('제안 받는 중...'); setError(null); setNote(null);
+    try {
+      const d = await api('/api/admin/dictionary/suggest', {
+        method: 'POST', body: JSON.stringify({ names: [...picked] }),
+      });
+      setSuggestions(d.suggestions || []);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '제안을 받지 못했어요.');
+    } finally { setBusy(null); }
+  };
+
+  const applyApproved = async () => {
+    const items = (suggestions || []).filter(x => x.decision !== 'skip');
+    if (items.length === 0) { setNote('반영할 항목이 없어요.'); return; }
+    setBusy('반영 중...');
+    try {
+      const d = await api('/api/admin/dictionary/apply', {
+        method: 'POST', body: JSON.stringify({ items }),
+      });
+      setNote(d.saved + '개를 사전에 넣었어요. 저장소 CSV 로 옮기려면 scripts/apply_dictionary_additions.py --write 를 돌리세요.');
+      load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '반영하지 못했어요.');
+    } finally { setBusy(null); }
+  };
+
+  const dropPicked = async () => {
+    setBusy('지우는 중...');
+    try {
+      const d = await api('/api/admin/dictionary/misses', {
+        method: 'DELETE', body: JSON.stringify({ names: [...picked] }),
+      });
+      setNote(d.deleted + '개를 목록에서 지웠어요.');
+      load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '지우지 못했어요.');
+    } finally { setBusy(null); }
+  };
+
+  /** 제안 하나의 판단을 바꾼다. LLM 이 틀렸을 때 관리자가 고칠 수 있어야 한다. */
+  const setDecision = (raw: string, decision: string) => {
+    setSuggestions(prev => (prev || []).map(x => (x.raw === raw ? { ...x, decision } : x)));
+  };
+
+  if (error && !misses) return <div style={S.card}>{error}</div>;
+  if (!misses) return <div style={S.card}>불러오는 중...</div>;
+
+  const unresolved = misses.filter(m => !m.now_resolves_to);
+
+  return (
+    <>
+      <div style={S.card}>
+        <h2 style={S.h2}>사전에 없던 이름</h2>
+        <div style={{ fontSize: 13, color: 'var(--ink-500)', lineHeight: 1.6, marginBottom: 12 }}>
+          사진에서 읽혔지만 사전에 없어 담지 못한 것들이에요. 넣을 것을 고른 뒤
+          <b> 제안 받기</b>를 누르면 어느 분류에 넣을지, 기존 재료의 다른 이름인지를
+          알려 줘요. <b>승인한 것만</b> 사전에 들어갑니다.
+          <br />
+          요리 이름·주류 브랜드처럼 <b>일부러 안 넣을 것</b>은 목록에서 지워 두세요.
+          안 지우면 볼 때마다 다시 판단하게 됩니다.
+        </div>
+
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
+          <button type="button" style={S.primary} disabled={!picked.size || !!busy} onClick={ask}>
+            {busy === '제안 받는 중...' ? busy : '제안 받기 (' + picked.size + ')'}
+          </button>
+          <button type="button" style={S.btn} disabled={!picked.size || !!busy} onClick={dropPicked}>
+            목록에서 지우기
+          </button>
+          <button type="button" style={S.btn}
+                  onClick={() => setPicked(new Set(unresolved.map(m => m.raw_name)))}>
+            안 잡히는 것 모두 고르기
+          </button>
+        </div>
+
+        {note && <div style={{ fontSize: 12, color: 'var(--ink-700)', marginBottom: 8 }}>{note}</div>}
+        {error && <div style={{ fontSize: 12, color: '#D14343', marginBottom: 8 }}>{error}</div>}
+
+        {misses.length === 0 ? (
+          <div style={{ fontSize: 13, color: 'var(--ink-500)' }}>지금은 못 잡은 이름이 없어요.</div>
+        ) : (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {misses.map(m => {
+              const on = picked.has(m.raw_name);
+              const solved = !!m.now_resolves_to;
+              return (
+                <button
+                  key={m.raw_name}
+                  type="button"
+                  onClick={() => { if (!solved) toggle(m.raw_name); }}
+                  title={solved ? ('이제 ' + m.now_resolves_to + ' 로 잡혀요') : (m.hit_count + '번 걸림')}
+                  style={{
+                    fontSize: 12, padding: '5px 10px', borderRadius: 9999,
+                    cursor: solved ? 'default' : 'pointer',
+                    border: on ? '1px solid #1A1A1E' : '1px dashed var(--line-300)',
+                    background: on ? '#FFD600' : solved ? 'var(--surface-sub)' : '#FFFFFF',
+                    color: solved ? 'var(--ink-500)' : 'var(--ink-900)',
+                    textDecoration: solved ? 'line-through' : 'none',
+                  }}
+                >
+                  {m.raw_name} <b>{m.hit_count}</b>
+                  {solved ? ' → ' + m.now_resolves_to : ''}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {suggestions && (
+        <div style={S.card}>
+          <h2 style={S.h2}>제안 — 승인할 것만 남기세요</h2>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 640 }}>
+              <thead>
+                <tr>{['이름', '판단', '대표어', '분류', '이유'].map(h => (
+                  <th key={h} style={S.th}>{h}</th>
+                ))}</tr>
+              </thead>
+              <tbody>
+                {suggestions.map(sug => (
+                  <tr key={sug.raw} style={{ opacity: sug.decision === 'skip' ? 0.5 : 1 }}>
+                    <td style={S.td}><b>{sug.raw}</b></td>
+                    <td style={S.td}>
+                      <select value={sug.decision}
+                              onChange={e => setDecision(sug.raw, e.target.value)}
+                              style={{ ...S.input, height: 28 }}>
+                        <option value="synonym">동의어</option>
+                        <option value="keyword">새 재료</option>
+                        <option value="skip">넣지 않음</option>
+                      </select>
+                    </td>
+                    <td style={S.td}>{sug.keyword || '-'}</td>
+                    <td style={{ ...S.td, fontSize: 12, color: 'var(--ink-500)' }}>
+                      {sug.decision === 'keyword' ? sug['중분류'] + ' / ' + sug['소분류'] : '-'}
+                    </td>
+                    <td style={{ ...S.td, whiteSpace: 'normal', maxWidth: 260, fontSize: 12,
+                                 color: 'var(--ink-500)' }}>{sug.reason}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div style={{ marginTop: 12 }}>
+            <button type="button" style={S.primary} disabled={!!busy} onClick={applyApproved}>
+              {busy === '반영 중...' ? busy : '사전에 반영'}
+            </button>
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--ink-500)', marginTop: 8, lineHeight: 1.6 }}>
+            반영하면 <b>바로 인식에 쓰입니다</b>(서버가 사전을 다시 읽어요).
+            다만 저장소의 CSV 는 아직 그대로예요 — 서버가 도는 곳은 파일시스템이
+            임시라 거기 쓴 건 다음 배포에 사라집니다. 정식으로 옮기려면
+            <code> scripts/apply_dictionary_additions.py --write</code> 를 돌리세요.
+          </div>
+        </div>
+      )}
+    </>
+  );
+};
+
 const Dashboard: React.FC = () => {
   const [data, setData] = React.useState<any>(null);
   const [error, setError] = React.useState<string | null>(null);
@@ -424,7 +617,7 @@ const Dashboard: React.FC = () => {
 const Admin: React.FC = () => {
   const navigate = useNavigate();
   const [allowed, setAllowed] = React.useState<boolean | null>(null);
-  const [tab, setTab] = React.useState<'users' | 'requests' | 'dashboard'>('users');
+  const [tab, setTab] = React.useState<'users' | 'requests' | 'dictionary' | 'dashboard'>('users');
   const [users, setUsers] = React.useState<AdminUser[] | null>(null);
   const [keyword, setKeyword] = React.useState('');
   const [showDeleted, setShowDeleted] = React.useState(false);
@@ -475,7 +668,7 @@ const Admin: React.FC = () => {
       </div>
 
       <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
-        {([['users', '사용자'], ['requests', '요청'], ['dashboard', '대시보드']] as const).map(([key, label]) => (
+        {([['users', '사용자'], ['requests', '요청'], ['dictionary', '사전'], ['dashboard', '대시보드']] as const).map(([key, label]) => (
           <button
             key={key}
             type="button"
@@ -496,6 +689,8 @@ const Admin: React.FC = () => {
         <Dashboard />
       ) : tab === 'requests' ? (
         <Requests />
+      ) : tab === 'dictionary' ? (
+        <Dictionary />
       ) : (
         <>
           <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
