@@ -1349,10 +1349,21 @@ const MyPage: React.FC = () => {
         <UsageGauge />
       </div>
 
-      {/* 어드민 입구. 관리자에게만 보인다.
-          경로(/admin)를 아는 것만으로는 아무것도 볼 수 없다 — 서버가
-          /api/admin/* 마다 is_admin 을 확인하므로, 여기서 감추는 건
-          "찾기 쉽게" 하려는 것이지 보안 장치가 아니다. */}
+      {isLoggedIn && (
+        <div style={{ margin: '12px 14px 0' }}>
+          <HouseholdSection onChange={loadHouseholdRecipeFeeds} />
+        </div>
+      )}
+
+      {/* 어드민 입구 — **그룹 설정 아래**에 둔다.
+          관리자는 한 명인데 그 한 줄을 위에 두면, 모두가 쓰는 그룹 설정이
+          그만큼 아래로 밀린다. 자주 쓰는 것이 위로 오는 게 맞다.
+          여기가 '내 정보·설정' 묶음의 맨 끝이라, 바로 아래 구분선과 함께
+          "설정은 여기까지" 로 읽히기도 한다.
+
+          관리자에게만 보이지만, 이건 보안 장치가 아니다 — 경로(/admin)를
+          아는 것만으로는 아무것도 볼 수 없다. 서버가 /api/admin/* 마다
+          is_admin 을 확인한다. 여기서 감추는 건 "찾기 쉽게" 하려는 것이다. */}
       {isAdmin && (
         <div style={{ margin: '12px 14px 0' }}>
           <button
@@ -1371,12 +1382,6 @@ const MyPage: React.FC = () => {
               사용자 · 요청 · 대시보드 ›
             </span>
           </button>
-        </div>
-      )}
-
-      {isLoggedIn && (
-        <div style={{ margin: '12px 14px 0' }}>
-          <HouseholdSection onChange={loadHouseholdRecipeFeeds} />
         </div>
       )}
 
