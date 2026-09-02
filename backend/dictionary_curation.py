@@ -154,6 +154,71 @@ def similar_keywords(name, limit=25):
     return [c for _, c in scored[:limit]]
 
 
+_keyword_path_cache = None
+
+
+def keyword_paths():
+    """대표어 -> 분류 경로 {keyword: (대분류, 중분류, 소분류, 세분류, 세세분류)}
+
+    동의어로 붙일 때 **그 대표어가 어느 분류에 있는지**를 화면에 보여주기 위해
+    필요하다. "청상추를 상추의 동의어로" 만 보여주면 관리자는 그게 어디로 들어가는지
+    모른 채 승인하게 된다.
+    """
+    global _keyword_path_cache
+    if _keyword_path_cache is not None:
+        return _keyword_path_cache
+
+    import csv
+
+    out = {}
+    with open(_find_csv(), encoding="utf-8", newline="") as f:
+        for row in csv.DictReader(f):
+            keyword = (row.get("keyword") or "").strip()
+            if not keyword:
+                continue
+            out[keyword] = (
+                (row.get("대분류") or "").strip(),
+                (row.get("중분류") or "").strip(),
+                (row.get("소분류") or "").strip(),
+                (row.get("세분류") or "").strip(),
+                (row.get("세세분류") or "").strip(),
+            )
+    _keyword_path_cache = out
+    return out
+
+
+def path_of(keyword):
+    """대표어의 분류를 화면에 보여줄 형태로. 못 찾으면 None."""
+    row = keyword_paths().get(str(keyword or "").strip())
+    if not row:
+        return None
+    return {"대분류": row[0], "중분류": row[1], "소분류": row[2],
+            "세분류": row[3], "세세분류": row[4]}
+
+
+def options():
+    """화면에서 고칠 때 쓸 선택지 — 쓸 수 있는 분류 조합과 대표어 목록.
+
+    `keywordPaths` 도 함께 준다. 관리자가 동의어 대상을 바꾸면 화면이 **그
+    대표어의 분류를 바로 보여줘야** 하는데, 그때마다 서버에 물으면 느리다.
+    """
+    alias = get_alias_to_canonical()
+    paths = keyword_paths()
+    keywords = sorted({v for v in alias.values()})
+    return {
+        "paths": [
+            {"중분류": p[0], "소분류": p[1], "세분류": p[2], "세세분류": p[3]}
+            for p in material_paths()
+        ],
+        "keywords": keywords,
+        "keywordPaths": {
+            k: {"중분류": paths[k][1], "소분류": paths[k][2],
+                "세분류": paths[k][3], "세세분류": paths[k][4]}
+            for k in keywords if k in paths
+        },
+    }
+
+
 _PROMPT = """너는 한국 요리 앱의 재료 사전을 관리한다.
 사용자가 영수증·음식 사진에서 읽혔지만 사전에 없던 이름들을 넘긴다.
 각 이름을 어떻게 처리할지 판단해라.
@@ -300,7 +365,7 @@ def suggest(names):
             elif not keyword:
                 keyword = name
 
-        out.append({
+        entry = {
             "raw": name,
             "decision": decision,
             "keyword": keyword,
@@ -310,7 +375,14 @@ def suggest(names):
             "세세분류": str(item.get("세세분류") or "").strip(),
             "hyperonym": str(item.get("hyperonym") or "").strip(),
             "reason": str(item.get("reason") or "").strip()[:255],
-        })
+        }
+        # 동의어로 붙일 때는 **그 대표어가 있는 분류**를 채워 준다.
+        # 이게 없으면 관리자가 "어디로 들어가는지 모른 채" 승인하게 된다.
+        if decision == "synonym":
+            found = path_of(keyword)
+            if found:
+                entry.update({k: v for k, v in found.items() if k != "대분류"})
+        out.append(entry)
 
     handled = {o["raw"] for o in out}
     for name in names:
@@ -367,4 +439,7 @@ def apply_items(get_db, items, admin_id):
     import ingredient_dictionary
 
     ingredient_dictionary.reset_cache()
+    global _keyword_path_cache, _paths_cache
+    _keyword_path_cache = None
+    _paths_cache = None
     return saved

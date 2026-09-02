@@ -455,6 +455,118 @@ const Requests: React.FC = () => {
 };
 
 
+
+/** 대표어가 어느 분류에 있는지 (선택지 목록에서 찾는다) */
+function pathOfKeyword(keyword: string, opts: any) {
+  if (!keyword || !opts?.keywordPaths) return null;
+  return opts.keywordPaths[keyword] || null;
+}
+
+/** 분류 한 줄로 (빈 칸은 건너뛴다) */
+function pathText(sug: any) {
+  const parts = [sug['중분류'], sug['소분류'], sug['세분류'], sug['세세분류']]
+    .map((x: string) => (x || '').trim())
+    .filter(Boolean);
+  return parts.length ? parts.join(' › ') : '';
+}
+
+/**
+ * 제안 한 건.
+ *
+ * **어디로 들어가는지가 보여야 승인할 수 있다.** 처음에는 동의어일 때 분류를
+ * `-` 로 비워 뒀는데, 그러면 관리자는 "청상추를 상추의 동의어로" 만 보고
+ * 그게 사전 어디에 붙는지 모른 채 승인하게 된다.
+ * 그래서 동의어면 **대상 대표어가 있는 분류**를 그대로 보여주고,
+ * 새 재료면 **분류를 직접 고르게** 한다.
+ */
+const SuggestionRow: React.FC<{
+  sug: any;
+  opts: any;
+  onPatch: (patch: any) => void;
+  onTarget: (keyword: string) => void;
+}> = ({ sug, opts, onPatch, onTarget }) => {
+  const skip = sug.decision === 'skip';
+  const paths: any[] = opts?.paths || [];
+  const pathKey = (p: any) =>
+    [p['중분류'], p['소분류'], p['세분류'], p['세세분류']].join('|');
+
+  return (
+    <div style={{
+      border: '1px solid var(--line-200)', borderRadius: 12, padding: '12px 14px',
+      background: skip ? 'var(--surface-sub)' : 'var(--surface)', opacity: skip ? 0.65 : 1,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <b style={{ fontSize: 15 }}>{sug.raw}</b>
+        <select
+          value={sug.decision}
+          onChange={e => onPatch({ decision: e.target.value })}
+          style={{ ...S.input, height: 30 }}
+        >
+          <option value="synonym">기존 재료의 다른 이름</option>
+          <option value="keyword">새 재료로 추가</option>
+          <option value="skip">넣지 않음</option>
+        </select>
+      </div>
+
+      {sug.decision === 'synonym' && (
+        <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 13, color: 'var(--ink-500)' }}>어느 재료의 다른 이름인가요?</span>
+            <input
+              list="dict-keywords"
+              value={sug.keyword || ''}
+              onChange={e => onTarget(e.target.value)}
+              placeholder="대표어 검색"
+              style={{ ...S.input, height: 30, minWidth: 160 }}
+            />
+          </div>
+          <div style={{ fontSize: 12.5, color: pathText(sug) ? 'var(--ink-700)' : '#D14343' }}>
+            {pathText(sug)
+              ? <>들어갈 자리 — <b>{pathText(sug)}</b> 의 <b>{sug.keyword}</b> 아래</>
+              : '대표어를 정하면 어느 분류로 들어가는지 여기 나와요'}
+          </div>
+        </div>
+      )}
+
+      {sug.decision === 'keyword' && (
+        <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 13, color: 'var(--ink-500)' }}>어느 분류에 넣을까요?</span>
+            <select
+              value={pathKey(sug)}
+              onChange={e => {
+                const found = paths.find(p => pathKey(p) === e.target.value);
+                if (found) onPatch(found);
+              }}
+              style={{ ...S.input, height: 30, maxWidth: '100%' }}
+            >
+              <option value={pathKey(sug)}>
+                {pathText(sug) || '(고르세요)'}
+              </option>
+              {paths.filter(p => pathKey(p) !== pathKey(sug)).map(p => (
+                <option key={pathKey(p)} value={pathKey(p)}>
+                  {[p['중분류'], p['소분류'], p['세분류'], p['세세분류']].filter(Boolean).join(' › ')}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div style={{ fontSize: 12.5, color: pathText(sug) ? 'var(--ink-700)' : '#D14343' }}>
+            {pathText(sug)
+              ? <>들어갈 자리 — <b>{pathText(sug)}</b> 에 새 재료 <b>{sug.keyword || sug.raw}</b></>
+              : '분류를 골라야 반영할 수 있어요'}
+          </div>
+        </div>
+      )}
+
+      {sug.reason && (
+        <div style={{ fontSize: 12, color: 'var(--ink-500)', marginTop: 8, lineHeight: 1.5 }}>
+          {sug.reason}
+        </div>
+      )}
+    </div>
+  );
+};
+
 /**
  * 재료 사전 보강.
  *
@@ -466,6 +578,9 @@ const Dictionary: React.FC = () => {
   const [misses, setMisses] = React.useState<any[] | null>(null);
   const [picked, setPicked] = React.useState<Set<string>>(new Set());
   const [suggestions, setSuggestions] = React.useState<any[] | null>(null);
+  /** 판단을 고칠 때 쓸 선택지 — 쓸 수 있는 분류 조합과 기존 대표어 목록 */
+  const [opts, setOpts] = React.useState<{ paths: any[]; keywords: string[] } | null>(null);
+  const [additions, setAdditions] = React.useState<any[] | null>(null);
   const [busy, setBusy] = React.useState<string | null>(null);
   const [note, setNote] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
@@ -476,6 +591,11 @@ const Dictionary: React.FC = () => {
       .catch(e => setError(e.message));
   }, []);
   React.useEffect(load, [load]);
+
+  React.useEffect(() => {
+    api('/api/admin/dictionary/options').then(setOpts).catch(() => {});
+    api('/api/admin/dictionary/additions').then(d => setAdditions(d.additions || [])).catch(() => {});
+  }, []);
 
   const toggle = (name: string) => {
     setPicked(prev => {
@@ -506,8 +626,9 @@ const Dictionary: React.FC = () => {
       const d = await api('/api/admin/dictionary/apply', {
         method: 'POST', body: JSON.stringify({ items }),
       });
-      setNote(d.saved + '개를 사전에 넣었어요. 저장소 CSV 로 옮기려면 scripts/apply_dictionary_additions.py --write 를 돌리세요.');
+      setNote(d.saved + '개를 사전에 넣었어요. 바로 인식에 쓰입니다.');
       load();
+      api('/api/admin/dictionary/additions').then(x => setAdditions(x.additions || [])).catch(() => {});
     } catch (e) {
       setError(e instanceof Error ? e.message : '반영하지 못했어요.');
     } finally { setBusy(null); }
@@ -526,9 +647,15 @@ const Dictionary: React.FC = () => {
     } finally { setBusy(null); }
   };
 
-  /** 제안 하나의 판단을 바꾼다. LLM 이 틀렸을 때 관리자가 고칠 수 있어야 한다. */
-  const setDecision = (raw: string, decision: string) => {
-    setSuggestions(prev => (prev || []).map(x => (x.raw === raw ? { ...x, decision } : x)));
+  /** 제안 하나를 고친다. LLM 이 틀렸을 때 관리자가 바로잡을 수 있어야 한다. */
+  const patchSuggestion = (raw: string, patch: any) => {
+    setSuggestions(prev => (prev || []).map(x => (x.raw === raw ? { ...x, ...patch } : x)));
+  };
+
+  /** 동의어 대상을 바꾸면 **그 대표어가 있는 분류**도 따라 바뀌어야 한다. */
+  const setSynonymTarget = (raw: string, keyword: string) => {
+    const path = pathOfKeyword(keyword, opts);
+    patchSuggestion(raw, { keyword, ...(path || { 중분류: '', 소분류: '', 세분류: '', 세세분류: '' }) });
   };
 
   if (error && !misses) return <div style={S.card}>{error}</div>;
@@ -603,39 +730,58 @@ const Dictionary: React.FC = () => {
         )}
       </div>
 
-      {suggestions && (
+      {/* 동의어 대상 자동완성. 1,300개를 select 로 두면 못 고른다. */}
+      <datalist id="dict-keywords">
+        {(opts?.keywords || []).map(k => <option key={k} value={k} />)}
+      </datalist>
+
+      {additions && additions.length > 0 && (
         <div style={S.card}>
-          <h2 style={S.h2}>제안 — 승인할 것만 남기세요</h2>
+          <h2 style={S.h2}>사전에 보탠 것 {additions.length}건</h2>
+          <div style={{ fontSize: 12, color: 'var(--ink-500)', marginBottom: 10, lineHeight: 1.6 }}>
+            <b>바로</b> 는 이미 인식에 쓰이고 있다는 뜻이고, <b>대기</b> 는 저장소의 사전
+            파일로 아직 안 옮겨졌다는 뜻이에요 — 매일 새벽 4시 30분에 자동으로 옮겨집니다.
+            (서버가 도는 곳은 파일시스템이 임시라 서버가 직접 못 고쳐요)
+          </div>
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 640 }}>
-              <thead>
-                <tr>{['이름', '판단', '대표어', '분류', '이유'].map(h => (
-                  <th key={h} style={S.th}>{h}</th>
-                ))}</tr>
-              </thead>
+            <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 520 }}>
+              <thead><tr>{['이름', '어디로', '분류', '파일 반영'].map(h => (
+                <th key={h} style={S.th}>{h}</th>))}</tr></thead>
               <tbody>
-                {suggestions.map(sug => (
-                  <tr key={sug.raw} style={{ opacity: sug.decision === 'skip' ? 0.5 : 1 }}>
-                    <td style={S.td}><b>{sug.raw}</b></td>
+                {additions.map((a: any) => (
+                  <tr key={a.raw_name}>
+                    <td style={S.td}><b>{a.raw_name}</b></td>
                     <td style={S.td}>
-                      <select value={sug.decision}
-                              onChange={e => setDecision(sug.raw, e.target.value)}
-                              style={{ ...S.input, height: 28 }}>
-                        <option value="synonym">동의어</option>
-                        <option value="keyword">새 재료</option>
-                        <option value="skip">넣지 않음</option>
-                      </select>
+                      {a.kind === 'synonym' ? a.keyword + ' 의 다른 이름' : '새 재료 ' + a.keyword}
                     </td>
-                    <td style={S.td}>{sug.keyword || '-'}</td>
                     <td style={{ ...S.td, fontSize: 12, color: 'var(--ink-500)' }}>
-                      {sug.decision === 'keyword' ? sug['중분류'] + ' / ' + sug['소분류'] : '-'}
+                      {[a['중분류'], a['소분류']].filter(Boolean).join(' › ') || '-'}
                     </td>
-                    <td style={{ ...S.td, whiteSpace: 'normal', maxWidth: 260, fontSize: 12,
-                                 color: 'var(--ink-500)' }}>{sug.reason}</td>
+                    <td style={{ ...S.td, color: a.applied_to_csv ? 'var(--ink-500)' : '#B4780A',
+                                 fontWeight: a.applied_to_csv ? 400 : 700 }}>
+                      {a.applied_to_csv ? '완료' : '대기'}
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {suggestions && (
+        <div style={S.card}>
+          <h2 style={S.h2}>제안 — 승인할 것만 남기세요</h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {suggestions.map(sug => (
+              <SuggestionRow
+                key={sug.raw}
+                sug={sug}
+                opts={opts}
+                onPatch={(patch: any) => patchSuggestion(sug.raw, patch)}
+                onTarget={(kw: string) => setSynonymTarget(sug.raw, kw)}
+              />
+            ))}
           </div>
           <div style={{ marginTop: 12 }}>
             <button type="button" style={S.primary} disabled={!!busy} onClick={applyApproved}>
@@ -643,10 +789,8 @@ const Dictionary: React.FC = () => {
             </button>
           </div>
           <div style={{ fontSize: 12, color: 'var(--ink-500)', marginTop: 8, lineHeight: 1.6 }}>
-            반영하면 <b>바로 인식에 쓰입니다</b>(서버가 사전을 다시 읽어요).
-            다만 저장소의 CSV 는 아직 그대로예요 — 서버가 도는 곳은 파일시스템이
-            임시라 거기 쓴 건 다음 배포에 사라집니다. 정식으로 옮기려면
-            <code> scripts/apply_dictionary_additions.py --write</code> 를 돌리세요.
+            반영하면 <b>바로 인식에 쓰입니다.</b> 저장소의 사전 파일로 옮기는 것은
+            <b> 매일 새벽 4시 30분에 자동으로</b> 진행돼요(아래 목록에서 확인할 수 있어요).
           </div>
         </div>
       )}

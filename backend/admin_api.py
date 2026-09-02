@@ -493,6 +493,24 @@ def register(app, get_db):
             traceback.print_exc()
             return jsonify({'error': f'제안을 받지 못했어요: {type(e).__name__}'}), 502
 
+    @app.route('/api/admin/dictionary/options', methods=['GET'])
+    def admin_dictionary_options():
+        """화면에서 판단을 고칠 때 쓸 선택지 — 쓸 수 있는 분류와 대표어 목록.
+
+        관리자가 LLM 의 제안을 고칠 수 있어야 하는데, 그러려면 **무엇을 고를 수
+        있는지**가 화면에 있어야 한다. 없으면 결국 제안을 그대로 승인하게 된다.
+        """
+        _, err = guard()
+        if err:
+            return err
+        try:
+            import dictionary_curation
+
+            return jsonify(dictionary_curation.options())
+        except Exception as e:  # noqa: BLE001
+            print(f"[dictionary] 선택지 조회 실패: {e}", flush=True)
+            return jsonify({'paths': [], 'keywords': []})
+
     @app.route('/api/admin/dictionary/apply', methods=['POST'])
     def admin_dictionary_apply():
         """승인된 제안을 사전에 반영한다 (DB 에 쌓고 즉시 사전에 합쳐진다)."""
