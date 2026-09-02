@@ -53,15 +53,27 @@ export function getDeviceId(): string {
   }
 }
 
+/**
+ * 저장된 로그인 토큰.
+ *
+ * ⚠️ 키 이름은 **`auth_token`** 이다. `token` 이 아니다.
+ * AuthContext 가 로그인할 때 그 이름으로 넣고, 세션 유지가 켜져 있지 않으면
+ * sessionStorage 쪽에 들어간다. 예전에 여기서 `token` 을 읽는 바람에 토큰이
+ * 아예 안 실려 나갔고, 어드민 화면이 로그인해도 "권한이 없습니다" 로 막혔다.
+ */
+export function getAuthToken(): string | null {
+  try {
+    return localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+  } catch {
+    return null;
+  }
+}
+
 /** AI 요청에 함께 보낼 헤더. 로그인 토큰이 있으면 서버가 그쪽을 우선한다. */
 export function usageHeaders(): Record<string, string> {
   const headers: Record<string, string> = { 'X-Device-Id': getDeviceId() };
-  try {
-    const token = localStorage.getItem('token');
-    if (token) headers.Authorization = `Bearer ${token}`;
-  } catch {
-    /* 무시 */
-  }
+  const token = getAuthToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
   return headers;
 }
 

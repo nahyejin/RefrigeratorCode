@@ -1862,12 +1862,40 @@ def get_me():
 
     db = get_db()
     cursor = db.cursor()
+    new_token = None
     try:
         cursor.execute(
             "SELECT id, email, nickname, provider FROM users WHERE id = %s AND deleted_at IS NULL",
             (payload.get('user_id'),)
         )
         user = cursor.fetchone()
+
+        if not user:
+            # 중복 계정을 합치면서 닫힌 계정일 수 있다.
+            #
+            # 그 경우 로그아웃시키면 안 된다 — 사용자는 아무것도 안 했는데 갑자기
+            # 로그인이 풀리고, 자기 재료가 사라진 것처럼 보인다. 합쳤다는 건
+            # "이 사람은 저 계정" 이라는 뜻이므로 **살아 있는 쪽으로 넘겨준다.**
+            # (직접 탈퇴한 `deleted+` 는 넘기지 않는다. 그건 "새로 시작" 이다)
+            cursor.execute(
+                "SELECT email FROM users WHERE id = %s AND email LIKE 'merged+%%'",
+                (payload.get('user_id'),)
+            )
+            closed = cursor.fetchone()
+            if closed:
+                original = closed['email'].split('+', 2)[-1]
+                cursor.execute(
+                    "SELECT id, email, nickname, provider FROM users "
+                    "WHERE email = %s AND deleted_at IS NULL LIMIT 1",
+                    (original,)
+                )
+                user = cursor.fetchone()
+                if user:
+                    new_token = generate_jwt_token(
+                        user['id'], user['email'], user['nickname'], user['provider']
+                    )
+                    print(f"[세션] 합쳐진 계정 {payload.get('user_id')} 의 토큰을 "
+                          f"{user['id']} 로 넘김")
     finally:
         db.close()
 
@@ -1875,12 +1903,18 @@ def get_me():
     if not user:
         return jsonify({'error': '존재하지 않는 계정입니다.'}), 401
 
-    return jsonify({'user': {
+    body = {'user': {
         'id': user['id'],
         'email': user['email'],
         'nickname': user['nickname'],
         'provider': user['provider'],
-    }}), 200
+    }}
+    # 계정이 넘어갔으면 새 토큰도 함께 준다. 프론트가 이걸 저장해야 다음 요청부터
+    # 살아 있는 계정으로 나간다.
+    if new_token:
+        body['token'] = new_token
+        body['merged'] = True
+    return jsonify(body), 200
 
 
 @app.route('/api/auth/update-profile', methods=['POST'])

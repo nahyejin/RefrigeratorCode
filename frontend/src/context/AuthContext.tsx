@@ -134,6 +134,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             }
             if (!res.ok) return; // 서버 장애 등은 로그아웃 사유가 아니다
             const data = await res.json();
+            // 중복 계정을 합치면서 이 토큰의 계정이 닫혔으면 서버가 살아 있는 쪽
+            // 토큰을 함께 준다. 저장해 둬야 다음 요청부터 제 계정으로 나간다.
+            // (저장을 안 하면 앱을 열 때마다 넘겨받기만 하고 그 사이 요청들은
+            //  전부 닫힌 계정으로 나가 "권한이 없습니다" 가 뜬다)
+            if (data?.token) {
+              const where = localStorage.getItem('auth_token') ? localStorage : sessionStorage;
+              where.setItem('auth_token', data.token);
+              console.info('[Auth] 합쳐진 계정 → 살아 있는 계정으로 세션을 넘겼습니다');
+            }
             if (data?.user) {
               // 서버 쪽 정보가 최신이므로 화면 표시도 맞춘다
               const fresh: User = {

@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getAuthToken } from '../utils/usage';
 
 /**
  * 어드민 — 사용자 목록 · 한도 조정 · 대시보드.
@@ -51,7 +52,8 @@ interface UsageRow {
 }
 
 function authHeaders(): Record<string, string> {
-  const token = localStorage.getItem('token');
+  // 키 이름은 `auth_token` 이다 (utils/usage.ts 의 getAuthToken 설명 참고).
+  const token = getAuthToken();
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 

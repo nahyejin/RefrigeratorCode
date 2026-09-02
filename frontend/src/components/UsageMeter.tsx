@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   type Usage,
+  getAuthToken,
   getCachedUsage,
   hasPendingRequest,
   isLow,
@@ -38,13 +39,7 @@ export function useIsAdmin(): boolean {
 
   React.useEffect(() => {
     let alive = true;
-    const token = (() => {
-      try {
-        return localStorage.getItem('token');
-      } catch {
-        return null;
-      }
-    })();
+    const token = getAuthToken();
     if (!token) return;
     fetch(`${API_BASE_URL}/api/admin/me`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => (r.ok ? r.json() : null))
