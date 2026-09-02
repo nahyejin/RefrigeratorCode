@@ -24,3 +24,6 @@ llm_ingredients.log
 
 # 계정 병합 백업 — 비밀번호 해시가 들어 있어 절대 커밋하지 않는다
 scratch_backups/
+
+# 사전 반영 배치 로그
+dictionary_sync.log
