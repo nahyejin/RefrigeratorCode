@@ -100,6 +100,109 @@ const S = {
   } as React.CSSProperties,
 };
 
+
+/**
+ * 한도 정책 한 장.
+ *
+ * 관리자가 "이 사람 한도를 얼마로 올려 줄까" 를 정하려면 **기준이 눈앞에 있어야
+ * 한다.** 문서를 찾아보게 만들면 결국 감으로 정하게 된다.
+ *
+ * 숫자는 서버가 지금 실제로 쓰는 값이다(환경변수로 바뀐 값도 그대로 따라온다).
+ * 화면에 하드코딩하면 값을 바꿨을 때 화면만 옛 숫자를 말하게 된다.
+ */
+const PolicyCard: React.FC<{ policy: any }> = ({ policy }) => {
+  const [open, setOpen] = React.useState(false);
+  if (!policy) return null;
+
+  const label: Record<string, string> = { guest: '비회원', free: '회원 (free)', plus: '회원 (plus)' };
+  const chat = policy.credits?.chat ?? 1;
+  const vision = policy.credits?.vision ?? 2;
+  const free = (policy.plans || []).find((p: any) => p.key === 'free');
+
+  return (
+    <div style={{ ...S.card, marginBottom: 10 }}>
+      <button
+        type="button"
+        onClick={() => setOpen(v => !v)}
+        style={{
+          width: '100%', border: 'none', background: 'transparent', padding: 0,
+          cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          textAlign: 'left',
+        }}
+      >
+        <span style={{ fontSize: 15, fontWeight: 700, color: '#1A1A1E' }}>한도 정책</span>
+        <span style={{ fontSize: 12, color: 'var(--ink-500)' }}>
+          {open ? '접기 ▲' : '펼치기 ▼'}
+        </span>
+      </button>
+
+      {open && (
+        <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 320 }}>
+              <thead><tr>{['구분', '주 한도', '일 상한'].map(h => (
+                <th key={h} style={S.th}>{h}</th>))}</tr></thead>
+              <tbody>
+                {(policy.plans || []).map((p: any) => (
+                  <tr key={p.key}>
+                    <td style={S.td}>{label[p.key] || p.key}</td>
+                    <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums', fontWeight: 700 }}>{p.weekly}</td>
+                    <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums' }}>{p.daily}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div style={{ fontSize: 12.5, color: 'var(--ink-700)', lineHeight: 1.8 }}>
+            <b>무엇을 세는가</b> — 챗봇 질문 <b>{chat}</b>, 사진 인식 <b>{vision}</b>
+            (사진 장수와 무관).
+            <br />
+            사진이 여러 장이어도 LLM 호출은 한 번이라, 장수만큼 매기면 여러 장을 한 번에
+            올리는 것에 벌금을 매기는 꼴이 된다.
+            <br />
+            <br />
+            <b>주 한도와 일 상한을 함께 두는 이유</b>
+            <br />
+            냉장고 재료 등록은 <b>장 본 날 하루에 몰린다.</b> 일별만 걸면 그날 막혀서
+            첫 사용 경험이 차단으로 끝나고, 주별만 걸면 첫날 한 주치를 태우고 6일을 못 쓴다.
+            <br />
+            <br />
+            <b>리셋</b> — 매주 월요일 00:00 (다음: {String(policy.resets_at || '').slice(0, 10)}).
+            고정 요일이라 사용자가 언제 채워지는지 예측할 수 있다.
+          </div>
+
+          {free && (
+            <div style={{ background: 'var(--surface-sub)', borderRadius: 10, padding: '12px 14px',
+                          fontSize: 12.5, color: 'var(--ink-700)', lineHeight: 1.8 }}>
+              <b>주 {free.weekly} 이 실제로 얼마인가</b>
+              <br />
+              · 챗봇만 쓰면 <b>{Math.floor(free.weekly / chat)}회</b> 질문
+              <br />
+              · 사진만 쓰면 <b>{Math.floor(free.weekly / vision)}회</b> 인식
+              <br />
+              · 첫 주 전형 — 영수증 2장 + 재료 사진 5회 + 챗봇 10회
+              = {2 * vision + 5 * vision + 10 * chat} 크레딧 (쓰고도 {free.weekly - (2 * vision + 5 * vision + 10 * chat)} 남음)
+              <br />
+              · 일 상한 {free.daily} 이면 세팅하는 날 사진 인식 {Math.floor(free.daily / vision)}회 가능
+            </div>
+          )}
+
+          <div style={{ fontSize: 12, color: 'var(--ink-500)', lineHeight: 1.7 }}>
+            <b>올려 줄 때</b>: 아래 사용자 목록 → <b>자세히</b> → 한도 조정에서 숫자를 직접
+            적으면 그 사람에게만 적용됩니다. <b>메모는 필수</b>예요 — 몇 달 뒤에
+            왜 이 사람만 다른지 알 수 없게 됩니다.
+            <br />
+            <b>기준을 바꿀 때</b>: 감으로 바꾸지 말고 대시보드의 <b>크레딧 환산 점검</b>
+            (종류별 크레딧당 실제 토큰)을 먼저 보세요. 값 자체는 환경변수
+            <code> QUOTA_FREE_WEEKLY</code> 등으로 조정합니다.
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 /** 한도 조정 패널. 메모를 안 적으면 저장되지 않는다 (서버도 막는다). */
 const QuotaEditor: React.FC<{ user: AdminUser; onSaved: () => void }> = ({ user, onSaved }) => {
   const [plan, setPlan] = React.useState(user.plan);
@@ -887,6 +990,7 @@ const Admin: React.FC = () => {
   // 사전은 가끔 손보는 것이라 맨 뒤.
   const [tab, setTab] = React.useState<'dashboard' | 'users' | 'requests' | 'ops' | 'dictionary'>('dashboard');
   const [users, setUsers] = React.useState<AdminUser[] | null>(null);
+  const [policy, setPolicy] = React.useState<any>(null);
   const [keyword, setKeyword] = React.useState('');
   const [showDeleted, setShowDeleted] = React.useState(false);
   const [openId, setOpenId] = React.useState<number | null>(null);
@@ -903,7 +1007,7 @@ const Admin: React.FC = () => {
     if (keyword.trim()) params.set('q', keyword.trim());
     if (showDeleted) params.set('deleted', '1');
     api(`/api/admin/users?${params}`)
-      .then(d => setUsers(d.users || []))
+      .then(d => { setUsers(d.users || []); setPolicy(d.policy || null); })
       .catch(e => setError(e.message));
   }, [keyword, showDeleted]);
 
@@ -963,6 +1067,8 @@ const Admin: React.FC = () => {
         <Maintenance />
       ) : (
         <>
+          <PolicyCard policy={policy} />
+
           <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
             <input
               value={keyword}

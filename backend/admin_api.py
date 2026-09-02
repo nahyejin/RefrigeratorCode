@@ -210,7 +210,21 @@ def register(app, get_db):
                 'week_tokens': int(r['week_tokens'] or 0),
                 'today_credits': int(r['today_credits'] or 0),
             })
-        return jsonify({'users': users, 'week_start': week_start.isoformat()})
+        # 한도 정책을 화면에 같이 내려준다.
+        #
+        # 화면에 숫자를 하드코딩하면 환경변수로 값을 바꿨을 때 **화면만 옛 숫자를
+        # 말하게 된다.** 관리자가 그걸 보고 정책을 정하면 어긋난다.
+        # 그래서 서버가 지금 실제로 쓰는 값을 그대로 내려보낸다.
+        plans = usage_quota._plans()
+        policy = {
+            'plans': [
+                {'key': key, 'weekly': weekly, 'daily': daily}
+                for key, (weekly, daily) in plans.items()
+            ],
+            'credits': dict(usage_quota.CREDITS),
+            'resets_at': usage_quota.next_week_start().isoformat(),
+        }
+        return jsonify({'users': users, 'week_start': week_start.isoformat(), 'policy': policy})
 
     @app.route('/api/admin/users/<int:user_id>/quota', methods=['PUT'])
     def admin_set_quota(user_id):
