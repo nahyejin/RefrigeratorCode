@@ -815,6 +815,32 @@ def ensure_users_table():
     finally:
         db.close()
 
+def grant_new_user_credits(user_id, email=None, provider=None, provider_id=None):
+    """새로 만든 계정에 가입 크레딧을 준다.
+
+    **한 사람에게 한 번만** 준다. 탈퇴하고 다시 가입하거나 이메일만 바꿔
+    가입하면 지문(소셜 provider_id / 이메일 / 기기)이 걸려 다시 안 준다.
+
+    지급이 실패해도 가입 자체는 성공시킨다 — 크레딧 때문에 로그인이 막히면
+    본말이 전도된다.
+    """
+    try:
+        import usage_quota
+
+        device_id = None
+        try:
+            _, device_id = usage_quota.caller_identity()
+        except Exception:  # noqa: BLE001
+            pass  # 요청 밖에서 불릴 수도 있다
+        given, why = usage_quota.grant_signup(
+            get_db, user_id, email=email, provider=provider,
+            provider_id=provider_id, device_id=device_id,
+        )
+        print(f"[크레딧] 가입 지급 user_id={user_id}: {why}", flush=True)
+    except Exception as e:  # noqa: BLE001
+        print(f"[크레딧] 가입 지급 실패(무시) user_id={user_id}: {e}", flush=True)
+
+
 def get_or_create_user(email, nickname, provider, provider_id, email_verified=False):
     """사용자 조회 또는 생성 (탈퇴한 사용자 제외)
 
@@ -899,6 +925,7 @@ def get_or_create_user(email, nickname, provider, provider_id, email_verified=Fa
             user_id = cursor.lastrowid
             db.commit()
             print(f"[로그인] 탈퇴 계정(id={deleted_user['id']}) 이메일을 비우고 새 계정 생성: id={user_id}")
+            grant_new_user_credits(user_id, email, provider, provider_id)
 
             return {
                 'id': user_id,
@@ -913,6 +940,7 @@ def get_or_create_user(email, nickname, provider, provider_id, email_verified=Fa
         )
         user_id = cursor.lastrowid
         db.commit()
+        grant_new_user_credits(user_id, email, provider, provider_id)
         
         return {
             'id': user_id,
@@ -1319,6 +1347,7 @@ def signup():
                 user_id = cursor.lastrowid
                 db.commit()
                 print(f"[회원가입] 탈퇴 계정(id={deleted_user['id']}) 이메일을 비우고 새 계정 생성: id={user_id}")
+                grant_new_user_credits(user_id, email, 'local', email)
             else:
                 # 새 사용자 생성
                 cursor.execute(
@@ -1328,6 +1357,7 @@ def signup():
                 user_id = cursor.lastrowid
                 db.commit()
                 print(f"[회원가입] 사용자 생성 완료, ID: {user_id}")
+                grant_new_user_credits(user_id, email, 'local', email)
             
             # JWT 토큰 생성
             token = generate_jwt_token(user_id, email, nickname, provider='local')

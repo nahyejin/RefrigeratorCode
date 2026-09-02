@@ -31,7 +31,9 @@ interface AdminUser {
   household_id: number | null;
   is_admin: boolean;
   plan: string;
-  weekly_limit: number;
+  balance: number;
+  granted: number;
+  used_total: number;
   daily_cap: number;
   note: string | null;
   ingredient_count: number;
@@ -117,7 +119,6 @@ const PolicyCard: React.FC<{ policy: any }> = ({ policy }) => {
   const label: Record<string, string> = { guest: '비회원', free: '회원 (free)', plus: '회원 (plus)' };
   const chat = policy.credits?.chat ?? 1;
   const vision = policy.credits?.vision ?? 2;
-  const free = (policy.plans || []).find((p: any) => p.key === 'free');
 
   return (
     <div style={{ ...S.card, marginBottom: 10 }}>
@@ -140,14 +141,13 @@ const PolicyCard: React.FC<{ policy: any }> = ({ policy }) => {
         <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 320 }}>
-              <thead><tr>{['구분', '주 한도', '일 상한'].map(h => (
+              <thead><tr>{['구분', '일 상한'].map(h => (
                 <th key={h} style={S.th}>{h}</th>))}</tr></thead>
               <tbody>
                 {(policy.plans || []).map((p: any) => (
                   <tr key={p.key}>
                     <td style={S.td}>{label[p.key] || p.key}</td>
-                    <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums', fontWeight: 700 }}>{p.weekly}</td>
-                    <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums' }}>{p.daily}</td>
+                    <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums', fontWeight: 700 }}>{p.daily}</td>
                   </tr>
                 ))}
               </tbody>
@@ -162,40 +162,56 @@ const PolicyCard: React.FC<{ policy: any }> = ({ policy }) => {
             올리는 것에 벌금을 매기는 꼴이 된다.
             <br />
             <br />
-            <b>주 한도와 일 상한을 함께 두는 이유</b>
+            <b>한도가 아니라 잔액이다</b>
             <br />
-            냉장고 재료 등록은 <b>장 본 날 하루에 몰린다.</b> 일별만 걸면 그날 막혀서
-            첫 사용 경험이 차단으로 끝나고, 주별만 걸면 첫날 한 주치를 태우고 6일을 못 쓴다.
+            가입할 때 <b>{policy.signup_credits}</b>개를 주고, 매주 월요일에
+            <b> {policy.weekly_credits}</b>개씩 더 준다. 쓰면 줄고 저절로 원상복구되지
+            않는다. 모자라면 충전하거나 관리자에게 요청한다.
             <br />
             <br />
-            <b>리셋</b> — 매주 월요일 00:00 (다음: {String(policy.resets_at || '').slice(0, 10)}).
-            고정 요일이라 사용자가 언제 채워지는지 예측할 수 있다.
+            매주 가득 채워 주던 방식을 버린 이유 — <b>다 쓸 일이 없으면 부족함을 못
+            느끼고, 그러면 결제할 이유가 영영 안 생긴다.</b> 잔액은 실제로 소진된다.
+            <br />
+            <br />
+            매주 조금이라도 주는 이유 — <b>0이 되면 앱을 아예 안 열게 된다.</b>
+            앱을 안 열면 결제도 안 한다.
+            <br />
+            <br />
+            <b>일 상한을 함께 두는 이유</b> — 잔액이 있어도 하루에 몰아 쓰면
+            "어제 다 써서 오늘 못 쓴다" 가 된다. 그 경험은 한도가 있다는 사실보다
+            앱을 더 나쁘게 기억하게 만든다.
+            <br />
+            <br />
+            <b>비회원</b> — AI 기능을 아예 못 쓴다. 로그인해야 크레딧이 생긴다.
+            <br />
+            <b>다음 주간 지급</b> — {String(policy.resets_at || '').slice(0, 10)}
           </div>
 
-          {free && (
-            <div style={{ background: 'var(--surface-sub)', borderRadius: 10, padding: '12px 14px',
-                          fontSize: 12.5, color: 'var(--ink-700)', lineHeight: 1.8 }}>
-              <b>주 {free.weekly} 이 실제로 얼마인가</b>
-              <br />
-              · 챗봇만 쓰면 <b>{Math.floor(free.weekly / chat)}회</b> 질문
-              <br />
-              · 사진만 쓰면 <b>{Math.floor(free.weekly / vision)}회</b> 인식
-              <br />
-              · 첫 주 전형 — 영수증 2장 + 재료 사진 5회 + 챗봇 10회
-              = {2 * vision + 5 * vision + 10 * chat} 크레딧 (쓰고도 {free.weekly - (2 * vision + 5 * vision + 10 * chat)} 남음)
-              <br />
-              · 일 상한 {free.daily} 이면 세팅하는 날 사진 인식 {Math.floor(free.daily / vision)}회 가능
-            </div>
-          )}
+          <div style={{ background: 'var(--surface-sub)', borderRadius: 10, padding: '12px 14px',
+                        fontSize: 12.5, color: 'var(--ink-700)', lineHeight: 1.8 }}>
+            <b>가입 {policy.signup_credits}개가 실제로 얼마인가</b>
+            <br />
+            · 챗봇만 쓰면 <b>{Math.floor((policy.signup_credits || 0) / chat)}회</b> 질문
+            <br />
+            · 사진만 쓰면 <b>{Math.floor((policy.signup_credits || 0) / vision)}회</b> 인식
+            <br />
+            · 첫 주 전형 — 영수증 2장 + 재료 사진 3회 + 챗봇 8회
+            = {2 * vision + 3 * vision + 8 * chat} 크레딧
+            (쓰고도 {(policy.signup_credits || 0) - (2 * vision + 3 * vision + 8 * chat)} 남음)
+            <br />
+            · 보통 사용자가 쓰는 양은 <b>주 11~16</b> 정도로 본다
+            (요리 3~4회 × 챗봇 2~3번 + 장보기 1회)
+          </div>
 
           <div style={{ fontSize: 12, color: 'var(--ink-500)', lineHeight: 1.7 }}>
-            <b>올려 줄 때</b>: 아래 사용자 목록 → <b>자세히</b> → 한도 조정에서 숫자를 직접
-            적으면 그 사람에게만 적용됩니다. <b>메모는 필수</b>예요 — 몇 달 뒤에
+            <b>더 줄 때</b>: 아래 사용자 목록 → <b>자세히</b> → 크레딧 지급에 숫자를
+            적으면 그 사람 잔액에 더해집니다. <b>메모는 필수</b>예요 — 몇 달 뒤에
             왜 이 사람만 다른지 알 수 없게 됩니다.
             <br />
             <b>기준을 바꿀 때</b>: 감으로 바꾸지 말고 대시보드의 <b>크레딧 환산 점검</b>
             (종류별 크레딧당 실제 토큰)을 먼저 보세요. 값 자체는 환경변수
-            <code> QUOTA_FREE_WEEKLY</code> 등으로 조정합니다.
+            <code> CREDITS_SIGNUP</code>, <code>CREDITS_WEEKLY</code>,
+            <code> QUOTA_FREE_DAILY</code> 로 조정합니다.
           </div>
         </div>
       )}
@@ -203,10 +219,15 @@ const PolicyCard: React.FC<{ policy: any }> = ({ policy }) => {
   );
 };
 
-/** 한도 조정 패널. 메모를 안 적으면 저장되지 않는다 (서버도 막는다). */
+/**
+ * 크레딧 지급 · 플랜 조정 패널. 메모를 안 적으면 저장되지 않는다 (서버도 막는다).
+ *
+ * 크레딧은 한도가 아니라 **잔액**이라 "설정" 이 아니라 "지급" 이다. 숫자를
+ * 덮어쓰게 두면 실수로 남의 잔액을 깎을 수 있어서, 보태기만 되게 했다.
+ */
 const QuotaEditor: React.FC<{ user: AdminUser; onSaved: () => void }> = ({ user, onSaved }) => {
   const [plan, setPlan] = React.useState(user.plan);
-  const [weekly, setWeekly] = React.useState(String(user.weekly_limit));
+  const [grant, setGrant] = React.useState('');
   const [daily, setDaily] = React.useState(String(user.daily_cap));
   const [note, setNote] = React.useState('');
   const [saving, setSaving] = React.useState(false);
@@ -224,7 +245,7 @@ const QuotaEditor: React.FC<{ user: AdminUser; onSaved: () => void }> = ({ user,
         method: 'PUT',
         body: JSON.stringify({
           plan,
-          weekly_limit: weekly === '' ? null : Number(weekly),
+          grant_credits: grant === '' ? null : Number(grant),
           daily_cap: daily === '' ? null : Number(daily),
           note: note.trim(),
         }),
@@ -239,9 +260,14 @@ const QuotaEditor: React.FC<{ user: AdminUser; onSaved: () => void }> = ({ user,
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <div style={{ fontSize: 12, color: 'var(--ink-500)', lineHeight: 1.6 }}>
-        플랜 기본값은 <b>free 주 100 / 일 40</b>, <b>plus 주 400 / 일 100</b> 이에요.
-        숫자를 직접 적으면 이 사람에게만 그 값이 적용됩니다 (요청이 오면 여기서 늘려 주세요).
+      <div style={{ fontSize: 12, color: 'var(--ink-500)', lineHeight: 1.7 }}>
+        지금 잔액 <b style={{ color: '#1A1A1E' }}>{user.balance}</b>
+        <span style={{ color: 'var(--ink-500)' }}> (받은 {user.granted} · 쓴 {user.used_total})</span>
+        <br />
+        <b>크레딧 지급</b>은 잔액에 <b>더합니다</b>. 덮어쓰지 않아요 —
+        실수로 남의 잔액을 깎는 일이 없도록.
+        <br />
+        일 상한 기본값은 <b>free 15</b>, <b>plus 50</b> 이에요.
       </div>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
         <select value={plan} onChange={e => setPlan(e.target.value)} style={S.input}>
@@ -249,8 +275,13 @@ const QuotaEditor: React.FC<{ user: AdminUser; onSaved: () => void }> = ({ user,
           <option value="plus">plus</option>
         </select>
         <label style={{ fontSize: 12, color: 'var(--ink-500)' }}>
-          주{' '}
-          <input value={weekly} onChange={e => setWeekly(e.target.value)} style={{ ...S.input, width: 72 }} />
+          크레딧 지급{' '}
+          <input
+            value={grant}
+            onChange={e => setGrant(e.target.value)}
+            placeholder="+100"
+            style={{ ...S.input, width: 84 }}
+          />
         </label>
         <label style={{ fontSize: 12, color: 'var(--ink-500)' }}>
           일{' '}
@@ -1988,7 +2019,7 @@ const Admin: React.FC = () => {
                         {u.today_credits} / {u.daily_cap}
                       </td>
                       <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums' }}>
-                        {u.week_credits} / {u.weekly_limit}
+                        {u.week_credits} · 잔액 {u.balance}
                       </td>
                       <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums' }}>{num(u.week_tokens)}</td>
                       <td style={S.td}>{u.plan}</td>

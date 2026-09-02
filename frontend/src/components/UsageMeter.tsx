@@ -85,7 +85,7 @@ export const UsageBadge: React.FC = () => {
   const usage = useUsage();
   if (!isLow(usage) || !usage) return null;
 
-  const left = Math.min(usage.weekly_remaining, usage.daily_remaining);
+  const left = Math.min(usage.balance, usage.daily_remaining);
   return (
     <span
       aria-label={`남은 사용량 ${left}`}
@@ -128,8 +128,8 @@ export const UsageLine: React.FC<{ style?: React.CSSProperties; compact?: boolea
   const usage = useUsage();
   if (!usage) return null;
 
-  const out = usage.weekly_remaining <= 0 || usage.daily_remaining <= 0;
-  const daily = usage.daily_remaining < usage.weekly_remaining;
+  const out = usage.balance <= 0 || usage.daily_remaining <= 0;
+  const daily = usage.daily_remaining < usage.balance;
 
   /**
    * `compact` — 챗 패널 헤더처럼 **폭이 좁은 자리**용.
@@ -141,11 +141,13 @@ export const UsageLine: React.FC<{ style?: React.CSSProperties; compact?: boolea
    * (카메라 시트 · 마이페이지)에서 한다.
    */
   const parts: React.ReactNode[] = [];
-  if (out) {
-    parts.push(daily ? '내일 다시 이어서' : `${compact ? '월요일' : resetLabel(usage)}에 채워져요`);
+  if (usage.is_guest) {
+    // 비회원은 아예 못 쓴다. 남은 개수를 말할 게 아니라 무엇을 하면 되는지를 말한다.
+    parts.push(compact ? '로그인 필요' : `로그인하면 ${usage.signup_credits}개를 드려요`);
+  } else if (out) {
+    parts.push(daily ? '내일 다시 이어서' : '충전하거나 월요일을 기다려요');
   } else if (!compact) {
     if (daily) parts.push(`오늘은 ${usage.daily_remaining}번 더`);
-    if (usage.is_guest) parts.push('로그인하면 더 넉넉해요');
   }
 
   return (
@@ -165,8 +167,8 @@ export const UsageLine: React.FC<{ style?: React.CSSProperties; compact?: boolea
         ...style,
       }}
     >
-      <span style={{ fontWeight: 600, color: out ? RED : 'var(--ink-700)', flexShrink: 0 }}>
-        이번 주 {usage.weekly_used} / {usage.weekly_limit}
+      <span style={{ fontWeight: 600, color: out || usage.is_guest ? RED : 'var(--ink-700)', flexShrink: 0 }}>
+        {usage.is_guest ? 'AI 기능은 로그인 후' : `남은 크레딧 ${usage.balance}`}
       </span>
       {parts.map((text, i) => (
         <span key={i} style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>· {text}</span>
@@ -215,7 +217,10 @@ export const UsageGauge: React.FC = () => {
   if (!usage) return null;
 
   const ratio = remainingRatio(usage);
-  const pct = usage.weekly_limit > 0 ? (usage.weekly_used / usage.weekly_limit) * 100 : 0;
+  // 잔액에는 "최대치" 가 없다(충전하면 늘어난다). 막대는 가입 지급분을 100 으로
+  // 놓고 **남은 양**을 보여 준다 — 채워질수록 좋은 방향이라 직관과 맞다.
+  const base = Math.max(1, usage.signup_credits || 30);
+  const pct = Math.min(100, (usage.balance / base) * 100);
   const tone = toneOf(ratio);
 
   return (
@@ -231,17 +236,20 @@ export const UsageGauge: React.FC = () => {
       }}
     >
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10 }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: '#1A1A1E' }}>AI 사용량</div>
+        <div style={{ fontSize: 14, fontWeight: 700, color: '#1A1A1E' }}>AI 크레딧</div>
         <div style={{ fontSize: 13, color: 'var(--ink-500)' }}>
-          <b style={{ color: '#1A1A1E', fontWeight: 700 }}>{usage.weekly_used}</b> / {usage.weekly_limit}
+          {usage.is_guest ? '로그인 필요' : (
+            <>남은 <b style={{ color: '#1A1A1E', fontWeight: 700, fontSize: 15 }}>{usage.balance}</b></>
+          )}
         </div>
       </div>
 
       <div
         role="progressbar"
-        aria-valuenow={usage.weekly_used}
+        aria-label="남은 크레딧"
+        aria-valuenow={usage.balance}
         aria-valuemin={0}
-        aria-valuemax={usage.weekly_limit}
+        aria-valuemax={base}
         style={{ height: 8, borderRadius: 9999, background: 'var(--line-200)', overflow: 'hidden' }}
       >
         <div
@@ -255,16 +263,24 @@ export const UsageGauge: React.FC = () => {
         />
       </div>
 
-      <div style={{ fontSize: 12, color: 'var(--ink-500)', lineHeight: 1.6 }}>
-        사진으로 재료 담기와 요리 챗봇이 함께 쓰는 양이에요.
+      <div style={{ fontSize: 12, color: 'var(--ink-500)', lineHeight: 1.7 }}>
+        사진으로 재료 담기(2)와 요리 챗봇(1)이 함께 쓰는 크레딧이에요.
         <br />
-        {resetLabel(usage)}에 다시 채워져요.
-        {usage.daily_remaining < usage.weekly_remaining && ` 오늘은 ${usage.daily_remaining}번 더 쓸 수 있어요.`}
+        {usage.is_guest ? (
+          <>로그인하면 <b>{usage.signup_credits}크레딧</b>을 바로 드려요.</>
+        ) : (
+          <>
+            매주 월요일에 <b>{usage.weekly_credits}</b>개씩 채워져요
+            ({resetLabel(usage)}).
+            {usage.daily_remaining < usage.balance &&
+              ` 오늘은 ${usage.daily_remaining}번 더 쓸 수 있어요.`}
+          </>
+        )}
       </div>
 
       {usage.is_guest ? (
         <div style={{ fontSize: 12, color: 'var(--ink-700)', fontWeight: 600 }}>
-          로그인하면 훨씬 넉넉하게 쓸 수 있어요.
+          로그인하면 AI 기능을 쓸 수 있어요.
         </div>
       ) : pending ? (
         /* 이미 요청이 접수된 상태. 버튼을 계속 보여주면 또 누르게 되고,

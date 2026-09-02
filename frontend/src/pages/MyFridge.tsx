@@ -19,7 +19,7 @@ import IngredientRecognitionSheet, { type RecognizedIngredient, type UnmatchedIn
 import Dialog from '../components/ui/Dialog';
 import { shrinkImageForUpload } from '../utils/imageUtils';
 import { applyUsage, usageHeaders } from '../utils/usage';
-import { UsageBadge } from '../components/UsageMeter';
+import { UsageBadge, useUsage } from '../components/UsageMeter';
 import { loadIngredientCategoryMap, estimateExpiry, type CategoryMap } from '../utils/shelfLife';
 import {
   isUsageGuideDueThisVisit,
@@ -1644,6 +1644,10 @@ const MyFridge: React.FC = () => {
    * 짧은 안내 문구.
    * `alert` 는 OS 창이라 앱 밖의 일처럼 보이고 확인을 눌러야만 사라져서 쓰지 않는다.
    */
+  // 비회원은 AI 기능을 못 쓴다. 서버도 막지만, **누르고 나서 실패하는 것보다
+  // 누르기 전에 알려 주는 편이 낫다.**
+  const usage = useUsage();
+
   const showPrepNotice = (text: string) => {
     setInfoToast({ text });
     if (prepNoticeTimer.current) clearTimeout(prepNoticeTimer.current);
@@ -2264,7 +2268,14 @@ const MyFridge: React.FC = () => {
               <button
                 type="button"
                 className="ai-fab-button"
-                onClick={() => setCameraSheetOpen(true)}
+                onClick={() => {
+                  if (usage?.is_guest) {
+                    showPrepNotice('로그인하면 사진으로 재료를 담을 수 있어요.');
+                    navigate('/login');
+                    return;
+                  }
+                  setCameraSheetOpen(true);
+                }}
                 title="사진으로 재료 담기"
                 aria-label="사진으로 재료 담기"
               >

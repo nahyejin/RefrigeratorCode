@@ -182,7 +182,11 @@ def register(app, get_db):
                 SELECT u.id, u.email, u.nickname, u.provider, u.created_at,
                        u.deleted_at, u.household_id, u.is_admin,
                        COALESCE(q.plan, 'free')  AS plan,
-                       q.weekly_limit, q.daily_cap, q.note,
+                       q.daily_cap, q.note,
+                       (SELECT COALESCE(SUM(g.amount), 0) FROM credit_grants g
+                         WHERE g.user_id = u.id) AS granted,
+                       (SELECT COALESCE(SUM(l.credits), 0) FROM llm_usage l
+                         WHERE l.user_id = u.id) AS used_total,
                        (SELECT COUNT(*) FROM user_ingredients i WHERE i.user_id = u.id)
                            AS ingredient_count,
                        (SELECT COALESCE(SUM(l.credits), 0) FROM llm_usage l
@@ -207,11 +211,11 @@ def register(app, get_db):
             cursor.close()
             db.close()
 
-        plans = usage_quota._plans()
+        caps = usage_quota._daily_caps()
         users = []
         for r in rows:
             plan = r['plan'] or 'free'
-            base_weekly, base_daily = plans.get(plan, plans['free'])
+            base_daily = caps.get(plan, caps['free'])
             users.append({
                 'id': r['id'],
                 'email': _clean_email(r['email']),
@@ -222,8 +226,10 @@ def register(app, get_db):
                 'household_id': r['household_id'],
                 'is_admin': bool(r['is_admin']),
                 'plan': plan,
-                'weekly_limit': r['weekly_limit'] if r['weekly_limit'] is not None else base_weekly,
                 'daily_cap': r['daily_cap'] if r['daily_cap'] is not None else base_daily,
+                'granted': int(r['granted'] or 0),
+                'used_total': int(r['used_total'] or 0),
+                'balance': int(r['granted'] or 0) - int(r['used_total'] or 0),
                 'note': r['note'],
                 'ingredient_count': int(r['ingredient_count'] or 0),
                 'week_credits': int(r['week_credits'] or 0),
@@ -235,11 +241,12 @@ def register(app, get_db):
         # 화면에 숫자를 하드코딩하면 환경변수로 값을 바꿨을 때 **화면만 옛 숫자를
         # 말하게 된다.** 관리자가 그걸 보고 정책을 정하면 어긋난다.
         # 그래서 서버가 지금 실제로 쓰는 값을 그대로 내려보낸다.
-        plans = usage_quota._plans()
         policy = {
+            'signup_credits': usage_quota.SIGNUP_CREDITS,
+            'weekly_credits': usage_quota.WEEKLY_CREDITS,
             'plans': [
-                {'key': key, 'weekly': weekly, 'daily': daily}
-                for key, (weekly, daily) in plans.items()
+                {'key': key, 'daily': daily}
+                for key, daily in usage_quota._daily_caps().items()
             ],
             'credits': dict(usage_quota.CREDITS),
             'resets_at': usage_quota.next_week_start().isoformat(),
@@ -274,8 +281,10 @@ def register(app, get_db):
                 return None
             return n if n >= 0 else None
 
-        weekly = as_int(body.get('weekly_limit'))
         daily = as_int(body.get('daily_cap'))
+        # 크레딧은 한도가 아니라 **잔액**이라 "설정" 이 아니라 "지급" 이다.
+        # 숫자를 덮어쓰게 두면 실수로 남의 잔액을 깎을 수 있다. 보태기만 한다.
+        grant = as_int(body.get('grant_credits'))
 
         usage_quota.ensure_tables(get_db)
         db = get_db()
@@ -284,19 +293,22 @@ def register(app, get_db):
             cursor.execute(
                 """
                 INSERT INTO user_quota
-                    (user_id, plan, weekly_limit, daily_cap, note, updated_by, updated_at)
-                VALUES (%s, %s, %s, %s, %s, %s, NOW())
+                    (user_id, plan, daily_cap, note, updated_by, updated_at)
+                VALUES (%s, %s, %s, %s, %s, NOW())
                 ON DUPLICATE KEY UPDATE
-                    plan = VALUES(plan), weekly_limit = VALUES(weekly_limit),
-                    daily_cap = VALUES(daily_cap), note = VALUES(note),
+                    plan = VALUES(plan), daily_cap = VALUES(daily_cap),
+                    note = VALUES(note),
                     updated_by = VALUES(updated_by), updated_at = NOW()
                 """,
-                (user_id, plan, weekly, daily, note[:255], admin[0]),
+                (user_id, plan, daily, note[:255], admin[0]),
             )
             db.commit()
         finally:
             cursor.close()
             db.close()
+
+        if grant:
+            usage_quota.topup(get_db, user_id, grant, note=note[:255], reason='admin')
 
         return jsonify(usage_quota.status(get_db, user_id=user_id))
 

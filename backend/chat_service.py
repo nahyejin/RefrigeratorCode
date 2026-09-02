@@ -900,5 +900,5 @@ def handle_chat(get_db):
         'ignore_fridge': parsed['ignore_fridge'],
         'provider': provider,
         'usage': usage,
-        'remaining': (usage or {}).get('weekly_remaining', 0),
+        'remaining': (usage or {}).get('balance', 0),
     })

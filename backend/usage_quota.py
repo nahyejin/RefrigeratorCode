@@ -22,6 +22,7 @@
     있고, 어드민 통계가 전부 여기 한 곳에서 나온다.
 """
 
+import hashlib
 import os
 import threading
 from datetime import datetime, timedelta, timezone
@@ -35,43 +36,30 @@ CREDITS = {
 }
 
 
-def _plans():
-    """플랜별 (주 한도, 일 상한). 환경변수로 덮을 수 있다.
+# ── 크레딧 지급 정책 ──────────────────────────────────────────────
+#
+# **매주 채워 주는 방식에서 잔액 방식으로 바꿨다.**
+#
+# 매주 30개가 그냥 새로 생기면 다 쓸 일이 없다. 부족함을 못 느끼니 결제할 이유도
+# 영영 안 생긴다. 잔액은 **소진된다** — 부족한 그 순간이 실제로 오고, 그때가
+# 팔기 가장 좋은 순간이다.
+#
+# 그래도 매주 조금은 준다. 잔액이 완전히 0이 되면 앱을 아예 안 열게 되고,
+# 앱을 안 열면 결제도 안 한다.
 
-    숫자를 어떻게 잡았나 — **실제로 요리하는 사람의 한 주**에서 거꾸로 셌다.
+SIGNUP_CREDITS = int(os.getenv("CREDITS_SIGNUP", "30"))   # 가입할 때 한 번
+WEEKLY_CREDITS = int(os.getenv("CREDITS_WEEKLY", "5"))    # 매주 월요일
 
-        요리     주 3~4회 × 챗봇 질문 2~3번   =  9~12 크레딧
-        장보기   주 1회   × 사진 1~2장        =  2~4  크레딧
-        ────────────────────────────────────────────────
-        보통 사용자                            = 11~16 크레딧 / 주
 
-    무료 30 은 그 **두 배**다. 평범하게 쓰면 절대 안 걸리고, 매일 요리하거나
-    사진을 많이 찍는 사람만 걸린다. 그 사람이 유료로 넘어갈 사람이다.
+def _daily_caps():
+    """플랜별 하루 상한. 잔액을 하루에 다 태우는 걸 막는 안전장치다.
 
-    전에는 무료가 주 100 이었다. 보통 사용자의 6~9배라 **아무도 한도를 못 느꼈고,
-    그러면 유료로 올릴 명분 자체가 없다.** 지금 줄여 두는 게 중요한 이유가 하나 더
-    있다 — 사람들이 100 에 익숙해진 뒤에 줄이면 "쓰던 걸 뺏는" 것이 된다.
-    아직 익숙해진 사람이 없을 때 정해 두는 편이 낫다.
-
-    일 상한은 주 한도의 절반쯤이다. 하루에 몰아 써서 주 초에 다 태우고
-    "남은 6일 동안 아무것도 못 하는" 상태를 막기 위한 것이다.
+    잔액이 있어도 하루에 몰아 쓰면 "어제 다 써 버려서 오늘 못 쓴다" 가 되는데,
+    그 경험은 한도가 있다는 사실보다 앱을 더 나쁘게 기억하게 만든다.
     """
     return {
-        # 비회원은 맛보기. "가입하면 더 쓸 수 있다" 를 말할 수 있을 만큼만.
-        "guest": (
-            int(os.getenv("QUOTA_GUEST_WEEKLY", "10")),
-            int(os.getenv("QUOTA_GUEST_DAILY", "6")),
-        ),
-        "free": (
-            int(os.getenv("QUOTA_FREE_WEEKLY", "30")),
-            int(os.getenv("QUOTA_FREE_DAILY", "15")),
-        ),
-        # 무료의 5배. 매일 요리하고 영수증을 자주 찍어도 남는다.
-        # 400 은 과했다 — 아무도 도달 못 하는 한도는 없는 한도와 같다.
-        "plus": (
-            int(os.getenv("QUOTA_PLUS_WEEKLY", "150")),
-            int(os.getenv("QUOTA_PLUS_DAILY", "50")),
-        ),
+        "free": int(os.getenv("QUOTA_FREE_DAILY", "15")),
+        "plus": int(os.getenv("QUOTA_PLUS_DAILY", "50")),
     }
 
 
@@ -282,6 +270,33 @@ def ensure_tables(get_db):
             # (USAGE_QUOTA_PLAN.md 6절 — 지금은 결제를 붙이지 않는다).
             cursor.execute(
                 """
+                CREATE TABLE IF NOT EXISTS credit_grants (
+                    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                    user_id INT NOT NULL,
+                    amount INT NOT NULL,
+                    reason VARCHAR(16) NOT NULL,      -- signup / weekly / topup / admin
+                    period_key VARCHAR(16) NOT NULL,  -- 'once' 또는 '2026-W36'
+                    note VARCHAR(255) NULL,
+                    created_at DATETIME NOT NULL,
+                    -- 같은 사유·같은 기간의 지급은 한 번뿐이다.
+                    -- 이게 없으면 화면을 새로고침할 때마다 주간 지급이 쌓인다.
+                    UNIQUE KEY uniq_grant (user_id, reason, period_key),
+                    INDEX idx_user (user_id)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+                """
+            )
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS credit_identity_claims (
+                    fingerprint VARCHAR(96) PRIMARY KEY,
+                    user_id INT NOT NULL,
+                    created_at DATETIME NOT NULL,
+                    INDEX idx_user (user_id)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+                """
+            )
+            cursor.execute(
+                """
                 CREATE TABLE IF NOT EXISTS usage_requests (
                     id BIGINT AUTO_INCREMENT PRIMARY KEY,
                     user_id INT NOT NULL,
@@ -309,38 +324,166 @@ def ensure_tables(get_db):
             db.close()
 
 
-def _limits_for(cursor, user_id):
-    """이 사용자에게 적용할 (plan, 주 한도, 일 상한).
+def _plan_of(cursor, user_id):
+    """이 사용자의 (plan, 하루 상한).
 
-    `user_quota` 에 행이 없으면 free 기본값. 행이 있어도 `weekly_limit` 이
-    NULL 이면 플랜 기본값을 쓴다 — 어드민이 "plus 로만 올리고 숫자는 기본값"
-    같은 조합을 쓸 수 있게.
+    `user_quota` 에 행이 없으면 free. 행이 있어도 `daily_cap` 이 NULL 이면
+    플랜 기본값을 쓴다 — 어드민이 "plus 로만 올리고 숫자는 기본값" 을 쓸 수 있게.
     """
-    plans = _plans()
+    caps = _daily_caps()
     if user_id is None:
-        weekly, daily = plans["guest"]
-        return "guest", weekly, daily
+        return "guest", 0
 
     cursor.execute(
-        "SELECT plan, weekly_limit, daily_cap FROM user_quota WHERE user_id = %s",
-        (user_id,),
+        "SELECT plan, daily_cap FROM user_quota WHERE user_id = %s", (user_id,)
     )
     row = cursor.fetchone()
-    plan = "free"
-    weekly = daily = None
+    plan, daily = "free", None
     if row:
         # DictCursor / 튜플 커서 양쪽에서 동작하게 한다.
         if isinstance(row, dict):
             plan = (row.get("plan") or "free").strip() or "free"
-            weekly, daily = row.get("weekly_limit"), row.get("daily_cap")
+            daily = row.get("daily_cap")
         else:
             plan = (row[0] or "free").strip() or "free"
-            weekly, daily = row[1], row[2]
+            daily = row[1]
+    return plan, (daily if daily is not None else caps.get(plan, caps["free"]))
 
-    base_weekly, base_daily = plans.get(plan, plans["free"])
-    return plan, (weekly if weekly is not None else base_weekly), (
-        daily if daily is not None else base_daily
+
+def _scalar(row):
+    if row is None:
+        return 0
+    value = list(row.values())[0] if isinstance(row, dict) else row[0]
+    return int(value or 0)
+
+
+def _fingerprints(email=None, provider=None, provider_id=None, device_id=None):
+    """이 사람을 알아볼 지문들.
+
+    가입 크레딧을 **한 사람에게 한 번만** 주기 위한 것이다. 탈퇴하고 다시
+    가입하거나 이메일만 바꿔 가입해도 같은 지문이 걸리면 다시 안 준다.
+
+    완벽하게는 못 막는다 — 앱을 지우고 다른 이메일로 가입하면 뚫린다.
+    목표는 "쉽게는 못 하게" 이고, 무료분이 30개라 그 수고를 들일 사람은 적다.
+    """
+    marks = []
+    if provider and provider_id:
+        # 소셜 로그인은 이게 제일 단단하다. 이메일을 바꿔도 provider_id 는 그대로다.
+        marks.append(f"p:{str(provider).strip().lower()}:{str(provider_id).strip()}"[:96])
+    if email:
+        marks.append("e:" + _email_key(email))
+    if device_id:
+        marks.append(f"d:{str(device_id).strip()}"[:96])
+    return marks
+
+
+def _email_key(email):
+    """이메일을 지문으로. 점·플러스 별칭으로 같은 주소를 여러 개처럼 쓰는 걸 막는다."""
+    text = str(email or "").strip().lower()
+    if "@" not in text:
+        return hashlib.sha256(text.encode("utf-8")).hexdigest()[:40]
+    local, domain = text.rsplit("@", 1)
+    local = local.split("+", 1)[0]
+    if domain in ("gmail.com", "googlemail.com"):
+        local = local.replace(".", "")
+    return hashlib.sha256(f"{local}@{domain}".encode("utf-8")).hexdigest()[:40]
+
+
+def week_key(now=None):
+    """주간 지급의 기간 키. 같은 주에 두 번 지급되지 않게 하는 열쇠다."""
+    monday = week_start(now)
+    return monday.strftime("%G-W%V")
+
+
+def balance(cursor, user_id):
+    """남은 크레딧 = 받은 것 − 쓴 것."""
+    cursor.execute(
+        "SELECT COALESCE(SUM(amount), 0) FROM credit_grants WHERE user_id = %s",
+        (user_id,),
     )
+    granted = _scalar(cursor.fetchone())
+    cursor.execute(
+        "SELECT COALESCE(SUM(credits), 0) FROM llm_usage WHERE user_id = %s",
+        (user_id,),
+    )
+    used = _scalar(cursor.fetchone())
+    return granted, used, granted - used
+
+
+def _add_grant(cursor, user_id, amount, reason, period_key, note=None):
+    """지급 한 건. 같은 사유·기간이 이미 있으면 아무 일도 안 한다."""
+    cursor.execute(
+        "INSERT IGNORE INTO credit_grants "
+        "(user_id, amount, reason, period_key, note, created_at) "
+        "VALUES (%s, %s, %s, %s, %s, %s)",
+        (user_id, int(amount), str(reason)[:16], str(period_key)[:16],
+         (str(note)[:255] if note else None),
+         datetime.now(KST).replace(tzinfo=None)),
+    )
+    return cursor.rowcount > 0
+
+
+def grant_signup(get_db, user_id, email=None, provider=None, provider_id=None,
+                 device_id=None):
+    """가입 크레딧을 한 번 준다. 이미 받은 적 있는 사람이면 건너뛴다.
+
+    반환: (지급했는가, 사유)
+    """
+    ensure_tables(get_db)
+    marks = _fingerprints(email, provider, provider_id, device_id)
+    db = get_db()
+    cursor = db.cursor()
+    try:
+        if marks:
+            placeholders = ",".join(["%s"] * len(marks))
+            cursor.execute(
+                f"SELECT fingerprint, user_id FROM credit_identity_claims "
+                f"WHERE fingerprint IN ({placeholders})",
+                tuple(marks),
+            )
+            seen = cursor.fetchall() or []
+            # 같은 사람이 다시 온 것. 이미 그 계정에 준 적이 있으니 또 주지 않는다.
+            other = [r for r in seen
+                     if (r["user_id"] if isinstance(r, dict) else r[1]) != user_id]
+            if other:
+                return False, "이미 크레딧을 받은 적이 있는 사용자예요."
+
+        given = _add_grant(cursor, user_id, SIGNUP_CREDITS, "signup", "once",
+                           "가입 축하")
+        if given:
+            now = datetime.now(KST).replace(tzinfo=None)
+            for mark in marks:
+                cursor.execute(
+                    "INSERT IGNORE INTO credit_identity_claims "
+                    "(fingerprint, user_id, created_at) VALUES (%s, %s, %s)",
+                    (mark, user_id, now),
+                )
+        db.commit()
+    finally:
+        cursor.close()
+        db.close()
+    return (given, "지급했어요." if given else "이미 받은 계정이에요.")
+
+
+def topup(get_db, user_id, amount, note=None, reason="topup", period_key=None):
+    """크레딧을 보탠다. 결제가 붙기 전에는 어드민이 손으로 부른다."""
+    ensure_tables(get_db)
+    db = get_db()
+    cursor = db.cursor()
+    try:
+        key = period_key or datetime.now(KST).strftime("%y%m%d%H%M%S")
+        _add_grant(cursor, user_id, amount, reason, key, note)
+        db.commit()
+    finally:
+        cursor.close()
+        db.close()
+
+
+def _ensure_weekly(cursor, user_id, now=None):
+    """이번 주 몫을 아직 안 받았으면 준다. 표의 UNIQUE 가 중복을 막는다."""
+    if not WEEKLY_CREDITS:
+        return
+    _add_grant(cursor, user_id, WEEKLY_CREDITS, "weekly", week_key(now), "주간 지급")
 
 
 def _used(cursor, user_id, device_id, since):
@@ -367,49 +510,63 @@ def _used(cursor, user_id, device_id, since):
 
 
 def status(get_db, user_id=None, device_id=None):
-    """지금 남은 양. 화면 표시(`/api/usage`)와 차감 판정이 같은 함수를 쓴다."""
+    """지금 남은 크레딧. 화면 표시(`/api/usage`)와 차감 판정이 같은 함수를 쓴다."""
     ensure_tables(get_db)
     now = datetime.now(KST)
     db = get_db()
     cursor = db.cursor()
     try:
-        plan, weekly_limit, daily_cap = _limits_for(cursor, user_id)
-        naive_week = week_start(now).replace(tzinfo=None)
-        naive_day = day_start(now).replace(tzinfo=None)
-        weekly_used = _used(cursor, user_id, device_id, naive_week)
-        daily_used = _used(cursor, user_id, device_id, naive_day)
+        plan, daily_cap = _plan_of(cursor, user_id)
+        if user_id is None:
+            # 비회원은 AI 를 쓸 수 없다. 잔액도 없고 지급도 없다.
+            granted = used = left = 0
+            daily_used = 0
+        else:
+            # 화면을 열 때 이번 주 몫을 채워 준다. 따로 도는 배치를 두지 않는
+            # 이유는, 안 쓰는 사람에게까지 매주 지급 행을 쌓을 이유가 없어서다.
+            _ensure_weekly(cursor, user_id, now)
+            db.commit()
+            granted, used, left = balance(cursor, user_id)
+            daily_used = _used(cursor, user_id, device_id,
+                               day_start(now).replace(tzinfo=None))
     finally:
         cursor.close()
         db.close()
 
     return {
         "plan": plan,
-        "weekly_limit": weekly_limit,
-        "weekly_used": weekly_used,
-        "weekly_remaining": max(0, weekly_limit - weekly_used),
+        "is_guest": user_id is None,
+        # 비회원은 로그인 전까지 AI 를 못 쓴다. 화면은 이 값 하나만 보면 된다.
+        "can_use_ai": user_id is not None and left > 0 and daily_used < daily_cap,
+        "balance": max(0, left),
+        "granted": granted,
+        "used": used,
         "daily_cap": daily_cap,
         "daily_used": daily_used,
         "daily_remaining": max(0, daily_cap - daily_used),
-        "resets_at": next_week_start(now).isoformat(),
+        "weekly_credits": WEEKLY_CREDITS,
+        "signup_credits": SIGNUP_CREDITS,
+        "next_weekly_at": next_week_start(now).isoformat(),
         "credits": dict(CREDITS),
-        "is_guest": user_id is None,
     }
 
 
 def consume(get_db, kind, user_id=None, device_id=None, detail=None):
-    """한도를 확인하고 크레딧을 차감한다. 초과면 `QuotaDenied`.
+    """크레딧을 차감한다. 모자라면 `QuotaDenied`.
 
     호출 **전에** 부른다. 차감해 놓고 LLM 호출이 실패하면 크레딧이 날아가지만,
     반대(먼저 호출하고 나중에 차감)는 한도를 넘겨 쓰게 두는 것이라 더 나쁘다.
-    실패가 잦아지면 그때 환불(음수 행)을 넣는다.
+    실패가 잦아지면 그때 환불(음수 지급)을 넣는다.
     """
     cost = CREDITS.get(kind, 1)
     st = status(get_db, user_id=user_id, device_id=device_id)
 
+    if st["is_guest"]:
+        raise QuotaDenied("guest", st)
     if st["daily_used"] + cost > st["daily_cap"]:
         raise QuotaDenied("daily", st)
-    if st["weekly_used"] + cost > st["weekly_limit"]:
-        raise QuotaDenied("weekly", st)
+    if cost > st["balance"]:
+        raise QuotaDenied("balance", st)
 
     db = get_db()
     cursor = db.cursor()
@@ -434,26 +591,27 @@ def consume(get_db, kind, user_id=None, device_id=None, detail=None):
 
     # 호출이 끝난 뒤 attach_tokens(get_db, usage_id) 로 실측 토큰을 붙인다.
     st["usage_id"] = usage_id
-    st["weekly_used"] += cost
+    st["used"] += cost
+    st["balance"] = max(0, st["balance"] - cost)
     st["daily_used"] += cost
-    st["weekly_remaining"] = max(0, st["weekly_limit"] - st["weekly_used"])
     st["daily_remaining"] = max(0, st["daily_cap"] - st["daily_used"])
+    st["can_use_ai"] = st["balance"] > 0 and st["daily_remaining"] > 0
     return st
 
 
 def denied_message(exc):
-    """한도 초과 안내. 막다른 길로 끝내지 않고 다음 행동을 알려 준다."""
+    """막힌 이유와 **다음에 할 일**을 함께 말한다. 막다른 길로 끝내지 않는다."""
     st = exc.status
+    if exc.scope == "guest":
+        return "로그인하면 AI 기능을 쓸 수 있어요. 가입하면 크레딧을 바로 드려요."
     if exc.scope == "daily":
-        return f"오늘 쓸 수 있는 만큼을 다 쓰셨어요. 내일 다시 이어서 쓸 수 있어요. (하루 {st['daily_cap']})"
-    if st.get("is_guest"):
         return (
-            f"이번 주 무료 사용량({st['weekly_limit']})을 다 쓰셨어요. "
-            "로그인하면 훨씬 넉넉하게 쓸 수 있어요."
+            f"오늘 쓸 수 있는 만큼({st['daily_cap']})을 다 쓰셨어요. "
+            "내일 이어서 쓸 수 있어요."
         )
     return (
-        f"이번 주 사용량({st['weekly_limit']})을 다 쓰셨어요. 월요일에 다시 채워져요. "
-        "더 필요하시면 마이페이지에서 알려 주세요."
+        "크레딧을 다 쓰셨어요. 매주 월요일에 조금씩 채워지고, "
+        "더 필요하시면 마이페이지에서 충전하거나 요청할 수 있어요."
     )
 
 

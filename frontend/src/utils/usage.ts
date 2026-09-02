@@ -11,16 +11,26 @@
 
 export interface Usage {
   plan: 'guest' | 'free' | 'plus' | string;
-  weekly_limit: number;
-  weekly_used: number;
-  weekly_remaining: number;
+  /**
+   * 남은 크레딧.
+   *
+   * 매주 채워 주는 한도가 아니라 **잔액**이다. 가입할 때 받고, 매주 조금씩
+   * 더 받고, 모자라면 충전한다. 쓰면 줄어들고 저절로 원상복구되지 않는다.
+   */
+  balance: number;
+  granted: number;
+  used: number;
   daily_cap: number;
   daily_used: number;
   daily_remaining: number;
-  /** 다음 리셋 시각 (ISO). 매주 월요일 00:00 KST */
-  resets_at: string;
-  credits: { chat: number; vision: number };
+  /** 비회원은 AI 를 못 쓴다. 화면은 이 값 하나만 보면 된다. */
+  can_use_ai: boolean;
   is_guest: boolean;
+  weekly_credits: number;
+  signup_credits: number;
+  /** 다음 주간 지급 시각 (ISO). 매주 월요일 00:00 KST */
+  next_weekly_at: string;
+  credits: { chat: number; vision: number };
 }
 
 const API_BASE_URL =
@@ -99,7 +109,7 @@ export function getCachedUsage(): Usage | null {
 
 /** 서버가 응답에 실어 보낸 최신 사용량을 반영한다 (재조회 없이 즉시 갱신). */
 export function applyUsage(usage: Usage | null | undefined) {
-  if (usage && typeof usage.weekly_limit === 'number') publish(usage);
+  if (usage && typeof usage.balance === 'number') publish(usage);
 }
 
 /** 사용량을 불러온다. 같은 시점에 여러 곳이 불러도 요청은 한 번만 나간다. */
@@ -108,7 +118,7 @@ export function refreshUsage(): Promise<Usage | null> {
   inflight = fetch(`${API_BASE_URL}/api/usage`, { headers: usageHeaders() })
     .then(res => (res.ok ? res.json() : null))
     .then((data: Usage | null) => {
-      if (data && typeof data.weekly_limit === 'number') publish(data);
+      if (data && typeof data.balance === 'number') publish(data);
       return data;
     })
     .catch(() => null)
@@ -125,12 +135,19 @@ export function subscribeUsage(fn: (u: Usage | null) => void): () => void {
   };
 }
 
-/** 남은 비율 0~1. 주간과 일일 중 **더 빠듯한 쪽**을 쓴다 — 사용자가 실제로 막히는 쪽이다. */
+/**
+ * 남은 비율 0~1. 잔액과 하루 상한 중 **더 빠듯한 쪽**을 쓴다 — 실제로 막히는 쪽이다.
+ *
+ * 잔액에는 "최대치" 가 없으므로(충전하면 늘어난다) 가입 지급분을 기준으로 잡는다.
+ * 정확한 비율이 아니라 **배지를 띄울지 말지**를 정하는 데만 쓰이는 값이다.
+ */
 export function remainingRatio(u: Usage | null): number {
   if (!u) return 1;
-  const weekly = u.weekly_limit > 0 ? u.weekly_remaining / u.weekly_limit : 1;
-  const daily = u.daily_cap > 0 ? u.daily_remaining / u.daily_cap : 1;
-  return Math.max(0, Math.min(weekly, daily));
+  if (u.is_guest) return 0;
+  const base = Math.max(1, u.signup_credits || 30);
+  const byBalance = Math.min(1, u.balance / base);
+  const byDaily = u.daily_cap > 0 ? u.daily_remaining / u.daily_cap : 1;
+  return Math.max(0, Math.min(byBalance, byDaily));
 }
 
 /** 아이콘에 배지를 띄울 만큼 부족한가 (20% 이하). */
@@ -138,10 +155,10 @@ export function isLow(u: Usage | null): boolean {
   return !!u && remainingRatio(u) <= 0.2;
 }
 
-/** "9월 7일 월요일" 처럼 리셋 시점을 사람 말로. */
+/** "9월 7일 월요일" 처럼 다음 주간 지급 시점을 사람 말로. */
 export function resetLabel(u: Usage | null): string {
-  if (!u?.resets_at) return '';
-  const d = new Date(u.resets_at);
+  if (!u?.next_weekly_at) return '';
+  const d = new Date(u.next_weekly_at);
   if (isNaN(d.getTime())) return '';
   const days = ['일', '월', '화', '수', '목', '금', '토'];
   return `${d.getMonth() + 1}월 ${d.getDate()}일 ${days[d.getDay()]}요일`;
