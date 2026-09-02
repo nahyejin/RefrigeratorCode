@@ -37,6 +37,7 @@ interface AdminUser {
   ingredient_count: number;
   week_credits: number;
   week_tokens: number;
+  today_credits: number;
 }
 
 interface UsageRow {
@@ -162,6 +163,47 @@ const QuotaEditor: React.FC<{ user: AdminUser; onSaved: () => void }> = ({ user,
       <button type="button" onClick={save} disabled={saving} style={S.primary}>
         {saving ? '저장 중...' : '한도 저장'}
       </button>
+    </div>
+  );
+};
+
+/**
+ * 관리자 권한 주기/뺏기.
+ *
+ * 왜 필요한가: 관리자 표시가 계정 하나에만 있으면 **그 계정이 탈퇴할 때 어드민에
+ * 들어갈 사람이 없어진다.** 떠나기 전에 후임을 지정할 수 있어야 한다.
+ * 마지막 한 명은 서버가 해제를 막는다 — 실수로 잠기는 상황을 만들지 않는다.
+ */
+const AdminToggle: React.FC<{ user: AdminUser; onChanged: () => void }> = ({ user, onChanged }) => {
+  const [busy, setBusy] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+
+  const toggle = async () => {
+    setBusy(true); setError(null);
+    try {
+      await api('/api/admin/users/' + user.id + '/admin', {
+        method: 'PUT', body: JSON.stringify({ is_admin: !user.is_admin }),
+      });
+      onChanged();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '바꾸지 못했어요.');
+    } finally { setBusy(false); }
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 13 }}>
+          지금 <b>{user.is_admin ? '관리자입니다' : '일반 사용자입니다'}</b>
+        </span>
+        <button type="button" style={user.is_admin ? S.btn : S.primary} disabled={busy} onClick={toggle}>
+          {busy ? '바꾸는 중...' : user.is_admin ? '관리자 해제' : '관리자로 지정'}
+        </button>
+      </div>
+      {error && <div style={{ fontSize: 12, color: '#D14343' }}>{error}</div>}
+      <div style={{ fontSize: 12, color: 'var(--ink-500)', lineHeight: 1.6 }}>
+        탈퇴하기 전에 다른 사람을 먼저 지정해 두세요. 마지막 관리자는 해제되지 않습니다.
+      </div>
     </div>
   );
 };
@@ -404,9 +446,16 @@ const Dictionary: React.FC = () => {
           <button type="button" style={S.btn} disabled={!picked.size || !!busy} onClick={dropPicked}>
             목록에서 지우기
           </button>
-          <button type="button" style={S.btn}
-                  onClick={() => setPicked(new Set(unresolved.map(m => m.raw_name)))}>
-            안 잡히는 것 모두 고르기
+          {/* 한 번 더 누르면 풀려야 한다. 고르기만 되고 풀리지 않으면
+              잘못 골랐을 때 새로고침 말고는 되돌릴 방법이 없다. */}
+          <button type="button" style={S.btn} onClick={() => {
+            const all = unresolved.map(m => m.raw_name);
+            const allPicked = all.length > 0 && all.every(n => picked.has(n));
+            setPicked(allPicked ? new Set() : new Set(all));
+          }}>
+            {unresolved.length > 0 && unresolved.every(m => picked.has(m.raw_name))
+              ? '전체 해제'
+              : '안 잡히는 것 모두 고르기'}
           </button>
         </div>
 
@@ -735,28 +784,16 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {(data.dictionary_misses || []).length > 0 && (
+      {data.dictionary_miss_count > 0 && (
         <div style={S.card}>
-          <h2 style={S.h2}>사전에 없던 이름 (상위 15)</h2>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-            {data.dictionary_misses.map((m: any) => (
-              <span
-                key={m.raw_name}
-                style={{
-                  fontSize: 12, padding: '4px 9px', borderRadius: 9999,
-                  border: '1px dashed var(--line-300)', color: 'var(--ink-700)',
-                }}
-              >
-                {m.raw_name} <b>{m.hit_count}</b>
-              </span>
-            ))}
-          </div>
-          <div style={{ fontSize: 12, color: 'var(--ink-500)', marginTop: 8 }}>
-            전부 사전에 넣는 게 아닙니다 — 요리 이름·주류 브랜드는 제외
-            (INGREDIENT_RECOGNITION_FEATURE.md 참고).
+          <h2 style={S.h2}>사전에 없던 이름 {data.dictionary_miss_count}개</h2>
+          <div style={{ fontSize: 13, color: 'var(--ink-500)', lineHeight: 1.6 }}>
+            사진에서 읽혔지만 사전에 없어 담지 못한 이름이 쌓여 있어요.
+            <b> 사전</b> 탭에서 고르고 반영하세요.
           </div>
         </div>
       )}
+
     </>
   );
 };
@@ -859,11 +896,23 @@ const Admin: React.FC = () => {
 
           {error && <div style={{ ...S.card, color: '#D14343' }}>{error}</div>}
 
+          {/* "사용량" 과 "토큰" 이 뭔지 매번 헷갈리므로 표 옆에 적어 둔다. */}
+          <div style={{ fontSize: 12, color: 'var(--ink-500)', lineHeight: 1.7, padding: '0 4px 8px' }}>
+            <b>오늘 / 이번 주</b>는 <b>크레딧</b>이에요 — 챗봇 1, 사진 인식 2.
+            사용자에게 보이는 숫자가 이것이고, 한도도 이 단위로 걸립니다.
+            둘은 따로 걸려요(일 상한 · 주 한도).
+            <br />
+            <b>토큰</b>은 LLM 이 실제로 쓴 양(원가)이에요. 화면엔 안 나오고,
+            "사진 2크레딧이 적정한가" 를 감이 아니라 근거로 판단하려고 기록만 합니다.
+            아직 아무도 AI 를 안 썼다면 전부 0 입니다.
+          </div>
+
           <div style={{ ...S.card, padding: 0, overflowX: 'auto' }}>
             <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 760 }}>
               <thead>
                 <tr>
-                  {['id', '이메일', '닉네임', '가입', '경로', '재료', '이번 주', '토큰', '플랜', '탈퇴', ''].map(h => (
+                  {['id', '이메일', '닉네임', '가입', '경로', '재료',
+                    '오늘 (일 상한)', '이번 주 (주 한도)', '토큰', '플랜', '탈퇴', ''].map(h => (
                     <th key={h} style={S.th}>{h}</th>
                   ))}
                 </tr>
@@ -889,6 +938,9 @@ const Admin: React.FC = () => {
                       <td style={S.td}>{u.provider}</td>
                       <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums' }}>{u.ingredient_count}</td>
                       <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums' }}>
+                        {u.today_credits} / {u.daily_cap}
+                      </td>
+                      <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums' }}>
                         {u.week_credits} / {u.weekly_limit}
                       </td>
                       <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums' }}>{num(u.week_tokens)}</td>
@@ -906,11 +958,15 @@ const Admin: React.FC = () => {
                     </tr>
                     {openId === u.id && (
                       <tr>
-                        <td colSpan={11} style={{ padding: 14, background: 'var(--surface-sub)' }}>
+                        <td colSpan={12} style={{ padding: 14, background: 'var(--surface-sub)' }}>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                             <div>
                               <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>한도 조정</div>
                               <QuotaEditor user={u} onSaved={loadUsers} />
+                            </div>
+                            <div>
+                              <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>관리자 권한</div>
+                              <AdminToggle user={u} onChanged={loadUsers} />
                             </div>
                             <div>
                               <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>최근 사용 이력</div>

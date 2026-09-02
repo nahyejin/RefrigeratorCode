@@ -140,11 +140,14 @@ def register(app, get_db):
 
         usage_quota.ensure_tables(get_db)
         week_start = usage_quota.week_start().replace(tzinfo=None)
+        day_start = usage_quota.day_start().replace(tzinfo=None)
         keyword = (request.args.get('q') or '').strip()
         include_deleted = (request.args.get('deleted') or '') == '1'
 
         where = [] if include_deleted else ['u.deleted_at IS NULL']
-        params = [week_start, week_start]
+        # 주 한도와 일 상한은 **따로** 걸린다. 주간만 보여주면 "주간은 남았는데
+        # 왜 막히지?" 를 설명할 수 없다 — 오늘 쓴 양도 함께 본다.
+        params = [week_start, week_start, day_start]
         if keyword:
             where.append('(u.email LIKE %s OR u.nickname LIKE %s)')
             like = f'%{keyword}%'
@@ -167,7 +170,10 @@ def register(app, get_db):
                            AS week_credits,
                        (SELECT COALESCE(SUM(l.total_tokens), 0) FROM llm_usage l
                          WHERE l.user_id = u.id AND l.created_at >= %s)
-                           AS week_tokens
+                           AS week_tokens,
+                       (SELECT COALESCE(SUM(l.credits), 0) FROM llm_usage l
+                         WHERE l.user_id = u.id AND l.created_at >= %s)
+                           AS today_credits
                 FROM users u
                 LEFT JOIN user_quota q ON q.user_id = u.id
                 {where_sql}
@@ -202,6 +208,7 @@ def register(app, get_db):
                 'ingredient_count': int(r['ingredient_count'] or 0),
                 'week_credits': int(r['week_credits'] or 0),
                 'week_tokens': int(r['week_tokens'] or 0),
+                'today_credits': int(r['today_credits'] or 0),
             })
         return jsonify({'users': users, 'week_start': week_start.isoformat()})
 
@@ -258,6 +265,46 @@ def register(app, get_db):
             db.close()
 
         return jsonify(usage_quota.status(get_db, user_id=user_id))
+
+    @app.route('/api/admin/users/<int:user_id>/admin', methods=['PUT'])
+    def admin_set_admin(user_id):
+        """다른 사용자를 관리자로 지정하거나 해제한다.
+
+        왜 필요한가: 관리자 표시가 계정 하나에만 있으면 **그 계정이 탈퇴할 때
+        어드민에 들어갈 사람이 없어진다.** 떠나기 전에 후임을 지정할 수 있어야 한다.
+
+        마지막 관리자는 스스로를 내릴 수 없다 — 내리는 순간 아무도 못 들어간다.
+        (환경변수 ADMIN_EMAILS 로 되살릴 수는 있지만, 그건 비상 통로지 정상 절차가
+         아니다. 실수로 잠기는 상황 자체를 만들지 않는다)
+        """
+        admin, err = guard()
+        if err:
+            return err
+
+        make_admin = bool((request.get_json(silent=True) or {}).get('is_admin'))
+        db = get_db()
+        cursor = db.cursor()
+        try:
+            if not make_admin:
+                cursor.execute(
+                    "SELECT COUNT(*) n FROM users WHERE is_admin = 1 AND deleted_at IS NULL"
+                )
+                if (cursor.fetchone()['n'] or 0) <= 1:
+                    return jsonify({
+                        'error': '마지막 관리자는 해제할 수 없어요. 다른 사람을 먼저 지정해 주세요.'
+                    }), 400
+
+            cursor.execute(
+                "UPDATE users SET is_admin = %s WHERE id = %s AND deleted_at IS NULL",
+                (1 if make_admin else 0, user_id),
+            )
+            db.commit()
+            print(f"[admin] {admin[0]} 가 사용자 {user_id} 의 관리자 권한을 "
+                  f"{'부여' if make_admin else '해제'}")
+        finally:
+            cursor.close()
+            db.close()
+        return jsonify({'ok': True, 'is_admin': make_admin})
 
     @app.route('/api/admin/users/<int:user_id>/usage', methods=['GET'])
     def admin_user_usage(user_id):
@@ -607,16 +654,13 @@ def register(app, get_db):
                 cursor.execute("SELECT COUNT(*) n FROM coupang_clicks WHERE created_at >= %s", (since,))
                 out['coupang_clicks_30d'] = cursor.fetchone()['n']
 
+            # 사전 미매칭 목록은 '사전' 탭에서 직접 다룬다(고르고, 제안받고, 반영).
+            # 여기서 또 보여주면 같은 것을 두 곳에서 보게 되고, 정작 손댈 수는
+            # 없어서 "그래서 어떻게 하라는 거지" 가 된다. 개수만 알린다.
             cursor.execute("SHOW TABLES LIKE 'ingredient_dictionary_misses'")
             if cursor.fetchone():
-                cursor.execute(
-                    "SELECT raw_name, hit_count, last_seen FROM ingredient_dictionary_misses "
-                    "ORDER BY hit_count DESC, last_seen DESC LIMIT 15"
-                )
-                out['dictionary_misses'] = [
-                    {**r, 'last_seen': r['last_seen'].isoformat() if r['last_seen'] else None}
-                    for r in cursor.fetchall()
-                ]
+                cursor.execute("SELECT COUNT(*) n FROM ingredient_dictionary_misses")
+                out['dictionary_miss_count'] = cursor.fetchone()['n']
         finally:
             cursor.close()
             db.close()
