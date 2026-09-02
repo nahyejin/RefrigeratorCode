@@ -36,19 +36,41 @@ CREDITS = {
 
 
 def _plans():
-    """플랜별 (주 한도, 일 상한). 환경변수로 덮을 수 있다."""
+    """플랜별 (주 한도, 일 상한). 환경변수로 덮을 수 있다.
+
+    숫자를 어떻게 잡았나 — **실제로 요리하는 사람의 한 주**에서 거꾸로 셌다.
+
+        요리     주 3~4회 × 챗봇 질문 2~3번   =  9~12 크레딧
+        장보기   주 1회   × 사진 1~2장        =  2~4  크레딧
+        ────────────────────────────────────────────────
+        보통 사용자                            = 11~16 크레딧 / 주
+
+    무료 30 은 그 **두 배**다. 평범하게 쓰면 절대 안 걸리고, 매일 요리하거나
+    사진을 많이 찍는 사람만 걸린다. 그 사람이 유료로 넘어갈 사람이다.
+
+    전에는 무료가 주 100 이었다. 보통 사용자의 6~9배라 **아무도 한도를 못 느꼈고,
+    그러면 유료로 올릴 명분 자체가 없다.** 지금 줄여 두는 게 중요한 이유가 하나 더
+    있다 — 사람들이 100 에 익숙해진 뒤에 줄이면 "쓰던 걸 뺏는" 것이 된다.
+    아직 익숙해진 사람이 없을 때 정해 두는 편이 낫다.
+
+    일 상한은 주 한도의 절반쯤이다. 하루에 몰아 써서 주 초에 다 태우고
+    "남은 6일 동안 아무것도 못 하는" 상태를 막기 위한 것이다.
+    """
     return {
+        # 비회원은 맛보기. "가입하면 더 쓸 수 있다" 를 말할 수 있을 만큼만.
         "guest": (
-            int(os.getenv("QUOTA_GUEST_WEEKLY", "15")),
-            int(os.getenv("QUOTA_GUEST_DAILY", "10")),
+            int(os.getenv("QUOTA_GUEST_WEEKLY", "10")),
+            int(os.getenv("QUOTA_GUEST_DAILY", "6")),
         ),
         "free": (
-            int(os.getenv("QUOTA_FREE_WEEKLY", "100")),
-            int(os.getenv("QUOTA_FREE_DAILY", "40")),
+            int(os.getenv("QUOTA_FREE_WEEKLY", "30")),
+            int(os.getenv("QUOTA_FREE_DAILY", "15")),
         ),
+        # 무료의 5배. 매일 요리하고 영수증을 자주 찍어도 남는다.
+        # 400 은 과했다 — 아무도 도달 못 하는 한도는 없는 한도와 같다.
         "plus": (
-            int(os.getenv("QUOTA_PLUS_WEEKLY", "400")),
-            int(os.getenv("QUOTA_PLUS_DAILY", "100")),
+            int(os.getenv("QUOTA_PLUS_WEEKLY", "150")),
+            int(os.getenv("QUOTA_PLUS_DAILY", "50")),
         ),
     }
 

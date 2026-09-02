@@ -81,6 +81,18 @@ from backend.ingredient_dictionary import (  # noqa: E402
 )
 
 
+# "이 글은 요리를 만드는 글이 아니다" 를 나타내는 표식.
+#
+# 왜 재료 배열을 비우는 것으로 안 하나: 빈 배열은 **"레시피인데 재료를 못 찾았다"**
+# 와 구분이 안 된다. 앞엣것은 지워야 하고 뒤엣것은 남겨 둬야 해서, 둘을 같은
+# 값으로 두면 어느 쪽인지 알 수 없다.
+NOT_RECIPE = "__NOT_RECIPE__"
+
+# 제목만으로는 못 가린다. 실측:
+#   `김진순 김치 비빔국수 레시피 식당 검증된 황금 양념장` — '식당' 이 들어 있지만
+#   진짜 레시피다. 제목 규칙으로 거르면 이런 글이 같이 날아간다.
+# 그래서 **본문을 이미 읽고 있는 LLM 에게 같이 물어본다.** 호출은 늘지 않는다.
+
 def _extract_json_array(text):
     if not text:
         return []
@@ -98,6 +110,8 @@ def _extract_json_array(text):
             data = json.loads(match.group(0))
         except json.JSONDecodeError:
             return []
+    if isinstance(data, str) and data.strip().upper() == "NOT_RECIPE":
+        return [NOT_RECIPE]
     if isinstance(data, dict):
         # 혹시 {"ingredients": [...]} 형태로 나와도 복구
         for v in data.values():
@@ -106,6 +120,8 @@ def _extract_json_array(text):
                 break
     if not isinstance(data, list):
         return []
+    if len(data) == 1 and str(data[0]).strip().upper() == "NOT_RECIPE":
+        return [NOT_RECIPE]
     return [str(x).strip() for x in data if str(x).strip()]
 
 
@@ -131,8 +147,13 @@ def _extract_json_object(text):
         return {}
     result = {}
     for k, v in data.items():
-        if isinstance(v, list):
-            result[str(k)] = [str(x).strip() for x in v if str(x).strip()]
+        if isinstance(v, str) and v.strip().upper() == "NOT_RECIPE":
+            result[str(k)] = [NOT_RECIPE]
+        elif isinstance(v, list):
+            if len(v) == 1 and str(v[0]).strip().upper() == "NOT_RECIPE":
+                result[str(k)] = [NOT_RECIPE]
+            else:
+                result[str(k)] = [str(x).strip() for x in v if str(x).strip()]
     return result
 
 
@@ -149,9 +170,15 @@ PROMPT_TEMPLATE = """너는 레시피 본문에서 실제로 요리에 사용되
 - 완성 사진 캡션, 다른 레시피 추천, 광고/구독 유도 문구에서 나온 단어는 재료가 아니면 제외한다.
 - 같은 재료가 여러 번 나오면 한 번만 적는다.
 - 확신이 없으면 포함하지 않는다. 본문에 재료가 안 보이면 빈 배열을 출력한다.
+- **요리를 만드는 글이 아니면** 재료 대신 문자열 "NOT_RECIPE" 를 출력한다.
+  요리 글이 아닌 예 — 재료 보관법·손질법, 제품 후기·광고·공구, 맛집·카페 방문기,
+  효능·칼로리 정보 글, 식당 메뉴 소개, 일상 브이로그.
+  다만 **본문에 실제로 만드는 과정이 있으면** 맛집 이야기나 제품 홍보가 섞여
+  있어도 요리 글로 본다. 애매하면 요리 글로 본다(지우는 쪽이 되돌리기 어렵다).
 
 아래 JSON 배열만 출력해라. 다른 텍스트는 출력하지 마라.
 예: ["돼지고기", "김치", "대파", "고춧가루"]
+요리 글이 아니면: "NOT_RECIPE"
 """
 
 BATCH_PROMPT_TEMPLATE = """너는 여러 개의 레시피 본문 각각에서 실제로 요리에 사용되는 재료만 뽑아내는 어시스턴트다.
@@ -167,10 +194,15 @@ BATCH_PROMPT_TEMPLATE = """너는 여러 개의 레시피 본문 각각에서 �
 - 완성 사진 캡션, 다른 레시피 추천, 광고/구독 유도 문구에서 나온 단어는 재료가 아니면 제외한다.
 - 같은 재료가 여러 번 나오면 한 번만 적는다.
 - 확신이 없으면 포함하지 않는다. 본문에 재료가 안 보이면 빈 배열을 출력한다.
+- **요리를 만드는 글이 아니면** 재료 대신 문자열 "NOT_RECIPE" 를 출력한다.
+  요리 글이 아닌 예 — 재료 보관법·손질법, 제품 후기·광고·공구, 맛집·카페 방문기,
+  효능·칼로리 정보 글, 식당 메뉴 소개, 일상 브이로그.
+  다만 **본문에 실제로 만드는 과정이 있으면** 맛집 이야기나 제품 홍보가 섞여
+  있어도 요리 글로 본다. 애매하면 요리 글로 본다(지우는 쪽이 되돌리기 어렵다).
 - 반드시 0부터 {n_minus_1}까지 모든 번호에 대해 결과를 포함해야 한다. 하나도 빠뜨리지 마라.
 
 아래 JSON 객체만 출력해라. key는 번호(문자열), value는 그 본문의 재료 배열. 다른 텍스트는 출력하지 마라.
-예: {{"0": ["돼지고기", "김치"], "1": [], "2": ["대파", "고춧가루"]}}
+예: {{"0": ["돼지고기", "김치"], "1": "NOT_RECIPE", "2": ["대파", "고춧가루"]}}
 """
 
 
@@ -493,8 +525,14 @@ def run(*, limit, start_after_id, order, output_path, commit, rpm, concurrency, 
             results = list(zip(raw_list, err_list))
         out = []
         for row, (raw, err) in zip(chunk, results):
+            # 요리 글이 아니라고 판정된 것은 **사전 정규화에 넣지 않는다.**
+            # 넣으면 표식이 "사전에 없는 이름" 으로 쌓인다.
+            not_recipe = bool(raw) and raw[0] == NOT_RECIPE
+            if not_recipe:
+                out.append((row["id"], [], "", [], err, True))
+                continue
             new_used, unmapped = normalize_llm_ingredients(raw, alias_to_canonical)
-            out.append((row["id"], raw, new_used, unmapped, err))
+            out.append((row["id"], raw, new_used, unmapped, err, False))
         return out
 
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -523,10 +561,10 @@ def run(*, limit, start_after_id, order, output_path, commit, rpm, concurrency, 
                     try:
                         chunk_results = fut.result()
                     except Exception as e:  # noqa: BLE001
-                        chunk_results = [(row["id"], [], None, [], str(e)) for row in chunk]
+                        chunk_results = [(row["id"], [], None, [], str(e), False) for row in chunk]
 
                     row_by_id = {row["id"]: row for row in chunk}
-                    for rid, raw, new_used, unmapped, err in chunk_results:
+                    for rid, raw, new_used, unmapped, err, not_recipe in chunk_results:
                         row = row_by_id[rid]
 
                         old_used = row.get("used_ingredients")
@@ -537,7 +575,23 @@ def run(*, limit, start_after_id, order, output_path, commit, rpm, concurrency, 
                         # old에는 재료가 있었는데 new만 비어 있는 경우는 "동의"가 아니라 LLM 쪽의
                         # 파싱 실패/이상 응답일 수 있어 삭제하지 않고 검토 대상으로만 남긴다
                         # (기존 값을 그대로 보존 — 위 id=1326 사고와 동일한 패턴이라 신뢰하지 않음).
-                        should_delete = (not err) and new_is_empty and old_was_empty
+                        # 재료가 **하나뿐**이면 레시피가 아니라 그 재료에 대한 글이다.
+                        #
+                        # 표본을 보면 `새송이버섯 보관법`, `밤보관방법`,
+                        # `아보카도 오일 활용법`, `CU 신상 후기` 같은 것들이다.
+                        # 진짜 레시피인데 추출이 실패해 하나만 남은 경우도 섞이지만
+                        # 그래도 지운다 — **재료가 하나면 어차피 매칭에 못 쓰인다**
+                        # (재료 3개 이하는 추천에서 빠진다). 남겨 두면 자리만 차지하고
+                        # 매일 도는 배치가 계속 다시 훑는다.
+                        #
+                        # 2개는 건드리지 않는다. `계란 + 소금` 처럼 진짜 간단한
+                        # 레시피가 섞여 있어 애매하다.
+                        new_count = len([x for x in (new_used or '').split(',') if x.strip()])
+                        too_few = (not err) and new_count == 1
+
+                        should_delete = (not err) and (
+                            not_recipe or (new_is_empty and old_was_empty) or too_few
+                        )
                         suspicious_empty = (not err) and new_is_empty and not old_was_empty
                         if err:
                             changed_label = "ERROR"
@@ -547,7 +601,9 @@ def run(*, limit, start_after_id, order, output_path, commit, rpm, concurrency, 
                             if err == QUOTA_EXHAUSTED_ERR:
                                 quota_skipped += 1
                         elif should_delete:
-                            changed_label = "DELETED"
+                            changed_label = ("NOT_RECIPE" if not_recipe
+                                             else "DELETED_1ING" if too_few
+                                             else "DELETED")
                             added, removed = "", ""
                             display_new_used = ""
                         elif suspicious_empty:
