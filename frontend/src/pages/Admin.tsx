@@ -495,6 +495,153 @@ const Dictionary: React.FC = () => {
   );
 };
 
+
+const daysSince = (iso: string | null) => {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return null;
+  return Math.floor((Date.now() - d.getTime()) / 86400000);
+};
+
+/**
+ * 운영 상태 — 손으로 관리해야 하는 자료들과 자동 작업.
+ *
+ * 서버는 이 값을 **만들지 못한다.** "파일을 언제 마지막으로 고쳤는지"는 git
+ * 이력이고, "크롤러가 몇 시에 도는지"는 윈도우 작업 스케줄러인데, 둘 다
+ * 개발 컴퓨터에만 있다. 그쪽에서 매일 `scripts/report_ops_status.py --write`
+ * 로 DB 에 적어 두고 여기서는 읽기만 한다.
+ *
+ * 그래서 **언제 적힌 값인지**를 맨 위에 크게 보여준다. 그 스크립트가 며칠 안
+ * 돌았으면 화면의 숫자도 그만큼 오래된 것이다.
+ */
+const Maintenance: React.FC = () => {
+  const [data, setData] = React.useState<any>(null);
+  const [error, setError] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    api('/api/admin/maintenance').then(d => setData(d)).catch(e => setError(e.message));
+  }, []);
+
+  if (error) return <div style={S.card}>{error}</div>;
+  if (!data) return <div style={S.card}>불러오는 중...</div>;
+
+  const st = data.status;
+  if (!st) {
+    return (
+      <div style={S.card}>
+        <h2 style={S.h2}>아직 기록된 상태가 없어요</h2>
+        <div style={{ fontSize: 13, color: 'var(--ink-500)', lineHeight: 1.7 }}>
+          개발 컴퓨터에서 아래를 한 번 돌리면 여기에 나옵니다. 매일 배치에도 들어 있어요.
+          <br />
+          <code>python scripts/report_ops_status.py --write</code>
+        </div>
+      </div>
+    );
+  }
+
+  const stale = daysSince(st.generated_at);
+
+  return (
+    <>
+      <div style={S.card}>
+        <h2 style={S.h2}>운영 상태</h2>
+        <div style={{ fontSize: 13, color: stale !== null && stale > 2 ? '#D14343' : 'var(--ink-500)', lineHeight: 1.6 }}>
+          {(st.generated_at || '').replace('T', ' ').slice(0, 16)} 기준
+          {stale !== null && (stale <= 0 ? ' (오늘)' : ' (' + stale + '일 전)')}
+          {stale !== null && stale > 2 && ' — 개발 컴퓨터의 기록 배치가 며칠째 안 돌았어요'}
+        </div>
+      </div>
+
+      <div style={S.card}>
+        <h2 style={S.h2}>손으로 관리하는 자료</h2>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 620 }}>
+            <thead>
+              <tr>{['자료', '내용', '최근 수정', '왜 관리하나'].map(h => (
+                <th key={h} style={S.th}>{h}</th>
+              ))}</tr>
+            </thead>
+            <tbody>
+              {(st.files || []).map((f: any) => {
+                const old = daysSince(f.last_commit_at);
+                return (
+                  <tr key={f.path}>
+                    <td style={S.td}><b>{f.label}</b></td>
+                    <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums' }}>
+                      {num(f.rows || 0)}행
+                      {f.filled !== undefined && (
+                        <span style={{ color: f.filled < 10 ? '#D14343' : 'var(--ink-500)' }}>
+                          {' · 링크 ' + f.filled + '개'}
+                        </span>
+                      )}
+                    </td>
+                    <td style={{ ...S.td, color: old !== null && old > 120 ? '#D14343' : undefined }}>
+                      {(f.last_commit_at || '').slice(0, 10)}
+                      {old !== null && <span style={{ color: 'var(--ink-500)', fontSize: 12 }}>{' (' + old + '일)'}</span>}
+                    </td>
+                    <td style={{ ...S.td, whiteSpace: 'normal', maxWidth: 300, fontSize: 12,
+                                 color: 'var(--ink-500)' }}>{f.why}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div style={S.card}>
+        <h2 style={S.h2}>자동으로 도는 작업</h2>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 560 }}>
+            <thead>
+              <tr>{['작업', '상태', '마지막 실행', '결과', '다음 실행'].map(h => (
+                <th key={h} style={S.th}>{h}</th>
+              ))}</tr>
+            </thead>
+            <tbody>
+              {(st.tasks || []).map((t: any, i: number) => (
+                <tr key={t.name || i}>
+                  <td style={S.td}>{t.name || t.error || '?'}</td>
+                  <td style={S.td}>{t.state || '-'}</td>
+                  <td style={S.td}>{String(t.last_run || '-').slice(0, 16)}</td>
+                  <td style={{ ...S.td, color: t.last_result === 0 ? 'var(--ink-500)' : '#D14343',
+                               fontWeight: t.last_result === 0 ? 400 : 700 }}>
+                    {t.last_result === 0 ? '성공' : '실패 (' + t.last_result + ')'}
+                  </td>
+                  <td style={S.td}>{String(t.next_run || '-').slice(0, 16)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {(st.logs || []).length > 0 && (
+        <div style={S.card}>
+          <h2 style={S.h2}>배치 로그 마지막 줄</h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {st.logs.map((l: any) => (
+              <div key={l.file}>
+                <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>
+                  {l.file}
+                  <span style={{ fontWeight: 400, color: 'var(--ink-500)' }}>
+                    {' · ' + String(l.modified_at || '').replace('T', ' ').slice(0, 16)}
+                  </span>
+                </div>
+                <pre style={{
+                  margin: 0, padding: '8px 10px', borderRadius: 8, background: 'var(--surface-sub)',
+                  fontSize: 11, lineHeight: 1.6, overflowX: 'auto', whiteSpace: 'pre-wrap',
+                  color: 'var(--ink-700)',
+                }}>{(l.tail || []).join('\n')}</pre>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </>
+  );
+};
+
 const Dashboard: React.FC = () => {
   const [data, setData] = React.useState<any>(null);
   const [error, setError] = React.useState<string | null>(null);
@@ -617,7 +764,7 @@ const Dashboard: React.FC = () => {
 const Admin: React.FC = () => {
   const navigate = useNavigate();
   const [allowed, setAllowed] = React.useState<boolean | null>(null);
-  const [tab, setTab] = React.useState<'users' | 'requests' | 'dictionary' | 'dashboard'>('users');
+  const [tab, setTab] = React.useState<'users' | 'requests' | 'dictionary' | 'ops' | 'dashboard'>('users');
   const [users, setUsers] = React.useState<AdminUser[] | null>(null);
   const [keyword, setKeyword] = React.useState('');
   const [showDeleted, setShowDeleted] = React.useState(false);
@@ -668,7 +815,7 @@ const Admin: React.FC = () => {
       </div>
 
       <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
-        {([['users', '사용자'], ['requests', '요청'], ['dictionary', '사전'], ['dashboard', '대시보드']] as const).map(([key, label]) => (
+        {([['users', '사용자'], ['requests', '요청'], ['dictionary', '사전'], ['ops', '운영'], ['dashboard', '대시보드']] as const).map(([key, label]) => (
           <button
             key={key}
             type="button"
@@ -691,6 +838,8 @@ const Admin: React.FC = () => {
         <Requests />
       ) : tab === 'dictionary' ? (
         <Dictionary />
+      ) : tab === 'ops' ? (
+        <Maintenance />
       ) : (
         <>
           <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>

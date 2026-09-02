@@ -504,6 +504,43 @@ def register(app, get_db):
             for r in rows
         ]})
 
+    @app.route('/api/admin/maintenance', methods=['GET'])
+    def admin_maintenance():
+        """운영 상태 — 수기 관리 자료 · 자동 작업 · 배치 로그.
+
+        서버는 이 값을 **만들지 않고 읽기만** 한다. 알고 싶은 것들(파일을 언제
+        마지막으로 고쳤는지 = git 이력, 크롤러가 몇 시에 도는지 = 윈도우 작업
+        스케줄러)이 전부 **개발 컴퓨터에만** 있기 때문이다.
+        그쪽에서 매일 `scripts/report_ops_status.py --write` 로 적어 둔다.
+
+        `generated_at` 을 함께 돌려주므로, 그 스크립트가 며칠 안 돌았으면
+        화면에서 바로 보인다.
+        """
+        _, err = guard()
+        if err:
+            return err
+        db = get_db()
+        cursor = db.cursor()
+        try:
+            cursor.execute("SHOW TABLES LIKE 'ops_status'")
+            if not cursor.fetchone():
+                return jsonify({'status': None})
+            cursor.execute("SELECT payload, updated_at FROM ops_status WHERE name = 'local'")
+            row = cursor.fetchone()
+        finally:
+            cursor.close()
+            db.close()
+        if not row:
+            return jsonify({'status': None})
+        import json as _json
+
+        try:
+            payload = _json.loads(row['payload'])
+        except Exception:  # noqa: BLE001
+            return jsonify({'status': None})
+        payload['recorded_at'] = row['updated_at'].isoformat() if row['updated_at'] else None
+        return jsonify({'status': payload})
+
     @app.route('/api/admin/dashboard', methods=['GET'])
     def admin_dashboard():
         """대시보드 — 가입/탈퇴, 사용량, 쿠팡 클릭, 사전 미매칭 상위.

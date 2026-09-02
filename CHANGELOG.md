@@ -4893,17 +4893,87 @@ python scripts/sync_ingredient_dict.py --write
 1. DB 승인분을 CSV 에 반영
 2. 백엔드 사본까지 맞춤 (`sync_ingredient_dict.py`)
 3. **사전이 멀쩡한지 확인** — 실패하면 되돌리고 커밋하지 않는다
-4. 커밋 + 푸시 (배포에 반영)
+4. **여기서 멈춘다.** 커밋과 푸시는 사람이 한다.
 
 바뀐 게 없으면 3번 전에 끝난다. 대부분의 날은 여기서 끝난다.
+
+**커밋/푸시를 배치에서 하지 않는 이유**: 푸시는 곧 배포다. 사람이 안 보는
+새벽에 스스로 출시까지 해 버리면 무엇이 언제 나갔는지 모른 채 서비스가 바뀐다.
+파일만 고쳐 두고, 아침에 diff --git a/apply_dictionary_additions_daily.bat b/apply_dictionary_additions_daily.bat
+index c15e921d..0c65f31b 100644
+--- a/apply_dictionary_additions_daily.bat
++++ b/apply_dictionary_additions_daily.bat
+@@ -1,6 +1,6 @@
+ @echo off
+ REM ============================================================
+-REM  어드민에서 승인한 사전 추가분을 저장소 CSV 로 접어 넣고 커밋한다.
++REM  어드민에서 승인한 사전 추가분을 저장소 CSV 로 옮겨 둔다.
+ REM
+ REM  왜 필요한가:
+ REM   어드민 "사전" 탭에서 승인한 항목은 DB(ingredient_dictionary_additions)에
+@@ -14,16 +14,21 @@ REM
+ REM  하는 일:
+ REM   1) DB 승인분을 CSV 에 반영
+ REM   2) 백엔드 사본(backend/...csv)까지 맞춤
+-REM   3) 사전이 정상으로 읽히는지 확인  <- 실패하면 커밋하지 않는다
+-REM   4) 커밋 + 푸시 (배포에 반영)
++REM   3) 사전이 정상으로 읽히는지 확인  <- 실패하면 변경을 되돌린다
++REM   4) **여기서 멈춘다.** 커밋과 푸시는 사람이 한다.
+ REM
+-REM  자동 푸시를 끄고 싶으면 아래 PUSH 를 0 으로.
++REM  ⚠️ 커밋/푸시를 여기서 하지 않는 이유:
++REM   푸시는 곧 배포다. 사람이 안 보는 새벽에 스스로 출시까지 해 버리면,
++REM   무엇이 언제 나갔는지 모른 채로 서비스가 바뀐다. 파일만 고쳐 두고
++REM   변경 내용을 눈으로 본 뒤 내보내는 것이 맞다.
++REM
++REM   아침에 이렇게 확인하면 된다:
++REM     git diff -- frontend/public/ingredient_profile_dict_with_substitutes.csv
++REM     git add -A ^&^& git commit -m "재료 사전 추가분 반영" ^&^& git push
+ REM
+ REM  주의: 이 파일은 반드시 CRLF 개행으로 저장할 것.
+ REM   LF 로 저장하면 cmd.exe 가 잘못 읽어 즉시 실패한다.
+ REM ============================================================
+-set PUSH=1
+-
+ chcp 65001 >nul
+ set PYTHONIOENCODING=utf-8
+ set PYTHONUTF8=1
+@@ -50,7 +55,7 @@ if not errorlevel 1 (
+   goto done
+ )
+ 
+-REM 4) 사전이 깨지지 않았는지 확인. 깨졌으면 되돌리고 커밋하지 않는다.
++REM 4) 사전이 깨지지 않았는지 확인. 깨졌으면 되돌린다.
+ %PY% -u scriptserify_ingredient_dict.py >> %LOG% 2>&1
+ if errorlevel 1 (
+   echo [%date% %time%] 사전 검증 실패 - 변경을 되돌립니다 >> %LOG%
+@@ -58,17 +63,8 @@ if errorlevel 1 (
+   goto failed
+ )
+ 
+-if "%PUSH%"=="0" (
+-  echo [%date% %time%] PUSH=0 이라 커밋하지 않고 둡니다 >> %LOG%
+-  goto done
+-)
+-
+-git add frontend/public/ingredient_profile_dict_with_substitutes.csv backend/ingredient_profile_dict_with_substitutes.csv
+-git commit -m "재료 사전 추가분 반영 (어드민 승인분 자동 반영)" >> %LOG% 2>&1
+-git push origin main >> %LOG% 2>&1
+-if errorlevel 1 goto failed
+-
+-echo [%date% %time%] 반영 완료 >> %LOG%
++echo [%date% %time%] CSV 를 고쳐 두었습니다. 확인 후 직접 커밋/푸시하세요. >> %LOG%
++git diff --stat -- frontend/public/ingredient_profile_dict_with_substitutes.csv >> %LOG% 2>&1
+ goto done
+ 
+ :failed 로 확인한 뒤 내보낸다.
+(처음엔 자동 푸시로 만들었다가 되돌렸다 — 자동화의 범위를 잘못 잡았다.)
 
 **커밋 전 관문을 둔 이유** — `scripts/verify_ingredient_dict.py`:
 사전은 레시피 매칭과 사진 인식의 기준이라 깨진 채 배포되면 모든 사용자에게
 영향이 간다. **사람이 안 보는 사이에 나가는 변경일수록** 나가기 전에 한 번은
 막아야 한다. 두 사본이 바이트까지 같은지, 별칭 수가 갑자기 줄지 않았는지,
 기본 재료 8개가 여전히 잡히는지, 대표어가 서로를 가리키는 고리가 없는지 본다.
-
-자동 푸시를 끄려면 `.bat` 맨 위의 `PUSH=1` 을 `0` 으로.
 
 작업 스케줄러 등록: `CookMatch-DictionarySync` (일 04:30).
 등록 후 즉시 실행해 `LastTaskResult: 0` 확인.
@@ -4915,3 +4985,44 @@ python scripts/sync_ingredient_dict.py --write
 | CookMatch-DailyLLMIngredients | 03:00 | 레시피 재료 LLM 추출 |
 | CookMatch-DictionarySync | 04:30 | 사전 추가분 CSV 반영 + 커밋 |
 | CookMatch-WeeklyCrawler | 07:00 | 크롤링 + 룰베이스 재료 추출 |
+
+### 자동 푸시를 되돌림
+
+사전 반영 배치가 커밋·푸시까지 하도록 만들었는데, **자동화의 범위를 잘못 잡았다.**
+푸시는 곧 배포다. 사람이 안 보는 새벽에 스스로 출시까지 해 버리면 무엇이 언제
+나갔는지 모른 채 서비스가 바뀐다.
+
+배치는 이제 **CSV 를 고쳐 두고 멈춘다.** 검증(`verify_ingredient_dict.py`)은 그대로
+돌려서 깨졌으면 되돌리고, 로그에 `git diff --stat` 을 남긴다. 아침에 확인하고
+직접 커밋·푸시한다.
+
+### 어드민 `운영` 탭 — 손으로 관리해야 하는 것들
+
+관리자가 프로그램을 유지하려면 "무엇을 언제 손봐야 하는지" 를 알아야 하는데,
+그게 저장소 여기저기 흩어져 있었다. 한 화면에 모았다.
+
+**서버는 이 값을 만들지 못한다.** 알고 싶은 것들이 전부 개발 컴퓨터에만 있다 —
+파일을 언제 마지막으로 고쳤는지는 **git 이력**이고(서버엔 git 이 없다), 크롤러가
+몇 시에 도는지는 **윈도우 작업 스케줄러**다. 그래서 매일 배치가
+`scripts/report_ops_status.py --write` 로 `ops_status` 표에 적어 두고 서버는 읽기만
+한다. 커밋/푸시가 필요 없어 항상 최신이고, **언제 적힌 값인지**를 맨 위에 보여줘서
+그 배치가 며칠 안 돌았으면 그것도 바로 보인다.
+
+보여주는 것:
+
+| 자료 | 지금 상태 |
+|---|---|
+| 재료 사전 | 2,946행 · 2일 전 |
+| 대체 재료 표 | 50,138행 · **137일 전** |
+| 필터 키워드 | 133행 · **247일 전** |
+| 쿠팡 광고 링크 | 194행 · **링크 1개만 채움** · 7일 전 |
+| 유튜브 크롤링 대상 채널 | 49행 · **131일 전** |
+
+각 자료마다 **왜 관리해야 하는지**를 함께 적었다. 오래됐거나(120일 초과) 비어
+있으면 빨갛게 표시한다.
+
+자동 작업 셋(재료 추출 03:00 / 사전 반영 04:30 / 크롤러 07:00)의 마지막 실행 시각,
+성공 여부, 다음 실행 시각도 함께 본다. 배치 로그 마지막 줄까지 붙여 둬서 실패했을
+때 어드민에서 바로 원인을 볼 수 있다.
+
+서비스워커 캐시 v1.3.0 → v1.3.1.
