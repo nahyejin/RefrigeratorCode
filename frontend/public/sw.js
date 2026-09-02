@@ -3,7 +3,7 @@
 // 안 걸리고 사용자는 예전에 저장된 index.html(예전 빌드의 JS/CSS 경로를 가리킴)을
 // 계속 받는다. 실제로 이것 때문에 여러 버그 수정을 배포해도 PWA로 설치했거나
 // 예전에 한 번 방문한 사용자에게는 반영되지 않는 문제가 있었다.
-const CACHE_NAME = 'cookmatch-v1.4.3';
+const CACHE_NAME = 'cookmatch-v1.4.4';
 const urlsToCache = [
   '/',
   '/manifest.json',
