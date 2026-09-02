@@ -97,8 +97,13 @@ NOT_RECIPE = "__NOT_RECIPE__"
 #
 # 왜 자르나: 화면에서 한 번에 읽히고, 소리로 읽어 줄 때 지루하지 않아야 한다.
 # 그리고 응답이 길어질수록 한 번에 묶어 보낼 수 있는 본문 수가 줄어든다.
-MAX_STEPS = 12
-MAX_STEP_CHARS = 120
+MAX_STEPS = 14
+# 분량과 치수를 살려 적으면 한 줄이 길어진다. 120자로 자르면
+# "양배추와 오이는 길이 6cm, 두께 0.3cm로 채 썬다" 같은 문장이 잘려 나간다.
+MAX_STEP_CHARS = 200
+# 분량이 붙은 재료 목록 ("고추장 1과 1/2큰술"). 화면에 그대로 보여 준다.
+MAX_DETAIL_ITEMS = 30
+MAX_DETAIL_CHARS = 60
 
 
 def _clean_steps(value):
@@ -116,8 +121,23 @@ def _clean_steps(value):
     return steps
 
 
+def _clean_detail(value):
+    """분량이 붙은 재료 목록을 다듬는다."""
+    if not isinstance(value, list):
+        return []
+    items = []
+    for x in value:
+        text = " ".join(str(x).split())
+        if not text:
+            continue
+        items.append(text[:MAX_DETAIL_CHARS])
+        if len(items) >= MAX_DETAIL_ITEMS:
+            break
+    return items
+
+
 def _as_result(value):
-    """모델이 준 한 건의 값을 {ingredients, steps, not_recipe} 로 통일한다.
+    """모델이 준 한 건의 값을 {ingredients, detail, steps, not_recipe} 로 통일한다.
 
     값이 세 가지 모양으로 온다:
       - "NOT_RECIPE"                          요리 글이 아님
@@ -127,28 +147,28 @@ def _as_result(value):
     옛 모양을 계속 받아 주는 이유: 프롬프트를 바꿔도 모델이 가끔 예전처럼 답한다.
     그때 통째로 실패시키면 그 배치 12건이 다 날아간다.
     """
-    empty = {"ingredients": [], "steps": [], "not_recipe": False}
+    empty = {"ingredients": [], "detail": [], "steps": [], "not_recipe": False}
+    nope = {"ingredients": [], "detail": [], "steps": [], "not_recipe": True}
     if isinstance(value, str):
-        if value.strip().upper() == "NOT_RECIPE":
-            return {"ingredients": [], "steps": [], "not_recipe": True}
-        return empty
+        return nope if value.strip().upper() == "NOT_RECIPE" else dict(empty)
     if isinstance(value, list):
         if len(value) == 1 and str(value[0]).strip().upper() in ("NOT_RECIPE", NOT_RECIPE):
-            return {"ingredients": [], "steps": [], "not_recipe": True}
+            return nope
         return {"ingredients": [str(x).strip() for x in value if str(x).strip()],
-                "steps": [], "not_recipe": False}
+                "detail": [], "steps": [], "not_recipe": False}
     if isinstance(value, dict):
         if str(value.get("not_recipe") or "").strip().upper() in ("TRUE", "1", "YES"):
-            return {"ingredients": [], "steps": [], "not_recipe": True}
+            return nope
         ing = value.get("ingredients")
         if isinstance(ing, str) and ing.strip().upper() == "NOT_RECIPE":
-            return {"ingredients": [], "steps": [], "not_recipe": True}
+            return nope
         return {
             "ingredients": [str(x).strip() for x in (ing or []) if str(x).strip()],
+            "detail": _clean_detail(value.get("ingredients_detail")),
             "steps": _clean_steps(value.get("steps")),
             "not_recipe": False,
         }
-    return empty
+    return dict(empty)
 
 
 def _extract_json_array(text):
@@ -214,15 +234,24 @@ PROMPT_TEMPLATE = """너는 레시피 본문에서 **재료와 조리 순서**�
   다만 **본문에 실제로 만드는 과정이 있으면** 맛집 이야기나 제품 홍보가 섞여
   있어도 요리 글로 본다. 애매하면 요리 글로 본다(지우는 쪽이 되돌리기 어렵다).
 
-- **조리 단계**를 순서대로 뽑는다. 사용자가 그 순서대로 따라 하면 요리가 되도록.
-  - 한 단계는 한 가지 행동. "양파를 채 썬다" 처럼 짧고 명령형으로.
-  - **원문을 그대로 베끼지 말고 요약해 다시 쓴다.** 남의 글이고, 소리로 읽어 줄
-    것이라 군더더기가 없어야 한다. 인사말·광고·사진 설명은 넣지 않는다.
-  - 불·시간·양처럼 **결과를 좌우하는 수치는 반드시 남긴다** ("중불에서 5분").
-  - 최대 12단계. 본문에 만드는 과정이 없으면 빈 배열.
+- **재료 상세**(`ingredients_detail`)를 분량과 함께 그대로 적는다.
+  예: ["생수제비 250g", "양배추 1컵(60g)", "고추장 1과 1/2큰술", "양조식초 2큰술"]
+  본문에 분량이 없으면 이름만 적는다. 양념장이 따로 있으면 그 재료도 모두 포함한다.
+
+- **조리 단계**를 순서대로 뽑는다. 사용자가 이것만 보고 따라 해도 요리가 되도록.
+  - 한 단계는 한 가지 행동. 명령형으로 짧게.
+  - 인사말·광고·사진 설명·개인 후기는 넣지 않는다.
+  - **숫자는 하나도 빠뜨리지 않는다.** 이게 가장 중요하다:
+    - 분량 — "고추장 1과 1/2큰술, 식초 2큰술, 설탕 1과 1/2큰술을 섞는다"
+      (× "고추장, 식초, 설탕을 섞는다" — 이러면 요리를 못 한다)
+    - 시간·불세기 — "중불에서 8분간 끓인다"
+    - 크기·두께 — "양배추를 길이 6cm, 두께 0.3cm로 채 썬다"
+    - 온도·개수 — "180도에서 굽는다", "달걀 3개를 푼다"
+  - 문장만 짧게 다듬고, **정보는 줄이지 않는다.** 애매하면 남기는 쪽으로.
+  - 최대 14단계. 본문에 만드는 과정이 없으면 빈 배열.
 
 아래 JSON 객체만 출력해라. 다른 텍스트는 출력하지 마라.
-예: {{"ingredients": ["돼지고기", "김치", "대파"], "steps": ["김치를 한 입 크기로 썬다", "냄비에 참기름을 두르고 김치를 중불에서 3분 볶는다", "물 500ml를 붓고 15분 끓인다"]}}
+예: {{"ingredients": ["돼지고기", "김치", "대파"], "ingredients_detail": ["돼지고기 200g", "신김치 1/4포기", "대파 1대", "고춧가루 1큰술"], "steps": ["김치 1/4포기를 한 입 크기로 썬다", "냄비에 참기름 1큰술을 두르고 김치를 중불에서 3분 볶는다", "물 500ml를 붓고 15분 끓인다"]}}
 요리 글이 아니면: "NOT_RECIPE"
 """
 
@@ -246,15 +275,24 @@ BATCH_PROMPT_TEMPLATE = """너는 여러 개의 레시피 본문 각각에서 **
   있어도 요리 글로 본다. 애매하면 요리 글로 본다(지우는 쪽이 되돌리기 어렵다).
 - 반드시 0부터 {n_minus_1}까지 모든 번호에 대해 결과를 포함해야 한다. 하나도 빠뜨리지 마라.
 
-- **조리 단계**를 순서대로 뽑는다. 사용자가 그 순서대로 따라 하면 요리가 되도록.
-  - 한 단계는 한 가지 행동. "양파를 채 썬다" 처럼 짧고 명령형으로.
-  - **원문을 그대로 베끼지 말고 요약해 다시 쓴다.** 남의 글이고, 소리로 읽어 줄
-    것이라 군더더기가 없어야 한다. 인사말·광고·사진 설명은 넣지 않는다.
-  - 불·시간·양처럼 **결과를 좌우하는 수치는 반드시 남긴다** ("중불에서 5분").
-  - 최대 12단계. 본문에 만드는 과정이 없으면 빈 배열.
+- **재료 상세**(`ingredients_detail`)를 분량과 함께 그대로 적는다.
+  예: ["생수제비 250g", "양배추 1컵(60g)", "고추장 1과 1/2큰술", "양조식초 2큰술"]
+  본문에 분량이 없으면 이름만 적는다. 양념장이 따로 있으면 그 재료도 모두 포함한다.
 
-아래 JSON 객체만 출력해라. key는 번호(문자열), value는 그 본문의 결과. 다른 텍스트는 출력하지 마라.
-예: {{"0": {{"ingredients": ["돼지고기", "김치"], "steps": ["김치를 썬다", "중불에서 3분 볶는다"]}}, "1": "NOT_RECIPE", "2": {{"ingredients": ["대파"], "steps": []}}}}
+- **조리 단계**를 순서대로 뽑는다. 사용자가 이것만 보고 따라 해도 요리가 되도록.
+  - 한 단계는 한 가지 행동. 명령형으로 짧게.
+  - 인사말·광고·사진 설명·개인 후기는 넣지 않는다.
+  - **숫자는 하나도 빠뜨리지 않는다.** 이게 가장 중요하다:
+    - 분량 — "고추장 1과 1/2큰술, 식초 2큰술, 설탕 1과 1/2큰술을 섞는다"
+      (× "고추장, 식초, 설탕을 섞는다" — 이러면 요리를 못 한다)
+    - 시간·불세기 — "중불에서 8분간 끓인다"
+    - 크기·두께 — "양배추를 길이 6cm, 두께 0.3cm로 채 썬다"
+    - 온도·개수 — "180도에서 굽는다", "달걀 3개를 푼다"
+  - 문장만 짧게 다듬고, **정보는 줄이지 않는다.** 애매하면 남기는 쪽으로.
+  - 최대 14단계. 본문에 만드는 과정이 없으면 빈 배열.
+
+아래 JSON 객체만 출력해라. key는 번호(문자열), value는 그 본문의 결과 객체. 다른 텍스트는 출력하지 마라.
+예: {{"0": {{"ingredients": ["돼지고기", "김치"], "ingredients_detail": ["돼지고기 200g", "신김치 1/4포기"], "steps": ["김치 1/4포기를 썬다", "중불에서 3분 볶는다"]}}, "1": "NOT_RECIPE", "2": {{"ingredients": ["대파"], "ingredients_detail": [], "steps": []}}}}
 """
 
 
@@ -393,7 +431,7 @@ class GeminiExtractor:
                         raw_list.append(obj[str(i)])
                         err_list.append(None)
                     else:
-                        raw_list.append({"ingredients": [], "steps": [], "not_recipe": False})
+                        raw_list.append({"ingredients": [], "detail": [], "steps": [], "not_recipe": False})
                         err_list.append("batch response missing this index")
                 return raw_list, err_list
             except Exception as e:  # noqa: BLE001
@@ -404,7 +442,7 @@ class GeminiExtractor:
             # 단 quotaId가 분당 제한이라고 명시한 경우는 제외 — 분당 제한은 곧 풀리는데
             # 이걸 일일 한도로 오판하면 그날 작업 전체를 통째로 조기 중단시키게 된다.
             self._trip_quota("재시도 소진 후에도 429")
-        blank = {"ingredients": [], "steps": [], "not_recipe": False}
+        blank = {"ingredients": [], "detail": [], "steps": [], "not_recipe": False}
         return [dict(blank) for _ in range(n)], [last_err for _ in range(n)]
 
 
@@ -562,7 +600,7 @@ def run(*, limit, start_after_id, order, output_path, commit, rpm, concurrency, 
         "id", "title", "platform", "link", "changed",
         "old_used_ingredients", "new_used_ingredients",
         "added_ingredients", "removed_ingredients",
-        "llm_raw_ingredients", "unmapped_ingredients", "cook_steps",
+        "llm_raw_ingredients", "unmapped_ingredients", "cook_steps", "ingredients_detail",
         "error", "content_preview",
     ]
 
@@ -582,11 +620,12 @@ def run(*, limit, start_after_id, order, output_path, commit, rpm, concurrency, 
             # 요리 글이 아니라고 판정된 것은 **사전 정규화에 넣지 않는다.**
             # 넣으면 표식이 "사전에 없는 이름" 으로 쌓인다.
             if res["not_recipe"]:
-                out.append((row["id"], [], "", [], err, True, []))
+                out.append((row["id"], [], "", [], err, True, [], []))
                 continue
             raw = res["ingredients"]
             new_used, unmapped = normalize_llm_ingredients(raw, alias_to_canonical)
-            out.append((row["id"], raw, new_used, unmapped, err, False, res["steps"]))
+            out.append((row["id"], raw, new_used, unmapped, err, False,
+                        res["steps"], res["detail"]))
         return out
 
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -615,10 +654,10 @@ def run(*, limit, start_after_id, order, output_path, commit, rpm, concurrency, 
                     try:
                         chunk_results = fut.result()
                     except Exception as e:  # noqa: BLE001
-                        chunk_results = [(row["id"], [], None, [], str(e), False, []) for row in chunk]
+                        chunk_results = [(row["id"], [], None, [], str(e), False, [], []) for row in chunk]
 
                     row_by_id = {row["id"]: row for row in chunk}
-                    for rid, raw, new_used, unmapped, err, not_recipe, steps in chunk_results:
+                    for rid, raw, new_used, unmapped, err, not_recipe, steps, detail in chunk_results:
                         row = row_by_id[rid]
 
                         old_used = row.get("used_ingredients")
@@ -687,6 +726,7 @@ def run(*, limit, start_after_id, order, output_path, commit, rpm, concurrency, 
                             "removed_ingredients": removed,
                             "llm_raw_ingredients": ", ".join(raw),
                             "cook_steps": " | ".join(steps),
+                            "ingredients_detail": ", ".join(detail),
                             "unmapped_ingredients": ", ".join(unmapped),
                             "error": err or "",
                             "content_preview": _preview_text(row.get("content")),
@@ -712,8 +752,11 @@ def run(*, limit, start_after_id, order, output_path, commit, rpm, concurrency, 
                             # 레시피와 통째로만 쓰이므로 나눌 이유가 없다.
                             write_cursor.execute(
                                 "UPDATE recipes SET used_ingredients = %s, cook_steps = %s, "
-                                "llm_ingredients_done = 1 WHERE id = %s",
-                                (new_used, "\n".join(steps) if steps else None, rid),
+                                "ingredients_detail = %s, llm_ingredients_done = 1 WHERE id = %s",
+                                (new_used,
+                                 "\n".join(steps) if steps else None,
+                                 "\n".join(detail) if detail else None,
+                                 rid),
                             )
                             # 사전에 없어 버린 이름을 세어 둔다 (끝에 한 번에 저장)
                             recipe_misses.update(unmapped)
