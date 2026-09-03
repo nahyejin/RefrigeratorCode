@@ -371,7 +371,8 @@ const WeeklyPlan: React.FC = () => {
           />
           {/* 배지를 버튼 밖에 두려면 감싸는 자리가 필요하다.
               버튼 안에 넣으면 `overflow: hidden` 에 잘린다. */}
-          <span style={{ position: 'relative', flexShrink: 0 }}>
+          <span className={canAi && !asking ? 'ai-glow' : undefined}
+                style={{ position: 'relative', flexShrink: 0 }}>
             <button
               type="button"
               className="ai-action"
