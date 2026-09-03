@@ -1470,9 +1470,10 @@ const spanOf = (from?: string | null, to?: string | null) =>
  * 카드마다 집계 구간이 다르다(누적 / 이번 주 / 최근 30일 / 기록을 켠 뒤부터).
  * 안 적어 두면 볼 때마다 "이게 언제 거지" 를 되묻게 되고, 결국 잘못 비교한다.
  */
-const Range: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+const Range: React.FC<{ children: React.ReactNode; inline?: boolean }> = ({ children, inline }) => (
   <div style={{
-    display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', margin: '-4px 0 12px',
+    display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap',
+    margin: inline ? 0 : '-4px 0 12px',
   }}>
     <span style={{
       fontSize: 10.5, fontWeight: 700, padding: '2px 7px', borderRadius: 9999,
@@ -1927,13 +1928,18 @@ const Dashboard: React.FC = () => {
 
       <div style={S.card}>
         <h2 style={S.h2}>크레딧 사용 추이</h2>
-        <Range>{UNITS[creditUnit].note} · 기록이 없는 칸은 0</Range>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', margin: '2px 0 10px' }}>
+        {/* 기간 줄과 단위 선택을 **한 줄에** 둔다. 아래위로 나누면 두 줄을
+            잡아먹는데, 둘은 "지금 무엇을 보고 있나" 하나를 말하는 정보다. */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8,
+                      flexWrap: 'nowrap', margin: '-4px 0 12px' }}>
+          <div style={{ minWidth: 0, flex: 1, overflow: 'hidden' }}>
+            <Range inline>{UNITS[creditUnit].note} · 기록이 없는 칸은 0</Range>
+          </div>
           <select
             value={creditUnit}
             onChange={e => setCreditUnit(e.target.value)}
             aria-label="보기 단위"
-            style={{ ...S.input, height: 32 }}
+            style={{ ...S.input, height: 30, flexShrink: 0, fontSize: 12.5, padding: '0 6px' }}
           >
             {Object.keys(UNITS).map(k => (
               <option key={k} value={k}>{UNITS[k].label}</option>

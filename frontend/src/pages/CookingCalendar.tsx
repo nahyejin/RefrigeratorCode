@@ -397,6 +397,32 @@ const CookingCalendar: React.FC = () => {
             </button>
           </div>
         </div>
+        {/* 식단은 냉장고 재료만 있으면 되는 기능이라 **로그인 벽 뒤에 가두지
+            않는다.** 로그인해야만 쓸 수 있는 건 캘린더(내 요리 이력)뿐이다. */}
+        <div style={{ maxWidth: 480, margin: '0 auto', width: '100%', paddingBottom: 16 }}>
+      {/* 이번 주 식단으로 가는 입구.
+          **여기가 맞는 자리다.** 캘린더는 "무엇을 언제 먹었나/먹을까" 를 보는
+          화면이고, 식단은 그 앞날을 정하는 일이다. 내냉장고에 두면 재료를
+          넣으러 온 사람 앞을 가로막는다. */}
+      <button
+        type="button"
+        onClick={() => navigate('/plan')}
+        style={{
+          width: 'calc(100% - 28px)', margin: '0 14px 12px', height: 48,
+          borderRadius: 12, border: '1px solid var(--line-200)',
+          background: 'var(--surface)', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '0 16px',
+        }}
+      >
+        <span style={{ fontSize: 14.5, fontWeight: 700, color: '#1A1A1E' }}>
+          이번 주 식단 짜기
+        </span>
+        <span style={{ fontSize: 12.5, color: 'var(--ink-500)' }}>
+          냉장고 재료로 · 장보기 목록까지 ›
+        </span>
+      </button>
+        </div>
         <BottomNavBar activeTab="cooking-calendar" />
       </div>
     );
@@ -445,6 +471,29 @@ const CookingCalendar: React.FC = () => {
           보려면 예전엔 탭을 벗어났다 돌아오는 수밖에 없었다 — 당겨서
           새로고침으로 그 자리에서 바로 다시 불러올 수 있게 한다. */}
       <PullToRefresh onRefresh={loadCalendar}>
+      {/* 이번 주 식단으로 가는 입구.
+          **여기가 맞는 자리다.** 캘린더는 "무엇을 언제 먹었나/먹을까" 를 보는
+          화면이고, 식단은 그 앞날을 정하는 일이다. 내냉장고에 두면 재료를
+          넣으러 온 사람 앞을 가로막는다. */}
+      <button
+        type="button"
+        onClick={() => navigate('/plan')}
+        style={{
+          width: 'calc(100% - 28px)', margin: '0 14px 12px', height: 48,
+          borderRadius: 12, border: '1px solid var(--line-200)',
+          background: 'var(--surface)', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '0 16px',
+        }}
+      >
+        <span style={{ fontSize: 14.5, fontWeight: 700, color: '#1A1A1E' }}>
+          이번 주 식단 짜기
+        </span>
+        <span style={{ fontSize: 12.5, color: 'var(--ink-500)' }}>
+          냉장고 재료로 · 장보기 목록까지 ›
+        </span>
+      </button>
+
       {/* 월 목표는 "이번 달" 이라는 더 큰 단위 얘기라, 일/주/월 중 무엇을 보고
           있든 항상 같은 값이어야 맞다 — 그래서 일/주/월 전환 버튼보다 위,
           가장 먼저 오는 자리에 두고 "몇 월 목표"인지 숫자로 못 박아 둔다.
