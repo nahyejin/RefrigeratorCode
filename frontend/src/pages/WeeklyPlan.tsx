@@ -494,11 +494,10 @@ const WeeklyPlan: React.FC = () => {
                 style={{
                   background: 'var(--surface)', border: '1px solid var(--line-200)',
                   borderRadius: 14, padding: '12px 14px',
-                  display: 'flex', flexDirection: 'column', gap: 8,
                   opacity: slot.on ? 1 : 0.5,
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
                   {/* 요일을 바꾸는 자리. 고르면 그 날의 요리와 맞바뀐다 —
                       "옮긴다" 는 곧 "자리를 바꾼다" 이므로 빈 칸이 안 생긴다. */}
                   <select
@@ -506,7 +505,7 @@ const WeeklyPlan: React.FC = () => {
                     onChange={e => moveTo(i, Number(e.target.value))}
                     aria-label="요일 바꾸기"
                     style={{
-                      flexShrink: 0, height: 30, borderRadius: 8,
+                      flexShrink: 0, width: 92, height: 34, borderRadius: 8,
                       border: '1px solid var(--line-200)', background: 'var(--surface-sub)',
                       fontSize: 12.5, fontWeight: 700, padding: '0 6px', color: '#1A1A1E',
                     }}
@@ -516,79 +515,108 @@ const WeeklyPlan: React.FC = () => {
                     ))}
                   </select>
 
-                  <div style={{ flex: 1, minWidth: 0 }}>
+                  {/* 가운데 한 칸에 **썸네일·제목·버튼을 모두** 넣는다.
+                      전에는 "다른 요리로 바꾸기" 만 카드 맨 아래 왼쪽에 혼자
+                      떨어져 있어서, 날짜 칸 밑에 붙은 것처럼 보이고 줄이
+                      어긋났다. 한 칸 안에 넣으면 왼쪽 끝이 다 맞는다. */}
+                  <div style={{ flex: 1, minWidth: 0, display: 'flex',
+                                flexDirection: 'column', gap: 8 }}>
                     {slot.recipe ? (
-                      /* 제목만 있으면 **눌러도 되는지 알 수가 없다.**
-                         썸네일 + `조리 순서 보기 ›` 를 함께 두어, 이 줄 전체가
-                         버튼이라는 걸 보이게 한다. */
-                      <button
-                        type="button"
-                        onClick={() => {
-                          track('recipe_open', String(slot.recipe!.id));
-                          openCookMode({
-                            id: slot.recipe!.id, title: slot.recipe!.title,
-                            link: slot.recipe!.link, myIngredients,
-                          });
-                        }}
-                        style={{
-                          width: '100%', textAlign: 'left', border: 'none',
-                          background: 'transparent', cursor: 'pointer', padding: 0,
-                          display: 'flex', alignItems: 'center', gap: 10,
-                        }}
-                      >
-                        {/* 네이버 이미지는 그대로 부르면 핫링크가 막혀(403) 안 뜬다.
-                            `getProxiedImageUrl` 을 안 거쳐서 썸네일이 통째로
-                            안 보이고 있었다 — onError 로 조용히 숨겨져서
-                            "썸네일이 아예 안 나온다" 로만 보였다. */}
-                        {slot.recipe.thumbnail ? (
-                          <img
-                            src={getProxiedImageUrl(slot.recipe.thumbnail)}
-                            alt=""
-                            loading="lazy"
-                            onError={e => {
-                              // 자리는 남긴다 — 지우면 줄 높이가 튀어 목록이 들썩인다.
-                              (e.currentTarget as HTMLImageElement).style.visibility = 'hidden';
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            track('recipe_open', String(slot.recipe!.id));
+                            openCookMode({
+                              id: slot.recipe!.id, title: slot.recipe!.title,
+                              link: slot.recipe!.link, myIngredients,
+                            });
+                          }}
+                          style={{
+                            width: '100%', textAlign: 'left', border: 'none',
+                            background: 'transparent', cursor: 'pointer', padding: 0,
+                            display: 'flex', alignItems: 'flex-start', gap: 10,
+                          }}
+                        >
+                          {slot.recipe.thumbnail ? (
+                            <img
+                              src={getProxiedImageUrl(slot.recipe.thumbnail)}
+                              alt=""
+                              loading="lazy"
+                              onError={e => {
+                                // 자리는 남긴다 — 지우면 줄 높이가 튀어 목록이 들썩인다.
+                                (e.currentTarget as HTMLImageElement).style.visibility = 'hidden';
+                              }}
+                              style={{
+                                width: 60, height: 60, flexShrink: 0, borderRadius: 10,
+                                objectFit: 'cover', background: 'var(--surface-sub)',
+                              }}
+                            />
+                          ) : (
+                            /* 썸네일이 없는 레시피도 있다. `src=""` 로 두면 브라우저가
+                               페이지 자체를 다시 요청하므로 빈 자리를 그린다.
+                               크기를 맞춰 둬야 카드마다 글자 시작점이 안 어긋난다. */
+                            <span
+                              aria-hidden
+                              style={{
+                                width: 60, height: 60, flexShrink: 0, borderRadius: 10,
+                                background: 'var(--surface-sub)',
+                                display: 'inline-flex', alignItems: 'center',
+                                justifyContent: 'center', color: 'var(--ink-500)', fontSize: 18,
+                              }}
+                            >🍽</span>
+                          )}
+                          <span style={{ minWidth: 0, flex: 1 }}>
+                            <span style={{
+                              display: '-webkit-box', fontSize: 14, fontWeight: 600,
+                              color: '#1A1A1E', lineHeight: 1.4, overflow: 'hidden',
+                              WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+                            }}>{slot.recipe.title}</span>
+                            {slot.recipe.why ? (
+                              <span style={{ display: 'block', fontSize: 11.5, color: '#7A5C00', marginTop: 3 }}>
+                                {slot.recipe.why}
+                              </span>
+                            ) : typeof slot.recipe.match_rate === 'number' ? (
+                              <span style={{ display: 'block', fontSize: 11.5, color: 'var(--ink-500)', marginTop: 3 }}>
+                                가진 재료로 {slot.recipe.match_rate}% 만들 수 있어요
+                              </span>
+                            ) : null}
+                          </span>
+                        </button>
+
+                        {/* 두 행동을 **한 줄에** 나란히. 하나만 아래 왼쪽에 혼자
+                            떨어져 있으면 카드가 어긋나 보인다. */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12,
+                                      paddingLeft: 70 }}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              track('recipe_open', String(slot.recipe!.id));
+                              openCookMode({
+                                id: slot.recipe!.id, title: slot.recipe!.title,
+                                link: slot.recipe!.link, myIngredients,
+                              });
                             }}
                             style={{
-                              width: 64, height: 64, flexShrink: 0, borderRadius: 10,
-                              objectFit: 'cover', background: 'var(--surface-sub)',
+                              border: 'none', background: 'transparent', padding: 0,
+                              fontSize: 12, fontWeight: 700, color: '#7A5C00', cursor: 'pointer',
                             }}
-                          />
-                        ) : (
-                          /* 썸네일이 없는 레시피도 있다. `src=""` 로 두면 브라우저가
-                             페이지 자체를 다시 요청하므로, 빈 자리를 그린다.
-                             크기를 맞춰 둬야 카드마다 글자 시작점이 안 어긋난다. */
-                          <span
-                            aria-hidden
+                          >
+                            조리 순서 보기 ›
+                          </button>
+                          <span aria-hidden style={{ color: 'var(--line-300)' }}>|</span>
+                          <button
+                            type="button"
+                            onClick={() => swapOne(i)}
                             style={{
-                              width: 64, height: 64, flexShrink: 0, borderRadius: 10,
-                              background: 'var(--surface-sub)',
-                              display: 'inline-flex', alignItems: 'center',
-                              justifyContent: 'center', color: 'var(--ink-500)', fontSize: 18,
+                              border: 'none', background: 'transparent', padding: 0,
+                              fontSize: 12, fontWeight: 600, color: 'var(--ink-500)', cursor: 'pointer',
                             }}
-                          >🍽</span>
-                        )}
-                        <span style={{ minWidth: 0, flex: 1 }}>
-                          <span style={{
-                            display: '-webkit-box', fontSize: 14, fontWeight: 600,
-                            color: '#1A1A1E', lineHeight: 1.4, overflow: 'hidden',
-                            WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
-                          }}>{slot.recipe.title}</span>
-                          {slot.recipe.why ? (
-                            <span style={{ display: 'block', fontSize: 11.5, color: '#7A5C00', marginTop: 3 }}>
-                              {slot.recipe.why}
-                            </span>
-                          ) : typeof slot.recipe.match_rate === 'number' ? (
-                            <span style={{ display: 'block', fontSize: 11.5, color: 'var(--ink-500)', marginTop: 3 }}>
-                              가진 재료로 {slot.recipe.match_rate}% 만들 수 있어요
-                            </span>
-                          ) : null}
-                          <span style={{
-                            display: 'inline-block', marginTop: 4, fontSize: 11.5,
-                            fontWeight: 700, color: '#7A5C00',
-                          }}>조리 순서 보기 ›</span>
-                        </span>
-                      </button>
+                          >
+                            다른 요리로 바꾸기
+                          </button>
+                        </div>
+                      </>
                     ) : (
                       <span style={{ fontSize: 13, color: 'var(--ink-500)' }}>비어 있음</span>
                     )}
@@ -600,21 +628,9 @@ const WeeklyPlan: React.FC = () => {
                     onChange={() => setSlots(prev => prev.map((s, j) =>
                       (j === i ? { ...s, on: !s.on } : s)))}
                     aria-label={`${dayLabel(slot.date)} 장보기에 넣기`}
-                    style={{ flexShrink: 0, width: 18, height: 18 }}
+                    style={{ flexShrink: 0, width: 18, height: 18, marginTop: 8 }}
                   />
                 </div>
-
-                <button
-                  type="button"
-                  onClick={() => swapOne(i)}
-                  style={{
-                    alignSelf: 'flex-start', height: 28, padding: '0 10px', borderRadius: 8,
-                    border: '1px solid var(--line-200)', background: 'var(--surface-sub)',
-                    fontSize: 12, fontWeight: 600, color: 'var(--ink-700)', cursor: 'pointer',
-                  }}
-                >
-                  다른 요리로 바꾸기
-                </button>
               </div>
             ))}
           </div>

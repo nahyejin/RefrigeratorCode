@@ -1075,55 +1075,57 @@ select:focus-visible {
   background-size: 260% 260%;
   animation: ai-fab-shimmer 6s ease-in-out infinite;
 }
-/* 넓은 자리를 **가로질러** 지나가는 스침.
-   `ai-fab-sheen` 은 56px 짜리 동그란 FAB 용이라 이동폭(±130%)이 자기 너비
-   기준이다. 폭이 넓은 카드/버튼에 그대로 쓰면 가운데서만 깜빡이고 끝까지
-   지나가지 않는다 — 실제로 "그라데이션 명암만 있고 반짝임이 없다" 는 말을 들었다. */
-@keyframes ai-sweep {
-  0%   { transform: translateX(-130%) skewX(-18deg); opacity: 0; }
-  8%   { opacity: 1; }
-  62%  { opacity: 1; }
-  72%, 100% { transform: translateX(420%) skewX(-18deg); opacity: 0; }
-}
-
-/* 버튼 뒤의 후광.
-   챗봇 FAB 이 눈에 띄는 건 스침이 아니라 **이 후광** 때문이다. 버튼에는 그게
-   없어서 "그라데이션 명암만 있고 반짝이지 않는다" 로 보였다.
-   실측: 스침은 3.2초 중 1.8초가 정지 상태였고, 빛줄기는 버튼 폭의 26%,
-   숨쉬기는 4px 이라 흘깃 보면 아무 일도 안 일어나는 것처럼 보인다. */
-@keyframes ai-halo {
-  0%, 100% { opacity: 0.35; transform: scale(1); }
-  50%      { opacity: 0.9;  transform: scale(1.08); }
-}
+/* AI 가 관여하는 **네모난 자리**(카드·버튼)용.
+ *
+ * 챗봇 FAB(`.ai-fab-button`)과 **같은 키프레임·같은 값**을 쓴다. 처음엔 폭이
+ * 넓으니 이동폭도 키워야 한다고 보고 따로 만들었는데, 그게 오히려 스침을
+ * 흐리게 했다 — 정지 구간이 길어져 흘깃 보면 아무 일도 안 일어나 보였다.
+ * 같은 것을 두 벌로 두면 한쪽만 손보게 되고 결국 서로 달라진다.
+ *
+ * `ai-fab-sheen` 의 이동폭(±130%)은 **빛줄기 자신의 너비** 기준이라, 너비를
+ * 45% 로 두면 어떤 폭에서도 끝에서 끝까지 지나간다.
+ */
 .ai-glow {
   position: relative;
   display: inline-flex;
 }
+/* 후광 — FAB 의 `.ai-fab-glow` 와 같은 것을 네모에 맞춘 것 */
 .ai-glow::before {
   content: '';
   position: absolute;
-  inset: -7px;
-  border-radius: 14px;
-  background: radial-gradient(circle, rgba(255,214,0,0.85) 0%, rgba(255,214,0,0) 72%);
-  animation: ai-halo 2.4s ease-in-out infinite;
+  inset: -9px;
+  border-radius: 16px;
+  background: radial-gradient(circle, rgba(255,214,0,0.75) 0%, rgba(255,214,0,0) 72%);
+  animation: ai-fab-pulse 2.6s ease-in-out infinite;
   pointer-events: none;
   z-index: 0;
 }
-.ai-glow > * { position: relative; z-index: 1; }
+/* `position: relative` 를 여기서 주면 **절대배치된 자식(AI 배지)까지 덮어써서**
+   배지가 flex 항목이 되고 `align-items: stretch` 에 세로로 늘어난다(실제로 그랬다). */
+.ai-glow > * { z-index: 1; }
+
+.ai-surface {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid #F0DC7A;
+  background: linear-gradient(120deg, #FFFDF2 0%, #FFF8D6 30%, #FFFEF8 50%, #FFF8D6 70%, #FFFDF2 100%);
+  background-size: 260% 260%;
+  animation: ai-fab-shimmer 6s ease-in-out infinite;
+}
 .ai-surface::after {
   content: '';
   position: absolute;
   top: -40%;
   left: 0;
-  width: 22%;
+  width: 45%;
   height: 180%;
-  background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.75) 50%, rgba(255,255,255,0) 100%);
-  animation: ai-sweep 5s ease-in-out infinite;
+  background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.7) 50%, rgba(255,255,255,0) 100%);
+  animation: ai-fab-sheen 6s ease-in-out infinite;
   pointer-events: none;
 }
 .ai-surface > * { position: relative; z-index: 1; }
 
-/* 노란 실행 버튼 — FAB 과 같은 그라데이션을 네모에 */
+/* 노란 실행 버튼 — FAB 과 완전히 같은 규격을 네모에 */
 .ai-action {
   position: relative;
   overflow: hidden;
@@ -1131,31 +1133,32 @@ select:focus-visible {
   color: #1A1A1E;
   background: linear-gradient(120deg, #F2C200 0%, #FFE45C 25%, #FFF6C2 45%, #FFD600 65%, #F2C200 100%);
   background-size: 260% 260%;
-  animation: ai-fab-shimmer 4.2s ease-in-out infinite;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.55), 0 3px 10px rgba(190,150,0,0.28);
+  animation:
+    ai-fab-shimmer 4.2s ease-in-out infinite,
+    ai-fab-breathe 2.8s ease-in-out infinite;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.6),
+    inset 0 0 0 1px rgba(0,0,0,0.06),
+    0 6px 16px rgba(190,150,0,0.38);
 }
 .ai-action::after {
   content: '';
   position: absolute;
   top: -40%;
   left: 0;
-  width: 38%;
+  width: 45%;
   height: 180%;
-  background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.98) 50%, rgba(255,255,255,0) 100%);
-  animation: ai-sweep 2.4s ease-in-out infinite;
+  background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.75) 50%, rgba(255,255,255,0) 100%);
+  animation: ai-fab-sheen 4.2s ease-in-out infinite;
   pointer-events: none;
 }
-/* 버튼 자체도 아주 살짝 숨쉬게. 노란 버튼 위 노란 스침은 대비가 낮아
-   스침만으로는 "움직이고 있다" 가 잘 인지되지 않는다(FAB 에서 겪은 것과 같다). */
-.ai-action { animation: ai-fab-shimmer 3.4s ease-in-out infinite,
-                        ai-fab-breathe 2.4s ease-in-out infinite; }
 .ai-action > * { position: relative; z-index: 1; }
 .ai-action:disabled { animation: none; opacity: .55; box-shadow: none; }
+.ai-action:disabled::after { display: none; }
 
 /* 움직임 최소화: 반짝임을 멈춘다. 정보는 글자에 다 있다. */
 @media (prefers-reduced-motion: reduce) {
   .ai-surface, .ai-action { animation: none !important; }
-  .ai-glow::before { animation: none !important; opacity: .5; }
-  .ai-surface::after, .ai-action::after { animation: none !important; }
   .ai-surface::after, .ai-action::after { display: none !important; }
+  .ai-glow::before { animation: none !important; opacity: .5; }
 }
