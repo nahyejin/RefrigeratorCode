@@ -2057,29 +2057,6 @@ const RecipeList: React.FC = () => {
           </button>
         </form>
         
-        {/* 즐겨찾기는 "언젠가 할 것" 이라, 요리를 고르는 이 자리에 있어야
-            쓸모가 있다. 마이페이지 구석에 두면 정작 필요할 때 거기 없다.
-
-            별표는 안 쓴다 — 카드 위 즐겨찾기 버튼의 별과 뜻이 겹쳐서, 이 버튼이
-            "별표를 매기는" 것인지 "별표만 보는" 것인지 헷갈린다. 켜졌는지는
-            다른 필터 칩과 **같은 방식**(진한 바탕)으로 말한다. */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 14px 6px' }}>
-          <button
-            type="button"
-            onClick={() => setFavoriteOnly(v => !v)}
-            aria-pressed={favoriteOnly}
-            style={{
-              height: 30, padding: '0 12px', borderRadius: 9999, cursor: 'pointer',
-              border: favoriteOnly ? 'none' : '1px solid var(--line-200)',
-              background: favoriteOnly ? 'var(--ink-900)' : 'var(--surface)',
-              color: favoriteOnly ? '#FFFFFF' : 'var(--ink-700)',
-              fontSize: 12.5, fontWeight: favoriteOnly ? 700 : 500,
-            }}
-          >
-            즐겨찾기만
-          </button>
-        </div>
-
         <RecipeSortBar
           recipes={recipes}
           myIngredients={myIngredients}
@@ -2114,7 +2091,28 @@ const RecipeList: React.FC = () => {
         />
         
         {/* 재료 pill 범례 (검색창/필터와 함께 sticky 영역에 포함) */}
-          <IngredientLegend total={total} style={{ marginBottom: 6, marginTop: 8 }} />
+        {/* 즐겨찾기만 보기는 **결과를 좁히는 일**이라 결과 줄 옆에 둔다.
+            화면 맨 위에 혼자 떠 있으니 무엇에 걸리는 버튼인지 알 수 없었다. */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8,
+                      marginBottom: 6, marginTop: 8 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <IngredientLegend total={favoriteOnly ? undefined as any : total} />
+          </div>
+          <button
+            type="button"
+            onClick={() => setFavoriteOnly(v => !v)}
+            aria-pressed={favoriteOnly}
+            style={{
+              flexShrink: 0, height: 28, padding: '0 11px', borderRadius: 9999, cursor: 'pointer',
+              border: favoriteOnly ? 'none' : '1px solid var(--line-200)',
+              background: favoriteOnly ? 'var(--ink-900)' : 'var(--surface)',
+              color: favoriteOnly ? '#FFFFFF' : 'var(--ink-700)',
+              fontSize: 12, fontWeight: favoriteOnly ? 700 : 500,
+            }}
+          >
+            즐겨찾기만
+          </button>
+        </div>
         </div>
 
           {/* 로딩 중에는 실제 카드와 같은 모양의 뼈대를 목록 자리에 보여준다.

@@ -1493,7 +1493,7 @@ const MyPage: React.FC = () => {
         </button>
         <button
           type="button"
-          onClick={() => navigate('/cooking-calendar')}
+          onClick={() => navigate('/cooking-calendar', { state: { mode: 'list' } })}
           style={{
             flex: 1, minWidth: 150, height: 40, borderRadius: 10, cursor: 'pointer',
             border: '1px solid var(--line-200)', background: 'var(--surface)',

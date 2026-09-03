@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import ExpiryAlert from '../components/ExpiryAlert';
 import { loadIngredientCategoryMap, type CategoryMap, type StorageKind } from '../utils/shelfLife';
 import type { FridgeItem } from '../utils/expiry';
@@ -12,7 +12,7 @@ import { useAuth } from '../context/AuthContext';
 
 type ViewMode = 'day' | 'week' | 'month';
 /** 보기 **방식**. 기간(일/주/월)과 다른 층이다 — 목록은 기간이 아니다. */
-type Mode = 'calendar' | 'list';
+type Mode = 'calendar' | 'mine' | 'household';
 
 interface CalendarEntry {
   day: string; // YYYY-MM-DD
@@ -120,7 +120,7 @@ function readFridgeBoxes(): Partial<Record<StorageKind, FridgeItem[]>> {
  * 완료는 로그인 전에 눌렀거나 서버 반영이 실패했으면 기기에만 남는다.
  * 서버 것만 그리면 분명히 눌렀는데 목록이 비어 보인다.
  */
-function mergeLocalDone(server: CalendarEntry[]): CalendarEntry[] {
+function mergeLocalDone(server: CalendarEntry[], meId: number, meName: string): CalendarEntry[] {
   let local: any[] = [];
   try {
     local = JSON.parse(localStorage.getItem('my_completed_recipes') || '[]');
@@ -142,8 +142,10 @@ function mergeLocalDone(server: CalendarEntry[]): CalendarEntry[] {
       recipe_id: r.id,
       title: r.title || '',
       thumbnail: r.thumbnail || '',
-      user_id: 0,
-      nickname: '',
+      // 주인을 안 붙이면 인원별 범례에서 "? 3회" 로 뜬다 — 닉네임을 못 찾아서다.
+      // 기기에 남은 완료는 **이 사람 것**이다.
+      user_id: meId,
+      nickname: meName,
     });
   });
   return [...server, ...extra];
@@ -266,15 +268,26 @@ const PlannedList: React.FC = () => {
  */
 const CookingCalendar: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { isLoggedIn, user: authUser, loading: authLoading } = useAuth();
 
   const [viewMode, setViewMode] = React.useState<ViewMode>('month');
-  const [mode, setMode] = React.useState<Mode>('calendar');
+  /**
+   * 어느 탭으로 열지.
+   *
+   * 마이페이지의 `만든 요리 돌아보기` 로 들어오면 **그 탭이 열려 있어야** 한다.
+   * 달력이 열리면 방금 누른 것과 다른 화면이 나와서 한 번 더 눌러야 했다.
+   */
+  const [mode, setMode] = React.useState<Mode>(
+    () => ((location.state as any)?.mode === 'list' ? 'mine' : 'calendar'),
+  );
   /** 목록에 쓰는 **전 기간** 완료 기록. 달력이 쓰는 `entries` 는 보고 있는 달뿐이다. */
   const [allEntries, setAllEntries] = React.useState<CalendarEntry[] | null>(null);
   /** 메모를 남긴 레시피. 완료와 함께 "내 요리 이력" 이라 같은 자리에서 본다. */
   const [recorded, setRecorded] = React.useState<any[] | null>(null);
   const [listKind, setListKind] = React.useState<'done' | 'write'>('done');
+  /** 우리 식구 요리에서 **내 것을 빼고** 볼지. */
+  const [hideMine, setHideMine] = React.useState(false);
   const [anchorDate, setAnchorDate] = React.useState(() => new Date());
   const [entries, setEntries] = React.useState<CalendarEntry[]>([]);
   // 그룹이 있으면 groupGoal(그룹 전체가 공유하는 하나의 값)을 쓰고,
@@ -337,7 +350,7 @@ const CookingCalendar: React.FC = () => {
         // (보고 있는 달 밖의 것은 걸러 낸다 — 이 화면은 그 달을 그린다)
         const from = toDateKey(monthStart);
         const to = toDateKey(monthEnd);
-        setEntries(mergeLocalDone(data.entries || []).filter(e => e.day >= from && e.day <= to));
+        setEntries(mergeLocalDone(data.entries || [], Number(authUser.id), myName).filter(e => e.day >= from && e.day <= to));
         setGroupGoal(typeof data.group_goal === 'number' ? data.group_goal : null);
         setPersonalGoal(typeof data.my_personal_goal === 'number' ? data.my_personal_goal : 20);
         setHouseholdSize(data.household_size || 1);
@@ -363,7 +376,7 @@ const CookingCalendar: React.FC = () => {
    * 이번 달에 완료한 게 없으면 "0건" 이 됐다 — 여태 만든 것을 보러 온 화면인데.
    */
   React.useEffect(() => {
-    if (mode !== 'list' || allEntries !== null) return;
+    if (mode === 'calendar' || allEntries !== null) return;
     if (!isLoggedIn || !authUser?.id) return;
     const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
     const params = new URLSearchParams({ start: '2000-01-01', end: toDateKey(addDays(new Date(), 366)) });
@@ -371,8 +384,8 @@ const CookingCalendar: React.FC = () => {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(r => (r.ok ? r.json() : Promise.reject(new Error())))
-      .then(d => setAllEntries(mergeLocalDone(d.entries || [])))
-      .catch(() => setAllEntries(mergeLocalDone([])));
+      .then(d => setAllEntries(mergeLocalDone(d.entries || [], Number(authUser.id), myName)))
+      .catch(() => setAllEntries(mergeLocalDone([], Number(authUser.id), myName)));
 
     // 기록은 완료와 자료가 다르다(날짜별 이력이 아니라 레시피 목록).
     // 서버가 안 되면 기기에 있는 것으로라도 보여 준다 — 비어 있는 것보다 낫다.
@@ -389,6 +402,20 @@ const CookingCalendar: React.FC = () => {
         }
       });
   }, [mode, allEntries, isLoggedIn, authUser?.id]);
+
+  /**
+   * 지금 탭이 보여야 할 완료 기록.
+   *
+   * 전에는 `내 요리` 인데도 **식구 것을 다 합쳐서** 보여 줬다. 서버가 그룹
+   * 전체를 내려 주는데 그대로 그렸기 때문이다. 내 요리는 내 것이어야 한다.
+   */
+  const listEntries = React.useMemo(() => {
+    if (allEntries === null) return null;
+    const me = Number(authUser?.id);
+    if (mode === 'mine') return allEntries.filter(e => e.user_id === me);
+    if (mode === 'household') return hideMine ? allEntries.filter(e => e.user_id !== me) : allEntries;
+    return allEntries;
+  }, [allEntries, mode, hideMine, authUser?.id]);
 
   const handleSaveCompletedDate = async (entry: CalendarEntry) => {
     if (!authUser?.id || !dateInput) return;
@@ -419,9 +446,14 @@ const CookingCalendar: React.FC = () => {
     }
   };
 
+  /** 내 이름. 기기에만 있는 완료에 주인을 붙일 때 쓴다. */
+  const myName = (authUser as any)?.nickname || (authUser as any)?.name || '나';
+
   const nicknameById = React.useMemo(() => {
     const map = new Map<number, string>();
-    for (const e of entries) map.set(e.user_id, e.nickname);
+    // 빈 이름을 넣어 두면 `|| '?'` 가 안 걸려서 빈칸으로 보인다. 값이 있을 때만.
+    for (const e of entries) if (e.nickname) map.set(e.user_id, e.nickname);
+    if (authUser?.id) map.set(Number(authUser.id), myName);
     return map;
   }, [entries]);
 
@@ -918,28 +950,30 @@ const CookingCalendar: React.FC = () => {
       {/* 목표 카드와 명확히 분리된 별도 카드에 캘린더를 담아, 모바일 화면에서
           두 영역이 붙어 보이지 않고 한 화면에 같이 들어오게 했다. */}
       <div style={{ margin: '14px 14px 0', borderRadius: 14, border: '1px solid var(--line-200)', background: '#FFFFFF', overflow: 'hidden' }}>
-        {/* 보기 **방식**을 먼저 고른다 — 달력이냐 목록이냐.
-            한때 `목록` 을 일/주/월과 같은 줄에 뒀는데, 그 셋은 **기간**이고
-            목록은 기간이 아니다. 같은 줄에 두면 "목록이라는 기간" 처럼 읽힌다. */}
-        <div style={{ display: 'flex', gap: 6, padding: '12px 14px 0' }}>
+        {/* 화면을 **가르는** 자리라 탭으로 그린다.
+            알약으로 뒀더니 아래 일/주/월 알약과 같아 보여서, 화면을 바꾸는
+            것인지 결과를 좁히는 필터인지 구분이 안 됐다. 탭은 밑줄로 "지금
+            여기 있다" 를 말한다. */}
+        <div style={{ display: 'flex', borderBottom: '1px solid var(--line-200)' }}>
           {([
             { key: 'calendar', label: '달력' },
             // '목록' 은 **무엇의** 목록인지 말하지 않는다. 여기 담기는 건
             // 내가 완료했거나 기록한 요리다.
-            { key: 'list', label: '내 요리' },
+            { key: 'mine', label: '내 요리' },
+            ...(isInHousehold ? [{ key: 'household' as const, label: '우리 식구 요리' }] : []),
           ] as const).map(({ key, label }) => {
             const on = mode === key;
             return (
               <button
                 key={key}
                 type="button"
-                onClick={() => setMode(key)}
+                onClick={() => { setMode(key); if (key === 'household') setListKind('done'); }}
                 style={{
-                  height: 30, padding: '0 14px', borderRadius: 9999,
-                  fontSize: 13, fontWeight: on ? 700 : 500,
-                  background: on ? 'var(--ink-900)' : 'var(--surface-sub)',
-                  color: on ? '#FFFFFF' : 'var(--ink-700)',
-                  border: 'none', cursor: 'pointer',
+                  flex: 1, height: 44, padding: '0 6px', background: 'transparent',
+                  border: 'none', borderBottom: on ? '2px solid #1A1A1E' : '2px solid transparent',
+                  marginBottom: -1,
+                  fontSize: 13.5, fontWeight: on ? 700 : 500,
+                  color: on ? '#1A1A1E' : 'var(--ink-500)', cursor: 'pointer',
                 }}
               >
                 {label}
@@ -1179,14 +1213,30 @@ const CookingCalendar: React.FC = () => {
       )}
 
       {/* 목록 보기 — 여태 만든 것을 최신순으로 죽 훑는다. 전 기간이다. */}
-      {mode === 'list' && (
+      {(mode === 'mine' || mode === 'household') && (
         <div style={{ padding: '12px 14px 0', display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {/* 완료와 기록은 둘 다 "내 요리 이력" 이지만 다른 것이다 —
+          {/* 식구 탭에서만 — 내 것을 빼고 보면 "다른 사람들이 뭘 했나" 가 보인다. */}
+          {mode === 'household' && (
+            <label style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '2px 2px 4px',
+                            fontSize: 12.5, color: 'var(--ink-700)', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={hideMine}
+                onChange={e => setHideMine(e.target.checked)}
+                style={{ width: 16, height: 16 }}
+              />
+              내 요리는 빼고 보기
+            </label>
+          )}
+
+          {/* 완료와 기록은 둘 다 "요리 이력" 이지만 다른 것이다 —
               완료는 만든 사실, 기록은 남긴 메모. 같은 자리에서 갈라 본다. */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 2px 2px' }}>
             {([
-              { key: 'done', label: '완료', n: allEntries?.length },
-              { key: 'write', label: '기록', n: recorded?.length },
+              { key: 'done', label: '완료', n: listEntries?.length },
+              // 기록은 아직 **내 것만** 모은다. 식구 탭에서 내 기록을 보여 주면
+              // 식구 것으로 오해한다.
+              ...(mode === 'household' ? [] : [{ key: 'write' as const, label: '기록', n: recorded?.length }]),
             ] as const).map(({ key, label, n }) => {
               const on = listKind === key;
               return (
@@ -1216,7 +1266,7 @@ const CookingCalendar: React.FC = () => {
             ) : recorded.length === 0 ? (
               <div style={{ padding: '24px 4px', textAlign: 'center',
                             fontSize: 13.5, color: 'var(--ink-500)', lineHeight: 1.7 }}>
-                아직 기록한 레시피가 없어요.
+                {mode === 'household' ? '식구들의 기록은 아직 모으지 않아요.' : '아직 기록한 레시피가 없어요.'}
                 <br />
                 레시피에서 <b>기록</b>을 누르면 여기 쌓여요.
               </div>
@@ -1256,12 +1306,12 @@ const CookingCalendar: React.FC = () => {
                 </button>
               ))
             )
-          ) : allEntries === null ? (
+          ) : listEntries === null ? (
             <div style={{ padding: '24px 4px', textAlign: 'center',
                           fontSize: 13, color: 'var(--ink-500)' }}>
               불러오는 중이에요...
             </div>
-          ) : allEntries.length === 0 ? (
+          ) : listEntries.length === 0 ? (
             <div style={{ padding: '24px 4px', textAlign: 'center',
                           fontSize: 13.5, color: 'var(--ink-500)', lineHeight: 1.7 }}>
               아직 만든 요리가 없어요.
@@ -1269,7 +1319,7 @@ const CookingCalendar: React.FC = () => {
               레시피에서 <b>완료</b>를 누르면 여기 쌓여요.
             </div>
           ) : (
-            [...allEntries]
+            [...listEntries]
               .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
               .map((e, i, arr) => {
                 // 같은 날이 이어지면 날짜를 한 번만 찍는다. 매 줄에 같은 날짜가

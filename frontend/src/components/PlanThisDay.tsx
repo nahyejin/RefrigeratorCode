@@ -60,9 +60,6 @@ const PlanThisDay: React.FC<Props> = ({ recipeId, title, link, thumbnail }) => {
   React.useEffect(refresh, [refresh]);
 
   const days = React.useMemo(() => choices(), []);
-  /** 달력에서 직접 고른 날짜. */
-  const [pick, setPick] = React.useState('');
-
   const toggleKey = (key: string) => {
     if (booked.includes(key)) {
       clearPlanMeal(key, recipeId);
@@ -113,36 +110,7 @@ const PlanThisDay: React.FC<Props> = ({ recipeId, title, link, thumbnail }) => {
 
       {open && (
         <>
-        {/* 달력에서 직접 고르는 길. 알약 열넷은 **가까운 날**을 빨리 누르라고
-            있는 것이고, 그보다 먼 날이나 정확한 날짜는 이쪽이 빠르다. */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 10 }}>
-          <input
-            type="date"
-            value={pick}
-            min={toDateKey(new Date())}
-            onChange={e => setPick(e.target.value)}
-            style={{
-              flex: 1, minWidth: 0, height: 34, borderRadius: 8,
-              border: '1px solid var(--line-200)', padding: '0 10px',
-              fontSize: 13, boxSizing: 'border-box', background: 'var(--surface)',
-            }}
-          />
-          <button
-            type="button"
-            disabled={!pick}
-            onClick={() => { if (pick) { toggleKey(pick); setPick(''); } }}
-            style={{
-              flexShrink: 0, height: 34, padding: '0 12px', borderRadius: 8, border: 'none',
-              background: pick ? '#1A1A1E' : 'var(--line-200)',
-              color: pick ? '#FFFFFF' : 'var(--ink-500)',
-              fontSize: 12.5, fontWeight: 700, cursor: pick ? 'pointer' : 'default',
-            }}
-          >
-            {pick && booked.includes(pick) ? '빼기' : '넣기'}
-          </button>
-        </div>
-
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
           {days.map((d, i) => {
             const key = toDateKey(d);
             const on = booked.includes(key);
@@ -163,6 +131,31 @@ const PlanThisDay: React.FC<Props> = ({ recipeId, title, link, thumbnail }) => {
               </button>
             );
           })}
+
+          {/* 알약 열넷은 **가까운 날**을 빨리 누르라고 있다. 그보다 먼 날은
+              달력으로 고른다 — 다만 가로로 긴 입력창을 따로 두니 검색창처럼
+              보였다. 같은 줄에, 같은 알약 크기로 둔다. */}
+          <label
+            style={{
+              position: 'relative', height: 32, padding: '0 11px', borderRadius: 9999,
+              border: '1px dashed var(--line-300)', background: 'var(--surface)',
+              fontSize: 12.5, fontWeight: 600, color: 'var(--ink-700)',
+              display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer',
+            }}
+          >
+            다른 날짜
+            <span aria-hidden style={{ fontSize: 9, color: 'var(--ink-500)' }}>▾</span>
+            <input
+              type="date"
+              min={toDateKey(new Date())}
+              onChange={e => { if (e.target.value) toggleKey(e.target.value); }}
+              aria-label="다른 날짜 고르기"
+              style={{
+                position: 'absolute', inset: 0, width: '100%', height: '100%',
+                opacity: 0, cursor: 'pointer', border: 'none', padding: 0,
+              }}
+            />
+          </label>
         </div>
         </>
       )}
