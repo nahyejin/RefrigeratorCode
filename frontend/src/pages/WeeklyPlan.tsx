@@ -8,6 +8,7 @@ import { findExpiring, daysLabel, type FridgeItem, type ExpiringItem } from '../
 import { openCookMode } from '../utils/cookMode';
 import { resolveCoupangUrl } from '../utils/coupangLink';
 import { track } from '../utils/track';
+import { getProxiedImageUrl } from '../utils/imageUtils';
 import { usageHeaders, applyUsage } from '../utils/usage';
 import { UsageLine, useUsage } from '../components/UsageMeter';
 import { savePlan, toDateKey, type PlannedMeal } from '../utils/mealPlan';
@@ -97,14 +98,31 @@ const ingredientsOf = (r: PlanRecipe): string[] =>
  */
 function pickDistinct(pool: PlanRecipe[], count: number): PlanRecipe[] {
   const chosen: PlanRecipe[] = [];
+  const taken = new Set<number>();
   const used = new Set<string>();
+
+  // 1차 — 재료가 절반 넘게 겹치면 건너뛴다.
   for (const r of pool) {
     if (chosen.length >= count) break;
     const ings = ingredientsOf(r);
     const overlap = ings.filter(x => used.has(x)).length;
     if (chosen.length > 0 && ings.length > 0 && overlap >= Math.ceil(ings.length / 2)) continue;
     chosen.push(r);
+    taken.add(r.id);
     ings.forEach(x => used.add(x));
+  }
+
+  // 2차 — **빈 칸을 남기지 않는다.**
+  //
+  // 겹침 규칙만 돌리면 후보가 적을 때 7일 중 3일이 비어 버린다. 비슷한 요리가
+  // 하루 더 들어오는 것이, 그 날 칸이 텅 비어 있는 것보다 낫다.
+  if (chosen.length < count) {
+    for (const r of pool) {
+      if (chosen.length >= count) break;
+      if (taken.has(r.id)) continue;
+      chosen.push(r);
+      taken.add(r.id);
+    }
   }
   return chosen;
 }
@@ -351,27 +369,31 @@ const WeeklyPlan: React.FC = () => {
               boxSizing: 'border-box',
             }}
           />
-          <button
-            type="button"
-            className="ai-action"
-            disabled={asking || !canAi}
-            onClick={() => { if (canAi) void askAi(); }}
-            style={{
-              flexShrink: 0, height: 40, padding: '0 14px', borderRadius: 10,
-              fontSize: 13.5, fontWeight: 700,
-              cursor: canAi && !asking ? 'pointer' : 'default',
-            }}
-          >
-            <span>{asking ? '짜는 중...' : `AI로 짜기 ${planCost}`}</span>
-          </button>
+          {/* 배지를 버튼 밖에 두려면 감싸는 자리가 필요하다.
+              버튼 안에 넣으면 `overflow: hidden` 에 잘린다. */}
+          <span style={{ position: 'relative', flexShrink: 0 }}>
+            <button
+              type="button"
+              className="ai-action"
+              disabled={asking || !canAi}
+              onClick={() => { if (canAi) void askAi(); }}
+              style={{
+                height: 40, padding: '0 14px', borderRadius: 10,
+                fontSize: 13.5, fontWeight: 700, whiteSpace: 'nowrap',
+                cursor: canAi && !asking ? 'pointer' : 'default',
+              }}
+            >
+              <span>{asking ? '짜는 중...' : 'AI 식단 짜기'}</span>
+            </button>
+            {!asking && canAi && <span className="ai-fab-badge">AI</span>}
+          </span>
         </div>
         {/* 남은 양은 앱 어디서나 **같은 부품**으로 보여 준다. 화면마다 다르게
             적으면 사용자가 매번 다시 읽어야 한다. */}
         <UsageLine style={{ marginTop: 8 }} />
         <div style={{ fontSize: 11.5, color: 'var(--ink-500)', marginTop: 4, lineHeight: 1.6 }}>
           {canAi ? (
-            <>이 버튼은 크레딧 <b>{planCost}</b>을 써요.
-            아래 <b>다시 짜기</b>와 <b>바꾸기</b>는 쓰지 않아요.</>
+            <>이 버튼은 크레딧 <b>{planCost}</b>을 써요.</>
           ) : usage?.is_guest ? (
             <><b>가입하면 {usage.signup_credits}개</b>를 바로 드려요.
             아래 기본 추천은 그냥 쓰셔도 됩니다.</>
@@ -433,6 +455,19 @@ const WeeklyPlan: React.FC = () => {
 
       {pool !== null && !asking && slots.some(s => s.recipe) && (
         <>
+          {/* 크레딧 안내는 **누르기 전에** 보여야 한다. 목록 아래에 뒀더니
+              버튼을 다 눌러 본 다음에야 읽게 됐다. */}
+          <div style={{
+            fontSize: 11.5, color: 'var(--ink-500)', lineHeight: 1.7,
+            background: 'var(--surface)', border: '1px solid var(--line-200)',
+            borderRadius: 12, padding: '10px 12px', marginBottom: 10,
+          }}>
+            <b style={{ color: 'var(--ink-700)' }}>다른 요리로 바꾸기</b>와
+            <b style={{ color: 'var(--ink-700)' }}> 다시 짜기</b>는 크레딧을 쓰지 않아요.
+            <br />
+            AI 없이 <b>냉장고 재료만 맞춰 보는 것</b>이라, 마음에 들 때까지 눌러도 됩니다.
+          </div>
+
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                         gap: 8, marginBottom: 8 }}>
             <span style={{ fontSize: 12.5, color: 'var(--ink-500)' }}>
@@ -500,17 +535,37 @@ const WeeklyPlan: React.FC = () => {
                           display: 'flex', alignItems: 'center', gap: 10,
                         }}
                       >
-                        {slot.recipe.thumbnail && (
+                        {/* 네이버 이미지는 그대로 부르면 핫링크가 막혀(403) 안 뜬다.
+                            `getProxiedImageUrl` 을 안 거쳐서 썸네일이 통째로
+                            안 보이고 있었다 — onError 로 조용히 숨겨져서
+                            "썸네일이 아예 안 나온다" 로만 보였다. */}
+                        {slot.recipe.thumbnail ? (
                           <img
-                            src={slot.recipe.thumbnail}
+                            src={getProxiedImageUrl(slot.recipe.thumbnail)}
                             alt=""
                             loading="lazy"
-                            onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                            onError={e => {
+                              // 자리는 남긴다 — 지우면 줄 높이가 튀어 목록이 들썩인다.
+                              (e.currentTarget as HTMLImageElement).style.visibility = 'hidden';
+                            }}
                             style={{
-                              width: 52, height: 52, flexShrink: 0, borderRadius: 10,
+                              width: 64, height: 64, flexShrink: 0, borderRadius: 10,
                               objectFit: 'cover', background: 'var(--surface-sub)',
                             }}
                           />
+                        ) : (
+                          /* 썸네일이 없는 레시피도 있다. `src=""` 로 두면 브라우저가
+                             페이지 자체를 다시 요청하므로, 빈 자리를 그린다.
+                             크기를 맞춰 둬야 카드마다 글자 시작점이 안 어긋난다. */
+                          <span
+                            aria-hidden
+                            style={{
+                              width: 64, height: 64, flexShrink: 0, borderRadius: 10,
+                              background: 'var(--surface-sub)',
+                              display: 'inline-flex', alignItems: 'center',
+                              justifyContent: 'center', color: 'var(--ink-500)', fontSize: 18,
+                            }}
+                          >🍽</span>
                         )}
                         <span style={{ minWidth: 0, flex: 1 }}>
                           <span style={{
@@ -593,10 +648,6 @@ const WeeklyPlan: React.FC = () => {
           <div style={{ fontSize: 11.5, color: 'var(--ink-500)', lineHeight: 1.7,
                         padding: '10px 4px 0' }}>
             체크를 풀면 반영·장보기 목록에서 함께 빠져요. 요리를 누르면 조리 순서가 나옵니다.
-            <br />
-            {/* "AI 가 짜 주는 것" 으로 오해하면 크레딧이 닳는 줄 알고 아껴 쓰게 된다. */}
-            <b>다시 짜기·바꾸기·요일 옮기기는 크레딧을 쓰지 않아요.</b> 미리 뽑아 둔
-            재료를 냉장고와 맞춰 보는 것이라 얼마든지 눌러도 됩니다.
           </div>
         </>
       )}

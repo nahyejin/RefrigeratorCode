@@ -5,10 +5,10 @@ import { loadIngredientCategoryMap, type CategoryMap, type StorageKind } from '.
 import type { FridgeItem } from '../utils/expiry';
 import { planByDate, loadPlan, type PlannedMeal } from '../utils/mealPlan';
 import { openCookMode } from '../utils/cookMode';
+import { getProxiedImageUrl } from '../utils/imageUtils';
 import BottomNavBar from '../components/BottomNavBar';
 import PullToRefresh from '../components/PullToRefresh';
 import { useAuth } from '../context/AuthContext';
-import { getProxiedImageUrl } from '../utils/imageUtils';
 
 type ViewMode = 'day' | 'week' | 'month';
 
@@ -191,7 +191,7 @@ const PlannedList: React.FC = () => {
             </span>
             {m.thumbnail && (
               <img
-                src={m.thumbnail}
+                src={getProxiedImageUrl(m.thumbnail)}
                 alt=""
                 loading="lazy"
                 onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
@@ -1005,7 +1005,7 @@ const CookingCalendar: React.FC = () => {
               >
                 {planned.thumbnail && (
                   <img
-                    src={planned.thumbnail}
+                    src={getProxiedImageUrl(planned.thumbnail)}
                     alt=""
                     loading="lazy"
                     onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}

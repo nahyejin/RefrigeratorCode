@@ -1075,15 +1075,25 @@ select:focus-visible {
   background-size: 260% 260%;
   animation: ai-fab-shimmer 6s ease-in-out infinite;
 }
+/* 넓은 자리를 **가로질러** 지나가는 스침.
+   `ai-fab-sheen` 은 56px 짜리 동그란 FAB 용이라 이동폭(±130%)이 자기 너비
+   기준이다. 폭이 넓은 카드/버튼에 그대로 쓰면 가운데서만 깜빡이고 끝까지
+   지나가지 않는다 — 실제로 "그라데이션 명암만 있고 반짝임이 없다" 는 말을 들었다. */
+@keyframes ai-sweep {
+  0%        { transform: translateX(-120%) skewX(-18deg); opacity: 0; }
+  6%        { opacity: 1; }
+  38%       { opacity: 1; }
+  45%, 100% { transform: translateX(520%) skewX(-18deg); opacity: 0; }
+}
 .ai-surface::after {
   content: '';
   position: absolute;
   top: -40%;
   left: 0;
-  width: 40%;
+  width: 22%;
   height: 180%;
-  background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.65) 50%, rgba(255,255,255,0) 100%);
-  animation: ai-fab-sheen 6s ease-in-out infinite;
+  background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.75) 50%, rgba(255,255,255,0) 100%);
+  animation: ai-sweep 5s ease-in-out infinite;
   pointer-events: none;
 }
 .ai-surface > * { position: relative; z-index: 1; }
@@ -1104,17 +1114,22 @@ select:focus-visible {
   position: absolute;
   top: -40%;
   left: 0;
-  width: 45%;
+  width: 26%;
   height: 180%;
-  background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.7) 50%, rgba(255,255,255,0) 100%);
-  animation: ai-fab-sheen 4.2s ease-in-out infinite;
+  background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.95) 50%, rgba(255,255,255,0) 100%);
+  animation: ai-sweep 3.2s ease-in-out infinite;
   pointer-events: none;
 }
+/* 버튼 자체도 아주 살짝 숨쉬게. 노란 버튼 위 노란 스침은 대비가 낮아
+   스침만으로는 "움직이고 있다" 가 잘 인지되지 않는다(FAB 에서 겪은 것과 같다). */
+.ai-action { animation: ai-fab-shimmer 4.2s ease-in-out infinite,
+                        ai-fab-breathe 3.4s ease-in-out infinite; }
 .ai-action > * { position: relative; z-index: 1; }
 .ai-action:disabled { animation: none; opacity: .55; box-shadow: none; }
 
 /* 움직임 최소화: 반짝임을 멈춘다. 정보는 글자에 다 있다. */
 @media (prefers-reduced-motion: reduce) {
   .ai-surface, .ai-action { animation: none !important; }
+  .ai-surface::after, .ai-action::after { animation: none !important; }
   .ai-surface::after, .ai-action::after { display: none !important; }
 }
