@@ -1,5 +1,8 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
+import ExpiryAlert from '../components/ExpiryAlert';
+import { loadIngredientCategoryMap, type CategoryMap, type StorageKind } from '../utils/shelfLife';
+import type { FridgeItem } from '../utils/expiry';
 import BottomNavBar from '../components/BottomNavBar';
 import PullToRefresh from '../components/PullToRefresh';
 import { useAuth } from '../context/AuthContext';
@@ -89,6 +92,65 @@ const ESTIMATED_SAVINGS_PER_MEAL_DEFAULT = 8000; // 원, 외식/배달 대비 �
 function formatWon(n: number): string {
   return n.toLocaleString('ko-KR');
 }
+
+/**
+ * 내냉장고가 쓰는 그 자리에서 보관함 세 칸을 읽는다.
+ * 키 이름을 새로 정하지 않는다 — 다르게 적으면 재료가 있는데도 안 뜬다.
+ */
+function readFridgeBoxes(): Partial<Record<StorageKind, FridgeItem[]>> {
+  const empty = { frozen: [], fridge: [], room: [] };
+  try {
+    const raw = localStorage.getItem('myfridge_ingredients');
+    if (!raw) return empty;
+    const data = JSON.parse(raw);
+    const pick = (v: unknown) => (Array.isArray(v) ? (v as FridgeItem[]) : []);
+    return { frozen: pick(data?.frozen), fridge: pick(data?.fridge), room: pick(data?.room) };
+  } catch {
+    return empty;
+  }
+}
+
+/**
+ * 곧 상하는 재료 + 이번 주 식단을 **한 묶음**으로.
+ *
+ * 왜 붙여 두나: 두 개가 하나의 이야기다 — "이게 곧 상해요 → 그럼 이걸로 식단을
+ * 짜요". 떨어뜨려 놓으면 알림은 잔소리로만 남고, 식단은 왜 지금 짜야 하는지
+ * 이유가 없어진다.
+ *
+ * 왜 로그인 벽 **앞**에도 두나: 둘 다 냉장고 재료(로컬)만 있으면 되는 기능이다.
+ * 로그인이 필요한 건 캘린더(내 요리 이력)뿐이다.
+ */
+const FridgeToPlan: React.FC<{ onGo: () => void }> = ({ onGo }) => {
+  const [categoryMap, setCategoryMap] = React.useState<CategoryMap>({});
+  const boxes = React.useMemo(readFridgeBoxes, []);
+
+  React.useEffect(() => {
+    void loadIngredientCategoryMap().then(setCategoryMap).catch(() => {});
+  }, []);
+
+  return (
+    <div style={{ margin: '0 14px 12px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <ExpiryAlert boxes={boxes} categoryMap={categoryMap} onPick={onGo} />
+      <button
+        type="button"
+        onClick={onGo}
+        style={{
+          width: '100%', height: 48, borderRadius: 12,
+          border: '1px solid var(--line-200)', background: 'var(--surface)',
+          cursor: 'pointer', display: 'flex', alignItems: 'center',
+          justifyContent: 'space-between', padding: '0 16px',
+        }}
+      >
+        <span style={{ fontSize: 14.5, fontWeight: 700, color: '#1A1A1E' }}>
+          이번 주 식단 짜기
+        </span>
+        <span style={{ fontSize: 12.5, color: 'var(--ink-500)' }}>
+          냉장고 재료로 · 장보기 목록까지 ›
+        </span>
+      </button>
+    </div>
+  );
+};
 
 /**
  * 요리 캘린더 — 완료한 레시피를 날짜별로 돌아보는 화면.
@@ -400,28 +462,7 @@ const CookingCalendar: React.FC = () => {
         {/* 식단은 냉장고 재료만 있으면 되는 기능이라 **로그인 벽 뒤에 가두지
             않는다.** 로그인해야만 쓸 수 있는 건 캘린더(내 요리 이력)뿐이다. */}
         <div style={{ maxWidth: 480, margin: '0 auto', width: '100%', paddingBottom: 16 }}>
-      {/* 이번 주 식단으로 가는 입구.
-          **여기가 맞는 자리다.** 캘린더는 "무엇을 언제 먹었나/먹을까" 를 보는
-          화면이고, 식단은 그 앞날을 정하는 일이다. 내냉장고에 두면 재료를
-          넣으러 온 사람 앞을 가로막는다. */}
-      <button
-        type="button"
-        onClick={() => navigate('/plan')}
-        style={{
-          width: 'calc(100% - 28px)', margin: '0 14px 12px', height: 48,
-          borderRadius: 12, border: '1px solid var(--line-200)',
-          background: 'var(--surface)', cursor: 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '0 16px',
-        }}
-      >
-        <span style={{ fontSize: 14.5, fontWeight: 700, color: '#1A1A1E' }}>
-          이번 주 식단 짜기
-        </span>
-        <span style={{ fontSize: 12.5, color: 'var(--ink-500)' }}>
-          냉장고 재료로 · 장보기 목록까지 ›
-        </span>
-      </button>
+      <FridgeToPlan onGo={() => navigate('/plan')} />
         </div>
         <BottomNavBar activeTab="cooking-calendar" />
       </div>
@@ -471,28 +512,7 @@ const CookingCalendar: React.FC = () => {
           보려면 예전엔 탭을 벗어났다 돌아오는 수밖에 없었다 — 당겨서
           새로고침으로 그 자리에서 바로 다시 불러올 수 있게 한다. */}
       <PullToRefresh onRefresh={loadCalendar}>
-      {/* 이번 주 식단으로 가는 입구.
-          **여기가 맞는 자리다.** 캘린더는 "무엇을 언제 먹었나/먹을까" 를 보는
-          화면이고, 식단은 그 앞날을 정하는 일이다. 내냉장고에 두면 재료를
-          넣으러 온 사람 앞을 가로막는다. */}
-      <button
-        type="button"
-        onClick={() => navigate('/plan')}
-        style={{
-          width: 'calc(100% - 28px)', margin: '0 14px 12px', height: 48,
-          borderRadius: 12, border: '1px solid var(--line-200)',
-          background: 'var(--surface)', cursor: 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '0 16px',
-        }}
-      >
-        <span style={{ fontSize: 14.5, fontWeight: 700, color: '#1A1A1E' }}>
-          이번 주 식단 짜기
-        </span>
-        <span style={{ fontSize: 12.5, color: 'var(--ink-500)' }}>
-          냉장고 재료로 · 장보기 목록까지 ›
-        </span>
-      </button>
+      <FridgeToPlan onGo={() => navigate('/plan')} />
 
       {/* 월 목표는 "이번 달" 이라는 더 큰 단위 얘기라, 일/주/월 중 무엇을 보고
           있든 항상 같은 값이어야 맞다 — 그래서 일/주/월 전환 버튼보다 위,

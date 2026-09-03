@@ -20,7 +20,6 @@ import Dialog from '../components/ui/Dialog';
 import { shrinkImageForUpload } from '../utils/imageUtils';
 import { applyUsage, usageHeaders } from '../utils/usage';
 import { UsageBadge, useUsage } from '../components/UsageMeter';
-import ExpiryAlert from '../components/ExpiryAlert';
 import { loadIngredientCategoryMap, estimateExpiry, type CategoryMap } from '../utils/shelfLife';
 import {
   isUsageGuideDueThisVisit,
@@ -2291,17 +2290,10 @@ const MyFridge: React.FC = () => {
             </div>
           </div>
 
-          {/* 곧 상하는 재료 알림.
-              **입력 줄 아래**에 둔다. 위에 두면 이 화면에서 가장 먼저 하는 일
-              (재료 추가)이 밀려나고, 알림이 이 화면의 주인공처럼 보인다.
-              알림은 거들 뿐이고 주인공은 입력창이다. */}
-          <div style={{ marginBottom: 14 }}>
-            <ExpiryAlert
-              boxes={{ frozen: frozen || [], fridge: fridge || [], room: room || [] }}
-              categoryMap={categoryMap}
-              onPick={() => navigate('/plan')}
-            />
-          </div>
+          {/* 곧 상하는 재료 알림은 **요리 캘린더**로 옮겼다.
+              여기 두면 같은 말을 두 번 한다 — 아래 재고 목록이 이미 재료마다
+              `D-10` `지남` 을 달고 있다. 배너의 값어치는 **냉장고를 안 보고
+              있을 때** 알려 주는 것이고, 그건 다른 화면에서 할 일이다. */}
         </div>
         <IngredientRecognitionSheet
           isOpen={recognitionOpen}
