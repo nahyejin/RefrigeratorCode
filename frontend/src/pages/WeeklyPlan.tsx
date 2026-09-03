@@ -1,12 +1,15 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import BackButton from '../components/ui/BackButton';
+import StepLoading from '../components/StepLoading';
 import { getMyIngredients } from '../utils/recipeUtils';
 import { loadIngredientCategoryMap, type CategoryMap, type StorageKind } from '../utils/shelfLife';
 import { findExpiring, daysLabel, type FridgeItem, type ExpiringItem } from '../utils/expiry';
 import { openCookMode } from '../utils/cookMode';
 import { resolveCoupangUrl } from '../utils/coupangLink';
 import { track } from '../utils/track';
-import StepLoading from '../components/StepLoading';
+import { usageHeaders, applyUsage } from '../utils/usage';
+import { useUsage } from '../components/UsageMeter';
 
 /**
  * 이번 주 식단 + 장보기 목록.
@@ -15,17 +18,19 @@ import StepLoading from '../components/StepLoading';
  *   장보기 목록은 식단에서 **나온다.** 무엇을 만들지 정해야 무엇이 부족한지
  *   나온다. 두 화면으로 나누면 사용자가 같은 걸 두 번 정하게 된다.
  *
- * 왜 유통기한이 기준인가:
- *   "뭐 해 먹지" 에 답하는 앱은 많다. 쿡매치가 다른 점은 **가진 재료**를 안다는
- *   것이고, 그중에서도 **곧 상하는 재료**를 아는 것이다. 그걸 먼저 쓰는 식단이
- *   이 앱만 만들 수 있는 식단이다.
+ * 두 가지 방식이 있다:
+ *   - **기본(무료)** — 매칭률로 줄 세우고 겹치는 요리를 걸러 내는 규칙.
+ *     다시 짜기·바꾸기·요일 옮기기 전부 공짜다
+ *   - **AI(크레딧)** — "담백하게", "아이 먹을 것 위주로" 같은 **말을 받는다.**
+ *     규칙으로는 못 받는 것이고, 그래서 크레딧을 쓴다
  */
 
 const API_BASE_URL =
   (import.meta.env && import.meta.env.VITE_API_BASE_URL) ||
   'https://refrigeratorcode-production.up.railway.app';
 
-const DAYS = ['월', '화', '수', '목', '금', '토', '일'];
+const DAY_NAMES = ['일', '월', '화', '수', '목', '금', '토'];
+const PLAN_DAYS = 7;
 
 interface PlanRecipe {
   id: number;
@@ -33,14 +38,22 @@ interface PlanRecipe {
   link: string;
   thumbnail?: string;
   used_ingredients?: string;
+  ingredients?: string[];
   match_rate?: number;
+  /** AI 가 이 날 이걸 고른 이유 */
+  why?: string;
+}
+
+/** 한 칸 = 하루. 무엇을 만들지와, 장보기에 넣을지. */
+interface Slot {
+  date: Date;
+  recipe: PlanRecipe | null;
+  on: boolean;
 }
 
 /**
  * 내냉장고가 쓰는 그 자리에서 보관함 세 칸을 읽는다.
- *
- * 키 이름을 여기서 새로 정하지 않는다 — 다르게 적으면 재료가 있는데도
- * "재료가 없어요" 가 뜬다.
+ * 키 이름을 새로 정하지 않는다 — 다르게 적으면 재료가 있는데도 안 뜬다.
  */
 function readBoxes(): Partial<Record<StorageKind, FridgeItem[]>> {
   const empty = { frozen: [], fridge: [], room: [] };
@@ -55,13 +68,61 @@ function readBoxes(): Partial<Record<StorageKind, FridgeItem[]>> {
   }
 }
 
+/**
+ * **내일부터** 7일.
+ *
+ * 오늘을 넣으면 이미 저녁이 지난 경우가 많아 첫 칸이 버려진다.
+ * 수요일에 짜면 목~수가 된다.
+ */
+function nextDays(count = PLAN_DAYS): Date[] {
+  const out: Date[] = [];
+  const base = new Date();
+  for (let i = 1; i <= count; i++) {
+    out.push(new Date(base.getFullYear(), base.getMonth(), base.getDate() + i));
+  }
+  return out;
+}
+
+const dayLabel = (d: Date) => `${d.getMonth() + 1}/${d.getDate()} (${DAY_NAMES[d.getDay()]})`;
+
+const ingredientsOf = (r: PlanRecipe): string[] =>
+  r.ingredients ?? (r.used_ingredients || '').split(',').map(x => x.trim()).filter(Boolean);
+
+/**
+ * 후보에서 서로 안 겹치는 것들을 골라 칸에 채운다.
+ *
+ * 매칭률만 보고 위에서부터 자르면 **비슷한 요리가 줄줄이 나온다**(김치찌개,
+ * 김치볶음밥, 김치전…). 한 주 식단으로는 쓸 수 없다.
+ */
+function pickDistinct(pool: PlanRecipe[], count: number): PlanRecipe[] {
+  const chosen: PlanRecipe[] = [];
+  const used = new Set<string>();
+  for (const r of pool) {
+    if (chosen.length >= count) break;
+    const ings = ingredientsOf(r);
+    const overlap = ings.filter(x => used.has(x)).length;
+    if (chosen.length > 0 && ings.length > 0 && overlap >= Math.ceil(ings.length / 2)) continue;
+    chosen.push(r);
+    ings.forEach(x => used.add(x));
+  }
+  return chosen;
+}
+
 const WeeklyPlan: React.FC = () => {
   const navigate = useNavigate();
+  const usage = useUsage();
   const [categoryMap, setCategoryMap] = React.useState<CategoryMap>({});
-  const [recipes, setRecipes] = React.useState<PlanRecipe[] | null>(null);
+  const [pool, setPool] = React.useState<PlanRecipe[] | null>(null);
+  const [slots, setSlots] = React.useState<Slot[]>(
+    () => nextDays().map(date => ({ date, recipe: null, on: true })),
+  );
   const [error, setError] = React.useState<string | null>(null);
-  const [picked, setPicked] = React.useState<Set<number>>(new Set());
   const [bought, setBought] = React.useState<Set<string>>(new Set());
+
+  // AI 식단
+  const [wish, setWish] = React.useState('');
+  const [asking, setAsking] = React.useState(false);
+  const [aiNote, setAiNote] = React.useState<string | null>(null);
 
   const boxes = React.useMemo(readBoxes, []);
   const myIngredients = React.useMemo(() => getMyIngredients(), []);
@@ -75,95 +136,133 @@ const WeeklyPlan: React.FC = () => {
     [boxes, categoryMap],
   );
 
+  // ── 후보 불러오기 (무료·규칙 기반) ────────────────────────────
   React.useEffect(() => {
-    if (myIngredients.length === 0) { setRecipes([]); return; }
+    if (myIngredients.length === 0) { setPool([]); return; }
     const params = new URLSearchParams({
       my_ingredients: myIngredients.join(','),
       sort_by: 'match_rate',
-      size: '30',
+      size: '40',
       page: '1',
     });
-    // 곧 상하는 재료를 쓰는 레시피를 앞으로 올린다 — 이 식단의 핵심이다.
     const soon = expiring.filter(i => i.days >= 0).map(i => i.name);
     if (soon.length) params.set('applied_expiry_ingredients', soon.join(','));
 
     fetch(`${API_BASE_URL}/api/recipes/filter?${params}`)
       .then(r => (r.ok ? r.json() : Promise.reject(new Error())))
-      .then(d => setRecipes(d.recipes || []))
+      .then(d => setPool(d.recipes || []))
       .catch(() => setError('레시피를 불러오지 못했어요. 잠시 뒤 다시 시도해 주세요.'));
   }, [myIngredients, expiring]);
 
-  /**
-   * 식단 후보를 고른다.
-   *
-   * 매칭률만 보고 위에서부터 자르면 **비슷한 요리가 줄줄이 나온다**(김치찌개,
-   * 김치볶음밥, 김치전…). 한 주 식단으로는 쓸 수 없다. 그래서 이미 뽑은 요리와
-   * 재료가 많이 겹치면 건너뛴다.
-   */
-  const plan = React.useMemo(() => {
-    if (!recipes) return [];
-    const chosen: PlanRecipe[] = [];
-    const usedNames = new Set<string>();
-
-    for (const r of recipes) {
-      if (chosen.length >= 5) break;
-      const ings = (r.used_ingredients || '').split(',').map(x => x.trim()).filter(Boolean);
-      const overlap = ings.filter(x => usedNames.has(x)).length;
-      // 절반 넘게 겹치면 사실상 같은 요리다.
-      if (chosen.length > 0 && overlap >= Math.ceil(ings.length / 2)) continue;
-      chosen.push(r);
-      ings.forEach(x => usedNames.add(x));
-    }
-    return chosen;
-  }, [recipes]);
-
-  const active = plan.filter(r => picked.size === 0 || picked.has(r.id));
-
-  /** 고른 식단에 필요한데 냉장고에 **없는** 재료. 이게 장보기 목록이다. */
-  const shopping = React.useMemo(() => {
-    const have = new Set(myIngredients.map(x => x.trim()));
-    const need = new Map<string, number>();   // 이름 -> 몇 개 요리에 쓰이나
-    active.forEach(r => {
-      (r.used_ingredients || '').split(',').map(x => x.trim()).filter(Boolean)
-        .forEach(name => {
-          if (have.has(name)) return;
-          need.set(name, (need.get(name) || 0) + 1);
-        });
+  // 후보가 도착하면 칸을 채운다 (아직 비어 있을 때만 — 사용자가 고른 걸 안 덮는다)
+  React.useEffect(() => {
+    if (!pool || pool.length === 0) return;
+    setSlots(prev => {
+      if (prev.some(s => s.recipe)) return prev;
+      const picked = pickDistinct(pool, prev.length);
+      return prev.map((s, i) => ({ ...s, recipe: picked[i] || null }));
     });
-    return [...need.entries()].sort((a, b) => b[1] - a[1]);
-  }, [active, myIngredients]);
+  }, [pool]);
 
-  const toggle = (id: number) => {
-    setPicked(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
+  const usedIds = new Set(slots.map(s => s.recipe?.id).filter(Boolean) as number[]);
+
+  /** 전체를 다시 짠다 (무료). 매번 같은 조합이 안 나오게 섞는다. */
+  const reshuffle = () => {
+    if (!pool) return;
+    setAiNote(null);
+    const shuffled = [...pool].sort(() => Math.random() - 0.5);
+    const picked = pickDistinct(shuffled, slots.length);
+    setSlots(prev => prev.map((s, i) => ({ ...s, recipe: picked[i] || null })));
+  };
+
+  /** 한 칸만 다른 요리로 (무료). 지금 식단에 없는 것 중에서 고른다. */
+  const swapOne = (index: number) => {
+    if (!pool) return;
+    const others = pool.filter(r => !usedIds.has(r.id));
+    if (others.length === 0) return;
+    const next = others[Math.floor(Math.random() * others.length)];
+    setSlots(prev => prev.map((s, i) => (i === index ? { ...s, recipe: next } : s)));
+  };
+
+  /**
+   * 요일을 바꾼다 — 두 칸의 요리를 **맞바꾼다.**
+   * 밀어내지 않고 자리를 바꾸므로 빈 칸이 생기지 않는다.
+   */
+  const moveTo = (from: number, to: number) => {
+    if (from === to) return;
+    setSlots(prev => {
+      const next = [...prev];
+      const a = next[from].recipe;
+      next[from] = { ...next[from], recipe: next[to].recipe };
+      next[to] = { ...next[to], recipe: a };
       return next;
     });
   };
 
-  // 위쪽 여백 72 는 **고정 헤더 높이**다. 이걸 빼먹어서 뒤로가기 버튼이
-  // 헤더 밑에 깔려 안 보였다(다른 화면들도 같은 값을 쓴다).
+  /** AI 에게 짜 달라고 한다 (크레딧을 쓴다). */
+  const askAi = async () => {
+    setAsking(true);
+    setError(null);
+    setAiNote(null);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/plan/suggest`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...usageHeaders() },
+        body: JSON.stringify({
+          ingredients: myIngredients,
+          expiring: expiring.filter(i => i.days >= 0).map(i => i.name),
+          request: wish.trim(),
+        }),
+      });
+      const data = await res.json().catch(() => null);
+      applyUsage(data?.usage);
+      track('chat_use', 'plan');
+
+      if (!res.ok) {
+        setError((data && data.error) || '식단을 짜지 못했어요.');
+        return;
+      }
+      const got: PlanRecipe[] = data.plan || [];
+      if (got.length === 0) {
+        setError('조건에 맞는 요리를 못 찾았어요. 요청을 조금 느슨하게 해 보세요.');
+        return;
+      }
+      setSlots(prev => prev.map((s, i) => ({ ...s, recipe: got[i] || null })));
+      setAiNote(wish.trim() ? `"${wish.trim()}" 을(를) 반영했어요.` : 'AI 가 새로 짰어요.');
+    } catch {
+      setError('네트워크 상태를 확인하고 다시 시도해 주세요.');
+    } finally {
+      setAsking(false);
+    }
+  };
+
+  const active = slots.filter(s => s.on && s.recipe).map(s => s.recipe!);
+
+  /** 고른 식단에 필요한데 냉장고에 **없는** 재료. 이게 장보기 목록이다. */
+  const shopping = React.useMemo(() => {
+    const have = new Set(myIngredients.map(x => x.trim()));
+    const need = new Map<string, number>();
+    active.forEach(r => {
+      ingredientsOf(r).forEach(name => {
+        if (have.has(name)) return;
+        need.set(name, (need.get(name) || 0) + 1);
+      });
+    });
+    return [...need.entries()].sort((a, b) => b[1] - a[1]);
+  }, [active, myIngredients]);
+
+  const planCost = (usage?.credits as Record<string, number> | undefined)?.plan ?? 2;
+  const canAi = !!usage && !usage.is_guest;
+
+  // 위쪽 여백 72 는 고정 헤더(56) + 여백(16). 다른 화면들과 같은 값이다.
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--surface-sub)',
-                  padding: '72px 14px 90px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 14 }}>
-        <button
-          type="button"
-          onClick={() => navigate(-1)}
-          aria-label="뒤로 가기"
-          style={{
-            // 44px — 손가락이 닿는 최소 크기. 글자만 두면 눌러도 잘 안 먹는다.
-            width: 44, height: 44, marginLeft: -10, flexShrink: 0,
-            border: 'none', background: 'transparent', cursor: 'pointer',
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-          }}
-        >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1A1A1E"
-               strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-            <path d="M15 18l-6-6 6-6" />
-          </svg>
-        </button>
-        <h1 style={{ fontSize: 19, fontWeight: 700, margin: 0, color: '#1A1A1E' }}>이번 주 식단</h1>
+    <div style={{ minHeight: '100vh', background: 'var(--surface-sub)', padding: '72px 14px 90px' }}>
+      <div style={{ position: 'relative', display: 'flex', alignItems: 'center',
+                    justifyContent: 'center', marginBottom: 16, minHeight: 40 }}>
+        <BackButton onClick={() => navigate(-1)} style={{ left: 0, top: 2 }} />
+        <div style={{ fontWeight: 700, fontSize: 18, textAlign: 'center', padding: '0 56px' }}>
+          이번 주 식단
+        </div>
       </div>
 
       {/* ── 왜 이 식단인가 ─────────────────────────────────── */}
@@ -193,13 +292,69 @@ const WeeklyPlan: React.FC = () => {
         )}
       </div>
 
-      {/* ── 식단 ───────────────────────────────────────────── */}
+      {/* ── AI 로 짜기 ─────────────────────────────────────── */}
+      <div style={{
+        background: 'var(--surface)', border: '1px solid var(--line-200)',
+        borderRadius: 14, padding: '14px 16px', marginBottom: 12,
+      }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: '#1A1A1E', marginBottom: 4 }}>
+          원하는 대로 짜 드려요
+        </div>
+        <div style={{ fontSize: 12, color: 'var(--ink-500)', marginBottom: 10, lineHeight: 1.6 }}>
+          "담백하게", "아이가 먹을 것 위주로", "국물 요리는 빼고" 처럼 적어 보세요.
+          비워 두고 눌러도 됩니다.
+        </div>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <input
+            value={wish}
+            onChange={e => setWish(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter' && canAi && !asking) void askAi(); }}
+            placeholder="어떻게 짜 드릴까요? (선택)"
+            style={{
+              flex: 1, minWidth: 0, height: 40, borderRadius: 10,
+              border: '1px solid var(--line-200)', padding: '0 12px', fontSize: 13.5,
+              boxSizing: 'border-box',
+            }}
+          />
+          <button
+            type="button"
+            disabled={asking || !canAi}
+            onClick={() => { if (canAi) void askAi(); }}
+            style={{
+              flexShrink: 0, height: 40, padding: '0 14px', borderRadius: 10, border: 'none',
+              background: canAi ? '#FFD600' : 'var(--line-200)',
+              color: canAi ? '#1A1A1E' : 'var(--ink-500)',
+              fontSize: 13.5, fontWeight: 700,
+              cursor: canAi && !asking ? 'pointer' : 'default',
+            }}
+          >
+            {asking ? '짜는 중...' : `AI로 짜기 ${planCost}`}
+          </button>
+        </div>
+        <div style={{ fontSize: 11.5, color: 'var(--ink-500)', marginTop: 8, lineHeight: 1.6 }}>
+          {canAi ? (
+            <>AI 로 짜면 크레딧 <b>{planCost}</b>이 줄어요 (남은 {usage?.balance ?? 0}).
+            아래 <b>다시 짜기</b>와 <b>바꾸기</b>는 크레딧을 쓰지 않아요.</>
+          ) : (
+            <>로그인하면 AI 로 원하는 대로 짤 수 있어요. 아래 기본 식단은 그냥 쓰셔도 돼요.</>
+          )}
+        </div>
+        {aiNote && (
+          <div style={{ fontSize: 12.5, color: '#3A6B2E', marginTop: 8, fontWeight: 600 }}>
+            {aiNote}
+          </div>
+        )}
+      </div>
+
       {error && (
         <div style={{ background: 'var(--surface)', borderRadius: 14, padding: 16,
-                      fontSize: 13, color: '#D14343' }}>{error}</div>
+                      marginBottom: 12, fontSize: 13, color: '#D14343', lineHeight: 1.6 }}>
+          {error}
+        </div>
       )}
 
-      {!error && recipes === null && (
+      {/* ── 식단 ───────────────────────────────────────────── */}
+      {(pool === null || asking) && (
         <div style={{ background: 'var(--surface)', border: '1px solid var(--line-200)',
                       borderRadius: 14, padding: '4px 16px 16px' }}>
           <StepLoading
@@ -207,17 +362,16 @@ const WeeklyPlan: React.FC = () => {
               '냉장고 재료를 살펴보는 중이에요',
               '곧 상하는 재료를 먼저 챙기는 중이에요',
               '만들 수 있는 요리를 고르는 중이에요',
-              '비슷한 요리를 걸러내는 중이에요',
+              '요일에 나눠 담는 중이에요',
             ]}
-            timings={[600, 1600, 2800, 4500]}
-            note="보통 2~5초쯤 걸려요."
-            lastNote="거의 다 됐어요."
+            timings={[600, 1800, 3200, 5200]}
+            note={asking ? 'AI 가 요청을 반영하는 중이에요. 보통 5~10초.' : '보통 2~5초쯤 걸려요.'}
             rows={4}
           />
         </div>
       )}
 
-      {!error && recipes !== null && plan.length === 0 && (
+      {pool !== null && !asking && slots.every(s => !s.recipe) && (
         <div style={{ background: 'var(--surface)', borderRadius: 14, padding: '20px 16px',
                       fontSize: 13.5, color: 'var(--ink-700)', lineHeight: 1.7 }}>
           아직 식단을 짤 만큼 재료가 없어요.
@@ -225,7 +379,7 @@ const WeeklyPlan: React.FC = () => {
           내 냉장고에 재료를 넣으면 그걸로 만들 수 있는 요리를 골라 드려요.
           <button
             type="button"
-            onClick={() => navigate('/myfridge')}
+            onClick={() => navigate('/my-fridge')}
             style={{
               marginTop: 12, height: 40, padding: '0 16px', borderRadius: 10,
               border: 'none', background: '#FFD600', color: '#1A1A1E',
@@ -237,69 +391,125 @@ const WeeklyPlan: React.FC = () => {
         </div>
       )}
 
-      {plan.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {plan.map((r, i) => {
-            const on = picked.size === 0 || picked.has(r.id);
-            return (
+      {pool !== null && !asking && slots.some(s => s.recipe) && (
+        <>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        gap: 8, marginBottom: 8 }}>
+            <span style={{ fontSize: 12.5, color: 'var(--ink-500)' }}>
+              내일부터 {slots.length}일
+            </span>
+            <button
+              type="button"
+              onClick={reshuffle}
+              style={{
+                height: 32, padding: '0 12px', borderRadius: 8,
+                border: '1px solid var(--line-200)', background: 'var(--surface)',
+                fontSize: 12.5, fontWeight: 700, color: 'var(--ink-900)', cursor: 'pointer',
+              }}
+            >
+              ↻ 다시 짜기
+            </button>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {slots.map((slot, i) => (
               <div
-                key={r.id}
+                key={slot.date.toISOString()}
                 style={{
                   background: 'var(--surface)', border: '1px solid var(--line-200)',
                   borderRadius: 14, padding: '12px 14px',
-                  display: 'flex', gap: 12, alignItems: 'center',
-                  opacity: on ? 1 : 0.45,
+                  display: 'flex', flexDirection: 'column', gap: 8,
+                  opacity: slot.on ? 1 : 0.5,
                 }}
               >
-                <div style={{
-                  flexShrink: 0, width: 30, height: 30, borderRadius: 9999,
-                  background: 'var(--surface-sub)', color: '#1A1A1E',
-                  fontSize: 12.5, fontWeight: 700,
-                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                }}>{DAYS[i]}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  {/* 요일을 바꾸는 자리. 고르면 그 날의 요리와 맞바뀐다 —
+                      "옮긴다" 는 곧 "자리를 바꾼다" 이므로 빈 칸이 안 생긴다. */}
+                  <select
+                    value={i}
+                    onChange={e => moveTo(i, Number(e.target.value))}
+                    aria-label="요일 바꾸기"
+                    style={{
+                      flexShrink: 0, height: 30, borderRadius: 8,
+                      border: '1px solid var(--line-200)', background: 'var(--surface-sub)',
+                      fontSize: 12.5, fontWeight: 700, padding: '0 6px', color: '#1A1A1E',
+                    }}
+                  >
+                    {slots.map((s, j) => (
+                      <option key={j} value={j}>{dayLabel(s.date)}</option>
+                    ))}
+                  </select>
+
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    {slot.recipe ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          track('recipe_open', String(slot.recipe!.id));
+                          openCookMode({
+                            id: slot.recipe!.id, title: slot.recipe!.title,
+                            link: slot.recipe!.link, myIngredients,
+                          });
+                        }}
+                        style={{
+                          width: '100%', textAlign: 'left', border: 'none',
+                          background: 'transparent', cursor: 'pointer', padding: 0,
+                        }}
+                      >
+                        <div style={{
+                          fontSize: 14, fontWeight: 600, color: '#1A1A1E', lineHeight: 1.4,
+                          overflow: 'hidden', display: '-webkit-box',
+                          WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+                        }}>{slot.recipe.title}</div>
+                        {slot.recipe.why ? (
+                          <div style={{ fontSize: 11.5, color: '#7A5C00', marginTop: 3 }}>
+                            {slot.recipe.why}
+                          </div>
+                        ) : typeof slot.recipe.match_rate === 'number' ? (
+                          <div style={{ fontSize: 11.5, color: 'var(--ink-500)', marginTop: 3 }}>
+                            가진 재료로 {slot.recipe.match_rate}% 만들 수 있어요
+                          </div>
+                        ) : null}
+                      </button>
+                    ) : (
+                      <span style={{ fontSize: 13, color: 'var(--ink-500)' }}>비어 있음</span>
+                    )}
+                  </div>
+
+                  <input
+                    type="checkbox"
+                    checked={slot.on}
+                    onChange={() => setSlots(prev => prev.map((s, j) =>
+                      (j === i ? { ...s, on: !s.on } : s)))}
+                    aria-label={`${dayLabel(slot.date)} 장보기에 넣기`}
+                    style={{ flexShrink: 0, width: 18, height: 18 }}
+                  />
+                </div>
 
                 <button
                   type="button"
-                  onClick={() => {
-                    track('recipe_open', String(r.id));
-                    openCookMode({ id: r.id, title: r.title, link: r.link, myIngredients });
-                  }}
+                  onClick={() => swapOne(i)}
                   style={{
-                    flex: 1, minWidth: 0, textAlign: 'left', border: 'none',
-                    background: 'transparent', cursor: 'pointer', padding: 0,
+                    alignSelf: 'flex-start', height: 28, padding: '0 10px', borderRadius: 8,
+                    border: '1px solid var(--line-200)', background: 'var(--surface-sub)',
+                    fontSize: 12, fontWeight: 600, color: 'var(--ink-700)', cursor: 'pointer',
                   }}
                 >
-                  <div style={{
-                    fontSize: 14, fontWeight: 600, color: '#1A1A1E', lineHeight: 1.4,
-                    overflow: 'hidden', display: '-webkit-box',
-                    WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
-                  }}>{r.title}</div>
-                  {typeof r.match_rate === 'number' && (
-                    <div style={{ fontSize: 11.5, color: 'var(--ink-500)', marginTop: 3 }}>
-                      가진 재료로 {r.match_rate}% 만들 수 있어요
-                    </div>
-                  )}
+                  다른 요리로 바꾸기
                 </button>
-
-                <input
-                  type="checkbox"
-                  checked={on}
-                  onChange={() => toggle(r.id)}
-                  aria-label={`${r.title} 식단에 넣기`}
-                  style={{ flexShrink: 0, width: 18, height: 18 }}
-                />
               </div>
-            );
-          })}
-          <div style={{ fontSize: 11.5, color: 'var(--ink-500)', lineHeight: 1.7, padding: '0 4px' }}>
+            ))}
+          </div>
+
+          <div style={{ fontSize: 11.5, color: 'var(--ink-500)', lineHeight: 1.7,
+                        padding: '10px 4px 0' }}>
             체크를 풀면 아래 장보기 목록에서도 빠져요. 요리를 누르면 조리 순서가 나옵니다.
             <br />
-            {/* "AI 가 짜 주는 것" 으로 오해하면 크레딧이 닳는 줄 알고 아껴 쓰게 된다.
-                실제로는 미리 뽑아 둔 재료를 맞춰 보는 것뿐이라 얼마든지 눌러도 된다. */}
-            <b>이 기능은 AI 크레딧을 쓰지 않아요.</b> 레시피마다 미리 뽑아 둔 재료를
-            냉장고와 맞춰 보는 것이라, 몇 번을 다시 짜도 크레딧이 줄지 않습니다.
+            {/* "AI 가 짜 주는 것" 으로 오해하면 크레딧이 닳는 줄 알고 아껴 쓰게 된다. */}
+            <b>다시 짜기·바꾸기·요일 옮기기는 크레딧을 쓰지 않아요.</b> 미리 뽑아 둔
+            재료를 냉장고와 맞춰 보는 것이라 얼마든지 눌러도 됩니다.
           </div>
-        </div>
+        </>
       )}
 
       {/* ── 장보기 목록 ────────────────────────────────────── */}

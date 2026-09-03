@@ -33,6 +33,8 @@ KST = timezone(timedelta(hours=9))
 CREDITS = {
     "chat": int(os.getenv("CREDITS_CHAT", "1")),
     "vision": int(os.getenv("CREDITS_VISION", "2")),
+    # 식단 짜기. 프롬프트에 후보 레시피를 수십 개 실어 보내므로 챗봇보다 무겁다.
+    "plan": int(os.getenv("CREDITS_PLAN", "2")),
 }
 
 

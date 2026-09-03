@@ -4397,6 +4397,105 @@ def get_recipe_cook_steps(recipe_id):
     })
 
 
+@app.route('/api/plan/suggest', methods=['POST'])
+def suggest_meal_plan():
+    """냉장고 재료로 이번 주 식단을 **LLM 이** 짜 준다.
+
+    규칙 기반 식단(`/api/recipes/filter` 를 화면에서 정렬)과 다른 점은
+    **사용자의 말을 받는다**는 것이다 — "담백하게", "아이 먹을 것 위주로",
+    "국물은 빼줘" 같은 요구는 규칙으로 못 받는다.
+
+    후보는 우리가 고르고 LLM 은 **배치만** 한다. 레시피를 지어내게 두면 우리
+    DB 에 없는 요리를 추천하게 되고, 그러면 조리 순서도 쿠팡 링크도 못 붙인다.
+    """
+    import usage_quota
+
+    body = request.get_json(silent=True) or {}
+    have = [str(x).strip() for x in (body.get('ingredients') or []) if str(x).strip()][:80]
+    expiring = [str(x).strip() for x in (body.get('expiring') or []) if str(x).strip()][:20]
+    request_text = str(body.get('request') or '')[:300]
+
+    if not have:
+        return jsonify({'error': '냉장고에 재료를 먼저 넣어 주세요.'}), 400
+
+    user_id, device_id = usage_quota.caller_identity()
+
+    # 크레딧을 **먼저** 깎는다. 호출해 놓고 나중에 깎으면 한도를 넘겨 쓰게 된다.
+    try:
+        usage = usage_quota.consume(
+            get_db, 'plan', user_id=user_id, device_id=device_id,
+            detail=('요청' if request_text else '기본'),
+        )
+    except usage_quota.QuotaDenied as e:
+        return jsonify({
+            'error': usage_quota.denied_message(e),
+            'usage': e.status,
+        }), 429
+
+    # 후보 추리기 — 냉장고 재료를 하나라도 쓰는 레시피 중 매칭률 높은 순.
+    marks = ",".join(["%s"] * len(have))
+    db = get_db()
+    cursor = db.cursor()
+    try:
+        cursor.execute(
+            f"""
+            SELECT id, title, link, thumbnail, used_ingredients,
+                   ( {" + ".join([f"(FIND_IN_SET(%s, REPLACE(used_ingredients,' ','')) > 0)"] * len(have))} )
+                     AS hit
+            FROM recipes
+            WHERE used_ingredients IS NOT NULL AND used_ingredients <> ''
+              AND FIND_IN_SET(%s, REPLACE(used_ingredients,' ','')) > 0
+            ORDER BY hit DESC, id DESC
+            LIMIT 40
+            """,
+            tuple(have) + (have[0],),
+        )
+        rows = cursor.fetchall()
+    finally:
+        cursor.close()
+        db.close()
+
+    candidates = [{
+        'id': r['id'],
+        'title': r['title'],
+        'link': r['link'],
+        'thumbnail': r['thumbnail'],
+        'ingredients': [x.strip() for x in (r['used_ingredients'] or '').split(',') if x.strip()],
+    } for r in rows]
+
+    try:
+        import meal_plan
+
+        picked, meta = meal_plan.suggest(candidates, have, expiring, request_text)
+        usage_quota.note_gemini_usage(meta, model=meal_plan.MODEL)
+        usage_quota.attach_tokens(get_db, usage.get('usage_id'))
+    except RuntimeError as e:
+        print(f"[식단] 설정 오류: {e}", flush=True)
+        return jsonify({'error': 'LLM 키가 설정되지 않았습니다.', 'usage': usage}), 503
+    except Exception as e:  # noqa: BLE001
+        import traceback
+
+        traceback.print_exc()
+        status = getattr(getattr(e, 'response', None), 'status_code', None)
+        if status == 429:
+            message = '요청이 몰렸어요. 잠시 뒤에 다시 눌러 주세요.'
+        elif status and 500 <= status < 600:
+            message = 'AI 쪽이 잠시 불안정해요. 잠시 뒤에 다시 눌러 주세요.'
+        else:
+            message = '식단을 짜지 못했어요. 잠시 뒤에 다시 눌러 주세요.'
+        return jsonify({'error': message, 'usage': usage}), 502
+
+    by_id = {c['id']: c for c in candidates}
+    plan = []
+    for item in picked:
+        c = by_id.get(item['recipe_id'])
+        if not c:
+            continue
+        plan.append({**c, 'why': item['why']})
+
+    return jsonify({'plan': plan, 'usage': usage})
+
+
 @app.route('/api/events', methods=['POST'])
 def collect_events():
     """화면 진입·핵심 행동 기록을 받는다.
