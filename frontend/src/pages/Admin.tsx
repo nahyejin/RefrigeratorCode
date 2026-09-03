@@ -30,6 +30,7 @@ interface AdminUser {
   deleted_at: string | null;
   household_id: number | null;
   is_admin: boolean;
+  exclude_from_stats: boolean;
   plan: string;
   balance: number;
   granted: number;
@@ -315,6 +316,50 @@ const QuotaEditor: React.FC<{ user: AdminUser; onSaved: () => void }> = ({ user,
  * 들어갈 사람이 없어진다.** 떠나기 전에 후임을 지정할 수 있어야 한다.
  * 마지막 한 명은 서버가 해제를 막는다 — 실수로 잠기는 상황을 만들지 않는다.
  */
+/**
+ * 이 계정을 대시보드 집계에서 뺄지.
+ *
+ * 만든 사람 본인 계정이 여러 개라 통계를 통째로 덮는다. 그렇다고 **데이터를
+ * 지우면 되돌릴 수 없다** — 나중에 "그때 그 세션이 뭐였지" 를 못 묻는다.
+ * 표시만 해 두고 볼 때 뺀다.
+ */
+const StatsExcludeToggle: React.FC<{ user: AdminUser; onChanged: () => void }> = ({ user, onChanged }) => {
+  const [busy, setBusy] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+
+  const toggle = async () => {
+    setBusy(true); setError(null);
+    try {
+      await api('/api/admin/users/' + user.id + '/stats-exclude', {
+        method: 'PUT', body: JSON.stringify({ exclude: !user.exclude_from_stats }),
+      });
+      onChanged();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '바꾸지 못했어요.');
+    } finally { setBusy(false); }
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 13 }}>
+          대시보드 집계에 <b>{user.exclude_from_stats ? '안 들어갑니다' : '들어갑니다'}</b>
+        </span>
+        <button type="button" style={user.exclude_from_stats ? S.primary : S.btn}
+                disabled={busy} onClick={toggle}>
+          {busy ? '바꾸는 중...' : user.exclude_from_stats ? '다시 넣기' : '집계에서 빼기'}
+        </button>
+      </div>
+      {error && <div style={{ fontSize: 12, color: '#D14343' }}>{error}</div>}
+      <div style={{ fontSize: 12, color: 'var(--ink-500)', lineHeight: 1.6 }}>
+        <b>데이터는 그대로 둡니다.</b> 대시보드에서 볼 때만 빠져요 — 만든 사람 본인
+        계정처럼 통계를 덮는 것에 씁니다. 이 계정으로 <b>로그인 전에</b> 남은
+        기록(기기 단위)도 함께 빠집니다.
+      </div>
+    </div>
+  );
+};
+
 const AdminToggle: React.FC<{ user: AdminUser; onChanged: () => void }> = ({ user, onChanged }) => {
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -1597,10 +1642,106 @@ const DailyBars: React.FC<{ rows: [string, number][]; unit: string }> = ({ rows,
   );
 };
 
+/**
+ * 대시보드 전체가 볼 기간.
+ *
+ * 카드마다 기간이 다르면 숫자를 나란히 놓고 비교할 수가 없다. 한 곳에서 고르고
+ * **모든 카드가 같은 기간을 본다.**
+ */
+const RANGES: { key: string; label: string; days?: number }[] = [
+  { key: 'all', label: '전체' },
+  { key: '1', label: '오늘', days: 1 },
+  { key: '3', label: '최근 3일', days: 3 },
+  { key: '7', label: '최근 7일', days: 7 },
+  { key: '30', label: '최근 30일', days: 30 },
+  { key: 'custom', label: '직접 지정' },
+];
+
+export interface StatsFilter {
+  range: string;
+  from: string;
+  to: string;
+  excludeMine: boolean;
+}
+
+/** 서버에 보낼 질의 문자열. 필터가 없으면 빈 문자열. */
+export function filterQuery(f: StatsFilter): string {
+  const p = new URLSearchParams();
+  if (f.range === 'custom') {
+    if (f.from) p.set('from', f.from);
+    if (f.to) p.set('to', f.to);
+  } else if (f.range !== 'all') {
+    p.set('days', f.range);
+  }
+  const q = p.toString();
+  return q ? `?${q}` : '';
+}
+
+const StatsBar: React.FC<{
+  value: StatsFilter;
+  onChange: (f: StatsFilter) => void;
+  excludedCount: number;
+}> = ({ value, onChange, excludedCount }) => (
+  <div style={{ ...S.card, position: 'sticky', top: 0, zIndex: 5 }}>
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+      {RANGES.map(r => {
+        const on = value.range === r.key;
+        return (
+          <button
+            key={r.key}
+            type="button"
+            onClick={() => onChange({ ...value, range: r.key })}
+            style={{
+              height: 30, padding: '0 11px', borderRadius: 8,
+              border: on ? '1px solid #1A1A1E' : '1px solid var(--line-200)',
+              background: on ? '#FFD600' : 'var(--surface)',
+              fontSize: 12.5, fontWeight: on ? 700 : 500,
+              color: '#1A1A1E', cursor: 'pointer',
+            }}
+          >
+            {r.label}
+          </button>
+        );
+      })}
+    </div>
+
+    {value.range === 'custom' && (
+      <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 8, flexWrap: 'wrap' }}>
+        <input type="date" value={value.from}
+               onChange={e => onChange({ ...value, from: e.target.value })}
+               style={{ ...S.input, height: 30 }} />
+        <span style={{ fontSize: 12, color: 'var(--ink-500)' }}>~</span>
+        <input type="date" value={value.to}
+               onChange={e => onChange({ ...value, to: e.target.value })}
+               style={{ ...S.input, height: 30 }} />
+      </div>
+    )}
+
+    {/* 만든 사람 본인 계정이 여러 개라 통계를 통째로 덮는다. 데이터를 지우지
+        않고 **볼 때만** 뺀다 — 지우면 되돌릴 수 없다. */}
+    <label style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 10,
+                    fontSize: 12.5, color: 'var(--ink-700)', cursor: 'pointer' }}>
+      <input
+        type="checkbox"
+        checked={value.excludeMine}
+        onChange={e => onChange({ ...value, excludeMine: e.target.checked })}
+        style={{ width: 16, height: 16 }}
+      />
+      내 활동 빼고 보기
+      <span style={{ color: 'var(--ink-500)' }}>
+        (사용자 탭에서 표시한 {excludedCount}개 계정)
+      </span>
+    </label>
+  </div>
+);
+
 const Dashboard: React.FC = () => {
   const [data, setData] = React.useState<any>(null);
   const [act, setAct] = React.useState<any>(null);
   const [error, setError] = React.useState<string | null>(null);
+  const [filter, setFilter] = React.useState<StatsFilter>({
+    range: 'all', from: '', to: '', excludeMine: true,
+  });
   // 추이 그래프 보기. 기본은 일자별 — 어제 뭘 했는지가 가장 자주 궁금하다.
   const [unit, setUnit] = React.useState<string>('day');
   const [metric, setMetric] = React.useState<'views' | 'exits'>('views');
@@ -1609,9 +1750,14 @@ const Dashboard: React.FC = () => {
   const [creditUnit, setCreditUnit] = React.useState<string>('day');
 
   React.useEffect(() => {
-    api('/api/admin/dashboard').then(setData).catch(e => setError(e.message));
-    api('/api/admin/activity').then(setAct).catch(() => {});
-  }, []);
+    // 기간을 바꾸면 두 요청을 **함께** 다시 보낸다. 하나만 갱신하면 같은 화면에
+    // 서로 다른 기간의 숫자가 섞인다.
+    const q = filterQuery(filter);
+    const mine = filter.excludeMine ? '' : (q ? '&keep_excluded=1' : '?keep_excluded=1');
+    setData(null);
+    api(`/api/admin/dashboard${q}${mine}`).then(setData).catch(e => setError(e.message));
+    api(`/api/admin/activity${q}${mine}`).then(setAct).catch(() => {});
+  }, [filter]);
 
   if (error) return <div style={S.card}>{error}</div>;
   if (!data) return <div style={S.card}>불러오는 중...</div>;
@@ -1627,6 +1773,12 @@ const Dashboard: React.FC = () => {
 
   return (
     <>
+      <StatsBar
+        value={filter}
+        onChange={setFilter}
+        excludedCount={(act?.filters?.excluded_users ?? data?.filters?.excluded_users) || 0}
+      />
+
       {act && (
         <>
           <div style={S.card}>
@@ -2168,6 +2320,10 @@ const Admin: React.FC = () => {
                             <div>
                               <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>관리자 권한</div>
                               <AdminToggle user={u} onChanged={loadUsers} />
+                            </div>
+                            <div>
+                              <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>대시보드 집계</div>
+                              <StatsExcludeToggle user={u} onChanged={loadUsers} />
                             </div>
                             <div>
                               <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>최근 사용 이력</div>

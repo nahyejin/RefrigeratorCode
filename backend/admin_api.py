@@ -129,6 +129,109 @@ _SESSION_SOURCE = """
 """
 
 
+def _stats_range():
+    """대시보드가 볼 기간 — `(시작, 끝)`. 둘 다 None 이면 전체 기간.
+
+    `?days=7` 또는 `?from=2026-09-01&to=2026-09-03` 로 받는다.
+    화면 위 한 곳에서 고르고 **모든 카드가 같은 기간을 본다** — 카드마다 기간이
+    다르면 숫자를 나란히 놓고 비교할 수가 없다.
+    """
+    args = request.args
+    days = args.get('days')
+    if days:
+        try:
+            n = max(1, int(days))
+        except (TypeError, ValueError):
+            return None, None
+        start = (datetime.now() - timedelta(days=n - 1)).replace(
+            hour=0, minute=0, second=0, microsecond=0)
+        return start, None
+
+    def parse(text):
+        if not text:
+            return None
+        try:
+            return datetime.strptime(text[:10], '%Y-%m-%d')
+        except ValueError:
+            return None
+
+    start = parse(args.get('from'))
+    end = parse(args.get('to'))
+    if end:
+        # 끝 날짜는 **그날을 포함**한다. 사용자는 "9/3까지" 라고 하면 9/3 저녁까지를
+        # 말하는 것이지 9/3 0시를 말하는 게 아니다.
+        end = end.replace(hour=23, minute=59, second=59)
+    return start, end
+
+
+def _excluded(get_db):
+    """집계에서 뺄 계정과 기기.
+
+    왜 지우지 않고 빼나:
+        만든 사람 본인의 계정이 여러 개고(테스트하며 만든 것들), 그 활동이
+        통계를 통째로 덮는다. 그렇다고 **데이터를 지우면 되돌릴 수 없다** —
+        나중에 "그때 그 세션이 뭐였지" 를 물어볼 수 없게 된다.
+        표시만 해 두고 볼 때 빼는 편이 안전하다.
+
+    기기까지 빼는 이유:
+        로그인 전에 남은 기록은 `user_id` 가 없다. 계정만 빼면 그 사람이
+        비회원으로 돌아다닌 기록이 그대로 남는다.
+    """
+    # 화면에서 "내 활동 빼고 보기" 를 끄면 아무것도 빼지 않는다.
+    # 표시는 그대로 두고 **보는 방식만** 바꾸는 것이라, 껐다 켰다 해도 안전하다.
+    if request.args.get('keep_excluded'):
+        return [], []
+
+    db = get_db()
+    cursor = db.cursor()
+    try:
+        cursor.execute("SHOW COLUMNS FROM users LIKE 'exclude_from_stats'")
+        if not cursor.fetchone():
+            return [], []
+        cursor.execute("SELECT id FROM users WHERE exclude_from_stats = 1")
+        ids = [r['id'] for r in cursor.fetchall()]
+        devices = []
+        if ids:
+            cursor.execute("SHOW TABLES LIKE 'user_events'")
+            if cursor.fetchone():
+                marks = ",".join(["%s"] * len(ids))
+                cursor.execute(
+                    f"SELECT DISTINCT device_id FROM user_events "
+                    f"WHERE user_id IN ({marks}) AND device_id IS NOT NULL",
+                    tuple(ids),
+                )
+                devices = [r['device_id'] for r in cursor.fetchall()]
+    finally:
+        cursor.close()
+        db.close()
+    return ids, devices
+
+
+def _where(column, start, end, ids=None, devices=None,
+           user_col='user_id', device_col=None):
+    """`(조건문, 값들)` 을 만든다. 조건이 없으면 빈 문자열.
+
+    질의마다 손으로 이어 붙이면 한 군데를 빠뜨리게 된다 — 그러면 어떤 카드만
+    필터가 안 걸려서, 같은 화면의 숫자끼리 앞뒤가 안 맞는다.
+    """
+    parts, params = [], []
+    if start:
+        parts.append(f"{column} >= %s")
+        params.append(start)
+    if end:
+        parts.append(f"{column} <= %s")
+        params.append(end)
+    if ids:
+        marks = ",".join(["%s"] * len(ids))
+        parts.append(f"({user_col} IS NULL OR {user_col} NOT IN ({marks}))")
+        params.extend(ids)
+    if devices and device_col:
+        marks = ",".join(["%s"] * len(devices))
+        parts.append(f"({device_col} IS NULL OR {device_col} NOT IN ({marks}))")
+        params.extend(devices)
+    return (" AND " + " AND ".join(parts) if parts else ""), params
+
+
 def register(app, get_db):
     """앱에 어드민 라우트를 붙인다. app.py 에서 한 번 호출한다."""
 
@@ -181,6 +284,7 @@ def register(app, get_db):
                 f"""
                 SELECT u.id, u.email, u.nickname, u.provider, u.created_at,
                        u.deleted_at, u.household_id, u.is_admin,
+                       COALESCE(u.exclude_from_stats, 0) AS exclude_from_stats,
                        COALESCE(q.plan, 'free')  AS plan,
                        q.daily_cap, q.note,
                        (SELECT COALESCE(SUM(g.amount), 0) FROM credit_grants g
@@ -225,6 +329,7 @@ def register(app, get_db):
                 'deleted_at': r['deleted_at'].isoformat() if r['deleted_at'] else None,
                 'household_id': r['household_id'],
                 'is_admin': bool(r['is_admin']),
+                'exclude_from_stats': bool(r['exclude_from_stats']),
                 'plan': plan,
                 'daily_cap': r['daily_cap'] if r['daily_cap'] is not None else base_daily,
                 'granted': int(r['granted'] or 0),
@@ -311,6 +416,36 @@ def register(app, get_db):
             usage_quota.topup(get_db, user_id, grant, note=note[:255], reason='admin')
 
         return jsonify(usage_quota.status(get_db, user_id=user_id))
+
+    @app.route('/api/admin/users/<int:user_id>/stats-exclude', methods=['PUT'])
+    def admin_set_stats_exclude(user_id):
+        """이 계정을 대시보드 집계에서 뺄지.
+
+        **데이터는 그대로 둔다.** 만든 사람 본인 계정이 여러 개라 통계를 덮는데,
+        지우면 되돌릴 수 없다. 표시만 해 두고 볼 때 뺀다.
+        """
+        _, err = guard()
+        if err:
+            return err
+        exclude = bool((request.get_json(silent=True) or {}).get('exclude'))
+
+        db = get_db()
+        cursor = db.cursor()
+        try:
+            cursor.execute("SHOW COLUMNS FROM users LIKE 'exclude_from_stats'")
+            if not cursor.fetchone():
+                cursor.execute(
+                    "ALTER TABLE users ADD COLUMN exclude_from_stats TINYINT(1) NOT NULL DEFAULT 0"
+                )
+            cursor.execute(
+                "UPDATE users SET exclude_from_stats = %s WHERE id = %s",
+                (1 if exclude else 0, user_id),
+            )
+            db.commit()
+        finally:
+            cursor.close()
+            db.close()
+        return jsonify({'ok': True, 'exclude_from_stats': exclude})
 
     @app.route('/api/admin/users/<int:user_id>/admin', methods=['PUT'])
     def admin_set_admin(user_id):
@@ -735,46 +870,77 @@ def register(app, get_db):
             return err
 
         usage_quota.ensure_tables(get_db)
+        start, end = _stats_range()
+        ex_ids, ex_devices = _excluded(get_db)
+
+        # 질의마다 손으로 이어 붙이면 한 군데를 빠뜨리게 되고, 그러면 어떤 카드만
+        # 필터가 안 걸려 같은 화면의 숫자끼리 앞뒤가 안 맞는다. 조각을 미리 만든다.
+        ev_cond, ev_params = _where('created_at', start, end, ex_ids, ex_devices,
+                                    device_col='device_id')
+        use_cond, use_params = _where('created_at', start, end, ex_ids, ex_devices,
+                                      device_col='device_id')
+        # 사람 목록·퍼널은 시간이 아니라 **지금 있는 계정**을 세는 것이라 기간을
+        # 걸지 않는다. 다만 제외 계정은 뺀다.
+        uid_cond = ""
+        uid_params = []
+        if ex_ids:
+            marks = ",".join(["%s"] * len(ex_ids))
+            uid_cond = f" AND u.id NOT IN ({marks})"
+            uid_params = list(ex_ids)
+
         db = get_db()
         cursor = db.cursor()
         try:
-            cursor.execute("SELECT COUNT(*) n FROM users WHERE deleted_at IS NULL")
+            cursor.execute(
+                f"SELECT COUNT(*) n FROM users u WHERE u.deleted_at IS NULL{uid_cond}",
+                tuple(uid_params),
+            )
             total = cursor.fetchone()['n'] or 0
 
-            def count(sql):
-                cursor.execute(sql)
+            def count(sql, params=()):
+                cursor.execute(sql, tuple(params))
                 return cursor.fetchone()['n'] or 0
 
             steps = [
                 ('가입', total, '탈퇴하지 않은 계정'),
                 ('재료 등록', count(
                     "SELECT COUNT(DISTINCT i.user_id) n FROM user_ingredients i "
-                    "JOIN users u ON u.id = i.user_id AND u.deleted_at IS NULL"),
+                    f"JOIN users u ON u.id = i.user_id AND u.deleted_at IS NULL{uid_cond}",
+                    uid_params),
                  '냉장고에 재료를 하나라도 넣은 사람'),
                 ('레시피 반응', count(
-                    "SELECT COUNT(DISTINCT user_id) n FROM ("
+                    "SELECT COUNT(DISTINCT x.user_id) n FROM ("
                     "  SELECT user_id FROM user_favorite_recipes"
                     "  UNION SELECT user_id FROM user_completed_recipes"
                     "  UNION SELECT user_id FROM user_recorded_recipes) x "
-                    "JOIN users u ON u.id = x.user_id AND u.deleted_at IS NULL"),
+                    f"JOIN users u ON u.id = x.user_id AND u.deleted_at IS NULL{uid_cond}",
+                    uid_params),
                  '즐겨찾기·완료·기록 중 하나라도 한 사람'),
                 ('AI 사용', count(
                     "SELECT COUNT(DISTINCT l.user_id) n FROM llm_usage l "
-                    "JOIN users u ON u.id = l.user_id AND u.deleted_at IS NULL"),
+                    f"JOIN users u ON u.id = l.user_id AND u.deleted_at IS NULL{uid_cond}",
+                    uid_params),
                  '챗봇이나 사진 인식을 써 본 사람'),
                 ('식구 그룹', count(
-                    "SELECT COUNT(*) n FROM users WHERE household_id IS NOT NULL AND deleted_at IS NULL"),
+                    "SELECT COUNT(*) n FROM users u "
+                    f"WHERE u.household_id IS NOT NULL AND u.deleted_at IS NULL{uid_cond}",
+                    uid_params),
                  '다른 사람과 냉장고를 공유하는 사람'),
             ]
 
-            cursor.execute("SELECT COUNT(*) n FROM users WHERE deleted_at IS NOT NULL "
-                           "AND email NOT LIKE 'merged+%%'")
+            cursor.execute(
+                "SELECT COUNT(*) n FROM users u WHERE u.deleted_at IS NOT NULL "
+                f"AND u.email NOT LIKE 'merged+%%'{uid_cond}",
+                tuple(uid_params),
+            )
             churned = cursor.fetchone()['n'] or 0
 
             # 기능별 사용량
             cursor.execute(
                 "SELECT kind, COUNT(*) calls, COALESCE(SUM(credits),0) credits, "
-                "COUNT(DISTINCT COALESCE(user_id, 0)) users FROM llm_usage GROUP BY kind"
+                "COUNT(DISTINCT COALESCE(user_id, 0)) users FROM llm_usage "
+                f"WHERE 1=1{use_cond} GROUP BY kind",
+                tuple(use_params),
             )
             features = cursor.fetchall()
 
@@ -788,7 +954,8 @@ def register(app, get_db):
                 cursor.execute(
                     "SELECT screen, COUNT(*) views, COUNT(DISTINCT session_id) sessions "
                     "FROM user_events WHERE name = 'screen_view' AND screen IS NOT NULL "
-                    "GROUP BY screen ORDER BY views DESC LIMIT 20"
+                    f"{ev_cond} GROUP BY screen ORDER BY views DESC LIMIT 20",
+                    tuple(ev_params),
                 )
                 screens = cursor.fetchall()
 
@@ -802,30 +969,41 @@ def register(app, get_db):
                       FROM user_events e
                       WHERE e.name = 'screen_view' AND e.screen IS NOT NULL
                         AND e.session_id IS NOT NULL
+                      """ + ev_cond.replace('created_at', 'e.created_at')
+                            .replace('user_id', 'e.user_id')
+                            .replace('device_id', 'e.device_id') + """
                       GROUP BY e.session_id
                     ) x GROUP BY last_screen ORDER BY n DESC LIMIT 12
-                    """
+                    """,
+                    tuple(ev_params),
                 )
                 exits = cursor.fetchall()
 
                 cursor.execute(
                     "SELECT COUNT(DISTINCT session_id) n FROM user_events "
-                    "WHERE session_id IS NOT NULL"
+                    f"WHERE session_id IS NOT NULL{ev_cond}",
+                    tuple(ev_params),
                 )
                 sessions['total'] = cursor.fetchone()['n'] or 0
                 cursor.execute(
                     "SELECT COUNT(*) n FROM (SELECT COALESCE(user_id, device_id) who, "
                     "COUNT(DISTINCT session_id) c FROM user_events "
-                    "WHERE session_id IS NOT NULL GROUP BY who HAVING c > 1) x"
+                    f"WHERE session_id IS NOT NULL{ev_cond} GROUP BY who HAVING c > 1) x",
+                    tuple(ev_params),
                 )
                 sessions['returning'] = cursor.fetchone()['n'] or 0
                 cursor.execute(
                     "SELECT COUNT(*) n FROM (SELECT COALESCE(user_id, device_id) who "
-                    "FROM user_events GROUP BY who) x"
+                    f"FROM user_events WHERE 1=1{ev_cond} GROUP BY who) x",
+                    tuple(ev_params),
                 )
                 sessions['people'] = cursor.fetchone()['n'] or 0
 
-                cursor.execute("SELECT MIN(created_at) a, MAX(created_at) b FROM user_events")
+                cursor.execute(
+                    f"SELECT MIN(created_at) a, MAX(created_at) b FROM user_events "
+                    f"WHERE 1=1{ev_cond}",
+                    tuple(ev_params),
+                )
                 events_range = cursor.fetchone() or {'a': None, 'b': None}
 
                 # 화면 진입을 **날짜별로** 남긴다.
@@ -837,7 +1015,8 @@ def register(app, get_db):
                     "FROM user_events "
                     "WHERE name = 'screen_view' AND screen IS NOT NULL "
                     "  AND created_at >= (CURDATE() - INTERVAL 400 DAY) "
-                    "GROUP BY d, screen ORDER BY d"
+                    f"{ev_cond} GROUP BY d, screen ORDER BY d",
+                    tuple(ev_params),
                 )
                 screen_series = [
                     {'date': r['d'].isoformat(), 'screen': r['screen'], 'views': r['views']}
@@ -856,9 +1035,13 @@ def register(app, get_db):
                       WHERE e.name = 'screen_view' AND e.screen IS NOT NULL
                         AND e.session_id IS NOT NULL
                         AND e.created_at >= (CURDATE() - INTERVAL 400 DAY)
+                      """ + ev_cond.replace('created_at', 'e.created_at')
+                            .replace('user_id', 'e.user_id')
+                            .replace('device_id', 'e.device_id') + """
                       GROUP BY e.session_id
                     ) x GROUP BY d, last_screen ORDER BY d
-                    """
+                    """,
+                    tuple(ev_params),
                 )
                 exit_series = [
                     {'date': r['d'].isoformat(), 'screen': r['screen'], 'views': r['views']}
@@ -889,8 +1072,12 @@ def register(app, get_db):
                            MAX(e.created_at) last_at
                     FROM user_events e
                     JOIN (""" + _SESSION_SOURCE + """) s ON s.session_id = e.session_id
+                    WHERE 1=1 """ + ev_cond.replace('created_at', 'e.created_at')
+                                          .replace('user_id', 'e.user_id')
+                                          .replace('device_id', 'e.device_id') + """
                     GROUP BY s.src ORDER BY sessions DESC LIMIT 20
-                    """
+                    """,
+                    tuple(ev_params),
                 )
                 sources = cursor.fetchall()
 
@@ -939,10 +1126,11 @@ def register(app, get_db):
                          COALESCE((SELECT MAX(created_at) FROM llm_usage WHERE user_id=u.id), u.created_at)
                        ) AS last_active
                 FROM users u
-                WHERE u.deleted_at IS NULL
+                WHERE u.deleted_at IS NULL""" + uid_cond + """
                 ORDER BY last_active DESC
                 LIMIT 100
-                """
+                """,
+                tuple(uid_params),
             )
             people = cursor.fetchall()
         finally:
@@ -969,6 +1157,11 @@ def register(app, get_db):
             'screen_series': screen_series,
             'exit_series': exit_series,
             # 카드마다 집계 구간이 다르다. 화면에 그대로 적기 위해 함께 내려준다.
+            'filters': {
+                'from': start.isoformat() if start else None,
+                'to': end.isoformat() if end else None,
+                'excluded_users': len(ex_ids),
+            },
             'periods': {
                 'now': datetime.now().isoformat(),
                 'users_from': _iso(users_range['a']),
@@ -995,7 +1188,20 @@ def register(app, get_db):
             return err
 
         usage_quota.ensure_tables(get_db)
-        since = (datetime.now() - timedelta(days=30)).replace(hour=0, minute=0, second=0, microsecond=0)
+        start, end = _stats_range()
+        ex_ids, ex_devices = _excluded(get_db)
+        use_cond, use_params = _where('created_at', start, end, ex_ids, ex_devices,
+                                      device_col='device_id')
+        uid_cond = ""
+        uid_params = []
+        if ex_ids:
+            marks = ",".join(["%s"] * len(ex_ids))
+            uid_cond = f" AND id NOT IN ({marks})"
+            uid_params = list(ex_ids)
+
+        # 가입 추이·쿠팡은 기간을 고르지 않았으면 최근 30일을 본다 (예전 기본값).
+        since = start or (datetime.now() - timedelta(days=30)).replace(
+            hour=0, minute=0, second=0, microsecond=0)
         week_start = usage_quota.week_start().replace(tzinfo=None)
 
         db = get_db()
@@ -1004,14 +1210,17 @@ def register(app, get_db):
         try:
             cursor.execute(
                 "SELECT COUNT(*) total, SUM(deleted_at IS NOT NULL) deleted, "
-                "SUM(household_id IS NOT NULL) in_household FROM users"
+                f"SUM(household_id IS NOT NULL) in_household FROM users WHERE 1=1{uid_cond}",
+                tuple(uid_params),
             )
             out['users'] = cursor.fetchone()
 
             cursor.execute(
                 "SELECT DATE(created_at) d, COUNT(*) n FROM users "
-                "WHERE created_at >= %s GROUP BY d ORDER BY d",
-                (since,),
+                f"WHERE created_at >= %s{uid_cond}"
+                + (" AND created_at <= %s" if end else "")
+                + " GROUP BY d ORDER BY d",
+                tuple([since] + uid_params + ([end] if end else [])),
             )
             out['signups'] = [
                 {'date': r['d'].isoformat(), 'count': r['n']} for r in cursor.fetchall()
@@ -1023,7 +1232,8 @@ def register(app, get_db):
                 "SELECT DATE(created_at) d, kind, SUM(credits) credits, "
                 "COUNT(*) calls, COALESCE(SUM(total_tokens),0) tokens "
                 "FROM llm_usage WHERE created_at >= (CURDATE() - INTERVAL 400 DAY) "
-                "GROUP BY d, kind ORDER BY d"
+                f"{use_cond} GROUP BY d, kind ORDER BY d",
+                tuple(use_params),
             )
             out['usage_daily'] = [
                 {'date': r['d'].isoformat(), 'kind': r['kind'], 'credits': int(r['credits'] or 0),
@@ -1035,14 +1245,15 @@ def register(app, get_db):
             cursor.execute(
                 "SELECT kind, COUNT(*) n, ROUND(AVG(total_tokens)) avg_tokens, "
                 "ROUND(AVG(total_tokens / credits)) tokens_per_credit "
-                "FROM llm_usage WHERE total_tokens IS NOT NULL GROUP BY kind"
+                f"FROM llm_usage WHERE total_tokens IS NOT NULL{use_cond} GROUP BY kind",
+                tuple(use_params),
             )
             out['credit_check'] = cursor.fetchall()
 
             cursor.execute(
                 "SELECT COALESCE(SUM(credits),0) credits, COUNT(*) calls "
-                "FROM llm_usage WHERE created_at >= %s",
-                (week_start,),
+                f"FROM llm_usage WHERE created_at >= %s{use_cond}",
+                tuple([week_start] + use_params),
             )
             out['this_week'] = cursor.fetchone()
 
@@ -1055,6 +1266,11 @@ def register(app, get_db):
             usage_range = cursor.fetchone() or {'a': None, 'b': None}
             cursor.execute("SELECT MIN(created_at) a FROM users")
             users_range = cursor.fetchone() or {'a': None}
+            out['filters'] = {
+                'from': start.isoformat() if start else None,
+                'to': end.isoformat() if end else None,
+                'excluded_users': len(ex_ids),
+            }
             out['periods'] = {
                 'now': datetime.now().isoformat(),
                 'since_30d': since.isoformat(),        # 가입 추이·쿠팡 클릭의 시작점
