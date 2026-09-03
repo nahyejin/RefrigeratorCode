@@ -28,6 +28,8 @@ export interface Usage {
   is_guest: boolean;
   weekly_credits: number;
   signup_credits: number;
+  /** 비회원 체험분 (기기당 한 번, 다시 안 채워짐) */
+  guest_trial: number;
   /** 다음 주간 지급 시각 (ISO). 매주 월요일 00:00 KST */
   next_weekly_at: string;
   credits: { chat: number; vision: number };
@@ -143,8 +145,7 @@ export function subscribeUsage(fn: (u: Usage | null) => void): () => void {
  */
 export function remainingRatio(u: Usage | null): number {
   if (!u) return 1;
-  if (u.is_guest) return 0;
-  const base = Math.max(1, u.signup_credits || 30);
+  const base = Math.max(1, u.is_guest ? (u.guest_trial || 5) : (u.signup_credits || 30));
   const byBalance = Math.min(1, u.balance / base);
   const byDaily = u.daily_cap > 0 ? u.daily_remaining / u.daily_cap : 1;
   return Math.max(0, Math.min(byBalance, byDaily));

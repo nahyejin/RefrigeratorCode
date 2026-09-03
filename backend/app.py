@@ -4444,11 +4444,14 @@ def suggest_meal_plan():
                      AS hit
             FROM recipes
             WHERE used_ingredients IS NOT NULL AND used_ingredients <> ''
-              AND FIND_IN_SET(%s, REPLACE(used_ingredients,' ','')) > 0
+            -- 냉장고 재료를 **하나라도** 쓰는 레시피가 후보다.
+            -- 전에는 `have[0]` 하나만 WHERE 에 넣어서, 첫 번째 재료가 든
+            -- 레시피만 후보가 됐다. 재료를 20개 넣어도 그중 하나로만 걸렀다.
+            HAVING hit > 0
             ORDER BY hit DESC, id DESC
             LIMIT 40
             """,
-            tuple(have) + (have[0],),
+            tuple(have),
         )
         rows = cursor.fetchall()
     finally:

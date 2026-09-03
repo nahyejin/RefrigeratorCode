@@ -52,6 +52,20 @@ CREDITS = {
 SIGNUP_CREDITS = int(os.getenv("CREDITS_SIGNUP", "30"))   # 가입할 때 한 번
 WEEKLY_CREDITS = int(os.getenv("CREDITS_WEEKLY", "5"))    # 매주 월요일
 
+# 비회원 체험분. **기기당 한 번**이고 다시 채워지지 않는다.
+#
+# 왜 0이 아니라 5인가:
+#   "로그인하면 쓸 수 있어요" 만으로는 가입할 이유가 안 된다. 무엇이 좋은지
+#   본 적이 없으니까. 5는 우연한 숫자가 아니라 **세 기능을 한 번씩 써 볼 수 있는
+#   양**이다 — 사진 인식 2 + 식단 2 + 챗봇 1.
+#
+#   다 쓰고 나면 그때 "가입하면 30개" 라고 말한다. 그 순간이 가입 의사가 가장
+#   높은 때다. 아무것도 안 써 본 사람에게 가입하라는 것보다 훨씬 낫다.
+#
+# 어뷰징: 앱을 지우면 기기 식별자가 새로 생겨 다시 5를 받는다. 막을 수 없고,
+#   5개 때문에 그 수고를 할 사람도 적다.
+GUEST_TRIAL_CREDITS = int(os.getenv("CREDITS_GUEST_TRIAL", "5"))
+
 
 def _daily_caps():
     """플랜별 하루 상한. 잔액을 하루에 다 태우는 걸 막는 안전장치다.
@@ -60,6 +74,10 @@ def _daily_caps():
     그 경험은 한도가 있다는 사실보다 앱을 더 나쁘게 기억하게 만든다.
     """
     return {
+        # 비회원은 체험분(5)이 전부라 하루 상한이 따로 필요 없다.
+        # 그래도 한 번에 다 태우지는 않게 3으로 둔다 — 사진 한 번(2)에 챗봇
+        # 한 번(1)이면 그날 몫이고, 다음 날 식단을 써 볼 여지가 남는다.
+        "guest": int(os.getenv("QUOTA_GUEST_DAILY", "3")),
         "free": int(os.getenv("QUOTA_FREE_DAILY", "15")),
         "plus": int(os.getenv("QUOTA_PLUS_DAILY", "50")),
     }
@@ -334,7 +352,7 @@ def _plan_of(cursor, user_id):
     """
     caps = _daily_caps()
     if user_id is None:
-        return "guest", 0
+        return "guest", caps["guest"]
 
     cursor.execute(
         "SELECT plan, daily_cap FROM user_quota WHERE user_id = %s", (user_id,)
@@ -520,9 +538,13 @@ def status(get_db, user_id=None, device_id=None):
     try:
         plan, daily_cap = _plan_of(cursor, user_id)
         if user_id is None:
-            # 비회원은 AI 를 쓸 수 없다. 잔액도 없고 지급도 없다.
-            granted = used = left = 0
-            daily_used = 0
+            # 비회원 체험분. 지급 원장(credit_grants)은 회원용이라, 여기서는
+            # **정해진 체험분에서 쓴 만큼 뺀다.** 기기 식별자 기준이다.
+            granted = GUEST_TRIAL_CREDITS if device_id else 0
+            used = _used(cursor, None, device_id, datetime(1970, 1, 1))
+            left = granted - used
+            daily_used = _used(cursor, None, device_id,
+                               day_start(now).replace(tzinfo=None))
         else:
             # 화면을 열 때 이번 주 몫을 채워 준다. 따로 도는 배치를 두지 않는
             # 이유는, 안 쓰는 사람에게까지 매주 지급 행을 쌓을 이유가 없어서다.
@@ -538,8 +560,9 @@ def status(get_db, user_id=None, device_id=None):
     return {
         "plan": plan,
         "is_guest": user_id is None,
-        # 비회원은 로그인 전까지 AI 를 못 쓴다. 화면은 이 값 하나만 보면 된다.
-        "can_use_ai": user_id is not None and left > 0 and daily_used < daily_cap,
+        # 화면은 이 값 하나만 보면 된다.
+        "can_use_ai": left > 0 and daily_used < daily_cap,
+        "guest_trial": GUEST_TRIAL_CREDITS,
         "balance": max(0, left),
         "granted": granted,
         "used": used,
@@ -563,8 +586,6 @@ def consume(get_db, kind, user_id=None, device_id=None, detail=None):
     cost = CREDITS.get(kind, 1)
     st = status(get_db, user_id=user_id, device_id=device_id)
 
-    if st["is_guest"]:
-        raise QuotaDenied("guest", st)
     if st["daily_used"] + cost > st["daily_cap"]:
         raise QuotaDenied("daily", st)
     if cost > st["balance"]:
@@ -604,12 +625,23 @@ def consume(get_db, kind, user_id=None, device_id=None, detail=None):
 def denied_message(exc):
     """막힌 이유와 **다음에 할 일**을 함께 말한다. 막다른 길로 끝내지 않는다."""
     st = exc.status
-    if exc.scope == "guest":
-        return "로그인하면 AI 기능을 쓸 수 있어요. 가입하면 크레딧을 바로 드려요."
+    guest = st.get("is_guest")
     if exc.scope == "daily":
+        if guest:
+            return (
+                f"오늘 체험할 수 있는 만큼({st['daily_cap']})을 다 쓰셨어요. "
+                f"가입하면 {SIGNUP_CREDITS}개를 바로 드려요."
+            )
         return (
             f"오늘 쓸 수 있는 만큼({st['daily_cap']})을 다 쓰셨어요. "
             "내일 이어서 쓸 수 있어요."
+        )
+    if guest:
+        # 체험을 다 쓴 **바로 그때**가 가입 의사가 가장 높은 순간이다.
+        # "로그인하세요" 가 아니라 "얼마를 드린다" 로 말한다.
+        return (
+            f"체험 {GUEST_TRIAL_CREDITS}회를 다 쓰셨어요. "
+            f"가입하면 {SIGNUP_CREDITS}개를 바로 드려요."
         )
     return (
         "크레딧을 다 쓰셨어요. 매주 월요일에 조금씩 채워지고, "

@@ -2269,9 +2269,15 @@ const MyFridge: React.FC = () => {
                 type="button"
                 className="ai-fab-button"
                 onClick={() => {
-                  if (usage?.is_guest) {
-                    showPrepNotice('로그인하면 사진으로 재료를 담을 수 있어요.');
-                    navigate('/login');
+                  // 비회원도 **체험분이 남아 있으면** 쓸 수 있다.
+                  // 무엇이 좋은지 본 적 없는 사람에게 가입하라고 하면 안 한다.
+                  if (usage && !usage.can_use_ai) {
+                    showPrepNotice(
+                      usage.is_guest
+                        ? `체험을 다 쓰셨어요. 가입하면 ${usage.signup_credits}개를 드려요.`
+                        : '크레딧을 다 쓰셨어요.',
+                    );
+                    if (usage.is_guest) navigate('/login');
                     return;
                   }
                   setCameraSheetOpen(true);

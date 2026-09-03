@@ -142,8 +142,13 @@ export const UsageLine: React.FC<{ style?: React.CSSProperties; compact?: boolea
    */
   const parts: React.ReactNode[] = [];
   if (usage.is_guest) {
-    // 비회원은 아예 못 쓴다. 남은 개수를 말할 게 아니라 무엇을 하면 되는지를 말한다.
-    parts.push(compact ? '로그인 필요' : `로그인하면 ${usage.signup_credits}개를 드려요`);
+    // 비회원도 체험분은 쓴다. 다 쓴 뒤에 **얼마를 주는지**로 말한다 —
+    // 그때가 가입 의사가 가장 높은 순간이다.
+    parts.push(
+      out
+        ? (compact ? '가입하면 더' : `가입하면 ${usage.signup_credits}개를 드려요`)
+        : (compact ? '체험 중' : `체험 ${usage.guest_trial}회 중`),
+    );
   } else if (out) {
     parts.push(daily ? '내일 다시 이어서' : '충전하거나 월요일을 기다려요');
   } else if (!compact) {
@@ -168,7 +173,7 @@ export const UsageLine: React.FC<{ style?: React.CSSProperties; compact?: boolea
       }}
     >
       <span style={{ fontWeight: 600, color: out || usage.is_guest ? RED : 'var(--ink-700)', flexShrink: 0 }}>
-        {usage.is_guest ? 'AI 기능은 로그인 후' : `남은 크레딧 ${usage.balance}`}
+        {`남은 크레딧 ${usage.balance}`}
       </span>
       {parts.map((text, i) => (
         <span key={i} style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>· {text}</span>
@@ -219,7 +224,7 @@ export const UsageGauge: React.FC = () => {
   const ratio = remainingRatio(usage);
   // 잔액에는 "최대치" 가 없다(충전하면 늘어난다). 막대는 가입 지급분을 100 으로
   // 놓고 **남은 양**을 보여 준다 — 채워질수록 좋은 방향이라 직관과 맞다.
-  const base = Math.max(1, usage.signup_credits || 30);
+  const base = Math.max(1, usage.is_guest ? (usage.guest_trial || 5) : (usage.signup_credits || 30));
   const pct = Math.min(100, (usage.balance / base) * 100);
   const tone = toneOf(ratio);
 
@@ -238,9 +243,7 @@ export const UsageGauge: React.FC = () => {
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10 }}>
         <div style={{ fontSize: 14, fontWeight: 700, color: '#1A1A1E' }}>AI 크레딧</div>
         <div style={{ fontSize: 13, color: 'var(--ink-500)' }}>
-          {usage.is_guest ? '로그인 필요' : (
-            <>남은 <b style={{ color: '#1A1A1E', fontWeight: 700, fontSize: 15 }}>{usage.balance}</b></>
-          )}
+          <>남은 <b style={{ color: '#1A1A1E', fontWeight: 700, fontSize: 15 }}>{usage.balance}</b></>
         </div>
       </div>
 
@@ -267,7 +270,8 @@ export const UsageGauge: React.FC = () => {
         사진으로 재료 담기(2)와 요리 챗봇(1)이 함께 쓰는 크레딧이에요.
         <br />
         {usage.is_guest ? (
-          <>로그인하면 <b>{usage.signup_credits}크레딧</b>을 바로 드려요.</>
+          <>체험분 <b>{usage.guest_trial}개</b>를 드렸어요. 가입하면
+          <b> {usage.signup_credits}개</b>를 바로 드립니다.</>
         ) : (
           <>
             매주 월요일에 <b>{usage.weekly_credits}</b>개씩 채워져요
@@ -280,7 +284,9 @@ export const UsageGauge: React.FC = () => {
 
       {usage.is_guest ? (
         <div style={{ fontSize: 12, color: 'var(--ink-700)', fontWeight: 600 }}>
-          로그인하면 AI 기능을 쓸 수 있어요.
+          {usage.balance > 0
+            ? `체험으로 ${usage.balance}개 더 쓸 수 있어요.`
+            : `가입하면 ${usage.signup_credits}개를 바로 드려요.`}
         </div>
       ) : pending ? (
         /* 이미 요청이 접수된 상태. 버튼을 계속 보여주면 또 누르게 되고,

@@ -252,7 +252,8 @@ const WeeklyPlan: React.FC = () => {
   }, [active, myIngredients]);
 
   const planCost = (usage?.credits as Record<string, number> | undefined)?.plan ?? 2;
-  const canAi = !!usage && !usage.is_guest;
+  // 비회원도 체험분이 남아 있으면 AI 식단을 써 볼 수 있다.
+  const canAi = !!usage && usage.can_use_ai;
 
   // 위쪽 여백 72 는 고정 헤더(56) + 여백(16). 다른 화면들과 같은 값이다.
   return (
@@ -333,10 +334,14 @@ const WeeklyPlan: React.FC = () => {
         </div>
         <div style={{ fontSize: 11.5, color: 'var(--ink-500)', marginTop: 8, lineHeight: 1.6 }}>
           {canAi ? (
-            <>AI 로 짜면 크레딧 <b>{planCost}</b>이 줄어요 (남은 {usage?.balance ?? 0}).
+            <>AI 로 짜면 크레딧 <b>{planCost}</b>이 줄어요 (남은 {usage?.balance ?? 0}
+            {usage?.is_guest ? ' · 체험 중' : ''}).
             아래 <b>다시 짜기</b>와 <b>바꾸기</b>는 크레딧을 쓰지 않아요.</>
+          ) : usage?.is_guest ? (
+            <>체험을 다 쓰셨어요. <b>가입하면 {usage.signup_credits}개</b>를 바로 드려요.
+            아래 기본 식단은 그냥 쓰셔도 됩니다.</>
           ) : (
-            <>로그인하면 AI 로 원하는 대로 짤 수 있어요. 아래 기본 식단은 그냥 쓰셔도 돼요.</>
+            <>크레딧을 다 쓰셨어요. 아래 기본 식단은 그냥 쓰셔도 됩니다.</>
           )}
         </div>
         {aiNote && (
