@@ -10,7 +10,9 @@ import BottomNavBar from '../components/BottomNavBar';
 import PullToRefresh from '../components/PullToRefresh';
 import { useAuth } from '../context/AuthContext';
 
-type ViewMode = 'day' | 'week' | 'month' | 'list';
+type ViewMode = 'day' | 'week' | 'month';
+/** 보기 **방식**. 기간(일/주/월)과 다른 층이다 — 목록은 기간이 아니다. */
+type Mode = 'calendar' | 'list';
 
 interface CalendarEntry {
   day: string; // YYYY-MM-DD
@@ -232,6 +234,12 @@ const CookingCalendar: React.FC = () => {
   const { isLoggedIn, user: authUser, loading: authLoading } = useAuth();
 
   const [viewMode, setViewMode] = React.useState<ViewMode>('month');
+  const [mode, setMode] = React.useState<Mode>('calendar');
+  /** 목록에 쓰는 **전 기간** 완료 기록. 달력이 쓰는 `entries` 는 보고 있는 달뿐이다. */
+  const [allEntries, setAllEntries] = React.useState<CalendarEntry[] | null>(null);
+  /** 메모를 남긴 레시피. 완료와 함께 "내 요리 이력" 이라 같은 자리에서 본다. */
+  const [recorded, setRecorded] = React.useState<any[] | null>(null);
+  const [listKind, setListKind] = React.useState<'done' | 'write'>('done');
   const [anchorDate, setAnchorDate] = React.useState(() => new Date());
   const [entries, setEntries] = React.useState<CalendarEntry[]>([]);
   // 그룹이 있으면 groupGoal(그룹 전체가 공유하는 하나의 값)을 쓰고,
@@ -307,6 +315,40 @@ const CookingCalendar: React.FC = () => {
   React.useEffect(() => {
     loadCalendar();
   }, [loadCalendar]);
+
+  /**
+   * 목록을 처음 열 때 **전 기간**을 한 번 불러온다.
+   *
+   * 달력이 쓰는 `entries` 는 보고 있는 달만 담는다. 그걸 그대로 목록에 썼더니
+   * 이번 달에 완료한 게 없으면 "0건" 이 됐다 — 여태 만든 것을 보러 온 화면인데.
+   */
+  React.useEffect(() => {
+    if (mode !== 'list' || allEntries !== null) return;
+    if (!isLoggedIn || !authUser?.id) return;
+    const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+    const params = new URLSearchParams({ start: '2000-01-01', end: toDateKey(addDays(new Date(), 366)) });
+    fetch(`${getApiUrl()}/api/households/me/completed-calendar?${params.toString()}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => (r.ok ? r.json() : Promise.reject(new Error())))
+      .then(d => setAllEntries(d.entries || []))
+      .catch(() => setAllEntries([]));
+
+    // 기록은 완료와 자료가 다르다(날짜별 이력이 아니라 레시피 목록).
+    // 서버가 안 되면 기기에 있는 것으로라도 보여 준다 — 비어 있는 것보다 낫다.
+    fetch(`${getApiUrl()}/api/users/${authUser.id}/recorded-recipes`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => (r.ok ? r.json() : Promise.reject(new Error())))
+      .then(d => setRecorded(d.recipes || []))
+      .catch(() => {
+        try {
+          setRecorded(JSON.parse(localStorage.getItem('my_recorded_recipes') || '[]'));
+        } catch {
+          setRecorded([]);
+        }
+      });
+  }, [mode, allEntries, isLoggedIn, authUser?.id]);
 
   const handleSaveCompletedDate = async (entry: CalendarEntry) => {
     if (!authUser?.id || !dateInput) return;
@@ -836,17 +878,40 @@ const CookingCalendar: React.FC = () => {
       {/* 목표 카드와 명확히 분리된 별도 카드에 캘린더를 담아, 모바일 화면에서
           두 영역이 붙어 보이지 않고 한 화면에 같이 들어오게 했다. */}
       <div style={{ margin: '14px 14px 0', borderRadius: 14, border: '1px solid var(--line-200)', background: '#FFFFFF', overflow: 'hidden' }}>
-        {/* 일/주/월 전환 — 목표(달 단위)보다 한 단계 아래, "지금 뭘 보고 있는지"를
-            고르는 자리 */}
+        {/* 보기 **방식**을 먼저 고른다 — 달력이냐 목록이냐.
+            한때 `목록` 을 일/주/월과 같은 줄에 뒀는데, 그 셋은 **기간**이고
+            목록은 기간이 아니다. 같은 줄에 두면 "목록이라는 기간" 처럼 읽힌다. */}
         <div style={{ display: 'flex', gap: 6, padding: '12px 14px 0' }}>
+          {([
+            { key: 'calendar', label: '달력' },
+            { key: 'list', label: '목록' },
+          ] as const).map(({ key, label }) => {
+            const on = mode === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setMode(key)}
+                style={{
+                  height: 30, padding: '0 14px', borderRadius: 9999,
+                  fontSize: 13, fontWeight: on ? 700 : 500,
+                  background: on ? 'var(--ink-900)' : 'var(--surface-sub)',
+                  color: on ? '#FFFFFF' : 'var(--ink-700)',
+                  border: 'none', cursor: 'pointer',
+                }}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* 기간은 달력일 때만 고른다. 목록은 전 기간이다. */}
+        <div style={{ display: mode === 'calendar' ? 'flex' : 'none', gap: 6, padding: '8px 14px 0' }}>
           {([
             { key: 'day', label: '일' },
             { key: 'week', label: '주' },
             { key: 'month', label: '월' },
-            // 달력은 "이번 달" 만 보여 준다. 여태 만든 것 전부를 훑어보려면
-            // 달을 계속 넘겨야 했다 — 마이페이지에 목록을 따로 두고 있던 이유가
-            // 그것이었다. 같은 자료이므로 같은 화면에서 보기만 바꾼다.
-            { key: 'list', label: '목록' },
           ] as const).map(({ key, label }) => {
             const on = viewMode === key;
             return (
@@ -872,8 +937,9 @@ const CookingCalendar: React.FC = () => {
           })}
         </div>
 
-        {/* 이전/다음 + 현재 범위 표시 */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 14px 0' }}>
+        {/* 이전/다음 + 현재 범위 표시. 목록은 전 기간이라 넘길 것이 없다. */}
+        <div style={{ display: mode === 'calendar' ? 'flex' : 'none',
+                      alignItems: 'center', justifyContent: 'space-between', padding: '8px 14px 0' }}>
           <button type="button" onClick={() => shiftAnchor(-1)} aria-label="이전" style={{ width: 32, height: 32, border: 'none', background: 'transparent', cursor: 'pointer' }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1A1A1E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
           </button>
@@ -881,7 +947,6 @@ const CookingCalendar: React.FC = () => {
             {viewMode === 'month' && `${anchorDate.getFullYear()}년 ${anchorDate.getMonth() + 1}월`}
             {viewMode === 'week' && `${visibleRange.start} ~ ${visibleRange.end}`}
             {viewMode === 'day' && selectedDay}
-            {viewMode === 'list' && `만든 요리 ${entries.length}건`}
           </span>
           <button type="button" onClick={() => shiftAnchor(1)} aria-label="다음" style={{ width: 32, height: 32, border: 'none', background: 'transparent', cursor: 'pointer' }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1A1A1E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6" /></svg>
@@ -910,7 +975,7 @@ const CookingCalendar: React.FC = () => {
         {loading && <div style={{ textAlign: 'center', padding: 24, color: 'var(--ink-500)', fontSize: 13 }}>불러오는 중...</div>}
 
         {/* 월 보기 */}
-        {viewMode === 'month' && (
+        {mode === 'calendar' && viewMode === 'month' && (
           <div style={{ padding: '12px 14px 14px' }}>
           {/* 표시가 무슨 뜻인지는 짧게만. 길게 설명할수록 오히려 안 읽힌다. */}
           {plans.size > 0 && (
@@ -986,7 +1051,7 @@ const CookingCalendar: React.FC = () => {
       )}
 
       {/* 주 보기 */}
-      {viewMode === 'week' && (
+      {mode === 'calendar' && viewMode === 'week' && (
         <div style={{ padding: '12px 14px 0', display: 'flex', flexDirection: 'column', gap: 8 }}>
           {Array.from({ length: 7 }, (_, i) => addDays(startOfWeek(new Date(selectedDay)), i)).map((d) => {
             const key = toDateKey(d);
@@ -1071,10 +1136,90 @@ const CookingCalendar: React.FC = () => {
         </div>
       )}
 
-      {/* 목록 보기 — 완료·기록을 최신순으로 죽 훑는다. */}
-      {viewMode === 'list' && (
+      {/* 목록 보기 — 여태 만든 것을 최신순으로 죽 훑는다. 전 기간이다. */}
+      {mode === 'list' && (
         <div style={{ padding: '12px 14px 0', display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {entries.length === 0 ? (
+          {/* 완료와 기록은 둘 다 "내 요리 이력" 이지만 다른 것이다 —
+              완료는 만든 사실, 기록은 남긴 메모. 같은 자리에서 갈라 본다. */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 2px 2px' }}>
+            {([
+              { key: 'done', label: '완료', n: allEntries?.length },
+              { key: 'write', label: '기록', n: recorded?.length },
+            ] as const).map(({ key, label, n }) => {
+              const on = listKind === key;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setListKind(key)}
+                  style={{
+                    height: 28, padding: '0 11px', borderRadius: 9999, cursor: 'pointer',
+                    border: on ? 'none' : '1px solid var(--line-200)',
+                    background: on ? 'var(--ink-900)' : 'var(--surface)',
+                    color: on ? '#FFFFFF' : 'var(--ink-700)',
+                    fontSize: 12.5, fontWeight: on ? 700 : 500,
+                  }}
+                >
+                  {label}{typeof n === 'number' ? ` ${n}` : ''}
+                </button>
+              );
+            })}
+          </div>
+          {listKind === 'write' ? (
+            recorded === null ? (
+              <div style={{ padding: '24px 4px', textAlign: 'center',
+                            fontSize: 13, color: 'var(--ink-500)' }}>
+                불러오는 중이에요...
+              </div>
+            ) : recorded.length === 0 ? (
+              <div style={{ padding: '24px 4px', textAlign: 'center',
+                            fontSize: 13.5, color: 'var(--ink-500)', lineHeight: 1.7 }}>
+                아직 기록한 레시피가 없어요.
+                <br />
+                레시피에서 <b>기록</b>을 누르면 여기 쌓여요.
+              </div>
+            ) : (
+              recorded.map((r: any) => (
+                <button
+                  key={r.id}
+                  type="button"
+                  onClick={() => openCookMode({ id: r.id, title: r.title, link: r.link })}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 10, width: '100%',
+                    padding: '9px 12px', borderRadius: 12,
+                    border: '1px solid var(--line-200)', background: '#FFFFFF',
+                    cursor: 'pointer', textAlign: 'left',
+                  }}
+                >
+                  {r.thumbnail ? (
+                    <img
+                      src={getProxiedImageUrl(r.thumbnail)}
+                      alt=""
+                      loading="lazy"
+                      onError={ev => { (ev.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
+                      style={{ width: 40, height: 40, borderRadius: 8, objectFit: 'cover',
+                               flexShrink: 0, background: 'var(--surface-sub)' }}
+                    />
+                  ) : (
+                    <span aria-hidden style={{
+                      width: 40, height: 40, borderRadius: 8, flexShrink: 0,
+                      background: 'var(--surface-sub)', display: 'inline-flex',
+                      alignItems: 'center', justifyContent: 'center', fontSize: 15,
+                    }}>&#127869;</span>
+                  )}
+                  <span style={{
+                    flex: 1, minWidth: 0, fontSize: 13, color: '#1A1A1E', fontWeight: 600,
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>{r.title}</span>
+                </button>
+              ))
+            )
+          ) : allEntries === null ? (
+            <div style={{ padding: '24px 4px', textAlign: 'center',
+                          fontSize: 13, color: 'var(--ink-500)' }}>
+              불러오는 중이에요...
+            </div>
+          ) : allEntries.length === 0 ? (
             <div style={{ padding: '24px 4px', textAlign: 'center',
                           fontSize: 13.5, color: 'var(--ink-500)', lineHeight: 1.7 }}>
               아직 만든 요리가 없어요.
@@ -1082,7 +1227,7 @@ const CookingCalendar: React.FC = () => {
               레시피에서 <b>완료</b>를 누르면 여기 쌓여요.
             </div>
           ) : (
-            [...entries]
+            [...allEntries]
               .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
               .map((e, i, arr) => {
                 // 같은 날이 이어지면 날짜를 한 번만 찍는다. 매 줄에 같은 날짜가
@@ -1147,7 +1292,7 @@ const CookingCalendar: React.FC = () => {
       )}
 
       {/* 일 보기 */}
-      {viewMode === 'day' && (
+      {mode === 'calendar' && viewMode === 'day' && (
         <div style={{ padding: '12px 14px 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
           {/* 이 날의 **계획**. 완료 기록과 섞지 않고 위에 따로 둔다 —
               "할 것" 과 "했다" 는 다른 이야기다. */}

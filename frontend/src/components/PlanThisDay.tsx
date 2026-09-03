@@ -60,9 +60,10 @@ const PlanThisDay: React.FC<Props> = ({ recipeId, title, link, thumbnail }) => {
   React.useEffect(refresh, [refresh]);
 
   const days = React.useMemo(() => choices(), []);
+  /** 달력에서 직접 고른 날짜. */
+  const [pick, setPick] = React.useState('');
 
-  const toggle = (d: Date) => {
-    const key = toDateKey(d);
+  const toggleKey = (key: string) => {
     if (booked.includes(key)) {
       clearPlanMeal(key, recipeId);
       track('recipe_action', 'plan_remove');
@@ -74,6 +75,8 @@ const PlanThisDay: React.FC<Props> = ({ recipeId, title, link, thumbnail }) => {
     }
     refresh();
   };
+
+  const toggle = (d: Date) => toggleKey(toDateKey(d));
 
   const short = (key: string) => key.slice(5).replace('-', '/');
 
@@ -97,10 +100,11 @@ const PlanThisDay: React.FC<Props> = ({ recipeId, title, link, thumbnail }) => {
           type="button"
           onClick={() => setOpen(v => !v)}
           style={{
+            // 노랑은 이 앱에서 AI 와 주요 실행을 뜻한다. 날짜를 고르는 건
+            // 그만큼 무거운 일이 아니라, 다른 보조 버튼과 같은 옷을 입는다.
             flexShrink: 0, height: 32, padding: '0 12px', borderRadius: 8,
-            border: booked.length > 0 ? '1px solid var(--line-200)' : 'none',
-            background: booked.length > 0 ? 'var(--surface)' : '#FFD600',
-            fontSize: 12.5, fontWeight: 700, color: '#1A1A1E', cursor: 'pointer',
+            border: '1px solid var(--line-200)', background: 'var(--surface)',
+            fontSize: 12.5, fontWeight: 700, color: 'var(--ink-900)', cursor: 'pointer',
           }}
         >
           {open ? '접기' : booked.length > 0 ? '날짜 고치기' : '날짜 고르기'}
@@ -108,7 +112,37 @@ const PlanThisDay: React.FC<Props> = ({ recipeId, title, link, thumbnail }) => {
       </div>
 
       {open && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
+        <>
+        {/* 달력에서 직접 고르는 길. 알약 열넷은 **가까운 날**을 빨리 누르라고
+            있는 것이고, 그보다 먼 날이나 정확한 날짜는 이쪽이 빠르다. */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 10 }}>
+          <input
+            type="date"
+            value={pick}
+            min={toDateKey(new Date())}
+            onChange={e => setPick(e.target.value)}
+            style={{
+              flex: 1, minWidth: 0, height: 34, borderRadius: 8,
+              border: '1px solid var(--line-200)', padding: '0 10px',
+              fontSize: 13, boxSizing: 'border-box', background: 'var(--surface)',
+            }}
+          />
+          <button
+            type="button"
+            disabled={!pick}
+            onClick={() => { if (pick) { toggleKey(pick); setPick(''); } }}
+            style={{
+              flexShrink: 0, height: 34, padding: '0 12px', borderRadius: 8, border: 'none',
+              background: pick ? '#1A1A1E' : 'var(--line-200)',
+              color: pick ? '#FFFFFF' : 'var(--ink-500)',
+              fontSize: 12.5, fontWeight: 700, cursor: pick ? 'pointer' : 'default',
+            }}
+          >
+            {pick && booked.includes(pick) ? '빼기' : '넣기'}
+          </button>
+        </div>
+
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
           {days.map((d, i) => {
             const key = toDateKey(d);
             const on = booked.includes(key);
@@ -130,6 +164,7 @@ const PlanThisDay: React.FC<Props> = ({ recipeId, title, link, thumbnail }) => {
             );
           })}
         </div>
+        </>
       )}
     </section>
   );

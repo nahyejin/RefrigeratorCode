@@ -294,7 +294,7 @@ export const UsageGauge: React.FC = () => {
           <>가입하면 <b>{usage.signup_credits} 크레딧</b>을 바로 드려요.</>
         ) : (
           <>
-            월요일마다 <b>{usage.weekly_credits} 크레딧</b>씩 채워져요 ({resetLabel(usage)}).
+            월요일마다 <b>{usage.weekly_credits} 크레딧</b>씩 채워져요.
             {usage.daily_remaining < usage.balance &&
               ` 오늘은 ${usage.daily_remaining}번까지 쓸 수 있어요.`}
           </>
