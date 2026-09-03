@@ -245,9 +245,10 @@ export const UsageGauge: React.FC = () => {
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10 }}>
         <div style={{ fontSize: 14, fontWeight: 700, color: '#1A1A1E' }}>AI 크레딧</div>
         <div style={{ fontSize: 12.5, color: 'var(--ink-500)' }}>
+          {/* '개' 를 붙이지 않는다. 크레딧이 곧 세는 단위다 —
+              "37개" 는 무엇이 37개인지 다시 묻게 만든다. */}
           남은 크레딧{' '}
           <b style={{ color: '#1A1A1E', fontWeight: 800, fontSize: 20 }}>{usage.balance}</b>
-          <span style={{ color: '#1A1A1E', fontWeight: 700 }}>개</span>
         </div>
       </div>
 
@@ -283,19 +284,19 @@ export const UsageGauge: React.FC = () => {
             fontSize: 11.5, padding: '4px 9px', borderRadius: 9999,
             background: 'var(--surface-sub)', color: 'var(--ink-700)',
           }}>
-            {label} <b style={{ color: '#1A1A1E' }}>{cost}</b>
+            {label} <b style={{ color: '#1A1A1E' }}>{cost}</b> 크레딧
           </span>
         ))}
       </div>
 
       <div style={{ fontSize: 12, color: 'var(--ink-500)', lineHeight: 1.6 }}>
         {usage.is_guest ? (
-          <>가입하면 <b>{usage.signup_credits}개</b>를 바로 드려요.</>
+          <>가입하면 <b>{usage.signup_credits} 크레딧</b>을 바로 드려요.</>
         ) : (
           <>
-            월요일마다 <b>{usage.weekly_credits}개</b>씩 채워져요 ({resetLabel(usage)}).
+            월요일마다 <b>{usage.weekly_credits} 크레딧</b>씩 채워져요 ({resetLabel(usage)}).
             {usage.daily_remaining < usage.balance &&
-              ` 오늘은 ${usage.daily_remaining}번까지.`}
+              ` 오늘은 ${usage.daily_remaining}번까지 쓸 수 있어요.`}
           </>
         )}
       </div>

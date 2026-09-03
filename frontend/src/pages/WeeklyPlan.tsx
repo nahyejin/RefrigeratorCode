@@ -806,7 +806,7 @@ const WeeklyPlan: React.FC = () => {
         <UsageLine style={{ marginTop: 8 }} />
         <div style={{ fontSize: 11.5, color: 'var(--ink-500)', marginTop: 4, lineHeight: 1.6 }}>
           {canAi ? (
-            <>이 버튼만 크레딧 <b>{planCost}</b>을 써요. 아래 식단은 공짜예요.</>
+            <>이 버튼만 <b>{planCost} 크레딧</b>을 써요. 아래 식단은 공짜예요.</>
           ) : usage?.is_guest ? (
             <><b>가입하면 {usage.signup_credits}개</b>를 바로 드려요. 아래 식단은 그냥 쓰셔도 됩니다.</>
           ) : (

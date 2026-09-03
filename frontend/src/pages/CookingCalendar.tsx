@@ -10,7 +10,7 @@ import BottomNavBar from '../components/BottomNavBar';
 import PullToRefresh from '../components/PullToRefresh';
 import { useAuth } from '../context/AuthContext';
 
-type ViewMode = 'day' | 'week' | 'month';
+type ViewMode = 'day' | 'week' | 'month' | 'list';
 
 interface CalendarEntry {
   day: string; // YYYY-MM-DD
@@ -843,6 +843,10 @@ const CookingCalendar: React.FC = () => {
             { key: 'day', label: '일' },
             { key: 'week', label: '주' },
             { key: 'month', label: '월' },
+            // 달력은 "이번 달" 만 보여 준다. 여태 만든 것 전부를 훑어보려면
+            // 달을 계속 넘겨야 했다 — 마이페이지에 목록을 따로 두고 있던 이유가
+            // 그것이었다. 같은 자료이므로 같은 화면에서 보기만 바꾼다.
+            { key: 'list', label: '목록' },
           ] as const).map(({ key, label }) => {
             const on = viewMode === key;
             return (
@@ -877,6 +881,7 @@ const CookingCalendar: React.FC = () => {
             {viewMode === 'month' && `${anchorDate.getFullYear()}년 ${anchorDate.getMonth() + 1}월`}
             {viewMode === 'week' && `${visibleRange.start} ~ ${visibleRange.end}`}
             {viewMode === 'day' && selectedDay}
+            {viewMode === 'list' && `만든 요리 ${entries.length}건`}
           </span>
           <button type="button" onClick={() => shiftAnchor(1)} aria-label="다음" style={{ width: 32, height: 32, border: 'none', background: 'transparent', cursor: 'pointer' }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1A1A1E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6" /></svg>
@@ -1063,6 +1068,81 @@ const CookingCalendar: React.FC = () => {
               </button>
             );
           })}
+        </div>
+      )}
+
+      {/* 목록 보기 — 완료·기록을 최신순으로 죽 훑는다. */}
+      {viewMode === 'list' && (
+        <div style={{ padding: '12px 14px 0', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {entries.length === 0 ? (
+            <div style={{ padding: '24px 4px', textAlign: 'center',
+                          fontSize: 13.5, color: 'var(--ink-500)', lineHeight: 1.7 }}>
+              아직 만든 요리가 없어요.
+              <br />
+              레시피에서 <b>완료</b>를 누르면 여기 쌓여요.
+            </div>
+          ) : (
+            [...entries]
+              .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
+              .map((e, i, arr) => {
+                // 같은 날이 이어지면 날짜를 한 번만 찍는다. 매 줄에 같은 날짜가
+                // 박히면 다른 날인 줄 알고 다시 읽게 된다.
+                const first = i === 0 || arr[i - 1].day !== e.day;
+                return (
+                  <div key={e.day + '-' + e.recipe_id + '-' + i}>
+                    {first && (
+                      <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-500)',
+                                    margin: i === 0 ? '0 0 6px' : '10px 0 6px', padding: '0 2px' }}>
+                        {e.day}
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => openCookMode({ id: e.recipe_id, title: e.title })}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 10, width: '100%',
+                        padding: '9px 12px', borderRadius: 12,
+                        border: '1px solid var(--line-200)', background: '#FFFFFF',
+                        cursor: 'pointer', textAlign: 'left',
+                      }}
+                    >
+                      {e.thumbnail ? (
+                        <img
+                          src={getProxiedImageUrl(e.thumbnail)}
+                          alt=""
+                          loading="lazy"
+                          onError={ev => { (ev.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
+                          style={{ width: 40, height: 40, borderRadius: 8, objectFit: 'cover',
+                                   flexShrink: 0, background: 'var(--surface-sub)' }}
+                        />
+                      ) : (
+                        <span aria-hidden style={{
+                          width: 40, height: 40, borderRadius: 8, flexShrink: 0,
+                          background: 'var(--surface-sub)', display: 'inline-flex',
+                          alignItems: 'center', justifyContent: 'center', fontSize: 15,
+                        }}>&#127869;</span>
+                      )}
+                      <span style={{ flex: 1, minWidth: 0 }}>
+                        <span style={{
+                          display: 'block', fontSize: 13, color: '#1A1A1E', fontWeight: 600,
+                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                        }}>{e.title}</span>
+                        <span style={{ display: 'block', fontSize: 11, color: 'var(--ink-500)', marginTop: 2 }}>
+                          {formatTime(e.created_at)}
+                          {isInHousehold && e.nickname ? ` · ${e.nickname}` : ''}
+                        </span>
+                      </span>
+                      {isInHousehold && (
+                        <span aria-hidden style={{
+                          width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
+                          background: colorForUser(e.user_id, memberIds),
+                        }} />
+                      )}
+                    </button>
+                  </div>
+                );
+              })
+          )}
         </div>
       )}
 

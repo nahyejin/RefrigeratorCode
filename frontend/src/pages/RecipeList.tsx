@@ -620,6 +620,8 @@ const RecipeList: React.FC = () => {
   const [excludeInput, setExcludeInput] = useState('');
   const [selectedTime, setSelectedTime] = useState('상관없음');
   const [recipes, setRecipes] = useState<any[]>([]); // 서버에서 받은 전체 데이터 (필터 버튼 조건 적용 후)
+  /** 즐겨찾기만 볼지. 켜면 서버 결과 대신 기기에 담아 둔 것을 그린다. */
+  const [favoriteOnly, setFavoriteOnly] = useState(false);
   const [filteredRecipes, setFilteredRecipes] = useState<any[]>([]); // 클라이언트 필터링 결과 (재료 매칭도, 임박 재료, maxLack 적용)
   const [cachedFilteredRecipes, setCachedFilteredRecipes] = useState<any[]>([]); // 필터링된 전체 결과 캐시 (정렬 기준 변경 시 재사용)
   const [lastFilterHash, setLastFilterHash] = useState<string>(''); // 마지막 필터 조건의 해시값 (필터 변경 감지용)
@@ -2012,6 +2014,24 @@ const RecipeList: React.FC = () => {
           </button>
         </form>
         
+        {/* 즐겨찾기는 "언젠가 할 것" 이라, 요리를 고르는 이 자리에 있어야
+            쓸모가 있다. 마이페이지 구석에 두면 정작 필요할 때 거기 없다. */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 14px 8px' }}>
+          <button
+            type="button"
+            onClick={() => setFavoriteOnly(v => !v)}
+            aria-pressed={favoriteOnly}
+            style={{
+              height: 32, padding: '0 12px', borderRadius: 9999, cursor: 'pointer',
+              border: favoriteOnly ? '1px solid #1A1A1E' : '1px solid var(--line-200)',
+              background: favoriteOnly ? '#FFD600' : 'var(--surface)',
+              fontSize: 12.5, fontWeight: favoriteOnly ? 700 : 500, color: '#1A1A1E',
+            }}
+          >
+            {favoriteOnly ? '★ 즐겨찾기만' : '☆ 즐겨찾기만'}
+          </button>
+        </div>
+
         <RecipeSortBar
           recipes={recipes}
           myIngredients={myIngredients}
@@ -2093,7 +2113,11 @@ const RecipeList: React.FC = () => {
                   (myIngredients[0] === '달걀' || myIngredients[0] === '계란');
                 // RecipeSortBar는 recipes를 useEffect에서 filteredRecipes로 복사만 함.
                 // 이전 렌더의 filteredRecipes가 남아 있으면 매칭률 필터 직후에도 옛 목록이 그려짐 → 항상 recipes 사용
-                const currentRecipes = recipes;
+                // 즐겨찾기만 볼 때는 서버 결과를 쓰지 않는다. 지금 페이지에
+                // 없는 즐겨찾기가 통째로 빠지기 때문이다.
+                const currentRecipes = favoriteOnly
+                  ? getRecipesFromLocalStorage('favorite')
+                  : recipes;
                 const hasNoRecipes = currentRecipes.length === 0;
                 const hasNoIngredients = myIngredients.length === 0;
                 const hasIngredientsButNoRecipes = !hasNoIngredients && !hasOnlyDefaultEgg && hasNoRecipes;

@@ -1,5 +1,6 @@
 import React from 'react';
 import Sheet from './ui/Sheet';
+import PlanThisDay from './PlanThisDay';
 
 /**
  * 요리 모드 — 원문으로 나가지 않고 앱 안에서 조리 순서를 본다.
@@ -253,6 +254,18 @@ const CookModeSheet: React.FC<Props> = ({
                 ? '영상에서 설명하는 경우예요. 아래 버튼으로 영상에서 확인해 주세요.'
                 : '아래 버튼으로 원문에서 확인해 주세요.'}
             </section>
+          )}
+
+          {/* ── 언제 해먹을까 ────────────────────────────────── */}
+          {/* 요리를 정하는 순간은 식단 화면이 아니라 **레시피를 보고 있을 때**다.
+              여기 없으면 "이건 금요일에" 라는 생각이 그냥 사라진다. */}
+          {!!recipeId && (
+            <PlanThisDay
+              recipeId={recipeId}
+              title={data.title || fallbackTitle || '레시피'}
+              link={data.link || fallbackLink}
+              thumbnail={(data as any).thumbnail}
+            />
           )}
 
           {/* ── 원문 ─────────────────────────────────────────── */}

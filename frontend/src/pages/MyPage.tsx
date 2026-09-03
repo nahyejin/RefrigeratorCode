@@ -1444,6 +1444,8 @@ const MyPage: React.FC = () => {
         }}
       >
         {[
+          // 목록을 보러 가는 입구. 전용 목록 화면은 그대로 두되(여기서 온 것을
+          // 그대로 그린다), 즐겨찾기·완료는 **쓰는 자리**로도 갈 수 있게 안내한다.
           { label: '즐겨찾기', count: displayFavoriteRecipes.length, to: '/mypage/favorite', recipes: displayFavoriteRecipes },
           { label: '기록', count: displayRecordedRecipes.length, to: '/mypage/recorded', recipes: displayRecordedRecipes },
           { label: '완료', count: displayCompletedRecipes.length, to: '/mypage/completed', recipes: displayCompletedRecipes },
@@ -1474,202 +1476,45 @@ const MyPage: React.FC = () => {
         ))}
       </nav>
 
-      {/* 레시피 그룹 - 비회원도 localStorage로 관리하므로 항상 표시.
-          위 토글·요약 숫자는 아래 세 목록을 소개하는 같은 이야기의 일부라,
-          SectionBand(면 구분선)로 끊지 않고 여백만 준다 — 구분선을 쓰면
-          "여기서부터 완전히 다른 얘기"로 오해할 수 있다. 목록들 사이(즐겨찾기→
-          기록→완료)는 하위 구분일 뿐 셋 다 같은 "레시피 활용 내역" 얘기라,
-          굵은 면 대신 얇은 선(subtle)을 쓴다 — 굵은 면을 반복해서 썼더니
-          셋이 서로 완전히 무관한 영역처럼 보인다는 지적을 받았다. */}
+      {/* 숫자만 있으면 "그래서 어디서 쓰지" 가 남는다. 쓰는 자리를 알려 준다. */}
+      <div style={{
+        display: 'flex', gap: 6, margin: '8px 14px 0', flexWrap: 'wrap',
+      }}>
+        <button
+          type="button"
+          onClick={() => navigate('/recipe-list')}
+          style={{
+            flex: 1, minWidth: 150, height: 40, borderRadius: 10, cursor: 'pointer',
+            border: '1px solid var(--line-200)', background: 'var(--surface)',
+            fontSize: 12.5, fontWeight: 600, color: 'var(--ink-700)',
+          }}
+        >
+          즐겨찾기로 요리 고르기 &rsaquo;
+        </button>
+        <button
+          type="button"
+          onClick={() => navigate('/cooking-calendar')}
+          style={{
+            flex: 1, minWidth: 150, height: 40, borderRadius: 10, cursor: 'pointer',
+            border: '1px solid var(--line-200)', background: 'var(--surface)',
+            fontSize: 12.5, fontWeight: 600, color: 'var(--ink-700)',
+          }}
+        >
+          만든 요리 돌아보기 &rsaquo;
+        </button>
+      </div>
+
+      {/* 즐겨찾기·기록·완료 **목록**은 여기 두지 않는다.
+          위 요약 숫자가 각각의 자리로 보내는 입구다.
+
+          왜 옮겼나: 셋은 성격이 다르다.
+            - 완료·기록은 **지나간 사실**이다 → 요리 캘린더가 이미 하는 일
+              (달력 옆 `목록` 보기)
+            - 즐겨찾기는 **앞으로 할 것**이다 → 요리를 고르는 자리에 있어야
+              쓸모가 있다 (냉장고요리의 `즐겨찾기만` 보기)
+          여기 다 펼쳐 두니 마이페이지가 계속 길어졌고, 정작 필요한 순간에는
+          그 목록이 다른 화면에 있었다. */}
       <div style={{ marginTop: 20 }}>
-        {/* 내가 즐겨찾는 레시피 */}
-        <div style={{ paddingLeft: 14, paddingRight: 14 }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
-            <SectionHeader icon={<SectionIcon kind="favorite" />} title={showAllHousehold ? '우리 식구가 즐겨찾는 레시피' : '내가 즐겨찾는 레시피'} />
-            {/* 예전엔 전체보기가 `☰` 글자 하나였다. 햄버거는 '메뉴' 를 뜻하는 기호라
-                '이 목록 전부 보기' 와 뜻이 맞지 않고, 무엇보다 무슨 버튼인지 알 수 없었다. */}
-            <button
-              type="button"
-              aria-label="내가 즐겨찾는 레시피 전체보기"
-              onClick={() => navigate('/mypage/favorite', { state: { recipes: displayFavoriteRecipes, isHouseholdView: showAllHousehold } })}
-              style={{
-                flexShrink: 0,
-                height: 32,
-                padding: '0 4px',
-                boxSizing: 'border-box',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 2,
-                background: 'transparent',
-                border: 'none',
-                cursor: 'pointer',
-                fontSize: 13,
-                fontWeight: 600,
-                color: 'var(--ink-500)',
-              }}
-            >
-              전체보기
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                <path d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-          </div>
-
-          <IngredientLegend total={displayFavoriteRecipes.length} style={{ marginBottom: 6, marginTop: 8 }} />
-
-          <VirtualizedHorizontalRecipeList
-            recipes={displayFavoriteRecipes}
-            myIngredients={myIngredients}
-            substituteTable={substituteTable}
-            recipeActionStates={recipeActionStates}
-            onRecipeAction={handleRecipeAction}
-            cardWidth={300}
-            cardHeight={280}
-            gap={16}
-            compactSectionGap
-            getAttributionLabel={buildAttributionLabel('favorite')}
-            emptyMessage={
-              <>
-                <div>즐겨찾는 레시피가 없습니다.</div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  레시피 카드의
-                  <FavoriteButtonHint />
-                  버튼을 눌러 추가해주세요.
-                </div>
-              </>
-            }
-          />
-        </div>
-
-        {/* 내가 기록한 레시피 */}
-        <div style={{ paddingLeft: 14, paddingRight: 14 }}>
-          <SectionBand bleed={14} subtle />
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
-            <SectionHeader icon={<SectionIcon kind="recorded" />} title={showAllHousehold ? '우리 식구가 기록한 레시피' : '내가 기록한 레시피'} />
-            {/* 예전엔 전체보기가 `☰` 글자 하나였다. 햄버거는 '메뉴' 를 뜻하는 기호라
-                '이 목록 전부 보기' 와 뜻이 맞지 않고, 무엇보다 무슨 버튼인지 알 수 없었다. */}
-            <button
-              type="button"
-              aria-label="내가 기록한 레시피 전체보기"
-              onClick={() => navigate('/mypage/recorded', { state: { recipes: displayRecordedRecipes, isHouseholdView: showAllHousehold } })}
-              style={{
-                flexShrink: 0,
-                height: 32,
-                padding: '0 4px',
-                boxSizing: 'border-box',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 2,
-                background: 'transparent',
-                border: 'none',
-                cursor: 'pointer',
-                fontSize: 13,
-                fontWeight: 600,
-                color: 'var(--ink-500)',
-              }}
-            >
-              전체보기
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                <path d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-          </div>
-          
-          {/* 범례 */}
-          <IngredientLegend total={displayRecordedRecipes.length} style={{ marginBottom: 6, marginTop: 8 }} />
-          
-          <VirtualizedHorizontalRecipeList
-            recipes={displayRecordedRecipes}
-            myIngredients={myIngredients}
-            substituteTable={substituteTable}
-            recipeActionStates={recipeActionStates}
-            onRecipeAction={handleRecipeAction}
-            cardWidth={300}
-            cardHeight={280}
-            gap={16}
-            compactSectionGap
-            getAttributionLabel={buildAttributionLabel('recorded')}
-            emptyMessage={
-              <>
-                <div>기록된 레시피가 없습니다.</div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  레시피 카드의
-                  <EmptyStateIconHint>
-                    <img src={기록하기버튼} alt="기록" width={14} height={14} />
-                  </EmptyStateIconHint>
-                  버튼을 눌러 추가해주세요.
-                </div>
-              </>
-            }
-          />
-        </div>
-        
-        {/* 내가 완료한 레시피 */}
-        <div style={{ paddingLeft: 14, paddingRight: 14 }}>
-          <SectionBand bleed={14} subtle />
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
-            <SectionHeader icon={<SectionIcon kind="completed" />} title={showAllHousehold ? '우리 식구가 완료한 레시피' : '내가 완료한 레시피'} />
-            <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-              {/* 완료 기록을 날짜별로 돌아보는 화면(요리 캘린더)은 하단 탭으로
-                  옮겼다 — 여기 아이콘 입구는 눈에 잘 안 띈다는 지적이 있어 없앰. */}
-              {/* 예전엔 전체보기가 `☰` 글자 하나였다. 햄버거는 '메뉴' 를 뜻하는 기호라
-                  '이 목록 전부 보기' 와 뜻이 맞지 않고, 무엇보다 무슨 버튼인지 알 수 없었다. */}
-              <button
-                type="button"
-                aria-label="내가 완료한 레시피 전체보기"
-                onClick={() => navigate('/mypage/completed', { state: { recipes: displayCompletedRecipes, isHouseholdView: showAllHousehold } })}
-                style={{
-                  flexShrink: 0,
-                  height: 32,
-                  padding: '0 4px',
-                  boxSizing: 'border-box',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 2,
-                  background: 'transparent',
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontSize: 13,
-                  fontWeight: 600,
-                  color: 'var(--ink-500)',
-                }}
-              >
-                전체보기
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                  <path d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-            </div>
-          </div>
-
-          {/* 범례 */}
-          <IngredientLegend total={displayCompletedRecipes.length} style={{ marginBottom: 6, marginTop: 8 }} />
-          
-          <VirtualizedHorizontalRecipeList
-            recipes={displayCompletedRecipes}
-            myIngredients={myIngredients}
-            substituteTable={substituteTable}
-            recipeActionStates={recipeActionStates}
-            onRecipeAction={handleRecipeAction}
-            cardWidth={300}
-            cardHeight={280}
-            gap={16}
-            compactSectionGap
-            getAttributionLabel={buildAttributionLabel('completed')}
-            emptyMessage={
-              <>
-                <div>완료된 레시피가 없습니다.</div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  레시피 카드의
-                  <EmptyStateIconHint>
-                    <img src={완료하기버튼} alt="완료" width={14} height={14} />
-                  </EmptyStateIconHint>
-                  버튼을 눌러 추가해주세요.
-                </div>
-              </>
-            }
-          />
-        </div>
         {/* 쿠팡 광고 - 페이지 맨 끝에 도달했을 때만 표시 */}
         <BottomCoupangAd showCondition={true} />
       </div>
