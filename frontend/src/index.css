@@ -1067,13 +1067,16 @@ select:focus-visible {
    챗봇 FAB(.ai-fab-button)과 같은 시각 언어를 쓴다 — 같은 앱 안에서
    "AI 가 하는 일" 은 항상 같은 방식으로 보여야 한다. FAB 은 동그란
    떠 있는 버튼이라 규격을 그대로 못 쓰고, 여기서는 네모난 자리에 맞춘다. */
+/* AI 가 관여하는 **카드**.
+ *
+ * 노란 패널이 아니다. 노란 버튼을 노란 패널 위에 얹으니 표면을 스치는 빛줄기가
+ * 배경에 묻혀서, 애니메이션이 도는데도 안 도는 것처럼 보였다. 챗봇 FAB 가
+ * 반짝여 보이는 건 **흰 화면 위 노란 원**이기 때문이다. 바탕을 중립으로 두면
+ * 같은 애니메이션이 그대로 눈에 들어온다. 이 자리가 AI 임은 배지와 버튼이 말한다. */
 .ai-surface {
   position: relative;
-  overflow: hidden;
-  border: 1px solid #F0DC7A;
-  background: linear-gradient(120deg, #FFFDF2 0%, #FFF8D6 30%, #FFFEF8 50%, #FFF8D6 70%, #FFFDF2 100%);
-  background-size: 260% 260%;
-  animation: ai-fab-shimmer 6s ease-in-out infinite;
+  border: 1px solid var(--line-200);
+  background: var(--surface);
 }
 /* AI 가 관여하는 **네모난 자리**(카드·버튼)용.
  *
@@ -1085,45 +1088,8 @@ select:focus-visible {
  * `ai-fab-sheen` 의 이동폭(±130%)은 **빛줄기 자신의 너비** 기준이라, 너비를
  * 45% 로 두면 어떤 폭에서도 끝에서 끝까지 지나간다.
  */
-.ai-glow {
-  position: relative;
-  display: inline-flex;
-}
-/* 후광 — FAB 의 `.ai-fab-glow` 와 같은 것을 네모에 맞춘 것 */
-.ai-glow::before {
-  content: '';
-  position: absolute;
-  inset: -9px;
-  border-radius: 16px;
-  background: radial-gradient(circle, rgba(255,214,0,0.75) 0%, rgba(255,214,0,0) 72%);
-  animation: ai-fab-pulse 2.6s ease-in-out infinite;
-  pointer-events: none;
-  z-index: 0;
-}
-/* `position: relative` 를 여기서 주면 **절대배치된 자식(AI 배지)까지 덮어써서**
-   배지가 flex 항목이 되고 `align-items: stretch` 에 세로로 늘어난다(실제로 그랬다). */
-.ai-glow > * { z-index: 1; }
 
-.ai-surface {
-  position: relative;
-  overflow: hidden;
-  border: 1px solid #F0DC7A;
-  background: linear-gradient(120deg, #FFFDF2 0%, #FFF8D6 30%, #FFFEF8 50%, #FFF8D6 70%, #FFFDF2 100%);
-  background-size: 260% 260%;
-  animation: ai-fab-shimmer 6s ease-in-out infinite;
-}
-.ai-surface::after {
-  content: '';
-  position: absolute;
-  top: -40%;
-  left: 0;
-  width: 45%;
-  height: 180%;
-  background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.7) 50%, rgba(255,255,255,0) 100%);
-  animation: ai-fab-sheen 6s ease-in-out infinite;
-  pointer-events: none;
-}
-.ai-surface > * { position: relative; z-index: 1; }
+/* 카드 자체는 반짝이지 않는다 — 반짝이는 건 버튼 하나면 된다. */.ai-surface > * { position: relative; z-index: 1; }
 
 /* 노란 실행 버튼 — FAB 과 완전히 같은 규격을 네모에 */
 .ai-action {
@@ -1136,10 +1102,12 @@ select:focus-visible {
   animation:
     ai-fab-shimmer 4.2s ease-in-out infinite,
     ai-fab-breathe 2.8s ease-in-out infinite;
+  /* 바깥 그림자 없음.
+     후광까지 겹치니 버튼 둘레가 번져서, 정작 표면을 스치는 빛줄기가
+     묻혔다. 안쪽 하이라이트만 남긴다 — 그게 금속 느낌을 낸다. */
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,0.6),
-    inset 0 0 0 1px rgba(0,0,0,0.06),
-    0 6px 16px rgba(190,150,0,0.38);
+    inset 0 0 0 1px rgba(0,0,0,0.06);
 }
 .ai-action::after {
   content: '';
@@ -1160,7 +1128,6 @@ select:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   .ai-surface, .ai-action { animation: none !important; }
   .ai-surface::after, .ai-action::after { display: none !important; }
-  .ai-glow::before { animation: none !important; opacity: .5; }
 }
 
 /* ── 식단 반영 알림 ──────────────────────────────────────────────────

@@ -210,57 +210,28 @@ const DayPicker: React.FC<{
   );
 };
 
-/** 재료 영역 아이콘 — 장바구니. */
-const IngredientsGlyph: React.FC = () => (
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-    <path d="M4 9h16l-1.4 10.2A2 2 0 0 1 16.6 21H7.4a2 2 0 0 1-2-1.8L4 9Z" />
-    <path d="M9 9V6a3 3 0 0 1 6 0v3" />
-  </svg>
-);
-/** AI 요청 영역 아이콘 — 반짝임. */
-const AiGlyph: React.FC = () => (
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-    <path d="M12 3v4M12 17v4M3 12h4M17 12h4M6.5 6.5l2 2M15.5 15.5l2 2M17.5 6.5l-2 2M8.5 15.5l-2 2" />
-  </svg>
-);
-/** 결과(식단) 영역 아이콘 — 달력. */
-const PlanGlyph: React.FC = () => (
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-    <rect x="3" y="5" width="18" height="16" rx="2" />
-    <path d="M3 10h18M8 3v4M16 3v4" />
-  </svg>
-);
-
 /**
  * 영역 제목.
  *
- * 이 화면에는 성격이 다른 세 영역이 있다 — **무엇으로**(재료), **어떻게**(요청),
- * **무엇을**(식단). 제목이 없으면 스크롤하는 사람에게는 그냥 카드 세 장이라,
- * 어디까지가 입력이고 어디부터가 결과인지 알 수가 없다.
+ * 앱의 다른 화면(장보기 목록 등)과 **같은 생김새**를 쓴다.
  *
- * 예전엔 이 자리에 1·2·3 숫자를 찍었는데, "순서"가 아니라 "성격이 다른 영역"을
- * 나누는 자리라 숫자는 오히려 헷갈렸다(마치 순서대로 밟아야 할 단계처럼 읽힘).
- * 그래서 영역마다 다른 아이콘으로 바꿔 — 숫자 없이도 한눈에 구분되게 했다.
+ * 한때 이 자리에 1·2·3 숫자를, 그다음엔 아이콘 배지를 찍었다. 둘 다 이 화면만
+ * 다른 화면과 다르게 보이게 만들었고, 배지 자체가 무슨 뜻인지도 알 수 없었다.
+ * 영역을 나누는 건 제목과 카드 경계가 이미 하는 일이다.
  */
 const SectionHead: React.FC<{
-  icon: React.ReactNode;
   title: React.ReactNode;
   hint?: React.ReactNode;
   right?: React.ReactNode;
-}> = ({ icon, title, hint, right }) => (
-  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-    <span style={{
-      flexShrink: 0, width: 20, height: 20, borderRadius: 6,
-      background: '#1A1A1E', color: '#FFD600',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-    }}>{icon}</span>
+}> = ({ title, hint, right }) => (
+  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 10 }}>
     <div style={{ flex: 1, minWidth: 0 }}>
-      <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink-900)',
-                    display: 'flex', alignItems: 'center', gap: 6 }}>
-        {title}
-      </div>
+      <h2 style={{
+        fontSize: 15, fontWeight: 700, margin: 0, color: '#1A1A1E',
+        display: 'flex', alignItems: 'center', gap: 6,
+      }}>{title}</h2>
       {hint && (
-        <div style={{ fontSize: 11.5, color: 'var(--ink-500)', marginTop: 2, lineHeight: 1.5 }}>
+        <div style={{ fontSize: 12, color: 'var(--ink-500)', marginTop: 3, lineHeight: 1.5 }}>
           {hint}
         </div>
       )}
@@ -575,13 +546,11 @@ const WeeklyPlan: React.FC = () => {
         borderRadius: 14, padding: '14px 16px', marginBottom: 10,
       }}>
         <SectionHead
-          icon={<IngredientsGlyph />}
-          title="이 재료로 짜요"
+          title="쓸 재료"
           hint={
             <>
-              냉장고 재료 {myIngredients.length}개 중 <b style={{ color: 'var(--ink-700)' }}>
-              {planIngredients.length}개</b>를 써요
-              {stale.length > 0 && <> · {STALE_AFTER_DAYS}일 넘게 지난 {stale.length}개는 빼 뒀어요</>}
+              냉장고 {myIngredients.length}개 중 <b style={{ color: 'var(--ink-700)' }}>{planIngredients.length}개</b>
+              {stale.length > 0 && <> · 오래된 {stale.length}개는 뺐어요</>}
             </>
           }
           right={
@@ -601,8 +570,8 @@ const WeeklyPlan: React.FC = () => {
 
         {expiring.length > 0 ? (
           <>
-            <div style={{ fontSize: 12, color: 'var(--ink-500)', marginBottom: 6 }}>
-              <b style={{ color: 'var(--ink-700)' }}>먼저 쓸 재료</b> · {SOON_DAYS}일 이내
+            <div style={{ fontSize: 12, color: '#B03A28', fontWeight: 700, marginBottom: 6 }}>
+              곧 상해요 · 먼저 씁니다
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {expiring.map(i => (
@@ -630,8 +599,8 @@ const WeeklyPlan: React.FC = () => {
           <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px dashed var(--line-200)' }}>
             {restNames.length > 0 && (
               <>
-                <div style={{ fontSize: 12, color: 'var(--ink-500)', marginBottom: 6 }}>
-                  <b style={{ color: 'var(--ink-700)' }}>나머지 재료</b> · 모두 식단에 써요
+                <div style={{ fontSize: 12, color: 'var(--ink-700)', fontWeight: 700, marginBottom: 6 }}>
+                  아직 괜찮아요
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                   {restNames.map(n => (
@@ -644,8 +613,8 @@ const WeeklyPlan: React.FC = () => {
 
             {stale.length > 0 && (
               <div style={{ marginTop: restNames.length > 0 ? 12 : 0 }}>
-                <div style={{ fontSize: 12, color: 'var(--ink-500)', marginBottom: 6 }}>
-                  <b style={{ color: 'var(--ink-700)' }}>{STALE_AFTER_DAYS}일 넘게 지났어요</b> · 기본 제외
+                <div style={{ fontSize: 12, color: 'var(--ink-500)', fontWeight: 700, marginBottom: 6 }}>
+                  오래됐어요 · 빼 뒀어요
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                   {stale.map(i => (
@@ -673,7 +642,7 @@ const WeeklyPlan: React.FC = () => {
             )}
 
             <div style={{ fontSize: 11.5, color: 'var(--ink-500)', marginTop: 12, lineHeight: 1.6 }}>
-              누르면 이번 주만 제외 — 냉장고 재료는 그대로예요.
+              눌러서 빼거나 다시 넣으세요.
             </div>
           </div>
         )}
@@ -684,7 +653,6 @@ const WeeklyPlan: React.FC = () => {
           노란 반짝임 + "AI" 배지. 챗봇 FAB·카메라 버튼과 같은 규칙이다. */}
       <div className="ai-surface" style={{ borderRadius: 14, padding: '14px 16px', marginBottom: 10 }}>
         <SectionHead
-          icon={<AiGlyph />}
           title={
             <>
               <span style={{
@@ -692,17 +660,17 @@ const WeeklyPlan: React.FC = () => {
                 padding: '2px 6px', borderRadius: 6,
                 background: '#1A1A1E', color: '#FFD600',
               }}>AI</span>
-              원하는 대로 짜기
+              조건을 넣어 짜기
             </>
           }
-          hint={'"담백하게", "아이가 먹을 것 위주로" 처럼 적어 보세요 (비워 둬도 됩니다)'}
+          hint={'"담백하게", "아이 먹을 것 위주로"'}
         />
         <div style={{ display: 'flex', gap: 6 }}>
           <input
             value={wish}
             onChange={e => setWish(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && canAi && !asking) void askAi(); }}
-            placeholder="어떻게 짜 드릴까요? (선택)"
+            placeholder="어떻게 짜 드릴까요?"
             style={{
               flex: 1, minWidth: 0, height: 40, borderRadius: 10,
               border: '1px solid var(--line-200)', padding: '0 12px', fontSize: 13.5,
@@ -719,8 +687,9 @@ const WeeklyPlan: React.FC = () => {
               FAB·카메라 버튼과 달리 이 버튼만 안 반짝이는 문제가 있었다.
               클릭 자체는 onClick 안에서 canAi로 막으므로 disabled를 asking
               에만 걸어도 크레딧 없을 때 실행되는 일은 없다. */}
-          <span className={!asking ? 'ai-glow' : undefined}
-                style={{ position: 'relative', flexShrink: 0 }}>
+          {/* 후광(`ai-glow`)은 뺐다 — 버튼 둘레가 번져서 정작 표면을
+              스치는 빛줄기가 묻혔다. */}
+          <span style={{ position: 'relative', flexShrink: 0 }}>
             <button
               type="button"
               className="ai-action"
@@ -732,7 +701,7 @@ const WeeklyPlan: React.FC = () => {
                 cursor: canAi && !asking ? 'pointer' : 'default',
               }}
             >
-              <span>{asking ? '짜는 중...' : 'AI 식단 짜기'}</span>
+              <span>{asking ? '짜는 중...' : 'AI로 짜기'}</span>
             </button>
             {!asking && <span className="ai-fab-badge">AI</span>}
           </span>
@@ -816,9 +785,8 @@ const WeeklyPlan: React.FC = () => {
               크레딧 안내를 따로 상자에 담았더니 카드가 한 칸 더 밀려 내려갔다 —
               제목 밑줄로 붙인다. */}
           <SectionHead
-            icon={<PlanGlyph />}
-            title={'이번 주 식단 · 내일부터 ' + slots.length + '일'}
-            hint={<>바꾸기·다시 짜기는 <b style={{ color: 'var(--ink-700)' }}>크레딧을 쓰지 않아요</b> — 마음에 들 때까지 누르세요</>}
+            title="이번 주 식단"
+            hint={<>내일부터 {slots.length}일 · 바꾸기는 크레딧을 안 써요</>}
             right={
               <button
                 type="button"

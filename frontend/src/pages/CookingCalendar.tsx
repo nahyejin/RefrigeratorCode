@@ -133,10 +133,10 @@ const FridgeToPlan: React.FC<{ onGo: () => void }> = ({ onGo }) => {
   return (
     <div style={{ margin: '0 14px 12px', display: 'flex', flexDirection: 'column', gap: 10 }}>
       <ExpiryAlert boxes={boxes} categoryMap={categoryMap} onPick={onGo} />
-      {/* AI 가 관여하는 자리는 앱 어디서나 같은 시각 언어를 쓴다 — 챗봇
-          FAB·카메라 버튼·식단 화면의 "AI 식단 짜기" 버튼과 같은 노란 반짝임
-          + AI 배지 규칙(index.css의 .ai-action/.ai-glow/.ai-fab-badge). */}
-      <span className="ai-glow" style={{ display: 'flex' }}>
+      {/* AI 가 관여하는 자리는 앱 어디서나 같은 시각 언어 — 챗봇 FAB 와 같은
+          노란 반짝임 + AI 배지 (index.css 의 .ai-action / .ai-fab-badge).
+          후광은 안 쓴다: 버튼 둘레가 번져 빛줄기가 묻힌다. */}
+      <span style={{ display: 'flex', position: 'relative' }}>
         <button
           type="button"
           onClick={onGo}
@@ -904,7 +904,7 @@ const CookingCalendar: React.FC = () => {
                           fontSize: 11.5, color: 'var(--ink-500)' }}>
               <span aria-hidden style={{
                 width: 15, height: 15, flexShrink: 0,
-                border: '1.5px solid #E0A200', borderRadius: '50%',
+                borderRadius: '50%', background: '#FFF0A8',
               }} />
               요리 계획 있는 날
             </div>
@@ -952,9 +952,9 @@ const CookingCalendar: React.FC = () => {
                       aria-hidden
                       style={{
                         position: 'absolute', top: '50%', left: '50%',
-                        width: 26, height: 26, marginTop: dayEntries.length > 0 ? -8 : -2,
+                        width: 26, height: 26, marginTop: dayEntries.length > 0 ? -8 : 0,
                         transform: 'translate(-50%, -50%)',
-                        border: '1.5px solid #E0A200', borderRadius: '50%',
+                        borderRadius: '50%', background: '#FFF0A8',
                         pointerEvents: 'none',
                       }}
                     />
