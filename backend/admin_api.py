@@ -1017,11 +1017,13 @@ def register(app, get_db):
                 {'date': r['d'].isoformat(), 'count': r['n']} for r in cursor.fetchall()
             ]
 
+            # 30일이 아니라 400일을 준다. 화면에서 일별·월별·연도별로 접어 쓰는데,
+            # 30일치만 주면 월별은 한두 칸, 연도별은 한 칸밖에 안 그려진다.
             cursor.execute(
                 "SELECT DATE(created_at) d, kind, SUM(credits) credits, "
                 "COUNT(*) calls, COALESCE(SUM(total_tokens),0) tokens "
-                "FROM llm_usage WHERE created_at >= %s GROUP BY d, kind ORDER BY d",
-                (since,),
+                "FROM llm_usage WHERE created_at >= (CURDATE() - INTERVAL 400 DAY) "
+                "GROUP BY d, kind ORDER BY d"
             )
             out['usage_daily'] = [
                 {'date': r['d'].isoformat(), 'kind': r['kind'], 'credits': int(r['credits'] or 0),

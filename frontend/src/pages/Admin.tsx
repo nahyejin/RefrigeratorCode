@@ -1492,17 +1492,19 @@ const Range: React.FC<{ children: React.ReactNode }> = ({ children }) => (
  * 기록이 있는 날만 그리지 않고 **빈 날도 0으로 세운다.** 있는 날만 이으면 뜸했던
  * 기간이 사라져 활발했던 것처럼 보인다.
  */
-const DailyBars: React.FC<{ rows: [string, number][]; days?: number }> = ({ rows, days = 14 }) => {
+const DailyBars: React.FC<{ rows: [string, number][]; unit: string }> = ({ rows, unit }) => {
   const [at, setAt] = React.useState<number | null>(null);
 
-  const byDate = new Map(rows);
-  const today = new Date();
-  const buckets: string[] = [];
-  for (let i = days - 1; i >= 0; i--) {
-    const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - i);
-    buckets.push(`${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`);
-  }
-  const values = buckets.map(b => byDate.get(b) || 0);
+  // 날짜별 값을 보기 단위로 접는다. 꺾은선 쪽과 같은 규칙을 쓴다 — 두 그래프가
+  // 서로 다른 방식으로 묶으면 같은 화면에서 숫자가 안 맞아 보인다.
+  const folded = new Map<string, number>();
+  rows.forEach(([date, v]) => {
+    const key = bucketOf(date, unit);
+    folded.set(key, (folded.get(key) || 0) + v);
+  });
+  const oldest = rows.length ? rows.map(r => r[0]).sort()[0] : null;
+  const buckets = axisBuckets(unit, oldest);
+  const values = buckets.map(b => folded.get(b) || 0);
   const total = values.reduce((a, b) => a + b, 0);
 
   const W = 720, H = 180, padL = 44, padR = 14, padT = 20, padB = 26;
@@ -1514,7 +1516,10 @@ const DailyBars: React.FC<{ rows: [string, number][]; days?: number }> = ({ rows
   for (let t = 0; t <= top + 1e-9; t += gap) ticks.push(t);
 
   const slot = plotW / buckets.length;
-  const barW = Math.max(6, slot - 6);   // 막대 사이에 배경색 틈을 둔다
+  // 막대 사이에 배경색 틈을 두고, 칸이 적을 때(연도별) 막대가 무한정 뚱뚱해지지
+  // 않게 상한을 둔다. 6칸짜리 그래프에서 막대 하나가 100px 이면 그래프가 아니라
+  // 색 블록처럼 보인다.
+  const barW = Math.min(48, Math.max(6, slot - 6));
   const x = (i: number) => padL + slot * i + slot / 2;
   const y = (v: number) => padT + plotH - (v / top) * plotH;
   const labelEvery = Math.ceil(buckets.length / 7);
@@ -1569,7 +1574,7 @@ const DailyBars: React.FC<{ rows: [string, number][]; days?: number }> = ({ rows
         {buckets.map((b, i) => (
           (i % labelEvery === 0 || i === buckets.length - 1) ? (
             <text key={b} x={x(i)} y={H - 8} textAnchor="middle" fontSize={11} fill="var(--ink-500)">
-              {b.slice(5).replace('-', '/')}
+              {tickLabel(b, unit)}
             </text>
           ) : null
         ))}
@@ -1584,7 +1589,7 @@ const DailyBars: React.FC<{ rows: [string, number][]; days?: number }> = ({ rows
           boxShadow: '0 6px 18px rgba(0,0,0,.10)', padding: '6px 10px',
           pointerEvents: 'none', fontSize: 12, whiteSpace: 'nowrap', zIndex: 2,
         }}>
-          <b>{buckets[at]}</b> · {num(values[at])} 크레딧
+          <b>{fullLabel(buckets[at], unit)}</b> · {num(values[at])} 크레딧
         </div>
       )}
     </div>
@@ -1598,6 +1603,9 @@ const Dashboard: React.FC = () => {
   // 추이 그래프 보기. 기본은 일자별 — 어제 뭘 했는지가 가장 자주 궁금하다.
   const [unit, setUnit] = React.useState<string>('day');
   const [metric, setMetric] = React.useState<'views' | 'exits'>('views');
+  // 크레딧 그래프는 화면 추이와 **따로** 고른다. 둘을 한 상태로 묶으면
+  // 한쪽을 월별로 보려다 다른 쪽까지 바뀌어 비교하던 걸 놓친다.
+  const [creditUnit, setCreditUnit] = React.useState<string>('day');
 
   React.useEffect(() => {
     api('/api/admin/dashboard').then(setData).catch(e => setError(e.message));
@@ -1918,9 +1926,21 @@ const Dashboard: React.FC = () => {
       </div>
 
       <div style={S.card}>
-        <h2 style={S.h2}>일별 크레딧 (최근 2주)</h2>
-        <Range>오늘까지 최근 14일 (기록이 없는 날은 0)</Range>
-        <DailyBars rows={recent} days={14} />
+        <h2 style={S.h2}>크레딧 사용 추이</h2>
+        <Range>{UNITS[creditUnit].note} · 기록이 없는 칸은 0</Range>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', margin: '2px 0 10px' }}>
+          <select
+            value={creditUnit}
+            onChange={e => setCreditUnit(e.target.value)}
+            aria-label="보기 단위"
+            style={{ ...S.input, height: 32 }}
+          >
+            {Object.keys(UNITS).map(k => (
+              <option key={k} value={k}>{UNITS[k].label}</option>
+            ))}
+          </select>
+        </div>
+        <DailyBars rows={recent} unit={creditUnit} />
       </div>
 
       {/* 크레딧 환산이 맞는지 확인하는 자리. 종류별 "크레딧당 실제 토큰"이 크게

@@ -7,6 +7,7 @@ import TopNavBar from '../components/TopNavBar';
 import ErrorBoundary from '../components/ErrorBoundary';
 import HomeInstallPrompt from '../components/HomeInstallPrompt';
 import RecipeChatWidget from '../components/RecipeChatWidget';
+import CookModeHost from '../components/CookModeHost';
 import ShareRequestPopup from '../components/ShareRequestPopup';
 import { AuthProvider } from '../context/AuthContext';
 import Login from '../pages/Login';
@@ -267,6 +268,9 @@ function AppContent() {
       </Suspense>
       <HomeInstallPrompt />
       <RecipeChatWidget />
+      {/* 요리 모드 시트는 앱에 **하나만** 둔다. 카드가 흩어져 있는 화면마다
+          시트를 하나씩 두면 같은 코드를 여섯 군데에 적게 된다. */}
+      <CookModeHost />
       <ShareRequestPopup />
     </>
   );

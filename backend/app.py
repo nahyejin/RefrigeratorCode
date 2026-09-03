@@ -4351,6 +4351,52 @@ def recognize_ingredients_from_image():
     return jsonify(result)
 
 
+@app.route('/api/recipes/<int:recipe_id>/cook', methods=['GET'])
+def get_recipe_cook_steps(recipe_id):
+    """요리 모드에 필요한 것만 — 재료(분량 포함)와 조리 순서.
+
+    왜 목록 API 에 안 싣나:
+        조리 순서는 한 건에 수백 자다. 목록에 실으면 20건만 불러도 응답이 몇 배가
+        된다. 정작 대부분은 열어 보지도 않는 레시피다. **열 때 가져온다.**
+
+    `steps` 가 비어 있으면 본문에 만드는 과정이 없다는 뜻이다(영상으로만 설명한
+    유튜브 등). 그때는 화면이 원문 링크만 보여 준다 — 없는 걸 지어내지 않는다.
+    """
+    db = get_db()
+    cursor = db.cursor()
+    try:
+        cursor.execute(
+            "SELECT id, title, link, platform, thumbnail, author, "
+            "       used_ingredients, ingredients_detail, cook_steps "
+            "FROM recipes WHERE id = %s",
+            (recipe_id,),
+        )
+        row = cursor.fetchone()
+    finally:
+        cursor.close()
+        db.close()
+
+    if not row:
+        return jsonify({'error': '레시피를 찾을 수 없어요.'}), 404
+
+    def lines(text):
+        return [x.strip() for x in (text or '').split('\n') if x.strip()]
+
+    return jsonify({
+        'id': row['id'],
+        'title': row['title'],
+        'link': row['link'],
+        'platform': row['platform'],
+        'thumbnail': row['thumbnail'],
+        'author': row['author'],
+        # 사전 대표어 목록 — 냉장고 대조에 쓰는 이름들
+        'ingredients': [x.strip() for x in (row['used_ingredients'] or '').split(',') if x.strip()],
+        # 분량이 붙은 원문 그대로의 재료 — 화면에 보여 줄 것
+        'ingredients_detail': lines(row['ingredients_detail']),
+        'steps': lines(row['cook_steps']),
+    })
+
+
 @app.route('/api/events', methods=['POST'])
 def collect_events():
     """화면 진입·핵심 행동 기록을 받는다.

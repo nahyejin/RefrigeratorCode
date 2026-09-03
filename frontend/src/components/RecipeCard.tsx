@@ -11,6 +11,8 @@ import 공유하기버튼 from '../assets/공유하기버튼.png';
 import 기록하기버튼 from '../assets/기록하기버튼.png';
 import naverLogo from '../assets/썸네일_naverlogo.png';
 import youtubeLogo from '../assets/썸네일_youtubelogo.png';
+import { openCookMode } from '../utils/cookMode';
+import { track } from '../utils/track';
 
 // 버튼/아이콘/스타일 상수화
 // 액션 4개 중 '완료·기록·공유'는 요리한 *뒤*에 쓰는 동작인데도 목록을 훑는 내내
@@ -183,6 +185,11 @@ const Utils = {
   }
 };
 
+/** 레시피를 열었다는 기록. 어떤 레시피가 실제로 열리는지 알아야 추천을 고칠 수 있다. */
+const trackRecipeOpen = (id: number) => {
+  try { track('recipe_open', String(id)); } catch { /* 기록 실패가 화면을 막지 않는다 */ }
+};
+
 export interface RecipeCardProps {
   recipe: Recipe;
   index: number;
@@ -342,12 +349,20 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
     if ((e.target as HTMLElement).closest('.coupang-product-ad')) {
       return;
     }
-    // 썸네일 이미지나 제목 클릭 시 새 창 열기
-    if (recipe.link) {
-      e.preventDefault();
-      e.stopPropagation();
-      window.open(recipe.link, '_blank', 'noopener,noreferrer');
-    }
+    // 앱 안에서 조리 순서를 연다.
+    //
+    // 전에는 원문을 새 창으로 열었다. 그런데 **요리하는 중에 블로그 원문을 보는 건
+    // 사실상 못 할 짓이다** — 손에 물이 묻어 있고, 위아래로 한참 스크롤해야 하고,
+    // 중간에 광고와 잡담이 섞여 있다. 원문은 시트 안의 버튼으로 여전히 갈 수 있다.
+    e.preventDefault();
+    e.stopPropagation();
+    trackRecipeOpen(recipe.id);
+    openCookMode({
+      id: recipe.id,
+      title: recipe.title,
+      link: recipe.link,
+      myIngredients,
+    });
   };
 
   const horizontalIngredientSectionStyle = isHorizontal
