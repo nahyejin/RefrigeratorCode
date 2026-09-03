@@ -579,7 +579,11 @@ const CookingCalendar: React.FC = () => {
           새로고침으로 그 자리에서 바로 다시 불러올 수 있게 한다. */}
       <PullToRefresh onRefresh={loadCalendar}>
       <FridgeToPlan onGo={() => navigate('/plan')} />
-      <PlannedList />
+      {/* 계획 목록을 여기 또 두지 않는다.
+          바로 아래가 달력인데 그 위에 같은 내용을 줄로 늘어놓으면, 같은 것을
+          두 번 읽게 되고 정작 달력은 화면 밖으로 밀린다. 계획은 달력 안에서
+          — 월 보기는 도장, 주 보기는 카드, 일 보기는 그 날 카드로 — 보여 준다.
+          (로그인 전 화면에는 달력이 없으므로 거기서는 목록을 그대로 쓴다) */}
 
       {/* 월 목표는 "이번 달" 이라는 더 큰 단위 얘기라, 일/주/월 중 무엇을 보고
           있든 항상 같은 값이어야 맞다 — 그래서 일/주/월 전환 버튼보다 위,
@@ -888,6 +892,22 @@ const CookingCalendar: React.FC = () => {
         {/* 월 보기 */}
         {viewMode === 'month' && (
           <div style={{ padding: '12px 14px 14px' }}>
+          {/* 표시가 무슨 뜻인지 적어 둔다. 인원별 색 범례는 게이지 옆에 따로
+              있는데, 도장은 그것과 아무 상관이 없어서 설명이 없으면 "이 노란
+              동그라미는 뭐지" 로 남는다. */}
+          {plans.size > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8,
+                          fontSize: 11.5, color: 'var(--ink-500)' }}>
+              <span aria-hidden style={{
+                width: 22, height: 18, flexShrink: 0,
+                border: '2px solid #E0B400', borderRadius: '50%',
+                transform: 'rotate(-13deg)',
+              }} />
+              도장이 찍힌 날은 <b style={{ color: 'var(--ink-700)' }}>만들기로 한 요리</b>가 있어요
+              <span style={{ color: 'var(--line-300)' }}>·</span>
+              누르면 무엇인지 보여요
+            </div>
+          )}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 4, marginBottom: 4 }}>
             {WEEKDAY_LABELS.map((w) => (
               <div key={w} style={{ textAlign: 'center', fontSize: 11, color: 'var(--ink-500)', padding: '4px 0' }}>{w}</div>
@@ -909,6 +929,7 @@ const CookingCalendar: React.FC = () => {
                     setViewMode('day');
                   }}
                   style={{
+                    position: 'relative',
                     aspectRatio: '1 / 1',
                     borderRadius: 10,
                     border: isSelected ? '2px solid var(--ink-900)' : '1px solid transparent',
@@ -922,16 +943,28 @@ const CookingCalendar: React.FC = () => {
                     opacity: inMonth ? 1 : 0.35,
                   }}
                 >
-                  <span style={{ fontSize: 13, fontWeight: isToday ? 700 : 500, color: '#1A1A1E' }}>{d.getDate()}</span>
-                  {dayEntries.length > 0 && renderDayDots(dayEntries)}
-                  {/* 계획은 **테두리만 있는 점**으로 둔다. 완료 기록(채워진 점)과
-                      한눈에 구분되어야 "했다" 와 "할 것" 이 안 섞인다. */}
-                  {dayEntries.length === 0 && plans.has(key) && (
-                    <span style={{
-                      width: 6, height: 6, borderRadius: 9999,
-                      border: '1.5px solid #C9A400', background: 'transparent',
-                    }} />
+                  {/* 계획이 있는 날에는 **도장을 찍는다.**
+                      점 하나로는 그게 무슨 뜻인지 알 수가 없었다. 날짜 위에
+                      비뚤게 찍힌 노란 테두리는 "여기 뭔가 정해져 있다" 로 읽힌다.
+                      완료 기록(채워진 점)과 겹쳐도 서로 안 가린다 — 하나는
+                      숫자를 감싸고 하나는 그 아래 줄에 있다. */}
+                  {plans.has(key) && (
+                    <span
+                      aria-hidden
+                      style={{
+                        position: 'absolute', top: '50%', left: '50%',
+                        width: 30, height: 25, marginTop: dayEntries.length > 0 ? -8 : -2,
+                        transform: 'translate(-50%, -50%) rotate(-13deg)',
+                        border: '2px solid #E0B400', borderRadius: '50%',
+                        opacity: .85, pointerEvents: 'none',
+                      }}
+                    />
                   )}
+                  <span style={{
+                    fontSize: 13, fontWeight: isToday || plans.has(key) ? 700 : 500,
+                    color: '#1A1A1E', position: 'relative',
+                  }}>{d.getDate()}</span>
+                  {dayEntries.length > 0 && renderDayDots(dayEntries)}
                 </button>
               );
             })}
@@ -946,6 +979,8 @@ const CookingCalendar: React.FC = () => {
             const key = toDateKey(d);
             const dayEntries = entriesByDay.get(key) || [];
             const isToday = key === toDateKey(new Date());
+            // 완료 기록이 없고 계획만 있는 날 — 이 줄은 "할 것" 이다.
+            const planned = dayEntries.length === 0 ? plans.get(key) : undefined;
             return (
               <button
                 key={key}
@@ -960,22 +995,58 @@ const CookingCalendar: React.FC = () => {
                   gap: 10,
                   padding: '10px 12px',
                   borderRadius: 12,
-                  border: '1px solid var(--line-200)',
-                  background: isToday ? 'var(--surface-sub)' : '#FFFFFF',
+                  // 점선 = 아직 안 한 것. 실선(완료 기록)과 눈으로 바로 갈린다.
+                  border: planned ? '1px dashed #C9A400' : '1px solid var(--line-200)',
+                  background: planned ? '#FFFDF2' : (isToday ? 'var(--surface-sub)' : '#FFFFFF'),
                   cursor: 'pointer',
                   textAlign: 'left',
                 }}
               >
-                <span style={{ fontSize: 13, fontWeight: 700, color: '#1A1A1E', width: 56, flexShrink: 0 }}>
+                <span style={{
+                  fontSize: 13, fontWeight: 700, width: 56, flexShrink: 0,
+                  color: planned ? '#7A5C00' : '#1A1A1E',
+                }}>
                   {WEEKDAY_LABELS[d.getDay()]} {d.getDate()}
                 </span>
-                <span style={{ fontSize: 12.5, color: dayEntries.length ? 'var(--ink-700)' : 'var(--ink-500)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {dayEntries.length > 0
-                    ? dayEntries.map((e) => e.title).join(', ')
-                    : plans.has(key)
-                      ? `계획 · ${plans.get(key)!.title}`
+
+                {/* 계획한 날은 목록 줄이 아니라 **카드처럼** 보여 준다.
+                    제목만 한 줄로 적어 두면 무슨 요리인지 안 그려져서,
+                    "이 날 뭐 해 먹기로 했지" 를 또 눌러 봐야 했다. */}
+                {planned ? (
+                  <>
+                    {planned.thumbnail ? (
+                      <img
+                        src={getProxiedImageUrl(planned.thumbnail)}
+                        alt=""
+                        loading="lazy"
+                        onError={(e) => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
+                        style={{ width: 40, height: 40, borderRadius: 8, objectFit: 'cover',
+                                 flexShrink: 0, background: 'var(--surface-sub)' }}
+                      />
+                    ) : (
+                      <span aria-hidden style={{
+                        width: 40, height: 40, borderRadius: 8, flexShrink: 0,
+                        background: 'var(--surface-sub)', display: 'inline-flex',
+                        alignItems: 'center', justifyContent: 'center', fontSize: 15,
+                      }}>🍽</span>
+                    )}
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{
+                        display: 'block', fontSize: 12.5, color: '#1A1A1E', fontWeight: 600,
+                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                      }}>{planned.title}</span>
+                      <span style={{ display: 'block', fontSize: 11, color: '#7A5C00', marginTop: 2 }}>
+                        만들기로 한 요리
+                      </span>
+                    </span>
+                  </>
+                ) : (
+                  <span style={{ fontSize: 12.5, color: dayEntries.length ? 'var(--ink-700)' : 'var(--ink-500)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {dayEntries.length > 0
+                      ? dayEntries.map((e) => e.title).join(', ')
                       : '기록 없음'}
-                </span>
+                  </span>
+                )}
                 {dayEntries.length > 0 && renderDayDots(dayEntries)}
               </button>
             );

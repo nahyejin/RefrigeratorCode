@@ -129,6 +129,88 @@ function pickDistinct(pool: PlanRecipe[], count: number): PlanRecipe[] {
 }
 
 /**
+ * 날짜 고르개.
+ *
+ * 원래 `<select>` 였는데, 안드로이드 웹뷰에서 **네이티브 폼 컨트롤이 고정된
+ * 하단 탭(GNB) 위로 그려진다.** 페이지를 내리면 날짜 칸이 탭을 덮어 버렸다.
+ * z-index 로는 못 이긴다 — 네이티브 위젯이라 우리 쌓임 맥락 밖에 있다.
+ * 그래서 평범한 버튼 + 우리가 그리는 목록으로 바꾼다.
+ */
+const DayPicker: React.FC<{
+  value: number;
+  days: Date[];
+  onPick: (j: number) => void;
+}> = ({ value, days, onPick }) => {
+  const [open, setOpen] = React.useState(false);
+  const box = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (!open) return;
+    const away = (e: Event) => {
+      if (box.current && !box.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', away);
+    document.addEventListener('touchstart', away);
+    return () => {
+      document.removeEventListener('mousedown', away);
+      document.removeEventListener('touchstart', away);
+    };
+  }, [open]);
+
+  return (
+    <div ref={box} style={{ position: 'relative' }}>
+      <button
+        type="button"
+        onClick={() => setOpen(v => !v)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        style={{
+          width: '100%', height: 30, borderRadius: 8, cursor: 'pointer',
+          border: '1px solid var(--line-200)', background: 'var(--surface-sub)',
+          fontSize: 12, fontWeight: 700, color: '#1A1A1E',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3,
+          padding: 0,
+        }}
+      >
+        {dayLabel(days[value])}
+        <span aria-hidden style={{ fontSize: 9, color: 'var(--ink-500)' }}>▾</span>
+      </button>
+
+      {open && (
+        <div
+          role="listbox"
+          style={{
+            position: 'absolute', top: 'calc(100% + 4px)', left: 0, minWidth: '100%',
+            zIndex: 'var(--z-dropdown)' as any,
+            background: 'var(--surface)', border: '1px solid var(--line-200)',
+            borderRadius: 10, padding: 4, boxShadow: '0 8px 20px rgba(0,0,0,.12)',
+          }}
+        >
+          {days.map((d, j) => (
+            <button
+              key={j}
+              type="button"
+              role="option"
+              aria-selected={j === value}
+              onClick={() => { onPick(j); setOpen(false); }}
+              style={{
+                display: 'block', width: '100%', height: 30, borderRadius: 7,
+                border: 'none', background: j === value ? '#FFF8CC' : 'transparent',
+                fontSize: 12.5, fontWeight: j === value ? 700 : 500,
+                color: '#1A1A1E', cursor: 'pointer', textAlign: 'left', padding: '0 8px',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {dayLabel(d)}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+/**
  * 영역 제목.
  *
  * 이 화면에는 성격이 다른 세 영역이 있다 — **무엇으로**(재료), **어떻게**(요청),
@@ -200,6 +282,13 @@ const WeeklyPlan: React.FC = () => {
   const [error, setError] = React.useState<string | null>(null);
   const [bought, setBought] = React.useState<Set<string>>(new Set());
   const [saved, setSaved] = React.useState(false);
+  /** 반영 직후 잠깐 뜨는 알림. 몇 끼를 담았는지까지 말해 준다. */
+  const [toast, setToast] = React.useState<number | null>(null);
+  React.useEffect(() => {
+    if (toast === null) return;
+    const t = setTimeout(() => setToast(null), 3600);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   // AI 식단
   const [wish, setWish] = React.useState('');
@@ -415,6 +504,7 @@ const WeeklyPlan: React.FC = () => {
       }));
     savePlan(meals);
     setSaved(true);
+    setToast(meals.length);
     track('recipe_action', 'plan_apply');
   };
 
@@ -714,34 +804,69 @@ const WeeklyPlan: React.FC = () => {
                 key={slot.date.toISOString()}
                 style={{
                   background: 'var(--surface)', border: '1px solid var(--line-200)',
-                  borderRadius: 14, padding: '12px 14px',
+                  borderRadius: 14, padding: 12,
                   opacity: slot.on ? 1 : 0.5,
                 }}
               >
+                {/* 왼쪽 한 기둥에 **날짜와 썸네일**, 오른쪽에 제목과 행동.
+                    전에는 버튼 줄에만 `paddingLeft: 70` 을 줘서 왼쪽에 큰 빈
+                    자리가 생겼고, 카드 안이 헐거워 보였다. 두 기둥으로 나누면
+                    왼쪽 폭이 썸네일 하나로 정해져 빈 자리가 안 생긴다. */}
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                  {/* 요일을 바꾸는 자리. 고르면 그 날의 요리와 맞바뀐다 —
-                      "옮긴다" 는 곧 "자리를 바꾼다" 이므로 빈 칸이 안 생긴다. */}
-                  <select
-                    value={i}
-                    onChange={e => moveTo(i, Number(e.target.value))}
-                    aria-label="요일 바꾸기"
-                    style={{
-                      flexShrink: 0, width: 92, height: 34, borderRadius: 8,
-                      border: '1px solid var(--line-200)', background: 'var(--surface-sub)',
-                      fontSize: 12.5, fontWeight: 700, padding: '0 6px', color: '#1A1A1E',
-                    }}
-                  >
-                    {slots.map((s, j) => (
-                      <option key={j} value={j}>{dayLabel(s.date)}</option>
-                    ))}
-                  </select>
+                  <div style={{ width: 84, flexShrink: 0 }}>
+                    <DayPicker
+                      value={i}
+                      days={slots.map(x => x.date)}
+                      onPick={j => moveTo(i, j)}
+                    />
+                    {slot.recipe && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          track('recipe_open', String(slot.recipe!.id));
+                          openCookMode({
+                            id: slot.recipe!.id, title: slot.recipe!.title,
+                            link: slot.recipe!.link, myIngredients,
+                          });
+                        }}
+                        style={{
+                          display: 'block', width: '100%', marginTop: 6, padding: 0,
+                          border: 'none', background: 'transparent', cursor: 'pointer',
+                        }}
+                      >
+                        {slot.recipe.thumbnail ? (
+                          <img
+                            src={getProxiedImageUrl(slot.recipe.thumbnail)}
+                            alt=""
+                            loading="lazy"
+                            onError={e => {
+                              // 자리는 남긴다 — 지우면 줄 높이가 튀어 목록이 들썩인다.
+                              (e.currentTarget as HTMLImageElement).style.visibility = 'hidden';
+                            }}
+                            style={{
+                              width: '100%', height: 64, borderRadius: 10,
+                              objectFit: 'cover', background: 'var(--surface-sub)', display: 'block',
+                            }}
+                          />
+                        ) : (
+                          /* 썸네일이 없는 레시피도 있다. `src=""` 로 두면 브라우저가
+                             페이지 자체를 다시 요청하므로 빈 자리를 그린다. */
+                          <span
+                            aria-hidden
+                            style={{
+                              width: '100%', height: 64, borderRadius: 10,
+                              background: 'var(--surface-sub)',
+                              display: 'flex', alignItems: 'center',
+                              justifyContent: 'center', color: 'var(--ink-500)', fontSize: 18,
+                            }}
+                          >🍽</span>
+                        )}
+                      </button>
+                    )}
+                  </div>
 
-                  {/* 가운데 한 칸에 **썸네일·제목·버튼을 모두** 넣는다.
-                      전에는 "다른 요리로 바꾸기" 만 카드 맨 아래 왼쪽에 혼자
-                      떨어져 있어서, 날짜 칸 밑에 붙은 것처럼 보이고 줄이
-                      어긋났다. 한 칸 안에 넣으면 왼쪽 끝이 다 맞는다. */}
                   <div style={{ flex: 1, minWidth: 0, display: 'flex',
-                                flexDirection: 'column', gap: 8 }}>
+                                flexDirection: 'column', gap: 6 }}>
                     {slot.recipe ? (
                       <>
                         <button
@@ -756,59 +881,28 @@ const WeeklyPlan: React.FC = () => {
                           style={{
                             width: '100%', textAlign: 'left', border: 'none',
                             background: 'transparent', cursor: 'pointer', padding: 0,
-                            display: 'flex', alignItems: 'flex-start', gap: 10,
                           }}
                         >
-                          {slot.recipe.thumbnail ? (
-                            <img
-                              src={getProxiedImageUrl(slot.recipe.thumbnail)}
-                              alt=""
-                              loading="lazy"
-                              onError={e => {
-                                // 자리는 남긴다 — 지우면 줄 높이가 튀어 목록이 들썩인다.
-                                (e.currentTarget as HTMLImageElement).style.visibility = 'hidden';
-                              }}
-                              style={{
-                                width: 60, height: 60, flexShrink: 0, borderRadius: 10,
-                                objectFit: 'cover', background: 'var(--surface-sub)',
-                              }}
-                            />
-                          ) : (
-                            /* 썸네일이 없는 레시피도 있다. `src=""` 로 두면 브라우저가
-                               페이지 자체를 다시 요청하므로 빈 자리를 그린다.
-                               크기를 맞춰 둬야 카드마다 글자 시작점이 안 어긋난다. */
-                            <span
-                              aria-hidden
-                              style={{
-                                width: 60, height: 60, flexShrink: 0, borderRadius: 10,
-                                background: 'var(--surface-sub)',
-                                display: 'inline-flex', alignItems: 'center',
-                                justifyContent: 'center', color: 'var(--ink-500)', fontSize: 18,
-                              }}
-                            >🍽</span>
-                          )}
-                          <span style={{ minWidth: 0, flex: 1 }}>
-                            <span style={{
-                              display: '-webkit-box', fontSize: 14, fontWeight: 600,
-                              color: '#1A1A1E', lineHeight: 1.4, overflow: 'hidden',
-                              WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
-                            }}>{slot.recipe.title}</span>
-                            {slot.recipe.why ? (
-                              <span style={{ display: 'block', fontSize: 11.5, color: '#7A5C00', marginTop: 3 }}>
-                                {slot.recipe.why}
-                              </span>
-                            ) : typeof slot.recipe.match_rate === 'number' ? (
-                              <span style={{ display: 'block', fontSize: 11.5, color: 'var(--ink-500)', marginTop: 3 }}>
-                                가진 재료로 {slot.recipe.match_rate}% 만들 수 있어요
-                              </span>
-                            ) : null}
-                          </span>
+                          <span style={{
+                            display: '-webkit-box', fontSize: 14, fontWeight: 600,
+                            color: '#1A1A1E', lineHeight: 1.4, overflow: 'hidden',
+                            WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+                          }}>{slot.recipe.title}</span>
+                          {slot.recipe.why ? (
+                            <span style={{ display: 'block', fontSize: 11.5, color: '#7A5C00', marginTop: 3 }}>
+                              {slot.recipe.why}
+                            </span>
+                          ) : typeof slot.recipe.match_rate === 'number' ? (
+                            <span style={{ display: 'block', fontSize: 11.5, color: 'var(--ink-500)', marginTop: 3 }}>
+                              가진 재료로 {slot.recipe.match_rate}% 만들 수 있어요
+                            </span>
+                          ) : null}
                         </button>
 
-                        {/* 두 행동을 **한 줄에** 나란히. 하나만 아래 왼쪽에 혼자
-                            떨어져 있으면 카드가 어긋나 보인다. */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12,
-                                      paddingLeft: 70 }}>
+                        {/* 오른쪽 기둥 안에 두 행동을 나란히. 왼쪽 끝이 제목과
+                            맞으므로 따로 여백을 줄 필요가 없다. */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10,
+                                      flexWrap: 'wrap', marginTop: 'auto' }}>
                           <button
                             type="button"
                             onClick={() => {
@@ -848,8 +942,8 @@ const WeeklyPlan: React.FC = () => {
                     checked={slot.on}
                     onChange={() => setSlots(prev => prev.map((s, j) =>
                       (j === i ? { ...s, on: !s.on } : s)))}
-                    aria-label={`${dayLabel(slot.date)} 장보기에 넣기`}
-                    style={{ flexShrink: 0, width: 18, height: 18, marginTop: 8 }}
+                    aria-label={`${dayLabel(slot.date)} 이 날 빼기`}
+                    style={{ flexShrink: 0, width: 18, height: 18, marginTop: 6 }}
                   />
                 </div>
               </div>
@@ -862,12 +956,13 @@ const WeeklyPlan: React.FC = () => {
             onClick={applyPlan}
             style={{
               width: '100%', height: 48, marginTop: 12, borderRadius: 12, border: 'none',
-              background: saved ? '#E8F0E4' : '#FFD600',
-              color: saved ? '#3A6B2E' : '#1A1A1E',
+              background: saved ? '#1A1A1E' : '#FFD600',
+              color: saved ? '#FFD600' : '#1A1A1E',
               fontSize: 14.5, fontWeight: 700, cursor: 'pointer',
+              transition: 'background .18s ease, color .18s ease',
             }}
           >
-            {saved ? '✓ 요리 캘린더에 반영했어요' : '이번 주 식단 계획 반영하기'}
+            {saved ? '캘린더에 담았어요 · 다시 담기' : '이번 주 식단 계획 반영하기'}
           </button>
           {saved && (
             <button
@@ -885,9 +980,25 @@ const WeeklyPlan: React.FC = () => {
 
           <div style={{ fontSize: 11.5, color: 'var(--ink-500)', lineHeight: 1.7,
                         padding: '10px 4px 0' }}>
-            체크를 풀면 반영·장보기 목록에서 함께 빠져요. 요리를 누르면 조리 순서가 나옵니다.
+            체크를 끄면 그 날은 빼고 담아요.
           </div>
         </>
+      )}
+
+      {/* 반영했다는 걸 **화면 아래에서 잠깐** 말한다. 버튼을 초록으로 바꿔
+          두면 그 색이 계속 남아 "지금 뭔가 켜져 있다" 처럼 읽혔다. */}
+      {toast !== null && (
+        <div className="plan-toast" role="status">
+          <span aria-hidden style={{
+            width: 18, height: 18, borderRadius: 9999, background: '#FFD600',
+            color: '#1A1A1E', fontSize: 11, fontWeight: 800, flexShrink: 0,
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          }}>✓</span>
+          <span>요리 캘린더에 {toast}끼를 담았어요</span>
+          <button type="button" onClick={() => navigate('/cooking-calendar')}>
+            보기
+          </button>
+        </div>
       )}
 
       {/* ── 장보기 목록 ────────────────────────────────────── */}

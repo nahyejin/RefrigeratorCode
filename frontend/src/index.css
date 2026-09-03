@@ -1162,3 +1162,48 @@ select:focus-visible {
   .ai-surface::after, .ai-action::after { display: none !important; }
   .ai-glow::before { animation: none !important; opacity: .5; }
 }
+
+/* ── 식단 반영 알림 ──────────────────────────────────────────────────
+   버튼 색을 바꿔 두면 그 색이 계속 남아 "뭔가 켜져 있다" 처럼 읽힌다.
+   결과는 잠깐 말하고 사라지는 게 맞다. 하단 탭(84) 위에 띄운다. */
+.plan-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 96px;
+  z-index: var(--z-toast);
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  max-width: calc(100% - 28px);
+  padding: 11px 12px 11px 14px;
+  border-radius: 9999px;
+  background: rgba(26, 26, 30, .94);
+  color: #FFFFFF;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .26);
+  animation: plan-toast-in .26s cubic-bezier(.2, .8, .3, 1) both;
+}
+
+.plan-toast > button {
+  margin-left: 2px;
+  height: 26px;
+  padding: 0 11px;
+  border: none;
+  border-radius: 9999px;
+  background: #FFD600;
+  color: #1A1A1E;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+@keyframes plan-toast-in {
+  from { opacity: 0; transform: translate(-50%, 10px) scale(.97); }
+  to   { opacity: 1; transform: translate(-50%, 0) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .plan-toast { animation: none; transform: translateX(-50%); }
+}
