@@ -1091,14 +1091,29 @@ select:focus-visible {
 
 /* 카드 자체는 반짝이지 않는다 — 반짝이는 건 버튼 하나면 된다. */.ai-surface > * { position: relative; z-index: 1; }
 
-/* 노란 실행 버튼 — FAB 과 완전히 같은 규격을 네모에 */
+/* 노란 실행 버튼.
+ *
+ * FAB 의 값을 **그대로 베끼면 안 된다** — 그게 세 번 고쳐도 안 되던 이유였다.
+ * FAB 는 56px 원이라 `120deg` 그라데이션을 `260% 260%` 로 늘려도 부드럽게
+ * 도는데, 이 버튼은 100×40 짜리 납작한 네모다. 같은 값을 쓰면
+ *
+ *   1. 대각선 축이 짧은 변을 가로질러 **굵은 띠**로 갈라진다 (색이 두 겹으로
+ *      보이고, 진한 쪽 `#F2C200` 이 "노랑이 너무 진하다" 로 읽힌다)
+ *   2. `background-position` 은 좌우로 움직이는데 그라데이션 축은 대각선이라
+ *      **정작 색이 거의 안 바뀐다**
+ *
+ * 그래서 모양에 맞춘다: 축을 거의 수평(`100deg`)으로, 세로는 늘리지 않고
+ * (`100%`) 가로만 3배로. 그러면 같은 키프레임이 가로로 길게 흐른다.
+ * 색도 밝은 쪽에서 시작해 어두운 띠가 안 생긴다. */
 .ai-action {
   position: relative;
   overflow: hidden;
   border: none;
   color: #1A1A1E;
-  background: linear-gradient(120deg, #F2C200 0%, #FFE45C 25%, #FFF6C2 45%, #FFD600 65%, #F2C200 100%);
-  background-size: 260% 260%;
+  background: linear-gradient(100deg,
+    #FFD600 0%, #FFE97A 14%, #FFF9D9 26%, #FFE45C 40%,
+    #FFD600 56%, #FFF6C2 74%, #FFE45C 88%, #FFD600 100%);
+  background-size: 300% 100%;
   animation:
     ai-fab-shimmer 4.2s ease-in-out infinite,
     ai-fab-breathe 2.8s ease-in-out infinite;
@@ -1112,11 +1127,11 @@ select:focus-visible {
 .ai-action::after {
   content: '';
   position: absolute;
-  top: -40%;
+  top: -60%;
   left: 0;
-  width: 45%;
-  height: 180%;
-  background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.75) 50%, rgba(255,255,255,0) 100%);
+  width: 38%;
+  height: 220%;
+  background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.95) 50%, rgba(255,255,255,0) 100%);
   animation: ai-fab-sheen 4.2s ease-in-out infinite;
   pointer-events: none;
 }

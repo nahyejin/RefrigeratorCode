@@ -222,9 +222,8 @@ export default function IngredientDateModal({ type, isOpen, onClose, onComplete,
           >
             <span aria-hidden style={{ flexShrink: 0, fontWeight: 700, color: 'var(--ink-500)' }}>i</span>
             <span>
-              구매일자를 입력하면 쿡매치가 재료 종류와 보관 방법에 맞춰
-              <b style={{ fontWeight: 700 }}> 대략적인 유통기한을 짐작해 계산</b>해 드려요.
-              실제 표기된 기한과는 다를 수 있어요.
+              구매일만 넣어도 <b style={{ fontWeight: 700 }}>기한을 짐작해</b> 드려요.
+              실제 표기와는 다를 수 있어요.
             </span>
           </div>
         )}

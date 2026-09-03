@@ -551,9 +551,7 @@ const HouseholdSection: React.FC<HouseholdSectionProps> = ({ onChange }) => {
       ) : (
         <div>
           <p style={{ fontSize: 13, color: 'var(--ink-500)', marginBottom: 12 }}>
-            그룹을 만들거나 초대 코드로 참여하면, 식구가 각자 계정으로 접속해도
-            같은 냉장고 재료를 함께 관리할 수 있어요. 즐겨찾기·완료·기록한
-            레시피도 원하면 "OO님도 즐겨찾기함" 처럼 서로 볼 수 있어요.
+            식구끼리 냉장고를 함께 씁니다. 즐겨찾기·완료·기록도 원하면 공유할 수 있어요.
           </p>
           <div style={{ display: 'flex', gap: 8 }}>
             <Button variant="secondary" size="sm" onClick={() => setCreateInfoOpen(true)} disabled={busy}>

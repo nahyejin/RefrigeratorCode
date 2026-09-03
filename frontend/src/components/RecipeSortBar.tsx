@@ -773,9 +773,8 @@ const RecipeSortBar = ({
             <div style={STYLES.helpBox}>
               <span aria-hidden style={{ flexShrink: 0, fontWeight: 700, color: 'var(--ink-500)' }}>i</span>
               <span>
-                매칭률은 <b style={{ fontWeight: 700 }}>레시피 본문에서 뽑아낸 재료</b>와 내 냉장고 재료를
-                비교해 계산해요. 재료는 AI가 본문을 읽고 정리하기 때문에, 글쓴이가 적지 않은 재료는
-                빠질 수 있어요.
+                <b style={{ fontWeight: 700 }}>레시피 본문에서 뽑아낸 재료</b>와 내 냉장고를 비교한 값이에요.
+                글쓴이가 안 적은 재료는 빠질 수 있어요.
               </span>
             </div>
             {/* 예전에는 라벨이 하나도 없어서 "30 % ~ 100 %" 두 칸이 무엇을 정하는 건지,
@@ -931,8 +930,8 @@ const RecipeSortBar = ({
             <div style={STYLES.helpBox}>
               <span aria-hidden style={{ flexShrink: 0, fontWeight: 700, color: 'var(--ink-500)' }}>i</span>
               <span>
-                유통기한을 직접 넣은 재료뿐 아니라, <b style={{ fontWeight: 700 }}>구매일만 넣어 둔 재료</b>도
-                재료 종류와 보관 방법으로 기한을 짐작해 함께 계산해요. 짐작한 값은 <b style={{ fontWeight: 700 }}>약 D-00</b> 으로 표시돼요.
+                <b style={{ fontWeight: 700 }}>구매일만 넣은 재료</b>도 기한을 짐작해 함께 계산해요.
+                짐작한 값은 <b style={{ fontWeight: 700 }}>약 D-00</b> 으로 보여요.
               </span>
             </div>
 

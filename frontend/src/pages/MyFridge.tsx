@@ -39,19 +39,19 @@ const baseGuideSteps = [
   {
     targetSelector: '[data-guide-target="storage-areas"]',
     message:
-      '재료는 냉동·냉장·실온 세 칸으로 나뉘어 있어요.\n처음엔 자주 쓰는 재료를 예시로 넣어 두었으니,\n내 냉장고 상황에 맞게 삭제·수정해서 쓰시면 돼요.',
+      '냉동·냉장·실온 세 칸이에요.\n자주 쓰는 재료를 미리 넣어 뒀으니\n내 냉장고에 맞게 고쳐 쓰세요.',
     position: 'top' as const,
   },
   {
     // 입력창 하나가 아니라 **입력 줄 전체**를 가리킨다 — 안내 문구가 재료명 입력과
     // 사진 찍기를 함께 말하므로 카메라 버튼까지 하이라이트 안에 들어와야 한다.
     targetSelector: '[data-guide-target="ingredient-add-row"]',
-    message: '재료명을 입력하거나, 영수증/음식 사진을 찍어서\n재료를 내냉장고에 추가할 수 있어요.',
+    message: '이름을 적거나, 영수증·음식 사진을 찍어\n재료를 넣을 수 있어요.',
     position: 'bottom' as const,
   },
   {
     targetSelector: '[data-guide-target="settings-icon"]',
-    message: '이 재료 배지를 누르면\n보관공간, 유통기한, 구매기한을 변경할 수 있어요.',
+    message: '재료를 누르면 보관 칸·유통기한을\n바꿀 수 있어요.',
     position: 'left' as const,
   },
 ];

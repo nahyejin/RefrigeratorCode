@@ -98,8 +98,7 @@ const FridgeSelect: React.FC = () => {
         {/* 안내문구 */}
         <div className="flex flex-col items-center text-center mt-2 mb-4 px-2">
           <div className="text-[16px] text-[#1A1A1E] font-medium leading-tight">
-            [사용자 닉네임]님의 보관 중인 재료를 냉장실, 냉동실, 실온으로 나눠 입력해보세요.<br />
-            내가 갖고 있는 재료를 입력하면 더 정확한 레시피 추천을 받을 수 있어요.
+            가진 재료를 넣어 두면 더 잘 맞는 레시피를 골라 드려요.
           </div>
           <div className="text-[16px] text-[#1A1A1E] font-bold mt-3">
             먼저, 재료가 놓여진 공간을 선택해주세요.

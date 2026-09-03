@@ -501,7 +501,18 @@ const CookingCalendar: React.FC = () => {
     // 관리, 절약액 확인, 목표 설정)를 구체적으로 안내한다.
     return (
       <div className="min-h-screen w-full flex flex-col">
-        <div className="flex-1 w-full flex items-center justify-center bg-white">
+        {/* 식단은 냉장고 재료만 있으면 되는 기능이라 **로그인 벽 뒤에 가두지
+            않는다.** 로그인해야만 쓸 수 있는 건 캘린더(내 요리 이력)뿐이다.
+            그래서 **쓸 수 있는 것을 위**에 둔다 — 아래에 뒀더니 로그인 안내가
+            화면을 꽉 채우고 이 버튼은 하단 탭에 가려져, 스크롤도 안 되는
+            자리에 숨어 있었다. */}
+        <div style={{ maxWidth: 480, margin: '0 auto', width: '100%', paddingTop: 72 }}>
+          <FridgeToPlan onGo={() => navigate('/plan')} />
+          <PlannedList />
+        </div>
+
+        <div className="flex-1 w-full flex items-center justify-center bg-white"
+             style={{ paddingBottom: 100 }}>
           <div style={{ textAlign: 'center', padding: '0 32px' }}>
             <p style={{ fontSize: 15, fontWeight: 700, color: '#1A1A1E', marginBottom: 8 }}>
               로그인하면 요리 캘린더를 쓸 수 있어요
@@ -521,12 +532,6 @@ const CookingCalendar: React.FC = () => {
               로그인
             </button>
           </div>
-        </div>
-        {/* 식단은 냉장고 재료만 있으면 되는 기능이라 **로그인 벽 뒤에 가두지
-            않는다.** 로그인해야만 쓸 수 있는 건 캘린더(내 요리 이력)뿐이다. */}
-        <div style={{ maxWidth: 480, margin: '0 auto', width: '100%', paddingBottom: 16 }}>
-      <FridgeToPlan onGo={() => navigate('/plan')} />
-      <PlannedList />
         </div>
         <BottomNavBar activeTab="cooking-calendar" />
       </div>
@@ -818,8 +823,8 @@ const CookingCalendar: React.FC = () => {
         {goalCardExpanded && (
           <div style={{ fontSize: 11, color: 'var(--ink-500)', marginTop: 10, lineHeight: 1.5 }}>
             {isInHousehold
-              ? '매월 1일에 진행률이 다시 0%부터 시작돼요. 이 목표는 그룹 전체가 공유하는 값이라 누가 바꿔도 모두에게 적용돼요.'
-              : '매월 1일에 진행률이 다시 0%부터 시작돼요. 그룹에 참여하면 이 목표를 그룹 전체가 함께 쓰게 돼요.'}
+              ? '매월 1일에 0%로 돌아가요. 그룹 공용 목표라 누가 바꿔도 모두에게 적용돼요.'
+              : '매월 1일에 0%로 돌아가요.'}
           </div>
         )}
       </div>
