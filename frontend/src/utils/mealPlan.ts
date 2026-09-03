@@ -43,17 +43,38 @@ export function loadPlan(): PlannedMeal[] {
   }
 }
 
-/**
- * 계획을 저장한다. **같은 날짜의 옛 계획은 덮어쓴다.**
- *
- * 지난 날짜는 함께 지운다 — 안 지우면 지난달 계획이 계속 쌓여 캘린더를 어지럽힌다.
- */
-export function savePlan(meals: PlannedMeal[]): void {
+/** 새로 담을 계획이 **이미 짜 둔 날과 겹치는** 날짜들. */
+export function conflictingDates(meals: PlannedMeal[]): string[] {
   const today = toDateKey(new Date());
-  const replacing = new Set(meals.map(m => m.date));
-  const kept = loadPlan().filter(m => m.date >= today && !replacing.has(m.date));
+  const have = new Set(loadPlan().filter(m => m.date >= today).map(m => m.date));
+  return meals.map(m => m.date).filter(d => have.has(d));
+}
+
+/**
+ * 계획을 저장한다. 지난 날짜는 함께 지운다 — 안 지우면 지난달 계획이 계속
+ * 쌓여 캘린더를 어지럽힌다.
+ *
+ * `mode` 로 겹치는 날을 어떻게 할지 고른다:
+ *   - `overwrite` — 그 날의 옛 계획을 새 것으로 바꾼다
+ *   - `fill` — **이미 정해 둔 날은 그대로 두고** 비어 있는 날에만 넣는다
+ *
+ * 전에는 묻지 않고 늘 덮어썼다. 월요일에 정성껏 고쳐 둔 계획이 "다시 짜기" 한
+ * 번에 말없이 사라졌다.
+ */
+export function savePlan(meals: PlannedMeal[], mode: 'overwrite' | 'fill' = 'overwrite'): void {
+  const today = toDateKey(new Date());
+  const existing = loadPlan().filter(m => m.date >= today);
+
+  let incoming = meals;
+  if (mode === 'fill') {
+    const taken = new Set(existing.map(m => m.date));
+    incoming = meals.filter(m => !taken.has(m.date));
+  }
+
+  const replacing = new Set(incoming.map(m => m.date));
+  const kept = existing.filter(m => !replacing.has(m.date));
   try {
-    localStorage.setItem(KEY, JSON.stringify([...kept, ...meals].sort((a, b) => (a.date < b.date ? -1 : 1))));
+    localStorage.setItem(KEY, JSON.stringify([...kept, ...incoming].sort((a, b) => (a.date < b.date ? -1 : 1))));
   } catch {
     /* 저장이 막혀 있으면 조용히 넘어간다 — 화면은 이미 보여 줬다 */
   }

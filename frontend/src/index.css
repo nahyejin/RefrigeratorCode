@@ -856,7 +856,7 @@ div[style*="overflow"]:not([style*="layout: horizontal"]):not([style*="overflow-
    (실제로 이 설정을 켠 기기에서 로딩 점과 FAB 가 정지한 채로 보였음)
    → 장식적인 움직임만 줄이고, 상태를 알리는 표시는 예외로 둔다. */
 @media (prefers-reduced-motion: reduce) {
-  *:not(.loading-dots):not(.loading-dots > span):not(.ai-fab-button):not(.ai-fab-glow):not(.skeleton-block),
+  *:not(.loading-dots):not(.loading-dots > span):not(.ai-fab-button):not(.ai-fab-glow):not(.ai-action):not(.skeleton-block),
   *::before {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
@@ -869,6 +869,22 @@ div[style*="overflow"]:not([style*="layout: horizontal"]):not([style*="overflow-
   }
   .ai-fab-button {
     animation: ai-fab-shimmer 4.2s ease-in-out infinite !important;
+  }
+  /* 네모난 AI 버튼도 FAB 과 **같은 대우**.
+   *
+   * 예전엔 여기서 통째로 껐다. 그런데 FAB·카메라 버튼은 예외로 남겨 뒀으니,
+   * 윈도우에서 "애니메이션 효과"를 끈 사람에게는 **동그란 버튼만 반짝이고
+   * 네모난 버튼은 죽어 있는** 화면이 됐다. 같은 뜻을 가진 표시가 자리마다
+   * 다르게 동작하면 고장으로 읽힌다.
+   *
+   * 이동(scale·translate)은 빼고 **빛만** 움직인다 — 움직임을 줄여 달라는
+   * 요청의 뜻은 화면이 들썩이지 않는 것이지, 아무것도 안 변하는 게 아니다. */
+  .ai-action:not(:disabled) {
+    animation: ai-fab-shimmer 4.2s ease-in-out infinite !important;
+  }
+  .ai-action:not(:disabled)::after {
+    display: block !important;
+    animation: ai-fab-sheen 4.2s ease-in-out infinite !important;
   }
   .ai-fab-glow {
     animation: ai-fab-pulse 2.6s ease-in-out infinite !important;
@@ -1141,8 +1157,9 @@ select:focus-visible {
 
 /* 움직임 최소화: 반짝임을 멈춘다. 정보는 글자에 다 있다. */
 @media (prefers-reduced-motion: reduce) {
-  .ai-surface, .ai-action { animation: none !important; }
-  .ai-surface::after, .ai-action::after { display: none !important; }
+  /* .ai-action 은 위 감소-모션 블록에서 FAB 과 같이 다룬다. 여기서 다시 끄면
+     그쪽 설정이 무효가 된다 — 한때 그래서 네모 버튼만 안 움직였다. */
+  .ai-surface { animation: none !important; }
 }
 
 /* ── 식단 반영 알림 ──────────────────────────────────────────────────

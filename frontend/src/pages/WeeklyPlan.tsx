@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import BackButton from '../components/ui/BackButton';
+import Dialog from '../components/ui/Dialog';
 import StepLoading from '../components/StepLoading';
 import { getMyIngredients } from '../utils/recipeUtils';
 import { loadIngredientCategoryMap, type CategoryMap, type StorageKind } from '../utils/shelfLife';
@@ -12,7 +13,7 @@ import { track } from '../utils/track';
 import { getProxiedImageUrl } from '../utils/imageUtils';
 import { usageHeaders, applyUsage } from '../utils/usage';
 import { UsageLine, useUsage } from '../components/UsageMeter';
-import { savePlan, toDateKey, type PlannedMeal } from '../utils/mealPlan';
+import { savePlan, conflictingDates, toDateKey, type PlannedMeal } from '../utils/mealPlan';
 
 /**
  * 이번 주 식단 + 장보기 목록.
@@ -284,6 +285,8 @@ const WeeklyPlan: React.FC = () => {
   const [saved, setSaved] = React.useState(false);
   /** 반영 직후 잠깐 뜨는 알림. 몇 끼를 담았는지까지 말해 준다. */
   const [toast, setToast] = React.useState<number | null>(null);
+  /** 이미 계획이 있는 날짜들 — 값이 있으면 어떻게 할지 묻는 창이 뜬다. */
+  const [conflict, setConflict] = React.useState<string[] | null>(null);
   React.useEffect(() => {
     if (toast === null) return;
     const t = setTimeout(() => setToast(null), 3600);
@@ -491,8 +494,8 @@ const WeeklyPlan: React.FC = () => {
    * 짜고 끝나면 아무 데도 안 남는다. 그러면 다음 날 "뭐 해 먹기로 했더라" 를
    * 다시 물어야 하고, 식단을 짠 의미가 없다.
    */
-  const applyPlan = () => {
-    const meals: PlannedMeal[] = slots
+  const buildMeals = (): PlannedMeal[] =>
+    slots
       .filter(s => s.on && s.recipe)
       .map(s => ({
         date: toDateKey(s.date),
@@ -502,10 +505,27 @@ const WeeklyPlan: React.FC = () => {
         thumbnail: s.recipe!.thumbnail,
         why: s.recipe!.why,
       }));
-    savePlan(meals);
+
+  const commit = (mode: 'overwrite' | 'fill') => {
+    const meals = buildMeals();
+    const before = conflictingDates(meals).length;
+    savePlan(meals, mode);
+    setConflict(null);
     setSaved(true);
-    setToast(meals.length);
+    setToast(mode === 'fill' ? meals.length - before : meals.length);
     track('recipe_action', 'plan_apply');
+  };
+
+  /**
+   * 담기 전에 **겹치는 날이 있으면 묻는다.**
+   *
+   * 전에는 말없이 덮어썼다. 며칠에 걸쳐 고쳐 둔 계획이 버튼 한 번에 사라지는데,
+   * 사라졌다는 사실조차 화면에 안 나왔다.
+   */
+  const applyPlan = () => {
+    const days = conflictingDates(buildMeals());
+    if (days.length === 0) { commit('overwrite'); return; }
+    setConflict(days);
   };
 
   const active = slots.filter(s => s.on && s.recipe).map(s => s.recipe!);
@@ -987,6 +1007,51 @@ const WeeklyPlan: React.FC = () => {
             체크를 끄면 그 날은 빼고 담아요.
           </div>
         </>
+      )}
+
+      {conflict && (
+        <Dialog
+          open
+          onClose={() => setConflict(null)}
+          title="이미 짜 둔 계획이 있어요"
+          width={340}
+          dismissLabel="그만두기"
+        >
+          <div style={{ fontSize: 13.5, color: 'var(--ink-700)', lineHeight: 1.7, textAlign: 'left' }}>
+            <b>{conflict.length}일</b>이 겹쳐요 —{' '}
+            {conflict.slice(0, 3).map(d => d.slice(5).replace('-', '/')).join(', ')}
+            {conflict.length > 3 && ` 외 ${conflict.length - 3}일`}.
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 14 }}>
+              <button
+                type="button"
+                onClick={() => commit('overwrite')}
+                style={{
+                  height: 44, borderRadius: 10, border: 'none', background: '#FFD600',
+                  color: '#1A1A1E', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+                }}
+              >
+                새로 짠 것으로 바꾸기
+                <div style={{ fontSize: 11.5, fontWeight: 500, color: 'rgba(26,26,30,.65)' }}>
+                  겹치는 {conflict.length}일이 새 요리로 바뀌어요
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => commit('fill')}
+                style={{
+                  height: 44, borderRadius: 10, background: 'var(--surface)',
+                  border: '1px solid var(--line-200)',
+                  color: '#1A1A1E', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+                }}
+              >
+                비어 있는 날에만 넣기
+                <div style={{ fontSize: 11.5, fontWeight: 500, color: 'var(--ink-500)' }}>
+                  이미 정해 둔 날은 그대로 둬요
+                </div>
+              </button>
+            </div>
+          </div>
+        </Dialog>
       )}
 
       {/* 반영했다는 걸 **화면 아래에서 잠깐** 말한다. 버튼을 초록으로 바꿔

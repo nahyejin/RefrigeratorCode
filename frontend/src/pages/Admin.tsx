@@ -1147,6 +1147,46 @@ const daysSince = (iso: string | null) => {
 };
 
 /**
+ * 자동 작업이 **무슨 일을 하는지**.
+ *
+ * 표에 이름·상태·시각만 있으면 "CookMatch-DailyLLMIngredients 성공" 이 무슨
+ * 뜻인지 알 수가 없다. 실패했을 때 그게 큰일인지 아닌지도 판단이 안 된다.
+ * 그래서 **하는 일 / 안 돌면 무슨 일이 생기나**를 같이 적는다.
+ */
+const TASK_INFO: Record<string, { when: string; does: string; ifNot: string }> = {
+  'CookMatch-WeeklyCrawler': {
+    when: '매일 07:00',
+    does: '네이버 블로그·유튜브에서 새 레시피 글을 긁어 옵니다. 제목·본문·썸네일 1장을 저장하고, '
+        + '이어서 규칙 기반으로 재료를 한 번 훑습니다.',
+    ifNot: '새 레시피가 아예 안 들어옵니다. 앱에 보이는 목록이 그날부터 멈춥니다.',
+  },
+  'CookMatch-DailyLLMIngredients': {
+    when: '매일 03:00',
+    does: '긁어 온 글의 본문을 AI 에게 읽혀 재료와 조리 순서를 뽑습니다. 레시피가 아닌 글'
+        + '(보관법·제품 후기·맛집·광고)은 지우고, 사전에 없는 재료 이름은 사전 탭의 '
+        + '"사전에 없던 이름" 으로 쌓아 둡니다.',
+    ifNot: '새 글은 재료가 빈 채로 남아 냉장고 매칭에 안 잡힙니다. 다음 날 이어서 처리되므로 '
+         + '기록이 사라지진 않고, 밀린 만큼 늦어집니다.',
+  },
+  'CookMatch-DictionarySync': {
+    when: '매일 04:30',
+    does: '어드민 사전 탭에서 승인한 재료를 저장소의 CSV 두 개에 옮기고 커밋·푸시합니다. '
+        + '승인한 순간 인식에는 이미 쓰이고, 이 작업은 그것을 파일로 남기는 절차입니다.',
+    ifNot: '서버를 새로 띄우면 승인분이 사라집니다(서버 파일시스템이 임시라 직접 못 고침).',
+  },
+};
+
+/** 작업 스케줄러가 돌려주는 결과 코드 — 숫자만 봐서는 알 수 없다. */
+const TASK_RESULT: Record<number, string> = {
+  0: '성공',
+  267009: '지금 실행 중',
+  267011: '아직 한 번도 안 돌았어요',
+  267014: '시간 제한에 걸려 중단됨',
+  [-2147020576]: '시간 제한에 걸려 중단됨',
+  3221225786: 'Ctrl+C·창 닫힘으로 중단됨',
+};
+
+/**
  * 운영 상태 — 손으로 관리해야 하는 자료들과 자동 작업.
  *
  * 서버는 이 값을 **만들지 못한다.** "파일을 언제 마지막으로 고쳤는지"는 git
@@ -1234,26 +1274,59 @@ const Maintenance: React.FC = () => {
 
       <div style={S.card}>
         <h2 style={S.h2}>자동으로 도는 작업</h2>
+        <div style={{ fontSize: 12.5, color: 'var(--ink-500)', lineHeight: 1.7, marginBottom: 10 }}>
+          개발 컴퓨터의 <b>윈도우 작업 스케줄러</b>가 돌립니다 — 서버가 아니라 그 컴퓨터가
+          켜져 있어야 돕니다. 셋이 <b>순서대로 물려 있어요</b>: 크롤러가 글을 가져오면(07:00),
+          다음 날 새벽 AI 가 그 글에서 재료를 뽑고(03:00), 승인한 사전이 파일로 옮겨집니다(04:30).
+        </div>
         <div style={{ overflowX: 'auto' }}>
-          <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 560 }}>
+          <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 860 }}>
             <thead>
-              <tr>{['작업', '상태', '마지막 실행', '결과', '다음 실행'].map(h => (
+              <tr>{['작업', '마지막 실행', '결과', '다음 실행', '무슨 일을 하나'].map(h => (
                 <th key={h} style={S.th}>{h}</th>
               ))}</tr>
             </thead>
             <tbody>
-              {(st.tasks || []).map((t: any, i: number) => (
+              {(st.tasks || []).map((t: any, i: number) => {
+                const info = TASK_INFO[t.name];
+                const ok = t.last_result === 0;
+                return (
                 <tr key={t.name || i}>
-                  <td style={S.td}>{t.name || t.error || '?'}</td>
-                  <td style={S.td}>{t.state || '-'}</td>
+                  <td style={{ ...S.td, whiteSpace: 'normal', maxWidth: 170 }}>
+                    <b>{t.name || t.error || '?'}</b>
+                    <div style={{ fontSize: 11.5, color: 'var(--ink-500)', marginTop: 2 }}>
+                      {info ? info.when : (t.state || '-')}
+                    </div>
+                  </td>
                   <td style={S.td}>{String(t.last_run || '-').slice(0, 16)}</td>
-                  <td style={{ ...S.td, color: t.last_result === 0 ? 'var(--ink-500)' : '#D14343',
-                               fontWeight: t.last_result === 0 ? 400 : 700 }}>
-                    {t.last_result === 0 ? '성공' : '실패 (' + t.last_result + ')'}
+                  <td style={{ ...S.td, color: ok ? 'var(--ink-500)' : '#D14343',
+                               fontWeight: ok ? 400 : 700, whiteSpace: 'normal', maxWidth: 130 }}>
+                    {ok ? '성공' : (TASK_RESULT[t.last_result] || '실패')}
+                    {!ok && (
+                      <div style={{ fontSize: 11, fontWeight: 400, color: 'var(--ink-500)', marginTop: 2 }}>
+                        코드 {t.last_result}
+                      </div>
+                    )}
                   </td>
                   <td style={S.td}>{String(t.next_run || '-').slice(0, 16)}</td>
+                  {/* 이 열이 이 표의 핵심이다. 나머지 칸은 "돌았나" 만 말하는데,
+                      정작 알아야 할 건 "안 돌면 뭐가 잘못되나" 이다. */}
+                  <td style={{ ...S.td, whiteSpace: 'normal', minWidth: 300, fontSize: 12,
+                               color: 'var(--ink-700)', lineHeight: 1.65 }}>
+                    {info ? (
+                      <>
+                        {info.does}
+                        <div style={{ marginTop: 6, color: 'var(--ink-500)' }}>
+                          <b style={{ color: ok ? 'var(--ink-700)' : '#D14343' }}>안 돌면</b> {info.ifNot}
+                        </div>
+                      </>
+                    ) : (
+                      <span style={{ color: 'var(--ink-500)' }}>설명이 등록되지 않은 작업이에요.</span>
+                    )}
+                  </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
