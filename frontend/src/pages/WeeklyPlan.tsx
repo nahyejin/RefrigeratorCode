@@ -6,6 +6,7 @@ import { findExpiring, daysLabel, type FridgeItem, type ExpiringItem } from '../
 import { openCookMode } from '../utils/cookMode';
 import { resolveCoupangUrl } from '../utils/coupangLink';
 import { track } from '../utils/track';
+import StepLoading from '../components/StepLoading';
 
 /**
  * 이번 주 식단 + 장보기 목록.
@@ -140,16 +141,27 @@ const WeeklyPlan: React.FC = () => {
     });
   };
 
+  // 위쪽 여백 72 는 **고정 헤더 높이**다. 이걸 빼먹어서 뒤로가기 버튼이
+  // 헤더 밑에 깔려 안 보였다(다른 화면들도 같은 값을 쓴다).
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--surface-sub)', padding: '16px 14px 90px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+    <div style={{ minHeight: '100vh', background: 'var(--surface-sub)',
+                  padding: '72px 14px 90px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 14 }}>
         <button
           type="button"
           onClick={() => navigate(-1)}
-          aria-label="뒤로"
-          style={{ border: 'none', background: 'transparent', fontSize: 20, cursor: 'pointer', padding: 4 }}
+          aria-label="뒤로 가기"
+          style={{
+            // 44px — 손가락이 닿는 최소 크기. 글자만 두면 눌러도 잘 안 먹는다.
+            width: 44, height: 44, marginLeft: -10, flexShrink: 0,
+            border: 'none', background: 'transparent', cursor: 'pointer',
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          }}
         >
-          ‹
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1A1A1E"
+               strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
         </button>
         <h1 style={{ fontSize: 19, fontWeight: 700, margin: 0, color: '#1A1A1E' }}>이번 주 식단</h1>
       </div>
@@ -188,9 +200,20 @@ const WeeklyPlan: React.FC = () => {
       )}
 
       {!error && recipes === null && (
-        <div style={{ background: 'var(--surface)', borderRadius: 14, padding: 20,
-                      fontSize: 13, color: 'var(--ink-500)', textAlign: 'center' }}>
-          짜는 중이에요...
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--line-200)',
+                      borderRadius: 14, padding: '4px 16px 16px' }}>
+          <StepLoading
+            steps={[
+              '냉장고 재료를 살펴보는 중이에요',
+              '곧 상하는 재료를 먼저 챙기는 중이에요',
+              '만들 수 있는 요리를 고르는 중이에요',
+              '비슷한 요리를 걸러내는 중이에요',
+            ]}
+            timings={[600, 1600, 2800, 4500]}
+            note="보통 2~5초쯤 걸려요."
+            lastNote="거의 다 됐어요."
+            rows={4}
+          />
         </div>
       )}
 
@@ -268,8 +291,13 @@ const WeeklyPlan: React.FC = () => {
               </div>
             );
           })}
-          <div style={{ fontSize: 11.5, color: 'var(--ink-500)', lineHeight: 1.6, padding: '0 4px' }}>
+          <div style={{ fontSize: 11.5, color: 'var(--ink-500)', lineHeight: 1.7, padding: '0 4px' }}>
             체크를 풀면 아래 장보기 목록에서도 빠져요. 요리를 누르면 조리 순서가 나옵니다.
+            <br />
+            {/* "AI 가 짜 주는 것" 으로 오해하면 크레딧이 닳는 줄 알고 아껴 쓰게 된다.
+                실제로는 미리 뽑아 둔 재료를 맞춰 보는 것뿐이라 얼마든지 눌러도 된다. */}
+            <b>이 기능은 AI 크레딧을 쓰지 않아요.</b> 레시피마다 미리 뽑아 둔 재료를
+            냉장고와 맞춰 보는 것이라, 몇 번을 다시 짜도 크레딧이 줄지 않습니다.
           </div>
         </div>
       )}

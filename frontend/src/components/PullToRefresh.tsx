@@ -26,6 +26,14 @@ const RESISTANCE = 0.5; // 당긴 거리보다 실제로는 덜 움직이게(고
 const PullToRefresh: React.FC<PullToRefreshProps> = ({ onRefresh, children }) => {
   const [pullDistance, setPullDistance] = React.useState(0);
   const [refreshing, setRefreshing] = React.useState(false);
+  /**
+   * 새로고침이 **끝났다**는 것을 잠깐 보여 주는 상태.
+   *
+   * 없으면 다 되고 나서 표시가 그냥 사라진다. 요청이 빨라서 화살표가 한 바퀴
+   * 돌기도 전에 끝나면 **아무 일도 안 일어난 것처럼 보인다** — 실제로
+   * "새로고침이 되는 건지 아닌 건지 모르겠다" 는 말을 들었다.
+   */
+  const [justDone, setJustDone] = React.useState(false);
   const startYRef = React.useRef<number | null>(null);
   const pullingRef = React.useRef(false);
   const containerRef = React.useRef<HTMLDivElement>(null);
@@ -84,9 +92,18 @@ const PullToRefresh: React.FC<PullToRefreshProps> = ({ onRefresh, children }) =>
       if (pullDistanceRef.current >= PULL_THRESHOLD) {
         updatePullDistance(PULL_THRESHOLD);
         setRefreshing(true);
+        const startedAt = Date.now();
         Promise.resolve(onRefresh()).finally(() => {
-          setRefreshing(false);
-          updatePullDistance(0);
+          // 최소 500ms 는 "새로고침 중" 을 보여 준다. 요청이 100ms 만에 끝나면
+          // 사람 눈에는 아무 일도 안 일어난 것과 같다.
+          const wait = Math.max(0, 500 - (Date.now() - startedAt));
+          setTimeout(() => {
+            setRefreshing(false);
+            setJustDone(true);
+            updatePullDistance(0);
+            // 완료 표시는 잠깐만. 계속 남아 있으면 그것대로 거슬린다.
+            setTimeout(() => setJustDone(false), 900);
+          }, wait);
         });
       } else {
         updatePullDistance(0);
@@ -104,8 +121,22 @@ const PullToRefresh: React.FC<PullToRefreshProps> = ({ onRefresh, children }) =>
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshing]);
 
-  const indicatorOpacity = Math.min(pullDistance / PULL_THRESHOLD, 1);
-  const shouldSpin = refreshing || pullDistance >= PULL_THRESHOLD;
+  const indicatorOpacity = justDone ? 1 : Math.min(pullDistance / PULL_THRESHOLD, 1);
+  const shouldSpin = refreshing || (!justDone && pullDistance >= PULL_THRESHOLD);
+
+  /**
+   * 지금 무슨 상태인지 **글자로** 말해 준다.
+   *
+   * 화살표만 있으면 "당기라는 건지, 되고 있다는 건지, 끝났다는 건지" 를 알 수
+   * 없다. 아이콘 하나에 세 가지 뜻을 다 실을 수는 없다.
+   */
+  const label = justDone
+    ? '새로고침 완료'
+    : refreshing
+      ? '새로고침 중...'
+      : pullDistance >= PULL_THRESHOLD
+        ? '놓으면 새로고침돼요'
+        : '당겨서 새로고침';
 
   return (
     <div ref={containerRef} style={{ position: 'relative' }}>
@@ -120,17 +151,19 @@ const PullToRefresh: React.FC<PullToRefreshProps> = ({ onRefresh, children }) =>
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          transform: `translateY(${pullDistance}px)`,
+          gap: 7,
+          transform: `translateY(${justDone ? PULL_THRESHOLD : pullDistance}px)`,
           opacity: indicatorOpacity,
+          transition: justDone ? 'opacity .3s ease' : undefined,
           pointerEvents: 'none',
         }}
       >
         <svg
-          width="22"
-          height="22"
+          width="18"
+          height="18"
           viewBox="0 0 24 24"
           fill="none"
-          stroke="var(--ink-500)"
+          stroke={justDone ? "#3A6B2E" : "var(--ink-500)"}
           strokeWidth="2.2"
           strokeLinecap="round"
           style={{
@@ -138,9 +171,23 @@ const PullToRefresh: React.FC<PullToRefreshProps> = ({ onRefresh, children }) =>
             animation: shouldSpin ? 'pull-refresh-spin 0.7s linear infinite' : undefined,
           }}
         >
-          <path d="M20 12a8 8 0 1 1-2.34-5.66" />
-          <path d="M20 4v5h-5" />
+          {justDone ? (
+            <path d="M20 6L9 17l-5-5" />
+          ) : (
+            <>
+              <path d="M20 12a8 8 0 1 1-2.34-5.66" />
+              <path d="M20 4v5h-5" />
+            </>
+          )}
         </svg>
+        <span style={{
+          fontSize: 12.5,
+          fontWeight: 600,
+          color: justDone ? '#3A6B2E' : 'var(--ink-500)',
+          whiteSpace: 'nowrap',
+        }}>
+          {label}
+        </span>
       </div>
       <style>{`
         @keyframes pull-refresh-spin {

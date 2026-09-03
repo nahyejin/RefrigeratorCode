@@ -1881,13 +1881,19 @@ const Dashboard: React.FC = () => {
             <div style={{ padding: '0 16px' }}>
               <Range>전체 기간 누적 · 마지막 활동이 최근인 100명</Range>
             </div>
-            <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 620, marginTop: 10 }}>
-              <thead><tr>{['닉네임', '재료', '즐겨찾기', '완료', '기록', 'AI', '마지막 활동'].map(h => (
+            <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 700, marginTop: 10 }}>
+              {/* 가입일이 있어야 "언제 들어온 사람이 아직 쓰고 있나" 를 읽을 수 있다.
+                  마지막 활동만 보면 어제 가입해서 어제 쓴 사람과 반년 전에 가입해
+                  계속 쓰는 사람이 똑같아 보인다. */}
+              <thead><tr>{['닉네임', '가입일', '재료', '즐겨찾기', '완료', '기록', 'AI', '마지막 활동'].map(h => (
                 <th key={h} style={S.th}>{h}</th>))}</tr></thead>
               <tbody>
                 {(act.people || []).map((u: any) => (
                   <tr key={u.id}>
                     <td style={S.td}>{u.nickname}</td>
+                    <td style={{ ...S.td, fontSize: 12, color: 'var(--ink-500)' }}>
+                      {dayOf(u.created_at) || '-'}
+                    </td>
                     <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums' }}>{u.ingredients}</td>
                     <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums' }}>{u.favorites}</td>
                     <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums' }}>{u.completed}</td>
