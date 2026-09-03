@@ -710,13 +710,21 @@ const WeeklyPlan: React.FC = () => {
             }}
           />
           {/* 배지를 버튼 밖에 두려면 감싸는 자리가 필요하다.
-              버튼 안에 넣으면 `overflow: hidden` 에 잘린다. */}
-          <span className={canAi && !asking ? 'ai-glow' : undefined}
+              버튼 안에 넣으면 `overflow: hidden` 에 잘린다.
+
+              반짝임은 `asking`(요청 중) 일 때만 멈춘다 — `canAi`(크레딧 있음)
+              에 걸면 안 된다. `.ai-action:disabled`가 애니메이션을 꺼버리는데
+              disabled는 `!canAi`일 때도 걸리므로, 크레딧이 없거나 사용량
+              정보가 아직 안 불러와진 순간(canAi가 잠깐 false)엔 챗봇
+              FAB·카메라 버튼과 달리 이 버튼만 안 반짝이는 문제가 있었다.
+              클릭 자체는 onClick 안에서 canAi로 막으므로 disabled를 asking
+              에만 걸어도 크레딧 없을 때 실행되는 일은 없다. */}
+          <span className={!asking ? 'ai-glow' : undefined}
                 style={{ position: 'relative', flexShrink: 0 }}>
             <button
               type="button"
               className="ai-action"
-              disabled={asking || !canAi}
+              disabled={asking}
               onClick={() => { if (canAi) void askAi(); }}
               style={{
                 height: 40, padding: '0 14px', borderRadius: 10,
@@ -726,7 +734,7 @@ const WeeklyPlan: React.FC = () => {
             >
               <span>{asking ? '짜는 중...' : 'AI 식단 짜기'}</span>
             </button>
-            {!asking && canAi && <span className="ai-fab-badge">AI</span>}
+            {!asking && <span className="ai-fab-badge">AI</span>}
           </span>
         </div>
         {/* 남은 양은 앱 어디서나 **같은 부품**으로 보여 준다. 화면마다 다르게

@@ -6433,3 +6433,24 @@ DB에 `recipes.recipe_name` 컬럼 신설. 이 컬럼 추가 과정에서 `post_
   스크린샷으로 확인. 로그인 세션이 없어 캘린더 그리드의 도장 모양과
   재료 우선순위 색상(유통기한 데이터 필요)까지는 라이브로 확인 못 함 —
   코드 리뷰로만 검증됨
+
+### "AI 식단 짜기" 버튼의 반짝임이 안 보이던 진짜 원인 수정
+
+바로 위에서 다른 버튼(요리 캘린더 진입 카드)에 반짝임을 새로 붙였는데도
+"여전히 애니메이션이 안 된다"는 지적을 받고 다시 봤더니, `WeeklyPlan.tsx`의
+실제 "AI 식단 짜기" 버튼은 처음부터 `.ai-action`/`.ai-glow`가 붙어 있었다 —
+문제는 **크레딧이 없거나(`canAi` false) 사용량 정보가 아직 안 불러와진
+순간에 버튼이 `disabled` 처리되는데, `.ai-action:disabled { animation: none;
+}` 규칙이 애니메이션을 통째로 꺼버리는 것**이었다. 챗봇 FAB·카메라 버튼은
+이런 상태 의존이 없어 항상 반짝이는데 이 버튼만 크레딧 상태에 따라 죽어
+있었다.
+
+`disabled`를 `asking || !canAi` → `asking`만으로 바꾸고, `ai-glow`/`AI` 배지
+조건도 `canAi && !asking` → `!asking`으로 바꿔 크레딧 유무와 무관하게 항상
+반짝이게 했다. 클릭 시 실제 동작은 `onClick` 안의 `if (canAi)` 가드가 그대로
+막아 주므로 크레딧 없이 실행되는 일은 없다.
+
+#### 검증 (실측)
+- `npx tsc --noEmit` 에러 0건
+- 로컬에서 버튼 DOM을 직접 조회해 `disabled: false`, `className: "ai-action"`,
+  래퍼 `className: "ai-glow"`, AI 배지 존재를 확인
