@@ -56,6 +56,7 @@ const ROUTES = {
 const Popular = lazy(() => import('../pages/Popular'));
 const MyFridge = lazy(() => import('../pages/MyFridge'));
 const RecipeDetail = lazy(() => import('../pages/RecipeDetail'));
+const WeeklyPlan = lazy(() => import('../pages/WeeklyPlan'));
 // 어드민은 반드시 lazy 로 둔다 — 일반 사용자 번들에 관리자 화면 코드가 실리면
 // 용량도 늘고 내부 구조가 그대로 노출된다. (권한 검사는 서버가 따로 한다)
 const Admin = lazy(() => import('../pages/Admin'));
@@ -225,6 +226,14 @@ function AppContent() {
             element={<RecipeDetail />} 
           />
           
+          {/* 이번 주 식단 + 장보기 목록.
+              장보기 목록은 식단에서 나오므로 한 화면에 둔다 — 나누면 사용자가
+              같은 걸 두 번 정하게 된다. */}
+          <Route
+            path="/plan"
+            element={<WeeklyPlan />}
+          />
+
           {/* 인기 레시피 페이지 */}
           <Route 
             path={ROUTES.POPULAR} 

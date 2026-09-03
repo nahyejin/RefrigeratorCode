@@ -121,8 +121,8 @@ const CookModeSheet: React.FC<Props> = ({
   const names = data?.ingredients || [];
 
   return (
-    <Sheet isOpen={isOpen} onClose={() => { stopSpeaking(); onClose(); }}
-           title={data?.title || fallbackTitle || '레시피'}>
+    <Sheet open={isOpen} onClose={() => { stopSpeaking(); onClose(); }}
+           title={data?.title || fallbackTitle || '레시피'} maxHeight="88dvh" hideFooter>
       {loading && (
         <div style={{ padding: '28px 0', textAlign: 'center', color: 'var(--ink-500)', fontSize: 14 }}>
           불러오는 중이에요...

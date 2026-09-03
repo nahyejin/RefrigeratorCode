@@ -20,6 +20,7 @@ import Dialog from '../components/ui/Dialog';
 import { shrinkImageForUpload } from '../utils/imageUtils';
 import { applyUsage, usageHeaders } from '../utils/usage';
 import { UsageBadge, useUsage } from '../components/UsageMeter';
+import ExpiryAlert from '../components/ExpiryAlert';
 import { loadIngredientCategoryMap, estimateExpiry, type CategoryMap } from '../utils/shelfLife';
 import {
   isUsageGuideDueThisVisit,
@@ -2105,6 +2106,38 @@ const MyFridge: React.FC = () => {
           </div>
         </div>
         <div style={{ maxWidth: 400, margin: '0 auto', paddingLeft: 20, paddingRight: 20, width: '100%', boxSizing: 'border-box' }}>
+          {/* 곧 상하는 재료를 **열자마자** 알린다.
+              유통기한은 원래도 재료마다 들고 있었지만 하나씩 눌러 봐야 보였다.
+              찾아 들어가야 보이는 정보는 없는 것과 같다. */}
+          <div style={{ marginBottom: 14 }}>
+            <ExpiryAlert
+              boxes={{ frozen: frozen || [], fridge: fridge || [], room: room || [] }}
+              categoryMap={categoryMap}
+              onPick={() => navigate('/plan')}
+            />
+          </div>
+
+          {/* 식단으로 가는 입구.
+              하단 네비에 탭을 하나 더 다는 대신 여기 둔다 — 식단은 **재료를 넣은
+              다음**에 의미가 생기는 기능이라, 재료 화면에서 이어지는 게 맞다. */}
+          {((frozen?.length || 0) + (fridge?.length || 0) + (room?.length || 0)) > 0 && (
+            <button
+              type="button"
+              onClick={() => navigate('/plan')}
+              style={{
+                width: '100%', height: 46, borderRadius: 12, marginBottom: 14,
+                border: '1px solid var(--line-200)', background: 'var(--surface)',
+                fontSize: 14, fontWeight: 700, color: '#1A1A1E', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '0 16px',
+              }}
+            >
+              <span>이번 주 식단 짜기</span>
+              <span style={{ fontSize: 12.5, fontWeight: 500, color: 'var(--ink-500)' }}>
+                장보기 목록까지 ›
+              </span>
+            </button>
+          )}
           <div
             className="flex gap-2 mb-4"
             /* 가이드가 이 줄 전체(입력창 + 입력 + 카메라)를 가리킨다.
