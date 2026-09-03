@@ -760,11 +760,20 @@ const Dictionary: React.FC = () => {
   const [note, setNote] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
 
+  /** 몇 회 이상만 볼지. 한 번만 나온 이름이 전체의 3분의 2라 기본은 2회다. */
+  const [minHits, setMinHits] = React.useState(2);
+  const [scope, setScope] = React.useState<any>(null);
+
   const load = React.useCallback(() => {
-    api('/api/admin/dictionary/misses')
-      .then(d => { setMisses(d.misses || []); setPicked(new Set()); setSuggestions(null); })
+    api(`/api/admin/dictionary/misses?min_hits=${minHits}`)
+      .then(d => {
+        setMisses(d.misses || []);
+        setScope({ total: d.total, matching: d.matching, shown: d.shown });
+        setPicked(new Set());
+        setSuggestions(null);
+      })
       .catch(e => setError(e.message));
-  }, []);
+  }, [minHits]);
   React.useEffect(load, [load]);
 
   React.useEffect(() => {
@@ -924,6 +933,45 @@ const Dictionary: React.FC = () => {
           이름이라 더 볼 필요가 없어요 — <b>이제 잡히는 것 치우기</b>로 한 번에 치우세요.
         </div>
 
+        {/* "처리해도 계속 300개가 나온다" 는 오해를 없앤다 — 한 번에 300줄만
+            보여 주는 것이고, 뒤에 얼마가 남았는지 숫자로 밝힌다. */}
+        {scope && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
+            marginBottom: 10, padding: '9px 11px', borderRadius: 10,
+            background: 'var(--surface-sub)', fontSize: 12.5, color: 'var(--ink-700)',
+          }}>
+            <span>
+              치우지 않은 것 <b>{num(scope.total)}개</b>
+              {' · '}이 기준에 드는 것 <b>{num(scope.matching)}개</b>
+              {' · '}지금 보는 것 <b>{num(scope.shown)}개</b>
+              {scope.matching > scope.shown && (
+                <span style={{ color: 'var(--ink-500)' }}>
+                  {' '}(많이 나온 순 300개씩. 치우면 다음 300개가 올라와요)
+                </span>
+              )}
+            </span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 5, marginLeft: 'auto' }}>
+              <span style={{ color: 'var(--ink-500)' }}>몇 회 이상</span>
+              {[2, 5, 10, 50].map(n => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => setMinHits(n)}
+                  style={{
+                    height: 26, padding: '0 9px', borderRadius: 8, cursor: 'pointer',
+                    border: minHits === n ? '1px solid #1A1A1E' : '1px solid var(--line-200)',
+                    background: minHits === n ? '#FFD600' : 'var(--surface)',
+                    fontSize: 11.5, fontWeight: minHits === n ? 700 : 500, color: '#1A1A1E',
+                  }}
+                >
+                  {n}회
+                </button>
+              ))}
+            </span>
+          </div>
+        )}
+
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
           <button type="button" style={S.primary} disabled={!picked.size || !!busy} onClick={ask}>
             {busy === '제안 받는 중...' ? busy : '제안 받기 (' + picked.size + ')'}
@@ -1059,8 +1107,14 @@ const Dictionary: React.FC = () => {
           </div>
 
           {/* 카드로 둔다. 표로 두면 좁은 화면에서 가로 스크롤이 생기고
-              첫 열(이름)이 화면 밖으로 밀려 무엇에 대한 줄인지 안 보였다. */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              첫 열(이름)이 화면 밖으로 밀려 무엇에 대한 줄인지 안 보였다.
+              위 목록과 마찬가지로 **정해진 높이 안에서만** 스크롤한다 —
+              보탠 것이 쌓이면 이 카드 하나가 페이지를 끝없이 늘렸다. */}
+          <div style={{
+            display: 'flex', flexDirection: 'column', gap: 8,
+            maxHeight: 480, overflowY: 'auto',
+            border: '1px solid var(--line-200)', borderRadius: 8, padding: 8,
+          }}>
             {additions.map((a: any) => {
               const failed = !!a.apply_error;
               return (
@@ -1162,9 +1216,16 @@ const TASK_INFO: Record<string, { when: string; does: string; ifNot: string }> =
   },
   'CookMatch-DailyLLMIngredients': {
     when: '매일 03:00',
-    does: '긁어 온 글의 본문을 AI 에게 읽혀 재료와 조리 순서를 뽑습니다. 레시피가 아닌 글'
-        + '(보관법·제품 후기·맛집·광고)은 지우고, 사전에 없는 재료 이름은 사전 탭의 '
-        + '"사전에 없던 이름" 으로 쌓아 둡니다.',
+    does: '긁어 온 글의 본문을 AI 에게 읽혀 재료와 조리 순서를 뽑습니다. '
+        + '사전에 없는 재료 이름은 사전 탭의 "사전에 없던 이름" 으로 쌓아 둡니다.\n'
+        + '이 배치가 지우는 글은 네 가지입니다 — ① 요리 글이 아닌 것(보관법·제품 '
+        + '후기·맛집·광고), ② 한 글에 요리가 여럿인 것("밑반찬 3종", "저녁상 10가지" '
+        + '처럼 요리마다 재료와 만드는 법이 따로 나오는 글), ③ 재료를 하나도 못 뽑은 것, '
+        + '④ 재료가 하나뿐인 것.\n'
+        + '②를 지우는 이유: 식단은 "이 날 이걸 만든다" 를 정하는 것인데, 한 글에 반찬이 '
+        + '넷이면 그 날 무엇을 만들지가 안 정해지고 재료·조리 순서가 네 요리 것으로 '
+        + '섞여 매칭률이 엉킵니다. 한 요리를 만들면서 곁들임 소스를 함께 설명하는 것은 '
+        + '한 요리로 봅니다.',
     ifNot: '새 글은 재료가 빈 채로 남아 냉장고 매칭에 안 잡힙니다. 다음 날 이어서 처리되므로 '
          + '기록이 사라지진 않고, 밀린 만큼 늦어집니다.',
   },
@@ -1315,7 +1376,10 @@ const Maintenance: React.FC = () => {
                                color: 'var(--ink-700)', lineHeight: 1.65 }}>
                     {info ? (
                       <>
-                        {info.does}
+                        {/* 설명이 여러 문단이다. `
+` 을 그대로 두면 한 줄로
+                            붙어서 읽히지 않는다. */}
+                        <span style={{ whiteSpace: 'pre-line' }}>{info.does}</span>
                         <div style={{ marginTop: 6, color: 'var(--ink-500)' }}>
                           <b style={{ color: ok ? 'var(--ink-700)' : '#D14343' }}>안 돌면</b> {info.ifNot}
                         </div>

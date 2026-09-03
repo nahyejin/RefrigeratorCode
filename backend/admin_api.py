@@ -610,13 +610,32 @@ def register(app, get_db):
             #
             # 물량은 레시피 본문 쪽이 압도적이다(사진 수십 건 vs 본문 수만 건).
             # 사진 것만 보고 있으면 정작 고쳐야 할 이름은 화면에 뜨지도 않는다.
+            # 몇 회 이상만 볼지. 한 번만 나온 이름이 전체의 3분의 2였는데,
+            # 그건 대개 오타이거나 어쩌다 한 번 쓰인 말이라 볼 값어치가 없다.
+            try:
+                min_hits = max(1, int(request.args.get('min_hits', 2)))
+            except ValueError:
+                min_hits = 2
+
+            # 몇 개가 남아 있는지 **먼저** 센다. 화면은 300개만 보여 주는데,
+            # 그 사실을 안 알려 주면 "처리해도 계속 300개가 나온다" 로 보인다.
+            cursor.execute(
+                "SELECT COUNT(*) n, "
+                "  SUM(hit_count + COALESCE(recipe_hits,0) >= %s) shown "
+                "FROM ingredient_dictionary_misses WHERE COALESCE(dismissed, 0) = 0",
+                (min_hits,),
+            )
+            counts = cursor.fetchone() or {}
+
             cursor.execute(
                 "SELECT raw_name, hit_count, COALESCE(recipe_hits, 0) recipe_hits, "
                 "       hit_count + COALESCE(recipe_hits, 0) AS total_hits, "
                 "       last_mode, first_seen, last_seen "
                 "FROM ingredient_dictionary_misses "
                 "WHERE COALESCE(dismissed, 0) = 0 "
-                "ORDER BY total_hits DESC, last_seen DESC LIMIT 300"
+                "  AND hit_count + COALESCE(recipe_hits, 0) >= %s "
+                "ORDER BY total_hits DESC, last_seen DESC LIMIT 300",
+                (min_hits,),
             )
             rows = cursor.fetchall()
         finally:
@@ -646,7 +665,14 @@ def register(app, get_db):
                 'last_seen': r['last_seen'].isoformat() if r['last_seen'] else None,
                 'now_resolves_to': resolved,
             })
-        return jsonify({'misses': out})
+        return jsonify({
+            'misses': out,
+            # 화면이 "지금 무엇을 보고 있는지" 말할 수 있게 같이 내려 준다.
+            'total': int(counts.get('n') or 0),          # 치우지 않은 것 전부
+            'matching': int(counts.get('shown') or 0),   # 그중 이 기준에 드는 것
+            'shown': len(out),                            # 실제로 보내는 줄 수
+            'min_hits': min_hits,
+        })
 
     @app.route('/api/admin/dictionary/suggest', methods=['POST'])
     def admin_dictionary_suggest():

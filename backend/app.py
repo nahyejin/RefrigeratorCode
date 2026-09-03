@@ -4444,7 +4444,27 @@ def suggest_meal_plan():
             'usage': e.status,
         }), 429
 
-    # 후보 추리기 — 냉장고 재료를 하나라도 쓰는 레시피 중 매칭률 높은 순.
+    # 사용자가 적은 말을 **찾을 수 있는 말**로 바꾼다.
+    #
+    # 전에는 이 글이 후보 선정에 전혀 안 쓰였다. 재료 매칭만으로 40개를 뽑아
+    # LLM 에게 넘겼으니, "아이 먹을 거" 라고 적어도 그 40개 안에 아이가 먹을
+    # 만한 게 없으면 나올 수가 없었다. 고르기 **전에** 걸러야 한다.
+    import plan_intent
+    want, hints, avoid = plan_intent.read(request_text)
+
+    # 요청에 맞는 것을 위로 올린다. 걸러 내지는 않는다 — 딱 맞는 게 적을 때
+    # 후보가 0개가 되면 아무것도 못 짜기 때문이다. 순서를 바꾸는 것으로 충분하다.
+    want_sql, want_args = "0", []
+    if want:
+        want_sql = " + ".join(["(title LIKE %s OR content LIKE %s)"] * len(want))
+        for w in want:
+            want_args.extend([f"%{w}%", f"%{w}%"])
+
+    avoid_sql, avoid_args = "0", []
+    if avoid:
+        avoid_sql = " + ".join(["(title LIKE %s)"] * len(avoid))
+        avoid_args.extend([f"%{w}%" for w in avoid])
+
     marks = ",".join(["%s"] * len(have))
     db = get_db()
     cursor = db.cursor()
@@ -4453,17 +4473,20 @@ def suggest_meal_plan():
             f"""
             SELECT id, title, link, thumbnail, used_ingredients,
                    ( {" + ".join([f"(FIND_IN_SET(%s, REPLACE(used_ingredients,' ','')) > 0)"] * len(have))} )
-                     AS hit
+                     AS hit,
+                   ( {want_sql} ) AS want_hit,
+                   ( {avoid_sql} ) AS avoid_hit
             FROM recipes
             WHERE used_ingredients IS NOT NULL AND used_ingredients <> ''
             -- 냉장고 재료를 **하나라도** 쓰는 레시피가 후보다.
             -- 전에는 `have[0]` 하나만 WHERE 에 넣어서, 첫 번째 재료가 든
             -- 레시피만 후보가 됐다. 재료를 20개 넣어도 그중 하나로만 걸렀다.
             HAVING hit > 0
-            ORDER BY hit DESC, id DESC
-            LIMIT 40
+            -- 요청에 맞는 것 먼저, 빼 달라고 한 것은 뒤로, 그다음 매칭률.
+            ORDER BY (want_hit > 0) DESC, avoid_hit ASC, want_hit DESC, hit DESC, id DESC
+            LIMIT 60
             """,
-            tuple(have),
+            tuple(list(have) + want_args + avoid_args),
         )
         rows = cursor.fetchall()
     finally:
@@ -4481,7 +4504,7 @@ def suggest_meal_plan():
     try:
         import meal_plan
 
-        picked, meta = meal_plan.suggest(candidates, have, expiring, request_text)
+        picked, meta = meal_plan.suggest(candidates, have, expiring, request_text, hints=hints)
         usage_quota.note_gemini_usage(meta, model=meal_plan.MODEL)
         usage_quota.attach_tokens(get_db, usage.get('usage_id'))
     except RuntimeError as e:

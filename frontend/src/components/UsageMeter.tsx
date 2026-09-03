@@ -240,10 +240,14 @@ export const UsageGauge: React.FC = () => {
         gap: 10,
       }}
     >
+      {/* 남은 양이 이 카드의 요점이다. 제목과 같은 크기로 적어 두면
+          "AI 크레딧" 이라는 이름만 눈에 들어오고 정작 숫자는 안 읽힌다. */}
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10 }}>
         <div style={{ fontSize: 14, fontWeight: 700, color: '#1A1A1E' }}>AI 크레딧</div>
-        <div style={{ fontSize: 13, color: 'var(--ink-500)' }}>
-          <>남은 <b style={{ color: '#1A1A1E', fontWeight: 700, fontSize: 15 }}>{usage.balance}</b></>
+        <div style={{ fontSize: 12.5, color: 'var(--ink-500)' }}>
+          남은 크레딧{' '}
+          <b style={{ color: '#1A1A1E', fontWeight: 800, fontSize: 20 }}>{usage.balance}</b>
+          <span style={{ color: '#1A1A1E', fontWeight: 700 }}>개</span>
         </div>
       </div>
 
@@ -266,29 +270,37 @@ export const UsageGauge: React.FC = () => {
         />
       </div>
 
-      <div style={{ fontSize: 12, color: 'var(--ink-500)', lineHeight: 1.7 }}>
-        사진으로 재료 담기(2)와 요리 챗봇(1)이 함께 쓰는 크레딧이에요.
-        <br />
+      {/* 어디에 쓰이는지 **세 군데를 다 적는다.** 식단 짜기가 빠져 있어서,
+          크레딧이 줄어 있는데 왜 줄었는지 알 수 없는 경우가 생겼다.
+          값은 서버가 정하는 것이라 서버가 준 값을 그대로 쓴다. */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+        {[
+          ['재료 담기', (usage.credits as any)?.vision ?? 2],
+          ['요리 챗봇', (usage.credits as any)?.chat ?? 1],
+          ['식단 짜기', (usage.credits as any)?.plan ?? 2],
+        ].map(([label, cost]) => (
+          <span key={label as string} style={{
+            fontSize: 11.5, padding: '4px 9px', borderRadius: 9999,
+            background: 'var(--surface-sub)', color: 'var(--ink-700)',
+          }}>
+            {label} <b style={{ color: '#1A1A1E' }}>{cost}</b>
+          </span>
+        ))}
+      </div>
+
+      <div style={{ fontSize: 12, color: 'var(--ink-500)', lineHeight: 1.6 }}>
         {usage.is_guest ? (
-          <>체험분 <b>{usage.guest_trial}개</b>를 드렸어요. 가입하면
-          <b> {usage.signup_credits}개</b>를 바로 드립니다.</>
+          <>가입하면 <b>{usage.signup_credits}개</b>를 바로 드려요.</>
         ) : (
           <>
-            매주 월요일에 <b>{usage.weekly_credits}</b>개씩 채워져요
-            ({resetLabel(usage)}).
+            월요일마다 <b>{usage.weekly_credits}개</b>씩 채워져요 ({resetLabel(usage)}).
             {usage.daily_remaining < usage.balance &&
-              ` 오늘은 ${usage.daily_remaining}번 더 쓸 수 있어요.`}
+              ` 오늘은 ${usage.daily_remaining}번까지.`}
           </>
         )}
       </div>
 
-      {usage.is_guest ? (
-        <div style={{ fontSize: 12, color: 'var(--ink-700)', fontWeight: 600 }}>
-          {usage.balance > 0
-            ? `체험으로 ${usage.balance}개 더 쓸 수 있어요.`
-            : `가입하면 ${usage.signup_credits}개를 바로 드려요.`}
-        </div>
-      ) : pending ? (
+      {usage.is_guest ? null : pending ? (
         /* 이미 요청이 접수된 상태. 버튼을 계속 보여주면 또 누르게 되고,
            관리자 목록만 지저분해진다 (서버도 중복을 막는다). */
         <div style={{ fontSize: 12, color: 'var(--ink-700)', fontWeight: 600 }}>

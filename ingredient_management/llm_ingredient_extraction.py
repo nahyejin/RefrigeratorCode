@@ -88,6 +88,9 @@ from backend.ingredient_dictionary import (  # noqa: E402
 # 와 구분이 안 된다. 앞엣것은 지워야 하고 뒤엣것은 남겨 둬야 해서, 둘을 같은
 # 값으로 두면 어느 쪽인지 알 수 없다.
 NOT_RECIPE = "__NOT_RECIPE__"
+# 한 글에 서로 다른 요리가 둘 이상 들어 있는 것. 지우는 것은 같지만,
+# **왜 지웠는지**를 로그에서 갈라 봐야 기준이 맞는지 확인할 수 있다.
+MULTI_RECIPE = "__MULTI_RECIPE__"
 
 # 제목만으로는 못 가린다. 실측:
 #   `김진순 김치 비빔국수 레시피 식당 검증된 황금 양념장` — '식당' 이 들어 있지만
@@ -148,33 +151,54 @@ def _as_result(value):
     옛 모양을 계속 받아 주는 이유: 프롬프트를 바꿔도 모델이 가끔 예전처럼 답한다.
     그때 통째로 실패시키면 그 배치 12건이 다 날아간다.
     """
-    empty = {"ingredients": [], "detail": [], "steps": [], "recipe_name": "", "not_recipe": False}
-    nope = {"ingredients": [], "detail": [], "steps": [], "recipe_name": "", "not_recipe": True}
+    empty = {"ingredients": [], "detail": [], "steps": [], "recipe_name": "",
+             "not_recipe": False, "reason": ""}
+    nope = {"ingredients": [], "detail": [], "steps": [], "recipe_name": "",
+            "not_recipe": True, "reason": "not_recipe"}
+    many = {"ingredients": [], "detail": [], "steps": [], "recipe_name": "",
+            "not_recipe": True, "reason": "multi_recipe"}
+
+    def _verdict(token):
+        t = str(token).strip().upper()
+        if t in ("NOT_RECIPE", NOT_RECIPE):
+            return dict(nope)
+        if t in ("MULTI_RECIPE", MULTI_RECIPE):
+            return dict(many)
+        return None
+
     if isinstance(value, str):
-        return nope if value.strip().upper() == "NOT_RECIPE" else dict(empty)
+        return _verdict(value) or dict(empty)
     if isinstance(value, list):
-        if len(value) == 1 and str(value[0]).strip().upper() in ("NOT_RECIPE", NOT_RECIPE):
-            return nope
+        if len(value) == 1:
+            v = _verdict(value[0])
+            if v:
+                return v
         return {"ingredients": [str(x).strip() for x in value if str(x).strip()],
-                "detail": [], "steps": [], "recipe_name": "", "not_recipe": False}
+                "detail": [], "steps": [], "recipe_name": "",
+                "not_recipe": False, "reason": ""}
     if isinstance(value, dict):
         if str(value.get("not_recipe") or "").strip().upper() in ("TRUE", "1", "YES"):
-            return nope
+            return dict(nope)
+        if str(value.get("multi_recipe") or "").strip().upper() in ("TRUE", "1", "YES"):
+            return dict(many)
         ing = value.get("ingredients")
-        if isinstance(ing, str) and ing.strip().upper() == "NOT_RECIPE":
-            return nope
+        if isinstance(ing, str):
+            v = _verdict(ing)
+            if v:
+                return v
         return {
             "ingredients": [str(x).strip() for x in (ing or []) if str(x).strip()],
             "detail": _clean_detail(value.get("ingredients_detail")),
             "steps": _clean_steps(value.get("steps")),
             "recipe_name": " ".join(str(value.get("recipe_name") or "").split())[:100],
             "not_recipe": False,
+            "reason": "",
         }
     return dict(empty)
 
 
 def _extract_json_array(text):
-    empty = {"ingredients": [], "detail": [], "steps": [], "recipe_name": "", "not_recipe": False}
+    empty = {"ingredients": [], "detail": [], "steps": [], "recipe_name": "", "not_recipe": False, "reason": ""}
     if not text:
         return empty
     cleaned = text.strip()
@@ -235,6 +259,11 @@ PROMPT_TEMPLATE = """너는 레시피 본문에서 **재료와 조리 순서**�
   효능·칼로리 정보 글, 식당 메뉴 소개, 일상 브이로그.
   다만 **본문에 실제로 만드는 과정이 있으면** 맛집 이야기나 제품 홍보가 섞여
   있어도 요리 글로 본다. 애매하면 요리 글로 본다(지우는 쪽이 되돌리기 어렵다).
+- **한 글에 서로 다른 요리가 둘 이상** 설명돼 있으면 재료 대신 문자열
+  "MULTI_RECIPE" 를 출력한다. ("밑반찬 3종", "도시락 반찬 모음", "일주일 반찬"
+  처럼 요리마다 재료와 만드는 법이 따로 나오는 글)
+  한 요리를 만들면서 곁들임 소스나 밑간을 함께 설명하는 것은 **한 요리로 본다.**
+  같은 요리의 변형(매운맛/순한맛)도 한 요리다.
 
 - **재료 상세**(`ingredients_detail`)를 분량과 함께 그대로 적는다.
   예: ["생수제비 250g", "양배추 1컵(60g)", "고추장 1과 1/2큰술", "양조식초 2큰술"]
@@ -260,6 +289,7 @@ PROMPT_TEMPLATE = """너는 레시피 본문에서 **재료와 조리 순서**�
 아래 JSON 객체만 출력해라. 다른 텍스트는 출력하지 마라.
 예: {{"recipe_name": "김치찌개", "ingredients": ["돼지고기", "김치", "대파"], "ingredients_detail": ["돼지고기 200g", "신김치 1/4포기", "대파 1대", "고춧가루 1큰술"], "steps": ["김치 1/4포기를 한 입 크기로 썬다", "냄비에 참기름 1큰술을 두르고 김치를 중불에서 3분 볶는다", "물 500ml를 붓고 15분 끓인다"]}}
 요리 글이 아니면: "NOT_RECIPE"
+요리가 여러 개면: "MULTI_RECIPE"
 """
 
 BATCH_PROMPT_TEMPLATE = """너는 여러 개의 레시피 본문 각각에서 **재료와 조리 순서**를 뽑아내는 어시스턴트다.
@@ -280,6 +310,11 @@ BATCH_PROMPT_TEMPLATE = """너는 여러 개의 레시피 본문 각각에서 **
   효능·칼로리 정보 글, 식당 메뉴 소개, 일상 브이로그.
   다만 **본문에 실제로 만드는 과정이 있으면** 맛집 이야기나 제품 홍보가 섞여
   있어도 요리 글로 본다. 애매하면 요리 글로 본다(지우는 쪽이 되돌리기 어렵다).
+- **한 글에 서로 다른 요리가 둘 이상** 설명돼 있으면 재료 대신 문자열
+  "MULTI_RECIPE" 를 출력한다. ("밑반찬 3종", "도시락 반찬 모음", "일주일 반찬"
+  처럼 요리마다 재료와 만드는 법이 따로 나오는 글)
+  한 요리를 만들면서 곁들임 소스나 밑간을 함께 설명하는 것은 **한 요리로 본다.**
+  같은 요리의 변형(매운맛/순한맛)도 한 요리다.
 - 반드시 0부터 {n_minus_1}까지 모든 번호에 대해 결과를 포함해야 한다. 하나도 빠뜨리지 마라.
 
 - **재료 상세**(`ingredients_detail`)를 분량과 함께 그대로 적는다.
@@ -436,6 +471,16 @@ class GeminiExtractor:
                 parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
                 raw = "".join(p.get("text", "") for p in parts)
                 obj = _extract_json_object(raw)
+
+                # 한 건짜리 묶음에서는 모델이 번호 없이 **판정만** 답하기도 한다
+                # ("MULTI_RECIPE" 한 줄). 그걸 못 받아서 오류로 처리하면, 정작
+                # 지워야 할 글이 그대로 남는다 — 실제로 "일주일 밑반찬 레시피"
+                # 같은 글들이 이 구멍으로 살아남고 있었다.
+                if n == 1 and not (isinstance(obj, dict) and "0" in obj):
+                    token = raw.strip().strip('"').strip().upper()
+                    if token in ("NOT_RECIPE", "MULTI_RECIPE"):
+                        obj = {"0": token}
+
                 raw_list = []
                 err_list = []
                 for i in range(n):
@@ -443,7 +488,7 @@ class GeminiExtractor:
                         raw_list.append(obj[str(i)])
                         err_list.append(None)
                     else:
-                        raw_list.append({"ingredients": [], "detail": [], "steps": [], "recipe_name": "", "not_recipe": False})
+                        raw_list.append({"ingredients": [], "detail": [], "steps": [], "recipe_name": "", "not_recipe": False, "reason": ""})
                         err_list.append("batch response missing this index")
                 return raw_list, err_list
             except Exception as e:  # noqa: BLE001
@@ -454,7 +499,7 @@ class GeminiExtractor:
             # 단 quotaId가 분당 제한이라고 명시한 경우는 제외 — 분당 제한은 곧 풀리는데
             # 이걸 일일 한도로 오판하면 그날 작업 전체를 통째로 조기 중단시키게 된다.
             self._trip_quota("재시도 소진 후에도 429")
-        blank = {"ingredients": [], "detail": [], "steps": [], "recipe_name": "", "not_recipe": False}
+        blank = {"ingredients": [], "detail": [], "steps": [], "recipe_name": "", "not_recipe": False, "reason": ""}
         return [dict(blank) for _ in range(n)], [last_err for _ in range(n)]
 
 
@@ -670,7 +715,11 @@ def run(*, limit, start_after_id, order, output_path, commit, rpm, concurrency, 
             # 요리 글이 아니라고 판정된 것은 **사전 정규화에 넣지 않는다.**
             # 넣으면 표식이 "사전에 없는 이름" 으로 쌓인다.
             if res["not_recipe"]:
-                out.append((row["id"], [], "", [], err, True, [], [], ""))
+                # True 대신 **이유**를 싣는다. 빈 문자열은 거짓이라 이 값을
+                # 조건으로 쓰는 곳은 그대로 동작하고, 로그에서는 왜 지웠는지가
+                # 갈라 보인다 — 기준이 맞는지 확인하려면 그게 필요하다.
+                out.append((row["id"], [], "", [], err,
+                            res.get("reason") or "not_recipe", [], [], ""))
                 continue
             raw = res["ingredients"]
             new_used, unmapped = normalize_llm_ingredients(raw, alias_to_canonical)
@@ -684,6 +733,7 @@ def run(*, limit, start_after_id, order, output_path, commit, rpm, concurrency, 
     write_cursor = write_conn.cursor() if write_conn else None
     changed_count = 0
     deleted_count = 0
+    multi_count = 0
     errors = 0
     # 사전에 없어 버려진 이름 (이름 -> 몇 번). 끝에 한 번에 표로 보낸다.
     recipe_misses = Counter()
@@ -745,9 +795,11 @@ def run(*, limit, start_after_id, order, output_path, commit, rpm, concurrency, 
                             if err == QUOTA_EXHAUSTED_ERR:
                                 quota_skipped += 1
                         elif should_delete:
-                            changed_label = ("NOT_RECIPE" if not_recipe
-                                             else "DELETED_1ING" if too_few
-                                             else "DELETED")
+                            changed_label = (
+                                ("MULTI_RECIPE" if not_recipe == "multi_recipe" else "NOT_RECIPE")
+                                if not_recipe
+                                else "DELETED_1ING" if too_few
+                                else "DELETED")
                             added, removed = "", ""
                             display_new_used = ""
                         elif suspicious_empty:
@@ -785,6 +837,8 @@ def run(*, limit, start_after_id, order, output_path, commit, rpm, concurrency, 
                         })
                         f.flush()
 
+                        if should_delete and not_recipe == "multi_recipe":
+                            multi_count += 1
                         if commit and should_delete:
                             write_cursor.execute("DELETE FROM recipes WHERE id = %s", (rid,))
                             deleted_count += 1
@@ -837,7 +891,8 @@ def run(*, limit, start_after_id, order, output_path, commit, rpm, concurrency, 
     quota_note = f" (그 중 일일 한도 소진으로 건너뜀 {quota_skipped}건)" if quota_skipped else ""
     print(
         f"완료. 처리 {len(rows)}건, 재료 집합 변경 {changed_count}건, "
-        f"레시피 아님(삭제) {deleted_count}건, LLM 오류 {errors}건{quota_note}",
+        f"레시피 아님(삭제) {deleted_count}건(그 중 요리 여러 개 {multi_count}건), "
+        f"LLM 오류 {errors}건{quota_note}",
         flush=True,
     )
     print(f"미리보기 CSV: {output_path}", flush=True)

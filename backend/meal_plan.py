@@ -41,6 +41,9 @@ _PROMPT = """너는 냉장고 사정을 아는 요리 도우미다. 아래 후�
 [사용자 요청]
 {request}
 
+[이 요청을 이렇게 읽어라]
+{hints}
+
 [후보 레시피] (번호 · 제목 · 필요한 재료)
 {candidates}
 
@@ -50,8 +53,17 @@ _PROMPT = """너는 냉장고 사정을 아는 요리 도우미다. 아래 후�
 - **같은 재료가 겹치는 요리를 연달아 두지 마라.** 김치찌개 다음 날 김치볶음밥은
   안 된다. 하루 건너뛰는 것도 피한다.
 - 곧 상하는 재료를 쓰는 요리를 **앞쪽 날짜**에 둔다. 상하기 전에 먹어야 한다.
-- 사용자 요청이 있으면 그것을 가장 우선한다. 요청과 맞는 후보가 없으면
-  가장 가까운 것을 고르고 `why` 에 솔직히 적는다.
+- 사용자 요청이 있으면 그것을 **가장 우선한다.** 재료 매칭률보다 우선이다.
+  요청과 맞는 후보가 없으면 가장 가까운 것을 고르고 `why` 에 솔직히 적는다.
+- 요청을 읽을 때 **제목의 말을 그대로 믿지 말고 요리 자체를 생각해라.**
+  - "아이" — 맵고 짠 것, 뼈째 먹는 것, 술안주는 뺀다. 달걀·두부·감자·고기 같은
+    부드러운 재료 위주로. 제목에 '아이' 가 없어도 실제로 아이가 먹을 만하면 된다
+  - "다이어트" — 튀김·설탕·밀가루가 주인공인 것을 뺀다
+  - "담백" — 고춧가루·고추장이 많이 드는 것을 뺀다
+  - "간단" — 재료 가짓수가 적고 조리 단계가 짧을 것
+  - "손님상/집들이" — 양이 넉넉하고 상에 올려 보기 좋은 것
+- **한 글에 요리가 여러 개인 것(반찬 3종 세트 같은 것)은 고르지 마라.**
+  그날 무엇을 만들지가 정해지지 않는다.
 - `why` 는 **왜 이 날 이걸 고르는지** 한 줄. 20자 안쪽. 광고 문구처럼 쓰지 마라.
 
 아래 JSON 객체만 출력해라. 다른 텍스트는 출력하지 마라.
@@ -102,7 +114,7 @@ def _parse(text):
     return out
 
 
-def suggest(candidates, have, expiring, request_text="", days=PLAN_DAYS, model=None):
+def suggest(candidates, have, expiring, request_text="", days=PLAN_DAYS, model=None, hints=None):
     """후보 중에서 골라 식단을 짠다.
 
     `candidates` 는 `{id, title, ingredients}` 목록. 반환은
@@ -124,6 +136,7 @@ def suggest(candidates, have, expiring, request_text="", days=PLAN_DAYS, model=N
         have=", ".join(have[:60]) or "(없음)",
         expiring=", ".join(expiring[:20]) or "(없음)",
         request=(request_text or "").strip()[:300] or "(따로 없음)",
+        hints=("\n".join("- " + h for h in hints) if hints else "- (특별한 지침 없음)"),
         candidates="\n".join(lines),
     )
 
