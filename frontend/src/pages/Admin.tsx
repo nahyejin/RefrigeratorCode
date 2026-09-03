@@ -811,19 +811,23 @@ const Dictionary: React.FC = () => {
     } finally { setBusy(null); }
   };
 
-  const dropPicked = async () => {
+  const drop = async (names: string[]) => {
+    if (names.length === 0) return;
     clearMessages();
     setBusy('지우는 중...');
     try {
       const d = await api('/api/admin/dictionary/misses', {
-        method: 'DELETE', body: JSON.stringify({ names: [...picked] }),
+        method: 'DELETE', body: JSON.stringify({ names }),
       });
       setNote(d.deleted + '개를 목록에서 지웠어요.');
+      setPicked(new Set());
       load();
     } catch (e) {
       setError(e instanceof Error ? e.message : '지우지 못했어요.');
     } finally { setBusy(null); }
   };
+
+  const dropPicked = () => drop([...picked]);
 
   /** 제안 하나를 고친다. LLM 이 틀렸을 때 관리자가 바로잡을 수 있어야 한다. */
   const patchSuggestion = (raw: string, patch: any) => {
@@ -882,6 +886,7 @@ const Dictionary: React.FC = () => {
   if (!misses) return <div style={S.card}>불러오는 중...</div>;
 
   const unresolved = misses.filter(m => !m.now_resolves_to);
+  const solvedNames = misses.filter(m => m.now_resolves_to).map(m => m.raw_name);
 
   return (
     <>
@@ -899,6 +904,9 @@ const Dictionary: React.FC = () => {
           <br />
           요리 이름·주류 브랜드처럼 <b>일부러 안 넣을 것</b>은 목록에서 지워 두세요.
           안 지우면 볼 때마다 다시 판단하게 됩니다.
+          <br />
+          <b>취소선</b>이 그어진 줄은 그 사이 사전이 보강돼 <b>이제는 잡히는</b>
+          이름이라 더 볼 필요가 없어요 — <b>이제 잡히는 것 치우기</b>로 한 번에 치우세요.
         </div>
 
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
@@ -919,6 +927,15 @@ const Dictionary: React.FC = () => {
               ? '전체 해제'
               : '안 잡히는 것 모두 고르기'}
           </button>
+          {/* 취소선 그어진 줄 — 그 사이 사전이 보강돼 **이제는 잡히는** 이름들이다.
+              고를 수도 없게 막아 뒀더니 손댈 방법이 아예 없어서, 다 끝난 일인데도
+              목록에 영영 남아 매번 눈에 걸렸다. 한 번에 치운다. */}
+          {solvedNames.length > 0 && (
+            <button type="button" style={S.btn} disabled={!!busy}
+                    onClick={() => drop(solvedNames)}>
+              이제 잡히는 것 {solvedNames.length}개 치우기
+            </button>
+          )}
         </div>
 
         {note && <div style={{ fontSize: 12, color: 'var(--ink-700)', marginBottom: 8 }}>{note}</div>}
@@ -1681,7 +1698,20 @@ const StatsBar: React.FC<{
   value: StatsFilter;
   onChange: (f: StatsFilter) => void;
   excludedCount: number;
-}> = ({ value, onChange, excludedCount }) => (
+}> = ({ value, onChange, excludedCount }) => {
+  /**
+   * 직접 지정한 날짜는 **누르기 전에는 안 걸린다.**
+   *
+   * 고칠 때마다 바로 질의하면, 시작일만 고른 순간 "그날부터 오늘까지" 로 한 번
+   * 조회되고 종료일을 고르면 또 조회된다. 화면이 두 번 깜빡이는데 그 중간 결과는
+   * 아무도 원한 적이 없다. 여기 담아 뒀다가 [적용하기] 에서 한 번에 올린다.
+   */
+  const [draft, setDraft] = React.useState({ from: value.from, to: value.to });
+  React.useEffect(() => { setDraft({ from: value.from, to: value.to }); },
+                  [value.from, value.to]);
+  const dirty = draft.from !== value.from || draft.to !== value.to;
+
+  return (
   <div style={{ ...S.card, position: 'sticky', top: 0, zIndex: 5 }}>
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
       {RANGES.map(r => {
@@ -1707,13 +1737,32 @@ const StatsBar: React.FC<{
 
     {value.range === 'custom' && (
       <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 8, flexWrap: 'wrap' }}>
-        <input type="date" value={value.from}
-               onChange={e => onChange({ ...value, from: e.target.value })}
+        <input type="date" value={draft.from}
+               onChange={e => setDraft(d => ({ ...d, from: e.target.value }))}
                style={{ ...S.input, height: 30 }} />
         <span style={{ fontSize: 12, color: 'var(--ink-500)' }}>~</span>
-        <input type="date" value={value.to}
-               onChange={e => onChange({ ...value, to: e.target.value })}
+        <input type="date" value={draft.to}
+               onChange={e => setDraft(d => ({ ...d, to: e.target.value }))}
                style={{ ...S.input, height: 30 }} />
+        <button
+          type="button"
+          disabled={!draft.from && !draft.to}
+          onClick={() => onChange({ ...value, from: draft.from, to: draft.to })}
+          style={{
+            height: 30, padding: '0 12px', borderRadius: 8, border: '1px solid #1A1A1E',
+            background: dirty ? '#FFD600' : 'var(--surface)',
+            fontSize: 12.5, fontWeight: 700, color: '#1A1A1E',
+            cursor: (!draft.from && !draft.to) ? 'default' : 'pointer',
+            opacity: (!draft.from && !draft.to) ? 0.45 : 1,
+          }}
+        >
+          적용하기
+        </button>
+        {dirty && (
+          <span style={{ fontSize: 11.5, color: '#B4780A', fontWeight: 600 }}>
+            아직 적용 안 됐어요
+          </span>
+        )}
       </div>
     )}
 
@@ -1733,7 +1782,8 @@ const StatsBar: React.FC<{
       </span>
     </label>
   </div>
-);
+  );
+};
 
 const Dashboard: React.FC = () => {
   const [data, setData] = React.useState<any>(null);
@@ -1784,10 +1834,15 @@ const Dashboard: React.FC = () => {
           <div style={S.card}>
             <h2 style={S.h2}>어디까지 오고 어디서 멈추나</h2>
             <Range>
-              전체 기간 누적 · 첫 가입 {dayOf(AP.users_from) || '-'} ~ 오늘 {dayOf(AP.now) || '-'}
+              {act.filters?.ranged
+                ? `${spanOf(act.filters?.from, act.filters?.to)} 에 가입한 사람`
+                : `전체 기간 누적 · 첫 가입 ${dayOf(AP.users_from) || '-'} ~ 오늘 ${dayOf(AP.now) || '-'}`}
             </Range>
             <div style={{ fontSize: 12, color: 'var(--ink-500)', marginBottom: 12, lineHeight: 1.6 }}>
-              가입한 사람이 각 단계까지 얼마나 오는지예요. <b>많이 줄어드는 칸이 고칠 곳</b>입니다.
+              {act.filters?.ranged
+                ? <>그 기간에 <b>가입한 사람</b>이 각 단계까지 얼마나 왔는지예요 (활동은 오늘까지 봅니다).</>
+                : <>가입한 사람이 각 단계까지 얼마나 오는지예요.</>}
+              {' '}<b>많이 줄어드는 칸이 고칠 곳</b>입니다.
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {(act.steps || []).map((st: any, i: number) => {
@@ -2064,15 +2119,24 @@ const Dashboard: React.FC = () => {
         <h2 style={S.h2}>한눈에</h2>
         {/* 타일마다 집계 구간이 다르다. 한 줄로 뭉뚱그리면 '이번 주' 와 '누적' 이
             나란히 놓인 걸 못 알아채므로 **타일마다** 적는다. */}
+        {/* 기간을 골랐으면 **모든 타일이 그 기간**을 센다. 예전에는 타일마다
+            누적·이번 주·30일로 제각각이라, 위에서 기간을 좁혀도 여기 숫자는
+            꿈쩍도 안 했다. 그러면 고른 기간이 안 먹은 것처럼 보인다. */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10 }}>
-          {[
-            ['전체 사용자', num(data.users?.total ?? 0), '누적 (탈퇴 포함)'],
-            ['탈퇴', num(data.users?.deleted ?? 0), '누적'],
-            ['식구 그룹 소속', num(data.users?.in_household ?? 0), '지금 이 순간'],
-            ['이번 주 크레딧', num(data.this_week?.credits ?? 0), `${dayOf(P.week_start) || '월요일'}부터`],
-            ['이번 주 호출', num(data.this_week?.calls ?? 0), `${dayOf(P.week_start) || '월요일'}부터`],
-            ['쿠팡 클릭', num(data.coupang_clicks_30d ?? 0), `${dayOf(P.since_30d) || '30일 전'}부터`],
-          ].map(([label, value, when]) => (
+          {(() => {
+            const R = !!data.filters?.ranged;
+            const span = R ? spanOf(data.filters?.from, data.filters?.to) : null;
+            return [
+            [R ? '가입' : '전체 사용자', num(data.users?.total ?? 0), span || '누적 (탈퇴 포함)'],
+            ['탈퇴', num(data.users?.deleted ?? 0), span || '누적'],
+            ['식구 그룹 소속', num(data.users?.in_household ?? 0), span || '지금 이 순간'],
+            [R ? '크레딧' : '이번 주 크레딧', num(data.this_week?.credits ?? 0),
+             span || `${dayOf(P.week_start) || '월요일'}부터`],
+            [R ? '호출' : '이번 주 호출', num(data.this_week?.calls ?? 0),
+             span || `${dayOf(P.week_start) || '월요일'}부터`],
+            ['쿠팡 클릭', num(data.coupang_clicks_30d ?? 0),
+             span || `${dayOf(P.since_30d) || '30일 전'}부터`],
+          ]; })().map(([label, value, when]) => (
             <div key={label as string} style={{ background: 'var(--surface-sub)', borderRadius: 10, padding: '10px 12px' }}>
               <div style={{ fontSize: 11, color: 'var(--ink-500)' }}>{label}</div>
               <div style={{ fontSize: 19, fontWeight: 700, color: '#1A1A1E', fontVariantNumeric: 'tabular-nums' }}>

@@ -879,14 +879,23 @@ def register(app, get_db):
                                     device_col='device_id')
         use_cond, use_params = _where('created_at', start, end, ex_ids, ex_devices,
                                       device_col='device_id')
-        # 사람 목록·퍼널은 시간이 아니라 **지금 있는 계정**을 세는 것이라 기간을
-        # 걸지 않는다. 다만 제외 계정은 뺀다.
+        # 퍼널은 **그 기간에 가입한 사람**을 따라간다.
+        #
+        # 누적으로 세면 기간을 아무리 좁혀도 다섯 숫자가 안 움직여서, 화면 위쪽
+        # 숫자만 바뀌고 아래는 그대로인 이상한 화면이 된다. 가입 코호트로 보면
+        # "이 주에 들어온 사람 중 몇 명이 재료를 넣었나" 라는 답이 나온다.
         uid_cond = ""
         uid_params = []
+        if start:
+            uid_cond += " AND u.created_at >= %s"
+            uid_params.append(start)
+        if end:
+            uid_cond += " AND u.created_at <= %s"
+            uid_params.append(end)
         if ex_ids:
             marks = ",".join(["%s"] * len(ex_ids))
-            uid_cond = f" AND u.id NOT IN ({marks})"
-            uid_params = list(ex_ids)
+            uid_cond += f" AND u.id NOT IN ({marks})"
+            uid_params.extend(ex_ids)
 
         db = get_db()
         cursor = db.cursor()
@@ -1161,6 +1170,7 @@ def register(app, get_db):
                 'from': start.isoformat() if start else None,
                 'to': end.isoformat() if end else None,
                 'excluded_users': len(ex_ids),
+                'ranged': bool(start or end),
             },
             'periods': {
                 'now': datetime.now().isoformat(),
@@ -1199,6 +1209,14 @@ def register(app, get_db):
             uid_cond = f" AND id NOT IN ({marks})"
             uid_params = list(ex_ids)
 
+        # **가입한 때**로 거른다. 기간을 골랐으면 '한눈에' 타일도 그 기간에
+        # 가입한 사람을 센다 — 위는 최근 7일인데 아래는 누적이면 두 숫자를
+        # 나란히 놓고 읽을 수가 없다.
+        sign_cond, sign_params = _where('created_at', start, end, ex_ids, None, user_col='id')
+        # 탈퇴는 **탈퇴한 때**가 기준이다. 가입한 때로 세면 "이 기간에 몇 명이
+        # 떠났나" 를 못 본다.
+        gone_cond, gone_params = _where('deleted_at', start, end, ex_ids, None, user_col='id')
+
         # 가입 추이·쿠팡은 기간을 고르지 않았으면 최근 30일을 본다 (예전 기본값).
         since = start or (datetime.now() - timedelta(days=30)).replace(
             hour=0, minute=0, second=0, microsecond=0)
@@ -1209,11 +1227,16 @@ def register(app, get_db):
         out = {}
         try:
             cursor.execute(
-                "SELECT COUNT(*) total, SUM(deleted_at IS NOT NULL) deleted, "
-                f"SUM(household_id IS NOT NULL) in_household FROM users WHERE 1=1{uid_cond}",
-                tuple(uid_params),
+                "SELECT COUNT(*) total, "
+                f"SUM(household_id IS NOT NULL) in_household FROM users WHERE 1=1{sign_cond}",
+                tuple(sign_params),
             )
             out['users'] = cursor.fetchone()
+            cursor.execute(
+                f"SELECT COUNT(*) n FROM users WHERE deleted_at IS NOT NULL{gone_cond}",
+                tuple(gone_params),
+            )
+            out['users']['deleted'] = cursor.fetchone()['n'] or 0
 
             cursor.execute(
                 "SELECT DATE(created_at) d, COUNT(*) n FROM users "
@@ -1250,16 +1273,29 @@ def register(app, get_db):
             )
             out['credit_check'] = cursor.fetchall()
 
-            cursor.execute(
-                "SELECT COALESCE(SUM(credits),0) credits, COUNT(*) calls "
-                f"FROM llm_usage WHERE created_at >= %s{use_cond}",
-                tuple([week_start] + use_params),
-            )
+            # 기간을 골랐으면 **그 기간**을, 안 골랐으면 이번 주를 센다.
+            # 고른 기간과 다른 구간의 숫자를 같은 화면에 두면 잘못 읽힌다.
+            if start or end:
+                cursor.execute(
+                    "SELECT COALESCE(SUM(credits),0) credits, COUNT(*) calls "
+                    f"FROM llm_usage WHERE 1=1{use_cond}",
+                    tuple(use_params),
+                )
+            else:
+                cursor.execute(
+                    "SELECT COALESCE(SUM(credits),0) credits, COUNT(*) calls "
+                    f"FROM llm_usage WHERE created_at >= %s{use_cond}",
+                    tuple([week_start] + use_params),
+                )
             out['this_week'] = cursor.fetchone()
 
             cursor.execute("SHOW TABLES LIKE 'coupang_clicks'")
             if cursor.fetchone():
-                cursor.execute("SELECT COUNT(*) n FROM coupang_clicks WHERE created_at >= %s", (since,))
+                cursor.execute(
+                    "SELECT COUNT(*) n FROM coupang_clicks WHERE created_at >= %s"
+                    + (" AND created_at <= %s" if end else ""),
+                    tuple([since] + ([end] if end else [])),
+                )
                 out['coupang_clicks_30d'] = cursor.fetchone()['n']
 
             cursor.execute("SELECT MIN(created_at) a, MAX(created_at) b FROM llm_usage")
@@ -1270,6 +1306,7 @@ def register(app, get_db):
                 'from': start.isoformat() if start else None,
                 'to': end.isoformat() if end else None,
                 'excluded_users': len(ex_ids),
+                'ranged': bool(start or end),
             }
             out['periods'] = {
                 'now': datetime.now().isoformat(),

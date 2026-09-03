@@ -128,6 +128,67 @@ function pickDistinct(pool: PlanRecipe[], count: number): PlanRecipe[] {
   return chosen;
 }
 
+/**
+ * 영역 제목.
+ *
+ * 이 화면에는 성격이 다른 세 영역이 있다 — **무엇으로**(재료), **어떻게**(요청),
+ * **무엇을**(식단). 제목이 없으면 스크롤하는 사람에게는 그냥 카드 세 장이라,
+ * 어디까지가 입력이고 어디부터가 결과인지 알 수가 없다.
+ */
+const SectionHead: React.FC<{
+  n: number;
+  title: React.ReactNode;
+  hint?: React.ReactNode;
+  right?: React.ReactNode;
+}> = ({ n, title, hint, right }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+    <span style={{
+      flexShrink: 0, width: 20, height: 20, borderRadius: 6,
+      background: '#1A1A1E', color: '#FFD600', fontSize: 11.5, fontWeight: 800,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+    }}>{n}</span>
+    <div style={{ flex: 1, minWidth: 0 }}>
+      <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink-900)',
+                    display: 'flex', alignItems: 'center', gap: 6 }}>
+        {title}
+      </div>
+      {hint && (
+        <div style={{ fontSize: 11.5, color: 'var(--ink-500)', marginTop: 2, lineHeight: 1.5 }}>
+          {hint}
+        </div>
+      )}
+    </div>
+    {right}
+  </div>
+);
+
+/**
+ * 재료 한 개. 누르면 이번 주 식단에서 **뺐다 넣었다** 한다.
+ *
+ * 뺀 재료를 목록에서 지우지 않고 취소선만 긋는 이유: 지우면 되돌릴 자리가
+ * 사라진다. 잘못 눌렀을 때 같은 자리를 다시 누르면 돌아와야 한다.
+ */
+const IngredientChip: React.FC<{
+  label: string; on: boolean; warn?: boolean; onToggle: () => void;
+}> = ({ label, on, warn, onToggle }) => (
+  <button
+    type="button"
+    onClick={onToggle}
+    aria-pressed={on}
+    style={{
+      fontSize: 12, padding: '5px 10px', borderRadius: 9999, cursor: 'pointer',
+      lineHeight: 1.4,
+      border: on ? '1px solid #1A1A1E' : '1px dashed var(--line-200)',
+      background: on ? (warn ? '#FBE3E0' : '#FFF8CC') : 'var(--surface-sub)',
+      color: on ? (warn ? '#B03A28' : '#7A5C00') : 'var(--ink-500)',
+      textDecoration: on ? 'none' : 'line-through',
+      fontWeight: on ? 700 : 500,
+    }}
+  >
+    {label}
+  </button>
+);
+
 const WeeklyPlan: React.FC = () => {
   const navigate = useNavigate();
   const usage = useUsage();
@@ -144,6 +205,18 @@ const WeeklyPlan: React.FC = () => {
   const [wish, setWish] = React.useState('');
   const [asking, setAsking] = React.useState(false);
   const [aiNote, setAiNote] = React.useState<string | null>(null);
+
+  /**
+   * 이번 주 식단에서 **뺀** 재료 이름.
+   *
+   * 왜 "뺀 것" 을 담는가(쓸 것이 아니라): 기본은 "냉장고에 있는 건 다 쓴다" 이고,
+   * 빼는 쪽이 예외다. 예외를 담으면 재료를 새로 넣었을 때 자동으로 포함된다.
+   * 반대로 담았다면 새 재료가 매번 빠진 채로 시작한다.
+   *
+   * null = 아직 기본값을 못 정했다(재료 분류표를 기다리는 중).
+   */
+  const [off, setOff] = React.useState<Set<string> | null>(null);
+  const [pickOpen, setPickOpen] = React.useState(false);
 
   const boxes = React.useMemo(readBoxes, []);
   const myIngredients = React.useMemo(() => getMyIngredients(), []);
@@ -163,51 +236,107 @@ const WeeklyPlan: React.FC = () => {
     [boxes, categoryMap],
   );
 
+  /**
+   * 기본값: **오래 지난 것만 빼고 나머지는 다 쓴다.**
+   *
+   * 분류표가 도착한 뒤 한 번만 정한다. 매번 다시 정하면 사용자가 손으로 켠
+   * 재료가 렌더링 한 번에 도로 꺼진다.
+   */
+  React.useEffect(() => {
+    if (off !== null) return;
+    if (Object.keys(categoryMap).length === 0) return;
+    setOff(new Set(stale.map(i => i.name)));
+  }, [categoryMap, stale, off]);
+
+  const toggle = (name: string) => {
+    setSaved(false);
+    setOff(prev => {
+      const next = new Set(prev ?? []);
+      if (next.has(name)) next.delete(name); else next.add(name);
+      return next;
+    });
+  };
+
+  /**
+   * 실제로 식단에 쓰는 재료.
+   *
+   * 전에는 매칭에는 **전부** 넣고 우선순위에서만 오래된 걸 뺐다. 그래서
+   * "152일 지난 재료는 안 썼어요" 라고 적어 놓고 실제로는 그 재료로 요리를
+   * 고르고 있었다. 이제 한 목록으로 둘 다 정한다.
+   */
+  const planIngredients = React.useMemo(
+    () => (off ? myIngredients.filter(n => !off.has(n)) : myIngredients),
+    [myIngredients, off],
+  );
+
+  /** 우선해서 쓸 것 — 곧 상하는데 빼지 않은 것. */
+  const priority = React.useMemo(
+    () => expiring.filter(i => i.days >= 0 && !off?.has(i.name)).map(i => i.name),
+    [expiring, off],
+  );
+
+  /** 곧 상하지도, 오래 지나지도 않은 나머지. 칸을 나눠 보여 주려고 미리 가른다. */
+  const restNames = React.useMemo(() => {
+    const named = new Set([...expiring.map(i => i.name), ...stale.map(i => i.name)]);
+    return myIngredients.filter(n => !named.has(n));
+  }, [myIngredients, expiring, stale]);
+
   // ── 후보 불러오기 (무료·규칙 기반) ────────────────────────────
   React.useEffect(() => {
-    if (myIngredients.length === 0) { setPool([]); return; }
+    if (planIngredients.length === 0) { setPool([]); return; }
     const params = new URLSearchParams({
-      my_ingredients: myIngredients.join(','),
+      my_ingredients: planIngredients.join(','),
       sort_by: 'match_rate',
-      size: '40',
+      size: '60',
       page: '1',
     });
-    const soon = expiring.filter(i => i.days >= 0).map(i => i.name);
-    if (soon.length) params.set('applied_expiry_ingredients', soon.join(','));
+    if (priority.length) params.set('applied_expiry_ingredients', priority.join(','));
 
     fetch(`${API_BASE_URL}/api/recipes/filter?${params}`)
       .then(r => (r.ok ? r.json() : Promise.reject(new Error())))
       .then(d => setPool(d.recipes || []))
       .catch(() => setError('레시피를 불러오지 못했어요. 잠시 뒤 다시 시도해 주세요.'));
-  }, [myIngredients, expiring]);
+  }, [planIngredients, priority]);
 
-  // 후보가 도착하면 칸을 채운다 (아직 비어 있을 때만 — 사용자가 고른 걸 안 덮는다)
+  /**
+   * 뺀 재료가 **들어간 요리는 아예 후보에서 뺀다.**
+   *
+   * 질의에서 재료 이름만 빼면 매칭률이 낮아질 뿐이라, 그 재료를 쓰는 요리가
+   * 그대로 올라온다. 실제로 "감자" 를 뺐는데 감자채전·감자채볶음이 남았다.
+   * "이번 주엔 이거 빼 주세요" 는 **그 요리를 빼 달라는 말**이다.
+   */
+  const usablePool = React.useMemo(() => {
+    if (!pool || !off || off.size === 0) return pool;
+    return pool.filter(r => !ingredientsOf(r).some(n => off.has(n)));
+  }, [pool, off]);
+
+  // 후보가 바뀌면 칸을 다시 채운다. 재료를 뺐는데 그 재료로 만든 요리가 그대로
+  // 남아 있으면, 사용자 눈에는 버튼이 안 먹은 것으로 보인다.
   React.useEffect(() => {
-    if (!pool || pool.length === 0) return;
+    if (!usablePool || usablePool.length === 0) return;
     setSlots(prev => {
-      if (prev.some(s => s.recipe)) return prev;
-      const picked = pickDistinct(pool, prev.length);
+      const picked = pickDistinct(usablePool, prev.length);
       return prev.map((s, i) => ({ ...s, recipe: picked[i] || null }));
     });
-  }, [pool]);
+  }, [usablePool]);
 
   const usedIds = new Set(slots.map(s => s.recipe?.id).filter(Boolean) as number[]);
 
   /** 전체를 다시 짠다 (무료). 매번 같은 조합이 안 나오게 섞는다. */
   const reshuffle = () => {
-    if (!pool) return;
+    if (!usablePool) return;
     setAiNote(null);
     setSaved(false);
-    const shuffled = [...pool].sort(() => Math.random() - 0.5);
+    const shuffled = [...usablePool].sort(() => Math.random() - 0.5);
     const picked = pickDistinct(shuffled, slots.length);
     setSlots(prev => prev.map((s, i) => ({ ...s, recipe: picked[i] || null })));
   };
 
   /** 한 칸만 다른 요리로 (무료). 지금 식단에 없는 것 중에서 고른다. */
   const swapOne = (index: number) => {
-    if (!pool) return;
+    if (!usablePool) return;
     setSaved(false);
-    const others = pool.filter(r => !usedIds.has(r.id));
+    const others = usablePool.filter(r => !usedIds.has(r.id));
     if (others.length === 0) return;
     const next = others[Math.floor(Math.random() * others.length)];
     setSlots(prev => prev.map((s, i) => (i === index ? { ...s, recipe: next } : s)));
@@ -239,8 +368,8 @@ const WeeklyPlan: React.FC = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...usageHeaders() },
         body: JSON.stringify({
-          ingredients: myIngredients,
-          expiring: expiring.filter(i => i.days >= 0).map(i => i.name),
+          ingredients: planIngredients,
+          expiring: priority,
           request: wish.trim(),
         }),
       });
@@ -319,82 +448,137 @@ const WeeklyPlan: React.FC = () => {
         </div>
       </div>
 
-      {/* ── 왜 이 식단인가 ─────────────────────────────────── */}
-      <div style={{
+      {/* ── ① 무엇으로 짜나 ───────────────────────────────── */}
+      {/* 접었을 때 짧아야 한다. 이 영역이 길면 정작 결과인 식단이 화면 밖으로
+          밀려나서, 사용자가 이 화면을 "재료 화면" 으로 읽는다. */}
+      <section style={{
         background: 'var(--surface)', border: '1px solid var(--line-200)',
-        borderRadius: 14, padding: '14px 16px', marginBottom: 12,
-        fontSize: 13, color: 'var(--ink-700)', lineHeight: 1.7,
+        borderRadius: 14, padding: '14px 16px', marginBottom: 10,
       }}>
-        {expiring.length > 0 ? (
-          <>
-            <b>곧 상하는 재료부터</b> 쓰는 식단이에요.
-            <span style={{ color: 'var(--ink-500)' }}>
-              {' '}({SOON_DAYS}일 이내에 먹어야 하는 것)
-            </span>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
-              {expiring.slice(0, 6).map(i => (
-                <span key={i.storage + i.name} style={{
-                  fontSize: 12, padding: '4px 9px', borderRadius: 9999,
-                  background: i.days < 0 ? '#FBE3E0' : '#FFF8CC',
-                  color: i.days < 0 ? '#B03A28' : '#7A5C00',
-                }}>
-                  {i.name} · {daysLabel(i.days, i.estimated)}
-                </span>
-              ))}
-            </div>
-          </>
-        ) : (
-          /* 유통기한이 하나도 없어도 식단은 정상으로 짜인다 — 냉장고 재료
-             전체로 매칭한다. 다만 무엇을 먼저 쓸지는 못 정한다. */
-          <>냉장고 재료 <b>{myIngredients.length}개</b>로 만들 수 있는 것들이에요.
-          유통기한을 넣어 두면 <b>곧 상하는 것부터</b> 골라 드려요.</>
-        )}
-
-        {/* 너무 오래 지난 것은 **식단에 안 쓴다.** 그렇다고 숨기면 그 줄은
-            냉장고 목록에 영영 남으므로, 지우라고 말해 준다. */}
-        {stale.length > 0 && (
-          <div style={{
-            marginTop: 10, paddingTop: 10, borderTop: '1px dashed var(--line-200)',
-            fontSize: 12, color: 'var(--ink-500)', lineHeight: 1.7,
-          }}>
-            <b style={{ color: 'var(--ink-700)' }}>{STALE_AFTER_DAYS}일 넘게 지난 재료 {stale.length}개</b>는
-            식단에 쓰지 않았어요 — {stale.slice(0, 3).map(i => i.name).join(', ')}
-            {stale.length > 3 && ` 외 ${stale.length - 3}개`}.
-            <br />
-            이미 버리셨다면 냉장고에서 지워 주세요. 남아 있으면 추천이 계속 어긋나요.
+        <SectionHead
+          n={1}
+          title="이 재료로 짰어요"
+          hint={
+            <>
+              냉장고 재료 {myIngredients.length}개 중 <b style={{ color: 'var(--ink-700)' }}>
+              {planIngredients.length}개</b>를 써요
+              {stale.length > 0 && <> · {STALE_AFTER_DAYS}일 넘게 지난 {stale.length}개는 빼 뒀어요</>}
+            </>
+          }
+          right={
             <button
               type="button"
-              onClick={() => navigate('/my-fridge')}
+              onClick={() => setPickOpen(v => !v)}
               style={{
-                marginTop: 6, height: 30, padding: '0 10px', borderRadius: 8,
+                flexShrink: 0, height: 30, padding: '0 10px', borderRadius: 8,
                 border: '1px solid var(--line-200)', background: 'var(--surface)',
                 fontSize: 12, fontWeight: 700, color: 'var(--ink-900)', cursor: 'pointer',
               }}
             >
-              내 냉장고에서 정리하기 ›
+              {pickOpen ? '접기 ▴' : '고르기 ▾'}
             </button>
+          }
+        />
+
+        {expiring.length > 0 ? (
+          <>
+            <div style={{ fontSize: 12, color: 'var(--ink-500)', marginBottom: 6 }}>
+              <b style={{ color: 'var(--ink-700)' }}>먼저 쓸 재료</b> · {SOON_DAYS}일 이내
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {expiring.map(i => (
+                <IngredientChip
+                  key={'s' + i.storage + i.name}
+                  label={i.name + ' · ' + daysLabel(i.days, i.estimated)}
+                  on={!off?.has(i.name)}
+                  warn={i.days < 0}
+                  onToggle={() => toggle(i.name)}
+                />
+              ))}
+            </div>
+          </>
+        ) : (
+          <div style={{ fontSize: 12.5, color: 'var(--ink-700)', lineHeight: 1.7 }}>
+            유통기한을 넣어 두면 <b>곧 상하는 것부터</b> 골라 드려요.
           </div>
         )}
-      </div>
 
-      {/* ── AI 로 짜기 ─────────────────────────────────────── */}
+        {/* 펼쳤을 때만 — 나머지 재료와, 오래돼서 빼 둔 재료.
+            오래된 재료를 목록에서 아예 지우지 않는 이유: "지났지만 오늘 쓸 건데"
+            라는 경우가 실제로 있다. 그때 도로 넣을 자리가 있어야 한다. */}
+        {pickOpen && (
+          <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px dashed var(--line-200)' }}>
+            {restNames.length > 0 && (
+              <>
+                <div style={{ fontSize: 12, color: 'var(--ink-500)', marginBottom: 6 }}>
+                  <b style={{ color: 'var(--ink-700)' }}>그 밖의 재료</b> ·
+                  {' '}기한이 남았거나 안 적은 것 — 모두 식단에 써요
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {restNames.map(n => (
+                    <IngredientChip key={'r' + n} label={n}
+                                    on={!off?.has(n)} onToggle={() => toggle(n)} />
+                  ))}
+                </div>
+              </>
+            )}
+
+            {stale.length > 0 && (
+              <div style={{ marginTop: restNames.length > 0 ? 12 : 0 }}>
+                <div style={{ fontSize: 12, color: 'var(--ink-500)', marginBottom: 6 }}>
+                  <b style={{ color: 'var(--ink-700)' }}>{STALE_AFTER_DAYS}일 넘게 지났어요</b> ·
+                  {' '}기본으로 뺐어요 — 쓰실 거면 누르세요
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {stale.map(i => (
+                    <IngredientChip
+                      key={'t' + i.storage + i.name}
+                      label={i.name + ' · ' + daysLabel(i.days, i.estimated)}
+                      on={!off?.has(i.name)}
+                      warn
+                      onToggle={() => toggle(i.name)}
+                    />
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => navigate('/my-fridge')}
+                  style={{
+                    marginTop: 8, height: 30, padding: '0 10px', borderRadius: 8,
+                    border: '1px solid var(--line-200)', background: 'var(--surface)',
+                    fontSize: 12, fontWeight: 700, color: 'var(--ink-900)', cursor: 'pointer',
+                  }}
+                >
+                  이미 버렸다면 냉장고에서 정리하기 ›
+                </button>
+              </div>
+            )}
+
+            <div style={{ fontSize: 11.5, color: 'var(--ink-500)', marginTop: 12, lineHeight: 1.6 }}>
+              누르면 이번 주 식단에서 빠져요. 냉장고에서 지워지는 건 아니에요.
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* ── ② 원하는 대로 바꾸기 ───────────────────────────── */}
       {/* AI 가 관여하는 자리는 앱 어디서나 **같은 시각 언어**를 쓴다 —
           노란 반짝임 + "AI" 배지. 챗봇 FAB·카메라 버튼과 같은 규칙이다. */}
-      <div className="ai-surface" style={{ borderRadius: 14, padding: '14px 16px', marginBottom: 12 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-          <span style={{
-            fontSize: 10, fontWeight: 800, letterSpacing: '.04em',
-            padding: '2px 6px', borderRadius: 6,
-            background: '#1A1A1E', color: '#FFD600',
-          }}>AI</span>
-          <span style={{ fontSize: 14, fontWeight: 700, color: '#1A1A1E' }}>
-            원하는 대로 짜 드려요
-          </span>
-        </div>
-        <div style={{ fontSize: 12, color: 'var(--ink-500)', marginBottom: 10, lineHeight: 1.6 }}>
-          "담백하게", "아이가 먹을 것 위주로", "국물 요리는 빼고" 처럼 적어 보세요.
-          비워 두고 눌러도 됩니다.
-        </div>
+      <div className="ai-surface" style={{ borderRadius: 14, padding: '14px 16px', marginBottom: 10 }}>
+        <SectionHead
+          n={2}
+          title={
+            <>
+              <span style={{
+                fontSize: 10, fontWeight: 800, letterSpacing: '.04em',
+                padding: '2px 6px', borderRadius: 6,
+                background: '#1A1A1E', color: '#FFD600',
+              }}>AI</span>
+              원하는 대로 짜 드려요
+            </>
+          }
+          hint={'"담백하게", "아이가 먹을 것 위주로" 처럼 적어 보세요 (비워 둬도 됩니다)'}
+        />
         <div style={{ display: 'flex', gap: 6 }}>
           <input
             value={wish}
@@ -432,12 +616,11 @@ const WeeklyPlan: React.FC = () => {
         <UsageLine style={{ marginTop: 8 }} />
         <div style={{ fontSize: 11.5, color: 'var(--ink-500)', marginTop: 4, lineHeight: 1.6 }}>
           {canAi ? (
-            <>이 버튼은 크레딧 <b>{planCost}</b>을 써요.</>
+            <>이 버튼만 크레딧 <b>{planCost}</b>을 써요. 아래 식단은 공짜예요.</>
           ) : usage?.is_guest ? (
-            <><b>가입하면 {usage.signup_credits}개</b>를 바로 드려요.
-            아래 기본 추천은 그냥 쓰셔도 됩니다.</>
+            <><b>가입하면 {usage.signup_credits}개</b>를 바로 드려요. 아래 식단은 그냥 쓰셔도 됩니다.</>
           ) : (
-            <>아래 기본 추천은 그냥 쓰셔도 됩니다.</>
+            <>아래 식단은 그냥 쓰셔도 됩니다.</>
           )}
         </div>
         {aiNote && (
@@ -455,7 +638,7 @@ const WeeklyPlan: React.FC = () => {
       )}
 
       {/* ── 식단 ───────────────────────────────────────────── */}
-      {(pool === null || asking) && (
+      {(usablePool === null || asking) && (
         <div style={{ background: 'var(--surface)', border: '1px solid var(--line-200)',
                       borderRadius: 14, padding: '4px 16px 16px' }}>
           <StepLoading
@@ -472,58 +655,58 @@ const WeeklyPlan: React.FC = () => {
         </div>
       )}
 
-      {pool !== null && !asking && slots.every(s => !s.recipe) && (
+      {usablePool !== null && !asking && slots.every(s => !s.recipe) && (
         <div style={{ background: 'var(--surface)', borderRadius: 14, padding: '20px 16px',
                       fontSize: 13.5, color: 'var(--ink-700)', lineHeight: 1.7 }}>
-          아직 식단을 짤 만큼 재료가 없어요.
-          <br />
-          내 냉장고에 재료를 넣으면 그걸로 만들 수 있는 요리를 골라 드려요.
+          {off && off.size > 0 && pool && pool.length > 0 ? (
+            <>뺀 재료가 많아서 만들 수 있는 요리가 없어요.
+            <br />
+            위 <b>①</b> 에서 재료를 몇 개 도로 넣어 주세요.</>
+          ) : (
+            <>아직 식단을 짤 만큼 재료가 없어요.
+            <br />
+            내 냉장고에 재료를 넣으면 그걸로 만들 수 있는 요리를 골라 드려요.</>
+          )}
           <button
             type="button"
-            onClick={() => navigate('/my-fridge')}
+            onClick={() => {
+              if (off && off.size > 0 && pool && pool.length > 0) { setPickOpen(true); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+              else navigate('/my-fridge');
+            }}
             style={{
               marginTop: 12, height: 40, padding: '0 16px', borderRadius: 10,
               border: 'none', background: '#FFD600', color: '#1A1A1E',
               fontSize: 14, fontWeight: 700, cursor: 'pointer',
             }}
           >
-            내 냉장고로 가기
+            {off && off.size > 0 && pool && pool.length > 0 ? '재료 다시 고르기' : '내 냉장고로 가기'}
           </button>
         </div>
       )}
 
-      {pool !== null && !asking && slots.some(s => s.recipe) && (
+      {usablePool !== null && !asking && slots.some(s => s.recipe) && (
         <>
-          {/* 크레딧 안내는 **누르기 전에** 보여야 한다. 목록 아래에 뒀더니
-              버튼을 다 눌러 본 다음에야 읽게 됐다. */}
-          <div style={{
-            fontSize: 11.5, color: 'var(--ink-500)', lineHeight: 1.7,
-            background: 'var(--surface)', border: '1px solid var(--line-200)',
-            borderRadius: 12, padding: '10px 12px', marginBottom: 10,
-          }}>
-            <b style={{ color: 'var(--ink-700)' }}>다른 요리로 바꾸기</b>와
-            <b style={{ color: 'var(--ink-700)' }}> 다시 짜기</b>는 크레딧을 쓰지 않아요.
-            <br />
-            AI 없이 <b>냉장고 재료만 맞춰 보는 것</b>이라, 마음에 들 때까지 눌러도 됩니다.
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                        gap: 8, marginBottom: 8 }}>
-            <span style={{ fontSize: 12.5, color: 'var(--ink-500)' }}>
-              내일부터 {slots.length}일
-            </span>
-            <button
-              type="button"
-              onClick={reshuffle}
-              style={{
-                height: 32, padding: '0 12px', borderRadius: 8,
-                border: '1px solid var(--line-200)', background: 'var(--surface)',
-                fontSize: 12.5, fontWeight: 700, color: 'var(--ink-900)', cursor: 'pointer',
-              }}
-            >
-              ↻ 다시 짜기
-            </button>
-          </div>
+          {/* 이 화면의 **결과**. 앞 두 영역은 여기로 오기 위한 자리다.
+              크레딧 안내를 따로 상자에 담았더니 카드가 한 칸 더 밀려 내려갔다 —
+              제목 밑줄로 붙인다. */}
+          <SectionHead
+            n={3}
+            title={'이번 주 식단 · 내일부터 ' + slots.length + '일'}
+            hint={<>바꾸기·다시 짜기는 <b style={{ color: 'var(--ink-700)' }}>크레딧을 쓰지 않아요</b> — 마음에 들 때까지 누르세요</>}
+            right={
+              <button
+                type="button"
+                onClick={reshuffle}
+                style={{
+                  flexShrink: 0, height: 30, padding: '0 10px', borderRadius: 8,
+                  border: '1px solid var(--line-200)', background: 'var(--surface)',
+                  fontSize: 12, fontWeight: 700, color: 'var(--ink-900)', cursor: 'pointer',
+                }}
+              >
+                ↻ 다시 짜기
+              </button>
+            }
+          />
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {slots.map((slot, i) => (
