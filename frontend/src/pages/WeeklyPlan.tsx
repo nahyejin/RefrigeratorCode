@@ -9,7 +9,8 @@ import { openCookMode } from '../utils/cookMode';
 import { resolveCoupangUrl } from '../utils/coupangLink';
 import { track } from '../utils/track';
 import { usageHeaders, applyUsage } from '../utils/usage';
-import { useUsage } from '../components/UsageMeter';
+import { UsageLine, useUsage } from '../components/UsageMeter';
+import { savePlan, toDateKey, type PlannedMeal } from '../utils/mealPlan';
 
 /**
  * 이번 주 식단 + 장보기 목록.
@@ -118,6 +119,7 @@ const WeeklyPlan: React.FC = () => {
   );
   const [error, setError] = React.useState<string | null>(null);
   const [bought, setBought] = React.useState<Set<string>>(new Set());
+  const [saved, setSaved] = React.useState(false);
 
   // AI 식단
   const [wish, setWish] = React.useState('');
@@ -170,6 +172,7 @@ const WeeklyPlan: React.FC = () => {
   const reshuffle = () => {
     if (!pool) return;
     setAiNote(null);
+    setSaved(false);
     const shuffled = [...pool].sort(() => Math.random() - 0.5);
     const picked = pickDistinct(shuffled, slots.length);
     setSlots(prev => prev.map((s, i) => ({ ...s, recipe: picked[i] || null })));
@@ -178,6 +181,7 @@ const WeeklyPlan: React.FC = () => {
   /** 한 칸만 다른 요리로 (무료). 지금 식단에 없는 것 중에서 고른다. */
   const swapOne = (index: number) => {
     if (!pool) return;
+    setSaved(false);
     const others = pool.filter(r => !usedIds.has(r.id));
     if (others.length === 0) return;
     const next = others[Math.floor(Math.random() * others.length)];
@@ -190,6 +194,7 @@ const WeeklyPlan: React.FC = () => {
    */
   const moveTo = (from: number, to: number) => {
     if (from === to) return;
+    setSaved(false);
     setSlots(prev => {
       const next = [...prev];
       const a = next[from].recipe;
@@ -228,12 +233,35 @@ const WeeklyPlan: React.FC = () => {
         return;
       }
       setSlots(prev => prev.map((s, i) => ({ ...s, recipe: got[i] || null })));
+      setSaved(false);
       setAiNote(wish.trim() ? `"${wish.trim()}" 을(를) 반영했어요.` : 'AI 가 새로 짰어요.');
     } catch {
       setError('네트워크 상태를 확인하고 다시 시도해 주세요.');
     } finally {
       setAsking(false);
     }
+  };
+
+  /**
+   * 계획을 캘린더에 반영한다.
+   *
+   * 짜고 끝나면 아무 데도 안 남는다. 그러면 다음 날 "뭐 해 먹기로 했더라" 를
+   * 다시 물어야 하고, 식단을 짠 의미가 없다.
+   */
+  const applyPlan = () => {
+    const meals: PlannedMeal[] = slots
+      .filter(s => s.on && s.recipe)
+      .map(s => ({
+        date: toDateKey(s.date),
+        recipeId: s.recipe!.id,
+        title: s.recipe!.title,
+        link: s.recipe!.link,
+        thumbnail: s.recipe!.thumbnail,
+        why: s.recipe!.why,
+      }));
+    savePlan(meals);
+    setSaved(true);
+    track('recipe_action', 'plan_apply');
   };
 
   const active = slots.filter(s => s.on && s.recipe).map(s => s.recipe!);
@@ -262,7 +290,7 @@ const WeeklyPlan: React.FC = () => {
                     justifyContent: 'center', marginBottom: 16, minHeight: 40 }}>
         <BackButton onClick={() => navigate(-1)} style={{ left: 0, top: 2 }} />
         <div style={{ fontWeight: 700, fontSize: 18, textAlign: 'center', padding: '0 56px' }}>
-          이번 주 식단
+          이번 주 식단 추천
         </div>
       </div>
 
@@ -294,12 +322,18 @@ const WeeklyPlan: React.FC = () => {
       </div>
 
       {/* ── AI 로 짜기 ─────────────────────────────────────── */}
-      <div style={{
-        background: 'var(--surface)', border: '1px solid var(--line-200)',
-        borderRadius: 14, padding: '14px 16px', marginBottom: 12,
-      }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: '#1A1A1E', marginBottom: 4 }}>
-          원하는 대로 짜 드려요
+      {/* AI 가 관여하는 자리는 앱 어디서나 **같은 시각 언어**를 쓴다 —
+          노란 반짝임 + "AI" 배지. 챗봇 FAB·카메라 버튼과 같은 규칙이다. */}
+      <div className="ai-surface" style={{ borderRadius: 14, padding: '14px 16px', marginBottom: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+          <span style={{
+            fontSize: 10, fontWeight: 800, letterSpacing: '.04em',
+            padding: '2px 6px', borderRadius: 6,
+            background: '#1A1A1E', color: '#FFD600',
+          }}>AI</span>
+          <span style={{ fontSize: 14, fontWeight: 700, color: '#1A1A1E' }}>
+            원하는 대로 짜 드려요
+          </span>
         </div>
         <div style={{ fontSize: 12, color: 'var(--ink-500)', marginBottom: 10, lineHeight: 1.6 }}>
           "담백하게", "아이가 먹을 것 위주로", "국물 요리는 빼고" 처럼 적어 보세요.
@@ -319,29 +353,30 @@ const WeeklyPlan: React.FC = () => {
           />
           <button
             type="button"
+            className="ai-action"
             disabled={asking || !canAi}
             onClick={() => { if (canAi) void askAi(); }}
             style={{
-              flexShrink: 0, height: 40, padding: '0 14px', borderRadius: 10, border: 'none',
-              background: canAi ? '#FFD600' : 'var(--line-200)',
-              color: canAi ? '#1A1A1E' : 'var(--ink-500)',
+              flexShrink: 0, height: 40, padding: '0 14px', borderRadius: 10,
               fontSize: 13.5, fontWeight: 700,
               cursor: canAi && !asking ? 'pointer' : 'default',
             }}
           >
-            {asking ? '짜는 중...' : `AI로 짜기 ${planCost}`}
+            <span>{asking ? '짜는 중...' : `AI로 짜기 ${planCost}`}</span>
           </button>
         </div>
-        <div style={{ fontSize: 11.5, color: 'var(--ink-500)', marginTop: 8, lineHeight: 1.6 }}>
+        {/* 남은 양은 앱 어디서나 **같은 부품**으로 보여 준다. 화면마다 다르게
+            적으면 사용자가 매번 다시 읽어야 한다. */}
+        <UsageLine style={{ marginTop: 8 }} />
+        <div style={{ fontSize: 11.5, color: 'var(--ink-500)', marginTop: 4, lineHeight: 1.6 }}>
           {canAi ? (
-            <>AI 로 짜면 크레딧 <b>{planCost}</b>이 줄어요 (남은 {usage?.balance ?? 0}
-            {usage?.is_guest ? ' · 체험 중' : ''}).
-            아래 <b>다시 짜기</b>와 <b>바꾸기</b>는 크레딧을 쓰지 않아요.</>
+            <>이 버튼은 크레딧 <b>{planCost}</b>을 써요.
+            아래 <b>다시 짜기</b>와 <b>바꾸기</b>는 쓰지 않아요.</>
           ) : usage?.is_guest ? (
-            <>체험을 다 쓰셨어요. <b>가입하면 {usage.signup_credits}개</b>를 바로 드려요.
-            아래 기본 식단은 그냥 쓰셔도 됩니다.</>
+            <><b>가입하면 {usage.signup_credits}개</b>를 바로 드려요.
+            아래 기본 추천은 그냥 쓰셔도 됩니다.</>
           ) : (
-            <>크레딧을 다 쓰셨어요. 아래 기본 식단은 그냥 쓰셔도 됩니다.</>
+            <>아래 기본 추천은 그냥 쓰셔도 됩니다.</>
           )}
         </div>
         {aiNote && (
@@ -447,6 +482,9 @@ const WeeklyPlan: React.FC = () => {
 
                   <div style={{ flex: 1, minWidth: 0 }}>
                     {slot.recipe ? (
+                      /* 제목만 있으면 **눌러도 되는지 알 수가 없다.**
+                         썸네일 + `조리 순서 보기 ›` 를 함께 두어, 이 줄 전체가
+                         버튼이라는 걸 보이게 한다. */
                       <button
                         type="button"
                         onClick={() => {
@@ -459,22 +497,41 @@ const WeeklyPlan: React.FC = () => {
                         style={{
                           width: '100%', textAlign: 'left', border: 'none',
                           background: 'transparent', cursor: 'pointer', padding: 0,
+                          display: 'flex', alignItems: 'center', gap: 10,
                         }}
                       >
-                        <div style={{
-                          fontSize: 14, fontWeight: 600, color: '#1A1A1E', lineHeight: 1.4,
-                          overflow: 'hidden', display: '-webkit-box',
-                          WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
-                        }}>{slot.recipe.title}</div>
-                        {slot.recipe.why ? (
-                          <div style={{ fontSize: 11.5, color: '#7A5C00', marginTop: 3 }}>
-                            {slot.recipe.why}
-                          </div>
-                        ) : typeof slot.recipe.match_rate === 'number' ? (
-                          <div style={{ fontSize: 11.5, color: 'var(--ink-500)', marginTop: 3 }}>
-                            가진 재료로 {slot.recipe.match_rate}% 만들 수 있어요
-                          </div>
-                        ) : null}
+                        {slot.recipe.thumbnail && (
+                          <img
+                            src={slot.recipe.thumbnail}
+                            alt=""
+                            loading="lazy"
+                            onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                            style={{
+                              width: 52, height: 52, flexShrink: 0, borderRadius: 10,
+                              objectFit: 'cover', background: 'var(--surface-sub)',
+                            }}
+                          />
+                        )}
+                        <span style={{ minWidth: 0, flex: 1 }}>
+                          <span style={{
+                            display: '-webkit-box', fontSize: 14, fontWeight: 600,
+                            color: '#1A1A1E', lineHeight: 1.4, overflow: 'hidden',
+                            WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+                          }}>{slot.recipe.title}</span>
+                          {slot.recipe.why ? (
+                            <span style={{ display: 'block', fontSize: 11.5, color: '#7A5C00', marginTop: 3 }}>
+                              {slot.recipe.why}
+                            </span>
+                          ) : typeof slot.recipe.match_rate === 'number' ? (
+                            <span style={{ display: 'block', fontSize: 11.5, color: 'var(--ink-500)', marginTop: 3 }}>
+                              가진 재료로 {slot.recipe.match_rate}% 만들 수 있어요
+                            </span>
+                          ) : null}
+                          <span style={{
+                            display: 'inline-block', marginTop: 4, fontSize: 11.5,
+                            fontWeight: 700, color: '#7A5C00',
+                          }}>조리 순서 보기 ›</span>
+                        </span>
                       </button>
                     ) : (
                       <span style={{ fontSize: 13, color: 'var(--ink-500)' }}>비어 있음</span>
@@ -506,9 +563,36 @@ const WeeklyPlan: React.FC = () => {
             ))}
           </div>
 
+          {/* 반영하기 — 이게 없으면 "짜고 끝" 이다. */}
+          <button
+            type="button"
+            onClick={applyPlan}
+            style={{
+              width: '100%', height: 48, marginTop: 12, borderRadius: 12, border: 'none',
+              background: saved ? '#E8F0E4' : '#FFD600',
+              color: saved ? '#3A6B2E' : '#1A1A1E',
+              fontSize: 14.5, fontWeight: 700, cursor: 'pointer',
+            }}
+          >
+            {saved ? '✓ 요리 캘린더에 반영했어요' : '이번 주 식단 계획 반영하기'}
+          </button>
+          {saved && (
+            <button
+              type="button"
+              onClick={() => navigate('/cooking-calendar')}
+              style={{
+                width: '100%', height: 40, marginTop: 6, borderRadius: 10,
+                border: '1px solid var(--line-200)', background: 'var(--surface)',
+                fontSize: 13, fontWeight: 700, color: 'var(--ink-900)', cursor: 'pointer',
+              }}
+            >
+              요리 캘린더에서 보기 ›
+            </button>
+          )}
+
           <div style={{ fontSize: 11.5, color: 'var(--ink-500)', lineHeight: 1.7,
                         padding: '10px 4px 0' }}>
-            체크를 풀면 아래 장보기 목록에서도 빠져요. 요리를 누르면 조리 순서가 나옵니다.
+            체크를 풀면 반영·장보기 목록에서 함께 빠져요. 요리를 누르면 조리 순서가 나옵니다.
             <br />
             {/* "AI 가 짜 주는 것" 으로 오해하면 크레딧이 닳는 줄 알고 아껴 쓰게 된다. */}
             <b>다시 짜기·바꾸기·요일 옮기기는 크레딧을 쓰지 않아요.</b> 미리 뽑아 둔

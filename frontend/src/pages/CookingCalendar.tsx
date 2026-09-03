@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import ExpiryAlert from '../components/ExpiryAlert';
 import { loadIngredientCategoryMap, type CategoryMap, type StorageKind } from '../utils/shelfLife';
 import type { FridgeItem } from '../utils/expiry';
+import { planByDate, loadPlan, type PlannedMeal } from '../utils/mealPlan';
+import { openCookMode } from '../utils/cookMode';
 import BottomNavBar from '../components/BottomNavBar';
 import PullToRefresh from '../components/PullToRefresh';
 import { useAuth } from '../context/AuthContext';
@@ -148,6 +150,61 @@ const FridgeToPlan: React.FC<{ onGo: () => void }> = ({ onGo }) => {
           냉장고 재료로 · 장보기 목록까지 ›
         </span>
       </button>
+    </div>
+  );
+};
+
+/**
+ * 짜 둔 식단 계획 목록.
+ *
+ * 로그인 벽 **앞에도** 둔다. 계획은 기기에 저장되는 것이라 로그인이 필요 없는데,
+ * 벽 뒤에만 두면 **비회원이 식단을 반영해 놓고 볼 곳이 없다.**
+ */
+const PlannedList: React.FC = () => {
+  const meals = React.useMemo(() => {
+    const today = new Date();
+    const key = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    return loadPlan().filter(m => m.date >= key).slice(0, 7);
+  }, []);
+
+  if (meals.length === 0) return null;
+
+  return (
+    <div style={{ margin: '0 14px 12px' }}>
+      <div style={{ fontSize: 13, fontWeight: 700, color: '#1A1A1E', marginBottom: 8 }}>
+        만들기로 한 요리
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {meals.map(m => (
+          <button
+            key={m.date}
+            type="button"
+            onClick={() => openCookMode({ id: m.recipeId, title: m.title, link: m.link })}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px',
+              borderRadius: 12, border: '1px dashed #C9A400', background: '#FFFDF2',
+              cursor: 'pointer', textAlign: 'left',
+            }}
+          >
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#7A5C00', width: 62, flexShrink: 0 }}>
+              {m.date.slice(5).replace('-', '/')}
+            </span>
+            {m.thumbnail && (
+              <img
+                src={m.thumbnail}
+                alt=""
+                loading="lazy"
+                onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                style={{ width: 36, height: 36, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }}
+              />
+            )}
+            <span style={{
+              flex: 1, minWidth: 0, fontSize: 13, color: '#1A1A1E',
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}>{m.title}</span>
+          </button>
+        ))}
+      </div>
     </div>
   );
 };
@@ -463,6 +520,7 @@ const CookingCalendar: React.FC = () => {
             않는다.** 로그인해야만 쓸 수 있는 건 캘린더(내 요리 이력)뿐이다. */}
         <div style={{ maxWidth: 480, margin: '0 auto', width: '100%', paddingBottom: 16 }}>
       <FridgeToPlan onGo={() => navigate('/plan')} />
+      <PlannedList />
         </div>
         <BottomNavBar activeTab="cooking-calendar" />
       </div>
@@ -471,6 +529,14 @@ const CookingCalendar: React.FC = () => {
 
   const gridStart = startOfWeek(monthStart);
   const gridDays = Array.from({ length: 42 }, (_, i) => addDays(gridStart, i));
+
+  /**
+   * 짜 둔 식단 계획.
+   *
+   * 완료 기록(`entriesByDay`)과 **섞지 않는다.** 저건 실제로 만든 것이고 이건
+   * 아직 계획이다. 같은 목록에 넣으면 "만들었다" 는 기록이 오염된다.
+   */
+  const plans = planByDate();
 
   // 하루 셀에 넣을 멤버별 점(최대 3명, 넘치면 +N)
   const renderDayDots = (dayEntries: CalendarEntry[]) => {
@@ -513,6 +579,7 @@ const CookingCalendar: React.FC = () => {
           새로고침으로 그 자리에서 바로 다시 불러올 수 있게 한다. */}
       <PullToRefresh onRefresh={loadCalendar}>
       <FridgeToPlan onGo={() => navigate('/plan')} />
+      <PlannedList />
 
       {/* 월 목표는 "이번 달" 이라는 더 큰 단위 얘기라, 일/주/월 중 무엇을 보고
           있든 항상 같은 값이어야 맞다 — 그래서 일/주/월 전환 버튼보다 위,
@@ -857,6 +924,14 @@ const CookingCalendar: React.FC = () => {
                 >
                   <span style={{ fontSize: 13, fontWeight: isToday ? 700 : 500, color: '#1A1A1E' }}>{d.getDate()}</span>
                   {dayEntries.length > 0 && renderDayDots(dayEntries)}
+                  {/* 계획은 **테두리만 있는 점**으로 둔다. 완료 기록(채워진 점)과
+                      한눈에 구분되어야 "했다" 와 "할 것" 이 안 섞인다. */}
+                  {dayEntries.length === 0 && plans.has(key) && (
+                    <span style={{
+                      width: 6, height: 6, borderRadius: 9999,
+                      border: '1.5px solid #C9A400', background: 'transparent',
+                    }} />
+                  )}
                 </button>
               );
             })}
@@ -895,7 +970,11 @@ const CookingCalendar: React.FC = () => {
                   {WEEKDAY_LABELS[d.getDay()]} {d.getDate()}
                 </span>
                 <span style={{ fontSize: 12.5, color: dayEntries.length ? 'var(--ink-700)' : 'var(--ink-500)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {dayEntries.length === 0 ? '기록 없음' : dayEntries.map((e) => e.title).join(', ')}
+                  {dayEntries.length > 0
+                    ? dayEntries.map((e) => e.title).join(', ')
+                    : plans.has(key)
+                      ? `계획 · ${plans.get(key)!.title}`
+                      : '기록 없음'}
                 </span>
                 {dayEntries.length > 0 && renderDayDots(dayEntries)}
               </button>
@@ -907,6 +986,48 @@ const CookingCalendar: React.FC = () => {
       {/* 일 보기 */}
       {viewMode === 'day' && (
         <div style={{ padding: '12px 14px 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {/* 이 날의 **계획**. 완료 기록과 섞지 않고 위에 따로 둔다 —
+              "할 것" 과 "했다" 는 다른 이야기다. */}
+          {(() => {
+            const planned: PlannedMeal | undefined = plans.get(selectedDay);
+            if (!planned) return null;
+            return (
+              <button
+                type="button"
+                onClick={() => openCookMode({
+                  id: planned.recipeId, title: planned.title, link: planned.link,
+                })}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px',
+                  borderRadius: 12, border: '1px dashed #C9A400', background: '#FFFDF2',
+                  cursor: 'pointer', textAlign: 'left',
+                }}
+              >
+                {planned.thumbnail && (
+                  <img
+                    src={planned.thumbnail}
+                    alt=""
+                    loading="lazy"
+                    onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                    style={{ width: 44, height: 44, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }}
+                  />
+                )}
+                <span style={{ minWidth: 0, flex: 1 }}>
+                  <span style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#7A5C00' }}>
+                    오늘 만들기로 한 요리
+                  </span>
+                  <span style={{
+                    display: '-webkit-box', fontSize: 13.5, fontWeight: 600, color: '#1A1A1E',
+                    lineHeight: 1.4, overflow: 'hidden', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+                  }}>{planned.title}</span>
+                  <span style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: '#7A5C00', marginTop: 3 }}>
+                    조리 순서 보기 ›
+                  </span>
+                </span>
+              </button>
+            );
+          })()}
+
           {(entriesByDay.get(selectedDay) || []).length === 0 ? (
             <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--ink-500)', fontSize: 13 }}>
               이 날은 완료한 레시피가 없어요.
