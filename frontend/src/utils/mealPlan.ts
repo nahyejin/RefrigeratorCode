@@ -80,16 +80,39 @@ export function savePlan(meals: PlannedMeal[], mode: 'overwrite' | 'fill' = 'ove
   }
 }
 
-/** 날짜별로 찾아 쓰기 좋게. */
-export function planByDate(): Map<string, PlannedMeal> {
-  const map = new Map<string, PlannedMeal>();
-  loadPlan().forEach(m => map.set(m.date, m));
+/**
+ * 날짜별로 찾아 쓰기 좋게. **하루에 여러 끼**가 올 수 있다.
+ *
+ * 예전엔 `Map<string, PlannedMeal>` 이라 한 날에 하나만 남았다. 그래서 식단
+ * 화면도 요일을 옮길 때 두 요리를 **맞바꾸는** 수밖에 없었고, 토요일 것을
+ * 일요일로 옮기면 일요일 것이 토요일로 밀려났다. 실제로는 하루에 두세 개를
+ * 해 먹을 수 있어야 한다.
+ */
+export function planByDate(): Map<string, PlannedMeal[]> {
+  const map = new Map<string, PlannedMeal[]>();
+  loadPlan().forEach(m => {
+    const list = map.get(m.date);
+    if (list) list.push(m);
+    else map.set(m.date, [m]);
+  });
   return map;
 }
 
 export function clearPlanOn(date: string): void {
   try {
     localStorage.setItem(KEY, JSON.stringify(loadPlan().filter(m => m.date !== date)));
+  } catch {
+    /* 무시 */
+  }
+}
+
+/** 그 날의 **한 끼만** 지운다. 하루에 여러 개가 있을 수 있으므로 필요하다. */
+export function clearPlanMeal(date: string, recipeId: number): void {
+  try {
+    localStorage.setItem(
+      KEY,
+      JSON.stringify(loadPlan().filter(m => !(m.date === date && m.recipeId === recipeId))),
+    );
   } catch {
     /* 무시 */
   }

@@ -170,7 +170,9 @@ const PlannedList: React.FC = () => {
   const meals = React.useMemo(() => {
     const today = new Date();
     const key = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-    return loadPlan().filter(m => m.date >= key).slice(0, 7);
+    // 7 이 아니라 10 — 하루에 두세 끼가 올 수 있어서, 7 로 자르면
+    // 한 주가 다 안 보인다.
+    return loadPlan().filter(m => m.date >= key).slice(0, 10);
   }, []);
 
   if (meals.length === 0) return null;
@@ -181,9 +183,9 @@ const PlannedList: React.FC = () => {
         만들기로 한 요리
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        {meals.map(m => (
+        {meals.map((m, i) => (
           <button
-            key={m.date}
+            key={m.date + '-' + m.recipeId}
             type="button"
             onClick={() => openCookMode({ id: m.recipeId, title: m.title, link: m.link })}
             style={{
@@ -192,8 +194,10 @@ const PlannedList: React.FC = () => {
               cursor: 'pointer', textAlign: 'left',
             }}
           >
+            {/* 같은 날 두 번째 끼니부터는 날짜를 비운다 — 같은 날짜가 연달아
+                찍히면 다른 날인 줄 알고 다시 읽게 된다. */}
             <span style={{ fontSize: 12, fontWeight: 700, color: '#7A5C00', width: 62, flexShrink: 0 }}>
-              {m.date.slice(5).replace('-', '/')}
+              {i > 0 && meals[i - 1].date === m.date ? '' : m.date.slice(5).replace('-', '/')}
             </span>
             {m.thumbnail && (
               <img
@@ -984,7 +988,8 @@ const CookingCalendar: React.FC = () => {
             const dayEntries = entriesByDay.get(key) || [];
             const isToday = key === toDateKey(new Date());
             // 완료 기록이 없고 계획만 있는 날 — 이 줄은 "할 것" 이다.
-            const planned = dayEntries.length === 0 ? plans.get(key) : undefined;
+            const dayPlans = dayEntries.length === 0 ? (plans.get(key) || []) : [];
+            const planned = dayPlans[0];
             return (
               <button
                 key={key}
@@ -1040,7 +1045,10 @@ const CookingCalendar: React.FC = () => {
                         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                       }}>{planned.title}</span>
                       <span style={{ display: 'block', fontSize: 11, color: '#7A5C00', marginTop: 2 }}>
+                        {/* 하루에 여러 끼면 그렇다고 말해 준다. 첫 줄만 보여
+                            주고 입 다물면 나머지를 짜 둔 걸 잊는다. */}
                         만들기로 한 요리
+                        {dayPlans.length > 1 && ` 외 ${dayPlans.length - 1}개`}
                       </span>
                     </span>
                   </>
@@ -1063,11 +1071,10 @@ const CookingCalendar: React.FC = () => {
         <div style={{ padding: '12px 14px 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
           {/* 이 날의 **계획**. 완료 기록과 섞지 않고 위에 따로 둔다 —
               "할 것" 과 "했다" 는 다른 이야기다. */}
-          {(() => {
-            const planned: PlannedMeal | undefined = plans.get(selectedDay);
-            if (!planned) return null;
+          {(plans.get(selectedDay) || []).map((planned: PlannedMeal) => {
             return (
               <button
+                key={planned.recipeId}
                 type="button"
                 onClick={() => openCookMode({
                   id: planned.recipeId, title: planned.title, link: planned.link,
@@ -1089,7 +1096,7 @@ const CookingCalendar: React.FC = () => {
                 )}
                 <span style={{ minWidth: 0, flex: 1 }}>
                   <span style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#7A5C00' }}>
-                    오늘 만들기로 한 요리
+                    만들기로 한 요리
                   </span>
                   <span style={{
                     display: '-webkit-box', fontSize: 13.5, fontWeight: 600, color: '#1A1A1E',
@@ -1101,7 +1108,7 @@ const CookingCalendar: React.FC = () => {
                 </span>
               </button>
             );
-          })()}
+          })}
 
           {(entriesByDay.get(selectedDay) || []).length === 0 ? (
             <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--ink-500)', fontSize: 13 }}>

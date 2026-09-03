@@ -48,11 +48,23 @@ interface PlanRecipe {
   why?: string;
 }
 
-/** 한 칸 = 하루. 무엇을 만들지와, 장보기에 넣을지. */
+/**
+ * 한 칸 = 하루. **여러 끼가 올 수 있다.**
+ *
+ * 예전엔 `recipe: PlanRecipe | null` 하나였다. 그래서 요일을 옮기는 일이
+ * "두 칸을 맞바꾸기" 밖에 될 수 없었고, 토요일 것을 일요일로 옮기면 일요일
+ * 것이 토요일로 밀려났다. 실제로는 하루에 두세 개를 해 먹을 수도, 아무것도
+ * 안 할 수도 있어야 한다.
+ */
+interface Meal {
+  recipe: PlanRecipe;
+  /** 장보기·반영에 넣을지. 끼니마다 따로 끈다. */
+  on: boolean;
+}
+
 interface Slot {
   date: Date;
-  recipe: PlanRecipe | null;
-  on: boolean;
+  meals: Meal[];
 }
 
 /**
@@ -278,7 +290,7 @@ const WeeklyPlan: React.FC = () => {
   const [categoryMap, setCategoryMap] = React.useState<CategoryMap>({});
   const [pool, setPool] = React.useState<PlanRecipe[] | null>(null);
   const [slots, setSlots] = React.useState<Slot[]>(
-    () => nextDays().map(date => ({ date, recipe: null, on: true })),
+    () => nextDays().map(date => ({ date, meals: [] })),
   );
   const [error, setError] = React.useState<string | null>(null);
   const [bought, setBought] = React.useState<Set<string>>(new Set());
@@ -402,17 +414,38 @@ const WeeklyPlan: React.FC = () => {
     return pool.filter(r => !ingredientsOf(r).some(n => off.has(n)));
   }, [pool, off]);
 
-  // 후보가 바뀌면 칸을 다시 채운다. 재료를 뺐는데 그 재료로 만든 요리가 그대로
-  // 남아 있으면, 사용자 눈에는 버튼이 안 먹은 것으로 보인다.
+  /**
+   * 어떤 조건으로 뽑은 후보인지. **재료가 바뀌었을 때만** 다시 채우려고 쓴다.
+   *
+   * 전에는 `usablePool` 이 바뀔 때마다 무조건 다시 채웠다. 그런데 같은 조건으로도
+   * 요청이 여러 번 나가기 때문에, 늦게 도착한 응답이 **사용자가 방금 옮겨 둔
+   * 식단을 말없이 되돌렸다.** 토요일 것을 일요일로 옮겨 놓으면 잠시 뒤 제자리로
+   * 돌아갔다.
+   */
+  const planKey = React.useMemo(
+    () => planIngredients.join(',') + '|' + priority.join(','),
+    [planIngredients, priority],
+  );
+  const appliedKey = React.useRef<string | null>(null);
+
   React.useEffect(() => {
     if (!usablePool || usablePool.length === 0) return;
+    const same = appliedKey.current === planKey;
+    appliedKey.current = planKey;
     setSlots(prev => {
+      // 조건이 그대로인데 이미 짜 둔 게 있으면 손대지 않는다.
+      if (same && prev.some(s => s.meals.length > 0)) return prev;
       const picked = pickDistinct(usablePool, prev.length);
-      return prev.map((s, i) => ({ ...s, recipe: picked[i] || null }));
+      // 처음엔 하루 한 끼로 채운다. 더 넣고 빼는 건 사용자가 한다.
+      return prev.map((s, i) => ({
+        ...s,
+        meals: picked[i] ? [{ recipe: picked[i], on: true }] : [],
+      }));
     });
-  }, [usablePool]);
+  }, [usablePool, planKey]);
 
-  const usedIds = new Set(slots.map(s => s.recipe?.id).filter(Boolean) as number[]);
+  const allMeals = slots.flatMap(s => s.meals);
+  const usedIds = new Set(allMeals.map(m => m.recipe.id));
 
   /** 전체를 다시 짠다 (무료). 매번 같은 조합이 안 나오게 섞는다. */
   const reshuffle = () => {
@@ -421,32 +454,74 @@ const WeeklyPlan: React.FC = () => {
     setSaved(false);
     const shuffled = [...usablePool].sort(() => Math.random() - 0.5);
     const picked = pickDistinct(shuffled, slots.length);
-    setSlots(prev => prev.map((s, i) => ({ ...s, recipe: picked[i] || null })));
+    setSlots(prev => prev.map((s, i) => ({
+      ...s,
+      meals: picked[i] ? [{ recipe: picked[i], on: true }] : [],
+    })));
   };
 
-  /** 한 칸만 다른 요리로 (무료). 지금 식단에 없는 것 중에서 고른다. */
-  const swapOne = (index: number) => {
-    if (!usablePool) return;
-    setSaved(false);
+  /** 지금 식단에 없는 요리 하나. 없으면 null. */
+  const pickUnused = (): PlanRecipe | null => {
+    if (!usablePool) return null;
     const others = usablePool.filter(r => !usedIds.has(r.id));
-    if (others.length === 0) return;
-    const next = others[Math.floor(Math.random() * others.length)];
-    setSlots(prev => prev.map((s, i) => (i === index ? { ...s, recipe: next } : s)));
+    if (others.length === 0) return null;
+    return others[Math.floor(Math.random() * others.length)];
+  };
+
+  /** 한 끼만 다른 요리로 (무료). */
+  const swapOne = (day: number, at: number) => {
+    const next = pickUnused();
+    if (!next) return;
+    setSaved(false);
+    setSlots(prev => prev.map((s, i) => (i !== day ? s : {
+      ...s,
+      meals: s.meals.map((m, j) => (j === at ? { ...m, recipe: next } : m)),
+    })));
+  };
+
+  /** 그 날에 한 끼 더. */
+  const addTo = (day: number) => {
+    const next = pickUnused();
+    if (!next) return;
+    setSaved(false);
+    setSlots(prev => prev.map((s, i) => (i !== day ? s : {
+      ...s, meals: [...s.meals, { recipe: next, on: true }],
+    })));
+  };
+
+  /** 그 끼니를 뺀다. 그 날이 비어도 괜찮다. */
+  const removeAt = (day: number, at: number) => {
+    setSaved(false);
+    setSlots(prev => prev.map((s, i) => (i !== day ? s : {
+      ...s, meals: s.meals.filter((_, j) => j !== at),
+    })));
+  };
+
+  const toggleAt = (day: number, at: number) => {
+    setSaved(false);
+    setSlots(prev => prev.map((s, i) => (i !== day ? s : {
+      ...s, meals: s.meals.map((m, j) => (j === at ? { ...m, on: !m.on } : m)),
+    })));
   };
 
   /**
-   * 요일을 바꾼다 — 두 칸의 요리를 **맞바꾼다.**
-   * 밀어내지 않고 자리를 바꾸므로 빈 칸이 생기지 않는다.
+   * 그 끼니를 **다른 날로 옮긴다.**
+   *
+   * 맞바꾸지 않는다. 예전에는 두 칸의 요리를 통째로 바꿔치기해서, 토요일 것을
+   * 일요일로 옮기면 멀쩡하던 일요일 요리가 토요일로 끌려갔다. 옮긴다는 말은
+   * 옮긴다는 뜻이지 자리를 바꾼다는 뜻이 아니다.
    */
-  const moveTo = (from: number, to: number) => {
+  const moveTo = (from: number, at: number, to: number) => {
     if (from === to) return;
     setSaved(false);
     setSlots(prev => {
-      const next = [...prev];
-      const a = next[from].recipe;
-      next[from] = { ...next[from], recipe: next[to].recipe };
-      next[to] = { ...next[to], recipe: a };
-      return next;
+      const meal = prev[from]?.meals[at];
+      if (!meal) return prev;
+      return prev.map((s, i) => {
+        if (i === from) return { ...s, meals: s.meals.filter((_, j) => j !== at) };
+        if (i === to) return { ...s, meals: [...s.meals, meal] };
+        return s;
+      });
     });
   };
 
@@ -495,16 +570,16 @@ const WeeklyPlan: React.FC = () => {
    * 다시 물어야 하고, 식단을 짠 의미가 없다.
    */
   const buildMeals = (): PlannedMeal[] =>
-    slots
-      .filter(s => s.on && s.recipe)
-      .map(s => ({
+    slots.flatMap(s =>
+      s.meals.filter(m => m.on).map(m => ({
         date: toDateKey(s.date),
-        recipeId: s.recipe!.id,
-        title: s.recipe!.title,
-        link: s.recipe!.link,
-        thumbnail: s.recipe!.thumbnail,
-        why: s.recipe!.why,
-      }));
+        recipeId: m.recipe.id,
+        title: m.recipe.title,
+        link: m.recipe.link,
+        thumbnail: m.recipe.thumbnail,
+        why: m.recipe.why,
+      })),
+    );
 
   const commit = (mode: 'overwrite' | 'fill') => {
     const meals = buildMeals();
@@ -528,7 +603,7 @@ const WeeklyPlan: React.FC = () => {
     setConflict(days);
   };
 
-  const active = slots.filter(s => s.on && s.recipe).map(s => s.recipe!);
+  const active = allMeals.filter(m => m.on).map(m => m.recipe);
 
   /** 고른 식단에 필요한데 냉장고에 **없는** 재료. 이게 장보기 목록이다. */
   const shopping = React.useMemo(() => {
@@ -770,7 +845,7 @@ const WeeklyPlan: React.FC = () => {
         </div>
       )}
 
-      {usablePool !== null && !asking && slots.every(s => !s.recipe) && (
+      {usablePool !== null && !asking && slots.every(s => s.meals.length === 0) && (
         <div style={{ background: 'var(--surface)', borderRadius: 14, padding: '20px 16px',
                       fontSize: 13.5, color: 'var(--ink-700)', lineHeight: 1.7 }}>
           {off && off.size > 0 && pool && pool.length > 0 ? (
@@ -799,7 +874,7 @@ const WeeklyPlan: React.FC = () => {
         </div>
       )}
 
-      {usablePool !== null && !asking && slots.some(s => s.recipe) && (
+      {usablePool !== null && !asking && slots.some(s => s.meals.length > 0) && (
         <>
           {/* 이 화면의 **결과**. 앞 두 영역은 여기로 오기 위한 자리다.
               크레딧 안내를 따로 상자에 담았더니 카드가 한 칸 더 밀려 내려갔다 —
@@ -822,154 +897,189 @@ const WeeklyPlan: React.FC = () => {
             }
           />
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {/* 하루가 한 묶음. 그 안에 끼니가 0개일 수도, 셋일 수도 있다. */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             {slots.map((slot, i) => (
-              <div
-                key={slot.date.toISOString()}
-                style={{
-                  background: 'var(--surface)', border: '1px solid var(--line-200)',
-                  borderRadius: 14, padding: 12,
-                  opacity: slot.on ? 1 : 0.5,
-                }}
-              >
-                {/* 왼쪽 한 기둥에 **날짜와 썸네일**, 오른쪽에 제목과 행동.
-                    전에는 버튼 줄에만 `paddingLeft: 70` 을 줘서 왼쪽에 큰 빈
-                    자리가 생겼고, 카드 안이 헐거워 보였다. 두 기둥으로 나누면
-                    왼쪽 폭이 썸네일 하나로 정해져 빈 자리가 안 생긴다. */}
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                  <div style={{ width: 84, flexShrink: 0 }}>
-                    <DayPicker
-                      value={i}
-                      days={slots.map(x => x.date)}
-                      onPick={j => moveTo(i, j)}
-                    />
-                    {slot.recipe && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          track('recipe_open', String(slot.recipe!.id));
-                          openCookMode({
-                            id: slot.recipe!.id, title: slot.recipe!.title,
-                            link: slot.recipe!.link, myIngredients,
-                          });
-                        }}
+              <div key={slot.date.toISOString()}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                              gap: 8, marginBottom: 6, padding: '0 2px' }}>
+                  <span style={{ fontSize: 13.5, fontWeight: 700, color: '#1A1A1E' }}>
+                    {dayLabel(slot.date)}
+                    {slot.meals.length > 1 && (
+                      <span style={{ fontSize: 11.5, fontWeight: 600, color: '#7A5C00', marginLeft: 6 }}>
+                        {slot.meals.length}끼
+                      </span>
+                    )}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => addTo(i)}
+                    style={{
+                      height: 26, padding: '0 9px', borderRadius: 8, flexShrink: 0,
+                      border: '1px solid var(--line-200)', background: 'var(--surface)',
+                      fontSize: 11.5, fontWeight: 700, color: 'var(--ink-700)', cursor: 'pointer',
+                    }}
+                  >
+                    + 요리 추가
+                  </button>
+                </div>
+
+                {slot.meals.length === 0 ? (
+                  /* 옮기고 나면 빈 날이 생긴다. 그것도 정상이라고 말해 준다 —
+                     예전엔 빈 칸이 생기지 않도록 억지로 맞바꿨다. */
+                  <div style={{
+                    border: '1px dashed var(--line-200)', borderRadius: 12, padding: '14px 12px',
+                    fontSize: 12.5, color: 'var(--ink-500)', textAlign: 'center',
+                  }}>
+                    이 날은 비워 뒀어요
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {slot.meals.map((meal, k) => (
+                      <div
+                        key={meal.recipe.id + '-' + k}
                         style={{
-                          display: 'block', width: '100%', marginTop: 6, padding: 0,
-                          border: 'none', background: 'transparent', cursor: 'pointer',
+                          background: 'var(--surface)', border: '1px solid var(--line-200)',
+                          borderRadius: 14, padding: 12,
+                          opacity: meal.on ? 1 : 0.5,
                         }}
                       >
-                        {slot.recipe.thumbnail ? (
-                          <img
-                            src={getProxiedImageUrl(slot.recipe.thumbnail)}
-                            alt=""
-                            loading="lazy"
-                            onError={e => {
-                              // 자리는 남긴다 — 지우면 줄 높이가 튀어 목록이 들썩인다.
-                              (e.currentTarget as HTMLImageElement).style.visibility = 'hidden';
-                            }}
-                            style={{
-                              width: '100%', height: 64, borderRadius: 10,
-                              objectFit: 'cover', background: 'var(--surface-sub)', display: 'block',
-                            }}
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                          <div style={{ width: 84, flexShrink: 0 }}>
+                            <DayPicker
+                              value={i}
+                              days={slots.map(x => x.date)}
+                              onPick={j => moveTo(i, k, j)}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                track('recipe_open', String(meal.recipe.id));
+                                openCookMode({
+                                  id: meal.recipe.id, title: meal.recipe.title,
+                                  link: meal.recipe.link, myIngredients,
+                                });
+                              }}
+                              style={{
+                                display: 'block', width: '100%', marginTop: 6, padding: 0,
+                                border: 'none', background: 'transparent', cursor: 'pointer',
+                              }}
+                            >
+                              {meal.recipe.thumbnail ? (
+                                <img
+                                  src={getProxiedImageUrl(meal.recipe.thumbnail)}
+                                  alt=""
+                                  loading="lazy"
+                                  onError={e => {
+                                    // 자리는 남긴다 — 지우면 줄 높이가 튀어 목록이 들썩인다.
+                                    (e.currentTarget as HTMLImageElement).style.visibility = 'hidden';
+                                  }}
+                                  style={{
+                                    width: '100%', height: 64, borderRadius: 10,
+                                    objectFit: 'cover', background: 'var(--surface-sub)', display: 'block',
+                                  }}
+                                />
+                              ) : (
+                                <span
+                                  aria-hidden
+                                  style={{
+                                    width: '100%', height: 64, borderRadius: 10,
+                                    background: 'var(--surface-sub)',
+                                    display: 'flex', alignItems: 'center',
+                                    justifyContent: 'center', color: 'var(--ink-500)', fontSize: 18,
+                                  }}
+                                >&#127869;</span>
+                              )}
+                            </button>
+                          </div>
+
+                          <div style={{ flex: 1, minWidth: 0, display: 'flex',
+                                        flexDirection: 'column', gap: 6 }}>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                track('recipe_open', String(meal.recipe.id));
+                                openCookMode({
+                                  id: meal.recipe.id, title: meal.recipe.title,
+                                  link: meal.recipe.link, myIngredients,
+                                });
+                              }}
+                              style={{
+                                width: '100%', textAlign: 'left', border: 'none',
+                                background: 'transparent', cursor: 'pointer', padding: 0,
+                              }}
+                            >
+                              <span style={{
+                                display: '-webkit-box', fontSize: 14, fontWeight: 600,
+                                color: '#1A1A1E', lineHeight: 1.4, overflow: 'hidden',
+                                WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+                              }}>{meal.recipe.title}</span>
+                              {meal.recipe.why ? (
+                                <span style={{ display: 'block', fontSize: 11.5, color: '#7A5C00', marginTop: 3 }}>
+                                  {meal.recipe.why}
+                                </span>
+                              ) : typeof meal.recipe.match_rate === 'number' ? (
+                                <span style={{ display: 'block', fontSize: 11.5, color: 'var(--ink-500)', marginTop: 3 }}>
+                                  가진 재료로 {meal.recipe.match_rate}% 만들 수 있어요
+                                </span>
+                              ) : null}
+                            </button>
+
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10,
+                                          flexWrap: 'wrap', marginTop: 'auto' }}>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  track('recipe_open', String(meal.recipe.id));
+                                  openCookMode({
+                                    id: meal.recipe.id, title: meal.recipe.title,
+                                    link: meal.recipe.link, myIngredients,
+                                  });
+                                }}
+                                style={{
+                                  border: 'none', background: 'transparent', padding: 0,
+                                  fontSize: 12, fontWeight: 700, color: '#7A5C00', cursor: 'pointer',
+                                }}
+                              >
+                                조리 순서 보기 &rsaquo;
+                              </button>
+                              <span aria-hidden style={{ color: 'var(--line-300)' }}>|</span>
+                              <button
+                                type="button"
+                                onClick={() => swapOne(i, k)}
+                                style={{
+                                  border: 'none', background: 'transparent', padding: 0,
+                                  fontSize: 12, fontWeight: 600, color: 'var(--ink-500)', cursor: 'pointer',
+                                }}
+                              >
+                                다른 요리로
+                              </button>
+                              <span aria-hidden style={{ color: 'var(--line-300)' }}>|</span>
+                              <button
+                                type="button"
+                                onClick={() => removeAt(i, k)}
+                                style={{
+                                  border: 'none', background: 'transparent', padding: 0,
+                                  fontSize: 12, fontWeight: 600, color: 'var(--ink-500)', cursor: 'pointer',
+                                }}
+                              >
+                                빼기
+                              </button>
+                            </div>
+                          </div>
+
+                          <input
+                            type="checkbox"
+                            checked={meal.on}
+                            onChange={() => toggleAt(i, k)}
+                            aria-label={dayLabel(slot.date) + ' ' + meal.recipe.title + ' 담기'}
+                            style={{ flexShrink: 0, width: 18, height: 18, marginTop: 6 }}
                           />
-                        ) : (
-                          /* 썸네일이 없는 레시피도 있다. `src=""` 로 두면 브라우저가
-                             페이지 자체를 다시 요청하므로 빈 자리를 그린다. */
-                          <span
-                            aria-hidden
-                            style={{
-                              width: '100%', height: 64, borderRadius: 10,
-                              background: 'var(--surface-sub)',
-                              display: 'flex', alignItems: 'center',
-                              justifyContent: 'center', color: 'var(--ink-500)', fontSize: 18,
-                            }}
-                          >🍽</span>
-                        )}
-                      </button>
-                    )}
-                  </div>
-
-                  <div style={{ flex: 1, minWidth: 0, display: 'flex',
-                                flexDirection: 'column', gap: 6 }}>
-                    {slot.recipe ? (
-                      <>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            track('recipe_open', String(slot.recipe!.id));
-                            openCookMode({
-                              id: slot.recipe!.id, title: slot.recipe!.title,
-                              link: slot.recipe!.link, myIngredients,
-                            });
-                          }}
-                          style={{
-                            width: '100%', textAlign: 'left', border: 'none',
-                            background: 'transparent', cursor: 'pointer', padding: 0,
-                          }}
-                        >
-                          <span style={{
-                            display: '-webkit-box', fontSize: 14, fontWeight: 600,
-                            color: '#1A1A1E', lineHeight: 1.4, overflow: 'hidden',
-                            WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
-                          }}>{slot.recipe.title}</span>
-                          {slot.recipe.why ? (
-                            <span style={{ display: 'block', fontSize: 11.5, color: '#7A5C00', marginTop: 3 }}>
-                              {slot.recipe.why}
-                            </span>
-                          ) : typeof slot.recipe.match_rate === 'number' ? (
-                            <span style={{ display: 'block', fontSize: 11.5, color: 'var(--ink-500)', marginTop: 3 }}>
-                              가진 재료로 {slot.recipe.match_rate}% 만들 수 있어요
-                            </span>
-                          ) : null}
-                        </button>
-
-                        {/* 오른쪽 기둥 안에 두 행동을 나란히. 왼쪽 끝이 제목과
-                            맞으므로 따로 여백을 줄 필요가 없다. */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10,
-                                      flexWrap: 'wrap', marginTop: 'auto' }}>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              track('recipe_open', String(slot.recipe!.id));
-                              openCookMode({
-                                id: slot.recipe!.id, title: slot.recipe!.title,
-                                link: slot.recipe!.link, myIngredients,
-                              });
-                            }}
-                            style={{
-                              border: 'none', background: 'transparent', padding: 0,
-                              fontSize: 12, fontWeight: 700, color: '#7A5C00', cursor: 'pointer',
-                            }}
-                          >
-                            조리 순서 보기 ›
-                          </button>
-                          <span aria-hidden style={{ color: 'var(--line-300)' }}>|</span>
-                          <button
-                            type="button"
-                            onClick={() => swapOne(i)}
-                            style={{
-                              border: 'none', background: 'transparent', padding: 0,
-                              fontSize: 12, fontWeight: 600, color: 'var(--ink-500)', cursor: 'pointer',
-                            }}
-                          >
-                            다른 요리로 바꾸기
-                          </button>
                         </div>
-                      </>
-                    ) : (
-                      <span style={{ fontSize: 13, color: 'var(--ink-500)' }}>비어 있음</span>
-                    )}
+                      </div>
+                    ))}
                   </div>
-
-                  <input
-                    type="checkbox"
-                    checked={slot.on}
-                    onChange={() => setSlots(prev => prev.map((s, j) =>
-                      (j === i ? { ...s, on: !s.on } : s)))}
-                    aria-label={`${dayLabel(slot.date)} 이 날 빼기`}
-                    style={{ flexShrink: 0, width: 18, height: 18, marginTop: 6 }}
-                  />
-                </div>
+                )}
               </div>
             ))}
           </div>
