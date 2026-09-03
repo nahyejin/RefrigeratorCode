@@ -4192,6 +4192,18 @@ def ensure_ingredient_miss_table():
                 "ALTER TABLE ingredient_dictionary_misses "
                 "ADD COLUMN recipe_hits INT NOT NULL DEFAULT 0"
             )
+        # "넣지 않음"으로 치운 이름이 다음 배치에서 같은 이름을 또 만나면
+        # (매일 새 레시피 수만 건을 훑으므로 거의 확실히 다시 만난다) 예전엔
+        # DELETE로 지웠다가 INSERT ... ON DUPLICATE KEY로 그대로 되살아났다.
+        # 물리적으로 지우는 대신 이 플래그만 세워 두면, 같은 이름이 다시 잡혀도
+        # ON DUPLICATE KEY UPDATE가 hit_count/last_seen만 건드리고 dismissed는
+        # 그대로 둬서 목록에 다시 안 뜬다.
+        cursor.execute("SHOW COLUMNS FROM ingredient_dictionary_misses LIKE 'dismissed'")
+        if not cursor.fetchone():
+            cursor.execute(
+                "ALTER TABLE ingredient_dictionary_misses "
+                "ADD COLUMN dismissed TINYINT(1) NOT NULL DEFAULT 0"
+            )
         db.commit()
     finally:
         cursor.close()

@@ -615,6 +615,7 @@ def register(app, get_db):
                 "       hit_count + COALESCE(recipe_hits, 0) AS total_hits, "
                 "       last_mode, first_seen, last_seen "
                 "FROM ingredient_dictionary_misses "
+                "WHERE COALESCE(dismissed, 0) = 0 "
                 "ORDER BY total_hits DESC, last_seen DESC LIMIT 300"
             )
             rows = cursor.fetchall()
@@ -718,10 +719,18 @@ def register(app, get_db):
 
     @app.route('/api/admin/dictionary/misses', methods=['DELETE'])
     def admin_dictionary_drop_misses():
-        """사전에 넣지 않기로 한 이름을 목록에서 지운다.
+        """사전에 넣지 않기로 한 이름을 목록에서 치운다.
 
         요리 이름·주류 브랜드처럼 **일부러 안 넣는 것**이 계속 목록에 남아 있으면
         볼 때마다 다시 판단하게 된다.
+
+        예전엔 여기서 행을 **물리적으로 DELETE**했는데, 레시피 배치가 매일
+        수만 건을 새로 훑다 보니 지운 이름을 며칠 안에 또 만나기 마련이고,
+        그러면 `record_recipe_misses`의 INSERT ... ON DUPLICATE KEY가 새
+        행으로 되살려 놨다 — 지운 게 계속 부활하는 것처럼 보였다.
+        이제는 지우는 대신 `dismissed=1`만 세워 둔다. 같은 이름이 다시
+        잡혀도 ON DUPLICATE KEY UPDATE는 hit_count/last_seen만 갱신하고
+        dismissed는 그대로 두므로, 한 번 치운 이름은 계속 안 보인다.
         """
         _, err = guard()
         if err:
@@ -734,15 +743,16 @@ def register(app, get_db):
         cursor = db.cursor()
         try:
             placeholders = ','.join(['%s'] * len(names))
-            deleted = cursor.execute(
-                f"DELETE FROM ingredient_dictionary_misses WHERE raw_name IN ({placeholders})",
+            dismissed = cursor.execute(
+                f"UPDATE ingredient_dictionary_misses SET dismissed = 1 "
+                f"WHERE raw_name IN ({placeholders})",
                 tuple(names),
             )
             db.commit()
         finally:
             cursor.close()
             db.close()
-        return jsonify({'deleted': deleted})
+        return jsonify({'deleted': dismissed})
 
     @app.route('/api/admin/dictionary/additions', methods=['GET'])
     def admin_dictionary_additions():

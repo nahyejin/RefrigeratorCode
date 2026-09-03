@@ -797,13 +797,28 @@ const Dictionary: React.FC = () => {
   const applyApproved = async () => {
     clearMessages();
     const items = (suggestions || []).filter(x => x.decision !== 'skip');
-    if (items.length === 0) { setNote('반영할 항목이 없어요.'); return; }
+    const skipped = (suggestions || []).filter(x => x.decision === 'skip').map(x => x.raw);
+    if (items.length === 0 && skipped.length === 0) { setNote('반영할 항목이 없어요.'); return; }
     setBusy('반영 중...');
     try {
-      const d = await api('/api/admin/dictionary/apply', {
-        method: 'POST', body: JSON.stringify({ items }),
-      });
-      setNote(d.saved + '개를 사전에 넣었어요. 바로 인식에 쓰입니다.');
+      let savedCount = 0;
+      if (items.length > 0) {
+        const d = await api('/api/admin/dictionary/apply', {
+          method: 'POST', body: JSON.stringify({ items }),
+        });
+        savedCount = d.saved || 0;
+      }
+      // "넣지 않음"으로 고른 것도 여기서 같이 목록에서 치운다 — 안 그러면
+      // 사전에 넣지도 않고 지우지도 않은 채 남아서 다음에 또 판단하게 된다.
+      if (skipped.length > 0) {
+        await drop(skipped);
+      }
+      setNote(
+        [
+          savedCount > 0 ? savedCount + '개를 사전에 넣었어요. 바로 인식에 쓰입니다.' : null,
+          skipped.length > 0 ? skipped.length + '개는 목록에서 치웠어요(다시 안 뜸).' : null,
+        ].filter(Boolean).join(' ')
+      );
       load();
       api('/api/admin/dictionary/additions').then(x => setAdditions(x.additions || [])).catch(() => {});
     } catch (e) {
@@ -952,15 +967,18 @@ const Dictionary: React.FC = () => {
           // 수천 종이라 더 그렇다.
           const total = (m: any) => (m.total_hits ?? ((m.hit_count || 0) + (m.recipe_hits || 0)));
           const peak = Math.max(1, ...misses.map(total));
+          // 최대 300건까지 나오는 목록을 그대로 펼치면 페이지 전체가 한없이
+          // 길어져서(끝없이 스크롤) 밑에 있는 "제안"/"사전에 보탠 것" 카드에
+          // 닿기까지 한참 걸렸다. 이 표만 정해진 높이 안에서 스크롤되게 가둔다.
           return (
-            <div style={{ overflowX: 'auto' }}>
+            <div style={{ maxHeight: 480, overflowY: 'auto', overflowX: 'auto', border: '1px solid var(--line-200)', borderRadius: 8 }}>
               <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 460 }}>
                 <thead>
                   <tr>
-                    <th style={{ ...S.th, width: 34 }} />
-                    <th style={S.th}>이름</th>
-                    <th style={S.th}>나온 횟수</th>
-                    <th style={S.th}>어디서</th>
+                    <th style={{ ...S.th, width: 34, position: 'sticky', top: 0, background: 'var(--surface)', zIndex: 1 }} />
+                    <th style={{ ...S.th, position: 'sticky', top: 0, background: 'var(--surface)', zIndex: 1 }}>이름</th>
+                    <th style={{ ...S.th, position: 'sticky', top: 0, background: 'var(--surface)', zIndex: 1 }}>나온 횟수</th>
+                    <th style={{ ...S.th, position: 'sticky', top: 0, background: 'var(--surface)', zIndex: 1 }}>어디서</th>
                   </tr>
                 </thead>
                 <tbody>

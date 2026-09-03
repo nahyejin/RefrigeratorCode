@@ -6454,3 +6454,42 @@ DB에 `recipes.recipe_name` 컬럼 신설. 이 컬럼 추가 과정에서 `post_
 - `npx tsc --noEmit` 에러 0건
 - 로컬에서 버튼 DOM을 직접 조회해 `disabled: false`, `className: "ai-action"`,
   래퍼 `className: "ai-glow"`, AI 배지 존재를 확인
+
+### 어드민 "사전" 탭: "넣지 않음"이 계속 되살아나던 버그 + 무한 스크롤 수정
+
+**버그 1 — "넣지 않음"으로 고른 이름이 사전 반영 후에도 계속 다시 뜸.**
+`제안 — 승인할 것만 남기세요` 화면에서 `decision`을 "넣지 않음"으로 바꾼
+항목은 `사전에 반영` 버튼을 눌러도 **사전에도 안 들어가고 목록에서
+지워지지도 않았다** — `applyApproved()`가 `decision !== 'skip'`인 것만
+골라 `/apply`로 보내고, skip 항목은 그냥 버려서 원래 있던 자리에 그대로
+남아 있었을 뿐이다(되살아난 게 아니라 애초에 안 지워짐).
+
+**버그 2 — 별도로 "목록에서 지우기"를 눌러 지운 이름도 며칠 안에 다시 등장.**
+이건 진짜로 되살아나는 문제였다: 지우기 버튼이 `ingredient_dictionary_misses`
+행을 물리적으로 **DELETE**했는데, 매일 새벽 배치가 레시피 수만 건을 새로
+훑다 같은 이름을 또 만나면 `record_recipe_misses`의
+`INSERT ... ON DUPLICATE KEY UPDATE`가 **새 행으로 되살렸다.** 물량이
+많은 흔한 이름(요리 이름·주류 브랜드 등)일수록 며칠 안에 반드시 다시
+걸렸다 — "300개씩 자꾸 새로 생긴다"는 게 이 현상.
+
+**수정**: `ingredient_dictionary_misses`에 `dismissed` 플래그 컬럼을
+추가. "지우기"는 이제 물리적 DELETE 대신 `dismissed=1`만 세운다 — 같은
+이름이 나중에 다시 잡혀도 `ON DUPLICATE KEY UPDATE`는 hit_count/last_seen만
+건드리고 dismissed는 그대로 두므로 목록에 다시 안 뜬다. 목록 조회
+쿼리에도 `WHERE dismissed=0` 추가. 그리고 `applyApproved()`가 승인 항목을
+`/apply`로 보낸 **뒤에** "넣지 않음" 항목도 같이 지우기(dismiss) 처리하도록
+고쳐서, 반영 버튼 한 번으로 승인/제외가 둘 다 끝나게 했다.
+
+**버그 3 — 목록이 최대 300건까지 그대로 펼쳐져 페이지 전체가 끝없이 길어짐.**
+표를 `maxHeight: 480` + 세로 스크롤로 가두고, 스크롤해도 헤더(이름/나온
+횟수/어디서)가 안 사라지도록 `position: sticky`를 줬다 — 페이지 자체의
+스크롤 길이는 그대로 두고 이 표 안에서만 스크롤되게 했다.
+
+#### 검증 (실측)
+- 프로덕션 DB에서 실제 재현: 더미 이름을 miss로 INSERT → dismissed=1로
+  치움 → `WHERE dismissed=0` 목록에서 안 보임 확인 → 배치가 같은 이름을
+  다시 만난 것과 같은 INSERT ... ON DUPLICATE KEY를 재실행 →
+  dismissed가 여전히 1로 유지되고 목록에서도 계속 안 보이는 것을 확인
+  (트랜잭션 롤백으로 진행, 실제 데이터는 안 남김)
+- `python -m py_compile`, `npx tsc --noEmit` 에러 0건
+- 어드민 로그인 세션이 없어 화면 자체는 라이브로 확인 못 함
