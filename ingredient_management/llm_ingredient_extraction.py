@@ -78,6 +78,7 @@ from backend.ingredient_dictionary import (  # noqa: E402
     normalize_key as _normalize_key,
     resolve_canonical as _resolve_canonical,
     token_fallback as _token_fallback,
+    _find_csv as _find_dictionary_csv,
 )
 
 
@@ -137,7 +138,7 @@ def _clean_detail(value):
 
 
 def _as_result(value):
-    """모델이 준 한 건의 값을 {ingredients, detail, steps, not_recipe} 로 통일한다.
+    """모델이 준 한 건의 값을 {ingredients, detail, steps, recipe_name, not_recipe} 로 통일한다.
 
     값이 세 가지 모양으로 온다:
       - "NOT_RECIPE"                          요리 글이 아님
@@ -147,15 +148,15 @@ def _as_result(value):
     옛 모양을 계속 받아 주는 이유: 프롬프트를 바꿔도 모델이 가끔 예전처럼 답한다.
     그때 통째로 실패시키면 그 배치 12건이 다 날아간다.
     """
-    empty = {"ingredients": [], "detail": [], "steps": [], "not_recipe": False}
-    nope = {"ingredients": [], "detail": [], "steps": [], "not_recipe": True}
+    empty = {"ingredients": [], "detail": [], "steps": [], "recipe_name": "", "not_recipe": False}
+    nope = {"ingredients": [], "detail": [], "steps": [], "recipe_name": "", "not_recipe": True}
     if isinstance(value, str):
         return nope if value.strip().upper() == "NOT_RECIPE" else dict(empty)
     if isinstance(value, list):
         if len(value) == 1 and str(value[0]).strip().upper() in ("NOT_RECIPE", NOT_RECIPE):
             return nope
         return {"ingredients": [str(x).strip() for x in value if str(x).strip()],
-                "detail": [], "steps": [], "not_recipe": False}
+                "detail": [], "steps": [], "recipe_name": "", "not_recipe": False}
     if isinstance(value, dict):
         if str(value.get("not_recipe") or "").strip().upper() in ("TRUE", "1", "YES"):
             return nope
@@ -166,13 +167,14 @@ def _as_result(value):
             "ingredients": [str(x).strip() for x in (ing or []) if str(x).strip()],
             "detail": _clean_detail(value.get("ingredients_detail")),
             "steps": _clean_steps(value.get("steps")),
+            "recipe_name": " ".join(str(value.get("recipe_name") or "").split())[:100],
             "not_recipe": False,
         }
     return dict(empty)
 
 
 def _extract_json_array(text):
-    empty = {"ingredients": [], "steps": [], "not_recipe": False}
+    empty = {"ingredients": [], "detail": [], "steps": [], "recipe_name": "", "not_recipe": False}
     if not text:
         return empty
     cleaned = text.strip()
@@ -250,8 +252,13 @@ PROMPT_TEMPLATE = """너는 레시피 본문에서 **재료와 조리 순서**�
   - 문장만 짧게 다듬고, **정보는 줄이지 않는다.** 애매하면 남기는 쪽으로.
   - 최대 14단계. 본문에 만드는 과정이 없으면 빈 배열.
 
+- **요리명**(`recipe_name`)을 적는다. 블로그 제목 그대로가 아니라, 그 요리를
+  부르는 **짧고 깔끔한 음식 이름**만 적는다 (예: "김치찌개", "감자채볶음").
+  제목에 붙은 홍보 문구·해시태그·"~레시피"·"~만드는법"·수식어는 뺀다.
+  제목이 아니라 **본문 내용을 보고** 실제로 무슨 요리인지 판단해서 적는다.
+
 아래 JSON 객체만 출력해라. 다른 텍스트는 출력하지 마라.
-예: {{"ingredients": ["돼지고기", "김치", "대파"], "ingredients_detail": ["돼지고기 200g", "신김치 1/4포기", "대파 1대", "고춧가루 1큰술"], "steps": ["김치 1/4포기를 한 입 크기로 썬다", "냄비에 참기름 1큰술을 두르고 김치를 중불에서 3분 볶는다", "물 500ml를 붓고 15분 끓인다"]}}
+예: {{"recipe_name": "김치찌개", "ingredients": ["돼지고기", "김치", "대파"], "ingredients_detail": ["돼지고기 200g", "신김치 1/4포기", "대파 1대", "고춧가루 1큰술"], "steps": ["김치 1/4포기를 한 입 크기로 썬다", "냄비에 참기름 1큰술을 두르고 김치를 중불에서 3분 볶는다", "물 500ml를 붓고 15분 끓인다"]}}
 요리 글이 아니면: "NOT_RECIPE"
 """
 
@@ -291,8 +298,13 @@ BATCH_PROMPT_TEMPLATE = """너는 여러 개의 레시피 본문 각각에서 **
   - 문장만 짧게 다듬고, **정보는 줄이지 않는다.** 애매하면 남기는 쪽으로.
   - 최대 14단계. 본문에 만드는 과정이 없으면 빈 배열.
 
+- **요리명**(`recipe_name`)을 적는다. 블로그 제목 그대로가 아니라, 그 요리를
+  부르는 **짧고 깔끔한 음식 이름**만 적는다 (예: "김치찌개", "감자채볶음").
+  제목에 붙은 홍보 문구·해시태그·"~레시피"·"~만드는법"·수식어는 뺀다.
+  제목이 아니라 **본문 내용을 보고** 실제로 무슨 요리인지 판단해서 적는다.
+
 아래 JSON 객체만 출력해라. key는 번호(문자열), value는 그 본문의 결과 객체. 다른 텍스트는 출력하지 마라.
-예: {{"0": {{"ingredients": ["돼지고기", "김치"], "ingredients_detail": ["돼지고기 200g", "신김치 1/4포기"], "steps": ["김치 1/4포기를 썬다", "중불에서 3분 볶는다"]}}, "1": "NOT_RECIPE", "2": {{"ingredients": ["대파"], "ingredients_detail": [], "steps": []}}}}
+예: {{"0": {{"recipe_name": "김치찌개", "ingredients": ["돼지고기", "김치"], "ingredients_detail": ["돼지고기 200g", "신김치 1/4포기"], "steps": ["김치 1/4포기를 썬다", "중불에서 3분 볶는다"]}}, "1": "NOT_RECIPE", "2": {{"recipe_name": "대파무침", "ingredients": ["대파"], "ingredients_detail": [], "steps": []}}}}
 """
 
 
@@ -431,7 +443,7 @@ class GeminiExtractor:
                         raw_list.append(obj[str(i)])
                         err_list.append(None)
                     else:
-                        raw_list.append({"ingredients": [], "detail": [], "steps": [], "not_recipe": False})
+                        raw_list.append({"ingredients": [], "detail": [], "steps": [], "recipe_name": "", "not_recipe": False})
                         err_list.append("batch response missing this index")
                 return raw_list, err_list
             except Exception as e:  # noqa: BLE001
@@ -442,7 +454,7 @@ class GeminiExtractor:
             # 단 quotaId가 분당 제한이라고 명시한 경우는 제외 — 분당 제한은 곧 풀리는데
             # 이걸 일일 한도로 오판하면 그날 작업 전체를 통째로 조기 중단시키게 된다.
             self._trip_quota("재시도 소진 후에도 429")
-        blank = {"ingredients": [], "detail": [], "steps": [], "not_recipe": False}
+        blank = {"ingredients": [], "detail": [], "steps": [], "recipe_name": "", "not_recipe": False}
         return [dict(blank) for _ in range(n)], [last_err for _ in range(n)]
 
 
@@ -531,6 +543,43 @@ def normalize_llm_ingredients(raw_ingredients, alias_to_canonical):
     return used_str, unmapped
 
 
+# 사전 CSV에는 재료 말고 "요리이름"(대분류) 행도 있다 — 인기 급상승 요리
+# 랭킹(Popular.tsx)이 키워드+동의어로 이미 쓰고 있던 것과 같은 사전이다.
+# ingredient_dictionary.load_alias_to_canonical()은 재료 분류만 골라서
+# 이 분류는 애초에 제외하므로, 같은 CSV를 요리이름 분류로만 다시 읽는다.
+def load_dish_alias_to_canonical():
+    """CSV의 대분류='요리이름' 행에서 (동의어 포함) 이름 -> 대표 요리명 매핑."""
+    alias_to_canonical = {}
+    with open(_find_dictionary_csv(), encoding="utf-8", newline="") as f:
+        for row in csv.DictReader(f):
+            keyword = (row.get("keyword") or "").strip()
+            if not keyword:
+                continue
+            if (row.get("대분류") or "").strip() != "요리이름":
+                continue
+            synonyms_cell = (row.get("synonyms") or "").strip()
+            synonyms = synonyms_cell.split(", ") if synonyms_cell else []
+            for name in [keyword] + synonyms:
+                key = _normalize_key(name)
+                if key:
+                    alias_to_canonical[key] = keyword
+    return alias_to_canonical
+
+
+def resolve_dish_name(raw_name, dish_alias_to_canonical):
+    """LLM이 뽑은 요리명을 "요리이름" 사전으로 정규화한다.
+
+    사전에 있으면 대표 이름으로 통일한다(표기 차이로 같은 요리가 여러
+    이름으로 흩어지지 않게, 재료 정규화와 같은 이유). 사전에 없으면 LLM이
+    뽑은 원문을 그대로 쓴다 — 사전이 아직 못 담은 요리라고 지워버리기보다는
+    화면에 보일 이름 정도는 남겨 두고, 나중에 사전을 넓히는 쪽을 택했다.
+    """
+    key = _normalize_key(raw_name)
+    if not key:
+        return raw_name
+    return dish_alias_to_canonical.get(key, raw_name)
+
+
 def _load_env_files():
     if load_dotenv is None:
         return
@@ -557,6 +606,7 @@ def run(*, limit, start_after_id, order, output_path, commit, rpm, concurrency, 
         raise SystemExit("GEMINI_API_KEY가 필요합니다 (backend/.env 또는 .env).")
 
     alias_to_canonical = load_alias_to_canonical()
+    dish_alias_to_canonical = load_dish_alias_to_canonical()
     extractor = GeminiExtractor(api_key, model=model, rpm=rpm)
 
     _connect_db, _used_ingredient_token_set = _batch_helpers()
@@ -597,7 +647,7 @@ def run(*, limit, start_after_id, order, output_path, commit, rpm, concurrency, 
     print(f"대상 {len(rows)}건, model={model}, rpm={rpm}, concurrency={concurrency}, commit={commit}", flush=True)
 
     fieldnames = [
-        "id", "title", "platform", "link", "changed",
+        "id", "title", "recipe_name", "platform", "link", "changed",
         "old_used_ingredients", "new_used_ingredients",
         "added_ingredients", "removed_ingredients",
         "llm_raw_ingredients", "unmapped_ingredients", "cook_steps", "ingredients_detail",
@@ -620,12 +670,13 @@ def run(*, limit, start_after_id, order, output_path, commit, rpm, concurrency, 
             # 요리 글이 아니라고 판정된 것은 **사전 정규화에 넣지 않는다.**
             # 넣으면 표식이 "사전에 없는 이름" 으로 쌓인다.
             if res["not_recipe"]:
-                out.append((row["id"], [], "", [], err, True, [], []))
+                out.append((row["id"], [], "", [], err, True, [], [], ""))
                 continue
             raw = res["ingredients"]
             new_used, unmapped = normalize_llm_ingredients(raw, alias_to_canonical)
+            dish_name = resolve_dish_name(res["recipe_name"], dish_alias_to_canonical)
             out.append((row["id"], raw, new_used, unmapped, err, False,
-                        res["steps"], res["detail"]))
+                        res["steps"], res["detail"], dish_name))
         return out
 
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -654,10 +705,10 @@ def run(*, limit, start_after_id, order, output_path, commit, rpm, concurrency, 
                     try:
                         chunk_results = fut.result()
                     except Exception as e:  # noqa: BLE001
-                        chunk_results = [(row["id"], [], None, [], str(e), False, [], []) for row in chunk]
+                        chunk_results = [(row["id"], [], None, [], str(e), False, [], [], "") for row in chunk]
 
                     row_by_id = {row["id"]: row for row in chunk}
-                    for rid, raw, new_used, unmapped, err, not_recipe, steps, detail in chunk_results:
+                    for rid, raw, new_used, unmapped, err, not_recipe, steps, detail, recipe_name in chunk_results:
                         row = row_by_id[rid]
 
                         old_used = row.get("used_ingredients")
@@ -717,6 +768,7 @@ def run(*, limit, start_after_id, order, output_path, commit, rpm, concurrency, 
                         writer.writerow({
                             "id": rid,
                             "title": row.get("title"),
+                            "recipe_name": recipe_name,
                             "platform": row.get("platform"),
                             "link": row.get("link"),
                             "changed": changed_label,
@@ -752,10 +804,11 @@ def run(*, limit, start_after_id, order, output_path, commit, rpm, concurrency, 
                             # 레시피와 통째로만 쓰이므로 나눌 이유가 없다.
                             write_cursor.execute(
                                 "UPDATE recipes SET used_ingredients = %s, cook_steps = %s, "
-                                "ingredients_detail = %s, llm_ingredients_done = 1 WHERE id = %s",
+                                "ingredients_detail = %s, recipe_name = %s, llm_ingredients_done = 1 WHERE id = %s",
                                 (new_used,
                                  "\n".join(steps) if steps else None,
                                  "\n".join(detail) if detail else None,
+                                 recipe_name or None,
                                  rid),
                             )
                             # 사전에 없어 버린 이름을 세어 둔다 (끝에 한 번에 저장)
