@@ -642,7 +642,7 @@ const RecipeList: React.FC = () => {
   const [pendingRemove, setPendingRemove] = useState<{ type: 'done' | 'write' | 'favorite'; id: number } | null>(null);
   const [showGuide, setShowGuide] = useState(false);
   const [guideStep, setGuideStep] = useState(0);
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, user: authUser } = useAuth();
   const [selectedChannel, setSelectedChannel] = useState<string[]>([]);
   const [includeIngredients, setIncludeIngredients] = useState<string[]>([]);
   const [excludeIngredients, setExcludeIngredients] = useState<string[]>([]);
@@ -1035,6 +1035,8 @@ const RecipeList: React.FC = () => {
   const handleRemoveConfirm = () => {
     if (!pendingRemove) return;
     removeRecipeFromLocalStorage(pendingRemove.type, pendingRemove.id);
+    // 서버에서도 지운다. 안 지우면 다른 기기에서 되살아난다.
+    void syncToServer(pendingRemove.type, pendingRemove.id, true);
     setRecipeActionStates(prev => ({ ...prev, [pendingRemove.id]: getRecipeActionState(pendingRemove.id) }));
     showToast(
       pendingRemove.type === 'done'
@@ -1072,6 +1074,7 @@ const RecipeList: React.FC = () => {
       if (recipe && !getRecipesFromLocalStorage('favorite').some((r: any) => r.id === id)) {
         const normalized = normalizeRecipe(recipe);
         addRecipeToLocalStorage('favorite', normalized);
+        void syncToServer('favorite', id);
       }
       setRecipeActionStates(prev => ({ ...prev, [id]: getRecipeActionState(id) }));
       showToast('레시피를 즐겨찾기에 추가했습니다!');
@@ -1083,6 +1086,44 @@ const RecipeList: React.FC = () => {
   /**
    * 완료 버튼 클릭 처리
    */
+  /**
+   * 눌린 것을 **서버에도** 남긴다.
+   *
+   * 기기에만 두면 이 기기에서만 보인다. 요리 캘린더는 서버를 읽으므로,
+   * 여기서 완료를 눌러도 캘린더에는 아무것도 안 떴다.
+   *
+   * 실패해도 막지 않는다 — 기기 저장은 이미 끝났고, 화면은 그걸로 그린다.
+   * 비회원은 서버에 계정이 없으니 기기 저장이 전부다.
+   */
+  const syncToServer = React.useCallback(
+    async (type: 'favorite' | 'done' | 'write', id: number, remove = false) => {
+      if (!isLoggedIn || !authUser?.id) return;
+      const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+      if (!token) return;
+      const endpoint =
+        type === 'favorite' ? 'favorite-recipes'
+        : type === 'done' ? 'completed-recipes'
+        : 'recorded-recipes';
+      const base = (import.meta.env && import.meta.env.VITE_API_BASE_URL)
+        || 'https://refrigeratorcode-production.up.railway.app';
+      try {
+        await fetch(
+          `${base}/api/users/${authUser.id}/${endpoint}${remove ? '/' + id : ''}`,
+          remove
+            ? { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }
+            : {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ recipe_id: id }),
+              },
+        );
+      } catch (e) {
+        console.error(`[RecipeList] ${type} 서버 반영 실패:`, e);
+      }
+    },
+    [isLoggedIn, authUser?.id],
+  );
+
   const handleDoneClick = (id: number) => {
     const isActive = getRecipeActionState(id).done;
     
@@ -1106,6 +1147,7 @@ const RecipeList: React.FC = () => {
         // 조건 통과 시 레시피 저장
         const normalized = normalizeRecipe(recipe);
         addRecipeToLocalStorage('done', normalized);
+        void syncToServer('done', id);
         setRecipeActionStates(prev => ({ ...prev, [id]: getRecipeActionState(id) }));
         showToast('레시피를 완료했습니다!');
       }
@@ -1141,6 +1183,7 @@ const RecipeList: React.FC = () => {
         // 조건 통과 시 레시피 저장
         const normalized = normalizeRecipe(recipe);
         addRecipeToLocalStorage('write', normalized);
+        void syncToServer('write', id);
         setRecipeActionStates(prev => ({ ...prev, [id]: getRecipeActionState(id) }));
         showToast('레시피를 기록했습니다!');
       }

@@ -115,6 +115,41 @@ function readFridgeBoxes(): Partial<Record<StorageKind, FridgeItem[]>> {
 }
 
 /**
+ * 서버 기록에 **기기에만 있는 완료**를 합친다.
+ *
+ * 완료는 로그인 전에 눌렀거나 서버 반영이 실패했으면 기기에만 남는다.
+ * 서버 것만 그리면 분명히 눌렀는데 목록이 비어 보인다.
+ */
+function mergeLocalDone(server: CalendarEntry[]): CalendarEntry[] {
+  let local: any[] = [];
+  try {
+    local = JSON.parse(localStorage.getItem('my_completed_recipes') || '[]');
+  } catch {
+    local = [];
+  }
+  if (!Array.isArray(local) || local.length === 0) return server;
+
+  const seen = new Set(server.map(e => `${e.day}|${e.recipe_id}`));
+  const extra: CalendarEntry[] = [];
+  local.forEach(r => {
+    const when = r.user_saved_at || r.created_at;
+    if (!r || !r.id || !when) return;
+    const day = String(when).slice(0, 10);
+    if (seen.has(`${day}|${r.id}`)) return;
+    extra.push({
+      day,
+      created_at: String(when),
+      recipe_id: r.id,
+      title: r.title || '',
+      thumbnail: r.thumbnail || '',
+      user_id: 0,
+      nickname: '',
+    });
+  });
+  return [...server, ...extra];
+}
+
+/**
  * 곧 상하는 재료 + 이번 주 식단을 **한 묶음**으로.
  *
  * 왜 붙여 두나: 두 개가 하나의 이야기다 — "이게 곧 상해요 → 그럼 이걸로 식단을
@@ -297,7 +332,12 @@ const CookingCalendar: React.FC = () => {
       });
       if (res.ok) {
         const data = await res.json();
-        setEntries(data.entries || []);
+        // 달력에도 **기기에만 있는 완료**를 합친다. 로그인 전에 눌렀거나 서버
+        // 반영이 실패한 것은 기기에만 남는데, 그것도 내가 만든 요리다.
+        // (보고 있는 달 밖의 것은 걸러 낸다 — 이 화면은 그 달을 그린다)
+        const from = toDateKey(monthStart);
+        const to = toDateKey(monthEnd);
+        setEntries(mergeLocalDone(data.entries || []).filter(e => e.day >= from && e.day <= to));
         setGroupGoal(typeof data.group_goal === 'number' ? data.group_goal : null);
         setPersonalGoal(typeof data.my_personal_goal === 'number' ? data.my_personal_goal : 20);
         setHouseholdSize(data.household_size || 1);
@@ -331,8 +371,8 @@ const CookingCalendar: React.FC = () => {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(r => (r.ok ? r.json() : Promise.reject(new Error())))
-      .then(d => setAllEntries(d.entries || []))
-      .catch(() => setAllEntries([]));
+      .then(d => setAllEntries(mergeLocalDone(d.entries || [])))
+      .catch(() => setAllEntries(mergeLocalDone([])));
 
     // 기록은 완료와 자료가 다르다(날짜별 이력이 아니라 레시피 목록).
     // 서버가 안 되면 기기에 있는 것으로라도 보여 준다 — 비어 있는 것보다 낫다.
@@ -884,7 +924,9 @@ const CookingCalendar: React.FC = () => {
         <div style={{ display: 'flex', gap: 6, padding: '12px 14px 0' }}>
           {([
             { key: 'calendar', label: '달력' },
-            { key: 'list', label: '목록' },
+            // '목록' 은 **무엇의** 목록인지 말하지 않는다. 여기 담기는 건
+            // 내가 완료했거나 기록한 요리다.
+            { key: 'list', label: '내 요리' },
           ] as const).map(({ key, label }) => {
             const on = mode === key;
             return (
