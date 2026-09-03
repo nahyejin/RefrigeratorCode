@@ -1,7 +1,8 @@
 import React from 'react';
 import {
-  findExpiring, daysLabel, notifyExpiring, askNotifyPermission,
-  notifyPermission, type FridgeItem, type ExpiringItem,
+  splitExpiring, daysLabel, notifyExpiring, askNotifyPermission,
+  notifyPermission, SOON_DAYS, STALE_AFTER_DAYS,
+  type FridgeItem, type ExpiringItem,
 } from '../utils/expiry';
 import type { CategoryMap, StorageKind } from '../utils/shelfLife';
 
@@ -30,14 +31,17 @@ interface Props {
   onPick?: (name: string) => void;
 }
 
-const ExpiryAlert: React.FC<Props> = ({ boxes, categoryMap, within = 3, onPick }) => {
+const ExpiryAlert: React.FC<Props> = ({ boxes, categoryMap, within = SOON_DAYS, onPick }) => {
   const [dismissed, setDismissed] = React.useState(false);
   const [perm, setPerm] = React.useState(notifyPermission());
 
-  const items: ExpiringItem[] = React.useMemo(
-    () => findExpiring(boxes, categoryMap, within),
+  // 너무 오래 지난 것은 여기서도 뺀다 — 알림은 **오늘 할 일**을 말하는 자리다.
+  // 152일 지난 재료를 매일 알리면 알림 자체를 꺼 버린다.
+  const { soon, stale } = React.useMemo(
+    () => splitExpiring(boxes, categoryMap, within),
     [boxes, categoryMap, within],
   );
+  const items: ExpiringItem[] = soon;
 
   // 알림 권한이 있으면 하루 한 번 알린다 (함수 안에서 중복을 막는다).
   React.useEffect(() => {
@@ -47,7 +51,6 @@ const ExpiryAlert: React.FC<Props> = ({ boxes, categoryMap, within = 3, onPick }
   if (dismissed || items.length === 0) return null;
 
   const past = items.filter(i => i.days < 0);
-  const soon = items.filter(i => i.days >= 0);
   const worst = items[0];
 
   return (
@@ -113,6 +116,13 @@ const ExpiryAlert: React.FC<Props> = ({ boxes, categoryMap, within = 3, onPick }
 
       {/* "약" 이 붙은 건 짐작값이다. 정직하게 말해 두지 않으면 멀쩡한 재료를
           버리게 만든다. */}
+      {stale.length > 0 && (
+        <div style={{ fontSize: 11.5, color: 'var(--ink-500)', lineHeight: 1.6 }}>
+          {STALE_AFTER_DAYS}일 넘게 지난 재료 <b>{stale.length}개</b>는 여기에 안 띄워요.
+          이미 버리셨다면 목록에서 지워 주세요.
+        </div>
+      )}
+
       {items.some(i => i.estimated) && (
         <div style={{ fontSize: 11, color: 'var(--ink-500)', lineHeight: 1.5 }}>
           <b>약</b>이 붙은 건 구매일과 재료 종류로 짐작한 날짜예요. 포장지에 적힌

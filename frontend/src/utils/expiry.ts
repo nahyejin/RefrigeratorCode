@@ -29,6 +29,27 @@ export interface ExpiringItem {
   date: string;
 }
 
+/**
+ * ── 기준 ──────────────────────────────────────────────────────
+ *
+ * `곧 상해요`  : 남은 날 **5일 이내** ~ 지난 지 **14일 이내**
+ * `정리하세요` : 지난 지 **14일 넘음**
+ *
+ * 왜 14일에서 자르나:
+ *   두 주 넘게 지난 재료는 **냉장고에 실제로 있는 게 아니라, 앱에서 안 지운
+ *   것**일 가능성이 훨씬 높다. 실제로 `소고기 152일 지났어요` 가 식단 기준으로
+ *   쓰이고 있었다. 그걸로 식단을 짜면 이미 버린 재료를 중심으로 한 주가 짜인다.
+ *
+ *   그렇다고 조용히 숨기면 안 된다 — 숨기면 그 줄은 냉장고 목록에 영영 남는다.
+ *   식단 기준에서만 빼고, **"정리하세요" 로 따로 말한다.**
+ *
+ * 왜 5일인가:
+ *   장은 보통 주 1회 본다. 5일이면 "이번 주에 써야 하는 것" 과 거의 같다.
+ *   더 길게 잡으면 냉장고 절반이 목록에 올라와 정작 급한 게 묻힌다.
+ */
+export const SOON_DAYS = 5;
+export const STALE_AFTER_DAYS = 14;
+
 const parse = (text?: string): Date | null => {
   if (!text) return null;
   const m = String(text).replace(/-/g, '.').match(/^(\d{4})\.(\d{1,2})\.(\d{1,2})/);
@@ -54,7 +75,7 @@ const daysUntil = (date: Date): number => {
 export function findExpiring(
   boxes: Partial<Record<StorageKind, FridgeItem[]>>,
   categoryMap: CategoryMap,
-  within = 3,
+  within = SOON_DAYS,
 ): ExpiringItem[] {
   const out: ExpiringItem[] = [];
 
@@ -87,6 +108,24 @@ export function findExpiring(
   });
 
   return out.sort((a, b) => a.days - b.days);
+}
+
+/**
+ * 곧 상하는 것과 **너무 오래 지난 것**을 나눠 돌려준다.
+ *
+ * 화면은 이 둘을 다르게 말해야 한다 — 하나는 "이걸로 요리하세요", 다른 하나는
+ * "이건 아마 이미 없을 거예요, 목록에서 지우세요" 다.
+ */
+export function splitExpiring(
+  boxes: Partial<Record<StorageKind, FridgeItem[]>>,
+  categoryMap: CategoryMap,
+  within = SOON_DAYS,
+): { soon: ExpiringItem[]; stale: ExpiringItem[] } {
+  const all = findExpiring(boxes, categoryMap, within);
+  return {
+    soon: all.filter(i => i.days >= -STALE_AFTER_DAYS),
+    stale: all.filter(i => i.days < -STALE_AFTER_DAYS),
+  };
 }
 
 /** "지났어요" / "오늘까지" / "2일 남음" — 숫자만 던지지 않고 말로. */

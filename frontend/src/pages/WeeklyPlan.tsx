@@ -4,7 +4,8 @@ import BackButton from '../components/ui/BackButton';
 import StepLoading from '../components/StepLoading';
 import { getMyIngredients } from '../utils/recipeUtils';
 import { loadIngredientCategoryMap, type CategoryMap, type StorageKind } from '../utils/shelfLife';
-import { findExpiring, daysLabel, type FridgeItem, type ExpiringItem } from '../utils/expiry';
+import { splitExpiring, daysLabel, SOON_DAYS, STALE_AFTER_DAYS,
+         type FridgeItem, type ExpiringItem } from '../utils/expiry';
 import { openCookMode } from '../utils/cookMode';
 import { resolveCoupangUrl } from '../utils/coupangLink';
 import { track } from '../utils/track';
@@ -151,8 +152,14 @@ const WeeklyPlan: React.FC = () => {
     void loadIngredientCategoryMap().then(setCategoryMap).catch(() => {});
   }, []);
 
-  const expiring: ExpiringItem[] = React.useMemo(
-    () => findExpiring(boxes, categoryMap, 5),
+  /**
+   * 곧 상하는 것과 너무 오래 지난 것.
+   *
+   * 오래 지난 것은 **식단 기준에서 뺀다.** 152일 지난 소고기로 한 주 식단을
+   * 짜면, 이미 버린 재료를 중심으로 짜인다.
+   */
+  const { soon: expiring, stale } = React.useMemo(
+    () => splitExpiring(boxes, categoryMap, SOON_DAYS),
     [boxes, categoryMap],
   );
 
@@ -321,6 +328,9 @@ const WeeklyPlan: React.FC = () => {
         {expiring.length > 0 ? (
           <>
             <b>곧 상하는 재료부터</b> 쓰는 식단이에요.
+            <span style={{ color: 'var(--ink-500)' }}>
+              {' '}({SOON_DAYS}일 이내에 먹어야 하는 것)
+            </span>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
               {expiring.slice(0, 6).map(i => (
                 <span key={i.storage + i.name} style={{
@@ -334,8 +344,36 @@ const WeeklyPlan: React.FC = () => {
             </div>
           </>
         ) : (
-          <>냉장고에 있는 재료로 만들 수 있는 것들이에요. 유통기한을 넣어 두면
-          <b> 곧 상하는 것부터</b> 골라 드려요.</>
+          /* 유통기한이 하나도 없어도 식단은 정상으로 짜인다 — 냉장고 재료
+             전체로 매칭한다. 다만 무엇을 먼저 쓸지는 못 정한다. */
+          <>냉장고 재료 <b>{myIngredients.length}개</b>로 만들 수 있는 것들이에요.
+          유통기한을 넣어 두면 <b>곧 상하는 것부터</b> 골라 드려요.</>
+        )}
+
+        {/* 너무 오래 지난 것은 **식단에 안 쓴다.** 그렇다고 숨기면 그 줄은
+            냉장고 목록에 영영 남으므로, 지우라고 말해 준다. */}
+        {stale.length > 0 && (
+          <div style={{
+            marginTop: 10, paddingTop: 10, borderTop: '1px dashed var(--line-200)',
+            fontSize: 12, color: 'var(--ink-500)', lineHeight: 1.7,
+          }}>
+            <b style={{ color: 'var(--ink-700)' }}>{STALE_AFTER_DAYS}일 넘게 지난 재료 {stale.length}개</b>는
+            식단에 쓰지 않았어요 — {stale.slice(0, 3).map(i => i.name).join(', ')}
+            {stale.length > 3 && ` 외 ${stale.length - 3}개`}.
+            <br />
+            이미 버리셨다면 냉장고에서 지워 주세요. 남아 있으면 추천이 계속 어긋나요.
+            <button
+              type="button"
+              onClick={() => navigate('/my-fridge')}
+              style={{
+                marginTop: 6, height: 30, padding: '0 10px', borderRadius: 8,
+                border: '1px solid var(--line-200)', background: 'var(--surface)',
+                fontSize: 12, fontWeight: 700, color: 'var(--ink-900)', cursor: 'pointer',
+              }}
+            >
+              내 냉장고에서 정리하기 ›
+            </button>
+          </div>
         )}
       </div>
 

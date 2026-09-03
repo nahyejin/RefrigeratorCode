@@ -592,6 +592,7 @@ python run_dev.py
 - `HOUSEHOLD_FEATURE.md`: 식구 그룹(다중 계정 공유) + 요리 캘린더 기능 동작 방식
 - `CHATBOT_FEATURE.md`: AI 요리 챗봇 동작 방식 (프롬프트 설계, 검색 로직, 팔로우업 질문 처리, 재료 언급 우선순위)
 - `INGREDIENT_RECOGNITION_FEATURE.md`: 사진으로 재료 담기 (영수증·유통기한 인식, 사전 정규화, 검토 UI, 호출 한도)
+- `MEAL_PLAN_FEATURE.md`: 유통기한 기준 · 이번 주 식단 추천(무료/AI) · 장보기 목록 · 요리 모드(조리 순서·음성)
 - `MOBILE_APP_GUIDE.md`: 모바일 앱 출시 가이드
 - `PERFORMANCE_OPTIMIZATION.md`: 성능 최적화 가이드
 
