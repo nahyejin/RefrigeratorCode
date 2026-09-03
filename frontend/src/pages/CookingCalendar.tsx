@@ -133,23 +133,29 @@ const FridgeToPlan: React.FC<{ onGo: () => void }> = ({ onGo }) => {
   return (
     <div style={{ margin: '0 14px 12px', display: 'flex', flexDirection: 'column', gap: 10 }}>
       <ExpiryAlert boxes={boxes} categoryMap={categoryMap} onPick={onGo} />
-      <button
-        type="button"
-        onClick={onGo}
-        style={{
-          width: '100%', height: 48, borderRadius: 12,
-          border: '1px solid var(--line-200)', background: 'var(--surface)',
-          cursor: 'pointer', display: 'flex', alignItems: 'center',
-          justifyContent: 'space-between', padding: '0 16px',
-        }}
-      >
-        <span style={{ fontSize: 14.5, fontWeight: 700, color: '#1A1A1E' }}>
-          이번 주 식단 짜기
-        </span>
-        <span style={{ fontSize: 12.5, color: 'var(--ink-500)' }}>
-          냉장고 재료로 · 장보기 목록까지 ›
-        </span>
-      </button>
+      {/* AI 가 관여하는 자리는 앱 어디서나 같은 시각 언어를 쓴다 — 챗봇
+          FAB·카메라 버튼·식단 화면의 "AI 식단 짜기" 버튼과 같은 노란 반짝임
+          + AI 배지 규칙(index.css의 .ai-action/.ai-glow/.ai-fab-badge). */}
+      <span className="ai-glow" style={{ display: 'flex' }}>
+        <button
+          type="button"
+          onClick={onGo}
+          className="ai-action"
+          style={{
+            width: '100%', height: 48, borderRadius: 12,
+            cursor: 'pointer', display: 'flex', alignItems: 'center',
+            justifyContent: 'space-between', padding: '0 16px',
+          }}
+        >
+          <span style={{ fontSize: 14.5, fontWeight: 700, color: '#1A1A1E' }}>
+            이번 주 식단 짜기
+          </span>
+          <span style={{ fontSize: 12.5, color: 'rgba(26,26,30,0.6)' }}>
+            냉장고 재료로 · 장보기 목록까지 ›
+          </span>
+        </button>
+        <span className="ai-fab-badge">AI</span>
+      </span>
     </div>
   );
 };
@@ -892,20 +898,15 @@ const CookingCalendar: React.FC = () => {
         {/* 월 보기 */}
         {viewMode === 'month' && (
           <div style={{ padding: '12px 14px 14px' }}>
-          {/* 표시가 무슨 뜻인지 적어 둔다. 인원별 색 범례는 게이지 옆에 따로
-              있는데, 도장은 그것과 아무 상관이 없어서 설명이 없으면 "이 노란
-              동그라미는 뭐지" 로 남는다. */}
+          {/* 표시가 무슨 뜻인지는 짧게만. 길게 설명할수록 오히려 안 읽힌다. */}
           {plans.size > 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8,
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8,
                           fontSize: 11.5, color: 'var(--ink-500)' }}>
               <span aria-hidden style={{
-                width: 22, height: 18, flexShrink: 0,
-                border: '2px solid #E0B400', borderRadius: '50%',
-                transform: 'rotate(-13deg)',
+                width: 15, height: 15, flexShrink: 0,
+                border: '1.5px solid #E0A200', borderRadius: '50%',
               }} />
-              도장이 찍힌 날은 <b style={{ color: 'var(--ink-700)' }}>만들기로 한 요리</b>가 있어요
-              <span style={{ color: 'var(--line-300)' }}>·</span>
-              누르면 무엇인지 보여요
+              요리 계획 있는 날
             </div>
           )}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 4, marginBottom: 4 }}>
@@ -943,20 +944,18 @@ const CookingCalendar: React.FC = () => {
                     opacity: inMonth ? 1 : 0.35,
                   }}
                 >
-                  {/* 계획이 있는 날에는 **도장을 찍는다.**
-                      점 하나로는 그게 무슨 뜻인지 알 수가 없었다. 날짜 위에
-                      비뚤게 찍힌 노란 테두리는 "여기 뭔가 정해져 있다" 로 읽힌다.
-                      완료 기록(채워진 점)과 겹쳐도 서로 안 가린다 — 하나는
-                      숫자를 감싸고 하나는 그 아래 줄에 있다. */}
+                  {/* 계획이 있는 날에는 날짜 숫자를 정원으로 감싼다. 완료
+                      기록(채워진 점)과 겹쳐도 서로 안 가린다 — 하나는 숫자를
+                      감싸고 하나는 그 아래 줄에 있다. */}
                   {plans.has(key) && (
                     <span
                       aria-hidden
                       style={{
                         position: 'absolute', top: '50%', left: '50%',
-                        width: 30, height: 25, marginTop: dayEntries.length > 0 ? -8 : -2,
-                        transform: 'translate(-50%, -50%) rotate(-13deg)',
-                        border: '2px solid #E0B400', borderRadius: '50%',
-                        opacity: .85, pointerEvents: 'none',
+                        width: 26, height: 26, marginTop: dayEntries.length > 0 ? -8 : -2,
+                        transform: 'translate(-50%, -50%)',
+                        border: '1.5px solid #E0A200', borderRadius: '50%',
+                        pointerEvents: 'none',
                       }}
                     />
                   )}
