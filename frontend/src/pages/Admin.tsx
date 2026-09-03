@@ -1482,6 +1482,115 @@ const Range: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   </div>
 );
 
+/**
+ * 날짜별 막대그래프 (한 계열).
+ *
+ * 전에는 막대만 그리고 값은 `title`(마우스 올림)로만 보여 줬다. **폰에는 마우스가
+ * 없어서 숫자를 볼 방법이 아예 없었다.** 그래서 세로 눈금과 막대 위 숫자를 둘 다
+ * 그린다 — 어느 쪽으로도 읽힌다.
+ *
+ * 기록이 있는 날만 그리지 않고 **빈 날도 0으로 세운다.** 있는 날만 이으면 뜸했던
+ * 기간이 사라져 활발했던 것처럼 보인다.
+ */
+const DailyBars: React.FC<{ rows: [string, number][]; days?: number }> = ({ rows, days = 14 }) => {
+  const [at, setAt] = React.useState<number | null>(null);
+
+  const byDate = new Map(rows);
+  const today = new Date();
+  const buckets: string[] = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - i);
+    buckets.push(`${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`);
+  }
+  const values = buckets.map(b => byDate.get(b) || 0);
+  const total = values.reduce((a, b) => a + b, 0);
+
+  const W = 720, H = 180, padL = 44, padR = 14, padT = 20, padB = 26;
+  const plotW = W - padL - padR, plotH = H - padT - padB;
+  const peak = Math.max(...values, 0);
+  const gap = niceStep(Math.max(peak, 1) / 3);
+  const top = Math.max(gap, Math.ceil(peak / gap) * gap);
+  const ticks: number[] = [];
+  for (let t = 0; t <= top + 1e-9; t += gap) ticks.push(t);
+
+  const slot = plotW / buckets.length;
+  const barW = Math.max(6, slot - 6);   // 막대 사이에 배경색 틈을 둔다
+  const x = (i: number) => padL + slot * i + slot / 2;
+  const y = (v: number) => padT + plotH - (v / top) * plotH;
+  const labelEvery = Math.ceil(buckets.length / 7);
+
+  const onMove = (e: React.PointerEvent<SVGSVGElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const vx = ((e.clientX - rect.left) / rect.width) * W;
+    setAt(Math.max(0, Math.min(buckets.length - 1, Math.floor((vx - padL) / slot))));
+  };
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <div style={{ fontSize: 12, color: 'var(--ink-500)', marginBottom: 4 }}>
+        이 기간 합계 <b style={{ color: '#1A1A1E' }}>{num(total)}</b> 크레딧
+      </div>
+      <svg
+        viewBox={`0 0 ${W} ${H}`}
+        style={{ width: '100%', height: 'auto', display: 'block', touchAction: 'none' }}
+        onPointerMove={onMove}
+        onPointerLeave={() => setAt(null)}
+        role="img"
+        aria-label="일별 크레딧"
+      >
+        {ticks.map(t => (
+          <g key={t}>
+            <line x1={padL} x2={W - padR} y1={y(t)} y2={y(t)}
+                  stroke="var(--line-200)" strokeWidth={1} />
+            <text x={padL - 8} y={y(t) + 4} textAnchor="end" fontSize={11} fill="var(--ink-500)">
+              {num(t)}
+            </text>
+          </g>
+        ))}
+        {buckets.map((b, i) => {
+          const v = values[i];
+          if (!v) return null;
+          const h = Math.max(3, padT + plotH - y(v));
+          return (
+            <rect key={b} x={x(i) - barW / 2} y={y(v)} width={barW} height={h}
+                  rx={4} fill="#FFD600" />
+          );
+        })}
+        {/* 막대 위에 숫자. 노란 막대는 배경과 대비가 약해서, 숫자가 없으면
+            "몇인지 모르겠다" 가 된다. 0인 날은 적지 않는다(눈만 어지럽다). */}
+        {buckets.map((b, i) => (
+          values[i] ? (
+            <text key={b} x={x(i)} y={y(values[i]) - 6} textAnchor="middle"
+                  fontSize={11} fontWeight={700} fill="#1A1A1E">
+              {num(values[i])}
+            </text>
+          ) : null
+        ))}
+        {buckets.map((b, i) => (
+          (i % labelEvery === 0 || i === buckets.length - 1) ? (
+            <text key={b} x={x(i)} y={H - 8} textAnchor="middle" fontSize={11} fill="var(--ink-500)">
+              {b.slice(5).replace('-', '/')}
+            </text>
+          ) : null
+        ))}
+      </svg>
+
+      {at !== null && (
+        <div style={{
+          position: 'absolute', top: 18,
+          left: `${(x(at) / W) * 100}%`,
+          transform: x(at) > W / 2 ? 'translateX(calc(-100% - 8px))' : 'translateX(8px)',
+          background: 'var(--surface)', border: '1px solid var(--line-200)', borderRadius: 10,
+          boxShadow: '0 6px 18px rgba(0,0,0,.10)', padding: '6px 10px',
+          pointerEvents: 'none', fontSize: 12, whiteSpace: 'nowrap', zIndex: 2,
+        }}>
+          <b>{buckets[at]}</b> · {num(values[at])} 크레딧
+        </div>
+      )}
+    </div>
+  );
+};
+
 const Dashboard: React.FC = () => {
   const [data, setData] = React.useState<any>(null);
   const [act, setAct] = React.useState<any>(null);
@@ -1504,8 +1613,8 @@ const Dashboard: React.FC = () => {
   const daily: any[] = data.usage_daily || [];
   const byDate = new Map<string, number>();
   daily.forEach(d => byDate.set(d.date, (byDate.get(d.date) || 0) + d.credits));
-  const recent = [...byDate.entries()].sort().slice(-14);
-  const peak = Math.max(1, ...recent.map(([, v]) => v));
+  // DailyBars 가 빈 날을 0으로 채우므로 여기서는 자르지 않고 그대로 넘긴다.
+  const recent: [string, number][] = [...byDate.entries()];
 
   return (
     <>
@@ -1810,29 +1919,8 @@ const Dashboard: React.FC = () => {
 
       <div style={S.card}>
         <h2 style={S.h2}>일별 크레딧 (최근 2주)</h2>
-        <Range>
-          {recent.length
-            ? `${recent[0][0]} ~ ${recent[recent.length - 1][0]} (기록이 있는 날만)`
-            : '아직 기록 없음'}
-        </Range>
-        {recent.length === 0 ? (
-          <div style={{ fontSize: 13, color: 'var(--ink-500)' }}>아직 사용 기록이 없어요.</div>
-        ) : (
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 90 }}>
-            {recent.map(([date, value]) => (
-              <div key={date} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                <div
-                  title={`${date} · ${value}`}
-                  style={{
-                    width: '100%', height: `${(value / peak) * 64}px`, minHeight: value ? 3 : 0,
-                    background: '#FFD600', borderRadius: '4px 4px 0 0',
-                  }}
-                />
-                <span style={{ fontSize: 9, color: 'var(--ink-500)' }}>{date.slice(5)}</span>
-              </div>
-            ))}
-          </div>
-        )}
+        <Range>오늘까지 최근 14일 (기록이 없는 날은 0)</Range>
+        <DailyBars rows={recent} days={14} />
       </div>
 
       {/* 크레딧 환산이 맞는지 확인하는 자리. 종류별 "크레딧당 실제 토큰"이 크게
