@@ -15,6 +15,7 @@ import { getProxiedImageUrl } from '../utils/imageUtils';
 import { usageHeaders, applyUsage } from '../utils/usage';
 import { UsageLine, useUsage } from '../components/UsageMeter';
 import { savePlan, conflictingDates, toDateKey, type PlannedMeal } from '../utils/mealPlan';
+import { loadChat, saveChat, clearChat, type ChatMsg } from '../utils/aiChat';
 
 /**
  * 이번 주 식단 + 장보기 목록.
@@ -300,6 +301,145 @@ const WISH_PRESETS = [
   '고기 없이',
 ];
 
+/**
+ * 한 턴이 내놓은 결과 — 장바구니와 식단.
+ *
+ * 말풍선 **안**에 들어간다. 밖에 하나만 두면 새로 물을 때마다 지난 답이 덮여
+ * 대화를 되짚어 볼 수가 없다.
+ *
+ * `live` — 이 턴이 **마지막 턴**인가. 마지막 것만 아래 편집 화면(요일 옮기기,
+ * 요리 추가, 캘린더 반영)과 이어져 있다. 지난 턴은 그때 무엇을 받았는지
+ * 보여 주는 기록이므로 읽기만 한다.
+ */
+const TurnResult: React.FC<{
+  result: NonNullable<ChatMsg['result']>;
+  live: boolean;
+  onOpen: (id: number, title: string, link?: string) => void;
+  onShopping: () => void;
+}> = ({ result, live, onOpen, onShopping }) => (
+  <>
+    {/* 장보기 — 이 기능의 요점. "일곱 끼가 되는데 장은 두 개만" 을 못 박는다. */}
+    <div style={{
+      border: '1px solid #E0B400', background: '#FFFDF2',
+      borderRadius: 12, padding: '11px 12px',
+    }}>
+      <div style={{ fontSize: 14.5, fontWeight: 800, color: '#1A1A1E', lineHeight: 1.5 }}>
+        {result.buyCount === 0
+          ? `장 안 봐도 ${result.days}일치가 돼요`
+          : <>장보기 <span style={{ color: '#B4780A' }}>{result.buyCount}개</span>면 {result.days}일치가 돼요</>}
+      </div>
+
+      {result.basket.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 8 }}>
+          {result.basket.map(name => {
+            const url = resolveCoupangUrl(name);
+            return url ? (
+              <a
+                key={name}
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer sponsored"
+                onClick={() => track('coupang_click', name)}
+                style={{
+                  height: 30, padding: '0 10px', borderRadius: 9999,
+                  background: '#FFD600', color: '#1A1A1E', textDecoration: 'none',
+                  fontSize: 12, fontWeight: 700,
+                  display: 'inline-flex', alignItems: 'center', gap: 3,
+                }}
+              >
+                {name}
+                <span aria-hidden style={{ fontSize: 9.5, opacity: .7 }}>사러가기 ↗</span>
+              </a>
+            ) : (
+              <span key={name} style={{
+                height: 30, padding: '0 10px', borderRadius: 9999,
+                background: 'var(--surface)', border: '1px solid var(--line-200)',
+                fontSize: 12, fontWeight: 600, color: 'var(--ink-700)',
+                display: 'inline-flex', alignItems: 'center',
+              }}>{name}</span>
+            );
+          })}
+        </div>
+      )}
+
+      {live && result.basket.length > 0 && (
+        <button
+          type="button"
+          onClick={onShopping}
+          style={{
+            width: '100%', height: 40, marginTop: 10, borderRadius: 9,
+            border: 'none', background: '#1A1A1E', color: '#FFFFFF',
+            fontSize: 13, fontWeight: 700, cursor: 'pointer',
+          }}
+        >
+          장보기 목록으로 보기 ({result.buyCount}개)
+        </button>
+      )}
+
+      <div style={{ fontSize: 10, color: 'var(--ink-500)', marginTop: 7, lineHeight: 1.5 }}>
+        쿠팡 파트너스 활동으로 일정액의 수수료를 받을 수 있어요.
+      </div>
+    </div>
+
+    {/* 그 턴의 식단. 지난 턴은 무엇을 받았는지 **보여 주기만** 한다. */}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 10 }}>
+      {result.dishes.map((d, k) => (
+        <button
+          key={d.id + '-' + k}
+          type="button"
+          onClick={() => onOpen(d.id, d.title, d.link)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 9, width: '100%',
+            padding: '7px 9px', borderRadius: 10, textAlign: 'left',
+            border: '1px solid var(--line-200)', background: 'var(--surface)',
+            cursor: 'pointer',
+          }}
+        >
+          <span style={{
+            flexShrink: 0, width: 20, height: 20, borderRadius: 6,
+            background: 'var(--surface-sub)', color: 'var(--ink-500)',
+            fontSize: 11, fontWeight: 700,
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          }}>{k + 1}</span>
+          {d.thumbnail ? (
+            <img
+              src={getProxiedImageUrl(d.thumbnail)}
+              alt=""
+              loading="lazy"
+              onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
+              style={{ width: 34, height: 34, borderRadius: 7, objectFit: 'cover',
+                       flexShrink: 0, background: 'var(--surface-sub)' }}
+            />
+          ) : (
+            <span aria-hidden style={{
+              width: 34, height: 34, borderRadius: 7, flexShrink: 0,
+              background: 'var(--surface-sub)', display: 'inline-flex',
+              alignItems: 'center', justifyContent: 'center', fontSize: 14,
+            }}>&#127869;</span>
+          )}
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{
+              display: 'block', fontSize: 12.5, fontWeight: 600, color: '#1A1A1E',
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}>{d.title}</span>
+            {d.why && (
+              <span style={{ display: 'block', fontSize: 11, color: '#7A5C00', marginTop: 1 }}>
+                {d.why}
+              </span>
+            )}
+          </span>
+        </button>
+      ))}
+    </div>
+
+    {live && (
+      <div style={{ fontSize: 11, color: 'var(--ink-500)', marginTop: 8 }}>
+        아래에서 요일을 옮기거나 캘린더에 담을 수 있어요.
+      </div>
+    )}
+  </>
+);
+
 const WeeklyPlan: React.FC = () => {
   const navigate = useNavigate();
   const usage = useUsage();
@@ -337,7 +477,7 @@ const WeeklyPlan: React.FC = () => {
    * AI 로 들어온 화면은 **대화**다. 내가 말한 조건이 오른쪽에 남아야
    * "무엇을 부탁했는지" 가 화면에 보이고, 다음에 뭘 고칠지 정할 수 있다.
    */
-  const [chat, setChat] = React.useState<{ who: 'ai' | 'me'; text: string }[]>([]);
+  const [chat, setChat] = React.useState<ChatMsg[]>(() => loadChat());
   const chatEnd = React.useRef<HTMLDivElement | null>(null);
   /** AI 가 말한 **왜 이렇게 골랐는지**. 말풍선에 그대로 쓴다. */
   const aiReason = React.useRef<string>('');
@@ -349,6 +489,7 @@ const WeeklyPlan: React.FC = () => {
     [],
   );
   React.useEffect(() => {
+    // 이력이 있으면 인사부터 다시 하지 않는다. 이어서 말하는 자리다.
     if (!wantAi || chat.length > 0) return;
     // 무엇을 말할 수 있는지 **여기서** 알려 준다. 버튼 부제에 예시 하나를
     // 박아 두면 그것만 되는 기능으로 읽힌다.
@@ -357,6 +498,7 @@ const WeeklyPlan: React.FC = () => {
       text: '냉장고 재료로 이번 주 식단을 짜 드릴게요.\n'
           + '장을 가장 적게 보는 조합으로 고르고,\n'
           + '원하는 조건이 있으면 그에 맞춰 드려요.',
+      at: Date.now(),
     }]);
   }, [wantAi, chat.length]);
 
@@ -630,29 +772,49 @@ const WeeklyPlan: React.FC = () => {
       })));
       setSaved(false);
       setAiNote(request ? `"${request}" 을(를) 반영했어요.` : 'AI 가 새로 골랐어요.');
+
+      // 이 턴의 결과를 **그 말풍선에** 담아야 한다. 하나만 들고 있으면
+      // 새로 물을 때마다 지난 답이 덮여서, 대화를 되짚어 볼 수가 없다.
+      return {
+        dishes: got.map(g => ({
+          id: g.id, title: g.title, link: g.link, thumbnail: g.thumbnail, why: g.why,
+        })),
+        basket: (data?.basket?.basket || []) as string[],
+        buyCount: Number(data?.basket?.buy_count ?? 0),
+        days: Number(data?.basket?.days ?? got.length),
+      };
     } catch {
       setError('네트워크 상태를 확인하고 다시 시도해 주세요.');
     } finally {
       setAsking(false);
     }
+    return null;
   };
 
   React.useEffect(() => {
     chatEnd.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [chat.length, asking]);
 
+  // 크레딧을 쓴 결과다. 화면을 나갔다 오면 사라지는 게 맞지 않다.
+  React.useEffect(() => {
+    if (!wantAi || chat.length === 0) return;
+    saveChat(chat);
+  }, [wantAi, chat]);
+
   /** 조건을 보내고 AI 를 부른다. */
   const send = (text: string) => {
     const t = text.trim();
     if (!t || !canAi || asking) return;
-    setChat(c => [...c, { who: 'me', text: t }]);
-    setWish(t);
-    void askAi(t).then(() => {
-      // **왜 이렇게 골랐는지**를 말한다. 이게 없으면 무료 추천과 무엇이
-      // 다른지 알 수가 없다 — 결과만 보면 둘 다 그냥 목록이다.
+    setChat(c => [...c, { who: 'me', text: t, at: Date.now() }]);
+    setWish('');
+    void askAi(t).then(result => {
       setChat(c => [...c, {
         who: 'ai',
-        text: aiReason.current || '이렇게 짜 봤어요. 마음에 안 들면 조건을 다시 말해 주세요.',
+        text: aiReason.current || (result
+          ? '이렇게 짜 봤어요. 마음에 안 들면 조건을 다시 말해 주세요.'
+          : '조건에 맞는 걸 못 찾았어요. 조금 느슨하게 말해 주시겠어요?'),
+        result: result || undefined,
+        at: Date.now(),
       }]);
     });
   };
@@ -1136,22 +1298,47 @@ const WeeklyPlan: React.FC = () => {
 
       {/* 주고받은 말 */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 12 }}>
-        {chat.map((m, i) => (
+        {chat.map((m, i) => {
+          // 결과가 담긴 말풍선은 **넓어야** 한다. 82% 로 두면 식단 카드가 뭉개진다.
+          const wide = !!m.result;
+          const last = i === chat.length - 1;
+          return (
           <div key={i} style={{
             display: 'flex', justifyContent: m.who === 'me' ? 'flex-end' : 'flex-start',
           }}>
-            <span style={{
-              maxWidth: '82%', padding: '10px 13px', borderRadius: 14,
+            <div style={{
+              maxWidth: wide ? '100%' : '82%', width: wide ? '100%' : undefined,
+              padding: wide ? '12px 13px' : '10px 13px', borderRadius: 14,
               // 내가 한 말은 오른쪽에 진하게. 누가 한 말인지 색과 자리로 갈린다.
               background: m.who === 'me' ? '#1A1A1E' : 'var(--surface)',
               color: m.who === 'me' ? '#FFFFFF' : 'var(--ink-900)',
               border: m.who === 'me' ? 'none' : '1px solid var(--line-200)',
-              fontSize: 13.5, lineHeight: 1.6, whiteSpace: 'pre-line',
+              fontSize: 13.5, lineHeight: 1.6,
               borderBottomRightRadius: m.who === 'me' ? 4 : 14,
               borderBottomLeftRadius: m.who === 'me' ? 14 : 4,
-            }}>{m.text}</span>
+            }}>
+              <div style={{ whiteSpace: 'pre-line' }}>{m.text}</div>
+
+              {/* 그 턴이 짜 준 것 — **이 말풍선 안**에 둔다. 밖에 하나만 두면
+                  새로 물을 때마다 지난 답이 덮여 대화를 되짚을 수 없다. */}
+              {m.result && (
+                <div style={{ marginTop: 10 }}>
+                  <TurnResult
+                    result={m.result}
+                    live={last}
+                    onOpen={(id, title, link) => {
+                      track('recipe_open', String(id));
+                      openCookMode({ id, title, link, myIngredients });
+                    }}
+                    onShopping={() => document.getElementById('shopping-list')
+                      ?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                  />
+                </div>
+              )}
+            </div>
           </div>
-        ))}
+          );
+        })}
 
         {asking && (
           <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
@@ -1164,83 +1351,6 @@ const WeeklyPlan: React.FC = () => {
         )}
         <div ref={chatEnd} />
       </div>
-
-      {/* 장바구니 — 이 기능의 요점.
-          "일곱 끼가 되는데 장은 두 개만 보면 된다" 를 숫자로 못 박는다. */}
-      {wantAi && basket && basket.buy_count >= 0 && !asking
-        && chat.some(m => m.who === 'me') && (
-        <div style={{
-          border: '1px solid #E0B400', background: '#FFFDF2',
-          borderRadius: 14, padding: '14px 16px', marginBottom: 12,
-        }}>
-          <div style={{ fontSize: 15, fontWeight: 800, color: '#1A1A1E', lineHeight: 1.5 }}>
-            {basket.buy_count === 0
-              ? `장 안 봐도 ${basket.days}일치가 돼요`
-              : <>장보기 <span style={{ color: '#B4780A' }}>{basket.buy_count}개</span>면 {basket.days}일치가 돼요</>}
-          </div>
-          {basket.no_buy_days > 0 && (
-            <div style={{ fontSize: 12, color: 'var(--ink-500)', marginTop: 3 }}>
-              그중 {basket.no_buy_days}일은 지금 냉장고 재료만으로 됩니다
-            </div>
-          )}
-
-          {basket.basket.length > 0 && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
-              {basket.basket.map(name => {
-                const url = resolveCoupangUrl(name);
-                return url ? (
-                  <a
-                    key={name}
-                    href={url}
-                    target="_blank"
-                    rel="noopener noreferrer sponsored"
-                    onClick={() => track('coupang_click', name)}
-                    style={{
-                      height: 32, padding: '0 11px', borderRadius: 9999,
-                      background: '#FFD600', color: '#1A1A1E', textDecoration: 'none',
-                      fontSize: 12.5, fontWeight: 700,
-                      display: 'inline-flex', alignItems: 'center', gap: 4,
-                    }}
-                  >
-                    {name}
-                    <span aria-hidden style={{ fontSize: 10, opacity: .7 }}>사러가기 ↗</span>
-                  </a>
-                ) : (
-                  <span key={name} style={{
-                    height: 32, padding: '0 11px', borderRadius: 9999,
-                    background: 'var(--surface)', border: '1px solid var(--line-200)',
-                    fontSize: 12.5, fontWeight: 600, color: 'var(--ink-700)',
-                    display: 'inline-flex', alignItems: 'center',
-                  }}>{name}</span>
-                );
-              })}
-            </div>
-          )}
-
-          {/* 장을 보는 건 식단을 본 **직후의 행동**이다. 여기 없으면 맥락이 끊긴다. */}
-          {basket.basket.length > 0 && (
-            <button
-              type="button"
-              onClick={() => {
-                setBought(new Set());
-                document.getElementById('shopping-list')
-                  ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-              }}
-              style={{
-                width: '100%', height: 44, marginTop: 12, borderRadius: 10, border: 'none',
-                background: '#1A1A1E', color: '#FFFFFF',
-                fontSize: 14, fontWeight: 700, cursor: 'pointer',
-              }}
-            >
-              장보기 목록으로 보기 ({basket.buy_count}개)
-            </button>
-          )}
-
-          <div style={{ fontSize: 10.5, color: 'var(--ink-500)', marginTop: 8, lineHeight: 1.5 }}>
-            쿠팡 파트너스 활동으로 일정액의 수수료를 받을 수 있어요.
-          </div>
-        </div>
-      )}
 
       {/* 짜인 식단 — **조건을 들은 뒤에만** 보여 준다.
           한때 들어오자마자 무료 결과를 깔아 줬는데, 그러면 "왜 크레딧을 써야
@@ -1333,6 +1443,22 @@ const WeeklyPlan: React.FC = () => {
         <div style={{ fontWeight: 700, fontSize: 18, textAlign: 'center', padding: '0 56px' }}>
           {wantAi ? 'AI 식단 추천' : '이번 주 식단 추천'}
         </div>
+        {/* 대화가 길어지면 처음부터 다시 하고 싶을 때가 있다. 지울 길이 없으면
+            이력을 남긴 것이 오히려 짐이 된다. */}
+        {wantAi && chat.length > 1 && (
+          <button
+            type="button"
+            onClick={() => { clearChat(); setChat([]); setBasket(null); }}
+            style={{
+              position: 'absolute', right: 0, top: 4, height: 32, padding: '0 10px',
+              borderRadius: 8, border: '1px solid var(--line-200)',
+              background: 'var(--surface)', fontSize: 12, fontWeight: 600,
+              color: 'var(--ink-500)', cursor: 'pointer',
+            }}
+          >
+            새 대화
+          </button>
+        )}
       </div>
 
       {wantAi && chatScreen}
