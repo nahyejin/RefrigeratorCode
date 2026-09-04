@@ -1206,3 +1206,16 @@ select:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   .plan-toast { animation: none; transform: translateX(-50%); }
 }
+
+/* 답을 한 글자씩 내보낼 때 따라다니는 막대. 말이 아직 끝나지 않았음을
+   글자 밖에서 알려 준다 — 멈춘 것과 쓰는 중인 것이 달라 보여야 한다. */
+.type-caret {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 1px;
+  vertical-align: -0.15em;
+  background: var(--ink-500);
+  animation: type-blink 1s steps(1, end) infinite;
+}
+@keyframes type-blink { 50% { opacity: 0; } }

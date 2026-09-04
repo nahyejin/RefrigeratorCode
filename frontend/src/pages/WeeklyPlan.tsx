@@ -15,7 +15,7 @@ import { getProxiedImageUrl } from '../utils/imageUtils';
 import { usageHeaders, applyUsage } from '../utils/usage';
 import { UsageLine, useUsage } from '../components/UsageMeter';
 import { savePlan, conflictingDates, toDateKey, type PlannedMeal } from '../utils/mealPlan';
-import { loadChat, saveChat, archiveChat, loadSessions, dropSession,
+import { loadChat, saveChat, clearChat, archiveChat, loadSessions, dropSession,
          type ChatMsg, type ChatSession } from '../utils/aiChat';
 
 /**
@@ -308,16 +308,20 @@ const WISH_PRESETS = [
  * 말풍선 **안**에 들어간다. 밖에 하나만 두면 새로 물을 때마다 지난 답이 덮여
  * 대화를 되짚어 볼 수가 없다.
  *
- * `live` — 이 턴이 **마지막 턴**인가. 마지막 것만 아래 편집 화면(요일 옮기기,
- * 요리 추가, 캘린더 반영)과 이어져 있다. 지난 턴은 그때 무엇을 받았는지
- * 보여 주는 기록이므로 읽기만 한다.
+ * `live` — 이 턴이 **마지막 턴**인가. 마지막 것만 `editor`(날짜 옮기기·빼기·
+ * 캘린더 반영)를 대신 그린다. 지난 턴은 그때 무엇을 받았는지 보여 주는
+ * 기록이므로 읽기만 한다.
+ *
+ * 왜 목록이 하나뿐인가: 예전엔 말풍선 밑에 편집 화면을 따로 뒀는데, 같은
+ * 식단이 두 번 나와서 어느 쪽이 진짜인지 알 수 없었다.
  */
 const TurnResult: React.FC<{
   result: NonNullable<ChatMsg['result']>;
   live: boolean;
+  editor?: React.ReactNode;
   onOpen: (id: number, title: string, link?: string) => void;
   onShopping: () => void;
-}> = ({ result, live, onOpen, onShopping }) => (
+}> = ({ result, live, editor, onOpen, onShopping }) => (
   <>
     {/* 장보기 — 이 기능의 요점. "일곱 끼가 되는데 장은 두 개만" 을 못 박는다. */}
     <div style={{
@@ -382,7 +386,9 @@ const TurnResult: React.FC<{
       </div>
     </div>
 
-    {/* 그 턴의 식단. 지난 턴은 무엇을 받았는지 **보여 주기만** 한다. */}
+    {/* 살아 있는 턴은 고칠 수 있는 목록으로. 지난 턴은 그때 무엇을 받았는지
+        **보여 주기만** 한다. */}
+    {live && editor ? editor : (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 10 }}>
       {result.dishes.map((d, k) => (
         <button
@@ -432,7 +438,7 @@ const TurnResult: React.FC<{
         </button>
       ))}
     </div>
-
+    )}
   </>
 );
 
@@ -473,8 +479,30 @@ const WeeklyPlan: React.FC = () => {
    * AI 로 들어온 화면은 **대화**다. 내가 말한 조건이 오른쪽에 남아야
    * "무엇을 부탁했는지" 가 화면에 보이고, 다음에 뭘 고칠지 정할 수 있다.
    */
-  const [chat, setChat] = React.useState<ChatMsg[]>(() => loadChat());
+  const [chat, setChat] = React.useState<ChatMsg[]>(() => {
+    // **들어올 때마다 새 대화.** 이어서 열리면 지난번에 물어본 조건이 위에
+    // 남아 있어서 지금 묻는 것과 섞여 보인다. 앞의 것은 `지난 대화` 로
+    // 넘기고 빈 자리에서 시작한다 — 넘기지 않고 지우면 크레딧을 쓴 결과가
+    // 사라진다.
+    if (new URLSearchParams(window.location.search).get('ai') !== '1') return [];
+    const prev = loadChat();
+    if (prev.some(m => m.who === 'me')) archiveChat(prev);
+    else clearChat();
+    return [];
+  });
   const chatEnd = React.useRef<HTMLDivElement | null>(null);
+  /** 마지막 말풍선 — 답이 오면 이 머리로 데려간다. */
+  const lastBubble = React.useRef<HTMLDivElement | null>(null);
+  /** 지금 몇 글자까지 내보냈나. null 이면 다 내보낸 것이다. */
+  const [typed, setTyped] = React.useState<{ i: number; n: number } | null>(null);
+  /**
+   * **지금 화면의 식단을 내놓은 턴**의 시각.
+   *
+   * 이 턴의 말풍선만 고칠 수 있다. 지난 대화를 꺼내 오면 말은 되살아나도
+   * 식단은 그때 것이라 지금 `slots` 와 다르다 — 그걸 고치는 자리로 두면
+   * 엉뚱한 것을 옮기고 빼게 된다. 그때 받은 목록을 **보여 주기만** 한다.
+   */
+  const [liveAt, setLiveAt] = React.useState<number | null>(null);
   /** AI 가 말한 **왜 이렇게 골랐는지**. 말풍선에 그대로 쓴다. */
   const aiReason = React.useRef<string>('');
   /** 재료 칩을 펼쳐 볼지 (채팅 화면에서는 접어 둔다). */
@@ -788,9 +816,54 @@ const WeeklyPlan: React.FC = () => {
     return null;
   };
 
+  /**
+   * 답이 오면 **그 말풍선의 머리**로 데려간다.
+   *
+   * 늘 맨 아래로 보내면, 결과가 담긴 말풍선은 길어서 답의 첫 줄이 화면 위로
+   * 넘어간다. 내가 방금 말한 직후와 고르는 중에는 맨 아래가 맞다 —
+   * 거기서 다음 것이 나오기 때문이다.
+   */
   React.useEffect(() => {
-    chatEnd.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    const last = chat[chat.length - 1];
+    if (asking || !last || last.who === 'me' || !last.result) {
+      chatEnd.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      return;
+    }
+    const el = lastBubble.current;
+    if (!el) return;
+    // 고정 헤더(56) 밑으로 내려 붙인다. scrollIntoView 로는 헤더에 가린다.
+    const top = el.getBoundingClientRect().top + window.scrollY - 84;
+    window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
   }, [chat.length, asking]);
+
+  /**
+   * 답을 **한 글자씩** 내보낸다.
+   *
+   * 다 만들어진 문단이 통째로 튀어나오면, 기다린 뒤라 더 갑작스럽다.
+   * 읽는 속도로 흘러나오면 "지금 답하고 있다" 가 보인다. 결과(식단·장바구니)는
+   * 말이 끝난 뒤에 편다 — 글과 카드가 같이 자라면 눈이 둘 데가 없다.
+   */
+  React.useEffect(() => {
+    const i = chat.length - 1;
+    const last = chat[i];
+    if (!wantAi || !last || last.who !== 'ai') return;
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    setTyped({ i, n: 0 });
+    const total = last.text.length;
+    // 흐른 **시간**으로 센다. 몇 번 돌았는지로 세면, 화면을 잠깐 덮어 둔 사이
+    // 브라우저가 타이머를 초당 한 번으로 늦춰서 글자가 기어간다.
+    const t0 = Date.now();
+    const MS_PER_CHAR = 13;
+    const id = window.setInterval(() => {
+      const n = Math.floor((Date.now() - t0) / MS_PER_CHAR);
+      setTyped(t => {
+        if (!t || t.i !== i) { window.clearInterval(id); return t; }
+        if (n >= total) { window.clearInterval(id); return null; }
+        return { i, n };
+      });
+    }, 26);
+    return () => window.clearInterval(id);
+  }, [chat.length, wantAi]);
 
   // 크레딧을 쓴 결과다. 화면을 나갔다 오면 사라지는 게 맞지 않다.
   React.useEffect(() => {
@@ -805,13 +878,15 @@ const WeeklyPlan: React.FC = () => {
     setChat(c => [...c, { who: 'me', text: t, at: Date.now() }]);
     setWish('');
     void askAi(t).then(result => {
+      const at = Date.now();
+      if (result) setLiveAt(at);
       setChat(c => [...c, {
         who: 'ai',
         text: aiReason.current || (result
           ? '이렇게 짜 봤어요. 마음에 안 들면 조건을 다시 말해 주세요.'
           : '조건에 맞는 걸 못 찾았어요. 조금 느슨하게 말해 주시겠어요?'),
         result: result || undefined,
-        at: Date.now(),
+        at,
       }]);
     });
   };
@@ -968,7 +1043,116 @@ const WeeklyPlan: React.FC = () => {
     </>
   );
 
-  /** 짜인 식단(카드 목록 + 반영 버튼). 채팅 화면에서도 그대로 쓴다. */
+  /**
+   * 말풍선 **안**에서 바로 고치는 자리.
+   *
+   * 밖에 편집 화면을 따로 뒀더니 같은 식단이 두 번 나왔다. 그리고 여기서
+   * 할 수 있는 건 **날짜 옮기기와 빼기** 둘뿐이다 — `다른 요리로` 는 결국
+   * 조건을 다시 말하는 일이고, 그건 아래 입력창이 하는 일이다. 같은 일을
+   * 하는 길이 둘이면 어느 쪽이 크레딧을 쓰는지 헷갈린다.
+   */
+  const planned = slots.flatMap((slot, i) => slot.meals.map((meal, k) => ({ slot, i, meal, k })));
+  const aiPlanEditor = (
+    <div style={{ marginTop: 10 }}>
+      {planned.length === 0 ? (
+        <div style={{
+          border: '1px dashed var(--line-200)', borderRadius: 10, padding: '14px 12px',
+          fontSize: 12.5, color: 'var(--ink-500)', textAlign: 'center',
+        }}>
+          다 뺐어요. 조건을 다시 말해 주세요.
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {planned.map(({ meal, i, k }) => (
+            <div
+              key={meal.recipe.id + '-' + i + '-' + k}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 8, padding: '7px 8px',
+                borderRadius: 10, border: '1px solid var(--line-200)', background: 'var(--surface)',
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  track('recipe_open', String(meal.recipe.id));
+                  openCookMode({ id: meal.recipe.id, title: meal.recipe.title,
+                                 link: meal.recipe.link, myIngredients });
+                }}
+                style={{
+                  flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 8,
+                  border: 'none', background: 'transparent', padding: 0,
+                  textAlign: 'left', cursor: 'pointer',
+                }}
+              >
+                {meal.recipe.thumbnail ? (
+                  <img
+                    src={getProxiedImageUrl(meal.recipe.thumbnail)}
+                    alt=""
+                    loading="lazy"
+                    onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
+                    style={{ width: 34, height: 34, borderRadius: 7, objectFit: 'cover',
+                             flexShrink: 0, background: 'var(--surface-sub)' }}
+                  />
+                ) : (
+                  <span aria-hidden style={{
+                    width: 34, height: 34, borderRadius: 7, flexShrink: 0,
+                    background: 'var(--surface-sub)', display: 'inline-flex',
+                    alignItems: 'center', justifyContent: 'center', fontSize: 14,
+                  }}>&#127869;</span>
+                )}
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{
+                    display: 'block', fontSize: 12.5, fontWeight: 600, color: '#1A1A1E',
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>{meal.recipe.title}</span>
+                  {meal.recipe.why && (
+                    <span style={{
+                      display: 'block', fontSize: 11, color: '#7A5C00', marginTop: 1,
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    }}>{meal.recipe.why}</span>
+                  )}
+                </span>
+              </button>
+
+              <span style={{ width: 68, flexShrink: 0 }}>
+                <DayPicker value={i} days={slots.map(x => x.date)} onPick={j => moveTo(i, k, j)} />
+              </span>
+              <button
+                type="button"
+                onClick={() => removeAt(i, k)}
+                aria-label={meal.recipe.title + ' 빼기'}
+                style={{
+                  flexShrink: 0, width: 30, height: 30, borderRadius: 8,
+                  border: '1px solid var(--line-200)', background: 'var(--surface)',
+                  color: 'var(--ink-500)', fontSize: 14, cursor: 'pointer', padding: 0,
+                }}
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {planned.length > 0 && (
+        <button
+          type="button"
+          onClick={applyPlan}
+          style={{
+            width: '100%', height: 44, marginTop: 10, borderRadius: 10, border: 'none',
+            background: saved ? '#1A1A1E' : '#FFD600',
+            color: saved ? '#FFD600' : '#1A1A1E',
+            fontSize: 13.5, fontWeight: 700, cursor: 'pointer',
+            transition: 'background .18s ease, color .18s ease',
+          }}
+        >
+          {saved ? '캘린더에 담았어요 · 다시 담기' : '요리 캘린더에 담기'}
+        </button>
+      )}
+    </div>
+  );
+
+  /** 짜인 식단(카드 목록 + 반영 버튼). 무료 화면에서 쓴다. */
   const planSection = (
     <>
         {usablePool !== null && !asking && slots.some(s => s.meals.length > 0) && (
@@ -996,33 +1180,6 @@ const WeeklyPlan: React.FC = () => {
                     ↻ 다시 추천
                   </button>
 
-                  {/* AI 로 들어온 화면에서만 — 무료로 굴려 보다가 "이게 아닌데"
-                      싶을 때 조건을 바꿔 다시 부르는 계단. 크레딧을 쓴다. */}
-                  {/* 채팅 화면에서는 안 쓴다. 아래 입력창이 곧 "조건 바꿔서 다시" 다 —
-                    같은 일을 하는 버튼이 둘이면 어느 쪽이 크레딧을 쓰는지 헷갈린다. */}
-                {false && (
-                    <span style={{ position: 'relative', display: 'flex' }}>
-                      <button
-                        type="button"
-                        className="ai-action"
-                        disabled={!canAi || asking}
-                        // 조건을 다시 말하는 자리는 **아래 입력창**이다.
-                      // 따로 창을 띄우면 방금까지 보던 대화가 가려진다.
-                      onClick={() => {
-                        wishInput.current?.focus();
-                        wishInput.current?.scrollIntoView({ block: 'center' });
-                      }}
-                        style={{
-                          height: 30, padding: '0 10px', borderRadius: 8,
-                          fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap',
-                          cursor: canAi && !asking ? 'pointer' : 'default',
-                        }}
-                      >
-                        <span>조건 바꿔서 다시</span>
-                      </button>
-                      {canAi && !asking && <span className="ai-fab-badge">AI</span>}
-                    </span>
-                  )}
                 </span>
               }
             />
@@ -1290,6 +1447,7 @@ const WeeklyPlan: React.FC = () => {
                     dropSession(x.id);
                     setChat(x.messages);
                     setSessions(loadSessions());
+                    setLiveAt(null);
                     setPastOpen(false);
                   }}
                   style={{
@@ -1365,9 +1523,12 @@ const WeeklyPlan: React.FC = () => {
         {chat.map((m, i) => {
           // 결과가 담긴 말풍선은 **넓어야** 한다. 82% 로 두면 식단 카드가 뭉개진다.
           const wide = !!m.result;
-          const last = i === chat.length - 1;
+          // 고칠 수 있는 턴은 **지금 화면의 식단을 내놓은 그 턴** 하나뿐이다.
+          const last = i === chat.length - 1 && !!m.result && m.at === liveAt;
+          const typing = !!typed && typed.i === i;
+          const shown = typing ? m.text.slice(0, typed!.n) : m.text;
           return (
-          <div key={i} style={{
+          <div key={i} ref={last ? lastBubble : undefined} style={{
             display: 'flex', justifyContent: m.who === 'me' ? 'flex-end' : 'flex-start',
           }}>
             <div style={{
@@ -1381,15 +1542,19 @@ const WeeklyPlan: React.FC = () => {
               borderBottomRightRadius: m.who === 'me' ? 4 : 14,
               borderBottomLeftRadius: m.who === 'me' ? 14 : 4,
             }}>
-              <div style={{ whiteSpace: 'pre-line' }}>{m.text}</div>
+              <div style={{ whiteSpace: 'pre-line' }}>
+                {shown}
+                {typing && <span className="type-caret" aria-hidden />}
+              </div>
 
               {/* 그 턴이 짜 준 것 — **이 말풍선 안**에 둔다. 밖에 하나만 두면
                   새로 물을 때마다 지난 답이 덮여 대화를 되짚을 수 없다. */}
-              {m.result && (
+              {m.result && !typing && (
                 <div style={{ marginTop: 10 }}>
                   <TurnResult
                     result={m.result}
                     live={last}
+                    editor={aiPlanEditor}
                     onOpen={(id, title, link) => {
                       track('recipe_open', String(id));
                       openCookMode({ id, title, link, myIngredients });
@@ -1416,12 +1581,7 @@ const WeeklyPlan: React.FC = () => {
         <div ref={chatEnd} />
       </div>
 
-      {/* 짜인 식단 — **조건을 들은 뒤에만** 보여 준다.
-          한때 들어오자마자 무료 결과를 깔아 줬는데, 그러면 "왜 크레딧을 써야
-          하지" 가 된다. 이 화면은 조건을 받으러 온 자리다. 무료 결과가
-          필요하면 무료 입구가 따로 있다. */}
-      {!asking && chat.some(m => m.who === 'me') && slots.some(x => x.meals.length > 0)
-        && planSection}
+      {/* 짜인 식단은 **말풍선 안**에 있다. 여기 또 두면 같은 것이 두 번 나온다. */}
 
       {/* 아래 고정 — 조건을 말하는 자리 */}
       <div style={{
@@ -1535,6 +1695,7 @@ const WeeklyPlan: React.FC = () => {
                   setSessions(loadSessions());
                   setChat([]);
                   setBasket(null);
+                  setLiveAt(null);
                 }}
                 style={{
                   height: 32, padding: '0 10px', borderRadius: 8,
@@ -1700,7 +1861,9 @@ const WeeklyPlan: React.FC = () => {
       )}
 
       {/* ── 식단 ───────────────────────────────────────────── */}
-      {(usablePool === null || asking) && (
+      {/* 채팅 화면은 말풍선이 "고르는 중이에요" 를 이미 말한다. 여기 또 두면
+          같은 말이 두 군데서 돈다. */}
+      {!wantAi && (usablePool === null || asking) && (
         <div style={{ background: 'var(--surface)', border: '1px solid var(--line-200)',
                       borderRadius: 14, padding: '4px 16px 16px' }}>
           <StepLoading
@@ -1717,7 +1880,7 @@ const WeeklyPlan: React.FC = () => {
         </div>
       )}
 
-      {usablePool !== null && !asking && slots.every(s => s.meals.length === 0) && (
+      {!wantAi && usablePool !== null && !asking && slots.every(s => s.meals.length === 0) && (
         <div style={{ background: 'var(--surface)', borderRadius: 14, padding: '20px 16px',
                       fontSize: 13.5, color: 'var(--ink-700)', lineHeight: 1.7 }}>
           {off && off.size > 0 && pool && pool.length > 0 ? (

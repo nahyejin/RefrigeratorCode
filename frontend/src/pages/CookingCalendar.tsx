@@ -616,6 +616,13 @@ const CookingCalendar: React.FC = () => {
   }, [monthlyByUser, myGoal]);
   const groupAchievementRate = myGoal > 0 ? Math.min(100, Math.round((monthlyTotal / myGoal) * 100)) : 0;
   const estimatedSavings = monthlyTotal * savingsPerMeal * familySize;
+  /**
+   * **목표를 다 채웠을 때**의 절약액.
+   *
+   * 지금까지 한 것만 보여 주면 "이번 달 6회 = 9만 6천원" 에서 끝난다.
+   * 목표까지 채우면 얼마인지가 보여야 남은 횟수를 채울 이유가 생긴다.
+   */
+  const goalSavings = myGoal * savingsPerMeal * familySize;
 
   const shiftAnchor = (dir: 1 | -1) => {
     if (viewMode === 'month') {
@@ -913,8 +920,11 @@ const CookingCalendar: React.FC = () => {
             수정 조작(칩 버튼 2개)을 분리했다 — 문장은 그냥 텍스트로 온전히
             보여주고, 그 아래 알약 모양 칩으로 값만 눌러서 바로 고칠 수
             있게 했다. 목표·달성률·절약액까지는 카드를 접어도 항상 보인다. */}
-        {monthlyTotal > 0 && (
+        {/* 아직 한 번도 안 했어도 **목표를 채우면 얼마인지**는 보여 준다.
+            0원만 띄우고 마는 건 아무 말도 안 하는 것과 같다. */}
+        {(monthlyTotal > 0 || myGoal > 0) && (
           <div style={{ marginTop: 10 }}>
+            {monthlyTotal > 0 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12.5, fontWeight: 600, color: 'var(--ink-700)' }}>
               {/* 이모지(💰)는 기기·OS마다 그림체가 달라 앱의 다른 검정 선
                   아이콘과 톤이 안 맞는다는 지적을 받아, SectionIcon과 같은
@@ -926,10 +936,73 @@ const CookingCalendar: React.FC = () => {
               </svg>
               이번달 예상 절약액 약 {formatWon(estimatedSavings)}원
             </div>
-            <div style={{ fontSize: 11, color: 'var(--ink-500)', marginTop: 3, lineHeight: 1.5 }}>
-              외식·배달 대비 1인 한 끼 {formatWon(savingsPerMeal)}원 절약 추정 × {monthlyTotal}회 × 식구 {familySize}명
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+            )}
+            {/* 목표까지 가면 얼마인지. 지금까지 한 것만 보여 주면 남은
+                횟수를 채울 이유가 화면에 없다. */}
+            {myGoal > monthlyTotal && (
+              <div style={{
+                fontSize: monthlyTotal > 0 ? 11.5 : 12.5,
+                fontWeight: monthlyTotal > 0 ? 400 : 600,
+                color: monthlyTotal > 0 ? 'var(--ink-500)' : 'var(--ink-700)',
+                marginTop: monthlyTotal > 0 ? 3 : 0, lineHeight: 1.5,
+              }}>
+                목표 {myGoal}회를 채우면 약 <b style={{ color: '#1A1A1E' }}>{formatWon(goalSavings)}원</b>
+              </div>
+            )}
+          </div>
+        )}
+        {/* 안내 문구(매월 1일 초기화, 공동 목표 여부)만 접어 둔다 — 인원별
+            범례는 게이지가 보여주는 핵심 정보라 항상 위에 노출한다(위 참고).
+
+            알약 배지로 뒀더니 **본문보다 눈에 띄었다.** 여기 담기는 건
+            부수적인 안내라, 그만한 무게를 가질 자리가 아니다. 테두리를 빼고
+            흐린 글자로 둔다 — 찾는 사람만 찾으면 된다. */}
+        <button
+          type="button"
+          onClick={() => setGoalCardExpanded((v) => !v)}
+          aria-expanded={goalCardExpanded}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 3,
+            height: 24,
+            padding: 0,
+            marginTop: 10,
+            background: 'transparent',
+            border: 'none',
+            cursor: 'pointer',
+            fontSize: 11.5,
+            fontWeight: 500,
+            color: 'var(--ink-500)',
+          }}
+        >
+          {goalCardExpanded ? '자세히 접기' : '자세히 보기'}
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="var(--ink-500)"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            style={{ transform: goalCardExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }}
+          >
+            <path d="M6 9l6 6 6-6" />
+          </svg>
+        </button>
+
+        {goalCardExpanded && (
+          <div style={{ marginTop: 10 }}>
+            {/* 계산식과 값 고치기는 **접어 둔다.** 매번 읽을 문장이 아니고,
+                한 끼 추정액·식구 수는 한 번 정해 두면 다시 손댈 일이 드물다.
+                늘 펴 두면 정작 금액보다 이 줄이 길어서 눈이 그쪽으로 간다. */}
+            {monthlyTotal > 0 && (
+              <>
+                <div style={{ fontSize: 11, color: 'var(--ink-500)', lineHeight: 1.5 }}>
+                  외식·배달 대비 1인 한 끼 {formatWon(savingsPerMeal)}원 절약 추정 × {monthlyTotal}회 × 식구 {familySize}명
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, margin: '6px 0 10px' }}>
               {editingSavingsPerMeal ? (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, height: 26, padding: '0 4px 0 10px', borderRadius: 9999, background: 'var(--surface)', border: '1px solid var(--brand)' }}>
                   <span style={{ fontSize: 11, color: 'var(--ink-500)' }}>1인 한 끼</span>
@@ -1011,56 +1084,14 @@ const CookingCalendar: React.FC = () => {
                   <span aria-hidden style={{ color: 'var(--ink-500)', display: 'inline-flex' }}><PencilIcon /></span>
                 </button>
               )}
+                </div>
+              </>
+            )}
+            <div style={{ fontSize: 11, color: 'var(--ink-500)', lineHeight: 1.5 }}>
+              {isInHousehold
+                ? '매월 1일에 0%로 돌아가요. 그룹 공용 목표라 누가 바꿔도 모두에게 적용돼요.'
+                : '매월 1일에 0%로 돌아가요.'}
             </div>
-          </div>
-        )}
-
-        {/* 안내 문구(매월 1일 초기화, 공동 목표 여부)만 접어 둔다 — 인원별
-            범례는 게이지가 보여주는 핵심 정보라 항상 위에 노출한다(위 참고).
-
-            알약 배지로 뒀더니 **본문보다 눈에 띄었다.** 여기 담기는 건
-            부수적인 안내라, 그만한 무게를 가질 자리가 아니다. 테두리를 빼고
-            흐린 글자로 둔다 — 찾는 사람만 찾으면 된다. */}
-        <button
-          type="button"
-          onClick={() => setGoalCardExpanded((v) => !v)}
-          aria-expanded={goalCardExpanded}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 3,
-            height: 24,
-            padding: 0,
-            marginTop: 10,
-            background: 'transparent',
-            border: 'none',
-            cursor: 'pointer',
-            fontSize: 11.5,
-            fontWeight: 500,
-            color: 'var(--ink-500)',
-          }}
-        >
-          {goalCardExpanded ? '자세히 접기' : '자세히 보기'}
-          <svg
-            width="12"
-            height="12"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="var(--ink-500)"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            style={{ transform: goalCardExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }}
-          >
-            <path d="M6 9l6 6 6-6" />
-          </svg>
-        </button>
-
-        {goalCardExpanded && (
-          <div style={{ fontSize: 11, color: 'var(--ink-500)', marginTop: 10, lineHeight: 1.5 }}>
-            {isInHousehold
-              ? '매월 1일에 0%로 돌아가요. 그룹 공용 목표라 누가 바꿔도 모두에게 적용돼요.'
-              : '매월 1일에 0%로 돌아가요.'}
           </div>
         )}
       </div>
