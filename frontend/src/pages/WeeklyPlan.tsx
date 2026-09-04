@@ -576,7 +576,7 @@ const WeeklyPlan: React.FC = () => {
       }
       setSlots(prev => prev.map((s, i) => ({ ...s, recipe: got[i] || null })));
       setSaved(false);
-      setAiNote(wish.trim() ? `"${wish.trim()}" 을(를) 반영했어요.` : 'AI 가 새로 짰어요.');
+      setAiNote(wish.trim() ? `"${wish.trim()}" 을(를) 반영했어요.` : 'AI 가 새로 골랐어요.');
     } catch {
       setError('네트워크 상태를 확인하고 다시 시도해 주세요.');
     } finally {
@@ -643,6 +643,99 @@ const WeeklyPlan: React.FC = () => {
   // 비회원도 체험분이 남아 있으면 AI 식단을 써 볼 수 있다.
   const canAi = !!usage && usage.can_use_ai;
 
+  /**
+   * 조건을 넣는 칸.
+   *
+   * `AI 로 짜기` 로 들어왔으면 **맨 위**에 온다. 두 입구가 같은 화면을 열면
+   * 나눈 의미가 없다 — 그 버튼을 누른 사람은 조건을 말하러 온 것이다.
+   */
+  const aiCard = (
+    <>
+          {/* ── ② 원하는 대로 바꾸기 ───────────────────────────── */}
+          {/* AI 가 관여하는 자리는 앱 어디서나 **같은 시각 언어**를 쓴다 —
+              노란 반짝임 + "AI" 배지. 챗봇 FAB·카메라 버튼과 같은 규칙이다. */}
+          <div ref={aiBox} className="ai-surface"
+               style={{
+                 borderRadius: 14, padding: '14px 16px', marginBottom: 10,
+                 // 데려온 자리라는 걸 잠깐 알려 준다. 안 그러면 왜 여기로 왔는지 모른다.
+                 outline: wantAi ? '2px solid #FFD600' : 'none', outlineOffset: 2,
+               }}>
+            <SectionHead
+              title={
+                <>
+                  <span style={{
+                    fontSize: 10, fontWeight: 800, letterSpacing: '.04em',
+                    padding: '2px 6px', borderRadius: 6,
+                    background: '#1A1A1E', color: '#FFD600',
+                  }}>AI</span>
+                  조건 넣어 추천받기
+                </>
+              }
+              hint={'"담백하게", "아이 먹을 것 위주로"'}
+            />
+            <div style={{ display: 'flex', gap: 6 }}>
+              <input
+                ref={wishInput}
+                value={wish}
+                onChange={e => setWish(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && canAi && !asking) void askAi(); }}
+                placeholder="어떤 걸로 드릴까요?"
+                style={{
+                  flex: 1, minWidth: 0, height: 40, borderRadius: 10,
+                  border: '1px solid var(--line-200)', padding: '0 12px', fontSize: 13.5,
+                  boxSizing: 'border-box',
+                }}
+              />
+              {/* 배지를 버튼 밖에 두려면 감싸는 자리가 필요하다.
+                  버튼 안에 넣으면 `overflow: hidden` 에 잘린다.
+
+                  반짝임은 `asking`(요청 중) 일 때만 멈춘다 — `canAi`(크레딧 있음)
+                  에 걸면 안 된다. `.ai-action:disabled`가 애니메이션을 꺼버리는데
+                  disabled는 `!canAi`일 때도 걸리므로, 크레딧이 없거나 사용량
+                  정보가 아직 안 불러와진 순간(canAi가 잠깐 false)엔 챗봇
+                  FAB·카메라 버튼과 달리 이 버튼만 안 반짝이는 문제가 있었다.
+                  클릭 자체는 onClick 안에서 canAi로 막으므로 disabled를 asking
+                  에만 걸어도 크레딧 없을 때 실행되는 일은 없다. */}
+              {/* 후광(`ai-glow`)은 뺐다 — 버튼 둘레가 번져서 정작 표면을
+                  스치는 빛줄기가 묻혔다. */}
+              <span style={{ position: 'relative', flexShrink: 0 }}>
+                <button
+                  type="button"
+                  className="ai-action"
+                  disabled={asking}
+                  onClick={() => { if (canAi) void askAi(); }}
+                  style={{
+                    height: 40, padding: '0 14px', borderRadius: 10,
+                    fontSize: 13.5, fontWeight: 700, whiteSpace: 'nowrap',
+                    cursor: canAi && !asking ? 'pointer' : 'default',
+                  }}
+                >
+                  <span>{asking ? '고르는 중...' : '추천받기'}</span>
+                </button>
+                {!asking && <span className="ai-fab-badge">AI</span>}
+              </span>
+            </div>
+            {/* 남은 양은 앱 어디서나 **같은 부품**으로 보여 준다. 화면마다 다르게
+                적으면 사용자가 매번 다시 읽어야 한다. */}
+            <UsageLine style={{ marginTop: 8 }} />
+            <div style={{ fontSize: 11.5, color: 'var(--ink-500)', marginTop: 4, lineHeight: 1.6 }}>
+              {canAi ? (
+                <>이 버튼만 <b>{planCost} 크레딧</b>을 써요. 아래 식단은 공짜예요.</>
+              ) : usage?.is_guest ? (
+                <><b>가입하면 {usage.signup_credits}개</b>를 바로 드려요. 아래 식단은 그냥 쓰셔도 됩니다.</>
+              ) : (
+                <>아래 식단은 그냥 쓰셔도 됩니다.</>
+              )}
+            </div>
+            {aiNote && (
+              <div style={{ fontSize: 12.5, color: '#3A6B2E', marginTop: 8, fontWeight: 600 }}>
+                {aiNote}
+              </div>
+            )}
+          </div>
+    </>
+  );
+
   // 위쪽 여백 72 는 고정 헤더(56) + 여백(16). 다른 화면들과 같은 값이다.
   return (
     <div style={{ minHeight: '100vh', background: 'var(--surface-sub)', padding: '72px 14px 90px' }}>
@@ -650,9 +743,12 @@ const WeeklyPlan: React.FC = () => {
                     justifyContent: 'center', marginBottom: 16, minHeight: 40 }}>
         <BackButton onClick={() => navigate(-1)} style={{ left: 0, top: 2 }} />
         <div style={{ fontWeight: 700, fontSize: 18, textAlign: 'center', padding: '0 56px' }}>
-          이번 주 식단 추천
+          {wantAi ? 'AI 식단 추천' : '이번 주 식단 추천'}
         </div>
       </div>
+
+      {/* AI 로 들어왔으면 조건 칸이 먼저다. */}
+      {wantAi && aiCard}
 
       {/* ── ① 무엇으로 짜나 ───────────────────────────────── */}
       {/* 접었을 때 짧아야 한다. 이 영역이 길면 정작 결과인 식단이 화면 밖으로
@@ -764,88 +860,7 @@ const WeeklyPlan: React.FC = () => {
         )}
       </section>
 
-      {/* ── ② 원하는 대로 바꾸기 ───────────────────────────── */}
-      {/* AI 가 관여하는 자리는 앱 어디서나 **같은 시각 언어**를 쓴다 —
-          노란 반짝임 + "AI" 배지. 챗봇 FAB·카메라 버튼과 같은 규칙이다. */}
-      <div ref={aiBox} className="ai-surface"
-           style={{
-             borderRadius: 14, padding: '14px 16px', marginBottom: 10,
-             // 데려온 자리라는 걸 잠깐 알려 준다. 안 그러면 왜 여기로 왔는지 모른다.
-             outline: wantAi ? '2px solid #FFD600' : 'none', outlineOffset: 2,
-           }}>
-        <SectionHead
-          title={
-            <>
-              <span style={{
-                fontSize: 10, fontWeight: 800, letterSpacing: '.04em',
-                padding: '2px 6px', borderRadius: 6,
-                background: '#1A1A1E', color: '#FFD600',
-              }}>AI</span>
-              조건을 넣어 짜기
-            </>
-          }
-          hint={'"담백하게", "아이 먹을 것 위주로"'}
-        />
-        <div style={{ display: 'flex', gap: 6 }}>
-          <input
-            ref={wishInput}
-            value={wish}
-            onChange={e => setWish(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter' && canAi && !asking) void askAi(); }}
-            placeholder="어떻게 짜 드릴까요?"
-            style={{
-              flex: 1, minWidth: 0, height: 40, borderRadius: 10,
-              border: '1px solid var(--line-200)', padding: '0 12px', fontSize: 13.5,
-              boxSizing: 'border-box',
-            }}
-          />
-          {/* 배지를 버튼 밖에 두려면 감싸는 자리가 필요하다.
-              버튼 안에 넣으면 `overflow: hidden` 에 잘린다.
-
-              반짝임은 `asking`(요청 중) 일 때만 멈춘다 — `canAi`(크레딧 있음)
-              에 걸면 안 된다. `.ai-action:disabled`가 애니메이션을 꺼버리는데
-              disabled는 `!canAi`일 때도 걸리므로, 크레딧이 없거나 사용량
-              정보가 아직 안 불러와진 순간(canAi가 잠깐 false)엔 챗봇
-              FAB·카메라 버튼과 달리 이 버튼만 안 반짝이는 문제가 있었다.
-              클릭 자체는 onClick 안에서 canAi로 막으므로 disabled를 asking
-              에만 걸어도 크레딧 없을 때 실행되는 일은 없다. */}
-          {/* 후광(`ai-glow`)은 뺐다 — 버튼 둘레가 번져서 정작 표면을
-              스치는 빛줄기가 묻혔다. */}
-          <span style={{ position: 'relative', flexShrink: 0 }}>
-            <button
-              type="button"
-              className="ai-action"
-              disabled={asking}
-              onClick={() => { if (canAi) void askAi(); }}
-              style={{
-                height: 40, padding: '0 14px', borderRadius: 10,
-                fontSize: 13.5, fontWeight: 700, whiteSpace: 'nowrap',
-                cursor: canAi && !asking ? 'pointer' : 'default',
-              }}
-            >
-              <span>{asking ? '짜는 중...' : 'AI로 짜기'}</span>
-            </button>
-            {!asking && <span className="ai-fab-badge">AI</span>}
-          </span>
-        </div>
-        {/* 남은 양은 앱 어디서나 **같은 부품**으로 보여 준다. 화면마다 다르게
-            적으면 사용자가 매번 다시 읽어야 한다. */}
-        <UsageLine style={{ marginTop: 8 }} />
-        <div style={{ fontSize: 11.5, color: 'var(--ink-500)', marginTop: 4, lineHeight: 1.6 }}>
-          {canAi ? (
-            <>이 버튼만 <b>{planCost} 크레딧</b>을 써요. 아래 식단은 공짜예요.</>
-          ) : usage?.is_guest ? (
-            <><b>가입하면 {usage.signup_credits}개</b>를 바로 드려요. 아래 식단은 그냥 쓰셔도 됩니다.</>
-          ) : (
-            <>아래 식단은 그냥 쓰셔도 됩니다.</>
-          )}
-        </div>
-        {aiNote && (
-          <div style={{ fontSize: 12.5, color: '#3A6B2E', marginTop: 8, fontWeight: 600 }}>
-            {aiNote}
-          </div>
-        )}
-      </div>
+      {!wantAi && aiCard}
 
       {error && (
         <div style={{ background: 'var(--surface)', borderRadius: 14, padding: 16,
@@ -919,7 +934,7 @@ const WeeklyPlan: React.FC = () => {
                   fontSize: 12, fontWeight: 700, color: 'var(--ink-900)', cursor: 'pointer',
                 }}
               >
-                ↻ 다시 짜기
+                ↻ 다시 추천
               </button>
             }
           />

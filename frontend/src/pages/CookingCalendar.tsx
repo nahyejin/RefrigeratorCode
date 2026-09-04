@@ -172,52 +172,55 @@ const FridgeToPlan: React.FC<{ onGo: (withAi?: boolean) => void }> = ({ onGo }) 
   return (
     <div style={{ margin: '0 14px 12px', display: 'flex', flexDirection: 'column', gap: 10 }}>
       <ExpiryAlert boxes={boxes} categoryMap={categoryMap} onPick={() => onGo(false)} />
-      {/* 그냥 짜기 — **무료**다. 노란색도 AI 배지도 안 쓴다.
-          한때 이 버튼 하나가 노란색 + AI 배지 + 반짝임을 달고 있었는데, 눌러 봐야
-          그냥 페이지가 열렸다. 시각 신호가 거짓말을 하면 정작 크레딧을 쓰는
-          자리에서도 사람이 안 멈춘다. */}
-      <button
-        type="button"
-        onClick={() => onGo(false)}
-        style={{
-          width: '100%', height: 48, borderRadius: 12, cursor: 'pointer',
-          border: '1px solid var(--line-200)', background: 'var(--surface)',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '0 16px',
-        }}
-      >
-        <span style={{ fontSize: 14.5, fontWeight: 700, color: '#1A1A1E' }}>
-          이번 주 식단 짜기
-        </span>
-        <span style={{ fontSize: 12.5, color: 'var(--ink-500)' }}>
-          냉장고 재료로 · 장보기 목록까지 ›
-        </span>
-      </button>
+      {/* 나란히 둔다. 가로로 긴 줄을 위아래로 두 개 쌓으면 둘 다 "주요 버튼"
+          처럼 무거워지고, 무엇이 다른지는 오히려 안 보인다. 옆에 놓으면
+          평범한 것과 노란 것이 한눈에 갈린다.
 
-      {/* AI 로 짜기 — 여기만 노란색·AI 배지·반짝임을 쓴다.
-          다만 **누르는 순간 크레딧이 나가지는 않는다.** 냉장고를 보기도 전에,
-          "아이 먹을 것 위주로" 같은 조건을 적기도 전에 돈이 나가면 결과가
-          마음에 안 들 때 그대로 손해다. AI 칸으로 데려다 주고 거기서 쓴다. */}
-      <span style={{ display: 'flex', position: 'relative' }}>
+          '짜기' 를 안 쓴다 — 식단을 짜는 건 앱이 하는 일이고, 사람이 하는 건
+          **추천을 받는 것**이다. 화면 제목도 `이번 주 식단 추천` 이다. */}
+      <div style={{ display: 'flex', gap: 8 }}>
         <button
           type="button"
-          onClick={() => onGo(true)}
-          className="ai-action"
+          onClick={() => onGo(false)}
           style={{
-            width: '100%', height: 48, borderRadius: 12,
-            cursor: 'pointer', display: 'flex', alignItems: 'center',
-            justifyContent: 'space-between', padding: '0 16px',
+            flex: 1, minWidth: 0, height: 62, borderRadius: 12, cursor: 'pointer',
+            border: '1px solid var(--line-200)', background: 'var(--surface)',
+            display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
+            justifyContent: 'center', gap: 3, padding: '0 12px',
           }}
         >
-          <span style={{ fontSize: 14.5, fontWeight: 700, color: '#1A1A1E' }}>
-            AI 로 짜기
+          <span style={{ fontSize: 14, fontWeight: 700, color: '#1A1A1E' }}>
+            이번 주 식단 추천
           </span>
-          <span style={{ fontSize: 12.5, color: 'rgba(26,26,30,0.6)' }}>
-            "아이 먹을 것 위주로" 처럼 ›
+          <span style={{ fontSize: 11.5, color: 'var(--ink-500)' }}>
+            냉장고 재료로 · 무료
           </span>
         </button>
-        <span className="ai-fab-badge">AI</span>
-      </span>
+
+        {/* 여기만 노란색·AI 배지·반짝임. 누르는 순간 크레딧이 나가지는 않고,
+            조건을 적는 칸으로 데려간다 — 냉장고를 보기도 전에 돈이 나가면
+            결과가 마음에 안 들 때 그대로 손해다. */}
+        <span style={{ flex: 1, minWidth: 0, display: 'flex', position: 'relative' }}>
+          <button
+            type="button"
+            onClick={() => onGo(true)}
+            className="ai-action"
+            style={{
+              width: '100%', height: 62, borderRadius: 12, cursor: 'pointer',
+              display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
+              justifyContent: 'center', gap: 3, padding: '0 12px',
+            }}
+          >
+            <span style={{ fontSize: 14, fontWeight: 700, color: '#1A1A1E' }}>
+              조건 넣어 추천
+            </span>
+            <span style={{ fontSize: 11.5, color: 'rgba(26,26,30,0.65)' }}>
+              "아이 먹을 것 위주로"
+            </span>
+          </button>
+          <span className="ai-fab-badge">AI</span>
+        </span>
+      </div>
     </div>
   );
 };
