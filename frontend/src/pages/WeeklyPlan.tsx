@@ -676,9 +676,14 @@ const WeeklyPlan: React.FC = () => {
       // 냉장고가 비어 있으면 **이 기능이 할 수 있는 일이 없다.** 장보기를
       // 줄인다는 건 "있는 것을 쓴다" 는 뜻인데, 쓸 것이 없으면 전부 사야 한다.
       // 크레딧을 쓰고 나서 알려 주면 늦다 — 부르기 전에 말한다.
+      // **숫자를 이 문장에 박지 않는다.** 인사말은 한 번 만들어 대화에
+      // 그대로 남는데, 쓸 재료 수는 그 뒤에도 바뀐다(재료 분류표가 늦게
+      // 오거나 사용자가 몇 개를 뺀다). 그래서 바로 위 `쓸 재료 33개` 와
+      // 이 문장의 `38가지` 가 서로 다른 값을 말하는 일이 있었다.
+      // 개수는 늘 다시 그려지는 위쪽 머리말이 맡는다.
       text: planIngredients.length === 0
         ? '냉장고에 넣어 둔 재료가 없어요.\n지금 짜면 전부 사야 해서 장보기를 줄여 드릴 수가 없어요.\n재료를 몇 개만 넣고 다시 와 주세요.'
-        : `냉장고에 있는 ${planIngredients.length}가지로, 장을 가장 적게 보는 조합을 짜 드려요.\n원하는 조건이 있으면 말씀해 주세요.`,
+        : '위에 있는 재료로, 장을 가장 적게 보는 조합을 짜 드려요.\n원하는 조건이 있으면 말씀해 주세요.',
       at: Date.now(),
     }]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1237,7 +1242,7 @@ const WeeklyPlan: React.FC = () => {
                 제목 밑줄로 붙인다. */}
             <SectionHead
               title="이번 주 식단"
-              hint={<>내일부터 {slots.length}일 · 바꾸기는 공짜</>}
+              hint={<>냉장고 재료로 · 곧 상하는 것부터 · 바꾸기는 공짜</>}
               right={
                 <span style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
                   {/* 무료 — 마음에 들 때까지 눌러도 된다. 여기에 크레딧을 물리면
@@ -1259,10 +1264,22 @@ const WeeklyPlan: React.FC = () => {
               }
             />
 
-            {/* 하루가 한 묶음. 그 안에 끼니가 0개일 수도, 셋일 수도 있다. */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {/* 하루가 한 묶음. 그 안에 끼니가 0개일 수도, 셋일 수도 있다.
+                일곱 날이 그냥 아래로 이어지면 어디까지가 이 목록인지 안 보인다 —
+                **한 상자 안에** 담고 날 사이를 선으로 가른다. */}
+            <div style={{
+              background: 'var(--surface)', border: '1px solid var(--line-200)',
+              borderRadius: 14, padding: '4px 12px 12px',
+              display: 'flex', flexDirection: 'column',
+            }}>
               {slots.map((slot, i) => (
-                <div key={slot.date.toISOString()}>
+                <div
+                  key={slot.date.toISOString()}
+                  style={{
+                    padding: '12px 0',
+                    borderTop: i === 0 ? 'none' : '1px solid var(--line-200)',
+                  }}
+                >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                                 gap: 8, marginBottom: 6, padding: '0 2px' }}>
                     <span style={{ fontSize: 13.5, fontWeight: 700, color: '#1A1A1E' }}>
@@ -1445,6 +1462,66 @@ const WeeklyPlan: React.FC = () => {
                 </div>
               ))}
             </div>
+
+            {/* 이걸 하려면 **뭘 사야 하나.** AI 화면에서는 답 안에 같이 나오는데
+                여기서는 한참 아래 목록에만 있어서, 식단만 보고 나가면 장을 언제
+                봐야 할지 모른 채 끝났다. 생김새도 AI 쪽과 같게 둔다 — 같은
+                이야기가 화면마다 달라 보이면 다른 기능처럼 읽힌다. */}
+            {shopping.length > 0 && (
+              <div style={{
+                border: '1px solid #E0B400', background: '#FFFDF2',
+                borderRadius: 12, padding: '11px 12px', marginTop: 12,
+              }}>
+                <div style={{ fontSize: 14, fontWeight: 800, color: '#1A1A1E' }}>
+                  이걸 하려면 장보기 <span style={{ color: '#B4780A' }}>{shopping.length}개</span>
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 8 }}>
+                  {shopping.slice(0, 12).map(([name]) => {
+                    const url = resolveCoupangUrl(name);
+                    return url ? (
+                      <a
+                        key={name}
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer sponsored"
+                        onClick={() => track('coupang_click', name)}
+                        style={{
+                          height: 30, padding: '0 10px', borderRadius: 9999,
+                          background: '#FFD600', color: '#1A1A1E', textDecoration: 'none',
+                          fontSize: 12, fontWeight: 700,
+                          display: 'inline-flex', alignItems: 'center', gap: 3,
+                        }}
+                      >
+                        {name}
+                        <span aria-hidden style={{ fontSize: 9.5, opacity: .7 }}>사러가기 ↗</span>
+                      </a>
+                    ) : (
+                      <span key={name} style={{
+                        height: 30, padding: '0 10px', borderRadius: 9999,
+                        background: 'var(--surface)', border: '1px solid var(--line-200)',
+                        fontSize: 12, fontWeight: 600, color: 'var(--ink-700)',
+                        display: 'inline-flex', alignItems: 'center',
+                      }}>{name}</span>
+                    );
+                  })}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => document.getElementById('shopping-list')
+                    ?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                  style={{
+                    width: '100%', height: 38, marginTop: 10, borderRadius: 9,
+                    border: 'none', background: '#1A1A1E', color: '#FFFFFF',
+                    fontSize: 12.5, fontWeight: 700, cursor: 'pointer',
+                  }}
+                >
+                  장보기 목록으로 보기 ({shopping.length}개)
+                </button>
+                <div style={{ fontSize: 10, color: 'var(--ink-500)', marginTop: 7 }}>
+                  쿠팡 파트너스 · 수수료를 받을 수 있어요
+                </div>
+              </div>
+            )}
 
             {/* 반영하기 — 이게 없으면 "짜고 끝" 이다. */}
             <button
@@ -1980,16 +2057,20 @@ const WeeklyPlan: React.FC = () => {
             padding: '0 14px', cursor: 'pointer',
           }}
         >
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
             <span style={{
-              fontSize: 10, fontWeight: 800, letterSpacing: '.04em',
+              fontSize: 10, fontWeight: 800, letterSpacing: '.04em', flexShrink: 0,
               padding: '2px 6px', borderRadius: 6, background: '#1A1A1E', color: '#FFD600',
             }}>AI</span>
             <span style={{ fontSize: 13.5, fontWeight: 700, color: '#1A1A1E' }}>
               조건 말하고 추천받기
             </span>
           </span>
-          <span style={{ fontSize: 12, color: 'var(--ink-500)' }}>장보기도 줄여요 ›</span>
+          {/* 이 화면은 조건을 못 받는다. 그 말을 여기서 해 둬야
+              "왜 매운 걸 빼 달라고 못 하지" 를 안 겪는다. */}
+          <span style={{ fontSize: 12, color: 'var(--ink-500)', flexShrink: 0 }}>
+            아이·다이어트 같은 조건 ›
+          </span>
         </button>
       )}
 

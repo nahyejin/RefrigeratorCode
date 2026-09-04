@@ -51,11 +51,14 @@ def _too_similar(title, chosen_keys):
     return False
 
 
-def choose(candidates, have, days=7, max_new_per_dish=4):
+def choose(candidates, have, days=7, max_new_per_dish=4, soon=None):
     """장보기가 가장 적어지도록 `days` 개를 고른다.
 
     `candidates` 는 `{id, title, ingredients, match_rate}` 목록.
     `have` 는 냉장고에 있는 재료 이름.
+    `soon` 은 **곧 상하는** 재료 이름. 같은 값이면 이걸 쓰는 쪽을 고른다 —
+    화면에서 "유통기한도 봤다" 고 말하려면 실제로 봐야 한다. 다만 장보기를
+    줄이는 것보다 뒤다: 상해서 버리는 것보다 안 사는 것이 크다.
 
     반환: `(고른 것, 사야 할 재료)`
 
@@ -63,6 +66,7 @@ def choose(candidates, have, days=7, max_new_per_dish=4):
     이 상한이 없으면 후보가 부족할 때 장바구니가 갑자기 커진다.
     """
     have_set = {str(x).strip() for x in (have or []) if str(x).strip()}
+    soon_set = {str(x).strip() for x in (soon or []) if str(x).strip()}
 
     rows = []
     for c in candidates:
@@ -76,6 +80,8 @@ def choose(candidates, have, days=7, max_new_per_dish=4):
             # 사용자가 적은 조건("아이 먹을 것")에 얼마나 맞는지. 장보기만
             # 줄이면 조건이 무시된다 — 둘 다 본다.
             "want": c.get("want_hit") or 0,
+            # 곧 상하는 것을 **몇 개나** 쓰나. 같은 값이면 이 쪽을 고른다.
+            "soon": len(ings & soon_set),
         })
 
     picked, keys, basket = [], [], set()
@@ -88,8 +94,8 @@ def choose(candidates, have, days=7, max_new_per_dish=4):
                 continue
             if _too_similar(r["c"].get("title", ""), keys):
                 continue
-            # 새로 살 게 적을수록, 그다음 조건에 맞을수록, 그다음 매칭률 높을수록.
-            score = (len(extra), -r["want"], -r["rate"])
+            # 새로 살 게 적을수록, 조건에 맞을수록, 곧 상하는 걸 쓸수록, 매칭률 높을수록.
+            score = (len(extra), -r["want"], -r["soon"], -r["rate"])
             if best_score is None or score < best_score:
                 best, best_score = r, score
 
@@ -100,7 +106,8 @@ def choose(candidates, have, days=7, max_new_per_dish=4):
             if not loosened:
                 break
             best = min(loosened,
-                       key=lambda r: (len(r["need"] - basket), -r["want"], -r["rate"]))
+                       key=lambda r: (len(r["need"] - basket), -r["want"],
+                                      -r["soon"], -r["rate"]))
 
         picked.append(best["c"])
         keys.append(_title_key(best["c"].get("title", "")))

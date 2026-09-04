@@ -9,6 +9,7 @@ import secrets
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 import random
+import re
 import string
 import smtplib
 import time
@@ -4550,6 +4551,101 @@ def get_recipe_cook_steps(recipe_id):
     })
 
 
+def _josa(word, with_final, without_final):
+    """받침에 맞는 조사. `_josa("달걀", "은", "는")` → "달걀은".
+
+    없으면 "달걀는", "애호박 를" 같은 말이 화면에 그대로 나간다. 문장을 사람이
+    아니라 코드가 쓰기 때문에 여기서 맞춰 줘야 한다.
+    """
+    text = str(word or "").strip()
+    if not text:
+        return without_final
+    last = text[-1]
+    if not ("가" <= last <= "힣"):
+        return without_final          # 숫자·영문으로 끝나면 어차피 어색하다
+    return with_final if (ord(last) - 0xAC00) % 28 else without_final
+
+
+def _plan_summary(plan, have, basket, request_text, ai_note, expiring=None):
+    """식단을 왜 이렇게 골랐는지 **사실로** 적는다.
+
+    왜 서버가 쓰나: LLM 은 요리를 고르는 시점에 답을 쓴다. 그런데 장바구니는
+    그 뒤에 최종 식단에서 계산된다 — 그래서 LLM 이 숫자를 말하면 반드시 화면과
+    어긋난다. 실제로 "추가로 장볼 필요 없이 0개짜리만 엄선했어요" 라고 해 놓고
+    화면에는 장보기 여섯 개가 떴다.
+
+    그래서 나누어 맡는다:
+      - **무엇을 썼고 무엇을 사야 하나** → 여기서 센다 (사실)
+      - **조건을 어떻게 읽었나** → LLM 이 한 문장 (판단)
+    """
+    have_set = {str(x).strip() for x in (have or []) if str(x).strip()}
+
+    # 냉장고에서 실제로 **여러 번 쓰인** 것부터. 한 번씩 스친 재료를 다 부르면
+    # 문장이 재료 목록이 된다.
+    used = {}
+    for c in plan:
+        for name in (c.get('ingredients') or []):
+            name = str(name).strip()
+            if name and name in have_set:
+                used[name] = used.get(name, 0) + 1
+    top = [n for n, _ in sorted(used.items(), key=lambda kv: (-kv[1], kv[0]))[:4]]
+
+    # 사야 할 것 중 **여러 날에 나눠 쓰는** 것. 이게 이 기능의 요점이다 —
+    # 하나 사서 세 끼를 먹으면 돈도 덜 들고 남아서 버리지도 않는다.
+    reuse = {}
+    for name in basket:
+        n = sum(1 for c in plan if name in (c.get('ingredients') or []))
+        if n >= 2:
+            reuse[name] = n
+
+    # 곧 상하는 것 중 **실제로 이번 식단에 들어간** 것. 안 들어갔으면 말하지
+    # 않는다 — 습관처럼 붙이면 사실이 아닌 문장이 된다.
+    soon_set = {str(x).strip() for x in (expiring or []) if str(x).strip()}
+    soon_used = []
+    for c in plan:
+        for name in (c.get('ingredients') or []):
+            name = str(name).strip()
+            if name in soon_set and name not in soon_used:
+                soon_used.append(name)
+
+    parts = []
+    if top:
+        parts.append("냉장고의 " + "·".join(top) + _josa(top[-1], "을", "를") + " 주로 썼어요.")
+    if soon_used:
+        names = soon_used[:3]
+        parts.append("곧 상하는 " + "·".join(names) + _josa(names[-1], "을", "를")
+                     + " 먼저 쓰도록 앞쪽에 뒀고요.")
+    if not basket:
+        parts.append("장은 안 봐도 돼요 — 전부 있는 재료로 됩니다.")
+    else:
+        line = "새로 살 건 " + "·".join(basket[:6])
+        if len(basket) > 6:
+            line += f" 외 {len(basket) - 6}가지"
+        line += f", 모두 {len(basket)}개예요."
+        parts.append(line)
+        if reuse:
+            best = sorted(reuse.items(), key=lambda kv: -kv[1])[:2]
+            parts.append(
+                "그중 " + "·".join(f"{n}{_josa(n, '은', '는')} {k}끼" for n, k in best)
+                + "에 나눠 쓰도록 골라서, 하나 사면 여러 날 가요."
+            )
+
+    base = "새로 살 재료가 가장 적어지는 조합"
+    if soon_set:
+        base += "으로, 유통기한이 임박한 것을 먼저 쓰는 쪽"
+    why = ("말씀하신 조건에 맞으면서 " + base + "으로 골랐어요."
+           if (request_text or "").strip() else base + "으로 골랐어요.")
+    parts.append(why)
+
+    # LLM 이 쓴 문장은 **조건 해석만** 덧붙인다. 숫자가 섞여 있으면 화면과
+    # 어긋날 수 있으므로 그 문장은 버린다.
+    note = " ".join(str(ai_note or "").split())
+    if note and not re.search(r"\d", note):
+        parts.append(note)
+
+    return " ".join(parts)
+
+
 def meal_plan_days(body):
     """며칠치를 짜나. 화면이 7일을 보여 주므로 기본은 7이다."""
     try:
@@ -4677,7 +4773,7 @@ def suggest_meal_plan():
     # 넉넉히 고르라고 하면(7일치인데 12개) 장바구니가 7개에서 16개로 뛴다 —
     # 뒤로 갈수록 겹치는 게 없어서 새 재료를 계속 사게 된다. 재 보고 정한 값이다.
     days_n = meal_plan_days(body)
-    lean, basket = shopping_plan.choose(candidates, have, days=days_n)
+    lean, basket = shopping_plan.choose(candidates, have, days=days_n, soon=expiring)
     # 넉넉히 넘겨 LLM 이 고를 여지를 준다. 다만 앞쪽(장보기가 적은 것)부터다.
     # **이 안에서만** 고르게 한다.
     #
@@ -4686,12 +4782,16 @@ def suggest_meal_plan():
     # 줄이는 쪽**이 확실하다. 조건 해석과 요일 배치는 여전히 LLM 이 한다.
     for_llm = lean
 
-    # 각 후보가 **몇 개를 더 사게 하는지** 프롬프트에 적어 준다. 모르면 고를 때
-    # 고려할 수가 없다.
-    basket_set = set(basket)
+    # 각 요리가 **무엇을 새로 사게 하는지** 프롬프트에 적어 준다.
+    #
+    # 예전엔 여기서 `- basket_set` 까지 빼고 있었다. `basket` 은 좁혀 둔 일곱 개
+    # 전부의 장바구니라, 그걸 빼면 **모든 후보가 반드시 0** 이 된다. 그래서 LLM 이
+    # "추가로 장볼 필요 없이 0개짜리만 엄선했어요" 라고 말해 놓고 화면에는 장보기
+    # 여섯 개가 뜨는 일이 벌어졌다. 이 요리가 쓰는 **자기 몫**을 적어야 한다.
     for c in for_llm:
-        extra = set(c['ingredients']) - have_set - basket_set
+        extra = sorted(set(c['ingredients']) - have_set)
         c['buy_extra'] = len(extra)
+        c['buy_names'] = extra
 
     try:
         import meal_plan
@@ -4748,8 +4848,17 @@ def suggest_meal_plan():
         final_basket |= (set(c.get('ingredients') or []) - have_set)
     basket_info = shopping_plan.summary(plan, sorted(final_basket), have)
 
+    # 요약의 **숫자는 서버가 쓴다.**
+    #
+    # LLM 은 식단을 고르는 시점에 답을 쓰는데, 장바구니는 그 뒤에 정해진다.
+    # 그래서 LLM 이 숫자를 말하면 반드시 화면과 어긋난다(실제로 "0개짜리만
+    # 엄선했다" 고 해 놓고 여섯 개가 떴다). LLM 에게는 **조건을 어떻게 읽었는지**
+    # 한 문장만 맡기고, 무엇을 썼고 무엇을 사야 하는지는 여기서 센다.
+    summary_text = _plan_summary(plan, have, sorted(final_basket), request_text,
+                                 ai_summary, expiring=expiring)
+
     return jsonify({'plan': plan, 'usage': usage, 'basket': basket_info,
-                    'summary': ai_summary})
+                    'summary': summary_text})
 
 
 @app.route('/api/events', methods=['POST'])
