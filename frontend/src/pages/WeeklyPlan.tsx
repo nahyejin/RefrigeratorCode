@@ -307,6 +307,27 @@ const WeeklyPlan: React.FC = () => {
 
   // AI 식단
   const [wish, setWish] = React.useState('');
+  /**
+   * `AI 로 짜기` 로 들어왔을 때 **그 칸으로 데려간다.**
+   *
+   * 크레딧은 여기서 조건을 적고 누를 때 나간다. 앞 화면에서 버튼을 누르는
+   * 순간 써 버리면, 냉장고에 뭐가 있는지 보기도 전에 돈이 나가는 셈이라
+   * 결과가 마음에 안 들 때 그대로 손해다.
+   */
+  const aiBox = React.useRef<HTMLDivElement | null>(null);
+  const wishInput = React.useRef<HTMLInputElement | null>(null);
+  const wantAi = React.useMemo(
+    () => new URLSearchParams(window.location.search).get('ai') === '1',
+    [],
+  );
+  React.useEffect(() => {
+    if (!wantAi) return;
+    const t = setTimeout(() => {
+      aiBox.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      wishInput.current?.focus();
+    }, 350);
+    return () => clearTimeout(t);
+  }, [wantAi]);
   const [asking, setAsking] = React.useState(false);
   const [aiNote, setAiNote] = React.useState<string | null>(null);
 
@@ -746,7 +767,12 @@ const WeeklyPlan: React.FC = () => {
       {/* ── ② 원하는 대로 바꾸기 ───────────────────────────── */}
       {/* AI 가 관여하는 자리는 앱 어디서나 **같은 시각 언어**를 쓴다 —
           노란 반짝임 + "AI" 배지. 챗봇 FAB·카메라 버튼과 같은 규칙이다. */}
-      <div className="ai-surface" style={{ borderRadius: 14, padding: '14px 16px', marginBottom: 10 }}>
+      <div ref={aiBox} className="ai-surface"
+           style={{
+             borderRadius: 14, padding: '14px 16px', marginBottom: 10,
+             // 데려온 자리라는 걸 잠깐 알려 준다. 안 그러면 왜 여기로 왔는지 모른다.
+             outline: wantAi ? '2px solid #FFD600' : 'none', outlineOffset: 2,
+           }}>
         <SectionHead
           title={
             <>
@@ -762,6 +788,7 @@ const WeeklyPlan: React.FC = () => {
         />
         <div style={{ display: 'flex', gap: 6 }}>
           <input
+            ref={wishInput}
             value={wish}
             onChange={e => setWish(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && canAi && !asking) void askAi(); }}

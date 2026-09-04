@@ -161,7 +161,7 @@ function mergeLocalDone(server: CalendarEntry[], meId: number, meName: string): 
  * 왜 로그인 벽 **앞**에도 두나: 둘 다 냉장고 재료(로컬)만 있으면 되는 기능이다.
  * 로그인이 필요한 건 캘린더(내 요리 이력)뿐이다.
  */
-const FridgeToPlan: React.FC<{ onGo: () => void }> = ({ onGo }) => {
+const FridgeToPlan: React.FC<{ onGo: (withAi?: boolean) => void }> = ({ onGo }) => {
   const [categoryMap, setCategoryMap] = React.useState<CategoryMap>({});
   const boxes = React.useMemo(readFridgeBoxes, []);
 
@@ -171,14 +171,37 @@ const FridgeToPlan: React.FC<{ onGo: () => void }> = ({ onGo }) => {
 
   return (
     <div style={{ margin: '0 14px 12px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <ExpiryAlert boxes={boxes} categoryMap={categoryMap} onPick={onGo} />
-      {/* AI 가 관여하는 자리는 앱 어디서나 같은 시각 언어 — 챗봇 FAB 와 같은
-          노란 반짝임 + AI 배지 (index.css 의 .ai-action / .ai-fab-badge).
-          후광은 안 쓴다: 버튼 둘레가 번져 빛줄기가 묻힌다. */}
+      <ExpiryAlert boxes={boxes} categoryMap={categoryMap} onPick={() => onGo(false)} />
+      {/* 그냥 짜기 — **무료**다. 노란색도 AI 배지도 안 쓴다.
+          한때 이 버튼 하나가 노란색 + AI 배지 + 반짝임을 달고 있었는데, 눌러 봐야
+          그냥 페이지가 열렸다. 시각 신호가 거짓말을 하면 정작 크레딧을 쓰는
+          자리에서도 사람이 안 멈춘다. */}
+      <button
+        type="button"
+        onClick={() => onGo(false)}
+        style={{
+          width: '100%', height: 48, borderRadius: 12, cursor: 'pointer',
+          border: '1px solid var(--line-200)', background: 'var(--surface)',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '0 16px',
+        }}
+      >
+        <span style={{ fontSize: 14.5, fontWeight: 700, color: '#1A1A1E' }}>
+          이번 주 식단 짜기
+        </span>
+        <span style={{ fontSize: 12.5, color: 'var(--ink-500)' }}>
+          냉장고 재료로 · 장보기 목록까지 ›
+        </span>
+      </button>
+
+      {/* AI 로 짜기 — 여기만 노란색·AI 배지·반짝임을 쓴다.
+          다만 **누르는 순간 크레딧이 나가지는 않는다.** 냉장고를 보기도 전에,
+          "아이 먹을 것 위주로" 같은 조건을 적기도 전에 돈이 나가면 결과가
+          마음에 안 들 때 그대로 손해다. AI 칸으로 데려다 주고 거기서 쓴다. */}
       <span style={{ display: 'flex', position: 'relative' }}>
         <button
           type="button"
-          onClick={onGo}
+          onClick={() => onGo(true)}
           className="ai-action"
           style={{
             width: '100%', height: 48, borderRadius: 12,
@@ -187,10 +210,10 @@ const FridgeToPlan: React.FC<{ onGo: () => void }> = ({ onGo }) => {
           }}
         >
           <span style={{ fontSize: 14.5, fontWeight: 700, color: '#1A1A1E' }}>
-            이번 주 식단 짜기
+            AI 로 짜기
           </span>
           <span style={{ fontSize: 12.5, color: 'rgba(26,26,30,0.6)' }}>
-            냉장고 재료로 · 장보기 목록까지 ›
+            "아이 먹을 것 위주로" 처럼 ›
           </span>
         </button>
         <span className="ai-fab-badge">AI</span>
@@ -645,7 +668,7 @@ const CookingCalendar: React.FC = () => {
             화면을 꽉 채우고 이 버튼은 하단 탭에 가려져, 스크롤도 안 되는
             자리에 숨어 있었다. */}
         <div style={{ maxWidth: 480, margin: '0 auto', width: '100%', paddingTop: 72 }}>
-          <FridgeToPlan onGo={() => navigate('/plan')} />
+          <FridgeToPlan onGo={withAi => navigate(withAi ? '/plan?ai=1' : '/plan')} />
           <PlannedList />
         </div>
 
@@ -727,7 +750,7 @@ const CookingCalendar: React.FC = () => {
           보려면 예전엔 탭을 벗어났다 돌아오는 수밖에 없었다 — 당겨서
           새로고침으로 그 자리에서 바로 다시 불러올 수 있게 한다. */}
       <PullToRefresh onRefresh={loadCalendar}>
-      <FridgeToPlan onGo={() => navigate('/plan')} />
+      <FridgeToPlan onGo={withAi => navigate(withAi ? '/plan?ai=1' : '/plan')} />
       {/* 계획 목록을 여기 또 두지 않는다.
           바로 아래가 달력인데 그 위에 같은 내용을 줄로 늘어놓으면, 같은 것을
           두 번 읽게 되고 정작 달력은 화면 밖으로 밀린다. 계획은 달력 안에서
