@@ -258,7 +258,10 @@ const RecipeChatWidget: React.FC = () => {
     location.pathname.startsWith('/signup') ||
     location.pathname.startsWith('/find-email') ||
     location.pathname.startsWith('/reset-password') ||
-    location.pathname.startsWith('/auth');
+    location.pathname.startsWith('/auth') ||
+    // AI 식단 추천은 그 자체가 채팅 화면이다. 여기에 챗봇 버튼까지 띄우면
+    // 아래 고정 입력창을 가리고, 채팅이 두 개인 것처럼 보인다.
+    (location.pathname.startsWith('/plan') && location.search.includes('ai=1'));
 
   // 현재 대화창(threadId)의 메시지를 히스토리 목록에 계속 반영 (빈 대화는 저장 안 함)
   useEffect(() => {

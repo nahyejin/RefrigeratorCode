@@ -4555,7 +4555,8 @@ def suggest_meal_plan():
     try:
         import meal_plan
 
-        picked, meta = meal_plan.suggest(for_llm, have, expiring, request_text, hints=hints)
+        picked, meta, ai_summary = meal_plan.suggest(
+            for_llm, have, expiring, request_text, hints=hints)
         usage_quota.note_gemini_usage(meta, model=meal_plan.MODEL)
         usage_quota.attach_tokens(get_db, usage.get('usage_id'))
     except RuntimeError as e:
@@ -4606,7 +4607,8 @@ def suggest_meal_plan():
         final_basket |= (set(c.get('ingredients') or []) - have_set)
     basket_info = shopping_plan.summary(plan, sorted(final_basket), have)
 
-    return jsonify({'plan': plan, 'usage': usage, 'basket': basket_info})
+    return jsonify({'plan': plan, 'usage': usage, 'basket': basket_info,
+                    'summary': ai_summary})
 
 
 @app.route('/api/events', methods=['POST'])

@@ -197,8 +197,10 @@ const FridgeToPlan: React.FC<{ onGo: (withAi?: boolean) => void }> = ({ onGo }) 
             <span style={{ fontSize: 13.5, fontWeight: 700, color: '#1A1A1E' }}>
               이번 주 AI 식단 추천
             </span>
+            {/* 예시 하나만 박아 두면 **그것만 되는 기능**으로 읽힌다.
+                이 기능이 실제로 해 주는 일을 적는다. */}
             <span style={{ fontSize: 11.5, color: 'rgba(26,26,30,0.65)' }}>
-              "아이 먹을 것 위주로"
+              장은 적게 · 조건대로
             </span>
           </button>
           <span className="ai-fab-badge">AI</span>

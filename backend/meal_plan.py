@@ -69,9 +69,13 @@ _PROMPT = """너는 냉장고 사정을 아는 요리 도우미다. 아래 후�
 - **한 글에 요리가 여러 개인 것(반찬 3종 세트 같은 것)은 고르지 마라.**
   그날 무엇을 만들지가 정해지지 않는다.
 - `why` 는 **왜 이 날 이걸 고르는지** 한 줄. 20자 안쪽. 광고 문구처럼 쓰지 마라.
+- `summary` 는 **이 일곱 개를 왜 이 조합으로 골랐는지** 한두 문장(60자 안쪽).
+  사용자가 적은 조건을 어떻게 반영했는지, 어떤 재료를 여러 날에 나눠 쓰는지
+  같은 **실제로 판단한 내용**을 적는다. "맛있는 식단이에요" 같은 말은 쓰지 마라.
+  예: "아이가 먹기 좋게 맵지 않은 것으로 골랐고, 감자·달걀을 여러 날에 나눠 썼어요."
 
 아래 JSON 객체만 출력해라. 다른 텍스트는 출력하지 마라.
-예: {{"plan": [{{"n": 3, "why": "양파가 이틀 남았어요"}}, {{"n": 11, "why": "재료가 다 있어요"}}]}}
+예: {{"summary": "맵지 않은 것으로 고르고 감자를 세 번 나눠 썼어요", "plan": [{{"n": 3, "why": "양파가 이틀 남았어요"}}, {{"n": 11, "why": "재료가 다 있어요"}}]}}
 """
 
 
@@ -86,7 +90,7 @@ def _api_key():
 def _parse(text):
     """모델 응답에서 `{"plan": [...]}` 를 꺼낸다."""
     if not text:
-        return []
+        return [], ""
     cleaned = text.strip()
     fenced = re.search(r"```(?:json)?\s*([\s\S]*?)```", cleaned)
     if fenced:
@@ -96,14 +100,17 @@ def _parse(text):
     except json.JSONDecodeError:
         match = re.search(r"\{[\s\S]*\}", cleaned)
         if not match:
-            return []
+            return [], ""
         try:
             data = json.loads(match.group(0))
         except json.JSONDecodeError:
-            return []
+            return [], ""
+    summary = ""
+    if isinstance(data, dict):
+        summary = " ".join(str(data.get("summary") or "").split())[:120]
     items = data.get("plan") if isinstance(data, dict) else data
     if not isinstance(items, list):
-        return []
+        return [], summary
 
     out = []
     for x in items:
@@ -115,7 +122,7 @@ def _parse(text):
             continue
         why = " ".join(str(x.get("why") or "").split())[:40]
         out.append({"n": n, "why": why})
-    return out
+    return out, summary
 
 
 def suggest(candidates, have, expiring, request_text="", days=PLAN_DAYS, model=None, hints=None):
@@ -128,7 +135,7 @@ def suggest(candidates, have, expiring, request_text="", days=PLAN_DAYS, model=N
     크레딧 환산이 맞는지 확인할 수 있다.
     """
     if not candidates:
-        return [], None
+        return [], None, ""
 
     lines = []
     for i, c in enumerate(candidates):
@@ -166,7 +173,8 @@ def suggest(candidates, have, expiring, request_text="", days=PLAN_DAYS, model=N
 
     picked = []
     seen = set()
-    for item in _parse(text):
+    parsed, summary = _parse(text)
+    for item in parsed:
         n = item["n"]
         # 모델이 범위 밖 번호를 주면 버린다. 지어낸 요리를 화면에 올리는 것보다
         # 하나 적게 보여 주는 편이 낫다.
@@ -177,4 +185,4 @@ def suggest(candidates, have, expiring, request_text="", days=PLAN_DAYS, model=N
         if len(picked) >= days:
             break
 
-    return picked, data.get("usageMetadata")
+    return picked, data.get("usageMetadata"), summary

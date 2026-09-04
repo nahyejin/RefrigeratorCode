@@ -339,6 +339,8 @@ const WeeklyPlan: React.FC = () => {
    */
   const [chat, setChat] = React.useState<{ who: 'ai' | 'me'; text: string }[]>([]);
   const chatEnd = React.useRef<HTMLDivElement | null>(null);
+  /** AI 가 말한 **왜 이렇게 골랐는지**. 말풍선에 그대로 쓴다. */
+  const aiReason = React.useRef<string>('');
   /** 재료 칩을 펼쳐 볼지 (채팅 화면에서는 접어 둔다). */
   const [showIngredients, setShowIngredients] = React.useState(false);
   const wishInput = React.useRef<HTMLInputElement | null>(null);
@@ -348,7 +350,14 @@ const WeeklyPlan: React.FC = () => {
   );
   React.useEffect(() => {
     if (!wantAi || chat.length > 0) return;
-    setChat([{ who: 'ai', text: '냉장고 재료로 이번 주 식단을 짜 드릴게요.\n어떤 식단이 좋을까요?' }]);
+    // 무엇을 말할 수 있는지 **여기서** 알려 준다. 버튼 부제에 예시 하나를
+    // 박아 두면 그것만 되는 기능으로 읽힌다.
+    setChat([{
+      who: 'ai',
+      text: '냉장고 재료로 이번 주 식단을 짜 드릴게요.\n'
+          + '장을 가장 적게 보는 조합으로 고르고,\n'
+          + '원하는 조건이 있으면 그에 맞춰 드려요.',
+    }]);
   }, [wantAi, chat.length]);
 
   const [asking, setAsking] = React.useState(false);
@@ -600,6 +609,8 @@ const WeeklyPlan: React.FC = () => {
       const data = await res.json().catch(() => null);
       applyUsage(data?.usage);
       if (data?.basket) setBasket(data.basket);
+      // 응답이 오는 시점과 말풍선을 붙이는 시점이 달라 ref 에 담아 둔다.
+      aiReason.current = String(data?.summary || '').trim();
       track('chat_use', 'plan');
 
       if (!res.ok) {
@@ -637,10 +648,11 @@ const WeeklyPlan: React.FC = () => {
     setChat(c => [...c, { who: 'me', text: t }]);
     setWish(t);
     void askAi(t).then(() => {
-      // 장바구니가 몇 개인지 **말로도** 알려 준다. 이게 무료 추천과 다른 점이다.
+      // **왜 이렇게 골랐는지**를 말한다. 이게 없으면 무료 추천과 무엇이
+      // 다른지 알 수가 없다 — 결과만 보면 둘 다 그냥 목록이다.
       setChat(c => [...c, {
         who: 'ai',
-        text: '이렇게 짜 봤어요. 마음에 안 들면 조건을 다시 말해 주세요.',
+        text: aiReason.current || '이렇게 짜 봤어요. 마음에 안 들면 조건을 다시 말해 주세요.',
       }]);
     });
   };
@@ -1205,6 +1217,25 @@ const WeeklyPlan: React.FC = () => {
             </div>
           )}
 
+          {/* 장을 보는 건 식단을 본 **직후의 행동**이다. 여기 없으면 맥락이 끊긴다. */}
+          {basket.basket.length > 0 && (
+            <button
+              type="button"
+              onClick={() => {
+                setBought(new Set());
+                document.getElementById('shopping-list')
+                  ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }}
+              style={{
+                width: '100%', height: 44, marginTop: 12, borderRadius: 10, border: 'none',
+                background: '#1A1A1E', color: '#FFFFFF',
+                fontSize: 14, fontWeight: 700, cursor: 'pointer',
+              }}
+            >
+              장보기 목록으로 보기 ({basket.buy_count}개)
+            </button>
+          )}
+
           <div style={{ fontSize: 10.5, color: 'var(--ink-500)', marginTop: 8, lineHeight: 1.5 }}>
             쿠팡 파트너스 활동으로 일정액의 수수료를 받을 수 있어요.
           </div>
@@ -1217,31 +1248,6 @@ const WeeklyPlan: React.FC = () => {
           필요하면 무료 입구가 따로 있다. */}
       {!asking && chat.some(m => m.who === 'me') && slots.some(x => x.meals.length > 0)
         && planSection}
-
-      {/* 아직 아무 말도 안 했을 때 — 무엇을 말할 수 있는지 보여 준다 */}
-      {!asking && !chat.some(m => m.who === 'me') && (
-        <div style={{
-          padding: '16px 14px', borderRadius: 12, marginBottom: 12,
-          background: 'var(--surface)', border: '1px dashed var(--line-200)',
-          fontSize: 12.5, color: 'var(--ink-500)', lineHeight: 1.8,
-        }}>
-          아래에서 조건을 고르거나 적어 주세요.
-          <br />
-          <b style={{ color: 'var(--ink-700)' }}>냉장고 재료 안에서</b> 조건에 맞는 것만 골라 드려요.
-          <button
-            type="button"
-            onClick={() => navigate('/plan')}
-            style={{
-              display: 'block', marginTop: 10, height: 36, padding: '0 12px',
-              borderRadius: 8, border: '1px solid var(--line-200)',
-              background: 'var(--surface)', fontSize: 12.5, fontWeight: 700,
-              color: 'var(--ink-900)', cursor: 'pointer',
-            }}
-          >
-            그냥 재료로만 추천받을게요 (무료) ›
-          </button>
-        </div>
-      )}
 
       {/* 아래 고정 — 조건을 말하는 자리 */}
       <div style={{
@@ -1445,7 +1451,32 @@ const WeeklyPlan: React.FC = () => {
       </section>
       )}
 
-      {!wantAi && aiCard}
+      {/* 무료 화면에서는 **한 줄 안내**만. 같은 기능이 두 가지 UI 로 있으면
+          다른 기능처럼 보인다 — 큰 AI 카드를 여기 또 두니 "위에서 누른 AI 와
+          이건 다른 건가" 가 됐다. */}
+      {!wantAi && (
+        <button
+          type="button"
+          onClick={() => navigate('/plan?ai=1')}
+          style={{
+            width: '100%', height: 46, borderRadius: 12, marginBottom: 12,
+            border: '1px solid var(--line-200)', background: 'var(--surface)',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '0 14px', cursor: 'pointer',
+          }}
+        >
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <span style={{
+              fontSize: 10, fontWeight: 800, letterSpacing: '.04em',
+              padding: '2px 6px', borderRadius: 6, background: '#1A1A1E', color: '#FFD600',
+            }}>AI</span>
+            <span style={{ fontSize: 13.5, fontWeight: 700, color: '#1A1A1E' }}>
+              조건 말하고 추천받기
+            </span>
+          </span>
+          <span style={{ fontSize: 12, color: 'var(--ink-500)' }}>장보기도 줄여 드려요 ›</span>
+        </button>
+      )}
 
       {error && (
         <div style={{ background: 'var(--surface)', borderRadius: 14, padding: 16,
@@ -1566,9 +1597,10 @@ const WeeklyPlan: React.FC = () => {
 
       {/* ── 장보기 목록 ────────────────────────────────────── */}
       {shopping.length > 0 && (
-        <div style={{
+        <div id="shopping-list" style={{
           background: 'var(--surface)', border: '1px solid var(--line-200)',
           borderRadius: 14, padding: '14px 16px', marginTop: 16,
+          scrollMarginTop: 80,
         }}>
           <h2 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 4px', color: '#1A1A1E' }}>
             장보기 목록 {shopping.length}개
