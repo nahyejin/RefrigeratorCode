@@ -1,4 +1,5 @@
 import React from 'react';
+import DatePickerField from '../components/DatePickerField';
 import { useNavigate } from 'react-router-dom';
 import { getAuthToken } from '../utils/usage';
 
@@ -1892,13 +1893,14 @@ const StatsBar: React.FC<{
 
     {value.range === 'custom' && (
       <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 8, flexWrap: 'wrap' }}>
-        <input type="date" value={draft.from}
-               onChange={e => setDraft(d => ({ ...d, from: e.target.value }))}
-               style={{ ...S.input, height: 30 }} />
+        {/* 시스템 달력 대신 우리 달력 — 같은 앱에서 날짜 고르는 방법이 둘이면 안 된다 */}
+        <DatePickerField value={draft.from}
+                         onChange={v => setDraft(d => ({ ...d, from: v }))}
+                         placeholder="시작일" style={{ height: 30 }} />
         <span style={{ fontSize: 12, color: 'var(--ink-500)' }}>~</span>
-        <input type="date" value={draft.to}
-               onChange={e => setDraft(d => ({ ...d, to: e.target.value }))}
-               style={{ ...S.input, height: 30 }} />
+        <DatePickerField value={draft.to}
+                         onChange={v => setDraft(d => ({ ...d, to: v }))}
+                         placeholder="종료일" style={{ height: 30 }} />
         <button
           type="button"
           disabled={!draft.from && !draft.to}

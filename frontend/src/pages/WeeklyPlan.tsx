@@ -1133,23 +1133,36 @@ const WeeklyPlan: React.FC = () => {
         <div ref={chatEnd} />
       </div>
 
-      {/* 짜인 식단 — 마지막 말 아래에 붙는다.
-          아직 아무 말도 안 했는데 결과가 있으면, AI 가 짜 준 것으로 오해한다.
-          그건 냉장고 재료만으로 고른 **무료 추천**이다. */}
-      {!asking && slots.some(x => x.meals.length > 0) && (
-        <>
-          {chat.every(m => m.who === 'ai') && (
-            <div style={{
-              fontSize: 12, color: 'var(--ink-500)', lineHeight: 1.6,
-              padding: '10px 12px', marginBottom: 10, borderRadius: 10,
-              background: 'var(--surface)', border: '1px dashed var(--line-200)',
-            }}>
-              아래는 <b style={{ color: 'var(--ink-700)' }}>냉장고 재료만으로</b> 골라 본 거예요.
-              조건을 말해 주시면 그에 맞춰 다시 골라 드려요.
-            </div>
-          )}
-          {planSection}
-        </>
+      {/* 짜인 식단 — **조건을 들은 뒤에만** 보여 준다.
+          한때 들어오자마자 무료 결과를 깔아 줬는데, 그러면 "왜 크레딧을 써야
+          하지" 가 된다. 이 화면은 조건을 받으러 온 자리다. 무료 결과가
+          필요하면 무료 입구가 따로 있다. */}
+      {!asking && chat.some(m => m.who === 'me') && slots.some(x => x.meals.length > 0)
+        && planSection}
+
+      {/* 아직 아무 말도 안 했을 때 — 무엇을 말할 수 있는지 보여 준다 */}
+      {!asking && !chat.some(m => m.who === 'me') && (
+        <div style={{
+          padding: '16px 14px', borderRadius: 12, marginBottom: 12,
+          background: 'var(--surface)', border: '1px dashed var(--line-200)',
+          fontSize: 12.5, color: 'var(--ink-500)', lineHeight: 1.8,
+        }}>
+          아래에서 조건을 고르거나 적어 주세요.
+          <br />
+          <b style={{ color: 'var(--ink-700)' }}>냉장고 재료 안에서</b> 조건에 맞는 것만 골라 드려요.
+          <button
+            type="button"
+            onClick={() => navigate('/plan')}
+            style={{
+              display: 'block', marginTop: 10, height: 36, padding: '0 12px',
+              borderRadius: 8, border: '1px solid var(--line-200)',
+              background: 'var(--surface)', fontSize: 12.5, fontWeight: 700,
+              color: 'var(--ink-900)', cursor: 'pointer',
+            }}
+          >
+            그냥 재료로만 추천받을게요 (무료) ›
+          </button>
+        </div>
       )}
 
       {/* 아래 고정 — 조건을 말하는 자리 */}
@@ -1240,9 +1253,12 @@ const WeeklyPlan: React.FC = () => {
 
       {wantAi && chatScreen}
 
-      {/* ── ① 무엇으로 짜나 ───────────────────────────────── */}
+      {/* ── ① 무엇으로 짜나 ─────────────────────────────────
+          채팅 화면에는 위에 접힌 `쓸 재료` 가 이미 있다. 둘을 다 두면 같은
+          것이 두 번 나온다. */}
       {/* 접었을 때 짧아야 한다. 이 영역이 길면 정작 결과인 식단이 화면 밖으로
           밀려나서, 사용자가 이 화면을 "재료 화면" 으로 읽는다. */}
+      {!wantAi && (
       <section style={{
         background: 'var(--surface)', border: '1px solid var(--line-200)',
         borderRadius: 14, padding: '14px 16px', marginBottom: 10,
@@ -1349,6 +1365,7 @@ const WeeklyPlan: React.FC = () => {
           </div>
         )}
       </section>
+      )}
 
       {!wantAi && aiCard}
 

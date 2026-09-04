@@ -1,6 +1,7 @@
 import React from 'react';
 import { savePlan, planByDate, clearPlanMeal, toDateKey } from '../utils/mealPlan';
 import { track } from '../utils/track';
+import DatePickerField from './DatePickerField';
 
 /**
  * "이 요리 언제 해먹지" 를 그 자리에서 정한다.
@@ -135,27 +136,15 @@ const PlanThisDay: React.FC<Props> = ({ recipeId, title, link, thumbnail }) => {
           {/* 알약 열넷은 **가까운 날**을 빨리 누르라고 있다. 그보다 먼 날은
               달력으로 고른다 — 다만 가로로 긴 입력창을 따로 두니 검색창처럼
               보였다. 같은 줄에, 같은 알약 크기로 둔다. */}
-          <label
-            style={{
-              position: 'relative', height: 32, padding: '0 11px', borderRadius: 9999,
-              border: '1px dashed var(--line-300)', background: 'var(--surface)',
-              fontSize: 12.5, fontWeight: 600, color: 'var(--ink-700)',
-              display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer',
-            }}
-          >
-            다른 날짜
-            <span aria-hidden style={{ fontSize: 9, color: 'var(--ink-500)' }}>▾</span>
-            <input
-              type="date"
-              min={toDateKey(new Date())}
-              onChange={e => { if (e.target.value) toggleKey(e.target.value); }}
-              aria-label="다른 날짜 고르기"
-              style={{
-                position: 'absolute', inset: 0, width: '100%', height: '100%',
-                opacity: 0, cursor: 'pointer', border: 'none', padding: 0,
-              }}
-            />
-          </label>
+          {/* 시스템 달력 대신 우리 달력. 기기마다 다른 달력이 뜨면
+              같은 앱에서 날짜를 고르는 방법이 두 가지가 된다. */}
+          <DatePickerField
+            value=""
+            onChange={v => { if (v) toggleKey(v); }}
+            placeholder="다른 날짜"
+            minDate={new Date()}
+            style={{ height: 32, borderRadius: 9999, borderStyle: 'dashed' }}
+          />
         </div>
         </>
       )}

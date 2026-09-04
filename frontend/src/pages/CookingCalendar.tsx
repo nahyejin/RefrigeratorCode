@@ -8,6 +8,7 @@ import { openCookMode } from '../utils/cookMode';
 import { getProxiedImageUrl } from '../utils/imageUtils';
 import BottomNavBar from '../components/BottomNavBar';
 import PullToRefresh from '../components/PullToRefresh';
+import DatePickerField from '../components/DatePickerField';
 import { useAuth } from '../context/AuthContext';
 
 type ViewMode = 'day' | 'week' | 'month';
@@ -326,6 +327,15 @@ const CookingCalendar: React.FC = () => {
   const [span, setSpan] = React.useState<'all' | '90' | '365' | 'custom'>('all');
   /** 직접 지정한 기간. `span === 'custom'` 일 때만 쓴다. */
   const [range, setRange] = React.useState<{ from: string; to: string }>({ from: '', to: '' });
+  /**
+   * 아직 적용하지 않은 날짜.
+   *
+   * 고르는 족족 반영하면 시작일만 고른 순간 "그날부터 오늘까지" 로 한 번
+   * 조회된다. 그 중간 결과는 아무도 원한 적이 없다.
+   */
+  const [draft, setDraft] = React.useState<{ from: string; to: string }>({ from: '', to: '' });
+  React.useEffect(() => { setDraft(range); }, [range]);
+  const dirty = draft.from !== range.from || draft.to !== range.to;
   const [anchorDate, setAnchorDate] = React.useState(() => new Date());
   const [entries, setEntries] = React.useState<CalendarEntry[]>([]);
   // 그룹이 있으면 groupGoal(그룹 전체가 공유하는 하나의 값)을 쓰고,
@@ -1383,26 +1393,44 @@ const CookingCalendar: React.FC = () => {
             </span>
           </div>
 
-          {/* 직접 고르는 자리. 퀵 버튼으로 안 되는 구간(작년 여름 같은)이 있다. */}
+          {/* 직접 고르는 자리. 퀵 버튼으로 안 되는 구간(작년 여름 같은)이 있다.
+              고친 값은 **[적용]** 을 눌러야 반영된다 — 시작일만 고른 순간
+              "그날부터 오늘까지" 로 한 번 조회되는 중간 결과는 아무도 원한 적 없다. */}
           {span === 'custom' && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 2px 6px' }}>
-              <input
-                type="date"
-                value={range.from}
-                onChange={e => setRange(r => ({ ...r, from: e.target.value }))}
-                style={{ flex: 1, minWidth: 0, height: 32, borderRadius: 8,
-                         border: '1px solid var(--line-200)', padding: '0 8px',
-                         fontSize: 12.5, boxSizing: 'border-box' }}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 2px 8px',
+                          flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-700)' }}>기간</span>
+              <DatePickerField
+                value={draft.from}
+                onChange={v => setDraft(d => ({ ...d, from: v }))}
+                placeholder="시작일"
+                style={{ flex: 1, minWidth: 96 }}
               />
               <span style={{ fontSize: 12, color: 'var(--ink-500)' }}>~</span>
-              <input
-                type="date"
-                value={range.to}
-                onChange={e => setRange(r => ({ ...r, to: e.target.value }))}
-                style={{ flex: 1, minWidth: 0, height: 32, borderRadius: 8,
-                         border: '1px solid var(--line-200)', padding: '0 8px',
-                         fontSize: 12.5, boxSizing: 'border-box' }}
+              <DatePickerField
+                value={draft.to}
+                onChange={v => setDraft(d => ({ ...d, to: v }))}
+                placeholder="종료일"
+                style={{ flex: 1, minWidth: 96 }}
               />
+              <button
+                type="button"
+                disabled={!dirty}
+                onClick={() => setRange(draft)}
+                style={{
+                  height: 34, padding: '0 12px', borderRadius: 8, border: 'none',
+                  background: dirty ? '#1A1A1E' : 'var(--line-200)',
+                  color: dirty ? '#FFFFFF' : 'var(--ink-500)',
+                  fontSize: 12.5, fontWeight: 700, cursor: dirty ? 'pointer' : 'default',
+                }}
+              >
+                적용
+              </button>
+              {dirty && (
+                <span style={{ fontSize: 11.5, color: '#B4780A', fontWeight: 600 }}>
+                  아직 적용 안 됐어요
+                </span>
+              )}
             </div>
           )}
 
@@ -1438,8 +1466,11 @@ const CookingCalendar: React.FC = () => {
           )}
           {/* 줄이 끝없이 이어지면 이 화면을 벗어나는 데만 한참 걸린다.
               머리(고르개)는 고정하고 목록만 정해진 높이 안에서 스크롤한다. */}
+          {/* 아래쪽에 여백을 준다. 마지막 카드가 스크롤 경계에 딱 붙어 있으면
+              더 있는지 없는지 알 수가 없고, 손가락으로 집기도 어렵다. */}
           <div style={{ maxHeight: '58vh', overflowY: 'auto', display: 'flex',
-                        flexDirection: 'column', gap: 8, paddingRight: 2 }}>
+                        flexDirection: 'column', gap: 8, paddingRight: 2,
+                        paddingBottom: 14 }}>
           {listKind === 'write' ? (
             listRecorded === null ? (
               <div style={{ padding: '24px 4px', textAlign: 'center',
@@ -1665,12 +1696,13 @@ const CookingCalendar: React.FC = () => {
                 {isMine && (
                   isEditing ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-                      <input
-                        type="date"
+                      {/* 시스템 달력 대신 우리 달력 */}
+                      <DatePickerField
                         value={dateInput}
-                        max={toDateKey(new Date())}
-                        onChange={(ev) => setDateInput(ev.target.value)}
-                        style={{ height: 28, borderRadius: 6, border: '1px solid var(--brand)', fontSize: 12, padding: '0 6px' }}
+                        onChange={setDateInput}
+                        maxDate={new Date()}
+                        placeholder="날짜"
+                        style={{ height: 28, borderRadius: 6, border: '1px solid var(--brand)', fontSize: 12 }}
                       />
                       <button
                         type="button"
