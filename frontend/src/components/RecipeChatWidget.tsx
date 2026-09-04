@@ -3,7 +3,7 @@ import { track } from '../utils/track';
 import { applyUsage, usageHeaders } from '../utils/usage';
 import { UsageLine } from './UsageMeter';
 import BackButton from './ui/BackButton';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { getProxiedImageUrl } from '../utils/imageUtils';
 import CloseButton from './ui/CloseButton';
 
@@ -41,6 +41,17 @@ type ChatMessage = {
   role: 'user' | 'assistant';
   content: string;
   recipes?: ChatRecipe[];
+  /**
+   * 무엇에 대한 답인가.
+   *
+   * 이 대화창은 레시피만 받는 곳이 아니다 — 요리하다 막혀서 묻기도 하고,
+   * 앱을 어떻게 쓰는지 묻기도 한다. 다 레시피 검색으로 받으면 엉뚱한 목록이
+   * 뜨고, 두어 번 헛물을 켠 사람은 다시 안 연다.
+   */
+  intent?: 'recipe' | 'cooking' | 'app' | 'other';
+  /** 앱 사용법 답에 붙는 제목과, 그 화면으로 바로 가는 버튼. */
+  helpTitle?: string;
+  action?: { path: string; label: string } | null;
   /** 타이핑 애니메이션용. content는 fullContent를 향해 점점 채워지는 중간 상태다. */
   fullContent?: string;
   typing?: boolean;
@@ -222,6 +233,9 @@ function threadTitle(thread: ChatThread): string {
 const RecipeChatWidget: React.FC = () => {
   const location = useLocation();
   const [open, setOpen] = useState(false);
+  // 앱 사용법 답에 붙는 `바로 가기` 버튼이 쓴다. 말로만 알려 주면
+  // 그 화면을 다시 찾아 헤맨다.
+  const navigate = useNavigate();
   const [view, setView] = useState<'chat' | 'history'>('chat');
   const [threadId, setThreadId] = useState<string>(createThreadId);
   const [threads, setThreads] = useState<ChatThread[]>(loadThreads);
@@ -425,6 +439,9 @@ const RecipeChatWidget: React.FC = () => {
           fullContent: data.reply || '레시피를 찾아봤어요.',
           typing: true,
           recipes: Array.isArray(data.recipes) ? data.recipes : [],
+          intent: data.intent || 'recipe',
+          helpTitle: data.help_title || '',
+          action: data.action || null,
         },
       ]);
     } catch (err) {
@@ -643,8 +660,33 @@ const RecipeChatWidget: React.FC = () => {
                           : 'bg-gray-100 text-gray-800 rounded-bl-sm'
                       }`}
                     >
-                      {msg.content}
+                      {/* 앱 사용법 답은 **정해진 문장**이라 굵은 글씨가 들어 있다.
+                          이 한 자리에서만 서식을 허용한다 — 요리 답변은 LLM 이
+                          쓰므로 그대로 글자로만 그린다. */}
+                      {msg.intent === 'app' && !msg.typing ? (
+                        <>
+                          {msg.helpTitle && (
+                            <div className="text-[13px] font-bold text-gray-900 mb-1">
+                              {msg.helpTitle}
+                            </div>
+                          )}
+                          <span dangerouslySetInnerHTML={{ __html: msg.content }} />
+                        </>
+                      ) : (
+                        msg.content
+                      )}
                     </div>
+                    {/* 말로만 알려 주면 그 화면을 다시 찾아 헤맨다. 바로 데려간다. */}
+                    {!msg.typing && msg.action && (
+                      <button
+                        type="button"
+                        onClick={() => { setOpen(false); navigate(msg.action!.path); }}
+                        className="mt-2 h-9 px-3 rounded-lg text-[13px] font-bold"
+                        style={{ background: '#FFD600', color: '#1A1A1E', border: 'none', cursor: 'pointer' }}
+                      >
+                        {msg.action.label} ›
+                      </button>
+                    )}
                     {!msg.typing && msg.recipes && msg.recipes.length > 0 && (
                       <div className="mt-2 space-y-2">
                         {msg.recipes.map((recipe) => (

@@ -8,6 +8,8 @@ from datetime import datetime, timedelta, timezone
 import requests
 from flask import jsonify
 
+import app_help
+
 KST = timezone(timedelta(hours=9))
 MAX_HISTORY = 10
 MAX_INGREDIENTS = 40
@@ -250,6 +252,7 @@ def _build_prompt(messages, ingredients, last_turn=None, expiry_days=None):
     else:
         last_turn_block = '\n직전 검색 결과: (없음 — 지금이 이 대화의 첫 검색이다)\n'
 
+    topics = app_help.topic_list()
     return f"""너는 쿡매치 앱의 요리 도우미다.
 사용자는 냉장고 재료로 뭘 해먹을지 채팅으로 묻는다.
 레시피 링크를 만들지 마라. 없는 글 제목을 지어내지 마라.
@@ -262,8 +265,23 @@ DB 검색은 글자가 그대로 들어 있는지만 보기 때문에, 사용자
 보유 재료를 무시해도 된다고 명시적으로 말하면 ignore_fridge를 true로 설정한다.
 그 외에는 항상 ignore_fridge를 false로 둔다.
 
-너는 오직 이 대화방 안에서 요리/재료/레시피에 대해서만 판단한다. 요리와 무관한 잡담이나
-다른 화제로 새지 마라 — 사용자가 엉뚱한 걸 물어도 요리 도우미로서만 답하면 된다.
+**먼저 이 물음이 무엇에 대한 것인지 정해라** (`intent`). 이 대화창은 레시피만
+받는 곳이 아니다 — 요리하다가 막혀서 묻기도 하고, 앱을 어떻게 쓰는지 묻기도 한다.
+  - `recipe` : 뭘 해먹을지 찾아 달라 / 직전 결과를 고쳐 달라. **기본값이다.**
+  - `cooking`: 요리·재료에 대한 **지식**을 묻는다. 레시피 목록이 답이 아닌 것.
+      "이 재료 대신 뭐 써?", "이거 어떻게 손질해?", "국이 짠데 어떡해?",
+      "센 불 몇 분?", "이거 냉동해도 돼?", "양파 얼마나 보관돼?" 같은 것.
+  - `app`    : **쿡매치라는 앱**을 어떻게 쓰는지 묻는다.
+      "사진으로 재료 넣는 거 어떻게 해?", "크레딧이 뭐야?", "식구 초대 어떻게 해?",
+      "완료 누르면 어디에 쌓여?", "이 앱 뭐 할 수 있어?" 같은 것.
+      이때는 `topic` 에 다음 중 하나를 골라 넣어라: {topics}
+      (딱 맞는 게 없으면 topic 을 빈 문자열로 둬라. 앱 설명은 서버가 대신 쓴다 —
+       **너는 앱 사용법을 지어내지 마라.** reply 는 비워도 된다.)
+  - `other`  : 요리와도 앱과도 상관없는 이야기.
+      이때 reply 는 짧게 한 문장으로 못 한다고 말하고, 대신 무엇을 할 수 있는지
+      한 줄 덧붙여라. 훈계하지 말고 담백하게.
+
+`recipe` 가 아니면 keywords/include/exclude 는 무시된다 — 신경 쓰지 마라.
 
 아래 "직전 검색 결과"가 있으면, 새 메시지가 그 결과에 대한 **수정 요청**인지부터 판단해라.
 "그중에 A는 빼줘", "B도 꼭 들어간 걸로", "더 매운/간단한 걸로", "그거 말고 다른 거" 처럼
@@ -285,18 +303,14 @@ DB 검색은 글자가 그대로 들어 있는지만 보기 때문에, 사용자
 없다. 존재하지 않는 이전 요청을 상상하지 말고 그냥 새 요청으로 봐라. 이때 reply는 취향을
 반영해 찾아보겠다는 톤으로 써도 된다.
 
-사용자의 새 메시지가 레시피/요리를 찾아달라는 요청이 아니라, 재료·양념·손질법·대체재
-같은 것에 대한 지식성 질문이면(예: "다이어트용 양념은 뭐가 좋아?", "이거 대신 뭐 쓸 수
-있어?", "이 재료 어떻게 손질해?") recipe_search를 false로 설정해라. 이때는:
-  - reply에서 질문에 바로 직접 답해라(예: 실제로 어떤 양념/재료 이름인지 알려준다).
-    "찾아볼게요", "추천해드릴게요" 처럼 검색을 예고하며 얼버무리지 말고, 아는 대로
-    바로 답하는 톤으로 써라.
-  - keywords/include_ingredients/exclude_ingredients는 신경 쓰지 않아도 된다(검색을
-    안 하므로 무시된다).
-그 외의 경우 — 레시피/요리를 찾아달라는 요청이거나 직전 결과에 대한 수정 요청이면 —
-recipe_search는 항상 true로 둬라(이게 기본값이다).
+`intent` 가 `cooking` 일 때는:
+  - reply에서 질문에 **바로 직접** 답해라. "찾아볼게요", "추천해드릴게요" 처럼
+    검색을 예고하며 얼버무리지 말고 아는 대로 답하는 톤으로 써라.
+  - 지금 하고 있는 요리를 구해야 하는 물음(짜다/탔다/덜 익었다)이면 **당장 할 일**을
+    먼저 한 줄로 말해라. 원리 설명은 그다음이다.
+  - 확실하지 않으면 확실하지 않다고 말해라. 지어내지 마라.
 
-**recipe_search가 true일 때**, reply에서 구체적인 재료·양념·요리 이름을 언급했다면
+**intent 가 `recipe` 일 때**, reply에서 구체적인 재료·양념·요리 이름을 언급했다면
 keywords나 include_ingredients 중 하나는 **반드시 그 언급한 이름과 실제로 겹쳐야**
 한다. reply에서는 A 얘기를 해놓고 keywords/include_ingredients는 A와 무관한 낱말을
 지어내지 마라 — 그러면 화면에 뜨는 레시피가 방금 한 말과 안 맞는 것처럼 보인다.
@@ -333,7 +347,8 @@ reply 문장에서 냉장고 재료를 구체적인 이름으로 언급할 때�
   "include_ingredients": ["사용자가 명시적으로 꼭 넣어달라고 한 재료만. 해당 없으면 빈 배열"],
   "exclude_ingredients": ["빼고 싶은 재료"],
   "ignore_fridge": false,
-  "recipe_search": true
+  "intent": "recipe | cooking | app | other 중 하나",
+  "topic": "intent가 app일 때만. {topics} 중 하나, 없으면 빈 문자열"
 }}
 """
 
@@ -714,8 +729,13 @@ def handle_chat(get_db):
         'include_ingredients': [],
         'exclude_ingredients': [],
         'ignore_fridge': False,
-        # 레시피 검색이 필요한 요청인지. 기본은 true(기존과 동일) — "다이어트용
-        # 양념이 뭐야?" 같은 지식성 질문일 때만 LLM이 false로 내려준다(아래 참고).
+        # 무엇에 대한 물음인가. recipe | cooking | app | other.
+        # 이 대화창은 레시피만 받는 곳이 아니다 — 요리하다 막혀서 묻기도 하고,
+        # 앱을 어떻게 쓰는지 묻기도 한다. 그걸 다 "레시피 검색" 으로 받으면
+        # 엉뚱한 목록이 뜨고, 사용자는 두어 번 헛물을 켜고 안 열게 된다.
+        'intent': 'recipe',
+        'topic': '',
+        # 레시피 검색이 필요한 요청인지. `intent` 에서 유도한다(예전 필드).
         'recipe_search': True,
     }
 
@@ -761,8 +781,22 @@ def handle_chat(get_db):
                 if isinstance(values, list):
                     parsed[key] = [str(v).strip() for v in values if str(v).strip()][:8]
             parsed['ignore_fridge'] = bool(extracted.get('ignore_fridge'))
-            if isinstance(extracted.get('recipe_search'), bool):
-                parsed['recipe_search'] = extracted['recipe_search']
+            intent = str(extracted.get('intent') or '').strip().lower()
+            if intent in ('recipe', 'cooking', 'app', 'other'):
+                parsed['intent'] = intent
+            elif isinstance(extracted.get('recipe_search'), bool):
+                # 옛 형식으로 답하는 모델도 있다. false 면 지식성 질문이었다.
+                parsed['intent'] = 'recipe' if extracted['recipe_search'] else 'cooking'
+            parsed['topic'] = str(extracted.get('topic') or '').strip()[:40]
+            parsed['recipe_search'] = parsed['intent'] == 'recipe'
+
+            # 앱 사용법은 **정해진 답**으로 바꿔치운다. LLM 이 쓰게 두면 없는
+            # 메뉴와 없는 버튼을 지어내고, 사용자는 그 자리에서 막힌다.
+            if parsed['intent'] == 'app':
+                help_answer = app_help.answer(parsed['topic'])
+                parsed['reply'] = help_answer['reply']
+                parsed['action'] = help_answer['action']
+                parsed['help_title'] = help_answer['title']
         except Exception as e:
             print(f'[chat] LLM 호출 실패: {e}')
             parsed['keywords'] = [last_user[:20]] if last_user else []
@@ -843,8 +877,8 @@ def handle_chat(get_db):
         else:
             parsed['reply'] = '조건에 맞는 글을 바로 찾지는 못했어요. 냉장고에 재료를 등록해두거나, 원하는 맛이나 요리를 조금 더 말씀해 주실래요?'
     elif not parsed['recipe_search']:
-        # 지식/조언성 질문 — 애초에 검색을 안 했으니 "못 찾았다"는 문구를 붙이면
-        # 오히려 이상하다. reply가 이미 직접 답했으니 그대로 둔다.
+        # 요리 지식·앱 사용법·그 밖의 이야기 — 애초에 검색을 안 했으니 "못 찾았다"
+        # 는 문구를 붙이면 오히려 이상하다. reply 가 이미 답했으니 그대로 둔다.
         pass
     elif not recipes:
         parsed['reply'] = (
@@ -898,6 +932,11 @@ def handle_chat(get_db):
         # 프론트가 아직 keyword(단수)를 읽고 있을 수 있어 대표 낱말도 함께 보낸다
         'keyword': parsed['keywords'][0] if parsed['keywords'] else '',
         'ignore_fridge': parsed['ignore_fridge'],
+        # 무엇에 대한 답인지. 프론트가 말풍선 생김새를 여기에 맞춘다 —
+        # 앱 사용법 답에는 그 화면으로 바로 가는 버튼이 붙는다.
+        'intent': parsed['intent'],
+        'help_title': parsed.get('help_title') or '',
+        'action': parsed.get('action') or None,
         'provider': provider,
         'usage': usage,
         'remaining': (usage or {}).get('balance', 0),
