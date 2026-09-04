@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import BackButton from '../components/ui/BackButton';
 import Dialog from '../components/ui/Dialog';
+import Sheet from '../components/ui/Sheet';
 import StepLoading from '../components/StepLoading';
 import { getMyIngredients } from '../utils/recipeUtils';
 import { loadIngredientCategoryMap, type CategoryMap, type StorageKind } from '../utils/shelfLife';
@@ -284,6 +285,21 @@ const IngredientChip: React.FC<{
   </button>
 );
 
+/**
+ * 자주 적는 조건.
+ *
+ * 빈 칸을 주고 "적어 보세요" 하면 대부분 그냥 넘긴다. 눌러서 고를 수 있으면
+ * **무엇을 말할 수 있는 자리인지**가 그 자리에서 보인다.
+ */
+const WISH_PRESETS = [
+  '아이 먹을 것 위주로',
+  '다이어트 · 담백하게',
+  '간단한 걸로',
+  '국물 요리는 빼고',
+  '손님상에 올릴 것',
+  '고기 없이',
+];
+
 const WeeklyPlan: React.FC = () => {
   const navigate = useNavigate();
   const usage = useUsage();
@@ -315,6 +331,8 @@ const WeeklyPlan: React.FC = () => {
    * 결과가 마음에 안 들 때 그대로 손해다.
    */
   const aiBox = React.useRef<HTMLDivElement | null>(null);
+  /** AI 로 들어왔을 때 **조건부터 묻는** 시트. */
+  const [askOpen, setAskOpen] = React.useState(false);
   const wishInput = React.useRef<HTMLInputElement | null>(null);
   const wantAi = React.useMemo(
     () => new URLSearchParams(window.location.search).get('ai') === '1',
@@ -322,10 +340,8 @@ const WeeklyPlan: React.FC = () => {
   );
   React.useEffect(() => {
     if (!wantAi) return;
-    const t = setTimeout(() => {
-      aiBox.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      wishInput.current?.focus();
-    }, 350);
+    // 후보가 준비되기 전에 물어 봐야 기다리는 시간이 겹친다.
+    const t = setTimeout(() => setAskOpen(true), 250);
     return () => clearTimeout(t);
   }, [wantAi]);
   const [asking, setAsking] = React.useState(false);
@@ -547,7 +563,10 @@ const WeeklyPlan: React.FC = () => {
   };
 
   /** AI 에게 짜 달라고 한다 (크레딧을 쓴다). */
-  const askAi = async () => {
+  const askAi = async (text?: string) => {
+    // 시트에서 방금 고른 조건은 아직 `wish` 상태에 안 들어가 있을 수 있다.
+    // 넘겨받은 값을 먼저 쓴다.
+    const request = (text ?? wish).trim();
     setAsking(true);
     setError(null);
     setAiNote(null);
@@ -558,7 +577,7 @@ const WeeklyPlan: React.FC = () => {
         body: JSON.stringify({
           ingredients: planIngredients,
           expiring: priority,
-          request: wish.trim(),
+          request,
         }),
       });
       const data = await res.json().catch(() => null);
@@ -576,7 +595,7 @@ const WeeklyPlan: React.FC = () => {
       }
       setSlots(prev => prev.map((s, i) => ({ ...s, recipe: got[i] || null })));
       setSaved(false);
-      setAiNote(wish.trim() ? `"${wish.trim()}" 을(를) 반영했어요.` : 'AI 가 새로 골랐어요.');
+      setAiNote(request ? `"${request}" 을(를) 반영했어요.` : 'AI 가 새로 골랐어요.');
     } catch {
       setError('네트워크 상태를 확인하고 다시 시도해 주세요.');
     } finally {
@@ -710,7 +729,7 @@ const WeeklyPlan: React.FC = () => {
                     cursor: canAi && !asking ? 'pointer' : 'default',
                   }}
                 >
-                  <span>{asking ? '고르는 중...' : '추천받기'}</span>
+                  <span>{asking ? '고르는 중...' : 'AI 추천받기'}</span>
                 </button>
                 {!asking && <span className="ai-fab-badge">AI</span>}
               </span>
@@ -747,7 +766,97 @@ const WeeklyPlan: React.FC = () => {
         </div>
       </div>
 
-      {/* AI 로 들어왔으면 조건 칸이 먼저다. */}
+      {/* AI 로 들어왔으면 **조건부터 묻는다.**
+          카드 순서만 바꿔서는 무료 화면과 다를 게 없었다. 이 버튼을 누른
+          사람은 조건을 말하러 온 것이다. */}
+      <Sheet
+        open={askOpen}
+        onClose={() => setAskOpen(false)}
+        title="어떤 식단으로 드릴까요?"
+        maxHeight="72dvh"
+        hideFooter
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ fontSize: 12.5, color: 'var(--ink-500)', lineHeight: 1.6 }}>
+            눌러서 고르거나 직접 적어 주세요. 냉장고 재료 안에서 골라 드려요.
+          </div>
+
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {WISH_PRESETS.map(x => {
+              const on = wish === x;
+              return (
+                <button
+                  key={x}
+                  type="button"
+                  onClick={() => setWish(on ? '' : x)}
+                  aria-pressed={on}
+                  style={{
+                    height: 34, padding: '0 12px', borderRadius: 9999, cursor: 'pointer',
+                    border: on ? '1px solid #1A1A1E' : '1px solid var(--line-200)',
+                    background: on ? '#FFD600' : 'var(--surface)',
+                    fontSize: 13, fontWeight: on ? 700 : 500, color: '#1A1A1E',
+                  }}
+                >
+                  {x}
+                </button>
+              );
+            })}
+          </div>
+
+          <input
+            value={wish}
+            onChange={e => setWish(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter' && canAi && !asking) { setAskOpen(false); void askAi(); }
+            }}
+            placeholder="직접 적어도 돼요"
+            style={{
+              height: 44, borderRadius: 10, border: '1px solid var(--line-200)',
+              padding: '0 12px', fontSize: 14, boxSizing: 'border-box', width: '100%',
+            }}
+          />
+
+          <span style={{ position: 'relative', display: 'flex' }}>
+            <button
+              type="button"
+              className="ai-action"
+              disabled={asking || !canAi}
+              onClick={() => { if (canAi) { setAskOpen(false); void askAi(); } }}
+              style={{
+                width: '100%', height: 50, borderRadius: 12,
+                fontSize: 15, fontWeight: 700,
+                cursor: canAi && !asking ? 'pointer' : 'default',
+              }}
+            >
+              <span>{asking ? '고르는 중...' : `AI 추천받기 · 크레딧 ${planCost}`}</span>
+            </button>
+            {!asking && canAi && <span className="ai-fab-badge">AI</span>}
+          </span>
+
+          <UsageLine />
+
+          {!canAi && (
+            <div style={{ fontSize: 12.5, color: 'var(--ink-500)', lineHeight: 1.6 }}>
+              {usage?.is_guest
+                ? <>가입하면 <b>{usage.signup_credits} 크레딧</b>을 드려요.</>
+                : '크레딧을 다 쓰셨어요.'}
+              {' '}닫으면 <b>무료 추천</b>을 그대로 볼 수 있어요.
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={() => setAskOpen(false)}
+            style={{
+              height: 42, borderRadius: 10, border: 'none', background: 'transparent',
+              fontSize: 13, fontWeight: 600, color: 'var(--ink-500)', cursor: 'pointer',
+            }}
+          >
+            그냥 무료 추천 볼게요
+          </button>
+        </div>
+      </Sheet>
+
       {wantAi && aiCard}
 
       {/* ── ① 무엇으로 짜나 ───────────────────────────────── */}
@@ -925,17 +1034,43 @@ const WeeklyPlan: React.FC = () => {
             title="이번 주 식단"
             hint={<>내일부터 {slots.length}일 · 바꾸기는 크레딧을 안 써요</>}
             right={
-              <button
-                type="button"
-                onClick={reshuffle}
-                style={{
-                  flexShrink: 0, height: 30, padding: '0 10px', borderRadius: 8,
-                  border: '1px solid var(--line-200)', background: 'var(--surface)',
-                  fontSize: 12, fontWeight: 700, color: 'var(--ink-900)', cursor: 'pointer',
-                }}
-              >
-                ↻ 다시 추천
-              </button>
+              <span style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                {/* 무료 — 마음에 들 때까지 눌러도 된다. 여기에 크레딧을 물리면
+                    사용자가 누르기를 주저하고, 그러면 식단을 완성하지 못한 채
+                    나간다. 이 버튼의 값어치가 바로 "공짜" 다. */}
+                <button
+                  type="button"
+                  onClick={reshuffle}
+                  style={{
+                    height: 30, padding: '0 10px', borderRadius: 8,
+                    border: '1px solid var(--line-200)', background: 'var(--surface)',
+                    fontSize: 12, fontWeight: 700, color: 'var(--ink-900)', cursor: 'pointer',
+                  }}
+                >
+                  ↻ 다시 추천
+                </button>
+
+                {/* AI 로 들어온 화면에서만 — 무료로 굴려 보다가 "이게 아닌데"
+                    싶을 때 조건을 바꿔 다시 부르는 계단. 크레딧을 쓴다. */}
+                {wantAi && (
+                  <span style={{ position: 'relative', display: 'flex' }}>
+                    <button
+                      type="button"
+                      className="ai-action"
+                      disabled={!canAi || asking}
+                      onClick={() => { if (canAi) setAskOpen(true); }}
+                      style={{
+                        height: 30, padding: '0 10px', borderRadius: 8,
+                        fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap',
+                        cursor: canAi && !asking ? 'pointer' : 'default',
+                      }}
+                    >
+                      <span>조건 바꿔서 다시</span>
+                    </button>
+                    {canAi && !asking && <span className="ai-fab-badge">AI</span>}
+                  </span>
+                )}
+              </span>
             }
           />
 
