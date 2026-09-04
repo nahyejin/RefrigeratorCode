@@ -15,7 +15,8 @@ import { getProxiedImageUrl } from '../utils/imageUtils';
 import { usageHeaders, applyUsage } from '../utils/usage';
 import { UsageLine, useUsage } from '../components/UsageMeter';
 import { savePlan, conflictingDates, toDateKey, type PlannedMeal } from '../utils/mealPlan';
-import { loadChat, saveChat, clearChat, type ChatMsg } from '../utils/aiChat';
+import { loadChat, saveChat, archiveChat, loadSessions, dropSession,
+         type ChatMsg, type ChatSession } from '../utils/aiChat';
 
 /**
  * 이번 주 식단 + 장보기 목록.
@@ -478,6 +479,9 @@ const WeeklyPlan: React.FC = () => {
   const aiReason = React.useRef<string>('');
   /** 재료 칩을 펼쳐 볼지 (채팅 화면에서는 접어 둔다). */
   const [showIngredients, setShowIngredients] = React.useState(false);
+  /** 지난 대화 목록을 펼쳤나. */
+  const [pastOpen, setPastOpen] = React.useState(false);
+  const [sessions, setSessions] = React.useState<ChatSession[]>(() => loadSessions());
   const wishInput = React.useRef<HTMLInputElement | null>(null);
   const wantAi = React.useMemo(
     () => new URLSearchParams(window.location.search).get('ai') === '1',
@@ -1257,6 +1261,75 @@ const WeeklyPlan: React.FC = () => {
    */
   const chatScreen = (
     <>
+      {/* 지난 대화 — 크레딧을 쓴 결과라 꺼내 볼 수 있어야 한다. */}
+      {sessions.length > 0 && (
+        <div style={{
+          background: 'var(--surface)', border: '1px solid var(--line-200)',
+          borderRadius: 12, padding: '10px 12px', marginBottom: 10,
+        }}>
+          <button
+            type="button"
+            onClick={() => setPastOpen(v => !v)}
+            style={{
+              width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              gap: 8, border: 'none', background: 'transparent', padding: 0, cursor: 'pointer',
+            }}
+          >
+            <span style={{ fontSize: 13, fontWeight: 700, color: '#1A1A1E' }}>
+              지난 대화 {sessions.length}개
+            </span>
+            <span style={{ fontSize: 11.5, color: 'var(--ink-500)' }}>
+              {pastOpen ? '접기 ▴' : '보기 ▾'}
+            </span>
+          </button>
+
+          {pastOpen && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 9 }}>
+              {sessions.map(x => (
+                <div key={x.id} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <button
+                    type="button"
+                    // 지금 대화는 밀어 넣고, 고른 것을 꺼내 온다. 덮어쓰지 않는다.
+                    onClick={() => {
+                      archiveChat(chat);
+                      dropSession(x.id);
+                      setChat(x.messages);
+                      setSessions(loadSessions());
+                      setPastOpen(false);
+                    }}
+                    style={{
+                      flex: 1, minWidth: 0, textAlign: 'left', cursor: 'pointer',
+                      padding: '8px 10px', borderRadius: 9,
+                      border: '1px solid var(--line-200)', background: 'var(--surface-sub)',
+                    }}
+                  >
+                    <span style={{
+                      display: 'block', fontSize: 12.5, fontWeight: 600, color: '#1A1A1E',
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    }}>{x.title}</span>
+                    <span style={{ display: 'block', fontSize: 11, color: 'var(--ink-500)', marginTop: 1 }}>
+                      {new Date(x.at).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="이 대화 지우기"
+                    onClick={() => { dropSession(x.id); setSessions(loadSessions()); }}
+                    style={{
+                      flexShrink: 0, width: 32, height: 32, borderRadius: 8,
+                      border: '1px solid var(--line-200)', background: 'var(--surface)',
+                      color: 'var(--ink-500)', fontSize: 13, cursor: 'pointer',
+                    }}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* 무엇으로 짜는지 — 접어 둔다 */}
       <div style={{
         background: 'var(--surface)', border: '1px solid var(--line-200)',
@@ -1441,7 +1514,14 @@ const WeeklyPlan: React.FC = () => {
         {wantAi && chat.length > 1 && (
           <button
             type="button"
-            onClick={() => { clearChat(); setChat([]); setBasket(null); }}
+            // 그냥 지우면 크레딧을 쓴 결과가 사라진다. 지난 목록으로 넘긴다.
+            onClick={() => {
+              archiveChat(chat);
+              setSessions(loadSessions());
+              setChat([]);
+              setBasket(null);
+              setPastOpen(false);
+            }}
             style={{
               position: 'absolute', right: 0, top: 4, height: 32, padding: '0 10px',
               borderRadius: 8, border: '1px solid var(--line-200)',

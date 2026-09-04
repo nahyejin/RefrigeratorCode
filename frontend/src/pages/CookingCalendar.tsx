@@ -199,8 +199,11 @@ const FridgeToPlan: React.FC<{ onGo: (withAi?: boolean) => void }> = ({ onGo }) 
             </span>
             {/* 예시 하나만 박아 두면 **그것만 되는 기능**으로 읽힌다.
                 이 기능이 실제로 해 주는 일을 적는다. */}
+            {/* "장은 적게" 는 오히려 **장을 본다**로 읽혀 지출처럼 보였다.
+                옆의 무료 버튼과 나란히 놓이는 자리라, 값을 그대로 밝히는 편이
+                낫다 — 무료 / 크레딧 2. */}
             <span style={{ fontSize: 11.5, color: 'rgba(26,26,30,0.65)' }}>
-              장은 적게 · 조건대로
+              말한 대로 · 크레딧 2
             </span>
           </button>
           <span className="ai-fab-badge">AI</span>
@@ -509,6 +512,7 @@ const CookingCalendar: React.FC = () => {
     if (allEntries === null) return 0;
     const me = Number(authUser?.id);
     if (listKind === 'write') {
+      // 기록은 기간을 안 따진다(날짜가 없다). 완료만 목록과 같은 기준으로 센다.
       return (householdRecorded || []).filter((r: any) => {
         const by: string[] = Array.isArray(r.acted_by) ? r.acted_by : [];
         return by.some(n => n && n !== myName);
@@ -1453,16 +1457,25 @@ const CookingCalendar: React.FC = () => {
               몇 건이 남는지 미리 적어 둔다. 눌러 놓고 텅 비면 고장으로 읽힌다. */}
           {mode === 'household' && (
             <label style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '2px 2px 6px',
-                            fontSize: 12.5, color: 'var(--ink-700)', cursor: 'pointer' }}>
+                            fontSize: 12.5, color: 'var(--ink-700)',
+                            cursor: othersCount === 0 ? 'default' : 'pointer' }}>
+              {/* 식구 것이 하나도 없으면 이 버튼은 눌러도 아무 일이 안 일어난다.
+                  눌리기만 하고 화면이 안 바뀌면 고장으로 읽힌다 — 못 누르게
+                  하고 **왜 그런지** 적는다. */}
               <input
                 type="checkbox"
                 checked={hideMine}
+                disabled={othersCount === 0}
                 onChange={e => setHideMine(e.target.checked)}
                 style={{ width: 16, height: 16 }}
               />
-              내 요리는 빼고 보기
+              <span style={{ color: othersCount === 0 ? 'var(--ink-500)' : undefined }}>
+                내 요리는 빼고 보기
+              </span>
               <span style={{ color: 'var(--ink-500)' }}>
-                (식구들 것 {othersCount}건)
+                {othersCount === 0
+                  ? '· 식구들이 한 게 아직 없어요'
+                  : `· 식구들 것 ${othersCount}건`}
               </span>
             </label>
           )}

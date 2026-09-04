@@ -478,10 +478,16 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
         <div className="action-buttons" style={STYLES.actionButtons}>
           {ACTIONS.map(({ key, title, icon }) => (
             <span key={key} style={STYLES.actionButtonWrapper}>
-              <span style={STYLES.actionButtonBackground}></span>
+              {/* 켜진 것은 **노란 원**. 전에는 켜지면 흐려져서(투명도 .5) 오히려
+                  못 누르는 것처럼 보였다 — 토글은 켜졌을 때 도드라져야 한다. */}
+              <span style={{
+                ...STYLES.actionButtonBackground,
+                background: recipeActionState?.[key] ? '#FFD600' : 'rgba(34,34,34,0.7)',
+              }}></span>
               <button
                 title={title}
                 tabIndex={0}
+                aria-pressed={!!recipeActionState?.[key]}
                 style={STYLES.actionButton}
                 onClick={e => {
                   e.preventDefault();
@@ -496,16 +502,12 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
                     height={ICON_SIZE}
                     viewBox="0 0 24 24"
                     aria-label={title}
-                    style={{
-                      ...STYLES.actionIcon,
-                      opacity: recipeActionState?.favorite ? 0.5 : 1,
-                      filter: recipeActionState?.favorite ? 'brightness(0.6)' : 'none'
-                    }}
+                    style={STYLES.actionIcon}
                   >
                     <path
                       d="M12 2.75l2.72 5.51 6.08.88-4.4 4.29 1.04 6.05L12 16.62 6.56 19.48l1.04-6.05-4.4-4.29 6.08-.88L12 2.75z"
-                      fill="none"
-                      stroke="#FFFFFF"
+                      fill={recipeActionState?.favorite ? '#1A1A1E' : 'none'}
+                      stroke={recipeActionState?.favorite ? '#1A1A1E' : '#FFFFFF'}
                       strokeWidth="2"
                       strokeLinejoin="round"
                     />
@@ -518,8 +520,8 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
                     height={ICON_SIZE}
                     style={{
                       ...STYLES.actionIcon,
-                      opacity: recipeActionState?.[key] ? 0.5 : 1,
-                      filter: recipeActionState?.[key] ? 'brightness(0.6)' : 'none'
+                      // 노란 원 위에서는 흰 아이콘이 안 보인다. 검게 뒤집는다.
+                      filter: recipeActionState?.[key] ? 'brightness(0) saturate(0)' : 'none',
                     }}
                   />
                 )}

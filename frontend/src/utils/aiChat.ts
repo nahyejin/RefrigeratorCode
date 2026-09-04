@@ -70,6 +70,60 @@ export function saveChat(messages: ChatMsg[]): void {
   }
 }
 
+/**
+ * 지난 대화들.
+ *
+ * `새 대화` 를 누르면 지금 것을 여기로 **밀어 넣고** 비운다. 그냥 지우면
+ * 크레딧을 쓴 결과가 사라진다.
+ */
+const PAST = 'cookmatch_ai_chat_past';
+const MAX_SESSIONS = 10;
+
+export interface ChatSession {
+  id: string;
+  at: number;
+  /** 목록에 보일 한 줄 — 그 대화에서 **내가 처음 말한 조건**. */
+  title: string;
+  messages: ChatMsg[];
+}
+
+export function loadSessions(): ChatSession[] {
+  try {
+    const raw = localStorage.getItem(PAST);
+    const data = raw ? JSON.parse(raw) : [];
+    return Array.isArray(data) ? data.slice(0, MAX_SESSIONS) : [];
+  } catch {
+    return [];
+  }
+}
+
+/** 지금 대화를 지난 목록으로 넘기고 비운다. 내가 말한 게 없으면 버린다. */
+export function archiveChat(messages: ChatMsg[]): void {
+  const mine = messages.find(m => m.who === 'me');
+  try {
+    if (mine) {
+      const session: ChatSession = {
+        id: String(Date.now()),
+        at: Date.now(),
+        title: mine.text.slice(0, 40),
+        messages,
+      };
+      localStorage.setItem(PAST, JSON.stringify([session, ...loadSessions()].slice(0, MAX_SESSIONS)));
+    }
+    localStorage.removeItem(KEY);
+  } catch {
+    /* 무시 */
+  }
+}
+
+export function dropSession(id: string): void {
+  try {
+    localStorage.setItem(PAST, JSON.stringify(loadSessions().filter(s => s.id !== id)));
+  } catch {
+    /* 무시 */
+  }
+}
+
 export function clearChat(): void {
   try {
     localStorage.removeItem(KEY);
