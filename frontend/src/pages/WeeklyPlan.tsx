@@ -353,6 +353,16 @@ const WeeklyPlan: React.FC = () => {
 
   const [asking, setAsking] = React.useState(false);
   const [aiNote, setAiNote] = React.useState<string | null>(null);
+  /**
+   * AI 가 짠 식단의 **장바구니**.
+   *
+   * 이게 이 기능의 요점이다 — 매칭률 순으로 자르면 일곱 요리가 저마다 다른
+   * 재료를 요구해 장이 열다섯 개가 된다. 사야 할 재료의 합집합이 작아지도록
+   * 고르면 "두세 개만 사면 일주일" 이 된다.
+   */
+  const [basket, setBasket] = React.useState<
+    { basket: string[]; buy_count: number; days: number; no_buy_days: number } | null
+  >(null);
 
   /**
    * 이번 주 식단에서 **뺀** 재료 이름.
@@ -589,6 +599,7 @@ const WeeklyPlan: React.FC = () => {
       });
       const data = await res.json().catch(() => null);
       applyUsage(data?.usage);
+      if (data?.basket) setBasket(data.basket);
       track('chat_use', 'plan');
 
       if (!res.ok) {
@@ -600,7 +611,12 @@ const WeeklyPlan: React.FC = () => {
         setError('조건에 맞는 요리를 못 찾았어요. 요청을 조금 느슨하게 해 보세요.');
         return;
       }
-      setSlots(prev => prev.map((s, i) => ({ ...s, recipe: got[i] || null })));
+      // 하루 여러 끼 구조로 바꾸면서 여기를 빠뜨렸다 — 옛 `recipe` 필드에
+      // 넣고 있어서, AI 가 짜 준 식단이 화면에 전혀 안 올라왔다.
+      setSlots(prev => prev.map((s, i) => ({
+        ...s,
+        meals: got[i] ? [{ recipe: got[i], on: true }] : [],
+      })));
       setSaved(false);
       setAiNote(request ? `"${request}" 을(를) 반영했어요.` : 'AI 가 새로 골랐어요.');
     } catch {
@@ -621,7 +637,11 @@ const WeeklyPlan: React.FC = () => {
     setChat(c => [...c, { who: 'me', text: t }]);
     setWish(t);
     void askAi(t).then(() => {
-      setChat(c => [...c, { who: 'ai', text: '이렇게 짜 봤어요. 마음에 안 들면 조건을 다시 말해 주세요.' }]);
+      // 장바구니가 몇 개인지 **말로도** 알려 준다. 이게 무료 추천과 다른 점이다.
+      setChat(c => [...c, {
+        who: 'ai',
+        text: '이렇게 짜 봤어요. 마음에 안 들면 조건을 다시 말해 주세요.',
+      }]);
     });
   };
 
@@ -1132,6 +1152,64 @@ const WeeklyPlan: React.FC = () => {
         )}
         <div ref={chatEnd} />
       </div>
+
+      {/* 장바구니 — 이 기능의 요점.
+          "일곱 끼가 되는데 장은 두 개만 보면 된다" 를 숫자로 못 박는다. */}
+      {wantAi && basket && basket.buy_count >= 0 && !asking
+        && chat.some(m => m.who === 'me') && (
+        <div style={{
+          border: '1px solid #E0B400', background: '#FFFDF2',
+          borderRadius: 14, padding: '14px 16px', marginBottom: 12,
+        }}>
+          <div style={{ fontSize: 15, fontWeight: 800, color: '#1A1A1E', lineHeight: 1.5 }}>
+            {basket.buy_count === 0
+              ? `장 안 봐도 ${basket.days}일치가 돼요`
+              : <>장보기 <span style={{ color: '#B4780A' }}>{basket.buy_count}개</span>면 {basket.days}일치가 돼요</>}
+          </div>
+          {basket.no_buy_days > 0 && (
+            <div style={{ fontSize: 12, color: 'var(--ink-500)', marginTop: 3 }}>
+              그중 {basket.no_buy_days}일은 지금 냉장고 재료만으로 됩니다
+            </div>
+          )}
+
+          {basket.basket.length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
+              {basket.basket.map(name => {
+                const url = resolveCoupangUrl(name);
+                return url ? (
+                  <a
+                    key={name}
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer sponsored"
+                    onClick={() => track('coupang_click', name)}
+                    style={{
+                      height: 32, padding: '0 11px', borderRadius: 9999,
+                      background: '#FFD600', color: '#1A1A1E', textDecoration: 'none',
+                      fontSize: 12.5, fontWeight: 700,
+                      display: 'inline-flex', alignItems: 'center', gap: 4,
+                    }}
+                  >
+                    {name}
+                    <span aria-hidden style={{ fontSize: 10, opacity: .7 }}>사러가기 ↗</span>
+                  </a>
+                ) : (
+                  <span key={name} style={{
+                    height: 32, padding: '0 11px', borderRadius: 9999,
+                    background: 'var(--surface)', border: '1px solid var(--line-200)',
+                    fontSize: 12.5, fontWeight: 600, color: 'var(--ink-700)',
+                    display: 'inline-flex', alignItems: 'center',
+                  }}>{name}</span>
+                );
+              })}
+            </div>
+          )}
+
+          <div style={{ fontSize: 10.5, color: 'var(--ink-500)', marginTop: 8, lineHeight: 1.5 }}>
+            쿠팡 파트너스 활동으로 일정액의 수수료를 받을 수 있어요.
+          </div>
+        </div>
+      )}
 
       {/* 짜인 식단 — **조건을 들은 뒤에만** 보여 준다.
           한때 들어오자마자 무료 결과를 깔아 줬는데, 그러면 "왜 크레딧을 써야

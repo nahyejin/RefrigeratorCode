@@ -53,6 +53,10 @@ _PROMPT = """너는 냉장고 사정을 아는 요리 도우미다. 아래 후�
 - **같은 재료가 겹치는 요리를 연달아 두지 마라.** 김치찌개 다음 날 김치볶음밥은
   안 된다. 하루 건너뛰는 것도 피한다.
 - 곧 상하는 재료를 쓰는 요리를 **앞쪽 날짜**에 둔다. 상하기 전에 먹어야 한다.
+- **`추가 장보기 0개` 인 것을 먼저 고른다.** 이 식단의 값어치는 "몇 개만 사면
+  일주일" 에 있다. 0개짜리로 {days}개가 채워지면 그것으로 끝낸다.
+  모자랄 때만 숫자가 작은 것부터 더한다.
+- 사 와야 하는 재료를 쓰는 요리는 **앞쪽에** 둔다. 사 온 것이 싱싱할 때 먹는다.
 - 사용자 요청이 있으면 그것을 **가장 우선한다.** 재료 매칭률보다 우선이다.
   요청과 맞는 후보가 없으면 가장 가까운 것을 고르고 `why` 에 솔직히 적는다.
 - 요청을 읽을 때 **제목의 말을 그대로 믿지 말고 요리 자체를 생각해라.**
@@ -129,7 +133,10 @@ def suggest(candidates, have, expiring, request_text="", days=PLAN_DAYS, model=N
     lines = []
     for i, c in enumerate(candidates):
         ings = ", ".join((c.get("ingredients") or [])[:12])
-        lines.append(f"{i}. {c.get('title', '')[:60]} · {ings}")
+        # 이 요리를 고르면 장을 **몇 개 더** 봐야 하는지. 모르면 고려할 수 없다.
+        extra = c.get("buy_extra")
+        cost = f" · 추가 장보기 {extra}개" if isinstance(extra, int) else ""
+        lines.append(f"{i}. {c.get('title', '')[:60]}{cost} · {ings}")
 
     prompt = _PROMPT.format(
         days=days,

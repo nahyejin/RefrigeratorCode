@@ -4409,6 +4409,15 @@ def get_recipe_cook_steps(recipe_id):
     })
 
 
+def meal_plan_days(body):
+    """며칠치를 짜나. 화면이 7일을 보여 주므로 기본은 7이다."""
+    try:
+        n = int(body.get('days') or 7)
+    except (TypeError, ValueError):
+        n = 7
+    return max(1, min(14, n))
+
+
 @app.route('/api/plan/suggest', methods=['POST'])
 def suggest_meal_plan():
     """냉장고 재료로 이번 주 식단을 **LLM 이** 짜 준다.
@@ -4484,7 +4493,9 @@ def suggest_meal_plan():
             HAVING hit > 0
             -- 요청에 맞는 것 먼저, 빼 달라고 한 것은 뒤로, 그다음 매칭률.
             ORDER BY (want_hit > 0) DESC, avoid_hit ASC, want_hit DESC, hit DESC, id DESC
-            LIMIT 60
+            -- 장보기를 최소로 고르려면 **고를 거리가 많아야** 한다. 60개로는
+            -- 재료가 겹치는 조합을 찾을 여지가 없다.
+            LIMIT 300
             """,
             tuple(list(have) + want_args + avoid_args),
         )
@@ -4498,13 +4509,53 @@ def suggest_meal_plan():
         'title': r['title'],
         'link': r['link'],
         'thumbnail': r['thumbnail'],
+        'want_hit': int(r.get('want_hit') or 0),
         'ingredients': [x.strip() for x in (r['used_ingredients'] or '').split(',') if x.strip()],
     } for r in rows]
+
+    # 매칭률(가진 재료 비율)을 얹어 둔다 — 장보기를 줄이는 계산에서 동점을
+    # 가를 때 쓴다.
+    have_set = {x.strip() for x in have if x.strip()}
+    for c in candidates:
+        n = len(c['ingredients'])
+        c['match_rate'] = round(100 * len(have_set & set(c['ingredients'])) / n) if n else 0
+
+    # ── 장보기를 최소로 ────────────────────────────────────────────
+    #
+    # 여기가 AI 식단이 무료 추천보다 나은 지점이다. 매칭률 순으로 위에서
+    # 자르면 일곱 요리가 저마다 다른 재료를 요구해 장이 열다섯 개가 된다.
+    # 사야 할 재료의 **합집합**이 작아지도록 고르면 "두세 개만 사면 일주일" 이
+    # 된다 — 싱싱한 재료를 몇 개 사서 나눠 쓰는, 사람이 실제로 장 보는 방식.
+    #
+    # LLM 에게는 이렇게 좁힌 것을 넘긴다. 그러면 조건 해석과 요일 배치는
+    # LLM 이 하고, **장보기가 작다는 사실은 우리가 보장한다.**
+    import shopping_plan
+
+    # **딱 필요한 만큼만** 고르게 한다.
+    #
+    # 넉넉히 고르라고 하면(7일치인데 12개) 장바구니가 7개에서 16개로 뛴다 —
+    # 뒤로 갈수록 겹치는 게 없어서 새 재료를 계속 사게 된다. 재 보고 정한 값이다.
+    days_n = meal_plan_days(body)
+    lean, basket = shopping_plan.choose(candidates, have, days=days_n)
+    # 넉넉히 넘겨 LLM 이 고를 여지를 준다. 다만 앞쪽(장보기가 적은 것)부터다.
+    # **이 안에서만** 고르게 한다.
+    #
+    # 후보를 몇 개만 더 얹어 줬더니 LLM 이 그쪽으로 새어 나가 장바구니가
+    # 일곱에서 열아홉으로 늘었다. 프롬프트로 타이르는 것보다 **줄 수 있는 것을
+    # 줄이는 쪽**이 확실하다. 조건 해석과 요일 배치는 여전히 LLM 이 한다.
+    for_llm = lean
+
+    # 각 후보가 **몇 개를 더 사게 하는지** 프롬프트에 적어 준다. 모르면 고를 때
+    # 고려할 수가 없다.
+    basket_set = set(basket)
+    for c in for_llm:
+        extra = set(c['ingredients']) - have_set - basket_set
+        c['buy_extra'] = len(extra)
 
     try:
         import meal_plan
 
-        picked, meta = meal_plan.suggest(candidates, have, expiring, request_text, hints=hints)
+        picked, meta = meal_plan.suggest(for_llm, have, expiring, request_text, hints=hints)
         usage_quota.note_gemini_usage(meta, model=meal_plan.MODEL)
         usage_quota.attach_tokens(get_db, usage.get('usage_id'))
     except RuntimeError as e:
@@ -4531,7 +4582,31 @@ def suggest_meal_plan():
             continue
         plan.append({**c, 'why': item['why']})
 
-    return jsonify({'plan': plan, 'usage': usage})
+    # 모자라면 **미리 골라 둔 것에서 채운다.**
+    #
+    # LLM 이 일곱 개를 달라고 해도 세 개만 주는 일이 있다(조건에 안 맞는다고
+    # 판단하거나 그냥 빠뜨린다). 그런데 화면은 7일치를 약속한 자리다.
+    # 같은 `lean` 에서 채우므로 장바구니도 안 커진다.
+    used = {c['id'] for c in plan}
+    for c in lean:
+        if len(plan) >= days_n:
+            break
+        if c['id'] in used:
+            continue
+        plan.append({**c, 'why': ''})
+        used.add(c['id'])
+
+    # 장바구니는 **화면에 나갈 그 식단**에서 센다.
+    #
+    # 미리 좁혀 둔 것(`lean`)에서 세면 안 된다 — LLM 이 그 밖의 후보를 고를 수도
+    # 있어서, "장보기 7개" 라고 적어 놓고 실제로는 열세 개를 사야 하는 일이
+    # 생긴다. 화면의 숫자는 화면의 식단과 같아야 한다.
+    final_basket = set()
+    for c in plan:
+        final_basket |= (set(c.get('ingredients') or []) - have_set)
+    basket_info = shopping_plan.summary(plan, sorted(final_basket), have)
+
+    return jsonify({'plan': plan, 'usage': usage, 'basket': basket_info})
 
 
 @app.route('/api/events', methods=['POST'])
