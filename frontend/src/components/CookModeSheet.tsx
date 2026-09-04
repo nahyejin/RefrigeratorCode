@@ -251,8 +251,8 @@ const CookModeSheet: React.FC<Props> = ({
               이 레시피는 <b>본문에 만드는 과정이 안 적혀 있어요.</b>
               <br />
               {data.platform && data.platform.includes('youtube')
-                ? '영상에서 설명하는 경우예요. 아래 버튼으로 영상에서 확인해 주세요.'
-                : '아래 버튼으로 원문에서 확인해 주세요.'}
+                ? '영상에서 설명해요. 아래 버튼으로 보세요.'
+                : '아래 버튼으로 원문에서 보세요.'}
             </section>
           )}
 
@@ -287,7 +287,7 @@ const CookModeSheet: React.FC<Props> = ({
           )}
 
           <div style={{ fontSize: 11, color: 'var(--ink-500)', lineHeight: 1.6, textAlign: 'center' }}>
-            조리 순서는 원문을 요약한 것이에요. 사진이나 더 자세한 설명은 원문에 있어요.
+            원문을 요약한 거예요. 사진과 자세한 설명은 원문에.
             {data.author && <><br />출처 · {data.author}</>}
           </div>
         </div>

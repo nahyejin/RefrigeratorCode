@@ -125,8 +125,7 @@ const ExpiryAlert: React.FC<Props> = ({ boxes, categoryMap, within = SOON_DAYS, 
 
       {items.some(i => i.estimated) && (
         <div style={{ fontSize: 11, color: 'var(--ink-500)', lineHeight: 1.5 }}>
-          <b>약</b>이 붙은 건 구매일과 재료 종류로 짐작한 날짜예요. 포장지에 적힌
-          날짜를 넣으면 정확해집니다.
+          <b>약</b>은 짐작한 날짜예요. 포장지 날짜를 넣으면 정확해져요.
         </div>
       )}
 

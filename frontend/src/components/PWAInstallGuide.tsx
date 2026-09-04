@@ -103,11 +103,11 @@ const PWAInstallGuide: React.FC = () => {
               🎉 앱 설치 후 혜택
             </h3>
             <ul className="text-sm text-yellow-700 space-y-2">
-              <li>• 홈화면에서 바로 접근 가능</li>
-              <li>• 브라우저 없이 독립적으로 실행</li>
-              <li>• 오프라인에서도 기본 기능 사용</li>
+              <li>• 홈화면에서 바로 실행</li>
+              
+              <li>• 오프라인에서도 기본 기능</li>
               <li>• 더 빠른 로딩 속도</li>
-              <li>• 푸시 알림으로 새로운 레시피 알림</li>
+              <li>• 새 레시피 알림</li>
             </ul>
           </div>
 

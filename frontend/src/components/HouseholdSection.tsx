@@ -176,8 +176,8 @@ const HouseholdSection: React.FC<HouseholdSectionProps> = ({ onChange }) => {
       } else {
         showToast(
           mergeIngredients
-            ? '그룹에 참여했어요. 냉장고 재료가 하나로 합쳐졌어요.'
-            : '그룹에 참여했어요. 그룹의 기존 재료를 보게 돼요.'
+            ? '참여했어요. 재료가 하나로 합쳐졌어요.'
+            : '참여했어요. 그룹 재료를 보게 돼요.'
         );
       }
     } catch (e) {
@@ -533,7 +533,7 @@ const HouseholdSection: React.FC<HouseholdSectionProps> = ({ onChange }) => {
               checked={info.allow_ingredient_merge !== false}
               onChange={handleToggleMergePolicy}
               label="새로 참여하는 사람의 재료 합치기 허용"
-              hint="이걸 켜두면 새로 참여하는 사람의 냉장고 재료도 함께 합쳐져요."
+              hint="새로 들어오는 사람의 재료도 함께 합쳐져요."
             />
           </div>
 

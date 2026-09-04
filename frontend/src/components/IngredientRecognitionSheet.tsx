@@ -387,8 +387,8 @@ const IngredientRecognitionSheet: React.FC<Props> = ({
                 둘 다 날짜라 "어느 쪽이 이기지?" 하고 헷갈릴 수 있는데, 규칙은 단순하다 —
                 직접 넣은 기한이 언제나 이긴다. */}
             <div style={{ fontSize: 12, color: 'var(--ink-500)', marginTop: 6, lineHeight: 1.5 }}>
-              기한을 넣지 않은 재료는 이 날짜로 <b style={{ fontWeight: 700 }}>기한을 짐작</b>해요.
-              제품에 적힌 날짜는 <b style={{ fontWeight: 700 }}>기한 +</b> 를 눌러 넣어 주세요 — 그 값이 우선해요.
+              이 날짜로 <b style={{ fontWeight: 700 }}>기한을 짐작</b>해요.
+              제품에 적힌 날짜는 <b style={{ fontWeight: 700 }}>기한 +</b> 로 넣으면 그게 우선해요.
             </div>
           </div>
         )}

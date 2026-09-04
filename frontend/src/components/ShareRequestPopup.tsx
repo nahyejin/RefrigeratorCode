@@ -111,7 +111,7 @@ const ShareRequestPopup: React.FC = () => {
     >
       {respondingId === current.id
         ? '처리 중...'
-        : `${current.requester_nickname}님이 내 즐겨찾기·완료·기록을 그룹에 공유해 달라고 해요. 수락하면 그룹원이 볼 수 있어요.`}
+        : `${current.requester_nickname}님이 내 즐겨찾기·완료·기록을 보고 싶어 해요.`}
     </Dialog>
   );
 };

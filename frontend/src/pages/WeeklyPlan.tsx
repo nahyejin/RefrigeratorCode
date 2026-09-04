@@ -1661,37 +1661,33 @@ const WeeklyPlan: React.FC = () => {
           width={340}
           dismissLabel="그만두기"
         >
+          {/* 버튼 안에 설명을 두 줄로 넣었더니 44px 밖으로 튀어나갔다.
+              **버튼 이름만으로 뜻이 통하게** 짓고 설명은 걷어낸다. */}
           <div style={{ fontSize: 13.5, color: 'var(--ink-700)', lineHeight: 1.7, textAlign: 'left' }}>
-            <b>{conflict.length}일</b>이 겹쳐요 —{' '}
+            <b>{conflict.length}일</b>이 겹쳐요 ·{' '}
             {conflict.slice(0, 3).map(d => d.slice(5).replace('-', '/')).join(', ')}
-            {conflict.length > 3 && ` 외 ${conflict.length - 3}일`}.
+            {conflict.length > 3 && ` 외 ${conflict.length - 3}일`}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 14 }}>
               <button
                 type="button"
                 onClick={() => commit('overwrite')}
                 style={{
-                  height: 44, borderRadius: 10, border: 'none', background: '#FFD600',
+                  height: 46, borderRadius: 10, border: 'none', background: '#FFD600',
                   color: '#1A1A1E', fontSize: 14, fontWeight: 700, cursor: 'pointer',
                 }}
               >
-                새로 짠 것으로 바꾸기
-                <div style={{ fontSize: 11.5, fontWeight: 500, color: 'rgba(26,26,30,.65)' }}>
-                  겹치는 {conflict.length}일이 새 요리로 바뀌어요
-                </div>
+                겹치는 날도 새로 바꾸기
               </button>
               <button
                 type="button"
                 onClick={() => commit('fill')}
                 style={{
-                  height: 44, borderRadius: 10, background: 'var(--surface)',
+                  height: 46, borderRadius: 10, background: 'var(--surface)',
                   border: '1px solid var(--line-200)',
                   color: '#1A1A1E', fontSize: 14, fontWeight: 700, cursor: 'pointer',
                 }}
               >
-                비어 있는 날에만 넣기
-                <div style={{ fontSize: 11.5, fontWeight: 500, color: 'var(--ink-500)' }}>
-                  이미 정해 둔 날은 그대로 둬요
-                </div>
+                빈 날에만 넣기
               </button>
             </div>
           </div>

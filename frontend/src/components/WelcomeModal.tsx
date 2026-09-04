@@ -34,8 +34,7 @@ const WelcomeModal: React.FC<WelcomeModalProps> = ({ visible, onClose }) => {
         { label: '로그인하기', onClick: goLogin, variant: 'primary' },
       ]}
     >
-      <div>기본 재료를 미리 준비해뒀어요.</div>
-      <div>추가·삭제로 내냉장고를 관리해보세요.</div>
+      <div>자주 쓰는 재료를 미리 넣어 뒀어요.</div>
       <div>로그인하면 안전하게 보관돼요.</div>
     </Dialog>
   );

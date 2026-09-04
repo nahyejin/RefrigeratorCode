@@ -773,8 +773,8 @@ const RecipeSortBar = ({
             <div style={STYLES.helpBox}>
               <span aria-hidden style={{ flexShrink: 0, fontWeight: 700, color: 'var(--ink-500)' }}>i</span>
               <span>
-                <b style={{ fontWeight: 700 }}>레시피 본문에서 뽑아낸 재료</b>와 내 냉장고를 비교한 값이에요.
-                글쓴이가 안 적은 재료는 빠질 수 있어요.
+                <b style={{ fontWeight: 700 }}>본문에서 뽑아낸 재료</b>와 내 냉장고를 비교한 값이에요.
+                글쓴이가 안 적은 재료는 빠져요.
               </span>
             </div>
             {/* 예전에는 라벨이 하나도 없어서 "30 % ~ 100 %" 두 칸이 무엇을 정하는 건지,
@@ -930,8 +930,8 @@ const RecipeSortBar = ({
             <div style={STYLES.helpBox}>
               <span aria-hidden style={{ flexShrink: 0, fontWeight: 700, color: 'var(--ink-500)' }}>i</span>
               <span>
-                <b style={{ fontWeight: 700 }}>구매일만 넣은 재료</b>도 기한을 짐작해 함께 계산해요.
-                짐작한 값은 <b style={{ fontWeight: 700 }}>약 D-00</b> 으로 보여요.
+                <b style={{ fontWeight: 700 }}>구매일만 넣은 재료</b>도 기한을 짐작해 함께 세요.
+                짐작한 값은 <b style={{ fontWeight: 700 }}>약 D-00</b>.
               </span>
             </div>
 

@@ -1363,8 +1363,7 @@ const RecipeList: React.FC = () => {
       targetSelector: '[data-guide-target="recipe-share-button"]',
       message: (
         <>
-          <GuideActionIcon src={공유하기버튼} alt="공유" /> 버튼을 누르면 레시피 링크를 복사해서<br />
-          다른 사람과 공유할 수 있어요.
+          <GuideActionIcon src={공유하기버튼} alt="공유" /> 레시피 링크를 복사해요.
         </>
       ),
       position: 'left' as const,
@@ -1373,8 +1372,7 @@ const RecipeList: React.FC = () => {
       targetSelector: '[data-guide-target="recipe-write-button"]',
       message: (
         <>
-          <GuideActionIcon src={기록하기버튼} alt="기록" /> 버튼을 누르면 레시피를 기록 상태로 저장해요.<br />
-          기록한 레시피는 마이페이지에서 확인할 수 있어요.
+          <GuideActionIcon src={기록하기버튼} alt="기록" /> 메모를 남겨요. <b>요리 캘린더</b>에서 볼 수 있어요.
         </>
       ),
       position: 'left' as const,
@@ -2258,9 +2256,8 @@ const RecipeList: React.FC = () => {
                         }}
                       />
                       <div>
-                        등록된 내냉장고 재료가 부족하거나<br />
-                        검색·필터 조건이 너무 좁습니다.<br />
-                        재료를 추가하거나 조건을 넓혀주세요.
+                        조건에 맞는 레시피가 없어요.<br />
+                        재료를 추가하거나 조건을 넓혀 보세요.
                       </div>
                     </div>
                   );
