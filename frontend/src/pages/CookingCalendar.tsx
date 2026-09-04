@@ -172,31 +172,13 @@ const FridgeToPlan: React.FC<{ onGo: (withAi?: boolean) => void }> = ({ onGo }) 
   return (
     <div style={{ margin: '0 14px 12px', display: 'flex', flexDirection: 'column', gap: 10 }}>
       <ExpiryAlert boxes={boxes} categoryMap={categoryMap} onPick={() => onGo(false)} />
-      {/* 나란히 둔다. 가로로 긴 줄을 위아래로 두 개 쌓으면 둘 다 "주요 버튼"
+      {/* 나란히 둔다. **AI 가 먼저**다 — 가로로 긴 줄을 위아래로 두 개 쌓으면 둘 다 "주요 버튼"
           처럼 무거워지고, 무엇이 다른지는 오히려 안 보인다. 옆에 놓으면
           평범한 것과 노란 것이 한눈에 갈린다.
 
           '짜기' 를 안 쓴다 — 식단을 짜는 건 앱이 하는 일이고, 사람이 하는 건
           **추천을 받는 것**이다. 화면 제목도 `이번 주 식단 추천` 이다. */}
       <div style={{ display: 'flex', gap: 8 }}>
-        <button
-          type="button"
-          onClick={() => onGo(false)}
-          style={{
-            flex: 1, minWidth: 0, height: 62, borderRadius: 12, cursor: 'pointer',
-            border: '1px solid var(--line-200)', background: 'var(--surface)',
-            display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
-            justifyContent: 'center', gap: 3, padding: '0 12px',
-          }}
-        >
-          <span style={{ fontSize: 14, fontWeight: 700, color: '#1A1A1E' }}>
-            이번 주 식단 추천
-          </span>
-          <span style={{ fontSize: 11.5, color: 'var(--ink-500)' }}>
-            냉장고 재료로 · 무료
-          </span>
-        </button>
-
         {/* 여기만 노란색·AI 배지·반짝임. 누르는 순간 크레딧이 나가지는 않고,
             조건을 적는 칸으로 데려간다 — 냉장고를 보기도 전에 돈이 나가면
             결과가 마음에 안 들 때 그대로 손해다. */}
@@ -220,6 +202,24 @@ const FridgeToPlan: React.FC<{ onGo: (withAi?: boolean) => void }> = ({ onGo }) 
           </button>
           <span className="ai-fab-badge">AI</span>
         </span>
+
+        <button
+          type="button"
+          onClick={() => onGo(false)}
+          style={{
+            flex: 1, minWidth: 0, height: 62, borderRadius: 12, cursor: 'pointer',
+            border: '1px solid var(--line-200)', background: 'var(--surface)',
+            display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
+            justifyContent: 'center', gap: 3, padding: '0 12px',
+          }}
+        >
+          <span style={{ fontSize: 14, fontWeight: 700, color: '#1A1A1E' }}>
+            이번 주 식단 추천
+          </span>
+          <span style={{ fontSize: 11.5, color: 'var(--ink-500)' }}>
+            냉장고 재료로 · 무료
+          </span>
+        </button>
       </div>
     </div>
   );
@@ -311,6 +311,8 @@ const CookingCalendar: React.FC = () => {
   const [allEntries, setAllEntries] = React.useState<CalendarEntry[] | null>(null);
   /** 메모를 남긴 레시피. 완료와 함께 "내 요리 이력" 이라 같은 자리에서 본다. */
   const [recorded, setRecorded] = React.useState<any[] | null>(null);
+  /** 그룹원 전체의 기록. 각 줄에 `acted_by`(누가 했는지 닉네임)가 붙어 온다. */
+  const [householdRecorded, setHouseholdRecorded] = React.useState<any[] | null>(null);
   const [listKind, setListKind] = React.useState<'done' | 'write'>('done');
   /** 우리 식구 요리에서 **내 것을 빼고** 볼지. */
   const [hideMine, setHideMine] = React.useState(false);
@@ -321,7 +323,9 @@ const CookingCalendar: React.FC = () => {
    * 장치라 "여태 만든 것" 을 보러 온 자리와 안 맞는다. 여기서는 넓은 쪽에서
    * 좁히는 방식이 맞다.
    */
-  const [span, setSpan] = React.useState<'all' | '90' | '365'>('all');
+  const [span, setSpan] = React.useState<'all' | '90' | '365' | 'custom'>('all');
+  /** 직접 지정한 기간. `span === 'custom'` 일 때만 쓴다. */
+  const [range, setRange] = React.useState<{ from: string; to: string }>({ from: '', to: '' });
   const [anchorDate, setAnchorDate] = React.useState(() => new Date());
   const [entries, setEntries] = React.useState<CalendarEntry[]>([]);
   // 그룹이 있으면 groupGoal(그룹 전체가 공유하는 하나의 값)을 쓰고,
@@ -435,6 +439,14 @@ const CookingCalendar: React.FC = () => {
           setRecorded([]);
         }
       });
+
+    // 그룹 기록. 그룹이 아니면 서버가 내 것만 돌려주므로 그대로 써도 된다.
+    fetch(`${getApiUrl()}/api/households/me/recorded-recipes`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => (r.ok ? r.json() : Promise.reject(new Error())))
+      .then(d => setHouseholdRecorded(d.recipes || []))
+      .catch(() => setHouseholdRecorded([]));
   }, [mode, allEntries, isLoggedIn, authUser?.id]);
 
   /**
@@ -449,19 +461,49 @@ const CookingCalendar: React.FC = () => {
     let out = allEntries;
     if (mode === 'mine') out = out.filter(e => e.user_id === me);
     else if (mode === 'household' && hideMine) out = out.filter(e => e.user_id !== me);
-    if (span !== 'all') {
+    if (span === 'custom') {
+      if (range.from) out = out.filter(e => e.day >= range.from);
+      if (range.to) out = out.filter(e => e.day <= range.to);
+    } else if (span !== 'all') {
       const from = toDateKey(addDays(new Date(), -Number(span)));
       out = out.filter(e => e.day >= from);
     }
     return out;
-  }, [allEntries, mode, hideMine, span, authUser?.id]);
+  }, [allEntries, mode, hideMine, span, range, authUser?.id]);
+
+  /** 내 이름. 기기에만 있는 완료에 주인을 붙일 때 쓴다. */
+  const myName = (authUser as any)?.nickname || (authUser as any)?.name || '나';
+
+  /**
+   * 지금 탭이 보여야 할 기록.
+   *
+   * `우리 식구 요리` 에서는 그룹 것을 본다. `내 요리는 빼고 보기` 는
+   * **오직 나만 기록한 것**을 뺀다 — 나와 식구가 같이 기록한 레시피는 남긴다.
+   * (기록은 레시피 한 장에 여러 사람이 묶여 오므로 `acted_by` 로 판단한다)
+   */
+  const listRecorded = React.useMemo(() => {
+    if (mode !== 'household') return recorded;
+    const src = householdRecorded;
+    if (src === null) return null;
+    if (!hideMine) return src;
+    return src.filter((r: any) => {
+      const by: string[] = Array.isArray(r.acted_by) ? r.acted_by : [];
+      return by.some(n => n && n !== myName);
+    });
+  }, [mode, recorded, householdRecorded, hideMine, myName]);
 
   /** 식구 탭에서 **나 말고 다른 사람** 것이 몇 건인지. 체크박스 옆에 적는다. */
   const othersCount = React.useMemo(() => {
     if (allEntries === null) return 0;
     const me = Number(authUser?.id);
+    if (listKind === 'write') {
+      return (householdRecorded || []).filter((r: any) => {
+        const by: string[] = Array.isArray(r.acted_by) ? r.acted_by : [];
+        return by.some(n => n && n !== myName);
+      }).length;
+    }
     return allEntries.filter(e => e.user_id !== me).length;
-  }, [allEntries, authUser?.id]);
+  }, [allEntries, householdRecorded, listKind, myName, authUser?.id]);
 
   const handleSaveCompletedDate = async (entry: CalendarEntry) => {
     if (!authUser?.id || !dateInput) return;
@@ -491,9 +533,6 @@ const CookingCalendar: React.FC = () => {
       setSavingDate(false);
     }
   };
-
-  /** 내 이름. 기기에만 있는 완료에 주인을 붙일 때 쓴다. */
-  const myName = (authUser as any)?.nickname || (authUser as any)?.name || '나';
 
   const nicknameById = React.useMemo(() => {
     const map = new Map<number, string>();
@@ -1294,7 +1333,7 @@ const CookingCalendar: React.FC = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 2px 2px' }}>
             {([
               { key: 'done', label: '완료', n: listEntries?.length },
-              { key: 'write', label: '기록', n: recorded?.length },
+              { key: 'write', label: '기록', n: listRecorded?.length },
             ] as const).map(({ key, label, n }) => {
               const on = listKind === key;
               return (
@@ -1322,6 +1361,7 @@ const CookingCalendar: React.FC = () => {
                 { key: 'all', label: '전체' },
                 { key: '365', label: '1년' },
                 { key: '90', label: '3개월' },
+                { key: 'custom', label: '직접' },
               ] as const).map(({ key, label }) => {
                 const on = span === key;
                 return (
@@ -1343,34 +1383,45 @@ const CookingCalendar: React.FC = () => {
             </span>
           </div>
 
-          <div style={{ fontSize: 11.5, color: 'var(--ink-500)', padding: '0 2px 4px' }}>
-            {span === 'all' ? '전 기간' : span === '365' ? '최근 1년' : '최근 3개월'}
-            {' 기준이에요. 위 달력의 월 목표와는 다른 숫자예요.'}
-          </div>
-
-          {/* 지금 보고 있는 **그 목록**을 사람별로 센다. 위의 월 목표와 달리
-              여기 숫자는 아래 목록과 **같은 기준**이다 — 그래야 헷갈리지 않는다. */}
-          {isInHousehold && listKind === 'done' && (listEntries?.length ?? 0) > 0 && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, padding: '0 2px 6px',
-                          fontSize: 12, color: 'var(--ink-700)' }}>
-              {[...(listEntries || []).reduce((m, e) => {
-                m.set(e.user_id, (m.get(e.user_id) || 0) + 1);
-                return m;
-              }, new Map<number, number>()).entries()]
-                .sort((x, y) => y[1] - x[1])
-                .map(([uid, n]) => (
-                  <span key={uid} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                    <span style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
-                                   background: colorForUser(uid, memberIds) }} />
-                    {nicknameById.get(uid) || '이름 없음'} {n}회
-                  </span>
-                ))}
+          {/* 직접 고르는 자리. 퀵 버튼으로 안 되는 구간(작년 여름 같은)이 있다. */}
+          {span === 'custom' && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 2px 6px' }}>
+              <input
+                type="date"
+                value={range.from}
+                onChange={e => setRange(r => ({ ...r, from: e.target.value }))}
+                style={{ flex: 1, minWidth: 0, height: 32, borderRadius: 8,
+                         border: '1px solid var(--line-200)', padding: '0 8px',
+                         fontSize: 12.5, boxSizing: 'border-box' }}
+              />
+              <span style={{ fontSize: 12, color: 'var(--ink-500)' }}>~</span>
+              <input
+                type="date"
+                value={range.to}
+                onChange={e => setRange(r => ({ ...r, to: e.target.value }))}
+                style={{ flex: 1, minWidth: 0, height: 32, borderRadius: 8,
+                         border: '1px solid var(--line-200)', padding: '0 8px',
+                         fontSize: 12.5, boxSizing: 'border-box' }}
+              />
             </div>
           )}
 
+          <div style={{ fontSize: 11.5, color: 'var(--ink-500)', padding: '0 2px 4px' }}>
+            {span === 'all' ? '전 기간'
+              : span === '365' ? '최근 1년'
+              : span === '90' ? '최근 3개월'
+              : (range.from || range.to)
+                ? `${range.from || '처음'} ~ ${range.to || '오늘'}`
+                : '기간을 골라 주세요'}
+            {' 기준이에요.'}
+          </div>
+
+          {/* 인원별 색 집계는 **달력에만** 둔다. 목록에서는 줄마다 누구인지
+              점과 이름으로 이미 보이고, 위에 또 요약이 있으면 같은 말을 두 번
+              한다. */}
           {/* 식구 탭에서만 — 내 것을 빼면 "다른 사람들이 뭘 했나" 가 보인다.
               몇 건이 남는지 미리 적어 둔다. 눌러 놓고 텅 비면 고장으로 읽힌다. */}
-          {mode === 'household' && listKind === 'done' && (
+          {mode === 'household' && (
             <label style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '2px 2px 6px',
                             fontSize: 12.5, color: 'var(--ink-700)', cursor: 'pointer' }}>
               <input
@@ -1390,12 +1441,12 @@ const CookingCalendar: React.FC = () => {
           <div style={{ maxHeight: '58vh', overflowY: 'auto', display: 'flex',
                         flexDirection: 'column', gap: 8, paddingRight: 2 }}>
           {listKind === 'write' ? (
-            recorded === null ? (
+            listRecorded === null ? (
               <div style={{ padding: '24px 4px', textAlign: 'center',
                             fontSize: 13, color: 'var(--ink-500)' }}>
                 불러오는 중이에요...
               </div>
-            ) : recorded.length === 0 ? (
+            ) : listRecorded.length === 0 ? (
               <div style={{ padding: '24px 4px', textAlign: 'center',
                             fontSize: 13.5, color: 'var(--ink-500)', lineHeight: 1.7 }}>
                 {mode === 'household' ? '식구들의 기록은 아직 모으지 않아요.' : '아직 기록한 레시피가 없어요.'}
@@ -1403,7 +1454,7 @@ const CookingCalendar: React.FC = () => {
                 레시피에서 <b>기록</b>을 누르면 여기 쌓여요.
               </div>
             ) : (
-              recorded.map((r: any) => (
+              listRecorded.map((r: any) => (
                 <button
                   key={r.id}
                   type="button"
@@ -1431,10 +1482,19 @@ const CookingCalendar: React.FC = () => {
                       alignItems: 'center', justifyContent: 'center', fontSize: 15,
                     }}>&#127869;</span>
                   )}
-                  <span style={{
-                    flex: 1, minWidth: 0, fontSize: 13, color: '#1A1A1E', fontWeight: 600,
-                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                  }}>{r.title}</span>
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{
+                      display: 'block', fontSize: 13, color: '#1A1A1E', fontWeight: 600,
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    }}>{r.title}</span>
+                    {/* 누구 기록인지 안 적으면 식구 탭에서 내 것인지 남의 것인지
+                        구분이 안 된다. */}
+                    {mode === 'household' && Array.isArray(r.acted_by) && r.acted_by.length > 0 && (
+                      <span style={{ display: 'block', fontSize: 11, color: 'var(--ink-500)', marginTop: 2 }}>
+                        {r.acted_by.join(', ')}
+                      </span>
+                    )}
+                  </span>
                 </button>
               ))
             )

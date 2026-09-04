@@ -331,19 +331,26 @@ const WeeklyPlan: React.FC = () => {
    * 결과가 마음에 안 들 때 그대로 손해다.
    */
   const aiBox = React.useRef<HTMLDivElement | null>(null);
-  /** AI 로 들어왔을 때 **조건부터 묻는** 시트. */
-  const [askOpen, setAskOpen] = React.useState(false);
+  /**
+   * 주고받은 말.
+   *
+   * AI 로 들어온 화면은 **대화**다. 내가 말한 조건이 오른쪽에 남아야
+   * "무엇을 부탁했는지" 가 화면에 보이고, 다음에 뭘 고칠지 정할 수 있다.
+   */
+  const [chat, setChat] = React.useState<{ who: 'ai' | 'me'; text: string }[]>([]);
+  const chatEnd = React.useRef<HTMLDivElement | null>(null);
+  /** 재료 칩을 펼쳐 볼지 (채팅 화면에서는 접어 둔다). */
+  const [showIngredients, setShowIngredients] = React.useState(false);
   const wishInput = React.useRef<HTMLInputElement | null>(null);
   const wantAi = React.useMemo(
     () => new URLSearchParams(window.location.search).get('ai') === '1',
     [],
   );
   React.useEffect(() => {
-    if (!wantAi) return;
-    // 후보가 준비되기 전에 물어 봐야 기다리는 시간이 겹친다.
-    const t = setTimeout(() => setAskOpen(true), 250);
-    return () => clearTimeout(t);
-  }, [wantAi]);
+    if (!wantAi || chat.length > 0) return;
+    setChat([{ who: 'ai', text: '냉장고 재료로 이번 주 식단을 짜 드릴게요.\n어떤 식단이 좋을까요?' }]);
+  }, [wantAi, chat.length]);
+
   const [asking, setAsking] = React.useState(false);
   const [aiNote, setAiNote] = React.useState<string | null>(null);
 
@@ -603,6 +610,21 @@ const WeeklyPlan: React.FC = () => {
     }
   };
 
+  React.useEffect(() => {
+    chatEnd.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }, [chat.length, asking]);
+
+  /** 조건을 보내고 AI 를 부른다. */
+  const send = (text: string) => {
+    const t = text.trim();
+    if (!t || !canAi || asking) return;
+    setChat(c => [...c, { who: 'me', text: t }]);
+    setWish(t);
+    void askAi(t).then(() => {
+      setChat(c => [...c, { who: 'ai', text: '이렇게 짜 봤어요. 마음에 안 들면 조건을 다시 말해 주세요.' }]);
+    });
+  };
+
   /**
    * 계획을 캘린더에 반영한다.
    *
@@ -755,9 +777,459 @@ const WeeklyPlan: React.FC = () => {
     </>
   );
 
+  /** 짜인 식단(카드 목록 + 반영 버튼). 채팅 화면에서도 그대로 쓴다. */
+  const planSection = (
+    <>
+        {usablePool !== null && !asking && slots.some(s => s.meals.length > 0) && (
+          <>
+            {/* 이 화면의 **결과**. 앞 두 영역은 여기로 오기 위한 자리다.
+                크레딧 안내를 따로 상자에 담았더니 카드가 한 칸 더 밀려 내려갔다 —
+                제목 밑줄로 붙인다. */}
+            <SectionHead
+              title="이번 주 식단"
+              hint={<>내일부터 {slots.length}일 · 바꾸기는 크레딧을 안 써요</>}
+              right={
+                <span style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                  {/* 무료 — 마음에 들 때까지 눌러도 된다. 여기에 크레딧을 물리면
+                      사용자가 누르기를 주저하고, 그러면 식단을 완성하지 못한 채
+                      나간다. 이 버튼의 값어치가 바로 "공짜" 다. */}
+                  <button
+                    type="button"
+                    onClick={reshuffle}
+                    style={{
+                      height: 30, padding: '0 10px', borderRadius: 8,
+                      border: '1px solid var(--line-200)', background: 'var(--surface)',
+                      fontSize: 12, fontWeight: 700, color: 'var(--ink-900)', cursor: 'pointer',
+                    }}
+                  >
+                    ↻ 다시 추천
+                  </button>
+
+                  {/* AI 로 들어온 화면에서만 — 무료로 굴려 보다가 "이게 아닌데"
+                      싶을 때 조건을 바꿔 다시 부르는 계단. 크레딧을 쓴다. */}
+                  {/* 채팅 화면에서는 안 쓴다. 아래 입력창이 곧 "조건 바꿔서 다시" 다 —
+                    같은 일을 하는 버튼이 둘이면 어느 쪽이 크레딧을 쓰는지 헷갈린다. */}
+                {false && (
+                    <span style={{ position: 'relative', display: 'flex' }}>
+                      <button
+                        type="button"
+                        className="ai-action"
+                        disabled={!canAi || asking}
+                        // 조건을 다시 말하는 자리는 **아래 입력창**이다.
+                      // 따로 창을 띄우면 방금까지 보던 대화가 가려진다.
+                      onClick={() => {
+                        wishInput.current?.focus();
+                        wishInput.current?.scrollIntoView({ block: 'center' });
+                      }}
+                        style={{
+                          height: 30, padding: '0 10px', borderRadius: 8,
+                          fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap',
+                          cursor: canAi && !asking ? 'pointer' : 'default',
+                        }}
+                      >
+                        <span>조건 바꿔서 다시</span>
+                      </button>
+                      {canAi && !asking && <span className="ai-fab-badge">AI</span>}
+                    </span>
+                  )}
+                </span>
+              }
+            />
+
+            {/* 하루가 한 묶음. 그 안에 끼니가 0개일 수도, 셋일 수도 있다. */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {slots.map((slot, i) => (
+                <div key={slot.date.toISOString()}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                gap: 8, marginBottom: 6, padding: '0 2px' }}>
+                    <span style={{ fontSize: 13.5, fontWeight: 700, color: '#1A1A1E' }}>
+                      {dayLabel(slot.date)}
+                      {slot.meals.length > 1 && (
+                        <span style={{ fontSize: 11.5, fontWeight: 600, color: '#7A5C00', marginLeft: 6 }}>
+                          {slot.meals.length}끼
+                        </span>
+                      )}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => addTo(i)}
+                      style={{
+                        height: 26, padding: '0 9px', borderRadius: 8, flexShrink: 0,
+                        border: '1px solid var(--line-200)', background: 'var(--surface)',
+                        fontSize: 11.5, fontWeight: 700, color: 'var(--ink-700)', cursor: 'pointer',
+                      }}
+                    >
+                      + 요리 추가
+                    </button>
+                  </div>
+
+                  {slot.meals.length === 0 ? (
+                    /* 옮기고 나면 빈 날이 생긴다. 그것도 정상이라고 말해 준다 —
+                       예전엔 빈 칸이 생기지 않도록 억지로 맞바꿨다. */
+                    <div style={{
+                      border: '1px dashed var(--line-200)', borderRadius: 12, padding: '14px 12px',
+                      fontSize: 12.5, color: 'var(--ink-500)', textAlign: 'center',
+                    }}>
+                      이 날은 비워 뒀어요
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {slot.meals.map((meal, k) => (
+                        <div
+                          key={meal.recipe.id + '-' + k}
+                          style={{
+                            background: 'var(--surface)', border: '1px solid var(--line-200)',
+                            borderRadius: 14, padding: 12,
+                            opacity: meal.on ? 1 : 0.5,
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                            <div style={{ width: 84, flexShrink: 0 }}>
+                              <DayPicker
+                                value={i}
+                                days={slots.map(x => x.date)}
+                                onPick={j => moveTo(i, k, j)}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  track('recipe_open', String(meal.recipe.id));
+                                  openCookMode({
+                                    id: meal.recipe.id, title: meal.recipe.title,
+                                    link: meal.recipe.link, myIngredients,
+                                  });
+                                }}
+                                style={{
+                                  display: 'block', width: '100%', marginTop: 6, padding: 0,
+                                  border: 'none', background: 'transparent', cursor: 'pointer',
+                                }}
+                              >
+                                {meal.recipe.thumbnail ? (
+                                  <img
+                                    src={getProxiedImageUrl(meal.recipe.thumbnail)}
+                                    alt=""
+                                    loading="lazy"
+                                    onError={e => {
+                                      // 자리는 남긴다 — 지우면 줄 높이가 튀어 목록이 들썩인다.
+                                      (e.currentTarget as HTMLImageElement).style.visibility = 'hidden';
+                                    }}
+                                    style={{
+                                      width: '100%', height: 64, borderRadius: 10,
+                                      objectFit: 'cover', background: 'var(--surface-sub)', display: 'block',
+                                    }}
+                                  />
+                                ) : (
+                                  <span
+                                    aria-hidden
+                                    style={{
+                                      width: '100%', height: 64, borderRadius: 10,
+                                      background: 'var(--surface-sub)',
+                                      display: 'flex', alignItems: 'center',
+                                      justifyContent: 'center', color: 'var(--ink-500)', fontSize: 18,
+                                    }}
+                                  >&#127869;</span>
+                                )}
+                              </button>
+                            </div>
+
+                            <div style={{ flex: 1, minWidth: 0, display: 'flex',
+                                          flexDirection: 'column', gap: 6 }}>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  track('recipe_open', String(meal.recipe.id));
+                                  openCookMode({
+                                    id: meal.recipe.id, title: meal.recipe.title,
+                                    link: meal.recipe.link, myIngredients,
+                                  });
+                                }}
+                                style={{
+                                  width: '100%', textAlign: 'left', border: 'none',
+                                  background: 'transparent', cursor: 'pointer', padding: 0,
+                                }}
+                              >
+                                <span style={{
+                                  display: '-webkit-box', fontSize: 14, fontWeight: 600,
+                                  color: '#1A1A1E', lineHeight: 1.4, overflow: 'hidden',
+                                  WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+                                }}>{meal.recipe.title}</span>
+                                {meal.recipe.why ? (
+                                  <span style={{ display: 'block', fontSize: 11.5, color: '#7A5C00', marginTop: 3 }}>
+                                    {meal.recipe.why}
+                                  </span>
+                                ) : typeof meal.recipe.match_rate === 'number' ? (
+                                  <span style={{ display: 'block', fontSize: 11.5, color: 'var(--ink-500)', marginTop: 3 }}>
+                                    가진 재료로 {meal.recipe.match_rate}% 만들 수 있어요
+                                  </span>
+                                ) : null}
+                              </button>
+
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 10,
+                                            flexWrap: 'wrap', marginTop: 'auto' }}>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    track('recipe_open', String(meal.recipe.id));
+                                    openCookMode({
+                                      id: meal.recipe.id, title: meal.recipe.title,
+                                      link: meal.recipe.link, myIngredients,
+                                    });
+                                  }}
+                                  style={{
+                                    border: 'none', background: 'transparent', padding: 0,
+                                    fontSize: 12, fontWeight: 700, color: '#7A5C00', cursor: 'pointer',
+                                  }}
+                                >
+                                  조리 순서 보기 &rsaquo;
+                                </button>
+                                <span aria-hidden style={{ color: 'var(--line-300)' }}>|</span>
+                                <button
+                                  type="button"
+                                  onClick={() => swapOne(i, k)}
+                                  style={{
+                                    border: 'none', background: 'transparent', padding: 0,
+                                    fontSize: 12, fontWeight: 600, color: 'var(--ink-500)', cursor: 'pointer',
+                                  }}
+                                >
+                                  다른 요리로
+                                </button>
+                                <span aria-hidden style={{ color: 'var(--line-300)' }}>|</span>
+                                <button
+                                  type="button"
+                                  onClick={() => removeAt(i, k)}
+                                  style={{
+                                    border: 'none', background: 'transparent', padding: 0,
+                                    fontSize: 12, fontWeight: 600, color: 'var(--ink-500)', cursor: 'pointer',
+                                  }}
+                                >
+                                  빼기
+                                </button>
+                              </div>
+                            </div>
+
+                            <input
+                              type="checkbox"
+                              checked={meal.on}
+                              onChange={() => toggleAt(i, k)}
+                              aria-label={dayLabel(slot.date) + ' ' + meal.recipe.title + ' 담기'}
+                              style={{ flexShrink: 0, width: 18, height: 18, marginTop: 6 }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* 반영하기 — 이게 없으면 "짜고 끝" 이다. */}
+            <button
+              type="button"
+              onClick={applyPlan}
+              style={{
+                width: '100%', height: 48, marginTop: 12, borderRadius: 12, border: 'none',
+                background: saved ? '#1A1A1E' : '#FFD600',
+                color: saved ? '#FFD600' : '#1A1A1E',
+                fontSize: 14.5, fontWeight: 700, cursor: 'pointer',
+                transition: 'background .18s ease, color .18s ease',
+              }}
+            >
+              {saved ? '캘린더에 담았어요 · 다시 담기' : '이번 주 식단 계획 반영하기'}
+            </button>
+            {saved && (
+              <button
+                type="button"
+                onClick={() => navigate('/cooking-calendar')}
+                style={{
+                  width: '100%', height: 40, marginTop: 6, borderRadius: 10,
+                  border: '1px solid var(--line-200)', background: 'var(--surface)',
+                  fontSize: 13, fontWeight: 700, color: 'var(--ink-900)', cursor: 'pointer',
+                }}
+              >
+                요리 캘린더에서 보기 ›
+              </button>
+            )}
+
+            <div style={{ fontSize: 11.5, color: 'var(--ink-500)', lineHeight: 1.7,
+                          padding: '10px 4px 0' }}>
+              체크를 끄면 그 날은 빼고 담아요.
+            </div>
+          </>
+        )}
+    </>
+  );
+
+  /**
+   * AI 화면 — **대화**로 본다.
+   *
+   * 무료 화면과 같은 폼에 시트만 얹었더니, 시트를 닫는 순간 무료 화면과
+   * 구분이 안 됐다. 말을 주고받는 일은 채팅으로 보여야 한다.
+   * 쓸 재료는 접어서 위에 둔다 — 무엇으로 짜는지는 늘 보여야 하지만,
+   * 대화보다 앞설 일은 아니다.
+   */
+  const chatScreen = (
+    <>
+      {/* 무엇으로 짜는지 — 접어 둔다 */}
+      <div style={{
+        background: 'var(--surface)', border: '1px solid var(--line-200)',
+        borderRadius: 12, padding: '10px 12px', marginBottom: 12,
+      }}>
+        <button
+          type="button"
+          onClick={() => setShowIngredients(v => !v)}
+          style={{
+            width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            gap: 8, border: 'none', background: 'transparent', padding: 0, cursor: 'pointer',
+          }}
+        >
+          <span style={{ fontSize: 13, fontWeight: 700, color: '#1A1A1E' }}>
+            쓸 재료 {planIngredients.length}개
+          </span>
+          <span style={{ fontSize: 11.5, color: 'var(--ink-500)' }}>
+            {showIngredients ? '접기 ▴' : '보기 ▾'}
+          </span>
+        </button>
+        {showIngredients && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 9 }}>
+            {planIngredients.map(n => (
+              <span key={n} style={{
+                fontSize: 11.5, padding: '4px 8px', borderRadius: 9999,
+                background: 'var(--surface-sub)', color: 'var(--ink-700)',
+              }}>{n}</span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* 주고받은 말 */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 12 }}>
+        {chat.map((m, i) => (
+          <div key={i} style={{
+            display: 'flex', justifyContent: m.who === 'me' ? 'flex-end' : 'flex-start',
+          }}>
+            <span style={{
+              maxWidth: '82%', padding: '10px 13px', borderRadius: 14,
+              // 내가 한 말은 오른쪽에 진하게. 누가 한 말인지 색과 자리로 갈린다.
+              background: m.who === 'me' ? '#1A1A1E' : 'var(--surface)',
+              color: m.who === 'me' ? '#FFFFFF' : 'var(--ink-900)',
+              border: m.who === 'me' ? 'none' : '1px solid var(--line-200)',
+              fontSize: 13.5, lineHeight: 1.6, whiteSpace: 'pre-line',
+              borderBottomRightRadius: m.who === 'me' ? 4 : 14,
+              borderBottomLeftRadius: m.who === 'me' ? 14 : 4,
+            }}>{m.text}</span>
+          </div>
+        ))}
+
+        {asking && (
+          <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+            <span style={{
+              padding: '10px 13px', borderRadius: 14, borderBottomLeftRadius: 4,
+              background: 'var(--surface)', border: '1px solid var(--line-200)',
+              fontSize: 13.5, color: 'var(--ink-500)',
+            }}>고르는 중이에요...</span>
+          </div>
+        )}
+        <div ref={chatEnd} />
+      </div>
+
+      {/* 짜인 식단 — 마지막 말 아래에 붙는다.
+          아직 아무 말도 안 했는데 결과가 있으면, AI 가 짜 준 것으로 오해한다.
+          그건 냉장고 재료만으로 고른 **무료 추천**이다. */}
+      {!asking && slots.some(x => x.meals.length > 0) && (
+        <>
+          {chat.every(m => m.who === 'ai') && (
+            <div style={{
+              fontSize: 12, color: 'var(--ink-500)', lineHeight: 1.6,
+              padding: '10px 12px', marginBottom: 10, borderRadius: 10,
+              background: 'var(--surface)', border: '1px dashed var(--line-200)',
+            }}>
+              아래는 <b style={{ color: 'var(--ink-700)' }}>냉장고 재료만으로</b> 골라 본 거예요.
+              조건을 말해 주시면 그에 맞춰 다시 골라 드려요.
+            </div>
+          )}
+          {planSection}
+        </>
+      )}
+
+      {/* 아래 고정 — 조건을 말하는 자리 */}
+      <div style={{
+        position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 'var(--z-sticky)' as any,
+        background: 'var(--surface)', borderTop: '1px solid var(--line-200)',
+        padding: '10px 14px calc(10px + env(safe-area-inset-bottom))',
+      }}>
+        <div style={{ maxWidth: 480, margin: '0 auto' }}>
+          {/* 빈 칸만 주고 "적어 보세요" 하면 대부분 그냥 넘긴다.
+              눌러서 고를 수 있으면 무엇을 말할 수 있는 자리인지가 보인다. */}
+          <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 8 }}>
+            {WISH_PRESETS.map(x => (
+              <button
+                key={x}
+                type="button"
+                disabled={!canAi || asking}
+                onClick={() => send(x)}
+                style={{
+                  flexShrink: 0, height: 30, padding: '0 11px', borderRadius: 9999,
+                  border: '1px solid var(--line-200)', background: 'var(--surface)',
+                  fontSize: 12.5, color: 'var(--ink-700)',
+                  cursor: canAi && !asking ? 'pointer' : 'default',
+                  opacity: canAi && !asking ? 1 : 0.5,
+                }}
+              >
+                {x}
+              </button>
+            ))}
+          </div>
+
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            <input
+              ref={wishInput}
+              value={wish}
+              onChange={e => setWish(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') send(wish); }}
+              placeholder={canAi ? '어떤 식단이 좋을까요?' : '크레딧을 다 쓰셨어요'}
+              disabled={!canAi || asking}
+              style={{
+                flex: 1, minWidth: 0, height: 44, borderRadius: 22,
+                border: '1px solid var(--line-200)', padding: '0 16px',
+                fontSize: 14, boxSizing: 'border-box', background: 'var(--surface-sub)',
+              }}
+            />
+            <span style={{ position: 'relative', flexShrink: 0, display: 'flex' }}>
+              <button
+                type="button"
+                className="ai-action"
+                disabled={!canAi || asking || !wish.trim()}
+                onClick={() => send(wish)}
+                style={{
+                  width: 44, height: 44, borderRadius: 22, padding: 0,
+                  fontSize: 15, fontWeight: 800,
+                  cursor: canAi && !asking && wish.trim() ? 'pointer' : 'default',
+                  opacity: canAi && !asking && wish.trim() ? 1 : 0.5,
+                }}
+              >
+                <span>↑</span>
+              </button>
+            </span>
+          </div>
+
+          <div style={{ fontSize: 11, color: 'var(--ink-500)', marginTop: 6, textAlign: 'center' }}>
+            {canAi
+              ? <>한 번 물을 때 크레딧 <b>{planCost}</b>을 써요 · 남은 {usage?.balance ?? 0}</>
+              : usage?.is_guest
+                ? <>가입하면 <b>{usage.signup_credits} 크레딧</b>을 드려요.</>
+                : '크레딧을 다 쓰셨어요.'}
+          </div>
+        </div>
+      </div>
+    </>
+  );
+
+
   // 위쪽 여백 72 는 고정 헤더(56) + 여백(16). 다른 화면들과 같은 값이다.
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--surface-sub)', padding: '72px 14px 90px' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--surface-sub)',
+                  padding: wantAi ? '72px 14px 170px' : '72px 14px 90px' }}>
       <div style={{ position: 'relative', display: 'flex', alignItems: 'center',
                     justifyContent: 'center', marginBottom: 16, minHeight: 40 }}>
         <BackButton onClick={() => navigate(-1)} style={{ left: 0, top: 2 }} />
@@ -766,98 +1238,7 @@ const WeeklyPlan: React.FC = () => {
         </div>
       </div>
 
-      {/* AI 로 들어왔으면 **조건부터 묻는다.**
-          카드 순서만 바꿔서는 무료 화면과 다를 게 없었다. 이 버튼을 누른
-          사람은 조건을 말하러 온 것이다. */}
-      <Sheet
-        open={askOpen}
-        onClose={() => setAskOpen(false)}
-        title="어떤 식단으로 드릴까요?"
-        maxHeight="72dvh"
-        hideFooter
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={{ fontSize: 12.5, color: 'var(--ink-500)', lineHeight: 1.6 }}>
-            눌러서 고르거나 직접 적어 주세요. 냉장고 재료 안에서 골라 드려요.
-          </div>
-
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-            {WISH_PRESETS.map(x => {
-              const on = wish === x;
-              return (
-                <button
-                  key={x}
-                  type="button"
-                  onClick={() => setWish(on ? '' : x)}
-                  aria-pressed={on}
-                  style={{
-                    height: 34, padding: '0 12px', borderRadius: 9999, cursor: 'pointer',
-                    border: on ? '1px solid #1A1A1E' : '1px solid var(--line-200)',
-                    background: on ? '#FFD600' : 'var(--surface)',
-                    fontSize: 13, fontWeight: on ? 700 : 500, color: '#1A1A1E',
-                  }}
-                >
-                  {x}
-                </button>
-              );
-            })}
-          </div>
-
-          <input
-            value={wish}
-            onChange={e => setWish(e.target.value)}
-            onKeyDown={e => {
-              if (e.key === 'Enter' && canAi && !asking) { setAskOpen(false); void askAi(); }
-            }}
-            placeholder="직접 적어도 돼요"
-            style={{
-              height: 44, borderRadius: 10, border: '1px solid var(--line-200)',
-              padding: '0 12px', fontSize: 14, boxSizing: 'border-box', width: '100%',
-            }}
-          />
-
-          <span style={{ position: 'relative', display: 'flex' }}>
-            <button
-              type="button"
-              className="ai-action"
-              disabled={asking || !canAi}
-              onClick={() => { if (canAi) { setAskOpen(false); void askAi(); } }}
-              style={{
-                width: '100%', height: 50, borderRadius: 12,
-                fontSize: 15, fontWeight: 700,
-                cursor: canAi && !asking ? 'pointer' : 'default',
-              }}
-            >
-              <span>{asking ? '고르는 중...' : `AI 추천받기 · 크레딧 ${planCost}`}</span>
-            </button>
-            {!asking && canAi && <span className="ai-fab-badge">AI</span>}
-          </span>
-
-          <UsageLine />
-
-          {!canAi && (
-            <div style={{ fontSize: 12.5, color: 'var(--ink-500)', lineHeight: 1.6 }}>
-              {usage?.is_guest
-                ? <>가입하면 <b>{usage.signup_credits} 크레딧</b>을 드려요.</>
-                : '크레딧을 다 쓰셨어요.'}
-              {' '}닫으면 <b>무료 추천</b>을 그대로 볼 수 있어요.
-            </div>
-          )}
-
-          <button
-            type="button"
-            onClick={() => setAskOpen(false)}
-            style={{
-              height: 42, borderRadius: 10, border: 'none', background: 'transparent',
-              fontSize: 13, fontWeight: 600, color: 'var(--ink-500)', cursor: 'pointer',
-            }}
-          >
-            그냥 무료 추천 볼게요
-          </button>
-        </div>
-      </Sheet>
-
-      {wantAi && aiCard}
+      {wantAi && chatScreen}
 
       {/* ── ① 무엇으로 짜나 ───────────────────────────────── */}
       {/* 접었을 때 짧아야 한다. 이 영역이 길면 정작 결과인 식단이 화면 밖으로
@@ -1025,276 +1406,7 @@ const WeeklyPlan: React.FC = () => {
         </div>
       )}
 
-      {usablePool !== null && !asking && slots.some(s => s.meals.length > 0) && (
-        <>
-          {/* 이 화면의 **결과**. 앞 두 영역은 여기로 오기 위한 자리다.
-              크레딧 안내를 따로 상자에 담았더니 카드가 한 칸 더 밀려 내려갔다 —
-              제목 밑줄로 붙인다. */}
-          <SectionHead
-            title="이번 주 식단"
-            hint={<>내일부터 {slots.length}일 · 바꾸기는 크레딧을 안 써요</>}
-            right={
-              <span style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                {/* 무료 — 마음에 들 때까지 눌러도 된다. 여기에 크레딧을 물리면
-                    사용자가 누르기를 주저하고, 그러면 식단을 완성하지 못한 채
-                    나간다. 이 버튼의 값어치가 바로 "공짜" 다. */}
-                <button
-                  type="button"
-                  onClick={reshuffle}
-                  style={{
-                    height: 30, padding: '0 10px', borderRadius: 8,
-                    border: '1px solid var(--line-200)', background: 'var(--surface)',
-                    fontSize: 12, fontWeight: 700, color: 'var(--ink-900)', cursor: 'pointer',
-                  }}
-                >
-                  ↻ 다시 추천
-                </button>
-
-                {/* AI 로 들어온 화면에서만 — 무료로 굴려 보다가 "이게 아닌데"
-                    싶을 때 조건을 바꿔 다시 부르는 계단. 크레딧을 쓴다. */}
-                {wantAi && (
-                  <span style={{ position: 'relative', display: 'flex' }}>
-                    <button
-                      type="button"
-                      className="ai-action"
-                      disabled={!canAi || asking}
-                      onClick={() => { if (canAi) setAskOpen(true); }}
-                      style={{
-                        height: 30, padding: '0 10px', borderRadius: 8,
-                        fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap',
-                        cursor: canAi && !asking ? 'pointer' : 'default',
-                      }}
-                    >
-                      <span>조건 바꿔서 다시</span>
-                    </button>
-                    {canAi && !asking && <span className="ai-fab-badge">AI</span>}
-                  </span>
-                )}
-              </span>
-            }
-          />
-
-          {/* 하루가 한 묶음. 그 안에 끼니가 0개일 수도, 셋일 수도 있다. */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            {slots.map((slot, i) => (
-              <div key={slot.date.toISOString()}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                              gap: 8, marginBottom: 6, padding: '0 2px' }}>
-                  <span style={{ fontSize: 13.5, fontWeight: 700, color: '#1A1A1E' }}>
-                    {dayLabel(slot.date)}
-                    {slot.meals.length > 1 && (
-                      <span style={{ fontSize: 11.5, fontWeight: 600, color: '#7A5C00', marginLeft: 6 }}>
-                        {slot.meals.length}끼
-                      </span>
-                    )}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => addTo(i)}
-                    style={{
-                      height: 26, padding: '0 9px', borderRadius: 8, flexShrink: 0,
-                      border: '1px solid var(--line-200)', background: 'var(--surface)',
-                      fontSize: 11.5, fontWeight: 700, color: 'var(--ink-700)', cursor: 'pointer',
-                    }}
-                  >
-                    + 요리 추가
-                  </button>
-                </div>
-
-                {slot.meals.length === 0 ? (
-                  /* 옮기고 나면 빈 날이 생긴다. 그것도 정상이라고 말해 준다 —
-                     예전엔 빈 칸이 생기지 않도록 억지로 맞바꿨다. */
-                  <div style={{
-                    border: '1px dashed var(--line-200)', borderRadius: 12, padding: '14px 12px',
-                    fontSize: 12.5, color: 'var(--ink-500)', textAlign: 'center',
-                  }}>
-                    이 날은 비워 뒀어요
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {slot.meals.map((meal, k) => (
-                      <div
-                        key={meal.recipe.id + '-' + k}
-                        style={{
-                          background: 'var(--surface)', border: '1px solid var(--line-200)',
-                          borderRadius: 14, padding: 12,
-                          opacity: meal.on ? 1 : 0.5,
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                          <div style={{ width: 84, flexShrink: 0 }}>
-                            <DayPicker
-                              value={i}
-                              days={slots.map(x => x.date)}
-                              onPick={j => moveTo(i, k, j)}
-                            />
-                            <button
-                              type="button"
-                              onClick={() => {
-                                track('recipe_open', String(meal.recipe.id));
-                                openCookMode({
-                                  id: meal.recipe.id, title: meal.recipe.title,
-                                  link: meal.recipe.link, myIngredients,
-                                });
-                              }}
-                              style={{
-                                display: 'block', width: '100%', marginTop: 6, padding: 0,
-                                border: 'none', background: 'transparent', cursor: 'pointer',
-                              }}
-                            >
-                              {meal.recipe.thumbnail ? (
-                                <img
-                                  src={getProxiedImageUrl(meal.recipe.thumbnail)}
-                                  alt=""
-                                  loading="lazy"
-                                  onError={e => {
-                                    // 자리는 남긴다 — 지우면 줄 높이가 튀어 목록이 들썩인다.
-                                    (e.currentTarget as HTMLImageElement).style.visibility = 'hidden';
-                                  }}
-                                  style={{
-                                    width: '100%', height: 64, borderRadius: 10,
-                                    objectFit: 'cover', background: 'var(--surface-sub)', display: 'block',
-                                  }}
-                                />
-                              ) : (
-                                <span
-                                  aria-hidden
-                                  style={{
-                                    width: '100%', height: 64, borderRadius: 10,
-                                    background: 'var(--surface-sub)',
-                                    display: 'flex', alignItems: 'center',
-                                    justifyContent: 'center', color: 'var(--ink-500)', fontSize: 18,
-                                  }}
-                                >&#127869;</span>
-                              )}
-                            </button>
-                          </div>
-
-                          <div style={{ flex: 1, minWidth: 0, display: 'flex',
-                                        flexDirection: 'column', gap: 6 }}>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                track('recipe_open', String(meal.recipe.id));
-                                openCookMode({
-                                  id: meal.recipe.id, title: meal.recipe.title,
-                                  link: meal.recipe.link, myIngredients,
-                                });
-                              }}
-                              style={{
-                                width: '100%', textAlign: 'left', border: 'none',
-                                background: 'transparent', cursor: 'pointer', padding: 0,
-                              }}
-                            >
-                              <span style={{
-                                display: '-webkit-box', fontSize: 14, fontWeight: 600,
-                                color: '#1A1A1E', lineHeight: 1.4, overflow: 'hidden',
-                                WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
-                              }}>{meal.recipe.title}</span>
-                              {meal.recipe.why ? (
-                                <span style={{ display: 'block', fontSize: 11.5, color: '#7A5C00', marginTop: 3 }}>
-                                  {meal.recipe.why}
-                                </span>
-                              ) : typeof meal.recipe.match_rate === 'number' ? (
-                                <span style={{ display: 'block', fontSize: 11.5, color: 'var(--ink-500)', marginTop: 3 }}>
-                                  가진 재료로 {meal.recipe.match_rate}% 만들 수 있어요
-                                </span>
-                              ) : null}
-                            </button>
-
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 10,
-                                          flexWrap: 'wrap', marginTop: 'auto' }}>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  track('recipe_open', String(meal.recipe.id));
-                                  openCookMode({
-                                    id: meal.recipe.id, title: meal.recipe.title,
-                                    link: meal.recipe.link, myIngredients,
-                                  });
-                                }}
-                                style={{
-                                  border: 'none', background: 'transparent', padding: 0,
-                                  fontSize: 12, fontWeight: 700, color: '#7A5C00', cursor: 'pointer',
-                                }}
-                              >
-                                조리 순서 보기 &rsaquo;
-                              </button>
-                              <span aria-hidden style={{ color: 'var(--line-300)' }}>|</span>
-                              <button
-                                type="button"
-                                onClick={() => swapOne(i, k)}
-                                style={{
-                                  border: 'none', background: 'transparent', padding: 0,
-                                  fontSize: 12, fontWeight: 600, color: 'var(--ink-500)', cursor: 'pointer',
-                                }}
-                              >
-                                다른 요리로
-                              </button>
-                              <span aria-hidden style={{ color: 'var(--line-300)' }}>|</span>
-                              <button
-                                type="button"
-                                onClick={() => removeAt(i, k)}
-                                style={{
-                                  border: 'none', background: 'transparent', padding: 0,
-                                  fontSize: 12, fontWeight: 600, color: 'var(--ink-500)', cursor: 'pointer',
-                                }}
-                              >
-                                빼기
-                              </button>
-                            </div>
-                          </div>
-
-                          <input
-                            type="checkbox"
-                            checked={meal.on}
-                            onChange={() => toggleAt(i, k)}
-                            aria-label={dayLabel(slot.date) + ' ' + meal.recipe.title + ' 담기'}
-                            style={{ flexShrink: 0, width: 18, height: 18, marginTop: 6 }}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-
-          {/* 반영하기 — 이게 없으면 "짜고 끝" 이다. */}
-          <button
-            type="button"
-            onClick={applyPlan}
-            style={{
-              width: '100%', height: 48, marginTop: 12, borderRadius: 12, border: 'none',
-              background: saved ? '#1A1A1E' : '#FFD600',
-              color: saved ? '#FFD600' : '#1A1A1E',
-              fontSize: 14.5, fontWeight: 700, cursor: 'pointer',
-              transition: 'background .18s ease, color .18s ease',
-            }}
-          >
-            {saved ? '캘린더에 담았어요 · 다시 담기' : '이번 주 식단 계획 반영하기'}
-          </button>
-          {saved && (
-            <button
-              type="button"
-              onClick={() => navigate('/cooking-calendar')}
-              style={{
-                width: '100%', height: 40, marginTop: 6, borderRadius: 10,
-                border: '1px solid var(--line-200)', background: 'var(--surface)',
-                fontSize: 13, fontWeight: 700, color: 'var(--ink-900)', cursor: 'pointer',
-              }}
-            >
-              요리 캘린더에서 보기 ›
-            </button>
-          )}
-
-          <div style={{ fontSize: 11.5, color: 'var(--ink-500)', lineHeight: 1.7,
-                        padding: '10px 4px 0' }}>
-            체크를 끄면 그 날은 빼고 담아요.
-          </div>
-        </>
-      )}
+      {!wantAi && planSection}
 
       {conflict && (
         <Dialog
