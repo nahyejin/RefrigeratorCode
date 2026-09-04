@@ -211,8 +211,8 @@ const FridgeToPlan: React.FC<{ onGo: (withAi?: boolean) => void }> = ({ onGo }) 
               justifyContent: 'center', gap: 3, padding: '0 12px',
             }}
           >
-            <span style={{ fontSize: 14, fontWeight: 700, color: '#1A1A1E' }}>
-              조건 넣어 추천
+            <span style={{ fontSize: 13.5, fontWeight: 700, color: '#1A1A1E' }}>
+              이번 주 AI 식단 추천
             </span>
             <span style={{ fontSize: 11.5, color: 'rgba(26,26,30,0.65)' }}>
               "아이 먹을 것 위주로"
@@ -760,6 +760,10 @@ const CookingCalendar: React.FC = () => {
           — 월 보기는 도장, 주 보기는 카드, 일 보기는 그 날 카드로 — 보여 준다.
           (로그인 전 화면에는 달력이 없으므로 거기서는 목록을 그대로 쓴다) */}
 
+      {/* 월 목표는 **달력의 이야기**다. 보고 있는 달을 센다.
+          목록 탭에서는 감춘다 — 그쪽은 전 기간(또는 고른 기간)을 보는데,
+          위에 달 기준 숫자가 같이 떠 있으면 어느 게 무엇인지 알 수 없다. */}
+      {mode === 'calendar' && (<>
       {/* 월 목표는 "이번 달" 이라는 더 큰 단위 얘기라, 일/주/월 중 무엇을 보고
           있든 항상 같은 값이어야 맞다 — 그래서 일/주/월 전환 버튼보다 위,
           가장 먼저 오는 자리에 두고 "몇 월 목표"인지 숫자로 못 박아 둔다.
@@ -880,12 +884,19 @@ const CookingCalendar: React.FC = () => {
                     onChange={(e) => setSavingsPerMealInput(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') handleSaveSavingsPerMeal();
+                      if (e.key === 'Escape') setEditingSavingsPerMeal(false);
                     }}
+                    // 칸을 벗어나면 그대로 저장한다. 체크 버튼을 찾아 눌러야만
+                    // 반영되면, 고쳐 놓고 딴 데를 눌렀을 때 말없이 사라진다.
+                    // (버튼은 그대로 둔다 — 누르는 사람도 있다)
+                    onBlur={() => handleSaveSavingsPerMeal()}
                     autoFocus
                     style={{ width: 56, height: 20, borderRadius: 5, border: '1px solid var(--line-300)', textAlign: 'center', fontSize: 11, padding: 0 }}
                   />
                   <button
                     type="button"
+                    // blur 가 먼저 나가면 버튼이 사라져 클릭이 씹힌다.
+                    onMouseDown={e => e.preventDefault()}
                     onClick={handleSaveSavingsPerMeal}
                     aria-label="1인 한 끼 추정액 적용"
                     style={{ height: 22, padding: '0 8px', borderRadius: 6, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#1A1A1E', background: 'var(--brand)', border: 'none', cursor: 'pointer' }}
@@ -915,12 +926,16 @@ const CookingCalendar: React.FC = () => {
                     onChange={(e) => setFamilySizeInput(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') handleSaveFamilySize();
+                      if (e.key === 'Escape') setEditingFamilySize(false);
                     }}
+                    onBlur={() => handleSaveFamilySize()}
                     autoFocus
                     style={{ width: 36, height: 20, borderRadius: 5, border: '1px solid var(--line-300)', textAlign: 'center', fontSize: 11, padding: 0 }}
                   />
                   <button
                     type="button"
+                    // blur 가 먼저 나가면 버튼이 사라져 클릭이 씹힌다.
+                    onMouseDown={e => e.preventDefault()}
                     onClick={handleSaveFamilySize}
                     aria-label="식구 수 적용"
                     style={{ height: 22, padding: '0 8px', borderRadius: 6, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#1A1A1E', background: 'var(--brand)', border: 'none', cursor: 'pointer' }}
@@ -992,6 +1007,8 @@ const CookingCalendar: React.FC = () => {
           </div>
         )}
       </div>
+
+      </>)}
 
       {/* 목표 카드와 명확히 분리된 별도 카드에 캘린더를 담아, 모바일 화면에서
           두 영역이 붙어 보이지 않고 한 화면에 같이 들어오게 했다. */}
@@ -1325,6 +1342,31 @@ const CookingCalendar: React.FC = () => {
               })}
             </span>
           </div>
+
+          <div style={{ fontSize: 11.5, color: 'var(--ink-500)', padding: '0 2px 4px' }}>
+            {span === 'all' ? '전 기간' : span === '365' ? '최근 1년' : '최근 3개월'}
+            {' 기준이에요. 위 달력의 월 목표와는 다른 숫자예요.'}
+          </div>
+
+          {/* 지금 보고 있는 **그 목록**을 사람별로 센다. 위의 월 목표와 달리
+              여기 숫자는 아래 목록과 **같은 기준**이다 — 그래야 헷갈리지 않는다. */}
+          {isInHousehold && listKind === 'done' && (listEntries?.length ?? 0) > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, padding: '0 2px 6px',
+                          fontSize: 12, color: 'var(--ink-700)' }}>
+              {[...(listEntries || []).reduce((m, e) => {
+                m.set(e.user_id, (m.get(e.user_id) || 0) + 1);
+                return m;
+              }, new Map<number, number>()).entries()]
+                .sort((x, y) => y[1] - x[1])
+                .map(([uid, n]) => (
+                  <span key={uid} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
+                                   background: colorForUser(uid, memberIds) }} />
+                    {nicknameById.get(uid) || '이름 없음'} {n}회
+                  </span>
+                ))}
+            </div>
+          )}
 
           {/* 식구 탭에서만 — 내 것을 빼면 "다른 사람들이 뭘 했나" 가 보인다.
               몇 건이 남는지 미리 적어 둔다. 눌러 놓고 텅 비면 고장으로 읽힌다. */}
