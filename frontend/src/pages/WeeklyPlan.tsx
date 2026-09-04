@@ -1261,74 +1261,72 @@ const WeeklyPlan: React.FC = () => {
    */
   const chatScreen = (
     <>
-      {/* 지난 대화 — 크레딧을 쓴 결과라 꺼내 볼 수 있어야 한다. */}
-      {sessions.length > 0 && (
-        <div style={{
-          background: 'var(--surface)', border: '1px solid var(--line-200)',
-          borderRadius: 12, padding: '10px 12px', marginBottom: 10,
-        }}>
-          <button
-            type="button"
-            onClick={() => setPastOpen(v => !v)}
-            style={{
-              width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              gap: 8, border: 'none', background: 'transparent', padding: 0, cursor: 'pointer',
-            }}
-          >
-            <span style={{ fontSize: 13, fontWeight: 700, color: '#1A1A1E' }}>
-              지난 대화 {sessions.length}개
-            </span>
-            <span style={{ fontSize: 11.5, color: 'var(--ink-500)' }}>
-              {pastOpen ? '접기 ▴' : '보기 ▾'}
-            </span>
-          </button>
-
-          {pastOpen && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 9 }}>
-              {sessions.map(x => (
-                <div key={x.id} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <button
-                    type="button"
-                    // 지금 대화는 밀어 넣고, 고른 것을 꺼내 온다. 덮어쓰지 않는다.
-                    onClick={() => {
-                      archiveChat(chat);
-                      dropSession(x.id);
-                      setChat(x.messages);
-                      setSessions(loadSessions());
-                      setPastOpen(false);
-                    }}
-                    style={{
-                      flex: 1, minWidth: 0, textAlign: 'left', cursor: 'pointer',
-                      padding: '8px 10px', borderRadius: 9,
-                      border: '1px solid var(--line-200)', background: 'var(--surface-sub)',
-                    }}
-                  >
-                    <span style={{
-                      display: 'block', fontSize: 12.5, fontWeight: 600, color: '#1A1A1E',
-                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                    }}>{x.title}</span>
-                    <span style={{ display: 'block', fontSize: 11, color: 'var(--ink-500)', marginTop: 1 }}>
-                      {new Date(x.at).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })}
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    aria-label="이 대화 지우기"
-                    onClick={() => { dropSession(x.id); setSessions(loadSessions()); }}
-                    style={{
-                      flexShrink: 0, width: 32, height: 32, borderRadius: 8,
-                      border: '1px solid var(--line-200)', background: 'var(--surface)',
-                      color: 'var(--ink-500)', fontSize: 13, cursor: 'pointer',
-                    }}
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+      {/* 지난 대화 — **바텀시트**로 꺼낸다.
+          인라인 목록은 대화 위 공간을 늘 먹었고, 한 손으로 쥐면 화면 위쪽은
+          손이 안 닿는다. 이 화면은 이미 손이 아래 입력창에 있다. */}
+      <Sheet
+        open={pastOpen}
+        onClose={() => setPastOpen(false)}
+        title={`지난 대화 ${sessions.length}개`}
+        maxHeight="70dvh"
+        dismissLabel="닫기"
+      >
+        {sessions.length === 0 ? (
+          <div style={{ padding: '20px 0', textAlign: 'center',
+                        fontSize: 13.5, color: 'var(--ink-500)', lineHeight: 1.7 }}>
+            아직 지난 대화가 없어요.
+            <br />
+            `새 대화` 를 누르면 지금 대화가 여기 쌓여요.
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {sessions.map(x => (
+              <div key={x.id} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <button
+                  type="button"
+                  // 지금 대화는 밀어 넣고, 고른 것을 꺼내 온다. 덮어쓰지 않는다.
+                  onClick={() => {
+                    archiveChat(chat);
+                    dropSession(x.id);
+                    setChat(x.messages);
+                    setSessions(loadSessions());
+                    setPastOpen(false);
+                  }}
+                  style={{
+                    flex: 1, minWidth: 0, textAlign: 'left', cursor: 'pointer',
+                    padding: '11px 12px', borderRadius: 10,
+                    border: '1px solid var(--line-200)', background: 'var(--surface)',
+                  }}
+                >
+                  <span style={{
+                    display: 'block', fontSize: 13.5, fontWeight: 600, color: '#1A1A1E',
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>{x.title}</span>
+                  <span style={{ display: 'block', fontSize: 11.5, color: 'var(--ink-500)', marginTop: 2 }}>
+                    {new Date(x.at).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })}
+                    {(() => {
+                      const r = [...x.messages].reverse().find(m => m.result)?.result;
+                      return r ? ` · 장보기 ${r.buyCount}개로 ${r.days}일치` : '';
+                    })()}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  aria-label="이 대화 지우기"
+                  onClick={() => { dropSession(x.id); setSessions(loadSessions()); }}
+                  style={{
+                    flexShrink: 0, width: 36, height: 36, borderRadius: 9,
+                    border: '1px solid var(--line-200)', background: 'var(--surface)',
+                    color: 'var(--ink-500)', fontSize: 15, cursor: 'pointer',
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </Sheet>
 
       {/* 무엇으로 짜는지 — 접어 둔다 */}
       <div style={{
@@ -1511,26 +1509,43 @@ const WeeklyPlan: React.FC = () => {
         </div>
         {/* 대화가 길어지면 처음부터 다시 하고 싶을 때가 있다. 지울 길이 없으면
             이력을 남긴 것이 오히려 짐이 된다. */}
-        {wantAi && chat.length > 1 && (
-          <button
-            type="button"
-            // 그냥 지우면 크레딧을 쓴 결과가 사라진다. 지난 목록으로 넘긴다.
-            onClick={() => {
-              archiveChat(chat);
-              setSessions(loadSessions());
-              setChat([]);
-              setBasket(null);
-              setPastOpen(false);
-            }}
-            style={{
-              position: 'absolute', right: 0, top: 4, height: 32, padding: '0 10px',
-              borderRadius: 8, border: '1px solid var(--line-200)',
-              background: 'var(--surface)', fontSize: 12, fontWeight: 600,
-              color: 'var(--ink-500)', cursor: 'pointer',
-            }}
-          >
-            새 대화
-          </button>
+        {wantAi && (
+          <span style={{ position: 'absolute', right: 0, top: 4, display: 'flex', gap: 6 }}>
+            {/* 지난 대화 — 목록은 바텀시트로 연다. */}
+            {sessions.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setPastOpen(true)}
+                aria-label={`지난 대화 ${sessions.length}개`}
+                style={{
+                  height: 32, padding: '0 10px', borderRadius: 8,
+                  border: '1px solid var(--line-200)', background: 'var(--surface)',
+                  fontSize: 12, fontWeight: 600, color: 'var(--ink-500)', cursor: 'pointer',
+                }}
+              >
+                지난 대화 {sessions.length}
+              </button>
+            )}
+            {chat.length > 1 && (
+              <button
+                type="button"
+                // 그냥 지우면 크레딧을 쓴 결과가 사라진다. 지난 목록으로 넘긴다.
+                onClick={() => {
+                  archiveChat(chat);
+                  setSessions(loadSessions());
+                  setChat([]);
+                  setBasket(null);
+                }}
+                style={{
+                  height: 32, padding: '0 10px', borderRadius: 8,
+                  border: '1px solid var(--line-200)', background: 'var(--surface)',
+                  fontSize: 12, fontWeight: 600, color: 'var(--ink-500)', cursor: 'pointer',
+                }}
+              >
+                새 대화
+              </button>
+            )}
+          </span>
         )}
       </div>
 

@@ -1017,7 +1017,10 @@ const CookingCalendar: React.FC = () => {
 
         {/* 안내 문구(매월 1일 초기화, 공동 목표 여부)만 접어 둔다 — 인원별
             범례는 게이지가 보여주는 핵심 정보라 항상 위에 노출한다(위 참고).
-            눈에 잘 띄도록 텍스트+화살표가 있는 알약 버튼으로. */}
+
+            알약 배지로 뒀더니 **본문보다 눈에 띄었다.** 여기 담기는 건
+            부수적인 안내라, 그만한 무게를 가질 자리가 아니다. 테두리를 빼고
+            흐린 글자로 둔다 — 찾는 사람만 찾으면 된다. */}
         <button
           type="button"
           onClick={() => setGoalCardExpanded((v) => !v)}
@@ -1025,17 +1028,16 @@ const CookingCalendar: React.FC = () => {
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: 4,
-            height: 26,
-            padding: '0 10px',
+            gap: 3,
+            height: 24,
+            padding: 0,
             marginTop: 10,
-            borderRadius: 9999,
-            background: 'var(--surface)',
-            border: '1px solid var(--line-300)',
+            background: 'transparent',
+            border: 'none',
             cursor: 'pointer',
             fontSize: 11.5,
-            fontWeight: 600,
-            color: 'var(--ink-700)',
+            fontWeight: 500,
+            color: 'var(--ink-500)',
           }}
         >
           {goalCardExpanded ? '자세히 접기' : '자세히 보기'}
@@ -1044,8 +1046,8 @@ const CookingCalendar: React.FC = () => {
             height="12"
             viewBox="0 0 24 24"
             fill="none"
-            stroke="var(--ink-700)"
-            strokeWidth="2.4"
+            stroke="var(--ink-500)"
+            strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
             style={{ transform: goalCardExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }}
