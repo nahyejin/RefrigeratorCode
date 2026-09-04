@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import BackButton from '../components/ui/BackButton';
 import Dialog from '../components/ui/Dialog';
 import Sheet from '../components/ui/Sheet';
@@ -16,7 +16,7 @@ import { usageHeaders, applyUsage } from '../utils/usage';
 import { UsageLine, useUsage } from '../components/UsageMeter';
 import { savePlan, conflictingDates, toDateKey, type PlannedMeal } from '../utils/mealPlan';
 import { loadChat, saveChat, clearChat, archiveChat, loadSessions, dropSession,
-         type ChatMsg, type ChatSession } from '../utils/aiChat';
+         toPlanned, type ChatMsg, type ChatSession } from '../utils/aiChat';
 
 /**
  * 이번 주 식단 + 장보기 목록.
@@ -319,9 +319,11 @@ const TurnResult: React.FC<{
   result: NonNullable<ChatMsg['result']>;
   live: boolean;
   editor?: React.ReactNode;
+  /** 지난 턴을 **그때 그 기준으로 다시** 계획에 담는다. */
+  onApply?: () => void;
   onOpen: (id: number, title: string, link?: string) => void;
   onShopping: () => void;
-}> = ({ result, live, editor, onOpen, onShopping }) => (
+}> = ({ result, live, editor, onApply, onOpen, onShopping }) => (
   <>
     {/* 장보기 — 이 기능의 요점. "일곱 끼가 되는데 장은 두 개만" 을 못 박는다. */}
     <div style={{
@@ -437,6 +439,21 @@ const TurnResult: React.FC<{
           </span>
         </button>
       ))}
+      {/* 지난 대화라도 **그때 받은 식단을 지금 담을 수** 있어야 한다.
+          안 그러면 이력은 읽고 마는 것이 되고, 크레딧을 다시 쓰게 된다. */}
+      {onApply && (
+        <button
+          type="button"
+          onClick={onApply}
+          style={{
+            width: '100%', height: 42, marginTop: 4, borderRadius: 10, border: 'none',
+            background: '#FFD600', color: '#1A1A1E',
+            fontSize: 13.5, fontWeight: 700, cursor: 'pointer',
+          }}
+        >
+          이 식단으로 계획 담기
+        </button>
+      )}
     </div>
     )}
   </>
@@ -479,17 +496,8 @@ const WeeklyPlan: React.FC = () => {
    * AI 로 들어온 화면은 **대화**다. 내가 말한 조건이 오른쪽에 남아야
    * "무엇을 부탁했는지" 가 화면에 보이고, 다음에 뭘 고칠지 정할 수 있다.
    */
-  const [chat, setChat] = React.useState<ChatMsg[]>(() => {
-    // **들어올 때마다 새 대화.** 이어서 열리면 지난번에 물어본 조건이 위에
-    // 남아 있어서 지금 묻는 것과 섞여 보인다. 앞의 것은 `지난 대화` 로
-    // 넘기고 빈 자리에서 시작한다 — 넘기지 않고 지우면 크레딧을 쓴 결과가
-    // 사라진다.
-    if (new URLSearchParams(window.location.search).get('ai') !== '1') return [];
-    const prev = loadChat();
-    if (prev.some(m => m.who === 'me')) archiveChat(prev);
-    else clearChat();
-    return [];
-  });
+  // 대화는 늘 빈 자리에서 시작한다. 이어 붙이는 것은 위 효과가 정한다.
+  const [chat, setChat] = React.useState<ChatMsg[]>([]);
   const chatEnd = React.useRef<HTMLDivElement | null>(null);
   /** 마지막 말풍선 — 답이 오면 이 머리로 데려간다. */
   const lastBubble = React.useRef<HTMLDivElement | null>(null);
@@ -503,6 +511,8 @@ const WeeklyPlan: React.FC = () => {
    * 엉뚱한 것을 옮기고 빼게 된다. 그때 받은 목록을 **보여 주기만** 한다.
    */
   const [liveAt, setLiveAt] = React.useState<number | null>(null);
+  /** 지난 대화를 꺼내 보는 중인가. 그때는 아무것도 물을 수 없다. */
+  const [viewingPast, setViewingPast] = React.useState(false);
   /** AI 가 말한 **왜 이렇게 골랐는지**. 말풍선에 그대로 쓴다. */
   const aiReason = React.useRef<string>('');
   /** 재료 칩을 펼쳐 볼지 (채팅 화면에서는 접어 둔다). */
@@ -511,21 +521,36 @@ const WeeklyPlan: React.FC = () => {
   const [pastOpen, setPastOpen] = React.useState(false);
   const [sessions, setSessions] = React.useState<ChatSession[]>(() => loadSessions());
   const wishInput = React.useRef<HTMLInputElement | null>(null);
+  /**
+   * AI 로 들어온 화면인가.
+   *
+   * `useMemo(..., [])` 로 **마운트 때 한 번만** 읽고 있었다. `조건 말하고
+   * 추천받기` 는 같은 화면(`/plan`)의 주소만 `?ai=1` 로 바꾸는데, 그러면
+   * 이 값이 다시 계산되지 않아 화면이 그대로였다 — 눌러도 아무 일도 안
+   * 일어나는 것처럼 보였다. 주소를 **구독해서** 읽는다.
+   */
+  const location = useLocation();
   const wantAi = React.useMemo(
-    () => new URLSearchParams(window.location.search).get('ai') === '1',
-    [],
+    () => new URLSearchParams(location.search).get('ai') === '1',
+    [location.search],
   );
+  /**
+   * AI 화면에 들어올 때마다 **새 대화**로 시작한다.
+   *
+   * 처음 상태를 만들 때만 해서는 안 된다 — 무료 화면에서 버튼을 눌러 넘어오면
+   * 이 화면은 다시 만들어지지 않기 때문이다.
+   */
+  const enteredAi = React.useRef(false);
   React.useEffect(() => {
-    // 이력이 있으면 인사부터 다시 하지 않는다. 이어서 말하는 자리다.
-    if (!wantAi || chat.length > 0) return;
-    // 무엇을 말할 수 있는지 **여기서** 알려 준다. 버튼 부제에 예시 하나를
-    // 박아 두면 그것만 되는 기능으로 읽힌다.
-    setChat([{
-      who: 'ai',
-      text: '장을 가장 적게 보는 조합으로 짜 드려요.\n원하는 조건이 있으면 말씀해 주세요.',
-      at: Date.now(),
-    }]);
-  }, [wantAi, chat.length]);
+    if (!wantAi) { enteredAi.current = false; return; }
+    if (enteredAi.current) return;
+    enteredAi.current = true;
+    const prev = loadChat();
+    if (prev.some(m => m.who === 'me')) archiveChat(prev); else clearChat();
+    setSessions(loadSessions());
+    setChat([]);
+    setLiveAt(null);
+  }, [wantAi]);
 
   const [asking, setAsking] = React.useState(false);
   const [aiNote, setAiNote] = React.useState<string | null>(null);
@@ -639,6 +664,26 @@ const WeeklyPlan: React.FC = () => {
    * 그대로 올라온다. 실제로 "감자" 를 뺐는데 감자채전·감자채볶음이 남았다.
    * "이번 주엔 이거 빼 주세요" 는 **그 요리를 빼 달라는 말**이다.
    */
+  // 인사말은 `planIngredients` 를 읽는다 — 그 선언보다 위에 두면
+  // 의존 배열이 렌더 중에 평가되면서 TDZ 로 터진다.
+  React.useEffect(() => {
+    // 이력이 있으면 인사부터 다시 하지 않는다. 이어서 말하는 자리다.
+    if (!wantAi || chat.length > 0) return;
+    // 무엇을 말할 수 있는지 **여기서** 알려 준다. 버튼 부제에 예시 하나를
+    // 박아 두면 그것만 되는 기능으로 읽힌다.
+    setChat([{
+      who: 'ai',
+      // 냉장고가 비어 있으면 **이 기능이 할 수 있는 일이 없다.** 장보기를
+      // 줄인다는 건 "있는 것을 쓴다" 는 뜻인데, 쓸 것이 없으면 전부 사야 한다.
+      // 크레딧을 쓰고 나서 알려 주면 늦다 — 부르기 전에 말한다.
+      text: planIngredients.length === 0
+        ? '냉장고에 넣어 둔 재료가 없어요.\n지금 짜면 전부 사야 해서 장보기를 줄여 드릴 수가 없어요.\n재료를 몇 개만 넣고 다시 와 주세요.'
+        : `냉장고에 있는 ${planIngredients.length}가지로, 장을 가장 적게 보는 조합을 짜 드려요.\n원하는 조건이 있으면 말씀해 주세요.`,
+      at: Date.now(),
+    }]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wantAi, chat.length, planIngredients.length]);
+
   const usablePool = React.useMemo(() => {
     if (!pool || !off || off.size === 0) return pool;
     return pool.filter(r => !ingredientsOf(r).some(n => off.has(n)));
@@ -870,6 +915,36 @@ const WeeklyPlan: React.FC = () => {
     if (!wantAi || chat.length === 0) return;
     saveChat(chat);
   }, [wantAi, chat]);
+
+  /**
+   * 지난 대화에서 받은 식단을 **지금 계획으로** 담는다.
+   *
+   * 그때 붙은 날짜는 이미 지났을 수 있으니 내일부터 다시 센다 — 지난 날짜에
+   * 담아 두면 요리 캘린더에서 아무 데도 안 보인다.
+   */
+  const applyChatResult = (r: NonNullable<ChatMsg['result']>) => {
+    const dates = nextDays().slice(0, r.dishes.length).map(toDateKey);
+    const meals = toPlanned(r.dishes, dates);
+    if (meals.length === 0) return;
+    savePlan(meals, 'fill');
+    setToast(meals.length);
+  };
+
+  /** 이 대화에서 이미 물었나. 물었으면 입력을 닫는다. */
+  const asked = chat.some(m => m.who === 'me') || viewingPast;
+  /** 재료가 하나도 없으면 부를 이유가 없다. 크레딧만 나간다. */
+  const noStock = planIngredients.length === 0;
+
+  /** 지금 것을 이력으로 넘기고 빈 대화로. */
+  const startNew = () => {
+    if (!viewingPast) archiveChat(chat);
+    setSessions(loadSessions());
+    setChat([]);
+    setBasket(null);
+    setLiveAt(null);
+    setViewingPast(false);
+    setPastOpen(false);
+  };
 
   /** 조건을 보내고 AI 를 부른다. */
   const send = (text: string) => {
@@ -1437,23 +1512,32 @@ const WeeklyPlan: React.FC = () => {
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {/* 지우기는 **카드 안** 오른쪽 끝에. 밖에 따로 두면 카드 높이와
+                안 맞아 줄이 어긋나 보였고, `×` 는 닫기로 읽힌다 — 지우는
+                것이므로 휴지통이 맞다. */}
             {sessions.map(x => (
-              <div key={x.id} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div
+                key={x.id}
+                style={{
+                  display: 'flex', alignItems: 'stretch',
+                  borderRadius: 10, overflow: 'hidden',
+                  border: '1px solid var(--line-200)', background: 'var(--surface)',
+                }}
+              >
                 <button
                   type="button"
-                  // 지금 대화는 밀어 넣고, 고른 것을 꺼내 온다. 덮어쓰지 않는다.
+                  // **읽기만** 한다. 지금 대화는 이력으로 넘기고, 고른 것을 펴 준다.
                   onClick={() => {
-                    archiveChat(chat);
-                    dropSession(x.id);
-                    setChat(x.messages);
+                    if (!viewingPast) archiveChat(chat);
                     setSessions(loadSessions());
+                    setChat(x.messages);
                     setLiveAt(null);
+                    setViewingPast(true);
                     setPastOpen(false);
                   }}
                   style={{
                     flex: 1, minWidth: 0, textAlign: 'left', cursor: 'pointer',
-                    padding: '11px 12px', borderRadius: 10,
-                    border: '1px solid var(--line-200)', background: 'var(--surface)',
+                    padding: '11px 12px', border: 'none', background: 'transparent',
                   }}
                 >
                   <span style={{
@@ -1470,15 +1554,21 @@ const WeeklyPlan: React.FC = () => {
                 </button>
                 <button
                   type="button"
-                  aria-label="이 대화 지우기"
+                  aria-label={`${x.title} 대화 지우기`}
                   onClick={() => { dropSession(x.id); setSessions(loadSessions()); }}
                   style={{
-                    flexShrink: 0, width: 36, height: 36, borderRadius: 9,
-                    border: '1px solid var(--line-200)', background: 'var(--surface)',
-                    color: 'var(--ink-500)', fontSize: 15, cursor: 'pointer',
+                    flexShrink: 0, width: 44, border: 'none', padding: 0,
+                    borderLeft: '1px solid var(--line-200)', background: 'transparent',
+                    color: 'var(--ink-500)', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}
                 >
-                  ×
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                       stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"
+                       strokeLinejoin="round" aria-hidden>
+                    <path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" />
+                    <path d="M10 11v6M14 11v6" />
+                  </svg>
                 </button>
               </div>
             ))}
@@ -1555,6 +1645,7 @@ const WeeklyPlan: React.FC = () => {
                     result={m.result}
                     live={last}
                     editor={aiPlanEditor}
+                    onApply={!last ? () => applyChatResult(m.result!) : undefined}
                     onOpen={(id, title, link) => {
                       track('recipe_open', String(id));
                       openCookMode({ id, title, link, myIngredients });
@@ -1569,13 +1660,28 @@ const WeeklyPlan: React.FC = () => {
           );
         })}
 
+        {/* 기다리는 동안 **무엇을 하고 있는지** 보여 준다. 점 세 개만 찍으면
+            5~10초가 그냥 멈춘 시간이 된다. 앱의 다른 자리에서 쓰는 것과 같은
+            문서 애니메이션이라, 같은 일이 벌어지고 있다는 것도 전해진다. */}
         {asking && (
           <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
-            <span style={{
-              padding: '10px 13px', borderRadius: 14, borderBottomLeftRadius: 4,
+            <div style={{
+              width: '100%', padding: '4px 13px 12px', borderRadius: 14,
+              borderBottomLeftRadius: 4,
               background: 'var(--surface)', border: '1px solid var(--line-200)',
-              fontSize: 13.5, color: 'var(--ink-500)',
-            }}>고르는 중이에요...</span>
+            }}>
+              <StepLoading
+                steps={[
+                  '냉장고에 뭐가 있는지 보는 중이에요',
+                  '말씀하신 조건에 맞는 요리를 찾는 중이에요',
+                  '장을 가장 적게 보는 조합을 고르는 중이에요',
+                  '요일에 나눠 담는 중이에요',
+                ]}
+                timings={[500, 1800, 3400, 5400]}
+                note="보통 5~10초쯤 걸려요"
+                rows={4}
+              />
+            </div>
           </div>
         )}
         <div ref={chatEnd} />
@@ -1583,13 +1689,50 @@ const WeeklyPlan: React.FC = () => {
 
       {/* 짜인 식단은 **말풍선 안**에 있다. 여기 또 두면 같은 것이 두 번 나온다. */}
 
-      {/* 아래 고정 — 조건을 말하는 자리 */}
+      {/* 아래 고정 — 조건을 말하는 자리.
+          **한 대화에 한 번만 묻는다.** 이어서 또 물으면 위에 있는 식단이
+          어느 조건으로 짠 것인지 흐려지고, 크레딧이 언제 나갔는지도 헷갈린다.
+          다시 물으려면 `새 대화` 다 — 그러면 앞의 것은 이력으로 남는다. */}
       <div style={{
         position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 'var(--z-sticky)' as any,
         background: 'var(--surface)', borderTop: '1px solid var(--line-200)',
         padding: '10px 14px calc(10px + env(safe-area-inset-bottom))',
       }}>
         <div style={{ maxWidth: 480, margin: '0 auto' }}>
+        {asked ? (
+          <>
+            <button
+              type="button"
+              onClick={startNew}
+              style={{
+                width: '100%', height: 46, borderRadius: 23, border: 'none',
+                background: '#1A1A1E', color: '#FFFFFF',
+                fontSize: 14, fontWeight: 700, cursor: 'pointer',
+              }}
+            >
+              새 대화로 다시 물어보기
+            </button>
+            <div style={{ fontSize: 11, color: 'var(--ink-500)', marginTop: 6, textAlign: 'center' }}>
+              {viewingPast
+                ? '지난 대화예요. 새로 물어보면 지금 조건으로 다시 짜 드려요.'
+                : <>이 대화는 여기까지예요 · 남은 크레딧 <b>{usage?.balance ?? 0}</b></>}
+            </div>
+          </>
+        ) : (
+          <>
+          {noStock && (
+            <button
+              type="button"
+              onClick={() => navigate('/myfridge')}
+              style={{
+                width: '100%', height: 44, marginBottom: 8, borderRadius: 22, border: 'none',
+                background: '#FFD600', color: '#1A1A1E',
+                fontSize: 13.5, fontWeight: 700, cursor: 'pointer',
+              }}
+            >
+              내 냉장고에 재료 넣으러 가기
+            </button>
+          )}
           {/* 빈 칸만 주고 "적어 보세요" 하면 대부분 그냥 넘긴다.
               눌러서 고를 수 있으면 무엇을 말할 수 있는 자리인지가 보인다. */}
           <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 8 }}>
@@ -1597,7 +1740,7 @@ const WeeklyPlan: React.FC = () => {
               <button
                 key={x}
                 type="button"
-                disabled={!canAi || asking}
+                disabled={!canAi || asking || noStock}
                 onClick={() => send(x)}
                 style={{
                   flexShrink: 0, height: 30, padding: '0 11px', borderRadius: 9999,
@@ -1618,8 +1761,9 @@ const WeeklyPlan: React.FC = () => {
               value={wish}
               onChange={e => setWish(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') send(wish); }}
-              placeholder={canAi ? '어떤 식단이 좋을까요?' : '크레딧을 다 쓰셨어요'}
-              disabled={!canAi || asking}
+              placeholder={noStock ? '냉장고에 재료를 먼저 넣어 주세요'
+                : canAi ? '어떤 식단이 좋을까요?' : '크레딧을 다 쓰셨어요'}
+              disabled={!canAi || asking || noStock}
               style={{
                 flex: 1, minWidth: 0, height: 44, borderRadius: 22,
                 border: '1px solid var(--line-200)', padding: '0 16px',
@@ -1630,7 +1774,7 @@ const WeeklyPlan: React.FC = () => {
               <button
                 type="button"
                 className="ai-action"
-                disabled={!canAi || asking || !wish.trim()}
+                disabled={!canAi || asking || noStock || !wish.trim()}
                 onClick={() => send(wish)}
                 style={{
                   width: 44, height: 44, borderRadius: 22, padding: 0,
@@ -1646,11 +1790,13 @@ const WeeklyPlan: React.FC = () => {
 
           <div style={{ fontSize: 11, color: 'var(--ink-500)', marginTop: 6, textAlign: 'center' }}>
             {canAi
-              ? <>남은 크레딧 <b>{usage?.balance ?? 0}</b> · 한 번에 {planCost}</>
+              ? <>남은 크레딧 <b>{usage?.balance ?? 0}</b> · 이번 추천에 {planCost} 써요</>
               : usage?.is_guest
                 ? <>가입하면 <b>{usage.signup_credits} 크레딧</b>을 드려요</>
                 : '크레딧을 다 쓰셨어요'}
           </div>
+          </>
+        )}
         </div>
       </div>
     </>
@@ -1690,13 +1836,7 @@ const WeeklyPlan: React.FC = () => {
               <button
                 type="button"
                 // 그냥 지우면 크레딧을 쓴 결과가 사라진다. 지난 목록으로 넘긴다.
-                onClick={() => {
-                  archiveChat(chat);
-                  setSessions(loadSessions());
-                  setChat([]);
-                  setBasket(null);
-                  setLiveAt(null);
-                }}
+                onClick={startNew}
                 style={{
                   height: 32, padding: '0 10px', borderRadius: 8,
                   border: '1px solid var(--line-200)', background: 'var(--surface)',

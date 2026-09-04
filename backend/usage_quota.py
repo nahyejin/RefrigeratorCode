@@ -33,8 +33,12 @@ KST = timezone(timedelta(hours=9))
 CREDITS = {
     "chat": int(os.getenv("CREDITS_CHAT", "1")),
     "vision": int(os.getenv("CREDITS_VISION", "2")),
-    # 식단 짜기. 프롬프트에 후보 레시피를 수십 개 실어 보내므로 챗봇보다 무겁다.
-    "plan": int(os.getenv("CREDITS_PLAN", "2")),
+    # 식단 짜기. 셋 중 **가장 무겁다.**
+    #  - 후보 300개를 DB 에서 추리고, 장보기가 가장 적어지는 조합을 그리디로 좁힌다
+    #  - 그 목록을 프롬프트에 다 실어 보낸다(제목 + 재료 전체)
+    #  - 받는 것도 일곱 끼 + 날짜별 이유 + 요약까지라 출력 토큰이 길다
+    # 사진 한 장(vision=2)이나 짧은 한 턴(chat=1)과 같은 값을 매길 이유가 없다.
+    "plan": int(os.getenv("CREDITS_PLAN", "3")),
 }
 
 

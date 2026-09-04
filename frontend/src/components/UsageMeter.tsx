@@ -150,9 +150,10 @@ export const UsageLine: React.FC<{ style?: React.CSSProperties; compact?: boolea
         : (compact ? '체험 중' : `체험 ${usage.guest_trial}회 중`),
     );
   } else if (out) {
-    parts.push(daily ? '내일 다시 이어서' : '충전하거나 월요일을 기다려요');
+    parts.push(daily ? '오늘 몫을 다 썼어요 · 내일 이어서'
+                     : '월요일에 채워져요');
   } else if (!compact) {
-    if (daily) parts.push(`오늘은 ${usage.daily_remaining}번 더`);
+    if (daily) parts.push(`오늘 ${usage.daily_remaining} 남음`);
   }
 
   return (
@@ -242,14 +243,28 @@ export const UsageGauge: React.FC = () => {
     >
       {/* 남은 양이 이 카드의 요점이다. 제목과 같은 크기로 적어 두면
           "AI 크레딧" 이라는 이름만 눈에 들어오고 정작 숫자는 안 읽힌다. */}
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10 }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: '#1A1A1E' }}>AI 크레딧</div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
         <div style={{ fontSize: 12.5, color: 'var(--ink-500)' }}>
           {/* '개' 를 붙이지 않는다. 크레딧이 곧 세는 단위다 —
               "37개" 는 무엇이 37개인지 다시 묻게 만든다. */}
           남은 크레딧{' '}
           <b style={{ color: '#1A1A1E', fontWeight: 800, fontSize: 20 }}>{usage.balance}</b>
         </div>
+        {/* 모자란 걸 아는 순간이 바로 이 숫자를 볼 때다. 카드 맨 아래 두면
+            그 순간과 버튼 사이에 설명이 세 줄 끼어 있다. */}
+        {!usage.is_guest && !pending && !asking && (
+          <button
+            type="button"
+            onClick={() => setAsking(true)}
+            style={{
+              flexShrink: 0, height: 30, padding: '0 11px', borderRadius: 8,
+              border: '1px solid var(--line-200)', background: '#FFFFFF',
+              fontSize: 12.5, fontWeight: 700, color: 'var(--ink-700)', cursor: 'pointer',
+            }}
+          >
+            더 필요해요
+          </button>
+        )}
       </div>
 
       <div
@@ -289,14 +304,22 @@ export const UsageGauge: React.FC = () => {
         ))}
       </div>
 
-      <div style={{ fontSize: 12, color: 'var(--ink-500)', lineHeight: 1.6 }}>
+      {/* "남은 크레딧 37 / 한 번에 2" 만 적어 뒀더니, 37 이 오늘 것인지 이번 주
+          것인지, `한 번에` 가 무슨 뜻인지 아무도 몰랐다. 잔액과 오늘 한도는
+          **다른 것**이므로 각각 무엇인지 말한다. */}
+      <div style={{ fontSize: 12, color: 'var(--ink-500)', lineHeight: 1.7 }}>
         {usage.is_guest ? (
           <>가입하면 <b>{usage.signup_credits} 크레딧</b>을 바로 드려요.</>
         ) : (
           <>
-            월요일마다 <b>{usage.weekly_credits} 크레딧</b>씩 채워져요.
-            {usage.daily_remaining < usage.balance &&
-              ` 오늘은 ${usage.daily_remaining}번까지 쓸 수 있어요.`}
+            남은 크레딧은 <b>쌓아 두는 잔액</b>이에요. 쓰면 줄고, 월요일마다{' '}
+            <b>{usage.weekly_credits}</b> 씩 채워져요.
+            {usage.daily_remaining < usage.balance && (
+              <>
+                <br />
+                하루에 쓸 수 있는 양은 따로 있어요 — <b>오늘은 {usage.daily_remaining}</b> 남았어요.
+              </>
+            )}
           </>
         )}
       </div>
@@ -334,26 +357,7 @@ export const UsageGauge: React.FC = () => {
             </button>
           </div>
         </div>
-      ) : (
-        <button
-          type="button"
-          onClick={() => setAsking(true)}
-          style={{
-            alignSelf: 'flex-start',
-            height: 34,
-            padding: '0 12px',
-            borderRadius: 8,
-            border: '1px solid var(--line-200)',
-            background: '#FFFFFF',
-            fontSize: 13,
-            fontWeight: 600,
-            color: 'var(--ink-700)',
-            cursor: 'pointer',
-          }}
-        >
-          더 필요해요
-        </button>
-      )}
+      ) : null}
 
       {result && <div style={{ fontSize: 12, color: 'var(--ink-500)' }}>{result}</div>}
     </div>

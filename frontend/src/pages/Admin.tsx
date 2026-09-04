@@ -1360,7 +1360,16 @@ const Maintenance: React.FC = () => {
                       {info ? info.when : (t.state || '-')}
                     </div>
                   </td>
-                  <td style={S.td}>{String(t.last_run || '-').slice(0, 16)}</td>
+                  <td style={S.td}>
+                    {String(t.last_run || '-').slice(0, 16)}
+                    {/* 이번 새벽엔 작업 스케줄러를 못 읽었다는 뜻. 작업이 없어진
+                        게 아니라 **지난번에 읽어 둔 값**을 보여 주는 중이다. */}
+                    {t.stale && (
+                      <div style={{ fontSize: 11, color: '#B4780A', marginTop: 2 }}>
+                        이번엔 못 읽어서 지난 값이에요
+                      </div>
+                    )}
+                  </td>
                   <td style={{ ...S.td, color: ok ? 'var(--ink-500)' : '#D14343',
                                fontWeight: ok ? 400 : 700, whiteSpace: 'normal', maxWidth: 130 }}>
                     {ok ? '성공' : (TASK_RESULT[t.last_result] || '실패')}
@@ -1469,6 +1478,38 @@ const UNITS: Record<string, { label: string; count: number; note: string }> = {
   month: { label: '월별', count: 12, note: '최근 12개월' },
   year: { label: '년도별', count: 6, note: '최근 6년' },
 };
+
+/**
+ * 보기 단위 고르개.
+ *
+ * `<select>` 였는데, 안드로이드 웹뷰는 네이티브 목록을 **화면 맨 위 레이어**에
+ * 그린다 — 고정 헤더(GNB)를 덮고, z-index 로는 못 이긴다. 고를 것이 셋뿐이라
+ * 아예 펼쳐 두는 편이 낫다. 옆의 `조회수/이탈` 세그먼트와 생김새도 맞는다.
+ */
+const UnitTabs: React.FC<{ value: string; onChange: (v: string) => void; compact?: boolean }> =
+  ({ value, onChange, compact }) => (
+  <div role="group" aria-label="보기 단위" style={{
+    display: 'inline-flex', flexShrink: 0, borderRadius: 8, overflow: 'hidden',
+    border: '1px solid var(--line-200)',
+  }}>
+    {Object.keys(UNITS).map(k => (
+      <button
+        key={k}
+        type="button"
+        onClick={() => onChange(k)}
+        aria-pressed={value === k}
+        style={{
+          height: compact ? 30 : 32, padding: compact ? '0 8px' : '0 10px',
+          border: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
+          fontSize: 12.5, fontWeight: value === k ? 700 : 500, color: '#1A1A1E',
+          background: value === k ? '#FFD600' : 'var(--surface)',
+        }}
+      >
+        {UNITS[k].label}
+      </button>
+    ))}
+  </div>
+);
 
 const pad2 = (n: number) => String(n).padStart(2, '0');
 
@@ -2069,16 +2110,7 @@ const Dashboard: React.FC = () => {
                     </button>
                   ))}
                 </div>
-                <select
-                  value={unit}
-                  onChange={e => setUnit(e.target.value)}
-                  aria-label="보기 단위"
-                  style={{ ...S.input, height: 32 }}
-                >
-                  {Object.keys(UNITS).map(k => (
-                    <option key={k} value={k}>{UNITS[k].label}</option>
-                  ))}
-                </select>
+                <UnitTabs value={unit} onChange={setUnit} />
                 <span style={{ fontSize: 11.5, color: 'var(--ink-500)' }}>
                   {UNITS[unit].note} · 많이 {metric === 'views' ? '본' : '나간'} 화면 5개만
                 </span>
@@ -2314,16 +2346,7 @@ const Dashboard: React.FC = () => {
           <div style={{ minWidth: 0, flex: 1, overflow: 'hidden' }}>
             <Range inline>{UNITS[creditUnit].note} · 기록이 없는 칸은 0</Range>
           </div>
-          <select
-            value={creditUnit}
-            onChange={e => setCreditUnit(e.target.value)}
-            aria-label="보기 단위"
-            style={{ ...S.input, height: 30, flexShrink: 0, fontSize: 12.5, padding: '0 6px' }}
-          >
-            {Object.keys(UNITS).map(k => (
-              <option key={k} value={k}>{UNITS[k].label}</option>
-            ))}
-          </select>
+          <UnitTabs value={creditUnit} onChange={setCreditUnit} compact />
         </div>
         <DailyBars rows={recent} unit={creditUnit} />
       </div>

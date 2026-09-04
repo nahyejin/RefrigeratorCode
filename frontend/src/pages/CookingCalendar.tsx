@@ -10,6 +10,9 @@ import BottomNavBar from '../components/BottomNavBar';
 import PullToRefresh from '../components/PullToRefresh';
 import DatePickerField from '../components/DatePickerField';
 import { useAuth } from '../context/AuthContext';
+import { resolveCoupangUrl } from '../utils/coupangLink';
+import { getMyIngredients } from '../utils/recipeUtils';
+import { track } from '../utils/track';
 
 type ViewMode = 'day' | 'week' | 'month';
 /** 보기 **방식**. 기간(일/주/월)과 다른 층이다 — 목록은 기간이 아니다. */
@@ -775,6 +778,55 @@ const CookingCalendar: React.FC = () => {
    */
   const plans = planByDate();
 
+  /**
+   * **이번 주에 사야 할 것.**
+   *
+   * 계획은 `{날짜, 레시피 id, 제목}` 만 기기에 들고 있어서 재료를 모른다.
+   * 이번 주에 계획한 레시피의 재료를 한 번에 받아 와서, 냉장고에 있는 것을
+   * 빼고 남은 것이 장바구니다. AI 식단이 하는 말과 같은 말인데, 그건 짤 때
+   * 한 번 보고 끝이다 — 정작 장은 그 뒤에 본다.
+   */
+  const [weekBasket, setWeekBasket] = React.useState<string[] | null>(null);
+  // `plans` 는 렌더마다 새로 읽으므로 useMemo 로 묶지 않는다. 대신 아래
+  // 효과가 **아이디 문자열**을 보고 도니, 같은 주를 다시 그려도 안 부른다.
+  const weekPlanIds = (() => {
+    const from = toDateKey(startOfWeek(new Date(selectedDay)));
+    const to = toDateKey(addDays(startOfWeek(new Date(selectedDay)), 6));
+    const ids = new Set<number>();
+    plans.forEach((meals, day) => {
+      if (day < from || day > to) return;
+      meals.forEach(m => { if (m.recipeId) ids.add(Number(m.recipeId)); });
+    });
+    return [...ids].sort((a, b) => a - b);
+  })();
+  const weekPlanKey = weekPlanIds.join(',');
+
+  React.useEffect(() => {
+    if (weekPlanIds.length === 0) { setWeekBasket([]); return; }
+    let alive = true;
+    fetch(`${getApiUrl()}/api/recipes/ingredients`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids: weekPlanIds }),
+    })
+      .then(r => (r.ok ? r.json() : Promise.reject(new Error())))
+      .then(d => {
+        if (!alive) return;
+        const have = new Set(getMyIngredients().map(x => String(x).trim()).filter(Boolean));
+        const need = new Set<string>();
+        (d.items || []).forEach((it: any) => {
+          (it.ingredients || []).forEach((n: string) => {
+            const name = String(n).trim();
+            if (name && !have.has(name)) need.add(name);
+          });
+        });
+        setWeekBasket([...need]);
+      })
+      .catch(() => { if (alive) setWeekBasket([]); });
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [weekPlanKey]);
+
   // 하루 셀에 넣을 멤버별 점(최대 3명, 넘치면 +N)
   const renderDayDots = (dayEntries: CalendarEntry[]) => {
     const counts = new Map<number, number>();
@@ -822,10 +874,11 @@ const CookingCalendar: React.FC = () => {
           — 월 보기는 도장, 주 보기는 카드, 일 보기는 그 날 카드로 — 보여 준다.
           (로그인 전 화면에는 달력이 없으므로 거기서는 목록을 그대로 쓴다) */}
 
-      {/* 월 목표는 **달력의 이야기**다. 보고 있는 달을 센다.
-          목록 탭에서는 감춘다 — 그쪽은 전 기간(또는 고른 기간)을 보는데,
-          위에 달 기준 숫자가 같이 떠 있으면 어느 게 무엇인지 알 수 없다. */}
-      {mode === 'calendar' && (<>
+      {/* 월 목표는 **어느 탭에서 보든 같은 이야기**다. 목록 탭에서 감췄더니
+          탭을 옮길 때마다 화면 윗동강이 통째로 사라졌다 — 무엇을 보든 이번 달
+          목표는 이번 달 목표다. 아래 목록이 다른 기간을 볼 수 있다는 혼란은
+          카드 제목이 `2026년 9월 목표` 라고 못 박아서 막는다. */}
+      {(<>
       {/* 월 목표는 "이번 달" 이라는 더 큰 단위 얘기라, 일/주/월 중 무엇을 보고
           있든 항상 같은 값이어야 맞다 — 그래서 일/주/월 전환 버튼보다 위,
           가장 먼저 오는 자리에 두고 "몇 월 목표"인지 숫자로 못 박아 둔다.
@@ -934,7 +987,7 @@ const CookingCalendar: React.FC = () => {
                 <ellipse cx="12" cy="12" rx="7" ry="3" />
                 <path d="M5 12v5M19 12v5" />
               </svg>
-              이번달 예상 절약액 약 {formatWon(estimatedSavings)}원
+              이번달 절약액 약 {formatWon(estimatedSavings)}원
             </div>
             )}
             {/* 목표까지 가면 얼마인지. 지금까지 한 것만 보여 주면 남은
@@ -946,7 +999,7 @@ const CookingCalendar: React.FC = () => {
                 color: monthlyTotal > 0 ? 'var(--ink-500)' : 'var(--ink-700)',
                 marginTop: monthlyTotal > 0 ? 3 : 0, lineHeight: 1.5,
               }}>
-                목표 {myGoal}회를 채우면 약 <b style={{ color: '#1A1A1E' }}>{formatWon(goalSavings)}원</b>
+                이번달 목표 {myGoal}회를 다 채우면 약 <b style={{ color: '#1A1A1E' }}>{formatWon(goalSavings)}원</b>
               </div>
             )}
           </div>
@@ -999,8 +1052,20 @@ const CookingCalendar: React.FC = () => {
                 늘 펴 두면 정작 금액보다 이 줄이 길어서 눈이 그쪽으로 간다. */}
             {monthlyTotal > 0 && (
               <>
-                <div style={{ fontSize: 11, color: 'var(--ink-500)', lineHeight: 1.5 }}>
-                  외식·배달 대비 1인 한 끼 {formatWon(savingsPerMeal)}원 절약 추정 × {monthlyTotal}회 × 식구 {familySize}명
+                {/* 어느 숫자가 어디서 왔는지 한 줄로 못 박는다. `× 6회` 만
+                    적혀 있으면 목표 횟수인지 실제 횟수인지 알 수 없다. */}
+                <div style={{ fontSize: 11.5, color: 'var(--ink-500)', lineHeight: 1.7 }}>
+                  <b style={{ color: 'var(--ink-700)' }}>지금까지</b> 1인 한 끼 {formatWon(savingsPerMeal)}원 × 실제 완료 {monthlyTotal}회 × 식구 {familySize}명
+                  {' = '}{formatWon(estimatedSavings)}원
+                  {myGoal > 0 && (
+                    <>
+                      <br />
+                      <b style={{ color: 'var(--ink-700)' }}>목표까지</b> 1인 한 끼 {formatWon(savingsPerMeal)}원 × 목표 {myGoal}회 × 식구 {familySize}명
+                      {' = '}{formatWon(goalSavings)}원
+                    </>
+                  )}
+                  <br />
+                  외식·배달 대비 아낀 것으로 어림잡은 값이에요.
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, margin: '6px 0 10px' }}>
               {editingSavingsPerMeal ? (
@@ -1286,9 +1351,56 @@ const CookingCalendar: React.FC = () => {
         </div>
       )}
 
-      {/* 주 보기 */}
+      {/* 이번 주 장보기 — 달력 **바로 아래**.
+          "무슨 요일에 뭘 한다" 를 정하고 나면 다음 물음은 늘 "그럼 뭘 사지" 다.
+          AI 식단에서 한 번 보여 주긴 하는데 그건 짤 때 한 번이고, 장은 그 뒤에
+          본다. 계획이 있는 자리에 같이 두는 편이 맞다. */}
+      {mode === 'calendar' && weekBasket !== null && weekBasket.length > 0 && (
+        <div style={{ margin: '12px 14px 0', padding: '12px 14px', borderRadius: 12,
+                      border: '1px solid #E0B400', background: '#FFFDF2' }}>
+          <div style={{ fontSize: 13.5, fontWeight: 800, color: '#1A1A1E' }}>
+            이번 주 장보기 <span style={{ color: '#B4780A' }}>{weekBasket.length}개</span>
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 8 }}>
+            {weekBasket.map(name => {
+              const url = resolveCoupangUrl(name);
+              return url ? (
+                <a
+                  key={name}
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer sponsored"
+                  onClick={() => track('coupang_click', name)}
+                  style={{
+                    height: 30, padding: '0 10px', borderRadius: 9999,
+                    background: '#FFD600', color: '#1A1A1E', textDecoration: 'none',
+                    fontSize: 12, fontWeight: 700,
+                    display: 'inline-flex', alignItems: 'center', gap: 3,
+                  }}
+                >
+                  {name}
+                  <span aria-hidden style={{ fontSize: 9.5, opacity: .7 }}>사러가기 ↗</span>
+                </a>
+              ) : (
+                <span key={name} style={{
+                  height: 30, padding: '0 10px', borderRadius: 9999,
+                  background: 'var(--surface)', border: '1px solid var(--line-200)',
+                  fontSize: 12, fontWeight: 600, color: 'var(--ink-700)',
+                  display: 'inline-flex', alignItems: 'center',
+                }}>{name}</span>
+              );
+            })}
+          </div>
+          <div style={{ fontSize: 10, color: 'var(--ink-500)', marginTop: 7, lineHeight: 1.5 }}>
+            계획한 요리 재료 중 냉장고에 없는 것 · 쿠팡 파트너스 수수료를 받을 수 있어요
+          </div>
+        </div>
+      )}
+
+      {/* 주 보기 — 아래 여백을 준다. 마지막 요일 카드가 상자 테두리에 딱
+          붙어 있으면 더 있는지 없는지 알 수 없고, 손가락으로 집기도 어렵다. */}
       {mode === 'calendar' && viewMode === 'week' && (
-        <div style={{ padding: '12px 14px 0', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ padding: '12px 14px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
           {Array.from({ length: 7 }, (_, i) => addDays(startOfWeek(new Date(selectedDay)), i)).map((d) => {
             const key = toDateKey(d);
             const dayEntries = entriesByDay.get(key) || [];
@@ -1379,29 +1491,55 @@ const CookingCalendar: React.FC = () => {
               머리(고르개)는 고정하고 **목록만** 정해진 높이 안에서 스크롤한다. */}
           {/* 완료와 기록은 둘 다 "요리 이력" 이지만 다른 것이다 —
               완료는 만든 사실, 기록은 남긴 메모. 같은 자리에서 갈라 본다. */}
+          {/* 한 상자 안에서 **미끄러지는** 토글. 알약 두 개로 뒀더니 화면 어디를
+              봐도 알약이라 지루했고, 둘이 한 쌍이라는 것도 안 보였다. 여기서는
+              둘 중 하나를 고르는 것이므로 테두리를 같이 쓰는 편이 맞다. */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 2px 2px' }}>
-            {([
-              { key: 'done', label: '완료', n: listEntries?.length },
-              { key: 'write', label: '기록', n: listRecorded?.length },
-            ] as const).map(({ key, label, n }) => {
-              const on = listKind === key;
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => setListKind(key)}
-                  style={{
-                    height: 28, padding: '0 11px', borderRadius: 9999, cursor: 'pointer',
-                    border: on ? 'none' : '1px solid var(--line-200)',
-                    background: on ? 'var(--ink-900)' : 'var(--surface)',
-                    color: on ? '#FFFFFF' : 'var(--ink-700)',
-                    fontSize: 12.5, fontWeight: on ? 700 : 500,
-                  }}
-                >
-                  {label}{typeof n === 'number' ? ` ${n}` : ''}
-                </button>
-              );
-            })}
+            <div
+              role="group"
+              aria-label="완료·기록 고르기"
+              style={{
+                position: 'relative', display: 'inline-flex', flexShrink: 0,
+                padding: 3, borderRadius: 10, background: 'var(--surface-sub)',
+                border: '1px solid var(--line-200)',
+              }}
+            >
+              {/* 미끄러지는 판. 버튼마다 배경을 켜고 끄면 툭 끊기는데,
+                  판 하나가 옮겨 다니면 "여기서 저기로 옮겼다" 가 보인다. */}
+              <span
+                aria-hidden
+                style={{
+                  position: 'absolute', top: 3, bottom: 3, left: 3, width: 'calc(50% - 3px)',
+                  borderRadius: 8, background: 'var(--ink-900)',
+                  transform: listKind === 'write' ? 'translateX(100%)' : 'none',
+                  transition: 'transform .2s cubic-bezier(.4,0,.2,1)',
+                }}
+              />
+              {([
+                { key: 'done', label: '완료', n: listEntries?.length },
+                { key: 'write', label: '기록', n: listRecorded?.length },
+              ] as const).map(({ key, label, n }) => {
+                const on = listKind === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setListKind(key)}
+                    aria-pressed={on}
+                    style={{
+                      position: 'relative', zIndex: 1, minWidth: 62, height: 28,
+                      padding: '0 12px', border: 'none', background: 'transparent',
+                      borderRadius: 8, cursor: 'pointer',
+                      color: on ? '#FFFFFF' : 'var(--ink-500)',
+                      fontSize: 12.5, fontWeight: on ? 700 : 500,
+                      transition: 'color .2s ease',
+                    }}
+                  >
+                    {label}{typeof n === 'number' ? ` ${n}` : ''}
+                  </button>
+                );
+              })}
+            </div>
 
             {/* 기간은 **오른쪽 끝**에. 왼쪽은 무엇을 보는지(완료·기록)이고
                 이쪽은 얼마나 넓게 보는지다. */}

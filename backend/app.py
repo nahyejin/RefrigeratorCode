@@ -161,6 +161,48 @@ def get_recipes():
         'size': size
     })
 
+@app.route('/api/recipes/ingredients', methods=['POST'])
+def get_recipes_ingredients():
+    """레시피 여러 개의 **재료만** 한 번에.
+
+    왜 필요한가: 요리 캘린더는 계획을 `{날짜, 레시피 id, 제목}` 으로만 들고
+    있다(기기 저장). "이번 주에 뭘 사야 하나" 를 말하려면 그 레시피들의 재료가
+    있어야 하는데, 한 장씩 부르면 일곱 번을 왕복한다.
+
+    본문: `{"ids": [1, 2, 3]}`  ·  응답: `{"items": [{id, title, ingredients: []}]}`
+    """
+    body = request.get_json(silent=True) or {}
+    raw = body.get('ids') or []
+    ids = []
+    for x in raw[:60]:          # 한 주에 스물몇 개면 충분하다. 상한을 둔다.
+        try:
+            ids.append(int(x))
+        except (TypeError, ValueError):
+            continue
+    if not ids:
+        return jsonify({'items': []})
+
+    db = get_db()
+    cursor = db.cursor()
+    try:
+        marks = ','.join(['%s'] * len(ids))
+        cursor.execute(
+            f"SELECT id, title, used_ingredients FROM recipes WHERE id IN ({marks})",
+            tuple(ids),
+        )
+        items = []
+        for row in cursor.fetchall():
+            raw_ing = (row.get('used_ingredients') or '').strip()
+            items.append({
+                'id': row['id'],
+                'title': row['title'],
+                'ingredients': [w.strip() for w in raw_ing.split(',') if w.strip()],
+            })
+        return jsonify({'items': items})
+    finally:
+        db.close()
+
+
 @app.route('/api/recipes/search')
 def search_recipes():
     """키워드 기반 레시피 검색 (전체 데이터 대상)"""
@@ -3866,11 +3908,16 @@ def get_user_completed_recipes(user_id):
         cursor = db.cursor()
         
         try:
+            # **레시피 한 장에 한 줄.** 같은 레시피를 두 번 완료하면 예전엔
+            # 두 줄이 나왔는데, 그룹 목록(`/households/me/completed-recipes`)은
+            # `GROUP BY r.id` 로 묶어서 준다. 두 목록의 세는 단위가 달라서
+            # "우리 식구 모두 25 / 나의 것만 26" 처럼 비교가 안 되는 숫자가 나왔다.
             cursor.execute(
-                """SELECT r.*, ucr.created_at AS user_saved_at FROM recipes r
+                """SELECT r.*, MAX(ucr.created_at) AS user_saved_at FROM recipes r
                    INNER JOIN user_completed_recipes ucr ON r.id = ucr.recipe_id
                    WHERE ucr.user_id = %s
-                   ORDER BY ucr.created_at DESC, ucr.id DESC""",
+                   GROUP BY r.id
+                   ORDER BY user_saved_at DESC, r.id DESC""",
                 (user_id,)
             )
             recipes = cursor.fetchall()

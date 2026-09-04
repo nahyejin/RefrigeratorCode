@@ -796,9 +796,36 @@ const MyPage: React.FC = () => {
   // 그룹에 속해 있으면 기본으로 그룹 전체(+나) 목록을 보여주되, "나의 것만
   // 보기"로 바꾸면 원래의 개인 목록으로 되돌아간다.
   const showAllHousehold = isInHousehold && householdViewMode === 'all';
-  const displayFavoriteRecipes = showAllHousehold ? householdFavoriteRecipes : favoriteRecipes;
-  const displayRecordedRecipes = showAllHousehold ? householdRecordedRecipes : recordedRecipes;
-  const displayCompletedRecipes = showAllHousehold ? householdCompletedRecipes : completedRecipes;
+  /**
+   * `우리 식구 모두` 에서 **내 것을 빼고** 볼지.
+   *
+   * "모두" 는 나 + 식구다. 그래서 식구가 아무것도 안 했으면 `모두` 와
+   * `나의 것만` 이 같은 목록이 되는데, 그걸 화면에서는 알 수가 없다.
+   * 이걸 켜면 남는 게 진짜 식구 몫이다 — 0 이면 0 이라고 보인다.
+   * (기록은 레시피 한 장에 여러 사람이 묶여 오므로 `acted_by` 로 가른다)
+   */
+  const [hideMine, setHideMine] = useState(false);
+  const myNick = authUser?.nickname || '';
+  const dropMine = (list: any[]) =>
+    list.filter(r => {
+      const by: string[] = Array.isArray(r?.acted_by) ? r.acted_by : [];
+      return by.some(n => n && n !== myNick);
+    });
+  const useHide = showAllHousehold && hideMine;
+  const displayFavoriteRecipes = showAllHousehold
+    ? (useHide ? dropMine(householdFavoriteRecipes) : householdFavoriteRecipes) : favoriteRecipes;
+  const displayRecordedRecipes = showAllHousehold
+    ? (useHide ? dropMine(householdRecordedRecipes) : householdRecordedRecipes) : recordedRecipes;
+  const displayCompletedRecipes = showAllHousehold
+    ? (useHide ? dropMine(householdCompletedRecipes) : householdCompletedRecipes) : completedRecipes;
+  /** 식구들이 한 게 몇 건인가. 0 이면 이 버튼을 눌러도 빈 화면이 된다. */
+  const othersTotal = React.useMemo(
+    () => dropMine(householdFavoriteRecipes).length
+        + dropMine(householdRecordedRecipes).length
+        + dropMine(householdCompletedRecipes).length,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [householdFavoriteRecipes, householdRecordedRecipes, householdCompletedRecipes, myNick],
+  );
   
   // 모달이 열릴 때 원본 데이터 저장 및 edit 상태 초기화
   useEffect(() => {
@@ -1401,11 +1428,15 @@ const MyPage: React.FC = () => {
           이 토글이 아래 요약 숫자와 목록 전체의 기준이 되므로, 숫자보다
           먼저(위에) 와야 "이 기준으로 센 숫자구나"라고 읽힌다 — 전에는
           숫자 카드 아래에 있어서 원인(토글)과 결과(숫자)의 순서가 거꾸로였다. */}
+      {/* 화면 전체의 기준을 바꾸는 자리라 **탭**으로 그린다. 요리 캘린더의
+          `달력 / 내 요리 / 우리 식구 요리` 와 같은 모양이다 — 같은 일을 하는
+          것은 같게 보여야 한다. 알약으로 뒀더니 아래 필터들과 구분이 안 됐다. */}
       {isInHousehold && (
-        <div style={{ display: 'flex', gap: 6, margin: '12px 14px 0' }}>
+        <div style={{ display: 'flex', borderBottom: '1px solid var(--line-200)',
+                      margin: '12px 14px 0', padding: '0 4px' }}>
           {([
-            { key: 'all', label: '우리 식구 모두 보기' },
-            { key: 'mine', label: '나의 것만 보기' },
+            { key: 'all', label: '우리 식구 모두' },
+            { key: 'mine', label: '나의 것만' },
           ] as const).map(({ key, label }) => {
             const on = householdViewMode === key;
             return (
@@ -1414,22 +1445,47 @@ const MyPage: React.FC = () => {
                 type="button"
                 onClick={() => setHouseholdViewMode(key)}
                 style={{
-                  height: 30,
-                  padding: '0 12px',
-                  borderRadius: 9999,
-                  fontSize: 12.5,
-                  fontWeight: on ? 700 : 500,
-                  background: on ? 'var(--ink-900)' : 'var(--surface-sub)',
-                  color: on ? '#FFFFFF' : 'var(--ink-700)',
-                  border: 'none',
-                  cursor: 'pointer',
+                  height: 40, padding: '0 14px', background: 'transparent',
+                  border: 'none', marginBottom: -1, position: 'relative',
+                  fontSize: 14, fontWeight: on ? 700 : 500,
+                  color: on ? '#1A1A1E' : 'var(--ink-500)', cursor: 'pointer',
                 }}
               >
                 {label}
+                {on && (
+                  <span aria-hidden style={{
+                    position: 'absolute', left: 14, right: 14, bottom: 0,
+                    height: 2, borderRadius: 2, background: '#1A1A1E',
+                  }} />
+                )}
               </button>
             );
           })}
         </div>
+      )}
+
+      {/* `모두` 는 나 + 식구다. 식구가 아무것도 안 했으면 `나의 것만` 과 같은
+          목록이 되는데, 화면에서는 그걸 알 수가 없다. 이걸 켜면 남는 게 진짜
+          식구 몫이다. 남을 게 없으면 **눌리지 않게** 하고 이유를 적는다 —
+          눌리는데 아무 일도 안 일어나는 게 제일 나쁘다. */}
+      {showAllHousehold && (
+        <label style={{ display: 'flex', alignItems: 'center', gap: 6,
+                        margin: '10px 14px 0', fontSize: 12.5,
+                        cursor: othersTotal === 0 ? 'default' : 'pointer' }}>
+          <input
+            type="checkbox"
+            checked={hideMine}
+            disabled={othersTotal === 0}
+            onChange={e => setHideMine(e.target.checked)}
+            style={{ width: 16, height: 16 }}
+          />
+          <span style={{ color: othersTotal === 0 ? 'var(--ink-500)' : 'var(--ink-700)', fontWeight: 600 }}>
+            내 것은 빼고 보기
+          </span>
+          <span style={{ color: 'var(--ink-500)' }}>
+            {othersTotal === 0 ? '· 식구들이 한 게 아직 없어요' : `· 식구들 것 ${othersTotal}건`}
+          </span>
+        </label>
       )}
 
       {/* 이 화면이 무엇을 담고 있는지 한눈에 알려주는 요약 줄.

@@ -102,7 +102,7 @@ const PullToRefresh: React.FC<PullToRefreshProps> = ({ onRefresh, children }) =>
             setJustDone(true);
             updatePullDistance(0);
             // 완료 표시는 잠깐만. 계속 남아 있으면 그것대로 거슬린다.
-            setTimeout(() => setJustDone(false), 900);
+            setTimeout(() => setJustDone(false), 700);
           }, wait);
         });
       } else {
@@ -121,6 +121,15 @@ const PullToRefresh: React.FC<PullToRefreshProps> = ({ onRefresh, children }) =>
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshing]);
 
+  /**
+   * 표시와 내용이 **같이** 내려가 있어야 하는 거리.
+   *
+   * 전에는 표시는 `justDone ? PULL_THRESHOLD : pullDistance` 로, 내용은
+   * `pullDistance` 로 따로 계산했다. 새로고침이 끝나는 순간 `pullDistance` 가
+   * 0 이 되면서 **내용만 제자리로 올라오고** 표시는 64px 아래에 그대로 남아,
+   * "새로고침 완료" 글자가 화면 위에 겹쳐 깔렸다. 하나로 묶으면 어긋날 수 없다.
+   */
+  const offset = justDone ? PULL_THRESHOLD : pullDistance;
   const indicatorOpacity = justDone ? 1 : Math.min(pullDistance / PULL_THRESHOLD, 1);
   const shouldSpin = refreshing || (!justDone && pullDistance >= PULL_THRESHOLD);
 
@@ -152,7 +161,7 @@ const PullToRefresh: React.FC<PullToRefreshProps> = ({ onRefresh, children }) =>
           alignItems: 'center',
           justifyContent: 'center',
           gap: 7,
-          transform: `translateY(${justDone ? PULL_THRESHOLD : pullDistance}px)`,
+          transform: `translateY(${offset}px)`,
           opacity: indicatorOpacity,
           transition: justDone ? 'opacity .3s ease' : undefined,
           pointerEvents: 'none',
@@ -197,7 +206,7 @@ const PullToRefresh: React.FC<PullToRefreshProps> = ({ onRefresh, children }) =>
       `}</style>
       <div
         style={{
-          transform: `translateY(${pullDistance}px)`,
+          transform: `translateY(${offset}px)`,
           transition: pullingRef.current ? 'none' : 'transform 0.25s ease',
         }}
       >

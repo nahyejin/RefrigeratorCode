@@ -105,7 +105,14 @@ def file_info(entry):
 
 
 def scheduled_tasks():
-    """윈도우 작업 스케줄러에서 우리 작업들의 상태를 읽는다."""
+    """윈도우 작업 스케줄러에서 우리 작업들의 상태를 읽는다.
+
+    이 읽기는 **실패할 수 있다.** 새벽에 LLM 배치가 돌고 있는 동안 사전 배치가
+    같이 이 스크립트를 부르면 PowerShell 이 60초 안에 안 끝나기도 한다. 그때
+    빈 목록이나 오류 한 줄을 돌려주면, 부르는 쪽이 그것을 **멀쩡한 상태 위에
+    덮어써서** 어드민에서 자동 작업 세 개가 통째로 사라진다. 그래서 여기서는
+    실패를 실패라고 알리고(빈 목록/오류), 덮어쓸지 말지는 `collect()` 가 정한다.
+    """
     script = (
         "Get-ScheduledTask | Where-Object { $_.TaskName -like 'CookMatch-*' } | "
         "ForEach-Object { $i = $_ | Get-ScheduledTaskInfo; "
@@ -116,7 +123,7 @@ def scheduled_tasks():
     try:
         out = subprocess.run(
             ["powershell", "-NoProfile", "-Command", script],
-            capture_output=True, text=True, encoding="utf-8", timeout=60,
+            capture_output=True, text=True, encoding="utf-8", timeout=150,
         ).stdout.strip()
         if not out:
             return []
@@ -143,11 +150,42 @@ def log_tail(name, lines=3):
         return None
 
 
+def previous_tasks():
+    """지난번에 적어 둔 작업 상태. 이번 읽기가 실패했을 때 쓴다."""
+    try:
+        conn = _connect()
+    except Exception:  # noqa: BLE001
+        return []
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SHOW TABLES LIKE 'ops_status'")
+        if not cursor.fetchone():
+            return []
+        cursor.execute("SELECT payload FROM ops_status WHERE name = 'local'")
+        row = cursor.fetchone()
+        if not row:
+            return []
+        data = json.loads(row[0] if isinstance(row, (list, tuple)) else row["payload"])
+        tasks = data.get("tasks") or []
+        return [t for t in tasks if t.get("name")]
+    except Exception:  # noqa: BLE001
+        return []
+    finally:
+        conn.close()
+
+
 def collect():
+    # 읽기가 실패하면 **지난번 것을 그대로 둔다.** 오류 한 줄로 덮어쓰면
+    # 어드민에서 자동 작업이 통째로 사라진 것처럼 보인다 — 작업은 멀쩡한데.
+    tasks = [t for t in scheduled_tasks() if t.get("name")]
+    if not tasks:
+        tasks = previous_tasks()
+        for t in tasks:
+            t["stale"] = True   # 이번엔 못 읽었다. 화면에서 그렇게 말해야 한다.
     return {
         "generated_at": datetime.now(KST).isoformat(),
         "files": [file_info(e) for e in TRACKED],
-        "tasks": scheduled_tasks(),
+        "tasks": tasks,
         "logs": [x for x in (log_tail("llm_ingredients.log"),
                              log_tail("scheduled_run.log"),
                              log_tail("dictionary_sync.log")) if x],
@@ -166,8 +204,8 @@ def load_env():
                     os.environ.setdefault(key.strip(), value.strip())
 
 
-def write(payload):
-    conn = pymysql.connect(
+def _connect():
+    return pymysql.connect(
         host=os.getenv("DB_HOST") or "caboose.proxy.rlwy.net",
         user=os.getenv("DB_USER") or "root",
         password=os.getenv("DB_PASSWORD") or "",
@@ -178,6 +216,10 @@ def write(payload):
         # 빠뜨리면 이 스크립트가 쓰는 NOW() 만 9시간 느리게 찍힌다.
         init_command="SET time_zone = '+09:00'",
     )
+
+
+def write(payload):
+    conn = _connect()
     try:
         cursor = conn.cursor()
         cursor.execute(
@@ -213,8 +255,9 @@ def main():
         print(f"  {f['label']:<18} {str(rows):>6}행{extra:<16} 최근수정 {(f.get('last_commit_at') or '?')[:10]}")
     print()
     for t in payload["tasks"]:
+        mark = "  (이번엔 못 읽음 — 지난 값)" if t.get("stale") else ""
         print(f"  {t.get('name','?'):<32} {t.get('state','?'):<8} "
-              f"마지막 {str(t.get('last_run'))[:16]} (결과 {t.get('last_result')})")
+              f"마지막 {str(t.get('last_run'))[:16]} (결과 {t.get('last_result')}){mark}")
 
     if args.write:
         write(payload)

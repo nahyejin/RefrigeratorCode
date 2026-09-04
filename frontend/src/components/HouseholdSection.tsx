@@ -410,7 +410,7 @@ const HouseholdSection: React.FC<HouseholdSectionProps> = ({ onChange }) => {
       ) : info?.in_household ? (
         <div>
           <p style={{ fontSize: 13, color: 'var(--ink-500)', marginBottom: expanded ? 10 : 0 }}>
-            같은 초대 코드로 들어온 식구와 냉장고 재료를 함께 관리하고 있어요.
+            식구와 냉장고를 함께 쓰고 있어요.
           </p>
 
           {expanded && (
@@ -551,7 +551,7 @@ const HouseholdSection: React.FC<HouseholdSectionProps> = ({ onChange }) => {
       ) : (
         <div>
           <p style={{ fontSize: 13, color: 'var(--ink-500)', marginBottom: 12 }}>
-            식구끼리 냉장고를 함께 씁니다. 즐겨찾기·완료·기록도 원하면 공유할 수 있어요.
+            냉장고를 함께 쓰고, 원하면 즐겨찾기·완료·기록도 공유해요.
           </p>
           <div style={{ display: 'flex', gap: 8 }}>
             <Button variant="secondary" size="sm" onClick={() => setCreateInfoOpen(true)} disabled={busy}>
@@ -575,14 +575,14 @@ const HouseholdSection: React.FC<HouseholdSectionProps> = ({ onChange }) => {
       >
         <div style={{ textAlign: 'left' }}>
           <p style={{ fontSize: 13, color: 'var(--ink-500)', marginBottom: 16 }}>
-            초대 코드가 만들어져요. 식구에게 보내서 함께 냉장고를 관리해보세요.
+            초대 코드를 식구에게 보내면 돼요.
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <Toggle
               checked={createKeepIngredients}
               onChange={setCreateKeepIngredients}
               label="지금 내 재료를 그룹 재료로 쓰기"
-              hint="끄면 지금 재료는 지워지고 빈 상태로 시작해요."
+              hint="끄면 빈 상태로 시작해요."
             />
             <Toggle
               checked={createShareRecipeActions}
@@ -694,7 +694,7 @@ const HouseholdSection: React.FC<HouseholdSectionProps> = ({ onChange }) => {
           <div style={{ fontSize: 13, color: 'var(--ink-500)', padding: '8px 0' }}>불러오는 중...</div>
         ) : requestSent ? (
           <div style={{ fontSize: 13, color: 'var(--ink-700)' }}>
-            요청을 보냈어요. {statsFor?.nickname}님이 앱을 열면 수락/거절을 고를 수 있어요.
+            요청을 보냈어요. {statsFor?.nickname}님이 고르면 반영돼요.
           </div>
         ) : (
           <div>
@@ -713,8 +713,7 @@ const HouseholdSection: React.FC<HouseholdSectionProps> = ({ onChange }) => {
               </div>
             </div>
             <div style={{ fontSize: 13, color: 'var(--ink-500)' }}>
-              지금은 비공개예요. 요청을 보내면 {statsFor?.nickname}님이 앱을 열었을 때
-              공유 여부를 직접 고를 수 있어요.
+              비공개예요. 요청하면 {statsFor?.nickname}님이 직접 고를 수 있어요.
             </div>
           </div>
         )}
