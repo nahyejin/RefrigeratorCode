@@ -2091,13 +2091,16 @@ const RecipeList: React.FC = () => {
         />
         
         {/* 재료 pill 범례 (검색창/필터와 함께 sticky 영역에 포함) */}
-        {/* 즐겨찾기만 보기는 **결과를 좁히는 일**이라 결과 줄 옆에 둔다.
-            화면 맨 위에 혼자 떠 있으니 무엇에 걸리는 버튼인지 알 수 없었다. */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8,
-                      marginBottom: 6, marginTop: 8 }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <IngredientLegend total={favoriteOnly ? undefined as any : total} />
-          </div>
+        {/* 한 줄에 다 넣지 않는다.
+            범례(243px) + 건수 + 버튼은 375px 화면에 안 들어간다. 억지로 넣었더니
+            범례가 잘려서 "보유 재료" 가 반쯤 지워진 채 건수와 붙어 보였다.
+            범례는 제 줄을 갖고, 건수와 보기 좁히기가 아랫줄을 나눠 쓴다. */}
+        <IngredientLegend style={{ marginTop: 8 }} />
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      gap: 8, marginTop: 6, marginBottom: 6 }}>
+          <span style={{ color: '#6A6A73', fontSize: 12.5, whiteSpace: 'nowrap' }}>
+            {favoriteOnly ? '즐겨찾기에 담아 둔 요리' : `총 ${total.toLocaleString('ko-KR')}건`}
+          </span>
           <button
             type="button"
             onClick={() => setFavoriteOnly(v => !v)}

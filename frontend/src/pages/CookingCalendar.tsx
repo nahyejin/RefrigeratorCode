@@ -288,6 +288,14 @@ const CookingCalendar: React.FC = () => {
   const [listKind, setListKind] = React.useState<'done' | 'write'>('done');
   /** 우리 식구 요리에서 **내 것을 빼고** 볼지. */
   const [hideMine, setHideMine] = React.useState(false);
+  /**
+   * 목록에서 볼 기간. 기본은 전체다.
+   *
+   * 달력의 `< 2026년 9월 >` 을 그대로 가져오지 않는다. 그건 **한 달씩 넘기는**
+   * 장치라 "여태 만든 것" 을 보러 온 자리와 안 맞는다. 여기서는 넓은 쪽에서
+   * 좁히는 방식이 맞다.
+   */
+  const [span, setSpan] = React.useState<'all' | '90' | '365'>('all');
   const [anchorDate, setAnchorDate] = React.useState(() => new Date());
   const [entries, setEntries] = React.useState<CalendarEntry[]>([]);
   // 그룹이 있으면 groupGoal(그룹 전체가 공유하는 하나의 값)을 쓰고,
@@ -412,10 +420,22 @@ const CookingCalendar: React.FC = () => {
   const listEntries = React.useMemo(() => {
     if (allEntries === null) return null;
     const me = Number(authUser?.id);
-    if (mode === 'mine') return allEntries.filter(e => e.user_id === me);
-    if (mode === 'household') return hideMine ? allEntries.filter(e => e.user_id !== me) : allEntries;
-    return allEntries;
-  }, [allEntries, mode, hideMine, authUser?.id]);
+    let out = allEntries;
+    if (mode === 'mine') out = out.filter(e => e.user_id === me);
+    else if (mode === 'household' && hideMine) out = out.filter(e => e.user_id !== me);
+    if (span !== 'all') {
+      const from = toDateKey(addDays(new Date(), -Number(span)));
+      out = out.filter(e => e.day >= from);
+    }
+    return out;
+  }, [allEntries, mode, hideMine, span, authUser?.id]);
+
+  /** 식구 탭에서 **나 말고 다른 사람** 것이 몇 건인지. 체크박스 옆에 적는다. */
+  const othersCount = React.useMemo(() => {
+    if (allEntries === null) return 0;
+    const me = Number(authUser?.id);
+    return allEntries.filter(e => e.user_id !== me).length;
+  }, [allEntries, authUser?.id]);
 
   const handleSaveCompletedDate = async (entry: CalendarEntry) => {
     if (!authUser?.id || !dateInput) return;
@@ -954,7 +974,8 @@ const CookingCalendar: React.FC = () => {
             알약으로 뒀더니 아래 일/주/월 알약과 같아 보여서, 화면을 바꾸는
             것인지 결과를 좁히는 필터인지 구분이 안 됐다. 탭은 밑줄로 "지금
             여기 있다" 를 말한다. */}
-        <div style={{ display: 'flex', borderBottom: '1px solid var(--line-200)' }}>
+        <div style={{ display: 'flex', borderBottom: '1px solid var(--line-200)',
+                      padding: '0 4px' }}>
           {([
             { key: 'calendar', label: '달력' },
             // '목록' 은 **무엇의** 목록인지 말하지 않는다. 여기 담기는 건
@@ -969,14 +990,22 @@ const CookingCalendar: React.FC = () => {
                 type="button"
                 onClick={() => { setMode(key); if (key === 'household') setListKind('done'); }}
                 style={{
-                  flex: 1, height: 44, padding: '0 6px', background: 'transparent',
-                  border: 'none', borderBottom: on ? '2px solid #1A1A1E' : '2px solid transparent',
-                  marginBottom: -1,
-                  fontSize: 13.5, fontWeight: on ? 700 : 500,
+                  // 폭을 나눠 갖지 않는다. 셋으로 쪼개 늘려 놓으면 글자보다
+                  // 밑줄이 훨씬 길어져 둔해 보인다 — 밑줄은 **글자 밑**에만.
+                  height: 42, padding: '0 14px', background: 'transparent',
+                  border: 'none', marginBottom: -1,
+                  fontSize: 14, fontWeight: on ? 700 : 500,
                   color: on ? '#1A1A1E' : 'var(--ink-500)', cursor: 'pointer',
+                  position: 'relative',
                 }}
               >
                 {label}
+                {on && (
+                  <span aria-hidden style={{
+                    position: 'absolute', left: 14, right: 14, bottom: 0,
+                    height: 2, borderRadius: 2, background: '#1A1A1E',
+                  }} />
+                )}
               </button>
             );
           })}
@@ -1215,28 +1244,14 @@ const CookingCalendar: React.FC = () => {
       {/* 목록 보기 — 여태 만든 것을 최신순으로 죽 훑는다. 전 기간이다. */}
       {(mode === 'mine' || mode === 'household') && (
         <div style={{ padding: '12px 14px 0', display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {/* 식구 탭에서만 — 내 것을 빼고 보면 "다른 사람들이 뭘 했나" 가 보인다. */}
-          {mode === 'household' && (
-            <label style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '2px 2px 4px',
-                            fontSize: 12.5, color: 'var(--ink-700)', cursor: 'pointer' }}>
-              <input
-                type="checkbox"
-                checked={hideMine}
-                onChange={e => setHideMine(e.target.checked)}
-                style={{ width: 16, height: 16 }}
-              />
-              내 요리는 빼고 보기
-            </label>
-          )}
-
+          {/* 줄이 끝없이 이어지면 이 화면을 벗어나는 데만 한참 걸린다.
+              머리(고르개)는 고정하고 **목록만** 정해진 높이 안에서 스크롤한다. */}
           {/* 완료와 기록은 둘 다 "요리 이력" 이지만 다른 것이다 —
               완료는 만든 사실, 기록은 남긴 메모. 같은 자리에서 갈라 본다. */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 2px 2px' }}>
             {([
               { key: 'done', label: '완료', n: listEntries?.length },
-              // 기록은 아직 **내 것만** 모은다. 식구 탭에서 내 기록을 보여 주면
-              // 식구 것으로 오해한다.
-              ...(mode === 'household' ? [] : [{ key: 'write' as const, label: '기록', n: recorded?.length }]),
+              { key: 'write', label: '기록', n: recorded?.length },
             ] as const).map(({ key, label, n }) => {
               const on = listKind === key;
               return (
@@ -1256,7 +1271,56 @@ const CookingCalendar: React.FC = () => {
                 </button>
               );
             })}
+
+            {/* 기간은 **오른쪽 끝**에. 왼쪽은 무엇을 보는지(완료·기록)이고
+                이쪽은 얼마나 넓게 보는지다. */}
+            <span style={{ marginLeft: 'auto', display: 'flex', gap: 4 }}>
+              {([
+                { key: 'all', label: '전체' },
+                { key: '365', label: '1년' },
+                { key: '90', label: '3개월' },
+              ] as const).map(({ key, label }) => {
+                const on = span === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setSpan(key)}
+                    style={{
+                      height: 26, padding: '0 8px', borderRadius: 8, cursor: 'pointer',
+                      border: 'none', background: on ? 'var(--surface-sub)' : 'transparent',
+                      fontSize: 11.5, fontWeight: on ? 700 : 500,
+                      color: on ? '#1A1A1E' : 'var(--ink-500)',
+                    }}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </span>
           </div>
+
+          {/* 식구 탭에서만 — 내 것을 빼면 "다른 사람들이 뭘 했나" 가 보인다.
+              몇 건이 남는지 미리 적어 둔다. 눌러 놓고 텅 비면 고장으로 읽힌다. */}
+          {mode === 'household' && listKind === 'done' && (
+            <label style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '2px 2px 6px',
+                            fontSize: 12.5, color: 'var(--ink-700)', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={hideMine}
+                onChange={e => setHideMine(e.target.checked)}
+                style={{ width: 16, height: 16 }}
+              />
+              내 요리는 빼고 보기
+              <span style={{ color: 'var(--ink-500)' }}>
+                (식구들 것 {othersCount}건)
+              </span>
+            </label>
+          )}
+          {/* 줄이 끝없이 이어지면 이 화면을 벗어나는 데만 한참 걸린다.
+              머리(고르개)는 고정하고 목록만 정해진 높이 안에서 스크롤한다. */}
+          <div style={{ maxHeight: '58vh', overflowY: 'auto', display: 'flex',
+                        flexDirection: 'column', gap: 8, paddingRight: 2 }}>
           {listKind === 'write' ? (
             recorded === null ? (
               <div style={{ padding: '24px 4px', textAlign: 'center',
@@ -1314,9 +1378,15 @@ const CookingCalendar: React.FC = () => {
           ) : listEntries.length === 0 ? (
             <div style={{ padding: '24px 4px', textAlign: 'center',
                           fontSize: 13.5, color: 'var(--ink-500)', lineHeight: 1.7 }}>
-              아직 만든 요리가 없어요.
-              <br />
-              레시피에서 <b>완료</b>를 누르면 여기 쌓여요.
+              {mode === 'household' && hideMine ? (
+                <>식구들이 만든 요리가 아직 없어요.
+                <br />
+                지금까지의 완료는 전부 <b>내가</b> 한 거예요.</>
+              ) : (
+                <>아직 만든 요리가 없어요.
+                <br />
+                레시피에서 <b>완료</b>를 누르면 여기 쌓여요.</>
+              )}
             </div>
           ) : (
             [...listEntries]
@@ -1380,6 +1450,7 @@ const CookingCalendar: React.FC = () => {
                 );
               })
           )}
+          </div>
         </div>
       )}
 
