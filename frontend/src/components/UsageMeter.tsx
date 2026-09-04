@@ -121,39 +121,49 @@ export const UsageBadge: React.FC = () => {
  * 기능을 쓰려고 연 시점이 알려주기 가장 좋은 때다. 다 썼을 때는 막다른 길로
  * 끝내지 않고 언제 다시 채워지는지 말해 준다.
  */
-export const UsageLine: React.FC<{ style?: React.CSSProperties; compact?: boolean }> = ({
-  style,
-  compact = false,
-}) => {
+export const UsageLine: React.FC<{
+  style?: React.CSSProperties;
+  compact?: boolean;
+  /** 이 자리에서 한 번 누르면 몇 크레딧이 나가나. 알면 넣어 준다. */
+  cost?: number;
+}> = ({ style, compact = false, cost }) => {
   const usage = useUsage();
   if (!usage) return null;
 
-  const out = usage.balance <= 0 || usage.daily_remaining <= 0;
-  const daily = usage.daily_remaining < usage.balance;
-
   /**
-   * `compact` — 챗 패널 헤더처럼 **폭이 좁은 자리**용.
+   * **두 가지를 다 말한다.**
    *
-   * 헤더는 아바타(36)와 버튼 두 개(40×2) 사이에 끼어 있어 남는 폭이 150px 남짓이다.
-   * 거기에 "이번 주 0 / 15 · 오늘은 10번 더 · 로그인하면 더 넉넉해요" 를 다 넣으면
-   * 두세 줄로 접혀 제목을 밀어낸다(실제로 그랬다).
-   * 좁은 자리에서는 **한 줄로 끝나는 것만** 남기고, 자세한 안내는 넓은 자리
-   * (카메라 시트 · 마이페이지)에서 한다.
+   * 크레딧은 한 종류가 아니다 — 쌓아 둔 잔액(월요일에 채워짐)과 하루에 쓸 수
+   * 있는 양(자정에 돌아옴)이 따로 있고, 둘 중 **하나만 바닥나도** 못 쓴다.
+   * 잔액만 보여 주면 "37 남았다는데 왜 안 되지" 가 되고, 반대도 마찬가지다.
+   * 그래서 AI 가 붙은 자리마다 둘을 같이 적는다.
    */
-  const parts: React.ReactNode[] = [];
-  if (usage.is_guest) {
-    // 비회원도 체험분은 쓴다. 다 쓴 뒤에 **얼마를 주는지**로 말한다 —
-    // 그때가 가입 의사가 가장 높은 순간이다.
-    parts.push(
-      out
-        ? (compact ? '가입하면 더' : `가입하면 ${usage.signup_credits}개를 드려요`)
-        : (compact ? '체험 중' : `체험 ${usage.guest_trial}회 중`),
+  const noBalance = usage.balance <= 0;
+  const noToday = usage.daily_remaining <= 0;
+  const out = noBalance || noToday;
+
+  let text: React.ReactNode;
+  if (usage.is_guest && out) {
+    // 다 쓴 뒤에 **얼마를 주는지**로 말한다 — 그때가 가입 의사가 가장 높다.
+    text = compact
+      ? '가입하면 더'
+      : <>체험분을 다 쓰셨어요 · 가입하면 <b>{usage.signup_credits} 크레딧</b></>;
+  } else if (noBalance) {
+    text = compact ? '크레딧 0' : <>크레딧을 다 썼어요 · 월요일에 <b>{usage.weekly_credits}</b> 채워져요</>;
+  } else if (noToday) {
+    text = compact ? '오늘 몫 끝' : '오늘 쓸 수 있는 양을 다 썼어요 · 자정에 돌아와요';
+  } else if (compact) {
+    // 챗 패널 헤더는 아바타와 버튼 사이 150px 남짓이다. 두 숫자만.
+    text = <>크레딧 <b>{usage.balance}</b> · 오늘 <b>{usage.daily_remaining}</b></>;
+  } else {
+    text = (
+      <>
+        남은 크레딧 <b>{usage.balance}</b>
+        {' · '}오늘 <b>{usage.daily_remaining}</b>
+        {usage.daily_cap > 0 && `/${usage.daily_cap}`}
+        {typeof cost === 'number' && cost > 0 && ` · 이번에 ${cost} 써요`}
+      </>
     );
-  } else if (out) {
-    parts.push(daily ? '오늘 몫을 다 썼어요 · 내일 이어서'
-                     : '월요일에 채워져요');
-  } else if (!compact) {
-    if (daily) parts.push(`오늘 ${usage.daily_remaining} 남음`);
   }
 
   return (
@@ -162,23 +172,18 @@ export const UsageLine: React.FC<{ style?: React.CSSProperties; compact?: boolea
         display: 'flex',
         alignItems: 'center',
         gap: 6,
-        // 좁은 자리에서는 줄을 절대 늘리지 않는다. 넘치면 말줄임.
         flexWrap: compact ? 'nowrap' : 'wrap',
         overflow: compact ? 'hidden' : undefined,
         whiteSpace: compact ? 'nowrap' : undefined,
         textOverflow: compact ? 'ellipsis' : undefined,
         minWidth: 0,
         fontSize: 12,
-        color: 'var(--ink-500)',
+        color: out ? RED : 'var(--ink-500)',
+        fontWeight: out ? 600 : 400,
         ...style,
       }}
     >
-      <span style={{ fontWeight: 600, color: out || usage.is_guest ? RED : 'var(--ink-700)', flexShrink: 0 }}>
-        {`남은 크레딧 ${usage.balance}`}
-      </span>
-      {parts.map((text, i) => (
-        <span key={i} style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>· {text}</span>
-      ))}
+      {text}
     </div>
   );
 };
@@ -228,6 +233,11 @@ export const UsageGauge: React.FC = () => {
   const base = Math.max(1, usage.is_guest ? (usage.guest_trial || 5) : (usage.signup_credits || 30));
   const pct = Math.min(100, (usage.balance / base) * 100);
   const tone = toneOf(ratio);
+  // 오늘 한도. 잔액과 **다른 것**이라 막대를 따로 그린다.
+  const dailyCap = usage.daily_cap || 0;
+  const dailyPct = dailyCap > 0
+    ? Math.min(100, Math.max(0, (usage.daily_remaining / dailyCap) * 100))
+    : 0;
 
   return (
     <div
@@ -267,23 +277,69 @@ export const UsageGauge: React.FC = () => {
         )}
       </div>
 
-      <div
-        role="progressbar"
-        aria-label="남은 크레딧"
-        aria-valuenow={usage.balance}
-        aria-valuemin={0}
-        aria-valuemax={base}
-        style={{ height: 8, borderRadius: 9999, background: 'var(--line-200)', overflow: 'hidden' }}
-      >
+      {/* 막대가 둘이다. **다른 것을 세기 때문**이다 —
+          위는 오늘 안에 쓸 수 있는 양(자정에 돌아온다),
+          아래는 쌓아 둔 잔액(월요일에 채워진다).
+          하나만 두면 "37 남았다는데 왜 안 되지" 가 된다. */}
+      {dailyCap > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between',
+                        fontSize: 11.5, color: 'var(--ink-500)' }}>
+            <span>오늘 쓸 수 있는 양</span>
+            <span>
+              <b style={{ color: usage.daily_remaining === 0 ? RED : '#1A1A1E' }}>
+                {usage.daily_remaining}
+              </b>
+              {' / '}{dailyCap}
+            </span>
+          </div>
+          <div
+            role="progressbar"
+            aria-label="오늘 남은 사용량"
+            aria-valuenow={usage.daily_remaining}
+            aria-valuemin={0}
+            aria-valuemax={dailyCap}
+            style={{ height: 8, borderRadius: 9999, background: 'var(--line-200)', overflow: 'hidden' }}
+          >
+            <div
+              style={{
+                width: `${dailyPct}%`,
+                height: '100%',
+                background: usage.daily_remaining === 0 ? RED : '#1A1A1E',
+                borderRadius: 9999,
+                transition: 'width .3s ease',
+              }}
+            />
+          </div>
+        </div>
+      )}
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        {dailyCap > 0 && (
+          <div style={{ display: 'flex', justifyContent: 'space-between',
+                        fontSize: 11.5, color: 'var(--ink-500)' }}>
+            <span>쌓아 둔 잔액</span>
+            <span><b style={{ color: '#1A1A1E' }}>{usage.balance}</b></span>
+          </div>
+        )}
         <div
-          style={{
-            width: `${Math.min(100, Math.max(0, pct))}%`,
-            height: '100%',
-            background: tone,
-            borderRadius: 9999,
-            transition: 'width .3s ease',
-          }}
-        />
+          role="progressbar"
+          aria-label="남은 크레딧"
+          aria-valuenow={usage.balance}
+          aria-valuemin={0}
+          aria-valuemax={base}
+          style={{ height: 8, borderRadius: 9999, background: 'var(--line-200)', overflow: 'hidden' }}
+        >
+          <div
+            style={{
+              width: `${Math.min(100, Math.max(0, pct))}%`,
+              height: '100%',
+              background: tone,
+              borderRadius: 9999,
+              transition: 'width .3s ease',
+            }}
+          />
+        </div>
       </div>
 
       {/* 어디에 쓰이는지 **세 군데를 다 적는다.** 식단 짜기가 빠져 있어서,
@@ -304,24 +360,12 @@ export const UsageGauge: React.FC = () => {
         ))}
       </div>
 
-      {/* "남은 크레딧 37 / 한 번에 2" 만 적어 뒀더니, 37 이 오늘 것인지 이번 주
-          것인지, `한 번에` 가 무슨 뜻인지 아무도 몰랐다. 잔액과 오늘 한도는
-          **다른 것**이므로 각각 무엇인지 말한다. */}
-      <div style={{ fontSize: 12, color: 'var(--ink-500)', lineHeight: 1.7 }}>
-        {usage.is_guest ? (
-          <>가입하면 <b>{usage.signup_credits} 크레딧</b>을 바로 드려요.</>
-        ) : (
-          <>
-            남은 크레딧은 <b>쌓아 두는 잔액</b>이에요. 쓰면 줄고, 월요일마다{' '}
-            <b>{usage.weekly_credits}</b> 씩 채워져요.
-            {usage.daily_remaining < usage.balance && (
-              <>
-                <br />
-                하루에 쓸 수 있는 양은 따로 있어요 — <b>오늘은 {usage.daily_remaining}</b> 남았어요.
-              </>
-            )}
-          </>
-        )}
+      {/* 두 막대가 이미 무엇이 얼마인지 말하고 있다. 여기서는 **언제 채워지는지**
+          만 짧게 — 막대가 못 하는 말이 그것뿐이다. */}
+      <div style={{ fontSize: 12, color: 'var(--ink-500)' }}>
+        {usage.is_guest
+          ? <>가입하면 <b>{usage.signup_credits} 크레딧</b>을 드려요.</>
+          : <>월요일마다 <b>{usage.weekly_credits}</b> 채워져요{dailyCap > 0 && ' · 오늘 몫은 자정에 돌아와요'}.</>}
       </div>
 
       {usage.is_guest ? null : pending ? (

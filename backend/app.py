@@ -3270,6 +3270,100 @@ def get_household_recorded_recipes():
     return _household_action_recipes_endpoint('recorded')
 
 
+@app.route('/api/households/me/monthly-progress', methods=['GET'])
+def get_household_monthly_progress():
+    """달마다 **누가 몇 번** 했는지.
+
+    왜 필요한가: 목표 카드는 `이번 달` 하나만 말한다. 지난달엔 얼마나 했는지,
+    식구 중 누가 얼마나 했는지는 아무 데도 안 남는다 — 목표를 세워 두는 의미가
+    "이번 달 게이지" 로만 끝난다.
+
+    한계를 분명히 해 둔다: **지난달의 목표가 몇이었는지는 저장하지 않는다.**
+    목표는 지금 값 하나뿐이라, 지난달 달성률은 `지금 목표` 기준으로 셈한
+    참고값이다. 화면에서도 그렇게 말한다.
+
+    쿼리: months (기본 12, 최대 36)
+    """
+    try:
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({'error': '인증이 필요합니다.'}), 401
+        payload = verify_jwt_token(auth_header.split(' ')[1])
+        if not payload:
+            return jsonify({'error': '권한이 없습니다.'}), 403
+        user_id = payload.get('user_id')
+
+        try:
+            months = max(1, min(36, int(request.args.get('months', 12))))
+        except (TypeError, ValueError):
+            months = 12
+
+        ensure_households_table()
+        ensure_user_data_tables()
+        db = get_db()
+        cursor = db.cursor()
+        try:
+            household = get_household_by_user(cursor, user_id)
+            if household:
+                cursor.execute(
+                    """SELECT id, nickname FROM users WHERE household_id = %s
+                       AND deleted_at IS NULL AND (share_recipe_actions = 1 OR id = %s)""",
+                    (household['id'], user_id)
+                )
+                member_rows = list(cursor.fetchall())
+                goal = household['monthly_cooking_goal']
+            else:
+                member_rows = []
+                cursor.execute("SELECT monthly_cooking_goal FROM users WHERE id = %s", (user_id,))
+                row = cursor.fetchone()
+                goal = row['monthly_cooking_goal'] if row else 20
+            member_ids = [r['id'] for r in member_rows]
+            if user_id not in member_ids:
+                cursor.execute("SELECT id, nickname FROM users WHERE id = %s", (user_id,))
+                me = cursor.fetchone()
+                if me:
+                    member_rows.append(me)
+                    member_ids.append(user_id)
+
+            placeholders = ','.join(['%s'] * len(member_ids))
+            cursor.execute(
+                f"""SELECT DATE_FORMAT(a.created_at, '%%Y-%%m') AS month,
+                           a.user_id, u.nickname, COUNT(*) AS n
+                    FROM user_completed_recipes a
+                    INNER JOIN users u ON u.id = a.user_id
+                    WHERE a.user_id IN ({placeholders})
+                      AND a.created_at >= DATE_SUB(
+                            DATE_FORMAT(CURDATE(), '%%Y-%%m-01'), INTERVAL %s MONTH)
+                    GROUP BY month, a.user_id, u.nickname
+                    ORDER BY month DESC, n DESC""",
+                member_ids + [months - 1]
+            )
+            rows = cursor.fetchall()
+
+            by_month = {}
+            for r in rows:
+                m = by_month.setdefault(r['month'], {'month': r['month'], 'total': 0, 'by': []})
+                m['total'] += int(r['n'])
+                m['by'].append({
+                    'user_id': r['user_id'],
+                    'nickname': r['nickname'] or '',
+                    'n': int(r['n']),
+                })
+
+            return jsonify({
+                'goal': goal,
+                # 지난달 목표는 저장하지 않는다. 화면이 이 사실을 말할 수 있게 알려 준다.
+                'goal_is_current_only': True,
+                'members': [{'user_id': r['id'], 'nickname': r['nickname'] or ''} for r in member_rows],
+                'months': sorted(by_month.values(), key=lambda x: x['month'], reverse=True),
+            }), 200
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"Get monthly progress error: {e}")
+        return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
+
+
 @app.route('/api/households/me/completed-calendar', methods=['GET'])
 def get_household_completed_calendar():
     """요리 캘린더용: 날짜별로 누가 어떤 레시피를 완료했는지.

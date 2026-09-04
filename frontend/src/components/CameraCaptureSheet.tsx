@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { UsageLine } from './UsageMeter';
+import { UsageLine, useUsage } from './UsageMeter';
 import Sheet from './ui/Sheet';
 import Dialog from './ui/Dialog';
 
@@ -74,6 +74,9 @@ const OPTIONS: {
  * 반복하지 않고, 위젯이 계획돼 있다는 사실만 짧게 알려 둔다.
  */
 const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose, onCaptured, maxFiles = 5 }) => {
+  // 이 시트에서 한 번 누르면 몇 크레딧이 나가는지. 서버가 정한 값을 그대로 쓴다.
+  const usageNow = useUsage();
+  const visionCost = (usageNow?.credits as any)?.vision ?? 2;
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [pendingMode, setPendingMode] = useState<CaptureMode>('food-single');
@@ -163,7 +166,7 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
         무엇을 찍을까요?
       </div>
       {/* 기능을 쓰려고 연 시점이 남은 양을 알려주기 가장 좋은 때다 */}
-      <UsageLine style={{ justifyContent: 'center', marginBottom: 16 }} />
+      <UsageLine style={{ justifyContent: 'center', marginBottom: 16 }} cost={visionCost} />
 
       {/* 카드를 눌러야 찍힌다는 게 한눈에 들어오도록, 글줄보다 아이콘을 훨씬
           크게 키운 타일 3개를 나란히 둔다(설명문처럼 가로로 긴 줄 형태였던

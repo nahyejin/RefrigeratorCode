@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { syncRecipeLists, resetRecipeSync } from '../utils/recipeSync';
 
 interface User {
   id: string;
@@ -259,7 +260,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  /**
+   * 로그인한 사람이 정해지면 **즐겨찾기·완료·기록을 서버와 맞춘다.**
+   *
+   * 이게 없으면 기기와 서버가 따로 논다 — 냉장고 요리는 기기를 세고
+   * 마이페이지·요리 캘린더는 서버를 세니, 로그인 전에 누른 것이나 반영이
+   * 실패한 것만큼 숫자가 어긋난다. 자세한 것은 `utils/recipeSync.ts`.
+   */
+  useEffect(() => {
+    if (!user?.id) return;
+    void syncRecipeLists(user.id).then(report => {
+      if (report) console.info('[Auth] 레시피 목록 맞춤:', report);
+    });
+  }, [user?.id]);
+
   const logout = () => {
+    // 다음 사람이 들어오면 처음부터 다시 맞춰야 한다.
+    resetRecipeSync();
     // 다음에 들어오는 사람은 비회원이다 (계정 전환 감지 기준값도 맞춰 둔다)
     try {
       localStorage.setItem('last_active_user_id', 'guest');

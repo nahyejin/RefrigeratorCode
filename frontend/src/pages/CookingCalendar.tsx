@@ -9,6 +9,7 @@ import { getProxiedImageUrl } from '../utils/imageUtils';
 import BottomNavBar from '../components/BottomNavBar';
 import PullToRefresh from '../components/PullToRefresh';
 import DatePickerField from '../components/DatePickerField';
+import Sheet from '../components/ui/Sheet';
 import { useAuth } from '../context/AuthContext';
 import { resolveCoupangUrl } from '../utils/coupangLink';
 import { getMyIngredients } from '../utils/recipeUtils';
@@ -776,6 +777,30 @@ const CookingCalendar: React.FC = () => {
    * 완료 기록(`entriesByDay`)과 **섞지 않는다.** 저건 실제로 만든 것이고 이건
    * 아직 계획이다. 같은 목록에 넣으면 "만들었다" 는 기록이 오염된다.
    */
+  /**
+   * **달마다 누가 몇 번 했는지.**
+   *
+   * 목표 카드는 이번 달 하나만 말한다. 지난달엔 얼마나 했는지, 식구 중 누가
+   * 얼마나 했는지는 아무 데도 안 남아서, 목표를 세워 두는 의미가 "이번 달
+   * 게이지" 로만 끝났다.
+   */
+  const [progressOpen, setProgressOpen] = React.useState(false);
+  const [progress, setProgress] = React.useState<{
+    goal: number;
+    members: { user_id: number; nickname: string }[];
+    months: { month: string; total: number; by: { user_id: number; nickname: string; n: number }[] }[];
+  } | null>(null);
+  React.useEffect(() => {
+    if (!progressOpen || progress || !isLoggedIn) return;
+    const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+    fetch(`${getApiUrl()}/api/households/me/monthly-progress?months=12`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => (r.ok ? r.json() : Promise.reject(new Error())))
+      .then(setProgress)
+      .catch(() => setProgress({ goal: 0, members: [], months: [] }));
+  }, [progressOpen, progress, isLoggedIn]);
+
   const plans = planByDate();
 
   /**
@@ -886,8 +911,25 @@ const CookingCalendar: React.FC = () => {
           혼란이 있었음) */}
       <div style={{ margin: '0 14px', padding: '12px 14px', borderRadius: 12, background: 'var(--surface-sub)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: '#1A1A1E' }}>
-            {anchorDate.getFullYear()}년 {anchorDate.getMonth() + 1}월 목표
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: '#1A1A1E' }}>
+              {anchorDate.getFullYear()}년 {anchorDate.getMonth() + 1}월 목표
+            </span>
+            {/* 지난 달들을 들여다보는 구멍. 목표는 이번 달 하나만 말하는데,
+                쌓인 것을 못 보면 목표를 세워 둔 보람이 없다. */}
+            {isLoggedIn && (
+              <button
+                type="button"
+                onClick={() => setProgressOpen(true)}
+                style={{
+                  height: 22, padding: '0 8px', borderRadius: 9999,
+                  border: '1px solid var(--line-300)', background: 'var(--surface)',
+                  fontSize: 11, fontWeight: 600, color: 'var(--ink-500)', cursor: 'pointer',
+                }}
+              >
+                기록
+              </button>
+            )}
           </span>
           {editingGoal ? (
             <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -1350,6 +1392,92 @@ const CookingCalendar: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* 달마다 누가 몇 번 했는지. 게이지 하나로는 "이번 달" 밖에 못 말한다. */}
+      <Sheet
+        open={progressOpen}
+        onClose={() => setProgressOpen(false)}
+        title="달마다 얼마나 했나"
+        maxHeight="80dvh"
+        dismissLabel="닫기"
+      >
+        {progress === null ? (
+          <div style={{ padding: '20px 0', textAlign: 'center', fontSize: 13, color: 'var(--ink-500)' }}>
+            불러오는 중...
+          </div>
+        ) : progress.months.length === 0 ? (
+          <div style={{ padding: '20px 0', textAlign: 'center', fontSize: 13.5,
+                        color: 'var(--ink-500)', lineHeight: 1.7 }}>
+            아직 완료한 요리가 없어요.
+            <br />
+            레시피 카드의 <b>완료</b> 를 누르면 여기 쌓여요.
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {progress.months.map(m => {
+              const goal = progress.goal || 0;
+              const pct = goal > 0 ? Math.min(100, Math.round((m.total / goal) * 100)) : 0;
+              const hit = goal > 0 && m.total >= goal;
+              const [yy, mm] = m.month.split('-');
+              return (
+                <div key={m.month} style={{
+                  border: '1px solid var(--line-200)', borderRadius: 12, padding: '11px 12px',
+                  background: 'var(--surface)',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
+                    <span style={{ fontSize: 13.5, fontWeight: 700, color: '#1A1A1E' }}>
+                      {Number(yy)}년 {Number(mm)}월
+                    </span>
+                    <span style={{ fontSize: 12.5, color: 'var(--ink-500)' }}>
+                      <b style={{ color: hit ? '#3A6B2E' : '#1A1A1E', fontSize: 15 }}>{m.total}</b>
+                      {goal > 0 && <> / {goal}회 · {pct}%</>}
+                      {hit && <span style={{ color: '#3A6B2E', fontWeight: 700 }}> 달성</span>}
+                    </span>
+                  </div>
+
+                  {/* 누가 얼마나 했는지를 **한 줄 막대**에 색으로 나눠 담는다.
+                      숫자만 늘어놓으면 누가 많이 했는지 한눈에 안 들어온다. */}
+                  {goal > 0 && (
+                    <div style={{ display: 'flex', height: 8, borderRadius: 9999, marginTop: 7,
+                                  background: 'var(--line-200)', overflow: 'hidden' }}>
+                      {m.by.map((p, i) => (
+                        <span
+                          key={p.user_id}
+                          style={{
+                            width: `${Math.min(100, (p.n / goal) * 100)}%`,
+                            background: MEMBER_COLORS[i % MEMBER_COLORS.length],
+                            borderRight: i < m.by.length - 1 ? '1px solid var(--surface)' : undefined,
+                          }}
+                        />
+                      ))}
+                    </div>
+                  )}
+
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 7 }}>
+                    {m.by.map((p, i) => (
+                      <span key={p.user_id} style={{ display: 'inline-flex', alignItems: 'center', gap: 4,
+                                                     fontSize: 11.5, color: 'var(--ink-700)' }}>
+                        <span aria-hidden style={{
+                          width: 8, height: 8, borderRadius: 9999,
+                          background: MEMBER_COLORS[i % MEMBER_COLORS.length],
+                        }} />
+                        {p.nickname || '이름 없음'} {p.n}회
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* 있는 그대로 말한다. 지난달 목표를 저장하지 않으므로, 지난달
+                달성률은 **지금 목표** 로 셈한 참고값이다. */}
+            <div style={{ fontSize: 11, color: 'var(--ink-500)', lineHeight: 1.6, padding: '2px 2px 0' }}>
+              지난 달들도 <b>지금 목표({progress.goal}회)</b> 기준으로 셈했어요.
+              그때 목표가 달랐다면 참고만 해 주세요.
+            </div>
+          </div>
+        )}
+      </Sheet>
 
       {/* 이번 주 장보기 — 달력 **바로 아래**.
           "무슨 요일에 뭘 한다" 를 정하고 나면 다음 물음은 늘 "그럼 뭘 사지" 다.

@@ -1715,8 +1715,11 @@ const WeeklyPlan: React.FC = () => {
             <div style={{ fontSize: 11, color: 'var(--ink-500)', marginTop: 6, textAlign: 'center' }}>
               {viewingPast
                 ? '지난 대화예요. 새로 물어보면 지금 조건으로 다시 짜 드려요.'
-                : <>이 대화는 여기까지예요 · 남은 크레딧 <b>{usage?.balance ?? 0}</b></>}
+                : '이 대화는 여기까지예요'}
             </div>
+            {!viewingPast && (
+              <UsageLine style={{ justifyContent: 'center', marginTop: 4 }} cost={planCost} />
+            )}
           </>
         ) : (
           <>
@@ -1788,13 +1791,10 @@ const WeeklyPlan: React.FC = () => {
             </span>
           </div>
 
-          <div style={{ fontSize: 11, color: 'var(--ink-500)', marginTop: 6, textAlign: 'center' }}>
-            {canAi
-              ? <>남은 크레딧 <b>{usage?.balance ?? 0}</b> · 이번 추천에 {planCost} 써요</>
-              : usage?.is_guest
-                ? <>가입하면 <b>{usage.signup_credits} 크레딧</b>을 드려요</>
-                : '크레딧을 다 쓰셨어요'}
-          </div>
+          {/* 잔액과 오늘 한도를 **같이** 말한다. 둘 중 하나만 바닥나도 못 쓰는데
+              한쪽만 보여 주면 "37 남았다는데 왜 안 되지" 가 된다.
+              (다른 AI 자리와 같은 부품이라 문구도 저절로 같아진다) */}
+          <UsageLine style={{ justifyContent: 'center', marginTop: 6 }} cost={planCost} />
           </>
         )}
         </div>
