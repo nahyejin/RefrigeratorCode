@@ -19,7 +19,7 @@ import IngredientRecognitionSheet, { type RecognizedIngredient, type UnmatchedIn
 import Dialog from '../components/ui/Dialog';
 import { shrinkImageForUpload } from '../utils/imageUtils';
 import { applyUsage, usageHeaders } from '../utils/usage';
-import { UsageBadge, useUsage } from '../components/UsageMeter';
+import { useUsage } from '../components/UsageMeter';
 import { loadIngredientCategoryMap, estimateExpiry, type CategoryMap } from '../utils/shelfLife';
 import {
   isUsageGuideDueThisVisit,
@@ -2291,8 +2291,7 @@ const MyFridge: React.FC = () => {
                 </svg>
               </button>
               <span className="ai-fab-badge">AI</span>
-              {/* 남은 사용량이 20% 이하로 떨어질 때만 나온다. 평소엔 아무것도 안 그린다 */}
-              <UsageBadge />
+              
             </div>
           </div>
 

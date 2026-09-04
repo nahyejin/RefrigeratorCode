@@ -72,7 +72,10 @@ const HomeInstallPrompt: React.FC = () => {
       location.pathname === '/login' ||
       location.pathname === '/signup' ||
       location.pathname === '/find-email' ||
-      location.pathname === '/reset-password'
+      location.pathname === '/reset-password' ||
+      // 식단 화면은 **일하는 중**이다. 특히 AI 쪽은 조건을 적다가 크레딧을
+      // 쓰기 직전인데, 화면을 덮는 모달이 끼어들면 그 흐름이 끊긴다.
+      location.pathname.startsWith('/plan')
     ) {
       return;
     }

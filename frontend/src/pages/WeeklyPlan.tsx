@@ -377,7 +377,7 @@ const TurnResult: React.FC<{
       )}
 
       <div style={{ fontSize: 10, color: 'var(--ink-500)', marginTop: 7, lineHeight: 1.5 }}>
-        쿠팡 파트너스 활동으로 일정액의 수수료를 받을 수 있어요.
+        쿠팡 파트너스 · 수수료를 받을 수 있어요
       </div>
     </div>
 
@@ -432,11 +432,6 @@ const TurnResult: React.FC<{
       ))}
     </div>
 
-    {live && (
-      <div style={{ fontSize: 11, color: 'var(--ink-500)', marginTop: 8 }}>
-        아래에서 요일을 옮기거나 캘린더에 담을 수 있어요.
-      </div>
-    )}
   </>
 );
 
@@ -495,9 +490,7 @@ const WeeklyPlan: React.FC = () => {
     // 박아 두면 그것만 되는 기능으로 읽힌다.
     setChat([{
       who: 'ai',
-      text: '냉장고 재료로 이번 주 식단을 짜 드릴게요.\n'
-          + '장을 가장 적게 보는 조합으로 고르고,\n'
-          + '원하는 조건이 있으면 그에 맞춰 드려요.',
+      text: '장을 가장 적게 보는 조합으로 짜 드려요.\n원하는 조건이 있으면 말씀해 주세요.',
       at: Date.now(),
     }]);
   }, [wantAi, chat.length]);
@@ -981,7 +974,7 @@ const WeeklyPlan: React.FC = () => {
                 제목 밑줄로 붙인다. */}
             <SectionHead
               title="이번 주 식단"
-              hint={<>내일부터 {slots.length}일 · 바꾸기는 크레딧을 안 써요</>}
+              hint={<>내일부터 {slots.length}일 · 바꾸기는 공짜</>}
               right={
                 <span style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
                   {/* 무료 — 마음에 들 때까지 눌러도 된다. 여기에 크레딧을 물리면
@@ -1247,7 +1240,7 @@ const WeeklyPlan: React.FC = () => {
 
             <div style={{ fontSize: 11.5, color: 'var(--ink-500)', lineHeight: 1.7,
                           padding: '10px 4px 0' }}>
-              체크를 끄면 그 날은 빼고 담아요.
+              체크를 끄면 그 날은 빼요.
             </div>
           </>
         )}
@@ -1422,10 +1415,10 @@ const WeeklyPlan: React.FC = () => {
 
           <div style={{ fontSize: 11, color: 'var(--ink-500)', marginTop: 6, textAlign: 'center' }}>
             {canAi
-              ? <>한 번 물을 때 크레딧 <b>{planCost}</b>을 써요 · 남은 {usage?.balance ?? 0}</>
+              ? <>남은 크레딧 <b>{usage?.balance ?? 0}</b> · 한 번에 {planCost}</>
               : usage?.is_guest
-                ? <>가입하면 <b>{usage.signup_credits} 크레딧</b>을 드려요.</>
-                : '크레딧을 다 쓰셨어요.'}
+                ? <>가입하면 <b>{usage.signup_credits} 크레딧</b>을 드려요</>
+                : '크레딧을 다 쓰셨어요'}
           </div>
         </div>
       </div>
@@ -1499,7 +1492,7 @@ const WeeklyPlan: React.FC = () => {
         {expiring.length > 0 ? (
           <>
             <div style={{ fontSize: 12, color: '#B03A28', fontWeight: 700, marginBottom: 6 }}>
-              곧 상해요 · 먼저 씁니다
+              곧 상해요
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {expiring.map(i => (
@@ -1516,7 +1509,7 @@ const WeeklyPlan: React.FC = () => {
           </>
         ) : (
           <div style={{ fontSize: 12.5, color: 'var(--ink-700)', lineHeight: 1.7 }}>
-            유통기한을 넣어 두면 <b>곧 상하는 것부터</b> 골라 드려요.
+            유통기한을 넣으면 <b>곧 상하는 것부터</b> 골라요.
           </div>
         )}
 
@@ -1542,7 +1535,7 @@ const WeeklyPlan: React.FC = () => {
             {stale.length > 0 && (
               <div style={{ marginTop: restNames.length > 0 ? 12 : 0 }}>
                 <div style={{ fontSize: 12, color: 'var(--ink-500)', fontWeight: 700, marginBottom: 6 }}>
-                  오래됐어요 · 빼 뒀어요
+                  오래됐어요
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                   {stale.map(i => (
@@ -1570,7 +1563,7 @@ const WeeklyPlan: React.FC = () => {
             )}
 
             <div style={{ fontSize: 11.5, color: 'var(--ink-500)', marginTop: 12, lineHeight: 1.6 }}>
-              눌러서 빼거나 다시 넣으세요.
+              눌러서 빼고 넣어요.
             </div>
           </div>
         )}
@@ -1600,7 +1593,7 @@ const WeeklyPlan: React.FC = () => {
               조건 말하고 추천받기
             </span>
           </span>
-          <span style={{ fontSize: 12, color: 'var(--ink-500)' }}>장보기도 줄여 드려요 ›</span>
+          <span style={{ fontSize: 12, color: 'var(--ink-500)' }}>장보기도 줄여요 ›</span>
         </button>
       )}
 
@@ -1732,8 +1725,7 @@ const WeeklyPlan: React.FC = () => {
             장보기 목록 {shopping.length}개
           </h2>
           <div style={{ fontSize: 12, color: 'var(--ink-500)', marginBottom: 10, lineHeight: 1.6 }}>
-            위 식단에 필요한데 냉장고에 없는 재료예요.
-            <b> 여러 요리에 쓰이는 것부터</b> 놓았습니다.
+            냉장고에 없는 것. <b>많이 쓰이는 순서</b>.
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>

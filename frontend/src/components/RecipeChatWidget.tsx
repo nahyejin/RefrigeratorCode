@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { track } from '../utils/track';
 import { applyUsage, usageHeaders } from '../utils/usage';
-import { UsageBadge, UsageLine } from './UsageMeter';
+import { UsageLine } from './UsageMeter';
 import BackButton from './ui/BackButton';
 import { useLocation } from 'react-router-dom';
 import { getProxiedImageUrl } from '../utils/imageUtils';
@@ -755,8 +755,7 @@ const RecipeChatWidget: React.FC = () => {
             <ChatBubbleIcon size={26} />
           </button>
           <span className="ai-fab-badge">AI</span>
-          {/* 남은 사용량이 20% 이하일 때만 나온다. 평소엔 아무것도 안 그린다 */}
-          <UsageBadge />
+          
         </div>
       )}
     </>
