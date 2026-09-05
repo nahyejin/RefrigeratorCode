@@ -1987,7 +1987,10 @@ const CookingCalendar: React.FC = () => {
               return (
               <div
                 key={`${e.recipe_id}-${e.user_id}-${i}`}
-                style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 12, border: '1px solid var(--line-200)' }}
+                // 고치는 중에는 날짜칸 + 저장 + 취소가 한 줄에 다 들어가지 않는다.
+                // 셋을 오른쪽에 밀어 넣으면 가운데 칸이 눌려 **닉네임이 줄바꿈**된다.
+                // 줄바꿈을 허용해 편집칸을 통째로 아랫줄로 내린다(아래 flexBasis).
+                style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 12, padding: '10px 12px', borderRadius: 12, border: '1px solid var(--line-200)' }}
               >
                 <img
                   src={getProxiedImageUrl(e.thumbnail || '')}
@@ -2002,7 +2005,10 @@ const CookingCalendar: React.FC = () => {
                     {isInHousehold && (
                       <span style={{ width: 7, height: 7, borderRadius: '50%', background: colorForUser(e.user_id, memberIds), flexShrink: 0 }} />
                     )}
-                    <span style={{ fontSize: 12, color: 'var(--ink-500)' }}>
+                    {/* 닉네임이 길어도 두 줄이 되지 않게. 칸이 좁아지면 말줄임한다 —
+                        시간과 이름이 위아래로 갈라지면 한 사람의 정보로 안 읽힌다. */}
+                    <span style={{ fontSize: 12, color: 'var(--ink-500)', minWidth: 0,
+                                   overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {formatTime(e.created_at)}
                       {isInHousehold ? ` · ${e.nickname}` : ''}
                     </span>
@@ -2013,7 +2019,11 @@ const CookingCalendar: React.FC = () => {
                     (다른 식구의 기록은 본인만 고칠 수 있음). */}
                 {isMine && (
                   isEditing ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                    <div style={{
+                      // 한 줄을 통째로 쓴다 — 위 칸(제목·닉네임)을 건드리지 않는다.
+                      display: 'flex', alignItems: 'center', gap: 6,
+                      flexBasis: '100%', justifyContent: 'flex-end', marginTop: -4,
+                    }}>
                       {/* 시스템 달력 대신 우리 달력 */}
                       <DatePickerField
                         value={dateInput}
