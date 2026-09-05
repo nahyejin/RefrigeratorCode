@@ -7,6 +7,7 @@ import TopNavBar from '../components/TopNavBar';
 import ErrorBoundary from '../components/ErrorBoundary';
 import HomeInstallPrompt from '../components/HomeInstallPrompt';
 import RecipeChatWidget from '../components/RecipeChatWidget';
+import PlanUpgradeToast from '../components/PlanUpgradeToast';
 import CookModeHost from '../components/CookModeHost';
 import ShareRequestPopup from '../components/ShareRequestPopup';
 import { AuthProvider } from '../context/AuthContext';
@@ -277,6 +278,8 @@ function AppContent() {
       </Suspense>
       <HomeInstallPrompt />
       <RecipeChatWidget />
+      {/* 유료로 바뀐 것을 한 번 알린다. 어디에 있든 보여야 하므로 전역에 둔다. */}
+      <PlanUpgradeToast />
       {/* 요리 모드 시트는 앱에 **하나만** 둔다. 카드가 흩어져 있는 화면마다
           시트를 하나씩 두면 같은 코드를 여섯 군데에 적게 된다. */}
       <CookModeHost />

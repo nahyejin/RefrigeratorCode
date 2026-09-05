@@ -329,11 +329,21 @@ def ensure_tables(get_db):
                     weekly_limit INT NULL,
                     daily_cap INT NULL,
                     note VARCHAR(255) NULL,
+                    plan_until DATETIME NULL,
                     updated_by INT NULL,
                     updated_at DATETIME NOT NULL
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
                 """
             )
+            # 유료는 **기간이 있는 것**이다. 이 값이 지나면 자동으로 무료로 돌아간다.
+            # 없으면(NULL) 기한 없는 유료 — 시험 기간에 열어 준 계정이 그렇다.
+            try:
+                cursor.execute("SHOW COLUMNS FROM user_quota LIKE 'plan_until'")
+                if not cursor.fetchone():
+                    cursor.execute("ALTER TABLE user_quota ADD COLUMN plan_until DATETIME NULL")
+                    db.commit()
+            except Exception as e:  # noqa: BLE001
+                print(f"[usage_quota] plan_until 컬럼 추가 실패(무시): {e}", flush=True)
             # 이미 만들어진 llm_usage 에 토큰 컬럼이 없으면 채운다.
             # 크레딧만으로는 "환산이 맞는지"를 검증할 수 없다 — 실제로 몇 토큰을
             # 썼는지 남겨야 나중에 크레딧 가중치나 유료 전환 원가를 근거로 정할 수 있다.
@@ -406,8 +416,13 @@ def ensure_tables(get_db):
             db.close()
 
 
-def _plan_of(cursor, user_id):
+def _plan_of(cursor, user_id, now=None):
     """이 사용자의 (plan, 어드민이 직접 넣은 하루 상한 또는 None).
+
+    **기한이 지난 유료는 무료로 본다.** 표의 값을 지우지는 않는다 — 언제까지
+    유료였는지가 남아 있어야 나중에 "이 사람은 6월에 결제했었다" 를 알 수 있다.
+    읽을 때 판단하는 편이, 만료를 처리하는 배치를 따로 두는 것보다 틀릴 여지가 적다
+    (배치가 하루 안 돌면 그날은 공짜로 유료가 된다).
 
     `user_quota` 에 행이 없으면 free. 행이 있어도 `daily_cap` 이 NULL 이면
     None 을 돌려준다 — 어드민이 "plan 만 올리고 숫자는 알아서" 를 쓸 수 있게.
@@ -417,19 +432,27 @@ def _plan_of(cursor, user_id):
         return "guest", None
 
     cursor.execute(
-        "SELECT plan, daily_cap FROM user_quota WHERE user_id = %s", (user_id,)
+        "SELECT plan, daily_cap, plan_until FROM user_quota WHERE user_id = %s", (user_id,)
     )
     row = cursor.fetchone()
-    plan, daily = "free", None
+    plan, daily, until = "free", None, None
     if row:
         # DictCursor / 튜플 커서 양쪽에서 동작하게 한다.
         if isinstance(row, dict):
             plan = (row.get("plan") or "free").strip() or "free"
             daily = row.get("daily_cap")
+            until = row.get("plan_until")
         else:
             plan = (row[0] or "free").strip() or "free"
             daily = row[1]
-    return plan, daily
+            until = row[2] if len(row) > 2 else None
+
+    if plan != "free" and until is not None:
+        today = (now or datetime.now(KST)).replace(tzinfo=None)
+        if until <= today:
+            # 기간이 끝났다. 하루 상한도 무료 것으로 돌아간다.
+            return "free", None, until
+    return plan, daily, until
 
 
 def _scalar(row):
@@ -619,7 +642,7 @@ def status(get_db, user_id=None, device_id=None):
     db = get_db()
     cursor = db.cursor()
     try:
-        plan, daily_fixed = _plan_of(cursor, user_id)
+        plan, daily_fixed, plan_until = _plan_of(cursor, user_id, now)
         if user_id is None:
             # 비회원 체험분. 지급 원장(credit_grants)은 회원용이라, 여기서는
             # **정해진 체험분에서 쓴 만큼 뺀다.** 기기 식별자 기준이다.
@@ -664,6 +687,9 @@ def status(get_db, user_id=None, device_id=None):
         "weekly_credits": weekly_for(plan) if user_id is not None else WEEKLY_CREDITS,
         "weekly_plus": WEEKLY_BY_PLAN.get("plus", 0),
         "is_paid": plan == "plus",
+        # 언제까지 유료인가. 없으면(None) 기한 없는 유료다.
+        # 기한이 지난 것은 위에서 이미 `free` 로 바뀌어 내려온다.
+        "plan_until": plan_until.strftime("%Y-%m-%d") if plan_until else None,
         "signup_credits": SIGNUP_CREDITS,
         "next_weekly_at": next_week_start(now).isoformat(),
         "credits": dict(CREDITS),

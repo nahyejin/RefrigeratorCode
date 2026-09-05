@@ -402,6 +402,13 @@ export const UsageGauge: React.FC = () => {
             )}
             매주 월요일 <b>{usage.weekly_credits} 크레딧</b> 충전
             {dailyCap > 0 && ' · 금일 한도는 자정 초기화'}
+            {/* 언제까지인지 안 적으면 어느 날 갑자기 줄어든 것처럼 느낀다. */}
+            {usage.is_paid && usage.plan_until && (
+              <>
+                <br />
+                <b>{usage.plan_until}</b> 까지 유료예요. 그 뒤에는 무료로 돌아가요.
+              </>
+            )}
             {/* **왜 이만큼뿐인지**를 말해 준다. 숫자만 적어 두면 "이게 왜 이거지"
                 로 끝나고, 더 받는 길이 있다는 것도 안 보인다. */}
             {!usage.is_paid && (

@@ -16,6 +16,7 @@
     것은 UI 편의일 뿐 보안이 아니다.
 """
 
+import calendar
 import os
 from datetime import datetime, timedelta
 
@@ -383,6 +384,25 @@ def register(app, get_db):
         if not note:
             return jsonify({'error': '왜 바꾸는지 메모를 남겨 주세요.'}), 400
 
+        # 유료는 **기간이 있는 것**이다. 개월 수를 받아 만료일을 계산한다.
+        # 0 이나 안 보내면 기한 없음(NULL) — 시험 기간에 열어 주는 계정이 그렇다.
+        months = body.get('months')
+        plan_until = None
+        if plan == 'plus' and months not in (None, '', 0, '0'):
+            try:
+                n = int(months)
+            except (TypeError, ValueError):
+                return jsonify({'error': 'months 는 숫자여야 합니다.'}), 400
+            if n not in (1, 3, 6, 12):
+                return jsonify({'error': 'months 는 1 / 3 / 6 / 12 중 하나여야 합니다.'}), 400
+            # 달을 더한다. `+30일 * n` 은 2월이 낀 계약에서 어긋난다.
+            base = datetime.now(usage_quota.KST).replace(tzinfo=None)
+            month = base.month - 1 + n
+            year = base.year + month // 12
+            month = month % 12 + 1
+            day = min(base.day, calendar.monthrange(year, month)[1])
+            plan_until = base.replace(year=year, month=month, day=day)
+
         def as_int(value):
             if value in (None, '', 'null'):
                 return None
@@ -404,14 +424,14 @@ def register(app, get_db):
             cursor.execute(
                 """
                 INSERT INTO user_quota
-                    (user_id, plan, daily_cap, note, updated_by, updated_at)
-                VALUES (%s, %s, %s, %s, %s, NOW())
+                    (user_id, plan, daily_cap, note, plan_until, updated_by, updated_at)
+                VALUES (%s, %s, %s, %s, %s, %s, NOW())
                 ON DUPLICATE KEY UPDATE
                     plan = VALUES(plan), daily_cap = VALUES(daily_cap),
-                    note = VALUES(note),
+                    note = VALUES(note), plan_until = VALUES(plan_until),
                     updated_by = VALUES(updated_by), updated_at = NOW()
                 """,
-                (user_id, plan, daily, note[:255], admin[0]),
+                (user_id, plan, daily, note[:255], plan_until, admin[0]),
             )
             db.commit()
         finally:

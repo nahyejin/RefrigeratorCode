@@ -25,6 +25,8 @@ export interface Usage {
   is_paid?: boolean;
   /** 유료로 올리면 매주 받는 양. 무료에게 "올리면 얼마" 를 말해 주려고. */
   weekly_plus?: number;
+  /** 언제까지 유료인가 (YYYY-MM-DD). 없으면 기한 없음. */
+  plan_until?: string | null;
   daily_used: number;
   daily_remaining: number;
   /** 비회원은 AI 를 못 쓴다. 화면은 이 값 하나만 보면 된다. */

@@ -499,15 +499,17 @@ const Requests: React.FC = () => {
    * 사람이 남는다. 가장 흔한 처리(유료로 올림)만 한 번에 하고, 그 밖의
    * 조정은 여전히 사용자 탭에서 한다.
    */
-  const upgrade = async (r: any) => {
-    if (!window.confirm(`${r.nickname || r.email} 님을 유료(plus)로 올릴까요?
+  const upgrade = async (r: any, months: number) => {
+    const label = months ? `${months}개월` : '기한 없이';
+    if (!window.confirm(`${r.nickname || r.email} 님을 ${label} 유료로 올릴까요?
 매주 60 크레딧이 충전됩니다.`)) return;
     try {
       await api(`/api/admin/users/${r.user_id}/quota`, {
         method: 'PUT',
         body: JSON.stringify({
           plan: 'plus',
-          note: `요청 #${r.id} 승인 — 유료 전환`,
+          months: months || undefined,
+          note: `요청 #${r.id} 승인 — 유료 ${label}`,
         }),
       });
       await handle(r.id, 'done');
@@ -556,9 +558,18 @@ const Requests: React.FC = () => {
                   <td style={S.td}>
                     {r.status === 'open' ? (
                       <span style={{ display: 'flex', gap: 6 }}>
+                        {/* 유료는 **기간이 있는 것**이다. 몇 달인지 안 정하면
+                            영원히 유료인 계정이 쌓이고, 결제를 붙일 때 그
+                            사람들을 어떻게 할지가 문제가 된다.
+                            `무기한` 은 시험 기간용으로만 남긴다. */}
+                        {r.plan !== 'plus' && ([1, 3, 6, 12] as const).map(m => (
+                          <button key={m} type="button"
+                                  style={{ ...S.primary, height: 28, padding: '0 8px' }}
+                                  onClick={() => upgrade(r, m)}>{m}개월</button>
+                        ))}
                         {r.plan !== 'plus' && (
-                          <button type="button" style={{ ...S.primary, height: 28 }}
-                                  onClick={() => upgrade(r)}>유료로</button>
+                          <button type="button" style={{ ...S.btn, height: 28, padding: '0 8px' }}
+                                  onClick={() => upgrade(r, 0)}>무기한</button>
                         )}
                         <button type="button" style={{ ...S.btn, height: 28, padding: '0 10px' }}
                                 onClick={() => handle(r.id, 'done')}>처리함</button>
@@ -577,7 +588,8 @@ const Requests: React.FC = () => {
         </div>
       )}
       <div style={{ fontSize: 12, color: 'var(--ink-500)', padding: '0 4px', lineHeight: 1.7 }}>
-        <b>유료로</b> 를 누르면 plus 로 올리고 요청도 함께 닫습니다 — 매주 60 크레딧이 충전돼요.
+        <b>개월 수</b>를 누르면 그 기간만큼 유료로 올리고 요청도 함께 닫습니다 — 매주 60 크레딧.
+        기간이 지나면 <b>자동으로 무료로 돌아갑니다</b>(따로 배치가 돌지 않고, 읽을 때 판단합니다).
         <br />
         크레딧을 따로 얹어 주거나 일 상한을 손보려면 <b>사용자 탭 → 자세히 → 한도 조정</b>에서 합니다.
       </div>
