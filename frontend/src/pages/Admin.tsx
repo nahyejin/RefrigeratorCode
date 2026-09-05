@@ -38,7 +38,7 @@ interface AdminUser {
   used_total: number;
   daily_cap: number;
   /** 이 상한이 사람이 넣은 숫자인가(true), 잔액에서 계산된 값인가(false). */
-  daily_cap_fixed: boolean;
+  daily_cap_manual: boolean;
   note: string | null;
   ingredient_count: number;
   week_credits: number;
@@ -161,8 +161,8 @@ const PolicyCard: React.FC<{ policy: any }> = ({ policy }) => {
           {/* 표의 숫자는 **하한**이다. 이 줄이 없으면 "일 상한 15" 만 보고
               크레딧을 많이 준 계정이 왜 15에 안 막히는지 설명이 안 된다. */}
           <div style={{ fontSize: 12.5, color: 'var(--ink-700)', lineHeight: 1.8 }}>
-            <b>일 상한은 하한이다</b> — 실제 상한은 위 값과{' '}
-            <b>잔액 ÷ {policy.daily_burn_days ?? 7}일</b> 중 큰 쪽이에요.
+            <b>일 상한은 하한이다</b> — 실제 상한은 위 값, 사용자별로 넣은 숫자,{' '}
+            <b>잔액 ÷ {policy.daily_burn_days ?? 7}일</b> 중 <b>가장 큰 값</b>이에요.
             크레딧을 300개 줬는데 하루 15개씩만 쓸 수 있으면 다 쓰는 데 20일이
             걸린다 — 준 걸 못 쓰게 하는 셈이라, 잔액이 많으면 상한도 같이 올라가요.
           </div>
@@ -243,7 +243,7 @@ const QuotaEditor: React.FC<{ user: AdminUser; onSaved: () => void }> = ({ user,
   const [grant, setGrant] = React.useState('');
   // 비워 두면 "잔액에 맞춰 자동". 계산된 값을 칸에 미리 채워 두면, 저장을
   // 누르는 순간 그 숫자가 **고정**돼 잔액이 늘어도 상한이 안 따라온다.
-  const [daily, setDaily] = React.useState(user.daily_cap_fixed ? String(user.daily_cap) : '');
+  const [daily, setDaily] = React.useState(user.daily_cap_manual ? String(user.daily_cap) : '');
   const [note, setNote] = React.useState('');
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -282,12 +282,12 @@ const QuotaEditor: React.FC<{ user: AdminUser; onSaved: () => void }> = ({ user,
         <b>크레딧 지급</b>은 잔액에 <b>더합니다</b>. 덮어쓰지 않아요 —
         실수로 남의 잔액을 깎는 일이 없도록.
         <br />
-        일 상한은 <b>비워 두면 잔액에 맞춰 자동</b>이에요 —
-        플랜 기본값(free 15 · plus 50)과 <b>잔액 ÷ 7일</b> 중 큰 쪽.
-        크레딧을 많이 줘도 하루 상한에 막히지 않게 하려는 것이라, 특별한 이유가
-        없으면 비워 두세요. 숫자를 넣으면 그 값으로 <b>고정</b>됩니다.
+        일 상한은 <b>비워 두면 잔액에 맞춰 자동</b>이에요 — 플랜 기본값
+        (free 15 · plus 50)과 <b>잔액 ÷ 7일</b> 중 큰 쪽. 여기 넣는 숫자는
+        <b> 더 올리는 데만</b> 쓰여요(내려서 묶지는 못합니다 — 이미 준 크레딧을
+        못 쓰게 하는 일이 없도록).
         {' '}지금 적용되는 값 <b style={{ color: '#1A1A1E' }}>{user.daily_cap}</b>
-        {user.daily_cap_fixed ? ' (고정)' : ' (자동)'}
+        {user.daily_cap_manual ? ' (직접 지정)' : ' (자동)'}
       </div>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
         <select value={plan} onChange={e => setPlan(e.target.value)} style={S.input}>

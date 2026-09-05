@@ -1671,7 +1671,7 @@ const WeeklyPlan: React.FC = () => {
         width={320}
         nested
         actions={[
-          { label: '그만두기', variant: 'outline', onClick: () => setDropTarget(null) },
+          { label: '취소', variant: 'outline', onClick: () => setDropTarget(null) },
           {
             label: '지우기',
             variant: 'danger',
@@ -1683,10 +1683,11 @@ const WeeklyPlan: React.FC = () => {
           },
         ]}
       >
+        {/* 두 줄이면 안 읽는다. 무엇을 지우는지 + 되돌릴 수 없다는 것만. */}
         <span style={{ fontSize: 13.5, color: 'var(--ink-700)', lineHeight: 1.7 }}>
           <b style={{ color: '#1A1A1E' }}>{dropTarget?.title}</b>
           <br />
-          지우면 그때 받은 식단까지 함께 사라지고, 되돌릴 수 없어요.
+          되돌릴 수 없어요.
         </span>
       </Dialog>
 

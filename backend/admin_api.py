@@ -335,7 +335,7 @@ def register(app, get_db):
                 'plan': plan,
                 'daily_cap': usage_quota.effective_daily_cap(
                     plan, r['daily_cap'], balance),
-                'daily_cap_fixed': r['daily_cap'] is not None,
+                'daily_cap_manual': r['daily_cap'] is not None,
                 'granted': int(r['granted'] or 0),
                 'used_total': int(r['used_total'] or 0),
                 'balance': balance,
