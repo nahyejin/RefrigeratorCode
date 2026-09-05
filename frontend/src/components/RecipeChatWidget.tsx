@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { track } from '../utils/track';
 import { applyUsage, usageHeaders } from '../utils/usage';
-import { UsageLine } from './UsageMeter';
+import { UsageLine, useUsage } from './UsageMeter';
 import BackButton from './ui/BackButton';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { getProxiedImageUrl } from '../utils/imageUtils';
@@ -236,6 +236,9 @@ const RecipeChatWidget: React.FC = () => {
   // 앱 사용법 답에 붙는 `바로 가기` 버튼이 쓴다. 말로만 알려 주면
   // 그 화면을 다시 찾아 헤맨다.
   const navigate = useNavigate();
+  // 이 대화창에서 한 번 물으면 몇 크레딧이 나가는지. 서버가 정한 값.
+  const usageNow = useUsage();
+  const chatCost = (usageNow?.credits as any)?.chat ?? 1;
   const [view, setView] = useState<'chat' | 'history'>('chat');
   const [threadId, setThreadId] = useState<string>(createThreadId);
   const [threads, setThreads] = useState<ChatThread[]>(loadThreads);
@@ -750,10 +753,17 @@ const RecipeChatWidget: React.FC = () => {
           )}
 
           {view === 'chat' && (
+            <>
+            {/* 남은 양과 **이번에 얼마 나가는지**를 보내기 직전 자리에 둔다.
+                머리말에도 있지만 거기는 폭이 좁아 값을 못 적는다. 누르기
+                직전이 알아야 할 때다. */}
+            <div style={{ padding: '6px 12px 0', background: '#F5F5F7' }}>
+              <UsageLine cost={chatCost} />
+            </div>
             <form
               onSubmit={handleSubmit}
               className="flex items-center gap-2 p-3"
-              style={{ borderTop: '1px solid #E6E6EA', background: '#F5F5F7' }}
+              style={{ background: '#F5F5F7' }}
             >
               <input
                 ref={inputRef}
@@ -781,6 +791,7 @@ const RecipeChatWidget: React.FC = () => {
                 보내기
               </button>
             </form>
+            </>
           )}
         </section>
       )}

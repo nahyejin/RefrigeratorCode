@@ -1104,7 +1104,7 @@ const WeeklyPlan: React.FC = () => {
             </div>
             {/* 남은 양은 앱 어디서나 **같은 부품**으로 보여 준다. 화면마다 다르게
                 적으면 사용자가 매번 다시 읽어야 한다. */}
-            <UsageLine style={{ marginTop: 8 }} />
+            <UsageLine style={{ marginTop: 8 }} cost={planCost} />
             <div style={{ fontSize: 11.5, color: 'var(--ink-500)', marginTop: 4, lineHeight: 1.6 }}>
               {canAi ? (
                 <>이 버튼만 <b>{planCost} 크레딧</b>을 써요. 아래 식단은 공짜예요.</>
@@ -2069,7 +2069,7 @@ const WeeklyPlan: React.FC = () => {
           {/* 이 화면은 조건을 못 받는다. 그 말을 여기서 해 둬야
               "왜 매운 걸 빼 달라고 못 하지" 를 안 겪는다. */}
           <span style={{ fontSize: 12, color: 'var(--ink-500)', flexShrink: 0 }}>
-            아이·다이어트 같은 조건 ›
+            아이·다이어트 같은 조건 · 크레딧 {planCost} ›
           </span>
         </button>
       )}

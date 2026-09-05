@@ -153,7 +153,8 @@ export const UsageLine: React.FC<{
   } else if (noToday) {
     text = compact ? '오늘 몫 끝' : '오늘 쓸 수 있는 양을 다 썼어요 · 자정에 돌아와요';
   } else if (compact) {
-    // 챗 패널 헤더는 아바타와 버튼 사이 150px 남짓이다. 두 숫자만.
+    // 챗 패널 헤더는 아바타와 버튼 사이 150px 남짓이다. 두 숫자만 —
+    // 이번에 얼마 나가는지는 입력창 바로 위(넓은 자리)에서 말한다.
     text = <>크레딧 <b>{usage.balance}</b> · 오늘 <b>{usage.daily_remaining}</b></>;
   } else {
     text = (

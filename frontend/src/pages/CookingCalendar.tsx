@@ -10,6 +10,7 @@ import BottomNavBar from '../components/BottomNavBar';
 import PullToRefresh from '../components/PullToRefresh';
 import DatePickerField from '../components/DatePickerField';
 import Sheet from '../components/ui/Sheet';
+import { useUsage } from '../components/UsageMeter';
 import { useAuth } from '../context/AuthContext';
 import { resolveCoupangUrl } from '../utils/coupangLink';
 import { getMyIngredients } from '../utils/recipeUtils';
@@ -167,6 +168,10 @@ function mergeLocalDone(server: CalendarEntry[], meId: number, meName: string): 
  * 로그인이 필요한 건 캘린더(내 요리 이력)뿐이다.
  */
 const FridgeToPlan: React.FC<{ onGo: (withAi?: boolean) => void }> = ({ onGo }) => {
+  // 값을 손으로 적어 두면 반드시 낡는다 — 실제로 식단이 3 이 된 뒤에도
+  // 여기만 `크레딧 2` 로 남아 있었다. 서버가 정한 값을 그대로 쓴다.
+  const usageNow = useUsage();
+  const planCost = (usageNow?.credits as any)?.plan ?? 3;
   const [categoryMap, setCategoryMap] = React.useState<CategoryMap>({});
   const boxes = React.useMemo(readFridgeBoxes, []);
 
@@ -204,10 +209,9 @@ const FridgeToPlan: React.FC<{ onGo: (withAi?: boolean) => void }> = ({ onGo }) 
             {/* 예시 하나만 박아 두면 **그것만 되는 기능**으로 읽힌다.
                 이 기능이 실제로 해 주는 일을 적는다. */}
             {/* "장은 적게" 는 오히려 **장을 본다**로 읽혀 지출처럼 보였다.
-                옆의 무료 버튼과 나란히 놓이는 자리라, 값을 그대로 밝히는 편이
-                낫다 — 무료 / 크레딧 2. */}
+                옆의 무료 버튼과 나란히 놓이는 자리라, 값을 그대로 밝히는 편이 낫다. */}
             <span style={{ fontSize: 11.5, color: 'rgba(26,26,30,0.65)' }}>
-              말한 대로 · 크레딧 2
+              말한 대로 · 크레딧 {planCost}
             </span>
           </button>
           <span className="ai-fab-badge">AI</span>
