@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { fetchCsvOnce } from '../utils/csvOnce';
 import BackButton from '../components/ui/BackButton';
 import CloseButton from '../components/ui/CloseButton';
 import IngredientLegend from '../components/IngredientLegend';
@@ -132,8 +133,7 @@ function loadSortFilterState(): any {
  */
 async function loadIngredientDictionary(): Promise<string[]> {
   try {
-    const response = await fetch(CSV_INGREDIENT_URL);
-    const csv = await response.text();
+    const csv = await fetchCsvOnce(CSV_INGREDIENT_URL);
     
     const lines = csv.split('\n');
     const header = lines[0].split(',');

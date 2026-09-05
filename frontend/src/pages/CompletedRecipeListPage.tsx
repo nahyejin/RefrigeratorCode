@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { fetchCsvOnce } from '../utils/csvOnce';
 import BackButton from '../components/ui/BackButton';
 import CloseButton from '../components/ui/CloseButton';
 import LoadingIndicator from '../components/LoadingIndicator';
@@ -354,8 +355,7 @@ const CompletedRecipeListPage: React.FC = () => {
 
   // 재료 사전 로드
   useEffect(() => {
-    fetch(CSV_INGREDIENT_URL)
-      .then(res => res.text())
+    fetchCsvOnce(CSV_INGREDIENT_URL)
       .then(csv => {
         setAllIngredients(parseIngredientNames(csv));
       })

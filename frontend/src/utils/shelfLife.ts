@@ -18,6 +18,8 @@
  *   그래서 매칭 실패 시에는 아무 표시도 하지 않는다.
  */
 
+import { fetchCsvOnce } from './csvOnce';
+
 export type StorageKind = 'frozen' | 'fridge' | 'room';
 
 /** 보관 방법별 보관 가능 일수. null 은 "그 방법으로는 보관하지 않음"(추정하지 않음) */
@@ -149,9 +151,7 @@ export function loadIngredientCategoryMap(): Promise<CategoryMap> {
       // 캐시가 깨졌으면 그냥 새로 받는다
     }
 
-    const res = await fetch(CSV_URL);
-    if (!res.ok) throw new Error(`재료 사전 로드 실패: ${res.status}`);
-    const text = await res.text();
+    const text = await fetchCsvOnce(CSV_URL);
 
     const lines = text.split('\n');
     const header = splitCsvLine(lines[0]);

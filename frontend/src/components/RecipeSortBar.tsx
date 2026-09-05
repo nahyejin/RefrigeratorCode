@@ -28,6 +28,7 @@
  */
 
 import React, { useEffect, useLayoutEffect, useState, useMemo, useCallback, useRef } from 'react';
+import { fetchCsvOnce } from '../utils/csvOnce';
 import CloseButton from './ui/CloseButton';
 import Portal from './Portal';
 import RecipeCard from './RecipeCard';
@@ -390,8 +391,7 @@ const Utils = {
   // 전체 재료 목록 fetch
   fetchAllIngredients: async (): Promise<string[]> => {
     try {
-      const response = await fetch('/ingredient_profile_dict_with_substitutes.csv');
-      const csv = await response.text();
+      const csv = await fetchCsvOnce('/ingredient_profile_dict_with_substitutes.csv');
       const lines = csv.split('\n');
       const header = lines[0].split(',');
       const nameIdx = header.indexOf('keyword');

@@ -276,11 +276,7 @@ const calculateThemeRankings = async (recipes: Recipe[], dateRange: { start: Dat
     
     // Filter_Keywords.csv에서 키워드 목록 가져오기
     console.log('Filter_Keywords.csv 파일 로드 시작');
-    const response = await fetch('/Filter_Keywords.csv');
-    if (!response.ok) {
-      throw new Error('Filter_Keywords.csv 파일을 불러올 수 없습니다');
-    }
-    const csv = await response.text();
+    const csv = await fetchCsvOnce('/Filter_Keywords.csv');
     console.log('Filter_Keywords.csv 파일 로드 완료, 크기:', csv.length);
     
     const lines = csv.split('\n');

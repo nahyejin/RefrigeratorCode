@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { fetchCsvOnce } from '../utils/csvOnce';
 import { track } from '../utils/track';
 import SectionIcon from '../components/ui/SectionIcon';
 import LoadingIndicator from '../components/LoadingIndicator';
@@ -1164,12 +1165,7 @@ const MyFridge: React.FC = () => {
         
         // 캐시가 없거나 버전이 다르면 새로 로드
         console.log('[MyFridge] CSV 파일 새로 로드');
-        const response = await fetch('/ingredient_profile_dict_with_substitutes.csv');
-        if (!response.ok) {
-          throw new Error(`CSV 파일 로드 실패: ${response.status} ${response.statusText}`);
-        }
-        
-        const csv = await response.text();
+        const csv = await fetchCsvOnce('/ingredient_profile_dict_with_substitutes.csv');
         console.log('[MyFridge] CSV 파일 로드 완료, 파싱 시작');
         
         const lines = csv.split('\n');

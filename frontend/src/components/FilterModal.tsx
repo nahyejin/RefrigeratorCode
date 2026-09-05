@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { fetchCsvOnce } from '../utils/csvOnce';
 import Sheet from './ui/Sheet';
 import FilterGroup, { AndDivider } from './ui/FilterGroup';
 import Button from './ui/Button';
@@ -402,8 +403,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
       }
     }
     
-    fetch('/ingredient_profile_dict_with_substitutes.csv')
-      .then(res => res.text())
+    fetchCsvOnce('/ingredient_profile_dict_with_substitutes.csv')
       .then(csv => {
         const lines = csv.split('\n').filter(Boolean);
         const header = lines[0].split(',');
@@ -490,8 +490,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
   // 키워드 트리 로드
   useEffect(() => {
     setIsLoading(true);
-    fetch('/Filter_Keywords.csv')
-      .then(res => res.text())
+    fetchCsvOnce('/Filter_Keywords.csv')
       .then(csv => {
         setFilterKeywordTree(parseFilterKeywordsCSV(csv));
         setIsLoading(false);

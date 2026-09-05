@@ -974,8 +974,7 @@ const RecipeList: React.FC = () => {
     }
     
     // 캐시가 없으면 새로 로드
-    fetch('/Filter_Keywords.csv')
-      .then(res => res.text())
+    fetchCsvOnce('/Filter_Keywords.csv')
       .then(csv => {
         const lines = csv.split('\n').filter(Boolean);
         const header = lines[0].split(',').map(h => h.trim());

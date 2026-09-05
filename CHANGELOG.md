@@ -8096,3 +8096,25 @@ COUNT 분기 조건에 `or need_match_rate` 가 붙어 있었다. 그건 "결과
 |---|---|---|
 | 탭 누른 뒤 카드까지 | **2,996 ms** | **1,005 ms** |
 | 대체표 내려받기 | 2회 · 24.4MB | **1회 · 12.2MB** |
+
+### 나머지 CSV 도 한 번만 받도록
+
+`utils/csvOnce.ts` 를 쓰는 곳을 전부 옮겼다. 파일마다 부르는 모양이 달라
+(`fetch().then(r=>r.text())` / `await fetch()` + `await res.text()` / `res.ok` 검사)
+한 번에 바꾸려다 타입이 깨진 적이 있어, 이번에는 **한 곳씩 모양을 보고** 고쳤다.
+
+옮긴 곳: `FilterModal` · `RecipeSortBar` · `CompletedRecipeListPage` ·
+`RecordedRecipeListPage` · `MyFridge` · `Popular` · `RecipeList` ·
+`utils/recipeUtils`(2곳) · `utils/shelfLife`
+
+#### 결과 (캐시 비운 채로 앱을 열고 냉장고요리 탭까지)
+
+| 파일 | 전 | 후 |
+|---|---|---|
+| `ingredient_substitute_table.csv` (12.2MB) | 2회 | **1회** |
+| `ingredient_profile_dict_...csv` (0.3MB) | 7회 | **1회** |
+| `Filter_Keywords.csv` | 2회 | **1회** |
+| 내려받은 CSV 합계 | 24.4 + 2.1 + α ≈ **26.6MB** | **12.5MB** |
+| 탭 누른 뒤 카드까지 | 2,996 ms | **986 ms** |
+
+휴대폰에서 이 차이가 그대로 로딩 시간이다.

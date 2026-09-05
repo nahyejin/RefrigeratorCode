@@ -1,4 +1,5 @@
 import { Recipe, RecipeMatchResult } from '../types/recipe';
+import { fetchCsvOnce } from './csvOnce';
 
 // =====================
 // 상수 및 유틸리티 함수
@@ -492,8 +493,7 @@ export async function loadIngredientSynonymDict(): Promise<{ [key: string]: stri
     }
     
     // 캐시가 없으면 새로 로드
-    const response = await fetch('/ingredient_profile_dict_with_substitutes.csv');
-    const csv = await response.text();
+    const csv = await fetchCsvOnce('/ingredient_profile_dict_with_substitutes.csv');
     
     const lines = csv.split('\n');
     const header = lines[0].split(',');
@@ -710,8 +710,7 @@ export async function loadCoupangLinks(): Promise<{ [key: string]: string }> {
     }
     
     // 캐시가 없으면 새로 로드
-    const response = await fetch('/ingredient_profile_dict_with_substitutes.csv');
-    const csv = await response.text();
+    const csv = await fetchCsvOnce('/ingredient_profile_dict_with_substitutes.csv');
     
     const lines = csv.split('\n');
     const header = lines[0].split(',');
