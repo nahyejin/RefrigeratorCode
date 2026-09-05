@@ -149,10 +149,13 @@ def get_recipes():
     db = get_db()
     cursor = db.cursor()
     # 전체 개수 구하기
-    cursor.execute("SELECT COUNT(*) as total FROM recipes")
+    # 재료가 아직 임시값(룰베이스)인 글은 빼고 센다 — 목록과 개수가 어긋나면
+    # "총 N건인데 N개가 안 보인다" 가 된다.
+    cursor.execute("SELECT COUNT(*) as total FROM recipes WHERE llm_ingredients_at IS NOT NULL")
     total = cursor.fetchone()['total']
     # 페이징 적용 쿼리
-    cursor.execute("SELECT * FROM recipes ORDER BY id DESC LIMIT %s OFFSET %s", (size, offset))
+    cursor.execute("SELECT * FROM recipes WHERE llm_ingredients_at IS NOT NULL "
+                   "ORDER BY id DESC LIMIT %s OFFSET %s", (size, offset))
     recipes = cursor.fetchall()
     db.close()
     return jsonify({
@@ -223,15 +226,16 @@ def search_recipes():
     
     # 전체 개수 구하기
     cursor.execute(
-        "SELECT COUNT(*) as total FROM recipes WHERE (title LIKE %s OR content LIKE %s)",
+        "SELECT COUNT(*) as total FROM recipes "
+        "WHERE llm_ingredients_at IS NOT NULL AND (title LIKE %s OR content LIKE %s)",
         (search_pattern, search_pattern)
     )
     total = cursor.fetchone()['total']
     
     # 페이징 적용 쿼리
     cursor.execute(
-        """SELECT * FROM recipes 
-           WHERE (title LIKE %s OR content LIKE %s)
+        """SELECT * FROM recipes
+           WHERE llm_ingredients_at IS NOT NULL AND (title LIKE %s OR content LIKE %s)
            ORDER BY id DESC 
            LIMIT %s OFFSET %s""",
         (search_pattern, search_pattern, size, offset)
@@ -257,8 +261,12 @@ def get_popular_recipes():
     cursor = db.cursor()
     
     # 기간별 WHERE 조건 생성
+    # (`llm_ingredients_at IS NOT NULL` — 재료가 아직 임시값인 글은 내보내지
+    #  않는다. 냉장고 요리 목록과 같은 기준이다. 요즘인기는 최근 글만 보여
+    #  주는 화면이라 이 조건이 특히 크게 걸린다 — 어제 크롤링된 글이 곧바로
+    #  1위에 오르면 재료가 틀린 채로 가장 잘 보이는 자리에 놓인다.)
     if period_type == 'custom' and start_date and end_date:
-        where_clause = "WHERE post_time >= %s AND post_time <= %s"
+        where_clause = "WHERE llm_ingredients_at IS NOT NULL AND post_time >= %s AND post_time <= %s"
         params = [start_date, end_date]
     else:
         # 기본 기간 설정
@@ -268,8 +276,9 @@ def get_popular_recipes():
             days = 7
         else:  # month
             days = 30
-        
-        where_clause = "WHERE post_time >= DATE_SUB(NOW(), INTERVAL %s DAY)"
+
+        where_clause = ("WHERE llm_ingredients_at IS NOT NULL "
+                        "AND post_time >= DATE_SUB(NOW(), INTERVAL %s DAY)")
         params = [days]
     
     # 유튜브 인기 레시피
@@ -359,7 +368,20 @@ def get_filtered_recipes():
     cursor = db.cursor()
 
     # WHERE - 필터가 가장 우선적으로 적용
-    where_clauses = ["1=1"]
+    #
+    # **아직 LLM 이 재료를 안 뽑은 글은 내보내지 않는다.**
+    #
+    #   크롤러는 LLM 을 기다리지 않는다 — 본문에서 룰베이스로 재료를 훑어
+    #   바로 넣는다. 그 값은 어디까지나 임시라, 그대로 내보내면 사람이 카드에서
+    #   **본문에 없는 재료**를 보게 된다("여러 가지 방법" 의 `가지`, `참기름`
+    #   에서 딸려 온 `식용유`). 매칭률도 그만큼 틀린다.
+    #
+    #   그래서 `llm_ingredients_at`(= LLM 이 실제로 값을 쓴 시각)이 있는 글만
+    #   보여 준다. 새로 크롤링된 글은 그날 밤 배치를 지나야 목록에 나타난다.
+    #   조리 순서·요리명도 같은 배치에서 함께 채워지므로, 나타나는 순간에는
+    #   카드가 **완성된 상태**다.
+    RECIPE_READY = "llm_ingredients_at IS NOT NULL"
+    where_clauses = [RECIPE_READY]
     base_params = []
     
     # 중요: 재료 파라미터를 먼저 저장 (match_rate 계산식에서 먼저 사용됨)
@@ -4732,7 +4754,11 @@ def suggest_meal_plan():
                    ( {want_sql} ) AS want_hit,
                    ( {avoid_sql} ) AS avoid_hit
             FROM recipes
-            WHERE used_ingredients IS NOT NULL AND used_ingredients <> ''
+            WHERE llm_ingredients_at IS NOT NULL
+              AND used_ingredients IS NOT NULL AND used_ingredients <> ''
+            -- 재료가 아직 임시값(룰베이스)인 글은 후보에서 뺀다. 식단은 재료를
+            -- 그대로 믿고 일주일 장바구니를 짜는 기능이라, 본문에 없는 재료가
+            -- 하나 섞이면 "집에 있는 걸로 된다" 고 잘못 세게 된다.
             -- 냉장고 재료를 **하나라도** 쓰는 레시피가 후보다.
             -- 전에는 `have[0]` 하나만 WHERE 에 넣어서, 첫 번째 재료가 든
             -- 레시피만 후보가 됐다. 재료를 20개 넣어도 그중 하나로만 걸렀다.
