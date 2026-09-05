@@ -1398,46 +1398,59 @@ const Maintenance: React.FC = () => {
             </tbody>
           </table>
         </div>
-      </div>
 
-      <div style={S.card}>
-        <h2 style={S.h2}>자동으로 도는 작업</h2>
-        <div style={{ fontSize: 12.5, color: 'var(--ink-500)', lineHeight: 1.7, marginBottom: 10 }}>
-          개발 컴퓨터의 <b>윈도우 작업 스케줄러</b>가 돌립니다 — 서버가 아니라 그 컴퓨터가
-          켜져 있어야 돕니다. 셋이 <b>순서대로 물려 있어요</b>: 크롤러가 글을 가져오면(07:00),
-          다음 날 새벽 AI 가 그 글에서 재료를 뽑고(03:00), 승인한 사전이 파일로 옮겨집니다(04:30).
-        </div>
-        {/* 사전이 **대체재를 만들 수 있는 상태인가.**
-            유사도는 Feature 로 계산한다. 어드민에서 새로 만든 대표어는 분류와
-            상위어만 들어오고 Feature 가 비어 있어서, 그런 재료는 맛·식감이
-            아니라 분류가 비슷하다는 이유로만 묶인다. 몇 개인지 보여야 채운다. */}
+        {/* **손으로 채워야 하는 것**이라 이 카드에 둔다.
+            대체재 유사도는 `Feature`(맛·식감)로 계산한다. 어드민에서 새로 만든
+            대표어는 분류와 상위어만 들어오고 Feature 가 비어 있어서, 그런 재료는
+            맛·식감이 아니라 분류가 비슷하다는 이유로만 묶인다.
+            처음에는 이 안내를 `자동으로 도는 작업` 쪽에 뒀는데, 하는 말은
+            "사람이 적어 넣으세요" 라 자리가 맞지 않았다. 고칠 파일이 바로 위
+            표의 `재료 사전` 이므로 그 옆이 맞다. */}
         {st.dictionary && (
           <div style={{
-            margin: '0 0 12px', padding: '10px 12px', borderRadius: 10,
+            marginTop: 12, padding: '10px 12px', borderRadius: 10,
             border: '1px solid var(--line-200)', background: 'var(--surface-sub)',
             fontSize: 12.5, lineHeight: 1.7, color: 'var(--ink-700)',
           }}>
             재료 <b>{st.dictionary.ingredients}</b>개 · 동의어 <b>{st.dictionary.synonyms}</b>개
-            {' · '}
-            대체 재료 표는 <b>매일 04:30</b> 사전에서 다시 만듭니다(손댈 필요 없음).
-            {st.dictionary.no_feature?.length > 0 && (
+            {st.dictionary.no_feature?.length > 0 ? (
               <>
                 <br />
                 <b style={{ color: '#B4780A' }}>
-                  Feature 가 없어 분류로만 묶이는 재료 {st.dictionary.no_feature.length}개
+                  손볼 것 — Feature 가 없어 분류로만 묶이는 재료 {st.dictionary.no_feature.length}개
                 </b>
-                {' — '}{st.dictionary.no_feature.slice(0, 8).join(', ')}
+                {' : '}{st.dictionary.no_feature.slice(0, 8).join(', ')}
                 {st.dictionary.no_feature.length > 8 && ' 외'}
                 <br />
                 <span style={{ color: 'var(--ink-500)' }}>
-                  사전 CSV 의 <code>Feature</code> 칸에 맛·식감을 적어 넣으면 다음 새벽부터
-                  제대로 된 대체재가 붙습니다. (상위어에 Feature 가 있으면 자동으로 물려받아요)
+                  위 <b>재료 사전</b> 의 <code>Feature</code> 칸에 맛·식감을 적어 넣으면
+                  (예: <code>감칠맛, 짠맛, 액상</code>) 다음 새벽 04:30 에 제대로 된 대체재가
+                  붙습니다. 상위어에 Feature 가 있으면 자동으로 물려받으니, 상위어가
+                  사전에 있는 재료는 손댈 필요 없어요.
                 </span>
+              </>
+            ) : (
+              <>
+                {' · '}
+                <span style={{ color: '#3A6B2E' }}>Feature 가 빠진 재료 없음</span>
               </>
             )}
           </div>
         )}
+      </div>
 
+      <div style={S.card}>
+        <h2 style={S.h2}>자동으로 도는 작업</h2>
+        {/* 04:30 안에서 무슨 일이 더 벌어지는지 안 적혀 있어서, 대체 재료 표를
+            누가 언제 만드는지 알 수 없었다. 04:30 에 같이 도는 일이다. */}
+        <div style={{ fontSize: 12.5, color: 'var(--ink-500)', lineHeight: 1.7, marginBottom: 10 }}>
+          개발 컴퓨터의 <b>윈도우 작업 스케줄러</b>가 돌립니다 — 서버가 아니라 그 컴퓨터가
+          켜져 있어야 돕니다. 셋이 <b>순서대로 물려 있어요</b>: 크롤러가 글을 가져오면(07:00),
+          다음 날 새벽 AI 가 그 글에서 재료를 뽑고(03:00), 승인한 사전이 파일로 옮겨집니다(04:30).
+          <br />
+          <b>04:30</b> 에는 사전을 옮긴 뒤 <b>대체 재료 표</b>도 그 사전으로 다시 만듭니다 —
+          새 재료의 <b>`대체 가능`</b> 이 여기서 생깁니다. 따로 손댈 필요 없어요.
+        </div>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 860 }}>
             <thead>
