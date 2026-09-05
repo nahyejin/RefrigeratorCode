@@ -22,8 +22,8 @@ const STORAGE_KEY = 'myfridge_ingredients';
  *   없다고 하게 되고, 그건 남겨 두는 것보다 나쁘다. **묻고 고르게** 한다.
  *
  * 무엇을 기본으로 켜 두나:
- *   식재료만. 간장·소금 같은 양념은 한 번 요리했다고 없어지지 않는다 —
- *   전부 켜 두면 매번 꺼야 해서 이 창이 귀찮은 것이 된다.
+ *   `usedUpByDefault()` 참고. 간장·소금 같은 양념은 한 번 요리했다고 없어지지
+ *   않는다 — 전부 켜 두면 매번 꺼야 해서 이 창이 귀찮은 것이 된다.
  */
 
 interface Props {
@@ -32,10 +32,28 @@ interface Props {
   onClose: () => void;
 }
 
-/** 양념·조미료인가. 이런 건 한 끼로 안 없어진다. */
-function isSeasoning(name: string, map: CategoryMap): boolean {
+/**
+ * 이 재료를 **한 끼로 다 썼다고 볼 수 있나** — 기본 체크 여부를 정한다.
+ *
+ * 판단 기준은 재료 사전의 **중분류** 하나로 못 박는다. 감으로 정하면 사람마다
+ * 다르고 나중에 고칠 수도 없다. 사전에는 이 여덟 가지가 있다:
+ *
+ *   켠다  `식재료 원물`(759) · `유제품`(55) · `즉석식/간편식`(80)
+ *         — 한 끼 만들면 실제로 없어지거나 크게 준다
+ *   끈다  `양념/조미료`(296) · `베이킹·제면·디저트용 재료`(136)
+ *         · `음료/주류`(23) · `빙재료`(3)
+ *         — 간장 한 스푼 썼다고 간장이 없어지지 않는다. 밀가루·설탕도 같다
+ *
+ * 사전에 없는 이름은 **켠다.** 사전이 흔한 양념은 거의 다 담고 있으므로,
+ * 모르는 이름은 특정 부위·품종 같은 원물일 가능성이 높다. 그리고 어차피
+ * 사용자가 보고 누르는 것이라, 켜 두는 쪽이 손이 덜 간다.
+ */
+const KEEP = ['양념', '조미료', '베이킹', '음료', '주류', '빙재료'];
+
+function usedUpByDefault(name: string, map: CategoryMap): boolean {
   const mid = map[name]?.mid || '';
-  return mid.includes('양념') || mid.includes('조미료') || mid.includes('오일');
+  if (!mid) return true;                       // 사전에 없으면 원물로 본다
+  return !KEEP.some(k => mid.includes(k));
 }
 
 const UsedUpSheet: React.FC<Props> = ({ recipe, onClose }) => {
@@ -80,7 +98,7 @@ const UsedUpSheet: React.FC<Props> = ({ recipe, onClose }) => {
           .filter((n: string) => n && have.has(n));
         const uniq = [...new Set<string>(used)];
         setNames(uniq);
-        setPicked(new Set(uniq.filter(n => !isSeasoning(n, map))));
+        setPicked(new Set(uniq.filter(n => usedUpByDefault(n, map))));
       })
       .catch(() => alive && setNames([]));
     return () => { alive = false; };

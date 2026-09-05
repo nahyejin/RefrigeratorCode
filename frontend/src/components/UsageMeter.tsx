@@ -149,9 +149,9 @@ export const UsageLine: React.FC<{
       ? '가입하면 더'
       : <>체험분을 다 쓰셨어요 · 가입하면 <b>{usage.signup_credits} 크레딧</b></>;
   } else if (noBalance) {
-    text = compact ? '크레딧 0' : <>크레딧을 다 썼어요 · 월요일에 <b>{usage.weekly_credits}</b> 채워져요</>;
+    text = compact ? '크레딧 0' : <>크레딧 소진 · 월요일에 <b>{usage.weekly_credits}</b> 충전돼요</>;
   } else if (noToday) {
-    text = compact ? '오늘 몫 끝' : '오늘 쓸 수 있는 양을 다 썼어요 · 자정에 돌아와요';
+    text = compact ? '금일 소진' : '금일 크레딧 소진 · 자정에 초기화돼요';
   } else if (compact) {
     // 챗 패널 헤더는 아바타와 버튼 사이 150px 남짓이다. 두 숫자만 —
     // 이번에 얼마 나가는지는 입력창 바로 위(넓은 자리)에서 말한다.
@@ -165,17 +165,18 @@ export const UsageLine: React.FC<{
      *   전체 남은 것 / 오늘 더 쓸 수 있는 것 / 이번에 나갈 것.
      * 줄을 바꾸고 이름을 붙이면 한 번 읽고 만다.
      */
+    // 말로 풀어 쓰면 오히려 안 읽힌다. **이름 + 숫자**로 끊는다.
     text = (
       <span style={{ display: 'grid', gap: 2, width: '100%' }}>
-        <span>전체 남은 크레딧 <b style={{ color: 'var(--ink-900)' }}>{usage.balance}</b></span>
+        <span>전체 잔여 크레딧 <b style={{ color: 'var(--ink-900)' }}>{usage.balance}</b></span>
         {usage.daily_cap > 0 && (
           <span>
-            오늘 더 쓸 수 있는 건 <b style={{ color: 'var(--ink-900)' }}>{usage.daily_remaining}</b>
-            {' '}(하루 {usage.daily_cap}까지)
+            금일 잔여 크레딧 <b style={{ color: 'var(--ink-900)' }}>{usage.daily_remaining}</b>
+            {' '}· 하루 최대 {usage.daily_cap}
           </span>
         )}
         {typeof cost === 'number' && cost > 0 && (
-          <span>이번에 물어보면 <b style={{ color: 'var(--ink-900)' }}>{cost}</b> 나가요</span>
+          <span>1회 질문당 <b style={{ color: 'var(--ink-900)' }}>{cost}</b> 크레딧</span>
         )}
       </span>
     );
@@ -300,7 +301,7 @@ export const UsageGauge: React.FC = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between',
                         fontSize: 11.5, color: 'var(--ink-500)' }}>
-            <span>오늘 쓸 수 있는 양</span>
+            <span>금일 잔여 크레딧</span>
             <span>
               <b style={{ color: usage.daily_remaining === 0 ? RED : '#1A1A1E' }}>
                 {usage.daily_remaining}
@@ -333,7 +334,7 @@ export const UsageGauge: React.FC = () => {
         {dailyCap > 0 && (
           <div style={{ display: 'flex', justifyContent: 'space-between',
                         fontSize: 11.5, color: 'var(--ink-500)' }}>
-            <span>쌓아 둔 잔액</span>
+            <span>전체 잔여 크레딧</span>
             <span><b style={{ color: '#1A1A1E' }}>{usage.balance}</b></span>
           </div>
         )}
@@ -377,10 +378,20 @@ export const UsageGauge: React.FC = () => {
 
       {/* 두 막대가 이미 무엇이 얼마인지 말하고 있다. 여기서는 **언제 채워지는지**
           만 짧게 — 막대가 못 하는 말이 그것뿐이다. */}
-      <div style={{ fontSize: 12, color: 'var(--ink-500)' }}>
-        {usage.is_guest
-          ? <>가입하면 <b>{usage.signup_credits} 크레딧</b>을 드려요.</>
-          : <>월요일마다 <b>{usage.weekly_credits}</b> 채워져요{dailyCap > 0 && ' · 오늘 몫은 자정에 돌아와요'}.</>}
+      <div style={{ fontSize: 12, color: 'var(--ink-500)', lineHeight: 1.7 }}>
+        {usage.is_guest ? (
+          <>가입 시 <b>{usage.signup_credits} 크레딧</b> 지급.</>
+        ) : (
+          <>
+            매주 월요일 <b>{usage.weekly_credits} 크레딧</b> 충전
+            {dailyCap > 0 && ' · 금일 한도는 자정 초기화'}
+            {/* **왜 5뿐인지**를 말해 준다. 숫자만 적어 두면 "이게 왜 이거지" 로
+                끝나고, 더 받는 길이 있다는 것도 안 보인다. `더 필요해요` 는
+                바로 위에 있다. */}
+            <br />
+            더 쓰시려면 위 <b>더 필요해요</b> 로 알려 주세요 — 쓰임새를 보고 늘려 드려요.
+          </>
+        )}
       </div>
 
       {usage.is_guest ? null : pending ? (
@@ -394,7 +405,7 @@ export const UsageGauge: React.FC = () => {
           <input
             value={reason}
             onChange={e => setReason(e.target.value)}
-            placeholder="어떤 용도로 더 필요하신가요? (선택)"
+            placeholder="어떻게 쓰시는지 알려 주세요 (선택)"
             style={{
               height: 36, borderRadius: 8, border: '1px solid var(--line-200)',
               padding: '0 10px', fontSize: 13, width: '100%', boxSizing: 'border-box',

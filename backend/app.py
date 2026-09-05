@@ -4818,7 +4818,11 @@ def suggest_meal_plan():
 
         picked, meta, ai_summary = meal_plan.suggest(
             for_llm, have, expiring, request_text, hints=hints)
-        usage_quota.note_gemini_usage(meta, model=meal_plan.MODEL)
+        # `meal_plan.suggest` 는 이미 벗겨 낸 `usageMetadata` 를 돌려준다.
+        # 그걸 `note_gemini_usage` 에 넘기면 안에서 한 번 더 `usageMetadata` 를
+        # 찾다가 빈 값이 되어, **식단은 토큰이 하나도 안 쌓이고 있었다**
+        # (원장에서 plan 30건이 전부 NULL). 다시 씌워서 넘긴다.
+        usage_quota.note_gemini_usage({'usageMetadata': meta}, model=meal_plan.MODEL)
         usage_quota.attach_tokens(get_db, usage.get('usage_id'))
     except RuntimeError as e:
         print(f"[식단] 설정 오류: {e}", flush=True)
