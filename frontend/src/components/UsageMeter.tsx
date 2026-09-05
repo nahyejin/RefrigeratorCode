@@ -393,13 +393,24 @@ export const UsageGauge: React.FC = () => {
           <>가입 시 <b>{usage.signup_credits} 크레딧</b> 지급.</>
         ) : (
           <>
+            {usage.is_paid && (
+              <span style={{
+                display: 'inline-block', marginRight: 6, padding: '1px 7px',
+                borderRadius: 9999, background: '#1A1A1E', color: '#FFD600',
+                fontSize: 10.5, fontWeight: 800, letterSpacing: '.03em',
+              }}>PLUS</span>
+            )}
             매주 월요일 <b>{usage.weekly_credits} 크레딧</b> 충전
             {dailyCap > 0 && ' · 금일 한도는 자정 초기화'}
-            {/* **왜 5뿐인지**를 말해 준다. 숫자만 적어 두면 "이게 왜 이거지" 로
-                끝나고, 더 받는 길이 있다는 것도 안 보인다. `더 필요해요` 는
-                바로 위에 있다. */}
-            <br />
-            더 쓰시려면 위 <b>더 필요해요</b> 로 알려 주세요 — 쓰임새를 보고 늘려 드려요.
+            {/* **왜 이만큼뿐인지**를 말해 준다. 숫자만 적어 두면 "이게 왜 이거지"
+                로 끝나고, 더 받는 길이 있다는 것도 안 보인다. */}
+            {!usage.is_paid && (
+              <>
+                <br />
+                더 쓰시려면 위 <b>더 필요해요</b> — 매주{' '}
+                <b>{usage.weekly_plus ?? 60} 크레딧</b>으로 올려 드려요.
+              </>
+            )}
           </>
         )}
       </div>

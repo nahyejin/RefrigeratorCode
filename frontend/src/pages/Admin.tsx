@@ -490,6 +490,32 @@ const Requests: React.FC = () => {
     load();
   };
 
+  /**
+   * **유료로 올리고 요청도 닫는다.**
+   *
+   * 예전엔 여기서 요청만 닫고, 실제로 올리는 건 사용자 탭에 가서 따로 해야
+   * 했다. "올려 줬다" 와 "요청을 닫았다" 를 섞지 않으려던 것인데, 실제로는
+   * 두 화면을 오가다 한쪽을 빠뜨리기 십상이다 — 요청은 닫혔는데 그대로 무료인
+   * 사람이 남는다. 가장 흔한 처리(유료로 올림)만 한 번에 하고, 그 밖의
+   * 조정은 여전히 사용자 탭에서 한다.
+   */
+  const upgrade = async (r: any) => {
+    if (!window.confirm(`${r.nickname || r.email} 님을 유료(plus)로 올릴까요?
+매주 60 크레딧이 충전됩니다.`)) return;
+    try {
+      await api(`/api/admin/users/${r.user_id}/quota`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          plan: 'plus',
+          note: `요청 #${r.id} 승인 — 유료 전환`,
+        }),
+      });
+      await handle(r.id, 'done');
+    } catch (e: any) {
+      setError(e.message);
+    }
+  };
+
   if (error) return <div style={S.card}>{error}</div>;
   if (!rows) return <div style={S.card}>불러오는 중...</div>;
 
@@ -530,7 +556,11 @@ const Requests: React.FC = () => {
                   <td style={S.td}>
                     {r.status === 'open' ? (
                       <span style={{ display: 'flex', gap: 6 }}>
-                        <button type="button" style={{ ...S.primary, height: 28 }}
+                        {r.plan !== 'plus' && (
+                          <button type="button" style={{ ...S.primary, height: 28 }}
+                                  onClick={() => upgrade(r)}>유료로</button>
+                        )}
+                        <button type="button" style={{ ...S.btn, height: 28, padding: '0 10px' }}
                                 onClick={() => handle(r.id, 'done')}>처리함</button>
                         <button type="button" style={{ ...S.btn, height: 28, padding: '0 10px' }}
                                 onClick={() => handle(r.id, 'rejected')}>거절</button>
@@ -546,9 +576,10 @@ const Requests: React.FC = () => {
           </table>
         </div>
       )}
-      <div style={{ fontSize: 12, color: 'var(--ink-500)', padding: '0 4px' }}>
-        한도를 실제로 올리는 건 <b>사용자 탭 → 자세히 → 한도 조정</b>에서 합니다.
-        "올려 줬다"와 "요청을 닫았다"는 다른 일이라 섞지 않았습니다.
+      <div style={{ fontSize: 12, color: 'var(--ink-500)', padding: '0 4px', lineHeight: 1.7 }}>
+        <b>유료로</b> 를 누르면 plus 로 올리고 요청도 함께 닫습니다 — 매주 60 크레딧이 충전돼요.
+        <br />
+        크레딧을 따로 얹어 주거나 일 상한을 손보려면 <b>사용자 탭 → 자세히 → 한도 조정</b>에서 합니다.
       </div>
     </>
   );

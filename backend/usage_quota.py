@@ -57,7 +57,22 @@ SIGNUP_CREDITS = int(os.getenv("CREDITS_SIGNUP", "30"))   # 가입할 때 한 �
 # 6인 이유: 식단 짜기가 3이 되면서 5로는 **한 주에 식단 한 번 반**밖에 안 됐다.
 # 6이면 딱 두 번이다. 매주 무엇을 할 수 있는지가 떨어지는 숫자라야
 # "이번 주엔 뭘 하지" 가 성립한다.
-WEEKLY_CREDITS = int(os.getenv("CREDITS_WEEKLY", "6"))    # 매주 월요일
+WEEKLY_CREDITS = int(os.getenv("CREDITS_WEEKLY", "6"))    # 매주 월요일 (무료)
+
+# 플랜별 주간 충전량. **더해지는 게 아니라 대신 들어간다.**
+#
+# 유료로 올려도 무료 몫 6이 따로 또 들어오면 66이 된다 — 그건 "유료는 60" 이라는
+# 약속과 다르다. 한 주에 받는 총량이 플랜마다 하나로 정해져야 화면에 적을 수도
+# 있고 계산도 맞는다. 그래서 `_ensure_weekly` 는 **이번 주에 이미 받은 만큼을
+# 빼고 모자란 것만** 채운다. 주중에 유료로 올리면 그 자리에서 차액이 들어온다.
+WEEKLY_BY_PLAN = {
+    "free": WEEKLY_CREDITS,
+    "plus": int(os.getenv("CREDITS_WEEKLY_PLUS", "60")),
+}
+
+
+def weekly_for(plan):
+    return WEEKLY_BY_PLAN.get(plan, WEEKLY_CREDITS)
 
 # 비회원 체험분. **기기당 한 번**이고 다시 채워지지 않는다.
 #
@@ -546,11 +561,32 @@ def topup(get_db, user_id, amount, note=None, reason="topup", period_key=None):
         db.close()
 
 
-def _ensure_weekly(cursor, user_id, now=None):
-    """이번 주 몫을 아직 안 받았으면 준다. 표의 UNIQUE 가 중복을 막는다."""
-    if not WEEKLY_CREDITS:
+def _ensure_weekly(cursor, user_id, now=None, plan="free"):
+    """이번 주 몫 중 **아직 못 받은 만큼**을 준다.
+
+    플랜마다 총량이 다르고(무료 6 / 유료 60), 주중에 플랜이 바뀔 수 있다.
+    "안 받았으면 준다" 로 두면 월요일에 무료로 6을 받은 사람이 수요일에 유료가
+    돼도 그 주는 6으로 끝난다 — 돈을 냈는데 다음 월요일까지 기다리는 셈이다.
+    반대로 그냥 또 주면 6 + 60 = 66 이 되어 "유료는 60" 이라는 약속과 어긋난다.
+
+    그래서 **차액만** 채운다. 지급 행은 `주키:총량` 을 열쇠로 쓰므로, 같은 주에
+    같은 총량으로는 두 번 들어가지 않는다.
+    """
+    want = weekly_for(plan)
+    if not want:
         return
-    _add_grant(cursor, user_id, WEEKLY_CREDITS, "weekly", week_key(now), "주간 지급")
+    key = week_key(now)
+    cursor.execute(
+        "SELECT COALESCE(SUM(amount), 0) FROM credit_grants "
+        "WHERE user_id = %s AND reason = 'weekly' AND period_key LIKE %s",
+        (user_id, key + "%"),
+    )
+    got = _scalar(cursor.fetchone())
+    short = want - got
+    if short <= 0:
+        return
+    _add_grant(cursor, user_id, short, "weekly", f"{key}:{want}",
+               f"주간 지급 ({plan} {want})")
 
 
 def _used(cursor, user_id, device_id, since):
@@ -595,7 +631,7 @@ def status(get_db, user_id=None, device_id=None):
         else:
             # 화면을 열 때 이번 주 몫을 채워 준다. 따로 도는 배치를 두지 않는
             # 이유는, 안 쓰는 사람에게까지 매주 지급 행을 쌓을 이유가 없어서다.
-            _ensure_weekly(cursor, user_id, now)
+            _ensure_weekly(cursor, user_id, now, plan)
             db.commit()
             granted, used, left = balance(cursor, user_id)
             daily_used = _used(cursor, user_id, device_id,
@@ -624,7 +660,10 @@ def status(get_db, user_id=None, device_id=None):
         "daily_burn_days": DAILY_BURN_DAYS,
         "daily_used": daily_used,
         "daily_remaining": max(0, daily_cap - daily_used),
-        "weekly_credits": WEEKLY_CREDITS,
+        # 이 사람이 매주 받는 양. 플랜마다 다르므로 상수를 그대로 주면 안 된다.
+        "weekly_credits": weekly_for(plan) if user_id is not None else WEEKLY_CREDITS,
+        "weekly_plus": WEEKLY_BY_PLAN.get("plus", 0),
+        "is_paid": plan == "plus",
         "signup_credits": SIGNUP_CREDITS,
         "next_weekly_at": next_week_start(now).isoformat(),
         "credits": dict(CREDITS),
