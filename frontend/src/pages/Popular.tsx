@@ -674,6 +674,8 @@ const Popular = () => {
   const [usedUp, setUsedUp] = useState<{ id: number; title: string } | null>(null);
   /** 인기 급상승에서 무엇을 보고 있나. 요리와 테마가 한 자리를 나눠 쓴다. */
   const [risingTab, setRisingTab] = useState<'dish' | 'theme'>('dish');
+  /** 인기 레시피를 어디 것으로 보고 있나. 네이버가 기본 — 건수가 훨씬 많다. */
+  const [feedTab, setFeedTab] = useState<'naver' | 'youtube'>('naver');
   const [includeKeyword, setIncludeKeyword] = useState('');
 
   // 버튼 상태 통일: {done, write, share, favorite}
@@ -1656,12 +1658,12 @@ const Popular = () => {
   // 화면에서 첫 번째로 그려지는 섹션. 섹션 앞머리의 구분 밴드는
   // "앞 내용과 나뉜다" 는 뜻이라, 맨 위 섹션에 붙으면 기간 컨트롤과 콘텐츠를 갈라놓아
   // 기간 바가 아래와 무관한 별도 영역처럼 보이게 된다.
+  // 유튜브·네이버는 이제 한 섹션이라 둘 중 하나만 있어도 그 자리가 첫 섹션이다.
+  // 급상승도 요리·테마가 한 섹션이라 `dish` 하나로 본다.
   const firstSectionKey =
     premiumRecipes.length > 0 ? 'premium'
-    : youtubeRecipes.length > 0 ? 'youtube'
-    : naverRecipes.length > 0 ? 'naver'
-    : dishRankings.length > 0 ? 'dish'
-    : themeRankings.length > 0 ? 'theme'
+    : (naverRecipes.length > 0 || youtubeRecipes.length > 0) ? 'naver'
+    : (dishRankings.length > 0 || themeRankings.length > 0) ? 'dish'
     : 'search';
 
   return (
@@ -1994,42 +1996,80 @@ const Popular = () => {
           );
         })()}
 
-        {/* ⓑ 유튜브 인기 레시피 섹션 (데이터 있을 때만 노출) */}
-        {youtubeRecipes.length > 0 && (
-        <section style={{ marginBottom: 0 }}>
-          {firstSectionKey !== 'youtube' && <SectionBand bleed={20} />}
-          <SectionHeader title="유튜브 인기 레시피" iconUrl={youtubeTitleImg} />
-          {/* 범례: 가로형 레시피 카드 위, 왼쪽 정렬 */}
-          <IngredientLegend swatchesHidden total={youtubeRecipes.length} style={{ marginBottom: 6, marginTop: 8 }} />
-           <VirtualizedHorizontalRecipeList
-             variant="browse"
-             recipes={youtubeRecipes.filter(recipe => !failedThumbnailIds.has(recipe.id))}
-             myIngredients={myIngredients}
-             substituteTable={substituteTable}
-             recipeActionStates={buttonStates}
-             onRecipeAction={(recipe, action) => handleRecipeAction(recipe.id, { action: action as 'done' | 'write' | 'share' | 'favorite' })}
-             cardWidth={300}
-             cardHeight={280}
-             gap={16}
-             showRank={true}
-             compactSectionGap
-             onThumbnailError={(recipeId) => {
-               setFailedThumbnailIds(prev => new Set([...prev, recipeId]));
-             }}
-           />
-        </section>
-        )}
+        {/* 인기 레시피 — **두 곳을 한 자리에 겹친다.**
+            유튜브와 네이버가 각각 제목 + 범례 + 가로 목록으로 따로 있었다.
+            둘 다 "요즘 인기" 라는 같은 이야기인데, 세로로 줄줄이 놓이니
+            화면을 한참 내려야 아래 것이 보이고 위아래를 비교할 수도 없다.
+            급상승 표와 같은 방식으로 묶는다 — 목록은 하나만 그린다.
 
-        {/* ⓒ 네이버 인기 레시피 섹션 (데이터 있을 때만 노출) */}
-        {naverRecipes.length > 0 && (
+            네이버를 기본으로 둔다: 건수가 훨씬 많고(100 vs 22) 냉장고 재료와
+            겹치는 것도 그쪽이 많다. */}
+        {(naverRecipes.length > 0 || youtubeRecipes.length > 0) && (() => {
+          const list = feedTab === 'naver' ? naverRecipes : youtubeRecipes;
+          return (
         <section style={{ marginBottom: 0 }}>
           {firstSectionKey !== 'naver' && <SectionBand bleed={20} />}
-          <SectionHeader title="네이버 인기 레시피" iconUrl={naverTitleImg} />
-          {/* 범례: 가로형 레시피 카드 위, 왼쪽 정렬 */}
-          <IngredientLegend swatchesHidden total={naverRecipes.length} style={{ marginBottom: 6, marginTop: 8 }} />
+          <SectionHeader
+            title="인기 레시피"
+            iconUrl={feedTab === 'naver' ? naverTitleImg : youtubeTitleImg}
+          />
+
+          {/* 어디 것인지 고른다. 급상승 표와 같은 모양이다. */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        gap: 8, marginTop: 8, marginBottom: 6 }}>
+            <div
+              role="group"
+              aria-label="플랫폼 고르기"
+              style={{
+                position: 'relative', display: 'inline-flex', flexShrink: 0,
+                padding: 3, borderRadius: 10, background: 'var(--surface-sub)',
+                border: '1px solid var(--line-200)',
+              }}
+            >
+              <span
+                aria-hidden
+                style={{
+                  position: 'absolute', top: 3, bottom: 3, left: 3, width: 'calc(50% - 3px)',
+                  borderRadius: 8, background: 'var(--ink-900)',
+                  transform: feedTab === 'youtube' ? 'translateX(100%)' : 'none',
+                  transition: 'transform .2s cubic-bezier(.4,0,.2,1)',
+                }}
+              />
+              {([
+                { key: 'naver', label: '네이버', n: naverRecipes.length },
+                { key: 'youtube', label: '유튜브', n: youtubeRecipes.length },
+              ] as const).map(({ key, label, n }) => {
+                const on = feedTab === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    disabled={n === 0}
+                    onClick={() => setFeedTab(key)}
+                    aria-pressed={on}
+                    style={{
+                      position: 'relative', zIndex: 1, minWidth: 74, height: 30,
+                      padding: '0 12px', border: 'none', background: 'transparent',
+                      borderRadius: 8, cursor: n === 0 ? 'default' : 'pointer',
+                      color: on ? '#FFFFFF' : (n === 0 ? 'var(--line-300)' : 'var(--ink-500)'),
+                      fontSize: 13, fontWeight: on ? 700 : 500,
+                      transition: 'color .2s ease',
+                    }}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+            <span style={{ fontSize: 13, color: '#6A6A73', whiteSpace: 'nowrap' }}>
+              총 {list.length.toLocaleString()}건
+            </span>
+          </div>
+
            <VirtualizedHorizontalRecipeList
+             key={feedTab}
              variant="browse"
-             recipes={naverRecipes.filter(recipe => !failedThumbnailIds.has(recipe.id))}
+             recipes={list.filter(recipe => !failedThumbnailIds.has(recipe.id))}
              myIngredients={myIngredients}
              substituteTable={substituteTable}
              recipeActionStates={buttonStates}
@@ -2044,8 +2084,8 @@ const Popular = () => {
              }}
            />
         </section>
-        )}
-
+          );
+        })()}
 
         {/* 인기 급상승 — **요리와 테마를 한 자리에 겹친다.**
             표 두 개가 위아래로 있었다. 실측: 각 280×338px 이 437px 떨어져
@@ -2110,12 +2150,16 @@ const Popular = () => {
             </div>
           </div>
 
-          {/* 표는 하나다. 고른 쪽의 줄만 그린다. */}
-          <table className="w-full border-collapse text-[15px] font-sans" style={{ background: '#FFFFFF' }}>
+          {/* 표는 하나다. 고른 쪽의 줄만 그린다.
+              폭을 화면 끝까지 늘리면 요리명과 레시피 수 사이가 휑하게 벌어진다
+              (375px 화면에서 가운데 130px 이 빈 칸이었다). 내용에 맞는 폭으로
+              **가운데** 둔다. */}
+          <table className="border-collapse text-[15px] font-sans"
+                 style={{ background: '#FFFFFF', width: '100%', maxWidth: 320, margin: '0 auto' }}>
             <thead>
               <tr style={{ borderTop: '1px solid #E6E6EA', borderBottom: '1px solid #E6E6EA', background: '#F5F5F7' }}>
                 <th className="py-1.5 px-2 text-center font-medium text-[#1A1A1E] whitespace-nowrap" style={{ width: 48 }}>순위</th>
-                <th className="py-1.5 px-2 text-left font-medium text-[#1A1A1E] whitespace-nowrap">
+                <th className="py-1.5 px-2 text-center font-medium text-[#1A1A1E] whitespace-nowrap">
                   {risingTab === 'dish' ? '요리명' : '테마명'}
                 </th>
                 <th className="py-1.5 px-2 text-right font-medium text-[#1A1A1E] whitespace-nowrap" style={{ width: 118 }}>레시피 수</th>
@@ -2125,7 +2169,7 @@ const Popular = () => {
               {(risingTab === 'dish' ? dishRankings : themeRankings).map((row: any, idx: number) => (
                 <tr key={row.id ?? row.name}>
                   <td className="py-1.5 px-2 text-center text-[#8A8A90] font-normal whitespace-nowrap">{idx + 1}</td>
-                  <td className="py-1.5 px-2 text-left whitespace-nowrap"
+                  <td className="py-1.5 px-2 text-center whitespace-nowrap"
                       style={{ overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 0 }}>
                     <span
                       style={{ cursor: 'pointer', color: '#1A1A1E', fontWeight: 500 }}
