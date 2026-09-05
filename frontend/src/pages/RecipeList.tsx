@@ -16,6 +16,8 @@ import { Recipe, RecipeActionState, FilterState, SubstituteInfo } from '../types
 import { getMyIngredients, getMyIngredientsAsKeywords, sortRecipes, calculateMatchRate, extractKeywordsAndSynonyms, FilterKeywordTree, getDictCategoryKey, preloadIngredientSynonymDict, ingredientSynonymDictCache } from '../utils/recipeUtils';
 import RecipeToast from '../components/RecipeToast';
 import UsedUpSheet from '../components/UsedUpSheet';
+import { takePrefetched, PREFETCH_SIZE } from '../utils/recipePrefetch';
+import { fetchCsvOnce } from '../utils/csvOnce';
 // import Slider from 'rc-slider';
 // import 'rc-slider/assets/index.css';
 import RecipeSortBar from '../components/RecipeSortBar';
@@ -281,8 +283,8 @@ async function loadSubstituteTable(): Promise<{ [key: string]: { ingredient_b: s
     }
     
     // 캐시가 없으면 새로 로드
-    const response = await fetch(CSV_SUBSTITUTE_URL);
-    const csv = await response.text();
+    // 12MB 짜리다. 여러 곳이 동시에 부르면 그만큼 두 번 받는다 — 한 번만 받는다.
+    const csv = await fetchCsvOnce(CSV_SUBSTITUTE_URL);
     
     const lines = csv.split('\n').filter(line => line.trim()); // 빈 행 제거
     if (lines.length === 0) {
@@ -430,8 +432,7 @@ async function loadIngredientDictionary(): Promise<string[]> {
     }
     
     // 캐시가 없으면 새로 로드
-    const response = await fetch(CSV_INGREDIENT_URL);
-    const csv = await response.text();
+    const csv = await fetchCsvOnce(CSV_INGREDIENT_URL);
     
     const lines = csv.split('\n');
     const header = lines[0].split(',');
@@ -564,6 +565,30 @@ async function loadRecipesPaged(
     
     console.log('[RecipeList] loadRecipesPaged - API URL:', apiUrl, 'env:', import.meta.env?.VITE_API_BASE_URL, 'fullUrl:', `${apiUrl}/api/recipes/filter?${params.toString().substring(0, 100)}...`);
     
+    // 앱을 열 때 미리 받아 둔 것이 있으면 그것을 쓴다.
+    // 조건이 같은 **첫 화면**일 때만이다 — 필터를 걸었거나 다음 쪽이면
+    // 미리 받은 것과 다른 것을 물어보는 셈이라 못 쓴다.
+    const canUsePrefetch =
+      page === 1 && size === PREFETCH_SIZE && (filters?.sortBy || 'match_rate') === 'match_rate'
+      && !filters?.keyword && !(filters?.includeIngredients?.length)
+      && !(filters?.excludeIngredients?.length) && !filters?.platform;
+    if (canUsePrefetch) {
+      const early = takePrefetched();
+      if (early) {
+        const got = await early;
+        if (got && got.length > 0) {
+          console.log('[RecipeList] 미리 받아 둔 첫 화면을 씀:', got.length);
+          return {
+            recipes: got.map((recipe: any) => ({
+              ...recipe,
+              date: formatDate(recipe.post_time || recipe.date || ''),
+            })),
+            total: got.length,
+          };
+        }
+      }
+    }
+
     const response: AxiosResponse<any> = await axios.get(`${apiUrl}/api/recipes/filter?${params}`);
     console.log('[RecipeList] API 전체 응답:', response.data);
     console.log('[RecipeList] API 응답 total:', response.data?.total);
@@ -2125,7 +2150,29 @@ const RecipeList: React.FC = () => {
           {/* 로딩 중에는 실제 카드와 같은 모양의 뼈대를 목록 자리에 보여준다.
               (예전엔 화면 한가운데 스피너만 떠서 무엇이 로딩 중인지 알 수 없었고,
                로딩이 끝나는 순간 화면이 통째로 바뀌어 이동이 크게 느껴졌음) */}
-          {loading && <RecipeCardSkeleton count={4} />}
+          {loading && (
+            <>
+              {/* 뼈대만 있으면 **얼마나 더 기다려야 하는지**를 모른다. 이 요청은
+                  실측 2.5초쯤 걸리는데(서버가 레시피 4만여 개의 매칭률을 센다),
+                  그동안 아무 말이 없으면 멈춘 것처럼 느낀다.
+                  지금 무엇을 하는 중인지와, **기다릴 필요가 없다는 것**을 말한다. */}
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                margin: '0 0 10px', padding: '10px 12px', borderRadius: 10,
+                background: 'var(--surface-sub)',
+              }}>
+                <span aria-hidden className="cm-spinner" />
+                <span style={{ fontSize: 12.5, color: 'var(--ink-700)', lineHeight: 1.6 }}>
+                  냉장고 재료로 만들 수 있는 요리를 고르는 중이에요.
+                  <br />
+                  <span style={{ color: 'var(--ink-500)' }}>
+                    다른 화면을 보고 오셔도 돼요 — 그동안 마저 준비해 둘게요.
+                  </span>
+                </span>
+              </div>
+              <RecipeCardSkeleton count={4} />
+            </>
+          )}
 
           {/* 냉장고가 비면 모든 카드가 0% 로 뜬다. 그대로 두면 고장난 것처럼 보이므로
               왜 그런지와 어디로 가면 되는지를 한 줄로 알려 준다. 목록을 가리지 않게

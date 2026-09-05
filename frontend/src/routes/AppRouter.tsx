@@ -8,6 +8,7 @@ import ErrorBoundary from '../components/ErrorBoundary';
 import HomeInstallPrompt from '../components/HomeInstallPrompt';
 import RecipeChatWidget from '../components/RecipeChatWidget';
 import PlanUpgradeToast from '../components/PlanUpgradeToast';
+import { prefetchFridgeRecipes } from '../utils/recipePrefetch';
 import CookModeHost from '../components/CookModeHost';
 import ShareRequestPopup from '../components/ShareRequestPopup';
 import { AuthProvider } from '../context/AuthContext';
@@ -302,6 +303,24 @@ function ScreenTracker() {
   // (타입체크는 UMD 전역 덕분에 통과해서 조용히 넘어간다 — 실제로 그렇게 놓쳤다)
   useEffect(() => {
     installTrackingFlush();
+  }, []);
+
+  /**
+   * 냉장고 요리 첫 화면을 **미리 받아 둔다.**
+   *
+   * 그 요청 하나가 실측 2.4~2.7초다(서버에서 레시피 44,707행의 매칭률을 세고
+   * 정렬한다). 사용자가 탭을 누른 뒤에 시작하면 그 2.5초를 그대로 기다린다.
+   * 냉장고 재료는 이미 기기에 있으니, 앱을 여는 순간 걸어 두면 다른 화면을
+   * 보는 동안 끝난다.
+   *
+   * 화면을 덮었다 돌아왔을 때도 다시 본다 — 그 사이 냉장고를 고쳤을 수 있고,
+   * 받아 둔 것이 오래됐을 수도 있다(모듈이 알아서 판단한다).
+   */
+  useEffect(() => {
+    prefetchFridgeRecipes();
+    const wake = () => { if (!document.hidden) prefetchFridgeRecipes(); };
+    document.addEventListener('visibilitychange', wake);
+    return () => document.removeEventListener('visibilitychange', wake);
   }, []);
 
   useEffect(() => {

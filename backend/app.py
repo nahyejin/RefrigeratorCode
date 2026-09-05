@@ -654,8 +654,17 @@ def get_filtered_recipes():
         total = 0
         count_time = time.time() - count_start
         print(f"[필터링] COUNT 쿼리 생략(page={page} > 1, 프론트가 total을 안 씀)")
-    elif match_rate_min is not None or match_rate_max is not None or need_match_rate:
-        # match_rate 필터가 있거나 match_rate 계산이 필요한 경우에만 서브쿼리 사용
+    elif match_rate_min is not None or match_rate_max is not None:
+        # **match_rate 로 걸러낼 때만** 서브쿼리를 쓴다.
+        #
+        # 예전 조건에는 `or need_match_rate` 가 붙어 있었다. 그런데
+        # `need_match_rate` 는 "결과에 매칭률을 실어 달라" 는 뜻이지 **몇 건인지가
+        # 달라진다는 뜻이 아니다.** 매칭률 하한·상한이 없으면 세는 결과는
+        # `WHERE` 만으로 정해지므로, 매칭률을 다시 계산할 이유가 없다.
+        #
+        # 그 한 줄 때문에 1페이지에서 **같은 전체 스캔이 두 번** 돌았다.
+        # 스캔 한 번이 레시피 45,000행마다 FIND_IN_SET 20번 + REGEXP + REPLACE
+        # 사슬을 평가한다 — 실측 2.4~2.7초 중 절반이 아무도 안 쓰는 COUNT 였다.
         count_params = match_rate_params + base_params
         count_sql = f"""
           SELECT COUNT(*) AS total 

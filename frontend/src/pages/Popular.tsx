@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { fetchCsvOnce } from '../utils/csvOnce';
 import SectionIcon from '../components/ui/SectionIcon';
 import LoadingIndicator from '../components/LoadingIndicator';
 import SectionHeader from '../components/SectionHeader';
@@ -756,8 +757,7 @@ const Popular = () => {
   }, [youtubeRecipes, naverRecipes]);
 
   useEffect(() => {
-    fetch('/ingredient_profile_dict_with_substitutes.csv')
-      .then(res => res.text())
+    fetchCsvOnce('/ingredient_profile_dict_with_substitutes.csv')
       .then(csv => {
         setAllIngredients(parseIngredientNames(csv));
         setDishKeywords(extractDishKeywordsFromCSV(csv));
@@ -791,8 +791,8 @@ const Popular = () => {
         }
         
         // 캐시가 없으면 새로 로드
-        const response = await fetch('/ingredient_substitute_table.csv');
-        const csv = await response.text();
+        // 12MB 짜리다. 여러 화면이 동시에 부르면 그만큼 두 번 받는다.
+        const csv = await fetchCsvOnce('/ingredient_substitute_table.csv');
         
         const lines = csv.split('\n').filter(line => line.trim());
         const header = lines[0].split(',').map(h => h.trim().toLowerCase());

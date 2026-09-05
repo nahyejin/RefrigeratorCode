@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import { fetchCsvOnce } from '../utils/csvOnce';
 import BackButton from '../components/ui/BackButton';
 import Dialog from '../components/ui/Dialog';
 import RecipeCardSkeleton from '../components/RecipeCardSkeleton';
@@ -626,8 +627,8 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
   useEffect(() => {
     const loadSubstituteTable = async () => {
       try {
-        const response = await fetch(CSV_SUBSTITUTE_URL);
-        const csvText = await response.text();
+        // 12MB 짜리다. 여러 화면이 동시에 부르면 그만큼 두 번 받는다.
+        const csvText = await fetchCsvOnce(CSV_SUBSTITUTE_URL);
         
         const lines = csvText.split('\n').filter(line => line.trim()); // 빈 행 제거
         const header = lines[0].split(',').map(h => h.trim().toLowerCase());

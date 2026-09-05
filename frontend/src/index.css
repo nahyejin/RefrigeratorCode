@@ -1219,3 +1219,17 @@ select:focus-visible {
   animation: type-blink 1s steps(1, end) infinite;
 }
 @keyframes type-blink { 50% { opacity: 0; } }
+
+/* 기다리는 동안 도는 작은 고리.
+   전에는 이 키프레임이 `PullToRefresh` 안의 <style> 에만 있어서, 그 부품을
+   안 쓰는 화면에서는 고리가 **멈춘 채로** 그려졌다. 전역에 둔다. */
+@keyframes cm-spin { to { transform: rotate(360deg); } }
+.cm-spinner {
+  width: 14px;
+  height: 14px;
+  border-radius: 9999px;
+  flex-shrink: 0;
+  border: 2px solid var(--line-300);
+  border-top-color: #1A1A1E;
+  animation: cm-spin .8s linear infinite;
+}

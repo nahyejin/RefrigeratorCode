@@ -79,6 +79,7 @@ import doneIcon from '../assets/done.svg';
 import { useNavigate, useLocation } from 'react-router-dom';
 import RecipeCard from '../components/RecipeCard';
 import VirtualizedHorizontalRecipeList from '../components/VirtualizedHorizontalRecipeList';
+import { fetchCsvOnce } from '../utils/csvOnce';
 import { getIngredientPillInfo } from '../utils/recipeUtils';
 import IngredientPillGroup from '../components/IngredientPillGroup';
 import { getProxiedImageUrl } from '../utils/imageUtils';
@@ -259,8 +260,8 @@ function getPlatformLogo(platform: string | undefined): string {
  */
 async function loadSubstituteTable(): Promise<{ [key: string]: { ingredient_b: string; similarity_score?: number }[] }> {
   try {
-    const response = await fetch(CSV_SUBSTITUTE_URL);
-    const csv = await response.text();
+    // 12MB 짜리다. 여러 화면이 동시에 부르면 그만큼 두 번 받는다.
+    const csv = await fetchCsvOnce(CSV_SUBSTITUTE_URL);
     
     const lines = csv.split('\n').filter(line => line.trim()); // 빈 행 제거
     const header = lines[0].split(',').map(h => h.trim().toLowerCase());
