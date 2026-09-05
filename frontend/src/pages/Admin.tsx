@@ -540,7 +540,24 @@ const Requests: React.FC = () => {
         </div>
       ) : (
         <div style={{ ...S.card, padding: 0, overflowX: 'auto' }}>
-          <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 640 }}>
+          {/* 칸마다 폭을 정해 준다.
+              전에는 `minWidth: 640` 에 사유 칸만 `maxWidth: 260` 이었는데,
+              표에서 `maxWidth` 는 거의 무시된다 — 다른 칸을 채우고 남는
+              만큼만 가져간다. 기간 버튼(1·3·6·12개월·무기한)이 들어가면서
+              동작 칸이 넓어지자 사유 칸이 눌려 **글자가 세로로 쌓였다.**
+              `table-layout: fixed` 로 정한 폭을 지키게 하고, 표가 좁아지면
+              칸을 줄이는 대신 **가로로 스크롤**한다(바깥에 이미 걸려 있다). */}
+          <table style={{ borderCollapse: 'collapse', width: '100%',
+                          minWidth: 980, tableLayout: 'fixed' }}>
+            <colgroup>
+              <col style={{ width: 84 }} />{/* 요청일 */}
+              <col style={{ width: 180 }} />{/* 이메일 */}
+              <col style={{ width: 96 }} />{/* 닉네임 */}
+              <col style={{ width: 56 }} />{/* 플랜 */}
+              <col style={{ width: 240 }} />{/* 사유 */}
+              <col style={{ width: 64 }} />{/* 상태 */}
+              <col style={{ width: 260 }} />{/* 동작 */}
+            </colgroup>
             <thead>
               <tr>{['요청일', '이메일', '닉네임', '플랜', '사유', '상태', ''].map(h => (
                 <th key={h} style={S.th}>{h}</th>
@@ -550,14 +567,26 @@ const Requests: React.FC = () => {
               {rows.map(r => (
                 <tr key={r.id} style={{ opacity: r.status === 'open' ? 1 : 0.55 }}>
                   <td style={S.td}>{shortDate(r.created_at)}</td>
-                  <td style={S.td}>{r.email}</td>
-                  <td style={S.td}>{r.nickname}</td>
+                  <td style={{ ...S.td, overflow: 'hidden', textOverflow: 'ellipsis' }}
+                      title={r.email}>{r.email}</td>
+                  <td style={{ ...S.td, overflow: 'hidden', textOverflow: 'ellipsis' }}
+                      title={r.nickname}>{r.nickname}</td>
                   <td style={S.td}>{r.plan}</td>
-                  <td style={{ ...S.td, whiteSpace: 'normal', maxWidth: 260 }}>{r.message || '-'}</td>
+                  {/* 두 줄까지만. 길게 적어 온 사람 하나 때문에 줄 높이가
+                      다 늘어나면 목록을 훑을 수가 없다. 전문은 마우스를 올리면 뜬다. */}
+                  <td style={{ ...S.td, whiteSpace: 'normal', wordBreak: 'break-word' }}
+                      title={r.message || ''}>
+                    <span style={{
+                      display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden', lineHeight: 1.5,
+                    }}>
+                      {r.message || '-'}
+                    </span>
+                  </td>
                   <td style={S.td}>{r.status}</td>
                   <td style={S.td}>
                     {r.status === 'open' ? (
-                      <span style={{ display: 'flex', gap: 6 }}>
+                      <span style={{ display: 'flex', gap: 4, flexWrap: 'nowrap' }}>
                         {/* 유료는 **기간이 있는 것**이다. 몇 달인지 안 정하면
                             영원히 유료인 계정이 쌓이고, 결제를 붙일 때 그
                             사람들을 어떻게 할지가 문제가 된다.
