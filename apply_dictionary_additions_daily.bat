@@ -25,6 +25,7 @@ REM
 REM  하는 일:
 REM   1) DB 승인분을 CSV 에 반영
 REM   2) 백엔드 사본(backend/...csv)까지 맞춤
+REM   2.5) 대체 재료 표를 다시 만듦 (새 재료의 "대체 가능" 이 여기서 생긴다)
 REM   3) 바뀐 게 없으면 종료
 REM   4) 사전이 정상으로 읽히는지 확인  <- 실패하면 되돌리고 멈춘다
 REM   5) 사전 CSV 두 개만 커밋하고 푸시
@@ -40,7 +41,7 @@ cd /d "%~dp0"
 
 set LOG=dictionary_sync.log
 set PY="C:\Users\user\venv310\Scripts\python.exe"
-set CSVS=frontend/public/ingredient_profile_dict_with_substitutes.csv backend/ingredient_profile_dict_with_substitutes.csv
+set CSVS=frontend/public/ingredient_profile_dict_with_substitutes.csv backend/ingredient_profile_dict_with_substitutes.csv frontend/public/ingredient_substitute_table.csv
 
 echo [%date% %time%] 사전 추가분 반영 시작 >> %LOG%
 
@@ -50,6 +51,14 @@ if errorlevel 1 goto failed
 
 REM 2) 백엔드 사본 맞추기
 %PY% -u scripts\sync_ingredient_dict.py --write >> %LOG% 2>&1
+if errorlevel 1 goto failed
+
+REM 2.5) **대체 재료 표를 다시 만든다.**
+REM    사전에 새 재료가 들어와도 대체표는 그대로였다. 대체표는 손으로
+REM    돌리는 스크립트였고, 실제로 4개월(4/18~9/5) 동안 안 돌아서
+REM    그 사이 승인한 재료 57개가 "대체 가능" 을 하나도 못 갖고 있었다.
+REM    4초면 끝나므로 사전이 바뀌든 말든 매일 같이 돌린다.
+%PY% -u ingredient_management\generate_substitutes.py >> %LOG% 2>&1
 if errorlevel 1 goto failed
 
 REM 3) 바뀐 게 없으면 여기서 끝 (매일 도는데 대부분은 바뀔 게 없다)
@@ -67,11 +76,11 @@ if errorlevel 1 (
   goto failed
 )
 
-REM 5) 사전 CSV 두 개만 커밋하고 푸시.
+REM 5) 사전 CSV 와 대체표만 커밋하고 푸시.
 REM    `git add -A` 를 쓰지 않는다 - 작업하던 다른 파일이 딸려 올라간다.
 git diff --stat -- %CSVS% >> %LOG% 2>&1
 git add %CSVS% >> %LOG% 2>&1
-git commit -m "재료 사전 추가분 반영 (어드민 승인분 자동)" >> %LOG% 2>&1
+git commit -m "재료 사전 추가분 + 대체 재료 표 반영 (어드민 승인분 자동)" >> %LOG% 2>&1
 if errorlevel 1 (
   echo [%date% %time%] 커밋할 것이 없거나 커밋 실패 >> %LOG%
   goto done
