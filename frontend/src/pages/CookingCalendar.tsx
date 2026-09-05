@@ -206,20 +206,21 @@ const FridgeToPlan: React.FC<{ onGo: (withAi?: boolean) => void }> = ({ onGo }) 
             <span style={{ fontSize: 13.5, fontWeight: 700, color: '#1A1A1E' }}>
               이번 주 AI 식단 추천
             </span>
-            {/* 예시 하나만 박아 두면 **그것만 되는 기능**으로 읽힌다.
-                이 기능이 실제로 해 주는 일을 적는다. */}
-            {/* "장은 적게" 는 오히려 **장을 본다**로 읽혀 지출처럼 보였다.
-                옆의 무료 버튼과 나란히 놓이는 자리라, 값을 그대로 밝히는 편이 낫다.
+            {/* 두 줄을 **직접 나눠** 적는다.
 
-                그런데 "말한 대로" 만으로는 **무엇에 말한 대로인지**가 없다.
-                이 버튼과 무료 버튼의 차이는 셋이다 — 냉장고 재료(둘 다 본다),
-                내가 적은 요청(AI만 본다), 장보기를 최소로 짜는 계산(AI만 한다).
-                무료 쪽 문구("냉장고 재료로")는 이미 정확한데, AI 쪽은 "말한
-                대로" 뒤에 이 두 가지가 안 보여서 사람이 볼 때 "그래서 뭐가
-                다른데" 가 안 풀렸다. 버튼을 74px 로 키워 두 줄로 적는다
-                (실측: 168px 폭에서 이 문장은 정확히 2줄, 겹치지 않는다). */}
-            <span style={{ fontSize: 11, color: 'rgba(26,26,30,0.65)', lineHeight: 1.35 }}>
-              재료+요청 반영해 장보기 최소화 · 크레딧 {planCost}
+                전에는 한 문장을 넣고 줄바꿈을 브라우저에 맡겼다. 그러면 폭에
+                따라 1줄이 됐다 2줄이 됐다 하고, 옆의 무료 버튼은 늘 1줄이라
+                둘의 글자 아랫단이 어긋나 보였다. 이제 두 버튼 모두
+                `무엇을 보고 / 무엇을 해 주고 얼마` 두 줄로 같은 자리에서
+                끊긴다. `nowrap` 이라 폭이 좁아져도 줄 수가 안 변한다.
+
+                내용은 그대로다 — 이 버튼과 무료 버튼의 차이는 셋이고
+                (냉장고 재료는 둘 다, 내가 적은 요청과 장보기 최소화는 AI만),
+                그 둘을 첫 줄과 둘째 줄에 하나씩 놓았다. */}
+            <span style={{ fontSize: 11, color: 'rgba(26,26,30,0.65)', lineHeight: 1.35, whiteSpace: 'nowrap' }}>
+              냉장고 재료 + 내 요청
+              <br />
+              장보기 최소화 · 크레딧 {planCost}
             </span>
           </button>
           <span className="ai-fab-badge">AI</span>
@@ -235,11 +236,15 @@ const FridgeToPlan: React.FC<{ onGo: (withAi?: boolean) => void }> = ({ onGo }) 
             justifyContent: 'center', gap: 3, padding: '0 12px',
           }}
         >
-          <span style={{ fontSize: 14, fontWeight: 700, color: '#1A1A1E' }}>
+          <span style={{ fontSize: 13.5, fontWeight: 700, color: '#1A1A1E' }}>
             이번 주 식단 추천
           </span>
-          <span style={{ fontSize: 11.5, color: 'var(--ink-500)' }}>
-            냉장고 재료로 · 무료
+          {/* AI 쪽과 **같은 두 줄 구조**. 글자 크기도 11 로 맞춘다
+              (전에는 11.5 라 나란히 놓으면 미묘하게 어긋나 보였다). */}
+          <span style={{ fontSize: 11, color: 'var(--ink-500)', lineHeight: 1.35, whiteSpace: 'nowrap' }}>
+            냉장고 재료만 보고
+            <br />
+            일주일 식단 · 무료
           </span>
         </button>
       </div>

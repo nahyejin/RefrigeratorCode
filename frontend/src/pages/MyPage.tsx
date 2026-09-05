@@ -1595,14 +1595,6 @@ const MyPage: React.FC = () => {
               <div style={{ textAlign: 'center', fontWeight: 700, fontSize: 17, color: 'var(--ink-900)' }}>내 정보 수정</div>
             </div>
             <div className="p-6 pt-2">
-              {/* GNB 에서 닉네임을 눌러 들어온 자리다 — "지금 내가 유료인지"
-                  를 물어보고 온 것이니, 폼 맨 위에서 바로 보여 준다.
-                  마이페이지 본문의 크레딧 카드와 **같은 부품**을 그대로
-                  쓴다 — 두 자리 문구가 따로 놀면 나중에 한쪽만 고쳐 어긋난다. */}
-              <div className="mb-4">
-                <UsageGauge />
-              </div>
-
               {/* 닉네임 + 중복체크 */}
               <div className="mb-3">
                 <div className="flex items-center gap-2 mb-1">
@@ -1758,6 +1750,16 @@ const MyPage: React.FC = () => {
                 </>
               )}
               
+              {/* 계정 정보를 다 고친 다음에 플랜을 둔다.
+                  위쪽은 **고치러 온 칸**(닉네임·비밀번호)이고, 크레딧은 고치는
+                  것이 아니라 **지금 상태를 보는 것**이라 입력란 사이에 끼어
+                  들면 폼이 끊긴다. 마이페이지 본문의 크레딧 카드와 **같은
+                  부품**을 그대로 쓴다 — 두 자리 문구가 따로 놀면 나중에
+                  한쪽만 고쳐 어긋난다. */}
+              <div className="mt-5 pt-4 border-t border-gray-200">
+                <UsageGauge />
+              </div>
+
               {/* 취소/적용 버튼 */}
               <div className="flex gap-2 mt-4">
                 <button 
