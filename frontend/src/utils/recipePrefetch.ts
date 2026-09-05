@@ -1,4 +1,4 @@
-import { getMyIngredientsAsKeywords, preloadIngredientSynonymDict } from './recipeUtils';
+import { getMyIngredients, getMyIngredientsAsKeywords, preloadIngredientSynonymDict } from './recipeUtils';
 
 /**
  * 냉장고 요리 **첫 화면을 미리 받아 둔다.**
@@ -28,6 +28,28 @@ const API_BASE_URL =
 export const PREFETCH_SIZE = 20;
 const SORT = 'match_rate';
 
+/**
+ * 첫 화면의 매칭률 하한. `RecipeList.tsx` 의 `getInitialSortBarState()` 와
+ * **정확히 같은 규칙**이어야 한다 — 거기가 실제로 화면에 뜨는 첫 요청이고,
+ * 여기는 그걸 미리 받아 두는 자리다. 냉장고에 재료가 있으면 30% 미만은
+ * 원래도 걸러서 보여 준다(재료가 없으면 전부 0% 라 필터를 열어 둔다).
+ *
+ * 이 값을 안 넣고 미리 받았다가, 실제 화면(30% 필터)과 **다른 걸 준 적이
+ * 있다** — 매칭률 낮은 레시피가 섞여 나오거나, 사용자가 매칭률 구간을
+ * 바꿔도 반영이 안 되는 것처럼 보였다(바뀐 구간과 무관하게 이 캐시가
+ * 조건 검사도 없이 재사용됐기 때문).
+ */
+export function defaultMatchRateMin(): number {
+  try {
+    // `getInitialSortBarState()` 와 같은 기준(`getMyIngredients`) 을 써야
+    // 한다. 동의어 변환을 거치는 `getMyIngredientsAsKeywords` 로 재면
+    // 드물게 다른 값이 나올 수 있다 — 그러면 이 판단 자체가 화면과 어긋난다.
+    return getMyIngredients().length > 0 ? 30 : 0;
+  } catch {
+    return 0;
+  }
+}
+
 /** 받아 둔 것을 얼마나 믿을까. 냉장고가 그대로여도 레시피는 매일 늘어난다. */
 const FRESH_MS = 10 * 60 * 1000;
 
@@ -39,23 +61,25 @@ interface Slot {
 
 let slot: Slot | null = null;
 
-/** 지금 냉장고로 만드는 열쇠. 재료가 바뀌면 달라진다. */
+/** 지금 냉장고로 만드는 열쇠. 재료가 바뀌면(또는 매칭률 하한이 바뀌면) 달라진다. */
 export function prefetchKey(): string | null {
   try {
     const my = getMyIngredientsAsKeywords();
     if (!my || my.length === 0) return null;
-    return `${SORT}|${PREFETCH_SIZE}|${[...my].sort().join(',')}`;
+    return `${SORT}|${PREFETCH_SIZE}|${defaultMatchRateMin()}|${[...my].sort().join(',')}`;
   } catch {
     return null;
   }
 }
 
-function request(my: string[]): Promise<any[] | null> {
+function request(my: string[], matchRateMin: number): Promise<any[] | null> {
   const params = new URLSearchParams({
     page: '1',
     size: String(PREFETCH_SIZE),
     sort_by: SORT,
     my_ingredients: my.join(','),
+    match_rate_min: String(matchRateMin),
+    match_rate_max: '100',
   });
   return fetch(`${API_BASE_URL}/api/recipes/filter?${params}`)
     .then(r => (r.ok ? r.json() : null))
@@ -84,8 +108,11 @@ export function prefetchFridgeRecipes(): void {
       if (!key) return;                   // 냉장고가 비었으면 부를 것이 없다
       if (slot && slot.key === key && Date.now() - slot.at < FRESH_MS) return;
 
-      const my = key.split('|')[2].split(',');
-      slot = { key, at: Date.now(), promise: request(my) };
+      // 열쇠 모양: `match_rate|20|<매칭률 하한>|<재료들>` — 재료는 마지막 칸.
+      const parts = key.split('|');
+      const matchRateMin = Number(parts[2]) || 0;
+      const my = parts[3].split(',');
+      slot = { key, at: Date.now(), promise: request(my, matchRateMin) };
     });
 }
 

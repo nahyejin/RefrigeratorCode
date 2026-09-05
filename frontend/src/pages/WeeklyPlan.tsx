@@ -898,12 +898,21 @@ const WeeklyPlan: React.FC = () => {
    * 다 만들어진 문단이 통째로 튀어나오면, 기다린 뒤라 더 갑작스럽다.
    * 읽는 속도로 흘러나오면 "지금 답하고 있다" 가 보인다. 결과(식단·장바구니)는
    * 말이 끝난 뒤에 편다 — 글과 카드가 같이 자라면 눈이 둘 데가 없다.
+   *
+   * `prefers-reduced-motion` 을 안 본다. 예전엔 여기서 껐는데, 이 앱은 정확히
+   * 이 이유로 "고쳤다고 했는데 안 된다" 를 이미 여러 번 겪었다 — 반짝이는
+   * FAB 애니메이션이 꺼진 사람 눈에는 다 고쳐도 안 고쳐진 것처럼 보였다.
+   * 이건 최종 글자가 그대로인 **내용 노출**이지 화면이 흔들리거나 번쩍이는
+   * 장식 움직임이 아니라서, 끄는 쪽이 오히려 "왜 매번 통째로 나오지" 를
+   * 또 만든다. 실제로 로그가 남는 실험(스크립트로 자동 클릭)에서는 이
+   * 컴퓨터의 reduce-motion 이 꺼져 있어 재현이 안 됐지만, 사용자 쪽 OS·
+   * 브라우저 설정에서 켜져 있으면 이 한 줄 때문에 매번 그대로 다 나온다 —
+   * 정확히 신고된 증상과 같다.
    */
   React.useEffect(() => {
     const i = chat.length - 1;
     const last = chat[i];
     if (!wantAi || !last || last.who !== 'ai') return;
-    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
     setTyped({ i, n: 0 });
     const total = last.text.length;
     // 흐른 **시간**으로 센다. 몇 번 돌았는지로 세면, 화면을 잠깐 덮어 둔 사이

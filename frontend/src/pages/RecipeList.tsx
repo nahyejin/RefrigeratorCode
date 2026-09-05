@@ -16,7 +16,7 @@ import { Recipe, RecipeActionState, FilterState, SubstituteInfo } from '../types
 import { getMyIngredients, getMyIngredientsAsKeywords, sortRecipes, calculateMatchRate, extractKeywordsAndSynonyms, FilterKeywordTree, getDictCategoryKey, preloadIngredientSynonymDict, ingredientSynonymDictCache } from '../utils/recipeUtils';
 import RecipeToast from '../components/RecipeToast';
 import UsedUpSheet from '../components/UsedUpSheet';
-import { takePrefetched, PREFETCH_SIZE } from '../utils/recipePrefetch';
+import { takePrefetched, PREFETCH_SIZE, defaultMatchRateMin } from '../utils/recipePrefetch';
 import { fetchCsvOnce } from '../utils/csvOnce';
 // import Slider from 'rc-slider';
 // import 'rc-slider/assets/index.css';
@@ -568,10 +568,26 @@ async function loadRecipesPaged(
     // 앱을 열 때 미리 받아 둔 것이 있으면 그것을 쓴다.
     // 조건이 같은 **첫 화면**일 때만이다 — 필터를 걸었거나 다음 쪽이면
     // 미리 받은 것과 다른 것을 물어보는 셈이라 못 쓴다.
+    //
+    // ⚠️ 실제로 있었던 버그: 여기서 매칭률 구간(matchRateMin/Max)을 안
+    // 봤다. 냉장고에 재료가 있으면 첫 화면은 기본이 **30~100%** 인데
+    // (`getInitialSortBarState`), 미리 받아 둔 것은 그 하한이 없는 채로
+    // 받아 왔다. 그래서 첫 화면부터 매칭률 낮은 레시피가 섞여 나왔고,
+    // 사용자가 매칭률 구간을 바꿔도 — 그 값이 지금 검사 대상이 아니었으니
+    // — 여전히 예전 캐시를 그대로 돌려주는 것처럼 보였다. 지금 필터의
+    // 구간이 **미리 받을 때 쓴 것과 정확히 같을 때만** 재사용한다.
+    // ⚠️ 또 하나 있었던 구멍: 임박재료 우선(`appliedExpiryIngredients`) 도
+    // 안 보고 있었다. 그 모드는 `sort_by` 를 여전히 `match_rate` 로 보낸다
+    // (line ~1572 참고 — "expiry는 임박재료 우선, 그 다음 매칭률"이라 서버
+    // 정렬 기준 자체는 같다) — 그래서 sortBy 검사만으로는 걸러지지 않고,
+    // 임박재료를 우선하라는 조건 없이 받아 둔 캐시가 그대로 나갔다.
     const canUsePrefetch =
       page === 1 && size === PREFETCH_SIZE && (filters?.sortBy || 'match_rate') === 'match_rate'
       && !filters?.keyword && !(filters?.includeIngredients?.length)
-      && !(filters?.excludeIngredients?.length) && !filters?.platform;
+      && !(filters?.excludeIngredients?.length) && !filters?.platform
+      && !(filters?.appliedExpiryIngredients?.length)
+      && (filters?.matchRateMin ?? defaultMatchRateMin()) === defaultMatchRateMin()
+      && (filters?.matchRateMax ?? 100) === 100;
     if (canUsePrefetch) {
       const early = takePrefetched();
       if (early) {
@@ -692,6 +708,16 @@ const RecipeList: React.FC = () => {
   // 페이지 상태 저장/복원을 위한 키
   const STORAGE_KEY_RECIPE_LIST = 'recipe_list_state';
   const STORAGE_KEY_INGREDIENTS_HASH = 'recipe_list_ingredients_hash';
+  // **고른 조건만** 따로 저장하는 키(결과 목록과 별개).
+  //
+  // 왜 따로 두나: 전체 상태 저장(STORAGE_KEY_RECIPE_LIST)은 `cachedFilteredRecipes`
+  // 가 채워진 뒤에만 쓰인다 — 그런데 이 화면의 매칭률 조회 한 번이 2.5초 넘게
+  // 걸린다. 매칭률 구간을 바꾸자마자(요청이 아직 도는 중에) 다른 탭에 갔다
+  // 오면, 그 요청 결과가 반영되기 전이라 **저장된 적이 없다.** 돌아왔을 때
+  // sessionStorage 에는 여전히 예전 구간이 남아 있어 "바꾼 게 원복됐다" 로
+  // 보였다. 조건 자체는 고르는 즉시(응답을 기다리지 않고) 저장해서, 돌아왔을
+  // 때 최소한 조건만은 그대로이게 한다 — 결과는 그 조건으로 다시 받으면 된다.
+  const STORAGE_KEY_RECIPE_SETTINGS = 'recipe_list_settings';
   
   // 재료 목록의 해시값 계산 (변경 감지용)
   const getIngredientsHash = useCallback(() => {
@@ -733,14 +759,29 @@ const RecipeList: React.FC = () => {
       const savedState = sessionStorage.getItem(STORAGE_KEY_RECIPE_LIST);
       const savedIngredientsHash = sessionStorage.getItem(STORAGE_KEY_INGREDIENTS_HASH);
       const currentIngredientsHash = getIngredientsHash();
-      
+
+      // **고른 조건**의 최신 저장분. 결과가 담긴 저장(STORAGE_KEY_RECIPE_LIST)은
+      // 그 결과를 낸 요청이 끝나야만 쓰이므로, 매칭률 구간을 바꾸고 응답 전에
+      // 나갔다 오면 여기(조건만)가 거기(조건+결과)보다 **더 최신일 수 있다.**
+      // 그럴 때는 조건은 이걸 따르고, 결과는 일단 옛 캐시로 보여준 뒤 아래
+      // 필터 변경 useEffect 가 새 조건으로 다시 받아 오게 한다.
+      let savedSettings: any = null;
+      try {
+        const raw = sessionStorage.getItem(STORAGE_KEY_RECIPE_SETTINGS);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed.ingredientsHash === currentIngredientsHash) savedSettings = parsed;
+        }
+      } catch { /* 무시 — 없으면 그냥 예전 방식대로 */ }
+
       console.log('[RecipeList] 마운트 시 재료 해시 확인:', {
         savedHash: savedIngredientsHash,
         currentHash: currentIngredientsHash,
         isMatch: savedIngredientsHash === currentIngredientsHash,
-        hasSavedState: !!savedState
+        hasSavedState: !!savedState,
+        hasNewerSettings: !!savedSettings
       });
-      
+
       // 재료 목록이 변경되지 않았고 저장된 상태가 있으면 복원
       if (savedState && savedIngredientsHash === currentIngredientsHash) {
         const parsedState = JSON.parse(savedState);
@@ -762,10 +803,16 @@ const RecipeList: React.FC = () => {
           setLoadingProgress(0);
           currentProgressRef.current = 0;
           
-          // 먼저 lastFilterHash를 설정하여 필터 변경 useEffect가 실행되지 않도록 함
+          // **조건은 더 최신 것(savedSettings)을 우선한다.** 결과(캐시된
+          // 레시피)만 옛것일 수 있고, 그건 아래에서 옛 캐시로 일단 보여주고
+          // 필터 변경 useEffect 가 이 조건으로 다시 받아 오게 둔다 — 그래서
+          // lastFilterHash 는 그대로(parsedState 것) 둔다. 조건이 실제로
+          // 바뀌었으면 이 값과 새로 계산될 filterHash 가 자연히 달라져
+          // 재요청이 걸린다(그렇지 않으면 옛 결과를 새 조건인 척 보여주게 된다).
+          const src = savedSettings || parsedState;
           setLastFilterHash(parsedState.lastFilterHash || '');
           initialLoadDone.current = true; // 복원했으므로 초기 로드 완료로 표시
-          
+
           // 상태 복원
           setCachedFilteredRecipes(parsedState.cachedFilteredRecipes);
           setTotal(parsedState.total || 0);
@@ -773,29 +820,31 @@ const RecipeList: React.FC = () => {
           // 냉장고가 비어 있으면 예전에 쓰던 매칭 기반 정렬/구간을 되살리면 안 된다.
           // 전부 0% 라서 30~100% 구간에 아무것도 안 걸려 화면이 텅 빈다.
           const fridgeEmptyOnRestore = getMyIngredients().length === 0;
-          const restoredSort = parsedState.sortType || 'match';
+          const restoredSort = src.sortType || 'match';
           setSortType(
             fridgeEmptyOnRestore && (restoredSort === 'match' || restoredSort === 'expiry')
               ? 'latest'
               : restoredSort
           );
           setMatchRange(
-            fridgeEmptyOnRestore ? [0, 100] : (parsedState.matchRange || [30, 100])
+            fridgeEmptyOnRestore ? [0, 100] : (src.matchRange || [30, 100])
           );
-          setSelectedChannel(parsedState.selectedChannel || []);
-          setIncludeKeyword(parsedState.includeKeyword || '');
-          setIncludeIngredients(parsedState.includeIngredients || []);
-          setExcludeIngredients(parsedState.excludeIngredients || []);
-          setSelectedCategoryKeywords(parsedState.selectedCategoryKeywords || initialFilterState);
-          setAppliedExpiryIngredients(parsedState.appliedExpiryIngredients || []);
+          setSelectedChannel(src.selectedChannel || []);
+          setIncludeKeyword(src.includeKeyword || '');
+          setIncludeIngredients(src.includeIngredients || []);
+          setExcludeIngredients(src.excludeIngredients || []);
+          setSelectedCategoryKeywords(src.selectedCategoryKeywords || initialFilterState);
+          setAppliedExpiryIngredients(src.appliedExpiryIngredients || []);
           previousIngredientsHashRef.current = currentIngredientsHash;
-          
+
           // 복원된 데이터로 즉시 레시피 표시 (정렬 useEffect가 실행되기 전에 미리 설정)
+          // — 아직은 옛 캐시다. 조건이 바뀌었으면 잠시 뒤 필터 useEffect 가
+          // 새로 받아 온 것으로 조용히 바꿔치운다.
           const restoredRecipes = parsedState.cachedFilteredRecipes;
           const restoredPage = parsedState.page || 1;
-          const restoredSortType = parsedState.sortType || 'match';
+          const restoredSortType = src.sortType || 'match';
           const restoredMyIngredients = getMyIngredients();
-          const restoredAppliedExpiry = parsedState.appliedExpiryIngredients || [];
+          const restoredAppliedExpiry = src.appliedExpiryIngredients || [];
           
           // 클라이언트에서 정렬
           const sortedRecipes = sortRecipes(
@@ -1713,7 +1762,27 @@ const RecipeList: React.FC = () => {
       }
     }
   }, [cachedFilteredRecipes, total, page, sortType, matchRange, lastFilterHash, selectedChannel, includeKeyword, includeIngredients, excludeIngredients, selectedCategoryKeywords, appliedExpiryIngredients, getIngredientsHash]);
-  
+
+  // **고른 조건만** 결과를 기다리지 않고 바로 저장한다.
+  //
+  // 위 저장은 `cachedFilteredRecipes` 가 채워진 뒤에만 쓰인다. 매칭률 구간을
+  // 바꾸고 응답(2.5초+)이 오기 전에 다른 화면으로 가면, 그 사이엔 저장된 적이
+  // 없어 sessionStorage 에 예전 구간이 그대로 남는다 — 돌아왔을 때 "바꾼 게
+  // 원복됐다" 로 보였다. 조건은 고르는 즉시 저장해 두고, 복원할 때 결과가
+  // 없으면 이 조건으로 다시 받으면 된다(아래 필터 변경 useEffect가 그렇게 한다).
+  useEffect(() => {
+    if (!initialLoadDone.current) return;   // 아직 첫 로드도 안 끝났으면 저장할 "고른 것"이 없다
+    try {
+      sessionStorage.setItem(STORAGE_KEY_RECIPE_SETTINGS, JSON.stringify({
+        sortType, matchRange, selectedChannel, includeKeyword,
+        includeIngredients, excludeIngredients, selectedCategoryKeywords,
+        appliedExpiryIngredients, ingredientsHash: getIngredientsHash(),
+      }));
+    } catch (error) {
+      console.warn('[RecipeList] 조건 저장 실패:', error);
+    }
+  }, [sortType, matchRange, selectedChannel, includeKeyword, includeIngredients, excludeIngredients, selectedCategoryKeywords, appliedExpiryIngredients, getIngredientsHash]);
+
   // 재료 목록 변경 감지 및 처리 (localStorage 변경 이벤트 감지)
   useEffect(() => {
     const handleLocalStorageChange = (e: CustomEvent) => {
