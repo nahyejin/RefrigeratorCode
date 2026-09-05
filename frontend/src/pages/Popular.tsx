@@ -22,6 +22,7 @@ import { calculateMatchRate } from '../utils/recipeUtils';
 import naverLogo from '../assets/썸네일_naverlogo.png';
 import youtubeLogo from '../assets/썸네일_youtubelogo.png';
 import RecipeCard from '../components/RecipeCard';
+import UsedUpSheet from '../components/UsedUpSheet';
 import youtubeTitleImg from '../assets/유튜브제목이미지.png';
 import naverTitleImg from '../assets/네이버제목이미지.png';
 import { addRecipeToLocalStorage, removeRecipeFromLocalStorage, getRecipesFromLocalStorage, copyRecipeUrlToClipboard, getMyFridgeIngredients, buildRecipeActionStatesForRecipes, getRecipeActionState } from '../utils/recipeStorage';
@@ -671,6 +672,8 @@ const Popular = () => {
   const today = new Date();
   today.setHours(23, 59, 59, 999);
   const [toast, setToast] = useState('');
+  /** 방금 완료한 레시피 — 쓴 재료를 냉장고에서 뺄지 묻는다. */
+  const [usedUp, setUsedUp] = useState<{ id: number; title: string } | null>(null);
   const [includeKeyword, setIncludeKeyword] = useState('');
 
   // 버튼 상태 통일: {done, write, share, favorite}
@@ -1175,6 +1178,8 @@ const Popular = () => {
             
           setButtonStates(prev => ({ ...prev, [id]: getRecipeActionState(id) }));
             setToast('레시피를 완료했습니다!');
+            // 만들었으면 그 재료는 거의 다 쓴 것이다. 지금이 기억이 가장 정확할 때다.
+            setUsedUp({ id, title: recipe.title || '' });
           }
         }
       }
@@ -2294,6 +2299,9 @@ const Popular = () => {
         }}
         message={registerModalMessage || '더 많은 기능을 사용하려면'}
       />
+      {/* 완료 직후 — 쓴 재료를 냉장고에서 뺄지 묻는다. */}
+      <UsedUpSheet recipe={usedUp} onClose={() => setUsedUp(null)} />
+
       <BottomNavBar activeTab="popularity" />
     </>
   );

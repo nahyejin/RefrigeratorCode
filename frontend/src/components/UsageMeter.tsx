@@ -157,13 +157,27 @@ export const UsageLine: React.FC<{
     // 이번에 얼마 나가는지는 입력창 바로 위(넓은 자리)에서 말한다.
     text = <>크레딧 <b>{usage.balance}</b> · 오늘 <b>{usage.daily_remaining}</b></>;
   } else {
+    /**
+     * 세 숫자가 **각각 무엇인지** 말한다.
+     *
+     * `남은 크레딧 14 · 오늘 1/15 · 이번에 3 써요` 는 셋이 나란히 붙어 있어서
+     * 어느 것이 무엇인지 알 수 없다는 말을 들었다. 사실 서로 다른 것을 센다:
+     *   전체 남은 것 / 오늘 더 쓸 수 있는 것 / 이번에 나갈 것.
+     * 줄을 바꾸고 이름을 붙이면 한 번 읽고 만다.
+     */
     text = (
-      <>
-        남은 크레딧 <b>{usage.balance}</b>
-        {' · '}오늘 <b>{usage.daily_remaining}</b>
-        {usage.daily_cap > 0 && `/${usage.daily_cap}`}
-        {typeof cost === 'number' && cost > 0 && ` · 이번에 ${cost} 써요`}
-      </>
+      <span style={{ display: 'grid', gap: 2, width: '100%' }}>
+        <span>전체 남은 크레딧 <b style={{ color: 'var(--ink-900)' }}>{usage.balance}</b></span>
+        {usage.daily_cap > 0 && (
+          <span>
+            오늘 더 쓸 수 있는 건 <b style={{ color: 'var(--ink-900)' }}>{usage.daily_remaining}</b>
+            {' '}(하루 {usage.daily_cap}까지)
+          </span>
+        )}
+        {typeof cost === 'number' && cost > 0 && (
+          <span>이번에 물어보면 <b style={{ color: 'var(--ink-900)' }}>{cost}</b> 나가요</span>
+        )}
+      </span>
     );
   }
 

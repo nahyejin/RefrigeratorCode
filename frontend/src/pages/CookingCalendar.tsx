@@ -1401,7 +1401,7 @@ const CookingCalendar: React.FC = () => {
       <Sheet
         open={progressOpen}
         onClose={() => setProgressOpen(false)}
-        title="달마다 얼마나 했나"
+        title="월별 기록"
         maxHeight="80dvh"
         dismissLabel="닫기"
       >

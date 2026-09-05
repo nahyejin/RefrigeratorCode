@@ -4750,6 +4750,26 @@ def suggest_meal_plan():
         'ingredients': [x.strip() for x in (r['used_ingredients'] or '').split(',') if x.strip()],
     } for r in rows]
 
+    # ── 빼 달라고 한 것은 **후보에서 아예 뺀다** ──────────────────
+    #
+    # 예전엔 `avoid_hit ASC` 로 **뒤로 미루기만** 했다. 그런데 뒤에서 장보기를
+    # 최소로 고르는 그리디는 그 순서를 안 본다 — 장바구니만 보고 고르므로
+    # 밀어 둔 것이 그대로 다시 올라왔다. 그래서 "고기 없이" 라고 적어도 고기
+    # 요리가 떴다. 미루는 것으로는 안 되고 **없애야** 한다.
+    #
+    # 제목과 재료를 같이 본다: 재료에 `삼겹살` 만 있고 제목엔 `고기` 가 없는
+    # 경우도, 제목이 `제육볶음` 이고 재료엔 안 적힌 경우도 있다.
+    if avoid:
+        def _banned(c):
+            hay = (c['title'] or '') + ' ' + ' '.join(c['ingredients'])
+            return any(w in hay for w in avoid)
+
+        kept = [c for c in candidates if not _banned(c)]
+        # 다 걸러지면 아무것도 못 준다. 그때는 걸러내지 않고 그대로 둔다 —
+        # 빈 화면보다는 "조건에 덜 맞는 것" 이 낫고, LLM 이 한 번 더 거른다.
+        if kept:
+            candidates = kept
+
     # 매칭률(가진 재료 비율)을 얹어 둔다 — 장보기를 줄이는 계산에서 동점을
     # 가를 때 쓴다.
     have_set = {x.strip() for x in have if x.strip()}
