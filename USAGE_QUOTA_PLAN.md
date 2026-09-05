@@ -381,16 +381,21 @@ CORS 가 없어 멀쩡히 되므로 원인을 찾기 어렵다.
 정책 숫자는 코드 한 곳(`backend/usage_quota.py` 의 `PLANS`)에 모아 둔다.
 환경변수로도 덮을 수 있다.
 
+> ⚠️ 아래 표는 **주 한도** 방식이던 시절의 것이었다. 지금은 한도가 아니라
+> **잔액**이다 — 지급받고, 쓰면 줄고, 매주 조금 충전된다. `QUOTA_*_WEEKLY` 는
+> 더 이상 없다. 실제로 코드가 읽는 것만 적는다.
+
 | 환경변수 | 기본값 | 뜻 |
 |---|---|---|
-| `QUOTA_FREE_WEEKLY` | 100 | 회원 주 한도 |
-| `QUOTA_FREE_DAILY` | 40 | 회원 일 상한 |
-| `QUOTA_GUEST_WEEKLY` | 15 | 비회원 주 한도 |
-| `QUOTA_GUEST_DAILY` | 10 | 비회원 일 상한 |
-| `QUOTA_PLUS_WEEKLY` | 400 | plus 주 한도 |
-| `QUOTA_PLUS_DAILY` | 100 | plus 일 상한 |
+| `CREDITS_SIGNUP` | 30 | 가입할 때 한 번 주는 잔액 |
+| `CREDITS_WEEKLY` | 6 | 매주 월요일 충전량 |
+| `CREDITS_GUEST_TRIAL` | 5 | 비회원 체험분 (기기당 한 번, 재충전 없음) |
+| `QUOTA_GUEST_DAILY` | 3 | 비회원 일 상한 |
+| `QUOTA_FREE_DAILY` | 15 | 회원 일 상한 |
+| `QUOTA_PLUS_DAILY` | 50 | plus 일 상한 |
 | `CREDITS_CHAT` | 1 | 챗봇 1회 |
-| `CREDITS_VISION` | 2 | 사진 인식 1회 |
+| `CREDITS_VISION` | 2 | 사진 인식 **1회** (장수와 무관 — 여러 장이어도 호출은 1회) |
+| `CREDITS_PLAN` | 3 | 식단 짜기 1회 |
 | `QUOTA_DAILY_BURN_DAYS` | 7 | 잔액을 며칠에 나눠 쓰게 볼 것인가 (↓) |
 
 **일 상한은 하한이다 (2026-09-05).** 표의 일 상한만 걸면 잔액과 따로 논다 —
@@ -420,3 +425,19 @@ GROUP BY user_id, device_id ORDER BY c DESC;
 SELECT DATE(created_at) d, kind, SUM(credits) c, COUNT(*) n
 FROM llm_usage GROUP BY d, kind ORDER BY d DESC LIMIT 30;
 ```
+
+
+## 부록. 주간 충전량을 5 → 6 으로 (2026-09-05)
+
+식단 짜기를 2 → 3 으로 올리면서 주 5 로는 **식단 한 번 반**밖에 안 됐다.
+매주 무엇을 할 수 있는지가 떨어지는 숫자라야 "이번 주엔 뭘 하지" 가 성립한다.
+6이면 식단 두 번, 또는 사진 세 번, 또는 챗봇 여섯 번이다.
+
+### 유료 전환 전에 확인할 것
+
+원장(`llm_usage`) 실측 — 크레딧 1개당 대략 1,000~1,500 토큰.
+주 100 크레딧을 줘도 월 40~60만 토큰이라 **비용은 문제가 아니다**(월 수십 원).
+
+진짜 제약은 돈이 아니라 **Gemini 무료 티어의 요청 수 제한**이다. 테스트 중에도
+429 가 났다. 사용자가 늘면 크레딧이 남아도 "AI 쪽이 불안정해요" 가 뜬다.
+**파는 것보다 유료 키로 바꾸는 것이 먼저다** — 그래야 판 만큼 쓸 수 있다.

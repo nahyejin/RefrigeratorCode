@@ -54,7 +54,10 @@ CREDITS = {
 # 앱을 안 열면 결제도 안 한다.
 
 SIGNUP_CREDITS = int(os.getenv("CREDITS_SIGNUP", "30"))   # 가입할 때 한 번
-WEEKLY_CREDITS = int(os.getenv("CREDITS_WEEKLY", "5"))    # 매주 월요일
+# 6인 이유: 식단 짜기가 3이 되면서 5로는 **한 주에 식단 한 번 반**밖에 안 됐다.
+# 6이면 딱 두 번이다. 매주 무엇을 할 수 있는지가 떨어지는 숫자라야
+# "이번 주엔 뭘 하지" 가 성립한다.
+WEEKLY_CREDITS = int(os.getenv("CREDITS_WEEKLY", "6"))    # 매주 월요일
 
 # 비회원 체험분. **기기당 한 번**이고 다시 채워지지 않는다.
 #

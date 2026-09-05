@@ -126,7 +126,15 @@ export const UsageLine: React.FC<{
   compact?: boolean;
   /** 이 자리에서 한 번 누르면 몇 크레딧이 나가나. 알면 넣어 준다. */
   cost?: number;
-}> = ({ style, compact = false, cost }) => {
+  /**
+   * 그 값이 **무엇 단위인지.**
+   *
+   * 자리마다 세는 단위가 다르다. 챗봇·식단은 물어본 횟수지만, 사진 인식은
+   * **올린 횟수**다 — 다섯 장을 한 번에 올려도 호출은 한 번이라 크레딧도
+   * 한 번치다. `1회 질문당` 이라고 적어 두면 장당 나가는 줄로 읽힌다.
+   */
+  costUnit?: 'ask' | 'upload';
+}> = ({ style, compact = false, cost, costUnit = 'ask' }) => {
   const usage = useUsage();
   if (!usage) return null;
 
@@ -176,7 +184,9 @@ export const UsageLine: React.FC<{
           </span>
         )}
         {typeof cost === 'number' && cost > 0 && (
-          <span>1회 질문당 <b style={{ color: 'var(--ink-900)' }}>{cost}</b> 크레딧</span>
+          costUnit === 'upload'
+            ? <span>사진 몇 장이든 1회 <b style={{ color: 'var(--ink-900)' }}>{cost}</b> 크레딧</span>
+            : <span>1회 질문당 <b style={{ color: 'var(--ink-900)' }}>{cost}</b> 크레딧</span>
         )}
       </span>
     );

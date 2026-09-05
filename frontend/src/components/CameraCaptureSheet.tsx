@@ -165,8 +165,15 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
       <div style={{ textAlign: 'center', fontWeight: 700, fontSize: 17, marginBottom: 6, color: '#1A1A1E' }}>
         무엇을 찍을까요?
       </div>
-      {/* 기능을 쓰려고 연 시점이 남은 양을 알려주기 가장 좋은 때다 */}
-      <UsageLine style={{ justifyContent: 'center', marginBottom: 16 }} cost={visionCost} />
+      {/* 기능을 쓰려고 연 시점이 남은 양을 알려주기 가장 좋은 때다.
+          단위를 `upload` 로 준다 — 여러 장을 올려도 LLM 호출은 한 번이라
+          크레딧도 한 번치다. 오히려 **몰아서 올리는 쪽이 이득**인데, 장당
+          나가는 줄 알면 한 장씩 올려서 손해를 본다. */}
+      <UsageLine
+        style={{ justifyContent: 'center', marginBottom: 16 }}
+        cost={visionCost}
+        costUnit="upload"
+      />
 
       {/* 카드를 눌러야 찍힌다는 게 한눈에 들어오도록, 글줄보다 아이콘을 훨씬
           크게 키운 타일 3개를 나란히 둔다(설명문처럼 가로로 긴 줄 형태였던
