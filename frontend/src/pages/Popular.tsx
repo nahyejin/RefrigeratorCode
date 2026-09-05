@@ -1832,7 +1832,7 @@ const Popular = () => {
                 description="특별한 재료로 만드는 요리예요"
               />
               {/* 범례 + 총 건수 (유튜브/네이버 섹션과 동일한 형식) */}
-              <IngredientLegend total={premiumRecipes.length} style={{ marginBottom: 6, marginTop: 8 }} />
+              <IngredientLegend swatchesHidden total={premiumRecipes.length} style={{ marginBottom: 6, marginTop: 8 }} />
               
               {/* 가로 스크롤 컨테이너 (버튼 포함) */}
               <div style={{ position: 'relative' }}>
@@ -1875,6 +1875,7 @@ const Popular = () => {
                             substituteTable={substituteTable}
                                 showRank={false}
                                 isHorizontal={true}
+                                variant="browse"
                                 onThumbnailError={(recipeId) => {
                                   setFailedThumbnailIds(prev => new Set([...prev, recipeId]));
                                 }}
@@ -1988,8 +1989,9 @@ const Popular = () => {
           {firstSectionKey !== 'youtube' && <SectionBand bleed={20} />}
           <SectionHeader title="유튜브 인기 레시피" iconUrl={youtubeTitleImg} />
           {/* 범례: 가로형 레시피 카드 위, 왼쪽 정렬 */}
-          <IngredientLegend total={youtubeRecipes.length} style={{ marginBottom: 6, marginTop: 8 }} />
+          <IngredientLegend swatchesHidden total={youtubeRecipes.length} style={{ marginBottom: 6, marginTop: 8 }} />
            <VirtualizedHorizontalRecipeList
+             variant="browse"
              recipes={youtubeRecipes.filter(recipe => !failedThumbnailIds.has(recipe.id))}
              myIngredients={myIngredients}
              substituteTable={substituteTable}
@@ -2013,8 +2015,9 @@ const Popular = () => {
           {firstSectionKey !== 'naver' && <SectionBand bleed={20} />}
           <SectionHeader title="네이버 인기 레시피" iconUrl={naverTitleImg} />
           {/* 범례: 가로형 레시피 카드 위, 왼쪽 정렬 */}
-          <IngredientLegend total={naverRecipes.length} style={{ marginBottom: 6, marginTop: 8 }} />
+          <IngredientLegend swatchesHidden total={naverRecipes.length} style={{ marginBottom: 6, marginTop: 8 }} />
            <VirtualizedHorizontalRecipeList
+             variant="browse"
              recipes={naverRecipes.filter(recipe => !failedThumbnailIds.has(recipe.id))}
              myIngredients={myIngredients}
              substituteTable={substituteTable}

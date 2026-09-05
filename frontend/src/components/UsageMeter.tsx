@@ -407,8 +407,8 @@ export const UsageGauge: React.FC = () => {
             {!usage.is_paid && (
               <>
                 <br />
-                더 쓰시려면 위 <b>더 필요해요</b> — 매주{' '}
-                <b>{usage.weekly_plus ?? 60} 크레딧</b>으로 올려 드려요.
+                지금은 시험 기간이라, 위 <b>더 필요해요</b> 로 요청하시면{' '}
+                매주 <b>{usage.weekly_plus ?? 60} 크레딧</b>으로 바꿔 드려요.
               </>
             )}
           </>
@@ -418,29 +418,45 @@ export const UsageGauge: React.FC = () => {
       {usage.is_guest ? null : pending ? (
         /* 이미 요청이 접수된 상태. 버튼을 계속 보여주면 또 누르게 되고,
            관리자 목록만 지저분해진다 (서버도 중복을 막는다). */
-        <div style={{ fontSize: 12, color: 'var(--ink-700)', fontWeight: 600 }}>
-          요청이 접수됐어요. 확인하고 늘려 드릴게요.
+        <div style={{
+          fontSize: 12.5, lineHeight: 1.7, color: 'var(--ink-700)',
+          background: 'var(--surface-sub)', borderRadius: 10, padding: '10px 11px',
+        }}>
+          <b>요청이 접수됐어요.</b> 확인하고 유료 계정으로 바꿔 드릴게요.
         </div>
       ) : asking ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {/* **무슨 일이 벌어지는지 먼저 말한다.**
+              빈 칸에 "어떻게 쓰시는지 (선택)" 만 있으면, 이걸 적으면 뭐가 되는
+              건지 알 수 없어 대부분 그냥 닫는다. 지금은 시험 기간이라 요청하면
+              바로 올려 주는 것이 사실이므로 그대로 적는다. */}
+          <div style={{
+            fontSize: 12.5, lineHeight: 1.7, color: 'var(--ink-700)',
+            background: '#FFFDF2', border: '1px solid #E0B400',
+            borderRadius: 10, padding: '10px 11px',
+          }}>
+            지금은 <b>시험 기간</b>이라 요청하시면 <b>유료 계정</b>으로 바꿔 드려요.
+            <br />
+            매주 <b>{usage.weekly_plus ?? 60} 크레딧</b>이 충전되고, 하루 한도도 함께 올라가요.
+          </div>
           <input
             value={reason}
             onChange={e => setReason(e.target.value)}
-            placeholder="어떻게 쓰시는지 알려 주세요 (선택)"
+            placeholder="어떻게 쓰실지 한 줄만 알려 주세요 (안 적어도 돼요)"
             style={{
-              height: 36, borderRadius: 8, border: '1px solid var(--line-200)',
+              height: 40, borderRadius: 8, border: '1px solid var(--line-200)',
               padding: '0 10px', fontSize: 13, width: '100%', boxSizing: 'border-box',
             }}
           />
           <div style={{ display: 'flex', gap: 6 }}>
             <button type="button" onClick={submit} style={{
-              height: 34, padding: '0 14px', borderRadius: 8, border: 'none',
-              background: '#FFD600', color: '#1A1A1E', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+              flex: 1, height: 42, borderRadius: 10, border: 'none',
+              background: '#FFD600', color: '#1A1A1E', fontSize: 13.5, fontWeight: 700, cursor: 'pointer',
             }}>
-              요청 보내기
+              유료 계정 전환 요청 보내기
             </button>
             <button type="button" onClick={() => { setAsking(false); setResult(null); }} style={{
-              height: 34, padding: '0 12px', borderRadius: 8,
+              flexShrink: 0, height: 42, padding: '0 14px', borderRadius: 10,
               border: '1px solid var(--line-200)', background: '#FFFFFF',
               fontSize: 13, fontWeight: 600, color: 'var(--ink-500)', cursor: 'pointer',
             }}>

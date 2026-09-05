@@ -216,6 +216,18 @@ export interface RecipeCardProps {
    * 목록이 잡아 둔 슬롯 높이와 카드 높이를 같게 맞춰 한 줄로 가지런하게 만든다.
    */
   fixedHeight?: number;
+  /**
+   * 이 카드가 **무엇을 위한 자리인가.**
+   *
+   *  - `match`  (기본) — 냉장고요리. 매칭률이 곧 정렬 기준이라 그 숫자가
+   *    카드에서 제일 중요하다. 지금까지의 생김새 그대로.
+   *  - `browse` — 요즘인기. **내 냉장고와 상관없이 요즘 뭐가 유행하나**를 보는
+   *    자리다. 여기서 매칭률을 사진 위에 크게 얹으면, 카드마다 "너는 이거 못
+   *    만들어" 를 먼저 읽게 된다. 실제로 재 보니 카드 280px 중 제목이 24px
+   *    (9%)뿐이고 나머지를 배지·칩·아이콘이 먹고 있었다.
+   *    그래서 사진과 제목에 자리를 몰아주고 나머지는 접는다.
+   */
+  variant?: 'match' | 'browse';
 }
 
 // RecipeCard는 UI만 담당, 상태/스토리지/토스트 등은 상위에서 관리
@@ -231,6 +243,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
   showRank = false,
   onThumbnailError,
   hasAd: hasAdProp,
+  variant = 'match',
   isHorizontal = false,
   fixedHeight,
   attributionLabel,
@@ -239,6 +252,11 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
   const [adIngredient, setAdIngredient] = React.useState<string | null>(null);
 
   // 썸네일 로드 상태 추적 (null: 검증 중, true: 성공, false: 실패)
+  /** 훑어보는 자리인가. 사진과 제목에 자리를 몰아준다. */
+  const browse = variant === 'browse';
+  /** 재료 칩을 펼쳤나. `browse` 에서는 기본으로 접어 둔다. */
+  const [chipsOpen, setChipsOpen] = React.useState(false);
+
   const [thumbnailStatus, setThumbnailStatus] = React.useState<boolean | null>(null);
   
   // 동의어 사전 로드 (한 번만) - 모든 hook은 early return 이전에 호출되어야 함
@@ -400,9 +418,11 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
         }
       }}
     >
+      {/* 사진은 **사람을 끌어당기는 유일한 요소**다. 280×100 은 3:1 띠라
+          음식이 뭉개진다. 훑어보는 자리(`browse`)에서는 키운다. */}
       <div style={{
         ...STYLES.imageContainer,
-        height: isHorizontal ? 100 : STYLES.imageContainer.height
+        height: browse ? 160 : (isHorizontal ? 100 : STYLES.imageContainer.height)
       }}>
         <img
           src={getProxiedImageUrl(recipe.thumbnail || '')}
@@ -419,7 +439,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
           }}
           style={{ 
             ...STYLES.thumbnail,
-            height: isHorizontal ? 100 : STYLES.thumbnail.height,
+            height: browse ? 160 : (isHorizontal ? 100 : STYLES.thumbnail.height),
             cursor: 'pointer',
             touchAction: 'pan-y', // 세로 스크롤 허용
             userSelect: 'none', // 이미지 선택 방지
@@ -439,6 +459,10 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
             예전엔 "재료 매칭률 83%" 였는데, 냉털이 관점에서 실제로 필요한 정보는
             비율이 아니라 "지금 만들 수 있나 / 몇 개를 더 사야 하나" 임.
             부족 개수(대체 가능한 재료는 제외)를 앞세우고 매칭률은 보조로 둔다. */}
+        {/* 훑어보는 자리에서는 이 배지를 사진에 얹지 않는다.
+            제일 크게 읽히는 것이 `0%` 가 되어, 카드마다 "너는 이거 못 만들어"
+            를 먼저 말하게 된다. 아래 줄에서 **가진 것**으로 조용히 센다. */}
+        {!browse && (
         <div
           className="absolute rounded flex items-center gap-1.5"
           style={{
@@ -467,6 +491,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
             </span>
           )}
         </div>
+        )}
         {/* 플랫폼 로고 */}
         <img
           src={getPlatformLogo(recipe.platform) || naverLogo}
@@ -530,7 +555,21 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
           ))}
         </div>
       </div>
-      <div style={{ ...STYLES.title, cursor: 'pointer' }}>
+      {/* 훑을 때 필요한 건 제목 하나다. 한 줄로 잘라 놓으면 무슨 요리인지
+          모르는 채 지나간다 — 두 줄까지 준다. */}
+      <div style={{
+        ...STYLES.title,
+        cursor: 'pointer',
+        ...(browse ? {
+          fontSize: 15,
+          lineHeight: 1.35,
+          whiteSpace: 'normal' as const,
+          display: '-webkit-box',
+          WebkitLineClamp: 2,
+          WebkitBoxOrient: 'vertical' as const,
+          minHeight: 40,
+        } : null),
+      }}>
         {recipe.title}
       </div>
       {attributionLabel && (
@@ -559,10 +598,20 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             minWidth: 0,
-            fontSize: 14,
+            fontSize: browse ? 12.5 : 14,
           }}
         >
-          {Utils.getStatsText(recipe)}
+          {browse ? (
+            /* 훑는 자리에서는 **가진 것**으로 센다. `4개 부족` 과 같은 값인데
+               부정이 아니다. 그리고 네이버 블로그는 좋아요가 거의 0이라
+               `좋아요 0` 은 늘 노이즈였다 — 0 인 값은 안 쓴다. */
+            [
+              (recipe.comments ? `댓글 ${recipe.comments}` : ''),
+              (usedIngredientList.length
+                ? `내 재료 ${usedIngredientList.length - lackingIngredients.length}/${usedIngredientList.length}`
+                : ''),
+            ].filter(Boolean).join(' · ')
+          ) : Utils.getStatsText(recipe)}
         </span>
         {/* 완료 / 기록 / 공유 — 사진을 가리지 않도록 이 줄로 내림. 줄 높이를 그대로 써서
             카드가 더 길어지지 않고, 터치 영역은 36px 로 확보 */}
@@ -605,7 +654,26 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
           ))}
         </span>
       </div>
-      <div style={horizontalIngredientSectionStyle}>
+      {/* 재료 칩은 **접어 둔다.** 다섯 개가 두 줄이면 제목(한 줄)보다 크고,
+          점선 칩은 전부 "없는 재료" 라 카드 절반이 없는 것 목록이 된다.
+          궁금한 사람만 편다. */}
+      {browse && usedIngredientList.length > 0 && (
+        <button
+          type="button"
+          onClick={e => { e.preventDefault(); e.stopPropagation(); setChipsOpen(v => !v); }}
+          style={{
+            alignSelf: 'flex-start', height: 26, padding: 0, border: 'none',
+            background: 'transparent', cursor: 'pointer',
+            fontSize: 11.5, fontWeight: 600, color: 'var(--ink-500)',
+          }}
+        >
+          재료 {usedIngredientList.length}개 {chipsOpen ? '접기 ▴' : '보기 ▾'}
+        </button>
+      )}
+      <div style={{
+        ...horizontalIngredientSectionStyle,
+        ...(browse && !chipsOpen ? { display: 'none' } : null),
+      }}>
         {usedIngredientList.length > 0 ? (
           <IngredientPillGroup
             needIngredients={usedIngredientList}

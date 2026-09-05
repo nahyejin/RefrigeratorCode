@@ -18,6 +18,8 @@ interface VirtualizedHorizontalRecipeListProps {
   showRank?: boolean;
   emptyMessage?: string | React.ReactNode;
   onThumbnailError?: (recipeId: number) => void;
+  /** 카드 생김새. 요즘인기는 `browse` (RecipeCard 참고). */
+  variant?: 'match' | 'browse';
   /** react-window List 높이 = cardHeight + 이 값(광고·여백). 기본 64, compact 시 비율 적용 */
   listHeightExtra?: number;
   /**
@@ -105,6 +107,7 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
   showRank = false,
   emptyMessage = '레시피가 없습니다',
   onThumbnailError,
+  variant = 'match',
   listHeightExtra = 64,
   compactSectionGap = false,
   showAds = true,
@@ -323,6 +326,7 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
           substituteTable={substituteTable}
           showRank={showRank}
           isHorizontal={true}
+          variant={variant}
           fixedHeight={cardHeight}
           onThumbnailError={onThumbnailError}
           attributionLabel={getAttributionLabel?.(recipe)}
