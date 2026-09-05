@@ -8,7 +8,7 @@ import ErrorBoundary from '../components/ErrorBoundary';
 import HomeInstallPrompt from '../components/HomeInstallPrompt';
 import RecipeChatWidget from '../components/RecipeChatWidget';
 import PlanUpgradeToast from '../components/PlanUpgradeToast';
-import { prefetchFridgeRecipes } from '../utils/recipePrefetch';
+import { prefetchFridgeRecipes, prefetchPopular } from '../utils/recipePrefetch';
 import CookModeHost from '../components/CookModeHost';
 import ShareRequestPopup from '../components/ShareRequestPopup';
 import { AuthProvider } from '../context/AuthContext';
@@ -317,8 +317,15 @@ function ScreenTracker() {
    * 받아 둔 것이 오래됐을 수도 있다(모듈이 알아서 판단한다).
    */
   useEffect(() => {
+    // 요즘인기가 먼저다 — 조건이 없어 가볍고, 무거운 냉장고 요청과 동시에
+    // 나가면 서로 느려진다.
+    prefetchPopular();
     prefetchFridgeRecipes();
-    const wake = () => { if (!document.hidden) prefetchFridgeRecipes(); };
+    const wake = () => {
+      if (document.hidden) return;
+      prefetchPopular();
+      prefetchFridgeRecipes();
+    };
     document.addEventListener('visibilitychange', wake);
     return () => document.removeEventListener('visibilitychange', wake);
   }, []);

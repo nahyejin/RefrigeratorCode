@@ -109,3 +109,36 @@ export function takePrefetched(): Promise<any[] | null> | null {
 export function dropPrefetch(): void {
   slot = null;
 }
+
+/**
+ * 요즘인기 첫 화면도 미리 받아 둔다.
+ *
+ * 이쪽은 **냉장고와 상관없는 목록**이라(인기순) 누구에게나 같은 답이고, 재료가
+ * 필요 없어서 앱을 여는 즉시 부를 수 있다. 사전을 기다릴 일도 없다.
+ *
+ * 냉장고 요리와 따로 두는 이유: 두 요청이 **동시에** 나가면 서로 느려진다.
+ * 이건 조건이 없어 빠르므로 먼저 걸고, 무거운 냉장고 쪽은 그대로 둔다.
+ */
+const POPULAR_SIZE = 100;
+let popularSlot: { at: number; period: string; promise: Promise<any | null> } | null = null;
+
+export function prefetchPopular(period: string = 'week'): void {
+  if (popularSlot && popularSlot.period === period
+      && Date.now() - popularSlot.at < FRESH_MS) return;
+  popularSlot = {
+    at: Date.now(),
+    period,
+    promise: fetch(`${API_BASE_URL}/api/recipes/popular?period_type=${period}&size=${POPULAR_SIZE}`)
+      .then(r => (r.ok ? r.json() : null))
+      .catch(() => null),
+  };
+}
+
+/** 미리 받아 둔 요즘인기. 한 번 쓰면 비운다(새로고침이 안 먹으면 안 되므로). */
+export function takePrefetchedPopular(period: string = 'week'): Promise<any | null> | null {
+  if (!popularSlot || popularSlot.period !== period) return null;
+  if (Date.now() - popularSlot.at >= FRESH_MS) { popularSlot = null; return null; }
+  const p = popularSlot.promise;
+  popularSlot = null;
+  return p;
+}

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { fetchCsvOnce } from '../utils/csvOnce';
+import { takePrefetchedPopular } from '../utils/recipePrefetch';
 import SectionIcon from '../components/ui/SectionIcon';
 import LoadingIndicator from '../components/LoadingIndicator';
 import SectionHeader from '../components/SectionHeader';
@@ -671,6 +672,8 @@ const Popular = () => {
   const [toast, setToast] = useState('');
   /** 방금 완료한 레시피 — 쓴 재료를 냉장고에서 뺄지 묻는다. */
   const [usedUp, setUsedUp] = useState<{ id: number; title: string } | null>(null);
+  /** 인기 급상승에서 무엇을 보고 있나. 요리와 테마가 한 자리를 나눠 쓴다. */
+  const [risingTab, setRisingTab] = useState<'dish' | 'theme'>('dish');
   const [includeKeyword, setIncludeKeyword] = useState('');
 
   // 버튼 상태 통일: {done, write, share, favorite}
@@ -1367,11 +1370,23 @@ const Popular = () => {
           apiParams += `&start_date=${formatDate(dateRange[0])}&end_date=${formatDate(dateRange[1])}`;
         }
         
-        const res = await axios.get(`${apiUrl}/api/recipes/popular?${apiParams}`);
-        console.log('Popular API 응답:', res.data);
+        // 앱을 열 때 미리 받아 둔 것이 있으면 그걸 쓴다.
+        // 기본 기간(직접 고른 구간이 아닐 때)만이다 — 그때만 같은 질문이다.
+        let payload: any = null;
+        if (period !== 'custom') {
+          const early = takePrefetchedPopular(period);
+          if (early) {
+            payload = await early;
+            if (payload) console.log('[Popular] 미리 받아 둔 것을 씀');
+          }
+        }
+        if (!payload) {
+          const res = await axios.get(`${apiUrl}/api/recipes/popular?${apiParams}`);
+          payload = res.data;
+        }
+        console.log('Popular API 응답:', payload);
 
         // 응답 형태 방어적 파싱: 배열/객체 모두 안전 처리
-        const payload: any = res.data;
         let youtubeData: any[] = [];
         let naverData: any[] = [];
 
@@ -2032,124 +2047,122 @@ const Popular = () => {
         )}
 
 
-        {/* 인기 급상승 TOP10: 데이터가 있을 때만 노출 */}
-        {dishRankings.length > 0 && (
+        {/* 인기 급상승 — **요리와 테마를 한 자리에 겹친다.**
+            표 두 개가 위아래로 있었다. 실측: 각 280×338px 이 437px 떨어져
+            **합쳐서 846px** — 휴대폰 한 화면(812px)을 꽉 채우고도 더 스크롤해야
+            둘 다 본다. 게다가 `max-w-[280px] mx-auto` 라 375px 화면에서 좌우
+            95px 이 빈 채로 좁은 표만 가운데 있었다.
+
+            나란히 놓는 것도 생각했지만 375px 을 둘로 나누면 187px 이라
+            `순위·이름·레시피 수` 에 `▴2배` 배지까지 들어갈 자리가 안 나온다.
+            **탭으로 겹치면** 높이는 절반이 되고, 표는 화면 폭을 다 쓴다. */}
+        {(dishRankings.length > 0 || themeRankings.length > 0) && (
         <section style={{ marginBottom: 0 }}>
           {firstSectionKey !== 'dish' && <SectionBand bleed={20} />}
-          <div>
-            {/* 인기 급상승 요리 */}
-            <div>
-              <SectionHeader icon={<SectionIcon kind="trending" />} title="인기 급상승 요리 TOP 10" />
-              <div>
-                <table className="w-full max-w-[280px] mx-auto border-collapse text-[15px] font-sans" style={{background: '#FFFFFF'}}>
-                  <thead>
-                    <tr style={{borderTop: '1px solid #E6E6EA', borderBottom: '1px solid #E6E6EA', background: '#F5F5F7'}}>
-                      <th className="py-1 px-2 text-center font-medium text-[#1A1A1E] whitespace-nowrap">순위</th>
-                      <th className="py-1 px-2 text-center font-medium text-[#1A1A1E] whitespace-nowrap">요리명</th>
-                      <th className="py-1 px-2 text-center font-medium text-[#1A1A1E] whitespace-nowrap">레시피 수</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {dishRankings.map((dish, idx) => (
-                        <tr key={dish.name}>
-                          <td className="py-1 px-2 text-center text-[#3A3A42] font-normal whitespace-nowrap">{idx + 1}</td>
-                          <td className="py-1 px-2 text-center text-[#3A3A42] font-normal whitespace-nowrap">
-                            <span
-                              style={{ cursor: 'pointer', textDecoration: 'none' }}
-                              onClick={() => navigate(`/ingredient/${encodeURIComponent(dish.name)}?minCount=2`)}
-                              title="해당 키워드 상세 보기"
-                            >
-                              {dish.name}
-                            </span>
-                          </td>
-                          <td className="py-1 px-2 text-center text-[#3A3A42] font-normal whitespace-nowrap">
-                            <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', position: 'relative', paddingRight: '8px'}}>
-                              <span style={{flex: 1, textAlign: 'center', paddingRight: '20px'}}>{dish.count.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</span>
-                              {dish.isNew || (dish.rate > 0) || (dish.multiplier !== undefined && dish.multiplier > 1) ? (
-                                <span
-                                  style={{
-                                    display: 'inline-block',
-                                    padding: '2px 6px',
-                                    borderRadius: '4px',
-                                    fontSize: '13px',
-                                    fontWeight: 600,
-                                    backgroundColor: (dish.isNew || dish.rate >= 0) ? '#FFF5F5' : '#EFF6FF',
-                                    color: (dish.isNew || dish.rate >= 0) ? '#E85A4F' : '#3A6EA5',
-                                    whiteSpace: 'nowrap',
-                                    position: 'absolute',
-                                    right: 0
-                                  }}
-                                >
-                                  {dish.isNew ? '✦신규' : dish.multiplier && dish.multiplier > 1 ? `▴${dish.multiplier}배` : dish.rate > 0 ? `▴${dish.rate}%` : ''}
-                                </span>
-                              ) : null}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        </section>
-        )}
+          <SectionHeader icon={<SectionIcon kind="trending" />} title="인기 급상승 TOP 10" />
 
-        {themeRankings.length > 0 && (
-        <section style={{ marginBottom: 0 }}>
-          {firstSectionKey !== 'theme' && <SectionBand bleed={20} />}
-          <div>
-            {/* 인기 급상승 테마 */}
-            <div>
-              <SectionHeader icon={<SectionIcon kind="trending" />} title="인기 급상승 테마 TOP 10" />
-              <div>
-                <table className="w-full max-w-[280px] mx-auto border-collapse text-[15px] font-sans" style={{background: '#FFFFFF'}}>
-                  <thead>
-                    <tr style={{borderTop: '1px solid #E6E6EA', borderBottom: '1px solid #E6E6EA', background: '#F5F5F7'}}>
-                      <th className="py-1 px-2 text-center font-medium text-[#1A1A1E] whitespace-nowrap">순위</th>
-                      <th className="py-1 px-2 text-center font-medium text-[#1A1A1E] whitespace-nowrap">테마명</th>
-                      <th className="py-1 px-2 text-center font-medium text-[#1A1A1E] whitespace-nowrap">레시피 수</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {themeRankings.map((theme, idx) => (
-                        <tr key={theme.id}>
-                          <td className="py-1 px-2 text-center text-[#3A3A42] font-normal whitespace-nowrap">{idx + 1}</td>
-                          <td className="py-1 px-2 text-center text-[#3A3A42] font-normal whitespace-nowrap">
-                            <span style={{ cursor: 'pointer', textDecoration: 'none' }} onClick={() => navigate(`/ingredient/${encodeURIComponent(theme.name)}`)}>
-                              {theme.name}
-                            </span>
-                          </td>
-                          <td className="py-1 px-2 text-center text-[#3A3A42] font-normal whitespace-nowrap">
-                            <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', position: 'relative', paddingRight: '8px'}}>
-                              <span style={{flex: 1, textAlign: 'center', paddingRight: '20px'}}>{theme.count.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</span>
-                              {theme.isNew || (theme.rate > 0) || (theme.multiplier !== undefined && theme.multiplier > 1) ? (
-                                <span
-                                  style={{
-                                    display: 'inline-block',
-                                    padding: '2px 6px',
-                                    borderRadius: '4px',
-                                    fontSize: '13px',
-                                    fontWeight: 600,
-                                    backgroundColor: (theme.isNew || theme.rate >= 0) ? '#FFF5F5' : '#EFF6FF',
-                                    color: (theme.isNew || theme.rate >= 0) ? '#E85A4F' : '#3A6EA5',
-                                    whiteSpace: 'nowrap',
-                                    position: 'absolute',
-                                    right: 0
-                                  }}
-                                >
-                                  {theme.isNew ? '✦신규' : theme.multiplier && theme.multiplier > 1 ? `▴${theme.multiplier}배` : theme.rate > 0 ? `▴${theme.rate}%` : ''}
-                                </span>
-                              ) : null}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                  </tbody>
-                </table>
-              </div>
+          {/* 요리 / 테마. 요리 캘린더의 완료·기록과 같은 모양이다 —
+              같은 일(둘 중 하나 고르기)은 같게 보여야 한다. */}
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
+            <div
+              role="group"
+              aria-label="요리·테마 고르기"
+              style={{
+                position: 'relative', display: 'inline-flex',
+                padding: 3, borderRadius: 10, background: 'var(--surface-sub)',
+                border: '1px solid var(--line-200)',
+              }}
+            >
+              <span
+                aria-hidden
+                style={{
+                  position: 'absolute', top: 3, bottom: 3, left: 3, width: 'calc(50% - 3px)',
+                  borderRadius: 8, background: 'var(--ink-900)',
+                  transform: risingTab === 'theme' ? 'translateX(100%)' : 'none',
+                  transition: 'transform .2s cubic-bezier(.4,0,.2,1)',
+                }}
+              />
+              {([
+                { key: 'dish', label: '요리', n: dishRankings.length },
+                { key: 'theme', label: '테마', n: themeRankings.length },
+              ] as const).map(({ key, label, n }) => {
+                const on = risingTab === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    disabled={n === 0}
+                    onClick={() => setRisingTab(key)}
+                    aria-pressed={on}
+                    style={{
+                      position: 'relative', zIndex: 1, minWidth: 76, height: 30,
+                      padding: '0 14px', border: 'none', background: 'transparent',
+                      borderRadius: 8, cursor: n === 0 ? 'default' : 'pointer',
+                      color: on ? '#FFFFFF' : (n === 0 ? 'var(--line-300)' : 'var(--ink-500)'),
+                      fontSize: 13, fontWeight: on ? 700 : 500,
+                      transition: 'color .2s ease',
+                    }}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
             </div>
           </div>
+
+          {/* 표는 하나다. 고른 쪽의 줄만 그린다. */}
+          <table className="w-full border-collapse text-[15px] font-sans" style={{ background: '#FFFFFF' }}>
+            <thead>
+              <tr style={{ borderTop: '1px solid #E6E6EA', borderBottom: '1px solid #E6E6EA', background: '#F5F5F7' }}>
+                <th className="py-1.5 px-2 text-center font-medium text-[#1A1A1E] whitespace-nowrap" style={{ width: 48 }}>순위</th>
+                <th className="py-1.5 px-2 text-left font-medium text-[#1A1A1E] whitespace-nowrap">
+                  {risingTab === 'dish' ? '요리명' : '테마명'}
+                </th>
+                <th className="py-1.5 px-2 text-right font-medium text-[#1A1A1E] whitespace-nowrap" style={{ width: 118 }}>레시피 수</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(risingTab === 'dish' ? dishRankings : themeRankings).map((row: any, idx: number) => (
+                <tr key={row.id ?? row.name}>
+                  <td className="py-1.5 px-2 text-center text-[#8A8A90] font-normal whitespace-nowrap">{idx + 1}</td>
+                  <td className="py-1.5 px-2 text-left whitespace-nowrap"
+                      style={{ overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 0 }}>
+                    <span
+                      style={{ cursor: 'pointer', color: '#1A1A1E', fontWeight: 500 }}
+                      onClick={() => navigate(`/ingredient/${encodeURIComponent(row.name)}`
+                        + (risingTab === 'dish' ? '?minCount=2' : ''))}
+                      title="해당 키워드 상세 보기"
+                    >
+                      {row.name}
+                    </span>
+                  </td>
+                  {/* 숫자와 배지를 **오른쪽에 붙여** 나란히 둔다. 예전에는 칸
+                      안에서 절대배치로 겹쳐 놨는데, 폭이 좁아지면 숫자를 덮었다. */}
+                  <td className="py-1.5 px-2 whitespace-nowrap">
+                    <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
+                      <span style={{ color: '#3A3A42' }}>
+                        {row.count.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                      </span>
+                      {(row.isNew || row.rate > 0 || (row.multiplier !== undefined && row.multiplier > 1)) && (
+                        <span
+                          style={{
+                            display: 'inline-block', padding: '2px 6px', borderRadius: 4,
+                            fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap',
+                            backgroundColor: (row.isNew || row.rate >= 0) ? '#FFF5F5' : '#EFF6FF',
+                            color: (row.isNew || row.rate >= 0) ? '#E85A4F' : '#3A6EA5',
+                          }}
+                        >
+                          {row.isNew ? '✦신규'
+                            : row.multiplier && row.multiplier > 1 ? `▴${row.multiplier}배`
+                            : row.rate > 0 ? `▴${row.rate}%` : ''}
+                        </span>
+                      )}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </section>
         )}
 
