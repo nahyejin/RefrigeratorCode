@@ -2,7 +2,7 @@ import * as React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import logoImg from '../assets/냉털이 로고 white.png';
 import { useAuth } from '../context/AuthContext';
-import { useUsage } from './UsageMeter';
+import { useUsage, PlanBadge } from './UsageMeter';
 
 /**
  * 상단 GNB.
@@ -41,37 +41,6 @@ const NavTextButton: React.FC<{
   >
     {children}
   </button>
-);
-
-/**
- * 유료(plus)인지 무료인지를 **GNB 에서 늘 알 수 있게.**
- *
- * 전에는 마이페이지를 들어가야만 보였다. 유료로 바뀐 순간엔 토스트가 뜨지만,
- * 그 뒤로는 "지금 내가 유료였나" 를 확인할 자리가 없었다.
- *
- * PLUS 는 검정 바탕에 노랑(다른 화면의 PLUS 배지와 같은 값 — `UsageMeter.tsx`,
- * `PlanUpgradeToast.tsx`). FREE 는 흐리게 — 기본 상태라 눈에 띌 필요가 없고,
- * 그래도 "지금 무료 맞다" 는 확인은 되어야 한다.
- */
-const PlanBadge: React.FC<{ isPaid: boolean }> = ({ isPaid }) => (
-  <span
-    aria-label={isPaid ? '유료 계정' : '무료 계정'}
-    style={{
-      flexShrink: 0,
-      display: 'inline-flex',
-      alignItems: 'center',
-      padding: isPaid ? '2px 7px' : '1px 6px',
-      borderRadius: 9999,
-      fontSize: 10,
-      fontWeight: 800,
-      letterSpacing: '.03em',
-      background: isPaid ? '#1A1A1E' : 'transparent',
-      color: isPaid ? '#FFD600' : 'var(--ink-500)',
-      border: isPaid ? 'none' : '1px solid var(--line-300)',
-    }}
-  >
-    {isPaid ? 'PLUS' : 'FREE'}
-  </span>
 );
 
 const TopNavBar: React.FC = () => {

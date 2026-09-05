@@ -69,6 +69,36 @@ export function useUsage(): Usage | null {
 const YELLOW = '#FFD600';
 const RED = '#D14343';
 
+/**
+ * 유료(plus)인지 무료인지를 알리는 배지. **한 곳에서만 정의한다.**
+ *
+ * GNB(`TopNavBar.tsx`)와 마이페이지 크레딧 카드(이 파일의 `UsageGauge`)가
+ * 둘 다 쓴다 — 각자 따로 정의해 두면 나중에 한쪽만 고쳐 색이 어긋난다.
+ * PLUS 는 검정 바탕에 노랑(승급 토스트 `PlanUpgradeToast.tsx` 와 같은 값).
+ * FREE 는 흐리게 — 기본 상태라 눈에 띌 필요는 없지만, "지금 무료 맞다" 는
+ * 확인은 되어야 한다.
+ */
+export const PlanBadge: React.FC<{ isPaid: boolean }> = ({ isPaid }) => (
+  <span
+    aria-label={isPaid ? '유료 계정' : '무료 계정'}
+    style={{
+      flexShrink: 0,
+      display: 'inline-flex',
+      alignItems: 'center',
+      padding: isPaid ? '2px 7px' : '1px 6px',
+      borderRadius: 9999,
+      fontSize: 10,
+      fontWeight: 800,
+      letterSpacing: '.03em',
+      background: isPaid ? '#1A1A1E' : 'transparent',
+      color: isPaid ? '#FFD600' : 'var(--ink-500)',
+      border: isPaid ? 'none' : '1px solid var(--line-300)',
+    }}
+  >
+    {isPaid ? 'PLUS' : 'FREE'}
+  </span>
+);
+
 /** 남은 양에 따른 색. 빠듯할 때만 빨강으로 바뀐다. */
 function toneOf(ratio: number): string {
   if (ratio <= 0.05) return RED;
@@ -280,11 +310,17 @@ export const UsageGauge: React.FC = () => {
       {/* 남은 양이 이 카드의 요점이다. 제목과 같은 크기로 적어 두면
           "AI 크레딧" 이라는 이름만 눈에 들어오고 정작 숫자는 안 읽힌다. */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-        <div style={{ fontSize: 12.5, color: 'var(--ink-500)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12.5, color: 'var(--ink-500)' }}>
+          {/* PLUS 인지 FREE 인지를 **명시적으로** 적는다. 배지가 없을 때
+              "무료구나" 로 짐작하게 두면, 아직 안 불러온 상태와 헷갈린다.
+              GNB 의 배지(`TopNavBar.tsx`)와 같은 값 — 어디서 봐도 같은 말. */}
+          {!usage.is_guest && <PlanBadge isPaid={!!usage.is_paid} />}
           {/* '개' 를 붙이지 않는다. 크레딧이 곧 세는 단위다 —
               "37개" 는 무엇이 37개인지 다시 묻게 만든다. */}
-          남은 크레딧{' '}
-          <b style={{ color: '#1A1A1E', fontWeight: 800, fontSize: 20 }}>{usage.balance}</b>
+          <span>
+            남은 크레딧{' '}
+            <b style={{ color: '#1A1A1E', fontWeight: 800, fontSize: 20 }}>{usage.balance}</b>
+          </span>
         </div>
         {/* 모자란 걸 아는 순간이 바로 이 숫자를 볼 때다. 카드 맨 아래 두면
             그 순간과 버튼 사이에 설명이 세 줄 끼어 있다. */}
@@ -393,13 +429,8 @@ export const UsageGauge: React.FC = () => {
           <>가입 시 <b>{usage.signup_credits} 크레딧</b> 지급.</>
         ) : (
           <>
-            {usage.is_paid && (
-              <span style={{
-                display: 'inline-block', marginRight: 6, padding: '1px 7px',
-                borderRadius: 9999, background: '#1A1A1E', color: '#FFD600',
-                fontSize: 10.5, fontWeight: 800, letterSpacing: '.03em',
-              }}>PLUS</span>
-            )}
+            {/* PLUS 배지는 카드 위쪽에 이미 있다 — 여기 또 두면 같은 카드
+                안에서 두 번 말하는 것이라 뺐다. */}
             매주 월요일 <b>{usage.weekly_credits} 크레딧</b> 충전
             {dailyCap > 0 && ' · 금일 한도는 자정 초기화'}
             {/* 언제까지인지 안 적으면 어느 날 갑자기 줄어든 것처럼 느낀다. */}
