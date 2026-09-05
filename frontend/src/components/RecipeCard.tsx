@@ -402,7 +402,17 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
           : { overflow: 'visible' as const }),
         boxSizing: 'border-box' as const, // padding 포함한 크기 계산
         WebkitOverflowScrolling: 'touch', // iOS 부드러운 스크롤
-        border: '0.5px solid rgba(0, 0, 0, 0.06)'
+        // 카드 경계.
+        //
+        // 전에는 `0.5px solid rgba(0,0,0,0.06)` 이었다. 카드도 흰색이고 뒤 배경도
+        // 흰색인데 선이 `#F0F0F0` 쯤이라, 목록을 훑으면 **어디까지가 한 장인지**
+        // 안 보였다. 0.5px 이라 배율에 따라 아예 안 그려지는 화면도 있었다.
+        //
+        // 앱의 기본 구분선(`--line-200`)을 1px 로 쓰고, 옅은 그림자를 더해
+        // 카드가 바닥에서 살짝 떠 보이게 한다. 선 하나만 진하게 하면 표처럼
+        // 딱딱해지는데, 그림자가 같이 있으면 얇은 선으로도 경계가 읽힌다.
+        border: '1px solid var(--line-200)',
+        boxShadow: '0 1px 3px rgba(26,26,30,0.05)',
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.transform = 'translateY(-2px)';

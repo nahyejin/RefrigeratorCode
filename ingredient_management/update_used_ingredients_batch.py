@@ -194,27 +194,95 @@ def extract_best_ingredient_block(text):
 
     return "", "재료 블록을 찾을 수 없음"
 
+# ✅ 낱말 안에 든 것처럼 보이지만 재료가 아닌 자리
+#
+#   `가지` 는 채소이면서 **"종류"를 세는 말**이다. 사전에는 채소로만 있으니
+#   `"여러 가지 방법"`, `"밑반찬 10가지"`, `"가지고 있는"` 이 전부 가지로 잡혔다.
+#   실제로 44,205건 중 4,309건에 가지가 붙어 있었고 그 중 3,116건은 제목에
+#   가지가 아예 없었다 - `믹스커피말차라떼` 의 재료가 `얼음,우유,원두,가지,말차`
+#   였다.
+#
+#   여기 규칙은 **떨어뜨릴 자리만** 적는다. `"간단한 가지무침"` 의 `한` 처럼
+#   낱말 끝 글자가 우연히 수량사와 같은 경우를 살리려고, 수량사는 그 앞이
+#   한글이 아닐 때(= 그 자체로 한 낱말일 때)만 인정한다.
+_NOISE_BEFORE = {
+    "가지": re.compile(
+        r"(?:[0-9]\s*"                                        # 3가지, 10 가지
+        r"|(?:^|[^가-힣])(?:한|두|세|네|다섯|여섯|일곱|여덟|아홉|열"
+        r"|몇|여러|온갖|갖은|가지)\s*)$"                        # 여러 가지, 가지가지
+    ),
+}
+_NOISE_AFTER = {
+    "가지": re.compile(r"^(?:고|런|각색|치기)"),                # 가지고, 가지런히, 가지각색
+}
+
+
+def _is_noise(name, line, start, end):
+    """`line[start:end]` 자리의 `name` 이 재료가 아닌 쓰임인가."""
+    before = _NOISE_BEFORE.get(name)
+    if before and before.search(line[:start]):
+        return True
+    after = _NOISE_AFTER.get(name)
+    if after and after.search(line[end:]):
+        return True
+    return False
+
+
 # ✅ used_ingredients 추출 함수
 def extract_ingredients(text):
+    """한 줄에서 **긴 이름이 이긴다.**
+
+    전에는 사전의 모든 이름을 `if 이름 in 줄` 로 따로 넣었다. 그래서 `고추장`
+    한 줄이 `고추장` 과 `고추` 를 **둘 다** 만들었다. 사전에 긴 쪽도 짧은 쪽도
+    다 들어 있어서 짧은 쪽이 늘 덤으로 따라붙었다. 같은 본문을 LLM 이 읽었을
+    때와 견주면 (룰 / LLM):
+
+        고추장·고춧가루·청양고추 -> 고추    26.4% / 2.6%
+        참치액·참치액젓          -> 참치    11.9% / 1.5%
+        표고버섯·새송이버섯       -> 버섯     8.4% / 0.6%
+        올리브유                -> 올리브    7.6% / 0.7%
+        매실청                  -> 매실     5.5% / 0.3%
+        닭다리                  -> 다리     4.5% / 0.03%
+        옥수수 -> 수수,  까나리액젓 -> 까나리,  새송이버섯 -> 송이버섯 ...
+
+    짧은 쪽은 거의 다 덤이었다는 뜻이다. 이제 **자리(위치)까지 보고** 더 긴
+    이름에 완전히 덮이는 것은 버린다. 한 줄에 `고추장 1T, 고추 2개` 처럼
+    진짜로 둘 다 있으면 자리가 다르므로 둘 다 남는다.
+    """
     ingredients = set()
     lines = text.split("\n")
-    
+
     for line in lines:
         line = line.strip()
         if not line:
             continue
-            
-        # 일반 재료명 매칭
-        for ingredient in normal_dict:
-            if ingredient in line:
-                ingredients.add(normal_dict[ingredient])
-                
-        # 한 글자 재료명 매칭
+
+        # 1) 이름이 나오는 **자리**를 모두 모은다 (한 줄에 여러 번 나올 수 있다)
+        hits = []
+        for ingredient, base in normal_dict.items():
+            start = 0
+            while True:
+                k = line.find(ingredient, start)
+                if k < 0:
+                    break
+                hits.append((k, k + len(ingredient), ingredient, base))
+                start = k + 1
+
+        # 2) 더 긴 이름에 완전히 덮이는 자리는 버린다
+        for k0, k1, ingredient, base in hits:
+            if any(s0 <= k0 and k1 <= e0 and (e0 - s0) > (k1 - k0) for s0, e0, _, _ in hits):
+                continue
+            if _is_noise(ingredient, line, k0, k1):
+                continue
+            ingredients.add(base)
+
+        # 한 글자 재료명 매칭 (원래대로 단어 경계 규칙)
         for ingredient in short_dict:
             if is_valid_short_match(ingredient, line):
                 ingredients.add(short_dict[ingredient])
-                
+
     return list(ingredients)
+
 
 def _connect_db(*, read_timeout_sec: int = 600):
     """대량 본문 fetch·배치용으로 read_timeout 기본 10분."""
