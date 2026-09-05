@@ -87,6 +87,39 @@ def _daily_caps():
     }
 
 
+# 하루 상한을 **잔액에 비례**시키는 기간(일).
+#
+# 왜 필요한가: 플랜 기본값만 쓰면 하루 상한이 잔액과 따로 논다. 관리자 계정에
+# 크레딧을 300개 넣어 줬는데 하루 상한이 15면, 준 크레딧을 다 쓰는 데 20일이
+# 걸린다. "줬는데 못 쓴다" 는 건 준 게 아니다.
+#
+# 그래서 상한을 **잔액을 이 기간에 나눠 쓰는 양** 이상으로 잡는다.
+#   하루 상한 = max(플랜 기본값, ceil(잔액 / DAILY_BURN_DAYS))
+#
+# 7일인 이유: 크레딧은 매주 월요일에 조금씩 채워진다(WEEKLY_CREDITS). 리셋
+# 주기와 같은 길이로 두면 "한 주 안에는 가진 걸 다 쓸 수 있다" 가 된다.
+# 기본값 쪽은 그대로 남는다 — 잔액이 적은 사람의 상한을 이 계산이 **깎지는
+# 않는다**(max 라서). 상한은 몰아쓰기 방지용이지 벌금이 아니다.
+DAILY_BURN_DAYS = int(os.getenv("QUOTA_DAILY_BURN_DAYS", "7"))
+
+
+def effective_daily_cap(plan, explicit, balance):
+    """오늘 쓸 수 있는 상한 — 잔액을 반영한 값.
+
+    * `explicit` (어드민이 `user_quota.daily_cap` 에 직접 넣은 숫자)이 있으면
+      그 값이 이긴다. 사람이 정한 숫자를 계산이 덮으면 어드민 화면이 거짓말이 된다.
+    * 없으면 플랜 기본값과 잔액 비례값 중 **큰 쪽**.
+    """
+    if explicit is not None:
+        return int(explicit)
+    caps = _daily_caps()
+    base = caps.get(plan, caps["free"])
+    if DAILY_BURN_DAYS <= 0 or not balance or balance <= 0:
+        return base
+    # 올림. 잔액 10 / 7일이면 1이 아니라 2여야 7일 안에 다 쓸 수 있다.
+    return max(base, -(-int(balance) // DAILY_BURN_DAYS))
+
+
 def caller_identity():
     """이번 요청을 누가 보냈는지 — (user_id, device_id).
 
@@ -349,14 +382,14 @@ def ensure_tables(get_db):
 
 
 def _plan_of(cursor, user_id):
-    """이 사용자의 (plan, 하루 상한).
+    """이 사용자의 (plan, 어드민이 직접 넣은 하루 상한 또는 None).
 
     `user_quota` 에 행이 없으면 free. 행이 있어도 `daily_cap` 이 NULL 이면
-    플랜 기본값을 쓴다 — 어드민이 "plus 로만 올리고 숫자는 기본값" 을 쓸 수 있게.
+    None 을 돌려준다 — 어드민이 "plan 만 올리고 숫자는 알아서" 를 쓸 수 있게.
+    NULL 일 때 실제로 쓰는 값은 `effective_daily_cap()` 이 잔액을 보고 정한다.
     """
-    caps = _daily_caps()
     if user_id is None:
-        return "guest", caps["guest"]
+        return "guest", None
 
     cursor.execute(
         "SELECT plan, daily_cap FROM user_quota WHERE user_id = %s", (user_id,)
@@ -371,7 +404,7 @@ def _plan_of(cursor, user_id):
         else:
             plan = (row[0] or "free").strip() or "free"
             daily = row[1]
-    return plan, (daily if daily is not None else caps.get(plan, caps["free"]))
+    return plan, daily
 
 
 def _scalar(row):
@@ -540,7 +573,7 @@ def status(get_db, user_id=None, device_id=None):
     db = get_db()
     cursor = db.cursor()
     try:
-        plan, daily_cap = _plan_of(cursor, user_id)
+        plan, daily_fixed = _plan_of(cursor, user_id)
         if user_id is None:
             # 비회원 체험분. 지급 원장(credit_grants)은 회원용이라, 여기서는
             # **정해진 체험분에서 쓴 만큼 뺀다.** 기기 식별자 기준이다.
@@ -561,6 +594,10 @@ def status(get_db, user_id=None, device_id=None):
         cursor.close()
         db.close()
 
+    # 하루 상한은 **잔액을 보고** 정한다. 크레딧을 많이 받은 계정이 플랜
+    # 기본값(15)에 막혀 못 쓰는 일이 없어야 한다.
+    daily_cap = effective_daily_cap(plan, daily_fixed, left)
+
     return {
         "plan": plan,
         "is_guest": user_id is None,
@@ -571,6 +608,10 @@ def status(get_db, user_id=None, device_id=None):
         "granted": granted,
         "used": used,
         "daily_cap": daily_cap,
+        # 이 상한이 사람이 정한 숫자인지, 잔액에서 계산된 값인지.
+        # 어드민 화면에서 "왜 이 숫자인가" 를 설명하려면 구분이 필요하다.
+        "daily_cap_fixed": daily_fixed is not None,
+        "daily_burn_days": DAILY_BURN_DAYS,
         "daily_used": daily_used,
         "daily_remaining": max(0, daily_cap - daily_used),
         "weekly_credits": WEEKLY_CREDITS,

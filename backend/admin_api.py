@@ -315,11 +315,13 @@ def register(app, get_db):
             cursor.close()
             db.close()
 
-        caps = usage_quota._daily_caps()
         users = []
         for r in rows:
             plan = r['plan'] or 'free'
-            base_daily = caps.get(plan, caps['free'])
+            # 하루 상한은 잔액에 따라 올라간다(usage_quota.effective_daily_cap).
+            # 여기서 플랜 기본값만 보여주면 **어드민 화면이 서버와 다른 숫자를
+            # 말하게 된다** — 크레딧을 많이 준 계정일수록 크게 어긋난다.
+            balance = int(r['granted'] or 0) - int(r['used_total'] or 0)
             users.append({
                 'id': r['id'],
                 'email': _clean_email(r['email']),
@@ -331,10 +333,12 @@ def register(app, get_db):
                 'is_admin': bool(r['is_admin']),
                 'exclude_from_stats': bool(r['exclude_from_stats']),
                 'plan': plan,
-                'daily_cap': r['daily_cap'] if r['daily_cap'] is not None else base_daily,
+                'daily_cap': usage_quota.effective_daily_cap(
+                    plan, r['daily_cap'], balance),
+                'daily_cap_fixed': r['daily_cap'] is not None,
                 'granted': int(r['granted'] or 0),
                 'used_total': int(r['used_total'] or 0),
-                'balance': int(r['granted'] or 0) - int(r['used_total'] or 0),
+                'balance': balance,
                 'note': r['note'],
                 'ingredient_count': int(r['ingredient_count'] or 0),
                 'week_credits': int(r['week_credits'] or 0),
@@ -353,6 +357,8 @@ def register(app, get_db):
                 {'key': key, 'daily': daily}
                 for key, daily in usage_quota._daily_caps().items()
             ],
+            # 하루 상한의 **하한**만 플랜 기본값이고, 잔액이 많으면 그만큼 올라간다.
+            'daily_burn_days': usage_quota.DAILY_BURN_DAYS,
             'credits': dict(usage_quota.CREDITS),
             'resets_at': usage_quota.next_week_start().isoformat(),
         }

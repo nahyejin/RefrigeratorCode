@@ -520,6 +520,12 @@ const WeeklyPlan: React.FC = () => {
   /** 지난 대화 목록을 펼쳤나. */
   const [pastOpen, setPastOpen] = React.useState(false);
   const [sessions, setSessions] = React.useState<ChatSession[]>(() => loadSessions());
+  /**
+   * 지우기 전에 한 번 묻는다. 지운 대화는 **되돌릴 수 없고**, 크레딧을 써서
+   * 받은 식단이 그 안에 들어 있다. 목록에서 열려고 눌렀는데 옆 휴지통이
+   * 눌리는 일도 흔하다.
+   */
+  const [dropTarget, setDropTarget] = React.useState<ChatSession | null>(null);
   const wishInput = React.useRef<HTMLInputElement | null>(null);
   /**
    * AI 로 들어온 화면인가.
@@ -1632,10 +1638,13 @@ const WeeklyPlan: React.FC = () => {
                 <button
                   type="button"
                   aria-label={`${x.title} 대화 지우기`}
-                  onClick={() => { dropSession(x.id); setSessions(loadSessions()); }}
+                  // 바로 지우지 않는다 — 되돌릴 수 없으므로 한 번 묻는다.
+                  onClick={() => setDropTarget(x)}
                   style={{
+                    // 칸을 나누는 세로줄을 그었더니 휴지통이 **따로 얹힌 버튼**
+                    // 처럼 보였다. 카드 안의 보조 동작이라 테두리 없이 둔다.
                     flexShrink: 0, width: 44, border: 'none', padding: 0,
-                    borderLeft: '1px solid var(--line-200)', background: 'transparent',
+                    background: 'transparent',
                     color: 'var(--ink-500)', cursor: 'pointer',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}
@@ -1652,6 +1661,34 @@ const WeeklyPlan: React.FC = () => {
           </div>
         )}
       </Sheet>
+
+      {/* 지우기는 되돌릴 수 없다 — 한 번 묻는다.
+          시트가 열린 채로 뜨므로 `nested` 로 한 층 위에 올린다. */}
+      <Dialog
+        open={!!dropTarget}
+        onClose={() => setDropTarget(null)}
+        title="이 대화를 지울까요?"
+        width={320}
+        nested
+        actions={[
+          { label: '그만두기', variant: 'outline', onClick: () => setDropTarget(null) },
+          {
+            label: '지우기',
+            variant: 'danger',
+            onClick: () => {
+              if (dropTarget) dropSession(dropTarget.id);
+              setSessions(loadSessions());
+              setDropTarget(null);
+            },
+          },
+        ]}
+      >
+        <span style={{ fontSize: 13.5, color: 'var(--ink-700)', lineHeight: 1.7 }}>
+          <b style={{ color: '#1A1A1E' }}>{dropTarget?.title}</b>
+          <br />
+          지우면 그때 받은 식단까지 함께 사라지고, 되돌릴 수 없어요.
+        </span>
+      </Dialog>
 
       {/* 무엇으로 짜는지 — 접어 둔다 */}
       <div style={{
@@ -1884,16 +1921,23 @@ const WeeklyPlan: React.FC = () => {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--surface-sub)',
                   padding: wantAi ? '72px 14px 170px' : '72px 14px 90px' }}>
-      <div style={{ position: 'relative', display: 'flex', alignItems: 'center',
-                    justifyContent: 'center', marginBottom: 16, minHeight: 40 }}>
-        <BackButton onClick={() => navigate(-1)} style={{ left: 0, top: 2 }} />
-        <div style={{ fontWeight: 700, fontSize: 18, textAlign: 'center', padding: '0 56px' }}>
-          {wantAi ? 'AI 식단 추천' : '이번 주 식단 추천'}
+      {/* 제목 줄과 버튼 줄을 **나눈다.**
+          두 버튼을 제목과 같은 줄 오른쪽 끝에 절대배치했더니, `지난 대화 3` 과
+          `새 대화` 가 함께 나올 때 가운데 제목(`AI 식단 추천`)에 맞닿아 한
+          덩어리로 읽혔다 — 좁은 화면일수록 심하다. 줄을 바꾸면 제목은 제목대로
+          가운데에 남고, 두 버튼은 한 짝으로 보인다. */}
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ position: 'relative', display: 'flex', alignItems: 'center',
+                      justifyContent: 'center', minHeight: 40 }}>
+          <BackButton onClick={() => navigate(-1)} style={{ left: 0, top: 2 }} />
+          <div style={{ fontWeight: 700, fontSize: 18, textAlign: 'center', padding: '0 56px' }}>
+            {wantAi ? 'AI 식단 추천' : '이번 주 식단 추천'}
+          </div>
         </div>
         {/* 대화가 길어지면 처음부터 다시 하고 싶을 때가 있다. 지울 길이 없으면
             이력을 남긴 것이 오히려 짐이 된다. */}
-        {wantAi && (
-          <span style={{ position: 'absolute', right: 0, top: 4, display: 'flex', gap: 6 }}>
+        {wantAi && (sessions.length > 0 || chat.length > 1) && (
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, marginTop: 8 }}>
             {/* 지난 대화 — 목록은 바텀시트로 연다. */}
             {sessions.length > 0 && (
               <button
@@ -1923,7 +1967,7 @@ const WeeklyPlan: React.FC = () => {
                 새 대화
               </button>
             )}
-          </span>
+          </div>
         )}
       </div>
 

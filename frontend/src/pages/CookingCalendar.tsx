@@ -1137,10 +1137,10 @@ const CookingCalendar: React.FC = () => {
                     // blur 가 먼저 나가면 버튼이 사라져 클릭이 씹힌다.
                     onMouseDown={e => e.preventDefault()}
                     onClick={handleSaveSavingsPerMeal}
-                    aria-label="1인 한 끼 추정액 적용"
-                    style={{ height: 22, padding: '0 8px', borderRadius: 6, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#1A1A1E', background: 'var(--brand)', border: 'none', cursor: 'pointer' }}
+                    style={{ height: 22, padding: '0 8px', borderRadius: 6, flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11, fontWeight: 700, color: '#1A1A1E', background: 'var(--brand)', border: 'none', cursor: 'pointer' }}
                   >
                     <CheckIcon />
+                    저장
                   </button>
                 </span>
               ) : (
@@ -1176,10 +1176,10 @@ const CookingCalendar: React.FC = () => {
                     // blur 가 먼저 나가면 버튼이 사라져 클릭이 씹힌다.
                     onMouseDown={e => e.preventDefault()}
                     onClick={handleSaveFamilySize}
-                    aria-label="식구 수 적용"
-                    style={{ height: 22, padding: '0 8px', borderRadius: 6, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#1A1A1E', background: 'var(--brand)', border: 'none', cursor: 'pointer' }}
+                    style={{ height: 22, padding: '0 8px', borderRadius: 6, flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11, fontWeight: 700, color: '#1A1A1E', background: 'var(--brand)', border: 'none', cursor: 'pointer' }}
                   >
                     <CheckIcon />
+                    저장
                   </button>
                 </span>
               ) : (
@@ -2022,14 +2022,27 @@ const CookingCalendar: React.FC = () => {
                         placeholder="날짜"
                         style={{ height: 28, borderRadius: 6, border: '1px solid var(--brand)', fontSize: 12 }}
                       />
+                      {/* 체크 표시만 있는 노란 사각형은 **아무 말도 하지 않는다.**
+                          날짜를 고른 뒤 "이걸 누르면 저장되는가" 를 짐작하게
+                          만들면 안 된다 — 무엇을 하는 버튼인지 글자로 적는다. */}
                       <button
                         type="button"
                         onClick={() => handleSaveCompletedDate(e)}
                         disabled={savingDate}
-                        aria-label="완료 날짜 적용"
-                        style={{ width: 26, height: 26, borderRadius: 6, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1A1A1E', background: 'var(--brand)', border: 'none', cursor: savingDate ? 'default' : 'pointer', opacity: savingDate ? 0.6 : 1 }}
+                        style={{ height: 26, padding: '0 10px', borderRadius: 6, flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11.5, fontWeight: 700, color: '#1A1A1E', background: 'var(--brand)', border: 'none', cursor: savingDate ? 'default' : 'pointer', opacity: savingDate ? 0.6 : 1 }}
                       >
                         <CheckIcon />
+                        {savingDate ? '저장 중' : '저장'}
+                      </button>
+                      {/* 잘못 눌러 편집으로 들어온 사람에게 나갈 길을 준다.
+                          저장 말고는 빠져나올 방법이 없으면, 고칠 마음이 없어도
+                          아무 날짜나 저장하게 된다. */}
+                      <button
+                        type="button"
+                        onClick={() => setEditingDateKey(null)}
+                        style={{ height: 26, padding: '0 8px', borderRadius: 6, flexShrink: 0, fontSize: 11.5, fontWeight: 600, color: 'var(--ink-500)', background: 'transparent', border: 'none', cursor: 'pointer' }}
+                      >
+                        취소
                       </button>
                     </div>
                   ) : (
