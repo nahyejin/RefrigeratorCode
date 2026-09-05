@@ -198,7 +198,7 @@ const FridgeToPlan: React.FC<{ onGo: (withAi?: boolean) => void }> = ({ onGo }) 
             onClick={() => onGo(true)}
             className="ai-action"
             style={{
-              width: '100%', height: 62, borderRadius: 12, cursor: 'pointer',
+              width: '100%', height: 74, borderRadius: 12, cursor: 'pointer',
               display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
               justifyContent: 'center', gap: 3, padding: '0 12px',
             }}
@@ -209,9 +209,17 @@ const FridgeToPlan: React.FC<{ onGo: (withAi?: boolean) => void }> = ({ onGo }) 
             {/* 예시 하나만 박아 두면 **그것만 되는 기능**으로 읽힌다.
                 이 기능이 실제로 해 주는 일을 적는다. */}
             {/* "장은 적게" 는 오히려 **장을 본다**로 읽혀 지출처럼 보였다.
-                옆의 무료 버튼과 나란히 놓이는 자리라, 값을 그대로 밝히는 편이 낫다. */}
-            <span style={{ fontSize: 11.5, color: 'rgba(26,26,30,0.65)' }}>
-              말한 대로 · 크레딧 {planCost}
+                옆의 무료 버튼과 나란히 놓이는 자리라, 값을 그대로 밝히는 편이 낫다.
+
+                그런데 "말한 대로" 만으로는 **무엇에 말한 대로인지**가 없다.
+                이 버튼과 무료 버튼의 차이는 셋이다 — 냉장고 재료(둘 다 본다),
+                내가 적은 요청(AI만 본다), 장보기를 최소로 짜는 계산(AI만 한다).
+                무료 쪽 문구("냉장고 재료로")는 이미 정확한데, AI 쪽은 "말한
+                대로" 뒤에 이 두 가지가 안 보여서 사람이 볼 때 "그래서 뭐가
+                다른데" 가 안 풀렸다. 버튼을 74px 로 키워 두 줄로 적는다
+                (실측: 168px 폭에서 이 문장은 정확히 2줄, 겹치지 않는다). */}
+            <span style={{ fontSize: 11, color: 'rgba(26,26,30,0.65)', lineHeight: 1.35 }}>
+              재료+요청 반영해 장보기 최소화 · 크레딧 {planCost}
             </span>
           </button>
           <span className="ai-fab-badge">AI</span>
@@ -221,7 +229,7 @@ const FridgeToPlan: React.FC<{ onGo: (withAi?: boolean) => void }> = ({ onGo }) 
           type="button"
           onClick={() => onGo(false)}
           style={{
-            flex: 1, minWidth: 0, height: 62, borderRadius: 12, cursor: 'pointer',
+            flex: 1, minWidth: 0, height: 74, borderRadius: 12, cursor: 'pointer',
             border: '1px solid var(--line-200)', background: 'var(--surface)',
             display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
             justifyContent: 'center', gap: 3, padding: '0 12px',

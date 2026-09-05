@@ -429,7 +429,13 @@ def _plan_of(cursor, user_id, now=None):
     NULL 일 때 실제로 쓰는 값은 `effective_daily_cap()` 이 잔액을 보고 정한다.
     """
     if user_id is None:
-        return "guest", None
+        # ⚠️ 실제로 터졌던 버그: 여기만 2개짜리 튜플을 돌려주고 있었다.
+        # 아래(회원)와 만료 분기는 전부 3개(plan, daily, until)를 돌려주는데,
+        # 부르는 쪽(`status()`)은 늘 `plan, daily, until = _plan_of(...)` 로
+        # 셋을 받는다. 비회원(guest) 요청마다 `ValueError: not enough values
+        # to unpack` 이 나서 `/api/usage` 가 전부 503 이었다 — 로그인 안 한
+        # 사람은 챗봇도, 사진 인식도, AI 식단도 전혀 못 썼다는 뜻이다.
+        return "guest", None, None
 
     cursor.execute(
         "SELECT plan, daily_cap, plan_until FROM user_quota WHERE user_id = %s", (user_id,)

@@ -17,7 +17,10 @@
     무겁게 만들면 매 요청마다 느려진다.
 """
 
+import csv
+import os
 import re
+import threading
 
 # 적은 말 → 레시피에서 찾을 말.
 #
@@ -105,29 +108,161 @@ _BAN = re.compile(
 #
 # 레시피의 재료는 "고기" 라고 안 적혀 있다 — 돼지고기·삼겹살·베이컨이라고
 # 적혀 있다. 글자만 맞춰 지우면 삼겹살이 그대로 남는다.
+#
+# 손으로 적은 목록의 한계 (실측으로 드러났다):
+#   "고기 없이" 라고 말해도 닭봉·닭날개·닭똥집·닭발·닭껍질·닭안심살이 든
+#   요리가 그대로 나왔다 — 이 목록에 그 부위들이 없었기 때문이다. 사전에는
+#   이미 이 부위들이 `세분류=육류` 로 분류돼 있는데, 여기 목록은 그걸 안 쓰고
+#   따로 손으로 적고 있었다. 새 부위가 사전에 추가될 때마다 이 목록도 같이
+#   고쳐야 하는데, 그럴 이유가 없다 — **사전이 이미 아는 것을 다시 베끼지
+#   않는다.**
 BAN_EXPAND = {
-    "고기": ["고기", "소고기", "쇠고기", "돼지고기", "닭고기", "오리", "양고기",
-             "삼겹살", "목살", "항정살", "갈비", "등심", "안심", "차돌",
-             "베이컨", "햄", "스팸", "소시지", "육류", "불고기", "제육",
-             "다짐육", "다진고기", "우삼겹", "닭다리", "닭가슴살"],
-    "육류": ["고기", "소고기", "돼지고기", "닭고기", "삼겹살", "베이컨", "햄", "스팸"],
-    "돼지": ["돼지고기", "삼겹살", "목살", "항정살", "제육", "수육"],
-    "소고기": ["소고기", "쇠고기", "등심", "안심", "차돌", "불고기", "갈비"],
-    "닭": ["닭", "닭고기", "닭가슴살", "닭다리", "닭봉", "치킨"],
-    "해산물": ["해산물", "새우", "오징어", "낙지", "문어", "조개", "홍합", "바지락",
-               "게", "꽃게", "전복", "굴"],
-    "생선": ["생선", "고등어", "삼치", "갈치", "연어", "참치", "명태", "동태",
-             "코다리", "임연수", "조기"],
+    # 우유·계란처럼 사전의 소분류/세분류 만으로는 깔끔히 안 갈리는 것,
+    # 또는 애초에 사전에 없는 것(오리 등)만 손으로 남긴다.
+    "오리": ["오리", "오리고기", "훈제오리", "청둥오리"],
     "우유": ["우유", "생크림", "휘핑"],
     "유제품": ["우유", "치즈", "버터", "생크림", "요거트", "요구르트"],
     "계란": ["계란", "달걀"],
     "달걀": ["계란", "달걀"],
-    "견과": ["견과", "땅콩", "아몬드", "호두", "캐슈", "잣"],
-    "견과류": ["견과", "땅콩", "아몬드", "호두", "캐슈", "잣"],
     "밀가루": ["밀가루", "부침가루", "튀김가루", "빵가루", "박력분", "강력분"],
     "매운": ["고춧가루", "고추장", "청양고추", "매운", "매콤", "얼큰", "칼칼"],
     "술": ["소주", "맥주", "청주", "와인", "막걸리"],
 }
+
+
+# ── 재료 사전을 **직접 보고** 넓힌다 ─────────────────────────────
+#
+# "고기·해산물·생선·계란·견과류" 처럼 **카테고리 전체**를 빼 달라는 말은
+# 사전의 분류(세분류·소분류·hyperonym)를 그대로 따라간다. 손으로 적은
+# 목록과 달리, 사전에 재료가 늘면 **다음 요청부터 자동으로 같이 커버된다.**
+_HERE = os.path.dirname(os.path.abspath(__file__))
+_ROOT = os.path.dirname(_HERE)
+_DICT_NAME = "ingredient_profile_dict_with_substitutes.csv"
+
+
+def _dict_csv_path():
+    override = (os.getenv("INGREDIENT_DICT_CSV") or "").strip()
+    candidates = [override] if override else []
+    candidates += [
+        os.path.join(_ROOT, "frontend", "public", _DICT_NAME),
+        os.path.join(_HERE, _DICT_NAME),
+    ]
+    for p in candidates:
+        if p and os.path.exists(p):
+            return p
+    return None
+
+
+_category_lock = threading.Lock()
+_category_cache = None
+
+
+def _category_index():
+    """사전을 한 번만 읽어 `세분류`·`소분류`·`hyperonym` 색인을 만든다.
+
+    CSV 를 못 찾아도 조용히 빈 색인을 준다 — 그러면 카테고리 확장이 안 될
+    뿐이고, 위 손으로 적은 목록과 원 단어 자체는 그대로 걸러진다. 이 기능
+    하나가 안 된다고 전체 요청이 실패해서는 안 된다.
+    """
+    global _category_cache
+    with _category_lock:
+        if _category_cache is not None:
+            return _category_cache
+        fine, mid, hyper_children = {}, {}, {}
+        path = _dict_csv_path()
+        if path:
+            try:
+                with open(path, encoding="utf-8-sig", newline="") as f:
+                    for row in csv.DictReader(f):
+                        if (row.get("대분류") or "").strip() != "재료":
+                            continue
+                        kw = (row.get("keyword") or "").strip()
+                        if not kw:
+                            continue
+                        f_name = (row.get("세분류") or "").strip()
+                        m_name = (row.get("소분류") or "").strip()
+                        hy = (row.get("hyperonym") or "").strip()
+                        if f_name:
+                            fine.setdefault(f_name, set()).add(kw)
+                        if m_name:
+                            mid.setdefault(m_name, set()).add(kw)
+                        if hy:
+                            hyper_children.setdefault(hy, set()).add(kw)
+            except OSError:
+                pass
+        _category_cache = (fine, mid, hyper_children)
+        return _category_cache
+
+
+def _by_fine(*names):
+    fine, _mid, _hy = _category_index()
+    out = set()
+    for n in names:
+        out |= fine.get(n, set())
+    return out
+
+
+def _by_mid(*names):
+    _fine, mid, _hy = _category_index()
+    out = set()
+    for n in names:
+        out |= mid.get(n, set())
+    return out
+
+
+def _animal_family(root, core_token, pool):
+    """`root`(예: 닭고기) 하나를 **그 동물 부위 전체**로 넓힌다.
+
+    `root` 자신 + hyperonym 이 root 를 가리키는 부위(사전에 이미 있는 관계,
+    예: 닭봉·닭날개·닭똥집 -> hyperonym=닭고기) + `pool`(육류/가공육) 안에서
+    이름에 `core_token` 이 들어간 것(hyperonym 이 안 달린 예외, 예: 훈제닭고기).
+    `닭새우` 처럼 이름은 겹쳐도 `pool` 밖(세분류=갑각류)이면 안 걸린다 —
+    `pool` 로 먼저 좁혀 놓고 이름을 보기 때문이다.
+    """
+    _fine, _mid, hyper_children = _category_index()
+    out = {root}
+    out |= hyper_children.get(root, set())
+    if core_token:
+        out |= {k for k in pool if core_token in k}
+    return out
+
+
+def _dynamic_ban_expand():
+    """카테고리 기준 확장 목록. 사전을 못 읽으면 빈 dict — 안전하게 건너뛴다."""
+    meat_pool = _by_fine("육류", "가공육")
+    if not meat_pool:
+        return {}
+    seafood_pool = (_by_fine("생선류", "조개류/연체류", "갑각류", "건조해산물류"))
+    dairy_pool = _by_mid(
+        "우유/분유", "요거트/발효유", "크림류", "버터류", "기타 유제품",
+        "치즈", "치즈(토핑용)", "치즈(디저트용)", "치즈(샐러드용)",
+        "치즈(슬라이스)", "치즈(분말)", "치즈(폼)", "치즈(스프레드)", "치즈(피자용)",
+    )
+    egg_pool = _by_fine("달걀/난류")
+    nuts_pool = _by_fine("견과류")
+
+    return {
+        "고기": meat_pool | {"고기", "육류"},
+        "육류": meat_pool | {"고기", "육류"},
+        "고기류": meat_pool | {"고기", "육류"},
+        "닭": _animal_family("닭고기", "닭", meat_pool) | {"닭"},
+        "닭고기": _animal_family("닭고기", "닭", meat_pool),
+        "치킨": _animal_family("닭고기", "닭", meat_pool) | {"치킨"},
+        "돼지": _animal_family("돼지고기", "돼지", meat_pool) | {"돼지"},
+        "돼지고기": _animal_family("돼지고기", "돼지", meat_pool),
+        "소고기": _animal_family("소고기", None, meat_pool) | {"소고기", "쇠고기"},
+        "쇠고기": _animal_family("소고기", None, meat_pool) | {"소고기", "쇠고기"},
+        "양고기": _animal_family("양고기", "양", meat_pool),
+        "해산물": seafood_pool | {"해산물"},
+        "생선": _by_fine("생선류") | {"생선"},
+        "조개": _by_fine("조개류/연체류") | {"조개"},
+        "우유": dairy_pool | {"우유"},
+        "유제품": dairy_pool | {"유제품"},
+        "계란": egg_pool | {"계란", "달걀"},
+        "달걀": egg_pool | {"계란", "달걀"},
+        "견과": nuts_pool | {"견과"},
+        "견과류": nuts_pool | {"견과류"},
+    }
 
 # 재료로 안 보이는 말. 여기 걸리면 재료 금지로 안 읽는다 —
 # "국물 요리는 빼고" 의 `요리`, "간단한 거 말고" 의 `거` 같은 것.
@@ -138,17 +273,32 @@ _NOT_INGREDIENT = {
 
 
 def bans(text):
-    """"X 없이" 에서 **빼야 할 이름들**. 넓혀서 돌려준다."""
+    """"X 없이" 에서 **빼야 할 이름들**. 넓혀서 돌려준다.
+
+    사전 기반 확장(`_dynamic_ban_expand`)을 먼저 보고, 없으면 손으로 적은
+    목록(`BAN_EXPAND`)을, 그것도 없으면 적은 말 그대로를 쓴다.
+    """
+    dynamic = _dynamic_ban_expand()
     out, seen = [], set()
     for m in _BAN.finditer(text or ""):
         word = m.group(1).strip()
-        if len(word) < 2 or word in _NOT_INGREDIENT:
+        if word in _NOT_INGREDIENT:
             continue
-        for name in BAN_EXPAND.get(word, [word]):
+        # 한 글자는 보통 잡음이다("것", "거" 부류) — 그래서 원래 걸러 냈다.
+        # 그런데 "닭" 처럼 실제로 한 글자인 재료명도 있다. **알려진 분류
+        # 표제어일 때만** 한 글자를 통과시킨다. "닭 없이" 가 그렇게 걸린다.
+        if len(word) < 2 and word not in dynamic and word not in BAN_EXPAND:
+            continue
+        names = dynamic.get(word) or BAN_EXPAND.get(word) or [word]
+        for name in names:
             if name not in seen:
                 seen.add(name)
                 out.append(name)
-    return out[:40]
+    # 카테고리 하나를 통째로 뺄 때(예: "고기") 사전이 주는 이름이 100개를
+    # 넘는다("육류"+"가공육"만 122개). 40개로 잘랐더니 앞쪽 40개 안에 우연히
+    # 안 든 재료(돼지고기·베이컨 등)가 걸러지지 않고 그대로 통과했다 —
+    # 실측으로 잡은 버그다. 넉넉히 둔다.
+    return out[:400]
 
 
 def read(text):
@@ -196,4 +346,4 @@ def read(text):
         if w not in ex_seen:
             ex_seen.add(w)
             ex_uniq.append(w)
-    return uniq[:24], hints[:6], ex_uniq[:40]
+    return uniq[:24], hints[:6], ex_uniq[:400]
