@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { track } from '../utils/track';
-import { applyUsage, usageHeaders } from '../utils/usage';
+import { applyUsage, refreshUsage, usageHeaders } from '../utils/usage';
 import { UsageLine, useUsage } from './UsageMeter';
 import BackButton from './ui/BackButton';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -456,6 +456,11 @@ const RecipeChatWidget: React.FC = () => {
       ]);
     } finally {
       setLoading(false);
+      // 위의 `applyUsage(data?.usage)` 로 보통은 즉시 맞춰진다. 다만 서버가
+      // 사용량을 안 실어 보내는 길이 있다 — 광범위한 질문("있는 걸로 뭐 해먹지")
+      // 은 LLM 을 안 부르므로 차감이 없고, 네트워크가 끊기면 응답 자체가 없다.
+      // 그런 때 화면에 옛 숫자가 남지 않도록 한 번 더 물어본다.
+      void refreshUsage();
     }
   };
 

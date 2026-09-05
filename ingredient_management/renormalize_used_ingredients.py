@@ -47,7 +47,10 @@ _PREVIEW_GLOB = os.path.join(_PROJECT_ROOT, "ingredient_management",
 def load_raw_by_id():
     """미리보기 CSV 전체에서 id -> LLM 원본 재료 목록을 모은다 (나중 파일이 최신)."""
     raw_by_id = {}
-    for path in sorted(glob.glob(_PREVIEW_GLOB)):
+    # 파일명으로 정렬하면 `..._5400_20260826` 이 `..._5280_20260906` 보다 뒤에 온다
+    # (건수 토큰이 먼저라 문자열 비교가 날짜를 앞지른다). 그러면 **옛 원본이
+    # 새 원본을 덮는다.** 만든 시각으로 정렬해서 나중 파일이 이기게 한다.
+    for path in sorted(glob.glob(_PREVIEW_GLOB), key=os.path.getmtime):
         with open(path, encoding="utf-8-sig", newline="") as f:
             for row in csv.DictReader(f):
                 if (row.get("error") or "").strip():
@@ -81,7 +84,7 @@ def allowed_removals(old_dict_path):
     return allowed
 
 
-def run(*, commit, output_path, old_dict_path=None):
+def run(*, commit, output_path, old_dict_path=None, restore=False):
     _load_env_files()
     alias_to_canonical = load_alias_to_canonical()
     raw_by_id = load_raw_by_id()
@@ -93,15 +96,27 @@ def run(*, commit, output_path, old_dict_path=None):
 
     conn = _connect_db(read_timeout_sec=120)
     cursor = conn.cursor()
-    cursor.execute(
-        "SELECT id, title, used_ingredients FROM recipes WHERE llm_ingredients_done = 1"
-    )
+    # `--restore` 는 **룰베이스에 덮인 행까지** 되돌린다.
+    #
+    #   평소(사전 보강 소급)에는 `llm_ingredients_done = 1` 인 행만 보면 된다.
+    #   그런데 2026-09-05 사고 때는 그 조건을 못 쓴다 — 재예약으로 done 이 전부
+    #   0 이 된 상태에서 룰베이스가 덮어썼기 때문에, 되돌려야 할 행이 바로
+    #   done = 0 인 행들이다. 그래서 조건을 빼고 **미리보기 CSV 에 원본이 남아
+    #   있는 행 전부**를 대상으로 한다 (원본이 없는 행은 아래에서 건너뛴다).
+    #   대상은 `llm_ingredients_at IS NULL` — **LLM 값이 지워진 행**이다.
+    #   이미 표식이 있는 행(9/5~9/6 배치가 새로 채운 것)은 건드리지 않는다.
+    #   그쪽은 더 나중 프롬프트로 뽑은 값이라, 8월 원본으로 되돌리면 오히려
+    #   뒤로 간다.
+    where = (" WHERE llm_ingredients_at IS NULL" if restore
+             else " WHERE llm_ingredients_done = 1")
+    cursor.execute("SELECT id, title, used_ingredients FROM recipes" + where)
     rows = cursor.fetchall()
     cursor.close()
     # 읽기 커넥션은 여기서 할 일이 끝났다. 쓰기 루프가 도는 동안 놀고 있으면
     # 원격 서버가 먼저 끊어버려 "Lost connection" 의 원인이 되므로 즉시 닫는다.
     conn.close()
-    print(f"LLM 처리 완료 행: {len(rows)}건", flush=True)
+    print(f"대상 행: {len(rows)}건"
+          + (" (복구 모드: 전체)" if restore else " (llm_ingredients_done=1)"), flush=True)
 
     write_conn = _connect_db(read_timeout_sec=120) if commit else None
     write_cursor = write_conn.cursor() if write_conn else None
@@ -164,8 +179,12 @@ def run(*, commit, output_path, old_dict_path=None):
                     # 다시 돌리면 그 행들만 다시 처리된다.
                     for attempt in range(2):
                         try:
+                            # 되돌린 값도 **LLM 이 만든 값**이므로 표식을 남긴다.
+                            # 이게 있어야 룰베이스 배치가 다시 덮어쓰지 않는다.
                             write_cursor.execute(
-                                "UPDATE recipes SET used_ingredients = %s WHERE id = %s",
+                                "UPDATE recipes SET used_ingredients = %s, "
+                                "llm_ingredients_at = COALESCE(llm_ingredients_at, NOW()) "
+                                "WHERE id = %s",
                                 (new_used, rid),
                             )
                             break
@@ -215,6 +234,11 @@ def main():
     parser.add_argument("--commit", action="store_true", help="DB에 실제로 반영")
     parser.add_argument("--output", help="CSV 저장 경로")
     parser.add_argument(
+        "--restore",
+        action="store_true",
+        help="룰베이스에 덮인 행까지 LLM 원본으로 되돌린다 (llm_ingredients_done 조건 없음)",
+    )
+    parser.add_argument(
         "--old-dict",
         help="보강 전 사전 CSV 경로. 주면 사전 변경으로 설명되지 않는 재료 소실이 있는 행을 건너뛴다",
     )
@@ -224,7 +248,8 @@ def main():
         _PROJECT_ROOT, "ingredient_management",
         f"renormalize_preview_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
     )
-    run(commit=args.commit, output_path=output_path, old_dict_path=args.old_dict)
+    run(commit=args.commit, output_path=output_path,
+        old_dict_path=args.old_dict, restore=args.restore)
 
 
 if __name__ == "__main__":

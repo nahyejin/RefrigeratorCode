@@ -2075,7 +2075,7 @@ const Popular = () => {
              recipeActionStates={buttonStates}
              onRecipeAction={(recipe, action) => handleRecipeAction(recipe.id, { action: action as 'done' | 'write' | 'share' | 'favorite' })}
              cardWidth={300}
-             cardHeight={280}
+             cardHeight={290}
              gap={16}
              showRank={true}
              compactSectionGap

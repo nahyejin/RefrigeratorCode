@@ -381,9 +381,19 @@ if __name__ == "__main__":
     #  LLM이 며칠에 걸쳐 채워 넣은 결과를 룰베이스가 다시 덮어써 버린다.
     #  (주 1회 크롤러가 돌 때마다 그동안의 LLM 작업이 무효화되는 상태였음)
     #  룰베이스는 "아직 LLM이 손대지 않은 신규 수집분"의 임시 채움 역할만 한다.
+    #  ⚠️ 조건은 `llm_ingredients_at IS NULL` 이다. `llm_ingredients_done = 0` 이 아니다.
+    #
+    #  전에는 done 을 봤는데, done 은 뜻이 두 개다 — "LLM 이 값을 넣어 뒀다" 와
+    #  "다시 처리할 필요가 없다". 재처리 예약(`requeue_recipes_for_llm.py`)은 두 번째
+    #  뜻으로 0 을 넣는데 이 배치는 첫 번째 뜻으로 읽었다. 그래서 2026-09-04 재예약
+    #  직후인 **9/5 13:50~18:13** 에 이 배치가 돌면서 8/26~9/3 에 LLM 이 한 바퀴 다
+    #  뽑아 둔 결과를 카탈로그 전체에 걸쳐 룰베이스 값으로 덮어썼다.
+    #  (평소 5분이면 끝나는 배치가 4시간 22분 걸린 것이 그 증거였다)
+    #
+    #  `llm_ingredients_at` 은 LLM 이 실제로 값을 쓴 시각이고 재예약이 건드리지 않는다.
     cursor.execute(
         f"SELECT id, content, used_ingredients FROM recipes "
-        f"WHERE COALESCE(llm_ingredients_done, 0) = 0 ORDER BY id{limit_sql}"
+        f"WHERE llm_ingredients_at IS NULL ORDER BY id{limit_sql}"
     )
     print("SELECT 수락됨. 첫 데이터 묶음 수신 시작…", flush=True)
 

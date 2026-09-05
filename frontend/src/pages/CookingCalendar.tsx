@@ -200,6 +200,10 @@ const FridgeToPlan: React.FC<{ onGo: (withAi?: boolean) => void }> = ({ onGo }) 
             style={{
               width: '100%', height: 74, borderRadius: 12, cursor: 'pointer',
               display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
+              // `<button>` 은 기본이 가운데 정렬이다. 칸 자체는 flex-start 라
+              // 왼쪽에 붙지만, 그 **안에서 두 줄이 서로 가운데로** 맞춰져
+              // 짧은 줄이 들여쓴 것처럼 보였다.
+              textAlign: 'left',
               justifyContent: 'center', gap: 3, padding: '0 12px',
             }}
           >
@@ -233,6 +237,7 @@ const FridgeToPlan: React.FC<{ onGo: (withAi?: boolean) => void }> = ({ onGo }) 
             flex: 1, minWidth: 0, height: 74, borderRadius: 12, cursor: 'pointer',
             border: '1px solid var(--line-200)', background: 'var(--surface)',
             display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
+            textAlign: 'left',   // 위 AI 버튼과 같은 이유
             justifyContent: 'center', gap: 3, padding: '0 12px',
           }}
         >

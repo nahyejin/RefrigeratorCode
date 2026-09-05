@@ -392,14 +392,26 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
       className="recipe-card-press bg-white rounded-[20px] relative block cursor-pointer"
       style={{
         ...(isLast ? STYLES.lastCard : STYLES.card),
-        padding: '3px 8px', // 상하 3px, 좌우 8px
+        // 사방을 같게. 전에는 `3px 8px` 이라 **좌우 9px, 위아래 4px**(테두리 1px
+        // 포함)이었다. 썸네일이 위쪽에만 바짝 붙어 카드가 위로 쏠려 보였다.
+        padding: 8,
         marginBottom: isHorizontal ? 0 : 8, // 가로 리스트: 행 높이 안에서 카드~스크롤바 사이 빈칸 방지
         touchAction: 'pan-y pan-x', // 세로 및 가로 스크롤 모두 허용
         // 가로 목록에서는 높이를 고정해 모든 카드(광고 카드 포함)를 같은 규격으로 맞춘다.
         // 내용이 적은 카드는 아래가 남지만, 높이가 제각각인 것보다 훨씬 정돈돼 보인다.
-        ...(isHorizontal && fixedHeight
+        // **펼쳤을 때는 높이를 풀어 준다.**
+        //
+        // 가로 목록은 모든 카드를 같은 규격으로 맞추려고 높이를 고정하고 남는
+        // 것을 잘라 낸다. 그런데 `재료 N개 · 대체 가능 보기 ▾` 를 누르면 알약이
+        // 여러 줄로 늘어나는데, 높이가 고정이라 **펼친 내용이 그대로 잘렸다** —
+        // 누른 보람이 없다. 접혀 있는 동안만 고정하고, 펼친 카드는 제 높이를
+        // 갖게 한다(그 줄만 잠시 높아졌다가 접으면 돌아온다).
+        ...(isHorizontal && fixedHeight && !chipsOpen
           ? { height: fixedHeight, overflow: 'hidden' as const }
           : { overflow: 'visible' as const }),
+        ...(isHorizontal && fixedHeight && chipsOpen
+          ? { minHeight: fixedHeight, zIndex: 2 }
+          : null),
         boxSizing: 'border-box' as const, // padding 포함한 크기 계산
         WebkitOverflowScrolling: 'touch', // iOS 부드러운 스크롤
         // 카드 경계.

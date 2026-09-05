@@ -1594,7 +1594,9 @@ const MyPage: React.FC = () => {
               <CloseButton onClick={handleCancel} style={{ top: 8, right: 8, zIndex: 20 }} />
               <div style={{ textAlign: 'center', fontWeight: 700, fontSize: 17, color: 'var(--ink-900)' }}>내 정보 수정</div>
             </div>
-            <div className="p-6 pt-2">
+            {/* 아래 여백을 넉넉히(pb-8). `p-6` 만으로는 회원탈퇴 글씨가
+                모달 끝에 붙어 보였다 — 스크롤이 생기는 화면에서 특히. */}
+            <div className="p-6 pt-2 pb-8">
               {/* 닉네임 + 중복체크 */}
               <div className="mb-3">
                 <div className="flex items-center gap-2 mb-1">
@@ -1762,9 +1764,18 @@ const MyPage: React.FC = () => {
 
               {/* 취소/적용 버튼 */}
               <div className="flex gap-2 mt-4">
-                <button 
-                  className="flex-1 h-11 bg-white text-[#1A1A1E] border border-gray-300 rounded-lg text-[16px] font-bold"
+                {/* 브라우저 기본 포커스 테두리(파란 선)를 끈다. 옆의 `변경 적용`
+                    과 회원탈퇴 버튼은 이미 끄고 있어서, 취소만 눌렀을 때 파랗게
+                    변해 이 앱 색이 아닌 것이 튀어나왔다. 대신 눌린 동안에는
+                    테두리를 한 단계 진하게 해서 "지금 이거" 가 보이게 한다. */}
+                <button
+                  className="flex-1 h-11 bg-white text-[#1A1A1E] border rounded-lg text-[16px] font-bold"
                   onClick={handleCancel}
+                  style={{ outline: 'none', borderColor: 'var(--line-300)' }}
+                  onFocus={(e) => { e.currentTarget.style.outline = 'none'; }}
+                  onMouseDown={(e) => { e.currentTarget.style.borderColor = 'var(--ink-500)'; }}
+                  onMouseUp={(e) => { e.currentTarget.style.borderColor = 'var(--line-300)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--line-300)'; }}
                 >
                   취소
                 </button>

@@ -856,9 +856,15 @@ def run(*, limit, start_after_id, order, output_path, commit, rpm, concurrency, 
                             # 조리 단계는 줄바꿈으로 이어 붙여 한 칸에 넣는다.
                             # 별도 표로 빼면 조인이 하나 늘고, 단계는 항상 그
                             # 레시피와 통째로만 쓰이므로 나눌 이유가 없다.
+                            # `llm_ingredients_at` 은 **LLM 이 이 행에 값을 썼다**는 표식이다.
+                            # `llm_ingredients_done` 과 달리 재처리 예약이 건드리지 않는다 —
+                            # 룰베이스 배치는 이 값이 비어 있는 행만 채운다.
+                            # (2026-09-05 에 재예약으로 done 이 전부 0 이 된 직후 룰베이스
+                            #  전량 재계산이 돌아 9일치 LLM 결과를 덮어쓴 적이 있다)
                             write_cursor.execute(
                                 "UPDATE recipes SET used_ingredients = %s, cook_steps = %s, "
-                                "ingredients_detail = %s, recipe_name = %s, llm_ingredients_done = 1 WHERE id = %s",
+                                "ingredients_detail = %s, recipe_name = %s, llm_ingredients_done = 1, "
+                                "llm_ingredients_at = NOW() WHERE id = %s",
                                 (new_used,
                                  "\n".join(steps) if steps else None,
                                  "\n".join(detail) if detail else None,

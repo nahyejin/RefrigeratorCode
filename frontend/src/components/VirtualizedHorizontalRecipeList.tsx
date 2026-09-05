@@ -40,7 +40,9 @@ interface VirtualizedHorizontalRecipeListProps {
 // 상수 정의
 const CONSTANTS = {
   DEFAULT_CARD_WIDTH: 300, // 두 번째 카드가 더 잘 보이도록 너비 축소
-  DEFAULT_CARD_HEIGHT: 280,
+  // 카드 안쪽 여백을 사방 8px 로 맞추면서 카드가 10px 높아졌다(277 -> 287).
+  // 이 값이 그대로면 가로 목록이 카드를 잘라 낸다.
+  DEFAULT_CARD_HEIGHT: 290,
   DEFAULT_GAP: 16,
   DEFAULT_CONTAINER_WIDTH: 400,
   EMPTY_MESSAGE_FONT_SIZE: 13
