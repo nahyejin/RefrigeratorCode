@@ -422,7 +422,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
           음식이 뭉개진다. 훑어보는 자리(`browse`)에서는 키운다. */}
       <div style={{
         ...STYLES.imageContainer,
-        height: browse ? 160 : (isHorizontal ? 100 : STYLES.imageContainer.height)
+        height: browse ? 160 : (isHorizontal ? 100 : 160)
       }}>
         <img
           src={getProxiedImageUrl(recipe.thumbnail || '')}
@@ -439,7 +439,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
           }}
           style={{ 
             ...STYLES.thumbnail,
-            height: browse ? 160 : (isHorizontal ? 100 : STYLES.thumbnail.height),
+            height: browse ? 160 : (isHorizontal ? 100 : 160),
             cursor: 'pointer',
             touchAction: 'pan-y', // 세로 스크롤 허용
             userSelect: 'none', // 이미지 선택 방지
@@ -459,10 +459,12 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
             예전엔 "재료 매칭률 83%" 였는데, 냉털이 관점에서 실제로 필요한 정보는
             비율이 아니라 "지금 만들 수 있나 / 몇 개를 더 사야 하나" 임.
             부족 개수(대체 가능한 재료는 제외)를 앞세우고 매칭률은 보조로 둔다. */}
-        {/* 훑어보는 자리에서는 이 배지를 사진에 얹지 않는다.
+        {/* **사진에 숫자를 얹지 않는다.**
             제일 크게 읽히는 것이 `0%` 가 되어, 카드마다 "너는 이거 못 만들어"
-            를 먼저 말하게 된다. 아래 줄에서 **가진 것**으로 조용히 센다. */}
-        {!browse && (
+            를 먼저 말하게 된다. 냉장고요리에서는 매칭률이 정렬 기준이라 숫자
+            자체는 필요하지만, 그건 아래 줄에서 **가진 것**으로 센다.
+            (사진은 사람을 끌어당기는 유일한 요소다. 가리지 않는다) */}
+        {false && (
         <div
           className="absolute rounded flex items-center gap-1.5"
           style={{
@@ -560,7 +562,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
       <div style={{
         ...STYLES.title,
         cursor: 'pointer',
-        ...(browse ? {
+        ...({
           fontSize: 15,
           lineHeight: 1.35,
           whiteSpace: 'normal' as const,
@@ -568,7 +570,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
           WebkitLineClamp: 2,
           WebkitBoxOrient: 'vertical' as const,
           minHeight: 40,
-        } : null),
+        }),
       }}>
         {recipe.title}
       </div>
@@ -598,20 +600,26 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             minWidth: 0,
-            fontSize: browse ? 12.5 : 14,
+            fontSize: 12.5,
           }}
         >
-          {browse ? (
-            /* 훑는 자리에서는 **가진 것**으로 센다. `4개 부족` 과 같은 값인데
-               부정이 아니다. 그리고 네이버 블로그는 좋아요가 거의 0이라
-               `좋아요 0` 은 늘 노이즈였다 — 0 인 값은 안 쓴다. */
-            [
-              (recipe.comments ? `댓글 ${recipe.comments}` : ''),
-              (usedIngredientList.length
-                ? `내 재료 ${usedIngredientList.length - lackingIngredients.length}/${usedIngredientList.length}`
-                : ''),
-            ].filter(Boolean).join(' · ')
-          ) : Utils.getStatsText(recipe)}
+          {/* **가진 것**으로 센다. `4개 부족` 과 같은 값인데 부정이 아니다.
+              냉장고요리는 매칭률이 정렬 기준이므로 %도 함께 적는다 — 그게
+              없으면 "왜 이 순서지" 를 알 수 없다. 요즘인기는 인기순이라
+              정렬과 무관하므로 개수만 센다.
+              `좋아요 0` 은 뺐다. 네이버 블로그는 대부분 0이라 늘 노이즈였다. */}
+          {usedIngredientList.length > 0 ? (
+            <>
+              <b style={{ color: match.rate >= 70 ? '#3A6B2E' : 'var(--ink-700)' }}>
+                내 재료 {usedIngredientList.length - lackingIngredients.length}
+                /{usedIngredientList.length}
+              </b>
+              {!browse && ` (${match.rate}%)`}
+              {recipe.comments ? ` · 댓글 ${recipe.comments}` : ''}
+            </>
+          ) : (
+            recipe.comments ? `댓글 ${recipe.comments}` : ''
+          )}
         </span>
         {/* 완료 / 기록 / 공유 — 사진을 가리지 않도록 이 줄로 내림. 줄 높이를 그대로 써서
             카드가 더 길어지지 않고, 터치 영역은 36px 로 확보 */}
@@ -667,7 +675,9 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
             fontSize: 11.5, fontWeight: 600, color: 'var(--ink-500)',
           }}
         >
-          재료 {usedIngredientList.length}개 {chipsOpen ? '접기 ▴' : '보기 ▾'}
+          {chipsOpen
+            ? '재료 접기 ▴'
+            : `재료 ${usedIngredientList.length}개 · 대체 가능 보기 ▾`}
         </button>
       )}
       <div style={{

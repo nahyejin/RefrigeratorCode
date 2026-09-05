@@ -146,7 +146,15 @@ const IngredientPillGroup: React.FC<IngredientPillGroupProps> = ({ needIngredien
   // 접힘 상태에서 보여줄 pill 개수. pills 는 [부족 → 대체가능 → 보유] 순이라
   // 잘리더라도 "무엇이 부족한지"가 먼저 보인다.
   // 8개면 카드마다 3줄까지 늘어나 목록이 무거워진다는 피드백 → 6개(보통 2줄)로 줄임
-  const COLLAPSED_COUNT = 6;
+  /**
+   * 접었을 때 보여 줄 재료 수.
+   *
+   * 6이었는데, 재료가 7~8개인 레시피가 흔해서 **한두 개 때문에 `+2` 가 붙는**
+   * 일이 잦았다. 그 한두 개를 보려고 누르게 만드는 것은 이득이 없다.
+   * 10까지는 그냥 다 보여 주고, 그보다 많을 때만 접는다 — 재료가 15개인
+   * 레시피에서 칩이 네 줄로 늘어나는 것은 또 다른 문제다.
+   */
+  const COLLAPSED_COUNT = 10;
   const [expanded, setExpanded] = useState(false);
   const overflowCount = pillInfo.pills.length - COLLAPSED_COUNT;
   const visiblePills = expanded ? pillInfo.pills : pillInfo.pills.slice(0, COLLAPSED_COUNT);
@@ -215,12 +223,19 @@ const IngredientPillGroup: React.FC<IngredientPillGroupProps> = ({ needIngredien
           나머지는 개수로 알린다(전체는 카드를 눌러 상세에서 확인). */}
       {pillInfo.substitutes.length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginTop: 2 }}>
+          {/* 이게 이 앱의 핵심 기능인데 회색 12px 로 제일 조용했다.
+              "없는 재료를 무엇으로 바꿀 수 있나" 는 찾아 읽는 게 아니라
+              눈에 들어와야 하는 정보다. */}
           <span
             style={{
-              fontSize: 12,
-              fontWeight: 600,
-              color: 'var(--ink-500)',
+              fontSize: 11,
+              fontWeight: 800,
+              color: '#1A1A1E',
+              background: 'var(--brand)',
+              borderRadius: 9999,
+              padding: '2px 8px',
               flex: '0 0 auto',
+              letterSpacing: '.01em',
             }}
           >
             대체 가능
@@ -230,10 +245,10 @@ const IngredientPillGroup: React.FC<IngredientPillGroupProps> = ({ needIngredien
               key={sub}
               style={{
                 fontSize: 13,
-                fontWeight: 600,
-                color: 'var(--ink-900)',
-                background: 'var(--surface-sub)',
-                border: '1px solid var(--line-200)',
+                fontWeight: 700,
+                color: '#1A1A1E',
+                background: '#FFFDF2',
+                border: '1px solid #E0B400',
                 borderRadius: 9999,
                 padding: '2px 10px',
                 flex: '0 0 auto',
