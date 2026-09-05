@@ -449,7 +449,7 @@ export const UsageGauge: React.FC = () => {
           <input
             value={reason}
             onChange={e => setReason(e.target.value)}
-            placeholder="어떻게 쓰실지 한 줄만 알려 주세요 (안 적어도 돼요)"
+            placeholder="어떻게 쓰실지 한 줄만 알려 주세요"
             style={{
               height: 40, borderRadius: 8, border: '1px solid var(--line-200)',
               padding: '0 10px', fontSize: 13, width: '100%', boxSizing: 'border-box',
