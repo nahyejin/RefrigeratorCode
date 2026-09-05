@@ -1407,6 +1407,37 @@ const Maintenance: React.FC = () => {
           켜져 있어야 돕니다. 셋이 <b>순서대로 물려 있어요</b>: 크롤러가 글을 가져오면(07:00),
           다음 날 새벽 AI 가 그 글에서 재료를 뽑고(03:00), 승인한 사전이 파일로 옮겨집니다(04:30).
         </div>
+        {/* 사전이 **대체재를 만들 수 있는 상태인가.**
+            유사도는 Feature 로 계산한다. 어드민에서 새로 만든 대표어는 분류와
+            상위어만 들어오고 Feature 가 비어 있어서, 그런 재료는 맛·식감이
+            아니라 분류가 비슷하다는 이유로만 묶인다. 몇 개인지 보여야 채운다. */}
+        {st.dictionary && (
+          <div style={{
+            margin: '0 0 12px', padding: '10px 12px', borderRadius: 10,
+            border: '1px solid var(--line-200)', background: 'var(--surface-sub)',
+            fontSize: 12.5, lineHeight: 1.7, color: 'var(--ink-700)',
+          }}>
+            재료 <b>{st.dictionary.ingredients}</b>개 · 동의어 <b>{st.dictionary.synonyms}</b>개
+            {' · '}
+            대체 재료 표는 <b>매일 04:30</b> 사전에서 다시 만듭니다(손댈 필요 없음).
+            {st.dictionary.no_feature?.length > 0 && (
+              <>
+                <br />
+                <b style={{ color: '#B4780A' }}>
+                  Feature 가 없어 분류로만 묶이는 재료 {st.dictionary.no_feature.length}개
+                </b>
+                {' — '}{st.dictionary.no_feature.slice(0, 8).join(', ')}
+                {st.dictionary.no_feature.length > 8 && ' 외'}
+                <br />
+                <span style={{ color: 'var(--ink-500)' }}>
+                  사전 CSV 의 <code>Feature</code> 칸에 맛·식감을 적어 넣으면 다음 새벽부터
+                  제대로 된 대체재가 붙습니다. (상위어에 Feature 가 있으면 자동으로 물려받아요)
+                </span>
+              </>
+            )}
+          </div>
+        )}
+
         <div style={{ overflowX: 'auto' }}>
           <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 860 }}>
             <thead>

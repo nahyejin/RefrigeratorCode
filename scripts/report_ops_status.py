@@ -42,7 +42,7 @@ TRACKED = [
     {
         "path": "frontend/public/ingredient_substitute_table.csv",
         "label": "대체 재료 표",
-        "why": "'대체 가능' 표시의 근거. 재료가 늘면 함께 늘려야 한다",
+        "why": "'대체 가능' 표시의 근거. 매일 04:30 사전에서 다시 만든다 (손댈 필요 없음)",
     },
     {
         "path": "frontend/public/Filter_Keywords.csv",
@@ -102,6 +102,46 @@ def file_info(entry):
     except Exception as e:  # noqa: BLE001
         info["error"] = f"{type(e).__name__}"
     return info
+
+
+def dictionary_health():
+    """사전이 **대체재를 만들 수 있는 상태인가.**
+
+    유사도는 `Feature` 로 계산한다. 어드민에서 새로 만든 대표어는 분류와 상위어만
+    들어오고 Feature 는 비어 있어서, 그 재료는 분류가 비슷하다는 이유로만 묶인다
+    (맛·식감이 아니라). 몇 개나 그런 상태인지 어드민에서 보여야 채워 넣을 수 있다.
+    """
+    path = os.path.join(ROOT, "frontend", "public",
+                        "ingredient_profile_dict_with_substitutes.csv")
+    if not os.path.exists(path):
+        return None
+    try:
+        import csv as _csv
+        with io.open(path, encoding="utf-8-sig", newline="") as f:
+            rows = list(_csv.DictReader(f))
+    except Exception:  # noqa: BLE001
+        return None
+
+    mats = [r for r in rows if (r.get("대분류") or "").strip() == "재료"]
+    by = {(r.get("keyword") or "").strip(): r for r in rows}
+    no_feature = []
+    for r in mats:
+        if (r.get("Feature") or "").strip():
+            continue
+        # 상위어에서 물려받을 수 있으면 괜찮다 (generate_substitutes 가 그렇게 한다)
+        parent = by.get((r.get("hyperonym") or "").strip())
+        if parent and (parent.get("Feature") or "").strip():
+            continue
+        no_feature.append((r.get("keyword") or "").strip())
+
+    return {
+        "ingredients": len(mats),
+        "synonyms": sum(
+            len([x for x in (r.get("synonyms") or "").split(",") if x.strip()])
+            for r in mats
+        ),
+        "no_feature": no_feature,
+    }
 
 
 def scheduled_tasks():
@@ -185,6 +225,7 @@ def collect():
     return {
         "generated_at": datetime.now(KST).isoformat(),
         "files": [file_info(e) for e in TRACKED],
+        "dictionary": dictionary_health(),
         "tasks": tasks,
         "logs": [x for x in (log_tail("llm_ingredients.log"),
                              log_tail("scheduled_run.log"),
@@ -253,6 +294,13 @@ def main():
         rows = f.get("rows")
         extra = f" (링크 채움 {f['filled']})" if "filled" in f else ""
         print(f"  {f['label']:<18} {str(rows):>6}행{extra:<16} 최근수정 {(f.get('last_commit_at') or '?')[:10]}")
+    dh = payload.get("dictionary")
+    if dh:
+        print("")
+        print(f"  재료 {dh['ingredients']}개 · 동의어 {dh['synonyms']}개"
+              f" · Feature 없어 분류로만 묶이는 재료 {len(dh['no_feature'])}개"
+              + (f" ({', '.join(dh['no_feature'][:6])})" if dh["no_feature"] else ""))
+
     print()
     for t in payload["tasks"]:
         mark = "  (이번엔 못 읽음 — 지난 값)" if t.get("stale") else ""

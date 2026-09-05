@@ -289,6 +289,7 @@ def generate_substitutes() -> List[Dict]:
     
     # 재료별 정보 저장
     ingredients_info = {}
+    hyperonym_of = {}
     for _, row in df_ingredients.iterrows():
         keyword = str(row['keyword']).strip()
         if not keyword or keyword == 'nan':
@@ -302,6 +303,37 @@ def generate_substitutes() -> List[Dict]:
             '세세분류': str(row['세세분류']) if not pd.isna(row['세세분류']) else '',
             'features': parse_features(row['Feature']),
         }
+        h = row.get('hyperonym')
+        hyperonym_of[keyword] = str(h).strip() if not pd.isna(h) else ''
+
+    # ── Feature 가 빈 재료는 **상위어에서 물려받는다** ──────────────
+    #
+    # 왜 필요한가: 어드민에서 승인해 새로 만든 대표어는 분류와 상위어만 들어오고
+    # Feature 는 비어 있다(`scripts/apply_dictionary_additions.py`). 그런데 유사도는
+    # Feature 로만 계산하므로, 비어 있으면 `calculate_feature_similarity` 가 늘 0을
+    # 돌려주고 그 재료는 **대체표에 영원히 못 들어간다.** 화면에서 `대체 가능` 이
+    # 절대 안 뜨는 재료가 된다.
+    #
+    # 상위어는 바로 그런 쓰임을 위해 받아 둔 값이다 — `닭다리` 의 상위어가
+    # `닭고기` 면, 닭고기의 특징을 물려받는 것이 맞는 첫 근사다. 사람이 나중에
+    # Feature 를 적어 넣으면 그때부터는 그것을 쓴다(빈 것만 채우므로).
+    inherited = 0
+    for keyword, info in ingredients_info.items():
+        if info['features']:
+            continue
+        parent = hyperonym_of.get(keyword) or ''
+        pinfo = ingredients_info.get(parent)
+        if pinfo and pinfo['features']:
+            info['features'] = list(pinfo['features'])
+            inherited += 1
+    if inherited:
+        print(f"[INFO] Feature 가 비어 상위어에서 물려받은 재료: {inherited}개")
+
+    still_empty = [k for k, v in ingredients_info.items() if not v['features']]
+    if still_empty:
+        # 상위어도 사전에 없거나 그쪽도 비었다. 사람이 적어 넣어야 대체재가 생긴다.
+        print(f"[WARN] Feature 가 없어 대체재를 못 만드는 재료 {len(still_empty)}개: "
+              + ", ".join(still_empty[:15]))
     
     # 중분류별로 그룹화
     groups_by_mid = defaultdict(list)
