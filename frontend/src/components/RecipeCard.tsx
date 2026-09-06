@@ -225,6 +225,20 @@ export interface RecipeCardProps {
    */
   onHeightChange?: (height: number) => void;
   /**
+   * 재료 칩을 펼쳤는지를 **바깥에서 쥐고 있을 때** 쓴다.
+   *
+   * 가로 목록(`react-window`)은 부모가 다시 그려질 때마다 행을 통째로
+   * 다시 만든다(`Row` 가 렌더 함수 안에서 정의돼 있어 매번 다른 부품으로
+   * 보인다). 그러면 카드 안에 있던 `펼침` 상태가 **매번 초기화**돼서,
+   * 눌러도 펼쳐졌다 곧바로 접히는 것처럼 보였다 — 실제로 높이가
+   * 299 → 357 → 299 로 오르내렸다. 목록이 상태를 들고 있으면 행이
+   * 다시 만들어져도 펼친 채로 남는다.
+   *
+   * 안 넘기면 예전처럼 카드가 스스로 들고 있는다(세로 목록이 그렇다).
+   */
+  chipsOpen?: boolean;
+  onChipsToggle?: (open: boolean) => void;
+  /**
    * 이 카드가 **무엇을 위한 자리인가.**
    *
    *  - `match`  (기본) — 냉장고요리. 매칭률이 곧 정렬 기준이라 그 숫자가
@@ -255,6 +269,8 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
   isHorizontal = false,
   fixedHeight,
   onHeightChange,
+  chipsOpen: chipsOpenProp,
+  onChipsToggle,
   attributionLabel,
 }) => {
   // 부족 재료 pill 을 눌렀을 때 열리는 구매 안내 시트의 대상 재료
@@ -264,23 +280,51 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
   /** 훑어보는 자리인가. 사진과 제목에 자리를 몰아준다. */
   const browse = variant === 'browse';
   /** 재료 칩을 펼쳤나. `browse` 에서는 기본으로 접어 둔다. */
-  const [chipsOpen, setChipsOpen] = React.useState(false);
+  const [chipsOpenSelf, setChipsOpenSelf] = React.useState(false);
+  const chipsOpen = chipsOpenProp ?? chipsOpenSelf;
+  const setChipsOpen = (next: boolean) => {
+    if (onChipsToggle) onChipsToggle(next);
+    if (chipsOpenProp === undefined) setChipsOpenSelf(next);
+  };
   const rootRef = React.useRef<HTMLDivElement | null>(null);
 
-  // 접고 펼 때마다 **실제 높이**를 위로 올려 보낸다. 가로 목록은 이 값으로
-  // 자기 높이를 늘린다 — 카드만 늘어나면 목록 상자에서 그대로 잘린다.
-  React.useEffect(() => {
-    if (!onHeightChange) return;
-    const el = rootRef.current;
-    if (!el) return;
-    // 펼침 애니메이션 없이 즉시 바뀌지만, 칩이 몇 줄로 감길지는 그려 봐야
-    // 안다. 한 프레임 뒤에 잰다.
-    const id = window.requestAnimationFrame(() => {
-      const el2 = rootRef.current;
-      if (el2) onHeightChange(el2.getBoundingClientRect().height);
+  /**
+   * 접고 펼 때마다 **실제 높이**를 위로 올려 보낸다. 가로 목록은 이 값으로
+   * 자기 높이를 늘린다 — 카드만 늘어나면 목록 상자에서 그대로 잘린다.
+   *
+   * **왜 `useEffect` 가 아니라 콜백 ref 인가.**
+   *   이 카드는 썸네일이 실제로 뜨는지 확인될 때까지 `return null` 이다.
+   *   그래서 첫 마운트에는 DOM 이 아예 없다. `useEffect(..., [])` 로 붙이면
+   *   그 없는 순간에 한 번 시도하고 끝나서, **관찰자가 영영 안 붙었다**
+   *   (실제로 카드 76개 전부 `rootRef.current === null` 이었다).
+   *   콜백 ref 는 노드가 붙는 바로 그때 불린다.
+   *
+   * **왜 `ResizeObserver` 인가.** 한 프레임 뒤에 재는 방식은 놓치는 때가
+   *   있었다 — 펼치는 순간 목록이 행을 통째로 다시 만들어, 예약해 둔 프레임이
+   *   취소되거나 옛 노드를 쟀다.
+   */
+  const heightCb = React.useRef(onHeightChange);
+  heightCb.current = onHeightChange;
+  const roRef = React.useRef<ResizeObserver | null>(null);
+  const setRootEl = React.useCallback((el: HTMLDivElement | null) => {
+    rootRef.current = el;
+    if (roRef.current) {
+      roRef.current.disconnect();
+      roRef.current = null;
+    }
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(() => {
+      const now = rootRef.current;
+      // 떼어진 노드는 보고하지 않는다. 행이 다시 만들어질 때 옛 카드가 크기 0
+      // 이 되는데, 그 마지막 알림이 새 카드의 값 뒤에 도착해 **좋은 값을 0 으로
+      // 덮었다**(둘의 열쇠가 같은 레시피 id 라서).
+      if (!now || !now.isConnected || !heightCb.current) return;
+      const h = now.getBoundingClientRect().height;
+      if (h > 0) heightCb.current(h);
     });
-    return () => window.cancelAnimationFrame(id);
-  }, [chipsOpen, onHeightChange]);
+    ro.observe(el);
+    roRef.current = ro;
+  }, []);
 
   const [thumbnailStatus, setThumbnailStatus] = React.useState<boolean | null>(null);
   
@@ -430,7 +474,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
 
   return (
     <div
-      ref={rootRef}
+      ref={setRootEl}
       className="recipe-card-press bg-white rounded-[20px] relative block cursor-pointer"
       style={{
         ...(isLast ? STYLES.lastCard : STYLES.card),
@@ -726,7 +770,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
       {browse && usedIngredientList.length > 0 && (
         <button
           type="button"
-          onClick={e => { e.preventDefault(); e.stopPropagation(); setChipsOpen(v => !v); }}
+          onClick={e => { e.preventDefault(); e.stopPropagation(); setChipsOpen(!chipsOpen); }}
           style={{
             alignSelf: 'flex-start', height: 26, padding: 0, border: 'none',
             background: 'transparent', cursor: 'pointer',

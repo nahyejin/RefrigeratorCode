@@ -148,9 +148,30 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
    * 카드가 접고 펼 때마다 실제 높이를 올려 보내면, 그중 가장 높은 것에
    * 맞춰 목록도 같이 늘린다. 전부 접으면 0 으로 돌아온다.
    */
+  /**
+   * 지금 재료를 펼친 카드. **목록이 들고 있어야 한다** — `Row` 가 렌더
+   * 함수 안에서 정의돼 있어 부모가 다시 그려질 때마다 행이 통째로 다시
+   * 만들어지고, 그러면 카드 안의 펼침 상태가 매번 사라졌다.
+   * 한 줄에 하나만 펼친다 — 어차피 줄 높이는 가장 높은 것에 맞춰진다.
+   */
+  const [openCardId, setOpenCardId] = useState<number | null>(null);
   const cardHeightsRef = useRef<Map<number, number>>(new Map());
   const [expandedExtra, setExpandedExtra] = useState(0);
+
+  /**
+   * 좌우 스크롤 화살표의 세로 자리.
+   *
+   * 전에는 `top: '35%'` 였다. 카드를 펼치면 목록이 높아지는데 35% 는
+   * **늘어난 높이의 35%** 라, 화살표가 아래로 밀려 카드와 상관없는
+   * 자리에 둥둥 떠 있었다. 화살표가 가리키는 것은 늘 카드(썸네일)이므로
+   * **카드 높이 기준 픽셀**로 못 박는다 — 펼치든 접든 안 움직인다.
+   */
+  const arrowTop = Math.round(cardHeight * 0.35) + 3;   // +3 = 카드 위 여백
+
   const reportCardHeight = React.useCallback((key: number, height: number) => {
+    // 0 은 화면에서 빠진 카드가 보내는 값이다 (위 `RecipeCard` 주석 참고).
+    // 받아 두면 줄 높이가 도로 줄어 펼친 재료가 잘린다.
+    if (!(height > 0)) return;
     const map = cardHeightsRef.current;
     const rounded = Math.ceil(height);
     if (map.get(key) === rounded) return;
@@ -369,6 +390,14 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
           isHorizontal={true}
           variant={variant}
           fixedHeight={cardHeight}
+          chipsOpen={openCardId === recipe.id}
+          onChipsToggle={(open) => {
+            // 다른 카드를 펼치면 앞의 것은 접는다. 접힌 카드의 높이 기록도
+            // 지워야 줄 높이가 제자리로 온다.
+            cardHeightsRef.current.clear();
+            setExpandedExtra(0);
+            setOpenCardId(open ? recipe.id : null);
+          }}
           onHeightChange={(h) => reportCardHeight(recipe.id, h)}
           onThumbnailError={onThumbnailError}
           attributionLabel={getAttributionLabel?.(recipe)}
@@ -480,7 +509,7 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
           style={{
             position: 'absolute',
             left: '8px',
-            top: '35%',
+            top: arrowTop,
             transform: 'translateY(-50%)',
             pointerEvents: 'auto',
             zIndex: 10,
@@ -668,7 +697,7 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
           style={{
             position: 'absolute',
             right: '8px',
-            top: '35%',
+            top: arrowTop,
             transform: 'translateY(-50%)',
             pointerEvents: 'auto',
             zIndex: 10,
