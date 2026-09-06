@@ -17,20 +17,26 @@
  *   (실제로는 한 달 가는 재료에 D-7 이 붙어 멀쩡한 재료를 버리게 됨).
  *   그래서 매칭 실패 시에는 아무 표시도 하지 않는다.
  *
- * ── 값을 정하는 기준 (2026-09-06 전면 상향) ──────────────────────────
+ * ── 값을 정하는 기준 (2026-09-06 손봄) ────────────────────────────────
  *
- * 처음 값은 전반적으로 너무 짧았다. 위 문단이 경계한 바로 그 손해 — **멀쩡한
- * 재료를 버리게 만드는 쪽** — 으로 기울어 있었다. 특히 냉동이 그랬다.
+ * 처음 값은 냉장·실온이 전반적으로 짧았다. 위 문단이 경계한 바로 그 손해 —
+ * **멀쩡한 재료를 버리게 만드는 쪽** — 으로 기울어 있었다.
  *
- *  1. **냉동 일수는 "안전" 이 아니라 "맛" 이다.** 얼려 두면 상하지는 않는다.
- *     그래서 이 숫자는 "이쯤부터 맛이 떨어진다" 는 뜻이고, 통상 8~12개월이다.
- *     `냉동 잎채소 30일` 같은 값은 실제와 열 배 가까이 차이가 났다.
- *  2. **냉장은 안전과 직결되므로 짧게 둔다.** 생선 2일, 조개·연체 2일,
- *     생고기 4일은 그대로거나 거의 그대로다 — 여기서 늘리면 사람이 상한 것을
- *     먹게 된다. 반대로 뿌리채소·과일·치즈처럼 **상하는 데 오래 걸리는 것**만
- *     올렸다.
- *  3. **실온은 "서늘한 곳" 을 가정한다.** 감자·양파를 베란다에 두면 한두 달
- *     간다. 14일은 너무 짧았다.
+ *  1. **냉장은 안전과 직결되므로 짧게 둔다.** 생선 2일, 조개·연체 2일은
+ *     그대로고 생고기는 3 → 4일뿐이다. 여기서 늘리면 사람이 상한 것을 먹게
+ *     된다. 대신 뿌리채소(21→30)·과일(7→14)·치즈(30→45)처럼 **상하는 데
+ *     원래 오래 걸리는 것**만 올렸다.
+ *  2. **실온은 "서늘한 곳" 을 가정한다.** 감자·양파를 베란다에 두면 한두 달
+ *     간다. 뿌리채소 14 → 30일.
+ *  3. **냉동은 거의 안 건드린다.** 한때 USDA 기준(8~12개월)을 그대로 옮겨
+ *     240일까지 올렸다가 되돌렸다. 두 가지가 틀렸다:
+ *       - 그 숫자는 **−18°C 를 계속 유지하고 제대로 포장한** 조건의 값이다.
+ *         가정 냉동실은 문을 자주 여닫고 성에가 끼고 소분 포장도 아니라,
+ *         실제로는 한두 달이면 냉동상이 온다.
+ *       - **`약 D-238` 은 정보가 아니다.** 아무 행동도 부르지 않고, 그러면
+ *         냉동실 재료가 임박 목록에 영영 안 올라온다. 이 앱은 냉장고를 털게
+ *         하려고 있는 것인데 냉동실이 무덤이 된다.
+ *     명백히 짧았던 둘만 남겼다 — 잎채소 30 → 60, 과일 90 → 120.
  *
  * 그래도 이 값은 대략이다 — 포장·손질 상태·문 여닫는 횟수에 따라 달라진다.
  * 그래서 화면에는 늘 `약 D-5` 처럼 짐작임을 밝히고, 사용자가 적은 실제
@@ -50,17 +56,17 @@ type ShelfLife = { frozen: number | null; fridge: number | null; room: number | 
  */
 const BY_DETAIL: Record<string, ShelfLife> = {
   // 채소 — 잎채소가 가장 빨리 무르고, 뿌리채소가 가장 오래 간다
-  '잎채소류': { frozen: 180, fridge: 7, room: 2 },
-  '열매채소류': { frozen: 240, fridge: 10, room: 5 },
-  '뿌리채소류': { frozen: 240, fridge: 30, room: 30 },
-  '과일': { frozen: 240, fridge: 14, room: 7 },
+  '잎채소류': { frozen: 60, fridge: 7, room: 2 },
+  '열매채소류': { frozen: 90, fridge: 10, room: 5 },
+  '뿌리채소류': { frozen: 180, fridge: 30, room: 30 },
+  '과일': { frozen: 120, fridge: 14, room: 7 },
 
   // 육류·수산 — 실온 보관은 권하지 않으므로 room 은 추정하지 않는다
-  '육류': { frozen: 180, fridge: 4, room: null },
-  '가공육': { frozen: 90, fridge: 10, room: null },
-  '생선류': { frozen: 150, fridge: 2, room: null },
-  '조개류/연체류': { frozen: 90, fridge: 2, room: null },
-  '갑각류': { frozen: 150, fridge: 3, room: null },
+  '육류': { frozen: 120, fridge: 4, room: null },
+  '가공육': { frozen: 60, fridge: 10, room: null },
+  '생선류': { frozen: 90, fridge: 2, room: null },
+  '조개류/연체류': { frozen: 60, fridge: 2, room: null },
+  '갑각류': { frozen: 90, fridge: 3, room: null },
   '달걀/난류': { frozen: null, fridge: 35, room: 10 },
   '건조해산물류': { frozen: 365, fridge: 180, room: 180 },
   '해조류': { frozen: 180, fridge: 21, room: 180 },
@@ -70,14 +76,14 @@ const BY_SUB: Record<string, ShelfLife> = {
   '곡류': { frozen: 365, fridge: 180, room: 180 },
   '두류/콩류': { frozen: 365, fridge: 180, room: 180 },
   '견과/씨앗/고추류': { frozen: 365, fridge: 180, room: 90 },
-  '버섯류': { frozen: 180, fridge: 10, room: 5 },
+  '버섯류': { frozen: 90, fridge: 10, room: 5 },
   '기타 기능성 식재료': { frozen: 180, fridge: 90, room: 90 },
 
   // 유제품
   '우유/분유': { frozen: null, fridge: 10, room: 60 }, // 실온 보관을 골랐다면 멸균 제품으로 본다
   '요거트/발효유': { frozen: null, fridge: 21, room: 2 },
-  '버터류': { frozen: 270, fridge: 90, room: 7 },
-  '크림류': { frozen: 90, fridge: 10, room: 2 },
+  '버터류': { frozen: 180, fridge: 90, room: 7 },
+  '크림류': { frozen: 60, fridge: 10, room: 2 },
   '치즈': { frozen: 180, fridge: 45, room: 3 },
   '치즈(디저트용)': { frozen: 180, fridge: 45, room: 3 },
   '치즈(분말)': { frozen: 365, fridge: 180, room: 90 },
@@ -87,10 +93,10 @@ const BY_SUB: Record<string, ShelfLife> = {
   '치즈(토핑용)': { frozen: 180, fridge: 45, room: 3 },
   '치즈(폼)': { frozen: 180, fridge: 30, room: 3 },
   '치즈(피자용)': { frozen: 180, fridge: 45, room: 3 },
-  '기타 유제품': { frozen: 180, fridge: 21, room: 7 },
+  '기타 유제품': { frozen: 90, fridge: 21, room: 7 },
 
   // 양념 — 대부분 오래 가지만, 다진마늘·육수처럼 짧은 것이 섞여 있어 따로 둔다
-  '향신다짐류': { frozen: 270, fridge: 30, room: 3 },
+  '향신다짐류': { frozen: 180, fridge: 30, room: 3 },
   '감칠맛/육수': { frozen: 180, fridge: 14, room: 180 },
   '요리베이스/소스': { frozen: 180, fridge: 90, room: 90 },
   '디핑/스프레드': { frozen: 180, fridge: 90, room: 60 },
@@ -99,14 +105,14 @@ const BY_SUB: Record<string, ShelfLife> = {
 
   // 즉석식
   '통조림/보존식품': { frozen: null, fridge: 730, room: 730 },
-  '완제품·조리불요': { frozen: 120, fridge: 10, room: 30 },
+  '완제품·조리불요': { frozen: 90, fridge: 10, room: 30 },
   '즉석조리 필요': { frozen: 180, fridge: 180, room: 180 },
-  '디저트/간식류': { frozen: 120, fridge: 45, room: 90 },
+  '디저트/간식류': { frozen: 90, fridge: 45, room: 90 },
 
   // 베이킹
   '조리보조 기능성 재료': { frozen: 365, fridge: 365, room: 365 },
   '조리완성형 재료': { frozen: 180, fridge: 90, room: 90 },
-  '완제품/준완제품': { frozen: 120, fridge: 21, room: 30 },
+  '완제품/준완제품': { frozen: 90, fridge: 21, room: 30 },
 
   // 음료
   '주류': { frozen: null, fridge: 730, room: 730 },
@@ -122,7 +128,7 @@ const BY_SUB: Record<string, ShelfLife> = {
 const BY_MID: Record<string, ShelfLife> = {
   // 소금·간장·설탕 같은 기본 양념은 사실상 상하지 않는다
   '양념/조미료': { frozen: 365, fridge: 365, room: 365 },
-  '유제품': { frozen: 180, fridge: 21, room: 7 },
+  '유제품': { frozen: 90, fridge: 21, room: 7 },
   '즉석식/간편식': { frozen: 180, fridge: 30, room: 90 },
   '베이킹·제면·디저트용 재료': { frozen: 180, fridge: 90, room: 90 },
   '베이킹·제면·디저트용': { frozen: 180, fridge: 90, room: 90 },
