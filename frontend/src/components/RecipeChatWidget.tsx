@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { track } from '../utils/track';
-import { applyUsage, refreshUsage, usageHeaders } from '../utils/usage';
+import { applyUsage, refreshUsage, spendOptimistically, usageHeaders } from '../utils/usage';
 import { UsageLine, useUsage } from './UsageMeter';
 import BackButton from './ui/BackButton';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -413,6 +413,10 @@ const RecipeChatWidget: React.FC = () => {
     setInput('');
     setError('');
     setLoading(true);
+    // 서버는 LLM 을 부르기 전에 이미 깎았다. 답이 5~10초 걸리는데 그때까지
+    // 위쪽 숫자가 그대로면 "차감이 안 된다" 로 보인다 — 보내는 즉시 깎아
+    // 보여 주고, 응답이 오면 아래에서 서버 값으로 덮는다.
+    spendOptimistically(chatCost);
 
     try {
       const response = await fetch(`${API_BASE_URL}/api/chat`, {

@@ -120,6 +120,36 @@ export function applyUsage(usage: Usage | null | undefined) {
   if (usage && typeof usage.balance === 'number') publish(usage);
 }
 
+/**
+ * **보내는 순간 미리 깎아 둔다.**
+ *
+ * 서버는 LLM 을 부르기 **전에** 크레딧을 차감한다(`usage_quota.consume`).
+ * 그런데 화면은 응답이 와야 그 사실을 안다 — 챗봇 답이 5~10초 걸리므로,
+ * 질문을 보내고 바로 위를 보면 **옛 숫자가 그대로**다. "차감이 안 된다"
+ * 로 보이는 것이 이 때문이다.
+ *
+ * 그래서 보내는 즉시 여기서 깎아 보여 주고, 응답이 오면 `applyUsage` 가
+ * **서버 값으로 덮는다.** 서버가 늘 최종 결정권을 갖는다:
+ *  - 한도 초과(429)여도 응답에 사용량이 실려 오므로 곧 제자리로 온다
+ *  - 아예 응답이 없으면 부르는 쪽이 `refreshUsage()` 로 다시 맞춘다
+ *  - 차감이 없는 요청(LLM 을 안 부르는 광범위한 질문)도 같은 길로 되돌아온다
+ *
+ * 즉 **틀려도 몇 초 안에 스스로 고쳐지는 낙관적 표시**다. 반대로 정확을
+ * 기다리면 "눌렀는데 아무 일도 안 일어난다" 가 매번 5~10초씩 이어진다.
+ */
+export function spendOptimistically(cost: number) {
+  if (!cached || typeof cost !== 'number' || cost <= 0) return;
+  const next: Usage = {
+    ...cached,
+    balance: Math.max(0, cached.balance - cost),
+    used: (cached.used ?? 0) + cost,
+    daily_used: (cached.daily_used ?? 0) + cost,
+    daily_remaining: Math.max(0, (cached.daily_remaining ?? 0) - cost),
+  };
+  next.can_use_ai = next.balance > 0 && next.daily_remaining > 0;
+  publish(next);
+}
+
 /** 사용량을 불러온다. 같은 시점에 여러 곳이 불러도 요청은 한 번만 나간다. */
 export function refreshUsage(): Promise<Usage | null> {
   if (inflight) return inflight;

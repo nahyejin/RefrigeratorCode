@@ -12,7 +12,7 @@ import { openCookMode } from '../utils/cookMode';
 import { resolveCoupangUrl } from '../utils/coupangLink';
 import { track } from '../utils/track';
 import { getProxiedImageUrl } from '../utils/imageUtils';
-import { usageHeaders, applyUsage } from '../utils/usage';
+import { usageHeaders, applyUsage, spendOptimistically } from '../utils/usage';
 import { UsageLine, useUsage } from '../components/UsageMeter';
 import { savePlan, conflictingDates, toDateKey, type PlannedMeal } from '../utils/mealPlan';
 import { loadChat, saveChat, clearChat, archiveChat, loadSessions, dropSession,
@@ -819,6 +819,10 @@ const WeeklyPlan: React.FC = () => {
     setAsking(true);
     setError(null);
     setAiNote(null);
+    // 서버는 부르기 전에 이미 깎는다. 식단은 답이 오래 걸려서, 그때까지
+    // 숫자가 그대로면 "안 나갔나" 싶다 — 먼저 깎아 보이고 응답이 오면
+    // 아래 `applyUsage` 가 서버 값으로 덮는다.
+    spendOptimistically(planCost);
     try {
       const res = await fetch(`${API_BASE_URL}/api/plan/suggest`, {
         method: 'POST',

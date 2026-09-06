@@ -19,7 +19,7 @@ import CameraCaptureSheet, { type CaptureMode } from '../components/CameraCaptur
 import IngredientRecognitionSheet, { type RecognizedIngredient, type UnmatchedIngredient, type ConfirmedIngredient } from '../components/IngredientRecognitionSheet';
 import Dialog from '../components/ui/Dialog';
 import { shrinkImageForUpload } from '../utils/imageUtils';
-import { applyUsage, usageHeaders } from '../utils/usage';
+import { applyUsage, spendOptimistically, usageHeaders } from '../utils/usage';
 import { useUsage } from '../components/UsageMeter';
 import { loadIngredientCategoryMap, estimateExpiry, type CategoryMap } from '../utils/shelfLife';
 import {
@@ -1643,6 +1643,9 @@ const MyFridge: React.FC = () => {
   // 비회원은 AI 기능을 못 쓴다. 서버도 막지만, **누르고 나서 실패하는 것보다
   // 누르기 전에 알려 주는 편이 낫다.**
   const usage = useUsage();
+  // 사진 인식 한 번에 나가는 크레딧. 값을 손으로 적어 두면 낡으므로 서버가
+  // 정한 것을 쓴다 (`UsageLine` 이 쓰는 값과 같다).
+  const visionCost = (usage?.credits as Record<string, number> | undefined)?.vision ?? 2;
 
   const showPrepNotice = (text: string) => {
     setInfoToast({ text });
@@ -1690,6 +1693,10 @@ const MyFridge: React.FC = () => {
     setRecognitionPhotoCount(files.length);
     setRecognitionLoading(true);
     setRecognitionOpen(true);
+    // 서버는 부르기 전에 이미 깎는다. 사진 인식은 올리고 읽는 데 시간이
+    // 걸려서, 그때까지 숫자가 그대로면 "안 나갔나" 싶다 — 먼저 깎아 보이고
+    // 응답이 오면 아래 `applyUsage` 가 서버 값으로 덮는다.
+    spendOptimistically(visionCost);
 
     try {
       // 폰 원본은 3~5MB라 그대로 올리면 느리다. 긴 변 1600px JPEG로 줄여 보낸다.
