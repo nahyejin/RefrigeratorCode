@@ -3,19 +3,50 @@
  *
  * - **정렬 우선순위는 `rank` 숫자만 사용합니다.** (작을수록 상단)
  * - `// --- 해산물 ---` 같은 주석은 읽기용 구역일 뿐, 카테고리로 자동 정렬되지 않습니다.
- * - 아래 `PREMIUM_INGREDIENT_DEFS`는 **카테고리별로 묶어 두었지만**, 실제 순서는 `rank`로만 결정됩니다.
  * - 순서를 바꾸려면 **이름 옆 `rank`만 수정**하면 됩니다 (줄 위치/주석 블록은 마음대로).
  * - 같은 `rank`를 쓰면 그 재료들은 동급으로 취급됩니다.
+ *
+ * ── 2026-09-06 전면 정리 ────────────────────────────────────────────────
+ *
+ * 목록에 **일상 재료가 잔뜩 들어 있었다.** 인기 목록 110건 중 **58건(53%)** 이
+ * 「특별한 날」로 뽑히고 있었고, 뽑힌 이유가 이랬다:
+ *
+ *   파김치 · 배추 겉절이 · 김치찌개 · 애호박볶음   ← `새우` (실제로는 **새우젓**)
+ *   단호박빵 · 명란솥밥                        ← `버터`
+ *   감자반찬 · 청소년 아침식단                   ← `소고기`
+ *   찹쌀떡                                  ← `꿀`
+ *   닭다리살 소금구이                          ← `새송이버섯` 이 `송이버섯` 에 걸림
+ *
+ * 카탈로그 전체(43,320건)로 재 봐도 `버터` 9.0% · `새우` 8.9% · `표고버섯` 5.2% ·
+ * `소고기` 4.8% · `꿀` 4.2% 였다. 이 정도로 흔한 것이 있으면 그 섹션은
+ * "특별한 날" 이 아니라 "아무 날" 이 된다.
+ *
+ * 그래서 **일상 재료를 전부 뺐다** — 버터·생크림·크림치즈·모짜렐라·올리브오일·
+ * 꿀·메이플시럽·소고기·삼겹살·목살·참치·오징어·바지락·홍합·골뱅이·새우·
+ * 표고버섯·새송이버섯·느타리버섯·로메인·치커리.
+ *
+ * `exclude` 를 새로 뒀다. 앞뒤에 말이 붙으면 **뜻이 달라지는** 것들이 있다:
+ *   송이버섯 ← 새송이버섯 · 양송이버섯   갈비 ← 돼지갈비 · 갈비양념 · 갈비탕
+ *   굴 ← 굴소스 · 굴비                안심/등심 ← 돼지안심 · 돼지등심
+ *   와인 ← 와인식초                   도미 ← 도미노
+ *
+ * 정리 뒤 같은 인기 목록에서 **58건 → 7건**이 됐다. 적어 보이지만 그게 맞다 —
+ * 「이번 주 인기」는 원래 집밥 위주라 그 안에 특별한 날 음식이 많을 수가 없다.
+ * (풀 자체를 인기 목록이 아니라 카탈로그 전체로 넓히는 것은 별도 문제다)
  */
 
-/** 카테고리 주석은 문서화용. `rank`가 우선순위. */
-const PREMIUM_INGREDIENT_DEFS: ReadonlyArray<{ rank: number; name: string }> = [
+/** 카테고리 주석은 문서화용. `rank`가 우선순위. `exclude` 는 그 말이 든 토큰을 뺀다. */
+const PREMIUM_INGREDIENT_DEFS: ReadonlyArray<{
+  rank: number;
+  name: string;
+  exclude?: readonly string[];
+}> = [
   // --- 초고가·희귀 ---
   { rank: 0, name: '캐비어' },
   { rank: 1, name: '푸아그라' },
   { rank: 2, name: '트러플' },
 
-  // --- 해산물 ---
+  // --- 해산물 (사서 상에 올리는 것만. 새우·오징어·바지락은 일상이라 뺐다) ---
   { rank: 10, name: '킹크랩' },
   { rank: 11, name: '랍스터' },
   { rank: 12, name: '대게' },
@@ -25,56 +56,42 @@ const PREMIUM_INGREDIENT_DEFS: ReadonlyArray<{ rank: number; name: string }> = [
   { rank: 16, name: '해삼' },
   { rank: 17, name: '가리비' },
   { rank: 18, name: '관자' },
-  { rank: 19, name: '새우' },
-  { rank: 20, name: '연어' },
-  { rank: 21, name: '참치' },
+  { rank: 19, name: '대하' },
+  { rank: 20, name: '방어' },
+  { rank: 21, name: '참돔' },
   { rank: 22, name: '광어' },
-  { rank: 23, name: '도미' },
-  { rank: 24, name: '오징어' },
-  { rank: 25, name: '문어' },
-  { rank: 26, name: '바지락' },
-  { rank: 27, name: '홍합' },
-  { rank: 28, name: '골뱅이' },
+  { rank: 23, name: '도미', exclude: ['도미노'] },
+  { rank: 24, name: '문어' },
+  { rank: 25, name: '낙지' },
+  { rank: 26, name: '굴', exclude: ['굴소스', '굴비'] },
+  { rank: 27, name: '연어' },
 
-  // --- 고급 육류 (예: 한우를 해산물보다 우선하고 싶으면 rank를 10 미만으로 옮기기) ---
+  // --- 고급 육류 (소고기·삼겹살·목살은 일상이라 뺐다) ---
   { rank: 40, name: '와규' },
   { rank: 41, name: '한우' },
-  { rank: 42, name: '갈비' },
-  { rank: 43, name: '안심' },
-  { rank: 44, name: '등심' },
-  { rank: 45, name: '스테이크' },
-  { rank: 46, name: '소고기' },
-  { rank: 47, name: '쇠고기' },
-  { rank: 48, name: '삼겹살' },
-  { rank: 49, name: '목살' },
-  { rank: 50, name: '갈매기살' },
+  { rank: 42, name: '갈비', exclude: ['돼지갈비', '갈비양념', '갈비탕', '갈비살'] },
+  { rank: 43, name: '채끝' },
+  { rank: 44, name: '안심', exclude: ['돼지안심'] },
+  { rank: 45, name: '등심', exclude: ['돼지등심'] },
+  { rank: 46, name: '스테이크', exclude: ['스테이크소스'] },
+  { rank: 47, name: '양갈비' },
 
-  // --- 고급 채소·버섯 ---
-  { rank: 60, name: '송이버섯' },
-  { rank: 61, name: '표고버섯' },
-  { rank: 62, name: '새송이버섯' },
-  { rank: 63, name: '느타리버섯' },
-  { rank: 64, name: '아스파라거스' },
-  { rank: 65, name: '로메인' },
-  { rank: 66, name: '치커리' },
-  { rank: 67, name: '루꼴라' },
+  // --- 고급 버섯·채소 (표고·새송이·느타리는 일상이라 뺐다) ---
+  { rank: 60, name: '송이버섯', exclude: ['새송이버섯', '양송이버섯'] },
+  { rank: 61, name: '능이버섯' },
+  { rank: 62, name: '아스파라거스' },
+  { rank: 63, name: '루꼴라' },
 
-  // --- 고급 유제품 ---
-  { rank: 70, name: '모짜렐라' },
-  { rank: 71, name: '고르곤졸라' },
-  { rank: 72, name: '파마산' },
+  // --- 고급 치즈 (모짜렐라·크림치즈는 일상이라 뺐다) ---
+  { rank: 70, name: '고르곤졸라' },
+  { rank: 71, name: '부라타' },
+  { rank: 72, name: '브리치즈' },
   { rank: 73, name: '리코타' },
-  { rank: 74, name: '크림치즈' },
-  { rank: 75, name: '버터' },
-  { rank: 76, name: '생크림' },
 
-  // --- 조미료·양념·주류 ---
-  { rank: 80, name: '올리브오일' },
-  { rank: 81, name: '발사믹' },
-  { rank: 82, name: '와인' },
-  { rank: 83, name: '샴페인' },
-  { rank: 84, name: '꿀' },
-  { rank: 85, name: '메이플시럽' },
+  // --- 주류·조미료 (꿀·메이플시럽·올리브오일은 일상이라 뺐다) ---
+  { rank: 80, name: '샴페인' },
+  { rank: 81, name: '와인', exclude: ['와인식초'] },
+  { rank: 82, name: '발사믹' },
 ];
 
 const PREMIUM_RANK = new Map<string, number>();
@@ -89,13 +106,22 @@ for (const { rank, name } of PREMIUM_INGREDIENT_DEFS) {
 /**
  * `used_ingredients`에서 쪼갠 재료 토큰(= 카드 pill과 동일 출처)이 프리미엄 키워드를 **포함**할 때만 매칭.
  * - 예: 토큰 `대게`, `황대게` → `대게` 프리미엄 O / 역방향 `premium.includes(토큰)` 은 쓰지 않음 (`게`만 있을 때 `대게`로 오인 방지)
+ * - 다만 앞뒤에 말이 붙으면 **뜻이 달라지는** 것이 있어서 `exclude` 로 뺀다.
+ *   `새우젓`은 조미료지 새우가 아니고, `새송이버섯`은 `송이버섯`이 아니다.
+ *   실제로 이것 때문에 `파김치`·`배추 겉절이`가 「특별한 날」로 올라와 있었다.
  * - 카드 pill과 다른 규칙을 두지 않음(동의어 치환 없이, 파싱된 문자열 기준).
  */
-function tokenMatchesPremiumToken(ing: string, premium: string): boolean {
+function tokenMatchesPremiumToken(
+  ing: string,
+  premium: string,
+  exclude?: readonly string[],
+): boolean {
   const i = ing.trim().toLowerCase();
   const p = premium.trim().toLowerCase();
   if (!i || !p) return false;
-  return i.includes(p);
+  if (!i.includes(p)) return false;
+  if (exclude && exclude.some(e => i.includes(e.trim().toLowerCase()))) return false;
+  return true;
 }
 
 /** 매칭 시 이 순서로 순회(표시용). 정렬 우선순위는 항상 `rank`. */
@@ -108,8 +134,8 @@ export const PREMIUM_INGREDIENTS: string[] = [...PREMIUM_INGREDIENT_DEFS]
  */
 export function hasPremiumIngredient(ingredients: string[]): boolean {
   const normalizedIngredients = ingredients.map(ing => ing.trim().toLowerCase());
-  return PREMIUM_INGREDIENT_DEFS.some(({ name: premium }) =>
-    normalizedIngredients.some(ing => tokenMatchesPremiumToken(ing, premium))
+  return PREMIUM_INGREDIENT_DEFS.some(({ name, exclude }) =>
+    normalizedIngredients.some(ing => tokenMatchesPremiumToken(ing, name, exclude))
   );
 }
 
@@ -118,8 +144,8 @@ export function hasPremiumIngredient(ingredients: string[]): boolean {
  */
 export function getPremiumIngredients(recipeIngredients: string[]): string[] {
   const normalizedIngredients = recipeIngredients.map(ing => ing.trim().toLowerCase());
-  const matched = PREMIUM_INGREDIENT_DEFS.filter(({ name: premium }) =>
-    normalizedIngredients.some(ing => tokenMatchesPremiumToken(ing, premium))
+  const matched = PREMIUM_INGREDIENT_DEFS.filter(({ name, exclude }) =>
+    normalizedIngredients.some(ing => tokenMatchesPremiumToken(ing, name, exclude))
   ).map(d => d.name);
   return matched.sort(
     (a, b) =>
