@@ -412,6 +412,22 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
     ? { minHeight: 54 }
     : undefined;
 
+  /*
+   * 마우스를 올렸을 때의 표시는 **CSS 로만** 한다 (`.recipe-card-press:hover`).
+   *
+   * 전에는 카드에 `onMouseEnter` 로 `transform: translateY(-2px)` 를 직접
+   * 넣었는데 둘이 문제였다:
+   *  - 카드가 2px 올라가면 커서가 있던 아래쪽 2px 이 카드 밖이 된다 →
+   *    `mouseleave` → 내려옴 → 다시 `mouseenter` → **떨림.** 전환이 0.12s 라
+   *    그 왕복이 눈에 그대로 보였다.
+   *  - 올라간 2px 이 가로 목록(`overflow-y: hidden`) 밖으로 나가
+   *    **카드 위쪽 선이 잘렸다.**
+   *
+   * 이제 자리를 안 옮기고 그림자만 진해진다. 손가락으로 쓰는 화면에서는 아예
+   * 안 걸리게 `@media (hover: hover)` 로 막아 뒀다 — 터치에서는 한 번 누르면
+   * hover 가 그대로 붙어 있어서 카드가 들린 채로 남았다.
+   */
+
   return (
     <div
       ref={rootRef}
@@ -451,12 +467,6 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
         // 딱딱해지는데, 그림자가 같이 있으면 얇은 선으로도 경계가 읽힌다.
         border: '1px solid var(--line-200)',
         boxShadow: '0 1px 3px rgba(26,26,30,0.05)',
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.transform = 'translateY(-2px)';
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.transform = 'translateY(0)';
       }}
       onClick={handleCardClick}
       onMouseDown={(e) => {

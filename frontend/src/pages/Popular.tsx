@@ -1856,6 +1856,10 @@ const Popular = () => {
                     overflowX: 'auto',
                     overflowY: 'hidden',
                     gap: '16px',
+                    // 카드 맨 위가 이 상자의 맨 위와 딱 붙어 있으면
+                    // `overflow-y: hidden` 이 **테두리 위 그림자를 잘라** 카드
+                    // 윗선이 흐려 보인다. 3px 만 띄운다(아래는 이미 8px).
+                    paddingTop: '3px',
                     paddingBottom: '8px',
                     WebkitOverflowScrolling: 'touch',
                     scrollbarWidth: 'thin',

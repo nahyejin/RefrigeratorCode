@@ -71,6 +71,19 @@ const STYLES = {
   })
 };
 
+/**
+ * 카드 위에 두는 3px.
+ *
+ * 카드 맨 위가 목록 상자(`overflow-y: hidden`)의 맨 위와 딱 붙어 있으면
+ * **테두리 위 그림자가 잘려** 카드 윗선이 흐려 보인다. 아래쪽은 이미
+ * 스크롤바 자리로 8px 이 있다.
+ *
+ * `List` 에 `padding-top` 을 주는 것으로는 안 된다 — `react-window` 는
+ * 아이템을 **절대 위치**로 놓고, 절대 위치 자식은 부모의 padding 만큼
+ * 안 밀린다. 그래서 아이템 래퍼 쪽에 준다(높이는 아래 +3 으로 맞춰 둔다).
+ */
+const CARD_TOP_ROOM = { paddingTop: 3, boxSizing: 'border-box' } as const;
+
 /** 광고 카드를 처음 끼울 수 있는 위치(레시피 인덱스). 첫 화면에는 광고를 두지 않는다 */
 const AD_FIRST_SLOT = 2;
 /** 광고와 광고 사이 최소 레시피 수 */
@@ -310,6 +323,7 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
             marginRight: gap,
             touchAction: 'pan-x pan-y',
             overflowY: 'visible',
+            ...CARD_TOP_ROOM,
           } as React.CSSProperties}
         >
           <CoupangAdCard
@@ -338,6 +352,7 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
           // 가로 캐러셀 안이라도 세로 스크롤은 페이지로 넘어가야 한다.
           touchAction: 'pan-x pan-y',
           overflowY: 'visible',
+          ...CARD_TOP_ROOM,
         } as React.CSSProperties}
       >
         <RecipeCard
@@ -396,7 +411,7 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
       <div 
         ref={containerRef} 
         style={{
-          ...STYLES.listContainer(cardHeight, resolvedListHeightExtra + expandedExtra),
+          ...STYLES.listContainer(cardHeight, resolvedListHeightExtra + expandedExtra + 3),
           overflowY: 'visible', // 광고가 잘리지 않도록 visible로 변경
           overflowX: 'auto',
           touchAction: 'pan-x pan-y', // 가로 스크롤 우선, 세로 스크롤도 허용
@@ -406,7 +421,7 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
       >
         <List
           ref={listRef}
-          height={cardHeight + resolvedListHeightExtra + expandedExtra}
+          height={cardHeight + resolvedListHeightExtra + expandedExtra + 3}
           itemCount={items.length}
           itemSize={itemSize}
           layout="horizontal"

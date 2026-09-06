@@ -945,11 +945,29 @@ a:focus-visible,
 
 /* 카드 누름 반응 — 탭했을 때 반응이 없으면 "먹통인가?" 하고 다시 누르게 됨 */
 .recipe-card-press {
-  transition: transform 0.12s ease, opacity 0.12s ease;
+  transition: transform 0.12s ease, opacity 0.12s ease, box-shadow 0.12s ease;
 }
 .recipe-card-press:active {
   transform: scale(0.985);
   opacity: 0.92;
+}
+
+/* 마우스를 올렸을 때 — **자리를 안 옮긴다.**
+ *
+ * 전에는 카드가 2px 떠올랐다(`translateY(-2px)`). 두 가지가 깨졌다:
+ *  - 커서가 카드 아래쪽 2px 에 있으면, 카드가 올라가는 순간 커서가 카드
+ *    밖이 된다 → `mouseleave` → 내려옴 → 다시 `mouseenter` → **떨림.**
+ *  - 올라간 2px 이 가로 목록(`overflow-y: hidden`) 밖으로 나가 **카드 위쪽
+ *    선이 잘렸다.**
+ * 그림자만 진해지면 둘 다 안 생기고, "지금 이거" 는 그대로 읽힌다.
+ *
+ * `hover: hover` 로 막는 이유: 손가락으로 쓰는 화면에서는 한 번 누르면
+ * hover 상태가 그대로 붙어 있어, 방금 만진 카드만 계속 도드라져 보인다. */
+@media (hover: hover) and (pointer: fine) {
+  .recipe-card-press:hover {
+    box-shadow: 0 2px 8px rgba(26, 26, 30, 0.10);
+    border-color: var(--line-300);
+  }
 }
 
 /* 로딩 표시 — 점 3개가 순서대로 튀는 형태 (앱 전체 공통) */
