@@ -125,6 +125,30 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
   const [containerWidth, setContainerWidth] = useState<number>(CONSTANTS.DEFAULT_CONTAINER_WIDTH);
   const [showScrollIndicator, setShowScrollIndicator] = useState(false);
   const [showLeftScrollIndicator, setShowLeftScrollIndicator] = useState(false);
+
+  /**
+   * 재료를 펼친 카드 때문에 **목록이 얼마나 더 높아져야 하나.**
+   *
+   * 카드 높이만 풀어 주는 것으로는 부족했다. `react-window` 의 List 는
+   * 자기 높이가 고정이라, 늘어난 카드를 자기 상자에서 다시 잘라 냈다
+   * (요즘인기의 `재료 N개 · 대체 가능 보기 ▾` 가 그렇게 잘렸다).
+   * 카드가 접고 펼 때마다 실제 높이를 올려 보내면, 그중 가장 높은 것에
+   * 맞춰 목록도 같이 늘린다. 전부 접으면 0 으로 돌아온다.
+   */
+  const cardHeightsRef = useRef<Map<number, number>>(new Map());
+  const [expandedExtra, setExpandedExtra] = useState(0);
+  const reportCardHeight = React.useCallback((key: number, height: number) => {
+    const map = cardHeightsRef.current;
+    const rounded = Math.ceil(height);
+    if (map.get(key) === rounded) return;
+    map.set(key, rounded);
+    let tallest = 0;
+    map.forEach(h => { if (h > tallest) tallest = h; });
+    setExpandedExtra(prev => {
+      const next = Math.max(0, tallest - cardHeight);
+      return prev === next ? prev : next;
+    });
+  }, [cardHeight]);
   const itemSize = Utils.calculateItemSize(cardWidth, gap);
 
   /**
@@ -330,6 +354,7 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
           isHorizontal={true}
           variant={variant}
           fixedHeight={cardHeight}
+          onHeightChange={(h) => reportCardHeight(recipe.id, h)}
           onThumbnailError={onThumbnailError}
           attributionLabel={getAttributionLabel?.(recipe)}
         />
@@ -371,7 +396,7 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
       <div 
         ref={containerRef} 
         style={{
-          ...STYLES.listContainer(cardHeight, resolvedListHeightExtra),
+          ...STYLES.listContainer(cardHeight, resolvedListHeightExtra + expandedExtra),
           overflowY: 'visible', // 광고가 잘리지 않도록 visible로 변경
           overflowX: 'auto',
           touchAction: 'pan-x pan-y', // 가로 스크롤 우선, 세로 스크롤도 허용
@@ -381,7 +406,7 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
       >
         <List
           ref={listRef}
-          height={cardHeight + resolvedListHeightExtra}
+          height={cardHeight + resolvedListHeightExtra + expandedExtra}
           itemCount={items.length}
           itemSize={itemSize}
           layout="horizontal"

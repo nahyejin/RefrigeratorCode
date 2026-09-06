@@ -217,6 +217,14 @@ export interface RecipeCardProps {
    */
   fixedHeight?: number;
   /**
+   * 가로 목록에게 **지금 이 카드가 얼마나 높은지** 알려 준다.
+   *
+   * 재료를 펼치면 카드는 늘어나는데, 바깥 목록(`react-window`)의 높이는
+   * 고정이라 거기서 다시 잘렸다. 카드 높이만 풀어서는 안 되고 목록도
+   * 같이 늘어나야 해서, 접고 펼 때마다 실제 높이를 올려 보낸다.
+   */
+  onHeightChange?: (height: number) => void;
+  /**
    * 이 카드가 **무엇을 위한 자리인가.**
    *
    *  - `match`  (기본) — 냉장고요리. 매칭률이 곧 정렬 기준이라 그 숫자가
@@ -246,6 +254,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
   variant = 'match',
   isHorizontal = false,
   fixedHeight,
+  onHeightChange,
   attributionLabel,
 }) => {
   // 부족 재료 pill 을 눌렀을 때 열리는 구매 안내 시트의 대상 재료
@@ -256,6 +265,22 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
   const browse = variant === 'browse';
   /** 재료 칩을 펼쳤나. `browse` 에서는 기본으로 접어 둔다. */
   const [chipsOpen, setChipsOpen] = React.useState(false);
+  const rootRef = React.useRef<HTMLDivElement | null>(null);
+
+  // 접고 펼 때마다 **실제 높이**를 위로 올려 보낸다. 가로 목록은 이 값으로
+  // 자기 높이를 늘린다 — 카드만 늘어나면 목록 상자에서 그대로 잘린다.
+  React.useEffect(() => {
+    if (!onHeightChange) return;
+    const el = rootRef.current;
+    if (!el) return;
+    // 펼침 애니메이션 없이 즉시 바뀌지만, 칩이 몇 줄로 감길지는 그려 봐야
+    // 안다. 한 프레임 뒤에 잰다.
+    const id = window.requestAnimationFrame(() => {
+      const el2 = rootRef.current;
+      if (el2) onHeightChange(el2.getBoundingClientRect().height);
+    });
+    return () => window.cancelAnimationFrame(id);
+  }, [chipsOpen, onHeightChange]);
 
   const [thumbnailStatus, setThumbnailStatus] = React.useState<boolean | null>(null);
   
@@ -389,6 +414,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
 
   return (
     <div
+      ref={rootRef}
       className="recipe-card-press bg-white rounded-[20px] relative block cursor-pointer"
       style={{
         ...(isLast ? STYLES.lastCard : STYLES.card),
