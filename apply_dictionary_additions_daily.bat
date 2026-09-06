@@ -67,6 +67,14 @@ REM 2) 백엔드 사본 맞추기
 %PY% -u scripts\sync_ingredient_dict.py --write >> %LOG% 2>&1
 if errorlevel 1 goto failed
 
+REM 2.2) 새 재료의 **Feature(맛/식감/쓰임)** 를 채운다.
+REM    승인·자동 큐레이션으로 들어온 재료는 Feature 가 비어 있다. 그런데 바로
+REM    아래 대체표는 **Feature 60% + 분류 40%** 로 비슷한 재료를 고르므로,
+REM    비어 있으면 "분류가 같다" 는 이유만으로 대체재가 붙는다.
+REM    (2026-09-07 기준 재료 1,634개 중 274개가 그 상태였다)
+REM    빈 것만 채우므로 대개 대상이 0개고, 그러면 LLM 을 부르지도 않는다.
+%PY% -u scripts\fill_ingredient_features.py --write >> %LOG% 2>&1
+
 REM 2.5) **대체 재료 표를 다시 만든다.**
 REM    사전에 새 재료가 들어와도 대체표는 그대로였다. 대체표는 손으로
 REM    돌리는 스크립트였고, 실제로 4개월(4/18~9/5) 동안 안 돌아서
@@ -89,6 +97,12 @@ if errorlevel 1 (
   git checkout -- %CSVS%
   goto failed
 )
+
+REM 4.5) 「특별한 날」 프리미엄 목록이 사전과 어긋나지 않는지 본다.
+REM    `used_ingredients` 에는 대표어만 남으므로, 프리미엄 이름이 대표어로
+REM    없거나 동의어로 합쳐져 사라지면 그 재료는 **영영 안 걸린다.** 아무 오류도
+REM    안 나는 종류라 따로 본다. 여기서 멈추지는 않는다 — 로그에만 남긴다.
+%PY% -u scripts\check_premium_ingredients.py >> %LOG% 2>&1
 
 REM 5) 사전 CSV 와 대체표만 커밋하고 푸시.
 REM    `git add -A` 를 쓰지 않는다 - 작업하던 다른 파일이 딸려 올라간다.

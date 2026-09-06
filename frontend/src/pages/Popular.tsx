@@ -35,10 +35,6 @@ import VirtualizedHorizontalRecipeList from '../components/VirtualizedHorizontal
 import { decodeRecipesText } from '../utils/textUtils';
 import { useAuth } from '../context/AuthContext';
 import RegisterPromptModal from '../components/RegisterPromptModal';
-import {
-  hasPremiumIngredient,
-  getPremiumTierRank,
-} from '../utils/premiumIngredients';
 import { parseUsedIngredientsForPills } from '../utils/ingredientPillNoise';
 import CoupangProductAd from '../components/CoupangProductAd';
 import BottomCoupangAd from '../components/BottomCoupangAd';
@@ -699,6 +695,10 @@ const Popular = () => {
   const [dishRankings, setDishRankings] = useState<any[]>([]);
   const [substituteTable, setSubstituteTable] = useState<{ [key: string]: { ingredient_b: string; similarity_score?: number }[] }>({});
   const [youtubeRecipes, setYoutubeRecipes] = useState<any[]>([]);
+  // 「특별한 날 특별한 음식」 후보. **서버가 카탈로그 전체에서 골라 준다.**
+  // (예전에는 아래 인기 목록 안에서만 골라서, 정리된 기준으로는 110건 중
+  //  7건밖에 안 걸려 섹션이 거의 비어 보였다)
+  const [premiumPool, setPremiumPool] = useState<any[]>([]);
   const [naverRecipes, setNaverRecipes] = useState<any[]>([]);
   // 썸네일 로드 실패한 레시피 ID 추적 (404 등)
   const [failedThumbnailIds, setFailedThumbnailIds] = useState<Set<number>>(new Set());
@@ -1355,6 +1355,37 @@ const Popular = () => {
     )
   ).slice(0, 100);
 
+  /**
+   * 「특별한 날 특별한 음식」 — 서버에서 받아 온다.
+   *
+   * 고르는 규칙(프리미엄 재료 목록·제외어·요리명 제외)은 `backend/premium_ingredients.py`
+   * 한 곳에만 둔다. 두 곳에 두면 반드시 갈라진다.
+   *
+   * **기간은 인기 목록과 똑같이 넘긴다.** 화면 위 기간 바는 아래 모든 섹션에
+   * 걸리는 조건이라, 이 섹션만 전 기간을 보면 고른 조건이 조용히 무시된다.
+   */
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const apiUrl = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'https://refrigeratorcode-production.up.railway.app';
+      let params = `period_type=${period}&size=20`;
+      if (period === 'custom' && dateRange[0] && dateRange[1]) {
+        const fmt = (d: Date) => d.toISOString().split('T')[0];
+        params += `&start_date=${fmt(dateRange[0])}&end_date=${fmt(dateRange[1])}`;
+      }
+      try {
+        const res = await axios.get(`${apiUrl}/api/recipes/premium?${params}`);
+        const list = Array.isArray(res.data?.recipes) ? res.data.recipes : [];
+        if (!cancelled) setPremiumPool(filterRecipesWithValidThumbnails(list));
+      } catch (err) {
+        // 이 섹션만 못 받은 것이다. 나머지 화면은 그대로 보여 준다.
+        console.error('Failed to fetch premium recipes:', err);
+        if (!cancelled) setPremiumPool([]);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [period, dateRange]);
+
   // Fetch recipes and calculate popularity scores based on period filter
   useEffect(() => {
     (async () => {
@@ -1619,41 +1650,25 @@ const Popular = () => {
   }, [youtubeRecipes, naverRecipes]);
 
   /**
-   * 특별한 날 특별한 음식 목록 — 비싼 재료 우선 정렬(premiumIngredients.ts 순서).
-   * 유튜브/네이버 인기 상단과 겹치는 항목은 뒤로 밀어 같은 카드가 연달아 보이는 느낌을 줄인다.
+   * 특별한 날 특별한 음식 목록.
+   *
+   * 고르는 일은 **서버가 카탈로그 전체에서** 한다(`/api/recipes/premium`).
+   * 여기서는 유튜브/네이버 인기 상단과 겹치는 항목만 뒤로 민다.
    *
    * 예전에는 이 계산이 JSX 안의 즉시실행 함수 안에 있어서 (a) 렌더마다 다시 돌고
    * (b) 바깥에서 "이 섹션이 그려지는지" 를 알 수 없었다. 첫 섹션 판정에 필요해 끌어올린다.
    */
   const premiumRecipes = React.useMemo(() => {
-    const allRecipes = [...youtubeRecipes, ...naverRecipes];
     const popularHeadIds = new Set([
       ...youtubeRecipes.slice(0, 15).map((r: { id: number }) => r.id),
       ...naverRecipes.slice(0, 15).map((r: { id: number }) => r.id),
     ]);
-
-    const getIngs = (recipe: Recipe) => {
-      if (!recipe.used_ingredients) return [] as string[];
-      return parseUsedIngredientsForPills(recipe.used_ingredients);
-    };
-
-    const premiumCandidates = allRecipes.filter((recipe: Recipe) => {
-      const ingredients = getIngs(recipe);
-      return ingredients.length > 0 && hasPremiumIngredient(ingredients);
-    });
-
-    const byTier = (a: Recipe, b: Recipe) => {
-      const ra = getPremiumTierRank(getIngs(a));
-      const rb = getPremiumTierRank(getIngs(b));
-      if (ra !== rb) return ra - rb;
-      return (a.id ?? 0) - (b.id ?? 0);
-    };
-
-    const sorted = [...premiumCandidates].sort(byTier);
-    const notInPopularHead = sorted.filter(r => !popularHeadIds.has(r.id));
-    const inPopularHead = sorted.filter(r => popularHeadIds.has(r.id));
-    return [...notInPopularHead, ...inPopularHead].slice(0, 20);
-  }, [youtubeRecipes, naverRecipes]);
+    // 서버가 이미 등급 순으로 세워 뒀다. 여기서는 인기 상단과 겹치는 것만
+    // 뒤로 민다 — 같은 카드가 연달아 보이는 느낌을 줄이려는 것이다.
+    const notInHead = premiumPool.filter(r => !popularHeadIds.has(r.id));
+    const inHead = premiumPool.filter(r => popularHeadIds.has(r.id));
+    return [...notInHead, ...inHead].slice(0, 20);
+  }, [premiumPool, youtubeRecipes, naverRecipes]);
 
   // 화면에서 첫 번째로 그려지는 섹션. 섹션 앞머리의 구분 밴드는
   // "앞 내용과 나뉜다" 는 뜻이라, 맨 위 섹션에 붙으면 기간 컨트롤과 콘텐츠를 갈라놓아

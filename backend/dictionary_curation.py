@@ -262,6 +262,11 @@ skip 해야 하는 것들:
 
 규칙:
 - synonym 이면 keyword 는 **반드시 아래 "기존 대표어 후보" 에 있는 것**이어야 한다.
+- **격이 다르면 동의어로 묶지 마라.** 값도 쓰임도 다른 것을 한 이름으로 합치면
+  그 정보가 영영 사라진다. 이런 것은 synonym 이 아니라 **keyword(새 재료)** 다.
+    트러플오일 != 올리브유    한우 양지 != 양지    갈비살 != 등심
+    발사믹글레이즈 != 글레이즈  샤인머스캣 != 포도   자연산 광어 != 광어
+  "무엇으로 만들었나" 가 같아도 **사는 물건이 다르면** 다른 재료다.
 - keyword(새 재료)면 분류는 **반드시 아래 "쓸 수 있는 분류" 에 있는 조합**이어야 한다.
   없는 분류를 지어내지 마라.
 - 확신이 없으면 skip 해라. 사전은 모든 사용자의 레시피 매칭 기준이라,
@@ -331,6 +336,37 @@ def _parse(text):
         except json.JSONDecodeError:
             return []
     return data if isinstance(data, list) else []
+
+
+# **이 말이 이름에 있으면 그 정보를 잃으면 안 된다.**
+#
+# 2026-09-07 자동 큐레이션 첫 실행에서 `트러플오일 -> 올리브유`,
+# `한우 양지 -> 양지`, `갈비살 -> 등심` 같은 합병이 나왔다. 동의어로 붙으면
+# `used_ingredients` 에는 대표어만 남으므로 **트러플·한우가 통째로 사라진다** —
+# 「특별한 날 특별한 음식」이 그 재료로 고르는데 찾을 수가 없게 된다.
+#
+# 프롬프트에도 적었지만 말로만 시키면 가끔 어긴다. 이름에 이 말이 있는데
+# 대표어에는 없으면 **동의어로 받지 않는다.**
+KEEP_DISTINCT = (
+    # 격·값이 다른 것
+    "한우", "와규", "트러플", "캐비어", "푸아그라", "랍스터", "킹크랩",
+    "전복", "발사믹", "샴페인", "송이버섯", "능이", "샤인머스",
+    # 부위 — 뭉치면 어느 부위인지 사라진다
+    "채끝", "안심", "등심", "갈비살", "차돌", "토시살", "우삼겹", "양지",
+)
+# `국내산`·`유기농`·`자연산` 같은 **표시 문구는 넣지 않았다.** 그 말이 사라지는
+# 합병(`국내산 대파` -> `대파`)이야말로 사전이 해야 할 일이라, 여기 넣으면
+# 멀쩡한 합병까지 전부 `건너뜀` 이 되어 그 이름이 아예 매칭되지 않는다.
+
+
+def loses_distinction(alias_name, keyword):
+    """`alias_name` 을 `keyword` 로 합치면 잃어버리는 말. 없으면 None."""
+    a = (alias_name or "").replace(" ", "")
+    k = (keyword or "").replace(" ", "")
+    for word in KEEP_DISTINCT:
+        if word in a and word not in k:
+            return word
+    return None
 
 
 def suggest(names, force_decision=None):
@@ -409,7 +445,14 @@ def suggest(names, force_decision=None):
         # 자기가 고른 게 왜 사라졌는지 알 수 없다. 못 채운 칸만 비워 두고
         # 화면에서 직접 고르게 한다.
         if decision == "synonym":
-            if not keyword or normalize_key(keyword) not in alias:
+            # 격을 잃는 합병은 동의어로 받지 않는다 (위 `KEEP_DISTINCT` 참고).
+            # 관리자가 일부러 `synonym` 을 강제한 경우는 그 뜻을 존중한다.
+            lost = None if force_decision else loses_distinction(name, keyword)
+            if lost:
+                decision = "skip"
+                keyword = ""
+                item["reason"] = "`%s` 가 사라져서 동의어로 안 묶음 — 새 재료로 볼 것" % lost
+            elif not keyword or normalize_key(keyword) not in alias:
                 keyword = ""
                 if force_decision:
                     item["reason"] = "가까운 대표어를 못 찾았어요. 직접 골라 주세요"

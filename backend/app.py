@@ -315,6 +315,124 @@ def get_popular_recipes():
         'end_date': end_date
     })
 
+@app.route('/api/recipes/premium')
+def get_premium_recipes():
+    """「특별한 날 특별한 음식」 — **카탈로그 전체**에서 고른다.
+
+    예전에는 화면이 인기 목록(유튜브 30 + 네이버 30) 안에서만 프리미엄을 골랐다.
+    인기 목록은 원래 집밥 위주라, 정리를 마친 기준으로는 110건 중 7건밖에
+    안 걸렸다 — 섹션이 거의 비어 보였다.
+
+    **기간 범위는 그대로 지킨다.** 화면 위 기간 바는 아래 모든 섹션에 걸리는
+    조건이라, 이 섹션만 전 기간을 훑으면 사용자가 고른 조건이 조용히 무시된다.
+    (`/api/recipes/popular` 와 같은 파라미터·같은 `llm_ingredients_at` 조건)
+
+    두 단계로 고른다:
+      1) DB 에서 `used_ingredients LIKE` 로 **거칠게** 후보만 줄인다.
+      2) 파이썬에서 `premium_ingredients` 의 제외어·요리명 규칙으로 **정확히**
+         거른다. 이 규칙은 SQL 로 쓰면 읽을 수 없게 길어진다.
+    """
+    import premium_ingredients as premium
+
+    size = int(request.args.get('size', 20))
+    size = max(1, min(size, 60))
+    period_type = request.args.get('period_type', 'month')
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+
+    if period_type == 'custom' and start_date and end_date:
+        where_clause = "WHERE llm_ingredients_at IS NOT NULL AND post_time >= %s AND post_time <= %s"
+        params = [start_date, end_date]
+    else:
+        if period_type == 'today':
+            days = 1
+        elif period_type == 'week':
+            days = 7
+        else:
+            days = 30
+        where_clause = ("WHERE llm_ingredients_at IS NOT NULL "
+                        "AND post_time >= DATE_SUB(NOW(), INTERVAL %s DAY)")
+        params = [days]
+
+    # 1) 거친 예선. 이름 글자가 들어간 것만 인기 순으로 넉넉히 받아 온다.
+    #    `size` 의 몇 배를 받는 이유: 2) 에서 제외어·요리명으로 꽤 걸러진다.
+    like_sql = " OR ".join(["used_ingredients LIKE %s"] * len(premium.PREMIUM_NAMES))
+    like_params = ["%" + name + "%" for name in premium.PREMIUM_NAMES]
+    prefetch = max(size * 30, 600)
+
+    popularity = ("(1.0 * COALESCE(likes, 0) + 2.0 * COALESCE(comments, 0) "
+                  "+ 0.5 * COALESCE(hits, 0))")
+
+    db = get_db()
+    cursor = db.cursor()
+    try:
+        cursor.execute(
+            f"""
+            SELECT * FROM recipes
+            {where_clause}
+            AND ({like_sql})
+            ORDER BY {popularity} DESC
+            LIMIT %s
+            """, params + like_params + [prefetch]
+        )
+        candidates = cursor.fetchall()
+    finally:
+        db.close()
+
+    # 2) 정확한 판정. 등급(rank) 이 먼저다.
+    #
+    #    같은 등급 안에서는 **날마다 순서를 돌린다.** 풀을 카탈로그 전체로
+    #    넓히면 기간 안에서 늘 같은 것이 1등이라, 30일 기준으로 보는 사람은
+    #    한 달 내내 같은 카드를 보게 된다. 기간 범위가 도는 것만으로는
+    #    부족하다 — 안에 든 글이 수백 개인데 보여 주는 건 스무 개다.
+    #
+    #    그래서 `레시피 id + 오늘 날짜` 를 섞은 값으로 등급 안 순서를 정한다.
+    #    같은 날에는 누가 봐도 같은 순서(새로고침해도 안 흔들린다)이고,
+    #    날이 바뀌면 조합이 바뀐다.
+    import hashlib
+    today_seed = datetime.now().strftime('%Y-%m-%d')
+
+    def _daily_key(recipe_id):
+        h = hashlib.md5(f"{today_seed}:{recipe_id}".encode('utf-8')).hexdigest()
+        return int(h[:8], 16)
+
+    scored = []
+    for index, recipe in enumerate(candidates):
+        tokens = premium.split_tokens(recipe.get('used_ingredients'))
+        hits = premium.premium_hits(tokens)
+        if not hits:
+            continue
+        recipe['premium_ingredients'] = [name for _, name, _ in hits]
+        recipe['premium_rank'] = hits[0][0]
+        scored.append((hits[0][0], _daily_key(recipe.get('id') or index), recipe, hits[0][1]))
+    scored.sort(key=lambda x: (x[0], x[1]))
+
+    # **한 재료가 목록을 다 먹지 않게 한다.** 풀을 카탈로그 전체로 넓히자
+    # 최근 30일 목록이 `전복죽`·`전복버터구이`·`전복삼계탕`… 으로 열두 줄이
+    # 이어졌다. 등급 순으로만 세우면 그 등급에 글이 많은 재료가 화면을 통째로
+    # 가져간다 — 섹션이 "특별한 날 모음" 이 아니라 "전복 특집" 이 된다.
+    # 재료당 몇 개까지만 먼저 채우고, 자리가 남으면 나머지로 메운다.
+    PER_NAME = 3
+    picked, used, leftover = [], {}, []
+    for rank, _, recipe, name in scored:
+        if used.get(name, 0) < PER_NAME:
+            used[name] = used.get(name, 0) + 1
+            picked.append(recipe)
+        else:
+            leftover.append(recipe)
+    picked = (picked + leftover)[:size]
+
+    return jsonify({
+        'recipes': picked,
+        'matched': len(scored),
+        'scanned': len(candidates),
+        'size': size,
+        'period_type': period_type,
+        'start_date': start_date,
+        'end_date': end_date,
+    })
+
+
 @app.route('/api/recipes/filter')
 def get_filtered_recipes():
     # 페이징
