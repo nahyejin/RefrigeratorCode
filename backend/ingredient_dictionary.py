@@ -120,7 +120,13 @@ def load_alias_to_canonical(path=None):
     csv_path = path or _find_csv()
     alias_to_canonical = {}
 
-    with open(csv_path, encoding="utf-8", newline="") as f:
+    # `utf-8-sig` 로 연다 — BOM 이 붙어 있어도 벗겨 낸다.
+    #
+    # 그냥 `utf-8` 로 읽던 때, 사전을 손보는 스크립트 하나가 BOM 을 붙여 저장하자
+    # 첫 열 이름이 `﻿keyword` 가 되어 **사전이 통째로 0개로 읽혔다.** 그래도
+    # 아무 오류가 안 났다 — 사진 인식은 재료를 하나도 못 알아보고, 사전 큐레이션은
+    # 모든 이름을 "새 재료" 로 판정했다. 조용히 망가지는 종류라 읽는 쪽에서 막는다.
+    with open(csv_path, encoding="utf-8-sig", newline="") as f:
         for row in csv.DictReader(f):
             # 예전 사전은 keyword 열 이름이 '1keyword' 였다.
             keyword = row.get("keyword")

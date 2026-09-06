@@ -29,6 +29,17 @@
     이 셋은 이미 `dictionary_curation` 이 하고 있다. 여기서는 그 판정을
     **사람 대신 그대로 받아들일 뿐**이다. `skip` 은 넣지 않는다.
 
+한 번 크게 헛짚었던 것 — **사전이 비면 전부 새 재료가 된다**:
+    프롬프트는 `synonym` 의 대상을 "사전에 이미 있는 대표어" 목록에서만 고르게
+    한다. 그런데 `fill_shelf_life.py` 가 사전 CSV 를 BOM 붙여 저장하는 바람에
+    (`backend/ingredient_dictionary.py` 는 그냥 utf-8 로 읽는다) 첫 열 이름이
+    `\ufeffkeyword` 가 되어 **사전이 통째로 0개로 읽혔다.**
+
+    그러면 이 배치는 조용히 망가진다 — 후보가 없으니 `흰쌀밥`·`편마늘`·`흰설탕`
+    이 전부 **새 표제어**로 판정된다. 그대로 넣었으면 `쌀밥` 과 `흰쌀밥` 이 서로
+    다른 재료가 되어 매칭이 갈라졌을 것이다. 결과가 이상하면 **LLM 을 의심하기
+    전에 사전이 제대로 읽히는지** 먼저 보라 (`scripts/verify_ingredient_dict.py`).
+
 쓰는 법:
     python scripts/auto_curate_dictionary.py                  # 미리보기
     python scripts/auto_curate_dictionary.py --write
@@ -47,8 +58,22 @@ for p in (ROOT, os.path.join(ROOT, "backend")):
 
 import pymysql  # noqa: E402
 
-BATCH = 40
+# `dictionary_curation.suggest()` 가 `names[:30]` 으로 자른다. 40개를 보내면
+# **10개가 조용히 사라진다** — 호출의 1/4 이 헛돌고, 진행이 로그에 찍히는
+# 것보다 느리다. 사라진 이름은 목록에 남아 다음 날 다시 오므로 잃지는
+# 않지만, 숫자를 맞춰 두는 편이 맞다.
+BATCH = 30
 DEFAULT_MIN_HITS = 6
+
+# 하루에 쓸 LLM 호출 상한.
+#
+# 이 배치는 **챗봇·AI 식단·사진 인식과 같은 키**(`GEMINI_API_KEY_CHAT`)를 쓴다.
+# 무료 티어는 하루 500회라, 여기서 다 써 버리면 낮에 사람이 챗봇을 못 쓴다.
+# (재료 추출 배치는 `GEMINI_API_KEY` 로 따로 돌아 영향이 없다)
+#
+# 지금은 6회 이상이 1,364종이라 35회면 끝나지만, 크롤링이 몰리면 늘어난다.
+# 상한을 두면 남은 것은 다음 날로 밀릴 뿐 사라지지 않는다.
+MAX_CALLS = 60
 
 
 def load_env():
@@ -83,6 +108,8 @@ def main():
     ap.add_argument("--min-hits", type=int, default=DEFAULT_MIN_HITS,
                     help="레시피에서 이 횟수 이상 나온 이름만 (기본 %d)" % DEFAULT_MIN_HITS)
     ap.add_argument("--limit", type=int, default=0, help="한 번에 이만큼만 (0=전체)")
+    ap.add_argument("--max-calls", type=int, default=MAX_CALLS,
+                    help="하루에 쓸 LLM 호출 상한 (기본 %d)" % MAX_CALLS)
     args = ap.parse_args()
 
     load_env()
@@ -111,8 +138,14 @@ def main():
     samples = {"synonym": [], "keyword": [], "skip": []}
     saved = 0
 
+    calls = 0
     for i in range(0, len(names), BATCH):
+        if calls >= args.max_calls:
+            print("  호출 상한(%d회)에 닿아 멈춥니다. 남은 %d종은 내일 이어서 합니다."
+                  % (args.max_calls, len(names) - i), flush=True)
+            break
         chunk = names[i:i + BATCH]
+        calls += 1
         try:
             suggestions = dictionary_curation.suggest(chunk)
         except Exception as e:  # noqa: BLE001

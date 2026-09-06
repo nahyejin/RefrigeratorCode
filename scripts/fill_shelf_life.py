@@ -264,7 +264,11 @@ def main():
     for path in CSVS:
         if not os.path.exists(path):
             continue
-        with io.open(path, "w", encoding="utf-8-sig", newline="") as f:
+        # **BOM 을 붙이면 안 된다.** 사전을 읽는 backend/ingredient_dictionary.py 는
+        # 그냥 utf-8 로 열어서, BOM 이 있으면 첫 열 이름이 ﻿keyword 가 되고
+        # keyword 열을 못 찾아 **사전이 통째로 빈다**(실제로 그렇게 됐다).
+        # 읽을 때만 utf-8-sig 로 관대하게 받고, 쓸 때는 원본과 같게 utf-8 로 쓴다.
+        with io.open(path, "w", encoding="utf-8", newline="") as f:
             w = csv.DictWriter(f, fieldnames=fieldnames)
             w.writeheader()
             w.writerows(rows)
