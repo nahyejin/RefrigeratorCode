@@ -71,6 +71,14 @@ const Login: React.FC = () => {
       return null;
     }
   }, []);
+  /**
+   * 이메일로 마지막에 들어왔나.
+   *
+   * 서버는 이메일 로그인 토큰에 `provider: 'local'` 을 넣는다. 프론트는
+   * 그 값이 없을 때만 `'email'` 로 적으므로 **둘 다 나올 수 있다.** 한쪽만
+   * 보면 배지가 안 뜬다.
+   */
+  const isLastEmail = lastLoginMethod === 'local' || lastLoginMethod === 'email';
 
   /**
    * 일반 로그인 처리
@@ -177,15 +185,32 @@ const Login: React.FC = () => {
             </div>
           )}
           
-          <NeangteolButton 
-            color="bg-[#3A3A42]" 
-            textColor="text-white" 
-            className={`w-full ${BUTTON_HEIGHT} rounded-xl text-[16px] mt-1 px-4`}
-            onClick={handleLogin}
-            disabled={loading}
-          >
-            {loading ? '로그인 중...' : '로그인'}
-          </NeangteolButton>
+          {/* **이메일로 들어온 사람에게도 배지를 달아 준다.**
+
+              배지는 원래 카카오/구글/네이버 버튼에만 붙였다. 그런데 이메일로
+              로그인하면 서버가 토큰에 `provider: 'local'` 을 넣고, 그 값이
+              그대로 저장된다 — 셋 중 어느 것과도 안 맞아 **배지가 아무 데도
+              안 떴다.** "이 기기에서 마지막으로 이걸로 들어왔다" 는 말은
+              이메일에도 똑같이 필요하다. */}
+          <div className="relative w-full">
+            {isLastEmail && (
+              <span
+                className="absolute -top-2 right-2 bg-[#1A1A1E] text-white text-[11px] font-semibold px-2 py-[2px] rounded-full whitespace-nowrap"
+                style={{ zIndex: 1 }}
+              >
+                최근 로그인
+              </span>
+            )}
+            <NeangteolButton
+              color="bg-[#3A3A42]"
+              textColor="text-white"
+              className={`w-full ${BUTTON_HEIGHT} rounded-xl text-[16px] mt-1 px-4`}
+              onClick={handleLogin}
+              disabled={loading}
+            >
+              {loading ? '로그인 중...' : '로그인'}
+            </NeangteolButton>
+          </div>
         </div>
         
         {/* 체크박스 */}
