@@ -1307,11 +1307,18 @@ const TASK_INFO: Record<string, { when: string; does: string; ifNot: string }> =
   'CookMatch-WeeklyCrawler': {
     when: '매일 07:00',
     does: '네이버 블로그·유튜브에서 새 레시피 글을 긁어 옵니다. 제목·본문·썸네일 1장을 저장하고, '
-        + '이어서 규칙 기반으로 재료를 한 번 훑습니다.',
+        + '이어서 규칙 기반으로 재료를 한 번 훑습니다.\n'
+        + '이 규칙 기반 값은 **임시입니다.** 사전에 있는 이름을 본문에서 글자로 찾는 방식이라 '
+        + '"여러 가지 방법" 의 가지, "참기름" 에 딸려 오는 식용유 같은 것이 섞입니다. '
+        + '그래서 새로 들어온 글은 **앱에 아직 안 보입니다** — 03:00 배치가 AI 로 재료를 '
+        + '제대로 뽑고 조리 순서까지 채운 뒤에야 목록에 나타납니다.\n'
+        + '규칙 기반은 **AI 가 아직 한 번도 손대지 않은 글만** 건드립니다. 2026-09-05 에 '
+        + '이 조건이 잘못돼 9일치 AI 결과를 통째로 덮어쓴 적이 있어, 지금은 AI 가 값을 쓴 '
+        + '시각(llm_ingredients_at)을 따로 기록해 두고 그것이 없는 글만 채웁니다.',
     ifNot: '새 레시피가 아예 안 들어옵니다. 앱에 보이는 목록이 그날부터 멈춥니다.',
   },
   'CookMatch-DailyLLMIngredients': {
-    when: '매일 03:00',
+    when: '매일 03:00 (최신 글부터)',
     does: '긁어 온 글의 본문을 AI 에게 읽혀 재료와 조리 순서를 뽑습니다. '
         + '사전에 없는 재료 이름은 사전 탭의 "사전에 없던 이름" 으로 쌓아 둡니다.\n'
         + '이 배치가 지우는 글은 네 가지입니다 — ① 요리 글이 아닌 것(보관법·제품 '
@@ -1322,8 +1329,9 @@ const TASK_INFO: Record<string, { when: string; does: string; ifNot: string }> =
         + '넷이면 그 날 무엇을 만들지가 안 정해지고 재료·조리 순서가 네 요리 것으로 '
         + '섞여 매칭률이 엉킵니다. 한 요리를 만들면서 곁들임 소스를 함께 설명하는 것은 '
         + '한 요리로 봅니다.',
-    ifNot: '새 글은 재료가 빈 채로 남아 냉장고 매칭에 안 잡힙니다. 다음 날 이어서 처리되므로 '
-         + '기록이 사라지진 않고, 밀린 만큼 늦어집니다.',
+    ifNot: '새 글이 **앱에 안 나타납니다** — 재료가 임시값이라 목록에서 빼 두기 때문입니다. '
+         + '다음 날 이어서 처리되므로 기록이 사라지진 않고, 밀린 만큼 공개가 늦어집니다. '
+         + '아래 표의 "재료가 아직 안 채워져 숨는 것" 이 며칠째 늘기만 하면 이 배치를 보세요.',
   },
   'CookMatch-DictionarySync': {
     when: '매일 04:30',
@@ -1467,6 +1475,50 @@ const Maintenance: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* **레시피가 앱에 나오기까지 어디쯤 와 있나.**
+          2026-09-06 부터 재료가 다 채워지기 전에는 목록에 안 띄운다. 그러면
+          "지금 몇 건이 기다리는가" 가 보여야 한다 — 배치가 며칠 안 돌면 이
+          숫자가 늘어나는 것으로 먼저 드러난다. */}
+      {st.recipes && (
+        <div style={S.card}>
+          <h2 style={S.h2}>레시피가 앱에 나오기까지</h2>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            {[
+              ['앱에 보이는 것', st.recipes.ready, 'var(--ink-900)',
+               '재료를 AI 가 뽑아 둔 글. 이것만 목록·검색·식단에 나옵니다'],
+              ['아직 숨는 것', st.recipes.waiting,
+               st.recipes.waiting > 3000 ? '#D14343' : '#B4780A',
+               '재료가 규칙 기반 임시값이라 빼 둔 글. 새벽 배치가 처리하는 대로 나타납니다'],
+              ['AI 가 다시 볼 차례', st.recipes.llm_pending, 'var(--ink-500)',
+               '하루 5,280건씩 줄어듭니다. 재판정을 예약하면 여기가 다시 늘어납니다'],
+              ['조리 순서 있는 것', st.recipes.with_steps, 'var(--ink-500)',
+               '음성으로 읽어 주는 부분. AI 가 재료와 함께 뽑습니다'],
+            ].map(([label, value, color, why]: any) => (
+              <div key={label} style={{
+                flex: '1 1 150px', minWidth: 150, padding: '10px 12px',
+                borderRadius: 10, background: 'var(--surface-sub)',
+                border: '1px solid var(--line-200)',
+              }}>
+                <div style={{ fontSize: 12, color: 'var(--ink-500)' }}>{label}</div>
+                <div style={{ fontSize: 20, fontWeight: 700, color,
+                              fontVariantNumeric: 'tabular-nums' }}>{num(value)}</div>
+                <div style={{ fontSize: 11.5, color: 'var(--ink-500)', lineHeight: 1.5,
+                              marginTop: 4 }}>{why}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ fontSize: 12.5, color: 'var(--ink-500)', lineHeight: 1.7, marginTop: 10 }}>
+            크롤러는 <b>AI 를 기다리지 않습니다</b> — 규칙 기반으로 훑은 임시 재료를 붙여
+            먼저 넣어 둡니다. 그 값은 사전에 있는 이름을 본문에서 글자로 찾는 방식이라
+            <b> 본문에 없는 재료</b>가 섞입니다(“여러 가지 방법” 의 가지, “참기름” 에 딸려
+            오는 식용유). 그래서 <b>다 채워지기 전에는 앱에 안 띄웁니다.</b>
+            <br />
+            저장한 레시피·완료한 요리·즐겨찾기와 상세 페이지는 예외입니다 — 이미 본 것이
+            사라지면 안 되니까요.
+          </div>
+        </div>
+      )}
 
       <div style={S.card}>
         <h2 style={S.h2}>자동으로 도는 작업</h2>

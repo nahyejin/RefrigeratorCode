@@ -144,6 +144,46 @@ def dictionary_health():
     }
 
 
+def recipe_pipeline():
+    """레시피가 **앱에 나오기까지 어디쯤 와 있나.**
+
+    2026-09-06 부터 재료가 다 채워지기 전(`llm_ingredients_at` 이 빈 행)에는
+    앱에 안 띄운다. 그러면 어드민에서 "지금 몇 건이 기다리는가" 가 보여야
+    한다 — 배치가 며칠 안 돌면 이 숫자가 늘어나는 것으로 먼저 드러난다.
+    """
+    try:
+        conn = _connect()
+    except Exception:  # noqa: BLE001
+        return None
+    try:
+        cur = conn.cursor()
+        cur.execute("SHOW COLUMNS FROM recipes LIKE 'llm_ingredients_at'")
+        if not cur.fetchone():
+            return None
+
+        def one(sql):
+            cur.execute(sql)
+            row = cur.fetchone()
+            return list(row.values())[0] if isinstance(row, dict) else row[0]
+
+        return {
+            "total": one("SELECT COUNT(*) FROM recipes"),
+            "ready": one("SELECT COUNT(*) FROM recipes WHERE llm_ingredients_at IS NOT NULL"),
+            "waiting": one("SELECT COUNT(*) FROM recipes WHERE llm_ingredients_at IS NULL"),
+            # 재판정 예약분까지 포함한 "AI 가 아직 볼 것" — 하루 5,280건씩 준다.
+            "llm_pending": one("SELECT COUNT(*) FROM recipes WHERE llm_ingredients_done = 0"),
+            "with_steps": one("SELECT COUNT(*) FROM recipes "
+                              "WHERE cook_steps IS NOT NULL AND cook_steps <> ''"),
+        }
+    except Exception:  # noqa: BLE001
+        return None
+    finally:
+        try:
+            conn.close()
+        except Exception:  # noqa: BLE001
+            pass
+
+
 def scheduled_tasks():
     """윈도우 작업 스케줄러에서 우리 작업들의 상태를 읽는다.
 
@@ -226,6 +266,7 @@ def collect():
         "generated_at": datetime.now(KST).isoformat(),
         "files": [file_info(e) for e in TRACKED],
         "dictionary": dictionary_health(),
+        "recipes": recipe_pipeline(),
         "tasks": tasks,
         "logs": [x for x in (log_tail("llm_ingredients.log"),
                              log_tail("scheduled_run.log"),
@@ -300,6 +341,14 @@ def main():
         print(f"  재료 {dh['ingredients']}개 · 동의어 {dh['synonyms']}개"
               f" · Feature 없어 분류로만 묶이는 재료 {len(dh['no_feature'])}개"
               + (f" ({', '.join(dh['no_feature'][:6])})" if dh["no_feature"] else ""))
+
+    rp = payload.get("recipes")
+    if rp:
+        print("")
+        print(f"  레시피 {rp['total']}건 · 앱에 보이는 것 {rp['ready']}건"
+              f" · 재료가 아직 안 채워져 숨는 것 {rp['waiting']}건")
+        print(f"  AI 가 다시 볼 차례 {rp['llm_pending']}건 (하루 5,280건)"
+              f" · 조리 순서 있는 것 {rp['with_steps']}건")
 
     print()
     for t in payload["tasks"]:

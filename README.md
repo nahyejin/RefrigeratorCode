@@ -57,6 +57,7 @@ RefrigeratorCode/
 ├── 📄 MEAL_PLAN_FEATURE.md         # 유통기한 기준 · 식단 추천 · 장보기 · 요리 모드
 ├── 📄 CHATBOT_FEATURE.md           # AI 요리 챗봇 동작 방식 (프롬프트·검색·팔로우업)
 ├── 📄 INGREDIENT_RECOGNITION_FEATURE.md  # 사진으로 재료 담기 (영수증·유통기한 인식)
+├── 📄 RECIPE_PIPELINE.md           # 크롤링 → 재료 추출 → 공개, 자동 배치 3개, 사고 기록
 ├── 📄 ENVIRONMENT_SETUP.md
 └── 📄 CHANGELOG.md                 # 변경 이력
 ```

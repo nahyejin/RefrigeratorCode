@@ -51,18 +51,33 @@ platform                VARCHAR(50)              -- naver / youtube 등
 hits, likes, comments   INT
 post_time               DATE
 collected_at            DATETIME
-llm_ingredients_done    TINYINT(1)    NOT NULL   -- ★ LLM 처리 여부 깃발 (0/1)
+llm_ingredients_done    TINYINT(1)    NOT NULL   -- ★ "다시 처리할 차례인가" (0/1)
+llm_ingredients_at      DATETIME      NULL       -- ★ LLM 이 실제로 값을 쓴 시각
+cook_steps              TEXT          NULL       -- 조리 순서 (줄바꿈으로 이어 붙임)
+ingredients_detail      TEXT          NULL       -- 분량까지 있는 재료 문장
+recipe_name             VARCHAR(255)  NULL       -- 정규화한 요리명
 ```
 
-### `used_ingredients` 와 `llm_ingredients_done` 의 관계 (중요)
+### 재료 열 하나를 둘이 나눠 쓴다 — 깃발 두 개의 뜻이 다르다
 
 - **재료 열은 하나뿐입니다.** 룰베이스 추출과 LLM 추출이 **같은 `used_ingredients` 열**에
   씁니다. 별도 열을 두지 않으므로 LLM 처리 결과는 화면에 즉시 반영됩니다.
-- `llm_ingredients_done` 은 재료 값이 아니라 **"이 행을 LLM 으로 처리했는지"** 표시입니다.
-- 두 작업이 같은 열을 쓰기 때문에 **역할 분담이 정해져 있습니다.**
-  - 룰베이스 배치 → `llm_ingredients_done = 0` 인 행만 (신규 수집분 임시 채움)
-  - LLM 배치 → `llm_ingredients_done = 0` 인 행만 (처리 후 1 로 표시)
-  - ⚠️ 룰베이스에서 이 조건을 빼면 **LLM 결과를 덮어써 버립니다.** (실제로 발생했던 버그)
+- 그래서 **어느 쪽이 쓴 값인지**를 따로 기록합니다. 깃발이 둘인 이유가 이것입니다.
+
+| 열 | 뜻 | 누가 0/NULL 로 되돌리나 |
+|---|---|---|
+| `llm_ingredients_done` | **다시 처리할 차례인가** | 재판정 예약(`requeue_recipes_for_llm.py`)이 전량을 0 으로 |
+| `llm_ingredients_at` | **LLM 이 값을 쓴 시각** | 아무도 안 되돌린다 |
+
+- 역할 분담:
+  - 룰베이스 배치 → **`llm_ingredients_at IS NULL`** 인 행만 (LLM 이 한 번도 안 본 글)
+  - LLM 배치 → `llm_ingredients_done = 0` 인 행만 (처리 후 done=1 + at=NOW())
+  - 앱 조회 → `llm_ingredients_at IS NOT NULL` 인 글만 (재료가 임시값이면 안 보여 준다)
+
+> ⚠️ **룰베이스 조건을 `llm_ingredients_done` 으로 되돌리지 마세요.**
+> 2026-09-04 재판정 예약으로 done 이 전부 0 이 된 직후, 룰베이스 전량 재계산이
+> 9/5 13:50~18:13 에 돌면서 **8/26~9/3 LLM 사이클 결과를 카탈로그 전체에 걸쳐
+> 덮어썼습니다.** 자세한 경위와 복구 절차는 `RECIPE_PIPELINE.md` 3절.
 
 ### `author` 열 주의
 
