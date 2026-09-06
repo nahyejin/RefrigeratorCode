@@ -198,7 +198,7 @@ def main():
             print("  [%s] %s" % (label, ", ".join(samples[kind])))
 
     if args.write:
-        print("\n사전에 넣은 항목 %d개. 다음 04:30 배치가 CSV 로 옮겨 커밋합니다." % saved)
+        print("\n사전에 넣은 항목 %d개. 같은 06:30 배치가 이어서 CSV 로 옮겨 커밋합니다." % saved)
     else:
         print("\n미리보기입니다. 반영하려면 --write")
     return 0

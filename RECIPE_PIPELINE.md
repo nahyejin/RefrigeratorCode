@@ -10,7 +10,7 @@
 ## 1. 전체 흐름
 
 ```
- 매일 07:00   CookMatch-WeeklyCrawler        (run_crawlers_scheduled.bat)
+ 매일 22:00   CookMatch-WeeklyCrawler        (run_crawlers_scheduled.bat)
               네이버 블로그 · 유튜브 크롤링
                      │  제목 · 본문 · 썸네일 1장 저장
                      │  규칙 기반으로 재료 한 번 훑음  ← 임시값
@@ -20,7 +20,7 @@
                      │
                      │  (같은 실행 끝에 신규분 LLM 450건까지 바로 처리)
                      ▼
- 매일 03:00   CookMatch-DailyLLMIngredients  (run_llm_ingredients_daily.bat)
+ 매일 05:00   CookMatch-DailyLLMIngredients  (run_llm_ingredients_daily.bat)
               본문을 AI 에게 읽혀 다시 뽑음 — 하루 5,280건, **최신 글부터**
                      │  재료 · 조리 순서(cook_steps) · 요리명(recipe_name)
                      │  요리 글이 아니면 그 자리에서 삭제
@@ -28,7 +28,7 @@
                      ▼
               앱에 나타난다 (목록 · 검색 · 요즘인기 · AI 식단 후보)
 
- 매일 04:30   CookMatch-DictionarySync       (apply_dictionary_additions_daily.bat)
+ 매일 06:30   CookMatch-DictionarySync       (apply_dictionary_additions_daily.bat)
               어드민에서 승인한 사전을 CSV 로 옮기고 커밋 · 푸시
               + 대체 재료 표(52,003쌍) 재생성
 ```
@@ -45,7 +45,7 @@
 | | 누가 | 언제 | 방식 |
 |---|---|---|---|
 | 규칙 기반 | `ingredient_management/update_used_ingredients_batch.py` | 크롤링 직후 + 매일 크롤러 끝에 | 사전에 있는 이름을 본문에서 **글자로 찾는다** |
-| AI | `ingredient_management/llm_ingredient_extraction.py` | 매일 03:00 | 본문을 읽혀 **재료 목록을 받는다** |
+| AI | `ingredient_management/llm_ingredient_extraction.py` | 매일 05:00 | 본문을 읽혀 **재료 목록을 받는다** |
 
 ### 규칙 기반이 왜 임시값인가
 
@@ -244,7 +244,7 @@ AI 배치의 기본 순서는 `ORDER BY id ASC`(오래된 것부터)였다. 앱�
 | 숫자 | 뜻 | 이상 신호 |
 |---|---|---|
 | 앱에 보이는 것 | `llm_ingredients_at` 이 있는 글 | — |
-| 아직 숨는 것 | 재료가 임시값이라 뺀 글 | **며칠째 늘기만 하면** 03:00 배치를 보라 |
+| 아직 숨는 것 | 재료가 임시값이라 뺀 글 | **며칠째 늘기만 하면** 05:00 배치를 보라 |
 | AI 가 다시 볼 차례 | `llm_ingredients_done = 0` | 하루 5,280건씩 줄어야 한다 |
 | 조리 순서 있는 것 | `cook_steps` 가 찬 글 | 재판정이 도는 동안 늘어난다 |
 
@@ -252,9 +252,9 @@ AI 배치의 기본 순서는 `ORDER BY id ASC`(오래된 것부터)였다. 앱�
 
 | 파일 | 무엇 |
 |---|---|
-| `llm_ingredients.log` | 03:00 AI 배치 — 처리/변경/삭제 건수, 도달한 id |
+| `llm_ingredients.log` | 05:00 AI 배치 — 처리/변경/삭제 건수, 도달한 id |
 | `scheduled_run.log` | 크롤러 + 규칙 기반 배치 |
-| `dictionary_sync.log` | 04:30 사전 · 대체표 |
+| `dictionary_sync.log` | 06:30 사전 · 대체표 · 프리미엄 목록 |
 
 **규칙 기반 배치가 5분을 크게 넘기면 의심하라.** 그건 대상이 신규분이 아니라
 전량이 됐다는 뜻이다(3절의 사고가 정확히 그렇게 드러났다).

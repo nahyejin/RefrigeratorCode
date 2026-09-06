@@ -37,12 +37,12 @@ TRACKED = [
     {
         "path": "frontend/public/ingredient_profile_dict_with_substitutes.csv",
         "label": "재료 사전",
-        "why": "레시피 매칭·사진 인식의 기준. 어드민 '사전' 탭에서 보태면 매일 04:30 여기로 옮겨진다",
+        "why": "레시피 매칭·사진 인식의 기준. 어드민 '사전' 탭에서 보태면 매일 06:30 여기로 옮겨진다",
     },
     {
         "path": "frontend/public/ingredient_substitute_table.csv",
         "label": "대체 재료 표",
-        "why": "'대체 가능' 표시의 근거. 매일 04:30 사전에서 다시 만든다 (손댈 필요 없음)",
+        "why": "'대체 가능' 표시의 근거. 매일 06:30 사전에서 다시 만든다 (손댈 필요 없음)",
     },
     {
         "path": "frontend/public/Filter_Keywords.csv",

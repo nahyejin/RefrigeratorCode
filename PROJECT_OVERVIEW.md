@@ -271,8 +271,8 @@ RefrigeratorCode/
 
 | 작업 이름 | 주기 | 내용 |
 |---|---|---|
-| `CookMatch-WeeklyCrawler` | 매주 월요일 07:00 | 크롤링 + 룰베이스 재료 추출 |
-| `CookMatch-DailyLLMIngredients` | 매일 03:00 | LLM 재료 추출 |
+| `CookMatch-WeeklyCrawler` | 매일 22:00 | 크롤링 + 룰베이스 재료 추출 |
+| `CookMatch-DailyLLMIngredients` | 매일 05:00 | LLM 재료 추출 |
 
 절전 상태면 깨워서 실행되지만(`WakeToRun`), **PC 가 완전히 꺼져 있으면 실행되지 않습니다.**
 
