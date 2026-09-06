@@ -41,7 +41,7 @@ cd /d "%~dp0"
 
 set LOG=dictionary_sync.log
 set PY="C:\Users\user\venv310\Scripts\python.exe"
-set CSVS=frontend/public/ingredient_profile_dict_with_substitutes.csv backend/ingredient_profile_dict_with_substitutes.csv frontend/public/ingredient_substitute_table.csv
+set CSVS=frontend/public/ingredient_profile_dict_with_substitutes.csv backend/ingredient_profile_dict_with_substitutes.csv frontend/public/ingredient_substitute_table.csv backend/premium_ingredients_auto.json
 
 echo [%date% %time%] 사전 추가분 반영 시작 >> %LOG%
 
@@ -82,6 +82,13 @@ REM    그 사이 승인한 재료 57개가 "대체 가능" 을 하나도 못 �
 REM    4초면 끝나므로 사전이 바뀌든 말든 매일 같이 돌린다.
 %PY% -u ingredient_management\generate_substitutes.py >> %LOG% 2>&1
 if errorlevel 1 goto failed
+
+REM 2.7) 새로 들어온 재료 중 **«특별한 날» 감**을 골라 프리미엄 목록에 넣는다.
+REM    사전은 매일 자동으로 늘어나는데 프리미엄 목록은 손으로 적은 표라,
+REM    새로 들어온 `성게알`·`부챗살` 같은 것을 「특별한 날」이 영영 못 본다.
+REM    **빈도 상한 1%** · 최소 등장 5회 · LLM 판정 세 가지로 거른다.
+REM    한 번 물어본 이름은 다시 안 묻는다 — 호출은 하루 10회까지다.
+%PY% -u scripts\propose_premium_ingredients.py --write >> %LOG% 2>&1
 
 REM 3) 바뀐 게 없으면 여기서 끝 (매일 도는데 대부분은 바뀔 게 없다)
 git diff --quiet -- %CSVS%

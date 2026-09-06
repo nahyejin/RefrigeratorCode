@@ -53,10 +53,16 @@
 """
 
 import csv
+import json
 import os
 
 # (rank, 이름, 제외어). rank 가 작을수록 위. 같은 rank 는 동급.
-PREMIUM_INGREDIENT_DEFS = (
+#
+# 이것은 **손으로 적은 목록**이다. 사전은 매일 자동으로 늘어나므로, 새로 들어온
+# 재료 중 「특별한 날」 감은 `scripts/propose_premium_ingredients.py` 가 골라
+# `premium_ingredients_auto.json` 에 쌓고 아래에서 합친다.
+# 이름이 겹치면 **손으로 적은 쪽이 이긴다.**
+_HANDPICKED = (
     # --- 초고가·희귀 ---
     (0, "캐비어", ()),
     (1, "푸아그라", ()),
@@ -113,6 +119,42 @@ PREMIUM_INGREDIENT_DEFS = (
     (81, "와인", ("와인식초",)),
     (82, "발사믹", ("발사믹드레싱", "발사믹소스")),
 )
+
+_AUTO_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                          "premium_ingredients_auto.json")
+
+
+def _load_auto():
+    """자동으로 뽑힌 것들. 파일이 없거나 깨져도 **손으로 적은 목록은 살아야 한다.**"""
+    try:
+        with open(_AUTO_PATH, encoding="utf-8") as f:
+            data = json.load(f)
+    except FileNotFoundError:
+        return ()
+    except Exception as e:  # noqa: BLE001
+        print(f"[premium] 자동 목록 읽기 실패(무시): {e}", flush=True)
+        return ()
+
+    handpicked = {name for _, name, _ in _HANDPICKED}
+    # **일부러 뺀 이름은 자동 경로로도 못 들어온다.**
+    # `등갈비` 는 `갈비` 의 제외어다 — 사람이 "이건 특별한 날 감이 아니다" 라고
+    # 판단해서 뺀 것인데, 자동 판정이 그것을 모르고 새 항목으로 다시 넣으면
+    # 그 판단이 조용히 뒤집힌다.
+    excluded = {e for _, _, ex in _HANDPICKED for e in ex}
+    out = []
+    for item in (data.get("items") or []):
+        name = str(item.get("name") or "").strip()
+        if not name or name in handpicked or name in excluded:
+            continue
+        try:
+            rank = int(item.get("rank"))
+        except (TypeError, ValueError):
+            continue
+        out.append((rank, name, ()))
+    return tuple(out)
+
+
+PREMIUM_INGREDIENT_DEFS = _HANDPICKED + _load_auto()
 
 NO_MATCH_RANK = 999999
 

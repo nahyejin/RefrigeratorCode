@@ -171,7 +171,14 @@ def main():
     conn = db()
     try:
         cursor = conn.cursor()
-        done = [raw for raw, _ in added] + [raw for raw, _ in extended]
+        # **"이미 들어 있음" 은 실패가 아니라 완료다.**
+        #
+        # 예전에는 이것도 `applied_to_csv = 0` 으로 남겨 매일 다시 시도했다.
+        # 사전에 그 이름이 이미 있는데 다시 넣을 수는 없으니 영원히 안 끝나고,
+        # 화면에는 "아직 반영 안 됨" 으로 49건이 쌓여 진짜 대기와 섞였다.
+        already = [raw for raw, why in skipped if "이미" in why]
+        skipped = [(raw, why) for raw, why in skipped if "이미" not in why]
+        done = [raw for raw, _ in added] + [raw for raw, _ in extended] + already
         if done:
             placeholders = ",".join(["%s"] * len(done))
             cursor.execute(
