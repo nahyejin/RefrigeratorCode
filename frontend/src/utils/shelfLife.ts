@@ -69,6 +69,28 @@ const BY_DETAIL: Record<string, ShelfLife> = {
   '갑각류': { frozen: 90, fridge: 3, room: null },
   '달걀/난류': { frozen: null, fridge: 35, room: 10 },
   '건조해산물류': { frozen: 365, fridge: 180, room: 180 },
+
+  // ── 아래는 소분류만 보면 **위험할 만큼 길게** 잡히던 것들 ───────────────
+  // 소분류 하나에 성격이 아주 다른 것이 섞여 있어, 세분류로 갈라 준다.
+
+  // `완제품·조리불요`(냉장 10일) 안에 지어 둔 밥이 섞여 있었다. 밥은 냉장 2~3일이다.
+  '즉석밥/곡류': { frozen: 90, fridge: 3, room: 2 },
+  // `감칠맛/육수`(냉장 14일) 안에 끓인 육수가 섞여 있었다. 국물은 냉장 3일이다.
+  // (다시다·라면스프 같은 건조·분말은 같은 소분류지만 세분류가 달라 안 걸린다)
+  '기타 육수보완재': { frozen: 90, fridge: 3, room: 1 },
+  // `즉석조리 필요`(냉장 180일) 안에 냉장 만두·피자·밀키트가 섞여 있었다.
+  // 라면(즉석면류)은 세분류가 달라 그대로 180일이다.
+  '즉석조리식/밀키트': { frozen: 180, fridge: 7, room: 3 },
+  '즉석조리식': { frozen: 180, fridge: 7, room: 3 },
+  '즉석국/탕류': { frozen: 180, fridge: 7, room: 30 },
+  // `조리완성형 재료`(냉장 90일) 안에 생지·만두피·떡이 섞여 있었다.
+  '반죽류(베이스)': { frozen: 90, fridge: 7, room: 1 },
+  '반죽류(피/피대체)': { frozen: 90, fridge: 14, room: 2 },
+  '떡류': { frozen: 90, fridge: 7, room: 2 },
+  // `완제품·조리불요`(냉장 10일) 안에 김치가 있었다. 김치는 몇 달 간다 —
+  // 한국 냉장고에 늘 있는 것이라 10일로 잡으면 임박 목록이 김치로 덮인다.
+  // (같은 칸의 묵은 5일이라 아래 이름 예외로 뺀다)
+  '즉석반찬/김치류': { frozen: 180, fridge: 90, room: 14 },
   '해조류': { frozen: 180, fridge: 21, room: 180 },
 };
 
@@ -134,6 +156,73 @@ const BY_MID: Record<string, ShelfLife> = {
   '베이킹·제면·디저트용': { frozen: 180, fridge: 90, room: 90 },
   '음료/주류': { frozen: null, fridge: 180, room: 180 },
   '빙재료': { frozen: 90, fridge: null, room: null },
+};
+
+/**
+ * **분류로는 못 가르는 것들.** 이름을 그대로 보고 먼저 걸러 낸다.
+ *
+ * 사전의 분류는 "무엇으로 만들었나" 기준이라, 보관 기간이 전혀 다른 것이 한
+ * 칸에 들어오는 경우가 있다. 실제로 확인된 것만 적는다:
+ *
+ *  - 두부·콩나물·숙주가 `두류/콩류`(냉장 **180일**)에 있었다. 마른 콩과 같은
+ *    칸이라 그렇다. 두부는 5일, 콩나물·숙주는 3일이다. **가장 위험했던 칸.**
+ *  - 내장·곱창이 `육류`(4일)에 있었다. 부산물은 1~2일이다.
+ *  - 게장이 `가공육`(10일)에 있었다. 3일이다.
+ *  - 푸딩·커스터드가 `디저트/간식류`(45일)에 과자와 같이 있었다. 3일이다.
+ *  - 반대로 건과일·곶감이 생과일(`과일`, 냉장 14일)과 같은 칸이라 너무 짧았다.
+ *    말린 것은 반년 간다.
+ *  - 햇반은 `즉석밥/곡류`(실온 2일)인데 실온 보관이 되는 제품이다.
+ */
+const BY_NAME: Record<string, ShelfLife> = {
+  // 두부류 — 물에 담긴 채로 팔려 빨리 상한다
+  '두부': { frozen: 90, fridge: 5, room: 1 },
+  '순두부': { frozen: 90, fridge: 3, room: 1 },
+  '연두부': { frozen: 90, fridge: 3, room: 1 },
+  '전두부': { frozen: 90, fridge: 5, room: 1 },
+  '동두부': { frozen: 90, fridge: 5, room: 1 },
+  '포두부': { frozen: 90, fridge: 7, room: 1 },
+  '건두부': { frozen: 180, fridge: 30, room: 14 },
+  '비지': { frozen: 90, fridge: 3, room: 1 },
+  '콩물': { frozen: 60, fridge: 3, room: 1 },
+
+  // 콩나물·숙주 — 냉장고에서 가장 빨리 무르는 축이다
+  '콩나물': { frozen: 30, fridge: 3, room: 1 },
+  '숙주': { frozen: 30, fridge: 2, room: 1 },
+  '숙주나물': { frozen: 30, fridge: 2, room: 1 },
+
+  // 부산물 — 같은 육류라도 훨씬 빨리 상한다
+  '내장': { frozen: 60, fridge: 2, room: null },
+  '곱창': { frozen: 60, fridge: 2, room: null },
+  '염통': { frozen: 60, fridge: 2, room: null },
+  '소 부산물': { frozen: 60, fridge: 2, room: null },
+  '닭 부산물': { frozen: 60, fridge: 2, room: null },
+  '거위 부산물': { frozen: 60, fridge: 2, room: null },
+  '닭똥집': { frozen: 60, fridge: 2, room: null },
+
+  '게장': { frozen: 60, fridge: 3, room: null },
+
+  // 냉장 디저트 — 과자와 한 칸에 있었다
+  '푸딩': { frozen: null, fridge: 3, room: 1 },
+  '커스터드': { frozen: null, fridge: 3, room: 1 },
+  '크레페': { frozen: 30, fridge: 3, room: 1 },
+  '생크림': { frozen: null, fridge: 5, room: 1 },
+
+  // 말린 과일 — 생과일과 한 칸이라 너무 짧았다
+  '건과일': { frozen: 365, fridge: 180, room: 180 },
+  '건포도': { frozen: 365, fridge: 180, room: 180 },
+  '건크렌베리': { frozen: 365, fridge: 180, room: 180 },
+  '곶감': { frozen: 365, fridge: 90, room: 30 },
+  '대추야자': { frozen: 365, fridge: 180, room: 180 },
+
+  // 묵 — 김치와 한 칸(`즉석반찬/김치류`)이라 90일로 잡혔다. 묵은 5일이다.
+  '도토리묵': { frozen: null, fridge: 5, room: 1 },
+  '메밀묵': { frozen: null, fridge: 5, room: 1 },
+  '녹두묵': { frozen: null, fridge: 5, room: 1 },
+  '우무묵': { frozen: null, fridge: 5, room: 1 },
+  '옥수수묵': { frozen: null, fridge: 5, room: 1 },
+
+  // 실온 보관 제품
+  '햇반': { frozen: null, fridge: 270, room: 270 },
 };
 
 export type IngredientCategory = { mid: string; sub: string; detail: string };
@@ -227,8 +316,18 @@ export function loadIngredientCategoryMap(): Promise<CategoryMap> {
   return cached;
 }
 
-/** 카테고리 + 보관 방법으로 보관 가능 일수를 찾는다. 못 찾으면 null */
-export function lookupShelfLifeDays(cat: IngredientCategory | undefined, storage: StorageKind): number | null {
+/**
+ * 카테고리 + 보관 방법으로 보관 가능 일수를 찾는다. 못 찾으면 null
+ *
+ * 이름 예외 → 세분류 → 소분류 → 중분류 순. 위로 갈수록 구체적이다.
+ */
+export function lookupShelfLifeDays(
+  cat: IngredientCategory | undefined,
+  storage: StorageKind,
+  name?: string,
+): number | null {
+  const byName = name ? BY_NAME[name] : undefined;
+  if (byName) return byName[storage];
   if (!cat) return null;
   const table = BY_DETAIL[cat.detail] || BY_SUB[cat.sub] || BY_MID[cat.mid];
   if (!table) return null;
@@ -251,7 +350,7 @@ export function estimateExpiry(
   purchaseDate: string,
   categoryMap: CategoryMap
 ): string | null {
-  const days = lookupShelfLifeDays(categoryMap[ingredientName], storage);
+  const days = lookupShelfLifeDays(categoryMap[ingredientName], storage, ingredientName);
   if (days == null) return null;
 
   const base = parseDate(purchaseDate);
