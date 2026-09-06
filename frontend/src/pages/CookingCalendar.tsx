@@ -1518,7 +1518,11 @@ const CookingCalendar: React.FC = () => {
           AI 식단에서 한 번 보여 주긴 하는데 그건 짤 때 한 번이고, 장은 그 뒤에
           본다. 계획이 있는 자리에 같이 두는 편이 맞다. */}
       {mode === 'calendar' && weekBasket !== null && weekBasket.length > 0 && (
-        <div style={{ margin: '12px 14px 0', padding: '12px 14px', borderRadius: 12,
+        // 아래 여백 14px 을 빠뜨리면 안 된다. 이 카드는 **달력 카드 안의
+        // 마지막 요소**라(바깥 카드는 `overflow: hidden`), 아래 여백이 0 이면
+        // 노란 테두리가 달력 카드의 바닥선에 그대로 붙는다 — 달력 아래가
+        // 잘려 보인다. 위쪽 달력 격자가 쓰는 14px 과 같은 값으로 맞춘다.
+        <div style={{ margin: '12px 14px 14px', padding: '12px 14px', borderRadius: 12,
                       border: '1px solid #E0B400', background: '#FFFDF2' }}>
           <div style={{ fontSize: 13.5, fontWeight: 800, color: '#1A1A1E' }}>
             이번 주 장보기 <span style={{ color: '#B4780A' }}>{weekBasket.length}개</span>
