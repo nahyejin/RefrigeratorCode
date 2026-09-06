@@ -74,8 +74,14 @@ def ensure_table(get_db):
             # 이미 만들어진 표에 없으면 채운다.
             # "언제 반영됐는지 / 왜 실패했는지" 를 못 보면 관리자는 승인해 놓고
             # 그게 실제로 들어갔는지 확인할 방법이 없다.
+            # `보관*` 셋은 재료별 유통기한 짐작에 쓴다. 분류 하나에 성격이
+            # 다른 것이 섞여(두부가 마른 콩과 한 칸) 생기던 문제를 재료 단위로
+            # 푼다 — 새 재료가 들어올 때 함께 정해 둔다.
             for col, ddl in (("applied_at", "DATETIME NULL"),
-                             ("apply_error", "VARCHAR(255) NULL")):
+                             ("apply_error", "VARCHAR(255) NULL"),
+                             ("보관냉동", "VARCHAR(8) NULL"),
+                             ("보관냉장", "VARCHAR(8) NULL"),
+                             ("보관실온", "VARCHAR(8) NULL")):
                 cursor.execute(
                     f"SHOW COLUMNS FROM ingredient_dictionary_additions LIKE '{col}'"
                 )
@@ -256,9 +262,18 @@ skip 해야 하는 것들:
   틀리게 넣는 것보다 안 넣는 편이 낫다.
 - reason 은 한국어 한 문장으로 짧게.
 
+keyword(새 재료)일 때는 **보관 일수**도 함께 적어라. 가정에서 며칠쯤 쓸 수 있는지다.
+  - frozen : 냉동실. 상하는 날이 아니라 **맛이 떨어지기 시작하는 날**. 보통 1~6개월.
+  - fridge : 냉장실. **안전과 직결된다.** 애매하면 짧게.
+  - room   : 실온(서늘한 곳).
+  그 방법으로 보관하지 않으면 null (생선·생고기의 room, 우유의 frozen 등).
+  기준 예 — 생고기 4 / 생선 2 / 두부 5 / 콩나물 3 / 밥 3 / 잎채소 7 / 감자 30(냉장)
+             김치 90 / 마른 미역 180(실온) / 간장·소금 365
+
 아래 JSON 배열만 출력해라. 다른 텍스트는 쓰지 마라.
 [{"raw":"입력한 이름","decision":"synonym|keyword|skip","keyword":"대표어 또는 빈 문자열",
-  "중분류":"","소분류":"","세분류":"","세세분류":"","hyperonym":"","reason":""}]
+  "중분류":"","소분류":"","세분류":"","세세분류":"","hyperonym":"","reason":"",
+  "frozen":90,"fridge":5,"room":null}]
 """
 
 
@@ -437,6 +452,9 @@ def suggest(names, force_decision=None):
 
         entry = {
             "raw": name,
+            # 보관 일수 — 새 재료일 때만 뜻이 있다. 사전 CSV 의
+            # `보관냉동`·`보관냉장`·`보관실온` 칸으로 들어간다.
+            **{k: item.get(k) for k in ("frozen", "fridge", "room")},
             "decision": decision,
             "keyword": keyword,
             "중분류": str(item.get("중분류") or "").strip(),
@@ -463,6 +481,21 @@ def suggest(names, force_decision=None):
     return out
 
 
+def _days(value):
+    """보관 일수 한 칸. `None` 은 "그 방법으로는 보관 안 함" 이라 `-` 로 남긴다.
+
+    빈 문자열은 "안 정했음" 이고, 그때는 화면이 분류 표로 내려간다 — 셋을
+    구분해야 해서 숫자/`-`/빈칸 세 가지를 쓴다.
+    """
+    if value is None:
+        return "-"
+    try:
+        n = int(value)
+    except (TypeError, ValueError):
+        return ""
+    return str(n) if 0 < n <= 3650 else ""
+
+
 def apply_items(get_db, items, admin_id):
     """승인된 제안을 DB 에 넣는다. 사전을 읽을 때 CSV 와 합쳐진다."""
     ensure_table(get_db)
@@ -480,13 +513,15 @@ def apply_items(get_db, items, admin_id):
                 """
                 INSERT INTO ingredient_dictionary_additions
                     (raw_name, kind, keyword, 대분류, 중분류, 소분류, 세분류, 세세분류,
-                     hyperonym, reason, created_by, created_at)
-                VALUES (%s, %s, %s, '재료', %s, %s, %s, %s, %s, %s, %s, NOW())
+                     hyperonym, reason, 보관냉동, 보관냉장, 보관실온, created_by, created_at)
+                VALUES (%s, %s, %s, '재료', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
                 ON DUPLICATE KEY UPDATE
                     kind=VALUES(kind), keyword=VALUES(keyword),
                     중분류=VALUES(중분류), 소분류=VALUES(소분류),
                     세분류=VALUES(세분류), 세세분류=VALUES(세세분류),
                     hyperonym=VALUES(hyperonym), reason=VALUES(reason),
+                    보관냉동=VALUES(보관냉동), 보관냉장=VALUES(보관냉장),
+                    보관실온=VALUES(보관실온),
                     created_by=VALUES(created_by), applied_to_csv=0
                 """,
                 (
@@ -494,6 +529,7 @@ def apply_items(get_db, items, admin_id):
                     (item.get("중분류") or "")[:60], (item.get("소분류") or "")[:60],
                     (item.get("세분류") or "")[:60], (item.get("세세분류") or "")[:60],
                     (item.get("hyperonym") or "")[:120], (item.get("reason") or "")[:255],
+                    _days(item.get("frozen")), _days(item.get("fridge")), _days(item.get("room")),
                     admin_id,
                 ),
             )

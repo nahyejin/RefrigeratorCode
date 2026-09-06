@@ -97,6 +97,13 @@ def main():
         for row in rows:
             row.setdefault("추가일자", "")
 
+    # 재료별 보관 일수 세 칸. 화면(`shelfLife.ts`)이 분류 표보다 먼저 본다.
+    for col in ("보관냉동", "보관냉장", "보관실온"):
+        if col not in fieldnames:
+            fieldnames = list(fieldnames) + [col]
+        for row in rows:
+            row.setdefault(col, "")
+
     today = datetime.now().strftime("%Y-%m-%d")
     by_keyword = {r["keyword"].strip(): r for r in rows if r.get("keyword")}
     added, extended, skipped = [], [], []
@@ -129,6 +136,10 @@ def main():
             for col in ("중분류", "소분류", "세분류", "세세분류"):
                 row[col] = (item.get(col) or "").strip()
             row["hyperonym"] = (item.get("hyperonym") or "").strip()
+            # 승인할 때 LLM 이 같이 정해 둔 보관 일수. 비어 있으면 화면이
+            # 지금까지처럼 분류 표로 내려간다.
+            for col in ("보관냉동", "보관냉장", "보관실온"):
+                row[col] = str(item.get(col) or "").strip()
             row["추가일자"] = today
             if raw != keyword:
                 row["synonyms"] = raw

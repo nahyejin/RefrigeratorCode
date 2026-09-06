@@ -225,11 +225,25 @@ const BY_NAME: Record<string, ShelfLife> = {
   '햇반': { frozen: null, fridge: 270, room: 270 },
 };
 
-export type IngredientCategory = { mid: string; sub: string; detail: string };
+/**
+ * 재료 하나의 분류와, **그 재료에만 붙은 보관 일수**.
+ *
+ * `days` 는 사전 CSV 의 `보관냉동`·`보관냉장`·`보관실온` 칸에서 온다. 카테고리
+ * 하나에 성격이 다른 것이 섞이는 문제(두부가 마른 콩과 한 칸)를 근본적으로
+ * 푸는 자리다 — 값이 있으면 카테고리보다 먼저 쓴다. 비어 있으면 지금까지처럼
+ * 카테고리 표로 내려간다.
+ */
+export type IngredientCategory = {
+  mid: string;
+  sub: string;
+  detail: string;
+  days?: Partial<ShelfLife>;
+};
 export type CategoryMap = Record<string, IngredientCategory>;
 
 const CSV_URL = '/ingredient_profile_dict_with_substitutes.csv';
-const CACHE_KEY = 'ingredient_category_map_v1';
+// v2 부터 재료별 보관 일수(days)를 함께 담는다. v1 캐시에는 없으므로 키를 올린다.
+const CACHE_KEY = 'ingredient_category_map_v2';
 
 let cached: Promise<CategoryMap> | null = null;
 
@@ -276,6 +290,19 @@ export function loadIngredientCategoryMap(): Promise<CategoryMap> {
       mid: header.indexOf('중분류'),
       sub: header.indexOf('소분류'),
       detail: header.indexOf('세분류'),
+      frozen: header.indexOf('보관냉동'),
+      fridge: header.indexOf('보관냉장'),
+      room: header.indexOf('보관실온'),
+    };
+
+    /** 사전 칸의 숫자. 비었거나 숫자가 아니면 없는 것으로 본다. */
+    const num = (cols: string[], at: number): number | null | undefined => {
+      if (at < 0) return undefined;                 // 아직 그 열이 없는 사전
+      const raw = (cols[at] || '').trim();
+      if (!raw) return undefined;                   // 안 채운 재료
+      if (raw === '-' || raw === 'x') return null;  // "그 방법으로는 보관 안 함"
+      const n = Number(raw);
+      return Number.isFinite(n) && n > 0 ? n : undefined;
     };
 
     const map: CategoryMap = {};
@@ -292,6 +319,15 @@ export function loadIngredientCategoryMap(): Promise<CategoryMap> {
         sub: (cols[idx.sub] || '').trim(),
         detail: (cols[idx.detail] || '').trim(),
       };
+      const frozen = num(cols, idx.frozen);
+      const fridge = num(cols, idx.fridge);
+      const room = num(cols, idx.room);
+      if (frozen !== undefined || fridge !== undefined || room !== undefined) {
+        cat.days = {};
+        if (frozen !== undefined) cat.days.frozen = frozen;
+        if (fridge !== undefined) cat.days.fridge = fridge;
+        if (room !== undefined) cat.days.room = room;
+      }
       map[keyword] = cat;
 
       // 동의어로 저장된 재료도 찾을 수 있게 함께 등록
@@ -326,9 +362,14 @@ export function lookupShelfLifeDays(
   storage: StorageKind,
   name?: string,
 ): number | null {
+  // 1) 손으로 확인해 박아 둔 예외가 가장 세다
   const byName = name ? BY_NAME[name] : undefined;
   if (byName) return byName[storage];
   if (!cat) return null;
+  // 2) 사전에 그 재료만의 값이 있으면 카테고리보다 먼저
+  const own = cat.days?.[storage];
+  if (own !== undefined) return own;
+  // 3) 없으면 분류로 (세분류 → 소분류 → 중분류)
   const table = BY_DETAIL[cat.detail] || BY_SUB[cat.sub] || BY_MID[cat.mid];
   if (!table) return null;
   return table[storage];

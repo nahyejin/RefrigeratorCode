@@ -45,6 +45,20 @@ set CSVS=frontend/public/ingredient_profile_dict_with_substitutes.csv backend/in
 
 echo [%date% %time%] 사전 추가분 반영 시작 >> %LOG%
 
+REM 0) 사전에 없어 **버려진 이름** 을 자동으로 판정해 넣는다.
+REM    LLM 이 본문에서 뽑은 재료 중 사전에 없는 이름은 그대로 버려졌다
+REM    (2026-09-06 기준 14,328종 / 62,185회). 그만큼 카드의 재료가 적게 나오고
+REM    매칭률도 낮게 잡혔다.
+REM
+REM    **6회 이상 나온 것만** 돌린다. 그 아래 꼬리에는 `코스트코 호래기`,
+REM    `쿠킹 포일` 같은 것이 섞여 있고(2회 이하가 누적 37.7%), 사전은 모든
+REM    사용자의 매칭 기준이라 한 번 들어가면 되돌리기 어렵다.
+REM    나머지는 어드민 '사전' 탭에 그대로 남아 손으로 볼 수 있다.
+REM
+REM    아래 1) 보다 **먼저** 돈다 — 오늘 넣은 것이 오늘 CSV 까지 가야 한다.
+REM    실패해도 멈추지 않는다 — 사전 반영 자체는 그것과 상관없이 돌아야 한다.
+%PY% -u scripts\auto_curate_dictionary.py --write >> %LOG% 2>&1
+
 REM 1) DB -> CSV
 %PY% -u scripts\apply_dictionary_additions.py --write >> %LOG% 2>&1
 if errorlevel 1 goto failed
