@@ -950,8 +950,12 @@ const WeeklyPlan: React.FC = () => {
     const dates = nextDays().slice(0, r.dishes.length).map(toDateKey);
     const meals = toPlanned(r.dishes, dates);
     if (meals.length === 0) return;
+    // `fill` 은 **이미 정해 둔 날은 건드리지 않는다.** 그래서 실제로 담긴 것은
+    // 겹치지 않은 날뿐인데, 전에는 `meals.length` 를 그대로 알려 줘서 하나도
+    // 안 담겼는데 "7개 담았어요" 가 떴다. 담긴 수만 말한다.
+    const added = meals.length - conflictingDates(meals).length;
     savePlan(meals, 'fill');
-    setToast(meals.length);
+    setToast(added);
   };
 
   /** 이 대화에서 이미 물었나. 물었으면 입력을 닫는다. */

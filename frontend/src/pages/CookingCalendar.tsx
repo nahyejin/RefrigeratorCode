@@ -51,6 +51,16 @@ function formatTime(iso: string): string {
   return `${h}:${m}`;
 }
 
+/**
+ * 월 보기에서 **계획이 있는 날** 표식.
+ *
+ * `#FFF0A8` 하나만 깔아 뒀더니 흰 바탕에서 거의 안 보였다 — 식단을 반영하고
+ * 캘린더에 왔는데 "반영이 안 됐다" 고 할 만큼. 채우기를 한 단계 진하게 하고
+ * 테두리를 둘러 작은 칸에서도 눈에 걸리게 한다.
+ */
+const PLAN_MARK_FILL = '#FFE97A';
+const PLAN_MARK_RING = '#C9A400';
+
 function startOfWeek(d: Date): Date {
   const out = new Date(d);
   out.setDate(out.getDate() - out.getDay());
@@ -1348,9 +1358,10 @@ const CookingCalendar: React.FC = () => {
                           fontSize: 11.5, color: 'var(--ink-500)' }}>
               <span aria-hidden style={{
                 width: 15, height: 15, flexShrink: 0,
-                borderRadius: '50%', background: '#FFF0A8',
+                borderRadius: '50%', background: PLAN_MARK_FILL,
+                boxShadow: `inset 0 0 0 1.5px ${PLAN_MARK_RING}`,
               }} />
-              요리 계획 있는 날
+              요리 계획 있는 날 — 눌러서 무슨 요리인지 보기
             </div>
           )}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 4, marginBottom: 4 }}>
@@ -1398,7 +1409,8 @@ const CookingCalendar: React.FC = () => {
                         position: 'absolute', top: '50%', left: '50%',
                         width: 26, height: 26, marginTop: dayEntries.length > 0 ? -8 : 0,
                         transform: 'translate(-50%, -50%)',
-                        borderRadius: '50%', background: '#FFF0A8',
+                        borderRadius: '50%', background: PLAN_MARK_FILL,
+                        boxShadow: `inset 0 0 0 1.5px ${PLAN_MARK_RING}`,
                         pointerEvents: 'none',
                       }}
                     />
@@ -1555,9 +1567,15 @@ const CookingCalendar: React.FC = () => {
             const key = toDateKey(d);
             const dayEntries = entriesByDay.get(key) || [];
             const isToday = key === toDateKey(new Date());
-            // 완료 기록이 없고 계획만 있는 날 — 이 줄은 "할 것" 이다.
-            const dayPlans = dayEntries.length === 0 ? (plans.get(key) || []) : [];
-            const planned = dayPlans[0];
+            const dayPlans = plans.get(key) || [];
+            // 완료 기록이 없는 날만 **카드 모양**으로 크게 보여 준다 — 그 줄은
+            // 통째로 "할 것" 이기 때문이다. 기록이 있는 날은 기록이 주인공이고,
+            // 계획은 그 아래 한 줄로 덧붙인다.
+            //
+            // 전에는 기록이 하나라도 있으면 그 날 계획을 **아예 안 보여 줬다.**
+            // "했다" 와 "할 것" 은 다른 이야기인데, 아침에 뭘 하나 만들어 두면
+            // 저녁으로 짜 둔 것이 그대로 사라졌다.
+            const planned = dayEntries.length === 0 ? dayPlans[0] : undefined;
             return (
               <button
                 key={key}
@@ -1621,10 +1639,25 @@ const CookingCalendar: React.FC = () => {
                     </span>
                   </>
                 ) : (
-                  <span style={{ fontSize: 12.5, color: dayEntries.length ? 'var(--ink-700)' : 'var(--ink-500)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {dayEntries.length > 0
-                      ? dayEntries.map((e) => e.title).join(', ')
-                      : '기록 없음'}
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{
+                      display: 'block', fontSize: 12.5,
+                      color: dayEntries.length ? 'var(--ink-700)' : 'var(--ink-500)',
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    }}>
+                      {dayEntries.length > 0
+                        ? dayEntries.map((e) => e.title).join(', ')
+                        : '기록 없음'}
+                    </span>
+                    {dayPlans.length > 0 && (
+                      <span style={{
+                        display: 'block', fontSize: 11, color: '#7A5C00', marginTop: 2,
+                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                      }}>
+                        만들기로 한 것: {dayPlans[0].title}
+                        {dayPlans.length > 1 && ` 외 ${dayPlans.length - 1}개`}
+                      </span>
+                    )}
                   </span>
                 )}
                 {dayEntries.length > 0 && renderDayDots(dayEntries)}
