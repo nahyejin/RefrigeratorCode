@@ -61,6 +61,16 @@ NOT_SHOPPABLE = {
 }
 
 
+# **사람이 "이건 빼자" 고 한 것.**
+#
+# `NOT_SHOPPABLE` 과 다르다 — 그 이름으로 살 수 없는 것이 아니라, **살 수는
+# 있지만 광고로 둘 만큼은 아닌** 것들이다. 여기 적어 두지 않으면 다음 갱신 때
+# 건수 순으로 다시 들어온다.
+SKIPPED_BY_HAND = {
+    "새우젓",
+}
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--write", action="store_true")
@@ -110,6 +120,9 @@ def main():
         if k in NOT_SHOPPABLE:
             dropped.append((k, "그 이름으론 살 수 없음"))
             continue
+        if k in SKIPPED_BY_HAND:
+            dropped.append((k, "손으로 뺀 것"))
+            continue
         if k not in canonicals:
             # **대표어가 바뀐 것뿐이면 그쪽으로 옮긴다.**
             # `광어` -> `넙치`, `갈비` -> `소갈비`, `올리브오일` -> `올리브유`.
@@ -141,7 +154,8 @@ def main():
     have = {(r.get("ingredient_keyword") or "").strip() for r in kept}
     added = []
     ranked = sorted(((n, k) for k, n in counts.items()
-                     if k in canonicals and k not in NOT_SHOPPABLE),
+                     if k in canonicals and k not in NOT_SHOPPABLE
+                     and k not in SKIPPED_BY_HAND),
                     key=lambda x: (-x[0], x[1]))[:args.top]
     for n, k in ranked:
         if k in have:
