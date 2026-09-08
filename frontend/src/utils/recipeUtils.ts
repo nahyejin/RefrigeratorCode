@@ -673,7 +673,10 @@ export async function preloadIngredientSynonymDict(): Promise<void> {
  */
 export async function loadCoupangLinks(): Promise<{ [key: string]: string }> {
   const CACHE_KEY = 'coupang_links_cache';
-  const CACHE_VERSION = '1.4'; // 캐시 강제 무효화 - 설탕 링크 문제 해결
+  const CACHE_VERSION = '1.5'; // 2026-09-09 광고 링크 249개 반영
+  // 버전만 보면, 예전 값을 들고 있는 사람이 영원히 그대로다.
+  // 하루가 지나면 다시 받는다 — 링크를 더 채워도 저절로 반영된다.
+  const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
   
   console.log(`[loadCoupangLinks] 함수 호출됨 - 캐시 버전: ${CACHE_VERSION}`);
   
@@ -690,7 +693,9 @@ export async function loadCoupangLinks(): Promise<{ [key: string]: string }> {
             dataCount: parsedCache.data ? Object.keys(parsedCache.data).length : 0,
             hasSugar: parsedCache.data ? '설탕' in parsedCache.data : false
           });
-          if (parsedCache.version === CACHE_VERSION && parsedCache.data) {
+          const fresh = typeof parsedCache.savedAt === 'number'
+            && Date.now() - parsedCache.savedAt < CACHE_TTL_MS;
+          if (parsedCache.version === CACHE_VERSION && parsedCache.data && fresh) {
             if (parsedCache.data['설탕']) {
               console.log(`[loadCoupangLinks] ✅ 캐시에서 설탕 링크 확인:`, parsedCache.data['설탕']);
             } else {
@@ -816,6 +821,7 @@ export async function loadCoupangLinks(): Promise<{ [key: string]: string }> {
       try {
         localStorage.setItem(CACHE_KEY, JSON.stringify({
           version: CACHE_VERSION,
+          savedAt: Date.now(),
           data: linksDict
         }));
       } catch (e) {
@@ -851,7 +857,13 @@ export type CoupangAdsMap = {
 export async function loadCoupangAds(): Promise<CoupangAdsMap> {
   const CACHE_KEY = 'coupang_ads_cache';
   // 광고 후보 목록을 레시피 사용 빈도 기준으로 다시 만들면서 캐시 무효화
-  const CACHE_VERSION = '1.1';
+  //
+  // 2026-09-09 다시 올린다 — 링크를 249개 채웠다. **이걸 안 올리면 예전에
+  // 링크가 하나도 없던 시절에 방문한 사람은 빈 결과를 영원히 들고 있다.**
+  const CACHE_VERSION = '1.2';
+  // 버전만 보면, 예전 값을 들고 있는 사람이 영원히 그대로다.
+  // 하루가 지나면 다시 받는다 — 링크를 더 채워도 저절로 반영된다.
+  const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
   try {
     if (typeof window !== 'undefined' && window.localStorage) {
@@ -859,7 +871,9 @@ export async function loadCoupangAds(): Promise<CoupangAdsMap> {
       if (cached) {
         try {
           const parsedCache = JSON.parse(cached);
-          if (parsedCache.version === CACHE_VERSION && parsedCache.data) {
+          const fresh = typeof parsedCache.savedAt === 'number'
+            && Date.now() - parsedCache.savedAt < CACHE_TTL_MS;
+          if (parsedCache.version === CACHE_VERSION && parsedCache.data && fresh) {
             return parsedCache.data as CoupangAdsMap;
           }
         } catch {
@@ -929,7 +943,7 @@ export async function loadCoupangAds(): Promise<CoupangAdsMap> {
     coupangAdsCache = adsMap;
     if (typeof window !== 'undefined' && window.localStorage) {
       try {
-        localStorage.setItem(CACHE_KEY, JSON.stringify({ version: CACHE_VERSION, data: adsMap }));
+        localStorage.setItem(CACHE_KEY, JSON.stringify({ version: CACHE_VERSION, savedAt: Date.now(), data: adsMap }));
       } catch {
         // ignore local cache write failures
       }
