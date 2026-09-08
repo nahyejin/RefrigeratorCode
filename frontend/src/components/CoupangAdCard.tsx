@@ -10,10 +10,8 @@ interface CoupangAdCardProps {
   lackingCount: number;
   width: number | string;
   /**
-   * 높이. **안 주면 「목록에 끼우는 한 줄」** 로, 주면 **카드**로 그린다.
-   *
-   * 가로 캐러셀에서는 옆 레시피 카드와 같은 칸을 채워야 줄이 안 깨지므로
-   * 높이를 준다. 세로 목록에서는 줄 이유가 없다.
+   * 높이. 가로 캐러셀에서는 옆 레시피 카드와 같은 칸을 채워야 줄이 안 깨져서
+   * 준다. 세로 목록에서는 줄 이유가 없다 — 내용만큼만 쓴다.
    */
   height?: number | string;
 }
@@ -51,8 +49,12 @@ const ExternalArrow = () => (
  * 읽혔다. 광고는 항목이 아니라 사이에 끼운 안내다.
  *
  * 이미지 없이 링크만 있는 광고는 원래 이렇게 붙인다 — 본문에 녹는 한 줄.
- * 테두리와 배경을 빼고, 위아래 얇은 선으로만 앞뒤와 나눈다. 재료 이름도
- * 22px 로 크게 외칠 이유가 없어 문장 안에 넣었다.
+ * 테두리도 배경도 없다(위아래 선까지 뺐다 — 선이 있으면 결국 상자로 읽힌다).
+ * 재료 이름도 22px 로 크게 외칠 이유가 없어 문장 안에 넣었다.
+ *
+ * **두 화면이 같은 모양이다.** 세로 목록(냉장고요리)과 가로 캐러셀(요즘인기)이
+ * 다른 점은 `height` 뿐이다 — 캐러셀은 옆 카드와 같은 칸을 채워야 해서 높이를
+ * 받는다.
  *
  * **「광고」 배지와 대가성 문구는 그대로 둔다.** 눈에 덜 띄게 만드는 것과
  * 광고임을 감추는 것은 다르다. 누르기 전에 보여야 한다.
@@ -125,88 +127,26 @@ const CoupangAdCard: React.FC<CoupangAdCardProps> = ({
     </div>
   );
 
-  // ── 세로 목록: 본문에 녹는 한 줄 ───────────────────────────────────
-  if (!height) {
-    return (
-      <div
-        style={{
-          width,
-          boxSizing: 'border-box',
-          padding: '14px 4px',
-          // 테두리도 배경도 없다. 앞뒤 카드와 섞이지 않게 얇은 선만 둔다.
-          borderTop: '1px solid var(--line-200)',
-          borderBottom: '1px solid var(--line-200)',
-        }}
-      >
-        {badge}
-        <a
-          href={url}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={onClick}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 5,
-            margin: '8px 0 6px',
-            color: 'var(--ink-900)',
-            fontSize: 15,
-            fontWeight: 700,
-            textDecoration: 'none',
-            maxWidth: '100%',
-          }}
-        >
-          <span
-            style={{
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              minWidth: 0,
-            }}
-          >
-            {ingredient} 쿠팡에서 보기
-          </span>
-          <ExternalArrow />
-        </a>
-        <CoupangDisclaimer compact />
-      </div>
-    );
-  }
-
-  // ── 가로 캐러셀: 옆 레시피 카드와 같은 칸을 채워야 하므로 카드로 ────
   return (
     <div
       style={{
         width,
         height,
         boxSizing: 'border-box',
+        // **테두리도 배경도 없다.**
+        //
+        // 원래는 테두리 있는 회색 카드였다. 상품 이미지가 언젠가 들어올 자리를
+        // 비워 두고 잡은 크기였는데 이미지는 못 넣는다 — 간편 링크는 URL 만
+        // 준다. 그래서 상품 카드인 척하는데 상품이 없는 모양이 됐고, 레시피
+        // 카드와 같은 테두리라 **목록의 한 항목**처럼 읽혔다.
+        // 광고는 항목이 아니라 사이에 끼운 안내다.
+        padding: height ? 16 : '14px 4px',
         display: 'flex',
         flexDirection: 'column',
-        padding: 16,
-        borderRadius: 14,
-        background: 'var(--surface-sub)',
-        border: '1px solid var(--line-200)',
+        gap: 8,
       }}
     >
       {badge}
-      {/* 대가성 문구는 **누르기 전에** 보여야 한다 */}
-      <CoupangDisclaimer compact style={{ marginTop: 10, marginBottom: 14 }} />
-
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', minHeight: 0, marginBottom: 14 }}>
-        <div
-          style={{
-            fontSize: 20,
-            fontWeight: 700,
-            color: 'var(--ink-900)',
-            lineHeight: 1.3,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {ingredient}
-        </div>
-      </div>
 
       <a
         href={url}
@@ -214,24 +154,36 @@ const CoupangAdCard: React.FC<CoupangAdCardProps> = ({
         rel="noopener noreferrer"
         onClick={onClick}
         style={{
-          display: 'flex',
+          display: 'inline-flex',
           alignItems: 'center',
-          justifyContent: 'center',
           gap: 5,
-          height: 44,
-          borderRadius: 10,
-          background: 'var(--surface)',
-          border: '1px solid var(--line-300)',
+          // **검정 글자로 둔다.**
+          //
+          // 링크를 파란색으로 하면 "바깥으로 나간다" 는 게 더 분명하지만,
+          // 이 앱은 이미 노랑·초록·빨강이 많이 쓰여 색을 하나 더 들이면
+          // 목록이 시끄러워진다. 바깥으로 나가는 신호는 **화살표**가 맡는다.
           color: 'var(--ink-900)',
-          fontSize: 14,
+          fontSize: 15,
           fontWeight: 700,
           textDecoration: 'none',
-          boxSizing: 'border-box',
+          maxWidth: '100%',
         }}
       >
-        쿠팡에서 보기
+        <span
+          style={{
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            minWidth: 0,
+          }}
+        >
+          {ingredient} 쿠팡에서 보기
+        </span>
         <ExternalArrow />
       </a>
+
+      {/* 대가성 문구는 **누르기 전에** 보여야 한다 */}
+      <CoupangDisclaimer compact />
     </div>
   );
 };
