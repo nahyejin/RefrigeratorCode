@@ -1,5 +1,6 @@
 import axios, { AxiosResponse } from 'axios';
 import RecipeCardSkeleton from '../components/RecipeCardSkeleton';
+import FloatingScanLoader from '../components/FloatingScanLoader';
 import IngredientLegend from '../components/IngredientLegend';
 import React, { useState, useEffect, useMemo, useCallback, useRef, useLayoutEffect } from 'react';
 import BottomNavBar from '../components/BottomNavBar';
@@ -15,7 +16,7 @@ import { Recipe, RecipeActionState, FilterState, SubstituteInfo } from '../types
 import { getMyIngredients, getMyIngredientsAsKeywords, sortRecipes, calculateMatchRate, extractKeywordsAndSynonyms, FilterKeywordTree, getDictCategoryKey, preloadIngredientSynonymDict, ingredientSynonymDictCache } from '../utils/recipeUtils';
 import RecipeToast from '../components/RecipeToast';
 import UsedUpSheet from '../components/UsedUpSheet';
-import { takePrefetched, PREFETCH_SIZE, defaultMatchRateMin } from '../utils/recipePrefetch';
+import { takePrefetched, PREFETCH_SIZE, defaultMatchRateMin, setFridgeScreenLoading } from '../utils/recipePrefetch';
 import { fetchCsvOnce } from '../utils/csvOnce';
 // import Slider from 'rc-slider';
 // import 'rc-slider/assets/index.css';
@@ -1552,6 +1553,18 @@ const RecipeList: React.FC = () => {
     });
   }, [selectedChannel, includeKeyword, includeIngredients, excludeIngredients, selectedCategoryKeywords, matchRange, appliedExpiryIngredients, sortType]);
 
+  /**
+   * 이 화면이 받는 중이라는 걸 **밖에도 알린다.**
+   *
+   * 하단 탭의 점이 「미리 받는 중」만 보고 있었더니, 미리 받아 둔 것을 못 쓰는
+   * 경우(조건이 다르면 버린다) 점은 꺼졌는데 들어오면 처음부터 다시 받았다.
+   * 다 됐다고 해 놓고 안 된 셈이라, 화면 쪽 상태도 같이 넘긴다.
+   */
+  useEffect(() => {
+    setFridgeScreenLoading(loading);
+    return () => setFridgeScreenLoading(false);
+  }, [loading]);
+
   // `cachedFilteredRecipes` 의 길이를 ref 로도 들고 있는다.
   // 아래 필터 effect 가 이 길이를 보는데, **상태로 보면 자기가 캐시를 비우는
   // 순간 자신을 다시 불러** 같은 조건을 두 번 받아 온다.
@@ -2331,48 +2344,24 @@ const RecipeList: React.FC = () => {
                   실측 2.5초쯤 걸리는데(서버가 레시피 4만여 개의 매칭률을 센다),
                   그동안 아무 말이 없으면 멈춘 것처럼 느낀다.
                   지금 무엇을 하는 중인지와, **기다릴 필요가 없다는 것**을 말한다. */}
-              <div style={{
-                margin: '0 0 10px', padding: '12px 14px', borderRadius: 10,
-                background: 'var(--surface-sub)',
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span aria-hidden className="cm-spinner" />
-                  {/* **진짜 숫자를 말한다.**
-                      "재료 14개로 레시피 42,482개를 맞춰 보는 중" 한 줄이,
-                      오래 걸리는 이유를 그 자리에서 설명해 준다. 둘 다 앱이
-                      이미 아는 값이라 지어내는 것이 하나도 없다. */}
-                  <span style={{ fontSize: 12.5, color: 'var(--ink-700)', lineHeight: 1.6 }}>
-                    {myIngredients.length > 0
-                      ? <>내 재료 <b>{myIngredients.length}개</b>로 레시피{' '}
-                          <b>{total > 0 ? total.toLocaleString() : '42,000'}여 개</b>를 맞춰 보는 중이에요.</>
-                      : <>레시피를 불러오는 중이에요.</>}
-                  </span>
-                </div>
+              {/* **떠 있는 로딩.**
+                  예전에는 목록 자리에 회색 상자를 끼워 뒀는데, 스크롤을
+                  내리면 무엇을 기다리는지가 사라졌다. 사진 인식에서 쓰는
+                  훑는 애니메이션을 화면 맨 위 레이어에 띄운다.
 
-                {/* 진행률 막대 — 값은 원래부터 계산하고 있었는데 그리지 않았다.
-                    뼈대만 있으면 얼마나 더 기다려야 하는지를 알 수 없다. */}
-                <div
-                  role="progressbar"
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                  aria-valuenow={Math.round(loadingProgress)}
-                  style={{
-                    height: 3, borderRadius: 2, margin: '10px 0 8px',
-                    background: 'var(--line-200)', overflow: 'hidden',
-                  }}
-                >
-                  <div style={{
-                    width: `${Math.max(4, Math.min(100, loadingProgress))}%`,
-                    height: '100%', borderRadius: 2,
-                    background: 'var(--ink-900)',
-                    transition: 'width 240ms ease-out',
-                  }} />
-                </div>
-
-                <span style={{ fontSize: 12, color: 'var(--ink-500)', lineHeight: 1.6 }}>
-                  다른 화면을 보고 오셔도 돼요 — 그동안 마저 준비해 둘게요.
-                </span>
-              </div>
+                  첫 문구에 **진짜 숫자**를 넣는다 — 오래 걸리는 이유가
+                  그 문장에 있다. 둘 다 앱이 이미 아는 값이라 지어내지 않는다. */}
+              <FloatingScanLoader
+                steps={[
+                  myIngredients.length > 0
+                    ? `내 재료 ${myIngredients.length}개와 맞는 요리를 찾는 중`
+                    : '레시피를 불러오는 중',
+                  '레시피 4만여 개를 하나씩 맞춰 보는 중',
+                  '매칭률이 높은 순서로 고르는 중',
+                  '거의 다 왔어요',
+                ]}
+                note="다른 화면을 보고 오셔도 돼요 — 그동안 마저 준비해 둘게요."
+              />
               <RecipeCardSkeleton count={4} />
             </>
           )}

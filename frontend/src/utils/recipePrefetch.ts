@@ -100,18 +100,37 @@ function request(my: string[], matchRateMin: number): Promise<any[] | null> {
  * 하단 탭에 작은 점을 찍으려면 이 상태가 필요하다. 토스트로 계속 띄우는 것은
  * 화면을 가리고 금방 피로해져서, **탭에 점 하나**가 덜 방해한다.
  */
-let fridgeBusy = false;
+let prefetchBusy = false;   // 미리 받는 중
+let screenBusy = false;     // 냉장고요리 화면이 지금 받는 중
 const busyListeners = new Set<(busy: boolean) => void>();
 
-function setFridgeBusy(next: boolean) {
-  if (fridgeBusy === next) return;
-  fridgeBusy = next;
-  busyListeners.forEach(fn => { try { fn(next); } catch { /* 구독자 오류는 무시 */ } });
+function notify() {
+  const busy = prefetchBusy || screenBusy;
+  busyListeners.forEach(fn => { try { fn(busy); } catch { /* 구독자 오류는 무시 */ } });
 }
 
-/** 지금 미리 받는 중인가 */
+function setFridgeBusy(next: boolean) {
+  if (prefetchBusy === next) return;
+  prefetchBusy = next;
+  notify();
+}
+
+/**
+ * 냉장고요리 **화면이 지금 받는 중**임을 알린다.
+ *
+ * 미리 받기만 보고 점을 껐더니 거짓말이 됐다 — 미리 받아 둔 것은 조건이
+ * 다르면 못 쓰므로(매칭률 구간·정렬·임박재료가 하나라도 다르면 버린다),
+ * 들어가 보면 화면이 처음부터 다시 받는 중인 경우가 있다.
+ */
+export function setFridgeScreenLoading(next: boolean): void {
+  if (screenBusy === next) return;
+  screenBusy = next;
+  notify();
+}
+
+/** 지금 냉장고요리가 준비되는 중인가 (미리 받기 + 화면 로딩) */
 export function isFridgePrefetching(): boolean {
-  return fridgeBusy;
+  return prefetchBusy || screenBusy;
 }
 
 /** 상태가 바뀌면 알려 준다. 끊으려면 돌려받은 함수를 부른다. */

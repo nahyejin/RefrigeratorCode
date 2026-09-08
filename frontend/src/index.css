@@ -1260,3 +1260,27 @@ select:focus-visible {
   0%, 100% { opacity: 1; transform: scale(1); }
   50%      { opacity: 0.35; transform: scale(0.8); }
 }
+
+/* 떠 있는 로딩(FloatingScanLoader)의 작은 스캔 틀.
+   원래 것은 사진 인식용이라 92x116 으로 크다. 화면 위에 떠 있는 표시는
+   내용을 가리면 안 되므로 작게 줄여 쓴다. */
+.scan-frame--sm {
+  width: 56px;
+  height: 72px;
+  border-radius: 9px;
+  border-width: 1.5px;
+}
+.scan-frame--sm i {
+  left: 9px;
+  height: 4px;
+  border-radius: 2px;
+}
+.scan-frame--sm .scan-line {
+  height: 16px;
+}
+
+/* 떠오르며 나타난다 — 갑자기 튀어나오면 놀란다 */
+@keyframes cm-float-in {
+  from { opacity: 0; transform: translate(-50%, 8px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
+}
