@@ -79,7 +79,8 @@ const VirtualizedRecipeList = forwardRef<VirtualizedRecipeListRef, VirtualizedRe
   /**
    * 목록에 실제로 그릴 항목들 — 레시피 사이사이에 광고 카드를 끼워 넣는다.
    * 가로 캐러셀(VirtualizedHorizontalRecipeList)과 같은 규칙을 쓴다:
-   * 부족 재료가 1~3개인 카드 바로 뒤에, 그중 한 재료의 광고 카드를 한 장 넣는다.
+   * 부족 재료가 1~5개인 카드 바로 뒤에, 그중 한 재료의 광고 카드를 한 장 넣는다.
+   * (개수 기준은 `pickAdIngredient` 한 곳에서 정한다 — 왜 5인지도 거기에 적혀 있다)
    */
   const items = React.useMemo(() => {
     type Item =
