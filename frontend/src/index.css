@@ -872,9 +872,11 @@ div[style*="overflow"]:not([style*="layout: horizontal"]):not([style*="overflow-
   }
   /* 냉장고요리 로딩과 탭 점도 **상태 표시**다. 멈추면 고장 난 것처럼 보인다.
      이동은 없애고 밝기만 숨 쉬게 둔다. */
+  /* 한 줄 표기(`animation:`)를 쓰면 위에서 준 `animation-delay` 가 0 으로
+     돌아가 아홉 칸이 한꺼번에 깜빡인다. 필요한 것만 따로 지정한다. */
   .cm-match-grid > span {
-    animation: cm-match-fill 1.5s ease-in-out infinite both !important;
-    transform: none !important;
+    animation-duration: 1.5s !important;
+    animation-iteration-count: infinite !important;
   }
   .cm-nav-dot {
     animation: loading-fade 1.4s ease-in-out infinite !important;
@@ -1312,8 +1314,24 @@ select:focus-visible {
   height: 14px;
   border-radius: 4px;
   background: var(--line-200);
-  animation: cm-match-fill 1.5s ease-in-out infinite both;
+  animation-name: cm-match-fill;
+  animation-duration: 1.5s;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-fill-mode: both;
 }
+/* **칸마다 시작을 늦춘다.** 지연을 인라인으로 주면, 감소-모션 블록의
+   `animation:` **한 줄 표기(!important)** 가 지연을 0 으로 되돌려 아홉 칸이
+   한꺼번에 깜빡였다. 그래서 여기(CSS)에 두고, 그쪽도 한 줄 표기를 안 쓴다. */
+.cm-match-grid > span:nth-child(1) { animation-delay: 0s; }
+.cm-match-grid > span:nth-child(2) { animation-delay: 0.11s; }
+.cm-match-grid > span:nth-child(3) { animation-delay: 0.22s; }
+.cm-match-grid > span:nth-child(4) { animation-delay: 0.33s; }
+.cm-match-grid > span:nth-child(5) { animation-delay: 0.44s; }
+.cm-match-grid > span:nth-child(6) { animation-delay: 0.55s; }
+.cm-match-grid > span:nth-child(7) { animation-delay: 0.66s; }
+.cm-match-grid > span:nth-child(8) { animation-delay: 0.77s; }
+.cm-match-grid > span:nth-child(9) { animation-delay: 0.88s; }
 @keyframes cm-match-fill {
   0%, 100% { background: var(--line-200); transform: scale(1); }
   45%      { background: #FFD600; transform: scale(1.12); }

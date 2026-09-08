@@ -891,9 +891,15 @@ const RecipeList: React.FC = () => {
             lastFilterHash: parsedState.lastFilterHash
           });
           
-          // 복원 완료 후 플래그 해제 (필터 변경 useEffect가 실행되지 않도록 충분한 시간 확보)
+          // 복원 완료 후 플래그 해제.
+          //
+          // **푸는 것만으로는 부족하다.** 필터 effect 는 복원 중에 `return`
+          // 했는데, 플래그가 풀려도 의존성이 그대로면 다시 돌지 않는다.
+          // 신호를 하나 올려 다시 돌게 한다 — 그때 조건을 비교해서 같으면
+          // 넘어가고, 사용자가 바꿔 둔 것이 있으면 새로 받는다.
           setTimeout(() => {
             isRestoringState.current = false;
+            setRestoreDone(n => n + 1);
           }, 500);
           
           return; // 복원했으면 초기 재료 설정 스킵
@@ -1414,6 +1420,14 @@ const RecipeList: React.FC = () => {
   // 초기 로드 완료 여부 추적 (중복 쿼리 방지)
   const initialLoadDone = useRef(false);
   const isRestoringState = useRef(false); // 상태 복원 중인지 여부
+  /**
+   * 복원이 끝났음을 필터 effect 에 알리는 신호.
+   *
+   * 복원 중에는 그 effect 가 그냥 `return` 하는데, 플래그를 푸는 것만으로는
+   * **의존성이 안 바뀌어 다시 돌지 않는다.** 그래서 다른 탭에 다녀오면
+   * 바꿔 둔 정렬·필터가 반영되지 않고 옛 결과가 그대로 남아 있었다.
+   */
+  const [restoreDone, setRestoreDone] = useState(0);
   
   // 초기 로드는 필터 조건 변경 useEffect에서 처리하므로 별도의 초기 로드 useEffect 제거
 
@@ -1805,7 +1819,7 @@ const RecipeList: React.FC = () => {
         progressAnimationRef.current = null;
       }
     });
-  }, [filterHash, lastFilterHash, selectedChannel, includeKeyword, includeIngredients, excludeIngredients, selectedCategoryKeywords, matchRange, appliedExpiryIngredients, categoryKeywordTree, loadRecipesPaged]);
+  }, [filterHash, lastFilterHash, restoreDone, selectedChannel, includeKeyword, includeIngredients, excludeIngredients, selectedCategoryKeywords, matchRange, appliedExpiryIngredients, categoryKeywordTree, loadRecipesPaged]);
   
   // 상태가 변경될 때마다 sessionStorage에 저장
   useEffect(() => {

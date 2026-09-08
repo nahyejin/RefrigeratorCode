@@ -28,12 +28,16 @@ export interface FloatingScanLoaderProps {
   note?: React.ReactNode;
 }
 
-/** 재료 칸 9개가 순서대로 차오른다. 칸마다 시작을 늦춰 물결처럼 보이게 한다. */
+/**
+ * 재료 칸 9개가 **순서대로** 차오른다.
+ *
+ * 칸마다 늦추는 시간은 CSS(`:nth-child`)에 뒀다. 인라인으로 주면 감소-모션
+ * 블록의 `animation:` 한 줄 표기(!important)가 지연을 0 으로 되돌려
+ * **아홉 칸이 한꺼번에 깜빡인다.**
+ */
 const MatchGrid = () => (
   <div className="cm-match-grid" aria-hidden>
-    {Array.from({ length: 9 }, (_, i) => (
-      <span key={i} style={{ animationDelay: `${i * 0.13}s` }} />
-    ))}
+    {Array.from({ length: 9 }, (_, i) => <span key={i} />)}
   </div>
 );
 
