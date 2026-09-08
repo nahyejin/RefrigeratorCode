@@ -5,7 +5,7 @@
     이미 `llm_ingredients_done = 1` 인 글은 매일 도는 배치가 건너뛰므로, 누적
     45,000건은 판정을 영영 안 받는다. 이 스크립트가 그 플래그를 되돌린다.
 
-    되돌리기만 하면 나머지는 **기존 배치가 알아서 한다** — 매일 새벽 3시에
+    되돌리기만 하면 나머지는 **기존 배치가 알아서 한다** — 매일 새벽 5시에
     무료 한도만큼 갉아먹으며 처리하고, 요리 글이 아니라고 판정되면 그 자리에서
     지운다. 별도 배치를 새로 만들 필요가 없다.
 
@@ -74,12 +74,27 @@ def main():
     parser.add_argument("--write", action="store_true", help="실제로 되돌린다")
     parser.add_argument("--suspect-only", action="store_true",
                         help="제목이 수상한 것만 (순서를 앞당기는 용도)")
+    parser.add_argument("--stale-only", action="store_true",
+                        help="옛 기준으로 처리돼 요리명이 없는 글만")
     args = parser.parse_args()
 
     load_env()
 
     where = "llm_ingredients_done = 1"
     params = ()
+    if args.stale_only:
+        # **요리명이 없으면 옛 기준으로 처리된 글이다.**
+        #
+        # 조리 순서·요리명·재료 상세는 9월에 들어온 기능이다. 8월 사이클
+        # 결과를 복원할 때(`mark_llm_restored.py`) 재료만 있는 33,596건에
+        # `llm_ingredients_at` 을 찍어 뒀더니, 배치가 "이미 처리했다" 고 보고
+        # 다시 안 봤다. 그래서 카드가 두 종류로 갈렸다 — 재료만 있는 것과
+        # 조리 순서·음성까지 있는 것.
+        #
+        # 요리명은 새 배치가 **100% 채운다**(9/6·9/7 실측). 그래서 비어 있다는
+        # 것이 곧 "옛 기준" 이라는 뜻이다. 조리 순서로 가르면 안 된다 —
+        # 본문에 만드는 과정이 없어 정상적으로 빈 글이 섞인다.
+        where += " AND (recipe_name IS NULL OR recipe_name = '')"
     if args.suspect_only:
         where += " AND (" + " OR ".join(["title LIKE %s"] * len(SUSPECT_WORDS)) + ")"
         params = tuple(f"%{w}%" for w in SUSPECT_WORDS)
@@ -95,9 +110,11 @@ def main():
         conn.close()
 
     days = (count + already) / 5280.0  # 하루 처리량 관측값
-    print(f"다시 판정할 레시피: {count:,}건" + (" (제목 의심분만)" if args.suspect_only else " (전량)"))
+    label = (" (제목 의심분만)" if args.suspect_only
+             else " (옛 기준 처리분만)" if args.stale_only else " (전량)")
+    print(f"다시 판정할 레시피: {count:,}건" + label)
     print(f"이미 대기 중: {already:,}건")
-    print(f"예상 소요: 약 {days:.1f}일 (매일 새벽 3시 배치, 하루 약 5,280건)")
+    print(f"예상 소요: 약 {days:.1f}일 (매일 새벽 5시 배치, 하루 약 5,280건)")
 
     if not args.write:
         print("\n미리보기입니다. 실제로 예약하려면 --write 를 붙이세요.")
@@ -112,7 +129,7 @@ def main():
     finally:
         conn.close()
 
-    print("이제 매일 새벽 3시 배치가 알아서 처리합니다. 따로 할 일은 없습니다.")
+    print("이제 매일 새벽 5시 배치가 알아서 처리합니다. 따로 할 일은 없습니다.")
     return 0
 
 

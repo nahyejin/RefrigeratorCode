@@ -16,6 +16,9 @@ import time
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
+# **레시피 카드를 내보낼 조건은 여기 하나뿐이다.** 왜 그런지는 그 파일에.
+from recipe_visibility import RECIPE_READY, WHERE_READY
+
 # 환경변수 로드
 # - 개발환경에서만 현재 디렉토리의 .env를 로드
 # - 배포환경(Railway 등)에서는 플랫폼이 주입한 환경변수 사용
@@ -151,10 +154,10 @@ def get_recipes():
     # 전체 개수 구하기
     # 재료가 아직 임시값(룰베이스)인 글은 빼고 센다 — 목록과 개수가 어긋나면
     # "총 N건인데 N개가 안 보인다" 가 된다.
-    cursor.execute("SELECT COUNT(*) as total FROM recipes WHERE llm_ingredients_at IS NOT NULL")
+    cursor.execute(f"SELECT COUNT(*) as total FROM recipes {WHERE_READY}")
     total = cursor.fetchone()['total']
     # 페이징 적용 쿼리
-    cursor.execute("SELECT * FROM recipes WHERE llm_ingredients_at IS NOT NULL "
+    cursor.execute(f"SELECT * FROM recipes {WHERE_READY} "
                    "ORDER BY id DESC LIMIT %s OFFSET %s", (size, offset))
     recipes = cursor.fetchall()
     db.close()
@@ -227,15 +230,15 @@ def search_recipes():
     # 전체 개수 구하기
     cursor.execute(
         "SELECT COUNT(*) as total FROM recipes "
-        "WHERE llm_ingredients_at IS NOT NULL AND (title LIKE %s OR content LIKE %s)",
+        f"{WHERE_READY} AND (title LIKE %s OR content LIKE %s)",
         (search_pattern, search_pattern)
     )
     total = cursor.fetchone()['total']
     
     # 페이징 적용 쿼리
     cursor.execute(
-        """SELECT * FROM recipes
-           WHERE llm_ingredients_at IS NOT NULL AND (title LIKE %s OR content LIKE %s)
+        f"""SELECT * FROM recipes
+           {WHERE_READY} AND (title LIKE %s OR content LIKE %s)
            ORDER BY id DESC 
            LIMIT %s OFFSET %s""",
         (search_pattern, search_pattern, size, offset)
@@ -266,7 +269,7 @@ def get_popular_recipes():
     #  주는 화면이라 이 조건이 특히 크게 걸린다 — 어제 크롤링된 글이 곧바로
     #  1위에 오르면 재료가 틀린 채로 가장 잘 보이는 자리에 놓인다.)
     if period_type == 'custom' and start_date and end_date:
-        where_clause = "WHERE llm_ingredients_at IS NOT NULL AND post_time >= %s AND post_time <= %s"
+        where_clause = f"{WHERE_READY} AND post_time >= %s AND post_time <= %s"
         params = [start_date, end_date]
     else:
         # 기본 기간 설정
@@ -277,7 +280,7 @@ def get_popular_recipes():
         else:  # month
             days = 30
 
-        where_clause = ("WHERE llm_ingredients_at IS NOT NULL "
+        where_clause = (f"{WHERE_READY} "
                         "AND post_time >= DATE_SUB(NOW(), INTERVAL %s DAY)")
         params = [days]
     
@@ -341,7 +344,7 @@ def get_premium_recipes():
     end_date = request.args.get('end_date')
 
     if period_type == 'custom' and start_date and end_date:
-        where_clause = "WHERE llm_ingredients_at IS NOT NULL AND post_time >= %s AND post_time <= %s"
+        where_clause = f"{WHERE_READY} AND post_time >= %s AND post_time <= %s"
         params = [start_date, end_date]
     else:
         if period_type == 'today':
@@ -350,7 +353,7 @@ def get_premium_recipes():
             days = 7
         else:
             days = 30
-        where_clause = ("WHERE llm_ingredients_at IS NOT NULL "
+        where_clause = (f"{WHERE_READY} "
                         "AND post_time >= DATE_SUB(NOW(), INTERVAL %s DAY)")
         params = [days]
 
@@ -498,7 +501,6 @@ def get_filtered_recipes():
     #   보여 준다. 새로 크롤링된 글은 그날 밤 배치를 지나야 목록에 나타난다.
     #   조리 순서·요리명도 같은 배치에서 함께 채워지므로, 나타나는 순간에는
     #   카드가 **완성된 상태**다.
-    RECIPE_READY = "llm_ingredients_at IS NOT NULL"
     where_clauses = [RECIPE_READY]
     base_params = []
     
@@ -4872,7 +4874,7 @@ def suggest_meal_plan():
                    ( {want_sql} ) AS want_hit,
                    ( {avoid_sql} ) AS avoid_hit
             FROM recipes
-            WHERE llm_ingredients_at IS NOT NULL
+            WHERE {RECIPE_READY}
               AND used_ingredients IS NOT NULL AND used_ingredients <> ''
             -- 재료가 아직 임시값(룰베이스)인 글은 후보에서 뺀다. 식단은 재료를
             -- 그대로 믿고 일주일 장바구니를 짜는 기능이라, 본문에 없는 재료가

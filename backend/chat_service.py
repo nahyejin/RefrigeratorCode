@@ -10,6 +10,11 @@ from flask import jsonify
 
 import app_help
 
+# **레시피 카드를 내보낼 조건은 `recipe_visibility` 한 곳뿐이다.**
+# 예전에는 여기서 `WHERE` 를 `1=1` 로 시작해, 챗봇만 아직 AI 가 재료를
+# 안 뽑은 글을 추천하고 있었다.
+from recipe_visibility import RECIPE_READY
+
 KST = timezone(timedelta(hours=9))
 MAX_HISTORY = 10
 MAX_INGREDIENTS = 40
@@ -387,7 +392,7 @@ def _search_recipes(get_db, keywords, include_ingredients, exclude_ingredients, 
         # **챗봇만 빠져 있었다.** 챗봇은 "냉장고에 있는 걸로 뭐 해 먹지" 에
         # 답하는 자리라, 재료가 틀리면 매칭률까지 틀린 채로 권하게 된다.
         # 밤 22:00 크롤 직후부터 05:00 AI 배치 전까지가 특히 그렇다.
-        where = ['llm_ingredients_at IS NOT NULL']
+        where = [RECIPE_READY]
         where_params = []
 
         for ing in include_ingredients[:8]:
