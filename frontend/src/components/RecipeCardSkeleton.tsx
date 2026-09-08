@@ -3,6 +3,13 @@ import LoadingIndicator from './LoadingIndicator';
 
 interface RecipeCardSkeletonProps {
   count?: number;
+  /**
+   * 위쪽 점 3개(`LoadingIndicator`)를 숨긴다.
+   *
+   * 냉장고요리는 화면 가운데에 떠 있는 로딩 표시를 따로 쓴다. 거기서 점까지
+   * 같이 돌면 **기다림을 알리는 것이 두 개**가 되어 산만하다.
+   */
+  hideIndicator?: boolean;
 }
 
 const Line: React.FC<{ w: string; h?: number; r?: number }> = ({ w, h = 12, r = 6 }) => (
@@ -17,9 +24,9 @@ const Line: React.FC<{ w: string; h?: number; r?: number }> = ({ w, h = 12, r = 
  * 실제 카드와 같은 모양으로 자리를 미리 잡아두면 체감 대기시간이 줄고
  * 내용이 채워질 때 레이아웃이 흔들리지 않는다.
  */
-const RecipeCardSkeleton: React.FC<RecipeCardSkeletonProps> = ({ count = 4 }) => (
+const RecipeCardSkeleton: React.FC<RecipeCardSkeletonProps> = ({ count = 4, hideIndicator }) => (
   <div className="flex flex-col gap-2">
-    <LoadingIndicator />
+    {!hideIndicator && <LoadingIndicator />}
     {Array.from({ length: count }).map((_, i) => (
       <div
         key={i}

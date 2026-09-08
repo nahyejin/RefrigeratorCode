@@ -856,7 +856,7 @@ div[style*="overflow"]:not([style*="layout: horizontal"]):not([style*="overflow-
    (실제로 이 설정을 켠 기기에서 로딩 점과 FAB 가 정지한 채로 보였음)
    → 장식적인 움직임만 줄이고, 상태를 알리는 표시는 예외로 둔다. */
 @media (prefers-reduced-motion: reduce) {
-  *:not(.loading-dots):not(.loading-dots > span):not(.ai-fab-button):not(.ai-fab-glow):not(.ai-action):not(.skeleton-block),
+  *:not(.loading-dots):not(.loading-dots > span):not(.ai-fab-button):not(.ai-fab-glow):not(.ai-action):not(.skeleton-block):not(.cm-match-grid > span):not(.cm-nav-dot),
   *::before {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
@@ -869,6 +869,16 @@ div[style*="overflow"]:not([style*="layout: horizontal"]):not([style*="overflow-
   }
   .ai-fab-button {
     animation: ai-fab-shimmer 4.2s ease-in-out infinite !important;
+  }
+  /* 냉장고요리 로딩과 탭 점도 **상태 표시**다. 멈추면 고장 난 것처럼 보인다.
+     이동은 없애고 밝기만 숨 쉬게 둔다. */
+  .cm-match-grid > span {
+    animation: cm-match-fill 1.5s ease-in-out infinite both !important;
+    transform: none !important;
+  }
+  .cm-nav-dot {
+    animation: loading-fade 1.4s ease-in-out infinite !important;
+    transform: none !important;
   }
   /* 네모난 AI 버튼도 FAB 과 **같은 대우**.
    *
@@ -1283,4 +1293,28 @@ select:focus-visible {
 @keyframes cm-float-in {
   from { opacity: 0; transform: translate(-50%, 8px); }
   to   { opacity: 1; transform: translate(-50%, 0); }
+}
+
+/* ── 냉장고요리 로딩: 재료 칸이 하나씩 맞춰지는 그림 ──────────────────
+   AI 쪽(`scan-frame`, 문서를 훑는 노란 선)과 **일부러 다르게** 그린다.
+   그 그림은 "지금 AI 를 쓰는 중이고 크레딧이 나간다" 는 신호다. 여기는
+   서버가 매칭률을 세는 일이라, 같은 그림을 쓰면 안 쓴 크레딧이 나간다고
+   오해하게 된다. 하는 일 그대로 — 칸이 순서대로 차오른다. */
+.cm-match-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 14px);
+  grid-auto-rows: 14px;
+  gap: 6px;
+}
+.cm-match-grid > span {
+  display: block;
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  background: var(--line-200);
+  animation: cm-match-fill 1.5s ease-in-out infinite both;
+}
+@keyframes cm-match-fill {
+  0%, 100% { background: var(--line-200); transform: scale(1); }
+  45%      { background: #FFD600; transform: scale(1.12); }
 }

@@ -164,6 +164,7 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({ activeTab }) => {
               )}
               {nav.key === 'recipe' && fridgeBusy && (
                 <span
+                  className="cm-nav-dot"
                   aria-label="레시피를 준비하는 중"
                   title="레시피를 준비하는 중이에요"
                   style={{
