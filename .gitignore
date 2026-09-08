@@ -27,3 +27,6 @@ scratch_backups/
 
 # 사전 반영 배치 로그
 dictionary_sync.log
+
+# 쿠팡 링크 작업용 임시 목록 (scripts/make_coupang_search_urls.py 가 만든다)
+coupang_search_urls.txt
