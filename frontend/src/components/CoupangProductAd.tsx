@@ -138,12 +138,16 @@ const CoupangProductAd: React.FC<CoupangProductAdProps> = ({
       return coupangLinks[keyword];
     }
 
-    if (!partnerIdFinal) {
-      return generateCoupangSearchUrl(keyword);
-    }
-
-    const searchUrl = generateCoupangSearchUrl(keyword);
-    return `https://link.coupang.com/a/${partnerIdFinal}?linkCode=as2&url=${encodeURIComponent(searchUrl)}`;
+    // **파트너 ID 로는 추적되는 링크를 만들 수 없다.**
+    //
+    // 예전에는 `link.coupang.com/a/{파트너ID}?...&url=검색URL` 을 만들었는데,
+    // `/a/{코드}` 의 코드 자리는 링크마다 파트너스가 발급하는 **짧은 링크
+    // 코드**이지 파트너 ID 가 아니다. 눌러 보면 302 로 쿠팡 첫 화면으로만
+    // 갔다 — 재료 이름도 사라지고 성과도 안 잡혔다.
+    //
+    // 그래서 흉내 내지 않고 그냥 검색으로 보낸다. 수수료가 붙는 링크는
+    // 사람이 파트너스에서 만들어 `public/coupang_ads.csv` 에 넣어야 한다.
+    return generateCoupangSearchUrl(keyword);
   };
 
   const selectedAdInfo = useMemo(() => {

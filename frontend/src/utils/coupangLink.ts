@@ -34,10 +34,17 @@ export function resolveCoupangUrl(ingredientName: string): string | null {
   const direct = coupangLinksCache?.[keyword];
   if (direct) return direct;
 
-  // 3) 파트너스 ID 가 있으면 검색 결과 파트너 링크로 폴백
-  const partnerId = import.meta.env.VITE_COUPANG_PARTNER_ID || '';
-  if (!partnerId) return null;
-
-  const searchUrl = `https://www.coupang.com/np/search?q=${encodeURIComponent(keyword)}`;
-  return `https://link.coupang.com/a/${partnerId}?linkCode=as2&url=${encodeURIComponent(searchUrl)}`;
+  // 3) 아무것도 없으면 **그냥 쿠팡 검색**으로 보낸다. 수수료는 안 붙는다.
+  //
+  // 예전에는 여기서 `link.coupang.com/a/{파트너ID}?...&url=검색URL` 을 만들었다.
+  // **그 링크는 동작하지 않았다.** `/a/{코드}` 의 코드 자리는 파트너스에서
+  // 링크 하나마다 발급하는 **짧은 링크 코드**이지 파트너 ID 가 아니다.
+  // 실제로 눌러 보면 302 로 `https://www.coupang.com/` (쿠팡 첫 화면)으로만
+  // 갔다 — 재료 이름은 사라지고, 당연히 성과도 안 잡혔다.
+  // (정상 링크는 `link.coupang.com/a/dHedi7` 처럼 상품 페이지로 간다)
+  //
+  // 그래서 만들어 낼 수 없는 링크를 흉내 내지 않고, **적어도 그 재료를 찾을 수
+  // 있는 곳**으로 보낸다. 수수료가 붙는 링크는 사람이 파트너스에서 하나씩
+  // 만들어 `public/coupang_ads.csv` 에 넣는 수밖에 없다.
+  return `https://www.coupang.com/np/search?q=${encodeURIComponent(keyword)}`;
 }
