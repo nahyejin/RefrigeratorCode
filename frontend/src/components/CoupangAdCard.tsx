@@ -5,57 +5,72 @@ import { trackCoupangClick } from '../utils/trackCoupangClick';
 import CoupangDisclaimer from './CoupangDisclaimer';
 
 interface CoupangAdCardProps {
-  /** 광고할 재료 (바로 앞 레시피 카드의 부족 재료 중 하나) */
   ingredient: string;
-  /** 광고를 고른 근거가 된 레시피 — 측정용 */
   recipeId?: number;
-  lackingCount?: number;
+  lackingCount: number;
   width: number | string;
   /**
-   * 높이. **안 주면 내용만큼**이다.
+   * 높이. **안 주면 「목록에 끼우는 한 줄」** 로, 주면 **카드**로 그린다.
    *
-   * 가로 캐러셀에서는 옆 레시피 카드와 높이가 같아야 줄이 안 깨져서 값을 준다.
-   * 세로 목록에서는 줄 필요가 없다 — 이미지도 가격도 없는 카드라, 200px 를
-   * 고정으로 잡아 두니 재료 이름 위아래가 텅 비어 광고만 커 보였다.
+   * 가로 캐러셀에서는 옆 레시피 카드와 같은 칸을 채워야 줄이 안 깨지므로
+   * 높이를 준다. 세로 목록에서는 줄 이유가 없다.
    */
   height?: number | string;
 }
 
+/** 바깥으로 나간다는 표시. 눌러서 쿠팡으로 넘어간다는 걸 글자 옆에서 알린다. */
+const ExternalArrow = () => (
+  <svg
+    width="13"
+    height="13"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.4"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden
+    style={{ flexShrink: 0 }}
+  >
+    <path d="M7 17 17 7" />
+    <path d="M8 7h9v9" />
+  </svg>
+);
+
 /**
- * 목록 안에 레시피 카드와 **같은 규격**으로 끼워 넣는 쿠팡 광고 카드.
+ * 레시피 목록 사이에 끼우는 쿠팡 광고.
  *
- * 왜 카드로 만드는가:
- *   예전에는 레시피 카드 하단에 CTA 버튼을 붙였는데,
- *   - 버튼이 있는 카드와 없는 카드의 높이가 달라져 가로 캐러셀의 고정 높이가 깨졌고
- *     (실측: 슬롯 286px 인데 실제 카드는 236~239px → 카드마다 47px 이 빈 채로 남음)
- *   - 자리를 항상 예약하면 광고가 없는 카드에 빈 공간이 생겼다.
- *   카드 한 장을 통째로 광고로 쓰면 높이가 흔들리지 않고, 광고임을 분명히 밝힐 수 있다.
+ * ── 왜 카드가 아니라 한 줄인가 (2026-09-09) ──────────────────────────
  *
- * 정책상 지킨 것 (쿠팡 파트너스 이용 가이드 STEP 7):
- *   - **광고임을 먼저 밝힌다.** 대가성 문구를 카드의 첫 부분에 둔다
- *     (가이드: "문구는 게시물의 제목 또는 첫 부분에 기재")
- *   - **커버형 배너 금지**: 광고 위에 "밀어서 확인" 같은 문구나, 조작을 연상시키는
- *     장치를 덧씌워 클릭을 유도하지 않는다. 카드 안에는 광고 표시와 구매 버튼만 둔다.
- *     (캐러셀 좌우 화살표는 광고 이전부터 있던 목록 이동 장치이고 모든 카드에 동일하게
- *      적용되며, 세로 위치가 달라 이 카드의 구매 버튼을 덮지 않는다)
- *   - **자동실행 금지**: 카드를 지나가는 것만으로는 아무 일도 일어나지 않고,
- *     사용자가 버튼을 눌렀을 때만 쿠팡으로 이동한다
- *   - 쿠팡 로고·BI 는 쓰지 않고 상호명만 글자로 표기한다 (지식재산권 조항)
+ * 원래는 테두리 있는 회색 카드였다. **상품 이미지가 언젠가 들어올 자리**를
+ * 비워 두고 잡은 크기였는데, 이미지는 못 넣는다 — 파트너스 간편 링크는 URL 만
+ * 주고, 이미지·가격을 가져오려면 최종 승인이 필요한 Open API 가 있어야 한다.
+ *
+ * 그래서 **상품 카드인 척하는데 상품이 없는** 모양이 됐다. 만들다 만 것처럼
+ * 보이고, 게다가 레시피 카드와 같은 테두리·같은 크기라 **목록의 한 항목**처럼
+ * 읽혔다. 광고는 항목이 아니라 사이에 끼운 안내다.
+ *
+ * 이미지 없이 링크만 있는 광고는 원래 이렇게 붙인다 — 본문에 녹는 한 줄.
+ * 테두리와 배경을 빼고, 위아래 얇은 선으로만 앞뒤와 나눈다. 재료 이름도
+ * 22px 로 크게 외칠 이유가 없어 문장 안에 넣었다.
+ *
+ * **「광고」 배지와 대가성 문구는 그대로 둔다.** 눈에 덜 띄게 만드는 것과
+ * 광고임을 감추는 것은 다르다. 누르기 전에 보여야 한다.
  */
-const CoupangAdCard: React.FC<CoupangAdCardProps> = ({ ingredient, recipeId, lackingCount, width, height }) => {
+const CoupangAdCard: React.FC<CoupangAdCardProps> = ({
+  ingredient,
+  recipeId,
+  lackingCount,
+  width,
+  height,
+}) => {
   /**
    * **광고 CSV 를 이 카드가 직접 읽는다.**
    *
    * `resolveCoupangUrl()` 은 미리 읽어 둔 캐시를 볼 뿐 스스로 읽지 않는다.
-   * 읽는 코드는 `CoupangProductAd` 안에만 있었는데 그 컴포넌트는 목록에서
-   * 쓰이지 않고(카드 규격의 이 컴포넌트로 옮겼다), `preloadCoupangAds()` 도
-   * 아무도 부르지 않았다.
-   *
-   * 그래서 링크를 249개 채워 넣어도 화면에는 **파트너스 링크가 아니라 그냥
-   * 쿠팡 검색**이 붙었다 — 수수료가 안 붙는데 눌리면 쿠팡으로 가니 눈으로는
-   * 멀쩡해 보인다.
-   *
-   * 다 읽으면 다시 그려서 링크를 파트너스 것으로 바꾼다.
+   * 읽는 코드는 목록에서 안 쓰는 `CoupangProductAd` 안에만 있었고
+   * `preloadCoupangAds()` 는 아무도 부르지 않아서, 링크를 249개 채워도
+   * 화면에는 **파트너스 링크가 아니라 그냥 쿠팡 검색**이 붙었다.
    */
   const [adsReady, setAdsReady] = React.useState(false);
   React.useEffect(() => {
@@ -72,16 +87,93 @@ const CoupangAdCard: React.FC<CoupangAdCardProps> = ({ ingredient, recipeId, lac
     [ingredient, adsReady]
   );
 
-  // **다 읽기 전에는 그리지 않는다.**
-  //
-  // 먼저 그려 두면 그 순간의 링크는 파트너스 것이 아니라 그냥 쿠팡 검색이다.
-  // 그 사이에 누르면 수수료가 안 붙는다. 캐시가 있으면 즉시 끝나므로
-  // 두 번째 방문부터는 깜빡임이 없다.
+  // **다 읽기 전에는 그리지 않는다.** 먼저 그리면 그 순간의 링크는 파트너스
+  // 것이 아니라 그냥 쿠팡 검색이라, 그 사이에 누르면 수수료가 안 붙는다.
   if (!adsReady) return null;
 
-  // 연결할 상품이 없으면 빈 카드를 남기지 않고 아예 렌더하지 않는다
+  // 연결할 상품이 없으면 빈 자리를 남기지 않고 아예 렌더하지 않는다
   if (!url) return null;
 
+  const onClick = () => {
+    trackCoupangClick({
+      source: 'feed_card',
+      ingredient,
+      lackingCount,
+      recipeId,
+    });
+  };
+
+  const badge = (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      <span
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          height: 18,
+          padding: '0 6px',
+          borderRadius: 4,
+          background: 'var(--ink-900)',
+          color: '#FFFFFF',
+          fontSize: 10.5,
+          fontWeight: 700,
+          flexShrink: 0,
+        }}
+      >
+        광고
+      </span>
+      <span style={{ fontSize: 11.5, color: 'var(--ink-400)' }}>쿠팡 파트너스</span>
+    </div>
+  );
+
+  // ── 세로 목록: 본문에 녹는 한 줄 ───────────────────────────────────
+  if (!height) {
+    return (
+      <div
+        style={{
+          width,
+          boxSizing: 'border-box',
+          padding: '14px 4px',
+          // 테두리도 배경도 없다. 앞뒤 카드와 섞이지 않게 얇은 선만 둔다.
+          borderTop: '1px solid var(--line-200)',
+          borderBottom: '1px solid var(--line-200)',
+        }}
+      >
+        {badge}
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={onClick}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 5,
+            margin: '8px 0 6px',
+            color: 'var(--ink-900)',
+            fontSize: 15,
+            fontWeight: 700,
+            textDecoration: 'none',
+            maxWidth: '100%',
+          }}
+        >
+          <span
+            style={{
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              minWidth: 0,
+            }}
+          >
+            {ingredient} 쿠팡에서 보기
+          </span>
+          <ExternalArrow />
+        </a>
+        <CoupangDisclaimer compact />
+      </div>
+    );
+  }
+
+  // ── 가로 캐러셀: 옆 레시피 카드와 같은 칸을 채워야 하므로 카드로 ────
   return (
     <div
       style={{
@@ -96,152 +188,50 @@ const CoupangAdCard: React.FC<CoupangAdCardProps> = ({ ingredient, recipeId, lac
         border: '1px solid var(--line-200)',
       }}
     >
-      {/* 광고임을 가장 먼저 밝힌다 */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
-        <span
+      {badge}
+      {/* 대가성 문구는 **누르기 전에** 보여야 한다 */}
+      <CoupangDisclaimer compact style={{ marginTop: 10, marginBottom: 14 }} />
+
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', minHeight: 0, marginBottom: 14 }}>
+        <div
           style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            height: 20,
-            padding: '0 7px',
-            borderRadius: 5,
-            background: 'var(--ink-900)',
-            color: '#FFFFFF',
-            fontSize: 11,
+            fontSize: 20,
             fontWeight: 700,
-            flexShrink: 0,
+            color: 'var(--ink-900)',
+            lineHeight: 1.3,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
           }}
         >
-          광고
-        </span>
-        <span style={{ fontSize: 12, color: 'var(--ink-400)' }}>쿠팡 파트너스</span>
+          {ingredient}
+        </div>
       </div>
 
-      {/* 대가성 문구는 카드의 **첫 부분** 에 — 구매 버튼을 누르기 전에 보이도록 */}
-      <CoupangDisclaimer compact style={{ marginBottom: 14 }} />
-
-      {/* 예전엔 "앞 레시피에 부족한 재료" 라고 적었는데, 이건 우리가 이 재료를 고른
-          **내부 규칙**이지 사용자가 알아야 할 정보가 아니다.
-          사용자에게 필요한 건 "무엇에 대한 광고인가" 하나뿐이라 재료명만 남긴다.
-
-          높이를 받았을 때만 남는 자리를 벌려 가운데에 둔다(가로 캐러셀).
-          높이가 없으면 벌릴 자리가 없으므로 그냥 붙여 둔다 — 안 그러면
-          내용만큼 줄인 카드에서도 쓸데없이 여백이 생긴다. */}
-      {/* 재료 이름과 버튼을 **한 줄에** 둔다.
-          예전에는 이름이 22px 로 한 줄, 버튼이 또 한 줄을 써서 이미지도 가격도
-          없는 카드가 196px 이나 됐다. 한 층이 통째로 줄어든다.
-
-          가로 캐러셀(`height` 를 받는 쪽)은 옆 레시피 카드와 높이가 같아야
-          줄이 안 깨지므로 예전 배치(세로 3단)를 그대로 쓴다. */}
-      {height ? (
-        <>
-          <div
-            style={{
-              flex: 1,
-              display: 'flex',
-              alignItems: 'center',
-              minHeight: 0,
-              marginBottom: 14,
-            }}
-          >
-            <div
-          style={{
-            fontSize: 18,
-            fontWeight: 700,
-            color: 'var(--ink-900)',
-            lineHeight: 1.3,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-            minWidth: 0,
-          }}
-        >
-          {ingredient}
-        </div>
-          </div>
-          <a
-          href={url}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={() => {
-            trackCoupangClick({
-              source: 'feed_card',
-              ingredient,
-              lackingCount,
-              recipeId,
-            });
-          }}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            height: 44,
-            padding: '0 16px',
-            borderRadius: 10,
-            background: 'var(--surface)',
-            border: '1px solid var(--line-300)',
-            color: 'var(--ink-900)',
-            fontSize: 14,
-            fontWeight: 700,
-            textDecoration: 'none',
-            whiteSpace: 'nowrap',
-            boxSizing: 'border-box',
-            flexShrink: 0,
-          }}
-        >
-          쿠팡에서 보기
-        </a>
-        </>
-      ) : (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ flex: 1, minWidth: 0 }}><div
-          style={{
-            fontSize: 18,
-            fontWeight: 700,
-            color: 'var(--ink-900)',
-            lineHeight: 1.3,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-            minWidth: 0,
-          }}
-        >
-          {ingredient}
-        </div></div>
-          <a
-          href={url}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={() => {
-            trackCoupangClick({
-              source: 'feed_card',
-              ingredient,
-              lackingCount,
-              recipeId,
-            });
-          }}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            height: 44,
-            padding: '0 16px',
-            borderRadius: 10,
-            background: 'var(--surface)',
-            border: '1px solid var(--line-300)',
-            color: 'var(--ink-900)',
-            fontSize: 14,
-            fontWeight: 700,
-            textDecoration: 'none',
-            whiteSpace: 'nowrap',
-            boxSizing: 'border-box',
-            flexShrink: 0,
-          }}
-        >
-          쿠팡에서 보기
-        </a>
-        </div>
-      )}
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={onClick}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 5,
+          height: 44,
+          borderRadius: 10,
+          background: 'var(--surface)',
+          border: '1px solid var(--line-300)',
+          color: 'var(--ink-900)',
+          fontSize: 14,
+          fontWeight: 700,
+          textDecoration: 'none',
+          boxSizing: 'border-box',
+        }}
+      >
+        쿠팡에서 보기
+        <ExternalArrow />
+      </a>
     </div>
   );
 };
