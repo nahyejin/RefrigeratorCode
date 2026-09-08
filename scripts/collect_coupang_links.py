@@ -163,12 +163,29 @@ def load():
         return list(reader.fieldnames), list(reader)
 
 
-def save(fields, rows):
+def save_one(name, url):
+    """**파일을 다시 읽어** 그 재료 줄만 고쳐 쓴다.
+
+    통째로 덮어쓰면, 돌고 있는 동안 밖에서 고친 것이 전부 날아간다. 실제로
+    잘못 들어간 줄을 비웠더니 다음 저장 때 예전 값으로 되살아났다.
+    다시 읽고 한 줄만 고치면 그 문제가 없고, 다른 창에서 동시에 돌려도 안전하다.
+    """
+    fields, rows = load()
+    hit = None
+    for r in rows:
+        if (r.get("ingredient_keyword") or "").strip() == name:
+            hit = r
+            break
+    if hit is None:
+        return False, rows
+    hit["coupang_url"] = url
+    hit["active"] = "Y"
     # **BOM 을 붙이지 않는다.** 붙으면 첫 열 이름이 깨져 파일이 통째로 안 읽힌다.
     with io.open(ADS, "w", encoding="utf-8", newline="") as f:
         w = csv.DictWriter(f, fieldnames=fields)
         w.writeheader()
         w.writerows(rows)
+    return True, rows
 
 
 def main():
@@ -181,7 +198,7 @@ def main():
                     help="검색어를 클립보드에 넣지 않는다")
     args = ap.parse_args()
 
-    fields, rows = load()
+    _, rows = load()
     todo = [r for r in rows
             if (r.get("ingredient_keyword") or "").strip()
             and not (r.get("coupang_url") or "").strip()]
@@ -283,12 +300,17 @@ def main():
                             print("        기다리는 중... ", end="")
                             sys.stdout.flush()
                             continue
+                        ok, fresh = save_one(name, now)
+                        if not ok:
+                            print("")
+                            print("        [저장 실패] CSV 에 '%s' 줄이 없습니다" % name)
+                            break
                         row["coupang_url"] = now
-                        row["active"] = "Y"
                         used[now] = name
-                        save(fields, rows)
                         done_now += 1
-                        total_filled += 1
+                        # 파일에서 다시 세므로 밖에서 고친 것도 반영된다.
+                        total_filled = sum(
+                            1 for r in fresh if (r.get("coupang_url") or "").strip())
                         print("받음 → %s   (저장 완료 · 지금까지 %d개)"
                               % (now, total_filled))
                         break
