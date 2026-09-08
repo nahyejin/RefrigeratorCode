@@ -20,7 +20,9 @@ from typing import Iterable
 
 ROOT = Path(__file__).resolve().parents[1]
 MYFRIDGE_PATH = ROOT / "frontend" / "src" / "pages" / "MyFridge.tsx"
-PREMIUM_PATH = ROOT / "frontend" / "src" / "utils" / "premiumIngredients.ts"
+# 프리미엄 목록은 2026-09-07 에 **서버로 옮겼다**. 예전 경로
+# (frontend/src/utils/premiumIngredients.ts)는 그때 지웠다.
+PREMIUM_PATH = ROOT / "backend" / "premium_ingredients.py"
 COUPANG_ADS_PATH = ROOT / "frontend" / "public" / "coupang_ads.csv"
 
 # 통상 단가/객단가 기준 우선순위(높은 우선순위 = A)
@@ -76,8 +78,14 @@ def get_default_myfridge_ingredients() -> list[str]:
 
 
 def get_premium_ingredients() -> list[str]:
+    """`backend/premium_ingredients.py` 의 (rank, 이름, 제외어) 줄에서 이름만.
+
+    프리미엄 목록은 2026-09-07 에 **서버로 옮겼다.** 그전에는
+    `frontend/src/utils/premiumIngredients.ts` 를 읽었는데 그 파일은 그때
+    지웠다. 경로를 안 고쳐서 이 함수가 **한동안 빈 목록을 돌려주고 있었다.**
+    """
     text = PREMIUM_PATH.read_text(encoding="utf-8")
-    return re.findall(r"\{\s*rank:\s*\d+,\s*name:\s*'([^']+)'\s*\}", text)
+    return re.findall(r'\(\s*\d+\s*,\s*"([^"]+)"\s*,', text)
 
 
 def unique_keep_order(items: Iterable[str]) -> list[str]:
