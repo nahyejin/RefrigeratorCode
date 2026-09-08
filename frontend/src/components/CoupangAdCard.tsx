@@ -127,60 +127,121 @@ const CoupangAdCard: React.FC<CoupangAdCardProps> = ({ ingredient, recipeId, lac
           높이를 받았을 때만 남는 자리를 벌려 가운데에 둔다(가로 캐러셀).
           높이가 없으면 벌릴 자리가 없으므로 그냥 붙여 둔다 — 안 그러면
           내용만큼 줄인 카드에서도 쓸데없이 여백이 생긴다. */}
-      <div
-        style={{
-          flex: height ? 1 : undefined,
-          display: 'flex',
-          alignItems: 'center',
-          minHeight: 0,
-          marginBottom: 14,
-        }}
-      >
-        <div
+      {/* 재료 이름과 버튼을 **한 줄에** 둔다.
+          예전에는 이름이 22px 로 한 줄, 버튼이 또 한 줄을 써서 이미지도 가격도
+          없는 카드가 196px 이나 됐다. 한 층이 통째로 줄어든다.
+
+          가로 캐러셀(`height` 를 받는 쪽)은 옆 레시피 카드와 높이가 같아야
+          줄이 안 깨지므로 예전 배치(세로 3단)를 그대로 쓴다. */}
+      {height ? (
+        <>
+          <div
+            style={{
+              flex: 1,
+              display: 'flex',
+              alignItems: 'center',
+              minHeight: 0,
+              marginBottom: 14,
+            }}
+          >
+            <div
           style={{
-            fontSize: 22,
+            fontSize: 18,
             fontWeight: 700,
             color: 'var(--ink-900)',
             lineHeight: 1.3,
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
+            minWidth: 0,
           }}
         >
           {ingredient}
         </div>
-      </div>
-
-      <a
-        href={url}
-        target="_blank"
-        rel="noopener noreferrer"
-        onClick={() => {
-          trackCoupangClick({
-            source: 'feed_card',
-            ingredient,
-            lackingCount,
-            recipeId,
-            page: window.location.pathname,
-          });
-        }}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          height: 44,
-          borderRadius: 10,
-          background: 'var(--surface)',
-          border: '1px solid var(--line-300)',
-          color: 'var(--ink-900)',
-          fontSize: 14,
-          fontWeight: 700,
-          textDecoration: 'none',
-          boxSizing: 'border-box',
-        }}
-      >
-        쿠팡에서 보기
-      </a>
+          </div>
+          <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={() => {
+            trackCoupangClick({
+              source: 'feed_card',
+              ingredient,
+              lackingCount,
+              recipeId,
+            });
+          }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            height: 44,
+            padding: '0 16px',
+            borderRadius: 10,
+            background: 'var(--surface)',
+            border: '1px solid var(--line-300)',
+            color: 'var(--ink-900)',
+            fontSize: 14,
+            fontWeight: 700,
+            textDecoration: 'none',
+            whiteSpace: 'nowrap',
+            boxSizing: 'border-box',
+            flexShrink: 0,
+          }}
+        >
+          쿠팡에서 보기
+        </a>
+        </>
+      ) : (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ flex: 1, minWidth: 0 }}><div
+          style={{
+            fontSize: 18,
+            fontWeight: 700,
+            color: 'var(--ink-900)',
+            lineHeight: 1.3,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            minWidth: 0,
+          }}
+        >
+          {ingredient}
+        </div></div>
+          <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={() => {
+            trackCoupangClick({
+              source: 'feed_card',
+              ingredient,
+              lackingCount,
+              recipeId,
+            });
+          }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            height: 44,
+            padding: '0 16px',
+            borderRadius: 10,
+            background: 'var(--surface)',
+            border: '1px solid var(--line-300)',
+            color: 'var(--ink-900)',
+            fontSize: 14,
+            fontWeight: 700,
+            textDecoration: 'none',
+            whiteSpace: 'nowrap',
+            boxSizing: 'border-box',
+            flexShrink: 0,
+          }}
+        >
+          쿠팡에서 보기
+        </a>
+        </div>
+      )}
     </div>
   );
 };

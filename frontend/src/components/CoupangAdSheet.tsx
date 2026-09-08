@@ -44,7 +44,6 @@ const CoupangAdSheet: React.FC<CoupangAdSheetProps> = ({ ingredient, onClose, re
       ingredient,
       lackingCount,
       recipeId,
-      page: window.location.pathname,
     });
     window.open(url, '_blank', 'noopener,noreferrer');
     onClose();
