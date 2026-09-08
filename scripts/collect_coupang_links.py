@@ -70,16 +70,35 @@ try:
     _u32.GetClipboardData.restype = wintypes.HANDLE
     _u32.SetClipboardData.restype = wintypes.HANDLE
     _u32.SetClipboardData.argtypes = [wintypes.UINT, wintypes.HANDLE]
+    _k32.GetConsoleWindow.restype = wintypes.HWND
 except Exception:  # noqa: BLE001  (윈도우가 아니면 아래에서 걸러진다)
     _u32 = _k32 = None
 
 
-def _with_clipboard(fn, tries=8):
-    """다른 프로그램이 클립보드를 쥐고 있으면 잠깐 기다렸다 다시 연다."""
+def _owner():
+    """클립보드를 열 때 넘길 **창 주인**.
+
+    `OpenClipboard(NULL)` 로 열면 `EmptyClipboard` 가 소유자를 NULL 로 만들고,
+    그러면 `SetClipboardData` 가 **실패한다**(윈도우 문서에 그렇게 적혀 있다).
+    콘솔 창 핸들을 주인으로 넘기면 그 문제가 없다.
+    """
+    try:
+        return _k32.GetConsoleWindow()
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def _with_clipboard(fn, tries=40):
+    """다른 프로그램이 클립보드를 쥐고 있으면 잠깐 기다렸다 다시 연다.
+
+    브라우저가 복사 직후 클립보드를 잡고 있는 일이 잦아서 넉넉히 기다린다
+    (40번 x 0.05초 = 2초).
+    """
     if _u32 is None:
         return None
+    hwnd = _owner()
     for _ in range(tries):
-        if _u32.OpenClipboard(None):
+        if _u32.OpenClipboard(hwnd):
             try:
                 return fn()
             finally:
@@ -177,6 +196,12 @@ def main():
 
     done_now = 0
     total_filled = sum(1 for r in rows if (r.get("coupang_url") or "").strip())
+    # 이미 어느 재료가 쓰고 있는 링크 -> 그 재료 이름
+    used = {}
+    for r in rows:
+        u = (r.get("coupang_url") or "").strip()
+        if u:
+            used[u] = (r.get("ingredient_keyword") or "").strip()
 
     print("=" * 66)
     if args.no_copy:
@@ -208,12 +233,23 @@ def main():
             # **검색어를 클립보드에 넣어 둔다.** 타이핑을 없애는 것이 목적이다.
             # 이 값도 클립보드 변화이므로 `seen` 에 반영해 두지 않으면
             # 스크립트가 자기가 넣은 것을 보고 반응한다.
-            if not args.no_copy and set_clipboard(term):
-                # 방금 내가 넣은 값도 "클립보드가 바뀐 것" 이라, 실제로 읽어
-                # `seen` 에 반영해 두지 않으면 스크립트가 자기 것을 보고 반응한다.
-                seen = clipboard() or term
-                print("        검색어 '%s' 를 클립보드에 넣었습니다 "
-                      "→ 검색창에 Ctrl+V" % term)
+            if not args.no_copy:
+                ok = set_clipboard(term)
+                # 정말 들어갔는지 **읽어서 확인한다.** 쓰기가 조용히 실패하는
+                # 경우가 있어서(창 주인 문제), 성공했다고 믿으면 안 된다.
+                #
+                # 방금 내가 넣은 값도 "클립보드가 바뀐 것" 이라, `seen` 에
+                # 반영해 두지 않으면 스크립트가 자기 것을 보고 반응한다.
+                got = clipboard()
+                seen = got or term
+                if ok and got == term:
+                    print("        검색어 '%s' 를 클립보드에 넣었습니다 "
+                          "→ 검색창에 Ctrl+V" % term)
+                else:
+                    print("        [클립보드에 못 넣었습니다] 아래를 직접 입력하세요")
+                    print("")
+                    print("            >>>  %s  <<<" % term)
+                    print("")
             if args.open:
                 open_partners(term)
 
@@ -235,8 +271,21 @@ def main():
                 if now != seen:
                     seen = now
                     if now.startswith(PARTNER_PREFIX):
+                        # **이미 다른 재료가 쓰는 링크면 안 받는다.**
+                        # 파트너스 화면이 아직 앞 재료를 보여 주는데 복사 버튼을
+                        # 다시 누르면 같은 링크가 또 복사된다. 그대로 받으면
+                        # 두 재료가 같은 상품을 가리키게 된다.
+                        owner = used.get(now)
+                        if owner and owner != name:
+                            print("")
+                            print("        [이미 '%s' 에 쓴 링크입니다] "
+                                  "파트너스에서 이 재료를 다시 검색해 주세요" % owner)
+                            print("        기다리는 중... ", end="")
+                            sys.stdout.flush()
+                            continue
                         row["coupang_url"] = now
                         row["active"] = "Y"
+                        used[now] = name
                         save(fields, rows)
                         done_now += 1
                         total_filled += 1
