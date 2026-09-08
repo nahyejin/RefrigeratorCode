@@ -57,7 +57,7 @@ REM    나머지는 어드민 '사전' 탭에 그대로 남아 손으로 볼 수
 REM
 REM    아래 1) 보다 **먼저** 돈다 — 오늘 넣은 것이 오늘 CSV 까지 가야 한다.
 REM    실패해도 멈추지 않는다 — 사전 반영 자체는 그것과 상관없이 돌아야 한다.
-%PY% -u scripts\auto_curate_dictionary.py --write >> %LOG% 2>&1
+%PY% -u scripts\auto_curate_dictionary.py --write --max-minutes 40 >> %LOG% 2>&1
 
 REM 1) DB -> CSV
 %PY% -u scripts\apply_dictionary_additions.py --write >> %LOG% 2>&1

@@ -127,6 +127,11 @@ def main():
     ap.add_argument("--limit", type=int, default=0, help="한 번에 이만큼만 (0=전체)")
     ap.add_argument("--max-calls", type=int, default=MAX_CALLS,
                     help="하루에 쓸 LLM 호출 상한 (기본 %d)" % MAX_CALLS)
+    # **시간 예산.** 이 단계가 길어지면 뒤따르는 CSV 반영·대체표·커밋이
+    # 통째로 안 돈다(2026-09-08 에 실제로 그랬다). 남은 이름은 사라지지 않고
+    # 다음 실행에서 이어서 처리되므로, 시간이 되면 그냥 멈추는 편이 맞다.
+    ap.add_argument("--max-minutes", type=float, default=0,
+                    help="이 시간이 지나면 멈춘다 (0=제한 없음)")
     args = ap.parse_args()
 
     load_env()
@@ -156,10 +161,15 @@ def main():
     saved = 0
 
     calls = 0
+    started = time.time()
     for i in range(0, len(names), BATCH):
         if calls >= args.max_calls:
             print("  호출 상한(%d회)에 닿아 멈춥니다. 남은 %d종은 내일 이어서 합니다."
                   % (args.max_calls, len(names) - i), flush=True)
+            break
+        if args.max_minutes and (time.time() - started) / 60.0 >= args.max_minutes:
+            print("  시간 예산(%g분)을 다 써 멈춥니다. 남은 %d종은 내일 이어서 합니다."
+                  % (args.max_minutes, len(names) - i), flush=True)
             break
         chunk = names[i:i + BATCH]
         calls += 1
