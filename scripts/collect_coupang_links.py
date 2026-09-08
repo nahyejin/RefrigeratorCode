@@ -48,15 +48,94 @@ SEARCH_OVERRIDE = {
 }
 
 
+# ── 클립보드 ────────────────────────────────────────────────────────
+#
+# 윈도우 API 를 직접 쓴다. PowerShell 을 거치면 **한글이 깨지고**
+# (`토마토` -> `?마?`), 0.4초마다 프로세스를 띄우게 된다.
+CF_UNICODETEXT = 13
+GMEM_MOVEABLE = 0x0002
+
+try:
+    import ctypes
+    from ctypes import wintypes
+
+    _u32 = ctypes.WinDLL("user32", use_last_error=True)
+    _k32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    _k32.GlobalAlloc.restype = wintypes.HGLOBAL
+    _k32.GlobalLock.restype = ctypes.c_void_p
+    _k32.GlobalLock.argtypes = [wintypes.HGLOBAL]
+    # **argtypes 를 안 적으면 64비트 핸들이 c_int 로 잘려 OverflowError 가 난다.**
+    _k32.GlobalUnlock.argtypes = [wintypes.HGLOBAL]
+    _k32.GlobalAlloc.argtypes = [wintypes.UINT, ctypes.c_size_t]
+    _u32.GetClipboardData.restype = wintypes.HANDLE
+    _u32.SetClipboardData.restype = wintypes.HANDLE
+    _u32.SetClipboardData.argtypes = [wintypes.UINT, wintypes.HANDLE]
+except Exception:  # noqa: BLE001  (윈도우가 아니면 아래에서 걸러진다)
+    _u32 = _k32 = None
+
+
+def _with_clipboard(fn, tries=8):
+    """다른 프로그램이 클립보드를 쥐고 있으면 잠깐 기다렸다 다시 연다."""
+    if _u32 is None:
+        return None
+    for _ in range(tries):
+        if _u32.OpenClipboard(None):
+            try:
+                return fn()
+            finally:
+                _u32.CloseClipboard()
+        time.sleep(0.05)
+    return None
+
+
 def clipboard():
-    """윈도우 클립보드 읽기. 실패하면 빈 문자열."""
+    """지금 클립보드의 글. 못 읽으면 빈 문자열."""
+    def read():
+        handle = _u32.GetClipboardData(CF_UNICODETEXT)
+        if not handle:
+            return ""
+        ptr = _k32.GlobalLock(handle)
+        if not ptr:
+            return ""
+        try:
+            return ctypes.wstring_at(ptr)
+        finally:
+            _k32.GlobalUnlock(handle)
+
+    return (_with_clipboard(read) or "").strip()
+
+
+def set_clipboard(text):
+    """검색어를 클립보드에 넣어 둔다. 사용자는 붙여넣기만 하면 된다."""
+    def write():
+        _u32.EmptyClipboard()
+        buf = ctypes.create_unicode_buffer(text)
+        size = ctypes.sizeof(buf)
+        handle = _k32.GlobalAlloc(GMEM_MOVEABLE, size)
+        if not handle:
+            return False
+        ptr = _k32.GlobalLock(handle)
+        ctypes.memmove(ptr, buf, size)
+        _k32.GlobalUnlock(handle)
+        # 성공하면 소유권이 클립보드로 넘어가므로 GlobalFree 하면 안 된다.
+        return bool(_u32.SetClipboardData(CF_UNICODETEXT, handle))
+
+    return bool(_with_clipboard(write))
+
+
+# 파트너스 링크 만들기 화면. 맨 뒤가 검색어라 **열자마자 검색된 상태**로 뜬다.
+PARTNERS_SEARCH = "https://partners.coupang.com/#affiliate/ws/link/0/%s"
+
+
+def open_partners(term):
+    """기본 브라우저에서 그 재료가 검색된 화면을 연다."""
+    import urllib.parse
+    import webbrowser
     try:
-        out = subprocess.run(
-            ["powershell", "-NoProfile", "-Command", "Get-Clipboard -Raw"],
-            capture_output=True, timeout=10)
-        return out.stdout.decode("utf-8", "replace").strip()
+        webbrowser.open(PARTNERS_SEARCH % urllib.parse.quote(term))
+        return True
     except Exception:  # noqa: BLE001
-        return ""
+        return False
 
 
 def load():
@@ -77,6 +156,10 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--top", type=int, default=30)
     ap.add_argument("--only", help="이름에 이 말이 든 재료만")
+    ap.add_argument("--open", action="store_true",
+                    help="재료마다 파트너스 검색 화면을 브라우저로 연다 (탭이 쌓인다)")
+    ap.add_argument("--no-copy", action="store_true",
+                    help="검색어를 클립보드에 넣지 않는다")
     args = ap.parse_args()
 
     fields, rows = load()
@@ -96,7 +179,11 @@ def main():
     total_filled = sum(1 for r in rows if (r.get("coupang_url") or "").strip())
 
     print("=" * 66)
-    print(" 쿠팡 파트너스에서 **검색하고 링크 복사만** 하세요.")
+    if args.no_copy:
+        print(" 쿠팡 파트너스에서 **검색하고 링크 복사만** 하세요.")
+    else:
+        print(" 검색어는 **클립보드에 미리 넣어 둡니다.**")
+        print(" 파트너스 검색창에 Ctrl+A -> Ctrl+V -> Enter, 그다음 링크 복사.")
     print(" 복사하는 순간 이 창이 알아서 CSV 에 적고 다음 재료로 넘어갑니다.")
     print("")
     print("   건너뛰기: Enter    /    그만두기: Ctrl+C")
@@ -117,6 +204,19 @@ def main():
                      ("  ← 검색어: %s" % term) if term != name else "",
                      row.get("recipe_count")))
             print("        %s" % url)
+
+            # **검색어를 클립보드에 넣어 둔다.** 타이핑을 없애는 것이 목적이다.
+            # 이 값도 클립보드 변화이므로 `seen` 에 반영해 두지 않으면
+            # 스크립트가 자기가 넣은 것을 보고 반응한다.
+            if not args.no_copy and set_clipboard(term):
+                # 방금 내가 넣은 값도 "클립보드가 바뀐 것" 이라, 실제로 읽어
+                # `seen` 에 반영해 두지 않으면 스크립트가 자기 것을 보고 반응한다.
+                seen = clipboard() or term
+                print("        검색어 '%s' 를 클립보드에 넣었습니다 "
+                      "→ 검색창에 Ctrl+V" % term)
+            if args.open:
+                open_partners(term)
+
             print("        기다리는 중... ", end="")
             sys.stdout.flush()
 
