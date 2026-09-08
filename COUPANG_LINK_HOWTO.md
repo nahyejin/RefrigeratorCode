@@ -38,15 +38,33 @@
 
 ### 검색 URL 로 만드는 법 (상품 하나 고르기 애매한 재료)
 
+> **헷갈리기 쉬운 곳 — 검색 URL 두 가지는 완전히 다른 것이다.**
+>
+> | | 수수료 |
+> |---|---|
+> | `https://www.coupang.com/np/search?q=대파` | **안 붙는다.** 그냥 쿠팡 검색이다 |
+> | `https://link.coupang.com/a/XXXXXX` ← 위 주소로 **간편 링크를 만든 것** | **붙는다** |
+>
+> 검색 URL 은 **재료 이름**일 뿐이고, 그걸 파트너스에 넣어 나온
+> `link.coupang.com/a/...` 가 광고 링크다. 도착지가 상품 페이지냐 검색
+> 결과냐는 상관없다 — **파트너스가 발급한 링크인가**가 전부다.
+>
+> 지금 앱이 링크 없는 재료에 붙이는 것은 **위쪽(수수료 없음)** 이다.
+> 아래쪽으로 바꾸려면 이 문서대로 하나씩 만들어 넣어야 한다.
+
 3번의 "상품 URL" 자리에 **검색 결과 URL** 을 넣으면 된다. 파트너스는 쿠팡 안의
 아무 페이지나 받는다 — 상품 페이지든 검색 결과든 카테고리든.
 
 ```
-https://www.coupang.com/np/search?q=대파
+https://www.coupang.com/np/search?q=대파      <- 여기에 붙여넣을 것
 ```
 
 `대파`·`양파`처럼 상품 하나를 고르기 애매한 것은 이쪽이 낫다. **상품이 품절돼도
 링크가 안 죽는다.**
+
+> 혹시 파트너스가 검색 URL 을 안 받으면(정책은 바뀔 수 있다) 그 재료의
+> 대표 상품 하나를 골라 **상품 페이지 URL** 로 만들면 된다. 결과물은 똑같이
+> `link.coupang.com/a/...` 다.
 
 **붙여넣을 URL 을 미리 만들어 두는 스크립트가 있다.** 194개를 일일이 쿠팡에서
 검색해 주소창을 복사하는 건 지루하니까:
@@ -76,7 +94,18 @@ python scripts/make_coupang_search_urls.py --all  # 빈 것 전부
 
 ## 2. CSV 에 붙이기
 
-`frontend/public/coupang_ads.csv` 를 열고 그 재료 줄의 **두 번째 칸**에 넣는다.
+**스크립트로 넣는 게 안전하다** — 엑셀 사고(아래 참고)가 원천적으로 안 난다.
+
+```bash
+python scripts/add_coupang_link.py 다진마늘 https://link.coupang.com/a/gSFYCCq4Zg
+python scripts/add_coupang_link.py --check     # 지금 채워진 것 보기
+```
+
+여러 개를 한 번에 넣어도 된다 (재료명 링크 재료명 링크 …).
+파트너스 링크가 아니면 **거부한다** — 그냥 검색 URL 을 잘못 넣는 사고를 막는다.
+
+손으로 넣고 싶으면 `frontend/public/coupang_ads.csv` 의 그 재료 줄
+**두 번째 칸**에 넣으면 된다.
 
 ```csv
 ingredient_keyword,coupang_url,priority,active,recipe_count,rank
