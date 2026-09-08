@@ -9,7 +9,6 @@ import 완료하기버튼 from '../assets/완료하기버튼.png';
 import 공유하기버튼 from '../assets/공유하기버튼.png';
 import 기록하기버튼 from '../assets/기록하기버튼.png';
 import FilterModal from '../components/FilterModal';
-import { fetchRecipesDummy } from '../utils/dummyData';
 import RecipeCard from '../components/RecipeCard';
 import VirtualizedRecipeList, { VirtualizedRecipeListRef } from '../components/VirtualizedRecipeList';
 import { Recipe, RecipeActionState, FilterState, SubstituteInfo } from '../types/recipe';
@@ -636,9 +635,17 @@ async function loadRecipesPaged(
       total
     };
   } catch (error) {
-    console.warn('[RecipeList] API 레시피 로드 실패, 더미 데이터 사용:', error);
-    const dummyData = await fetchRecipesDummy();
-    return { recipes: dummyData, total: dummyData.length };
+    // **더미로 바꿔치기하지 않는다.**
+    //
+    // 예전에는 여기서 `fetchRecipesDummy()` 를 돌려줬다. 요청이 실패해도
+    // **성공한 것처럼** 몇 건이 돌아오니, 부르는 쪽은 실패를 알 방법이 없었고
+    // 화면에는 "총 2건" 짜리 엉뚱한 목록이 떴다. 그마저 화면 쪽 필터에
+    // 걸리면 아무것도 안 남아 흰 화면이 됐다 — 사용자에게는 "필터를 만지면
+    // 카드가 아예 안 나온다" 로 보였다. 로그도 `warn` 한 줄뿐이라 알 수 없었다.
+    //
+    // 실패는 실패라고 알린다. 부르는 쪽이 안내와 '다시 시도' 를 띄운다.
+    console.error('[RecipeList] 레시피 로드 실패:', error);
+    throw error;
   }
 }
 
@@ -666,6 +673,20 @@ const RecipeList: React.FC = () => {
   const [favoriteOnly, setFavoriteOnly] = useState(false);
   const [filteredRecipes, setFilteredRecipes] = useState<any[]>([]); // 클라이언트 필터링 결과 (재료 매칭도, 임박 재료, maxLack 적용)
   const [cachedFilteredRecipes, setCachedFilteredRecipes] = useState<any[]>([]); // 필터링된 전체 결과 캐시 (정렬 기준 변경 시 재사용)
+  /**
+   * 목록을 못 받아 왔을 때의 안내.
+   *
+   * 예전에는 실패해도 아무 말이 없었다 — 목록을 먼저 비우고 받으러 가는데,
+   * 실패하면 스피너만 꺼지고 그리는 쪽은 `null` 을 반환해 **흰 화면**이 됐다.
+   * 사용자에게는 "필터를 만지면 카드가 아예 안 나온다" 로 보였다.
+   */
+  const [loadError, setLoadError] = useState<string | null>(null);
+  /** 요청 순번 — 늦게 온 옛 응답이 새 응답을 덮지 못하게 한다 */
+  const requestSeqRef = useRef(0);
+  /** effect 가 자기 자신을 다시 부르지 않도록, 길이는 ref 로 본다 */
+  const cachedCountRef = useRef(0);
+  /** 마지막으로 서버에 보낸 필터 — 뒷페이지를 이어 받을 때 같은 조건이어야 한다 */
+  const lastFilterParamsRef = useRef<any>({});
   const [lastFilterHash, setLastFilterHash] = useState<string>(''); // 마지막 필터 조건의 해시값 (필터 변경 감지용)
   const [recipeActionStates, setRecipeActionStates] = useState<Record<number, RecipeActionState>>({});
   const [toast, setToast] = useState('');
@@ -1531,6 +1552,13 @@ const RecipeList: React.FC = () => {
     });
   }, [selectedChannel, includeKeyword, includeIngredients, excludeIngredients, selectedCategoryKeywords, matchRange, appliedExpiryIngredients, sortType]);
 
+  // `cachedFilteredRecipes` 의 길이를 ref 로도 들고 있는다.
+  // 아래 필터 effect 가 이 길이를 보는데, **상태로 보면 자기가 캐시를 비우는
+  // 순간 자신을 다시 불러** 같은 조건을 두 번 받아 온다.
+  useEffect(() => {
+    cachedCountRef.current = cachedFilteredRecipes.length;
+  }, [cachedFilteredRecipes]);
+
   // 필터 조건이 변경되면 전체 필터링된 결과를 한 번에 받아서 캐싱
   useEffect(() => {
     // 상태 복원 중이면 스킵
@@ -1540,11 +1568,19 @@ const RecipeList: React.FC = () => {
     }
     
     // 필터 조건이 변경되지 않았으면 스킵 (단, 초기 로드 시에는 실행)
-    if (filterHash === lastFilterHash && cachedFilteredRecipes.length > 0 && initialLoadDone.current) {
+    //
+    // 길이는 **ref 로 본다.** 상태로 보면 이 effect 가 아래에서 캐시를 `[]` 로
+    // 비우는 순간 의존성이 바뀌어 **자기 자신을 다시 부른다** — 같은 조건을
+    // 두 번 받아 오게 된다.
+    if (filterHash === lastFilterHash && cachedCountRef.current > 0 && initialLoadDone.current) {
       return;
     }
 
+    // 이번 요청의 순번. 늦게 온 옛 응답이 새 응답을 덮지 못하게 한다.
+    const mySeq = ++requestSeqRef.current;
+
     setLoading(true);
+    setLoadError(null);
     // 기존 애니메이션 정리
     if (progressAnimationRef.current) {
       clearInterval(progressAnimationRef.current);
@@ -1641,8 +1677,13 @@ const RecipeList: React.FC = () => {
     const PAGE_SIZE = 20;
     animateProgress(10, 200); // 초기 진행률
     
+    lastFilterParamsRef.current = filterParams;
+
     // 1페이지만 먼저 로드
     loadRecipesPaged(1, PAGE_SIZE, filterParams, categoryKeywordTree).then(({recipes: firstPageRecipes, total: initialTotal}) => {
+      // **늦게 온 옛 응답은 버린다.** 조건을 빠르게 두 번 바꾸면 먼저 보낸 것이
+      // 나중에 도착해 화면을 되돌려 놓는다.
+      if (mySeq !== requestSeqRef.current) return;
       animateProgress(50, 300); // 1페이지 로드 완료
       console.log('[RecipeList] 1페이지 로드 완료:', {
         recipesCount: firstPageRecipes.length,
@@ -1675,7 +1716,19 @@ const RecipeList: React.FC = () => {
       
       // 백그라운드에서 나머지 페이지들 로드
       if (initialTotal > PAGE_SIZE) {
-        const totalPages = Math.ceil(initialTotal / PAGE_SIZE);
+        // **뒷페이지를 전부 받지 않는다.**
+        //
+        // 예전에는 마지막 페이지까지 순차로 받았다. 조건 없이 보면
+        // 42,482건 = 2,125번이다. 그동안 서버가 붙잡혀 있으니 사용자가 방금
+        // 누른 조건이 느려지고, 그러다 실패하면 화면이 빈다.
+        //
+        // 화면에서 정렬·페이지를 다시 계산하는 데 필요한 만큼만 받는다.
+        // 더 보려면 사용자가 페이지를 넘기면 되고, 그때 다시 받는다.
+        const MAX_BACKGROUND_PAGES = 10;   // 20 x 10 = 200건
+        const totalPages = Math.min(
+          Math.ceil(initialTotal / PAGE_SIZE),
+          MAX_BACKGROUND_PAGES
+        );
         console.log('[RecipeList] 백그라운드에서 나머지 페이지 로드 시작:', totalPages - 1, '페이지');
         
         // 2페이지부터 순차적으로 로드
@@ -1684,6 +1737,8 @@ const RecipeList: React.FC = () => {
           const loadingRef = backgroundLoadingRef.current; // 현재 로딩 세션의 ref 참조
           
           for (let page = 2; page <= totalPages; page++) {
+            // 조건이 바뀌었으면 이 배경 로딩은 의미가 없다
+            if (mySeq !== requestSeqRef.current) return;
             // 로딩이 취소되었는지 확인
             if (loadingRef.cancelled) {
               console.log(`[RecipeList] 백그라운드 로딩 취소됨 (페이지 ${page} 이전)`);
@@ -1724,6 +1779,10 @@ const RecipeList: React.FC = () => {
       }
     }).catch(error => {
       console.error('Error loading recipes:', error);
+      if (mySeq !== requestSeqRef.current) return;   // 이미 지난 요청이면 조용히
+      // **말없이 빈 화면을 두지 않는다.** 목록을 미리 비워 뒀기 때문에,
+      // 여기서 알리지 않으면 사용자는 "필터를 만졌더니 카드가 사라졌다" 만 본다.
+      setLoadError('레시피를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.');
       setLoading(false);
       setLoadingProgress(0);
       currentProgressRef.current = 0;
@@ -1733,7 +1792,7 @@ const RecipeList: React.FC = () => {
         progressAnimationRef.current = null;
       }
     });
-  }, [filterHash, lastFilterHash, cachedFilteredRecipes.length, selectedChannel, includeKeyword, includeIngredients, excludeIngredients, selectedCategoryKeywords, matchRange, appliedExpiryIngredients, categoryKeywordTree, loadRecipesPaged]);
+  }, [filterHash, lastFilterHash, selectedChannel, includeKeyword, includeIngredients, excludeIngredients, selectedCategoryKeywords, matchRange, appliedExpiryIngredients, categoryKeywordTree, loadRecipesPaged]);
   
   // 상태가 변경될 때마다 sessionStorage에 저장
   useEffect(() => {
@@ -2009,6 +2068,54 @@ const RecipeList: React.FC = () => {
   // =====================
 
   const myIngredientObjects = getMyIngredientObjects();
+
+  /**
+   * 뒤쪽 페이지로 가면 **그때 이어 받는다.**
+   *
+   * 처음에는 배경에서 마지막 페이지까지 전부 받았다. 조건 없이 보면
+   * 42,482건 = 2,125번이라 서버가 붙잡히고, 그동안 사용자가 누른 조건이
+   * 느려지다 실패하면 화면이 비었다. 그래서 처음에는 10페이지까지만 받는다.
+   *
+   * 대신 페이지 넘김이 화면 안에서 잘라 쓰는 방식이라, 거기서 끊으면
+   * 11페이지부터 자를 것이 없다. 사용자가 끝에 가까워지면 이어 받는다.
+   */
+  const extendingRef = useRef(false);
+  useEffect(() => {
+    if (loading || !initialLoadDone.current) return;
+    const loaded = cachedFilteredRecipes.length;
+    if (loaded === 0 || loaded >= total) return;
+    // 다음 페이지까지 볼 수 있으면 아직 받을 필요가 없다
+    if ((page + 1) * size <= loaded) return;
+    if (extendingRef.current) return;
+
+    extendingRef.current = true;
+    const mySeq = requestSeqRef.current;
+    const PAGE_SIZE = 20;
+    const from = Math.floor(loaded / PAGE_SIZE) + 1;
+    const AHEAD = 5;
+
+    (async () => {
+      try {
+        const grown: any[] = [];
+        for (let p = from; p < from + AHEAD; p++) {
+          if (mySeq !== requestSeqRef.current) return;   // 조건이 바뀌었으면 그만
+          if ((p - 1) * PAGE_SIZE >= total) break;
+          const { recipes: more } = await loadRecipesPaged(
+            p, PAGE_SIZE, lastFilterParamsRef.current, categoryKeywordTree
+          );
+          if (!more || more.length === 0) break;
+          grown.push(...more);
+        }
+        if (grown.length && mySeq === requestSeqRef.current) {
+          setCachedFilteredRecipes(prev => [...prev, ...grown]);
+        }
+      } catch (error) {
+        console.error('[RecipeList] 뒷페이지 이어받기 실패:', error);
+      } finally {
+        extendingRef.current = false;
+      }
+    })();
+  }, [page, size, total, loading, cachedFilteredRecipes.length, categoryKeywordTree, loadRecipesPaged]);
 
   // 페이지 변경 핸들러 (클라이언트 사이드 페이지네이션)
   const handlePageChange = (newPage: number) => {
@@ -2314,6 +2421,35 @@ const RecipeList: React.FC = () => {
                   loading
                 });
                 
+                // **못 받아 왔으면 그렇다고 말한다.**
+                //
+                // 예전에는 아래에서 그냥 `null` 을 반환했다. 조건을 바꾸면
+                // 목록을 먼저 비우고 받으러 가는데, 그 요청이 실패하면
+                // 스피너도 꺼지고 안내도 없어 **흰 화면**만 남았다.
+                // 사용자에게는 "필터를 만지면 카드가 아예 안 나온다" 로 보였다.
+                if (loadError && !loading) {
+                  return (
+                    <div style={{
+                      textAlign: 'center', padding: '120px 20px', color: '#6A6A73',
+                      fontSize: '15px', lineHeight: 1.6, display: 'flex',
+                      flexDirection: 'column', alignItems: 'center', gap: 16,
+                    }}>
+                      <div>{loadError}</div>
+                      <button
+                        onClick={() => { setLastFilterHash(''); setLoadError(null); }}
+                        style={{
+                          padding: '10px 20px', borderRadius: 10, cursor: 'pointer',
+                          border: '1px solid var(--line-200, #E5E5EA)',
+                          background: 'var(--surface-sub, #F5F5F7)',
+                          fontSize: 14, fontWeight: 600,
+                        }}
+                      >
+                        다시 시도
+                      </button>
+                    </div>
+                  );
+                }
+
                 // 로딩이 완료되었고 캐시된 데이터가 있을 때만 "노데이터" 화면 표시
                 // (로딩 중이거나 데이터가 로드 중일 때는 표시하지 않음)
                 if (cachedFilteredRecipes.length === 0 && !loading) {
