@@ -21,8 +21,15 @@ interface VirtualizedRecipeListProps {
 const AD_FIRST_SLOT = 2;
 /** 광고와 광고 사이 최소 레시피 수 */
 const AD_MIN_GAP = 4;
-/** 세로 목록에서 광고 카드에 쓸 높이 — 레시피 카드처럼 썸네일이 없어 고정값으로 충분하다 */
-const AD_CARD_HEIGHT = 200;
+/**
+ * 세로 목록의 광고 카드는 **높이를 고정하지 않는다.**
+ *
+ * 예전에는 200px 로 잡아 뒀다. 그런데 이 카드에는 상품 이미지도 가격도 없고
+ * `광고` 배지 · 대가성 문구 · 재료 이름 한 줄 · 버튼 하나가 전부다.
+ * 남는 자리를 벌려 두니 재료 이름 위아래가 텅 비어 **광고만 커 보였다.**
+ *
+ * (가로 캐러셀은 옆 레시피 카드와 높이가 같아야 줄이 안 깨져서 그대로 둔다)
+ */
 
 export interface VirtualizedRecipeListRef {
   scrollToOffset: (offset: number) => void;
@@ -127,7 +134,6 @@ const VirtualizedRecipeList = forwardRef<VirtualizedRecipeListRef, VirtualizedRe
                 recipeId={item.recipeId}
                 lackingCount={item.lackingCount}
                 width="100%"
-                height={AD_CARD_HEIGHT}
               />
             </div>
           );

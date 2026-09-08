@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { resolveCoupangUrl } from '../utils/coupangLink';
+import { preloadCoupangAds } from '../utils/recipeUtils';
 import { trackCoupangClick } from '../utils/trackCoupangClick';
 import CoupangDisclaimer from './CoupangDisclaimer';
 
@@ -10,7 +11,14 @@ interface CoupangAdCardProps {
   recipeId?: number;
   lackingCount?: number;
   width: number | string;
-  height: number | string;
+  /**
+   * 높이. **안 주면 내용만큼**이다.
+   *
+   * 가로 캐러셀에서는 옆 레시피 카드와 높이가 같아야 줄이 안 깨져서 값을 준다.
+   * 세로 목록에서는 줄 필요가 없다 — 이미지도 가격도 없는 카드라, 200px 를
+   * 고정으로 잡아 두니 재료 이름 위아래가 텅 비어 광고만 커 보였다.
+   */
+  height?: number | string;
 }
 
 /**
@@ -35,7 +43,41 @@ interface CoupangAdCardProps {
  *   - 쿠팡 로고·BI 는 쓰지 않고 상호명만 글자로 표기한다 (지식재산권 조항)
  */
 const CoupangAdCard: React.FC<CoupangAdCardProps> = ({ ingredient, recipeId, lackingCount, width, height }) => {
-  const url = resolveCoupangUrl(ingredient);
+  /**
+   * **광고 CSV 를 이 카드가 직접 읽는다.**
+   *
+   * `resolveCoupangUrl()` 은 미리 읽어 둔 캐시를 볼 뿐 스스로 읽지 않는다.
+   * 읽는 코드는 `CoupangProductAd` 안에만 있었는데 그 컴포넌트는 목록에서
+   * 쓰이지 않고(카드 규격의 이 컴포넌트로 옮겼다), `preloadCoupangAds()` 도
+   * 아무도 부르지 않았다.
+   *
+   * 그래서 링크를 249개 채워 넣어도 화면에는 **파트너스 링크가 아니라 그냥
+   * 쿠팡 검색**이 붙었다 — 수수료가 안 붙는데 눌리면 쿠팡으로 가니 눈으로는
+   * 멀쩡해 보인다.
+   *
+   * 다 읽으면 다시 그려서 링크를 파트너스 것으로 바꾼다.
+   */
+  const [adsReady, setAdsReady] = React.useState(false);
+  React.useEffect(() => {
+    let alive = true;
+    preloadCoupangAds()
+      .then(() => { if (alive) setAdsReady(true); })
+      .catch(() => { /* 못 읽으면 검색 링크로 남는다 */ });
+    return () => { alive = false; };
+  }, []);
+
+  const url = React.useMemo(
+    () => resolveCoupangUrl(ingredient),
+    // `adsReady` 가 바뀌면 다시 계산한다 — 그때 캐시가 채워져 있다.
+    [ingredient, adsReady]
+  );
+
+  // **다 읽기 전에는 그리지 않는다.**
+  //
+  // 먼저 그려 두면 그 순간의 링크는 파트너스 것이 아니라 그냥 쿠팡 검색이다.
+  // 그 사이에 누르면 수수료가 안 붙는다. 캐시가 있으면 즉시 끝나므로
+  // 두 번째 방문부터는 깜빡임이 없다.
+  if (!adsReady) return null;
 
   // 연결할 상품이 없으면 빈 카드를 남기지 않고 아예 렌더하지 않는다
   if (!url) return null;
@@ -82,14 +124,16 @@ const CoupangAdCard: React.FC<CoupangAdCardProps> = ({ ingredient, recipeId, lac
           **내부 규칙**이지 사용자가 알아야 할 정보가 아니다.
           사용자에게 필요한 건 "무엇에 대한 광고인가" 하나뿐이라 재료명만 남긴다.
 
-          위아래로 여백을 똑같이 나눠 재료명을 카드 가운데에 둔다
-          (아래로만 밀면 문구와 버튼 사이가 텅 비어 보인다) */}
+          높이를 받았을 때만 남는 자리를 벌려 가운데에 둔다(가로 캐러셀).
+          높이가 없으면 벌릴 자리가 없으므로 그냥 붙여 둔다 — 안 그러면
+          내용만큼 줄인 카드에서도 쓸데없이 여백이 생긴다. */}
       <div
         style={{
-          flex: 1,
+          flex: height ? 1 : undefined,
           display: 'flex',
           alignItems: 'center',
           minHeight: 0,
+          marginBottom: 14,
         }}
       >
         <div

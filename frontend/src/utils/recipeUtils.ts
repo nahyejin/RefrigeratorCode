@@ -957,25 +957,44 @@ export async function loadCoupangAds(): Promise<CoupangAdsMap> {
 
 // 쿠팡 링크 캐시
 export let coupangLinksCache: { [key: string]: string } | null = null;
-let loadingCoupangLinks = false;
 export let coupangAdsCache: CoupangAdsMap | null = null;
-let loadingCoupangAds = false;
+
+/**
+ * 읽는 중인 약속을 들고 있는다.
+ *
+ * 예전에는 `loading...` 이라는 **불리언**만 뒀다. 그래서 이미 읽는 중이면
+ * `preload...()` 가 **아무것도 안 하고 즉시 끝났다** — 캐시는 아직 비어 있는데
+ * 부른 쪽은 "다 됐다" 로 받는다.
+ *
+ * 광고 카드가 한 화면에 여러 장 있으면 동시에 부른다. 첫 장만 실제로 읽고
+ * 나머지는 즉시 통과해, **파트너스 링크 대신 그냥 쿠팡 검색**을 붙였다.
+ * (실측: 광고 7장 중 2장이 그랬다. 수수료가 안 붙는데 눌리면 쿠팡으로 가니
+ *  눈으로는 멀쩡해 보인다)
+ *
+ * 약속을 들고 있으면 뒤에 온 쪽도 **같이 기다린다.**
+ */
+let loadingCoupangLinks: Promise<void> | null = null;
+let loadingCoupangAds: Promise<void> | null = null;
 
 /**
  * 쿠팡 링크를 미리 로드한다 (선택사항)
  */
 export async function preloadCoupangLinks(): Promise<void> {
-  if (!coupangLinksCache && !loadingCoupangLinks) {
-    loadingCoupangLinks = true;
-    coupangLinksCache = await loadCoupangLinks();
-    loadingCoupangLinks = false;
+  if (coupangLinksCache) return;
+  if (!loadingCoupangLinks) {
+    loadingCoupangLinks = loadCoupangLinks()
+      .then(map => { coupangLinksCache = map; })
+      .finally(() => { loadingCoupangLinks = null; });
   }
-} 
+  await loadingCoupangLinks;
+}
 
 export async function preloadCoupangAds(): Promise<void> {
-  if (!coupangAdsCache && !loadingCoupangAds) {
-    loadingCoupangAds = true;
-    coupangAdsCache = await loadCoupangAds();
-    loadingCoupangAds = false;
+  if (coupangAdsCache) return;
+  if (!loadingCoupangAds) {
+    loadingCoupangAds = loadCoupangAds()
+      .then(map => { coupangAdsCache = map; })
+      .finally(() => { loadingCoupangAds = null; });
   }
+  await loadingCoupangAds;
 }
