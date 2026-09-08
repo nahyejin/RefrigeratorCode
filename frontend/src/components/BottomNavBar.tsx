@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { isFridgePrefetching, onFridgePrefetchChange } from '../utils/recipePrefetch';
 import { useNavigate } from 'react-router-dom';
 import myfridgeBlack from '../assets/navigator_myfridge_black.png';
 import myfridgeWhite from '../assets/navigator_myfridge_white.png';
@@ -40,6 +41,19 @@ const CalendarNavIcon: React.FC<{ active: boolean }> = ({ active }) =>
       {CALENDAR_ICON_PATHS}
     </svg>
   );
+
+/**
+ * 냉장고요리를 **지금 미리 받고 있는지**.
+ *
+ * 그 화면 첫 요청은 실측 2.5~7초다. 앱을 열면 다른 화면을 보는 동안 미리
+ * 받아 두는데, 돌고 있는지 알 방법이 없어서 탭을 누르고 나서야 기다리게 된다.
+ * 준비되면 사라지는 점 하나로 알린다 — 토스트처럼 화면을 가리지 않는다.
+ */
+function useFridgePrefetching(): boolean {
+  const [busy, setBusy] = React.useState(isFridgePrefetching);
+  React.useEffect(() => onFridgePrefetchChange(setBusy), []);
+  return busy;
+}
 
 // 네비게이션 데이터
 const NAVIGATION_ITEMS = [
@@ -95,6 +109,7 @@ interface BottomNavBarProps {
  */
 const BottomNavBar: React.FC<BottomNavBarProps> = ({ activeTab }) => {
   const navigate = useNavigate();
+  const fridgeBusy = useFridgePrefetching();
 
   return (
     <nav
@@ -135,16 +150,35 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({ activeTab }) => {
               WebkitTapHighlightColor: 'transparent',
             }}
           >
-            {'renderIcon' in nav ? (
-              nav.renderIcon(isActive)
-            ) : (
-              <img
-                src={isActive ? nav.icon : nav.iconInactive}
-                alt=""
-                aria-hidden
-                style={{ height: 22, width: 'auto', display: 'block' }}
-              />
-            )}
+            {/* 아이콘 오른쪽 위에 준비 중 점. `냉장고요리` 에만 붙는다. */}
+            <span style={{ position: 'relative', display: 'block', lineHeight: 0 }}>
+              {'renderIcon' in nav ? (
+                nav.renderIcon(isActive)
+              ) : (
+                <img
+                  src={isActive ? nav.icon : nav.iconInactive}
+                  alt=""
+                  aria-hidden
+                  style={{ height: 22, width: 'auto', display: 'block' }}
+                />
+              )}
+              {nav.key === 'recipe' && fridgeBusy && (
+                <span
+                  aria-label="레시피를 준비하는 중"
+                  title="레시피를 준비하는 중이에요"
+                  style={{
+                    position: 'absolute',
+                    top: -2,
+                    right: -5,
+                    width: 6,
+                    height: 6,
+                    borderRadius: '50%',
+                    background: 'var(--brand-500, #F5C518)',
+                    animation: 'cm-nav-dot 1.2s ease-in-out infinite',
+                  }}
+                />
+              )}
+            </span>
             <span
               style={{
                 fontSize: 12,

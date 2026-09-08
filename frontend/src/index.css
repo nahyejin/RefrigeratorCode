@@ -1251,3 +1251,12 @@ select:focus-visible {
   border-top-color: #1A1A1E;
   animation: cm-spin .8s linear infinite;
 }
+
+/* 하단 탭 `냉장고요리` 의 준비 중 점.
+   그 화면 첫 요청은 2.5~7초라, 다른 화면을 보는 동안 미리 받아 둔다.
+   돌고 있는지 알 수 없으면 탭을 누르고 나서야 기다리게 되므로 점으로 알린다.
+   토스트와 달리 화면을 안 가리고, 준비되면 사라진다. */
+@keyframes cm-nav-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.35; transform: scale(0.8); }
+}

@@ -2332,17 +2332,45 @@ const RecipeList: React.FC = () => {
                   그동안 아무 말이 없으면 멈춘 것처럼 느낀다.
                   지금 무엇을 하는 중인지와, **기다릴 필요가 없다는 것**을 말한다. */}
               <div style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                margin: '0 0 10px', padding: '10px 12px', borderRadius: 10,
+                margin: '0 0 10px', padding: '12px 14px', borderRadius: 10,
                 background: 'var(--surface-sub)',
               }}>
-                <span aria-hidden className="cm-spinner" />
-                <span style={{ fontSize: 12.5, color: 'var(--ink-700)', lineHeight: 1.6 }}>
-                  냉장고 재료로 만들 수 있는 요리를 고르는 중이에요.
-                  <br />
-                  <span style={{ color: 'var(--ink-500)' }}>
-                    다른 화면을 보고 오셔도 돼요 — 그동안 마저 준비해 둘게요.
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span aria-hidden className="cm-spinner" />
+                  {/* **진짜 숫자를 말한다.**
+                      "재료 14개로 레시피 42,482개를 맞춰 보는 중" 한 줄이,
+                      오래 걸리는 이유를 그 자리에서 설명해 준다. 둘 다 앱이
+                      이미 아는 값이라 지어내는 것이 하나도 없다. */}
+                  <span style={{ fontSize: 12.5, color: 'var(--ink-700)', lineHeight: 1.6 }}>
+                    {myIngredients.length > 0
+                      ? <>내 재료 <b>{myIngredients.length}개</b>로 레시피{' '}
+                          <b>{total > 0 ? total.toLocaleString() : '42,000'}여 개</b>를 맞춰 보는 중이에요.</>
+                      : <>레시피를 불러오는 중이에요.</>}
                   </span>
+                </div>
+
+                {/* 진행률 막대 — 값은 원래부터 계산하고 있었는데 그리지 않았다.
+                    뼈대만 있으면 얼마나 더 기다려야 하는지를 알 수 없다. */}
+                <div
+                  role="progressbar"
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={Math.round(loadingProgress)}
+                  style={{
+                    height: 3, borderRadius: 2, margin: '10px 0 8px',
+                    background: 'var(--line-200)', overflow: 'hidden',
+                  }}
+                >
+                  <div style={{
+                    width: `${Math.max(4, Math.min(100, loadingProgress))}%`,
+                    height: '100%', borderRadius: 2,
+                    background: 'var(--ink-900)',
+                    transition: 'width 240ms ease-out',
+                  }} />
+                </div>
+
+                <span style={{ fontSize: 12, color: 'var(--ink-500)', lineHeight: 1.6 }}>
+                  다른 화면을 보고 오셔도 돼요 — 그동안 마저 준비해 둘게요.
                 </span>
               </div>
               <RecipeCardSkeleton count={4} />

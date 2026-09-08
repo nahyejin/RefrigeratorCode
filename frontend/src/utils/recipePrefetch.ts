@@ -93,6 +93,39 @@ function request(my: string[], matchRateMin: number): Promise<any[] | null> {
  * 실패해도 조용히 넘어간다 — 이건 **빠르게 하려는 것**이지 없으면 안 되는 길이
  * 아니다. 화면은 못 받았으면 평소대로 자기가 부른다.
  */
+/**
+ * 냉장고요리를 **지금 미리 받고 있는지**. 바뀔 때마다 알려 준다.
+ *
+ * 다른 화면을 보는 동안 그 일이 돌고 있다는 걸 사용자가 알 방법이 없었다.
+ * 하단 탭에 작은 점을 찍으려면 이 상태가 필요하다. 토스트로 계속 띄우는 것은
+ * 화면을 가리고 금방 피로해져서, **탭에 점 하나**가 덜 방해한다.
+ */
+let fridgeBusy = false;
+const busyListeners = new Set<(busy: boolean) => void>();
+
+function setFridgeBusy(next: boolean) {
+  if (fridgeBusy === next) return;
+  fridgeBusy = next;
+  busyListeners.forEach(fn => { try { fn(next); } catch { /* 구독자 오류는 무시 */ } });
+}
+
+/** 지금 미리 받는 중인가 */
+export function isFridgePrefetching(): boolean {
+  return fridgeBusy;
+}
+
+/** 상태가 바뀌면 알려 준다. 끊으려면 돌려받은 함수를 부른다. */
+export function onFridgePrefetchChange(fn: (busy: boolean) => void): () => void {
+  busyListeners.add(fn);
+  return () => { busyListeners.delete(fn); };
+}
+
+/** 받아 둔 것이 있는가 (= 지금 들어가면 바로 뜬다) */
+export function hasFreshPrefetch(): boolean {
+  const key = prefetchKey();
+  return !!(key && slot && slot.key === key && Date.now() - slot.at < FRESH_MS);
+}
+
 export function prefetchFridgeRecipes(): void {
   // **동의어 사전을 먼저 기다린다.**
   //
@@ -112,7 +145,10 @@ export function prefetchFridgeRecipes(): void {
       const parts = key.split('|');
       const matchRateMin = Number(parts[2]) || 0;
       const my = parts[3].split(',');
-      slot = { key, at: Date.now(), promise: request(my, matchRateMin) };
+      setFridgeBusy(true);
+      const promise = request(my, matchRateMin)
+        .finally(() => setFridgeBusy(false));
+      slot = { key, at: Date.now(), promise };
     });
 }
 
