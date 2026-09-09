@@ -31,6 +31,14 @@ const SUGGESTIONS = [
 type ChatRecipe = {
   id: number;
   title: string;
+  /**
+   * **왜 이 카드가 골라졌는지** 한 줄.
+   *
+   * 서버가 후보를 넉넉히 뽑아 LLM 에게 "질문에 실제로 맞는 것만 골라라" 라고
+   * 시키면서 같이 받아 온 말이다. 없을 수도 있다(LLM 호출이 실패하면 예전처럼
+   * 낱말 점수 순서로 나간다).
+   */
+  reason?: string;
   thumbnail: string;
   platform: string;
   link: string;
@@ -725,6 +733,13 @@ const RecipeChatWidget: React.FC = () => {
                               >
                                 {recipe.title}
                               </p>
+                              {/* 왜 이게 나왔는지. 사용자가 카드를 보고
+                                  "이건 왜 골랐지" 를 그 자리에서 알 수 있게. */}
+                              {recipe.reason && (
+                                <p className="text-[11.5px] text-gray-500 truncate mt-0.5">
+                                  {recipe.reason}
+                                </p>
+                              )}
                               <div
                                 className="inline-flex items-center gap-1 rounded mt-1 px-1.5 py-0.5"
                                 style={{ background: 'rgba(68,68,68,0.85)' }}

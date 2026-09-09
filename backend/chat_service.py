@@ -22,6 +22,19 @@ SEARCH_LIMIT = 8
 FRIDGE_MATCH_FLOOR = 25  # 냉장고 우선 모드에서 키워드 없이도 보여줄 최소 매칭률(%)
 MAX_KEYWORDS = 5         # LLM 이 뽑아 주는 검색어 개수 상한
 
+# **LLM 에게 골라 달라고 넘길 후보 수.**
+#
+# 왜 필요한가: 아래 SQL 은 낱말이 들어 있으면 걸리는 방식이라 **맥락을 모른다.**
+# "아이가 먹을 수 있는 음식" 을 물으면 `아이` 가 제목·재료·본문에 다 걸리는
+# 「아이스크림라떼」가 3+2+1=6점으로 **1등**이 된다 (실측).
+#
+# 낱말 경계를 정규식으로 막는 건 끝없는 땜질이다 — 다음엔 `감자` 가
+# `고구마감자전` 에 걸린다. 대신 SQL 은 **넉넉히 후보만** 뽑고, 무엇이 질문에
+# 맞는지는 LLM 이 정한다. 고르면서 **왜 골랐는지 한 줄**도 같이 받는다.
+RERANK_CANDIDATES = 30
+# 근거 한 줄의 길이. 카드 밑에 한 줄로 들어가야 한다.
+MAX_REASON_LEN = 28
+
 # 관련도 점수 가중치.
 #   제목에 있으면 그 글은 그 주제를 다룬 글일 가능성이 높고,
 #   본문에 한 번 스친 것은 "안 맵게 하려면" 같은 문장일 수도 있어 가장 낮게 둔다.
@@ -182,6 +195,84 @@ def _call_groq(api_key, prompt):
     )
     res.raise_for_status()
     return res.json()['choices'][0]['message']['content']
+
+
+def _rerank_with_llm(question, candidates, provider, api_key, want=SEARCH_LIMIT):
+    """후보 중에서 **질문에 실제로 맞는 것**을 LLM 이 고르고, 이유를 한 줄씩 쓴다.
+
+    왜 필요한가:
+      앞의 SQL 은 낱말이 들어 있으면 걸린다 — 맥락을 모른다. "아이가 먹을 수
+      있는 음식" 에 「아이스크림라떼」가 1등으로 올라오는 이유가 그것이다
+      (`아이` 가 제목·재료·본문에 다 걸려 3+2+1=6점).
+
+      낱말 경계를 손보는 것으로는 못 고친다. 다음엔 `감자` 가 `고구마감자전` 에
+      걸리고, 그다음엔 또 다른 것이 걸린다. 무엇이 질문에 맞는 음식인지는
+      **뜻을 아는 쪽**이 정해야 한다.
+
+    덤으로 얻는 것:
+      고른 이유를 함께 받는다. 카드마다 한 줄로 붙여서, 사용자가 **왜 이게
+      나왔는지** 그 자리에서 안다. 지금까지는 답변 맨 끝에 "매칭률 높은 순으로
+      정렬했어요" 한 줄이 전부였다.
+
+    실패하면 `None` 을 돌려준다 — 그때는 지금까지처럼 SQL 순서를 그대로 쓴다.
+    챗봇이 답을 못 하는 것보다 순서가 덜 똑똑한 편이 낫다.
+    """
+    if not candidates or not provider or not api_key:
+        return None
+
+    lines = []
+    for i, r in enumerate(candidates, 1):
+        ing = (r.get('used_ingredients') or '').strip()
+        if len(ing) > 70:
+            ing = ing[:70] + '…'
+        lines.append(f"{i}. {r.get('title') or '(제목 없음)'} | 재료: {ing or '정보 없음'}")
+
+    prompt = f"""사용자의 요청에 **실제로 맞는** 레시피만 골라라.
+
+[사용자 요청]
+{question}
+
+[후보]
+{chr(10).join(lines)}
+
+규칙:
+- 낱말이 겹친다고 고르지 마라. **요청한 상황·대상·목적에 맞는 음식**인지로 판단해라.
+  예) "아이가 먹을 수 있는 음식" 에 「아이스크림라떼」는 `아이` 라는 글자만 겹칠 뿐 맞지 않다.
+- 맞는 것이 없으면 빈 배열을 돌려라. 억지로 채우지 마라.
+- 많아야 {want}개. 잘 맞는 것부터.
+- reason 은 **왜 이걸 골랐는지** {MAX_REASON_LEN}자 이내 한 마디. 제목을 그대로 옮기지 마라.
+  예) "아이가 먹기 순한 맛", "손님상에 내기 좋음", "10분이면 완성"
+
+JSON 만 답해라:
+{{"picks": [{{"n": 3, "reason": "아이가 먹기 순한 맛"}}, {{"n": 7, "reason": "밥반찬으로 무난"}}]}}"""
+
+    try:
+        raw = _call_gemini(api_key, prompt) if provider == 'gemini' else _call_groq(api_key, prompt)
+        picks = (_extract_json(raw) or {}).get('picks')
+        if not isinstance(picks, list):
+            return None
+        out, seen = [], set()
+        for p in picks:
+            if not isinstance(p, dict):
+                continue
+            try:
+                n = int(p.get('n'))
+            except (TypeError, ValueError):
+                continue
+            if not (1 <= n <= len(candidates)) or n in seen:
+                continue
+            seen.add(n)
+            picked = dict(candidates[n - 1])
+            reason = str(p.get('reason') or '').strip()
+            picked['reason'] = reason[:MAX_REASON_LEN]
+            out.append(picked)
+            if len(out) >= want:
+                break
+        # 하나도 못 고르면 "고를 게 없다" 는 뜻이다 — 그것도 답이므로 그대로 둔다.
+        return out
+    except Exception as e:  # noqa: BLE001
+        print(f"[chat] 재정렬 실패(지금까지 방식으로 갑니다): {e}", flush=True)
+        return None
 
 
 def _fridge_detail_block(ingredients, expiry_days):
@@ -358,7 +449,7 @@ reply 문장에서 냉장고 재료를 구체적인 이름으로 언급할 때�
 """
 
 
-def _search_recipes(get_db, keywords, include_ingredients, exclude_ingredients, my_ingredients, ignore_fridge=False):
+def _search_recipes(get_db, keywords, include_ingredients, exclude_ingredients, my_ingredients, ignore_fridge=False, want=SEARCH_LIMIT):
     """대화에서 뽑은 낱말과 냉장고 재료로 레시피를 찾는다.
 
     예전 방식의 문제 (실측으로 확인):
@@ -501,7 +592,7 @@ def _search_recipes(get_db, keywords, include_ingredients, exclude_ingredients, 
         """
         # 다양성 필터로 걸러낼 몫까지 감안해 넉넉히 가져온다.
         # (WHERE/HAVING 스캔이 비용의 대부분이라 LIMIT 을 늘려도 거의 차이 없음)
-        params = relevance_params + match_params + where_params + [SEARCH_LIMIT * FETCH_MULTIPLIER]
+        params = relevance_params + match_params + where_params + [want * FETCH_MULTIPLIER]
         cursor.execute(sql, params)
 
         rows = cursor.fetchall() or []
@@ -520,7 +611,7 @@ def _search_recipes(get_db, keywords, include_ingredients, exclude_ingredients, 
                 'used_ingredients': row.get('used_ingredients') or '',
             })
         # 같은 요리가 화면을 다 채우지 않도록 추린다
-        return _diversify(recipes, SEARCH_LIMIT)
+        return _diversify(recipes, want)
     finally:
         db.close()
 
@@ -825,6 +916,7 @@ def handle_chat(get_db):
             parsed['exclude_ingredients'],
             ingredients,
             parsed['ignore_fridge'],
+            want=RERANK_CANDIDATES,
         )
 
         # 관련도를 필수 조건으로 바꿨기 때문에 아주 좁은 말에서는 0건이 나올 수 있다.
@@ -842,26 +934,42 @@ def handle_chat(get_db):
             recipes = _search_recipes(
                 get_db, parsed['keywords'][:1], parsed['include_ingredients'],
                 parsed['exclude_ingredients'], ingredients, parsed['ignore_fridge'],
+                want=RERANK_CANDIDATES,
             )
         if not recipes and parsed['include_ingredients']:
             # 포함 재료 조건이 너무 좁았을 수 있다 — 그것부터 풀어본다 (exclude는 유지)
             recipes = _search_recipes(
                 get_db, parsed['keywords'], [], parsed['exclude_ingredients'],
                 ingredients, parsed['ignore_fridge'],
+                want=RERANK_CANDIDATES,
             )
         if not recipes and parsed['keywords']:
             # 낱말도 빼고 냉장고 재료 매칭 + exclude 조건만으로
             recipes = _search_recipes(
                 get_db, [], [], parsed['exclude_ingredients'], ingredients, parsed['ignore_fridge'],
+                want=RERANK_CANDIDATES,
             )
         if not recipes and not parsed['ignore_fridge'] and ingredients:
             # 냉장고 우선 모드에서도 결과가 없으면 재료 매칭 조건 없이 한 번 더 (exclude는 유지)
             recipes = _search_recipes(
                 get_db, [], [], parsed['exclude_ingredients'], ingredients, True,
+                want=RERANK_CANDIDATES,
             )
         if not recipes and parsed['exclude_ingredients']:
             # 정말 아무 것도 없을 때만 마지막으로 제외 조건까지 푼다 (극히 드문 경우).
-            recipes = _search_recipes(get_db, [], [], [], ingredients, True)
+            recipes = _search_recipes(get_db, [], [], [], ingredients, True, want=RERANK_CANDIDATES)
+
+        # ── 여기서 **뜻을 아는 쪽**이 고른다 ─────────────────────────
+        #
+        # 위까지는 낱말이 겹치는 후보를 넉넉히 모은 것뿐이다. 무엇이 질문에
+        # 실제로 맞는지, 그리고 왜 맞는지는 LLM 이 정한다.
+        #
+        # 빈 배열이 오면 그대로 둔다 — "맞는 게 없다" 도 답이다. 억지로 채우면
+        # 「아이가 먹을 음식」에 아이스크림을 내놓던 예전으로 돌아간다.
+        # 호출이 깨졌을 때만(None) 예전 순서로 간다.
+        if recipes:
+            ranked = _rerank_with_llm(last_user, recipes, provider, api_key, want=SEARCH_LIMIT)
+            recipes = recipes[:SEARCH_LIMIT] if ranked is None else ranked
     else:
         # 지식/조언성 질문("다이어트용 양념이 뭐야?" 등) — 레시피를 찾아달라는 요청이
         # 아니므로 검색 자체를 안 한다. reply가 이미 질문에 직접 답했으니, 여기서 억지로
