@@ -67,7 +67,10 @@ const FloatingScanLoader: React.FC<FloatingScanLoaderProps> = ({
         left: '50%',
         top: '50%',
         transform: 'translate(-50%, -50%)',
-        zIndex: 900,
+        // **앱에 정해진 층을 따른다.** (`index.css` 의 `--z-*`)
+        // 900 을 그냥 박아 뒀더니 챗 패널(`--z-modal`, 600)보다 위로 올라가
+        // 챗봇을 열어도 이 로딩이 그 위를 덮었다. 로딩은 `--z-overlay` 자리다.
+        zIndex: 'var(--z-overlay)',
         width: 'min(320px, calc(100vw - 40px))',
         boxSizing: 'border-box',
         display: 'flex',
