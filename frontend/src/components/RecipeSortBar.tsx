@@ -28,6 +28,7 @@
  */
 
 import React, { useEffect, useLayoutEffect, useState, useMemo, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { fetchCsvOnce } from '../utils/csvOnce';
 import CloseButton from './ui/CloseButton';
 import Portal from './Portal';
@@ -81,7 +82,12 @@ interface RecipeSortBarProps {
   setIncludeInput: (v: string) => void;
   excludeInput: string;
   setExcludeInput: (v: string) => void;
-  onToast?: (msg: string) => void;
+  /**
+   * 안내 토스트. 두 번째 인자로 **토스트에서 바로 누를 행동**을 줄 수 있다.
+   * "설정이 없어서 못 한다" 고 알리기만 하면 사용자가 그 설정을 스스로
+   * 찾아가야 하므로, 알림과 해결을 한 자리에 둔다.
+   */
+  onToast?: (msg: string, action?: { label: string; onClick: () => void }) => void;
 }
 
 // 스타일 상수
@@ -479,6 +485,8 @@ const RecipeSortBar = ({
   setExcludeInput,
   onToast
 }: RecipeSortBarProps) => {
+  // 기한을 넣어 둔 재료가 하나도 없을 때 내냉장고로 보내 주려고 쓴다.
+  const navigate = useNavigate();
   const [isFilterModalOpen, setFilterModalOpen] = useState<boolean>(false);
   const [allIngredients, setAllIngredients] = useState<string[]>([]);
   const [isMatchRateModalOpen, setMatchRateModalOpen] = useState<boolean>(false);
@@ -698,8 +706,27 @@ const RecipeSortBar = ({
                     key={option.value}
                     onClick={() => {
                       if (option.value === 'expiry' && appliedExpiryIngredients.length === 0) {
+                        // 「임박재료활용순」이 안 되는 이유가 **두 가지**다.
+                        // 섞으면 막다른 길이 된다 — 기한을 넣은 재료가 하나도
+                        // 없는데 「고르기」로 보내면 빈 목록만 보게 된다.
                         if (typeof onToast === 'function') {
-                          onToast('선택한 임박 재료가 없습니다.\n임박 재료 설정 버튼에서\n임박재료를 설정해주세요.');
+                          if (expirySortedIngredientList.length === 0) {
+                            // 왜 안 되는지만 말한다. **무엇을 해야 하는지는
+                            // 버튼이 말한다** — 토스트에 두 문장을 넣었더니
+                            // 네 줄이 됐다.
+                            onToast('유통기한·구매일을 넣은 재료가 없어요.', {
+                              label: '기한 넣기',
+                              onClick: () => navigate('/my-fridge'),
+                            });
+                          } else {
+                            onToast('임박 재료를 아직 고르지 않았어요.', {
+                              label: '고르기',
+                              onClick: () => {
+                                setSelectedExpiryIngredients(appliedExpiryIngredients);
+                                setExpiryModalOpen(true);
+                              },
+                            });
+                          }
                         }
                         setIsSortDropdownOpen(false);
                         return;

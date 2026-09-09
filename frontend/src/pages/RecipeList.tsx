@@ -738,6 +738,14 @@ const RecipeList: React.FC = () => {
   const [lastFilterHash, setLastFilterHash] = useState<string>(''); // 마지막 필터 조건의 해시값 (필터 변경 감지용)
   const [recipeActionStates, setRecipeActionStates] = useState<Record<number, RecipeActionState>>({});
   const [toast, setToast] = useState('');
+  /**
+   * 토스트에서 바로 누를 수 있는 한 가지 행동.
+   *
+   * "설정이 없어서 못 한다" 고 알리고 끝내면, 사용자는 토스트가 사라진 뒤
+   * 그 설정이 어디 있었는지 스스로 찾아가야 한다. 알림과 해결을 한 자리에 둔다.
+   */
+  const [toastAction, setToastAction] =
+    useState<{ label: string; onClick: () => void } | null>(null);
   const [includeKeyword, setIncludeKeyword] = useState('');
   const [keywordSearchInput, setKeywordSearchInput] = useState('');
   const [allIngredients, setAllIngredients] = useState<string[]>([]);
@@ -1208,9 +1216,13 @@ const RecipeList: React.FC = () => {
   /**
    * 토스트 메시지를 표시한다
    */
-  const showToast = (message: string) => {
+  const showToast = (
+    message: string,
+    action?: { label: string; onClick: () => void }
+  ) => {
     setToast(message);
-    setTimeout(() => setToast(''), TOAST_DURATION);
+    setToastAction(action ?? null);
+    setTimeout(() => { setToast(''); setToastAction(null); }, TOAST_DURATION);
   };
 
   /**
@@ -2367,10 +2379,7 @@ const RecipeList: React.FC = () => {
           setIncludeInput={setIncludeInput}
           excludeInput={excludeInput}
           setExcludeInput={setExcludeInput}
-          onToast={msg => {
-            setToast(msg);
-            setTimeout(() => setToast(''), 3000);
-          }}
+          onToast={(msg, action) => showToast(msg, action)}
         />
         
         {/* 재료 pill 범례 (검색창/필터와 함께 sticky 영역에 포함) */}
@@ -2855,7 +2864,25 @@ const RecipeList: React.FC = () => {
 
       <BottomNavBar activeTab="recipe" />
       
-      {toast && <RecipeToast message={toast} />}
+      {toast && (
+        <RecipeToast
+          message={toast}
+          action={
+            toastAction
+              ? {
+                  label: toastAction.label,
+                  // 누르면 토스트는 할 일을 다 한 것이다. 남겨 두면 방금 연
+                  // 팝업을 가린다.
+                  onClick: () => {
+                    setToast('');
+                    setToastAction(null);
+                    toastAction.onClick();
+                  },
+                }
+              : undefined
+          }
+        />
+      )}
 
       {pendingRemove && (
         <div style={{
