@@ -4864,6 +4864,14 @@ def _plan_summary(plan, have, basket, request_text, ai_note, expiring=None):
     return " ".join(parts)
 
 
+# **최근에 만든 것은 며칠 동안 비켜 두나.**
+#
+# 식단은 "이번 주에 뭐 먹지" 에 답하는 기능이라, 지난주에 만든 요리가 이번 주에
+# 또 나오면 짜 준 값이 없다. 그렇다고 영영 빼면 좋아해서 여러 번 만드는 요리를
+# 못 보게 된다. 한 달 정도 비켜 뒀다가 다시 후보로 돌린다.
+PLAN_SKIP_RECENT_DAYS = 30
+
+
 def meal_plan_days(body):
     """며칠치를 짜나. 화면이 7일을 보여 주므로 기본은 7이다."""
     try:
@@ -4929,20 +4937,38 @@ def suggest_meal_plan():
         avoid_sql = " + ".join(["(title LIKE %s)"] * len(avoid))
         avoid_args.extend([f"%{w}%" for w in avoid])
 
+    # ── 최근에 만든 것은 이번 주에 또 올리지 않는다 ──────────────────
+    #
+    # 식단은 "이번 주에 뭐 먹지" 에 답하는 기능이다. 지난주에 만든 요리가
+    # 이번 주에 또 나오면 짜 준 값이 없다.
+    #
+    # **완전히 빼지는 않는다.** 좋아해서 여러 번 만드는 요리도 있는데 그걸
+    # 영영 못 보게 되면 그것대로 손해다. 최근 것만 비켜 둔다.
+    recent_sql, recent_args = "", []
+    if user_id:
+        recent_sql = f"""
+              AND id NOT IN (
+                  SELECT recipe_id FROM user_completed_recipes
+                  WHERE user_id = %s
+                    AND created_at >= NOW() - INTERVAL {PLAN_SKIP_RECENT_DAYS} DAY
+              )
+        """
+        recent_args = [user_id]
+
     marks = ",".join(["%s"] * len(have))
-    db = get_db()
-    cursor = db.cursor()
-    try:
-        cursor.execute(
-            f"""
+
+    def candidate_sql(recent_clause):
+        """후보 SQL. `recent_clause` 만 갈아 끼운다 — 다 걸러졌을 때 빼고 다시 돌린다."""
+        return f"""
             SELECT id, title, link, thumbnail, used_ingredients,
-                   ( {" + ".join([f"(FIND_IN_SET(%s, REPLACE(used_ingredients,' ','')) > 0)"] * len(have))} )
+                   ( {" + ".join(["(FIND_IN_SET(%s, REPLACE(used_ingredients,' ','')) > 0)"] * len(have))} )
                      AS hit,
                    ( {want_sql} ) AS want_hit,
                    ( {avoid_sql} ) AS avoid_hit
             FROM recipes
             WHERE {RECIPE_READY}
               AND used_ingredients IS NOT NULL AND used_ingredients <> ''
+              {recent_clause}
             -- 재료가 아직 임시값(룰베이스)인 글은 후보에서 뺀다. 식단은 재료를
             -- 그대로 믿고 일주일 장바구니를 짜는 기능이라, 본문에 없는 재료가
             -- 하나 섞이면 "집에 있는 걸로 된다" 고 잘못 세게 된다.
@@ -4955,10 +4981,19 @@ def suggest_meal_plan():
             -- 장보기를 최소로 고르려면 **고를 거리가 많아야** 한다. 60개로는
             -- 재료가 겹치는 조합을 찾을 여지가 없다.
             LIMIT 300
-            """,
-            tuple(list(have) + want_args + avoid_args),
-        )
+        """
+
+    base_args = list(have) + want_args + avoid_args
+    db = get_db()
+    cursor = db.cursor()
+    try:
+        cursor.execute(candidate_sql(recent_sql), tuple(base_args + recent_args))
         rows = cursor.fetchall()
+        if not rows and recent_sql:
+            # 최근에 만든 것을 빼고 나니 아무것도 안 남았다. 그럴 땐 빼지 않는다 —
+            # 식단을 못 짜 주는 것보다 겹치는 편이 낫다.
+            cursor.execute(candidate_sql(""), tuple(base_args))
+            rows = cursor.fetchall()
     finally:
         cursor.close()
         db.close()
