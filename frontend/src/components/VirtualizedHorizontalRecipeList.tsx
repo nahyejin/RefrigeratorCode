@@ -2,6 +2,8 @@ import React, { useRef, useEffect, useState } from 'react';
 import { VariableSizeList as List } from 'react-window';
 import RecipeCard from './RecipeCard';
 import CoupangAdCard from './CoupangAdCard';
+import { resolveCoupangUrl } from '../utils/coupangLink';
+import { preloadCoupangAds } from '../utils/recipeUtils';
 import { getLackingIngredients, pickAdIngredient } from '../utils/lackingIngredients';
 import { Recipe, RecipeActionState } from '../types/recipe';
 import { lookupRecipeActionState } from '../utils/recipeStorage';
@@ -203,6 +205,22 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
    *
    * 광고가 지나치게 잦으면 목록이 광고판이 되므로 최소 간격을 둔다.
    */
+  /**
+   * **광고 CSV 를 다 읽었나.**
+   *
+   * 다 읽기 전에는 어떤 재료에 파트너스 링크가 있는지 알 수 없다. 그 상태로
+   * 광고 자리를 만들어 두면 `CoupangAdCard` 가 아무것도 안 그려서 그 칸이
+   * **빈 채로 남는다.** 아래 `items` 가 이 값을 보고 자리를 만든다.
+   */
+  const [adsReady, setAdsReady] = React.useState(false);
+  React.useEffect(() => {
+    let alive = true;
+    preloadCoupangAds()
+      .then(() => { if (alive) setAdsReady(true); })
+      .catch(() => { /* 못 읽으면 광고를 안 넣는다 */ });
+    return () => { alive = false; };
+  }, []);
+
   const items = React.useMemo(() => {
     type Item =
       | { kind: 'recipe'; recipe: Recipe; recipeIndex: number }
@@ -215,7 +233,7 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
       out.push({ kind: 'recipe', recipe, recipeIndex: i });
       sinceLastAd += 1;
 
-      if (!showAds) return;
+      if (!showAds || !adsReady) return;
       // 첫 화면부터 광고가 보이면 목록보다 광고가 먼저 읽힌다 → 두 장 지난 뒤부터
       if (i < AD_FIRST_SLOT) return;
       if (sinceLastAd < AD_MIN_GAP) return;
@@ -223,13 +241,16 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
       const lacking = getLackingIngredients(recipe, myIngredients, substituteTable as any);
       const ingredient = pickAdIngredient(lacking, recipe.id ?? i);
       if (!ingredient) return;
+      // **그릴 수 없는 자리는 만들지 않는다.** 파트너스 링크가 없는 재료면
+      // 카드가 아무것도 안 그려서 220px 짜리 빈 칸이 남는다.
+      if (!resolveCoupangUrl(ingredient)) return;
 
       out.push({ kind: 'ad', ingredient, recipeId: recipe.id, lackingCount: lacking.length });
       sinceLastAd = 0;
     });
 
     return out;
-  }, [recipes, myIngredients, substituteTable, showAds]);
+  }, [recipes, myIngredients, substituteTable, showAds, adsReady]);
 
 
   useEffect(() => {

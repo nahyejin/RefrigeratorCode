@@ -1,6 +1,8 @@
 import React, { forwardRef, useImperativeHandle, useRef } from 'react';
 import RecipeCard from './RecipeCard';
 import CoupangAdCard from './CoupangAdCard';
+import { resolveCoupangUrl } from '../utils/coupangLink';
+import { preloadCoupangAds } from '../utils/recipeUtils';
 import { getLackingIngredients, pickAdIngredient } from '../utils/lackingIngredients';
 import { Recipe, RecipeActionState } from '../types/recipe';
 import { lookupRecipeActionState } from '../utils/recipeStorage';
@@ -84,6 +86,22 @@ const VirtualizedRecipeList = forwardRef<VirtualizedRecipeListRef, VirtualizedRe
   }));
 
   /**
+   * **광고 CSV 를 다 읽었나.**
+   *
+   * 다 읽기 전에는 어떤 재료에 파트너스 링크가 있는지 알 수 없다. 그 상태로
+   * 광고 자리를 만들어 두면 `CoupangAdCard` 가 아무것도 안 그려서 그 칸이
+   * **빈 채로 남는다.** 아래 `items` 가 이 값을 보고 자리를 만든다.
+   */
+  const [adsReady, setAdsReady] = React.useState(false);
+  React.useEffect(() => {
+    let alive = true;
+    preloadCoupangAds()
+      .then(() => { if (alive) setAdsReady(true); })
+      .catch(() => { /* 못 읽으면 광고를 안 넣는다 */ });
+    return () => { alive = false; };
+  }, []);
+
+  /**
    * 목록에 실제로 그릴 항목들 — 레시피 사이사이에 광고 카드를 끼워 넣는다.
    * 가로 캐러셀(VirtualizedHorizontalRecipeList)과 같은 규칙을 쓴다:
    * 부족 재료가 1~5개인 카드 바로 뒤에, 그중 한 재료의 광고 카드를 한 장 넣는다.
@@ -101,20 +119,23 @@ const VirtualizedRecipeList = forwardRef<VirtualizedRecipeListRef, VirtualizedRe
       out.push({ kind: 'recipe', recipe, recipeIndex: i });
       sinceLastAd += 1;
 
-      if (!showAds) return;
+      if (!showAds || !adsReady) return;
       if (i < AD_FIRST_SLOT) return;
       if (sinceLastAd < AD_MIN_GAP) return;
 
       const lacking = getLackingIngredients(recipe, myIngredients, substituteTable as any);
       const ingredient = pickAdIngredient(lacking, recipe.id ?? i);
       if (!ingredient) return;
+      // **그릴 수 없는 자리는 만들지 않는다.** 파트너스 링크가 없는 재료면
+      // 카드가 아무것도 안 그려서 그 칸이 빈 채로 남는다.
+      if (!resolveCoupangUrl(ingredient)) return;
 
       out.push({ kind: 'ad', key: `ad-${recipe.id ?? i}`, ingredient, recipeId: recipe.id, lackingCount: lacking.length });
       sinceLastAd = 0;
     });
 
     return out;
-  }, [recipes, myIngredients, substituteTable, showAds]);
+  }, [recipes, myIngredients, substituteTable, showAds, adsReady]);
 
   return (
     <div

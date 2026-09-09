@@ -4,6 +4,7 @@ import { getProxiedImageUrl } from '../utils/imageUtils';
 import { getPlatformLogo } from '../utils/platform';
 import { calculateMatchRate, loadIngredientSynonymDict, ingredientSynonymDictCache } from '../utils/recipeUtils';
 import IngredientPillGroup from './IngredientPillGroup';
+import { RecipeCardSkeletonItem } from './RecipeCardSkeleton';
 import { parseUsedIngredientsForPills } from '../utils/ingredientPillNoise';
 import CoupangAdSheet from './CoupangAdSheet';
 import 완료하기버튼 from '../assets/완료하기버튼.png';
@@ -371,8 +372,19 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
     });
   }, []);
   
-  // 썸네일이 실패했거나 아직 검증 중인 경우 카드를 렌더링하지 않음
-  if (thumbnailStatus === false || thumbnailStatus === null) {
+  // **아직 확인 중이면 뼈대를 그린다.**
+  //
+  // 예전에는 여기서도 `null` 을 돌려줬다. 그런데 위 사전 검증(`new Image()`)은
+  // 네트워크를 타므로 짧지 않고, 그동안 이 카드 자리는 **아무것도 없었다.**
+  // 세로 목록은 자리가 접혀서 티가 덜 났지만, 가로 캐러셀은 칸 크기가 고정이라
+  // 그 자리가 통째로 하얗게 남았다 — 실측: 스크롤 직후 300px 칸 4개가 비어
+  // 있다가 2.5초에 걸쳐 채워졌다.
+  //
+  // 실패(`false`)는 여전히 안 그린다. 그건 기다린다고 오지 않는다.
+  if (thumbnailStatus === null) {
+    return <RecipeCardSkeletonItem height={fixedHeight} />;
+  }
+  if (thumbnailStatus === false) {
     return null;
   }
   
