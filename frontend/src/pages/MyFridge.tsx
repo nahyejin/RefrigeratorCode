@@ -1142,7 +1142,7 @@ const MyFridge: React.FC = () => {
     
     // CSV 파일을 localStorage에 캐싱하여 한 번만 로드
     const CSV_CACHE_KEY = 'ingredient_dict_cache';
-    const CSV_CACHE_VERSION = '1.1'; // CSV 파싱 로직 개선으로 버전 업데이트
+    const CSV_CACHE_VERSION = '1.2'; // 띄어쓰기만 다른 이름을 한 번만 담도록 바꿔서 다시 읽힌다
     
     const loadCachedCSV = async () => {
       try {
@@ -1196,7 +1196,35 @@ const MyFridge: React.FC = () => {
         };
         
         const ingredients = {};
-        
+
+        /**
+         * **띄어쓰기만 다른 이름은 한 번만 담는다.**
+         *
+         * 검색창에 「나박 김치」와 「나박김치」가 **둘 다** 뜨던 일이 있었다.
+         * 사전에 두 줄로 있어서였는데(그건 사전을 정리해서 고쳤다), 여기서
+         * 이름을 **글자 그대로** 열쇠로 쓰고 있어서 언제든 다시 생길 수 있다.
+         * 서버 쪽 사전 로더는 이미 공백을 지우고 찾는다(`normalize_key`) —
+         * 여기도 같은 기준으로 맞춘다.
+         *
+         * 담아 두는 표기는 **공백 없는 쪽**을 고른다. 사용자가 「나박 김치」로
+         * 쳐도 아래 검색이 같은 기준으로 찾으므로 걸린다.
+         */
+        const nospace = (v) => (v || '').replace(/\s+/g, '');
+        const put = (name, canonical) => {
+          const key = nospace(name);
+          if (!key) return;
+          const prev = Object.keys(ingredients).find(k => nospace(k) === key);
+          if (prev === undefined) {
+            ingredients[name] = canonical;
+            return;
+          }
+          // 이미 있으면 공백 없는 표기를 남긴다.
+          if (prev.includes(' ') && !name.includes(' ')) {
+            delete ingredients[prev];
+            ingredients[name] = canonical;
+          }
+        };
+
         lines.slice(1).forEach(line => {
           if (!line.trim()) return; // 빈 줄 스킵
           
@@ -1207,14 +1235,14 @@ const MyFridge: React.FC = () => {
           
           if (keyword && category === '재료') {
             // keyword를 keyword로 매핑
-            ingredients[keyword] = keyword;
+            put(keyword, keyword);
             
             // synonyms 파싱 (쉼표로 구분, 빈 값 제거)
             if (synonymsStr) {
               const synonyms = synonymsStr.split(',').map(s => s.trim()).filter(s => s.length > 0);
               synonyms.forEach(synonym => {
                 if (synonym) {
-                  ingredients[synonym] = keyword;
+                  put(synonym, keyword);
                 }
               });
             }
