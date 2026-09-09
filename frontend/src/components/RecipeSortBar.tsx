@@ -456,7 +456,18 @@ const Utils = {
   }
 };
 
-const RecipeSortBar = ({ 
+/**
+ * 「임박재료활용순」을 고를 때 아무것도 안 골라 뒀으면 기한이 가까운 것부터
+ * 이만큼을 알아서 쓴다.
+ *
+ * 전부 쓰면 안 된다. 이 정렬은 "레시피가 임박 재료를 몇 개나 쓰나" 로 줄을
+ * 세우는데, 냉장고에 든 것을 통째로 넣으면 그 값이 사실상 매칭률과 같아져
+ * **임박순이라는 말이 무의미해진다.** 반대로 너무 적으면 그 재료가 든 레시피
+ * 몇 개만 위로 올라오고 나머지는 순서가 없다.
+ */
+const AUTO_EXPIRY_COUNT = 5;
+
+const RecipeSortBar = ({
   recipes,
   myIngredients,
   onFilteredRecipesChange,
@@ -706,29 +717,54 @@ const RecipeSortBar = ({
                     key={option.value}
                     onClick={() => {
                       if (option.value === 'expiry' && appliedExpiryIngredients.length === 0) {
-                        // 「임박재료활용순」이 안 되는 이유가 **두 가지**다.
-                        // 섞으면 막다른 길이 된다 — 기한을 넣은 재료가 하나도
-                        // 없는데 「고르기」로 보내면 빈 목록만 보게 된다.
-                        if (typeof onToast === 'function') {
-                          if (expirySortedIngredientList.length === 0) {
-                            // 왜 안 되는지만 말한다. **무엇을 해야 하는지는
-                            // 버튼이 말한다** — 토스트에 두 문장을 넣었더니
-                            // 네 줄이 됐다.
+                        // **고르지 않았어도 정렬은 된다.**
+                        //
+                        // 예전에는 여기서 막고 "임박 재료 설정 버튼에서 골라
+                        // 오세요" 라고 했다. 그런데 **그건 원래 안 해도 되는
+                        // 일이다** — 기한을 넣어 뒀다면 무엇이 임박했는지는
+                        // 이미 안다(`expirySortedIngredientList` 가 기한순이다).
+                        // 그 팝업이 진짜로 하는 일은 "임박한 것 중 이번엔 이것만
+                        // 볼래" 라고 **좁히는** 것이라, 매칭도 슬라이더와 같은
+                        // 선택 사항이지 관문이 아니다.
+                        //
+                        // 정말로 사용자가 뭘 해 줘야 하는 경우는 하나뿐이다 —
+                        // 기한을 넣은 재료가 아예 없을 때.
+                        if (expirySortedIngredientList.length === 0) {
+                          // 왜 안 되는지만 말한다. **무엇을 해야 하는지는
+                          // 버튼이 말한다** — 토스트에 두 문장을 넣었더니
+                          // 네 줄이 됐다.
+                          if (typeof onToast === 'function') {
                             onToast('유통기한·구매일을 넣은 재료가 없어요.', {
                               label: '기한 넣기',
                               onClick: () => navigate('/my-fridge'),
                             });
-                          } else {
-                            onToast('임박 재료를 아직 고르지 않았어요.', {
-                              label: '고르기',
-                              onClick: () => {
-                                setSelectedExpiryIngredients(appliedExpiryIngredients);
-                                setExpiryModalOpen(true);
-                              },
-                            });
                           }
+                          setIsSortDropdownOpen(false);
+                          return;
                         }
+
+                        // 기한이 가까운 것부터 몇 개만 쓴다.
+                        //
+                        // 전부 쓰면 안 된다. 이 정렬은 "레시피가 임박 재료를 몇
+                        // 개나 쓰나" 로 줄을 세우는데, 냉장고에 든 것을 통째로
+                        // 넣으면 그 값이 사실상 매칭률과 같아져 **임박순이라는
+                        // 말이 무의미해진다.**
+                        const auto = expirySortedIngredientList
+                          .slice(0, AUTO_EXPIRY_COUNT)
+                          .map(i => i.name);
+                        setAppliedExpiryIngredients(auto);
+                        setSelectedExpiryIngredients(auto);
+                        setSortType('expiry');
                         setIsSortDropdownOpen(false);
+                        // **무엇으로 정렬했는지 밝힌다.** 알아서 골라 주는 것과
+                        // 몰래 골라 주는 것은 다르다. 다르게 보고 싶으면 그
+                        // 자리에서 바로 좁힐 수 있다.
+                        if (typeof onToast === 'function') {
+                          onToast(`기한이 가까운 재료 ${auto.length}개로 정렬했어요.`, {
+                            label: '바꾸기',
+                            onClick: () => setExpiryModalOpen(true),
+                          });
+                        }
                         return;
                       }
                       setSortType(option.value);
