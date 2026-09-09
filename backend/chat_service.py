@@ -3,6 +3,7 @@ import json
 import os
 import re
 import threading
+from collections import Counter
 from datetime import datetime, timedelta, timezone
 
 import requests
@@ -34,6 +35,14 @@ MAX_KEYWORDS = 5         # LLM 이 뽑아 주는 검색어 개수 상한
 RERANK_CANDIDATES = 30
 # 근거 한 줄의 길이. 카드 밑에 한 줄로 들어가야 한다.
 MAX_REASON_LEN = 28
+# 같은 주재료를 쓰는 것을 몇 개까지 내보낼지 (`_spread_ingredients`).
+MAX_PER_MAIN_INGREDIENT = 2
+# 재료를 퍼뜨리다 이보다 적어지면, 그때만 미뤄 둔 것을 도로 붙인다.
+MIN_AFTER_SPREAD = 3
+# **전체 레시피의** 이 비율 이상에 나오면 「어디에나 들어가는 밑재료」로 본다.
+# 실측으로 10% 에서 깔끔하게 갈린다 — 위는 소금·간장·대파·양파·달걀·당근·마늘,
+# 아래는 감자(7.8%)·두부(7.8%)·애호박(5.4%) 부터다.
+COMMON_INGREDIENT_RATIO = 0.10
 
 # 관련도 점수 가중치.
 #   제목에 있으면 그 글은 그 주제를 다룬 글일 가능성이 높고,
@@ -197,7 +206,65 @@ def _call_groq(api_key, prompt):
     return res.json()['choices'][0]['message']['content']
 
 
-def _rerank_with_llm(question, candidates, provider, api_key, want=SEARCH_LIMIT):
+def _spread_ingredients(picked, want=SEARCH_LIMIT, common=None):
+    """**같은 주재료만 반복하지 않도록** 고른 것을 다시 훑는다.
+
+    왜 필요한가:
+      "일주일 동안 아이가 먹을 요리" 를 물었더니 8건이 전부 간장·대파·양파
+      요리였다. 재료 30개를 넣어 뒀는데 **16개는 한 번도 안 쓰였다.**
+      재료는 한 번 쓰면 없어진다 — 감자 세 알로 일주일을 날 수는 없다.
+
+      프롬프트로 "겹치지 마라" 고 일러도 모델이 **개수를 세지는 않는다**
+      (실제로 일러 준 뒤에도 감자가 네 번 나왔다). 세는 일은 여기서 한다.
+
+    무엇이 「주재료」인가 — `_load_common_ingredients` 가 **전체 레시피에서의
+    빈도**로 가른다. 10% 넘게 나오는 것(소금·간장·대파·양파·달걀·당근·마늘)은
+    거의 모든 요리에 들어가는 밑재료라 겹쳐도 상관없다. 그 아래(감자·두부·
+    애호박·새우…)가 그 요리의 정체이고, 그게 겹치면 문제다.
+
+      처음에는 **후보 안에서의** 빈도로 갈랐다. 그런데 후보가 이미 한 재료로
+      쏠려 있으면 그 재료가 「흔하다」로 잘못 분류돼 상한이 안 걸린다 —
+      실제로 "저녁 반찬" 후보가 감자로 몰리자 감자 요리 일곱 개가 나왔다.
+      기준은 후보가 아니라 **코퍼스 전체**여야 한다.
+    """
+    if not picked or len(picked) <= 1:
+        return picked
+    common = common or set()
+
+    def mains(r):
+        toks = {x.strip() for x in (r.get('used_ingredients') or '').split(',') if x.strip()}
+        return {t for t in toks if t not in common}
+
+    used, kept, skipped = Counter(), [], []
+    for r in picked:
+        m = mains(r)
+        # **하나라도** 상한에 찼으면 건너뛴다.
+        #
+        # 처음엔 `all(...)` 이었다 — "이 요리의 주재료가 **전부** 찼을 때만"
+        # 건너뛰게 했더니 상한이 사실상 안 걸렸다. 「감자 고추장찌개」는
+        # 주재료가 {감자, 고추장, 두부, 소고기} 라, 감자가 이미 두 번 나왔어도
+        # 소고기가 비어 있으면 통과했다. 그래서 감자 요리가 여섯 개 나왔다.
+        if m and any(used[t] >= MAX_PER_MAIN_INGREDIENT for t in m):
+            skipped.append(r)
+            continue
+        kept.append(r)
+        for t in m:
+            used[t] += 1
+        if len(kept) >= want:
+            break
+
+    # **모자라도 그대로 내보낸다.** 감자 요리 여섯 개보다 잘 퍼진 네 개가 낫다 —
+    # 감자 세 알로 여섯 끼를 못 하는 건 화면을 채운다고 달라지지 않는다.
+    # 다만 한두 개만 남으면 "못 찾았다" 로 읽히므로 그때만 미뤄 둔 것을 붙인다.
+    for r in skipped:
+        if len(kept) >= MIN_AFTER_SPREAD:
+            break
+        kept.append(r)
+    return kept
+
+
+def _rerank_with_llm(question, candidates, provider, api_key, want=SEARCH_LIMIT,
+                     my_ingredients=None, common=None):
     """후보 중에서 **질문에 실제로 맞는 것**을 LLM 이 고르고, 이유를 한 줄씩 쓴다.
 
     왜 필요한가:
@@ -227,10 +294,14 @@ def _rerank_with_llm(question, candidates, provider, api_key, want=SEARCH_LIMIT)
             ing = ing[:70] + '…'
         lines.append(f"{i}. {r.get('title') or '(제목 없음)'} | 재료: {ing or '정보 없음'}")
 
+    fridge = ', '.join((my_ingredients or [])[:MAX_INGREDIENTS]) or '(모름)'
     prompt = f"""사용자의 요청에 **실제로 맞는** 레시피만 골라라.
 
 [사용자 요청]
 {question}
+
+[사용자 냉장고에 있는 것]
+{fridge}
 
 [후보]
 {chr(10).join(lines)}
@@ -238,6 +309,11 @@ def _rerank_with_llm(question, candidates, provider, api_key, want=SEARCH_LIMIT)
 규칙:
 - 낱말이 겹친다고 고르지 마라. **요청한 상황·대상·목적에 맞는 음식**인지로 판단해라.
   예) "아이가 먹을 수 있는 음식" 에 「아이스크림라떼」는 `아이` 라는 글자만 겹칠 뿐 맞지 않다.
+- **주재료가 겹치지 않게 골라라.** 재료는 한 번 쓰면 없어진다. 여러 개를 추천하는데
+  전부 같은 재료를 쓰면 실제로는 하나밖에 못 만든다.
+  · 같은 주재료(고기·생선·두부·주된 채소)를 쓰는 것은 **많아야 두 개**까지.
+  · 파·양파·간장 같은 **양념과 밑재료는 겹쳐도 된다** — 그건 안 없어진다.
+  · 냉장고에 있는 재료를 **골고루** 쓰는 쪽으로 골라라.
 - 맞는 것이 없으면 빈 배열을 돌려라. 억지로 채우지 마라.
 - 많아야 {want}개. 잘 맞는 것부터.
 - reason 은 **왜 이걸 골랐는지** {MAX_REASON_LEN}자 이내 한 마디. 제목을 그대로 옮기지 마라.
@@ -266,10 +342,9 @@ JSON 만 답해라:
             reason = str(p.get('reason') or '').strip()
             picked['reason'] = reason[:MAX_REASON_LEN]
             out.append(picked)
-            if len(out) >= want:
-                break
         # 하나도 못 고르면 "고를 게 없다" 는 뜻이다 — 그것도 답이므로 그대로 둔다.
-        return out
+        # 자르기 전에 **같은 주재료로 몰린 것부터 걷어 낸다.**
+        return _spread_ingredients(out, want=want, common=common)
     except Exception as e:  # noqa: BLE001
         print(f"[chat] 재정렬 실패(지금까지 방식으로 갑니다): {e}", flush=True)
         return None
@@ -660,6 +735,59 @@ def _load_dish_names():
     return _dish_names
 
 
+_common_cache = None
+_common_lock = threading.Lock()
+
+
+def _load_common_ingredients(get_db):
+    """**어디에나 들어가는 밑재료**의 이름들. 한 번만 세고 기억한다.
+
+    무엇을 「밑재료」로 보나 — 전체 레시피에서 얼마나 자주 나오나로 정한다.
+    실측(41,734건 기준):
+
+        소금 51%  간장 44%  대파 37%  양파 34%  달걀 22%  당근 14%  마늘 12%
+        ---------------- 10% ----------------
+        감자 7.8%  두부 7.8%  애호박 5.4%  김치 4.1%  소고기 3.1%  새우 2.5% …
+
+    10% 에서 깔끔하게 갈린다. 위쪽은 그 요리의 정체가 아니라 **거의 모든 요리에
+    들어가는 것**이라 여러 번 겹쳐도 상관없다. 아래쪽이 겹치면 "감자 요리 일곱 개"
+    가 된다.
+
+    조미료 사전으로는 안 된다 — 거기엔 `간장`·`설탕` 만 있고 `대파`·`양파` 는 없다.
+    빈도로 가르면 손으로 적는 표가 늘지 않고, 사전이 바뀌어도 저절로 따라온다.
+
+    출처는 역색인 표(`recipe_ingredient`)다 — 재료 하나가 한 줄이라 세기만 하면 된다.
+    표가 없으면 빈 집합을 돌려준다(그러면 상한이 조금 빡빡하게 걸릴 뿐이다).
+    """
+    global _common_cache
+    if _common_cache is not None:
+        return _common_cache
+    with _common_lock:
+        if _common_cache is not None:
+            return _common_cache
+        names = set()
+        try:
+            db = get_db()
+            cur = db.cursor()
+            try:
+                cur.execute("SELECT COUNT(*) n FROM recipes WHERE " + RECIPE_READY)
+                total = int((cur.fetchone() or {}).get('n') or 0)
+                if total:
+                    cur.execute(
+                        "SELECT ingredient, COUNT(*) n FROM recipe_ingredient "
+                        "GROUP BY ingredient HAVING n >= %s",
+                        [int(total * COMMON_INGREDIENT_RATIO)],
+                    )
+                    names = {r['ingredient'] for r in (cur.fetchall() or [])}
+            finally:
+                cur.close()
+                db.close()
+        except Exception as e:  # noqa: BLE001
+            print(f"[chat] 흔한 재료 세기 실패(상한만 조금 빡빡해집니다): {e}", flush=True)
+        _common_cache = names
+        return _common_cache
+
+
 def _load_seasoning_set():
     """매칭률 계산에서 낮은 가중치(SEASONING_WEIGHT)를 줄 조미료 목록.
 
@@ -968,8 +1096,12 @@ def handle_chat(get_db):
         # 「아이가 먹을 음식」에 아이스크림을 내놓던 예전으로 돌아간다.
         # 호출이 깨졌을 때만(None) 예전 순서로 간다.
         if recipes:
-            ranked = _rerank_with_llm(last_user, recipes, provider, api_key, want=SEARCH_LIMIT)
-            recipes = recipes[:SEARCH_LIMIT] if ranked is None else ranked
+            common = _load_common_ingredients(get_db)
+            ranked = _rerank_with_llm(last_user, recipes, provider, api_key,
+                                      want=SEARCH_LIMIT, my_ingredients=ingredients,
+                                      common=common)
+            recipes = (_spread_ingredients(recipes, want=SEARCH_LIMIT, common=common)
+                       if ranked is None else ranked)
     else:
         # 지식/조언성 질문("다이어트용 양념이 뭐야?" 등) — 레시피를 찾아달라는 요청이
         # 아니므로 검색 자체를 안 한다. reply가 이미 질문에 직접 답했으니, 여기서 억지로
