@@ -1539,7 +1539,9 @@ const MyPage: React.FC = () => {
       }}>
         <button
           type="button"
-          onClick={() => navigate('/recipe-list')}
+          // **「즐겨찾기만」을 켠 채로** 보낸다. 그냥 목록으로 보내면 전체가
+          // 나와서, 즐겨찾기로 고르러 왔는데 그 버튼을 다시 찾아 눌러야 했다.
+          onClick={() => navigate('/recipe-list', { state: { favoriteOnly: true } })}
           style={{
             flex: 1, minWidth: 150, height: 40, borderRadius: 10, cursor: 'pointer',
             border: '1px solid var(--line-200)', background: 'var(--surface)',

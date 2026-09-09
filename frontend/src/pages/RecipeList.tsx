@@ -781,7 +781,23 @@ const RecipeList: React.FC = () => {
   const [myIngredients, setMyIngredients] = useState<string[]>(getMyIngredients());
   const navigate = useNavigate();
   const location = useLocation();
-  
+
+  /**
+   * 마이페이지의 **「즐겨찾기로 요리 고르기」** 로 들어왔으면 그 버튼을 켠 채로 연다.
+   *
+   * `useState` 의 초기값으로는 안 된다 — 이 화면이 이미 떠 있는 상태에서
+   * 넘어오면 초기값은 다시 읽히지 않는다. 그래서 **이동할 때마다**
+   * (`location.key` 가 바뀔 때) 본다. 사용자가 끄는 것은 그대로 유지된다 —
+   * 새로 이동해 올 때만 켜진다.
+   */
+  useEffect(() => {
+    if ((location.state as { favoriteOnly?: boolean } | null)?.favoriteOnly) {
+      setFavoriteOnly(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.key]);
+
+
   // 페이지 상태 저장/복원을 위한 키
   const STORAGE_KEY_RECIPE_LIST = 'recipe_list_state';
   const STORAGE_KEY_INGREDIENTS_HASH = 'recipe_list_ingredients_hash';

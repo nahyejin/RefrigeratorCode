@@ -39,6 +39,29 @@ const API_BASE_URL =
 const canSpeak = () =>
   typeof window !== 'undefined' && 'speechSynthesis' in window;
 
+/**
+ * **읽는 속도의 기준값.**
+ *
+ * 조금 느리다. 따라 하면서 듣는 속도라서 그렇다 — 손은 도마에 있고 귀로만
+ * 좇는다. 아래 배속 버튼은 이 값의 **배수**다. 그래서 `1×` 는 예전과 정확히
+ * 같은 속도이고, 배속을 만지지 않은 사람에게는 달라지는 것이 없다.
+ */
+const BASE_RATE = 0.95;
+
+/** 배속 퀵버튼. 팟캐스트·영상 앱에서 쓰는 눈금과 같게 둔다. */
+const SPEEDS = [0.75, 1, 1.25, 1.5, 2] as const;
+
+const SPEED_KEY = 'cookmode_speech_rate';
+
+/** 고른 배속은 기억한다 — 빠르게 듣는 사람은 매번 빠르게 듣는다. */
+function loadSpeed(): number {
+  try {
+    const v = Number(localStorage.getItem(SPEED_KEY));
+    if (SPEEDS.includes(v as (typeof SPEEDS)[number])) return v;
+  } catch { /* 사생활 보호 모드 등 — 기본값으로 간다 */ }
+  return 1;
+}
+
 interface Props {
   isOpen: boolean;
   onClose: () => void;
@@ -58,10 +81,35 @@ const CookModeSheet: React.FC<Props> = ({
   const [error, setError] = React.useState<string | null>(null);
   const [speaking, setSpeaking] = React.useState(false);
   const [at, setAt] = React.useState<number>(-1);
+  const [speed, setSpeed] = React.useState<number>(loadSpeed);
+  const [speedOpen, setSpeedOpen] = React.useState(false);
+
+  /**
+   * 읽는 중에 배속을 바꾸면 **그 자리에서 다시 읽어야 한다.**
+   *
+   * `SpeechSynthesisUtterance` 의 `rate` 는 말하기 시작한 뒤에는 못 바꾼다.
+   * 다음 단계부터 적용하면 "눌렀는데 아무 일도 안 난다" 로 읽히므로, 지금 읽던
+   * 단계를 새 속도로 다시 시작한다. `speakFrom` 이 아래에 정의돼 있어 ref 로
+   * 붙잡아 둔다.
+   */
+  const speakFromRef = React.useRef<(start: number) => void>(() => {});
+
+  /**
+   * **몇 번째 읽기인가.**
+   *
+   * `speechSynthesis.cancel()` 이 보내는 `onend`/`onerror` 는 **한 박자 늦게**
+   * 온다. 그 사이에 새 읽기가 시작하면, 죽은 발화의 뒷정리가 살아 있는 읽기의
+   * 상태를 덮어써서 **읽고 있는데 버튼은 「읽어 주기」로 돌아간다.**
+   * (실측: 배속을 바꾸면 소리는 새 속도로 나오는데 버튼만 원래대로 돌아갔다)
+   *
+   * 그래서 발화마다 번호를 달고, 자기 번호가 최신일 때만 상태를 만진다.
+   */
+  const runIdRef = React.useRef(0);
 
   // 읽기를 멈추는 일은 여러 곳에서 일어난다(닫기, 화면 이탈, 다시 누르기).
   // 한 곳에 모아 두지 않으면 시트를 닫아도 계속 떠드는 상태가 된다.
   const stopSpeaking = React.useCallback(() => {
+    runIdRef.current += 1;
     if (canSpeak()) window.speechSynthesis.cancel();
     setSpeaking(false);
     setAt(-1);
@@ -95,12 +143,15 @@ const CookModeSheet: React.FC<Props> = ({
    * 단계마다 따로 발화를 만들고 `onend` 로 다음을 잇는다. 전체를 한 덩어리로
    * 넘기면 **지금 어느 단계인지 알 수 없어** 화면에서 짚어 줄 수가 없다.
    */
-  const speakFrom = (start: number) => {
+  const speakFrom = React.useCallback((start: number) => {
     if (!canSpeak() || steps.length === 0) return;
+    const myRun = ++runIdRef.current;   // 이번 읽기의 번호
     window.speechSynthesis.cancel();
     setSpeaking(true);
 
     const run = (i: number) => {
+      // 그 사이에 다른 읽기가 시작됐으면 이 갈래는 조용히 물러난다.
+      if (myRun !== runIdRef.current) return;
       if (i >= steps.length) {
         setSpeaking(false);
         setAt(-1);
@@ -109,12 +160,34 @@ const CookModeSheet: React.FC<Props> = ({
       setAt(i);
       const u = new SpeechSynthesisUtterance(`${i + 1}번. ${steps[i]}`);
       u.lang = 'ko-KR';
-      u.rate = 0.95;   // 조금 느리게. 따라 하면서 듣는 속도다.
+      // 기준 속도(`BASE_RATE`)에 고른 배속을 곱한다. 브라우저가 받는 상한은
+      // 10 이라 2× 까지는 넉넉하다.
+      u.rate = BASE_RATE * speed;
       u.onend = () => run(i + 1);
-      u.onerror = () => { setSpeaking(false); setAt(-1); };
+      u.onerror = () => {
+        if (myRun !== runIdRef.current) return;
+        setSpeaking(false);
+        setAt(-1);
+      };
       window.speechSynthesis.speak(u);
     };
     run(start);
+  }, [steps, speed]);
+
+  React.useEffect(() => { speakFromRef.current = speakFrom; }, [speakFrom]);
+
+  /** 배속을 고른다. 읽던 중이었다면 그 단계를 새 속도로 다시 읽는다. */
+  const pickSpeed = (v: number) => {
+    setSpeed(v);
+    try { localStorage.setItem(SPEED_KEY, String(v)); } catch { /* 무시 */ }
+    setSpeedOpen(false);
+    if (speaking) {
+      const from = at < 0 ? 0 : at;
+      // `speed` 가 반영된 `speakFrom` 은 다음 렌더에 만들어진다. 그 뒤에 부른다.
+      // (`cancel()` 은 새 `speakFrom` 이 자기 번호를 달고 부른다 — 여기서 미리
+      //  부르면 죽은 발화의 뒷정리가 새 읽기를 끊는다)
+      setTimeout(() => speakFromRef.current(from), 0);
+    }
   };
 
   const have = new Set(myIngredients.map(x => x.trim()));
@@ -191,21 +264,71 @@ const CookModeSheet: React.FC<Props> = ({
                   조리 순서
                 </h3>
                 {canSpeak() && (
-                  <button
-                    type="button"
-                    onClick={() => (speaking ? stopSpeaking() : speakFrom(0))}
-                    style={{
-                      height: 34, padding: '0 14px', borderRadius: 9999, border: 'none',
-                      background: speaking ? '#1A1A1E' : '#FFD600',
-                      color: speaking ? '#FFFFFF' : '#1A1A1E',
-                      fontSize: 13, fontWeight: 700, cursor: 'pointer',
-                      display: 'inline-flex', alignItems: 'center', gap: 6,
-                    }}
-                  >
-                    {speaking ? '■ 멈추기' : '▶ 읽어 주기'}
-                  </button>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                    {/* 배속. 눌러야 눈금이 펼쳐진다 — 다섯 개를 늘 펴 두면
+                        「읽어 주기」보다 배속이 더 넓은 자리를 차지한다. */}
+                    <button
+                      type="button"
+                      onClick={() => setSpeedOpen(v => !v)}
+                      aria-expanded={speedOpen}
+                      aria-label={`읽는 속도 ${speed}배. 눌러서 바꾸기`}
+                      style={{
+                        height: 34, padding: '0 11px', borderRadius: 9999,
+                        border: `1px solid ${speedOpen ? '#1A1A1E' : 'var(--line-300)'}`,
+                        background: 'var(--surface)', color: 'var(--ink-900)',
+                        fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                        fontVariantNumeric: 'tabular-nums',
+                      }}
+                    >
+                      {speed}×
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => (speaking ? stopSpeaking() : speakFrom(0))}
+                      style={{
+                        height: 34, padding: '0 14px', borderRadius: 9999, border: 'none',
+                        background: speaking ? '#1A1A1E' : '#FFD600',
+                        color: speaking ? '#FFFFFF' : '#1A1A1E',
+                        fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                        display: 'inline-flex', alignItems: 'center', gap: 6,
+                      }}
+                    >
+                      {speaking ? '■ 멈추기' : '▶ 읽어 주기'}
+                    </button>
+                  </div>
                 )}
               </div>
+
+              {canSpeak() && speedOpen && (
+                <div
+                  role="group"
+                  aria-label="읽는 속도"
+                  style={{ display: 'flex', gap: 6, marginBottom: 10, justifyContent: 'flex-end',
+                           flexWrap: 'wrap' }}
+                >
+                  {SPEEDS.map(v => {
+                    const on = v === speed;
+                    return (
+                      <button
+                        key={v}
+                        type="button"
+                        aria-pressed={on}
+                        onClick={() => pickSpeed(v)}
+                        style={{
+                          height: 32, minWidth: 52, padding: '0 10px', borderRadius: 9999,
+                          border: `1px solid ${on ? '#1A1A1E' : 'var(--line-300)'}`,
+                          background: on ? '#1A1A1E' : 'var(--surface)',
+                          color: on ? '#FFFFFF' : 'var(--ink-700)',
+                          fontSize: 13, fontWeight: on ? 700 : 500, cursor: 'pointer',
+                          fontVariantNumeric: 'tabular-nums',
+                        }}
+                      >
+                        {v}×
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
 
               <ol style={{ margin: 0, padding: 0, listStyle: 'none',
                            display: 'flex', flexDirection: 'column', gap: 8 }}>
