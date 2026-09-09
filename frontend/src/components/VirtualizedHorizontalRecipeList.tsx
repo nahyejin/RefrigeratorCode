@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { FixedSizeList as List } from 'react-window';
+import { VariableSizeList as List } from 'react-window';
 import RecipeCard from './RecipeCard';
 import CoupangAdCard from './CoupangAdCard';
 import { getLackingIngredients, pickAdIngredient } from '../utils/lackingIngredients';
@@ -44,6 +44,14 @@ const CONSTANTS = {
   // 이 값이 그대로면 가로 목록이 카드를 잘라 낸다.
   DEFAULT_CARD_HEIGHT: 290,
   DEFAULT_GAP: 16,
+  /**
+   * 광고 칸의 폭. **레시피 카드보다 좁다.**
+   *
+   * 광고에는 썸네일이 없다 — 배지 한 줄, 링크 한 줄, 대가성 문구 두 줄이
+   * 전부다. 그걸 레시피 카드와 같은 300px 로 벌려 두면 목록에서 광고가
+   * 제일 커 보인다. 문구를 쉼표에서 끊으면 이 폭에 들어간다.
+   */
+  AD_WIDTH: 220,
   DEFAULT_CONTAINER_WIDTH: 400,
   EMPTY_MESSAGE_FONT_SIZE: 13
 } as const;
@@ -184,6 +192,7 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
     });
   }, [cardHeight]);
   const itemSize = Utils.calculateItemSize(cardWidth, gap);
+  const adItemSize = CONSTANTS.AD_WIDTH + gap;
 
   /**
    * 목록에 실제로 그릴 항목들 — 레시피 사이사이에 광고 카드를 끼워 넣는다.
@@ -293,7 +302,8 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
         setShowLeftScrollIndicator(isScrollable && !isAtStart);
       } else {
         // 스크롤 컨테이너를 찾지 못한 경우, 전체 너비 계산으로 판단
-        const totalWidth = recipes.length * itemSize;
+        const totalWidth = items.reduce(
+          (sum, it) => sum + (it.kind === 'ad' ? adItemSize : itemSize), 0);
         const isScrollable = totalWidth > containerWidth;
         setShowScrollIndicator(isScrollable);
         setShowLeftScrollIndicator(false);
@@ -329,7 +339,22 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
       }
       window.removeEventListener('resize', checkScrollable);
     };
-  }, [recipes.length, containerWidth, itemSize]);
+  }, [items, containerWidth, itemSize, adItemSize]);
+
+  /**
+   * 칸 하나의 폭. **광고만 좁다.**
+   *
+   * `VariableSizeList` 는 한 번 잰 폭을 기억하므로, 항목이 바뀌면
+   * `resetAfterIndex(0)` 로 지워 줘야 한다. 안 그러면 레시피가 광고 자리에
+   * 들어가 카드가 잘린다.
+   */
+  const getItemSize = React.useCallback(
+    (index: number) => (items[index]?.kind === 'ad' ? adItemSize : itemSize),
+    [items, adItemSize, itemSize]
+  );
+  useEffect(() => {
+    listRef.current?.resetAfterIndex?.(0, false);
+  }, [items, cardWidth, gap]);
 
   const Row = ({ index, style }: { index: number; style: React.CSSProperties }) => {
     const item = items[index];
@@ -340,7 +365,10 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
         <div
           style={{
             ...style,
-            width: cardWidth,
+            // 광고 칸만 좁다 (`AD_WIDTH`). 목록이 `VariableSizeList` 라서
+            // 칸마다 폭을 따로 줄 수 있다 — 예전 `FixedSizeList` 에서는
+            // 레시피 카드와 같은 300px 을 쓸 수밖에 없었다.
+            width: CONSTANTS.AD_WIDTH,
             marginRight: gap,
             touchAction: 'pan-x pan-y',
             overflowY: 'visible',
@@ -351,8 +379,9 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
             ingredient={item.ingredient}
             recipeId={item.recipeId}
             lackingCount={item.lackingCount}
-            width={cardWidth}
+            width={CONSTANTS.AD_WIDTH}
             height={cardHeight}
+            narrow
           />
         </div>
       );
@@ -452,7 +481,8 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
           ref={listRef}
           height={cardHeight + resolvedListHeightExtra + expandedExtra + 3}
           itemCount={items.length}
-          itemSize={itemSize}
+          itemSize={getItemSize}
+          estimatedItemSize={itemSize}
           layout="horizontal"
           width={containerWidth}
           onScroll={(props) => {

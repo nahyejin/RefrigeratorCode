@@ -18,10 +18,22 @@ import * as React from 'react';
  *   하단 배너(BottomCoupangAd). 각각의 **첫 부분**에 두므로
  *   "누르기 전에 알 수 있어야 한다" 는 취지도 그대로 지켜진다.
  */
-const CoupangDisclaimer: React.FC<{ style?: React.CSSProperties; compact?: boolean }> = ({
-  style,
-  compact = false,
-}) => (
+const CoupangDisclaimer: React.FC<{
+  style?: React.CSSProperties;
+  compact?: boolean;
+  /**
+   * 쉼표(`일환으로,`) 뒤에서 줄을 끊는다.
+   *
+   * **폭이 좁은 자리에서만** 쓴다. 이 문구는 한 줄로 두면 200px 을 넘게
+   * 차지해서, 가로 캐러셀(요즘인기)에서는 **문구가 광고 카드의 폭을 혼자
+   * 정해 버린다** — 카드를 줄이려 해도 이것 때문에 못 줄인다.
+   * 쉼표에서 끊으면 두 줄이 거의 같은 길이라 폭이 절반으로 준다.
+   *
+   * 반대로 세로 목록(냉장고요리)처럼 폭이 넉넉한 곳에서는 켜지 않는다 —
+   * 한 줄이면 될 것을 두 줄로 만들면 광고가 커 보인다.
+   */
+  twoLines?: boolean;
+}> = ({ style, compact = false, twoLines = false }) => (
   <p
     style={{
       margin: 0,
@@ -32,12 +44,14 @@ const CoupangDisclaimer: React.FC<{ style?: React.CSSProperties; compact?: boole
       ...style,
     }}
   >
-    {/* **줄을 억지로 끊지 않는다.**
-        예전에는 쉼표 뒤에 `<br />` 를 박아 두 줄로 고정했다. 폭이 좁을 때
+    {/* **기본은 줄을 억지로 끊지 않는다.**
+        예전에는 쉼표 뒤에 `<br />` 를 늘 박아 두 줄로 고정했다. 폭이 좁을 때
         아무 데서나 감기는 걸 막으려던 것인데, 냉장고요리처럼 **폭이 넉넉한
         곳에서는 한 줄이면 될 것을 굳이 두 줄로 만들어** 광고가 커 보였다.
-        `wordBreak: keep-all` 이 낱말 단위로 감아 주므로 그냥 흘려도 된다. */}
-    이 광고는 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다.
+        `wordBreak: keep-all` 이 낱말 단위로 감아 주므로 그냥 흘려도 된다.
+        폭이 좁은 자리에서만 `twoLines` 로 되살린다. */}
+    이 광고는 쿠팡 파트너스 활동의 일환으로,{twoLines ? <br /> : ' '}
+    이에 따른 일정액의 수수료를 제공받습니다.
   </p>
 );
 

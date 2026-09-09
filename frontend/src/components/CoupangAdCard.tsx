@@ -14,6 +14,14 @@ interface CoupangAdCardProps {
    * 준다. 세로 목록에서는 줄 이유가 없다 — 내용만큼만 쓴다.
    */
   height?: number | string;
+  /**
+   * 폭이 좁은 자리인가.
+   *
+   * 켜면 대가성 문구를 쉼표에서 끊어 두 줄로 만들고 안쪽 여백을 줄인다.
+   * 이 문구는 한 줄로 두면 200px 을 넘게 차지해서, **가로 캐러셀에서는
+   * 문구가 광고 카드의 폭을 혼자 정해 버린다.**
+   */
+  narrow?: boolean;
 }
 
 /** 바깥으로 나간다는 표시. 눌러서 쿠팡으로 넘어간다는 걸 글자 옆에서 알린다. */
@@ -65,6 +73,7 @@ const CoupangAdCard: React.FC<CoupangAdCardProps> = ({
   lackingCount,
   width,
   height,
+  narrow = false,
 }) => {
   /**
    * **광고 CSV 를 이 카드가 직접 읽는다.**
@@ -140,7 +149,7 @@ const CoupangAdCard: React.FC<CoupangAdCardProps> = ({
         // 준다. 그래서 상품 카드인 척하는데 상품이 없는 모양이 됐고, 레시피
         // 카드와 같은 테두리라 **목록의 한 항목**처럼 읽혔다.
         // 광고는 항목이 아니라 사이에 끼운 안내다.
-        padding: height ? 16 : '14px 4px',
+        padding: narrow ? '14px 10px' : height ? 16 : '14px 4px',
         display: 'flex',
         flexDirection: 'column',
         gap: 8,
@@ -183,7 +192,7 @@ const CoupangAdCard: React.FC<CoupangAdCardProps> = ({
       </a>
 
       {/* 대가성 문구는 **누르기 전에** 보여야 한다 */}
-      <CoupangDisclaimer compact />
+      <CoupangDisclaimer compact twoLines={narrow} />
     </div>
   );
 };
