@@ -22,6 +22,7 @@ import os
 
 import pymysql
 
+import re
 from datetime import datetime
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -108,6 +109,26 @@ def main():
     by_keyword = {r["keyword"].strip(): r for r in rows if r.get("keyword")}
     added, extended, skipped = [], [], []
 
+    # **같은 이름이 대표어이면서 남의 동의어이기도 한 상태를 만들지 않는다.**
+    #
+    # 여기서 두 방향 다 확인을 안 하고 있었다. 그래서 `알감자` 가 어떤 날은
+    # 새 대표어로 들어오고 다른 날은 `감자` 의 동의어로 들어와, 사전에 **둘 다**
+    # 남았다 (실측 50건). 그러면 사전 로더에서 CSV 줄 순서가 뜻을 정하게 되고,
+    # `알감자` 는 접히는데 옆의 `홍감자` 는 안 접히는 차이가 생긴다.
+    #
+    # 먼저 들어온 쪽이 이긴다 — 나중 것은 건너뛰고 **이유를 남긴다.**
+    # 어느 쪽이 맞는지는 사람이 어드민에서 정하면 된다.
+    def _norm(v):
+        return re.sub(r"\s+", "", str(v or "").strip())
+
+    keyword_keys = {_norm(k) for k in by_keyword}
+    synonym_owner = {}
+    for r in rows:
+        for syn in str(r.get("synonyms") or "").split(","):
+            k = _norm(syn)
+            if k:
+                synonym_owner.setdefault(k, (r.get("keyword") or "").strip())
+
     for item in additions:
         raw = item["raw_name"].strip()
         keyword = item["keyword"].strip()
@@ -121,6 +142,11 @@ def main():
             if raw in current or raw == keyword:
                 skipped.append((raw, "이미 들어 있음"))
                 continue
+            if _norm(raw) in keyword_keys:
+                # 제 줄을 가진 이름을 남의 동의어로 적으면 그 줄의 Feature·보관일이
+                # 죽는다. 붙이는 게 맞으면 어드민에서 그 줄을 지우고 다시 하면 된다.
+                skipped.append((raw, f"'{raw}' 는 이미 제 대표어 줄이 있음 (동의어로 안 붙임)"))
+                continue
             current.append(raw)
             target["synonyms"] = ", ".join(current)
             # 기존 행에 동의어만 보탠 경우에도 손댄 날짜를 남긴다
@@ -129,6 +155,12 @@ def main():
         else:  # 새 대표어
             if keyword in by_keyword:
                 skipped.append((raw, f"'{keyword}' 는 이미 CSV 에 있음"))
+                continue
+            owner = synonym_owner.get(_norm(keyword))
+            if owner:
+                # 이미 `owner` 의 다른 이름으로 쓰이고 있다. 대표어로도 만들면
+                # 같은 이름이 두 뜻을 갖는다.
+                skipped.append((raw, f"'{keyword}' 는 이미 '{owner}' 의 동의어임 (새 대표어로 안 만듦)"))
                 continue
             row = {name: "" for name in fieldnames}
             row["keyword"] = keyword

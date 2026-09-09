@@ -742,7 +742,7 @@ const RecipeSortBar = ({
                sortType === 'comment' ? '댓글순' :
                sortType === 'hits' ? '조회수순' :
                sortType === 'match' ? '재료매칭률순' :
-               sortType === 'expiry' ? '임박재료활용순' : '재료매칭률순'}</span>
+               sortType === 'expiry' ? '임박순' : '재료매칭률순'}</span>
               <span style={STYLES.selectArrow}>∨</span>
             </button>
             {isSortDropdownOpen && (
@@ -766,7 +766,10 @@ const RecipeSortBar = ({
                   { value: 'comment', label: '댓글순' },
                   { value: 'hits', label: '조회수순' },
                   { value: 'match', label: '재료매칭률순' },
-                  { value: 'expiry', label: '임박재료활용순' }
+                  // 「임박재료활용순」은 버튼 안에서 두 줄로 감겨 정렬 칸만
+                  // 혼자 높아졌다. 옆의 「임박 재료」 버튼이 무엇을 뜻하는지
+                  // 이미 말해 주므로 짧은 쪽으로 충분하다.
+                  { value: 'expiry', label: '임박순' }
                 ].map(option => (
                   <button
                     key={option.value}

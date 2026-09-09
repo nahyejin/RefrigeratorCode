@@ -119,6 +119,8 @@ def load_alias_to_canonical(path=None):
     """
     csv_path = path or _find_csv()
     alias_to_canonical = {}
+    own_keywords = set()      # 제 줄을 가진 이름(공백 없는 열쇠)
+    pending = []              # (열쇠, 대표어, 제 이름인가)
 
     # `utf-8-sig` 로 연다 — BOM 이 붙어 있어도 벗겨 낸다.
     #
@@ -140,10 +142,26 @@ def load_alias_to_canonical(path=None):
             canonical = str(keyword).strip()
             synonyms_cell = row.get("synonyms")
             synonyms = [] if _blank(synonyms_cell) else str(synonyms_cell).split(", ")
-            for name in [canonical] + synonyms:
+            own_keywords.add(normalize_key(canonical))
+            for i, name in enumerate([canonical] + synonyms):
                 key = normalize_key(name)
                 if key:
-                    alias_to_canonical[key] = canonical
+                    pending.append((key, canonical, i == 0))
+
+    # **제 이름이 대표어로 있으면 누구의 동의어도 아니다.**
+    #
+    # 같은 이름이 어떤 줄의 `synonyms` 에도 있고 그 자체로 대표어이기도 한 경우가
+    # 50건 있었다 (`알감자` 는 `감자` 의 동의어이면서 제 줄도 있다). 예전에는
+    # 나중에 읽힌 줄이 이겨서 **CSV 줄 순서가 뜻을 정했다** — 그래서 `알감자` 는
+    # `감자` 로 접히는데 옆의 `홍감자` 는 안 접히는, 설명할 수 없는 차이가 났다.
+    #
+    # 제 줄을 가진 이름을 남의 동의어로 접으면 그 줄의 Feature·보관일이 통째로
+    # 죽는다. 대신 부모와의 관계는 `hyperonym` 이 이미 들고 있고, 대체표도 둘을
+    # 이어 준다(확인: 8개 중 7개가 양방향으로 이어져 있었다). 그래서 **제 줄이
+    # 이긴다** 로 못 박는다 — 줄 순서와 상관없이 늘 같게 나온다.
+    for key, canonical, is_self in pending:
+        if is_self or key not in own_keywords:
+            alias_to_canonical[key] = canonical
 
     # 연쇄 해소: 대표어로 지정된 값이 그 자체로 또 다른 대표어의 별칭인 경우가 있다.
     # (예: 볶은참깨 -> 통깨 인데 통깨 -> 참깨) 이대로 두면 같은 재료가 표기에 따라
