@@ -303,10 +303,32 @@ const CookModeSheet: React.FC<Props> = ({
                 <div
                   role="group"
                   aria-label="읽는 속도"
-                  style={{ display: 'flex', gap: 6, marginBottom: 10, justifyContent: 'flex-end',
-                           flexWrap: 'wrap' }}
+                  /*
+                   * **눈금 하나로 이어 붙인다.**
+                   *
+                   * 처음에는 알약 다섯 개를 나란히 뒀다. 그런데 이 화면에는 이미
+                   * 알약이 많다 — 재료 칩, 읽어 주기 버튼, 배속 버튼. 거기에
+                   * 똑같이 생긴 것을 다섯 개 더 얹으니 **어느 것이 무리인지**
+                   * 눈에 안 들어왔다.
+                   *
+                   * 하나로 이어 붙이면 "이 다섯은 한 벌이고 그중 하나를 고른다" 가
+                   * 모양만으로 읽힌다. 칸마다 아래에 둔 막대는 왼쪽에서
+                   * 오른쪽으로 길어진다 — 숫자를 읽기 전에 **어느 쪽이 빠른지**
+                   * 부터 보인다.
+                   */
+                  style={{
+                    display: 'flex',
+                    width: 'fit-content',
+                    maxWidth: '100%',
+                    marginLeft: 'auto',
+                    marginBottom: 10,
+                    border: '1px solid var(--line-300)',
+                    borderRadius: 10,
+                    overflow: 'hidden',
+                    background: 'var(--surface)',
+                  }}
                 >
-                  {SPEEDS.map(v => {
+                  {SPEEDS.map((v, i) => {
                     const on = v === speed;
                     return (
                       <button
@@ -315,15 +337,30 @@ const CookModeSheet: React.FC<Props> = ({
                         aria-pressed={on}
                         onClick={() => pickSpeed(v)}
                         style={{
-                          height: 32, minWidth: 52, padding: '0 10px', borderRadius: 9999,
-                          border: `1px solid ${on ? '#1A1A1E' : 'var(--line-300)'}`,
-                          background: on ? '#1A1A1E' : 'var(--surface)',
+                          minWidth: 56, height: 42, padding: '0 8px',
+                          border: 'none',
+                          borderLeft: i === 0 ? 'none' : '1px solid var(--line-200)',
+                          background: on ? '#1A1A1E' : 'transparent',
                           color: on ? '#FFFFFF' : 'var(--ink-700)',
-                          fontSize: 13, fontWeight: on ? 700 : 500, cursor: 'pointer',
+                          fontSize: 12.5, fontWeight: on ? 700 : 500, cursor: 'pointer',
                           fontVariantNumeric: 'tabular-nums',
+                          display: 'flex', flexDirection: 'column',
+                          alignItems: 'center', justifyContent: 'center', gap: 4,
                         }}
                       >
-                        {v}×
+                        <span>{v}×</span>
+                        {/* 빠를수록 길어지는 막대. 고른 칸에서는 재생 버튼과 같은
+                            노랑이라 "지금 이 속도" 가 멀리서도 보인다. */}
+                        <span
+                          aria-hidden
+                          style={{
+                            display: 'block',
+                            width: 8 + i * 5,
+                            height: 3,
+                            borderRadius: 2,
+                            background: on ? '#FFD600' : 'var(--ink-300)',
+                          }}
+                        />
                       </button>
                     );
                   })}
