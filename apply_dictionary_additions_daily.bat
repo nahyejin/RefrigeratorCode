@@ -26,6 +26,7 @@ REM  하는 일:
 REM   1) DB 승인분을 CSV 에 반영
 REM   2) 백엔드 사본(backend/...csv)까지 맞춤
 REM   2.5) 대체 재료 표를 다시 만듦 (새 재료의 "대체 가능" 이 여기서 생긴다)
+REM   2.9) 재료 역색인 갱신 (냉장고요리 매칭률이 이걸 보고 돈다)
 REM   3) 바뀐 게 없으면 종료
 REM   4) 사전이 정상으로 읽히는지 확인  <- 실패하면 되돌리고 멈춘다
 REM   5) 사전 CSV 두 개만 커밋하고 푸시
@@ -89,6 +90,25 @@ REM    새로 들어온 `성게알`·`부챗살` 같은 것을 「특별한 날�
 REM    **빈도 상한 1%** · 최소 등장 5회 · LLM 판정 세 가지로 거른다.
 REM    한 번 물어본 이름은 다시 안 묻는다 — 호출은 하루 10회까지다.
 %PY% -u scripts\propose_premium_ingredients.py --write >> %LOG% 2>&1
+
+REM 2.9) **재료 역색인**을 갱신한다.
+REM    냉장고요리의 매칭률은 `recipe_ingredient(재료, 레시피, 가중치)` 를 보고
+REM    구한다 — 재료 하나가 한 줄이라 "이 재료가 든 레시피" 를 인덱스로 바로
+REM    찾는다. 이게 없으면 서버는 레시피 42,000건 하나하나에 REGEXP + REPLACE
+REM    사슬을 돌리는 예전 방식으로 되돌아간다 (실측 2.0초 -> 0.6초).
+REM
+REM    새로 들어온 레시피는 색인에 없으므로 **매일** 붙여 줘야 한다. 앞의
+REM    05:00 재료 추출이 끝난 뒤라 그날 것까지 들어온다. 대개 몇 초면 끝난다.
+REM
+REM    일요일에는 처음부터 다시 만든다. 사전이 바뀌어 이미 색인된 레시피의
+REM    재료 이름이 달라지는 경우가 있는데, 증분으로는 그걸 못 잡는다.
+REM    (요일 판정을 %date% 로 하면 지역 설정에 따라 글자가 달라져 파이썬에 맡긴다)
+%PY% -c "import datetime,sys; sys.exit(0 if datetime.date.today().weekday()==6 else 1)"
+if errorlevel 1 (
+  %PY% -u scripts\build_ingredient_index.py --write --new >> %LOG% 2>&1
+) else (
+  %PY% -u scripts\build_ingredient_index.py --write >> %LOG% 2>&1
+)
 
 REM 3) 바뀐 게 없으면 여기서 끝 (매일 도는데 대부분은 바뀔 게 없다)
 git diff --quiet -- %CSVS%
