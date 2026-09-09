@@ -4,6 +4,7 @@ import { applyUsage, refreshUsage, spendOptimistically, usageHeaders } from '../
 import { UsageLine, useUsage } from './UsageMeter';
 import BackButton from './ui/BackButton';
 import { useLocation, useNavigate } from 'react-router-dom';
+import StepLoading from './StepLoading';
 import { getProxiedImageUrl } from '../utils/imageUtils';
 import CloseButton from './ui/CloseButton';
 
@@ -764,9 +765,25 @@ const RecipeChatWidget: React.FC = () => {
               ))}
 
               {loading && (
-                <p className="text-xs text-gray-400">
-                  레시피를 찾고 있어요…
-                </p>
+                /* **기다림은 앱 안에서 한 모양이어야 한다.**
+                   AI 식단·사진 인식이 쓰는 `StepLoading` 을 그대로 쓴다.
+                   점 세 개짜리 한 줄이었는데, 챗봇이 이제 LLM 을 두 번 부르므로
+                   (검색어 뽑기 → 후보 중에서 고르기) 그만큼 더 기다린다.
+                   무슨 일이 일어나는 중인지 보이지 않으면 멈춘 것처럼 읽힌다. */
+                <div style={{ background: 'var(--surface)', border: '1px solid var(--line-200)',
+                              borderRadius: 14, padding: '4px 14px 14px' }}>
+                  <StepLoading
+                    steps={[
+                      '질문을 이해하는 중이에요',
+                      '냉장고 재료로 만들 수 있는 걸 찾는 중이에요',
+                      '질문에 맞는 것만 고르는 중이에요',
+                      '고른 이유를 정리하는 중이에요',
+                    ]}
+                    timings={[700, 2000, 4000, 7000]}
+                    note="보통 3~8초쯤 걸려요."
+                    rows={3}
+                  />
+                </div>
               )}
               {error && !loading && (
                 <p className="text-xs text-red-500">
