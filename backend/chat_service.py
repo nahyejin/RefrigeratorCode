@@ -98,6 +98,23 @@ _BROAD_FRIDGE_RE = re.compile(
 )
 
 
+# **일주일치를 짜 달라는 말.**
+#
+# 챗봇은 요일별로 짜 주지 않는다 — 맞는 레시피를 골라 늘어놓을 뿐이다.
+# 요일에 나눠 담고 장보기 목록까지 만드는 것은 AI 식단(`/plan?ai=1`) 이 한다.
+# 그런데 사용자는 챗봇에 그걸 묻는다. 말로만 "식단 화면이 따로 있어요" 라고
+# 하면 그 화면을 다시 찾아 헤매므로, **바로 데려가는 버튼**을 붙인다.
+_MEAL_PLAN_RE = re.compile(
+    r'일\s*주일|한\s*주|주간|이번\s*주|다음\s*주|[3-9]일\s*(치|동안|분)|일주일치'
+    r'|식단|밥상\s*계획|메뉴\s*계획|장보기\s*목록|장볼|한\s*주\s*치'
+)
+
+
+def _wants_meal_plan(text):
+    """일주일치·식단을 짜 달라는 말인가."""
+    return bool(_MEAL_PLAN_RE.search(text or ''))
+
+
 def _is_broad_fridge_request(text):
     if not text:
         return False
@@ -1144,6 +1161,21 @@ def handle_chat(get_db):
         # LLM 경로: LLM이 검색 전에 쓴 답변 뒤에, 검색이 끝난 지금 알 수 있는
         # "실제로 뭘 근거로 골랐는지 · 어떻게 정렬했는지"를 서버가 덧붙인다.
         parsed['reply'] = parsed['reply'].rstrip() + f'\n\n가지고 계신 재료 중 {matched_phrase} 골랐고, 매칭률 높은 순으로 정렬했어요.'
+
+    # ── 일주일치를 물었으면 **AI 식단으로 가는 버튼**을 붙인다 ──────
+    #
+    # 챗봇은 요일별로 짜 주지 않는다. 맞는 레시피를 골라 늘어놓을 뿐이라,
+    # "일주일 동안 먹을 것" 이라고 물으면 추천은 되지만 **요일에 나눠 담고
+    # 장보기 목록을 만드는 일은 안 된다.** 그건 AI 식단이 한다.
+    #
+    # 추천을 지우지는 않는다 — 물어본 것에는 답한 것이므로 그대로 두고,
+    # 그 아래에 갈 곳을 붙인다. 앱 사용법 답변이 이미 버튼을 달았으면 건드리지
+    # 않는다(그쪽이 더 구체적인 안내다).
+    if _wants_meal_plan(last_user) and not parsed.get('action'):
+        parsed['action'] = {'path': '/plan?ai=1', 'label': 'AI 로 일주일 식단 짜기'}
+        parsed['reply'] = parsed['reply'].rstrip() + (
+            '\n\n요일별로 나눠 담고 장보기 목록까지 만들려면 «AI 식단» 이 더 잘해요.'
+        )
 
     allowed_links = {r['link'] for r in recipes}
     parsed['reply'] = re.sub(
