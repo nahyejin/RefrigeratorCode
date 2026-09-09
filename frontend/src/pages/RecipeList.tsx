@@ -678,12 +678,17 @@ function shareFirstPage(
       && Date.now() - inflightFirstPage.at < INFLIGHT_FRESH_MS) {
     return inflightFirstPage.promise;
   }
+  // **점은 이 요청을 따라간다.** 화면에 묶어 두면 탭을 옮기는 순간 꺼지는데,
+  // 요청은 화면 밖에서 계속 돌고 있어서 거짓말이 된다.
+  setFridgeScreenLoading(true);
   const promise = start();
   inflightFirstPage = { key, at: Date.now(), promise };
-  // 실패한 것을 물고 있으면 다시 시도할 수 없다.
-  promise.catch(() => {
-    if (inflightFirstPage && inflightFirstPage.promise === promise) inflightFirstPage = null;
-  });
+  promise
+    .catch(() => {
+      // 실패한 것을 물고 있으면 다시 시도할 수 없다.
+      if (inflightFirstPage && inflightFirstPage.promise === promise) inflightFirstPage = null;
+    })
+    .finally(() => setFridgeScreenLoading(false));
   return promise;
 }
 
@@ -1610,17 +1615,14 @@ const RecipeList: React.FC = () => {
     });
   }, [selectedChannel, includeKeyword, includeIngredients, excludeIngredients, selectedCategoryKeywords, matchRange, appliedExpiryIngredients, sortType]);
 
-  /**
-   * 이 화면이 받는 중이라는 걸 **밖에도 알린다.**
+  /*
+   * 점은 여기서 켜고 끄지 않는다.
    *
-   * 하단 탭의 점이 「미리 받는 중」만 보고 있었더니, 미리 받아 둔 것을 못 쓰는
-   * 경우(조건이 다르면 버린다) 점은 꺼졌는데 들어오면 처음부터 다시 받았다.
-   * 다 됐다고 해 놓고 안 된 셈이라, 화면 쪽 상태도 같이 넘긴다.
+   * 예전에는 이 화면의 `loading` 을 그대로 넘기고, 화면이 사라질 때 껐다.
+   * 그런데 요청은 화면 밖(`shareFirstPage`)에서 계속 도는 터라 **탭을 옮기는
+   * 순간 점만 꺼지고 실제로는 아직 받는 중**이었다. 그래서 점을 요청 쪽에
+   * 묶었다 — 화면이 사라져도 요청이 살아 있으면 점도 살아 있다.
    */
-  useEffect(() => {
-    setFridgeScreenLoading(loading);
-    return () => setFridgeScreenLoading(false);
-  }, [loading]);
 
   // `cachedFilteredRecipes` 의 길이를 ref 로도 들고 있는다.
   // 아래 필터 effect 가 이 길이를 보는데, **상태로 보면 자기가 캐시를 비우는
