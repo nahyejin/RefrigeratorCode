@@ -650,6 +650,48 @@ async function loadRecipesPaged(
   }
 }
 
+/**
+ * **화면 밖에 두는 첫 페이지 요청.**
+ *
+ * 탭을 옮기면 이 화면은 사라진다. 그때 날아가던 요청의 결과는 갈 곳이 없어
+ * 버려지고, 돌아오면 처음부터 다시 받았다 — "그동안 준비해 둘게요" 가
+ * 거짓말이 됐다.
+ *
+ * React Router 는 화면만 갈아 끼우고 앱은 계속 살아 있다. 모듈에 걸어 둔
+ * 약속은 탭을 옮겨도 그대로 흐르므로, 돌아왔을 때 **같은 조건이면 그 약속에
+ * 다시 붙는다.** 받는 중이면 이어서 기다리고, 이미 끝났으면 그 결과를 쓴다.
+ *
+ * 오래된 것은 안 쓴다. 그 사이 크롤링이 돌았을 수도 있고, 무엇보다 사용자가
+ * "새로 본다" 고 느끼는 시간이 있다.
+ */
+const INFLIGHT_FRESH_MS = 90 * 1000;
+let inflightFirstPage:
+  | { key: string; at: number; promise: Promise<{ recipes: any[]; total: number }> }
+  | null = null;
+
+/** 같은 조건으로 받는 중이거나 방금 받아 둔 것이 있으면 그 약속을 준다. */
+function shareFirstPage(
+  key: string,
+  start: () => Promise<{ recipes: any[]; total: number }>
+): Promise<{ recipes: any[]; total: number }> {
+  if (inflightFirstPage && inflightFirstPage.key === key
+      && Date.now() - inflightFirstPage.at < INFLIGHT_FRESH_MS) {
+    return inflightFirstPage.promise;
+  }
+  const promise = start();
+  inflightFirstPage = { key, at: Date.now(), promise };
+  // 실패한 것을 물고 있으면 다시 시도할 수 없다.
+  promise.catch(() => {
+    if (inflightFirstPage && inflightFirstPage.promise === promise) inflightFirstPage = null;
+  });
+  return promise;
+}
+
+/** 냉장고를 고쳤거나 결과를 버려야 할 때 */
+export function dropInflightRecipeList(): void {
+  inflightFirstPage = null;
+}
+
 // =====================
 // 메인 컴포넌트
 // =====================
@@ -920,6 +962,7 @@ const RecipeList: React.FC = () => {
           setFilteredRecipes([]);
           setLastFilterHash('');
           initialLoadDone.current = false;
+          dropInflightRecipeList();   // 재료가 바뀌면 받아 둔 것은 못 쓴다
           
           // sessionStorage 초기화
           sessionStorage.removeItem(STORAGE_KEY_RECIPE_LIST);
@@ -1707,7 +1750,12 @@ const RecipeList: React.FC = () => {
     lastFilterParamsRef.current = filterParams;
 
     // 1페이지만 먼저 로드
-    loadRecipesPaged(1, PAGE_SIZE, filterParams, categoryKeywordTree).then(({recipes: firstPageRecipes, total: initialTotal}) => {
+    // **같은 조건이면 이미 날아간 요청에 붙는다.** 탭을 옮겼다 돌아왔을 때
+    // 처음부터 다시 받지 않게 한다.
+    shareFirstPage(
+      filterHash,
+      () => loadRecipesPaged(1, PAGE_SIZE, filterParams, categoryKeywordTree)
+    ).then(({recipes: firstPageRecipes, total: initialTotal}) => {
       // **늦게 온 옛 응답은 버린다.** 조건을 빠르게 두 번 바꾸면 먼저 보낸 것이
       // 나중에 도착해 화면을 되돌려 놓는다.
       if (mySeq !== requestSeqRef.current) return;
@@ -1886,6 +1934,7 @@ const RecipeList: React.FC = () => {
           setFilteredRecipes([]);
           setLastFilterHash('');
           initialLoadDone.current = false;
+          dropInflightRecipeList();   // 재료가 바뀌면 받아 둔 것은 못 쓴다
           
           // sessionStorage 초기화
           sessionStorage.removeItem(STORAGE_KEY_RECIPE_LIST);
@@ -1911,6 +1960,7 @@ const RecipeList: React.FC = () => {
           setFilteredRecipes([]);
           setLastFilterHash('');
           initialLoadDone.current = false;
+          dropInflightRecipeList();   // 재료가 바뀌면 받아 둔 것은 못 쓴다
           
           sessionStorage.removeItem(STORAGE_KEY_RECIPE_LIST);
           sessionStorage.setItem(STORAGE_KEY_INGREDIENTS_HASH, currentIngredientsHash);
