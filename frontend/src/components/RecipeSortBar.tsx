@@ -165,6 +165,14 @@ const STYLES = {
     color: '#9A9AA2',
     marginLeft: 'auto'
   },
+  /** 버튼 밑에 붙는 조건 요약. 라벨보다 작고 옅게 — 읽히되 앞서지 않게. */
+  buttonNote: {
+    fontSize: 10,
+    fontWeight: 600 as const,
+    lineHeight: '11px',
+    color: '#6A6A73',
+    marginTop: 1,
+  },
   filterButton: {
     height: 40,
     border: 'none',
@@ -531,6 +539,40 @@ const RecipeSortBar = ({
   // 계산해 저장하므로(MyFridge.tsx), 구매일이 있는 재료는 결국 이 목록에도 다
   // 들어온다 — 사실상 같은 걸 두 가지 기준으로 보여주기만 했다. 탭을 없애고
   // 이 하나로 통합한다.
+  /**
+   * **팝업을 열지 않아도 지금 뭐가 걸려 있는지 보이게** 한다.
+   *
+   * 세 버튼(매칭도·임박 재료·필터)은 눌러서 팝업을 띄워야만 현재 조건을 알 수
+   * 있었다. 목록이 왜 이만큼만 나오는지 모른 채 "결과가 없네" 하고 넘어가게 된다.
+   *
+   * 숫자로 셀 수 있는 것은 개수를, 매칭도처럼 범위인 것은 값 자체를 버튼 밑에
+   * 작게 적는다. 걸린 게 없으면 아무것도 안 적는다 — 늘 뭔가 쓰여 있으면
+   * 그게 다시 배경이 된다.
+   */
+  const matchSummary = useMemo(() => {
+    const parts: string[] = [];
+    const [lo, hi] = matchRange || [0, 100];
+    if (lo > 0 || hi < 100) parts.push(hi >= 100 ? `${lo}%↑` : `${lo}~${hi}%`);
+    if (maxLack !== 'unlimited') parts.push(`부족 ${maxLack}개`);
+    return parts.join(' · ');
+  }, [matchRange, maxLack]);
+
+  /** 필터 팝업이 잡고 있는 조건이 몇 개나 켜져 있나. */
+  const filterCount = useMemo(() => {
+    let n = 0;
+    if ((includeKeyword || '').trim()) n += 1;
+    n += (includeIngredients || []).length;
+    n += (excludeIngredients || []).length;
+    // 채널은 여러 개를 고를 수 있다. 하나라도 골랐으면 조건 하나로 센다 —
+    // "네이버·유튜브 둘 다" 를 조건 두 개로 세면 실제보다 부풀어 보인다.
+    if ((selectedChannel || []).length) n += 1;
+    Object.values(selectedCategoryKeywords || {}).forEach(v => {
+      if (Array.isArray(v)) n += v.length;
+    });
+    return n;
+  }, [includeKeyword, includeIngredients, excludeIngredients, selectedChannel,
+      selectedCategoryKeywords]);
+
   const expirySortedIngredientList = useMemo(() =>
     myFridgeIngredientList
       .filter(i => i.expiry || i.estimatedExpiry)
@@ -642,11 +684,17 @@ const RecipeSortBar = ({
               setTempMatchRange(matchRange); // 모달 열 때 현재 값을 임시 상태로 복사
               setMatchRateModalOpen(true);
             }}
-            aria-label="재료 매칭도 설정 모달 열기"
+            aria-label={`재료 매칭도 설정 모달 열기${matchSummary ? ` (지금: ${matchSummary})` : ''}`}
             data-guide-target="match-rate-button"
           >
-            <span aria-hidden="true" style={{ marginRight: 4 }}>%</span>
-            매칭도
+            <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'center',
+                           lineHeight: 1.05 }}>
+              <span>
+                <span aria-hidden="true" style={{ marginRight: 4 }}>%</span>
+                매칭도
+              </span>
+              {matchSummary && <span style={STYLES.buttonNote}>{matchSummary}</span>}
+            </span>
           </button>
           <button
             style={STYLES.button}
@@ -654,7 +702,8 @@ const RecipeSortBar = ({
               setSelectedExpiryIngredients(appliedExpiryIngredients);
               setExpiryModalOpen(true);
             }}
-            aria-label="임박 재료 설정 모달 열기"
+            aria-label={`임박 재료 설정 모달 열기${
+              appliedExpiryIngredients.length ? ` (지금 ${appliedExpiryIngredients.length}개)` : ''}`}
             data-guide-target="expiry-button"
           >
             {/* 이모지(⏱)는 알록달록해서 검정 테두리로 통일된 다른 아이콘들 사이에서
@@ -671,7 +720,13 @@ const RecipeSortBar = ({
               <path d="M12 9v4l3 2" stroke="#1A1A1E" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
               <path d="M9 2h6" stroke="#1A1A1E" strokeWidth="1.8" strokeLinecap="round" />
             </svg>
-            임박 재료
+            <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'center',
+                           lineHeight: 1.05 }}>
+              <span>임박 재료</span>
+              {appliedExpiryIngredients.length > 0 && (
+                <span style={STYLES.buttonNote}>{appliedExpiryIngredients.length}개</span>
+              )}
+            </span>
           </button>
           <div style={{
             ...STYLES.selectContainer,
@@ -806,13 +861,27 @@ const RecipeSortBar = ({
         <button
           style={STYLES.filterButton}
           onClick={() => setFilterModalOpen(true)}
-          aria-label="필터 모달 열기"
+          aria-label={`필터 모달 열기${filterCount ? ` (조건 ${filterCount}개)` : ''}`}
           data-guide-target="filter-button"
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path d="M3 5h18M6 12h12M10 19h4" stroke="#FFFFFF" strokeWidth="2.2" strokeLinecap="round" />
           </svg>
           필터
+          {/* 어두운 알약이라 밑에 작은 글씨를 붙이면 안 읽힌다. 숫자를 옆에
+              배지로 붙인다 — 몇 개가 걸려 있는지만 알면 된다. */}
+          {filterCount > 0 && (
+            <span
+              style={{
+                minWidth: 17, height: 17, padding: '0 4px', borderRadius: 9999,
+                background: '#FFD600', color: '#1A1A1E',
+                fontSize: 10.5, fontWeight: 800, lineHeight: '17px',
+                textAlign: 'center', boxSizing: 'border-box',
+              }}
+            >
+              {filterCount}
+            </span>
+          )}
         </button>
       </div>
       {/* 매칭률 설정 모달 */}
