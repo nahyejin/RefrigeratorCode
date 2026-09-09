@@ -162,7 +162,13 @@ class NaverInfluencerCrawler:
     def _connect_db(self):
         """DB 연결"""
         try:
-            return pymysql.connect(**self.db_config)
+            return pymysql.connect(**self.db_config,
+        # 서버 시계가 UTC 라 세션 타임존을 KST 로 고정한다(backend/app.py 와 동일).
+        # 이걸 빠뜨리면 이 파일이 쓰는 NOW() 만 9시간 느리게 찍힌다 — 실제로
+        # `llm_ingredients_at` 이 UTC 로 남아, 새벽 5시 배치가 DB 에는 전날
+        # 저녁 8시로 보였다.
+        init_command="SET time_zone = '+09:00'",
+    )
         except Exception as e:
             logger.error(f"Database connection failed: {str(e)}")
             return None
@@ -1190,7 +1196,12 @@ class NaverInfluencerCrawler:
             db=os.getenv('DB_NAME') or os.getenv('MYSQLDATABASE') or os.getenv('MYSQL_DATABASE') or 'railway',
             port=int(os.getenv('DB_PORT') or os.getenv('MYSQLPORT') or os.getenv('MYSQL_PORT') or 47779),
             charset='utf8mb4',
-            cursorclass=pymysql.cursors.DictCursor
+            cursorclass=pymysql.cursors.DictCursor,
+            # 서버 시계가 UTC 라 세션 타임존을 KST 로 고정한다(backend/app.py 와 동일).
+            # 이걸 빠뜨리면 이 파일이 쓰는 NOW() 만 9시간 느리게 찍힌다 — 실제로
+            # `llm_ingredients_at` 이 UTC 로 남아, 새벽 5시 배치가 DB 에는 전날
+            # 저녁 8시로 보였다.
+            init_command="SET time_zone = '+09:00'",
         )
 
         try:

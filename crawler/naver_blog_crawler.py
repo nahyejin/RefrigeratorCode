@@ -494,7 +494,12 @@ class NaverBlogCrawler(BaseCrawler):
             db=os.getenv('DB_NAME') or os.getenv('MYSQLDATABASE') or os.getenv('MYSQL_DATABASE') or 'railway',
             port=int(os.getenv('DB_PORT') or os.getenv('MYSQLPORT') or os.getenv('MYSQL_PORT') or 47779),
             charset='utf8mb4',
-            cursorclass=pymysql.cursors.DictCursor
+            cursorclass=pymysql.cursors.DictCursor,
+            # 서버 시계가 UTC 라 세션 타임존을 KST 로 고정한다(backend/app.py 와 동일).
+            # 이걸 빠뜨리면 이 파일이 쓰는 NOW() 만 9시간 느리게 찍힌다 — 실제로
+            # `llm_ingredients_at` 이 UTC 로 남아, 새벽 5시 배치가 DB 에는 전날
+            # 저녁 8시로 보였다.
+            init_command="SET time_zone = '+09:00'",
         )
         self.cursor = conn.cursor()
     
@@ -624,8 +629,22 @@ class NaverBlogCrawler(BaseCrawler):
                 if not link:
                     continue
                 print(f"[진행상황] {page}페이지의 {idx}/{len(posts)} 번째 포스트 처리 중... ({post_progress:.1f}% 완료)")
+                # **이미 가진 글은 열지 않는다.**
+                #
+                # 중복 확인은 `save_to_database()` 안에만 있었다. 그러니까 이미
+                # 있는 글도 **열고 · 기다리고 · 본문을 파싱한 뒤에야** 버려졌다.
+                # 실측(2026-09-09 밤): 글 1,000건을 열어 그중 530건이 이미 있는
+                # 글이었다 — 47.8분 중 절반이 가진 것을 다시 여는 데 쓰였다.
+                #
+                # 여기서 쓰는 `link` 는 목록 페이지의 href 이고, 저장할 때도 그
+                # 값을 그대로 넣는다(`Recipe(link=link)`). 그래서 열기 전에
+                # 물어봐도 답이 같다.
+                if self._already_collected(link):
+                    print(f"⏭️ 이미 있는 글 — 열지 않고 건너뜀: {link}")
+                    continue
+
                 print(f"[진행상황] 블로그 원문 접근: {link}")
-                
+
                 # 페이지 로딩 재시도 로직
                 max_retries = 3
                 retry_count = 0
@@ -942,6 +961,21 @@ class NaverBlogCrawler(BaseCrawler):
         except:
             return ""
     
+    def _already_collected(self, link: str) -> bool:
+        """이 글이 이미 DB 에 있나.
+
+        **열기 전에** 물어보려고 따로 뺐다. 확인에 실패하면 `False` 를 돌려준다 —
+        모르면 여는 쪽이 안전하다(빠뜨리는 것보다 한 번 더 여는 편이 낫다).
+        """
+        if not link:
+            return False
+        try:
+            self.cursor.execute("SELECT 1 FROM recipes WHERE link = %s LIMIT 1", (link,))
+            return self.cursor.fetchone() is not None
+        except Exception as e:  # noqa: BLE001
+            print(f"⚠️ 중복 확인 실패(그냥 열어 봅니다): {e}")
+            return False
+
     def _get_thumbnail(self) -> str:
         """Get post thumbnail.
 
@@ -1065,11 +1099,11 @@ class NaverBlogCrawler(BaseCrawler):
             return
         
         # 먼저 중복 확인
-        check_query = "SELECT id FROM recipes WHERE link = %s LIMIT 1"
-        self.cursor.execute(check_query, (recipe.link,))
-        existing = self.cursor.fetchone()
-        
-        if existing:
+        #
+        # 목록에서 이미 걸렀지만(`_already_collected`) 여기도 남겨 둔다 —
+        # 목록을 거치지 않고 들어오는 길이 있고, 크롤링 도중에 다른 크롤러가
+        # 같은 글을 넣었을 수도 있다.
+        if self._already_collected(recipe.link):
             print(f"⏭️ 중복 데이터 건너뛰기: {recipe.link}")
             return
         
@@ -1264,7 +1298,12 @@ def delete_low_ingredient_entries(self):
         db=os.getenv('DB_NAME') or os.getenv('MYSQLDATABASE') or os.getenv('MYSQL_DATABASE') or 'railway',
         port=int(os.getenv('DB_PORT') or os.getenv('MYSQLPORT') or os.getenv('MYSQL_PORT') or 47779),
         charset='utf8mb4',
-        cursorclass=pymysql.cursors.DictCursor
+        cursorclass=pymysql.cursors.DictCursor,
+        # 서버 시계가 UTC 라 세션 타임존을 KST 로 고정한다(backend/app.py 와 동일).
+        # 이걸 빠뜨리면 이 파일이 쓰는 NOW() 만 9시간 느리게 찍힌다 — 실제로
+        # `llm_ingredients_at` 이 UTC 로 남아, 새벽 5시 배치가 DB 에는 전날
+        # 저녁 8시로 보였다.
+        init_command="SET time_zone = '+09:00'",
     )
 
     try:

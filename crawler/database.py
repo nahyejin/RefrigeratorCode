@@ -13,7 +13,12 @@ class Database:
             db='railway',
             port=3306,
             charset='utf8mb4',
-            cursorclass=pymysql.cursors.DictCursor
+            cursorclass=pymysql.cursors.DictCursor,
+            # 서버 시계가 UTC 라 세션 타임존을 KST 로 고정한다(backend/app.py 와 동일).
+            # 이걸 빠뜨리면 이 파일이 쓰는 NOW() 만 9시간 느리게 찍힌다 — 실제로
+            # `llm_ingredients_at` 이 UTC 로 남아, 새벽 5시 배치가 DB 에는 전날
+            # 저녁 8시로 보였다.
+            init_command="SET time_zone = '+09:00'",
         )
         self.cursor = self.conn.cursor()
         self.setup_database()
