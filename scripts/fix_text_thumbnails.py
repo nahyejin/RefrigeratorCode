@@ -47,7 +47,8 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.join(ROOT, "scripts"))
 from apply_dictionary_additions import load_env, db  # noqa: E402
-from crawler.common.thumbnail_pick import is_wide_strip, pick_from_tags  # noqa: E402
+from crawler.common.thumbnail_pick import (  # noqa: E402
+    is_sponsor_widget, is_wide_strip, pick_from_tags)
 
 UA = {"User-Agent": "Mozilla/5.0", "Referer": "https://blog.naver.com/"}
 HEAD_BYTES = 3071
@@ -117,8 +118,17 @@ def main():
 
     conn = db()
     cur = conn.cursor()
+    # **네이버 CDN 만 보면 안 된다.**
+    #
+    # 처음에는 `thumbnail LIKE '%%pstatic%%'` 로 좁혀 놨었다. 그런데 체험단
+    # 글은 위젯 이미지를 본문에 심고, 그 이미지는 `revu.net`·`cloudreview.co.kr`
+    # 같은 **남의 호스트**에 있다. 그래서 12%(5,018건)를 아예 안 봤고,
+    # 「협찬을 통해 작성」 배지가 그대로 카드에 남아 있었다.
+    #
+    # 유튜브 썸네일(`ytimg`)은 영상 대표 이미지라 손댈 이유가 없다.
     sql = ("SELECT id, link, thumbnail FROM recipes "
-           "WHERE llm_ingredients_at IS NOT NULL AND thumbnail LIKE '%%pstatic%%' "
+           "WHERE llm_ingredients_at IS NOT NULL AND thumbnail <> '' "
+           "AND thumbnail NOT LIKE '%%ytimg%%' "
            "ORDER BY id")
     if args.limit:
         sql += " LIMIT %d" % args.limit
@@ -141,7 +151,14 @@ def main():
         sized = list(ex.map(size_of, rows))
 
     unknown = [r for r, s in sized if not s]
-    suspect = [(r, s) for r, s in sized if s and is_wide_strip(s[0], s[1])]
+    # 다시 볼 것: **체험단 위젯 이미지** 와 **가로로 긴 띠**.
+    #
+    # `too_small_for_photo` 는 여기서 쓰면 안 된다 — 옛 썸네일은 80px 로 줄여
+    # 저장돼 있어서 멀쩡한 음식 사진까지 전부 걸린다. 그 규칙은 크롤러가
+    # **본문에서 읽은 원본 크기**에만 쓴다.
+    suspect = [(r, s) for r, s in sized
+               if is_sponsor_widget(r["thumbnail"])
+               or (s and is_wide_strip(s[0], s[1]))]
     print("\n크기를 못 잰 것 %d건" % len(unknown))
     print("띠로 보이는 것 %d건 (%.2f%%)"
           % (len(suspect), len(suspect) / max(1, len(rows)) * 100), flush=True)

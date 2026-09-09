@@ -54,6 +54,38 @@ except Exception:  # noqa: BLE001
 
 # 가로가 세로의 이 배를 넘으면 띠 배너로 본다.
 BANNER_RATIO = 2.5
+# 이보다 작으면 음식 사진이 아니다. 체험단 배지가 100x51, 84x42 로 온다.
+MIN_PHOTO_WIDTH = 200
+
+# **체험단·리뷰 위젯이 사는 곳.**
+#
+# 이 호스트들이 주는 이미지는 예외 없이 「이 글은 ~를 제공받아 작성했습니다」
+# 배지다. 음식 사진은 여기서 오지 않는다 — 블로그 본문 이미지는 네이버 CDN
+# (`pstatic.net`) 에 있고, 유튜브 썸네일은 `ytimg.com` 에 있다.
+#
+# 비율만으로는 다 못 잡는다: `reviewnote` 는 100x51(비율 1.96), `revu` 는
+# 84x42(2.0) 로 와서 띠 기준(2.5)에 안 걸린다. 그런데 100px 짜리가 음식
+# 사진일 리는 없다. 그래서 **호스트로 잘라 낸다** — 훨씬 정확하다.
+# (실측: 네이버·유튜브가 아닌 썸네일 452건이 전부 이런 호스트였다)
+SPONSOR_WIDGET_HOSTS = (
+    "revu.net",
+    "cloudreview.co.kr",
+    "reviewnote.co.kr",
+    "reviewnote.cloud",
+    "reviewplace.co.kr",
+    "nugunablog.co.kr",
+    "meta-chehumdan.com",
+    "seoulouba.co.kr",
+    "stylec.co.kr",
+    "tble.kr",
+    "pao-traking-system.vercel.app",
+)
+
+
+def is_sponsor_widget(url):
+    """체험단·리뷰 위젯이 주는 이미지인가. 그런 것은 썸네일이 될 수 없다."""
+    low = str(url or "").lower()
+    return any(h in low for h in SPONSOR_WIDGET_HOSTS)
 # 이보다 납작하면(픽셀) 사진으로 안 본다.
 MIN_HEIGHT = 200
 # 「다시 볼 것」을 추리는 기준. 자르는 기준이 아니라 **넓게 잡는다** —
@@ -97,6 +129,14 @@ def looks_like_banner(width, height):
     if not w or not h:
         return False
     return h < MIN_HEIGHT or (w / h) >= BANNER_RATIO
+
+
+def too_small_for_photo(width, height):
+    """음식 사진이라기엔 너무 작은가. 체험단 배지가 이 크기로 온다."""
+    w, h = _int(width), _int(height)
+    if not w or not h:
+        return False
+    return w < MIN_PHOTO_WIDTH
 
 
 def _small(url):
@@ -183,6 +223,9 @@ def pick_from_tags(img_tags, measure_missing=True):
         return ""
 
     for src, w, h in cands:
+        # 체험단 위젯 이미지는 크기를 볼 것도 없다.
+        if is_sponsor_widget(src):
+            continue
         if not _int(w) or not _int(h):
             if not measure_missing:
                 return src          # 모르면 예전처럼 그냥 쓴다
@@ -190,6 +233,9 @@ def pick_from_tags(img_tags, measure_missing=True):
             if not size:
                 return src
             w, h = size
-        if not looks_like_banner(w, h):
+        if not looks_like_banner(w, h) and not too_small_for_photo(w, h):
             return src
-    return cands[0][0]
+    # 고를 것이 없다. 체험단 배지만은 돌려주지 않는다 — 그걸 쓰느니 썸네일이
+    # 없는 편이 낫다(화면은 빈 자리를 이미 다룰 줄 안다).
+    first = cands[0][0]
+    return "" if is_sponsor_widget(first) else first
