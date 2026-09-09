@@ -109,6 +109,7 @@ def hide_chrome_windows(driver=None):
 
 # Add the parent directory to Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from crawler.common.thumbnail_pick import pick_from_tags
 from ingredient_management.update_used_ingredients_batch import extract_best_ingredient_block, extract_ingredients
 
 # 로깅 설정
@@ -687,12 +688,13 @@ class NaverInfluencerCrawler:
             # 썸네일 (본문 첫 번째 이미지)
             thumbnail = ''
             try:
+                # 첫 이미지를 그냥 쓰면 협찬 글에서 글자 띠가 카드에 뜬다.
+                # 크기만 보고 그런 띠를 건너뛴다 (thumbnail_pick 참고).
                 content_container = soup.select_one('div.se-main-container')
                 if content_container:
-                    img_element = content_container.select_one('img.se-image-resource')
-                    if img_element:
-                        thumbnail = img_element.get('src', '')
-                    else:
+                    thumbnail = pick_from_tags(
+                        content_container.select('img.se-image-resource'))
+                    if not thumbnail:
                         logger.warning(f"[NO THUMBNAIL IMG] {current_url}")
                 else:
                     logger.warning(f"[NO CONTENT CONTAINER FOR IMG] {current_url}")

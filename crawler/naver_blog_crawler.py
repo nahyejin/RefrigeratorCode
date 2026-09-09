@@ -31,6 +31,8 @@ except ImportError:
 from crawler.common.base_crawler import BaseCrawler
 from crawler.common.data_models import Recipe
 from crawler.common.constants import DB_CONFIG, NAVER_TARGETS, PLATFORM_NAVER
+from crawler.common.thumbnail_pick import (
+    pick_from_tags, looks_like_banner, MAX_CANDIDATES)
 from ingredient_management.update_used_ingredients_batch import extract_best_ingredient_block, extract_ingredients
 
 def hide_chrome_windows(driver=None):
@@ -941,13 +943,23 @@ class NaverBlogCrawler(BaseCrawler):
             return ""
     
     def _get_thumbnail(self) -> str:
-        """Get post thumbnail."""
+        """Get post thumbnail.
+
+        협찬 글 맨 위의 **글자 띠**를 건너뛴다. 위 `_process_blog_post_from_blog_page`
+        와 같은 규칙이다 — 가로로 길고 납작한 것은 음식 사진이 아니다.
+        (`crawler/common/thumbnail_pick.py`)
+        """
         try:
             # Try new editor format
             img_tags = self.driver.find_elements(By.CSS_SELECTOR, ".se-image-resource")
             if img_tags:
+                for el in img_tags[:MAX_CANDIDATES]:
+                    src = el.get_attribute("src")
+                    if src and not looks_like_banner(el.get_attribute("data-width"),
+                                                     el.get_attribute("data-height")):
+                        return src
                 return img_tags[0].get_attribute("src")
-            
+
             # Try old editor format
             img_tags = self.driver.find_elements(By.CSS_SELECTOR, ".post-view img")
             if img_tags:
@@ -1176,11 +1188,15 @@ class NaverBlogCrawler(BaseCrawler):
             # ---
 
             # 썸네일
+            #
+            # 첫 이미지를 그냥 쓰면 협찬 글에서 「이 포스팅은 ... 수수료를
+            # 제공받습니다」 같은 **글자 띠**가 카드에 뜬다. 그런 띠는 가로로
+            # 길고 납작해서(실제로 본 것: 322x69, 886x215) 태그에 붙어 있는
+            # 크기만 봐도 걸러진다 — 이미지를 받을 필요가 없다.
             thumbnail = ""
             if content_container:
-                img_element = content_container.select_one('img.se-image-resource')
-                if img_element:
-                    thumbnail = img_element.get('src', '')
+                thumbnail = pick_from_tags(
+                    content_container.select('img.se-image-resource'))
 
             # 좋아요
             likes = 0
