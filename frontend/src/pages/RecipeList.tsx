@@ -922,6 +922,9 @@ const RecipeList: React.FC = () => {
           setMatchRange(
             fridgeEmptyOnRestore ? [0, 100] : (src.matchRange || [30, 100])
           );
+          // 「부족해도 되는 재료」도 되살린다 — 저장은 하면서 되살리지를 않아
+          // 돌아올 때마다 「제한 없음」으로 풀려 있었다.
+          if (src.maxLack !== undefined) setMaxLack(src.maxLack);
           setSelectedChannel(src.selectedChannel || []);
           setIncludeKeyword(src.includeKeyword || '');
           setIncludeIngredients(src.includeIngredients || []);
@@ -976,6 +979,35 @@ const RecipeList: React.FC = () => {
           return; // 복원했으면 초기 재료 설정 스킵
         }
       } else {
+        // **결과 캐시가 없어도 고른 조건은 되살린다.**
+        //
+        // 조건은 고르는 즉시 따로 저장해 두는데(`STORAGE_KEY_RECIPE_SETTINGS`),
+        // 되살리는 코드가 **결과 캐시가 있을 때만** 도는 가지 안에 들어 있었다.
+        // 그래서 결과 저장이 없거나(첫 요청이 아직 안 끝났거나, 레시피를 통째로
+        // 담느라 sessionStorage 가 꽉 차 저장이 조용히 실패했거나) 하면,
+        // 조건이 멀쩡히 저장돼 있는데도 **전부 기본값으로 돌아갔다** —
+        // 탭을 두어 번 오가면 매칭도·임박재료·정렬·필터가 초기화되던 것이 이것이다.
+        //
+        // 되살리는 것은 조건뿐이다. 목록은 아래 필터 useEffect 가 이 조건으로
+        // 다시 받아 온다.
+        if (savedSettings) {
+          console.log('[RecipeList] 결과 캐시는 없지만 고른 조건은 되살립니다');
+          const fridgeEmpty = getMyIngredients().length === 0;
+          const s = savedSettings;
+          const wantSort = s.sortType || 'match';
+          setSortType(
+            fridgeEmpty && (wantSort === 'match' || wantSort === 'expiry') ? 'latest' : wantSort
+          );
+          setMatchRange(fridgeEmpty ? [0, 100] : (s.matchRange || [30, 100]));
+          if (s.maxLack !== undefined) setMaxLack(s.maxLack);
+          setSelectedChannel(s.selectedChannel || []);
+          setIncludeKeyword(s.includeKeyword || '');
+          setIncludeIngredients(s.includeIngredients || []);
+          setExcludeIngredients(s.excludeIngredients || []);
+          setSelectedCategoryKeywords(s.selectedCategoryKeywords || initialFilterState);
+          setAppliedExpiryIngredients(s.appliedExpiryIngredients || []);
+        }
+
         // 재료 목록이 변경되었거나 저장된 상태가 없으면 재료 해시 업데이트
         console.log('[RecipeList] 재료 목록이 변경되었거나 저장된 상태 없음 - 다시 로드 필요:', {
           savedHash: savedIngredientsHash,
@@ -1909,6 +1941,7 @@ const RecipeList: React.FC = () => {
           page,
           sortType,
           matchRange,
+          maxLack,
           lastFilterHash,
           selectedChannel,
           includeKeyword,
@@ -1925,7 +1958,7 @@ const RecipeList: React.FC = () => {
         console.warn('[RecipeList] 상태 저장 실패:', error);
       }
     }
-  }, [cachedFilteredRecipes, total, page, sortType, matchRange, lastFilterHash, selectedChannel, includeKeyword, includeIngredients, excludeIngredients, selectedCategoryKeywords, appliedExpiryIngredients, getIngredientsHash]);
+  }, [cachedFilteredRecipes, total, page, sortType, matchRange, maxLack, lastFilterHash, selectedChannel, includeKeyword, includeIngredients, excludeIngredients, selectedCategoryKeywords, appliedExpiryIngredients, getIngredientsHash]);
 
   // **고른 조건만** 결과를 기다리지 않고 바로 저장한다.
   //
@@ -1938,14 +1971,14 @@ const RecipeList: React.FC = () => {
     if (!initialLoadDone.current) return;   // 아직 첫 로드도 안 끝났으면 저장할 "고른 것"이 없다
     try {
       sessionStorage.setItem(STORAGE_KEY_RECIPE_SETTINGS, JSON.stringify({
-        sortType, matchRange, selectedChannel, includeKeyword,
+        sortType, matchRange, maxLack, selectedChannel, includeKeyword,
         includeIngredients, excludeIngredients, selectedCategoryKeywords,
         appliedExpiryIngredients, ingredientsHash: getIngredientsHash(),
       }));
     } catch (error) {
       console.warn('[RecipeList] 조건 저장 실패:', error);
     }
-  }, [sortType, matchRange, selectedChannel, includeKeyword, includeIngredients, excludeIngredients, selectedCategoryKeywords, appliedExpiryIngredients, getIngredientsHash]);
+  }, [sortType, matchRange, maxLack, selectedChannel, includeKeyword, includeIngredients, excludeIngredients, selectedCategoryKeywords, appliedExpiryIngredients, getIngredientsHash]);
 
   // 재료 목록 변경 감지 및 처리 (localStorage 변경 이벤트 감지)
   useEffect(() => {
