@@ -10313,3 +10313,12 @@ AI 식단·사진 인식이 쓰는 `StepLoading` 을 그대로 쓴다. 기다림
 - `scripts/cleanup_orphaned_user_recipes.py` 신설 — 존재하지 않는 `recipe_id` 를 가리키는 행을 지운다(미리보기 기본, `--write` 로 실제 삭제). 현재 쌓여 있던 17건(즐겨찾기 2·기록 7·완료 8) 정리 완료
 - `llm_ingredient_extraction.py`(배치 삭제 뒤), `scripts/cleanup_old_recipes.py`(대화형 정리), `scripts/delete_single_ingredient_recipes.py`(1개짜리 재료 정리) 세 곳에 정리 로직을 연결해 앞으로도 레시피가 지워지면 같이 지워지게 함. 당일 수집분을 지우는 크롤러 3곳은 수집 당일 삭제라 사용자 행동이 쌓일 시간이 없어 연결하지 않음
 
+## 2026-09-10
+
+### 인스타 릴스용 쿡매치 소개 티저 영상 (Remotion) 신설
+- 앱 코드와는 별도로, 저장소 루트에 `my-video/` Remotion 프로젝트를 새로 만들어 인스타그램 릴스 첫 업로드용 9:16 티저(9초, 1080x1920, 30fps)를 코드로 렌더링했다 — `쿡매치 AD_BRIEF.md` 의 씬 구성(훅 → 핵심 가치 → CTA)을 따름
+- 실제 사람 손·음성 촬영은 할 수 없어, 실사 POV 대신 **UI 재현 모션그래픽**으로 대체: 실제 앱 아이콘(`frontend/public/cookmatch_icon.png`)을 그대로 가져와 스플래시를 재현하고, 탭 리플·숫자 카운팅(0→44,610, 실측치)·매칭률 카드(92%, 재료 칩 색 구분)·스와이프업 CTA를 코드 애니메이션으로 연출. 오디오(BGM·나레이션)는 포함하지 않음 — 자막을 화면에 함께 태워 무음 재생에도 메시지가 전달되게 함
+- `.claude/launch.json` 에 `my-video` 프리뷰 서버(포트 3000) 설정 추가
+- Windows 환경에서 `remotion.config.ts` 의 `Config.setRspack(true)` 가 렌더 시 `ENOENT ... bundle.js` 로 실패시켜 기본 webpack 번들러로 되돌림
+- 결과물: `my-video/out/cookmatch_teaser.mp4` (git에는 커밋하지 않음 — `.gitignore` 의 `out/`)
+
