@@ -30,7 +30,8 @@ const TOTAL_RECIPES = 44610; // 지어낸 숫자 아님 — 쿡매치 AD_BRIEF.m
 
 // BGM: "Positive Acoustic Guitar with Soft Beat" by JorisVermeer (Pixabay, 무료 라이선스, 출처 표시 불필요)
 // https://pixabay.com/music/beats-positive-acoustic-guitar-with-soft-beat-526509/
-const BGM_VOLUME = 0.09;
+// 나레이션 없이 음악만 쓰는 컷이라 다른 소리와 경쟁할 일이 없음 — 잘 들리게 크게
+const BGM_VOLUME = 0.55;
 
 const useCustomFont = () => {
   const [handle] = useState(() => delayRender("커스텀 폰트 로드"));

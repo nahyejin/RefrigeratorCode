@@ -8,6 +8,7 @@
 import { Config } from "@remotion/cli/config";
 import { enableTailwind } from '@remotion/tailwind-v4';
 
-Config.setVideoImageFormat("jpeg");
+Config.setVideoImageFormat("png");
+Config.setCrf(16);
 Config.setOverwriteOutput(true);
 Config.overrideBundlerConfig(enableTailwind);
