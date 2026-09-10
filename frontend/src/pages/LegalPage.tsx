@@ -1,6 +1,7 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import BackButton from '../components/ui/BackButton';
+import { CONTACT } from '../components/ContactBox';
 
 /**
  * 개인정보처리방침 · 이용약관.
@@ -13,20 +14,49 @@ import BackButton from '../components/ui/BackButton';
  * 바깥 서비스, 실제로 도는 삭제 코드. 방침이 코드보다 후하게 적혀 있으면
  * 그건 지킬 수 없는 약속이 된다.
  *
- * ⚠️ **초안이다.** 사업자 정보(상호·대표·주소·연락처)와 시행일은 비워 뒀다.
+ * ⚠️ **운영자는 사업자가 아니라 개인이다.** 그래서 상호·사업자등록번호·
+ *    사업장 주소를 적지 않는다. 그 셋은 전자상거래법이 「통신판매업자」에게
+ *    요구하는 표시라, 돈을 받지 않는 동안은 해당하지 않는다.
+ *    개인정보처리방침은 개인이 운영해도 써야 하지만, 필수 기재 사항에
+ *    **주소는 없다** — 보호책임자의 이름과 연락처만 밝히면 된다.
+ *    집 주소를 올릴 이유가 없다는 뜻이다.
+ *
+ * ⚠️ **크레딧을 유료로 팔기 시작하는 순간** 이야기가 달라진다. 그때는
+ *    사업자등록과 통신판매업 신고가 필요하고, 위 표시 항목도 전부
+ *    채워 넣어야 한다. 청약철회·환불 조항도 그때 들어간다.
+ *
+ * ⚠️ **초안이다.** 시행일은 비워 뒀다.
  *    법률 검토 없이 그대로 쓰지 말 것 — 특히 「보관 기간」은 지금 코드가
  *    탈퇴 시 실제로 지우지 않는 상태(soft delete)라 그대로 적어 두었다.
  */
 
 const UPDATED_AT = '2026-09-10';
 
-/** 채워 넣어야 하는 자리. 비워 두면 화면에 그대로 드러나 잊지 않는다. */
+/**
+ * 채워 넣어야 하는 자리. 비워 두면 화면에 그대로 드러나 잃지 않는다.
+ *
+ * `name` 은 **실명**이어야 한다. 개인정보보호법은 개인정보 보호책임자의
+ * 성명과 연락처를 방침에 적게 하고, 혼자 운영하면 그 한 명이 그대로
+ * 보호책임자다. 닉네임으로 대신할 수 없다. 반면 **주소는 필수가 아니라**
+ * 칸을 아예 두지 않았다.
+ *
+ * 연락처는 마이페이지 문의 창구(`ContactBox`)와 **같은 값을 쓴다**. 따로
+ * 적어 두면 한쪽만 바뀌어 서로 다른 연락처가 된다.
+ */
 const OPERATOR = {
-  name: '(상호를 넣어 주세요)',
-  owner: '(대표자명)',
-  email: '(문의 이메일)',
-  address: '(사업장 주소)',
+  name: '(운영자 이름)',
+  instagram: CONTACT.instagram,
+  email: CONTACT.email,
 };
+
+/** 방침·약관 맨 아래 「연락처」 줄을 한 군데서 그린다. */
+const ContactLines: React.FC<{ label: string }> = ({ label }) => (
+  <>
+    <li style={S.li}>운영자: {OPERATOR.name} (개인)</li>
+    <li style={S.li}>{label}: 인스타그램 @{OPERATOR.instagram}</li>
+    {OPERATOR.email && <li style={S.li}>이메일: {OPERATOR.email}</li>}
+  </>
+);
 
 const S: Record<string, React.CSSProperties> = {
   // 위쪽 여백은 고정 헤더(56px) 때문이다 — 안 주면 탭이 헤더에 가려진다.
@@ -211,9 +241,7 @@ const Privacy: React.FC = () => (
     <h2 style={S.h2}>8. 연락처</h2>
     <ul style={S.ul}>
       <li style={S.li}>서비스명: 쿡매치 (CookMatch)</li>
-      <li style={S.li}>운영자: {OPERATOR.name} · {OPERATOR.owner}</li>
-      <li style={S.li}>주소: {OPERATOR.address}</li>
-      <li style={S.li}>개인정보 문의: {OPERATOR.email}</li>
+      <ContactLines label="개인정보 문의" />
     </ul>
     <p style={S.p}>
       개인정보와 관련해 도움이 더 필요하면 개인정보침해신고센터(privacy.kisa.or.kr,
@@ -311,8 +339,7 @@ const Terms: React.FC = () => (
 
     <h2 style={S.h2}>문의</h2>
     <ul style={S.ul}>
-      <li style={S.li}>운영자: {OPERATOR.name} · {OPERATOR.owner}</li>
-      <li style={S.li}>이메일: {OPERATOR.email}</li>
+      <ContactLines label="문의" />
     </ul>
   </>
 );
