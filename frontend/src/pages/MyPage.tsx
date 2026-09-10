@@ -1635,26 +1635,37 @@ const MyPage: React.FC = () => {
           }}
         >
           {/*
-            높이 상한은 `viewportH`(JS 로 잰 `window.innerHeight`)의 90% 로 둔다.
-            `dvh`/`vh` 같은 CSS 뷰포트 단위를 썼었는데, 아이폰 크롬에서
-            "더 필요해요" 로 크레딧 카드 내용이 늘어나면 모달 아래쪽이 화면 밖으로
-            잘려 보였다(실사용 보고) — `dvh` 계산이 이 모달의 실제 컨테이너
-            (`fixed inset-0`, 늘 정확히 화면과 같다)와 어긋난 것으로 보인다.
-            `max-h-[90vh]` 클래스는 JS 가 아직 못 돈 첫 페인트 순간의 대비책으로
-            남겨 둔다.
+            머리(제목)·꼬리(취소·변경적용·회원탈퇴)는 고정하고, **가운데 폼
+            영역만** 스크롤한다 — 셋을 하나로 묶어 모달 전체를 스크롤하면서
+            머리만 sticky 로 붙이는 식으로 짰더니, 꼬리 쪽 내용이 늘어날 때
+            (예: "더 필요해요") 모달 자체 높이가 화면을 넘어 하단이 잘렸다.
+            모달을 위(머리)/가운데(스크롤)/아래(꼬리) 세 칸짜리 flex 세로
+            배치로 두면, 바깥 두 칸은 내용만큼만 차지하고 **가운데 칸만
+            남은 공간을 스스로 스크롤**하므로 꼬리가 항상 화면 안에 보인다.
+            `overflow: hidden` 은 세 칸을 모달의 둥근 테두리 밖으로 새지
+            않게 자른다.
           */}
           <div
-            className="bg-white rounded-xl shadow-lg w-[370px] max-w-[95vw] relative max-h-[90vh] overflow-y-auto scrollbar-none"
-            style={{ scrollbarWidth: 'none', maxHeight: Math.round(viewportH * 0.9) }}
+            className="bg-white rounded-xl shadow-lg w-[370px] max-w-[95vw] relative max-h-[90vh]"
+            style={{
+              maxHeight: Math.round(viewportH * 0.9),
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
+            }}
             onClick={e => e.stopPropagation()}
           >
-            <div className="sticky top-0 left-0 right-0 z-20 bg-white border-b border-gray-200 rounded-t-xl w-full" style={{minHeight: 56, paddingTop: 18, paddingBottom: 8}}>
+            <div className="relative z-20 bg-white border-b border-gray-200 rounded-t-xl w-full" style={{minHeight: 56, paddingTop: 18, paddingBottom: 8, flexShrink: 0}}>
               <CloseButton onClick={handleCancel} style={{ top: 8, right: 8, zIndex: 20 }} />
               <div style={{ textAlign: 'center', fontWeight: 700, fontSize: 17, color: 'var(--ink-900)' }}>내 정보 수정</div>
             </div>
-            {/* 아래 여백을 넉넉히(pb-8). `p-6` 만으로는 회원탈퇴 글씨가
-                모달 끝에 붙어 보였다 — 스크롤이 생기는 화면에서 특히. */}
-            <div className="p-6 pt-2 pb-8">
+            {/* 가운데 칸 — 이 화면에서 스크롤이 생기는 건 오직 여기뿐이다.
+                `minHeight: 0` 이 없으면 flex 자식은 내용만큼 늘어나려 해서
+                overflow: auto 가 있어도 스크롤 대신 부모를 밀어 버린다. */}
+            <div
+              className="p-6 pt-2 scrollbar-none"
+              style={{ flex: 1, minHeight: 0, overflowY: 'auto', scrollbarWidth: 'none' }}
+            >
               {/* 닉네임 + 중복체크 */}
               <div className="mb-3">
                 <div className="flex items-center gap-2 mb-1">
@@ -1819,9 +1830,15 @@ const MyPage: React.FC = () => {
               <div className="mt-5 pt-4 border-t border-gray-200">
                 <UsageGauge />
               </div>
-
+            </div>
+            {/* 아래 칸(꼬리) — 스크롤과 상관없이 늘 화면에 보인다.
+                구분선을 넣어 "여기부터는 고정" 이라는 경계를 눈으로도 알 수 있게. */}
+            <div className="px-6 pt-4 border-t border-gray-200" style={{
+              flexShrink: 0,
+              paddingBottom: 'calc(20px + env(safe-area-inset-bottom, 0px))',
+            }}>
               {/* 취소/적용 버튼 */}
-              <div className="flex gap-2 mt-4">
+              <div className="flex gap-2">
                 {/* 브라우저 기본 포커스 테두리(파란 선)를 끈다. 옆의 `변경 적용`
                     과 회원탈퇴 버튼은 이미 끄고 있어서, 취소만 눌렀을 때 파랗게
                     변해 이 앱 색이 아닌 것이 튀어나왔다. 대신 눌린 동안에는

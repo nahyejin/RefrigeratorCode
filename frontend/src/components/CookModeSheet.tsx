@@ -10,9 +10,6 @@ import {
   copyRecipeUrlToClipboard,
 } from '../utils/recipeStorage';
 import type { Recipe, RecipeActionState } from '../types/recipe';
-import 완료하기버튼 from '../assets/완료하기버튼.png';
-import 기록하기버튼 from '../assets/기록하기버튼.png';
-import 공유하기버튼 from '../assets/공유하기버튼.png';
 
 /**
  * 요리 모드 — 원문으로 나가지 않고 앱 안에서 조리 순서를 본다.
@@ -310,11 +307,29 @@ const CookModeSheet: React.FC<Props> = ({
           우측에 같은 자리를 만든다. */}
       {recipeId != null && (
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginBottom: 14 }}>
+          {/*
+            네 버튼 모두 **같은 그리기 방식**을 쓴다 — 원 배경 위에 획(stroke)
+            으로만 그린 아이콘 하나. 완료·기록·공유는 원래 원 배경이 이미
+            찍혀 있는 PNG(RecipeCard 용)를 썼는데, 그 원이 이 버튼 자체의
+            원 배경과 겹쳐 이중 테두리처럼 보였다("테두리 없애 달라"는
+            요청). 즐겨찾기(별)처럼 인라인 SVG 하나로 통일해 그 이중 테두리를
+            없앴다.
+          */}
           {([
-            { key: 'favorite' as const, label: '즐겨찾기', on: actionState.favorite },
-            { key: 'done' as const, label: '완료', on: actionState.done, icon: 완료하기버튼 },
-            { key: 'write' as const, label: '기록', on: actionState.write, icon: 기록하기버튼 },
-          ]).map(({ key, label, on, icon }) => (
+            {
+              key: 'favorite' as const, label: '즐겨찾기', on: actionState.favorite,
+              path: 'M12 2.75l2.72 5.51 6.08.88-4.4 4.29 1.04 6.05L12 16.62 6.56 19.48l1.04-6.05-4.4-4.29 6.08-.88L12 2.75z',
+            },
+            {
+              key: 'done' as const, label: '완료', on: actionState.done,
+              path: 'M5 13l4 4L19 7',
+              strokeOnly: true,
+            },
+            {
+              key: 'write' as const, label: '기록', on: actionState.write,
+              path: 'M7 3h10a1 1 0 0 1 1 1v16l-6-4-6 4V4a1 1 0 0 1 1-1z',
+            },
+          ]).map(({ key, label, on, path, strokeOnly }) => (
             <button
               key={key}
               type="button"
@@ -329,24 +344,16 @@ const CookModeSheet: React.FC<Props> = ({
                 flexShrink: 0,
               }}
             >
-              {key === 'favorite' ? (
-                <svg width={19} height={19} viewBox="0 0 24 24" aria-hidden="true">
-                  <path
-                    d="M12 2.75l2.72 5.51 6.08.88-4.4 4.29 1.04 6.05L12 16.62 6.56 19.48l1.04-6.05-4.4-4.29 6.08-.88L12 2.75z"
-                    fill={on ? '#1A1A1E' : '#FFFFFF'}
-                    stroke={on ? '#1A1A1E' : '#FFFFFF'}
-                    strokeWidth="1.7"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              ) : (
-                // 완료/기록 아이콘 이미지 자체가 원 배경 + 흰색 그림을 이미 담고 있다
-                // (RecipeCard 의 SECONDARY_ACTIONS 와 같은 소스). 꺼진 상태는 원본
-                // 그대로(회색 원 + 흰 그림), 켜진 상태만 검게 눌러 노란 배경 위에서
-                // 도드라지게 한다 — RecipeCard 와 같은 규칙.
-                <img src={icon} alt="" width={20} height={20}
-                     style={{ filter: on ? 'brightness(0) saturate(0)' : 'none', display: 'block' }} />
-              )}
+              <svg width={18} height={18} viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  d={path}
+                  fill={strokeOnly ? 'none' : (on ? '#1A1A1E' : '#FFFFFF')}
+                  stroke={on ? '#1A1A1E' : '#FFFFFF'}
+                  strokeWidth={strokeOnly ? 2.4 : 1.7}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
             </button>
           ))}
           <button
@@ -360,7 +367,15 @@ const CookModeSheet: React.FC<Props> = ({
               background: 'rgba(34,34,34,0.7)', cursor: 'pointer', flexShrink: 0,
             }}
           >
-            <img src={공유하기버튼} alt="" width={20} height={20} style={{ display: 'block' }} />
+            <svg width={18} height={18} viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M2 21L23 12L2 3V10L17 12L2 14V21Z"
+                fill="#FFFFFF"
+                stroke="#FFFFFF"
+                strokeWidth="1.7"
+                strokeLinejoin="round"
+              />
+            </svg>
           </button>
         </div>
       )}
