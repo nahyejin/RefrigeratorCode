@@ -10299,3 +10299,17 @@ AI 식단·사진 인식이 쓰는 `StepLoading` 을 그대로 쓴다. 기다림
 
 ⚠️ **코드에서 지웠다고 끝이 아니다.** 과거 커밋에는 그대로 남아 있고, 이미 공개된 값은 되돌릴 수 없다. **Railway DB 비밀번호와 유튜브 API 키를 반드시 새로 발급해야 한다.**
 
+### 챗봇 레시피 카드 → 드로우패널 + 즐겨찾기/완료/기록/공유 추가
+- `RecipeChatWidget.tsx`: 챗봇 대화창의 레시피 카드가 `<a href>` 로 원문을 새 탭에 열고 있었다. 일반 레시피 카드처럼 앱 안 조리모드 시트(`CookModeSheet`, `openCookMode`)가 열려야 하는데 빠져 있었다 — AI 식단 추천(`WeeklyPlan.tsx`)·요리 캘린더(`CookingCalendar.tsx`)는 이미 `openCookMode` 를 쓰고 있어 챗봇만 예외였다
+- `CookModeSheet.tsx`: 시트 자체에는 즐겨찾기·완료·기록·공유 버튼이 없었다. 본문 맨 위 우측에 네 버튼을 추가 — `recipeStorage.ts` 의 기존 유틸(로컬 저장 + 로그인 시 서버 동기화)을 그대로 재사용해 목록 화면의 동작과 어긋나지 않게 함. 다만 목록 화면에 있는 "비회원 5개 이상 시 회원가입 유도"·"완료 시 재료 빼기 제안" 흐름은 옮기지 않음(범위 밖)
+
+### 사전 자동 반영 기준 2회 → 10회, 브랜드/성분/괄호 별칭 판정 규칙 추가
+- 2회 기준으로 지금까지 쌓인 `ingredient_dictionary_additions` 4,064건 중 **3,977건(98%)이 사람 검토 없이 자동으로** 들어가 있었다. 2026-09-08 승인분을 사람이 다시 보니 `동원 7겹돈까스`·`비비고 사골곰탕 진`·`목우촌 주부9단 구운마늘 프랑크 소시지` 같은 **브랜드 상품명**, `저당 허니 머스타드` 같은 **성분 표시 붙은 이름**, `조청(물엿)` 같은 **괄호 별칭**이 그대로 새 대표어가 돼 있었다
+- `scripts/auto_curate_dictionary.py`: `DEFAULT_MIN_HITS` 2 → 10. 10회 기준으로는 대기 중인 게 8종/144회뿐이라 사람이 어드민 '사전' 탭에서 보기에 부담 없는 크기
+- `backend/dictionary_curation.py`: LLM 판정 프롬프트(`_PROMPT`)에 세 규칙 추가 — 브랜드명은 떼고 일반 명칭으로(있으면 synonym, 없으면 keyword), 성분·영양 표시(저당/무가당/제로 등)는 국내산/유기농처럼 떼기, 괄호 안 이름이 사전에 있으면 그 재료의 synonym 으로
+
+### 삭제된 레시피를 가리키던 사용자 데이터 정리 + 재발 방지
+- `user_favorite_recipes`/`user_recorded_recipes`/`user_completed_recipes` 는 `recipe_id` 에 외래키가 없어서, 레시피를 지워도(크롤러 당일 정리 / `llm_ingredient_extraction.py` 의 "재료 없음→삭제" / 오래된 레시피 정리 등) 그 레시피를 가리키던 즐겨찾기·기록·완료 행이 그대로 남았다. 화면에는 있는데 눌러도 없는 레시피가 뜨는 원인
+- `scripts/cleanup_orphaned_user_recipes.py` 신설 — 존재하지 않는 `recipe_id` 를 가리키는 행을 지운다(미리보기 기본, `--write` 로 실제 삭제). 현재 쌓여 있던 17건(즐겨찾기 2·기록 7·완료 8) 정리 완료
+- `llm_ingredient_extraction.py`(배치 삭제 뒤), `scripts/cleanup_old_recipes.py`(대화형 정리), `scripts/delete_single_ingredient_recipes.py`(1개짜리 재료 정리) 세 곳에 정리 로직을 연결해 앞으로도 레시피가 지워지면 같이 지워지게 함. 당일 수집분을 지우는 크롤러 3곳은 수집 당일 삭제라 사용자 행동이 쌓일 시간이 없어 연결하지 않음
+
