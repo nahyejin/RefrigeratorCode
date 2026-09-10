@@ -15,7 +15,7 @@ import { getProxiedImageUrl } from '../utils/imageUtils';
 import { usageHeaders, applyUsage, spendOptimistically } from '../utils/usage';
 import { UsageLine, useUsage } from '../components/UsageMeter';
 import { savePlan, conflictingDates, toDateKey, type PlannedMeal } from '../utils/mealPlan';
-import { loadChat, saveChat, clearChat, archiveChat, loadSessions, dropSession,
+import { loadChat, saveChat, archiveChat, loadSessions, dropSession,
          toPlanned, type ChatMsg, type ChatSession } from '../utils/aiChat';
 
 /**
@@ -541,7 +541,15 @@ const WeeklyPlan: React.FC = () => {
     [location.search],
   );
   /**
-   * AI 화면에 들어올 때마다 **새 대화**로 시작한다.
+   * AI 화면에 들어올 때마다 **하던 대화를 이어 받는다.**
+   *
+   * 예전에는 여기서 무조건 새 대화로 초기화했다. 그런데 조건을 묻고 나서
+   * 뒤로가기로 나갔다가 다시 들어오면(페이지가 통째로 다시 마운트된다),
+   * 방금 쓴 크레딧으로 받은 답이 채 저장되기도 전에 "지난 대화"로 밀려나고
+   * 화면은 새 대화로 리셋됐다 — 질문만 있고 답은 없는 채로 끝난 것처럼
+   * 보였다(실사용 보고: "작업을 수행 안 한 채로 끝나있어"). 이제는 저장된
+   * 대화를 그대로 이어서 보여 준다. 진짜 새 대화는 사용자가 `새 대화` 를
+   * 눌러야 시작된다(`startNew`).
    *
    * 처음 상태를 만들 때만 해서는 안 된다 — 무료 화면에서 버튼을 눌러 넘어오면
    * 이 화면은 다시 만들어지지 않기 때문이다.
@@ -552,10 +560,38 @@ const WeeklyPlan: React.FC = () => {
     if (enteredAi.current) return;
     enteredAi.current = true;
     const prev = loadChat();
-    if (prev.some(m => m.who === 'me')) archiveChat(prev); else clearChat();
     setSessions(loadSessions());
-    setChat([]);
-    setLiveAt(null);
+    setChat(prev);
+    const lastAiWithResult = [...prev].reverse().find(m => m.who === 'ai' && m.result);
+    setLiveAt(lastAiWithResult ? lastAiWithResult.at : null);
+
+    // 마지막 말이 내 질문이고 아직 답이 안 붙어 있으면, 나갔다 온 사이
+    // 서버 응답이 아직도 오는 중이었을 수 있다(그 요청은 페이지가 언마운트돼도
+    // 백그라운드에서 계속 진행되고, 도착하면 `askAi`가 저장소에 직접 적는다 —
+    // 아래 `send` 참고). 2분 안의 것이면 응답을 잠시 기다려 본다.
+    const last = prev[prev.length - 1];
+    if (last && last.who === 'me' && Date.now() - last.at < 120000) {
+      setAsking(true);
+      let tries = 0;
+      const poll = window.setInterval(() => {
+        tries += 1;
+        const latest = loadChat();
+        const latestLast = latest[latest.length - 1];
+        if (latestLast && latestLast.who === 'ai' && latestLast.at > last.at) {
+          setChat(latest);
+          if (latestLast.result) setLiveAt(latestLast.at);
+          setAsking(false);
+          window.clearInterval(poll);
+        } else if (tries >= 40) {
+          // 40회(약 1분) 기다려도 안 오면 응답이 유실된 것으로 본다 — 계속
+          // 기다리는 것처럼 보이며 멈춰 있는 것보다, 다시 물어보라고 안내한다.
+          setAsking(false);
+          setError('응답을 받지 못했어요. 다시 시도해 주세요.');
+          window.clearInterval(poll);
+        }
+      }, 1500);
+      return () => window.clearInterval(poll);
+    }
   }, [wantAi]);
 
   const [asking, setAsking] = React.useState(false);
@@ -983,14 +1019,21 @@ const WeeklyPlan: React.FC = () => {
     void askAi(t).then(result => {
       const at = Date.now();
       if (result) setLiveAt(at);
-      setChat(c => [...c, {
+      const aiMsg: ChatMsg = {
         who: 'ai',
         text: aiReason.current || (result
           ? '이렇게 짜 봤어요. 마음에 안 들면 조건을 다시 말해 주세요.'
           : '조건에 맞는 걸 못 찾았어요. 조금 느슨하게 말해 주시겠어요?'),
         result: result || undefined,
         at,
-      }]);
+      };
+      // 이 사이 페이지를 나갔으면(뒤로가기 등) 이 컴포넌트는 이미 언마운트됐을
+      // 수 있다 — 그러면 아래 `setChat` 은 조용히 무시된다. 크레딧을 이미 쓴
+      // 응답을 잃지 않으려고, 저장소는 **그 시점의 최신 값**을 다시 읽어
+      // 직접 이어 붙인다(언마운트 전에 캡처해 둔 `chat` 클로저를 쓰면, 그
+      // 사이의 갱신을 덮어쓸 수 있다).
+      saveChat([...loadChat(), aiMsg]);
+      setChat(c => [...c, aiMsg]);
     });
   };
 
