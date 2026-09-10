@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   AbsoluteFill,
   Sequence,
@@ -9,25 +9,42 @@ import {
   useCurrentFrame,
   useVideoConfig,
   Easing,
+  delayRender,
+  continueRender,
 } from "remotion";
-import { loadFont } from "@remotion/google-fonts/NotoSansKR";
 
-const { fontFamily } = loadFont();
+const FONT_FAMILY = "'KyoboHandwriting2025', 'Noto Sans KR', sans-serif";
 
-const YELLOW = "#FFD600";
-const YELLOW_PRESSED = "#F2C200";
-const YELLOW_BG = "#FFF6C2";
-const YELLOW_TEXT = "#6B5200";
+// 브랜드 컬러(AD_BRIEF 기준). 노란색은 매칭률·CTA 등 단 하나의 포인트로만 쓰고
+// 배경 전체에 그라디언트로 깔지 않는다 — "너무 촌스럽다" 피드백 반영.
 const INK = "#1A1A1E";
-const GRAY = "#9AA0A6";
-const GREEN = "#2FAE60";
+const INK_SOFT = "rgba(26,26,30,0.5)";
+const INK_FAINT = "rgba(26,26,30,0.06)";
+const LINE = "rgba(26,26,30,0.1)";
+const YELLOW = "#FFD600";
+const YELLOW_TEXT = "#6B5200";
+const WHITE = "#FFFFFF";
 
-// 실측치(쿡매치 AD_BRIEF.md 기준) — 지어낸 숫자 없음
-const TOTAL_RECIPES = 44610;
+const TOTAL_RECIPES = 44610; // 지어낸 숫자 아님 — 쿡매치 AD_BRIEF.md 실측치
+
+const useCustomFont = () => {
+  const [handle] = useState(() => delayRender("커스텀 폰트 로드"));
+  useEffect(() => {
+    const font = new FontFace("KyoboHandwriting2025", `url(${staticFile("KyoboHandwriting2025lyb.otf")})`);
+    font
+      .load()
+      .then((loaded) => {
+        document.fonts.add(loaded);
+        continueRender(handle);
+      })
+      .catch(() => continueRender(handle));
+  }, [handle]);
+};
 
 export const CookMatchTeaser: React.FC = () => {
+  useCustomFont();
   return (
-    <AbsoluteFill style={{ backgroundColor: "#ffffff", fontFamily }}>
+    <AbsoluteFill style={{ backgroundColor: WHITE, fontFamily: FONT_FAMILY }}>
       <Sequence from={0} durationInFrames={75} name="Hook">
         <SceneHook />
       </Sequence>
@@ -41,38 +58,35 @@ export const CookMatchTeaser: React.FC = () => {
   );
 };
 
-const Caption: React.FC<{
+// 클립패스로 왼쪽에서 열리며 드러나는 헤드라인 — 흔한 fade+slide 대신 쓰는 시그니처 모션
+const RevealText: React.FC<{
   children: React.ReactNode;
   top: number;
   delay?: number;
   size?: number;
   color?: string;
-}> = ({ children, top, delay = 0, size = 56, color = INK }) => {
+  weight?: number;
+}> = ({ children, top, delay = 0, size = 58, color = INK, weight = 700 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const p = spring({
-    frame: frame - delay,
-    fps,
-    config: { damping: 200 },
-    durationInFrames: 18,
-  });
-  const opacity = interpolate(p, [0, 1], [0, 1]);
-  const y = interpolate(p, [0, 1], [16, 0]);
+  const p = spring({ frame: frame - delay, fps, config: { damping: 26, mass: 0.9 }, durationInFrames: 20 });
+  const reveal = interpolate(p, [0, 1], [0, 100], { extrapolateRight: "clamp" });
+  const y = interpolate(p, [0, 1], [10, 0]);
   return (
     <div
       style={{
         position: "absolute",
         top,
-        left: 60,
-        right: 60,
+        left: 64,
+        right: 64,
         textAlign: "center",
         fontSize: size,
-        fontWeight: 800,
+        fontWeight: weight,
         color,
-        opacity,
+        lineHeight: 1.34,
+        letterSpacing: -0.5,
         transform: `translateY(${y}px)`,
-        lineHeight: 1.35,
-        letterSpacing: -1,
+        clipPath: `inset(0 ${100 - reveal}% 0 0)`,
       }}
     >
       {children}
@@ -87,9 +101,9 @@ const AppIcon: React.FC<{ size: number }> = ({ size }) => (
   />
 );
 
-const Wordmark: React.FC<{ size?: number }> = ({ size = 64 }) => (
-  <div style={{ fontSize: size, fontWeight: 800, color: INK, letterSpacing: -1 }}>
-    Cook<span style={{ color: "#F2A400" }}>Match</span>
+const Wordmark: React.FC<{ size?: number }> = ({ size = 60 }) => (
+  <div style={{ fontSize: size, fontWeight: 700, color: INK, letterSpacing: -0.5 }}>
+    Cook<span style={{ color: "#D99A00" }}>Match</span>
   </div>
 );
 
@@ -98,58 +112,40 @@ const SceneHook: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  const iconScale = spring({ frame: frame - 6, fps, config: { damping: 12, stiffness: 120 } });
-
-  const tapStart = 52;
-  const tapProgress = interpolate(frame, [tapStart, tapStart + 18], [0, 1], {
+  const iconP = interpolate(
+    spring({ frame: frame - 8, fps, config: { damping: 24, mass: 0.9 } }),
+    [0, 1],
+    [0.9, 1]
+  );
+  const iconOpacity = interpolate(frame, [8, 22], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
-  const rippleScale = interpolate(tapProgress, [0, 1], [0.35, 2.1]);
-  const rippleOpacity = interpolate(tapProgress, [0, 1], [0.55, 0]);
-  const pressDip = interpolate(frame, [tapStart, tapStart + 6, tapStart + 14], [1, 0.94, 1], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
-
-  const wordmarkOpacity = interpolate(frame, [14, 26], [0, 1], {
+  const wordmarkOpacity = interpolate(frame, [20, 32], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
 
   return (
-    <AbsoluteFill style={{ backgroundColor: "#ffffff" }}>
-      <Caption top={190} delay={4} size={64}>
+    <AbsoluteFill style={{ backgroundColor: WHITE }}>
+      <RevealText top={210} delay={4} size={62}>
         오늘 저녁 뭐 먹지?
-      </Caption>
+      </RevealText>
 
       <AbsoluteFill style={{ alignItems: "center", justifyContent: "center" }}>
-        <div style={{ position: "relative", transform: `scale(${iconScale * pressDip})` }}>
-          <AppIcon size={340} />
-          <div
-            style={{
-              position: "absolute",
-              top: "50%",
-              left: "50%",
-              width: 340,
-              height: 340,
-              borderRadius: 340 * 0.22,
-              border: `6px solid ${YELLOW_PRESSED}`,
-              transform: `translate(-50%, -50%) scale(${rippleScale})`,
-              opacity: rippleOpacity,
-            }}
-          />
+        <div style={{ opacity: iconOpacity, transform: `scale(${iconP})` }}>
+          <AppIcon size={300} />
         </div>
-        <div style={{ marginTop: 36, opacity: wordmarkOpacity }}>
-          <Wordmark size={72} />
+        <div style={{ marginTop: 34, opacity: wordmarkOpacity }}>
+          <Wordmark size={66} />
         </div>
       </AbsoluteFill>
 
-      <Caption top={1520} delay={30} size={34} color={GRAY}>
+      <RevealText top={1530} delay={34} size={32} color={INK_SOFT} weight={500}>
         퇴근하고 냉장고 앞에서
         <br />
         5분째 멍때리고 있다면?
-      </Caption>
+      </RevealText>
     </AbsoluteFill>
   );
 };
@@ -170,27 +166,32 @@ const SceneMatch: React.FC = () => {
     extrapolateRight: "clamp",
   });
 
-  const cardOpacity = interpolate(frame, [65, 82], [0, 1], {
+  const cardOpacity = interpolate(frame, [65, 84], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
-  const cardY = interpolate(frame, [65, 88], [40, 0], {
+  const cardY = interpolate(frame, [65, 90], [24, 0], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
+    easing: Easing.out(Easing.cubic),
   });
-  const badgeScale = spring({ frame: frame - 78, fps, config: { damping: 10, stiffness: 160 } });
+  const badgeP = interpolate(
+    spring({ frame: frame - 80, fps, config: { damping: 18, mass: 0.8 } }),
+    [0, 1],
+    [0.85, 1]
+  );
 
   return (
-    <AbsoluteFill style={{ backgroundColor: "#ffffff" }}>
-      <Caption top={130} delay={2} size={48}>
+    <AbsoluteFill style={{ backgroundColor: WHITE }}>
+      <RevealText top={150} delay={2} size={46}>
         냉장고 재료로 만들 수 있는
         <br />
         요리 매칭중...
-      </Caption>
+      </RevealText>
 
       <AbsoluteFill style={{ alignItems: "center", justifyContent: "center", opacity: countOpacity }}>
-        <div style={{ fontSize: 40, fontWeight: 700, color: GRAY, marginBottom: 12 }}>누적 레시피 수</div>
-        <div style={{ fontSize: 144, fontWeight: 900, color: INK, letterSpacing: -2 }}>
+        <div style={{ fontSize: 36, fontWeight: 500, color: INK_SOFT, marginBottom: 10 }}>누적 레시피 수</div>
+        <div style={{ fontSize: 138, fontWeight: 700, color: INK, letterSpacing: -1 }}>
           {count.toLocaleString("ko-KR")}
         </div>
       </AbsoluteFill>
@@ -203,11 +204,23 @@ const SceneMatch: React.FC = () => {
           transform: `translateY(${cardY}px)`,
         }}
       >
-        <RecipeCard badgeScale={badgeScale} />
+        <RecipeCard badgeScale={badgeP} />
       </AbsoluteFill>
     </AbsoluteFill>
   );
 };
+
+const BowlIcon: React.FC = () => (
+  <svg width="88" height="88" viewBox="0 0 88 88" fill="none">
+    <path
+      d="M18 40h52a1 1 0 0 1 1 1c0 14-12.3 25-27 25S17 55 17 41a1 1 0 0 1 1-1Z"
+      stroke={INK_SOFT}
+      strokeWidth="3"
+    />
+    <path d="M30 40c0-8 6-14 14-14s14 6 14 14" stroke={INK_SOFT} strokeWidth="3" strokeLinecap="round" />
+    <path d="M34 68h20" stroke={INK_SOFT} strokeWidth="3" strokeLinecap="round" />
+  </svg>
+);
 
 const RecipeCard: React.FC<{ badgeScale: number }> = ({ badgeScale }) => {
   const chips: { label: string; have: boolean }[] = [
@@ -220,52 +233,55 @@ const RecipeCard: React.FC<{ badgeScale: number }> = ({ badgeScale }) => {
     <div
       style={{
         width: 760,
-        borderRadius: 32,
-        backgroundColor: "#fff",
-        boxShadow: "0 24px 60px rgba(0,0,0,0.14)",
+        borderRadius: 28,
+        backgroundColor: WHITE,
+        border: `1px solid ${LINE}`,
+        boxShadow: "0 10px 28px rgba(26,26,30,0.06)",
         overflow: "hidden",
       }}
     >
       <div
         style={{
-          height: 340,
-          background: `linear-gradient(135deg, ${YELLOW} 0%, ${YELLOW_PRESSED} 100%)`,
+          height: 300,
+          backgroundColor: "#FAF8F2",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
         }}
       >
-        <AppIcon size={120} />
+        <BowlIcon />
       </div>
-      <div style={{ padding: "28px 36px 40px" }}>
+      <div style={{ padding: "26px 34px 34px" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div style={{ fontSize: 38, fontWeight: 800, color: INK }}>애호박 새우볶음</div>
+          <div style={{ fontSize: 36, fontWeight: 700, color: INK }}>애호박 새우볶음</div>
           <div
             style={{
               backgroundColor: YELLOW,
               color: INK,
               borderRadius: 999,
-              padding: "8px 22px",
-              fontSize: 34,
-              fontWeight: 900,
+              padding: "6px 18px",
+              fontSize: 30,
+              fontWeight: 700,
               transform: `scale(${badgeScale})`,
+              flexShrink: 0,
+              marginLeft: 16,
             }}
           >
             92%
           </div>
         </div>
-        <div style={{ display: "flex", gap: 12, marginTop: 26, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: 10, marginTop: 22, flexWrap: "wrap" }}>
           {chips.map((c) => (
             <div
               key={c.label}
               style={{
-                padding: "10px 24px",
+                padding: "9px 20px",
                 borderRadius: 999,
-                fontSize: 28,
-                fontWeight: 700,
-                backgroundColor: c.have ? "#E6F6EC" : "#F1F2F3",
-                color: c.have ? GREEN : GRAY,
-                border: c.have ? "none" : `2px solid ${GRAY}`,
+                fontSize: 26,
+                fontWeight: 500,
+                backgroundColor: c.have ? INK_FAINT : "transparent",
+                color: c.have ? INK : INK_SOFT,
+                border: c.have ? "none" : `1.5px dashed ${INK_SOFT}`,
               }}
             >
               {c.label}
@@ -282,85 +298,75 @@ const SceneCTA: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  const logoScale = spring({ frame, fps, config: { damping: 12, stiffness: 120 } });
-  const taglineOpacity = interpolate(frame, [14, 26], [0, 1], {
+  const logoP = interpolate(
+    spring({ frame, fps, config: { damping: 24, mass: 0.9 } }),
+    [0, 1],
+    [0.92, 1]
+  );
+  const logoOpacity = interpolate(frame, [0, 14], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
-  const captionOpacity = interpolate(frame, [24, 38], [0, 1], {
+  const taglineOpacity = interpolate(frame, [16, 28], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
-  const swipeOpacity = interpolate(frame, [30, 45], [0, 1], {
+  const ctaOpacity = interpolate(frame, [30, 44], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
-  const bounce = Math.sin((frame / fps) * Math.PI * 2.2) * 14;
 
   return (
-    <AbsoluteFill style={{ background: `linear-gradient(180deg, #ffffff 0%, ${YELLOW_BG} 100%)` }}>
-      <AbsoluteFill style={{ alignItems: "center", justifyContent: "center", paddingTop: 120 }}>
+    <AbsoluteFill style={{ backgroundColor: WHITE }}>
+      <AbsoluteFill style={{ alignItems: "center", justifyContent: "center", paddingTop: 100 }}>
         <div
           style={{
-            transform: `scale(${logoScale})`,
+            opacity: logoOpacity,
+            transform: `scale(${logoP})`,
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
-            gap: 28,
+            gap: 26,
           }}
         >
-          <AppIcon size={220} />
-          <Wordmark size={68} />
+          <AppIcon size={200} />
+          <Wordmark size={62} />
         </div>
         <div
           style={{
-            marginTop: 24,
-            fontSize: 32,
-            fontWeight: 700,
+            marginTop: 26,
+            fontSize: 30,
+            fontWeight: 500,
             color: YELLOW_TEXT,
-            backgroundColor: YELLOW_BG,
-            padding: "10px 28px",
-            borderRadius: 999,
             opacity: taglineOpacity,
+            borderBottom: `2px solid ${YELLOW}`,
+            paddingBottom: 4,
           }}
         >
           설치 없이 웹에서 바로 시작
         </div>
       </AbsoluteFill>
 
-      <div
-        style={{
-          position: "absolute",
-          bottom: 340,
-          left: 0,
-          right: 0,
-          textAlign: "center",
-          fontSize: 54,
-          fontWeight: 800,
-          color: INK,
-          opacity: captionOpacity,
-          padding: "0 70px",
-          lineHeight: 1.35,
-        }}
-      >
-        버리는 식재료 0원 도전 🥑
+      <RevealText top={1330} delay={30} size={50}>
+        버리는 식재료 0원 도전
         <br />
-        <span style={{ color: "#F2A400" }}>쿡매치</span>
-      </div>
+        <span style={{ color: "#D99A00" }}>쿡매치</span>
+      </RevealText>
 
       <div
         style={{
           position: "absolute",
-          bottom: 140,
-          left: "50%",
-          transform: `translate(-50%, ${bounce}px)`,
-          fontSize: 40,
-          fontWeight: 700,
-          color: YELLOW_TEXT,
-          opacity: swipeOpacity,
+          bottom: 150,
+          left: 0,
+          right: 0,
+          textAlign: "center",
+          fontSize: 32,
+          fontWeight: 500,
+          color: INK_SOFT,
+          opacity: ctaOpacity,
         }}
       >
-        ▲ 위로 스와이프
+        프로필 링크에서 시작하기
       </div>
     </AbsoluteFill>
   );
