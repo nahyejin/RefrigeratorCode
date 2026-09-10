@@ -1,19 +1,12 @@
 import pymysql
 import os
+# 접속 정보는 `backend/.env` 에만 있다 — 이 저장소는 공개다.
+import os as _os, sys as _sys
+_sys.path.insert(0, _os.path.abspath(_os.path.join(_os.path.dirname(__file__), '..')))
+from db_env import db_settings as _db_settings
 
 # DB 연결
-db_config = {
-    'host': os.getenv('DB_HOST') or os.getenv('MYSQLHOST') or os.getenv('MYSQL_HOST') or 'caboose.proxy.rlwy.net',
-    'user': os.getenv('DB_USER') or os.getenv('MYSQLUSER') or os.getenv('MYSQL_USER') or 'root',
-    'password': os.getenv('DB_PASSWORD') or os.getenv('MYSQLPASSWORD') or os.getenv('MYSQL_PASSWORD') or 'HkqYFCoKPPPxgryxiEbUYxcYynQXxeRF',
-    'db': os.getenv('DB_NAME') or os.getenv('MYSQLDATABASE') or os.getenv('MYSQL_DATABASE') or 'railway',
-    'port': int(os.getenv('DB_PORT') or os.getenv('MYSQLPORT') or os.getenv('MYSQL_PORT') or 47779),
-    'charset': 'utf8mb4',
-    # 서버 시계가 UTC 라 세션 타임존을 KST 로 고정한다(backend/app.py 와 동일).
-    # 빠뜨리면 이 스크립트가 쓰는 NOW() 만 9시간 느리게 찍힌다.
-    'init_command': "SET time_zone = '+09:00'",
-    'cursorclass': pymysql.cursors.DictCursor
-}
+db_config = {**_db_settings(), 'charset': 'utf8mb4', 'cursorclass': pymysql.cursors.DictCursor}
 
 try:
     conn = pymysql.connect(**db_config)

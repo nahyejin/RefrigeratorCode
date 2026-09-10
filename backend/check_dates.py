@@ -1,16 +1,13 @@
 import pymysql
 from datetime import datetime, timedelta
+# 저장소 뿌리의 `db_env` 를 불러온다 — 접속 정보는 코드가 아니라
+# `backend/.env` 에만 있다. 이 저장소는 공개다.
+import os as _os, sys as _sys
+_sys.path.insert(0, _os.path.abspath(_os.path.join(_os.path.dirname(__file__), '..')))
+from db_env import connect as _connect
 
 # Railway 데이터베이스 연결
-db = pymysql.connect(
-    host='caboose.proxy.rlwy.net',
-    user='root',
-    password='HkqYFCoKPPPxgryxiEbUYxcYynQXxeRF',
-    db='railway',
-    port=47779,
-    charset='utf8mb4',
-    cursorclass=pymysql.cursors.DictCursor
-)
+db = _connect()
 
 cursor = db.cursor()
 

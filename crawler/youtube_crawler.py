@@ -16,6 +16,11 @@ import sys
 # Add ingredient_management directory to Python path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'ingredient_management'))
 from update_used_ingredients_batch import extract_best_ingredient_block, extract_ingredients
+# 저장소 뿌리의 `db_env` 를 불러온다 — 접속 정보는 코드가 아니라
+# `backend/.env` 에만 있다. 이 저장소는 공개다.
+import os as _os, sys as _sys
+_sys.path.insert(0, _os.path.abspath(_os.path.join(_os.path.dirname(__file__), '..')))
+from db_env import connect as _connect
 
 # 로깅 설정
 logging.basicConfig(
@@ -32,7 +37,7 @@ class YouTubeCrawler:
     def __init__(self):
         load_dotenv()
         # 환경변수에서 API 키를 가져오거나 직접 설정
-        self.api_key = os.getenv('YOUTUBE_API_KEY') or 'AIzaSyAHp_0bod-XWi5yNItEhQu16VWKy-fBA2Q'
+        self.api_key = os.getenv('YOUTUBE_API_KEY')
         if not self.api_key:
             raise ValueError("YouTube API 키가 설정되지 않았습니다.")
         
@@ -55,7 +60,6 @@ class YouTubeCrawler:
             os.getenv('DB_PASSWORD')
             or os.getenv('MYSQLPASSWORD')
             or os.getenv('MYSQL_PASSWORD')
-            or 'HkqYFCoKPPPxgryxiEbUYxcYynQXxeRF'
         )
         db_name = (
             os.getenv('DB_NAME')
@@ -656,20 +660,7 @@ class YouTubeCrawler:
             logger.error(f"Error in process_influencer_list: {e}")
             
     def delete_low_ingredient_entries(self):
-        connection = pymysql.connect(
-            host='caboose.proxy.rlwy.net',
-            user='root',
-            password='HkqYFCoKPPPxgryxiEbUYxcYynQXxeRF',
-            db='railway',
-            port=47779,
-            charset='utf8mb4',
-            cursorclass=pymysql.cursors.DictCursor,
-            # 서버 시계가 UTC 라 세션 타임존을 KST 로 고정한다(backend/app.py 와 동일).
-            # 이걸 빠뜨리면 이 파일이 쓰는 NOW() 만 9시간 느리게 찍힌다 — 실제로
-            # `llm_ingredients_at` 이 UTC 로 남아, 새벽 5시 배치가 DB 에는 전날
-            # 저녁 8시로 보였다.
-            init_command="SET time_zone = '+09:00'",
-        )
+        connection = _connect()
 
         try:
             with connection.cursor() as cursor:

@@ -3,23 +3,15 @@ from typing import Dict, Optional
 from datetime import datetime
 import pymysql
 import pymysql.cursors
+# 저장소 뿌리의 `db_env` 를 불러온다 — 접속 정보는 코드가 아니라
+# `backend/.env` 에만 있다. 이 저장소는 공개다.
+import os as _os, sys as _sys
+_sys.path.insert(0, _os.path.abspath(_os.path.join(_os.path.dirname(__file__), '..')))
+from db_env import connect as _connect
 
 class Database:
     def __init__(self):
-        self.conn = pymysql.connect(
-            host='caboose.proxy.rlwy.net',
-            user='root',
-            password='HkqYFCoKPPPxgryxiEbUYxcYynQXxeRF',
-            db='railway',
-            port=3306,
-            charset='utf8mb4',
-            cursorclass=pymysql.cursors.DictCursor,
-            # 서버 시계가 UTC 라 세션 타임존을 KST 로 고정한다(backend/app.py 와 동일).
-            # 이걸 빠뜨리면 이 파일이 쓰는 NOW() 만 9시간 느리게 찍힌다 — 실제로
-            # `llm_ingredients_at` 이 UTC 로 남아, 새벽 5시 배치가 DB 에는 전날
-            # 저녁 8시로 보였다.
-            init_command="SET time_zone = '+09:00'",
-        )
+        self.conn = _connect()
         self.cursor = self.conn.cursor()
         self.setup_database()
         

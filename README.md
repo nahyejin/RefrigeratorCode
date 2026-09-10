@@ -111,7 +111,7 @@ FLASK_ENV=development
 FLASK_DEBUG=true
 DB_HOST=localhost
 DB_USER=root
-DB_PASSWORD=sk784512!!
+DB_PASSWORD=<.env 의 DB_PASSWORD>
 DB_NAME=refrigerator
 DB_PORT=3306
 CORS_ORIGIN=http://localhost:5173,http://localhost:5177,http://localhost:5178
@@ -563,7 +563,7 @@ import pymysql
     ----------------conn = pymysql.connect(
        host='caboose.proxy.rlwy.net',
        user='root',
-       password='HkqYFCoKPPPxgryxiEbUYxcYynQXxeRF',
+       password=os.getenv('DB_PASSWORD'),
        db='railway',  # 실제 DB명
        port=47779,    # 반드시 47779로!
        charset='utf8mb4',
@@ -925,7 +925,7 @@ crawler/
      ```
    - ⚠️ 개발용 API 키 (테스트용으로만 사용):
      ```
-     YOUTUBE_API_KEY=AIzaSyAHp_0bod-XWi5yNItEhQu16VWKy-fBA2Q
+     YOUTUBE_API_KEY=<.env 의 YOUTUBE_API_KEY>
      ```
    - ⚠️ 보안 주의사항:
      - 이 API 키는 개발/테스트용이며, 실제 프로덕션 환경에서는 사용하지 마세요
@@ -1000,7 +1000,7 @@ popularity_score = 1.0 * likes + 2.0 * comments
 1. 프로젝트 루트에 `.env` 파일을 생성합니다.
 2. `.env` 파일에 다음 내용을 추가합니다:
    ```
-   YOUTUBE_API_KEY=AIzaSyAHp_0bod-XWi5yNItEhQu16VWKy-fBA2Q
+   YOUTUBE_API_KEY=<.env 의 YOUTUBE_API_KEY>
    ```
 3. 파일을 저장하고 닫습니다.
 

@@ -1,5 +1,10 @@
 import pandas as pd
 import pymysql
+# 저장소 뿌리의 `db_env` 를 불러온다 — 접속 정보는 코드가 아니라
+# `backend/.env` 에만 있다. 이 저장소는 공개다.
+import os as _os, sys as _sys
+_sys.path.insert(0, _os.path.abspath(_os.path.join(_os.path.dirname(__file__), '..')))
+from db_env import connect as _connect
 
 # CSV 파일 경로
 csv_path = "C:/Users/user/Desktop/recipes.csv"
@@ -12,17 +17,7 @@ df = df[['id', 'title', 'link', 'content', 'used_ingredients', 'used_ingredients
          'block_reason', 'author', 'thumbnail', 'platform', 'hits', 'likes', 'comments', 'post_time', 'collected_at']]
 
 # DB 연결
-conn = pymysql.connect(
-    host='caboose.proxy.rlwy.net',
-    port=47779,
-    user='root',
-    password='HkqYFCoKPPPxgryxiEbUYxcYynQXxeRF',
-    database='railway',
-    charset='utf8mb4',
-    # 서버 시계가 UTC 라 세션 타임존을 KST 로 고정한다(backend/app.py 와 동일).
-    # 빠뜨리면 이 스크립트가 쓰는 NOW() 만 9시간 느리게 찍힌다.
-    init_command="SET time_zone = '+09:00'",
-)
+conn = _connect()
 cursor = conn.cursor()
 
 # INSERT 쿼리

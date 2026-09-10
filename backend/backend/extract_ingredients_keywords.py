@@ -4,6 +4,11 @@ from konlpy.tag import Komoran
 from collections import Counter
 import pymysql
 from pymysql.cursors import DictCursor
+# 저장소 뿌리의 `db_env` 를 불러온다 — 접속 정보는 코드가 아니라
+# `backend/.env` 에만 있다. 이 저장소는 공개다.
+import os as _os, sys as _sys
+_sys.path.insert(0, _os.path.abspath(_os.path.join(_os.path.dirname(__file__), '..', '..')))
+from db_env import connect as _connect
 
 # ✅ 형태소 분석기 (Komoran) 초기화
 komoran = Komoran()
@@ -17,14 +22,7 @@ stopwords = set([
 ])
 
 # ✅ DB 연결
-conn = pymysql.connect(
-    host='localhost',
-    user='root',
-    password='sk784512!!',
-    db='refrigerator',
-    charset='utf8mb4',
-    cursorclass=DictCursor
-)
+conn = _connect()
 cursor = conn.cursor()
 
 # ✅ DB에서 used_ingredients_block 데이터 가져오기
