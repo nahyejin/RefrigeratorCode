@@ -1833,11 +1833,16 @@ const MyPage: React.FC = () => {
             </div>
             {/* 아래 칸(꼬리) — 스크롤과 상관없이 늘 화면에 보인다.
                 구분선을 넣어 "여기부터는 고정" 이라는 경계를 눈으로도 알 수 있게. */}
-            <div className="px-6 pt-4 border-t border-gray-200" style={{
+            <div className="px-6 pt-3 border-t border-gray-200" style={{
               flexShrink: 0,
-              paddingBottom: 'calc(20px + env(safe-area-inset-bottom, 0px))',
+              paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))',
             }}>
-              {/* 취소/적용 버튼 */}
+              {/* 취소/적용 버튼.
+                  회원탈퇴는 예전엔 이 밑에 `mt-6 pt-4`(40px)로 떨어져
+                  가운데 정렬돼 있어서, 자주 쓰지도 않는 버튼 하나 때문에
+                  이 칸(꼬리) 전체 높이가 필요 이상으로 컸다("영역이 너무
+                  높다", "취소/변경적용 영역에 있는 게 아니라" 는 지적).
+                  버튼 줄과는 분리해 아래 작은 줄에 왼쪽으로 따로 둔다. */}
               <div className="flex gap-2">
                 {/* 브라우저 기본 포커스 테두리(파란 선)를 끈다. 옆의 `변경 적용`
                     과 회원탈퇴 버튼은 이미 끄고 있어서, 취소만 눌렀을 때 파랗게
@@ -1854,10 +1859,10 @@ const MyPage: React.FC = () => {
                 >
                   취소
                 </button>
-                <button 
+                <button
                   className={`flex-1 h-11 rounded-lg text-[16px] font-bold ${
-                    hasChanges() 
-                      ? 'bg-[#FFD600] text-[#1A1A1E] cursor-pointer' 
+                    hasChanges()
+                      ? 'bg-[#FFD600] text-[#1A1A1E] cursor-pointer'
                       : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                   }`}
                   onClick={handleSave}
@@ -1879,12 +1884,14 @@ const MyPage: React.FC = () => {
                   변경 적용
                 </button>
               </div>
-
-              {/* 회원탈퇴 버튼 */}
-              <div className="mt-6 pt-4 text-center">
+              {/* 왼쪽 아래 구석에 작게 — 자주 쓰는 동작이 아니라 눈에 크게 띌
+                  필요가 없다. 주 행동(취소/적용)과 같은 굵기·크기로 두면
+                  실수로 이걸 먼저 보게 된다. */}
+              <div className="mt-2">
                 <button
-                  className="text-[13px] text-red-600 underline cursor-pointer hover:text-red-700 transition"
+                  type="button"
                   onClick={() => setShowDeleteConfirm(true)}
+                  className="text-[11px] text-gray-400 underline hover:text-red-600 transition"
                   style={{ outline: 'none', background: 'none', border: 'none', padding: 0 }}
                 >
                   회원탈퇴
