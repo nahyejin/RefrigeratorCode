@@ -971,6 +971,40 @@ def handle_chat(get_db):
     # LLM을 안 부르므로 오늘 호출 한도도 쓰지 않는다.
     is_broad = _is_broad_fridge_request(last_user)
 
+    # ── 「일주일치 짜 줘」 는 여기서 답하지 않는다 ────────────────────
+    #
+    # 요일에 나눠 담고 장보기 목록을 만드는 것은 AI 식단(`/plan?ai=1`) 이 한다.
+    # 챗봇은 맞는 레시피를 골라 늘어놓을 뿐이라, 일주일치를 물으면 세 개쯤
+    # 내놓고 마는데 그건 답이 아니다.
+    #
+    # **그래서 크레딧을 깎지 않는다.** 우리가 일을 안 했고, 사용자는 넘어간
+    # 화면에서 다시 크레딧을 쓴다 — 한 번 묻고 두 번 내는 셈이 된다.
+    # LLM 도 부르지 않으므로 실제 비용도 안 든다.
+    #
+    # 카드도 붙이지 않는다. LLM 없이 낱말로만 고르면 「아이」가 「아이스크림」에
+    # 걸리던 그 방식으로 돌아간다 — 공짜라도 틀린 카드는 안 내놓는 게 낫다.
+    if _wants_meal_plan(last_user):
+        try:
+            peek = usage_quota.status(get_db, user_id=quota_user_id,
+                                      device_id=quota_device_id)
+        except Exception:  # noqa: BLE001
+            peek = None
+        return jsonify({
+            'reply': ('일주일치는 «AI 식단» 이 요일별로 짜 드려요.\n'
+                      '냉장고 재료로 장을 가장 적게 보는 조합을 골라서, '
+                      '장보기 목록까지 함께 만들어 줘요.'),
+            'recipes': [],
+            'keywords': [],
+            'keyword': '',
+            'ignore_fridge': False,
+            'intent': 'app',
+            'help_title': '',
+            'action': {'path': '/plan?ai=1', 'label': 'AI 로 일주일 식단 짜기'},
+            'provider': provider,
+            'usage': peek,
+            'remaining': (peek or {}).get('balance', 0),
+        })
+
     # 이 대화창에서 직전에 실제로 검색·표시했던 결과 (팔로우업 질문의 근거).
     last_turn = _get_last_turn(session_id)
 
@@ -1161,21 +1195,6 @@ def handle_chat(get_db):
         # LLM 경로: LLM이 검색 전에 쓴 답변 뒤에, 검색이 끝난 지금 알 수 있는
         # "실제로 뭘 근거로 골랐는지 · 어떻게 정렬했는지"를 서버가 덧붙인다.
         parsed['reply'] = parsed['reply'].rstrip() + f'\n\n가지고 계신 재료 중 {matched_phrase} 골랐고, 매칭률 높은 순으로 정렬했어요.'
-
-    # ── 일주일치를 물었으면 **AI 식단으로 가는 버튼**을 붙인다 ──────
-    #
-    # 챗봇은 요일별로 짜 주지 않는다. 맞는 레시피를 골라 늘어놓을 뿐이라,
-    # "일주일 동안 먹을 것" 이라고 물으면 추천은 되지만 **요일에 나눠 담고
-    # 장보기 목록을 만드는 일은 안 된다.** 그건 AI 식단이 한다.
-    #
-    # 추천을 지우지는 않는다 — 물어본 것에는 답한 것이므로 그대로 두고,
-    # 그 아래에 갈 곳을 붙인다. 앱 사용법 답변이 이미 버튼을 달았으면 건드리지
-    # 않는다(그쪽이 더 구체적인 안내다).
-    if _wants_meal_plan(last_user) and not parsed.get('action'):
-        parsed['action'] = {'path': '/plan?ai=1', 'label': 'AI 로 일주일 식단 짜기'}
-        parsed['reply'] = parsed['reply'].rstrip() + (
-            '\n\n요일별로 나눠 담고 장보기 목록까지 만들려면 «AI 식단» 이 더 잘해요.'
-        )
 
     allowed_links = {r['link'] for r in recipes}
     parsed['reply'] = re.sub(
