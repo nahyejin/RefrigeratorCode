@@ -25,12 +25,17 @@ import { CONTACT } from '../components/ContactBox';
  *    사업자등록과 통신판매업 신고가 필요하고, 위 표시 항목도 전부
  *    채워 넣어야 한다. 청약철회·환불 조항도 그때 들어간다.
  *
- * ⚠️ **초안이다.** 시행일은 비워 뒀다.
+ * ⚠️ **초안이다.**
  *    법률 검토 없이 그대로 쓰지 말 것 — 특히 「보관 기간」은 지금 코드가
  *    탈퇴 시 실제로 지우지 않는 상태(soft delete)라 그대로 적어 두었다.
+ *
+ * 시행일: 이용자가 아직 없는 첫 버전이라 공고일과 같은 날로 둔다 — 바뀔
+ * 내용을 미리 알릴 기존 이용자가 없다. 이후 개정판부터는 공고일과
+ * 시행일이 달라질 수 있다(불리한 변경은 시행 7일 전 공고, 제10조).
  */
 
-const UPDATED_AT = '2026-09-10';
+const UPDATED_AT = '2026-09-11';
+const EFFECTIVE_AT = '2026-09-11';
 
 /**
  * 채워 넣어야 하는 자리. 비워 두면 화면에 그대로 드러나 잃지 않는다.
@@ -102,7 +107,7 @@ const Tab: React.FC<{ on: boolean; onClick: () => void; children: React.ReactNod
 const Privacy: React.FC = () => (
   <>
     <h1 style={S.h1}>개인정보처리방침</h1>
-    <div style={S.updated}>최종 수정일 {UPDATED_AT}</div>
+    <div style={S.updated}>공고일 {UPDATED_AT} · 시행일 {EFFECTIVE_AT}</div>
 
     <div style={S.note}>
       쿡매치는 냉장고에 있는 재료로 만들 수 있는 요리를 찾아 주는 서비스입니다.
@@ -234,7 +239,7 @@ const Privacy: React.FC = () => (
 
     <h2 style={S.h2}>7. 바뀔 때</h2>
     <p style={S.p}>
-      내용이 바뀌면 이 화면에 고쳐 올리고, 최종 수정일을 함께 적습니다. 중요한
+      내용이 바뀌면 이 화면에 고쳐 올리고, 공고일·시행일을 함께 적습니다. 중요한
       변경은 앱 안에서 따로 알립니다.
     </p>
 
@@ -254,7 +259,7 @@ const Privacy: React.FC = () => (
 const Terms: React.FC = () => (
   <>
     <h1 style={S.h1}>이용약관</h1>
-    <div style={S.updated}>최종 수정일 {UPDATED_AT}</div>
+    <div style={S.updated}>공고일 {UPDATED_AT} · 시행일 {EFFECTIVE_AT}</div>
 
     <h2 style={S.h2}>제1조 (무엇을 하는 서비스인가)</h2>
     <p style={S.p}>
@@ -333,8 +338,14 @@ const Terms: React.FC = () => (
 
     <h2 style={S.h2}>제10조 (약관의 변경)</h2>
     <p style={S.p}>
-      약관이 바뀌면 이 화면에 고쳐 올리고 최종 수정일을 적습니다. 이용자에게
-      불리한 변경은 시행 7일 전에 알립니다.
+      약관이 바뀌면 이 화면에 고쳐 올리고 공고일·시행일을 적습니다. 이용자에게
+      불리한 변경은 시행 7일 전에 공고합니다.
+    </p>
+
+    <h2 style={S.h2}>제11조 (준거법 및 관할)</h2>
+    <p style={S.p}>
+      이 약관은 대한민국 법령에 따라 해석합니다. 서비스 이용과 관련해 분쟁이
+      생기면 민사소송법상의 관할법원에 소를 제기할 수 있습니다.
     </p>
 
     <h2 style={S.h2}>문의</h2>

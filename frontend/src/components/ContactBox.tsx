@@ -56,13 +56,12 @@ const row: React.CSSProperties = {
 
 const ContactBox: React.FC = () => (
   <div style={{ marginTop: 24 }}>
-    <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink-900)', marginBottom: 4 }}>
+    <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink-900)', marginBottom: 4, whiteSpace: 'nowrap' }}>
       불편한 점이 있으셨나요
     </div>
     <p style={{ fontSize: 12.5, lineHeight: 1.65, color: 'var(--ink-500)',
                 margin: '0 0 10px', wordBreak: 'keep-all' }}>
-      오류를 만나셨거나 「이런 게 있으면 좋겠다」 싶은 게 있으면 알려 주세요.
-      직접 읽고 고칩니다.
+      오류를 만나셨거나 '이런 게 있으면 좋겠다' 싶은 게 있으면 알려 주세요.
     </p>
 
     <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
