@@ -12,6 +12,7 @@ import { prefetchFridgeRecipes, prefetchPopular } from '../utils/recipePrefetch'
 import CookModeHost from '../components/CookModeHost';
 import ShareRequestPopup from '../components/ShareRequestPopup';
 import { AuthProvider } from '../context/AuthContext';
+import LegalPage from '../pages/LegalPage';
 import Login from '../pages/Login';
 import Signup from '../pages/Signup';
 import FindEmail from '../pages/FindEmail';
@@ -228,6 +229,12 @@ function AppContent() {
             element={<RecipeDetail />} 
           />
           
+          {/* 개인정보처리방침 · 이용약관.
+              앱 안에 둔다 — 구글 로그인 동의 화면이 이 주소를 요구하고,
+              바깥(블로그 등)에 두면 무엇을 모으는지 바뀌었을 때 한쪽만 고쳐진다. */}
+          <Route path="/privacy" element={<LegalPage />} />
+          <Route path="/terms" element={<LegalPage />} />
+
           {/* 이번 주 식단 + 장보기 목록.
               장보기 목록은 식단에서 나오므로 한 화면에 둔다 — 나누면 사용자가
               같은 걸 두 번 정하게 된다. */}

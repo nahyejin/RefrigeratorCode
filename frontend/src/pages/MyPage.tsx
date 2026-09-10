@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import ContactBox from '../components/ContactBox';
 import CloseButton from '../components/ui/CloseButton';
 import Toast from '../components/Toast';
 import IngredientLegend from '../components/IngredientLegend';
@@ -1806,6 +1807,10 @@ const MyPage: React.FC = () => {
                   변경 적용
                 </button>
               </div>
+
+              {/* 개발자에게 말 거는 자리. 회원탈퇴 바로 위에 둔다 —
+                  「그만 쓸까」 하는 순간이 「말이나 해 볼까」 하는 순간이기도 하다. */}
+              <ContactBox />
 
               {/* 회원탈퇴 버튼 */}
               <div className="mt-6 pt-4 text-center">
