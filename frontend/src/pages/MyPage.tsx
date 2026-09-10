@@ -607,6 +607,31 @@ const MyPage: React.FC = () => {
     window.scrollTo(0, 0);
   }, []);
   const [editOpen, setEditOpen] = useState(false);
+  /**
+   * '내 정보 수정' 모달의 높이 상한을 **CSS 단위가 아니라 JS 로 잰 값**으로 둔다.
+   *
+   * `dvh`(그리고 대비값 `vh`)로 뒀었는데, 아이폰 크롬에서 "더 필요해요" 를 눌러
+   * 크레딧 카드 안 내용이 늘어나면 모달 아래쪽이 화면 밖으로 잘려 보였다
+   * (실사용 보고). 모달의 바깥 껍데기는 `position: fixed; inset: 0` 이라
+   * **실제 보이는 화면**을 정확히 따르는데, `dvh` 값이 iOS WebKit 에서 그
+   * 크기와 항상 같이 움직이지는 않아 max-height 계산이 어긋난 것으로 보인다.
+   * `window.innerHeight` 는 리사이즈/방향전환 이벤트로 실제 보이는 높이를
+   * 직접 재므로 더 믿을 수 있다.
+   */
+  const [viewportH, setViewportH] = useState<number>(
+    () => (typeof window !== 'undefined' ? window.innerHeight : 800)
+  );
+  useEffect(() => {
+    if (!editOpen) return;
+    const update = () => setViewportH(window.innerHeight);
+    update();
+    window.addEventListener('resize', update);
+    window.addEventListener('orientationchange', update);
+    return () => {
+      window.removeEventListener('resize', update);
+      window.removeEventListener('orientationchange', update);
+    };
+  }, [editOpen]);
   const [user, setUser] = useState<User>(() => {
     // 로그인한 사용자가 있으면 실제 정보 사용, 없으면 더미 데이터
     if (authUser) {
@@ -1610,16 +1635,17 @@ const MyPage: React.FC = () => {
           }}
         >
           {/*
-            높이 기준을 `90vh` 에서 `dvh` 로 바꿨다.
-            모바일 브라우저의 `vh` 는 **주소창이 사라진 상태**의 높이라서,
-            주소창이 보이는 동안에는 모달이 실제 화면보다 길어진다. 그래서
-            아래쪽 내용(문의 창구·회원탈퇴)이 화면 밖으로 밀려나 손이 닿지
-            않았다. `dvh` 는 지금 실제로 보이는 높이를 따른다.
-            `vh` 는 `dvh` 를 모르는 옛 브라우저를 위한 대비책으로 남겨 둔다.
+            높이 상한은 `viewportH`(JS 로 잰 `window.innerHeight`)의 90% 로 둔다.
+            `dvh`/`vh` 같은 CSS 뷰포트 단위를 썼었는데, 아이폰 크롬에서
+            "더 필요해요" 로 크레딧 카드 내용이 늘어나면 모달 아래쪽이 화면 밖으로
+            잘려 보였다(실사용 보고) — `dvh` 계산이 이 모달의 실제 컨테이너
+            (`fixed inset-0`, 늘 정확히 화면과 같다)와 어긋난 것으로 보인다.
+            `max-h-[90vh]` 클래스는 JS 가 아직 못 돈 첫 페인트 순간의 대비책으로
+            남겨 둔다.
           */}
-          <div 
-            className="bg-white rounded-xl shadow-lg w-[370px] max-w-[95vw] relative max-h-[90vh] overflow-y-auto scrollbar-none" 
-            style={{ scrollbarWidth: 'none', maxHeight: 'min(90dvh, 100%)' }} 
+          <div
+            className="bg-white rounded-xl shadow-lg w-[370px] max-w-[95vw] relative max-h-[90vh] overflow-y-auto scrollbar-none"
+            style={{ scrollbarWidth: 'none', maxHeight: Math.round(viewportH * 0.9) }}
             onClick={e => e.stopPropagation()}
           >
             <div className="sticky top-0 left-0 right-0 z-20 bg-white border-b border-gray-200 rounded-t-xl w-full" style={{minHeight: 56, paddingTop: 18, paddingBottom: 8}}>
