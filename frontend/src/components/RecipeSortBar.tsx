@@ -99,12 +99,29 @@ const STYLES = {
     marginBottom: 18,
     width: '100%',
     marginTop: 24,
-    flexWrap: 'nowrap' as const
+    // 「필터」는 늘 오른쪽 위 제자리에 있어야 찾을 수 있다. 줄바꿈은 왼쪽
+    // 묶음 안에서만 일어나게 두고(아래 `buttonGroup`), 이 줄 자체는 안 접는다.
+    flexWrap: 'nowrap' as const,
   },
+  /**
+   * 세 버튼(매칭도·임박 재료·정렬)은 조건이 붙으면 배지만큼 넓어진다.
+   * 매칭도에 구간과 「부족 N개」가 둘 다 걸리면 한 줄에 다 못 들어가서,
+   * **오른쪽 끝의 「필터」가 화면 밖으로 밀려났다**(372px vs 335px).
+   *
+   * 가로 스크롤로 밀어 두는 방법도 있었지만, 이 묶음 안에 정렬 드롭다운이
+   * 들어 있다 — `overflow-x` 를 주면 세로도 `visible` 이 아니게 되어(CSS 규칙)
+   * 펼친 목록이 잘린다. 그래서 **넘치면 이 묶음 안에서 줄을 바꾼다**.
+   * 밀려 내려가는 건 정렬 칸이고, 「필터」는 오른쪽 위 제자리에 남는다.
+   * 평소엔 한 줄 그대로다.
+   */
   buttonGroup: {
     display: 'flex' as const,
     alignItems: 'center' as const,
-    gap: 6
+    gap: 5,
+    rowGap: 6,
+    flexWrap: 'wrap' as const,
+    flex: '1 1 auto' as const,
+    minWidth: 0,
   },
   button: {
     height: 40,
@@ -131,7 +148,10 @@ const STYLES = {
   },
   selectContainer: {
     position: 'relative' as const,
-    minWidth: 100,
+    // 고정 100px 이었다. 안의 글자는 67px 뿐이라 30px 남짓이 그냥 비어 있었고,
+    // 그 여백 때문에 조건 배지가 하나만 붙어도 줄이 **2px** 모자라 접혔다.
+    // 내용에 맞춰 잡는다.
+    minWidth: 0,
     overflow: 'visible' as const,
     zIndex: 10
   },
@@ -140,7 +160,7 @@ const STYLES = {
     border: '1px solid #D2D2D8',
     borderRadius: 6,
     fontSize: 13,
-    padding: '0 22px 0 8px',
+    padding: '0 20px 0 8px',
     fontWeight: 600,
     background: '#FFFFFF',
     color: '#1A1A1E',
@@ -165,15 +185,33 @@ const STYLES = {
     color: '#9A9AA2',
     marginLeft: 'auto'
   },
-  /** 버튼 밑에 붙는 조건 요약. 라벨보다 작고 옅게 — 읽히되 앞서지 않게. */
+  /**
+   * 버튼 밑에 붙는 조건 요약.
+   *
+   * 처음엔 회색 잔글씨였는데, 「매칭도 / 20~80%」 처럼 라벨 밑에 글씨가
+   * 한 줄 더 있으니 **그것도 버튼 이름의 일부**로 읽혔다. 설정해 둔 값인지
+   * 원래 그렇게 쓰여 있는 건지 구분이 안 된다.
+   *
+   * 필터 버튼은 이미 노란 배지 안에 숫자를 넣어 「내가 걸어 둔 것」 임을
+   * 말하고 있었다. 같은 말을 두 가지 방식으로 할 이유가 없어, 여기도 같은
+   * 배지로 통일한다. 자리는 그대로 버튼 안 하단.
+   */
   buttonNote: {
+    display: 'inline-block',
+    height: 15,
+    padding: '0 6px',
+    borderRadius: 9999,
+    background: '#FFD600',
+    color: '#1A1A1E',
     fontSize: 10,
-    fontWeight: 600 as const,
-    lineHeight: '11px',
-    color: '#6A6A73',
-    marginTop: 1,
+    fontWeight: 800 as const,
+    lineHeight: '15px',
+    letterSpacing: '-0.2px',
+    marginTop: 2,
+    whiteSpace: 'nowrap' as const,
   },
   filterButton: {
+    flexShrink: 0 as const,
     height: 40,
     border: 'none',
     borderRadius: 999,
@@ -549,13 +587,16 @@ const RecipeSortBar = ({
    * 작게 적는다. 걸린 게 없으면 아무것도 안 적는다 — 늘 뭔가 쓰여 있으면
    * 그게 다시 배경이 된다.
    */
-  const matchSummary = useMemo(() => {
+  const matchSummaryParts = useMemo(() => {
     const parts: string[] = [];
     const [lo, hi] = matchRange || [0, 100];
     if (lo > 0 || hi < 100) parts.push(hi >= 100 ? `${lo}%↑` : `${lo}~${hi}%`);
     if (maxLack !== 'unlimited') parts.push(`부족 ${maxLack}개`);
-    return parts.join(' · ');
+    return parts;
   }, [matchRange, maxLack]);
+
+  /** 읽어 주는 기계용(aria) — 화면에는 위 배열을 배지로 그린다. */
+  const matchSummary = useMemo(() => matchSummaryParts.join(' · '), [matchSummaryParts]);
 
   /** 필터 팝업이 잡고 있는 조건이 몇 개나 켜져 있나. */
   const filterCount = useMemo(() => {
@@ -693,7 +734,13 @@ const RecipeSortBar = ({
                 <span aria-hidden="true" style={{ marginRight: 4 }}>%</span>
                 매칭도
               </span>
-              {matchSummary && <span style={STYLES.buttonNote}>{matchSummary}</span>}
+              {matchSummaryParts.length > 0 && (
+                <span style={{ display: 'flex', gap: 3, marginTop: 2 }}>
+                  {matchSummaryParts.map(part => (
+                    <span key={part} style={{ ...STYLES.buttonNote, marginTop: 0 }}>{part}</span>
+                  ))}
+                </span>
+              )}
             </span>
           </button>
           <button
