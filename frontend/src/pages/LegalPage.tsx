@@ -44,7 +44,7 @@ const UPDATED_AT = '2026-09-10';
  * 적어 두면 한쪽만 바뀌어 서로 다른 연락처가 된다.
  */
 const OPERATOR = {
-  name: '(운영자 이름)',
+  name: '나혜진',
   instagram: CONTACT.instagram,
   email: CONTACT.email,
 };

@@ -94,7 +94,9 @@ interface RecipeSortBarProps {
 const STYLES = {
   container: {
     display: 'flex' as const,
-    alignItems: 'center' as const,
+    // 왼쪽 묶음이 두 줄이 되면 「필터」가 두 줄 **사이**에 붕 떠 보였다.
+    // 위로 붙여 첫 줄과 나란히 놓는다 — 필터의 자리는 늘 오른쪽 위다.
+    alignItems: 'flex-start' as const,
     gap: 6,
     marginBottom: 18,
     width: '100%',
