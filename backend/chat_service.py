@@ -3,6 +3,7 @@ import json
 import os
 import re
 import threading
+import time
 from collections import Counter
 from datetime import datetime, timedelta, timezone
 
@@ -926,6 +927,12 @@ def handle_chat(get_db):
 
     import usage_quota
 
+    # 응답이 느리다는 실사용 보고(30초 이상)가 있었다. 구조상 LLM을 최대 두 번
+    # 부르는데(검색어 뽑기 → 후보 재정렬), 어느 쪽이 오래 걸리는지 지금은 로그로도
+    # 알 수 없었다. 시간을 재서 남긴다 — 다음에 느릴 때 여기 로그만 보면
+    # "두 번째 호출이 오래 걸렸다" 처럼 원인을 바로 알 수 있다. 동작은 안 바뀐다.
+    t_start = time.time()
+
     body = request.get_json(silent=True) or {}
     quota_user_id, quota_device_id = usage_quota.caller_identity()
     usage = None
@@ -1044,10 +1051,12 @@ def handle_chat(get_db):
 
         try:
             prompt = _build_prompt(messages, ingredients, last_turn, expiry_days)
+            t_llm1 = time.time()
             if provider == 'gemini':
                 raw = _call_gemini(api_key, prompt)
             else:
                 raw = _call_groq(api_key, prompt)
+            print(f"[chat][timing] 1차 호출(검색어 뽑기) {time.time() - t_llm1:.2f}초", flush=True)
             # 실제로 쓴 토큰을 원장 행에 붙인다 (크레딧 환산이 맞는지 나중에 검증용)
             if usage:
                 usage_quota.attach_tokens(get_db, usage.get('usage_id'))
@@ -1088,6 +1097,7 @@ def handle_chat(get_db):
             parsed['reply'] = '취향 기준으로 레시피를 찾아봤어요. 아래 글을 눌러 보세요.'
 
     if parsed['recipe_search']:
+        t_search = time.time()
         recipes = _search_recipes(
             get_db,
             parsed['keywords'],
@@ -1146,11 +1156,15 @@ def handle_chat(get_db):
         # 빈 배열이 오면 그대로 둔다 — "맞는 게 없다" 도 답이다. 억지로 채우면
         # 「아이가 먹을 음식」에 아이스크림을 내놓던 예전으로 돌아간다.
         # 호출이 깨졌을 때만(None) 예전 순서로 간다.
+        print(f"[chat][timing] 검색(재시도 포함) {time.time() - t_search:.2f}초, 후보 {len(recipes)}건", flush=True)
         if recipes:
             common = _load_common_ingredients(get_db)
+            t_llm2 = time.time()
             ranked = _rerank_with_llm(last_user, recipes, provider, api_key,
                                       want=SEARCH_LIMIT, my_ingredients=ingredients,
                                       common=common)
+            print(f"[chat][timing] 2차 호출(후보 재정렬, {len(recipes)}건 대상) "
+                  f"{time.time() - t_llm2:.2f}초", flush=True)
             recipes = (_spread_ingredients(recipes, want=SEARCH_LIMIT, common=common)
                        if ranked is None else ranked)
     else:
@@ -1231,6 +1245,7 @@ def handle_chat(get_db):
         last_turn_record = last_turn
     _remember(session_id, stored, last_turn_record)
 
+    print(f"[chat][timing] 전체 {time.time() - t_start:.2f}초", flush=True)
     return jsonify({
         'reply': parsed['reply'],
         'recipes': recipes,
