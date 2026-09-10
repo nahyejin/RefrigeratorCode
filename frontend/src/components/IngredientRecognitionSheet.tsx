@@ -239,16 +239,16 @@ const RecognitionLoading: React.FC<{ photoCount?: number }> = ({ photoCount }) =
   <StepLoading
     steps={[
       '사진을 보내는 중이에요',
-      '글자와 재료를 훑어보는 중이에요',
-      '재료 이름을 골라내는 중이에요',
-      '재료 사전과 맞춰 보는 중이에요',
+      '글자를 읽는 중이에요',
+      '재료 이름을 고르는 중이에요',
+      '사전과 맞춰 보는 중이에요',
     ]}
     note={
       photoCount && photoCount > 1
-        ? `사진 ${photoCount}장을 함께 읽고 있어요. 보통 10초쯤 걸려요.`
-        : '보통 5~10초쯤 걸려요.'
+        ? `사진 ${photoCount}장을 읽는 중이에요`
+        : '보통 5~10초 걸려요'
     }
-    lastNote="사진이 여러 장이면 조금 더 걸려요. 그대로 두시면 됩니다."
+    lastNote="조금만 더 기다려 주세요"
   />
 );
 
