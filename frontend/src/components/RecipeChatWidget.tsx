@@ -7,6 +7,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import StepLoading from './StepLoading';
 import { getProxiedImageUrl } from '../utils/imageUtils';
 import CloseButton from './ui/CloseButton';
+import { openCookMode } from '../utils/cookMode';
 
 const API_BASE_URL =
   (import.meta.env && import.meta.env.VITE_API_BASE_URL) ||
@@ -711,13 +712,27 @@ const RecipeChatWidget: React.FC = () => {
                     {!msg.typing && msg.recipes && msg.recipes.length > 0 && (
                       <div className="mt-2 space-y-2">
                         {msg.recipes.map((recipe) => (
-                          <a
+                          <div
                             key={recipe.id}
-                            href={recipe.link}
-                            target="_blank"
-                            rel="noreferrer"
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => {
+                              track('recipe_open', String(recipe.id));
+                              openCookMode({
+                                id: recipe.id,
+                                title: recipe.title,
+                                link: recipe.link,
+                                myIngredients: getFridgeItems().map(i => i.name),
+                              });
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                (e.currentTarget as HTMLElement).click();
+                              }
+                            }}
                             className="flex gap-2 items-center bg-white border border-gray-200 rounded-xl overflow-hidden"
-                            style={{ textDecoration: 'none' }}
+                            style={{ textDecoration: 'none', cursor: 'pointer' }}
                           >
                             {recipe.thumbnail ? (
                               <img
@@ -756,7 +771,7 @@ const RecipeChatWidget: React.FC = () => {
                                 </span>
                               </div>
                             </div>
-                          </a>
+                          </div>
                         ))}
                       </div>
                     )}

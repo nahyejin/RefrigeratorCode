@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 import sys as _sys
 _sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from db_env import db_settings as _db_settings
+from cleanup_orphaned_user_recipes import cleanup_with_cursor
 
 # DB 연결
 db_config = {**_db_settings(), 'charset': 'utf8mb4',
@@ -85,7 +86,15 @@ try:
     cursor.execute(query)
     deleted = cursor.rowcount
     conn.commit()
-    
+
+    # 지운 레시피를 가리키던 즐겨찾기·기록·완료도 같이 지운다.
+    # (recipe_id 에는 외래키가 없어 레시피만 지우면 고아 행이 남는다)
+    removed = cleanup_with_cursor(cursor)
+    conn.commit()
+    total_removed = sum(removed.values())
+    if total_removed:
+        print(f"   딸려 있던 사용자 데이터(즐겨찾기·기록·완료) {total_removed}건도 정리했습니다.")
+
     # 결과 확인
     cursor.execute("SELECT COUNT(*) as total FROM recipes")
     total_after = cursor.fetchone()['total']

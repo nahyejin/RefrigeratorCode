@@ -1,6 +1,18 @@
 import React from 'react';
 import Sheet from './ui/Sheet';
 import PlanThisDay from './PlanThisDay';
+import Toast from './Toast';
+import { useAuth } from '../context/AuthContext';
+import {
+  getRecipeActionState,
+  addRecipeToLocalStorage,
+  removeRecipeFromLocalStorage,
+  copyRecipeUrlToClipboard,
+} from '../utils/recipeStorage';
+import type { Recipe, RecipeActionState } from '../types/recipe';
+import 완료하기버튼 from '../assets/완료하기버튼.png';
+import 기록하기버튼 from '../assets/기록하기버튼.png';
+import 공유하기버튼 from '../assets/공유하기버튼.png';
 
 /**
  * 요리 모드 — 원문으로 나가지 않고 앱 안에서 조리 순서를 본다.
@@ -83,6 +95,102 @@ const CookModeSheet: React.FC<Props> = ({
   const [at, setAt] = React.useState<number>(-1);
   const [speed, setSpeed] = React.useState<number>(loadSpeed);
   const [speedOpen, setSpeedOpen] = React.useState(false);
+
+  // ── 즐겨찾기·완료·기록·공유 ──────────────────────────────────
+  // 일반 레시피 카드에서 누르면 나오는 것과 같은 네 버튼을 여기도 둔다.
+  // 이 시트는 챗봇·AI 식단·캘린더 등 카드가 없는 자리에서도 열리므로,
+  // "카드에서만 되던 동작"이 이 시트 안에서는 막혀 있으면 안 된다.
+  const { isLoggedIn, user } = useAuth();
+  const [actionState, setActionState] = React.useState<RecipeActionState>({
+    done: false, write: false, favorite: false, share: false,
+  });
+  const [toast, setToast] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (isOpen && recipeId != null) setActionState(getRecipeActionState(recipeId));
+  }, [isOpen, recipeId]);
+
+  React.useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 1600);
+    return () => clearTimeout(t);
+  }, [toast]);
+
+  const syncActionToServer = React.useCallback(
+    async (type: 'favorite' | 'done' | 'write', id: number, remove = false) => {
+      if (!isLoggedIn || !user?.id) return;
+      const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+      if (!token) return;
+      const endpoint =
+        type === 'favorite' ? 'favorite-recipes'
+        : type === 'done' ? 'completed-recipes'
+        : 'recorded-recipes';
+      try {
+        await fetch(
+          `${API_BASE_URL}/api/users/${user.id}/${endpoint}${remove ? '/' + id : ''}`,
+          remove
+            ? { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }
+            : {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ recipe_id: id }),
+              },
+        );
+      } catch (e) {
+        console.error(`[CookModeSheet] ${type} 서버 반영 실패:`, e);
+      }
+    },
+    [isLoggedIn, user?.id],
+  );
+
+  /** 로컬 저장 함수들이 기대하는 모양으로 채운다 — 빈 칸은 목록 화면들의 normalizeRecipe 와 같은 방식으로 기본값을 둔다. */
+  const asStorageRecipe = React.useCallback((): Recipe => ({
+    id: recipeId as number,
+    title: data?.title || fallbackTitle || '',
+    body: '', content: '', description: '',
+    author: data?.author || '',
+    date: '',
+    thumbnail: (data as any)?.thumbnail || '',
+    link: data?.link || fallbackLink || '',
+    platform: (data?.platform as any) || 'naver',
+    channel: (data?.platform as any) || 'naver',
+    used_ingredients: (data?.ingredients || []).join(','),
+    likes: 0, comments: 0, like_count: 0, comment_count: 0,
+    created_at: '', updated_at: '',
+  } as Recipe), [recipeId, data, fallbackTitle, fallbackLink]);
+
+  const toggleAction = (type: 'favorite' | 'done' | 'write') => {
+    if (recipeId == null) return;
+    const isActive = actionState[type];
+    if (!isActive) {
+      addRecipeToLocalStorage(type, asStorageRecipe());
+      void syncActionToServer(type, recipeId);
+      setActionState(prev => ({ ...prev, [type]: true }));
+      setToast(
+        type === 'favorite' ? '즐겨찾기에 추가했습니다!'
+        : type === 'done' ? '레시피를 완료했습니다!'
+        : '레시피를 기록했습니다!'
+      );
+    } else {
+      removeRecipeFromLocalStorage(type, recipeId);
+      void syncActionToServer(type, recipeId, true);
+      setActionState(prev => ({ ...prev, [type]: false }));
+      setToast(
+        type === 'favorite' ? '즐겨찾기를 취소했습니다'
+        : type === 'done' ? '완료를 취소했습니다'
+        : '기록을 취소했습니다'
+      );
+    }
+  };
+
+  const handleShare = () => {
+    try {
+      copyRecipeUrlToClipboard(asStorageRecipe());
+      setToast('URL이 복사되었습니다!');
+    } catch {
+      setToast('URL 복사에 실패했습니다.');
+    }
+  };
 
   /**
    * 읽는 중에 배속을 바꾸면 **그 자리에서 다시 읽어야 한다.**
@@ -197,6 +305,63 @@ const CookModeSheet: React.FC<Props> = ({
   return (
     <Sheet open={isOpen} onClose={() => { stopSpeaking(); onClose(); }}
            title={data?.title || fallbackTitle || '레시피'} maxHeight="88dvh" hideFooter>
+      {/* 즐겨찾기·완료·기록·공유 — 일반 레시피 카드에 있는 것과 같은 네 버튼.
+          시트 헤더(제목 + 닫기 ×)는 공용 컴포넌트라 손대지 않고, 본문 맨 위
+          우측에 같은 자리를 만든다. */}
+      {recipeId != null && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginBottom: 14 }}>
+          {([
+            { key: 'favorite' as const, label: '즐겨찾기', on: actionState.favorite },
+            { key: 'done' as const, label: '완료', on: actionState.done, icon: 완료하기버튼 },
+            { key: 'write' as const, label: '기록', on: actionState.write, icon: 기록하기버튼 },
+          ]).map(({ key, label, on, icon }) => (
+            <button
+              key={key}
+              type="button"
+              title={label}
+              aria-label={label}
+              aria-pressed={on}
+              onClick={() => toggleAction(key)}
+              style={{
+                width: 30, height: 30, borderRadius: 9999, border: 'none',
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                background: on ? '#FFD600' : 'var(--surface-sub)', cursor: 'pointer',
+              }}
+            >
+              {key === 'favorite' ? (
+                <svg width={17} height={17} viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    d="M12 2.75l2.72 5.51 6.08.88-4.4 4.29 1.04 6.05L12 16.62 6.56 19.48l1.04-6.05-4.4-4.29 6.08-.88L12 2.75z"
+                    fill={on ? '#1A1A1E' : 'none'}
+                    stroke="#1A1A1E"
+                    strokeWidth="1.7"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              ) : (
+                <img src={icon} alt="" width={17} height={17}
+                     style={{ filter: on ? 'none' : 'brightness(0) saturate(0) opacity(0.55)' }} />
+              )}
+            </button>
+          ))}
+          <button
+            type="button"
+            title="공유"
+            aria-label="공유"
+            onClick={handleShare}
+            style={{
+              width: 30, height: 30, borderRadius: 9999, border: 'none',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              background: 'var(--surface-sub)', cursor: 'pointer',
+            }}
+          >
+            <img src={공유하기버튼} alt="" width={17} height={17}
+                 style={{ filter: 'brightness(0) saturate(0) opacity(0.55)' }} />
+          </button>
+        </div>
+      )}
+      {toast && <Toast message={toast} />}
+
       {loading && (
         <div style={{ padding: '28px 0', textAlign: 'center', color: 'var(--ink-500)', fontSize: 14 }}>
           불러오는 중이에요...

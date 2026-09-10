@@ -31,6 +31,8 @@ from datetime import datetime
 
 import pymysql
 
+from cleanup_orphaned_user_recipes import cleanup_with_cursor
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # 재료 개수 = 콤마 개수 + 1. 빈 값은 0 으로 본다.
@@ -127,6 +129,13 @@ def main():
             cursor.execute(f"DELETE FROM recipes WHERE id IN ({marks})", tuple(chunk))
             removed += cursor.rowcount
         conn.commit()
+
+        # 지운 레시피를 가리키던 즐겨찾기·기록·완료도 같이 지운다.
+        orphans = cleanup_with_cursor(cursor)
+        conn.commit()
+        total_orphans = sum(orphans.values())
+        if total_orphans:
+            print(f"딸려 있던 사용자 데이터(즐겨찾기·기록·완료) {total_orphans}건도 정리했습니다.")
     finally:
         conn.close()
 

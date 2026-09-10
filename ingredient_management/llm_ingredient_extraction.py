@@ -887,6 +887,17 @@ def run(*, limit, start_after_id, order, output_path, commit, rpm, concurrency, 
 
         if commit and since_commit > 0:
             write_conn.commit()
+
+        # 방금 지운 레시피를 가리키던 즐겨찾기·기록·완료가 남지 않게 한다.
+        # `recipe_id` 에는 외래키가 없어서(FK 제약 없음) 레시피만 지우면
+        # 화면에는 있는데 눌러도 없는 레시피가 남는다.
+        if commit and deleted_count > 0:
+            from scripts.cleanup_orphaned_user_recipes import cleanup_with_cursor
+            removed = cleanup_with_cursor(write_cursor)
+            write_conn.commit()
+            total_removed = sum(removed.values())
+            if total_removed:
+                print(f"  삭제된 레시피를 가리키던 사용자 데이터 {total_removed}건도 정리했습니다.", flush=True)
     finally:
         if write_cursor:
             write_cursor.close()
