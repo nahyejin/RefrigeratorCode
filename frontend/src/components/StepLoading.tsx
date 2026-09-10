@@ -60,10 +60,18 @@ const StepLoading: React.FC<StepLoadingProps> = ({
           <span className="scan-line" />
         </div>
         <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: '#1A1A1E', lineHeight: 1.45 }}>
+          {/* `wordBreak: 'keep-all'` 이 핵심이다 — 한글은 기본값(`normal`)으로
+              두면 글자 아무 데서나 끊어 줄을 바꾼다("몇 초만" 이 "몇 초/만"
+              처럼 단어 중간에서 잘림). 문구가 짧아야만 안 어색한 게 아니라,
+              **단어 경계에서만 끊기면** 두세 줄이 돼도 자연스럽게 읽힌다.
+              그래서 문구를 억지로 짧게 줄이는 대신 이 속성으로 해결한다 —
+              사용자가 지금 뭘 하고 있는지 자세히 알 수 있는 편이 낫다. */}
+          <div style={{ fontSize: 15, fontWeight: 700, color: '#1A1A1E', lineHeight: 1.5,
+                        wordBreak: 'keep-all', overflowWrap: 'break-word' }}>
             {done ? lastText : steps[step]}
           </div>
-          <div style={{ fontSize: 12.5, color: 'var(--ink-500)', marginTop: 6, lineHeight: 1.6 }}>
+          <div style={{ fontSize: 12.5, color: 'var(--ink-500)', marginTop: 6, lineHeight: 1.6,
+                        wordBreak: 'keep-all', overflowWrap: 'break-word' }}>
             {done ? (lastNote ?? note) : note}
           </div>
         </div>

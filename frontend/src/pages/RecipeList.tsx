@@ -2484,7 +2484,7 @@ const RecipeList: React.FC = () => {
                   '매칭률이 높은 순서로 고르는 중',
                   '거의 다 왔어요',
                 ]}
-                note="다른 화면을 보고 오셔도 돼요"
+                note="다른 화면을 보고 오셔도 돼요. 그동안 준비해 둘게요."
               />
               <RecipeCardSkeleton count={4} hideIndicator />
             </>
