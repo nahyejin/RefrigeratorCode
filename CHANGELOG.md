@@ -10341,3 +10341,9 @@ AI 식단·사진 인식이 쓰는 `StepLoading` 을 그대로 쓴다. 기다림
 - 레시피 카드: 노란 그라디언트 블록 + 앱 아이콘 재사용 대신, 얇은 선 아이콘(그릇) 한 장짜리 중립 톤 썸네일로 교체
 - BGM·나레이션은 아직 없음 — TTS/음원 생성 도구가 없어 사용자가 음원·보이스 파일을 제공하면 믹스하기로 보류
 
+### BGM 추가 (로열티프리)
+- Pixabay에서 로열티프리 트랙 후보를 찾아 사용자에게 미리듣기 링크로 골라달라고 요청 — "Positive Acoustic Guitar with Soft Beat"(JorisVermeer, Pixabay Content License, 출처 표시 불필요, AI 생성 표시 없음) 선택받음
+- Pixabay의 "Download" 버튼은 브라우저 프리뷰 샌드박스에서 실제 파일로 저장되지 않아(다운로드가 격리됨), 재생 중인 `<audio>` 엘리먼트의 실제 CDN 주소(`cdn.pixabay.com/audio/...`)를 찾아 직접 받아옴
+- `my-video/public/bgm_positive_acoustic_guitar.mp3` 로 추가하고 `<Audio>` 컴포넌트로 전체 길이(9초)에 걸어 볼륨 9%(사용자 요청대로 "완전 작게") + 시작/끝 페이드
+- 나레이션은 여전히 없음 — 목소리를 만들 도구가 없어 사용자가 직접 녹음하거나 TTS로 만든 파일을 주면 믹스하기로 함
+

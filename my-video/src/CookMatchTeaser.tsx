@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import {
   AbsoluteFill,
+  Audio,
   Sequence,
   Img,
   staticFile,
@@ -27,6 +28,10 @@ const WHITE = "#FFFFFF";
 
 const TOTAL_RECIPES = 44610; // 지어낸 숫자 아님 — 쿡매치 AD_BRIEF.md 실측치
 
+// BGM: "Positive Acoustic Guitar with Soft Beat" by JorisVermeer (Pixabay, 무료 라이선스, 출처 표시 불필요)
+// https://pixabay.com/music/beats-positive-acoustic-guitar-with-soft-beat-526509/
+const BGM_VOLUME = 0.09;
+
 const useCustomFont = () => {
   const [handle] = useState(() => delayRender("커스텀 폰트 로드"));
   useEffect(() => {
@@ -45,6 +50,15 @@ export const CookMatchTeaser: React.FC = () => {
   useCustomFont();
   return (
     <AbsoluteFill style={{ backgroundColor: WHITE, fontFamily: FONT_FAMILY }}>
+      <Audio
+        src={staticFile("bgm_positive_acoustic_guitar.mp3")}
+        volume={(f) =>
+          interpolate(f, [0, 20, 250, 270], [0, BGM_VOLUME, BGM_VOLUME, 0], {
+            extrapolateLeft: "clamp",
+            extrapolateRight: "clamp",
+          })
+        }
+      />
       <Sequence from={0} durationInFrames={75} name="Hook">
         <SceneHook />
       </Sequence>
