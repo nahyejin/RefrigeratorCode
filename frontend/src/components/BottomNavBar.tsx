@@ -118,7 +118,11 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({ activeTab }) => {
         bottom: 0,
         left: 0,
         right: 0,
-        height: 64,
+        // `height` 가 아니라 `minHeight` 다. 안드로이드 "글자 크기" 를 키우면
+        // 아래 라벨(fontSize 12)의 실제 글자가 커져서, 고정 높이면 탭 밖으로
+        // 넘치거나 위 구분선과 겹친다. 평소에는 콘텐츠가 64px 안에 넉넉히
+        // 들어가므로 지금과 똑같아 보이고, 글자가 커질 때만 자연스럽게 늘어난다.
+        minHeight: 64,
         paddingBottom: 'env(safe-area-inset-bottom)',
         boxSizing: 'content-box',
         background: 'var(--surface)',

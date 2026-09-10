@@ -19,12 +19,19 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
  * (MyPage 18개, RecipeSortBar 10개 …) 높이·색·radius가 제각각이었고,
  * 높이 28~30px 짜리가 많아 터치가 어려웠다.
  * 여기서 정의한 크기만 쓰면 md/lg 는 항상 44px 이상을 보장한다.
+ *
+ * `height` 가 아니라 `minHeight` 다 — 안드로이드 접근성 "글자 크기" 를 키운
+ * 사용자에게는 이 버튼의 실제 글자가 여기 적은 `fontSize` 보다 커진다.
+ * 고정 `height` 면 커진 글자가 위아래로 잘리거나 다음 줄과 겹친다.
+ * `minHeight` + 위아래 패딩(그 값을 채워 지금 크기와 똑같이 보이게 계산해
+ * 둠) 이면 평소엔 지금과 같아 보이고, 글자가 커지면 버튼이 그만큼 늘어나
+ * 줄바꿈까지 받아 낸다.
  */
 const SIZES: Record<ButtonSize, React.CSSProperties> = {
   // sm 은 보조 동작 전용. 단독 터치 대상이면 md 이상을 쓸 것
-  sm: { height: 36, padding: '0 12px', fontSize: 13, borderRadius: 8 },
-  md: { height: 44, padding: '0 16px', fontSize: 15, borderRadius: 10 },
-  lg: { height: 52, padding: '0 20px', fontSize: 16, borderRadius: 12 },
+  sm: { minHeight: 36, padding: '8px 12px', fontSize: 13, borderRadius: 8 },
+  md: { minHeight: 44, padding: '12px 16px', fontSize: 15, borderRadius: 10 },
+  lg: { minHeight: 52, padding: '14px 20px', fontSize: 16, borderRadius: 12 },
 };
 
 const VARIANTS: Record<ButtonVariant, React.CSSProperties> = {
@@ -57,11 +64,16 @@ const Button: React.FC<ButtonProps> = ({
       gap: 6,
       width: block ? '100%' : undefined,
       fontWeight: 600,
-      lineHeight: 1,
+      lineHeight: 1.25,
+      textAlign: 'center',
       cursor: disabled ? 'default' : 'pointer',
       opacity: disabled ? 0.45 : 1,
       transition: 'filter 0.15s ease, transform 0.1s ease',
-      whiteSpace: 'nowrap',
+      // 글자 크기를 키운 사용자를 위해 줄바꿈을 허용한다 — `nowrap` 이면
+      // 커진 글자가 버튼 밖으로 넘치거나 잘린다. 평소 크기에서는 버튼
+      // 하나 폭에 넉넉히 들어가는 문구들이라 줄바꿈이 일어나지 않는다.
+      whiteSpace: 'normal',
+      wordBreak: 'keep-all',
       ...style,
     }}
     onMouseDown={(e) => {
