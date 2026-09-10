@@ -388,6 +388,39 @@ def loses_distinction(alias_name, keyword):
     return None
 
 
+# **새 대표어에 브랜드·성분 표시가 그대로 남았는지 마지막에 한 번 더 본다.**
+#
+# 프롬프트에 규칙을 적어도 LLM 이 가끔 어긴다(2026-09-10, `동원 7겹돈까스` ·
+# `저당 바닐라시럽` · `조청(물엿)` 류가 실제로 그대로 들어간 적이 있다).
+# 프롬프트만 믿지 않고, 결과로 나온 `keyword` 자체를 규칙으로 다시 거른다 —
+# 이러면 모델이 규칙을 잊어도 사전에는 안 들어간다.
+_BRAND_NAMES = (
+    "동원", "비비고", "목우촌", "오뚜기", "청정원", "대상", "풀무원", "농심", "해태", "롯데",
+    "하림", "사조", "삼양", "종가집", "샘표", "매일", "서울우유", "남양", "빙그레",
+    "오리온", "코스트코", "이마트", "노브랜드", "아워홈", "더미식", "하인즈", "새미네부엌",
+    "하이디라오", "컵누들", "CJ",
+)
+_COMPOSITION_PREFIXES = (
+    "저당", "무가당", "저염", "무염", "저지방", "무지방", "제로", "라이트",
+    "고단백", "저칼로리", "논알콜", "무알콜", "저나트륨",
+)
+
+
+def polluted_keyword_reason(keyword):
+    """`keyword` 자체에 브랜드·성분 표시·괄호가 남아 있으면 그 이유를, 없으면 None."""
+    k = (keyword or "").strip()
+    if not k:
+        return None
+    if "(" in k or ")" in k:
+        return "괄호가 대표어에 그대로 남음"
+    if any(k.replace(" ", "").startswith(p) for p in _COMPOSITION_PREFIXES):
+        return "성분·영양 표시가 대표어에 그대로 남음"
+    for b in _BRAND_NAMES:
+        if b in k:
+            return f"브랜드명('{b}')이 대표어에 그대로 남음"
+    return None
+
+
 def suggest(names, force_decision=None):
     """선택된 이름들에 대한 처리 제안. **쓰지는 않는다** — 사람이 승인해야 반영된다.
 
@@ -517,6 +550,17 @@ def suggest(names, force_decision=None):
                         item["reason"] = "제안한 분류가 사전에 없는 조합이라 건너뜀"
             elif not keyword:
                 keyword = name
+
+            # 사람이 "이건 새 재료야" 라고 강제한 경우는 그 판단을 존중한다 —
+            # 여기서 걸러 skip 으로 바꾸면 사람이 고른 게 조용히 사라진 것처럼 보인다.
+            if not force_decision:
+                pollution = polluted_keyword_reason(keyword)
+                if pollution:
+                    decision = "skip"
+                    keyword = ""
+                    for col in ("중분류", "소분류", "세분류", "세세분류"):
+                        item[col] = ""
+                    item["reason"] = pollution
 
         entry = {
             "raw": name,
