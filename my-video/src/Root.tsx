@@ -1,5 +1,5 @@
 import "./index.css";
-import { Composition, Folder } from "remotion";
+import { Composition } from "remotion";
 import { CookMatchTeaser } from "./CookMatchTeaser";
 
 export const RemotionRoot: React.FC = () => {
@@ -13,7 +13,6 @@ export const RemotionRoot: React.FC = () => {
         width={1080}
         height={1920}
       />
-      <Folder name="NewFolder" />
     </>
   );
 };
