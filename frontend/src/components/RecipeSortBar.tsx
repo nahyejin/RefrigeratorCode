@@ -133,11 +133,19 @@ const STYLES = {
     // (`minWidth` 만 있고 `width` 고정은 없어서 넓어질 수 있다). 부모
     // `buttonGroup` 이 `flexWrap: wrap` 이라 한 줄이 다 차면 행 자체가
     // 다음 줄로 넘어간다.
+    //
+    // 패딩은 **가로만** 준다(세로 없음). 매칭도 버튼은 배지(부족 개수 등)가
+    // 붙으면 라벨 밑에 한 줄이 더 생기는데, 세로 패딩을 더했더니 그 버튼만
+    // 40px 를 넘어 커져서 임박 재료·정렬·필터 버튼과 높이가 달라져 줄이
+    // 들쭉날쭉해 보였다("버튼들이 다 따로 논다" — 실사용 보고). 라벨만 있을
+    // 때도 배지가 있을 때도 세로 방향 여유(32~34px)가 이미 minHeight(40px)
+    // 안에 들어오므로, 세로 패딩 없이 `alignItems: center` 만으로 가운데
+    // 정렬하면 항상 정확히 40px 로 맞는다.
     minHeight: 40,
     border: '1px solid #D2D2D8',
     borderRadius: 6,
     fontSize: 13,
-    padding: '10px 8px',
+    padding: '0 8px',
     fontWeight: 600,
     background: '#FFFFFF',
     color: '#1A1A1E',
@@ -165,11 +173,13 @@ const STYLES = {
     zIndex: 10
   },
   select: {
+    // `button` 과 같은 이유로 세로 패딩은 안 준다 — 매칭도/임박 재료와
+    // 같은 줄에서 높이가 달라 보이지 않게.
     minHeight: 40,
     border: '1px solid #D2D2D8',
     borderRadius: 6,
     fontSize: 13,
-    padding: '8px 20px 8px 8px',
+    padding: '0 20px 0 8px',
     fontWeight: 600,
     background: '#FFFFFF',
     color: '#1A1A1E',
@@ -221,11 +231,13 @@ const STYLES = {
   },
   filterButton: {
     flexShrink: 0 as const,
+    // 세로 패딩 없음 — 매칭도/임박 재료/정렬과 같은 높이(40px)로 맞추려는
+    // 이유는 위 `button` 항목 설명과 같다.
     minHeight: 40,
     border: 'none',
     borderRadius: 999,
     fontSize: 13,
-    padding: '10px 14px',
+    padding: '0 14px',
     fontWeight: 700,
     background: '#1A1A1E',
     color: '#FFFFFF',
