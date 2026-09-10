@@ -23,11 +23,12 @@ const PopupHeader: React.FC<PopupHeaderProps> = ({ title, onClose, leading, divi
   <div
     style={{
       position: 'relative',
-      height: 52,
+      minHeight: 52,
+      padding: '8px 52px',
+      boxSizing: 'border-box',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: '0 52px',
       borderBottom: divider ? '1px solid var(--line-200)' : 'none',
       flexShrink: 0,
     }}

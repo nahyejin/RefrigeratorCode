@@ -1424,7 +1424,7 @@ const MyPage: React.FC = () => {
             type="button"
             onClick={() => navigate('/admin')}
             style={{
-              width: '100%', height: 46, borderRadius: 14,
+              width: '100%', minHeight: 46, borderRadius: 14,
               border: '1px solid var(--line-200)', background: 'var(--surface)',
               fontSize: 14, fontWeight: 700, color: 'var(--ink-900)', cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -1472,7 +1472,7 @@ const MyPage: React.FC = () => {
                 type="button"
                 onClick={() => setHouseholdViewMode(key)}
                 style={{
-                  height: 40, padding: '0 14px', background: 'transparent',
+                  minHeight: 40, padding: '12px 14px', background: 'transparent',
                   border: 'none', marginBottom: -1, position: 'relative',
                   fontSize: 14, fontWeight: on ? 700 : 500,
                   color: on ? '#1A1A1E' : 'var(--ink-500)', cursor: 'pointer',
@@ -1569,7 +1569,7 @@ const MyPage: React.FC = () => {
           // 나와서, 즐겨찾기로 고르러 왔는데 그 버튼을 다시 찾아 눌러야 했다.
           onClick={() => navigate('/recipe-list', { state: { favoriteOnly: true } })}
           style={{
-            flex: 1, minWidth: 150, height: 40, borderRadius: 10, cursor: 'pointer',
+            flex: 1, minWidth: 150, minHeight: 40, borderRadius: 10, cursor: 'pointer',
             border: '1px solid var(--line-200)', background: 'var(--surface)',
             fontSize: 12.5, fontWeight: 600, color: 'var(--ink-700)',
           }}
@@ -1580,7 +1580,7 @@ const MyPage: React.FC = () => {
           type="button"
           onClick={() => navigate('/cooking-calendar', { state: { mode: 'list' } })}
           style={{
-            flex: 1, minWidth: 150, height: 40, borderRadius: 10, cursor: 'pointer',
+            flex: 1, minWidth: 150, minHeight: 40, borderRadius: 10, cursor: 'pointer',
             border: '1px solid var(--line-200)', background: 'var(--surface)',
             fontSize: 12.5, fontWeight: 600, color: 'var(--ink-700)',
           }}

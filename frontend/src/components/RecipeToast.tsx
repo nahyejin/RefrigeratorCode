@@ -42,8 +42,9 @@ const RecipeToast: React.FC<RecipeToastProps> = ({ message, action }) => (
         onClick={action.onClick}
         style={{
           flexShrink: 0,
-          height: 30,
-          padding: '0 12px',
+          minHeight: 30,
+          padding: '7px 12px',
+          boxSizing: 'border-box',
           borderRadius: 9999,
           border: 'none',
           cursor: 'pointer',

@@ -261,8 +261,8 @@ export default function IngredientDateModal({ type, isOpen, onClose, onComplete,
                 setSelectedDate(d);
               }}
               style={{
-                height: 36,
-                padding: '0 12px',
+                minHeight: 36,
+                padding: '9px 12px',
                 boxSizing: 'border-box',
                 fontSize: 13,
                 fontWeight: 500,

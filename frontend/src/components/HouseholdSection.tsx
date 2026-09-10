@@ -616,8 +616,8 @@ const HouseholdSection: React.FC<HouseholdSectionProps> = ({ onChange }) => {
             maxLength={12}
             style={{
               width: '100%',
-              height: 44,
-              padding: '0 14px',
+              minHeight: 44,
+              padding: '14px 14px',
               borderRadius: 10,
               border: '1px solid var(--line-300)',
               fontSize: 16,

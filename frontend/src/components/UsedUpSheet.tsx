@@ -147,7 +147,7 @@ const UsedUpSheet: React.FC<Props> = ({ recipe, onClose }) => {
                 return next;
               })}
               style={{
-                height: 34, padding: '0 12px', borderRadius: 9999, cursor: 'pointer',
+                minHeight: 34, padding: '9px 12px', borderRadius: 9999, cursor: 'pointer',
                 border: on ? 'none' : '1px solid var(--line-300)',
                 background: on ? '#1A1A1E' : 'var(--surface)',
                 color: on ? '#FFFFFF' : 'var(--ink-700)',
@@ -167,7 +167,7 @@ const UsedUpSheet: React.FC<Props> = ({ recipe, onClose }) => {
           type="button"
           onClick={onClose}
           style={{
-            flex: 1, height: 46, borderRadius: 12,
+            flex: 1, minHeight: 46, borderRadius: 12,
             border: '1px solid var(--line-200)', background: 'var(--surface)',
             fontSize: 14, fontWeight: 700, color: 'var(--ink-700)', cursor: 'pointer',
           }}
@@ -179,7 +179,7 @@ const UsedUpSheet: React.FC<Props> = ({ recipe, onClose }) => {
           onClick={remove}
           disabled={picked.size === 0}
           style={{
-            flex: 1.4, height: 46, borderRadius: 12, border: 'none',
+            flex: 1.4, minHeight: 46, borderRadius: 12, border: 'none',
             background: picked.size ? '#FFD600' : 'var(--line-200)',
             color: picked.size ? '#1A1A1E' : 'var(--ink-500)',
             fontSize: 14, fontWeight: 700,

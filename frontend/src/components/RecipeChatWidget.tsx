@@ -839,9 +839,10 @@ const RecipeChatWidget: React.FC = () => {
                 disabled={loading || !input.trim()}
                 className="text-[15px] font-bold rounded-full flex-shrink-0"
                 style={{
-                  height: 40,
+                  minHeight: 40,
                   minWidth: 56,
-                  padding: '0 14px',
+                  padding: '12px 14px',
+                  boxSizing: 'border-box',
                   background: loading || !input.trim() ? '#E6E6EA' : '#FFD600',
                   color: loading || !input.trim() ? '#9A9AA2' : '#1A1A1E',
                   border: 'none',

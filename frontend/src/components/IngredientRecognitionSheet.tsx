@@ -149,7 +149,7 @@ const DictPicker: React.FC<{
           }}
           placeholder="재료명을 검색하세요"
           style={{
-            flex: 1, height: 40, borderRadius: 8, padding: '0 12px',
+            flex: 1, minHeight: 40, borderRadius: 8, padding: '12px 12px',
             border: '1px solid var(--line-200)', fontSize: 14,
           }}
         />
@@ -157,7 +157,7 @@ const DictPicker: React.FC<{
           type="button"
           onClick={onCancel}
           style={{
-            height: 40, padding: '0 12px', borderRadius: 8,
+            minHeight: 40, padding: '12px 12px', borderRadius: 8,
             border: '1px solid var(--line-200)', background: '#FFFFFF',
             fontSize: 13, color: 'var(--ink-500)', cursor: 'pointer',
           }}
@@ -213,7 +213,7 @@ interface Row {
 
 /** 행 안의 작은 조작 버튼들이 같은 높이·모양을 갖도록 한 곳에 모아 둔다 */
 const chipStyle: React.CSSProperties = {
-  flexShrink: 0, height: 30, padding: '0 8px', borderRadius: 8,
+  flexShrink: 0, minHeight: 30, padding: '7px 8px', borderRadius: 8,
   border: '1px solid var(--line-200)', background: '#FFFFFF',
   fontSize: 12, fontWeight: 600, color: 'var(--ink-700)', cursor: 'pointer',
 };
@@ -372,7 +372,7 @@ const IngredientRecognitionSheet: React.FC<Props> = ({
                 type="button"
                 onClick={() => setDateTarget({ kind: 'purchase', idx: 'all' })}
                 style={{
-                  height: 40, minWidth: 140, borderRadius: 8, padding: '0 12px',
+                  minHeight: 40, minWidth: 140, borderRadius: 8, padding: '12px 12px',
                   border: '1px solid var(--line-200)', background: '#FFFFFF',
                   fontSize: 14, fontWeight: 600, color: '#1A1A1E', cursor: 'pointer',
                 }}
@@ -533,7 +533,7 @@ const IngredientRecognitionSheet: React.FC<Props> = ({
             )
           }
           style={{
-            width: '100%', height: 48, borderRadius: 12, border: 'none',
+            width: '100%', minHeight: 48, borderRadius: 12, border: 'none',
             background: selected.length === 0 ? 'var(--line-200)' : '#FFD600',
             color: selected.length === 0 ? 'var(--ink-500)' : '#1A1A1E',
             fontSize: 15, fontWeight: 700,

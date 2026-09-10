@@ -88,7 +88,7 @@ const Tab: React.FC<{ on: boolean; onClick: () => void; children: React.ReactNod
     onClick={onClick}
     aria-pressed={on}
     style={{
-      height: 36, padding: '0 14px', borderRadius: 9999, cursor: 'pointer',
+      minHeight: 36, padding: '10px 14px', borderRadius: 9999, cursor: 'pointer',
       fontSize: 13.5, fontWeight: on ? 700 : 500,
       background: on ? 'var(--ink-900)' : 'var(--surface)',
       color: on ? '#FFFFFF' : 'var(--ink-700)',

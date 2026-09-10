@@ -22,8 +22,9 @@ const NavTextButton: React.FC<{
   <button
     onClick={onClick}
     style={{
-      height: 36,
-      padding: '0 8px',
+      minHeight: 36,
+      padding: '8px 8px',
+      boxSizing: 'border-box',
       display: 'inline-flex',
       alignItems: 'center',
       fontSize: 13,
@@ -58,7 +59,7 @@ const TopNavBar: React.FC = () => {
         top: 0,
         left: 0,
         right: 0,
-        height: 56,
+        minHeight: 56,
         padding: '0 16px',
         zIndex: 'var(--z-nav)',
         borderBottom: '1px solid var(--line-200)',

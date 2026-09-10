@@ -139,7 +139,7 @@ const ExpiryAlert: React.FC<Props> = ({ boxes, categoryMap, within = SOON_DAYS, 
           }}
           style={{
             alignSelf: 'flex-start',
-            height: 32, padding: '0 12px', borderRadius: 8,
+            minHeight: 32, padding: '8px 12px', borderRadius: 8,
             border: '1px solid var(--line-200)', background: 'var(--surface)',
             fontSize: 12.5, fontWeight: 700, color: 'var(--ink-900)', cursor: 'pointer',
           }}

@@ -457,7 +457,7 @@ const CookModeSheet: React.FC<Props> = ({
                       aria-expanded={speedOpen}
                       aria-label={`읽는 속도 ${speed}배. 눌러서 바꾸기`}
                       style={{
-                        height: 34, padding: '0 11px', borderRadius: 9999,
+                        minHeight: 34, padding: '9px 11px', borderRadius: 9999,
                         border: `1px solid ${speedOpen ? '#1A1A1E' : 'var(--line-300)'}`,
                         background: 'var(--surface)', color: 'var(--ink-900)',
                         fontSize: 13, fontWeight: 700, cursor: 'pointer',
@@ -470,7 +470,7 @@ const CookModeSheet: React.FC<Props> = ({
                       type="button"
                       onClick={() => (speaking ? stopSpeaking() : speakFrom(0))}
                       style={{
-                        height: 34, padding: '0 14px', borderRadius: 9999, border: 'none',
+                        minHeight: 34, padding: '9px 14px', borderRadius: 9999, border: 'none',
                         background: speaking ? '#1A1A1E' : '#FFD600',
                         color: speaking ? '#FFFFFF' : '#1A1A1E',
                         fontSize: 13, fontWeight: 700, cursor: 'pointer',
@@ -521,7 +521,7 @@ const CookModeSheet: React.FC<Props> = ({
                         aria-pressed={on}
                         onClick={() => pickSpeed(v)}
                         style={{
-                          minWidth: 56, height: 42, padding: '0 8px',
+                          minWidth: 56, minHeight: 42, padding: '13px 8px',
                           border: 'none',
                           borderLeft: i === 0 ? 'none' : '1px solid var(--line-200)',
                           background: on ? '#1A1A1E' : 'transparent',
@@ -621,7 +621,8 @@ const CookModeSheet: React.FC<Props> = ({
               onClick={stopSpeaking}
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                height: 46, borderRadius: 12, border: '1px solid var(--line-200)',
+                minHeight: 46, padding: '12px 16px', boxSizing: 'border-box',
+                borderRadius: 12, border: '1px solid var(--line-200)',
                 background: 'var(--surface)', color: 'var(--ink-900)',
                 fontSize: 14, fontWeight: 700, textDecoration: 'none',
               }}

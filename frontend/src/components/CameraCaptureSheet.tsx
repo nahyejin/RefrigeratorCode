@@ -239,7 +239,9 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
         onClick={() => setChoosingForPicker(true)}
         style={{
           width: '100%',
-          height: 40,
+          minHeight: 40,
+          padding: '10px 12px',
+          boxSizing: 'border-box',
           borderRadius: 10,
           border: '1px solid var(--line-200)',
           background: '#FFFFFF',
@@ -294,8 +296,9 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
               alignItems: 'center',
               gap: 12,
               width: '100%',
-              height: 56,
-              padding: '0 14px',
+              minHeight: 56,
+              padding: '10px 14px',
+              boxSizing: 'border-box',
               borderRadius: 12,
               border: '1px solid var(--line-200)',
               background: '#FFFFFF',

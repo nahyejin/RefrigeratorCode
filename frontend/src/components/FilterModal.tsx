@@ -645,8 +645,8 @@ const FilterModal: React.FC<FilterModalProps> = ({
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: 6,
-                    height: 30,
-                    padding: '0 6px 0 12px',
+                    minHeight: 30,
+                    padding: '6px 6px 6px 12px',
                     borderRadius: 9999,
                     background: 'var(--brand-soft)',
                     border: '1px solid var(--brand-strong)',
@@ -689,8 +689,8 @@ const FilterModal: React.FC<FilterModalProps> = ({
                     onClick={() => handleChannelChange(key, !on)}
                     aria-pressed={on}
                     style={{
-                      height: 38,
-                      padding: '0 16px',
+                      minHeight: 38,
+                      padding: '9px 16px',
                       boxSizing: 'border-box',
                       borderRadius: 9999,
                       fontSize: 14,
@@ -737,7 +737,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                 <input
                   className="w-full"
                   // 12px 는 iOS 에서 포커스 시 화면이 확대되고, 높이도 30px 남짓이라 누르기 어려웠음
-                  style={{ height: 44, padding: '0 14px', boxSizing: 'border-box', fontSize: 16, borderRadius: 10, border: '1px solid var(--line-300)', background: 'var(--surface)' }}
+                  style={{ minHeight: 44, padding: '12px 14px', boxSizing: 'border-box', fontSize: 16, borderRadius: 10, border: '1px solid var(--line-300)', background: 'var(--surface)' }}
                   placeholder="포함할 재료 입력"
                   value={tempIncludeInput || ''}
                   onChange={e => setTempIncludeInput(e.target.value)}
@@ -781,7 +781,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                 <input
                   className="w-full"
                   // 12px 는 iOS 에서 포커스 시 화면이 확대되고, 높이도 30px 남짓이라 누르기 어려웠음
-                  style={{ height: 44, padding: '0 14px', boxSizing: 'border-box', fontSize: 16, borderRadius: 10, border: '1px solid var(--line-300)', background: 'var(--surface)' }}
+                  style={{ minHeight: 44, padding: '12px 14px', boxSizing: 'border-box', fontSize: 16, borderRadius: 10, border: '1px solid var(--line-300)', background: 'var(--surface)' }}
                   placeholder="제외할 재료 입력"
                   value={tempExcludeInput || ''}
                   onChange={e => setTempExcludeInput(e.target.value)}
@@ -896,8 +896,8 @@ const FilterModal: React.FC<FilterModalProps> = ({
                                             style={(() => {
                                               const on = ((tempFilterState || {})[main] || []).includes(keyword);
                                               return {
-                                                height: 34,
-                                                padding: '0 12px',
+                                                minHeight: 34,
+                                                padding: '8px 12px',
                                                 boxSizing: 'border-box' as const,
                                                 fontSize: 13,
                                                 fontWeight: on ? 700 : 500,

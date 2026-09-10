@@ -329,7 +329,7 @@ export const UsageGauge: React.FC = () => {
             type="button"
             onClick={() => setAsking(true)}
             style={{
-              flexShrink: 0, height: 30, padding: '0 11px', borderRadius: 8,
+              flexShrink: 0, minHeight: 30, padding: '7px 11px', borderRadius: 8,
               border: '1px solid var(--line-200)', background: '#FFFFFF',
               fontSize: 12.5, fontWeight: 700, color: 'var(--ink-700)', cursor: 'pointer',
             }}
@@ -482,19 +482,19 @@ export const UsageGauge: React.FC = () => {
             onChange={e => setReason(e.target.value)}
             placeholder="어떻게 쓰실지 한 줄만 알려 주세요"
             style={{
-              height: 40, borderRadius: 8, border: '1px solid var(--line-200)',
+              minHeight: 40, borderRadius: 8, border: '1px solid var(--line-200)',
               padding: '0 10px', fontSize: 13, width: '100%', boxSizing: 'border-box',
             }}
           />
           <div style={{ display: 'flex', gap: 6 }}>
             <button type="button" onClick={submit} style={{
-              flex: 1, height: 42, borderRadius: 10, border: 'none',
+              flex: 1, minHeight: 42, borderRadius: 10, border: 'none',
               background: '#FFD600', color: '#1A1A1E', fontSize: 13.5, fontWeight: 700, cursor: 'pointer',
             }}>
               유료 계정 전환 요청 보내기
             </button>
             <button type="button" onClick={() => { setAsking(false); setResult(null); }} style={{
-              flexShrink: 0, height: 42, padding: '0 14px', borderRadius: 10,
+              flexShrink: 0, minHeight: 42, padding: '13px 14px', borderRadius: 10,
               border: '1px solid var(--line-200)', background: '#FFFFFF',
               fontSize: 13, fontWeight: 600, color: 'var(--ink-500)', cursor: 'pointer',
             }}>

@@ -1739,7 +1739,7 @@ const Popular = () => {
               }}
               style={{
                 // 냉장고요리 탭의 컨트롤 칩과 동일 규격 (높이 40 / radius 6 / 선택 시 잉크색)
-                height: 38,
+                minHeight: 38,
                 border: period === opt.value ? '1px solid var(--ink-900)' : '1px solid #D2D2D8',
                 borderRadius: 6,
                 fontSize: 13,
@@ -2067,7 +2067,7 @@ const Popular = () => {
                     onClick={() => setFeedTab(key)}
                     aria-pressed={on}
                     style={{
-                      position: 'relative', zIndex: 1, minWidth: 74, height: 30,
+                      position: 'relative', zIndex: 1, minWidth: 74, minHeight: 30,
                       padding: '0 12px', border: 'none', background: 'transparent',
                       borderRadius: 8, cursor: n === 0 ? 'default' : 'pointer',
                       color: on ? '#FFFFFF' : (n === 0 ? 'var(--line-300)' : 'var(--ink-500)'),
@@ -2154,7 +2154,7 @@ const Popular = () => {
                     onClick={() => setRisingTab(key)}
                     aria-pressed={on}
                     style={{
-                      position: 'relative', zIndex: 1, minWidth: 76, height: 30,
+                      position: 'relative', zIndex: 1, minWidth: 76, minHeight: 30,
                       padding: '0 14px', border: 'none', background: 'transparent',
                       borderRadius: 8, cursor: n === 0 ? 'default' : 'pointer',
                       color: on ? '#FFFFFF' : (n === 0 ? 'var(--line-300)' : 'var(--ink-500)'),
@@ -2252,7 +2252,7 @@ const Popular = () => {
                 maxWidth: 250,
                 minWidth: 0,
                 flex: '0 1 auto',
-                height: 40,
+                minHeight: 40,
                 fontFamily: 'Pretendard, sans-serif',
               }}
               value={search}
@@ -2266,7 +2266,7 @@ const Popular = () => {
             <button
               className="bg-[#FFD600] text-[#1A1A1E] font-bold rounded-full px-5 py-2 text-sm shadow hover:bg-yellow-300 transition"
               style={{
-                height: 40,
+                minHeight: 40,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',

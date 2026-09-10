@@ -49,7 +49,7 @@ const DatePickerField: React.FC<Props> = ({
         disabled={disabled}
         onClick={() => setOpen(true)}
         style={{
-          height: 34, borderRadius: 8, padding: '0 10px',
+          minHeight: 34, borderRadius: 8, padding: '9px 10px',
           border: '1px solid var(--line-200)', background: 'var(--surface)',
           fontSize: 12.5, color: value ? 'var(--ink-900)' : 'var(--ink-500)',
           fontWeight: value ? 600 : 400,

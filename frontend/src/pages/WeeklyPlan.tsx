@@ -181,7 +181,7 @@ const DayPicker: React.FC<{
         aria-haspopup="listbox"
         aria-expanded={open}
         style={{
-          width: '100%', height: 30, borderRadius: 8, cursor: 'pointer',
+          width: '100%', minHeight: 30, borderRadius: 8, cursor: 'pointer',
           border: '1px solid var(--line-200)', background: 'var(--surface-sub)',
           fontSize: 12, fontWeight: 700, color: '#1A1A1E',
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3,
@@ -210,7 +210,7 @@ const DayPicker: React.FC<{
               aria-selected={j === value}
               onClick={() => { onPick(j); setOpen(false); }}
               style={{
-                display: 'block', width: '100%', height: 30, borderRadius: 7,
+                display: 'block', width: '100%', minHeight: 30, borderRadius: 7,
                 border: 'none', background: j === value ? '#FFF8CC' : 'transparent',
                 fontSize: 12.5, fontWeight: j === value ? 700 : 500,
                 color: '#1A1A1E', cursor: 'pointer', textAlign: 'left', padding: '0 8px',
@@ -348,7 +348,7 @@ const TurnResult: React.FC<{
                 rel="noopener noreferrer sponsored"
                 onClick={() => track('coupang_click', name)}
                 style={{
-                  height: 30, padding: '0 10px', borderRadius: 9999,
+                  minHeight: 30, padding: '7px 10px', borderRadius: 9999,
                   background: '#FFD600', color: '#1A1A1E', textDecoration: 'none',
                   fontSize: 12, fontWeight: 700,
                   display: 'inline-flex', alignItems: 'center', gap: 3,
@@ -359,7 +359,7 @@ const TurnResult: React.FC<{
               </a>
             ) : (
               <span key={name} style={{
-                height: 30, padding: '0 10px', borderRadius: 9999,
+                minHeight: 30, padding: '7px 10px', borderRadius: 9999,
                 background: 'var(--surface)', border: '1px solid var(--line-200)',
                 fontSize: 12, fontWeight: 600, color: 'var(--ink-700)',
                 display: 'inline-flex', alignItems: 'center',
@@ -374,7 +374,7 @@ const TurnResult: React.FC<{
           type="button"
           onClick={onShopping}
           style={{
-            width: '100%', height: 40, marginTop: 10, borderRadius: 9,
+            width: '100%', minHeight: 40, marginTop: 10, borderRadius: 9,
             border: 'none', background: '#1A1A1E', color: '#FFFFFF',
             fontSize: 13, fontWeight: 700, cursor: 'pointer',
           }}
@@ -446,7 +446,7 @@ const TurnResult: React.FC<{
           type="button"
           onClick={onApply}
           style={{
-            width: '100%', height: 42, marginTop: 4, borderRadius: 10, border: 'none',
+            width: '100%', minHeight: 42, marginTop: 4, borderRadius: 10, border: 'none',
             background: '#FFD600', color: '#1A1A1E',
             fontSize: 13.5, fontWeight: 700, cursor: 'pointer',
           }}
@@ -1134,7 +1134,7 @@ const WeeklyPlan: React.FC = () => {
                 onKeyDown={e => { if (e.key === 'Enter' && canAi && !asking) void askAi(); }}
                 placeholder="어떤 걸로 드릴까요?"
                 style={{
-                  flex: 1, minWidth: 0, height: 40, borderRadius: 10,
+                  flex: 1, minWidth: 0, minHeight: 40, borderRadius: 10,
                   border: '1px solid var(--line-200)', padding: '0 12px', fontSize: 13.5,
                   boxSizing: 'border-box',
                 }}
@@ -1158,7 +1158,7 @@ const WeeklyPlan: React.FC = () => {
                   disabled={asking}
                   onClick={() => { if (canAi) void askAi(); }}
                   style={{
-                    height: 40, padding: '0 14px', borderRadius: 10,
+                    minHeight: 40, padding: '12px 14px', borderRadius: 10,
                     fontSize: 13.5, fontWeight: 700, whiteSpace: 'nowrap',
                     cursor: canAi && !asking ? 'pointer' : 'default',
                   }}
@@ -1268,7 +1268,7 @@ const WeeklyPlan: React.FC = () => {
                 onClick={() => removeAt(i, k)}
                 aria-label={meal.recipe.title + ' 빼기'}
                 style={{
-                  flexShrink: 0, width: 30, height: 30, borderRadius: 8,
+                  flexShrink: 0, width: 30, minHeight: 30, borderRadius: 8,
                   border: '1px solid var(--line-200)', background: 'var(--surface)',
                   color: 'var(--ink-500)', fontSize: 14, cursor: 'pointer', padding: 0,
                 }}
@@ -1285,7 +1285,7 @@ const WeeklyPlan: React.FC = () => {
           type="button"
           onClick={applyPlan}
           style={{
-            width: '100%', height: 44, marginTop: 10, borderRadius: 10, border: 'none',
+            width: '100%', minHeight: 44, marginTop: 10, borderRadius: 10, border: 'none',
             background: saved ? '#1A1A1E' : '#FFD600',
             color: saved ? '#FFD600' : '#1A1A1E',
             fontSize: 13.5, fontWeight: 700, cursor: 'pointer',
@@ -1318,7 +1318,7 @@ const WeeklyPlan: React.FC = () => {
                     type="button"
                     onClick={reshuffle}
                     style={{
-                      height: 30, padding: '0 10px', borderRadius: 8,
+                      minHeight: 30, padding: '7px 10px', borderRadius: 8,
                       border: '1px solid var(--line-200)', background: 'var(--surface)',
                       fontSize: 12, fontWeight: 700, color: 'var(--ink-900)', cursor: 'pointer',
                     }}
@@ -1552,7 +1552,7 @@ const WeeklyPlan: React.FC = () => {
                         rel="noopener noreferrer sponsored"
                         onClick={() => track('coupang_click', name)}
                         style={{
-                          height: 30, padding: '0 10px', borderRadius: 9999,
+                          minHeight: 30, padding: '7px 10px', borderRadius: 9999,
                           background: '#FFD600', color: '#1A1A1E', textDecoration: 'none',
                           fontSize: 12, fontWeight: 700,
                           display: 'inline-flex', alignItems: 'center', gap: 3,
@@ -1563,7 +1563,7 @@ const WeeklyPlan: React.FC = () => {
                       </a>
                     ) : (
                       <span key={name} style={{
-                        height: 30, padding: '0 10px', borderRadius: 9999,
+                        minHeight: 30, padding: '7px 10px', borderRadius: 9999,
                         background: 'var(--surface)', border: '1px solid var(--line-200)',
                         fontSize: 12, fontWeight: 600, color: 'var(--ink-700)',
                         display: 'inline-flex', alignItems: 'center',
@@ -1576,7 +1576,7 @@ const WeeklyPlan: React.FC = () => {
                   onClick={() => document.getElementById('shopping-list')
                     ?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
                   style={{
-                    width: '100%', height: 38, marginTop: 10, borderRadius: 9,
+                    width: '100%', minHeight: 38, marginTop: 10, borderRadius: 9,
                     border: 'none', background: '#1A1A1E', color: '#FFFFFF',
                     fontSize: 12.5, fontWeight: 700, cursor: 'pointer',
                   }}
@@ -1594,7 +1594,7 @@ const WeeklyPlan: React.FC = () => {
               type="button"
               onClick={applyPlan}
               style={{
-                width: '100%', height: 48, marginTop: 12, borderRadius: 12, border: 'none',
+                width: '100%', minHeight: 48, marginTop: 12, borderRadius: 12, border: 'none',
                 background: saved ? '#1A1A1E' : '#FFD600',
                 color: saved ? '#FFD600' : '#1A1A1E',
                 fontSize: 14.5, fontWeight: 700, cursor: 'pointer',
@@ -1608,7 +1608,7 @@ const WeeklyPlan: React.FC = () => {
                 type="button"
                 onClick={() => navigate('/cooking-calendar')}
                 style={{
-                  width: '100%', height: 40, marginTop: 6, borderRadius: 10,
+                  width: '100%', minHeight: 40, marginTop: 6, borderRadius: 10,
                   border: '1px solid var(--line-200)', background: 'var(--surface)',
                   fontSize: 13, fontWeight: 700, color: 'var(--ink-900)', cursor: 'pointer',
                 }}
@@ -1880,7 +1880,7 @@ const WeeklyPlan: React.FC = () => {
               type="button"
               onClick={startNew}
               style={{
-                width: '100%', height: 46, borderRadius: 23, border: 'none',
+                width: '100%', minHeight: 46, borderRadius: 23, border: 'none',
                 background: '#1A1A1E', color: '#FFFFFF',
                 fontSize: 14, fontWeight: 700, cursor: 'pointer',
               }}
@@ -1903,7 +1903,7 @@ const WeeklyPlan: React.FC = () => {
               type="button"
               onClick={() => navigate('/myfridge')}
               style={{
-                width: '100%', height: 44, marginBottom: 8, borderRadius: 22, border: 'none',
+                width: '100%', minHeight: 44, marginBottom: 8, borderRadius: 22, border: 'none',
                 background: '#FFD600', color: '#1A1A1E',
                 fontSize: 13.5, fontWeight: 700, cursor: 'pointer',
               }}
@@ -1921,7 +1921,7 @@ const WeeklyPlan: React.FC = () => {
                 disabled={!canAi || asking || noStock}
                 onClick={() => send(x)}
                 style={{
-                  flexShrink: 0, height: 30, padding: '0 11px', borderRadius: 9999,
+                  flexShrink: 0, minHeight: 30, padding: '7px 11px', borderRadius: 9999,
                   border: '1px solid var(--line-200)', background: 'var(--surface)',
                   fontSize: 12.5, color: 'var(--ink-700)',
                   cursor: canAi && !asking ? 'pointer' : 'default',
@@ -1943,7 +1943,7 @@ const WeeklyPlan: React.FC = () => {
                 : canAi ? '어떤 식단이 좋을까요?' : '크레딧을 다 쓰셨어요'}
               disabled={!canAi || asking || noStock}
               style={{
-                flex: 1, minWidth: 0, height: 44, borderRadius: 22,
+                flex: 1, minWidth: 0, minHeight: 44, borderRadius: 22,
                 border: '1px solid var(--line-200)', padding: '0 16px',
                 fontSize: 14, boxSizing: 'border-box', background: 'var(--surface-sub)',
               }}
@@ -2006,7 +2006,7 @@ const WeeklyPlan: React.FC = () => {
                 onClick={() => setPastOpen(true)}
                 aria-label={`지난 대화 ${sessions.length}개`}
                 style={{
-                  height: 32, padding: '0 10px', borderRadius: 8,
+                  minHeight: 32, padding: '8px 10px', borderRadius: 8,
                   border: '1px solid var(--line-200)', background: 'var(--surface)',
                   fontSize: 12, fontWeight: 600, color: 'var(--ink-500)', cursor: 'pointer',
                 }}
@@ -2020,7 +2020,7 @@ const WeeklyPlan: React.FC = () => {
                 // 그냥 지우면 크레딧을 쓴 결과가 사라진다. 지난 목록으로 넘긴다.
                 onClick={startNew}
                 style={{
-                  height: 32, padding: '0 10px', borderRadius: 8,
+                  minHeight: 32, padding: '8px 10px', borderRadius: 8,
                   border: '1px solid var(--line-200)', background: 'var(--surface)',
                   fontSize: 12, fontWeight: 600, color: 'var(--ink-500)', cursor: 'pointer',
                 }}
@@ -2057,7 +2057,7 @@ const WeeklyPlan: React.FC = () => {
               type="button"
               onClick={() => setPickOpen(v => !v)}
               style={{
-                flexShrink: 0, height: 30, padding: '0 10px', borderRadius: 8,
+                flexShrink: 0, minHeight: 30, padding: '7px 10px', borderRadius: 8,
                 border: '1px solid var(--line-200)', background: 'var(--surface)',
                 fontSize: 12, fontWeight: 700, color: 'var(--ink-900)', cursor: 'pointer',
               }}
@@ -2130,7 +2130,7 @@ const WeeklyPlan: React.FC = () => {
                   type="button"
                   onClick={() => navigate('/my-fridge')}
                   style={{
-                    marginTop: 8, height: 30, padding: '0 10px', borderRadius: 8,
+                    marginTop: 8, minHeight: 30, padding: '7px 10px', borderRadius: 8,
                     border: '1px solid var(--line-200)', background: 'var(--surface)',
                     fontSize: 12, fontWeight: 700, color: 'var(--ink-900)', cursor: 'pointer',
                   }}
@@ -2156,7 +2156,7 @@ const WeeklyPlan: React.FC = () => {
           type="button"
           onClick={() => navigate('/plan?ai=1')}
           style={{
-            width: '100%', height: 46, borderRadius: 12, marginBottom: 12,
+            width: '100%', minHeight: 46, borderRadius: 12, marginBottom: 12,
             border: '1px solid var(--line-200)', background: 'var(--surface)',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             padding: '0 14px', cursor: 'pointer',
@@ -2225,7 +2225,7 @@ const WeeklyPlan: React.FC = () => {
               else navigate('/my-fridge');
             }}
             style={{
-              marginTop: 12, height: 40, padding: '0 16px', borderRadius: 10,
+              marginTop: 12, minHeight: 40, padding: '12px 16px', borderRadius: 10,
               border: 'none', background: '#FFD600', color: '#1A1A1E',
               fontSize: 14, fontWeight: 700, cursor: 'pointer',
             }}
@@ -2256,7 +2256,7 @@ const WeeklyPlan: React.FC = () => {
                 type="button"
                 onClick={() => commit('overwrite')}
                 style={{
-                  height: 46, borderRadius: 10, border: 'none', background: '#FFD600',
+                  minHeight: 46, borderRadius: 10, border: 'none', background: '#FFD600',
                   color: '#1A1A1E', fontSize: 14, fontWeight: 700, cursor: 'pointer',
                 }}
               >
@@ -2266,7 +2266,7 @@ const WeeklyPlan: React.FC = () => {
                 type="button"
                 onClick={() => commit('fill')}
                 style={{
-                  height: 46, borderRadius: 10, background: 'var(--surface)',
+                  minHeight: 46, borderRadius: 10, background: 'var(--surface)',
                   border: '1px solid var(--line-200)',
                   color: '#1A1A1E', fontSize: 14, fontWeight: 700, cursor: 'pointer',
                 }}

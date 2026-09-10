@@ -2164,7 +2164,7 @@ const MyFridge: React.FC = () => {
                 className="border border-gray-300 rounded-full px-4 py-2 text-sm focus:outline-none"
                 style={{
                   width: '100%',
-                  height: 40,
+                  minHeight: 40,
                   fontFamily: 'Pretendard, sans-serif',
                 }}
                 value={inputValue}

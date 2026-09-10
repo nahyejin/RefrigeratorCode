@@ -48,7 +48,7 @@ const MailMark = () => (
 
 const row: React.CSSProperties = {
   display: 'flex', alignItems: 'center', gap: 9,
-  height: 44, padding: '0 14px', borderRadius: 10,
+  minHeight: 44, padding: '14px 14px', borderRadius: 10,
   border: '1px solid var(--line-200)', background: 'var(--surface)',
   color: 'var(--ink-900)', fontSize: 13.5, fontWeight: 600,
   textDecoration: 'none', cursor: 'pointer', width: '100%', boxSizing: 'border-box',

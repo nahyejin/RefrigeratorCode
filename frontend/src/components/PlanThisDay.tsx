@@ -100,7 +100,7 @@ const PlanThisDay: React.FC<Props> = ({ recipeId, title, link, thumbnail }) => {
           style={{
             // 노랑은 이 앱에서 AI 와 주요 실행을 뜻한다. 날짜를 고르는 건
             // 그만큼 무거운 일이 아니라, 다른 보조 버튼과 같은 옷을 입는다.
-            flexShrink: 0, height: 32, padding: '0 12px', borderRadius: 8,
+            flexShrink: 0, minHeight: 32, padding: '8px 12px', borderRadius: 8,
             border: '1px solid var(--line-200)', background: 'var(--surface)',
             fontSize: 12.5, fontWeight: 700, color: 'var(--ink-900)', cursor: 'pointer',
           }}
@@ -122,7 +122,7 @@ const PlanThisDay: React.FC<Props> = ({ recipeId, title, link, thumbnail }) => {
                 onClick={() => toggle(d)}
                 aria-pressed={on}
                 style={{
-                  height: 32, padding: '0 11px', borderRadius: 9999, cursor: 'pointer',
+                  minHeight: 32, padding: '8px 11px', borderRadius: 9999, cursor: 'pointer',
                   border: on ? '1px solid #1A1A1E' : '1px solid var(--line-200)',
                   background: on ? '#FFD600' : 'var(--surface)',
                   fontSize: 12.5, fontWeight: on ? 700 : 500, color: '#1A1A1E',
@@ -143,7 +143,7 @@ const PlanThisDay: React.FC<Props> = ({ recipeId, title, link, thumbnail }) => {
             onChange={v => { if (v) toggleKey(v); }}
             placeholder="다른 날짜"
             minDate={new Date()}
-            style={{ height: 32, borderRadius: 9999, borderStyle: 'dashed' }}
+            style={{ minHeight: 32, borderRadius: 9999, borderStyle: 'dashed' }}
           />
         </div>
         </>

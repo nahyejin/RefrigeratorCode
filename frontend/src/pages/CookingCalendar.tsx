@@ -789,7 +789,7 @@ const CookingCalendar: React.FC = () => {
             <button
               type="button"
               onClick={() => navigate('/login')}
-              style={{ height: 40, padding: '0 16px', borderRadius: 10, background: 'var(--brand)', border: 'none', fontWeight: 700 }}
+              style={{ minHeight: 40, padding: '12px 16px', borderRadius: 10, background: 'var(--brand)', border: 'none', fontWeight: 700 }}
             >
               로그인
             </button>
@@ -1262,7 +1262,7 @@ const CookingCalendar: React.FC = () => {
                 style={{
                   // 폭을 나눠 갖지 않는다. 셋으로 쪼개 늘려 놓으면 글자보다
                   // 밑줄이 훨씬 길어져 둔해 보인다 — 밑줄은 **글자 밑**에만.
-                  height: 42, padding: '0 14px', background: 'transparent',
+                  minHeight: 42, padding: '13px 14px', background: 'transparent',
                   border: 'none', marginBottom: -1,
                   fontSize: 14, fontWeight: on ? 700 : 500,
                   color: on ? '#1A1A1E' : 'var(--ink-500)', cursor: 'pointer',
@@ -1295,8 +1295,9 @@ const CookingCalendar: React.FC = () => {
                 type="button"
                 onClick={() => setViewMode(key)}
                 style={{
-                  height: 30,
-                  padding: '0 14px',
+                  minHeight: 30,
+                  padding: '7px 14px',
+                  boxSizing: 'border-box',
                   borderRadius: 9999,
                   fontSize: 13,
                   fontWeight: on ? 700 : 500,
@@ -1538,7 +1539,7 @@ const CookingCalendar: React.FC = () => {
                   rel="noopener noreferrer sponsored"
                   onClick={() => track('coupang_click', name)}
                   style={{
-                    height: 30, padding: '0 10px', borderRadius: 9999,
+                    minHeight: 30, padding: '7px 10px', borderRadius: 9999,
                     background: '#FFD600', color: '#1A1A1E', textDecoration: 'none',
                     fontSize: 12, fontWeight: 700,
                     display: 'inline-flex', alignItems: 'center', gap: 3,
@@ -1549,7 +1550,7 @@ const CookingCalendar: React.FC = () => {
                 </a>
               ) : (
                 <span key={name} style={{
-                  height: 30, padding: '0 10px', borderRadius: 9999,
+                  minHeight: 30, padding: '7px 10px', borderRadius: 9999,
                   background: 'var(--surface)', border: '1px solid var(--line-200)',
                   fontSize: 12, fontWeight: 600, color: 'var(--ink-700)',
                   display: 'inline-flex', alignItems: 'center',
@@ -1782,7 +1783,7 @@ const CookingCalendar: React.FC = () => {
                 disabled={!dirty}
                 onClick={() => setRange(draft)}
                 style={{
-                  height: 34, padding: '0 12px', borderRadius: 8, border: 'none',
+                  minHeight: 34, padding: '9px 12px', borderRadius: 8, border: 'none',
                   background: dirty ? '#1A1A1E' : 'var(--line-200)',
                   color: dirty ? '#FFFFFF' : 'var(--ink-500)',
                   fontSize: 12.5, fontWeight: 700, cursor: dirty ? 'pointer' : 'default',

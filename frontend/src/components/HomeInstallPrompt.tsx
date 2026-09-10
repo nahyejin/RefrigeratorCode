@@ -213,7 +213,7 @@ const HomeInstallPrompt: React.FC = () => {
             onClick={closeForSession}
             style={{
               flex: 1,
-              height: 38,
+              minHeight: 38,
               borderRadius: 12,
               border: '1px solid rgba(255,255,255,0.12)',
               boxShadow: 'inset 0 0 0 0.5px rgba(255,255,255,0.08)',
@@ -230,7 +230,7 @@ const HomeInstallPrompt: React.FC = () => {
             onClick={snoozeForWeek}
             style={{
               flex: 1,
-              height: 38,
+              minHeight: 38,
               borderRadius: 12,
               // 어두운 배경(#6B5200) 위에 어두운 글자(#1A1A1E)를 올렸더니 버튼
               // 자체도 카드 배경과 거의 구분이 안 되고 글자도 안 읽힌다는

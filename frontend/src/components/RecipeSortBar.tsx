@@ -126,18 +126,25 @@ const STYLES = {
     minWidth: 0,
   },
   button: {
-    height: 40,
+    // height 가 아니라 minHeight — 안드로이드 글자 크기를 키운 사용자는
+    // 여기 fontSize 13 보다 실제 글자가 커진다. 고정 height 면 잘린다.
+    // `whiteSpace: nowrap` 은 그대로 둔다 — 바로 아래 주석대로, 글자가
+    // 커지면 줄바꿈 대신 버튼이 옆으로 넓어지게 하려는 의도된 선택이다
+    // (`minWidth` 만 있고 `width` 고정은 없어서 넓어질 수 있다). 부모
+    // `buttonGroup` 이 `flexWrap: wrap` 이라 한 줄이 다 차면 행 자체가
+    // 다음 줄로 넘어간다.
+    minHeight: 40,
     border: '1px solid #D2D2D8',
     borderRadius: 6,
     fontSize: 13,
-    padding: '0 8px',
+    padding: '10px 8px',
     fontWeight: 600,
     background: '#FFFFFF',
     color: '#1A1A1E',
     minWidth: 70,
     marginRight: 0,
     whiteSpace: 'nowrap' as const,
-    lineHeight: '28px',
+    lineHeight: 1.3,
     boxSizing: 'border-box' as const,
     cursor: 'pointer',
     // 아이콘(inline svg)과 글자가 그냥 인라인으로 흐르면, 좁은 화면·큰 글꼴
@@ -158,11 +165,11 @@ const STYLES = {
     zIndex: 10
   },
   select: {
-    height: 40,
+    minHeight: 40,
     border: '1px solid #D2D2D8',
     borderRadius: 6,
     fontSize: 13,
-    padding: '0 20px 0 8px',
+    padding: '8px 20px 8px 8px',
     fontWeight: 600,
     background: '#FFFFFF',
     color: '#1A1A1E',
@@ -214,17 +221,17 @@ const STYLES = {
   },
   filterButton: {
     flexShrink: 0 as const,
-    height: 40,
+    minHeight: 40,
     border: 'none',
     borderRadius: 999,
     fontSize: 13,
-    padding: '0 14px',
+    padding: '10px 14px',
     fontWeight: 700,
     background: '#1A1A1E',
     color: '#FFFFFF',
     minWidth: 50,
     whiteSpace: 'nowrap' as const,
-    lineHeight: '28px',
+    lineHeight: 1.3,
     boxSizing: 'border-box' as const,
     cursor: 'pointer',
     marginLeft: 'auto',
@@ -279,7 +286,9 @@ const STYLES = {
   },
   numberInput: {
     width: 64,
-    height: 40,
+    minHeight: 40,
+    padding: '8px 4px',
+    boxSizing: 'border-box' as const,
     border: '1px solid #D2D2D8',
     borderRadius: 4,
     textAlign: 'center' as const,
@@ -345,7 +354,9 @@ const STYLES = {
     backgroundColor: 'var(--ink-900)',
     color: '#FFFFFF',
     fontWeight: 700,
-    height: 48,
+    minHeight: 48,
+    padding: '14px 20px',
+    boxSizing: 'border-box' as const,
     borderRadius: 10,
     // 바로 위 선택지와 8px 밖에 안 떨어져 있어 붙어 보였음
     marginTop: 24,
@@ -1058,8 +1069,8 @@ const RecipeSortBar = ({
                     aria-pressed={on}
                     onClick={() => setMaxLack(n as any)}
                     style={{
-                      height: 38,
-                      padding: '0 14px',
+                      minHeight: 38,
+                      padding: '9px 14px',
                       boxSizing: 'border-box',
                       borderRadius: 9999,
                       fontSize: 13,
@@ -1136,8 +1147,8 @@ const RecipeSortBar = ({
                     aria-pressed={on}
                     onClick={() => setExpiryIngredientMode(key)}
                     style={{
-                      height: 38,
-                      padding: '0 14px',
+                      minHeight: 38,
+                      padding: '9px 14px',
                       boxSizing: 'border-box',
                       borderRadius: 9999,
                       fontSize: 13,
