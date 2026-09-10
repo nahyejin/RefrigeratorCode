@@ -1574,6 +1574,19 @@ const MyPage: React.FC = () => {
               쓸모가 있다 (냉장고요리의 `즐겨찾기만` 보기)
           여기 다 펼쳐 두니 마이페이지가 계속 길어졌고, 정작 필요한 순간에는
           그 목록이 다른 화면에 있었다. */}
+      {/* 개발자에게 말 거는 자리 + 방침·약관.
+
+          처음에는 「내 정보 수정」 모달 안, 회원탈퇴 바로 위에 뒀다.
+          「그만 쓸까」 하는 순간이 「말이나 해 볼까」 하는 순간이기도 하니까.
+          그런데 그 모달은 닉네임을 고치러 들어가는 곳이지, 불편한 걸 말하러
+          들어가는 곳이 아니다. **열어야만 보이는 것은 없는 것과 같다** —
+          실제로 화면에서 찾을 수가 없었다. 그래서 페이지 본문으로 꺼냈다.
+          맨 아래에 두는 건 흔한 자리라(앱을 훑다 끝에서 만난다), 찾을 때
+          어디를 봐야 할지도 분명하다. */}
+      <div style={{ margin: '24px 14px 0' }}>
+        <ContactBox />
+      </div>
+
       <div style={{ marginTop: 20 }}>
         {/* 쿠팡 광고 - 페이지 맨 끝에 도달했을 때만 표시 */}
         <BottomCoupangAd showCondition={true} />
@@ -1587,10 +1600,26 @@ const MyPage: React.FC = () => {
 
       {/* 내 정보 수정 모달 */}
       {editOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center" style={{ zIndex: 'var(--z-modal)' }}>
+        <div
+          className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center"
+          style={{
+            zIndex: 'var(--z-modal)',
+            // 모달이 화면 가장자리에 붙지 않게. 아래는 안전영역(홈 인디케이터)까지 비운다.
+            padding: '16px 12px',
+            paddingBottom: 'calc(16px + env(safe-area-inset-bottom, 0px))',
+          }}
+        >
+          {/*
+            높이 기준을 `90vh` 에서 `dvh` 로 바꿨다.
+            모바일 브라우저의 `vh` 는 **주소창이 사라진 상태**의 높이라서,
+            주소창이 보이는 동안에는 모달이 실제 화면보다 길어진다. 그래서
+            아래쪽 내용(문의 창구·회원탈퇴)이 화면 밖으로 밀려나 손이 닿지
+            않았다. `dvh` 는 지금 실제로 보이는 높이를 따른다.
+            `vh` 는 `dvh` 를 모르는 옛 브라우저를 위한 대비책으로 남겨 둔다.
+          */}
           <div 
             className="bg-white rounded-xl shadow-lg w-[370px] max-w-[95vw] relative max-h-[90vh] overflow-y-auto scrollbar-none" 
-            style={{scrollbarWidth:'none'}} 
+            style={{ scrollbarWidth: 'none', maxHeight: 'min(90dvh, 100%)' }} 
             onClick={e => e.stopPropagation()}
           >
             <div className="sticky top-0 left-0 right-0 z-20 bg-white border-b border-gray-200 rounded-t-xl w-full" style={{minHeight: 56, paddingTop: 18, paddingBottom: 8}}>
@@ -1807,10 +1836,6 @@ const MyPage: React.FC = () => {
                   변경 적용
                 </button>
               </div>
-
-              {/* 개발자에게 말 거는 자리. 회원탈퇴 바로 위에 둔다 —
-                  「그만 쓸까」 하는 순간이 「말이나 해 볼까」 하는 순간이기도 하다. */}
-              <ContactBox />
 
               {/* 회원탈퇴 버튼 */}
               <div className="mt-6 pt-4 text-center">
