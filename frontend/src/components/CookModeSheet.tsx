@@ -323,24 +323,29 @@ const CookModeSheet: React.FC<Props> = ({
               aria-pressed={on}
               onClick={() => toggleAction(key)}
               style={{
-                width: 30, height: 30, borderRadius: 9999, border: 'none',
+                width: 32, height: 32, padding: 0, borderRadius: 9999, border: 'none',
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                background: on ? '#FFD600' : 'var(--surface-sub)', cursor: 'pointer',
+                background: on ? '#FFD600' : 'rgba(34,34,34,0.7)', cursor: 'pointer',
+                flexShrink: 0,
               }}
             >
               {key === 'favorite' ? (
-                <svg width={17} height={17} viewBox="0 0 24 24" aria-hidden="true">
+                <svg width={19} height={19} viewBox="0 0 24 24" aria-hidden="true">
                   <path
                     d="M12 2.75l2.72 5.51 6.08.88-4.4 4.29 1.04 6.05L12 16.62 6.56 19.48l1.04-6.05-4.4-4.29 6.08-.88L12 2.75z"
-                    fill={on ? '#1A1A1E' : 'none'}
-                    stroke="#1A1A1E"
+                    fill={on ? '#1A1A1E' : '#FFFFFF'}
+                    stroke={on ? '#1A1A1E' : '#FFFFFF'}
                     strokeWidth="1.7"
                     strokeLinejoin="round"
                   />
                 </svg>
               ) : (
-                <img src={icon} alt="" width={17} height={17}
-                     style={{ filter: on ? 'none' : 'brightness(0) saturate(0) opacity(0.55)' }} />
+                // 완료/기록 아이콘 이미지 자체가 원 배경 + 흰색 그림을 이미 담고 있다
+                // (RecipeCard 의 SECONDARY_ACTIONS 와 같은 소스). 꺼진 상태는 원본
+                // 그대로(회색 원 + 흰 그림), 켜진 상태만 검게 눌러 노란 배경 위에서
+                // 도드라지게 한다 — RecipeCard 와 같은 규칙.
+                <img src={icon} alt="" width={20} height={20}
+                     style={{ filter: on ? 'brightness(0) saturate(0)' : 'none', display: 'block' }} />
               )}
             </button>
           ))}
@@ -350,13 +355,12 @@ const CookModeSheet: React.FC<Props> = ({
             aria-label="공유"
             onClick={handleShare}
             style={{
-              width: 30, height: 30, borderRadius: 9999, border: 'none',
+              width: 32, height: 32, padding: 0, borderRadius: 9999, border: 'none',
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              background: 'var(--surface-sub)', cursor: 'pointer',
+              background: 'rgba(34,34,34,0.7)', cursor: 'pointer', flexShrink: 0,
             }}
           >
-            <img src={공유하기버튼} alt="" width={17} height={17}
-                 style={{ filter: 'brightness(0) saturate(0) opacity(0.55)' }} />
+            <img src={공유하기버튼} alt="" width={20} height={20} style={{ display: 'block' }} />
           </button>
         </div>
       )}
