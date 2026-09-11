@@ -117,25 +117,25 @@ export const CtaOutro: React.FC<{ payoffLine: React.ReactNode }> = ({ payoffLine
             gap: 26,
           }}
         >
-          <AppIcon size={200} />
-          <Wordmark size={62} />
+          <AppIcon size={260} />
+          <Wordmark size={80} />
         </div>
         <div
           style={{
-            marginTop: 26,
-            fontSize: 30,
-            fontWeight: 500,
+            marginTop: 30,
+            fontSize: 38,
+            fontWeight: 600,
             color: YELLOW_TEXT,
             opacity: taglineOpacity,
-            borderBottom: `2px solid ${YELLOW}`,
-            paddingBottom: 4,
+            borderBottom: `3px solid ${YELLOW}`,
+            paddingBottom: 6,
           }}
         >
           설치 없이 웹에서 바로 시작
         </div>
       </AbsoluteFill>
 
-      <RevealText top={1330} delay={30} size={50}>
+      <RevealText top={1290} delay={30} size={64}>
         {payoffLine}
       </RevealText>
 
@@ -146,8 +146,8 @@ export const CtaOutro: React.FC<{ payoffLine: React.ReactNode }> = ({ payoffLine
           left: 0,
           right: 0,
           textAlign: "center",
-          fontSize: 32,
-          fontWeight: 500,
+          fontSize: 40,
+          fontWeight: 600,
           color: INK_SOFT,
           opacity: ctaOpacity,
         }}

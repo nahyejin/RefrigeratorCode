@@ -1,6 +1,7 @@
 import React from "react";
 import {
   AbsoluteFill,
+  Easing,
   OffthreadVideo,
   Sequence,
   staticFile,
@@ -181,20 +182,28 @@ const DemoClip: React.FC<{
   );
 };
 
-const DemoCaption: React.FC<{ children: React.ReactNode; from: number; len: number }> = ({
-  children,
-  from,
-  len,
-}) => {
+const TYPE_FRAMES = 16; // 타이핑 효과 — 이 프레임 안에 전체 글자가 다 찍힌다
+
+// 릴스에서 흔히 보는 "타이핑되는 자막" 스타일: 검정 필 배경 + 굵은 흰 글자,
+// 화면 중앙에 가깝게 둔다(뒤 화면이 좀 가려지더라도 가독성을 우선).
+const DemoCaption: React.FC<{ text: string; from: number; len: number }> = ({ text, from, len }) => {
   const frame = useCurrentFrame();
   const local = frame - from;
   if (local < -4 || local > len + 4) return null;
-  const opacity = interpolate(local, [0, 5, len - 5, len], [0, 1, 1, 0], {
+
+  const boxOpacity = interpolate(local, [0, 4, len - 5, len], [0, 1, 1, 0], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
-  // 릴스 자체 UI(캡션·좋아요·저장 버튼)가 화면 하단 ~20%를 덮기 때문에,
-  // 그 안전지대 위쪽에 자막을 둔다 — 맨 아래에 깔면 실제로는 가려서 안 보인다.
+  const typeProgress = interpolate(local, [0, TYPE_FRAMES], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+    easing: Easing.out(Easing.cubic),
+  });
+  const chars = Math.round(text.length * typeProgress);
+  const shown = text.slice(0, chars);
+  const cursorOn = chars < text.length && Math.floor(local / 4) % 2 === 0;
+
   return (
     <AbsoluteFill>
       <div
@@ -202,26 +211,26 @@ const DemoCaption: React.FC<{ children: React.ReactNode; from: number; len: numb
           position: "absolute",
           left: 44,
           right: 44,
-          bottom: 470,
+          top: 840,
           textAlign: "center",
-          opacity,
+          opacity: boxOpacity,
         }}
       >
         <div
           style={{
             display: "inline-block",
-            backgroundColor: "rgba(255,255,255,0.94)",
-            border: `1px solid ${LINE}`,
-            borderRadius: 20,
-            padding: "18px 30px",
-            fontSize: 54,
-            fontWeight: 700,
-            color: INK,
-            lineHeight: 1.3,
-            boxShadow: "0 8px 24px rgba(26,26,30,0.1)",
+            maxWidth: 940,
+            backgroundColor: "rgba(17,17,19,0.88)",
+            borderRadius: 22,
+            padding: "22px 34px",
+            fontSize: 58,
+            fontWeight: 800,
+            color: "#FFFFFF",
+            lineHeight: 1.32,
           }}
         >
-          {children}
+          {shown}
+          {cursorOn ? "▏" : ""}
         </div>
       </div>
     </AbsoluteFill>
@@ -282,12 +291,8 @@ const Demo: React.FC = () => {
         </Sequence>
       </div>
 
-      <DemoCaption from={c1From} len={c1From + C1 + C2 + C3 - c1From}>
-        영수증도, 쿠팡 주문내역 캡처도 — 한 장이면 돼요
-      </DemoCaption>
-      <DemoCaption from={c4From} len={C4 + C5 + HOLD}>
-        재료랑 유통기한까지, 자동으로
-      </DemoCaption>
+      <DemoCaption from={c1From} len={c1From + C1 + C2 + C3 - c1From} text="영수증도, 쿠팡 주문내역 캡처도 — 한 장이면 돼요" />
+      <DemoCaption from={c4From} len={C4 + C5 + HOLD} text="재료랑 유통기한까지, 자동으로" />
     </AbsoluteFill>
   );
 };
