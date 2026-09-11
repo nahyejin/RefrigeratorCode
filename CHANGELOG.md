@@ -10408,4 +10408,5 @@ StepLoading/FloatingScanLoader의 단계 문구와 안내 문구가 길어서 �
 - 원인은 타이밍: 이 레시피는 2026-09-06에 처리됐는데, "반숙란"을 "달걀"의 동의어로 사전에 추가한 건 2026-09-08 — 처리 시점엔 사전에 없어 정규화되지 못하고 버려졌다(설계상 사전에 없는 재료는 지어내지 않고 버림).
 - 더 큰 문제: 사전이 보강된 뒤 이미 처리된 레시피/사용자 재료를 다시 맞춰주는 도구(`ingredient_management/renormalize_used_ingredients.py`, `migrate_user_ingredients.py`)가 이미 있었는데도, 매일 도는 자동 배치(`apply_dictionary_additions_daily.bat`)는 이 둘을 호출하지 않아 사전이 아무리 보강돼도 옛 레시피엔 반영이 안 되고 있었다.
 - `renormalize_used_ingredients.py`를 미리보기로 먼저 돌려 전체 영향 범위(8,080건, 사전 변경으로 설명 안 되는 재료 소실 0건)를 확인한 뒤 `--commit`으로 반영. 신고된 레시피 169403도 `간장,설탕` → `간장,달걀,설탕`으로 정정 확인. `migrate_user_ingredients.py`는 미리보기 결과 바꿀 게 없어 실행 불필요.
+- **재발 방지**: `apply_dictionary_additions_daily.bat`에 4.6번 단계로 두 재적용 스크립트(`--commit`)를 추가해, 이제 사전이 바뀐 날(3번 단계에서 CSV 변경을 감지해 여기까지 온 날)마다 자동으로 옛 레시피/사용자 재료까지 같이 맞춰진다. LLM 재호출 없는 결정론적 재정규화라 매일 몇 초~몇 분이면 끝나고, 실패해도 사전 CSV 자체는 이미 검증을 통과한 뒤라 커밋·푸시는 막지 않는다.
 

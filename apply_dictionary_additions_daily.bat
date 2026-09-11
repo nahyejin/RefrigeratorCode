@@ -125,6 +125,18 @@ if errorlevel 1 (
   goto failed
 )
 
+REM 4.6) 사전 보강분을 **이미 처리된 레시피 / 사용자 재료**에도 소급 적용한다.
+REM    사전에 동의어가 새로 생겨도, 이미 처리된 레시피의 used_ingredients 나 사용자가
+REM    이미 등록해 둔 재료 이름은 저절로 안 바뀐다 - 이 간극을 그동안 아무도 자동으로
+REM    메워주지 않아서, 사전엔 있는 동의어가 옛 레시피엔 반영 안 된 채 쌓이고 있었다
+REM    (실사용자 신고로 발견: "반숙란=달걀" 이 사전에 늦게 들어와, 그 전에 처리된
+REM    레시피에서 계란이 통째로 빠진 채 남아 있던 사고, 2026-09-11).
+REM    LLM 을 다시 부르지 않는 결정론적 재정규화라 빠르다. 오늘 사전이 안 바뀌었으면
+REM    (이 지점은 3) 에서 이미 걸러졌으므로) 여기 온 날은 항상 뭔가 바뀐 날이다.
+REM    실패해도 사전 자체는 이미 검증을 통과했으므로 CSV 커밋·푸시는 막지 않는다.
+%PY% -u ingredient_management\renormalize_used_ingredients.py --commit >> %LOG% 2>&1
+%PY% -u ingredient_management\migrate_user_ingredients.py --commit >> %LOG% 2>&1
+
 REM 4.5) 「특별한 날」 프리미엄 목록이 사전과 어긋나지 않는지 본다.
 REM    `used_ingredients` 에는 대표어만 남으므로, 프리미엄 이름이 대표어로
 REM    없거나 동의어로 합쳐져 사라지면 그 재료는 **영영 안 걸린다.** 아무 오류도
