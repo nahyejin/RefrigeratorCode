@@ -612,14 +612,21 @@ def _search_recipes(get_db, keywords, include_ingredients, exclude_ingredients, 
             _quoted = "'" + _seasoning.replace("\\", "\\\\").replace("'", "\\'") + "'"
             seasoning_free = f"REPLACE({seasoning_free}, CONCAT(',', {_quoted}, ','), ',')"
 
-        fridge = [] if ignore_fridge else [i for i in my_ingredients if i][:20]
-        if fridge:
+        # `fridge` 는 **필터/정렬에 쓸지**만 정한다(ignore_fridge 면 비움 — "재료
+        # 상관없이" 요청은 매칭률로 거르거나 줄 세우면 안 된다). 카드에 보여줄
+        # 매칭률 자체는 `match_source` 로 **항상** 계산한다 — 사용자 냉장고는
+        # ignore_fridge 와 무관하게 그대로다. 예전엔 이 둘을 같은 변수(`fridge`)로
+        # 묶어서, "재료 상관없이" 라고만 해도 실제로 몇 개가 겹치든 카드마다
+        # 매칭률이 전부 0% 로 나갔다(실사용 보고).
+        match_source = [i for i in my_ingredients if i][:20]
+        fridge = [] if ignore_fridge else match_source
+        if match_source:
             match_parts = [
                 f"(CASE WHEN FIND_IN_SET(%s, REPLACE(used_ingredients,' ','')) > 0 "
                 f"THEN {SEASONING_WEIGHT if ing in seasoning_set else CORE_WEIGHT} ELSE 0 END)"
-                for ing in fridge
+                for ing in match_source
             ]
-            match_params = fridge[:]
+            match_params = match_source[:]
 
             # 레시피 전체 재료 개수(가중치 없음)
             total_ing = """
