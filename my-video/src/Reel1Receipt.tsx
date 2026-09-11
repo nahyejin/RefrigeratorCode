@@ -1,7 +1,6 @@
 import React from "react";
 import {
   AbsoluteFill,
-  Audio,
   OffthreadVideo,
   Sequence,
   staticFile,
@@ -10,7 +9,7 @@ import {
   useCurrentFrame,
   useVideoConfig,
 } from "remotion";
-import { FONT_FAMILY, INK, INK_SOFT, WHITE, LINE, BGM_FILE, useCustomFont, RevealText, CtaOutro } from "./shared";
+import { FONT_FAMILY, INK, INK_SOFT, WHITE, LINE, useCustomFont, RevealText, CtaOutro } from "./shared";
 
 // 원본: VID_20260911180601731.mp4 (15.2s, 632x1280, 30fps) — 실제 쿡매치 사진 인식 데모
 const RAW_VIDEO = "reel1_photo_recognition.mp4";
@@ -49,18 +48,10 @@ export const REEL1_TOTAL_FRAMES = CTA_FROM + CTA_LEN; // 391f ≈ 13.0s
 
 export const Reel1Receipt: React.FC = () => {
   useCustomFont();
-  const total = REEL1_TOTAL_FRAMES;
   return (
+    // 무음 마스터 — BGM은 업로드 시 릴스 자체 음원 기능으로 얹는 걸 전제로 뺐다.
+    // 7편을 전부 같은 트랙으로 깔면 지루해지고, 릴스 트렌드 음원을 쓰는 쪽이 노출에도 유리하다.
     <AbsoluteFill style={{ backgroundColor: WHITE, fontFamily: FONT_FAMILY }}>
-      <Audio
-        src={staticFile(BGM_FILE)}
-        volume={(f) =>
-          interpolate(f, [0, 20, total - 20, total], [0, 0.5, 0.5, 0], {
-            extrapolateLeft: "clamp",
-            extrapolateRight: "clamp",
-          })
-        }
-      />
       <Sequence from={HOOK_TEXT_FROM} durationInFrames={HOOK_TEXT_LEN} name="HookText">
         <HookText />
       </Sequence>
@@ -202,34 +193,36 @@ const DemoCaption: React.FC<{ children: React.ReactNode; from: number; len: numb
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
+  // 릴스 자체 UI(캡션·좋아요·저장 버튼)가 화면 하단 ~20%를 덮기 때문에,
+  // 그 안전지대 위쪽에 자막을 둔다 — 맨 아래에 깔면 실제로는 가려서 안 보인다.
   return (
-    <AbsoluteFill style={{ alignItems: "flex-end", justifyContent: "flex-start" }}>
+    <AbsoluteFill>
       <div
         style={{
           position: "absolute",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: 320,
-          background: "linear-gradient(0deg, rgba(255,255,255,0.96) 30%, rgba(255,255,255,0) 100%)",
-          opacity,
-        }}
-      />
-      <div
-        style={{
-          position: "absolute",
-          bottom: 64,
-          left: 56,
-          right: 56,
+          left: 44,
+          right: 44,
+          bottom: 470,
           textAlign: "center",
-          fontSize: 40,
-          fontWeight: 700,
-          color: INK,
-          lineHeight: 1.35,
           opacity,
         }}
       >
-        {children}
+        <div
+          style={{
+            display: "inline-block",
+            backgroundColor: "rgba(255,255,255,0.94)",
+            border: `1px solid ${LINE}`,
+            borderRadius: 20,
+            padding: "18px 30px",
+            fontSize: 54,
+            fontWeight: 700,
+            color: INK,
+            lineHeight: 1.3,
+            boxShadow: "0 8px 24px rgba(26,26,30,0.1)",
+          }}
+        >
+          {children}
+        </div>
       </div>
     </AbsoluteFill>
   );
