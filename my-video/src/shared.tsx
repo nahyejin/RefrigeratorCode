@@ -98,15 +98,19 @@ export const CtaOutro: React.FC<{ payoffLine: React.ReactNode }> = ({ payoffLine
 
   const logoP = interpolate(spring({ frame, fps, config: { damping: 24, mass: 0.9 } }), [0, 1], [0.92, 1]);
   const logoOpacity = interpolate(frame, [0, 14], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-  const taglineOpacity = interpolate(frame, [16, 28], [0, 1], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
-  const ctaOpacity = interpolate(frame, [30, 44], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+
+  // CTA 버튼 — 팝업 등장 후 계속 은은하게 펄스를 줘서 시선을 붙잡는다.
+  const ctaPop = interpolate(
+    spring({ frame: frame - 32, fps, config: { damping: 11, mass: 0.6 } }),
+    [0, 1],
+    [0.8, 1]
+  );
+  const ctaOpacity = interpolate(frame, [32, 46], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const ctaPulse = frame > 46 ? 1 + Math.sin(((frame - 46) / fps) * Math.PI * 1.8) * 0.035 : 1;
 
   return (
     <AbsoluteFill style={{ backgroundColor: WHITE }}>
-      <AbsoluteFill style={{ alignItems: "center", justifyContent: "center", paddingTop: 100 }}>
+      <AbsoluteFill style={{ alignItems: "center", justifyContent: "center", paddingTop: 60 }}>
         <div
           style={{
             opacity: logoOpacity,
@@ -120,39 +124,37 @@ export const CtaOutro: React.FC<{ payoffLine: React.ReactNode }> = ({ payoffLine
           <AppIcon size={260} />
           <Wordmark size={80} />
         </div>
-        <div
-          style={{
-            marginTop: 30,
-            fontSize: 38,
-            fontWeight: 600,
-            color: YELLOW_TEXT,
-            opacity: taglineOpacity,
-            borderBottom: `3px solid ${YELLOW}`,
-            paddingBottom: 6,
-          }}
-        >
-          설치 없이 웹에서 바로 시작
-        </div>
       </AbsoluteFill>
 
-      <RevealText top={1290} delay={30} size={64}>
+      <RevealText top={1180} delay={26} size={64}>
         {payoffLine}
       </RevealText>
 
       <div
         style={{
           position: "absolute",
-          bottom: 150,
+          top: 1420,
           left: 0,
           right: 0,
           textAlign: "center",
-          fontSize: 40,
-          fontWeight: 600,
-          color: INK_SOFT,
           opacity: ctaOpacity,
         }}
       >
-        프로필 링크에서 시작하기
+        <div
+          style={{
+            display: "inline-block",
+            backgroundColor: YELLOW,
+            color: INK,
+            fontSize: 46,
+            fontWeight: 800,
+            padding: "26px 48px",
+            borderRadius: 999,
+            transform: `scale(${ctaPop * ctaPulse})`,
+            boxShadow: "0 14px 32px rgba(255,214,0,0.35)",
+          }}
+        >
+          프로필 링크에서 시작하기
+        </div>
       </div>
     </AbsoluteFill>
   );
