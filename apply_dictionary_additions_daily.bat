@@ -24,12 +24,16 @@ REM       올릴 뻔한 적이 있다)
 REM
 REM  하는 일:
 REM   1) DB 승인분을 CSV 에 반영
+REM   1.5) 띄어쓰기만 다른 사전 중복 줄 병합
 REM   2) 백엔드 사본(backend/...csv)까지 맞춤
+REM   2.3) 새 재료 보관 일수(냉동/냉장/실온) 채움
 REM   2.5) 대체 재료 표를 다시 만듦 (새 재료의 "대체 가능" 이 여기서 생긴다)
 REM   2.9) 재료 역색인 갱신 (냉장고요리 매칭률이 이걸 보고 돈다)
+REM   2.95) 쿠팡 광고 후보 건수·순위 재계산
 REM   3) 바뀐 게 없으면 종료
 REM   4) 사전이 정상으로 읽히는지 확인  <- 실패하면 되돌리고 멈춘다
-REM   5) 사전 CSV 두 개만 커밋하고 푸시
+REM   4.6) 사전 보강분을 이미 처리된 레시피/사용자 재료에도 소급 적용
+REM   5) 사전 CSV·대체표·쿠팡 광고 후보를 커밋하고 푸시
 REM
 REM  주의: 이 파일은 반드시 CRLF 개행으로 저장할 것.
 REM   LF 로 저장하면 cmd.exe 가 잘못 읽어 즉시 실패한다.
@@ -42,7 +46,7 @@ cd /d "%~dp0"
 
 set LOG=dictionary_sync.log
 set PY="C:\Users\user\venv310\Scripts\python.exe"
-set CSVS=frontend/public/ingredient_profile_dict_with_substitutes.csv backend/ingredient_profile_dict_with_substitutes.csv frontend/public/ingredient_substitute_table.csv backend/premium_ingredients_auto.json
+set CSVS=frontend/public/ingredient_profile_dict_with_substitutes.csv backend/ingredient_profile_dict_with_substitutes.csv frontend/public/ingredient_substitute_table.csv backend/premium_ingredients_auto.json frontend/public/coupang_ads.csv
 
 echo [%date% %time%] 사전 추가분 반영 시작 >> %LOG%
 
@@ -64,6 +68,14 @@ REM 1) DB -> CSV
 %PY% -u scripts\apply_dictionary_additions.py --write >> %LOG% 2>&1
 if errorlevel 1 goto failed
 
+REM 1.5) **띄어쓰기만 다른 이름**을 한 줄로 합친다.
+REM    사전이 승인·자동 큐레이션으로 매일 늘어나는데, 그 중 띄어쓰기만 다른
+REM    중복 줄("나박 김치"/"나박김치")을 합쳐 주는 사람이 없었다. 검색 결과가
+REM    중복으로 뜨는 것은 그렇다 치고, 더 나쁜 건 둘의 값(상위어·보관일수)이
+REM    다를 때 **CSV 줄 순서가 우연히 뜻을 정하는 것**이었다. 백엔드 사본을
+REM    맞추기(2번) 전에 돌려야 두 사본이 같은 내용을 받는다.
+%PY% -u scripts\merge_spacing_variants.py --write >> %LOG% 2>&1
+
 REM 2) 백엔드 사본 맞추기
 %PY% -u scripts\sync_ingredient_dict.py --write >> %LOG% 2>&1
 if errorlevel 1 goto failed
@@ -75,6 +87,14 @@ REM    비어 있으면 "분류가 같다" 는 이유만으로 대체재가 붙�
 REM    (2026-09-07 기준 재료 1,634개 중 274개가 그 상태였다)
 REM    빈 것만 채우므로 대개 대상이 0개고, 그러면 LLM 을 부르지도 않는다.
 %PY% -u scripts\fill_ingredient_features.py --write >> %LOG% 2>&1
+
+REM 2.3) 새 재료의 **보관 일수**(냉동/냉장/실온)를 채운다.
+REM    바로 위 2.2)와 같은 이유 -- 새로 들어온 재료는 이 칸이 비어 있고, 비어
+REM    있으면 **분류 단위 추정**으로 내려가는데 그게 실제로 상한 음식을 먹게
+REM    만든 적이 있다(두부·콩나물이 마른 콩과 같은 칸이라 냉장 180일로 잡힘).
+REM    LLM 이 낸 값은 분류 기준과 크게 어긋나면 스스로 버리는 안전장치가 있다.
+REM    빈 것만 채우므로 대개 대상이 적어 LLM 호출도 그만큼 적다.
+%PY% -u scripts\fill_shelf_life.py --write >> %LOG% 2>&1
 
 REM 2.5) **대체 재료 표를 다시 만든다.**
 REM    사전에 새 재료가 들어와도 대체표는 그대로였다. 대체표는 손으로
@@ -110,6 +130,16 @@ if errorlevel 1 (
   %PY% -u scripts\build_ingredient_index.py --write >> %LOG% 2>&1
 )
 
+REM 2.95) **쿠팡 광고 후보 목록의 건수·순위를 지금 데이터로 다시 센다.**
+REM    한 번 만들어 두고 그대로였는데, 사전이 바뀌면 재료 대표어가 갈리고
+REM    ("파"->"대파") 레시피도 매일 늘어나 순위가 실제와 크게 달라진다
+REM    (실측: 파 11,540->0건, 황다랑어 4,633->0건). 순위대로 링크를 채우는데
+REM    순위가 틀리면 아무 글에도 안 걸리는 재료에 시간을 쓰게 된다. 사람이
+REM    이미 채워 둔 링크는 그대로 두고 건수·순위만 다시 매긴다. 사전이 바뀌든
+REM    말든(레시피가 매일 느니까) 매일 같이 돌린다 -- DB 읽기 + CSV 쓰기뿐이라
+REM    LLM 호출은 없다.
+%PY% -u scripts\refresh_coupang_ads.py --write >> %LOG% 2>&1
+
 REM 3) 바뀐 게 없으면 여기서 끝 (매일 도는데 대부분은 바뀔 게 없다)
 git diff --quiet -- %CSVS%
 if not errorlevel 1 (
@@ -143,11 +173,11 @@ REM    없거나 동의어로 합쳐져 사라지면 그 재료는 **영영 안 
 REM    안 나는 종류라 따로 본다. 여기서 멈추지는 않는다 — 로그에만 남긴다.
 %PY% -u scripts\check_premium_ingredients.py >> %LOG% 2>&1
 
-REM 5) 사전 CSV 와 대체표만 커밋하고 푸시.
+REM 5) 사전 CSV·대체표·쿠팡 광고 후보만 커밋하고 푸시.
 REM    `git add -A` 를 쓰지 않는다 - 작업하던 다른 파일이 딸려 올라간다.
 git diff --stat -- %CSVS% >> %LOG% 2>&1
 git add %CSVS% >> %LOG% 2>&1
-git commit -m "재료 사전 추가분 + 대체 재료 표 반영 (어드민 승인분 자동)" >> %LOG% 2>&1
+git commit -m "재료 사전/대체 재료 표/쿠팡 광고 후보 자동 반영" >> %LOG% 2>&1
 if errorlevel 1 (
   echo [%date% %time%] 커밋할 것이 없거나 커밋 실패 >> %LOG%
   goto done

@@ -167,7 +167,12 @@ RefrigeratorCode/
 | `ingredient_management/renormalize_used_ingredients.py` | 레시피 `used_ingredients` | **0회** |
 | `ingredient_management/migrate_user_ingredients.py` | 사용자 냉장고 `user_ingredients.name` | 0회 |
 
-둘 다 기본은 미리보기이고 `--commit` 을 붙여야 반영됩니다.
+둘 다 기본은 미리보기이고 `--commit` 을 붙여야 반영됩니다. **2026-09-11부터는
+`CookMatch-DictionarySync`(매일 06:30, 사전이 그날 실제로 바뀐 경우에만)가
+`--commit` 으로 자동으로 돌립니다** — 손으로 돌리는 건 배치를 기다리지 않고
+지금 바로 반영하고 싶을 때만. (그전까진 이 두 스크립트가 자동 배치에
+연결돼 있지 않아, 사전이 보강돼도 이미 처리된 레시피는 안 맞춰지는 채로
+쌓이다가 실사용자 신고로 발견됨 — 자세한 경위는 `RECIPE_PIPELINE.md` §3.5.)
 
 ### 6. 재료 대체 추천
 - **대체 사전**: `ingredient_substitute_table.csv` 기반
@@ -273,6 +278,7 @@ RefrigeratorCode/
 |---|---|---|
 | `CookMatch-WeeklyCrawler` | 매일 22:00 | 크롤링 + 룰베이스 재료 추출 |
 | `CookMatch-DailyLLMIngredients` | 매일 05:00 | LLM 재료 추출 |
+| `CookMatch-DictionarySync` | 매일 06:30 | 사전 승인분 반영 + 띄어쓰기 중복 병합 + 대체표·보관일수·쿠팡 광고 후보 재생성 + 소급 재정규화(위 표 두 스크립트) |
 
 절전 상태면 깨워서 실행되지만(`WakeToRun`), **PC 가 완전히 꺼져 있으면 실행되지 않습니다.**
 

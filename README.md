@@ -48,6 +48,7 @@ RefrigeratorCode/
 ├── 📄 run_all_crawlers.py                 # 크롤링 + 룰베이스 재료 추출
 ├── 📄 run_crawlers_scheduled.bat          # 크롤러 (매일 밤 22:00 — 같은 밤 05:00 AI 배치가 이어받는다. Windows 작업 스케줄러 "CookMatch-WeeklyCrawler")
 ├── 📄 run_llm_ingredients_daily.bat       # 매일 LLM 재료 추출 (매일 05:00)
+├── 📄 apply_dictionary_additions_daily.bat # 사전 승인분 반영 + 대체표·소급 재정규화 (매일 06:30, "CookMatch-DictionarySync")
 ├── 📄 requirements.txt
 ├── 📄 README.md
 ├── 📄 PROJECT_OVERVIEW.md          # 아키텍처·기능·파이프라인

@@ -30,7 +30,10 @@
 
  매일 06:30   CookMatch-DictionarySync       (apply_dictionary_additions_daily.bat)
               어드민에서 승인한 사전을 CSV 로 옮기고 커밋 · 푸시
-              + 대체 재료 표(52,003쌍) 재생성
+              + 띄어쓰기만 다른 사전 중복 줄 병합
+              + 대체 재료 표(52,003쌍) · 보관 일수 · 쿠팡 광고 후보 재생성
+              + 사전이 실제로 바뀐 날만: 이미 처리된 레시피 · 사용자 재료를
+                새 사전 기준으로 소급 재정규화(AI 호출 0회, 2026-09-11~)
 ```
 
 세 작업 모두 **개발 컴퓨터의 윈도우 작업 스케줄러**가 돌린다. 서버가 아니라
@@ -198,6 +201,34 @@ python scripts/mark_llm_restored.py --write
 
 ---
 
+## 3.5. 사고 기록 — 사전은 고쳤는데 옛 레시피는 안 고쳐짐 (2026-09-11)
+
+### 무슨 일이 있었나
+
+실사용자(osh4u@naver.com)가 냉장고에 계란을 넣은 적이 없는데 "간장계란조림"이
+추천됐다고 신고. 레시피 id=169403 의 `used_ingredients` 가 `간장,설탕` 로,
+본문에 분명히 있는 "반숙란(4개)"이 빠져 있었다.
+
+### 원인
+
+이 레시피는 2026-09-06 에 AI 로 처리됐는데, "반숙란"을 "달걀"의 동의어로
+사전에 추가한 건 이틀 뒤인 2026-09-08 — 처리 당시엔 사전에 없어 버려졌다
+(7절에 있던 `renormalize_used_ingredients.py` 가 정확히 이 간극을 메우는
+도구인데, **손으로 돌리는 것으로만** 남아 있어서 아무도 정기적으로 돌리지
+않고 있었다). `migrate_user_ingredients.py`(사용자 냉장고 재료용, 같은
+문제)도 마찬가지였다.
+
+### 대책
+
+두 스크립트를 06:30 `CookMatch-DictionarySync` 배치에 편입(4.6번 단계,
+사전 CSV 검증을 통과한 뒤 · 사전이 그날 실제로 바뀐 경우에만 실행). 이제
+사전 동의어가 늘 때마다 그날로 옛 레시피·사용자 재료가 같이 맞춰진다.
+
+**결과 (2026-09-11, 최초 소급분)**: 레시피 8,080건 재료 갱신, 사전 변경으로
+설명 안 되는 소실 0건. 신고된 169403 은 `간장,달걀,설탕` 으로 정정.
+
+---
+
 ## 4. 다 채워지기 전에는 앱에 안 띄운다
 
 크롤러는 AI 를 기다리지 않고 규칙 기반 임시 재료를 붙여 먼저 넣는다. 그 값이
@@ -276,8 +307,11 @@ python scripts/requeue_recipes_for_llm.py            # 미리보기
 python scripts/requeue_recipes_for_llm.py --write
 
 # 사전을 보강한 뒤 기존 결과에 소급 (AI 호출 0회)
+# — 2026-09-11부터 06:30 배치(사전이 바뀐 날만)가 자동으로 돈다.
+#   아래는 배치를 기다리지 않고 지금 바로 반영하고 싶을 때만 손으로 돌린다.
 python -u ingredient_management/renormalize_used_ingredients.py
 python -u ingredient_management/renormalize_used_ingredients.py --commit
+python -u ingredient_management/migrate_user_ingredients.py --commit
 
 # 사고 복구 — 규칙 기반에 덮인 행을 AI 원본으로 되돌리기
 python -u ingredient_management/renormalize_used_ingredients.py --restore --commit
