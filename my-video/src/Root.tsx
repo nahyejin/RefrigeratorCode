@@ -1,6 +1,7 @@
 import "./index.css";
 import { Composition } from "remotion";
 import { CookMatchTeaser } from "./CookMatchTeaser";
+import { Reel1Receipt, REEL1_TOTAL_FRAMES } from "./Reel1Receipt";
 
 export const RemotionRoot: React.FC = () => {
   return (
@@ -9,6 +10,14 @@ export const RemotionRoot: React.FC = () => {
         id="CookMatchTeaser"
         component={CookMatchTeaser}
         durationInFrames={270}
+        fps={30}
+        width={1080}
+        height={1920}
+      />
+      <Composition
+        id="Reel1Receipt"
+        component={Reel1Receipt}
+        durationInFrames={REEL1_TOTAL_FRAMES}
         fps={30}
         width={1080}
         height={1920}
