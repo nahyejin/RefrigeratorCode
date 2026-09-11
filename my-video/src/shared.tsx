@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import {
   AbsoluteFill,
+  Easing,
   Img,
   staticFile,
   interpolate,
@@ -154,6 +155,64 @@ export const CtaOutro: React.FC<{ payoffLine: React.ReactNode }> = ({ payoffLine
           }}
         >
           프로필 링크에서 시작하기
+        </div>
+      </div>
+    </AbsoluteFill>
+  );
+};
+
+// ---------- 자막 (전 편 공통) ----------
+// 화면 세로 기준 약 3/4 지점(중간보다 살짝 아래) 고정 — 훅 실사든 데모 실사든
+// 편이 바뀌어도 이 위치와 타이핑 리빌 방식은 절대 바꾸지 않는다(통일감).
+export const CAPTION_TOP = 1400;
+const TYPE_FRAMES = 16; // 타이핑 효과 — 이 프레임 안에 전체 글자가 다 찍힌다
+
+export const Caption: React.FC<{ text: string; from: number; len: number }> = ({ text, from, len }) => {
+  const frame = useCurrentFrame();
+  const local = frame - from;
+  if (local < -4 || local > len + 4) return null;
+
+  const boxOpacity = interpolate(local, [0, 4, len - 5, len], [0, 1, 1, 0], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+  const typeProgress = interpolate(local, [0, TYPE_FRAMES], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+    easing: Easing.out(Easing.cubic),
+  });
+  const chars = Math.round(text.length * typeProgress);
+  const shown = text.slice(0, chars);
+  const cursorOn = chars < text.length && Math.floor(local / 4) % 2 === 0;
+
+  return (
+    <AbsoluteFill>
+      <div
+        style={{
+          position: "absolute",
+          left: 44,
+          right: 44,
+          top: CAPTION_TOP,
+          textAlign: "center",
+          opacity: boxOpacity,
+        }}
+      >
+        <div
+          style={{
+            display: "inline-block",
+            maxWidth: 940,
+            backgroundColor: "rgba(17,17,19,0.88)",
+            borderRadius: 22,
+            padding: "22px 34px",
+            fontSize: 58,
+            fontWeight: 800,
+            color: "#FFFFFF",
+            lineHeight: 1.32,
+            whiteSpace: "pre-line", // 줄바꿈은 브라우저 자동 랩에 맡기지 않고 text의 \n으로 직접 지정한다
+          }}
+        >
+          {shown}
+          {cursorOn ? "▏" : ""}
         </div>
       </div>
     </AbsoluteFill>

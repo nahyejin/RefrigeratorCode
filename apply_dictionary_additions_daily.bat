@@ -23,6 +23,8 @@ REM       올라가지 않는다 (예전에 CSV 를 커밋하다 비밀번호 �
 REM       올릴 뻔한 적이 있다)
 REM
 REM  하는 일:
+REM   0) (2026-09-12부터 잠시 멈춤) 미승인 후보 자동 반영 — 지금은 후보만
+REM      쌓이고, 어드민이 '사전' 탭에서 직접 승인해야 CSV 로 간다.
 REM   1) DB 승인분을 CSV 에 반영
 REM   1.5) 띄어쓰기만 다른 사전 중복 줄 병합
 REM   2) 백엔드 사본(backend/...csv)까지 맞춤
@@ -50,19 +52,26 @@ set CSVS=frontend/public/ingredient_profile_dict_with_substitutes.csv backend/in
 
 echo [%date% %time%] 사전 추가분 반영 시작 >> %LOG%
 
-REM 0) 사전에 없어 **버려진 이름** 을 자동으로 판정해 넣는다.
-REM    LLM 이 본문에서 뽑은 재료 중 사전에 없는 이름은 그대로 버려졌다
+REM 0) (2026-09-12부터 잠시 멈춤) 사전에 없어 **버려진 이름** 을 자동으로
+REM    판정해 넣던 단계.
+REM    LLM 이 본문에서 뽑은 재료 중 사전에 없는 이름은 그대로 버려진다
 REM    (2026-09-06 기준 14,328종 / 62,185회). 그만큼 카드의 재료가 적게 나오고
-REM    매칭률도 낮게 잡혔다.
+REM    매칭률도 낮게 잡힌다 — 이 자체는 여전히 사실이다.
 REM
-REM    **6회 이상 나온 것만** 돌린다. 그 아래 꼬리에는 `코스트코 호래기`,
-REM    `쿠킹 포일` 같은 것이 섞여 있고(2회 이하가 누적 37.7%), 사전은 모든
-REM    사용자의 매칭 기준이라 한 번 들어가면 되돌리기 어렵다.
-REM    나머지는 어드민 '사전' 탭에 그대로 남아 손으로 볼 수 있다.
+REM    그런데 사람 확인 없이 사전에 바로 쓰다 보니, "계란말이/달걀말이" 처럼
+REM    이미 동의어인 단어를 품은 복합어가 서로 다른 대표어로 갈라지는 등
+REM    품질 문제가 계속 발견됐다(2026-09-12, 실사용자 지적). 사전은 모든
+REM    사용자의 매칭 기준이라 한 번 잘못 들어가면 되돌리기 번거롭다 — 그래서
+REM    당분간 **자동 반영은 멈추고, 후보만 쌓이게** 둔다.
 REM
-REM    아래 1) 보다 **먼저** 돈다 — 오늘 넣은 것이 오늘 CSV 까지 가야 한다.
-REM    실패해도 멈추지 않는다 — 사전 반영 자체는 그것과 상관없이 돌아야 한다.
-%PY% -u scripts\auto_curate_dictionary.py --write --max-minutes 40 >> %LOG% 2>&1
+REM    멈춰도 후보 자체는 사라지지 않는다 — `ingredient_dictionary_misses`
+REM    표는 이 스크립트와 무관하게 계속 쌓이고(사진 인식·재료 추출 쪽에서
+REM    기록), 어드민 '사전' 탭에서 그대로 손으로 훑어보고
+REM    `모두 고르기 → 제안받기 → 사전에 반영` 으로 승인할 수 있다. 그렇게
+REM    승인된 것만 바로 아래 1) 이 CSV 로 옮긴다.
+REM
+REM    다시 켜려면: 아래 줄 앞의 REM 을 지운다.
+REM    %PY% -u scripts\auto_curate_dictionary.py --write --max-minutes 40 >> %LOG% 2>&1
 
 REM 1) DB -> CSV
 %PY% -u scripts\apply_dictionary_additions.py --write >> %LOG% 2>&1
