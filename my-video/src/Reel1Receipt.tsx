@@ -227,6 +227,7 @@ const DemoCaption: React.FC<{ text: string; from: number; len: number }> = ({ te
             fontWeight: 800,
             color: "#FFFFFF",
             lineHeight: 1.32,
+            whiteSpace: "pre-line", // 줄바꿈은 브라우저 자동 랩에 맡기지 않고 text의 \n으로 직접 지정한다
           }}
         >
           {shown}
@@ -291,8 +292,8 @@ const Demo: React.FC = () => {
         </Sequence>
       </div>
 
-      <DemoCaption from={c1From} len={c1From + C1 + C2 + C3 - c1From} text="영수증도, 쿠팡 주문내역 캡처도 — 한 장이면 돼요" />
-      <DemoCaption from={c4From} len={C4 + C5 + HOLD} text="재료랑 유통기한까지, 자동으로" />
+      <DemoCaption from={c1From} len={c1From + C1 + C2 + C3 - c1From} text={"영수증도, 쿠팡 주문내역 캡처도\n한 장이면 돼요"} />
+      <DemoCaption from={c4From} len={C4 + C5 + HOLD} text={"재료랑 유통기한까지\n자동으로"} />
     </AbsoluteFill>
   );
 };
