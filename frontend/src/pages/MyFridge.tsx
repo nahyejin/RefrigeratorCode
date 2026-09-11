@@ -1141,9 +1141,19 @@ const MyFridge: React.FC = () => {
     console.log('[MyFridge] CSV 파일 로드 시작');
     
     // CSV 파일을 localStorage에 캐싱하여 한 번만 로드
-    const CSV_CACHE_KEY = 'ingredient_dict_cache';
+    //
+    // 키를 이 화면 전용으로 분리한다 — RecipeList.tsx·FilterModal.tsx 도
+    // `ingredient_dict_cache` 라는 같은 이름을 각자 다른 모양(배열 vs 이
+    // 화면의 {이름: 대표어} 객체)·다른 버전 번호로 같이 쓰고 있어서, 버전이
+    // 우연히 겹치면 서로 다른 모양의 캐시를 그대로 읽어 쓰는 사고로 이어질
+    // 수 있었다.
+    const CSV_CACHE_KEY = 'ingredient_dict_myfridge_cache';
     const CSV_CACHE_VERSION = '1.2'; // 띄어쓰기만 다른 이름을 한 번만 담도록 바꿔서 다시 읽힌다
-    
+    // 버전만 보면 예전 값을 들고 있는 사람이 영원히 그대로다 — 사전은 매일
+    // 자동으로 바뀌므로(06:30 배치) 하루 지나면 다시 받는다. `timestamp` 는
+    // 전부터 저장은 하고 있었지만 실제로 확인하지는 않고 있었다.
+    const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+
     const loadCachedCSV = async () => {
       try {
         // 모바일 환경에서 localStorage 접근이 실패할 수 있으므로 안전하게 처리
@@ -1155,7 +1165,9 @@ const MyFridge: React.FC = () => {
           const cached = localStorage.getItem(CSV_CACHE_KEY);
           if (cached) {
           const parsedCache = JSON.parse(cached);
-          if (parsedCache.version === CSV_CACHE_VERSION && parsedCache.data) {
+          const fresh = typeof parsedCache.timestamp === 'number'
+            && Date.now() - parsedCache.timestamp < CACHE_TTL_MS;
+          if (parsedCache.version === CSV_CACHE_VERSION && parsedCache.data && fresh) {
             console.log('[MyFridge] 캐시된 재료 사전 사용');
             initializeIngredients(parsedCache.data);
             return;

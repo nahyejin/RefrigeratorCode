@@ -770,7 +770,10 @@ const Popular = () => {
     const loadSubstituteTable = async () => {
       const CACHE_KEY = 'substitute_table_cache';
       const CACHE_VERSION = '2.3'; // 대체재 양방향(단맛 조미) 테이블 반영
-      
+      // 버전만 보면 예전 값을 들고 있는 사람이 영원히 그대로다 — 대체재 표는
+      // 사전이 바뀌든 말든 매일 재생성되므로(06:30 배치) 하루 지나면 다시 받는다.
+      const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+
       try {
         // 캐시 확인
         if (typeof window !== 'undefined' && window.localStorage) {
@@ -778,7 +781,9 @@ const Popular = () => {
           if (cached) {
             try {
               const parsedCache = JSON.parse(cached);
-              if (parsedCache.version === CACHE_VERSION && parsedCache.data) {
+              const fresh = typeof parsedCache.savedAt === 'number'
+                && Date.now() - parsedCache.savedAt < CACHE_TTL_MS;
+              if (parsedCache.version === CACHE_VERSION && parsedCache.data && fresh) {
                 console.log('[Popular] 캐시된 대체재료 테이블 사용', Object.keys(parsedCache.data).length, '개 재료');
                 setSubstituteTable(parsedCache.data);
                 return;
@@ -868,7 +873,8 @@ const Popular = () => {
           try {
             localStorage.setItem(CACHE_KEY, JSON.stringify({
               version: CACHE_VERSION,
-              data: table
+              data: table,
+              savedAt: Date.now()
             }));
             console.log('[Popular] 대체재료 테이블 캐시 저장 완료');
           } catch (e) {

@@ -10410,3 +10410,9 @@ StepLoading/FloatingScanLoader의 단계 문구와 안내 문구가 길어서 �
 - `renormalize_used_ingredients.py`를 미리보기로 먼저 돌려 전체 영향 범위(8,080건, 사전 변경으로 설명 안 되는 재료 소실 0건)를 확인한 뒤 `--commit`으로 반영. 신고된 레시피 169403도 `간장,설탕` → `간장,달걀,설탕`으로 정정 확인. `migrate_user_ingredients.py`는 미리보기 결과 바꿀 게 없어 실행 불필요.
 - **재발 방지**: `apply_dictionary_additions_daily.bat`에 4.6번 단계로 두 재적용 스크립트(`--commit`)를 추가해, 이제 사전이 바뀐 날(3번 단계에서 CSV 변경을 감지해 여기까지 온 날)마다 자동으로 옛 레시피/사용자 재료까지 같이 맞춰진다. LLM 재호출 없는 결정론적 재정규화라 매일 몇 초~몇 분이면 끝나고, 실패해도 사전 CSV 자체는 이미 검증을 통과한 뒤라 커밋·푸시는 막지 않는다.
 
+### 같은 종류의 문제를 더 찾아봄 — 클라이언트 캐시에도 "사전은 갱신됐는데 브라우저는 옛 값" 버그가 있었다
+위 사고를 고친 뒤 "이런 문제가 또 없는지" 전체를 다시 훑음. 프론트엔드 캐시 쪽에서 정확히 같은 모양의 버그를 찾아 같이 고침 — 사전·대체재료표가 이제 거의 매일 자동으로 바뀌는데, 브라우저 localStorage 캐시 중 일부는 버전 문자열이 바뀌지 않는 한 예전 값을 **영원히** 물고 있었다(코드에 있는 `loadCoupangLinks`가 예전에 똑같은 문제를 겪고 24시간 TTL을 단 기록이 남아 있는데, 바로 옆 `loadIngredientSynonymDict` 등 나머지엔 그 교훈이 적용 안 돼 있었다):
+- `recipeUtils.ts`의 `loadIngredientSynonymDict`(재료 동의어 사전 — 매칭률 계산·재료 알약 표시·쿠팡 광고 매칭에 두루 쓰임), `RecipeList.tsx`/`Popular.tsx`의 `loadSubstituteTable`(대체재료표, 06:30 배치가 매일 재생성), `RecipeList.tsx`의 `loadIngredientDictionary`·`filter_keywords_cache` — 전부 버전 문자열만 보고 캐시를 쓰고 있어 실제로는 만료가 없었다. 전부 `loadCoupangLinks`와 같은 24시간 TTL을 추가.
+- 더 심각한 건 별개로 찾은 **캐시 키 충돌**: `MyFridge.tsx`·`FilterModal.tsx`·`RecipeList.tsx` 세 화면이 전부 `'ingredient_dict_cache'`라는 같은 localStorage 키를 각자 다른 모양(배열 vs `{이름: 대표어}` 객체)·다른 버전 번호(1.0/1.0/1.2)로 쓰고 있었다. 버전이 우연히 같아지면(RecipeList와 FilterModal은 이미 둘 다 '1.0'이었다) 서로 다른 모양의 캐시를 그대로 읽어, 배열을 객체처럼 쓰거나 객체에 배열 메서드를 불러 깨지는 사고로 이어질 수 있다. 세 화면 각자의 키로 분리(`ingredient_dict_names_cache`/`ingredient_dict_filtermodal_cache`/`ingredient_dict_myfridge_cache`). `MyFridge.tsx`는 저장할 때 `timestamp`를 남기고 있었는데 정작 읽을 때 확인을 안 하고 있던 것도 같이 고침.
+- 타입체크(`tsc --noEmit`) 통과, 브라우저에서 캐시가 새 모양(`savedAt` 포함)으로 저장되고 24시간 이내엔 "신선"으로 판정되는 것 확인.
+

@@ -475,7 +475,11 @@ export function extractKeywordsAndSynonyms(
 export async function loadIngredientSynonymDict(): Promise<{ [key: string]: string }> {
   const CACHE_KEY = 'ingredient_synonym_dict_cache';
   const CACHE_VERSION = '1.1'; // CSV 파싱 로직 개선으로 버전 업데이트
-  
+  // 버전만 보면, 예전 값을 들고 있는 사람이 영원히 그대로다(아래 loadCoupangLinks
+  // 에서 같은 문제를 겪고 TTL을 더한 바 있다). 사전 동의어는 이제 매일 자동으로
+  // 늘어나므로(06:30 배치), 여기도 하루 지나면 다시 받아야 새 동의어가 반영된다.
+  const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+
   try {
     // 캐시 확인
     if (typeof window !== 'undefined' && window.localStorage) {
@@ -483,7 +487,9 @@ export async function loadIngredientSynonymDict(): Promise<{ [key: string]: stri
       if (cached) {
         try {
           const parsedCache = JSON.parse(cached);
-          if (parsedCache.version === CACHE_VERSION && parsedCache.data) {
+          const fresh = typeof parsedCache.savedAt === 'number'
+            && Date.now() - parsedCache.savedAt < CACHE_TTL_MS;
+          if (parsedCache.version === CACHE_VERSION && parsedCache.data && fresh) {
             return parsedCache.data;
           }
         } catch (e) {
@@ -568,7 +574,8 @@ export async function loadIngredientSynonymDict(): Promise<{ [key: string]: stri
       try {
         localStorage.setItem(CACHE_KEY, JSON.stringify({
           version: CACHE_VERSION,
-          data: ingredientDict
+          data: ingredientDict,
+          savedAt: Date.now()
         }));
       } catch (e) {
         console.warn('[recipeUtils] 동의어 사전 캐시 저장 실패:', e);

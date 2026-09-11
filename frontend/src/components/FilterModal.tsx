@@ -382,7 +382,10 @@ const FilterModal: React.FC<FilterModalProps> = ({
   
   // 재료 사전 로드 (동의어 포함, MyFridge와 동일한 로직)
   useEffect(() => {
-    const CSV_CACHE_KEY = 'ingredient_dict_cache';
+    // MyFridge.tsx가 쓰는 'ingredient_dict_cache' 와 이름이 같았다 — 두 화면이
+    // 버전 번호를 따로 관리해 온 탓에(1.0 vs 1.2) 서로의 캐시를 계속 무효한
+    // 것으로 보고 덮어써 왔다. 이 화면 전용 키로 분리한다.
+    const CSV_CACHE_KEY = 'ingredient_dict_filtermodal_cache';
     const CACHE_VERSION = '1.0';
     const CACHE_EXPIRY = 24 * 60 * 60 * 1000; // 24시간
     

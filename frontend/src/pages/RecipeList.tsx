@@ -264,7 +264,10 @@ function normalizeRecipe(recipe: any) {
 async function loadSubstituteTable(): Promise<{ [key: string]: { ingredient_b: string; similarity_score?: number }[] }> {
   const CACHE_KEY = 'substitute_table_cache';
   const CACHE_VERSION = '2.3'; // 대체재 양방향(단맛 조미) 테이블 반영
-  
+  // 버전만 보면 예전 값을 들고 있는 사람이 영원히 그대로다 — 대체재 표는
+  // 사전이 바뀌든 말든 매일 재생성되므로(06:30 배치) 하루 지나면 다시 받는다.
+  const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+
   try {
     // 캐시 확인
     if (typeof window !== 'undefined' && window.localStorage) {
@@ -272,7 +275,9 @@ async function loadSubstituteTable(): Promise<{ [key: string]: { ingredient_b: s
       if (cached) {
         try {
           const parsedCache = JSON.parse(cached);
-          if (parsedCache.version === CACHE_VERSION && parsedCache.data) {
+          const fresh = typeof parsedCache.savedAt === 'number'
+            && Date.now() - parsedCache.savedAt < CACHE_TTL_MS;
+          if (parsedCache.version === CACHE_VERSION && parsedCache.data && fresh) {
             console.log('[RecipeList] 캐시된 대체재료 테이블 사용');
             return parsedCache.data;
           }
@@ -387,7 +392,8 @@ async function loadSubstituteTable(): Promise<{ [key: string]: { ingredient_b: s
       try {
         localStorage.setItem(CACHE_KEY, JSON.stringify({
           version: CACHE_VERSION,
-          data: table
+          data: table,
+          savedAt: Date.now()
         }));
         console.log('[RecipeList] 대체재료 테이블 캐시 저장 완료', Object.keys(table).length, '개 재료');
         // 디버깅: 샘플 데이터 확인
@@ -411,9 +417,17 @@ async function loadSubstituteTable(): Promise<{ [key: string]: { ingredient_b: s
  * 재료 사전을 로드한다 (캐싱 적용)
  */
 async function loadIngredientDictionary(): Promise<string[]> {
-  const CACHE_KEY = 'ingredient_dict_cache';
+  // `ingredient_dict_cache` 라는 이름을 MyFridge.tsx·FilterModal.tsx 도 각자
+  // 다른 모양(배열이 아니라 {이름: 대표어} 객체)으로 같이 쓰고 있었다 — 버전
+  // 번호가 우연히 같아지면(과거 실제로 그랬다) 서로 다른 모양의 캐시를 그대로
+  // 읽어 배열 메서드가 없는 객체를 배열처럼 쓰다 깨지는 사고로 이어질 수 있어
+  // 이 화면만의 키로 분리한다.
+  const CACHE_KEY = 'ingredient_dict_names_cache';
   const CACHE_VERSION = '1.0';
-  
+  // 버전만 보면 예전 값을 들고 있는 사람이 영원히 그대로다 — 사전은 매일
+  // 자동으로 바뀌므로(06:30 배치) 하루 지나면 다시 받는다.
+  const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+
   try {
     // 캐시 확인
     if (typeof window !== 'undefined' && window.localStorage) {
@@ -421,7 +435,9 @@ async function loadIngredientDictionary(): Promise<string[]> {
       if (cached) {
         try {
           const parsedCache = JSON.parse(cached);
-          if (parsedCache.version === CACHE_VERSION && parsedCache.data) {
+          const fresh = typeof parsedCache.savedAt === 'number'
+            && Date.now() - parsedCache.savedAt < CACHE_TTL_MS;
+          if (parsedCache.version === CACHE_VERSION && parsedCache.data && fresh) {
             console.log('[RecipeList] 캐시된 재료 사전 사용');
             return parsedCache.data;
           }
@@ -430,26 +446,27 @@ async function loadIngredientDictionary(): Promise<string[]> {
         }
       }
     }
-    
+
     // 캐시가 없으면 새로 로드
     const csv = await fetchCsvOnce(CSV_INGREDIENT_URL);
-    
+
     const lines = csv.split('\n');
     const header = lines[0].split(',');
     const nameIdx = header.indexOf('keyword');
-    
+
     if (nameIdx === -1) return [];
-    
+
     const ingredients = lines.slice(1)
       .map(line => line.split(',')[nameIdx]?.trim())
       .filter(name => !!name && name !== 'keyword');
-    
+
     // 캐시에 저장
     if (typeof window !== 'undefined' && window.localStorage) {
       try {
         localStorage.setItem(CACHE_KEY, JSON.stringify({
           version: CACHE_VERSION,
-          data: ingredients
+          data: ingredients,
+          savedAt: Date.now()
         }));
         console.log('[RecipeList] 재료 사전 캐시 저장 완료');
       } catch (e) {
@@ -1136,14 +1153,17 @@ const RecipeList: React.FC = () => {
   useEffect(() => {
     const CACHE_KEY = 'filter_keywords_cache';
     const CACHE_VERSION = '1.0';
-    
+    const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+
     // 캐시 확인
     if (typeof window !== 'undefined' && window.localStorage) {
       const cached = localStorage.getItem(CACHE_KEY);
       if (cached) {
         try {
           const parsedCache = JSON.parse(cached);
-          if (parsedCache.version === CACHE_VERSION && parsedCache.data) {
+          const fresh = typeof parsedCache.savedAt === 'number'
+            && Date.now() - parsedCache.savedAt < CACHE_TTL_MS;
+          if (parsedCache.version === CACHE_VERSION && parsedCache.data && fresh) {
             console.log('[RecipeList] 캐시된 Filter_Keywords 사용');
             setCategoryKeywordTree(parsedCache.data);
             return;
@@ -1215,7 +1235,8 @@ const RecipeList: React.FC = () => {
           try {
             localStorage.setItem('filter_keywords_cache', JSON.stringify({
               version: '1.0',
-              data: tree
+              data: tree,
+              savedAt: Date.now()
             }));
             console.log('[RecipeList] Filter_Keywords 캐시 저장 완료');
           } catch (e) {
