@@ -1,21 +1,21 @@
 ingredient_keyword,coupang_url,priority,active,recipe_count,rank
 소금,https://link.coupang.com/a/gSJ6Ltpix2,D,Y,20767,1
 간장,https://link.coupang.com/a/gSJ7FilStU,C,Y,18037,2
-다진마늘,https://link.coupang.com/a/gSFYCCq4Zg,A,Y,16979,3
+다진마늘,https://link.coupang.com/a/gSFYCCq4Zg,A,Y,16981,3
 대파,https://link.coupang.com/a/gSJ71AInV6,C,Y,14555,4
 설탕,https://link.coupang.com/a/dHedi7,D,Y,14202,5
 양파,https://link.coupang.com/a/gSJ8qiW0J2,C,Y,13901,6
 후추,https://link.coupang.com/a/gSJ8HX0QA8,D,Y,12865,7
 참기름,https://link.coupang.com/a/gSJ88YaZLE,C,Y,12523,8
-고춧가루,https://link.coupang.com/a/gSJ9FYemCO,C,Y,12004,9
+고춧가루,https://link.coupang.com/a/gSJ9FYemCO,C,Y,12006,9
 식용유,https://link.coupang.com/a/gSKavcxEOq,C,Y,9164,10
 달걀,https://link.coupang.com/a/gSJ9VRt26K,C,Y,8729,11
 청양고추,https://link.coupang.com/a/gSKaPPiE7o,A,Y,7496,12
 맛술,https://link.coupang.com/a/gSKa7jpdUy,C,Y,7466,13
 액젓,https://link.coupang.com/a/gSKaduFL3Y,A,Y,7237,14
 식초,https://link.coupang.com/a/gSKbotuVvE,D,Y,6621,15
-통깨,,D,Y,6458,16
-참깨,https://link.coupang.com/a/gSJ9qaI7MW,A,Y,5814,17
+통깨,,D,Y,6459,16
+참깨,https://link.coupang.com/a/gSJ9qaI7MW,A,Y,5813,17
 당근,https://link.coupang.com/a/gSKbC5CZKm,C,Y,5688,18
 올리브유,https://link.coupang.com/a/gSKbXEUf7s,A,Y,5102,19
 고추장,https://link.coupang.com/a/gSKcseqPsa,C,Y,4761,20
@@ -60,7 +60,7 @@ ingredient_keyword,coupang_url,priority,active,recipe_count,rank
 사과,https://link.coupang.com/a/gSLgBQ7XCm,B,Y,1049,59
 케첩,https://link.coupang.com/a/gSLhn4gv4S,D,Y,1040,60
 생강가루,https://link.coupang.com/a/gSLijlACnQ,C,Y,1039,61
-소고기,https://link.coupang.com/a/gSLf3lB5Vc,A,Y,1033,62
+소고기,https://link.coupang.com/a/gSLf3lB5Vc,A,Y,1032,62
 청주,https://link.coupang.com/a/gSLhOgNtrU,C,Y,1025,63
 밀가루,https://link.coupang.com/a/gSLg0YNo7w,D,Y,1024,64
 식빵,https://link.coupang.com/a/gSLiukCRNI,B,Y,999,65
@@ -95,7 +95,7 @@ ingredient_keyword,coupang_url,priority,active,recipe_count,rank
 신김치,,D,Y,647,94
 감자전분,https://link.coupang.com/a/gSLrU1ommi,D,Y,645,95
 알배추,https://link.coupang.com/a/gSLqmXjd2y,C,Y,632,96
-파,https://link.coupang.com/a/gSM5FGnTbw,A,Y,628,97
+파,https://link.coupang.com/a/gSM5FGnTbw,A,Y,629,97
 베이컨,https://link.coupang.com/a/gSLnZfmOu4,C,Y,624,98
 멸치,https://link.coupang.com/a/gSLmBZsChE,B,Y,617,99
 당면,https://link.coupang.com/a/gSLpQ8w32a,C,Y,608,100
@@ -221,7 +221,7 @@ ingredient_keyword,coupang_url,priority,active,recipe_count,rank
 땅콩,https://link.coupang.com/a/gSMZughxQq,C,Y,107,220
 메이플시럽,https://link.coupang.com/a/gSMY6CsX9g,A,Y,107,221
 배추 김치,https://link.coupang.com/a/gSMVeenqcS,D,Y,96,222
-문어,https://link.coupang.com/a/gSMZXCNxNk,B,Y,90,223
+문어,https://link.coupang.com/a/gSMZXCNxNk,B,Y,93,223
 매실,https://link.coupang.com/a/gSMYJXXKx2,A,Y,89,224
 원두,https://link.coupang.com/a/gSMZkjVd7s,B,Y,75,225
 홍합,https://link.coupang.com/a/gSMZObTq3g,B,Y,69,226
