@@ -10,10 +10,12 @@ import {
   useCurrentFrame,
   useVideoConfig,
 } from "remotion";
-import { FONT_FAMILY, INK, INK_SOFT, WHITE, LINE, useCustomFont, RevealText, CtaOutro } from "./shared";
+import { FONT_FAMILY, WHITE, LINE, useCustomFont, CtaOutro } from "./shared";
 
 // 원본: VID_20260911180601731.mp4 (15.2s, 632x1280, 30fps) — 실제 쿡매치 사진 인식 데모
 const RAW_VIDEO = "reel1_photo_recognition.mp4";
+// 훅 비주얼: 제미나이로 생성한 실사풍 클립(4.625s, 632x1124, 24fps) — "이거 저번에도 샀나?"
+const HOOK_VIDEO = "reel1_hook_gemini.mov";
 
 // ---- 원본 타임코드(30fps 기준 프레임) — 콘티 "원본 매핑" 표와 동일 ----
 const RAW = {
@@ -35,17 +37,15 @@ const C4 = RAW.result[1] - RAW.result[0]; // 30f
 const C5 = RAW.done[1] - RAW.done[0]; // 60f
 const HOLD = 21; // 0.7s 페이오프 홀드
 
-const HOOK_TEXT_LEN = 45; // 1.5s
-const HOOK_VISUAL_LEN = 60; // 2.0s
+const HOOK_VIDEO_LEN = 135; // 4.5s — 원본 4.625s 중 여유를 두고 사용
 const DEMO_LEN = C1 + C2 + C3 + C4 + C5 + HOLD; // 226f
 const CTA_LEN = 60; // 2.0s
 
-const HOOK_TEXT_FROM = 0;
-const HOOK_VISUAL_FROM = HOOK_TEXT_FROM + HOOK_TEXT_LEN;
-const DEMO_FROM = HOOK_VISUAL_FROM + HOOK_VISUAL_LEN;
+const HOOK_FROM = 0;
+const DEMO_FROM = HOOK_FROM + HOOK_VIDEO_LEN;
 const CTA_FROM = DEMO_FROM + DEMO_LEN;
 
-export const REEL1_TOTAL_FRAMES = CTA_FROM + CTA_LEN; // 391f ≈ 13.0s
+export const REEL1_TOTAL_FRAMES = CTA_FROM + CTA_LEN; // ≈ 14.0s
 
 export const Reel1Receipt: React.FC = () => {
   useCustomFont();
@@ -53,11 +53,8 @@ export const Reel1Receipt: React.FC = () => {
     // 무음 마스터 — BGM은 업로드 시 릴스 자체 음원 기능으로 얹는 걸 전제로 뺐다.
     // 7편을 전부 같은 트랙으로 깔면 지루해지고, 릴스 트렌드 음원을 쓰는 쪽이 노출에도 유리하다.
     <AbsoluteFill style={{ backgroundColor: WHITE, fontFamily: FONT_FAMILY }}>
-      <Sequence from={HOOK_TEXT_FROM} durationInFrames={HOOK_TEXT_LEN} name="HookText">
-        <HookText />
-      </Sequence>
-      <Sequence from={HOOK_VISUAL_FROM} durationInFrames={HOOK_VISUAL_LEN} name="HookVisual">
-        <HookVisual />
+      <Sequence from={HOOK_FROM} durationInFrames={HOOK_VIDEO_LEN} name="Hook">
+        <HookVideo />
       </Sequence>
       <Sequence from={DEMO_FROM} durationInFrames={DEMO_LEN} name="Demo">
         <Demo />
@@ -75,67 +72,20 @@ export const Reel1Receipt: React.FC = () => {
   );
 };
 
-// ---------- ① 훅 텍스트 ----------
-const HookText: React.FC = () => (
-  <AbsoluteFill style={{ backgroundColor: WHITE, alignItems: "center", justifyContent: "center" }}>
-    <RevealText top={800} delay={2} size={66}>
-      장 본 지 3일,
-      <br />
-      뭐 샀는지 기억나세요?
-    </RevealText>
+// ---------- ①② 훅 (제미나이 생성 실사 클립 + 자막) ----------
+// 원본 하단(영수증 밑부분 상호명 자리)에 깨진 한글이 찍혀 있어서, 화면을 살짝
+// 확대해 top 기준으로 크롭한다 — 사람·손·영수증 본문은 그대로 두고 맨 아래만 잘려나간다.
+const HookVideo: React.FC = () => (
+  <AbsoluteFill style={{ backgroundColor: WHITE }}>
+    <div style={{ position: "absolute", inset: 0, overflow: "hidden" }}>
+      <OffthreadVideo
+        src={staticFile(HOOK_VIDEO)}
+        style={{ position: "absolute", top: 0, left: "-5%", width: "110%", height: "110%", objectFit: "cover" }}
+      />
+    </div>
+    <DemoCaption from={0} len={HOOK_VIDEO_LEN - 10} text="이거 저번에도 샀나?" />
   </AbsoluteFill>
 );
-
-// ---------- ② 훅 비주얼 (실사 B-roll 미확보 — 아이콘 모션으로 대체) ----------
-const ReceiptIcon: React.FC = () => {
-  const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-  const wiggle = Math.sin((frame / fps) * Math.PI * 2.4) * 3;
-  return (
-    <svg width="220" height="260" viewBox="0 0 220 260" fill="none" style={{ transform: `rotate(${wiggle}deg)` }}>
-      <path
-        d="M30 10h160v220l-16-12-16 12-16-12-16 12-16-12-16 12-16-12-16 12-16-12-16 12V10Z"
-        stroke={INK_SOFT}
-        strokeWidth="3"
-        strokeLinejoin="round"
-      />
-      <line x1="55" y1="55" x2="165" y2="55" stroke={INK_SOFT} strokeWidth="3" strokeLinecap="round" />
-      <line x1="55" y1="85" x2="165" y2="85" stroke={INK_SOFT} strokeWidth="3" strokeLinecap="round" />
-      <line x1="55" y1="115" x2="140" y2="115" stroke={INK_SOFT} strokeWidth="3" strokeLinecap="round" />
-      <line x1="55" y1="150" x2="165" y2="150" stroke={INK_SOFT} strokeWidth="3" strokeLinecap="round" />
-      <line x1="55" y1="180" x2="120" y2="180" stroke={INK_SOFT} strokeWidth="3" strokeLinecap="round" />
-    </svg>
-  );
-};
-
-const HookVisual: React.FC = () => {
-  const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-  const iconP = interpolate(spring({ frame, fps, config: { damping: 20, mass: 0.9 } }), [0, 1], [0.85, 1]);
-  const capOpacity = interpolate(frame, [10, 22], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-  return (
-    <AbsoluteFill style={{ backgroundColor: WHITE, alignItems: "center", justifyContent: "center" }}>
-      <div style={{ transform: `scale(${iconP})` }}>
-        <ReceiptIcon />
-      </div>
-      <div
-        style={{
-          position: "absolute",
-          bottom: 560,
-          left: 64,
-          right: 64,
-          textAlign: "center",
-          fontSize: 40,
-          fontWeight: 700,
-          color: INK,
-          opacity: capOpacity,
-        }}
-      >
-        또 사고, 또 버리고
-      </div>
-    </AbsoluteFill>
-  );
-};
 
 // ---------- ③ 데모 (실사) ----------
 const VIDEO_W = 948; // 632x1280 원본을 캔버스 높이(1920)에 맞춰 스케일(x1.5)
@@ -292,7 +242,7 @@ const Demo: React.FC = () => {
         </Sequence>
       </div>
 
-      <DemoCaption from={c1From} len={c1From + C1 + C2 + C3 - c1From} text={"영수증도, 쿠팡 주문내역 캡처도\n한 장이면 돼요"} />
+      <DemoCaption from={c1From} len={c1From + C1 + C2 + C3 - c1From} text={"영수증이든 음식 사진이든\n한 장이면 자동 인식"} />
       <DemoCaption from={c4From} len={C4 + C5 + HOLD} text={"재료랑 유통기한까지\n자동으로"} />
     </AbsoluteFill>
   );
