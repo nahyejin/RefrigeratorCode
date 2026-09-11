@@ -42,13 +42,20 @@ const FoodMultiIcon: React.FC = () => (
 // 결과도 크게 달라진다 — 영수증은 "산 목록을 읽어라", 음식 1개는 "가운데 것
 // 하나만", 음식 여러 개는 "보이는 것을 빠짐없이". 그래서 찍기 전에 먼저 묻고,
 // 타일에도 언제 무엇을 고르는지 한 줄로 적어 둔다.
+//
+// "영수증" 타일의 프롬프트는 실제로는 종이 영수증에 한정되지 않는다 —
+// "산 것을 읽어라" 라는 지시 자체가 쿠팡·마켓컬리 같은 온라인 쇼핑몰의
+// 주문내역 캡처에도 그대로 통한다(둘 다 "이름 + 날짜가 적힌 구매 목록"
+// 이라는 점은 같다, `backend/ingredient_vision.py`의 `_RECEIPT_PROMPT`
+// 참고). 그런데 타일 라벨이 "영수증"뿐이라 그 활용을 떠올리기 어려웠다 —
+// hint 에 짧게 적어 둔다.
 const OPTIONS: {
   key: Extract<CaptureMode, 'receipt' | 'food-single' | 'food-multi'>;
   label: string;
   hint: string;
   icon: React.FC;
 }[] = [
-  { key: 'receipt', label: '영수증', hint: '산 것 전부', icon: ReceiptIcon },
+  { key: 'receipt', label: '영수증', hint: '주문내역 캡처도 OK', icon: ReceiptIcon },
   { key: 'food-single', label: '음식 1개', hint: '하나만 크게', icon: FoodSingleIcon },
   { key: 'food-multi', label: '음식 여러 개', hint: '펼쳐 놓고', icon: FoodMultiIcon },
 ];
