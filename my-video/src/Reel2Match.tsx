@@ -77,9 +77,10 @@ const SubClip: React.FC<{
   width: number;
   height: number;
   left: number;
-  shiftY?: number; // 화면 속 특정 요소가 자막 자리와 겹칠 때, 그만큼 위로 밀어서 피한다
+  zoom?: number; // 특정 화면 요소를 더 크게 강조하고 싶을 때 확대 배율
+  origin?: string; // 확대 중심점(transform-origin) — 강조하고 싶은 요소 쪽으로 맞춘다
   fade?: boolean;
-}> = ({ src, rawFrom, rawTo, rate, len, width, height, left, shiftY = 0, fade = true }) => {
+}> = ({ src, rawFrom, rawTo, rate, len, width, height, left, zoom = 1, origin = "center", fade = true }) => {
   const frame = useCurrentFrame();
   const fadeIn = fade
     ? interpolate(frame, [0, 4], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
@@ -106,7 +107,13 @@ const SubClip: React.FC<{
         trimAfter={rawTo}
         playbackRate={rate}
         muted
-        style={{ width: "100%", height: "100%", objectFit: "cover", transform: shiftY ? `translateY(${shiftY}px)` : undefined }}
+        style={{
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+          transform: zoom !== 1 ? `scale(${zoom})` : undefined,
+          transformOrigin: origin,
+        }}
       />
     </div>
   );
@@ -202,7 +209,8 @@ const Demo: React.FC = () => {
             width={VIDEO_W}
             height={VIDEO_H}
             left={VIDEO_LEFT}
-            shiftY={-210}
+            zoom={1.6}
+            origin="28% 72%"
           />
         </Sequence>
       </div>
