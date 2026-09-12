@@ -989,7 +989,7 @@ const RecipeSortBar = ({
           fontSize: 11.5, color: 'var(--ink-500)', marginTop: -10, marginBottom: 12,
           wordBreak: 'keep-all',
         }}>
-          인기순은 좋아요·댓글·조회수와 게시 후 지난 시간을 함께 반영해 계산한 순서예요.
+          인기순은 게시 후 반응 속도로 계산해요.
         </div>
       )}
       {/* 매칭률 설정 모달 */}
