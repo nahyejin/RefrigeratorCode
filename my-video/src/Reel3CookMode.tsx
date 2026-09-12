@@ -10,13 +10,15 @@ const DEMO_VIDEO = "reel3_cookmode_demo.mp4";
 // ---- 훅 원본 타임코드(30fps 기준 프레임) — 10s 중 세 순간만 발췌 ----
 const HOOK_RAW = {
   cooking: [0, 45], // 0:00–1.5 팬 젓는 모습
+  tap: [69, 129], // 0:02.3–4.3 손가락으로 화면을 반복해서 톡톡 두드리다 미간을 찌푸리는 순간 — 사용자가 "이 부분이 포인트"라고 짚은 구간
   reach: [210, 255], // 0:07–8.5 물 묻은 손으로 폰 만지려는 순간
   settle: [270, 300], // 0:09–10.0 다시 조리로 돌아감
 };
 const HB1 = HOOK_RAW.cooking[1] - HOOK_RAW.cooking[0]; // 45f
+const HBTAP = HOOK_RAW.tap[1] - HOOK_RAW.tap[0]; // 60f
 const HB2 = HOOK_RAW.reach[1] - HOOK_RAW.reach[0]; // 45f
 const HB3 = HOOK_RAW.settle[1] - HOOK_RAW.settle[0]; // 30f
-const HOOK_LEN = HB1 + HB2 + HB3; // 120f
+const HOOK_LEN = HB1 + HBTAP + HB2 + HB3; // 180f
 
 // ---- 데모 원본 타임코드(30fps 기준 프레임) ----
 const DEMO_RAW = {
@@ -121,12 +123,16 @@ const SubClip: React.FC<{
 // ---------- ①② 훅 (제미나이 생성 실사, 720x1280 — 캔버스와 같은 9:16이라 크롭 없이 꽉 참) ----------
 const Hook: React.FC = () => {
   const b1From = 0;
-  const b2From = b1From + HB1;
+  const tapFrom = b1From + HB1;
+  const b2From = tapFrom + HBTAP;
   const b3From = b2From + HB2;
   return (
     <AbsoluteFill style={{ backgroundColor: WHITE }}>
       <Sequence from={b1From} durationInFrames={HB1} name="cooking">
         <SubClip src={HOOK_VIDEO} rawFrom={HOOK_RAW.cooking[0]} rawTo={HOOK_RAW.cooking[1]} rate={1} len={HB1} width={1080} height={1920} left={0} fade={false} />
+      </Sequence>
+      <Sequence from={tapFrom} durationInFrames={HBTAP} name="tap">
+        <SubClip src={HOOK_VIDEO} rawFrom={HOOK_RAW.tap[0]} rawTo={HOOK_RAW.tap[1]} rate={1} len={HBTAP} width={1080} height={1920} left={0} fade={false} />
       </Sequence>
       <Sequence from={b2From} durationInFrames={HB2} name="reach">
         <SubClip src={HOOK_VIDEO} rawFrom={HOOK_RAW.reach[0]} rawTo={HOOK_RAW.reach[1]} rate={1} len={HB2} width={1080} height={1920} left={0} fade={false} />
@@ -136,7 +142,7 @@ const Hook: React.FC = () => {
       </Sequence>
 
       <Caption from={b1From} len={HB1} text={"요리할 땐 손에 뭐가\n많이 묻어있는데"} />
-      <Caption from={b2From} len={HB2 + HB3} text={"블로그 보면서 손으로\n순서 따라가기 힘들잖아요"} />
+      <Caption from={tapFrom} len={HBTAP + HB2 + HB3} text={"블로그 보면서 손으로\n순서 따라가기 힘들잖아요"} />
     </AbsoluteFill>
   );
 };
