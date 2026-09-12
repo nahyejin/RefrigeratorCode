@@ -3,6 +3,7 @@ import { Composition } from "remotion";
 import { CookMatchTeaser } from "./CookMatchTeaser";
 import { Reel1Receipt, REEL1_TOTAL_FRAMES } from "./Reel1Receipt";
 import { Reel2Match, REEL2_TOTAL_FRAMES } from "./Reel2Match";
+import { Reel3CookMode, REEL3_TOTAL_FRAMES } from "./Reel3CookMode";
 
 export const RemotionRoot: React.FC = () => {
   return (
@@ -27,6 +28,14 @@ export const RemotionRoot: React.FC = () => {
         id="Reel2Match"
         component={Reel2Match}
         durationInFrames={REEL2_TOTAL_FRAMES}
+        fps={30}
+        width={1080}
+        height={1920}
+      />
+      <Composition
+        id="Reel3CookMode"
+        component={Reel3CookMode}
+        durationInFrames={REEL3_TOTAL_FRAMES}
         fps={30}
         width={1080}
         height={1920}
