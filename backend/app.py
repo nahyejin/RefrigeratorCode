@@ -5301,6 +5301,126 @@ def track_coupang_click():
         return jsonify({'ok': True}), 200
 
 
+def ensure_push_subscriptions_table():
+    """웹 푸시 구독 테이블 생성 (없을 때만).
+
+    로그인한 사용자만 대상이다 — 서버가 "이 사람 냉장고에 뭐가 곧 상하는지"를
+    계산하려면 user_ingredients 를 봐야 하는데, 비회원 냉장고는 브라우저
+    localStorage 에만 있어 서버가 애초에 알 방법이 없다.
+    """
+    db = get_db()
+    cursor = db.cursor()
+    try:
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS push_subscriptions (
+                id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                endpoint VARCHAR(500) NOT NULL,
+                p256dh VARCHAR(255) NOT NULL,
+                auth VARCHAR(255) NOT NULL,
+                created_at DATETIME NOT NULL,
+                last_seen_at DATETIME NOT NULL,
+                UNIQUE INDEX uniq_endpoint (endpoint(255)),
+                INDEX idx_user_id (user_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        """)
+        db.commit()
+    finally:
+        db.close()
+
+
+@app.route('/api/push/vapid-public-key', methods=['GET'])
+def push_vapid_public_key():
+    """프론트가 `pushManager.subscribe()` 에 쓸 공개키. 비밀이 아니라 로그인 불필요."""
+    # 실제 배포(Railway)에 환경변수를 안 넣어도 동작하도록 기본값을 박아 둔다 —
+    # 이 키는 "공개"키라 코드에 있어도 안전하다(개인키만 backend/.env, 로컬 전용).
+    key = os.getenv('VAPID_PUBLIC_KEY') or (
+        'BHPWKH0mxUwZ5cnliY2nZQ6acTWhU3vFnxEefprYG7aL5grF1tiweAXQR_XnB_U7'
+        'AChXYCQC3R7WHjOSQucCP2w'
+    )
+    return jsonify({'publicKey': key})
+
+
+def _push_auth_user_id():
+    """Authorization 헤더의 JWT 에서 user_id 를 뽑는다. 없거나 무효면 None."""
+    auth_header = request.headers.get('Authorization') or ''
+    if not auth_header.startswith('Bearer '):
+        return None
+    payload = verify_jwt_token(auth_header.split(' ', 1)[1])
+    return payload.get('user_id') if payload else None
+
+
+@app.route('/api/push/subscribe', methods=['POST'])
+def push_subscribe():
+    """이 기기를 구독 목록에 넣는다(이미 있으면 최신 시각만 갱신)."""
+    user_id = _push_auth_user_id()
+    if not user_id:
+        return jsonify({'error': '로그인이 필요합니다.'}), 401
+
+    data = request.get_json(silent=True) or {}
+    endpoint = (data.get('endpoint') or '').strip()
+    keys = data.get('keys') or {}
+    p256dh = (keys.get('p256dh') or '').strip()
+    auth = (keys.get('auth') or '').strip()
+    if not endpoint or not p256dh or not auth:
+        return jsonify({'error': '구독 정보가 올바르지 않습니다.'}), 400
+
+    ensure_push_subscriptions_table()
+    db = get_db()
+    cursor = db.cursor()
+    try:
+        # 같은 기기가 다시 구독해도 행이 늘지 않게 endpoint 로 upsert.
+        cursor.execute(
+            """INSERT INTO push_subscriptions (user_id, endpoint, p256dh, auth, created_at, last_seen_at)
+               VALUES (%s, %s, %s, %s, NOW(), NOW())
+               ON DUPLICATE KEY UPDATE
+                 user_id = VALUES(user_id), p256dh = VALUES(p256dh),
+                 auth = VALUES(auth), last_seen_at = NOW()""",
+            (user_id, endpoint[:500], p256dh[:255], auth[:255]),
+        )
+        db.commit()
+    finally:
+        db.close()
+    return jsonify({'ok': True})
+
+
+@app.route('/api/push/unsubscribe', methods=['POST'])
+def push_unsubscribe():
+    """이 기기를 구독 목록에서 뺀다."""
+    data = request.get_json(silent=True) or {}
+    endpoint = (data.get('endpoint') or '').strip()
+    if not endpoint:
+        return jsonify({'error': 'endpoint 가 없습니다.'}), 400
+
+    ensure_push_subscriptions_table()
+    db = get_db()
+    cursor = db.cursor()
+    try:
+        cursor.execute("DELETE FROM push_subscriptions WHERE endpoint = %s", (endpoint[:500],))
+        db.commit()
+    finally:
+        db.close()
+    return jsonify({'ok': True})
+
+
+@app.route('/api/push/status', methods=['GET'])
+def push_status():
+    """지금 로그인한 사용자가 (어느 기기로든) 구독 중인지."""
+    user_id = _push_auth_user_id()
+    if not user_id:
+        return jsonify({'subscribed': False})
+
+    ensure_push_subscriptions_table()
+    db = get_db()
+    cursor = db.cursor()
+    try:
+        cursor.execute("SELECT 1 FROM push_subscriptions WHERE user_id = %s LIMIT 1", (user_id,))
+        found = cursor.fetchone() is not None
+    finally:
+        db.close()
+    return jsonify({'subscribed': found})
+
+
 @app.route('/api/health')
 def health_check():
     return jsonify({

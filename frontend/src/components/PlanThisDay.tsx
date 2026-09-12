@@ -1,7 +1,8 @@
 import React from 'react';
-import { savePlan, planByDate, clearPlanMeal, toDateKey } from '../utils/mealPlan';
+import { savePlan, planByDate, clearPlanMeal, conflictingDates, toDateKey } from '../utils/mealPlan';
 import { track } from '../utils/track';
 import DatePickerField from './DatePickerField';
+import Dialog from './ui/Dialog';
 
 /**
  * "이 요리 언제 해먹지" 를 그 자리에서 정한다.
@@ -47,36 +48,67 @@ interface Props {
 
 const PlanThisDay: React.FC<Props> = ({ recipeId, title, link, thumbnail }) => {
   const [open, setOpen] = React.useState(false);
-  /** 이 레시피가 이미 잡혀 있는 날들. 다시 열었을 때 보여야 한다. */
+  /** 이 레시피가 이미 잡혀 있는 날들(저장된 상태). 다시 열었을 때 보여야 한다. */
   const [booked, setBooked] = React.useState<string[]>([]);
+  /**
+   * 지금 화면에서 고르고 있는 날들 — **아직 저장되지 않는다.**
+   *
+   * 예전엔 알약을 누르는 즉시 저장했다. 그런데 그 날 다른 요리가 이미
+   * 잡혀 있으면 `savePlan(..., 'fill')` 이 조용히 아무것도 안 해서, 눌러도
+   * 반응이 없는 것처럼 보였다("선택이 안 되는 퀵버튼이 있다" — 실사용 보고).
+   * 겹치는지는 **여러 날을 한꺼번에 고른 뒤에** 물어야 하므로(AI 식단 추천과
+   * 같은 방식), 고르는 동안은 로컬 상태에만 담아 두고 「적용하기」를 눌러야
+   * 실제로 저장한다.
+   */
+  const [selected, setSelected] = React.useState<string[]>([]);
+  /** 「적용하기」를 눌렀는데 다른 요리와 겹치는 날이 있을 때만 채워진다. */
+  const [conflict, setConflict] = React.useState<string[] | null>(null);
 
   const refresh = React.useCallback(() => {
     const found: string[] = [];
     planByDate().forEach((meals, date) => {
       if (meals.some(m => m.recipeId === recipeId)) found.push(date);
     });
-    setBooked(found.sort());
+    const sorted = found.sort();
+    setBooked(sorted);
+    setSelected(sorted);
   }, [recipeId]);
 
   React.useEffect(refresh, [refresh]);
 
   const days = React.useMemo(() => choices(), []);
-  const toggleKey = (key: string) => {
-    if (booked.includes(key)) {
-      clearPlanMeal(key, recipeId);
-      track('recipe_action', 'plan_remove');
-    } else {
-      // 그 날 이미 잡아 둔 다른 요리는 **건드리지 않는다.** 하루에 여러 끼를
-      // 할 수 있고, 여기서 하나 더하는 것이 남의 계획을 지울 이유는 없다.
-      savePlan([{ date: key, recipeId, title, link, thumbnail }], 'fill');
-      track('recipe_action', 'plan_add');
-    }
-    refresh();
-  };
 
+  const toggleKey = (key: string) => {
+    setSelected(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
+  };
   const toggle = (d: Date) => toggleKey(toDateKey(d));
 
   const short = (key: string) => key.slice(5).replace('-', '/');
+
+  /** 실제로 저장한다. 겹치는 날을 어떻게 할지(`mode`)는 다이얼로그에서 고른다. */
+  const commit = (mode: 'overwrite' | 'fill') => {
+    const removed = booked.filter(k => !selected.includes(k));
+    removed.forEach(k => clearPlanMeal(k, recipeId));
+    if (removed.length) track('recipe_action', 'plan_remove');
+
+    const added = selected.filter(k => !booked.includes(k));
+    if (added.length) {
+      savePlan(added.map(date => ({ date, recipeId, title, link, thumbnail })), mode);
+      track('recipe_action', 'plan_add');
+    }
+    setConflict(null);
+    refresh();
+  };
+
+  /** 「적용하기」 — 새로 고른 날 중 다른 요리와 겹치는 게 있으면 먼저 물어본다. */
+  const apply = () => {
+    const added = selected.filter(k => !booked.includes(k));
+    const clashDates = conflictingDates(added.map(date => ({ date, recipeId, title, link, thumbnail })));
+    if (clashDates.length === 0) { commit('overwrite'); return; }
+    setConflict(clashDates);
+  };
+
+  const dirty = selected.length !== booked.length || selected.some(k => !booked.includes(k));
 
   return (
     <section style={{
@@ -96,7 +128,11 @@ const PlanThisDay: React.FC<Props> = ({ recipeId, title, link, thumbnail }) => {
         </div>
         <button
           type="button"
-          onClick={() => setOpen(v => !v)}
+          onClick={() => {
+            // 닫을 때 확정 안 한 선택은 버린다 — 저장은 「적용하기」만 한다.
+            if (open) setSelected(booked);
+            setOpen(v => !v);
+          }}
           style={{
             // 노랑은 이 앱에서 AI 와 주요 실행을 뜻한다. 날짜를 고르는 건
             // 그만큼 무거운 일이 아니라, 다른 보조 버튼과 같은 옷을 입는다.
@@ -114,7 +150,7 @@ const PlanThisDay: React.FC<Props> = ({ recipeId, title, link, thumbnail }) => {
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
           {days.map((d, i) => {
             const key = toDateKey(d);
-            const on = booked.includes(key);
+            const on = selected.includes(key);
             return (
               <button
                 key={key}
@@ -146,7 +182,67 @@ const PlanThisDay: React.FC<Props> = ({ recipeId, title, link, thumbnail }) => {
             style={{ minHeight: 32, borderRadius: 9999, borderStyle: 'dashed' }}
           />
         </div>
+
+        {/* 예전엔 알약을 누르는 즉시 저장했다. 여러 날을 한꺼번에 고르고
+            나서 겹치는 날이 있는지 한 번에 물어보려면(바로 아래 다이얼로그)
+            "다 고른 다음 확정" 하는 순간이 따로 있어야 한다. */}
+        <button
+          type="button"
+          onClick={apply}
+          disabled={!dirty}
+          style={{
+            width: '100%', minHeight: 40, marginTop: 10, borderRadius: 10, border: 'none',
+            background: dirty ? '#FFD600' : 'var(--line-200)',
+            color: dirty ? '#1A1A1E' : 'var(--ink-500)',
+            fontSize: 13.5, fontWeight: 700, cursor: dirty ? 'pointer' : 'default',
+          }}
+        >
+          적용하기
+        </button>
         </>
+      )}
+
+      {/* 겹치는 날이 있을 때만 뜬다 — AI 식단 추천(WeeklyPlan)과 같은 문구·구조.
+          이 컴포넌트는 레시피 상세를 여는 시트(CookModeSheet) 안에 있어서,
+          그 시트보다 한 층 위(`nested`)에 올려야 뒤에 숨지 않는다. */}
+      {conflict && (
+        <Dialog
+          open
+          onClose={() => setConflict(null)}
+          title="이미 짜 둔 계획이 있어요"
+          width={340}
+          dismissLabel="그만두기"
+          nested
+        >
+          <div style={{ fontSize: 13.5, color: 'var(--ink-700)', lineHeight: 1.7, textAlign: 'left' }}>
+            <b>{conflict.length}일</b>에 다른 요리가 있어요 ·{' '}
+            {conflict.slice(0, 3).map(d => d.slice(5).replace('-', '/')).join(', ')}
+            {conflict.length > 3 && ` 외 ${conflict.length - 3}일`}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 14 }}>
+              <button
+                type="button"
+                onClick={() => commit('overwrite')}
+                style={{
+                  minHeight: 46, borderRadius: 10, border: 'none', background: '#FFD600',
+                  color: '#1A1A1E', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+                }}
+              >
+                겹치는 날도 이걸로 바꾸기
+              </button>
+              <button
+                type="button"
+                onClick={() => commit('fill')}
+                style={{
+                  minHeight: 46, borderRadius: 10, background: 'var(--surface)',
+                  border: '1px solid var(--line-200)',
+                  color: '#1A1A1E', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+                }}
+              >
+                겹치는 날은 빼고 나머지만
+              </button>
+            </div>
+          </div>
+        </Dialog>
       )}
     </section>
   );

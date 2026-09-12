@@ -279,6 +279,7 @@ RefrigeratorCode/
 | `CookMatch-WeeklyCrawler` | 매일 22:00 | 크롤링 + 룰베이스 재료 추출 |
 | `CookMatch-DailyLLMIngredients` | 매일 05:00 | LLM 재료 추출 |
 | `CookMatch-DictionarySync` | 매일 06:30 | 사전 승인분 반영 + 띄어쓰기 중복 병합 + 대체표·보관일수·쿠팡 광고 후보 재생성 + 소급 재정규화(위 표 두 스크립트) |
+| `CookMatch-ExpiryPush` | 매일 07:00 | 유통기한 임박 웹 푸시 발송(`scripts/send_expiry_push_notifications.py`, 마이페이지에서 알림을 켠 사람만) |
 
 절전 상태면 깨워서 실행되지만(`WakeToRun`), **PC 가 완전히 꺼져 있으면 실행되지 않습니다.**
 

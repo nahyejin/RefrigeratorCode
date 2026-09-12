@@ -8,4 +8,5 @@ Flask
 flask-cors
 pymysql
 dnspython
-tqdm 
+tqdm
+pywebpush

@@ -3,7 +3,7 @@
 // 안 걸리고 사용자는 예전에 저장된 index.html(예전 빌드의 JS/CSS 경로를 가리킴)을
 // 계속 받는다. 실제로 이것 때문에 여러 버그 수정을 배포해도 PWA로 설치했거나
 // 예전에 한 번 방문한 사용자에게는 반영되지 않는 문제가 있었다.
-const CACHE_NAME = 'cookmatch-v1.8.8';
+const CACHE_NAME = 'cookmatch-v1.8.9';
 const urlsToCache = [
   '/',
   '/manifest.json',
@@ -154,42 +154,40 @@ function doBackgroundSync() {
 }
 
 // Push notification - 푸시 알림 처리
+//
+// 서버(scripts/send_expiry_push_notifications.py)는 JSON으로
+// {title, body, url} 을 보낸다. 예전엔 이 핸들러가 그 문자열을 그대로
+// body 에 넣어서 화면에 `{"title":...}` 처럼 날것이 보였을 것이다 — 실제로
+// 한 번도 연결된 적 없는 미완성 코드였다(아이콘 경로도 `/src/assets/...`
+// 였는데, 그건 빌드 산출물에 없는 개발 전용 경로다. `public/` 바로 밑의
+// `/cookmatch_icon.png` 가 실제로 서빙되는 경로).
 self.addEventListener('push', (event) => {
+  let payload = { title: '쿡매치', body: '새 소식이 있어요.', url: '/' };
+  if (event.data) {
+    try {
+      payload = { ...payload, ...event.data.json() };
+    } catch {
+      payload.body = event.data.text();
+    }
+  }
+
   const options = {
-    body: event.data ? event.data.text() : '새로운 레시피가 추가되었습니다!',
-    icon: '/src/assets/cookmatch_icon.png',
-    badge: '/src/assets/cookmatch_icon.png',
+    body: payload.body,
+    icon: '/cookmatch_icon.png',
+    badge: '/cookmatch_icon.png',
     vibrate: [100, 50, 100],
-    data: {
-      dateOfArrival: Date.now(),
-      primaryKey: 1
-    },
-    actions: [
-      {
-        action: 'explore',
-        title: '레시피 보기',
-        icon: '/src/assets/navigator_search.png'
-      },
-      {
-        action: 'close',
-        title: '닫기',
-        icon: '/src/assets/done.png'
-      }
-    ]
+    data: { url: payload.url || '/' },
+    tag: payload.tag || 'cookmatch-push', // 같은 종류 알림이 쌓이지 않게
   };
 
   event.waitUntil(
-    self.registration.showNotification('쿡매치', options)
+    self.registration.showNotification(payload.title, options)
   );
 });
 
 // Notification click - 알림 클릭 시 처리
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-
-  if (event.action === 'explore') {
-    event.waitUntil(
-      clients.openWindow('/')
-    );
-  }
-}); 
+  const url = (event.notification.data && event.notification.data.url) || '/';
+  event.waitUntil(clients.openWindow(url));
+});

@@ -10,6 +10,7 @@ import Button from '../components/ui/Button';
 import Dialog from '../components/ui/Dialog';
 import BottomNavBar from '../components/BottomNavBar';
 import HouseholdSection from '../components/HouseholdSection';
+import NotificationSettings from '../components/NotificationSettings';
 import PullToRefresh from '../components/PullToRefresh';
 import UsageGauge, { useIsAdmin } from '../components/UsageMeter';
 import logoImg from '../assets/냉털이 로고 white.png';
@@ -1406,6 +1407,15 @@ const MyPage: React.FC = () => {
       {isLoggedIn && (
         <div style={{ margin: '12px 14px 0' }}>
           <HouseholdSection onChange={loadHouseholdRecipeFeeds} />
+        </div>
+      )}
+
+      {/* 알림 설정 — 그룹 설정 바로 아래. 임박 알림도 결국 "내 정보·설정"
+          묶음의 하나라 이 자리가 자연스럽다(로그인 안 했으면 아예 켤 수
+          없으므로 로그인 상태에서만 보여준다). */}
+      {isLoggedIn && (
+        <div style={{ margin: '12px 14px 0' }}>
+          <NotificationSettings />
         </div>
       )}
 

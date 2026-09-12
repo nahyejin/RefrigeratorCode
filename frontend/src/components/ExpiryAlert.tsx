@@ -1,7 +1,6 @@
 import React from 'react';
 import {
-  splitExpiring, daysLabel, notifyExpiring, askNotifyPermission,
-  notifyPermission, SOON_DAYS, STALE_AFTER_DAYS,
+  splitExpiring, daysLabel, SOON_DAYS, STALE_AFTER_DAYS,
   type FridgeItem, type ExpiringItem,
 } from '../utils/expiry';
 import type { CategoryMap, StorageKind } from '../utils/shelfLife';
@@ -16,6 +15,14 @@ import type { CategoryMap, StorageKind } from '../utils/shelfLife';
  * 왜 이게 중요한가:
  *   이 앱이 매일 열릴 이유가 된다. 재료 매칭은 필요할 때 꺼내 쓰는 기능이라
  *   일주일에 두세 번이지만, "양파 2일 남았어요" 는 앱이 먼저 말을 거는 쪽이다.
+ *
+ * "알림 받기" 버튼은 여기 없다 (2026-09-12 이관):
+ *   예전엔 여기서 브라우저 `Notification` 권한을 직접 물었다. 그런데 그건
+ *   그 순간 앱이 열려 있어야만 뜨는 로컬 알림이고, 버튼도 "지금 임박한 게
+ *   있을 때"만 뜨는 이 카드 안에 있어서 언제든 켜고 끌 수 있는 자리가
+ *   아니었다("이게 여기 있는 게 맞나" — 실사용 지적). 앱이 꺼져 있어도 오는
+ *   진짜 푸시 알림으로 바꾸면서, 켜고 끄는 설정도 마이페이지로 옮겼다
+ *   (`NotificationSettings.tsx`). 이 카드는 "지금 뭐가 임박했는지" 만 보여준다.
  */
 
 const BOX_LABEL: Record<string, string> = {
@@ -33,7 +40,6 @@ interface Props {
 
 const ExpiryAlert: React.FC<Props> = ({ boxes, categoryMap, within = SOON_DAYS, onPick }) => {
   const [dismissed, setDismissed] = React.useState(false);
-  const [perm, setPerm] = React.useState(notifyPermission());
 
   // 너무 오래 지난 것은 여기서도 뺀다 — 알림은 **오늘 할 일**을 말하는 자리다.
   // 152일 지난 재료를 매일 알리면 알림 자체를 꺼 버린다.
@@ -42,11 +48,6 @@ const ExpiryAlert: React.FC<Props> = ({ boxes, categoryMap, within = SOON_DAYS, 
     [boxes, categoryMap, within],
   );
   const items: ExpiringItem[] = soon;
-
-  // 알림 권한이 있으면 하루 한 번 알린다 (함수 안에서 중복을 막는다).
-  React.useEffect(() => {
-    if (items.length > 0) notifyExpiring(items);
-  }, [items]);
 
   if (dismissed || items.length === 0) return null;
 
@@ -127,25 +128,6 @@ const ExpiryAlert: React.FC<Props> = ({ boxes, categoryMap, within = SOON_DAYS, 
         <div style={{ fontSize: 11, color: 'var(--ink-500)', lineHeight: 1.5 }}>
           <b>약</b>은 짐작한 날짜예요. 포장지 날짜를 넣으면 정확해져요.
         </div>
-      )}
-
-      {perm === 'default' && (
-        <button
-          type="button"
-          onClick={async () => {
-            const ok = await askNotifyPermission();
-            setPerm(notifyPermission());
-            if (ok) notifyExpiring(items);
-          }}
-          style={{
-            alignSelf: 'flex-start',
-            minHeight: 32, padding: '8px 12px', borderRadius: 8,
-            border: '1px solid var(--line-200)', background: 'var(--surface)',
-            fontSize: 12.5, fontWeight: 700, color: 'var(--ink-900)', cursor: 'pointer',
-          }}
-        >
-          알림 받기
-        </button>
       )}
     </div>
   );

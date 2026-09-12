@@ -136,59 +136,7 @@ export function daysLabel(days: number, estimated = false): string {
   return `${about}${days}일 남음`;
 }
 
-// ── 알림 ──────────────────────────────────────────────────────────
-//
-// 웹 알림은 **앱이 켜져 있을 때만** 확실하다. 진짜 예약 알림(앱을 안 켜도 오는
-// 것)은 설치형 앱에서 로컬 알림으로 붙이는 게 맞고, 그건 앱 배포 뒤의 일이다.
-// 여기서는 지금 확실히 되는 것만 한다 — 앱을 열었을 때 한 번 알려 주기.
-
-const NOTIFY_KEY = 'cookmatch_expiry_notified_on';
-
-export function canNotify(): boolean {
-  return typeof window !== 'undefined' && 'Notification' in window;
-}
-
-export function notifyPermission(): NotificationPermission | 'unsupported' {
-  return canNotify() ? Notification.permission : 'unsupported';
-}
-
-export async function askNotifyPermission(): Promise<boolean> {
-  if (!canNotify()) return false;
-  try {
-    const result = await Notification.requestPermission();
-    return result === 'granted';
-  } catch {
-    return false;
-  }
-}
-
-/**
- * 하루에 한 번만 알린다.
- *
- * 앱을 열 때마다 알리면 금방 꺼 버린다. 알림은 **한 번 성가시면 영영 꺼진다** —
- * 그러면 정작 필요할 때 못 알린다.
- */
-export function notifyExpiring(items: ExpiringItem[]): boolean {
-  if (!canNotify() || Notification.permission !== 'granted' || items.length === 0) return false;
-
-  const today = new Date().toISOString().slice(0, 10);
-  try {
-    if (localStorage.getItem(NOTIFY_KEY) === today) return false;
-    localStorage.setItem(NOTIFY_KEY, today);
-  } catch {
-    /* 저장이 막혀 있으면 그냥 알린다 — 안 알리는 것보다 낫다 */
-  }
-
-  const urgent = items.slice(0, 3).map(i => `${i.name}(${daysLabel(i.days, i.estimated)})`);
-  const more = items.length > 3 ? ` 외 ${items.length - 3}개` : '';
-  try {
-    new Notification('곧 상하는 재료가 있어요', {
-      body: urgent.join(', ') + more,
-      icon: '/cookmatch_icon.png',
-      tag: 'cookmatch-expiry',   // 같은 알림이 쌓이지 않게
-    });
-    return true;
-  } catch {
-    return false;
-  }
-}
+// 로컬(브라우저 `Notification`) 알림 함수들은 2026-09-12에 지웠다 — 앱이
+// 열려 있을 때만 뜨는 한계 때문에 서버가 보내는 진짜 웹 푸시로 옮겼다.
+// 구독 관리는 `utils/push.ts`, 실제 알림 표시는 `public/sw.js`의 `push`
+// 핸들러, 발송은 `scripts/send_expiry_push_notifications.py`(서버 배치)가 한다.
