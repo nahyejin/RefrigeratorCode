@@ -89,14 +89,6 @@ const STORAGE_KEY_MYFRIDGE = 'myfridge_ingredients';
 // 정렬 옵션
 // =====================
 
-const sortOptions = [
-  { key: 'match', label: '재료매칭률' },
-  { key: 'expiry', label: '유통기한 임박순' },
-  { key: 'like', label: '좋아요순' },
-  { key: 'comment', label: '댓글순' },
-  { key: 'latest', label: '최신순' },
-];
-
 const categoryOptions = ['한식', '중식', '양식'];
 const timeOptions = ['30분 이하', '1시간 이하', '상관없음'];
 
@@ -1761,9 +1753,7 @@ const RecipeList: React.FC = () => {
       switch (sortType) {
         case 'match': return 'match_rate';
         case 'latest': return 'date';
-        case 'like': return 'like';
-        case 'comment': return 'comment';
-        case 'hits': return 'hits';
+        case 'popular': return 'popular';
         case 'expiry': return 'match_rate'; // expiry는 임박재료 우선, 그 다음 매칭률
         default: return 'match_rate';
       }
@@ -2191,11 +2181,9 @@ const RecipeList: React.FC = () => {
     const filters = {
       matchRateMin: matchRange[0],
       matchRateMax: matchRange[1],
-      sortBy: sortType === 'match' ? 'match_rate' : 
-              sortType === 'latest' ? 'date' : 
-              sortType === 'like' ? 'like' : 
-              sortType === 'comment' ? 'comment' : 
-              sortType === 'hits' ? 'hits' : 
+      sortBy: sortType === 'match' ? 'match_rate' :
+              sortType === 'latest' ? 'date' :
+              sortType === 'popular' ? 'popular' :
               sortType === 'expiry' ? 'match_rate' : 'match_rate',
       platform: selectedChannel.length > 0 ? selectedChannel[0] : undefined,
       appliedExpiryIngredients: appliedExpiryIngredients.length > 0 ? appliedExpiryIngredients : undefined

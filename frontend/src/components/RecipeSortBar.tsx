@@ -832,9 +832,7 @@ const RecipeSortBar = ({
                   이 칸이 가장 먼저 좁아지는데(`selectContainer` 참고), 짧아진
                   지금도 그 극단적인 경우엔 말줄임표로 더 접힐 수 있다. */}
               <span style={STYLES.selectLabel}>{sortType === 'latest' ? '최신순' :
-               sortType === 'like' ? '좋아요순' :
-               sortType === 'comment' ? '댓글순' :
-               sortType === 'hits' ? '조회순' :
+               sortType === 'popular' ? '인기순' :
                sortType === 'match' ? '재료매칭순' :
                sortType === 'expiry' ? '임박순' : '재료매칭순'}</span>
               <span style={STYLES.selectArrow}>∨</span>
@@ -856,9 +854,11 @@ const RecipeSortBar = ({
               }}>
                 {[
                   { value: 'latest', label: '최신순' },
-                  { value: 'like', label: '좋아요순' },
-                  { value: 'comment', label: '댓글순' },
-                  { value: 'hits', label: '조회수순' },
+                  // "좋아요순/댓글순/조회수순" 세 개를 "인기순" 하나로 합쳤다
+                  // (2026-09-13) — 셋 다 누적값이라 그냥 큰 순으로 세우면
+                  // 게시일이 오래된 글이 항상 이겼다(실사용 지적). 계산 방식은
+                  // `backend/app.py`의 `sort_by == 'popular'` 참고.
+                  { value: 'popular', label: '인기순' },
                   { value: 'match', label: '재료매칭순' },
                   // 「임박재료활용순」은 버튼 안에서 두 줄로 감겨 정렬 칸만
                   // 혼자 높아졌다. 옆의 「임박 재료」 버튼이 무엇을 뜻하는지
@@ -981,6 +981,17 @@ const RecipeSortBar = ({
           )}
         </button>
       </div>
+      {/* 인기순은 "좋아요·댓글·조회수 그 자체"가 아니라 계산식(게시일 대비
+          반응 속도)의 결과라서, 그 뜻을 목록 바로 위에 한 줄로 밝혀 둔다 —
+          "왜 이 레시피가 위에 있지" 를 짐작하게 만들지 않기 위해서다. */}
+      {sortType === 'popular' && (
+        <div style={{
+          fontSize: 11.5, color: 'var(--ink-500)', marginTop: -10, marginBottom: 12,
+          wordBreak: 'keep-all',
+        }}>
+          인기순은 좋아요·댓글·조회수와 게시 후 지난 시간을 함께 반영해 계산한 순서예요.
+        </div>
+      )}
       {/* 매칭률 설정 모달 */}
       {isMatchRateModalOpen && (
         <Portal>

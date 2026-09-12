@@ -471,7 +471,7 @@ def get_filtered_recipes():
     offset = (page - 1) * size
 
     # 필터/정렬 파라미터
-    sort_by = request.args.get('sort_by', 'match_rate')  # match_rate, date, popularity, like, comment, hits
+    sort_by = request.args.get('sort_by', 'match_rate')  # match_rate, date, popular
     platform = request.args.get('platform', '').strip().lower()
     keyword = request.args.get('keyword', '').strip()
     my_ingredients_raw = request.args.get('my_ingredients', '').strip()
@@ -658,7 +658,14 @@ def get_filtered_recipes():
             base_params.append(ing)
         if expiry_conditions:
             where_clauses.append(f"({' OR '.join(expiry_conditions)})")
-    
+
+    # 인기순은 "게시일 대비 반응 속도"로 줄을 세운다 (아래 order_by 참고).
+    # 게시일이 없으면 그 계산 자체가 안 되므로, 인기순을 고른 동안은 그런
+    # 레시피를 아예 뺀다(뒤로 보내지 않는다 — 실사용자 확인: "빼는 게 맞다").
+    # 전체 42,000여 건 중 약 8% 가 게시일이 없다.
+    if sort_by == 'popular':
+        where_clauses.append("post_time IS NOT NULL")
+
     where_sql = " AND ".join(where_clauses) if where_clauses else "1=1"
 
     # match_rate 계산식 최적화
@@ -835,14 +842,25 @@ def get_filtered_recipes():
         order_by = "match_rate DESC"
     elif sort_by == 'date':
         order_by = "post_time DESC"
-    elif sort_by == 'popularity':
-        order_by = "(COALESCE(hits,0) + 2*COALESCE(likes,0)) DESC"
-    elif sort_by == 'hits':
-        order_by = "COALESCE(hits,0) DESC"
-    elif sort_by == 'like':
-        order_by = "COALESCE(likes,0) DESC"
-    elif sort_by == 'comment':
-        order_by = "COALESCE(comments,0) DESC"
+    elif sort_by == 'popular':
+        # "좋아요순/댓글순/조회수순" 을 없애고 이거 하나로 합쳤다(2026-09-13).
+        #
+        # 좋아요·댓글·조회수는 전부 **누적값**이라, 그냥 큰 순으로 세우면
+        # 오래전에(게시일 기준) 올라와 반응을 쌓을 시간이 훨씬 길었던 글이
+        # 항상 이긴다 — 실제로 2021년 유튜브 영상이 2025년까지 4년 동안
+        # 쌓은 조회수 8,800만 건이 부동의 1위였다(실사용 지적).
+        #
+        # 그래서 "게시일부터 수집일까지 경과일" 로 나눠 **하루 평균 반응**으로
+        # 줄을 세운다. `collected_at`(수집 시각) 기준인 이유: 우리가 가진
+        # 좋아요·댓글·조회수 숫자는 지금 이 순간의 값이 아니라 **수집한 그
+        # 순간에 멈춰 있는 스냅샷**이다. `NOW()` 로 나누면 그 스냅샷 이후로도
+        # 시간이 계속 흐른 것처럼 계산돼 값이 실제보다 훨씬 작게 나온다.
+        # 가중치(1.0/2.0/0.5)는 요즘인기 화면(위쪽 `get_popular_recipes`)과
+        # 맞춘다 — 앱 안에서 "인기" 의 기준이 두 가지면 안 된다.
+        order_by = (
+            "(1.0*COALESCE(likes,0) + 2.0*COALESCE(comments,0) + 0.5*COALESCE(hits,0)) "
+            "/ GREATEST(DATEDIFF(collected_at, post_time), 1) DESC"
+        )
     else:
         order_by = "post_time DESC"
 
