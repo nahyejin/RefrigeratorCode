@@ -65,7 +65,9 @@ export const Reel2Match: React.FC = () => {
   );
 };
 
-// 서브클립 공용 — 원본 특정 구간을 트리밍해서 보여주고, 시작/끝에 살짝 화이트 디졸브를 준다.
+// 서브클립 공용 — 원본 특정 구간을 트리밍해서 보여준다.
+// fade=true면 시작/끝에 살짝 화이트 디졸브(흰 배경 앱 화면끼리는 안 보이지만,
+// 사람 얼굴 같은 실사 위에서는 "깜빡"거리는 것처럼 도드라져서 훅에는 끈다).
 const SubClip: React.FC<{
   src: string;
   rawFrom: number;
@@ -76,13 +78,15 @@ const SubClip: React.FC<{
   height: number;
   left: number;
   shiftY?: number; // 화면 속 특정 요소가 자막 자리와 겹칠 때, 그만큼 위로 밀어서 피한다
-}> = ({ src, rawFrom, rawTo, rate, len, width, height, left, shiftY = 0 }) => {
+  fade?: boolean;
+}> = ({ src, rawFrom, rawTo, rate, len, width, height, left, shiftY = 0, fade = true }) => {
   const frame = useCurrentFrame();
-  const fadeIn = interpolate(frame, [0, 4], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-  const fadeOut = interpolate(frame, [len - 5, len - 1], [1, 0], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
+  const fadeIn = fade
+    ? interpolate(frame, [0, 4], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
+    : 1;
+  const fadeOut = fade
+    ? interpolate(frame, [len - 5, len - 1], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
+    : 1;
   return (
     <div
       style={{
@@ -116,13 +120,13 @@ const Hook: React.FC = () => {
   return (
     <AbsoluteFill style={{ backgroundColor: WHITE }}>
       <Sequence from={b1From} durationInFrames={HB1} name="smile">
-        <SubClip src={HOOK_VIDEO} rawFrom={HOOK_RAW.smile[0]} rawTo={HOOK_RAW.smile[1]} rate={1} len={HB1} width={1080} height={1920} left={0} />
+        <SubClip src={HOOK_VIDEO} rawFrom={HOOK_RAW.smile[0]} rawTo={HOOK_RAW.smile[1]} rate={1} len={HB1} width={1080} height={1920} left={0} fade={false} />
       </Sequence>
       <Sequence from={b2From} durationInFrames={HB2} name="disappoint">
-        <SubClip src={HOOK_VIDEO} rawFrom={HOOK_RAW.disappoint[0]} rawTo={HOOK_RAW.disappoint[1]} rate={1} len={HB2} width={1080} height={1920} left={0} />
+        <SubClip src={HOOK_VIDEO} rawFrom={HOOK_RAW.disappoint[0]} rawTo={HOOK_RAW.disappoint[1]} rate={1} len={HB2} width={1080} height={1920} left={0} fade={false} />
       </Sequence>
       <Sequence from={b3From} durationInFrames={HB3} name="putDown">
-        <SubClip src={HOOK_VIDEO} rawFrom={HOOK_RAW.putDown[0]} rawTo={HOOK_RAW.putDown[1]} rate={1} len={HB3} width={1080} height={1920} left={0} />
+        <SubClip src={HOOK_VIDEO} rawFrom={HOOK_RAW.putDown[0]} rawTo={HOOK_RAW.putDown[1]} rate={1} len={HB3} width={1080} height={1920} left={0} fade={false} />
       </Sequence>
 
       <Caption from={b1From} len={HB1} text="재료 3개 없어서, 레시피 포기한 적 있죠?" />
