@@ -108,20 +108,21 @@ const STYLES = {
   /**
    * 세 버튼(매칭도·임박 재료·정렬)은 조건이 붙으면 배지만큼 넓어진다.
    * 매칭도에 구간과 「부족 N개」가 둘 다 걸리면 한 줄에 다 못 들어가서,
-   * **오른쪽 끝의 「필터」가 화면 밖으로 밀려났다**(372px vs 335px).
+   * **줄 자체가 둘로 접혔다** — 정렬 드롭다운이 다음 줄로 밀려 내려가고,
+   * 필터를 걸 때마다 화면이 위아래로 출렁였다("버튼이 줄바꿈 되어버린다"
+   * 는 실사용 보고, 2026-09-12).
    *
-   * 가로 스크롤로 밀어 두는 방법도 있었지만, 이 묶음 안에 정렬 드롭다운이
-   * 들어 있다 — `overflow-x` 를 주면 세로도 `visible` 이 아니게 되어(CSS 규칙)
-   * 펼친 목록이 잘린다. 그래서 **넘치면 이 묶음 안에서 줄을 바꾼다**.
-   * 밀려 내려가는 건 정렬 칸이고, 「필터」는 오른쪽 위 제자리에 남는다.
-   * 평소엔 한 줄 그대로다.
+   * 그래서 **줄바꿈 자체를 없앤다**(`nowrap`). 대신 매칭도·임박 재료는
+   * 배지가 붙어도 항상 제 내용만큼의 너비를 그대로 갖고(`flexShrink: 0`),
+   * 남는 자리를 정렬 드롭다운이 갖되 모자라면 **정렬 쪽만 줄어들며 말줄임표로
+   * 접는다**(아래 `selectContainer`/`select`). 필터는 이 묶음 밖에서
+   * `marginLeft: auto` 로 늘 오른쪽 위 제자리에 있다.
    */
   buttonGroup: {
     display: 'flex' as const,
     alignItems: 'center' as const,
     gap: 5,
-    rowGap: 6,
-    flexWrap: 'wrap' as const,
+    flexWrap: 'nowrap' as const,
     flex: '1 1 auto' as const,
     minWidth: 0,
   },
@@ -165,11 +166,13 @@ const STYLES = {
   },
   selectContainer: {
     position: 'relative' as const,
-    // 고정 100px 이었다. 안의 글자는 67px 뿐이라 30px 남짓이 그냥 비어 있었고,
-    // 그 여백 때문에 조건 배지가 하나만 붙어도 줄이 **2px** 모자라 접혔다.
-    // 내용에 맞춰 잡는다.
-    minWidth: 0,
-    overflow: 'visible' as const,
+    // 매칭도·임박 재료는 배지가 붙어도 제 너비를 그대로 지키므로(`flexShrink: 0`),
+    // 한 줄에 다 넣으려면(2026-09-12, 위 `buttonGroup` 설명 참고) 정렬 칸이
+    // 남는 자리만큼만 갖고 모자라면 줄어들어야 한다 — `flex: 1` 로 남는 공간을
+    // 갖되, `minWidth` 를 낮게 둬 진짜 좁을 때는 이 칸부터 양보한다.
+    flex: '1 1 auto' as const,
+    minWidth: 56,
+    overflow: 'hidden' as const,
     zIndex: 10
   },
   select: {
@@ -183,7 +186,8 @@ const STYLES = {
     fontWeight: 600,
     background: '#FFFFFF',
     color: '#1A1A1E',
-    minWidth: 80,
+    width: '100%',
+    minWidth: 0,
     marginRight: 0,
     appearance: 'none' as const,
     WebkitAppearance: 'none' as const,
@@ -192,7 +196,16 @@ const STYLES = {
     cursor: 'pointer',
     boxSizing: 'border-box' as const,
     position: 'relative' as const,
-    overflow: 'visible' as const
+    overflow: 'hidden' as const,
+    display: 'flex' as const,
+    alignItems: 'center' as const
+  },
+  /** 정렬 라벨 — 칸이 좁아지면 줄바꿈 대신 말줄임표로 접는다. */
+  selectLabel: {
+    overflow: 'hidden' as const,
+    textOverflow: 'ellipsis' as const,
+    whiteSpace: 'nowrap' as const,
+    minWidth: 0,
   },
   selectArrow: {
     position: 'absolute' as const,
@@ -809,12 +822,16 @@ const RecipeSortBar = ({
               style={{ ...STYLES.select, position: 'relative', textAlign: 'left' }}
               data-guide-target="sort-dropdown"
             >
-              <span>{sortType === 'latest' ? '최신순' :
+              {/* "재료매칭률순"은 너무 길어서 "재료매칭순"으로 줄임(실사용
+                  지적) — 매칭도 버튼에 배지가 둘 다 붙으면(범위 + 부족 개수)
+                  이 칸이 가장 먼저 좁아지는데(`selectContainer` 참고), 짧아진
+                  지금도 그 극단적인 경우엔 말줄임표로 더 접힐 수 있다. */}
+              <span style={STYLES.selectLabel}>{sortType === 'latest' ? '최신순' :
                sortType === 'like' ? '좋아요순' :
                sortType === 'comment' ? '댓글순' :
-               sortType === 'hits' ? '조회수순' :
-               sortType === 'match' ? '재료매칭률순' :
-               sortType === 'expiry' ? '임박순' : '재료매칭률순'}</span>
+               sortType === 'hits' ? '조회순' :
+               sortType === 'match' ? '재료매칭순' :
+               sortType === 'expiry' ? '임박순' : '재료매칭순'}</span>
               <span style={STYLES.selectArrow}>∨</span>
             </button>
             {isSortDropdownOpen && (
@@ -837,7 +854,7 @@ const RecipeSortBar = ({
                   { value: 'like', label: '좋아요순' },
                   { value: 'comment', label: '댓글순' },
                   { value: 'hits', label: '조회수순' },
-                  { value: 'match', label: '재료매칭률순' },
+                  { value: 'match', label: '재료매칭순' },
                   // 「임박재료활용순」은 버튼 안에서 두 줄로 감겨 정렬 칸만
                   // 혼자 높아졌다. 옆의 「임박 재료」 버튼이 무엇을 뜻하는지
                   // 이미 말해 주므로 짧은 쪽으로 충분하다.
