@@ -48,11 +48,34 @@ export function pushSupported(): boolean {
   return typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window;
 }
 
+/**
+ * 서비스워커 등록을 **직접 받아 온다** — `navigator.serviceWorker.ready` 로
+ * 기다리지 않는다.
+ *
+ * `ready` 는 "누군가 이미 등록을 걸어 뒀다"를 전제로 한다. 그런데 이 앱은
+ * `utils/pwa.ts`의 `registerServiceWorker()`를 어디서도 부르지 않는다 —
+ * PWA 설치 관련 화면 몇 개만 그 파일의 다른 함수를 쓸 뿐, 정작 등록 자체는
+ * 실행된 적이 없다. 그 상태에서 `ready` 를 쓰면 **영원히 끝나지 않는
+ * Promise** 가 되고, 그걸 기다리는 `isPushSubscribed()` 가 안 끝나니 토글이
+ * `status:'loading'` 에 갇혀 계속 비활성 상태로 남는다("토글이 클릭이 안
+ * 된다" — 실사용 지적). `register()` 는 몇 번을 불러도 같은 등록을 그대로
+ * 돌려주므로(스코프가 같으면 브라우저가 재사용), 여기서 직접 등록까지 한다.
+ */
+async function getRegistration(): Promise<ServiceWorkerRegistration | null> {
+  try {
+    return await navigator.serviceWorker.register('/sw.js');
+  } catch (e) {
+    console.warn('[push] 서비스워커 등록 실패:', e);
+    return null;
+  }
+}
+
 /** 지금 이 기기가 실제로 구독돼 있는지(브라우저 기준 — 서버 등록 여부와는 별개). */
 export async function isPushSubscribed(): Promise<boolean> {
   if (!pushSupported()) return false;
   try {
-    const reg = await navigator.serviceWorker.ready;
+    const reg = await getRegistration();
+    if (!reg) return false;
     const sub = await reg.pushManager.getSubscription();
     return !!sub;
   } catch {
@@ -76,7 +99,8 @@ export async function subscribeToPush(): Promise<
       : await Notification.requestPermission();
     if (permission !== 'granted') return { ok: false, reason: 'denied' };
 
-    const reg = await navigator.serviceWorker.ready;
+    const reg = await getRegistration();
+    if (!reg) return { ok: false, reason: 'error' };
     let sub = await reg.pushManager.getSubscription();
     if (!sub) {
       const keyRes = await fetch(`${API_BASE_URL}/api/push/vapid-public-key`);
@@ -105,7 +129,8 @@ export async function subscribeToPush(): Promise<
 export async function unsubscribeFromPush(): Promise<boolean> {
   if (!pushSupported()) return false;
   try {
-    const reg = await navigator.serviceWorker.ready;
+    const reg = await getRegistration();
+    if (!reg) return false;
     const sub = await reg.pushManager.getSubscription();
     if (!sub) return true;
     const endpoint = sub.endpoint;

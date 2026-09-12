@@ -10,6 +10,7 @@ import BottomNavBar from '../components/BottomNavBar';
 import PullToRefresh from '../components/PullToRefresh';
 import DatePickerField from '../components/DatePickerField';
 import Sheet from '../components/ui/Sheet';
+import Dialog from '../components/ui/Dialog';
 import { useUsage } from '../components/UsageMeter';
 import { useAuth } from '../context/AuthContext';
 import { resolveCoupangUrl } from '../utils/coupangLink';
@@ -35,6 +36,14 @@ function getApiUrl(): string {
     (import.meta.env && import.meta.env.VITE_API_BASE_URL) ||
     'https://refrigeratorcode-production.up.railway.app'
   );
+}
+
+/** 받침 유무로 "을"/"를" 을 고른다. 한글이 아니거나 빈 문자열이면 "(을)를" 로 둘 다 남겨 어색함을 줄인다. */
+function eulReul(word: string): string {
+  const last = word.trim().slice(-1);
+  const code = last.charCodeAt(0);
+  if (code < 0xAC00 || code > 0xD7A3) return '(을)를';
+  return (code - 0xAC00) % 28 !== 0 ? '을' : '를';
 }
 
 function toDateKey(d: Date): string {
@@ -277,6 +286,9 @@ const PlannedList: React.FC = () => {
   // `loadPlan()`은 그때그때 localStorage 를 읽는 함수라, 취소한 뒤 이 값을
   // 바꿔 다시 계산시키면 지운 계획이 바로 빠진다.
   const [version, setVersion] = React.useState(0);
+  /** 지금 "정말 취소할까요?" 를 묻는 중인 계획. 누르자마자 바로 지우지 않는다 —
+   * 실수로 눌러 되돌릴 방법 없이 사라지면 안 되므로 한 번 더 확인한다. */
+  const [confirming, setConfirming] = React.useState<{ date: string; recipeId: number; title: string } | null>(null);
   const meals = React.useMemo(() => {
     const today = new Date();
     const key = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -333,22 +345,45 @@ const PlannedList: React.FC = () => {
                 한다(2026-09-12, 캘린더 일 보기와 같은 이유). */}
             <button
               type="button"
-              onClick={() => {
-                clearPlanMeal(m.date, m.recipeId);
-                setVersion(v => v + 1);
-              }}
+              onClick={() => setConfirming({ date: m.date, recipeId: m.recipeId, title: m.title })}
               aria-label={`${m.title} 계획 취소`}
               style={{
                 flexShrink: 0, height: 26, padding: '0 9px', borderRadius: 9999,
                 border: '1px solid #D8C27A', background: '#FFFFFF',
                 fontSize: 11, fontWeight: 700, color: '#7A5C00', cursor: 'pointer',
+                whiteSpace: 'nowrap',
               }}
             >
-              취소
+              계획 취소
             </button>
           </div>
         ))}
       </div>
+
+      {confirming && (
+        <Dialog
+          open
+          onClose={() => setConfirming(null)}
+          title="계획을 취소할까요?"
+          width={320}
+          dismissLabel="아니요"
+          actions={[{
+            label: '취소하기',
+            variant: 'danger',
+            onClick: () => {
+              clearPlanMeal(confirming.date, confirming.recipeId);
+              setVersion(v => v + 1);
+              setConfirming(null);
+            },
+          }]}
+        >
+          {/* `wordBreak: 'keep-all'` 이 핵심 — 기본값(normal)이면 한글이
+              글자 아무 데서나 끊겨 줄바꿈이 어색하다(실사용 지적). */}
+          <span style={{ wordBreak: 'keep-all' }}>
+            <b>{confirming.title}</b>{eulReul(confirming.title)} {confirming.date.slice(5).replace('-', '/')}에 만들기로 한 계획을 지워요.
+          </span>
+        </Dialog>
+      )}
     </div>
   );
 };
@@ -865,6 +900,8 @@ const CookingCalendar: React.FC = () => {
   const [planVersion, setPlanVersion] = React.useState(0);
   const plans = planByDate();
   void planVersion;
+  /** 「계획 취소」를 눌렀을 때 정말 지울지 한 번 더 확인하는 대상. */
+  const [confirmingPlan, setConfirmingPlan] = React.useState<PlannedMeal | null>(null);
 
   /**
    * **이번 주에 사야 할 것.**
@@ -2071,22 +2108,43 @@ const CookingCalendar: React.FC = () => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    clearPlanMeal(selectedDay, planned.recipeId);
-                    setPlanVersion(v => v + 1);
-                  }}
+                  onClick={() => setConfirmingPlan(planned)}
                   aria-label={`${planned.title} 계획 취소`}
                   style={{
                     flexShrink: 0, height: 28, padding: '0 10px', borderRadius: 9999,
                     border: '1px solid #D8C27A', background: '#FFFFFF',
                     fontSize: 11.5, fontWeight: 700, color: '#7A5C00', cursor: 'pointer',
+                    whiteSpace: 'nowrap',
                   }}
                 >
-                  취소
+                  계획 취소
                 </button>
               </div>
             );
           })}
+
+          {confirmingPlan && (
+            <Dialog
+              open
+              onClose={() => setConfirmingPlan(null)}
+              title="계획을 취소할까요?"
+              width={320}
+              dismissLabel="아니요"
+              actions={[{
+                label: '취소하기',
+                variant: 'danger',
+                onClick: () => {
+                  clearPlanMeal(selectedDay, confirmingPlan.recipeId);
+                  setPlanVersion(v => v + 1);
+                  setConfirmingPlan(null);
+                },
+              }]}
+            >
+              <span style={{ wordBreak: 'keep-all' }}>
+                <b>{confirmingPlan.title}</b>{eulReul(confirmingPlan.title)} 만들기로 한 계획을 지워요.
+              </span>
+            </Dialog>
+          )}
 
           {(entriesByDay.get(selectedDay) || []).length === 0 ? (
             <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--ink-500)', fontSize: 13 }}>
