@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import ExpiryAlert from '../components/ExpiryAlert';
 import { loadIngredientCategoryMap, type CategoryMap, type StorageKind } from '../utils/shelfLife';
 import type { FridgeItem } from '../utils/expiry';
-import { planByDate, loadPlan, type PlannedMeal } from '../utils/mealPlan';
+import { planByDate, loadPlan, clearPlanMeal, type PlannedMeal } from '../utils/mealPlan';
 import { openCookMode } from '../utils/cookMode';
 import { getProxiedImageUrl } from '../utils/imageUtils';
 import BottomNavBar from '../components/BottomNavBar';
@@ -274,13 +274,17 @@ const FridgeToPlan: React.FC<{ onGo: (withAi?: boolean) => void }> = ({ onGo }) 
  * 벽 뒤에만 두면 **비회원이 식단을 반영해 놓고 볼 곳이 없다.**
  */
 const PlannedList: React.FC = () => {
+  // `loadPlan()`은 그때그때 localStorage 를 읽는 함수라, 취소한 뒤 이 값을
+  // 바꿔 다시 계산시키면 지운 계획이 바로 빠진다.
+  const [version, setVersion] = React.useState(0);
   const meals = React.useMemo(() => {
     const today = new Date();
     const key = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
     // 7 이 아니라 10 — 하루에 두세 끼가 올 수 있어서, 7 로 자르면
     // 한 주가 다 안 보인다.
     return loadPlan().filter(m => m.date >= key).slice(0, 10);
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [version]);
 
   if (meals.length === 0) return null;
 
@@ -291,35 +295,58 @@ const PlannedList: React.FC = () => {
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         {meals.map((m, i) => (
-          <button
+          <div
             key={m.date + '-' + m.recipeId}
-            type="button"
-            onClick={() => openCookMode({ id: m.recipeId, title: m.title, link: m.link })}
             style={{
               display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px',
               borderRadius: 12, border: '1px dashed #C9A400', background: '#FFFDF2',
-              cursor: 'pointer', textAlign: 'left',
             }}
           >
-            {/* 같은 날 두 번째 끼니부터는 날짜를 비운다 — 같은 날짜가 연달아
-                찍히면 다른 날인 줄 알고 다시 읽게 된다. */}
-            <span style={{ fontSize: 12, fontWeight: 700, color: '#7A5C00', width: 62, flexShrink: 0 }}>
-              {i > 0 && meals[i - 1].date === m.date ? '' : m.date.slice(5).replace('-', '/')}
-            </span>
-            {m.thumbnail && (
-              <img
-                src={getProxiedImageUrl(m.thumbnail)}
-                alt=""
-                loading="lazy"
-                onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-                style={{ width: 36, height: 36, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }}
-              />
-            )}
-            <span style={{
-              flex: 1, minWidth: 0, fontSize: 13, color: '#1A1A1E',
-              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-            }}>{m.title}</span>
-          </button>
+            <button
+              type="button"
+              onClick={() => openCookMode({ id: m.recipeId, title: m.title, link: m.link })}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0,
+                border: 'none', background: 'none', padding: 0, cursor: 'pointer', textAlign: 'left',
+              }}
+            >
+              {/* 같은 날 두 번째 끼니부터는 날짜를 비운다 — 같은 날짜가 연달아
+                  찍히면 다른 날인 줄 알고 다시 읽게 된다. */}
+              <span style={{ fontSize: 12, fontWeight: 700, color: '#7A5C00', width: 62, flexShrink: 0 }}>
+                {i > 0 && meals[i - 1].date === m.date ? '' : m.date.slice(5).replace('-', '/')}
+              </span>
+              {m.thumbnail && (
+                <img
+                  src={getProxiedImageUrl(m.thumbnail)}
+                  alt=""
+                  loading="lazy"
+                  onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                  style={{ width: 36, height: 36, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }}
+                />
+              )}
+              <span style={{
+                flex: 1, minWidth: 0, fontSize: 13, color: '#1A1A1E',
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}>{m.title}</span>
+            </button>
+            {/* 이 목록도 계획을 볼 수 있는 자리라, 여기서도 취소할 수 있어야
+                한다(2026-09-12, 캘린더 일 보기와 같은 이유). */}
+            <button
+              type="button"
+              onClick={() => {
+                clearPlanMeal(m.date, m.recipeId);
+                setVersion(v => v + 1);
+              }}
+              aria-label={`${m.title} 계획 취소`}
+              style={{
+                flexShrink: 0, height: 26, padding: '0 9px', borderRadius: 9999,
+                border: '1px solid #D8C27A', background: '#FFFFFF',
+                fontSize: 11, fontWeight: 700, color: '#7A5C00', cursor: 'pointer',
+              }}
+            >
+              취소
+            </button>
+          </div>
         ))}
       </div>
     </div>
@@ -833,7 +860,11 @@ const CookingCalendar: React.FC = () => {
       .catch(() => setProgress({ goal: 0, members: [], months: [] }));
   }, [progressOpen, progress, isLoggedIn]);
 
+  /** `plans` 는 매 렌더마다 localStorage 를 다시 읽는다 — 이 값을 바꿔 렌더만
+   * 한 번 더 일으키면 `clearPlanMeal()` 로 지운 계획이 바로 화면에서 빠진다. */
+  const [planVersion, setPlanVersion] = React.useState(0);
   const plans = planByDate();
+  void planVersion;
 
   /**
    * **이번 주에 사야 할 것.**
@@ -1992,42 +2023,68 @@ const CookingCalendar: React.FC = () => {
         <div style={{ padding: '12px 14px 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
           {/* 이 날의 **계획**. 완료 기록과 섞지 않고 위에 따로 둔다 —
               "할 것" 과 "했다" 는 다른 이야기다. */}
+          {/* "만들기로 한 요리" 카드를 볼 수 있는 곳엔 취소도 있어야 한다.
+              예전엔 계획을 지우려면 그 레시피 상세(`PlanThisDay`)로 다시
+              들어가 날짜를 다시 눌러야 했는데, 여기(캘린더)에서 계획이
+              보이는데 정작 여기서는 못 지웠다("취소하는 기능이 어디에도
+              없다" — 실사용 지적, 2026-09-12). */}
           {(plans.get(selectedDay) || []).map((planned: PlannedMeal) => {
             return (
-              <button
+              <div
                 key={planned.recipeId}
-                type="button"
-                onClick={() => openCookMode({
-                  id: planned.recipeId, title: planned.title, link: planned.link,
-                })}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px',
                   borderRadius: 12, border: '1px dashed #C9A400', background: '#FFFDF2',
-                  cursor: 'pointer', textAlign: 'left',
                 }}
               >
-                {planned.thumbnail && (
-                  <img
-                    src={getProxiedImageUrl(planned.thumbnail)}
-                    alt=""
-                    loading="lazy"
-                    onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-                    style={{ width: 44, height: 44, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }}
-                  />
-                )}
-                <span style={{ minWidth: 0, flex: 1 }}>
-                  <span style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#7A5C00' }}>
-                    만들기로 한 요리
+                <button
+                  type="button"
+                  onClick={() => openCookMode({
+                    id: planned.recipeId, title: planned.title, link: planned.link,
+                  })}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0,
+                    border: 'none', background: 'none', padding: 0, cursor: 'pointer', textAlign: 'left',
+                  }}
+                >
+                  {planned.thumbnail && (
+                    <img
+                      src={getProxiedImageUrl(planned.thumbnail)}
+                      alt=""
+                      loading="lazy"
+                      onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                      style={{ width: 44, height: 44, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }}
+                    />
+                  )}
+                  <span style={{ minWidth: 0, flex: 1 }}>
+                    <span style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#7A5C00' }}>
+                      만들기로 한 요리
+                    </span>
+                    <span style={{
+                      display: '-webkit-box', fontSize: 13.5, fontWeight: 600, color: '#1A1A1E',
+                      lineHeight: 1.4, overflow: 'hidden', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+                    }}>{planned.title}</span>
+                    <span style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: '#7A5C00', marginTop: 3 }}>
+                      조리 순서 보기 ›
+                    </span>
                   </span>
-                  <span style={{
-                    display: '-webkit-box', fontSize: 13.5, fontWeight: 600, color: '#1A1A1E',
-                    lineHeight: 1.4, overflow: 'hidden', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
-                  }}>{planned.title}</span>
-                  <span style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: '#7A5C00', marginTop: 3 }}>
-                    조리 순서 보기 ›
-                  </span>
-                </span>
-              </button>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    clearPlanMeal(selectedDay, planned.recipeId);
+                    setPlanVersion(v => v + 1);
+                  }}
+                  aria-label={`${planned.title} 계획 취소`}
+                  style={{
+                    flexShrink: 0, height: 28, padding: '0 10px', borderRadius: 9999,
+                    border: '1px solid #D8C27A', background: '#FFFFFF',
+                    fontSize: 11.5, fontWeight: 700, color: '#7A5C00', cursor: 'pointer',
+                  }}
+                >
+                  취소
+                </button>
+              </div>
             );
           })}
 
