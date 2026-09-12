@@ -89,7 +89,6 @@ const NotificationSettings: React.FC = () => {
           </span>
           <span style={{ display: 'block', fontSize: 12.5, color: 'var(--ink-500)', marginTop: 3, lineHeight: 1.5, wordBreak: 'keep-all' }}>
             내 냉장고 재료가 곧 상할 때 앱을 안 켜도 알려드려요.
-            {' '}식구 그룹이면 각자 이 화면에서 켠 사람에게만 가요.
           </span>
         </span>
         <span
