@@ -66,27 +66,38 @@ const NotificationSettings: React.FC = () => {
         background: 'var(--surface-sub)', display: 'flex', flexDirection: 'column', gap: 8,
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--ink-900)' }}>
+      {/* 스위치 자체(46x26)만 누르게 해 뒀더니, 그 작은 자리를 정확히
+          맞춰 누르려다 손가락이 살짝 밀리면서 "드래그해야 눌린다"는
+          실사용 지적이 있었다. 줄 전체를 하나의 버튼으로 만들어 어디를
+          눌러도 토글되게 한다 — 설정 화면에서 흔한 패턴이다. */}
+      <button
+        type="button"
+        role="switch"
+        aria-checked={on}
+        disabled={status === 'loading' || busy}
+        onClick={toggle}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 12, width: '100%',
+          border: 'none', background: 'none', padding: 0, textAlign: 'left',
+          cursor: busy || status === 'loading' ? 'default' : 'pointer',
+          WebkitTapHighlightColor: 'transparent',
+        }}
+      >
+        <span style={{ flex: 1, minWidth: 0 }}>
+          <span style={{ display: 'block', fontSize: 14.5, fontWeight: 700, color: 'var(--ink-900)' }}>
             유통기한 임박 알림
-          </div>
-          <div style={{ fontSize: 12.5, color: 'var(--ink-500)', marginTop: 3, lineHeight: 1.5, wordBreak: 'keep-all' }}>
+          </span>
+          <span style={{ display: 'block', fontSize: 12.5, color: 'var(--ink-500)', marginTop: 3, lineHeight: 1.5, wordBreak: 'keep-all' }}>
             내 냉장고 재료가 곧 상할 때 앱을 안 켜도 알려드려요.
             {' '}식구 그룹이면 각자 이 화면에서 켠 사람에게만 가요.
-          </div>
-        </div>
-        <button
-          type="button"
-          role="switch"
-          aria-checked={on}
-          disabled={status === 'loading' || busy}
-          onClick={toggle}
+          </span>
+        </span>
+        <span
+          aria-hidden
           style={{
-            flexShrink: 0, width: 46, height: 26, borderRadius: 9999, border: 'none',
+            flexShrink: 0, width: 46, height: 26, borderRadius: 9999,
             background: on ? '#FFD600' : 'var(--line-200)',
-            position: 'relative', cursor: busy ? 'default' : 'pointer',
-            opacity: status === 'loading' ? 0.5 : 1,
+            position: 'relative', opacity: status === 'loading' ? 0.5 : 1,
           }}
         >
           <span
@@ -96,8 +107,8 @@ const NotificationSettings: React.FC = () => {
               boxShadow: '0 1px 3px rgba(0,0,0,0.25)', transition: 'left 0.15s',
             }}
           />
-        </button>
-      </div>
+        </span>
+      </button>
       {error && (
         <div style={{ fontSize: 12, color: '#B03A28', lineHeight: 1.5, wordBreak: 'keep-all' }}>
           {error}
