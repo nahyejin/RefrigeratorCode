@@ -172,7 +172,12 @@ const STYLES = {
     // 갖되, `minWidth` 를 낮게 둬 진짜 좁을 때는 이 칸부터 양보한다.
     flex: '1 1 auto' as const,
     minWidth: 56,
-    overflow: 'hidden' as const,
+    // `visible` 이어야 한다 — 펼친 목록(아래 `isSortDropdownOpen` 블록)이
+    // 이 칸을 기준으로 `top:100%` 절대 위치로 붙는데, 여기를 `hidden` 으로
+    // 두면 목록이 이 칸의 세로 경계 밖으로 나가는 순간 그대로 잘려 안 보인다
+    // (버튼 클릭은 되는데 목록이 안 뜨는 것처럼 보였다 — 실사용 보고).
+    // 말줄임표 처리는 `select`/`selectLabel` 쪽 `overflow: hidden` 만으로 충분하다.
+    overflow: 'visible' as const,
     zIndex: 10
   },
   select: {
