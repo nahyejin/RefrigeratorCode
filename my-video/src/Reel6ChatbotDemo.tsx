@@ -11,16 +11,20 @@ const DEMO_VIDEO = "reel6_chatbot_demo.mp4";
 // ---- 훅 원본 타임코드(30fps 기준 프레임) ----
 // silencedetect + 파형 확인으로 실측: 대사 전체("아, 레시피 찾는 것도 너무 일이고 귀찮네")는 4.5~7.6s에서
 // 들리지만, "귀찮네"까지 다 들으면 문장이 길고 어색하다는 지적으로 "일이고" 뒤 자연스러운 숨쉬기 간격
-// (약 6.6~6.9s에 실제로 파형이 끊기는 지점 있음)에서 끊고 "귀찮네"는 들리지 않게 컷. 잘린 느낌이 들지
-// 않도록 컷 지점의 정지 프레임(reel6_hook_freeze.png)을 1초 홀드한 뒤에야 리액션으로 넘어간다.
+// (약 6.6~6.9s에 실제로 파형이 끊기는 지점 있음)에서 끊고 "귀찮네"는 들리지 않게 컷.
+// 1차 수정(정지 프레임 1초 홀드)에도 "그냥 잘린 느낌이 난다"는 재지적 — 원인은 화면이 아니라 오디오가
+// 볼륨 그대로 뚝 끊겨서 생기는 위화감이었음. AUDIO_FADE_OUT 프레임만큼 볼륨을 서서히 줄이고(자연스러운
+// 말끝 트레일링오프 느낌), 컷 지점도 6.6s→6.8s로 살짝 늦춰 원본 자체에 있는 여유(숨쉬는 간격)를 더
+// 살리고, 홀드도 1.0s→1.2s로 늘려 리액션으로 넘어가기 전 여유를 더 줌.
 const HOOK_RAW = {
-  line: [0, 198], // 0:00–6.6 턱 괴고 검색창 보며 대사("...일이고"까지만, "귀찮네" 전에 컷)
+  line: [0, 204], // 0:00–6.8 턱 괴고 검색창 보며 대사("...일이고"까지만, "귀찮네" 전에 컷)
   turn: [249, 300], // 0:08.3–10.0 다시 폰으로 시선을 내리는 리액션(무음)
 };
-const HOLD_LEN = 30; // 1.0s — 컷 지점에서 바로 안 끊기고 잠깐 멈춘 느낌을 주는 정지 홀드
-const HB1 = HOOK_RAW.line[1] - HOOK_RAW.line[0]; // 198f
+const AUDIO_FADE_OUT = 10; // 0.33s — 컷 직전 볼륨을 서서히 줄여서 뚝 끊기는 느낌을 없앤다
+const HOLD_LEN = 36; // 1.2s — 컷 지점에서 바로 안 끊기고 잠깐 멈춘 느낌을 주는 정지 홀드
+const HB1 = HOOK_RAW.line[1] - HOOK_RAW.line[0]; // 204f
 const HB2 = HOOK_RAW.turn[1] - HOOK_RAW.turn[0]; // 51f
-const HOOK_LEN = HB1 + HOLD_LEN + HB2; // 279f (기존과 총 길이 동일 — 뺀 만큼 홀드로 채움)
+const HOOK_LEN = HB1 + HOLD_LEN + HB2; // 291f
 
 // ---- 데모 원본 타임코드(30fps 기준 프레임) ----
 const DEMO_RAW = {
@@ -85,13 +89,19 @@ const SubClip: React.FC<{
   origin?: string;
   fade?: boolean;
   muted?: boolean;
-}> = ({ src, rawFrom, rawTo, rate, len, width, height, left, zoom = 1, origin = "center", fade = true, muted = true }) => {
+  audioFadeOutFrames?: number;
+}> = ({ src, rawFrom, rawTo, rate, len, width, height, left, zoom = 1, origin = "center", fade = true, muted = true, audioFadeOutFrames = 0 }) => {
   const frame = useCurrentFrame();
   const fadeIn = fade
     ? interpolate(frame, [0, 4], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
     : 1;
   const fadeOut = fade
     ? interpolate(frame, [len - 5, len - 1], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
+    : 1;
+  // 오디오를 볼륨 그대로 뚝 끊지 않고 마지막 audioFadeOutFrames 구간에서 서서히 줄인다(하드컷 클릭/뚝
+  // 끊김 방지). muted일 땐 어차피 소리가 없으니 무시.
+  const audioVolume = audioFadeOutFrames
+    ? interpolate(frame, [len - audioFadeOutFrames, len], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
     : 1;
   return (
     <div
@@ -112,6 +122,7 @@ const SubClip: React.FC<{
         trimAfter={rawTo}
         playbackRate={rate}
         muted={muted}
+        volume={audioVolume}
         style={{
           width: "100%",
           height: "100%",
@@ -138,7 +149,7 @@ const Hook: React.FC = () => {
   return (
     <AbsoluteFill style={{ backgroundColor: WHITE }}>
       <Sequence from={0} durationInFrames={HB1} name="line">
-        <SubClip src={HOOK_VIDEO} rawFrom={HOOK_RAW.line[0]} rawTo={HOOK_RAW.line[1]} rate={1} len={HB1} width={1080} height={1920} left={0} fade={false} muted={false} />
+        <SubClip src={HOOK_VIDEO} rawFrom={HOOK_RAW.line[0]} rawTo={HOOK_RAW.line[1]} rate={1} len={HB1} width={1080} height={1920} left={0} fade={false} muted={false} audioFadeOutFrames={AUDIO_FADE_OUT} />
       </Sequence>
       <Sequence from={holdFrom} durationInFrames={HOLD_LEN} name="hold">
         <HookFreeze />
