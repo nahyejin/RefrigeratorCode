@@ -11,6 +11,7 @@ import PullToRefresh from '../components/PullToRefresh';
 import DatePickerField from '../components/DatePickerField';
 import Sheet from '../components/ui/Sheet';
 import Dialog from '../components/ui/Dialog';
+import { removeRecipeActionFromDB } from '../utils/recipeStorage';
 import { useUsage } from '../components/UsageMeter';
 import { useAuth } from '../context/AuthContext';
 import { resolveCoupangUrl } from '../utils/coupangLink';
@@ -107,6 +108,14 @@ const PencilIcon: React.FC = () => (
   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
     <path d="M4 20l.9-4.5L16.2 4.2a1.8 1.8 0 0 1 2.6 0l1 1a1.8 1.8 0 0 1 0 2.6L8.5 19.1z" />
     <path d="M14.5 6.5l3 3" />
+  </svg>
+);
+
+const TrashIcon: React.FC = () => (
+  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <path d="M4 7h16" />
+    <path d="M9 7V4.8c0-.44.36-.8.8-.8h4.4c.44 0 .8.36.8.8V7" />
+    <path d="M6 7l1 12.2c.03.98.85 1.8 1.83 1.8h6.34c.98 0 1.8-.82 1.83-1.8L18 7" />
   </svg>
 );
 
@@ -472,6 +481,11 @@ const CookingCalendar: React.FC = () => {
   const [editingDateKey, setEditingDateKey] = React.useState<string | null>(null);
   const [dateInput, setDateInput] = React.useState('');
   const [savingDate, setSavingDate] = React.useState(false);
+  /** 완료 기록 삭제 확인창 — 잘못 등록한 걸 지우는 길이 조리 상세 시트
+   * 안에만 있어 너무 숨어 있다는 지적(2026-09-13)으로, 이 카드에도 직접
+   * 지우는 버튼을 둔다. 실수로 지우면 되돌릴 수 없어 확인을 한 번 거친다. */
+  const [confirmingCompletedDelete, setConfirmingCompletedDelete] = React.useState<CalendarEntry | null>(null);
+  const [deletingCompleted, setDeletingCompleted] = React.useState(false);
 
   const monthStart = new Date(anchorDate.getFullYear(), anchorDate.getMonth(), 1);
   const monthEnd = new Date(anchorDate.getFullYear(), anchorDate.getMonth() + 1, 0);
@@ -645,6 +659,21 @@ const CookingCalendar: React.FC = () => {
       alert('완료 날짜 수정 중 오류가 발생했어요.');
     } finally {
       setSavingDate(false);
+    }
+  };
+
+  const handleDeleteCompleted = async () => {
+    if (!authUser?.id || !confirmingCompletedDelete || deletingCompleted) return;
+    setDeletingCompleted(true);
+    try {
+      await removeRecipeActionFromDB('done', Number(authUser.id), confirmingCompletedDelete.recipe_id);
+      setConfirmingCompletedDelete(null);
+      await loadCalendar();
+    } catch (e) {
+      console.warn('[CookingCalendar] 완료 기록 삭제 실패:', e);
+      alert('완료 기록 삭제 중 오류가 발생했어요.');
+    } finally {
+      setDeletingCompleted(false);
     }
   };
 
@@ -2227,23 +2256,56 @@ const CookingCalendar: React.FC = () => {
                       </button>
                     </div>
                   ) : (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setDateInput(e.day);
-                        setEditingDateKey(dateKey);
-                      }}
-                      aria-label="완료일자 수정"
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: 4, height: 26, padding: '0 8px', borderRadius: 9999, flexShrink: 0, fontSize: 11, fontWeight: 600, color: 'var(--ink-700)', background: 'var(--surface-sub)', border: '1px solid var(--line-300)', cursor: 'pointer' }}
-                    >
-                      <PencilIcon />
-                      완료일자 수정
-                    </button>
+                    <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDateInput(e.day);
+                          setEditingDateKey(dateKey);
+                        }}
+                        aria-label="완료일자 수정"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 4, height: 26, padding: '0 8px', borderRadius: 9999, flexShrink: 0, fontSize: 11, fontWeight: 600, color: 'var(--ink-700)', background: 'var(--surface-sub)', border: '1px solid var(--line-300)', cursor: 'pointer' }}
+                      >
+                        <PencilIcon />
+                        완료일자 수정
+                      </button>
+                      {/* 잘못 등록한 완료 기록을 지우는 길이 조리 상세 시트
+                          안에만 있어 너무 숨어 있다는 지적(2026-09-13) —
+                          이 카드에 바로 둔다. */}
+                      <button
+                        type="button"
+                        onClick={() => setConfirmingCompletedDelete(e)}
+                        aria-label="완료 기록 삭제"
+                        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 26, height: 26, borderRadius: 9999, flexShrink: 0, color: '#B03A28', background: 'var(--surface-sub)', border: '1px solid var(--line-300)', cursor: 'pointer' }}
+                      >
+                        <TrashIcon />
+                      </button>
+                    </div>
                   )
                 )}
               </div>
               );
             })
+          )}
+
+          {confirmingCompletedDelete && (
+            <Dialog
+              open
+              onClose={() => setConfirmingCompletedDelete(null)}
+              title="완료 기록을 삭제하시겠습니까?"
+              width={320}
+              dismissLabel="아니요"
+              actions={[{
+                label: deletingCompleted ? '삭제 중' : '삭제하기',
+                variant: 'danger',
+                onClick: handleDeleteCompleted,
+              }]}
+            >
+              <span style={{ wordBreak: 'keep-all' }}>
+                <b>{confirmingCompletedDelete.title}</b>
+                {eulReul(confirmingCompletedDelete.title)} 완료한 기록을 지워요. 되돌릴 수 없어요.
+              </span>
+            </Dialog>
           )}
         </div>
         )}

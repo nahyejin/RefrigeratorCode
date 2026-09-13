@@ -168,9 +168,12 @@ const STYLES = {
     position: 'relative' as const,
     // 매칭도·임박 재료는 배지가 붙어도 제 너비를 그대로 지키므로(`flexShrink: 0`),
     // 한 줄에 다 넣으려면(2026-09-12, 위 `buttonGroup` 설명 참고) 정렬 칸이
-    // 남는 자리만큼만 갖고 모자라면 줄어들어야 한다 — `flex: 1` 로 남는 공간을
-    // 갖되, `minWidth` 를 낮게 둬 진짜 좁을 때는 이 칸부터 양보한다.
-    flex: '1 1 auto' as const,
+    // 모자랄 때만 줄어들면 된다 — `flex-grow` 는 0 이어야 한다. 한 번
+    // `flex: 1`(grow 포함)로 뒀더니 배지가 짧아 자리가 남는 평소에도 이
+    // 칸이 남는 공간을 전부 먹어 "재료매칭순" 다섯 글자짜리 버튼이 쓸데없이
+    // 넓어 보였다(실사용 지적, 2026-09-13). 내용 너비만큼만 차지하고
+    // (`flex-basis: auto`), 진짜 좁을 때만 `minWidth` 까지 줄어든다.
+    flex: '0 1 auto' as const,
     minWidth: 56,
     // `visible` 이어야 한다 — 펼친 목록(아래 `isSortDropdownOpen` 블록)이
     // 이 칸을 기준으로 `top:100%` 절대 위치로 붙는데, 여기를 `hidden` 으로

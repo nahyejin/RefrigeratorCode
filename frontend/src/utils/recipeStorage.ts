@@ -241,6 +241,67 @@ export function getRecipesFromLocalStorage(type: StorageType): Recipe[] {
 }
 
 // =====================
+// 서버(DB) 동기화 — 즐겨찾기/기록/완료
+// =====================
+//
+// 왜 여기 한 곳에만 있어야 하나:
+//   즐겨찾기·기록·완료는 로그인 상태면 localStorage 뿐 아니라 서버에도
+//   남아야(다른 기기에서도 보이고, 마이페이지가 새로 불러와도 안 사라지게)
+//   한다. 그런데 이 호출을 `MyPage.tsx`, `CompletedRecipeListPage.tsx`,
+//   `RecordedRecipeListPage.tsx` 가 각자 인라인으로 구현하고 있었다.
+//   `MyPage.tsx` 만 추가(POST)·삭제(DELETE) 둘 다 서버에 반영했고, 나머지
+//   두 목록 화면은 **로컬만 지우고 서버 호출 자체가 없었다.** 그래서 그
+//   화면에서 "완료 해제" 를 눌러도 DB 행이 그대로 남아, 마이페이지로
+//   돌아가 다시 불러오면 (DB 값을 신뢰하는) 항목이 되살아났다(실사용 보고,
+//   2026-09-13). 앞으로 또 갈라지지 않도록 이 파일에만 둔다.
+
+const RECIPE_ACTION_ENDPOINT: Record<StorageType, string> = {
+  write: 'recorded-recipes',
+  done: 'completed-recipes',
+  favorite: 'favorite-recipes',
+};
+
+function getAuthTokenForRecipeSync(): string | null {
+  try {
+    return localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+  } catch {
+    return null;
+  }
+}
+
+function recipeSyncApiBase(): string {
+  return (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'https://refrigeratorcode-production.up.railway.app';
+}
+
+/** 로그인 상태가 아니면 아무 일도 하지 않는다 — 호출부에서 userId 를 안 넘기면 됨. */
+export async function addRecipeActionToDB(type: StorageType, userId: number, recipeId: number): Promise<void> {
+  const token = getAuthTokenForRecipeSync();
+  if (!token) return;
+  try {
+    await fetch(`${recipeSyncApiBase()}/api/users/${userId}/${RECIPE_ACTION_ENDPOINT[type]}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ recipe_id: recipeId }),
+    });
+  } catch (error) {
+    console.error(`[recipeStorage] DB 추가 실패 (${type}):`, error);
+  }
+}
+
+export async function removeRecipeActionFromDB(type: StorageType, userId: number, recipeId: number): Promise<void> {
+  const token = getAuthTokenForRecipeSync();
+  if (!token) return;
+  try {
+    await fetch(`${recipeSyncApiBase()}/api/users/${userId}/${RECIPE_ACTION_ENDPOINT[type]}/${recipeId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  } catch (error) {
+    console.error(`[recipeStorage] DB 삭제 실패 (${type}):`, error);
+  }
+}
+
+// =====================
 // 공유 관련 함수
 // =====================
 

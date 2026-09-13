@@ -13,15 +13,18 @@ import RecipeToast from '../components/RecipeToast';
 import { getMyIngredients, sortRecipes } from '../utils/recipeUtils';
 import RecipeSortBar from '../components/RecipeSortBar';
 import FilterModal from '../components/FilterModal';
-import { 
-  addRecipeToLocalStorage, 
-  removeRecipeFromLocalStorage, 
-  getRecipesFromLocalStorage, 
-  copyRecipeUrlToClipboard, 
+import {
+  addRecipeToLocalStorage,
+  removeRecipeFromLocalStorage,
+  getRecipesFromLocalStorage,
+  copyRecipeUrlToClipboard,
   getMyFridgeIngredients,
   buildRecipeActionStatesForRecipes,
   getRecipeActionState,
+  addRecipeActionToDB,
+  removeRecipeActionFromDB,
 } from '../utils/recipeStorage';
+import { useAuth } from '../context/AuthContext';
 
 // =====================
 // 상수
@@ -185,6 +188,10 @@ const RecordedRecipeListPage: React.FC = () => {
   const navigate = useNavigate();
   const myIngredients = useMemo(() => getMyIngredients(), []);
   const myIngredientObjects = getMyIngredientObjects();
+  const { isLoggedIn, user: authUser } = useAuth();
+  // 로그인 상태면 로컬뿐 아니라 서버에도 반영한다 — CompletedRecipeListPage와
+  // 같은 이유(2026-09-13, utils/recipeStorage.ts 주석 참고).
+  const syncUserId = isLoggedIn && authUser?.id ? Number(authUser.id) : null;
 
   // =====================
   // 계산된 값
@@ -225,19 +232,18 @@ const RecordedRecipeListPage: React.FC = () => {
    */
   const handleDoneClick = (id: number) => {
     const prev = recipeActionStates[id] || { done: false, write: false, share: false, favorite: false };
-    console.log('handleDoneClick', { id, prev });
-    
+
     if (!prev.done) {
       // 완료 추가
       const recipe = recipes.find(r => r.id === id);
       if (recipe && !getRecipesFromLocalStorage('done').some((r: any) => r.id === id)) {
         addRecipeToLocalStorage('done', recipe);
+        if (syncUserId) addRecipeActionToDB('done', syncUserId, id);
       }
       setRecipeActionStates(s => ({ ...s, [id]: getRecipeActionState(id) }));
       showToast('레시피를 완료했습니다!');
     } else {
       // 완료 취소: 확인 모달만 세팅
-      console.log('setPendingRemove for done', id);
       setPendingRemove({ type: 'done', id });
       setPendingRecipe(recipes.find(r => r.id === id));
     }
@@ -248,19 +254,18 @@ const RecordedRecipeListPage: React.FC = () => {
    */
   const handleWriteClick = (id: number) => {
     const prev = recipeActionStates[id] || { done: false, write: false, share: false, favorite: false };
-    console.log('handleWriteClick', { id, prev });
-    
+
     if (!prev.write) {
       // 기록 추가
       const recipe = recipes.find(r => r.id === id);
       if (recipe && !getRecipesFromLocalStorage('write').some((r: any) => r.id === id)) {
         addRecipeToLocalStorage('write', recipe);
+        if (syncUserId) addRecipeActionToDB('write', syncUserId, id);
       }
       setRecipeActionStates(s => ({ ...s, [id]: getRecipeActionState(id) }));
       showToast('레시피를 기록했습니다!');
     } else {
       // 기록 취소: 확인 모달만 세팅
-      console.log('setPendingRemove for write', id);
       setPendingRemove({ type: 'write', id });
       setPendingRecipe(recipes.find(r => r.id === id));
     }
@@ -288,6 +293,7 @@ const RecordedRecipeListPage: React.FC = () => {
     if (!prev.favorite) {
       if (recipe && !getRecipesFromLocalStorage('favorite').some((r: any) => r.id === id)) {
         addRecipeToLocalStorage('favorite', recipe);
+        if (syncUserId) addRecipeActionToDB('favorite', syncUserId, id);
       }
       setRecipeActionStates(s => ({ ...s, [id]: getRecipeActionState(id) }));
       showToast('레시피를 즐겨찾기에 추가했습니다!');
@@ -301,24 +307,26 @@ const RecordedRecipeListPage: React.FC = () => {
    * 삭제 확인 처리
    */
   const handleRemoveConfirm = () => {
-    console.log('handleRemoveConfirm', pendingRemove);
     if (!pendingRemove) return;
-    
+
     if (pendingRemove.type === 'done') {
-      setRecipeActionStates(s => ({ ...s, [pendingRemove.id]: getRecipeActionState(pendingRemove.id) }));
       removeRecipeFromLocalStorage('done', pendingRemove.id);
+      if (syncUserId) removeRecipeActionFromDB('done', syncUserId, pendingRemove.id);
+      setRecipeActionStates(s => ({ ...s, [pendingRemove.id]: getRecipeActionState(pendingRemove.id) }));
       setRecipes(prev => prev.filter(r => r.id !== pendingRemove.id));
       setFilteredRecipes(prev => prev.filter(r => r.id !== pendingRemove.id));
       showToast('레시피 완료를 취소했습니다!');
     } else if (pendingRemove.type === 'write') {
-      setRecipeActionStates(s => ({ ...s, [pendingRemove.id]: getRecipeActionState(pendingRemove.id) }));
       removeRecipeFromLocalStorage('write', pendingRemove.id);
+      if (syncUserId) removeRecipeActionFromDB('write', syncUserId, pendingRemove.id);
+      setRecipeActionStates(s => ({ ...s, [pendingRemove.id]: getRecipeActionState(pendingRemove.id) }));
       setRecipes(prev => prev.filter(r => r.id !== pendingRemove.id));
       setFilteredRecipes(prev => prev.filter(r => r.id !== pendingRemove.id));
       showToast('레시피 기록을 취소했습니다!');
     } else if (pendingRemove.type === 'favorite') {
-      setRecipeActionStates(s => ({ ...s, [pendingRemove.id]: getRecipeActionState(pendingRemove.id) }));
       removeRecipeFromLocalStorage('favorite', pendingRemove.id);
+      if (syncUserId) removeRecipeActionFromDB('favorite', syncUserId, pendingRemove.id);
+      setRecipeActionStates(s => ({ ...s, [pendingRemove.id]: getRecipeActionState(pendingRemove.id) }));
       showToast('레시피 즐겨찾기를 취소했습니다!');
     }
     

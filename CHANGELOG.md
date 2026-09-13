@@ -10675,3 +10675,17 @@ StepLoading/FloatingScanLoader의 단계 문구와 안내 문구가 길어서 �
 
 ### 릴스 04편 수정 — 일주일 식단이 캘린더에 담기는 장면 추가
 "재료 기반으로 일주일치 식단을 효율적으로 추천해서 장보기가 최소화된다는 걸 보여주려면, 일주일 계획이 캘린더에 반영되는 모습도 있어야 한다"는 지적. 데모 원본을 더 살펴보니 "장보기 4개면 7일치가 돼요" 카드 바로 아래로 스크롤이 이어지면서 9/14~9/20 요일별 식단 목록과 "요리 캘린더에 담기" 버튼이 나오는 걸 확인 — 별도 하드컷 없이 `reveal` 비트를 19~22초에서 19~24초로 자연스럽게 연장해서 그 스크롤이 그대로 이어지게 하고, 같은 비트 안에서 자막만 "이번 주 장보기는 딱 4개면 끝나요" → "일주일 식단이 그대로 캘린더에 담겨요"로 전환.
+
+## 2026-09-13 (6)
+
+### 냉장고요리 정렬 드롭다운 — "재료매칭순" 버튼이 과도하게 넓던 것 수정
+"재료매칭순 드롭다운 가로 길이가 너무 길다"는 지적. [RecipeSortBar.tsx](frontend/src/components/RecipeSortBar.tsx)의 `selectContainer`가 `flex: '1 1 auto'`(grow 포함)였던 탓에, 배지가 짧아 자리가 남을 때도 이 칸이 남는 공간을 전부 먹어 버튼이 쓸데없이 넓어 보였음. `flex: '0 1 auto'`(grow 0)로 바꿔 내용 너비만큼만 차지하고, 진짜 좁을 때만 `minWidth`까지 줄어들도록 수정. 브라우저에서 확인.
+
+### 완료/기록/즐겨찾기 "해제"가 마이페이지 재진입 시 되살아나던 버그 수정
+"완료된 레시피를 완료 해제했는데 마이페이지 다시 들어오면 살아있다"는 제보. 원인: "만든 요리 돌아보기" 등 전체보기 목록 화면([CompletedRecipeListPage.tsx](frontend/src/pages/CompletedRecipeListPage.tsx), [RecordedRecipeListPage.tsx](frontend/src/pages/RecordedRecipeListPage.tsx))의 해제/추가 버튼이 `localStorage`만 지우고 **서버(DB) 호출이 아예 없었음** — 반면 `MyPage.tsx`는 로컬+서버 둘 다 반영하는 자체 구현이 있었지만 정작 이 구현을 쓰는 카드 UI가 `MyPage.tsx`엔 없어(죽은 코드) 실제로는 아무 화면도 서버에 반영을 안 하고 있었음. 그래서 로컬에서 지운 직후엔 사라진 것처럼 보이다가, 마이페이지가 다시 서버 목록을 불러와 병합(`mergeRecipeListsFromDbAndLocal`)하는 순간 DB에 남아있던 항목이 되살아나 로컬에도 다시 저장돼버림.
+- 재발 방지를 위해 서버 동기화 호출을 [utils/recipeStorage.ts](frontend/src/utils/recipeStorage.ts)에 `addRecipeActionToDB`/`removeRecipeActionFromDB` 단일 함수로 새로 만들고, 세 파일(CompletedRecipeListPage, RecordedRecipeListPage, MyPage) 모두 이 함수 하나만 쓰도록 통일 — 앞으로 이 로직이 또 각자 구현되며 갈라지는 일이 없도록 함.
+- "기록/즐겨찾기도 살펴봐달라"는 요청대로 확인한 결과 완료와 동일한 원인으로 같은 버그가 있어 동일하게 수정. `CookModeSheet.tsx`(조리 상세 시트, 드로우 패널)의 자체 동기화 구현은 이미 정상 동작하고 있어 그대로 둠.
+- 로그인이 필요한 흐름이라 실제 서버 계정으로는 직접 재현/검증하지 못했고, 코드 리뷰와 타입체크(`tsc --noEmit`)로 확인.
+
+### 요리 캘린더 — 완료 기록을 그 카드에서 바로 삭제할 수 있게 추가
+"잘못 등록한 완료 기록을 지우는 버튼이 카드 자체엔 없고 드로우 패널 안에만 있어 너무 숨어있다"는 지적. [CookingCalendar.tsx](frontend/src/pages/CookingCalendar.tsx)의 날짜별 완료 카드에 기존 "완료일자 수정" 버튼 옆에 휴지통 버튼을 추가 — 누르면 "완료 기록을 삭제하시겠습니까? / (레시피명)을 완료한 기록을 지워요. 되돌릴 수 없어요." 확인창이 뜨고, 확인하면 `removeRecipeActionFromDB('done', ...)`로 서버까지 함께 지운 뒤 목록을 새로고침.

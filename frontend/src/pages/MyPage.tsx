@@ -97,6 +97,8 @@ import {
   buildRecipeActionStatesForRecipes,
   getRecipeActionState,
   normalizeRecipeId,
+  addRecipeActionToDB,
+  removeRecipeActionFromDB,
 } from '../utils/recipeStorage';
 import { useAuth } from '../context/AuthContext';
 import RegisterPromptModal from '../components/RegisterPromptModal';
@@ -537,58 +539,20 @@ const MyPage: React.FC = () => {
     return others.join('·');
   };
 
-  // DB에 레시피 추가
+  // DB 추가/삭제 — 실제 호출은 `utils/recipeStorage.ts`의
+  // addRecipeActionToDB/removeRecipeActionFromDB **한 곳**에서만 한다.
+  // 예전엔 이 페이지가 직접 fetch 를 구현했는데, 완료/기록 목록의 전체보기
+  // 화면(CompletedRecipeListPage 등)은 이 구현을 안 베껴서 로컬만 지우고
+  // DB는 그대로 남는 사고가 났다(2026-09-13). 같은 함수를 셋이 같이 쓰면
+  // 이제 그런 식으로 갈라질 수 없다.
   const addRecipeToDB = async (type: 'write' | 'done' | 'favorite', recipeId: number) => {
     if (!isLoggedIn || !authUser?.id) return;
-    
-    try {
-      const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
-      if (!token) return;
-      
-      const apiUrl = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'https://refrigeratorcode-production.up.railway.app';
-      const endpoint = type === 'write'
-        ? `${apiUrl}/api/users/${authUser.id}/recorded-recipes`
-        : type === 'done'
-          ? `${apiUrl}/api/users/${authUser.id}/completed-recipes`
-          : `${apiUrl}/api/users/${authUser.id}/favorite-recipes`;
-      
-      await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ recipe_id: recipeId }),
-      });
-    } catch (error) {
-      console.error(`[MyPage] DB에 레시피 추가 실패 (${type}):`, error);
-    }
+    await addRecipeActionToDB(type, Number(authUser.id), recipeId);
   };
 
-  // DB에서 레시피 삭제
   const removeRecipeFromDB = async (type: 'write' | 'done' | 'favorite', recipeId: number) => {
     if (!isLoggedIn || !authUser?.id) return;
-    
-    try {
-      const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
-      if (!token) return;
-      
-      const apiUrl = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'https://refrigeratorcode-production.up.railway.app';
-      const endpoint = type === 'write'
-        ? `${apiUrl}/api/users/${authUser.id}/recorded-recipes/${recipeId}`
-        : type === 'done'
-          ? `${apiUrl}/api/users/${authUser.id}/completed-recipes/${recipeId}`
-          : `${apiUrl}/api/users/${authUser.id}/favorite-recipes/${recipeId}`;
-      
-      await fetch(endpoint, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-    } catch (error) {
-      console.error(`[MyPage] DB에서 레시피 삭제 실패 (${type}):`, error);
-    }
+    await removeRecipeActionFromDB(type, Number(authUser.id), recipeId);
   };
   
   // 디버깅용 (개발 환경에서만)
