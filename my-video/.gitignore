@@ -5,3 +5,10 @@ dist
 
 # Ignore the output video from Git but not videos you import into src/.
 out
+
+# 릴스 05편 원본 데모 녹화본 — 다른 개인 알림(실명·채용정보·금융앱 등)과 잠금화면 배경사진이
+# 편집되지 않은 원본 그대로 찍혀 있어서 git에 올리지 않고 로컬에만 보관한다.
+# (렌더에 쓰는 정지 이미지는 미리 블러를 구워서 커밋하므로 이 파일이 없어도 최종 영상엔 영향 없음 —
+# 단, 이 파일 없이는 add-spinach/recipe 데모 비트를 다시 렌더링할 수 없다.)
+public/reel5_expiry_demo.mp4
+public/reel5_notif_full_RAW_backup.png
