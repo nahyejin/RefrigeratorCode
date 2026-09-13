@@ -1,5 +1,5 @@
 import React from "react";
-import { AbsoluteFill, OffthreadVideo, Sequence, staticFile, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
+import { AbsoluteFill, Img, OffthreadVideo, Sequence, staticFile, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import { FONT_FAMILY, WHITE, LINE, useCustomFont, CtaOutro, Caption } from "./shared";
 
 // 훅: 제미나이 생성 실사 클립(10s, 720x1280, 24fps, 대사 포함) — 턱 괴고 검색창 앞에서 썼다 지웠다
@@ -9,16 +9,18 @@ const HOOK_VIDEO = "reel6_hook_gemini.mp4";
 const DEMO_VIDEO = "reel6_chatbot_demo.mp4";
 
 // ---- 훅 원본 타임코드(30fps 기준 프레임) ----
-// silencedetect로 실측: 진짜 대사("아, 레시피 찾는 것도 너무 일이고 귀찮네")는 4.5~7.6s 구간에서
-// 들린다(그 앞 0~4.5s는 대사가 아니라 폰 두드리는 잡음 섞인 정적). 대사 뒤 정적(7.6~8.3s)은 건너뛰고
-// 다시 폰으로 시선을 내리는 리액션(8.3~10.0s)으로 하드컷.
+// silencedetect + 파형 확인으로 실측: 대사 전체("아, 레시피 찾는 것도 너무 일이고 귀찮네")는 4.5~7.6s에서
+// 들리지만, "귀찮네"까지 다 들으면 문장이 길고 어색하다는 지적으로 "일이고" 뒤 자연스러운 숨쉬기 간격
+// (약 6.6~6.9s에 실제로 파형이 끊기는 지점 있음)에서 끊고 "귀찮네"는 들리지 않게 컷. 잘린 느낌이 들지
+// 않도록 컷 지점의 정지 프레임(reel6_hook_freeze.png)을 1초 홀드한 뒤에야 리액션으로 넘어간다.
 const HOOK_RAW = {
-  line: [0, 228], // 0:00–7.6 턱 괴고 검색창 보며 대사
-  turn: [249, 300], // 0:08.3–10.0 다시 폰으로 시선 내리는 리액션(무음)
+  line: [0, 198], // 0:00–6.6 턱 괴고 검색창 보며 대사("...일이고"까지만, "귀찮네" 전에 컷)
+  turn: [249, 300], // 0:08.3–10.0 다시 폰으로 시선을 내리는 리액션(무음)
 };
-const HB1 = HOOK_RAW.line[1] - HOOK_RAW.line[0]; // 228f
+const HOLD_LEN = 30; // 1.0s — 컷 지점에서 바로 안 끊기고 잠깐 멈춘 느낌을 주는 정지 홀드
+const HB1 = HOOK_RAW.line[1] - HOOK_RAW.line[0]; // 198f
 const HB2 = HOOK_RAW.turn[1] - HOOK_RAW.turn[0]; // 51f
-const HOOK_LEN = HB1 + HB2; // 279f
+const HOOK_LEN = HB1 + HOLD_LEN + HB2; // 279f (기존과 총 길이 동일 — 뺀 만큼 홀드로 채움)
 
 // ---- 데모 원본 타임코드(30fps 기준 프레임) ----
 const DEMO_RAW = {
@@ -122,13 +124,24 @@ const SubClip: React.FC<{
   );
 };
 
+// 컷 지점에서 바로 안 끊기고 살짝 멈춘 느낌을 주는 정지 프레임 — 대사를 자른 자리에 삽입.
+const HookFreeze: React.FC = () => (
+  <div style={{ position: "absolute", top: 0, left: 0, width: 1080, height: 1920, overflow: "hidden", border: `1px solid ${LINE}` }}>
+    <Img src={staticFile("reel6_hook_freeze.png")} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+  </div>
+);
+
 // ---------- ①② 훅 (제미나이 생성 실사, 720x1280 — 캔버스와 같은 9:16이라 크롭 없이 꽉 참) ----------
 const Hook: React.FC = () => {
-  const b2From = HB1;
+  const holdFrom = HB1;
+  const b2From = holdFrom + HOLD_LEN;
   return (
     <AbsoluteFill style={{ backgroundColor: WHITE }}>
       <Sequence from={0} durationInFrames={HB1} name="line">
         <SubClip src={HOOK_VIDEO} rawFrom={HOOK_RAW.line[0]} rawTo={HOOK_RAW.line[1]} rate={1} len={HB1} width={1080} height={1920} left={0} fade={false} muted={false} />
+      </Sequence>
+      <Sequence from={holdFrom} durationInFrames={HOLD_LEN} name="hold">
+        <HookFreeze />
       </Sequence>
       <Sequence from={b2From} durationInFrames={HB2} name="turn">
         <SubClip src={HOOK_VIDEO} rawFrom={HOOK_RAW.turn[0]} rawTo={HOOK_RAW.turn[1]} rate={1} len={HB2} width={1080} height={1920} left={0} fade={false} />
