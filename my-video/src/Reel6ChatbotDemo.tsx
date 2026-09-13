@@ -12,19 +12,21 @@ const DEMO_VIDEO = "reel6_chatbot_demo.mp4";
 // silencedetect + 파형 확인으로 실측: 대사 전체("아, 레시피 찾는 것도 너무 일이고 귀찮네")는 4.5~7.6s에서
 // 들리지만, "귀찮네"까지 다 들으면 문장이 길고 어색하다는 지적으로 "일이고" 뒤 자연스러운 숨쉬기 간격
 // (약 6.6~6.9s에 실제로 파형이 끊기는 지점 있음)에서 끊고 "귀찮네"는 들리지 않게 컷.
-// 1차 수정(정지 프레임 1초 홀드)에도 "그냥 잘린 느낌이 난다"는 재지적 — 원인은 화면이 아니라 오디오가
-// 볼륨 그대로 뚝 끊겨서 생기는 위화감이었음. AUDIO_FADE_OUT 프레임만큼 볼륨을 서서히 줄이고(자연스러운
-// 말끝 트레일링오프 느낌), 컷 지점도 6.6s→6.8s로 살짝 늦춰 원본 자체에 있는 여유(숨쉬는 간격)를 더
-// 살리고, 홀드도 1.0s→1.2s로 늘려 리액션으로 넘어가기 전 여유를 더 줌.
+// 1·2차 수정(정지 프레임 홀드 + 0.33s 페이드아웃)에도 "그래도 잘린 느낌이 난다"는 재지적으로 세 가지를
+// 더 조정: (1) 페이드아웃을 0.33s→0.8s로 늘려 더 확실히 느껴지게, 새 시작점(1.2s)에도 짧은 페이드인을
+// 추가해 시작도 부드럽게. (2) 정지 홀드를 1.2s→0.6s로 줄여 늘어지지 않게. (3) 맨 앞부분(0~1.2s, 대사
+// 시작 전 그냥 앉아있는 구간)이 너무 뜸을 들인다는 지적으로 통으로 잘라내고 손이 폰 위에서 움직이는
+// 지점(1.2s)부터 바로 시작.
 const HOOK_RAW = {
-  line: [0, 204], // 0:00–6.8 턱 괴고 검색창 보며 대사("...일이고"까지만, "귀찮네" 전에 컷)
+  line: [36, 204], // 0:01.2–6.8 손이 폰 위에서 움직이는 지점부터, 대사는 "...일이고"까지만(귀찮네 전 컷)
   turn: [249, 300], // 0:08.3–10.0 다시 폰으로 시선을 내리는 리액션(무음)
 };
-const AUDIO_FADE_OUT = 10; // 0.33s — 컷 직전 볼륨을 서서히 줄여서 뚝 끊기는 느낌을 없앤다
-const HOLD_LEN = 36; // 1.2s — 컷 지점에서 바로 안 끊기고 잠깐 멈춘 느낌을 주는 정지 홀드
-const HB1 = HOOK_RAW.line[1] - HOOK_RAW.line[0]; // 204f
+const AUDIO_FADE_IN = 6; // 0.2s — 원본 중간(1.2s)에서 시작하니 소리도 살짝 페이드인
+const AUDIO_FADE_OUT = 24; // 0.8s — 컷 직전 볼륨을 충분히 길게 줄여서 뚝 끊기는 느낌을 없앤다
+const HOLD_LEN = 18; // 0.6s — 컷 지점에서 바로 안 끊기고 잠깐 멈춘 느낌만 주는 짧은 정지 홀드
+const HB1 = HOOK_RAW.line[1] - HOOK_RAW.line[0]; // 168f
 const HB2 = HOOK_RAW.turn[1] - HOOK_RAW.turn[0]; // 51f
-const HOOK_LEN = HB1 + HOLD_LEN + HB2; // 291f
+const HOOK_LEN = HB1 + HOLD_LEN + HB2; // 237f
 
 // ---- 데모 원본 타임코드(30fps 기준 프레임) ----
 const DEMO_RAW = {
@@ -89,8 +91,24 @@ const SubClip: React.FC<{
   origin?: string;
   fade?: boolean;
   muted?: boolean;
+  audioFadeInFrames?: number;
   audioFadeOutFrames?: number;
-}> = ({ src, rawFrom, rawTo, rate, len, width, height, left, zoom = 1, origin = "center", fade = true, muted = true, audioFadeOutFrames = 0 }) => {
+}> = ({
+  src,
+  rawFrom,
+  rawTo,
+  rate,
+  len,
+  width,
+  height,
+  left,
+  zoom = 1,
+  origin = "center",
+  fade = true,
+  muted = true,
+  audioFadeInFrames = 0,
+  audioFadeOutFrames = 0,
+}) => {
   const frame = useCurrentFrame();
   const fadeIn = fade
     ? interpolate(frame, [0, 4], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
@@ -98,11 +116,15 @@ const SubClip: React.FC<{
   const fadeOut = fade
     ? interpolate(frame, [len - 5, len - 1], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
     : 1;
-  // 오디오를 볼륨 그대로 뚝 끊지 않고 마지막 audioFadeOutFrames 구간에서 서서히 줄인다(하드컷 클릭/뚝
-  // 끊김 방지). muted일 땐 어차피 소리가 없으니 무시.
-  const audioVolume = audioFadeOutFrames
+  // 오디오를 볼륨 그대로 뚝 끊지/시작하지 않고 서서히 올리고 내린다(하드컷 클릭/뚝 끊김 방지).
+  // muted일 땐 어차피 소리가 없으니 무시.
+  const audioIn = audioFadeInFrames
+    ? interpolate(frame, [0, audioFadeInFrames], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
+    : 1;
+  const audioOut = audioFadeOutFrames
     ? interpolate(frame, [len - audioFadeOutFrames, len], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
     : 1;
+  const audioVolume = Math.min(audioIn, audioOut);
   return (
     <div
       style={{
@@ -149,7 +171,20 @@ const Hook: React.FC = () => {
   return (
     <AbsoluteFill style={{ backgroundColor: WHITE }}>
       <Sequence from={0} durationInFrames={HB1} name="line">
-        <SubClip src={HOOK_VIDEO} rawFrom={HOOK_RAW.line[0]} rawTo={HOOK_RAW.line[1]} rate={1} len={HB1} width={1080} height={1920} left={0} fade={false} muted={false} audioFadeOutFrames={AUDIO_FADE_OUT} />
+        <SubClip
+          src={HOOK_VIDEO}
+          rawFrom={HOOK_RAW.line[0]}
+          rawTo={HOOK_RAW.line[1]}
+          rate={1}
+          len={HB1}
+          width={1080}
+          height={1920}
+          left={0}
+          fade={false}
+          muted={false}
+          audioFadeInFrames={AUDIO_FADE_IN}
+          audioFadeOutFrames={AUDIO_FADE_OUT}
+        />
       </Sequence>
       <Sequence from={holdFrom} durationInFrames={HOLD_LEN} name="hold">
         <HookFreeze />
