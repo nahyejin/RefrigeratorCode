@@ -250,9 +250,9 @@ const Demo: React.FC = () => {
         </Sequence>
       </div>
 
-      <Caption from={d0From} len={D0 + D1 + D2} text={"재료랑 내 요청까지 말하면\nAI가 가장 효율적으로 식단을 짜줘요"} />
+      <Caption from={d0From} len={D0 + D1 + D2} text={"원하는 요구사항만 말하면\n있는 재료로 효율적인 일주일 식단을 짜요"} />
       <Caption from={d3From} len={D4} text={"그렇게 짠 일주일 식단이\n그대로 캘린더에 담겨요"} />
-      <Caption from={d6From} len={D3} text={"그래서 장보기도\n최소한만 하면 돼요"} />
+      <Caption from={d6From} len={D3} text={"냉장고에 있는 재료로 최대한 채웠으니\n장보기는 이제 최소한이면 돼요"} />
     </AbsoluteFill>
   );
 };
