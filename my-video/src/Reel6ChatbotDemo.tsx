@@ -1,29 +1,25 @@
 import React from "react";
-import { AbsoluteFill, Img, OffthreadVideo, Sequence, staticFile, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
+import { AbsoluteFill, OffthreadVideo, Sequence, staticFile, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import { FONT_FAMILY, WHITE, LINE, useCustomFont, CtaOutro, Caption } from "./shared";
 
 // 훅: 제미나이 생성 실사 클립(10s, 720x1280, 24fps, 대사 포함) — 턱 괴고 검색창 앞에서 썼다 지웠다
 // 반복하다 "아, 레시피 찾는 것도 너무 일이고 귀찮네" 혼잣말 후 다시 폰으로 시선 내리는 리액션.
 //
-// 원본을 Remotion의 OffthreadVideo trimBefore/trimAfter + 프레임 단위 volume 콜백으로 그때그때
-// 잘라내는 방식(1~4차 수정)으로는 "귀찮네" 전 컷·페이드 타이밍을 아무리 정밀하게 맞춰도 계속
-// "버벅거린다"는 지적이 반복됨 — 프레임 단위 volume 콜백은 비디오 프레임(24~30fps) 간격으로만
-// 볼륨이 계단식으로 바뀌기 때문에, 짧은 페이드일수록 그 "계단"이 울렁거림/버벅임으로 들릴 수 있다는
-// 게 근본 원인으로 보임(24fps 원본을 30fps 타임라인에서 재생하는 것 자체도 미세한 프레임 중복을
-// 유발함). 그래서 방식을 바꿔서: Remotion에서 프레임 단위로 자르고 페이드하는 대신, ffmpeg로 미리
-// "대사(0:01.2~6.767, '일이고'까지)"와 "리액션(0:08.3~10.0)" 두 구간을 오디오 afade(샘플 단위
-// DSP 페이드, 계단 없음)까지 입힌 채로 30fps CFR 파일로 구워서(reel6_hook_line_clean.mp4,
-// reel6_hook_turn_clean.mp4) 저장해두고, Remotion에서는 이 두 파일을 트리밍·볼륨 조작 없이
-// 그대로(처음부터 끝까지, rate=1) 재생만 한다.
+// 오디오 페이드/컷 타이밍을 여러 차례(1~5차) 정밀하게 맞춰봐도 "버벅거린다"는 지적이 계속돼서
+// 다시 보니, 문제는 오디오가 아니라 "컷 지점에서 0.6초 정지 홀드"로 얼려둔 화면 자체였음 — 하필
+// 그 프레임이 반쯤 감긴 눈에 입이 어정쩡하게 벌어진 "말하는 도중" 표정이라, 그걸 0.6초간 얼려서
+// 보여주니 "화면이 멈췄는데 표정도 이상하다"는 위화감을 만든 것("표정도 그렇고"라는 지적과 일치).
+// 그래서 정지 홀드를 아예 없애고, 대사 클립 끝에서 리액션 클립으로 바로 하드컷한다 — 두 클립 다
+// 같은 촬영본의 서로 다른 시점이라 원래도 이어붙이는 게 자연스럽고, 얼린 표정이 없으니 위화감의
+// 원인 자체가 사라진다. 오디오는 여전히 ffmpeg afade로 미리 곱게 죽여둔 clean 파일을 그대로 씀.
 const HOOK_LINE_VIDEO = "reel6_hook_line_clean.mp4"; // 5.6s, 168f — 대사("...일이고"까지), afade(exp, 0.25s)로 이미 끝을 죽여둠
 const HOOK_TURN_VIDEO = "reel6_hook_turn_clean.mp4"; // 1.7s, 51f — 리액션(무음, -an으로 오디오 트랙 자체를 제거)
 // 데모: 실제 쿡매치 요리 챗봇 흐름(36s, 880x1920, 30fps) — 질문 입력 → 로딩 → AI 답변(이유 설명) + 레시피 카드
 const DEMO_VIDEO = "reel6_chatbot_demo.mp4";
 
-const HOLD_LEN = 18; // 0.6s — 컷 지점에서 바로 안 끊기고 잠깐 멈춘 느낌만 주는 짧은 정지 홀드
 const HB1 = 168; // reel6_hook_line_clean.mp4 전체 프레임 수
 const HB2 = 51; // reel6_hook_turn_clean.mp4 전체 프레임 수
-const HOOK_LEN = HB1 + HOLD_LEN + HB2; // 237f
+const HOOK_LEN = HB1 + HB2; // 219f — 정지 홀드 없이 바로 하드컷
 
 // ---- 데모 원본 타임코드(30fps 기준 프레임) ----
 const DEMO_RAW = {
@@ -127,13 +123,6 @@ const SubClip: React.FC<{
   );
 };
 
-// 컷 지점에서 바로 안 끊기고 살짝 멈춘 느낌을 주는 정지 프레임 — 대사를 자른 자리에 삽입.
-const HookFreeze: React.FC = () => (
-  <div style={{ position: "absolute", top: 0, left: 0, width: 1080, height: 1920, overflow: "hidden", border: `1px solid ${LINE}` }}>
-    <Img src={staticFile("reel6_hook_freeze.png")} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-  </div>
-);
-
 // 미리 구워둔(pre-baked) 클린 클립 전용 — 트리밍·볼륨 조작 없이 파일 전체를 그대로 재생한다.
 const CleanClip: React.FC<{ src: string; width: number; height: number; left: number; muted?: boolean }> = ({
   src,
@@ -149,15 +138,11 @@ const CleanClip: React.FC<{ src: string; width: number; height: number; left: nu
 
 // ---------- ①② 훅 (제미나이 생성 실사, 720x1280 — 캔버스와 같은 9:16이라 크롭 없이 꽉 참) ----------
 const Hook: React.FC = () => {
-  const holdFrom = HB1;
-  const b2From = holdFrom + HOLD_LEN;
+  const b2From = HB1;
   return (
     <AbsoluteFill style={{ backgroundColor: WHITE }}>
       <Sequence from={0} durationInFrames={HB1} name="line">
         <CleanClip src={HOOK_LINE_VIDEO} width={1080} height={1920} left={0} muted={false} />
-      </Sequence>
-      <Sequence from={holdFrom} durationInFrames={HOLD_LEN} name="hold">
-        <HookFreeze />
       </Sequence>
       <Sequence from={b2From} durationInFrames={HB2} name="turn">
         <CleanClip src={HOOK_TURN_VIDEO} width={1080} height={1920} left={0} />
