@@ -11,7 +11,9 @@ const DEMO_VIDEO = "reel4_diet_demo.mp4";
 // silencedetect로 확인한 발화 구간이 0~6.2s 사이 거의 이어져 있어서(짧은 숨쉬기 정도만 끊김),
 // 문장이 잘리지 않도록 앞부분을 통으로 쓰고, 뒤쪽 무음 구간(헛웃음)만 따로 하드컷.
 const HOOK_RAW = {
-  shock: [0, 120], // 0:00–4.0 영수증이 길게 나오는 걸 보며 놀라서 말하는 구간 통짜
+  // 실제 대사가 4.4~6.0s에 걸쳐 한 번 더 이어지는데 이전 버전은 0~4.0s에서 끊어서
+  // 뒷부분 대사가 통째로 잘려나갔었음 — 진짜 마지막 무음 구간(5.98~6.17s)까지 통으로 늘림
+  shock: [0, 183], // 0:00–6.1 영수증이 길게 나오는 걸 보며 놀라서 말하는 대사 전체(끊지 않고 통짜)
   laugh: [207, 237], // 0:06.9–7.9 헛웃음 지으며 고개 젓는 순간(무음)
 };
 const HB1 = HOOK_RAW.shock[1] - HOOK_RAW.shock[0]; // 120f
@@ -207,7 +209,7 @@ const Demo: React.FC = () => {
         </Sequence>
       </div>
 
-      <Caption from={d1From} len={D1 + D2} text={"계획 없이 사지 않아도\nAI가 일주일 식단을 짜요"} />
+      <Caption from={d1From} len={D1 + D2} text={"있는 재료를 효율적으로 써서\n장은 조금만 봐도 돼요"} />
       <Caption from={d3From} len={D3} text={"이번 주 장보기는\n딱 4개면 끝나요"} />
       <Caption from={d4From} len={D4} text={"그래도 없는 재료는\n한 번에 구매까지 연결돼요"} />
     </AbsoluteFill>
