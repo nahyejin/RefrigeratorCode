@@ -3,28 +3,26 @@ import { AbsoluteFill, Img, OffthreadVideo, Sequence, staticFile, interpolate, s
 import { FONT_FAMILY, WHITE, LINE, useCustomFont, CtaOutro, Caption } from "./shared";
 
 // 훅: 제미나이 생성 실사 클립(10s, 720x1280, 24fps, 대사 포함) — 턱 괴고 검색창 앞에서 썼다 지웠다
-// 반복하다 "아, 레시피 찾는 것도 너무 일이고 귀찮네" 혼잣말 후 다시 폰으로 시선 내리는 리액션
-const HOOK_VIDEO = "reel6_hook_gemini.mp4";
+// 반복하다 "아, 레시피 찾는 것도 너무 일이고 귀찮네" 혼잣말 후 다시 폰으로 시선 내리는 리액션.
+//
+// 원본을 Remotion의 OffthreadVideo trimBefore/trimAfter + 프레임 단위 volume 콜백으로 그때그때
+// 잘라내는 방식(1~4차 수정)으로는 "귀찮네" 전 컷·페이드 타이밍을 아무리 정밀하게 맞춰도 계속
+// "버벅거린다"는 지적이 반복됨 — 프레임 단위 volume 콜백은 비디오 프레임(24~30fps) 간격으로만
+// 볼륨이 계단식으로 바뀌기 때문에, 짧은 페이드일수록 그 "계단"이 울렁거림/버벅임으로 들릴 수 있다는
+// 게 근본 원인으로 보임(24fps 원본을 30fps 타임라인에서 재생하는 것 자체도 미세한 프레임 중복을
+// 유발함). 그래서 방식을 바꿔서: Remotion에서 프레임 단위로 자르고 페이드하는 대신, ffmpeg로 미리
+// "대사(0:01.2~6.767, '일이고'까지)"와 "리액션(0:08.3~10.0)" 두 구간을 오디오 afade(샘플 단위
+// DSP 페이드, 계단 없음)까지 입힌 채로 30fps CFR 파일로 구워서(reel6_hook_line_clean.mp4,
+// reel6_hook_turn_clean.mp4) 저장해두고, Remotion에서는 이 두 파일을 트리밍·볼륨 조작 없이
+// 그대로(처음부터 끝까지, rate=1) 재생만 한다.
+const HOOK_LINE_VIDEO = "reel6_hook_line_clean.mp4"; // 5.6s, 168f — 대사("...일이고"까지), afade(exp, 0.25s)로 이미 끝을 죽여둠
+const HOOK_TURN_VIDEO = "reel6_hook_turn_clean.mp4"; // 1.7s, 51f — 리액션(무음, -an으로 오디오 트랙 자체를 제거)
 // 데모: 실제 쿡매치 요리 챗봇 흐름(36s, 880x1920, 30fps) — 질문 입력 → 로딩 → AI 답변(이유 설명) + 레시피 카드
 const DEMO_VIDEO = "reel6_chatbot_demo.mp4";
 
-// ---- 훅 원본 타임코드(30fps 기준 프레임) ----
-// silencedetect + 파형 확인으로 실측: 대사 전체("아, 레시피 찾는 것도 너무 일이고 귀찮네")는 4.5~7.6s에서
-// 들리지만, "귀찮네"까지 다 들으면 문장이 길고 어색하다는 지적으로 "일이고"만 남기고 컷.
-// 24프레임(0.8s) 페이드아웃까지 넣었더니 오히려 "일이구 할 때 구 뒷부분이 버벅거린다"는 재지적 —
-// 고해상도 파형으로 다시 확인해보니 "-이고"의 자연스러운 감쇠(디케이)가 6.4~6.74s에 걸쳐 이미 일어나고
-// 있었는데, 0.8s짜리 페이드가 6.0s부터 시작해서 이 감쇠 구간과 그 앞의 또렷한 발음 구간까지 겹쳐버려서
-// 자연스러운 소리 위에 인위적인 페이드가 덧씌워져 울렁거리는 소리가 난 것이 원인. 진짜 무음 구간은
-// 6.74~6.85s(그 다음 "귀"가 시작되기 직전)뿐이라, 그 좁은 구간 안에서만 아주 짧게 끝나는 페이드로 축소.
-const HOOK_RAW = {
-  line: [36, 203], // 0:01.2–6.77 손이 폰 위에서 움직이는 지점부터, 대사는 "...일이고"까지만(귀찮네 전 컷)
-  turn: [249, 300], // 0:08.3–10.0 다시 폰으로 시선을 내리는 리액션(무음)
-};
-const AUDIO_FADE_IN = 6; // 0.2s — 원본 중간(1.2s)에서 시작하니 소리도 살짝 페이드인
-const AUDIO_FADE_OUT = 4; // 0.13s — 진짜 무음 구간(6.74~6.85s) 안에서만 끝나는 짧은 페이드(클릭 노이즈 방지용)
 const HOLD_LEN = 18; // 0.6s — 컷 지점에서 바로 안 끊기고 잠깐 멈춘 느낌만 주는 짧은 정지 홀드
-const HB1 = HOOK_RAW.line[1] - HOOK_RAW.line[0]; // 168f
-const HB2 = HOOK_RAW.turn[1] - HOOK_RAW.turn[0]; // 51f
+const HB1 = 168; // reel6_hook_line_clean.mp4 전체 프레임 수
+const HB2 = 51; // reel6_hook_turn_clean.mp4 전체 프레임 수
 const HOOK_LEN = HB1 + HOLD_LEN + HB2; // 237f
 
 // ---- 데모 원본 타임코드(30fps 기준 프레임) ----
@@ -90,24 +88,7 @@ const SubClip: React.FC<{
   origin?: string;
   fade?: boolean;
   muted?: boolean;
-  audioFadeInFrames?: number;
-  audioFadeOutFrames?: number;
-}> = ({
-  src,
-  rawFrom,
-  rawTo,
-  rate,
-  len,
-  width,
-  height,
-  left,
-  zoom = 1,
-  origin = "center",
-  fade = true,
-  muted = true,
-  audioFadeInFrames = 0,
-  audioFadeOutFrames = 0,
-}) => {
+}> = ({ src, rawFrom, rawTo, rate, len, width, height, left, zoom = 1, origin = "center", fade = true, muted = true }) => {
   const frame = useCurrentFrame();
   const fadeIn = fade
     ? interpolate(frame, [0, 4], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
@@ -115,15 +96,6 @@ const SubClip: React.FC<{
   const fadeOut = fade
     ? interpolate(frame, [len - 5, len - 1], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
     : 1;
-  // 오디오를 볼륨 그대로 뚝 끊지/시작하지 않고 서서히 올리고 내린다(하드컷 클릭/뚝 끊김 방지).
-  // muted일 땐 어차피 소리가 없으니 무시.
-  const audioIn = audioFadeInFrames
-    ? interpolate(frame, [0, audioFadeInFrames], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
-    : 1;
-  const audioOut = audioFadeOutFrames
-    ? interpolate(frame, [len - audioFadeOutFrames, len], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
-    : 1;
-  const audioVolume = Math.min(audioIn, audioOut);
   return (
     <div
       style={{
@@ -143,7 +115,6 @@ const SubClip: React.FC<{
         trimAfter={rawTo}
         playbackRate={rate}
         muted={muted}
-        volume={audioVolume}
         style={{
           width: "100%",
           height: "100%",
@@ -163,6 +134,19 @@ const HookFreeze: React.FC = () => (
   </div>
 );
 
+// 미리 구워둔(pre-baked) 클린 클립 전용 — 트리밍·볼륨 조작 없이 파일 전체를 그대로 재생한다.
+const CleanClip: React.FC<{ src: string; width: number; height: number; left: number; muted?: boolean }> = ({
+  src,
+  width,
+  height,
+  left,
+  muted = true,
+}) => (
+  <div style={{ position: "absolute", top: 0, left, width, height, overflow: "hidden", border: `1px solid ${LINE}` }}>
+    <OffthreadVideo src={staticFile(src)} muted={muted} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+  </div>
+);
+
 // ---------- ①② 훅 (제미나이 생성 실사, 720x1280 — 캔버스와 같은 9:16이라 크롭 없이 꽉 참) ----------
 const Hook: React.FC = () => {
   const holdFrom = HB1;
@@ -170,26 +154,13 @@ const Hook: React.FC = () => {
   return (
     <AbsoluteFill style={{ backgroundColor: WHITE }}>
       <Sequence from={0} durationInFrames={HB1} name="line">
-        <SubClip
-          src={HOOK_VIDEO}
-          rawFrom={HOOK_RAW.line[0]}
-          rawTo={HOOK_RAW.line[1]}
-          rate={1}
-          len={HB1}
-          width={1080}
-          height={1920}
-          left={0}
-          fade={false}
-          muted={false}
-          audioFadeInFrames={AUDIO_FADE_IN}
-          audioFadeOutFrames={AUDIO_FADE_OUT}
-        />
+        <CleanClip src={HOOK_LINE_VIDEO} width={1080} height={1920} left={0} muted={false} />
       </Sequence>
       <Sequence from={holdFrom} durationInFrames={HOLD_LEN} name="hold">
         <HookFreeze />
       </Sequence>
       <Sequence from={b2From} durationInFrames={HB2} name="turn">
-        <SubClip src={HOOK_VIDEO} rawFrom={HOOK_RAW.turn[0]} rawTo={HOOK_RAW.turn[1]} rate={1} len={HB2} width={1080} height={1920} left={0} fade={false} />
+        <CleanClip src={HOOK_TURN_VIDEO} width={1080} height={1920} left={0} />
       </Sequence>
 
       <Caption from={0} len={HOOK_LEN} text={"오늘 뭐 해먹지,\n검색창 앞에서 멍—"} />
