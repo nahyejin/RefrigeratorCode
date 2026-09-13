@@ -184,16 +184,19 @@ const Demo: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
+  // 순서 재배치: "AI가 재료+요청사항 반영해서 효율적으로 일주일 식단을 짠다" → "그게 캘린더에 그대로
+  // 반영된다"는 원인이 "그래서 장보기도 최소화된다"는 결과보다 앞에 와야 논리가 맞는다는 지적 반영 —
+  // 캘린더 반영 3화면(목록·월별·주별)을 먼저 보여주고, "장보기 4개" 리빌은 맨 뒤로 옮김.
   const d0From = 0;
   const d1From = d0From + D0;
   const d2From = d1From + D1;
-  const d3From = d2From + D2;
-  const d4From = d3From + D3;
-  const d5From = d4From + D4;
-  const d6From = d5From + D5;
-  const holdFrom = d6From + D6 - PULSE;
+  const d3From = d2From + D2; // 캘린더 목록(구 4번)
+  const d4From = d3From + D4; // 월별 캘린더(구 5번)
+  const d5From = d4From + D5; // 주별 캘린더(구 6번)
+  const d6From = d5From + D6; // 장보기 리빌(구 3번) — 이제 마지막
+  const holdFrom = d6From + D3 - PULSE;
 
-  // 페이오프 강조 — 주별 캘린더 화면 뒷부분에서 살짝 확대 펄스(정지 이미지 위에 얹는 효과라 안전)
+  // 페이오프 강조 — "장보기 4개" 리빌 뒷부분에서 살짝 확대 펄스(정지 없이, 실사 재생 그대로)
   const holdLocal = frame - holdFrom;
   const holdScale =
     holdLocal >= 0
@@ -221,7 +224,16 @@ const Demo: React.FC = () => {
         <Sequence from={d2From} durationInFrames={D2} name="loading">
           <SubClip src={DEMO_VIDEO} rawFrom={DEMO_RAW.loading[0]} rawTo={DEMO_RAW.loading[1]} rate={rateLoading} len={D2} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} />
         </Sequence>
-        <Sequence from={d3From} durationInFrames={D3} name="reveal-shopping">
+        <Sequence from={d3From} durationInFrames={D4} name="calendar-list-freeze">
+          <FreezeImg src={CALENDAR_LIST_FREEZE} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} zoom={1.1} origin="50% 55%" />
+        </Sequence>
+        <Sequence from={d4From} durationInFrames={D5} name="month-view-freeze">
+          <FreezeImg src={MONTH_VIEW_FREEZE} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} zoom={1.15} origin="50% 45%" />
+        </Sequence>
+        <Sequence from={d5From} durationInFrames={D6} name="week-view-freeze">
+          <FreezeImg src={WEEK_VIEW_FREEZE} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} zoom={1.1} origin="50% 55%" />
+        </Sequence>
+        <Sequence from={d6From} durationInFrames={D3} name="reveal-shopping">
           <SubClip
             src={DEMO_VIDEO}
             rawFrom={DEMO_RAW.revealShopping[0]}
@@ -236,22 +248,11 @@ const Demo: React.FC = () => {
             fade={false}
           />
         </Sequence>
-        <Sequence from={d4From} durationInFrames={D4} name="calendar-list-freeze">
-          <FreezeImg src={CALENDAR_LIST_FREEZE} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} zoom={1.1} origin="50% 55%" />
-        </Sequence>
-        <Sequence from={d5From} durationInFrames={D5} name="month-view-freeze">
-          <FreezeImg src={MONTH_VIEW_FREEZE} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} zoom={1.15} origin="50% 45%" />
-        </Sequence>
-        <Sequence from={d6From} durationInFrames={D6} name="week-view-freeze">
-          <FreezeImg src={WEEK_VIEW_FREEZE} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} zoom={1.1} origin="50% 55%" />
-        </Sequence>
       </div>
 
-      <Caption from={d0From} len={D0 + D1 + D2} text={"있는 재료를 최대한 소진해서\n장은 최소한으로 볼 수 있어요"} />
-      <Caption from={d3From} len={D3} text={"장보기 목록은\n최소한만 남아요"} />
-      <Caption from={d4From} len={D4} text={"일주일 식단이\n그대로 캘린더에 담겨요"} />
-      <Caption from={d5From} len={D5} text={"이번 달 캘린더에도\n그대로 반영돼요"} />
-      <Caption from={d6From} len={D6} text={"이번 주엔 뭘 만들지도\n요일별로 다 보여요"} />
+      <Caption from={d0From} len={D0 + D1 + D2} text={"재료랑 내 요청까지 말하면\nAI가 가장 효율적으로 식단을 짜줘요"} />
+      <Caption from={d3From} len={D4} text={"그렇게 짠 일주일 식단이\n그대로 캘린더에 담겨요"} />
+      <Caption from={d6From} len={D3} text={"그래서 장보기도\n최소한만 하면 돼요"} />
     </AbsoluteFill>
   );
 };
