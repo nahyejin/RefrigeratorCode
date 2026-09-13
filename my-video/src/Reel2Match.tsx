@@ -1,5 +1,5 @@
 import React from "react";
-import { AbsoluteFill, OffthreadVideo, Sequence, staticFile, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
+import { AbsoluteFill, Img, OffthreadVideo, Sequence, staticFile, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import { FONT_FAMILY, WHITE, LINE, useCustomFont, CtaOutro, Caption } from "./shared";
 
 // 훅: 제미나이 생성 실사 클립(10s, 720x1280, 24fps, 대사 포함 재촬영본) — 소파에서 레시피 보다 설레었다가 실망하는 여성
@@ -32,20 +32,24 @@ const DEMO_RAW = {
 };
 const rateFilter = 1.3;
 const rateResults = 1.5;
-// 모달 구간(원본 0.33초)은 배속을 늦추면(rate<1) OffthreadVideo가 이 파일 끝부분에서 흰 화면을 뱉는
-// 버그가 있어서(재인코딩해도 재현됨), 대신 같은 정지 화면을 rate=1로 여러 번 이어붙여서 체류시간을 늘림
-const MODAL_RAW_LEN = DEMO_RAW.coupangModal[1] - DEMO_RAW.coupangModal[0]; // 10f
-// 3번 반복 시도했더니 반복 중 일부만 흰 화면으로 깨지는(재현이 불규칙한) OffthreadVideo 버그가 있어서 1회만 사용
-const MODAL_LOOPS = 1;
+
+// "당근→양파" 대체재료와 "부족 재료 구매" 모달, 둘 다 화면을 멈춰서 오래 보여달라는 요청.
+// 원래 쓰던 프리즈 트릭(trimBefore=X/trimAfter=X+1/playbackRate 초저속)은 OffthreadVideo가 이 파일
+// 끝부분에서 흰 화면을 뱉는 버그가 있어서(재인코딩해도 재현됨), 대신 그 순간을 PNG로 미리 뽑아서
+// 정적 이미지로 고정해 보여준다 — 비디오 디코딩 자체가 없으니 버그를 원천적으로 피함.
+const SUBSTITUTE_FREEZE = "reel2_substitute_freeze.png"; // 0:17.5 프레임 추출
+const COUPANG_FREEZE = "reel2_coupang_freeze.png"; // 0:20.35 프레임 추출(모달이 뜬 뒤 안정된 시점)
 
 const D1 = Math.round((DEMO_RAW.filter[1] - DEMO_RAW.filter[0]) / rateFilter); // 81f
 const D2 = Math.round((DEMO_RAW.results[1] - DEMO_RAW.results[0]) / rateResults); // 123f
-const D3 = DEMO_RAW.substitute[1] - DEMO_RAW.substitute[0]; // 60f
-const D4a = DEMO_RAW.coupangList[1] - DEMO_RAW.coupangList[0]; // 30f
-const D4b = MODAL_RAW_LEN * MODAL_LOOPS; // 30f
-const D4 = D4a + D4b; // 60f
-const PULSE = 15; // D4 뒷부분에서 프리즈 없이 살짝 확대 펄스만 얹는다(정지 프레임 트릭이 이 소스에서 불안정해서)
-const DEMO_LEN = D1 + D2 + D3 + D4; // 300f
+const D3_VIDEO = 30; // 1.0s — 당근→양파 칩이 실제로 나타나는 순간까지는 영상 그대로 재생
+const D3_FREEZE = 60; // 2.0s — 그 이후 확대한 채로 정지
+const D3 = D3_VIDEO + D3_FREEZE; // 90f
+const D4a = DEMO_RAW.coupangList[1] - DEMO_RAW.coupangList[0]; // 30f — "통깨+" 칩이 보이는 리스트
+const D4b = 45; // 1.5s — 부족 재료 구매 모달을 확대한 채로 정지
+const D4 = D4a + D4b; // 75f
+const PULSE = 15; // D4 뒷부분에서 정지 화면 위에 살짝 확대 펄스를 얹어 마지막에 한 번 더 강조
+const DEMO_LEN = D1 + D2 + D3 + D4;
 
 const CTA_LEN = 60; // 2.0s
 
@@ -163,6 +167,29 @@ const VIDEO_W = 940;
 const VIDEO_H = 1920;
 const VIDEO_LEFT = (1080 - VIDEO_W) / 2; // 70
 
+// 정지 화면(PNG) 전용 — SubClip과 같은 박스·확대 처리를 쓰되 비디오 디코딩이 없어 안전하다.
+const FreezeImg: React.FC<{
+  src: string;
+  width: number;
+  height: number;
+  left: number;
+  zoom?: number;
+  origin?: string;
+}> = ({ src, width, height, left, zoom = 1, origin = "center" }) => (
+  <div style={{ position: "absolute", top: 0, left, width, height, overflow: "hidden", border: `1px solid ${LINE}` }}>
+    <Img
+      src={staticFile(src)}
+      style={{
+        width: "100%",
+        height: "100%",
+        objectFit: "cover",
+        transform: zoom !== 1 ? `scale(${zoom})` : undefined,
+        transformOrigin: origin,
+      }}
+    />
+  </div>
+);
+
 const Demo: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -217,19 +244,23 @@ const Demo: React.FC = () => {
             left={VIDEO_LEFT}
           />
         </Sequence>
-        <Sequence from={d3From} durationInFrames={D3} name="substitute">
+        <Sequence from={d3From} durationInFrames={D3_VIDEO} name="substitute-video">
           <SubClip
             src={DEMO_VIDEO}
             rawFrom={DEMO_RAW.substitute[0]}
-            rawTo={DEMO_RAW.substitute[1]}
+            rawTo={DEMO_RAW.substitute[0] + D3_VIDEO}
             rate={1}
-            len={D3}
+            len={D3_VIDEO}
             width={VIDEO_W}
             height={VIDEO_H}
             left={VIDEO_LEFT}
             zoom={1.6}
             origin="33% 51%"
+            fade={false}
           />
+        </Sequence>
+        <Sequence from={d3From + D3_VIDEO} durationInFrames={D3_FREEZE} name="substitute-freeze">
+          <FreezeImg src={SUBSTITUTE_FREEZE} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} zoom={1.6} origin="33% 51%" />
         </Sequence>
         <Sequence from={d4From} durationInFrames={D4a} name="coupangList">
           <SubClip
@@ -244,21 +275,9 @@ const Demo: React.FC = () => {
             fade={false}
           />
         </Sequence>
-        {Array.from({ length: MODAL_LOOPS }).map((_, i) => (
-          <Sequence key={i} from={d4bFrom + i * MODAL_RAW_LEN} durationInFrames={MODAL_RAW_LEN} name={`coupangModal${i}`}>
-            <SubClip
-              src={DEMO_VIDEO}
-              rawFrom={DEMO_RAW.coupangModal[0]}
-              rawTo={DEMO_RAW.coupangModal[1]}
-              rate={1}
-              len={MODAL_RAW_LEN}
-              width={VIDEO_W}
-              height={VIDEO_H}
-              left={VIDEO_LEFT}
-              fade={false}
-            />
-          </Sequence>
-        ))}
+        <Sequence from={d4bFrom} durationInFrames={D4b} name="coupangModal-freeze">
+          <FreezeImg src={COUPANG_FREEZE} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} zoom={1.3} origin="50% 65%" />
+        </Sequence>
       </div>
 
       <Caption from={d1From} len={D1 + D2} text={"내 냉장고 기준으로\n매칭률 순으로 정렬"} />
