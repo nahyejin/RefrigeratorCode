@@ -1,5 +1,5 @@
 import React from "react";
-import { AbsoluteFill, OffthreadVideo, Sequence, staticFile, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
+import { AbsoluteFill, Img, OffthreadVideo, Sequence, staticFile, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import { FONT_FAMILY, WHITE, LINE, useCustomFont, CtaOutro, Caption } from "./shared";
 
 // 훅: 제미나이 생성 실사 클립(8s, 720x1280, 24fps, 대사 포함) — 마트 계산대에서 영수증이 과장되게 길게 나옴
@@ -25,9 +25,12 @@ const DEMO_RAW = {
   prompt: [30, 90], // 0:01.0–3.0 "쓸 재료 30개" 인사 + "아이 먹을 것 위주로" 빠른 답장 칩
   loading: [90, 540], // 0:03.0–18.0 로딩 3단계(냉장고 보는 중 → 요일 나눠 담는 중 → 거의 다 됐어요)
   // 19~22s: "쓸 재료 30개" + AI 답변 + "장보기 4개면 7일치가 돼요" 헤드라인
+  revealShopping: [570, 660], // 0:19.0–22.0
   // 22~24s: 그대로 스크롤이 이어지면서 일주일치(9/14~9/20) 식단이 각 날짜에 배정된 목록과
-  // "요리 캘린더에 담기" 버튼이 나옴 — "일주일 계획이 실제로 캘린더에 반영된다"는 걸 보여달라는 요청 반영
-  reveal: [570, 720], // 0:19.0–24.0
+  // "요리 캘린더에 담기" 버튼이 나옴. 처음엔 이 구간을 배속(rate=0.5)으로 늦춰서 늘리려 했는데,
+  // 파일 끝 근처가 아닌데도(52s 중 24s) 02편과 똑같이 OffthreadVideo가 흰 화면을 뱉는 버그가
+  // 재현됨 — 분수 배속 자체가 문제인 듯. 대신 이 구간의 한 프레임(23.3s, 7일 전체 + 버튼이
+  // 다 보이는 순간)을 PNG로 뽑아 정지 이미지로 고정해서 우회.
 
   // "사러 가기" 탭 → 쿠팡으로 전환: 중간에 앱 업데이트 팝업/추석 프로모 스플래시가 껴 있어서
   // 그 부분만 건너뛰고 전환 애니메이션 → 깨끗한 검색 결과 화면 두 조각만 하드컷으로 이어붙임
@@ -36,11 +39,14 @@ const DEMO_RAW = {
 };
 const ratePrompt = 1;
 const rateLoading = 4.0; // 로딩 15초를 배속으로 압축
-const rateReveal = 1;
+const rateRevealShopping = 1;
+const CALENDAR_FREEZE = "reel4_calendar_freeze.png"; // 9/14~9/20 전체 목록 + "요리 캘린더에 담기" 버튼이 다 보이는 정지 이미지
 
 const D1 = Math.round((DEMO_RAW.prompt[1] - DEMO_RAW.prompt[0]) / ratePrompt); // 60f
 const D2 = Math.round((DEMO_RAW.loading[1] - DEMO_RAW.loading[0]) / rateLoading); // 113f
-const D3 = Math.round((DEMO_RAW.reveal[1] - DEMO_RAW.reveal[0]) / rateReveal); // 90f
+const D3a = Math.round((DEMO_RAW.revealShopping[1] - DEMO_RAW.revealShopping[0]) / rateRevealShopping); // 90f
+const D3b = 120; // 4.0s — 캘린더 목록 정지 이미지를 읽을 시간
+const D3 = D3a + D3b; // 210f
 const D4a = DEMO_RAW.coupangGo[1] - DEMO_RAW.coupangGo[0]; // 30f
 const D4b = DEMO_RAW.coupangResult[1] - DEMO_RAW.coupangResult[0]; // 30f
 const D4 = D4a + D4b; // 60f
@@ -155,6 +161,29 @@ const VIDEO_W = 880;
 const VIDEO_H = 1920;
 const VIDEO_LEFT = (1080 - VIDEO_W) / 2; // 100
 
+// 정지 화면(PNG) 전용 — 비디오 디코딩이 없어 분수 배속 버그를 원천적으로 피한다.
+const FreezeImg: React.FC<{ src: string; width: number; height: number; left: number; zoom?: number; origin?: string }> = ({
+  src,
+  width,
+  height,
+  left,
+  zoom = 1,
+  origin = "center",
+}) => (
+  <div style={{ position: "absolute", top: 0, left, width, height, overflow: "hidden", border: `1px solid ${LINE}` }}>
+    <Img
+      src={staticFile(src)}
+      style={{
+        width: "100%",
+        height: "100%",
+        objectFit: "cover",
+        transform: zoom !== 1 ? `scale(${zoom})` : undefined,
+        transformOrigin: origin,
+      }}
+    />
+  </div>
+);
+
 const Demo: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -162,6 +191,7 @@ const Demo: React.FC = () => {
   const d1From = 0;
   const d2From = d1From + D1;
   const d3From = d2From + D2;
+  const d3bFrom = d3From + D3a;
   const d4From = d3From + D3;
   const d4bFrom = d4From + D4a;
   const holdFrom = d4From + D4 - PULSE;
@@ -191,19 +221,23 @@ const Demo: React.FC = () => {
         <Sequence from={d2From} durationInFrames={D2} name="loading">
           <SubClip src={DEMO_VIDEO} rawFrom={DEMO_RAW.loading[0]} rawTo={DEMO_RAW.loading[1]} rate={rateLoading} len={D2} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} />
         </Sequence>
-        <Sequence from={d3From} durationInFrames={D3} name="reveal">
+        <Sequence from={d3From} durationInFrames={D3a} name="reveal-shopping">
           <SubClip
             src={DEMO_VIDEO}
-            rawFrom={DEMO_RAW.reveal[0]}
-            rawTo={DEMO_RAW.reveal[1]}
-            rate={rateReveal}
-            len={D3}
+            rawFrom={DEMO_RAW.revealShopping[0]}
+            rawTo={DEMO_RAW.revealShopping[1]}
+            rate={rateRevealShopping}
+            len={D3a}
             width={VIDEO_W}
             height={VIDEO_H}
             left={VIDEO_LEFT}
             zoom={1.1}
             origin="50% 55%"
+            fade={false}
           />
+        </Sequence>
+        <Sequence from={d3bFrom} durationInFrames={D3b} name="reveal-calendar-freeze">
+          <FreezeImg src={CALENDAR_FREEZE} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} zoom={1.1} origin="50% 55%" />
         </Sequence>
         <Sequence from={d4From} durationInFrames={D4a} name="coupang-go">
           <SubClip src={DEMO_VIDEO} rawFrom={DEMO_RAW.coupangGo[0]} rawTo={DEMO_RAW.coupangGo[1]} rate={1} len={D4a} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} fade={false} />
@@ -213,9 +247,9 @@ const Demo: React.FC = () => {
         </Sequence>
       </div>
 
-      <Caption from={d1From} len={D1 + D2} text={"있는 재료를 효율적으로 써서\n장은 조금만 봐도 돼요"} />
-      <Caption from={d3From} len={90} text={"이번 주 장보기는\n딱 4개면 끝나요"} />
-      <Caption from={d3From + 90} len={D3 - 90} text={"일주일 식단이\n그대로 캘린더에 담겨요"} />
+      <Caption from={d1From} len={D1 + D2} text={"있는 재료를 최대한 소진해서\n장은 최소한으로 볼 수 있어요"} />
+      <Caption from={d3From} len={D3a} text={"장보기 목록은\n최소한만 남아요"} />
+      <Caption from={d3bFrom} len={D3b} text={"일주일 식단이\n그대로 캘린더에 담겨요"} />
       <Caption from={d4From} len={D4} text={"그래도 없는 재료는\n한 번에 구매까지 연결돼요"} />
     </AbsoluteFill>
   );
