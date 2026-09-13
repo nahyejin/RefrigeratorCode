@@ -6,6 +6,7 @@ import { Reel2Match, REEL2_TOTAL_FRAMES } from "./Reel2Match";
 import { Reel3CookMode, REEL3_TOTAL_FRAMES } from "./Reel3CookMode";
 import { Reel4AiDiet, REEL4_TOTAL_FRAMES } from "./Reel4AiDiet";
 import { Reel5ExpiryAlert, REEL5_TOTAL_FRAMES } from "./Reel5ExpiryAlert";
+import { Reel6ChatbotDemo, REEL6_TOTAL_FRAMES } from "./Reel6ChatbotDemo";
 
 export const RemotionRoot: React.FC = () => {
   return (
@@ -54,6 +55,14 @@ export const RemotionRoot: React.FC = () => {
         id="Reel5ExpiryAlert"
         component={Reel5ExpiryAlert}
         durationInFrames={REEL5_TOTAL_FRAMES}
+        fps={30}
+        width={1080}
+        height={1920}
+      />
+      <Composition
+        id="Reel6ChatbotDemo"
+        component={Reel6ChatbotDemo}
+        durationInFrames={REEL6_TOTAL_FRAMES}
         fps={30}
         width={1080}
         height={1920}
