@@ -100,19 +100,27 @@ const VIDEO_LEFT = (1080 - VIDEO_W) / 2;
 
 // 서브클립 하나 = 원본 특정 구간을 트리밍해서 보여주는 레이어.
 // 시작/끝에 살짝 오페시티를 낮춰서(화이트로 디졸브) 배속·컷 경계가 뚝뚝 끊기지 않게 한다.
+// punchZoom을 주면 비트 시작 시점에 스프링으로 그 지점까지 확대되어 그대로 유지된다("결과 숫자
+// 같은 핵심 정보가 뜨는 순간 확대되어 강조돼야 한다"는 피드백으로 03편에서 쓴 패턴을 이식).
 const DemoClip: React.FC<{
   rawFrom: number;
   rawTo: number;
   rate: number;
   len: number;
   blur?: boolean;
-}> = ({ rawFrom, rawTo, rate, len, blur }) => {
+  punchZoom?: number;
+  punchOrigin?: string;
+}> = ({ rawFrom, rawTo, rate, len, blur, punchZoom, punchOrigin = "center" }) => {
   const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
   const fadeIn = interpolate(frame, [0, 4], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   const fadeOut = interpolate(frame, [len - 5, len - 1], [1, 0], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
+  const scale = punchZoom
+    ? interpolate(spring({ frame, fps, config: { damping: 14, mass: 0.7 } }), [0, 1], [1, punchZoom])
+    : 1;
   return (
     <div
       style={{
@@ -132,7 +140,14 @@ const DemoClip: React.FC<{
         trimAfter={rawTo}
         playbackRate={rate}
         muted
-        style={{ width: "100%", height: "100%", objectFit: "cover", filter: blur ? "blur(14px)" : undefined }}
+        style={{
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+          filter: blur ? "blur(14px)" : undefined,
+          transform: scale !== 1 ? `scale(${scale})` : undefined,
+          transformOrigin: punchOrigin,
+        }}
       />
     </div>
   );
@@ -186,7 +201,9 @@ const Demo: React.FC = () => {
           <DemoClip rawFrom={RAW.loading[0]} rawTo={RAW.loading[1]} rate={rateC3} len={C3} />
         </Sequence>
         <Sequence from={c4From} durationInFrames={C4} name="result">
-          <DemoClip rawFrom={RAW.result[0]} rawTo={RAW.result[1]} rate={1} len={C4} />
+          {/* "3개를 담았어요" 토스트가 뜨는 순간 확대되어 강조 — 토스트가 화면 하단 중앙에 뜨는
+              자리라 좌우로 잘릴 걱정 없이 그 자리 기준으로 그냥 확대해도 된다. */}
+          <DemoClip rawFrom={RAW.result[0]} rawTo={RAW.result[1]} rate={1} len={C4} punchZoom={1.3} punchOrigin="50% 85%" />
         </Sequence>
         <Sequence from={c5From} durationInFrames={C5} name="done">
           <DemoClip rawFrom={RAW.done[0]} rawTo={RAW.done[1]} rate={1} len={C5} />

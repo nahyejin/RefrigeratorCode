@@ -90,6 +90,9 @@ const SubClip: React.FC<{
   cropTop?: number;
   fade?: boolean;
   muted?: boolean;
+  punchZoom?: number; // 비트 시작 시점(또는 punchDelay 이후)에 스프링으로 이 배율까지 확대되어 강조
+  punchOrigin?: string;
+  punchDelay?: number; // 확대가 시작되는 시점을 늦춘다(예: 채팅 말풍선이 뒤늦게 뜨는 비트)
 }> = ({
   src,
   rawFrom,
@@ -104,14 +107,21 @@ const SubClip: React.FC<{
   cropTop = 0,
   fade = true,
   muted = true,
+  punchZoom,
+  punchOrigin,
+  punchDelay = 0,
 }) => {
   const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
   const fadeIn = fade
     ? interpolate(frame, [0, 4], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
     : 1;
   const fadeOut = fade
     ? interpolate(frame, [len - 5, len - 1], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
     : 1;
+  const scale = punchZoom
+    ? interpolate(spring({ frame: frame - punchDelay, fps, config: { damping: 14, mass: 0.7 } }), [0, 1], [1, punchZoom])
+    : zoom;
   return (
     <div
       style={{
@@ -125,7 +135,7 @@ const SubClip: React.FC<{
         opacity: Math.min(fadeIn, fadeOut),
       }}
     >
-      <div style={{ width: "100%", height: "100%", transform: zoom !== 1 ? `scale(${zoom})` : undefined, transformOrigin: origin }}>
+      <div style={{ width: "100%", height: "100%", transform: scale !== 1 ? `scale(${scale})` : undefined, transformOrigin: punchZoom ? punchOrigin ?? origin : origin }}>
         {/* 위쪽 cropTop px를 잘라내되, 잘려나간 만큼 위아래에 똑같이 여백이 남도록 창 자체를
             중앙에 놓는다(top: cropTop/2) — 가로 폭·비율은 전혀 안 건드림. */}
         <div style={{ position: "absolute", top: cropTop / 2, left: 0, width: "100%", height: `calc(100% - ${cropTop}px)`, overflow: "hidden" }}>
@@ -210,7 +220,23 @@ const Demo: React.FC = () => {
   return (
     <AbsoluteFill style={{ backgroundColor: WHITE }}>
       <Sequence from={askFrom} durationInFrames={ASK_LEN} name="ask">
-        <SubClip src={DEMO_VIDEO} rawFrom={DEMO_RAW.ask[0]} rawTo={DEMO_RAW.ask[1]} rate={rateAsk} len={ASK_LEN} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} cropTop={TOPCROP_PX} fade={false} />
+        {/* 질문을 입력해 전송하는 비트 — 말풍선("아이가 잘 먹는 음식 추천")이 뜨는 건 비트 끝
+            무렵이라, punchDelay로 확대 시작을 늦춰서 말풍선이 뜬 뒤에 그쪽으로 확대되게 함. */}
+        <SubClip
+          src={DEMO_VIDEO}
+          rawFrom={DEMO_RAW.ask[0]}
+          rawTo={DEMO_RAW.ask[1]}
+          rate={rateAsk}
+          len={ASK_LEN}
+          width={VIDEO_W}
+          height={VIDEO_H}
+          left={VIDEO_LEFT}
+          cropTop={TOPCROP_PX}
+          fade={false}
+          punchZoom={1.25}
+          punchOrigin="73% 30%"
+          punchDelay={ASK_LEN - 30}
+        />
       </Sequence>
       <Sequence from={loadingFrom} durationInFrames={LOADING_LEN} name="loading">
         <SubClip src={DEMO_VIDEO} rawFrom={DEMO_RAW.loading[0]} rawTo={DEMO_RAW.loading[1]} rate={rateLoading} len={LOADING_LEN} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} cropTop={TOPCROP_PX} />

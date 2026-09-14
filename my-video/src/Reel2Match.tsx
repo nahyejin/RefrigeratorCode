@@ -102,6 +102,8 @@ const SubClip: React.FC<{
   fadeInFrames?: number;
   fadeOutFrames?: number;
   muted?: boolean;
+  punchZoom?: number; // 비트 시작 시점에 스프링으로 이 배율까지 확대되어 강조(정적 zoom과 달리 애니메이션으로 등장)
+  punchOrigin?: string;
 }> = ({
   src,
   rawFrom,
@@ -117,8 +119,11 @@ const SubClip: React.FC<{
   fadeInFrames = 4,
   fadeOutFrames = 4,
   muted = true,
+  punchZoom,
+  punchOrigin,
 }) => {
   const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
   const fadeIn =
     fade && fadeInFrames > 0
       ? interpolate(frame, [0, fadeInFrames], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
@@ -127,6 +132,9 @@ const SubClip: React.FC<{
     fade && fadeOutFrames > 0
       ? interpolate(frame, [len - fadeOutFrames - 1, len - 1], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
       : 1;
+  const scale = punchZoom
+    ? interpolate(spring({ frame, fps, config: { damping: 14, mass: 0.7 } }), [0, 1], [1, punchZoom])
+    : zoom;
   return (
     <div
       style={{
@@ -150,8 +158,8 @@ const SubClip: React.FC<{
           width: "100%",
           height: "100%",
           objectFit: "cover",
-          transform: zoom !== 1 ? `scale(${zoom})` : undefined,
-          transformOrigin: origin,
+          transform: scale !== 1 ? `scale(${scale})` : undefined,
+          transformOrigin: punchZoom ? punchOrigin ?? origin : origin,
         }}
       />
     </div>
@@ -242,6 +250,8 @@ const Demo: React.FC = () => {
         }}
       >
         <Sequence from={d1From} durationInFrames={D1} name="filter">
+          {/* 매칭률 범위(63~100%) 설정값이 화면 중앙에 있어서 확대해도 잘릴 걱정 없이 그대로
+              강조할 수 있다 — 숫자가 뜨는 순간 확대되어 눈에 띄도록. */}
           <SubClip
             src={DEMO_VIDEO}
             rawFrom={DEMO_RAW.filter[0]}
@@ -251,6 +261,8 @@ const Demo: React.FC = () => {
             width={VIDEO_W}
             height={VIDEO_H}
             left={VIDEO_LEFT}
+            punchZoom={1.25}
+            punchOrigin="50% 45%"
           />
         </Sequence>
         <Sequence from={d2From} durationInFrames={D2} name="results">

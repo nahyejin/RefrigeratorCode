@@ -109,6 +109,8 @@ const SubClip: React.FC<{
   fadeInFrames?: number;
   fadeOutFrames?: number;
   muted?: boolean;
+  punchZoom?: number; // 비트 시작 시점에 스프링으로 이 배율까지 확대되어 강조(정적 zoom과 달리 애니메이션으로 등장)
+  punchOrigin?: string;
 }> = ({
   src,
   rawFrom,
@@ -125,8 +127,11 @@ const SubClip: React.FC<{
   fadeInFrames = 4,
   fadeOutFrames = 4,
   muted = true,
+  punchZoom,
+  punchOrigin,
 }) => {
   const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
   const fadeIn =
     fade && fadeInFrames > 0
       ? interpolate(frame, [0, fadeInFrames], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
@@ -135,6 +140,9 @@ const SubClip: React.FC<{
     fade && fadeOutFrames > 0
       ? interpolate(frame, [len - fadeOutFrames - 1, len - 1], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
       : 1;
+  const scale = punchZoom
+    ? interpolate(spring({ frame, fps, config: { damping: 14, mass: 0.7 } }), [0, 1], [1, punchZoom])
+    : zoom;
   return (
     <div
       style={{
@@ -148,7 +156,7 @@ const SubClip: React.FC<{
         opacity: Math.min(fadeIn, fadeOut),
       }}
     >
-      <div style={{ width: "100%", height: "100%", transform: zoom !== 1 ? `scale(${zoom})` : undefined, transformOrigin: origin }}>
+      <div style={{ width: "100%", height: "100%", transform: scale !== 1 ? `scale(${scale})` : undefined, transformOrigin: punchZoom ? punchOrigin ?? origin : origin }}>
         {/* 위쪽 cropTop px를 잘라낸다 — 스케일 없이 자른 만큼(cropTop) 창을 줄이고 그 창을 화면
             중앙에 놓아서(top: cropTop/2), 잘려나간 여백이 위아래에 똑같이 남게 한다(가로 폭·비율은
             전혀 안 건드림). 안쪽 콘텐츠는 원본 크기 그대로(calc로 cropTop만큼 다시 키움) 위로
@@ -252,7 +260,22 @@ const Demo: React.FC = () => {
         }}
       >
         <Sequence from={d0From} durationInFrames={D0} name="tap-button">
-          <SubClip src={DEMO_VIDEO} rawFrom={DEMO_RAW.tapButton[0]} rawTo={DEMO_RAW.tapButton[1]} rate={rateTapButton} len={D0} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} cropTop={TOPCROP_PX} fade={false} />
+          {/* "이번 주 AI 식단 추천" 배너를 누르는 순간이 어떤 버튼을 탭하는지 잘 안 보인다는
+              피드백 — 배너 쪽으로 확대되어 강조되도록 punchZoom 적용. */}
+          <SubClip
+            src={DEMO_VIDEO}
+            rawFrom={DEMO_RAW.tapButton[0]}
+            rawTo={DEMO_RAW.tapButton[1]}
+            rate={rateTapButton}
+            len={D0}
+            width={VIDEO_W}
+            height={VIDEO_H}
+            left={VIDEO_LEFT}
+            cropTop={TOPCROP_PX}
+            fade={false}
+            punchZoom={1.15}
+            punchOrigin="25% 44%"
+          />
         </Sequence>
         <Sequence from={d1From} durationInFrames={D1} name="prompt">
           <SubClip src={DEMO_VIDEO} rawFrom={DEMO_RAW.prompt[0]} rawTo={DEMO_RAW.prompt[1]} rate={ratePrompt} len={D1} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} cropTop={TOPCROP_PX} />

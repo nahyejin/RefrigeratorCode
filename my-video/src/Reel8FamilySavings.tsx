@@ -99,6 +99,7 @@ const SubClip: React.FC<{
   fadeOutFrames?: number;
   punchZoom?: number;
   punchOrigin?: string;
+  punchDelay?: number;
   muted?: boolean;
 }> = ({
   src,
@@ -117,6 +118,7 @@ const SubClip: React.FC<{
   fadeOutFrames = 4,
   punchZoom,
   punchOrigin,
+  punchDelay = 0,
   muted = true,
 }) => {
   const frame = useCurrentFrame();
@@ -130,10 +132,10 @@ const SubClip: React.FC<{
       ? interpolate(frame, [len - fadeOutFrames - 1, len - 1], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
       : 1;
 
-  // 캡션이 뜨는 순간 해당 화면 영역이 확대되며 나타나는 강조 효과(펀치인) — 비트 시작 시점에
-  // 스프링으로 배율을 밀어올린 뒤 그대로 유지(정적인 zoom과 달리 애니메이션으로 등장).
+  // 캡션이 뜨는 순간 해당 화면 영역이 확대되며 나타나는 강조 효과(펀치인) — 비트 시작 시점(또는
+  // punchDelay 이후)에 스프링으로 배율을 밀어올린 뒤 그대로 유지(정적인 zoom과 달리 애니메이션으로 등장).
   const punchScale = punchZoom
-    ? interpolate(spring({ frame, fps, config: { damping: 14, mass: 0.7 } }), [0, 1], [1, punchZoom])
+    ? interpolate(spring({ frame: frame - punchDelay, fps, config: { damping: 14, mass: 0.7 } }), [0, 1], [1, punchZoom])
     : zoom;
 
   return (
@@ -285,6 +287,8 @@ const Demo: React.FC = () => {
   return (
     <AbsoluteFill style={{ backgroundColor: WHITE }}>
       <Sequence from={goalFrom} durationInFrames={GOAL_LEN} name="goal-set">
+        {/* 목표수정 입력창+적용 버튼이 뜨는 시점(키보드 등장 이후)부터 그쪽으로 확대되도록
+            punchDelay로 늦춤 — 처음 정적인 화면 구간은 그대로 두고, 실제 편집 UI가 보일 때만 강조. */}
         <SubClip
           src={DEMO_VIDEO}
           rawFrom={DEMO_RAW.goalSet[0]}
@@ -296,6 +300,9 @@ const Demo: React.FC = () => {
           left={VIDEO_LEFT}
           cropTop={TOPCROP_PX}
           fade={false}
+          punchZoom={1.3}
+          punchOrigin="80% 23%"
+          punchDelay={20}
         />
       </Sequence>
       <Sequence from={saveFrom} durationInFrames={SAVE_LEN} name="savings-check">

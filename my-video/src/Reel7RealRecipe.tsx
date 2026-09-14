@@ -127,6 +127,9 @@ const SubClip: React.FC<{
   fadeInFrames?: number;
   fadeOutFrames?: number;
   muted?: boolean;
+  punchZoom?: number; // 비트 시작 시점(또는 punchDelay 이후)에 스프링으로 이 배율까지 확대되어 강조
+  punchOrigin?: string;
+  punchDelay?: number;
 }> = ({
   src,
   rawFrom,
@@ -143,8 +146,12 @@ const SubClip: React.FC<{
   fadeInFrames = 4,
   fadeOutFrames = 4,
   muted = true,
+  punchZoom,
+  punchOrigin,
+  punchDelay = 0,
 }) => {
   const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
   const fadeIn =
     fade && fadeInFrames > 0
       ? interpolate(frame, [0, fadeInFrames], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
@@ -153,6 +160,9 @@ const SubClip: React.FC<{
     fade && fadeOutFrames > 0
       ? interpolate(frame, [len - fadeOutFrames - 1, len - 1], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
       : 1;
+  const scale = punchZoom
+    ? interpolate(spring({ frame: frame - punchDelay, fps, config: { damping: 14, mass: 0.7 } }), [0, 1], [1, punchZoom])
+    : zoom;
   return (
     <div
       style={{
@@ -170,8 +180,8 @@ const SubClip: React.FC<{
         style={{
           width: "100%",
           height: "100%",
-          transform: zoom !== 1 ? `scale(${zoom})` : undefined,
-          transformOrigin: origin,
+          transform: scale !== 1 ? `scale(${scale})` : undefined,
+          transformOrigin: punchZoom ? punchOrigin ?? origin : origin,
         }}
       >
         {/* 위쪽 cropTop px를 잘라내되, 잘려나간 만큼 위아래에 똑같이 여백이 남도록 창 자체를
@@ -308,6 +318,8 @@ const Demo: React.FC = () => {
         />
       </Sequence>
       <Sequence from={sortFrom} durationInFrames={SORT_LEN} name="popular-sort">
+        {/* 정렬 드롭다운이 열리고 "인기순"이 선택 표시되는 순간을 확대해서 강조 — "인기순으로"
+            자막이 가리키는 화면 요소가 뭔지 바로 보이도록. */}
         <SubClip
           src={DEMO_VIDEO}
           rawFrom={DEMO_RAW.popularSort[0]}
@@ -318,6 +330,8 @@ const Demo: React.FC = () => {
           height={VIDEO_H}
           left={VIDEO_LEFT}
           cropTop={TOPCROP_PX}
+          punchZoom={1.35}
+          punchOrigin="62% 40%"
         />
       </Sequence>
       <Sequence from={detailFrom} durationInFrames={DETAIL_LEN} name="detail">
