@@ -1,5 +1,6 @@
 import React from 'react';
 import CustomCalendar from './CustomCalendar';
+import Portal from './Portal';
 
 /**
  * 날짜를 고르는 **한 자리**.
@@ -64,26 +65,32 @@ const DatePickerField: React.FC<Props> = ({
         <span aria-hidden style={{ flexShrink: 0, color: 'var(--ink-500)', fontSize: 11 }}>▾</span>
       </button>
 
+      {/* body 로 빼서 띄운다. 공용 Dialog 안(예: 요리 캘린더 "완료 기록 추가")에서
+          쓰면, Dialog 의 `transform` 이 position:fixed 의 기준이 되어 달력이
+          **팝업 상자 안에 갇혀 잘렸다**(실사용 지적, 2026-09-15). 팝업 위에 뜨는
+          자리라 nested 층을 쓴다. */}
       {open && (
-        <div
-          onClick={() => setOpen(false)}
-          style={{
-            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            zIndex: 'var(--z-modal)' as any, padding: 16,
-          }}
-        >
-          <div onClick={e => e.stopPropagation()}>
-            <CustomCalendar
-              selectedDate={fromKey(value)}
-              onDateSelect={d => { onChange(toKey(d)); setOpen(false); }}
-              onClose={() => setOpen(false)}
-              minDate={minDate}
-              maxDate={maxDate}
-              type={type}
-            />
+        <Portal>
+          <div
+            onClick={() => setOpen(false)}
+            style={{
+              position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              zIndex: 'var(--z-modal-nested)' as any, padding: 16,
+            }}
+          >
+            <div onClick={e => e.stopPropagation()}>
+              <CustomCalendar
+                selectedDate={fromKey(value)}
+                onDateSelect={d => { onChange(toKey(d)); setOpen(false); }}
+                onClose={() => setOpen(false)}
+                minDate={minDate}
+                maxDate={maxDate}
+                type={type}
+              />
+            </div>
           </div>
-        </div>
+        </Portal>
       )}
     </>
   );

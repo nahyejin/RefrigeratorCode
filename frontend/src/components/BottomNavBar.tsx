@@ -112,6 +112,13 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({ activeTab }) => {
   const fridgeBusy = useFridgePrefetching();
 
   return (
+    <>
+    {/* 스크롤 끝 여백. 네비는 fixed 라 페이지 흐름에 자리를 차지하지 않고,
+        각 화면이 둔 하단 여백(pb-20~24)은 네비 높이만큼뿐이었다. 그 위에
+        오른쪽 아래 AI 챗 FAB(bottom 80 + 56px)가 떠 있어 **맨 밑까지 내려도
+        마지막 콘텐츠가 FAB에 가렸다**(실사용 지적, 2026-09-15). 네비는 모든 탭
+        화면 맨 끝에 놓이므로, 여기서 한 번에 FAB 높이만큼 흐름 속 여백을 더한다. */}
+    <div aria-hidden style={{ height: 64, flexShrink: 0 }} />
     <nav
       style={{
         position: 'fixed',
@@ -199,6 +206,7 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({ activeTab }) => {
         );
       })}
     </nav>
+    </>
   );
 };
 

@@ -15,7 +15,7 @@ import PullToRefresh from '../components/PullToRefresh';
 import DatePickerField from '../components/DatePickerField';
 import Sheet from '../components/ui/Sheet';
 import Dialog from '../components/ui/Dialog';
-import { removeRecipeActionFromDB } from '../utils/recipeStorage';
+import { removeRecipeActionFromDB, removeRecipeFromLocalStorage } from '../utils/recipeStorage';
 import { useUsage } from '../components/UsageMeter';
 import { useAuth } from '../context/AuthContext';
 import { resolveCoupangUrl } from '../utils/coupangLink';
@@ -596,6 +596,20 @@ const CookingCalendar: React.FC = () => {
     return () => window.removeEventListener('family-action-undone', onUndo);
   }, [loadCalendar]);
 
+  // 조리 시트(CookModeSheet)에서 완료·기록을 켜거나 끄면, 이 화면이 뒤에 떠
+  // 있어도 바로 반영한다. 시트는 **서버 반영이 끝난 뒤** 이 이벤트를 보낸다 —
+  // 그 전에 다시 불러오면 아직 안 지워진 서버 값이 다시 그려진다.
+  React.useEffect(() => {
+    const onSynced = (ev: Event) => {
+      const type = (ev as CustomEvent).detail?.type;
+      if (type !== 'done' && type !== 'write') return;
+      setAllEntries(null);
+      loadCalendar();
+    };
+    window.addEventListener('recipe-action-synced', onSynced);
+    return () => window.removeEventListener('recipe-action-synced', onSynced);
+  }, [loadCalendar]);
+
   /**
    * 목록을 처음 열 때 **전 기간**을 한 번 불러온다.
    *
@@ -726,8 +740,16 @@ const CookingCalendar: React.FC = () => {
         });
       } else if (target.recipe_id != null) {
         await removeRecipeActionFromDB('done', target.user_id, target.recipe_id);
+        // 내 완료면 **기기 사본도** 지운다. 안 지우면 `mergeLocalDone` 이 기기에
+        // 남은 완료를 다시 합쳐, 삭제를 확정해도 카드가 그대로 남아 있었다
+        // (실사용 지적, 2026-09-15).
+        if (target.user_id === Number(authUser.id)) {
+          removeRecipeFromLocalStorage('done', target.recipe_id);
+        }
       }
       setConfirmingCompletedDelete(null);
+      // 목록(전 기간)도 다시 받게 비운다 — 달력만 새로 그리면 목록 탭엔 남는다.
+      setAllEntries(null);
       await loadCalendar();
     } catch (e) {
       console.warn('[CookingCalendar] 완료 기록 삭제 실패:', e);
@@ -1560,7 +1582,10 @@ const CookingCalendar: React.FC = () => {
               role="group"
               aria-label="범위 고르기"
               style={{
-                position: 'relative', display: 'inline-flex', flexShrink: 0,
+                // 두 칸을 **같은 폭**으로(1fr 1fr). 칸 폭이 글자 길이를 따르면
+                // "내 요리만"과 "우리 식구 전체"의 폭이 달라, 50% 폭으로 미끄러지는
+                // 검은 판이 글자와 어긋나 깨져 보였다(실사용 지적, 2026-09-15).
+                position: 'relative', display: 'inline-grid', gridTemplateColumns: '1fr 1fr', flexShrink: 0,
                 padding: 3, borderRadius: 10, background: 'var(--surface-sub)',
                 border: '1px solid var(--line-200)',
               }}
@@ -2127,7 +2152,10 @@ const CookingCalendar: React.FC = () => {
               role="group"
               aria-label="완료·기록 고르기"
               style={{
-                position: 'relative', display: 'inline-flex', flexShrink: 0,
+                // 두 칸을 **같은 폭**으로(1fr 1fr). 칸 폭이 글자 길이를 따르면
+                // "내 요리만"과 "우리 식구 전체"의 폭이 달라, 50% 폭으로 미끄러지는
+                // 검은 판이 글자와 어긋나 깨져 보였다(실사용 지적, 2026-09-15).
+                position: 'relative', display: 'inline-grid', gridTemplateColumns: '1fr 1fr', flexShrink: 0,
                 padding: 3, borderRadius: 10, background: 'var(--surface-sub)',
                 border: '1px solid var(--line-200)',
               }}
@@ -2621,7 +2649,9 @@ const CookingCalendar: React.FC = () => {
                         type="button"
                         onClick={() => setConfirmingCompletedDelete(e)}
                         aria-label={isMine ? '완료 기록 삭제' : `${e.nickname}님 기록 삭제`}
-                        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 26, height: 26, borderRadius: 9999, flexShrink: 0, color: '#B03A28', background: 'var(--surface-sub)', border: '1px solid var(--line-300)', cursor: 'pointer' }}
+                        // padding: 0 필수 — 전역 `button { padding: .6em 1.2em }` 이
+                        // 26px 안을 다 먹어 휴지통 아이콘이 0폭으로 사라졌다(2026-09-15).
+                        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 26, height: 26, padding: 0, borderRadius: 9999, flexShrink: 0, color: '#B03A28', background: 'var(--surface-sub)', border: '1px solid var(--line-300)', cursor: 'pointer' }}
                       >
                         <TrashIcon />
                       </button>

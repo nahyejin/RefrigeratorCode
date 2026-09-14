@@ -182,28 +182,51 @@ const CookModeSheet: React.FC<Props> = ({
     created_at: '', updated_at: '',
   } as Recipe), [recipeId, data, fallbackTitle, fallbackLink]);
 
+  /**
+   * 해제는 **한 번 묻고** 한다. 마이페이지·레시피 목록 카드는 즐겨찾기/완료/
+   * 기록을 끌 때 확인을 받는데, 이 시트만 누르는 즉시 지워 버렸다(실사용 지적,
+   * 2026-09-15). 완료 해제는 요리 캘린더 기록까지 사라지는 일이라 더 그렇다.
+   */
+  const [confirmingRemove, setConfirmingRemove] =
+    React.useState<'favorite' | 'done' | 'write' | null>(null);
+
+  /**
+   * 서버 반영이 **끝난 뒤** 알린다. 뒤에 떠 있는 요리 캘린더가 이걸 듣고 다시
+   * 불러오는데, 삭제 요청이 끝나기 전에 불러오면 지운 기록이 그대로 다시 온다.
+   */
+  const syncAndNotify = async (type: 'favorite' | 'done' | 'write', id: number, remove: boolean) => {
+    await syncActionToServer(type, id, remove);
+    window.dispatchEvent(new CustomEvent('recipe-action-synced', { detail: { type, id, removed: remove } }));
+  };
+
   const toggleAction = (type: 'favorite' | 'done' | 'write') => {
     if (recipeId == null) return;
-    const isActive = actionState[type];
-    if (!isActive) {
-      addRecipeToLocalStorage(type, asStorageRecipe());
-      void syncActionToServer(type, recipeId);
-      setActionState(prev => ({ ...prev, [type]: true }));
-      setToast(
-        type === 'favorite' ? '즐겨찾기에 추가했습니다!'
-        : type === 'done' ? '레시피를 완료했습니다!'
-        : '레시피를 기록했습니다!'
-      );
-    } else {
-      removeRecipeFromLocalStorage(type, recipeId);
-      void syncActionToServer(type, recipeId, true);
-      setActionState(prev => ({ ...prev, [type]: false }));
-      setToast(
-        type === 'favorite' ? '즐겨찾기를 취소했습니다'
-        : type === 'done' ? '완료를 취소했습니다'
-        : '기록을 취소했습니다'
-      );
+    if (actionState[type]) {
+      setConfirmingRemove(type);
+      return;
     }
+    addRecipeToLocalStorage(type, asStorageRecipe());
+    void syncAndNotify(type, recipeId, false);
+    setActionState(prev => ({ ...prev, [type]: true }));
+    setToast(
+      type === 'favorite' ? '즐겨찾기에 추가했습니다!'
+      : type === 'done' ? '레시피를 완료했습니다!'
+      : '레시피를 기록했습니다!'
+    );
+  };
+
+  const confirmRemove = () => {
+    const type = confirmingRemove;
+    setConfirmingRemove(null);
+    if (recipeId == null || !type) return;
+    removeRecipeFromLocalStorage(type, recipeId);
+    void syncAndNotify(type, recipeId, true);
+    setActionState(prev => ({ ...prev, [type]: false }));
+    setToast(
+      type === 'favorite' ? '즐겨찾기를 취소했습니다'
+      : type === 'done' ? '완료를 취소했습니다'
+      : '기록을 취소했습니다'
+    );
   };
 
   const handleShare = () => {
@@ -683,6 +706,28 @@ const CookModeSheet: React.FC<Props> = ({
         <span style={{ wordBreak: 'keep-all' }}>
           한참 보고 계셨어서 여쭤봐요. 완료로 기록하면 요리 캘린더에 남아요.
         </span>
+      </Dialog>
+    )}
+    {confirmingRemove && (
+      // 시트(z-modal) 위에 뜨는 확인창이라 nested.
+      <Dialog
+        open
+        nested
+        onClose={() => setConfirmingRemove(null)}
+        title={
+          confirmingRemove === 'done' ? '레시피 완료를 취소하시겠어요?'
+          : confirmingRemove === 'write' ? '레시피 기록을 취소하시겠어요?'
+          : '레시피 즐겨찾기를 취소하시겠어요?'
+        }
+        width={320}
+        actions={[
+          { label: '아니요', onClick: () => setConfirmingRemove(null), variant: 'outline' },
+          { label: '네, 취소할게요', onClick: confirmRemove, variant: 'danger' },
+        ]}
+      >
+        {confirmingRemove === 'done' && (
+          <span style={{ wordBreak: 'keep-all' }}>요리 캘린더의 완료 기록에서도 빠져요.</span>
+        )}
       </Dialog>
     )}
     </>
