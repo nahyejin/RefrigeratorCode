@@ -1,6 +1,7 @@
 import React from "react";
-import { AbsoluteFill, Audio, OffthreadVideo, Sequence, staticFile, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
+import { AbsoluteFill, Audio, Img, OffthreadVideo, Sequence, staticFile, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import { FONT_FAMILY, WHITE, LINE, useCustomFont, CtaOutro, Caption } from "./shared";
+import { fitToNarration } from "./narrationFrames";
 
 // 원본: VID_20260911180601731.mp4 (15.2s, 632x1280, 30fps) — 실제 쿡매치 사진 인식 데모
 const RAW_VIDEO = "reel1_photo_recognition.mp4";
@@ -27,14 +28,22 @@ const C2 = RAW.select[1] - RAW.select[0]; // 15f (원속도, 블러)
 const C3 = Math.round((RAW.loading[1] - RAW.loading[0]) / rateC3); // 75f
 const C4 = RAW.result[1] - RAW.result[0]; // 30f
 const C5 = RAW.done[1] - RAW.done[0]; // 60f
-const HOLD = 21; // 0.7s 페이오프 홀드
+const HOLD = 21; // 0.7s 페이오프 홀드(나레이션이 더 길면 아래 PAYOFF_HOLD로 늘어남)
+
+// 데모 자막 나레이션(제미나이 TTS)이 비트보다 길면 비트를 나레이션 끝까지 늘린다 — 길이는
+// narrationFrames.ts(실제 mp3 길이에서 자동 생성)에서 가져와서, 음성을 다시 뽑아도 손으로 안 고친다.
+// 1번 자막 비트는 로딩 마지막 프레임을 정지 이미지로, 2번 자막 비트는 기존 페이오프 홀드를 늘려서 채움.
+const BEAT1_BASE = C1 + CBrowse + C2 + C3; // 170f
+const BEAT1 = fitToNarration(BEAT1_BASE, "reel1_narration_1");
+const LOADING_FREEZE = BEAT1 - BEAT1_BASE;
+const BEAT2 = fitToNarration(C4 + C5 + HOLD, "reel1_narration_2");
+const PAYOFF_HOLD = BEAT2 - C4 - C5;
 
 const HOOK_VIDEO_LEN = 135; // 4.5s — 원본 4.625s 중 여유를 두고 사용
-const DEMO_LEN = C1 + CBrowse + C2 + C3 + C4 + C5 + HOLD; // 301f
-// CTA 나레이션("냉장고, 기억 안 해도 돼요. 쿡매치. 지금 프로필 링크에서 시작하세요.")이
-// 5.65s(170f)라 그걸 다 담을 수 있게 CTA_LEN을 늘림(90f→190f) — 나레이션 끝난 뒤에도 살짝
-// 정지 유지 구간(20f)을 남긴다.
-const CTA_LEN = 190; // 6.33s
+const DEMO_LEN = BEAT1 + BEAT2;
+// CTA 나레이션("냉장고, 기억 안 해도 돼요. 쿡매치. 지금 프로필 링크에서 시작하세요.")이 끝난 뒤에도
+// 살짝 정지 유지 구간(20f)을 남긴다.
+const CTA_LEN = fitToNarration(90, "reel1_narration_cta", 20);
 
 const HOOK_FROM = 0;
 const DEMO_FROM = HOOK_FROM + HOOK_VIDEO_LEN;
@@ -114,14 +123,14 @@ const DemoClip: React.FC<{
   blur?: boolean;
   punchZoom?: number;
   punchOrigin?: string;
-}> = ({ rawFrom, rawTo, rate, len, blur, punchZoom, punchOrigin = "center" }) => {
+  fadeOut?: boolean; // 바로 뒤에 같은 화면의 정지 컷이 이어지면 false — 이음매에서 깜빡이지 않게
+}> = ({ rawFrom, rawTo, rate, len, blur, punchZoom, punchOrigin = "center", fadeOut: withFadeOut = true }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const fadeIn = interpolate(frame, [0, 4], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-  const fadeOut = interpolate(frame, [len - 5, len - 1], [1, 0], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
+  const fadeOut = withFadeOut
+    ? interpolate(frame, [len - 5, len - 1], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
+    : 1;
   const scale = punchZoom
     ? interpolate(spring({ frame, fps, config: { damping: 14, mass: 0.7 } }), [0, 1], [1, punchZoom])
     : 1;
@@ -157,6 +166,18 @@ const DemoClip: React.FC<{
   );
 };
 
+// 비트를 나레이션 끝까지 늘릴 때 쓰는 정지 컷 — 앞 클립의 마지막 프레임을 PNG로 뽑아 같은 박스에 고정
+// (분수 배속으로 얼리는 트릭은 흰 화면 버그 위험이 있어 새로 늘리는 구간엔 쓰지 않는다).
+const FreezeFrame: React.FC<{ src: string; len: number }> = ({ src, len }) => {
+  const frame = useCurrentFrame();
+  const fadeOut = interpolate(frame, [len - 5, len - 1], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  return (
+    <div style={{ position: "absolute", top: 0, left: VIDEO_LEFT, width: VIDEO_W, height: VIDEO_H, overflow: "hidden", border: `1px solid ${LINE}`, opacity: fadeOut }}>
+      <Img src={staticFile(src)} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+    </div>
+  );
+};
+
 const Demo: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -165,7 +186,7 @@ const Demo: React.FC = () => {
   const browseFrom = c1From + C1;
   const c2From = browseFrom + CBrowse;
   const c3From = c2From + C2;
-  const c4From = c3From + C3;
+  const c4From = c3From + C3 + LOADING_FREEZE;
   const c5From = c4From + C4;
   const holdFrom = c5From + C5;
 
@@ -202,8 +223,13 @@ const Demo: React.FC = () => {
           <DemoClip rawFrom={RAW.select[0]} rawTo={RAW.select[1]} rate={1} len={C2} blur />
         </Sequence>
         <Sequence from={c3From} durationInFrames={C3} name="loading">
-          <DemoClip rawFrom={RAW.loading[0]} rawTo={RAW.loading[1]} rate={rateC3} len={C3} />
+          <DemoClip rawFrom={RAW.loading[0]} rawTo={RAW.loading[1]} rate={rateC3} len={C3} fadeOut={LOADING_FREEZE === 0} />
         </Sequence>
+        {LOADING_FREEZE > 0 && (
+          <Sequence from={c3From + C3} durationInFrames={LOADING_FREEZE} name="loading-freeze">
+            <FreezeFrame src="reel1_loading_freeze.png" len={LOADING_FREEZE} />
+          </Sequence>
+        )}
         <Sequence from={c4From} durationInFrames={C4} name="result">
           {/* "3개를 담았어요" 토스트가 뜨는 순간 확대되어 강조 — 토스트가 화면 하단 중앙에 뜨는
               자리라 좌우로 잘릴 걱정 없이 그 자리 기준으로 그냥 확대해도 된다. */}
@@ -212,21 +238,21 @@ const Demo: React.FC = () => {
         <Sequence from={c5From} durationInFrames={C5} name="done">
           <DemoClip rawFrom={RAW.done[0]} rawTo={RAW.done[1]} rate={1} len={C5} />
         </Sequence>
-        <Sequence from={holdFrom} durationInFrames={HOLD} name="hold">
-          <DemoClip rawFrom={RAW.done[1] - 1} rawTo={RAW.done[1]} rate={0.02} len={HOLD} />
+        <Sequence from={holdFrom} durationInFrames={PAYOFF_HOLD} name="hold">
+          <DemoClip rawFrom={RAW.done[1] - 1} rawTo={RAW.done[1]} rate={0.02} len={PAYOFF_HOLD} />
         </Sequence>
       </div>
 
-      <Caption from={c1From} len={C1 + CBrowse + C2 + C3} text={"영수증이든 음식 사진이든\n한 장이면 자동 인식"} />
-      <Caption from={c4From} len={C4 + C5 + HOLD} text={"재료랑 유통기한까지\n자동으로"} />
+      <Caption from={c1From} len={BEAT1} text={"영수증이든 음식 사진이든\n한 장이면 자동 인식"} />
+      <Caption from={c4From} len={BEAT2} text={"재료랑 유통기한까지\n자동으로"} />
 
-      {/* 데모 자막 음성 나레이션(파일럿) — edge-tts(ko-KR-SunHiNeural)로 생성. 자막이 타이핑
-          시작하는 프레임과 정확히 맞춰서 재생 시작 — 두 자막 모두 원래 비트 길이가 나레이션
-          길이보다 길어서(4.34s<5.67s, 3.22s<3.4s) 별도로 비트를 늘릴 필요 없이 그대로 얹었다. */}
-      <Sequence from={c1From} durationInFrames={C1 + CBrowse + C2 + C3} name="narration-1">
+      {/* 데모 자막 음성 나레이션(제미나이 TTS, Kore) — 자막 타이핑 시작 프레임에 맞춰 재생.
+          화면 자막은 명사구로 끝나지만, TTS에 명사구를 넣으면 끝 발음이 뭉개지는 사고가 있어서
+          음성은 동사로 끝나는 완전한 문장("…자동으로 인식돼요", "…자동으로 등록돼요")으로 뽑았다. */}
+      <Sequence from={c1From} durationInFrames={BEAT1} name="narration-1">
         <Audio src={staticFile("reel1_narration_1.mp3")} />
       </Sequence>
-      <Sequence from={c4From} durationInFrames={C4 + C5 + HOLD} name="narration-2">
+      <Sequence from={c4From} durationInFrames={BEAT2} name="narration-2">
         <Audio src={staticFile("reel1_narration_2.mp3")} />
       </Sequence>
     </AbsoluteFill>

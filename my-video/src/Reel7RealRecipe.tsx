@@ -1,6 +1,7 @@
 import React from "react";
-import { AbsoluteFill, OffthreadVideo, Sequence, staticFile, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
+import { AbsoluteFill, Audio, Img, OffthreadVideo, Sequence, staticFile, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import { FONT_FAMILY, WHITE, LINE, useCustomFont, CtaOutro, Caption } from "./shared";
+import { fitToNarration } from "./narrationFrames";
 
 // 훅: 제미나이 생성 실사 클립(9.45s, 720x1280, 24fps, 대사 포함) — 집밥을 먹으며 "분명 레시피대로
 // 했는데... 이 레시피도 요리 초보가 쓴 거 아니야?"를 망설이듯(자연스러운 끊어 말하기 포함) 혼잣말
@@ -59,10 +60,26 @@ const DEMO_RAW = {
 };
 const rateDemo = 1;
 
-const CLAIM_LEN = DEMO_RAW.claim40k[1] - DEMO_RAW.claim40k[0]; // 66f
-const SORT_LEN = DEMO_RAW.popularSort[1] - DEMO_RAW.popularSort[0]; // 105f
-const DETAIL_LEN = DEMO_RAW.detail[1] - DEMO_RAW.detail[0]; // 105f
-const PROOF_LEN = DEMO_RAW.sourceProof[1] - DEMO_RAW.sourceProof[0]; // 83f
+const CLAIM_VIDEO = DEMO_RAW.claim40k[1] - DEMO_RAW.claim40k[0]; // 66f
+const SORT_VIDEO = DEMO_RAW.popularSort[1] - DEMO_RAW.popularSort[0]; // 105f
+const DETAIL_VIDEO = DEMO_RAW.detail[1] - DEMO_RAW.detail[0]; // 105f
+const PROOF_VIDEO = DEMO_RAW.sourceProof[1] - DEMO_RAW.sourceProof[0]; // 83f
+// 데모 자막 나레이션(제미나이 TTS)이 비트 영상보다 길면, 영상이 끝난 뒤 마지막 프레임을 정지 이미지로
+// 이어붙여(확대·크롭 상태 그대로) 나레이션이 끝날 때까지 유지한다 — 길이는 narrationFrames.ts(실제
+// mp3 길이에서 자동 생성)에서 가져온다. 특히 "수만 건 엄선" 비트는 영상이 2.2s뿐이라 크게 늘어난다.
+const CLAIM_LEN = fitToNarration(CLAIM_VIDEO, "reel7_narration_1");
+const SORT_LEN = fitToNarration(SORT_VIDEO, "reel7_narration_2");
+const DETAIL_LEN = fitToNarration(DETAIL_VIDEO, "reel7_narration_3");
+const PROOF_LEN = fitToNarration(PROOF_VIDEO, "reel7_narration_4");
+const CLAIM_FREEZE = CLAIM_LEN - CLAIM_VIDEO;
+const SORT_FREEZE = SORT_LEN - SORT_VIDEO;
+const DETAIL_FREEZE = DETAIL_LEN - DETAIL_VIDEO;
+const PROOF_FREEZE = PROOF_LEN - PROOF_VIDEO;
+// 각 비트 영상의 마지막 프레임(ffmpeg 추출)
+const CLAIM_FREEZE_IMG = "reel7_claim_freeze.png"; // 0:02.75
+const SORT_FREEZE_IMG = "reel7_sort_freeze.png"; // 0:08.95
+const DETAIL_FREEZE_IMG = "reel7_detail_freeze.png"; // 0:20.75
+const PROOF_FREEZE_IMG = "reel7_proof_freeze.png"; // 0:23.5
 const PULSE = 15; // 원본 연결 화면 뒷부분 확대 펄스(페이오프)
 // 유튜브 원본 화면 하단(채널명·구독자·좋아요 등 채널 정보 영역)은 특정 크리에이터를 과하게 특정해서
 // 노출하지 않도록 블러 처리 — "진짜 영상으로 연결된다"는 사실 자체는 보이되 채널 세부정보는 가림.
@@ -74,7 +91,8 @@ const PROOF_BLUR_TOP_DISPLAY = PROOF_BLUR_TOP - TOPCROP_PX / 2;
 
 const DEMO_LEN = SPLASH_LEN + CLAIM_LEN + SORT_LEN + DETAIL_LEN + PROOF_LEN;
 
-const CTA_LEN = 90; // 3.0s — 자막 텍스트 길이(1줄/2줄)에 따라 CTA 카드가 다 뜬 뒤 남는 정지 시간이 제각각으로 느껴진다는 피드백으로, 모든 릴스에서 균일하게 늘림(2.0s→3.0s)
+// CTA 나레이션(페이오프+"쿡매치"+"지금 프로필 링크에서 시작하세요")이 끝난 뒤 15f 여유를 두고 끝낸다.
+const CTA_LEN = fitToNarration(90, "reel7_narration_cta", 15);
 
 const HOOK_FROM = 0;
 const DEMO_FROM = HOOK_FROM + HOOK_LEN;
@@ -103,6 +121,7 @@ export const Reel7RealRecipe: React.FC = () => {
             </>
           }
         />
+        <Audio src={staticFile("reel7_narration_cta.mp3")} />
       </Sequence>
     </AbsoluteFill>
   );
@@ -238,9 +257,31 @@ const VIDEO_W = 880;
 const VIDEO_H = 1920;
 const VIDEO_LEFT = (1080 - VIDEO_W) / 2; // 100
 
+// 정지 화면(PNG) 전용 — SubClip과 같은 박스·확대·상단 크롭을 쓰되 비디오 디코딩이 없어 분수 배속 버그를 피한다.
+const FreezeImg: React.FC<{
+  src: string;
+  width: number;
+  height: number;
+  left: number;
+  zoom?: number;
+  origin?: string;
+  cropTop?: number;
+}> = ({ src, width, height, left, zoom = 1, origin = "center", cropTop = 0 }) => (
+  <div style={{ position: "absolute", top: 0, left, width, height, overflow: "hidden", border: `1px solid ${LINE}` }}>
+    <div style={{ width: "100%", height: "100%", transform: zoom !== 1 ? `scale(${zoom})` : undefined, transformOrigin: origin }}>
+      <div style={{ position: "absolute", top: cropTop / 2, left: 0, width: "100%", height: `calc(100% - ${cropTop}px)`, overflow: "hidden" }}>
+        <div style={{ position: "absolute", top: -cropTop, left: 0, width: "100%", height: `calc(100% + ${cropTop}px)` }}>
+          <Img src={staticFile(src)} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
 // 유튜브 원본 화면 하단(채널 정보 영역)을 블러 처리 — 같은 구간을 한 번 더 그려서 블러만 입힌 걸
-// 위에 겹치는 방식(비디오 두 개가 같은 트림·배속이라 프레임이 항상 동기화됨).
-const ProofBottomBlur: React.FC = () => (
+// 위에 겹치는 방식(비디오 두 개가 같은 트림·배속이라 프레임이 항상 동기화됨). still이면 나레이션 연장용
+// 정지 컷 위에 얹는 버전이라 영상 대신 같은 정지 이미지를 블러한다.
+const ProofBottomBlur: React.FC<{ still?: boolean }> = ({ still = false }) => (
   <div
     style={{
       position: "absolute",
@@ -255,14 +296,18 @@ const ProofBottomBlur: React.FC = () => (
     {/* 원본(크롭 전) 좌표 기준으로 y=PROOF_BLUR_TOP 지점을 이 창의 맨 위(local y=0)에 맞춘다 —
         비디오를 원본 크기(VIDEO_H) 그대로, 스케일 없이 위로만 밀어서 위치만 맞춘다. */}
     <div style={{ position: "absolute", top: -PROOF_BLUR_TOP, left: 0, width: "100%", height: VIDEO_H }}>
-      <OffthreadVideo
-        src={staticFile(DEMO_VIDEO)}
-        trimBefore={DEMO_RAW.sourceProof[0]}
-        trimAfter={DEMO_RAW.sourceProof[1]}
-        playbackRate={rateDemo}
-        muted
-        style={{ width: "100%", height: "100%", objectFit: "cover" }}
-      />
+      {still ? (
+        <Img src={staticFile(PROOF_FREEZE_IMG)} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+      ) : (
+        <OffthreadVideo
+          src={staticFile(DEMO_VIDEO)}
+          trimBefore={DEMO_RAW.sourceProof[0]}
+          trimAfter={DEMO_RAW.sourceProof[1]}
+          playbackRate={rateDemo}
+          muted
+          style={{ width: "100%", height: "100%", objectFit: "cover" }}
+        />
+      )}
     </div>
   </div>
 );
@@ -301,13 +346,13 @@ const Demo: React.FC = () => {
           fade={false}
         />
       </Sequence>
-      <Sequence from={claimFrom} durationInFrames={CLAIM_LEN} name="claim-40k">
+      <Sequence from={claimFrom} durationInFrames={CLAIM_VIDEO} name="claim-40k">
         <SubClip
           src={DEMO_VIDEO}
           rawFrom={DEMO_RAW.claim40k[0]}
           rawTo={DEMO_RAW.claim40k[1]}
           rate={rateDemo}
-          len={CLAIM_LEN}
+          len={CLAIM_VIDEO}
           width={VIDEO_W}
           height={VIDEO_H}
           left={VIDEO_LEFT}
@@ -317,45 +362,64 @@ const Demo: React.FC = () => {
           fade={false}
         />
       </Sequence>
-      <Sequence from={sortFrom} durationInFrames={SORT_LEN} name="popular-sort">
+      {CLAIM_FREEZE > 0 && (
+        <Sequence from={claimFrom + CLAIM_VIDEO} durationInFrames={CLAIM_FREEZE} name="claim-40k-freeze">
+          <FreezeImg src={CLAIM_FREEZE_IMG} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} zoom={1.1} origin="50% 42%" cropTop={TOPCROP_PX} />
+        </Sequence>
+      )}
+      <Sequence from={sortFrom} durationInFrames={SORT_VIDEO} name="popular-sort">
         {/* 정렬 드롭다운이 열리고 "인기순"이 선택 표시되는 순간을 확대해서 강조 — "인기순으로"
-            자막이 가리키는 화면 요소가 뭔지 바로 보이도록. */}
+            자막이 가리키는 화면 요소가 뭔지 바로 보이도록. 뒤에 같은 화면의 정지 컷이 이어지면 끝 페이드를
+            꺼서 이음매에서 깜빡이지 않게 한다. */}
         <SubClip
           src={DEMO_VIDEO}
           rawFrom={DEMO_RAW.popularSort[0]}
           rawTo={DEMO_RAW.popularSort[1]}
           rate={rateDemo}
-          len={SORT_LEN}
+          len={SORT_VIDEO}
           width={VIDEO_W}
           height={VIDEO_H}
           left={VIDEO_LEFT}
           cropTop={TOPCROP_PX}
           punchZoom={1.35}
           punchOrigin="62% 40%"
+          fadeOutFrames={SORT_FREEZE > 0 ? 0 : 4}
         />
       </Sequence>
-      <Sequence from={detailFrom} durationInFrames={DETAIL_LEN} name="detail">
+      {SORT_FREEZE > 0 && (
+        <Sequence from={sortFrom + SORT_VIDEO} durationInFrames={SORT_FREEZE} name="popular-sort-freeze">
+          {/* punchZoom 스프링은 105f 뒤엔 이미 1.35배로 정착해 있어서 같은 배율로 고정 */}
+          <FreezeImg src={SORT_FREEZE_IMG} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} zoom={1.35} origin="62% 40%" cropTop={TOPCROP_PX} />
+        </Sequence>
+      )}
+      <Sequence from={detailFrom} durationInFrames={DETAIL_VIDEO} name="detail">
         <SubClip
           src={DEMO_VIDEO}
           rawFrom={DEMO_RAW.detail[0]}
           rawTo={DEMO_RAW.detail[1]}
           rate={rateDemo}
-          len={DETAIL_LEN}
+          len={DETAIL_VIDEO}
           width={VIDEO_W}
           height={VIDEO_H}
           left={VIDEO_LEFT}
           cropTop={TOPCROP_PX}
+          fadeOutFrames={DETAIL_FREEZE > 0 ? 0 : 4}
         />
       </Sequence>
+      {DETAIL_FREEZE > 0 && (
+        <Sequence from={detailFrom + DETAIL_VIDEO} durationInFrames={DETAIL_FREEZE} name="detail-freeze">
+          <FreezeImg src={DETAIL_FREEZE_IMG} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} cropTop={TOPCROP_PX} />
+        </Sequence>
+      )}
 
       <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, transform: frame >= pulseFrom ? `scale(${pulseScale})` : undefined }}>
-        <Sequence from={proofFrom} durationInFrames={PROOF_LEN} name="source-proof">
+        <Sequence from={proofFrom} durationInFrames={PROOF_VIDEO} name="source-proof">
           <SubClip
             src={DEMO_VIDEO}
             rawFrom={DEMO_RAW.sourceProof[0]}
             rawTo={DEMO_RAW.sourceProof[1]}
             rate={rateDemo}
-            len={PROOF_LEN}
+            len={PROOF_VIDEO}
             width={VIDEO_W}
             height={VIDEO_H}
             left={VIDEO_LEFT}
@@ -364,6 +428,12 @@ const Demo: React.FC = () => {
           />
           <ProofBottomBlur />
         </Sequence>
+        {PROOF_FREEZE > 0 && (
+          <Sequence from={proofFrom + PROOF_VIDEO} durationInFrames={PROOF_FREEZE} name="source-proof-freeze">
+            <FreezeImg src={PROOF_FREEZE_IMG} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} cropTop={TOPCROP_PX} />
+            <ProofBottomBlur still />
+          </Sequence>
+        )}
       </div>
 
       {/* 스플래시 구간엔 캡션을 안 얹음 — 앱 자체 문구("검증된 레시피를 매일 수집하고 있어요")가
@@ -374,6 +444,22 @@ const Demo: React.FC = () => {
       <Caption from={sortFrom} len={SORT_LEN} text={"좋아요·댓글·조회수까지\n반영한 인기순으로"} />
       <Caption from={detailFrom} len={DETAIL_LEN} text={"맛있는 요리의 시작은\n좋은 레시피 찾는 게 반이에요"} />
       <Caption from={proofFrom} len={PROOF_LEN} text={"출처까지 확인되는\n진짜 레시피예요"} />
+
+      {/* 데모 자막 음성 나레이션(제미나이 TTS, Kore) — 자막 타이핑 시작 프레임에 맞춰 재생. 명사구로
+          끝나는 자막("…레시피 수만 건", "…인기순으로")은 TTS 끝 발음이 뭉개지지 않게 음성만
+          "…수만 건이에요", "…인기순으로 보여드려요"처럼 동사로 끝맺었다. */}
+      <Sequence from={claimFrom} durationInFrames={CLAIM_LEN} name="narration-1">
+        <Audio src={staticFile("reel7_narration_1.mp3")} />
+      </Sequence>
+      <Sequence from={sortFrom} durationInFrames={SORT_LEN} name="narration-2">
+        <Audio src={staticFile("reel7_narration_2.mp3")} />
+      </Sequence>
+      <Sequence from={detailFrom} durationInFrames={DETAIL_LEN} name="narration-3">
+        <Audio src={staticFile("reel7_narration_3.mp3")} />
+      </Sequence>
+      <Sequence from={proofFrom} durationInFrames={PROOF_LEN} name="narration-4">
+        <Audio src={staticFile("reel7_narration_4.mp3")} />
+      </Sequence>
     </AbsoluteFill>
   );
 };

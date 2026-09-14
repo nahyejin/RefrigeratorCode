@@ -1,6 +1,7 @@
 import React from "react";
-import { AbsoluteFill, Img, OffthreadVideo, Sequence, staticFile, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
+import { AbsoluteFill, Audio, Img, OffthreadVideo, Sequence, staticFile, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import { FONT_FAMILY, WHITE, LINE, useCustomFont, CtaOutro, Caption } from "./shared";
+import { fitToNarration } from "./narrationFrames";
 
 // 훅: 제미나이 생성 실사 클립(8.93s, 720x1280, 24fps, 대사 포함) — 냉장고 뒤적이다 물러진 채소를 꺼내 보며
 // "아, 이것도 결국 못 먹고 버리네..." 혼잣말 후 쓰레기통 쪽으로 돌아서는 리액션
@@ -35,14 +36,23 @@ const rateAddSpinach = 2.5; // 입력~확인까지 여러 스텝이라 배속 �
 const rateRecipe = 1;
 
 const ADD_LEN = Math.round((DEMO_RAW.addSpinach[1] - DEMO_RAW.addSpinach[0]) / rateAddSpinach); // 86f
-const SPINACH_HOLD = 45; // 1.5s — "시금치 약 D-7" 등록 직후 확대 강조(사용자 피드백: 화면이 작아서 눈에 안 띔)
-const ALERT_LEN = 75; // 2.5s — 잠금화면 알림 정지 이미지(다른 개인 알림·배경사진은 블러 처리)
-const RECIPE_LEN = Math.round((DEMO_RAW.recipe[1] - DEMO_RAW.recipe[0]) / rateRecipe); // 114f
+
+// 데모 자막 나레이션(제미나이 TTS)이 비트보다 길면 비트를 나레이션 끝까지 늘린다 — 길이는
+// narrationFrames.ts(실제 mp3 길이에서 자동 생성)에서 가져온다. 알림·시금치 확대는 원래 정지 컷이라 그
+// 길이 자체를 늘리고, 레시피 카드는 영상이 끝난 뒤 마지막 프레임을 정지 이미지로 이어붙인다.
+const ALERT_LEN = fitToNarration(75, "reel5_narration_1"); // 원래 2.5s — 잠금화면 알림 정지 이미지(다른 개인 알림·배경사진은 블러 처리)
+const SPINACH_HOLD = fitToNarration(ADD_LEN + 45, "reel5_narration_2") - ADD_LEN; // 원래 1.5s — "시금치 약 D-7" 등록 직후 확대 강조(사용자 피드백: 화면이 작아서 눈에 안 띔)
+const RECIPE_VIDEO = Math.round((DEMO_RAW.recipe[1] - DEMO_RAW.recipe[0]) / rateRecipe); // 114f
+const RECIPE_LEN = fitToNarration(RECIPE_VIDEO, "reel5_narration_3");
+const RECIPE_FREEZE = RECIPE_LEN - RECIPE_VIDEO;
+const RECIPE_FREEZE_IMG = "reel5_recipe_freeze.png"; // 레시피 카드 영상 마지막 프레임(0:16.45)
 const PULSE = 15; // 레시피 카드 뒷부분 확대 펄스(페이오프)
 
 const DEMO_LEN = ALERT_LEN + ADD_LEN + SPINACH_HOLD + RECIPE_LEN;
 
-const CTA_LEN = 90; // 3.0s — 자막 텍스트 길이(1줄/2줄)에 따라 CTA 카드가 다 뜬 뒤 남는 정지 시간이 제각각으로 느껴진다는 피드백으로, 모든 릴스에서 균일하게 늘림(2.0s→3.0s)
+// CTA 나레이션("버리기 전에, 있는 재료부터 요리하세요. 쿡매치. 지금 프로필 링크에서 시작하세요.")이
+// 끝난 뒤 15f 여유를 두고 끝낸다.
+const CTA_LEN = fitToNarration(90, "reel5_narration_cta", 15);
 
 const HOOK_FROM = 0;
 const DEMO_FROM = HOOK_FROM + HOOK_LEN;
@@ -69,6 +79,7 @@ export const Reel5ExpiryAlert: React.FC = () => {
             </>
           }
         />
+        <Audio src={staticFile("reel5_narration_cta.mp3")} />
       </Sequence>
     </AbsoluteFill>
   );
@@ -149,6 +160,27 @@ const SubClip: React.FC<{
     </div>
   );
 };
+
+// 정지 화면(PNG) 전용 — SubClip과 같은 박스·확대·상단 크롭을 쓰되 비디오 디코딩이 없어 분수 배속 버그를 피한다.
+const FreezeImg: React.FC<{
+  src: string;
+  width: number;
+  height: number;
+  left: number;
+  zoom?: number;
+  origin?: string;
+  cropTop?: number;
+}> = ({ src, width, height, left, zoom = 1, origin = "center", cropTop = 0 }) => (
+  <div style={{ position: "absolute", top: 0, left, width, height, overflow: "hidden", border: `1px solid ${LINE}` }}>
+    <div style={{ width: "100%", height: "100%", transform: zoom !== 1 ? `scale(${zoom})` : undefined, transformOrigin: origin }}>
+      <div style={{ position: "absolute", top: cropTop / 2, left: 0, width: "100%", height: `calc(100% - ${cropTop}px)`, overflow: "hidden" }}>
+        <div style={{ position: "absolute", top: -cropTop, left: 0, width: "100%", height: `calc(100% + ${cropTop}px)` }}>
+          <Img src={staticFile(src)} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+        </div>
+      </div>
+    </div>
+  </div>
+);
 
 // ---------- ①② 훅 (제미나이 생성 실사, 720x1280 — 캔버스와 같은 9:16이라 크롭 없이 꽉 참) ----------
 const Hook: React.FC = () => {
@@ -264,13 +296,13 @@ const Demo: React.FC = () => {
       </Sequence>
 
       <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, transform: frame >= pulseFrom ? `scale(${pulseScale})` : undefined }}>
-        <Sequence from={recipeFrom} durationInFrames={RECIPE_LEN} name="recipe">
+        <Sequence from={recipeFrom} durationInFrames={RECIPE_VIDEO} name="recipe">
           <SubClip
             src={DEMO_VIDEO}
             rawFrom={DEMO_RAW.recipe[0]}
             rawTo={DEMO_RAW.recipe[1]}
             rate={rateRecipe}
-            len={RECIPE_LEN}
+            len={RECIPE_VIDEO}
             width={VIDEO_W}
             height={VIDEO_H}
             left={VIDEO_LEFT}
@@ -280,11 +312,27 @@ const Demo: React.FC = () => {
             fade={false}
           />
         </Sequence>
+        {RECIPE_FREEZE > 0 && (
+          <Sequence from={recipeFrom + RECIPE_VIDEO} durationInFrames={RECIPE_FREEZE} name="recipe-freeze">
+            <FreezeImg src={RECIPE_FREEZE_IMG} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} zoom={1.15} origin="50% 42%" cropTop={TOPCROP_PX} />
+          </Sequence>
+        )}
       </div>
 
       <Caption from={alertFrom} len={ALERT_LEN} text={"앱을 안 켜도\n유통기한 임박하면 알려드려요"} />
       <Caption from={addFrom} len={ADD_LEN + SPINACH_HOLD} text={"유통기한도 직접 안 적어도\n자동으로 계산해드려요"} />
       <Caption from={recipeFrom} len={RECIPE_LEN} text={"임박한 재료 순으로\n바로 레시피까지 추천해드려요"} />
+
+      {/* 데모 자막 음성 나레이션(제미나이 TTS, Kore) — 자막 타이핑 시작 프레임에 맞춰 재생 */}
+      <Sequence from={alertFrom} durationInFrames={ALERT_LEN} name="narration-1">
+        <Audio src={staticFile("reel5_narration_1.mp3")} />
+      </Sequence>
+      <Sequence from={addFrom} durationInFrames={ADD_LEN + SPINACH_HOLD} name="narration-2">
+        <Audio src={staticFile("reel5_narration_2.mp3")} />
+      </Sequence>
+      <Sequence from={recipeFrom} durationInFrames={RECIPE_LEN} name="narration-3">
+        <Audio src={staticFile("reel5_narration_3.mp3")} />
+      </Sequence>
     </AbsoluteFill>
   );
 };

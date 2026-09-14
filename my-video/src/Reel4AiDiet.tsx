@@ -1,6 +1,7 @@
 import React from "react";
-import { AbsoluteFill, Img, OffthreadVideo, Sequence, staticFile, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
+import { AbsoluteFill, Audio, Img, OffthreadVideo, Sequence, staticFile, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import { FONT_FAMILY, WHITE, LINE, useCustomFont, CtaOutro, Caption } from "./shared";
+import { fitToNarration } from "./narrationFrames";
 
 // 훅: 제미나이 생성 실사 클립(8s, 720x1280, 24fps, 대사 포함) — 마트 계산대에서 영수증이 과장되게 길게 나옴
 const HOOK_VIDEO = "reel4_hook_gemini.mp4";
@@ -47,11 +48,17 @@ const rateRevealShopping = 1;
 const CALENDAR_LIST_FREEZE = "reel4_calendar_freeze2.png"; // 0:23 — 9/14~9/20 목록 + "요리 캘린더에 담기" 버튼
 const MONTH_VIEW_FREEZE = "reel4_month_freeze.png"; // 0:33.3 — 월별 캘린더, 9/14~9/20이 노란 점으로 표시됨
 const WEEK_VIEW_FREEZE = "reel4_week_freeze.png"; // 0:39.5 — 주별 캘린더, 요일마다 만들 요리가 나열됨
+const SHOPPING_FREEZE = "reel4_shopping_freeze.png"; // "장보기 4개" 리빌 영상 마지막 프레임 — 나레이션이 끝날 때까지 정지로 이어붙임
 
 const D0 = Math.round((DEMO_RAW.tapButton[1] - DEMO_RAW.tapButton[0]) / rateTapButton); // 40f
 const D1 = Math.round((DEMO_RAW.prompt[1] - DEMO_RAW.prompt[0]) / ratePrompt); // 55f
 const D2 = Math.round((DEMO_RAW.loading[1] - DEMO_RAW.loading[0]) / rateLoading); // 110f
-const D3 = Math.round((DEMO_RAW.revealShopping[1] - DEMO_RAW.revealShopping[0]) / rateRevealShopping); // 90f
+const D3_VIDEO = Math.round((DEMO_RAW.revealShopping[1] - DEMO_RAW.revealShopping[0]) / rateRevealShopping); // 90f
+// "냉장고에 있는 재료로..." 나레이션이 원본 영상(3.0s)보다 길면, 영상이 끝난 뒤 마지막 프레임을 정지
+// 이미지로 이어붙여 나레이션이 끝날 때까지 유지한다 — 길이는 narrationFrames.ts(실제 mp3 길이에서
+// 자동 생성)에서 가져온다. (1·2번 자막 비트는 각각 6.8s·6.5s라 나레이션보다 충분히 길어서 그대로 둔다.)
+const D3 = fitToNarration(D3_VIDEO, "reel4_narration_3");
+const D3_FREEZE = D3 - D3_VIDEO;
 // 세 화면 다 합쳐 10초(D4+D5+D6)를 자막 없이 멈춰 보여줬더니 "렉 걸린 줄 알았다"는 지적 —
 // 자막을 세 화면 내내 유지하는 것과 별개로, 정지 시간 자체도 줄임(10.0s→6.5s).
 const D4 = 60; // 2.0s — 일주일 목록 정지 이미지
@@ -60,7 +67,10 @@ const D6 = 75; // 2.5s — 주별 캘린더 정지 이미지
 const PULSE = 15; // 마지막 정지 화면 뒷부분에서 살짝 확대 펄스로 강조
 const DEMO_LEN = D0 + D1 + D2 + D3 + D4 + D5 + D6;
 
-const CTA_LEN = 90; // 3.0s — 자막 텍스트 길이(1줄/2줄)에 따라 CTA 카드가 다 뜬 뒤 남는 정지 시간이 제각각으로 느껴진다는 피드백으로, 모든 릴스에서 균일하게 늘림(2.0s→3.0s)
+// CTA 나레이션("이제 장보기도, 가장 효율적으로 하세요. 쿡매치. 지금 프로필 링크에서 시작하세요.")이
+// 끝난 뒤 15f 여유를 두고 끝낸다. 화면 카피는 "…가장 효율적으로"로 끝나지만, TTS에 명사구로 끝나는
+// 문장을 넣으면 끝 발음이 뭉개지는 사고가 있어서 음성만 "하세요"를 붙였다.
+const CTA_LEN = fitToNarration(90, "reel4_narration_cta", 15);
 
 const HOOK_FROM = 0;
 const DEMO_FROM = HOOK_FROM + HOOK_LEN;
@@ -87,6 +97,7 @@ export const Reel4AiDiet: React.FC = () => {
             </>
           }
         />
+        <Audio src={staticFile("reel4_narration_cta.mp3")} />
       </Sequence>
     </AbsoluteFill>
   );
@@ -292,13 +303,13 @@ const Demo: React.FC = () => {
         <Sequence from={d5From} durationInFrames={D6} name="week-view-freeze">
           <FreezeImg src={WEEK_VIEW_FREEZE} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} zoom={1.1} origin="50% 55%" cropTop={TOPCROP_PX} />
         </Sequence>
-        <Sequence from={d6From} durationInFrames={D3} name="reveal-shopping">
+        <Sequence from={d6From} durationInFrames={D3_VIDEO} name="reveal-shopping">
           <SubClip
             src={DEMO_VIDEO}
             rawFrom={DEMO_RAW.revealShopping[0]}
             rawTo={DEMO_RAW.revealShopping[1]}
             rate={rateRevealShopping}
-            len={D3}
+            len={D3_VIDEO}
             width={VIDEO_W}
             height={VIDEO_H}
             left={VIDEO_LEFT}
@@ -306,13 +317,30 @@ const Demo: React.FC = () => {
             origin="50% 55%"
             cropTop={TOPCROP_PX}
             fade={false}
+            fadeOutFrames={0}
           />
         </Sequence>
+        {D3_FREEZE > 0 && (
+          <Sequence from={d6From + D3_VIDEO} durationInFrames={D3_FREEZE} name="reveal-shopping-freeze">
+            <FreezeImg src={SHOPPING_FREEZE} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} zoom={1.1} origin="50% 55%" cropTop={TOPCROP_PX} />
+          </Sequence>
+        )}
       </div>
 
       <Caption from={d0From} len={D0 + D1 + D2} text={"원하는 요구사항만 말하면\n있는 재료로 효율적인 일주일 식단을 짜요"} />
       <Caption from={d3From} len={D4 + D5 + D6} text={"그렇게 짠 일주일 식단이\n그대로 캘린더에 담겨요"} />
       <Caption from={d6From} len={D3} text={"냉장고에 있는 재료로 최대한 채웠으니\n장보기는 이제 최소한이면 돼요"} />
+
+      {/* 데모 자막 음성 나레이션(제미나이 TTS) — 자막 타이핑 시작 프레임에 맞춰 재생 */}
+      <Sequence from={d0From} durationInFrames={D0 + D1 + D2} name="narration-1">
+        <Audio src={staticFile("reel4_narration_1.mp3")} />
+      </Sequence>
+      <Sequence from={d3From} durationInFrames={D4 + D5 + D6} name="narration-2">
+        <Audio src={staticFile("reel4_narration_2.mp3")} />
+      </Sequence>
+      <Sequence from={d6From} durationInFrames={D3} name="narration-3">
+        <Audio src={staticFile("reel4_narration_3.mp3")} />
+      </Sequence>
     </AbsoluteFill>
   );
 };

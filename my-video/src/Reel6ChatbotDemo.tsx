@@ -1,6 +1,7 @@
 import React from "react";
-import { AbsoluteFill, OffthreadVideo, Sequence, staticFile, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
+import { AbsoluteFill, Audio, OffthreadVideo, Sequence, staticFile, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import { FONT_FAMILY, WHITE, LINE, useCustomFont, CtaOutro, Caption } from "./shared";
+import { fitToNarration } from "./narrationFrames";
 
 // 훅: 제미나이 생성 실사 클립(10s, 720x1280, 24fps, 대사 포함) — 턱 괴고 검색창 앞에서 썼다 지웠다
 // 반복하다 "아, 레시피 찾는 것도 너무 일이고 귀찮네" 혼잣말 후 다시 폰으로 시선 내리는 리액션.
@@ -43,7 +44,9 @@ const PULSE = 15; // 레시피 카드 뒷부분 확대 펄스(페이오프)
 
 const DEMO_LEN = ASK_LEN + LOADING_LEN + REVEAL_LEN;
 
-const CTA_LEN = 90; // 3.0s — 자막 텍스트 길이(1줄/2줄)에 따라 CTA 카드가 다 뜬 뒤 남는 정지 시간이 제각각으로 느껴진다는 피드백으로, 모든 릴스에서 균일하게 늘림(2.0s→3.0s)
+// CTA 나레이션("검색 대신, 말 한마디면 충분해요. 쿡매치. 지금 프로필 링크에서 시작하세요.")이 끝난 뒤
+// 15f 여유를 두고 끝낸다(원래 3.0s). 데모 자막 두 비트(5.4s·6.2s)는 나레이션보다 충분히 길어서 그대로 둔다.
+const CTA_LEN = fitToNarration(90, "reel6_narration_cta", 15);
 
 const HOOK_FROM = 0;
 const DEMO_FROM = HOOK_FROM + HOOK_LEN;
@@ -70,6 +73,7 @@ export const Reel6ChatbotDemo: React.FC = () => {
             </>
           }
         />
+        <Audio src={staticFile("reel6_narration_cta.mp3")} />
       </Sequence>
     </AbsoluteFill>
   );
@@ -263,6 +267,14 @@ const Demo: React.FC = () => {
 
       <Caption from={askFrom} len={ASK_LEN + LOADING_LEN} text={"말하듯 물어보면\n딱 맞는 레시피를 찾아줘요"} />
       <Caption from={revealFrom} len={REVEAL_LEN} text={"내 재료, 내 취향까지\n반영해서 골라줘요"} />
+
+      {/* 데모 자막 음성 나레이션(제미나이 TTS, Kore) — 자막 타이핑 시작 프레임에 맞춰 재생 */}
+      <Sequence from={askFrom} durationInFrames={fitToNarration(ASK_LEN + LOADING_LEN, "reel6_narration_1")} name="narration-1">
+        <Audio src={staticFile("reel6_narration_1.mp3")} />
+      </Sequence>
+      <Sequence from={revealFrom} durationInFrames={fitToNarration(REVEAL_LEN, "reel6_narration_2")} name="narration-2">
+        <Audio src={staticFile("reel6_narration_2.mp3")} />
+      </Sequence>
     </AbsoluteFill>
   );
 };

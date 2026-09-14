@@ -1,6 +1,7 @@
 import React from "react";
-import { AbsoluteFill, Img, OffthreadVideo, Sequence, staticFile, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
+import { AbsoluteFill, Audio, Img, OffthreadVideo, Sequence, staticFile, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import { FONT_FAMILY, WHITE, LINE, useCustomFont, CtaOutro, Caption } from "./shared";
+import { fitToNarration } from "./narrationFrames";
 
 // 훅: 제미나이 생성 실사 클립(10s, 720x1280, 24fps, 대사 포함 재촬영본) — 소파에서 레시피 보다 설레었다가 실망하는 여성
 const HOOK_VIDEO = "reel2_hook_gemini.mp4";
@@ -43,15 +44,20 @@ const COUPANG_FREEZE = "reel2_coupang_freeze.png"; // 0:20.35 프레임 추출(�
 const D1 = Math.round((DEMO_RAW.filter[1] - DEMO_RAW.filter[0]) / rateFilter); // 81f
 const D2 = Math.round((DEMO_RAW.results[1] - DEMO_RAW.results[0]) / rateResults); // 123f
 const D3_VIDEO = 30; // 1.0s — 당근→양파 칩이 실제로 나타나는 순간까지는 영상 그대로 재생
-const D3_FREEZE = 60; // 2.0s — 그 이후 확대한 채로 정지
-const D3 = D3_VIDEO + D3_FREEZE; // 90f
+// 데모 자막 나레이션(제미나이 TTS)이 비트보다 길면, 이미 정지 이미지로 고정해 보여주던 구간(D3_FREEZE·
+// D4b)을 나레이션 끝까지 늘린다 — 길이는 narrationFrames.ts(실제 mp3 길이에서 자동 생성)에서 가져온다.
+// (1번 자막 비트 D1+D2는 6.8s라 나레이션보다 충분히 길어서 그대로 둔다.)
+const D3 = fitToNarration(90, "reel2_narration_2"); // 원래 90f — 영상 1.0s + 확대한 채로 정지 2.0s
+const D3_FREEZE = D3 - D3_VIDEO;
 const D4a = DEMO_RAW.coupangList[1] - DEMO_RAW.coupangList[0]; // 30f — "통깨+" 칩이 보이는 리스트
-const D4b = 45; // 1.5s — 부족 재료 구매 모달을 확대한 채로 정지
-const D4 = D4a + D4b; // 75f
+const D4 = fitToNarration(D4a + 45, "reel2_narration_3"); // 원래 75f — 리스트 1.0s + 모달 정지 1.5s
+const D4b = D4 - D4a; // 부족 재료 구매 모달을 확대한 채로 정지
 const PULSE = 15; // D4 뒷부분에서 정지 화면 위에 살짝 확대 펄스를 얹어 마지막에 한 번 더 강조
 const DEMO_LEN = D1 + D2 + D3 + D4;
 
-const CTA_LEN = 90; // 3.0s — 자막 텍스트 길이(1줄/2줄)에 따라 CTA 카드가 다 뜬 뒤 남는 정지 시간이 제각각으로 느껴진다는 피드백으로, 모든 릴스에서 균일하게 늘림(2.0s→3.0s)
+// CTA 나레이션("없는 재료 대신, 있는 걸로 바꿔드려요. 쿡매치. 지금 프로필 링크에서 시작하세요.")이
+// 끝난 뒤 15f 여유를 두고 끝낸다.
+const CTA_LEN = fitToNarration(90, "reel2_narration_cta", 15);
 
 const HOOK_FROM = 0;
 const DEMO_FROM = HOOK_FROM + HOOK_LEN;
@@ -78,6 +84,7 @@ export const Reel2Match: React.FC = () => {
             </>
           }
         />
+        <Audio src={staticFile("reel2_narration_cta.mp3")} />
       </Sequence>
     </AbsoluteFill>
   );
@@ -316,6 +323,17 @@ const Demo: React.FC = () => {
       <Caption from={d1From} len={D1 + D2} text={"내 냉장고 기준으로\n매칭률 순으로 정렬"} />
       <Caption from={d3From} len={D3} text={"재료가 한두 개 부족해도\n대체할 재료를 추천해줘요"} />
       <Caption from={d4From} len={D4} text={"그래도 없는 재료는\n한 번에 구매까지 연결돼요"} />
+
+      {/* 데모 자막 음성 나레이션(제미나이 TTS) — 자막 타이핑 시작 프레임에 맞춰 재생 */}
+      <Sequence from={d1From} durationInFrames={D1 + D2} name="narration-1">
+        <Audio src={staticFile("reel2_narration_1.mp3")} />
+      </Sequence>
+      <Sequence from={d3From} durationInFrames={D3} name="narration-2">
+        <Audio src={staticFile("reel2_narration_2.mp3")} />
+      </Sequence>
+      <Sequence from={d4From} durationInFrames={D4} name="narration-3">
+        <Audio src={staticFile("reel2_narration_3.mp3")} />
+      </Sequence>
     </AbsoluteFill>
   );
 };

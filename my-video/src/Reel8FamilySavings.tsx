@@ -1,6 +1,7 @@
 import React from "react";
-import { AbsoluteFill, Img, OffthreadVideo, Sequence, staticFile, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
+import { AbsoluteFill, Audio, Img, OffthreadVideo, Sequence, staticFile, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import { FONT_FAMILY, WHITE, LINE, useCustomFont, CtaOutro, Caption } from "./shared";
+import { fitToNarration } from "./narrationFrames";
 
 // 훅: 제미나이 생성 실사 클립(10.0s, 720x1280, 24fps, 대사 포함) — 부부가 나란히 배달앱 결제내역을
 // 스크롤하다 아내가 "헐, 이번 달에 배달비가 벌써 이만큼이야?"를 말하며 둘 다 눈이 커지고, 서로 마주
@@ -36,18 +37,27 @@ const DEMO_RAW = {
 };
 const rateDemo = 1;
 
-const GOAL_LEN = DEMO_RAW.goalSet[1] - DEMO_RAW.goalSet[0]; // 96f
+// 데모 자막 나레이션(제미나이 TTS)이 비트보다 길면 비트를 나레이션 끝까지 늘린다 — 길이는
+// narrationFrames.ts(실제 mp3 길이에서 자동 생성)에서 가져온다. 목표 설정 비트는 영상 마지막 프레임을
+// 정지 이미지로 이어붙이고, 절약액 비트는 원래 정지 컷이라 그 길이 자체를 늘린다. (캘린더 비트는 6.0s라
+// 나레이션보다 충분히 길어서 그대로 둔다.)
+const GOAL_VIDEO = DEMO_RAW.goalSet[1] - DEMO_RAW.goalSet[0]; // 96f
+const GOAL_LEN = fitToNarration(GOAL_VIDEO, "reel8_narration_1");
+const GOAL_FREEZE = GOAL_LEN - GOAL_VIDEO;
+const GOAL_FREEZE_IMG = "reel8_goal_freeze.png"; // 목표수정 입력 영상 마지막 프레임(0:10.15)
 // 확대 배율(1.35)까지 키워봐도 영상 위 CSS 확대라 화질이 흐려 보인다는 피드백 — 라이브 영상
 // 재생 대신, 정착된 순간의 프레임을 사진으로 뽑아 텍스트만 선명하게 크게 보여주는 정지 컷으로
-// 교체(SavingsFreeze). 자막이 타이핑되는 동안 포함해 2.0초 유지.
-const SAVE_LEN = 60; // 2.0s (정지 컷 고정 길이 — 더 이상 raw 트림 길이와 무관)
+// 교체(SavingsFreeze). 자막이 타이핑되는 동안 포함해 최소 2.0초 유지.
+const SAVE_LEN = fitToNarration(60, "reel8_narration_2"); // 정지 컷 — raw 트림 길이와 무관
 const CAL_LEN = DEMO_RAW.familyCal[1] - DEMO_RAW.familyCal[0]; // 84f
 const SHARE_LEN = DEMO_RAW.familyShare[1] - DEMO_RAW.familyShare[0]; // 96f
 const PULSE = 15; // 마지막 비트(가족 기록) 뒷부분 확대 펄스(페이오프로 넘어가기 전 강조)
 
 const DEMO_LEN = GOAL_LEN + SAVE_LEN + CAL_LEN + SHARE_LEN;
 
-const CTA_LEN = 90; // 3.0s — 자막 텍스트 길이(1줄/2줄)에 따라 CTA 카드가 다 뜬 뒤 남는 정지 시간이 제각각으로 느껴진다는 피드백으로, 모든 릴스에서 균일하게 늘림(2.0s→3.0s)
+// CTA 나레이션("목표부터 식단, 절약까지, 가족과 함께 확인해요. 쿡매치. 지금 프로필 링크에서
+// 시작하세요.")이 끝난 뒤 15f 여유를 두고 끝낸다(원래 3.0s).
+const CTA_LEN = fitToNarration(90, "reel8_narration_cta", 15);
 
 const HOOK_FROM = 0;
 const DEMO_FROM = HOOK_FROM + HOOK_LEN;
@@ -76,6 +86,7 @@ export const Reel8FamilySavings: React.FC = () => {
             </>
           }
         />
+        <Audio src={staticFile("reel8_narration_cta.mp3")} />
       </Sequence>
     </AbsoluteFill>
   );
@@ -177,6 +188,27 @@ const SubClip: React.FC<{
     </div>
   );
 };
+
+// 정지 화면(PNG) 전용 — SubClip과 같은 박스·확대·상단 크롭을 쓰되 비디오 디코딩이 없어 분수 배속 버그를 피한다.
+const FreezeImg: React.FC<{
+  src: string;
+  width: number;
+  height: number;
+  left: number;
+  zoom?: number;
+  origin?: string;
+  cropTop?: number;
+}> = ({ src, width, height, left, zoom = 1, origin = "center", cropTop = 0 }) => (
+  <div style={{ position: "absolute", top: 0, left, width, height, overflow: "hidden", border: `1px solid ${LINE}` }}>
+    <div style={{ width: "100%", height: "100%", transform: zoom !== 1 ? `scale(${zoom})` : undefined, transformOrigin: origin }}>
+      <div style={{ position: "absolute", top: cropTop / 2, left: 0, width: "100%", height: `calc(100% - ${cropTop}px)`, overflow: "hidden" }}>
+        <div style={{ position: "absolute", top: -cropTop, left: 0, width: "100%", height: `calc(100% + ${cropTop}px)` }}>
+          <Img src={staticFile(src)} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+        </div>
+      </div>
+    </div>
+  </div>
+);
 
 // ---------- ③ 절약액 정지 컷 — "이번달 절약액" 결과 화면을 캡처한 사진 두 장(전체·크롭)으로 구성.
 // reel8_savings_bg.png는 흐리게·어둡게 딤 처리한 배경, reel8_savings_card.png는 "이번달 절약액
@@ -286,7 +318,13 @@ const Demo: React.FC = () => {
 
   return (
     <AbsoluteFill style={{ backgroundColor: WHITE }}>
-      <Sequence from={goalFrom} durationInFrames={GOAL_LEN} name="goal-set">
+      {GOAL_FREEZE > 0 && (
+        <Sequence from={goalFrom + GOAL_VIDEO} durationInFrames={GOAL_FREEZE} name="goal-set-freeze">
+          {/* punchZoom 스프링은 영상 끝(96f)엔 이미 1.3배로 정착해 있어서 같은 배율로 고정 */}
+          <FreezeImg src={GOAL_FREEZE_IMG} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} zoom={1.3} origin="80% 23%" cropTop={TOPCROP_PX} />
+        </Sequence>
+      )}
+      <Sequence from={goalFrom} durationInFrames={GOAL_VIDEO} name="goal-set">
         {/* 목표수정 입력창+적용 버튼이 뜨는 시점(키보드 등장 이후)부터 그쪽으로 확대되도록
             punchDelay로 늦춤 — 처음 정적인 화면 구간은 그대로 두고, 실제 편집 UI가 보일 때만 강조. */}
         <SubClip
@@ -294,7 +332,7 @@ const Demo: React.FC = () => {
           rawFrom={DEMO_RAW.goalSet[0]}
           rawTo={DEMO_RAW.goalSet[1]}
           rate={rateDemo}
-          len={GOAL_LEN}
+          len={GOAL_VIDEO}
           width={VIDEO_W}
           height={VIDEO_H}
           left={VIDEO_LEFT}
@@ -346,6 +384,17 @@ const Demo: React.FC = () => {
       <Caption from={goalFrom} len={GOAL_LEN} text={"가족과 함께\n이번 달 요리 목표를 정해요"} />
       <Caption from={saveFrom} len={SAVE_LEN} text={"요리할 때마다\n아낀 돈이 얼마인지 바로 보여요"} />
       <Caption from={calFrom} len={CAL_LEN + SHARE_LEN} text={"가족이 언제 뭘 만들었는지\n캘린더에 기록으로 남아요"} />
+
+      {/* 데모 자막 음성 나레이션(제미나이 TTS, Kore) — 자막 타이핑 시작 프레임에 맞춰 재생 */}
+      <Sequence from={goalFrom} durationInFrames={GOAL_LEN} name="narration-1">
+        <Audio src={staticFile("reel8_narration_1.mp3")} />
+      </Sequence>
+      <Sequence from={saveFrom} durationInFrames={SAVE_LEN} name="narration-2">
+        <Audio src={staticFile("reel8_narration_2.mp3")} />
+      </Sequence>
+      <Sequence from={calFrom} durationInFrames={fitToNarration(CAL_LEN + SHARE_LEN, "reel8_narration_3")} name="narration-3">
+        <Audio src={staticFile("reel8_narration_3.mp3")} />
+      </Sequence>
     </AbsoluteFill>
   );
 };

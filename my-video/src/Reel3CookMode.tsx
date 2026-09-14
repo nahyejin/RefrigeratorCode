@@ -1,6 +1,7 @@
 import React from "react";
 import { AbsoluteFill, Audio, Easing, Img, OffthreadVideo, Sequence, staticFile, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import { FONT_FAMILY, WHITE, LINE, CAPTION_TOP, useCustomFont, CtaOutro, Caption } from "./shared";
+import { fitToNarration } from "./narrationFrames";
 
 // 훅: 제미나이 생성 실사 클립(10s, 720x1280, 24fps) — 주방에서 요리하다 폰을 만지려는 여성
 const HOOK_VIDEO = "reel3_hook_gemini.mp4";
@@ -14,7 +15,11 @@ const HOOK_RAW = {
   reach: [210, 255], // 0:07–8.5 물 묻은 손으로 폰 만지려는 순간
   settle: [270, 300], // 0:09–10.0 다시 조리로 돌아감
 };
-const HB1 = HOOK_RAW.cooking[1] - HOOK_RAW.cooking[0]; // 45f
+// 03편 훅은 8편 중 유일하게 배우 대사가 없는(무음) 영상이라 훅 자막도 나레이션으로 읽어준다.
+// 첫 자막 비트(원래 1.5s)가 나레이션보다 짧으면 cooking 구간을 같은 테이크 그대로 더 이어서 재생하고,
+// 뒤따르는 tap 구간은 그만큼 뒤로 밀어 같은 길이(2.0s)를 유지한다 — 훅에 정지 프레임을 끼우지 않기 위함.
+const HB1 = fitToNarration(HOOK_RAW.cooking[1] - HOOK_RAW.cooking[0], "reel3_narration_hook1"); // 원래 45f
+const TAP_START = Math.max(HOOK_RAW.tap[0], HOOK_RAW.cooking[0] + HB1);
 const HBTAP = HOOK_RAW.tap[1] - HOOK_RAW.tap[0]; // 60f
 const HB2 = HOOK_RAW.reach[1] - HOOK_RAW.reach[0]; // 45f
 const HB3 = HOOK_RAW.settle[1] - HOOK_RAW.settle[0]; // 30f
@@ -31,22 +36,21 @@ const DEMO_RAW = {
 // 추가. 줌인이 자연스럽게 보일 시간을 주려고 배속을 1.2배→1.0배로 늦춰 비트 길이를 늘림.
 const rateReading = 1.0;
 
-// 데모 자막에 음성 나레이션(제미나이 TTS)을 얹으면서, 나레이션이 원본 영상 길이보다 길어진
-// 두 비트(3.81s·3.37s)를 다 담을 수 있게 늘림 — 실제 영상은 그대로 재생하고, 늘어난 나머지는
-// 영상 마지막 프레임을 정지 이미지로 고정해서 채운다(분수 배속 흰 화면 버그를 피하는 이 프로젝트의
-// 표준 방식).
+// 데모 자막에 음성 나레이션(제미나이 TTS)을 얹으면서, 나레이션이 원본 영상 길이(각 2.0s)보다 길면
+// 비트를 나레이션 끝까지 늘림 — 실제 영상은 그대로 재생하고, 늘어난 나머지는 영상 마지막 프레임을 정지
+// 이미지로 고정해서 채운다(분수 배속 흰 화면 버그를 피하는 이 프로젝트의 표준 방식). 길이는
+// narrationFrames.ts(실제 mp3 길이에서 자동 생성)에서 가져온다.
 const D1_VIDEO = Math.round((DEMO_RAW.reading[1] - DEMO_RAW.reading[0]) / rateReading); // 60f
-const D1_FREEZE = 60; // 2.0s
-const D1 = D1_VIDEO + D1_FREEZE; // 120f
+const D1 = fitToNarration(D1_VIDEO, "reel3_narration_1");
+const D1_FREEZE = D1 - D1_VIDEO;
 const D2_VIDEO = DEMO_RAW.advance[1] - DEMO_RAW.advance[0]; // 60f
-const D2_FREEZE = 45; // 1.5s
-const D2 = D2_VIDEO + D2_FREEZE; // 105f
+const D2 = fitToNarration(D2_VIDEO, "reel3_narration_2");
+const D2_FREEZE = D2 - D2_VIDEO;
 const PULSE = 15; // D2의 마지막 0.5s는 정지 없이 펄스만 강조(reel2와 동일한 이유로 프리즈 트릭은 피함)
-const DEMO_LEN = D1 + D2; // 225f
+const DEMO_LEN = D1 + D2;
 
-// CTA 나레이션(페이오프+"쿡매치"+"지금 프로필 링크에서 시작하세요")이 7.49s(225f)라 그걸 다
-// 담을 수 있게 CTA_LEN을 늘림.
-const CTA_LEN = 245; // 8.17s
+// CTA 나레이션(페이오프+"쿡매치"+"지금 프로필 링크에서 시작하세요")이 끝난 뒤 20f 여유를 두고 끝낸다.
+const CTA_LEN = fitToNarration(90, "reel3_narration_cta", 20);
 
 const HOOK_FROM = 0;
 const DEMO_FROM = HOOK_FROM + HOOK_LEN;
@@ -57,7 +61,7 @@ export const REEL3_TOTAL_FRAMES = CTA_FROM + CTA_LEN;
 export const Reel3CookMode: React.FC = () => {
   useCustomFont();
   return (
-    // 무음 마스터 — 음원은 업로드 시 릴스 자체 기능으로 얹는 걸 전제로 함(01~02편과 동일 방침)
+    // BGM 없는 마스터 — 훅 영상 자체는 무음이라, 훅·데모 자막 나레이션과 CTA 나레이션만 들어간다
     <AbsoluteFill style={{ backgroundColor: WHITE, fontFamily: FONT_FAMILY }}>
       <Sequence from={HOOK_FROM} durationInFrames={HOOK_LEN} name="Hook">
         <Hook />
@@ -162,10 +166,10 @@ const Hook: React.FC = () => {
   return (
     <AbsoluteFill style={{ backgroundColor: WHITE }}>
       <Sequence from={b1From} durationInFrames={HB1} name="cooking">
-        <SubClip src={HOOK_VIDEO} rawFrom={HOOK_RAW.cooking[0]} rawTo={HOOK_RAW.cooking[1]} rate={1} len={HB1} width={1080} height={1920} left={0} fade={false} />
+        <SubClip src={HOOK_VIDEO} rawFrom={HOOK_RAW.cooking[0]} rawTo={HOOK_RAW.cooking[0] + HB1} rate={1} len={HB1} width={1080} height={1920} left={0} fade={false} />
       </Sequence>
       <Sequence from={tapFrom} durationInFrames={HBTAP} name="tap">
-        <SubClip src={HOOK_VIDEO} rawFrom={HOOK_RAW.tap[0]} rawTo={HOOK_RAW.tap[1]} rate={1} len={HBTAP} width={1080} height={1920} left={0} fade={false} />
+        <SubClip src={HOOK_VIDEO} rawFrom={TAP_START} rawTo={TAP_START + HBTAP} rate={1} len={HBTAP} width={1080} height={1920} left={0} fade={false} />
       </Sequence>
       <Sequence from={b2From} durationInFrames={HB2} name="reach">
         <SubClip src={HOOK_VIDEO} rawFrom={HOOK_RAW.reach[0]} rawTo={HOOK_RAW.reach[1]} rate={1} len={HB2} width={1080} height={1920} left={0} fade={false} />
@@ -178,6 +182,15 @@ const Hook: React.FC = () => {
 
       <Caption from={b1From} len={HB1} text={"요리할 땐 손에 뭐가\n많이 묻어있는데"} />
       <Caption from={tapFrom} len={HBTAP + HB2 + HB3} text={"블로그 보면서 손으로\n순서 따라가기 힘들잖아요"} />
+
+      {/* 훅 자막 나레이션 — 이 편만 훅 영상에 대사가 없어서 예외적으로 읽어준다. 첫 자막은 "~는데"로
+          끊기는 연결어미라 TTS에는 "…많이 묻어 있죠."처럼 끝맺은 문장으로 넣었다. */}
+      <Sequence from={b1From} durationInFrames={HB1} name="narration-hook1">
+        <Audio src={staticFile("reel3_narration_hook1.mp3")} />
+      </Sequence>
+      <Sequence from={tapFrom} durationInFrames={HBTAP + HB2 + HB3} name="narration-hook2">
+        <Audio src={staticFile("reel3_narration_hook2.mp3")} />
+      </Sequence>
     </AbsoluteFill>
   );
 };
@@ -386,9 +399,11 @@ const Demo: React.FC = () => {
         <Sequence from={d1From} durationInFrames={D1_VIDEO} name="reading">
           <ReadingZoom len={D1_VIDEO} />
         </Sequence>
-        <Sequence from={d1From + D1_VIDEO} durationInFrames={D1_FREEZE} name="reading-freeze">
-          <ReadingFreeze len={D1_FREEZE} />
-        </Sequence>
+        {D1_FREEZE > 0 && (
+          <Sequence from={d1From + D1_VIDEO} durationInFrames={D1_FREEZE} name="reading-freeze">
+            <ReadingFreeze len={D1_FREEZE} />
+          </Sequence>
+        )}
         <Sequence from={d2From} durationInFrames={D2_VIDEO} name="advance">
           {/* fadeOutFrames=0 — 바로 이어지는 AdvanceFreeze가 같은 화면이라, 여기서 미리
               희미해지면 이음매에서 깜빡이는 것처럼 보인다. */}
@@ -406,9 +421,11 @@ const Demo: React.FC = () => {
             fadeOutFrames={0}
           />
         </Sequence>
-        <Sequence from={d2From + D2_VIDEO} durationInFrames={D2_FREEZE} name="advance-freeze">
-          <AdvanceFreeze len={D2_FREEZE} />
-        </Sequence>
+        {D2_FREEZE > 0 && (
+          <Sequence from={d2From + D2_VIDEO} durationInFrames={D2_FREEZE} name="advance-freeze">
+            <AdvanceFreeze len={D2_FREEZE} />
+          </Sequence>
+        )}
       </div>
 
       <VoiceWave />
