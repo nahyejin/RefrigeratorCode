@@ -38,12 +38,13 @@ const DEMO_VIDEO = "reel7_recipe_demo.mp4";
 const SPLASH_VIDEO = "reel7_splash.mp4";
 const SPLASH_LEN = 46; // 1.52s — 정지 구간을 뺀 뒤 2.8배로 늘린 파일 전체(카운터가 계속 올라가는 채로 끝남)
 
-// 데모·스플래시 화면 전부 최상단에 화면 녹화 표시(빨간 점 + 검은 알약 배지)가 찍혀 있어서, 살짝
-// 확대해 위쪽을 크롭해서 뺀다. 두 영상 모두 원본 세로 비율이 880:1920 박스와 거의 같아서(objectFit
-// cover가 사실상 1:1로 맞춰줌) 같은 비율(박스 높이의 약 9.4%)로 크롭되도록 동일한 값을 공유해서 쓴다.
-// origin을 하단 기준으로 잡아서(50% 100%) 확대해도 아래쪽 내용은 그대로 있고 위쪽만 크롭되게 한다.
-const TOPCROP_ZOOM = 1920 / (1920 - 180); // ≈1.1034
-const TOPCROP_ORIGIN = "50% 100%";
+// 데모·스플래시 화면 전부 최상단에 화면 녹화 표시(빨간 점 + 검은 알약 배지)가 찍혀 있어서 위쪽
+// 180px을 크롭해서 뺀다. 처음엔 CSS scale()로 확대-크롭했더니 가로 폭까지 같이 늘어나 양옆이
+// 잘렸고, scaleY로 바꿨더니 이번엔 세로만 늘어나서 화면이 찌그러 보이는 문제가 있었음(둘 다 지적) —
+// 최종적으로 스케일을 아예 쓰지 않고, 콘텐츠를 위로 cropTop만큼 밀어 올리는 position 이동 방식으로
+// 교체. 비율·가로폭 전혀 안 건드리고, 밀려난 만큼 아래쪽에 남는 여백은 흰 캔버스 배경과 자연스럽게
+// 섞인다.
+const TOPCROP_PX = 180;
 
 // ---- 데모 원본 타임코드(30fps 기준 프레임) ----
 // 컨티 원안은 "정렬 드롭다운 조작"만 계획했지만, 실촬영본에 더 설득력 있는 소재(로딩 화면에 실제로
@@ -65,8 +66,11 @@ const PROOF_LEN = DEMO_RAW.sourceProof[1] - DEMO_RAW.sourceProof[0]; // 83f
 const PULSE = 15; // 원본 연결 화면 뒷부분 확대 펄스(페이오프)
 // 유튜브 원본 화면 하단(채널명·구독자·좋아요 등 채널 정보 영역)은 특정 크리에이터를 과하게 특정해서
 // 노출하지 않도록 블러 처리 — "진짜 영상으로 연결된다"는 사실 자체는 보이되 채널 세부정보는 가림.
-const PROOF_BLUR_TOP = 1440; // VIDEO_H(1920) 기준 — 영상 썸네일이 끝나고 채널 정보가 시작되는 지점
+const PROOF_BLUR_TOP = 1440; // 원본 영상 좌표 기준(크롭 전) — 영상 썸네일이 끝나고 채널 정보가 시작되는 지점
 const PROOF_BLUR_HEIGHT = 1920 - PROOF_BLUR_TOP;
+// 상단 크롭이 중앙 정렬(위아래 TOPCROP_PX/2씩 여백)이라, 블러 창의 화면상 위치도 그만큼만
+// 당겨줘야 아래쪽 SubClip과 어긋나지 않는다.
+const PROOF_BLUR_TOP_DISPLAY = PROOF_BLUR_TOP - TOPCROP_PX / 2;
 
 const DEMO_LEN = SPLASH_LEN + CLAIM_LEN + SORT_LEN + DETAIL_LEN + PROOF_LEN;
 
@@ -105,9 +109,8 @@ export const Reel7RealRecipe: React.FC = () => {
 };
 
 // 서브클립 공용 — 원본 특정 구간을 트리밍해서 보여준다(다른 릴스와 동일 패턴, 파일마다 로컬 정의).
-// zoom/origin은 장면별 강조용 확대(바깥 래퍼에 적용), zoom2/origin2는 항상 적용되는 고정 크롭용
-// 확대(비디오 자체에 적용) — 둘을 분리해서 화면 상단 크롭(zoom2)과 장면별 강조 확대(zoom)를 동시에
-// 겹쳐 쓸 수 있게 한다.
+// zoom/origin은 장면별 강조용 확대(바깥 래퍼에 적용), cropTop은 화면 상단 상태바를 잘라내는 고정
+// 크롭(스케일 없이 position만 이동) — 둘을 분리해서 동시에 겹쳐 쓸 수 있게 한다.
 const SubClip: React.FC<{
   src: string;
   rawFrom: number;
@@ -119,8 +122,7 @@ const SubClip: React.FC<{
   left: number;
   zoom?: number;
   origin?: string;
-  zoom2?: number;
-  origin2?: string;
+  cropTop?: number;
   fade?: boolean;
   muted?: boolean;
 }> = ({
@@ -134,8 +136,7 @@ const SubClip: React.FC<{
   left,
   zoom = 1,
   origin = "center",
-  zoom2 = 1,
-  origin2 = "center",
+  cropTop = 0,
   fade = true,
   muted = true,
 }) => {
@@ -167,20 +168,20 @@ const SubClip: React.FC<{
           transformOrigin: origin,
         }}
       >
-        <OffthreadVideo
-          src={staticFile(src)}
-          trimBefore={rawFrom}
-          trimAfter={rawTo}
-          playbackRate={rate}
-          muted={muted}
-          style={{
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-            transform: zoom2 !== 1 ? `scale(${zoom2})` : undefined,
-            transformOrigin: origin2,
-          }}
-        />
+        {/* 위쪽 cropTop px를 잘라내되, 잘려나간 만큼 위아래에 똑같이 여백이 남도록 창 자체를
+            중앙에 놓는다(top: cropTop/2) — 가로 폭·비율은 전혀 안 건드림. */}
+        <div style={{ position: "absolute", top: cropTop / 2, left: 0, width: "100%", height: `calc(100% - ${cropTop}px)`, overflow: "hidden" }}>
+          <div style={{ position: "absolute", top: -cropTop, left: 0, width: "100%", height: `calc(100% + ${cropTop}px)` }}>
+            <OffthreadVideo
+              src={staticFile(src)}
+              trimBefore={rawFrom}
+              trimAfter={rawTo}
+              playbackRate={rate}
+              muted={muted}
+              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -223,7 +224,7 @@ const ProofBottomBlur: React.FC = () => (
   <div
     style={{
       position: "absolute",
-      top: PROOF_BLUR_TOP,
+      top: PROOF_BLUR_TOP_DISPLAY,
       left: VIDEO_LEFT,
       width: VIDEO_W,
       height: PROOF_BLUR_HEIGHT,
@@ -231,17 +232,9 @@ const ProofBottomBlur: React.FC = () => (
       filter: "blur(22px)",
     }}
   >
-    <div
-      style={{
-        position: "absolute",
-        top: -PROOF_BLUR_TOP,
-        left: 0,
-        width: VIDEO_W,
-        height: VIDEO_H,
-        transform: `scale(${TOPCROP_ZOOM})`,
-        transformOrigin: TOPCROP_ORIGIN,
-      }}
-    >
+    {/* 원본(크롭 전) 좌표 기준으로 y=PROOF_BLUR_TOP 지점을 이 창의 맨 위(local y=0)에 맞춘다 —
+        비디오를 원본 크기(VIDEO_H) 그대로, 스케일 없이 위로만 밀어서 위치만 맞춘다. */}
+    <div style={{ position: "absolute", top: -PROOF_BLUR_TOP, left: 0, width: "100%", height: VIDEO_H }}>
       <OffthreadVideo
         src={staticFile(DEMO_VIDEO)}
         trimBefore={DEMO_RAW.sourceProof[0]}
@@ -284,8 +277,7 @@ const Demo: React.FC = () => {
           width={VIDEO_W}
           height={VIDEO_H}
           left={VIDEO_LEFT}
-          zoom2={TOPCROP_ZOOM}
-          origin2={TOPCROP_ORIGIN}
+          cropTop={TOPCROP_PX}
           fade={false}
         />
       </Sequence>
@@ -301,8 +293,7 @@ const Demo: React.FC = () => {
           left={VIDEO_LEFT}
           zoom={1.1}
           origin="50% 42%"
-          zoom2={TOPCROP_ZOOM}
-          origin2={TOPCROP_ORIGIN}
+          cropTop={TOPCROP_PX}
           fade={false}
         />
       </Sequence>
@@ -316,8 +307,7 @@ const Demo: React.FC = () => {
           width={VIDEO_W}
           height={VIDEO_H}
           left={VIDEO_LEFT}
-          zoom2={TOPCROP_ZOOM}
-          origin2={TOPCROP_ORIGIN}
+          cropTop={TOPCROP_PX}
         />
       </Sequence>
       <Sequence from={detailFrom} durationInFrames={DETAIL_LEN} name="detail">
@@ -330,8 +320,7 @@ const Demo: React.FC = () => {
           width={VIDEO_W}
           height={VIDEO_H}
           left={VIDEO_LEFT}
-          zoom2={TOPCROP_ZOOM}
-          origin2={TOPCROP_ORIGIN}
+          cropTop={TOPCROP_PX}
         />
       </Sequence>
 
@@ -346,8 +335,7 @@ const Demo: React.FC = () => {
             width={VIDEO_W}
             height={VIDEO_H}
             left={VIDEO_LEFT}
-            zoom2={TOPCROP_ZOOM}
-            origin2={TOPCROP_ORIGIN}
+            cropTop={TOPCROP_PX}
             fade={false}
           />
           <ProofBottomBlur />

@@ -10,10 +10,13 @@ const HOOK_VIDEO = "reel4_hook_gemini.mp4";
 const DEMO_VIDEO = "reel4_diet_demo2.mp4";
 
 // 데모 화면 녹화본(영상·정지이미지 전부) 최상단에 iOS 상태바 + 화면 녹화 표시(빨간 점 + 검은 알약
-// 배지)가 그대로 찍혀 있어서, 살짝 확대해 위쪽을 크롭해서 뺀다. origin을 하단 기준으로 잡아서
-// (50% 100%) 확대해도 아래쪽 내용은 그대로 있고 위쪽만 크롭되게 한다(07편에서 쓴 것과 동일 공식).
-const TOPCROP_ZOOM = 1920 / (1920 - 180); // ≈1.1034
-const TOPCROP_ORIGIN = "50% 100%";
+// 배지)가 그대로 찍혀 있어서 위쪽 180px을 크롭해서 뺀다. 처음엔 CSS scale()로 확대-크롭했는데
+// 가로 폭까지 같이 늘어나 양옆이 잘렸고(→ scale 대신 scaleY로 바꿈), scaleY는 세로만 늘어나서
+// 화면이 위아래로 눌린 듯 찌그러 보이는 문제가 있었음(둘 다 지적받아 재수정) — 최종적으로 스케일을
+// 아예 쓰지 않고, 콘텐츠를 위로 cropTop만큼 밀어 올려서(position 이동만) 위쪽이 화면 밖으로
+// 나가게 하는 방식으로 교체. 비율·가로폭 전혀 안 건드리고, 밀려난 만큼 아래쪽에 남는 여백은 흰
+// 캔버스 배경과 자연스럽게 섞인다.
+const TOPCROP_PX = 180;
 
 // ---- 훅 원본 타임코드(30fps 기준 프레임) ----
 // silencedetect로 확인한 발화 구간이 0~6.2s 사이 거의 이어져 있어서(짧은 숨쉬기 정도만 끊김),
@@ -49,9 +52,11 @@ const D0 = Math.round((DEMO_RAW.tapButton[1] - DEMO_RAW.tapButton[0]) / rateTapB
 const D1 = Math.round((DEMO_RAW.prompt[1] - DEMO_RAW.prompt[0]) / ratePrompt); // 55f
 const D2 = Math.round((DEMO_RAW.loading[1] - DEMO_RAW.loading[0]) / rateLoading); // 110f
 const D3 = Math.round((DEMO_RAW.revealShopping[1] - DEMO_RAW.revealShopping[0]) / rateRevealShopping); // 90f
-const D4 = 90; // 3.0s — 일주일 목록 정지 이미지
-const D5 = 90; // 3.0s — 월별 캘린더 정지 이미지
-const D6 = 120; // 4.0s — 주별 캘린더 정지 이미지
+// 세 화면 다 합쳐 10초(D4+D5+D6)를 자막 없이 멈춰 보여줬더니 "렉 걸린 줄 알았다"는 지적 —
+// 자막을 세 화면 내내 유지하는 것과 별개로, 정지 시간 자체도 줄임(10.0s→6.5s).
+const D4 = 60; // 2.0s — 일주일 목록 정지 이미지
+const D5 = 60; // 2.0s — 월별 캘린더 정지 이미지
+const D6 = 75; // 2.5s — 주별 캘린더 정지 이미지
 const PULSE = 15; // 마지막 정지 화면 뒷부분에서 살짝 확대 펄스로 강조
 const DEMO_LEN = D0 + D1 + D2 + D3 + D4 + D5 + D6;
 
@@ -99,8 +104,7 @@ const SubClip: React.FC<{
   left: number;
   zoom?: number;
   origin?: string;
-  zoom2?: number;
-  origin2?: string;
+  cropTop?: number;
   fade?: boolean;
   muted?: boolean;
 }> = ({
@@ -114,8 +118,7 @@ const SubClip: React.FC<{
   left,
   zoom = 1,
   origin = "center",
-  zoom2 = 1,
-  origin2 = "center",
+  cropTop = 0,
   fade = true,
   muted = true,
 }) => {
@@ -140,20 +143,22 @@ const SubClip: React.FC<{
       }}
     >
       <div style={{ width: "100%", height: "100%", transform: zoom !== 1 ? `scale(${zoom})` : undefined, transformOrigin: origin }}>
-        <OffthreadVideo
-          src={staticFile(src)}
-          trimBefore={rawFrom}
-          trimAfter={rawTo}
-          playbackRate={rate}
-          muted={muted}
-          style={{
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-            transform: zoom2 !== 1 ? `scale(${zoom2})` : undefined,
-            transformOrigin: origin2,
-          }}
-        />
+        {/* 위쪽 cropTop px를 잘라낸다 — 스케일 없이 자른 만큼(cropTop) 창을 줄이고 그 창을 화면
+            중앙에 놓아서(top: cropTop/2), 잘려나간 여백이 위아래에 똑같이 남게 한다(가로 폭·비율은
+            전혀 안 건드림). 안쪽 콘텐츠는 원본 크기 그대로(calc로 cropTop만큼 다시 키움) 위로
+            cropTop만큼 밀어서 상단 잘림 지점을 창 맨 위에 맞춘다. */}
+        <div style={{ position: "absolute", top: cropTop / 2, left: 0, width: "100%", height: `calc(100% - ${cropTop}px)`, overflow: "hidden" }}>
+          <div style={{ position: "absolute", top: -cropTop, left: 0, width: "100%", height: `calc(100% + ${cropTop}px)` }}>
+            <OffthreadVideo
+              src={staticFile(src)}
+              trimBefore={rawFrom}
+              trimAfter={rawTo}
+              playbackRate={rate}
+              muted={muted}
+              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -167,21 +172,15 @@ const FreezeImg: React.FC<{
   left: number;
   zoom?: number;
   origin?: string;
-  zoom2?: number;
-  origin2?: string;
-}> = ({ src, width, height, left, zoom = 1, origin = "center", zoom2 = 1, origin2 = "center" }) => (
+  cropTop?: number;
+}> = ({ src, width, height, left, zoom = 1, origin = "center", cropTop = 0 }) => (
   <div style={{ position: "absolute", top: 0, left, width, height, overflow: "hidden", border: `1px solid ${LINE}` }}>
     <div style={{ width: "100%", height: "100%", transform: zoom !== 1 ? `scale(${zoom})` : undefined, transformOrigin: origin }}>
-      <Img
-        src={staticFile(src)}
-        style={{
-          width: "100%",
-          height: "100%",
-          objectFit: "cover",
-          transform: zoom2 !== 1 ? `scale(${zoom2})` : undefined,
-          transformOrigin: origin2,
-        }}
-      />
+      <div style={{ position: "absolute", top: cropTop / 2, left: 0, width: "100%", height: `calc(100% - ${cropTop}px)`, overflow: "hidden" }}>
+        <div style={{ position: "absolute", top: -cropTop, left: 0, width: "100%", height: `calc(100% + ${cropTop}px)` }}>
+          <Img src={staticFile(src)} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+        </div>
+      </div>
     </div>
   </div>
 );
@@ -245,22 +244,22 @@ const Demo: React.FC = () => {
         }}
       >
         <Sequence from={d0From} durationInFrames={D0} name="tap-button">
-          <SubClip src={DEMO_VIDEO} rawFrom={DEMO_RAW.tapButton[0]} rawTo={DEMO_RAW.tapButton[1]} rate={rateTapButton} len={D0} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} zoom2={TOPCROP_ZOOM} origin2={TOPCROP_ORIGIN} fade={false} />
+          <SubClip src={DEMO_VIDEO} rawFrom={DEMO_RAW.tapButton[0]} rawTo={DEMO_RAW.tapButton[1]} rate={rateTapButton} len={D0} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} cropTop={TOPCROP_PX} fade={false} />
         </Sequence>
         <Sequence from={d1From} durationInFrames={D1} name="prompt">
-          <SubClip src={DEMO_VIDEO} rawFrom={DEMO_RAW.prompt[0]} rawTo={DEMO_RAW.prompt[1]} rate={ratePrompt} len={D1} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} zoom2={TOPCROP_ZOOM} origin2={TOPCROP_ORIGIN} />
+          <SubClip src={DEMO_VIDEO} rawFrom={DEMO_RAW.prompt[0]} rawTo={DEMO_RAW.prompt[1]} rate={ratePrompt} len={D1} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} cropTop={TOPCROP_PX} />
         </Sequence>
         <Sequence from={d2From} durationInFrames={D2} name="loading">
-          <SubClip src={DEMO_VIDEO} rawFrom={DEMO_RAW.loading[0]} rawTo={DEMO_RAW.loading[1]} rate={rateLoading} len={D2} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} zoom2={TOPCROP_ZOOM} origin2={TOPCROP_ORIGIN} />
+          <SubClip src={DEMO_VIDEO} rawFrom={DEMO_RAW.loading[0]} rawTo={DEMO_RAW.loading[1]} rate={rateLoading} len={D2} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} cropTop={TOPCROP_PX} />
         </Sequence>
         <Sequence from={d3From} durationInFrames={D4} name="calendar-list-freeze">
-          <FreezeImg src={CALENDAR_LIST_FREEZE} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} zoom={1.1} origin="50% 55%" zoom2={TOPCROP_ZOOM} origin2={TOPCROP_ORIGIN} />
+          <FreezeImg src={CALENDAR_LIST_FREEZE} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} zoom={1.1} origin="50% 55%" cropTop={TOPCROP_PX} />
         </Sequence>
         <Sequence from={d4From} durationInFrames={D5} name="month-view-freeze">
-          <FreezeImg src={MONTH_VIEW_FREEZE} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} zoom={1.15} origin="50% 45%" zoom2={TOPCROP_ZOOM} origin2={TOPCROP_ORIGIN} />
+          <FreezeImg src={MONTH_VIEW_FREEZE} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} zoom={1.15} origin="50% 45%" cropTop={TOPCROP_PX} />
         </Sequence>
         <Sequence from={d5From} durationInFrames={D6} name="week-view-freeze">
-          <FreezeImg src={WEEK_VIEW_FREEZE} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} zoom={1.1} origin="50% 55%" zoom2={TOPCROP_ZOOM} origin2={TOPCROP_ORIGIN} />
+          <FreezeImg src={WEEK_VIEW_FREEZE} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} zoom={1.1} origin="50% 55%" cropTop={TOPCROP_PX} />
         </Sequence>
         <Sequence from={d6From} durationInFrames={D3} name="reveal-shopping">
           <SubClip
@@ -274,15 +273,14 @@ const Demo: React.FC = () => {
             left={VIDEO_LEFT}
             zoom={1.1}
             origin="50% 55%"
-            zoom2={TOPCROP_ZOOM}
-            origin2={TOPCROP_ORIGIN}
+            cropTop={TOPCROP_PX}
             fade={false}
           />
         </Sequence>
       </div>
 
       <Caption from={d0From} len={D0 + D1 + D2} text={"원하는 요구사항만 말하면\n있는 재료로 효율적인 일주일 식단을 짜요"} />
-      <Caption from={d3From} len={D4} text={"그렇게 짠 일주일 식단이\n그대로 캘린더에 담겨요"} />
+      <Caption from={d3From} len={D4 + D5 + D6} text={"그렇게 짠 일주일 식단이\n그대로 캘린더에 담겨요"} />
       <Caption from={d6From} len={D3} text={"냉장고에 있는 재료로 최대한 채웠으니\n장보기는 이제 최소한이면 돼요"} />
     </AbsoluteFill>
   );
