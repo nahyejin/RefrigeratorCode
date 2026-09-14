@@ -2596,66 +2596,71 @@ const CookingCalendar: React.FC = () => {
             </Dialog>
           )}
 
-          {manualLogOpen && (
-            <Dialog
-              open
-              onClose={() => setManualLogOpen(false)}
-              title="완료 기록 추가"
-              width={320}
-              dismissLabel="취소"
-              actions={[{
-                label: savingManualLog ? '추가 중' : '추가하기',
-                onClick: handleAddManualLog,
-              }]}
-            >
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14, textAlign: 'left' }}>
-                <div style={{ fontSize: 12.5, color: 'var(--ink-500)', wordBreak: 'keep-all' }}>
-                  앱에 없던 요리도, 만든 것을 텍스트로 짧게 기록해놔요.
-                </div>
-                <div>
-                  <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink-700)', marginBottom: 6 }}>날짜</div>
-                  <DatePickerField
-                    value={manualLogDate}
-                    onChange={setManualLogDate}
-                    maxDate={new Date()}
-                    placeholder="날짜"
-                    style={{ height: 40, borderRadius: 8, border: '1px solid var(--line-300)', fontSize: 13, width: '100%', boxSizing: 'border-box' }}
-                  />
-                </div>
-                <div>
-                  <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink-700)', marginBottom: 6 }}>무엇을 만들었나요</div>
-                  <input
-                    type="text"
-                    value={manualLogTitle}
-                    onChange={ev => setManualLogTitle(ev.target.value)}
-                    placeholder="예: 김치찌개"
-                    maxLength={100}
-                    style={{ height: 40, borderRadius: 8, border: '1px solid var(--line-300)', fontSize: 13, width: '100%', boxSizing: 'border-box', padding: '0 10px' }}
-                  />
-                </div>
-                {/* 그룹 소속일 때만 — 요리는 식구가 했는데 로그인은 다른 사람이
-                    해 뒀을 수 있다(실사용 요청, 2026-09-14). 본인 몫이 아니면
-                    당사자에게 알림이 간다. */}
-                {isInHousehold && householdMembers.length > 1 && (
-                  <div>
-                    <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink-700)', marginBottom: 6 }}>누가 한 요리인가요</div>
-                    <select
-                      value={manualLogForUserId ?? ''}
-                      onChange={ev => setManualLogForUserId(Number(ev.target.value))}
-                      style={{ height: 40, borderRadius: 8, border: '1px solid var(--line-300)', fontSize: 13, width: '100%', boxSizing: 'border-box', padding: '0 10px', background: 'var(--surface)' }}
-                    >
-                      {householdMembers.map(m => (
-                        <option key={m.id} value={m.id}>
-                          {authUser?.id != null && m.id === Number(authUser.id) ? `${m.nickname}(나)` : m.nickname}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-              </div>
-            </Dialog>
-          )}
         </div>
+        )}
+
+        {/* "수동으로 기록 추가" 팝업 — 일/주/월 어디서든 누를 수 있는 버튼(위
+            [일][주][월] 옆)인데, 이 팝업이 일 보기 블록 안에 갇혀 있어서
+            주/월 보기에서 누르면 **아무 일도 안 일어났다**(실사용 지적,
+            2026-09-15). viewMode 와 무관하게 항상 렌더되도록 밖으로 뺐다. */}
+        {manualLogOpen && (
+          <Dialog
+            open
+            onClose={() => setManualLogOpen(false)}
+            title="완료 기록 추가"
+            width={320}
+            dismissLabel="취소"
+            actions={[{
+              label: savingManualLog ? '추가 중' : '추가하기',
+              onClick: handleAddManualLog,
+            }]}
+          >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, textAlign: 'left' }}>
+              <div style={{ fontSize: 12.5, color: 'var(--ink-500)', wordBreak: 'keep-all' }}>
+                앱에 없던 요리도, 만든 것을 텍스트로 짧게 기록해놔요.
+              </div>
+              <div>
+                <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink-700)', marginBottom: 6 }}>날짜</div>
+                <DatePickerField
+                  value={manualLogDate}
+                  onChange={setManualLogDate}
+                  maxDate={new Date()}
+                  placeholder="날짜"
+                  style={{ height: 40, borderRadius: 8, border: '1px solid var(--line-300)', fontSize: 13, width: '100%', boxSizing: 'border-box' }}
+                />
+              </div>
+              <div>
+                <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink-700)', marginBottom: 6 }}>무엇을 만들었나요</div>
+                <input
+                  type="text"
+                  value={manualLogTitle}
+                  onChange={ev => setManualLogTitle(ev.target.value)}
+                  placeholder="예: 김치찌개"
+                  maxLength={100}
+                  style={{ height: 40, borderRadius: 8, border: '1px solid var(--line-300)', fontSize: 13, width: '100%', boxSizing: 'border-box', padding: '0 10px' }}
+                />
+              </div>
+              {/* 그룹 소속일 때만 — 요리는 식구가 했는데 로그인은 다른 사람이
+                  해 뒀을 수 있다(실사용 요청, 2026-09-14). 본인 몫이 아니면
+                  당사자에게 알림이 간다. */}
+              {isInHousehold && householdMembers.length > 1 && (
+                <div>
+                  <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink-700)', marginBottom: 6 }}>누가 한 요리인가요</div>
+                  <select
+                    value={manualLogForUserId ?? ''}
+                    onChange={ev => setManualLogForUserId(Number(ev.target.value))}
+                    style={{ height: 40, borderRadius: 8, border: '1px solid var(--line-300)', fontSize: 13, width: '100%', boxSizing: 'border-box', padding: '0 10px', background: 'var(--surface)' }}
+                  >
+                    {householdMembers.map(m => (
+                      <option key={m.id} value={m.id}>
+                        {authUser?.id != null && m.id === Number(authUser.id) ? `${m.nickname}(나)` : m.nickname}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+          </Dialog>
         )}
       </div>
       </PullToRefresh>
