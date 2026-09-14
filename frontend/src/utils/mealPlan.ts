@@ -1,10 +1,17 @@
 /**
- * 짜 둔 식단 계획을 **기기에 남긴다.**
+ * 짜 둔 식단 계획을 **기기에 남긴다.** 로그인 상태면 **서버에도** 남긴다.
  *
- * 왜 서버가 아닌가:
- *   계획은 아직 일어나지 않은 일이고, 그날이 지나면 값어치가 없다. 서버에 표를
- *   하나 더 만들 만한 무게가 아니다. 그리고 **비회원도 식단을 짤 수 있어야**
- *   하는데 서버에 두면 로그인 벽 뒤로 들어간다.
+ * 왜 기기 저장이 먼저인가:
+ *   계획은 아직 일어나지 않은 일이고, 그날이 지나면 값어치가 없다. 그리고
+ *   **비회원도 식단을 짤 수 있어야** 하는데 서버만 쓰면 로그인 벽 뒤로 들어간다.
+ *   그래서 기기 저장은 그대로 두고, 로그인 상태일 때만 서버에도 조용히 반영한다
+ *   (실패해도 화면은 이미 기기 값으로 보여준 뒤라 무시).
+ *
+ * 왜 서버에도 남기나(2026-09-14):
+ *   완료 기록은 서버에 있어 그룹원끼리 서로 볼 수 있는데, 계획만 기기에만
+ *   있어서 "그룹 전체 계획 삭제" 같은 게 아예 성립하지 않았다 — 이 기기는
+ *   다른 식구 계획을 알 방법이 없었기 때문. 완료 기록과 같은 자리(서버)에
+ *   둬야 그룹원끼리 서로 보고, 대신 추가/삭제하고, 알림을 받을 수 있다.
  *
  * 왜 캘린더에 보여야 하나:
  *   짜고 끝나면 아무 데도 안 남는다. 그러면 다음 날 "뭐 해 먹기로 했더라" 를
@@ -29,8 +36,48 @@ export interface PlannedMeal {
   why?: string;
 }
 
+/** 그룹원의 계획까지 함께 보여줄 때 쓰는 모양. `/api/households/me/meal-plans` 응답. */
+export interface HouseholdPlannedMeal {
+  id: number;
+  day: string;
+  recipe_id: number;
+  title: string;
+  link?: string | null;
+  thumbnail?: string | null;
+  why?: string | null;
+  user_id: number;
+  nickname: string;
+}
+
 export const toDateKey = (d: Date): string =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+function getApiUrl(): string {
+  return (
+    (import.meta.env && import.meta.env.VITE_API_BASE_URL) ||
+    'https://refrigeratorcode-production.up.railway.app'
+  );
+}
+
+function currentUserId(): number | null {
+  try {
+    const raw = localStorage.getItem('user');
+    if (!raw) return null;
+    const u = JSON.parse(raw);
+    const id = Number(u?.id);
+    return Number.isFinite(id) ? id : null;
+  } catch {
+    return null;
+  }
+}
+
+function authToken(): string | null {
+  try {
+    return localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+  } catch {
+    return null;
+  }
+}
 
 export function loadPlan(): PlannedMeal[] {
   try {
@@ -78,6 +125,21 @@ export function savePlan(meals: PlannedMeal[], mode: 'overwrite' | 'fill' = 'ove
   } catch {
     /* 저장이 막혀 있으면 조용히 넘어간다 — 화면은 이미 보여 줬다 */
   }
+
+  if (incoming.length === 0) return;
+  const userId = currentUserId();
+  const token = authToken();
+  if (!userId || !token) return;
+  fetch(`${getApiUrl()}/api/users/${userId}/meal-plans`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({
+      mode,
+      meals: incoming.map(m => ({
+        date: m.date, recipe_id: m.recipeId, title: m.title, link: m.link, thumbnail: m.thumbnail, why: m.why,
+      })),
+    }),
+  }).catch(e => console.warn('[mealPlan] 서버 저장 실패:', e));
 }
 
 /**
@@ -116,10 +178,90 @@ export function clearPlanMeal(date: string, recipeId: number): void {
   } catch {
     /* 무시 */
   }
+  const userId = currentUserId();
+  const token = authToken();
+  if (!userId || !token) return;
+  fetch(`${getApiUrl()}/api/users/${userId}/meal-plans?date=${encodeURIComponent(date)}&recipe_id=${recipeId}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  }).catch(e => console.warn('[mealPlan] 서버 삭제 실패:', e));
 }
 
 /** 짜 둔 계획을 **전부** 지운다. 하나씩 취소하기 번거롭다는 요청(2026-09-14). */
 export function clearAllPlans(): void {
+  try {
+    localStorage.removeItem(KEY);
+  } catch {
+    /* 무시 */
+  }
+  const userId = currentUserId();
+  const token = authToken();
+  if (!userId || !token) return;
+  fetch(`${getApiUrl()}/api/users/${userId}/meal-plans`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  }).catch(e => console.warn('[mealPlan] 서버 전체 삭제 실패:', e));
+}
+
+// =====================
+// 그룹(서버) 계획 — 완료 기록처럼 그룹원끼리 서로 보고 대신 처리하기
+// =====================
+
+/** 그룹(또는 혼자면 나 혼자)의 앞으로의 계획을 서버에서 받아온다. 비로그인/실패면 빈 배열. */
+export async function fetchHouseholdMealPlans(start: string, end: string): Promise<HouseholdPlannedMeal[]> {
+  const token = authToken();
+  if (!token) return [];
+  try {
+    const res = await fetch(
+      `${getApiUrl()}/api/households/me/meal-plans?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`,
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+    if (!res.ok) return [];
+    const data = await res.json();
+    return Array.isArray(data.plans) ? data.plans : [];
+  } catch (e) {
+    console.warn('[mealPlan] 그룹 계획 조회 실패:', e);
+    return [];
+  }
+}
+
+/**
+ * 특정 사람의 계획 한 끼를 지운다. **내 것이든 식구 것이든** 이 함수 하나로
+ * 처리한다 — 서버가 같은 그룹인지 확인하고, 내가 아니면 당사자에게 알림을
+ * 남긴다. `targetUserId` 가 나 자신이면 로컬 저장소도 같이 지운다(이 기기가
+ * 그 사람 계정으로 로그인돼 있을 때만 로컬에도 있을 수 있으므로).
+ */
+export async function deleteMealPlanFor(targetUserId: number, date: string, recipeId: number): Promise<void> {
+  const token = authToken();
+  if (!token) return;
+  if (targetUserId === currentUserId()) {
+    clearPlanMeal(date, recipeId);
+    return;
+  }
+  try {
+    await fetch(
+      `${getApiUrl()}/api/users/${targetUserId}/meal-plans?date=${encodeURIComponent(date)}&recipe_id=${recipeId}`,
+      { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } },
+    );
+  } catch (e) {
+    console.warn('[mealPlan] 대리 삭제 실패:', e);
+  }
+}
+
+/** 그룹 전체(나를 포함한 모든 식구)의 앞으로의 계획을 한 번에 지운다. */
+export async function clearAllHouseholdMealPlans(): Promise<void> {
+  const token = authToken();
+  if (!token) return;
+  try {
+    await fetch(`${getApiUrl()}/api/households/me/meal-plans`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  } catch (e) {
+    console.warn('[mealPlan] 그룹 전체 삭제 실패:', e);
+  }
+  // 이 기기의 로컬 계획(내 몫)도 함께 지운다 — 서버만 지우면 새로고침 전까지
+  // 이 기기에는 내 계획이 그대로 남아 있는 것처럼 보인다.
   try {
     localStorage.removeItem(KEY);
   } catch {

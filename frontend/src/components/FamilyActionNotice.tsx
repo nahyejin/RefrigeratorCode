@@ -14,7 +14,7 @@ interface FamilyNotification {
   actor_user_id: number;
   actor_nickname: string;
   action_type: 'add' | 'delete';
-  entity_type: 'completed_recipe' | 'manual_log';
+  entity_type: 'completed_recipe' | 'manual_log' | 'meal_plan';
   title: string;
   created_at: string;
 }
@@ -90,6 +90,12 @@ const FamilyActionNotice: React.FC = () => {
   const current = pending[0];
   const isAdd = current.action_type === 'add';
   const isBusy = busyId === current.id;
+  // 무엇을 대신 처리한 것인지에 따라 문구가 달라진다 — "완료 기록"과
+  // "요리 계획"·"직접 기록"은 다른 말이라 뭉뚱그리면 헷갈린다(2026-09-14,
+  // 요리 계획도 그룹원끼리 대신 추가/삭제할 수 있게 되며 추가된 경우).
+  const entityLabel = current.entity_type === 'meal_plan' ? '요리 계획'
+    : current.entity_type === 'manual_log' ? '기록'
+    : '완료 기록';
 
   return (
     <Dialog
@@ -107,7 +113,7 @@ const FamilyActionNotice: React.FC = () => {
       <span style={{ wordBreak: 'keep-all' }}>
         <b>{current.actor_nickname}</b>님이{' '}
         <b>{current.title}</b>
-        {isAdd ? '을(를) 완료 기록에 추가했어요.' : '의 완료 기록을 지웠어요.'}
+        {isAdd ? `을(를) ${entityLabel}에 추가했어요.` : `의 ${entityLabel}을(를) 지웠어요.`}
         <br />
         {isAdd ? '내가 한 게 아니면 취소할 수 있어요.' : '실수였다면 복구할 수 있어요.'}
       </span>

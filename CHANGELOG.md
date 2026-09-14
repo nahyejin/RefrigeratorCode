@@ -10898,3 +10898,16 @@ StepLoading/FloatingScanLoader의 단계 문구와 안내 문구가 길어서 �
 
 ### 확인 — "장보기 목록을 한 번에 쿠팡 장바구니/구매목록에 담기"는 플랫폼상 불가능
 "항목을 하나하나 눌러 쿠팡 링크 타고 들어가야 하는 게 번거롭다, 한 번에 담아주는 기능은 없냐(수익은 그대로 잡히게)"는 요청. 쿠팡파트너스는 **링크 하나당 상품 하나**를 가리키는 딥링크 구조라, 여러 상품을 한 번에 장바구니에 담으면서 그 각각에 제휴 수수료가 잡히게 하는 방법이 파트너스 쪽에 없다(쿠팡이 그런 API/링크 형식을 제공하지 않음) — 앱 쪽 구현 문제가 아니라 플랫폼 자체의 한계. 사용자에게 이 제약을 설명하고, 대신 "이미 누른 항목 표시(체크/취소선)" 같은 진행 상황 추적 정도는 가능하다고 안내 — 구현 여부는 사용자 확인 대기 중.
+
+### 조리 상세 시트 완료 넛지 — 3분 → 30초
+"3분은 너무 길다"는 지적으로 [CookModeSheet.tsx](frontend/src/components/CookModeSheet.tsx)의 `DONE_NUDGE_MS`를 30초로 단축.
+
+### 요리 캘린더 — "수동으로 기록 추가" 버튼을 일 보기 전용에서 [일][주][월] 옆 상단으로
+"일 보기에만 있지 말고, 일/주/월 아무 데서나 누를 수 있게 상단에 노출해달라"는 요청. [CookingCalendar.tsx](frontend/src/pages/CookingCalendar.tsx)의 [일][주][월] 토글과 같은 줄 오른쪽으로 버튼을 옮기고(모드와 무관하게 항상 보임), 안내 문구도 "앱이 추천하지 않은 요리도, 오늘 만든 것만 짧게 남길 수 있어요" → "앱에 없던 요리도, 만든 것을 텍스트로 짧게 기록해놔요"로 다듬음.
+
+### 요리 계획도 서버로 — 그룹원끼리 서로 보고, 대신 추가/삭제하고, 알림+복구
+"요리 계획 전체 삭제를 내 것만 지울지 그룹 전체를 지울지 고를 수 있어야 하고, 남의 것을 만졌으면 알림+복구 기회도 줘야 한다"는 요청. 확인해보니 **요리 계획(아직 안 만든 것)은 그동안 기기(localStorage)에만 있어서 애초에 다른 식구 기기가 알 방법이 없었다** — 완료 기록은 서버에 있어 그룹원끼리 보이는데 계획만 안 그랬다. "기기별로 유지 / 서버로 옮겨 공유" 둘 중 후자를 선택받아 진행:
+- 새 테이블 `user_meal_plans`(서버) 신설. `backend/app.py`에 `GET /api/households/me/meal-plans`(그룹 전체 조회), `POST /api/users/<id>/meal-plans`(저장, overwrite/fill 모드 지원), `DELETE /api/users/<id>/meal-plans`(날짜+레시피 지정 시 한 끼만, 아니면 그 사람의 앞으로의 계획 전체), `DELETE /api/households/me/meal-plans`(그룹 전체의 앞으로의 계획 전체) 신설. 전부 완료 기록과 같은 권한 규칙(본인 또는 같은 그룹) + 대리 처리 시 `family_action_notifications`에 알림(엔티티 타입 `meal_plan`) 남김. `family_action_notifications`에 계획 복구용 `snapshot_link`/`snapshot_thumbnail` 컬럼 추가(기존 배포 테이블엔 ALTER로 보강).
+- [utils/mealPlan.ts](frontend/src/utils/mealPlan.ts): `savePlan`/`clearPlanMeal`/`clearAllPlans`가 로그인 상태면 로컬 저장과 동시에 위 엔드포인트로도 조용히 반영(실패해도 화면은 이미 로컬 값으로 보여준 뒤라 무시) — `PlanThisDay.tsx`/`WeeklyPlan.tsx` 등 기존 호출부는 함수 시그니처가 그대로라 손대지 않아도 자동으로 서버 동기화됨. 그룹 조회·대리 삭제·그룹 전체 삭제용 `fetchHouseholdMealPlans`/`deleteMealPlanFor`/`clearAllHouseholdMealPlans` 신설.
+- [CookingCalendar.tsx](frontend/src/pages/CookingCalendar.tsx): 계획 데이터 소스를 로컬 전용(`planByDate()`)에서, 로그인 시 서버(그룹 전체) + 아직 서버에 안 올라간 로컬 항목을 합친 것으로 교체(비로그인은 예전처럼 로컬만). 일 보기 카드에 그룹원 것이면 닉네임을 표시하고, "계획 취소"가 내 것뿐 아니라 그룹원 것도 대신 취소 가능(당사자 알림+복구). "요리 계획 전체 삭제" 확인창에 **"내 것만"(기본)/"우리 식구 전체"** 선택 칩 추가 — 그룹 전체를 고르면 나 아닌 식구 몫은 삭제되며 그 사람에게 알림이 감.
+- [FamilyActionNotice.tsx](frontend/src/components/FamilyActionNotice.tsx): 알림 문구가 "완료 기록"으로만 고정돼 있던 것을 엔티티 타입에 따라 "요리 계획"/"기록"/"완료 기록"으로 구분해서 보여주도록 수정.

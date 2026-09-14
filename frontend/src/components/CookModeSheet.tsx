@@ -120,7 +120,7 @@ const CookModeSheet: React.FC<Props> = ({
    * 보며 요리했을 가능성이 높다는 뜻이니 — "완료하셨나요" 를 한 번 물어본다.
    * 이미 완료를 눌렀으면(actionState.done) 또 물을 이유가 없다.
    */
-  const DONE_NUDGE_MS = 3 * 60 * 1000;
+  const DONE_NUDGE_MS = 30 * 1000;
   const openedAtRef = React.useRef<number | null>(null);
   const actionStateRef = React.useRef(actionState);
   React.useEffect(() => { actionStateRef.current = actionState; }, [actionState]);

@@ -3,7 +3,11 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import ExpiryAlert from '../components/ExpiryAlert';
 import { loadIngredientCategoryMap, type CategoryMap, type StorageKind } from '../utils/shelfLife';
 import type { FridgeItem } from '../utils/expiry';
-import { planByDate, loadPlan, clearPlanMeal, clearAllPlans, type PlannedMeal } from '../utils/mealPlan';
+import {
+  loadPlan, clearPlanMeal, clearAllPlans,
+  fetchHouseholdMealPlans, deleteMealPlanFor, clearAllHouseholdMealPlans,
+  type PlannedMeal,
+} from '../utils/mealPlan';
 import { openCookMode } from '../utils/cookMode';
 import { getProxiedImageUrl } from '../utils/imageUtils';
 import BottomNavBar from '../components/BottomNavBar';
@@ -34,6 +38,13 @@ interface CalendarEntry {
    * 서버가 예전부터 주던 완료 기록에는 이 필드가 없으므로, 없으면 'recipe'로 본다. */
   entry_type?: 'recipe' | 'manual';
   manual_log_id?: number | null;
+}
+
+/** 계획도 이제 서버에 있어 그룹원 것이 섞여 보일 수 있어(2026-09-14),
+ * 누구 것인지(userId/nickname)를 함께 들고 다닌다. */
+interface DisplayPlannedMeal extends PlannedMeal {
+  userId: number;
+  nickname: string;
 }
 
 function getApiUrl(): string {
@@ -559,9 +570,11 @@ const CookingCalendar: React.FC = () => {
   }, [loadCalendar]);
 
   // 가족 알림 팝업(FamilyActionNotice)에서 "복구/취소"를 누르면, 이 화면이
-  // 이미 떠 있어도 방금 바뀐 값이 바로 보이게 다시 불러온다.
+  // 이미 떠 있어도 방금 바뀐 값이 바로 보이게 다시 불러온다(완료 기록 +
+  // 요리 계획 둘 다 — planVersion 은 아래에서 선언되지만, 이 효과 콜백은
+  // 렌더 뒤에 실행되므로 그때는 이미 값이 잡혀 있다).
   React.useEffect(() => {
-    const onUndo = () => loadCalendar();
+    const onUndo = () => { loadCalendar(); setPlanVersion(v => v + 1); };
     window.addEventListener('family-action-undone', onUndo);
     return () => window.removeEventListener('family-action-undone', onUndo);
   }, [loadCalendar]);
@@ -997,16 +1010,73 @@ const CookingCalendar: React.FC = () => {
       .catch(() => setProgress({ goal: 0, members: [], months: [] }));
   }, [progressOpen, progress, isLoggedIn]);
 
-  /** `plans` 는 매 렌더마다 localStorage 를 다시 읽는다 — 이 값을 바꿔 렌더만
-   * 한 번 더 일으키면 `clearPlanMeal()` 로 지운 계획이 바로 화면에서 빠진다. */
+  /** `planVersion` 을 바꾸면 계획을 다시 불러온다 — 로컬 변경(비로그인) 직후나
+   * 서버 변경(로그인) 직후 화면에 바로 반영하려고 쓰는 리렌더 트리거. */
   const [planVersion, setPlanVersion] = React.useState(0);
-  const plans = planByDate();
-  void planVersion;
+  /** 서버가 준 그룹(또는 혼자면 나 혼자) 계획. 비로그인이면 null — 이 경우
+   * 아래에서 로컬 저장소만 쓴다(예전 그대로, 비회원 지원). */
+  const [householdPlans, setHouseholdPlans] = React.useState<HouseholdPlannedMeal[] | null>(null);
+
+  React.useEffect(() => {
+    if (!isLoggedIn) { setHouseholdPlans(null); return; }
+    let alive = true;
+    const start = toDateKey(new Date());
+    const end = toDateKey(addDays(new Date(), 120));
+    fetchHouseholdMealPlans(start, end).then(rows => { if (alive) setHouseholdPlans(rows); });
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoggedIn, planVersion]);
+
+  /**
+   * 계획을 **누구 것인지(userId/nickname)까지 포함해** 보여준다.
+   *
+   * 로그인 상태면 서버(그룹원 전체)를 기준으로 삼고, 이 기기에만 있고 아직
+   * 서버에 안 올라간 것(막 추가한 직후 등)은 놓치지 않게 로컬에서 채운다.
+   * 비로그인이면 예전 그대로 로컬 저장소만 본다(2026-09-14, 그룹원끼리
+   * "요리 계획 전체 삭제"에서 내 것만/그룹 전체를 고를 수 있어야 하는데,
+   * 계획이 이 기기에만 있으면 그 구분 자체가 성립하지 않아서 서버에도
+   * 두기 시작했다 — 위 utils/mealPlan.ts 설명 참고).
+   */
+  const meIdForPlans = authUser?.id != null ? Number(authUser.id) : null;
+  const plans = React.useMemo(() => {
+    const map = new Map<string, DisplayPlannedMeal[]>();
+    const push = (day: string, meal: DisplayPlannedMeal) => {
+      const list = map.get(day) || [];
+      list.push(meal);
+      map.set(day, list);
+    };
+
+    if (isLoggedIn && householdPlans !== null) {
+      householdPlans.forEach(p => {
+        push(p.day, {
+          date: p.day, recipeId: p.recipe_id, title: p.title,
+          link: p.link || undefined, thumbnail: p.thumbnail || undefined, why: p.why || undefined,
+          userId: p.user_id, nickname: p.nickname,
+        });
+      });
+      const onServer = new Set(
+        householdPlans.filter(p => p.user_id === meIdForPlans).map(p => `${p.day}|${p.recipe_id}`)
+      );
+      loadPlan().forEach(m => {
+        if (onServer.has(`${m.date}|${m.recipeId}`)) return;
+        push(m.date, { ...m, userId: meIdForPlans ?? -1, nickname: myName });
+      });
+    } else {
+      loadPlan().forEach(m => push(m.date, { ...m, userId: meIdForPlans ?? -1, nickname: myName }));
+    }
+    return map;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [householdPlans, isLoggedIn, planVersion, meIdForPlans]);
   /** 「계획 취소」를 눌렀을 때 정말 지울지 한 번 더 확인하는 대상. */
-  const [confirmingPlan, setConfirmingPlan] = React.useState<PlannedMeal | null>(null);
+  const [confirmingPlan, setConfirmingPlan] = React.useState<DisplayPlannedMeal | null>(null);
   /** 「요리 계획 전체 삭제」 확인창을 띄우는 중인지. 실수로 다 지우면 되돌릴
    * 수 없어 한 번 더 확인한다(실사용 요청, 2026-09-14). */
   const [confirmingClearAllPlans, setConfirmingClearAllPlans] = React.useState(false);
+  /** 전체 삭제 대상 — 내 것만(기본) / 우리 식구 전체. 그룹 소속일 때만 고를 수
+   * 있다. 그룹 전체를 고르면 내가 아닌 식구 몫은 지워지면서 당사자에게
+   * 알림이 간다(2026-09-14, "그룹 전체를 지울지 선택할 수 있어야 한다"는 요청). */
+  const [clearAllScope, setClearAllScope] = React.useState<'mine' | 'household'>('mine');
+  const [clearingAllPlans, setClearingAllPlans] = React.useState(false);
 
   /**
    * **이번 주에 사야 할 것.**
@@ -1457,36 +1527,59 @@ const CookingCalendar: React.FC = () => {
           })}
         </div>
 
-        {/* 기간은 달력일 때만 고른다. 목록은 전 기간이다. */}
-        <div style={{ display: mode === 'calendar' ? 'flex' : 'none', gap: 6, padding: '8px 14px 0' }}>
-          {([
-            { key: 'day', label: '일' },
-            { key: 'week', label: '주' },
-            { key: 'month', label: '월' },
-          ] as const).map(({ key, label }) => {
-            const on = viewMode === key;
-            return (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setViewMode(key)}
-                style={{
-                  minHeight: 30,
-                  padding: '7px 14px',
-                  boxSizing: 'border-box',
-                  borderRadius: 9999,
-                  fontSize: 13,
-                  fontWeight: on ? 700 : 500,
-                  background: on ? 'var(--ink-900)' : 'var(--surface-sub)',
-                  color: on ? '#FFFFFF' : 'var(--ink-700)',
-                  border: 'none',
-                  cursor: 'pointer',
-                }}
-              >
-                {label}
-              </button>
-            );
-          })}
+        {/* 기간은 달력일 때만 고른다. 목록은 전 기간이다.
+            수동 기록 추가는 일/주/월 어디서 보고 있든 같은 자리에서 누를 수
+            있어야 한다는 지적(2026-09-14)으로, 일 보기 안에 숨겨 뒀던 것을
+            이 줄로 끌어올려 [일][주][월]과 같은 높이·오른쪽에 둔다. */}
+        <div style={{ display: mode === 'calendar' ? 'flex' : 'none', alignItems: 'center',
+                      justifyContent: 'space-between', gap: 6, padding: '8px 14px 0' }}>
+          <div style={{ display: 'flex', gap: 6 }}>
+            {([
+              { key: 'day', label: '일' },
+              { key: 'week', label: '주' },
+              { key: 'month', label: '월' },
+            ] as const).map(({ key, label }) => {
+              const on = viewMode === key;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setViewMode(key)}
+                  style={{
+                    minHeight: 30,
+                    padding: '7px 14px',
+                    boxSizing: 'border-box',
+                    borderRadius: 9999,
+                    fontSize: 13,
+                    fontWeight: on ? 700 : 500,
+                    background: on ? 'var(--ink-900)' : 'var(--surface-sub)',
+                    color: on ? '#FFFFFF' : 'var(--ink-700)',
+                    border: 'none',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setManualLogDate(selectedDay);
+              setManualLogTitle('');
+              setManualLogForUserId(authUser?.id ? Number(authUser.id) : null);
+              setManualLogOpen(true);
+            }}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 4, height: 30, padding: '0 10px',
+              borderRadius: 9999, border: '1px solid var(--line-300)', background: 'var(--surface-sub)',
+              fontSize: 12.5, fontWeight: 700, color: 'var(--ink-700)', cursor: 'pointer',
+              whiteSpace: 'nowrap', flexShrink: 0,
+            }}
+          >
+            <PlusIcon /> 수동으로 기록 추가
+          </button>
         </div>
 
         {/* 이전/다음 + 현재 범위 표시. 목록은 전 기간이라 넘길 것이 없다. */}
@@ -1544,7 +1637,7 @@ const CookingCalendar: React.FC = () => {
               </span>
               <button
                 type="button"
-                onClick={() => setConfirmingClearAllPlans(true)}
+                onClick={() => { setClearAllScope('mine'); setConfirmingClearAllPlans(true); }}
                 style={{
                   flexShrink: 0, height: 24, padding: '0 8px', borderRadius: 9999,
                   border: '1px solid var(--line-300)', background: 'var(--surface)',
@@ -1766,18 +1859,62 @@ const CookingCalendar: React.FC = () => {
           width={320}
           dismissLabel="아니요"
           actions={[{
-            label: '전체 삭제',
+            label: clearingAllPlans ? '삭제 중' : '전체 삭제',
             variant: 'danger',
-            onClick: () => {
-              clearAllPlans();
-              setPlanVersion(v => v + 1);
-              setConfirmingClearAllPlans(false);
+            onClick: async () => {
+              if (clearingAllPlans) return;
+              setClearingAllPlans(true);
+              try {
+                if (clearAllScope === 'household') {
+                  await clearAllHouseholdMealPlans();
+                } else {
+                  clearAllPlans();
+                }
+                setPlanVersion(v => v + 1);
+                setConfirmingClearAllPlans(false);
+              } finally {
+                setClearingAllPlans(false);
+              }
             },
           }]}
         >
-          <span style={{ wordBreak: 'keep-all' }}>
-            앞으로 만들기로 한 요리 계획을 전부 지워요. 완료 기록은 그대로 남아요. 되돌릴 수 없어요.
-          </span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {/* 그룹 소속일 때만 고를 수 있다 — 혼자면 "내 것만"뿐이라 물을
+                이유가 없다(2026-09-14, "그룹 전체를 지울지 선택하게 해 달라"는 요청). */}
+            {isInHousehold && (
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+                {([
+                  { key: 'mine', label: '내 것만' },
+                  { key: 'household', label: '우리 식구 전체' },
+                ] as const).map(({ key, label }) => {
+                  const on = clearAllScope === key;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      aria-pressed={on}
+                      onClick={() => setClearAllScope(key)}
+                      style={{
+                        minHeight: 36, padding: '8px 14px', boxSizing: 'border-box',
+                        borderRadius: 9999, fontSize: 13, fontWeight: on ? 700 : 500,
+                        cursor: 'pointer',
+                        background: on ? 'var(--ink-900)' : 'var(--surface)',
+                        color: on ? '#FFFFFF' : 'var(--ink-700)',
+                        border: `1px solid ${on ? 'var(--ink-900)' : 'var(--line-300)'}`,
+                      }}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            <span style={{ wordBreak: 'keep-all' }}>
+              {clearAllScope === 'household'
+                ? '우리 식구 전체의 앞으로의 요리 계획을 지워요. 나 아닌 식구 몫은 그 사람에게 알림이 가고 되돌릴 수 있어요. 완료 기록은 그대로 남아요.'
+                : '앞으로 만들기로 한 내 요리 계획을 지워요. 완료 기록은 그대로 남아요. 되돌릴 수 없어요.'}
+            </span>
+          </div>
         </Dialog>
       )}
 
@@ -2214,10 +2351,11 @@ const CookingCalendar: React.FC = () => {
               들어가 날짜를 다시 눌러야 했는데, 여기(캘린더)에서 계획이
               보이는데 정작 여기서는 못 지웠다("취소하는 기능이 어디에도
               없다" — 실사용 지적, 2026-09-12). */}
-          {(plans.get(selectedDay) || []).map((planned: PlannedMeal) => {
+          {(plans.get(selectedDay) || []).map((planned) => {
+            const isMinePlan = planned.userId === meIdForPlans;
             return (
               <div
-                key={planned.recipeId}
+                key={`${planned.recipeId}-${planned.userId}`}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px',
                   borderRadius: 12, border: '1px dashed #C9A400', background: '#FFFDF2',
@@ -2243,8 +2381,11 @@ const CookingCalendar: React.FC = () => {
                     />
                   )}
                   <span style={{ minWidth: 0, flex: 1 }}>
-                    <span style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#7A5C00' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700, color: '#7A5C00' }}>
                       만들기로 한 요리
+                      {/* 계획도 이제 서버에 있어 그룹원 것이 섞여 보일 수 있다 —
+                          누구 것인지 밝힌다(2026-09-14). */}
+                      {isInHousehold && !isMinePlan && <>· {planned.nickname}</>}
                     </span>
                     <span style={{
                       display: '-webkit-box', fontSize: 13.5, fontWeight: 600, color: '#1A1A1E',
@@ -2255,6 +2396,8 @@ const CookingCalendar: React.FC = () => {
                     </span>
                   </span>
                 </button>
+                {/* 완료 기록과 같은 이유로, 같은 그룹이면 서로의 계획도 대신
+                    취소할 수 있다(2026-09-14, 당사자에게 알림 + 복구 가능). */}
                 <button
                   type="button"
                   onClick={() => setConfirmingPlan(planned)}
@@ -2282,8 +2425,8 @@ const CookingCalendar: React.FC = () => {
               actions={[{
                 label: '취소하기',
                 variant: 'danger',
-                onClick: () => {
-                  clearPlanMeal(selectedDay, confirmingPlan.recipeId);
+                onClick: async () => {
+                  await deleteMealPlanFor(confirmingPlan.userId, selectedDay, confirmingPlan.recipeId);
                   setPlanVersion(v => v + 1);
                   setConfirmingPlan(null);
                 },
@@ -2291,32 +2434,10 @@ const CookingCalendar: React.FC = () => {
             >
               <span style={{ wordBreak: 'keep-all' }}>
                 <b>{confirmingPlan.title}</b>{eulReul(confirmingPlan.title)} 만들기로 한 계획을 지워요.
+                {' '}{confirmingPlan.userId !== meIdForPlans && `${confirmingPlan.nickname}님에게 알림이 가고, 되돌릴 수 있어요.`}
               </span>
             </Dialog>
           )}
-
-          {/* 앱이 추천 안 한 요리(레시피 DB에 없는 것)를 그냥 "오늘 이거
-              했다" 정도로 짧게 남기는 길. 완료 버튼을 누를 레시피 화면 자체가
-              없는 날을 위해(실사용 요청, 2026-09-14). 목/주/일 전부와 무관하게
-              "오늘 뭘 했는지"는 결국 하루 단위라 일 보기에만 둔다. */}
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <button
-              type="button"
-              onClick={() => {
-                setManualLogDate(selectedDay);
-                setManualLogTitle('');
-                setManualLogForUserId(authUser?.id ? Number(authUser.id) : null);
-                setManualLogOpen(true);
-              }}
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: 4, height: 28, padding: '0 10px',
-                borderRadius: 9999, border: '1px solid var(--line-300)', background: 'var(--surface-sub)',
-                fontSize: 12, fontWeight: 700, color: 'var(--ink-700)', cursor: 'pointer',
-              }}
-            >
-              <PlusIcon /> 기록 추가
-            </button>
-          </div>
 
           {(entriesByDay.get(selectedDay) || []).length === 0 ? (
             <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--ink-500)', fontSize: 13 }}>
@@ -2490,7 +2611,7 @@ const CookingCalendar: React.FC = () => {
             >
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14, textAlign: 'left' }}>
                 <div style={{ fontSize: 12.5, color: 'var(--ink-500)', wordBreak: 'keep-all' }}>
-                  앱이 추천하지 않은 요리도, 오늘 만든 것만 짧게 남길 수 있어요.
+                  앱에 없던 요리도, 만든 것을 텍스트로 짧게 기록해놔요.
                 </div>
                 <div>
                   <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink-700)', marginBottom: 6 }}>날짜</div>

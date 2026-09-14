@@ -2529,9 +2529,32 @@ def ensure_user_data_tables():
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         """)
 
-        # 가족 구성원이 나 대신(혹은 내 것을) 완료·수동 기록을 추가/삭제했을 때
-        # 남기는 알림. 당사자가 다음에 앱을 열면 이 표를 확인해 팝업으로
-        # 보여주고, "복구"를 누르면 여기 남긴 스냅샷으로 되돌린다.
+        # 아직 만들지 않은(앞으로 하기로 한) 요리 계획. 예전엔 기기(localStorage)
+        # 에만 있어서 그룹원끼리 서로의 계획을 볼 수 없었다 — 완료 기록은 서버에
+        # 있어 그룹원끼리 보이는데 계획만 안 보여 "그룹 전체 계획 삭제" 같은
+        # 개념 자체가 성립하지 않았다. 완료 기록과 같은 모양으로 서버에도 둔다
+        # (기기 저장은 비회원을 위해 그대로 유지 — utils/mealPlan.ts 참고).
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS user_meal_plans (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL COMMENT '이 계획의 주인',
+                added_by_user_id INT NOT NULL COMMENT '버튼을 누른 사람. 본인이면 user_id와 같다',
+                plan_date DATE NOT NULL,
+                recipe_id INT NOT NULL,
+                title VARCHAR(255) NOT NULL,
+                link TEXT NULL,
+                thumbnail TEXT NULL,
+                why VARCHAR(255) NULL COMMENT 'AI가 이 날 이걸 고른 이유',
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY unique_user_date_recipe (user_id, plan_date, recipe_id),
+                INDEX idx_user_date (user_id, plan_date),
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        """)
+
+        # 가족 구성원이 나 대신(혹은 내 것을) 완료·수동 기록·요리 계획을
+        # 추가/삭제했을 때 남기는 알림. 당사자가 다음에 앱을 열면 이 표를 확인해
+        # 팝업으로 보여주고, "복구"를 누르면 여기 남긴 스냅샷으로 되돌린다.
         # (가족 대리 추가/삭제 요청, 2026-09-14)
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS family_action_notifications (
@@ -2539,12 +2562,14 @@ def ensure_user_data_tables():
                 target_user_id INT NOT NULL COMMENT '알림을 받을 당사자',
                 actor_user_id INT NOT NULL COMMENT '대신 처리한 사람',
                 action_type VARCHAR(10) NOT NULL COMMENT "'add' 또는 'delete'",
-                entity_type VARCHAR(20) NOT NULL COMMENT "'completed_recipe' 또는 'manual_log'",
+                entity_type VARCHAR(20) NOT NULL COMMENT "'completed_recipe'/'manual_log'/'meal_plan'",
                 recipe_id INT NULL,
                 manual_log_id INT NULL COMMENT '삭제된 수동 기록의 원래 id(참조용, 복구 시 새 id 발급)',
                 title VARCHAR(255) NOT NULL COMMENT '알림에 보여줄 이름',
-                snapshot_log_date DATE NULL COMMENT '수동 기록 삭제 복구용',
+                snapshot_log_date DATE NULL COMMENT '수동 기록·요리 계획 삭제 복구용 날짜',
                 snapshot_created_at DATETIME NULL COMMENT '완료 기록 삭제 복구용(원래 완료 시각)',
+                snapshot_link TEXT NULL COMMENT '요리 계획 삭제 복구용',
+                snapshot_thumbnail TEXT NULL COMMENT '요리 계획 삭제 복구용',
                 read_at DATETIME NULL,
                 undone_at DATETIME NULL,
                 created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -2552,6 +2577,25 @@ def ensure_user_data_tables():
                 FOREIGN KEY (target_user_id) REFERENCES users(id) ON DELETE CASCADE
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         """)
+
+        # `family_action_notifications`가 먼저 배포된 뒤에 snapshot_link/
+        # snapshot_thumbnail(요리 계획 복구용)을 추가했다 — 기존 테이블에는
+        # `CREATE TABLE IF NOT EXISTS`가 안 먹으므로 없으면 직접 붙인다.
+        for col, ddl in (
+            ('snapshot_link', "ALTER TABLE family_action_notifications ADD COLUMN snapshot_link TEXT NULL COMMENT '요리 계획 삭제 복구용' AFTER snapshot_created_at"),
+            ('snapshot_thumbnail', "ALTER TABLE family_action_notifications ADD COLUMN snapshot_thumbnail TEXT NULL COMMENT '요리 계획 삭제 복구용' AFTER snapshot_link"),
+        ):
+            try:
+                cursor.execute(
+                    """SELECT COUNT(*) AS c FROM INFORMATION_SCHEMA.COLUMNS
+                       WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'family_action_notifications'
+                       AND COLUMN_NAME = %s""",
+                    (col,)
+                )
+                if cursor.fetchone()['c'] == 0:
+                    cursor.execute(ddl)
+            except Exception as e:
+                print(f"[ensure_user_data_tables] family_action_notifications.{col} 추가 중 오류: {e}")
 
         db.commit()
     except Exception as e:
@@ -2850,6 +2894,7 @@ def is_same_household(cursor, user_id_a, user_id_b):
 def record_family_action_notification(
     cursor, *, target_user_id, actor_user_id, action_type, entity_type, title,
     recipe_id=None, manual_log_id=None, snapshot_log_date=None, snapshot_created_at=None,
+    snapshot_link=None, snapshot_thumbnail=None,
 ):
     """가족이 나 대신 뭔가를 추가/삭제했을 때 당사자에게 남길 알림.
 
@@ -2860,11 +2905,36 @@ def record_family_action_notification(
     cursor.execute(
         """INSERT INTO family_action_notifications
            (target_user_id, actor_user_id, action_type, entity_type, recipe_id,
-            manual_log_id, title, snapshot_log_date, snapshot_created_at, created_at)
-           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())""",
+            manual_log_id, title, snapshot_log_date, snapshot_created_at,
+            snapshot_link, snapshot_thumbnail, created_at)
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())""",
         (target_user_id, actor_user_id, action_type, entity_type, recipe_id,
-         manual_log_id, title, snapshot_log_date, snapshot_created_at)
+         manual_log_id, title, snapshot_log_date, snapshot_created_at,
+         snapshot_link, snapshot_thumbnail)
     )
+
+
+def _delete_meal_plan_with_notification(cursor, user_id, actor_user_id, plan_date, recipe_id):
+    """요리 계획 한 끼를 지우고, 대신 지운 것이면 복구용 알림을 남긴다.
+    `save_user_meal_plans`(overwrite 모드)와 `delete_user_meal_plans` 둘 다 쓴다."""
+    cursor.execute(
+        "SELECT title, link, thumbnail FROM user_meal_plans WHERE user_id = %s AND plan_date = %s AND recipe_id = %s",
+        (user_id, plan_date, recipe_id)
+    )
+    existing = cursor.fetchone()
+    if not existing:
+        return
+    cursor.execute(
+        "DELETE FROM user_meal_plans WHERE user_id = %s AND plan_date = %s AND recipe_id = %s",
+        (user_id, plan_date, recipe_id)
+    )
+    if actor_user_id != user_id:
+        record_family_action_notification(
+            cursor, target_user_id=user_id, actor_user_id=actor_user_id,
+            action_type='delete', entity_type='meal_plan',
+            title=existing['title'], recipe_id=recipe_id, snapshot_log_date=plan_date,
+            snapshot_link=existing['link'], snapshot_thumbnail=existing['thumbnail'],
+        )
 
 
 def _issue_unique_invite_code(cursor):
@@ -4664,6 +4734,293 @@ def remove_manual_cook_log(user_id, log_id):
         return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
 
 
+@app.route('/api/households/me/meal-plans', methods=['GET'])
+def get_household_meal_plans():
+    """그룹(또는 혼자면 나 혼자)의 **아직 만들지 않은** 요리 계획.
+
+    완료 기록(`completed-calendar`)과 같은 모양(day/user_id/nickname)으로
+    준다 — 계획도 이제 서버에 있어 그룹원끼리 서로 볼 수 있다(2026-09-14,
+    예전엔 기기에만 있어서 안 보였다)."""
+    try:
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({'error': '인증이 필요합니다.'}), 401
+        payload = verify_jwt_token(auth_header.split(' ')[1])
+        if not payload:
+            return jsonify({'error': '권한이 없습니다.'}), 403
+        user_id = payload.get('user_id')
+
+        start_str = request.args.get('start') or datetime.now().date().isoformat()
+        end_str = request.args.get('end')
+        try:
+            start_date = datetime.strptime(start_str, '%Y-%m-%d').date()
+            end_date = datetime.strptime(end_str, '%Y-%m-%d').date() if end_str else (start_date + timedelta(days=90))
+        except ValueError:
+            return jsonify({'error': 'start/end는 YYYY-MM-DD 형식이어야 합니다.'}), 400
+
+        ensure_households_table()
+        ensure_user_data_tables()
+        db = get_db()
+        cursor = db.cursor()
+        try:
+            household = get_household_by_user(cursor, user_id)
+            if household:
+                cursor.execute(
+                    """SELECT id, nickname FROM users WHERE household_id = %s
+                       AND deleted_at IS NULL AND (share_recipe_actions = 1 OR id = %s)""",
+                    (household['id'], user_id)
+                )
+                member_rows = list(cursor.fetchall())
+            else:
+                member_rows = []
+            member_ids = [r['id'] for r in member_rows]
+            if user_id not in member_ids:
+                member_ids.append(user_id)
+
+            placeholders = ','.join(['%s'] * len(member_ids))
+            cursor.execute(
+                f"""SELECT p.id, p.plan_date AS day, p.recipe_id, p.title, p.link, p.thumbnail,
+                           p.why, p.user_id, u.nickname
+                    FROM user_meal_plans p
+                    INNER JOIN users u ON u.id = p.user_id
+                    WHERE p.user_id IN ({placeholders})
+                      AND p.plan_date BETWEEN %s AND %s
+                    ORDER BY p.plan_date ASC, p.created_at ASC""",
+                member_ids + [start_date, end_date]
+            )
+            rows = cursor.fetchall()
+            for row in rows:
+                row['day'] = row['day'].isoformat()
+
+            return jsonify({'plans': rows}), 200
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"Get household meal plans error: {e}")
+        return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
+
+
+@app.route('/api/users/<int:user_id>/meal-plans', methods=['POST'])
+def save_user_meal_plans(user_id):
+    """요리 계획을 저장한다. 그룹 소속이면 다른 식구 몫으로도 저장할 수
+    있다(대신 추가 + 당사자 알림).
+
+    body: { meals: [{date, recipe_id, title, link?, thumbnail?, why?}], mode }
+    - mode 'overwrite'(기본): meals에 담긴 **날짜들**은 그 날의 기존 계획을
+      통째로 새 것으로 바꾼다.
+    - mode 'fill': 이미 계획이 있는 날은 그대로 두고, 빈 날에만 넣는다.
+    (프론트 utils/mealPlan.ts의 savePlan()과 같은 규칙 — 로컬 저장 로직을
+    그대로 서버에도 반영해야 두 저장소가 어긋나지 않는다.)"""
+    try:
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({'error': '인증이 필요합니다.'}), 401
+        payload = verify_jwt_token(auth_header.split(' ')[1])
+        if not payload:
+            return jsonify({'error': '권한이 없습니다.'}), 403
+        actor_user_id = payload.get('user_id')
+
+        data = request.get_json() or {}
+        meals = data.get('meals') or []
+        mode = data.get('mode') or 'overwrite'
+        if not isinstance(meals, list) or not meals:
+            return jsonify({'error': 'meals가 필요합니다.'}), 400
+
+        parsed = []
+        for m in meals:
+            try:
+                d = datetime.strptime(m['date'], '%Y-%m-%d').date()
+                parsed.append({
+                    'date': d, 'recipe_id': int(m['recipe_id']),
+                    'title': (m.get('title') or '')[:255],
+                    'link': m.get('link'), 'thumbnail': m.get('thumbnail'),
+                    'why': (m.get('why') or None) and str(m.get('why'))[:255],
+                })
+            except (KeyError, ValueError, TypeError):
+                return jsonify({'error': '계획 형식이 올바르지 않습니다.'}), 400
+
+        ensure_households_table()
+        ensure_user_data_tables()
+        db = get_db()
+        cursor = db.cursor()
+        try:
+            if actor_user_id != user_id and not is_same_household(cursor, actor_user_id, user_id):
+                return jsonify({'error': '권한이 없습니다.'}), 403
+
+            dates = sorted({p['date'] for p in parsed})
+            if mode == 'fill':
+                # 이미 하나라도 있는 날은 건드리지 않는다.
+                placeholders = ','.join(['%s'] * len(dates))
+                cursor.execute(
+                    f"SELECT DISTINCT plan_date FROM user_meal_plans WHERE user_id = %s AND plan_date IN ({placeholders})",
+                    [user_id] + dates
+                )
+                taken = {r['plan_date'] for r in cursor.fetchall()}
+                parsed = [p for p in parsed if p['date'] not in taken]
+                dates = sorted({p['date'] for p in parsed})
+            else:
+                # overwrite — 이 날짜들의 기존 계획은 통째로 비우고 새로 넣는다.
+                for d in dates:
+                    cursor.execute(
+                        "DELETE FROM user_meal_plans WHERE user_id = %s AND plan_date = %s",
+                        (user_id, d)
+                    )
+
+            for p in parsed:
+                cursor.execute(
+                    """INSERT INTO user_meal_plans
+                       (user_id, added_by_user_id, plan_date, recipe_id, title, link, thumbnail, why)
+                       VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                       ON DUPLICATE KEY UPDATE title = VALUES(title), link = VALUES(link),
+                         thumbnail = VALUES(thumbnail), why = VALUES(why)""",
+                    (user_id, actor_user_id, p['date'], p['recipe_id'], p['title'],
+                     p['link'], p['thumbnail'], p['why'])
+                )
+                if actor_user_id != user_id:
+                    record_family_action_notification(
+                        cursor, target_user_id=user_id, actor_user_id=actor_user_id,
+                        action_type='add', entity_type='meal_plan',
+                        title=p['title'], recipe_id=p['recipe_id'], snapshot_log_date=p['date'],
+                    )
+            db.commit()
+            return jsonify({'message': '계획을 저장했습니다.', 'saved': len(parsed)}), 200
+        except Exception as e:
+            db.rollback()
+            print(f"Save user meal plans error: {e}")
+            return jsonify({'error': '계획 저장 중 오류가 발생했습니다.'}), 500
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"Save user meal plans error: {e}")
+        return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
+
+
+@app.route('/api/users/<int:user_id>/meal-plans', methods=['DELETE'])
+def delete_user_meal_plans(user_id):
+    """요리 계획 삭제. `date`+`recipe_id` 쿼리 파라미터가 있으면 그 한 끼만,
+    없으면 이 사람의 **앞으로의 계획 전체**를 지운다("요리 계획 전체 삭제"의
+    "내 것만" 선택지). 그룹 소속이면 다른 식구 것도 대신 지울 수 있다
+    (당사자 알림 + 복구용 스냅샷)."""
+    try:
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({'error': '인증이 필요합니다.'}), 401
+        payload = verify_jwt_token(auth_header.split(' ')[1])
+        if not payload:
+            return jsonify({'error': '권한이 없습니다.'}), 403
+        actor_user_id = payload.get('user_id')
+
+        date_str = request.args.get('date')
+        recipe_id_str = request.args.get('recipe_id')
+
+        ensure_households_table()
+        ensure_user_data_tables()
+        db = get_db()
+        cursor = db.cursor()
+        try:
+            if actor_user_id != user_id and not is_same_household(cursor, actor_user_id, user_id):
+                return jsonify({'error': '권한이 없습니다.'}), 403
+
+            if date_str and recipe_id_str:
+                try:
+                    plan_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+                    recipe_id = int(recipe_id_str)
+                except ValueError:
+                    return jsonify({'error': '날짜/레시피 ID 형식이 올바르지 않습니다.'}), 400
+                _delete_meal_plan_with_notification(cursor, user_id, actor_user_id, plan_date, recipe_id)
+            else:
+                cursor.execute(
+                    "SELECT plan_date, recipe_id, title, link, thumbnail FROM user_meal_plans "
+                    "WHERE user_id = %s AND plan_date >= %s",
+                    (user_id, datetime.now().date())
+                )
+                for row in cursor.fetchall():
+                    if actor_user_id != user_id:
+                        record_family_action_notification(
+                            cursor, target_user_id=user_id, actor_user_id=actor_user_id,
+                            action_type='delete', entity_type='meal_plan',
+                            title=row['title'], recipe_id=row['recipe_id'],
+                            snapshot_log_date=row['plan_date'],
+                            snapshot_link=row['link'], snapshot_thumbnail=row['thumbnail'],
+                        )
+                cursor.execute(
+                    "DELETE FROM user_meal_plans WHERE user_id = %s AND plan_date >= %s",
+                    (user_id, datetime.now().date())
+                )
+            db.commit()
+            return jsonify({'message': '계획을 삭제했습니다.'}), 200
+        except Exception as e:
+            db.rollback()
+            print(f"Delete user meal plans error: {e}")
+            return jsonify({'error': '계획 삭제 중 오류가 발생했습니다.'}), 500
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"Delete user meal plans error: {e}")
+        return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
+
+
+@app.route('/api/households/me/meal-plans', methods=['DELETE'])
+def delete_household_meal_plans():
+    """그룹 전체(나 포함 모든 식구)의 **앞으로의 계획**을 한 번에 지운다
+    ("요리 계획 전체 삭제"의 "우리 식구 전체" 선택지). 내가 아닌 식구 것은
+    지워지면서 그 당사자에게 알림이 간다."""
+    try:
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({'error': '인증이 필요합니다.'}), 401
+        payload = verify_jwt_token(auth_header.split(' ')[1])
+        if not payload:
+            return jsonify({'error': '권한이 없습니다.'}), 403
+        actor_user_id = payload.get('user_id')
+
+        ensure_households_table()
+        ensure_user_data_tables()
+        db = get_db()
+        cursor = db.cursor()
+        try:
+            household = get_household_by_user(cursor, actor_user_id)
+            member_ids = [actor_user_id]
+            if household:
+                cursor.execute(
+                    "SELECT id FROM users WHERE household_id = %s AND deleted_at IS NULL",
+                    (household['id'],)
+                )
+                member_ids = list({r['id'] for r in cursor.fetchall()} | {actor_user_id})
+
+            today = datetime.now().date()
+            placeholders = ','.join(['%s'] * len(member_ids))
+            cursor.execute(
+                f"""SELECT user_id, plan_date, recipe_id, title, link, thumbnail
+                    FROM user_meal_plans WHERE user_id IN ({placeholders}) AND plan_date >= %s""",
+                member_ids + [today]
+            )
+            for row in cursor.fetchall():
+                if row['user_id'] != actor_user_id:
+                    record_family_action_notification(
+                        cursor, target_user_id=row['user_id'], actor_user_id=actor_user_id,
+                        action_type='delete', entity_type='meal_plan',
+                        title=row['title'], recipe_id=row['recipe_id'],
+                        snapshot_log_date=row['plan_date'],
+                        snapshot_link=row['link'], snapshot_thumbnail=row['thumbnail'],
+                    )
+            cursor.execute(
+                f"DELETE FROM user_meal_plans WHERE user_id IN ({placeholders}) AND plan_date >= %s",
+                member_ids + [today]
+            )
+            db.commit()
+            return jsonify({'message': '그룹 전체 계획을 삭제했습니다.'}), 200
+        except Exception as e:
+            db.rollback()
+            print(f"Delete household meal plans error: {e}")
+            return jsonify({'error': '계획 삭제 중 오류가 발생했습니다.'}), 500
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"Delete household meal plans error: {e}")
+        return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
+
+
 @app.route('/api/users/<int:user_id>/family-notifications', methods=['GET'])
 def get_family_action_notifications(user_id):
     """가족이 나 대신 처리한 완료/수동 기록 중, 아직 확인 안 한 것.
@@ -4783,6 +5140,20 @@ def undo_family_action_notification(user_id, notif_id):
                         """INSERT INTO user_manual_cook_logs (user_id, added_by_user_id, log_date, title)
                            VALUES (%s, %s, %s, %s)""",
                         (user_id, user_id, notif['snapshot_log_date'], notif['title'])
+                    )
+            elif notif['entity_type'] == 'meal_plan':
+                if notif['action_type'] == 'add':
+                    cursor.execute(
+                        "DELETE FROM user_meal_plans WHERE user_id = %s AND plan_date = %s AND recipe_id = %s",
+                        (user_id, notif['snapshot_log_date'], notif['recipe_id'])
+                    )
+                else:  # 'delete' 복구 — 스냅샷으로 다시 만든다
+                    cursor.execute(
+                        """INSERT INTO user_meal_plans (user_id, added_by_user_id, plan_date, recipe_id, title, link, thumbnail)
+                           VALUES (%s, %s, %s, %s, %s, %s, %s)
+                           ON DUPLICATE KEY UPDATE title = VALUES(title), link = VALUES(link), thumbnail = VALUES(thumbnail)""",
+                        (user_id, user_id, notif['snapshot_log_date'], notif['recipe_id'],
+                         notif['title'], notif['snapshot_link'], notif['snapshot_thumbnail'])
                     )
 
             cursor.execute(
