@@ -1,5 +1,5 @@
 import React from "react";
-import { AbsoluteFill, OffthreadVideo, Sequence, staticFile, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
+import { AbsoluteFill, Audio, OffthreadVideo, Sequence, staticFile, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import { FONT_FAMILY, WHITE, LINE, useCustomFont, CtaOutro, Caption } from "./shared";
 
 // 원본: VID_20260911180601731.mp4 (15.2s, 632x1280, 30fps) — 실제 쿡매치 사진 인식 데모
@@ -215,6 +215,16 @@ const Demo: React.FC = () => {
 
       <Caption from={c1From} len={C1 + CBrowse + C2 + C3} text={"영수증이든 음식 사진이든\n한 장이면 자동 인식"} />
       <Caption from={c4From} len={C4 + C5 + HOLD} text={"재료랑 유통기한까지\n자동으로"} />
+
+      {/* 데모 자막 음성 나레이션(파일럿) — edge-tts(ko-KR-SunHiNeural)로 생성. 자막이 타이핑
+          시작하는 프레임과 정확히 맞춰서 재생 시작 — 두 자막 모두 원래 비트 길이가 나레이션
+          길이보다 길어서(4.34s<5.67s, 3.22s<3.4s) 별도로 비트를 늘릴 필요 없이 그대로 얹었다. */}
+      <Sequence from={c1From} durationInFrames={C1 + CBrowse + C2 + C3} name="narration-1">
+        <Audio src={staticFile("reel1_narration_1.mp3")} />
+      </Sequence>
+      <Sequence from={c4From} durationInFrames={C4 + C5 + HOLD} name="narration-2">
+        <Audio src={staticFile("reel1_narration_2.mp3")} />
+      </Sequence>
     </AbsoluteFill>
   );
 };
