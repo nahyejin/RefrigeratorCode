@@ -597,14 +597,13 @@ const CookingCalendar: React.FC = () => {
   }, [loadCalendar]);
 
   /**
-   * **전 기간**을 한 번 불러온다(목록이 쓰기도 하고, 이제 달력의 범위 토글
-   * 옆 "식구들 것 N건" 표시도 이 값을 쓴다 — 2026-09-15).
+   * 목록을 처음 열 때 **전 기간**을 한 번 불러온다.
    *
    * 달력이 쓰는 `entries` 는 보고 있는 달만 담는다. 그걸 그대로 목록에 썼더니
    * 이번 달에 완료한 게 없으면 "0건" 이 됐다 — 여태 만든 것을 보러 온 화면인데.
    */
   React.useEffect(() => {
-    if (allEntries !== null) return;
+    if (mode === 'calendar' || allEntries !== null) return;
     if (!isLoggedIn || !authUser?.id) return;
     const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
     const params = new URLSearchParams({ start: '2000-01-01', end: toDateKey(addDays(new Date(), 366)) });
@@ -681,20 +680,6 @@ const CookingCalendar: React.FC = () => {
       return by.some(n => n && n !== myName);
     });
   }, [scope, recorded, householdRecorded, hideMine, myName]);
-
-  /** 식구 탭에서 **나 말고 다른 사람** 것이 몇 건인지. 체크박스 옆에 적는다. */
-  const othersCount = React.useMemo(() => {
-    if (allEntries === null) return 0;
-    const me = Number(authUser?.id);
-    if (listKind === 'write') {
-      // 기록은 기간을 안 따진다(날짜가 없다). 완료만 목록과 같은 기준으로 센다.
-      return (householdRecorded || []).filter((r: any) => {
-        const by: string[] = Array.isArray(r.acted_by) ? r.acted_by : [];
-        return by.some(n => n && n !== myName);
-      }).length;
-    }
-    return allEntries.filter(e => e.user_id !== me).length;
-  }, [allEntries, householdRecorded, listKind, myName, authUser?.id]);
 
   const handleSaveCompletedDate = async (entry: CalendarEntry) => {
     if (!authUser?.id || !dateInput) return;
@@ -1561,35 +1546,60 @@ const CookingCalendar: React.FC = () => {
         </div>
 
         {/* "누구 것을 볼지" — 달력이든 목록이든 공용. 그룹 소속일 때만
-            보인다(혼자면 고를 게 없다). "가족 전체"를 고르면 그 아래
-            "내 것은 빼고" 체크박스가 같이 뜬다. */}
+            보인다(혼자면 고를 게 없다).
+            처음엔 [일][주][월]과 똑같은 낱개 알약 두 개로 만들었는데, 그
+            아래 [일][주][월] 알약 세 개까지 겹쳐 "알약 버튼이 너무 많다"는
+            지적(2026-09-15). 아래 완료·기록 토글과 같은 **미끄러지는
+            테두리 상자** 모양으로 바꿔, 낱개 알약(기간 선택)과 시각적으로
+            구분되게 했다. "내 것은 빼고" 체크박스도 줄바꿈 없이 같은 줄
+            오른쪽에 두고, 옆의 건수 안내문("식구들이 한 게 아직 없어요" 등)은
+            군더더기라 뺐다 — 체크박스 이름만으로 충분히 읽힌다. */}
         {isInHousehold && (
-          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8,
-                        padding: '10px 14px 0' }}>
-            {([
-              { key: 'mine', label: '내 요리만' },
-              { key: 'household', label: '우리 식구 전체' },
-            ] as const).map(({ key, label }) => {
-              const on = scope === key;
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  aria-pressed={on}
-                  onClick={() => { setScope(key); if (key === 'household') setListKind('done'); }}
-                  style={{
-                    minHeight: 30, padding: '7px 14px', boxSizing: 'border-box', borderRadius: 9999,
-                    fontSize: 13, fontWeight: on ? 700 : 500,
-                    background: on ? 'var(--ink-900)' : 'var(--surface-sub)',
-                    color: on ? '#FFFFFF' : 'var(--ink-700)', border: 'none', cursor: 'pointer',
-                  }}
-                >
-                  {label}
-                </button>
-              );
-            })}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px 0' }}>
+            <div
+              role="group"
+              aria-label="범위 고르기"
+              style={{
+                position: 'relative', display: 'inline-flex', flexShrink: 0,
+                padding: 3, borderRadius: 10, background: 'var(--surface-sub)',
+                border: '1px solid var(--line-200)',
+              }}
+            >
+              <span
+                aria-hidden
+                style={{
+                  position: 'absolute', top: 3, bottom: 3, left: 3, width: 'calc(50% - 3px)',
+                  borderRadius: 8, background: 'var(--ink-900)',
+                  transform: scope === 'household' ? 'translateX(100%)' : 'none',
+                  transition: 'transform .2s cubic-bezier(.4,0,.2,1)',
+                }}
+              />
+              {([
+                { key: 'mine', label: '내 요리만' },
+                { key: 'household', label: '우리 식구 전체' },
+              ] as const).map(({ key, label }) => {
+                const on = scope === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => { setScope(key); if (key === 'household') setListKind('done'); }}
+                    style={{
+                      position: 'relative', zIndex: 1, height: 28, padding: '0 12px',
+                      border: 'none', background: 'transparent', borderRadius: 8, cursor: 'pointer',
+                      color: on ? '#FFFFFF' : 'var(--ink-500)',
+                      fontSize: 12.5, fontWeight: on ? 700 : 500,
+                      whiteSpace: 'nowrap', transition: 'color .2s ease',
+                    }}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
             {scope === 'household' && (
-              <label style={{ display: 'flex', alignItems: 'center', gap: 6,
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0,
                               fontSize: 12.5, color: 'var(--ink-700)', cursor: 'pointer' }}>
                 <input
                   type="checkbox"
@@ -1598,9 +1608,6 @@ const CookingCalendar: React.FC = () => {
                   style={{ width: 16, height: 16 }}
                 />
                 <span>내 것은 빼고</span>
-                <span style={{ color: 'var(--ink-500)' }}>
-                  {othersCount === 0 ? '· 식구들이 한 게 아직 없어요' : `· 식구들 것 ${othersCount}건`}
-                </span>
               </label>
             )}
           </div>
