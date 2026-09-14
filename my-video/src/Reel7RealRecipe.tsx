@@ -2,25 +2,29 @@ import React from "react";
 import { AbsoluteFill, OffthreadVideo, Sequence, staticFile, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import { FONT_FAMILY, WHITE, LINE, useCustomFont, CtaOutro, Caption } from "./shared";
 
-// 훅: 제미나이 생성 실사 클립(10s, 720x1280, 24fps, 대사 포함) — 집밥을 먹다가 애매한 표정으로
-// "분명 레시피대로 했는데... 이 레시피도 요리 초보가 쓴 거 아니야?" 혼잣말 후 접시를 밀어내는 리액션
+// 훅: 제미나이 생성 실사 클립(20s, 720x1280, 24fps, 대사 포함) — 집밥을 먹으며 "분명 레시피대로
+// 했는데... 이 레시피도 요리 초보가 쓴 거 아니야?"를 망설이듯(자연스러운 끊어 말하기 포함) 혼잣말
+// 하고, 말이 끝난 직후 스스로도 웃음이 나는 듯 미소 짓는 리액션까지 한 컷에 이어짐.
+// 최초 버전(10s)의 "발연기"(어색한 연기) 지적으로 사용자가 같은 대사로 재생성한 버전(20s)으로 교체.
+// silencedetect로 실측한 결과 이번 버전은 대사가 세 번의 짧은 끊김(2.4~3.37s, 3.67~4.8s,
+// 5.12~8.34s)을 두고 이어지는데, 이건 잘못 잘린 게 아니라 망설이며 말하는 자연스러운 호흡으로 보여서
+// (오히려 "발연기"를 해결하는 방향) 그대로 통째로 살림. 대사 직후(~8.3~9.5s) 미소 짓는 리액션까지
+// 같은 컷 안에 있어서 별도로 하드컷할 필요 없이 한 클립으로 처리(06편에서 배운 "정지 홀드로 어설프게
+// 잇지 말 것"의 연장선 — 애초에 안 끊으면 이어붙이기 문제 자체가 없다).
 const HOOK_VIDEO = "reel7_hook_gemini.mp4";
+const HOOK_RAW = {
+  line: [0, 285], // 0:00–9.5 밥 먹으며 망설이듯 대사 + 직후 미소 리액션까지 한 컷
+};
+const HB1 = HOOK_RAW.line[1] - HOOK_RAW.line[0]; // 285f
+const HOOK_LEN = HB1; // 285f
+// 화면 왼쪽 아래에 촬영용 트라이포드가 계속 걸려 나와서(제미나이 생성 특유의 배경 소품 오류로 보임),
+// 살짝 확대해 크롭해서 프레임 밖으로 뺀다.
+const HOOK_ZOOM = 1.35;
+const HOOK_ORIGIN = "72% 38%";
+
 // 데모: 실제 쿡매치 냉장고요리 흐름(23.6s, 880x1920, 30fps) — 로딩(레시피 4만여개) → 인기순 정렬 →
 // 레시피 상세 → 원문(실제 유튜브 영상)까지 연결
 const DEMO_VIDEO = "reel7_recipe_demo.mp4";
-
-// ---- 훅 원본 타임코드(30fps 기준 프레임) ----
-// silencedetect로 실측: 대사("분명 레시피대로 했는데... 이 레시피도 요리 초보가 쓴 거 아니야?")는
-// 3.77~6.52s에 이어져 있어서(06편과 달리 문장이 짧아 끊을 필요 없음) 통으로 살리고, 대사 뒤 정적을
-// 건너뛰어 젓가락을 내려놓고 접시를 밀어내는 리액션(7.5~9.5s)으로 하드컷(06편에서 배운 대로 정지
-// 프레임 없이 바로 컷 — 같은 촬영본이라 이어붙여도 위화감 없음).
-const HOOK_RAW = {
-  line: [0, 196], // 0:00–6.53 밥 먹으며 대사
-  reaction: [225, 285], // 0:07.5–9.5 젓가락 내려놓고 접시 밀어내는 리액션(무음)
-};
-const HB1 = HOOK_RAW.line[1] - HOOK_RAW.line[0]; // 196f
-const HB2 = HOOK_RAW.reaction[1] - HOOK_RAW.reaction[0]; // 60f
-const HOOK_LEN = HB1 + HB2; // 256f
 
 // ---- 데모 원본 타임코드(30fps 기준 프레임) ----
 // 컨티 원안은 "정렬 드롭다운 조작"만 계획했지만, 실촬영본에 더 설득력 있는 소재(로딩 화면에 실제로
@@ -132,14 +136,23 @@ const SubClip: React.FC<{
 
 // ---------- ①② 훅 (제미나이 생성 실사, 720x1280 — 캔버스와 같은 9:16이라 크롭 없이 꽉 참) ----------
 const Hook: React.FC = () => {
-  const b2From = HB1;
   return (
     <AbsoluteFill style={{ backgroundColor: WHITE }}>
       <Sequence from={0} durationInFrames={HB1} name="line">
-        <SubClip src={HOOK_VIDEO} rawFrom={HOOK_RAW.line[0]} rawTo={HOOK_RAW.line[1]} rate={1} len={HB1} width={1080} height={1920} left={0} fade={false} muted={false} />
-      </Sequence>
-      <Sequence from={b2From} durationInFrames={HB2} name="reaction">
-        <SubClip src={HOOK_VIDEO} rawFrom={HOOK_RAW.reaction[0]} rawTo={HOOK_RAW.reaction[1]} rate={1} len={HB2} width={1080} height={1920} left={0} fade={false} />
+        <SubClip
+          src={HOOK_VIDEO}
+          rawFrom={HOOK_RAW.line[0]}
+          rawTo={HOOK_RAW.line[1]}
+          rate={1}
+          len={HB1}
+          width={1080}
+          height={1920}
+          left={0}
+          fade={false}
+          muted={false}
+          zoom={HOOK_ZOOM}
+          origin={HOOK_ORIGIN}
+        />
       </Sequence>
 
       <Caption from={0} len={HOOK_LEN} text={"레시피 따라했는데,\n왜 제 것만 이상하죠?"} />
