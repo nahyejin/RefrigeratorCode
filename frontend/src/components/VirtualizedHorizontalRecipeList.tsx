@@ -6,7 +6,7 @@ import { resolveCoupangUrl } from '../utils/coupangLink';
 import { preloadCoupangAds } from '../utils/recipeUtils';
 import { getLackingIngredients, pickAdIngredient } from '../utils/lackingIngredients';
 import { Recipe, RecipeActionState } from '../types/recipe';
-import { lookupRecipeActionState } from '../utils/recipeStorage';
+import { lookupRecipeActionState, getRecipeActionState } from '../utils/recipeStorage';
 
 interface VirtualizedHorizontalRecipeListProps {
   recipes: Recipe[];
@@ -430,7 +430,10 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
           recipe={recipe}
           index={item.recipeIndex}
           recipeActionState={
-            lookupRecipeActionState(recipeActionStates, recipe.id) || Utils.getDefaultRecipeActionState()
+            // 상태 맵에 없으면 "전부 꺼짐"으로 두지 말고 기기 목록을 직접 본다.
+            // 화면마다 맵을 **일부 목록으로만** 만들어서, 빠진 카드는 눌러 둔
+            // 완료·즐겨찾기가 다른 탭 갔다 오면 풀려 보였다(실사용 지적, 2026-09-15).
+            lookupRecipeActionState(recipeActionStates, recipe.id) || getRecipeActionState(recipe.id)
           }
           onRecipeAction={({ action }) => onRecipeAction(recipe, action)}
           isLast={Utils.isLastItem(item.recipeIndex, recipes.length)}

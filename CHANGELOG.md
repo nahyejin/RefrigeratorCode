@@ -11002,3 +11002,11 @@ edge-tts 파일럿 목소리가 "너무 AI 같다"는 피드백 + "제미나이�
 - **API 한도**: 무료 티어는 TTS 모델당 **하루 10회**(태평양 자정 = 한국 16시 리셋). 오늘 2.5-flash 한도가 2개 생성 후 소진, 2.5-pro-tts는 무료 한도 0, 3.1-flash-tts는 되지만 목소리 결이 달라서 A/B 샘플을 들려준 뒤 **2.5-flash로 통일, 약 3일에 걸쳐 생성**하기로 사용자 결정. 남은 23줄은 매일 배치로 생성 → Whisper 확인 → 합격본만 `public/`에 넣고 `narration_frames.py` 재실행 → 편 단위로 렌더.
 - 06편 1번 나레이션(검증 통과한 wav)을 규칙에 맞게 `reel6_narration_1.mp3`로 변환·이름 정리.
 - **확인 문구가 애매하게 잘림**: 카드 버튼으로 해제할 때 뜨는 검은 확인 토스트(마이페이지·전체보기 목록·요즘인기·냉장고요리·완료/기록 목록 6곳)가 `white-space: nowrap` + 최대폭 320px + 말줄임이라, 좁은 폰에서 "레시피 즐겨찾기를 취소하시겠…"처럼 잘렸음. 어절 단위 줄바꿈(`keep-all` + `text-wrap: balance`)으로 바꿔 "레시피 즐겨찾기를 / 취소하시겠어요?"로 나뉘게 함. 조리 시트 확인창(Dialog)도 로컬 브라우저 375px 폭에서 같은 줄바꿈으로 뜨는 것 확인.
+
+### 요즘인기·냉장고요리 — 카드의 완료·기록·즐겨찾기가 다른 탭 갔다 오면 풀려 보이던 문제
+실사용 지적: "요즘인기에서 완료를 누르고 다른 탭 갔다 오면 완료 버튼이 풀려 있다." 원인이 세 겹이었음.
+- **눌린 모양이 오히려 비활성처럼 보임**: [RecipeCard.tsx](frontend/src/components/RecipeCard.tsx) 카드 아래 줄의 완료/기록 버튼은 눌리면 회색 PNG 아이콘의 투명도가 0.7 → **0.32로 더 옅어지는** 방식이라, 저장은 돼 있어도 "안 눌림/비활성"으로 읽혔음. 조리 시트와 같은 선 아이콘(인라인 SVG)으로 바꾸고, 눌리면 **노란 원 + 검은 아이콘**(즐겨찾기 별과 같은 표현), 안 눌리면 회색 선 아이콘으로. 공유는 켜고 끄는 동작이 아니라 눌린 상태 없음. `aria-pressed`도 부여.
+- **요즘인기 「특별한 날 특별한 음식」 카드는 상태 맵에서 빠져 있었음**: [Popular.tsx](frontend/src/pages/Popular.tsx)가 버튼 상태 맵(`buttonStates`)을 유튜브·네이버 목록으로만 만들어서, 이 섹션 카드는 다시 들어오면 상태가 없어 전부 꺼져 보였음. 맵에 없으면 기기 목록(`getRecipeActionState`)을 직접 보도록 수정.
+- **목록 컴포넌트 공통 폴백**: [VirtualizedHorizontalRecipeList.tsx](frontend/src/components/VirtualizedHorizontalRecipeList.tsx)는 맵에 없는 카드를 "전부 꺼짐"으로 채웠고 [VirtualizedRecipeList.tsx](frontend/src/components/VirtualizedRecipeList.tsx)는 빈 값을 넘겼음. 둘 다 맵에 없으면 기기 목록을 보도록 통일 — 앞으로 어느 화면이 맵을 일부 목록으로만 만들어도 같은 증상이 안 생김.
+- [RecipeList.tsx](frontend/src/pages/RecipeList.tsx) 「즐겨찾기로 요리 고르기」 모드는 즐겨찾기 목록을 그리는데 맵은 `recipes`로만 만들던 것도 함께 수정.
+- 로컬 브라우저(운영 API 연결)에서 「특별한 날」 카드 완료 → 내냉장고 탭 → 요즘인기 복귀 순으로 눌러, 완료 버튼이 노란 원으로 유지되는 것 확인.

@@ -1454,8 +1454,12 @@ const RecipeList: React.FC = () => {
   };
 
   useEffect(() => {
+    // 「즐겨찾기로 요리 고르기」를 켜면 화면은 즐겨찾기 목록을 그리는데, 상태
+    // 맵은 `recipes` 로만 만들어 그 카드들의 버튼이 꺼져 보였다(2026-09-15).
     const syncActionStates = () => {
-      setRecipeActionStates(buildRecipeActionStatesForRecipes(recipes));
+      setRecipeActionStates(buildRecipeActionStatesForRecipes(
+        favoriteOnly ? [...recipes, ...getRecipesFromLocalStorage('favorite')] : recipes,
+      ));
     };
 
     syncActionStates();
@@ -1498,7 +1502,7 @@ const RecipeList: React.FC = () => {
       window.removeEventListener('focus', syncActionStates);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [recipes]);
+  }, [recipes, favoriteOnly]);
 
   // Reverting changes made to the filter button functionality
   // Remove the handleFilterButtonClick function and FilterModal rendering

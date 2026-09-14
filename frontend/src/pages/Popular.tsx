@@ -27,7 +27,7 @@ import RecipeCard from '../components/RecipeCard';
 import UsedUpSheet from '../components/UsedUpSheet';
 import youtubeTitleImg from '../assets/유튜브제목이미지.png';
 import naverTitleImg from '../assets/네이버제목이미지.png';
-import { addRecipeToLocalStorage, removeRecipeFromLocalStorage, getRecipesFromLocalStorage, copyRecipeUrlToClipboard, getMyFridgeIngredients, buildRecipeActionStatesForRecipes, getRecipeActionState } from '../utils/recipeStorage';
+import { addRecipeToLocalStorage, removeRecipeFromLocalStorage, getRecipesFromLocalStorage, copyRecipeUrlToClipboard, getMyFridgeIngredients, buildRecipeActionStatesForRecipes, getRecipeActionState, lookupRecipeActionState } from '../utils/recipeStorage';
 import VirtualizedRecipeList from '../components/VirtualizedRecipeList';
 import RecipeToast from '../components/RecipeToast';
 import RecipeSortBar from '../components/RecipeSortBar';
@@ -1906,7 +1906,11 @@ const Popular = () => {
                               <RecipeCard
                                 recipe={recipe}
                                 index={index}
-                                recipeActionState={buttonStates[recipe.id]}
+                                // 「특별한 날」 카드는 위 상태 맵(buttonStates)을 만드는
+                                // 목록(유튜브·네이버)에 없다 — 그래서 완료·즐겨찾기를
+                                // 눌러 두고 다른 탭 갔다 오면 풀려 보였다(2026-09-15).
+                                // 맵에 없으면 기기 목록을 직접 본다.
+                                recipeActionState={lookupRecipeActionState(buttonStates, recipe.id) || getRecipeActionState(recipe.id)}
                                 onRecipeAction={(recipeWithAction) => handleRecipeAction(recipe.id, { action: recipeWithAction.action })}
                                 isLast={true}
                                 myIngredients={myIngredients}

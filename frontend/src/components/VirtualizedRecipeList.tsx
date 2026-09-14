@@ -5,7 +5,7 @@ import { resolveCoupangUrl } from '../utils/coupangLink';
 import { preloadCoupangAds } from '../utils/recipeUtils';
 import { getLackingIngredients, pickAdIngredient } from '../utils/lackingIngredients';
 import { Recipe, RecipeActionState } from '../types/recipe';
-import { lookupRecipeActionState } from '../utils/recipeStorage';
+import { lookupRecipeActionState, getRecipeActionState } from '../utils/recipeStorage';
 
 interface VirtualizedRecipeListProps {
   recipes: Recipe[];
@@ -166,7 +166,8 @@ const VirtualizedRecipeList = forwardRef<VirtualizedRecipeListRef, VirtualizedRe
             <RecipeCard
               recipe={recipe}
               index={index}
-              recipeActionState={lookupRecipeActionState(recipeActionStates, recipe.id)}
+              // 맵에 없는 카드는 기기 목록을 직접 본다 — VirtualizedHorizontalRecipeList 와 같은 이유.
+              recipeActionState={lookupRecipeActionState(recipeActionStates, recipe.id) || getRecipeActionState(recipe.id)}
               onRecipeAction={({ action }) => onRecipeAction(recipe, action)}
               isLast={index === recipes.length - 1}
               myIngredients={myIngredients}

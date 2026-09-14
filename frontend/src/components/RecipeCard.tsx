@@ -23,10 +23,13 @@ const THUMB_ACTIONS = [
   { key: 'favorite', title: '즐겨찾기', icon: null },
 ] as const;
 
+// `path` 는 조리 시트(CookModeSheet) 의 같은 버튼과 **같은 선 아이콘**이다.
+// 눌린 상태를 노란 원 + 검은 아이콘으로 칠하려면 선으로 그린 SVG 여야 한다 —
+// PNG(icon)는 원 배경이 박혀 있어 색을 바꾸면 덩어리가 된다.
 const SECONDARY_ACTIONS = [
-  { key: 'done', title: '완료', icon: 완료하기버튼 },
-  { key: 'write', title: '기록', icon: 기록하기버튼 },
-  { key: 'share', title: '공유', icon: 공유하기버튼 },
+  { key: 'done', title: '완료', icon: 완료하기버튼, path: 'M5 13l4 4L19 7', strokeOnly: true },
+  { key: 'write', title: '기록', icon: 기록하기버튼, path: 'M7 3h10a1 1 0 0 1 1 1v16l-6-4-6 4V4a1 1 0 0 1 1-1z', strokeOnly: false },
+  { key: 'share', title: '공유', icon: 공유하기버튼, path: 'M2 21L23 12L2 3V10L17 12L2 14V21Z', strokeOnly: false },
 ] as const;
 
 const ACTIONS = THUMB_ACTIONS;
@@ -738,11 +741,15 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
         {/* 완료 / 기록 / 공유 — 사진을 가리지 않도록 이 줄로 내림. 줄 높이를 그대로 써서
             카드가 더 길어지지 않고, 터치 영역은 36px 로 확보 */}
         <span style={{ display: 'flex', alignItems: 'center', gap: 0, flexShrink: 0, marginRight: -6 }}>
-          {SECONDARY_ACTIONS.map(({ key, title, icon }) => (
+          {SECONDARY_ACTIONS.map(({ key, title, path, strokeOnly }) => {
+            // 공유는 켜고 끄는 게 아니라 한 번 하는 동작이라 눌린 상태가 없다.
+            const on = key !== 'share' && !!recipeActionState?.[key];
+            return (
             <button
               key={key}
               title={title}
               aria-label={title}
+              aria-pressed={key === 'share' ? undefined : on}
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -762,18 +769,33 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
               }}
               {...(index === 0 ? { 'data-guide-target': `recipe-${key}-button` } : {})}
             >
-              <img
-                src={icon}
-                alt={title}
-                width={22}
-                height={22}
+              {/* 눌린 상태는 **노란 원 + 검은 아이콘**(즐겨찾기 별과 같은 말).
+                  전에는 눌리면 회색 아이콘이 오히려 **더 옅어져서**(투명도 0.7→0.32)
+                  비활성처럼 보였다 — 다른 탭 갔다 오면 "눌린 게 풀렸다"로
+                  읽혔다(실사용 지적, 2026-09-15). */}
+              <span
+                aria-hidden
                 style={{
-                  opacity: recipeActionState?.[key] ? 0.32 : 0.7,
-                  filter: 'grayscale(1)',
+                  width: 26, height: 26, borderRadius: 9999,
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  background: on ? '#FFD600' : 'transparent',
+                  transition: 'background .15s ease',
                 }}
-              />
+              >
+                <svg width={16} height={16} viewBox="0 0 24 24">
+                  <path
+                    d={path}
+                    fill={strokeOnly ? 'none' : (on ? '#1A1A1E' : 'none')}
+                    stroke={on ? '#1A1A1E' : '#9A9AA3'}
+                    strokeWidth={strokeOnly ? 2.6 : 2}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </span>
             </button>
-          ))}
+            );
+          })}
         </span>
       </div>
       {/* 재료 칩은 **접어 둔다.** 다섯 개가 두 줄이면 제목(한 줄)보다 크고,
