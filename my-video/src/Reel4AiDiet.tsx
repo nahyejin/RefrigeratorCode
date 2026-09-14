@@ -273,7 +273,7 @@ const Demo: React.FC = () => {
             left={VIDEO_LEFT}
             cropTop={TOPCROP_PX}
             fade={false}
-            punchZoom={1.15}
+            punchZoom={1.25}
             punchOrigin="25% 44%"
           />
         </Sequence>
