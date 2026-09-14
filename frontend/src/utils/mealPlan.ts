@@ -117,3 +117,12 @@ export function clearPlanMeal(date: string, recipeId: number): void {
     /* 무시 */
   }
 }
+
+/** 짜 둔 계획을 **전부** 지운다. 하나씩 취소하기 번거롭다는 요청(2026-09-14). */
+export function clearAllPlans(): void {
+  try {
+    localStorage.removeItem(KEY);
+  } catch {
+    /* 무시 */
+  }
+}

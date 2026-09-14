@@ -12,6 +12,7 @@ import PlanUpgradeToast from '../components/PlanUpgradeToast';
 import { prefetchFridgeRecipes, prefetchPopular } from '../utils/recipePrefetch';
 import CookModeHost from '../components/CookModeHost';
 import ShareRequestPopup from '../components/ShareRequestPopup';
+import FamilyActionNotice from '../components/FamilyActionNotice';
 import { AuthProvider } from '../context/AuthContext';
 import LegalPage from '../pages/LegalPage';
 import Login from '../pages/Login';
@@ -294,6 +295,7 @@ function AppContent() {
           시트를 하나씩 두면 같은 코드를 여섯 군데에 적게 된다. */}
       <CookModeHost />
       <ShareRequestPopup />
+      <FamilyActionNotice />
     </>
   );
 }

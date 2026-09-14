@@ -799,23 +799,30 @@ const RecipeSortBar = ({
               appliedExpiryIngredients.length ? ` (지금 ${appliedExpiryIngredients.length}개)` : ''}`}
             data-guide-target="expiry-button"
           >
-            {/* 이모지(⏱)는 알록달록해서 검정 테두리로 통일된 다른 아이콘들 사이에서
-                혼자 튀어 보였다. 같은 톤의 선 아이콘(시계)으로 교체 */}
-            <svg
-              aria-hidden="true"
-              width={14}
-              height={14}
-              viewBox="0 0 24 24"
-              fill="none"
-              style={{ marginRight: 4, verticalAlign: -2 }}
-            >
-              <circle cx="12" cy="13" r="8" stroke="#1A1A1E" strokeWidth="1.8" />
-              <path d="M12 9v4l3 2" stroke="#1A1A1E" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M9 2h6" stroke="#1A1A1E" strokeWidth="1.8" strokeLinecap="round" />
-            </svg>
             <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'center',
                            lineHeight: 1.05 }}>
-              <span>임박 재료</span>
+              {/* 시계 아이콘이 배지("N개")가 붙었을 때 컬럼 전체 높이의 가운데로
+                  정렬돼(부모 button 의 alignItems:center) "임박 재료" 글자보다
+                  아래로 처져 보였다(실사용 지적, 2026-09-14). "매칭도" 버튼의
+                  「%」처럼 아이콘을 라벨과 같은 줄 안으로 옮겨 텍스트와 나란히
+                  맞춘다 — 이모지(⏱)는 알록달록해서 검정 테두리로 통일된 다른
+                  아이콘들 사이에서 혼자 튀어 보여 같은 톤의 선 아이콘(시계)으로
+                  교체했던 것. */}
+              <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+                <svg
+                  aria-hidden="true"
+                  width={14}
+                  height={14}
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  style={{ marginRight: 4 }}
+                >
+                  <circle cx="12" cy="13" r="8" stroke="#1A1A1E" strokeWidth="1.8" />
+                  <path d="M12 9v4l3 2" stroke="#1A1A1E" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M9 2h6" stroke="#1A1A1E" strokeWidth="1.8" strokeLinecap="round" />
+                </svg>
+                임박 재료
+              </span>
               {appliedExpiryIngredients.length > 0 && (
                 <span style={STYLES.buttonNote}>{appliedExpiryIngredients.length}개</span>
               )}

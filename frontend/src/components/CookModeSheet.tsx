@@ -1,5 +1,6 @@
 import React from 'react';
 import Sheet from './ui/Sheet';
+import Dialog from './ui/Dialog';
 import PlanThisDay from './PlanThisDay';
 import Toast from './Toast';
 import { useAuth } from '../context/AuthContext';
@@ -112,6 +113,31 @@ const CookModeSheet: React.FC<Props> = ({
     const t = setTimeout(() => setToast(null), 1600);
     return () => clearTimeout(t);
   }, [toast]);
+
+  /**
+   * 완료 버튼을 안 누르고 그냥 닫는 경우가 많을 것 같다는 지적(2026-09-14).
+   * 시트를 **일정 시간 이상 열어 두었다가** 닫으면 — 실제로 조리 순서를
+   * 보며 요리했을 가능성이 높다는 뜻이니 — "완료하셨나요" 를 한 번 물어본다.
+   * 이미 완료를 눌렀으면(actionState.done) 또 물을 이유가 없다.
+   */
+  const DONE_NUDGE_MS = 3 * 60 * 1000;
+  const openedAtRef = React.useRef<number | null>(null);
+  const actionStateRef = React.useRef(actionState);
+  React.useEffect(() => { actionStateRef.current = actionState; }, [actionState]);
+  const [doneNudge, setDoneNudge] = React.useState(false);
+
+  React.useEffect(() => {
+    if (isOpen) {
+      openedAtRef.current = Date.now();
+      return;
+    }
+    const openedAt = openedAtRef.current;
+    openedAtRef.current = null;
+    if (openedAt == null || recipeId == null) return;
+    if (Date.now() - openedAt >= DONE_NUDGE_MS && !actionStateRef.current.done) {
+      setDoneNudge(true);
+    }
+  }, [isOpen, recipeId]);
 
   const syncActionToServer = React.useCallback(
     async (type: 'favorite' | 'done' | 'write', id: number, remove = false) => {
@@ -300,6 +326,7 @@ const CookModeSheet: React.FC<Props> = ({
   const names = data?.ingredients || [];
 
   return (
+    <>
     <Sheet open={isOpen} onClose={() => { stopSpeaking(); onClose(); }}
            title={data?.title || fallbackTitle || '레시피'} maxHeight="88dvh" hideFooter>
       {/* 즐겨찾기·완료·기록·공유 — 일반 레시피 카드에 있는 것과 같은 네 버튼.
@@ -638,6 +665,27 @@ const CookModeSheet: React.FC<Props> = ({
         </div>
       )}
     </Sheet>
+    {doneNudge && (
+      <Dialog
+        open
+        onClose={() => setDoneNudge(false)}
+        title="이 요리를 완료하셨나요?"
+        width={320}
+        dismissLabel="아니요"
+        actions={[{
+          label: '완료 기록하기',
+          onClick: () => {
+            toggleAction('done');
+            setDoneNudge(false);
+          },
+        }]}
+      >
+        <span style={{ wordBreak: 'keep-all' }}>
+          한참 보고 계셨어서 여쭤봐요. 완료로 기록하면 요리 캘린더에 남아요.
+        </span>
+      </Dialog>
+    )}
+    </>
   );
 };
 

@@ -2511,7 +2511,48 @@ def ensure_user_data_tables():
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         """)
-        
+
+        # 앱이 추천하지 않은 요리(레시피 DB에 없는 것)를 그냥 오늘 만들었다고만
+        # 남기고 싶을 때 쓰는 수동 기록. `recipe_id`가 없어 완료 테이블과는
+        # 따로 둔다 — 제목만 있는 메모다. 요리 캘린더에 완료 기록과 같이 섞여
+        # 보인다(사용자 요청, 2026-09-14).
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS user_manual_cook_logs (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL COMMENT '이 기록의 주인(실제 요리한 사람)',
+                added_by_user_id INT NOT NULL COMMENT '버튼을 누른 사람. 본인이면 user_id와 같다',
+                log_date DATE NOT NULL,
+                title VARCHAR(255) NOT NULL,
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_user_date (user_id, log_date),
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        """)
+
+        # 가족 구성원이 나 대신(혹은 내 것을) 완료·수동 기록을 추가/삭제했을 때
+        # 남기는 알림. 당사자가 다음에 앱을 열면 이 표를 확인해 팝업으로
+        # 보여주고, "복구"를 누르면 여기 남긴 스냅샷으로 되돌린다.
+        # (가족 대리 추가/삭제 요청, 2026-09-14)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS family_action_notifications (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                target_user_id INT NOT NULL COMMENT '알림을 받을 당사자',
+                actor_user_id INT NOT NULL COMMENT '대신 처리한 사람',
+                action_type VARCHAR(10) NOT NULL COMMENT "'add' 또는 'delete'",
+                entity_type VARCHAR(20) NOT NULL COMMENT "'completed_recipe' 또는 'manual_log'",
+                recipe_id INT NULL,
+                manual_log_id INT NULL COMMENT '삭제된 수동 기록의 원래 id(참조용, 복구 시 새 id 발급)',
+                title VARCHAR(255) NOT NULL COMMENT '알림에 보여줄 이름',
+                snapshot_log_date DATE NULL COMMENT '수동 기록 삭제 복구용',
+                snapshot_created_at DATETIME NULL COMMENT '완료 기록 삭제 복구용(원래 완료 시각)',
+                read_at DATETIME NULL,
+                undone_at DATETIME NULL,
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_target_unread (target_user_id, read_at),
+                FOREIGN KEY (target_user_id) REFERENCES users(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        """)
+
         db.commit()
     except Exception as e:
         db.rollback()
@@ -2789,6 +2830,41 @@ def resolve_ingredient_storage_user_id(cursor, user_id):
     그룹에 속해 있으면 그룹의 storage_user_id, 아니면 자기 자신."""
     household = get_household_by_user(cursor, user_id)
     return household['storage_user_id'] if household else user_id
+
+
+def is_same_household(cursor, user_id_a, user_id_b):
+    """두 사용자가 같은 그룹(household) 소속인가. 완료·기록 등을 **대신**
+    처리하는 요청을 허용할지 판단하는 기준이다 — 남남끼리는 안 된다."""
+    if user_id_a == user_id_b:
+        return True
+    household = get_household_by_user(cursor, user_id_a)
+    if not household:
+        return False
+    cursor.execute(
+        "SELECT 1 FROM users WHERE id = %s AND household_id = %s AND deleted_at IS NULL",
+        (user_id_b, household['id'])
+    )
+    return cursor.fetchone() is not None
+
+
+def record_family_action_notification(
+    cursor, *, target_user_id, actor_user_id, action_type, entity_type, title,
+    recipe_id=None, manual_log_id=None, snapshot_log_date=None, snapshot_created_at=None,
+):
+    """가족이 나 대신 뭔가를 추가/삭제했을 때 당사자에게 남길 알림.
+
+    본인이 스스로 한 일이면(actor == target) 알릴 이유가 없어 아무것도
+    남기지 않는다 — 호출부에서 매번 조건을 검사하지 않아도 되게 여기서 막는다."""
+    if actor_user_id == target_user_id:
+        return
+    cursor.execute(
+        """INSERT INTO family_action_notifications
+           (target_user_id, actor_user_id, action_type, entity_type, recipe_id,
+            manual_log_id, title, snapshot_log_date, snapshot_created_at, created_at)
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())""",
+        (target_user_id, actor_user_id, action_type, entity_type, recipe_id,
+         manual_log_id, title, snapshot_log_date, snapshot_created_at)
+    )
 
 
 def _issue_unique_invite_code(cursor):
@@ -3682,7 +3758,8 @@ def get_household_completed_calendar():
             cursor.execute(
                 f"""SELECT DATE(action.created_at) AS day,
                            action.created_at AS created_at,
-                           r.id AS recipe_id, r.title, r.thumbnail, action.user_id, u.nickname
+                           r.id AS recipe_id, r.title, r.thumbnail, action.user_id, u.nickname,
+                           'recipe' AS entry_type, NULL AS manual_log_id
                     FROM user_completed_recipes action
                     INNER JOIN recipes r ON r.id = action.recipe_id
                     INNER JOIN users u ON u.id = action.user_id
@@ -3695,6 +3772,26 @@ def get_household_completed_calendar():
             for row in rows:
                 row['day'] = row['day'].isoformat()
                 row['created_at'] = row['created_at'].isoformat()
+
+            # 앱이 추천 안 한(레시피 DB에 없는) 요리를 직접 적어 둔 수동 기록.
+            # 완료 기록과 같은 모양(day/created_at/title/user_id/nickname)으로
+            # 맞춰서 캘린더에 함께 섞어 보여준다 — recipe_id·thumbnail은 없다.
+            cursor.execute(
+                f"""SELECT log.log_date AS day, log.created_at AS created_at,
+                           NULL AS recipe_id, log.title, NULL AS thumbnail,
+                           log.user_id, u.nickname, 'manual' AS entry_type, log.id AS manual_log_id
+                    FROM user_manual_cook_logs log
+                    INNER JOIN users u ON u.id = log.user_id
+                    WHERE log.user_id IN ({placeholders})
+                      AND log.log_date BETWEEN %s AND %s
+                    ORDER BY log.created_at ASC""",
+                member_ids + [start_date, end_date]
+            )
+            manual_rows = cursor.fetchall()
+            for row in manual_rows:
+                row['day'] = row['day'].isoformat()
+                row['created_at'] = row['created_at'].isoformat()
+            rows = sorted(rows + manual_rows, key=lambda r: r['created_at'])
 
             return jsonify({
                 'entries': rows,
@@ -4267,84 +4364,120 @@ def get_user_completed_recipes(user_id):
 
 @app.route('/api/users/<int:user_id>/completed-recipes', methods=['POST'])
 def add_user_completed_recipe(user_id):
-    """사용자 완료한 레시피 추가"""
+    """사용자 완료한 레시피 추가.
+
+    그룹 소속이면 **다른 식구 대신** 추가할 수도 있다 — 실제로 요리한 사람이
+    로그인은 안 해 뒀을 수 있다는 요청(2026-09-14). 대신 추가하면 당사자에게
+    알림을 남겨, 잘못됐으면 되돌릴 수 있게 한다."""
     try:
-        # JWT 토큰 확인
         auth_header = request.headers.get('Authorization')
         if not auth_header or not auth_header.startswith('Bearer '):
             return jsonify({'error': '인증이 필요합니다.'}), 401
-        
+
         token = auth_header.split(' ')[1]
         payload = verify_jwt_token(token)
-        
-        if not payload or payload.get('user_id') != user_id:
+        if not payload:
             return jsonify({'error': '권한이 없습니다.'}), 403
-        
+        actor_user_id = payload.get('user_id')
+
         data = request.get_json()
         recipe_id = data.get('recipe_id')
-        
+
         if not recipe_id:
             return jsonify({'error': '레시피 ID가 필요합니다.'}), 400
-        
+
         ensure_user_data_tables()
+        ensure_households_table()
         db = get_db()
         cursor = db.cursor()
-        
+
         try:
+            if actor_user_id != user_id and not is_same_household(cursor, actor_user_id, user_id):
+                return jsonify({'error': '권한이 없습니다.'}), 403
+
             cursor.execute(
-                """INSERT INTO user_completed_recipes (user_id, recipe_id) 
+                """INSERT INTO user_completed_recipes (user_id, recipe_id)
                    VALUES (%s, %s)
                    ON DUPLICATE KEY UPDATE created_at = created_at""",
                 (user_id, recipe_id)
             )
+            if actor_user_id != user_id:
+                cursor.execute("SELECT title FROM recipes WHERE id = %s", (recipe_id,))
+                recipe_row = cursor.fetchone()
+                record_family_action_notification(
+                    cursor, target_user_id=user_id, actor_user_id=actor_user_id,
+                    action_type='add', entity_type='completed_recipe',
+                    title=(recipe_row['title'] if recipe_row else '레시피'), recipe_id=recipe_id,
+                )
             db.commit()
             return jsonify({'message': '레시피가 완료되었습니다.'}), 200
-            
+
         except Exception as e:
             db.rollback()
             print(f"Add user completed recipe error: {e}")
             return jsonify({'error': '레시피 완료 처리 중 오류가 발생했습니다.'}), 500
         finally:
             db.close()
-            
+
     except Exception as e:
         print(f"Add user completed recipe error: {e}")
         return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
 
 @app.route('/api/users/<int:user_id>/completed-recipes/<int:recipe_id>', methods=['DELETE'])
 def remove_user_completed_recipe(user_id, recipe_id):
-    """사용자 완료한 레시피 삭제"""
+    """사용자 완료한 레시피 삭제. 그룹 소속이면 다른 식구 것도 대신 지울 수
+    있다(당사자에게 알림 + 복구용 스냅샷 남김)."""
     try:
-        # JWT 토큰 확인
         auth_header = request.headers.get('Authorization')
         if not auth_header or not auth_header.startswith('Bearer '):
             return jsonify({'error': '인증이 필요합니다.'}), 401
-        
+
         token = auth_header.split(' ')[1]
         payload = verify_jwt_token(token)
-        
-        if not payload or payload.get('user_id') != user_id:
+        if not payload:
             return jsonify({'error': '권한이 없습니다.'}), 403
-        
+        actor_user_id = payload.get('user_id')
+
         ensure_user_data_tables()
+        ensure_households_table()
         db = get_db()
         cursor = db.cursor()
-        
+
         try:
+            if actor_user_id != user_id and not is_same_household(cursor, actor_user_id, user_id):
+                return jsonify({'error': '권한이 없습니다.'}), 403
+
+            existing = None
+            if actor_user_id != user_id:
+                cursor.execute(
+                    """SELECT ucr.created_at, r.title FROM user_completed_recipes ucr
+                       INNER JOIN recipes r ON r.id = ucr.recipe_id
+                       WHERE ucr.user_id = %s AND ucr.recipe_id = %s""",
+                    (user_id, recipe_id)
+                )
+                existing = cursor.fetchone()
+
             cursor.execute(
                 "DELETE FROM user_completed_recipes WHERE user_id = %s AND recipe_id = %s",
                 (user_id, recipe_id)
             )
+            if actor_user_id != user_id and existing:
+                record_family_action_notification(
+                    cursor, target_user_id=user_id, actor_user_id=actor_user_id,
+                    action_type='delete', entity_type='completed_recipe',
+                    title=existing['title'], recipe_id=recipe_id,
+                    snapshot_created_at=existing['created_at'],
+                )
             db.commit()
             return jsonify({'message': '레시피 완료가 취소되었습니다.'}), 200
-            
+
         except Exception as e:
             db.rollback()
             print(f"Remove user completed recipe error: {e}")
             return jsonify({'error': '레시피 삭제 중 오류가 발생했습니다.'}), 500
         finally:
             db.close()
-            
+
     except Exception as e:
         print(f"Remove user completed recipe error: {e}")
         return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
@@ -4412,6 +4545,262 @@ def update_user_completed_recipe_date(user_id, recipe_id):
     except Exception as e:
         print(f"Update completed recipe date error: {e}")
         return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
+
+
+@app.route('/api/users/<int:user_id>/manual-cook-logs', methods=['POST'])
+def add_manual_cook_log(user_id):
+    """앱이 추천하지 않은(레시피 DB에 없는) 요리를 오늘 만들었다고만 짧게
+    남기는 수동 기록. `recipe_id` 없이 날짜 + 제목만 받는다.
+
+    그룹 소속이면 다른 식구 몫으로도 남길 수 있다(대신 추가 + 당사자 알림)."""
+    try:
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({'error': '인증이 필요합니다.'}), 401
+
+        token = auth_header.split(' ')[1]
+        payload = verify_jwt_token(token)
+        if not payload:
+            return jsonify({'error': '권한이 없습니다.'}), 403
+        actor_user_id = payload.get('user_id')
+
+        data = request.get_json() or {}
+        title = (data.get('title') or '').strip()
+        log_date_str = (data.get('log_date') or '').strip()
+        if not title:
+            return jsonify({'error': '요리 이름을 입력해 주세요.'}), 400
+        try:
+            log_date = datetime.strptime(log_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            return jsonify({'error': '날짜 형식이 올바르지 않습니다(YYYY-MM-DD).'}), 400
+        if log_date > datetime.now().date():
+            return jsonify({'error': '미래 날짜로는 기록할 수 없습니다.'}), 400
+
+        ensure_user_data_tables()
+        ensure_households_table()
+        db = get_db()
+        cursor = db.cursor()
+        try:
+            if actor_user_id != user_id and not is_same_household(cursor, actor_user_id, user_id):
+                return jsonify({'error': '권한이 없습니다.'}), 403
+
+            cursor.execute(
+                """INSERT INTO user_manual_cook_logs (user_id, added_by_user_id, log_date, title)
+                   VALUES (%s, %s, %s, %s)""",
+                (user_id, actor_user_id, log_date, title)
+            )
+            new_id = cursor.lastrowid
+            if actor_user_id != user_id:
+                record_family_action_notification(
+                    cursor, target_user_id=user_id, actor_user_id=actor_user_id,
+                    action_type='add', entity_type='manual_log',
+                    title=title, manual_log_id=new_id, snapshot_log_date=log_date,
+                )
+            db.commit()
+            return jsonify({'id': new_id, 'message': '기록을 추가했습니다.'}), 200
+        except Exception as e:
+            db.rollback()
+            print(f"Add manual cook log error: {e}")
+            return jsonify({'error': '기록 추가 중 오류가 발생했습니다.'}), 500
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"Add manual cook log error: {e}")
+        return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
+
+
+@app.route('/api/users/<int:user_id>/manual-cook-logs/<int:log_id>', methods=['DELETE'])
+def remove_manual_cook_log(user_id, log_id):
+    """수동 기록 삭제. 그룹 소속이면 다른 식구 것도 대신 지울 수 있다
+    (당사자 알림 + 복구용 스냅샷)."""
+    try:
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({'error': '인증이 필요합니다.'}), 401
+
+        token = auth_header.split(' ')[1]
+        payload = verify_jwt_token(token)
+        if not payload:
+            return jsonify({'error': '권한이 없습니다.'}), 403
+        actor_user_id = payload.get('user_id')
+
+        ensure_user_data_tables()
+        ensure_households_table()
+        db = get_db()
+        cursor = db.cursor()
+        try:
+            if actor_user_id != user_id and not is_same_household(cursor, actor_user_id, user_id):
+                return jsonify({'error': '권한이 없습니다.'}), 403
+
+            cursor.execute(
+                "SELECT title, log_date FROM user_manual_cook_logs WHERE id = %s AND user_id = %s",
+                (log_id, user_id)
+            )
+            existing = cursor.fetchone()
+            if not existing:
+                return jsonify({'error': '기록을 찾을 수 없습니다.'}), 404
+
+            cursor.execute(
+                "DELETE FROM user_manual_cook_logs WHERE id = %s AND user_id = %s",
+                (log_id, user_id)
+            )
+            if actor_user_id != user_id:
+                record_family_action_notification(
+                    cursor, target_user_id=user_id, actor_user_id=actor_user_id,
+                    action_type='delete', entity_type='manual_log',
+                    title=existing['title'], manual_log_id=log_id,
+                    snapshot_log_date=existing['log_date'],
+                )
+            db.commit()
+            return jsonify({'message': '기록을 삭제했습니다.'}), 200
+        except Exception as e:
+            db.rollback()
+            print(f"Remove manual cook log error: {e}")
+            return jsonify({'error': '기록 삭제 중 오류가 발생했습니다.'}), 500
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"Remove manual cook log error: {e}")
+        return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
+
+
+@app.route('/api/users/<int:user_id>/family-notifications', methods=['GET'])
+def get_family_action_notifications(user_id):
+    """가족이 나 대신 처리한 완료/수동 기록 중, 아직 확인 안 한 것.
+    앱을 열 때 팝업으로 보여주기 위한 목록이다."""
+    try:
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({'error': '인증이 필요합니다.'}), 401
+        payload = verify_jwt_token(auth_header.split(' ')[1])
+        if not payload or payload.get('user_id') != user_id:
+            return jsonify({'error': '권한이 없습니다.'}), 403
+
+        ensure_user_data_tables()
+        db = get_db()
+        cursor = db.cursor()
+        try:
+            cursor.execute(
+                """SELECT n.id, n.actor_user_id, u.nickname AS actor_nickname,
+                          n.action_type, n.entity_type, n.title, n.created_at
+                   FROM family_action_notifications n
+                   INNER JOIN users u ON u.id = n.actor_user_id
+                   WHERE n.target_user_id = %s AND n.read_at IS NULL
+                   ORDER BY n.created_at ASC""",
+                (user_id,)
+            )
+            rows = cursor.fetchall()
+            for row in rows:
+                row['created_at'] = row['created_at'].isoformat()
+            return jsonify({'notifications': rows}), 200
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"Get family notifications error: {e}")
+        return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
+
+
+@app.route('/api/users/<int:user_id>/family-notifications/<int:notif_id>/dismiss', methods=['POST'])
+def dismiss_family_action_notification(user_id, notif_id):
+    """알림 확인만 하고 그대로 둔다(복구하지 않음)."""
+    try:
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({'error': '인증이 필요합니다.'}), 401
+        payload = verify_jwt_token(auth_header.split(' ')[1])
+        if not payload or payload.get('user_id') != user_id:
+            return jsonify({'error': '권한이 없습니다.'}), 403
+
+        db = get_db()
+        cursor = db.cursor()
+        try:
+            cursor.execute(
+                "UPDATE family_action_notifications SET read_at = NOW() WHERE id = %s AND target_user_id = %s",
+                (notif_id, user_id)
+            )
+            db.commit()
+            return jsonify({'message': '확인했습니다.'}), 200
+        except Exception as e:
+            db.rollback()
+            print(f"Dismiss family notification error: {e}")
+            return jsonify({'error': '처리 중 오류가 발생했습니다.'}), 500
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"Dismiss family notification error: {e}")
+        return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
+
+
+@app.route('/api/users/<int:user_id>/family-notifications/<int:notif_id>/undo', methods=['POST'])
+def undo_family_action_notification(user_id, notif_id):
+    """가족이 대신 처리한 것을 되돌린다.
+    - 대신 '추가'했던 것 → 그 기록을 지운다(취소).
+    - 대신 '삭제'했던 것 → 남겨둔 스냅샷으로 다시 만든다(복구)."""
+    try:
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({'error': '인증이 필요합니다.'}), 401
+        payload = verify_jwt_token(auth_header.split(' ')[1])
+        if not payload or payload.get('user_id') != user_id:
+            return jsonify({'error': '권한이 없습니다.'}), 403
+
+        ensure_user_data_tables()
+        db = get_db()
+        cursor = db.cursor()
+        try:
+            cursor.execute(
+                "SELECT * FROM family_action_notifications WHERE id = %s AND target_user_id = %s",
+                (notif_id, user_id)
+            )
+            notif = cursor.fetchone()
+            if not notif:
+                return jsonify({'error': '알림을 찾을 수 없습니다.'}), 404
+            if notif['undone_at']:
+                return jsonify({'error': '이미 되돌렸습니다.'}), 400
+
+            if notif['entity_type'] == 'completed_recipe':
+                if notif['action_type'] == 'add':
+                    cursor.execute(
+                        "DELETE FROM user_completed_recipes WHERE user_id = %s AND recipe_id = %s",
+                        (user_id, notif['recipe_id'])
+                    )
+                else:  # 'delete' 복구 — 원래 완료 시각으로 되살린다
+                    cursor.execute(
+                        """INSERT INTO user_completed_recipes (user_id, recipe_id, created_at)
+                           VALUES (%s, %s, %s)
+                           ON DUPLICATE KEY UPDATE created_at = VALUES(created_at)""",
+                        (user_id, notif['recipe_id'], notif['snapshot_created_at'])
+                    )
+            elif notif['entity_type'] == 'manual_log':
+                if notif['action_type'] == 'add':
+                    if notif['manual_log_id']:
+                        cursor.execute(
+                            "DELETE FROM user_manual_cook_logs WHERE id = %s AND user_id = %s",
+                            (notif['manual_log_id'], user_id)
+                        )
+                else:  # 'delete' 복구 — 새 id로 다시 만든다(지운 행의 id는 재사용 안 함)
+                    cursor.execute(
+                        """INSERT INTO user_manual_cook_logs (user_id, added_by_user_id, log_date, title)
+                           VALUES (%s, %s, %s, %s)""",
+                        (user_id, user_id, notif['snapshot_log_date'], notif['title'])
+                    )
+
+            cursor.execute(
+                "UPDATE family_action_notifications SET undone_at = NOW(), read_at = NOW() WHERE id = %s",
+                (notif_id,)
+            )
+            db.commit()
+            return jsonify({'message': '되돌렸습니다.'}), 200
+        except Exception as e:
+            db.rollback()
+            print(f"Undo family notification error: {e}")
+            return jsonify({'error': '처리 중 오류가 발생했습니다.'}), 500
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"Undo family notification error: {e}")
+        return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
+
 
 @app.route('/api/users/<int:user_id>/favorite-recipes', methods=['GET'])
 def get_user_favorite_recipes(user_id):
