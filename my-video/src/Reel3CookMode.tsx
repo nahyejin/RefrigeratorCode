@@ -1,5 +1,5 @@
 import React from "react";
-import { AbsoluteFill, Easing, OffthreadVideo, Sequence, staticFile, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
+import { AbsoluteFill, Audio, Easing, Img, OffthreadVideo, Sequence, staticFile, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import { FONT_FAMILY, WHITE, LINE, CAPTION_TOP, useCustomFont, CtaOutro, Caption } from "./shared";
 
 // 훅: 제미나이 생성 실사 클립(10s, 720x1280, 24fps) — 주방에서 요리하다 폰을 만지려는 여성
@@ -31,12 +31,22 @@ const DEMO_RAW = {
 // 추가. 줌인이 자연스럽게 보일 시간을 주려고 배속을 1.2배→1.0배로 늦춰 비트 길이를 늘림.
 const rateReading = 1.0;
 
-const D1 = Math.round((DEMO_RAW.reading[1] - DEMO_RAW.reading[0]) / rateReading); // 60f
-const D2 = DEMO_RAW.advance[1] - DEMO_RAW.advance[0]; // 60f
+// 데모 자막에 음성 나레이션(제미나이 TTS)을 얹으면서, 나레이션이 원본 영상 길이보다 길어진
+// 두 비트(3.81s·3.37s)를 다 담을 수 있게 늘림 — 실제 영상은 그대로 재생하고, 늘어난 나머지는
+// 영상 마지막 프레임을 정지 이미지로 고정해서 채운다(분수 배속 흰 화면 버그를 피하는 이 프로젝트의
+// 표준 방식).
+const D1_VIDEO = Math.round((DEMO_RAW.reading[1] - DEMO_RAW.reading[0]) / rateReading); // 60f
+const D1_FREEZE = 60; // 2.0s
+const D1 = D1_VIDEO + D1_FREEZE; // 120f
+const D2_VIDEO = DEMO_RAW.advance[1] - DEMO_RAW.advance[0]; // 60f
+const D2_FREEZE = 45; // 1.5s
+const D2 = D2_VIDEO + D2_FREEZE; // 105f
 const PULSE = 15; // D2의 마지막 0.5s는 정지 없이 펄스만 강조(reel2와 동일한 이유로 프리즈 트릭은 피함)
-const DEMO_LEN = D1 + D2; // 120f
+const DEMO_LEN = D1 + D2; // 225f
 
-const CTA_LEN = 90; // 3.0s — 자막 텍스트 길이(1줄/2줄)에 따라 CTA 카드가 다 뜬 뒤 남는 정지 시간이 제각각으로 느껴진다는 피드백으로, 모든 릴스에서 균일하게 늘림(2.0s→3.0s)
+// CTA 나레이션(페이오프+"쿡매치"+"지금 프로필 링크에서 시작하세요")이 7.49s(225f)라 그걸 다
+// 담을 수 있게 CTA_LEN을 늘림.
+const CTA_LEN = 245; // 8.17s
 
 const HOOK_FROM = 0;
 const DEMO_FROM = HOOK_FROM + HOOK_LEN;
@@ -65,6 +75,7 @@ export const Reel3CookMode: React.FC = () => {
             </>
           }
         />
+        <Audio src={staticFile("reel3_narration_cta.mp3")} />
       </Sequence>
     </AbsoluteFill>
   );
@@ -211,7 +222,9 @@ const END = zoomTranslate(BUTTON_CENTER_X, BUTTON_CENTER_Y, VIDEO_W / 2, VIDEO_H
 const ReadingZoom: React.FC<{ len: number }> = ({ len }) => {
   const frame = useCurrentFrame();
   const fadeIn = interpolate(frame, [0, 4], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-  const fadeOut = interpolate(frame, [len - 5, len - 1], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  // 끝에서 fadeOut을 안 준다 — 바로 이어지는 ReadingFreeze가 정확히 같은 화면(같은 확대 상태)이라
+  // 여기서 미리 희미해졌다가 프리즈가 다시 선명하게 나타나면 이음매에서 깜빡이는 것처럼 보인다.
+  const fadeOut = 1;
   const t = interpolate(frame, [ZOOM_HOLD, ZOOM_HOLD + ZOOM_ANIM], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
@@ -245,6 +258,72 @@ const ReadingZoom: React.FC<{ len: number }> = ({ len }) => {
           objectFit: "cover",
           transform: `translate(${tx}px, ${ty}px) scale(${zoom})`,
           transformOrigin: "0 0",
+        }}
+      />
+    </div>
+  );
+};
+
+// "손 안 대도 돼요" 나레이션이 원본 영상(2.0s)보다 길어서(3.81s), 영상이 끝난 뒤 마지막 프레임
+// (이미 버튼 쪽으로 확대된 상태)을 정지 이미지로 이어붙여 나레이션이 끝날 때까지 자연스럽게
+// 유지한다 — ReadingZoom이 끝나는 시점의 확대 상태(END, BUTTON_ZOOM)를 그대로 재사용해서
+// 이음매가 안 보이게 함.
+const ReadingFreeze: React.FC<{ len: number }> = ({ len }) => {
+  const frame = useCurrentFrame();
+  const fadeOut = interpolate(frame, [len - 5, len - 1], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  return (
+    <div
+      style={{
+        position: "absolute",
+        top: 0,
+        left: VIDEO_LEFT,
+        width: VIDEO_W,
+        height: VIDEO_H,
+        overflow: "hidden",
+        border: `1px solid ${LINE}`,
+        opacity: fadeOut,
+      }}
+    >
+      <Img
+        src={staticFile("reel3_reading_freeze.png")}
+        style={{
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+          transform: `translate(${END.tx}px, ${END.ty}px) scale(${BUTTON_ZOOM})`,
+          transformOrigin: "0 0",
+        }}
+      />
+    </div>
+  );
+};
+
+// "이제 손으론 요리하고..." 나레이션이 원본 영상(2.0s)보다 길어서(3.37s), 같은 방식으로 영상
+// 마지막 프레임을 정지 이미지로 이어붙인다(기존 상단 크롭과 동일한 배율/기준점 사용).
+const AdvanceFreeze: React.FC<{ len: number }> = ({ len }) => {
+  const frame = useCurrentFrame();
+  const fadeOut = interpolate(frame, [len - 5, len - 1], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  return (
+    <div
+      style={{
+        position: "absolute",
+        top: 0,
+        left: VIDEO_LEFT,
+        width: VIDEO_W,
+        height: VIDEO_H,
+        overflow: "hidden",
+        border: `1px solid ${LINE}`,
+        opacity: fadeOut,
+      }}
+    >
+      <Img
+        src={staticFile("reel3_advance_freeze.png")}
+        style={{
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+          transform: `scale(${TOP_CROP_ZOOM})`,
+          transformOrigin: `${TOP_CROP_ORIGIN_X}% ${TOP_CROP_ORIGIN_Y}%`,
         }}
       />
     </div>
@@ -304,28 +383,45 @@ const Demo: React.FC = () => {
           transform: frame >= pulseFrom ? `scale(${pulseScale})` : undefined,
         }}
       >
-        <Sequence from={d1From} durationInFrames={D1} name="reading">
-          <ReadingZoom len={D1} />
+        <Sequence from={d1From} durationInFrames={D1_VIDEO} name="reading">
+          <ReadingZoom len={D1_VIDEO} />
         </Sequence>
-        <Sequence from={d2From} durationInFrames={D2} name="advance">
+        <Sequence from={d1From + D1_VIDEO} durationInFrames={D1_FREEZE} name="reading-freeze">
+          <ReadingFreeze len={D1_FREEZE} />
+        </Sequence>
+        <Sequence from={d2From} durationInFrames={D2_VIDEO} name="advance">
+          {/* fadeOutFrames=0 — 바로 이어지는 AdvanceFreeze가 같은 화면이라, 여기서 미리
+              희미해지면 이음매에서 깜빡이는 것처럼 보인다. */}
           <SubClip
             src={DEMO_VIDEO}
             rawFrom={DEMO_RAW.advance[0]}
             rawTo={DEMO_RAW.advance[1]}
             rate={1}
-            len={D2}
+            len={D2_VIDEO}
             width={VIDEO_W}
             height={VIDEO_H}
             left={VIDEO_LEFT}
             zoom={TOP_CROP_ZOOM}
             origin={`${TOP_CROP_ORIGIN_X}% ${TOP_CROP_ORIGIN_Y}%`}
+            fadeOutFrames={0}
           />
+        </Sequence>
+        <Sequence from={d2From + D2_VIDEO} durationInFrames={D2_FREEZE} name="advance-freeze">
+          <AdvanceFreeze len={D2_FREEZE} />
         </Sequence>
       </div>
 
       <VoiceWave />
       <Caption from={d1From} len={D1} text={"손 안 대도 돼요\n요리 끝날 때까지 읽어드려요"} />
       <Caption from={d2From} len={D2} text={"이제 손으론 요리하고\n레시피는 귀로 들으세요"} />
+
+      {/* 데모 자막 음성 나레이션(제미나이 TTS) — 자막 타이핑 시작 프레임에 맞춰 재생 */}
+      <Sequence from={d1From} durationInFrames={D1} name="narration-1">
+        <Audio src={staticFile("reel3_narration_1.mp3")} />
+      </Sequence>
+      <Sequence from={d2From} durationInFrames={D2} name="narration-2">
+        <Audio src={staticFile("reel3_narration_2.mp3")} />
+      </Sequence>
     </AbsoluteFill>
   );
 };

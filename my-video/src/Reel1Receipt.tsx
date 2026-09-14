@@ -31,7 +31,10 @@ const HOLD = 21; // 0.7s 페이오프 홀드
 
 const HOOK_VIDEO_LEN = 135; // 4.5s — 원본 4.625s 중 여유를 두고 사용
 const DEMO_LEN = C1 + CBrowse + C2 + C3 + C4 + C5 + HOLD; // 301f
-const CTA_LEN = 90; // 3.0s — 자막 텍스트 길이(1줄/2줄)에 따라 CTA 카드가 다 뜬 뒤 남는 정지 시간이 제각각으로 느껴진다는 피드백으로, 모든 릴스에서 균일하게 늘림(2.0s→3.0s)
+// CTA 나레이션("냉장고, 기억 안 해도 돼요. 쿡매치. 지금 프로필 링크에서 시작하세요.")이
+// 5.65s(170f)라 그걸 다 담을 수 있게 CTA_LEN을 늘림(90f→190f) — 나레이션 끝난 뒤에도 살짝
+// 정지 유지 구간(20f)을 남긴다.
+const CTA_LEN = 190; // 6.33s
 
 const HOOK_FROM = 0;
 const DEMO_FROM = HOOK_FROM + HOOK_VIDEO_LEN;
@@ -59,6 +62,7 @@ export const Reel1Receipt: React.FC = () => {
             </>
           }
         />
+        <Audio src={staticFile("reel1_narration_cta.mp3")} />
       </Sequence>
     </AbsoluteFill>
   );
