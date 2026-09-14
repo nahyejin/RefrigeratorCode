@@ -67,9 +67,9 @@ export const Reel8FamilySavings: React.FC = () => {
         <CtaOutro
           payoffLine={
             <>
-              가족과 목표를 정하고,
+              목표부터 식단, 절약까지
               <br />
-              <span style={{ color: "#D99A00" }}>아낀 돈까지 함께 확인해요</span>
+              가족과 함께 <span style={{ color: "#D99A00" }}>확인해요</span>
             </>
           }
         />
@@ -92,6 +92,10 @@ const SubClip: React.FC<{
   origin?: string;
   cropTop?: number;
   fade?: boolean;
+  fadeInFrames?: number;
+  fadeOutFrames?: number;
+  punchZoom?: number;
+  punchOrigin?: string;
   muted?: boolean;
 }> = ({
   src,
@@ -106,15 +110,29 @@ const SubClip: React.FC<{
   origin = "center",
   cropTop = 0,
   fade = true,
+  fadeInFrames = 4,
+  fadeOutFrames = 4,
+  punchZoom,
+  punchOrigin,
   muted = true,
 }) => {
   const frame = useCurrentFrame();
-  const fadeIn = fade
-    ? interpolate(frame, [0, 4], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
-    : 1;
-  const fadeOut = fade
-    ? interpolate(frame, [len - 5, len - 1], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
-    : 1;
+  const { fps } = useVideoConfig();
+  const fadeIn =
+    fade && fadeInFrames > 0
+      ? interpolate(frame, [0, fadeInFrames], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
+      : 1;
+  const fadeOut =
+    fade && fadeOutFrames > 0
+      ? interpolate(frame, [len - fadeOutFrames - 1, len - 1], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
+      : 1;
+
+  // 캡션이 뜨는 순간 해당 화면 영역이 확대되며 나타나는 강조 효과(펀치인) — 비트 시작 시점에
+  // 스프링으로 배율을 밀어올린 뒤 그대로 유지(정적인 zoom과 달리 애니메이션으로 등장).
+  const punchScale = punchZoom
+    ? interpolate(spring({ frame, fps, config: { damping: 14, mass: 0.7 } }), [0, 1], [1, punchZoom])
+    : zoom;
+
   return (
     <div
       style={{
@@ -132,8 +150,8 @@ const SubClip: React.FC<{
         style={{
           width: "100%",
           height: "100%",
-          transform: zoom !== 1 ? `scale(${zoom})` : undefined,
-          transformOrigin: origin,
+          transform: punchScale !== 1 ? `scale(${punchScale})` : undefined,
+          transformOrigin: punchZoom ? punchOrigin ?? origin : origin,
         }}
       >
         {/* 위쪽 cropTop px를 잘라내되, 잘려나간 만큼 위아래에 똑같이 여백이 남도록 창 자체를
@@ -160,6 +178,9 @@ const Hook: React.FC = () => {
   return (
     <AbsoluteFill style={{ backgroundColor: WHITE }}>
       <Sequence from={0} durationInFrames={HOOK_LEN} name="line">
+        {/* 훅 끝(한숨 쉬는 순간)에서 데모로 바로 하드컷되면 "뚝 끊기는" 느낌이 든다는 피드백 —
+            시작은 그대로 즉시(fadeInFrames=0), 끝만 0.8초(24f) 동안 천천히 흰 화면으로
+            페이드아웃해서 다음 비트로 부드럽게 이어지게 함. */}
         <SubClip
           src={HOOK_VIDEO}
           rawFrom={HOOK_RAW.line[0]}
@@ -169,7 +190,9 @@ const Hook: React.FC = () => {
           width={1080}
           height={1920}
           left={0}
-          fade={false}
+          fade={true}
+          fadeInFrames={0}
+          fadeOutFrames={24}
           muted={false}
         />
       </Sequence>
@@ -219,7 +242,8 @@ const Demo: React.FC = () => {
       </Sequence>
       <Sequence from={saveFrom} durationInFrames={SAVE_LEN} name="savings-check">
         {/* goalSet과 같은 화면이 끊김 없이 이어지는 구간이라(목표 수정 직후 결과), 이 경계에서만
-            fade를 꺼서 이음매에서 흰 플래시가 잠깐 보이는 걸 막는다. */}
+            fade를 꺼서 이음매에서 흰 플래시가 잠깐 보이는 걸 막는다. "아낀 돈이 얼마인지 바로
+            보여요" 자막이 뜨는 순간 절약액 영역이 확대되며 나타나도록 punchZoom 적용. */}
         <SubClip
           src={DEMO_VIDEO}
           rawFrom={DEMO_RAW.savingsCheck[0]}
@@ -231,9 +255,13 @@ const Demo: React.FC = () => {
           left={VIDEO_LEFT}
           cropTop={TOPCROP_PX}
           fade={false}
+          punchZoom={1.16}
+          punchOrigin="50% 34%"
         />
       </Sequence>
       <Sequence from={calFrom} durationInFrames={CAL_LEN} name="family-calendar">
+        {/* "캘린더에 기록으로 남아요" 자막이 뜨는 순간 월간 캘린더 영역이 확대되며 나타나도록
+            punchZoom 적용. */}
         <SubClip
           src={DEMO_VIDEO}
           rawFrom={DEMO_RAW.familyCal[0]}
@@ -244,6 +272,8 @@ const Demo: React.FC = () => {
           height={VIDEO_H}
           left={VIDEO_LEFT}
           cropTop={TOPCROP_PX}
+          punchZoom={1.14}
+          punchOrigin="50% 45%"
         />
       </Sequence>
 
