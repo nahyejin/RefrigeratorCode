@@ -93,7 +93,7 @@ export const Reel7RealRecipe: React.FC = () => {
         <CtaOutro
           payoffLine={
             <>
-              이미 검증된 레시피들만 모여있어서,
+              유튜브·네이버 상위 채널만 모았으니,
               <br />
               뭘 골라도 <span style={{ color: "#D99A00" }}>맛집이에요</span>
             </>
@@ -358,7 +358,7 @@ const Demo: React.FC = () => {
           같은 자리(화면 하단)에 있어서 우리 캡션 박스가 겹쳐 가리는 문제가 있었음. 늘어난 스플래시
           길이(2.3s) 동안 앱 자체 문구를 그대로 읽게 하고, 캡션은 다음 비트(로딩 카드)로 넘어가면서
           시작. */}
-      <Caption from={claimFrom} len={CLAIM_LEN} text={"매일 밤 엄선한\n진짜 맛집 레시피 수만 건"} />
+      <Caption from={claimFrom} len={CLAIM_LEN} text={"유튜브·네이버 상위 채널만\n매일 밤 엄선한 레시피 수만 건"} />
       <Caption from={sortFrom} len={SORT_LEN} text={"좋아요·댓글·조회수까지\n반영한 인기순으로"} />
       <Caption from={detailFrom} len={DETAIL_LEN} text={"맛있는 요리의 시작은\n좋은 레시피 찾는 게 반이에요"} />
       <Caption from={proofFrom} len={PROOF_LEN} text={"출처까지 확인되는\n진짜 레시피예요"} />
