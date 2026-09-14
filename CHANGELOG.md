@@ -10988,3 +10988,8 @@ edge-tts 파일럿 목소리가 "너무 AI 같다"는 피드백 + "제미나이�
 ### 마이페이지 — 조리 시트에서 해제해도 목록에서 바로 안 빠지던 문제 + 확인창 줄바꿈
 - **마이페이지에서 레시피를 눌러 연 조리 시트에서 즐겨찾기를 해제해도, 나갔다 들어와야 목록에서 빠짐**: 그룹 소속이면 [MyPage.tsx](frontend/src/pages/MyPage.tsx)는 서버에서 받은 **그룹 목록**(`householdFavoriteRecipes` 등)을 그리는데, 기존 `localStorageChange` 구독은 개인 목록(localStorage)만 다시 읽어서 화면이 그대로였음. 조리 시트가 서버 반영 후 보내는 `recipe-action-synced` 이벤트를 구독해 개인 목록(`loadRecipesFromDB`)과 그룹 목록(`loadHouseholdRecipeFeeds`)을 즉시 다시 불러오게 함.
 - **확인창 문구가 "취소하시겠어 / 요?"처럼 애매한 데서 줄바꿈됨**: 공용 [Dialog.tsx](frontend/src/components/ui/Dialog.tsx) 제목에 줄바꿈 규칙이 없어 한글이 글자 단위로 끊겼음. 제목에 `word-break: keep-all` + `text-wrap: balance`(줄 길이 고르게), 본문에 `text-wrap: pretty`(마지막 줄 외톨이 어절 방지)를 추가. 긴 영문·숫자가 넘치지 않게 `overflow-wrap: anywhere`도 함께. 앱의 확인창은 전부 이 Dialog를 쓰므로 한 번에 적용됨.
+
+### 마이페이지 "전체보기" 목록 — 조리 시트에서 해제해도 안 빠지던 진짜 원인 + 확인 토스트 말줄임
+- **진짜 원인**: 앞선 수정은 마이페이지 본문(`MyPage.tsx`)에 넣었는데, 실제로 레시피 카드를 눌러 조리 시트를 여는 화면은 마이페이지의 **"전체보기" 목록**(`/mypage/favorite`·`/recorded`·`/completed` → [IngredientDetail.tsx](frontend/src/pages/IngredientDetail.tsx))이었음. 이 화면은 마이페이지가 넘겨준 목록(`location.state.recipes`)을 그대로 그려서 localStorage가 바뀌어도 목록이 그대로였음. 조리 시트가 서버 반영 후 보내는 `recipe-action-synced` 이벤트를 구독해 해당 카드를 즉시 빼도록 수정(식구 모두 보기에서 다른 식구도 한 레시피면 카드는 남기고 내 이름만 뺌).
+- 같은 화면의 카드 버튼 해제/추가가 **로컬만 바꾸고 서버엔 반영하지 않던** 문제도 발견 — 마이페이지가 서버 값을 다시 받으면 되살아나는 원인. 다른 목록 화면과 같이 `addRecipeActionToDB`/`removeRecipeActionFromDB`로 서버에도 반영.
+- **확인 문구가 애매하게 잘림**: 카드 버튼으로 해제할 때 뜨는 검은 확인 토스트(마이페이지·전체보기 목록·요즘인기·냉장고요리·완료/기록 목록 6곳)가 `white-space: nowrap` + 최대폭 320px + 말줄임이라, 좁은 폰에서 "레시피 즐겨찾기를 취소하시겠…"처럼 잘렸음. 어절 단위 줄바꿈(`keep-all` + `text-wrap: balance`)으로 바꿔 "레시피 즐겨찾기를 / 취소하시겠어요?"로 나뉘게 함. 조리 시트 확인창(Dialog)도 로컬 브라우저 375px 폭에서 같은 줄바꿈으로 뜨는 것 확인.

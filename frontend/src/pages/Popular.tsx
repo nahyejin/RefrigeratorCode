@@ -2311,9 +2311,8 @@ const Popular = () => {
           zIndex: 'var(--z-toast)',
           maxWidth: 320,
           width: 'max-content',
-          whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
+          whiteSpace: 'normal',
+          wordBreak: 'keep-all',
           textAlign: 'center',
           display: 'flex',
           flexDirection: 'column',
@@ -2324,7 +2323,9 @@ const Popular = () => {
             color: '#FFFFFF',
             marginBottom: 6,
             letterSpacing: '0.04em',
-            whiteSpace: 'nowrap',
+            whiteSpace: 'normal',
+            wordBreak: 'keep-all',
+            textWrap: 'balance',
             display: 'inline-block',
             fontWeight: 400
           }}>

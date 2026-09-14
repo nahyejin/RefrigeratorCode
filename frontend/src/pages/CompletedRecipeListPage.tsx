@@ -602,9 +602,8 @@ const CompletedRecipeListPage: React.FC = () => {
           zIndex: 'var(--z-toast)',
           maxWidth: 320,
           width: 'max-content',
-          whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
+          whiteSpace: 'normal',
+          wordBreak: 'keep-all',
           textAlign: 'center',
           display: 'flex',
           flexDirection: 'column',
@@ -615,7 +614,9 @@ const CompletedRecipeListPage: React.FC = () => {
             color: '#FFFFFF', 
             marginBottom: 6, 
             letterSpacing: '0.04em', 
-            whiteSpace: 'nowrap', 
+            whiteSpace: 'normal', 
+            wordBreak: 'keep-all', 
+            textWrap: 'balance', 
             display: 'inline-block' 
           }}>
             {pendingRemove.type === 'done' ? '레시피 완료를 취소하시겠어요?' : '레시피 기록을 취소하시겠어요?'}

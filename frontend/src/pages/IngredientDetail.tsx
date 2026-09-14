@@ -34,6 +34,8 @@ import {
   buildRecipeActionStatesForRecipes,
   getRecipeActionState,
   clearRecipesFromLocalStorage,
+  addRecipeActionToDB,
+  removeRecipeActionFromDB,
 } from '../utils/recipeStorage';
 
 // =====================
@@ -361,8 +363,13 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
   /**
    * 레시피 액션 처리
    */
+  const syncUserId = authUser?.id ? Number(authUser.id) : null;
+
   const handleRecipeAction = (id: number, action: { action: 'done' | 'write' | 'share' | 'favorite' }) => {
     const prevState = buttonStates[id] || getRecipeActionState(id);
+    if (action.action !== 'share' && syncUserId && !prevState[action.action]) {
+      addRecipeActionToDB(action.action, syncUserId, id);
+    }
 
     if (action.action === 'favorite') {
       if (!prevState.favorite) {
@@ -427,7 +434,11 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
    */
   const handleRemoveConfirm = () => {
     if (!pendingRemove) return;
-    
+    // 이 화면(마이페이지 "전체보기")은 로컬만 지우고 서버는 안 지웠다 — 그러면
+    // 마이페이지가 서버 값을 다시 받을 때 되살아난다. 다른 목록 화면과 같게
+    // 서버에도 반영한다(2026-09-15).
+    if (syncUserId) removeRecipeActionFromDB(pendingRemove.type, syncUserId, pendingRemove.id);
+
     if (pendingRemove.type === 'done') {
       removeRecipeFromLocalStorage('done', pendingRemove.id);
       setRecipes(prev => prev.filter(r => r.id !== pendingRemove.id));
@@ -584,6 +595,34 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
     
     fetchData();
   }, [name, location.pathname, location.search, location.state, myPageRecipeStorageType, startDate, endDate, page]);
+
+  // 조리 시트(CookModeSheet)에서 즐겨찾기·완료·기록을 끄면 이 목록에서도 바로
+  // 뺀다. 마이페이지에서 넘겨받은 목록(location.state)을 그대로 그리는 화면이라
+  // localStorage 가 바뀌어도 목록은 그대로였고, 나갔다 들어와야 빠졌다
+  // (실사용 지적, 2026-09-15). 식구 모두 보기에서 다른 식구도 한 레시피면
+  // 카드는 두고 내 이름만 뺀다.
+  useEffect(() => {
+    if (!myPageRecipeStorageType) return;
+    const onSynced = (ev: Event) => {
+      const d = (ev as CustomEvent<{ type?: string; id?: number; removed?: boolean }>).detail;
+      if (!d || d.type !== myPageRecipeStorageType) return;
+      if (!d.removed) {
+        if (!isHouseholdView) setRecipes(getRecipesFromLocalStorage(myPageRecipeStorageType));
+        return;
+      }
+      const myNick = authUser?.nickname;
+      const drop = (list: any[]) => list.flatMap((r) => {
+        if (String(r.id) !== String(d.id)) return [r];
+        const others: string[] = Array.isArray(r.acted_by)
+          ? r.acted_by.filter((n: string) => n && n !== myNick) : [];
+        return isHouseholdView && others.length > 0 ? [{ ...r, acted_by: others }] : [];
+      });
+      setRecipes(drop);
+      setFilteredRecipes(drop);
+    };
+    window.addEventListener('recipe-action-synced', onSynced);
+    return () => window.removeEventListener('recipe-action-synced', onSynced);
+  }, [myPageRecipeStorageType, isHouseholdView, authUser?.nickname]);
 
   // 페이지 변경 핸들러
   const handlePageChange = (newPage: number) => {
@@ -1189,9 +1228,8 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
           zIndex: 'var(--z-toast)',
           maxWidth: 320,
           width: 'max-content',
-          whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
+          whiteSpace: 'normal',
+          wordBreak: 'keep-all',
           textAlign: 'center',
           display: 'flex',
           flexDirection: 'column',
@@ -1202,7 +1240,9 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
             color: '#FFFFFF', 
             marginBottom: 6, 
             letterSpacing: '0.04em', 
-            whiteSpace: 'nowrap', 
+            whiteSpace: 'normal', 
+            wordBreak: 'keep-all', 
+            textWrap: 'balance', 
             display: 'inline-block',
             fontWeight: 400
           }}>
