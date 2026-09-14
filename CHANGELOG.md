@@ -11010,3 +11010,10 @@ edge-tts 파일럿 목소리가 "너무 AI 같다"는 피드백 + "제미나이�
 - **목록 컴포넌트 공통 폴백**: [VirtualizedHorizontalRecipeList.tsx](frontend/src/components/VirtualizedHorizontalRecipeList.tsx)는 맵에 없는 카드를 "전부 꺼짐"으로 채웠고 [VirtualizedRecipeList.tsx](frontend/src/components/VirtualizedRecipeList.tsx)는 빈 값을 넘겼음. 둘 다 맵에 없으면 기기 목록을 보도록 통일 — 앞으로 어느 화면이 맵을 일부 목록으로만 만들어도 같은 증상이 안 생김.
 - [RecipeList.tsx](frontend/src/pages/RecipeList.tsx) 「즐겨찾기로 요리 고르기」 모드는 즐겨찾기 목록을 그리는데 맵은 `recipes`로만 만들던 것도 함께 수정.
 - 로컬 브라우저(운영 API 연결)에서 「특별한 날」 카드 완료 → 내냉장고 탭 → 요즘인기 복귀 순으로 눌러, 완료 버튼이 노란 원으로 유지되는 것 확인.
+
+### 레시피 카드 버튼 누를 때 카드 깜빡임 + 조리 시트 30초 완료 확인창이 안 뜨던 문제
+- **카드 깜빡임 원인**: 카드에 눌림 효과 `.recipe-card-press:active { transform: scale(.985); opacity: .92 }`가 있는데, CSS `:active`는 **누른 요소의 조상 전체**에 걸린다. 그래서 카드 안의 완료·기록·공유 버튼만 눌러도 카드 전체가 순간 작아지고 흐려져 깜빡이는 것처럼 보였음. [index.css](frontend/src/index.css)에 `.recipe-card-press:has(button:active, a:active)` 규칙을 추가해 안쪽 버튼·링크를 누를 때는 카드가 눌리지 않게 함(선택자 우선순위가 더 높아 기존 규칙을 이김). 카드 빈 곳을 누를 때의 눌림 효과는 그대로.
+- **30초 완료 확인창이 한 번도 안 뜨던 원인**: 2026-09-14에 만든 기능인데, 시트를 닫으면 [CookModeHost.tsx](frontend/src/components/CookModeHost.tsx)가 대상을 비워서 `isOpen=false`와 `recipeId=null`이 **같은 순간** 들어옴. [CookModeSheet.tsx](frontend/src/components/CookModeSheet.tsx)의 닫힘 판정이 `recipeId == null`이면 빠져나가서 조건을 만족해도 절대 안 떴음. 열려 있는 동안 레시피(id·제목·링크·썸네일)를 ref에 붙잡아 두고 닫힘 판정과 완료 기록을 그 사본으로 하도록 수정. 이미 완료한 레시피인지는 화면 상태가 아니라 기기 목록으로 확인.
+- 확인창 문구·버튼을 요청대로 정리: 제목 "레시피를 완료하셨나요?" + 레시피 이름, 버튼 **[아니요] [완료했어요]**. 본문은 문장 단위로 줄바꿈("요리 / 캘린더에"로 갈라지던 것 방지).
+- 시트 안에 있던 토스트를 시트 밖으로 옮김 — 닫힌 뒤 「완료했어요」를 눌렀을 때 "레시피를 완료했습니다!" 안내가 안 보였음. 완료는 서버 반영 후 `recipe-action-synced`를 보내 캘린더·마이페이지에도 바로 반영.
+- 로컬 브라우저(운영 API 연결)에서 요즘인기 카드로 시트를 열고 33초 뒤 닫아 확인창이 뜨는 것, 「완료했어요」로 기기 완료 목록에 추가·토스트 표시·카드 완료 버튼 노란 원 전환까지 확인.

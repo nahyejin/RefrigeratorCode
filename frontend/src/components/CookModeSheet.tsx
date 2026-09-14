@@ -124,18 +124,43 @@ const CookModeSheet: React.FC<Props> = ({
   const openedAtRef = React.useRef<number | null>(null);
   const actionStateRef = React.useRef(actionState);
   React.useEffect(() => { actionStateRef.current = actionState; }, [actionState]);
-  const [doneNudge, setDoneNudge] = React.useState(false);
+  type NudgeTarget = { id: number; title: string; link: string; thumbnail: string };
+  /** 완료를 물어볼 레시피. 값이 있으면 확인창이 떠 있다. */
+  const [doneNudge, setDoneNudge] = React.useState<NudgeTarget | null>(null);
+  /**
+   * 열려 있는 레시피를 **닫히기 전에** 붙잡아 둔다.
+   *
+   * 시트를 닫으면 CookModeHost 가 대상을 비워서 `isOpen` 이 false 가 되는 그
+   * 순간 `recipeId` 도 null 로 같이 들어온다. 전에는 닫힘 판정에서
+   * `recipeId == null` 이면 그냥 빠져나가서 **30초를 넘겨도 확인창이 한 번도
+   * 안 떴다**(실사용 지적, 2026-09-15). 닫힘 판정은 이 사본으로 한다.
+   */
+  const nudgeTargetRef = React.useRef<NudgeTarget | null>(null);
+
+  React.useEffect(() => {
+    if (!isOpen || recipeId == null) return;
+    nudgeTargetRef.current = {
+      id: recipeId,
+      title: data?.title || fallbackTitle || '',
+      link: data?.link || fallbackLink || '',
+      thumbnail: (data as any)?.thumbnail || '',
+    };
+  }, [isOpen, recipeId, data, fallbackTitle, fallbackLink]);
 
   React.useEffect(() => {
     if (isOpen) {
+      // 열린 채로 다른 레시피로 바뀌면 그 레시피 기준으로 다시 잰다.
       openedAtRef.current = Date.now();
       return;
     }
     const openedAt = openedAtRef.current;
+    const target = nudgeTargetRef.current;
     openedAtRef.current = null;
-    if (openedAt == null || recipeId == null) return;
-    if (Date.now() - openedAt >= DONE_NUDGE_MS && !actionStateRef.current.done) {
-      setDoneNudge(true);
+    if (openedAt == null || !target) return;
+    // 이미 완료한 레시피면 물을 이유가 없다 — 시트 밖(카드)에서 눌렀을 수도
+    // 있으니 화면 상태가 아니라 기기 목록으로 본다.
+    if (Date.now() - openedAt >= DONE_NUDGE_MS && !getRecipeActionState(target.id).done) {
+      setDoneNudge(target);
     }
   }, [isOpen, recipeId]);
 
@@ -227,6 +252,21 @@ const CookModeSheet: React.FC<Props> = ({
       : type === 'done' ? '완료를 취소했습니다'
       : '기록을 취소했습니다'
     );
+  };
+
+  /** 닫힌 뒤 뜬 "완료하셨나요?" 에서 「완료했어요」. 시트는 이미 닫혀 recipeId 가
+   *  비어 있으므로 붙잡아 둔 대상(doneNudge)으로 기록한다. */
+  const completeFromNudge = () => {
+    const t = doneNudge;
+    setDoneNudge(null);
+    if (!t) return;
+    if (!getRecipeActionState(t.id).done) {
+      addRecipeToLocalStorage('done', {
+        ...asStorageRecipe(), id: t.id, title: t.title, link: t.link, thumbnail: t.thumbnail,
+      } as Recipe);
+      void syncAndNotify('done', t.id, false);
+    }
+    setToast('레시피를 완료했습니다!');
   };
 
   const handleShare = () => {
@@ -429,8 +469,6 @@ const CookModeSheet: React.FC<Props> = ({
           </button>
         </div>
       )}
-      {toast && <Toast message={toast} />}
-
       {loading && (
         <div style={{ padding: '28px 0', textAlign: 'center', color: 'var(--ink-500)', fontSize: 14 }}>
           불러오는 중이에요...
@@ -688,23 +726,26 @@ const CookModeSheet: React.FC<Props> = ({
         </div>
       )}
     </Sheet>
+    {/* 토스트는 시트 **밖**에 둔다 — 시트 안에 있으면 닫힌 뒤 확인창에서
+        「완료했어요」를 눌렀을 때 결과 안내가 안 보인다. */}
+    {toast && <Toast message={toast} />}
     {doneNudge && (
       <Dialog
         open
-        onClose={() => setDoneNudge(false)}
-        title="이 요리를 완료하셨나요?"
+        onClose={() => setDoneNudge(null)}
+        title="레시피를 완료하셨나요?"
         width={320}
-        dismissLabel="아니요"
-        actions={[{
-          label: '완료 기록하기',
-          onClick: () => {
-            toggleAction('done');
-            setDoneNudge(false);
-          },
-        }]}
+        actions={[
+          { label: '아니요', variant: 'outline', onClick: () => setDoneNudge(null) },
+          { label: '완료했어요', onClick: completeFromNudge },
+        ]}
       >
         <span style={{ wordBreak: 'keep-all' }}>
-          한참 보고 계셨어서 여쭤봐요. 완료로 기록하면 요리 캘린더에 남아요.
+          {doneNudge.title && <><b>{doneNudge.title}</b><br /></>}
+          {/* 문장 단위로 끊는다 — 한 문장으로 두면 폭에 따라 "요리 / 캘린더에"
+              처럼 한 낱말이 갈라졌다. */}
+          조리 순서를 한참 보셨어요.<br />
+          완료하면 요리 캘린더에 기록돼요.
         </span>
       </Dialog>
     )}
