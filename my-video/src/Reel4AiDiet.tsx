@@ -9,6 +9,12 @@ const HOOK_VIDEO = "reel4_hook_gemini.mp4";
 // 순간"과 "캘린더에 월별/주별로 반영된 화면"이 빠져 있어서, 그 두 가지가 포함된 새 녹화본으로 교체.
 const DEMO_VIDEO = "reel4_diet_demo2.mp4";
 
+// 데모 화면 녹화본(영상·정지이미지 전부) 최상단에 iOS 상태바 + 화면 녹화 표시(빨간 점 + 검은 알약
+// 배지)가 그대로 찍혀 있어서, 살짝 확대해 위쪽을 크롭해서 뺀다. origin을 하단 기준으로 잡아서
+// (50% 100%) 확대해도 아래쪽 내용은 그대로 있고 위쪽만 크롭되게 한다(07편에서 쓴 것과 동일 공식).
+const TOPCROP_ZOOM = 1920 / (1920 - 180); // ≈1.1034
+const TOPCROP_ORIGIN = "50% 100%";
+
 // ---- 훅 원본 타임코드(30fps 기준 프레임) ----
 // silencedetect로 확인한 발화 구간이 0~6.2s 사이 거의 이어져 있어서(짧은 숨쉬기 정도만 끊김),
 // 문장이 잘리지 않도록 앞부분을 통으로 쓰고, 뒤쪽 무음 구간(헛웃음)만 따로 하드컷.
@@ -93,9 +99,26 @@ const SubClip: React.FC<{
   left: number;
   zoom?: number;
   origin?: string;
+  zoom2?: number;
+  origin2?: string;
   fade?: boolean;
   muted?: boolean;
-}> = ({ src, rawFrom, rawTo, rate, len, width, height, left, zoom = 1, origin = "center", fade = true, muted = true }) => {
+}> = ({
+  src,
+  rawFrom,
+  rawTo,
+  rate,
+  len,
+  width,
+  height,
+  left,
+  zoom = 1,
+  origin = "center",
+  zoom2 = 1,
+  origin2 = "center",
+  fade = true,
+  muted = true,
+}) => {
   const frame = useCurrentFrame();
   const fadeIn = fade
     ? interpolate(frame, [0, 4], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
@@ -116,44 +139,50 @@ const SubClip: React.FC<{
         opacity: Math.min(fadeIn, fadeOut),
       }}
     >
-      <OffthreadVideo
-        src={staticFile(src)}
-        trimBefore={rawFrom}
-        trimAfter={rawTo}
-        playbackRate={rate}
-        muted={muted}
-        style={{
-          width: "100%",
-          height: "100%",
-          objectFit: "cover",
-          transform: zoom !== 1 ? `scale(${zoom})` : undefined,
-          transformOrigin: origin,
-        }}
-      />
+      <div style={{ width: "100%", height: "100%", transform: zoom !== 1 ? `scale(${zoom})` : undefined, transformOrigin: origin }}>
+        <OffthreadVideo
+          src={staticFile(src)}
+          trimBefore={rawFrom}
+          trimAfter={rawTo}
+          playbackRate={rate}
+          muted={muted}
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            transform: zoom2 !== 1 ? `scale(${zoom2})` : undefined,
+            transformOrigin: origin2,
+          }}
+        />
+      </div>
     </div>
   );
 };
 
 // 정지 화면(PNG) 전용 — 비디오 디코딩이 없어 분수 배속 버그를 원천적으로 피한다.
-const FreezeImg: React.FC<{ src: string; width: number; height: number; left: number; zoom?: number; origin?: string }> = ({
-  src,
-  width,
-  height,
-  left,
-  zoom = 1,
-  origin = "center",
-}) => (
+const FreezeImg: React.FC<{
+  src: string;
+  width: number;
+  height: number;
+  left: number;
+  zoom?: number;
+  origin?: string;
+  zoom2?: number;
+  origin2?: string;
+}> = ({ src, width, height, left, zoom = 1, origin = "center", zoom2 = 1, origin2 = "center" }) => (
   <div style={{ position: "absolute", top: 0, left, width, height, overflow: "hidden", border: `1px solid ${LINE}` }}>
-    <Img
-      src={staticFile(src)}
-      style={{
-        width: "100%",
-        height: "100%",
-        objectFit: "cover",
-        transform: zoom !== 1 ? `scale(${zoom})` : undefined,
-        transformOrigin: origin,
-      }}
-    />
+    <div style={{ width: "100%", height: "100%", transform: zoom !== 1 ? `scale(${zoom})` : undefined, transformOrigin: origin }}>
+      <Img
+        src={staticFile(src)}
+        style={{
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+          transform: zoom2 !== 1 ? `scale(${zoom2})` : undefined,
+          transformOrigin: origin2,
+        }}
+      />
+    </div>
   </div>
 );
 
@@ -216,22 +245,22 @@ const Demo: React.FC = () => {
         }}
       >
         <Sequence from={d0From} durationInFrames={D0} name="tap-button">
-          <SubClip src={DEMO_VIDEO} rawFrom={DEMO_RAW.tapButton[0]} rawTo={DEMO_RAW.tapButton[1]} rate={rateTapButton} len={D0} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} fade={false} />
+          <SubClip src={DEMO_VIDEO} rawFrom={DEMO_RAW.tapButton[0]} rawTo={DEMO_RAW.tapButton[1]} rate={rateTapButton} len={D0} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} zoom2={TOPCROP_ZOOM} origin2={TOPCROP_ORIGIN} fade={false} />
         </Sequence>
         <Sequence from={d1From} durationInFrames={D1} name="prompt">
-          <SubClip src={DEMO_VIDEO} rawFrom={DEMO_RAW.prompt[0]} rawTo={DEMO_RAW.prompt[1]} rate={ratePrompt} len={D1} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} />
+          <SubClip src={DEMO_VIDEO} rawFrom={DEMO_RAW.prompt[0]} rawTo={DEMO_RAW.prompt[1]} rate={ratePrompt} len={D1} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} zoom2={TOPCROP_ZOOM} origin2={TOPCROP_ORIGIN} />
         </Sequence>
         <Sequence from={d2From} durationInFrames={D2} name="loading">
-          <SubClip src={DEMO_VIDEO} rawFrom={DEMO_RAW.loading[0]} rawTo={DEMO_RAW.loading[1]} rate={rateLoading} len={D2} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} />
+          <SubClip src={DEMO_VIDEO} rawFrom={DEMO_RAW.loading[0]} rawTo={DEMO_RAW.loading[1]} rate={rateLoading} len={D2} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} zoom2={TOPCROP_ZOOM} origin2={TOPCROP_ORIGIN} />
         </Sequence>
         <Sequence from={d3From} durationInFrames={D4} name="calendar-list-freeze">
-          <FreezeImg src={CALENDAR_LIST_FREEZE} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} zoom={1.1} origin="50% 55%" />
+          <FreezeImg src={CALENDAR_LIST_FREEZE} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} zoom={1.1} origin="50% 55%" zoom2={TOPCROP_ZOOM} origin2={TOPCROP_ORIGIN} />
         </Sequence>
         <Sequence from={d4From} durationInFrames={D5} name="month-view-freeze">
-          <FreezeImg src={MONTH_VIEW_FREEZE} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} zoom={1.15} origin="50% 45%" />
+          <FreezeImg src={MONTH_VIEW_FREEZE} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} zoom={1.15} origin="50% 45%" zoom2={TOPCROP_ZOOM} origin2={TOPCROP_ORIGIN} />
         </Sequence>
         <Sequence from={d5From} durationInFrames={D6} name="week-view-freeze">
-          <FreezeImg src={WEEK_VIEW_FREEZE} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} zoom={1.1} origin="50% 55%" />
+          <FreezeImg src={WEEK_VIEW_FREEZE} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} zoom={1.1} origin="50% 55%" zoom2={TOPCROP_ZOOM} origin2={TOPCROP_ORIGIN} />
         </Sequence>
         <Sequence from={d6From} durationInFrames={D3} name="reveal-shopping">
           <SubClip
@@ -245,6 +274,8 @@ const Demo: React.FC = () => {
             left={VIDEO_LEFT}
             zoom={1.1}
             origin="50% 55%"
+            zoom2={TOPCROP_ZOOM}
+            origin2={TOPCROP_ORIGIN}
             fade={false}
           />
         </Sequence>

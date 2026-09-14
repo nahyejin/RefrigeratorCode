@@ -17,6 +17,12 @@ const HOOK_TURN_VIDEO = "reel6_hook_turn_clean.mp4"; // 1.7s, 51f — 리액션(
 // 데모: 실제 쿡매치 요리 챗봇 흐름(36s, 880x1920, 30fps) — 질문 입력 → 로딩 → AI 답변(이유 설명) + 레시피 카드
 const DEMO_VIDEO = "reel6_chatbot_demo.mp4";
 
+// 데모 화면 녹화본 최상단에 iOS 상태바 + 화면 녹화 표시가 그대로 찍혀 있어서, 살짝 확대해 위쪽을
+// 크롭해서 뺀다(07편에서 쓴 것과 동일 공식 — origin을 하단 기준으로 잡아서 확대해도 아래쪽 내용은
+// 그대로 있고 위쪽만 크롭됨).
+const TOPCROP_ZOOM = 1920 / (1920 - 180); // ≈1.1034
+const TOPCROP_ORIGIN = "50% 100%";
+
 const HB1 = 168; // reel6_hook_line_clean.mp4 전체 프레임 수
 const HB2 = 51; // reel6_hook_turn_clean.mp4 전체 프레임 수
 const HOOK_LEN = HB1 + HB2; // 219f — 정지 홀드 없이 바로 하드컷
@@ -82,9 +88,26 @@ const SubClip: React.FC<{
   left: number;
   zoom?: number;
   origin?: string;
+  zoom2?: number;
+  origin2?: string;
   fade?: boolean;
   muted?: boolean;
-}> = ({ src, rawFrom, rawTo, rate, len, width, height, left, zoom = 1, origin = "center", fade = true, muted = true }) => {
+}> = ({
+  src,
+  rawFrom,
+  rawTo,
+  rate,
+  len,
+  width,
+  height,
+  left,
+  zoom = 1,
+  origin = "center",
+  zoom2 = 1,
+  origin2 = "center",
+  fade = true,
+  muted = true,
+}) => {
   const frame = useCurrentFrame();
   const fadeIn = fade
     ? interpolate(frame, [0, 4], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
@@ -105,20 +128,22 @@ const SubClip: React.FC<{
         opacity: Math.min(fadeIn, fadeOut),
       }}
     >
-      <OffthreadVideo
-        src={staticFile(src)}
-        trimBefore={rawFrom}
-        trimAfter={rawTo}
-        playbackRate={rate}
-        muted={muted}
-        style={{
-          width: "100%",
-          height: "100%",
-          objectFit: "cover",
-          transform: zoom !== 1 ? `scale(${zoom})` : undefined,
-          transformOrigin: origin,
-        }}
-      />
+      <div style={{ width: "100%", height: "100%", transform: zoom !== 1 ? `scale(${zoom})` : undefined, transformOrigin: origin }}>
+        <OffthreadVideo
+          src={staticFile(src)}
+          trimBefore={rawFrom}
+          trimAfter={rawTo}
+          playbackRate={rate}
+          muted={muted}
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            transform: zoom2 !== 1 ? `scale(${zoom2})` : undefined,
+            transformOrigin: origin2,
+          }}
+        />
+      </div>
     </div>
   );
 };
@@ -177,10 +202,10 @@ const Demo: React.FC = () => {
   return (
     <AbsoluteFill style={{ backgroundColor: WHITE }}>
       <Sequence from={askFrom} durationInFrames={ASK_LEN} name="ask">
-        <SubClip src={DEMO_VIDEO} rawFrom={DEMO_RAW.ask[0]} rawTo={DEMO_RAW.ask[1]} rate={rateAsk} len={ASK_LEN} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} fade={false} />
+        <SubClip src={DEMO_VIDEO} rawFrom={DEMO_RAW.ask[0]} rawTo={DEMO_RAW.ask[1]} rate={rateAsk} len={ASK_LEN} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} zoom2={TOPCROP_ZOOM} origin2={TOPCROP_ORIGIN} fade={false} />
       </Sequence>
       <Sequence from={loadingFrom} durationInFrames={LOADING_LEN} name="loading">
-        <SubClip src={DEMO_VIDEO} rawFrom={DEMO_RAW.loading[0]} rawTo={DEMO_RAW.loading[1]} rate={rateLoading} len={LOADING_LEN} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} />
+        <SubClip src={DEMO_VIDEO} rawFrom={DEMO_RAW.loading[0]} rawTo={DEMO_RAW.loading[1]} rate={rateLoading} len={LOADING_LEN} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} zoom2={TOPCROP_ZOOM} origin2={TOPCROP_ORIGIN} />
       </Sequence>
 
       <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, transform: frame >= pulseFrom ? `scale(${pulseScale})` : undefined }}>
@@ -196,6 +221,8 @@ const Demo: React.FC = () => {
             left={VIDEO_LEFT}
             zoom={1.1}
             origin="50% 55%"
+            zoom2={TOPCROP_ZOOM}
+            origin2={TOPCROP_ORIGIN}
             fade={false}
           />
         </Sequence>

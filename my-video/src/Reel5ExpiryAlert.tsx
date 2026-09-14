@@ -8,6 +8,12 @@ const HOOK_VIDEO = "reel5_hook_gemini.mov";
 // 데모: 실제 쿡매치 유통기한 알림 흐름(56s, 884x1920, 30fps) — 푸시 알림 → 유통기한 자동계산 → 임박재료 레시피 추천
 const DEMO_VIDEO = "reel5_expiry_demo.mp4";
 
+// 데모 화면 녹화본(영상·정지이미지 전부) 최상단에 iOS 상태바 + 화면 녹화 표시가 그대로 찍혀 있어서,
+// 살짝 확대해 위쪽을 크롭해서 뺀다(07편에서 쓴 것과 동일 공식 — origin을 하단 기준으로 잡아서 확대해도
+// 아래쪽 내용은 그대로 있고 위쪽만 크롭됨).
+const TOPCROP_ZOOM = 1920 / (1920 - 180); // ≈1.1034
+const TOPCROP_ORIGIN = "50% 100%";
+
 // ---- 훅 원본 타임코드(30fps 기준 프레임) ----
 // silencedetect로 실측한 결과 진짜 대사("아, 이것도 결국 못 먹고 버리네...")는 2.65~4.87s 구간에서만
 // 들린다(그 앞 0.46~2.03s의 소리는 대사가 아닌 다른 잡음). 대사 뒤 멍하니 있는 정적 구간(5~7.5s)은
@@ -80,9 +86,26 @@ const SubClip: React.FC<{
   left: number;
   zoom?: number;
   origin?: string;
+  zoom2?: number;
+  origin2?: string;
   fade?: boolean;
   muted?: boolean;
-}> = ({ src, rawFrom, rawTo, rate, len, width, height, left, zoom = 1, origin = "center", fade = true, muted = true }) => {
+}> = ({
+  src,
+  rawFrom,
+  rawTo,
+  rate,
+  len,
+  width,
+  height,
+  left,
+  zoom = 1,
+  origin = "center",
+  zoom2 = 1,
+  origin2 = "center",
+  fade = true,
+  muted = true,
+}) => {
   const frame = useCurrentFrame();
   const fadeIn = fade
     ? interpolate(frame, [0, 4], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
@@ -103,20 +126,22 @@ const SubClip: React.FC<{
         opacity: Math.min(fadeIn, fadeOut),
       }}
     >
-      <OffthreadVideo
-        src={staticFile(src)}
-        trimBefore={rawFrom}
-        trimAfter={rawTo}
-        playbackRate={rate}
-        muted={muted}
-        style={{
-          width: "100%",
-          height: "100%",
-          objectFit: "cover",
-          transform: zoom !== 1 ? `scale(${zoom})` : undefined,
-          transformOrigin: origin,
-        }}
-      />
+      <div style={{ width: "100%", height: "100%", transform: zoom !== 1 ? `scale(${zoom})` : undefined, transformOrigin: origin }}>
+        <OffthreadVideo
+          src={staticFile(src)}
+          trimBefore={rawFrom}
+          trimAfter={rawTo}
+          playbackRate={rate}
+          muted={muted}
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            transform: zoom2 !== 1 ? `scale(${zoom2})` : undefined,
+            transformOrigin: origin2,
+          }}
+        />
+      </div>
     </div>
   );
 };
@@ -154,7 +179,10 @@ const AlertFreeze: React.FC<{ len: number }> = ({ len }) => {
   const pop = interpolate(spring({ frame, fps, config: { damping: 14, mass: 0.6 } }), [0, 1], [0.94, 1]);
   return (
     <div style={{ position: "absolute", top: 0, left: VIDEO_LEFT, width: VIDEO_W, height: VIDEO_H, overflow: "hidden", border: `1px solid ${LINE}`, opacity }}>
-      <Img src={staticFile("reel5_notif_full.png")} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+      <Img
+        src={staticFile("reel5_notif_full.png")}
+        style={{ width: "100%", height: "100%", objectFit: "cover", transform: `scale(${TOPCROP_ZOOM})`, transformOrigin: TOPCROP_ORIGIN }}
+      />
       <div style={{ position: "absolute", left: "50%", top: "50%", transform: `translate(-50%, -50%) scale(${pop})`, width: "84%" }}>
         <Img
           src={staticFile("reel5_notif_card.png")}
@@ -175,10 +203,12 @@ const SpinachReveal: React.FC<{ len: number }> = ({ len }) => {
   const zoom = interpolate(spring({ frame, fps, config: { damping: 13, mass: 0.7 } }), [0, 1], [1, 1.8]);
   return (
     <div style={{ position: "absolute", top: 0, left: VIDEO_LEFT, width: VIDEO_W, height: VIDEO_H, overflow: "hidden", border: `1px solid ${LINE}`, opacity }}>
-      <Img
-        src={staticFile("reel5_spinach_freeze.png")}
-        style={{ width: "100%", height: "100%", objectFit: "cover", transform: `scale(${zoom})`, transformOrigin: SPINACH_ORIGIN }}
-      />
+      <div style={{ width: "100%", height: "100%", transform: `scale(${TOPCROP_ZOOM})`, transformOrigin: TOPCROP_ORIGIN }}>
+        <Img
+          src={staticFile("reel5_spinach_freeze.png")}
+          style={{ width: "100%", height: "100%", objectFit: "cover", transform: `scale(${zoom})`, transformOrigin: SPINACH_ORIGIN }}
+        />
+      </div>
     </div>
   );
 };
@@ -216,6 +246,8 @@ const Demo: React.FC = () => {
           width={VIDEO_W}
           height={VIDEO_H}
           left={VIDEO_LEFT}
+          zoom2={TOPCROP_ZOOM}
+          origin2={TOPCROP_ORIGIN}
         />
       </Sequence>
 
@@ -236,6 +268,8 @@ const Demo: React.FC = () => {
             left={VIDEO_LEFT}
             zoom={1.15}
             origin="50% 42%"
+            zoom2={TOPCROP_ZOOM}
+            origin2={TOPCROP_ORIGIN}
             fade={false}
           />
         </Sequence>
