@@ -50,6 +50,7 @@ const GuideOverlay: React.FC<GuideOverlayProps> = ({
 }) => {
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
+  const tooltipRef = useRef<HTMLDivElement>(null);
   /**
    * 이번 단계에서 이미 스크롤을 맞췄는지.
    * 매번 맞추면 scroll 이벤트가 다시 이 함수를 부르면서 끝없이 되돌아온다.
@@ -93,7 +94,13 @@ const GuideOverlay: React.FC<GuideOverlayProps> = ({
           //    가운데**로 가져온다. scrollIntoView 의 'center' 는 뷰포트 기준이라
           //    하단 탭에 가려지는 자리로 데려다 놓는 경우가 있다.
           const r2 = target.getBoundingClientRect();
-          const want = safeTop + (safeBottom - safeTop) / 2 - r2.height / 2;
+          // 화면보다 긴 영역(요리 캘린더의 목표+달력 전체, 펼친 그룹 설정 등)은
+          // 가운데 맞추면 **윗부분이 화면 위로 잘려** 무엇을 가리키는지 모른다.
+          // 그럴 땐 고정 헤더 바로 아래에 윗단을 맞춘다.
+          const HEADER_PX = 72;
+          const want = r2.height > safeBottom - safeTop
+            ? HEADER_PX
+            : safeTop + (safeBottom - safeTop) / 2 - r2.height / 2;
           window.scrollBy({ top: r2.top - want });
         }
       }
@@ -158,7 +165,10 @@ const GuideOverlay: React.FC<GuideOverlayProps> = ({
 
     const isStorageAreas = steps[currentStep].targetSelector.includes('storage-areas');
     const tooltipWidth = isStorageAreas || steps[currentStep].targetSelector.includes('settings-icon') ? 340 : 320;
-    const tooltipHeight = isStorageAreas ? 220 : 100;
+    // 실제 높이를 잰다. 어림값(100)으로 두면 문구가 여러 줄인 단계(요리 캘린더 월 목표
+    // 설명 등)는 위로 붙일 때 대상과 겹치고, 아래 경계 검사가 모자라 화면 밖으로 나간다.
+    // 위치는 250ms 마다 다시 재므로 첫 그림 다음부터는 잰 값으로 맞는다.
+    const tooltipHeight = tooltipRef.current?.offsetHeight || (isStorageAreas ? 220 : 100);
     const spacing = 12;
     let top = 0;
     let left = 0;
@@ -309,6 +319,7 @@ const GuideOverlay: React.FC<GuideOverlayProps> = ({
 
       {/* 툴팁 - 배경 오버레이 위에 표시 */}
       <div
+        ref={tooltipRef}
         style={getTooltipStyle()}
         onClick={(e) => e.stopPropagation()}
       >

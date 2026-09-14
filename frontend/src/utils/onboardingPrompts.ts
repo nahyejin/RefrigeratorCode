@@ -44,6 +44,27 @@ export function evaluateVisitForUsageGuide(now = Date.now()): boolean {
   return shouldShowGuide;
 }
 
+/**
+ * 사용 가이드는 화면 네 곳을 이어서 돈다 — 내냉장고 → 냉장고요리 → 요리 캘린더
+ * → 마이페이지. 화면마다 "(5/18)" 같은 진행 표시를 따로 계산하면 단계를
+ * 더하거나 뺄 때 한 곳만 고쳐져 숫자가 튄다(실제로 없어진 '저장 버튼' 단계가
+ * 남아 로그인하면 3/12 다음이 5/12였다). 단계 수는 여기 한 곳에 둔다.
+ *
+ * 월 목표·달력(요리 캘린더 2번째)과 마이페이지 세 단계는 로그인해야 있는
+ * 화면이라, 비로그인이면 요리 캘린더 첫 단계에서 끝난다.
+ */
+export const USAGE_GUIDE_STEPS = {
+  myFridge: 3,
+  recipeList: 9,
+  calendar: (loggedIn: boolean) => (loggedIn ? 2 : 1),
+  myPage: 3,
+} as const;
+
+export function usageGuideTotalSteps(loggedIn: boolean): number {
+  return USAGE_GUIDE_STEPS.myFridge + USAGE_GUIDE_STEPS.recipeList
+    + USAGE_GUIDE_STEPS.calendar(loggedIn) + (loggedIn ? USAGE_GUIDE_STEPS.myPage : 0);
+}
+
 export function isUsageGuideDueThisVisit(): boolean {
   return sessionStorage.getItem(ONBOARDING_KEYS.usageGuideDueThisVisit) === 'true';
 }

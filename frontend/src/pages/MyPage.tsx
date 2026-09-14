@@ -13,6 +13,8 @@ import HouseholdSection from '../components/HouseholdSection';
 import NotificationSettings from '../components/NotificationSettings';
 import PullToRefresh from '../components/PullToRefresh';
 import UsageGauge, { useIsAdmin } from '../components/UsageMeter';
+import GuideOverlay from '../components/GuideOverlay';
+import { markUsageGuideFinished, usageGuideTotalSteps, USAGE_GUIDE_STEPS } from '../utils/onboardingPrompts';
 import logoImg from '../assets/냉털이 로고 white.png';
 import searchIcon from '../assets/navigator_search.png';
 import myProfileImg from '../assets/profile_default.png'; // 기본 프로필 이미지(없으면 대체)
@@ -660,6 +662,45 @@ const MyPage: React.FC = () => {
   const location = useLocation();
   /** 관리자에게만 어드민 입구를 보여준다 (실제 권한 검사는 서버가 한다) */
   const isAdmin = useIsAdmin();
+
+  // ── 사용 가이드 16~18단계(마지막) ─────────────────────────────
+  // 요리 캘린더 가이드 끝에서 `?fromGuide=true` 로 넘어온다. 셋 다 로그인해야
+  // 있는 칸이라 로그인 상태에서만 시작한다.
+  const [showGuide, setShowGuide] = useState(false);
+  const [guideStep, setGuideStep] = useState(0);
+  const guideStartedRef = React.useRef(false);
+  const myPageGuideSteps = [
+    {
+      targetSelector: '[data-guide-target="usage-card"]',
+      message: 'AI 기능을 더 쓰고 싶다면\n「더 필요해요」를 눌러\n사용 한도를 늘릴 수 있어요.',
+      position: 'bottom' as const,
+    },
+    {
+      targetSelector: '[data-guide-target="household-section"]',
+      message: '가족을 초대해 그룹을 만들면\n요리 목표와 완료·기록을\n함께 나누고 관리할 수 있어요.',
+      position: 'bottom' as const,
+    },
+    {
+      targetSelector: '[data-guide-target="notification-settings"]',
+      message: '알림을 켜 두면\n유통기한이 다가온 재료를\n미리 알려 드려요.',
+      position: 'bottom' as const,
+    },
+  ];
+
+  useEffect(() => {
+    if (!isLoggedIn || guideStartedRef.current) return;
+    if (new URLSearchParams(location.search).get('fromGuide') !== 'true') return;
+    guideStartedRef.current = true;
+    window.history.replaceState({}, '', '/my-page');
+    // 요리 캘린더와 같은 이유로 타이머를 정리에서 취소하지 않는다(ref 로 한 번만 시작).
+    setTimeout(() => { setGuideStep(0); setShowGuide(true); }, 500);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoggedIn]);
+
+  const finishMyPageGuide = () => {
+    setShowGuide(false);
+    markUsageGuideFinished();
+  };
 
   // GNB에서 닉네임을 눌러 /my-page?openEdit=true 로 들어온 경우 자동으로 수정 모달 열기
   useEffect(() => {
@@ -1384,8 +1425,9 @@ const MyPage: React.FC = () => {
       </div>
 
       {isLoggedIn && (
-        <div style={{ margin: '12px 14px 0' }}>
-          <HouseholdSection onChange={loadHouseholdRecipeFeeds} />
+        <div style={{ margin: '12px 14px 0' }} data-guide-target="household-section">
+          {/* 가이드가 이 칸(17단계)을 가리키면 펼친다 — 접힌 채면 제목 한 줄뿐이다. */}
+          <HouseholdSection onChange={loadHouseholdRecipeFeeds} guideExpand={showGuide && guideStep === 1} />
         </div>
       )}
 
@@ -1393,7 +1435,7 @@ const MyPage: React.FC = () => {
           묶음의 하나라 이 자리가 자연스럽다(로그인 안 했으면 아예 켤 수
           없으므로 로그인 상태에서만 보여준다). */}
       {isLoggedIn && (
-        <div style={{ margin: '12px 14px 0' }}>
+        <div style={{ margin: '12px 14px 0' }} data-guide-target="notification-settings">
           <NotificationSettings />
         </div>
       )}
@@ -2006,6 +2048,21 @@ const MyPage: React.FC = () => {
         <br />
         모든 데이터가 삭제되며 복구할 수 없습니다.
       </Dialog>
+
+      <GuideOverlay
+        visible={showGuide}
+        currentStep={guideStep}
+        onPrevious={() => setGuideStep((s) => Math.max(0, s - 1))}
+        onNext={() => {
+          if (guideStep < myPageGuideSteps.length - 1) setGuideStep(guideStep + 1);
+          else finishMyPageGuide();
+        }}
+        onClose={finishMyPageGuide}
+        steps={myPageGuideSteps}
+        isLastStepConfirm={true}
+        totalSteps={usageGuideTotalSteps(true)}
+        startStepOffset={USAGE_GUIDE_STEPS.myFridge + USAGE_GUIDE_STEPS.recipeList + USAGE_GUIDE_STEPS.calendar(true)}
+      />
     </div>
   );
 };

@@ -25,6 +25,7 @@ import { loadIngredientCategoryMap, estimateExpiry, type CategoryMap } from '../
 import {
   isUsageGuideDueThisVisit,
   markUsageGuideFinished,
+  usageGuideTotalSteps,
   markUsageGuideOpened,
   ONBOARDING_KEYS,
 } from '../utils/onboardingPrompts';
@@ -2653,7 +2654,7 @@ const MyFridge: React.FC = () => {
           }}
           steps={baseGuideSteps}
           isLastStepConfirm={false}
-          totalSteps={isLoggedIn && user?.id ? 12 : 11}
+          totalSteps={usageGuideTotalSteps(!!(isLoggedIn && user?.id))}
           startStepOffset={0}
         />
       </div>

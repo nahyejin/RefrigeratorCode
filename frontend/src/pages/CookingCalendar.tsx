@@ -21,6 +21,8 @@ import { useAuth } from '../context/AuthContext';
 import { resolveCoupangUrl } from '../utils/coupangLink';
 import { getMyIngredients } from '../utils/recipeUtils';
 import { track } from '../utils/track';
+import GuideOverlay from '../components/GuideOverlay';
+import { markUsageGuideFinished, usageGuideTotalSteps, USAGE_GUIDE_STEPS } from '../utils/onboardingPrompts';
 
 type ViewMode = 'day' | 'week' | 'month';
 /** 보기 **방식**. 기간(일/주/월)과 다른 층이다 — 목록은 기간이 아니다. */
@@ -248,7 +250,7 @@ const FridgeToPlan: React.FC<{ onGo: (withAi?: boolean) => void }> = ({ onGo }) 
 
           '짜기' 를 안 쓴다 — 식단을 짜는 건 앱이 하는 일이고, 사람이 하는 건
           **추천을 받는 것**이다. 화면 제목도 `이번 주 식단 추천` 이다. */}
-      <div style={{ display: 'flex', gap: 8 }}>
+      <div style={{ display: 'flex', gap: 8 }} data-guide-target="weekly-plan-buttons">
         {/* 여기만 노란색·AI 배지·반짝임. 누르는 순간 크레딧이 나가지는 않고,
             조건을 적는 칸으로 데려간다 — 냉장고를 보기도 전에 돈이 나가면
             결과가 마음에 안 들 때 그대로 손해다. */}
@@ -965,6 +967,67 @@ const CookingCalendar: React.FC = () => {
     }
   };
 
+  // ── 사용 가이드 14·15단계 ─────────────────────────────────────
+  // 냉장고요리 가이드 마지막(13단계, AI 챗봇)에서 `?fromGuide=true` 로 넘어온다.
+  // 아래 로그인 여부 분기(early return)보다 **위**에 둔다 — 두 화면 모두
+  // 14단계(식단 추천 버튼)가 있고, 훅은 분기 뒤에 둘 수 없다.
+  const [showGuide, setShowGuide] = React.useState(false);
+  const [guideStep, setGuideStep] = React.useState(0);
+  const guideStartedRef = React.useRef(false);
+  const calendarGuideSteps = React.useMemo(() => [
+    {
+      targetSelector: '[data-guide-target="weekly-plan-buttons"]',
+      message: '냉장고 재료와 유통기한을 따져서\n일주일 식단을 알뜰하게 짜 드려요.\n필요한 장보기 목록도 함께 만들어져요.',
+      position: 'bottom' as const,
+    },
+    // 월 목표·달력은 로그인해야 있는 화면이다.
+    ...(isLoggedIn ? [{
+      targetSelector: '[data-guide-target="calendar-goal-area"]',
+      message: '이번 달 요리 목표를 세우고\n완료한 요리를 한눈에 모아 보세요.\n목표를 채우면 아낄 수 있는 금액도\n대략 계산해 드려요.\n\n가족 그룹이라면\n식구들과 함께 목표와 현황을\n공유할 수 있어요.',
+      position: 'bottom' as const,
+    }] : []),
+  ], [isLoggedIn]);
+
+  React.useEffect(() => {
+    if (authLoading || guideStartedRef.current) return;
+    if (new URLSearchParams(location.search).get('fromGuide') !== 'true') return;
+    guideStartedRef.current = true;
+    // 주소에서 표시를 지운다(새로고침해도 가이드가 또 뜨지 않게). 라우터 상태는
+    // 건드리지 않아 이 효과가 다시 돌며 타이머를 끊는 일이 없다.
+    window.history.replaceState({}, '', '/cooking-calendar');
+    // 정리 함수로 타이머를 취소하지 않는다 — 한 번만 시작하도록 ref 로 막아 둬서,
+    // StrictMode 가 효과를 두 번 돌리면 취소된 뒤 다시 걸 기회가 없다.
+    setTimeout(() => { setGuideStep(0); setShowGuide(true); }, 400);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoading]);
+
+  /** 로그인했으면 마이페이지(16~18단계)로 잇고, 아니면 여기서 끝낸다. */
+  const finishCalendarGuide = (goNext: boolean) => {
+    setShowGuide(false);
+    if (goNext && isLoggedIn) {
+      setTimeout(() => navigate('/my-page?fromGuide=true'), 300);
+      return;
+    }
+    markUsageGuideFinished();
+  };
+
+  const guideOverlay = (
+    <GuideOverlay
+      visible={showGuide}
+      currentStep={guideStep}
+      onPrevious={() => setGuideStep((s) => Math.max(0, s - 1))}
+      onNext={() => {
+        if (guideStep < calendarGuideSteps.length - 1) setGuideStep(guideStep + 1);
+        else finishCalendarGuide(true);
+      }}
+      onClose={() => finishCalendarGuide(false)}
+      steps={calendarGuideSteps}
+      isLastStepConfirm={!isLoggedIn}
+      totalSteps={usageGuideTotalSteps(isLoggedIn)}
+      startStepOffset={USAGE_GUIDE_STEPS.myFridge + USAGE_GUIDE_STEPS.recipeList}
+    />
+  );
+
   if (authLoading) return null;
 
   if (!isLoggedIn) {
@@ -1008,6 +1071,7 @@ const CookingCalendar: React.FC = () => {
           </div>
         </div>
         <BottomNavBar activeTab="cooking-calendar" />
+        {guideOverlay}
       </div>
     );
   }
@@ -1220,6 +1284,9 @@ const CookingCalendar: React.FC = () => {
           탭을 옮길 때마다 화면 윗동강이 통째로 사라졌다 — 무엇을 보든 이번 달
           목표는 이번 달 목표다. 아래 목록이 다른 기간을 볼 수 있다는 혼란은
           카드 제목이 `2026년 9월 목표` 라고 못 박아서 막는다. */}
+      {/* 사용 가이드 15단계가 **월 목표 + 달력·목록 카드 전체**를 한 번에
+          가리키려고 둘을 감싼다(모양에는 영향 없음). */}
+      <div data-guide-target="calendar-goal-area">
       {(<>
       {/* 월 목표는 "이번 달" 이라는 더 큰 단위 얘기라, 일/주/월 중 무엇을 보고
           있든 항상 같은 값이어야 맞다 — 그래서 일/주/월 전환 버튼보다 위,
@@ -2754,9 +2821,11 @@ const CookingCalendar: React.FC = () => {
           </Dialog>
         )}
       </div>
+      </div>
       </PullToRefresh>
 
       <BottomNavBar activeTab="cooking-calendar" />
+      {guideOverlay}
     </div>
   );
 };

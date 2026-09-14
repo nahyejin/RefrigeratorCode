@@ -297,6 +297,7 @@ export const UsageGauge: React.FC = () => {
 
   return (
     <div
+      data-guide-target="usage-card"
       style={{
         border: '1px solid var(--line-200)',
         borderRadius: 14,

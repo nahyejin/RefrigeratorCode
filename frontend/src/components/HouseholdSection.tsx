@@ -44,9 +44,11 @@ interface HouseholdSectionProps {
   /** 그룹 생성/참여/나가기가 성공했을 때 호출된다. 마이페이지가 그룹
    * 전체 즐겨찾기/기록/완료 목록을 다시 불러오는 데 쓴다. */
   onChange?: () => void;
+  /** 사용 가이드가 이 카드를 가리키는 동안 펼쳐 보여 준다(접힌 채면 가리킬 게 제목 한 줄뿐이다). */
+  guideExpand?: boolean;
 }
 
-const HouseholdSection: React.FC<HouseholdSectionProps> = ({ onChange }) => {
+const HouseholdSection: React.FC<HouseholdSectionProps> = ({ onChange, guideExpand }) => {
   const { isLoggedIn, user } = useAuth();
   const [info, setInfo] = React.useState<HouseholdInfo | null>(null);
   const [loading, setLoading] = React.useState(false);
@@ -69,6 +71,9 @@ const HouseholdSection: React.FC<HouseholdSectionProps> = ({ onChange }) => {
   // 펼치게 한다. 그룹이 없을 때는 애초에 짧아서(설명 한 줄 + 버튼 2개) 접을
   // 필요가 없다.
   const [expanded, setExpanded] = React.useState(false);
+  React.useEffect(() => {
+    if (guideExpand) setExpanded(true);
+  }, [guideExpand]);
 
   const authedFetch = React.useCallback((path: string, options: RequestInit = {}) => {
     const token = getToken();

@@ -33,7 +33,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import RegisterPromptModal from '../components/RegisterPromptModal';
 import GuideOverlay from '../components/GuideOverlay';
-import { markUsageGuideFinished, markUsageGuideOpened } from '../utils/onboardingPrompts';
+import { markUsageGuideFinished, markUsageGuideOpened, usageGuideTotalSteps, USAGE_GUIDE_STEPS } from '../utils/onboardingPrompts';
 
 // 사용법 안내(GuideOverlay)에서 "즐겨찾기(☆)" 처럼 글자로 아이콘을 대신 적어 두면
 // 실제 버튼 모양과 안 맞거나(즐겨찾기는 카드 위 어두운 원+별) 폰트에 따라 글자가
@@ -1617,11 +1617,21 @@ const RecipeList: React.FC = () => {
       ),
       position: 'left' as const,
     },
+    // 13단계 — 오른쪽 아래 AI 챗봇(앱 전역 FAB). 다음 단계부터는 요리 캘린더로 넘어간다.
+    {
+      targetSelector: '[data-guide-target="chat-fab"]',
+      message: '먹고 싶은 걸 편하게 물어보세요.\nAI가 내 냉장고 재료에 맞는\n레시피를 찾아 드려요.',
+      position: 'top' as const,
+    },
   ];
 
-  /** 내냉장고에서 끝난 단계 수(저장 버튼 포함 여부) + 냉장고요리 가이드 = 전체 진행률 */
-  const myFridgeGuideStepCount = isLoggedIn ? 4 : 3;
-  const fullGuideTotalSteps = myFridgeGuideStepCount + guideSteps.length;
+  /**
+   * 진행 표시("(5/18)")용. 예전엔 `isLoggedIn ? 4 : 3` 이었는데, 없어진 '저장 버튼'
+   * 단계를 로그인 때만 세고 있어서 3/12 다음이 5/12로 튀었다. 단계 수는
+   * onboardingPrompts 한 곳에서만 센다.
+   */
+  const myFridgeGuideStepCount = USAGE_GUIDE_STEPS.myFridge;
+  const fullGuideTotalSteps = usageGuideTotalSteps(isLoggedIn);
 
   // 가이드 표시 로직
   React.useEffect(() => {
@@ -1658,11 +1668,11 @@ const RecipeList: React.FC = () => {
         localStorage.removeItem('myfridge_guide_completed');
       }
 
-      if (fromGuide) {
-        window.history.replaceState({}, '', '/recipe-list');
-      }
-
       const timer = setTimeout(() => {
+        // 주소 정리는 **실제로 띄울 때** 한다. 효과 본문에서 먼저 지우면, 개발
+        // 모드(StrictMode)가 효과를 두 번 돌릴 때 첫 타이머는 정리로 취소되고
+        // 두 번째는 표시가 사라진 주소를 읽어 가이드가 아예 안 떴다.
+        if (fromGuide) window.history.replaceState({}, '', '/recipe-list');
         console.log('[RecipeList] 가이드 표시 실행');
         markUsageGuideOpened();
         setShowGuide(true);
@@ -3035,9 +3045,11 @@ const RecipeList: React.FC = () => {
           if (guideStep < guideSteps.length - 1) {
             setGuideStep(guideStep + 1);
           } else {
+            // 끝이 아니다 — 요리 캘린더(14단계~)로 잇는다. 끝났다는 표시
+            // (markUsageGuideFinished)는 마지막 화면에서 한다.
             setShowGuide(false);
             localStorage.setItem('recipe_guide_shown', 'true');
-            markUsageGuideFinished();
+            setTimeout(() => navigate('/cooking-calendar?fromGuide=true'), 300);
           }
         }}
         onClose={() => {
@@ -3046,7 +3058,7 @@ const RecipeList: React.FC = () => {
           markUsageGuideFinished();
         }}
         steps={guideSteps}
-        isLastStepConfirm={true}
+        isLastStepConfirm={false}
         totalSteps={fullGuideTotalSteps}
         startStepOffset={myFridgeGuideStepCount}
       />

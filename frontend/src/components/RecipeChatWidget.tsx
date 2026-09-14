@@ -859,7 +859,7 @@ const RecipeChatWidget: React.FC = () => {
       )}
 
       {!open && (
-        <div className="ai-fab-outer">
+        <div className="ai-fab-outer" data-guide-target="chat-fab">
           <div className="ai-fab-glow" />
           <button
             type="button"
