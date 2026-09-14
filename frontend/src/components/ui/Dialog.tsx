@@ -113,6 +113,12 @@ const Dialog: React.FC<DialogProps> = ({
               fontWeight: 700,
               color: 'var(--ink-900)',
               textAlign: 'center',
+              // 한글은 기본값이면 **글자 단위로** 줄이 바뀐다 —
+              // "취소하시겠어 / 요?" 처럼 애매한 데서 끊겼다(실사용 지적, 2026-09-15).
+              // 어절 단위로만 끊고(keep-all), 줄 길이를 고르게(balance) 맞춘다.
+              wordBreak: 'keep-all',
+              overflowWrap: 'anywhere',
+              textWrap: 'balance',
               marginBottom: children ? 10 : 18,
               paddingRight: showClose ? 24 : 0,
               paddingLeft: showClose ? 24 : 0,
@@ -130,6 +136,9 @@ const Dialog: React.FC<DialogProps> = ({
               color: 'var(--ink-700)',
               textAlign: 'center',
               wordBreak: 'keep-all',
+              overflowWrap: 'anywhere',
+              // 마지막 줄에 한 어절만 덩그러니 남지 않게.
+              textWrap: 'pretty',
               // 하단 버튼은 actions 를 넘기지 않아도 (자동 나가기 버튼으로) 항상 있다.
               // 예전엔 actions 가 있을 때만 여백을 줘서, 자동 버튼일 때 본문이 버튼에
               // 딱 붙어 보였다.

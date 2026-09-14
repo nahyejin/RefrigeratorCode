@@ -10984,3 +10984,7 @@ edge-tts 파일럿 목소리가 "너무 AI 같다"는 피드백 + "제미나이�
 - **모든 탭에서 맨 아래까지 스크롤해도 마지막 콘텐츠가 AI 챗 FAB에 가려짐**: 각 화면 하단 여백은 네비 높이만큼뿐이었음. 모든 탭 화면 맨 끝에 놓이는 [BottomNavBar.tsx](frontend/src/components/BottomNavBar.tsx)가 흐름 속 64px 여백을 함께 그려 한 번에 해결(내 냉장고·냉장고요리·요즘인기·요리 캘린더·마이페이지 및 하위 목록 화면).
 - **요리 캘린더에서 완료 기록 삭제를 확정해도 카드가 그대로 남음**: 서버에서는 지워졌지만, 달력이 **기기에만 남은 완료**를 합치는 `mergeLocalDone`이 localStorage 사본을 다시 끼워 넣고 있었음. 내 완료를 지울 때 기기 사본도 같이 지우고, 목록(전 기간) 데이터도 비워 다시 받게 수정.
 - **조리 시트(드로우 패널)에서 즐겨찾기·완료·기록 해제 시 확인 없이 바로 지워지고, 캘린더에도 반영 안 됨**: [CookModeSheet.tsx](frontend/src/components/CookModeSheet.tsx)에 마이페이지와 같은 문구의 확인 팝업 추가(시트 위라 `nested`). 확정 후에는 **서버 반영이 끝난 뒤** `recipe-action-synced` 이벤트를 보내고, [CookingCalendar.tsx](frontend/src/pages/CookingCalendar.tsx)가 이를 받아 달력·목록을 즉시 다시 불러옴(서버 요청이 끝나기 전에 다시 불러오면 지운 기록이 되살아나서 순서를 맞춤). 시트는 앱 전역 하나라 모든 탭에 동일 적용.
+
+### 마이페이지 — 조리 시트에서 해제해도 목록에서 바로 안 빠지던 문제 + 확인창 줄바꿈
+- **마이페이지에서 레시피를 눌러 연 조리 시트에서 즐겨찾기를 해제해도, 나갔다 들어와야 목록에서 빠짐**: 그룹 소속이면 [MyPage.tsx](frontend/src/pages/MyPage.tsx)는 서버에서 받은 **그룹 목록**(`householdFavoriteRecipes` 등)을 그리는데, 기존 `localStorageChange` 구독은 개인 목록(localStorage)만 다시 읽어서 화면이 그대로였음. 조리 시트가 서버 반영 후 보내는 `recipe-action-synced` 이벤트를 구독해 개인 목록(`loadRecipesFromDB`)과 그룹 목록(`loadHouseholdRecipeFeeds`)을 즉시 다시 불러오게 함.
+- **확인창 문구가 "취소하시겠어 / 요?"처럼 애매한 데서 줄바꿈됨**: 공용 [Dialog.tsx](frontend/src/components/ui/Dialog.tsx) 제목에 줄바꿈 규칙이 없어 한글이 글자 단위로 끊겼음. 제목에 `word-break: keep-all` + `text-wrap: balance`(줄 길이 고르게), 본문에 `text-wrap: pretty`(마지막 줄 외톨이 어절 방지)를 추가. 긴 영문·숫자가 넘치지 않게 `overflow-wrap: anywhere`도 함께. 앱의 확인창은 전부 이 Dialog를 쓰므로 한 번에 적용됨.

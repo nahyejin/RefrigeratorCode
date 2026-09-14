@@ -736,6 +736,21 @@ const MyPage: React.FC = () => {
     return () => window.removeEventListener('household-share-updated', handleShareUpdated);
   }, [isLoggedIn, authUser?.id]);
 
+  // 조리 시트(CookModeSheet)에서 즐겨찾기·완료·기록을 켜거나 끄면 바로 반영한다.
+  // 그룹 소속이면 이 화면은 **서버에서 받은 그룹 목록**(household*Recipes)을
+  // 그리는데, 아래 localStorageChange 는 개인 목록만 다시 읽어서 시트에서
+  // 해제해도 나갔다 들어와야 빠졌다(실사용 지적, 2026-09-15). 시트는 서버
+  // 반영이 끝난 뒤 이 이벤트를 보내므로 여기서 다시 받으면 최신 값이다.
+  // (의존성은 위 공유 요청 효과와 같은 이유로 isLoggedIn/authUser?.id)
+  useEffect(() => {
+    const handleSynced = () => {
+      loadRecipesFromDB();
+      loadHouseholdRecipeFeeds();
+    };
+    window.addEventListener('recipe-action-synced', handleSynced);
+    return () => window.removeEventListener('recipe-action-synced', handleSynced);
+  }, [isLoggedIn, authUser?.id]);
+
   const reloadLocalRecipeLists = () => {
     setFavoriteRecipes(sortRecipesByUserSavedAtDesc(getRecipesFromLocalStorage('favorite')));
     setRecordedRecipes(sortRecipesByUserSavedAtDesc(getRecipesFromLocalStorage('write')));
