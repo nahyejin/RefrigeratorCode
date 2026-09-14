@@ -99,15 +99,34 @@ const SubClip: React.FC<{
   zoom?: number; // 특정 화면 요소를 더 크게 강조하고 싶을 때 확대 배율
   origin?: string; // 확대 중심점(transform-origin) — 강조하고 싶은 요소 쪽으로 맞춘다
   fade?: boolean;
+  fadeInFrames?: number;
+  fadeOutFrames?: number;
   muted?: boolean;
-}> = ({ src, rawFrom, rawTo, rate, len, width, height, left, zoom = 1, origin = "center", fade = true, muted = true }) => {
+}> = ({
+  src,
+  rawFrom,
+  rawTo,
+  rate,
+  len,
+  width,
+  height,
+  left,
+  zoom = 1,
+  origin = "center",
+  fade = true,
+  fadeInFrames = 4,
+  fadeOutFrames = 4,
+  muted = true,
+}) => {
   const frame = useCurrentFrame();
-  const fadeIn = fade
-    ? interpolate(frame, [0, 4], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
-    : 1;
-  const fadeOut = fade
-    ? interpolate(frame, [len - 5, len - 1], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
-    : 1;
+  const fadeIn =
+    fade && fadeInFrames > 0
+      ? interpolate(frame, [0, fadeInFrames], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
+      : 1;
+  const fadeOut =
+    fade && fadeOutFrames > 0
+      ? interpolate(frame, [len - fadeOutFrames - 1, len - 1], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
+      : 1;
   return (
     <div
       style={{
@@ -153,7 +172,9 @@ const Hook: React.FC = () => {
         <SubClip src={HOOK_VIDEO} rawFrom={HOOK_RAW.talk[0]} rawTo={HOOK_RAW.talk[1]} rate={1} len={HB2} width={1080} height={1920} left={0} fade={false} muted={false} />
       </Sequence>
       <Sequence from={b3From} durationInFrames={HB3} name="settle">
-        <SubClip src={HOOK_VIDEO} rawFrom={HOOK_RAW.settle[0]} rawTo={HOOK_RAW.settle[1]} rate={rateSettle} len={HB3} width={1080} height={1920} left={0} fade={false} />
+        {/* 훅 끝(폰을 내려놓는 순간)에서 데모로 하드컷되면 "뚝 끊기는" 느낌이 든다는 피드백(08편에서
+            확인) — 끝만 0.8초(24f) 동안 천천히 흰 화면으로 페이드아웃. */}
+        <SubClip src={HOOK_VIDEO} rawFrom={HOOK_RAW.settle[0]} rawTo={HOOK_RAW.settle[1]} rate={rateSettle} len={HB3} width={1080} height={1920} left={0} fade={true} fadeInFrames={0} fadeOutFrames={24} />
       </Sequence>
 
       <Caption from={b1From} len={HB1 + HB2} text={"어렵게 찾은 레시피인데\n재료 한두 개 없어서 포기한 적 있죠?"} />

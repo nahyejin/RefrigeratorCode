@@ -146,17 +146,28 @@ const SubClip: React.FC<{
 };
 
 // 미리 구워둔(pre-baked) 클린 클립 전용 — 트리밍·볼륨 조작 없이 파일 전체를 그대로 재생한다.
-const CleanClip: React.FC<{ src: string; width: number; height: number; left: number; muted?: boolean }> = ({
+// fadeOutFrames를 주면 끝부분만 천천히 흰 화면으로 페이드아웃(훅 마지막 컷 → 데모 전환용, 08편에서
+// "뚝 끊기는" 느낌이 든다는 피드백을 받아 확인한 처리).
+const CleanClip: React.FC<{ src: string; width: number; height: number; left: number; muted?: boolean; fadeOutFrames?: number; len?: number }> = ({
   src,
   width,
   height,
   left,
   muted = true,
-}) => (
-  <div style={{ position: "absolute", top: 0, left, width, height, overflow: "hidden", border: `1px solid ${LINE}` }}>
-    <OffthreadVideo src={staticFile(src)} muted={muted} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-  </div>
-);
+  fadeOutFrames = 0,
+  len = 0,
+}) => {
+  const frame = useCurrentFrame();
+  const opacity =
+    fadeOutFrames > 0 && len > 0
+      ? interpolate(frame, [len - fadeOutFrames - 1, len - 1], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
+      : 1;
+  return (
+    <div style={{ position: "absolute", top: 0, left, width, height, overflow: "hidden", border: `1px solid ${LINE}`, opacity }}>
+      <OffthreadVideo src={staticFile(src)} muted={muted} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+    </div>
+  );
+};
 
 // ---------- ①② 훅 (제미나이 생성 실사, 720x1280 — 캔버스와 같은 9:16이라 크롭 없이 꽉 참) ----------
 const Hook: React.FC = () => {
@@ -167,7 +178,7 @@ const Hook: React.FC = () => {
         <CleanClip src={HOOK_LINE_VIDEO} width={1080} height={1920} left={0} muted={false} />
       </Sequence>
       <Sequence from={b2From} durationInFrames={HB2} name="turn">
-        <CleanClip src={HOOK_TURN_VIDEO} width={1080} height={1920} left={0} />
+        <CleanClip src={HOOK_TURN_VIDEO} width={1080} height={1920} left={0} len={HB2} fadeOutFrames={24} />
       </Sequence>
 
       <Caption from={0} len={HOOK_LEN} text={"오늘 뭐 해먹지,\n검색창 앞에서 멍—"} />

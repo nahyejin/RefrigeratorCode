@@ -106,6 +106,8 @@ const SubClip: React.FC<{
   origin?: string;
   cropTop?: number;
   fade?: boolean;
+  fadeInFrames?: number;
+  fadeOutFrames?: number;
   muted?: boolean;
 }> = ({
   src,
@@ -120,15 +122,19 @@ const SubClip: React.FC<{
   origin = "center",
   cropTop = 0,
   fade = true,
+  fadeInFrames = 4,
+  fadeOutFrames = 4,
   muted = true,
 }) => {
   const frame = useCurrentFrame();
-  const fadeIn = fade
-    ? interpolate(frame, [0, 4], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
-    : 1;
-  const fadeOut = fade
-    ? interpolate(frame, [len - 5, len - 1], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
-    : 1;
+  const fadeIn =
+    fade && fadeInFrames > 0
+      ? interpolate(frame, [0, fadeInFrames], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
+      : 1;
+  const fadeOut =
+    fade && fadeOutFrames > 0
+      ? interpolate(frame, [len - fadeOutFrames - 1, len - 1], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
+      : 1;
   return (
     <div
       style={{
@@ -195,7 +201,9 @@ const Hook: React.FC = () => {
         <SubClip src={HOOK_VIDEO} rawFrom={HOOK_RAW.shock[0]} rawTo={HOOK_RAW.shock[1]} rate={1} len={HB1} width={1080} height={1920} left={0} fade={false} muted={false} />
       </Sequence>
       <Sequence from={b2From} durationInFrames={HB2} name="laugh">
-        <SubClip src={HOOK_VIDEO} rawFrom={HOOK_RAW.laugh[0]} rawTo={HOOK_RAW.laugh[1]} rate={1} len={HB2} width={1080} height={1920} left={0} fade={false} />
+        {/* 훅 끝(헛웃음 짓는 순간)에서 데모로 하드컷되면 "뚝 끊기는" 느낌이 든다는 피드백(08편에서
+            확인) — 끝만 0.8초(24f) 동안 천천히 흰 화면으로 페이드아웃. */}
+        <SubClip src={HOOK_VIDEO} rawFrom={HOOK_RAW.laugh[0]} rawTo={HOOK_RAW.laugh[1]} rate={1} len={HB2} width={1080} height={1920} left={0} fade={true} fadeInFrames={0} fadeOutFrames={24} />
       </Sequence>
 
       <Caption from={b1From} len={HB1 + HB2} text={"계획 없이 장 보다가\n카트가 한가득 찬 적 있죠?"} />

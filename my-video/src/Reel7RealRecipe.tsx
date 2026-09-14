@@ -124,6 +124,8 @@ const SubClip: React.FC<{
   origin?: string;
   cropTop?: number;
   fade?: boolean;
+  fadeInFrames?: number;
+  fadeOutFrames?: number;
   muted?: boolean;
 }> = ({
   src,
@@ -138,15 +140,19 @@ const SubClip: React.FC<{
   origin = "center",
   cropTop = 0,
   fade = true,
+  fadeInFrames = 4,
+  fadeOutFrames = 4,
   muted = true,
 }) => {
   const frame = useCurrentFrame();
-  const fadeIn = fade
-    ? interpolate(frame, [0, 4], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
-    : 1;
-  const fadeOut = fade
-    ? interpolate(frame, [len - 5, len - 1], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
-    : 1;
+  const fadeIn =
+    fade && fadeInFrames > 0
+      ? interpolate(frame, [0, fadeInFrames], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
+      : 1;
+  const fadeOut =
+    fade && fadeOutFrames > 0
+      ? interpolate(frame, [len - fadeOutFrames - 1, len - 1], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
+      : 1;
   return (
     <div
       style={{
@@ -192,6 +198,8 @@ const Hook: React.FC = () => {
   return (
     <AbsoluteFill style={{ backgroundColor: WHITE }}>
       <Sequence from={0} durationInFrames={HB1} name="line">
+        {/* 훅 끝에서 데모로 하드컷되면 "뚝 끊기는" 느낌이 든다는 피드백(08편에서 확인) — 끝만
+            0.8초(24f) 동안 천천히 흰 화면으로 페이드아웃. */}
         <SubClip
           src={HOOK_VIDEO}
           rawFrom={HOOK_RAW.line[0]}
@@ -201,7 +209,9 @@ const Hook: React.FC = () => {
           width={1080}
           height={1920}
           left={0}
-          fade={false}
+          fade={true}
+          fadeInFrames={0}
+          fadeOutFrames={24}
           muted={false}
           zoom={HOOK_ZOOM}
           origin={HOOK_ORIGIN}

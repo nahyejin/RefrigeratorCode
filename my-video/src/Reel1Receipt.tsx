@@ -67,23 +67,31 @@ export const Reel1Receipt: React.FC = () => {
 // ---------- ①② 훅 (제미나이 생성 실사 클립 + 자막) ----------
 // 원본 하단(영수증 밑부분 상호명 자리)에 깨진 한글이 찍혀 있어서, 화면을 살짝
 // 확대해 top 기준으로 크롭한다 — 사람·손·영수증 본문은 그대로 두고 맨 아래만 잘려나간다.
-const HookVideo: React.FC = () => (
-  <AbsoluteFill style={{ backgroundColor: WHITE }}>
-    <div style={{ position: "absolute", inset: 0, overflow: "hidden" }}>
-      <OffthreadVideo
-        src={staticFile(HOOK_VIDEO)}
-        style={{
-          width: "100%",
-          height: "100%",
-          objectFit: "cover",
-          transform: "scale(1.14)",
-          transformOrigin: "top center",
-        }}
-      />
-    </div>
-    <Caption from={0} len={HOOK_VIDEO_LEN - 10} text="이거 저번에도 샀나?" />
-  </AbsoluteFill>
-);
+const HOOK_FADE_OUT = 24; // 0.8s — 훅 끝에서 데모로 하드컷되면 "뚝 끊기는" 느낌이 든다는 피드백(08편에서 확인) 반영, 끝만 천천히 흰 화면으로
+const HookVideo: React.FC = () => {
+  const frame = useCurrentFrame();
+  const fadeOut = interpolate(frame, [HOOK_VIDEO_LEN - HOOK_FADE_OUT - 1, HOOK_VIDEO_LEN - 1], [1, 0], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+  return (
+    <AbsoluteFill style={{ backgroundColor: WHITE }}>
+      <div style={{ position: "absolute", inset: 0, overflow: "hidden", opacity: fadeOut }}>
+        <OffthreadVideo
+          src={staticFile(HOOK_VIDEO)}
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            transform: "scale(1.14)",
+            transformOrigin: "top center",
+          }}
+        />
+      </div>
+      <Caption from={0} len={HOOK_VIDEO_LEN - 10} text="이거 저번에도 샀나?" />
+    </AbsoluteFill>
+  );
+};
 
 // ---------- ③ 데모 (실사) ----------
 const VIDEO_W = 948; // 632x1280 원본을 캔버스 높이(1920)에 맞춰 스케일(x1.5)
