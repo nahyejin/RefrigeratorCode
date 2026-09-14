@@ -47,7 +47,7 @@ const PULSE = 15; // 마지막 비트(가족 기록) 뒷부분 확대 펄스(페
 
 const DEMO_LEN = GOAL_LEN + SAVE_LEN + CAL_LEN + SHARE_LEN;
 
-const CTA_LEN = 60; // 2.0s
+const CTA_LEN = 90; // 3.0s — 자막 텍스트 길이(1줄/2줄)에 따라 CTA 카드가 다 뜬 뒤 남는 정지 시간이 제각각으로 느껴진다는 피드백으로, 모든 릴스에서 균일하게 늘림(2.0s→3.0s)
 
 const HOOK_FROM = 0;
 const DEMO_FROM = HOOK_FROM + HOOK_LEN;

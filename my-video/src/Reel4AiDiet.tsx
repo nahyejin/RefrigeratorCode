@@ -60,7 +60,7 @@ const D6 = 75; // 2.5s — 주별 캘린더 정지 이미지
 const PULSE = 15; // 마지막 정지 화면 뒷부분에서 살짝 확대 펄스로 강조
 const DEMO_LEN = D0 + D1 + D2 + D3 + D4 + D5 + D6;
 
-const CTA_LEN = 60; // 2.0s
+const CTA_LEN = 90; // 3.0s — 자막 텍스트 길이(1줄/2줄)에 따라 CTA 카드가 다 뜬 뒤 남는 정지 시간이 제각각으로 느껴진다는 피드백으로, 모든 릴스에서 균일하게 늘림(2.0s→3.0s)
 
 const HOOK_FROM = 0;
 const DEMO_FROM = HOOK_FROM + HOOK_LEN;
