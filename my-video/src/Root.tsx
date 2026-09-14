@@ -8,6 +8,7 @@ import { Reel4AiDiet, REEL4_TOTAL_FRAMES } from "./Reel4AiDiet";
 import { Reel5ExpiryAlert, REEL5_TOTAL_FRAMES } from "./Reel5ExpiryAlert";
 import { Reel6ChatbotDemo, REEL6_TOTAL_FRAMES } from "./Reel6ChatbotDemo";
 import { Reel7RealRecipe, REEL7_TOTAL_FRAMES } from "./Reel7RealRecipe";
+import { Reel8FamilySavings, REEL8_TOTAL_FRAMES } from "./Reel8FamilySavings";
 
 export const RemotionRoot: React.FC = () => {
   return (
@@ -72,6 +73,14 @@ export const RemotionRoot: React.FC = () => {
         id="Reel7RealRecipe"
         component={Reel7RealRecipe}
         durationInFrames={REEL7_TOTAL_FRAMES}
+        fps={30}
+        width={1080}
+        height={1920}
+      />
+      <Composition
+        id="Reel8FamilySavings"
+        component={Reel8FamilySavings}
+        durationInFrames={REEL8_TOTAL_FRAMES}
         fps={30}
         width={1080}
         height={1920}
