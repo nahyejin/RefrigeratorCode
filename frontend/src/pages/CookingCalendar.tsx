@@ -1532,7 +1532,7 @@ const CookingCalendar: React.FC = () => {
             있어야 한다는 지적(2026-09-14)으로, 일 보기 안에 숨겨 뒀던 것을
             이 줄로 끌어올려 [일][주][월]과 같은 높이·오른쪽에 둔다. */}
         <div style={{ display: mode === 'calendar' ? 'flex' : 'none', alignItems: 'center',
-                      justifyContent: 'space-between', gap: 6, padding: '8px 14px 0' }}>
+                      justifyContent: 'space-between', flexWrap: 'wrap', gap: 6, padding: '8px 14px 0' }}>
           <div style={{ display: 'flex', gap: 6 }}>
             {([
               { key: 'day', label: '일' },
@@ -1911,8 +1911,8 @@ const CookingCalendar: React.FC = () => {
             )}
             <span style={{ wordBreak: 'keep-all' }}>
               {clearAllScope === 'household'
-                ? '우리 식구 전체의 앞으로의 요리 계획을 지워요. 나 아닌 식구 몫은 그 사람에게 알림이 가고 되돌릴 수 있어요. 완료 기록은 그대로 남아요.'
-                : '앞으로 만들기로 한 내 요리 계획을 지워요. 완료 기록은 그대로 남아요. 되돌릴 수 없어요.'}
+                ? '우리 식구 전체의 앞으로의 요리 계획을 지워요. 내가 한 게 아닌 몫은 그 사람에게 알림이 가서, 직접 되돌릴 수도 있어요.'
+                : '앞으로 만들기로 한 내 요리 계획을 지워요. 되돌릴 수 없어요.'}
             </span>
           </div>
         </Dialog>
@@ -2170,21 +2170,20 @@ const CookingCalendar: React.FC = () => {
               몇 건이 남는지 미리 적어 둔다. 눌러 놓고 텅 비면 고장으로 읽힌다. */}
           {mode === 'household' && (
             <label style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '2px 2px 6px',
-                            fontSize: 12.5, color: 'var(--ink-700)',
-                            cursor: othersCount === 0 ? 'default' : 'pointer' }}>
-              {/* 식구 것이 하나도 없으면 이 버튼은 눌러도 아무 일이 안 일어난다.
-                  눌리기만 하고 화면이 안 바뀌면 고장으로 읽힌다 — 못 누르게
-                  하고 **왜 그런지** 적는다. */}
+                            fontSize: 12.5, color: 'var(--ink-700)', cursor: 'pointer' }}>
+              {/* 식구 것이 하나도 없어도 **누를 수는 있어야 한다** — 눌러서 켠
+                  상태로 두면, 나중에 식구가 뭔가 하는 순간 바로 그게 보인다.
+                  전에는 눌러도 아무 일이 안 일어나 보이게(disabled) 막아
+                  뒀었는데, 그러면 "식구들이 한 게 아직 없어요"를 카드 자리에
+                  보여줄 방법 자체가 없었다(실사용 지적, 2026-09-15) — 그
+                  안내는 아래 목록 자리에 이미 있으니 막을 이유가 없다. */}
               <input
                 type="checkbox"
                 checked={hideMine}
-                disabled={othersCount === 0}
                 onChange={e => setHideMine(e.target.checked)}
                 style={{ width: 16, height: 16 }}
               />
-              <span style={{ color: othersCount === 0 ? 'var(--ink-500)' : undefined }}>
-                내 요리는 빼고 보기
-              </span>
+              <span>내 요리는 빼고 보기</span>
               <span style={{ color: 'var(--ink-500)' }}>
                 {othersCount === 0
                   ? '· 식구들이 한 게 아직 없어요'
