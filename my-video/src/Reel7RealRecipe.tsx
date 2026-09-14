@@ -2,35 +2,46 @@ import React from "react";
 import { AbsoluteFill, OffthreadVideo, Sequence, staticFile, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import { FONT_FAMILY, WHITE, LINE, useCustomFont, CtaOutro, Caption } from "./shared";
 
-// 훅: 제미나이 생성 실사 클립(20s, 720x1280, 24fps, 대사 포함) — 집밥을 먹으며 "분명 레시피대로
+// 훅: 제미나이 생성 실사 클립(9.45s, 720x1280, 24fps, 대사 포함) — 집밥을 먹으며 "분명 레시피대로
 // 했는데... 이 레시피도 요리 초보가 쓴 거 아니야?"를 망설이듯(자연스러운 끊어 말하기 포함) 혼잣말
-// 하고, 말이 끝난 직후 스스로도 웃음이 나는 듯 미소 짓는 리액션까지 한 컷에 이어짐.
-// 최초 버전(10s)의 "발연기"(어색한 연기) 지적으로 사용자가 같은 대사로 재생성한 버전(20s)으로 교체.
-// silencedetect로 실측한 결과 이번 버전은 대사가 세 번의 짧은 끊김(2.4~3.37s, 3.67~4.8s,
-// 5.12~8.34s)을 두고 이어지는데, 이건 잘못 잘린 게 아니라 망설이며 말하는 자연스러운 호흡으로 보여서
-// (오히려 "발연기"를 해결하는 방향) 그대로 통째로 살림. 대사 직후(~8.3~9.5s) 미소 짓는 리액션까지
-// 같은 컷 안에 있어서 별도로 하드컷할 필요 없이 한 클립으로 처리(06편에서 배운 "정지 홀드로 어설프게
-// 잇지 말 것"의 연장선 — 애초에 안 끊으면 이어붙이기 문제 자체가 없다).
-const HOOK_VIDEO = "reel7_hook_gemini.mp4";
+// 하고, 대사 직후 접시를 다시 만지는 리액션까지 한 컷에 이어짐.
+// 사용자가 "제미나이 영상을 잘못 줬었다"며 같은 대사의 정정본으로 교체(직전 20s 버전은 실수로 보낸
+// 파일이었음). silencedetect로 실측한 결과 이번에도 대사가 두 번의 짧은 끊김(1.7~2.1s, 2.33~4.03s,
+// 5.68~7.27s)을 두고 망설이듯 이어짐 — 자연스러운 호흡이라 그대로 통째로 살리고, 파일 끝(9.45s)까지
+// 이어지는 리액션도 같은 컷 안에서 하드컷 없이 그대로 사용.
+const HOOK_VIDEO = "reel7_hook_gemini.mov";
 const HOOK_RAW = {
-  line: [0, 285], // 0:00–9.5 밥 먹으며 망설이듯 대사 + 직후 미소 리액션까지 한 컷
+  line: [0, 283], // 0:00–9.43 밥 먹으며 망설이듯 대사 + 파일 끝까지 이어지는 리액션
 };
-const HB1 = HOOK_RAW.line[1] - HOOK_RAW.line[0]; // 285f
-const HOOK_LEN = HB1; // 285f
+const HB1 = HOOK_RAW.line[1] - HOOK_RAW.line[0]; // 283f
+const HOOK_LEN = HB1; // 283f
 // 화면 왼쪽 아래에 촬영용 트라이포드가 계속 걸려 나와서(제미나이 생성 특유의 배경 소품 오류로 보임),
 // 살짝 확대해 크롭해서 프레임 밖으로 뺀다.
 const HOOK_ZOOM = 1.35;
 const HOOK_ORIGIN = "72% 38%";
 
-// 데모: 실제 쿡매치 냉장고요리 흐름(23.6s, 880x1920, 30fps) — 로딩(레시피 4만여개) → 인기순 정렬 →
+// 데모: 실제 쿡매치 냉장고요리 흐름(23.6s, 880x1920, 30fps) — 로딩(레시피 수만 건) → 인기순 정렬 →
 // 레시피 상세 → 원문(실제 유튜브 영상)까지 연결
 const DEMO_VIDEO = "reel7_recipe_demo.mp4";
+// 스플래시: 실제 쿡매치 앱 시작 화면 녹화본(1.0s, 1206x2622, 60fps) — "누적 레시피 수"가 0부터 빠르게
+// 올라가는 카운터 애니메이션. 숫자는 앞으로도 계속 늘어날 값이라 특정 숫자에서 멈춘 것처럼 보이면
+// 안 되므로, 애니메이션이 끝나기 전(파일 자체가 카운트 도중에 끝남) 구간을 통째로 써서 "계속 올라가는
+// 중"인 느낌 그대로 다음 장면으로 하드컷.
+const SPLASH_VIDEO = "reel7_splash.mp4";
+const SPLASH_LEN = 30; // 1.0s — 파일 전체(카운터가 아직 다 오르지 않은 채로 끝남)
+
+// 데모·스플래시 화면 전부 최상단에 화면 녹화 표시(빨간 점 + 검은 알약 배지)가 찍혀 있어서, 살짝
+// 확대해 위쪽을 크롭해서 뺀다. 두 영상 모두 원본 세로 비율이 880:1920 박스와 거의 같아서(objectFit
+// cover가 사실상 1:1로 맞춰줌) 같은 비율(박스 높이의 약 9.4%)로 크롭되도록 동일한 값을 공유해서 쓴다.
+// origin을 하단 기준으로 잡아서(50% 100%) 확대해도 아래쪽 내용은 그대로 있고 위쪽만 크롭되게 한다.
+const TOPCROP_ZOOM = 1920 / (1920 - 180); // ≈1.1034
+const TOPCROP_ORIGIN = "50% 100%";
 
 // ---- 데모 원본 타임코드(30fps 기준 프레임) ----
 // 컨티 원안은 "정렬 드롭다운 조작"만 계획했지만, 실촬영본에 더 설득력 있는 소재(로딩 화면에 실제로
 // "레시피 4만여 개" 문구가 뜨는 순간 + 레시피 상세 화면 + 실제 유튜브 원본으로 연결되는 장면)가 있어서
-// 그걸 살리는 4비트로 재구성. 사용자 피드백으로 "4만+ 엄선" 비트를 맨 앞으로 재배치(신뢰도 있는 다른
-// 비트들보다 이 임팩트 있는 숫자를 먼저 보여주는 게 설득력 있다는 판단).
+// 그걸 살리는 4비트로 재구성. 사용자 피드백으로 "수만 건 엄선" 비트를 맨 앞으로 재배치(신뢰도 있는 다른
+// 비트들보다 이 임팩트 있는 숫자를 먼저 보여주는 게 설득력 있다는 판단), 그 앞에 스플래시 화면도 추가.
 const DEMO_RAW = {
   claim40k: [18, 84], // 0:00.6–2.8 로딩 카드에 "레시피 4만여 개를 하나씩 맞춰 보는 중" 문구
   popularSort: [165, 270], // 0:05.5–9.0 정렬 드롭다운(인기순 선택 표시) + 댓글 1237개인 인기 카드
@@ -44,8 +55,12 @@ const SORT_LEN = DEMO_RAW.popularSort[1] - DEMO_RAW.popularSort[0]; // 105f
 const DETAIL_LEN = DEMO_RAW.detail[1] - DEMO_RAW.detail[0]; // 105f
 const PROOF_LEN = DEMO_RAW.sourceProof[1] - DEMO_RAW.sourceProof[0]; // 83f
 const PULSE = 15; // 원본 연결 화면 뒷부분 확대 펄스(페이오프)
+// 유튜브 원본 화면 하단(채널명·구독자·좋아요 등 채널 정보 영역)은 특정 크리에이터를 과하게 특정해서
+// 노출하지 않도록 블러 처리 — "진짜 영상으로 연결된다"는 사실 자체는 보이되 채널 세부정보는 가림.
+const PROOF_BLUR_TOP = 1440; // VIDEO_H(1920) 기준 — 영상 썸네일이 끝나고 채널 정보가 시작되는 지점
+const PROOF_BLUR_HEIGHT = 1920 - PROOF_BLUR_TOP;
 
-const DEMO_LEN = CLAIM_LEN + SORT_LEN + DETAIL_LEN + PROOF_LEN;
+const DEMO_LEN = SPLASH_LEN + CLAIM_LEN + SORT_LEN + DETAIL_LEN + PROOF_LEN;
 
 const CTA_LEN = 60; // 2.0s
 
@@ -82,6 +97,9 @@ export const Reel7RealRecipe: React.FC = () => {
 };
 
 // 서브클립 공용 — 원본 특정 구간을 트리밍해서 보여준다(다른 릴스와 동일 패턴, 파일마다 로컬 정의).
+// zoom/origin은 장면별 강조용 확대(바깥 래퍼에 적용), zoom2/origin2는 항상 적용되는 고정 크롭용
+// 확대(비디오 자체에 적용) — 둘을 분리해서 화면 상단 크롭(zoom2)과 장면별 강조 확대(zoom)를 동시에
+// 겹쳐 쓸 수 있게 한다.
 const SubClip: React.FC<{
   src: string;
   rawFrom: number;
@@ -93,9 +111,26 @@ const SubClip: React.FC<{
   left: number;
   zoom?: number;
   origin?: string;
+  zoom2?: number;
+  origin2?: string;
   fade?: boolean;
   muted?: boolean;
-}> = ({ src, rawFrom, rawTo, rate, len, width, height, left, zoom = 1, origin = "center", fade = true, muted = true }) => {
+}> = ({
+  src,
+  rawFrom,
+  rawTo,
+  rate,
+  len,
+  width,
+  height,
+  left,
+  zoom = 1,
+  origin = "center",
+  zoom2 = 1,
+  origin2 = "center",
+  fade = true,
+  muted = true,
+}) => {
   const frame = useCurrentFrame();
   const fadeIn = fade
     ? interpolate(frame, [0, 4], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
@@ -116,20 +151,29 @@ const SubClip: React.FC<{
         opacity: Math.min(fadeIn, fadeOut),
       }}
     >
-      <OffthreadVideo
-        src={staticFile(src)}
-        trimBefore={rawFrom}
-        trimAfter={rawTo}
-        playbackRate={rate}
-        muted={muted}
+      <div
         style={{
           width: "100%",
           height: "100%",
-          objectFit: "cover",
           transform: zoom !== 1 ? `scale(${zoom})` : undefined,
           transformOrigin: origin,
         }}
-      />
+      >
+        <OffthreadVideo
+          src={staticFile(src)}
+          trimBefore={rawFrom}
+          trimAfter={rawTo}
+          playbackRate={rate}
+          muted={muted}
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            transform: zoom2 !== 1 ? `scale(${zoom2})` : undefined,
+            transformOrigin: origin2,
+          }}
+        />
+      </div>
     </div>
   );
 };
@@ -165,11 +209,49 @@ const VIDEO_W = 880;
 const VIDEO_H = 1920;
 const VIDEO_LEFT = (1080 - VIDEO_W) / 2; // 100
 
+// 유튜브 원본 화면 하단(채널 정보 영역)을 블러 처리 — 같은 구간을 한 번 더 그려서 블러만 입힌 걸
+// 위에 겹치는 방식(비디오 두 개가 같은 트림·배속이라 프레임이 항상 동기화됨).
+const ProofBottomBlur: React.FC = () => (
+  <div
+    style={{
+      position: "absolute",
+      top: PROOF_BLUR_TOP,
+      left: VIDEO_LEFT,
+      width: VIDEO_W,
+      height: PROOF_BLUR_HEIGHT,
+      overflow: "hidden",
+      filter: "blur(22px)",
+    }}
+  >
+    <div
+      style={{
+        position: "absolute",
+        top: -PROOF_BLUR_TOP,
+        left: 0,
+        width: VIDEO_W,
+        height: VIDEO_H,
+        transform: `scale(${TOPCROP_ZOOM})`,
+        transformOrigin: TOPCROP_ORIGIN,
+      }}
+    >
+      <OffthreadVideo
+        src={staticFile(DEMO_VIDEO)}
+        trimBefore={DEMO_RAW.sourceProof[0]}
+        trimAfter={DEMO_RAW.sourceProof[1]}
+        playbackRate={rateDemo}
+        muted
+        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+      />
+    </div>
+  </div>
+);
+
 const Demo: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  const claimFrom = 0;
+  const splashFrom = 0;
+  const claimFrom = splashFrom + SPLASH_LEN;
   const sortFrom = claimFrom + CLAIM_LEN;
   const detailFrom = sortFrom + SORT_LEN;
   const proofFrom = detailFrom + DETAIL_LEN;
@@ -184,14 +266,65 @@ const Demo: React.FC = () => {
 
   return (
     <AbsoluteFill style={{ backgroundColor: WHITE }}>
+      <Sequence from={splashFrom} durationInFrames={SPLASH_LEN} name="splash">
+        <SubClip
+          src={SPLASH_VIDEO}
+          rawFrom={0}
+          rawTo={SPLASH_LEN}
+          rate={rateDemo}
+          len={SPLASH_LEN}
+          width={VIDEO_W}
+          height={VIDEO_H}
+          left={VIDEO_LEFT}
+          zoom2={TOPCROP_ZOOM}
+          origin2={TOPCROP_ORIGIN}
+          fade={false}
+        />
+      </Sequence>
       <Sequence from={claimFrom} durationInFrames={CLAIM_LEN} name="claim-40k">
-        <SubClip src={DEMO_VIDEO} rawFrom={DEMO_RAW.claim40k[0]} rawTo={DEMO_RAW.claim40k[1]} rate={rateDemo} len={CLAIM_LEN} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} zoom={1.1} origin="50% 42%" fade={false} />
+        <SubClip
+          src={DEMO_VIDEO}
+          rawFrom={DEMO_RAW.claim40k[0]}
+          rawTo={DEMO_RAW.claim40k[1]}
+          rate={rateDemo}
+          len={CLAIM_LEN}
+          width={VIDEO_W}
+          height={VIDEO_H}
+          left={VIDEO_LEFT}
+          zoom={1.1}
+          origin="50% 42%"
+          zoom2={TOPCROP_ZOOM}
+          origin2={TOPCROP_ORIGIN}
+          fade={false}
+        />
       </Sequence>
       <Sequence from={sortFrom} durationInFrames={SORT_LEN} name="popular-sort">
-        <SubClip src={DEMO_VIDEO} rawFrom={DEMO_RAW.popularSort[0]} rawTo={DEMO_RAW.popularSort[1]} rate={rateDemo} len={SORT_LEN} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} />
+        <SubClip
+          src={DEMO_VIDEO}
+          rawFrom={DEMO_RAW.popularSort[0]}
+          rawTo={DEMO_RAW.popularSort[1]}
+          rate={rateDemo}
+          len={SORT_LEN}
+          width={VIDEO_W}
+          height={VIDEO_H}
+          left={VIDEO_LEFT}
+          zoom2={TOPCROP_ZOOM}
+          origin2={TOPCROP_ORIGIN}
+        />
       </Sequence>
       <Sequence from={detailFrom} durationInFrames={DETAIL_LEN} name="detail">
-        <SubClip src={DEMO_VIDEO} rawFrom={DEMO_RAW.detail[0]} rawTo={DEMO_RAW.detail[1]} rate={rateDemo} len={DETAIL_LEN} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} />
+        <SubClip
+          src={DEMO_VIDEO}
+          rawFrom={DEMO_RAW.detail[0]}
+          rawTo={DEMO_RAW.detail[1]}
+          rate={rateDemo}
+          len={DETAIL_LEN}
+          width={VIDEO_W}
+          height={VIDEO_H}
+          left={VIDEO_LEFT}
+          zoom2={TOPCROP_ZOOM}
+          origin2={TOPCROP_ORIGIN}
+        />
       </Sequence>
 
       <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, transform: frame >= pulseFrom ? `scale(${pulseScale})` : undefined }}>
@@ -205,12 +338,15 @@ const Demo: React.FC = () => {
             width={VIDEO_W}
             height={VIDEO_H}
             left={VIDEO_LEFT}
+            zoom2={TOPCROP_ZOOM}
+            origin2={TOPCROP_ORIGIN}
             fade={false}
           />
+          <ProofBottomBlur />
         </Sequence>
       </div>
 
-      <Caption from={claimFrom} len={CLAIM_LEN} text={"매일 밤 엄선한\n진짜 맛집 레시피 4만+"} />
+      <Caption from={splashFrom} len={SPLASH_LEN + CLAIM_LEN} text={"매일 밤 엄선한\n진짜 맛집 레시피 수만 건"} />
       <Caption from={sortFrom} len={SORT_LEN} text={"좋아요·댓글·조회수까지\n반영한 인기순으로"} />
       <Caption from={detailFrom} len={DETAIL_LEN} text={"맛있는 요리의 시작은\n좋은 레시피 찾는 게 반이에요"} />
       <Caption from={proofFrom} len={PROOF_LEN} text={"출처까지 확인되는\n진짜 레시피예요"} />
