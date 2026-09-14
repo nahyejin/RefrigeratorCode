@@ -1,5 +1,5 @@
 import React from "react";
-import { AbsoluteFill, OffthreadVideo, Sequence, staticFile, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
+import { AbsoluteFill, Img, OffthreadVideo, Sequence, staticFile, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import { FONT_FAMILY, WHITE, LINE, useCustomFont, CtaOutro, Caption } from "./shared";
 
 // 훅: 제미나이 생성 실사 클립(10.0s, 720x1280, 24fps, 대사 포함) — 부부가 나란히 배달앱 결제내역을
@@ -37,7 +37,10 @@ const DEMO_RAW = {
 const rateDemo = 1;
 
 const GOAL_LEN = DEMO_RAW.goalSet[1] - DEMO_RAW.goalSet[0]; // 96f
-const SAVE_LEN = DEMO_RAW.savingsCheck[1] - DEMO_RAW.savingsCheck[0]; // 102f
+// 확대 배율(1.35)까지 키워봐도 영상 위 CSS 확대라 화질이 흐려 보인다는 피드백 — 라이브 영상
+// 재생 대신, 정착된 순간의 프레임을 사진으로 뽑아 텍스트만 선명하게 크게 보여주는 정지 컷으로
+// 교체(SavingsFreeze). 자막이 타이핑되는 동안 포함해 2.0초 유지.
+const SAVE_LEN = 60; // 2.0s (정지 컷 고정 길이 — 더 이상 raw 트림 길이와 무관)
 const CAL_LEN = DEMO_RAW.familyCal[1] - DEMO_RAW.familyCal[0]; // 84f
 const SHARE_LEN = DEMO_RAW.familyShare[1] - DEMO_RAW.familyShare[0]; // 96f
 const PULSE = 15; // 마지막 비트(가족 기록) 뒷부분 확대 펄스(페이오프로 넘어가기 전 강조)
@@ -173,6 +176,61 @@ const SubClip: React.FC<{
   );
 };
 
+// ---------- ③ 절약액 정지 컷 — "이번달 절약액" 결과 화면을 캡처한 사진 두 장(전체·크롭)으로 구성.
+// reel8_savings_bg.png는 흐리게·어둡게 딤 처리한 배경, reel8_savings_card.png는 "이번달 절약액
+// 168,000원 / 목표 15회를 다 채우면 약 360,000원" 두 줄만 타이트하게 크롭한 카드 — 이 카드를
+// 화면 중앙에 큼직하게 팝인시켜서 라이브 영상 확대(CSS scale)보다 훨씬 선명하게 강조한다. ----------
+const SavingsFreeze: React.FC = () => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const pop = spring({ frame, fps, config: { damping: 14, mass: 0.6 } });
+  const cardScale = interpolate(pop, [0, 1], [0.82, 1]);
+  const fadeIn = interpolate(frame, [0, 6], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const fadeOut = interpolate(frame, [SAVE_LEN - 8, SAVE_LEN - 1], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+
+  return (
+    <div
+      style={{
+        position: "absolute",
+        top: 0,
+        left: VIDEO_LEFT,
+        width: VIDEO_W,
+        height: VIDEO_H,
+        overflow: "hidden",
+        border: `1px solid ${LINE}`,
+        opacity: Math.min(fadeIn, fadeOut),
+      }}
+    >
+      <Img
+        src={staticFile("reel8_savings_bg.png")}
+        style={{
+          position: "absolute",
+          top: -TOPCROP_PX / 2,
+          left: 0,
+          width: "100%",
+          height: `calc(100% + ${TOPCROP_PX}px)`,
+          objectFit: "cover",
+          filter: "blur(14px) brightness(0.42)",
+        }}
+      />
+      <div
+        style={{
+          position: "absolute",
+          top: "40%",
+          left: "50%",
+          width: "88%",
+          transform: `translate(-50%, -50%) scale(${cardScale})`,
+        }}
+      >
+        <Img
+          src={staticFile("reel8_savings_card.png")}
+          style={{ width: "100%", display: "block", borderRadius: 20, boxShadow: "0 16px 40px rgba(0,0,0,0.45)" }}
+        />
+      </div>
+    </div>
+  );
+};
+
 // ---------- ①② 훅 (제미나이 생성 실사, 720x1280 — 캔버스와 같은 9:16이라 크롭 없이 꽉 참) ----------
 const Hook: React.FC = () => {
   return (
@@ -241,23 +299,7 @@ const Demo: React.FC = () => {
         />
       </Sequence>
       <Sequence from={saveFrom} durationInFrames={SAVE_LEN} name="savings-check">
-        {/* goalSet과 같은 화면이 끊김 없이 이어지는 구간이라(목표 수정 직후 결과), 이 경계에서만
-            fade를 꺼서 이음매에서 흰 플래시가 잠깐 보이는 걸 막는다. "아낀 돈이 얼마인지 바로
-            보여요" 자막이 뜨는 순간 절약액 영역이 확대되며 나타나도록 punchZoom 적용. */}
-        <SubClip
-          src={DEMO_VIDEO}
-          rawFrom={DEMO_RAW.savingsCheck[0]}
-          rawTo={DEMO_RAW.savingsCheck[1]}
-          rate={rateDemo}
-          len={SAVE_LEN}
-          width={VIDEO_W}
-          height={VIDEO_H}
-          left={VIDEO_LEFT}
-          cropTop={TOPCROP_PX}
-          fade={false}
-          punchZoom={1.35}
-          punchOrigin="50% 34%"
-        />
+        <SavingsFreeze />
       </Sequence>
       <Sequence from={calFrom} durationInFrames={CAL_LEN} name="family-calendar">
         {/* "캘린더에 기록으로 남아요" 자막이 뜨는 순간 월간 캘린더 영역이 확대되며 나타나도록
