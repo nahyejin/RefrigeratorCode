@@ -5,7 +5,8 @@ import Dialog from '../components/ui/Dialog';
 import Sheet from '../components/ui/Sheet';
 import StepLoading from '../components/StepLoading';
 import { getMyIngredients } from '../utils/recipeUtils';
-import { loadIngredientCategoryMap, type CategoryMap, type StorageKind } from '../utils/shelfLife';
+import { loadIngredientCategoryMap, lookupShelfLifeDays, estimateExpiry, type CategoryMap, type StorageKind } from '../utils/shelfLife';
+import { useAuth } from '../context/AuthContext';
 import { splitExpiring, daysLabel, SOON_DAYS, STALE_AFTER_DAYS,
          type FridgeItem, type ExpiringItem } from '../utils/expiry';
 import { openCookMode } from '../utils/cookMode';
@@ -341,7 +342,12 @@ const TurnResult: React.FC<{
           : <>장보기 <span style={{ color: '#B4780A' }}>{result.buyCount}개</span>면 {result.days}일치가 돼요</>}
       </div>
 
-      {result.basket.length > 0 && (
+      {/* 살아 있는(지금) 턴은 재료를 여기서 또 늘어놓지 않는다 — 아래
+          "장보기 목록으로 보기" 를 누르면 가는 진짜 목록(체크박스·구매확인)이
+          이미 같은 재료를 보여준다. 지난 턴은 그때 뭘 받았는지 보여줄 곳이
+          여기뿐이라 그대로 둔다(실사용 지적, 2026-09-16 — "위에도 있고
+          아래도 있다"). */}
+      {!live && result.basket.length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 8 }}>
           {result.basket.map(name => {
             const url = resolveCoupangUrl(name);
@@ -467,6 +473,7 @@ const TurnResult: React.FC<{
 const WeeklyPlan: React.FC = () => {
   const navigate = useNavigate();
   const usage = useUsage();
+  const { user: authUser } = useAuth();
   const [categoryMap, setCategoryMap] = React.useState<CategoryMap>({});
   const [pool, setPool] = React.useState<PlanRecipe[] | null>(null);
   const [slots, setSlots] = React.useState<Slot[]>(
@@ -474,6 +481,13 @@ const WeeklyPlan: React.FC = () => {
   );
   const [error, setError] = React.useState<string | null>(null);
   const [bought, setBought] = React.useState<Set<string>>(new Set());
+  /** 장보기 링크를 타고 나갔다 돌아오면 "사셨나요" 를 묻고, 그렇다고 하면
+   * 바로 내 냉장고에 담는다(2026-09-16, 실사용 요청 — 요리 캘린더의 장보기
+   * 목록과 같은 동작). */
+  const pendingPurchaseRef = React.useRef<string | null>(null);
+  const [confirmingPurchase, setConfirmingPurchase] = React.useState<string | null>(null);
+  const [addingPurchase, setAddingPurchase] = React.useState(false);
+  const [addedToastName, setAddedToastName] = React.useState<string | null>(null);
   const [saved, setSaved] = React.useState(false);
   /** 반영 직후 잠깐 뜨는 알림. 몇 끼를 담았는지까지 말해 준다. */
   const [toast, setToast] = React.useState<number | null>(null);
@@ -626,6 +640,73 @@ const WeeklyPlan: React.FC = () => {
 
   const boxes = React.useMemo(readBoxes, []);
   const myIngredients = React.useMemo(() => getMyIngredients(), []);
+
+  React.useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState !== 'visible' || !pendingPurchaseRef.current) return;
+      setConfirmingPurchase(pendingPurchaseRef.current);
+      pendingPurchaseRef.current = null;
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, []);
+
+  React.useEffect(() => {
+    if (!addedToastName) return;
+    const t = setTimeout(() => setAddedToastName(null), 2600);
+    return () => clearTimeout(t);
+  }, [addedToastName]);
+
+  /** 사전 분류로 보관 방법을 짐작한다 — 냉장 → 실온 → 냉동 순으로, 그 방법
+   * 자체가 정의돼 있는 첫 번째 것. */
+  const guessStorageKind = (name: string): StorageKind => {
+    const cat = categoryMap[name];
+    if (lookupShelfLifeDays(cat, 'fridge', name) != null) return 'fridge';
+    if (lookupShelfLifeDays(cat, 'room', name) != null) return 'room';
+    if (lookupShelfLifeDays(cat, 'frozen', name) != null) return 'frozen';
+    return 'fridge';
+  };
+
+  const handleConfirmPurchase = async (didBuy: boolean) => {
+    const name = confirmingPurchase;
+    if (!name) return;
+    setConfirmingPurchase(null);
+    if (!didBuy) return;
+    setAddingPurchase(true);
+    try {
+      const kind = guessStorageKind(name);
+      const today = new Date();
+      const purchase = `${today.getFullYear()}.${String(today.getMonth() + 1).padStart(2, '0')}.${String(today.getDate()).padStart(2, '0')}`;
+      const estimated = estimateExpiry(name, kind, purchase, categoryMap);
+      const current = readBoxes();
+      const next: Record<StorageKind, FridgeItem[]> = {
+        frozen: current.frozen || [], fridge: current.fridge || [], room: current.room || [],
+      };
+      const already = [...next.frozen, ...next.fridge, ...next.room].some(it => it.name === name);
+      if (!already) {
+        const newItem: FridgeItem = { id: `${name}-${Date.now()}`, name, purchase };
+        if (estimated) newItem.estimatedExpiry = estimated;
+        next[kind] = [...next[kind], newItem];
+        try { localStorage.setItem('myfridge_ingredients', JSON.stringify(next)); } catch { /* 용량 초과 등 — 무시 */ }
+        if (authUser?.id) {
+          try {
+            const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+            await fetch(`${API_BASE_URL}/api/users/${authUser.id}/ingredients`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+              body: JSON.stringify({ ingredients: next }),
+            });
+          } catch (e) {
+            console.warn('[WeeklyPlan] 구매 반영(서버) 실패 — 기기에는 남음:', e);
+          }
+        }
+      }
+      setBought(prev => new Set(prev).add(name));
+      setAddedToastName(name);
+    } finally {
+      setAddingPurchase(false);
+    }
+  };
 
   React.useEffect(() => {
     void loadIngredientCategoryMap().then(setCategoryMap).catch(() => {});
@@ -1557,10 +1638,11 @@ const WeeklyPlan: React.FC = () => {
               ))}
             </div>
 
-            {/* 이걸 하려면 **뭘 사야 하나.** AI 화면에서는 답 안에 같이 나오는데
-                여기서는 한참 아래 목록에만 있어서, 식단만 보고 나가면 장을 언제
-                봐야 할지 모른 채 끝났다. 생김새도 AI 쪽과 같게 둔다 — 같은
-                이야기가 화면마다 달라 보이면 다른 기능처럼 읽힌다. */}
+            {/* 이걸 하려면 **뭘 사야 하나.** 예전엔 여기도 재료 배지를 한 번 더
+                늘어놓아서, 한참 아래 진짜 장보기 목록(체크박스·구매확인 있는
+                곳)과 같은 재료가 두 번 보였다("위에도 있고 아래도 있다" —
+                실사용 지적, 2026-09-16). 목록 자체는 아래 한 곳에만 두고,
+                여기는 몇 개인지 + 그리로 데려가는 버튼만 남긴다. */}
             {shopping.length > 0 && (
               <div style={{
                 border: '1px solid #E0B400', background: '#FFFDF2',
@@ -1568,36 +1650,6 @@ const WeeklyPlan: React.FC = () => {
               }}>
                 <div style={{ fontSize: 14, fontWeight: 800, color: '#1A1A1E' }}>
                   이걸 하려면 장보기 <span style={{ color: '#B4780A' }}>{shopping.length}개</span>
-                </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 8 }}>
-                  {shopping.slice(0, 12).map(([name]) => {
-                    const url = resolveCoupangUrl(name);
-                    return url ? (
-                      <a
-                        key={name}
-                        href={url}
-                        target="_blank"
-                        rel="noopener noreferrer sponsored"
-                        onClick={() => track('coupang_click', name)}
-                        style={{
-                          minHeight: 30, padding: '7px 10px', borderRadius: 9999,
-                          background: '#FFD600', color: '#1A1A1E', textDecoration: 'none',
-                          fontSize: 12, fontWeight: 700,
-                          display: 'inline-flex', alignItems: 'center', gap: 3,
-                        }}
-                      >
-                        {name}
-                        <span aria-hidden style={{ fontSize: 9.5, opacity: .7 }}>사러가기 ↗</span>
-                      </a>
-                    ) : (
-                      <span key={name} style={{
-                        minHeight: 30, padding: '7px 10px', borderRadius: 9999,
-                        background: 'var(--surface)', border: '1px solid var(--line-200)',
-                        fontSize: 12, fontWeight: 600, color: 'var(--ink-700)',
-                        display: 'inline-flex', alignItems: 'center',
-                      }}>{name}</span>
-                    );
-                  })}
                 </div>
                 <button
                   type="button"
@@ -2015,7 +2067,14 @@ const WeeklyPlan: React.FC = () => {
           `새 대화` 가 함께 나올 때 가운데 제목(`AI 식단 추천`)에 맞닿아 한
           덩어리로 읽혔다 — 좁은 화면일수록 심하다. 줄을 바꾸면 제목은 제목대로
           가운데에 남고, 두 버튼은 한 짝으로 보인다. */}
-      <div style={{ marginBottom: 16 }}>
+      {/* 대화가 길어지면 "지난 대화"·"새 대화"가 스크롤을 따라 위로 밀려
+          올라가 버려서, 다시 물으려면 맨 위로 올라가야 했다(실사용 지적,
+          2026-09-16). 고정 전역 헤더(56px) 바로 아래에 붙는 두 번째 층으로
+          만든다 — 채팅이 아무리 길어져도 이 줄은 항상 그 자리에 있다. */}
+      <div style={{
+        marginBottom: 16, position: 'sticky', top: 56, zIndex: 'var(--z-sticky)' as any,
+        background: 'var(--surface-sub)', paddingTop: 4, marginTop: -4,
+      }}>
         <div style={{ position: 'relative', display: 'flex', alignItems: 'center',
                       justifyContent: 'center', minHeight: 40 }}>
           <BackButton onClick={() => navigate(-1)} style={{ left: 0, top: 2 }} />
@@ -2404,7 +2463,7 @@ const WeeklyPlan: React.FC = () => {
                       href={url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      onClick={() => track('coupang_click', name)}
+                      onClick={() => { track('coupang_click', name); pendingPurchaseRef.current = name; }}
                       style={{
                         flexShrink: 0, fontSize: 12, fontWeight: 700,
                         color: '#1A1A1E', textDecoration: 'none',
@@ -2420,8 +2479,40 @@ const WeeklyPlan: React.FC = () => {
           </div>
 
           <div style={{ fontSize: 11, color: 'var(--ink-500)', marginTop: 10, lineHeight: 1.6 }}>
-            쿠팡 파트너스 활동으로 일정 수수료를 받을 수 있어요.
+            쿠팡 파트너스 활동으로 일정 수수료를 받을 수 있어요. 사고 돌아오면 "사셨나요"
+            를 물어서, 그렇다고 하면 내 냉장고에 바로 담아 드려요.
           </div>
+        </div>
+      )}
+
+      {/* 장보기 링크 타고 나갔다 돌아왔을 때 뜨는 확인창 — 마이캘린더의
+          장보기 목록과 같은 동작(2026-09-16). */}
+      {confirmingPurchase && (
+        <Dialog
+          open
+          onClose={() => handleConfirmPurchase(false)}
+          title={`${confirmingPurchase} 사셨나요?`}
+          width={300}
+          dismissLabel="아니요"
+          actions={[{
+            label: addingPurchase ? '담는 중' : '네, 샀어요',
+            onClick: () => handleConfirmPurchase(true),
+          }]}
+        >
+          <span style={{ wordBreak: 'keep-all' }}>
+            샀다고 하면 오늘 날짜로 내 냉장고에 바로 담아 드려요. 보관 방법은
+            재료에 맞춰 짐작해 두니, 다르면 냉장고 화면에서 고칠 수 있어요.
+          </span>
+        </Dialog>
+      )}
+      {addedToastName && (
+        <div style={{
+          position: 'fixed', left: '50%', bottom: 96, transform: 'translateX(-50%)',
+          zIndex: 'var(--z-toast)' as any, background: '#1A1A1E', color: '#FFD600',
+          padding: '10px 18px', borderRadius: 9999, fontSize: 13, fontWeight: 700,
+          whiteSpace: 'nowrap', boxShadow: '0 8px 20px rgba(0,0,0,.25)',
+        }}>
+          {addedToastName}이(가) 내 냉장고에 추가되었어요
         </div>
       )}
     </div>
