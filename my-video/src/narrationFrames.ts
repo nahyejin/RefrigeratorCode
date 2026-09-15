@@ -1,18 +1,22 @@
 // 자동 생성 파일 — 직접 고치지 말고 `python my-video/scripts/narration_frames.py` 로 다시 만든다.
 // public/reelN_narration_*.mp3 의 실제 길이(30fps 프레임, 올림).
 export const NARRATION_FRAMES: Record<string, number> = {
-  reel1_narration_1: 132, // 4.37s
-  reel1_narration_2: 74, // 2.45s
+  reel1_narration_1: 146, // 4.85s
+  reel1_narration_2: 96, // 3.17s
   reel1_narration_cta: 170, // 5.65s
   reel2_narration_1: 109, // 3.61s
+  reel2_narration_2: 116, // 3.85s
   reel2_narration_3: 108, // 3.57s
   reel2_narration_cta: 213, // 7.09s
   reel3_narration_1: 115, // 3.81s
   reel3_narration_2: 102, // 3.37s
-  reel3_narration_cta: 225, // 7.49s
+  reel3_narration_cta: 230, // 7.65s
+  reel3_narration_hook1: 84, // 2.77s
+  reel3_narration_hook2: 120, // 3.97s
   reel4_narration_1: 140, // 4.65s
-  reel4_narration_3: 159, // 5.29s
-  reel4_narration_cta: 183, // 6.09s
+  reel4_narration_2: 127, // 4.21s
+  reel4_narration_3: 164, // 5.45s
+  reel4_narration_cta: 207, // 6.89s
   reel5_narration_cta: 201, // 6.69s
   reel6_narration_1: 98, // 3.25s
   reel6_narration_cta: 219, // 7.29s
