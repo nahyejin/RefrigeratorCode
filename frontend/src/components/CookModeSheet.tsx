@@ -49,6 +49,15 @@ const API_BASE_URL =
 const canSpeak = () =>
   typeof window !== 'undefined' && 'speechSynthesis' in window;
 
+/** 작성자 이름이 없을 때 "출처" 줄에 최소한 대신 넣을 플랫폼 이름. */
+function platformLabel(platform?: string): string | null {
+  if (!platform) return null;
+  const lower = platform.toLowerCase();
+  if (lower.includes('naver') || platform.includes('네이버')) return '네이버';
+  if (lower.includes('youtube') || platform.includes('유튜브')) return '유튜브';
+  return null;
+}
+
 /**
  * **읽는 속도의 기준값.**
  *
@@ -721,7 +730,13 @@ const CookModeSheet: React.FC<Props> = ({
 
           <div style={{ fontSize: 11, color: 'var(--ink-500)', lineHeight: 1.6, textAlign: 'center' }}>
             원문을 요약한 거예요. 사진과 자세한 설명은 원문에.
-            {data.author && <><br />출처 · {data.author}</>}
+            {/* 작성자 이름이 비어 있으면(크롤러가 못 뽑은 경우) 예전엔 이 줄
+                자체가 조용히 사라졌다 — 화면은 멀쩡해 보이지만 출처 표시가
+                빠진 채였다. 최소한 어느 플랫폼 글인지는 남기도록, 작성자가
+                없으면 플랫폼 이름으로 대신한다(2026-09-16, 저작권 표시 점검). */}
+            {(data.author || platformLabel(data.platform)) && (
+              <><br />출처 · {data.author || platformLabel(data.platform)}</>
+            )}
           </div>
         </div>
       )}
