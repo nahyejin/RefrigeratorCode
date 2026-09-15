@@ -652,8 +652,9 @@ const MyPage: React.FC = () => {
   // 판단에 계속 쓴다 — 이 목록만 화면 표시용으로 별도로 둔다.
   const [isInHousehold, setIsInHousehold] = useState(false);
   // 그룹에 속해 있을 때 "우리 식구 모두 보기" / "나의 것만 보기" 중 어느 쪽으로
-  // 즐겨찾기·기록·완료 세 영역을 볼지. 기본은 모두 보기.
-  const [householdViewMode, setHouseholdViewMode] = useState<'all' | 'mine'>('all');
+  // 즐겨찾기·기록·완료 세 영역을 볼지. 기본은 **나의 것만** — 마이페이지는 내
+  // 기록을 보러 오는 곳이라 식구 것이 섞여 먼저 보이면 헷갈린다(2026-09-15 요청).
+  const [householdViewMode, setHouseholdViewMode] = useState<'all' | 'mine'>('mine');
   const [householdFavoriteRecipes, setHouseholdFavoriteRecipes] = useState<any[]>([]);
   const [householdRecordedRecipes, setHouseholdRecordedRecipes] = useState<any[]>([]);
   const [householdCompletedRecipes, setHouseholdCompletedRecipes] = useState<any[]>([]);
@@ -1493,8 +1494,9 @@ const MyPage: React.FC = () => {
         <div style={{ display: 'flex', borderBottom: '1px solid var(--line-200)',
                       margin: '12px 14px 0', padding: '0 4px' }}>
           {([
-            { key: 'all', label: '우리 식구 모두' },
+            // 기본값(나의 것만)이 앞에 온다.
             { key: 'mine', label: '나의 것만' },
+            { key: 'all', label: '우리 식구 모두' },
           ] as const).map(({ key, label }) => {
             const on = householdViewMode === key;
             return (

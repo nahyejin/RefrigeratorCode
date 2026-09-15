@@ -897,6 +897,33 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
     return others.join('·');
   };
 
+  /**
+   * 완료 목록 카드 썸네일 왼쪽 위 — **누가 몇 월 며칠에** 완료했는지.
+   * 요리 캘린더의 완료 기록과 이 목록을 맞춰 보려면 이게 보여야 한다는 요청
+   * (2026-09-15). 여러 식구가 한 레시피면 가장 최근 사람 + "외 N".
+   */
+  const toMonthDay = (value: unknown): string => {
+    if (!value) return '';
+    // 서버 datetime 은 KST 로 저장된 값인데 jsonify 가 'GMT' 를 붙여 준다.
+    // 그대로 읽으면 9시간 밀리므로 표시를 떼고 이 기기 시각으로 읽는다.
+    const d = new Date(String(value).replace(/\s*GMT$/, ''));
+    return Number.isNaN(d.getTime()) ? '' : `${d.getMonth() + 1}/${d.getDate()}`;
+  };
+  const getThumbBadge = (recipe: any) => {
+    if (myPageRecipeStorageType !== 'done') return undefined;
+    const acted: { nickname: string; at: string }[] = Array.isArray(recipe?.acted) ? recipe.acted : [];
+    if (isHouseholdView && acted.length > 0) {
+      const [latest, ...rest] = acted;
+      const md = toMonthDay(latest.at);
+      return `${latest.nickname}${md ? ` · ${md}` : ''}${rest.length ? ` 외 ${rest.length}` : ''}`;
+    }
+    const md = toMonthDay(recipe?.user_saved_at || recipe?.created_at);
+    const who = isHouseholdView && Array.isArray(recipe?.acted_by) && recipe.acted_by.length === 1
+      ? recipe.acted_by[0]
+      : (authUser?.nickname || '나');
+    return md ? `${who} · ${md}` : who;
+  };
+
   // =====================
   // 렌더링
   // =====================
@@ -1007,6 +1034,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
               recipeActionStates={buttonStates}
               onRecipeAction={(recipe, action) => handleRecipeAction(recipe.id, { action: action as 'done' | 'write' | 'share' | 'favorite' })}
               getAttributionLabel={getAttributionLabel}
+              getThumbBadge={getThumbBadge}
             />
             )}
 

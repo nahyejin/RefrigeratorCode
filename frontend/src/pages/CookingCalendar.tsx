@@ -188,7 +188,9 @@ function readFridgeBoxes(): Partial<Record<StorageKind, FridgeItem[]>> {
  * 완료는 로그인 전에 눌렀거나 서버 반영이 실패했으면 기기에만 남는다.
  * 서버 것만 그리면 분명히 눌렀는데 목록이 비어 보인다.
  */
-function mergeLocalDone(server: CalendarEntry[], meId: number, meName: string): CalendarEntry[] {
+function mergeLocalDone(
+  server: CalendarEntry[], meId: number, meName: string, serverDoneIds?: Set<number>,
+): CalendarEntry[] {
   let local: any[] = [];
   try {
     local = JSON.parse(localStorage.getItem('my_completed_recipes') || '[]');
@@ -197,13 +199,23 @@ function mergeLocalDone(server: CalendarEntry[], meId: number, meName: string): 
   }
   if (!Array.isArray(local) || local.length === 0) return server;
 
-  const seen = new Set(server.map(e => `${e.day}|${e.recipe_id}`));
+  // 서버가 **이미 아는 레시피**면 기기 사본은 건너뛴다. 예전엔 "날짜+레시피" 가
+  // 같아야만 겹친다고 봐서, 「완료일자 수정」으로 서버 날짜를 옮기거나 다른
+  // 기기에서 지운 뒤에도 기기에 남은 **옛 날짜 사본이 다시 끼어들어** 고친 게
+  // 반영 안 된 것처럼 보였다(2026-09-15). `serverDoneIds` 는 내 완료 전체 목록,
+  // 못 받았으면 이번 응답에 든 내 완료로 판단한다.
+  const known = serverDoneIds ?? new Set(
+    server.filter(e => e.user_id === meId && e.recipe_id != null).map(e => Number(e.recipe_id)),
+  );
   const extra: CalendarEntry[] = [];
   local.forEach(r => {
+    if (!r || !r.id) return;
     const when = r.user_saved_at || r.created_at;
-    if (!r || !r.id || !when) return;
-    const day = String(when).slice(0, 10);
-    if (seen.has(`${day}|${r.id}`)) return;
+    if (!when || known.has(Number(r.id))) return;
+    // 기기에서 누른 시각은 UTC(…Z)로 저장된다. 앞 10자만 자르면 한국 시각
+    // 새벽 0~9시에 누른 완료가 **전날**로 찍혔다 — 이 기기 시간대로 날짜를 낸다.
+    const parsed = new Date(String(when));
+    const day = Number.isNaN(parsed.getTime()) ? String(when).slice(0, 10) : toDateKey(parsed);
     extra.push({
       day,
       created_at: String(when),
@@ -543,33 +555,57 @@ const CookingCalendar: React.FC = () => {
   const monthStart = new Date(anchorDate.getFullYear(), anchorDate.getMonth(), 1);
   const monthEnd = new Date(anchorDate.getFullYear(), anchorDate.getMonth() + 1, 0);
 
+  /**
+   * 몇 번째 불러오기인가. 달 넘기기·당겨서 새로고침·시트에서 완료 해제·가족
+   * 되돌리기가 겹치면 요청이 여러 개 동시에 돈다. 늦게 끝난 **옛 요청**이
+   * 방금 받은 값을 덮어쓰면 보고 있는 달의 완료 목록이 비거나(다른 달 기준으로
+   * 걸러져서) 방금 바꾼 목표가 옛 값으로 돌아갔다(2026-09-15). 최신 번호만 반영한다.
+   */
+  const loadSeqRef = React.useRef(0);
+  /** 그룹 소속 여부를 서버에서 한 번이라도 받았는가 — 설정 저장 경로를 고를 때 쓴다. */
+  const householdKnownRef = React.useRef(false);
+
   const loadCalendar = React.useCallback(async () => {
     if (!isLoggedIn || !authUser?.id) return;
+    const seq = ++loadSeqRef.current;
     setLoading(true);
     try {
       const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
       const apiUrl = getApiUrl();
+      const auth = { headers: { Authorization: `Bearer ${token}` } };
 
-      const meRes = await fetch(`${apiUrl}/api/households/me`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      // 셋을 **동시에** 받는다. 차례로 받으면 그만큼 요청이 겹칠 틈이 길어진다.
+      const params = new URLSearchParams({ start: toDateKey(monthStart), end: toDateKey(monthEnd) });
+      const [meRes, res, doneRes] = await Promise.all([
+        fetch(`${apiUrl}/api/households/me`, auth),
+        fetch(`${apiUrl}/api/households/me/completed-calendar?${params.toString()}`, auth),
+        // 내 완료 전체(레시피 id) — 기기 사본을 합칠 때 서버가 이미 아는 것을 거른다.
+        fetch(`${apiUrl}/api/users/${authUser.id}/completed-recipes`, auth).catch(() => null),
+      ]);
+      if (seq !== loadSeqRef.current) return;
       const me = meRes.ok ? await meRes.json() : null;
+      if (seq !== loadSeqRef.current) return;
+      if (meRes.ok) householdKnownRef.current = true;
       setIsInHousehold(!!me?.in_household);
       setMemberIds(me?.in_household ? (me.members || []).map((m: any) => m.id).sort((a: number, b: number) => a - b) : []);
       setHouseholdMembers(me?.in_household ? (me.members || []).map((m: any) => ({ id: m.id, nickname: m.nickname })) : []);
 
-      const params = new URLSearchParams({ start: toDateKey(monthStart), end: toDateKey(monthEnd) });
-      const res = await fetch(`${apiUrl}/api/households/me/completed-calendar?${params.toString()}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      let serverDoneIds: Set<number> | undefined;
+      if (doneRes && doneRes.ok) {
+        const d = await doneRes.json().catch(() => null);
+        if (d && Array.isArray(d.recipes)) {
+          serverDoneIds = new Set(d.recipes.map((r: any) => Number(r.id)));
+        }
+      }
       if (res.ok) {
         const data = await res.json();
+        if (seq !== loadSeqRef.current) return;
         // 달력에도 **기기에만 있는 완료**를 합친다. 로그인 전에 눌렀거나 서버
         // 반영이 실패한 것은 기기에만 남는데, 그것도 내가 만든 요리다.
         // (보고 있는 달 밖의 것은 걸러 낸다 — 이 화면은 그 달을 그린다)
         const from = toDateKey(monthStart);
         const to = toDateKey(monthEnd);
-        setEntries(mergeLocalDone(data.entries || [], Number(authUser.id), myName).filter(e => e.day >= from && e.day <= to));
+        setEntries(mergeLocalDone(data.entries || [], Number(authUser.id), myName, serverDoneIds).filter(e => e.day >= from && e.day <= to));
         setGroupGoal(typeof data.group_goal === 'number' ? data.group_goal : null);
         setPersonalGoal(typeof data.my_personal_goal === 'number' ? data.my_personal_goal : 20);
         setHouseholdSize(data.household_size || 1);
@@ -579,7 +615,7 @@ const CookingCalendar: React.FC = () => {
     } catch (e) {
       console.warn('[CookingCalendar] 조회 실패:', e);
     } finally {
-      setLoading(false);
+      if (seq === loadSeqRef.current) setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoggedIn, authUser?.id, monthStart.getTime(), monthEnd.getTime()]);
@@ -610,6 +646,16 @@ const CookingCalendar: React.FC = () => {
     };
     window.addEventListener('recipe-action-synced', onSynced);
     return () => window.removeEventListener('recipe-action-synced', onSynced);
+  }, [loadCalendar]);
+
+  // 다른 앱·탭에 다녀오면 다시 불러온다. 식구가 그 사이 완료를 남기거나 목표·
+  // 식구 수를 바꿨어도, 예전엔 달을 넘기거나 당겨서 새로고침해야만 보였다.
+  React.useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') loadCalendar();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
   }, [loadCalendar]);
 
   /**
@@ -890,6 +936,25 @@ const CookingCalendar: React.FC = () => {
     }
   };
 
+  /**
+   * 설정(목표·식구 수·한 끼 추정액)을 **그룹에 저장할지 내 계정에 저장할지.**
+   *
+   * `isInHousehold` 는 첫 불러오기가 끝나야 채워진다. 그 전에 저장하면 그룹
+   * 소속인데도 개인 값에 저장돼, 그룹 값을 읽는 이 화면·식구 화면에서는
+   * **바꾼 게 반영이 안 됐다**(2026-09-15). 아직 모르면 서버에 물어본다.
+   */
+  const resolveInHousehold = async (): Promise<boolean> => {
+    if (householdKnownRef.current) return isInHousehold;
+    try {
+      const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+      const r = await fetch(`${getApiUrl()}/api/households/me`, { headers: { Authorization: `Bearer ${token}` } });
+      const me = r.ok ? await r.json() : null;
+      return !!me?.in_household;
+    } catch {
+      return isInHousehold;
+    }
+  };
+
   const handleSaveGoal = async () => {
     const goal = parseInt(goalInput, 10);
     if (Number.isNaN(goal) || goal < 0 || goal > 200 || !authUser?.id) {
@@ -900,7 +965,8 @@ const CookingCalendar: React.FC = () => {
       const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
       // 그룹에 속해 있으면 그룹 공동 목표를(households.monthly_cooking_goal,
       // 누가 바꾸든 모두에게 적용), 아니면 내 개인 목표를 갱신한다.
-      const url = isInHousehold
+      const inHousehold = await resolveInHousehold();
+      const url = inHousehold
         ? `${getApiUrl()}/api/households/goal`
         : `${getApiUrl()}/api/users/${authUser.id}/monthly-goal`;
       const res = await fetch(url, {
@@ -909,8 +975,10 @@ const CookingCalendar: React.FC = () => {
         body: JSON.stringify({ monthly_cooking_goal: goal }),
       });
       if (res.ok) {
-        if (isInHousehold) setGroupGoal(goal);
+        if (inHousehold) setGroupGoal(goal);
         else setPersonalGoal(goal);
+        // 서버 값으로 다시 맞춘다 — 저장 전에 떠난 불러오기가 옛 값을 덮어쓰지 않게.
+        void loadCalendar();
       }
     } catch (e) {
       console.warn('[CookingCalendar] 목표 저장 실패:', e);
@@ -927,7 +995,8 @@ const CookingCalendar: React.FC = () => {
     }
     try {
       const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
-      const url = isInHousehold
+      const inHousehold = await resolveInHousehold();
+      const url = inHousehold
         ? `${getApiUrl()}/api/households/family-size`
         : `${getApiUrl()}/api/users/${authUser.id}/family-size`;
       const res = await fetch(url, {
@@ -935,7 +1004,7 @@ const CookingCalendar: React.FC = () => {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ family_size: size }),
       });
-      if (res.ok) setFamilySize(size);
+      if (res.ok) { setFamilySize(size); void loadCalendar(); }
     } catch (e) {
       console.warn('[CookingCalendar] 식구 수 저장 실패:', e);
     } finally {
@@ -951,7 +1020,8 @@ const CookingCalendar: React.FC = () => {
     }
     try {
       const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
-      const url = isInHousehold
+      const inHousehold = await resolveInHousehold();
+      const url = inHousehold
         ? `${getApiUrl()}/api/households/savings-per-meal`
         : `${getApiUrl()}/api/users/${authUser.id}/savings-per-meal`;
       const res = await fetch(url, {
@@ -959,7 +1029,7 @@ const CookingCalendar: React.FC = () => {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ savings_per_meal: amount }),
       });
-      if (res.ok) setSavingsPerMeal(amount);
+      if (res.ok) { setSavingsPerMeal(amount); void loadCalendar(); }
     } catch (e) {
       console.warn('[CookingCalendar] 한 끼 추정액 저장 실패:', e);
     } finally {
@@ -967,118 +1037,11 @@ const CookingCalendar: React.FC = () => {
     }
   };
 
-  // ── 사용 가이드 14·15단계 ─────────────────────────────────────
-  // 냉장고요리 가이드 마지막(13단계, AI 챗봇)에서 `?fromGuide=true` 로 넘어온다.
-  // 아래 로그인 여부 분기(early return)보다 **위**에 둔다 — 두 화면 모두
-  // 14단계(식단 추천 버튼)가 있고, 훅은 분기 뒤에 둘 수 없다.
-  const [showGuide, setShowGuide] = React.useState(false);
-  const [guideStep, setGuideStep] = React.useState(0);
-  const guideStartedRef = React.useRef(false);
-  const calendarGuideSteps = React.useMemo(() => [
-    {
-      targetSelector: '[data-guide-target="weekly-plan-buttons"]',
-      message: '냉장고 재료와 유통기한을 따져서\n일주일 식단을 알뜰하게 짜 드려요.\n필요한 장보기 목록도 함께 만들어져요.',
-      position: 'bottom' as const,
-    },
-    // 월 목표·달력은 로그인해야 있는 화면이다.
-    ...(isLoggedIn ? [{
-      targetSelector: '[data-guide-target="calendar-goal-area"]',
-      message: '이번 달 요리 목표를 세우고\n완료한 요리를 한눈에 모아 보세요.\n목표를 채우면 아낄 수 있는 금액도\n대략 계산해 드려요.\n\n가족 그룹이라면\n식구들과 함께 목표와 현황을\n공유할 수 있어요.',
-      position: 'bottom' as const,
-    }] : []),
-  ], [isLoggedIn]);
-
-  React.useEffect(() => {
-    if (authLoading || guideStartedRef.current) return;
-    if (new URLSearchParams(location.search).get('fromGuide') !== 'true') return;
-    guideStartedRef.current = true;
-    // 주소에서 표시를 지운다(새로고침해도 가이드가 또 뜨지 않게). 라우터 상태는
-    // 건드리지 않아 이 효과가 다시 돌며 타이머를 끊는 일이 없다.
-    window.history.replaceState({}, '', '/cooking-calendar');
-    // 정리 함수로 타이머를 취소하지 않는다 — 한 번만 시작하도록 ref 로 막아 둬서,
-    // StrictMode 가 효과를 두 번 돌리면 취소된 뒤 다시 걸 기회가 없다.
-    setTimeout(() => { setGuideStep(0); setShowGuide(true); }, 400);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authLoading]);
-
-  /** 로그인했으면 마이페이지(16~18단계)로 잇고, 아니면 여기서 끝낸다. */
-  const finishCalendarGuide = (goNext: boolean) => {
-    setShowGuide(false);
-    if (goNext && isLoggedIn) {
-      setTimeout(() => navigate('/my-page?fromGuide=true'), 300);
-      return;
-    }
-    markUsageGuideFinished();
-  };
-
-  const guideOverlay = (
-    <GuideOverlay
-      visible={showGuide}
-      currentStep={guideStep}
-      onPrevious={() => setGuideStep((s) => Math.max(0, s - 1))}
-      onNext={() => {
-        if (guideStep < calendarGuideSteps.length - 1) setGuideStep(guideStep + 1);
-        else finishCalendarGuide(true);
-      }}
-      onClose={() => finishCalendarGuide(false)}
-      steps={calendarGuideSteps}
-      isLastStepConfirm={!isLoggedIn}
-      totalSteps={usageGuideTotalSteps(isLoggedIn)}
-      startStepOffset={USAGE_GUIDE_STEPS.myFridge + USAGE_GUIDE_STEPS.recipeList}
-    />
-  );
-
-  if (authLoading) return null;
-
-  if (!isLoggedIn) {
-    // 요리 캘린더는 냉장고/레시피 목록과 달리 보여줄 로컬(localStorage)
-    // 데이터가 아예 없다 — 완료 기록·목표·절약액이 전부 서버 계정에
-    // 묶여 있어서 그냥 "로그인 후 볼 수 있어요"라고만 하면 로그인해서
-    // 뭘 얻는지 와닿지 않는다. 로그인하면 실제로 뭘 할 수 있는지(이력
-    // 관리, 절약액 확인, 목표 설정)를 구체적으로 안내한다.
-    return (
-      <div className="min-h-screen w-full flex flex-col">
-        {/* 식단은 냉장고 재료만 있으면 되는 기능이라 **로그인 벽 뒤에 가두지
-            않는다.** 로그인해야만 쓸 수 있는 건 캘린더(내 요리 이력)뿐이다.
-            그래서 **쓸 수 있는 것을 위**에 둔다 — 아래에 뒀더니 로그인 안내가
-            화면을 꽉 채우고 이 버튼은 하단 탭에 가려져, 스크롤도 안 되는
-            자리에 숨어 있었다. */}
-        <div style={{ maxWidth: 480, margin: '0 auto', width: '100%', paddingTop: 72 }}>
-          <FridgeToPlan onGo={withAi => navigate(withAi ? '/plan?ai=1' : '/plan')} />
-          <PlannedList />
-        </div>
-
-        <div className="flex-1 w-full flex items-center justify-center bg-white"
-             style={{ paddingBottom: 100 }}>
-          <div style={{ textAlign: 'center', padding: '0 32px' }}>
-            <p style={{ fontSize: 15, fontWeight: 700, color: '#1A1A1E', marginBottom: 8 }}>
-              로그인하면 요리 캘린더를 쓸 수 있어요
-            </p>
-            <p style={{ fontSize: 13.5, color: 'var(--ink-500)', lineHeight: 1.6, wordBreak: 'keep-all', marginBottom: 20 }}>
-              내가 완료한 요리 이력을 날짜별로 관리하고,
-              <br />
-              그동안 요리로 아낀 절약액을 확인하고,
-              <br />
-              이번 달 요리 목표도 설정할 수 있어요.
-            </p>
-            <button
-              type="button"
-              onClick={() => navigate('/login')}
-              style={{ minHeight: 40, padding: '12px 16px', borderRadius: 10, background: 'var(--brand)', border: 'none', fontWeight: 700 }}
-            >
-              로그인
-            </button>
-          </div>
-        </div>
-        <BottomNavBar activeTab="cooking-calendar" />
-        {guideOverlay}
-      </div>
-    );
-  }
-
-  const gridStart = startOfWeek(monthStart);
-  const gridDays = Array.from({ length: 42 }, (_, i) => addDays(gridStart, i));
-
+  // ── 아래 훅들은 원래 로그인 분기(early return) **뒤**에 있었다. 인증 확인 중
+  // (authLoading)에 한 번 그리고 나서 로그인 화면으로 넘어오면 훅 개수가 달라져
+  // React 가 "Rendered more hooks than during the previous render" 로 화면을
+  // 깨뜨렸다(새로고침 직후 캘린더가 안 뜨던 원인 중 하나, 2026-09-15). 모든
+  // 훅은 분기보다 위에 둔다.
   /**
    * 짜 둔 식단 계획.
    *
@@ -1232,6 +1195,119 @@ const CookingCalendar: React.FC = () => {
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [weekPlanKey]);
+
+  // ── 사용 가이드 14·15단계 ─────────────────────────────────────
+  // 냉장고요리 가이드 마지막(13단계, AI 챗봇)에서 `?fromGuide=true` 로 넘어온다.
+  // 아래 로그인 여부 분기(early return)보다 **위**에 둔다 — 두 화면 모두
+  // 14단계(식단 추천 버튼)가 있고, 훅은 분기 뒤에 둘 수 없다.
+  const [showGuide, setShowGuide] = React.useState(false);
+  const [guideStep, setGuideStep] = React.useState(0);
+  const guideStartedRef = React.useRef(false);
+  const calendarGuideSteps = React.useMemo(() => [
+    {
+      targetSelector: '[data-guide-target="weekly-plan-buttons"]',
+      message: '냉장고 재료와 유통기한을 따져서\n일주일 식단을 알뜰하게 짜 드려요.\n필요한 장보기 목록도 함께 만들어져요.',
+      position: 'bottom' as const,
+    },
+    // 월 목표·달력은 로그인해야 있는 화면이다.
+    ...(isLoggedIn ? [{
+      targetSelector: '[data-guide-target="calendar-goal-area"]',
+      message: '이번 달 요리 목표를 세우고\n완료한 요리를 한눈에 모아 보세요.\n목표를 채우면 아낄 수 있는 금액도\n대략 계산해 드려요.\n\n가족 그룹이라면\n식구들과 함께 목표와 현황을\n공유할 수 있어요.',
+      position: 'bottom' as const,
+    }] : []),
+  ], [isLoggedIn]);
+
+  React.useEffect(() => {
+    if (authLoading || guideStartedRef.current) return;
+    if (new URLSearchParams(location.search).get('fromGuide') !== 'true') return;
+    guideStartedRef.current = true;
+    // 주소에서 표시를 지운다(새로고침해도 가이드가 또 뜨지 않게). 라우터 상태는
+    // 건드리지 않아 이 효과가 다시 돌며 타이머를 끊는 일이 없다.
+    window.history.replaceState({}, '', '/cooking-calendar');
+    // 정리 함수로 타이머를 취소하지 않는다 — 한 번만 시작하도록 ref 로 막아 둬서,
+    // StrictMode 가 효과를 두 번 돌리면 취소된 뒤 다시 걸 기회가 없다.
+    setTimeout(() => { setGuideStep(0); setShowGuide(true); }, 400);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoading]);
+
+  /** 로그인했으면 마이페이지(16~18단계)로 잇고, 아니면 여기서 끝낸다. */
+  const finishCalendarGuide = (goNext: boolean) => {
+    setShowGuide(false);
+    if (goNext && isLoggedIn) {
+      setTimeout(() => navigate('/my-page?fromGuide=true'), 300);
+      return;
+    }
+    markUsageGuideFinished();
+  };
+
+  const guideOverlay = (
+    <GuideOverlay
+      visible={showGuide}
+      currentStep={guideStep}
+      onPrevious={() => setGuideStep((s) => Math.max(0, s - 1))}
+      onNext={() => {
+        if (guideStep < calendarGuideSteps.length - 1) setGuideStep(guideStep + 1);
+        else finishCalendarGuide(true);
+      }}
+      onClose={() => finishCalendarGuide(false)}
+      steps={calendarGuideSteps}
+      isLastStepConfirm={!isLoggedIn}
+      totalSteps={usageGuideTotalSteps(isLoggedIn)}
+      startStepOffset={USAGE_GUIDE_STEPS.myFridge + USAGE_GUIDE_STEPS.recipeList}
+    />
+  );
+
+  if (authLoading) return null;
+
+  if (!isLoggedIn) {
+    // 요리 캘린더는 냉장고/레시피 목록과 달리 보여줄 로컬(localStorage)
+    // 데이터가 아예 없다 — 완료 기록·목표·절약액이 전부 서버 계정에
+    // 묶여 있어서 그냥 "로그인 후 볼 수 있어요"라고만 하면 로그인해서
+    // 뭘 얻는지 와닿지 않는다. 로그인하면 실제로 뭘 할 수 있는지(이력
+    // 관리, 절약액 확인, 목표 설정)를 구체적으로 안내한다.
+    return (
+      <div className="min-h-screen w-full flex flex-col">
+        {/* 식단은 냉장고 재료만 있으면 되는 기능이라 **로그인 벽 뒤에 가두지
+            않는다.** 로그인해야만 쓸 수 있는 건 캘린더(내 요리 이력)뿐이다.
+            그래서 **쓸 수 있는 것을 위**에 둔다 — 아래에 뒀더니 로그인 안내가
+            화면을 꽉 채우고 이 버튼은 하단 탭에 가려져, 스크롤도 안 되는
+            자리에 숨어 있었다. */}
+        <div style={{ maxWidth: 480, margin: '0 auto', width: '100%', paddingTop: 72 }}>
+          <FridgeToPlan onGo={withAi => navigate(withAi ? '/plan?ai=1' : '/plan')} />
+          <PlannedList />
+        </div>
+
+        <div className="flex-1 w-full flex items-center justify-center bg-white"
+             style={{ paddingBottom: 100 }}>
+          <div style={{ textAlign: 'center', padding: '0 32px' }}>
+            <p style={{ fontSize: 15, fontWeight: 700, color: '#1A1A1E', marginBottom: 8 }}>
+              로그인하면 요리 캘린더를 쓸 수 있어요
+            </p>
+            <p style={{ fontSize: 13.5, color: 'var(--ink-500)', lineHeight: 1.6, wordBreak: 'keep-all', marginBottom: 20 }}>
+              내가 완료한 요리 이력을 날짜별로 관리하고,
+              <br />
+              그동안 요리로 아낀 절약액을 확인하고,
+              <br />
+              이번 달 요리 목표도 설정할 수 있어요.
+            </p>
+            <button
+              type="button"
+              onClick={() => navigate('/login')}
+              style={{ minHeight: 40, padding: '12px 16px', borderRadius: 10, background: 'var(--brand)', border: 'none', fontWeight: 700 }}
+            >
+              로그인
+            </button>
+          </div>
+        </div>
+        <BottomNavBar activeTab="cooking-calendar" />
+        {guideOverlay}
+      </div>
+    );
+  }
+
+  const gridStart = startOfWeek(monthStart);
+  const gridDays = Array.from({ length: 42 }, (_, i) => addDays(gridStart, i));
+
 
   // 하루 셀에 넣을 멤버별 점(최대 3명, 넘치면 +N)
   const renderDayDots = (dayEntries: CalendarEntry[]) => {

@@ -214,6 +214,11 @@ export interface RecipeCardProps {
    */
   attributionLabel?: string;
   /**
+   * 썸네일 **왼쪽 위** 배지 문구(예: "도아아빠 · 9/13"). 마이페이지 완료 목록처럼
+   * "누가 언제 했는지" 가 중요한 곳에서만 넘긴다. 오른쪽 위는 플랫폼 로고 자리다.
+   */
+  thumbBadge?: string;
+  /**
    * 가로 목록에서 카드 높이를 이 값으로 고정한다.
    * 재료 pill 이 몇 줄로 감기느냐에 따라 카드 높이가 228~280px 로 들쭉날쭉했고,
    * 그 사이에 규격이 같아야 할 광고 카드가 끼면 높이 차이가 그대로 드러났다.
@@ -276,6 +281,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
   chipsOpen: chipsOpenProp,
   onChipsToggle,
   attributionLabel,
+  thumbBadge,
 }) => {
   // 부족 재료 pill 을 눌렀을 때 열리는 구매 안내 시트의 대상 재료
   const [adIngredient, setAdIngredient] = React.useState<string | null>(null);
@@ -610,6 +616,21 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
             </span>
           )}
         </div>
+        )}
+        {/* 누가·언제 배지 — 순위 배지와 같은 자리라 순위가 있으면 그리지 않는다. */}
+        {thumbBadge && !showRank && (
+          <span
+            style={{
+              position: 'absolute', top: 4, left: 4, zIndex: 2,
+              maxWidth: 'calc(100% - 40px)', padding: '3px 8px', borderRadius: 9999,
+              background: 'rgba(26,26,30,0.78)', color: '#FFFFFF',
+              fontSize: 11.5, fontWeight: 700, lineHeight: 1.3,
+              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+              pointerEvents: 'none',
+            }}
+          >
+            {thumbBadge}
+          </span>
         )}
         {/* 플랫폼 로고 */}
         <img

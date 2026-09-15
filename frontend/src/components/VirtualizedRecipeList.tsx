@@ -15,6 +15,8 @@ interface VirtualizedRecipeListProps {
   onRecipeAction: (recipe: Recipe, action: string) => void;
   /** 그룹(식구) 목록에서 "누가 했는지" 배지. 없으면 배지 없음. */
   getAttributionLabel?: (recipe: Recipe) => string | undefined;
+  /** 썸네일 왼쪽 위 "누가·언제" 배지. 없으면 배지 없음. */
+  getThumbBadge?: (recipe: Recipe) => string | undefined;
   /** 목록 사이에 쿠팡 광고 카드를 끼울지. 기본 true. */
   showAds?: boolean;
 }
@@ -47,6 +49,7 @@ const VirtualizedRecipeList = forwardRef<VirtualizedRecipeListRef, VirtualizedRe
   recipeActionStates,
   onRecipeAction,
   getAttributionLabel,
+  getThumbBadge,
   showAds = true,
 }, ref) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -173,6 +176,7 @@ const VirtualizedRecipeList = forwardRef<VirtualizedRecipeListRef, VirtualizedRe
               myIngredients={myIngredients}
               substituteTable={substituteTable}
               attributionLabel={getAttributionLabel?.(recipe)}
+              thumbBadge={getThumbBadge?.(recipe)}
             />
           </div>
         );

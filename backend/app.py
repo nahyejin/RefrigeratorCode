@@ -3599,7 +3599,9 @@ def _get_household_action_recipes(user_id, action):
         placeholders = ','.join(['%s'] * len(member_ids))
         cursor.execute(
             f"""SELECT r.*, MAX(action.created_at) AS user_saved_at,
-                       GROUP_CONCAT(DISTINCT u.nickname ORDER BY u.nickname SEPARATOR '||') AS acted_by_raw
+                       GROUP_CONCAT(DISTINCT u.nickname ORDER BY u.nickname SEPARATOR '||') AS acted_by_raw,
+                       GROUP_CONCAT(CONCAT(u.nickname, '@@', DATE_FORMAT(action.created_at, '%%Y-%%m-%%dT%%H:%%i:%%s'))
+                                    ORDER BY action.created_at DESC SEPARATOR '||') AS acted_at_raw
                 FROM recipes r
                 INNER JOIN {table} action ON r.id = action.recipe_id
                 INNER JOIN users u ON u.id = action.user_id
@@ -3612,6 +3614,21 @@ def _get_household_action_recipes(user_id, action):
         for row in rows:
             raw = row.pop('acted_by_raw', None) or ''
             row['acted_by'] = raw.split('||') if raw else []
+            # **누가 언제** — 사람마다 가장 최근 시각 하나씩, 최근 순. 마이페이지 완료
+            # 목록 카드에 "도아아빠 · 9/13" 처럼 띄우려고 준다(2026-09-15 요청).
+            # 시각은 KST 로 저장된 값을 시간대 표시 없이 그대로 준다 — jsonify 가
+            # datetime 에 'GMT' 를 붙여 브라우저가 9시간 밀어 읽는 일을 피한다.
+            acted = []
+            seen_nicks = set()
+            for part in (row.pop('acted_at_raw', None) or '').split('||'):
+                if '@@' not in part:
+                    continue
+                nick, at = part.rsplit('@@', 1)
+                if nick in seen_nicks:
+                    continue
+                seen_nicks.add(nick)
+                acted.append({'nickname': nick, 'at': at})
+            row['acted'] = acted
         return rows
     finally:
         db.close()

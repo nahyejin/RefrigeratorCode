@@ -11028,3 +11028,15 @@ edge-tts 파일럿 목소리가 "너무 AI 같다"는 피드백 + "제미나이�
 - [GuideOverlay.tsx](frontend/src/components/GuideOverlay.tsx): 말풍선 높이를 어림값(100px) 대신 **실측**해서 배치(여러 줄 문구가 대상과 겹치거나 화면 밖으로 나가던 문제), 화면보다 긴 대상은 가운데가 아니라 **윗단을 헤더 아래**에 맞춰 스크롤.
 - 개발 모드(StrictMode)에서 효과가 두 번 돌면 `?fromGuide=true`를 먼저 지운 뒤 타이머가 취소돼 **가이드가 안 뜨던** 문제를 냉장고요리에서 발견 — 주소 정리를 실제로 띄울 때 하도록 수정. 새로 넣은 캘린더·마이페이지 시작 로직도 같은 함정을 피하게 작성.
 - 로컬 브라우저(375px, 비로그인)에서 냉장고요리 가이드 → 챗봇 단계(12/13) → 요리 캘린더 식단 추천 단계(13/13, [확인])까지 확인. 로그인이 필요한 월 목표·마이페이지 단계는 브라우저로 확인하지 못함.
+
+### 요리 캘린더 — 완료 기록이 자꾸 안 뜨고 설정이 동기화 안 되던 원인 4가지
+- **훅 순서 위반으로 화면이 깨짐**: [CookingCalendar.tsx](frontend/src/pages/CookingCalendar.tsx)에서 요리 계획·월별 기록·장보기 관련 훅 약 150줄이 `if (authLoading) return null;` / 비로그인 분기 **뒤**에 있었음. 인증 확인 중에 한 번 그린 뒤 로그인 화면으로 넘어오면 훅 개수가 달라져 React가 "Rendered more hooks than during the previous render"로 화면을 깨뜨림(특히 새로고침 직후). 해당 블록을 분기 위로 옮김.
+- **요청 경합으로 완료 목록이 비거나 옛 값으로 돌아감**: `loadCalendar`가 그룹 정보 → 달력 데이터를 차례로 받는 동안 달 넘기기·당겨서 새로고침·조리 시트 완료 해제·가족 되돌리기가 겹치면, 늦게 끝난 옛 요청이 최신 결과를 덮어써 보고 있는 달의 완료가 다른 달 기준으로 걸러져 사라지거나 방금 바꾼 목표가 되돌아갔음. 요청마다 번호를 매겨 최신 것만 반영하고, 세 요청을 동시에 보내도록 변경.
+- **설정(월 목표·식구 수·한 끼 추정액)이 엉뚱한 곳에 저장**: 저장 경로(그룹/개인)를 `isInHousehold`로 고르는데 이 값은 첫 불러오기가 끝나야 채워짐. 그 전에 저장하면 그룹 소속인데도 개인 값에 저장돼 그룹 값을 읽는 화면에 반영이 안 됐음. 아직 모르면 서버에 물어본 뒤 저장하고, 저장 후 서버 값으로 다시 불러옴. 다른 앱·탭에 다녀오면(visibilitychange) 자동으로 다시 불러와 식구가 바꾼 값도 반영.
+- **기기 사본이 서버 기록을 오염**: 기기에만 있는 완료를 합치는 `mergeLocalDone`이 "날짜+레시피"가 같을 때만 중복으로 봐서, 「완료일자 수정」이나 다른 기기에서 지운 뒤에도 옛 날짜 사본이 다시 끼어들었음. 또 기기 시각(UTC)의 앞 10자를 날짜로 써서 새벽 0~9시 완료가 전날로 찍혔음. 서버의 내 완료 목록(레시피 id)에 있으면 기기 사본을 건너뛰고, 날짜는 기기 시간대로 계산.
+
+### 마이페이지 — 완료 카드에 "누가·언제" 배지, 기본 탭 "나의 것만"
+- 완료 목록(전체보기, [IngredientDetail.tsx](frontend/src/pages/IngredientDetail.tsx)) 카드 **썸네일 왼쪽 위**에 "닉네임 · 9/13" 배지(오른쪽 위는 플랫폼 로고 자리). 식구 모두 보기에서 여러 명이 완료한 레시피는 가장 최근 사람 + "외 N". [RecipeCard.tsx](frontend/src/components/RecipeCard.tsx)에 `thumbBadge`, [VirtualizedRecipeList.tsx](frontend/src/components/VirtualizedRecipeList.tsx)에 `getThumbBadge` 추가.
+- [app.py](backend/app.py) 그룹 목록 API(`_get_household_action_recipes`)가 사람별 최근 시각 `acted: [{nickname, at}]`을 함께 줌. 시각은 KST 저장값을 시간대 표시 없이 문자열로 줘서, jsonify의 'GMT' 표기 때문에 9시간 밀려 읽히는 문제를 피함(개인 목록의 `user_saved_at`은 프론트에서 'GMT' 표기를 떼고 읽음).
+- [MyPage.tsx](frontend/src/pages/MyPage.tsx) 그룹 탭 기본값을 "나의 것만"으로, 탭 순서도 [나의 것만][우리 식구 모두]로.
+- 타입 체크·파이썬 문법 검사 통과. 로그인이 필요한 화면이라 브라우저로는 확인하지 못함.
