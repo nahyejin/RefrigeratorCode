@@ -308,6 +308,8 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
   const [pendingRemove, setPendingRemove] = useState<PendingRemove | null>(null);
   const [pendingRecipe, setPendingRecipe] = useState<any>(null);
   const [confirmClearAllOpen, setConfirmClearAllOpen] = useState(false);
+  /** 전체삭제를 서버에 반영하는 중 — 두 번 눌러 같은 삭제를 겹쳐 보내지 않게. */
+  const [clearingAll, setClearingAll] = useState(false);
   const [selectedChannel, setSelectedChannel] = useState<string[]>([]);
   const [includeIngredients, setIncludeIngredients] = useState<string[]>([]);
   const [excludeIngredients, setExcludeIngredients] = useState<string[]>([]);
@@ -476,18 +478,51 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
   /**
    * 마이페이지 "전체보기" 목록 전체삭제
    */
-  const handleClearAll = () => {
-    if (!myPageRecipeStorageType) return;
+  /**
+   * **서버에서도 지운다.** 예전엔 기기(localStorage)만 비워서, 마이페이지가 서버
+   * 목록을 다시 받아 기기와 합치거나(loadRecipesFromDB) 앱을 열 때 기기·서버를
+   * 맞추면(recipeSync) 지운 게 **전부 되살아났다**(실사용 지적, 2026-09-15).
+   * 서버 삭제가 실패한 레시피는 기기·화면에도 남겨 둬야 "지웠는데 다시 생김"
+   * 이 안 된다.
+   */
+  const handleClearAll = async () => {
+    if (!myPageRecipeStorageType || clearingAll) return;
+    const type = myPageRecipeStorageType;
+    // 화면 목록 + 기기 목록의 레시피 전부(둘이 어긋나 있어도 빠짐없이).
+    const ids = Array.from(new Set(
+      [...recipes, ...getRecipesFromLocalStorage(type)]
+        .map((r: any) => Number(r.id))
+        .filter((id) => !Number.isNaN(id)),
+    ));
 
-    clearRecipesFromLocalStorage(myPageRecipeStorageType);
-    setRecipes([]);
-    setFilteredRecipes([]);
-    setButtonStates({});
+    setClearingAll(true);
+    let failedIds: number[] = [];
+    if (syncUserId && ids.length > 0) {
+      const results = await Promise.all(ids.map((id) => removeRecipeActionFromDB(type, syncUserId, id)));
+      failedIds = ids.filter((_, i) => !results[i]);
+    }
+
+    if (failedIds.length === 0) {
+      clearRecipesFromLocalStorage(type);
+      setRecipes([]);
+      setFilteredRecipes([]);
+      setButtonStates({});
+    } else {
+      const failed = new Set(failedIds);
+      ids.filter((id) => !failed.has(id)).forEach((id) => removeRecipeFromLocalStorage(type, id));
+      const keepFailed = (list: any[]) => list.filter((r) => failed.has(Number(r.id)));
+      setRecipes(keepFailed);
+      setFilteredRecipes(keepFailed);
+    }
+    setClearingAll(false);
     setConfirmClearAllOpen(false);
+    // 요리 캘린더·마이페이지가 떠 있으면 서버 값으로 다시 불러오게 알린다.
+    window.dispatchEvent(new CustomEvent('recipe-action-synced', { detail: { type, removed: true } }));
 
-    const clearedLabel =
-      myPageRecipeStorageType === 'done' ? '완료' : myPageRecipeStorageType === 'write' ? '기록' : '즐겨찾기';
-    showToast(`${clearedLabel} 목록을 전체 삭제했습니다.`);
+    const clearedLabel = type === 'done' ? '완료' : type === 'write' ? '기록' : '즐겨찾기';
+    showToast(failedIds.length === 0
+      ? `${clearedLabel} 목록을 전체 삭제했습니다.`
+      : `${failedIds.length}개는 서버에서 지우지 못했어요. 다시 시도해 주세요.`);
   };
 
   /**
@@ -1304,7 +1339,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
         title="정말 삭제하시겠습니까?"
         actions={[
           { label: '취소', variant: 'outline', onClick: () => setConfirmClearAllOpen(false) },
-          { label: '확인', variant: 'danger', onClick: handleClearAll },
+          { label: clearingAll ? '삭제 중' : '확인', variant: 'danger', onClick: handleClearAll },
         ]}
       />
 

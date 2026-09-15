@@ -11040,3 +11040,9 @@ edge-tts 파일럿 목소리가 "너무 AI 같다"는 피드백 + "제미나이�
 - [app.py](backend/app.py) 그룹 목록 API(`_get_household_action_recipes`)가 사람별 최근 시각 `acted: [{nickname, at}]`을 함께 줌. 시각은 KST 저장값을 시간대 표시 없이 문자열로 줘서, jsonify의 'GMT' 표기 때문에 9시간 밀려 읽히는 문제를 피함(개인 목록의 `user_saved_at`은 프론트에서 'GMT' 표기를 떼고 읽음).
 - [MyPage.tsx](frontend/src/pages/MyPage.tsx) 그룹 탭 기본값을 "나의 것만"으로, 탭 순서도 [나의 것만][우리 식구 모두]로.
 - 타입 체크·파이썬 문법 검사 통과. 로그인이 필요한 화면이라 브라우저로는 확인하지 못함.
+
+### 마이페이지 "전체삭제"로 지운 완료·기록·즐겨찾기가 다시 살아나던 문제
+- **원인**: 마이페이지 전체보기 목록([IngredientDetail.tsx](frontend/src/pages/IngredientDetail.tsx))의 「전체삭제」가 **기기(localStorage)만 비우고 서버는 그대로** 뒀음. 이후 마이페이지가 서버 목록을 받아 기기와 합치거나(`loadRecipesFromDB`), 앱을 열 때 기기·서버를 합집합으로 맞추는 `recipeSync`가 서버에 남은 항목을 기기로 다시 내려 받아 전부 되살아났음.
+- **수정**: 전체삭제가 화면·기기 목록의 레시피 전부를 서버에서도 지운 뒤 기기를 비움. 서버 삭제에 실패한 레시피는 기기·화면에 남겨 두고 "N개는 서버에서 지우지 못했어요"라고 알림(기기에서만 지우면 또 되살아나므로). 진행 중엔 버튼이 "삭제 중"으로 바뀌어 중복 요청을 막고, 끝나면 `recipe-action-synced`로 요리 캘린더·마이페이지에 알림.
+- [recipeStorage.ts](frontend/src/utils/recipeStorage.ts) `removeRecipeActionFromDB`가 성공 여부(boolean)를 돌려주도록 변경(기존 호출부는 결과를 안 써서 영향 없음).
+- 로그인이 필요한 화면이라 브라우저로는 확인하지 못함.

@@ -288,16 +288,19 @@ export async function addRecipeActionToDB(type: StorageType, userId: number, rec
   }
 }
 
-export async function removeRecipeActionFromDB(type: StorageType, userId: number, recipeId: number): Promise<void> {
+/** 서버에서 지워졌으면 true. 호출부가 실패한 것을 기기에서도 남겨 둘 수 있게 결과를 돌려준다. */
+export async function removeRecipeActionFromDB(type: StorageType, userId: number, recipeId: number): Promise<boolean> {
   const token = getAuthTokenForRecipeSync();
-  if (!token) return;
+  if (!token) return false;
   try {
-    await fetch(`${recipeSyncApiBase()}/api/users/${userId}/${RECIPE_ACTION_ENDPOINT[type]}/${recipeId}`, {
+    const res = await fetch(`${recipeSyncApiBase()}/api/users/${userId}/${RECIPE_ACTION_ENDPOINT[type]}/${recipeId}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` },
     });
+    return res.ok;
   } catch (error) {
     console.error(`[recipeStorage] DB 삭제 실패 (${type}):`, error);
+    return false;
   }
 }
 
