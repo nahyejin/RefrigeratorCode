@@ -144,14 +144,6 @@ const PencilIcon: React.FC = () => (
   </svg>
 );
 
-const TrashIcon: React.FC = () => (
-  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-    <path d="M4 7h16" />
-    <path d="M9 7V4.8c0-.44.36-.8.8-.8h4.4c.44 0 .8.36.8.8V7" />
-    <path d="M6 7l1 12.2c.03.98.85 1.8 1.83 1.8h6.34c.98 0 1.8-.82 1.83-1.8L18 7" />
-  </svg>
-);
-
 const PlusIcon: React.FC = () => (
   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden>
     <path d="M12 4v16M4 12h16" />
@@ -435,6 +427,11 @@ const CookingCalendar: React.FC = () => {
    * 지우는 버튼을 둔다. 실수로 지우면 되돌릴 수 없어 확인을 한 번 거친다. */
   const [confirmingCompletedDelete, setConfirmingCompletedDelete] = React.useState<CalendarEntry | null>(null);
   const [deletingCompleted, setDeletingCompleted] = React.useState(false);
+  /** 기록(메모) 삭제 확인창 — 목록 탭 "기록"에서 쓴다. 그룹 전체 보기에서는
+   * 누가 남겼는지(레시피별로 여러 명일 수 있음) 서버가 아이디까지 주지
+   * 않아 대리 삭제가 안 되므로, 내 기록일 때만("내 요리만" 보기) 띄운다. */
+  const [confirmingRecordedDelete, setConfirmingRecordedDelete] = React.useState<{ id: number; title: string } | null>(null);
+  const [deletingRecorded, setDeletingRecorded] = React.useState(false);
 
   /**
    * 앱이 추천 안 한 요리를 "오늘 이거 해 먹었다" 정도로만 짧게 남기는 수동
@@ -719,25 +716,30 @@ const CookingCalendar: React.FC = () => {
   };
 
   const handleDeleteCompleted = async () => {
-    if (!authUser?.id || !confirmingCompletedDelete || deletingCompleted) return;
+    if (!confirmingCompletedDelete || deletingCompleted) return;
     setDeletingCompleted(true);
     try {
       const target = confirmingCompletedDelete;
       // 대상은 **이 카드의 주인**(target.user_id)이다 — 내가 아닌 식구의
       // 기록일 수도 있다(대리 삭제, 2026-09-14). 항상 내 id로 지우면 남의
       // 카드를 눌러도 내 목록만 지워지는 버그가 된다.
+      // 게스트(계정 없음)는 서버에 지울 게 없다 — 기기 사본만 지운다.
       if (target.entry_type === 'manual' && target.manual_log_id != null) {
-        const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
-        await fetch(`${getApiUrl()}/api/users/${target.user_id}/manual-cook-logs/${target.manual_log_id}`, {
-          method: 'DELETE',
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        if (authUser?.id) {
+          const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+          await fetch(`${getApiUrl()}/api/users/${target.user_id}/manual-cook-logs/${target.manual_log_id}`, {
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${token}` },
+          });
+        }
       } else if (target.recipe_id != null) {
-        await removeRecipeActionFromDB('done', target.user_id, target.recipe_id);
+        if (authUser?.id) {
+          await removeRecipeActionFromDB('done', target.user_id, target.recipe_id);
+        }
         // 내 완료면 **기기 사본도** 지운다. 안 지우면 `mergeLocalDone` 이 기기에
         // 남은 완료를 다시 합쳐, 삭제를 확정해도 카드가 그대로 남아 있었다
         // (실사용 지적, 2026-09-15).
-        if (target.user_id === Number(authUser.id)) {
+        if (!authUser?.id || target.user_id === Number(authUser.id)) {
           removeRecipeFromLocalStorage('done', target.recipe_id);
         }
       }
@@ -750,6 +752,29 @@ const CookingCalendar: React.FC = () => {
       alert('완료 기록 삭제 중 오류가 발생했어요.');
     } finally {
       setDeletingCompleted(false);
+    }
+  };
+
+  /** 목록 탭 "기록 취소". 마이페이지·전체보기 목록의 기록 해제와 같은
+   * 동작(서버 반영 + 기기 사본 정리)을 그대로 쓴다 — 게스트는 서버에
+   * 지울 게 없어 기기 사본만 지운다. */
+  const handleDeleteRecorded = async () => {
+    if (!confirmingRecordedDelete || deletingRecorded) return;
+    setDeletingRecorded(true);
+    try {
+      const { id } = confirmingRecordedDelete;
+      if (authUser?.id) {
+        await removeRecipeActionFromDB('write', Number(authUser.id), id);
+      }
+      removeRecipeFromLocalStorage('write', id);
+      setConfirmingRecordedDelete(null);
+      setRecorded(prev => (prev ? prev.filter((r: any) => r.id !== id) : prev));
+      setHouseholdRecorded(prev => (prev ? prev.filter((r: any) => r.id !== id) : prev));
+    } catch (e) {
+      console.warn('[CookingCalendar] 기록 삭제 실패:', e);
+      alert('기록 삭제 중 오류가 발생했어요.');
+    } finally {
+      setDeletingRecorded(false);
     }
   };
 
@@ -1844,13 +1869,17 @@ const CookingCalendar: React.FC = () => {
                 }} />
                 요리 계획 있는 날 — 눌러서 무슨 요리인지 보기
               </span>
+              {/* 위험한 것처럼 붉은 알약으로 튀어 보이던 걸, 마이페이지
+                  "전체삭제"(빨간 배지 없이 회색 글자로만)와 같은 옷으로
+                  맞춘다 — "삭제" 위험성은 눌렀을 때 뜨는 확인창(빨간
+                  버튼)이 이미 말해 준다. 트리거는 조용해도 된다는 게 이
+                  앱의 기존 규칙(실사용 지적, 2026-09-15). */}
               <button
                 type="button"
                 onClick={() => { setClearAllScope('mine'); setConfirmingClearAllPlans(true); }}
                 style={{
-                  flexShrink: 0, height: 24, padding: '0 8px', borderRadius: 9999,
-                  border: '1px solid var(--line-300)', background: 'var(--surface)',
-                  fontSize: 11, fontWeight: 600, color: '#B03A28', cursor: 'pointer',
+                  flexShrink: 0, height: 24, padding: '0 4px', border: 'none', background: 'transparent',
+                  fontSize: 11, fontWeight: 600, color: 'var(--ink-500)', cursor: 'pointer',
                   whiteSpace: 'nowrap',
                 }}
               >
@@ -2144,14 +2173,22 @@ const CookingCalendar: React.FC = () => {
             // "했다" 와 "할 것" 은 다른 이야기인데, 아침에 뭘 하나 만들어 두면
             // 저녁으로 짜 둔 것이 그대로 사라졌다.
             const planned = dayEntries.length === 0 ? dayPlans[0] : undefined;
+            // 일 보기에는 있는 「계획 취소」·「완료 취소」가 주 보기에는
+            // 없었다("일별에선 되는데 주별로 넘어가면 없어진다" — 실사용
+            // 지적, 2026-09-15). 이 줄은 하루를 **한 줄로 요약**해서 보여주는
+            // 자리라 여러 건이 섞여 있으면 어느 것을 취소하는 건지 모호하다
+            // — 그래서 "무엇을 취소하는지 뻔한" 경우에만 버튼을 단다:
+            // 계획 카드가 뜬 날은 그 계획, 완료 기록이 정확히 하나뿐인
+            // 날은 그 기록. 그보다 많으면(하루 여러 건) 일 보기로 들어가야
+            // 하나씩 고를 수 있다.
+            const singleEntry = !planned && dayEntries.length === 1 ? dayEntries[0] : undefined;
+            const singleEntryIsMine = singleEntry != null
+              && authUser?.id != null && singleEntry.user_id === Number(authUser.id);
+            const canCancelSingleEntry = singleEntry != null
+              && (!authUser?.id || singleEntryIsMine || isInHousehold);
             return (
-              <button
+              <div
                 key={key}
-                type="button"
-                onClick={() => {
-                  setSelectedDay(key);
-                  setViewMode('day');
-                }}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -2161,75 +2198,115 @@ const CookingCalendar: React.FC = () => {
                   // 점선 = 아직 안 한 것. 실선(완료 기록)과 눈으로 바로 갈린다.
                   border: planned ? '1px dashed #C9A400' : '1px solid var(--line-200)',
                   background: planned ? '#FFFDF2' : (isToday ? 'var(--surface-sub)' : '#FFFFFF'),
-                  cursor: 'pointer',
-                  textAlign: 'left',
                 }}
               >
-                <span style={{
-                  fontSize: 13, fontWeight: 700, width: 56, flexShrink: 0,
-                  color: planned ? '#7A5C00' : '#1A1A1E',
-                }}>
-                  {WEEKDAY_LABELS[d.getDay()]} {d.getDate()}
-                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedDay(key);
+                    setViewMode('day');
+                  }}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0,
+                    border: 'none', background: 'none', padding: 0, cursor: 'pointer', textAlign: 'left',
+                  }}
+                >
+                  <span style={{
+                    fontSize: 13, fontWeight: 700, width: 56, flexShrink: 0,
+                    color: planned ? '#7A5C00' : '#1A1A1E',
+                  }}>
+                    {WEEKDAY_LABELS[d.getDay()]} {d.getDate()}
+                  </span>
 
-                {/* 계획한 날은 목록 줄이 아니라 **카드처럼** 보여 준다.
-                    제목만 한 줄로 적어 두면 무슨 요리인지 안 그려져서,
-                    "이 날 뭐 해 먹기로 했지" 를 또 눌러 봐야 했다. */}
-                {planned ? (
-                  <>
-                    {planned.thumbnail ? (
-                      <img
-                        src={getProxiedImageUrl(planned.thumbnail)}
-                        alt=""
-                        loading="lazy"
-                        onError={(e) => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
-                        style={{ width: 40, height: 40, borderRadius: 8, objectFit: 'cover',
-                                 flexShrink: 0, background: 'var(--surface-sub)' }}
-                      />
-                    ) : (
-                      <span aria-hidden style={{
-                        width: 40, height: 40, borderRadius: 8, flexShrink: 0,
-                        background: 'var(--surface-sub)', display: 'inline-flex',
-                        alignItems: 'center', justifyContent: 'center', fontSize: 15,
-                      }}>🍽</span>
-                    )}
+                  {/* 계획한 날은 목록 줄이 아니라 **카드처럼** 보여 준다.
+                      제목만 한 줄로 적어 두면 무슨 요리인지 안 그려져서,
+                      "이 날 뭐 해 먹기로 했지" 를 또 눌러 봐야 했다. */}
+                  {planned ? (
+                    <>
+                      {planned.thumbnail ? (
+                        <img
+                          src={getProxiedImageUrl(planned.thumbnail)}
+                          alt=""
+                          loading="lazy"
+                          onError={(e) => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
+                          style={{ width: 40, height: 40, borderRadius: 8, objectFit: 'cover',
+                                   flexShrink: 0, background: 'var(--surface-sub)' }}
+                        />
+                      ) : (
+                        <span aria-hidden style={{
+                          width: 40, height: 40, borderRadius: 8, flexShrink: 0,
+                          background: 'var(--surface-sub)', display: 'inline-flex',
+                          alignItems: 'center', justifyContent: 'center', fontSize: 15,
+                        }}>🍽</span>
+                      )}
+                      <span style={{ flex: 1, minWidth: 0 }}>
+                        <span style={{
+                          display: 'block', fontSize: 12.5, color: '#1A1A1E', fontWeight: 600,
+                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                        }}>{planned.title}</span>
+                        <span style={{ display: 'block', fontSize: 11, color: '#7A5C00', marginTop: 2 }}>
+                          {/* 하루에 여러 끼면 그렇다고 말해 준다. 첫 줄만 보여
+                              주고 입 다물면 나머지를 짜 둔 걸 잊는다. */}
+                          만들기로 한 요리
+                          {dayPlans.length > 1 && ` 외 ${dayPlans.length - 1}개`}
+                        </span>
+                      </span>
+                    </>
+                  ) : (
                     <span style={{ flex: 1, minWidth: 0 }}>
                       <span style={{
-                        display: 'block', fontSize: 12.5, color: '#1A1A1E', fontWeight: 600,
-                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                      }}>{planned.title}</span>
-                      <span style={{ display: 'block', fontSize: 11, color: '#7A5C00', marginTop: 2 }}>
-                        {/* 하루에 여러 끼면 그렇다고 말해 준다. 첫 줄만 보여
-                            주고 입 다물면 나머지를 짜 둔 걸 잊는다. */}
-                        만들기로 한 요리
-                        {dayPlans.length > 1 && ` 외 ${dayPlans.length - 1}개`}
-                      </span>
-                    </span>
-                  </>
-                ) : (
-                  <span style={{ flex: 1, minWidth: 0 }}>
-                    <span style={{
-                      display: 'block', fontSize: 12.5,
-                      color: dayEntries.length ? 'var(--ink-700)' : 'var(--ink-500)',
-                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                    }}>
-                      {dayEntries.length > 0
-                        ? dayEntries.map((e) => e.title).join(', ')
-                        : '기록 없음'}
-                    </span>
-                    {dayPlans.length > 0 && (
-                      <span style={{
-                        display: 'block', fontSize: 11, color: '#7A5C00', marginTop: 2,
+                        display: 'block', fontSize: 12.5,
+                        color: dayEntries.length ? 'var(--ink-700)' : 'var(--ink-500)',
                         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                       }}>
-                        만들기로 한 것: {dayPlans[0].title}
-                        {dayPlans.length > 1 && ` 외 ${dayPlans.length - 1}개`}
+                        {dayEntries.length > 0
+                          ? dayEntries.map((e) => e.title).join(', ')
+                          : '기록 없음'}
                       </span>
-                    )}
-                  </span>
+                      {dayPlans.length > 0 && (
+                        <span style={{
+                          display: 'block', fontSize: 11, color: '#7A5C00', marginTop: 2,
+                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                        }}>
+                          만들기로 한 것: {dayPlans[0].title}
+                          {dayPlans.length > 1 && ` 외 ${dayPlans.length - 1}개`}
+                        </span>
+                      )}
+                    </span>
+                  )}
+                  {dayEntries.length > 0 && renderDayDots(dayEntries)}
+                </button>
+                {planned && (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmingPlan(planned)}
+                    aria-label={`${planned.title} 계획 취소`}
+                    style={{
+                      flexShrink: 0, height: 28, padding: '0 10px', borderRadius: 9999,
+                      border: '1px solid #D8C27A', background: '#FFFFFF',
+                      fontSize: 11.5, fontWeight: 700, color: '#7A5C00', cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    계획 취소
+                  </button>
                 )}
-                {dayEntries.length > 0 && renderDayDots(dayEntries)}
-              </button>
+                {canCancelSingleEntry && singleEntry && (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmingCompletedDelete(singleEntry)}
+                    aria-label={singleEntryIsMine || !authUser?.id ? '완료 취소' : `${singleEntry.nickname}님 완료 취소`}
+                    style={{
+                      flexShrink: 0, height: 28, padding: '0 10px', borderRadius: 9999,
+                      border: '1px solid var(--line-300)', background: 'var(--surface-sub)',
+                      fontSize: 11.5, fontWeight: 700, color: '#B03A28', cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    완료 취소
+                  </button>
+                )}
+              </div>
             );
           })}
         </div>
@@ -2399,49 +2476,77 @@ const CookingCalendar: React.FC = () => {
                 레시피에서 <b>기록</b>을 누르면 여기 쌓여요.
               </div>
             ) : (
-              listRecorded.map((r: any) => (
-                <button
+              listRecorded.map((r: any) => {
+                // 그룹 전체 보기에서는 이 기록을 누가 남겼는지(레시피 하나에
+                // 여러 명일 수 있음) 서버가 개인별 id까지는 안 준다 —
+                // "내 요리만" 볼 때만(그러면 이 목록 자체가 전부 내 것) 지울 수
+                // 있게 한다(위 handleDeleteRecorded 주석 참고).
+                const canDeleteRecorded = !isInHousehold || scope === 'mine';
+                return (
+                <div
                   key={r.id}
-                  type="button"
-                  onClick={() => openCookMode({ id: r.id, title: r.title, link: r.link })}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 10, width: '100%',
                     padding: '9px 12px', borderRadius: 12,
                     border: '1px solid var(--line-200)', background: '#FFFFFF',
-                    cursor: 'pointer', textAlign: 'left',
                   }}
                 >
-                  {r.thumbnail ? (
-                    <img
-                      src={getProxiedImageUrl(r.thumbnail)}
-                      alt=""
-                      loading="lazy"
-                      onError={ev => { (ev.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
-                      style={{ width: 40, height: 40, borderRadius: 8, objectFit: 'cover',
-                               flexShrink: 0, background: 'var(--surface-sub)' }}
-                    />
-                  ) : (
-                    <span aria-hidden style={{
-                      width: 40, height: 40, borderRadius: 8, flexShrink: 0,
-                      background: 'var(--surface-sub)', display: 'inline-flex',
-                      alignItems: 'center', justifyContent: 'center', fontSize: 15,
-                    }}>&#127869;</span>
-                  )}
-                  <span style={{ flex: 1, minWidth: 0 }}>
-                    <span style={{
-                      display: 'block', fontSize: 13, color: '#1A1A1E', fontWeight: 600,
-                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                    }}>{r.title}</span>
-                    {/* 누구 기록인지 안 적으면 식구 탭에서 내 것인지 남의 것인지
-                        구분이 안 된다. */}
-                    {scope === 'household' && Array.isArray(r.acted_by) && r.acted_by.length > 0 && (
-                      <span style={{ display: 'block', fontSize: 11, color: 'var(--ink-500)', marginTop: 2 }}>
-                        {r.acted_by.join(', ')}
-                      </span>
+                  <button
+                    type="button"
+                    onClick={() => openCookMode({ id: r.id, title: r.title, link: r.link })}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0,
+                      border: 'none', background: 'none', padding: 0, cursor: 'pointer', textAlign: 'left',
+                    }}
+                  >
+                    {r.thumbnail ? (
+                      <img
+                        src={getProxiedImageUrl(r.thumbnail)}
+                        alt=""
+                        loading="lazy"
+                        onError={ev => { (ev.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
+                        style={{ width: 40, height: 40, borderRadius: 8, objectFit: 'cover',
+                                 flexShrink: 0, background: 'var(--surface-sub)' }}
+                      />
+                    ) : (
+                      <span aria-hidden style={{
+                        width: 40, height: 40, borderRadius: 8, flexShrink: 0,
+                        background: 'var(--surface-sub)', display: 'inline-flex',
+                        alignItems: 'center', justifyContent: 'center', fontSize: 15,
+                      }}>&#127869;</span>
                     )}
-                  </span>
-                </button>
-              ))
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{
+                        display: 'block', fontSize: 13, color: '#1A1A1E', fontWeight: 600,
+                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                      }}>{r.title}</span>
+                      {/* 누구 기록인지 안 적으면 식구 탭에서 내 것인지 남의 것인지
+                          구분이 안 된다. */}
+                      {scope === 'household' && Array.isArray(r.acted_by) && r.acted_by.length > 0 && (
+                        <span style={{ display: 'block', fontSize: 11, color: 'var(--ink-500)', marginTop: 2 }}>
+                          {r.acted_by.join(', ')}
+                        </span>
+                      )}
+                    </span>
+                  </button>
+                  {canDeleteRecorded && (
+                    <button
+                      type="button"
+                      onClick={() => setConfirmingRecordedDelete({ id: r.id, title: r.title })}
+                      aria-label={`${r.title} 기록 취소`}
+                      style={{
+                        flexShrink: 0, height: 26, padding: '0 10px', borderRadius: 9999,
+                        border: '1px solid var(--line-300)', background: 'var(--surface-sub)',
+                        fontSize: 11, fontWeight: 700, color: '#B03A28', cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      기록 취소
+                    </button>
+                  )}
+                </div>
+                );
+              })
             )
           ) : listEntries === null ? (
             <div style={{ padding: '24px 4px', textAlign: 'center',
@@ -2468,6 +2573,10 @@ const CookingCalendar: React.FC = () => {
                 // 같은 날이 이어지면 날짜를 한 번만 찍는다. 매 줄에 같은 날짜가
                 // 박히면 다른 날인 줄 알고 다시 읽게 된다.
                 const first = i === 0 || arr[i - 1].day !== e.day;
+                // 일 보기와 같은 규칙 — 내 것이거나, 같은 그룹이면 대신
+                // 취소할 수 있다(당사자 알림 + 복구 가능, 서버 처리).
+                const isMine = authUser?.id != null && e.user_id === Number(authUser.id);
+                const canCancel = !authUser?.id || isMine || isInHousehold;
                 return (
                   <div key={e.day + '-' + e.recipe_id + '-' + i}>
                     {first && (
@@ -2476,49 +2585,71 @@ const CookingCalendar: React.FC = () => {
                         {e.day}
                       </div>
                     )}
-                    <button
-                      type="button"
-                      onClick={() => openCookMode({ id: e.recipe_id, title: e.title })}
+                    <div
                       style={{
                         display: 'flex', alignItems: 'center', gap: 10, width: '100%',
                         padding: '9px 12px', borderRadius: 12,
                         border: '1px solid var(--line-200)', background: '#FFFFFF',
-                        cursor: 'pointer', textAlign: 'left',
+                        boxSizing: 'border-box',
                       }}
                     >
-                      {e.thumbnail ? (
-                        <img
-                          src={getProxiedImageUrl(e.thumbnail)}
-                          alt=""
-                          loading="lazy"
-                          onError={ev => { (ev.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
-                          style={{ width: 40, height: 40, borderRadius: 8, objectFit: 'cover',
-                                   flexShrink: 0, background: 'var(--surface-sub)' }}
-                        />
-                      ) : (
-                        <span aria-hidden style={{
-                          width: 40, height: 40, borderRadius: 8, flexShrink: 0,
-                          background: 'var(--surface-sub)', display: 'inline-flex',
-                          alignItems: 'center', justifyContent: 'center', fontSize: 15,
-                        }}>&#127869;</span>
-                      )}
-                      <span style={{ flex: 1, minWidth: 0 }}>
-                        <span style={{
-                          display: 'block', fontSize: 13, color: '#1A1A1E', fontWeight: 600,
-                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                        }}>{e.title}</span>
-                        <span style={{ display: 'block', fontSize: 11, color: 'var(--ink-500)', marginTop: 2 }}>
-                          {formatTime(e.created_at)}
-                          {isInHousehold && e.nickname ? ` · ${e.nickname}` : ''}
+                      <button
+                        type="button"
+                        onClick={() => openCookMode({ id: e.recipe_id, title: e.title })}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0,
+                          border: 'none', background: 'none', padding: 0, cursor: 'pointer', textAlign: 'left',
+                        }}
+                      >
+                        {e.thumbnail ? (
+                          <img
+                            src={getProxiedImageUrl(e.thumbnail)}
+                            alt=""
+                            loading="lazy"
+                            onError={ev => { (ev.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
+                            style={{ width: 40, height: 40, borderRadius: 8, objectFit: 'cover',
+                                     flexShrink: 0, background: 'var(--surface-sub)' }}
+                          />
+                        ) : (
+                          <span aria-hidden style={{
+                            width: 40, height: 40, borderRadius: 8, flexShrink: 0,
+                            background: 'var(--surface-sub)', display: 'inline-flex',
+                            alignItems: 'center', justifyContent: 'center', fontSize: 15,
+                          }}>&#127869;</span>
+                        )}
+                        <span style={{ flex: 1, minWidth: 0 }}>
+                          <span style={{
+                            display: 'block', fontSize: 13, color: '#1A1A1E', fontWeight: 600,
+                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                          }}>{e.title}</span>
+                          <span style={{ display: 'block', fontSize: 11, color: 'var(--ink-500)', marginTop: 2 }}>
+                            {formatTime(e.created_at)}
+                            {isInHousehold && e.nickname ? ` · ${e.nickname}` : ''}
+                          </span>
                         </span>
-                      </span>
-                      {isInHousehold && (
-                        <span aria-hidden style={{
-                          width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
-                          background: colorForUser(e.user_id, memberIds),
-                        }} />
+                        {isInHousehold && (
+                          <span aria-hidden style={{
+                            width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
+                            background: colorForUser(e.user_id, memberIds),
+                          }} />
+                        )}
+                      </button>
+                      {canCancel && (
+                        <button
+                          type="button"
+                          onClick={() => setConfirmingCompletedDelete(e)}
+                          aria-label={isMine || !authUser?.id ? '완료 취소' : `${e.nickname}님 완료 취소`}
+                          style={{
+                            flexShrink: 0, height: 26, padding: '0 10px', borderRadius: 9999,
+                            border: '1px solid var(--line-300)', background: 'var(--surface-sub)',
+                            fontSize: 11, fontWeight: 700, color: '#B03A28', cursor: 'pointer',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          완료 취소
+                        </button>
                       )}
-                    </button>
+                    </div>
                   </div>
                 );
               })
@@ -2601,29 +2732,6 @@ const CookingCalendar: React.FC = () => {
             );
           })}
 
-          {confirmingPlan && (
-            <Dialog
-              open
-              onClose={() => setConfirmingPlan(null)}
-              title="계획을 취소할까요?"
-              width={320}
-              dismissLabel="아니요"
-              actions={[{
-                label: '취소하기',
-                variant: 'danger',
-                onClick: async () => {
-                  await deleteMealPlanFor(confirmingPlan.userId, selectedDay, confirmingPlan.recipeId);
-                  setPlanVersion(v => v + 1);
-                  setConfirmingPlan(null);
-                },
-              }]}
-            >
-              <span style={{ wordBreak: 'keep-all' }}>
-                <b>{confirmingPlan.title}</b>{eulReul(confirmingPlan.title)} 만들기로 한 계획을 지워요.
-                {' '}{confirmingPlan.userId !== meIdForPlans && `${confirmingPlan.nickname}님에게 알림이 가고, 되돌릴 수 있어요.`}
-              </span>
-            </Dialog>
-          )}
 
           {(entriesByDay.get(selectedDay) || []).length === 0 ? (
             <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--ink-500)', fontSize: 13 }}>
@@ -2636,7 +2744,10 @@ const CookingCalendar: React.FC = () => {
               const isMine = authUser?.id != null && e.user_id === Number(authUser.id);
               // 완료·수동 기록 모두, **같은 그룹이면 대신 지울 수 있다**(대리
               // 삭제 + 당사자 알림, 2026-09-14). 날짜 수정은 내 것만(그대로).
-              const canManage = isMine || isInHousehold;
+              // 게스트(계정 없음)는 그룹이 있을 수 없으니 `isMine`이 항상
+              // false다 — 그렇다고 취소 버튼 자체를 못 보게 하면 안 된다.
+              // 기기에 남은 완료는 전부 이 게스트 것이므로 무조건 취소 가능.
+              const canManage = !authUser?.id || isMine || isInHousehold;
               const isEditing = editingDateKey === dateKey;
               return (
               <div
@@ -2742,16 +2853,22 @@ const CookingCalendar: React.FC = () => {
                       )}
                       {/* 잘못 등록한 완료 기록을 지우는 길이 조리 상세 시트
                           안에만 있어 너무 숨어 있다는 지적(2026-09-13) —
-                          이 카드에 바로 둔다. */}
+                          이 카드에 바로 둔다. 아이콘만 있던 휴지통 버튼을
+                          "계획 취소"와 같은 글자 버튼(명칭 "완료 취소")으로
+                          통일 — 달력·목록 어디서 봐도 같은 말로 읽힌다
+                          (실사용 지적, 2026-09-15). */}
                       <button
                         type="button"
                         onClick={() => setConfirmingCompletedDelete(e)}
-                        aria-label={isMine ? '완료 기록 삭제' : `${e.nickname}님 기록 삭제`}
-                        // padding: 0 필수 — 전역 `button { padding: .6em 1.2em }` 이
-                        // 26px 안을 다 먹어 휴지통 아이콘이 0폭으로 사라졌다(2026-09-15).
-                        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 26, height: 26, padding: 0, borderRadius: 9999, flexShrink: 0, color: '#B03A28', background: 'var(--surface-sub)', border: '1px solid var(--line-300)', cursor: 'pointer' }}
+                        aria-label={isMine || !authUser?.id ? '완료 취소' : `${e.nickname}님 완료 취소`}
+                        style={{
+                          flexShrink: 0, height: 26, padding: '0 10px', borderRadius: 9999,
+                          border: '1px solid var(--line-300)', background: 'var(--surface-sub)',
+                          fontSize: 11, fontWeight: 700, color: '#B03A28', cursor: 'pointer',
+                          whiteSpace: 'nowrap',
+                        }}
                       >
-                        <TrashIcon />
+                        완료 취소
                       </button>
                     </div>
                   )
@@ -2761,31 +2878,89 @@ const CookingCalendar: React.FC = () => {
             })
           )}
 
-          {confirmingCompletedDelete && (
-            <Dialog
-              open
-              onClose={() => setConfirmingCompletedDelete(null)}
-              title="완료 기록을 삭제하시겠습니까?"
-              width={320}
-              dismissLabel="아니요"
-              actions={[{
-                label: deletingCompleted ? '삭제 중' : '삭제하기',
-                variant: 'danger',
-                onClick: handleDeleteCompleted,
-              }]}
-            >
-              <span style={{ wordBreak: 'keep-all' }}>
-                <b>{confirmingCompletedDelete.title}</b>
-                {eulReul(confirmingCompletedDelete.title)}
-                {' '}{confirmingCompletedDelete.entry_type === 'manual' ? '기록을' : '완료한 기록을'} 지워요.
-                {' '}{authUser?.id != null && confirmingCompletedDelete.user_id === Number(authUser.id)
-                  ? '되돌릴 수 없어요.'
-                  : `${confirmingCompletedDelete.nickname}님에게 알림이 가고, 되돌릴 수 있어요.`}
-              </span>
-            </Dialog>
-          )}
-
         </div>
+        )}
+
+        {/* 계획·완료·기록 삭제 확인창 — 일 보기뿐 아니라 주 보기·목록 탭에서도
+            "계획 취소"/"완료 취소"/"기록 취소" 버튼으로 띄운다. 예전엔 이
+            다이얼로그들이 일 보기 블록 안에 있어서 다른 화면에서 누르면
+            상태만 켜지고 아무것도 안 뜨는 문제가 있었다(바로 아래 "수동으로
+            기록 추가"와 같은 원인, 2026-09-15) — viewMode·mode 와 무관하게
+            항상 렌더되도록 밖으로 뺐다. */}
+        {confirmingPlan && (
+          <Dialog
+            open
+            onClose={() => setConfirmingPlan(null)}
+            title="계획을 취소할까요?"
+            width={320}
+            dismissLabel="아니요"
+            actions={[{
+              label: '취소하기',
+              variant: 'danger',
+              onClick: async () => {
+                // **이 계획 자신의 날짜**로 지운다 — 예전엔 `selectedDay`(일
+                // 보기가 지금 보여주는 날)를 썼는데, 주 보기에서 그 날로
+                // 들어가지 않고 바로 "계획 취소"를 누르면 엉뚱한 날짜의
+                // 계획이 지워질 뻔했다(2026-09-15, 주 보기에도 취소 버튼을
+                // 다는 과정에서 발견).
+                await deleteMealPlanFor(confirmingPlan.userId, confirmingPlan.date, confirmingPlan.recipeId);
+                setPlanVersion(v => v + 1);
+                setConfirmingPlan(null);
+              },
+            }]}
+          >
+            <span style={{ wordBreak: 'keep-all' }}>
+              <b>{confirmingPlan.title}</b>{eulReul(confirmingPlan.title)} 만들기로 한 계획을 지워요.
+              {/* 게스트는 `meIdForPlans` 가 null이라 항상 "다른 사람 것" 으로
+                  잘못 판정돼(-1 !== null) 본인 계획인데도 "나님에게 알림이…"
+                  라고 뜰 뻔했다(2026-09-15) — 로그인 상태에서만 이 문구를 본다. */}
+              {' '}{!!authUser?.id && confirmingPlan.userId !== meIdForPlans && `${confirmingPlan.nickname}님에게 알림이 가고, 되돌릴 수 있어요.`}
+            </span>
+          </Dialog>
+        )}
+
+        {confirmingCompletedDelete && (
+          <Dialog
+            open
+            onClose={() => setConfirmingCompletedDelete(null)}
+            title="완료 기록을 삭제하시겠습니까?"
+            width={320}
+            dismissLabel="아니요"
+            actions={[{
+              label: deletingCompleted ? '삭제 중' : '삭제하기',
+              variant: 'danger',
+              onClick: handleDeleteCompleted,
+            }]}
+          >
+            <span style={{ wordBreak: 'keep-all' }}>
+              <b>{confirmingCompletedDelete.title}</b>
+              {eulReul(confirmingCompletedDelete.title)}
+              {' '}{confirmingCompletedDelete.entry_type === 'manual' ? '기록을' : '완료한 기록을'} 지워요.
+              {' '}{!authUser?.id || confirmingCompletedDelete.user_id === Number(authUser.id)
+                ? '되돌릴 수 없어요.'
+                : `${confirmingCompletedDelete.nickname}님에게 알림이 가고, 되돌릴 수 있어요.`}
+            </span>
+          </Dialog>
+        )}
+
+        {confirmingRecordedDelete && (
+          <Dialog
+            open
+            onClose={() => setConfirmingRecordedDelete(null)}
+            title="기록을 삭제하시겠습니까?"
+            width={320}
+            dismissLabel="아니요"
+            actions={[{
+              label: deletingRecorded ? '삭제 중' : '삭제하기',
+              variant: 'danger',
+              onClick: handleDeleteRecorded,
+            }]}
+          >
+            <span style={{ wordBreak: 'keep-all' }}>
+              <b>{confirmingRecordedDelete.title}</b>
+              {eulReul(confirmingRecordedDelete.title)} 남긴 기록을 지워요. 되돌릴 수 없어요.
+            </span>
+          </Dialog>
         )}
 
         {/* "수동으로 기록 추가" 팝업 — 일/주/월 어디서든 누를 수 있는 버튼(위

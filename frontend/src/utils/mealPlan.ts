@@ -233,7 +233,15 @@ export async function fetchHouseholdMealPlans(start: string, end: string): Promi
  */
 export async function deleteMealPlanFor(targetUserId: number, date: string, recipeId: number): Promise<void> {
   const token = authToken();
-  if (!token) return;
+  if (!token) {
+    // 게스트(계정 없음)는 서버에 지울 게 없다 — 그렇다고 아무 일도 안
+    // 일어나면 "계획 취소"를 눌러도 그대로 남아 있는 것처럼 보인다(실사용
+    // 확인, 2026-09-15, 요리 캘린더를 비회원에게 연 뒤 발견). 게스트의
+    // 계획은 전부 이 기기 것뿐이라(그룹이 있을 수 없음) targetUserId 와
+    // 무관하게 기기 사본만 지우면 된다.
+    clearPlanMeal(date, recipeId);
+    return;
+  }
   if (targetUserId === currentUserId()) {
     clearPlanMeal(date, recipeId);
     return;
