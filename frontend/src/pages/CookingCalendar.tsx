@@ -648,6 +648,27 @@ const CookingCalendar: React.FC = () => {
     return () => window.removeEventListener('recipe-action-synced', onSynced);
   }, [loadCalendar]);
 
+  /**
+   * 레시피 카드(레시피 목록·인기·상세)의 완료 버튼은 시트를 거치지 않고
+   * 바로 기기에 저장한 뒤 서버로 보낸다 — `recipe-action-synced`(서버 반영이
+   * 끝난 뒤에만 오는 이벤트)를 안 보낸다. 목록 탭은 처음 열 때마다 새로
+   * 불러와서 우연히 최신 상태로 보였지만, 달력 탭은 이 페이지에 이미 떠
+   * 있는 동안은 다시 부를 계기가 없어 "목록엔 바로 뜨는데 달력엔 안 뜬다"는
+   * 지적(2026-09-15)으로 이어졌다. 마이페이지가 즉시 반영되는 것도 같은
+   * `localStorageChange`를 듣기 때문이다 — 기기 저장은 서버 응답을 기다리지
+   * 않고 클릭 즉시 일어나므로, 이 이벤트가 가장 빠르다.
+   */
+  React.useEffect(() => {
+    const onLocalChange = (ev: Event) => {
+      const key = (ev as CustomEvent<{ key?: string }>).detail?.key;
+      if (key !== 'my_completed_recipes' && key !== 'my_recorded_recipes') return;
+      setAllEntries(null);
+      loadCalendar();
+    };
+    window.addEventListener('localStorageChange', onLocalChange);
+    return () => window.removeEventListener('localStorageChange', onLocalChange);
+  }, [loadCalendar]);
+
   // 다른 앱·탭에 다녀오면 다시 불러온다. 식구가 그 사이 완료를 남기거나 목표·
   // 식구 수를 바꿨어도, 예전엔 달을 넘기거나 당겨서 새로고침해야만 보였다.
   React.useEffect(() => {

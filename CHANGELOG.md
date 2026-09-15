@@ -11046,3 +11046,9 @@ edge-tts 파일럿 목소리가 "너무 AI 같다"는 피드백 + "제미나이�
 - **수정**: 전체삭제가 화면·기기 목록의 레시피 전부를 서버에서도 지운 뒤 기기를 비움. 서버 삭제에 실패한 레시피는 기기·화면에 남겨 두고 "N개는 서버에서 지우지 못했어요"라고 알림(기기에서만 지우면 또 되살아나므로). 진행 중엔 버튼이 "삭제 중"으로 바뀌어 중복 요청을 막고, 끝나면 `recipe-action-synced`로 요리 캘린더·마이페이지에 알림.
 - [recipeStorage.ts](frontend/src/utils/recipeStorage.ts) `removeRecipeActionFromDB`가 성공 여부(boolean)를 돌려주도록 변경(기존 호출부는 결과를 안 써서 영향 없음).
 - 로그인이 필요한 화면이라 브라우저로는 확인하지 못함.
+
+### 요리 캘린더 — "목록"엔 바로 뜨는데 "달력"엔 안 뜨던 문제
+- **원인**: [CookModeSheet.tsx](frontend/src/components/CookModeSheet.tsx)에서 완료를 누르면 **서버 반영이 끝난 뒤** `recipe-action-synced`를 보내는데, [CookingCalendar.tsx](frontend/src/pages/CookingCalendar.tsx)는 이 이벤트만 듣고 있었음. 그런데 레시피 목록·요즘인기 카드의 완료 버튼([RecipeList.tsx](frontend/src/pages/RecipeList.tsx) 등)은 시트를 거치지 않고 기기 저장 후 곧장 서버로 보내는 경로라 이 이벤트 자체를 보내지 않음 — 이 경로로 완료하면 이미 열려 있던 달력 탭은 다시 불러올 계기가 아예 없었음. "목록" 탭이 그나마 맞아 보인 건 탭을 처음 열 때마다 서버에서 새로 받아오는 별개의 효과 덕분이지, 실시간 반영이 되고 있던 건 아니었음.
+- 마이페이지가 항상 즉시 반영되는 이유도 같은 맥락: `addRecipeToLocalStorage`가 클릭 즉시(서버 응답을 기다리지 않고) 쏘는 `localStorageChange`를 마이페이지는 듣고 있었음.
+- **수정**: 요리 캘린더에도 `localStorageChange`(키가 `my_completed_recipes`/`my_recorded_recipes`일 때) 구독을 추가해 달력·목록 데이터를 즉시 다시 불러오게 함 — 어느 화면의 완료 버튼을 눌렀든 동일하게 반영.
+- 타입 체크 통과(기존에 있던, 이 변경과 무관한 사전 오류들만 남음). 로그인이 필요한 화면이라 브라우저로는 확인하지 못함.
