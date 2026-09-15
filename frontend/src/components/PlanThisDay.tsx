@@ -123,7 +123,7 @@ const PlanThisDay: React.FC<Props> = ({ recipeId, title, link, thumbnail }) => {
           <div style={{ fontSize: 11.5, color: 'var(--ink-500)', marginTop: 2 }}>
             {booked.length > 0
               ? `${booked.map(short).join(', ')}에 하기로 했어요`
-              : '고른 날짜가 요리 캘린더에 남아요'}
+              : '고른 날짜가 마이 캘린더에 남아요'}
           </div>
         </div>
         <button

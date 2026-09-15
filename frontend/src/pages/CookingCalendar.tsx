@@ -15,6 +15,7 @@ import PullToRefresh from '../components/PullToRefresh';
 import DatePickerField from '../components/DatePickerField';
 import Sheet from '../components/ui/Sheet';
 import Dialog from '../components/ui/Dialog';
+import Button from '../components/ui/Button';
 import { removeRecipeActionFromDB, removeRecipeFromLocalStorage } from '../utils/recipeStorage';
 import { useUsage } from '../components/UsageMeter';
 import { useAuth } from '../context/AuthContext';
@@ -336,7 +337,9 @@ const FridgeToPlan: React.FC<{ onGo: (withAi?: boolean) => void }> = ({ onGo }) 
 };
 
 /**
- * 요리 캘린더 — 완료한 레시피를 날짜별로 돌아보는 화면.
+ * 마이 캘린더 — 완료한 레시피를 날짜별로 돌아보는 화면(탭 이름은 "마이
+ * 캘린더" 다. "요리 캘린더"였다가 마이페이지 최상단 로그인 배너와의
+ * 통일감을 위해 2026-09-15 변경 — 컴포넌트·라우트 이름은 그대로 둔다).
  *
  * 처음엔 마이페이지 하위 화면으로 뒀는데, 기능이 생각보다 커져서(일/주/월,
  * 그룹원별 통계, 월 목표) 하단 탭으로 옮겼다. 그룹에 속해 있으면(공유
@@ -1252,41 +1255,37 @@ const CookingCalendar: React.FC = () => {
           보려면 예전엔 탭을 벗어났다 돌아오는 수밖에 없었다 — 당겨서
           새로고침으로 그 자리에서 바로 다시 불러올 수 있게 한다. */}
       <PullToRefresh onRefresh={loadCalendar}>
+      {/* 비로그인 배너 — 마이페이지 최상단의 "로그인이 필요합니다" 배너와
+          같은 모양(자리·여백·글자 크기·버튼)을 그대로 쓴다. 화면마다 문구·
+          버튼이 제각각이면 "이 앱이 계정 얘기를 하고 있다"는 인식 자체가
+          약해진다는 지적(2026-09-15) — 문구만 이 화면(달력·요리 계획) 얘기로
+          바꾸고 나머지는 마이페이지와 통일한다. 한 번 보여 주고 끝내지
+          않는다 — 이 기기에만 남는 기록이라 다른 기기로 바꾸면 사라진다는
+          사실은 들어올 때마다 알아야 해서 접거나 닫지 않는다. */}
+      {!isLoggedIn && (
+        <section style={{
+          margin: '0 14px 12px', padding: '18px 16px',
+          display: 'flex', alignItems: 'center', gap: 12,
+          background: 'var(--surface-sub)', borderRadius: 14,
+        }}>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink-900)' }}>로그인이 필요합니다</div>
+            <div style={{ fontSize: 13, color: 'var(--ink-500)', marginTop: 3, lineHeight: 1.45 }}>
+              달력·요리 계획을 안전하게 관리하려면
+            </div>
+          </div>
+          <Button variant="primary" size="sm" onClick={() => navigate('/login')}>
+            로그인
+          </Button>
+        </section>
+      )}
       <FridgeToPlan onGo={withAi => navigate(withAi ? '/plan?ai=1' : '/plan')} />
       {/* 계획 목록을 여기 또 두지 않는다.
           바로 아래가 달력인데 그 위에 같은 내용을 줄로 늘어놓으면, 같은 것을
           두 번 읽게 되고 정작 달력은 화면 밖으로 밀린다. 계획은 달력 안에서
           — 월 보기는 도장, 주 보기는 카드, 일 보기는 그 날 카드로 — 보여 준다.
-          (비로그인도 달력을 그대로 쓴다 — 아래 안내 배너로 계정이 없다는
-          것만 알려 준다) */}
-      {/* 비로그인 배너 — 한 번만 보여 주고 끝내지 않는다. 이 기기에만 남는
-          기록이라, 다른 기기로 바꾸거나 앱 데이터를 지우면 그대로 사라진다는
-          사실은 들어올 때마다 알아야 하는 것이라 접거나 닫지 않는다
-          (2026-09-15, "안전하게 관리하려면 로그인이 필요하다는 걸 늘 알 수
-          있어야 한다"는 요청 — 화면 전체를 막는 대신 이렇게 작은 배너로). */}
-      {!isLoggedIn && (
-        <div style={{
-          margin: '0 14px 12px', padding: '10px 12px', borderRadius: 12,
-          border: '1px solid var(--line-200)', background: 'var(--surface-sub)',
-          display: 'flex', alignItems: 'center', gap: 10,
-        }}>
-          <span style={{ flex: 1, minWidth: 0, fontSize: 12, color: 'var(--ink-700)', lineHeight: 1.6, wordBreak: 'keep-all' }}>
-            로그인하지 않으면 이 기록은 <b>이 기기에만</b> 남아요.
-            기기를 바꾸거나 데이터를 지우면 사라질 수 있어요.
-          </span>
-          <button
-            type="button"
-            onClick={() => navigate('/login')}
-            style={{
-              flexShrink: 0, minHeight: 32, padding: '0 12px', borderRadius: 8,
-              border: 'none', background: 'var(--brand)', color: '#1A1A1E',
-              fontSize: 12.5, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
-            }}
-          >
-            로그인
-          </button>
-        </div>
-      )}
+          (비로그인도 달력을 그대로 쓴다 — 위 배너로 계정이 없다는 것만
+          알려 준다) */}
 
       {/* 월 목표는 **어느 탭에서 보든 같은 이야기**다. 목록 탭에서 감췄더니
           탭을 옮길 때마다 화면 윗동강이 통째로 사라졌다 — 무엇을 보든 이번 달

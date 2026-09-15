@@ -80,7 +80,7 @@ const NAVIGATION_ITEMS = [
   },
   {
     key: 'cooking-calendar',
-    label: '요리 캘린더',
+    label: '마이 캘린더',
     renderIcon: (active: boolean) => <CalendarNavIcon active={active} />,
     path: '/cooking-calendar'
   },
