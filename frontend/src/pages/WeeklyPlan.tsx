@@ -1320,7 +1320,7 @@ const WeeklyPlan: React.FC = () => {
             transition: 'background .18s ease, color .18s ease',
           }}
         >
-          {saved ? '캘린더에 담았어요 · 다시 담기' : '마이 캘린더에 담기'}
+          {saved ? '캘린더에 담았어요 · 다시 담기' : '마이캘린더에 담기'}
         </button>
       )}
     </div>
@@ -1641,7 +1641,7 @@ const WeeklyPlan: React.FC = () => {
                   fontSize: 13, fontWeight: 700, color: 'var(--ink-900)', cursor: 'pointer',
                 }}
               >
-                마이 캘린더에서 보기 ›
+                마이캘린더에서 보기 ›
               </button>
             )}
 
@@ -2348,7 +2348,7 @@ const WeeklyPlan: React.FC = () => {
             color: '#1A1A1E', fontSize: 11, fontWeight: 800, flexShrink: 0,
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
           }}>✓</span>
-          <span>마이 캘린더에 {toast}끼를 담았어요</span>
+          <span>마이캘린더에 {toast}끼를 담았어요</span>
           <button type="button" onClick={() => navigate('/cooking-calendar')}>
             보기
           </button>

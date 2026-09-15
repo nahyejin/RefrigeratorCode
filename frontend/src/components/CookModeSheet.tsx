@@ -745,7 +745,7 @@ const CookModeSheet: React.FC<Props> = ({
           {/* 문장 단위로 끊는다 — 한 문장으로 두면 폭에 따라 "요리 / 캘린더에"
               처럼 한 낱말이 갈라졌다. */}
           조리 순서를 한참 보셨어요.<br />
-          완료하면 마이 캘린더에 기록돼요.
+          완료하면 마이캘린더에 기록돼요.
         </span>
       </Dialog>
     )}
@@ -767,7 +767,7 @@ const CookModeSheet: React.FC<Props> = ({
         ]}
       >
         {confirmingRemove === 'done' && (
-          <span style={{ wordBreak: 'keep-all' }}>마이 캘린더의 완료 기록에서도 빠져요.</span>
+          <span style={{ wordBreak: 'keep-all' }}>마이캘린더의 완료 기록에서도 빠져요.</span>
         )}
       </Dialog>
     )}

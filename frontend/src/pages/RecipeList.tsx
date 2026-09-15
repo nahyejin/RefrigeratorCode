@@ -1612,7 +1612,7 @@ const RecipeList: React.FC = () => {
       targetSelector: '[data-guide-target="recipe-write-button"]',
       message: (
         <>
-          <GuideActionIcon src={기록하기버튼} alt="기록" /> 메모를 남겨요. <b>마이 캘린더</b>에서 볼 수 있어요.
+          <GuideActionIcon src={기록하기버튼} alt="기록" /> 메모를 남겨요. <b>마이캘린더</b>에서 볼 수 있어요.
         </>
       ),
       position: 'left' as const,

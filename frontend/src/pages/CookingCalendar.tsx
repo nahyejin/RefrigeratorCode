@@ -337,9 +337,9 @@ const FridgeToPlan: React.FC<{ onGo: (withAi?: boolean) => void }> = ({ onGo }) 
 };
 
 /**
- * 마이 캘린더 — 완료한 레시피를 날짜별로 돌아보는 화면(탭 이름은 "마이
- * 캘린더" 다. "요리 캘린더"였다가 마이페이지 최상단 로그인 배너와의
- * 통일감을 위해 2026-09-15 변경 — 컴포넌트·라우트 이름은 그대로 둔다).
+ * 마이캘린더 — 완료한 레시피를 날짜별로 돌아보는 화면(탭 이름은 "마이캘린더" 다.
+ * "요리 캘린더"였다가 마이페이지 최상단 로그인 배너와의 통일감을 위해
+ * 2026-09-15 변경 — "마이페이지"처럼 붙여 쓴다. 컴포넌트·라우트 이름은 그대로 둔다).
  *
  * 처음엔 마이페이지 하위 화면으로 뒀는데, 기능이 생각보다 커져서(일/주/월,
  * 그룹원별 통계, 월 목표) 하단 탭으로 옮겼다. 그룹에 속해 있으면(공유
@@ -1801,24 +1801,30 @@ const CookingCalendar: React.FC = () => {
           </button>
         </div>
 
-        {/* 그룹 요약 + 인원별 색 범례 */}
-        <div style={{ margin: '8px 14px 0', padding: '10px 14px', borderRadius: 12, background: 'var(--surface-sub)', fontSize: 13, color: 'var(--ink-700)' }}>
-          {summary.total === 0 ? (
-            <span style={{ color: 'var(--ink-500)' }}>이 기간엔 완료한 레시피가 없어요.</span>
-          ) : (
+        {/* 그룹 요약 + 인원별 색 범례.
+            **달력일 때만** 보인다 — 여기 말하는 "이 기간"은 지금 보고 있는
+            일/주/월 범위(`visibleRange`)인데, 목록 탭은 그런 범위 개념이
+            없다(전체 기간 + 기간 필터). 예전엔 `mode` 와 무관하게 그려서,
+            목록 탭에도 이 박스가 뜨고 바로 아래 목록 자체의 "아직 만든 요리가
+            없어요" 와 겹쳐 "안내문이 두 개"로 보였다(실사용 지적, 2026-09-15).
+            같은 지적으로, 기록이 아예 없을 때는 달력에서도 이 박스를 뺀다 —
+            일 보기 카드의 "이 날은 완료한 레시피가 없어요" 같은 빈 상태
+            안내가 이미 따로 있어서, 0을 한 번 더 말할 필요가 없다. */}
+        {mode === 'calendar' && summary.total > 0 && (
+          <div style={{ margin: '8px 14px 0', padding: '10px 14px', borderRadius: 12, background: 'var(--surface-sub)', fontSize: 13, color: 'var(--ink-700)' }}>
             <span>총 {summary.total}회</span>
-          )}
-          {isInHousehold && summary.byUser.size > 0 && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 8 }}>
-              {Array.from(summary.byUser.entries()).map(([uid, count]) => (
-                <span key={uid} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12 }}>
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: colorForUser(uid, memberIds), flexShrink: 0 }} />
-                  {nicknameById.get(uid) || '?'} {count}회
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
+            {isInHousehold && summary.byUser.size > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 8 }}>
+                {Array.from(summary.byUser.entries()).map(([uid, count]) => (
+                  <span key={uid} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12 }}>
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: colorForUser(uid, memberIds), flexShrink: 0 }} />
+                    {nicknameById.get(uid) || '?'} {count}회
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {loading && <div style={{ textAlign: 'center', padding: 24, color: 'var(--ink-500)', fontSize: 13 }}>불러오는 중...</div>}
 
