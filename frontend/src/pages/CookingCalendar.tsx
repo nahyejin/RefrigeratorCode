@@ -4,7 +4,7 @@ import ExpiryAlert from '../components/ExpiryAlert';
 import { loadIngredientCategoryMap, type CategoryMap, type StorageKind } from '../utils/shelfLife';
 import type { FridgeItem } from '../utils/expiry';
 import {
-  loadPlan, clearPlanMeal, clearAllPlans,
+  loadPlan, clearAllPlans,
   fetchHouseholdMealPlans, deleteMealPlanFor, clearAllHouseholdMealPlans,
   type PlannedMeal,
 } from '../utils/mealPlan';
@@ -117,6 +117,10 @@ const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
 // 그룹원을 색으로 구분하기 위한 팔레트. 인원이 적어(보통 2~4명) 이 정도면 충분하고,
 // 브랜드 강조색(노랑)과 겹치지 않는 톤으로 골랐다.
 const MEMBER_COLORS = ['#3B82F6', '#F97316', '#22C55E', '#A855F7', '#EF4444', '#06B6D4'];
+
+/** 비로그인(게스트)일 때 기기 완료 기록의 주인으로 쓰는 자리 표시 id.
+ * 실제 계정 id와 겹칠 일이 없게 음수로 둔다. */
+const GUEST_USER_ID = -1;
 
 function colorForUser(userId: number, orderedIds: number[]): string {
   const idx = orderedIds.indexOf(userId);
@@ -332,118 +336,6 @@ const FridgeToPlan: React.FC<{ onGo: (withAi?: boolean) => void }> = ({ onGo }) 
 };
 
 /**
- * 짜 둔 식단 계획 목록.
- *
- * 로그인 벽 **앞에도** 둔다. 계획은 기기에 저장되는 것이라 로그인이 필요 없는데,
- * 벽 뒤에만 두면 **비회원이 식단을 반영해 놓고 볼 곳이 없다.**
- */
-const PlannedList: React.FC = () => {
-  // `loadPlan()`은 그때그때 localStorage 를 읽는 함수라, 취소한 뒤 이 값을
-  // 바꿔 다시 계산시키면 지운 계획이 바로 빠진다.
-  const [version, setVersion] = React.useState(0);
-  /** 지금 "정말 취소할까요?" 를 묻는 중인 계획. 누르자마자 바로 지우지 않는다 —
-   * 실수로 눌러 되돌릴 방법 없이 사라지면 안 되므로 한 번 더 확인한다. */
-  const [confirming, setConfirming] = React.useState<{ date: string; recipeId: number; title: string } | null>(null);
-  const meals = React.useMemo(() => {
-    const today = new Date();
-    const key = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-    // 7 이 아니라 10 — 하루에 두세 끼가 올 수 있어서, 7 로 자르면
-    // 한 주가 다 안 보인다.
-    return loadPlan().filter(m => m.date >= key).slice(0, 10);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [version]);
-
-  if (meals.length === 0) return null;
-
-  return (
-    <div style={{ margin: '0 14px 12px' }}>
-      <div style={{ fontSize: 13, fontWeight: 700, color: '#1A1A1E', marginBottom: 8 }}>
-        만들기로 한 요리
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        {meals.map((m, i) => (
-          <div
-            key={m.date + '-' + m.recipeId}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px',
-              borderRadius: 12, border: '1px dashed #C9A400', background: '#FFFDF2',
-            }}
-          >
-            <button
-              type="button"
-              onClick={() => openCookMode({ id: m.recipeId, title: m.title, link: m.link })}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0,
-                border: 'none', background: 'none', padding: 0, cursor: 'pointer', textAlign: 'left',
-              }}
-            >
-              {/* 같은 날 두 번째 끼니부터는 날짜를 비운다 — 같은 날짜가 연달아
-                  찍히면 다른 날인 줄 알고 다시 읽게 된다. */}
-              <span style={{ fontSize: 12, fontWeight: 700, color: '#7A5C00', width: 62, flexShrink: 0 }}>
-                {i > 0 && meals[i - 1].date === m.date ? '' : m.date.slice(5).replace('-', '/')}
-              </span>
-              {m.thumbnail && (
-                <img
-                  src={getProxiedImageUrl(m.thumbnail)}
-                  alt=""
-                  loading="lazy"
-                  onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-                  style={{ width: 36, height: 36, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }}
-                />
-              )}
-              <span style={{
-                flex: 1, minWidth: 0, fontSize: 13, color: '#1A1A1E',
-                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-              }}>{m.title}</span>
-            </button>
-            {/* 이 목록도 계획을 볼 수 있는 자리라, 여기서도 취소할 수 있어야
-                한다(2026-09-12, 캘린더 일 보기와 같은 이유). */}
-            <button
-              type="button"
-              onClick={() => setConfirming({ date: m.date, recipeId: m.recipeId, title: m.title })}
-              aria-label={`${m.title} 계획 취소`}
-              style={{
-                flexShrink: 0, height: 26, padding: '0 9px', borderRadius: 9999,
-                border: '1px solid #D8C27A', background: '#FFFFFF',
-                fontSize: 11, fontWeight: 700, color: '#7A5C00', cursor: 'pointer',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              계획 취소
-            </button>
-          </div>
-        ))}
-      </div>
-
-      {confirming && (
-        <Dialog
-          open
-          onClose={() => setConfirming(null)}
-          title="계획을 취소할까요?"
-          width={320}
-          dismissLabel="아니요"
-          actions={[{
-            label: '취소하기',
-            variant: 'danger',
-            onClick: () => {
-              clearPlanMeal(confirming.date, confirming.recipeId);
-              setVersion(v => v + 1);
-              setConfirming(null);
-            },
-          }]}
-        >
-          {/* `wordBreak: 'keep-all'` 이 핵심 — 기본값(normal)이면 한글이
-              글자 아무 데서나 끊겨 줄바꿈이 어색하다(실사용 지적). */}
-          <span style={{ wordBreak: 'keep-all' }}>
-            <b>{confirming.title}</b>{eulReul(confirming.title)} {confirming.date.slice(5).replace('-', '/')}에 만들기로 한 계획을 지워요.
-          </span>
-        </Dialog>
-      )}
-    </div>
-  );
-};
-
-/**
  * 요리 캘린더 — 완료한 레시피를 날짜별로 돌아보는 화면.
  *
  * 처음엔 마이페이지 하위 화면으로 뒀는데, 기능이 생각보다 커져서(일/주/월,
@@ -566,7 +458,22 @@ const CookingCalendar: React.FC = () => {
   const householdKnownRef = React.useRef(false);
 
   const loadCalendar = React.useCallback(async () => {
-    if (!isLoggedIn || !authUser?.id) return;
+    // 게스트: 서버를 부르지 않고 기기(localStorage)에 쌓인 완료 기록만으로
+    // 이 달 것만 추린다. 그룹·목표·절약액처럼 계정이 있어야 뜻이 있는 값은
+    // 초기 기본값 그대로 둔다(아래 UI에서 이런 값의 편집은 로그인 뒤로 막아 둠).
+    if (!isLoggedIn || !authUser?.id) {
+      const seq = ++loadSeqRef.current;
+      const from = toDateKey(monthStart);
+      const to = toDateKey(monthEnd);
+      setEntries(mergeLocalDone([], GUEST_USER_ID, myName).filter(e => e.day >= from && e.day <= to));
+      setIsInHousehold(false);
+      setMemberIds([]);
+      setHouseholdMembers([]);
+      setGroupGoal(null);
+      setHouseholdSize(1);
+      if (seq === loadSeqRef.current) setLoading(false);
+      return;
+    }
     const seq = ++loadSeqRef.current;
     setLoading(true);
     try {
@@ -687,7 +594,22 @@ const CookingCalendar: React.FC = () => {
    */
   React.useEffect(() => {
     if (mode === 'calendar' || allEntries !== null) return;
-    if (!isLoggedIn || !authUser?.id) return;
+    if (!isLoggedIn || !authUser?.id) {
+      // 게스트: 서버에 물을 계정이 없으니 기기에 쌓인 것 전부를 그대로 쓴다.
+      // `householdRecorded` 도 같은 값으로 채운다 — 아래 `listRecorded` 가
+      // "우리 식구 전체" 범위일 때는 이 값을 읽는데, 게스트는 그룹 토글 자체가
+      // 안 보여(scope 기본값 'household') 비워 두면 빈 목록으로 보인다.
+      let localRecorded: any[] = [];
+      try {
+        localRecorded = JSON.parse(localStorage.getItem('my_recorded_recipes') || '[]');
+      } catch {
+        localRecorded = [];
+      }
+      setAllEntries(mergeLocalDone([], GUEST_USER_ID, myName));
+      setRecorded(localRecorded);
+      setHouseholdRecorded(localRecorded);
+      return;
+    }
     const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
     const params = new URLSearchParams({ start: '2000-01-01', end: toDateKey(addDays(new Date(), 366)) });
     fetch(`${getApiUrl()}/api/households/me/completed-calendar?${params.toString()}`, {
@@ -1280,51 +1202,11 @@ const CookingCalendar: React.FC = () => {
 
   if (authLoading) return null;
 
-  if (!isLoggedIn) {
-    // 요리 캘린더는 냉장고/레시피 목록과 달리 보여줄 로컬(localStorage)
-    // 데이터가 아예 없다 — 완료 기록·목표·절약액이 전부 서버 계정에
-    // 묶여 있어서 그냥 "로그인 후 볼 수 있어요"라고만 하면 로그인해서
-    // 뭘 얻는지 와닿지 않는다. 로그인하면 실제로 뭘 할 수 있는지(이력
-    // 관리, 절약액 확인, 목표 설정)를 구체적으로 안내한다.
-    return (
-      <div className="min-h-screen w-full flex flex-col">
-        {/* 식단은 냉장고 재료만 있으면 되는 기능이라 **로그인 벽 뒤에 가두지
-            않는다.** 로그인해야만 쓸 수 있는 건 캘린더(내 요리 이력)뿐이다.
-            그래서 **쓸 수 있는 것을 위**에 둔다 — 아래에 뒀더니 로그인 안내가
-            화면을 꽉 채우고 이 버튼은 하단 탭에 가려져, 스크롤도 안 되는
-            자리에 숨어 있었다. */}
-        <div style={{ maxWidth: 480, margin: '0 auto', width: '100%', paddingTop: 72 }}>
-          <FridgeToPlan onGo={withAi => navigate(withAi ? '/plan?ai=1' : '/plan')} />
-          <PlannedList />
-        </div>
-
-        <div className="flex-1 w-full flex items-center justify-center bg-white"
-             style={{ paddingBottom: 100 }}>
-          <div style={{ textAlign: 'center', padding: '0 32px' }}>
-            <p style={{ fontSize: 15, fontWeight: 700, color: '#1A1A1E', marginBottom: 8 }}>
-              로그인하면 요리 캘린더를 쓸 수 있어요
-            </p>
-            <p style={{ fontSize: 13.5, color: 'var(--ink-500)', lineHeight: 1.6, wordBreak: 'keep-all', marginBottom: 20 }}>
-              내가 완료한 요리 이력을 날짜별로 관리하고,
-              <br />
-              그동안 요리로 아낀 절약액을 확인하고,
-              <br />
-              이번 달 요리 목표도 설정할 수 있어요.
-            </p>
-            <button
-              type="button"
-              onClick={() => navigate('/login')}
-              style={{ minHeight: 40, padding: '12px 16px', borderRadius: 10, background: 'var(--brand)', border: 'none', fontWeight: 700 }}
-            >
-              로그인
-            </button>
-          </div>
-        </div>
-        <BottomNavBar activeTab="cooking-calendar" />
-        {guideOverlay}
-      </div>
-    );
-  }
+  // 비로그인이어도 달력·목록(일/주/월)은 **기기에 쌓인 완료·기록**만으로
+  // 그대로 보여준다(2026-09-15, "크레딧으로 이미 막아 둔 AI와 달리 달력
+  // 자체는 열어도 되지 않냐"는 지적). 그룹·목표·절약액처럼 계정이 있어야만
+  // 뜻이 있는 기능만 아래에서 각각 로그인 유도로 남겨 둔다 — 화면 전체를
+  // 막는 대신, 계정이 필요한 자리에서만 조용히 안내한다.
 
   const gridStart = startOfWeek(monthStart);
   const gridDays = Array.from({ length: 42 }, (_, i) => addDays(gridStart, i));
@@ -1375,7 +1257,36 @@ const CookingCalendar: React.FC = () => {
           바로 아래가 달력인데 그 위에 같은 내용을 줄로 늘어놓으면, 같은 것을
           두 번 읽게 되고 정작 달력은 화면 밖으로 밀린다. 계획은 달력 안에서
           — 월 보기는 도장, 주 보기는 카드, 일 보기는 그 날 카드로 — 보여 준다.
-          (로그인 전 화면에는 달력이 없으므로 거기서는 목록을 그대로 쓴다) */}
+          (비로그인도 달력을 그대로 쓴다 — 아래 안내 배너로 계정이 없다는
+          것만 알려 준다) */}
+      {/* 비로그인 배너 — 한 번만 보여 주고 끝내지 않는다. 이 기기에만 남는
+          기록이라, 다른 기기로 바꾸거나 앱 데이터를 지우면 그대로 사라진다는
+          사실은 들어올 때마다 알아야 하는 것이라 접거나 닫지 않는다
+          (2026-09-15, "안전하게 관리하려면 로그인이 필요하다는 걸 늘 알 수
+          있어야 한다"는 요청 — 화면 전체를 막는 대신 이렇게 작은 배너로). */}
+      {!isLoggedIn && (
+        <div style={{
+          margin: '0 14px 12px', padding: '10px 12px', borderRadius: 12,
+          border: '1px solid var(--line-200)', background: 'var(--surface-sub)',
+          display: 'flex', alignItems: 'center', gap: 10,
+        }}>
+          <span style={{ flex: 1, minWidth: 0, fontSize: 12, color: 'var(--ink-700)', lineHeight: 1.6, wordBreak: 'keep-all' }}>
+            로그인하지 않으면 이 기록은 <b>이 기기에만</b> 남아요.
+            기기를 바꾸거나 데이터를 지우면 사라질 수 있어요.
+          </span>
+          <button
+            type="button"
+            onClick={() => navigate('/login')}
+            style={{
+              flexShrink: 0, minHeight: 32, padding: '0 12px', borderRadius: 8,
+              border: 'none', background: 'var(--brand)', color: '#1A1A1E',
+              fontSize: 12.5, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
+            }}
+          >
+            로그인
+          </button>
+        </div>
+      )}
 
       {/* 월 목표는 **어느 탭에서 보든 같은 이야기**다. 목록 탭에서 감췄더니
           탭을 옮길 때마다 화면 윗동강이 통째로 사라졌다 — 무엇을 보든 이번 달
@@ -1435,16 +1346,28 @@ const CookingCalendar: React.FC = () => {
           ) : (
             <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ fontSize: 13, fontWeight: 700, color: '#1A1A1E' }}>목표 {myGoal}회</span>
-              <button
-                type="button"
-                onClick={() => {
-                  setGoalInput(String(myGoal));
-                  setEditingGoal(true);
-                }}
-                style={{ height: 24, padding: '0 8px', borderRadius: 6, fontSize: 11.5, fontWeight: 600, color: 'var(--ink-700)', background: '#FFFFFF', border: '1px solid var(--line-300)', cursor: 'pointer' }}
-              >
-                목표수정
-              </button>
+              {/* 목표 저장은 계정에 묶인 값이다(households/users 테이블) — 게스트는
+                  고쳐도 저장할 곳이 없으니, 수정 버튼 대신 로그인 유도로 바꾼다. */}
+              {isLoggedIn ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setGoalInput(String(myGoal));
+                    setEditingGoal(true);
+                  }}
+                  style={{ height: 24, padding: '0 8px', borderRadius: 6, fontSize: 11.5, fontWeight: 600, color: 'var(--ink-700)', background: '#FFFFFF', border: '1px solid var(--line-300)', cursor: 'pointer' }}
+                >
+                  목표수정
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => navigate('/login')}
+                  style={{ height: 24, padding: '0 8px', borderRadius: 6, fontSize: 11.5, fontWeight: 600, color: 'var(--ink-700)', background: '#FFFFFF', border: '1px solid var(--line-300)', cursor: 'pointer' }}
+                >
+                  로그인하고 설정
+                </button>
+              )}
             </span>
           )}
         </div>
@@ -1623,14 +1546,17 @@ const CookingCalendar: React.FC = () => {
               ) : (
                 <button
                   type="button"
+                  // 한 끼 추정액도 계정(개인·그룹)에 저장되는 값이다. 게스트는
+                  // 고쳐도 저장이 안 되니, 누르면 바로 로그인으로 보낸다.
                   onClick={() => {
+                    if (!isLoggedIn) { navigate('/login'); return; }
                     setSavingsPerMealInput(String(savingsPerMeal));
                     setEditingSavingsPerMeal(true);
                   }}
                   style={{ display: 'inline-flex', alignItems: 'center', gap: 4, height: 26, padding: '0 10px', borderRadius: 9999, fontSize: 11.5, fontWeight: 600, color: 'var(--ink-700)', background: 'var(--surface)', border: '1px solid var(--line-300)', cursor: 'pointer' }}
                 >
                   1인 한 끼 {formatWon(savingsPerMeal)}원
-                  <span aria-hidden style={{ color: 'var(--ink-500)', display: 'inline-flex' }}><PencilIcon /></span>
+                  {isLoggedIn && <span aria-hidden style={{ color: 'var(--ink-500)', display: 'inline-flex' }}><PencilIcon /></span>}
                 </button>
               )}
               {editingFamilySize ? (
@@ -1663,13 +1589,14 @@ const CookingCalendar: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => {
+                    if (!isLoggedIn) { navigate('/login'); return; }
                     setFamilySizeInput(String(familySize));
                     setEditingFamilySize(true);
                   }}
                   style={{ display: 'inline-flex', alignItems: 'center', gap: 4, height: 26, padding: '0 10px', borderRadius: 9999, fontSize: 11.5, fontWeight: 600, color: 'var(--ink-700)', background: 'var(--surface)', border: '1px solid var(--line-300)', cursor: 'pointer' }}
                 >
                   식구 {familySize}명
-                  <span aria-hidden style={{ color: 'var(--ink-500)', display: 'inline-flex' }}><PencilIcon /></span>
+                  {isLoggedIn && <span aria-hidden style={{ color: 'var(--ink-500)', display: 'inline-flex' }}><PencilIcon /></span>}
                 </button>
               )}
                 </div>
@@ -1841,6 +1768,8 @@ const CookingCalendar: React.FC = () => {
           <button
             type="button"
             onClick={() => {
+              // 수동 기록도 서버(계정)에 남긴다 — 게스트는 로그인부터 안내한다.
+              if (!isLoggedIn) { navigate('/login'); return; }
               setManualLogDate(selectedDay);
               setManualLogTitle('');
               setManualLogForUserId(authUser?.id ? Number(authUser.id) : null);

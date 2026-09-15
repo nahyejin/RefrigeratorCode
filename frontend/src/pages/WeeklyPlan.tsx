@@ -38,6 +38,11 @@ const API_BASE_URL =
 
 const DAY_NAMES = ['일', '월', '화', '수', '목', '금', '토'];
 const PLAN_DAYS = 7;
+/** 이보다 재료가 적으면 7일치를 다 채우기 빠듯하다 — 미리 알려 준다. */
+const LOW_INGREDIENT_WARN = 5;
+/** 이 매칭률(가진 재료 비율, %) 아래인 요리는 "그걸로 만든다" 고 보기 어렵다 —
+ * 무료 식단이 빈 날을 채우겠다고 억지로 끌어오지 않는다. */
+const MIN_PLAN_MATCH_RATE = 20;
 
 interface PlanRecipe {
   id: number;
@@ -737,6 +742,29 @@ const WeeklyPlan: React.FC = () => {
   }, [pool, off]);
 
   /**
+   * 진짜로 "그걸로 만든다" 할 만한 후보만.
+   *
+   * `pickDistinct` 의 2차 단계는 **빈 칸을 남기지 않으려고** 매칭률과 무관하게
+   * 아무 후보나 끌어와 채운다. 냉장고에 한두 개만 있을 때 이 규칙이 그대로
+   * 작동하면, 7일 전부가 남남인 요리로 채워져 장보기 목록이 30개를 넘어간다
+   * (실사용 지적, 2026-09-15). 매칭률이 너무 낮은 후보는 애초에 이 풀에서
+   * 뺀다 — 그러면 `pickDistinct` 도 채울 수 있는 날만큼만 채우고 나머지는
+   * 빈 채로 남긴다(그 날엔 "재료가 적어서 못 채웠다" 는 안내가 대신 뜬다).
+   *
+   * 풀에 `match_rate` 자체가 없으면(옛 데이터) 이 기준을 적용할 수 없으니
+   * 원래 풀을 그대로 쓴다. 반대로 `match_rate` 는 있는데 전부 기준 미달이면
+   * — 그건 "가진 재료로 만들 수 있는 게 정말 없다" 는 뜻이므로 그대로
+   * 빈 풀을 돌려준다. 억지로 채우지 않고, 화면은 기존 "재료가 없어요"
+   * 안내로 정직하게 넘어간다.
+   */
+  const qualifiedPool = React.useMemo(() => {
+    if (!usablePool) return usablePool;
+    const hasMatchRate = usablePool.some(r => typeof r.match_rate === 'number');
+    if (!hasMatchRate) return usablePool;
+    return usablePool.filter(r => (r.match_rate as number) >= MIN_PLAN_MATCH_RATE);
+  }, [usablePool]);
+
+  /**
    * 어떤 조건으로 뽑은 후보인지. **재료가 바뀌었을 때만** 다시 채우려고 쓴다.
    *
    * 전에는 `usablePool` 이 바뀔 때마다 무조건 다시 채웠다. 그런데 같은 조건으로도
@@ -751,30 +779,30 @@ const WeeklyPlan: React.FC = () => {
   const appliedKey = React.useRef<string | null>(null);
 
   React.useEffect(() => {
-    if (!usablePool || usablePool.length === 0) return;
+    if (!qualifiedPool || qualifiedPool.length === 0) return;
     const same = appliedKey.current === planKey;
     appliedKey.current = planKey;
     setSlots(prev => {
       // 조건이 그대로인데 이미 짜 둔 게 있으면 손대지 않는다.
       if (same && prev.some(s => s.meals.length > 0)) return prev;
-      const picked = pickDistinct(usablePool, prev.length);
+      const picked = pickDistinct(qualifiedPool, prev.length);
       // 처음엔 하루 한 끼로 채운다. 더 넣고 빼는 건 사용자가 한다.
       return prev.map((s, i) => ({
         ...s,
         meals: picked[i] ? [{ recipe: picked[i], on: true }] : [],
       }));
     });
-  }, [usablePool, planKey]);
+  }, [qualifiedPool, planKey]);
 
   const allMeals = slots.flatMap(s => s.meals);
   const usedIds = new Set(allMeals.map(m => m.recipe.id));
 
   /** 전체를 다시 짠다 (무료). 매번 같은 조합이 안 나오게 섞는다. */
   const reshuffle = () => {
-    if (!usablePool) return;
+    if (!qualifiedPool) return;
     setAiNote(null);
     setSaved(false);
-    const shuffled = [...usablePool].sort(() => Math.random() - 0.5);
+    const shuffled = [...qualifiedPool].sort(() => Math.random() - 0.5);
     const picked = pickDistinct(shuffled, slots.length);
     setSlots(prev => prev.map((s, i) => ({
       ...s,
@@ -784,8 +812,8 @@ const WeeklyPlan: React.FC = () => {
 
   /** 지금 식단에 없는 요리 하나. 없으면 null. */
   const pickUnused = (): PlanRecipe | null => {
-    if (!usablePool) return null;
-    const others = usablePool.filter(r => !usedIds.has(r.id));
+    if (!qualifiedPool) return null;
+    const others = qualifiedPool.filter(r => !usedIds.has(r.id));
     if (others.length === 0) return null;
     return others[Math.floor(Math.random() * others.length)];
   };
@@ -2032,6 +2060,22 @@ const WeeklyPlan: React.FC = () => {
         )}
       </div>
 
+      {/* 만들어 보기 전에 미리 말한다 — 다 짜 놓고 "왜 이렇게 부실하지"
+          보다야, 누르기 전에 "재료가 적다" 를 아는 편이 낫다. AI·무료
+          둘 다 같은 `myIngredients` 를 쓰므로 한 자리에만 둔다. 이미 결과가
+          나와 있으면(뭔가 채워진 날이 있으면) 아래 결과 쪽 안내와 겹치니 뺀다. */}
+      {planIngredients.length > 0 && planIngredients.length < LOW_INGREDIENT_WARN
+        && !slots.some(s => s.meals.length > 0) && (
+        <div style={{
+          marginBottom: 12, padding: '10px 12px', borderRadius: 10,
+          border: '1px solid #E0B400', background: '#FFFDF2',
+          fontSize: 12.5, color: '#7A5C00', lineHeight: 1.6, wordBreak: 'keep-all',
+        }}>
+          재료가 {planIngredients.length}개뿐이라 이번 주 7일을 다 못 채울 수도 있어요.
+          재료를 몇 개 더 넣으면 더 다양하게 추천해 드려요.
+        </div>
+      )}
+
       {wantAi && chatScreen}
 
       {/* ── ① 무엇으로 짜나 ─────────────────────────────────
@@ -2208,7 +2252,7 @@ const WeeklyPlan: React.FC = () => {
 
       {!wantAi && usablePool !== null && !asking && slots.every(s => s.meals.length === 0) && (
         <div style={{ background: 'var(--surface)', borderRadius: 14, padding: '20px 16px',
-                      fontSize: 13.5, color: 'var(--ink-700)', lineHeight: 1.7 }}>
+                      fontSize: 13.5, color: 'var(--ink-700)', lineHeight: 1.7, wordBreak: 'keep-all' }}>
           {off && off.size > 0 && pool && pool.length > 0 ? (
             <>뺀 재료가 많아서 만들 수 있는 요리가 없어요.
             <br />
@@ -2232,6 +2276,23 @@ const WeeklyPlan: React.FC = () => {
           >
             {off && off.size > 0 && pool && pool.length > 0 ? '재료 다시 고르기' : '내 냉장고로 가기'}
           </button>
+        </div>
+      )}
+
+      {/* 재료가 적어서 7일을 다 못 채웠을 때 — 그냥 며칠이 빈 채로 있으면
+          "왜 며칠은 비었지"가 된다. 왜 그런지, 어떻게 하면 더 채워지는지를
+          바로 말해 준다(실사용 지적: 재료 하나로 7일을 채우려니 장보기가
+          30개를 넘었던 문제, 2026-09-15 — 그 대신 채울 수 있는 날만 채우고
+          나머지는 이렇게 설명한다). */}
+      {!wantAi && usablePool !== null && !asking
+        && slots.some(s => s.meals.length > 0) && slots.some(s => s.meals.length === 0) && (
+        <div style={{
+          marginBottom: 10, padding: '10px 12px', borderRadius: 10,
+          border: '1px solid #E0B400', background: '#FFFDF2',
+          fontSize: 12.5, color: '#7A5C00', lineHeight: 1.6, wordBreak: 'keep-all',
+        }}>
+          냉장고 재료가 적어서 {slots.filter(s => s.meals.length > 0).length}일치만 추천했어요.
+          재료를 더 넣으면 나머지 날도 채울 수 있어요.
         </div>
       )}
 
