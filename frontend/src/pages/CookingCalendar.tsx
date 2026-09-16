@@ -1264,6 +1264,9 @@ const CookingCalendar: React.FC = () => {
   // 효과가 **아이디 문자열**을 보고 도니, 같은 주를 다시 그려도 안 부른다.
   const weekRangeFrom = toDateKey(startOfWeek(new Date(selectedDay)));
   const weekRangeTo = toDateKey(addDays(startOfWeek(new Date(selectedDay)), 6));
+  // `plans`는 이미 scope(내 요리만/우리 식구 전체)·hideMine("내 것은 빼고")로
+  // 걸러진 값이라, 여기서 다시 거를 필요는 없다 — 이 아이디 목록도 자연히
+  // 지금 고른 범위를 따른다.
   const weekPlanIds = (() => {
     const ids = new Set<number>();
     plans.forEach((meals, day) => {
@@ -1277,8 +1280,61 @@ const CookingCalendar: React.FC = () => {
    * 지적(2026-09-14)으로 라벨 옆에 덧붙인다. MM/DD 로 짧게. */
   const weekRangeLabel = `${weekRangeFrom.slice(5).replace('-', '/')}~${weekRangeTo.slice(5).replace('-', '/')}`;
 
+  /** 주 단위 장보기 메모 히스토리 — 지금 보는 주와 지난 주들의 "다이어리
+   * 페이지"가 함께 읽고 쓰는 저장소. 취소선(구매 여부)도 여기 같이 들어
+   * 있어, 이전엔 화면을 벗어나면 사라지던 "방금 이걸 샀다" 표시가 주가
+   * 바뀌거나 앱을 다시 열어도 남는다.
+   *
+   * 처음엔 이걸 별도 탭("지난 장보기")으로 뺐는데, 실제로 보니 "달력·목록과
+   * 같은 급의 화면 전환"이라기엔 너무 가벼운 정보(그냥 "아, 이런 걸
+   * 샀었구나" 확인하는 용도)라는 지적(2026-09-16) — 탭을 없애고, 지금 보는
+   * 주 카드 자체를 화살표로 앞뒤 페이지를 넘기는 다이어리로 바꿨다. 재료
+   * 하나하나에 날짜를 따로 매기지 않고 **주 단위 페이지**로만 넘기는
+   * 이유도 같은 지적: "재료 하나하나 언제 샀는지 계산하게 하지 말고, 그
+   * 주에 있던 페이지를 통째로 보여줘라." */
+  const [memoHistory, setMemoHistory] = React.useState<Record<string, ShoppingMemoEntry>>(() => loadShoppingMemoHistory());
+
+  /** 어느 주에 대해 갓 계산한 장보기 목록을 메모 한 장으로 저장(또는, 목록이
+   * 비면 그 주의 옛 메모를 지운다). 이미 산 걸로 체크했던 재료가 새 목록에
+   * 없으면(계획이 바뀌었거나 범위가 좁아짐) 자연히 빠지도록 교집합만 남긴다. */
+  const upsertWeekMemo = React.useCallback((weekKey: string, rangeLabel: string, items: string[]) => {
+    setMemoHistory(prev => {
+      if (items.length === 0) {
+        // 지금 이 범위(scope) 기준으로 살 게 없다 — 예전 범위에서 저장된
+        // 메모가 남아 있으면 지운다. 안 지우면, 예전엔 "내 것"이 포함돼
+        // 있었지만 지금은 "내 것은 빼고"로 걸러진 주를 다시 들여다볼 때
+        // 그 옛 메모가 유령처럼 다시 나타난다(실사용 지적, 2026-09-16).
+        if (!prev[weekKey]) return prev;
+        const next = { ...prev };
+        delete next[weekKey];
+        return saveShoppingMemoHistory(next);
+      }
+      const prevBought = new Set(prev[weekKey]?.bought || []);
+      const bought = items.filter(n => prevBought.has(n));
+      const entry: ShoppingMemoEntry = { weekKey, rangeLabel, items, bought, updatedAt: new Date().toISOString() };
+      const prevEntry = prev[weekKey];
+      if (prevEntry && prevEntry.items.join(',') === entry.items.join(',') && prevEntry.bought.join(',') === entry.bought.join(',')) {
+        return prev; // 내용이 그대로면 굳이 다시 저장하지 않는다(불필요한 리렌더 방지)
+      }
+      return saveShoppingMemoHistory({ ...prev, [weekKey]: entry });
+    });
+  }, []);
+
   React.useEffect(() => {
-    if (weekPlanIds.length === 0) { setWeekBasket([]); return; }
+    // 이 주(weekKey)·라벨을 이 실행 시점의 값으로 붙잡아 둔다 — 저장은 항상
+    // **이 fetch가 시작될 때 보고 있던 주**를 기준으로 해야 한다. 예전엔
+    // "지금 보는 주가 바뀌면 저장한다"는 별도 효과가 있었는데, 주를 넘기는
+    // 순간(재료 목록은 아직 이전 주 것)과 겹치면 **엉뚱한 주에 이전 주
+    // 재료가 저장되는** 경합이 있었다(실사용 지적, 2026-09-16 — "가 본 적도
+    // 없는 주에 다른 주 재료가 뜬다"). 이 효과 하나에서만 저장하면, 저장이
+    // 항상 방금 실제로 계산한 목록과 짝을 이룬다.
+    const thisWeekKey = weekRangeFrom;
+    const thisRangeLabel = weekRangeLabel;
+    if (weekPlanIds.length === 0) {
+      setWeekBasket([]);
+      upsertWeekMemo(thisWeekKey, thisRangeLabel, []);
+      return;
+    }
     let alive = true;
     fetch(`${getApiUrl()}/api/recipes/ingredients`, {
       method: 'POST',
@@ -1296,7 +1352,9 @@ const CookingCalendar: React.FC = () => {
             if (name && !have.has(name)) need.add(name);
           });
         });
-        setWeekBasket([...need]);
+        const list = [...need];
+        setWeekBasket(list);
+        upsertWeekMemo(thisWeekKey, thisRangeLabel, list);
       })
       .catch(() => { if (alive) setWeekBasket([]); });
     return () => { alive = false; };
@@ -1312,40 +1370,6 @@ const CookingCalendar: React.FC = () => {
    */
   const [weekCategoryMap, setWeekCategoryMap] = React.useState<CategoryMap>({});
   React.useEffect(() => { void loadIngredientCategoryMap().then(setWeekCategoryMap).catch(() => {}); }, []);
-
-  /** 주 단위 장보기 메모 히스토리 — 지금 보는 주와 지난 주들의 "다이어리
-   * 페이지"가 함께 읽고 쓰는 저장소. 취소선(구매 여부)도 여기 같이 들어
-   * 있어, 이전엔 화면을 벗어나면 사라지던 "방금 이걸 샀다" 표시가 주가
-   * 바뀌거나 앱을 다시 열어도 남는다.
-   *
-   * 처음엔 이걸 별도 탭("지난 장보기")으로 뺐는데, 실제로 보니 "달력·목록과
-   * 같은 급의 화면 전환"이라기엔 너무 가벼운 정보(그냥 "아, 이런 걸
-   * 샀었구나" 확인하는 용도)라는 지적(2026-09-16) — 탭을 없애고, 지금 보는
-   * 주 카드 자체를 화살표로 앞뒤 페이지를 넘기는 다이어리로 바꿨다. 재료
-   * 하나하나에 날짜를 따로 매기지 않고 **주 단위 페이지**로만 넘기는
-   * 이유도 같은 지적: "재료 하나하나 언제 샀는지 계산하게 하지 말고, 그
-   * 주에 있던 페이지를 통째로 보여줘라." */
-  const [memoHistory, setMemoHistory] = React.useState<Record<string, ShoppingMemoEntry>>(() => loadShoppingMemoHistory());
-
-  // 지금 보는 주의 목록이 새로 오면(또는 재료가 늘거나 줄면) 메모 한 장으로 저장.
-  // 이미 산 걸로 체크했던 재료가 새 목록에 없으면(계획이 바뀌어 더는 필요 없어짐)
-  // 자연히 빠지도록 새 items 와 교집합만 남긴다.
-  React.useEffect(() => {
-    if (weekBasket === null || weekBasket.length === 0) return;
-    setMemoHistory(prev => {
-      const prevBought = new Set(prev[weekRangeFrom]?.bought || []);
-      const bought = weekBasket.filter(n => prevBought.has(n));
-      const entry: ShoppingMemoEntry = {
-        weekKey: weekRangeFrom, rangeLabel: weekRangeLabel, items: weekBasket, bought,
-        updatedAt: new Date().toISOString(),
-      };
-      const prevEntry = prev[weekRangeFrom];
-      if (prevEntry && prevEntry.items.join(',') === entry.items.join(',') && prevEntry.bought.join(',') === entry.bought.join(',')) {
-        return prev; // 내용이 그대로면 굳이 다시 저장하지 않는다(불필요한 리렌더 방지)
-      }
-      return saveShoppingMemoHistory({ ...prev, [weekRangeFrom]: entry });
-    });
-  }, [weekBasket, weekRangeFrom, weekRangeLabel]);
 
   /** 어느 주(weekKey)의 어느 재료를 샀다/취소했다로 표시. 지금 보는 주는 아직
    * 위 저장 효과가 돌기 전(첫 렌더 직후)일 수도 있어, 그 경우엔 `weekBasket`
@@ -1384,10 +1408,13 @@ const CookingCalendar: React.FC = () => {
     });
   }, [diaryWeekKeys, weekRangeFrom]);
   const diaryIndex = diaryWeekKey ? diaryWeekKeys.indexOf(diaryWeekKey) : -1;
-  /** 지금 보는 주는 저장 효과가 아직 안 돌았을 수 있어 `weekBasket`을 그대로 쓰고,
-   * 지난 주는 저장된 메모를 그대로 쓴다. */
+  /** 지금 보는 주는 항상 방금 계산한 `weekBasket`을 그대로 믿는다(저장된
+   * 메모로 넘어가지 않음) — 그래야 범위(scope)를 바꿔 지금 주 목록이 비면
+   * 옛 저장 내용 대신 곧바로 "없음"으로 반영된다. 지난 주는 저장된 메모를
+   * 그대로 쓴다. */
   const getDiaryEntry = React.useCallback((weekKey: string): { rangeLabel: string; items: string[]; bought: string[] } | null => {
-    if (weekKey === weekRangeFrom && weekBasket && weekBasket.length > 0) {
+    if (weekKey === weekRangeFrom) {
+      if (!weekBasket || weekBasket.length === 0) return null;
       return { rangeLabel: weekRangeLabel, items: weekBasket, bought: memoHistory[weekKey]?.bought || [] };
     }
     const stored = memoHistory[weekKey];
@@ -2352,8 +2379,14 @@ const CookingCalendar: React.FC = () => {
           그 주가 같이 바뀐다. "이번 주"라고만 적으면 실제 달력 주(오늘 기준)
           얘기인 줄 알기 쉬워 "1주인지 2주인지 3일인지 헷갈린다"는 지적을
           받았다(2026-09-16). 옆 괄호의 날짜 범위가 유일한 진실이 되도록,
-          이름 자체를 범위 중립적으로 바꾼다. */}
-      {mode === 'calendar' && diaryWeekKey !== null && (() => {
+          이름 자체를 범위 중립적으로 바꾼다.
+
+          일 보기(`viewMode === 'day'`)에서는 뺀다 — 일 보기는 이미 자기
+          만의 이전/다음(하루 단위 날짜 이동)이 있는데, 그 바로 아래 이
+          카드가 **주 단위** 이전/다음을 또 보여주면 "이전/다음이 도대체
+          무슨 기준이냐" 는 혼동이 생긴다(실사용 지적, 2026-09-16). 주
+          단위로 훑어보는 화면(주/월 보기)에만 둔다. */}
+      {mode === 'calendar' && viewMode !== 'day' && diaryWeekKey !== null && (() => {
         const entry = getDiaryEntry(diaryWeekKey);
         if (!entry || entry.items.length === 0) return null;
         const boughtSet = new Set(entry.bought);
@@ -3055,8 +3088,19 @@ const CookingCalendar: React.FC = () => {
                     <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700, color: '#7A5C00' }}>
                       만들기로 한 요리
                       {/* 계획도 이제 서버에 있어 그룹원 것이 섞여 보일 수 있다 —
-                          누구 것인지 밝힌다(2026-09-14). */}
-                      {isInHousehold && !isMinePlan && <>· {planned.nickname}</>}
+                          누구 것인지 밝힌다(2026-09-14). 이름만 글자로 붙어 있어
+                          다른 화면(완료 기록 등)의 색 배지와 안 맞는다는
+                          지적(2026-09-16) — 같은 `colorForUser` 점을 붙여
+                          한눈에 "이 사람 색이구나" 알아볼 수 있게 맞춘다. */}
+                      {isInHousehold && !isMinePlan && (
+                        <>
+                          <span aria-hidden style={{
+                            width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
+                            background: colorForUser(planned.userId, memberIds),
+                          }} />
+                          {planned.nickname}
+                        </>
+                      )}
                     </span>
                     <span style={{
                       display: '-webkit-box', fontSize: 13.5, fontWeight: 600, color: '#1A1A1E',
