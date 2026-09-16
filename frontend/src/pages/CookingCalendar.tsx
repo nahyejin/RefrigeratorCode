@@ -1398,29 +1398,44 @@ const CookingCalendar: React.FC = () => {
   }, [shoppingWeekFrom, shoppingWeekLabel, weekBasket]);
 
   /**
-   * 장보기 메모는 **실제 이번 주**(위 `shoppingWeekFrom` 설명 참고) 하나만
-   * 보여준다. 화살표로 지난 주를 넘기는 "다이어리"도 만들어 봤고, 달력이
-   * 지금 보여주는 주를 따라가게도 해 봤는데 — 둘 다 달력의 날짜 탐색과
-   * 엮이면서 "10월로 넘겼다 9월로 돌아와도 메모가 안 뜬다", "이게 지금
-   * 무슨 기간 얘기냐" 는 혼동이 반복됐다(실사용 지적, 2026-09-16~17).
-   * 장보기는 애초에 "달력에서 지금 보는 기간"이 아니라 **고정된 실제
-   * 이번 주** 얘기이므로, 달력 탐색과 아예 무관하게 뒀다. 지난 주들의
-   * 기록은 `memoHistory`에 여전히 쌓이지만, 화면에는 안 보여준다 — 굳이
-   * 옛 기록을 보여주려다 또 어떤 화면·탐색에 종속시킬지 고민하는 대신,
-   * "이번 주 것만 늘 같은 자리에" 로 단순하게 뒀다.
+   * 장보기 메모는 달력·목록 카드와 아예 분리된 **자기만의 영역**(화면
+   * 맨 아래, 제목이 따로 붙은 별도 박스)에 산다 — 그 카드 안에 있는 한
+   * 어디에 두든 "그 탭·보기의 기간 얘기"처럼 읽힌다는 지적(2026-09-17)
+   * 으로 아예 밖으로 뺐다. 완전히 분리됐으니, 화살표로 지난 주들을
+   * 넘겨 보는 페이지네이션도 이제 안전하게 되살렸다 — 예전엔 이게
+   * 달력의 날짜 탐색과 뒤섞여 "뭘 기준으로 넘기는 거냐"는 혼동을
+   * 낳았지만, 지금은 이 박스 하나 안에서만 벌어지는 별개의 탐색이라
+   * 그럴 일이 없다.
+   *
+   * 기본 페이지는 **실제 이번 주**(`shoppingWeekFrom`). 화살표로 다른
+   * 주를 봐도 달력의 날짜 선택과는 무관하게 이 박스 혼자 움직인다.
    */
-  const diaryEntry = React.useMemo((): { rangeLabel: string; items: string[]; bought: string[] } | null => {
-    if (weekBasket && weekBasket.length > 0) {
-      return { rangeLabel: shoppingWeekLabel, items: weekBasket, bought: memoHistory[shoppingWeekFrom]?.bought || [] };
+  const diaryWeekKeys = React.useMemo(() => {
+    const keys = new Set(Object.keys(memoHistory));
+    if (weekBasket && weekBasket.length > 0) keys.add(shoppingWeekFrom);
+    return [...keys].sort();
+  }, [memoHistory, weekBasket, shoppingWeekFrom]);
+  const [diaryWeekKey, setDiaryWeekKey] = React.useState<string | null>(null);
+  React.useEffect(() => {
+    if (diaryWeekKeys.length === 0) { setDiaryWeekKey(null); return; }
+    setDiaryWeekKey(prev => {
+      if (prev && diaryWeekKeys.includes(prev)) return prev; // 넘겨 보던 페이지는 그대로 유지
+      return diaryWeekKeys.includes(shoppingWeekFrom) ? shoppingWeekFrom : diaryWeekKeys[diaryWeekKeys.length - 1];
+    });
+  }, [diaryWeekKeys, shoppingWeekFrom]);
+  const diaryIndex = diaryWeekKey ? diaryWeekKeys.indexOf(diaryWeekKey) : -1;
+  /** 실제 이번 주는 항상 방금 계산한 `weekBasket`을 그대로 믿는다(저장된
+   * 메모로 안 넘어감) — 그래야 범위(scope)를 바꿔 이번 주 목록이 비면
+   * 옛 저장 내용 대신 곧바로 "없음"으로 반영된다. 지난 주는 저장된
+   * 메모를 그대로 쓴다. */
+  const getDiaryEntry = React.useCallback((weekKey: string): { rangeLabel: string; items: string[]; bought: string[] } | null => {
+    if (weekKey === shoppingWeekFrom) {
+      if (!weekBasket || weekBasket.length === 0) return null;
+      return { rangeLabel: shoppingWeekLabel, items: weekBasket, bought: memoHistory[weekKey]?.bought || [] };
     }
-    if (weekBasket === null) {
-      // 아직 새로 계산되기 전(로딩 중)이면, 저장해 둔 값이 있는 경우
-      // 그걸 먼저 보여줘 깜빡임 없이 이어지게 한다.
-      const stored = memoHistory[shoppingWeekFrom];
-      return stored ? { rangeLabel: stored.rangeLabel, items: stored.items, bought: stored.bought } : null;
-    }
-    return null; // 계산이 끝났고(weekBasket === []) 지금 범위엔 살 게 없다
-  }, [weekBasket, shoppingWeekFrom, shoppingWeekLabel, memoHistory]);
+    const stored = memoHistory[weekKey];
+    return stored ? { rangeLabel: stored.rangeLabel, items: stored.items, bought: stored.bought } : null;
+  }, [memoHistory, weekBasket, shoppingWeekFrom, shoppingWeekLabel]);
 
   /** 링크를 누른 재료 — 탭에 돌아왔을 때 이 값이 있으면 "사셨나요" 를 묻는다.
    * 다른 이유로 탭을 벗어났다 돌아왔을 때는 물으면 안 되므로 ref 로 들고 있다가
@@ -1607,56 +1622,103 @@ const CookingCalendar: React.FC = () => {
     );
   };
 
-  /* 장보기 메모 카드 — 고정된 실제 이번 주 것 하나(위 `diaryEntry` 설명
-   * 참고). 달력·목록 탭이 담긴 카드 밖, 화면 맨 아래(`<BottomNavBar>`
-   * 바로 위)에 **탭/보기 방식과 무관하게** 한 번만 그린다 — 달력의 기간
-   * 선택 영역 안에 있으면 자꾸 그 선택과 엮여 보인다는 지적(2026-09-17)
-   * 으로, 아예 그 영역 밖 별도 자리로 뺐다. */
-  const diaryCardNode = diaryEntry && diaryEntry.items.length > 0 ? (() => {
-    const boughtSet = new Set(diaryEntry.bought);
+  /* 장보기 메모 — 달력·목록이 담긴 카드와는 **완전히 다른 박스**로,
+   * 제목("장보기 메모")을 따로 달아 그 카드의 일부가 아니라 화면의 독립된
+   * 한 구획임을 분명히 한다(2026-09-17, "박스 자체를 분리하고 제목도
+   * 따로 달아야 한다"는 지적). 화면 맨 아래(`<BottomNavBar>` 바로 위)에
+   * **탭/보기 방식과 무관하게** 한 번만 그린다. */
+  const diaryCardNode = (() => {
+    if (!diaryWeekKey) return null;
+    const entry = getDiaryEntry(diaryWeekKey);
+    if (!entry || entry.items.length === 0) return null;
+    const boughtSet = new Set(entry.bought);
+    const isCurrent = diaryWeekKey === shoppingWeekFrom;
+    const canGoOlder = diaryIndex > 0;
+    const canGoNewer = diaryIndex >= 0 && diaryIndex < diaryWeekKeys.length - 1;
     return (
-      // 아래 여백 14px 을 빠뜨리면 안 된다 — 위쪽 달력 격자가 쓰는 14px 과
-      // 같은 값으로 맞춘다.
-      <div style={{ margin: '12px 14px 14px' }}>
-        {/* `key`를 주가 바뀔 때마다 바꿔(주마다 다른 문자열) 리액트가 이
-            div를 새로 만들게 한다 — 그래야 `diary-page-flip` 애니메이션이
-            달력에서 다른 주로 넘어갈 때마다(페이지가 자연히 바뀌므로)
-            매번 재생된다. */}
-        <div key={shoppingWeekFrom} className="diary-page-flip">
+      <div style={{
+        margin: '16px 14px 14px', borderRadius: 14,
+        border: '1px solid var(--line-200)', background: '#FFFFFF',
+        padding: '14px 14px 16px',
+      }}>
+        <div style={{ fontSize: 15, fontWeight: 700, color: '#1A1A1E', marginBottom: 10 }}>
+          장보기 메모
+        </div>
+        {/* `key`를 페이지가 바뀔 때마다 바꿔서(주마다 다른 문자열) 리액트가
+            이 div를 새로 만들게 한다 — 그래야 `diary-page-flip` 애니메이션이
+            페이지를 넘길 때마다 매번 재생된다. 이 박스가 달력과 완전히
+            분리된 덕에, 화살표로 지난 주를 넘겨 보는 페이지네이션을 다시
+            안전하게 쓸 수 있다(2026-09-17, "좌우로 넘길 수 있게 해 달라"). */}
+        <div key={diaryWeekKey} className="diary-page-flip">
           <ShoppingMemoCard
-            labelText="장보기 메모"
+            labelText={isCurrent ? '이번 주' : '지난 주'}
             titleNode={(
               <>
                 {/* "장보기 목록" 만 있으면 뭘 위한 목록인지 헷갈린다는 지적
                     (2026-09-16) — 계획한 요리에서 나온 목록임을 제목에 바로
                     적는다. */}
                 계획한 요리 장보기
-                <span style={{ fontSize: 11.5, fontWeight: 600, color: '#96720A', marginLeft: 4 }}>({diaryEntry.rangeLabel})</span>
+                <span style={{ fontSize: 11.5, fontWeight: 600, color: '#96720A', marginLeft: 4 }}>({entry.rangeLabel})</span>
                 {' '}
-                <span style={{ color: '#96720A' }}>{diaryEntry.items.length}개</span>
+                <span style={{ color: '#96720A' }}>{entry.items.length}개</span>
                 {boughtSet.size > 0 && (
                   <span style={{ fontSize: 11.5, fontWeight: 600, color: '#96720A' }}> · {boughtSet.size}개 샀어요</span>
                 )}
               </>
             )}
-            items={diaryEntry.items}
+            items={entry.items}
             boughtSet={boughtSet}
             onCheckboxClick={(name, currentlyBought) => {
-              if (currentlyBought) setItemBought(shoppingWeekFrom, name, false);
-              else setConfirmingPurchase({ name, weekKey: shoppingWeekFrom });
+              if (currentlyBought) setItemBought(diaryWeekKey, name, false);
+              else setConfirmingPurchase({ name, weekKey: diaryWeekKey });
             }}
             onLinkClick={(name) => {
               track('coupang_click', name);
-              pendingPurchaseRef.current = { name, weekKey: shoppingWeekFrom };
+              pendingPurchaseRef.current = { name, weekKey: diaryWeekKey };
             }}
           />
         </div>
+        {/* 페이지네이션 — 저장된 주가 둘 이상일 때만 화살표를 보여준다
+            (한 장뿐이면 넘길 데가 없다). */}
+        {diaryWeekKeys.length > 1 && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, marginTop: 10 }}>
+            <button
+              type="button"
+              onClick={() => canGoOlder && setDiaryWeekKey(diaryWeekKeys[diaryIndex - 1])}
+              disabled={!canGoOlder}
+              aria-label="이전 주 장보기 메모"
+              style={{
+                border: 'none', background: 'transparent', padding: 6,
+                color: canGoOlder ? '#2B2118' : 'var(--line-300)',
+                cursor: canGoOlder ? 'pointer' : 'default', fontSize: 13, fontWeight: 700,
+              }}
+            >
+              ‹ 이전
+            </button>
+            <span style={{ fontSize: 11, color: 'var(--ink-500)', fontVariantNumeric: 'tabular-nums' }}>
+              {diaryIndex + 1} / {diaryWeekKeys.length}
+            </span>
+            <button
+              type="button"
+              onClick={() => canGoNewer && setDiaryWeekKey(diaryWeekKeys[diaryIndex + 1])}
+              disabled={!canGoNewer}
+              aria-label="다음 주 장보기 메모"
+              style={{
+                border: 'none', background: 'transparent', padding: 6,
+                color: canGoNewer ? '#2B2118' : 'var(--line-300)',
+                cursor: canGoNewer ? 'pointer' : 'default', fontSize: 13, fontWeight: 700,
+              }}
+            >
+              다음 ›
+            </button>
+          </div>
+        )}
         <div style={{ fontSize: 10, color: '#96720A', marginTop: 7, lineHeight: 1.5, padding: '0 2px' }}>
           계획한 요리 재료 중 냉장고에 없는 것 · 체크하거나 사고 돌아오면 냉장고에 바로 담아 드려요 · 쿠팡 파트너스 수수료를 받을 수 있어요
         </div>
       </div>
     );
-  })() : null;
+  })();
 
   return (
     <div style={{ maxWidth: 480, margin: '0 auto', paddingTop: 72, paddingBottom: 84 }}>
