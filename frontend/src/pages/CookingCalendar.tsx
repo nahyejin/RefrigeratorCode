@@ -1667,6 +1667,13 @@ const CookingCalendar: React.FC = () => {
     const canGoOlder = diaryIndex > 0;
     const canGoNewer = diaryIndex >= 0 && diaryIndex < diaryWeekKeys.length - 1;
     const isCurrentWeek = diaryWeekKey === shoppingWeekFrom;
+    // 제목의 시제는 "이번 주냐 아니냐"가 아니라 "이미 지난 주냐 아니냐"로
+    // 갈라야 한다 — 처음엔 이번 주만 "계획한", 나머지 전부를 "계획했던"으로
+    // 뒀는데, 그러면 (지금은 못 만들지만) 미래 주가 있을 경우에도 "계획했던
+    // (과거형)"으로 잘못 뜬다는 지적(2026-09-17): 아직 안 지난 주는 지난
+    // 일이 아니므로 과거형을 쓸 이유가 없다. `weekKey`가 'YYYY-MM-DD'라
+    // 문자열 비교로도 날짜 순서가 그대로 맞는다.
+    const isPastWeek = diaryWeekKey < shoppingWeekFrom;
     return (
       <div style={{
         margin: '16px 14px 14px', borderRadius: 14,
@@ -1675,10 +1682,10 @@ const CookingCalendar: React.FC = () => {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 10 }}>
           <div style={{ fontSize: 15, fontWeight: 700, color: '#1A1A1E' }}>
-            {/* 지난 주는 지금도 진행 중인 계획이 아니라 그때 있었던 계획이므로
-                과거형으로("계획했던") — "계획한"으로 두면 이번 주 얘기처럼
-                읽힌다는 지적(2026-09-17). */}
-            {isCurrentWeek ? '계획한 요리 장보기 메모' : '계획했던 요리 장보기 메모'}
+            {/* 이미 지난 주만 과거형("계획했던") — 지금도 진행 중인 계획이
+                아니라 그때 있었던 계획이라서. 이번 주·(있다면) 미래 주는
+                아직 지난 일이 아니므로 "계획한" 그대로. */}
+            {isPastWeek ? '계획했던 요리 장보기 메모' : '계획한 요리 장보기 메모'}
           </div>
           {/* 지난 주는 계획을 지워도 자동으로 안 없어지므로(위 `deleteWeekMemo`
               설명 참고), 직접 지울 수 있는 버튼을 둔다. 이번 주는 계획이 살아
