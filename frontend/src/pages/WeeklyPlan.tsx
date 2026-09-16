@@ -2454,7 +2454,8 @@ const WeeklyPlan: React.FC = () => {
           클립을 꽂은 느낌을 내고, 진짜 괜찮은 손글씨체면 써 달라"는 후속
           요청(2026-09-17)으로 마이캘린더의 장보기 메모와 같은 모양으로
           다시 다듬었다 — 바깥은 앱 공용 흰 박스(제목만), 안쪽 목록만 채도
-          낮은 종이색 + 클립 아이콘 + Nanum Pen Script 손글씨(재료 이름에만). */}
+          낮은 종이색 + 클립 아이콘 + Gamja Flower 손글씨(재료 이름에만 —
+          Nanum Pen Script는 가독성이 떨어진다는 지적으로 교체). */}
       {shopping.length > 0 && (
         <div id="shopping-list" style={{
           background: '#FFFFFF', border: '1px solid var(--line-200)',

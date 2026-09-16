@@ -11217,3 +11217,9 @@ edge-tts 파일럿 목소리가 "너무 AI 같다"는 피드백 + "제미나이�
 - **진짜 손글씨체**: 전에 쓰던 Gaegu(만화체에 가까움) 대신 실제 펜글씨에 가까운 **Nanum Pen Script**를 골라 재료 이름에만 적용. 적용 중 발견한 문제 — 이 앱은 `html, body, #root, *` 전체에 `font-family: Pretendard !important`를 강제하는 전역 규칙이 있어서, 인라인 스타일로는 이 규칙을 이길 수 없었다. `index.css`에 `.memo-handwrite { font-family: ... !important }` 라는 좁은 예외 클래스를 새로 만들어 이 규칙만 우회하도록 함.
 - [WeeklyPlan.tsx](frontend/src/pages/WeeklyPlan.tsx)의 AI 식단 장보기 목록도 같은 디자인(종이색·클립·손글씨)으로 함께 맞춤.
 - 타입 체크 통과. 로컬 프리뷰에서 화살표 아이콘이 실제로 보이고 클릭도 되는 것, 종이 클립이 카드 모서리에 걸쳐 뜨는 것, 재료 이름이 Nanum Pen Script로 렌더되는 것(DevTools로 `font-family` 계산값 직접 확인)까지 확인.
+
+### 장보기 메모 손글씨체를 Nanum Pen Script → Gamja Flower로 교체
+"손글씨체 예쁜데 가독성이 너무 떨어진다"는 지적(2026-09-17) — Nanum Pen Script는 가느다란 펜글씨체라 작은 크기(재료 이름, 19px)에서는 획이 서로 겹쳐 보여 읽기 불편했다.
+
+- [index.html](frontend/index.html)의 폰트 로드와 [index.css](frontend/src/index.css)의 `.memo-handwrite` 예외 클래스를 **Gamja Flower**로 교체 — 같은 손글씨 계열이지만 획이 굵고 또렷해 작은 크기에서도 읽기 쉬움. 적용 범위(재료 이름에만, `!important` 예외 클래스로 전역 폰트 규칙 우회)는 그대로.
+- 타입 체크 통과. 로컬 프리뷰에서 재료 이름이 Gamja Flower로 렌더되는 것을 DevTools `font-family` 계산값과 `document.fonts` 로드 상태로 직접 확인.

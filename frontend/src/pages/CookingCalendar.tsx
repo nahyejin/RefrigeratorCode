@@ -201,8 +201,9 @@ const PencilIcon: React.FC = () => (
  *    꽂은 느낌을 내 달라, 손글씨체도 진짜 괜찮은 거면 써 달라"는 후속 요청.
  * 최종적으로: 채도 낮은 밝은 종이색(탁한 갈색·겨자색 계열은 전부 뺌) +
  * 카드 위쪽에 진짜 종이 클립처럼 보이는 회색 SVG(브랜드색 아님, 어디까지나
- * "클립"이라는 중립적인 금속 색) + 품질 좋은 손글씨 폰트(Nanum Pen Script,
- * Gaegu보다 실제 펜글씨에 가까움)를 재료 이름에만 적용.
+ * "클립"이라는 중립적인 금속 색) + 손글씨 폰트(Gamja Flower)를 재료 이름에만
+ * 적용. 손글씨 폰트는 Nanum Pen Script(가느다란 펜글씨) → "예쁜데 가독성이
+ * 떨어진다"는 지적으로 획이 굵고 또렷한 Gamja Flower로 한 번 더 교체(같은 날).
  */
 const ShoppingMemoCard: React.FC<{
   titleNode: React.ReactNode;

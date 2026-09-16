@@ -1364,11 +1364,13 @@ select:focus-visible {
   .memo-page-in { animation: none; }
 }
 
-/* 장보기 메모의 재료 이름에만 손글씨체(Nanum Pen Script)를 쓰기 위한 예외.
+/* 장보기 메모의 재료 이름에만 손글씨체(Gamja Flower)를 쓰기 위한 예외.
    위쪽의 전역 규칙(`html, body, #root, * { font-family: ... !important }`)이
    앱 전체 글꼴을 Pretendard로 강제 고정해 두고 있어서, 인라인 스타일로는
    이 규칙을 이길 수 없다 — 이 클래스만 좁게 예외를 둔다(2026-09-17,
-   "진짜 손글씨체가 있으면 써 달라"는 요청. index.html 에서 폰트를 로드). */
+   "손글씨체가 있으면 써 달라"는 요청. index.html 에서 폰트를 로드).
+   Nanum Pen Script(가느다란 펜글씨)는 예뻤지만 가독성이 떨어진다는
+   지적으로, 획이 굵고 또렷한 Gamja Flower로 교체(같은 날 후속 요청). */
 .memo-handwrite {
-  font-family: 'Nanum Pen Script', 'Pretendard', sans-serif !important;
+  font-family: 'Gamja Flower', 'Pretendard', sans-serif !important;
 }
