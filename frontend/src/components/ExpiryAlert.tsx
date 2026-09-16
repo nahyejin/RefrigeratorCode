@@ -124,7 +124,9 @@ const ExpiryAlert: React.FC<Props> = ({ boxes, categoryMap, within = SOON_DAYS, 
           금지). */}
       {stale.length > 0 && (
         <div style={{ fontSize: 11.5, color: 'var(--ink-500)', lineHeight: 1.6, wordBreak: 'keep-all' }}>
-          <b>{STALE_AFTER_DAYS}일 넘게 지난 재료</b>
+          {/* "14일 넘게 지난 재료" 부분만 빨갛게 — 문장 전체를 다 읽지 않아도
+              무엇에 대한 안내인지 한눈에 들어오게(실사용 지적, 2026-09-16). */}
+          <b style={{ color: '#C4342B' }}>{STALE_AFTER_DAYS}일 넘게 지난 재료</b>
           {' '}({stale.slice(0, 3).map(i => i.name).join(', ')}
           {stale.length > 3 && ` 외 ${stale.length - 3}개`})는 여기에 안 띄워요.
           <br />

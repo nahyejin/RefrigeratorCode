@@ -27,7 +27,7 @@ import { markUsageGuideFinished, usageGuideTotalSteps, USAGE_GUIDE_STEPS } from 
 
 type ViewMode = 'day' | 'week' | 'month';
 /** 보기 **방식**. 기간(일/주/월)과 다른 층이다 — 목록은 기간이 아니다. */
-type Mode = 'calendar' | 'list';
+type Mode = 'calendar' | 'list' | 'shopping';
 /**
  * **누구 것을 볼지** — 달력·목록 어느 화면에서도 똑같이 적용되는 범위.
  *
@@ -113,6 +113,50 @@ function addDays(d: Date, n: number): Date {
   return out;
 }
 
+/**
+ * 주 단위 장보기 메모 한 장 — "지난 장보기" 히스토리에 쌓인다.
+ *
+ * 다이어리 조각을 모아 두면 좋겠다는 요청(2026-09-16) — 지금까지는
+ * `weekBasket`이 **지금 보고 있는 주**만 서버에서 받아 오는 값이라, 주를
+ * 벗어나면(달력을 넘기거나 화면을 나가면) 그 주의 목록·구매 여부가 전부
+ * 사라졌다. 주가 바뀌어도 남도록 기기(localStorage)에 주 단위로 스냅샷을 쌓는다.
+ */
+interface ShoppingMemoEntry {
+  /** 그 주의 일요일 날짜(YYYY-MM-DD) — 식별자 겸 정렬 기준. */
+  weekKey: string;
+  rangeLabel: string;
+  items: string[];
+  bought: string[];
+  updatedAt: string;
+}
+
+const SHOPPING_MEMO_KEY = 'cooking_calendar_shopping_memos';
+/** 너무 오래 쌓이면 히스토리 탭이 끝없이 길어지므로, 최근 16주(약 4개월)만 남긴다. */
+const SHOPPING_MEMO_CAP = 16;
+
+function loadShoppingMemoHistory(): Record<string, ShoppingMemoEntry> {
+  try {
+    const raw = localStorage.getItem(SHOPPING_MEMO_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveShoppingMemoHistory(data: Record<string, ShoppingMemoEntry>): Record<string, ShoppingMemoEntry> {
+  const keys = Object.keys(data).sort((a, b) => b.localeCompare(a));
+  const capped: Record<string, ShoppingMemoEntry> = {};
+  keys.slice(0, SHOPPING_MEMO_CAP).forEach(k => { capped[k] = data[k]; });
+  try {
+    localStorage.setItem(SHOPPING_MEMO_KEY, JSON.stringify(capped));
+  } catch {
+    // 용량 초과 등 — 히스토리 저장만 실패, 화면 동작에는 지장 없음
+  }
+  return capped;
+}
+
 const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
 
 // 그룹원을 색으로 구분하기 위한 팔레트. 인원이 적어(보통 2~4명) 이 정도면 충분하고,
@@ -142,6 +186,98 @@ const PencilIcon: React.FC = () => (
     <path d="M4 20l.9-4.5L16.2 4.2a1.8 1.8 0 0 1 2.6 0l1 1a1.8 1.8 0 0 1 0 2.6L8.5 19.1z" />
     <path d="M14.5 6.5l3 3" />
   </svg>
+);
+
+/**
+ * 다이어리 한 장짜리 장보기 메모 — 지금 보는 주의 카드(달력 탭)와
+ * "지난 장보기" 탭의 지난 주 카드가 **같은 모양**을 쓰도록 공용 컴포넌트로 뺐다.
+ * 체크/링크 동작은 호출부가 넘겨준 콜백에 맡긴다 — 그래야 "지금 주"든 "지난
+ * 주"든 같은 확인창(사셨나요) → 냉장고 반영 흐름을 그대로 재사용할 수 있다.
+ */
+const ShoppingMemoCard: React.FC<{
+  labelText: string;
+  titleNode: React.ReactNode;
+  items: string[];
+  boughtSet: Set<string>;
+  onCheckboxClick: (name: string, currentlyBought: boolean) => void;
+  onLinkClick: (name: string) => void;
+}> = ({ labelText, titleNode, items, boughtSet, onCheckboxClick, onLinkClick }) => (
+  <div style={{
+    borderRadius: 16, background: '#FFFCF5',
+    boxShadow: '0 10px 26px rgba(120,90,0,.13), 0 2px 6px rgba(120,90,0,.08)',
+    position: 'relative', overflow: 'hidden',
+  }}>
+    <div style={{ position: 'absolute', left: 24, top: 10, bottom: 10, width: 1, background: 'rgba(43,33,24,.08)' }} />
+    {[0.12, 0.37, 0.63, 0.88].map(pct => (
+      <div key={pct} style={{
+        position: 'absolute', left: 15, top: `${pct * 100}%`, width: 8, height: 8, borderRadius: '50%',
+        background: '#FFFCF5',
+        boxShadow: 'inset 0 1.5px 2.5px rgba(43,33,24,.28), inset 0 -1px 1px rgba(255,255,255,.5)',
+        transform: 'translate(-50%, -50%)',
+      }} />
+    ))}
+    <div style={{ padding: '16px 16px 12px 40px' }}>
+      <div style={{ fontFamily: "'Gaegu', 'Pretendard', sans-serif", fontSize: 12, fontWeight: 700, color: '#96720A', letterSpacing: 0.4 }}>
+        {labelText}
+      </div>
+      <div style={{ marginTop: 2, fontSize: 15, fontWeight: 700, color: '#2B2118' }}>
+        {titleNode}
+      </div>
+      <div style={{ marginTop: 10 }}>
+        {items.map(name => {
+          const url = resolveCoupangUrl(name);
+          const bought = boughtSet.has(name);
+          return (
+            <div key={name} style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              padding: '9px 2px', borderBottom: '1px solid rgba(43,33,24,.08)',
+            }}>
+              <button
+                type="button"
+                onClick={() => onCheckboxClick(name, bought)}
+                aria-label={`${name} ${bought ? '샀음 표시 취소' : '샀어요로 표시'}`}
+                style={{
+                  width: 19, height: 19, borderRadius: 6, flexShrink: 0, padding: 0,
+                  border: bought ? 'none' : '1.5px solid #B4900A',
+                  background: bought ? '#2B2118' : '#FFFFFF', color: '#FFD600',
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  cursor: 'pointer',
+                }}
+              >
+                {bought && <CheckIcon />}
+              </button>
+              <a
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer sponsored"
+                onClick={() => onLinkClick(name)}
+                style={{
+                  flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600,
+                  color: bought ? '#96720A' : '#2B2118',
+                  textDecoration: bought ? 'line-through' : 'none',
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                }}
+              >
+                {name}
+              </a>
+              <a
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer sponsored"
+                onClick={() => onLinkClick(name)}
+                style={{
+                  flexShrink: 0, fontSize: 11, fontWeight: 700, color: '#6B5200',
+                  textDecoration: 'none', whiteSpace: 'nowrap',
+                }}
+              >
+                사러가기 ↗
+              </a>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  </div>
 );
 
 const PlusIcon: React.FC = () => (
@@ -593,7 +729,10 @@ const CookingCalendar: React.FC = () => {
    * 이번 달에 완료한 게 없으면 "0건" 이 됐다 — 여태 만든 것을 보러 온 화면인데.
    */
   React.useEffect(() => {
-    if (mode === 'calendar' || allEntries !== null) return;
+    // "지난 장보기" 탭(2026-09-16 추가)은 이 전 기간 목록을 쓰지 않는다 —
+    // 예전엔 모드가 둘뿐이라 "달력이 아니면" 으로 판단했는데, 그러면 이제
+    // 세 번째 탭을 열 때도 쓰지도 않을 데이터를 불러오게 된다.
+    if (mode !== 'list' || allEntries !== null) return;
     if (!isLoggedIn || !authUser?.id) {
       // 게스트: 서버에 물을 계정이 없으니 기기에 쌓인 것 전부를 그대로 쓴다.
       // `householdRecorded` 도 같은 값으로 채운다 — 아래 `listRecorded` 가
@@ -1176,14 +1315,56 @@ const CookingCalendar: React.FC = () => {
    */
   const [weekCategoryMap, setWeekCategoryMap] = React.useState<CategoryMap>({});
   React.useEffect(() => { void loadIngredientCategoryMap().then(setWeekCategoryMap).catch(() => {}); }, []);
-  /** 취소선 그어 둔 재료 — 다시 목록을 불러오기 전까지는 화면에 그대로 남겨
-   * "방금 이걸 샀다"는 걸 보여준다(포스트잇에서 그은 줄이 안 지워지는 것과 같은 이치). */
-  const [boughtWeekItems, setBoughtWeekItems] = React.useState<Set<string>>(new Set());
-  /** 링크를 누른 재료 이름 — 탭에 돌아왔을 때 이 값이 있으면 "사셨나요" 를 묻는다.
+
+  /** 주 단위 장보기 메모 히스토리 — "지난 장보기" 탭(히스토리 요청, 2026-09-16)과
+   * 지금 보는 주의 카드가 함께 읽고 쓰는 저장소. 취소선(구매 여부)도 여기 같이
+   * 들어 있어, 이전엔 화면을 벗어나면 사라지던 "방금 이걸 샀다" 표시가 주가
+   * 바뀌거나 앱을 다시 열어도 남는다. */
+  const [memoHistory, setMemoHistory] = React.useState<Record<string, ShoppingMemoEntry>>(() => loadShoppingMemoHistory());
+  const boughtWeekItems = React.useMemo(
+    () => new Set(memoHistory[weekRangeFrom]?.bought || []),
+    [memoHistory, weekRangeFrom],
+  );
+
+  // 지금 보는 주의 목록이 새로 오면(또는 재료가 늘거나 줄면) 메모 한 장으로 저장.
+  // 이미 산 걸로 체크했던 재료가 새 목록에 없으면(계획이 바뀌어 더는 필요 없어짐)
+  // 자연히 빠지도록 새 items 와 교집합만 남긴다.
+  React.useEffect(() => {
+    if (weekBasket === null || weekBasket.length === 0) return;
+    setMemoHistory(prev => {
+      const prevBought = new Set(prev[weekRangeFrom]?.bought || []);
+      const bought = weekBasket.filter(n => prevBought.has(n));
+      const entry: ShoppingMemoEntry = {
+        weekKey: weekRangeFrom, rangeLabel: weekRangeLabel, items: weekBasket, bought,
+        updatedAt: new Date().toISOString(),
+      };
+      const prevEntry = prev[weekRangeFrom];
+      if (prevEntry && prevEntry.items.join(',') === entry.items.join(',') && prevEntry.bought.join(',') === entry.bought.join(',')) {
+        return prev; // 내용이 그대로면 굳이 다시 저장하지 않는다(불필요한 리렌더 방지)
+      }
+      return saveShoppingMemoHistory({ ...prev, [weekRangeFrom]: entry });
+    });
+  }, [weekBasket, weekRangeFrom, weekRangeLabel]);
+
+  /** 어느 주(weekKey)의 어느 재료를 샀다/취소했다로 표시 — 지금 보는 주의 카드든
+   * "지난 장보기" 탭의 지난 주 카드든 같은 함수 하나로 처리한다. */
+  const setItemBought = React.useCallback((weekKey: string, name: string, bought: boolean) => {
+    setMemoHistory(prev => {
+      const entry = prev[weekKey];
+      if (!entry) return prev;
+      const boughtSet = new Set(entry.bought);
+      if (bought) boughtSet.add(name); else boughtSet.delete(name);
+      const nextEntry: ShoppingMemoEntry = { ...entry, bought: [...boughtSet], updatedAt: new Date().toISOString() };
+      return saveShoppingMemoHistory({ ...prev, [weekKey]: nextEntry });
+    });
+  }, []);
+
+  /** 링크를 누른 재료 — 탭에 돌아왔을 때 이 값이 있으면 "사셨나요" 를 묻는다.
    * 다른 이유로 탭을 벗어났다 돌아왔을 때는 물으면 안 되므로 ref 로 들고 있다가
-   * 쓰고 나면 바로 비운다. */
-  const pendingPurchaseRef = React.useRef<string | null>(null);
-  const [confirmingPurchase, setConfirmingPurchase] = React.useState<string | null>(null);
+   * 쓰고 나면 바로 비운다. 어느 **주**의 재료인지도 같이 들고 있어야
+   * "지난 장보기" 탭에서 눌러도 그 주의 메모에 반영된다. */
+  const pendingPurchaseRef = React.useRef<{ name: string; weekKey: string } | null>(null);
+  const [confirmingPurchase, setConfirmingPurchase] = React.useState<{ name: string; weekKey: string } | null>(null);
   const [addingPurchase, setAddingPurchase] = React.useState(false);
   const [justAddedName, setJustAddedName] = React.useState<string | null>(null);
 
@@ -1215,8 +1396,9 @@ const CookingCalendar: React.FC = () => {
   };
 
   const handleConfirmPurchase = async (bought: boolean) => {
-    const name = confirmingPurchase;
-    if (!name) return;
+    const pending = confirmingPurchase;
+    if (!pending) return;
+    const { name, weekKey } = pending;
     setConfirmingPurchase(null);
     if (!bought) return;
     setAddingPurchase(true);
@@ -1248,7 +1430,7 @@ const CookingCalendar: React.FC = () => {
           }
         }
       }
-      setBoughtWeekItems(prev => new Set(prev).add(name));
+      setItemBought(weekKey, name, true);
       setJustAddedName(name);
     } finally {
       setAddingPurchase(false);
@@ -1743,6 +1925,7 @@ const CookingCalendar: React.FC = () => {
           {([
             { key: 'calendar', label: '달력' },
             { key: 'list', label: '목록' },
+            { key: 'shopping', label: '지난 장보기' },
           ] as const).map(({ key, label }) => {
             const on = mode === key;
             return (
@@ -2141,108 +2324,87 @@ const CookingCalendar: React.FC = () => {
         // 마지막 요소**라(바깥 카드는 `overflow: hidden`), 아래 여백이 0 이면
         // 카드 바닥선에 그대로 붙는다 — 달력 아래가 잘려 보인다. 위쪽
         // 달력 격자가 쓰는 14px 과 같은 값으로 맞춘다.
-        //
-        // 진한 단색 + 그림자로 바꿔도 "그냥 칙칙한 노란 상자"였다 — 포스트잇
-        // 자체가 디자인적으로 별 게 없다는 지적(2026-09-16). 색을 칠하는
-        // 대신 **종이 메모장**으로: 옅은 종이색 + 왼쪽에 다이어리 스프링
-        // 구멍 3개 + 줄노트 같은 점선 구분선 + 손글씨 폰트(Gaegu, index.html
-        // 에서 로드)로, "사람이 직접 적은 장보기 메모"처럼 보이게 한다.
-        <div style={{
-          margin: '12px 14px 14px', borderRadius: 10,
-          background: '#FFFDF6', boxShadow: '0 4px 14px rgba(120,90,0,.15)',
-          position: 'relative', overflow: 'hidden',
-        }}>
-          <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 26, background: 'rgba(120,90,0,.05)', borderRight: '1px dashed rgba(120,90,0,.24)' }} />
-          {[0.16, 0.5, 0.84].map(pct => (
-            <div key={pct} style={{
-              position: 'absolute', left: 10, top: `${pct * 100}%`, width: 9, height: 9, borderRadius: '50%',
-              background: '#FFFFFF', boxShadow: 'inset 0 1px 2px rgba(120,90,0,.4)', transform: 'translateY(-50%)',
-            }} />
-          ))}
-          <div style={{ padding: '14px 14px 12px 38px' }}>
-            <div style={{ fontFamily: "'Gaegu', 'Pretendard', sans-serif", fontSize: 16, fontWeight: 700, color: '#1A1A1E' }}>
-              {/* "장보기 목록" 만 있으면 뭘 위한 목록인지 헷갈린다는 지적
-                  (2026-09-16) — 계획한 요리에서 나온 목록임을 제목에 바로
-                  적는다. */}
-              계획한 요리 장보기
-              <span style={{ fontSize: 11.5, fontWeight: 600, color: '#8A6A00', marginLeft: 4 }}>({weekRangeLabel})</span>
-              {' '}
-              <span style={{ color: '#8A6A00' }}>{weekBasket.length}개</span>
-              {boughtWeekItems.size > 0 && (
-                <span style={{ fontSize: 11.5, fontWeight: 600, color: '#8A6A00' }}> · {boughtWeekItems.size}개 샀어요</span>
-              )}
-            </div>
-            {/* 메모장에 적은 장보기 투두리스트 — 체크박스 / 재료(눌러서 구매) /
-                사러가기. 배지를 늘어놓기만 하던 예전 모양이 이 화면·AI 식단
-                결과에 똑같이 반복돼 "지루하다"는 지적(2026-09-16)으로, 실제
-                사람이 쓰는 장보기 메모 형태로 바꿨다.
-                체크박스를 직접 눌러도(링크를 안 타고도) 같은 "사셨나요" 확인
-                → 냉장고 반영이 되어야 한다는 지적도 반영 — 체크만 누르고
-                끝내는 사람도 있으니, 눌렀을 때 조용히 넘어가면 안 된다. */}
-            <div style={{ marginTop: 8 }}>
-              {weekBasket.map(name => {
-                const url = resolveCoupangUrl(name);
-                const bought = boughtWeekItems.has(name);
-                return (
-                  <div key={name} style={{
-                    display: 'flex', alignItems: 'center', gap: 10,
-                    padding: '9px 2px', borderBottom: '1px dashed rgba(120,90,0,.22)',
-                  }}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (bought) {
-                          setBoughtWeekItems(prev => { const next = new Set(prev); next.delete(name); return next; });
-                        } else {
-                          setConfirmingPurchase(name);
-                        }
-                      }}
-                      aria-label={`${name} ${bought ? '샀음 표시 취소' : '샀어요로 표시'}`}
-                      style={{
-                        width: 19, height: 19, borderRadius: 6, flexShrink: 0, padding: 0,
-                        border: bought ? 'none' : '1.5px solid #B4900A',
-                        background: bought ? '#1A1A1E' : '#FFFFFF', color: '#FFD600',
-                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      {bought && <CheckIcon />}
-                    </button>
-                    <a
-                      href={url}
-                      target="_blank"
-                      rel="noopener noreferrer sponsored"
-                      onClick={() => { track('coupang_click', name); pendingPurchaseRef.current = name; }}
-                      style={{
-                        flex: 1, minWidth: 0, fontFamily: "'Gaegu', 'Pretendard', sans-serif",
-                        fontSize: 15, fontWeight: 700,
-                        color: bought ? '#8A6A00' : '#1A1A1E',
-                        textDecoration: bought ? 'line-through' : 'none',
-                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {name}
-                    </a>
-                    <a
-                      href={url}
-                      target="_blank"
-                      rel="noopener noreferrer sponsored"
-                      onClick={() => { track('coupang_click', name); pendingPurchaseRef.current = name; }}
-                      style={{
-                        flexShrink: 0, fontSize: 11, fontWeight: 700, color: '#6B5200',
-                        textDecoration: 'none', whiteSpace: 'nowrap',
-                      }}
-                    >
-                      사러가기 ↗
-                    </a>
-                  </div>
-                );
-              })}
-            </div>
-            <div style={{ fontSize: 10, color: '#8A6A00', marginTop: 7, lineHeight: 1.5 }}>
-              계획한 요리 재료 중 냉장고에 없는 것 · 체크하거나 사고 돌아오면 냉장고에 바로 담아 드려요 · 쿠팡 파트너스 수수료를 받을 수 있어요
-            </div>
+        <div style={{ margin: '12px 14px 14px' }}>
+          <ShoppingMemoCard
+            labelText="장보기 메모"
+            titleNode={(
+              <>
+                {/* "장보기 목록" 만 있으면 뭘 위한 목록인지 헷갈린다는 지적
+                    (2026-09-16) — 계획한 요리에서 나온 목록임을 제목에 바로
+                    적는다. */}
+                계획한 요리 장보기
+                <span style={{ fontSize: 11.5, fontWeight: 600, color: '#96720A', marginLeft: 4 }}>({weekRangeLabel})</span>
+                {' '}
+                <span style={{ color: '#96720A' }}>{weekBasket.length}개</span>
+                {boughtWeekItems.size > 0 && (
+                  <span style={{ fontSize: 11.5, fontWeight: 600, color: '#96720A' }}> · {boughtWeekItems.size}개 샀어요</span>
+                )}
+              </>
+            )}
+            items={weekBasket}
+            boughtSet={boughtWeekItems}
+            onCheckboxClick={(name, currentlyBought) => {
+              if (currentlyBought) setItemBought(weekRangeFrom, name, false);
+              else setConfirmingPurchase({ name, weekKey: weekRangeFrom });
+            }}
+            onLinkClick={(name) => {
+              track('coupang_click', name);
+              pendingPurchaseRef.current = { name, weekKey: weekRangeFrom };
+            }}
+          />
+          <div style={{ fontSize: 10, color: '#96720A', marginTop: 7, lineHeight: 1.5, padding: '0 2px' }}>
+            계획한 요리 재료 중 냉장고에 없는 것 · 체크하거나 사고 돌아오면 냉장고에 바로 담아 드려요 · 쿠팡 파트너스 수수료를 받을 수 있어요
           </div>
+        </div>
+      )}
+
+      {/* "지난 장보기" — 주가 바뀌면 사라지던 목록·구매 여부를 다이어리 조각처럼
+          모아 두고 싶다는 요청(2026-09-16). 재료가 하나라도 있었던 주는 전부
+          최신순으로 보여주고(지금 주 포함), 체크·"사러가기"도 그대로 눌러서
+          쓸 수 있게 — 지난주에 못 산 걸 뒤늦게 살 수도 있으니까. */}
+      {mode === 'shopping' && (
+        <div style={{ padding: '12px 14px 14px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {Object.values(memoHistory).length === 0 ? (
+            <div style={{ padding: '32px 8px', textAlign: 'center', fontSize: 13, color: 'var(--ink-500)' }}>
+              아직 쌓인 장보기 메모가 없어요.
+              <br />
+              요리를 계획하면 이곳에 한 주씩 모여요.
+            </div>
+          ) : (
+            Object.values(memoHistory)
+              .sort((a, b) => b.weekKey.localeCompare(a.weekKey))
+              .map(entry => {
+                const boughtSet = new Set(entry.bought);
+                const isCurrent = entry.weekKey === weekRangeFrom;
+                return (
+                  <ShoppingMemoCard
+                    key={entry.weekKey}
+                    labelText={isCurrent ? '장보기 메모 · 이번 주' : '장보기 메모'}
+                    titleNode={(
+                      <>
+                        계획한 요리 장보기
+                        <span style={{ fontSize: 11.5, fontWeight: 600, color: '#96720A', marginLeft: 4 }}>({entry.rangeLabel})</span>
+                        {' '}
+                        <span style={{ color: '#96720A' }}>{entry.items.length}개</span>
+                        {boughtSet.size > 0 && (
+                          <span style={{ fontSize: 11.5, fontWeight: 600, color: '#96720A' }}> · {boughtSet.size}개 샀어요</span>
+                        )}
+                      </>
+                    )}
+                    items={entry.items}
+                    boughtSet={boughtSet}
+                    onCheckboxClick={(name, currentlyBought) => {
+                      if (currentlyBought) setItemBought(entry.weekKey, name, false);
+                      else setConfirmingPurchase({ name, weekKey: entry.weekKey });
+                    }}
+                    onLinkClick={(name) => {
+                      track('coupang_click', name);
+                      pendingPurchaseRef.current = { name, weekKey: entry.weekKey };
+                    }}
+                  />
+                );
+              })
+          )}
         </div>
       )}
 
@@ -3045,7 +3207,7 @@ const CookingCalendar: React.FC = () => {
           <Dialog
             open
             onClose={() => handleConfirmPurchase(false)}
-            title={`${confirmingPurchase} 사셨나요?`}
+            title={`${confirmingPurchase.name} 사셨나요?`}
             width={300}
             dismissLabel="아니요"
             actions={[{

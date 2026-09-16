@@ -2449,31 +2449,36 @@ const WeeklyPlan: React.FC = () => {
       )}
 
       {/* ── 장보기 목록 ────────────────────────────────────── */}
-      {/* 진한 단색 + 그림자로 바꿔도 "그냥 칙칙한 노란 상자"라는 지적
-          (2026-09-16) — 포스트잇 자체가 디자인적으로 별 게 없다고 함.
-          색을 칠하는 대신 **종이 메모장**으로: 옅은 종이색 + 왼쪽 다이어리
-          스프링 구멍 3개 + 점선 줄노트 구분선 + 손글씨 폰트(Gaegu,
-          index.html 에서 로드) — 마이캘린더의 장보기 메모와 같은 모양. */}
+      {/* 다이어리 아이디어(왼쪽 구멍)는 살리되 "안 이쁘다"는 지적
+          (2026-09-16)으로 마감을 다시 다듬었다 — 마이캘린더의 장보기 메모와
+          같은 모양(구멍 주변 색 블록 제거, 점선 대신 얇은 실선, 손글씨
+          폰트는 상단 라벨에만). */}
       {shopping.length > 0 && (
         <div id="shopping-list" style={{
-          background: '#FFFDF6', boxShadow: '0 4px 14px rgba(120,90,0,.15)',
-          borderRadius: 10, marginTop: 16, position: 'relative', overflow: 'hidden',
+          background: '#FFFCF5',
+          boxShadow: '0 10px 26px rgba(120,90,0,.13), 0 2px 6px rgba(120,90,0,.08)',
+          borderRadius: 16, marginTop: 16, position: 'relative', overflow: 'hidden',
           scrollMarginTop: 80,
         }}>
-          <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 26, background: 'rgba(120,90,0,.05)', borderRight: '1px dashed rgba(120,90,0,.24)' }} />
-          {[0.12, 0.5, 0.88].map(pct => (
+          <div style={{ position: 'absolute', left: 24, top: 10, bottom: 10, width: 1, background: 'rgba(43,33,24,.08)' }} />
+          {[0.1, 0.32, 0.55, 0.78].map(pct => (
             <div key={pct} style={{
-              position: 'absolute', left: 10, top: `${pct * 100}%`, width: 9, height: 9, borderRadius: '50%',
-              background: '#FFFFFF', boxShadow: 'inset 0 1px 2px rgba(120,90,0,.4)', transform: 'translateY(-50%)',
+              position: 'absolute', left: 15, top: `${pct * 100}%`, width: 8, height: 8, borderRadius: '50%',
+              background: '#FFFCF5',
+              boxShadow: 'inset 0 1.5px 2.5px rgba(43,33,24,.28), inset 0 -1px 1px rgba(255,255,255,.5)',
+              transform: 'translate(-50%, -50%)',
             }} />
           ))}
-          <div style={{ padding: '14px 16px 12px 38px' }}>
+          <div style={{ padding: '16px 16px 12px 40px' }}>
+            <div style={{ fontFamily: "'Gaegu', 'Pretendard', sans-serif", fontSize: 12, fontWeight: 700, color: '#96720A', letterSpacing: 0.4 }}>
+              장보기 메모
+            </div>
             {/* "장보기 목록" 만 있으면 뭘 위한 목록인지 헷갈린다는 지적
                 (2026-09-16) — 이 식단에서 나온 목록임을 제목에 바로 적는다. */}
-            <h2 style={{ fontFamily: "'Gaegu', 'Pretendard', sans-serif", fontSize: 17, fontWeight: 700, margin: '0 0 4px', color: '#1A1A1E' }}>
+            <h2 style={{ fontSize: 15, fontWeight: 700, margin: '2px 0 4px', color: '#2B2118' }}>
               이 식단 장보기 {shopping.length}개
             </h2>
-            <div style={{ fontSize: 12, color: '#8A6A00', marginBottom: 10, lineHeight: 1.6 }}>
+            <div style={{ fontSize: 12, color: '#96720A', marginBottom: 10, lineHeight: 1.6 }}>
               냉장고에 없는 것. <b>많이 쓰이는 순서</b>.
             </div>
 
@@ -2484,7 +2489,7 @@ const WeeklyPlan: React.FC = () => {
                 return (
                   <div key={name} style={{
                     display: 'flex', alignItems: 'center', gap: 10,
-                    padding: '9px 4px', borderBottom: '1px dashed rgba(120,90,0,.22)',
+                    padding: '9px 4px', borderBottom: '1px solid rgba(43,33,24,.08)',
                   }}>
                     {/* 체크박스를 직접 눌러도(링크를 안 타고도) 같은 "사셨나요"
                         확인 → 냉장고 반영이 되어야 한다는 지적(2026-09-16) —
@@ -2500,7 +2505,7 @@ const WeeklyPlan: React.FC = () => {
                       style={{
                         width: 18, height: 18, borderRadius: 5, flexShrink: 0, padding: 0,
                         border: done ? 'none' : '1.5px solid #B4900A',
-                        background: done ? '#1A1A1E' : '#FFFFFF', color: '#FFD600',
+                        background: done ? '#2B2118' : '#FFFFFF', color: '#FFD600',
                         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                         cursor: 'pointer',
                       }}
@@ -2512,14 +2517,13 @@ const WeeklyPlan: React.FC = () => {
                       )}
                     </button>
                     <span style={{
-                      flex: 1, minWidth: 0, fontFamily: "'Gaegu', 'Pretendard', sans-serif",
-                      fontSize: 15.5, fontWeight: 700,
-                      color: done ? '#8A6A00' : '#1A1A1E',
+                      flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600,
+                      color: done ? '#96720A' : '#2B2118',
                       textDecoration: done ? 'line-through' : 'none',
                     }}>
                       {name}
                       {count > 1 && (
-                        <span style={{ fontFamily: 'Pretendard, sans-serif', fontSize: 11.5, fontWeight: 400, color: '#8A6A00' }}> · {count}개 요리</span>
+                        <span style={{ fontSize: 11.5, fontWeight: 400, color: '#96720A' }}> · {count}개 요리</span>
                       )}
                     </span>
                     {url && (
@@ -2542,7 +2546,7 @@ const WeeklyPlan: React.FC = () => {
               })}
             </div>
 
-            <div style={{ fontSize: 11, color: '#8A6A00', marginTop: 10, lineHeight: 1.6 }}>
+            <div style={{ fontSize: 11, color: '#96720A', marginTop: 10, lineHeight: 1.6 }}>
               쿠팡 파트너스 활동으로 일정 수수료를 받을 수 있어요. 체크하거나
               사고 돌아오면 냉장고에 바로 담아 드려요.
             </div>
