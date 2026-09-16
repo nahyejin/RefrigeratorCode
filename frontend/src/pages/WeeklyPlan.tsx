@@ -2449,10 +2449,12 @@ const WeeklyPlan: React.FC = () => {
       )}
 
       {/* ── 장보기 목록 ────────────────────────────────────── */}
-      {/* 종이 다이어리 느낌(크림색·구멍·손글씨체)으로 꾸며 봤는데, "너무
-          옛날식 UI 같다"는 지적(2026-09-17)으로 마이캘린더의 장보기 메모와
-          함께 정리 — 종이 흉내는 걷어내고 앱의 다른 카드와 같은 흰 배경 +
-          `var(--line-200)` 구분선 + 브랜드 노랑 포인트로 맞췄다. */}
+      {/* 종이 다이어리 느낌(크림색·구멍·손글씨체) → "너무 옛날식 UI" 지적으로
+          한 번 걷어냈다가, "종이 질감 자체는 괜찮은데 색이 탁했다, 종이
+          클립을 꽂은 느낌을 내고, 진짜 괜찮은 손글씨체면 써 달라"는 후속
+          요청(2026-09-17)으로 마이캘린더의 장보기 메모와 같은 모양으로
+          다시 다듬었다 — 바깥은 앱 공용 흰 박스(제목만), 안쪽 목록만 채도
+          낮은 종이색 + 클립 아이콘 + Nanum Pen Script 손글씨(재료 이름에만). */}
       {shopping.length > 0 && (
         <div id="shopping-list" style={{
           background: '#FFFFFF', border: '1px solid var(--line-200)',
@@ -2461,75 +2463,89 @@ const WeeklyPlan: React.FC = () => {
         }}>
           {/* "장보기 목록" 만 있으면 뭘 위한 목록인지 헷갈린다는 지적
               (2026-09-16) — 이 식단에서 나온 목록임을 제목에 바로 적는다. */}
-          <h2 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 4px', color: '#1A1A1E' }}>
+          <h2 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 12px', color: '#1A1A1E' }}>
             이 식단 장보기 {shopping.length}개
           </h2>
-          <div style={{ fontSize: 12, color: 'var(--ink-500)', marginBottom: 10, lineHeight: 1.6 }}>
-            냉장고에 없는 것. <b>많이 쓰이는 순서</b>.
-          </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {shopping.map(([name, count]) => {
-              const done = bought.has(name);
-              const url = resolveCoupangUrl(name);
-              return (
-                <div key={name} style={{
-                  display: 'flex', alignItems: 'center', gap: 10,
-                  padding: '10px 4px', borderBottom: '1px solid var(--line-200)',
-                }}>
-                  {/* 체크박스를 직접 눌러도(링크를 안 타고도) 같은 "사셨나요"
-                      확인 → 냉장고 반영이 되어야 한다는 지적(2026-09-16) —
-                      체크만 누르고 끝내는 사람도 있으니 조용히 넘어가면 안 됨.
-                      해제는 확인 없이 바로(되돌리는 동작이라 다시 안 물음). */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (done) setBought(prev => { const next = new Set(prev); next.delete(name); return next; });
-                      else setConfirmingPurchase(name);
-                    }}
-                    aria-label={`${name} ${done ? '샀음 표시 취소' : '샀어요로 표시'}`}
-                    style={{
-                      width: 19, height: 19, borderRadius: 5, flexShrink: 0, padding: 0,
-                      border: done ? 'none' : '1.5px solid var(--line-300)',
-                      background: done ? '#1A1A1E' : '#FFFFFF', color: '#FFD600',
-                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {done && (
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                        <path d="M4.4 12.6l5.2 5.2 10-11.6" />
-                      </svg>
-                    )}
-                  </button>
-                  <span style={{
-                    flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600,
-                    color: done ? 'var(--ink-500)' : 'var(--ink-900)',
-                    textDecoration: done ? 'line-through' : 'none',
+          <div style={{
+            position: 'relative', borderRadius: 12,
+            background: '#FFFCF2', border: '1px solid rgba(0,0,0,.06)',
+            boxShadow: '0 3px 10px rgba(0,0,0,.05)',
+            padding: '20px 14px 12px',
+          }}>
+            <svg
+              aria-hidden width="26" height="34" viewBox="0 0 24 24" fill="none"
+              stroke="#9098A3" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+              style={{ position: 'absolute', top: -12, left: 16, transform: 'rotate(-8deg)', filter: 'drop-shadow(0 1px 1px rgba(0,0,0,.12))' }}
+            >
+              <path d="M18.36 11.05l-8.19 8.19a5 5 0 0 1-7.07-7.07l8.49-8.49a3.5 3.5 0 0 1 4.95 4.95l-8.13 8.13a2 2 0 0 1-2.83-2.83l7.42-7.42" />
+            </svg>
+            <div style={{ fontSize: 12, color: 'var(--ink-500)', marginBottom: 8, lineHeight: 1.6 }}>
+              냉장고에 없는 것. <b>많이 쓰이는 순서</b>.
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {shopping.map(([name, count]) => {
+                const done = bought.has(name);
+                const url = resolveCoupangUrl(name);
+                return (
+                  <div key={name} style={{
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '9px 2px', borderBottom: '1px solid rgba(0,0,0,.06)',
                   }}>
-                    {name}
-                    {count > 1 && (
-                      <span style={{ fontSize: 11.5, fontWeight: 400, color: 'var(--ink-500)' }}> · {count}개 요리</span>
-                    )}
-                  </span>
-                  {url && (
-                    <a
-                      href={url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={() => { track('coupang_click', name); pendingPurchaseRef.current = name; }}
+                    {/* 체크박스를 직접 눌러도(링크를 안 타고도) 같은 "사셨나요"
+                        확인 → 냉장고 반영이 되어야 한다는 지적(2026-09-16) —
+                        체크만 누르고 끝내는 사람도 있으니 조용히 넘어가면 안 됨.
+                        해제는 확인 없이 바로(되돌리는 동작이라 다시 안 물음). */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (done) setBought(prev => { const next = new Set(prev); next.delete(name); return next; });
+                        else setConfirmingPurchase(name);
+                      }}
+                      aria-label={`${name} ${done ? '샀음 표시 취소' : '샀어요로 표시'}`}
                       style={{
-                        flexShrink: 0, fontSize: 12, fontWeight: 700,
-                        color: '#1A1A1E', textDecoration: 'none',
-                        padding: '5px 10px', borderRadius: 8, background: '#FFD600',
+                        width: 19, height: 19, borderRadius: 5, flexShrink: 0, padding: 0,
+                        border: done ? 'none' : '1.5px solid var(--line-300)',
+                        background: done ? '#1A1A1E' : '#FFFFFF', color: '#FFD600',
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                        cursor: 'pointer',
                       }}
                     >
-                      사러 가기
-                    </a>
-                  )}
-                </div>
-              );
-            })}
+                      {done && (
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                          <path d="M4.4 12.6l5.2 5.2 10-11.6" />
+                        </svg>
+                      )}
+                    </button>
+                    <span className="memo-handwrite" style={{
+                      flex: 1, minWidth: 0, fontSize: 19, lineHeight: 1,
+                      color: done ? 'var(--ink-500)' : 'var(--ink-900)',
+                      textDecoration: done ? 'line-through' : 'none',
+                    }}>
+                      {name}
+                      {count > 1 && (
+                        <span style={{ fontFamily: 'Pretendard, sans-serif', fontSize: 11.5, fontWeight: 400, color: 'var(--ink-500)' }}> · {count}개 요리</span>
+                      )}
+                    </span>
+                    {url && (
+                      <a
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => { track('coupang_click', name); pendingPurchaseRef.current = name; }}
+                        style={{
+                          flexShrink: 0, fontSize: 12, fontWeight: 700,
+                          color: '#1A1A1E', textDecoration: 'none',
+                          padding: '5px 10px', borderRadius: 8, background: '#FFD600',
+                        }}
+                      >
+                        사러 가기
+                      </a>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
           <div style={{ fontSize: 11, color: 'var(--ink-500)', marginTop: 10, lineHeight: 1.6 }}>

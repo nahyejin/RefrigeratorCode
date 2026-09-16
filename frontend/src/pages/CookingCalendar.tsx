@@ -189,19 +189,20 @@ const PencilIcon: React.FC = () => (
 );
 
 /**
- * 장보기 메모 한 장 — 지금 보는 주와 지난 주 페이지가 **같은 모양**을 쓰도록
- * 공용 컴포넌트로 뺐다. 체크/링크 동작은 호출부가 넘겨준 콜백에 맡긴다 —
- * 그래야 "지금 주"든 "지난 주"든 같은 확인창(사셨나요) → 냉장고 반영 흐름을
- * 그대로 재사용할 수 있다.
+ * 종이 클립에 끼운 메모 한 장 — 지금 보는 주와 지난 주 페이지가 **같은
+ * 모양**을 쓰도록 공용 컴포넌트로 뺐다. 체크/링크 동작은 호출부가 넘겨준
+ * 콜백에 맡긴다 — 그래야 "지금 주"든 "지난 주"든 같은 확인창(사셨나요) →
+ * 냉장고 반영 흐름을 그대로 재사용할 수 있다.
  *
- * 처음엔 종이 다이어리처럼(크림색 배경 + 스프링 구멍 + 손글씨 폰트) 꾸몄는데,
- * "너무 옛날식 UI 같다"는 지적(2026-09-17) — 앱의 나머지 화면은 전부 흰
- * 배경·깔끔한 선·브랜드 노랑 포인트를 쓰는 현대적인 톤인데, 이 카드만 따로
- * 복고풍 종이 질감을 흉내 내고 있어 튀어 보였다. 종이 흉내(구멍·크림색·
- * 손글씨체)는 걷어내고, 앱의 다른 카드·버튼과 같은 언어(흰 배경, `var(--line-200)`
- * 구분선, 체크는 진한 먹색 채움 + 노란 체크, "사러 가기"는 브랜드 노랑 알약
- * 버튼)로 맞췄다. 이 컴포넌트는 이제 자기 배경·테두리를 갖지 않고, 호출부의
- * 흰 박스 안에 내용만 채운다(중첩된 카드 두 겹으로 보이지 않도록).
+ * 디자인 이력(2026-09-17):
+ * 1) 크림색 배경 + 스프링 구멍 + 만화체(Gaegu) → "너무 옛날식 UI" 지적으로
+ *    종이 느낌을 전부 걷어내고 앱의 평범한 흰 카드로.
+ * 2) "종이 질감 자체는 괜찮은데 색이 탁했다, 종이 모서리를 접거나 핀·클립을
+ *    꽂은 느낌을 내 달라, 손글씨체도 진짜 괜찮은 거면 써 달라"는 후속 요청.
+ * 최종적으로: 채도 낮은 밝은 종이색(탁한 갈색·겨자색 계열은 전부 뺌) +
+ * 카드 위쪽에 진짜 종이 클립처럼 보이는 회색 SVG(브랜드색 아님, 어디까지나
+ * "클립"이라는 중립적인 금속 색) + 품질 좋은 손글씨 폰트(Nanum Pen Script,
+ * Gaegu보다 실제 펜글씨에 가까움)를 재료 이름에만 적용.
  */
 const ShoppingMemoCard: React.FC<{
   titleNode: React.ReactNode;
@@ -210,7 +211,22 @@ const ShoppingMemoCard: React.FC<{
   onCheckboxClick: (name: string, currentlyBought: boolean) => void;
   onLinkClick: (name: string) => void;
 }> = ({ titleNode, items, boughtSet, onCheckboxClick, onLinkClick }) => (
-  <div>
+  <div style={{
+    position: 'relative', borderRadius: 12,
+    background: '#FFFCF2', border: '1px solid rgba(0,0,0,.06)',
+    boxShadow: '0 3px 10px rgba(0,0,0,.05)',
+    padding: '20px 16px 14px',
+  }}>
+    {/* 종이 클립 — 카드 위쪽 모서리를 살짝 물고 있는 것처럼, 위 가장자리에
+        걸쳐 튀어나오게 둔다. 브랜드 노랑이 아니라 클립 특유의 중립적인
+        회색으로 — "탁한 노란색으로 하지 말라"는 지적을 정면으로 반영. */}
+    <svg
+      aria-hidden width="26" height="34" viewBox="0 0 24 24" fill="none"
+      stroke="#9098A3" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+      style={{ position: 'absolute', top: -12, left: 18, transform: 'rotate(-8deg)', filter: 'drop-shadow(0 1px 1px rgba(0,0,0,.12))' }}
+    >
+      <path d="M18.36 11.05l-8.19 8.19a5 5 0 0 1-7.07-7.07l8.49-8.49a3.5 3.5 0 0 1 4.95 4.95l-8.13 8.13a2 2 0 0 1-2.83-2.83l7.42-7.42" />
+    </svg>
     <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink-500)' }}>
       {titleNode}
     </div>
@@ -221,7 +237,7 @@ const ShoppingMemoCard: React.FC<{
         return (
           <div key={name} style={{
             display: 'flex', alignItems: 'center', gap: 10,
-            padding: '10px 2px', borderBottom: '1px solid var(--line-200)',
+            padding: '9px 2px', borderBottom: '1px solid rgba(0,0,0,.06)',
           }}>
             <button
               type="button"
@@ -242,8 +258,10 @@ const ShoppingMemoCard: React.FC<{
               target="_blank"
               rel="noopener noreferrer sponsored"
               onClick={() => onLinkClick(name)}
+              className="memo-handwrite"
               style={{
-                flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600,
+                flex: 1, minWidth: 0,
+                fontSize: 19, lineHeight: 1,
                 color: bought ? 'var(--ink-500)' : 'var(--ink-900)',
                 textDecoration: bought ? 'line-through' : 'none',
                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
@@ -1681,7 +1699,7 @@ const CookingCalendar: React.FC = () => {
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
               }}
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1A1A1E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
+              <svg style={{ width: 18, height: 18, flexShrink: 0 }} viewBox="0 0 24 24" fill="none" stroke="#1A1A1E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
             </button>
             <span style={{ fontSize: 11, color: 'var(--ink-500)', fontVariantNumeric: 'tabular-nums', minWidth: 32, textAlign: 'center' }}>
               {diaryIndex + 1} / {diaryWeekKeys.length}
@@ -1697,7 +1715,7 @@ const CookingCalendar: React.FC = () => {
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
               }}
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1A1A1E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6" /></svg>
+              <svg style={{ width: 18, height: 18, flexShrink: 0 }} viewBox="0 0 24 24" fill="none" stroke="#1A1A1E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6" /></svg>
             </button>
           </div>
         )}

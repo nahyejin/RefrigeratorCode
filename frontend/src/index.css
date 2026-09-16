@@ -1363,3 +1363,12 @@ select:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   .memo-page-in { animation: none; }
 }
+
+/* 장보기 메모의 재료 이름에만 손글씨체(Nanum Pen Script)를 쓰기 위한 예외.
+   위쪽의 전역 규칙(`html, body, #root, * { font-family: ... !important }`)이
+   앱 전체 글꼴을 Pretendard로 강제 고정해 두고 있어서, 인라인 스타일로는
+   이 규칙을 이길 수 없다 — 이 클래스만 좁게 예외를 둔다(2026-09-17,
+   "진짜 손글씨체가 있으면 써 달라"는 요청. index.html 에서 폰트를 로드). */
+.memo-handwrite {
+  font-family: 'Nanum Pen Script', 'Pretendard', sans-serif !important;
+}
