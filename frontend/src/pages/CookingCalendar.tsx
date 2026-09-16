@@ -1258,19 +1258,28 @@ const CookingCalendar: React.FC = () => {
    * 이번 주에 계획한 레시피의 재료를 한 번에 받아 와서, 냉장고에 있는 것을
    * 빼고 남은 것이 장바구니다. AI 식단이 하는 말과 같은 말인데, 그건 짤 때
    * 한 번 보고 끝이다 — 정작 장은 그 뒤에 본다.
-   */
+   *
+   * "이번 주"는 **실제 오늘이 속한 주**로 고정한다(`selectedDay`가 아니라
+   * `new Date()` 기준). 예전엔 달력에서 지금 보고 있는 날짜(`selectedDay`)의
+   * 주를 썼는데, 그러면 달력을 이리저리 넘길 때마다 "이번 주"의 의미가
+   * 같이 바뀌어 버렸다 — 월 보기에서 달을 한 번 넘겼다 돌아오기만 해도
+   * `selectedDay`가 그 달 1일 등으로 다시 잡히면서 전혀 다른 주를 가리키고,
+   * 그래서 방금 전까지 있던 장보기 메모가 사라지는 등 "달력의 기간 선택과
+   * 자꾸 엮여서 점점 이상해진다"는 지적을 받았다(2026-09-17) — 장보기
+   * 목록은 "달력에서 지금 보고 있는 기간"이 아니라 **고정된 실제 이번 주**
+   * 얘기이므로, 달력 탐색과 완전히 무관하게 분리한다. */
   const [weekBasket, setWeekBasket] = React.useState<string[] | null>(null);
   // `plans` 는 렌더마다 새로 읽으므로 useMemo 로 묶지 않는다. 대신 아래
   // 효과가 **아이디 문자열**을 보고 도니, 같은 주를 다시 그려도 안 부른다.
-  const weekRangeFrom = toDateKey(startOfWeek(new Date(selectedDay)));
-  const weekRangeTo = toDateKey(addDays(startOfWeek(new Date(selectedDay)), 6));
+  const shoppingWeekFrom = toDateKey(startOfWeek(new Date()));
+  const shoppingWeekTo = toDateKey(addDays(startOfWeek(new Date()), 6));
   // `plans`는 이미 scope(내 요리만/우리 식구 전체)·hideMine("내 것은 빼고")로
   // 걸러진 값이라, 여기서 다시 거를 필요는 없다 — 이 아이디 목록도 자연히
   // 지금 고른 범위를 따른다.
   const weekPlanIds = (() => {
     const ids = new Set<number>();
     plans.forEach((meals, day) => {
-      if (day < weekRangeFrom || day > weekRangeTo) return;
+      if (day < shoppingWeekFrom || day > shoppingWeekTo) return;
       meals.forEach(m => { if (m.recipeId) ids.add(Number(m.recipeId)); });
     });
     return [...ids].sort((a, b) => a - b);
@@ -1278,7 +1287,7 @@ const CookingCalendar: React.FC = () => {
   const weekPlanKey = weekPlanIds.join(',');
   /** "이번 주"가 며칠부터 며칠인지 — "이번 주가 언제 기준인지 모르겠다"는
    * 지적(2026-09-14)으로 라벨 옆에 덧붙인다. MM/DD 로 짧게. */
-  const weekRangeLabel = `${weekRangeFrom.slice(5).replace('-', '/')}~${weekRangeTo.slice(5).replace('-', '/')}`;
+  const shoppingWeekLabel = `${shoppingWeekFrom.slice(5).replace('-', '/')}~${shoppingWeekTo.slice(5).replace('-', '/')}`;
 
   /** 주 단위 장보기 메모 히스토리 — 지금 보는 주와 지난 주들의 "다이어리
    * 페이지"가 함께 읽고 쓰는 저장소. 취소선(구매 여부)도 여기 같이 들어
@@ -1328,8 +1337,8 @@ const CookingCalendar: React.FC = () => {
     // 재료가 저장되는** 경합이 있었다(실사용 지적, 2026-09-16 — "가 본 적도
     // 없는 주에 다른 주 재료가 뜬다"). 이 효과 하나에서만 저장하면, 저장이
     // 항상 방금 실제로 계산한 목록과 짝을 이룬다.
-    const thisWeekKey = weekRangeFrom;
-    const thisRangeLabel = weekRangeLabel;
+    const thisWeekKey = shoppingWeekFrom;
+    const thisRangeLabel = shoppingWeekLabel;
     if (weekPlanIds.length === 0) {
       setWeekBasket([]);
       upsertWeekMemo(thisWeekKey, thisRangeLabel, []);
@@ -1377,8 +1386,8 @@ const CookingCalendar: React.FC = () => {
   const setItemBought = React.useCallback((weekKey: string, name: string, bought: boolean) => {
     setMemoHistory(prev => {
       let entry = prev[weekKey];
-      if (!entry && weekKey === weekRangeFrom && weekBasket && weekBasket.length > 0) {
-        entry = { weekKey, rangeLabel: weekRangeLabel, items: weekBasket, bought: [], updatedAt: new Date().toISOString() };
+      if (!entry && weekKey === shoppingWeekFrom && weekBasket && weekBasket.length > 0) {
+        entry = { weekKey, rangeLabel: shoppingWeekLabel, items: weekBasket, bought: [], updatedAt: new Date().toISOString() };
       }
       if (!entry) return prev;
       const boughtSet = new Set(entry.bought);
@@ -1386,34 +1395,32 @@ const CookingCalendar: React.FC = () => {
       const nextEntry: ShoppingMemoEntry = { ...entry, bought: [...boughtSet], updatedAt: new Date().toISOString() };
       return saveShoppingMemoHistory({ ...prev, [weekKey]: nextEntry });
     });
-  }, [weekRangeFrom, weekRangeLabel, weekBasket]);
+  }, [shoppingWeekFrom, shoppingWeekLabel, weekBasket]);
 
   /**
-   * 장보기 메모는 **지금 달력이 보여주는 주**를 그대로 따라간다.
-   *
-   * 처음엔 화살표로 지난 주들을 따로 넘겨 보는 "다이어리 페이지"로
-   * 만들었는데, 실제로 써 보니 달력에서 9월→ 10월로 달을 넘겨도 메모는
-   * 계속 9월 것에 멈춰 있고, 주 보기에서도 지금 보는 주와 안 맞는 주의
-   * 목록이 계속 떠 있어서 "뭘 기준으로 보여주는 거냐"는 혼동이 생겼다
-   * (실사용 지적, 2026-09-16). 달력 탐색(주/월 이전·다음)과 메모용
-   * 이전·다음을 **따로** 두면 이중 내비게이션이라 더 헷갈리기도 하고 —
-   * 그래서 별도 페이지 상태를 없애고, 달력이 지금 보여주는 주에 맞는
-   * 메모만 그대로 따라 보여주도록 되돌렸다. 지난 주들의 기록은 여전히
-   * `memoHistory`에 남아 있으니, 달력에서 그 주로 이동하면(주/월 이전·
-   * 다음) 그 주의 메모가 같이 나타난다.
+   * 장보기 메모는 **실제 이번 주**(위 `shoppingWeekFrom` 설명 참고) 하나만
+   * 보여준다. 화살표로 지난 주를 넘기는 "다이어리"도 만들어 봤고, 달력이
+   * 지금 보여주는 주를 따라가게도 해 봤는데 — 둘 다 달력의 날짜 탐색과
+   * 엮이면서 "10월로 넘겼다 9월로 돌아와도 메모가 안 뜬다", "이게 지금
+   * 무슨 기간 얘기냐" 는 혼동이 반복됐다(실사용 지적, 2026-09-16~17).
+   * 장보기는 애초에 "달력에서 지금 보는 기간"이 아니라 **고정된 실제
+   * 이번 주** 얘기이므로, 달력 탐색과 아예 무관하게 뒀다. 지난 주들의
+   * 기록은 `memoHistory`에 여전히 쌓이지만, 화면에는 안 보여준다 — 굳이
+   * 옛 기록을 보여주려다 또 어떤 화면·탐색에 종속시킬지 고민하는 대신,
+   * "이번 주 것만 늘 같은 자리에" 로 단순하게 뒀다.
    */
   const diaryEntry = React.useMemo((): { rangeLabel: string; items: string[]; bought: string[] } | null => {
     if (weekBasket && weekBasket.length > 0) {
-      return { rangeLabel: weekRangeLabel, items: weekBasket, bought: memoHistory[weekRangeFrom]?.bought || [] };
+      return { rangeLabel: shoppingWeekLabel, items: weekBasket, bought: memoHistory[shoppingWeekFrom]?.bought || [] };
     }
     if (weekBasket === null) {
       // 아직 새로 계산되기 전(로딩 중)이면, 저장해 둔 값이 있는 경우
       // 그걸 먼저 보여줘 깜빡임 없이 이어지게 한다.
-      const stored = memoHistory[weekRangeFrom];
+      const stored = memoHistory[shoppingWeekFrom];
       return stored ? { rangeLabel: stored.rangeLabel, items: stored.items, bought: stored.bought } : null;
     }
     return null; // 계산이 끝났고(weekBasket === []) 지금 범위엔 살 게 없다
-  }, [weekBasket, weekRangeFrom, weekRangeLabel, memoHistory]);
+  }, [weekBasket, shoppingWeekFrom, shoppingWeekLabel, memoHistory]);
 
   /** 링크를 누른 재료 — 탭에 돌아왔을 때 이 값이 있으면 "사셨나요" 를 묻는다.
    * 다른 이유로 탭을 벗어났다 돌아왔을 때는 물으면 안 되므로 ref 로 들고 있다가
@@ -1600,11 +1607,11 @@ const CookingCalendar: React.FC = () => {
     );
   };
 
-  /* 장보기 메모 카드 — 달력이 지금 보여주는 주(`weekRangeFrom`)를 그대로
-   * 따라간다(위 `diaryEntry` 설명 참고). 월 보기·주 보기 두 곳에서 같은
-   * 내용을 서로 다른 위치에 꽂아 넣어야 해서(주 보기에서는 그 주의 계획
-   * 카드 목록 **아래**에 와야 한다는 지적, 2026-09-16) 한 번만 계산해 두고
-   * 아래 JSX에서 `viewMode`에 따라 두 자리 중 한 곳에만 넣는다. */
+  /* 장보기 메모 카드 — 고정된 실제 이번 주 것 하나(위 `diaryEntry` 설명
+   * 참고). 달력·목록 탭이 담긴 카드 밖, 화면 맨 아래(`<BottomNavBar>`
+   * 바로 위)에 **탭/보기 방식과 무관하게** 한 번만 그린다 — 달력의 기간
+   * 선택 영역 안에 있으면 자꾸 그 선택과 엮여 보인다는 지적(2026-09-17)
+   * 으로, 아예 그 영역 밖 별도 자리로 뺐다. */
   const diaryCardNode = diaryEntry && diaryEntry.items.length > 0 ? (() => {
     const boughtSet = new Set(diaryEntry.bought);
     return (
@@ -1615,7 +1622,7 @@ const CookingCalendar: React.FC = () => {
             div를 새로 만들게 한다 — 그래야 `diary-page-flip` 애니메이션이
             달력에서 다른 주로 넘어갈 때마다(페이지가 자연히 바뀌므로)
             매번 재생된다. */}
-        <div key={weekRangeFrom} className="diary-page-flip">
+        <div key={shoppingWeekFrom} className="diary-page-flip">
           <ShoppingMemoCard
             labelText="장보기 메모"
             titleNode={(
@@ -1635,12 +1642,12 @@ const CookingCalendar: React.FC = () => {
             items={diaryEntry.items}
             boughtSet={boughtSet}
             onCheckboxClick={(name, currentlyBought) => {
-              if (currentlyBought) setItemBought(weekRangeFrom, name, false);
-              else setConfirmingPurchase({ name, weekKey: weekRangeFrom });
+              if (currentlyBought) setItemBought(shoppingWeekFrom, name, false);
+              else setConfirmingPurchase({ name, weekKey: shoppingWeekFrom });
             }}
             onLinkClick={(name) => {
               track('coupang_click', name);
-              pendingPurchaseRef.current = { name, weekKey: weekRangeFrom };
+              pendingPurchaseRef.current = { name, weekKey: shoppingWeekFrom };
             }}
           />
         </div>
@@ -2414,21 +2421,6 @@ const CookingCalendar: React.FC = () => {
         )}
       </Sheet>
 
-      {/* 장보기 메모는 **주 보기에서만** 보여준다(그 주의 계획 목록 아래,
-          뒤에서 `viewMode === 'week'` 블록 다음).
-          월 보기에도 한 번 둬 봤는데, 월 보기는 `selectedDay` 가 달을
-          넘길 때마다 그 달 1일 같은 임의의 날로 다시 잡혀서(달력 자체의
-          동작), "이 카드가 보여주는 주"가 화면에 뭘 보고 있는지와 안
-          맞을 때가 많았다 — 9/17~23 계획을 넣어 두고 10월로 넘겼다 9월로
-          돌아와도 메모가 다시 안 뜨는 식(실사용 지적, 2026-09-17): 달로
-          옮겨 다닐 땐 "이번 주" 자체가 잘 정의되지 않는다. 주 보기는
-          화면에 정확히 한 주만 있어 이 문제가 없다 — 그래서 장보기는
-          주 보기에만 남긴다.
-          일 보기(`viewMode === 'day'`)에서도 안 보여준다 — 일 보기는 이미
-          자기만의 이전/다음(하루 단위 날짜 이동)이 있어, 그 아래 주 단위
-          내용이 또 있으면 "이전/다음이 무슨 기준이냐" 는 혼동이 생긴다
-          (실사용 지적, 2026-09-16). */}
-
       {confirmingClearAllPlans && (
         <Dialog
           open
@@ -2651,12 +2643,6 @@ const CookingCalendar: React.FC = () => {
           })}
         </div>
       )}
-
-      {/* 장보기 메모 — 그 주의 계획 목록 **다음**에 온다("레시피 카드가
-          먼저 보이고 그 밑에 따라와야 한다"는 지적, 2026-09-16). 월 보기·
-          일 보기에는 안 둔다 — 위 `</Sheet>` 바로 다음 자리의 설명 참고
-          (2026-09-17, "주" 자체가 잘 정의되는 화면은 주 보기뿐). */}
-      {mode === 'calendar' && viewMode === 'week' && diaryCardNode}
 
       {/* 목록 보기 — 여태 만든 것을 최신순으로 죽 훑는다. 전 기간이다. */}
       {mode === 'list' && (
@@ -3416,6 +3402,12 @@ const CookingCalendar: React.FC = () => {
             </div>
           </Dialog>
         )}
+
+        {/* 장보기 메모 — 달력·목록 탭이 담긴 카드 밖, 화면 맨 끝에 탭/보기
+            방식과 무관하게 항상 하나만 둔다. 위 `diaryCardNode` 설명 참고
+            (2026-09-17, "달력의 기간 선택 영역 안에 있으니 자꾸 그것과
+            엮여 보인다"는 지적). */}
+        {diaryCardNode}
       </div>
       </div>
       </PullToRefresh>
