@@ -637,6 +637,10 @@ const WeeklyPlan: React.FC = () => {
    */
   const [off, setOff] = React.useState<Set<string> | null>(null);
   const [pickOpen, setPickOpen] = React.useState(false);
+  /** 무료 식단은 예전엔 재료만 있으면 **묻지도 않고** 바로 7일치를 짜서
+   * 보여줬다. "누르지도 않았는데 왜 장보기 목록부터 나오냐" 는 지적
+   * (2026-09-16)으로, 이 버튼을 눌러야 비로소 짜기 시작하게 바꾼다. */
+  const [hasRequestedPlan, setHasRequestedPlan] = React.useState(false);
 
   const boxes = React.useMemo(readBoxes, []);
   const myIngredients = React.useMemo(() => getMyIngredients(), []);
@@ -860,6 +864,11 @@ const WeeklyPlan: React.FC = () => {
   const appliedKey = React.useRef<string | null>(null);
 
   React.useEffect(() => {
+    // 무료 식단은 **누른 다음에만** 짠다 — 묻지 않았는데 결과부터 나오는
+    // 게 낯설다는 지적(2026-09-16). AI 쪽은 채팅으로 먼저 묻는 것 자체가
+    // "요청" 이라 이 게이트가 필요 없다(이 효과는 wantAi 와 무관하게 무료
+    // 화면의 `slots` 를 채우는 곳이라, 애초에 AI 모드에서는 결과가 안 쓰임).
+    if (!hasRequestedPlan) return;
     if (!qualifiedPool || qualifiedPool.length === 0) return;
     const same = appliedKey.current === planKey;
     appliedKey.current = planKey;
@@ -873,7 +882,7 @@ const WeeklyPlan: React.FC = () => {
         meals: picked[i] ? [{ recipe: picked[i], on: true }] : [],
       }));
     });
-  }, [qualifiedPool, planKey]);
+  }, [qualifiedPool, planKey, hasRequestedPlan]);
 
   const allMeals = slots.flatMap(s => s.meals);
   const usedIds = new Set(allMeals.map(m => m.recipe.id));
@@ -2290,9 +2299,34 @@ const WeeklyPlan: React.FC = () => {
       )}
 
       {/* ── 식단 ───────────────────────────────────────────── */}
+      {/* 누르기 전에는 아무것도 짜지 않는다 — 예전엔 재료만 있으면 묻지도
+          않고 7일치를 바로 보여줬는데, "누르지도 않았는데 왜 결과가
+          나오냐" 는 지적(2026-09-16)으로 이 버튼을 먼저 거치게 했다. */}
+      {!wantAi && !hasRequestedPlan && !asking && (
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--line-200)',
+                      borderRadius: 14, padding: '18px 16px', textAlign: 'center' }}>
+          <div style={{ fontSize: 13.5, color: 'var(--ink-700)', lineHeight: 1.7, wordBreak: 'keep-all' }}>
+            냉장고 재료 <b>{planIngredients.length}개</b>로 만들 수 있는 요리를 모아,
+            <br />
+            장보기가 가장 적어지는 일주일 식단을 짜 드려요.
+          </div>
+          <button
+            type="button"
+            onClick={() => setHasRequestedPlan(true)}
+            style={{
+              marginTop: 14, minHeight: 44, padding: '12px 20px', borderRadius: 10,
+              border: 'none', background: '#FFD600', color: '#1A1A1E',
+              fontSize: 14.5, fontWeight: 700, cursor: 'pointer',
+            }}
+          >
+            식단 추천받기
+          </button>
+        </div>
+      )}
+
       {/* 채팅 화면은 말풍선이 "고르는 중이에요" 를 이미 말한다. 여기 또 두면
           같은 말이 두 군데서 돈다. */}
-      {!wantAi && (usablePool === null || asking) && (
+      {!wantAi && hasRequestedPlan && (usablePool === null || asking) && (
         <div style={{ background: 'var(--surface)', border: '1px solid var(--line-200)',
                       borderRadius: 14, padding: '4px 16px 16px' }}>
           <StepLoading
@@ -2309,7 +2343,7 @@ const WeeklyPlan: React.FC = () => {
         </div>
       )}
 
-      {!wantAi && usablePool !== null && !asking && slots.every(s => s.meals.length === 0) && (
+      {!wantAi && hasRequestedPlan && usablePool !== null && !asking && slots.every(s => s.meals.length === 0) && (
         <div style={{ background: 'var(--surface)', borderRadius: 14, padding: '20px 16px',
                       fontSize: 13.5, color: 'var(--ink-700)', lineHeight: 1.7, wordBreak: 'keep-all' }}>
           {off && off.size > 0 && pool && pool.length > 0 ? (
