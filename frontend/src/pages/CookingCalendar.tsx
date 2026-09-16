@@ -195,13 +195,12 @@ const PencilIcon: React.FC = () => (
  * 주"든 같은 확인창(사셨나요) → 냉장고 반영 흐름을 그대로 재사용할 수 있다.
  */
 const ShoppingMemoCard: React.FC<{
-  labelText: string;
   titleNode: React.ReactNode;
   items: string[];
   boughtSet: Set<string>;
   onCheckboxClick: (name: string, currentlyBought: boolean) => void;
   onLinkClick: (name: string) => void;
-}> = ({ labelText, titleNode, items, boughtSet, onCheckboxClick, onLinkClick }) => (
+}> = ({ titleNode, items, boughtSet, onCheckboxClick, onLinkClick }) => (
   <div style={{
     borderRadius: 16, background: '#FFFCF5',
     boxShadow: '0 10px 26px rgba(120,90,0,.13), 0 2px 6px rgba(120,90,0,.08)',
@@ -217,10 +216,13 @@ const ShoppingMemoCard: React.FC<{
       }} />
     ))}
     <div style={{ padding: '16px 16px 12px 40px' }}>
-      <div style={{ fontFamily: "'Gaegu', 'Pretendard', sans-serif", fontSize: 12, fontWeight: 700, color: '#96720A', letterSpacing: 0.4 }}>
-        {labelText}
-      </div>
-      <div style={{ marginTop: 2, fontSize: 15, fontWeight: 700, color: '#2B2118' }}>
+      {/* 예전엔 여기 위에 "이번 주"/"지난 주" 같은 작은 라벨이 하나 더
+          있었는데, (1) 바깥 박스 제목("계획한 요리 장보기 메모")과 겹쳐
+          보이고 (2) 다음 주로 넘겨도 "지난 주"라고 잘못 뜨는 버그가 있었고
+          (3) 3주 뒤·4주 뒤까지 다 케이스를 만들려면 끝이 없었다(실사용
+          지적, 2026-09-17). 바로 아래 실제 날짜 범위 하나로 "언제 것인지"
+          충분히 말이 되므로, 상대적인 라벨은 아예 없앴다. */}
+      <div style={{ fontSize: 15, fontWeight: 700, color: '#2B2118' }}>
         {titleNode}
       </div>
       <div style={{ marginTop: 10 }}>
@@ -1623,16 +1625,18 @@ const CookingCalendar: React.FC = () => {
   };
 
   /* 장보기 메모 — 달력·목록이 담긴 카드와는 **완전히 다른 박스**로,
-   * 제목("장보기 메모")을 따로 달아 그 카드의 일부가 아니라 화면의 독립된
-   * 한 구획임을 분명히 한다(2026-09-17, "박스 자체를 분리하고 제목도
-   * 따로 달아야 한다"는 지적). 화면 맨 아래(`<BottomNavBar>` 바로 위)에
-   * **탭/보기 방식과 무관하게** 한 번만 그린다. */
+   * 제목("계획한 요리 장보기 메모")을 따로 달아 그 카드의 일부가 아니라
+   * 화면의 독립된 한 구획임을 분명히 한다(2026-09-17, "박스 자체를
+   * 분리하고 제목도 따로 달아야 한다"는 지적). 화면 맨 아래
+   * (`<BottomNavBar>` 바로 위)에 **탭/보기 방식과 무관하게** 한 번만
+   * 그린다. 안쪽 메모지에는 "계획한 요리 장보기"를 따로 안 적는다 —
+   * 이 박스 제목과 겹쳐 보인다는 지적(2026-09-17)으로, 안쪽엔 실제
+   * 날짜 범위·개수만 남긴다. */
   const diaryCardNode = (() => {
     if (!diaryWeekKey) return null;
     const entry = getDiaryEntry(diaryWeekKey);
     if (!entry || entry.items.length === 0) return null;
     const boughtSet = new Set(entry.bought);
-    const isCurrent = diaryWeekKey === shoppingWeekFrom;
     const canGoOlder = diaryIndex > 0;
     const canGoNewer = diaryIndex >= 0 && diaryIndex < diaryWeekKeys.length - 1;
     return (
@@ -1642,7 +1646,7 @@ const CookingCalendar: React.FC = () => {
         padding: '14px 14px 16px',
       }}>
         <div style={{ fontSize: 15, fontWeight: 700, color: '#1A1A1E', marginBottom: 10 }}>
-          장보기 메모
+          계획한 요리 장보기 메모
         </div>
         {/* `key`를 페이지가 바뀔 때마다 바꿔서(주마다 다른 문자열) 리액트가
             이 div를 새로 만들게 한다 — 그래야 `diary-page-flip` 애니메이션이
@@ -1651,16 +1655,10 @@ const CookingCalendar: React.FC = () => {
             안전하게 쓸 수 있다(2026-09-17, "좌우로 넘길 수 있게 해 달라"). */}
         <div key={diaryWeekKey} className="diary-page-flip">
           <ShoppingMemoCard
-            labelText={isCurrent ? '이번 주' : '지난 주'}
             titleNode={(
               <>
-                {/* "장보기 목록" 만 있으면 뭘 위한 목록인지 헷갈린다는 지적
-                    (2026-09-16) — 계획한 요리에서 나온 목록임을 제목에 바로
-                    적는다. */}
-                계획한 요리 장보기
-                <span style={{ fontSize: 11.5, fontWeight: 600, color: '#96720A', marginLeft: 4 }}>({entry.rangeLabel})</span>
-                {' '}
-                <span style={{ color: '#96720A' }}>{entry.items.length}개</span>
+                {entry.rangeLabel}
+                <span style={{ color: '#96720A' }}> · {entry.items.length}개</span>
                 {boughtSet.size > 0 && (
                   <span style={{ fontSize: 11.5, fontWeight: 600, color: '#96720A' }}> · {boughtSet.size}개 샀어요</span>
                 )}
