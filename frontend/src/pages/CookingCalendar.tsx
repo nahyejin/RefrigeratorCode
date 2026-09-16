@@ -1675,7 +1675,10 @@ const CookingCalendar: React.FC = () => {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 10 }}>
           <div style={{ fontSize: 15, fontWeight: 700, color: '#1A1A1E' }}>
-            계획한 요리 장보기 메모
+            {/* 지난 주는 지금도 진행 중인 계획이 아니라 그때 있었던 계획이므로
+                과거형으로("계획했던") — "계획한"으로 두면 이번 주 얘기처럼
+                읽힌다는 지적(2026-09-17). */}
+            {isCurrentWeek ? '계획한 요리 장보기 메모' : '계획했던 요리 장보기 메모'}
           </div>
           {/* 지난 주는 계획을 지워도 자동으로 안 없어지므로(위 `deleteWeekMemo`
               설명 참고), 직접 지울 수 있는 버튼을 둔다. 이번 주는 계획이 살아

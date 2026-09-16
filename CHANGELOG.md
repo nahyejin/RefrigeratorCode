@@ -11236,3 +11236,9 @@ edge-tts 파일럿 목소리가 "너무 AI 같다"는 피드백 + "제미나이�
 
 - **AI 주간 식단 적용**: [WeeklyPlan.tsx](frontend/src/pages/WeeklyPlan.tsx)의 `nextDays()`가 항상 **내일부터** 날짜를 만들어서(`base.getDate() + 1`부터 시작), 이 경로로는 애초에 오늘·과거 날짜가 나올 수 없음.
 - **레시피 상세에서 "언제 해먹을까요?"**([PlanThisDay.tsx](frontend/src/components/PlanThisDay.tsx)): 빠른 선택 알약도 오늘부터 14일만 보여주고, "다른 날짜" 달력([DatePickerField.tsx](frontend/src/components/DatePickerField.tsx) → [CustomCalendar.tsx](frontend/src/components/CustomCalendar.tsx))도 `minDate={new Date()}`를 넘겨 오늘 이전 날짜는 실제로 눌러도 선택되지 않도록 막아 둠(장식이 아니라 `Utils.isValidDateRange`에서 진짜로 걸러짐을 코드로 확인).
+
+### 지난 주 장보기 메모 제목을 과거형으로
+"계획한 요리 장보기 메모"라는 제목이 지난 주 페이지에서도 그대로 떠서, 지금도 진행 중인 계획처럼 읽힌다는 지적(2026-09-17).
+
+- [CookingCalendar.tsx](frontend/src/pages/CookingCalendar.tsx): 이미 있던 `isCurrentWeek` 플래그로 갈라, 이번 주는 "계획한 요리 장보기 메모"(그대로), 지난 주는 **"계획했던 요리 장보기 메모"**(과거형)로 표시.
+- 타입 체크 통과. 로컬 프리뷰에 지난 주 메모를 심어 제목이 "계획했던"으로 바뀌는 것을 확인.
