@@ -27,7 +27,7 @@ import { markUsageGuideFinished, usageGuideTotalSteps, USAGE_GUIDE_STEPS } from 
 
 type ViewMode = 'day' | 'week' | 'month';
 /** 보기 **방식**. 기간(일/주/월)과 다른 층이다 — 목록은 기간이 아니다. */
-type Mode = 'calendar' | 'list' | 'shopping';
+type Mode = 'calendar' | 'list';
 /**
  * **누구 것을 볼지** — 달력·목록 어느 화면에서도 똑같이 적용되는 범위.
  *
@@ -729,10 +729,7 @@ const CookingCalendar: React.FC = () => {
    * 이번 달에 완료한 게 없으면 "0건" 이 됐다 — 여태 만든 것을 보러 온 화면인데.
    */
   React.useEffect(() => {
-    // "지난 장보기" 탭(2026-09-16 추가)은 이 전 기간 목록을 쓰지 않는다 —
-    // 예전엔 모드가 둘뿐이라 "달력이 아니면" 으로 판단했는데, 그러면 이제
-    // 세 번째 탭을 열 때도 쓰지도 않을 데이터를 불러오게 된다.
-    if (mode !== 'list' || allEntries !== null) return;
+    if (mode === 'calendar' || allEntries !== null) return;
     if (!isLoggedIn || !authUser?.id) {
       // 게스트: 서버에 물을 계정이 없으니 기기에 쌓인 것 전부를 그대로 쓴다.
       // `householdRecorded` 도 같은 값으로 채운다 — 아래 `listRecorded` 가
@@ -1316,15 +1313,19 @@ const CookingCalendar: React.FC = () => {
   const [weekCategoryMap, setWeekCategoryMap] = React.useState<CategoryMap>({});
   React.useEffect(() => { void loadIngredientCategoryMap().then(setWeekCategoryMap).catch(() => {}); }, []);
 
-  /** 주 단위 장보기 메모 히스토리 — "지난 장보기" 탭(히스토리 요청, 2026-09-16)과
-   * 지금 보는 주의 카드가 함께 읽고 쓰는 저장소. 취소선(구매 여부)도 여기 같이
-   * 들어 있어, 이전엔 화면을 벗어나면 사라지던 "방금 이걸 샀다" 표시가 주가
-   * 바뀌거나 앱을 다시 열어도 남는다. */
+  /** 주 단위 장보기 메모 히스토리 — 지금 보는 주와 지난 주들의 "다이어리
+   * 페이지"가 함께 읽고 쓰는 저장소. 취소선(구매 여부)도 여기 같이 들어
+   * 있어, 이전엔 화면을 벗어나면 사라지던 "방금 이걸 샀다" 표시가 주가
+   * 바뀌거나 앱을 다시 열어도 남는다.
+   *
+   * 처음엔 이걸 별도 탭("지난 장보기")으로 뺐는데, 실제로 보니 "달력·목록과
+   * 같은 급의 화면 전환"이라기엔 너무 가벼운 정보(그냥 "아, 이런 걸
+   * 샀었구나" 확인하는 용도)라는 지적(2026-09-16) — 탭을 없애고, 지금 보는
+   * 주 카드 자체를 화살표로 앞뒤 페이지를 넘기는 다이어리로 바꿨다. 재료
+   * 하나하나에 날짜를 따로 매기지 않고 **주 단위 페이지**로만 넘기는
+   * 이유도 같은 지적: "재료 하나하나 언제 샀는지 계산하게 하지 말고, 그
+   * 주에 있던 페이지를 통째로 보여줘라." */
   const [memoHistory, setMemoHistory] = React.useState<Record<string, ShoppingMemoEntry>>(() => loadShoppingMemoHistory());
-  const boughtWeekItems = React.useMemo(
-    () => new Set(memoHistory[weekRangeFrom]?.bought || []),
-    [memoHistory, weekRangeFrom],
-  );
 
   // 지금 보는 주의 목록이 새로 오면(또는 재료가 늘거나 줄면) 메모 한 장으로 저장.
   // 이미 산 걸로 체크했던 재료가 새 목록에 없으면(계획이 바뀌어 더는 필요 없어짐)
@@ -1346,18 +1347,52 @@ const CookingCalendar: React.FC = () => {
     });
   }, [weekBasket, weekRangeFrom, weekRangeLabel]);
 
-  /** 어느 주(weekKey)의 어느 재료를 샀다/취소했다로 표시 — 지금 보는 주의 카드든
-   * "지난 장보기" 탭의 지난 주 카드든 같은 함수 하나로 처리한다. */
+  /** 어느 주(weekKey)의 어느 재료를 샀다/취소했다로 표시. 지금 보는 주는 아직
+   * 위 저장 효과가 돌기 전(첫 렌더 직후)일 수도 있어, 그 경우엔 `weekBasket`
+   * 으로 즉석에서 항목을 채워 넣는다 — 타이밍에 상관없이 항상 반영되게. */
   const setItemBought = React.useCallback((weekKey: string, name: string, bought: boolean) => {
     setMemoHistory(prev => {
-      const entry = prev[weekKey];
+      let entry = prev[weekKey];
+      if (!entry && weekKey === weekRangeFrom && weekBasket && weekBasket.length > 0) {
+        entry = { weekKey, rangeLabel: weekRangeLabel, items: weekBasket, bought: [], updatedAt: new Date().toISOString() };
+      }
       if (!entry) return prev;
       const boughtSet = new Set(entry.bought);
       if (bought) boughtSet.add(name); else boughtSet.delete(name);
       const nextEntry: ShoppingMemoEntry = { ...entry, bought: [...boughtSet], updatedAt: new Date().toISOString() };
       return saveShoppingMemoHistory({ ...prev, [weekKey]: nextEntry });
     });
-  }, []);
+  }, [weekRangeFrom, weekRangeLabel, weekBasket]);
+
+  /** 다이어리 페이지 넘기기 — 저장된 주(과거) + 지금 보는 주를 합쳐 오래된
+   * 순으로 정렬한 목록에서, 화살표로 하나씩 옮겨 다닌다. 달력의 일/주/월
+   * 이동과는 **별개**로 움직인다: 달력에서 다른 날짜로 옮겨 다녀도 지금
+   * 넘겨 보던 다이어리 페이지는 그대로 있다 — "장보기 다이어리를 날짜
+   * 선택으로 쪼개면 페이지가 뒤섞일 것 같다"는 우려(2026-09-16)를 반영해,
+   * 달력 탐색과 다이어리 탐색을 분리했다. */
+  const diaryWeekKeys = React.useMemo(() => {
+    const keys = new Set(Object.keys(memoHistory));
+    if (weekBasket && weekBasket.length > 0) keys.add(weekRangeFrom);
+    return [...keys].sort();
+  }, [memoHistory, weekBasket, weekRangeFrom]);
+  const [diaryWeekKey, setDiaryWeekKey] = React.useState<string | null>(null);
+  React.useEffect(() => {
+    if (diaryWeekKeys.length === 0) { setDiaryWeekKey(null); return; }
+    setDiaryWeekKey(prev => {
+      if (prev && diaryWeekKeys.includes(prev)) return prev; // 넘겨 보던 페이지는 그대로 유지
+      return diaryWeekKeys.includes(weekRangeFrom) ? weekRangeFrom : diaryWeekKeys[diaryWeekKeys.length - 1];
+    });
+  }, [diaryWeekKeys, weekRangeFrom]);
+  const diaryIndex = diaryWeekKey ? diaryWeekKeys.indexOf(diaryWeekKey) : -1;
+  /** 지금 보는 주는 저장 효과가 아직 안 돌았을 수 있어 `weekBasket`을 그대로 쓰고,
+   * 지난 주는 저장된 메모를 그대로 쓴다. */
+  const getDiaryEntry = React.useCallback((weekKey: string): { rangeLabel: string; items: string[]; bought: string[] } | null => {
+    if (weekKey === weekRangeFrom && weekBasket && weekBasket.length > 0) {
+      return { rangeLabel: weekRangeLabel, items: weekBasket, bought: memoHistory[weekKey]?.bought || [] };
+    }
+    const stored = memoHistory[weekKey];
+    return stored ? { rangeLabel: stored.rangeLabel, items: stored.items, bought: stored.bought } : null;
+  }, [memoHistory, weekBasket, weekRangeFrom, weekRangeLabel]);
 
   /** 링크를 누른 재료 — 탭에 돌아왔을 때 이 값이 있으면 "사셨나요" 를 묻는다.
    * 다른 이유로 탭을 벗어났다 돌아왔을 때는 물으면 안 되므로 ref 로 들고 있다가
@@ -1925,7 +1960,6 @@ const CookingCalendar: React.FC = () => {
           {([
             { key: 'calendar', label: '달력' },
             { key: 'list', label: '목록' },
-            { key: 'shopping', label: '지난 장보기' },
           ] as const).map(({ key, label }) => {
             const on = mode === key;
             return (
@@ -2319,94 +2353,95 @@ const CookingCalendar: React.FC = () => {
           얘기인 줄 알기 쉬워 "1주인지 2주인지 3일인지 헷갈린다"는 지적을
           받았다(2026-09-16). 옆 괄호의 날짜 범위가 유일한 진실이 되도록,
           이름 자체를 범위 중립적으로 바꾼다. */}
-      {mode === 'calendar' && weekBasket !== null && weekBasket.length > 0 && (
-        // 아래 여백 14px 을 빠뜨리면 안 된다. 이 카드는 **달력 카드 안의
-        // 마지막 요소**라(바깥 카드는 `overflow: hidden`), 아래 여백이 0 이면
-        // 카드 바닥선에 그대로 붙는다 — 달력 아래가 잘려 보인다. 위쪽
-        // 달력 격자가 쓰는 14px 과 같은 값으로 맞춘다.
-        <div style={{ margin: '12px 14px 14px' }}>
-          <ShoppingMemoCard
-            labelText="장보기 메모"
-            titleNode={(
-              <>
-                {/* "장보기 목록" 만 있으면 뭘 위한 목록인지 헷갈린다는 지적
-                    (2026-09-16) — 계획한 요리에서 나온 목록임을 제목에 바로
-                    적는다. */}
-                계획한 요리 장보기
-                <span style={{ fontSize: 11.5, fontWeight: 600, color: '#96720A', marginLeft: 4 }}>({weekRangeLabel})</span>
-                {' '}
-                <span style={{ color: '#96720A' }}>{weekBasket.length}개</span>
-                {boughtWeekItems.size > 0 && (
-                  <span style={{ fontSize: 11.5, fontWeight: 600, color: '#96720A' }}> · {boughtWeekItems.size}개 샀어요</span>
-                )}
-              </>
-            )}
-            items={weekBasket}
-            boughtSet={boughtWeekItems}
-            onCheckboxClick={(name, currentlyBought) => {
-              if (currentlyBought) setItemBought(weekRangeFrom, name, false);
-              else setConfirmingPurchase({ name, weekKey: weekRangeFrom });
-            }}
-            onLinkClick={(name) => {
-              track('coupang_click', name);
-              pendingPurchaseRef.current = { name, weekKey: weekRangeFrom };
-            }}
-          />
-          <div style={{ fontSize: 10, color: '#96720A', marginTop: 7, lineHeight: 1.5, padding: '0 2px' }}>
-            계획한 요리 재료 중 냉장고에 없는 것 · 체크하거나 사고 돌아오면 냉장고에 바로 담아 드려요 · 쿠팡 파트너스 수수료를 받을 수 있어요
-          </div>
-        </div>
-      )}
-
-      {/* "지난 장보기" — 주가 바뀌면 사라지던 목록·구매 여부를 다이어리 조각처럼
-          모아 두고 싶다는 요청(2026-09-16). 재료가 하나라도 있었던 주는 전부
-          최신순으로 보여주고(지금 주 포함), 체크·"사러가기"도 그대로 눌러서
-          쓸 수 있게 — 지난주에 못 산 걸 뒤늦게 살 수도 있으니까. */}
-      {mode === 'shopping' && (
-        <div style={{ padding: '12px 14px 14px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {Object.values(memoHistory).length === 0 ? (
-            <div style={{ padding: '32px 8px', textAlign: 'center', fontSize: 13, color: 'var(--ink-500)' }}>
-              아직 쌓인 장보기 메모가 없어요.
-              <br />
-              요리를 계획하면 이곳에 한 주씩 모여요.
-            </div>
-          ) : (
-            Object.values(memoHistory)
-              .sort((a, b) => b.weekKey.localeCompare(a.weekKey))
-              .map(entry => {
-                const boughtSet = new Set(entry.bought);
-                const isCurrent = entry.weekKey === weekRangeFrom;
-                return (
-                  <ShoppingMemoCard
-                    key={entry.weekKey}
-                    labelText={isCurrent ? '장보기 메모 · 이번 주' : '장보기 메모'}
-                    titleNode={(
-                      <>
-                        계획한 요리 장보기
-                        <span style={{ fontSize: 11.5, fontWeight: 600, color: '#96720A', marginLeft: 4 }}>({entry.rangeLabel})</span>
-                        {' '}
-                        <span style={{ color: '#96720A' }}>{entry.items.length}개</span>
-                        {boughtSet.size > 0 && (
-                          <span style={{ fontSize: 11.5, fontWeight: 600, color: '#96720A' }}> · {boughtSet.size}개 샀어요</span>
-                        )}
-                      </>
+      {mode === 'calendar' && diaryWeekKey !== null && (() => {
+        const entry = getDiaryEntry(diaryWeekKey);
+        if (!entry || entry.items.length === 0) return null;
+        const boughtSet = new Set(entry.bought);
+        const isCurrent = diaryWeekKey === weekRangeFrom;
+        const canGoOlder = diaryIndex > 0;
+        const canGoNewer = diaryIndex >= 0 && diaryIndex < diaryWeekKeys.length - 1;
+        return (
+          // 아래 여백 14px 을 빠뜨리면 안 된다. 이 카드는 **달력 카드 안의
+          // 마지막 요소**라(바깥 카드는 `overflow: hidden`), 아래 여백이 0 이면
+          // 카드 바닥선에 그대로 붙는다 — 달력 아래가 잘려 보인다. 위쪽
+          // 달력 격자가 쓰는 14px 과 같은 값으로 맞춘다.
+          <div style={{ margin: '12px 14px 14px' }}>
+            {/* `key`를 페이지가 바뀔 때마다 바꿔서(주마다 다른 문자열) 리액트가
+                이 div를 새로 만들게 한다 — 그래야 `diary-page-flip` 애니메이션이
+                (CSS는 이미 끝난 애니메이션을 다시 틀어주지 않으므로) 페이지를
+                넘길 때마다 매번 재생된다. */}
+            <div key={diaryWeekKey} className="diary-page-flip">
+              <ShoppingMemoCard
+                labelText={isCurrent ? '장보기 메모 · 이번 주' : '장보기 메모'}
+                titleNode={(
+                  <>
+                    {/* "장보기 목록" 만 있으면 뭘 위한 목록인지 헷갈린다는 지적
+                        (2026-09-16) — 계획한 요리에서 나온 목록임을 제목에 바로
+                        적는다. */}
+                    계획한 요리 장보기
+                    <span style={{ fontSize: 11.5, fontWeight: 600, color: '#96720A', marginLeft: 4 }}>({entry.rangeLabel})</span>
+                    {' '}
+                    <span style={{ color: '#96720A' }}>{entry.items.length}개</span>
+                    {boughtSet.size > 0 && (
+                      <span style={{ fontSize: 11.5, fontWeight: 600, color: '#96720A' }}> · {boughtSet.size}개 샀어요</span>
                     )}
-                    items={entry.items}
-                    boughtSet={boughtSet}
-                    onCheckboxClick={(name, currentlyBought) => {
-                      if (currentlyBought) setItemBought(entry.weekKey, name, false);
-                      else setConfirmingPurchase({ name, weekKey: entry.weekKey });
-                    }}
-                    onLinkClick={(name) => {
-                      track('coupang_click', name);
-                      pendingPurchaseRef.current = { name, weekKey: entry.weekKey };
-                    }}
-                  />
-                );
-              })
-          )}
-        </div>
-      )}
+                  </>
+                )}
+                items={entry.items}
+                boughtSet={boughtSet}
+                onCheckboxClick={(name, currentlyBought) => {
+                  if (currentlyBought) setItemBought(diaryWeekKey, name, false);
+                  else setConfirmingPurchase({ name, weekKey: diaryWeekKey });
+                }}
+                onLinkClick={(name) => {
+                  track('coupang_click', name);
+                  pendingPurchaseRef.current = { name, weekKey: diaryWeekKey };
+                }}
+              />
+            </div>
+            {/* 다이어리 페이지 넘기기 — 저장된 주가 둘 이상일 때만 화살표를
+                보여준다(한 장뿐이면 넘길 데가 없다). "지난 장보기" 탭을
+                없애고 이 카드 자체를 앞뒤로 넘기게 해 달라는 요청(2026-09-16).
+                달력의 일/주/월 이동과는 무관하게 독립적으로 움직인다. */}
+            {diaryWeekKeys.length > 1 && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, marginTop: 10 }}>
+                <button
+                  type="button"
+                  onClick={() => canGoOlder && setDiaryWeekKey(diaryWeekKeys[diaryIndex - 1])}
+                  disabled={!canGoOlder}
+                  aria-label="이전 주 장보기 메모"
+                  style={{
+                    border: 'none', background: 'transparent', padding: 6,
+                    color: canGoOlder ? '#2B2118' : 'var(--line-300)',
+                    cursor: canGoOlder ? 'pointer' : 'default', fontSize: 13, fontWeight: 700,
+                  }}
+                >
+                  ‹ 이전
+                </button>
+                <span style={{ fontSize: 11, color: 'var(--ink-500)', fontVariantNumeric: 'tabular-nums' }}>
+                  {diaryIndex + 1} / {diaryWeekKeys.length}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => canGoNewer && setDiaryWeekKey(diaryWeekKeys[diaryIndex + 1])}
+                  disabled={!canGoNewer}
+                  aria-label="다음 주 장보기 메모"
+                  style={{
+                    border: 'none', background: 'transparent', padding: 6,
+                    color: canGoNewer ? '#2B2118' : 'var(--line-300)',
+                    cursor: canGoNewer ? 'pointer' : 'default', fontSize: 13, fontWeight: 700,
+                  }}
+                >
+                  다음 ›
+                </button>
+              </div>
+            )}
+            <div style={{ fontSize: 10, color: '#96720A', marginTop: 7, lineHeight: 1.5, padding: '0 2px' }}>
+              계획한 요리 재료 중 냉장고에 없는 것 · 체크하거나 사고 돌아오면 냉장고에 바로 담아 드려요 · 쿠팡 파트너스 수수료를 받을 수 있어요
+            </div>
+          </div>
+        );
+      })()}
 
       {confirmingClearAllPlans && (
         <Dialog
