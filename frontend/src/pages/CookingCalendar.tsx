@@ -189,10 +189,19 @@ const PencilIcon: React.FC = () => (
 );
 
 /**
- * 다이어리 한 장짜리 장보기 메모 — 지금 보는 주의 카드(달력 탭)와
- * "지난 장보기" 탭의 지난 주 카드가 **같은 모양**을 쓰도록 공용 컴포넌트로 뺐다.
- * 체크/링크 동작은 호출부가 넘겨준 콜백에 맡긴다 — 그래야 "지금 주"든 "지난
- * 주"든 같은 확인창(사셨나요) → 냉장고 반영 흐름을 그대로 재사용할 수 있다.
+ * 장보기 메모 한 장 — 지금 보는 주와 지난 주 페이지가 **같은 모양**을 쓰도록
+ * 공용 컴포넌트로 뺐다. 체크/링크 동작은 호출부가 넘겨준 콜백에 맡긴다 —
+ * 그래야 "지금 주"든 "지난 주"든 같은 확인창(사셨나요) → 냉장고 반영 흐름을
+ * 그대로 재사용할 수 있다.
+ *
+ * 처음엔 종이 다이어리처럼(크림색 배경 + 스프링 구멍 + 손글씨 폰트) 꾸몄는데,
+ * "너무 옛날식 UI 같다"는 지적(2026-09-17) — 앱의 나머지 화면은 전부 흰
+ * 배경·깔끔한 선·브랜드 노랑 포인트를 쓰는 현대적인 톤인데, 이 카드만 따로
+ * 복고풍 종이 질감을 흉내 내고 있어 튀어 보였다. 종이 흉내(구멍·크림색·
+ * 손글씨체)는 걷어내고, 앱의 다른 카드·버튼과 같은 언어(흰 배경, `var(--line-200)`
+ * 구분선, 체크는 진한 먹색 채움 + 노란 체크, "사러 가기"는 브랜드 노랑 알약
+ * 버튼)로 맞췄다. 이 컴포넌트는 이제 자기 배경·테두리를 갖지 않고, 호출부의
+ * 흰 박스 안에 내용만 채운다(중첩된 카드 두 겹으로 보이지 않도록).
  */
 const ShoppingMemoCard: React.FC<{
   titleNode: React.ReactNode;
@@ -201,83 +210,63 @@ const ShoppingMemoCard: React.FC<{
   onCheckboxClick: (name: string, currentlyBought: boolean) => void;
   onLinkClick: (name: string) => void;
 }> = ({ titleNode, items, boughtSet, onCheckboxClick, onLinkClick }) => (
-  <div style={{
-    borderRadius: 16, background: '#FFFCF5',
-    boxShadow: '0 10px 26px rgba(120,90,0,.13), 0 2px 6px rgba(120,90,0,.08)',
-    position: 'relative', overflow: 'hidden',
-  }}>
-    <div style={{ position: 'absolute', left: 24, top: 10, bottom: 10, width: 1, background: 'rgba(43,33,24,.08)' }} />
-    {[0.12, 0.37, 0.63, 0.88].map(pct => (
-      <div key={pct} style={{
-        position: 'absolute', left: 15, top: `${pct * 100}%`, width: 8, height: 8, borderRadius: '50%',
-        background: '#FFFCF5',
-        boxShadow: 'inset 0 1.5px 2.5px rgba(43,33,24,.28), inset 0 -1px 1px rgba(255,255,255,.5)',
-        transform: 'translate(-50%, -50%)',
-      }} />
-    ))}
-    <div style={{ padding: '16px 16px 12px 40px' }}>
-      {/* 예전엔 여기 위에 "이번 주"/"지난 주" 같은 작은 라벨이 하나 더
-          있었는데, (1) 바깥 박스 제목("계획한 요리 장보기 메모")과 겹쳐
-          보이고 (2) 다음 주로 넘겨도 "지난 주"라고 잘못 뜨는 버그가 있었고
-          (3) 3주 뒤·4주 뒤까지 다 케이스를 만들려면 끝이 없었다(실사용
-          지적, 2026-09-17). 바로 아래 실제 날짜 범위 하나로 "언제 것인지"
-          충분히 말이 되므로, 상대적인 라벨은 아예 없앴다. */}
-      <div style={{ fontSize: 15, fontWeight: 700, color: '#2B2118' }}>
-        {titleNode}
-      </div>
-      <div style={{ marginTop: 10 }}>
-        {items.map(name => {
-          const url = resolveCoupangUrl(name);
-          const bought = boughtSet.has(name);
-          return (
-            <div key={name} style={{
-              display: 'flex', alignItems: 'center', gap: 10,
-              padding: '9px 2px', borderBottom: '1px solid rgba(43,33,24,.08)',
-            }}>
-              <button
-                type="button"
-                onClick={() => onCheckboxClick(name, bought)}
-                aria-label={`${name} ${bought ? '샀음 표시 취소' : '샀어요로 표시'}`}
-                style={{
-                  width: 19, height: 19, borderRadius: 6, flexShrink: 0, padding: 0,
-                  border: bought ? 'none' : '1.5px solid #B4900A',
-                  background: bought ? '#2B2118' : '#FFFFFF', color: '#FFD600',
-                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                  cursor: 'pointer',
-                }}
-              >
-                {bought && <CheckIcon />}
-              </button>
-              <a
-                href={url}
-                target="_blank"
-                rel="noopener noreferrer sponsored"
-                onClick={() => onLinkClick(name)}
-                style={{
-                  flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600,
-                  color: bought ? '#96720A' : '#2B2118',
-                  textDecoration: bought ? 'line-through' : 'none',
-                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                }}
-              >
-                {name}
-              </a>
-              <a
-                href={url}
-                target="_blank"
-                rel="noopener noreferrer sponsored"
-                onClick={() => onLinkClick(name)}
-                style={{
-                  flexShrink: 0, fontSize: 11, fontWeight: 700, color: '#6B5200',
-                  textDecoration: 'none', whiteSpace: 'nowrap',
-                }}
-              >
-                사러가기 ↗
-              </a>
-            </div>
-          );
-        })}
-      </div>
+  <div>
+    <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink-500)' }}>
+      {titleNode}
+    </div>
+    <div style={{ marginTop: 8 }}>
+      {items.map(name => {
+        const url = resolveCoupangUrl(name);
+        const bought = boughtSet.has(name);
+        return (
+          <div key={name} style={{
+            display: 'flex', alignItems: 'center', gap: 10,
+            padding: '10px 2px', borderBottom: '1px solid var(--line-200)',
+          }}>
+            <button
+              type="button"
+              onClick={() => onCheckboxClick(name, bought)}
+              aria-label={`${name} ${bought ? '샀음 표시 취소' : '샀어요로 표시'}`}
+              style={{
+                width: 20, height: 20, borderRadius: 6, flexShrink: 0, padding: 0,
+                border: bought ? 'none' : '1.5px solid var(--line-300)',
+                background: bought ? '#1A1A1E' : '#FFFFFF', color: '#FFD600',
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer',
+              }}
+            >
+              {bought && <CheckIcon />}
+            </button>
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer sponsored"
+              onClick={() => onLinkClick(name)}
+              style={{
+                flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600,
+                color: bought ? 'var(--ink-500)' : 'var(--ink-900)',
+                textDecoration: bought ? 'line-through' : 'none',
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}
+            >
+              {name}
+            </a>
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer sponsored"
+              onClick={() => onLinkClick(name)}
+              style={{
+                flexShrink: 0, fontSize: 11.5, fontWeight: 700, color: '#1A1A1E',
+                textDecoration: 'none', whiteSpace: 'nowrap',
+                padding: '5px 10px', borderRadius: 8, background: '#FFD600',
+              }}
+            >
+              사러 가기
+            </a>
+          </div>
+        );
+      })}
     </div>
   </div>
 );
@@ -1649,19 +1638,17 @@ const CookingCalendar: React.FC = () => {
           계획한 요리 장보기 메모
         </div>
         {/* `key`를 페이지가 바뀔 때마다 바꿔서(주마다 다른 문자열) 리액트가
-            이 div를 새로 만들게 한다 — 그래야 `diary-page-flip` 애니메이션이
+            이 div를 새로 만들게 한다 — 그래야 `memo-page-in` 애니메이션이
             페이지를 넘길 때마다 매번 재생된다. 이 박스가 달력과 완전히
             분리된 덕에, 화살표로 지난 주를 넘겨 보는 페이지네이션을 다시
             안전하게 쓸 수 있다(2026-09-17, "좌우로 넘길 수 있게 해 달라"). */}
-        <div key={diaryWeekKey} className="diary-page-flip">
+        <div key={diaryWeekKey} className="memo-page-in">
           <ShoppingMemoCard
             titleNode={(
               <>
                 {entry.rangeLabel}
-                <span style={{ color: '#96720A' }}> · {entry.items.length}개</span>
-                {boughtSet.size > 0 && (
-                  <span style={{ fontSize: 11.5, fontWeight: 600, color: '#96720A' }}> · {boughtSet.size}개 샀어요</span>
-                )}
+                <span> · {entry.items.length}개</span>
+                {boughtSet.size > 0 && <span> · {boughtSet.size}개 샀어요</span>}
               </>
             )}
             items={entry.items}
@@ -1677,23 +1664,26 @@ const CookingCalendar: React.FC = () => {
           />
         </div>
         {/* 페이지네이션 — 저장된 주가 둘 이상일 때만 화살표를 보여준다
-            (한 장뿐이면 넘길 데가 없다). */}
+            (한 장뿐이면 넘길 데가 없다). 달력 자체의 이전/다음(위쪽 일/주/월
+            내비게이션)과 같은 화살표 아이콘 버튼 모양으로 맞춰, 앱 전체에서
+            "이전/다음"이 같은 생김새로 읽히게 한다(2026-09-17, 디자인 개선
+            요청). */}
         {diaryWeekKeys.length > 1 && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, marginTop: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, marginTop: 8 }}>
             <button
               type="button"
               onClick={() => canGoOlder && setDiaryWeekKey(diaryWeekKeys[diaryIndex - 1])}
               disabled={!canGoOlder}
               aria-label="이전 주 장보기 메모"
               style={{
-                border: 'none', background: 'transparent', padding: 6,
-                color: canGoOlder ? '#2B2118' : 'var(--line-300)',
-                cursor: canGoOlder ? 'pointer' : 'default', fontSize: 13, fontWeight: 700,
+                width: 32, height: 32, border: 'none', background: 'transparent',
+                cursor: canGoOlder ? 'pointer' : 'default', opacity: canGoOlder ? 1 : 0.3,
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
               }}
             >
-              ‹ 이전
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1A1A1E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
             </button>
-            <span style={{ fontSize: 11, color: 'var(--ink-500)', fontVariantNumeric: 'tabular-nums' }}>
+            <span style={{ fontSize: 11, color: 'var(--ink-500)', fontVariantNumeric: 'tabular-nums', minWidth: 32, textAlign: 'center' }}>
               {diaryIndex + 1} / {diaryWeekKeys.length}
             </span>
             <button
@@ -1702,16 +1692,16 @@ const CookingCalendar: React.FC = () => {
               disabled={!canGoNewer}
               aria-label="다음 주 장보기 메모"
               style={{
-                border: 'none', background: 'transparent', padding: 6,
-                color: canGoNewer ? '#2B2118' : 'var(--line-300)',
-                cursor: canGoNewer ? 'pointer' : 'default', fontSize: 13, fontWeight: 700,
+                width: 32, height: 32, border: 'none', background: 'transparent',
+                cursor: canGoNewer ? 'pointer' : 'default', opacity: canGoNewer ? 1 : 0.3,
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
               }}
             >
-              다음 ›
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1A1A1E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6" /></svg>
             </button>
           </div>
         )}
-        <div style={{ fontSize: 10, color: '#96720A', marginTop: 7, lineHeight: 1.5, padding: '0 2px' }}>
+        <div style={{ fontSize: 10, color: 'var(--ink-500)', marginTop: 7, lineHeight: 1.5, padding: '0 2px' }}>
           계획한 요리 재료 중 냉장고에 없는 것 · 체크하거나 사고 돌아오면 냉장고에 바로 담아 드려요 · 쿠팡 파트너스 수수료를 받을 수 있어요
         </div>
       </div>

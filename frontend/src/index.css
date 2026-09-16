@@ -1345,18 +1345,21 @@ select:focus-visible {
   45%      { background: #FFD600; transform: scale(1.12); }
 }
 
-/* 장보기 메모 다이어리 — 화살표로 지난 주 페이지를 넘길 때, 종이가 한 장
-   넘어가는 듯한 느낌을 준다(2026-09-16, "진짜 다이어리를 넘기는 듯한 효과가
-   있었으면"). 페이지가 바뀔 때마다 이 클래스를 다시 붙여(리액트 `key`로
-   매번 새 엘리먼트를 만들어) 애니메이션이 매번 재생되게 한다. */
-.diary-page-flip {
-  animation: diary-page-flip .32s cubic-bezier(.2,.7,.3,1);
-  transform-origin: left center;
+/* 장보기 메모 — 화살표로 지난 주 페이지를 넘길 때 살짝 올라오며 나타나는
+   전환(2026-09-16, "페이지가 넘어가는 듯한 효과가 있었으면"). 처음엔 종이가
+   실제로 넘어가는 듯한 rotateY 효과였는데, 카드 자체를 종이 질감에서 깔끔한
+   흰 카드로 바꾸면서(2026-09-17, "디자인이 옛날식 UI 같다") 그 효과도
+   같이 뺐다 — 종이를 흉내 내는 각도 회전은 새 디자인과 안 어울려, 훨씬
+   절제된 페이드+슬라이드로 바꿨다. 페이지가 바뀔 때마다 이 클래스를 다시
+   붙여(리액트 `key`로 매번 새 엘리먼트를 만들어) 애니메이션이 매번
+   재생되게 한다. */
+.memo-page-in {
+  animation: memo-page-in .22s ease-out;
 }
-@keyframes diary-page-flip {
-  0%   { opacity: 0; transform: perspective(700px) rotateY(10deg) scale(.98); }
-  100% { opacity: 1; transform: perspective(700px) rotateY(0deg) scale(1); }
+@keyframes memo-page-in {
+  0%   { opacity: 0; transform: translateY(4px); }
+  100% { opacity: 1; transform: translateY(0); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .diary-page-flip { animation: none; }
+  .memo-page-in { animation: none; }
 }
