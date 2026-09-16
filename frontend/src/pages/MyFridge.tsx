@@ -22,6 +22,7 @@ import { shrinkImageForUpload } from '../utils/imageUtils';
 import { applyUsage, spendOptimistically, usageHeaders } from '../utils/usage';
 import { useUsage } from '../components/UsageMeter';
 import { loadIngredientCategoryMap, estimateExpiry, type CategoryMap } from '../utils/shelfLife';
+import { STALE_AFTER_DAYS } from '../utils/expiry';
 import {
   isUsageGuideDueThisVisit,
   markUsageGuideFinished,
@@ -245,7 +246,7 @@ interface IngredientPillProps {
  * 짐작한 값은 `약 D-5` 처럼 표시해서 단정하지 않는다 —
  * 추정을 확정처럼 보여주면 멀쩡한 재료를 버리게 된다.
  */
-function getDdayLabel(item: Ingredient): { text: string; urgent: boolean; estimated: boolean } | null {
+function getDdayLabel(item: Ingredient): { text: string; urgent: boolean; estimated: boolean; stale: boolean } | null {
   const estimated = !item.expiry && !!item.estimatedExpiry;
   const raw = item.expiry || item.estimatedExpiry;
   if (!raw) return null;
@@ -256,9 +257,13 @@ function getDdayLabel(item: Ingredient): { text: string; urgent: boolean; estima
   d.setHours(0, 0, 0, 0);
   const days = Math.round((d.getTime() - today.getTime()) / 86400000);
   const prefix = estimated ? '약 ' : '';
-  if (days < 0) return { text: estimated ? '약 지남' : '지남', urgent: true, estimated };
-  if (days === 0) return { text: `${prefix}D-day`, urgent: true, estimated };
-  return { text: `${prefix}D-${days}`, urgent: days <= 3, estimated };
+  // 14일 넘게 지난 건 "그냥 지난" 것과 같은 빨강으로 묶으면 눈에 안 띈다
+  // — 배지 색도 차등을 둬 달라는 지적(2026-09-16). `STALE_AFTER_DAYS` 는
+  // 마이캘린더 알림이 "너무 오래 지나 안 보여주는" 기준과 같은 값을 쓴다.
+  const stale = days < -STALE_AFTER_DAYS;
+  if (days < 0) return { text: estimated ? '약 지남' : '지남', urgent: true, estimated, stale };
+  if (days === 0) return { text: `${prefix}D-day`, urgent: true, estimated, stale: false };
+  return { text: `${prefix}D-${days}`, urgent: days <= 3, estimated, stale: false };
 }
 
 const IngredientPill: React.FC<IngredientPillProps> = ({ item, onRemove, onSettingsClick, isFirstInFridge = false }) => {
@@ -310,9 +315,11 @@ const IngredientPill: React.FC<IngredientPillProps> = ({ item, onRemove, onSetti
               fontWeight: 700,
               flexShrink: 0,
               // 짐작한 기한까지 빨갛게 칠하면 확정된 사실처럼 읽히므로,
-              // 추정값은 급해도 붉은색 대신 옅은 주황으로 한 단계 낮춘다
-              background: dday.urgent ? (dday.estimated ? '#FFF3E0' : '#FFE7E4') : 'var(--surface-sub)',
-              color: dday.urgent ? (dday.estimated ? '#9A5B00' : '#C4342B') : 'var(--ink-500)',
+              // 추정값은 급해도 붉은색 대신 옅은 주황으로 한 단계 낮춘다.
+              // 14일 넘게 지난 것(stale)은 "그냥 지난" 것과 같은 빨강이면
+              // 안 눈에 띈다는 지적(2026-09-16) — 더 진한 빨강으로 한 단계 더.
+              background: dday.stale ? '#E8483A' : dday.urgent ? (dday.estimated ? '#FFF3E0' : '#FFE7E4') : 'var(--surface-sub)',
+              color: dday.stale ? '#FFFFFF' : dday.urgent ? (dday.estimated ? '#9A5B00' : '#C4342B') : 'var(--ink-500)',
             }}
           >
             {dday.text}

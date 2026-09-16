@@ -116,10 +116,18 @@ const ExpiryAlert: React.FC<Props> = ({ boxes, categoryMap, within = SOON_DAYS, 
       </div>
 
       {/* "약" 이 붙은 건 짐작값이다. 정직하게 말해 두지 않으면 멀쩡한 재료를
-          버리게 만든다. */}
+          버리게 만든다.
+          예전엔 "N개" 라고만 해서 **뭔지 모른 채** 지워야 했다(실사용 지적,
+          2026-09-16) — 이름을 직접 적는다. 여러 개면 다 늘어놓지 않고
+          `soon` 목록처럼 몇 개만 보이고 "외 N개" 로 줄인다. 줄바꿈도 자동
+          래핑에 맡기지 않고 `<br/>` 로 직접 끊는다(같은 지적, 애매한 줄바꿈
+          금지). */}
       {stale.length > 0 && (
-        <div style={{ fontSize: 11.5, color: 'var(--ink-500)', lineHeight: 1.6 }}>
-          {STALE_AFTER_DAYS}일 넘게 지난 재료 <b>{stale.length}개</b>는 여기에 안 띄워요.
+        <div style={{ fontSize: 11.5, color: 'var(--ink-500)', lineHeight: 1.6, wordBreak: 'keep-all' }}>
+          <b>{STALE_AFTER_DAYS}일 넘게 지난 재료</b>
+          {' '}({stale.slice(0, 3).map(i => i.name).join(', ')}
+          {stale.length > 3 && ` 외 ${stale.length - 3}개`})는 여기에 안 띄워요.
+          <br />
           이미 버리셨다면 목록에서 지워 주세요.
         </div>
       )}

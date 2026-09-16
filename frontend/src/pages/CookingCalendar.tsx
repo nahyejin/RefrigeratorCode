@@ -2142,90 +2142,106 @@ const CookingCalendar: React.FC = () => {
         // 카드 바닥선에 그대로 붙는다 — 달력 아래가 잘려 보인다. 위쪽
         // 달력 격자가 쓰는 14px 과 같은 값으로 맞춘다.
         //
-        // 얇은 금색 테두리 + 거의 흰 배경(#FFFDF2)이라 "포스트잇" 이 아니라
-        // 그냥 경고 상자처럼 보였다("촌스럽다" — 실사용 지적, 2026-09-16).
-        // 진짜 포스트잇처럼 **테두리 없이 진한 단색 + 살짝 뜬 그림자**로.
+        // 진한 단색 + 그림자로 바꿔도 "그냥 칙칙한 노란 상자"였다 — 포스트잇
+        // 자체가 디자인적으로 별 게 없다는 지적(2026-09-16). 색을 칠하는
+        // 대신 **종이 메모장**으로: 옅은 종이색 + 왼쪽에 다이어리 스프링
+        // 구멍 3개 + 줄노트 같은 점선 구분선 + 손글씨 폰트(Gaegu, index.html
+        // 에서 로드)로, "사람이 직접 적은 장보기 메모"처럼 보이게 한다.
         <div style={{
-          margin: '12px 14px 14px', padding: '14px 14px 12px', borderRadius: 10,
-          background: '#FFF3B0', boxShadow: '0 3px 10px rgba(120,90,0,.14)',
+          margin: '12px 14px 14px', borderRadius: 10,
+          background: '#FFFDF6', boxShadow: '0 4px 14px rgba(120,90,0,.15)',
+          position: 'relative', overflow: 'hidden',
         }}>
-          <div style={{ fontSize: 13.5, fontWeight: 800, color: '#1A1A1E' }}>
-            장보기 목록
-            <span style={{ fontSize: 11.5, fontWeight: 600, color: '#8A6A00', marginLeft: 4 }}>({weekRangeLabel})</span>
-            {' '}
-            <span style={{ color: '#8A6A00' }}>{weekBasket.length}개</span>
-            {boughtWeekItems.size > 0 && (
-              <span style={{ fontSize: 11.5, fontWeight: 600, color: '#8A6A00' }}> · {boughtWeekItems.size}개 샀어요</span>
-            )}
-          </div>
-          {/* 포스트잇에 적은 장보기 투두리스트 — 체크박스 / 재료(눌러서 구매) /
-              사러가기. 배지를 늘어놓기만 하던 예전 모양이 이 화면·AI 식단
-              결과에 똑같이 반복돼 "지루하다"는 지적(2026-09-16)으로, 실제
-              사람이 쓰는 장보기 메모 형태로 바꿨다.
-              체크박스를 직접 눌러도(링크를 안 타고도) 같은 "사셨나요" 확인
-              → 냉장고 반영이 되어야 한다는 지적도 반영 — 체크만 누르고
-              끝내는 사람도 있으니, 눌렀을 때 조용히 넘어가면 안 된다. */}
-          <div style={{ marginTop: 8 }}>
-            {weekBasket.map(name => {
-              const url = resolveCoupangUrl(name);
-              const bought = boughtWeekItems.has(name);
-              return (
-                <div key={name} style={{
-                  display: 'flex', alignItems: 'center', gap: 10,
-                  padding: '9px 2px', borderBottom: '1px solid rgba(120,90,0,.14)',
-                }}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (bought) {
-                        setBoughtWeekItems(prev => { const next = new Set(prev); next.delete(name); return next; });
-                      } else {
-                        setConfirmingPurchase(name);
-                      }
-                    }}
-                    aria-label={`${name} ${bought ? '샀음 표시 취소' : '샀어요로 표시'}`}
-                    style={{
-                      width: 19, height: 19, borderRadius: 6, flexShrink: 0, padding: 0,
-                      border: bought ? 'none' : '1.5px solid #B4900A',
-                      background: bought ? '#1A1A1E' : '#FFFFFF', color: '#FFD600',
-                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {bought && <CheckIcon />}
-                  </button>
-                  <a
-                    href={url}
-                    target="_blank"
-                    rel="noopener noreferrer sponsored"
-                    onClick={() => { track('coupang_click', name); pendingPurchaseRef.current = name; }}
-                    style={{
-                      flex: 1, minWidth: 0, fontSize: 13.5, fontWeight: 600,
-                      color: bought ? '#8A6A00' : '#1A1A1E',
-                      textDecoration: bought ? 'line-through' : 'none',
-                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {name}
-                  </a>
-                  <a
-                    href={url}
-                    target="_blank"
-                    rel="noopener noreferrer sponsored"
-                    onClick={() => { track('coupang_click', name); pendingPurchaseRef.current = name; }}
-                    style={{
-                      flexShrink: 0, fontSize: 11, fontWeight: 700, color: '#6B5200',
-                      textDecoration: 'none', whiteSpace: 'nowrap',
-                    }}
-                  >
-                    사러가기 ↗
-                  </a>
-                </div>
-              );
-            })}
-          </div>
-          <div style={{ fontSize: 10, color: '#8A6A00', marginTop: 7, lineHeight: 1.5 }}>
-            계획한 요리 재료 중 냉장고에 없는 것 · 체크하거나 사고 돌아오면 냉장고에 바로 담아 드려요 · 쿠팡 파트너스 수수료를 받을 수 있어요
+          <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 26, background: 'rgba(120,90,0,.05)', borderRight: '1px dashed rgba(120,90,0,.24)' }} />
+          {[0.16, 0.5, 0.84].map(pct => (
+            <div key={pct} style={{
+              position: 'absolute', left: 10, top: `${pct * 100}%`, width: 9, height: 9, borderRadius: '50%',
+              background: '#FFFFFF', boxShadow: 'inset 0 1px 2px rgba(120,90,0,.4)', transform: 'translateY(-50%)',
+            }} />
+          ))}
+          <div style={{ padding: '14px 14px 12px 38px' }}>
+            <div style={{ fontFamily: "'Gaegu', 'Pretendard', sans-serif", fontSize: 16, fontWeight: 700, color: '#1A1A1E' }}>
+              {/* "장보기 목록" 만 있으면 뭘 위한 목록인지 헷갈린다는 지적
+                  (2026-09-16) — 계획한 요리에서 나온 목록임을 제목에 바로
+                  적는다. */}
+              계획한 요리 장보기
+              <span style={{ fontSize: 11.5, fontWeight: 600, color: '#8A6A00', marginLeft: 4 }}>({weekRangeLabel})</span>
+              {' '}
+              <span style={{ color: '#8A6A00' }}>{weekBasket.length}개</span>
+              {boughtWeekItems.size > 0 && (
+                <span style={{ fontSize: 11.5, fontWeight: 600, color: '#8A6A00' }}> · {boughtWeekItems.size}개 샀어요</span>
+              )}
+            </div>
+            {/* 메모장에 적은 장보기 투두리스트 — 체크박스 / 재료(눌러서 구매) /
+                사러가기. 배지를 늘어놓기만 하던 예전 모양이 이 화면·AI 식단
+                결과에 똑같이 반복돼 "지루하다"는 지적(2026-09-16)으로, 실제
+                사람이 쓰는 장보기 메모 형태로 바꿨다.
+                체크박스를 직접 눌러도(링크를 안 타고도) 같은 "사셨나요" 확인
+                → 냉장고 반영이 되어야 한다는 지적도 반영 — 체크만 누르고
+                끝내는 사람도 있으니, 눌렀을 때 조용히 넘어가면 안 된다. */}
+            <div style={{ marginTop: 8 }}>
+              {weekBasket.map(name => {
+                const url = resolveCoupangUrl(name);
+                const bought = boughtWeekItems.has(name);
+                return (
+                  <div key={name} style={{
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '9px 2px', borderBottom: '1px dashed rgba(120,90,0,.22)',
+                  }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (bought) {
+                          setBoughtWeekItems(prev => { const next = new Set(prev); next.delete(name); return next; });
+                        } else {
+                          setConfirmingPurchase(name);
+                        }
+                      }}
+                      aria-label={`${name} ${bought ? '샀음 표시 취소' : '샀어요로 표시'}`}
+                      style={{
+                        width: 19, height: 19, borderRadius: 6, flexShrink: 0, padding: 0,
+                        border: bought ? 'none' : '1.5px solid #B4900A',
+                        background: bought ? '#1A1A1E' : '#FFFFFF', color: '#FFD600',
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {bought && <CheckIcon />}
+                    </button>
+                    <a
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer sponsored"
+                      onClick={() => { track('coupang_click', name); pendingPurchaseRef.current = name; }}
+                      style={{
+                        flex: 1, minWidth: 0, fontFamily: "'Gaegu', 'Pretendard', sans-serif",
+                        fontSize: 15, fontWeight: 700,
+                        color: bought ? '#8A6A00' : '#1A1A1E',
+                        textDecoration: bought ? 'line-through' : 'none',
+                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {name}
+                    </a>
+                    <a
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer sponsored"
+                      onClick={() => { track('coupang_click', name); pendingPurchaseRef.current = name; }}
+                      style={{
+                        flexShrink: 0, fontSize: 11, fontWeight: 700, color: '#6B5200',
+                        textDecoration: 'none', whiteSpace: 'nowrap',
+                      }}
+                    >
+                      사러가기 ↗
+                    </a>
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{ fontSize: 10, color: '#8A6A00', marginTop: 7, lineHeight: 1.5 }}>
+              계획한 요리 재료 중 냉장고에 없는 것 · 체크하거나 사고 돌아오면 냉장고에 바로 담아 드려요 · 쿠팡 파트너스 수수료를 받을 수 있어요
+            </div>
           </div>
         </div>
       )}
