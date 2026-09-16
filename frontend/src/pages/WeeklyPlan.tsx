@@ -2449,16 +2449,19 @@ const WeeklyPlan: React.FC = () => {
       )}
 
       {/* ── 장보기 목록 ────────────────────────────────────── */}
+      {/* 얇은 테두리 + 흰 배경이라 "포스트잇" 이 아니라 그냥 카드처럼 보였다
+          ("촌스럽다" — 실사용 지적, 2026-09-16). 마이캘린더의 장보기 목록과
+          같은 진짜 포스트잇 색으로(테두리 없이 진한 단색 + 살짝 뜬 그림자). */}
       {shopping.length > 0 && (
         <div id="shopping-list" style={{
-          background: 'var(--surface)', border: '1px solid var(--line-200)',
-          borderRadius: 14, padding: '14px 16px', marginTop: 16,
+          background: '#FFF3B0', boxShadow: '0 3px 10px rgba(120,90,0,.14)',
+          borderRadius: 10, padding: '14px 16px 12px', marginTop: 16,
           scrollMarginTop: 80,
         }}>
           <h2 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 4px', color: '#1A1A1E' }}>
             장보기 목록 {shopping.length}개
           </h2>
-          <div style={{ fontSize: 12, color: 'var(--ink-500)', marginBottom: 10, lineHeight: 1.6 }}>
+          <div style={{ fontSize: 12, color: '#8A6A00', marginBottom: 10, lineHeight: 1.6 }}>
             냉장고에 없는 것. <b>많이 쓰이는 순서</b>.
           </div>
 
@@ -2469,27 +2472,41 @@ const WeeklyPlan: React.FC = () => {
               return (
                 <div key={name} style={{
                   display: 'flex', alignItems: 'center', gap: 10,
-                  padding: '9px 4px', borderBottom: '1px solid var(--line-200)',
+                  padding: '9px 4px', borderBottom: '1px solid rgba(120,90,0,.14)',
                 }}>
-                  <input
-                    type="checkbox"
-                    checked={done}
-                    onChange={() => setBought(prev => {
-                      const next = new Set(prev);
-                      if (next.has(name)) next.delete(name); else next.add(name);
-                      return next;
-                    })}
-                    aria-label={`${name} 샀어요`}
-                    style={{ width: 18, height: 18, flexShrink: 0 }}
-                  />
+                  {/* 체크박스를 직접 눌러도(링크를 안 타고도) 같은 "사셨나요"
+                      확인 → 냉장고 반영이 되어야 한다는 지적(2026-09-16) —
+                      체크만 누르고 끝내는 사람도 있으니 조용히 넘어가면 안 됨.
+                      해제는 확인 없이 바로(되돌리는 동작이라 다시 안 물음). */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (done) setBought(prev => { const next = new Set(prev); next.delete(name); return next; });
+                      else setConfirmingPurchase(name);
+                    }}
+                    aria-label={`${name} ${done ? '샀음 표시 취소' : '샀어요로 표시'}`}
+                    style={{
+                      width: 18, height: 18, borderRadius: 5, flexShrink: 0, padding: 0,
+                      border: done ? 'none' : '1.5px solid #B4900A',
+                      background: done ? '#1A1A1E' : '#FFFFFF', color: '#FFD600',
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {done && (
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                        <path d="M4.4 12.6l5.2 5.2 10-11.6" />
+                      </svg>
+                    )}
+                  </button>
                   <span style={{
                     flex: 1, minWidth: 0, fontSize: 14,
-                    color: done ? 'var(--ink-500)' : 'var(--ink-900)',
+                    color: done ? '#8A6A00' : '#1A1A1E',
                     textDecoration: done ? 'line-through' : 'none',
                   }}>
                     {name}
                     {count > 1 && (
-                      <span style={{ fontSize: 11.5, color: 'var(--ink-500)' }}> · {count}개 요리</span>
+                      <span style={{ fontSize: 11.5, color: '#8A6A00' }}> · {count}개 요리</span>
                     )}
                   </span>
                   {url && (
@@ -2512,9 +2529,9 @@ const WeeklyPlan: React.FC = () => {
             })}
           </div>
 
-          <div style={{ fontSize: 11, color: 'var(--ink-500)', marginTop: 10, lineHeight: 1.6 }}>
-            쿠팡 파트너스 활동으로 일정 수수료를 받을 수 있어요. 사고 돌아오면 "사셨나요"
-            를 물어서, 그렇다고 하면 내 냉장고에 바로 담아 드려요.
+          <div style={{ fontSize: 11, color: '#8A6A00', marginTop: 10, lineHeight: 1.6 }}>
+            쿠팡 파트너스 활동으로 일정 수수료를 받을 수 있어요. 체크하거나
+            사고 돌아오면 냉장고에 바로 담아 드려요.
           </div>
         </div>
       )}
@@ -2534,8 +2551,9 @@ const WeeklyPlan: React.FC = () => {
           }]}
         >
           <span style={{ wordBreak: 'keep-all' }}>
-            샀다고 하면 오늘 날짜로 내 냉장고에 바로 담아 드려요. 보관 방법은
-            재료에 맞춰 짐작해 두니, 다르면 냉장고 화면에서 고칠 수 있어요.
+            오늘 날짜로 내 냉장고에 바로 담아요.
+            <br />
+            보관 방법은 재료에 맞춰 정할게요.
           </span>
         </Dialog>
       )}
