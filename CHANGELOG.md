@@ -11223,3 +11223,16 @@ edge-tts 파일럿 목소리가 "너무 AI 같다"는 피드백 + "제미나이�
 
 - [index.html](frontend/index.html)의 폰트 로드와 [index.css](frontend/src/index.css)의 `.memo-handwrite` 예외 클래스를 **Gamja Flower**로 교체 — 같은 손글씨 계열이지만 획이 굵고 또렷해 작은 크기에서도 읽기 쉬움. 적용 범위(재료 이름에만, `!important` 예외 클래스로 전역 폰트 규칙 우회)는 그대로.
 - 타입 체크 통과. 로컬 프리뷰에서 재료 이름이 Gamja Flower로 렌더되는 것을 DevTools `font-family` 계산값과 `document.fonts` 로드 상태로 직접 확인.
+
+### 지난 주 장보기 메모에 삭제 버튼 추가
+장보기 메모는 요리 계획과 독립적으로 저장돼서(계획을 지워도 과거 메모는 그대로 남는 설계 — 계획은 "뭘 할지", 메모는 실제로 산 기록이라 서로 다른 데이터라 의도적으로 분리해 둠), 지난 메모를 정리하려면 직접 지우는 방법이 있어야 한다는 요청(2026-09-17).
+
+- [CookingCalendar.tsx](frontend/src/pages/CookingCalendar.tsx): 장보기 메모 박스 제목 옆에 휴지통 아이콘 버튼 추가. 누르면 "이 장보기 메모를 지울까요?" 확인창(되돌릴 수 없음을 명시) → 확인 시 `memoHistory`에서 그 주만 지우고 저장, 남은 페이지 중 하나로 자연스럽게 이동.
+- **이번 주는 버튼을 안 보여줌**: 이번 주는 계획이 남아 있는 한 다음 렌더에서 `upsertWeekMemo`가 곧바로 다시 채워 넣어, 지워도 그 자리에서 되살아나 보일 뿐이다 — 이번 주 메모를 정말 없애고 싶다면 계획 자체를 지우는 게 맞는 방법이라, 지난 주 페이지에서만 삭제 버튼을 노출.
+- 타입 체크 통과. 로컬 프리뷰에 지난 2주치 메모를 심어 두고 삭제 버튼 클릭 → 확인창 → "지우기" → 해당 주가 실제로 사라지고 남은 페이지로 이동하는 것, `localStorage`에서 그 주 항목이 실제로 빠진 것까지 확인.
+
+### (참고) 과거 날짜로 요리 계획을 잡을 수 있는지 확인
+"AI 식단 추천 결과의 레시피 카드에서 어제 같은 과거 날짜로 계획을 잡을 수 있는 거 아니냐"는 질문(2026-09-17) — 코드를 확인한 결과, 두 계획 생성 경로 모두 이미 과거 날짜를 막고 있음을 확인(추가 수정 없음).
+
+- **AI 주간 식단 적용**: [WeeklyPlan.tsx](frontend/src/pages/WeeklyPlan.tsx)의 `nextDays()`가 항상 **내일부터** 날짜를 만들어서(`base.getDate() + 1`부터 시작), 이 경로로는 애초에 오늘·과거 날짜가 나올 수 없음.
+- **레시피 상세에서 "언제 해먹을까요?"**([PlanThisDay.tsx](frontend/src/components/PlanThisDay.tsx)): 빠른 선택 알약도 오늘부터 14일만 보여주고, "다른 날짜" 달력([DatePickerField.tsx](frontend/src/components/DatePickerField.tsx) → [CustomCalendar.tsx](frontend/src/components/CustomCalendar.tsx))도 `minDate={new Date()}`를 넘겨 오늘 이전 날짜는 실제로 눌러도 선택되지 않도록 막아 둠(장식이 아니라 `Utils.isValidDateRange`에서 진짜로 걸러짐을 코드로 확인).

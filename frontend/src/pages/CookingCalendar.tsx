@@ -1447,6 +1447,25 @@ const CookingCalendar: React.FC = () => {
     return stored ? { rangeLabel: stored.rangeLabel, items: stored.items, bought: stored.bought } : null;
   }, [memoHistory, weekBasket, shoppingWeekFrom, shoppingWeekLabel]);
 
+  /** 지난 주 메모를 수동으로 지운다 — "과거 기록은 계획을 지워도 안 지워진다면,
+   * 메모 자체를 지우는 버튼이 있어야 한다"는 요청(2026-09-17). 지금 이번 주는
+   * 대상에서 뺀다 — 계획이 있는 한 다음 렌더에서 `upsertWeekMemo`가 곧바로
+   * 다시 채워 넣어, 지워도 그 자리에서 되살아나 보일 뿐이기 때문이다(정말
+   * 없애고 싶으면 계획 자체를 지우면 된다). 지운 뒤엔 다음 페이지(없으면
+   * 이전 페이지)로 자연스럽게 넘어가도록 `diaryWeekKey`를 null로 돌려
+   * 두면, 바로 위 기본값 선택 효과가 알아서 남은 페이지 중 하나로 옮겨 준다. */
+  const [confirmingDeleteMemoWeek, setConfirmingDeleteMemoWeek] = React.useState<string | null>(null);
+  const deleteWeekMemo = (weekKey: string) => {
+    setMemoHistory(prev => {
+      if (!prev[weekKey]) return prev;
+      const next = { ...prev };
+      delete next[weekKey];
+      return saveShoppingMemoHistory(next);
+    });
+    setDiaryWeekKey(null);
+    setConfirmingDeleteMemoWeek(null);
+  };
+
   /** 링크를 누른 재료 — 탭에 돌아왔을 때 이 값이 있으면 "사셨나요" 를 묻는다.
    * 다른 이유로 탭을 벗어났다 돌아왔을 때는 물으면 안 되므로 ref 로 들고 있다가
    * 쓰고 나면 바로 비운다. 어느 **주**의 재료인지도 같이 들고 있어야
@@ -1647,14 +1666,37 @@ const CookingCalendar: React.FC = () => {
     const boughtSet = new Set(entry.bought);
     const canGoOlder = diaryIndex > 0;
     const canGoNewer = diaryIndex >= 0 && diaryIndex < diaryWeekKeys.length - 1;
+    const isCurrentWeek = diaryWeekKey === shoppingWeekFrom;
     return (
       <div style={{
         margin: '16px 14px 14px', borderRadius: 14,
         border: '1px solid var(--line-200)', background: '#FFFFFF',
         padding: '14px 14px 16px',
       }}>
-        <div style={{ fontSize: 15, fontWeight: 700, color: '#1A1A1E', marginBottom: 10 }}>
-          계획한 요리 장보기 메모
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 10 }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: '#1A1A1E' }}>
+            계획한 요리 장보기 메모
+          </div>
+          {/* 지난 주는 계획을 지워도 자동으로 안 없어지므로(위 `deleteWeekMemo`
+              설명 참고), 직접 지울 수 있는 버튼을 둔다. 이번 주는 계획이 살아
+              있는 한 지워도 곧바로 다시 채워질 뿐이라 버튼 자체를 안 보여준다
+              — "지우고 싶으면 계획을 지워라"가 이번 주의 정답이라서. */}
+          {!isCurrentWeek && (
+            <button
+              type="button"
+              onClick={() => setConfirmingDeleteMemoWeek(diaryWeekKey)}
+              aria-label={`${entry.rangeLabel} 장보기 메모 삭제`}
+              style={{
+                flexShrink: 0, border: 'none', background: 'transparent', padding: 4,
+                color: 'var(--ink-500)', cursor: 'pointer',
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              <svg style={{ width: 17, height: 17, flexShrink: 0 }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6" />
+              </svg>
+            </button>
+          )}
         </div>
         {/* `key`를 페이지가 바뀔 때마다 바꿔서(주마다 다른 문자열) 리액트가
             이 div를 새로 만들게 한다 — 그래야 `memo-page-in` 애니메이션이
@@ -3324,6 +3366,28 @@ const CookingCalendar: React.FC = () => {
           }}>
             {justAddedName}이(가) 내 냉장고에 추가되었어요
           </div>
+        )}
+        {/* 지난 주 장보기 메모 삭제 확인 — 되돌릴 수 없어서 한 번 더 묻는다
+            (2026-09-17, "메모를 지우는 기능도 만들어 놔야 한다"는 요청). */}
+        {confirmingDeleteMemoWeek && (
+          <Dialog
+            open
+            onClose={() => setConfirmingDeleteMemoWeek(null)}
+            title="이 장보기 메모를 지울까요?"
+            width={300}
+            dismissLabel="아니요"
+            actions={[{
+              label: '지우기',
+              variant: 'danger',
+              onClick: () => deleteWeekMemo(confirmingDeleteMemoWeek),
+            }]}
+          >
+            <span style={{ wordBreak: 'keep-all' }}>
+              {getDiaryEntry(confirmingDeleteMemoWeek)?.rangeLabel} 메모가 사라져요.
+              <br />
+              되돌릴 수 없어요.
+            </span>
+          </Dialog>
         )}
 
         {/* 계획·완료·기록 삭제 확인창 — 일 보기뿐 아니라 주 보기·목록 탭에서도
