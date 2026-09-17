@@ -1666,14 +1666,13 @@ const CookingCalendar: React.FC = () => {
     const boughtSet = new Set(entry.bought);
     const canGoOlder = diaryIndex > 0;
     const canGoNewer = diaryIndex >= 0 && diaryIndex < diaryWeekKeys.length - 1;
-    // "이번 주냐 아니냐"로 제목의 시제(계획한/계획했던)까지 갈랐더니 계속
-    // 오락가락했다(2026-09-17 여러 차례) — 결국 날짜 범위가 이미 바로
-    // 아래에 적혀 있어 시제로 또 말할 필요가 없다는 결론. 제목은 **모든
-    // 페이지에서 똑같이** "지난 장보기 메모" 하나로 통일한다.
-    // 다만 "지금 살 게 남은 목록"과 "이미 끝난 지난 기록"은 여전히 다른
-    // 개념이라, **동작**(삭제 가능 여부)은 날짜로 계속 가른다 — 오늘이
-    // 속한 주보다 **이전**인 페이지에서만 삭제 버튼을 보여준다.
-    // `weekKey`가 'YYYY-MM-DD'라 문자열 비교로도 날짜 순서가 맞는다.
+    // 제목을 "지난 장보기 메모" 하나로 통일했더니, 오늘 이후(이번 주·미래
+    // 주)의 메모에까지 "지난"이 붙어 "아직 지나지도 않은 걸 지난 거라고
+    // 한다"는 지적(2026-09-17, 실제 화면 스크린샷으로 확인 — 오늘 9/17인데
+    // 9/20~9/26 메모에 "지난 장보기 메모"가 붙어 있었음). 오늘이 속한 주보다
+    // **이전**일 때만 "지난 장보기 메모", 그게 아니면(이번 주·미래 주)
+    // "계획한 요리 장보기 메모"로 다시 가른다. `weekKey`가 'YYYY-MM-DD'라
+    // 문자열 비교로도 날짜 순서가 맞는다.
     const isPastWeek = diaryWeekKey < shoppingWeekFrom;
     return (
       <div style={{
@@ -1683,7 +1682,7 @@ const CookingCalendar: React.FC = () => {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 10 }}>
           <div style={{ fontSize: 15, fontWeight: 700, color: '#1A1A1E' }}>
-            지난 장보기 메모
+            {isPastWeek ? '지난 장보기 메모' : '계획한 요리 장보기 메모'}
           </div>
           {/* 오늘이 속한 주보다 이전 페이지에만 삭제 버튼을 둔다(2026-09-17,
               "삭제 버튼은 오늘 기준 이전 시점에 달려야지"). 이번 주는 계획을
