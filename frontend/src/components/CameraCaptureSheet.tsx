@@ -1,7 +1,28 @@
 import React, { useRef, useState } from 'react';
+import { Capacitor } from '@capacitor/core';
+import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { UsageLine, useUsage } from './UsageMeter';
 import Sheet from './ui/Sheet';
 import Dialog from './ui/Dialog';
+
+/**
+ * 네이티브 앱(안드로이드/iOS)에서는 `<input type=file>` 대신 진짜 OS 카메라·
+ * 사진 보관함 API(@capacitor/camera)를 부른다 — "웹사이트를 앱 껍데기에
+ * 넣은 것"이라 애플 심사에서 반려되는 걸 피하려면 실제 네이티브 기능이
+ * 있어야 한다(2026-09-17 논의). 웹(브라우저로 접속하는 사용자)은 기존
+ * `<input type=file>` 방식 그대로 — `Capacitor.isNativePlatform()`로만
+ * 갈라서, 기존 웹 동작은 한 글자도 안 바뀐다.
+ *
+ * 플러그인이 돌려주는 사진(webPath)을 서버 업로드에 쓰는 `File`로 바꾼다 —
+ * 이 앱의 업로드 로직(`onCaptured(mode, files: File[])`)이 이미 `File[]`을
+ * 기대하고 있어서, 여기서만 변환해 주면 나머지 코드는 전혀 안 건드려도 된다.
+ */
+async function photoToFile(webPath: string, index: number): Promise<File> {
+  const res = await fetch(webPath);
+  const blob = await res.blob();
+  const ext = (blob.type.split('/')[1] || 'jpg').replace('jpeg', 'jpg');
+  return new File([blob], `capture-${Date.now()}-${index}.${ext}`, { type: blob.type || 'image/jpeg' });
+}
 
 export type CaptureMode = 'receipt' | 'food-single' | 'food-multi' | 'file';
 
@@ -103,16 +124,45 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
   /** 파일 선택창을 열 때 정해 둔 모드 */
   const pickerModeRef = useRef<CaptureMode>('file');
 
-  /** 정한 모드로 앨범/파일 선택창을 연다 */
-  const openPickerWith = (mode: CaptureMode) => {
+  /** 정한 모드로 앨범/파일 선택창을 연다 — 네이티브 앱에서는 진짜 사진
+   * 보관함 API(여러 장 선택)를, 웹에서는 기존 `<input type=file multiple>`을. */
+  const openPickerWith = async (mode: CaptureMode) => {
     pickerModeRef.current = mode;
     setChoosingForPicker(false);
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const result = await Camera.pickImages({ quality: 85, limit: maxFiles });
+        if (result.photos.length === 0) return; // 취소
+        const files = await Promise.all(result.photos.map((p, i) => photoToFile(p.webPath!, i)));
+        onCaptured(mode, files);
+      } catch {
+        // 취소·권한 거부 — 기존 파일 선택창을 취소했을 때와 같이 조용히 무시.
+      }
+      return;
+    }
     if (fileInputRef.current) fileInputRef.current.value = '';
     fileInputRef.current?.click();
   };
 
-  const openCameraFor = (mode: CaptureMode) => {
+  /** 정한 모드로 카메라를 연다 — 네이티브 앱에서는 진짜 카메라 API를,
+   * 웹에서는 기존 `<input type=file capture=environment>`을. */
+  const openCameraFor = async (mode: CaptureMode) => {
     setPendingMode(mode);
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const photo = await Camera.getPhoto({
+          resultType: CameraResultType.Uri,
+          source: CameraSource.Camera,
+          quality: 85,
+        });
+        if (!photo.webPath) return;
+        const file = await photoToFile(photo.webPath, 0);
+        onCaptured(mode, [file]);
+      } catch {
+        // 취소·권한 거부 — 기존 촬영을 취소했을 때와 같이 조용히 무시.
+      }
+      return;
+    }
     // 같은 모드를 연달아 찍어도 change 이벤트가 다시 뜨도록 비워 둔다.
     if (cameraInputRef.current) cameraInputRef.current.value = '';
     cameraInputRef.current?.click();

@@ -11260,3 +11260,12 @@ edge-tts 파일럿 목소리가 "너무 AI 같다"는 피드백 + "제미나이�
 
 - [CookingCalendar.tsx](frontend/src/pages/CookingCalendar.tsx): 제목을 다시 날짜로 가른다 — 오늘이 속한 주보다 **이전**(`isPastWeek`)이면 "지난 장보기 메모", 이번 주·미래 주는 **"계획한 요리 장보기 메모"**. 삭제 버튼 조건은 이미 같은 `isPastWeek` 기준이라 그대로 둠.
 - 타입 체크 통과. 로컬 프리뷰에 지난 주(9/6~9/12)·다음 주(9/20~9/26, 실제 신고된 재료 5개로 재현) 메모를 함께 심어, 다음 주는 "계획한 요리 장보기 메모"(삭제 버튼 없음), 지난 주는 "지난 장보기 메모"(삭제 버튼 있음)로 정확히 갈리는 것을 확인.
+
+### 앱스토어 심사 대비 — iOS 플랫폼 추가, 사진 촬영을 진짜 네이티브 카메라로
+애플 앱스토어 심사 가이드라인 4.2(Minimum Functionality)는 "웹사이트를 앱 껍데기에 넣은 것"을 반려 사유로 든다. 코드로 확인해 보니 지금 쿡매치는 스플래시 화면·상태바 정도만 네이티브고, 사진 인식은 `<input type=file capture>`(웹 표준), 유통기한 알림은 웹 푸시라 실제 OS API를 부르는 게 하나도 없었다(2026-09-17 논의) — 안드로이드·iOS 둘 다 출시할 계획이라, 두 플랫폼 모두를 염두에 두고 첫 네이티브 기능을 붙였다.
+
+- **iOS 플랫폼 추가**: `npx cap add ios`로 `ios/` 프로젝트 생성. 실제 빌드·실행에는 macOS + Xcode가 필요해 이 윈도우 PC로는 확인할 수 없지만, 플랫폼 스캐폴딩과 설정 파일 편집(Info.plist 등)은 텍스트 작업이라 지금 해 둘 수 있음.
+- **`@capacitor/camera`로 교체**: [CameraCaptureSheet.tsx](frontend/src/components/CameraCaptureSheet.tsx)에서 `Capacitor.isNativePlatform()`으로 갈라, 네이티브 앱에서는 진짜 카메라·사진 보관함 API(`Camera.getPhoto()`/`Camera.pickImages()`)를 쓰고, 웹은 기존 `<input type=file>` 그대로 — 웹 사용자 경험은 한 줄도 안 바뀜. 플러그인이 주는 사진(webPath)을 기존 업로드 로직이 쓰는 `File`로 변환하는 `photoToFile()` 헬퍼만 추가해, 나머지 업로드·인식 로직은 전혀 안 건드림.
+- **iOS 권한 문구 추가**: [Info.plist](frontend/ios/App/App/Info.plist)에 `NSCameraUsageDescription`·`NSPhotoLibraryUsageDescription` 추가 — 이 문구가 없으면 iOS가 권한 요청 자체를 막아 앱이 죽는다(장식이 아니라 필수).
+- `@capacitor/push-notifications`도 함께 설치는 해 뒀지만(다음 네이티브 기능 후보), 아직 연결 코드는 안 짬 — Firebase 프로젝트 생성 등 사용자 계정이 필요한 작업이 먼저 필요해 별도로 안내 예정.
+- `npx cap sync`로 안드로이드·iOS 양쪽 네이티브 프로젝트에 새 플러그인 반영, `npm run build`·타입 체크·로컬 프리뷰(웹 경로 정상 동작, 콘솔 에러 없음)까지 확인.
