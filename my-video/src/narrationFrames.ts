@@ -4,7 +4,7 @@ export const NARRATION_FRAMES: Record<string, number> = {
   reel1_narration_1: 146, // 4.85s
   reel1_narration_2: 96, // 3.17s
   reel1_narration_cta: 170, // 5.65s
-  reel2_narration_1: 109, // 3.61s
+  reel2_narration_1: 106, // 3.53s
   reel2_narration_2: 116, // 3.85s
   reel2_narration_3: 108, // 3.57s
   reel2_narration_cta: 213, // 7.09s
@@ -17,13 +17,20 @@ export const NARRATION_FRAMES: Record<string, number> = {
   reel4_narration_2: 127, // 4.21s
   reel4_narration_3: 164, // 5.45s
   reel4_narration_cta: 207, // 6.89s
+  reel5_narration_1: 111, // 3.69s
+  reel5_narration_2: 114, // 3.77s
   reel5_narration_3: 115, // 3.81s
   reel5_narration_cta: 214, // 7.13s
   reel6_narration_1: 98, // 3.25s
   reel6_narration_2: 116, // 3.85s
   reel6_narration_cta: 219, // 7.29s
+  reel7_narration_1: 164, // 5.45s
+  reel7_narration_2: 129, // 4.29s
+  reel7_narration_3: 122, // 4.05s
+  reel7_narration_4: 86, // 2.85s
   reel7_narration_cta: 230, // 7.65s
   reel8_narration_1: 112, // 3.73s
+  reel8_narration_2: 114, // 3.77s
   reel8_narration_3: 141, // 4.69s
   reel8_narration_cta: 238, // 7.93s
 };
