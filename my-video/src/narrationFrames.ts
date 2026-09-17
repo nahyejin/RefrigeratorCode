@@ -17,10 +17,15 @@ export const NARRATION_FRAMES: Record<string, number> = {
   reel4_narration_2: 127, // 4.21s
   reel4_narration_3: 164, // 5.45s
   reel4_narration_cta: 207, // 6.89s
-  reel5_narration_cta: 201, // 6.69s
+  reel5_narration_3: 115, // 3.81s
+  reel5_narration_cta: 214, // 7.13s
   reel6_narration_1: 98, // 3.25s
+  reel6_narration_2: 116, // 3.85s
   reel6_narration_cta: 219, // 7.29s
   reel7_narration_cta: 230, // 7.65s
+  reel8_narration_1: 112, // 3.73s
+  reel8_narration_3: 141, // 4.69s
+  reel8_narration_cta: 238, // 7.93s
 };
 
 // 나레이션이 끝난 뒤 다음 비트로 넘어가기 전 남겨두는 여유(0.27s).
