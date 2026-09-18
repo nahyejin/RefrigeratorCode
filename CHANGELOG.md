@@ -11458,3 +11458,6 @@ Android Studio 설치(설정 마법사 Standard로 SDK 설치) 후 이 PC에서 
 - 조치(사용자가 콘솔에서 함, 미완): 브랜딩 채우기 → 앱 게시(프로덕션). 카카오 운영 상태·동의항목도 확인 필요. [MOBILE_APP_GUIDE.md](MOBILE_APP_GUIDE.md) 끝에 절 추가.
 - **조치 완료(2026-09-19, 사용자가 콘솔에서 함)**: My First Project → Google 인증 플랫폼 → 브랜딩(앱 이름·지원 이메일·홈페이지·개인정보처리방침·약관 링크, 승인된 도메인 `refrigeratorcode-production.up.railway.app`·`refrigerator-code.vercel.app`, 개발자 연락처, 로고 없음) 저장 후 [대상 → 앱 게시]로 **프로덕션 단계**로 전환. 게시 확인 창의 인증 필요 조건(도메인 10개 초과·로고·민감/제한 범위)에 해당하지 않아 심사 없이 게시됨. 아직 안 한 것: 본인이 아닌 구글 계정으로 실제 로그인 확인, 카카오 점검.
 - 카카오 점검(2026-09-19, 확인만): Cookmatch 앱은 비즈 앱, 카카오 로그인 ON, 이메일·닉네임 필수 동의로 설정돼 있어 설정상 문제 없음. 본인 아닌 계정으로 실제 로그인 확인은 아직. 웹훅(User Unlinked) 미설정 안내가 있으나 출시 필수는 아님.
+
+### 출시 남은 일 정리 문서 추가(2026-09-19)
+- [RELEASE_TODO.md](RELEASE_TODO.md) 신설: 상태 요약표, 지금 할 수 있는 일, 승인 대기 3건(Google Play·네이버 검수·Apple)별 "승인되면/반려되면 할 일", 승인 순서 관계, 새 버전 올리는 절차(`versionCode`), 잃어버리면 안 되는 것(키스토어·OAuth 프로젝트·Firebase). [MOBILE_APP_GUIDE.md](MOBILE_APP_GUIDE.md) 맨 위에 링크.
