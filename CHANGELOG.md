@@ -11416,3 +11416,8 @@ Android Studio 설치(설정 마법사 Standard로 SDK 설치) 후 이 PC에서 
 - **JDK 21 자동 받기**: Capacitor 플러그인(카메라 등)은 Java 21 툴체인으로 컴파일하도록 정해져 있어 `Cannot find a Java installation ... languageVersion=21`로 실패 → `settings.gradle`에 Gradle 표준 툴체인 리졸버(foojay)를 넣어 JDK 21 을 공식 배포처(Eclipse Adoptium)에서 한 번만 받아 쓰게 함(사용자 승인).
 - SDK 위치는 `local.properties`(gitignore)에 적음. 역슬래시 경로는 `\u` 로 시작하는 부분이 유니코드 이스케이프로 잘못 읽혀(`Malformed \uxxxx encoding`) 슬래시 경로로 씀.
 - 빌드된 APK 확인(aapt): 패키지 `com.cookmatch.app`, `POST_NOTIFICATIONS` 권한, FCM 기본 알림 아이콘(`ic_stat_cookmatch`)·색·채널(`expiry`), Firebase 설정값(google-services), 새 적응형 런처 아이콘이 모두 들어간 것 확인.
+
+### 스토어 개발자 계정 가입 — Google Play·Apple(2026-09-19)
+- **Google Play Console**($25) 가입 완료, 신원 확인 검토 중. 개인 계정이면 프로덕션 출시 전 "비공개 테스트(테스터 12명·14일 연속)" 조건이 붙을 수 있어 가입 유형을 확인해야 함.
+- **Apple Developer Program**($99/년) **개인(Individual)으로 가입·결제 완료**, 승인 대기 중(보통 하루~며칠). 승인 후 할 일: iOS 푸시(APNs 키), Sign in with Apple, iOS 빌드·출시(Mac 필요).
+- [MOBILE_APP_GUIDE.md](MOBILE_APP_GUIDE.md) 체크리스트에 두 계정 상태 반영.
