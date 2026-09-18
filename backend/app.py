@@ -4482,10 +4482,16 @@ def add_user_completed_recipe(user_id):
             if actor_user_id != user_id and not is_same_household(cursor, actor_user_id, user_id):
                 return jsonify({'error': '권한이 없습니다.'}), 403
 
+            # 이 레시피를 예전에 한 번 완료했다가 취소하지 않고 다시 완료 버튼을
+            # 누른 경우(기기를 바꿨거나 로컬 캐시가 지워진 경우 등) — UNIQUE
+            # 제약 때문에 새 행이 아니라 기존 행에 그대로 걸린다. 예전엔 여기서
+            # `created_at = created_at`(아무것도 안 바꿈)이라, 화면엔 "완료했다"
+            # 토스트가 뜨는데도 마이캘린더엔 옛 날짜 그대로 남아 "반영이 안 된다"는
+            # 지적을 받았다(2026-09-18) — 방금 누른 거니 지금 날짜로 갱신해야 한다.
             cursor.execute(
                 """INSERT INTO user_completed_recipes (user_id, recipe_id)
                    VALUES (%s, %s)
-                   ON DUPLICATE KEY UPDATE created_at = created_at""",
+                   ON DUPLICATE KEY UPDATE created_at = NOW()""",
                 (user_id, recipe_id)
             )
             if actor_user_id != user_id:
