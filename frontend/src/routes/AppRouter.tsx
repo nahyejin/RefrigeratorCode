@@ -8,6 +8,7 @@ import ErrorBoundary from '../components/ErrorBoundary';
 import HomeInstallPrompt from '../components/HomeInstallPrompt';
 import ExpiryPushPrompt from '../components/ExpiryPushPrompt';
 import NativePushBridge from '../components/NativePushBridge';
+import NativeAuthBridge from '../components/NativeAuthBridge';
 import RecipeChatWidget from '../components/RecipeChatWidget';
 import PlanUpgradeToast from '../components/PlanUpgradeToast';
 import { prefetchFridgeRecipes, prefetchPopular } from '../utils/recipePrefetch';
@@ -291,6 +292,8 @@ function AppContent() {
       <ExpiryPushPrompt />
       {/* 네이티브 앱 푸시 배선(알림 채널·알림 탭 → 화면 이동·토큰 갱신). 웹에선 아무것도 안 함. */}
       <NativePushBridge />
+      {/* 네이티브 앱 소셜 로그인 복귀(시스템 브라우저 → com.cookmatch.app://auth). 웹에선 아무것도 안 함. */}
+      <NativeAuthBridge />
       <RecipeChatWidget />
       {/* 유료로 바뀐 것을 한 번 알린다. 어디에 있든 보여야 하므로 전역에 둔다. */}
       <PlanUpgradeToast />

@@ -6,6 +6,11 @@ from dotenv import load_dotenv
 import requests
 import jwt
 import secrets
+import hashlib
+import json
+import base64
+import hmac
+from html import escape as html_escape
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 import random
@@ -1233,6 +1238,107 @@ def get_or_create_user(email, nickname, provider, provider_id, email_verified=Fa
         db.close()
 
 # =====================
+# 네이티브 앱(Capacitor) 소셜 로그인
+# =====================
+#
+# 웹은 콜백 끝에서 `FRONTEND_URL/auth/success?token=...` 으로 돌려보내지만, 앱은
+# 화면이 인터넷 주소가 아니라서(https://localhost 등) 거기로 갈 수 없다. 그래서
+# 앱은 **시스템 브라우저**(안드로이드 Custom Tabs / iOS SFSafariViewController)로
+# 기존 웹 로그인 주소(`/api/auth/<provider>`)를 그대로 열고, 끝나면 앱 전용
+# 스킴(`com.cookmatch.app://auth?code=...`)으로 돌아온다. 구글·카카오·네이버 콘솔에
+# 새로 등록할 것이 없다(콜백 주소는 지금 것 그대로).
+#
+# 앱 스킴은 다른 앱도 같은 이름으로 가로챌 수 있어서 **로그인 토큰을 직접 싣지 않는다.**
+# PKCE 처럼, 앱이 시작할 때 `challenge`(= 비밀값 verifier 의 SHA-256)를 넘기고,
+# 돌아올 때는 1회용 짧은 `code` 만 싣는다. 앱이 `verifier` 와 함께 code 를 서버에
+# 내야(`/api/auth/native/exchange`) 진짜 토큰을 받으므로, code 만 가로채서는 쓸 수 없다.
+
+NATIVE_APP_SCHEME = 'com.cookmatch.app'
+NATIVE_CODE_TTL_SECONDS = 120
+_NATIVE_CHALLENGE_RE = re.compile(r'^[A-Za-z0-9_-]{43}$')  # SHA-256 을 base64url 로 쓴 길이
+
+
+def _native_code_key():
+    # 로그인 토큰과 **다른 키**로 서명한다. 같은 키면 이 code 가 (user_id 만 있으면
+    # 통과시키는) 인증 토큰 검증도 통과해, 가로챈 code 하나로 로그인이 되어 버린다.
+    return (os.getenv('JWT_SECRET_KEY') or app.secret_key) + ':native-login-code'
+
+
+def _remember_native_login():
+    """로그인 시작 요청이 앱에서 온 것이면 challenge 를 세션에 적어 둔다."""
+    challenge = request.args.get('challenge', '')
+    if request.args.get('app') == '1' and _NATIVE_CHALLENGE_RE.match(challenge):
+        session['oauth_native_challenge'] = challenge
+    else:
+        session.pop('oauth_native_challenge', None)
+
+
+def _oauth_success_response(token, user, provider):
+    """소셜 로그인 성공 뒤 돌려줄 응답 — 웹이면 프론트로, 앱이면 앱으로 돌아가는 페이지."""
+    challenge = session.pop('oauth_native_challenge', None)
+    if not challenge:
+        return redirect(f"{FRONTEND_URL}/auth/success?token={token}")
+
+    code = jwt.encode({
+        'typ': 'native_login',
+        'uid': user['id'],
+        'email': user['email'],
+        'nickname': user['nickname'],
+        'provider': provider,
+        'cc': challenge,
+        'exp': datetime.utcnow() + timedelta(seconds=NATIVE_CODE_TTL_SECONDS),
+    }, _native_code_key(), algorithm='HS256')
+    app_url = f"{NATIVE_APP_SCHEME}://auth?code={code}"
+    # 302 로 바로 스킴에 보내면 iOS 사파리 뷰가 "주소를 열 수 없음"을 띄우는 경우가
+    # 있어서, 자동으로 열어 보고 안 되면 누를 수 있는 버튼이 있는 페이지를 준다.
+    safe_url = html_escape(app_url, quote=True)
+    page = f"""<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>쿡매치 로그인</title>
+<style>
+body{{font-family:-apple-system,system-ui,sans-serif;text-align:center;padding:72px 24px;color:#222}}
+a{{display:inline-block;margin-top:24px;padding:14px 28px;border-radius:12px;background:#FFD600;color:#000;font-weight:700;text-decoration:none}}
+</style></head><body>
+<h2>로그인됐어요</h2>
+<p>쿡매치 앱으로 돌아가는 중이에요.</p>
+<a href="{safe_url}">쿡매치 앱으로 돌아가기</a>
+<script>setTimeout(function(){{location.href={json.dumps(app_url)};}},150);</script>
+</body></html>"""
+    resp = app.response_class(page, mimetype='text/html')
+    resp.headers['Cache-Control'] = 'no-store'
+    resp.headers['Referrer-Policy'] = 'no-referrer'
+    return resp
+
+
+@app.route('/api/auth/native/exchange', methods=['POST'])
+def native_login_exchange():
+    """앱이 돌려받은 1회용 code 를 verifier 와 함께 내고 로그인 토큰을 받는다."""
+    data = request.get_json(silent=True) or {}
+    code = data.get('code') or ''
+    verifier = data.get('verifier') or ''
+    if not code or not verifier:
+        return jsonify({'error': 'code and verifier required'}), 400
+    try:
+        payload = jwt.decode(code, _native_code_key(), algorithms=['HS256'])
+    except jwt.InvalidTokenError:
+        return jsonify({'error': 'Invalid or expired code'}), 400
+    if payload.get('typ') != 'native_login':
+        return jsonify({'error': 'Invalid code'}), 400
+
+    digest = hashlib.sha256(verifier.encode('utf-8')).digest()
+    challenge = base64.urlsafe_b64encode(digest).rstrip(b'=').decode('ascii')
+    if not hmac.compare_digest(challenge, str(payload.get('cc', ''))):
+        return jsonify({'error': 'Invalid verifier'}), 400
+
+    token = generate_jwt_token(
+        payload['uid'], payload['email'], payload['nickname'],
+        provider=payload.get('provider'),
+    )
+    return jsonify({'token': token})
+
+
+# =====================
 # 구글 로그인
 # =====================
 
@@ -1246,6 +1352,7 @@ def google_login():
     state = secrets.token_urlsafe(32)
     session['oauth_state'] = state
     session['oauth_provider'] = 'google'
+    _remember_native_login()
     
     redirect_uri = f"{BACKEND_URL}/api/auth/google/callback"
     google_auth_url = (
@@ -1324,7 +1431,7 @@ def google_callback():
         print(f"[Google Callback] JWT token generated")
         
         # 프론트엔드로 리다이렉트 (토큰을 쿼리 파라미터로 전달)
-        return redirect(f"{FRONTEND_URL}/auth/success?token={token}")
+        return _oauth_success_response(token, user, 'google')
         
     except Exception as e:
         import traceback
@@ -1345,6 +1452,7 @@ def kakao_login():
     state = secrets.token_urlsafe(32)
     session['oauth_state'] = state
     session['oauth_provider'] = 'kakao'
+    _remember_native_login()
     
     redirect_uri = f"{BACKEND_URL}/api/auth/kakao/callback"
     # 카카오 로그인에서 이메일과 닉네임을 받기 위한 scope 설정
@@ -1421,7 +1529,7 @@ def kakao_callback():
         # JWT 토큰 생성
         token = generate_jwt_token(user['id'], user['email'], user['nickname'], provider='kakao')
         
-        return redirect(f"{FRONTEND_URL}/auth/success?token={token}")
+        return _oauth_success_response(token, user, 'kakao')
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -1439,6 +1547,7 @@ def naver_login():
     state = secrets.token_urlsafe(32)
     session['oauth_state'] = state
     session['oauth_provider'] = 'naver'
+    _remember_native_login()
     
     redirect_uri = f"{BACKEND_URL}/api/auth/naver/callback"
     naver_auth_url = (
@@ -1511,7 +1620,7 @@ def naver_callback():
         # JWT 토큰 생성
         token = generate_jwt_token(user['id'], user['email'], user['nickname'], provider='naver')
         
-        return redirect(f"{FRONTEND_URL}/auth/success?token={token}")
+        return _oauth_success_response(token, user, 'naver')
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500

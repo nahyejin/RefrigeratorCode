@@ -30,7 +30,7 @@
 - **Firebase**: 완료(위 2번 참고, 기존 Google Cloud 프로젝트에 추가함).
 
 **그다음 (네이티브 빌드 전에 끝내둘 것)**
-4. **네이티브 앱용 소셜 로그인(구글/카카오/네이버) 딥링크 처리** — 지금 등록한 서비스 URL/Callback URL은 **웹 브라우저 로그인 전용**. 네이티브 앱(안드로이드/iOS)은 앱 내부가 인터넷 주소가 아니라 로컬 번들(`capacitor://localhost` 등)이라 이 방식을 그대로 못 씀 — 별도로 구글/카카오/네이버 각 콘솔에 "Android 앱"/"iOS 앱" 환경(패키지명+서명 키 해시, Bundle ID로 등록하는 방식)을 추가하고, 로그인 후 앱으로 돌아오는 딥링크(또는 각사 네이티브 SDK) 코드를 붙여야 함. **기존 웹 설정을 바꾸는 게 아니라 새 환경을 추가하는 작업.** 아직 구현 안 됨 — 이 작업을 먼저 끝내야 빌드를 반복하지 않음.
+4. **네이티브 앱용 소셜 로그인(구글/카카오/네이버) — 코드 완료(2026-09-19), 실기기 확인 대기.** 애초 계획(각 콘솔에 Android/iOS 앱 환경 추가 + 네이티브 SDK)과 달리 **시스템 브라우저 방식**으로 만들어서 **구글·카카오·네이버 콘솔에 새로 등록할 것이 없다**(콜백 주소는 지금 것 그대로). 앱이 `@capacitor/browser`로 기존 웹 로그인 주소(`/api/auth/<provider>?app=1&challenge=...`)를 시스템 브라우저(Custom Tabs/SFSafariViewController)로 열고, 끝나면 서버가 `com.cookmatch.app://auth?code=...` 로 앱을 다시 연다. 앱 스킴은 다른 앱이 가로챌 수 있어서 토큰 대신 2분짜리 1회용 code 만 싣고, 앱이 처음에 만든 비밀값(verifier, PKCE)과 함께 `/api/auth/native/exchange` 에 내야 토큰을 준다. 코드: `backend/app.py`(네이티브 앱 소셜 로그인 절), `frontend/src/utils/nativeAuth.ts`, `components/NativeAuthBridge.tsx`, 안드로이드 매니페스트 intent-filter·iOS Info.plist URL scheme. **남은 것: 백엔드(Railway) 배포 후 실기기에서 세 로그인 모두 눌러 보기** — 앱은 운영 서버를 부르므로 배포 전에는 앱 로그인이 안 된다. iOS는 Mac 빌드 때 확인.
 
 **그다음**
 5. **안드로이드 앱 서명(키스토어) 생성 + 실제 빌드** — Android Studio에서 `Generate Signed Bundle/AAB`.

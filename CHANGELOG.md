@@ -11421,3 +11421,13 @@ Android Studio 설치(설정 마법사 Standard로 SDK 설치) 후 이 PC에서 
 - **Google Play Console**($25) 가입 완료, 신원 확인 검토 중. 개인 계정이면 프로덕션 출시 전 "비공개 테스트(테스터 12명·14일 연속)" 조건이 붙을 수 있어 가입 유형을 확인해야 함.
 - **Apple Developer Program**($99/년) **개인(Individual)으로 가입·결제 완료**, 승인 대기 중(보통 하루~며칠). 승인 후 할 일: iOS 푸시(APNs 키), Sign in with Apple, iOS 빌드·출시(Mac 필요).
 - [MOBILE_APP_GUIDE.md](MOBILE_APP_GUIDE.md) 체크리스트에 두 계정 상태 반영.
+
+### 네이티브 앱 소셜 로그인 — 시스템 브라우저로 로그인하고 앱으로 돌아오기(2026-09-19)
+앱(Capacitor)은 화면이 `https://localhost`라서 웹처럼 "로그인 뒤 우리 사이트로 리다이렉트"가 안 된다(백엔드 콜백은 `FRONTEND_URL/auth/success` 로만 보냄). 앱 안 웹뷰로 여는 건 구글이 로그인 자체를 막는다.
+
+- **방식**: 구글·카카오·네이버 각 콘솔에 Android/iOS 앱 환경을 추가하고 네이티브 SDK 를 붙이는 대신, **시스템 브라우저**(안드로이드 Custom Tabs / iOS SFSafariViewController)로 기존 웹 로그인 주소를 그대로 열고 끝나면 앱 스킴 `com.cookmatch.app://auth?code=...` 로 돌아온다. 그래서 **세 콘솔에 새로 등록할 것이 없고 웹 로그인은 그대로**다(MOBILE_APP_GUIDE 4번의 처음 계획을 바꿈).
+- **보안**: 앱 스킴은 다른 앱도 같은 이름으로 가로챌 수 있어서 돌아오는 주소에 로그인 토큰을 싣지 않는다. 앱이 로그인 시작 때 만든 비밀값(verifier)의 SHA-256(`challenge`)을 서버에 넘기고, 서버는 2분짜리 code 만 돌려준다. 앱이 code + verifier 를 `POST /api/auth/native/exchange` 에 내야 토큰을 준다(PKCE). code 는 로그인 토큰과 **다른 키**로 서명해서, 인증 검증(`verify_jwt_token`)에 code 를 토큰처럼 내밀어도 통과하지 못한다.
+- **백엔드** [app.py](backend/app.py): 세 로그인 시작(`/api/auth/google|kakao|naver`)이 `?app=1&challenge=` 를 받으면 세션에 적고, 세 콜백의 성공 응답을 `_oauth_success_response` 로 통일 — 웹이면 기존과 똑같이 프론트로 302, 앱이면 "쿡매치 앱으로 돌아가기" 버튼이 있는 페이지(자동으로도 열어 봄; iOS 사파리 뷰는 스킴으로의 302 를 못 여는 경우가 있어서 페이지로 줌).
+- **프론트**: `@capacitor/browser` 추가. [nativeAuth.ts](frontend/src/utils/nativeAuth.ts)(verifier·challenge 만들기, 브라우저 열기, code 교환), [NativeAuthBridge.tsx](frontend/src/components/NativeAuthBridge.tsx)(앱 주소 수신 → 로그인 처리, 콜드 스타트 `getLaunchUrl` 포함, AppRouter 에 전역 1개). [Login.tsx](frontend/src/pages/Login.tsx)는 앱이면 이 경로로, 웹이면 기존대로. `/login?error=...` 로 돌려보내도 아무 안내가 없던 것도 함께 고침(웹 AuthSuccess 실패 때도 마찬가지였음).
+- **네이티브**: 안드로이드 매니페스트에 `com.cookmatch.app://auth` intent-filter, iOS Info.plist 에 URL scheme(iOS 씬 델리게이트는 이미 URL 을 Capacitor 로 넘기고 있음). `cap sync` 반영.
+- **검증**: 백엔드 로직을 로컬에서 직접 호출해 확인 — 정상 교환 성공, 틀린 verifier·깨진 code 거부(400), code 를 인증 토큰으로 못 씀, 앱 표시 없는 요청은 기존 웹 302 그대로, 형식 틀린 challenge 는 무시. 프론트 빌드 성공(Login.tsx 의 타입 오류 1건은 로그인 버튼 쪽 기존 오류), 안드로이드 디버그 APK 빌드 성공 + 매니페스트에 intent-filter 반영 확인. **실기기·브라우저 실제 왕복은 아직 못 해 봄**(에뮬레이터 없음, 앱은 운영 서버를 부르므로 백엔드 배포 후 확인 필요).

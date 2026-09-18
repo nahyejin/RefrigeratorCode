@@ -18,6 +18,16 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
+            <!-- 소셜 로그인 복귀: 시스템 브라우저에서 로그인이 끝나면 서버가
+                 com.cookmatch.app://auth?code=... 로 보낸다(backend NATIVE_APP_SCHEME,
+                 프론트 utils/nativeAuth.ts). 받은 주소는 Capacitor 가 appUrlOpen 으로 넘긴다. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="com.cookmatch.app" android:host="auth" />
+            </intent-filter>
         </activity>
 
         <provider

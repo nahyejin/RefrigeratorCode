@@ -8,6 +8,7 @@ import NeangteolButton from '../components/NeangteolButton';
 import NeangteolInput from '../components/NeangteolInput';
 import { useAuth } from '../context/AuthContext';
 import { getPostLoginRedirectPath } from '../utils/householdInvite';
+import { isNativeApp, startNativeSocialLogin } from '../utils/nativeAuth';
 
 // =====================
 // 상수
@@ -58,7 +59,11 @@ const Login: React.FC = () => {
 
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
-  const [error, setError] = React.useState('');
+  // 소셜 로그인이 실패하면 콜백 쪽이 /login?error=... 로 돌려보낸다(웹 AuthSuccess, 앱 NativeAuthBridge)
+  const [error, setError] = React.useState(() => {
+    const code = new URLSearchParams(window.location.search).get('error');
+    return code ? '소셜 로그인에 실패했어요. 다시 시도해주세요.' : '';
+  });
   const [loading, setLoading] = React.useState(false);
   const [rememberMe, setRememberMe] = React.useState(true);
 
@@ -136,6 +141,11 @@ const Login: React.FC = () => {
    * 소셜 로그인 시작
    */
   const handleSocialLogin = (provider: 'google' | 'kakao' | 'naver') => {
+    // 앱은 웹처럼 "로그인 뒤 우리 사이트로 리다이렉트"가 안 돼서 시스템 브라우저로 열고 앱으로 돌아온다
+    if (isNativeApp()) {
+      startNativeSocialLogin(provider).catch(() => setError('로그인 창을 열지 못했어요. 다시 시도해주세요.'));
+      return;
+    }
     const apiUrl = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'https://refrigeratorcode-production.up.railway.app';
     window.location.href = `${apiUrl}/api/auth/${provider}`;
   };

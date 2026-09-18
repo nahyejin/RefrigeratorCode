@@ -64,6 +64,19 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<!-- 소셜 로그인 복귀: 시스템 브라우저에서 로그인이 끝나면 서버가
+	     com.cookmatch.app://auth?code=... 로 보낸다(backend NATIVE_APP_SCHEME). -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.cookmatch.app</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.cookmatch.app</string>
+			</array>
+		</dict>
+	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
 	<!-- @capacitor/camera 가 쓰는 권한 설명 — 이 문구가 없으면 애플 심사에서
