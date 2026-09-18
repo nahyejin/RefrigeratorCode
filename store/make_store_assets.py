@@ -265,7 +265,7 @@ SLIDES = [
     dict(key="cook", band="w", ai=False, eyebrow="요리 모드",
          headline="손에 물 묻어도\n귀로 들으세요", sub="조리 순서를 소리로 읽어드려요", focus=0.0, badge="sound"),
     dict(key="family", band="y", ai=False, eyebrow="우리 식구 요리",
-         headline="가족이 함께,\n아낀 돈까지 한눈에", sub="누가 몇 번 요리했는지, 외식 대비 아낀 돈을 계산해요", focus=0.0),
+         headline="가족이 함께,\n아낀 돈까지 한눈에", sub="가족이 함께 무슨 요리를 얼마나 했는지,\n외식 대비 아낀 돈을 계산해요.", focus=0.0),
 ]
 
 SIZES = {"play": (1080, 1920), "ios": (1290, 2796)}
@@ -407,8 +407,23 @@ def render_slide(slide, W, H):
         y += int(W * 0.088 * 1.2)
     y += int(W * 0.018)
     sf = font(int(W * 0.038), 500)
-    d.text((pad, y), slide["sub"], font=sf, fill=sub_c)
-    y += int(W * 0.038 * 1.5) + int(W * 0.06)
+    # 설명 줄이 폭을 넘으면 어절(띄어쓰기) 단위로 줄바꿈 — 한 단어가 두 줄로 쪼개지지 않게
+    # (문장 안에 \n 을 넣으면 그 자리에서 먼저 끊는다 — 쉼표 뒤처럼 읽기 좋은 자리에서 끊고 싶을 때)
+    lines = []
+    for part in slide["sub"].split("\n"):
+        cur = ""
+        for word in part.split(" "):
+            trial = f"{cur} {word}".strip()
+            if cur and d.textlength(trial, font=sf) > W - pad * 2:
+                lines.append(cur)
+                cur = word
+            else:
+                cur = trial
+        lines.append(cur)
+    for line in lines:
+        d.text((pad, y), line, font=sf, fill=sub_c)
+        y += int(W * 0.038 * 1.45)
+    y += int(W * 0.06)
 
     # 폰 화면: 가운데, 둥근 모서리 + 그림자, 아래로는 화면 밖으로 흘려 보낸다
     frame = load_frame(slide["key"])
