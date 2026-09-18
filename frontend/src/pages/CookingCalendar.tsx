@@ -1386,6 +1386,59 @@ const CookingCalendar: React.FC = () => {
   }, [weekPlanKey]);
 
   /**
+   * **다음 주에 사야 할 것도 미리 메모로 만들어 둔다.**
+   *
+   * 바로 위 효과는 "실제 이번 주"만 계산해서 저장한다 — 그래서 다음 주에
+   * 이미 요리 계획을 짜 놨어도, 그 주가 실제로 "이번 주"가 되기 전까지는
+   * 장보기 메모 페이지가 아예 생기지 않아 "계획은 보이는데 왜 페이지네이션이
+   * 안 넘어가냐"는 혼란이 있었다(실사용 지적, 2026-09-18). 달력에 이미 표시된
+   * 다음 주 계획을 그대로 반영해, 그 주가 오기 전에도 "다음 주" 페이지가
+   * 미리 보이게 한다.
+   */
+  const shoppingNextWeekTo = toDateKey(addDays(startOfWeek(new Date()), 13));
+  const nextWeekPlanIds = (() => {
+    const ids = new Set<number>();
+    plans.forEach((meals, day) => {
+      if (day < shoppingNextWeekFrom || day > shoppingNextWeekTo) return;
+      meals.forEach(m => { if (m.recipeId) ids.add(Number(m.recipeId)); });
+    });
+    return [...ids].sort((a, b) => a - b);
+  })();
+  const nextWeekPlanKey = nextWeekPlanIds.join(',');
+  const shoppingNextWeekLabel = `${shoppingNextWeekFrom.slice(5).replace('-', '/')}~${shoppingNextWeekTo.slice(5).replace('-', '/')}`;
+
+  React.useEffect(() => {
+    const thisWeekKey = shoppingNextWeekFrom;
+    const thisRangeLabel = shoppingNextWeekLabel;
+    if (nextWeekPlanIds.length === 0) {
+      upsertWeekMemo(thisWeekKey, thisRangeLabel, []);
+      return;
+    }
+    let alive = true;
+    fetch(`${getApiUrl()}/api/recipes/ingredients`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids: nextWeekPlanIds }),
+    })
+      .then(r => (r.ok ? r.json() : Promise.reject(new Error())))
+      .then(d => {
+        if (!alive) return;
+        const have = new Set(getMyIngredients().map(x => String(x).trim()).filter(Boolean));
+        const need = new Set<string>();
+        (d.items || []).forEach((it: any) => {
+          (it.ingredients || []).forEach((n: string) => {
+            const name = String(n).trim();
+            if (name && !have.has(name)) need.add(name);
+          });
+        });
+        upsertWeekMemo(thisWeekKey, thisRangeLabel, [...need]);
+      })
+      .catch(() => {});
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nextWeekPlanKey]);
+
+  /**
    * 장보기 목록에서 링크를 타고 나갔다 돌아오면 "사셨나요" 를 묻고, 그렇다고
    * 하면 곧장 내 냉장고에 담는다(2026-09-16, 실사용 요청). 재료마다 보관
    * 방법(냉동/냉장/실온)은 재료 사전 분류로 짐작한다 — 사진 인식처럼 LLM을
