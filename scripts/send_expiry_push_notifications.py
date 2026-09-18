@@ -33,6 +33,15 @@
 
 필요한 것: `pip install pywebpush` (이 컴퓨터에만 있으면 된다 — 발송은 여기서
 하고, Railway 쪽 백엔드는 구독 저장 API 만 있으면 된다).
+
+네이티브 앱(안드로이드/iOS) 푸시:
+    앱은 웹 푸시 대신 FCM 토큰을 `push_device_tokens` 테이블에 등록한다
+    (`frontend/src/utils/push.ts`). 여기서는 FCM HTTP v1 API 로 보낸다 — 인증은
+    Firebase 서비스 계정 키(JSON) 파일로 한다:
+        기본 위치 backend/firebase-service-account.json (gitignore 됨)
+        다른 곳에 두면 환경변수 FIREBASE_SERVICE_ACCOUNT 에 경로를 넣는다.
+    키 파일이 없으면 네이티브 발송만 건너뛰고 웹 푸시는 그대로 보낸다.
+    (google-auth 는 requirements 의 google-api-python-client 가 이미 끌고 온다.)
 """
 
 import argparse
@@ -61,6 +70,70 @@ SOON_DAYS = 5
 STALE_AFTER_DAYS = 14
 
 STORAGE_COLS = {"frozen": "보관냉동", "fridge": "보관냉장", "room": "보관실온"}
+
+PUSH_TITLE = "곧 상하는 재료가 있어요"
+PUSH_URL = "/my-fridge"
+
+# 안드로이드 알림 채널·아이콘 — frontend `EXPIRY_CHANNEL_ID`(utils/push.ts)와
+# AndroidManifest 의 기본값, res/drawable-*/ic_stat_cookmatch.png 와 같은 이름이어야 한다.
+FCM_CHANNEL_ID = "expiry"
+FCM_ICON = "ic_stat_cookmatch"
+FCM_COLOR = "#E0A800"
+
+DEFAULT_SERVICE_ACCOUNT = os.path.join(ROOT, "backend", "firebase-service-account.json")
+
+
+def load_fcm_session():
+    """(AuthorizedSession, project_id) — 서비스 계정 키가 없으면 (None, None)."""
+    path = os.getenv("FIREBASE_SERVICE_ACCOUNT") or DEFAULT_SERVICE_ACCOUNT
+    if not os.path.exists(path):
+        return None, None
+    from google.oauth2 import service_account  # noqa: E402
+    from google.auth.transport.requests import AuthorizedSession  # noqa: E402
+
+    creds = service_account.Credentials.from_service_account_file(
+        path, scopes=["https://www.googleapis.com/auth/firebase.messaging"]
+    )
+    with io.open(path, encoding="utf-8") as f:
+        project_id = json.load(f)["project_id"]
+    return AuthorizedSession(creds), project_id
+
+
+def send_fcm(session, project_id, token, body):
+    """FCM HTTP v1 로 한 기기에 보낸다. 반환: 'sent' | 'gone' | 'failed:<사유>'.
+
+    'gone' 은 앱 삭제·재설치 등으로 토큰이 더는 유효하지 않다는 뜻(UNREGISTERED) —
+    웹 푸시의 404/410 과 같다. 호출한 쪽이 테이블에서 지운다.
+    """
+    resp = session.post(
+        f"https://fcm.googleapis.com/v1/projects/{project_id}/messages:send",
+        json={
+            "message": {
+                "token": token,
+                "notification": {"title": PUSH_TITLE, "body": body},
+                # 알림을 눌렀을 때 앱이 이동할 화면 — NativePushBridge 가 읽는다
+                "data": {"url": PUSH_URL},
+                "android": {
+                    "notification": {
+                        "channel_id": FCM_CHANNEL_ID,
+                        "icon": FCM_ICON,
+                        "color": FCM_COLOR,
+                    }
+                },
+            }
+        },
+        timeout=20,
+    )
+    if resp.ok:
+        return "sent"
+    try:
+        err = resp.json().get("error", {})
+    except ValueError:
+        err = {}
+    codes = {d.get("errorCode") for d in err.get("details", []) if isinstance(d, dict)}
+    if resp.status_code == 404 or "UNREGISTERED" in codes:
+        return "gone"
+    return f"failed:{resp.status_code} {err.get('status') or ''} {err.get('message') or resp.text[:200]}"
 
 
 def load_dict_rows():
@@ -178,19 +251,39 @@ def main():
 
     conn = _connect_db(read_timeout_sec=60)
     cursor = conn.cursor()
-    cursor.execute("SHOW TABLES LIKE 'push_subscriptions'")
-    if not cursor.fetchone():
-        print("push_subscriptions 테이블이 없습니다 — 구독자가 아직 없다는 뜻일 수 있습니다.")
+
+    # 웹 구독(push_subscriptions)과 네이티브 앱 토큰(push_device_tokens) — 백엔드가
+    # 첫 등록 때 만드는 테이블이라, 아직 아무도 안 켰으면 없을 수 있다.
+    tables = {}
+    for t in ("push_subscriptions", "push_device_tokens"):
+        cursor.execute("SHOW TABLES LIKE %s", (t,))
+        tables[t] = cursor.fetchone() is not None
+    if not any(tables.values()):
+        print("구독 테이블이 없습니다 — 구독자가 아직 없다는 뜻일 수 있습니다.")
         conn.close()
         return 0
 
-    cursor.execute("SELECT DISTINCT user_id FROM push_subscriptions")
-    user_ids = [r["user_id"] for r in cursor.fetchall()]
+    user_ids = set()
+    for t, exists in tables.items():
+        if exists:
+            cursor.execute(f"SELECT DISTINCT user_id FROM {t}")
+            user_ids.update(r["user_id"] for r in cursor.fetchall())
+    user_ids = sorted(user_ids)
     print(f"구독자 {len(user_ids)}명", flush=True)
 
     webpush = WebPushException = None
-    if args.write:
+    if args.write and tables["push_subscriptions"]:
         from pywebpush import webpush, WebPushException  # noqa: E402
+
+    fcm_session, fcm_project = (None, None)
+    if tables["push_device_tokens"]:
+        fcm_session, fcm_project = load_fcm_session()
+        if not fcm_session:
+            print(
+                "Firebase 서비스 계정 키가 없어 네이티브 앱 발송은 건너뜁니다 "
+                f"({DEFAULT_SERVICE_ACCOUNT} 또는 FIREBASE_SERVICE_ACCOUNT).",
+                flush=True,
+            )
 
     soon_cache = {}
     notified, sent, cleaned, failed = 0, 0, 0, 0
@@ -213,11 +306,33 @@ def main():
         body = build_body(soon)
         print(f"  user={user_id} storage={storage_id}: {body}", flush=True)
 
-        cursor.execute(
-            "SELECT id, endpoint, p256dh, auth FROM push_subscriptions WHERE user_id = %s",
-            (user_id,),
-        )
-        subs = cursor.fetchall()
+        subs = []
+        if tables["push_subscriptions"]:
+            cursor.execute(
+                "SELECT id, endpoint, p256dh, auth FROM push_subscriptions WHERE user_id = %s",
+                (user_id,),
+            )
+            subs = cursor.fetchall()
+
+        # 네이티브 앱 기기(FCM)
+        if tables["push_device_tokens"]:
+            cursor.execute(
+                "SELECT id, token, platform FROM push_device_tokens WHERE user_id = %s",
+                (user_id,),
+            )
+            for dev in cursor.fetchall():
+                if not args.write or not fcm_session:
+                    continue
+                result = send_fcm(fcm_session, fcm_project, dev["token"], body)
+                if result == "sent":
+                    sent += 1
+                elif result == "gone":
+                    cursor.execute("DELETE FROM push_device_tokens WHERE id = %s", (dev["id"],))
+                    cleaned += 1
+                else:
+                    failed += 1
+                    print(f"    앱 발송 실패({dev['platform']}): {result}", flush=True)
+
         for sub in subs:
             if not args.write:
                 continue
@@ -228,9 +343,9 @@ def main():
                         "keys": {"p256dh": sub["p256dh"], "auth": sub["auth"]},
                     },
                     data=json.dumps({
-                        "title": "곧 상하는 재료가 있어요",
+                        "title": PUSH_TITLE,
                         "body": body,
-                        "url": "/my-fridge",
+                        "url": PUSH_URL,
                     }),
                     vapid_private_key=vapid_private,
                     vapid_claims={"sub": vapid_subject},

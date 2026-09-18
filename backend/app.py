@@ -6198,19 +6198,103 @@ def push_unsubscribe():
     return jsonify({'ok': True})
 
 
+def ensure_push_device_tokens_table():
+    """네이티브 앱(안드로이드/iOS) 푸시 토큰 테이블 생성 (없을 때만).
+
+    웹 푸시 구독(`push_subscriptions`: endpoint + 암호화 키 2개)과 모양이 전혀 달라서
+    — 네이티브는 FCM 토큰 문자열 하나뿐 — 같은 테이블에 억지로 넣지 않고 따로 둔다.
+    발송 배치(`scripts/send_expiry_push_notifications.py`)가 두 테이블을 다 본다.
+    """
+    db = get_db()
+    cursor = db.cursor()
+    try:
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS push_device_tokens (
+                id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                token VARCHAR(512) NOT NULL,
+                platform VARCHAR(16) NOT NULL,
+                created_at DATETIME NOT NULL,
+                last_seen_at DATETIME NOT NULL,
+                UNIQUE INDEX uniq_token (token(255)),
+                INDEX idx_user_id (user_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        """)
+        db.commit()
+    finally:
+        db.close()
+
+
+@app.route('/api/push/native/register', methods=['POST'])
+def push_native_register():
+    """네이티브 앱 기기의 FCM 토큰을 등록한다(이미 있으면 주인·시각만 갱신).
+
+    앱은 켤 때마다 토큰을 새로 받아 여기로 다시 보낸다(토큰이 조용히 바뀔 수 있어서) —
+    같은 토큰이면 행이 늘지 않고, 같은 폰에서 다른 계정으로 로그인했으면 주인이 바뀐다.
+    """
+    user_id = _push_auth_user_id()
+    if not user_id:
+        return jsonify({'error': '로그인이 필요합니다.'}), 401
+
+    data = request.get_json(silent=True) or {}
+    token = (data.get('token') or '').strip()
+    platform = (data.get('platform') or '').strip().lower()
+    if not token or len(token) > 512 or platform not in ('android', 'ios'):
+        return jsonify({'error': '토큰 정보가 올바르지 않습니다.'}), 400
+
+    ensure_push_device_tokens_table()
+    db = get_db()
+    cursor = db.cursor()
+    try:
+        cursor.execute(
+            """INSERT INTO push_device_tokens (user_id, token, platform, created_at, last_seen_at)
+               VALUES (%s, %s, %s, NOW(), NOW())
+               ON DUPLICATE KEY UPDATE
+                 user_id = VALUES(user_id), platform = VALUES(platform), last_seen_at = NOW()""",
+            (user_id, token, platform),
+        )
+        db.commit()
+    finally:
+        db.close()
+    return jsonify({'ok': True})
+
+
+@app.route('/api/push/native/unregister', methods=['POST'])
+def push_native_unregister():
+    """네이티브 앱 기기의 토큰을 뺀다(앱에서 알림을 끔)."""
+    data = request.get_json(silent=True) or {}
+    token = (data.get('token') or '').strip()
+    if not token:
+        return jsonify({'error': 'token 이 없습니다.'}), 400
+
+    ensure_push_device_tokens_table()
+    db = get_db()
+    cursor = db.cursor()
+    try:
+        cursor.execute("DELETE FROM push_device_tokens WHERE token = %s", (token[:512],))
+        db.commit()
+    finally:
+        db.close()
+    return jsonify({'ok': True})
+
+
 @app.route('/api/push/status', methods=['GET'])
 def push_status():
-    """지금 로그인한 사용자가 (어느 기기로든) 구독 중인지."""
+    """지금 로그인한 사용자가 (어느 기기로든 — 웹이든 네이티브 앱이든) 구독 중인지."""
     user_id = _push_auth_user_id()
     if not user_id:
         return jsonify({'subscribed': False})
 
     ensure_push_subscriptions_table()
+    ensure_push_device_tokens_table()
     db = get_db()
     cursor = db.cursor()
     try:
         cursor.execute("SELECT 1 FROM push_subscriptions WHERE user_id = %s LIMIT 1", (user_id,))
         found = cursor.fetchone() is not None
+        if not found:
+            cursor.execute("SELECT 1 FROM push_device_tokens WHERE user_id = %s LIMIT 1", (user_id,))
+            found = cursor.fetchone() is not None
     finally:
         db.close()
     return jsonify({'subscribed': found})

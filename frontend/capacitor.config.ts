@@ -21,6 +21,10 @@ const config: CapacitorConfig = {
       showSpinner: false,
       iosSpinnerStyle: 'small',
       spinnerColor: '#FFD600'
+    },
+    PushNotifications: {
+      // iOS: 앱을 보고 있는 중에 온 알림도 배너·소리로 띄운다(기본값은 아무것도 안 보임)
+      presentationOptions: ['badge', 'sound', 'alert']
     }
   }
 };

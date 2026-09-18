@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 푸시 알림 아이콘·앱 이름에 입혀지는 강조색. 브랜드 노랑(#FFD600)은 밝은 알림
+         배경에서 거의 안 보여서, 같은 계열의 한 톤 진한 색을 쓴다. -->
+    <color name="notification_accent">#E0A800</color>
+</resources>

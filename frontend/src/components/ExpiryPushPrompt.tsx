@@ -1,7 +1,7 @@
 import React from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { pushSupported, isPushSubscribed, subscribeToPush } from '../utils/push';
+import { pushSupported, isPushSubscribed, subscribeToPush, pushPermissionDecided } from '../utils/push';
 import { isExpiryPushPromptSeen, markExpiryPushPromptSeen } from '../utils/onboardingPrompts';
 import CloseButton from './ui/CloseButton';
 
@@ -38,18 +38,19 @@ const ExpiryPushPrompt: React.FC = () => {
       return;
     }
     if (!pushSupported() || isExpiryPushPromptSeen()) return;
-    // 이미 다른 기기에서 알림을 켜 놓고 처음 보는 기기로 로그인한 경우는
-    // 물을 필요가 없다 — 다만 그건 "이 기기가 구독 중인가" 만 보고 판단
-    // 하지 않는다(당연히 이 기기는 아직 아닐 수 있다). 그냥 이 기기에서
-    // Notification 권한이 이미 결정돼 있으면(허용/거부 어느 쪽이든) 새삼
-    // 물어볼 필요가 없다 — 거부한 사람에게 또 물으면 성가시기만 하다.
-    if (typeof Notification !== 'undefined' && Notification.permission !== 'default') {
-      markExpiryPushPromptSeen();
-      return;
-    }
 
     let cancelled = false;
     const timer = setTimeout(async () => {
+      // 이미 다른 기기에서 알림을 켜 놓고 처음 보는 기기로 로그인한 경우는
+      // 물을 필요가 없다 — 다만 그건 "이 기기가 구독 중인가" 만 보고 판단
+      // 하지 않는다(당연히 이 기기는 아직 아닐 수 있다). 그냥 이 기기에서
+      // 알림 권한이 이미 결정돼 있으면(허용/거부 어느 쪽이든) 새삼 물어볼
+      // 필요가 없다 — 거부한 사람에게 또 물으면 성가시기만 하다. 네이티브
+      // 앱은 브라우저 `Notification`이 아니라 OS 권한을 봐야 해서 헬퍼로 묻는다.
+      if (await pushPermissionDecided()) {
+        markExpiryPushPromptSeen();
+        return;
+      }
       const already = await isPushSubscribed();
       if (!cancelled && !already) setVisible(true);
     }, 2600); // HomeInstallPrompt(1~1.2s)보다 늦게 — 둘이 겹치지 않게

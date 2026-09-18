@@ -11345,3 +11345,24 @@ edge-tts 파일럿 목소리가 "너무 AI 같다"는 피드백 + "제미나이�
 - **원인**: 장보기 메모는 "실제 이번 주"의 계획만 계산해서 저장하도록 짜여 있었다(`shoppingWeekFrom` 기준 단일 효과). 다음 주에 미리 요리 계획을 짜 놔도, **그 주가 실제로 오기 전까지는 다음 주 몫의 장보기 메모 자체가 생성되지 않는** 구조였다 — 페이지네이션은 정상이었지만, 애초에 넘어갈 "다음 주" 페이지가 존재하지 않았다.
 - **수정**: [CookingCalendar.tsx](frontend/src/pages/CookingCalendar.tsx) — 이번 주 계산 효과와 똑같은 로직(계획된 레시피 → 재료 조회 → 냉장고 보유분 제외 → 메모 저장)을 `shoppingNextWeekFrom`(정확히 한 주 뒤) 대상으로도 추가. 이제 다음 주 계획이 있으면 그 주가 오기 전에도 미리 "다음 주" 배지가 붙은 메모 페이지가 생긴다.
 - 타입 체크 통과. 로컬에 백엔드까지 띄워서(`.claude/launch.json`에 `backend` 항목 추가) 실제 레시피 재료 조회로 검증 — 이번 주·다음 주 계획을 함께 심었을 때 "1/2 이번 주" ↔ "2/2 다음 주"로 정확히 페이지가 넘어가는 것을 브라우저에서 직접 확인.
+
+### 앱 출시 준비 — 푸시 알림 네이티브 연결 + 스토어 아이콘·스크린샷·등록 원고
+MOBILE_APP_GUIDE.md 체크리스트의 2·3번(푸시 네이티브 전환, 스토어 자료 준비)을 진행(2026-09-18).
+
+**푸시 알림 네이티브 연결(코드 완료, Firebase 설정 파일 대기)**
+- 앱(Capacitor) 웹뷰에는 서비스워커 웹 푸시가 없어서, 네이티브 앱에서는 `@capacitor/push-notifications`로 OS 푸시 토큰(FCM)을 받아 서버에 등록하도록 [push.ts](frontend/src/utils/push.ts)를 웹/네이티브 두 갈래로 나눔. 화면(`NotificationSettings`·`ExpiryPushPrompt`)은 같은 함수만 부르고 갈래는 이 파일 안에서만 나뉜다. `ExpiryPushPrompt`의 "이미 권한을 정했나" 판단도 브라우저 `Notification` 대신 OS 권한을 보도록 헬퍼(`pushPermissionDecided`)로 바꿈.
+- [NativePushBridge.tsx](frontend/src/components/NativePushBridge.tsx) 신설(AppRouter에 전역 1개): 안드로이드 알림 채널(`expiry`) 생성, 알림 탭 → 알림에 실린 앱 경로(`/my-fridge`)로 이동, 앱 시작 때마다 토큰 갱신·재등록(FCM 토큰은 조용히 바뀔 수 있음).
+- 백엔드: `push_device_tokens` 테이블 + `/api/push/native/register`·`/unregister` 추가, `/api/push/status`는 웹·네이티브 둘 다 확인. 발송 배치 [send_expiry_push_notifications.py](scripts/send_expiry_push_notifications.py)는 두 테이블 구독자를 합쳐, 네이티브 기기엔 FCM HTTP v1(서비스 계정 키, `google-auth` — 새 의존성 없음)으로 보내고 무효 토큰(UNREGISTERED)은 지움. 키 파일이 없으면 네이티브만 건너뛰고 웹 푸시는 그대로(미리보기 실행으로 확인: 구독자 2명·대상 1명, 새 테이블 없음도 정상 처리).
+- 안드로이드: `POST_NOTIFICATIONS` 권한(13+), FCM 기본 알림 아이콘·색·채널 meta-data, 상태바용 흰색 단색 알림 아이콘 `ic_stat_cookmatch`(로고 글리프에서 추출, 5개 해상도).
+- **안전장치**: Firebase 설정 파일(`google-services.json`) 없이 `register()`를 부르면 안드로이드 앱이 강제 종료되므로 `NATIVE_PUSH_ENABLED = false`로 꺼 둠(꺼져 있으면 앱에서 알림 토글이 안 보임, 웹은 영향 없음). 켜는 절차는 MOBILE_APP_GUIDE.md "푸시 알림 켜는 절차".
+- iOS 는 플러그인이 APNs 토큰을 주므로 Mac 에서 Firebase Messaging + AppDelegate 연결이 추가로 필요 — 가이드에 절차만 기록.
+- 검증: 프론트 빌드 성공(타입 검사 오류는 기존 다른 파일들뿐, 이번 변경 파일엔 없음), `cap sync`로 안드로이드·iOS 반영, 로컬 웹 스모크(새 모듈 관련 콘솔 오류 없음). 이 PC엔 Android SDK가 없어 Gradle 빌드는 못 함 — 첫 Android Studio 빌드 때 확인 필요.
+
+**스토어 자료(`store/`)**
+- [make_store_assets.py](store/make_store_assets.py): 아이콘·피처 그래픽·스크린샷을 한 번에 다시 만드는 스크립트.
+  - **아이콘**: 원본(`frontend/assets/icon.png`)은 모서리를 투명하게 깎은 그림이라 스토어·런처가 한 번 더 잘라 "이중 모서리"가 됨 → 흰 로고 글리프와 배경 그라데이션을 분리해 모서리까지 꽉 찬 정사각으로 다시 그림. App Store 1024(투명 없음), Play 512, 적응형 아이콘(배경 그라데이션 + 흰 글리프 전경, inset 제거), 옛 런처용 아이콘까지 교체. **iOS 앱 아이콘은 지금까지 Capacitor 기본 placeholder(파란 X)였음** — 이번에 교체. (투명 모서리 픽셀이 흰색 값으로 저장돼 있어 처음엔 글리프로 잘못 잡혀 모서리가 하얗게 나왔던 것을 원본 알파를 곱해 수정.)
+  - **피처 그래픽** 1024×500(Play 필수).
+  - **스크린샷**: 사용자 결정대로 목업이 아니라 **실제 앱 화면**(릴스 데모용 녹화)에서 뽑아 카피 띠를 얹음 — AI 3종(식단·챗봇·사진 인식) → 매칭률·대체 재료·유통기한·요리 모드·가족 캘린더 8장. Play 1080×1920(기존 아티팩트의 1080×2340은 Play의 "긴 변 ≤ 짧은 변×2" 규격 초과라 사용 불가), App Store 6.9" 1290×2796. 상태바·녹화 표시는 잘라내고 헤더의 계정 이름은 블러.
+- [STORE_LISTING.md](store/STORE_LISTING.md): Play(이름·간단한 설명·자세한 설명)·App Store(이름·부제·프로모션 텍스트·키워드) 입력칸별 원고, 개인정보처리방침/약관 URL, 앱 개인정보 입력 참고, 심사 전 확인 사항. [check_listing.py](store/check_listing.py)로 글자 수 제한 검사(전부 통과).
+- iOS 는 사용자 결정대로 **iPhone 전용**(`TARGETED_DEVICE_FAMILY = 1`) — iPad 스크린샷·iPad 화면 심사 불필요.
+- 발견해서 남은 작업으로 올린 것: **Sign in with Apple**(구글·카카오·네이버 로그인을 주는 앱의 iOS 심사 필수 조건, 가이드라인 4.8), 스토어 연락처 이메일(앱에 공개 연락처 없음), Play 신규 개인 계정의 "테스터 12명·14일 비공개 테스트" 조건(출시 일정에 가장 큰 영향).

@@ -20,8 +20,14 @@
 
 **지금 바로 병행 시작 (서로 기다릴 필요 없음)**
 1. **네이버 로그인 검수요청 — 제출 완료(2026-09-18), 승인 대기 중** — 제출 전에 [API 설정] 탭의 "제공 정보 선택"을 실제로 쓰는 항목(이메일 주소·별명)만 남기고 나머지(회원이름·성별·휴대전화번호 등)는 체크 해제 후 신청함. 승인 나면 "개발 중" 배지가 없어지고 테스터 등록 안 된 일반 사용자도 로그인 가능. **승인 여부는 나중에 다시 확인 필요.**
-2. **푸시 알림 네이티브 전환 착수** — Firebase 프로젝트 생성(사용자 계정 작업)부터 시작. 지금은 웹 푸시(Web Push)뿐, `@capacitor/push-notifications`는 설치만 되어 있고 연결 코드 없음. 아래 3번(네이티브 로그인)과 무관하게 지금 시작 가능.
-3. **앱 아이콘·스크린샷·스토어 설명 준비** — 안드로이드/iOS 각 사이즈별(하단 "필요한 리소스" 참고). 코드 작업과 무관, 지금 준비 가능.
+2. **푸시 알림 네이티브 전환 — 코드 완료(2026-09-18), Firebase 설정 파일 대기 중.** 앱·서버·발송 배치 코드는 다 들어가 있고, 스위치(`frontend/src/utils/push.ts`의 `NATIVE_PUSH_ENABLED`)만 꺼 둔 상태. 아래 "푸시 알림 켜는 절차"의 1~3단계(사용자 계정 작업)가 끝나면 켠다. iOS는 Apple Developer 계정 + Mac 이 생긴 뒤(4단계).
+3. **앱 아이콘·스크린샷·스토어 설명 — 준비 완료(2026-09-18).** `store/` 폴더: [STORE_LISTING.md](store/STORE_LISTING.md)(스토어 입력칸별 원고·글자 수 검사), `make_store_assets.py`(아이콘·피처 그래픽·스크린샷 생성). 앱 프로젝트 안 아이콘도 교체함(iOS는 Capacitor 기본 placeholder였음). **남은 것: 연락처 이메일 정하기, Sign in with Apple(iOS 필수, 4번 작업 때).**
+   - iOS 는 **iPhone 전용**으로 설정(`TARGETED_DEVICE_FAMILY = 1`) — iPad 스크린샷·iPad 화면 심사 불필요.
+
+**계정 만들기 (지금 바로, 승인에 며칠 걸림)**
+- **Google Play Console** ($25): 신원 확인에 며칠 걸린다. **2023년 11월 이후 만든 개인 개발자 계정은 프로덕션(정식) 출시 전에 "비공개 테스트"를 테스터 12명 이상, 14일 연속으로 돌려야** 정식 출시 신청이 열린다 — 출시 일정에서 가장 오래 걸리는 부분이니 계정부터 먼저 만들 것. (사업자 계정은 이 조건 없음)
+- **Apple Developer Program** ($99/년): 등록 승인에 보통 하루~며칠. iOS 푸시(APNs 키)와 출시에 필요.
+- **Firebase**: 무료, 구글 계정만 있으면 바로. 아래 절차 참고.
 
 **그다음 (네이티브 빌드 전에 끝내둘 것)**
 4. **네이티브 앱용 소셜 로그인(구글/카카오/네이버) 딥링크 처리** — 지금 등록한 서비스 URL/Callback URL은 **웹 브라우저 로그인 전용**. 네이티브 앱(안드로이드/iOS)은 앱 내부가 인터넷 주소가 아니라 로컬 번들(`capacitor://localhost` 등)이라 이 방식을 그대로 못 씀 — 별도로 구글/카카오/네이버 각 콘솔에 "Android 앱"/"iOS 앱" 환경(패키지명+서명 키 해시, Bundle ID로 등록하는 방식)을 추가하고, 로그인 후 앱으로 돌아오는 딥링크(또는 각사 네이티브 SDK) 코드를 붙여야 함. **기존 웹 설정을 바꾸는 게 아니라 새 환경을 추가하는 작업.** 아직 구현 안 됨 — 이 작업을 먼저 끝내야 빌드를 반복하지 않음.
@@ -34,6 +40,39 @@
 7. **Google Play Console / App Store Connect 앱 등록 + 심사 제출**.
 
 > 이 목록은 대화 중 나온 내용을 정리한 것으로, 실제 작업 시작 전 코드 상태를 다시 확인할 것.
+
+## 푸시 알림 켜는 절차 (네이티브 앱)
+
+구조: 앱이 FCM 토큰을 받아 서버(`/api/push/native/register`, 테이블 `push_device_tokens`)에
+등록 → 매일 배치(`scripts/send_expiry_push_notifications.py --write`)가 웹 푸시 구독자와 함께
+FCM HTTP v1 으로 보낸다. 알림을 누르면 `/my-fridge`로 이동(`NativePushBridge.tsx`).
+
+**1. Firebase 프로젝트 만들기** (사용자)
+- https://console.firebase.google.com → 프로젝트 추가 → 이름 `CookMatch` (Google Analytics는 꺼도 됨)
+
+**2. 안드로이드 앱 등록** (사용자)
+- 프로젝트 개요 → 앱 추가 → Android → 패키지 이름 **`com.cookmatch.app`** (SHA-1 은 비워도 됨)
+- `google-services.json` 다운로드 → **`frontend/android/app/google-services.json`** 에 넣기
+  (비밀키가 아니라 앱에 들어가는 설정 파일이라 git 에 올려도 된다)
+
+**3. 발송용 서비스 계정 키** (사용자)
+- 프로젝트 설정 → 서비스 계정 → "새 비공개 키 생성" → 받은 JSON 을
+  **`backend/firebase-service-account.json`** 으로 저장 (이 컴퓨터에만. **비밀키 — 채팅·메신저로 공유 금지**, gitignore 됨)
+
+**4. 켜기** (코드)
+- `frontend/src/utils/push.ts` 의 `NATIVE_PUSH_ENABLED = true`
+- `cd frontend && npm run build && npx cap sync`
+- Android Studio 로 빌드해 실기기에서 마이페이지 → "유통기한 임박 알림" 켜기 →
+  `python -u scripts/send_expiry_push_notifications.py --write` 로 실제 수신 확인
+- ⚠ 순서 주의: 2번 파일 없이 스위치를 켜면 안드로이드 앱이 알림을 켜는 순간 강제 종료된다.
+
+**5. iOS** (Apple Developer 계정 + Mac 필요, 나중에)
+- Firebase 에 iOS 앱 추가(번들 ID `com.cookmatch.app`) → `GoogleService-Info.plist` 를 Xcode `App` 타깃에 추가
+- Apple Developer → Keys → APNs 인증 키(.p8) 생성 → Firebase 프로젝트 설정 → 클라우드 메시징 → APNs 인증 키 업로드
+- Xcode → Signing & Capabilities → **Push Notifications** 추가
+- `@capacitor/push-notifications` 는 iOS 에서 **APNs 토큰**을 돌려주는데 서버는 FCM 으로 보내므로,
+  Firebase Messaging(SPM)을 추가하고 `AppDelegate`에서 APNs 토큰을 FCM 토큰으로 바꿔 넘기는 코드가 필요
+  (Capacitor 공식 가이드 "Using Push Notifications with Firebase" iOS 절). Mac 에서 빌드하며 작업.
 
 ## 추천 방법: Capacitor (가장 빠르고 효율적)
 

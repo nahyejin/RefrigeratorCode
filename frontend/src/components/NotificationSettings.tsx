@@ -43,7 +43,8 @@ const NotificationSettings: React.FC = () => {
       if (result.ok) {
         setStatus('on');
       } else if (result.reason === 'denied') {
-        setError('브라우저 알림 권한이 꺼져 있어요. 기기 설정에서 이 앱의 알림을 허용해 주세요.');
+        // 웹(브라우저 권한)과 네이티브 앱(휴대폰 설정 > 앱 > 쿡매치 > 알림) 둘 다 해당되게
+        setError('알림 권한이 꺼져 있어요. 휴대폰(또는 브라우저) 설정에서 쿡매치 알림을 허용해 주세요.');
       } else if (result.reason === 'login_required') {
         setError('로그인 후에 켤 수 있어요.');
       } else if (result.reason === 'unsupported') {

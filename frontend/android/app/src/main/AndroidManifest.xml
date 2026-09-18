@@ -27,9 +27,25 @@
             android:grantUriPermissions="true">
             <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />
         </provider>
+
+        <!-- 푸시 알림(FCM) 기본값 — 앱이 꺼져 있을 때 OS가 직접 그리는 알림에 쓰인다.
+             상태바 아이콘은 흰색 단색이어야 해서(컬러 앱 아이콘을 쓰면 흰 네모로 뭉개짐)
+             로고 글리프만 뽑은 ic_stat_cookmatch 를 쓴다. 채널 id 는 프론트
+             `EXPIRY_CHANNEL_ID`·발송 배치 `FCM_CHANNEL_ID` 와 같은 값. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_stat_cookmatch" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/notification_accent" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="expiry" />
     </application>
 
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- 안드로이드 13+ 는 알림 권한을 선언하고 런타임에 물어봐야 알림이 뜬다 -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 </manifest>
