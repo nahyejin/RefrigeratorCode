@@ -234,8 +234,10 @@ INSETS = {
     "photo": [
         dict(src="store/sources/camera_receipt.png", crop=(0, 223, 1206, 2622),
              w=0.27, angle=9, cx=0.22, cy=0.36, radius=0.045),
+        # 쿠팡 주문내역 — 다른 회사 상표(로고·"로켓프레시")와 상품명이 그대로 보여 뷰파인더
+        # 안쪽만 흐리게(사용자 요청). "주문 화면을 찍는다"는 모양만 남긴다.
         dict(src="store/sources/camera_coupang.png", crop=(0, 223, 1206, 2622),
-             w=0.27, angle=-9, cx=0.78, cy=0.36, radius=0.045),
+             blur=(0, 384, 1206, 1993), w=0.27, angle=-9, cx=0.78, cy=0.36, radius=0.045),
         dict(src="store/sources/camera_pizza_cheese.png", crop=(0, 223, 1206, 2622),
              w=0.29, angle=0, cx=0.5, cy=0.33, radius=0.045),
     ],
@@ -316,7 +318,11 @@ def save_png(img, path):
 
 def paste_inset(img, spec, W, phone_top):
     """보조 이미지를 둥근 카드로 잘라 기울여서 그림자와 함께 얹는다."""
-    src = Image.open(os.path.join(ROOT, spec["src"])).convert("RGB").crop(spec["crop"])
+    src = Image.open(os.path.join(ROOT, spec["src"])).convert("RGB")
+    if spec.get("blur"):  # 원본 좌표 기준 영역을 흐리게(상표·개인정보 가리기)
+        box = spec["blur"]
+        src.paste(src.crop(box).filter(ImageFilter.GaussianBlur(28)), box[:2])
+    src = src.crop(spec["crop"])
     w = int(W * spec["w"])
     h = int(src.height * w / src.width)
     card = src.resize((w, h), Image.LANCZOS).convert("RGBA")

@@ -20,7 +20,7 @@
 | 개인정보처리방침 URL | https://refrigerator-code.vercel.app/privacy |
 | 이용약관 URL | https://refrigerator-code.vercel.app/terms |
 | 지원 URL (App Store 필수) | https://refrigerator-code.vercel.app |
-| 연락처 이메일 (두 스토어 필수) | **⚠ 사용자 입력 필요** (앱 안에 공개 연락처가 아직 없음) |
+| 연락처 이메일 (두 스토어 필수) | 920803hj@gmail.com (2026-09-19 결정. 스토어 페이지에 모두에게 공개됨) |
 | 계정 삭제 | 앱 안에서 가능: 마이페이지 → 회원 탈퇴. Play "계정 삭제 URL"에는 개인정보처리방침 URL을 넣는다(탈퇴 방법이 적혀 있음) |
 | 연령 등급 | 전체 이용가 / 4+ 예상 (폭력·성인 콘텐츠 없음. 가족 그룹 공유와 AI 챗봇이 있어 설문의 "사용자 간 상호작용"·"사용자 생성 콘텐츠" 문항은 "예") |
 
