@@ -33,7 +33,7 @@
 4. **네이티브 앱용 소셜 로그인(구글/카카오/네이버) — 코드 완료(2026-09-19), 실기기 확인 대기.** 애초 계획(각 콘솔에 Android/iOS 앱 환경 추가 + 네이티브 SDK)과 달리 **시스템 브라우저 방식**으로 만들어서 **구글·카카오·네이버 콘솔에 새로 등록할 것이 없다**(콜백 주소는 지금 것 그대로). 앱이 `@capacitor/browser`로 기존 웹 로그인 주소(`/api/auth/<provider>?app=1&challenge=...`)를 시스템 브라우저(Custom Tabs/SFSafariViewController)로 열고, 끝나면 서버가 `com.cookmatch.app://auth?code=...` 로 앱을 다시 연다. 앱 스킴은 다른 앱이 가로챌 수 있어서 토큰 대신 2분짜리 1회용 code 만 싣고, 앱이 처음에 만든 비밀값(verifier, PKCE)과 함께 `/api/auth/native/exchange` 에 내야 토큰을 준다. 코드: `backend/app.py`(네이티브 앱 소셜 로그인 절), `frontend/src/utils/nativeAuth.ts`, `components/NativeAuthBridge.tsx`, 안드로이드 매니페스트 intent-filter·iOS Info.plist URL scheme. **구글·카카오·네이버 모두 안드로이드 에뮬레이터에서 끝까지 확인함(2026-09-19, 백엔드는 Railway 배포 확인). 남은 것: iOS는 Mac 빌드 때 확인.** 앱은 운영 서버를 부르므로 백엔드 배포가 먼저여야 앱 로그인이 된다.
 
 **그다음**
-5. **안드로이드 앱 서명(키스토어) 생성 + 실제 빌드** — Android Studio에서 `Generate Signed Bundle/AAB`.
+5. **안드로이드 앱 서명(키스토어) + 릴리스 빌드 — 완료(2026-09-19).** 업로드 키를 `C:\Users\user\CookMatchKeys\cookmatch-upload.jks`(프로젝트 밖)에 만들고, 비밀번호는 같은 폴더·`frontend/android/keystore.properties`(둘 다 git 에 안 올라감)에 있다. `frontend/android`에서 `gradlew bundleRelease`(JAVA_HOME 은 Android Studio 의 `jbr`)를 돌리면 서명된 `app/build/outputs/bundle/release/app-release.aab` 가 나온다(Play Console 업로드용). **`CookMatchKeys` 폴더 전체를 클라우드·USB·비밀번호 관리자에 따로 백업할 것** — Play 앱 서명(권장, 기본)을 쓰면 잃어도 Google 지원을 통해 업로드 키를 재설정할 수 있지만 번거롭다. 앱을 새 버전으로 올릴 때마다 `app/build.gradle`의 `versionCode`를 1씩 올려야 한다(같은 번호는 업로드 거부).
 6. **iOS 실제 빌드** — macOS + Xcode 필요 (이 윈도우 PC로는 불가, Mac 확보 필요).
 
 **마지막**
