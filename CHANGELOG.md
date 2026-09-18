@@ -11439,3 +11439,9 @@ Android Studio 설치(설정 마법사 Standard로 SDK 설치) 후 이 PC에서 
 - 참고: Android Studio Device Manager 가 설치돼 있는 시스템 이미지를 "Missing system image"로 표시했지만 이미지 파일은 정상이고 에뮬레이터도 잘 실행됨(표시 갱신 문제로 보고 무시).
 - 카카오도 같은 에뮬레이터에서 사용자가 직접 로그인해 앱으로 돌아와 로그인되는 것까지 확인(2026-09-19). 남은 것: 네이버, iOS.
 - 네이버도 확인(2026-09-19) — 안드로이드는 구글·카카오·네이버 세 로그인 모두 에뮬레이터에서 앱 복귀·로그인까지 통과. 남은 것: iOS(Mac 빌드 때).
+
+### 안드로이드 릴리스 서명 + 첫 릴리스 번들 빌드(2026-09-19)
+- 업로드 키스토어 생성(`keytool`, RSA 2048, 유효 10000일, 별칭 `cookmatch-upload`). 파일은 **프로젝트 밖** `C:\Users\user\CookMatchKeys\cookmatch-upload.jks`, 비밀번호는 무작위 28자를 `frontend/android/keystore.properties`(와 `CookMatchKeys` 사본)에 적음 — 둘 다 git 에 안 올라가게 `frontend/android/.gitignore`에 `*.jks`·`*.keystore`·`keystore.properties`를 넣음(원래 주석 처리돼 있던 것을 켬).
+- [app/build.gradle](frontend/android/app/build.gradle): `keystore.properties`가 있으면 release 빌드에 서명 설정을 붙임(없는 PC 에서는 서명 없이 빌드 — 다른 환경에서 빌드가 깨지지 않게).
+- `gradlew bundleRelease` 성공 → `app-release.aab`(약 12.9MB), `jarsigner -verify` 로 서명 확인("jar verified").
+- 남은 것: 키스토어 백업(사용자), Play Console 에 앱 만들고 이 번들 올리기(비공개 테스트 12명·14일 조건 확인 필요).
