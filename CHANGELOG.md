@@ -11461,3 +11461,7 @@ Android Studio 설치(설정 마법사 Standard로 SDK 설치) 후 이 PC에서 
 
 ### 출시 남은 일 정리 문서 추가(2026-09-19)
 - [RELEASE_TODO.md](RELEASE_TODO.md) 신설: 상태 요약표, 지금 할 수 있는 일, 승인 대기 3건(Google Play·네이버 검수·Apple)별 "승인되면/반려되면 할 일", 승인 순서 관계, 새 버전 올리는 절차(`versionCode`), 잃어버리면 안 되는 것(키스토어·OAuth 프로젝트·Firebase). [MOBILE_APP_GUIDE.md](MOBILE_APP_GUIDE.md) 맨 위에 링크.
+
+### Play Console 설문 답안지 작성(2026-09-19)
+- [store/PLAY_CONSOLE_ANSWERS.md](store/PLAY_CONSOLE_ANSWERS.md) 신설: 앱 액세스·광고·광고 ID·대상 연령·콘텐츠 등급(IARC)·기타 선언·데이터 보안 표·프로덕션 신청 질문 준비. 실제 코드(빌드된 앱 권한 목록, `track.ts`·`errorTracking.ts`·쿠팡 스크립트·기기 식별값·탈퇴 코드)와 개인정보처리방침을 근거로 씀.
+- **조사 중 발견한 어긋남(출시 전 결정 필요)**: ① 방침에 카카오·네이버 로그인과 푸시(FCM)가 빠져 있음 ② 회원 탈퇴가 실제로는 soft delete(`deleted_at`만 기록) — 방침엔 그렇게 적혀 있으나 Play 삭제 요구와 충돌 가능 ③ 쿠팡 광고 스크립트의 데이터 수집을 방침이 "누구인지 모르는 형태"로만 적음 ④ Sentry 는 DSN 없어 꺼져 있음(켜면 진단 데이터 선언 갱신).
