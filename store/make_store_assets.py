@@ -229,9 +229,16 @@ SOURCES = {
 #   crop: 원본 픽셀 좌표(상태바 자르기 전)  w: 캔버스 폭 대비 너비  angle: 반시계 방향 기울기(도)
 #   cx: 캔버스 폭 대비 중심 x  cy: 폰 화면 윗변에서 중심까지 거리(캔버스 폭 대비)
 INSETS = {
-    # 사진 찍는 화면(피자치즈) — 오른쪽 위에 작은 폰처럼
-    "photo": dict(src="store/sources/camera_pizza_cheese.png", crop=(0, 223, 1206, 2622),
-                  w=0.33, angle=-7, cx=0.78, cy=0.36, radius=0.05),
+    # 사진 찍는 화면 3장(영수증 · 음식 · 쿠팡 주문내역) — "영수증이든 음식 사진이든"을 한눈에.
+    # 위쪽에 부채꼴로 펼치고, 가운데 장을 맨 앞에(목록 순서대로 그려서 마지막이 위로 온다).
+    "photo": [
+        dict(src="store/sources/camera_receipt.png", crop=(0, 223, 1206, 2622),
+             w=0.27, angle=9, cx=0.22, cy=0.36, radius=0.045),
+        dict(src="store/sources/camera_coupang.png", crop=(0, 223, 1206, 2622),
+             w=0.27, angle=-9, cx=0.78, cy=0.36, radius=0.045),
+        dict(src="store/sources/camera_pizza_cheese.png", crop=(0, 223, 1206, 2622),
+             w=0.29, angle=0, cx=0.5, cy=0.33, radius=0.045),
+    ],
     # 재료 매칭도 설정 팝업
     "match": dict(src="store/sources/match_filter_popup.png", crop=(92, 642, 1114, 2166),
                   w=0.47, angle=-6, cx=0.72, cy=0.40, radius=0.04),
@@ -458,7 +465,9 @@ def render_slide(slide, W, H):
         ImageDraw.Draw(img).rounded_rectangle([px0, y, px0 + pw - 1, bottom - 1], radius=radius, outline=(60, 60, 66), width=max(2, W // 400))
 
     if slide["key"] in INSETS:
-        img = paste_inset(img, INSETS[slide["key"]], W, y)
+        specs = INSETS[slide["key"]]
+        for spec in specs if isinstance(specs, list) else [specs]:
+            img = paste_inset(img, spec, W, y)
     if slide.get("badge") == "sound":
         # 보이는 폰 화면의 가운데쯤(캔버스 아래로 흘러 나간 부분은 빼고)
         visible_bottom = min(bottom, H)
