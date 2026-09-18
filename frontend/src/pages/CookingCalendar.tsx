@@ -1298,6 +1298,11 @@ const CookingCalendar: React.FC = () => {
   /** "이번 주"가 며칠부터 며칠인지 — "이번 주가 언제 기준인지 모르겠다"는
    * 지적(2026-09-14)으로 라벨 옆에 덧붙인다. MM/DD 로 짧게. */
   const shoppingWeekLabel = `${shoppingWeekFrom.slice(5).replace('-', '/')}~${shoppingWeekTo.slice(5).replace('-', '/')}`;
+  /** 장보기 메모 배지("이번 주"/"다음 주")를 계산할 때 쓰는, 딱 한 주 뒤의
+   * 시작일. 달력이 주 단위(일~토)로만 조회되는 구조라, 계획한 요리가
+   * 이번 주·다음 주에 걸쳐 있으면 어느 페이지가 어느 주인지 헷갈린다는
+   * 지적(2026-09-18)으로 배지를 추가했다. */
+  const shoppingNextWeekFrom = toDateKey(addDays(startOfWeek(new Date()), 7));
 
   /** 주 단위 장보기 메모 히스토리 — 지금 보는 주와 지난 주들의 "다이어리
    * 페이지"가 함께 읽고 쓰는 저장소. 취소선(구매 여부)도 여기 같이 들어
@@ -1674,6 +1679,14 @@ const CookingCalendar: React.FC = () => {
     // "계획한 요리 장보기 메모"로 다시 가른다. `weekKey`가 'YYYY-MM-DD'라
     // 문자열 비교로도 날짜 순서가 맞는다.
     const isPastWeek = diaryWeekKey < shoppingWeekFrom;
+    // 이번 주·다음 주만 배지로 짚어 준다("이번주, 지난주, 다음주 정도는" —
+    // 2주 이상 먼 미래는 실제로 거의 안 생기기도 하고, 배지 없이 날짜
+    // 범위만으로도 충분하다). 지난 주는 이미 위 제목이 "지난 장보기 메모"로
+    // 말해 주지만, 날짜 범위만 보고 훑을 때도 바로 알아보도록 배지도 같이 단다.
+    const weekBadge = diaryWeekKey === shoppingWeekFrom ? '이번 주'
+      : diaryWeekKey === shoppingNextWeekFrom ? '다음 주'
+      : isPastWeek ? '지난 주'
+      : null;
     return (
       <div style={{
         margin: '16px 14px 14px', borderRadius: 14,
@@ -1715,6 +1728,15 @@ const CookingCalendar: React.FC = () => {
           <ShoppingMemoCard
             titleNode={(
               <>
+                {weekBadge && (
+                  <span style={{
+                    display: 'inline-block', marginRight: 6, padding: '2px 8px',
+                    borderRadius: 9999, background: '#FFD600', color: '#1A1A1E',
+                    fontSize: 11, fontWeight: 700, verticalAlign: 'middle',
+                  }}>
+                    {weekBadge}
+                  </span>
+                )}
                 {entry.rangeLabel}
                 <span> · {entry.items.length}개</span>
                 {boughtSet.size > 0 && <span> · {boughtSet.size}개 샀어요</span>}
