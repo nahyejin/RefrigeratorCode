@@ -38,6 +38,15 @@ const UPDATED_AT = '2026-09-11';
 const EFFECTIVE_AT = '2026-09-11';
 
 /**
+ * 개인정보처리방침만 따로 개정일을 둔다 — 약관은 그대로라 날짜가 같이 바뀌면 거짓이 된다.
+ * 2026-09-19 개정: 카카오·네이버 로그인, 푸시 알림(기기 푸시 주소·Firebase)을 표에 추가했다.
+ * 새로 받기 시작한 것이 아니라 이미 하던 일을 빠뜨렸던 것을 바로잡은 것이라(이용자에게
+ * 불리한 변경이 아님) 공고일과 시행일을 같은 날로 둔다.
+ */
+const PRIVACY_UPDATED_AT = '2026-09-19';
+const PRIVACY_EFFECTIVE_AT = '2026-09-19';
+
+/**
  * 채워 넣어야 하는 자리. 비워 두면 화면에 그대로 드러나 잃지 않는다.
  *
  * `name` 은 **실명**이어야 한다. 개인정보보호법은 개인정보 보호책임자의
@@ -107,7 +116,7 @@ const Tab: React.FC<{ on: boolean; onClick: () => void; children: React.ReactNod
 const Privacy: React.FC = () => (
   <>
     <h1 style={S.h1}>개인정보처리방침</h1>
-    <div style={S.updated}>공고일 {UPDATED_AT} · 시행일 {EFFECTIVE_AT}</div>
+    <div style={S.updated}>공고일 {PRIVACY_UPDATED_AT} · 시행일 {PRIVACY_EFFECTIVE_AT}</div>
 
     <div style={S.note}>
       쿡매치는 냉장고에 있는 재료로 만들 수 있는 요리를 찾아 주는 서비스입니다.
@@ -127,7 +136,7 @@ const Privacy: React.FC = () => (
       <tbody>
         <tr>
           <td style={S.td}>계정</td>
-          <td style={S.td}>이메일, 닉네임, 로그인 방식(구글/이메일), 비밀번호(되돌릴 수 없게 암호화)</td>
+          <td style={S.td}>이메일, 닉네임, 로그인 방식(구글/카카오/네이버/이메일), 비밀번호(이메일로 가입한 경우만, 되돌릴 수 없게 암호화)</td>
           <td style={S.td}>로그인, 내 재료·기록을 다음에도 보여 주기</td>
         </tr>
         <tr>
@@ -155,6 +164,11 @@ const Privacy: React.FC = () => (
           <td style={S.td}>기기 식별값, 세션 값, 어떤 화면에서 무엇을 눌렀는지, 접속 시각</td>
           <td style={S.td}>어디가 불편한지 찾아 고치기, 로그인 없이 써 볼 때의 사용량 한도</td>
         </tr>
+        <tr>
+          <td style={S.td}>푸시 알림</td>
+          <td style={S.td}>알림을 받는 기기의 푸시 주소(앱은 기기 토큰, 웹은 브라우저 푸시 주소)와 등록 시각</td>
+          <td style={S.td}>유통기한이 임박한 재료 알림 보내기 (알림을 켠 경우에만)</td>
+        </tr>
       </tbody>
     </table>
 
@@ -178,8 +192,18 @@ const Privacy: React.FC = () => (
       </thead>
       <tbody>
         <tr>
-          <td style={S.td}>Google (구글 로그인)</td>
-          <td style={S.td}>로그인할 때 이메일·이름을 받아 옵니다</td>
+          <td style={S.td}>Google · 카카오 · 네이버 (소셜 로그인)</td>
+          <td style={S.td}>
+            로그인할 때 이메일과 이름(닉네임)을 받아 옵니다. 카카오·네이버가 이메일을 주지
+            않으면 서비스 안에서만 쓰는 임시 주소로 계정을 만듭니다
+          </td>
+        </tr>
+        <tr>
+          <td style={S.td}>Google (Firebase 푸시 알림) · 각 브라우저의 푸시 서비스</td>
+          <td style={S.td}>
+            알림을 켜면 기기의 푸시 주소로 알림을 전달합니다. 알림 문구(곧 상하는 재료 이름 등)가
+            이 서비스를 거쳐 갑니다. 웹 알림은 쓰는 브라우저(Chrome·Safari·Firefox 등)의 푸시 서비스를 씁니다
+          </td>
         </tr>
         <tr>
           <td style={S.td}>Google (Gemini) · Groq</td>
@@ -187,7 +211,10 @@ const Privacy: React.FC = () => (
         </tr>
         <tr>
           <td style={S.td}>쿠팡 파트너스</td>
-          <td style={S.td}>광고 링크. 누르면 쿠팡으로 이동하며, 어떤 재료의 광고를 눌렀는지 <b>누구인지 모르는 형태로</b> 셉니다</td>
+          <td style={S.td}>
+            광고 링크. 누르면 쿠팡으로 이동하며, 어떤 재료의 광고를 눌렀는지 <b>누구인지 모르는 형태로</b> 셉니다.
+            광고 화면은 쿠팡의 광고 기능을 불러오므로, 쿠팡이 자체 방침에 따라 접속 정보를 수집할 수 있습니다
+          </td>
         </tr>
         <tr>
           <td style={S.td}>Railway · Vercel</td>
