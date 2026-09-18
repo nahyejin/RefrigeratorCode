@@ -250,6 +250,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // 2026-09-18, 가족 계정끼리 기기를 공유하다 발견됨). 위 재료 목록들과
       // 같은 이유로 같이 지운다.
       localStorage.removeItem('cooking_calendar_shopping_memos');
+      // 요리 계획(`utils/mealPlan.ts`의 `cookmatch_meal_plan`)도 같은 문제가
+      // 있다 — 비회원일 때는 기기 자체가 그 사람의 저장소라 이 방식이 맞지만,
+      // 그 뒤 다른 계정으로 로그인하면(또는 다른 계정에서 다른 계정으로
+      // 넘어가면) 앞사람이 짠 계획이 그대로 남는다. 서버에 이미 올라간
+      // 계획은 화면에서 서버 값이 우선(`plans` 계산에서 `onServer`인 것은
+      // 로컬을 무시)이라 덜 드러났을 뿐, 동기화 전 로컬 전용 계획은 새는
+      // 경로가 있었다(2026-09-18, 같이 처리해 달라는 요청).
+      localStorage.removeItem('cookmatch_meal_plan');
       // 목록 화면이 들고 있는 계산 결과(매칭률 포함) 캐시도 같이 버린다.
       sessionStorage.removeItem('recipe_list_state');
       sessionStorage.removeItem('recipe_list_ingredients_hash');
@@ -307,6 +315,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     // 마이캘린더 장보기 메모 초기화 — 위 `clearDataOfOtherAccount`와 같은 이유.
     localStorage.removeItem('cooking_calendar_shopping_memos');
+    // 요리 계획도 같은 이유로 초기화(위 `clearDataOfOtherAccount` 설명 참고).
+    localStorage.removeItem('cookmatch_meal_plan');
 
     // 세션 스토리지의 레시피 리스트 캐시도 초기화
     sessionStorage.removeItem('recipe_list_state');
