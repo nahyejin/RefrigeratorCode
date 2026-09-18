@@ -11273,3 +11273,11 @@ edge-tts 파일럿 목소리가 "너무 AI 같다"는 피드백 + "제미나이�
 - **iOS 권한 문구 추가**: [Info.plist](frontend/ios/App/App/Info.plist)에 `NSCameraUsageDescription`·`NSPhotoLibraryUsageDescription` 추가 — 이 문구가 없으면 iOS가 권한 요청 자체를 막아 앱이 죽는다(장식이 아니라 필수).
 - `@capacitor/push-notifications`도 함께 설치는 해 뒀지만(다음 네이티브 기능 후보), 아직 연결 코드는 안 짬 — Firebase 프로젝트 생성 등 사용자 계정이 필요한 작업이 먼저 필요해 별도로 안내 예정.
 - `npx cap sync`로 안드로이드·iOS 양쪽 네이티브 프로젝트에 새 플러그인 반영, `npm run build`·타입 체크·로컬 프리뷰(웹 경로 정상 동작, 콘솔 에러 없음)까지 확인.
+
+### 장보기 메모가 같은 기기의 다른 계정에도 그대로 보이던 문제
+가족이 기기 하나를 같이 쓰는데, 계획한 요리가 없는 "엄마" 계정으로 들어갔더니 전혀 다른 계정("나혜진")이 짜 둔 장보기 메모(9/20~9/26)가 그대로 보인다는 신고(2026-09-18, 실제 화면 스크린샷으로 확인).
+
+- **원인**: 장보기 메모(`cooking_calendar_shopping_memos`)는 계정별로 안 나뉘고 기기 한 칸(localStorage)에만 저장된다. [AuthContext.tsx](frontend/src/context/AuthContext.tsx)에는 원래 이런 문제를 막으려고 계정이 바뀌면 `myfridge_ingredients`·`my_recorded_recipes`·`my_completed_recipes`·`my_favorite_recipes`를 지우는 `clearDataOfOtherAccount()`(+ 로그아웃 시에도 동일)가 이미 있었는데, 장보기 메모 기능을 새로 만들 때 이 목록에 추가하는 걸 빠뜨렸다.
+- **수정**: `clearDataOfOtherAccount()`와 `logout()` 둘 다에 `cooking_calendar_shopping_memos` 삭제를 추가 — 기존 재료 목록들과 똑같은 시점에 똑같이 지워지도록 맞춤.
+- 타입 체크 통과. 로컬 프리뷰에서 계정 1의 메모를 심어 두고 계정 2로 전환(로그인 복원 로직을 흉내 냄)했을 때, 메모가 실제로 지워지고 마이캘린더 하단에 아무것도 안 뜨는 것을 확인.
+- **관련해서 발견한 것**: 계획(`cookmatch_meal_plan`)도 같은 방식(계정별로 안 나뉜 기기 저장)이라 같은 문제가 이론상 있을 수 있다 — 서버 계획이 있으면 그쪽이 우선이라 덜 눈에 띄지만, 동기화 전 로컬 전용 계획이라면 새는 경로가 남아 있다. 지금 신고된 건 아니라 별도 작업으로 분리해 둠.

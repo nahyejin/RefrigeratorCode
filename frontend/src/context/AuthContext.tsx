@@ -244,6 +244,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       localStorage.removeItem('my_recorded_recipes');
       localStorage.removeItem('my_completed_recipes');
       localStorage.removeItem('my_favorite_recipes');
+      // 장보기 메모(마이캘린더 하단)도 계정별로 나뉘지 않은 채 기기 한 칸에만
+      // 저장된다 — 같은 기기에서 다른 계정으로 들어오면 앞 계정이 보던 메모가
+      // 그대로 남아 "계획도 없는데 왜 뜨냐"는 문제가 생긴다(실사용 지적,
+      // 2026-09-18, 가족 계정끼리 기기를 공유하다 발견됨). 위 재료 목록들과
+      // 같은 이유로 같이 지운다.
+      localStorage.removeItem('cooking_calendar_shopping_memos');
       // 목록 화면이 들고 있는 계산 결과(매칭률 포함) 캐시도 같이 버린다.
       sessionStorage.removeItem('recipe_list_state');
       sessionStorage.removeItem('recipe_list_ingredients_hash');
@@ -298,7 +304,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     localStorage.removeItem('my_recorded_recipes');
     localStorage.removeItem('my_completed_recipes');
     localStorage.removeItem('my_favorite_recipes');
-    
+
+    // 마이캘린더 장보기 메모 초기화 — 위 `clearDataOfOtherAccount`와 같은 이유.
+    localStorage.removeItem('cooking_calendar_shopping_memos');
+
     // 세션 스토리지의 레시피 리스트 캐시도 초기화
     sessionStorage.removeItem('recipe_list_state');
     sessionStorage.removeItem('recipe_list_ingredients_hash');
