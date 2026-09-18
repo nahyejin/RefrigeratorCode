@@ -11456,3 +11456,4 @@ Android Studio 설치(설정 마법사 Standard로 SDK 설치) 후 이 PC에서 
 - 백엔드가 쓰는 구글 클라이언트 ID(`622855474105-…`)를 추적: Firebase 프로젝트(CookMatch, 번호 345170616630)나 RefrigeratorCode 프로젝트가 아니라 **My First Project**(`glassy-vial-424406-u7`)의 `CookMatch Web Client_web`.
 - 그 프로젝트 OAuth 동의 화면 게시 상태가 **테스트 중**, 테스트 사용자 0명 → 프로젝트 소유자(사용자 본인)만 로그인 가능. 출시 후 일반 사용자·비공개 테스트 테스터는 구글 로그인이 막힘. "앱 게시" 버튼은 브랜딩 페이지 미구성 때문에 비활성.
 - 조치(사용자가 콘솔에서 함, 미완): 브랜딩 채우기 → 앱 게시(프로덕션). 카카오 운영 상태·동의항목도 확인 필요. [MOBILE_APP_GUIDE.md](MOBILE_APP_GUIDE.md) 끝에 절 추가.
+- **조치 완료(2026-09-19, 사용자가 콘솔에서 함)**: My First Project → Google 인증 플랫폼 → 브랜딩(앱 이름·지원 이메일·홈페이지·개인정보처리방침·약관 링크, 승인된 도메인 `refrigeratorcode-production.up.railway.app`·`refrigerator-code.vercel.app`, 개발자 연락처, 로고 없음) 저장 후 [대상 → 앱 게시]로 **프로덕션 단계**로 전환. 게시 확인 창의 인증 필요 조건(도메인 10개 초과·로고·민감/제한 범위)에 해당하지 않아 심사 없이 게시됨. 아직 안 한 것: 본인이 아닌 구글 계정으로 실제 로그인 확인, 카카오 점검.
