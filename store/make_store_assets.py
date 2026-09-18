@@ -31,6 +31,7 @@
 import os
 import subprocess
 import sys
+import time
 
 from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont
 
@@ -209,21 +210,45 @@ def make_feature_graphic(icon):
 # 스크린샷
 # ---------------------------------------------------------------------------
 
-# 원본 화면: (파일, 영상이면 초 단위 시점). 녹화본 대부분이 폭 880 안팎 × 높이 1920,
-# 위쪽 약 180px 이 iOS 상태바 + 화면 녹화 표시라 잘라낸다(릴스 편집 때와 같은 값).
+# 원본 화면: (저장소 기준 경로, 영상이면 초 단위 시점, 위에서 잘라낼 px). 녹화본 대부분은
+# 위쪽이 iOS 상태바 + 화면 녹화 표시라 잘라낸다. 상태바 없이 앱 화면만 녹화된 것(01·02편 데모)은 0.
+# store/sources/ 는 사용자가 직접 찍어 준 실제 앱 캡처(2026-09-18).
+V = "my-video/public/"
 SOURCES = {
-    "diet": ("reel4_shopping_freeze.png", None, 180),
-    "chat": ("reel6_chatbot_demo.mp4", 29.2, 180),
-    "photo": ("reel1_loading_freeze.png", None, 0),  # 이 녹화본은 상태바 없이 앱 화면만
-    "match": ("reel2_matching_demo_fixed.mp4", 9.0, 180),
-    "substitute": ("reel2_substitute_freeze.png", None, 180),
-    "expiry": ("reel5_expiry_demo.mp4", 16.0, 180),
-    "cook": ("reel3_reading_freeze.png", None, 180),
-    "family": ("reel8_family_demo.mp4", 16.5, 180),
+    "diet": ("store/sources/diet_ai_plan.png", None, 185),
+    "chat": (V + "reel6_chatbot_demo.mp4", 29.2, 180),
+    "photo": (V + "reel1_loading_freeze.png", None, 0),
+    "match": (V + "reel2_matching_demo_fixed.mp4", 9.0, 0),
+    "substitute": (V + "reel2_substitute_freeze.png", None, 0),
+    "expiry": (V + "reel5_expiry_demo.mp4", 16.0, 180),
+    "cook": (V + "reel3_reading_freeze.png", None, 180),
+    "family": (V + "reel8_family_demo.mp4", 16.5, 180),
+}
+
+# 폰 화면 위에 겹쳐 올리는 보조 이미지(기울인 작은 카드 / 확대 콜아웃).
+#   crop: 원본 픽셀 좌표(상태바 자르기 전)  w: 캔버스 폭 대비 너비  angle: 반시계 방향 기울기(도)
+#   cx: 캔버스 폭 대비 중심 x  cy: 폰 화면 윗변에서 중심까지 거리(캔버스 폭 대비)
+INSETS = {
+    # 사진 찍는 화면(피자치즈) — 오른쪽 위에 작은 폰처럼
+    "photo": dict(src="store/sources/camera_pizza_cheese.png", crop=(0, 223, 1206, 2622),
+                  w=0.33, angle=-7, cx=0.78, cy=0.36, radius=0.05),
+    # 재료 매칭도 설정 팝업
+    "match": dict(src="store/sources/match_filter_popup.png", crop=(92, 642, 1114, 2166),
+                  w=0.47, angle=-6, cx=0.72, cy=0.40, radius=0.04),
+    # "대체 가능 · 당근→양파"가 있는 레시피 카드를 잘라 크게
+    "substitute": dict(src=V + "reel2_substitute_freeze.png", crop=(30, 624, 910, 1070),
+                       w=0.92, angle=-2, cx=0.5, cy=0.78, radius=0.03),
+    # 임박 재료 설정 팝업
+    "expiry": dict(src="store/sources/expiry_filter_popup.png", crop=(92, 665, 1114, 2145),
+                   w=0.47, angle=-6, cx=0.72, cy=0.40, radius=0.04),
+    # 가족별 요리 횟수 + 이번 달 절약액과 그 계산식
+    "family": dict(src=V + "reel8_savings_bg.png", crop=(20, 248, 860, 850),
+                   w=0.9, angle=-2, cx=0.5, cy=0.62, radius=0.03),
 }
 
 # band: k=검정(AI 기능), y=브랜드 노랑, w=밝은 회색. focus: 폰 화면을 위에서부터 어디쯤
 # 보여줄지(원본 높이 대비 비율, 상태바 자른 뒤 기준) — 핵심 UI가 잘리지 않게 편마다 맞춤.
+# badge="sound": 폰 화면 가운데에 소리 표시(요리 모드).
 SLIDES = [
     dict(key="diet", band="k", ai=True, eyebrow="AI 식단 추천",
          headline="말 한마디로\n일주일 식단 완성", sub="냉장고 재료로 먼저 채워서, 장보기는 최소한만", focus=0.0),
@@ -238,9 +263,9 @@ SLIDES = [
     dict(key="expiry", band="w", ai=False, eyebrow="유통기한 관리",
          headline="곧 상할 재료부터\n먼저 요리하세요", sub="유통기한 임박한 재료 순으로 레시피를 추천해요", focus=0.0),
     dict(key="cook", band="w", ai=False, eyebrow="요리 모드",
-         headline="손에 물 묻어도\n귀로 들으세요", sub="조리 순서를 소리로 읽어드려요", focus=0.0),
+         headline="손에 물 묻어도\n귀로 들으세요", sub="조리 순서를 소리로 읽어드려요", focus=0.0, badge="sound"),
     dict(key="family", band="y", ai=False, eyebrow="우리 식구 요리",
-         headline="가족이 함께 쓰는\n요리 캘린더", sub="누가 언제 뭘 만들었는지, 이번 달 목표까지", focus=0.0),
+         headline="가족이 함께,\n아낀 돈까지 한눈에", sub="누가 몇 번 요리했는지, 외식 대비 아낀 돈을 계산해요", focus=0.0),
 ]
 
 SIZES = {"play": (1080, 1920), "ios": (1290, 2796)}
@@ -248,7 +273,7 @@ SIZES = {"play": (1080, 1920), "ios": (1290, 2796)}
 
 def load_frame(key):
     name, t, top_crop = SOURCES[key]
-    path = os.path.join(VIDEO_PUBLIC, name)
+    path = os.path.join(ROOT, name)
     if t is not None:
         os.makedirs(FRAME_CACHE, exist_ok=True)
         cached = os.path.join(FRAME_CACHE, f"{key}.png")
@@ -266,6 +291,82 @@ def load_frame(key):
 
 def wrap_lines(text):
     return text.split("\n")
+
+
+def save_png(img, path):
+    """임시 파일에 쓴 뒤 바꿔 끼운다. 윈도우에서 백신·검색 색인이 방금 쓴 PNG를 잠깐 붙잡고
+    있으면 같은 이름으로 다시 열 때 `OSError: [Errno 22]`가 나서, 몇 번 다시 시도한다."""
+    tmp = path + ".tmp.png"
+    img.save(tmp)
+    for attempt in range(10):
+        try:
+            os.replace(tmp, path)
+            return
+        except OSError:
+            time.sleep(0.5 * (attempt + 1))
+    raise OSError(f"저장 실패(파일이 잠겨 있음): {path}")
+
+
+def paste_inset(img, spec, W, phone_top):
+    """보조 이미지를 둥근 카드로 잘라 기울여서 그림자와 함께 얹는다."""
+    src = Image.open(os.path.join(ROOT, spec["src"])).convert("RGB").crop(spec["crop"])
+    w = int(W * spec["w"])
+    h = int(src.height * w / src.width)
+    card = src.resize((w, h), Image.LANCZOS).convert("RGBA")
+    r = int(W * spec["radius"])
+    mask = Image.new("L", (w, h), 0)
+    ImageDraw.Draw(mask).rounded_rectangle([0, 0, w - 1, h - 1], radius=r, fill=255)
+    card.putalpha(mask)
+    # 흰 카드가 흰 앱 화면 위에서도 구분되게 얇은 테두리
+    ImageDraw.Draw(card).rounded_rectangle([0, 0, w - 1, h - 1], radius=r, outline=(215, 215, 222, 255), width=max(2, W // 500))
+
+    rot = card.rotate(spec["angle"], resample=Image.BICUBIC, expand=True)
+    cx = int(W * spec["cx"])
+    cy = phone_top + int(W * spec["cy"])
+    x0, y0 = cx - rot.width // 2, cy - rot.height // 2
+
+    shadow = Image.new("RGBA", img.size, (0, 0, 0, 0))
+    sh = Image.new("RGBA", rot.size, (0, 0, 0, 0))
+    sh.putalpha(rot.split()[3].point(lambda a: int(a * 0.45)))
+    shadow.paste(sh, (x0, y0 + int(W * 0.018)), sh)
+    shadow = shadow.filter(ImageFilter.GaussianBlur(int(W * 0.022)))
+    base = img.convert("RGBA")
+    base.alpha_composite(shadow)
+    base.alpha_composite(rot, (x0, y0))
+    return base.convert("RGB")
+
+
+def paste_sound_badge(img, W, cx, cy):
+    """요리 모드 — 폰 화면 가운데에 "소리로 읽는 중" 표시(노란 원 + 스피커 + 음파, 아래 알약 문구)."""
+    base = img.convert("RGBA")
+    D = int(W * 0.3)
+    layer = Image.new("RGBA", base.size, (0, 0, 0, 0))
+    d = ImageDraw.Draw(layer)
+    # 그림자
+    sh = Image.new("RGBA", base.size, (0, 0, 0, 0))
+    ImageDraw.Draw(sh).ellipse([cx - D // 2, cy - D // 2 + int(W * 0.02), cx + D // 2, cy + D // 2 + int(W * 0.02)], fill=(0, 0, 0, 110))
+    base.alpha_composite(sh.filter(ImageFilter.GaussianBlur(int(W * 0.025))))
+    d.ellipse([cx - D // 2, cy - D // 2, cx + D // 2, cy + D // 2], fill=BRAND + (255,))
+    # 스피커(사각 + 나팔)
+    u = D / 10
+    sx = cx - u * 2.6
+    d.rectangle([sx - u * 1.0, cy - u * 0.9, sx + u * 0.2, cy + u * 0.9], fill=INK)
+    d.polygon([(sx + u * 0.2, cy - u * 0.9), (sx + u * 1.9, cy - u * 2.3), (sx + u * 1.9, cy + u * 2.3), (sx + u * 0.2, cy + u * 0.9)], fill=INK)
+    # 음파 호 2개
+    lw = max(3, int(u * 0.55))
+    for rr in (u * 1.6, u * 3.0):
+        ax = sx + u * 1.9
+        d.arc([ax - rr, cy - rr, ax + rr, cy + rr], start=-50, end=50, fill=INK, width=lw)
+    # 아래 알약 문구
+    f = font(int(W * 0.036), 800)
+    text = "소리로 읽는 중"
+    tw = d.textlength(text, font=f)
+    ph = int(W * 0.075)
+    py = cy + D // 2 + int(W * 0.03)
+    d.rounded_rectangle([cx - tw / 2 - ph * 0.6, py, cx + tw / 2 + ph * 0.6, py + ph], radius=ph // 2, fill=INK + (240,))
+    d.text((cx, py + ph / 2), text, font=f, fill=BRAND, anchor="mm")
+    base.alpha_composite(layer)
+    return base.convert("RGB")
 
 
 def render_slide(slide, W, H):
@@ -340,6 +441,13 @@ def render_slide(slide, W, H):
     if band == "k":
         # 검은 배경에선 흰 화면 가장자리가 너무 튀지 않게 얇은 테두리
         ImageDraw.Draw(img).rounded_rectangle([px0, y, px0 + pw - 1, bottom - 1], radius=radius, outline=(60, 60, 66), width=max(2, W // 400))
+
+    if slide["key"] in INSETS:
+        img = paste_inset(img, INSETS[slide["key"]], W, y)
+    if slide.get("badge") == "sound":
+        # 보이는 폰 화면의 가운데쯤(캔버스 아래로 흘러 나간 부분은 빼고)
+        visible_bottom = min(bottom, H)
+        img = paste_sound_badge(img, W, W // 2, (y + visible_bottom) // 2)
     return img
 
 
@@ -348,7 +456,7 @@ def make_shots():
         out = os.path.join(STORE, "screenshots", platform)
         os.makedirs(out, exist_ok=True)
         for i, slide in enumerate(SLIDES, 1):
-            render_slide(slide, W, H).save(os.path.join(out, f"{i:02d}_{slide['key']}.png"))
+            save_png(render_slide(slide, W, H), os.path.join(out, f"{i:02d}_{slide['key']}.png"))
         print(f"{platform} {W}x{H}: {len(SLIDES)}장")
 
 
