@@ -1484,10 +1484,17 @@ const CookingCalendar: React.FC = () => {
     return [...keys].sort();
   }, [memoHistory, weekBasket, shoppingWeekFrom]);
   const [diaryWeekKey, setDiaryWeekKey] = React.useState<string | null>(null);
+  /** 이번 주·다음 주 메모가 각자 따로 네트워크로 불러와지다 보니, 마이캘린더에
+   * 막 들어왔을 때 다음 주 메모가 이번 주보다 먼저 도착하면 "넘겨 보던
+   * 페이지 유지" 규칙이 그 순간을 사용자가 직접 넘긴 것으로 착각해 다음 주에
+   * 눌러앉아 버렸다 — 화면 첫 진입인데 다음 주가 기본으로 뜨는 문제(실사용
+   * 지적, 2026-09-18). 화살표를 실제로 눌렀을 때만 "유지"가 적용되도록,
+   * 그 전까지는 이번 주 데이터가 도착하는 순간 항상 이번 주로 다시 맞춘다. */
+  const diaryUserPagedRef = React.useRef(false);
   React.useEffect(() => {
     if (diaryWeekKeys.length === 0) { setDiaryWeekKey(null); return; }
     setDiaryWeekKey(prev => {
-      if (prev && diaryWeekKeys.includes(prev)) return prev; // 넘겨 보던 페이지는 그대로 유지
+      if (diaryUserPagedRef.current && prev && diaryWeekKeys.includes(prev)) return prev; // 사용자가 직접 넘긴 페이지는 그대로 유지
       return diaryWeekKeys.includes(shoppingWeekFrom) ? shoppingWeekFrom : diaryWeekKeys[diaryWeekKeys.length - 1];
     });
   }, [diaryWeekKeys, shoppingWeekFrom]);
@@ -1820,7 +1827,7 @@ const CookingCalendar: React.FC = () => {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, marginTop: 8 }}>
             <button
               type="button"
-              onClick={() => canGoOlder && setDiaryWeekKey(diaryWeekKeys[diaryIndex - 1])}
+              onClick={() => canGoOlder && (diaryUserPagedRef.current = true, setDiaryWeekKey(diaryWeekKeys[diaryIndex - 1]))}
               disabled={!canGoOlder}
               aria-label="이전 주 장보기 메모"
               style={{
@@ -1836,7 +1843,7 @@ const CookingCalendar: React.FC = () => {
             </span>
             <button
               type="button"
-              onClick={() => canGoNewer && setDiaryWeekKey(diaryWeekKeys[diaryIndex + 1])}
+              onClick={() => canGoNewer && (diaryUserPagedRef.current = true, setDiaryWeekKey(diaryWeekKeys[diaryIndex + 1]))}
               disabled={!canGoNewer}
               aria-label="다음 주 장보기 메모"
               style={{
