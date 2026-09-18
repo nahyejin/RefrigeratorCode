@@ -11451,3 +11451,8 @@ Android Studio 설치(설정 마법사 Standard로 SDK 설치) 후 이 PC에서 
 - 업로드 키스토어(`CookMatchKeys`)는 사용자가 네이버 Box·개인 메일에 백업함. Box 공유 링크가 비공개인지 확인하도록 안내함.
 
 - [MOBILE_APP_GUIDE.md](MOBILE_APP_GUIDE.md) 끝에 "맥북에서 처음 할 일" 절 추가(Xcode·Node 설치 → clone → cap sync ios → 시뮬레이터 실행 → Apple 승인 후 서명·capability). 사용자가 맥북을 갖고 있어 Apple 승인 전에도 시뮬레이터 확인은 가능함.
+
+### 소셜 로그인 점검 — 구글 OAuth 가 "테스트 중"이라 다른 사용자는 로그인이 안 되는 상태였음(2026-09-19, 확인만)
+- 백엔드가 쓰는 구글 클라이언트 ID(`622855474105-…`)를 추적: Firebase 프로젝트(CookMatch, 번호 345170616630)나 RefrigeratorCode 프로젝트가 아니라 **My First Project**(`glassy-vial-424406-u7`)의 `CookMatch Web Client_web`.
+- 그 프로젝트 OAuth 동의 화면 게시 상태가 **테스트 중**, 테스트 사용자 0명 → 프로젝트 소유자(사용자 본인)만 로그인 가능. 출시 후 일반 사용자·비공개 테스트 테스터는 구글 로그인이 막힘. "앱 게시" 버튼은 브랜딩 페이지 미구성 때문에 비활성.
+- 조치(사용자가 콘솔에서 함, 미완): 브랜딩 채우기 → 앱 게시(프로덕션). 카카오 운영 상태·동의항목도 확인 필요. [MOBILE_APP_GUIDE.md](MOBILE_APP_GUIDE.md) 끝에 절 추가.

@@ -253,3 +253,9 @@ if ('serviceWorker' in navigator) {
 5. **시뮬레이터로 실행**: Xcode 위쪽에서 iPhone 시뮬레이터를 고르고 ▶. **유료 계정 없이** 화면·네이티브 소셜 로그인(사파리 뷰 → `com.cookmatch.app://auth` 복귀)을 확인할 수 있다. 푸시(APNs)·Sign in with Apple 은 시뮬레이터/무료 계정으로 안 됨.
 6. **Apple 승인 후**: Xcode → Settings → Accounts 에 Apple ID 추가 → 프로젝트 Signing & Capabilities 에서 Team 선택, 번들 ID `com.cookmatch.app`, Sign in with Apple·Push Notifications capability 추가 → 실제 아이폰에 설치해 확인.
 
+## 소셜 로그인 "다른 사용자도 되는지" 점검 (2026-09-19)
+
+- **구글**: 로그인용 OAuth 클라이언트(`CookMatch Web Client_web`, ID `622855474105-…`)는 Google Cloud 프로젝트 **My First Project**(`glassy-vial-424406-u7`)에 있다(Firebase 용 CookMatch·RefrigeratorCode 프로젝트가 아님). **게시 상태가 "테스트 중"(테스트 사용자 0명)이라 프로젝트 소유자 본인 말고는 로그인이 안 되는 상태였다.** → [Google 인증 플랫폼 → 브랜딩]을 채워(앱 이름·지원 이메일·홈페이지·개인정보처리방침·약관, 로고는 올리지 않음) [대상 → 앱 게시]로 "프로덕션"으로 바꿔야 한다. 아직 안 함.
+- **카카오**: 앱 "운영 중" 여부와 이메일 동의항목이 일반 사용자에게 열려 있는지 아직 확인 못 함.
+- **네이버**: 검수요청 제출 완료, 승인 대기(승인 전에는 개발자센터에 등록된 계정만 로그인).
+
