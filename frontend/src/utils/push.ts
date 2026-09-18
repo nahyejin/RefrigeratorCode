@@ -40,8 +40,11 @@ import { getAuthToken } from './usage';
  * not initialized"로 **강제 종료된다.** 그래서 설정 파일을 넣기 전까지는 꺼 둔다
  * (꺼져 있으면 네이티브 앱에선 알림 토글·안내 팝업이 아예 안 보인다 — 웹은 영향 없음).
  * 설정 파일을 넣고 나서 `true`로 바꾼다(MOBILE_APP_GUIDE.md "푸시 알림" 절차 참고).
+ * 2026-09-19: Firebase 프로젝트(CookMatch) 연결, google-services.json 추가 후 켬.
+ * (iOS 는 Mac 에서 Firebase Messaging 연결 전까지 토큰이 APNs 형식이라 발송은 안 되지만,
+ *  앱이 죽지는 않는다 — iOS 쪽 register() 는 Firebase 설정 파일을 요구하지 않는다.)
  */
-export const NATIVE_PUSH_ENABLED = false;
+export const NATIVE_PUSH_ENABLED = true;
 
 /**
  * 안드로이드 8+ 알림 채널 id. 서버 발송(`send_expiry_push_notifications.py`의

@@ -11404,3 +11404,8 @@ MOBILE_APP_GUIDE.md 체크리스트의 2·3번(푸시 네이티브 전환, 스�
 - **03 사진 인식 — 찍는 화면 3장으로**: 피자치즈 한 장만 있던 오른쪽 위 카드를, 사용자가 찍어 준 영수증·쿠팡 주문내역 촬영 화면과 함께 3장(영수증 · 음식 · 쿠팡)으로 늘려 위쪽에 부채꼴로 배치(2026-09-19) — "영수증이든 음식 사진이든"을 한눈에. `INSETS` 항목이 여러 장(리스트)도 받게 함.
 - **03 쿠팡 촬영 카드 흐림 처리**: 다른 회사 상표(쿠팡 로고·"로켓프레시")와 상품명이 스크린샷에 그대로 보이던 것을 뷰파인더 안쪽만 흐리게(사용자 요청) — 보조 이미지 설정에 `blur` 영역 옵션 추가. 스토어 연락처 이메일을 920803hj@gmail.com 으로 확정해 STORE_LISTING.md 에 반영(2026-09-19).
 - **03 쿠팡 촬영 카드 흐림 처리 되돌림**: 흐림이 너무 강해 무슨 화면인지 알아보기 어렵다는 피드백으로 원래대로(사용자 요청). 쓰이지 않게 된 `blur` 옵션도 제거.
+
+### 푸시 알림 네이티브 — Firebase 연결 후 안드로이드에서 켬(2026-09-19)
+- 사용자가 Firebase 설정 진행: 구글 계정의 프로젝트 한도가 차 있어서 새 프로젝트 대신 기존 Google Cloud 프로젝트 "CookMatch"(`gen-lang-client-0597760155`)에 Firebase 를 추가(Spark 무료 요금제, 애널리틱스 끔), 안드로이드 앱 `com.cookmatch.app` 등록.
+- `frontend/android/app/google-services.json` 추가(비밀이 아닌 앱 설정 파일이라 커밋), 서비스 계정 키는 `backend/firebase-service-account.json`(gitignore — 커밋 안 됨). 두 파일의 프로젝트 ID·패키지 이름 일치, 서비스 계정 키로 FCM 발송 권한 인증 토큰이 실제로 발급되는 것 확인.
+- `NATIVE_PUSH_ENABLED = true`로 켜고 빌드 + `cap sync android`. 남은 것: Android Studio 로 실기기 빌드 → 마이페이지에서 알림 켜기 → `send_expiry_push_notifications.py --write`로 실제 수신 확인.

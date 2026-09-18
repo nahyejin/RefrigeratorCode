@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "345170616630",
+    "project_id": "gen-lang-client-0597760155",
+    "storage_bucket": "gen-lang-client-0597760155.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:345170616630:android:59023e4b8b0d57338d9397",
+        "android_client_info": {
+          "package_name": "com.cookmatch.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyACPCX7qq7uMrIrGgb_8GoZKTSD14UmgsE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

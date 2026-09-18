@@ -20,7 +20,7 @@
 
 **지금 바로 병행 시작 (서로 기다릴 필요 없음)**
 1. **네이버 로그인 검수요청 — 제출 완료(2026-09-18), 승인 대기 중** — 제출 전에 [API 설정] 탭의 "제공 정보 선택"을 실제로 쓰는 항목(이메일 주소·별명)만 남기고 나머지(회원이름·성별·휴대전화번호 등)는 체크 해제 후 신청함. 승인 나면 "개발 중" 배지가 없어지고 테스터 등록 안 된 일반 사용자도 로그인 가능. **승인 여부는 나중에 다시 확인 필요.**
-2. **푸시 알림 네이티브 전환 — 코드 완료(2026-09-18), Firebase 설정 파일 대기 중.** 앱·서버·발송 배치 코드는 다 들어가 있고, 스위치(`frontend/src/utils/push.ts`의 `NATIVE_PUSH_ENABLED`)만 꺼 둔 상태. 아래 "푸시 알림 켜는 절차"의 1~3단계(사용자 계정 작업)가 끝나면 켠다. iOS는 Apple Developer 계정 + Mac 이 생긴 뒤(4단계).
+2. **푸시 알림 네이티브 전환 — 안드로이드 켬(2026-09-19), 실기기 수신 확인 대기.** Firebase 프로젝트는 계정 프로젝트 한도가 차 있어서 새로 만들지 않고 기존 Google Cloud 프로젝트 "CookMatch"(`gen-lang-client-0597760155`)에 Firebase 를 추가함(Spark 무료 요금제, 애널리틱스 끔). `google-services.json`·서비스 계정 키 배치, 키로 FCM 인증 성공 확인 후 `NATIVE_PUSH_ENABLED = true`. 남은 것: Android Studio 로 빌드해 실기기에서 알림 켜기 → 발송 배치로 실제 수신 확인. iOS는 Apple Developer 계정 + Mac 이 생긴 뒤(5단계).
 3. **앱 아이콘·스크린샷·스토어 설명 — 준비 완료(2026-09-18).** `store/` 폴더: [STORE_LISTING.md](store/STORE_LISTING.md)(스토어 입력칸별 원고·글자 수 검사), `make_store_assets.py`(아이콘·피처 그래픽·스크린샷 생성). 앱 프로젝트 안 아이콘도 교체함(iOS는 Capacitor 기본 placeholder였음). **남은 것: 연락처 이메일 정하기, Sign in with Apple(iOS 필수, 4번 작업 때).**
    - iOS 는 **iPhone 전용**으로 설정(`TARGETED_DEVICE_FAMILY = 1`) — iPad 스크린샷·iPad 화면 심사 불필요.
 
