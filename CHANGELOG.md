@@ -11431,3 +11431,9 @@ Android Studio 설치(설정 마법사 Standard로 SDK 설치) 후 이 PC에서 
 - **프론트**: `@capacitor/browser` 추가. [nativeAuth.ts](frontend/src/utils/nativeAuth.ts)(verifier·challenge 만들기, 브라우저 열기, code 교환), [NativeAuthBridge.tsx](frontend/src/components/NativeAuthBridge.tsx)(앱 주소 수신 → 로그인 처리, 콜드 스타트 `getLaunchUrl` 포함, AppRouter 에 전역 1개). [Login.tsx](frontend/src/pages/Login.tsx)는 앱이면 이 경로로, 웹이면 기존대로. `/login?error=...` 로 돌려보내도 아무 안내가 없던 것도 함께 고침(웹 AuthSuccess 실패 때도 마찬가지였음).
 - **네이티브**: 안드로이드 매니페스트에 `com.cookmatch.app://auth` intent-filter, iOS Info.plist 에 URL scheme(iOS 씬 델리게이트는 이미 URL 을 Capacitor 로 넘기고 있음). `cap sync` 반영.
 - **검증**: 백엔드 로직을 로컬에서 직접 호출해 확인 — 정상 교환 성공, 틀린 verifier·깨진 code 거부(400), code 를 인증 토큰으로 못 씀, 앱 표시 없는 요청은 기존 웹 302 그대로, 형식 틀린 challenge 는 무시. 프론트 빌드 성공(Login.tsx 의 타입 오류 1건은 로그인 버튼 쪽 기존 오류), 안드로이드 디버그 APK 빌드 성공 + 매니페스트에 intent-filter 반영 확인. **실기기·브라우저 실제 왕복은 아직 못 해 봄**(에뮬레이터 없음, 앱은 운영 서버를 부르므로 백엔드 배포 후 확인 필요).
+
+### 네이티브 앱 소셜 로그인 — 에뮬레이터에서 구글 로그인 끝까지 확인(2026-09-19)
+- Railway 에 새 백엔드 배포된 것 확인(`/api/auth/native/exchange` 가 `code and verifier required` 400 응답).
+- 안드로이드 에뮬레이터(Pixel, API 36 Google Play)에 디버그 APK 를 설치해 확인: 앱 실행 정상 → 가짜 code 를 실은 `com.cookmatch.app://auth?code=...` 로 앱이 열려 로그인 화면에 실패 안내가 뜸(딥링크 수신·교환 실패 처리 확인) → Google 버튼을 누르면 앱 위에 Custom Tabs 로 구글 로그인 화면이 열림(막히지 않음) → 사용자가 직접 로그인하자 앱으로 돌아와 로그인된 채 내 냉장고 화면으로 진입.
+- 아직 안 해 본 것: 카카오·네이버, iOS(사용자 폰이 아이폰이라 Mac 빌드 때 확인).
+- 참고: Android Studio Device Manager 가 설치돼 있는 시스템 이미지를 "Missing system image"로 표시했지만 이미지 파일은 정상이고 에뮬레이터도 잘 실행됨(표시 갱신 문제로 보고 무시).
