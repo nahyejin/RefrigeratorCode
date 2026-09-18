@@ -11302,3 +11302,13 @@ edge-tts 파일럿 목소리가 "너무 AI 같다"는 피드백 + "제미나이�
 
 - [CookingCalendar.tsx](frontend/src/pages/CookingCalendar.tsx): 페이지네이션 행을 저장된 주가 **1개뿐이어도** 항상 그리도록 변경(`diaryWeekKeys.length > 1` → `> 0`). 갈 곳이 없는 화살표는 `disabled` + 흐리게 처리만 하고, "1 / 1"로 표시 — 자리 자체가 사라지지 않아 화면이 안정적으로 보임.
 - 타입 체크 통과. 로컬 프리뷰에 지난 주 메모 1개만 심어서 "1 / 1"과 양쪽 흐린 화살표가 뜨는 것을 확인(이전엔 이 상태에서 페이지네이션 행 자체가 사라졌음).
+
+### 네이버 로그인 안 됨 — 원인은 Railway `BACKEND_URL` 오설정
+"네이버 로그인 안 된다"는 신고(2026-09-18)로 `backend/app.py`를 확인해 보니, `BACKEND_URL`은 구글·카카오·네이버 로그인 **셋이 공유하는** 기준 주소이고 각 핸들러가 여기에 `/api/auth/{provider}/callback`을 알아서 붙이는 구조였다. 그런데 Railway의 `BACKEND_URL` 값 자체가 `https://refrigeratorcode-production.up.railway.app/api/auth/naver/callback`(네이버 콜백 경로가 이미 박혀 있는 값)으로 설정돼 있었다 — 이러면 세 로그인 모두 잘못된 주소로 리다이렉트되어, 사실상 구글·카카오 로그인까지 같이 깨져 있었을 가능성이 컸다.
+
+- **수정(Railway 설정, 코드 변경 없음)**: `BACKEND_URL`을 경로 없는 순수 origin(`https://refrigeratorcode-production.up.railway.app`)으로 정정. 코드가 각 provider별 콜백 경로를 알아서 붙이므로 이 변수에는 경로를 넣으면 안 됨.
+- **네이버 개발자센터**: CookMatch 앱의 "API 설정"에 서비스 URL(`https://refrigeratorcode-production.up.railway.app`)과 네이버 로그인 Callback URL(`https://refrigeratorcode-production.up.railway.app/api/auth/naver/callback`)을 등록. Mobile 웹 환경에 비어 있던 Callback URL 줄(에러로 잡히던 빈 입력칸)도 삭제.
+- 아직 확인 안 됨: 재배포 후 네이버·구글·카카오 로그인이 실제로 다 되는지.
+
+### 출시 체크리스트 문서화 + 네이티브 소셜 로그인 딥링크를 남은 작업으로 등록
+지금까지 나온 배포 전 할 일들이 대화에만 흩어져 있어, [MOBILE_APP_GUIDE.md](MOBILE_APP_GUIDE.md) 상단에 "출시 전 남은 작업 체크리스트"를 추가해 완료/미완료를 정리(2026-09-18). 특히 소셜 로그인은 지금 브라우저 리다이렉트 흐름이라, 네이티브 앱(안드로이드/iOS)에서는 로그인 후 앱으로 돌아오는 딥링크(커스텀 URL 스킴 또는 Universal/App Link) 처리가 별도로 필요하다는 점을 남은 작업으로 명시함 — 아직 코드 작업은 안 함.

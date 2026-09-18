@@ -3,6 +3,29 @@
 ## 개요
 현재 React + Vite 기반 웹 애플리케이션을 안드로이드/iOS 네이티브 앱으로 변환하는 방법입니다.
 
+## 출시 전 남은 작업 체크리스트 (2026-09-18 기준)
+
+### 완료됨
+- ✅ Capacitor 설치, 안드로이드 플랫폼 추가
+- ✅ iOS 플랫폼 추가 (`npx cap add ios`) — 실제 빌드는 macOS+Xcode 필요, 아직 못 함
+- ✅ 카메라를 진짜 네이티브 API로 교체 ([CameraCaptureSheet.tsx](frontend/src/components/CameraCaptureSheet.tsx), `@capacitor/camera`)
+- ✅ iOS 권한 문구 추가 (Info.plist — `NSCameraUsageDescription`/`NSPhotoLibraryUsageDescription`)
+- ✅ 유튜브 크롤러 API 키 재발급 + Railway 반영
+- ✅ Railway DB 비밀번호 재발급 확인
+- ✅ 계정 전환 시 장보기 메모·요리 계획 안 지워지던 문제 수정
+- ✅ Railway `BACKEND_URL`이 네이버 콜백 경로까지 포함하고 있던 오설정 수정 (구글·카카오·네이버 로그인 전부에 영향 있었음) + 네이버 개발자센터 Callback URL 등록
+
+### 남은 작업
+1. **네이버 로그인 실제 동작 확인** — `BACKEND_URL` 수정 + 네이버 콜백 등록 후, 재배포된 상태에서 네이버/구글/카카오 로그인 셋 다 실제로 되는지 확인 필요.
+2. **네이티브 앱용 소셜 로그인(구글/카카오/네이버) 딥링크 처리** — 지금 로그인은 브라우저 리다이렉트 흐름인데, 네이티브 앱(안드로이드/iOS)에서는 로그인 완료 후 백엔드가 다시 앱으로 돌아오는 경로(커스텀 URL 스킴 또는 Universal/App Link)가 따로 필요함. 아직 구현 안 됨 — 웹 로그인 흐름과는 별개 작업.
+3. **안드로이드 앱 서명(키스토어) 생성 + 실제 빌드** — Android Studio에서 `Generate Signed Bundle/AAB`.
+4. **iOS 실제 빌드** — macOS + Xcode 필요 (이 윈도우 PC로는 불가, Mac 확보 필요).
+5. **푸시 알림 네이티브 전환** — 지금은 웹 푸시(Web Push)뿐, `@capacitor/push-notifications`는 설치만 되어 있고 연결 코드 없음. Firebase 프로젝트 생성(사용자 계정 작업) 먼저 필요.
+6. **앱 아이콘·스크린샷·스토어 설명 준비** — 안드로이드/iOS 각 사이즈별(하단 "필요한 리소스" 참고).
+7. **Google Play Console / App Store Connect 앱 등록 + 심사 제출**.
+
+> 이 목록은 대화 중 나온 내용을 정리한 것으로, 실제 작업 시작 전 코드 상태를 다시 확인할 것.
+
 ## 추천 방법: Capacitor (가장 빠르고 효율적)
 
 ### 1. Capacitor 설치 및 설정
