@@ -11326,3 +11326,8 @@ edge-tts 파일럿 목소리가 "너무 AI 같다"는 피드백 + "제미나이�
 - **수정(네이버 개발자센터 설정만, 코드 변경 없음)**: PC 웹·Mobile 웹 두 환경의 "서비스 URL"을 `https://refrigeratorcode-production.up.railway.app`에서 `https://refrigerator-code.vercel.app`로 정정. Callback URL은 그대로 유지.
 - 재시도 확인 — 로그인 정상 동작(2026-09-18).
 - **참고**: 이 서비스 URL/Callback URL 등록은 **웹 브라우저 로그인 전용**. 네이티브 앱(안드로이드/iOS)에서는 앱이 인터넷 주소가 아니라 로컬 번들(`capacitor://localhost`)로 뜨기 때문에 이 방식을 그대로 못 쓰고, 별도로 네이버 개발자센터의 "Android 앱"/"iOS 앱" 환경(패키지명+서명 키 해시, Bundle ID 기반)을 추가 등록하고 앱으로 돌아오는 딥링크 코드를 붙이는 작업이 앱스토어 출시 시점에 따로 필요함 — 기존 웹 설정을 지우거나 바꾸는 게 아니라 새로 얹는 작업. [MOBILE_APP_GUIDE.md](MOBILE_APP_GUIDE.md) 체크리스트에 반영.
+
+## 2026-09-18 (2)
+
+### 쿠팡 링크 빈 칸 15개 채움
+[COUPANG_LINK_HOWTO.md](COUPANG_LINK_HOWTO.md)에서 안내하던 "링크 비어있는 재료" 중, 레시피에 많이 쓰이는데도 비어 있던 15개(통깨·멸치액젓·신김치·방울토마토·까나리액젓·삶은달걀·무염버터·참치캔·숙주·레드페퍼·집된장·다시마육수·이스트·강력분·노추)를 사용자가 쿠팡 파트너스에서 직접 간편 링크를 만들어 [coupang_ads.csv](frontend/public/coupang_ads.csv)에 채움. 이제 264개 전부 링크가 채워진 상태.
