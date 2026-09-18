@@ -11445,3 +11445,7 @@ Android Studio 설치(설정 마법사 Standard로 SDK 설치) 후 이 PC에서 
 - [app/build.gradle](frontend/android/app/build.gradle): `keystore.properties`가 있으면 release 빌드에 서명 설정을 붙임(없는 PC 에서는 서명 없이 빌드 — 다른 환경에서 빌드가 깨지지 않게).
 - `gradlew bundleRelease` 성공 → `app-release.aab`(약 12.9MB), `jarsigner -verify` 로 서명 확인("jar verified").
 - 남은 것: 키스토어 백업(사용자), Play Console 에 앱 만들고 이 번들 올리기(비공개 테스트 12명·14일 조건 확인 필요).
+
+### Google Play 개발자 계정 인증 진행 상황(2026-09-19)
+- 신분증 제출 완료 → Google 신원 확인 검토 중(며칠 소요, 완료되면 계정 이메일로 안내). Android 휴대기기 접근 확인은 공기계로 통과. 연락처 전화번호 인증은 신원 확인이 승인돼야 열려서 대기. 이게 끝나야 "앱 만들기" 버튼이 활성화됨.
+- 업로드 키스토어(`CookMatchKeys`)는 사용자가 네이버 Box·개인 메일에 백업함. Box 공유 링크가 비공개인지 확인하도록 안내함.
