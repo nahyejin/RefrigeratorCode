@@ -534,6 +534,12 @@ const WeeklyPlan: React.FC = () => {
   const [viewingPast, setViewingPast] = React.useState(false);
   /** AI 가 말한 **왜 이렇게 골랐는지**. 말풍선에 그대로 쓴다. */
   const aiReason = React.useRef<string>('');
+  /** 실패했을 때 **왜 실패했는지**. 크레딧이 없어서 실패한 건데 말풍선엔
+   * 늘 "조건을 느슨하게 해보라"고만 나가서, 크레딧이 없다는 걸 모르고
+   * 계속 다르게 물어보게 만든다는 지적(2026-09-18) — `setError`로 이미
+   * 정확한 이유(크레딧 소진/네트워크 오류 등)를 구하고 있으니, 말풍선도
+   * "결과가 없다"는 기본 문구 대신 그 이유를 그대로 쓴다. */
+  const aiFailReason = React.useRef<string>('');
   /** 재료 칩을 펼쳐 볼지 (채팅 화면에서는 접어 둔다). */
   const [showIngredients, setShowIngredients] = React.useState(false);
   /** 지난 대화 목록을 펼쳤나. */
@@ -973,6 +979,7 @@ const WeeklyPlan: React.FC = () => {
     setAsking(true);
     setError(null);
     setAiNote(null);
+    aiFailReason.current = '';
     // 서버는 부르기 전에 이미 깎는다. 식단은 답이 오래 걸려서, 그때까지
     // 숫자가 그대로면 "안 나갔나" 싶다 — 먼저 깎아 보이고 응답이 오면
     // 아래 `applyUsage` 가 서버 값으로 덮는다.
@@ -995,12 +1002,14 @@ const WeeklyPlan: React.FC = () => {
       track('chat_use', 'plan');
 
       if (!res.ok) {
-        setError((data && data.error) || '식단을 짜지 못했어요.');
+        aiFailReason.current = (data && data.error) || '식단을 짜지 못했어요.';
+        setError(aiFailReason.current);
         return;
       }
       const got: PlanRecipe[] = data.plan || [];
       if (got.length === 0) {
-        setError('조건에 맞는 요리를 못 찾았어요. 요청을 조금 느슨하게 해 보세요.');
+        aiFailReason.current = '조건에 맞는 요리를 못 찾았어요. 요청을 조금 느슨하게 해 보세요.';
+        setError(aiFailReason.current);
         return;
       }
       // 하루 여러 끼 구조로 바꾸면서 여기를 빠뜨렸다 — 옛 `recipe` 필드에
@@ -1023,7 +1032,8 @@ const WeeklyPlan: React.FC = () => {
         days: Number(data?.basket?.days ?? got.length),
       };
     } catch {
-      setError('네트워크 상태를 확인하고 다시 시도해 주세요.');
+      aiFailReason.current = '네트워크 상태를 확인하고 다시 시도해 주세요.';
+      setError(aiFailReason.current);
     } finally {
       setAsking(false);
     }
@@ -1141,7 +1151,7 @@ const WeeklyPlan: React.FC = () => {
         who: 'ai',
         text: aiReason.current || (result
           ? '이렇게 짜 봤어요. 마음에 안 들면 조건을 다시 말해 주세요.'
-          : '조건에 맞는 걸 못 찾았어요. 조금 느슨하게 말해 주시겠어요?'),
+          : (aiFailReason.current || '조건에 맞는 걸 못 찾았어요. 조금 느슨하게 말해 주시겠어요?')),
         result: result || undefined,
         at,
       };
