@@ -11409,3 +11409,10 @@ MOBILE_APP_GUIDE.md 체크리스트의 2·3번(푸시 네이티브 전환, 스�
 - 사용자가 Firebase 설정 진행: 구글 계정의 프로젝트 한도가 차 있어서 새 프로젝트 대신 기존 Google Cloud 프로젝트 "CookMatch"(`gen-lang-client-0597760155`)에 Firebase 를 추가(Spark 무료 요금제, 애널리틱스 끔), 안드로이드 앱 `com.cookmatch.app` 등록.
 - `frontend/android/app/google-services.json` 추가(비밀이 아닌 앱 설정 파일이라 커밋), 서비스 계정 키는 `backend/firebase-service-account.json`(gitignore — 커밋 안 됨). 두 파일의 프로젝트 ID·패키지 이름 일치, 서비스 계정 키로 FCM 발송 권한 인증 토큰이 실제로 발급되는 것 확인.
 - `NATIVE_PUSH_ENABLED = true`로 켜고 빌드 + `cap sync android`. 남은 것: Android Studio 로 실기기 빌드 → 마이페이지에서 알림 켜기 → `send_expiry_push_notifications.py --write`로 실제 수신 확인.
+
+### 안드로이드 첫 빌드 성공 — Gradle 9.1 + JDK 21 자동 받기(2026-09-19)
+Android Studio 설치(설정 마법사 Standard로 SDK 설치) 후 이 PC에서 처음으로 안드로이드 디버그 빌드(`app-debug.apk`)에 성공.
+- **Gradle 8.14.3 → 9.1.0**: Android Studio 에 딸려 오는 Java 가 25인데, Gradle 8.14 는 Java 24 까지만 돌아가서 `Unsupported class file major version 69`로 빌드 스크립트 단계부터 실패. Java 25 를 지원하는 9.1 로 올림 — Android Studio 에서 기본 설정 그대로 빌드해도 되게.
+- **JDK 21 자동 받기**: Capacitor 플러그인(카메라 등)은 Java 21 툴체인으로 컴파일하도록 정해져 있어 `Cannot find a Java installation ... languageVersion=21`로 실패 → `settings.gradle`에 Gradle 표준 툴체인 리졸버(foojay)를 넣어 JDK 21 을 공식 배포처(Eclipse Adoptium)에서 한 번만 받아 쓰게 함(사용자 승인).
+- SDK 위치는 `local.properties`(gitignore)에 적음. 역슬래시 경로는 `\u` 로 시작하는 부분이 유니코드 이스케이프로 잘못 읽혀(`Malformed \uxxxx encoding`) 슬래시 경로로 씀.
+- 빌드된 APK 확인(aapt): 패키지 `com.cookmatch.app`, `POST_NOTIFICATIONS` 권한, FCM 기본 알림 아이콘(`ic_stat_cookmatch`)·색·채널(`expiry`), Firebase 설정값(google-services), 새 적응형 런처 아이콘이 모두 들어간 것 확인.

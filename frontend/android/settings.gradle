@@ -1,3 +1,10 @@
+// Capacitor 플러그인들은 Java 21 툴체인으로 컴파일하도록 정해져 있는데, Android Studio 에
+// 딸려 오는 Java 는 버전이 달라(25) 그대로는 빌드가 안 된다. 이 플러그인이 있으면 Gradle 이
+// 필요한 JDK 21 을 공식 배포처(Eclipse Adoptium)에서 한 번만 받아 Gradle 홈에 두고 재사용한다.
+plugins {
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
+}
+
 include ':app'
 include ':capacitor-cordova-android-plugins'
 project(':capacitor-cordova-android-plugins').projectDir = new File('./capacitor-cordova-android-plugins/')
