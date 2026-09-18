@@ -244,5 +244,12 @@ if ('serviceWorker' in navigator) {
 - [Google Play Console 가이드](https://support.google.com/googleplay/android-developer)
 - [App Store Connect 가이드](https://developer.apple.com/app-store-connect/)
 
+## 맥북에서 처음 할 일 (Apple 승인 전에도 가능)
 
+1. **Xcode 설치**: 앱스토어에서 Xcode(10GB 이상, 오래 걸림). 설치 후 한 번 실행해 약관 동의·추가 구성요소 설치.
+2. **개발 도구**: Homebrew → `brew install node git`.
+3. **프로젝트 받기**: `git clone https://github.com/nahyejin/RefrigeratorCode` → `cd RefrigeratorCode/frontend` → `npm install`.
+4. **iOS 프로젝트 열기**: `npm run build` → `npx cap sync ios` → `npx cap open ios` (Xcode 가 열림). Capacitor 8 은 Swift Package Manager 를 써서 CocoaPods 는 필요 없음.
+5. **시뮬레이터로 실행**: Xcode 위쪽에서 iPhone 시뮬레이터를 고르고 ▶. **유료 계정 없이** 화면·네이티브 소셜 로그인(사파리 뷰 → `com.cookmatch.app://auth` 복귀)을 확인할 수 있다. 푸시(APNs)·Sign in with Apple 은 시뮬레이터/무료 계정으로 안 됨.
+6. **Apple 승인 후**: Xcode → Settings → Accounts 에 Apple ID 추가 → 프로젝트 Signing & Capabilities 에서 Team 선택, 번들 ID `com.cookmatch.app`, Sign in with Apple·Push Notifications capability 추가 → 실제 아이폰에 설치해 확인.
 

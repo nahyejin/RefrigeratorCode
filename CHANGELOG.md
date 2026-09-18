@@ -11449,3 +11449,5 @@ Android Studio 설치(설정 마법사 Standard로 SDK 설치) 후 이 PC에서 
 ### Google Play 개발자 계정 인증 진행 상황(2026-09-19)
 - 신분증 제출 완료 → Google 신원 확인 검토 중(며칠 소요, 완료되면 계정 이메일로 안내). Android 휴대기기 접근 확인은 공기계로 통과. 연락처 전화번호 인증은 신원 확인이 승인돼야 열려서 대기. 이게 끝나야 "앱 만들기" 버튼이 활성화됨.
 - 업로드 키스토어(`CookMatchKeys`)는 사용자가 네이버 Box·개인 메일에 백업함. Box 공유 링크가 비공개인지 확인하도록 안내함.
+
+- [MOBILE_APP_GUIDE.md](MOBILE_APP_GUIDE.md) 끝에 "맥북에서 처음 할 일" 절 추가(Xcode·Node 설치 → clone → cap sync ios → 시뮬레이터 실행 → Apple 승인 후 서명·capability). 사용자가 맥북을 갖고 있어 Apple 승인 전에도 시뮬레이터 확인은 가능함.
