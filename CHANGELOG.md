@@ -11479,3 +11479,9 @@ Play 데이터 보안 답과 방침이 어긋나는 곳을 바로잡음([LegalPa
 - **맞음**: "레시피 4만여 개"(운영 DB 공개 레시피 40,585개), "앱을 안 켜도 푸시 알림"(이 PC 작업 스케줄러 `CookMatch-ExpiryPush` 가 매일 07:00, 마지막 실행 정상), "매일 모은 레시피"(`CookMatch-WeeklyCrawler` 는 이름과 달리 매일 22:00 트리거).
 - **고침**: ① "AI 기능은 하루 사용 횟수 안에서" → 실제는 크레딧+주별 한도+일별 상한 구조라 "정해진 한도 안에서"로 ② "바로 구매까지 이어져요" → 인앱 구매로 오해될 수 있어 "쿠팡 링크로 바로 살 수 있어요"로, 본문 끝에 쿠팡 파트너스 수수료 고지 문장 추가. `check_listing.py` 글자 수 검사 통과(본문 1002/4000).
 - **알아 둘 것**: 푸시 발송이 이 Windows PC 스케줄러에 의존(WakeToRun·StartWhenAvailable 켜짐). PC 가 꺼져 있으면 그날 알림이 밀림 — 사용자가 늘면 서버 스케줄러로 이전 필요.
+
+### iOS 시뮬레이터 확인 중 발견한 두 가지 수정(2026-09-19)
+맥북 Xcode 시뮬레이터로 처음 iOS 앱을 띄워 보며 발견(맥 쪽 Claude 가 원인 확인, 코드는 윈도우 저장소에 반영).
+- **GNB 가 상태바(시계·배터리)에 가려 로그아웃이 안 눌림**: [capacitor.config.ts](frontend/capacitor.config.ts) 에 `ios: { contentInset: 'always', backgroundColor: '#FFFFFF' }` 추가 — 웹뷰를 상태바·홈 인디케이터 영역 밖에 그린다. iOS 설정이라 안드로이드·웹에는 영향 없음. 맥에서 시뮬레이터로 확인된 값.
+- **앱 안에 "홈 화면에 추가하면 더 편해요" 팝업이 뜸**: 웹(PWA)용 안내라 스토어 앱에서는 의미 없고 심사에서도 어색함. [onboardingPrompts.ts](frontend/src/utils/onboardingPrompts.ts) 의 `isStandaloneAppMode()` 가 앱(Capacitor) 안이면 true 를 돌려주게 해서 [HomeInstallPrompt.tsx](frontend/src/components/HomeInstallPrompt.tsx) 가 앱에서는 안 뜬다. 웹은 그대로.
+- 타입 검사·프론트 빌드·`cap sync` 통과. iOS 화면에서의 최종 확인은 맥 시뮬레이터에서 다시 해야 함(윈도우에서는 못 봄).

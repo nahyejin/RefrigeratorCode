@@ -11,6 +11,13 @@ const config: CapacitorConfig = {
     // url: 'http://localhost:5178',
     // cleartext: true
   },
+  ios: {
+    // 상태바(시계·배터리)와 홈 인디케이터 영역을 피해서 웹뷰를 그린다. 이게 없으면
+    // 고정 헤더(GNB)가 상태바 밑에 깔려서 로그아웃 같은 버튼이 눌리지 않는다.
+    // (맥 Xcode 시뮬레이터에서 확인하며 찾은 값 — 안드로이드·웹에는 영향 없음)
+    contentInset: 'always',
+    backgroundColor: '#FFFFFF'
+  },
   plugins: {
     SplashScreen: {
       launchShowDuration: 2000,

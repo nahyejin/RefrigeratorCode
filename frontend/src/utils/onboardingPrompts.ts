@@ -1,3 +1,5 @@
+import { isNativeApp } from './pwa';
+
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export const ONBOARDING_KEYS = {
@@ -80,6 +82,9 @@ export function markUsageGuideOpened(): void {
 }
 
 export function isStandaloneAppMode(): boolean {
+  // 스토어에서 받은 앱(Capacitor) 안이면 "홈 화면에 추가" 안내는 의미가 없다 —
+  // 이미 설치된 앱이라 웹(PWA)용 안내가 뜨면 심사에서도 어색하다.
+  if (isNativeApp()) return true;
   const iosStandalone = Boolean((window.navigator as Navigator & { standalone?: boolean }).standalone);
   const displayModeStandalone = window.matchMedia?.('(display-mode: standalone)').matches;
   return iosStandalone || Boolean(displayModeStandalone);
