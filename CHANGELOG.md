@@ -11486,3 +11486,4 @@ Play 데이터 보안 답과 방침이 어긋나는 곳을 바로잡음([LegalPa
 - **앱 안에 "홈 화면에 추가하면 더 편해요" 팝업이 뜸**: 웹(PWA)용 안내라 스토어 앱에서는 의미 없고 심사에서도 어색함. [onboardingPrompts.ts](frontend/src/utils/onboardingPrompts.ts) 의 `isStandaloneAppMode()` 가 앱(Capacitor) 안이면 true 를 돌려주게 해서 [HomeInstallPrompt.tsx](frontend/src/components/HomeInstallPrompt.tsx) 가 앱에서는 안 뜬다. 웹은 그대로.
 - 타입 검사·프론트 빌드·`cap sync` 통과. iOS 화면에서의 최종 확인은 맥 시뮬레이터에서 다시 해야 함(윈도우에서는 못 봄).
 - 맥에서 pull 후 Xcode 시뮬레이터로 다시 실행해 **정상 확인**(2026-09-19, 사용자 확인): GNB 가림 해결, 앱 화면 정상. 남은 iOS 확인: 시뮬레이터에서 구글·카카오·네이버 로그인(사파리 뷰 → `com.cookmatch.app://auth` 복귀).
+- iOS 시뮬레이터(맥)에서 구글·카카오·네이버 소셜 로그인 3종 모두 성공, 앱 복귀까지 확인(2026-09-19, 사용자 확인). 안드로이드(에뮬레이터)와 iOS(시뮬레이터) 모두 로그인 흐름 통과. 실제 아이폰 확인은 Apple 승인 뒤.
