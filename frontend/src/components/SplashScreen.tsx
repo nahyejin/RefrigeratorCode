@@ -72,7 +72,7 @@ const STYLES = {
   numberDisplay: {
     color: '#1A1A1E',
     fontWeight: 700,
-    fontSize: 'clamp(30px, 8.5vw, 44px)',
+    fontSize: 'clamp(38px, 10.5vw, 54px)',
     letterSpacing: '-0.01em',
     textAlign: 'center' as const,
     whiteSpace: 'nowrap' as const,
