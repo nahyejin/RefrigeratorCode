@@ -90,6 +90,42 @@ export function loadPlan(): PlannedMeal[] {
   }
 }
 
+/**
+ * 서버에 있는 **내** 계획을 이 기기 저장소에 채워 넣는다(이 기기에 없는 것만).
+ *
+ * 왜 필요한가(2026-09-20): 겹침 확인(`conflictingDates`)과 `fill` 모드는 이 기기 저장소만
+ * 본다. 그런데 계획을 다른 기기·앱·웹에서 짰거나 기기 저장소를 비웠으면, 캘린더에는
+ * 서버 계획이 보이는데 식단을 담을 때는 "겹치는 날 없음"으로 판단돼 **묻지도 않고 덮어썼다**.
+ * 담기 직전에 이 함수를 불러 기기 쪽을 서버와 맞춘다. 비로그인이거나 실패하면 아무것도 안 한다.
+ */
+export async function pullMyPlansIntoLocal(): Promise<void> {
+  const me = currentUserId();
+  if (!me) return;
+  const start = toDateKey(new Date());
+  const end = toDateKey(new Date(Date.now() + 120 * 24 * 60 * 60 * 1000));
+  const rows = await fetchHouseholdMealPlans(start, end);
+  const mine = rows.filter(r => r.user_id === me);
+  if (mine.length === 0) return;
+  const local = loadPlan();
+  const has = new Set(local.map(m => `${m.date}|${m.recipeId}`));
+  const add: PlannedMeal[] = mine
+    .filter(r => !has.has(`${r.day}|${r.recipe_id}`))
+    .map(r => ({
+      date: r.day,
+      recipeId: r.recipe_id,
+      title: r.title,
+      link: r.link ?? undefined,
+      thumbnail: r.thumbnail ?? undefined,
+      why: r.why ?? undefined,
+    }));
+  if (add.length === 0) return;
+  try {
+    localStorage.setItem(KEY, JSON.stringify([...local, ...add].sort((a, b) => (a.date < b.date ? -1 : 1))));
+  } catch {
+    /* 저장이 막혀 있으면 조용히 넘어간다 */
+  }
+}
+
 /** 새로 담을 계획이 **이미 짜 둔 날과 겹치는** 날짜들. */
 export function conflictingDates(meals: PlannedMeal[]): string[] {
   const today = toDateKey(new Date());

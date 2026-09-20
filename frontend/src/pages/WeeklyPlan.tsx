@@ -15,7 +15,7 @@ import { track } from '../utils/track';
 import { getProxiedImageUrl } from '../utils/imageUtils';
 import { usageHeaders, applyUsage, spendOptimistically } from '../utils/usage';
 import { UsageLine, useUsage } from '../components/UsageMeter';
-import { savePlan, conflictingDates, toDateKey, type PlannedMeal } from '../utils/mealPlan';
+import { savePlan, conflictingDates, pullMyPlansIntoLocal, toDateKey, type PlannedMeal } from '../utils/mealPlan';
 import { loadChat, saveChat, archiveChat, loadSessions, dropSession,
          toPlanned, type ChatMsg, type ChatSession } from '../utils/aiChat';
 
@@ -493,6 +493,8 @@ const WeeklyPlan: React.FC = () => {
   const [toast, setToast] = React.useState<number | null>(null);
   /** 이미 계획이 있는 날짜들 — 값이 있으면 어떻게 할지 묻는 창이 뜬다. */
   const [conflict, setConflict] = React.useState<string[] | null>(null);
+  /** 겹침 확인창을 띄운 **지난 대화의 식단**. 지금 화면의 식단이면 null(→ `buildMeals()`). */
+  const [pendingMeals, setPendingMeals] = React.useState<PlannedMeal[] | null>(null);
   React.useEffect(() => {
     if (toast === null) return;
     const t = setTimeout(() => setToast(null), 3600);
@@ -1110,16 +1112,21 @@ const WeeklyPlan: React.FC = () => {
    * 그때 붙은 날짜는 이미 지났을 수 있으니 내일부터 다시 센다 — 지난 날짜에
    * 담아 두면 요리 캘린더에서 아무 데도 안 보인다.
    */
-  const applyChatResult = (r: NonNullable<ChatMsg['result']>) => {
+  const applyChatResult = async (r: NonNullable<ChatMsg['result']>) => {
     const dates = nextDays().slice(0, r.dishes.length).map(toDateKey);
     const meals = toPlanned(r.dishes, dates);
     if (meals.length === 0) return;
-    // `fill` 은 **이미 정해 둔 날은 건드리지 않는다.** 그래서 실제로 담긴 것은
-    // 겹치지 않은 날뿐인데, 전에는 `meals.length` 를 그대로 알려 줘서 하나도
-    // 안 담겼는데 "7개 담았어요" 가 떴다. 담긴 수만 말한다.
-    const added = meals.length - conflictingDates(meals).length;
-    savePlan(meals, 'fill');
-    setToast(added);
+    // 지금 화면의 식단과 **똑같이** 겹치는 날이 있으면 먼저 묻는다(2026-09-20). 전에는 지난
+    // 대화에서 담을 때만 말없이 `fill` 로 넣어, 겹치는 날이 있어도 확인창이 없었다.
+    await pullMyPlansIntoLocal();
+    const days = conflictingDates(meals);
+    if (days.length === 0) {
+      savePlan(meals, 'overwrite');
+      setToast(meals.length);
+      return;
+    }
+    setPendingMeals(meals);
+    setConflict(days);
   };
 
   /** 이 대화에서 이미 물었나. 물었으면 입력을 닫는다. */
@@ -1184,12 +1191,15 @@ const WeeklyPlan: React.FC = () => {
     );
 
   const commit = (mode: 'overwrite' | 'fill') => {
-    const meals = buildMeals();
-    const before = conflictingDates(meals).length;
+    const fromPast = pendingMeals !== null;
+    const meals = pendingMeals ?? buildMeals();
+    // `fill` 은 이미 정해 둔 날은 건드리지 않아서 실제로 담긴 것은 겹치지 않은 날뿐이다.
+    const clashes = conflict ? conflict.length : 0;
     savePlan(meals, mode);
     setConflict(null);
-    setSaved(true);
-    setToast(mode === 'fill' ? meals.length - before : meals.length);
+    setPendingMeals(null);
+    if (!fromPast) setSaved(true);
+    setToast(mode === 'fill' ? meals.length - clashes : meals.length);
     track('recipe_action', 'plan_apply');
   };
 
@@ -1199,9 +1209,12 @@ const WeeklyPlan: React.FC = () => {
    * 전에는 말없이 덮어썼다. 며칠에 걸쳐 고쳐 둔 계획이 버튼 한 번에 사라지는데,
    * 사라졌다는 사실조차 화면에 안 나왔다.
    */
-  const applyPlan = () => {
+  const applyPlan = async () => {
+    // 다른 기기·앱에서 짠 내 계획(서버에만 있는 것)도 겹침으로 세도록 먼저 기기 쪽을 서버와 맞춘다.
+    await pullMyPlansIntoLocal();
     const days = conflictingDates(buildMeals());
     if (days.length === 0) { commit('overwrite'); return; }
+    setPendingMeals(null);
     setConflict(days);
   };
 
@@ -2404,7 +2417,7 @@ const WeeklyPlan: React.FC = () => {
       {conflict && (
         <Dialog
           open
-          onClose={() => setConflict(null)}
+          onClose={() => { setConflict(null); setPendingMeals(null); }}
           title="이미 짜 둔 계획이 있어요"
           width={340}
           dismissLabel="그만두기"
