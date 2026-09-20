@@ -97,10 +97,38 @@ function formatTime(iso: string): string {
  * 캘린더에 왔는데 "반영이 안 됐다" 고 할 만큼. 채우기를 한 단계 진하게 하고
  * 테두리를 둘러 작은 칸에서도 눈에 걸리게 한다.
  */
-// 테두리 없이 연한 노랑 원만 쓴다(갈색 테두리가 촌스럽다는 지적, 2026-09-20).
-// 멤버 점 색 10가지에 노랑이 없어서 이 표식과 헷갈리지 않는다.
-const PLAN_MARK_FILL = '#FFE97A';
+// "요리 계획 있는 날"은 사람이 펜으로 날짜에 동그라미를 친 것처럼 그린다
+// (2026-09-20, 갈색 테두리+노랑 채움이 촌스럽고 "손으로 동그라미 친 표식"이면 좋겠다는 요청).
+// 멤버 점 색 10가지에 노랑·황금색이 없어서 이 표식과 헷갈리지 않는다.
+const PLAN_MARK_STROKE = '#F5A800';
 const PLAN_MARK_RING = '#C9A400'; // 주간 목록의 점선 카드 테두리에서만 쓴다
+
+// 끝이 살짝 겹치고 완벽하지 않은 손글씨 동그라미 세 가지(32×28 칸). 날짜 숫자로 돌려 써서
+// 칸마다 조금씩 다르게 보이게 한다 — 똑같은 도장을 찍은 느낌을 피한다.
+const HAND_CIRCLE_PATHS = [
+  'M6 15 C5 7 14 3 21 4 C28 5 30 12 27 19 C24 25 13 26 8 21 C4 17 6 9 13 6',
+  'M5 13 C7 5 18 2 25 6 C31 10 29 20 22 24 C14 28 5 23 4 16 C4 11 9 6 16 4',
+  'M8 8 C14 2 26 4 29 12 C31 20 22 27 14 25 C6 23 2 14 7 8 C9 5 14 4 18 4',
+];
+
+const HandCircle: React.FC<{ seed: number; width: number; style?: React.CSSProperties }> = ({ seed, width, style }) => (
+  <svg
+    aria-hidden
+    viewBox="0 0 32 28"
+    width={width}
+    height={(width * 28) / 32}
+    style={{ overflow: 'visible', ...style }}
+  >
+    <path
+      d={HAND_CIRCLE_PATHS[seed % HAND_CIRCLE_PATHS.length]}
+      fill="none"
+      stroke={PLAN_MARK_STROKE}
+      strokeWidth={2.4}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
 
 function startOfWeek(d: Date): Date {
   const out = new Date(d);
@@ -2466,10 +2494,7 @@ const CookingCalendar: React.FC = () => {
           {plans.size > 0 && (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginBottom: 8 }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, color: 'var(--ink-500)' }}>
-                <span aria-hidden style={{
-                  width: 15, height: 15, flexShrink: 0,
-                  borderRadius: '50%', background: PLAN_MARK_FILL,
-                }} />
+                <HandCircle seed={0} width={20} style={{ flexShrink: 0 }} />
                 요리 계획 있는 날 — 눌러서 무슨 요리인지 보기
               </span>
               {/* 줄글 링크로 바꿨더니 "이게 뭔지, 누를 수 있는 건지 모르겠다"는
@@ -2530,13 +2555,13 @@ const CookingCalendar: React.FC = () => {
                       기록(채워진 점)과 겹쳐도 서로 안 가린다 — 하나는 숫자를
                       감싸고 하나는 그 아래 줄에 있다. */}
                   {plans.has(key) && (
-                    <span
-                      aria-hidden
+                    <HandCircle
+                      seed={d.getDate()}
+                      width={32}
                       style={{
                         position: 'absolute', top: '50%', left: '50%',
-                        width: 26, height: 26, marginTop: dayEntries.length > 0 ? -8 : 0,
+                        marginTop: dayEntries.length > 0 ? -8 : 0,
                         transform: 'translate(-50%, -50%)',
-                        borderRadius: '50%', background: PLAN_MARK_FILL,
                         pointerEvents: 'none',
                       }}
                     />

@@ -1370,7 +1370,9 @@ select:focus-visible {
    이 규칙을 이길 수 없다 — 이 클래스만 좁게 예외를 둔다(2026-09-17,
    "손글씨체가 있으면 써 달라"는 요청. index.html 에서 폰트를 로드).
    Nanum Pen Script(가느다란 펜글씨)는 예뻤지만 가독성이 떨어진다는
-   지적으로, 획이 굵고 또렷한 Gamja Flower로 교체(같은 날 후속 요청). */
+   지적으로, 획이 굵고 또렷한 Gamja Flower로 교체(같은 날 후속 요청).
+   스플래시의 "누적 레시피 수" 숫자에도 같은 클래스를 쓴다(2026-09-20, 굴러가는
+   숫자와 최종 숫자 글꼴이 안 예쁘고 서로 다르다는 지적 → 손글씨체로 통일). */
 .memo-handwrite {
   font-family: 'Gamja Flower', 'Pretendard', sans-serif !important;
 }
