@@ -97,8 +97,10 @@ function formatTime(iso: string): string {
  * 캘린더에 왔는데 "반영이 안 됐다" 고 할 만큼. 채우기를 한 단계 진하게 하고
  * 테두리를 둘러 작은 칸에서도 눈에 걸리게 한다.
  */
+// 테두리 없이 연한 노랑 원만 쓴다(갈색 테두리가 촌스럽다는 지적, 2026-09-20).
+// 멤버 점 색 10가지에 노랑이 없어서 이 표식과 헷갈리지 않는다.
 const PLAN_MARK_FILL = '#FFE97A';
-const PLAN_MARK_RING = '#C9A400';
+const PLAN_MARK_RING = '#C9A400'; // 주간 목록의 점선 카드 테두리에서만 쓴다
 
 function startOfWeek(d: Date): Date {
   const out = new Date(d);
@@ -159,9 +161,21 @@ function saveShoppingMemoHistory(data: Record<string, ShoppingMemoEntry>): Recor
 
 const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
 
-// 그룹원을 색으로 구분하기 위한 팔레트. 인원이 적어(보통 2~4명) 이 정도면 충분하고,
-// 브랜드 강조색(노랑)과 겹치지 않는 톤으로 골랐다.
-const MEMBER_COLORS = ['#3B82F6', '#F97316', '#22C55E', '#A855F7', '#EF4444', '#06B6D4'];
+// 그룹원을 색으로 구분하기 위한 팔레트. 그룹 최대 인원(서버 `HOUSEHOLD_MAX_MEMBERS`,
+// 10명)과 같은 10색이다 — 인원을 늘리면 이 색도 같이 늘릴 것.
+// 브랜드 강조색·"요리 계획 있는 날" 표식(노랑)과 헷갈리지 않게 노란 계열은 뺐다.
+const MEMBER_COLORS = [
+  '#3B82F6', // 파랑
+  '#F97316', // 주황
+  '#22C55E', // 초록
+  '#A855F7', // 보라
+  '#EF4444', // 빨강
+  '#06B6D4', // 하늘
+  '#EC4899', // 분홍
+  '#92400E', // 갈색
+  '#64748B', // 회색
+  '#4338CA', // 남색
+];
 
 /** 비로그인(게스트)일 때 기기 완료 기록의 주인으로 쓰는 자리 표시 id.
  * 실제 계정 id와 겹칠 일이 없게 음수로 둔다. */
@@ -1711,7 +1725,8 @@ const CookingCalendar: React.FC = () => {
             {(counts.get(uid) || 0) > 1 ? counts.get(uid) : ''}
           </span>
         ))}
-        {extra > 0 && <span style={{ fontSize: 9, color: 'var(--ink-500)' }}>+{extra}</span>}
+        {/* 점은 "요리 수"가 아니라 "요리한 사람"이라 넘칠 때도 사람 수로 센다 */}
+        {extra > 0 && <span style={{ fontSize: 9, color: 'var(--ink-500)' }}>+{extra}명</span>}
       </span>
     );
   };
@@ -2454,7 +2469,6 @@ const CookingCalendar: React.FC = () => {
                 <span aria-hidden style={{
                   width: 15, height: 15, flexShrink: 0,
                   borderRadius: '50%', background: PLAN_MARK_FILL,
-                  boxShadow: `inset 0 0 0 1.5px ${PLAN_MARK_RING}`,
                 }} />
                 요리 계획 있는 날 — 눌러서 무슨 요리인지 보기
               </span>
@@ -2523,7 +2537,6 @@ const CookingCalendar: React.FC = () => {
                         width: 26, height: 26, marginTop: dayEntries.length > 0 ? -8 : 0,
                         transform: 'translate(-50%, -50%)',
                         borderRadius: '50%', background: PLAN_MARK_FILL,
-                        boxShadow: `inset 0 0 0 1.5px ${PLAN_MARK_RING}`,
                         pointerEvents: 'none',
                       }}
                     />
@@ -2733,7 +2746,7 @@ const CookingCalendar: React.FC = () => {
                   padding: '10px 12px',
                   borderRadius: 12,
                   // 점선 = 아직 안 한 것. 실선(완료 기록)과 눈으로 바로 갈린다.
-                  border: planned ? '1px dashed #C9A400' : '1px solid var(--line-200)',
+                  border: planned ? `1px dashed ${PLAN_MARK_RING}` : '1px solid var(--line-200)',
                   background: planned ? '#FFFDF2' : (isToday ? 'var(--surface-sub)' : '#FFFFFF'),
                 }}
               >
@@ -3633,8 +3646,10 @@ const CookingCalendar: React.FC = () => {
         {/* 장보기 메모 — 달력·목록 탭이 담긴 카드 밖, 화면 맨 끝에 탭/보기
             방식과 무관하게 항상 하나만 둔다. 위 `diaryCardNode` 설명 참고
             (2026-09-17, "달력의 기간 선택 영역 안에 있으니 자꾸 그것과
-            엮여 보인다"는 지적). */}
-        {diaryCardNode}
+            엮여 보인다"는 지적).
+            **일 보기에서는 숨긴다** — 메모는 "한 주" 단위라 하루만 보고 있을 때는
+            의미가 없고 화면만 길어진다(2026-09-20). 주·월 보기에서만 보인다. */}
+        {viewMode !== 'day' && diaryCardNode}
       </div>
       </div>
       </PullToRefresh>

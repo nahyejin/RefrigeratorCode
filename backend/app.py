@@ -3158,10 +3158,10 @@ def create_household():
 
 
 # 식구 그룹 최대 인원. 이 앱의 "그룹"은 한 집의 냉장고를 같이 쓰는 식구·룸메이트라
-# 6명이면 충분하고, 달력의 멤버 색 팔레트(프론트 CookingCalendar `MEMBER_COLORS`)도 6색이다.
+# 10명이면 충분하고, 달력의 멤버 색 팔레트(프론트 CookingCalendar `MEMBER_COLORS`)도 10색이다.
 # 초대 코드가 새어 나갔을 때 낯선 사람이 무제한으로 들어와 냉장고·기록을 보는 것도 막는다.
 # 늘리려면 환경변수 HOUSEHOLD_MAX_MEMBERS 를 바꾸고, 프론트 팔레트도 함께 늘릴 것.
-HOUSEHOLD_MAX_MEMBERS = int(os.getenv('HOUSEHOLD_MAX_MEMBERS', '6'))
+HOUSEHOLD_MAX_MEMBERS = int(os.getenv('HOUSEHOLD_MAX_MEMBERS', '10'))
 
 
 @app.route('/api/households/join', methods=['POST'])
