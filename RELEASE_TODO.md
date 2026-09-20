@@ -83,6 +83,12 @@
 - 마이페이지 → 회원 탈퇴 → 백엔드 로그 `[Apple 로그인] 탈퇴 계정 id=77 의 Apple 토큰을 취소함` + `POST /api/auth/delete-account 200`. (로그는 MySQL 서비스가 아니라 **백엔드 서비스(RefrigeratorCode)** 의 Deployments → Deploy Logs 에 있다.)
 - ⚠ Apple 이메일이 기존 계정 이메일과 같으면 그 기존 계정으로 연결돼 들어온다(`get_or_create_user`). 그 상태로 탈퇴하면 **진짜 계정이 탈퇴**되므로, 탈퇴 시험은 새로 만들어진 계정(`애플사용자_…`)으로만 할 것.
 
+**빌드 1.0(2) 업로드 (2026-09-21, 맥북)**
+- 윈도우가 만든 **iOS 푸시 연결**(`AppDelegate` 의 APNs 등록, `App.entitlements` 의 `aps-environment`)을 받아 **빌드 번호 2**(`CURRENT_PROJECT_VERSION = 2`)로 Archive → App Store Connect 업로드. 보관함에서 `aps-environment`·`applesignin` 권한 확인. 빌드 1.0(1)은 푸시가 없는 옛 빌드라 **쓰지 않는다**(App Store 심사에는 1.0(2) 이상을 선택).
+- 새 빌드를 올릴 때마다 **빌드 번호를 1 올려야** 한다.
+- 남은 것: TestFlight 에서 1.0(2) 처리 완료 → 아이폰에 업데이트 → 마이페이지에서 알림을 켜고 발송 스크립트로 **실제 푸시 수신** 확인(윈도우 `backend/.env` 의 `APNS_KEY_ID`·`APNS_TEAM_ID`, `apns-auth-key.p8`, `httpx[http2]` 준비 필요).
+- **스토어 문구**: iOS 푸시가 실기기에서 실제로 오는 걸 확인하기 전까지 App Store 설명·프로모션에서는 알림 문장을 뺀 `ios-desc`·`ios-promo` 를 쓴다([store/STORE_LISTING.md](store/STORE_LISTING.md)). 확인되면 Play 원고와 같은 문장으로 되돌릴 수 있다.
+
 **Sign in with Apple — 만든 것(2026-09-21)**
 - 서버: [backend/apple_signin.py](backend/apple_signin.py) 가 앱이 낸 identity token 을 Apple 공개키(RS256)로 검증(발급자·`aud`=`com.cookmatch.app`·만료·nonce). `POST /api/auth/apple/native`([app.py](backend/app.py))가 검증되면 쿡매치 로그인 토큰을 줌. 재로그인은 이메일이 아니라 Apple 사용자 고유값(`sub`)으로 찾음(Apple 은 이메일을 숨길 수 있어서). 로그인 수단은 `provider='apple'`.
 - 앱: [nativeAuth.ts](frontend/src/utils/nativeAuth.ts) `signInWithAppleNative()`(플러그인 `@capacitor-community/apple-sign-in`), [Login.tsx](frontend/src/pages/Login.tsx) 에 **iOS 앱에서만** 맨 위에 검정 "Apple로 계속하기" 버튼. 웹·안드로이드에는 안 보임.

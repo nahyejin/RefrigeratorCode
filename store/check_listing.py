@@ -18,6 +18,7 @@ LIMITS = {
     "play-full": 4000,
     "ios-name": 30,
     "ios-subtitle": 30,
+    "ios-desc": 4000,
     "ios-promo": 170,
     "ios-keywords": 100,
 }
