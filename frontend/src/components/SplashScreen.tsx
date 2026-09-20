@@ -67,15 +67,13 @@ const STYLES = {
     letterSpacing: '0.02em',
     marginBottom: 8,
   },
-  // 글꼴은 `memo-handwrite` 클래스(장보기 메모와 같은 손글씨체 Gamja Flower)가 정한다 —
-  // 전역 규칙이 글꼴을 Pretendard 로 강제해서 인라인 fontFamily 로는 못 바꾼다.
-  // 이 글꼴은 굵기가 400 하나뿐이라 fontWeight 를 주면 가짜 굵기가 돼 오히려 못생겨진다.
+  // 글꼴은 `splash-number` 클래스(Jua)가 정한다 — 전역 규칙이 글꼴을 Pretendard 로 강제해서
+  // 인라인 fontFamily 로는 못 바꾼다. Jua 는 굵기가 400 하나뿐이라 fontWeight 를 주면
+  // 가짜 굵기가 돼 오히려 못생겨진다.
   numberDisplay: {
     color: '#1A1A1E',
     fontWeight: 400,
-    // 이 글꼴은 글자가 작고 가늘어서 기본 글꼴보다 크게 + 획을 살짝 덧그려(text-stroke) 또렷하게 한다.
-    fontSize: 'clamp(64px, 16vw, 96px)',
-    WebkitTextStroke: '1.6px #1A1A1E',
+    fontSize: 'clamp(56px, 14.5vw, 88px)',
     textAlign: 'center' as const,
     whiteSpace: 'nowrap' as const,
     lineHeight: '1.2',
@@ -84,12 +82,12 @@ const STYLES = {
   // (1은 좁고 0은 넓다) 전체가 좌우로 흔들려 보이던 것을 막는다.
   digitCell: {
     display: 'inline-block',
-    width: '0.56em',
+    width: '0.6em',
     textAlign: 'center' as const,
   },
   commaCell: {
     display: 'inline-block',
-    width: '0.28em',
+    width: '0.3em',
     textAlign: 'center' as const,
   },
   descriptionText: {
@@ -168,7 +166,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ recipeCount }) => {
       </div>
       <div style={STYLES.statGroup}>
         <div style={STYLES.label}>누적 레시피 수</div>
-        <div className="memo-handwrite" style={STYLES.numberDisplay}>
+        <div className="splash-number" style={STYLES.numberDisplay}>
           {formatted.split('').map((ch, i) => (
             <span key={i} style={ch === ',' ? STYLES.commaCell : STYLES.digitCell}>{ch}</span>
           ))}

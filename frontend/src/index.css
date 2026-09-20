@@ -1371,8 +1371,7 @@ select:focus-visible {
    "손글씨체가 있으면 써 달라"는 요청. index.html 에서 폰트를 로드).
    Nanum Pen Script(가느다란 펜글씨)는 예뻤지만 가독성이 떨어진다는
    지적으로, 획이 굵고 또렷한 Gamja Flower로 교체(같은 날 후속 요청).
-   스플래시의 "누적 레시피 수" 숫자에도 같은 클래스를 쓴다(2026-09-20, 굴러가는
-   숫자와 최종 숫자 글꼴이 안 예쁘고 서로 다르다는 지적 → 손글씨체로 통일). */
+   */
 /* 자식 요소까지 포함한다(`.memo-handwrite *`). 위의 전역 규칙 `*` 는 **모든 요소에 직접**
    걸리므로, 부모에만 클래스를 주면 그 안의 span 등은 부모 글꼴을 물려받지 못하고
    Pretendard 로 되돌아간다 — 스플래시 숫자를 한 칸씩 span 으로 감쌌더니 손글씨체가
@@ -1380,4 +1379,13 @@ select:focus-visible {
 .memo-handwrite,
 .memo-handwrite * {
   font-family: 'Gamja Flower', 'Pretendard', sans-serif !important;
+}
+
+/* 스플래시의 "누적 레시피 수" 숫자 전용 글꼴(Jua — 둥글고 통통한 글꼴). 감자꽃체(손글씨)를
+   써 봤더니 숫자 모양이 투박하고 "0"이 작은 동그라미가 돼 안 예뻤다(2026-09-20). 스플래시는
+   손글씨일 필요가 없다고 해서 후보 11개를 비교해 골랐다. 자식 요소까지 포함하는 이유는
+   위 `.memo-handwrite` 설명과 같다. 굴러가는 숫자·최종 숫자가 한 글꼴이 되게 한다. */
+.splash-number,
+.splash-number * {
+  font-family: 'Jua', 'Pretendard', sans-serif !important;
 }
