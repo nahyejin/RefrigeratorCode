@@ -96,6 +96,19 @@ def revocation_configured():
     return all(os.getenv(k) for k in ('APPLE_TEAM_ID', 'APPLE_SIGNIN_KEY_ID', 'APPLE_SIGNIN_PRIVATE_KEY'))
 
 
+def _private_key_pem():
+    """환경변수의 키를 PEM 으로 돌려준다.
+
+    Railway 에 넣는 방식이 여러 가지라 셋 다 받는다: 여러 줄 그대로, 줄바꿈을 `\\n` 글자로 쓴 한 줄,
+    그리고 `-----BEGIN/END-----` 줄 없이 본문만 넣은 경우(앞뒤 줄을 붙여 준다)."""
+    raw = os.environ['APPLE_SIGNIN_PRIVATE_KEY'].strip().replace('\\n', '\n')
+    if '-----BEGIN' not in raw:
+        body = ''.join(raw.split())
+        lines = [body[i:i + 64] for i in range(0, len(body), 64)]
+        raw = '-----BEGIN PRIVATE KEY-----\n' + '\n'.join(lines) + '\n-----END PRIVATE KEY-----'
+    return raw
+
+
 def make_client_secret(now=None):
     """Apple REST API 에 낼 client_secret(ES256 JWT, 5분 유효)."""
     now = int(now if now is not None else time.time())
@@ -107,7 +120,7 @@ def make_client_secret(now=None):
             'aud': APPLE_ISSUER,
             'sub': _bundle_id(),
         },
-        os.environ['APPLE_SIGNIN_PRIVATE_KEY'].replace('\\n', '\n'),
+        _private_key_pem(),
         algorithm='ES256',
         headers={'kid': os.environ['APPLE_SIGNIN_KEY_ID']},
     )
