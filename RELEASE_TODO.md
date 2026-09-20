@@ -14,6 +14,7 @@
 | Apple Developer | **승인 완료·활성**(2026-09-19 계약 수락, 팀 ID `63N6U28LJR`, 개인, 갱신 2027-09-19) | Apple 메일은 **920803hj@naver.com** 로 옴 |
 | Apple 설정(앱 ID·APNs 키·Firebase iOS) | **완료**(2026-09-20~21) | 아래 C 참고 |
 | Sign in with Apple(iOS 심사 필수) | **코드 작성 완료·푸시함, 실기기 확인 대기** | 백엔드 배포 확인 → TestFlight 로 실기기 확인 |
+| Apple 토큰 취소(탈퇴 시, 가이드라인 5.1.1(v)) | **코드 작성 완료(2026-09-21)** — 단 **Sign in with Apple 키를 만들어 Railway 변수 3개를 넣어야 동작** | 아래 C 「Apple 토큰 취소 켜기」 |
 | iOS 시뮬레이터(맥) | 앱 화면·GNB·소셜 로그인 3종 앱 복귀까지 정상(2026-09-19) | 실제 아이폰 확인은 Apple 승인 뒤 |
 | 테스터 12명·14일 | 계획: BETA FLOW 유료 대행(9,000원) | 앱·`.aab` 업로드 뒤 결제 |
 
@@ -63,8 +64,8 @@
 **남은 일**
 1. **백엔드 배포 확인**: 이번 푸시로 `backend/apple_signin.py`·`/api/auth/apple/native` 와 `requirements.txt` 의 `cryptography` 가 들어감. Railway 가 GitHub 푸시로 자동 배포하면 배포가 성공했는지(서버 로그에 import 오류 없는지) 확인. 자동 배포가 아니면 수동 배포. **→ 확인 완료(2026-09-21, 윈도우)**: 운영 서버 `POST /api/auth/apple/native` 가 빈 요청에 401 `Invalid Apple token` 으로 응답(배포됨·`cryptography` import 정상), 안드로이드 디버그 APK·서명된 릴리스 번들 빌드도 새 플러그인이 붙은 채 성공.
 2. **Sign in with Apple 실기기 확인**: 시뮬레이터에서는 Apple 로그인 창이 제대로 안 뜰 수 있어 **실제 아이폰**이 필요. 케이블이 없으면 **TestFlight**: App Store Connect 에 앱 등록 → Xcode Product → Archive → 업로드 → 아이폰의 TestFlight 앱으로 설치(내부 테스트는 Apple 심사 없이 가능).
-3. **계정 삭제 때 Apple 토큰 취소(revoke)**: Apple 로그인을 제공하는 앱은 **계정 삭제 시 Apple 에 토큰 취소를 요청**해야 한다(심사 가이드라인 5.1.1(v), 2022년부터). 지금 탈퇴 기능은 이걸 안 함 → 심사 전에 추가 필요(Apple 로그인 사용자의 authorization code 를 서버에 저장하고, 탈퇴 때 `appleid.apple.com/auth/revoke` 호출. 별도의 Sign in with Apple 키가 필요할 수 있음). Claude 와 같이 할 것.
-4. **개인정보처리방침·Play 데이터 보안·App Store 개인정보 라벨에 Apple 로그인 반영**(Apple 이 주는 이메일·이름, 이메일 숨기기 시 릴레이 주소). **→ 방침(`LegalPage.tsx`, 개정일 2026-09-21)·`PLAY_CONSOLE_ANSWERS.md` 반영 완료. 남은 것: App Store Connect 개인정보 라벨 입력 때 Apple 로그인(이메일·이름) 항목 포함.**
+3. **Apple 토큰 취소 켜기(코드는 완료, 설정이 남음)** — 아래 「Apple 토큰 취소 켜기」 절차를 할 것. 안 하면 탈퇴해도 Apple 에 취소 요청이 가지 않아 **심사에서 걸릴 수 있다.**
+4. **개인정보처리방침은 반영 완료(2026-09-21)** — 「Apple 로그인 연결 정보」 행과 탈퇴 시 취소 문장 추가. 남은 것: **App Store Connect 의 「앱 개인정보」(개인정보 라벨)**에 Apple 로그인으로 받는 이메일·이름·사용자 ID 반영(앱 등록할 때). **→ 방침(`LegalPage.tsx`, 개정일 2026-09-21)·`PLAY_CONSOLE_ANSWERS.md` 반영 완료. 남은 것: App Store Connect 개인정보 라벨 입력 때 Apple 로그인(이메일·이름) 항목 포함.**
 5. **iOS 푸시 연결**: Firebase Messaging(SPM) 추가 + `AppDelegate` 에서 APNs 토큰→FCM 토큰 + `GoogleService-Info.plist` 를 Xcode `App` 타깃에 추가 + Push Notifications capability(`aps-environment`). 심사 필수는 아님 — Sign in with Apple 다음 순서.
 6. App Store Connect 에 앱 등록 → TestFlight 확인 → 심사 제출(스크린샷·설명은 `store/`).
 
@@ -74,6 +75,18 @@
 - iOS 설정: `App.entitlements`(Sign in with Apple)를 프로젝트에 연결. `DEVELOPMENT_TEAM=63N6U28LJR` 도 프로젝트에 저장됨.
 - 검증: 가짜 Apple 키로 만든 토큰으로 잘못된 nonce·다른 앱용 토큰·다른 발급자·만료·위조 서명이 모두 거부됨을 확인. 앱은 시뮬레이터 빌드 성공·권한 삽입 확인. **실제 Apple 로그인 창은 실기기에서 아직 못 봄.**
 - ⚠ 플러그인이 Capacitor 7 용으로 만들어져 `cap sync` 때 "built for Capacitor 7" 경고가 뜸(iOS 빌드는 성공). 안드로이드 쪽에도 플러그인이 붙으므로 **다음 안드로이드 빌드(`gradlew bundleRelease`)가 성공하는지 확인**할 것 — 문제가 되면 이 플러그인을 iOS 전용으로 격리.
+
+**Apple 토큰 취소 켜기 (직접 해야 하는 설정)**
+
+Apple 로그인으로 들어온 사람이 탈퇴하면 Apple 에도 "이 앱과의 연결을 끊는다"고 알려야 한다. 코드는 다 되어 있고(`apple_signin.py`, `app.py` `revoke_apple_token_for_user`), 아래 설정만 하면 켜진다. 설정이 없으면 토큰 저장·취소를 **건너뛸 뿐 로그인·탈퇴는 정상 동작**한다.
+1. developer.apple.com → Certificates, Identifiers & Profiles → **Keys → +** → 이름 `CookMatch SignIn`, **Sign in with Apple** 체크 → 옆 **Configure** 에서 Primary App ID 로 `CookMatch (com.cookmatch.app)` 선택 → Save → Continue → Register → **`.p8` 다운로드**(APNs 키와 **다른 키**. 한 번만 받을 수 있음 — 비밀키라 채팅·git 금지, 비공개로 백업). **Key ID** 를 메모.
+2. Railway → 백엔드 서비스 → Variables 에 추가:
+   - `APPLE_TEAM_ID` = `63N6U28LJR`
+   - `APPLE_SIGNIN_KEY_ID` = 1번의 Key ID
+   - `APPLE_SIGNIN_PRIVATE_KEY` = `.p8` 파일 내용 전체(`-----BEGIN PRIVATE KEY-----` 부터 `-----END PRIVATE KEY-----` 까지. 여러 줄이 안 들어가면 줄바꿈을 `\n` 글자로 바꿔 한 줄로 넣어도 됨)
+3. 저장하면 재배포된다. **이후에 Apple 로그인한 사람부터** 토큰이 저장된다(그 전에 로그인한 사람은 저장된 토큰이 없어 취소할 게 없음 — 아직 Apple 로그인 사용자는 없음).
+4. 확인: TestFlight 앱에서 Apple 로그인 → 마이페이지 → 회원 탈퇴 → Railway 로그에 `Apple 토큰을 취소함` 이 찍히고, 아이폰 설정 → Apple 계정 → 로그인 및 보안 → **Apple로 로그인** 목록에서 쿡매치가 사라지는지 본다.
+- 동작: 로그인 때 앱이 받은 1회용 `authorization code`(5분 유효)를 서버가 그 자리에서 refresh token 으로 바꿔 표 `apple_refresh_tokens`(계정당 1행)에 저장 → 탈퇴 시 Apple `auth/revoke` 호출 → 성공하면 행 삭제, 실패하면 행을 남기고 로그(`⚠`)만 남김(탈퇴는 막지 않음).
 
 **지연되면**: 문제가 있으면 developer.apple.com/account 에서 상태 확인. 안드로이드 출시는 Apple 과 별개로 진행 가능.
 

@@ -66,12 +66,14 @@ export async function signInWithAppleNative(): Promise<string | null> {
     throw e;
   }
 
-  const { identityToken, givenName, familyName } = result.response;
+  const { identityToken, authorizationCode, givenName, familyName } = result.response;
   const res = await fetch(`${apiBase()}/api/auth/apple/native`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       identity_token: identityToken,
+      // 계정을 지울 때 Apple 에 연결 취소를 요청하려면 서버가 이 1회용 code 로 토큰을 받아 둬야 한다
+      authorization_code: authorizationCode,
       nonce: rawNonce,
       // 이름은 Apple 이 처음 로그인할 때 한 번만 준다
       full_name: [familyName, givenName].filter(Boolean).join(''),

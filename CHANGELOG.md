@@ -11568,3 +11568,12 @@ Xcode·Homebrew·node·git·GitHub CLI 설치, 프로젝트 clone(`~/Developer/R
 - **안드로이드 영향 확인**(맥 쪽 메모의 "확인할 것"): 플러그인이 Capacitor 7 용이라 `cap sync` 경고가 뜨지만 안드로이드 **디버그 APK·서명된 릴리스 번들(.aab) 빌드 모두 성공**, `jarsigner -verify` 통과. `cap sync` 가 만든 [capacitor.build.gradle](frontend/android/app/capacitor.build.gradle)·[capacitor.settings.gradle](frontend/android/capacitor.settings.gradle) 의 플러그인 연결 줄 커밋. iOS `Package.swift` 는 윈도우에서 줄바꿈만 달라져 되돌림(맥 것이 정본).
 - **개인정보처리방침 개정(2026-09-21)**: 로그인 방식에 애플 추가, 「어디에 맡기나」를 "Google·카카오·네이버·Apple (소셜 로그인)"으로(Apple 은 이름을 처음 한 번만 주고 이메일 가리기 시 가림 주소를 줌). 방침만 개정일 2026-09-21. `PLAY_CONSOLE_ANSWERS.md` 소셜 로그인 행에도 iOS 의 Apple 로그인 명시.
 - **아직 남은 일(맥 메모와 같음)**: 계정 삭제 때 Apple 토큰 취소(심사 가이드라인 5.1.1(v)), 실기기·TestFlight 에서 실제 Apple 로그인 창 확인, App Store 개인정보 라벨에 Apple 로그인 반영. → [RELEASE_TODO.md](RELEASE_TODO.md) C항.
+
+### Apple 계정 삭제 시 토큰 취소 + 개인정보처리방침 반영 (2026-09-21, 맥북 작업)
+App Store 심사 가이드라인 5.1.1(v): Apple 로그인을 제공하는 앱은 계정을 지울 때 Apple 에도 연결 취소를 요청해야 한다.
+- **[backend/apple_signin.py](backend/apple_signin.py)**: `make_client_secret`(팀 ID·키 ID·`.p8` 로 서명한 ES256 JWT), `exchange_authorization_code`(로그인 때 받은 1회용 code → refresh token), `revoke_refresh_token`(Apple `auth/revoke`). 환경변수 `APPLE_TEAM_ID`·`APPLE_SIGNIN_KEY_ID`·`APPLE_SIGNIN_PRIVATE_KEY` 가 하나라도 없으면 건너뜀(로그인·탈퇴는 그대로). **APNs 키와는 다른, Sign in with Apple 용 키**가 필요하다.
+- **[app.py](backend/app.py)**: 새 표 `apple_refresh_tokens`(계정당 1행). `/api/auth/apple/native` 가 `authorization_code` 를 받아 로그인 직후 토큰으로 바꿔 저장(실패해도 로그인은 계속). `delete_account` 는 탈퇴가 끝난 뒤 `revoke_apple_token_for_user` 를 부름 — 취소 성공 시 행 삭제, 실패 시 행을 남기고 로그만(탈퇴는 막지 않음).
+- **`delete_account` 조회 조건 수정**: 토큰의 `provider` 는 "로그인한 수단"인데, 같은 이메일의 기존 계정으로 연결돼 들어오면(`get_or_create_user`) 실제 계정의 provider 와 다를 수 있어 **탈퇴가 404 로 막혔다**(예: 구글 계정과 같은 이메일로 Apple 로그인). id·이메일로 찾고 실제 행의 provider 를 쓰도록 바꿈.
+- **앱** [nativeAuth.ts](frontend/src/utils/nativeAuth.ts): `authorizationCode` 도 서버로 보냄.
+- **개인정보처리방침** [LegalPage.tsx](frontend/src/pages/LegalPage.tsx): 「무엇을 받나」에 「Apple 로그인 연결 정보」 행, 「얼마나 갖고 있나」에 탈퇴 시 Apple 취소 요청 문장 추가. 서비스워커 캐시 `v1.9.3`. ⚠ 이 문장은 위 환경변수가 Railway 에 있어야 사실이다.
+- **검증**: 가짜 Apple 응답·가짜 DB 로 — client_secret(ES256·kid·iss·sub·aud·exp, 한 줄 `\n` 키 포함), 코드 교환 성공/실패, 취소 성공 시 행 삭제·실패 시 행 유지, 설정 없음/토큰 없음/네트워크 오류일 때 조용히 넘어감 확인. TypeScript 오류 수는 기존 20개 그대로. **실제 Apple 서버 호출은 키를 만든 뒤 TestFlight 에서 확인해야 한다.**

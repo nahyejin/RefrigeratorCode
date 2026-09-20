@@ -11,8 +11,10 @@ nonce: 앱은 무작위 값(raw)을 만들고 그 SHA-256(hex)을 Apple 에 넘�
 import hashlib
 import hmac
 import os
+import time
 
 import jwt
+import requests
 from jwt import PyJWKClient
 
 APPLE_ISSUER = 'https://appleid.apple.com'
@@ -66,3 +68,81 @@ def verify_identity_token(identity_token, raw_nonce, *, jwk_client=None, audienc
         'email': claims.get('email') or '',
         'email_verified': _as_bool(claims.get('email_verified')),
     }
+
+
+# =====================
+# 토큰 취소(계정 삭제 시) — App Store 심사 가이드라인 5.1.1(v)
+# =====================
+#
+# Apple 로그인을 제공하는 앱은 사용자가 계정을 지울 때 Apple 에도 "이 앱과의 연결을 끊는다"고
+# 알려야 한다(설정 > Apple 계정 > 로그인에 Apple 사용 목록에서 쿡매치가 사라지게).
+# 그러려면 (1) 로그인 때 받은 authorization code(5분짜리 1회용)를 그 자리에서 refresh token 으로
+# 바꿔 저장해 두고, (2) 탈퇴 때 그 token 으로 revoke 를 부른다. 두 호출 모두 **Sign in with Apple 용
+# 키(.p8)** 로 서명한 client_secret 이 필요하다 — APNs 키와는 다른 키다. 환경변수:
+#   APPLE_TEAM_ID              팀 ID
+#   APPLE_SIGNIN_KEY_ID        Sign in with Apple 키의 Key ID
+#   APPLE_SIGNIN_PRIVATE_KEY   그 .p8 파일 내용(줄바꿈은 \n 으로 써도 됨)
+# 셋 중 하나라도 없으면 토큰 저장·취소는 건너뛴다(로그인·탈퇴 자체는 그대로 동작).
+
+APPLE_TOKEN_URL = 'https://appleid.apple.com/auth/token'
+APPLE_REVOKE_URL = 'https://appleid.apple.com/auth/revoke'
+
+
+def _bundle_id():
+    return os.getenv('APPLE_BUNDLE_ID', 'com.cookmatch.app')
+
+
+def revocation_configured():
+    return all(os.getenv(k) for k in ('APPLE_TEAM_ID', 'APPLE_SIGNIN_KEY_ID', 'APPLE_SIGNIN_PRIVATE_KEY'))
+
+
+def make_client_secret(now=None):
+    """Apple REST API 에 낼 client_secret(ES256 JWT, 5분 유효)."""
+    now = int(now if now is not None else time.time())
+    return jwt.encode(
+        {
+            'iss': os.environ['APPLE_TEAM_ID'],
+            'iat': now,
+            'exp': now + 300,
+            'aud': APPLE_ISSUER,
+            'sub': _bundle_id(),
+        },
+        os.environ['APPLE_SIGNIN_PRIVATE_KEY'].replace('\\n', '\n'),
+        algorithm='ES256',
+        headers={'kid': os.environ['APPLE_SIGNIN_KEY_ID']},
+    )
+
+
+def exchange_authorization_code(code, *, post=None):
+    """authorization code 를 refresh token 으로 바꾼다. 실패하면 AppleTokenError."""
+    resp = (post or requests.post)(
+        APPLE_TOKEN_URL,
+        data={
+            'client_id': _bundle_id(),
+            'client_secret': make_client_secret(),
+            'code': code,
+            'grant_type': 'authorization_code',
+        },
+        timeout=10,
+    )
+    if resp.status_code != 200:
+        raise AppleTokenError(f'token exchange failed: {resp.status_code}')
+    refresh_token = resp.json().get('refresh_token')
+    if not refresh_token:
+        raise AppleTokenError('no refresh_token in response')
+    return refresh_token
+
+
+def revoke_refresh_token(refresh_token, *, post=None):
+    """Apple 에 이 refresh token(=이 앱과의 로그인 연결)을 취소시킨다. 성공하면 True."""
+    resp = (post or requests.post)(
+        APPLE_REVOKE_URL,
+        data={
+            'client_id': _bundle_id(),
+            'client_secret': make_client_secret(),
+            'token': refresh_token,
+            'token_type_hint': 'refresh_token',
+        },
+        timeout=10,
+    )
+    return resp.status_code == 200

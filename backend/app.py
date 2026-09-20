@@ -23,7 +23,10 @@ from email.mime.multipart import MIMEMultipart
 
 # **레시피 카드를 내보낼 조건은 여기 하나뿐이다.** 왜 그런지는 그 파일에.
 from recipe_visibility import RECIPE_READY, WHERE_READY
-from apple_signin import verify_identity_token, AppleTokenError
+from apple_signin import (
+    verify_identity_token, AppleTokenError,
+    revocation_configured, exchange_authorization_code, revoke_refresh_token,
+)
 
 # 환경변수 로드
 # - 개발환경에서만 현재 디렉토리의 .env를 로드
@@ -1348,12 +1351,82 @@ def native_login_exchange():
 # iOS 의 Apple 로그인 창에서 받은 identity token 을 이 주소로 보낸다. 검증은
 # `apple_signin.py`.
 
+def ensure_apple_tokens_table():
+    """Apple 로그인 사용자의 refresh token 보관 표 — 탈퇴할 때 Apple 에 취소를 요청하려고 둔다."""
+    db = get_db()
+    try:
+        cursor = db.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS apple_refresh_tokens (
+                user_id INT NOT NULL PRIMARY KEY,
+                refresh_token TEXT NOT NULL,
+                updated_at DATETIME NOT NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        """)
+        db.commit()
+    finally:
+        db.close()
+
+
+def _save_apple_refresh_token(user_id, authorization_code):
+    """로그인 때 받은 1회용 authorization code 를 refresh token 으로 바꿔 저장한다.
+
+    실패해도 로그인은 그대로 진행한다(취소는 탈퇴 때 best-effort)."""
+    if not authorization_code or not revocation_configured():
+        return
+    try:
+        refresh_token = exchange_authorization_code(authorization_code)
+        ensure_apple_tokens_table()
+        db = get_db()
+        try:
+            cursor = db.cursor()
+            cursor.execute(
+                "INSERT INTO apple_refresh_tokens (user_id, refresh_token, updated_at) VALUES (%s, %s, NOW()) "
+                "ON DUPLICATE KEY UPDATE refresh_token = VALUES(refresh_token), updated_at = NOW()",
+                (user_id, refresh_token)
+            )
+            db.commit()
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"[Apple 로그인] refresh token 저장 실패(로그인은 계속): {e}")
+
+
+def revoke_apple_token_for_user(user_id):
+    """탈퇴하는 계정에 Apple refresh token 이 있으면 Apple 에 취소를 요청한다(가이드라인 5.1.1(v)).
+
+    탈퇴 자체를 막지 않도록 어떤 실패도 삼키고 로그만 남긴다. 취소에 실패하면 토큰 행을 남겨
+    나중에 수동으로 다시 시도할 수 있게 한다."""
+    if not revocation_configured():
+        return
+    try:
+        ensure_apple_tokens_table()
+        db = get_db()
+        try:
+            cursor = db.cursor()
+            cursor.execute("SELECT refresh_token FROM apple_refresh_tokens WHERE user_id = %s", (user_id,))
+            row = cursor.fetchone()
+            if not row:
+                return
+            if revoke_refresh_token(row['refresh_token']):
+                cursor.execute("DELETE FROM apple_refresh_tokens WHERE user_id = %s", (user_id,))
+                db.commit()
+                print(f"[Apple 로그인] 탈퇴 계정 id={user_id} 의 Apple 토큰을 취소함")
+            else:
+                print(f"[Apple 로그인] ⚠ 탈퇴 계정 id={user_id} 의 Apple 토큰 취소 실패 — 행을 남겨 둠")
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"[Apple 로그인] ⚠ Apple 토큰 취소 중 오류(탈퇴는 계속): {e}")
+
+
 @app.route('/api/auth/apple/native', methods=['POST'])
 def apple_native_login():
     data = request.get_json(silent=True) or {}
     identity_token = data.get('identity_token') or ''
     nonce = data.get('nonce') or ''
     full_name = str(data.get('full_name') or '').strip()
+    authorization_code = str(data.get('authorization_code') or '')
 
     try:
         claims = verify_identity_token(identity_token, nonce)
@@ -1388,6 +1461,8 @@ def apple_native_login():
                 provider_id=sub,
                 email_verified=bool(claims['email'] and claims['email_verified']),
             )
+
+        _save_apple_refresh_token(user['id'], authorization_code)
 
         token = generate_jwt_token(user['id'], user['email'], user['nickname'], provider='apple')
         return jsonify({'token': token})
@@ -2218,14 +2293,18 @@ def delete_account():
 
         try:
             # 사용자 존재 확인 (탈퇴하지 않은 사용자만)
+            # 토큰의 provider 는 "로그인한 수단"이고, 같은 이메일의 기존 계정으로 연결돼 들어온
+            # 경우(get_or_create_user) 그 계정의 provider 와 다를 수 있다. id·이메일이 맞으면
+            # 본인이므로 provider 는 조건에서 빼고, 실제 행의 provider 를 쓴다.
             cursor.execute(
-                "SELECT id FROM users WHERE id = %s AND email = %s AND provider = %s AND deleted_at IS NULL",
-                (user_id, email, provider)
+                "SELECT id, provider FROM users WHERE id = %s AND email = %s AND deleted_at IS NULL",
+                (user_id, email)
             )
             user = cursor.fetchone()
 
             if not user:
                 return jsonify({'error': '사용자를 찾을 수 없습니다.'}), 404
+            provider = user['provider']
 
             # 그룹에 속해 있는데 그룹을 나가지 않고 바로 탈퇴하면, 이 사람이
             # 그룹의 재료 저장 계정(storage_user_id)이었을 경우 그룹 재료가
@@ -2266,7 +2345,11 @@ def delete_account():
             )
 
             db.commit()
-            
+
+            # Apple 로그인 사용자면 Apple 에도 연결 취소를 요청한다(심사 가이드라인 5.1.1(v)).
+            # 탈퇴는 이미 끝났으므로 실패해도 응답에는 영향이 없다.
+            revoke_apple_token_for_user(user_id)
+
             return jsonify({
                 'message': '회원탈퇴가 완료되었습니다.'
             }), 200
