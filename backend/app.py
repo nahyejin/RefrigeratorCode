@@ -3157,6 +3157,13 @@ def create_household():
         return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
 
 
+# 식구 그룹 최대 인원. 이 앱의 "그룹"은 한 집의 냉장고를 같이 쓰는 식구·룸메이트라
+# 6명이면 충분하고, 달력의 멤버 색 팔레트(프론트 CookingCalendar `MEMBER_COLORS`)도 6색이다.
+# 초대 코드가 새어 나갔을 때 낯선 사람이 무제한으로 들어와 냉장고·기록을 보는 것도 막는다.
+# 늘리려면 환경변수 HOUSEHOLD_MAX_MEMBERS 를 바꾸고, 프론트 팔레트도 함께 늘릴 것.
+HOUSEHOLD_MAX_MEMBERS = int(os.getenv('HOUSEHOLD_MAX_MEMBERS', '6'))
+
+
 @app.route('/api/households/join', methods=['POST'])
 def join_household():
     """초대 코드로 그룹 참여.
@@ -3199,6 +3206,15 @@ def join_household():
             household = cursor.fetchone()
             if not household:
                 return jsonify({'error': '유효하지 않은 초대 코드입니다.'}), 404
+
+            cursor.execute(
+                "SELECT COUNT(*) AS n FROM users WHERE household_id = %s AND deleted_at IS NULL",
+                (household['id'],)
+            )
+            if (cursor.fetchone() or {}).get('n', 0) >= HOUSEHOLD_MAX_MEMBERS:
+                return jsonify({
+                    'error': f'이 그룹은 인원이 가득 찼어요. (최대 {HOUSEHOLD_MAX_MEMBERS}명)'
+                }), 409
 
             # 그룹이 "새로 들어오는 사람 재료 합치기"를 아예 막아 뒀으면, 참여자가
             # 뭘 골랐든 무시하고 항상 보존(merge 안 함)으로 강제한다 — 기존
