@@ -11618,3 +11618,6 @@ TestFlight 로 아이폰에 설치해 **Apple 로그인 성공**, 회원 탈퇴 
 - **증상**: 아이폰 TestFlight 에서 재료 사진 창의 영수증/음식 타일을 눌러도 **아무 반응이 없었다**(앨범 선택은 정상).
 - **원인**: 타일이 쓰는 `Camera.getPhoto({source: Camera})` 가 `@capacitor/camera` 8 에서 deprecated 된 경로로, 실기기 iOS 26 에서 카메라를 열지 못한 채 오류 없이 멈췄다.
 - **수정**: [CameraCaptureSheet.tsx](frontend/src/components/CameraCaptureSheet.tsx) `openCameraFor` — iOS 는 `Camera.takePhoto({ quality: 85 })`, 안드로이드는 기존 `getPhoto` 유지. 아이폰에 직접 설치해 촬영까지 확인. 빌드 번호 4. TypeScript 오류 수는 기존 20개 그대로.
+
+### App Store 재제출 (2026-09-21 08:34 KST)
+Apple 「2.1 Information Needed」에 영문 답장과 화면 녹화를 보내고, 빌드를 1.0(4)(카메라 수정 포함)로 교체해 **다시 제출 → 심사 대기 중**. 자세한 내용은 [RELEASE_TODO.md](RELEASE_TODO.md) D항.
