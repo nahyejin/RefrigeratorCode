@@ -67,7 +67,7 @@
 2. **Sign in with Apple 실기기 확인**: 시뮬레이터에서는 Apple 로그인 창이 제대로 안 뜰 수 있어 **실제 아이폰**이 필요. 케이블이 없으면 **TestFlight**: App Store Connect 에 앱 등록 → Xcode Product → Archive → 업로드 → 아이폰의 TestFlight 앱으로 설치(내부 테스트는 Apple 심사 없이 가능).
 3. **Apple 토큰 취소 켜기(코드는 완료, 설정이 남음)** — 아래 「Apple 토큰 취소 켜기」 절차를 할 것. 안 하면 탈퇴해도 Apple 에 취소 요청이 가지 않아 **심사에서 걸릴 수 있다.**
 4. **개인정보처리방침은 반영 완료(2026-09-21)** — 「Apple 로그인 연결 정보」 행과 탈퇴 시 취소 문장 추가. 남은 것: **App Store Connect 의 「앱 개인정보」(개인정보 라벨)**에 Apple 로그인으로 받는 이메일·이름·사용자 ID 반영(앱 등록할 때). **→ 방침(`LegalPage.tsx`, 개정일 2026-09-21)·`PLAY_CONSOLE_ANSWERS.md` 반영 완료. 남은 것: App Store Connect 개인정보 라벨 입력 때 Apple 로그인(이메일·이름) 항목 포함.**
-5. **iOS 푸시 연결**: Firebase Messaging(SPM) 추가 + `AppDelegate` 에서 APNs 토큰→FCM 토큰 + `GoogleService-Info.plist` 를 Xcode `App` 타깃에 추가 + Push Notifications capability(`aps-environment`). 심사 필수는 아님 — Sign in with Apple 다음 순서.
+5. **iOS 푸시 연결**: Firebase Messaging(SPM) 추가 + `AppDelegate` 에서 APNs 토큰→FCM 토큰 + `GoogleService-Info.plist` 를 Xcode `App` 타깃에 추가 + Push Notifications capability(`aps-environment`). 심사 필수는 아님 — Sign in with Apple 다음 순서. **→ 진행(2026-09-21 진행, 윈도우)**: 실기기에서 알림 스위치가 안 켜지던 원인이 `AppDelegate` 의 APNs 등록 연결(`didRegister…`/`didFail…`)과 `App.entitlements` 의 `aps-environment` 부재 — 둘 다 추가(Firebase iOS SDK 없이 Capacitor 플러그인만 쓰는 방식이라 위 Firebase Messaging 절차는 필요 없음). 발송은 `scripts/send_expiry_push_notifications.py` 가 APNs 로 직접 보냄. **남은 것: ① 맥에서 pull → 새 TestFlight 빌드 업로드 ② 맥의 APNs 키 `.p8` 를 윈도우 `backend/apns-auth-key.p8` 로 안전하게 옮기고 `backend/.env` 에 `APNS_KEY_ID=Y4S77Z4YFG`·`APNS_TEAM_ID=63N6U28LJR` 추가 ③ `pip install "httpx[http2]"`.**
 6. App Store Connect 에 앱 등록 → TestFlight 확인 → 심사 제출(스크린샷·설명은 `store/`).
 
 **TestFlight 업로드 (2026-09-21, 맥북) — 케이블 문제와 해결**
