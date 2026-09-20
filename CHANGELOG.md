@@ -11560,3 +11560,11 @@ Play 데이터 보안 답과 방침이 어긋나는 곳을 바로잡음([LegalPa
 
 ### 맥북 개발 환경 세팅
 Xcode·Homebrew·node·git·GitHub CLI 설치, 프로젝트 clone(`~/Developer/RefrigeratorCode`), iOS 시뮬레이터 실행 확인(화면·GNB·소셜 로그인 3종). 매일 작업 순서는 [MOBILE_APP_GUIDE.md](MOBILE_APP_GUIDE.md) 「맥북 매일 작업 순서」.
+
+### 맥북에서 올린 Sign in with Apple 를 윈도우로 pull·검토(2026-09-21)
+맥 쪽 커밋 `80635594`(Sign in with Apple, 서버 `apple_signin.py`·`POST /api/auth/apple/native`, 앱 `signInWithAppleNative`, iOS 권한 파일·SPM)를 윈도우로 받아 검토·검증.
+- **서버 검증 로직 재확인**: 가짜 Apple 키로 만든 토큰으로 직접 시험 — 정상만 통과, nonce 틀림·다른 앱(`aud`)·다른 발급자·만료·위조 서명은 모두 거부, `email_verified` 불리언/문자열 모두 처리, 이메일 숨김(릴레이 주소) 정상. `import app` 도 새 모듈로 안 깨짐.
+- **운영 서버 배포 확인**: `POST /api/auth/apple/native`(빈 요청 → 401 `Invalid Apple token`), `/api/users/me/ai-chat-sessions`(무인증 → 401), `/api/auth/native/exchange`(400) 모두 응답 — Railway 배포됨.
+- **안드로이드 영향 확인**(맥 쪽 메모의 "확인할 것"): 플러그인이 Capacitor 7 용이라 `cap sync` 경고가 뜨지만 안드로이드 **디버그 APK·서명된 릴리스 번들(.aab) 빌드 모두 성공**, `jarsigner -verify` 통과. `cap sync` 가 만든 [capacitor.build.gradle](frontend/android/app/capacitor.build.gradle)·[capacitor.settings.gradle](frontend/android/capacitor.settings.gradle) 의 플러그인 연결 줄 커밋. iOS `Package.swift` 는 윈도우에서 줄바꿈만 달라져 되돌림(맥 것이 정본).
+- **개인정보처리방침 개정(2026-09-21)**: 로그인 방식에 애플 추가, 「어디에 맡기나」를 "Google·카카오·네이버·Apple (소셜 로그인)"으로(Apple 은 이름을 처음 한 번만 주고 이메일 가리기 시 가림 주소를 줌). 방침만 개정일 2026-09-21. `PLAY_CONSOLE_ANSWERS.md` 소셜 로그인 행에도 iOS 의 Apple 로그인 명시.
+- **아직 남은 일(맥 메모와 같음)**: 계정 삭제 때 Apple 토큰 취소(심사 가이드라인 5.1.1(v)), 실기기·TestFlight 에서 실제 Apple 로그인 창 확인, App Store 개인정보 라벨에 Apple 로그인 반영. → [RELEASE_TODO.md](RELEASE_TODO.md) C항.

@@ -61,10 +61,10 @@
 **Xcode 에 뜨는 노란 경고 "Your team has no devices…"**: 개발용 프로파일은 **등록된 실기기가 있어야** 만들어지는데 아직 기기를 안 붙여서 나는 안내. **시뮬레이터 실행엔 영향 없음.** 케이블로 아이폰을 한 번 연결하면(개발자 모드 켜기) 사라지고 기기가 자동 등록된다. 케이블이 없으면 TestFlight 로 대신한다(아래).
 
 **남은 일**
-1. **백엔드 배포 확인**: 이번 푸시로 `backend/apple_signin.py`·`/api/auth/apple/native` 와 `requirements.txt` 의 `cryptography` 가 들어감. Railway 가 GitHub 푸시로 자동 배포하면 배포가 성공했는지(서버 로그에 import 오류 없는지) 확인. 자동 배포가 아니면 수동 배포.
+1. **백엔드 배포 확인**: 이번 푸시로 `backend/apple_signin.py`·`/api/auth/apple/native` 와 `requirements.txt` 의 `cryptography` 가 들어감. Railway 가 GitHub 푸시로 자동 배포하면 배포가 성공했는지(서버 로그에 import 오류 없는지) 확인. 자동 배포가 아니면 수동 배포. **→ 확인 완료(2026-09-21, 윈도우)**: 운영 서버 `POST /api/auth/apple/native` 가 빈 요청에 401 `Invalid Apple token` 으로 응답(배포됨·`cryptography` import 정상), 안드로이드 디버그 APK·서명된 릴리스 번들 빌드도 새 플러그인이 붙은 채 성공.
 2. **Sign in with Apple 실기기 확인**: 시뮬레이터에서는 Apple 로그인 창이 제대로 안 뜰 수 있어 **실제 아이폰**이 필요. 케이블이 없으면 **TestFlight**: App Store Connect 에 앱 등록 → Xcode Product → Archive → 업로드 → 아이폰의 TestFlight 앱으로 설치(내부 테스트는 Apple 심사 없이 가능).
 3. **계정 삭제 때 Apple 토큰 취소(revoke)**: Apple 로그인을 제공하는 앱은 **계정 삭제 시 Apple 에 토큰 취소를 요청**해야 한다(심사 가이드라인 5.1.1(v), 2022년부터). 지금 탈퇴 기능은 이걸 안 함 → 심사 전에 추가 필요(Apple 로그인 사용자의 authorization code 를 서버에 저장하고, 탈퇴 때 `appleid.apple.com/auth/revoke` 호출. 별도의 Sign in with Apple 키가 필요할 수 있음). Claude 와 같이 할 것.
-4. **개인정보처리방침·Play 데이터 보안·App Store 개인정보 라벨에 Apple 로그인 반영**(Apple 이 주는 이메일·이름, 이메일 숨기기 시 릴레이 주소).
+4. **개인정보처리방침·Play 데이터 보안·App Store 개인정보 라벨에 Apple 로그인 반영**(Apple 이 주는 이메일·이름, 이메일 숨기기 시 릴레이 주소). **→ 방침(`LegalPage.tsx`, 개정일 2026-09-21)·`PLAY_CONSOLE_ANSWERS.md` 반영 완료. 남은 것: App Store Connect 개인정보 라벨 입력 때 Apple 로그인(이메일·이름) 항목 포함.**
 5. **iOS 푸시 연결**: Firebase Messaging(SPM) 추가 + `AppDelegate` 에서 APNs 토큰→FCM 토큰 + `GoogleService-Info.plist` 를 Xcode `App` 타깃에 추가 + Push Notifications capability(`aps-environment`). 심사 필수는 아님 — Sign in with Apple 다음 순서.
 6. App Store Connect 에 앱 등록 → TestFlight 확인 → 심사 제출(스크린샷·설명은 `store/`).
 
