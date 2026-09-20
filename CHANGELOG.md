@@ -11597,3 +11597,6 @@ App Store 심사 가이드라인 5.1.1(v): Apple 로그인을 제공하는 앱�
 
 ### Apple 로그인·탈퇴(토큰 취소) 실기기 확인 (2026-09-21)
 TestFlight 로 아이폰에 설치해 **Apple 로그인 성공**, 회원 탈퇴 시 백엔드 로그에 `Apple 토큰을 취소함`(id=77)과 `delete-account 200` 확인. Railway 변수 `APPLE_TEAM_ID`·`APPLE_SIGNIN_KEY_ID`·`APPLE_SIGNIN_PRIVATE_KEY` 가 정상 동작함.
+
+### iOS App Store 심사 제출 (2026-09-21)
+빌드 1.0(2)로 App Store 심사를 제출했다(자동 출시, 무료, 연령 4+). 입력 내용과 심사 중 지킬 것은 [RELEASE_TODO.md](RELEASE_TODO.md) D항. 스크린샷·광고는 **AI 기능 3개를 앞에** 두는 순서로 통일([store/STORE_LISTING.md](store/STORE_LISTING.md) 「소구 순서」, [AD_BRIEF.md](AD_BRIEF.md)).
