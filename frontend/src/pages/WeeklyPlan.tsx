@@ -16,7 +16,7 @@ import { getProxiedImageUrl } from '../utils/imageUtils';
 import { usageHeaders, applyUsage, spendOptimistically } from '../utils/usage';
 import { UsageLine, useUsage } from '../components/UsageMeter';
 import { savePlan, conflictingDates, pullMyPlansIntoLocal, toDateKey, type PlannedMeal } from '../utils/mealPlan';
-import { loadChat, saveChat, archiveChat, loadSessions, dropSession,
+import { loadChat, saveChat, archiveChat, loadSessions, dropSession, syncSessions,
          toPlanned, type ChatMsg, type ChatSession } from '../utils/aiChat';
 
 /**
@@ -547,6 +547,12 @@ const WeeklyPlan: React.FC = () => {
   /** 지난 대화 목록을 펼쳤나. */
   const [pastOpen, setPastOpen] = React.useState(false);
   const [sessions, setSessions] = React.useState<ChatSession[]>(() => loadSessions());
+  // 로그인했으면 계정(서버)의 지난 대화를 가져와 합친다 — 다른 기기·앱에서 나눈 대화도 여기서 보이게.
+  React.useEffect(() => {
+    let alive = true;
+    syncSessions().then(list => { if (alive) setSessions(list); });
+    return () => { alive = false; };
+  }, []);
   /**
    * 지우기 전에 한 번 묻는다. 지운 대화는 **되돌릴 수 없고**, 크레딧을 써서
    * 받은 식단이 그 안에 들어 있다. 목록에서 열려고 눌렀는데 옆 휴지통이

@@ -258,6 +258,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // 로컬을 무시)이라 덜 드러났을 뿐, 동기화 전 로컬 전용 계획은 새는
       // 경로가 있었다(2026-09-18, 같이 처리해 달라는 요청).
       localStorage.removeItem('cookmatch_meal_plan');
+      // AI 식단 추천 대화(진행 중인 것·지난 대화)도 같은 문제였다 — 다른 계정으로 들어오면 앞사람의
+      // 질문과 식단이 그대로 보였다(2026-09-20). 로그인한 사람의 지난 대화는 서버에 있어서
+      // 다시 로그인하면 돌아온다(`utils/aiChat.ts` `syncSessions`).
+      localStorage.removeItem('cookmatch_ai_chat');
+      localStorage.removeItem('cookmatch_ai_chat_past');
+      localStorage.removeItem('cookmatch_ai_chat_synced_at');
       // 목록 화면이 들고 있는 계산 결과(매칭률 포함) 캐시도 같이 버린다.
       sessionStorage.removeItem('recipe_list_state');
       sessionStorage.removeItem('recipe_list_ingredients_hash');
@@ -317,6 +323,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     localStorage.removeItem('cooking_calendar_shopping_memos');
     // 요리 계획도 같은 이유로 초기화(위 `clearDataOfOtherAccount` 설명 참고).
     localStorage.removeItem('cookmatch_meal_plan');
+    // AI 식단 추천 대화도 같은 이유로 초기화(위 `clearDataOfOtherAccount` 설명 참고).
+    localStorage.removeItem('cookmatch_ai_chat');
+    localStorage.removeItem('cookmatch_ai_chat_past');
+    localStorage.removeItem('cookmatch_ai_chat_synced_at');
 
     // 세션 스토리지의 레시피 리스트 캐시도 초기화
     sessionStorage.removeItem('recipe_list_state');

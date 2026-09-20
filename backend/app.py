@@ -4948,6 +4948,118 @@ def get_household_meal_plans():
         return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
 
 
+# =====================
+# AI 식단 추천 "지난 대화" — 계정별 서버 저장
+# =====================
+#
+# 예전에는 이 기기 저장소(localStorage)에만 있어서, 다른 기기·앱·웹에서 열면 지난 대화가
+# 없었다(2026-09-20 "기기 기준이 아니라 아이디별로 해야 한다"는 지적). 로그인한 사람의
+# 지난 대화(최대 10개)를 계정에 붙여 서버에 둔다. 비회원은 계속 기기에만 남는다.
+# 계정 하나에 한 줄(JSON)로 두는 이유: 대화는 통째로 읽고 통째로 바꾸며(최대 10개),
+# 검색·부분 수정이 필요 없어서 표를 나눌 이유가 없다.
+AI_CHAT_MAX_SESSIONS = 10
+AI_CHAT_MAX_MESSAGES = 80
+AI_CHAT_MAX_BYTES = 600_000
+
+
+def ensure_ai_chat_sessions_table():
+    db = get_db()
+    cursor = db.cursor()
+    try:
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS ai_plan_chat_sessions (
+                user_id INT NOT NULL PRIMARY KEY,
+                sessions_json MEDIUMTEXT NOT NULL,
+                updated_at DATETIME NOT NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        """)
+        db.commit()
+    finally:
+        db.close()
+
+
+def _auth_user_id():
+    """Authorization 헤더의 로그인 사용자 id. 없으면 (None, 응답)."""
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return None, (jsonify({'error': '인증이 필요합니다.'}), 401)
+    payload = verify_jwt_token(auth_header.split(' ')[1])
+    if not payload or not payload.get('user_id'):
+        return None, (jsonify({'error': '권한이 없습니다.'}), 403)
+    return payload['user_id'], None
+
+
+@app.route('/api/users/me/ai-chat-sessions', methods=['GET'])
+def get_ai_chat_sessions():
+    """내 AI 식단 추천 지난 대화 목록."""
+    user_id, err = _auth_user_id()
+    if err:
+        return err
+    ensure_ai_chat_sessions_table()
+    db = get_db()
+    cursor = db.cursor()
+    try:
+        cursor.execute("SELECT sessions_json FROM ai_plan_chat_sessions WHERE user_id = %s", (user_id,))
+        row = cursor.fetchone()
+        try:
+            sessions = json.loads(row['sessions_json']) if row else []
+        except (ValueError, TypeError):
+            sessions = []
+        return jsonify({'sessions': sessions if isinstance(sessions, list) else []})
+    finally:
+        db.close()
+
+
+@app.route('/api/users/me/ai-chat-sessions', methods=['PUT'])
+def put_ai_chat_sessions():
+    """내 지난 대화 목록을 통째로 바꾼다(최대 10개, 새것 먼저).
+
+    body: { sessions: [{ id, at, title, messages: [...] }] }
+    합치는 일(여러 기기에서 만든 것)은 프론트가 하고, 서버는 받은 목록을 검증해 그대로 둔다."""
+    user_id, err = _auth_user_id()
+    if err:
+        return err
+    data = request.get_json(silent=True) or {}
+    sessions = data.get('sessions')
+    if not isinstance(sessions, list) or len(sessions) > AI_CHAT_MAX_SESSIONS:
+        return jsonify({'error': f'sessions 는 최대 {AI_CHAT_MAX_SESSIONS}개 목록이어야 합니다.'}), 400
+    clean = []
+    for sess in sessions:
+        if not isinstance(sess, dict):
+            return jsonify({'error': '잘못된 형식입니다.'}), 400
+        messages = sess.get('messages')
+        if (not isinstance(sess.get('id'), str) or not isinstance(sess.get('at'), (int, float))
+                or not isinstance(messages, list) or len(messages) > AI_CHAT_MAX_MESSAGES):
+            return jsonify({'error': '잘못된 형식입니다.'}), 400
+        clean.append({
+            'id': sess['id'][:40],
+            'at': int(sess['at']),
+            'title': str(sess.get('title') or '')[:80],
+            'messages': messages,
+        })
+    payload = json.dumps(clean, ensure_ascii=False)
+    if len(payload.encode('utf-8')) > AI_CHAT_MAX_BYTES:
+        return jsonify({'error': '대화가 너무 큽니다.'}), 413
+
+    ensure_ai_chat_sessions_table()
+    db = get_db()
+    cursor = db.cursor()
+    try:
+        cursor.execute(
+            """INSERT INTO ai_plan_chat_sessions (user_id, sessions_json, updated_at)
+               VALUES (%s, %s, %s)
+               ON DUPLICATE KEY UPDATE sessions_json = VALUES(sessions_json), updated_at = VALUES(updated_at)""",
+            (user_id, payload, datetime.now())
+        )
+        db.commit()
+        return jsonify({'ok': True, 'count': len(clean)})
+    except Exception as e:
+        db.rollback()
+        return jsonify({'error': str(e)}), 500
+    finally:
+        db.close()
+
+
 @app.route('/api/users/<int:user_id>/meal-plans', methods=['POST'])
 def save_user_meal_plans(user_id):
     """요리 계획을 저장한다. 그룹 소속이면 다른 식구 몫으로도 저장할 수
