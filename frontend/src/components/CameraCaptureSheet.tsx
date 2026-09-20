@@ -121,6 +121,20 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
    * 누르든(보관함이든 촬영이든) 모드가 이미 정해져 있다.
    */
   const [choosingForPicker, setChoosingForPicker] = useState(false);
+  /**
+   * 네이티브 카메라·앨범을 여는 데 실패한 이유(사용자가 그냥 닫은 것은 제외).
+   *
+   * 전에는 실패를 전부 조용히 삼켰다 — 아이폰 TestFlight 실기기에서 타일을 눌러도 **아무 반응이
+   * 없어서** 권한 문제인지 플러그인 문제인지조차 알 수 없었다(2026-09-21). 이제 이유를 화면에 보여
+   * 준다. 사용자가 촬영·선택 창을 닫은 경우(cancel)는 오류가 아니므로 계속 조용히 넘어간다.
+   */
+  const [nativeError, setNativeError] = useState<string | null>(null);
+  const reportNativeError = (e: unknown) => {
+    const msg = String((e as { message?: unknown })?.message ?? e ?? '');
+    if (/cancel|dismiss|no image picked/i.test(msg)) return;
+    console.warn('[camera] 열기 실패:', e);
+    setNativeError(msg || '알 수 없는 오류');
+  };
   /** 파일 선택창을 열 때 정해 둔 모드 */
   const pickerModeRef = useRef<CaptureMode>('file');
 
@@ -129,14 +143,16 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
   const openPickerWith = async (mode: CaptureMode) => {
     pickerModeRef.current = mode;
     setChoosingForPicker(false);
+    setNativeError(null);
     if (Capacitor.isNativePlatform()) {
       try {
         const result = await Camera.pickImages({ quality: 85, limit: maxFiles });
         if (result.photos.length === 0) return; // 취소
         const files = await Promise.all(result.photos.map((p, i) => photoToFile(p.webPath!, i)));
         onCaptured(mode, files);
-      } catch {
-        // 취소·권한 거부 — 기존 파일 선택창을 취소했을 때와 같이 조용히 무시.
+      } catch (e) {
+        // 사용자가 닫은 것은 조용히, 권한 거부·플러그인 오류는 화면에 이유를 보여 준다.
+        reportNativeError(e);
       }
       return;
     }
@@ -148,6 +164,7 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
    * 웹에서는 기존 `<input type=file capture=environment>`을. */
   const openCameraFor = async (mode: CaptureMode) => {
     setPendingMode(mode);
+    setNativeError(null);
     if (Capacitor.isNativePlatform()) {
       try {
         const photo = await Camera.getPhoto({
@@ -158,8 +175,9 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
         if (!photo.webPath) return;
         const file = await photoToFile(photo.webPath, 0);
         onCaptured(mode, [file]);
-      } catch {
-        // 취소·권한 거부 — 기존 촬영을 취소했을 때와 같이 조용히 무시.
+      } catch (e) {
+        // 사용자가 닫은 것은 조용히, 권한 거부·플러그인 오류는 화면에 이유를 보여 준다.
+        reportNativeError(e);
       }
       return;
     }
@@ -245,6 +263,16 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
           overflow-y:auto 라 가로도 자동으로 스크롤된다).
           지금은 `minmax(0, ...)` 로 칸이 줄어들 수 있게 하고, 정사각 고정 대신
           내용에 맞춰 높이가 정해지게 두었다(그리드가 세 칸 높이를 알아서 맞춘다). */}
+      {nativeError && (
+        <div role="alert" style={{
+          marginBottom: 12, padding: '10px 12px', borderRadius: 10,
+          background: '#FFF1F0', border: '1px solid #F5C2C0', color: '#B42318',
+          fontSize: 12.5, lineHeight: 1.6, wordBreak: 'keep-all',
+        }}>
+          카메라·사진을 열지 못했어요. 휴대폰 설정 → 쿡매치에서 카메라와 사진 접근이 허용돼 있는지 확인해 주세요.
+          <div style={{ marginTop: 4, color: '#7A271A', wordBreak: 'break-all' }}>({nativeError})</div>
+        </div>
+      )}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8, marginBottom: 14 }}>
         {OPTIONS.map(({ key, label, hint, icon: Icon }) => (
           <button

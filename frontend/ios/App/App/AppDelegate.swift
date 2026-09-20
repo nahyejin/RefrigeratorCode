@@ -33,6 +33,18 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // Called when the application is about to terminate. Save data if appropriate. See also applicationDidEnterBackground:.
     }
 
+    // 푸시 알림(APNs) 등록 결과를 Capacitor 의 PushNotifications 플러그인에 넘긴다.
+    // 이 두 메서드가 없으면 `PushNotifications.register()` 를 불러도 iOS 가 준 기기 토큰이
+    // 플러그인에 전달되지 않아 `registration` 이벤트가 영영 오지 않는다 — 알림 켜기 스위치가
+    // 20초 뒤 실패로 끝나던 원인(2026-09-21, TestFlight 실기기 확인). Capacitor 공식 안내와 같은 코드.
+    func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        NotificationCenter.default.post(name: .capacitorDidRegisterForRemoteNotifications, object: deviceToken)
+    }
+
+    func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+        NotificationCenter.default.post(name: .capacitorDidFailToRegisterForRemoteNotifications, object: error)
+    }
+
     func application(_ application: UIApplication,
                      configurationForConnecting connectingSceneSession: UISceneSession,
                      options: UIScene.ConnectionOptions) -> UISceneConfiguration {

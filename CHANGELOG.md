@@ -11585,3 +11585,12 @@ App Store 심사 가이드라인 5.1.1(v): Apple 로그인을 제공하는 앱�
 
 ### iOS 첫 TestFlight 빌드가 실제 아이폰에 설치됨(2026-09-21, 사용자 캡처)
 맥에서 올린 iOS 빌드가 TestFlight 로 사용자의 **실제 아이폰**에 설치돼 열림 — 앱 이름 "쿡매치 - 냉장고 레시피", 버전 1.0(빌드 1), 37.9MB, 빌드 만료 2026-12-20(90일). TestFlight 는 내 폰에서 써 보는 테스트 단계이고 **App Store 심사 제출과는 별개**. 다음: 실기기에서 Apple 로그인·구글/카카오/네이버 로그인 복귀·카메라 재료 인식·화면(상태바·하단 메뉴)·푸시(iOS 푸시 연결은 아직 미완) 확인. 심사 제출 전 남은 것: 계정 삭제 때 Apple 토큰 취소(5.1.1(v)), App Store 개인정보 라벨에 Apple 로그인 반영, 심사용 테스트 계정 안내. 진행 중인 맥 작업이라 상세 절차는 맥 쪽 기록 참고.
+
+### 실기기(TestFlight)에서 카메라 인식·푸시 알림 스위치가 안 되던 문제(2026-09-21)
+사용자가 TestFlight 로 설치한 실제 아이폰에서 확인: Apple 로그인·구글/카카오/네이버 복귀·화면은 정상, **카메라 재료 인식 타일을 눌러도 반응이 없고, 알림 스위치가 안 켜짐**.
+- **푸시(원인 확정)**: ① `ios/App/App/AppDelegate.swift` 에 APNs 등록 결과를 Capacitor 로 넘기는 `didRegisterForRemoteNotificationsWithDeviceToken`/`didFailToRegister…` 가 없었다 — 플러그인 소스가 이 이벤트가 없으면 `register()` 를 "event capacitorDidRegisterForRemoteNotifications not called" 로 거부한다. ② `App.entitlements` 에 `aps-environment` 가 없어 iOS 가 원격 알림 등록 자체를 막을 수 있었다. 둘 다 추가(Capacitor 공식 코드, entitlement 는 `development` — Xcode 가 TestFlight·App Store 서명 때 production 으로 바꿈).
+- **iOS 알림 발송**: 아이폰 앱은 Firebase iOS SDK 없이 플러그인만 써서 등록 값이 FCM 토큰이 아니라 **APNs 기기 토큰**이라 기존 FCM 발송으로는 못 보낸다. [send_expiry_push_notifications.py](scripts/send_expiry_push_notifications.py) 에 `send_apns()` 추가(ES256 JWT·HTTP/2, 운영 서버 → 토큰이 샌드박스 것이면 샌드박스로 재시도, 앱 삭제·잘못된 토큰은 정리 대상). `.p8` 키·`APNS_KEY_ID`·`APNS_TEAM_ID` 가 없으면 iOS 기기만 건너뜀. `.gitignore` 에 `*.p8`. 가짜 Apple 서버(MockTransport)와 생성한 키로 검증: 정상·샌드박스 재시도·삭제(410)·서버 오류·JWT 헤더/캐시 모두 의도대로.
+- **카메라(원인 미확정)**: [CameraCaptureSheet.tsx](frontend/src/components/CameraCaptureSheet.tsx) 가 카메라·앨범 열기 실패를 **전부 조용히 삼키고 있어서** 눌러도 아무 반응이 없어 보였다. 코드만으로는 권한 문제인지 플러그인 문제인지 알 수 없어, 실패하면 화면에 **이유를 보여 주도록** 바꿈(사용자가 창을 닫은 경우는 계속 조용히). 새 빌드에서 뜨는 문구로 원인을 확정한다.
+- **알림 스위치 진단**: [push.ts](frontend/src/utils/push.ts)·[NotificationSettings.tsx](frontend/src/components/NotificationSettings.tsx) — 실패 원인(`detail`)을 결과에 싣고 화면에 "(원인: …)"으로 보여 줌, 켜는 동안 "알림을 켜는 중이에요… (최대 20초)" 표시(전엔 아무 표시 없이 비활성이라 스위치가 죽은 것처럼 보였음). 타입 오류 수는 그대로(기존 3건).
+- 서비스워커 캐시 `v1.9.3`.
+- **맥에서 할 일**: `git pull` → `npm run build` → `npx cap sync ios` → 새 빌드 Archive → TestFlight 업로드(빌드 번호 올림). Xcode 가 `aps-environment` 때문에 서명 프로필을 다시 만들 수 있음.

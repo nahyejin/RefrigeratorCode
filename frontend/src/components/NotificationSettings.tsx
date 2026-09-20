@@ -50,7 +50,9 @@ const NotificationSettings: React.FC = () => {
       } else if (result.reason === 'unsupported') {
         setStatus('unsupported');
       } else {
-        setError('지금은 켤 수 없어요. 잠시 후 다시 시도해 주세요.');
+        // 이 프로젝트는 strict 가 꺼져 있어 `result.ok` 로 좁혀지지 않는다 — 좁히지 않고 읽는다
+        const detail = (result as { detail?: string }).detail;
+        setError(`지금은 켤 수 없어요. 잠시 후 다시 시도해 주세요.${detail ? ` (${detail})` : ''}`);
       }
     }
     setBusy(false);
@@ -89,7 +91,7 @@ const NotificationSettings: React.FC = () => {
             유통기한 임박 알림
           </span>
           <span style={{ display: 'block', fontSize: 12.5, color: 'var(--ink-500)', marginTop: 3, lineHeight: 1.5, wordBreak: 'keep-all' }}>
-            내 냉장고 재료가 곧 상할 때 앱을 안 켜도 알려드려요.
+            {busy ? '알림을 켜는 중이에요… (최대 20초)' : '내 냉장고 재료가 곧 상할 때 앱을 안 켜도 알려드려요.'}
           </span>
         </span>
         <span

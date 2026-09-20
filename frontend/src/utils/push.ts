@@ -72,7 +72,8 @@ function isNative(): boolean {
 
 type SubscribeResult =
   | { ok: true }
-  | { ok: false; reason: 'unsupported' | 'denied' | 'login_required' | 'error' };
+  // detail: 사용자에게 보여 줄 실패 원인(기술 문구). 실기기에서 "왜 안 켜지는지"를 알아내려고 싣는다.
+  | { ok: false; reason: 'unsupported' | 'denied' | 'login_required' | 'error'; detail?: string };
 
 // ---------------------------------------------------------------------------
 // 공개 API — 화면은 이것만 쓴다
@@ -275,7 +276,11 @@ async function isNativeSubscribed(): Promise<boolean> {
  * 이벤트 한 번을 Promise 하나로 감싼다. 응답이 없으면(네트워크·Play 서비스 문제)
  * 20초 뒤 포기한다 — 토글이 영원히 '처리 중'에 갇히지 않게.
  */
+/** 마지막 네이티브 푸시 등록이 왜 실패했는지(화면에 보여 줄 문구). */
+let nativeFailDetail = '';
+
 function obtainNativeToken(): Promise<string | null> {
+  nativeFailDetail = '';
   return new Promise(resolve => {
     let settled = false;
     let handles: PluginListenerHandle[] = [];
@@ -286,12 +291,16 @@ function obtainNativeToken(): Promise<string | null> {
       handles.forEach(h => h.remove());
       resolve(value);
     };
-    const timer = setTimeout(() => finish(null), 20000);
+    const timer = setTimeout(() => {
+      nativeFailDetail = nativeFailDetail || '등록 응답이 없어요(iOS 는 앱의 푸시 설정이 필요해요)';
+      finish(null);
+    }, 20000);
 
     Promise.all([
       PushNotifications.addListener('registration', t => finish(t.value)),
       PushNotifications.addListener('registrationError', e => {
         console.warn('[push] 네이티브 등록 실패:', e.error);
+        nativeFailDetail = `등록 실패: ${e.error}`;
         finish(null);
       }),
     ])
@@ -305,6 +314,7 @@ function obtainNativeToken(): Promise<string | null> {
       })
       .catch(e => {
         console.warn('[push] 네이티브 등록 호출 실패:', e);
+        nativeFailDetail = `등록 호출 실패: ${String((e as { message?: unknown })?.message ?? e)}`;
         finish(null);
       });
   });
@@ -333,13 +343,17 @@ async function subscribeNative(): Promise<SubscribeResult> {
     if (perm.receive !== 'granted') return { ok: false, reason: 'denied' };
 
     const token = await obtainNativeToken();
-    if (!token) return { ok: false, reason: 'error' };
-    if (!(await sendNativeToken(token))) return { ok: false, reason: 'error' };
+    if (!token) return { ok: false, reason: 'error', detail: nativeFailDetail || '푸시 토큰을 받지 못했어요' };
+    if (!(await sendNativeToken(token))) return { ok: false, reason: 'error', detail: '서버에 기기를 등록하지 못했어요' };
     writeNativeToken(token);
     return { ok: true };
   } catch (e) {
     console.warn('[push] 네이티브 구독 실패:', e);
-    return { ok: false, reason: 'error' };
+    return {
+      ok: false,
+      reason: 'error',
+      detail: `권한 확인 실패: ${String((e as { message?: unknown })?.message ?? e)}`,
+    };
   }
 }
 

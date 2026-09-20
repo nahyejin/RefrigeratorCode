@@ -136,6 +136,88 @@ def send_fcm(session, project_id, token, body):
     return f"failed:{resp.status_code} {err.get('status') or ''} {err.get('message') or resp.text[:200]}"
 
 
+# ── iOS(APNs) 직접 발송 ────────────────────────────────────────────────
+# 아이폰 앱은 Firebase iOS SDK 없이 Capacitor 푸시 플러그인만 써서, 등록되는 값이 FCM 토큰이
+# 아니라 **APNs 기기 토큰**(16진 문자열)이다. FCM 으로는 못 보내므로 Apple 서버(APNs)로 직접 보낸다.
+# 필요한 것(전부 비밀이라 git 에 없음): Apple Developer → Keys 에서 만든 APNs 인증 키 `.p8` 파일,
+# 그 Key ID, 팀 ID. backend/.env 에 APNS_KEY_ID·APNS_TEAM_ID 를 적고 키 파일은
+# backend/apns-auth-key.p8 에 둔다(다른 곳이면 APNS_KEY_PATH). 없으면 iOS 기기는 건너뛴다.
+# 실행에는 `pip install "httpx[http2]"` 가 필요하다(APNs 는 HTTP/2 만 받는다).
+DEFAULT_APNS_KEY = os.path.join(ROOT, "backend", "apns-auth-key.p8")
+APNS_TOPIC = "com.cookmatch.app"  # 앱 번들 ID
+APNS_HOSTS = ("https://api.push.apple.com", "https://api.sandbox.push.apple.com")
+
+
+def load_apns():
+    """APNs 설정 dict — 하나라도 없으면 None(그러면 iOS 기기는 건너뛴다)."""
+    key_id = os.getenv("APNS_KEY_ID")
+    team_id = os.getenv("APNS_TEAM_ID")
+    path = os.getenv("APNS_KEY_PATH") or DEFAULT_APNS_KEY
+    if not (key_id and team_id and os.path.exists(path)):
+        return None
+    try:
+        import httpx  # noqa: E402
+    except ImportError:
+        print("  (iOS 알림 건너뜀: pip install \"httpx[http2]\" 가 필요합니다)", flush=True)
+        return None
+    with io.open(path, encoding="utf-8") as f:
+        key = f.read()
+    return {"key_id": key_id, "team_id": team_id, "key": key, "client": httpx.Client(http2=True, timeout=20)}
+
+
+_apns_jwt_cache = {"token": None, "at": 0}
+
+
+def _apns_bearer(cfg, now=None):
+    """APNs 인증 토큰(JWT, ES256). Apple 은 20분~1시간마다 새로 만들라고 해서 40분 캐시한다."""
+    import time
+    import jwt as pyjwt  # PyJWT + cryptography
+
+    now = now if now is not None else time.time()
+    if _apns_jwt_cache["token"] and now - _apns_jwt_cache["at"] < 40 * 60:
+        return _apns_jwt_cache["token"]
+    token = pyjwt.encode(
+        {"iss": cfg["team_id"], "iat": int(now)}, cfg["key"], algorithm="ES256",
+        headers={"kid": cfg["key_id"]},
+    )
+    _apns_jwt_cache.update(token=token, at=now)
+    return token
+
+
+def send_apns(cfg, token, body):
+    """APNs 로 한 기기에 보낸다. 반환: 'sent' | 'gone' | 'failed:<사유>' (send_fcm 과 같은 규칙).
+
+    TestFlight·App Store 빌드의 토큰은 운영(production) 서버 것이고, Xcode 로 직접 설치한 개발 빌드의
+    토큰은 샌드박스 서버 것이다. 운영에서 BadDeviceToken 이 나오면 샌드박스로 한 번 더 시도한다.
+    """
+    payload = {
+        "aps": {"alert": {"title": PUSH_TITLE, "body": body}, "sound": "default"},
+        # 알림을 눌렀을 때 앱이 이동할 화면 — NativePushBridge 가 `data.url` 로 읽는다
+        "url": PUSH_URL,
+    }
+    headers = {
+        "authorization": f"bearer {_apns_bearer(cfg)}",
+        "apns-topic": APNS_TOPIC,
+        "apns-push-type": "alert",
+        "apns-priority": "10",
+    }
+    reason = ""
+    for host in APNS_HOSTS:
+        resp = cfg["client"].post(f"{host}/3/device/{token}", headers=headers, json=payload)
+        if resp.status_code == 200:
+            return "sent"
+        try:
+            reason = resp.json().get("reason", "")
+        except ValueError:
+            reason = ""
+        if resp.status_code == 400 and reason == "BadDeviceToken" and host == APNS_HOSTS[0]:
+            continue  # 샌드박스 토큰일 수 있다
+        break
+    if reason in ("BadDeviceToken", "Unregistered", "DeviceTokenNotForTopic") or resp.status_code == 410:
+        return "gone"
+    return f"failed:{resp.status_code} {reason}"
+
+
 def load_dict_rows():
     """대표어 -> 그 행 전체(분류·자기 보관일수 포함)."""
     rows = {}
@@ -275,6 +357,7 @@ def main():
     if args.write and tables["push_subscriptions"]:
         from pywebpush import webpush, WebPushException  # noqa: E402
 
+    apns_cfg = load_apns() if args.write else None
     fcm_session, fcm_project = (None, None)
     if tables["push_device_tokens"]:
         fcm_session, fcm_project = load_fcm_session()
@@ -321,9 +404,16 @@ def main():
                 (user_id,),
             )
             for dev in cursor.fetchall():
-                if not args.write or not fcm_session:
+                if not args.write:
                     continue
-                result = send_fcm(fcm_session, fcm_project, dev["token"], body)
+                if dev["platform"] == "ios":
+                    if not apns_cfg:
+                        continue  # APNs 키가 없으면 iOS 기기는 건너뛴다
+                    result = send_apns(apns_cfg, dev["token"], body)
+                elif fcm_session:
+                    result = send_fcm(fcm_session, fcm_project, dev["token"], body)
+                else:
+                    continue
                 if result == "sent":
                     sent += 1
                 elif result == "gone":

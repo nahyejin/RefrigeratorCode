@@ -2,6 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<!-- 푸시 알림(APNs). 없으면 iOS 가 원격 알림 등록 자체를 거부한다. 값은 개발용(development)으로
+	     두면 Xcode 가 TestFlight·App Store 로 내보낼 때 배포용(production)으로 바꿔 서명한다. -->
+	<key>aps-environment</key>
+	<string>development</string>
 	<key>com.apple.developer.applesignin</key>
 	<array>
 		<string>Default</string>

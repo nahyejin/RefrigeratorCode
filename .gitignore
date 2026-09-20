@@ -31,6 +31,9 @@ dictionary_sync.log
 # Firebase 서비스 계정 키(푸시 발송용 비밀키) — 절대 커밋하지 않는다
 # (google-services.json / GoogleService-Info.plist 는 비밀이 아니라 앱에 들어가는 설정 파일이라 커밋해도 됨)
 backend/firebase-service-account*.json
+# Apple 푸시(APNs) 인증 키 — 비밀키라 절대 올리지 않는다
+backend/apns-auth-key*.p8
+*.p8
 *-firebase-adminsdk-*.json
 
 # 스토어 스크린샷용으로 데모 영상에서 뽑은 원본 프레임(store/make_store_assets.py가 다시 만든다)
