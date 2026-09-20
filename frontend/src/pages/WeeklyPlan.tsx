@@ -2109,9 +2109,12 @@ const WeeklyPlan: React.FC = () => {
           올라가 버려서, 다시 물으려면 맨 위로 올라가야 했다(실사용 지적,
           2026-09-16). 고정 전역 헤더(56px) 바로 아래에 붙는 두 번째 층으로
           만든다 — 채팅이 아무리 길어져도 이 줄은 항상 그 자리에 있다. */}
+      {/* 아래쪽에 **스티키 여백(paddingBottom 14)과 페이드**를 둔다(2026-09-20, "버튼 아래 스티키 영역이
+          너무 없다"). 전에는 여백이 없어서 스크롤하면 말풍선·카드가 버튼 바로 아래 가장자리에
+          딱 붙어 지나갔다. 위쪽 margin 이 아니라 **배경이 있는 padding** 이어야 그 자리를 덮는다. */}
       <div style={{
-        marginBottom: 16, position: 'sticky', top: 56, zIndex: 'var(--z-sticky)' as any,
-        background: 'var(--surface-sub)', paddingTop: 4, marginTop: -4,
+        marginBottom: 6, position: 'sticky', top: 56, zIndex: 'var(--z-sticky)' as any,
+        background: 'var(--surface-sub)', paddingTop: 4, paddingBottom: 14, marginTop: -4,
       }}>
         <div style={{ position: 'relative', display: 'flex', alignItems: 'center',
                       justifyContent: 'center', minHeight: 40 }}>
@@ -2155,6 +2158,12 @@ const WeeklyPlan: React.FC = () => {
             )}
           </div>
         )}
+        {/* 스티키 영역 아래 가장자리를 부드럽게 — 내용이 딱 잘린 것처럼 보이지 않게 한다 */}
+        <div aria-hidden style={{
+          position: 'absolute', left: 0, right: 0, bottom: -12, height: 12, pointerEvents: 'none',
+          // 끝색을 검정 투명(rgba(0,0,0,0))이 아니라 같은 배경색의 투명으로 — 사파리에서 회색 띠가 끼는 것을 피한다
+          background: 'linear-gradient(to bottom, #F5F5F7, rgba(245,245,247,0))',
+        }} />
       </div>
 
       {/* 만들어 보기 전에 미리 말한다 — 다 짜 놓고 "왜 이렇게 부실하지"
