@@ -1782,6 +1782,9 @@ const CookingCalendar: React.FC = () => {
     // **이전**일 때만 "지난 장보기 메모", 그게 아니면(이번 주·미래 주)
     // "계획한 요리 장보기 메모"로 다시 가른다. `weekKey`가 'YYYY-MM-DD'라
     // 문자열 비교로도 날짜 순서가 맞는다.
+    // 카드 제목은 "메모"가 아니라 "목록"으로 쓴다(2026-09-20) — 이 카드의 정체는 "계획한 요리를
+    // 만들려면 **사야 하는** 재료 목록(냉장고에 이미 있는 재료는 뺀 것)"이라, "메모"라는 말로는
+    // 그 뜻이 전해지지 않는다는 지적. 코드 안의 변수·함수 이름(`diary`·`memo`)은 그대로 둔다.
     const isPastWeek = diaryWeekKey < shoppingWeekFrom;
     // 이번 주·다음 주만 배지로 짚어 준다("이번주, 지난주, 다음주 정도는" —
     // 2주 이상 먼 미래는 실제로 거의 안 생기기도 하고, 배지 없이 날짜
@@ -1799,7 +1802,7 @@ const CookingCalendar: React.FC = () => {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 10 }}>
           <div style={{ fontSize: 15, fontWeight: 700, color: '#1A1A1E' }}>
-            {isPastWeek ? '지난 장보기 메모' : '계획한 요리 장보기 메모'}
+            {isPastWeek ? '지난 장보기 목록' : '계획한 요리에 필요한 장보기 목록'}
           </div>
           {/* 오늘이 속한 주보다 이전 페이지에만 삭제 버튼을 둔다(2026-09-17,
               "삭제 버튼은 오늘 기준 이전 시점에 달려야지"). 이번 주는 계획을
@@ -1810,7 +1813,7 @@ const CookingCalendar: React.FC = () => {
             <button
               type="button"
               onClick={() => setConfirmingDeleteMemoWeek(diaryWeekKey)}
-              aria-label={`${entry.rangeLabel} 장보기 메모 삭제`}
+              aria-label={`${entry.rangeLabel} 장보기 목록 삭제`}
               style={{
                 flexShrink: 0, border: 'none', background: 'transparent', padding: 4,
                 color: 'var(--ink-500)', cursor: 'pointer',
@@ -1873,7 +1876,7 @@ const CookingCalendar: React.FC = () => {
               type="button"
               onClick={() => canGoOlder && (diaryUserPagedRef.current = true, setDiaryWeekKey(diaryWeekKeys[diaryIndex - 1]))}
               disabled={!canGoOlder}
-              aria-label="이전 주 장보기 메모"
+              aria-label="이전 주 장보기 목록"
               style={{
                 width: 32, height: 32, border: 'none', background: 'transparent',
                 cursor: canGoOlder ? 'pointer' : 'default', opacity: canGoOlder ? 1 : 0.3,
@@ -1889,7 +1892,7 @@ const CookingCalendar: React.FC = () => {
               type="button"
               onClick={() => canGoNewer && (diaryUserPagedRef.current = true, setDiaryWeekKey(diaryWeekKeys[diaryIndex + 1]))}
               disabled={!canGoNewer}
-              aria-label="다음 주 장보기 메모"
+              aria-label="다음 주 장보기 목록"
               style={{
                 width: 32, height: 32, border: 'none', background: 'transparent',
                 cursor: canGoNewer ? 'pointer' : 'default', opacity: canGoNewer ? 1 : 0.3,
@@ -3506,7 +3509,7 @@ const CookingCalendar: React.FC = () => {
           <Dialog
             open
             onClose={() => setConfirmingDeleteMemoWeek(null)}
-            title="이 장보기 메모를 지울까요?"
+            title="이 장보기 목록을 지울까요?"
             width={300}
             dismissLabel="아니요"
             actions={[{
@@ -3516,7 +3519,7 @@ const CookingCalendar: React.FC = () => {
             }]}
           >
             <span style={{ wordBreak: 'keep-all' }}>
-              {getDiaryEntry(confirmingDeleteMemoWeek)?.rangeLabel} 메모가 사라져요.
+              {getDiaryEntry(confirmingDeleteMemoWeek)?.rangeLabel} 목록이 사라져요.
               <br />
               되돌릴 수 없어요.
             </span>

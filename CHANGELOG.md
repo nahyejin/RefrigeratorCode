@@ -11516,3 +11516,4 @@ Play 데이터 보안 답과 방침이 어긋나는 곳을 바로잡음([LegalPa
 - **스플래시 숫자 글꼴 확정: Manrope + 더 작게**(2026-09-20). 사용자가 비교 화면에서 Manrope 를 골라 Outfit → **Manrope(굵기 700)**, 크기 `clamp(38px, 10.5vw, 56px)` → `clamp(30px, 8.5vw, 44px)`(375px 폭 기준 약 32px). 번들 패키지 `@fontsource/outfit` → `@fontsource/manrope`(latin-700). 실제 스플래시 구조에서 계산된 글꼴 `Manrope`·굵기 700 확인.
 - 스플래시 숫자 크기 조정(2026-09-20): Manrope 로 줄였더니 "너무 작다"는 피드백 → `clamp(30px, 8.5vw, 44px)` → `clamp(38px, 10.5vw, 54px)`(375px 폭 기준 약 39px, 지난번 Outfit 크기와 비슷). 글꼴은 Manrope 700 그대로.
 - 마이캘린더 범례 문구 축약(2026-09-20): "요리 계획 있는 날 — 눌러서 무슨 요리인지 보기" → **"요리 계획 있는 날"**. 좁은 화면에서 문구 중간에 줄바꿈이 되어 어색했다([CookingCalendar.tsx](frontend/src/pages/CookingCalendar.tsx)).
+- **장보기 카드 제목 "메모" → "목록"**(2026-09-20): "계획한 요리 장보기 메모"는 실제로는 계획한 요리를 만들려면 **사야 하는 재료 목록**(냉장고에 있는 것은 뺌)이라 뜻이 안 전해진다는 지적 → **"계획한 요리에 필요한 장보기 목록"**(지난 주는 "지난 장보기 목록"), 삭제 확인창·접근성 라벨도 같이 "목록"으로. 코드 안의 이름(`diary`·`memo`)은 그대로. [CookingCalendar.tsx](frontend/src/pages/CookingCalendar.tsx).
