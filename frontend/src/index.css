@@ -1381,11 +1381,11 @@ select:focus-visible {
   font-family: 'Gamja Flower', 'Pretendard', sans-serif !important;
 }
 
-/* 스플래시의 "누적 레시피 수" 숫자 전용 글꼴(Jua — 둥글고 통통한 글꼴). 감자꽃체(손글씨)를
-   써 봤더니 숫자 모양이 투박하고 "0"이 작은 동그라미가 돼 안 예뻤다(2026-09-20). 스플래시는
-   손글씨일 필요가 없다고 해서 후보 11개를 비교해 골랐다. 자식 요소까지 포함하는 이유는
-   위 `.memo-handwrite` 설명과 같다. 굴러가는 숫자·최종 숫자가 한 글꼴이 되게 한다. */
+/* 스플래시의 "누적 레시피 수" 숫자 전용 글꼴(Outfit — 로고 글자와 결이 같은 모던한 기하학 글꼴).
+   감자꽃체(손글씨)는 숫자 모양이 투박했고 Jua 는 통통해서 "더 모던하고 작아도 된다"는
+   요청(2026-09-20)으로 후보 12개를 비교해 골랐다. 자식 요소까지 포함하는 이유는 위
+   `.memo-handwrite` 설명과 같다. 굴러가는 숫자·최종 숫자가 한 글꼴이 되게 한다. */
 .splash-number,
 .splash-number * {
-  font-family: 'Jua', 'Pretendard', sans-serif !important;
+  font-family: 'Outfit', 'Pretendard', sans-serif !important;
 }

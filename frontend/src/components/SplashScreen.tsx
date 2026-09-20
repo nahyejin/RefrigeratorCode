@@ -67,13 +67,13 @@ const STYLES = {
     letterSpacing: '0.02em',
     marginBottom: 8,
   },
-  // 글꼴은 `splash-number` 클래스(Jua)가 정한다 — 전역 규칙이 글꼴을 Pretendard 로 강제해서
-  // 인라인 fontFamily 로는 못 바꾼다. Jua 는 굵기가 400 하나뿐이라 fontWeight 를 주면
-  // 가짜 굵기가 돼 오히려 못생겨진다.
+  // 글꼴은 `splash-number` 클래스(Outfit)가 정한다 — 전역 규칙이 글꼴을 Pretendard 로
+  // 강제해서 인라인 fontFamily 로는 못 바꾼다. 번들한 굵기는 600 하나다(main.tsx).
   numberDisplay: {
     color: '#1A1A1E',
-    fontWeight: 400,
-    fontSize: 'clamp(56px, 14.5vw, 88px)',
+    fontWeight: 600,
+    fontSize: 'clamp(38px, 10.5vw, 56px)',
+    letterSpacing: '-0.01em',
     textAlign: 'center' as const,
     whiteSpace: 'nowrap' as const,
     lineHeight: '1.2',
