@@ -73,7 +73,9 @@ const STYLES = {
   numberDisplay: {
     color: '#1A1A1E',
     fontWeight: 400,
-    fontSize: 'clamp(52px, 13vw, 80px)',
+    // 이 글꼴은 글자가 작고 가늘어서 기본 글꼴보다 크게 + 획을 살짝 덧그려(text-stroke) 또렷하게 한다.
+    fontSize: 'clamp(64px, 16vw, 96px)',
+    WebkitTextStroke: '1.6px #1A1A1E',
     textAlign: 'center' as const,
     whiteSpace: 'nowrap' as const,
     lineHeight: '1.2',
@@ -82,12 +84,12 @@ const STYLES = {
   // (1은 좁고 0은 넓다) 전체가 좌우로 흔들려 보이던 것을 막는다.
   digitCell: {
     display: 'inline-block',
-    width: '0.6em',
+    width: '0.56em',
     textAlign: 'center' as const,
   },
   commaCell: {
     display: 'inline-block',
-    width: '0.3em',
+    width: '0.28em',
     textAlign: 'center' as const,
   },
   descriptionText: {
