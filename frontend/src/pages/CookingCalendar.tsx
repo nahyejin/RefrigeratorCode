@@ -145,15 +145,14 @@ function addDays(d: Date, n: number): Date {
 }
 
 /**
- * 주 단위 장보기 메모 한 장 — "지난 장보기" 히스토리에 쌓인다.
+ * 장 봐야 할 재료 목록 한 개와 "샀어요" 체크 — 기기(localStorage)에 남긴다.
  *
- * 다이어리 조각을 모아 두면 좋겠다는 요청(2026-09-16) — 지금까지는
- * `weekBasket`이 **지금 보고 있는 주**만 서버에서 받아 오는 값이라, 주를
- * 벗어나면(달력을 넘기거나 화면을 나가면) 그 주의 목록·구매 여부가 전부
- * 사라졌다. 주가 바뀌어도 남도록 기기(localStorage)에 주 단위로 스냅샷을 쌓는다.
+ * 예전(2026-09-16~20)에는 주 단위 "다이어리 페이지"로 지난 주까지 쌓았지만, "계획한 요리 기준으로
+ * 장 볼 것을 다 나열하고 과거 목록은 없어도 된다"는 요청(2026-09-21)으로 **목록 하나**만 둔다.
+ * 그래서 저장 키도 `SHOPPING_LIST_KEY` 하나뿐이고, 옛 주별 항목은 첫 로드 때 지운다.
  */
 interface ShoppingMemoEntry {
-  /** 그 주의 일요일 날짜(YYYY-MM-DD) — 식별자 겸 정렬 기준. */
+  /** 예전엔 주 시작일(YYYY-MM-DD)이었다. 지금은 항상 `SHOPPING_LIST_KEY`. */
   weekKey: string;
   rangeLabel: string;
   items: string[];
@@ -162,7 +161,9 @@ interface ShoppingMemoEntry {
 }
 
 const SHOPPING_MEMO_KEY = 'cooking_calendar_shopping_memos';
-/** 너무 오래 쌓이면 히스토리 탭이 끝없이 길어지므로, 최근 16주(약 4개월)만 남긴다. */
+/** 장 봐야 할 재료는 **목록 하나**뿐이라 저장 키도 하나다(예전엔 주 시작일별로 따로 저장했다). */
+const SHOPPING_LIST_KEY = 'all';
+/** 저장 항목 상한 — 지금은 목록 하나뿐이라 넘칠 일이 없지만, 예전 저장 형식과 같은 함수를 쓰므로 남겨 둔다. */
 const SHOPPING_MEMO_CAP = 16;
 
 function loadShoppingMemoHistory(): Record<string, ShoppingMemoEntry> {
@@ -1305,108 +1306,85 @@ const CookingCalendar: React.FC = () => {
   const [clearingAllPlans, setClearingAllPlans] = React.useState(false);
 
   /**
-   * **이번 주에 사야 할 것.**
+   * **장 봐야 할 재료 — 계획한 요리 전부 기준.**
    *
-   * 계획은 `{날짜, 레시피 id, 제목}` 만 기기에 들고 있어서 재료를 모른다.
-   * 이번 주에 계획한 레시피의 재료를 한 번에 받아 와서, 냉장고에 있는 것을
-   * 빼고 남은 것이 장바구니다. AI 식단이 하는 말과 같은 말인데, 그건 짤 때
-   * 한 번 보고 끝이다 — 정작 장은 그 뒤에 본다.
+   * 계획은 `{날짜, 레시피 id, 제목}` 만 기기에 들고 있어서 재료를 모른다. **오늘 이후에 계획한 모든
+   * 요리**의 재료를 한 번에 받아 와서, 냉장고에 있는 것을 빼고 남은 것이 목록이다.
    *
-   * "이번 주"는 **실제 오늘이 속한 주**로 고정한다(`selectedDay`가 아니라
-   * `new Date()` 기준). 예전엔 달력에서 지금 보고 있는 날짜(`selectedDay`)의
-   * 주를 썼는데, 그러면 달력을 이리저리 넘길 때마다 "이번 주"의 의미가
-   * 같이 바뀌어 버렸다 — 월 보기에서 달을 한 번 넘겼다 돌아오기만 해도
-   * `selectedDay`가 그 달 1일 등으로 다시 잡히면서 전혀 다른 주를 가리키고,
-   * 그래서 방금 전까지 있던 장보기 메모가 사라지는 등 "달력의 기간 선택과
-   * 자꾸 엮여서 점점 이상해진다"는 지적을 받았다(2026-09-17) — 장보기
-   * 목록은 "달력에서 지금 보고 있는 기간"이 아니라 **고정된 실제 이번 주**
-   * 얘기이므로, 달력 탐색과 완전히 무관하게 분리한다. */
-  const [weekBasket, setWeekBasket] = React.useState<string[] | null>(null);
-  // `plans` 는 렌더마다 새로 읽으므로 useMemo 로 묶지 않는다. 대신 아래
-  // 효과가 **아이디 문자열**을 보고 도니, 같은 주를 다시 그려도 안 부른다.
-  const shoppingWeekFrom = toDateKey(startOfWeek(new Date()));
-  const shoppingWeekTo = toDateKey(addDays(startOfWeek(new Date()), 6));
-  // `plans`는 이미 scope(내 요리만/우리 식구 전체)·hideMine("내 것은 빼고")로
-  // 걸러진 값이라, 여기서 다시 거를 필요는 없다 — 이 아이디 목록도 자연히
-  // 지금 고른 범위를 따른다.
-  const weekPlanIds = (() => {
+   * 예전에는 이번 주·다음 주·지난 주로 **주마다 따로** 목록을 만들고 화살표로 넘겨 보게 했는데
+   * (2026-09-16~18), 계획이 주를 걸쳐 있으면 어느 목록이 뭔지 헷갈렸고 다음 주 요리 재료를 이번 주에
+   * 미리 사고 싶어도 한눈에 못 봤다. "계획한 요리 기준으로 장 볼 것은 다 나열하고, 과거 목록은 없어도
+   * 된다"는 요청(2026-09-21)으로 **하나의 목록**으로 합쳤다. 지난 날짜의 요리는 계획에서 빠지므로
+   * 자연히 목록에서도 빠진다. 달력에서 지금 보는 기간(`selectedDay`)과는 무관하다.
+   *
+   * `plans` 는 이미 scope(내 요리만/우리 식구 전체)·hideMine("내 것은 빼고")로 걸러진 값이라 여기서 다시
+   * 거르지 않는다 — 목록도 자연히 지금 고른 범위를 따른다. 렌더마다 새로 읽으므로 아래 효과는
+   * **아이디 문자열**을 보고 돌아, 같은 계획을 다시 그려도 서버를 다시 부르지 않는다.
+   */
+  const [shoppingList, setShoppingList] = React.useState<string[] | null>(null);
+  const listTodayKey = toDateKey(new Date());
+  const { listPlanIds, listRangeLabel } = (() => {
     const ids = new Set<number>();
+    const days: string[] = [];
     plans.forEach((meals, day) => {
-      if (day < shoppingWeekFrom || day > shoppingWeekTo) return;
+      if (day < listTodayKey) return;
+      days.push(day);
       meals.forEach(m => { if (m.recipeId) ids.add(Number(m.recipeId)); });
     });
-    return [...ids].sort((a, b) => a - b);
+    days.sort();
+    const short = (d: string) => d.slice(5).replace('-', '/');
+    const label = days.length === 0 ? ''
+      : days[0] === days[days.length - 1] ? short(days[0])
+      : `${short(days[0])}~${short(days[days.length - 1])}`;
+    return { listPlanIds: [...ids].sort((a, b) => a - b), listRangeLabel: label };
   })();
-  const weekPlanKey = weekPlanIds.join(',');
-  /** "이번 주"가 며칠부터 며칠인지 — "이번 주가 언제 기준인지 모르겠다"는
-   * 지적(2026-09-14)으로 라벨 옆에 덧붙인다. MM/DD 로 짧게. */
-  const shoppingWeekLabel = `${shoppingWeekFrom.slice(5).replace('-', '/')}~${shoppingWeekTo.slice(5).replace('-', '/')}`;
-  /** 장보기 메모 배지("이번 주"/"다음 주")를 계산할 때 쓰는, 딱 한 주 뒤의
-   * 시작일. 달력이 주 단위(일~토)로만 조회되는 구조라, 계획한 요리가
-   * 이번 주·다음 주에 걸쳐 있으면 어느 페이지가 어느 주인지 헷갈린다는
-   * 지적(2026-09-18)으로 배지를 추가했다. */
-  const shoppingNextWeekFrom = toDateKey(addDays(startOfWeek(new Date()), 7));
+  const listPlanKey = listPlanIds.join(',');
 
-  /** 주 단위 장보기 메모 히스토리 — 지금 보는 주와 지난 주들의 "다이어리
-   * 페이지"가 함께 읽고 쓰는 저장소. 취소선(구매 여부)도 여기 같이 들어
-   * 있어, 이전엔 화면을 벗어나면 사라지던 "방금 이걸 샀다" 표시가 주가
-   * 바뀌거나 앱을 다시 열어도 남는다.
-   *
-   * 처음엔 이걸 별도 탭("지난 장보기")으로 뺐는데, 실제로 보니 "달력·목록과
-   * 같은 급의 화면 전환"이라기엔 너무 가벼운 정보(그냥 "아, 이런 걸
-   * 샀었구나" 확인하는 용도)라는 지적(2026-09-16) — 탭을 없애고, 지금 보는
-   * 주 카드 자체를 화살표로 앞뒤 페이지를 넘기는 다이어리로 바꿨다. 재료
-   * 하나하나에 날짜를 따로 매기지 않고 **주 단위 페이지**로만 넘기는
-   * 이유도 같은 지적: "재료 하나하나 언제 샀는지 계산하게 하지 말고, 그
-   * 주에 있던 페이지를 통째로 보여줘라." */
-  const [memoHistory, setMemoHistory] = React.useState<Record<string, ShoppingMemoEntry>>(() => loadShoppingMemoHistory());
+  /** 장보기 목록 저장소 — 목록 하나와 "샀어요" 체크를 함께 들고 있어, 화면을 벗어나거나 앱을 다시 열어도
+   * 체크가 남는다. 예전 주별 목록(옛 키들)은 첫 로드 때 버린다(과거 목록은 필요 없다는 요청). */
+  const [memoHistory, setMemoHistory] = React.useState<Record<string, ShoppingMemoEntry>>(() => {
+    const all = loadShoppingMemoHistory();
+    const current = all[SHOPPING_LIST_KEY];
+    const cleaned: Record<string, ShoppingMemoEntry> = current ? { [SHOPPING_LIST_KEY]: current } : {};
+    if (Object.keys(all).length !== Object.keys(cleaned).length) saveShoppingMemoHistory(cleaned);
+    return cleaned;
+  });
 
-  /** 어느 주에 대해 갓 계산한 장보기 목록을 메모 한 장으로 저장(또는, 목록이
-   * 비면 그 주의 옛 메모를 지운다). 이미 산 걸로 체크했던 재료가 새 목록에
-   * 없으면(계획이 바뀌었거나 범위가 좁아짐) 자연히 빠지도록 교집합만 남긴다. */
-  const upsertWeekMemo = React.useCallback((weekKey: string, rangeLabel: string, items: string[]) => {
+  /** 방금 계산한 목록을 저장한다(목록이 비면 지운다). 이미 산 것으로 체크했던 재료가 새 목록에 없으면
+   * (계획이 바뀜) 자연히 빠지도록 교집합만 남긴다. */
+  const upsertListMemo = React.useCallback((rangeLabel: string, items: string[]) => {
     setMemoHistory(prev => {
+      const prevEntry = prev[SHOPPING_LIST_KEY];
       if (items.length === 0) {
-        // 지금 이 범위(scope) 기준으로 살 게 없다 — 예전 범위에서 저장된
-        // 메모가 남아 있으면 지운다. 안 지우면, 예전엔 "내 것"이 포함돼
-        // 있었지만 지금은 "내 것은 빼고"로 걸러진 주를 다시 들여다볼 때
-        // 그 옛 메모가 유령처럼 다시 나타난다(실사용 지적, 2026-09-16).
-        if (!prev[weekKey]) return prev;
-        const next = { ...prev };
-        delete next[weekKey];
-        return saveShoppingMemoHistory(next);
+        // 지금 범위(scope) 기준으로 살 게 없다 — 예전 범위에서 저장된 목록이 유령처럼 남지 않게 지운다.
+        if (!prevEntry) return prev;
+        return saveShoppingMemoHistory({});
       }
-      const prevBought = new Set(prev[weekKey]?.bought || []);
+      const prevBought = new Set(prevEntry?.bought || []);
       const bought = items.filter(n => prevBought.has(n));
-      const entry: ShoppingMemoEntry = { weekKey, rangeLabel, items, bought, updatedAt: new Date().toISOString() };
-      const prevEntry = prev[weekKey];
-      if (prevEntry && prevEntry.items.join(',') === entry.items.join(',') && prevEntry.bought.join(',') === entry.bought.join(',')) {
-        return prev; // 내용이 그대로면 굳이 다시 저장하지 않는다(불필요한 리렌더 방지)
+      const entry: ShoppingMemoEntry = {
+        weekKey: SHOPPING_LIST_KEY, rangeLabel, items, bought, updatedAt: new Date().toISOString(),
+      };
+      if (prevEntry && prevEntry.rangeLabel === rangeLabel
+        && prevEntry.items.join(',') === entry.items.join(',')
+        && prevEntry.bought.join(',') === entry.bought.join(',')) {
+        return prev; // 내용이 그대로면 다시 저장하지 않는다(불필요한 리렌더 방지)
       }
-      return saveShoppingMemoHistory({ ...prev, [weekKey]: entry });
+      return saveShoppingMemoHistory({ [SHOPPING_LIST_KEY]: entry });
     });
   }, []);
 
   React.useEffect(() => {
-    // 이 주(weekKey)·라벨을 이 실행 시점의 값으로 붙잡아 둔다 — 저장은 항상
-    // **이 fetch가 시작될 때 보고 있던 주**를 기준으로 해야 한다. 예전엔
-    // "지금 보는 주가 바뀌면 저장한다"는 별도 효과가 있었는데, 주를 넘기는
-    // 순간(재료 목록은 아직 이전 주 것)과 겹치면 **엉뚱한 주에 이전 주
-    // 재료가 저장되는** 경합이 있었다(실사용 지적, 2026-09-16 — "가 본 적도
-    // 없는 주에 다른 주 재료가 뜬다"). 이 효과 하나에서만 저장하면, 저장이
-    // 항상 방금 실제로 계산한 목록과 짝을 이룬다.
-    const thisWeekKey = shoppingWeekFrom;
-    const thisRangeLabel = shoppingWeekLabel;
-    if (weekPlanIds.length === 0) {
-      setWeekBasket([]);
-      upsertWeekMemo(thisWeekKey, thisRangeLabel, []);
+    if (listPlanIds.length === 0) {
+      setShoppingList([]);
+      upsertListMemo('', []);
       return;
     }
     let alive = true;
     fetch(`${getApiUrl()}/api/recipes/ingredients`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ids: weekPlanIds }),
+      body: JSON.stringify({ ids: listPlanIds }),
     })
       .then(r => (r.ok ? r.json() : Promise.reject(new Error())))
       .then(d => {
@@ -1420,66 +1398,13 @@ const CookingCalendar: React.FC = () => {
           });
         });
         const list = [...need];
-        setWeekBasket(list);
-        upsertWeekMemo(thisWeekKey, thisRangeLabel, list);
+        setShoppingList(list);
+        upsertListMemo(listRangeLabel, list);
       })
-      .catch(() => { if (alive) setWeekBasket([]); });
+      .catch(() => { if (alive) setShoppingList([]); });
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [weekPlanKey]);
-
-  /**
-   * **다음 주에 사야 할 것도 미리 메모로 만들어 둔다.**
-   *
-   * 바로 위 효과는 "실제 이번 주"만 계산해서 저장한다 — 그래서 다음 주에
-   * 이미 요리 계획을 짜 놨어도, 그 주가 실제로 "이번 주"가 되기 전까지는
-   * 장보기 메모 페이지가 아예 생기지 않아 "계획은 보이는데 왜 페이지네이션이
-   * 안 넘어가냐"는 혼란이 있었다(실사용 지적, 2026-09-18). 달력에 이미 표시된
-   * 다음 주 계획을 그대로 반영해, 그 주가 오기 전에도 "다음 주" 페이지가
-   * 미리 보이게 한다.
-   */
-  const shoppingNextWeekTo = toDateKey(addDays(startOfWeek(new Date()), 13));
-  const nextWeekPlanIds = (() => {
-    const ids = new Set<number>();
-    plans.forEach((meals, day) => {
-      if (day < shoppingNextWeekFrom || day > shoppingNextWeekTo) return;
-      meals.forEach(m => { if (m.recipeId) ids.add(Number(m.recipeId)); });
-    });
-    return [...ids].sort((a, b) => a - b);
-  })();
-  const nextWeekPlanKey = nextWeekPlanIds.join(',');
-  const shoppingNextWeekLabel = `${shoppingNextWeekFrom.slice(5).replace('-', '/')}~${shoppingNextWeekTo.slice(5).replace('-', '/')}`;
-
-  React.useEffect(() => {
-    const thisWeekKey = shoppingNextWeekFrom;
-    const thisRangeLabel = shoppingNextWeekLabel;
-    if (nextWeekPlanIds.length === 0) {
-      upsertWeekMemo(thisWeekKey, thisRangeLabel, []);
-      return;
-    }
-    let alive = true;
-    fetch(`${getApiUrl()}/api/recipes/ingredients`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ids: nextWeekPlanIds }),
-    })
-      .then(r => (r.ok ? r.json() : Promise.reject(new Error())))
-      .then(d => {
-        if (!alive) return;
-        const have = new Set(getMyIngredients().map(x => String(x).trim()).filter(Boolean));
-        const need = new Set<string>();
-        (d.items || []).forEach((it: any) => {
-          (it.ingredients || []).forEach((n: string) => {
-            const name = String(n).trim();
-            if (name && !have.has(name)) need.add(name);
-          });
-        });
-        upsertWeekMemo(thisWeekKey, thisRangeLabel, [...need]);
-      })
-      .catch(() => {});
-    return () => { alive = false; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nextWeekPlanKey]);
+  }, [listPlanKey, listRangeLabel]);
 
   /**
    * 장보기 목록에서 링크를 타고 나갔다 돌아오면 "사셨나요" 를 묻고, 그렇다고
@@ -1491,88 +1416,32 @@ const CookingCalendar: React.FC = () => {
   const [weekCategoryMap, setWeekCategoryMap] = React.useState<CategoryMap>({});
   React.useEffect(() => { void loadIngredientCategoryMap().then(setWeekCategoryMap).catch(() => {}); }, []);
 
-  /** 어느 주(weekKey)의 어느 재료를 샀다/취소했다로 표시. 지금 보는 주는 아직
-   * 위 저장 효과가 돌기 전(첫 렌더 직후)일 수도 있어, 그 경우엔 `weekBasket`
-   * 으로 즉석에서 항목을 채워 넣는다 — 타이밍에 상관없이 항상 반영되게. */
-  const setItemBought = React.useCallback((weekKey: string, name: string, bought: boolean) => {
+  /** 재료 하나를 샀다/취소했다로 표시한다. 첫 인자(`weekKey`)는 예전 주별 목록의 자취라 무시하고
+   * 항상 목록 하나에 적용한다. 저장 효과가 돌기 전(첫 렌더 직후)일 수도 있어, 그 경우엔 방금 계산한
+   * 목록으로 즉석에서 항목을 채워 넣는다 — 타이밍에 상관없이 항상 반영되게. */
+  const setItemBought = React.useCallback((_weekKey: string, name: string, bought: boolean) => {
     setMemoHistory(prev => {
-      let entry = prev[weekKey];
-      if (!entry && weekKey === shoppingWeekFrom && weekBasket && weekBasket.length > 0) {
-        entry = { weekKey, rangeLabel: shoppingWeekLabel, items: weekBasket, bought: [], updatedAt: new Date().toISOString() };
+      let entry = prev[SHOPPING_LIST_KEY];
+      if (!entry && shoppingList && shoppingList.length > 0) {
+        entry = {
+          weekKey: SHOPPING_LIST_KEY, rangeLabel: listRangeLabel, items: shoppingList,
+          bought: [], updatedAt: new Date().toISOString(),
+        };
       }
       if (!entry) return prev;
       const boughtSet = new Set(entry.bought);
       if (bought) boughtSet.add(name); else boughtSet.delete(name);
       const nextEntry: ShoppingMemoEntry = { ...entry, bought: [...boughtSet], updatedAt: new Date().toISOString() };
-      return saveShoppingMemoHistory({ ...prev, [weekKey]: nextEntry });
+      return saveShoppingMemoHistory({ [SHOPPING_LIST_KEY]: nextEntry });
     });
-  }, [shoppingWeekFrom, shoppingWeekLabel, weekBasket]);
+  }, [shoppingList, listRangeLabel]);
 
-  /**
-   * 장보기 메모는 달력·목록 카드와 아예 분리된 **자기만의 영역**(화면
-   * 맨 아래, 제목이 따로 붙은 별도 박스)에 산다 — 그 카드 안에 있는 한
-   * 어디에 두든 "그 탭·보기의 기간 얘기"처럼 읽힌다는 지적(2026-09-17)
-   * 으로 아예 밖으로 뺐다. 완전히 분리됐으니, 화살표로 지난 주들을
-   * 넘겨 보는 페이지네이션도 이제 안전하게 되살렸다 — 예전엔 이게
-   * 달력의 날짜 탐색과 뒤섞여 "뭘 기준으로 넘기는 거냐"는 혼동을
-   * 낳았지만, 지금은 이 박스 하나 안에서만 벌어지는 별개의 탐색이라
-   * 그럴 일이 없다.
-   *
-   * 기본 페이지는 **실제 이번 주**(`shoppingWeekFrom`). 화살표로 다른
-   * 주를 봐도 달력의 날짜 선택과는 무관하게 이 박스 혼자 움직인다.
-   */
-  const diaryWeekKeys = React.useMemo(() => {
-    const keys = new Set(Object.keys(memoHistory));
-    if (weekBasket && weekBasket.length > 0) keys.add(shoppingWeekFrom);
-    return [...keys].sort();
-  }, [memoHistory, weekBasket, shoppingWeekFrom]);
-  const [diaryWeekKey, setDiaryWeekKey] = React.useState<string | null>(null);
-  /** 이번 주·다음 주 메모가 각자 따로 네트워크로 불러와지다 보니, 마이캘린더에
-   * 막 들어왔을 때 다음 주 메모가 이번 주보다 먼저 도착하면 "넘겨 보던
-   * 페이지 유지" 규칙이 그 순간을 사용자가 직접 넘긴 것으로 착각해 다음 주에
-   * 눌러앉아 버렸다 — 화면 첫 진입인데 다음 주가 기본으로 뜨는 문제(실사용
-   * 지적, 2026-09-18). 화살표를 실제로 눌렀을 때만 "유지"가 적용되도록,
-   * 그 전까지는 이번 주 데이터가 도착하는 순간 항상 이번 주로 다시 맞춘다. */
-  const diaryUserPagedRef = React.useRef(false);
-  React.useEffect(() => {
-    if (diaryWeekKeys.length === 0) { setDiaryWeekKey(null); return; }
-    setDiaryWeekKey(prev => {
-      if (diaryUserPagedRef.current && prev && diaryWeekKeys.includes(prev)) return prev; // 사용자가 직접 넘긴 페이지는 그대로 유지
-      return diaryWeekKeys.includes(shoppingWeekFrom) ? shoppingWeekFrom : diaryWeekKeys[diaryWeekKeys.length - 1];
-    });
-  }, [diaryWeekKeys, shoppingWeekFrom]);
-  const diaryIndex = diaryWeekKey ? diaryWeekKeys.indexOf(diaryWeekKey) : -1;
-  /** 실제 이번 주는 항상 방금 계산한 `weekBasket`을 그대로 믿는다(저장된
-   * 메모로 안 넘어감) — 그래야 범위(scope)를 바꿔 이번 주 목록이 비면
-   * 옛 저장 내용 대신 곧바로 "없음"으로 반영된다. 지난 주는 저장된
-   * 메모를 그대로 쓴다. */
-  const getDiaryEntry = React.useCallback((weekKey: string): { rangeLabel: string; items: string[]; bought: string[] } | null => {
-    if (weekKey === shoppingWeekFrom) {
-      if (!weekBasket || weekBasket.length === 0) return null;
-      return { rangeLabel: shoppingWeekLabel, items: weekBasket, bought: memoHistory[weekKey]?.bought || [] };
-    }
-    const stored = memoHistory[weekKey];
-    return stored ? { rangeLabel: stored.rangeLabel, items: stored.items, bought: stored.bought } : null;
-  }, [memoHistory, weekBasket, shoppingWeekFrom, shoppingWeekLabel]);
-
-  /** 지난 주 메모를 수동으로 지운다 — "과거 기록은 계획을 지워도 안 지워진다면,
-   * 메모 자체를 지우는 버튼이 있어야 한다"는 요청(2026-09-17). 지금 이번 주는
-   * 대상에서 뺀다 — 계획이 있는 한 다음 렌더에서 `upsertWeekMemo`가 곧바로
-   * 다시 채워 넣어, 지워도 그 자리에서 되살아나 보일 뿐이기 때문이다(정말
-   * 없애고 싶으면 계획 자체를 지우면 된다). 지운 뒤엔 다음 페이지(없으면
-   * 이전 페이지)로 자연스럽게 넘어가도록 `diaryWeekKey`를 null로 돌려
-   * 두면, 바로 위 기본값 선택 효과가 알아서 남은 페이지 중 하나로 옮겨 준다. */
-  const [confirmingDeleteMemoWeek, setConfirmingDeleteMemoWeek] = React.useState<string | null>(null);
-  const deleteWeekMemo = (weekKey: string) => {
-    setMemoHistory(prev => {
-      if (!prev[weekKey]) return prev;
-      const next = { ...prev };
-      delete next[weekKey];
-      return saveShoppingMemoHistory(next);
-    });
-    setDiaryWeekKey(null);
-    setConfirmingDeleteMemoWeek(null);
-  };
+  /** 화면에 그릴 장보기 목록. 방금 계산한 값을 그대로 믿는다(저장된 옛 내용이 아니라) — 그래야
+   * 범위(scope)를 바꿔 목록이 비면 곧바로 "없음"으로 반영된다. 체크(샀어요)만 저장소에서 가져온다. */
+  const listEntry = React.useMemo(() => {
+    if (!shoppingList || shoppingList.length === 0) return null;
+    return { rangeLabel: listRangeLabel, items: shoppingList, bought: memoHistory[SHOPPING_LIST_KEY]?.bought || [] };
+  }, [shoppingList, listRangeLabel, memoHistory]);
 
   /** 링크를 누른 재료 — 탭에 돌아왔을 때 이 값이 있으면 "사셨나요" 를 묻는다.
    * 다른 이유로 탭을 벗어났다 돌아왔을 때는 물으면 안 되므로 ref 로 들고 있다가
@@ -1769,32 +1638,9 @@ const CookingCalendar: React.FC = () => {
    * 이 박스 제목과 겹쳐 보인다는 지적(2026-09-17)으로, 안쪽엔 실제
    * 날짜 범위·개수만 남긴다. */
   const diaryCardNode = (() => {
-    if (!diaryWeekKey) return null;
-    const entry = getDiaryEntry(diaryWeekKey);
+    const entry = listEntry;
     if (!entry || entry.items.length === 0) return null;
     const boughtSet = new Set(entry.bought);
-    const canGoOlder = diaryIndex > 0;
-    const canGoNewer = diaryIndex >= 0 && diaryIndex < diaryWeekKeys.length - 1;
-    // 제목을 "지난 장보기 메모" 하나로 통일했더니, 오늘 이후(이번 주·미래
-    // 주)의 메모에까지 "지난"이 붙어 "아직 지나지도 않은 걸 지난 거라고
-    // 한다"는 지적(2026-09-17, 실제 화면 스크린샷으로 확인 — 오늘 9/17인데
-    // 9/20~9/26 메모에 "지난 장보기 메모"가 붙어 있었음). 오늘이 속한 주보다
-    // **이전**일 때만 "지난 장보기 메모", 그게 아니면(이번 주·미래 주)
-    // "계획한 요리 장보기 메모"로 다시 가른다. `weekKey`가 'YYYY-MM-DD'라
-    // 문자열 비교로도 날짜 순서가 맞는다.
-    // 카드 제목은 "메모"가 아니라 "장 봐야 할 재료"로 쓴다(2026-09-20) — 이 카드의 정체는
-    // "계획한 요리를 만들려면 **사야 하는** 재료 목록(냉장고에 이미 있는 재료는 뺀 것)"이라
-    // "메모"라는 말로는 뜻이 전해지지 않는다는 지적. "계획한 요리"는 괄호 대신 작은 회색
-    // 보조 글씨로 붙인다. 코드 안의 변수·함수 이름(`diary`·`memo`)은 그대로 둔다.
-    const isPastWeek = diaryWeekKey < shoppingWeekFrom;
-    // 이번 주·다음 주만 배지로 짚어 준다("이번주, 지난주, 다음주 정도는" —
-    // 2주 이상 먼 미래는 실제로 거의 안 생기기도 하고, 배지 없이 날짜
-    // 범위만으로도 충분하다). 지난 주는 이미 위 제목이 "지난 장보기 메모"로
-    // 말해 주지만, 날짜 범위만 보고 훑을 때도 바로 알아보도록 배지도 같이 단다.
-    const weekBadge = diaryWeekKey === shoppingWeekFrom ? '이번 주'
-      : diaryWeekKey === shoppingNextWeekFrom ? '다음 주'
-      : isPastWeek ? '지난 주'
-      : null;
     return (
       <div style={{
         margin: '16px 14px 14px', borderRadius: 14,
@@ -1803,55 +1649,21 @@ const CookingCalendar: React.FC = () => {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 10 }}>
           <div style={{ fontSize: 15, fontWeight: 700, color: '#1A1A1E' }}>
-            {isPastWeek ? '지난 장보기 목록' : (
-              <>
-                장 봐야 할 재료
-                <span style={{ marginLeft: 6, fontSize: 12, fontWeight: 500, color: 'var(--ink-500)' }}>
-                  계획한 요리 기준
-                </span>
-              </>
-            )}
+            장 봐야 할 재료
+            <span style={{ marginLeft: 6, fontSize: 12, fontWeight: 500, color: 'var(--ink-500)' }}>
+              계획한 요리 기준
+            </span>
           </div>
-          {/* 오늘이 속한 주보다 이전 페이지에만 삭제 버튼을 둔다(2026-09-17,
-              "삭제 버튼은 오늘 기준 이전 시점에 달려야지"). 이번 주는 계획을
-              지워도 자동으로 안 없어지는 지난 주와 달리, 계획이 살아 있는
-              한 지워도 곧바로 다시 채워질 뿐이라 버튼 자체가 필요 없다
-              — "지우고 싶으면 계획을 지워라"가 이번 주의 정답이라서. */}
-          {isPastWeek && (
-            <button
-              type="button"
-              onClick={() => setConfirmingDeleteMemoWeek(diaryWeekKey)}
-              aria-label={`${entry.rangeLabel} 장보기 목록 삭제`}
-              style={{
-                flexShrink: 0, border: 'none', background: 'transparent', padding: 4,
-                color: 'var(--ink-500)', cursor: 'pointer',
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              }}
-            >
-              <svg style={{ width: 17, height: 17, flexShrink: 0 }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6" />
-              </svg>
-            </button>
-          )}
         </div>
         {/* `key`를 페이지가 바뀔 때마다 바꿔서(주마다 다른 문자열) 리액트가
             이 div를 새로 만들게 한다 — 그래야 `memo-page-in` 애니메이션이
             페이지를 넘길 때마다 매번 재생된다. 이 박스가 달력과 완전히
             분리된 덕에, 화살표로 지난 주를 넘겨 보는 페이지네이션을 다시
             안전하게 쓸 수 있다(2026-09-17, "좌우로 넘길 수 있게 해 달라"). */}
-        <div key={diaryWeekKey} className="memo-page-in">
+        <div>
           <ShoppingMemoCard
             titleNode={(
               <>
-                {weekBadge && (
-                  <span style={{
-                    display: 'inline-block', marginRight: 6, padding: '2px 8px',
-                    borderRadius: 9999, background: '#FFD600', color: '#1A1A1E',
-                    fontSize: 11, fontWeight: 700, verticalAlign: 'middle',
-                  }}>
-                    {weekBadge}
-                  </span>
-                )}
                 {entry.rangeLabel}
                 <span> · {entry.items.length}개</span>
                 {boughtSet.size > 0 && <span> · {boughtSet.size}개 샀어요</span>}
@@ -1860,57 +1672,15 @@ const CookingCalendar: React.FC = () => {
             items={entry.items}
             boughtSet={boughtSet}
             onCheckboxClick={(name, currentlyBought) => {
-              if (currentlyBought) setItemBought(diaryWeekKey, name, false);
-              else setConfirmingPurchase({ name, weekKey: diaryWeekKey });
+              if (currentlyBought) setItemBought(SHOPPING_LIST_KEY, name, false);
+              else setConfirmingPurchase({ name, weekKey: SHOPPING_LIST_KEY });
             }}
             onLinkClick={(name) => {
               track('coupang_click', name);
-              pendingPurchaseRef.current = { name, weekKey: diaryWeekKey };
+              pendingPurchaseRef.current = { name, weekKey: SHOPPING_LIST_KEY };
             }}
           />
         </div>
-        {/* 페이지네이션 — 저장된 주가 한 장뿐이어도 "1/1"과 함께 항상 그린다.
-            원래는 두 장 이상일 때만 보여줬는데, 이 기능이 막 생겨서 아직
-            지난 주가 한두 개뿐인 동안은 화살표가 있다 없다 하는 게 마치
-            고장난 것처럼 보인다는 지적(2026-09-18, "페이지네이션이 자꾸
-            생략된다"). 화살표는 갈 곳이 없으면 눌러도 아무 일 없게
-            `disabled`로만 막고, 자리 자체는 항상 남겨 둔다. 달력 자체의
-            이전/다음(위쪽 일/주/월 내비게이션)과 같은 화살표 아이콘 버튼
-            모양으로 맞춰, 앱 전체에서 "이전/다음"이 같은 생김새로 읽히게
-            한다(2026-09-17, 디자인 개선 요청). */}
-        {diaryWeekKeys.length > 0 && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, marginTop: 8 }}>
-            <button
-              type="button"
-              onClick={() => canGoOlder && (diaryUserPagedRef.current = true, setDiaryWeekKey(diaryWeekKeys[diaryIndex - 1]))}
-              disabled={!canGoOlder}
-              aria-label="이전 주 장보기 목록"
-              style={{
-                width: 32, height: 32, border: 'none', background: 'transparent',
-                cursor: canGoOlder ? 'pointer' : 'default', opacity: canGoOlder ? 1 : 0.3,
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              }}
-            >
-              <svg style={{ width: 18, height: 18, flexShrink: 0 }} viewBox="0 0 24 24" fill="none" stroke="#1A1A1E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
-            </button>
-            <span style={{ fontSize: 11, color: 'var(--ink-500)', fontVariantNumeric: 'tabular-nums', minWidth: 32, textAlign: 'center' }}>
-              {diaryIndex + 1} / {diaryWeekKeys.length}
-            </span>
-            <button
-              type="button"
-              onClick={() => canGoNewer && (diaryUserPagedRef.current = true, setDiaryWeekKey(diaryWeekKeys[diaryIndex + 1]))}
-              disabled={!canGoNewer}
-              aria-label="다음 주 장보기 목록"
-              style={{
-                width: 32, height: 32, border: 'none', background: 'transparent',
-                cursor: canGoNewer ? 'pointer' : 'default', opacity: canGoNewer ? 1 : 0.3,
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              }}
-            >
-              <svg style={{ width: 18, height: 18, flexShrink: 0 }} viewBox="0 0 24 24" fill="none" stroke="#1A1A1E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6" /></svg>
-            </button>
-          </div>
-        )}
         <div style={{ fontSize: 10, color: 'var(--ink-500)', marginTop: 7, lineHeight: 1.5, padding: '0 2px' }}>
           계획한 요리 재료 중 냉장고에 없는 것 · 체크하거나 사고 돌아오면 냉장고에 바로 담아 드려요 · 쿠팡 파트너스 수수료를 받을 수 있어요
         </div>
@@ -3511,29 +3281,6 @@ const CookingCalendar: React.FC = () => {
             {justAddedName}이(가) 내 냉장고에 추가되었어요
           </div>
         )}
-        {/* 지난 주 장보기 메모 삭제 확인 — 되돌릴 수 없어서 한 번 더 묻는다
-            (2026-09-17, "메모를 지우는 기능도 만들어 놔야 한다"는 요청). */}
-        {confirmingDeleteMemoWeek && (
-          <Dialog
-            open
-            onClose={() => setConfirmingDeleteMemoWeek(null)}
-            title="이 장보기 목록을 지울까요?"
-            width={300}
-            dismissLabel="아니요"
-            actions={[{
-              label: '지우기',
-              variant: 'danger',
-              onClick: () => deleteWeekMemo(confirmingDeleteMemoWeek),
-            }]}
-          >
-            <span style={{ wordBreak: 'keep-all' }}>
-              {getDiaryEntry(confirmingDeleteMemoWeek)?.rangeLabel} 목록이 사라져요.
-              <br />
-              되돌릴 수 없어요.
-            </span>
-          </Dialog>
-        )}
-
         {/* 계획·완료·기록 삭제 확인창 — 일 보기뿐 아니라 주 보기·목록 탭에서도
             "계획 취소"/"완료 취소"/"기록 취소" 버튼으로 띄운다. 예전엔 이
             다이얼로그들이 일 보기 블록 안에 있어서 다른 화면에서 누르면
