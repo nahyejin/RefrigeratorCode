@@ -11594,3 +11594,6 @@ App Store 심사 가이드라인 5.1.1(v): Apple 로그인을 제공하는 앱�
 - **알림 스위치 진단**: [push.ts](frontend/src/utils/push.ts)·[NotificationSettings.tsx](frontend/src/components/NotificationSettings.tsx) — 실패 원인(`detail`)을 결과에 싣고 화면에 "(원인: …)"으로 보여 줌, 켜는 동안 "알림을 켜는 중이에요… (최대 20초)" 표시(전엔 아무 표시 없이 비활성이라 스위치가 죽은 것처럼 보였음). 타입 오류 수는 그대로(기존 3건).
 - 서비스워커 캐시 `v1.9.4`(맥 쪽 계정 삭제 수정이 이미 `v1.9.3` 으로 올려 둠).
 - **맥에서 할 일**: `git pull` → `npm run build` → `npx cap sync ios` → 새 빌드 Archive → TestFlight 업로드(빌드 번호 올림). Xcode 가 `aps-environment` 때문에 서명 프로필을 다시 만들 수 있음.
+
+### Apple 로그인·탈퇴(토큰 취소) 실기기 확인 (2026-09-21)
+TestFlight 로 아이폰에 설치해 **Apple 로그인 성공**, 회원 탈퇴 시 백엔드 로그에 `Apple 토큰을 취소함`(id=77)과 `delete-account 200` 확인. Railway 변수 `APPLE_TEAM_ID`·`APPLE_SIGNIN_KEY_ID`·`APPLE_SIGNIN_PRIVATE_KEY` 가 정상 동작함.

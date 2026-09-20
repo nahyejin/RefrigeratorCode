@@ -14,8 +14,8 @@
 | Apple Developer | **승인 완료·활성**(2026-09-19 계약 수락, 팀 ID `63N6U28LJR`, 개인, 갱신 2027-09-19) | Apple 메일은 **920803hj@naver.com** 로 옴 |
 | Apple 설정(앱 ID·APNs 키·Firebase iOS) | **완료**(2026-09-20~21) | 아래 C 참고 |
 | App Store Connect 앱·TestFlight 업로드 | **앱 등록 완료(`쿡매치 - 냉장고 레시피`, iOS 1.0)·빌드 1.0(1) 업로드함(2026-09-21)** | 처리 끝나면 내부 테스터로 본인 추가 → 아이폰 TestFlight 로 설치·Apple 로그인·탈퇴 확인 |
-| Sign in with Apple(iOS 심사 필수) | **코드 작성 완료·푸시함, 실기기 확인 대기** | 백엔드 배포 확인 → TestFlight 로 실기기 확인 |
-| Apple 토큰 취소(탈퇴 시, 가이드라인 5.1.1(v)) | **코드 작성 완료(2026-09-21)** — 단 **Sign in with Apple 키를 만들어 Railway 변수 3개를 넣어야 동작** | 아래 C 「Apple 토큰 취소 켜기」 |
+| Sign in with Apple(iOS 심사 필수) | **완료 — TestFlight 실기기(아이폰)에서 로그인 성공(2026-09-21)** | — |
+| Apple 토큰 취소(탈퇴 시, 가이드라인 5.1.1(v)) | **완료 — Railway 변수 3개 설정, 실기기 탈퇴 시 서버 로그 `Apple 토큰을 취소함`·탈퇴 200 확인(2026-09-21)** | 선택: 아이폰 설정 → Apple 계정 → 「Apple로 로그인」 목록에서 쿡매치가 사라졌는지 |
 | iOS 시뮬레이터(맥) | 앱 화면·GNB·소셜 로그인 3종 앱 복귀까지 정상(2026-09-19) | 실제 아이폰 확인은 Apple 승인 뒤 |
 | 테스터 12명·14일 | 계획: BETA FLOW 유료 대행(9,000원) | 앱·`.aab` 업로드 뒤 결제 |
 
@@ -77,6 +77,11 @@
 - `Info.plist` 에 `ITSAppUsesNonExemptEncryption = false` 추가(HTTPS 만 사용 → 업로드마다 뜨는 암호화 질문 생략).
 - **새 버전을 올릴 때**는 빌드 번호(`CURRENT_PROJECT_VERSION`, 지금 1)를 올려야 한다(같은 번호는 거부). 새 앱 버전이면 `MARKETING_VERSION` 도.
 - 다음: App Store Connect → 앱 → **TestFlight** 에서 빌드가 "처리 중" → 사용 가능이 되면(10~30분) **내부 테스트 그룹**을 만들어 본인 Apple ID 를 추가 → 아이폰의 TestFlight 앱에서 설치. 내부 테스트는 Apple 심사 없이 가능.
+
+**실기기 확인 결과 (2026-09-21, TestFlight)**
+- 아이폰 TestFlight 로 설치 → **Apple 로그인 성공, 앱 진입 확인**.
+- 마이페이지 → 회원 탈퇴 → 백엔드 로그 `[Apple 로그인] 탈퇴 계정 id=77 의 Apple 토큰을 취소함` + `POST /api/auth/delete-account 200`. (로그는 MySQL 서비스가 아니라 **백엔드 서비스(RefrigeratorCode)** 의 Deployments → Deploy Logs 에 있다.)
+- ⚠ Apple 이메일이 기존 계정 이메일과 같으면 그 기존 계정으로 연결돼 들어온다(`get_or_create_user`). 그 상태로 탈퇴하면 **진짜 계정이 탈퇴**되므로, 탈퇴 시험은 새로 만들어진 계정(`애플사용자_…`)으로만 할 것.
 
 **Sign in with Apple — 만든 것(2026-09-21)**
 - 서버: [backend/apple_signin.py](backend/apple_signin.py) 가 앱이 낸 identity token 을 Apple 공개키(RS256)로 검증(발급자·`aud`=`com.cookmatch.app`·만료·nonce). `POST /api/auth/apple/native`([app.py](backend/app.py))가 검증되면 쿡매치 로그인 토큰을 줌. 재로그인은 이메일이 아니라 Apple 사용자 고유값(`sub`)으로 찾음(Apple 은 이메일을 숨길 수 있어서). 로그인 수단은 `provider='apple'`.
