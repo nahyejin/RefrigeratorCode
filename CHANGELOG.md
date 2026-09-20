@@ -11541,3 +11541,22 @@ Play 데이터 보안 답과 방침이 어긋나는 곳을 바로잡음([LegalPa
 
 ### iOS 상태바 영역 흰색 덮개 — 맥에서 작업, 윈도우에 pull(2026-09-20)
 맥 Xcode 시뮬레이터로 확인하며 맥 쪽에서 커밋·푸시한 수정(`8a8de8ca`)을 윈도우로 가져옴. `contentInset: 'always'` 로 웹뷰가 상태바 아래에 그려지지만 스크롤한 내용이 상태바 영역까지 비쳐 보이던 것을 [SceneDelegate.swift](frontend/ios/App/App/SceneDelegate.swift) 에 **상태바 영역만 흰색으로 덮는 뷰**(`addSafeAreaCovers`, 터치 통과)를 얹어 가림. iOS 전용이라 안드로이드·웹에는 영향 없음. 이 변경이 들어오기 전 맥은 윈도우의 `51137701`(오늘 작업 전부)까지 받아 둔 상태였음 — 이제 맥과 윈도우가 같은 지점.
+
+## 2026-09-21 (맥북 작업)
+
+### Sign in with Apple 구현 + Apple 개발자 설정 (iOS 심사 필수 항목)
+구글·카카오·네이버 로그인을 제공하는 iOS 앱은 Sign in with Apple 도 제공해야 한다(App Store 심사 가이드라인 4.8).
+- **서버**: 새 [backend/apple_signin.py](backend/apple_signin.py) — 앱이 낸 identity token 을 Apple 공개키(RS256)로 검증(발급자·`aud`=`com.cookmatch.app`·만료·nonce). nonce 는 앱이 만든 raw 값의 SHA-256 을 Apple 에 넘기고 raw 는 서버에만 보내 토큰 재사용을 막음. [app.py](backend/app.py) 에 `POST /api/auth/apple/native` 추가 — 검증되면 쿡매치 로그인 토큰 발급. 재로그인은 이메일이 아니라 Apple 사용자 고유값(`sub`, `provider_id`)으로 찾음(Apple 은 이메일을 숨길 수 있고 이름·이메일을 첫 로그인 때만 확실히 줌). `provider='apple'`. `backend/requirements.txt` 에 `cryptography` 추가(RS256 검증에 필요).
+- **앱**: [nativeAuth.ts](frontend/src/utils/nativeAuth.ts) `signInWithAppleNative()`(사용자가 창을 닫으면 조용히 취소), [Login.tsx](frontend/src/pages/Login.tsx) 에 iOS 앱에서만 보이는 검정 "Apple로 계속하기" 버튼(맨 위). 플러그인 `@capacitor-community/apple-sign-in` 추가.
+- **iOS 프로젝트**: `App.entitlements`(`com.apple.developer.applesignin`)를 연결, `DEVELOPMENT_TEAM=63N6U28LJR` 저장, `CapApp-SPM/Package.swift` 에 플러그인 반영.
+- **검증**: 가짜 Apple 키로 만든 토큰 테스트 — 정상은 통과, 잘못된 nonce·다른 앱용(`aud`)·다른 발급자·만료·위조 서명·빈 값·깨진 토큰은 모두 거부. 시뮬레이터 빌드 성공, 앱 바이너리에 Sign in with Apple 권한 삽입 확인. TypeScript 오류 수는 기존 20개 그대로(새 오류 0). **실제 Apple 로그인 창은 실기기에서 아직 확인 못 함.**
+- **주의**: 플러그인이 Capacitor 7 용이라 `cap sync` 때 경고가 뜸(iOS 빌드는 성공). 안드로이드 빌드에도 플러그인이 붙으므로 다음 `gradlew bundleRelease` 성공 여부를 확인할 것.
+- **남은 일**: 계정 삭제 때 Apple 토큰 취소(가이드라인 5.1.1(v)), 개인정보처리방침·데이터 보안·App Store 개인정보 라벨에 Apple 로그인 반영. → [RELEASE_TODO.md](RELEASE_TODO.md) C항.
+
+### Apple 개발자 계정·푸시 준비 (코드 변경 없음, 콘솔 작업)
+- Apple Developer Program **활성 확인**(팀 ID `63N6U28LJR`, 개인, 갱신 2027-09-19). Apple 메일은 `920803hj@naver.com` 로 옴.
+- 앱 ID `com.cookmatch.app` 등록(Sign in with Apple·Push Notifications), APNs 인증 키 생성(Key ID `Y4S77Z4YFG`, Sandbox & Production), Firebase(`CookMatch`)에 iOS 앱 추가 + APNs 키 업로드. `.p8` 은 비밀키라 git 에 없음.
+- Xcode: Apple ID 추가·Team 선택. "등록된 기기가 없다"는 경고는 시뮬레이터 실행과 무관(실기기 연결 또는 TestFlight 때 해결).
+
+### 맥북 개발 환경 세팅
+Xcode·Homebrew·node·git·GitHub CLI 설치, 프로젝트 clone(`~/Developer/RefrigeratorCode`), iOS 시뮬레이터 실행 확인(화면·GNB·소셜 로그인 3종). 매일 작업 순서는 [MOBILE_APP_GUIDE.md](MOBILE_APP_GUIDE.md) 「맥북 매일 작업 순서」.

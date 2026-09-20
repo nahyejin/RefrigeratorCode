@@ -1,4 +1,4 @@
-# 쿡매치 출시 — 남은 일 (2026-09-19 기준)
+# 쿡매치 출시 — 남은 일 (2026-09-21 기준)
 
 상세 배경은 [MOBILE_APP_GUIDE.md](MOBILE_APP_GUIDE.md), 스토어 원고는 [store/STORE_LISTING.md](store/STORE_LISTING.md).
 
@@ -11,7 +11,9 @@
 | 카카오 로그인 | 설정 확인 완료 | 낯선 계정으로 시험 |
 | 네이버 로그인 | **검수 승인 대기** | 승인 뒤 낯선 계정으로 시험 |
 | Google Play 개발자 계정 | **신원 확인 검토 중** | 승인 메일 → 전화번호 인증 → 앱 만들기 |
-| Apple Developer | **승인 대기** | 승인 메일 → 맥북에서 iOS 작업 |
+| Apple Developer | **승인 완료·활성**(2026-09-19 계약 수락, 팀 ID `63N6U28LJR`, 개인, 갱신 2027-09-19) | Apple 메일은 **920803hj@naver.com** 로 옴 |
+| Apple 설정(앱 ID·APNs 키·Firebase iOS) | **완료**(2026-09-20~21) | 아래 C 참고 |
+| Sign in with Apple(iOS 심사 필수) | **코드 작성 완료·푸시함, 실기기 확인 대기** | 백엔드 배포 확인 → TestFlight 로 실기기 확인 |
 | iOS 시뮬레이터(맥) | 앱 화면·GNB·소셜 로그인 3종 앱 복귀까지 정상(2026-09-19) | 실제 아이폰 확인은 Apple 승인 뒤 |
 | 테스터 12명·14일 | 계획: BETA FLOW 유료 대행(9,000원) | 앱·`.aab` 업로드 뒤 결제 |
 
@@ -47,17 +49,33 @@
 
 **반려되면**: 사유(서비스 URL·제공 정보 활용 설명·캡처 부적합 등)를 확인해 수정 후 재신청. 재신청 결과를 기다리는 동안 네이버 버튼을 숨기고 구글·카카오만으로 테스트를 시작할지 결정(코드 수정 필요, Claude 에게 요청).
 
-### C. Apple Developer 승인 (이메일)
+### C. Apple Developer (계정은 활성 — 남은 건 실기기·출시 작업)
 
-**승인되면 (맥북에서)**
-1. Xcode → Settings → Accounts 에 Apple ID 추가.
-2. 프로젝트 Signing & Capabilities: Team 선택, 번들 ID `com.cookmatch.app` 확인, **Sign in with Apple**·**Push Notifications** capability 추가.
-3. **Sign in with Apple 구현**(구글·카카오·네이버 로그인을 제공하는 앱은 iOS 심사 필수, 가이드라인 4.8) — 코드는 Claude 와 함께.
-4. Apple Developer → Keys 에서 **APNs 인증 키(.p8)** 생성 → Firebase 프로젝트 설정 → 클라우드 메시징에 업로드. Firebase 에 iOS 앱(번들 ID `com.cookmatch.app`) 추가, `GoogleService-Info.plist` 를 Xcode `App` 타깃에 추가.
-5. **실제 아이폰**에 설치해 로그인·푸시 확인.
-6. App Store Connect 에 앱 등록 → TestFlight 확인 → 심사 제출.
+**완료(2026-09-20~21, 맥북)**
+- Xcode 설치·라이선스 동의, Xcode 에 Apple ID 추가, `App` 타깃 Team = `63N6U28LJR`(자동 서명).
+- developer.apple.com → Identifiers: **`com.cookmatch.app` 앱 ID 등록**(Sign in with Apple·Push Notifications 켬).
+- Keys: **APNs 인증 키 `CookMatch APNs`** 생성(Key ID `Y4S77Z4YFG`, Sandbox & Production, Team Scoped). `.p8` 파일은 **한 번만 받을 수 있는 비밀키** — 채팅·git 에 올리지 말고 마이박스 등 비공개 곳에 백업(공유 링크 만들지 말 것). 잃으면 키를 새로 만들어야 함.
+- Firebase(프로젝트 `CookMatch`): **iOS 앱 `CookMatch iOS`(`com.cookmatch.app`) 추가**, 클라우드 메시징에 **APNs 키 업로드**(개발·프로덕션 둘 다). `GoogleService-Info.plist` 는 받아 뒀지만 **아직 프로젝트에 넣지 않음**(푸시를 iOS 에 연결할 때).
+- **Sign in with Apple 구현**(가이드라인 4.8): 아래 「Sign in with Apple」 참고.
 
-**지연되면**: 가입 후 며칠이 지나도 소식이 없으면 developer.apple.com/account 에서 상태 확인(신원 확인 전화·이메일을 놓치지 말 것), 48시간 넘으면 Apple 지원에 문의. 안드로이드 출시는 Apple 과 별개로 진행 가능.
+**Xcode 에 뜨는 노란 경고 "Your team has no devices…"**: 개발용 프로파일은 **등록된 실기기가 있어야** 만들어지는데 아직 기기를 안 붙여서 나는 안내. **시뮬레이터 실행엔 영향 없음.** 케이블로 아이폰을 한 번 연결하면(개발자 모드 켜기) 사라지고 기기가 자동 등록된다. 케이블이 없으면 TestFlight 로 대신한다(아래).
+
+**남은 일**
+1. **백엔드 배포 확인**: 이번 푸시로 `backend/apple_signin.py`·`/api/auth/apple/native` 와 `requirements.txt` 의 `cryptography` 가 들어감. Railway 가 GitHub 푸시로 자동 배포하면 배포가 성공했는지(서버 로그에 import 오류 없는지) 확인. 자동 배포가 아니면 수동 배포.
+2. **Sign in with Apple 실기기 확인**: 시뮬레이터에서는 Apple 로그인 창이 제대로 안 뜰 수 있어 **실제 아이폰**이 필요. 케이블이 없으면 **TestFlight**: App Store Connect 에 앱 등록 → Xcode Product → Archive → 업로드 → 아이폰의 TestFlight 앱으로 설치(내부 테스트는 Apple 심사 없이 가능).
+3. **계정 삭제 때 Apple 토큰 취소(revoke)**: Apple 로그인을 제공하는 앱은 **계정 삭제 시 Apple 에 토큰 취소를 요청**해야 한다(심사 가이드라인 5.1.1(v), 2022년부터). 지금 탈퇴 기능은 이걸 안 함 → 심사 전에 추가 필요(Apple 로그인 사용자의 authorization code 를 서버에 저장하고, 탈퇴 때 `appleid.apple.com/auth/revoke` 호출. 별도의 Sign in with Apple 키가 필요할 수 있음). Claude 와 같이 할 것.
+4. **개인정보처리방침·Play 데이터 보안·App Store 개인정보 라벨에 Apple 로그인 반영**(Apple 이 주는 이메일·이름, 이메일 숨기기 시 릴레이 주소).
+5. **iOS 푸시 연결**: Firebase Messaging(SPM) 추가 + `AppDelegate` 에서 APNs 토큰→FCM 토큰 + `GoogleService-Info.plist` 를 Xcode `App` 타깃에 추가 + Push Notifications capability(`aps-environment`). 심사 필수는 아님 — Sign in with Apple 다음 순서.
+6. App Store Connect 에 앱 등록 → TestFlight 확인 → 심사 제출(스크린샷·설명은 `store/`).
+
+**Sign in with Apple — 만든 것(2026-09-21)**
+- 서버: [backend/apple_signin.py](backend/apple_signin.py) 가 앱이 낸 identity token 을 Apple 공개키(RS256)로 검증(발급자·`aud`=`com.cookmatch.app`·만료·nonce). `POST /api/auth/apple/native`([app.py](backend/app.py))가 검증되면 쿡매치 로그인 토큰을 줌. 재로그인은 이메일이 아니라 Apple 사용자 고유값(`sub`)으로 찾음(Apple 은 이메일을 숨길 수 있어서). 로그인 수단은 `provider='apple'`.
+- 앱: [nativeAuth.ts](frontend/src/utils/nativeAuth.ts) `signInWithAppleNative()`(플러그인 `@capacitor-community/apple-sign-in`), [Login.tsx](frontend/src/pages/Login.tsx) 에 **iOS 앱에서만** 맨 위에 검정 "Apple로 계속하기" 버튼. 웹·안드로이드에는 안 보임.
+- iOS 설정: `App.entitlements`(Sign in with Apple)를 프로젝트에 연결. `DEVELOPMENT_TEAM=63N6U28LJR` 도 프로젝트에 저장됨.
+- 검증: 가짜 Apple 키로 만든 토큰으로 잘못된 nonce·다른 앱용 토큰·다른 발급자·만료·위조 서명이 모두 거부됨을 확인. 앱은 시뮬레이터 빌드 성공·권한 삽입 확인. **실제 Apple 로그인 창은 실기기에서 아직 못 봄.**
+- ⚠ 플러그인이 Capacitor 7 용으로 만들어져 `cap sync` 때 "built for Capacitor 7" 경고가 뜸(iOS 빌드는 성공). 안드로이드 쪽에도 플러그인이 붙으므로 **다음 안드로이드 빌드(`gradlew bundleRelease`)가 성공하는지 확인**할 것 — 문제가 되면 이 플러그인을 iOS 전용으로 격리.
+
+**지연되면**: 문제가 있으면 developer.apple.com/account 에서 상태 확인. 안드로이드 출시는 Apple 과 별개로 진행 가능.
 
 ## 3. 세 승인의 순서 관계
 

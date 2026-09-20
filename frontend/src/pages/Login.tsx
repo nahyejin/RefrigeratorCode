@@ -8,7 +8,7 @@ import NeangteolButton from '../components/NeangteolButton';
 import NeangteolInput from '../components/NeangteolInput';
 import { useAuth } from '../context/AuthContext';
 import { getPostLoginRedirectPath } from '../utils/householdInvite';
-import { isNativeApp, startNativeSocialLogin } from '../utils/nativeAuth';
+import { isNativeApp, isIosApp, startNativeSocialLogin, signInWithAppleNative } from '../utils/nativeAuth';
 
 // =====================
 // 상수
@@ -48,6 +48,22 @@ const SSO_BUTTONS = [
     text: 'Naver로 시작하기'
   }
 ];
+
+// Sign in with Apple — 구글·카카오·네이버 로그인을 제공하는 iOS 앱은 심사 때 필수(가이드라인 4.8).
+// Apple 규정상 검정 바탕에 흰 로고·글자, 다른 로그인 버튼보다 눈에 띄지 않게 하면 안 돼서 맨 위에 둔다.
+const APPLE_LOGO_SVG =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#fff"><path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/></svg>';
+
+const APPLE_BUTTON = {
+  icon: `data:image/svg+xml;utf8,${encodeURIComponent(APPLE_LOGO_SVG)}`,
+  alt: 'Apple',
+  color: 'bg-black',
+  textColor: 'text-white',
+  text: 'Apple로 계속하기',
+  border: false
+};
+
+type SocialLoginProvider = 'google' | 'kakao' | 'naver' | 'apple';
 
 // =====================
 // 메인 컴포넌트
@@ -140,7 +156,18 @@ const Login: React.FC = () => {
   /**
    * 소셜 로그인 시작
    */
-  const handleSocialLogin = (provider: 'google' | 'kakao' | 'naver') => {
+  const handleSocialLogin = (provider: SocialLoginProvider) => {
+    if (provider === 'apple') {
+      setError('');
+      signInWithAppleNative()
+        .then(async token => {
+          if (!token) return; // 사용자가 Apple 로그인 창을 닫음
+          await loginWithToken(token, true);
+          navigate(getPostLoginRedirectPath('/my-fridge'));
+        })
+        .catch(() => setError('Apple 로그인에 실패했어요. 다시 시도해주세요.'));
+      return;
+    }
     // 앱은 웹처럼 "로그인 뒤 우리 사이트로 리다이렉트"가 안 돼서 시스템 브라우저로 열고 앱으로 돌아온다
     if (isNativeApp()) {
       startNativeSocialLogin(provider).catch(() => setError('로그인 창을 열지 못했어요. 다시 시도해주세요.'));
@@ -259,8 +286,8 @@ const Login: React.FC = () => {
         
         {/* SSO 버튼 세로배치 */}
         <div className={`flex flex-col gap-3 ${CONTAINER_WIDTH} mt-2 items-center mx-auto`}>
-          {SSO_BUTTONS.map((button, index) => {
-            const provider = button.alt.toLowerCase() as 'google' | 'kakao' | 'naver';
+          {(isIosApp() ? [APPLE_BUTTON, ...SSO_BUTTONS] : SSO_BUTTONS).map((button, index) => {
+            const provider = button.alt.toLowerCase() as SocialLoginProvider;
             const isLastUsed = lastLoginMethod === provider;
             return (
             <div key={index} className="relative w-full">

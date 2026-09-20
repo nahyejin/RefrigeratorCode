@@ -15,6 +15,7 @@
 
 import { Capacitor } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
+import { SignInWithApple } from '@capacitor-community/apple-sign-in';
 
 export type SocialProvider = 'google' | 'kakao' | 'naver';
 
@@ -32,6 +33,55 @@ const base64Url = (bytes: Uint8Array) =>
   btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 
 export const isNativeApp = () => Capacitor.isNativePlatform();
+
+/** iOS 앱인가 — Sign in with Apple 은 iOS 심사 요건이라 iOS 앱에서만 보여 준다. */
+export const isIosApp = () => Capacitor.getPlatform() === 'ios';
+
+const sha256Hex = async (text: string) => {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, '0')).join('');
+};
+
+/**
+ * iOS 의 Apple 로그인 창을 띄우고, 받은 identity token 을 서버에 내 로그인 토큰을 받는다.
+ * 사용자가 창을 닫으면 null, 그 밖의 실패는 예외.
+ *
+ * nonce: raw 값은 서버에만 보내고 Apple 에는 그 SHA-256 을 넘긴다(서버 `apple_signin.py`).
+ */
+export async function signInWithAppleNative(): Promise<string | null> {
+  const rawNonce = base64Url(crypto.getRandomValues(new Uint8Array(16)));
+
+  let result;
+  try {
+    result = await SignInWithApple.authorize({
+      clientId: NATIVE_APP_SCHEME,
+      redirectURI: '',
+      scopes: 'email name',
+      nonce: await sha256Hex(rawNonce),
+    });
+  } catch (e) {
+    // 사용자가 Apple 로그인 창을 닫음(ASAuthorizationError.canceled = 1001)
+    const err = e as { code?: unknown; message?: unknown };
+    if (/1001|cancel/i.test(`${err?.code ?? ''} ${err?.message ?? ''}`)) return null;
+    throw e;
+  }
+
+  const { identityToken, givenName, familyName } = result.response;
+  const res = await fetch(`${apiBase()}/api/auth/apple/native`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      identity_token: identityToken,
+      nonce: rawNonce,
+      // 이름은 Apple 이 처음 로그인할 때 한 번만 준다
+      full_name: [familyName, givenName].filter(Boolean).join(''),
+    }),
+  });
+  if (!res.ok) throw new Error(`apple login failed: ${res.status}`);
+  const data = await res.json();
+  if (typeof data.token !== 'string') throw new Error('apple login: no token');
+  return data.token;
+}
 
 /** 시스템 브라우저로 소셜 로그인을 연다. 결과는 앱 주소로 돌아와 `completeNativeLogin` 이 받는다. */
 export async function startNativeSocialLogin(provider: SocialProvider): Promise<void> {

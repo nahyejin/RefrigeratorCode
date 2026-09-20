@@ -10,3 +10,4 @@ pymysql
 gunicorn
 requests
 PyJWT 
+cryptography

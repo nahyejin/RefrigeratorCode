@@ -23,6 +23,7 @@ from email.mime.multipart import MIMEMultipart
 
 # **레시피 카드를 내보낼 조건은 여기 하나뿐이다.** 왜 그런지는 그 파일에.
 from recipe_visibility import RECIPE_READY, WHERE_READY
+from apple_signin import verify_identity_token, AppleTokenError
 
 # 환경변수 로드
 # - 개발환경에서만 현재 디렉토리의 .env를 로드
@@ -1336,6 +1337,63 @@ def native_login_exchange():
         provider=payload.get('provider'),
     )
     return jsonify({'token': token})
+
+
+# =====================
+# Apple 로그인 (iOS 앱 전용)
+# =====================
+#
+# 구글·카카오·네이버처럼 소셜 로그인을 제공하는 iOS 앱은 Sign in with Apple 도 제공해야
+# 한다(App Store 심사 가이드라인 4.8). 다른 로그인과 달리 브라우저를 거치지 않고, 앱이
+# iOS 의 Apple 로그인 창에서 받은 identity token 을 이 주소로 보낸다. 검증은
+# `apple_signin.py`.
+
+@app.route('/api/auth/apple/native', methods=['POST'])
+def apple_native_login():
+    data = request.get_json(silent=True) or {}
+    identity_token = data.get('identity_token') or ''
+    nonce = data.get('nonce') or ''
+    full_name = str(data.get('full_name') or '').strip()
+
+    try:
+        claims = verify_identity_token(identity_token, nonce)
+    except AppleTokenError as e:
+        print(f"[Apple 로그인] 토큰 검증 실패: {e}")
+        return jsonify({'error': 'Invalid Apple token'}), 401
+
+    sub = claims['sub']
+    try:
+        ensure_users_table()
+        db = get_db()
+        try:
+            cursor = db.cursor()
+            # Apple 은 이메일·이름을 처음 한 번만 확실히 주고, 이메일은 사용자가 숨길 수도
+            # 있다. 그래서 두 번째부터는 이메일이 아니라 Apple 의 사용자 고유값(sub)으로 찾는다.
+            cursor.execute(
+                "SELECT id, email, nickname FROM users "
+                "WHERE provider = 'apple' AND provider_id = %s AND deleted_at IS NULL",
+                (sub,)
+            )
+            user = cursor.fetchone()
+        finally:
+            db.close()
+
+        if not user:
+            email = claims['email'] or f"apple_{sub}@apple.com"
+            nickname = full_name[:100] or f"애플사용자_{sub[-4:]}"
+            user = get_or_create_user(
+                email=email,
+                nickname=nickname,
+                provider='apple',
+                provider_id=sub,
+                email_verified=bool(claims['email'] and claims['email_verified']),
+            )
+
+        token = generate_jwt_token(user['id'], user['email'], user['nickname'], provider='apple')
+        return jsonify({'token': token})
+    except Exception as e:
+        print(f"[Apple 로그인] 처리 실패: {e}")
+        return jsonify({'error': 'Apple login failed'}), 500
 
 
 # =====================

@@ -255,6 +255,22 @@ if ('serviceWorker' in navigator) {
 5. **시뮬레이터로 실행**: Xcode 위쪽에서 iPhone 시뮬레이터를 고르고 ▶. **유료 계정 없이** 화면·네이티브 소셜 로그인(사파리 뷰 → `com.cookmatch.app://auth` 복귀)을 확인할 수 있다. 푸시(APNs)·Sign in with Apple 은 시뮬레이터/무료 계정으로 안 됨.
 6. **Apple 승인 후**: Xcode → Settings → Accounts 에 Apple ID 추가 → 프로젝트 Signing & Capabilities 에서 Team 선택, 번들 ID `com.cookmatch.app`, Sign in with Apple·Push Notifications capability 추가 → 실제 아이폰에 설치해 확인.
 
+### 맥북 매일 작업 순서 (윈도우에서 푸시한 뒤 iOS 로 확인할 때)
+
+맥의 코드는 GitHub 에서 받은 **사본**이다(원본은 GitHub, 윈도우·맥이 각자 사본을 가짐). 맥에서 코드를 고치지 않는 한 커밋할 것은 없고, **pull → 빌드 → 동기화 → ▶** 만 하면 된다. 터미널에서:
+
+```bash
+cd ~/Developer/RefrigeratorCode && git pull
+cd frontend && npm install && npm run build && npx cap sync ios
+```
+
+그다음 Xcode(`npx cap open ios`)에서 ▶. 맥에서 iOS 전용 파일(`frontend/ios/`)을 고쳤으면 맥에서 커밋·푸시하고 윈도우에서 `git pull`(맥에 GitHub 로그인이 되어 있음: `gh auth login` 으로 함).
+
+- **Xcode 26+ 시뮬레이터**: `Simulator.app` 대신 **DeviceHub** 창에 뜬다. 첫 부팅이 몇 분 걸리고, 검은 화면·"Live device view took longer than expected"(오류 4002)가 나면 `killall -9 com.apple.CoreSimulator.CoreSimulatorService` 후 다시 실행하면 풀렸다.
+- **iOS 상태바**: `capacitor.config.ts` 의 `ios.contentInset: 'always'` + [SceneDelegate.swift](frontend/ios/App/App/SceneDelegate.swift) 의 흰색 덮개로 고정 GNB 가 상태바에 가려지지 않게 함.
+- **Apple 개발자 설정(2026-09-20~21)**: 앱 ID `com.cookmatch.app`(Sign in with Apple·Push), APNs 키(Key ID `Y4S77Z4YFG`, `.p8` 은 비밀키라 git·채팅 금지·따로 백업), Firebase iOS 앱 등록·APNs 키 업로드. 자세한 내용과 남은 일은 [RELEASE_TODO.md](RELEASE_TODO.md) C항.
+- **실기기 없이 실기기 확인**: 케이블이 없으면 TestFlight(Archive → App Store Connect 업로드)로 아이폰에 설치.
+
 ## 소셜 로그인 "다른 사용자도 되는지" 점검 (2026-09-19)
 
 - **구글**: 로그인용 OAuth 클라이언트(`CookMatch Web Client_web`, ID `622855474105-…`)는 Google Cloud 프로젝트 **My First Project**(`glassy-vial-424406-u7`)에 있다(Firebase 용 CookMatch·RefrigeratorCode 프로젝트가 아님). **게시 상태가 "테스트 중"(테스트 사용자 0명)이라 프로젝트 소유자 본인 말고는 로그인이 안 되는 상태였다 → 2026-09-19 브랜딩(앱 이름·지원 이메일·홈페이지·개인정보처리방침·약관·승인된 도메인 2개, 로고 없음)을 채우고 "앱 게시"로 "프로덕션 단계"로 바꿈(인증 심사 필요 없음: 도메인 10개 이하·로고 없음·기본 권한 openid email profile 만 사용).** 남은 것: 본인이 아닌 구글 계정으로 실제 로그인이 되는지 확인.
