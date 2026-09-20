@@ -2496,7 +2496,7 @@ const CookingCalendar: React.FC = () => {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginBottom: 8 }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, color: 'var(--ink-500)' }}>
                 <HandCircle seed={0} width={20} style={{ flexShrink: 0 }} />
-                요리 계획 있는 날 — 눌러서 무슨 요리인지 보기
+                요리 계획 있는 날
               </span>
               {/* 줄글 링크로 바꿨더니 "이게 뭔지, 누를 수 있는 건지 모르겠다"는
                   지적(2026-09-16)으로 버튼 모양으로 되돌린다. 다만 빨간
