@@ -11577,3 +11577,8 @@ App Store 심사 가이드라인 5.1.1(v): Apple 로그인을 제공하는 앱�
 - **앱** [nativeAuth.ts](frontend/src/utils/nativeAuth.ts): `authorizationCode` 도 서버로 보냄.
 - **개인정보처리방침** [LegalPage.tsx](frontend/src/pages/LegalPage.tsx): 「무엇을 받나」에 「Apple 로그인 연결 정보」 행, 「얼마나 갖고 있나」에 탈퇴 시 Apple 취소 요청 문장 추가. 서비스워커 캐시 `v1.9.3`. ⚠ 이 문장은 위 환경변수가 Railway 에 있어야 사실이다.
 - **검증**: 가짜 Apple 응답·가짜 DB 로 — client_secret(ES256·kid·iss·sub·aud·exp, 한 줄 `\n` 키 포함), 코드 교환 성공/실패, 취소 성공 시 행 삭제·실패 시 행 유지, 설정 없음/토큰 없음/네트워크 오류일 때 조용히 넘어감 확인. TypeScript 오류 수는 기존 20개 그대로. **실제 Apple 서버 호출은 키를 만든 뒤 TestFlight 에서 확인해야 한다.**
+
+### iOS 첫 빌드 TestFlight 업로드 (2026-09-21, 맥북 작업)
+- App Store Connect 에 앱 등록(`쿡매치 - 냉장고 레시피`, 번들 ID `com.cookmatch.app`)하고 **빌드 1.0(1) 업로드 성공**. 처리가 끝나면 TestFlight 로 아이폰에 설치해 Apple 로그인·탈퇴(Apple 토큰 취소)를 확인한다.
+- `Info.plist`: `ITSAppUsesNonExemptEncryption = false` 추가(HTTPS 만 사용 — 업로드 때마다 뜨는 수출 규정 질문 생략).
+- Archive 가 "등록된 기기 없음"으로 막혔던 원인과 해결(아이폰 개발자 모드 + Devices 에 UDID 등록)은 [RELEASE_TODO.md](RELEASE_TODO.md) C항 「TestFlight 업로드」.

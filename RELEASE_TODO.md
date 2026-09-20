@@ -13,6 +13,7 @@
 | Google Play 개발자 계정 | **신원 확인 검토 중** | 승인 메일 → 전화번호 인증 → 앱 만들기 |
 | Apple Developer | **승인 완료·활성**(2026-09-19 계약 수락, 팀 ID `63N6U28LJR`, 개인, 갱신 2027-09-19) | Apple 메일은 **920803hj@naver.com** 로 옴 |
 | Apple 설정(앱 ID·APNs 키·Firebase iOS) | **완료**(2026-09-20~21) | 아래 C 참고 |
+| App Store Connect 앱·TestFlight 업로드 | **앱 등록 완료(`쿡매치 - 냉장고 레시피`, iOS 1.0)·빌드 1.0(1) 업로드함(2026-09-21)** | 처리 끝나면 내부 테스터로 본인 추가 → 아이폰 TestFlight 로 설치·Apple 로그인·탈퇴 확인 |
 | Sign in with Apple(iOS 심사 필수) | **코드 작성 완료·푸시함, 실기기 확인 대기** | 백엔드 배포 확인 → TestFlight 로 실기기 확인 |
 | Apple 토큰 취소(탈퇴 시, 가이드라인 5.1.1(v)) | **코드 작성 완료(2026-09-21)** — 단 **Sign in with Apple 키를 만들어 Railway 변수 3개를 넣어야 동작** | 아래 C 「Apple 토큰 취소 켜기」 |
 | iOS 시뮬레이터(맥) | 앱 화면·GNB·소셜 로그인 3종 앱 복귀까지 정상(2026-09-19) | 실제 아이폰 확인은 Apple 승인 뒤 |
@@ -68,6 +69,14 @@
 4. **개인정보처리방침은 반영 완료(2026-09-21)** — 「Apple 로그인 연결 정보」 행과 탈퇴 시 취소 문장 추가. 남은 것: **App Store Connect 의 「앱 개인정보」(개인정보 라벨)**에 Apple 로그인으로 받는 이메일·이름·사용자 ID 반영(앱 등록할 때). **→ 방침(`LegalPage.tsx`, 개정일 2026-09-21)·`PLAY_CONSOLE_ANSWERS.md` 반영 완료. 남은 것: App Store Connect 개인정보 라벨 입력 때 Apple 로그인(이메일·이름) 항목 포함.**
 5. **iOS 푸시 연결**: Firebase Messaging(SPM) 추가 + `AppDelegate` 에서 APNs 토큰→FCM 토큰 + `GoogleService-Info.plist` 를 Xcode `App` 타깃에 추가 + Push Notifications capability(`aps-environment`). 심사 필수는 아님 — Sign in with Apple 다음 순서.
 6. App Store Connect 에 앱 등록 → TestFlight 확인 → 심사 제출(스크린샷·설명은 `store/`).
+
+**TestFlight 업로드 (2026-09-21, 맥북) — 케이블 문제와 해결**
+- 앱 등록: App Store Connect 신규 앱 — 이름 `쿡매치 - 냉장고 레시피`, 번들 ID `com.cookmatch.app`, SKU `cookmatch-ios-001`, iOS, 한국어. (이름은 심사 제출 전까지 바꿀 수 있음)
+- **Archive 가 처음엔 실패**: "Your team has no devices…" — Xcode 가 Archive 때 먼저 만드는 **개발용 프로파일에 등록된 실기기가 필요**해서. 아이폰을 케이블로 연결하고 **개발자 모드**(설정 → 개인정보 보호 및 보안 → 개발자 모드, 재시동)를 켠 뒤, 명령줄로는 자동 등록이 안 돼서 **developer.apple.com → Devices 에 UDID 를 직접 등록**하니 통과. 등록된 기기: `iphone17pro`(연 100개 슬롯 중 1개). 한 번 등록되면 이후 케이블은 필요 없다.
+- 명령줄 절차(Xcode 화면 대신, 같은 결과): `cd frontend/ios/App` → `xcodebuild -project App.xcodeproj -scheme App -configuration Release -destination 'generic/platform=iOS' -archivePath /tmp/cm-archive/App.xcarchive -allowProvisioningUpdates archive` → `xcodebuild -exportArchive -archivePath /tmp/cm-archive/App.xcarchive -exportOptionsPlist <method=app-store-connect, destination=upload, teamID=63N6U28LJR, signingStyle=automatic> -exportPath /tmp/cm-export -allowProvisioningUpdates`. (`/tmp` 은 맥을 재시작하면 지워짐.)
+- `Info.plist` 에 `ITSAppUsesNonExemptEncryption = false` 추가(HTTPS 만 사용 → 업로드마다 뜨는 암호화 질문 생략).
+- **새 버전을 올릴 때**는 빌드 번호(`CURRENT_PROJECT_VERSION`, 지금 1)를 올려야 한다(같은 번호는 거부). 새 앱 버전이면 `MARKETING_VERSION` 도.
+- 다음: App Store Connect → 앱 → **TestFlight** 에서 빌드가 "처리 중" → 사용 가능이 되면(10~30분) **내부 테스트 그룹**을 만들어 본인 Apple ID 를 추가 → 아이폰의 TestFlight 앱에서 설치. 내부 테스트는 Apple 심사 없이 가능.
 
 **Sign in with Apple — 만든 것(2026-09-21)**
 - 서버: [backend/apple_signin.py](backend/apple_signin.py) 가 앱이 낸 identity token 을 Apple 공개키(RS256)로 검증(발급자·`aud`=`com.cookmatch.app`·만료·nonce). `POST /api/auth/apple/native`([app.py](backend/app.py))가 검증되면 쿡매치 로그인 토큰을 줌. 재로그인은 이메일이 아니라 Apple 사용자 고유값(`sub`)으로 찾음(Apple 은 이메일을 숨길 수 있어서). 로그인 수단은 `provider='apple'`.
