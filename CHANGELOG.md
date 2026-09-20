@@ -11609,3 +11609,7 @@ TestFlight 로 아이폰에 설치해 **Apple 로그인 성공**, 회원 탈퇴 
 - [CookingCalendar.tsx](frontend/src/pages/CookingCalendar.tsx): 주별 계산 효과 2개(이번 주·다음 주)를 하나로 합치고, `diaryWeekKey`·`getDiaryEntry`·`deleteWeekMemo` 등 주 단위 페이지 코드를 제거(`shoppingList`·`listEntry`·`upsertListMemo`로 대체). 서비스워커 캐시 `v1.9.5`.
 - **검증**: 로컬 실행으로 게스트에게 서로 다른 두 주(9/22, 9/30)에 요리 2개를 계획하고 옛 주별 저장 2개를 심어 둠 → 목록이 하나(`09/22~09/30 · 8개`)로 합쳐지고, 넘김 화살표가 없고, 저장소에 `all` 만 남음(옛 키 2개 정리)을 확인. 프론트 빌드 통과, 타입 오류는 기존 `HouseholdPlannedMeal` 1건뿐.
 - **남은 결정(AI·일반 식단 추천 화면)**: 두 화면의 "이 식단 장보기 N개"는 **지금 짜는 식단**의 재료라 그대로 뒀다. 이미 캘린더에 계획해 둔 요리까지 합쳐 보여 줄지는 사용자 결정 대기.
+
+### iOS 카메라 권한 버그 수정 + 빌드 1.0(3) (2026-09-21, 맥북 작업)
+- **버그**: 아이폰(TestFlight)에서 카메라·사진 버튼이 "NSPhotoLibraryAddUsageDescription 이 Info.plist 에 없다"며 실패. `@capacitor/camera` iOS 는 카메라·사진 보관함·**사진 보관함 추가** 권한 문구 3개가 모두 있어야 동작하는데 셋째가 없었다. [Info.plist](frontend/ios/App/App/Info.plist) 에 `NSPhotoLibraryAddUsageDescription` 추가(앱은 사진을 저장하지 않는다는 문구). 빌드 번호 3.
+- Apple 심사 1차 회신: 「Guideline 2.1 - Information Needed」 — 반려가 아니라 정보 요청. 대응은 [RELEASE_TODO.md](RELEASE_TODO.md) D항.

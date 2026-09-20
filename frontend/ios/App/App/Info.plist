@@ -89,5 +89,10 @@
 	<string>냉장고 재료나 영수증을 찍어서 자동으로 인식하기 위해 카메라를 사용해요.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>이미 찍어 둔 재료·영수증 사진을 선택해서 인식하기 위해 사진 보관함을 사용해요.</string>
+	<!-- 세 번째 필수 키. @capacitor/camera(iOS)는 이 키가 없으면 카메라 자체를 거부한다
+	     ("You are missing NSPhotoLibraryAddUsageDescription" — 2026-09-21 심사 전 실기기에서 발견).
+	     앱은 사진을 앨범에 저장하지 않는다(saveToGallery 안 씀). -->
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>쿡매치는 사진을 앨범에 저장하지 않아요. 사진 촬영 기능이 동작하려면 이 권한 설명이 필요해요.</string>
 </dict>
 </plist>
