@@ -11613,3 +11613,8 @@ TestFlight 로 아이폰에 설치해 **Apple 로그인 성공**, 회원 탈퇴 
 ### iOS 카메라 권한 버그 수정 + 빌드 1.0(3) (2026-09-21, 맥북 작업)
 - **버그**: 아이폰(TestFlight)에서 카메라·사진 버튼이 "NSPhotoLibraryAddUsageDescription 이 Info.plist 에 없다"며 실패. `@capacitor/camera` iOS 는 카메라·사진 보관함·**사진 보관함 추가** 권한 문구 3개가 모두 있어야 동작하는데 셋째가 없었다. [Info.plist](frontend/ios/App/App/Info.plist) 에 `NSPhotoLibraryAddUsageDescription` 추가(앱은 사진을 저장하지 않는다는 문구). 빌드 번호 3.
 - Apple 심사 1차 회신: 「Guideline 2.1 - Information Needed」 — 반려가 아니라 정보 요청. 대응은 [RELEASE_TODO.md](RELEASE_TODO.md) D항.
+
+### iOS 카메라 타일이 아이폰에서 안 열리던 문제 수정 + 빌드 1.0(4) (2026-09-21, 맥북 작업)
+- **증상**: 아이폰 TestFlight 에서 재료 사진 창의 영수증/음식 타일을 눌러도 **아무 반응이 없었다**(앨범 선택은 정상).
+- **원인**: 타일이 쓰는 `Camera.getPhoto({source: Camera})` 가 `@capacitor/camera` 8 에서 deprecated 된 경로로, 실기기 iOS 26 에서 카메라를 열지 못한 채 오류 없이 멈췄다.
+- **수정**: [CameraCaptureSheet.tsx](frontend/src/components/CameraCaptureSheet.tsx) `openCameraFor` — iOS 는 `Camera.takePhoto({ quality: 85 })`, 안드로이드는 기존 `getPhoto` 유지. 아이폰에 직접 설치해 촬영까지 확인. 빌드 번호 4. TypeScript 오류 수는 기존 20개 그대로.

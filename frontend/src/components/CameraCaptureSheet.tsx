@@ -167,11 +167,16 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
     setNativeError(null);
     if (Capacitor.isNativePlatform()) {
       try {
-        const photo = await Camera.getPhoto({
-          resultType: CameraResultType.Uri,
-          source: CameraSource.Camera,
-          quality: 85,
-        });
+        // iOS 는 새 API `takePhoto` 를 쓴다. 예전 `getPhoto(source: Camera)` 는 플러그인이 더 이상
+        // 권장하지 않는(deprecated) 경로인데, 실제 아이폰(iOS 26)에서는 카메라가 아예 안 열리고
+        // 오류도 없이 멈췄다(2026-09-21 TestFlight 실기기). 안드로이드는 기존 방식이 잘 돼서 그대로 둔다.
+        const photo = Capacitor.getPlatform() === 'ios'
+          ? await Camera.takePhoto({ quality: 85 })
+          : await Camera.getPhoto({
+              resultType: CameraResultType.Uri,
+              source: CameraSource.Camera,
+              quality: 85,
+            });
         if (!photo.webPath) return;
         const file = await photoToFile(photo.webPath, 0);
         onCaptured(mode, [file]);

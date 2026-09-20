@@ -24,7 +24,7 @@
 | Apple Developer | **승인 완료·활성**(2026-09-19 계약 수락, 팀 ID `63N6U28LJR`, 개인, 갱신 2027-09-19) | Apple 메일은 **920803hj@naver.com** 로 옴 |
 | Apple 설정(앱 ID·APNs 키·Firebase iOS) | **완료**(2026-09-20~21) | 아래 C 참고 |
 | App Store Connect 앱·TestFlight 업로드 | **앱 등록 완료(`쿡매치 - 냉장고 레시피`, iOS 1.0)·빌드 1.0(2) 업로드·TestFlight 확인(2026-09-21)** | — |
-| **App Store 심사** | **제출(2026-09-21) → 같은 날 Apple 「정보 필요」(2.1 Information Needed) 회신 요청 받음. 카메라 권한 버그 발견 → 빌드 1.0(3) 업로드(2026-09-21)** | 빌드 3 처리 완료 → 아이폰에 설치 → 화면 녹화 → 앱 심사 화면에서 **답장 + 빌드 1.0(3) 선택 후 다시 제출**(아래 D) |
+| **App Store 심사** | **제출(2026-09-21) → 같은 날 Apple 「정보 필요」(2.1 Information Needed) 회신 요청 받음. 카메라 버그 2개 발견·수정 → 빌드 1.0(4) 업로드(2026-09-21)** | 빌드 4 처리 완료 → 아이폰 TestFlight 로 설치 → 카메라 타일 확인 → 화면 녹화 → 앱 심사 화면에서 **답장 + 빌드 1.0(4) 선택 후 다시 제출**(아래 D) |
 | Sign in with Apple(iOS 심사 필수) | **완료 — TestFlight 실기기(아이폰)에서 로그인 성공(2026-09-21)** | — |
 | Apple 토큰 취소(탈퇴 시, 가이드라인 5.1.1(v)) | **완료 — Railway 변수 3개 설정, 실기기 탈퇴 시 서버 로그 `Apple 토큰을 취소함`·탈퇴 200 확인(2026-09-21)** | 선택: 아이폰 설정 → Apple 계정 → 「Apple로 로그인」 목록에서 쿡매치가 사라졌는지 |
 | iOS 시뮬레이터(맥) | 앱 화면·GNB·소셜 로그인 3종 앱 복귀까지 정상(2026-09-19) | 실제 아이폰 확인은 Apple 승인 뒤 |
@@ -96,7 +96,7 @@
 
 **빌드 1.0(2) 업로드 (2026-09-21, 맥북)**
 - 윈도우가 만든 **iOS 푸시 연결**(`AppDelegate` 의 APNs 등록, `App.entitlements` 의 `aps-environment`)을 받아 **빌드 번호 2**(`CURRENT_PROJECT_VERSION = 2`)로 Archive → App Store Connect 업로드. 보관함에서 `aps-environment`·`applesignin` 권한 확인. 빌드 1.0(1)은 푸시가 없는 옛 빌드라 **쓰지 않는다**(App Store 심사에는 1.0(2) 이상을 선택).
-- 새 빌드를 올릴 때마다 **빌드 번호를 1 올려야** 한다(지금 3).
+- 새 빌드를 올릴 때마다 **빌드 번호를 1 올려야** 한다(지금 4).
 - 남은 것: TestFlight 에서 1.0(2) 처리 완료 → 아이폰에 업데이트 → 마이페이지에서 알림을 켜고 발송 스크립트로 **실제 푸시 수신** 확인(윈도우 `backend/.env` 의 `APNS_KEY_ID`·`APNS_TEAM_ID`, `apns-auth-key.p8`, `httpx[http2]` 준비 필요).
 - **스토어 문구**: iOS 푸시가 실기기에서 실제로 오는 걸 확인하기 전까지 App Store 설명·프로모션에서는 알림 문장을 뺀 `ios-desc`·`ios-promo` 를 쓴다([store/STORE_LISTING.md](store/STORE_LISTING.md)). 확인되면 Play 원고와 같은 문장으로 되돌릴 수 있다.
 
@@ -146,6 +146,9 @@ Apple 로그인으로 들어온 사람이 탈퇴하면 Apple 에도 "이 앱과�
 - **화면 녹화 요령**: 아이폰 화면 기록, TestFlight 빌드로. 앱 실행 → 비회원 둘러보기 → 카메라/앨범 재료 인식 → 요리 모드 → AI 식단·챗봇 → 이메일 로그인·Apple 로그인 → **회원 탈퇴는 방금 Apple 로 만든 새 계정으로만**(⚠ 심사용 테스트 계정 `920803hj+review@gmail.com` 은 지우지 말 것).
 
 **⚠ 이 요청 덕에 찾은 진짜 버그 (2026-09-21)**: 아이폰 TestFlight 빌드에서 카메라 버튼을 누르면 "You are missing **NSPhotoLibraryAddUsageDescription** in your Info.plist" 로 실패. `@capacitor/camera` iOS 는 `NSCameraUsageDescription`·`NSPhotoLibraryUsageDescription`·`NSPhotoLibraryAddUsageDescription` **세 키가 모두 있어야** 카메라를 연다 — 셋째 키가 빠져 있었다(시뮬레이터에는 카메라가 없어 못 봤음). 심사관이 카메라를 눌렀다면 2.1 반려 사유. **`Info.plist` 에 셋째 키 추가**하고 **빌드 번호를 3 으로 올려 업로드**(빌드 1.0(2)는 쓰지 않는다). 교훈: 새 iOS 권한 기능은 **실제 아이폰**에서 눌러 본 뒤에 제출할 것.
+
+**⚠ 카메라 버그 2 (같은 날, 빌드 3 에서 발견)**: 권한 키를 넣은 뒤에도 재료 사진 창의 **위쪽 타일 3개(영수증·음식 한 개·음식 여러 개)** 를 누르면 **아무 반응도, 오류도 없었다**(「사진 추가」로 앨범을 고르는 경로는 정상). 원인: 타일이 부르는 `Camera.getPhoto({source: Camera})` 는 `@capacitor/camera` 8 에서 **deprecated** 된 경로이고, 실기기(iPhone 17 Pro, iOS 26.6)에서 카메라를 열지 못한 채 조용히 멈췄다(권한 거부면 화면에 오류가 떴을 텐데 그것도 없었음). **수정**: [CameraCaptureSheet.tsx](frontend/src/components/CameraCaptureSheet.tsx) 의 `openCameraFor` 가 **iOS 에서는 새 API `Camera.takePhoto({ quality: 85 })`** 를 쓰게 함(안드로이드는 검증된 기존 `getPhoto` 그대로). 개발용 빌드를 아이폰에 직접 설치해 **타일로 카메라가 열리고 촬영되는 것 확인** → **빌드 번호 4** 로 업로드. 교훈: 시뮬레이터에 카메라가 없어 이런 오류는 **실기기에서만** 드러난다 — 앱 심사 제출 전에 카메라·푸시·Apple 로그인을 **아이폰에서 직접** 눌러 볼 것.
+
 
 **나중에 할 일 (메모)**
 - **음성 대화**를 넣으면: 앱 개인정보에 오디오 데이터 추가, `Info.plist` 마이크·음성 인식 권한 문구, 방침·Play 데이터 보안에 음성 처리 반영.
