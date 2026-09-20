@@ -11582,3 +11582,6 @@ App Store 심사 가이드라인 5.1.1(v): Apple 로그인을 제공하는 앱�
 - App Store Connect 에 앱 등록(`쿡매치 - 냉장고 레시피`, 번들 ID `com.cookmatch.app`)하고 **빌드 1.0(1) 업로드 성공**. 처리가 끝나면 TestFlight 로 아이폰에 설치해 Apple 로그인·탈퇴(Apple 토큰 취소)를 확인한다.
 - `Info.plist`: `ITSAppUsesNonExemptEncryption = false` 추가(HTTPS 만 사용 — 업로드 때마다 뜨는 수출 규정 질문 생략).
 - Archive 가 "등록된 기기 없음"으로 막혔던 원인과 해결(아이폰 개발자 모드 + Devices 에 UDID 등록)은 [RELEASE_TODO.md](RELEASE_TODO.md) C항 「TestFlight 업로드」.
+
+### iOS 첫 TestFlight 빌드가 실제 아이폰에 설치됨(2026-09-21, 사용자 캡처)
+맥에서 올린 iOS 빌드가 TestFlight 로 사용자의 **실제 아이폰**에 설치돼 열림 — 앱 이름 "쿡매치 - 냉장고 레시피", 버전 1.0(빌드 1), 37.9MB, 빌드 만료 2026-12-20(90일). TestFlight 는 내 폰에서 써 보는 테스트 단계이고 **App Store 심사 제출과는 별개**. 다음: 실기기에서 Apple 로그인·구글/카카오/네이버 로그인 복귀·카메라 재료 인식·화면(상태바·하단 메뉴)·푸시(iOS 푸시 연결은 아직 미완) 확인. 심사 제출 전 남은 것: 계정 삭제 때 Apple 토큰 취소(5.1.1(v)), App Store 개인정보 라벨에 Apple 로그인 반영, 심사용 테스트 계정 안내. 진행 중인 맥 작업이라 상세 절차는 맥 쪽 기록 참고.
