@@ -1,4 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { Capacitor } from '@capacitor/core';
+import { SplashScreen as NativeSplash } from '@capacitor/splash-screen';
 import AppRouter from './routes/AppRouter';
 import SplashScreen from './components/SplashScreen';
 import OfflineIndicator from './components/OfflineIndicator';
@@ -15,6 +17,17 @@ function App() {
   // 스플래시 화면을 강제로 표시하기 위한 디버깅
   console.log('App component rendered, showSplash:', showSplash);
   console.log(import.meta.env);
+
+  // 안드로이드 앱: 시스템 시작 화면(안드로이드 12+ 가 강제로 띄우는 화면)을 앱이 뜨는 즉시 닫는다.
+  // capacitor.config 의 launchShowDuration(2초) 동안 그 화면이 붙잡혀 있어서, 진짜 스플래시(아래
+  // SplashScreen) 전에 아이콘 화면이 2초 넘게 먼저 보였다("아이콘이 전체화면으로 나온 다음 스플래시가
+  // 나온다" — 실사용 지적, 2026-09-21). 시작 화면의 아이콘은 styles.xml 에서 투명·배경은 흰색으로
+  // 바꿔 두어, 닫히기 전 잠깐도 흰 화면으로만 보이게 했다. iOS 는 기존 동작 그대로 둔다.
+  useEffect(() => {
+    if (Capacitor.getPlatform() === 'android') {
+      NativeSplash.hide({ fadeOutDuration: 150 }).catch(() => {});
+    }
+  }, []);
 
   useEffect(() => {
     if (!showSplash) return;

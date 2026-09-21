@@ -831,7 +831,10 @@ const RecipeChatWidget: React.FC = () => {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="먹고 싶은 걸 편하게 말해보세요"
-                className="ai-chat-input flex-1 text-[15px]"
+                // min-w-0: 입력창은 기본으로 약 20글자 폭을 고집해서, 휴대폰 글꼴을 키우면 그 폭도
+                // 같이 커져 "보내기" 버튼을 화면 밖으로 밀어냈다(어르신 폰 실사용 지적, 2026-09-21).
+                // 남는 폭만큼만 차지하고 줄어들 수 있게 한다 — 기본 글꼴에선 보이는 모습 그대로.
+                className="ai-chat-input flex-1 min-w-0 text-[15px]"
                 disabled={loading}
               />
               <button

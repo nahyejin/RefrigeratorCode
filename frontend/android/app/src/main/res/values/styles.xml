@@ -16,7 +16,13 @@
     </style>
 
 
+    <!-- 안드로이드 12+ 는 앱을 열 때 시스템 시작 화면(가운데 앱 아이콘)을 강제로 띄운다 — 끌 수는
+         없어서, 아이콘을 투명하게·배경을 앱 스플래시(App.tsx 의 SplashScreen, 흰 배경)와 같은 흰색으로
+         맞춰 "아이콘 화면 → 스플래시" 두 단계가 아니라 곧바로 스플래시가 뜨는 것처럼 보이게 한다.
+         (예전엔 노란 splash 이미지 배경 + 동그란 아이콘이 2초 넘게 먼저 보였다 — 2026-09-21 지적) -->
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
-        <item name="android:background">@drawable/splash</item>
+        <item name="windowSplashScreenBackground">#FFFFFF</item>
+        <item name="windowSplashScreenAnimatedIcon">@android:color/transparent</item>
+        <item name="android:background">#FFFFFF</item>
     </style>
 </resources>
