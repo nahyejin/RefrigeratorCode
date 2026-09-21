@@ -348,7 +348,12 @@ def main():
     user_ids = set()
     for t, exists in tables.items():
         if exists:
-            cursor.execute(f"SELECT DISTINCT user_id FROM {t}")
+            # 탈퇴한 계정은 뺀다 — 탈퇴는 계정을 표시만 하고(deleted_at) 알림 구독 행은 1년 뒤
+            # 삭제될 때까지 남아 있어서, 거르지 않으면 탈퇴한 사람에게도 알림이 갔다(2026-09-22 발견).
+            cursor.execute(
+                f"SELECT DISTINCT s.user_id FROM {t} s JOIN users u ON u.id = s.user_id "
+                "WHERE u.deleted_at IS NULL"
+            )
             user_ids.update(r["user_id"] for r in cursor.fetchall())
     user_ids = sorted(user_ids)
     print(f"구독자 {len(user_ids)}명", flush=True)

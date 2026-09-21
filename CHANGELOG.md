@@ -11634,3 +11634,13 @@ Apple 「2.1 Information Needed」에 영문 답장과 화면 녹화를 보내�
 - **그대로 둔 것**: iOS 번들 ID `com.cookmatch.app`(애플 등록·심사 중), 소셜 로그인 복귀 스킴 `com.cookmatch.app://auth`(앱 ID 와 별개 — 백엔드 `NATIVE_APP_SCHEME`·iOS 와 같은 값이라 구글·카카오·네이버 콘솔 재등록 불필요), APNs 토픽(iOS).
 - Firebase(CookMatch 프로젝트)에 안드로이드 앱 `kr.cookmatch.app` 을 추가하고 새 `google-services.json`(두 패키지 모두 포함)으로 교체 — 없으면 google-services 플러그인이 "No matching client"로 빌드 실패.
 - 서명된 `app-release.aab` 다시 빌드(패키지 `kr.cookmatch.app` aapt 확인, 업로드 키 서명 `jar verified`), 가상폰에 설치해 새 앱이 정상 실행되는 것 확인. STORE_LISTING·RELEASE_TODO(BETA FLOW 등록 패키지명 수정 안내) 반영.
+
+### 계정 삭제 안내 페이지 + 탈퇴 계정 1년 뒤 자동 삭제 (2026-09-22)
+Google Play 「데이터 보안」의 **계정 삭제 URL** 은 그 페이지에 ① 앱·개발자 이름 ② 삭제 요청 단계가 눈에 띄게 ③ 삭제·보관되는 데이터와 **보관 기간**이 있어야 한다. 개인정보처리방침(/privacy)은 탈퇴 안내가 긴 방침 속에 묻혀 있고 보관 기간이 없어서 부족했다.
+- 사실 확인: 지금 회원 탈퇴(`/api/auth/delete-account`)는 `deleted_at` 표시만 하고 **데이터를 전혀 지우지 않는다**(재가입 가입 혜택 중복 방지 목적). 가족 그룹 냉장고는 남은 식구에게 넘기고 Apple 연결은 끊는다.
+- 사용자 결정: **탈퇴 후 1년 보관 뒤 모두 삭제, 그 전에 요청하면 7일 안에 삭제.**
+- [AccountDeletion.tsx](frontend/src/pages/AccountDeletion.tsx) 신설(`/account-deletion`): 앱에서 탈퇴하는 3단계(마이페이지 → 정보 수정 → 회원탈퇴 → 탈퇴하기), 앱 없이 요청(이메일 920803hj@gmail.com·인스타그램 DM, 7일 안 처리), 삭제 시점별 데이터 표와 1년 보관 이유.
+- 개인정보처리방침 「3. 얼마나 갖고 있나」를 같은 내용으로 고치고 안내 페이지 링크 추가(개정일 2026-09-22).
+- [scripts/purge_deleted_accounts.py](scripts/purge_deleted_accounts.py): 탈퇴 후 365일이 지난 계정의 자기 데이터(재료·즐겨찾기·요리 기록·식단·AI 대화·알림 구독·Apple 토큰·사용량·이용 기록)와 계정 행을 삭제. 기본은 미리보기, `--write` 로 실행, 삭제 요청 시 `--user-id N --write` 로 한 계정만 즉시(탈퇴 안 한 계정은 거부). 가족 식구가 남긴 행은 지우지 않음. 매일 배치 `run_expiry_push_daily.bat` 에 추가(CRLF 유지). 현재 대상 0명 확인.
+- **같이 발견한 버그**: 유통기한 알림 발송이 탈퇴 여부를 보지 않아, 탈퇴한 사람의 알림 구독이 남아 있으면 탈퇴 후에도 알림이 갔다 → `send_expiry_push_notifications.py` 가 `users.deleted_at IS NULL` 인 계정만 대상으로.
+- 탈퇴 즉시 데이터를 지우는 쪽으로 바꾸는 건 탈퇴 API(애플 심사관이 직접 쓰는 기능) 배포가 필요해 **애플 심사 뒤로 미룸**.

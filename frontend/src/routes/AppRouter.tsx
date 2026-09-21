@@ -17,6 +17,7 @@ import ShareRequestPopup from '../components/ShareRequestPopup';
 import FamilyActionNotice from '../components/FamilyActionNotice';
 import { AuthProvider } from '../context/AuthContext';
 import LegalPage from '../pages/LegalPage';
+import AccountDeletion from '../pages/AccountDeletion';
 import Login from '../pages/Login';
 import Signup from '../pages/Signup';
 import FindEmail from '../pages/FindEmail';
@@ -238,6 +239,8 @@ function AppContent() {
               바깥(블로그 등)에 두면 무엇을 모으는지 바뀌었을 때 한쪽만 고쳐진다. */}
           <Route path="/privacy" element={<LegalPage />} />
           <Route path="/terms" element={<LegalPage />} />
+          {/* 계정·데이터 삭제 안내 — Google Play 데이터 보안의 「계정 삭제 URL」 */}
+          <Route path="/account-deletion" element={<AccountDeletion />} />
 
           {/* 이번 주 식단 + 장보기 목록.
               장보기 목록은 식단에서 나오므로 한 화면에 둔다 — 나누면 사용자가

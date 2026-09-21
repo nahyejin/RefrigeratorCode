@@ -24,4 +24,9 @@ set PY="C:\Users\user\venv310\Scripts\python.exe"
 echo [%date% %time%] 유통기한 임박 알림 발송 시작 >> %LOG%
 %PY% -u scripts\send_expiry_push_notifications.py --write >> %LOG% 2>&1
 echo [%date% %time%] 종료 (exit=%ERRORLEVEL%) >> %LOG%
+
+REM 탈퇴 후 1년이 지난 계정·데이터 완전 삭제 (계정 삭제 안내·개인정보처리방침의 약속)
+echo [%date% %time%] 탈퇴 1년 경과 계정 삭제 시작 >> %LOG%
+%PY% -u scripts\purge_deleted_accounts.py --write >> %LOG% 2>&1
+echo [%date% %time%] 계정 삭제 종료 (exit=%ERRORLEVEL%) >> %LOG%
 echo. >> %LOG%
