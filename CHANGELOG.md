@@ -11627,3 +11627,10 @@ Apple 「2.1 Information Needed」에 영문 답장과 화면 녹화를 보내�
 - **"아이콘이 전체화면으로 나온 다음 스플래시가 나온다"**: 안드로이드 12+ 가 앱을 열 때 강제로 띄우는 시스템 시작 화면(옅은 회색 + 가운데 동그란 앱 아이콘)이 `capacitor.config`의 `launchShowDuration: 2000` 때문에 2초 넘게 붙잡혀 있다가, 그 뒤에야 진짜 스플래시(흰 배경 + 로고 + 누적 레시피 수)가 떴다. 시스템 화면 자체는 끌 수 없어서 [styles.xml](frontend/android/app/src/main/res/values/styles.xml)에서 아이콘을 투명(`windowSplashScreenAnimatedIcon`)·배경을 흰색으로 바꾸고, [App.tsx](frontend/src/App.tsx)가 앱이 뜨자마자(안드로이드만) `SplashScreen.hide()`로 닫게 함 → 이제 흰 화면 1초 남짓 뒤 바로 스플래시. iOS 는 그대로.
 - **큰 글꼴**: 안드로이드 웹뷰는 휴대폰 글꼴 크기 설정을 그대로 따라 글자를 키워서, 최대(2배)에서는 섹션 제목이 두 줄로 쪼개지고·드롭다운 글자가 넘치고·하단 메뉴 이름이 겹쳤다. 배율별로 보니 1.3배까지는 화면이 유지되고 1.5배부터 깨져서, [MainActivity.java](frontend/android/app/src/main/java/com/cookmatch/app/MainActivity.java)에서 웹뷰 글자 확대를 **최대 1.3배**로 제한(`setTextZoom`, 앱에 돌아올 때마다 다시 적용). 기본 글꼴(1.0) 사용자는 그대로, 1.3배 이하로 키운 사람은 설정대로, 그 이상은 1.3배로 보인다. iOS 웹뷰는 원래 휴대폰 글꼴을 따르지 않아 해당 없음.
 - **챗봇 입력창**: 1.3배에서도 입력창이 기본 폭(약 20글자)을 고집해 "보내기" 버튼을 화면 밖으로 밀어내고 있었다(그 넘침 때문에 크레딧 안내 글도 가장자리에 붙어 보였음). [RecipeChatWidget.tsx](frontend/src/components/RecipeChatWidget.tsx) 입력창에 `min-w-0` 을 줘서 남는 폭만큼만 차지하게 — 기본 글꼴에선 보이는 모습 그대로(글꼴 1.0·2.0 둘 다 캡처로 확인).
+
+### 안드로이드 앱 ID 변경 — com.cookmatch.app → kr.cookmatch.app (2026-09-22)
+- Play Console "앱 만들기"에서 패키지 이름 `com.cookmatch.app` 이 **이미 다른 개발자가 사용 중**이라 등록 불가 → 사용 가능 확인된 `kr.cookmatch.app` 으로 앱을 만듦(패키지 이름은 한 번 정하면 못 바꿈).
+- [build.gradle](frontend/android/app/build.gradle) `applicationId` 만 변경 — `namespace`(자바 패키지·R 클래스)는 코드 이름이라 그대로 `com.cookmatch.app`. `strings.xml` 의 `package_name` 도 새 값으로.
+- **그대로 둔 것**: iOS 번들 ID `com.cookmatch.app`(애플 등록·심사 중), 소셜 로그인 복귀 스킴 `com.cookmatch.app://auth`(앱 ID 와 별개 — 백엔드 `NATIVE_APP_SCHEME`·iOS 와 같은 값이라 구글·카카오·네이버 콘솔 재등록 불필요), APNs 토픽(iOS).
+- Firebase(CookMatch 프로젝트)에 안드로이드 앱 `kr.cookmatch.app` 을 추가하고 새 `google-services.json`(두 패키지 모두 포함)으로 교체 — 없으면 google-services 플러그인이 "No matching client"로 빌드 실패.
+- 서명된 `app-release.aab` 다시 빌드(패키지 `kr.cookmatch.app` aapt 확인, 업로드 키 서명 `jar verified`), 가상폰에 설치해 새 앱이 정상 실행되는 것 확인. STORE_LISTING·RELEASE_TODO(BETA FLOW 등록 패키지명 수정 안내) 반영.

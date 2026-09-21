@@ -39,7 +39,7 @@
 ## 1. 지금 할 수 있는 일 (기다리는 동안)
 
 1. **맥북 세팅**: 앱스토어에서 Xcode 설치(오래 걸리니 먼저 걸어 둠) → Homebrew → `brew install node git` → `git clone https://github.com/nahyejin/RefrigeratorCode` → `cd RefrigeratorCode/frontend && npm install` → `npm run build` → `npx cap sync ios` → `npx cap open ios` → iPhone 시뮬레이터 선택 후 ▶. (유료 계정 없이 가능. 푸시·Sign in with Apple 은 승인 뒤)
-2. **BETA FLOW 앱 등록 저장만**: 패키지명 `com.cookmatch.app`, 가격 무료. **결제는 아직 하지 않는다.**
+2. **BETA FLOW 앱 등록 저장만**: 패키지명 **`kr.cookmatch.app`**(⚠ 예전에 com.cookmatch.app 으로 저장했다면 고칠 것 — Play 에서 그 이름이 이미 사용 중이라 2026-09-22 변경), 가격 무료. **결제는 아직 하지 않는다.**
 3. **낯선 계정 로그인 시험**: 가족·지인의 구글·카카오 계정을 잠깐 빌려 가상 폰이나 PC 에서 로그인이 되는지 확인. (본인 계정은 소유자라 항상 통과해서 확인이 안 됨)
 4. (선택) **공기계 실기기 테스트**: 개발자 옵션 → USB 디버깅 → PC 연결 → 푸시 알림 수신·카메라 확인.
 5. (선택) 쿡매치 웹 가입자 7명 중 **안드로이드 사용자와 구글 이메일**을 받아 둔다(테스터 후보).

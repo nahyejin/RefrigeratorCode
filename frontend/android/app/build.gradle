@@ -9,10 +9,13 @@ if (keystorePropsFile.exists()) {
 }
 
 android {
+    // namespace 는 코드(자바 패키지·R 클래스) 이름이라 그대로 둔다. 스토어에 등록되는 앱 ID 는
+    // 아래 applicationId — Google Play 에서 com.cookmatch.app 이 이미 다른 개발자 것이라
+    // kr.cookmatch.app 으로 등록했다(2026-09-22). iOS 번들 ID 는 com.cookmatch.app 그대로.
     namespace = "com.cookmatch.app"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.cookmatch.app"
+        applicationId "kr.cookmatch.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

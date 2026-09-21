@@ -14,7 +14,7 @@
 
 | 항목 | 값 |
 |---|---|
-| 패키지명 / 번들 ID | `com.cookmatch.app` |
+| 패키지명 / 번들 ID | Android `kr.cookmatch.app` (Play 에서 com.cookmatch.app 이 이미 사용 중이라 2026-09-22 변경) · iOS `com.cookmatch.app` |
 | 카테고리 | Play: 식음료 · App Store: 기본 "음식 및 음료", 보조 "라이프스타일" |
 | 가격 | 무료 (인앱 구매 없음) |
 | 개인정보처리방침 URL | https://refrigerator-code.vercel.app/privacy |
