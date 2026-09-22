@@ -11725,3 +11725,8 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 - 광고 상자 떨림 수정: `FitDisclaimer` 가 보이는 문구의 크기·줄바꿈을 직접 바꿔 가며 쟀고 ResizeObserver 가 높이 변화에도 반응해, 한 줄↔두 줄 전환 → 높이 변화 → 재측정이 무한 반복됐다. 안 보이는 한 줄 복사본으로만 재고 **폭이 바뀔 때만** 다시 재도록 변경. 로컬 요즘 인기(모바일 폭)에서 1초간 20번 재 상자 높이·글씨 크기(9.5px 한 줄)가 한 값으로 고정된 것 확인. 내 냉장고 배너 높이 50(사용자 요청).
 - 요즘 인기 배너도 높이 50 — 이제 배너 4곳 모두 50.
 - 배너 대가성 문구 **줄바꿈 완전히 없앰**(사용자 요청 — 화면마다 한 줄·두 줄이 섞였다): 두 줄 대체를 빼고 항상 한 줄, 최소 글씨 8.5→7px.
+
+## 2026-09-23
+
+### 쿠팡 대가성 문구 한 줄 — 구매 시트에도 (2026-09-23)
+- 한 줄 맞춤 컴포넌트를 배너 안에서 꺼내 [CoupangDisclaimer.tsx](frontend/src/components/CoupangDisclaimer.tsx) 의 `OneLineCoupangDisclaimer`(maxFont·align 받음)로 공용화. 다이내믹 배너(11px·가운데)와 [CoupangAdSheet.tsx](frontend/src/components/CoupangAdSheet.tsx) 「부족한 재료 구매」 시트(12px·왼쪽)가 같이 쓴다. 목록 속 쿠팡 광고 카드(`CoupangAdCard`, 가로 캐러셀에서 문구가 카드 폭을 정함)는 그대로.

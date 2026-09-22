@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { OneLineCoupangDisclaimer } from './CoupangDisclaimer';
 
 /**
  * 쿠팡 파트너스 **다이내믹 배너**(iframe) — 조리 시트 「조리 순서」 위, 요리 캘린더 월 목표 아래, 내 냉장고·요즘 인기 맨 아래(모두 높이 50).
@@ -51,7 +52,7 @@ const CoupangDynamicBanner: React.FC<{
       {/* 회색 상자로 감싸 본문과 구분한다(2026-09-22) — 레시피 내용 사이에 끼어 있어서 "중요한 본문인가?"
           싶게 보였다. 대가성 문구도 상자 안에 둬서 이 영역 전체가 광고라는 게 한눈에 보이게. */}
       <div ref={boxRef} style={{ background: AD_BOX_BG, borderRadius: 12, padding: `6px ${AD_BOX_PAD_X}px 8px` }}>
-        <FitDisclaimer />
+        <OneLineCoupangDisclaimer maxFont={11} align="center" style={{ margin: '0 0 5px' }} />
         {width > 0 && (
           <iframe
             title="쿠팡 추천 상품"
@@ -66,64 +67,6 @@ const CoupangDynamicBanner: React.FC<{
           />
         )}
       </div>
-    </div>
-  );
-};
-
-/**
- * 대가성 문구를 **항상 한 줄로** — 자리 폭에 들어갈 때까지 글씨를 줄인다(11px → 최소 7px).
- *
- * 폰(폭 ~340px)에서는 11px 로는 한 줄에 안 들어가 문장 중간 어중간한 곳에서 감겼고, 쉼표 뒤에서 두 줄로
- * 끊어 봤더니 "굳이 두 줄까지?" 라는 의견이라 한 줄 + 작은 글씨로 바꿨다(2026-09-22).
- * 처음엔 최소 8.5px 에서도 안 들어가면 두 줄로 내렸는데, 화면마다 한 줄·두 줄이 섞여 보여 "줄바꿈 없이
- * 통일" 요청으로 두 줄을 없앴다(2026-09-23). 폰 폭(320px 이상)에서는 7px 안에 들어간다.
- */
-const TEXT_A = '이 광고는 쿠팡 파트너스 활동의 일환으로,';
-const TEXT_B = '이에 따른 일정액의 수수료를 제공받습니다.';
-const MAX_FONT = 11;
-const MIN_FONT = 7;
-
-const FitDisclaimer: React.FC = () => {
-  const boxRef = React.useRef<HTMLDivElement>(null);
-  const measureRef = React.useRef<HTMLSpanElement>(null);
-  const [font, setFont] = React.useState(MAX_FONT);
-
-  React.useLayoutEffect(() => {
-    const box = boxRef.current, probe = measureRef.current;
-    if (!box || !probe) return;
-    let lastWidth = -1;
-    const fit = () => {
-      // **폭이 바뀔 때만** 다시 잰다. 처음엔 보이는 글자 자체의 크기를 바꿔 가며 쟀고 높이 변화에도
-      // 반응했는데, 두 줄 ↔ 한 줄로 바뀌며 높이가 변할 때마다 다시 재서 상자가 계속 떨렸다(2026-09-22).
-      // 이제는 안 보이는 한 줄짜리 복사본으로만 재고, 보이는 문구는 결과만 받는다.
-      const avail = box.clientWidth;
-      if (avail === lastWidth) return;
-      lastWidth = avail;
-      let f = MAX_FONT;
-      probe.style.fontSize = f + 'px';
-      while (probe.offsetWidth > avail && f > MIN_FONT) {
-        f -= 0.5;
-        probe.style.fontSize = f + 'px';
-      }
-      setFont(f);
-    };
-    fit();
-    const ro = new ResizeObserver(fit);
-    ro.observe(box);
-    return () => ro.disconnect();
-  }, []);
-
-  const textStyle: React.CSSProperties = { lineHeight: 1.4, letterSpacing: '-0.2px' };
-  return (
-    <div ref={boxRef} style={{ position: 'relative', margin: '0 0 5px' }}>
-      <span ref={measureRef} aria-hidden
-            style={{ ...textStyle, position: 'absolute', visibility: 'hidden', whiteSpace: 'nowrap', left: 0, top: 0 }}>
-        {TEXT_A} {TEXT_B}
-      </span>
-      <p style={{ ...textStyle, margin: 0, fontSize: font, color: 'var(--ink-500)', textAlign: 'center',
-                  whiteSpace: 'nowrap', overflow: 'hidden' }}>
-        {TEXT_A} {TEXT_B}
-      </p>
     </div>
   );
 };

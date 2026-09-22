@@ -3,7 +3,7 @@ import Sheet from './ui/Sheet';
 import Button from './ui/Button';
 import { resolveCoupangUrl } from '../utils/coupangLink';
 import { trackCoupangClick } from '../utils/trackCoupangClick';
-import CoupangDisclaimer from './CoupangDisclaimer';
+import { OneLineCoupangDisclaimer } from './CoupangDisclaimer';
 
 interface CoupangAdSheetProps {
   /** 열려 있을 재료명. null 이면 닫힘 */
@@ -53,7 +53,8 @@ const CoupangAdSheet: React.FC<CoupangAdSheetProps> = ({ ingredient, onClose, re
     <Sheet open onClose={onClose} title="부족한 재료 구매">
       <div style={{ paddingBottom: 4 }}>
         {/* 대가성 문구는 구매 버튼보다 위에 — 가이드가 "첫 부분" 을 요구한다 */}
-        <CoupangDisclaimer style={{ marginBottom: 14 }} />
+        {/* 한 줄로(2026-09-23) — 배너와 같은 방식, 폭에 맞춰 글씨만 줄인다 */}
+        <OneLineCoupangDisclaimer style={{ marginBottom: 14 }} />
 
         <div
           style={{
