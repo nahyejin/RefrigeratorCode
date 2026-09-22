@@ -1,6 +1,52 @@
-# 쿡매치 출시 — 남은 일 (2026-09-21 기준)
+# 쿡매치 출시 — 남은 일 (2026-09-22 기준)
 
 상세 배경은 [MOBILE_APP_GUIDE.md](MOBILE_APP_GUIDE.md), 스토어 원고는 [store/STORE_LISTING.md](store/STORE_LISTING.md).
+
+## 📋 2026-09-22 하루 정리 (무엇이 바뀌었나)
+
+**스토어 진행 상황**
+| 곳 | 상태 | 다음 |
+|---|---|---|
+| **App Store (iOS)** | ✅ 심사 통과(09:28) → 가격 미설정으로 「판매 중단」이던 것을 $0.00 무료로 설정 → 10:02 「배포 승인」, 148개국 처리 중 | 24시간 안에 https://apps.apple.com/app/id6814209983 열리는지 확인. 오늘 저녁 맥에서 **1.0.1 제출**(아래) |
+| **Google Play (Android)** | 앱 만들기(패키지 `kr.cookmatch.app`)·앱 설정 전부 완료 → 비공개 테스트 Alpha **검토 중** | 승인 메일 오면 BETA FLOW 결제(9,000원) → 테스터 CSV 를 「쿡매치 테스터」에 업로드 → 14일 → 프로덕션 신청 |
+| **네이버 로그인** | ✅ 09-21 승인 | 없음 |
+
+**코드·설정 변경 (커밋 순)**
+1. `e5bffef9` 재료 사전·쿠팡 광고 후보 자동 반영(매일 배치).
+2. `1ea1e595` 안드로이드 applicationId `com.cookmatch.app` → **`kr.cookmatch.app`**(Play 에서 이미 사용 중). namespace·iOS 번들 ID·로그인 복귀 스킴은 그대로. Firebase 에 새 안드로이드 앱 추가, `google-services.json` 갱신.
+3. `0abb9fea` **계정 삭제 안내 페이지** `/account-deletion`(Play 데이터 보안의 계정 삭제 URL) + 개인정보처리방침 3항 개정(시행 2026-09-22) + 탈퇴 1년 뒤 자동 삭제 배치 `scripts/purge_deleted_accounts.py`(매일 배치에 추가) + 탈퇴 계정에 알림 안 보내게 수정.
+4. `675318aa` Play 피처 그래픽 재디자인 — 시안 A(검정, 채택)·B(노랑).
+5. `55b3362a`·`a555019d` 출시 기록(Play 설정 완료, App Store 심사 통과).
+6. `0bef62df` **탈퇴 즉시 콘텐츠 삭제**(냉장고·기록·식단·AI 대화·알림 구독), **iOS 푸시 발송 연결**(APNs 키 → `backend/apns-auth-key.p8`, 아이폰 수신 확인), App Store 원고에 알림 문장 복원, **iOS 1.0.1(빌드 5)** 로 pbxproj 올림.
+7. `94fbe50b` App Store 판매 중단 원인(가격 미설정) 해결 기록.
+8. 1.0.1 「새로운 기능」 원고(`store/STORE_LISTING.md` `ios-whatsnew`) 작성, 이 정리 추가.
+
+**사용자가 직접 할 일 (남은 것)**
+- App Store Connect **프로모션 텍스트**를 `ios-promo`(알림 문장 포함)로 교체 — 심사 없이 바로 가능.
+- 다운로드 폴더 `AuthKey_MB2S3T63BC.p8` 비공개 백업 후 삭제.
+- 구글 비공개 테스트 승인 뒤: 심사용 계정 비밀번호 변경 → App Store Connect·Play 로그인 정보에 새 비밀번호.
+- (선택) App Store Connect 「Apple Silicon Mac 사용 가능」 체크 해제.
+
+## 🍎 오늘 저녁 맥에서 할 일 — iOS 1.0.1 (빌드 5) 제출
+
+맥이 마지막으로 올린 커밋은 `92e173b1`. 그 뒤 윈도우에서 바뀐 앱 쪽 수정: 챗봇 입력창 넘침(`min-w-0`), 안드로이드 전용 스플래시 즉시 닫기(`App.tsx` — iOS 동작 변화 없음), 계정 삭제 안내 페이지·방침 개정, pbxproj 1.0.1(5).
+
+1. **받기·빌드** (터미널)
+   ```bash
+   cd ~/Developer/RefrigeratorCode && git pull
+   cd frontend && npm install && npm run build && npx cap sync ios
+   ```
+   맥 Claude 가 같은 파일을 먼저 고쳐 둬서 pull 이 막히면 `git checkout <파일>` 로 그 변경을 버리고 다시 pull.
+2. **시뮬레이터/실기기 확인** — Xcode 에서 ▶. 로그인·카메라·챗봇 입력창·알림 스위치만 빠르게 확인.
+3. **버전 확인** — Xcode 타깃 App → General 에 Version **1.0.1**, Build **5** 인지 확인.
+4. **Archive·업로드** — 기기 선택을 「Any iOS Device (arm64)」 → Product → Archive → Organizer 에서 Distribute App → App Store Connect → Upload. 업로드 뒤 처리까지 10~30분.
+5. **App Store Connect 에 새 버전** — 앱 → iOS 앱 옆 ⊕ → 버전 **1.0.1**.
+   - 「이 버전의 새로운 기능」: `store/STORE_LISTING.md` 의 `ios-whatsnew`
+   - 「설명」: `ios-desc`(알림 문장 포함), 「프로모션 텍스트」: `ios-promo`
+   - 스크린샷·키워드·앱 심사 정보는 1.0 에서 그대로 넘어옴
+   - 빌드: 처리 끝난 **1.0.1 (5)** 선택
+6. **심사 제출** — 「심사에 추가」 → 제출. 출시 방식은 자동 그대로 OK.
+7. 끝나면 Claude 에게 "맥 pull 했어"라고 알려 주면 마지막 pull 지점을 갱신한다.
 
 ## ⚠ 2026-09-22 10:00 — App Store 「판매 중단」 원인: 가격·판매 국가 미설정 → 해결
 

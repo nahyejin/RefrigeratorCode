@@ -11628,6 +11628,8 @@ Apple 「2.1 Information Needed」에 영문 답장과 화면 녹화를 보내�
 - **큰 글꼴**: 안드로이드 웹뷰는 휴대폰 글꼴 크기 설정을 그대로 따라 글자를 키워서, 최대(2배)에서는 섹션 제목이 두 줄로 쪼개지고·드롭다운 글자가 넘치고·하단 메뉴 이름이 겹쳤다. 배율별로 보니 1.3배까지는 화면이 유지되고 1.5배부터 깨져서, [MainActivity.java](frontend/android/app/src/main/java/com/cookmatch/app/MainActivity.java)에서 웹뷰 글자 확대를 **최대 1.3배**로 제한(`setTextZoom`, 앱에 돌아올 때마다 다시 적용). 기본 글꼴(1.0) 사용자는 그대로, 1.3배 이하로 키운 사람은 설정대로, 그 이상은 1.3배로 보인다. iOS 웹뷰는 원래 휴대폰 글꼴을 따르지 않아 해당 없음.
 - **챗봇 입력창**: 1.3배에서도 입력창이 기본 폭(약 20글자)을 고집해 "보내기" 버튼을 화면 밖으로 밀어내고 있었다(그 넘침 때문에 크레딧 안내 글도 가장자리에 붙어 보였음). [RecipeChatWidget.tsx](frontend/src/components/RecipeChatWidget.tsx) 입력창에 `min-w-0` 을 줘서 남는 폭만큼만 차지하게 — 기본 글꼴에선 보이는 모습 그대로(글꼴 1.0·2.0 둘 다 캡처로 확인).
 
+## 2026-09-22
+
 ### 안드로이드 앱 ID 변경 — com.cookmatch.app → kr.cookmatch.app (2026-09-22)
 - Play Console "앱 만들기"에서 패키지 이름 `com.cookmatch.app` 이 **이미 다른 개발자가 사용 중**이라 등록 불가 → 사용 가능 확인된 `kr.cookmatch.app` 으로 앱을 만듦(패키지 이름은 한 번 정하면 못 바꿈).
 - [build.gradle](frontend/android/app/build.gradle) `applicationId` 만 변경 — `namespace`(자바 패키지·R 클래스)는 코드 이름이라 그대로 `com.cookmatch.app`. `strings.xml` 의 `package_name` 도 새 값으로.
@@ -11664,3 +11666,7 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 
 ### App Store 「판매 중단」 해결 — 가격·판매 국가 설정 (2026-09-22)
 - 심사 통과 뒤에도 App Store Connect 에 「App Store에서 이 앱의 판매가 중단되었습니다」가 떠서 확인하니, **가격 및 사용 가능 여부**에 가격이 없어 판매 국가가 0개였다. 글로벌 가격 변경으로 **$0.00(무료)** 을 오늘 날짜로 넣자 148개국 처리 중(27개국은 인허가 필요국이라 판매 불가)으로 바뀌고 10:02 「배포 승인」 메일 수신. 최대 24시간 안에 공개. 코드 변경 없음 — [RELEASE_TODO.md](RELEASE_TODO.md) 에 기록.
+
+### 오늘 한 일 정리 + 맥에서 할 일 안내 (2026-09-22)
+- [RELEASE_TODO.md](RELEASE_TODO.md) 맨 위에 「2026-09-22 하루 정리」(바뀐 것 전부·스토어 진행 상황·남은 일)와 **「오늘 저녁 맥에서 할 일」**(pull → build → cap sync → Xcode Archive 1.0.1(5) → App Store Connect 1.0.1 제출) 순서표를 추가.
+- [store/STORE_LISTING.md](store/STORE_LISTING.md) 에 1.0.1 「이 버전의 새로운 기능」 원고(`ios-whatsnew`) 추가. 이 CHANGELOG 의 09-22 항목들이 「2026-09-21 (맥북 작업)」 아래 섞여 있어 `## 2026-09-22` 제목을 새로 달았다.
