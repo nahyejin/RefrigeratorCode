@@ -2296,7 +2296,7 @@ const Popular = () => {
         
         {/* 쿠팡 다이내믹 배너 — 화면 맨 끝(2026-09-22). 전의 BottomCoupangAd 는 광고 단위 ID 환경변수가
             없어 실제로는 아무것도 안 그리고 있었다. */}
-        <CoupangDynamicBanner style={{ marginTop: 24, marginBottom: 24 }} />
+        <CoupangDynamicBanner height={50} style={{ marginTop: 24, marginBottom: 24 }} />
       </div>
       {toast && (
         <Toast message={toast} />
