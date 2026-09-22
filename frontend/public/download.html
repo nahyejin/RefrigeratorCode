@@ -1,0 +1,98 @@
+<!doctype html>
+<!--
+  쿡매치 앱 다운로드 — 인스타 프로필·릴스 광고에 거는 "링크 하나" (https://refrigerator-code.vercel.app/download).
+
+  왜 SPA 라우트가 아니라 정적 파일인가(2026-09-22):
+    누른 사람을 곧바로 스토어로 보내는 게 이 페이지의 전부라, 앱 번들(수백 KB)을 받은 뒤에 넘기면
+    인스타 인앱 브라우저에서 1~2초 흰 화면이 생긴다. 이 파일만 받으면 바로 넘긴다. 앱의 GNB·팝업도 안 뜬다.
+    vercel.json 에서 /download → /download.html 로 이어 준다(SPA 전체 rewrite 보다 먼저).
+
+  동작:
+    아이폰·아이패드 → App Store 로 바로 이동
+    안드로이드 → ANDROID_LIVE 가 true 면 Play 스토어로 바로 이동, false 면 "곧 출시" 안내 + 웹으로 쓰기
+    그 밖(PC 등) → 두 스토어 버튼을 보여 준다
+
+  ★ 안드로이드 정식 출시(Play 프로덕션 승인)되면 아래 ANDROID_LIVE 를 true 로 바꾸고 push — 인스타 링크는 그대로 둔다.
+-->
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>쿡매치 다운로드</title>
+<meta name="description" content="냉장고 재료로 만들 수 있는 레시피 추천, AI 일주일 식단 — 쿡매치 앱 다운로드" />
+<meta property="og:title" content="쿡매치 - 냉장고 재료로 레시피 추천" />
+<meta property="og:description" content="사진 한 장으로 재료 등록, 있는 재료로 만들 수 있는 요리와 AI 일주일 식단까지." />
+<meta property="og:image" content="https://refrigerator-code.vercel.app/cookmatch_icon.png" />
+<link rel="icon" href="/cookmatch_icon.png" />
+<script>
+  var APP_STORE = 'https://apps.apple.com/kr/app/id6814209983';
+  var PLAY_STORE = 'https://play.google.com/store/apps/details?id=kr.cookmatch.app';
+  var ANDROID_LIVE = false; // ★ Play 정식 출시 후 true
+
+  var ua = navigator.userAgent || '';
+  // iPadOS 13+ 사파리는 스스로를 Mac 이라고 한다 — 터치가 되면 아이패드로 본다
+  var isIOS = /iPhone|iPad|iPod/i.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+  var isAndroid = /Android/i.test(ua);
+
+  if (isIOS) location.replace(APP_STORE);
+  else if (isAndroid && ANDROID_LIVE) location.replace(PLAY_STORE);
+</script>
+<style>
+  :root { --bg:#FFFFFF; --ink:#1A1A1E; --sub:#6B6B75; --line:#E6E6EA; --brand:#FFD600; --card:#F6F6F8; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#121214; --ink:#F2F2F4; --sub:#A0A0AA; --line:#2A2A30; --card:#1C1C20; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink);
+         font-family:-apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif; }
+  main { max-width:420px; margin:0 auto; padding:56px 20px 40px; text-align:center; word-break:keep-all; }
+  .icon { width:96px; height:96px; border-radius:22px; box-shadow:0 8px 24px rgba(0,0,0,.12); }
+  h1 { font-size:24px; margin:18px 0 6px; }
+  .tag { font-size:15px; color:var(--sub); line-height:1.55; margin:0 0 28px; }
+  .btn { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; min-height:52px;
+         border-radius:14px; font-size:16px; font-weight:700; text-decoration:none; margin:0 0 10px; }
+  .primary { background:var(--brand); color:#1A1A1E; }
+  .ghost { background:var(--card); color:var(--ink); border:1px solid var(--line); }
+  .note { font-size:14px; color:var(--sub); line-height:1.6; background:var(--card); border:1px solid var(--line);
+          border-radius:14px; padding:14px 16px; margin:0 0 14px; }
+  .hidden { display:none; }
+  footer { font-size:12px; color:var(--sub); margin-top:26px; }
+  footer a { color:var(--sub); }
+</style>
+</head>
+<body>
+<main>
+  <img class="icon" src="/cookmatch_icon.png" alt="쿡매치 아이콘" />
+  <h1>쿡매치</h1>
+  <p class="tag">냉장고에 있는 재료로 만들 수 있는 요리부터.<br />사진 한 장으로 재료 등록, AI 일주일 식단까지.</p>
+
+  <!-- 안드로이드인데 아직 Play 출시 전 -->
+  <div id="android-soon" class="hidden">
+    <p class="note">안드로이드 앱은 곧 Play 스토어에 나와요.<br />그 전까지는 웹에서 똑같이 쓸 수 있어요.</p>
+    <a class="btn primary" href="/">웹에서 바로 시작하기</a>
+  </div>
+
+  <!-- PC 등: 두 스토어 모두 -->
+  <div id="stores">
+    <a class="btn primary" id="ios-btn" href="https://apps.apple.com/kr/app/id6814209983">App Store에서 받기 (iPhone)</a>
+    <a class="btn ghost" id="android-btn" href="https://play.google.com/store/apps/details?id=kr.cookmatch.app">Google Play에서 받기 (Android)</a>
+    <a class="btn ghost" href="/">웹에서 바로 시작하기</a>
+  </div>
+
+  <footer><a href="/privacy">개인정보처리방침</a> · <a href="/terms">이용약관</a></footer>
+</main>
+<script>
+  if (isAndroid && !ANDROID_LIVE) {
+    document.getElementById('android-soon').className = '';
+    document.getElementById('stores').className = 'hidden';
+  }
+  if (!ANDROID_LIVE) {
+    // 출시 전에는 Play 버튼 대신 안내만 — 누르면 "찾을 수 없음"이 뜬다
+    var a = document.getElementById('android-btn');
+    a.removeAttribute('href');
+    a.textContent = 'Android — 곧 출시';
+    a.style.opacity = '0.55';
+  }
+</script>
+</body>
+</html>

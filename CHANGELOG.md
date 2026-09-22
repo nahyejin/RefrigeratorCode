@@ -11693,3 +11693,10 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 - iOS 1.0.1 빌드 6 업로드 후 빌드 교체·재제출(맥).
 - BETA FLOW 결제·등록(만료 2026-10-22), 테스터 CSV 27명 → Play 「쿡매치 테스터」 28명, 안드로이드 2 (1.0.1) 업로드·검토 전송(관리형 게시라 승인 후 직접 게시).
 - 안드로이드 2 (1.0.1) 당일 검토 통과 → 게시 완료(비공개 테스트 테스터 28명).
+
+### 앱 다운로드 링크 하나로 — /download (2026-09-22)
+- 인스타 프로필·릴스 광고 버튼엔 링크를 하나만 걸 수 있어서, 누른 기기에 맞춰 보내는 정적 페이지 [download.html](frontend/public/download.html) 추가(`vercel.json` 에서 `/download` → `/download.html`, SPA 전체 rewrite 보다 먼저). 앱 번들을 안 받아 인스타 인앱 브라우저에서도 바로 넘어간다.
+  - 아이폰·아이패드 → App Store(`apps.apple.com/kr/app/id6814209983`) 즉시 이동
+  - 안드로이드 → `ANDROID_LIVE` true 면 Play(`play.google.com/store/apps/details?id=kr.cookmatch.app`) 즉시 이동, 지금(false)은 "곧 출시" 안내 + 웹에서 시작하기
+  - PC 등 → App Store·Play(출시 전엔 "곧 출시")·웹 버튼
+- **Play 프로덕션 출시되면 `ANDROID_LIVE = true` 로 바꾸고 push** — 인스타 링크는 그대로.

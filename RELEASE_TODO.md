@@ -2,6 +2,11 @@
 
 상세 배경은 [MOBILE_APP_GUIDE.md](MOBILE_APP_GUIDE.md), 스토어 원고는 [store/STORE_LISTING.md](store/STORE_LISTING.md).
 
+## 🔗 앱 다운로드 링크 (인스타 프로필·릴스 광고용) — https://refrigerator-code.vercel.app/download
+
+- 하나의 링크로 아이폰은 App Store, 안드로이드는 Play(출시 전엔 "곧 출시"+웹), PC 는 버튼 목록. `frontend/public/download.html`.
+- **안드로이드 정식 출시되면 `download.html` 의 `ANDROID_LIVE = true` 로 바꾸고 push** (인스타 링크는 안 바꿔도 됨).
+
 ## ✅ 2026-09-22 오후 — 구글 비공개 테스트 승인, BETA FLOW 결제·테스터 등록, 안드로이드 1.0.1 검토 전송
 
 - 비공개 테스트 Alpha 1(1.0) 검토 통과·게시(Play 알림 「앱 업데이트가 게시되었습니다」).
