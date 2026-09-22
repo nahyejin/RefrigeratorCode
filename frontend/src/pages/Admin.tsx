@@ -2127,7 +2127,8 @@ const StatsBar: React.FC<{
   const dirty = draft.from !== value.from || draft.to !== value.to;
 
   return (
-  <div style={{ ...S.card, position: 'sticky', top: 0, zIndex: 5 }}>
+  // 고정하지 않는다(2026-09-22) — 탭 줄이 상단에 고정되면서 이 기간 카드까지 붙어 있으면 화면을 너무 가린다
+  <div style={S.card}>
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
       {RANGES.map(r => {
         const on = value.range === r.key;
