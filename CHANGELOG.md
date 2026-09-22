@@ -11731,3 +11731,4 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 ### 쿠팡 대가성 문구 한 줄 — 구매 시트에도 (2026-09-23)
 - 한 줄 맞춤 컴포넌트를 배너 안에서 꺼내 [CoupangDisclaimer.tsx](frontend/src/components/CoupangDisclaimer.tsx) 의 `OneLineCoupangDisclaimer`(maxFont·align 받음)로 공용화. 다이내믹 배너(11px·가운데)와 [CoupangAdSheet.tsx](frontend/src/components/CoupangAdSheet.tsx) 「부족한 재료 구매」 시트(12px·왼쪽)가 같이 쓴다. 목록 속 쿠팡 광고 카드(`CoupangAdCard`, 가로 캐러셀에서 문구가 카드 폭을 정함)는 그대로.
 - 진행 기록(09-23): Play 프로덕션 체크리스트 2/3 완료(12명 참여 ✅, 14일 카운트 중 → 10-06 경 신청), iOS 1.0.1(6) 「심사 중」. 비공개 테스트 트랙의 의견 이메일이 비어 있는 것 확인 → 채울 것.
+- 14일 대기 기간 활용 문서 2개 추가: [store/REEL_PLAN.md](store/REEL_PLAN.md)(릴스 8갈래 — 제미나이 훅 프롬프트·데모 구성·나레이션·CTA + 하루 5개 한도 기준 2주 운영 계획, 링크는 /download 하나로 고정해 안드로이드 출시 후 영상 재업로드 불필요), [store/PLAY_PRODUCTION_APPLICATION.md](store/PLAY_PRODUCTION_APPLICATION.md)(프로덕션 신청서 5개 문항 답안 초안 — 테스터 모집·사용 양상·받은 피드백과 조치·앱 정보·준비 상태, 〔 〕 자리에 제출 시점 실제 값 채우기).
