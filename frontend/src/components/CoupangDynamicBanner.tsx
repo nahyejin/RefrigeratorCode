@@ -1,5 +1,4 @@
 import * as React from 'react';
-import CoupangDisclaimer from './CoupangDisclaimer';
 
 /**
  * 쿠팡 파트너스 **다이내믹 배너**(iframe) — 레시피 조리 시트의 「조리 순서」 바로 위(높이 50), 요리 캘린더 맨 아래.
@@ -47,8 +46,7 @@ const CoupangDynamicBanner: React.FC<{
 
   return (
     <div ref={boxRef} style={{ marginTop: 20, ...style }}>
-      {/* 폭이 좁아(폰 ~340px) 한 줄에 안 들어가 문장 중간 어중간한 곳에서 감겼다(사용자 지적) → 쉼표 뒤에서 끊는다 */}
-      <CoupangDisclaimer compact twoLines style={{ marginBottom: 6, textAlign: 'center' }} />
+      <FitDisclaimer />
       {width > 0 && (
         <iframe
           title="쿠팡 추천 상품"
@@ -63,6 +61,59 @@ const CoupangDynamicBanner: React.FC<{
         />
       )}
     </div>
+  );
+};
+
+/**
+ * 대가성 문구를 **한 줄로** — 자리 폭에 들어갈 때까지 글씨를 줄인다(11px → 최소 8.5px).
+ *
+ * 폰(폭 ~340px)에서는 11px 로는 한 줄에 안 들어가 문장 중간 어중간한 곳에서 감겼고, 쉼표 뒤에서 두 줄로
+ * 끊어 봤더니 "굳이 두 줄까지?" 라는 의견이라 한 줄 + 작은 글씨로 바꿨다(2026-09-22).
+ * 최소 크기에서도 안 들어가는 아주 좁은 화면만 쉼표 뒤에서 두 줄로 내린다 — 문구는 쿠팡 가이드상
+ * "쉽게 인식할 수 있어야" 해서 더 작게 만들지는 않는다.
+ */
+const TEXT_A = '이 광고는 쿠팡 파트너스 활동의 일환으로,';
+const TEXT_B = '이에 따른 일정액의 수수료를 제공받습니다.';
+const MAX_FONT = 11;
+const MIN_FONT = 8.5;
+
+const FitDisclaimer: React.FC = () => {
+  const ref = React.useRef<HTMLParagraphElement>(null);
+  const [font, setFont] = React.useState(MAX_FONT);
+  const [wrap, setWrap] = React.useState(false);
+
+  React.useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const fit = () => {
+      // 한 줄로 두고 MAX 부터 0.5px 씩 줄이며 넘치는지 잰다
+      el.style.whiteSpace = 'nowrap';
+      let f = MAX_FONT;
+      el.style.fontSize = f + 'px';
+      while (el.scrollWidth > el.clientWidth && f > MIN_FONT) {
+        f -= 0.5;
+        el.style.fontSize = f + 'px';
+      }
+      setFont(f);
+      setWrap(el.scrollWidth > el.clientWidth);
+    };
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  return (
+    <p
+      ref={ref}
+      style={{
+        margin: '0 0 6px', fontSize: font, lineHeight: 1.4, color: 'var(--ink-400)',
+        textAlign: 'center', letterSpacing: '-0.2px',
+        whiteSpace: wrap ? 'normal' : 'nowrap', overflow: 'hidden',
+      }}
+    >
+      {TEXT_A}{wrap ? <br /> : ' '}{TEXT_B}
+    </p>
   );
 };
 
