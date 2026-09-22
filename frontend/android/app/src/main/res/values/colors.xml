@@ -3,4 +3,10 @@
     <!-- 푸시 알림 아이콘·앱 이름에 입혀지는 강조색. 브랜드 노랑(#FFD600)은 밝은 알림
          배경에서 거의 안 보여서, 같은 계열의 한 톤 진한 색을 쓴다. -->
     <color name="notification_accent">#E0A800</color>
+
+    <!-- 홈 화면 위젯 — 흰 카드 + 옅은 회색 원 + 잉크색 아이콘(다크 모드는 values-night 에서 뒤집힌다) -->
+    <color name="widget_card">#FFFFFF</color>
+    <color name="widget_circle">#F1F1F4</color>
+    <color name="widget_icon">#1A1A1E</color>
+    <color name="widget_label">#5A5A63</color>
 </resources>

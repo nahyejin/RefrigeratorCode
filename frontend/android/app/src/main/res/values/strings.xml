@@ -7,5 +7,7 @@
          백엔드 NATIVE_APP_SCHEME·iOS 와 같은 값이라 그대로 둔다. -->
     <string name="custom_url_scheme">com.cookmatch.app</string>
     <string name="widget_camera_label">재료 찍기</string>
-    <string name="widget_camera_description">누르면 쿡매치가 열리면서 카메라로 재료를 담는 화면이 바로 떠요.</string>
+    <string name="widget_chat_label">AI 챗봇</string>
+    <string name="widget_quick_label">쿡매치</string>
+    <string name="widget_quick_description">재료 사진 찍기와 AI 챗봇을 홈 화면에서 바로 엽니다.</string>
 </resources>

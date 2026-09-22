@@ -11742,3 +11742,6 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 - [CameraCaptureSheet.tsx](frontend/src/components/CameraCaptureSheet.tsx) 안내 문구를 "위젯 준비 중" → "홈 화면에 위젯으로 추가하면 바로 찍을 수 있어요" 한 줄(폭 좁으면 글씨만 줄임)로 교체.
 - 에뮬레이터 확인: 위젯 provider 등록(dumpsys), 딥링크로 앱 실행 → 내 냉장고 + 「사진으로 재료 담기」 시트가 바로 열리고 새 문구가 한 줄로 보임. 첫 시도에서 `useEffect is not defined`(MyFridge 는 `React.useEffect` 규칙) 로 에러 화면이 떠서 수정 후 재확인.
 - 릴스 프롬프트 개정(사용자 실사용 지적 — 주인공이 후줄근하고, 두 편 연속 같은 사람·같은 집이 나옴): 공통 블록에 **인물(화장기 없되 이목구비 또렷·단정, 부스스/후줄근 금지)·공간(정돈된 집)·변주(클립마다 다른 사람·다른 집)** 지시 추가, 갈래마다 [캐스팅]·[집] 을 서로 다르게 못 박고, 같은 갈래 5개를 뽑을 때 쓰는 변주 세트 A~E 표 추가(REEL_PROMPTS_FULL.md·아티팩트 페이지).
+- 위젯 재설계(사용자 지적 — 노란 바탕이 홈 화면에서 너무 튄다): 1×1 카메라 위젯을 **2×1 「재료 찍기」·「AI 챗봇」**(`QuickWidgetProvider`)로 바꾸고, 흰 카드 + 옅은 회색 원 + 잉크색 아이콘으로 정리(색은 `values/colors.xml`·`values-night/colors.xml` 로 다크 모드까지). 챗봇 버튼은 `…://chat` → [NativeShortcutBridge](frontend/src/components/NativeShortcutBridge.tsx) 가 `cookmatch-open-chat` 이벤트를 쏘고 전역 [RecipeChatWidget](frontend/src/components/RecipeChatWidget.tsx) 이 그 자리에서 대화창을 연다(화면 이동 없음). PendingIntent requestCode 를 버튼마다 다르게 줘야 두 버튼이 같은 곳으로 가지 않는다.
+- 요리 캘린더 위젯은 **만들지 않기로** 함(2026-09-23) — 서버에서 기록을 따로 가져와야 해 작업이 크고, 홈 화면에서 훑어보는 값어치는 위 둘보다 낮다.
+- 에뮬레이터 확인: 위젯 목록에 「쿡매치 2×1」 미리보기(흰 카드·회색 원·재료 찍기/AI 챗봇), `…://camera` → 카메라 시트, `…://chat` → 쿡매치 AI 대화창이 열리는 것까지.

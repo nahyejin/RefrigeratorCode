@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 쿡매치 위젯 2×1 — 버튼 두 개(재료 찍기 / AI 챗봇).
+     1×1 로 하나만 두는 것보다, 자주 쓰는 입구 둘을 한 카드에 모으는 쪽이 홈 화면 자리도 덜 먹고 보기도 낫다. -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="110dp"
+    android:minHeight="40dp"
+    android:targetCellWidth="2"
+    android:targetCellHeight="1"
+    android:resizeMode="horizontal"
+    android:widgetCategory="home_screen"
+    android:previewLayout="@layout/widget_quick"
+    android:description="@string/widget_quick_description"
+    android:initialLayout="@layout/widget_quick"
+    android:updatePeriodMillis="0" />

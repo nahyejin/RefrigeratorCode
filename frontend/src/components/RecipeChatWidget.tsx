@@ -400,6 +400,14 @@ const RecipeChatWidget: React.FC = () => {
     setOpen(true);
   };
 
+  // 홈 화면 위젯의 「AI 챗봇」 버튼 → NativeShortcutBridge 가 이 이벤트를 쏜다.
+  // 이 컴포넌트는 AppRouter 에 한 번만 심겨 앱 어디서나 떠 있으므로, 화면을 옮기지 않고 열기만 하면 된다.
+  React.useEffect(() => {
+    const onOpen = () => setOpen(true);
+    window.addEventListener('cookmatch-open-chat', onOpen);
+    return () => window.removeEventListener('cookmatch-open-chat', onOpen);
+  }, []);
+
   const openThread = (thread: ChatThread) => {
     setThreadId(thread.id);
     setMessages(thread.messages);

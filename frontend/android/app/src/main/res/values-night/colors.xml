@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 다크 모드 위젯 — 홈 화면 배경이 어두울 때 흰 카드가 혼자 튀지 않게 진회색으로 -->
+    <color name="widget_card">#1D1D20</color>
+    <color name="widget_circle">#2E2E33</color>
+    <color name="widget_icon">#F2F1ED</color>
+    <color name="widget_label">#A9A9B2</color>
+</resources>

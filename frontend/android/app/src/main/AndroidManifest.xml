@@ -37,19 +37,27 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="com.cookmatch.app" android:host="camera" />
             </intent-filter>
+
+            <!-- 위젯의 「AI 챗봇」 버튼 -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="com.cookmatch.app" android:host="chat" />
+            </intent-filter>
         </activity>
 
-        <!-- 홈 화면 위젯 1×1 — 누르면 앱이 열리며 카메라 시트가 바로 뜬다 -->
+        <!-- 홈 화면 위젯 2×1 — 재료 찍기 / AI 챗봇 -->
         <receiver
-            android:name=".CameraWidgetProvider"
-            android:label="@string/widget_camera_label"
+            android:name=".QuickWidgetProvider"
+            android:label="@string/widget_quick_label"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
-                android:resource="@xml/camera_widget_info" />
+                android:resource="@xml/quick_widget_info" />
         </receiver>
 
         <provider
