@@ -11,6 +11,7 @@ import {
   copyRecipeUrlToClipboard,
 } from '../utils/recipeStorage';
 import type { Recipe, RecipeActionState } from '../types/recipe';
+import CoupangDynamicBanner from './CoupangDynamicBanner';
 
 /**
  * 요리 모드 — 원문으로 나가지 않고 앱 안에서 조리 순서를 본다.
@@ -740,6 +741,8 @@ const CookModeSheet: React.FC<Props> = ({
           </div>
         </div>
       )}
+      {/* 시트 맨 끝 — 조리 순서를 다 본 뒤에 보이는 자리. 레시피 내용보다 앞에 두지 않는다. */}
+      {data && <CoupangDynamicBanner />}
     </Sheet>
     {/* 토스트는 시트 **밖**에 둔다 — 시트 안에 있으면 닫힌 뒤 확인창에서
         「완료했어요」를 눌렀을 때 결과 안내가 안 보인다. */}

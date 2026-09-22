@@ -12,6 +12,7 @@ import { openCookMode } from '../utils/cookMode';
 import { getProxiedImageUrl } from '../utils/imageUtils';
 import BottomNavBar from '../components/BottomNavBar';
 import PullToRefresh from '../components/PullToRefresh';
+import CoupangDynamicBanner from '../components/CoupangDynamicBanner';
 import DatePickerField from '../components/DatePickerField';
 import Sheet from '../components/ui/Sheet';
 import Dialog from '../components/ui/Dialog';
@@ -3434,6 +3435,8 @@ const CookingCalendar: React.FC = () => {
             **일 보기에서는 숨긴다** — 메모는 "한 주" 단위라 하루만 보고 있을 때는
             의미가 없고 화면만 길어진다(2026-09-20). 주·월 보기에서만 보인다. */}
         {viewMode !== 'day' && diaryCardNode}
+        {/* 화면 맨 끝 쿠팡 배너 — 캘린더는 한참 보는 화면이라 자리를 둔다(2026-09-22) */}
+        <CoupangDynamicBanner style={{ marginBottom: 12 }} />
       </div>
       </div>
       </PullToRefresh>

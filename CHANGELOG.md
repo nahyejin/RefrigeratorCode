@@ -11712,3 +11712,8 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 - 「집계에서 빼기」 되돌리기: 코드상 뺀 뒤엔 같은 자리에 **「다시 넣기」** 버튼이 뜨고 서버도 `exclude:false` 를 받는다 — 다만 표에서 어느 계정이 빠졌는지 안 보여 찾기 어려웠다 → 이메일 옆에 「집계 제외」 표시 추가.
 - 가짜 사용자 40명으로 브라우저(모바일 폭)에서 확인: 스크롤 1462px 에서 탭 줄 top=56(GNB 바로 아래), 닉네임 오름/내림, 재료 내림차순·세 번째 클릭 원래 순서, 집계 제외 표시 8개. 당겨서 새로고침은 기존 컴포넌트 재사용(마이페이지·캘린더에서 쓰는 것) — 터치 제스처는 실기기에서 확인 필요.
 - 대시보드 기간·「내 활동 빼고 보기」 카드의 sticky 제거(사용자 요청) — 탭 줄 고정과 겹쳐 화면을 가렸다.
+
+### 쿠팡 다이내믹 배너 자리 — 조리 시트·요리 캘린더 맨 아래 (2026-09-22)
+- [CoupangDynamicBanner.tsx](frontend/src/components/CoupangDynamicBanner.tsx) 신설: `ads-partners.coupang.com/widgets.html?id=…&template=carousel&trackingCode=AF2929738` iframe + 대가성 문구. 자리 폭을 재서 넘긴다. `BANNER_ID` 가 비어 있으면 아무것도 안 그린다(문구도) — **파트너스에서 다이내믹 배너를 만들어 id 를 넣어야 노출**.
+- [CookModeSheet.tsx](frontend/src/components/CookModeSheet.tsx) 시트 맨 끝(출처 아래), [CookingCalendar.tsx](frontend/src/pages/CookingCalendar.tsx) 화면 맨 끝(장보기 메모 아래)에 배치.
+- 노출형(AdMob) 대신 이걸 고른 이유: 광고 ID·ATT·스토어 개인정보 신고 변경 없이 가능, 누른 뒤 24시간 구매 전체에 수수료. 앱 WebView 안 iframe 클릭 동작은 실기기 확인 필요.
