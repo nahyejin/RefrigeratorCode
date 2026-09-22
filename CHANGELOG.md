@@ -11706,3 +11706,8 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 - [IngredientDetail.tsx](frontend/src/pages/IngredientDetail.tsx)(요즘 인기의 인기 급상승·테마 키워드, 재료 검색 결과 등 `/ingredient/…` 목록): 뒤로가기+제목 줄을 필터 바와 같은 sticky 블록 안으로 옮김 — 스크롤해도 가려지지 않는다. 브라우저에서 목록을 길게 만들어 스크롤 1200px 에서도 제목이 GNB 바로 아래(72px)에 남는 것 확인.
 - [SceneDelegate.swift](frontend/ios/App/App/SceneDelegate.swift): `CAPBridgeViewController` 를 상속한 `MainViewController` 에서 `webView.allowsBackForwardNavigationGestures = true` — 아이폰에서 왼쪽 끝 스와이프로 뒤로 가기(맥 빌드에서 확인 필요). 안드로이드는 시스템 뒤로 제스처가 이미 `webView.goBack()` 으로 동작(backButton 리스너 없음).
 - [RELEASE_NOTES.md](RELEASE_NOTES.md) 신설: 스토어 앱 버전 단위 변경 기록(「다음 버전 — 쌓는 중」→ 올릴 때 출시 노트로), 출시된 버전 목록, Play 비공개 테스트 기간 의견·수정 기록(프로덕션 신청서용).
+
+### 어드민 — 탭 고정·당겨서 새로고침·사용자 표 정렬·집계 제외 표시 (2026-09-22)
+- [Admin.tsx](frontend/src/pages/Admin.tsx): 탭 줄을 GNB 아래(top 56)에 sticky, 페이지 전체를 기존 `PullToRefresh` 로 감싸 당기면 지금 탭만 다시 불러옴(사용자 탭은 `loadUsers`, 나머지는 `key` 를 바꿔 다시 마운트), 사용자 표 머리글 12열 모두 정렬 버튼(숫자·날짜는 큰/최근 것부터, 글자는 가나다순부터, 세 번째 클릭은 원래 순서, 관리 열은 관리자→집계 제외 순).
+- 「집계에서 빼기」 되돌리기: 코드상 뺀 뒤엔 같은 자리에 **「다시 넣기」** 버튼이 뜨고 서버도 `exclude:false` 를 받는다 — 다만 표에서 어느 계정이 빠졌는지 안 보여 찾기 어려웠다 → 이메일 옆에 「집계 제외」 표시 추가.
+- 가짜 사용자 40명으로 브라우저(모바일 폭)에서 확인: 스크롤 1462px 에서 탭 줄 top=56(GNB 바로 아래), 닉네임 오름/내림, 재료 내림차순·세 번째 클릭 원래 순서, 집계 제외 표시 8개. 당겨서 새로고침은 기존 컴포넌트 재사용(마이페이지·캘린더에서 쓰는 것) — 터치 제스처는 실기기에서 확인 필요.

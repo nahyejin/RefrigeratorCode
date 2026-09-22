@@ -1,5 +1,6 @@
 import React from 'react';
 import DatePickerField from '../components/DatePickerField';
+import PullToRefresh from '../components/PullToRefresh';
 import { useNavigate } from 'react-router-dom';
 import { getAuthToken } from '../utils/usage';
 
@@ -2604,6 +2605,37 @@ const Dashboard: React.FC = () => {
   );
 };
 
+/**
+ * 사용자 표 정렬 — 머리글을 누르면 그 열로 정렬, 한 번 더 누르면 반대로, 세 번째엔 원래 순서(가입 최신순).
+ * 숫자·날짜는 큰 것/최근 것부터, 글자는 가나다순부터 시작한다 — 보통 궁금한 쪽이 먼저 오게.
+ */
+type UserSortKey = 'id' | 'email' | 'nickname' | 'created_at' | 'provider' | 'ingredient_count'
+  | 'today_credits' | 'week_credits' | 'week_tokens' | 'plan' | 'deleted_at' | 'manage';
+const USER_COLUMNS: { key: UserSortKey; label: string; text?: boolean }[] = [
+  { key: 'id', label: 'id' },
+  { key: 'email', label: '이메일', text: true },
+  { key: 'nickname', label: '닉네임', text: true },
+  { key: 'created_at', label: '가입' },
+  { key: 'provider', label: '경로', text: true },
+  { key: 'ingredient_count', label: '재료' },
+  { key: 'today_credits', label: '오늘 (일 상한)' },
+  { key: 'week_credits', label: '이번 주 (주 한도)' },
+  { key: 'week_tokens', label: '토큰' },
+  { key: 'plan', label: '플랜', text: true },
+  { key: 'deleted_at', label: '탈퇴' },
+  // 관리 열은 버튼뿐이라 "관리자 → 집계 제외 → 나머지" 표시로 정렬한다
+  { key: 'manage', label: '관리' },
+];
+const userSortValue = (u: AdminUser, key: UserSortKey): string | number => {
+  switch (key) {
+    case 'created_at': return u.created_at ? Date.parse(u.created_at) : 0;
+    case 'deleted_at': return u.deleted_at ? Date.parse(u.deleted_at) : 0;
+    case 'manage': return (u.is_admin ? 2 : 0) + (u.exclude_from_stats ? 1 : 0);
+    case 'email': case 'nickname': case 'provider': case 'plan': return (u[key] || '').toString();
+    default: return Number(u[key]) || 0;
+  }
+};
+
 const Admin: React.FC = () => {
   const navigate = useNavigate();
   const [allowed, setAllowed] = React.useState<boolean | null>(null);
@@ -2616,6 +2648,9 @@ const Admin: React.FC = () => {
   const [showDeleted, setShowDeleted] = React.useState(false);
   const [openId, setOpenId] = React.useState<number | null>(null);
   const [error, setError] = React.useState<string | null>(null);
+  const [sort, setSort] = React.useState<{ key: UserSortKey; dir: 'asc' | 'desc' } | null>(null);
+  // 당겨서 새로고침 — 대시보드·요청·운영·사전 탭은 열릴 때 스스로 불러오므로 key 를 바꿔 다시 연다
+  const [refreshKey, setRefreshKey] = React.useState(0);
 
   React.useEffect(() => {
     api('/api/admin/me')
@@ -2627,7 +2662,7 @@ const Admin: React.FC = () => {
     const params = new URLSearchParams();
     if (keyword.trim()) params.set('q', keyword.trim());
     if (showDeleted) params.set('deleted', '1');
-    api(`/api/admin/users?${params}`)
+    return api(`/api/admin/users?${params}`)
       .then(d => { setUsers(d.users || []); setPolicy(d.policy || null); })
       .catch(e => setError(e.message));
   }, [keyword, showDeleted]);
@@ -2635,6 +2670,32 @@ const Admin: React.FC = () => {
   React.useEffect(() => {
     if (allowed && tab === 'users') loadUsers();
   }, [allowed, tab, loadUsers]);
+
+  const refresh = React.useCallback(async () => {
+    setError(null);
+    if (tab === 'users') await loadUsers();
+    else setRefreshKey(k => k + 1);
+  }, [tab, loadUsers]);
+
+  const sortedUsers = React.useMemo(() => {
+    if (!users || !sort) return users || [];
+    const col = USER_COLUMNS.find(c => c.key === sort.key);
+    const sign = sort.dir === 'asc' ? 1 : -1;
+    return [...users].sort((a, b) => {
+      const va = userSortValue(a, sort.key), vb = userSortValue(b, sort.key);
+      const cmp = col?.text ? String(va).localeCompare(String(vb), 'ko') : (va as number) - (vb as number);
+      return cmp !== 0 ? cmp * sign : b.id - a.id;
+    });
+  }, [users, sort]);
+
+  const toggleSort = (key: UserSortKey) => {
+    const first: 'asc' | 'desc' = USER_COLUMNS.find(c => c.key === key)?.text ? 'asc' : 'desc';
+    setSort(prev => {
+      if (!prev || prev.key !== key) return { key, dir: first };
+      if (prev.dir === first) return { key, dir: first === 'asc' ? 'desc' : 'asc' };
+      return null; // 세 번째 누르면 원래 순서
+    });
+  };
 
   if (allowed === null) {
     return <div style={{ ...S.page, padding: 32 }}>확인 중...</div>;
@@ -2654,13 +2715,17 @@ const Admin: React.FC = () => {
   }
 
   return (
+    <PullToRefresh onRefresh={refresh}>
     <div style={S.page}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
         <h1 style={{ fontSize: 18, fontWeight: 700, margin: 0, flex: 1 }}>쿡매치 어드민</h1>
         <button type="button" style={S.btn} onClick={() => navigate('/')}>앱으로</button>
       </div>
 
-      <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+      {/* 탭 줄은 스크롤해도 위에 붙어 있게 — 긴 표를 내려 본 뒤 다른 탭으로 가려고 맨 위까지 올릴 필요가 없다.
+          top 은 공통 GNB 높이(56px). 배경을 페이지 배경과 같게 칠해 아래 내용이 비치지 않게 한다. */}
+      <div style={{ display: 'flex', gap: 6, position: 'sticky', top: 56, zIndex: 20,
+                    background: 'var(--surface-sub)', margin: '0 -12px 12px', padding: '8px 12px' }}>
         {([['dashboard', '대시보드'], ['users', '사용자'], ['requests', '요청'], ['ops', '운영'], ['dictionary', '사전']] as const).map(([key, label]) => (
           <button
             key={key}
@@ -2679,13 +2744,13 @@ const Admin: React.FC = () => {
       </div>
 
       {tab === 'dashboard' ? (
-        <Dashboard />
+        <Dashboard key={refreshKey} />
       ) : tab === 'requests' ? (
-        <Requests />
+        <Requests key={refreshKey} />
       ) : tab === 'dictionary' ? (
-        <Dictionary />
+        <Dictionary key={refreshKey} />
       ) : tab === 'ops' ? (
-        <Maintenance />
+        <Maintenance key={refreshKey} />
       ) : (
         <>
           <PolicyCard policy={policy} />
@@ -2722,14 +2787,27 @@ const Admin: React.FC = () => {
             <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 760 }}>
               <thead>
                 <tr>
-                  {['id', '이메일', '닉네임', '가입', '경로', '재료',
-                    '오늘 (일 상한)', '이번 주 (주 한도)', '토큰', '플랜', '탈퇴', '관리'].map(h => (
-                    <th key={h} style={S.th}>{h}</th>
-                  ))}
+                  {USER_COLUMNS.map(c => {
+                    const on = sort?.key === c.key;
+                    return (
+                      <th key={c.key} style={{ ...S.th, padding: 0 }}
+                          aria-sort={on ? (sort!.dir === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                        <button type="button" onClick={() => toggleSort(c.key)}
+                                style={{ all: 'unset', cursor: 'pointer', display: 'block', width: '100%',
+                                         boxSizing: 'border-box', padding: '8px 10px',
+                                         color: on ? '#1A1A1E' : 'var(--ink-500)', fontWeight: on ? 700 : 600 }}>
+                          {c.label}
+                          <span style={{ marginLeft: 3, opacity: on ? 1 : 0.35 }}>
+                            {on ? (sort!.dir === 'asc' ? '▲' : '▼') : '↕'}
+                          </span>
+                        </button>
+                      </th>
+                    );
+                  })}
                 </tr>
               </thead>
               <tbody>
-                {(users || []).map(u => (
+                {sortedUsers.map(u => (
                   <React.Fragment key={u.id}>
                     <tr style={{ opacity: u.deleted_at ? 0.5 : 1 }}>
                       <td style={S.td}>{u.id}</td>
@@ -2741,6 +2819,16 @@ const Admin: React.FC = () => {
                             borderRadius: 9999, background: '#FFD600', color: '#1A1A1E',
                           }}>
                             admin
+                          </span>
+                        )}
+                        {/* 집계에서 뺀 계정은 표에서 바로 보이게 — 전엔 "자세히"를 열어야만 알 수 있어서
+                            뺀 계정을 다시 넣으려 해도 어느 것인지 찾기 어려웠다 */}
+                        {u.exclude_from_stats && (
+                          <span style={{
+                            marginLeft: 6, fontSize: 10, fontWeight: 700, padding: '1px 6px',
+                            borderRadius: 9999, background: 'var(--line-200)', color: 'var(--ink-700)',
+                          }}>
+                            집계 제외
                           </span>
                         )}
                       </td>
@@ -2806,6 +2894,7 @@ const Admin: React.FC = () => {
         </>
       )}
     </div>
+    </PullToRefresh>
   );
 };
 
