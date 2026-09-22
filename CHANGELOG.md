@@ -11674,3 +11674,4 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 ### App Store 공개 페이지 점검 — 설명란 명령어 노출, 언어 EN 표시 (2026-09-22)
 - 공개된 App Store 페이지(아이콘·스크린샷 5장 순서·Food & Drink·4+·무료·38MB 정상)에서 **설명 자리에 원고 대신 맥에서 원고를 복사하던 셸 명령어**가 보였다. 프로모션 텍스트라면 지금 바로, 설명이라면 1.0.1 제출 때 `ios-desc` 로 교체.
 - 「Language: EN」 — iOS 프로젝트 기본 언어가 en 이라서. Info.plist `CFBundleDevelopmentRegion` → `ko` + `CFBundleLocalizations [ko]`, pbxproj `developmentRegion = ko`·knownRegions 에 `ko` 추가(1.0.1 빌드에 반영). 맥에서 할 일 순서표에 두 가지 확인 단계 추가.
+- 확인해 보니 명령어는 1.0 **설명** 칸(프로모션 텍스트는 정상). 출시된 버전은 설명을 못 바꿔 1.0.1 제출로 교체해야 한다. 다시 명령어를 붙여 넣는 일이 없게 `store/paste/`(ios-desc·ios-promo·ios-whatsnew·ios-keywords·ios-subtitle .txt)에 원고 코드 블록만 뽑은 순수 텍스트 파일을 만들어 둠 — 열어서 전체 복사하면 된다. 원고를 고치면 이 파일도 다시 뽑을 것.
