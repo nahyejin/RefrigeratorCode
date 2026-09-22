@@ -84,42 +84,49 @@ const MAX_FONT = 11;
 const MIN_FONT = 8.5;
 
 const FitDisclaimer: React.FC = () => {
-  const ref = React.useRef<HTMLParagraphElement>(null);
+  const boxRef = React.useRef<HTMLDivElement>(null);
+  const measureRef = React.useRef<HTMLSpanElement>(null);
   const [font, setFont] = React.useState(MAX_FONT);
   const [wrap, setWrap] = React.useState(false);
 
   React.useLayoutEffect(() => {
-    const el = ref.current;
-    if (!el) return;
+    const box = boxRef.current, probe = measureRef.current;
+    if (!box || !probe) return;
+    let lastWidth = -1;
     const fit = () => {
-      // 한 줄로 두고 MAX 부터 0.5px 씩 줄이며 넘치는지 잰다
-      el.style.whiteSpace = 'nowrap';
+      // **폭이 바뀔 때만** 다시 잰다. 처음엔 보이는 글자 자체의 크기를 바꿔 가며 쟀고 높이 변화에도
+      // 반응했는데, 두 줄 ↔ 한 줄로 바뀌며 높이가 변할 때마다 다시 재서 상자가 계속 떨렸다(2026-09-22).
+      // 이제는 안 보이는 한 줄짜리 복사본으로만 재고, 보이는 문구는 결과만 받는다.
+      const avail = box.clientWidth;
+      if (avail === lastWidth) return;
+      lastWidth = avail;
       let f = MAX_FONT;
-      el.style.fontSize = f + 'px';
-      while (el.scrollWidth > el.clientWidth && f > MIN_FONT) {
+      probe.style.fontSize = f + 'px';
+      while (probe.offsetWidth > avail && f > MIN_FONT) {
         f -= 0.5;
-        el.style.fontSize = f + 'px';
+        probe.style.fontSize = f + 'px';
       }
       setFont(f);
-      setWrap(el.scrollWidth > el.clientWidth);
+      setWrap(probe.offsetWidth > avail);
     };
     fit();
     const ro = new ResizeObserver(fit);
-    ro.observe(el);
+    ro.observe(box);
     return () => ro.disconnect();
   }, []);
 
+  const textStyle: React.CSSProperties = { lineHeight: 1.4, letterSpacing: '-0.2px' };
   return (
-    <p
-      ref={ref}
-      style={{
-        margin: '0 0 5px', fontSize: font, lineHeight: 1.4, color: 'var(--ink-500)',
-        textAlign: 'center', letterSpacing: '-0.2px',
-        whiteSpace: wrap ? 'normal' : 'nowrap', overflow: 'hidden',
-      }}
-    >
-      {TEXT_A}{wrap ? <br /> : ' '}{TEXT_B}
-    </p>
+    <div ref={boxRef} style={{ position: 'relative', margin: '0 0 5px' }}>
+      <span ref={measureRef} aria-hidden
+            style={{ ...textStyle, position: 'absolute', visibility: 'hidden', whiteSpace: 'nowrap', left: 0, top: 0 }}>
+        {TEXT_A} {TEXT_B}
+      </span>
+      <p style={{ ...textStyle, margin: 0, fontSize: font, color: 'var(--ink-500)', textAlign: 'center',
+                  whiteSpace: wrap ? 'normal' : 'nowrap' }}>
+        {TEXT_A}{wrap ? <br /> : ' '}{TEXT_B}
+      </p>
+    </div>
   );
 };
 
