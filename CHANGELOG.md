@@ -11741,3 +11741,4 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 - 웹 쪽 [NativeShortcutBridge.tsx](frontend/src/components/NativeShortcutBridge.tsx) 가 그 주소를 받아 `/my-fridge?camera=1` 로 보내고, [MyFridge.tsx](frontend/src/pages/MyFridge.tsx) 가 쿼리를 보고 카메라 시트를 연 뒤 쿼리를 지운다(뒤로 가기·새로고침에 또 열리지 않게).
 - [CameraCaptureSheet.tsx](frontend/src/components/CameraCaptureSheet.tsx) 안내 문구를 "위젯 준비 중" → "홈 화면에 위젯으로 추가하면 바로 찍을 수 있어요" 한 줄(폭 좁으면 글씨만 줄임)로 교체.
 - 에뮬레이터 확인: 위젯 provider 등록(dumpsys), 딥링크로 앱 실행 → 내 냉장고 + 「사진으로 재료 담기」 시트가 바로 열리고 새 문구가 한 줄로 보임. 첫 시도에서 `useEffect is not defined`(MyFridge 는 `React.useEffect` 규칙) 로 에러 화면이 떠서 수정 후 재확인.
+- 릴스 프롬프트 개정(사용자 실사용 지적 — 주인공이 후줄근하고, 두 편 연속 같은 사람·같은 집이 나옴): 공통 블록에 **인물(화장기 없되 이목구비 또렷·단정, 부스스/후줄근 금지)·공간(정돈된 집)·변주(클립마다 다른 사람·다른 집)** 지시 추가, 갈래마다 [캐스팅]·[집] 을 서로 다르게 못 박고, 같은 갈래 5개를 뽑을 때 쓰는 변주 세트 A~E 표 추가(REEL_PROMPTS_FULL.md·아티팩트 페이지).
