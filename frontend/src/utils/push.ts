@@ -107,6 +107,21 @@ export async function pushPermissionDecided(): Promise<boolean> {
 }
 
 /**
+ * 이 기기에서 알림 권한이 이미 **허용**돼 있는지 — 이때는 OS 팝업 없이 바로 구독할 수 있다.
+ * 안드로이드 12 이하는 설치하자마자 허용 상태이고, 13+/iOS 도 재설치·다른 계정 로그인이면 이미 허용돼 있다.
+ */
+export async function pushPermissionGranted(): Promise<boolean> {
+  if (isNative()) {
+    try {
+      return (await PushNotifications.checkPermissions()).receive === 'granted';
+    } catch {
+      return false;
+    }
+  }
+  return typeof Notification !== 'undefined' && Notification.permission === 'granted';
+}
+
+/**
  * 알림 권한을 묻고, 허락하면 구독을 만들어 서버에 등록한다.
  * 실패 이유를 구분해 돌려준다 — 화면에서 "왜 안 됐는지"를 말해 줘야 한다.
  */

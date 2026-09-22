@@ -1,7 +1,7 @@
 import React from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { pushSupported, isPushSubscribed, subscribeToPush, pushPermissionDecided } from '../utils/push';
+import { pushSupported, isPushSubscribed, subscribeToPush, pushPermissionDecided, pushPermissionGranted } from '../utils/push';
 import { isExpiryPushPromptSeen, markExpiryPushPromptSeen } from '../utils/onboardingPrompts';
 import CloseButton from './ui/CloseButton';
 
@@ -15,8 +15,9 @@ import CloseButton from './ui/CloseButton';
  *   실제 클릭으로만 켜지는 것이라(보안상 서버가 대신 켤 방법이 없다) 그 대신
  *   로그인 직후 여기서 바로 물어본다 — 마이페이지까지 찾아갈 필요가 없어진다.
  *
- *   신규 회원도 예외 없이 본다 — "신규는 기본 on" 이라는 상태 자체가
- *   존재할 수 없다(모두가 최소 한 번은 브라우저 허용을 직접 눌러야 한다).
+ *   신규 회원도 예외 없이 본다 — iOS·안드로이드 13+·브라우저는 OS 허용을 본인이 한 번은
+ *   눌러야 해서 "설치하면 자동 on" 은 불가능하다. 단 권한이 이미 허용된 기기(안드로이드 12
+ *   이하, 재설치 등)는 팝업 없이 바로 켠다.
  *
  * `HomeInstallPrompt` 와 같은 자리(AppRouter, 전역)에 둔다. 두 팝업이 같은
  * 순간 겹치지 않도록 이쪽 지연을 더 길게 잡는다.
@@ -49,6 +50,13 @@ const ExpiryPushPrompt: React.FC = () => {
       // 앱은 브라우저 `Notification`이 아니라 OS 권한을 봐야 해서 헬퍼로 묻는다.
       if (await pushPermissionDecided()) {
         markExpiryPushPromptSeen();
+        // 권한이 이미 "허용"이면 묻지 않고 바로 켠다(2026-09-22) — 알림은 기본으로 켜져 있어야
+        // 한다는 요청. 전에는 여기서 그냥 끝나서, 안드로이드 12 이하(설치 즉시 허용 상태)나
+        // 재설치·새 계정 로그인 기기는 권한은 허용인데 서버에 기기가 등록되지 않아 알림이 영영
+        // 안 왔다. 이 컴포넌트는 기기당 한 번만 도니, 나중에 마이페이지에서 끈 사람을 다시 켜지는 않는다.
+        if ((await pushPermissionGranted()) && !(await isPushSubscribed())) {
+          await subscribeToPush();
+        }
         return;
       }
       const already = await isPushSubscribed();
