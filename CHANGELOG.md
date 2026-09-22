@@ -11676,3 +11676,4 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 - 「Language: EN」 — iOS 프로젝트 기본 언어가 en 이라서. Info.plist `CFBundleDevelopmentRegion` → `ko` + `CFBundleLocalizations [ko]`, pbxproj `developmentRegion = ko`·knownRegions 에 `ko` 추가(1.0.1 빌드에 반영). 맥에서 할 일 순서표에 두 가지 확인 단계 추가.
 - 확인해 보니 명령어는 1.0 **설명** 칸(프로모션 텍스트는 정상). 출시된 버전은 설명을 못 바꿔 1.0.1 제출로 교체해야 한다. 다시 명령어를 붙여 넣는 일이 없게 `store/paste/`(ios-desc·ios-promo·ios-whatsnew·ios-keywords·ios-subtitle .txt)에 원고 코드 블록만 뽑은 순수 텍스트 파일을 만들어 둠 — 열어서 전체 복사하면 된다. 원고를 고치면 이 파일도 다시 뽑을 것.
 - App Store 검색에서 「쿡매치 - 냉장고 레시피」 전체를 입력해야만 나와서(출시 당일 — 색인 초기라 며칠 지나면 나아지는 게 보통), 1.0.1 키워드 앞에 `쿡매치,cookmatch,레시피추천` 추가(`ios-keywords`, paste 파일 갱신).
+- 키워드에 줄임말 `냉털,냉털이,냉파` 도 추가(사용자 요청 — 「냉털이」 등으로도 검색되게). 95/100자.
