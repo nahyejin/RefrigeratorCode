@@ -11686,3 +11686,8 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 - 그런데 권한이 **이미 허용**인 기기(안드로이드 12 이하는 설치 즉시 허용, 재설치·다른 계정 로그인 기기)는 [ExpiryPushPrompt.tsx](frontend/src/components/ExpiryPushPrompt.tsx) 가 "이미 결정됨"으로 보고 그냥 끝나서, **권한은 허용인데 서버에 기기가 등록되지 않아 알림이 영영 안 오는** 구멍이 있었다. 이제 허용 상태면 팝업 없이 바로 구독(`pushPermissionGranted()` 추가, [push.ts](frontend/src/utils/push.ts)). 기기당 한 번만 도니 마이페이지에서 끈 사람을 다시 켜지는 않는다.
 - 웹은 push 즉시 반영, 앱은 다음 빌드(안드로이드 다음 `.aab`, iOS 1.0.2)에 들어간다.
 - 사용자 요청으로 이 수정을 제출해 둔 iOS 1.0.1 에도 넣기로 함 → pbxproj 빌드 번호 5 → **6**(버전은 1.0.1 그대로). 맥에서 pull → build → cap sync → Archive·업로드 후, App Store Connect 에서 1.0.1 제출 취소 → 빌드 6 으로 교체 → 다시 제출.
+
+### 구글 비공개 테스트 승인 + 안드로이드 1.0.1 (versionCode 2) 빌드 (2026-09-22)
+- Play Console 알림 「앱 업데이트가 게시되었습니다」 — 비공개 테스트 Alpha 검토 통과·게시. 다음은 BETA FLOW 결제 → 테스터 CSV 를 「쿡매치 테스터」 목록에 업로드 → 14일.
+- 알림 자동 구독 수정을 테스터 기간에 반영하려고 `versionCode 2`·`versionName 1.0.1` 로 올려 서명된 `app-release.aab` 새로 빌드 → Play Console 비공개 테스트에 새 버전으로 업로드할 것(테스터에게는 자동 업데이트). Play Console 에 「관리형 게시 사용 설정됨」이 켜져 있어, 검토 통과 후 **게시 개요에서 직접 게시**를 눌러야 반영된다.
+- iOS 1.0.1 빌드 6 업로드 후 빌드 교체·재제출(맥).
