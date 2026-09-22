@@ -11701,3 +11701,8 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
   - PC 등 → App Store·Play(출시 전엔 "곧 출시")·웹 버튼
 - **Play 프로덕션 출시되면 `ANDROID_LIVE = true` 로 바꾸고 push** — 인스타 링크는 그대로.
 - iOS 1.0.1 (6) 실제 제출은 17:08 — 「심사에 추가」 뒤 「제출 초안(1개) → 심사를 위해 제출」을 눌러야 심사 대기에 들어간다(그 전 상태는 「심사 준비됨」).
+
+### 키워드 레시피 목록 제목 줄 고정 + 아이폰 스와이프 뒤로 가기, 앱 버전별 기록 파일 신설 (2026-09-22)
+- [IngredientDetail.tsx](frontend/src/pages/IngredientDetail.tsx)(요즘 인기의 인기 급상승·테마 키워드, 재료 검색 결과 등 `/ingredient/…` 목록): 뒤로가기+제목 줄을 필터 바와 같은 sticky 블록 안으로 옮김 — 스크롤해도 가려지지 않는다. 브라우저에서 목록을 길게 만들어 스크롤 1200px 에서도 제목이 GNB 바로 아래(72px)에 남는 것 확인.
+- [SceneDelegate.swift](frontend/ios/App/App/SceneDelegate.swift): `CAPBridgeViewController` 를 상속한 `MainViewController` 에서 `webView.allowsBackForwardNavigationGestures = true` — 아이폰에서 왼쪽 끝 스와이프로 뒤로 가기(맥 빌드에서 확인 필요). 안드로이드는 시스템 뒤로 제스처가 이미 `webView.goBack()` 으로 동작(backButton 리스너 없음).
+- [RELEASE_NOTES.md](RELEASE_NOTES.md) 신설: 스토어 앱 버전 단위 변경 기록(「다음 버전 — 쌓는 중」→ 올릴 때 출시 노트로), 출시된 버전 목록, Play 비공개 테스트 기간 의견·수정 기록(프로덕션 신청서용).

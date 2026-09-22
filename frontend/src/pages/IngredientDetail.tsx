@@ -975,42 +975,9 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
           boxSizing: 'border-box',
           paddingLeft: 14,
           paddingRight: 14,
-          paddingTop: 72, // 공통 GNB(56px) + 여백(16px)
+          paddingTop: 56, // 공통 GNB(56px) — 여백 16px 은 아래 고정 영역 안쪽 padding 으로 옮김
         }}
       >
-        <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 18, minHeight: 36 }}>
-          <BackButton onClick={() => navigate(-1)} style={{ left: 0, top: 0 }} />
-          <div style={{ fontWeight: 700, fontSize: 18, textAlign: 'center', padding: isMyPageRecipeList ? '0 60px 0 44px' : '0 44px' }}>
-            {displayTitle || customTitle || `${name} 관련 레시피`}
-          </div>
-          {/* "우리 식구 모두 보기" 목록은 내 것만이 아니라 그룹원 전체 항목이
-              섞여 있어, "전체삭제"(내 localStorage만 지움)를 누르면 화면과
-              실제 결과가 어긋난다 — 이 모드에서는 숨긴다. */}
-          {isMyPageRecipeList && !isHouseholdView && processedRecipes.length > 0 && (
-            <button
-              type="button"
-              onClick={() => setConfirmClearAllOpen(true)}
-              style={{
-                position: 'absolute',
-                right: 0,
-                top: 0,
-                minHeight: 36,
-                padding: '8px 2px',
-                boxSizing: 'border-box',
-                background: 'transparent',
-                border: 'none',
-                color: 'var(--ink-500)',
-                fontSize: 13,
-                fontWeight: 600,
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              전체삭제
-            </button>
-          )}
-        </div>
-        
         <div>
           {/* 정렬/필터 바 + 재료 pill 범례를 상단 고정 (냉장고요리 페이지와 동일) */}
           <div
@@ -1023,10 +990,44 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
               marginRight: -14,
               paddingLeft: 14,
               paddingRight: 14,
-              paddingTop: 8,
+              paddingTop: 16,
               paddingBottom: 10, // 범례 아래 흰 여백
             }}
           >
+          {/* 뒤로가기 + 제목 줄도 필터 바와 함께 고정(2026-09-22) — 전에는 제목 줄만 따로 있어서
+              스크롤하면 필터 바 위로 사라져, 긴 목록 중간에서 뒤로 가려면 맨 위까지 올려야 했다. */}
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12, minHeight: 36 }}>
+            <BackButton onClick={() => navigate(-1)} style={{ left: 0, top: 0 }} />
+            <div style={{ fontWeight: 700, fontSize: 18, textAlign: 'center', padding: isMyPageRecipeList ? '0 60px 0 44px' : '0 44px' }}>
+              {displayTitle || customTitle || `${name} 관련 레시피`}
+            </div>
+            {/* "우리 식구 모두 보기" 목록은 내 것만이 아니라 그룹원 전체 항목이
+                섞여 있어, "전체삭제"(내 localStorage만 지움)를 누르면 화면과
+                실제 결과가 어긋난다 — 이 모드에서는 숨긴다. */}
+            {isMyPageRecipeList && !isHouseholdView && processedRecipes.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setConfirmClearAllOpen(true)}
+                style={{
+                  position: 'absolute',
+                  right: 0,
+                  top: 0,
+                  minHeight: 36,
+                  padding: '8px 2px',
+                  boxSizing: 'border-box',
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--ink-500)',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                전체삭제
+              </button>
+            )}
+          </div>
           <RecipeSortBar
             recipes={processedRecipes}
             myIngredients={myIngredients}
