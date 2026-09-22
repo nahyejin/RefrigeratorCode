@@ -2266,6 +2266,37 @@ def check_nickname():
         print(f"Check nickname error: {e}")
         return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
 
+# 회원 탈퇴 즉시 지우는 그 사람 자신의 콘텐츠 — (테이블, 계정을 가리키는 컬럼).
+# 여기 없는 것(users 행, credit_grants·credit_identity_claims·user_quota·llm_usage·
+# usage_requests·user_events)은 재가입 혜택 중복 방지·남용 확인용으로 1년 보관 후
+# scripts/purge_deleted_accounts.py 가 지운다. 가족 식구가 남긴 행(주인이 다른 식구인 요리 기록·
+# 식단)은 그 식구의 데이터라 건드리지 않는다. 사용자 콘텐츠 테이블이 새로 생기면 여기에 추가할 것.
+WITHDRAWAL_CONTENT_TABLES = [
+    ("user_ingredients", "user_id"),
+    ("user_favorite_recipes", "user_id"),
+    ("user_recorded_recipes", "user_id"),
+    ("user_completed_recipes", "user_id"),
+    ("user_manual_cook_logs", "user_id"),
+    ("user_meal_plans", "user_id"),
+    ("ai_plan_chat_sessions", "user_id"),
+    ("family_action_notifications", "target_user_id"),
+    ("push_subscriptions", "user_id"),
+    ("push_device_tokens", "user_id"),
+]
+
+
+def delete_user_content_on_withdrawal(cursor, user_id):
+    """탈퇴한 계정의 콘텐츠 행을 지운다. 아직 만들어지지 않은 테이블은 건너뛴다(첫 사용 때 생성되는 표들)."""
+    for table, col in WITHDRAWAL_CONTENT_TABLES:
+        try:
+            cursor.execute(f"DELETE FROM {table} WHERE {col} = %s", (user_id,))
+        except pymysql.err.ProgrammingError as e:
+            # 1146 = 테이블 없음 — 그 기능을 아직 아무도 안 써서 표가 없는 경우
+            if e.args and e.args[0] == 1146:
+                continue
+            raise
+
+
 @app.route('/api/auth/delete-account', methods=['POST'])
 def delete_account():
     """회원탈퇴"""
@@ -2343,6 +2374,11 @@ def delete_account():
                 "UPDATE users SET deleted_at = %s, household_id = NULL, ingredients_merged = 0 WHERE id = %s AND email = %s AND provider = %s",
                 (current_time_kst.strftime('%Y-%m-%d %H:%M:%S'), user_id, email, provider)
             )
+
+            # 계정이 쓰던 콘텐츠(냉장고·기록·식단·AI 대화·알림 구독)는 탈퇴 즉시 지운다.
+            # 남기는 건 계정 행과 가입 혜택·사용량 기록뿐 — 재가입 혜택 중복 방지용이며 탈퇴 1년 뒤
+            # scripts/purge_deleted_accounts.py 가 지운다(계정 삭제 안내 /account-deletion 과 같은 약속).
+            delete_user_content_on_withdrawal(cursor, user_id)
 
             db.commit()
 

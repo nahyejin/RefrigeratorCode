@@ -11653,3 +11653,11 @@ Play Console 에서 앱 설정 항목(개인정보처리방침·로그인 세부
 
 ### 🎉 App Store 심사 통과 — iOS 1.0 출시 (2026-09-22)
 Apple 에서 「Review of your submission is complete… eligible for distribution」(09:28). 2.1 정보 요청에 화면 녹화·답장으로 대응하고 카메라 버그 2개를 고친 빌드 1.0(4)가 통과. 자동 출시라 24시간 안에 공개(https://apps.apple.com/app/id6814209983, 확인 시점엔 아직 전파 전). 출시 뒤 할 일(iOS 푸시 발송 연결 후 설명에 알림 문장 복원, 빌드 5 업데이트, 탈퇴 즉시 삭제, 심사용 계정 비밀번호 변경 후 두 스토어 정보 갱신)을 RELEASE_TODO.md 상단에 기록.
+
+### 출시 뒤 할 일 처리 — iOS 알림 연결 확인, 탈퇴 즉시 삭제, iOS 1.0.1(5) 준비 (2026-09-22)
+App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일을 한꺼번에 처리.
+- **iOS 푸시 발송 연결 확인**: 맥에 있던 APNs 인증 키(Key ID `Y4S77Z4YFG`)를 `backend/apns-auth-key.p8`(gitignore `*.p8`)로 옮기니 발송 배치의 APNs 설정이 로드됨. 다른 사용자에게 가지 않게 **본인 계정(user 1·78)의 iOS 기기 3대에만** 테스트 알림을 보내 셋 다 APNs 200(sent), 사용자가 아이폰에서 수신 확인. 이제 매일 배치가 안드로이드(FCM)·iOS(APNs) 모두에 보낸다.
+- **App Store 원고에 알림 문장 복원**: 1.0 때 iOS 푸시가 없어 뺐던 문장을 `ios-desc`·`ios-promo`에 되돌림(글자 수 검사 통과). 프로모션 텍스트는 App Store Connect 에서 바로, 설명은 1.0.1 제출 때 반영.
+- **회원 탈퇴 시 콘텐츠 즉시 삭제**: [app.py](backend/app.py) `delete_account` 가 `deleted_at` 표시 뒤 `WITHDRAWAL_CONTENT_TABLES`(냉장고 재료·즐겨찾기·요리/완료 기록·수동 요리 기록·식단 계획·AI 대화·가족 알림·웹/앱 알림 구독)를 같은 트랜잭션에서 지움(아직 없는 테이블은 1146 으로 건너뜀). 계정 행과 가입 혜택·이용량 기록(`credit_grants`·`credit_identity_claims`·`user_quota`·`llm_usage`·`usage_requests`·`user_events`)만 재가입 혜택 중복 방지용으로 1년 보관 → `purge_deleted_accounts.py` 가 삭제. 운영 DB 에서 이미 탈퇴한 계정(id 77)으로 같은 DELETE 문을 트랜잭션 안에서 실행해 보고(재료 30행 등) **롤백**해 SQL 이 맞는 것만 확인(데이터 변경 없음).
+- 계정 삭제 안내 페이지와 개인정보처리방침 문구를 "탈퇴 즉시 삭제 / 1년 보관 후 삭제 / 요청 시 7일"로 맞춤.
+- **iOS 1.0.1 (빌드 5) 준비**: 1.0 이 출시돼 다음 제출은 새 버전 번호가 필요해 pbxproj `MARKETING_VERSION 1.0.1`·`CURRENT_PROJECT_VERSION 5` 로 올려 둠(맥에서 pull 후 바로 Archive).
