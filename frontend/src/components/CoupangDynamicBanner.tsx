@@ -18,6 +18,8 @@ import * as React from 'react';
 const BANNER_ID = '1032264'; // 파트너스 다이내믹 배너 「쿡매치 레시피 하단」(2026-09-22 생성)
 const TRACKING_CODE = 'AF2929738'; // 파트너스 트래킹 코드(간편 링크와 같은 계정)
 const BANNER_HEIGHT = 110;
+const AD_BOX_BG = '#EFEFF2'; // 광고 상자 배경 — 월 목표 카드(surface-sub)보다 한 단계 진하게 해서 서로 구분
+const AD_BOX_PAD_X = 8;
 
 const CoupangDynamicBanner: React.FC<{
   style?: React.CSSProperties;
@@ -29,7 +31,7 @@ const CoupangDynamicBanner: React.FC<{
 
   React.useEffect(() => {
     // 배너는 요청한 폭에 맞춰 상품 개수를 정한다 — 실제 자리 폭을 재서 넘긴다
-    if (boxRef.current) setWidth(Math.round(boxRef.current.getBoundingClientRect().width));
+    if (boxRef.current) setWidth(Math.round(boxRef.current.getBoundingClientRect().width) - AD_BOX_PAD_X * 2);
   }, []);
 
   if (!BANNER_ID) return null;
@@ -45,21 +47,25 @@ const CoupangDynamicBanner: React.FC<{
   }).toString();
 
   return (
-    <div ref={boxRef} style={{ marginTop: 20, ...style }}>
-      <FitDisclaimer />
-      {width > 0 && (
-        <iframe
-          title="쿠팡 추천 상품"
-          src={src}
-          width="100%"
-          height={height}
-          frameBorder={0}
-          scrolling="no"
-          referrerPolicy="unsafe-url"
-          loading="lazy"
-          style={{ display: 'block', border: 0, borderRadius: 10 }}
-        />
-      )}
+    <div style={{ marginTop: 20, ...style }}>
+      {/* 회색 상자로 감싸 본문과 구분한다(2026-09-22) — 레시피 내용 사이에 끼어 있어서 "중요한 본문인가?"
+          싶게 보였다. 대가성 문구도 상자 안에 둬서 이 영역 전체가 광고라는 게 한눈에 보이게. */}
+      <div ref={boxRef} style={{ background: AD_BOX_BG, borderRadius: 12, padding: `6px ${AD_BOX_PAD_X}px 8px` }}>
+        <FitDisclaimer />
+        {width > 0 && (
+          <iframe
+            title="쿠팡 추천 상품"
+            src={src}
+            width="100%"
+            height={height}
+            frameBorder={0}
+            scrolling="no"
+            referrerPolicy="unsafe-url"
+            loading="lazy"
+            style={{ display: 'block', border: 0, borderRadius: 8, background: '#FFFFFF' }}
+          />
+        )}
+      </div>
     </div>
   );
 };
@@ -107,7 +113,7 @@ const FitDisclaimer: React.FC = () => {
     <p
       ref={ref}
       style={{
-        margin: '0 0 6px', fontSize: font, lineHeight: 1.4, color: 'var(--ink-400)',
+        margin: '0 0 5px', fontSize: font, lineHeight: 1.4, color: 'var(--ink-500)',
         textAlign: 'center', letterSpacing: '-0.2px',
         whiteSpace: wrap ? 'normal' : 'nowrap', overflow: 'hidden',
       }}
