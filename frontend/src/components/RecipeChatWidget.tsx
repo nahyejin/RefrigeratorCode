@@ -874,7 +874,7 @@ const RecipeChatWidget: React.FC = () => {
           <div className="ai-fab-glow" />
           <button
             type="button"
-            aria-label="AI 요리 챗봇 열기"
+            aria-label="요리 AI 열기"
             className="ai-fab-button"
             onClick={openWidget}
           >

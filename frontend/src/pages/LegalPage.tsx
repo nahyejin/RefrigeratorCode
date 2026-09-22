@@ -228,7 +228,7 @@ const Privacy: React.FC = () => (
         </tr>
         <tr>
           <td style={S.td}>Google (Gemini) · Groq</td>
-          <td style={S.td}>요리 챗봇·식단 짜기·사진 재료 인식. 질문 글, 냉장고 재료 이름, 올린 사진이 전달됩니다</td>
+          <td style={S.td}>요리 AI·식단 짜기·사진 재료 인식. 질문 글, 냉장고 재료 이름, 올린 사진이 전달됩니다</td>
         </tr>
         <tr>
           <td style={S.td}>쿠팡 파트너스</td>
@@ -342,7 +342,7 @@ const Terms: React.FC = () => (
     <h2 style={S.h2}>제4조 (AI 기능과 크레딧)</h2>
     <ul style={S.ul}>
       <li style={S.li}>
-        요리 챗봇·식단 짜기·사진 재료 인식은 AI를 부르므로 <b>크레딧</b>을 씁니다.
+        요리 AI·식단 짜기·사진 재료 인식은 AI를 부르므로 <b>크레딧</b>을 씁니다.
         무엇에 얼마가 드는지는 각 화면에 적혀 있습니다.
       </li>
       <li style={S.li}>

@@ -169,7 +169,7 @@ const PolicyCard: React.FC<{ policy: any }> = ({ policy }) => {
           </div>
 
           <div style={{ fontSize: 12.5, color: 'var(--ink-700)', lineHeight: 1.8 }}>
-            <b>무엇을 세는가</b> — 챗봇 질문 <b>{chat}</b>, 사진 인식 <b>{vision}</b>
+            <b>무엇을 세는가</b> — 요리 AI 질문 <b>{chat}</b>, 사진 인식 <b>{vision}</b>
             (사진 장수와 무관).
             <br />
             사진이 여러 장이어도 LLM 호출은 한 번이라, 장수만큼 매기면 여러 장을 한 번에
@@ -450,7 +450,7 @@ const UsageHistory: React.FC<{ userId: number }> = ({ userId }) => {
           {rows.map((r, i) => (
             <tr key={i}>
               <td style={S.td}>{(r.created_at || '').replace('T', ' ').slice(0, 16)}</td>
-              <td style={S.td}>{r.kind === 'vision' ? '사진' : '챗봇'}</td>
+              <td style={S.td}>{r.kind === 'vision' ? '사진' : '요리 AI'}</td>
               <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums' }}>{r.credits}</td>
               <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums' }}>{r.images ?? '-'}</td>
               <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums' }}>
@@ -2480,7 +2480,7 @@ const Dashboard: React.FC = () => {
                 <tbody>
                   {act.features.map((f: any) => (
                     <tr key={f.kind}>
-                      <td style={S.td}>{f.kind === 'vision' ? '사진 인식' : '요리 챗봇'}</td>
+                      <td style={S.td}>{f.kind === 'vision' ? '사진 인식' : '요리 AI'}</td>
                       <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums' }}>{f.users}</td>
                       <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums' }}>{num(f.calls)}</td>
                       <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums' }}>{num(f.credits)}</td>
@@ -2585,7 +2585,7 @@ const Dashboard: React.FC = () => {
             <tbody>
               {data.credit_check.map((r: any) => (
                 <tr key={r.kind}>
-                  <td style={S.td}>{r.kind === 'vision' ? '사진' : '챗봇'}</td>
+                  <td style={S.td}>{r.kind === 'vision' ? '사진' : '요리 AI'}</td>
                   <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums' }}>{num(r.n)}</td>
                   <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums' }}>{num(r.avg_tokens || 0)}</td>
                   <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums', fontWeight: 700 }}>
@@ -2775,7 +2775,7 @@ const Admin: React.FC = () => {
 
           {/* "사용량" 과 "토큰" 이 뭔지 매번 헷갈리므로 표 옆에 적어 둔다. */}
           <div style={{ fontSize: 12, color: 'var(--ink-500)', lineHeight: 1.7, padding: '0 4px 8px' }}>
-            <b>오늘 / 이번 주</b>는 <b>크레딧</b>이에요 — 챗봇 1, 사진 인식 2.
+            <b>오늘 / 이번 주</b>는 <b>크레딧</b>이에요 — 요리 AI 1, 사진 인식 2.
             사용자에게 보이는 숫자가 이것이고, 한도도 이 단위로 걸립니다.
             둘은 따로 걸려요(일 상한 · 주 한도).
             <br />

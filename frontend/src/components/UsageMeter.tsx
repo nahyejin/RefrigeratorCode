@@ -411,7 +411,7 @@ export const UsageGauge: React.FC = () => {
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
         {[
           ['재료 담기', (usage.credits as any)?.vision ?? 2],
-          ['요리 챗봇', (usage.credits as any)?.chat ?? 1],
+          ['요리 AI', (usage.credits as any)?.chat ?? 1],
           ['식단 짜기', (usage.credits as any)?.plan ?? 2],
         ].map(([label, cost]) => (
           <span key={label as string} style={{
