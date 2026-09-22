@@ -11644,3 +11644,6 @@ Google Play 「데이터 보안」의 **계정 삭제 URL** 은 그 페이지에
 - [scripts/purge_deleted_accounts.py](scripts/purge_deleted_accounts.py): 탈퇴 후 365일이 지난 계정의 자기 데이터(재료·즐겨찾기·요리 기록·식단·AI 대화·알림 구독·Apple 토큰·사용량·이용 기록)와 계정 행을 삭제. 기본은 미리보기, `--write` 로 실행, 삭제 요청 시 `--user-id N --write` 로 한 계정만 즉시(탈퇴 안 한 계정은 거부). 가족 식구가 남긴 행은 지우지 않음. 매일 배치 `run_expiry_push_daily.bat` 에 추가(CRLF 유지). 현재 대상 0명 확인.
 - **같이 발견한 버그**: 유통기한 알림 발송이 탈퇴 여부를 보지 않아, 탈퇴한 사람의 알림 구독이 남아 있으면 탈퇴 후에도 알림이 갔다 → `send_expiry_push_notifications.py` 가 `users.deleted_at IS NULL` 인 계정만 대상으로.
 - 탈퇴 즉시 데이터를 지우는 쪽으로 바꾸는 건 탈퇴 API(애플 심사관이 직접 쓰는 기능) 배포가 필요해 **애플 심사 뒤로 미룸**.
+
+### Play 피처 그래픽 다시 디자인 — 실제 앱 화면을 넣은 시안 2개 (2026-09-22)
+1차안(노란 바탕에 갈색 글자·아이콘만)이 "안 예쁘다, 글자색도 별로"라는 지적. [make_store_assets.py](store/make_store_assets.py)의 피처 그래픽을 왼쪽 브랜드(아이콘+쿡매치)·카피("냉장고에 있는 걸로, / 오늘 저녁 해결")·기능 한 줄, 오른쪽 실제 앱 화면 두 장(AI 챗봇·AI 식단을 기울인 폰 카드)으로 다시 그림. 시안 A(검정 바탕 + 노란 강조, 스크린샷의 AI 장과 같은 톤)·B(노란 바탕 + 흰 형광펜 강조)를 `store/feature_options/`에 만들고 `FEATURE_VARIANT`로 고른 것을 `play_feature_graphic.png`로 씀(기본 A). `python store/make_store_assets.py feature` 로 단독 재생성.

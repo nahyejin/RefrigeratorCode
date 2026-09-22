@@ -183,27 +183,88 @@ def make_icons():
     print("icons ok")
 
 
-def make_feature_graphic(icon):
-    """Google Play 피처 그래픽 1024x500 — 스토어 상단 배너. 글자는 가운데 안전영역에."""
+# 피처 그래픽 시안 — "A"(검정 바탕) / "B"(노란 바탕). store/feature_options/ 에 둘 다 만들고,
+# 여기 고른 것을 play_feature_graphic.png 로 쓴다. (1차안은 노란 바탕에 갈색 글자만 있어
+# "안 예쁘다, 글자색도 별로"라는 지적 — 2026-09-22 — 으로 실제 앱 화면을 넣은 시안으로 교체)
+FEATURE_VARIANT = "A"
+
+
+def _phone_card(frame, width, crop_h, radius):
+    """앱 화면을 둥근 모서리 카드(얇은 테두리 포함)로 — 아래는 crop_h 에서 잘라 캔버스 밖으로 흘린다."""
+    h = int(frame.height * width / frame.width)
+    shot = frame.resize((width, h), Image.LANCZOS).crop((0, 0, width, min(h, crop_h))).convert("RGBA")
+    mask = Image.new("L", shot.size, 0)
+    ImageDraw.Draw(mask).rounded_rectangle([0, 0, shot.width - 1, shot.height + radius], radius=radius, fill=255)
+    shot.putalpha(mask)
+    ImageDraw.Draw(shot).rounded_rectangle([0, 0, shot.width - 1, shot.height + radius], radius=radius,
+                                           outline=(70, 70, 76, 255), width=2)
+    return shot
+
+
+def _paste_card(base, card, x, y, angle, shadow_alpha):
+    rot = card.rotate(angle, resample=Image.BICUBIC, expand=True)
+    sh_layer = Image.new("RGBA", base.size, (0, 0, 0, 0))
+    sh = Image.new("RGBA", rot.size, (0, 0, 0, 0))
+    sh.putalpha(rot.split()[3].point(lambda a: int(a * shadow_alpha)))
+    sh_layer.paste(sh, (x, y + 14), sh)
+    base.alpha_composite(sh_layer.filter(ImageFilter.GaussianBlur(18)))
+    base.alpha_composite(rot, (x, y))
+
+
+def _feature_graphic(icon, variant):
+    """Google Play 피처 그래픽 1024x500. 왼쪽 브랜드·카피, 오른쪽 실제 앱 화면 두 장."""
     W, H = 1024, 500
-    img = Image.new("RGB", (W, H))
-    dp = img.load()
-    for y in range(H):
+    dark = variant == "A"
+    img = Image.new("RGBA", (W, H), INK + (255,) if dark else (0, 0, 0, 255))
+    if dark:
+        # 오른쪽 폰 뒤로 은은한 노란 빛 — 검정 바탕이 너무 평평하지 않게
+        glow = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+        ImageDraw.Draw(glow).ellipse([560, -40, 1120, 540], fill=BRAND + (70,))
+        img.alpha_composite(glow.filter(ImageFilter.GaussianBlur(90)))
+    else:
+        dp = ImageDraw.Draw(img)
         for x in range(W):
-            t = (x / W) * 0.7 + (y / H) * 0.3
-            c = [int(BRAND_LIGHT[i] + (BRAND[i] - BRAND_LIGHT[i]) * t) for i in range(3)]
-            dp[x, y] = tuple(c)
-    ic = icon.resize((230, 230), Image.LANCZOS).convert("RGBA")
-    ic.putalpha(rounded_mask(230, 0.22))
-    shadow = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    ImageDraw.Draw(shadow).rounded_rectangle([96, 147, 96 + 230, 147 + 230], radius=50, fill=(120, 80, 0, 90))
-    img.paste(shadow.filter(ImageFilter.GaussianBlur(18)), (0, 12), shadow.filter(ImageFilter.GaussianBlur(18)))
-    img.paste(ic, (96, 135), ic)
+            t = x / W
+            dp.line([(x, 0), (x, H)], fill=tuple(int(BRAND_LIGHT[i] + (BRAND[i] - BRAND_LIGHT[i]) * t) for i in range(3)) + (255,))
+
+    # 오른쪽: 실제 앱 화면(뒤 = 챗봇, 앞 = AI 식단)
+    _paste_card(img, _phone_card(load_frame("chat"), 228, 560, 26), 596, 70, 7, 0.55 if dark else 0.35)
+    _paste_card(img, _phone_card(load_frame("diet"), 240, 560, 26), 770, 44, -5, 0.6 if dark else 0.4)
+
     d = ImageDraw.Draw(img)
-    d.text((380, 150), "쿡매치", font=font(96, 900), fill=INK)
-    d.text((384, 272), "냉장고에 있는 걸로, 오늘 저녁", font=font(40, 700), fill=(91, 70, 0))
-    d.text((384, 330), "사진 한 장으로 재료 등록 · AI 식단 · 레시피 추천", font=font(28, 500), fill=(110, 86, 0))
-    img.save(os.path.join(STORE, "play_feature_graphic.png"))
+    head_c = (255, 255, 255) if dark else INK
+    key_c = BRAND if dark else INK
+    sub_c = (196, 196, 204) if dark else (74, 60, 0)
+
+    # 브랜드 줄: 아이콘 + 쿡매치
+    ic = icon.resize((64, 64), Image.LANCZOS).convert("RGBA")
+    ic.putalpha(rounded_mask(64, 0.24))
+    img.alpha_composite(ic, (64, 64))
+    d.text((142, 96), "쿡매치", font=font(34, 800), fill=head_c, anchor="lm")
+
+    # 카피 두 줄 — 둘째 줄이 핵심(밝은 시안은 흰 형광펜 띠로 강조)
+    hf = font(54, 900)
+    d.text((62, 170), "냉장고에 있는 걸로,", font=hf, fill=head_c)
+    line2 = "오늘 저녁 해결"
+    if not dark:
+        tw = d.textlength(line2, font=hf)
+        d.rounded_rectangle([54, 246, 70 + tw, 312], radius=14, fill=(255, 255, 255, 235))
+    d.text((62, 240), line2, font=hf, fill=key_c)
+
+    d.text((64, 350), "AI 식단 · 사진 한 장 재료 등록 · 요리 챗봇", font=font(23, 600), fill=sub_c)
+    return img.convert("RGB")
+
+
+def make_feature_graphic(icon):
+    """시안 둘을 store/feature_options/ 에 만들고, FEATURE_VARIANT 를 play_feature_graphic.png 로."""
+    out = os.path.join(STORE, "feature_options")
+    os.makedirs(out, exist_ok=True)
+    for v in ("A", "B"):
+        g = _feature_graphic(icon, v)
+        save_png(g, os.path.join(out, f"feature_{v}.png"))
+        if v == FEATURE_VARIANT:
+            save_png(g, os.path.join(STORE, "play_feature_graphic.png"))
+    print(f"feature graphic ok (선택: {FEATURE_VARIANT})")
 
 
 # ---------------------------------------------------------------------------
@@ -488,5 +549,7 @@ if __name__ == "__main__":
     what = sys.argv[1:] or ["icons", "shots"]
     if "icons" in what:
         make_icons()
+    if "feature" in what and "icons" not in what:
+        make_feature_graphic(build_master_icon()[0])
     if "shots" in what:
         make_shots()
