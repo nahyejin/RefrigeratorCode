@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 /**
- * 쿠팡 파트너스 **다이내믹 배너**(iframe) — 레시피 조리 시트의 「조리 순서」 바로 위(높이 50), 요리 캘린더 맨 아래.
+ * 쿠팡 파트너스 **다이내믹 배너**(iframe) — 조리 시트 「조리 순서」 위, 요리 캘린더 월 목표 아래, 내 냉장고·요즘 인기 맨 아래(모두 높이 50).
  *
  * 왜 이 자리·이 광고인가(2026-09-22):
  *   조리 시트와 캘린더는 한참 들여다보는 화면이라 광고가 눈에 오래 머문다. 보기만 해도 돈이 되는
@@ -71,23 +71,22 @@ const CoupangDynamicBanner: React.FC<{
 };
 
 /**
- * 대가성 문구를 **한 줄로** — 자리 폭에 들어갈 때까지 글씨를 줄인다(11px → 최소 8.5px).
+ * 대가성 문구를 **항상 한 줄로** — 자리 폭에 들어갈 때까지 글씨를 줄인다(11px → 최소 7px).
  *
  * 폰(폭 ~340px)에서는 11px 로는 한 줄에 안 들어가 문장 중간 어중간한 곳에서 감겼고, 쉼표 뒤에서 두 줄로
  * 끊어 봤더니 "굳이 두 줄까지?" 라는 의견이라 한 줄 + 작은 글씨로 바꿨다(2026-09-22).
- * 최소 크기에서도 안 들어가는 아주 좁은 화면만 쉼표 뒤에서 두 줄로 내린다 — 문구는 쿠팡 가이드상
- * "쉽게 인식할 수 있어야" 해서 더 작게 만들지는 않는다.
+ * 처음엔 최소 8.5px 에서도 안 들어가면 두 줄로 내렸는데, 화면마다 한 줄·두 줄이 섞여 보여 "줄바꿈 없이
+ * 통일" 요청으로 두 줄을 없앴다(2026-09-23). 폰 폭(320px 이상)에서는 7px 안에 들어간다.
  */
 const TEXT_A = '이 광고는 쿠팡 파트너스 활동의 일환으로,';
 const TEXT_B = '이에 따른 일정액의 수수료를 제공받습니다.';
 const MAX_FONT = 11;
-const MIN_FONT = 8.5;
+const MIN_FONT = 7;
 
 const FitDisclaimer: React.FC = () => {
   const boxRef = React.useRef<HTMLDivElement>(null);
   const measureRef = React.useRef<HTMLSpanElement>(null);
   const [font, setFont] = React.useState(MAX_FONT);
-  const [wrap, setWrap] = React.useState(false);
 
   React.useLayoutEffect(() => {
     const box = boxRef.current, probe = measureRef.current;
@@ -107,7 +106,6 @@ const FitDisclaimer: React.FC = () => {
         probe.style.fontSize = f + 'px';
       }
       setFont(f);
-      setWrap(probe.offsetWidth > avail);
     };
     fit();
     const ro = new ResizeObserver(fit);
@@ -123,8 +121,8 @@ const FitDisclaimer: React.FC = () => {
         {TEXT_A} {TEXT_B}
       </span>
       <p style={{ ...textStyle, margin: 0, fontSize: font, color: 'var(--ink-500)', textAlign: 'center',
-                  whiteSpace: wrap ? 'normal' : 'nowrap' }}>
-        {TEXT_A}{wrap ? <br /> : ' '}{TEXT_B}
+                  whiteSpace: 'nowrap', overflow: 'hidden' }}>
+        {TEXT_A} {TEXT_B}
       </p>
     </div>
   );
