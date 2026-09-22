@@ -2,6 +2,14 @@
 
 상세 배경은 [MOBILE_APP_GUIDE.md](MOBILE_APP_GUIDE.md), 스토어 원고는 [store/STORE_LISTING.md](store/STORE_LISTING.md).
 
+## 🎉 2026-09-22 09:28 — App Store 심사 통과 (iOS 1.0 출시)
+
+- Apple 메일 「Review of your submission is complete… eligible for distribution」(920803hj@naver.com). 제출 ID `cec53827-…`, 빌드 1.0(4). **자동 출시**라 최대 24시간 안에 공개.
+- App Store 링크: https://apps.apple.com/app/id6814209983 (앱 ID `6814209983`). 09:40 기준 아직 "페이지를 찾을 수 없음" — 전파 대기(정상).
+- **공개되면 확인**: 링크 열림·아이콘·스크린샷 순서(AI 3종 먼저)·설명.
+- **이제 풀린 제약**: 심사가 끝나 Railway 백엔드 배포 제약이 없어졌다. 단, 심사용 계정 `920803hj+review@gmail.com` 은 **다음 iOS 업데이트 심사에도 쓰니** 지우지 말고 비밀번호만 바꾼 뒤 App Store Connect 앱 심사 정보에 새 비밀번호를 적을 것(Google Play 로그인 세부정보도 같이 갱신 — 구글 비공개 테스트 검토가 끝난 뒤에).
+- **다음 iOS 할 일**: ① iOS 푸시 발송 연결(.p8 → `backend/apns-auth-key.p8`, `.env` 의 `APNS_KEY_ID`·`APNS_TEAM_ID`, `httpx[http2]`) → 실기기 수신 확인되면 App Store 설명·프로모션에 알림 문장 복원 ② 맥에서 pull → 빌드 번호 5 로 업데이트(윈도우 수정분 포함) ③ 탈퇴 즉시 데이터 삭제(백엔드).
+
 ## ✅ 2026-09-22 — Play 앱 생성·설정 완료, 비공개 테스트 검토 제출
 
 - **앱 만들기**: 이름 `쿡매치 - 냉장고 재료로 레시피 추천`, **패키지 `kr.cookmatch.app`**(com.cookmatch.app 은 다른 개발자가 이미 사용 중이라 변경 — iOS 번들 ID·로그인 복귀 스킴은 com.cookmatch.app 그대로), 한국어, 앱, 무료.
