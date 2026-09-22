@@ -16,9 +16,9 @@ import CoupangDisclaimer from './CoupangDisclaimer';
  *
  * 앱(WebView) 안에서 배너를 눌렀을 때 쿠팡이 어디서 열리는지는 실기기에서 확인할 것.
  */
-const BANNER_ID = ''; // ★ 파트너스에서 만든 다이내믹 배너 id (숫자)
+const BANNER_ID = '1032264'; // 파트너스 다이내믹 배너 「쿡매치 레시피 하단」(2026-09-22 생성)
 const TRACKING_CODE = 'AF2929738'; // 파트너스 트래킹 코드(간편 링크와 같은 계정)
-const BANNER_HEIGHT = 140;
+const BANNER_HEIGHT = 110;
 
 const CoupangDynamicBanner: React.FC<{ style?: React.CSSProperties }> = ({ style }) => {
   const boxRef = React.useRef<HTMLDivElement>(null);

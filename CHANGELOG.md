@@ -11717,3 +11717,4 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 - [CoupangDynamicBanner.tsx](frontend/src/components/CoupangDynamicBanner.tsx) 신설: `ads-partners.coupang.com/widgets.html?id=…&template=carousel&trackingCode=AF2929738` iframe + 대가성 문구. 자리 폭을 재서 넘긴다. `BANNER_ID` 가 비어 있으면 아무것도 안 그린다(문구도) — **파트너스에서 다이내믹 배너를 만들어 id 를 넣어야 노출**.
 - [CookModeSheet.tsx](frontend/src/components/CookModeSheet.tsx) 시트 맨 끝(출처 아래), [CookingCalendar.tsx](frontend/src/pages/CookingCalendar.tsx) 화면 맨 끝(장보기 메모 아래)에 배치.
 - 노출형(AdMob) 대신 이걸 고른 이유: 광고 ID·ATT·스토어 개인정보 신고 변경 없이 가능, 누른 뒤 24시간 구매 전체에 수수료. 앱 WebView 안 iframe 클릭 동작은 실기기 확인 필요.
+- 다이내믹 배너 켬: 파트너스에서 만든 「쿡매치 레시피 하단」(id 1032264, 고객 관심 기반 추천) 을 `BANNER_ID` 에, 앱 높이 110. 같은 iframe 주소를 340×110 으로 띄워 상품 캐러셀+쿠팡 주문하기 버튼이 그려지는 것 확인.
