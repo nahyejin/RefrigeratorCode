@@ -11718,3 +11718,4 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 - [CookModeSheet.tsx](frontend/src/components/CookModeSheet.tsx) 시트 맨 끝(출처 아래), [CookingCalendar.tsx](frontend/src/pages/CookingCalendar.tsx) 화면 맨 끝(장보기 메모 아래)에 배치.
 - 노출형(AdMob) 대신 이걸 고른 이유: 광고 ID·ATT·스토어 개인정보 신고 변경 없이 가능, 누른 뒤 24시간 구매 전체에 수수료. 앱 WebView 안 iframe 클릭 동작은 실기기 확인 필요.
 - 다이내믹 배너 켬: 파트너스에서 만든 「쿡매치 레시피 하단」(id 1032264, 고객 관심 기반 추천) 을 `BANNER_ID` 에, 앱 높이 110. 같은 iframe 주소를 340×110 으로 띄워 상품 캐러셀+쿠팡 주문하기 버튼이 그려지는 것 확인.
+- 배너 위치 변경(사용자 요청 — 맨 아래는 보는 사람이 드묾): 조리 시트는 「조리 순서」(읽어 주기 줄) 바로 위, 요리 캘린더는 월 목표 카드 바로 아래, 둘 다 높이 50(`height` prop, 50px 에서도 상품 4개+쿠팡 로고가 한 줄로 그려지는 것 확인). 대가성 문구는 좁은 폭에서 어중간하게 감겨 `twoLines`(쉼표 뒤 줄바꿈).

@@ -537,6 +537,10 @@ const CookModeSheet: React.FC<Props> = ({
             </section>
           )}
 
+          {/* 쿠팡 배너 — 「조리 순서」(읽어 주기 버튼 줄) 바로 위, 낮게(50px). 처음엔 시트 맨 끝에 뒀는데
+              거기까지 내려 보는 사람이 드물어 보인다는 판단으로 옮겼다(2026-09-22). */}
+          <CoupangDynamicBanner height={50} style={{ marginTop: 0, marginBottom: 18 }} />
+
           {/* ── 조리 순서 ────────────────────────────────────── */}
           {steps.length > 0 ? (
             <section>
@@ -741,8 +745,6 @@ const CookModeSheet: React.FC<Props> = ({
           </div>
         </div>
       )}
-      {/* 시트 맨 끝 — 조리 순서를 다 본 뒤에 보이는 자리. 레시피 내용보다 앞에 두지 않는다. */}
-      {data && <CoupangDynamicBanner />}
     </Sheet>
     {/* 토스트는 시트 **밖**에 둔다 — 시트 안에 있으면 닫힌 뒤 확인창에서
         「완료했어요」를 눌렀을 때 결과 안내가 안 보인다. */}

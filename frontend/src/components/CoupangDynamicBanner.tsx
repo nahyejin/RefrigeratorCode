@@ -2,7 +2,7 @@ import * as React from 'react';
 import CoupangDisclaimer from './CoupangDisclaimer';
 
 /**
- * 쿠팡 파트너스 **다이내믹 배너**(iframe) — 레시피 조리 시트 맨 아래, 요리 캘린더 맨 아래.
+ * 쿠팡 파트너스 **다이내믹 배너**(iframe) — 레시피 조리 시트의 「조리 순서」 바로 위(높이 50), 요리 캘린더 맨 아래.
  *
  * 왜 이 자리·이 광고인가(2026-09-22):
  *   조리 시트와 캘린더는 한참 들여다보는 화면이라 광고가 눈에 오래 머문다. 보기만 해도 돈이 되는
@@ -20,7 +20,11 @@ const BANNER_ID = '1032264'; // 파트너스 다이내믹 배너 「쿡매치 �
 const TRACKING_CODE = 'AF2929738'; // 파트너스 트래킹 코드(간편 링크와 같은 계정)
 const BANNER_HEIGHT = 110;
 
-const CoupangDynamicBanner: React.FC<{ style?: React.CSSProperties }> = ({ style }) => {
+const CoupangDynamicBanner: React.FC<{
+  style?: React.CSSProperties;
+  /** 배너 높이(px). 조리 시트 안처럼 내용 사이에 끼울 때는 낮게(50) — 기본은 캘린더 맨 아래용 */
+  height?: number;
+}> = ({ style, height = BANNER_HEIGHT }) => {
   const boxRef = React.useRef<HTMLDivElement>(null);
   const [width, setWidth] = React.useState(0);
 
@@ -37,19 +41,20 @@ const CoupangDynamicBanner: React.FC<{ style?: React.CSSProperties }> = ({ style
     trackingCode: TRACKING_CODE,
     subId: '',
     width: String(width || 340),
-    height: String(BANNER_HEIGHT),
+    height: String(height),
     tsource: '',
   }).toString();
 
   return (
     <div ref={boxRef} style={{ marginTop: 20, ...style }}>
-      <CoupangDisclaimer compact style={{ marginBottom: 6, textAlign: 'center' }} />
+      {/* 폭이 좁아(폰 ~340px) 한 줄에 안 들어가 문장 중간 어중간한 곳에서 감겼다(사용자 지적) → 쉼표 뒤에서 끊는다 */}
+      <CoupangDisclaimer compact twoLines style={{ marginBottom: 6, textAlign: 'center' }} />
       {width > 0 && (
         <iframe
           title="쿠팡 추천 상품"
           src={src}
           width="100%"
-          height={BANNER_HEIGHT}
+          height={height}
           frameBorder={0}
           scrolling="no"
           referrerPolicy="unsafe-url"
