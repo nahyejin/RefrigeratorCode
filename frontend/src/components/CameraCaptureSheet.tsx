@@ -345,14 +345,12 @@ const CameraCaptureSheet: React.FC<CameraCaptureSheetProps> = ({ isOpen, onClose
         사진 추가 (최대 {maxFiles}장)
       </button>
 
-      {/* 진짜 "홈 화면 위젯"(다른 앱 위에 떠 있는 버튼 포함)은 PWA 로는 만들 수
-          없다 — 네이티브 앱이어야 한다. 이 시트에서는 "홈 화면에 추가" 같은
-          PWA 설치 안내는 굳이 반복하지 않고, 위젯 자체가 계획돼 있다는 것만
-          짧게 알려 둔다(설치 안내는 다른 화면에서 이미 하고 있음). */}
-      <div style={{ textAlign: 'center', fontSize: 12, color: 'var(--ink-500)', lineHeight: 1.5 }}>
-        📱 바탕화면에 바로 찍는 위젯도 준비 중이에요.
-        <br />
-        앱 출시 후 지원될 예정이에요.
+      {/* 홈 화면 위젯은 네이티브 앱에서만 된다(PWA 로는 불가). 안드로이드 앱에 「재료 찍기」
+          1×1 위젯을 넣었으므로(2026-09-23, CameraWidgetProvider) "준비 중" 안내를 실제 안내로
+          바꾼다. 한 줄로 유지한다 — 폭이 좁으면 글씨만 줄인다(어중간한 줄바꿈 방지). */}
+      <div style={{ textAlign: 'center', fontSize: 'clamp(10px, 3.1vw, 12px)', color: 'var(--ink-500)',
+                    lineHeight: 1.5, whiteSpace: 'nowrap', overflow: 'hidden' }}>
+        📱 홈 화면에 위젯으로 추가하면 바로 찍을 수 있어요.
       </div>
     </Sheet>
 

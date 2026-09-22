@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 홈 화면 "재료 찍기" 위젯 1×1. 노란 배경(브랜드) 위에 카메라 아이콘 하나.
+     위젯은 RemoteViews 라 쓸 수 있는 뷰가 제한적이라(ConstraintLayout 불가) FrameLayout 으로 짠다. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_camera_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_camera_bg"
+    android:padding="10dp"
+    android:contentDescription="@string/widget_camera_label">
+
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_gravity="center"
+        android:src="@drawable/ic_widget_camera"
+        android:scaleType="fitCenter"
+        android:importantForAccessibility="no" />
+</FrameLayout>

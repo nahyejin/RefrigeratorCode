@@ -6,4 +6,6 @@
     <!-- 소셜 로그인 복귀 주소(com.cookmatch.app://auth)의 스킴 — 앱 ID(kr.cookmatch.app)와 별개이며
          백엔드 NATIVE_APP_SCHEME·iOS 와 같은 값이라 그대로 둔다. -->
     <string name="custom_url_scheme">com.cookmatch.app</string>
+    <string name="widget_camera_label">재료 찍기</string>
+    <string name="widget_camera_description">누르면 쿡매치가 열리면서 카메라로 재료를 담는 화면이 바로 떠요.</string>
 </resources>

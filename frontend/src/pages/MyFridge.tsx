@@ -1703,6 +1703,18 @@ const MyFridge: React.FC = () => {
 
   // 카메라로 재료 담기 시트. 영수증/음식(1개)/음식(여러개) 입구를 하나로 모았다.
   const [cameraSheetOpen, setCameraSheetOpen] = useState(false);
+
+  // 홈 화면 "재료 찍기" 위젯으로 들어온 경우(`/my-fridge?camera=1`, NativeShortcutBridge)
+  // 곧바로 이 시트를 연다. 주소에 흔적이 남으면 뒤로 가기·새로고침 때마다 또 열려서,
+  // 연 뒤에는 쿼리를 지운다(replace 라 뒤로 가기 기록도 안 쌓인다).
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('camera') !== '1') return;
+    setCameraSheetOpen(true);
+    params.delete('camera');
+    const rest = params.toString();
+    navigate(`/my-fridge${rest ? `?${rest}` : ''}`, { replace: true });
+  }, [navigate]);
   const [recognitionOpen, setRecognitionOpen] = useState(false);
   const [recognitionLoading, setRecognitionLoading] = useState(false);
   // 로딩 화면에서 "3장을 함께 읽고 있어요" 라고 말해 주기 위해 장수를 들고 있는다.

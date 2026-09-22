@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- "재료 찍기" 위젯 설정. 1×1 칸(40dp)이 목표이고, 크기 조절은 막는다(아이콘 하나뿐이라 커져도 얻을 게 없다).
+     targetCellWidth/Height 는 Android 12+ 에서만 쓰이고, 그 아래 버전은 minWidth/minHeight 로 칸을 정한다. -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="40dp"
+    android:minHeight="40dp"
+    android:targetCellWidth="1"
+    android:targetCellHeight="1"
+    android:resizeMode="none"
+    android:widgetCategory="home_screen"
+    android:previewLayout="@layout/widget_camera"
+    android:description="@string/widget_camera_description"
+    android:initialLayout="@layout/widget_camera"
+    android:updatePeriodMillis="0" />

@@ -11735,3 +11735,9 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 - 🎉 iOS 1.0.1 (빌드 6) 심사 통과(2026-09-23) — 설명란 명령어 수정·새 키워드(냉털 등)·한국어 표시·아이폰 알림 자동 구독이 자동 출시로 반영된다(최대 24시간).
 - 릴스 소재집에 **공통 감독 지시 블록** 추가(역할·포맷·공간·인물·조명·카메라·연기·사운드·마지막 1초 푸시인·금지) + 갈래마다 푸시인 대상 지정. 폰에서 보라고 아티팩트로도 발행(갈래 카드의 복사 버튼이 공통 블록+장면을 한 번에 복사).
 - [store/REEL_PROMPTS_FULL.md](store/REEL_PROMPTS_FULL.md) 추가 — 공통 감독 지시+장면+마지막 1초를 합친 **붙여넣기용 완성 프롬프트 8개**(장면 문장에서 중복되던 "마지막 1초/세로 9:16" 표현 정리). 아티팩트 페이지도 카드마다 완성본을 그대로 보여 주고 「전체 복사」로 바뀜.
+
+### 안드로이드 홈 화면 「재료 찍기」 위젯 1×1 (2026-09-23)
+- [CameraWidgetProvider.java](frontend/android/app/src/main/java/com/cookmatch/app/CameraWidgetProvider.java) + `widget_camera.xml`·`camera_widget_info.xml`·배경/아이콘 드로어블·매니페스트 receiver. 위젯은 RemoteViews 라 카메라를 직접 못 띄우므로 `com.cookmatch.app://camera` 로 앱을 연다(로그인 복귀와 같은 스킴, host 만 다름 — MainActivity intent-filter 추가).
+- 웹 쪽 [NativeShortcutBridge.tsx](frontend/src/components/NativeShortcutBridge.tsx) 가 그 주소를 받아 `/my-fridge?camera=1` 로 보내고, [MyFridge.tsx](frontend/src/pages/MyFridge.tsx) 가 쿼리를 보고 카메라 시트를 연 뒤 쿼리를 지운다(뒤로 가기·새로고침에 또 열리지 않게).
+- [CameraCaptureSheet.tsx](frontend/src/components/CameraCaptureSheet.tsx) 안내 문구를 "위젯 준비 중" → "홈 화면에 위젯으로 추가하면 바로 찍을 수 있어요" 한 줄(폭 좁으면 글씨만 줄임)로 교체.
+- 에뮬레이터 확인: 위젯 provider 등록(dumpsys), 딥링크로 앱 실행 → 내 냉장고 + 「사진으로 재료 담기」 시트가 바로 열리고 새 문구가 한 줄로 보임. 첫 시도에서 `useEffect is not defined`(MyFridge 는 `React.useEffect` 규칙) 로 에러 화면이 떠서 수정 후 재확인.
