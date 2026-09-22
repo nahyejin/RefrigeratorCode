@@ -2,6 +2,12 @@
 
 상세 배경은 [MOBILE_APP_GUIDE.md](MOBILE_APP_GUIDE.md), 스토어 원고는 [store/STORE_LISTING.md](store/STORE_LISTING.md).
 
+## 🛒 쿠팡 파트너스 (2026-09-22)
+
+- 다이내믹 배너(id 1032264, 고객 관심 기반) — 조리 시트 「조리 순서」 위·요리 캘린더 월 목표 아래, 높이 50. 웹 반영 완료, 앱은 1.0.2 부터.
+- 파트너스 활동 채널: 웹사이트 목록 + **모바일 앱 목록에 App Store 주소 추가**, 배너 스크린샷 등록 완료(사용자). 안드로이드 정식 출시되면 Play 주소도 모바일 앱 목록에 추가할 것.
+- 최종 승인 조건: 누적 판매 금액 15만 원 이상 → 자동 검토(활동 URL·대가성 문구가 보이는 스크린샷 필요). 승인돼야 정산. 파트너스 홈에서 상태 확인.
+
 ## 🔗 앱 다운로드 링크 (인스타 프로필·릴스 광고용) — https://refrigerator-code.vercel.app/download
 
 - 하나의 링크로 아이폰은 App Store, 안드로이드는 Play(출시 전엔 "곧 출시"+웹), PC 는 버튼 목록. `frontend/public/download.html`.
