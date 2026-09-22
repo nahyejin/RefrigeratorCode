@@ -11670,3 +11670,7 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 ### 오늘 한 일 정리 + 맥에서 할 일 안내 (2026-09-22)
 - [RELEASE_TODO.md](RELEASE_TODO.md) 맨 위에 「2026-09-22 하루 정리」(바뀐 것 전부·스토어 진행 상황·남은 일)와 **「오늘 저녁 맥에서 할 일」**(pull → build → cap sync → Xcode Archive 1.0.1(5) → App Store Connect 1.0.1 제출) 순서표를 추가.
 - [store/STORE_LISTING.md](store/STORE_LISTING.md) 에 1.0.1 「이 버전의 새로운 기능」 원고(`ios-whatsnew`) 추가. 이 CHANGELOG 의 09-22 항목들이 「2026-09-21 (맥북 작업)」 아래 섞여 있어 `## 2026-09-22` 제목을 새로 달았다.
+
+### App Store 공개 페이지 점검 — 설명란 명령어 노출, 언어 EN 표시 (2026-09-22)
+- 공개된 App Store 페이지(아이콘·스크린샷 5장 순서·Food & Drink·4+·무료·38MB 정상)에서 **설명 자리에 원고 대신 맥에서 원고를 복사하던 셸 명령어**가 보였다. 프로모션 텍스트라면 지금 바로, 설명이라면 1.0.1 제출 때 `ios-desc` 로 교체.
+- 「Language: EN」 — iOS 프로젝트 기본 언어가 en 이라서. Info.plist `CFBundleDevelopmentRegion` → `ko` + `CFBundleLocalizations [ko]`, pbxproj `developmentRegion = ko`·knownRegions 에 `ko` 추가(1.0.1 빌드에 반영). 맥에서 할 일 순서표에 두 가지 확인 단계 추가.

@@ -39,10 +39,12 @@
    맥 Claude 가 같은 파일을 먼저 고쳐 둬서 pull 이 막히면 `git checkout <파일>` 로 그 변경을 버리고 다시 pull.
 2. **시뮬레이터/실기기 확인** — Xcode 에서 ▶. 로그인·카메라·챗봇 입력창·알림 스위치만 빠르게 확인.
 3. **버전 확인** — Xcode 타깃 App → General 에 Version **1.0.1**, Build **5** 인지 확인.
+   - **언어 한국어로**: App Store 페이지 「Language」가 **EN** 으로 떠서(2026-09-22 확인) 윈도우에서 Info.plist `CFBundleDevelopmentRegion ko`·`CFBundleLocalizations [ko]`, pbxproj `developmentRegion = ko`·knownRegions 에 ko 를 넣어 둠. Xcode 에서 PROJECT App → Info → **Localizations** 에 **Korean** 이 보이는지 확인(없으면 ⊕ → Korean, 파일 체크 그대로 Finish).
 4. **Archive·업로드** — 기기 선택을 「Any iOS Device (arm64)」 → Product → Archive → Organizer 에서 Distribute App → App Store Connect → Upload. 업로드 뒤 처리까지 10~30분.
 5. **App Store Connect 에 새 버전** — 앱 → iOS 앱 옆 ⊕ → 버전 **1.0.1**.
    - 「이 버전의 새로운 기능」: `store/STORE_LISTING.md` 의 `ios-whatsnew`
    - 「설명」: `ios-desc`(알림 문장 포함), 「프로모션 텍스트」: `ios-promo`
+   - ⚠ **1.0 설명(또는 프로모션 텍스트)에 원고 대신 복사 명령어(`cd ~/Developer/RefrigeratorCode && python3 -c "import re…" | pbcopy`)가 들어가 공개됨**(2026-09-22 App Store 페이지에서 확인). 붙여 넣은 뒤 명령어가 아니라 「오늘 저녁 뭐 해 먹지?」로 시작하는지 꼭 확인. 원고는 `store/STORE_LISTING.md` 에서 코드 블록 안 글만 복사.
    - 스크린샷·키워드·앱 심사 정보는 1.0 에서 그대로 넘어옴
    - 빌드: 처리 끝난 **1.0.1 (5)** 선택
 6. **심사 제출** — 「심사에 추가」 → 제출. 출시 방식은 자동 그대로 OK.
