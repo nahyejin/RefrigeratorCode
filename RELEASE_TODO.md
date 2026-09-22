@@ -2,6 +2,12 @@
 
 상세 배경은 [MOBILE_APP_GUIDE.md](MOBILE_APP_GUIDE.md), 스토어 원고는 [store/STORE_LISTING.md](store/STORE_LISTING.md).
 
+## ⚠ 2026-09-22 10:00 — App Store 「판매 중단」 원인: 가격·판매 국가 미설정 → 해결
+
+- 심사 통과 후에도 App Store Connect 버전 1.0 화면에 「App Store에서 이 앱의 판매가 중단되었습니다」가 떴다. 원인은 **가격 및 사용 가능 여부**에 가격이 비어 있어 판매 국가가 하나도 없었던 것.
+- 해결: 가격 변경 일정 ⊕ → **글로벌 가격 변경** → 2026.09.22, **$0.00(무료)**, 기준 국가 미국(USD) 그대로. 저장 직후 앱 사용 가능 여부 **148개 처리 중 / 27개 판매 불가**(중국 등 인허가 필요국 — 무시) → 10:02 Apple 메일 「배포 승인되었음」. 최대 24시간 안에 링크·검색 노출.
+- 할 일: 148개에 대한민국 포함 확인, 내일 https://apps.apple.com/app/id6814209983 열리는지 확인. (선택) 「Apple Silicon Mac 사용 가능」 체크는 Mac 미검증이라 해제 권장.
+
 ## 🎉 2026-09-22 09:28 — App Store 심사 통과 (iOS 1.0 출시)
 
 - Apple 메일 「Review of your submission is complete… eligible for distribution」(920803hj@naver.com). 제출 ID `cec53827-…`, 빌드 1.0(4). **자동 출시**라 최대 24시간 안에 공개.

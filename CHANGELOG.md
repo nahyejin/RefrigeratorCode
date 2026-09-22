@@ -11661,3 +11661,6 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 - **회원 탈퇴 시 콘텐츠 즉시 삭제**: [app.py](backend/app.py) `delete_account` 가 `deleted_at` 표시 뒤 `WITHDRAWAL_CONTENT_TABLES`(냉장고 재료·즐겨찾기·요리/완료 기록·수동 요리 기록·식단 계획·AI 대화·가족 알림·웹/앱 알림 구독)를 같은 트랜잭션에서 지움(아직 없는 테이블은 1146 으로 건너뜀). 계정 행과 가입 혜택·이용량 기록(`credit_grants`·`credit_identity_claims`·`user_quota`·`llm_usage`·`usage_requests`·`user_events`)만 재가입 혜택 중복 방지용으로 1년 보관 → `purge_deleted_accounts.py` 가 삭제. 운영 DB 에서 이미 탈퇴한 계정(id 77)으로 같은 DELETE 문을 트랜잭션 안에서 실행해 보고(재료 30행 등) **롤백**해 SQL 이 맞는 것만 확인(데이터 변경 없음).
 - 계정 삭제 안내 페이지와 개인정보처리방침 문구를 "탈퇴 즉시 삭제 / 1년 보관 후 삭제 / 요청 시 7일"로 맞춤.
 - **iOS 1.0.1 (빌드 5) 준비**: 1.0 이 출시돼 다음 제출은 새 버전 번호가 필요해 pbxproj `MARKETING_VERSION 1.0.1`·`CURRENT_PROJECT_VERSION 5` 로 올려 둠(맥에서 pull 후 바로 Archive).
+
+### App Store 「판매 중단」 해결 — 가격·판매 국가 설정 (2026-09-22)
+- 심사 통과 뒤에도 App Store Connect 에 「App Store에서 이 앱의 판매가 중단되었습니다」가 떠서 확인하니, **가격 및 사용 가능 여부**에 가격이 없어 판매 국가가 0개였다. 글로벌 가격 변경으로 **$0.00(무료)** 을 오늘 날짜로 넣자 148개국 처리 중(27개국은 인허가 필요국이라 판매 불가)으로 바뀌고 10:02 「배포 승인」 메일 수신. 최대 24시간 안에 공개. 코드 변경 없음 — [RELEASE_TODO.md](RELEASE_TODO.md) 에 기록.
