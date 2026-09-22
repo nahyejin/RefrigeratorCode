@@ -11730,3 +11730,4 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 
 ### 쿠팡 대가성 문구 한 줄 — 구매 시트에도 (2026-09-23)
 - 한 줄 맞춤 컴포넌트를 배너 안에서 꺼내 [CoupangDisclaimer.tsx](frontend/src/components/CoupangDisclaimer.tsx) 의 `OneLineCoupangDisclaimer`(maxFont·align 받음)로 공용화. 다이내믹 배너(11px·가운데)와 [CoupangAdSheet.tsx](frontend/src/components/CoupangAdSheet.tsx) 「부족한 재료 구매」 시트(12px·왼쪽)가 같이 쓴다. 목록 속 쿠팡 광고 카드(`CoupangAdCard`, 가로 캐러셀에서 문구가 카드 폭을 정함)는 그대로.
+- 진행 기록(09-23): Play 프로덕션 체크리스트 2/3 완료(12명 참여 ✅, 14일 카운트 중 → 10-06 경 신청), iOS 1.0.1(6) 「심사 중」. 비공개 테스트 트랙의 의견 이메일이 비어 있는 것 확인 → 채울 것.
