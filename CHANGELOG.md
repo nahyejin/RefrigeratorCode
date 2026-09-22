@@ -11745,3 +11745,6 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 - 위젯 재설계(사용자 지적 — 노란 바탕이 홈 화면에서 너무 튄다): 1×1 카메라 위젯을 **2×1 「재료 찍기」·「AI 챗봇」**(`QuickWidgetProvider`)로 바꾸고, 흰 카드 + 옅은 회색 원 + 잉크색 아이콘으로 정리(색은 `values/colors.xml`·`values-night/colors.xml` 로 다크 모드까지). 챗봇 버튼은 `…://chat` → [NativeShortcutBridge](frontend/src/components/NativeShortcutBridge.tsx) 가 `cookmatch-open-chat` 이벤트를 쏘고 전역 [RecipeChatWidget](frontend/src/components/RecipeChatWidget.tsx) 이 그 자리에서 대화창을 연다(화면 이동 없음). PendingIntent requestCode 를 버튼마다 다르게 줘야 두 버튼이 같은 곳으로 가지 않는다.
 - 요리 캘린더 위젯은 **만들지 않기로** 함(2026-09-23) — 서버에서 기록을 따로 가져와야 해 작업이 크고, 홈 화면에서 훑어보는 값어치는 위 둘보다 낮다.
 - 에뮬레이터 확인: 위젯 목록에 「쿡매치 2×1」 미리보기(흰 카드·회색 원·재료 찍기/AI 챗봇), `…://camera` → 카메라 시트, `…://chat` → 쿡매치 AI 대화창이 열리는 것까지.
+- 위젯 2종으로 확장: **가로 3×1**(재료 찍기·물어보기·AI 식단)과 **정사각형 2×2**(+ 내 냉장고) — 홈 화면 배치에 따라 고르게(사용자 요청). `QuickWidgetSquareProvider` 가 `QuickWidgetProvider` 를 상속해 레이아웃과 버튼 수만 덮어쓴다. 새 딥링크 `…://plan`(일주일 식단)·`…://fridge`(내 냉장고) 추가.
+- 위젯 라벨에서 **「챗봇」 표현을 뺐다**(사용자 요청 — 최대한 쓰지 않기): 「AI 챗봇」 → **「물어보기」**. 앱 화면·스토어 원고의 「요리 챗봇」 표현은 아직 그대로 — 사용자와 상의 후 정리 예정.
+- 에뮬레이터 확인: 위젯 목록에 2종 미리보기, `…://plan` → 이번 주 식단 추천 화면, `…://chat` → AI 대화창, `…://camera` → 카메라 시트.

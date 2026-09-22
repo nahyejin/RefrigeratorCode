@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 쿡매치 위젯 2×2(정사각형) — 3×1 가로형과 같은 내용에 「내 냉장고」가 하나 더.
+     홈 화면 배치에 따라 가로형이 안 맞는 경우가 있어 둘 다 제공한다(사용자가 고른다). -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="110dp"
+    android:minHeight="110dp"
+    android:targetCellWidth="2"
+    android:targetCellHeight="2"
+    android:resizeMode="none"
+    android:widgetCategory="home_screen"
+    android:previewLayout="@layout/widget_quick_square"
+    android:description="@string/widget_quick_square_description"
+    android:initialLayout="@layout/widget_quick_square"
+    android:updatePeriodMillis="0" />

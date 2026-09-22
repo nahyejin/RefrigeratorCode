@@ -38,16 +38,32 @@
                 <data android:scheme="com.cookmatch.app" android:host="camera" />
             </intent-filter>
 
-            <!-- 위젯의 「AI 챗봇」 버튼 -->
+            <!-- 위젯의 「물어보기」 버튼 -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="com.cookmatch.app" android:host="chat" />
             </intent-filter>
+
+            <!-- 위젯의 「AI 식단」 버튼 -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="com.cookmatch.app" android:host="plan" />
+            </intent-filter>
+
+            <!-- 정사각형 위젯의 「내 냉장고」 버튼 -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="com.cookmatch.app" android:host="fridge" />
+            </intent-filter>
         </activity>
 
-        <!-- 홈 화면 위젯 2×1 — 재료 찍기 / AI 챗봇 -->
+        <!-- 홈 화면 위젯 3×1 — 재료 찍기 / 물어보기 / AI 식단 -->
         <receiver
             android:name=".QuickWidgetProvider"
             android:label="@string/widget_quick_label"
@@ -58,6 +74,19 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/quick_widget_info" />
+        </receiver>
+
+        <!-- 홈 화면 위젯 2×2(정사각형) — 위 셋 + 내 냉장고 -->
+        <receiver
+            android:name=".QuickWidgetSquareProvider"
+            android:label="@string/widget_quick_square_label"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/quick_widget_square_info" />
         </receiver>
 
         <provider

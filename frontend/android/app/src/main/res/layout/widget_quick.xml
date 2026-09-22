@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 홈 화면 위젯 2×1 — 흰 카드 위에 동그란 버튼 두 개(재료 찍기 / AI 챗봇).
+<!-- 홈 화면 위젯 3×1 — 흰 카드 위에 동그란 버튼 세 개(재료 찍기 / 물어보기 / AI 식단).
      브랜드 노랑을 바탕 전체에 깔면 홈 화면에서 너무 튀어서, 바탕은 흰색(다크 모드는 진회색)으로 두고
      아이콘 원만 옅은 회색으로 둔다(2026-09-23, 사용자 지적). 색은 values/colors.xml + values-night 로 갈린다.
      위젯은 RemoteViews 라 ConstraintLayout 을 못 쓴다 — LinearLayout 으로 짠다. -->
@@ -64,6 +64,35 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="5dp"
             android:text="@string/widget_chat_label"
+            android:textSize="11sp"
+            android:textColor="@color/widget_label"
+            android:maxLines="1" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/widget_plan_button"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:paddingTop="2dp"
+        android:paddingBottom="2dp"
+        android:contentDescription="@string/widget_plan_label">
+
+        <ImageView
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="@drawable/widget_circle_bg"
+            android:padding="9dp"
+            android:src="@drawable/ic_widget_plan"
+            android:importantForAccessibility="no" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="5dp"
+            android:text="@string/widget_plan_label"
             android:textSize="11sp"
             android:textColor="@color/widget_label"
             android:maxLines="1" />
