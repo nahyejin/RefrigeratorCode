@@ -11700,3 +11700,4 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
   - 안드로이드 → `ANDROID_LIVE` true 면 Play(`play.google.com/store/apps/details?id=kr.cookmatch.app`) 즉시 이동, 지금(false)은 "곧 출시" 안내 + 웹에서 시작하기
   - PC 등 → App Store·Play(출시 전엔 "곧 출시")·웹 버튼
 - **Play 프로덕션 출시되면 `ANDROID_LIVE = true` 로 바꾸고 push** — 인스타 링크는 그대로.
+- iOS 1.0.1 (6) 실제 제출은 17:08 — 「심사에 추가」 뒤 「제출 초안(1개) → 심사를 위해 제출」을 눌러야 심사 대기에 들어간다(그 전 상태는 「심사 준비됨」).
