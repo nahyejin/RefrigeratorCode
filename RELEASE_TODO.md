@@ -2,6 +2,12 @@
 
 상세 배경은 [MOBILE_APP_GUIDE.md](MOBILE_APP_GUIDE.md), 스토어 원고는 [store/STORE_LISTING.md](store/STORE_LISTING.md).
 
+## ✅ 2026-09-22 저녁 — iOS 1.0.1 (빌드 5) 심사 제출 완료
+
+- 맥에서 `40a352db` pull → build → `cap sync ios` → Xcode Archive(1.0.1/5) → App Store Connect 업로드 → 버전 1.0.1 생성, 프로모션 텍스트·**설명(명령어 → 정상 원고)**·키워드(냉털·냉털이·냉파·쿡매치·cookmatch 추가)·새로운 기능 입력, 빌드 5 연결 → **심사 대기 중**. 자동 출시·전체 사용자 즉시·평점 유지.
+- 참고: Capacitor 8(SPM) 이라 `App.xcworkspace` 가 없다 → `open frontend/ios/App/App.xcodeproj`. 맥 Xcode 에서 App·Info 옆에 `M`(로컬 수정) 표시가 있었음 — 다음 pull 전에 맥에서 `git status` 로 확인(필요 없으면 `git checkout -- <파일>`).
+- **남은 일**: ① 1.0.1 심사 결과(naver 메일) → 통과 시 App Store 설명·키워드 확인 ② 구글 비공개 테스트 검토 결과 → BETA FLOW 결제·CSV 업로드 ③ 다운로드 폴더 `AuthKey_MB2S3T63BC.p8` 백업 후 삭제 ④ 구글 검토 뒤 심사용 계정 비밀번호 변경(두 스토어 반영) ⑤ EU 거래자 여부(제출은 막지 않았음 — 유럽 판매 국가 제외 또는 거래자 등록 중 결정) ⑥ (선택) 「Apple Silicon Mac 사용 가능」 해제 ⑦ 며칠 뒤 「쿡매치」「냉털이」 검색 노출 확인.
+
 ## 📋 2026-09-22 하루 정리 (무엇이 바뀌었나)
 
 **스토어 진행 상황**
