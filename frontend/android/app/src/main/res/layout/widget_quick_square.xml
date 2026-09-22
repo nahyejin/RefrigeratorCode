@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 홈 화면 위젯 2×2(정사각형) — 가로 3×1 과 같은 디자인, 버튼만 넷(재료 찍기·물어보기·AI 식단·내 냉장고).
-     가로가 안 맞는 홈 화면 배치를 위해 정사각형도 고를 수 있게 둔다(2026-09-23 요청).
-     색·모양은 3×1 과 같은 리소스를 쓴다 — 한쪽만 바뀌는 일이 없게. -->
+<!-- 홈 화면 위젯 2×2(정사각형).
+     윗줄은 「요리 AI」를 가로로 긴 알약 버튼으로 둔다(클로드 위젯처럼) — 정사각형은 자리가 남아서
+     동그라미 세 개를 억지로 배치하면 허전하다. 아랫줄에 재료 찍기·AI 식단 두 개(2026-09-23 요청).
+     색·모양 리소스는 가로형(widget_quick.xml)과 같은 것을 쓴다. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -10,11 +11,42 @@
     android:padding="10dp"
     android:gravity="center">
 
+    <!-- 윗줄: 가로로 긴 「요리 AI」 -->
     <LinearLayout
+        android:id="@+id/widget_chat_button"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
         android:orientation="horizontal"
+        android:gravity="center"
+        android:background="@drawable/widget_pill_bg"
+        android:paddingLeft="12dp"
+        android:paddingRight="12dp"
+        android:contentDescription="@string/widget_chat_label">
+
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@drawable/ic_widget_chat"
+            android:importantForAccessibility="no" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="7dp"
+            android:text="@string/widget_chat_label"
+            android:textSize="13sp"
+            android:textColor="@color/widget_label"
+            android:maxLines="1" />
+    </LinearLayout>
+
+    <!-- 아랫줄: 재료 찍기 · AI 식단 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1.15"
+        android:orientation="horizontal"
+        android:layout_marginTop="8dp"
         android:gravity="center">
 
         <LinearLayout
@@ -27,8 +59,8 @@
             android:contentDescription="@string/widget_camera_label">
 
             <ImageView
-                android:layout_width="38dp"
-                android:layout_height="38dp"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
                 android:background="@drawable/widget_circle_bg"
                 android:padding="9dp"
                 android:src="@drawable/ic_widget_camera"
@@ -37,47 +69,12 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
+                android:layout_marginTop="5dp"
                 android:text="@string/widget_camera_label"
                 android:textSize="11sp"
                 android:textColor="@color/widget_label"
                 android:maxLines="1" />
         </LinearLayout>
-
-        <LinearLayout
-            android:id="@+id/widget_chat_button"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:contentDescription="@string/widget_chat_label">
-
-            <ImageView
-                android:layout_width="38dp"
-                android:layout_height="38dp"
-                android:background="@drawable/widget_circle_bg"
-                android:padding="9dp"
-                android:src="@drawable/ic_widget_chat"
-                android:importantForAccessibility="no" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="@string/widget_chat_label"
-                android:textSize="11sp"
-                android:textColor="@color/widget_label"
-                android:maxLines="1" />
-        </LinearLayout>
-    </LinearLayout>
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:orientation="horizontal"
-        android:gravity="center">
 
         <LinearLayout
             android:id="@+id/widget_plan_button"
@@ -89,8 +86,8 @@
             android:contentDescription="@string/widget_plan_label">
 
             <ImageView
-                android:layout_width="38dp"
-                android:layout_height="38dp"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
                 android:background="@drawable/widget_circle_bg"
                 android:padding="9dp"
                 android:src="@drawable/ic_widget_plan"
@@ -99,35 +96,8 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
+                android:layout_marginTop="5dp"
                 android:text="@string/widget_plan_label"
-                android:textSize="11sp"
-                android:textColor="@color/widget_label"
-                android:maxLines="1" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:id="@+id/widget_fridge_button"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:contentDescription="@string/widget_fridge_label">
-
-            <ImageView
-                android:layout_width="38dp"
-                android:layout_height="38dp"
-                android:background="@drawable/widget_circle_bg"
-                android:padding="9dp"
-                android:src="@drawable/ic_widget_fridge"
-                android:importantForAccessibility="no" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="@string/widget_fridge_label"
                 android:textSize="11sp"
                 android:textColor="@color/widget_label"
                 android:maxLines="1" />

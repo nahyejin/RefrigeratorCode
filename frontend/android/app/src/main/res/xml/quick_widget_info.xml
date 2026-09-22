@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 쿡매치 위젯 3×1 — 버튼 세 개(재료 찍기 / 물어보기 / AI 식단).
+<!-- 쿡매치 위젯 3×1 — 버튼 세 개(재료 찍기 / 요리 AI / AI 식단).
      1×1 로 하나만 두는 것보다, 자주 쓰는 입구 셋을 한 카드에 모으는 쪽이 홈 화면 자리도 덜 먹고 보기도 낫다. -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:minWidth="180dp"

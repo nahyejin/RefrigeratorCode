@@ -9,13 +9,13 @@ import android.net.Uri;
 import android.widget.RemoteViews;
 
 /**
- * 홈 화면 위젯 3×1 — 「재료 찍기」·「물어보기」·「AI 식단」 세 버튼.
+ * 홈 화면 위젯 3×1 — 「재료 찍기」·「요리 AI」·「AI 식단」 세 버튼.
  *
  * 왜 앱을 여는 방식인가:
  *   안드로이드 위젯은 화면을 그리고 누름을 받는 것까지만 할 수 있다(RemoteViews). 위젯 안에서 카메라를
  *   띄우거나 사진을 처리할 수 없고, 무엇을 찍는지(영수증/음식) 고르는 것도 앱 화면이 필요하다.
  *   그래서 버튼마다 주소를 하나씩 열고(`…://camera`, `…://chat`, `…://plan`), 웹 쪽 NativeShortcutBridge 가
- *   받아서 카메라 시트를 열거나, AI 에게 묻는 대화창을 띄우거나, 일주일 식단 화면으로 보낸다.
+ *   받아서 카메라 시트를 열거나, 요리 AI 대화창을 띄우거나, 일주일 식단 화면으로 보낸다.
  *
  * 왜 이 셋인가(2026-09-23):
  *   1×1 카메라 위젯만 있었는데, 홈 화면에서 노란 바탕이 너무 튀고 자리도 아깝다는 지적이 있었다.
@@ -29,7 +29,6 @@ public class QuickWidgetProvider extends AppWidgetProvider {
     private static final String CAMERA_URI = "com.cookmatch.app://camera";
     private static final String CHAT_URI = "com.cookmatch.app://chat";
     private static final String PLAN_URI = "com.cookmatch.app://plan";
-    static final String FRIDGE_URI = "com.cookmatch.app://fridge";
 
     @Override
     public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
@@ -41,10 +40,6 @@ public class QuickWidgetProvider extends AppWidgetProvider {
                     openApp(context, appWidgetId * 3 + 1, CHAT_URI));
             views.setOnClickPendingIntent(R.id.widget_plan_button,
                     openApp(context, appWidgetId * 3 + 2, PLAN_URI));
-            if (hasFridgeButton()) {
-                views.setOnClickPendingIntent(R.id.widget_fridge_button,
-                        openApp(context, appWidgetId * 4 + 3, FRIDGE_URI));
-            }
             appWidgetManager.updateAppWidget(appWidgetId, views);
         }
     }
@@ -52,11 +47,6 @@ public class QuickWidgetProvider extends AppWidgetProvider {
     /** 가로형(3×1)은 이 레이아웃, 정사각형(2×2)은 하위 클래스가 덮어쓴다. */
     protected int layoutId() {
         return R.layout.widget_quick;
-    }
-
-    /** 정사각형에만 「내 냉장고」 버튼이 있다. */
-    protected boolean hasFridgeButton() {
-        return false;
     }
 
     /**
