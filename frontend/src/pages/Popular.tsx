@@ -37,7 +37,7 @@ import { useAuth } from '../context/AuthContext';
 import RegisterPromptModal from '../components/RegisterPromptModal';
 import { parseUsedIngredientsForPills } from '../utils/ingredientPillNoise';
 import CoupangProductAd from '../components/CoupangProductAd';
-import BottomCoupangAd from '../components/BottomCoupangAd';
+import CoupangDynamicBanner from '../components/CoupangDynamicBanner';
 
 // 필터 상태 타입 및 초기값
 type FilterState = {
@@ -2294,8 +2294,9 @@ const Popular = () => {
           </div>
         </section>
         
-        {/* 쿠팡 광고 - 페이지 맨 끝에 도달했을 때만 표시 */}
-        <BottomCoupangAd showCondition={true} />
+        {/* 쿠팡 다이내믹 배너 — 화면 맨 끝(2026-09-22). 전의 BottomCoupangAd 는 광고 단위 ID 환경변수가
+            없어 실제로는 아무것도 안 그리고 있었다. */}
+        <CoupangDynamicBanner style={{ marginTop: 24, marginBottom: 24 }} />
       </div>
       {toast && (
         <Toast message={toast} />

@@ -14,7 +14,7 @@ import { useNavigate } from 'react-router-dom';
 import RegisterPromptModal from '../components/RegisterPromptModal';
 import WelcomeModal from '../components/WelcomeModal';
 import GuideOverlay from '../components/GuideOverlay';
-import BottomCoupangAd from '../components/BottomCoupangAd';
+import CoupangDynamicBanner from '../components/CoupangDynamicBanner';
 import CameraCaptureSheet, { type CaptureMode } from '../components/CameraCaptureSheet';
 import IngredientRecognitionSheet, { type RecognizedIngredient, type UnmatchedIngredient, type ConfirmedIngredient } from '../components/IngredientRecognitionSheet';
 import Dialog from '../components/ui/Dialog';
@@ -2521,10 +2521,9 @@ const MyFridge: React.FC = () => {
           </div>
           </div>
           
-          {/* 쿠팡 광고 - 실온 보관 영역 바로 아래 */}
-          <div style={{ marginTop: 32, marginBottom: 24 }}>
-            <BottomCoupangAd showCondition={true} />
-          </div>
+          {/* 쿠팡 다이내믹 배너 — 실온 보관 영역 바로 아래, 화면 맨 끝(2026-09-22). 전의 BottomCoupangAd 는
+              광고 단위 ID 환경변수가 없어 실제로는 아무것도 안 그리고 있었다. */}
+          <CoupangDynamicBanner style={{ marginTop: 32, marginBottom: 24 }} />
         </div>
         {/* 하단 내비게이션 */}
         <div className="w-full">
