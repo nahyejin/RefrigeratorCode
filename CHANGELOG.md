@@ -11817,3 +11817,6 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 - [store/IOS_WIDGET_SETUP.md](store/IOS_WIDGET_SETUP.md) 에 마이캘린더 위젯·App Group 켜는 순서·확인 항목·안 될 때 표 추가.
 - **확인 못 한 것**: 윈도우라 Swift 를 컴파일·실행해 보지 못했다(맥 첫 빌드에서 오류가 나면 고친다). 화면 모양도 맥 시뮬레이터에서 처음 확인한다.
 
+### 안드로이드 1.0.2(versionCode 3) 다시 빌드 — 위젯 최종본 포함 (2026-09-23 14:43)
+- 오전 09:40 에 만든 `app-release.aab` 에는 마이캘린더 위젯(3·4차)·로그아웃 시 요약본 삭제·위젯 이름 변경이 빠져 있어, 최신 코드로 `npm run build` → `npx cap sync android` → `gradlew bundleRelease` 다시 실행. 서명 확인("jar verified"), 13.1MB. versionCode·versionName 은 그대로 3 / 1.0.2 — **09:40 파일을 Play 에 아직 안 올렸다는 전제**. 이미 올렸다면 versionCode 4 로 올려 다시 빌드해야 한다(같은 번호는 Play 가 거절).
+
