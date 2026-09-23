@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 마이캘린더 위젯의 구획 칸(목표·달력·목록) — 흰 카드 위 옅은 회색 둥근 네모.
+     구획이 없으면 목표·달력·목록이 한 덩어리로 보여 헷갈렸다(2026-09-23 사용자 지적). 버튼 위젯 타일과 같은 모서리(14dp). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/widget_panel" />
+    <corners android:radius="14dp" />
+</shape>

@@ -2,6 +2,7 @@ import * as React from 'react';
 import Portal from '../Portal';
 import Button from './Button';
 import PopupHeader from './PopupHeader';
+import { useCloseOnBack } from '../../utils/closeOnBack';
 
 interface SheetProps {
   open: boolean;
@@ -37,6 +38,8 @@ const Sheet: React.FC<SheetProps> = ({
   dismissLabel = '닫기',
   hideFooter = false,
 }) => {
+  // 안드로이드 폰 「뒤로」로 닫기(utils/closeOnBack)
+  useCloseOnBack(open, onClose);
   // 아래로 밀어서 닫기.
   // 아래에서 올라온 시트는 아래로 미는 게 자연스러운 닫기 동작인데 지원되지 않았음.
   const [dragY, setDragY] = React.useState(0);

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- 쿡매치 위젯 2×2(정사각형) — 3×1 가로형과 같은 버튼을 다르게 배치(윗줄 「요리 AI」 가로 알약).
-     홈 화면 배치에 따라 가로형이 안 맞는 경우가 있어 둘 다 제공한다(사용자가 고른다). -->
+     홈 화면 배치에 따라 가로형이 안 맞는 경우가 있어 둘 다 제공한다(사용자가 고른다).
+     미리보기는 실제 캡처 이미지 — 레이아웃 미리보기는 정사각형 보정(Provider)이 안 걸려 세로로 길쭉하게 보인다. -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:minWidth="110dp"
     android:minHeight="110dp"
@@ -8,7 +9,7 @@
     android:targetCellHeight="2"
     android:resizeMode="none"
     android:widgetCategory="home_screen"
-    android:previewLayout="@layout/widget_quick_square"
+    android:previewImage="@drawable/widget_quick_square_preview"
     android:description="@string/widget_quick_square_description"
     android:initialLayout="@layout/widget_quick_square"
     android:updatePeriodMillis="0" />

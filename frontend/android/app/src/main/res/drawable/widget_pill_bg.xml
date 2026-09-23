@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- 정사각형 위젯 윗줄 「요리 AI」 바탕 — 아이콘 원과 같은 회색의 알약 모양 -->
-<shape xmlns:android="http://schemas.android.com/apk/res/android"
-    android:shape="rectangle">
-    <solid android:color="@color/widget_circle" />
-    <corners android:radius="9999dp" />
-</shape>

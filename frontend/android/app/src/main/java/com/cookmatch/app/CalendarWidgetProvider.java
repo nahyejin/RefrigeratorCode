@@ -135,9 +135,10 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         Bundle opts = manager.getAppWidgetOptions(widgetId);
         int widthDp = opts == null ? 0 : opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 0);
         if (widthDp <= 0) widthDp = 320;
-        // 게이지·범례가 들어갈 폭: 4×3 은 카드 안쪽 전체, 4×2 는 오른쪽 칸
-        int innerDp = widthDp - 28;
-        int columnDp = isBig() ? innerDp : (innerDp - 14) / 2;
+        // 게이지·범례가 들어갈 폭 = 구획 칸의 안쪽 폭(4×3 은 카드 전체 폭의 칸, 4×2 는 오른쪽 칸).
+        // 여백은 scripts/gen_widget_calendar_layouts.py 의 CARD_PAD(12)·GAP(8)·PANEL_PAD(10) 과 한 쌍.
+        int innerDp = widthDp - 2 * 12;
+        int columnDp = (isBig() ? innerDp : (innerDp - 8) / 2) - 2 * 10;
         int columnPx = dp(context, columnDp);
 
         // 제목은 맨 위 한 번만(2026-09-23 — 「2026년 9월 목표」·「2026년 9월」 중복이 읽기 부담스럽다는 지적)

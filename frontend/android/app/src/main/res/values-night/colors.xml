@@ -5,6 +5,7 @@
     <color name="widget_circle">#2E2E33</color>
     <color name="widget_icon">#F2F1ED</color>
     <color name="widget_label">#A9A9B2</color>
-    <color name="widget_day_done_text">#1A1A1E</color>
+    <!-- 마이캘린더 위젯 구획 칸 바탕 -->
+    <color name="widget_panel">#27272C</color>
     <color name="widget_track">#34343A</color>
 </resources>

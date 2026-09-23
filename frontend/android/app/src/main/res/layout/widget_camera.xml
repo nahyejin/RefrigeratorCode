@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 홈 화면 위젯 1×1 — 「재료 찍기」 하나(2026-09-23 요청). 흰 카드 안에 둥근 네모 타일 하나(다른 버튼 위젯과 같은 모양).
+     바깥 투명 FrameLayout(square_root)에 Provider 가 여백을 줘 카드를 정사각형으로 맞춘다. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/square_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/widget_card_bg"
+        android:padding="6dp">
+
+        <LinearLayout
+            android:id="@+id/widget_camera_button"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:background="@drawable/widget_tile_bg"
+            android:contentDescription="@string/widget_camera_label">
+
+            <ImageView
+                android:layout_width="26dp"
+                android:layout_height="26dp"
+                android:src="@drawable/ic_widget_camera"
+                android:importantForAccessibility="no" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="@string/widget_camera_label"
+                android:textSize="11sp"
+                android:textColor="@color/widget_label"
+                android:maxLines="1" />
+        </LinearLayout>
+    </FrameLayout>
+</FrameLayout>

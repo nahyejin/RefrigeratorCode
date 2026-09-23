@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 쿡매치 위젯 1×1 — 「재료 찍기」 하나. 누르면 사진으로 재료 담기 시트가 바로 열린다(2026-09-23 요청). -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="40dp"
+    android:minHeight="40dp"
+    android:targetCellWidth="1"
+    android:targetCellHeight="1"
+    android:resizeMode="none"
+    android:widgetCategory="home_screen"
+    android:previewImage="@drawable/widget_camera_preview"
+    android:description="@string/widget_camera_description"
+    android:initialLayout="@layout/widget_camera"
+    android:updatePeriodMillis="0" />

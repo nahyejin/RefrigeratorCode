@@ -13,7 +13,7 @@ import SwiftUI
 //  NativeShortcutBridge 가 받아서 각각 카메라 시트·요리 AI 대화창·이번 주 식단으로 보낸다
 //  (안드로이드와 같은 주소를 쓴다 — 한쪽만 바뀌는 일이 없게).
 //
-//  색: 흰 카드 + 옅은 회색 원 + 잉크색 아이콘. 다크 모드에서는 진회색 카드로 뒤집는다
+//  색: 흰 카드 + 옅은 회색 둥근 네모 타일 + 잉크색 아이콘. 다크 모드에서는 진회색 카드로 뒤집는다
 //  (안드로이드 values-night 와 같은 값).
 
 // MARK: - 색·문구
@@ -58,57 +58,59 @@ struct CookMatchProvider: TimelineProvider {
 
 // MARK: - 조각
 
-/// 동그란 아이콘 + 아래 글자 한 줄.
-private struct RoundButton: View {
+/// 버튼 하나 = 옅은 회색 **둥근 네모 타일**(안드로이드 widget_tile_bg 와 같은 모양·색).
+/// 동그라미 아이콘 + 아래 글자로 두면 버튼 영역이 모호하고 칸 맞추기가 어려웠다(2026-09-23 사용자 지적).
+/// 타일이 주어진 칸을 꽉 채워서, 여러 개를 놓으면 저절로 같은 그리드에 선다.
+private struct Tile: View {
     let systemName: String
     let title: String
-    var diameter: CGFloat = 52
+    var horizontal = false
+    var iconSize: CGFloat = 20
+    var textSize: CGFloat = 12
 
     var body: some View {
-        VStack(spacing: 5) {
-            ZStack {
-                Circle().fill(W.circle).frame(width: diameter, height: diameter)
-                Image(systemName: systemName)
-                    .font(.system(size: diameter * 0.42, weight: .semibold))
-                    .foregroundColor(W.icon)
+        ZStack {
+            RoundedRectangle(cornerRadius: 14, style: .continuous).fill(W.circle)
+            if horizontal {
+                HStack(spacing: 8) { icon; label }
+            } else {
+                VStack(spacing: 6) { icon; label }
             }
-            Text(title)
-                .font(.system(size: 12))
-                .foregroundColor(W.label)
-                .lineLimit(1)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var icon: some View {
+        Image(systemName: systemName)
+            .font(.system(size: iconSize, weight: .semibold))
+            .foregroundColor(W.icon)
+    }
+
+    private var label: some View {
+        Text(title)
+            .font(.system(size: textSize))
+            .foregroundColor(W.label)
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
     }
 }
 
-/// 가로로 긴 알약 — 「요리 AI」.
-private struct PillButton: View {
-    var body: some View {
-        HStack(spacing: 7) {
-            Image(systemName: "bubble.left.and.text.bubble.right.fill")
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundColor(W.icon)
-            Text("요리 AI")
-                .font(.system(size: 14, weight: .medium))
-                .foregroundColor(W.label)
-        }
-        .frame(maxWidth: .infinity, minHeight: 48)
-        .background(Capsule().fill(W.circle))
-    }
+private enum Icon {
+    static let camera = "camera.fill"
+    static let chat = "bubble.left.and.text.bubble.right.fill"
+    static let plan = "calendar.badge.checkmark"
 }
 
 // MARK: - 정사각형(작은) 위젯 — 탭 하나
 
+/// 윗줄 넓은 「요리 AI」 타일 + 아랫줄 「재료 찍기」·「AI 식단」 타일 — 줄 높이·간격(8pt)이 같아 한 그리드에 선다.
 struct CookMatchSmallView: View {
     var body: some View {
-        // 아래 두 버튼은 알약의 양 끝선에 맞춘다(세 버튼이 같은 그리드). 예전엔 반쪽 칸 가운데에 둔 데다
-        // iOS 17 기본 여백(약 16pt)에 우리 여백 10pt 가 겹쳐, 카메라·식단 동그라미가 가운데로 몰려 붙어 보였다
-        // (2026-09-23 지적 — 다음 버전). 바깥 여백은 시스템 기본 여백만 쓴다.
-        VStack(spacing: 14) {
-            PillButton()
-            HStack(spacing: 0) {
-                RoundButton(systemName: "camera.fill", title: "재료 찍기")
-                Spacer(minLength: 8)
-                RoundButton(systemName: "calendar.badge.checkmark", title: "AI 식단")
+        VStack(spacing: 8) {
+            Tile(systemName: Icon.chat, title: "요리 AI", horizontal: true, iconSize: 18, textSize: 14)
+            HStack(spacing: 8) {
+                Tile(systemName: Icon.camera, title: "재료 찍기", iconSize: 18)
+                Tile(systemName: Icon.plan, title: "AI 식단", iconSize: 18)
             }
         }
         // 작은 위젯은 탭 영역이 하나뿐이라 전체를 「요리 AI」로 연결한다.
@@ -117,26 +119,25 @@ struct CookMatchSmallView: View {
     }
 }
 
-// MARK: - 가로(중간) 위젯 — 버튼마다 다른 곳으로
+// MARK: - 재료 찍기(작은) 위젯 — 타일 하나
+
+/// 「재료 찍기」 하나만(2026-09-23 요청). 누르면 사진으로 재료 담기 시트가 바로 열린다.
+struct CookMatchCameraView: View {
+    var body: some View {
+        Tile(systemName: Icon.camera, title: "재료 찍기", iconSize: 30, textSize: 14)
+            .widgetURL(W.camera)
+    }
+}
+
+// MARK: - 가로(중간) 위젯 — 타일마다 다른 곳으로
 
 struct CookMatchMediumView: View {
     var body: some View {
-        HStack(spacing: 0) {
-            Link(destination: W.camera) {
-                RoundButton(systemName: "camera.fill", title: "재료 찍기")
-                    .frame(maxWidth: .infinity)
-            }
-            Link(destination: W.chat) {
-                RoundButton(systemName: "bubble.left.and.text.bubble.right.fill", title: "요리 AI")
-                    .frame(maxWidth: .infinity)
-            }
-            Link(destination: W.plan) {
-                RoundButton(systemName: "calendar.badge.checkmark", title: "AI 식단")
-                    .frame(maxWidth: .infinity)
-            }
+        HStack(spacing: 8) {
+            Link(destination: W.camera) { Tile(systemName: Icon.camera, title: "재료 찍기", iconSize: 22) }
+            Link(destination: W.chat) { Tile(systemName: Icon.chat, title: "요리 AI", iconSize: 22) }
+            Link(destination: W.plan) { Tile(systemName: Icon.plan, title: "AI 식단", iconSize: 22) }
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 14)
     }
 }
 
@@ -180,11 +181,25 @@ struct CookMatchSmallWidget: Widget {
     }
 }
 
+struct CookMatchCameraWidget: Widget {
+    let kind = "CookMatchCameraWidget"
+
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: kind, provider: CookMatchProvider()) { _ in
+            CookMatchCameraView().cookMatchBackground()
+        }
+        .configurationDisplayName("쿡매치 (재료 찍기)")
+        .description("누르면 바로 재료 사진 찍기")
+        .supportedFamilies([.systemSmall])
+    }
+}
+
 @main
 struct CookMatchWidgetBundle: WidgetBundle {
     var body: some Widget {
         CookMatchQuickWidget()
         CookMatchSmallWidget()
+        CookMatchCameraWidget()         // 재료 찍기 하나(작은)
         CookMatchCalendarWidget()       // CookMatchCalendarWidget.swift — 마이캘린더(중간)
         CookMatchCalendarLargeWidget()  // 마이캘린더(크게)
     }

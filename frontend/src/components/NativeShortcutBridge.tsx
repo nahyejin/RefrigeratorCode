@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Capacitor } from '@capacitor/core';
 import { App } from '@capacitor/app';
+import { closeTopOnBack } from '../utils/closeOnBack';
 
 /**
  * 홈 화면 위젯·바로가기로 앱이 열렸을 때 갈 곳을 정한다 — 화면은 없다.
@@ -85,6 +86,8 @@ const NativeShortcutBridge: React.FC = () => {
     let removeBack: (() => void) | null = null;
     if (Capacitor.getPlatform() === 'android') {
       App.addListener('backButton', () => {
+        // 열려 있는 창(시트·확인창·요리 AI 대화창)이 있으면 그것부터 닫는다
+        if (closeTopOnBack()) return;
         const idx = (window.history.state as { idx?: number } | null)?.idx ?? 0;
         if (idx > 0) window.history.back();
         else void App.minimizeApp();

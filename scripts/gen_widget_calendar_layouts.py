@@ -9,6 +9,9 @@ id 는 CalendarWidgetProvider.java 가 찾는 이름과 한 쌍이다(4×2 는 �
   맨 위에 「2026년 9월」 한 번만 쓰고, 그 아래 구획은 작은 회색 부제목(「이번 달 목표」·「이번 달 캘린더」·「오늘」·「내일」).
   글꼴은 폰 기본 글꼴의 굵기로 위계를 준다(아래 REG·SEMI·BOLD 설명 참고).
   범례와 게이지는 Provider 가 위젯 폭에 맞춰 비트맵으로 그린다(RemoteViews 로는 줄바꿈·비율 폭을 못 준다).
+  구획(2026-09-23 추가 지적 — "목표·달력·목록의 영역 구분이 없어 헷갈린다"): 목표·달력·목록을 각각 옅은 회색
+  둥근 네모 칸(@drawable/widget_panel_bg)에 담는다. 칸 여백이 바뀌면 CalendarWidgetProvider 의 폭 계산도 같이 고친다.
+  목록 제목은 한 줄(넘치면 …) — 칸 여백이 생기며 두 줄이면 「내일」이 칸 아래로 잘렸다.
   달력 칸: 주 줄이 남는 세로 공간을 나눠 갖고(5주짜리 달은 6번째 줄 숨김), 칸 안은 [숫자 원] 아래 [점 줄].
 """
 from pathlib import Path
@@ -19,6 +22,9 @@ LAYOUT = Path(__file__).resolve().parent.parent / "frontend/android/app/src/main
 # 적용되지 않았다(2026-09-23 에뮬레이터 확인). Pretendard 의 한글은 폰 기본 한글 글꼴(본고딕·Noto Sans CJK)을
 # 바탕으로 만들어 모양이 거의 같으므로, 기본 글꼴의 **굵기**로 위계를 잡는다(제목 Bold · 부제목 Medium · 본문 Regular).
 REG, SEMI, BOLD = "sans-serif", "sans-serif-medium", "bold"
+
+# 구획(둥근 네모 칸) 안쪽 여백 · 칸 사이 간격 · 카드 안쪽 여백(dp) — Provider 의 폭 계산과 한 쌍
+PANEL_PAD, GAP, CARD_PAD = 10, 8, 12
 
 
 def text(id_=None, size=11, font=REG, color="@color/widget_label", extra="", txt=None, width="wrap_content",
@@ -137,6 +143,8 @@ def calendar(p, grid_id, box, text_sp, dot, weight):
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="{weight}"
+            android:background="@drawable/widget_panel_bg"
+            android:padding="{PANEL_PAD}dp"
             android:orientation="vertical">
 
 {subtitle("이번 달 캘린더", 12)}
@@ -264,28 +272,40 @@ def small():
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:layout_marginStart="14dp"
+            android:layout_marginStart="{GAP}dp"
             android:orientation="vertical">
 
-{goal_block("small_", 12)}
-            <!-- 목표 아래 남는 자리에 「오늘」 한 줄 — 오른쪽 가운데가 비어 보이던 것(2026-09-23) -->
+            <!-- 칸 ① 이번 달 목표 + 범례 -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
+                android:background="@drawable/widget_panel_bg"
+                android:padding="{PANEL_PAD}dp"
+                android:orientation="vertical">
 
-{subtitle("오늘", 16)}
-{text("small_today_more", 10, REG, "@color/widget_label", "android:layout_marginStart=\"6dp\"|android:maxLines=\"1\"|android:visibility=\"gone\"", indent=16)}            </LinearLayout>
-{list_row("small_today", 0, 12, 1)}
-{text("small_today_empty", 11, REG, "@color/widget_label", "android:layout_marginTop=\"5dp\"|android:visibility=\"gone\"", txt="계획 없음", width="match_parent", indent=12)}
-            <FrameLayout
+{goal_block("small_", 16)}{legend("small_", 16, 6)}            </LinearLayout>
+
+            <!-- 칸 ② 오늘 한 줄 — 오른쪽 가운데가 비어 보이던 것(2026-09-23) -->
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
-                android:layout_weight="1" />
+                android:layout_weight="1"
+                android:layout_marginTop="{GAP}dp"
+                android:background="@drawable/widget_panel_bg"
+                android:padding="{PANEL_PAD}dp"
+                android:orientation="vertical">
 
-{legend("small_", 12, 6)}        </LinearLayout>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+{subtitle("오늘", 20)}
+{text("small_today_more", 10, REG, "@color/widget_label", 'android:layout_marginStart="6dp"|android:maxLines="1"|android:visibility="gone"', indent=20)}                </LinearLayout>
+{list_row("small_today", 0, 16, 1)}
+{text("small_today_empty", 11, REG, "@color/widget_label", 'android:layout_marginTop="5dp"|android:visibility="gone"', txt="계획 없음", width="match_parent", indent=16)}            </LinearLayout>
+        </LinearLayout>
 """
     body = f"""
 {header(4, 14)}
@@ -293,25 +313,28 @@ def small():
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="{GAP}dp"
         android:orientation="horizontal">
 
 {calendar("", "calendar_grid", 18, 10, 3, 1)}
 {right}    </LinearLayout>
 """
     return root("small_root", """     마이캘린더 위젯 4×2 — **보기 전용**. 맨 위 「2026년 9월」
-     왼쪽: 이번 달 캘린더  |  오른쪽: 이번 달 목표(게이지·달성·절약액) + 오늘 한 줄 + 범례
-     완료=사람 색 점, 계획=빨간 손글씨 동그라미, 오늘=옅은 회색 칠. 누르면 앱의 마이캘린더로 간다.""",
-                body, 14, 12)
+     왼쪽 칸: 이번 달 캘린더  |  오른쪽 칸 둘: 이번 달 목표(게이지·달성·절약액)+범례 / 오늘 한 줄
+     완료=사람 색 점, 계획=빨간 손글씨 동그라미, 오늘=옅은 회색 둥근 네모. 누르면 앱의 마이캘린더로 간다.""",
+                body, CARD_PAD, CARD_PAD)
 
 
 def big():
     body = f"""
 {header(4, 15)}
+    <!-- 칸 ① 이번 달 목표 + 범례 -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
+        android:layout_marginTop="{GAP}dp"
+        android:background="@drawable/widget_panel_bg"
+        android:padding="{PANEL_PAD}dp"
         android:orientation="vertical">
 
 {goal_block("big_", 8)}
@@ -321,25 +344,28 @@ def big():
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:layout_marginTop="14dp"
+        android:layout_marginTop="{GAP}dp"
         android:orientation="horizontal">
 
 {calendar("big_", "big_grid", 22, 10, 4, 1.25)}
+        <!-- 칸 ③ 오늘·내일 목록 -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:layout_marginStart="14dp"
+            android:layout_marginStart="{GAP}dp"
+            android:background="@drawable/widget_panel_bg"
+            android:padding="{PANEL_PAD}dp"
             android:orientation="vertical">
 
-{day_list("today", "오늘", 3, 12, 2, 0)}
-{day_list("tmr", "내일", 3, 12, 2, 12)}        </LinearLayout>
+{day_list("today", "오늘", 3, 12, 1, 0)}
+{day_list("tmr", "내일", 3, 12, 1, 12)}        </LinearLayout>
     </LinearLayout>
 """
     return root("big_root", """     마이캘린더 위젯 4×3(늘리면 4×4) — **보기 전용**. 마이캘린더 화면의 축약판.
      맨 위 「2026년 9월」 → 이번 달 목표(달성·게이지·절약액) + 범례(달력 점·게이지 색을 함께 설명하므로 둘 위에)
      아래: 왼쪽 이번 달 캘린더  |  오른쪽 「오늘」·「내일」 목록(레시피 제목 그대로, 점=사람 색, 이미 한 것은 「완료」)
-     조작은 없고 누르면 앱의 마이캘린더로 간다.""", body, 14, 14)
+     목표·달력·목록은 각각 옅은 회색 둥근 네모 칸. 조작은 없고 누르면 앱의 마이캘린더로 간다.""", body, CARD_PAD, CARD_PAD)
 
 
 for name, xml in (("widget_calendar.xml", small()), ("widget_calendar_big.xml", big())):

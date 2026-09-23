@@ -2,6 +2,7 @@ import * as React from 'react';
 import Portal from '../Portal';
 import Button from './Button';
 import CloseButton from './CloseButton';
+import { useCloseOnBack } from '../../utils/closeOnBack';
 
 export interface DialogAction {
   label: string;
@@ -55,6 +56,9 @@ const Dialog: React.FC<DialogProps> = ({
   width = 340,
   nested = false,
 }) => {
+  // 안드로이드 폰 「뒤로」로 닫기(utils/closeOnBack) — ESC 와 같은 뜻
+  useCloseOnBack(open, onClose);
+
   // ESC 로 닫기 + 뒤 페이지 스크롤 잠금
   React.useEffect(() => {
     if (!open) return;

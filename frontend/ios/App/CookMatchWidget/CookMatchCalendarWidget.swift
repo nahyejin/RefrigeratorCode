@@ -29,6 +29,8 @@ private enum C {
     static let ink = dyn(0x1A1A1E, 0xF2F1ED)
     static let label = dyn(0x5A5A63, 0xA9A9B2)
     static let track = dyn(0xE6E6EA, 0x34343A)
+    /// 구획 칸(목표·달력·목록) 바탕 — 안드로이드 widget_panel 과 같은 값
+    static let panel = dyn(0xF6F6F8, 0x27272C)
     static let today = Color(UIColor { $0.userInterfaceStyle == .dark
         ? UIColor(white: 1, alpha: 0.18) : UIColor(red: 0.102, green: 0.102, blue: 0.118, alpha: 0.09) })
     static let planRed = Color(UIColor(hex: 0xE5383B))
@@ -134,6 +136,18 @@ private struct HandCircle: Shape {
         path.addCurve(to: p(8, 21), control1: p(24, 25), control2: p(13, 26))
         path.addCurve(to: p(13, 6), control1: p(4, 17), control2: p(6, 9))
         return path
+    }
+}
+
+/// 구획 칸 — 옅은 회색 둥근 네모. 목표·달력·목록의 영역이 한 덩어리로 보여 헷갈린다는 지적(2026-09-23)으로 나눴다.
+private struct Panel<Content: View>: View {
+    var padding: CGFloat = 10
+    @ViewBuilder let content: Content
+    var body: some View {
+        content
+            .padding(padding)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
+            .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(C.panel))
     }
 }
 
@@ -266,7 +280,9 @@ private struct GoalBlock: View {
                 Text(progress).font(.system(size: 11, weight: .medium)).foregroundColor(C.ink).lineLimit(1)
             }
             Gauge(snapshot: s)
-            Text(savings).font(.system(size: 10)).foregroundColor(C.label).lineLimit(1).minimumScaleFactor(0.85)
+            if !compact {
+                Text(savings).font(.system(size: 10)).foregroundColor(C.label).lineLimit(1).minimumScaleFactor(0.85)
+            }
         }
     }
 }
@@ -275,9 +291,10 @@ private struct GoalBlock: View {
 private struct Legend: View {
     let snapshot: CalendarSnapshot?
     let width: CGFloat
+    var maxLines = 2
     private let fontSize: CGFloat = 10.5
     private var font: UIFont { UIFont.systemFont(ofSize: fontSize) }
-    private let gap: CGFloat = 9, mark: CGFloat = 7, markGap: CGFloat = 4, maxLines = 2
+    private let gap: CGFloat = 9, mark: CGFloat = 7, markGap: CGFloat = 4
 
     private enum Piece: Hashable { case person(Int), more(Int), plan }
 
@@ -368,7 +385,7 @@ private struct DayList: View {
             if items.isEmpty {
                 Text("계획 없음").font(.system(size: 11)).foregroundColor(C.label)
             } else {
-                ForEach(Array(items.prefix(3).enumerated()), id: \.offset) { _, it in ItemRow(item: it, lines: 2) }
+                ForEach(Array(items.prefix(3).enumerated()), id: \.offset) { _, it in ItemRow(item: it, lines: 1) }
             }
         }
     }
@@ -378,37 +395,45 @@ private func monthTitle(_ d: Date) -> String { DateFormatter.cm("yyyy년 M월").
 
 // MARK: - 중간(가로) = 안드로이드 4×2
 
+/// 아이폰 중간 위젯은 높이가 약 155pt 로 안드로이드 4×2 보다 훨씬 낮다 — 칸 셋을 넣으려고
+/// 맨 위 「2026년 9월」 줄 대신 달력 칸의 제목을 「2026년 9월」로 쓰고, 절약액 줄을 빼고, 범례는 한 줄(넘치면 「외 N명」).
 struct CalendarMediumView: View {
     let entry: CalendarEntry
     var body: some View {
         let s = entry.snapshot
         let today = (s?.upcoming ?? []).filter { $0.when == "today" }
-        VStack(alignment: .leading, spacing: 6) {
-            Text(monthTitle(entry.date)).font(.system(size: 14, weight: .bold)).foregroundColor(C.ink)
-            HStack(alignment: .top, spacing: 14) {
-                MonthGrid(now: entry.date, snapshot: s, maxBox: 15, fontSize: 9, dot: 3)
-                GeometryReader { g in
-                    VStack(alignment: .leading, spacing: 0) {
-                        GoalBlock(snapshot: s, compact: true)
+        HStack(alignment: .top, spacing: 8) {
+            Panel(padding: 8) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(monthTitle(entry.date)).font(.system(size: 12, weight: .bold)).foregroundColor(C.ink)
+                    MonthGrid(now: entry.date, snapshot: s, maxBox: 15, fontSize: 9, dot: 3)
+                }
+            }
+            VStack(spacing: 8) {
+                Panel(padding: 8) {
+                    GeometryReader { g in
+                        VStack(alignment: .leading, spacing: 5) {
+                            GoalBlock(snapshot: s, compact: true)
+                            Legend(snapshot: s, width: g.size.width, maxLines: 1)
+                        }
+                    }
+                    .frame(height: 44)
+                }
+                Panel(padding: 8) {
+                    VStack(alignment: .leading, spacing: 4) {
                         HStack(spacing: 6) {
                             Subtitle(text: "오늘")
                             if today.count > 1 {
                                 Text("외 \(today.count - 1)개").font(.system(size: 10)).foregroundColor(C.label)
                             }
                         }
-                        .padding(.top, 7)
-                        Group {
-                            if let first = today.first { ItemRow(item: first, lines: 1) }
-                            else { Text("계획 없음").font(.system(size: 11)).foregroundColor(C.label) }
-                        }
-                        .padding(.top, 4)
-                        Spacer(minLength: 4)
-                        Legend(snapshot: s, width: g.size.width)
+                        if let first = today.first { ItemRow(item: first, lines: 1) }
+                        else { Text("계획 없음").font(.system(size: 11)).foregroundColor(C.label) }
+                        Spacer(minLength: 0)
                     }
                 }
             }
         }
-        .padding(.horizontal, 2)
         .widgetURL(URL(string: "com.cookmatch.app://calendar"))
     }
 }
@@ -421,26 +446,35 @@ struct CalendarLargeView: View {
         let s = entry.snapshot
         let up = s?.upcoming ?? []
         GeometryReader { g in
-            VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 8) {
                 Text(monthTitle(entry.date)).font(.system(size: 15, weight: .bold)).foregroundColor(C.ink)
-                GoalBlock(snapshot: s, compact: false).padding(.top, 10)
-                Legend(snapshot: s, width: g.size.width).padding(.top, 8)
-                HStack(alignment: .top, spacing: 14) {
-                    VStack(alignment: .leading, spacing: 5) {
-                        Subtitle(text: "이번 달 캘린더")
-                        MonthGrid(now: entry.date, snapshot: s, maxBox: 22, fontSize: 10, dot: 4)
-                    }
-                    .frame(width: (g.size.width - 14) * 0.56)
-                    VStack(alignment: .leading, spacing: 12) {
-                        DayList(title: "오늘", items: up.filter { $0.when == "today" })
-                        DayList(title: "내일", items: up.filter { $0.when == "tomorrow" })
-                        Spacer(minLength: 0)
+                // 칸 ① 이번 달 목표 + 범례
+                Panel {
+                    VStack(alignment: .leading, spacing: 8) {
+                        GoalBlock(snapshot: s, compact: false)
+                        Legend(snapshot: s, width: g.size.width - 20)
                     }
                 }
-                .padding(.top, 14)
+                HStack(alignment: .top, spacing: 8) {
+                    // 칸 ② 이번 달 캘린더
+                    Panel {
+                        VStack(alignment: .leading, spacing: 5) {
+                            Subtitle(text: "이번 달 캘린더")
+                            MonthGrid(now: entry.date, snapshot: s, maxBox: 22, fontSize: 10, dot: 4)
+                        }
+                    }
+                    .frame(width: (g.size.width - 8) * 0.56)
+                    // 칸 ③ 오늘·내일
+                    Panel {
+                        VStack(alignment: .leading, spacing: 12) {
+                            DayList(title: "오늘", items: up.filter { $0.when == "today" })
+                            DayList(title: "내일", items: up.filter { $0.when == "tomorrow" })
+                            Spacer(minLength: 0)
+                        }
+                    }
+                }
             }
         }
-        .padding(.horizontal, 2)
         .widgetURL(URL(string: "com.cookmatch.app://calendar"))
     }
 }

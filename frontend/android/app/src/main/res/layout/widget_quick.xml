@@ -1,39 +1,36 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 홈 화면 위젯 3×1 — 흰 카드 위에 동그란 버튼 세 개(재료 찍기 / 요리 AI / AI 식단).
-     브랜드 노랑을 바탕 전체에 깔면 홈 화면에서 너무 튀어서, 바탕은 흰색(다크 모드는 진회색)으로 두고
-     아이콘 원만 옅은 회색으로 둔다(2026-09-23, 사용자 지적). 색은 values/colors.xml + values-night 로 갈린다.
+<!-- 홈 화면 위젯 3×1 — 흰 카드 안에 **둥근 네모 타일** 버튼 세 개(재료 찍기 / 요리 AI / AI 식단).
+     타일 셋이 같은 폭으로 카드를 꽉 채운다 — 동그라미 아이콘 + 글자로 두면 버튼 영역이 모호하고 칸 맞추기가
+     어려웠다(2026-09-23 사용자 지적, 정사각형 위젯과 같은 모양). 바탕은 흰색(다크 모드 진회색), 타일은 옅은 회색.
      위젯은 RemoteViews 라 ConstraintLayout 을 못 쓴다 — LinearLayout 으로 짠다. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="horizontal"
     android:background="@drawable/widget_card_bg"
-    android:padding="10dp"
-    android:gravity="center">
+    android:padding="8dp">
 
     <LinearLayout
         android:id="@+id/widget_camera_button"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
         android:layout_weight="1"
         android:orientation="vertical"
         android:gravity="center"
-        android:paddingTop="2dp"
-        android:paddingBottom="2dp"
+        android:padding="8dp"
+        android:background="@drawable/widget_tile_bg"
         android:contentDescription="@string/widget_camera_label">
 
         <ImageView
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:background="@drawable/widget_circle_bg"
-            android:padding="9dp"
+            android:layout_width="22dp"
+            android:layout_height="22dp"
             android:src="@drawable/ic_widget_camera"
             android:importantForAccessibility="no" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="5dp"
+            android:layout_marginTop="6dp"
             android:text="@string/widget_camera_label"
             android:textSize="11sp"
             android:textColor="@color/widget_label"
@@ -43,26 +40,25 @@
     <LinearLayout
         android:id="@+id/widget_chat_button"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
         android:layout_weight="1"
+        android:layout_marginStart="6dp"
         android:orientation="vertical"
         android:gravity="center"
-        android:paddingTop="2dp"
-        android:paddingBottom="2dp"
+        android:padding="8dp"
+        android:background="@drawable/widget_tile_bg"
         android:contentDescription="@string/widget_chat_label">
 
         <ImageView
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:background="@drawable/widget_circle_bg"
-            android:padding="9dp"
+            android:layout_width="22dp"
+            android:layout_height="22dp"
             android:src="@drawable/ic_widget_chat"
             android:importantForAccessibility="no" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="5dp"
+            android:layout_marginTop="6dp"
             android:text="@string/widget_chat_label"
             android:textSize="11sp"
             android:textColor="@color/widget_label"
@@ -72,26 +68,25 @@
     <LinearLayout
         android:id="@+id/widget_plan_button"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
         android:layout_weight="1"
+        android:layout_marginStart="6dp"
         android:orientation="vertical"
         android:gravity="center"
-        android:paddingTop="2dp"
-        android:paddingBottom="2dp"
+        android:padding="8dp"
+        android:background="@drawable/widget_tile_bg"
         android:contentDescription="@string/widget_plan_label">
 
         <ImageView
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:background="@drawable/widget_circle_bg"
-            android:padding="9dp"
+            android:layout_width="22dp"
+            android:layout_height="22dp"
             android:src="@drawable/ic_widget_plan"
             android:importantForAccessibility="no" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="5dp"
+            android:layout_marginTop="6dp"
             android:text="@string/widget_plan_label"
             android:textSize="11sp"
             android:textColor="@color/widget_label"

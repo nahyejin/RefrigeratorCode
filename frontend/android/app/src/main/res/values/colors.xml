@@ -9,7 +9,8 @@
     <color name="widget_circle">#F1F1F4</color>
     <color name="widget_icon">#1A1A1E</color>
     <color name="widget_label">#5A5A63</color>
-    <color name="widget_day_done_text">#1A1A1E</color>
     <!-- 마이캘린더 위젯 목표 게이지의 빈 칸 -->
+    <!-- 마이캘린더 위젯 구획 칸 바탕 -->
+    <color name="widget_panel">#F6F6F8</color>
     <color name="widget_track">#E6E6EA</color>
 </resources>

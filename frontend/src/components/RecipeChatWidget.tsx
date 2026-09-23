@@ -7,6 +7,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import StepLoading from './StepLoading';
 import { getProxiedImageUrl } from '../utils/imageUtils';
 import CloseButton from './ui/CloseButton';
+import { useCloseOnBack } from '../utils/closeOnBack';
 import { openCookMode } from '../utils/cookMode';
 
 const API_BASE_URL =
@@ -243,6 +244,8 @@ function threadTitle(thread: ChatThread): string {
 const RecipeChatWidget: React.FC = () => {
   const location = useLocation();
   const [open, setOpen] = useState(false);
+  // 안드로이드 폰 「뒤로」로 대화창 닫기(utils/closeOnBack) — 대화 내용은 그대로 남는다
+  useCloseOnBack(open, () => setOpen(false));
   // 앱 사용법 답에 붙는 `바로 가기` 버튼이 쓴다. 말로만 알려 주면
   // 그 화면을 다시 찾아 헤맨다.
   const navigate = useNavigate();
@@ -381,6 +384,16 @@ const RecipeChatWidget: React.FC = () => {
     }
   }, [open, view]);
 
+  // 홈 화면 위젯의 「AI 챗봇」 버튼 → NativeShortcutBridge 가 이 이벤트를 쏜다.
+  // (훅이라 아래 `if (hideOnAuth) return null` 보다 위에 있어야 한다 — 아래 있으면 로그인 화면을 드나들 때
+  //  훅 개수가 바뀌어 React 오류가 난다.)
+  // 이 컴포넌트는 AppRouter 에 한 번만 심겨 앱 어디서나 떠 있으므로, 화면을 옮기지 않고 열기만 하면 된다.
+  React.useEffect(() => {
+    const onOpen = () => setOpen(true);
+    window.addEventListener('cookmatch-open-chat', onOpen);
+    return () => window.removeEventListener('cookmatch-open-chat', onOpen);
+  }, []);
+
   if (hideOnAuth) return null;
 
   const startNewThread = () => {
@@ -400,13 +413,6 @@ const RecipeChatWidget: React.FC = () => {
     setOpen(true);
   };
 
-  // 홈 화면 위젯의 「AI 챗봇」 버튼 → NativeShortcutBridge 가 이 이벤트를 쏜다.
-  // 이 컴포넌트는 AppRouter 에 한 번만 심겨 앱 어디서나 떠 있으므로, 화면을 옮기지 않고 열기만 하면 된다.
-  React.useEffect(() => {
-    const onOpen = () => setOpen(true);
-    window.addEventListener('cookmatch-open-chat', onOpen);
-    return () => window.removeEventListener('cookmatch-open-chat', onOpen);
-  }, []);
 
   const openThread = (thread: ChatThread) => {
     setThreadId(thread.id);

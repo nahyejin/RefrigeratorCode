@@ -29,7 +29,7 @@
                 <data android:scheme="com.cookmatch.app" android:host="auth" />
             </intent-filter>
 
-            <!-- 홈 화면 "재료 찍기" 위젯(CameraWidgetProvider)이 여는 주소.
+            <!-- 홈 화면 위젯의 「재료 찍기」 버튼(가로·정사각형·1×1 재료 찍기 위젯)이 여는 주소.
                  로그인 복귀와 같은 스킴이고 host 만 camera 다. -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
@@ -90,7 +90,20 @@
                 android:resource="@xml/quick_widget_square_info" />
         </receiver>
 
-        <!-- 요리 캘린더 위젯 4×2 — 보기 전용(조작 없음), 앱이 남긴 요약본을 읽는다 -->
+        <!-- 홈 화면 위젯 1×1 — 「재료 찍기」 하나 -->
+        <receiver
+            android:name=".CameraWidgetProvider"
+            android:label="@string/widget_camera_widget_label"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/camera_widget_info" />
+        </receiver>
+
+        <!-- 마이캘린더 위젯 4×2 — 보기 전용(조작 없음), 앱이 남긴 요약본을 읽는다 -->
         <receiver
             android:name=".CalendarWidgetProvider"
             android:label="@string/widget_calendar_label"

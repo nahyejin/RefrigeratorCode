@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- 이 파일은 scripts/gen_widget_calendar_layouts.py 가 만든다 — 직접 고치지 말고 스크립트를 고쳐서 다시 돌릴 것.
      마이캘린더 위젯 4×2 — **보기 전용**. 맨 위 「2026년 9월」
-     왼쪽: 이번 달 캘린더  |  오른쪽: 이번 달 목표(게이지·달성·절약액) + 오늘 한 줄 + 범례
-     완료=사람 색 점, 계획=빨간 손글씨 동그라미, 오늘=옅은 회색 칠. 누르면 앱의 마이캘린더로 간다. -->
+     왼쪽 칸: 이번 달 캘린더  |  오른쪽 칸 둘: 이번 달 목표(게이지·달성·절약액)+범례 / 오늘 한 줄
+     완료=사람 색 점, 계획=빨간 손글씨 동그라미, 오늘=옅은 회색 둥근 네모. 누르면 앱의 마이캘린더로 간다. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/small_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="@drawable/widget_card_bg"
-    android:paddingLeft="14dp"
-    android:paddingRight="14dp"
+    android:paddingLeft="12dp"
+    android:paddingRight="12dp"
     android:paddingTop="12dp"
     android:paddingBottom="12dp">
 
@@ -37,6 +37,8 @@
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
+            android:background="@drawable/widget_panel_bg"
+            android:padding="10dp"
             android:orientation="vertical">
 
             <TextView
@@ -3036,159 +3038,171 @@
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:layout_marginStart="14dp"
+            android:layout_marginStart="8dp"
             android:orientation="vertical">
 
+            <!-- 칸 ① 이번 달 목표 + 범례 -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
+                android:background="@drawable/widget_panel_bg"
+                android:padding="10dp"
+                android:orientation="vertical">
 
-                <TextView
-                    android:layout_width="0dp"
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:fontFamily="sans-serif-medium"
-                    android:textSize="11sp"
-                    android:textColor="@color/widget_label"
-                    android:includeFontPadding="false"
-                    android:text="이번 달 목표"
-                    android:layout_weight="1"
-                    android:maxLines="1" />
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
 
-                <TextView
-                    android:id="@+id/small_progress_text"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:fontFamily="sans-serif-medium"
-                    android:textSize="11sp"
-                    android:textColor="@color/widget_icon"
-                    android:includeFontPadding="false"
-                    android:maxLines="1"
-                    android:layout_marginStart="6dp" />
-            </LinearLayout>
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="sans-serif-medium"
+                        android:textSize="11sp"
+                        android:textColor="@color/widget_label"
+                        android:includeFontPadding="false"
+                        android:text="이번 달 목표"
+                        android:layout_weight="1"
+                        android:maxLines="1" />
 
-            <!-- 게이지는 식구별 색으로 나눠 칠해야 해서(마이캘린더와 같게) Provider 가 위젯 폭에 맞춘 비트맵으로 그린다 -->
-            <ImageView
-                android:id="@+id/small_gauge"
-                android:layout_width="match_parent"
-                android:layout_height="8dp"
-                android:layout_marginTop="7dp"
-                android:scaleType="fitXY"
-                android:importantForAccessibility="no" />
+                    <TextView
+                        android:id="@+id/small_progress_text"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="sans-serif-medium"
+                        android:textSize="11sp"
+                        android:textColor="@color/widget_icon"
+                        android:includeFontPadding="false"
+                        android:maxLines="1"
+                        android:layout_marginStart="6dp" />
+                </LinearLayout>
 
-            <TextView
-                android:id="@+id/small_savings"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:fontFamily="sans-serif"
-                android:textSize="10sp"
-                android:textColor="@color/widget_label"
-                android:includeFontPadding="false"
-                android:layout_marginTop="6dp"
-                android:maxLines="2"
-                android:ellipsize="end" />
-
-            <!-- 목표 아래 남는 자리에 「오늘」 한 줄 — 오른쪽 가운데가 비어 보이던 것(2026-09-23) -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:fontFamily="sans-serif-medium"
-                    android:textSize="11sp"
-                    android:textColor="@color/widget_label"
-                    android:includeFontPadding="false"
-                    android:text="오늘" />
-
-                <TextView
-                    android:id="@+id/small_today_more"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:fontFamily="sans-serif"
-                    android:textSize="10sp"
-                    android:textColor="@color/widget_label"
-                    android:includeFontPadding="false"
-                    android:layout_marginStart="6dp"
-                    android:maxLines="1"
-                    android:visibility="gone" />
-            </LinearLayout>
-            <LinearLayout
-                android:id="@+id/small_today_row_0"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="5dp"
-                android:gravity="top"
-                android:orientation="horizontal"
-                android:visibility="gone">
-
+                <!-- 게이지는 식구별 색으로 나눠 칠해야 해서(마이캘린더와 같게) Provider 가 위젯 폭에 맞춘 비트맵으로 그린다 -->
                 <ImageView
-                    android:id="@+id/small_today_dot_0"
-                    android:layout_width="7dp"
-                    android:layout_height="7dp"
-                    android:layout_marginTop="4dp"
-                    android:src="@drawable/widget_dot"
+                    android:id="@+id/small_gauge"
+                    android:layout_width="match_parent"
+                    android:layout_height="8dp"
+                    android:layout_marginTop="7dp"
+                    android:scaleType="fitXY"
                     android:importantForAccessibility="no" />
 
                 <TextView
-                    android:id="@+id/small_today_text_0"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:fontFamily="sans-serif"
-                    android:textSize="11sp"
-                    android:textColor="@color/widget_icon"
-                    android:includeFontPadding="false"
-                    android:layout_marginStart="6dp"
-                    android:maxLines="1"
-                    android:ellipsize="end"
-                    android:lineSpacingExtra="1dp" />
-
-                <TextView
-                    android:id="@+id/small_today_done_0"
-                    android:layout_width="wrap_content"
+                    android:id="@+id/small_savings"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:fontFamily="sans-serif"
                     android:textSize="10sp"
                     android:textColor="@color/widget_label"
                     android:includeFontPadding="false"
-                    android:text="완료"
-                    android:layout_marginStart="4dp"
-                    android:layout_marginTop="1dp"
-                    android:visibility="gone" />
+                    android:layout_marginTop="6dp"
+                    android:maxLines="2"
+                    android:ellipsize="end" />
+                <!-- 범례(식구 색·이름·횟수 + 계획 표식) — 폭에 맞춰 두 줄까지, 넘치면 「외 N명」. Provider 가 그린다 -->
+                <ImageView
+                    android:id="@+id/small_legend"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:adjustViewBounds="true"
+                    android:scaleType="fitStart"
+                    android:importantForAccessibility="no" />
             </LinearLayout>
 
-            <TextView
-                android:id="@+id/small_today_empty"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:fontFamily="sans-serif"
-                android:textSize="11sp"
-                android:textColor="@color/widget_label"
-                android:includeFontPadding="false"
-                android:text="계획 없음"
-                android:layout_marginTop="5dp"
-                android:visibility="gone" />
-
-            <FrameLayout
+            <!-- 칸 ② 오늘 한 줄 — 오른쪽 가운데가 비어 보이던 것(2026-09-23) -->
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
-                android:layout_weight="1" />
+                android:layout_weight="1"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/widget_panel_bg"
+                android:padding="10dp"
+                android:orientation="vertical">
 
-            <!-- 범례(식구 색·이름·횟수 + 계획 표식) — 폭에 맞춰 두 줄까지, 넘치면 「외 N명」. Provider 가 그린다 -->
-            <ImageView
-                android:id="@+id/small_legend"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                android:adjustViewBounds="true"
-                android:scaleType="fitStart"
-                android:importantForAccessibility="no" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="sans-serif-medium"
+                        android:textSize="11sp"
+                        android:textColor="@color/widget_label"
+                        android:includeFontPadding="false"
+                        android:text="오늘" />
+
+                    <TextView
+                        android:id="@+id/small_today_more"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="sans-serif"
+                        android:textSize="10sp"
+                        android:textColor="@color/widget_label"
+                        android:includeFontPadding="false"
+                        android:layout_marginStart="6dp"
+                        android:maxLines="1"
+                        android:visibility="gone" />
+                </LinearLayout>
+                <LinearLayout
+                    android:id="@+id/small_today_row_0"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="5dp"
+                    android:gravity="top"
+                    android:orientation="horizontal"
+                    android:visibility="gone">
+
+                    <ImageView
+                        android:id="@+id/small_today_dot_0"
+                        android:layout_width="7dp"
+                        android:layout_height="7dp"
+                        android:layout_marginTop="4dp"
+                        android:src="@drawable/widget_dot"
+                        android:importantForAccessibility="no" />
+
+                    <TextView
+                        android:id="@+id/small_today_text_0"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:fontFamily="sans-serif"
+                        android:textSize="11sp"
+                        android:textColor="@color/widget_icon"
+                        android:includeFontPadding="false"
+                        android:layout_marginStart="6dp"
+                        android:maxLines="1"
+                        android:ellipsize="end"
+                        android:lineSpacingExtra="1dp" />
+
+                    <TextView
+                        android:id="@+id/small_today_done_0"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="sans-serif"
+                        android:textSize="10sp"
+                        android:textColor="@color/widget_label"
+                        android:includeFontPadding="false"
+                        android:text="완료"
+                        android:layout_marginStart="4dp"
+                        android:layout_marginTop="1dp"
+                        android:visibility="gone" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/small_today_empty"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="sans-serif"
+                    android:textSize="11sp"
+                    android:textColor="@color/widget_label"
+                    android:includeFontPadding="false"
+                    android:text="계획 없음"
+                    android:layout_marginTop="5dp"
+                    android:visibility="gone" />
+            </LinearLayout>
         </LinearLayout>
     </LinearLayout>
 </LinearLayout>

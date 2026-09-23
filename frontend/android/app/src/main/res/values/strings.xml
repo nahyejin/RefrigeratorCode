@@ -14,6 +14,8 @@
     <string name="widget_quick_square_label">쿡매치 (정사각형)</string>
     <string name="widget_quick_square_description">요리 AI를 크게, 재료 찍기·AI 식단도</string>
     <string name="widget_quick_description">재료 찍기·요리 AI·AI 식단 바로 열기</string>
+    <string name="widget_camera_widget_label">쿡매치 (재료 찍기)</string>
+    <string name="widget_camera_description">누르면 바로 재료 사진 찍기</string>
     <string name="widget_calendar_label">마이캘린더</string>
     <string name="widget_calendar_description">이번 달 달력·목표·오늘 요리</string>
     <string name="widget_calendar_big_label">마이캘린더 (크게)</string>
