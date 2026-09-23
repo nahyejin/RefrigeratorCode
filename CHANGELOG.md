@@ -11821,3 +11821,6 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 - 오전 09:40 에 만든 `app-release.aab` 에는 마이캘린더 위젯(3·4차)·로그아웃 시 요약본 삭제·위젯 이름 변경이 빠져 있어, 최신 코드로 `npm run build` → `npx cap sync android` → `gradlew bundleRelease` 다시 실행. 서명 확인("jar verified"), 13.1MB. versionCode·versionName 은 그대로 3 / 1.0.2 — **09:40 파일을 Play 에 아직 안 올렸다는 전제**. 이미 올렸다면 versionCode 4 로 올려 다시 빌드해야 한다(같은 번호는 Play 가 거절).
 - 같은 날 Play Console 에서 비공개 테스트(트랙 이름 「비공개 테스트 - Alpha」)에 3 (1.0.2) 업로드 → 검토 제출(사용자 진행, 화면 안내). 관리형 게시라 승인 뒤 「변경사항 게시」를 한 번 더 눌러야 한다.
 
+
+### iOS 1.0.2(빌드 7) 업로드 + App Store Connect 새 버전 생성 (2026-09-23, 맥북 작업)
+위젯 타깃을 넣은 뒤 App·CookMatchWidget 두 타깃을 버전 1.0.2·빌드 7 로 맞춰 Archive → 업로드. `CookMatchWidget.appex` 가 앱 번들에 포함된 것 확인. App Store Connect 에 새 버전 1.0.2 생성. 자세한 내용은 [RELEASE_TODO.md](RELEASE_TODO.md).

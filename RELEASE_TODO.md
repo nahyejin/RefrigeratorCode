@@ -3,6 +3,8 @@
 상세 배경은 [MOBILE_APP_GUIDE.md](MOBILE_APP_GUIDE.md), 스토어 원고는 [store/STORE_LISTING.md](store/STORE_LISTING.md).
 
 ## 📅 2026-09-23 현재 상태
+- **iOS 1.0.2 (빌드 7) 업로드 완료(2026-09-23, 맥)**: 위젯 타깃(App Group 포함) 넣은 뒤 App·CookMatchWidget 두 타깃 모두 버전 1.0.2·빌드 7 로 맞춰 Archive → 업로드 성공(`CookMatchWidget.appex` 포함 확인). App Store Connect 에 **새 버전 1.0.2 생성 완료**. 남은 것: TestFlight 에서 빌드 처리 완료 → 버전 페이지에서 빌드 선택·「이 버전의 새로운 기능」 입력(RELEASE_NOTES.md 초안)·새 질문 있으면 답변 → 심사에 추가.
+
 - **iOS 위젯 타깃 생성 완료(2026-09-23, 맥)**: `xcodeproj` gem 으로 `CookMatchWidget` 타깃을 스크립트로 만들어 Debug·Release(Archive) 둘 다 빌드 성공, 실기기 설치·실행 확인. 남은 건 아이폰에서 **홈 화면에 위젯 추가해서 눈으로 확인**(store/IOS_WIDGET_SETUP.md 5단계). 다음 iOS 제출(1.0.2/빌드 7) 때 같이 올라간다.
 
 
