@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- "요리 계획 있는 날" — 앱과 같은 빨간 펜 동그라미(손으로 친 듯 살짝 찌그러진 타원). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="32dp"
+    android:height="28dp"
+    android:viewportWidth="32"
+    android:viewportHeight="28">
+    <path
+        android:strokeColor="#E5383B"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:fillColor="@android:color/transparent"
+        android:pathData="M6 15 C5 7 14 3 21 4 C28 5 30 12 27 19 C24 25 13 26 8 21 C4 17 6 9 13 6" />
+</vector>

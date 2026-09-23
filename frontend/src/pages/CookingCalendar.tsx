@@ -1060,22 +1060,7 @@ const CookingCalendar: React.FC = () => {
   }, [entries]);
   const monthlyTotal = entries.length;
 
-  /**
-   * 홈 화면 달력 위젯이 읽어 갈 요약본을 남긴다(네이티브 앱에서만).
-   * 위젯은 앱과 다른 프로세스라 로그인 토큰을 쓸 수 없어 서버를 직접 못 부른다 —
-   * 이 화면을 열 때마다 "이 달 며칠에 몇 번 요리했나"를 기기에 적어 두고 위젯은 그걸 읽는다.
-   */
-  React.useEffect(() => {
-    const days: Record<string, number> = {};
-    for (const e of entries) days[e.day] = (days[e.day] || 0) + 1;
-    void saveCalendarWidgetSnapshot({
-      month: `${monthStart.getFullYear()}-${String(monthStart.getMonth() + 1).padStart(2, '0')}`,
-      days,
-      goal: myGoal || null,
-      done: monthlyTotal,
-      updatedAt: new Date().toISOString(),
-    });
-  }, [entries, monthlyTotal, myGoal, monthStart]);
+
 
   // 그룹이면 목표 게이지를 인원별로 색을 나눠 채운다 — 완료 횟수가 많은
   // 순서대로 앞에서부터 채우고, 합이 목표(100%)를 넘으면 시각적으로만 잘라낸다.
@@ -1313,6 +1298,61 @@ const CookingCalendar: React.FC = () => {
     return map;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [householdPlans, isLoggedIn, planVersion, meIdForPlans, scope, hideMine]);
+
+  /**
+   * 홈 화면 달력 위젯이 읽어 갈 요약본을 남긴다(네이티브 앱에서만).
+   *
+   * 위젯은 앱과 다른 프로세스라 로그인 토큰을 쓸 수 없어 서버를 직접 못 부른다 — 이 화면을 열 때마다
+   * **이 화면이 그리는 것과 같은 재료**(날짜별 완료 점 색·계획 표식·목표/달성/절약액·식구별 횟수·
+   * 오늘내일 목록)를 기기에 적어 두고, 위젯은 그것만 읽어 같은 그림을 그린다.
+   */
+  React.useEffect(() => {
+    const days: Record<string, { dots: string[]; planned?: boolean }> = {};
+    for (const e of entries) {
+      const cell = days[e.day] || (days[e.day] = { dots: [] });
+      cell.dots.push(colorForUser(e.user_id, memberIds));
+    }
+    plans.forEach((list, day) => {
+      if (!list.length) return;
+      const cell = days[day] || (days[day] = { dots: [] });
+      cell.planned = true;
+    });
+
+    const byUser = new Map<number, { name: string; count: number }>();
+    for (const e of entries) {
+      const cur = byUser.get(e.user_id) || { name: e.nickname || '나', count: 0 };
+      cur.count += 1;
+      byUser.set(e.user_id, cur);
+    }
+
+    const todayKey = toDateKey(new Date());
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowKey = toDateKey(tomorrow);
+    const upcoming: { when: 'today' | 'tomorrow'; title: string; kind: 'plan' | 'done'; color: string }[] = [];
+    for (const [key, when] of [[todayKey, 'today'], [tomorrowKey, 'tomorrow']] as const) {
+      for (const p of plans.get(key) || []) {
+        upcoming.push({ when, title: p.title, kind: 'plan', color: PLAN_MARK_STROKE });
+      }
+      for (const e of entries.filter(x => x.day === key)) {
+        upcoming.push({ when, title: e.title, kind: 'done', color: colorForUser(e.user_id, memberIds) });
+      }
+    }
+
+    void saveCalendarWidgetSnapshot({
+      month: `${monthStart.getFullYear()}-${String(monthStart.getMonth() + 1).padStart(2, '0')}`,
+      days,
+      goal: myGoal || null,
+      done: monthlyTotal,
+      goalSavings: myGoal ? goalSavings : null,
+      members: [...byUser.entries()].map(([uid, v]) => ({
+        name: v.name, color: colorForUser(uid, memberIds), count: v.count,
+      })),
+      // 위젯 한 칸에 들어갈 만큼만 — 나머지는 앱에서 본다
+      upcoming: upcoming.slice(0, 6),
+      updatedAt: new Date().toISOString(),
+    });
+  }, [entries, plans, memberIds, monthlyTotal, myGoal, goalSavings, monthStart]);
   /** 「계획 취소」를 눌렀을 때 정말 지울지 한 번 더 확인하는 대상. */
   const [confirmingPlan, setConfirmingPlan] = React.useState<DisplayPlannedMeal | null>(null);
   /** 「요리 계획 전체 삭제」 확인창을 띄우는 중인지. 실수로 다 지우면 되돌릴

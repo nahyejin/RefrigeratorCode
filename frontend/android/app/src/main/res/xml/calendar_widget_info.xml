@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 요리 캘린더 위젯 4×2 — 보기 전용. 내용은 앱이 남긴 요약본이라 자주 다시 그릴 필요가 없다(30분). -->
+<!-- 요리 캘린더 위젯 4×2 — 왼쪽 달력 + 오른쪽 오늘·내일 목록. 보기 전용. -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:minWidth="250dp"
     android:minHeight="110dp"

@@ -97,11 +97,23 @@
             android:exported="false">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-                <action android:name="kr.cookmatch.app.CALENDAR_WIDGET_MODE" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/calendar_widget_info" />
+        </receiver>
+
+        <!-- 요리 캘린더 위젯 4×4 — 목표 게이지 + 큰 달력 + 식구 범례(보기 전용) -->
+        <receiver
+            android:name=".CalendarBigWidgetProvider"
+            android:label="@string/widget_calendar_big_label"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/calendar_big_widget_info" />
         </receiver>
 
         <provider
