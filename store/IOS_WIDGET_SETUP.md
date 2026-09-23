@@ -26,6 +26,17 @@
 
 ---
 
+## ✅ 위젯 타깃 생성 완료 (2026-09-23, 맥에서 스크립트로)
+
+Xcode 의 File → New → Target 대신, `xcodeproj` (Ruby gem, `gem install xcodeproj --user-install`)으로
+`App.xcodeproj` 를 직접 편집해 `CookMatchWidget` 타깃을 만들고 4개 파일(스위프트 2개·Info.plist·entitlements)을
+연결·Embed·서명 설정까지 마쳤다. 아래 2~4단계(Xcode 로 타깃 만들기)는 **이미 끝났으니 건너뛴다.**
+
+- `xcodebuild ... -allowProvisioningUpdates` 로 Debug(실기기: iPhone 17 Pro)와 Release(Archive) 둘 다 빌드 성공.
+  App ID(`com.cookmatch.app.CookMatchWidget`)와 App Group 등록도 **Apple 서버에 자동으로** 됐다(Devices 등록 때와 달리
+  App ID·Capability 추가는 자동 프로비저닝이 처리해 준다).
+- 실기기에 설치·실행까지 확인. **남은 건 아이폰에서 직접 위젯을 홈 화면에 추가해 눈으로 보는 것뿐**(5단계부터 이어서 함).
+
 ## 1. 최신 코드 받기 (맥 터미널)
 
 ```bash
