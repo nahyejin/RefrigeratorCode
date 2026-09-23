@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 오늘 — 앱과 같은 옅은 노랑 칠(검은 테두리는 투박하다는 지적, 2026-09-23) -->
+<!-- 오늘 — 옅은 회색 칠. 달력에 식구 색·빨간 계획 표식이 이미 많아서 노랑을 빼고 색 없는 표식으로(2026-09-23 지적).
+     다크 모드는 drawable-night 에서 밝은 쪽으로 뒤집는다. -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
-    <solid android:color="#FFF3B0" />
+    <solid android:color="#171A1A1E" />
 </shape>

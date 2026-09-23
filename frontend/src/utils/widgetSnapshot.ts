@@ -57,6 +57,42 @@ export interface CalendarWidgetSnapshot {
   updatedAt: string;
 }
 
+/**
+ * 요약본을 지운다 — 로그아웃·계정 전환 때.
+ *
+ * 안 지우면 로그아웃한 뒤에도 홈 화면 위젯에 앞 계정 식구들의 기록·레시피 제목이 그대로 남는다
+ * (2026-09-23 지적). 위젯은 앱이 화면에서 빠질 때(MainActivity.onPause) 다시 그려지므로 홈으로
+ * 나가는 순간 빈 달력이 된다.
+ */
+export async function clearCalendarWidgetSnapshot(): Promise<void> {
+  if (!Capacitor.isNativePlatform()) return;
+  try {
+    await Preferences.remove({ key: CALENDAR_WIDGET_KEY });
+  } catch (e) {
+    console.warn('[widget] 달력 요약본 삭제 실패:', e);
+  }
+}
+
+/**
+ * 범례에 늘어놓는 순서 — 앱 마이캘린더(목표 카드·달력 요약)와 위젯이 **같은 규칙**을 쓴다(2026-09-23).
+ *   · 이번 달(또는 보고 있는 기간) 완료가 많은 사람부터
+ *   · 같으면 나 먼저, 그다음은 그룹 식구 순서(= 색을 정하는 순서)
+ *   · 0회인 사람은 애초에 map 에 없으니 범례에도 없다(설명할 점·게이지 색이 없다)
+ * 색은 순위가 아니라 사람마다 고정이다 — 순위로 색을 매기면 달마다 같은 사람 색이 바뀐다.
+ */
+export function orderForLegend(
+  counts: Map<number, number>, meId: number | null, memberIds: number[],
+): [number, number][] {
+  const rank = (uid: number) => {
+    const i = memberIds.indexOf(uid);
+    return i < 0 ? Number.MAX_SAFE_INTEGER : i;
+  };
+  return Array.from(counts.entries()).sort((a, b) =>
+    b[1] - a[1]
+    || (a[0] === meId ? -1 : b[0] === meId ? 1 : 0)
+    || rank(a[0]) - rank(b[0]));
+}
+
 /** 네이티브 앱에서만 저장한다(웹에서는 읽을 위젯이 없다). */
 export async function saveCalendarWidgetSnapshot(snapshot: CalendarWidgetSnapshot): Promise<void> {
   if (!Capacitor.isNativePlatform()) return;

@@ -1,210 +1,105 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 홈 화면 요리 캘린더 위젯 4×3(늘리면 4×4) — **보기 전용**. 마이캘린더 화면의 축약판.
-     위: 목표 카드(제목·사람별 색 게이지·「N회 / M회 달성」·절약액) + 범례
-         범례는 달력의 점 색과 게이지 색을 **함께** 설명하므로 둘 위에 둔다(2026-09-23 지적).
-     아래: 왼쪽 달력(정사각형에 가깝게)  |  오른쪽 위 「오늘」, 아래 「내일」 목록(레시피 제목 그대로)
-     조작은 없고 누르면 앱의 요리 캘린더로 간다. -->
+<!-- 이 파일은 scripts/gen_widget_calendar_layouts.py 가 만든다 — 직접 고치지 말고 스크립트를 고쳐서 다시 돌릴 것.
+     마이캘린더 위젯 4×3(늘리면 4×4) — **보기 전용**. 마이캘린더 화면의 축약판.
+     맨 위 「2026년 9월」 → 이번 달 목표(달성·게이지·절약액) + 범례(달력 점·게이지 색을 함께 설명하므로 둘 위에)
+     아래: 왼쪽 이번 달 캘린더  |  오른쪽 「오늘」·「내일」 목록(레시피 제목 그대로, 점=사람 색, 이미 한 것은 「완료」)
+     조작은 없고 누르면 앱의 마이캘린더로 간다. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/big_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="@drawable/widget_card_bg"
-    android:paddingLeft="12dp"
-    android:paddingRight="12dp"
-    android:paddingTop="12dp"
-    android:paddingBottom="12dp">
+    android:paddingLeft="14dp"
+    android:paddingRight="14dp"
+    android:paddingTop="14dp"
+    android:paddingBottom="14dp">
+
+    <TextView
+        android:id="@+id/month_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="sans-serif"
+        android:textStyle="bold"
+        android:textSize="15sp"
+        android:textColor="@color/widget_icon"
+        android:includeFontPadding="false"
+        android:text="2026년 9월"
+        android:maxLines="1" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:orientation="vertical">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical">
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
             <TextView
-                android:id="@+id/big_goal_title"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:textSize="13sp"
-                android:textStyle="bold"
-                android:textColor="@color/widget_icon"
-                android:maxLines="1"
-                android:text="이번 달 목표" />
-
-            <TextView
-                android:id="@+id/big_goal_count"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="6dp"
+                android:fontFamily="sans-serif-medium"
                 android:textSize="11sp"
                 android:textColor="@color/widget_label"
+                android:includeFontPadding="false"
+                android:text="이번 달 목표"
+                android:layout_weight="1"
                 android:maxLines="1" />
+
+            <TextView
+                android:id="@+id/big_progress_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif-medium"
+                android:textSize="11sp"
+                android:textColor="@color/widget_icon"
+                android:includeFontPadding="false"
+                android:maxLines="1"
+                android:layout_marginStart="6dp" />
         </LinearLayout>
 
-        <!-- 게이지는 사람별 색으로 나눠 칠해야 해서(마이캘린더와 같게) Provider 가 비트맵으로 그린다.
-             RemoteViews 로는 자식 뷰 폭을 비율로 못 줘서 ProgressBar·LinearLayout 으로는 색을 못 나눈다. -->
+        <!-- 게이지는 식구별 색으로 나눠 칠해야 해서(마이캘린더와 같게) Provider 가 위젯 폭에 맞춘 비트맵으로 그린다 -->
         <ImageView
             android:id="@+id/big_gauge"
             android:layout_width="match_parent"
             android:layout_height="8dp"
-            android:layout_marginTop="6dp"
+            android:layout_marginTop="7dp"
             android:scaleType="fitXY"
             android:importantForAccessibility="no" />
-
-        <TextView
-            android:id="@+id/big_progress_text"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="5dp"
-            android:textSize="11sp"
-            android:textColor="@color/widget_icon"
-            android:maxLines="1" />
 
         <TextView
             android:id="@+id/big_savings"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
+            android:fontFamily="sans-serif"
             android:textSize="10sp"
             android:textColor="@color/widget_label"
-            android:maxLines="2" />
+            android:includeFontPadding="false"
+            android:layout_marginTop="6dp"
+            android:maxLines="2"
+            android:ellipsize="end" />
 
-        <LinearLayout
+        <!-- 범례(식구 색·이름·횟수 + 계획 표식) — 폭에 맞춰 두 줄까지, 넘치면 「외 N명」. Provider 가 그린다 -->
+        <ImageView
+            android:id="@+id/big_legend"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            android:orientation="horizontal"
-            android:gravity="center_vertical">
-            <LinearLayout
-                android:id="@+id/legend_0"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="8dp"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:visibility="gone">
-
-                <ImageView
-                    android:id="@+id/legend_dot_0"
-                    android:layout_width="7dp"
-                    android:layout_height="7dp"
-                    android:src="@drawable/widget_dot"
-                    android:importantForAccessibility="no" />
-
-                <TextView
-                    android:id="@+id/legend_text_0"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="4dp"
-                    android:textSize="10sp"
-                    android:textColor="@color/widget_label"
-                    android:maxLines="1" />
-            </LinearLayout>
-            <LinearLayout
-                android:id="@+id/legend_1"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="8dp"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:visibility="gone">
-
-                <ImageView
-                    android:id="@+id/legend_dot_1"
-                    android:layout_width="7dp"
-                    android:layout_height="7dp"
-                    android:src="@drawable/widget_dot"
-                    android:importantForAccessibility="no" />
-
-                <TextView
-                    android:id="@+id/legend_text_1"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="4dp"
-                    android:textSize="10sp"
-                    android:textColor="@color/widget_label"
-                    android:maxLines="1" />
-            </LinearLayout>
-            <LinearLayout
-                android:id="@+id/legend_2"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="8dp"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:visibility="gone">
-
-                <ImageView
-                    android:id="@+id/legend_dot_2"
-                    android:layout_width="7dp"
-                    android:layout_height="7dp"
-                    android:src="@drawable/widget_dot"
-                    android:importantForAccessibility="no" />
-
-                <TextView
-                    android:id="@+id/legend_text_2"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="4dp"
-                    android:textSize="10sp"
-                    android:textColor="@color/widget_label"
-                    android:maxLines="1" />
-            </LinearLayout>
-            <LinearLayout
-                android:id="@+id/legend_3"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="8dp"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:visibility="gone">
-
-                <ImageView
-                    android:id="@+id/legend_dot_3"
-                    android:layout_width="7dp"
-                    android:layout_height="7dp"
-                    android:src="@drawable/widget_dot"
-                    android:importantForAccessibility="no" />
-
-                <TextView
-                    android:id="@+id/legend_text_3"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="4dp"
-                    android:textSize="10sp"
-                    android:textColor="@color/widget_label"
-                    android:maxLines="1" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
-
-                <ImageView
-                    android:layout_width="11dp"
-                    android:layout_height="11dp"
-                    android:src="@drawable/widget_plan_circle"
-                    android:importantForAccessibility="no" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="3dp"
-                    android:text="계획"
-                    android:textSize="10sp"
-                    android:textColor="@color/widget_label" />
-            </LinearLayout>
-        </LinearLayout>
+            android:layout_marginTop="8dp"
+            android:adjustViewBounds="true"
+            android:scaleType="fitStart"
+            android:importantForAccessibility="no" />
+    </LinearLayout>
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:orientation="horizontal"
-        android:layout_marginTop="10dp">
+        android:layout_marginTop="14dp"
+        android:orientation="horizontal">
 
         <LinearLayout
             android:layout_width="0dp"
@@ -212,90 +107,104 @@
             android:layout_weight="1.25"
             android:orientation="vertical">
 
-        <TextView
-            android:id="@+id/big_cal_title"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textSize="12sp"
-            android:textStyle="bold"
-            android:textColor="@color/widget_icon"
-            android:text="2026년 9월" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif-medium"
+                android:textSize="11sp"
+                android:textColor="@color/widget_label"
+                android:includeFontPadding="false"
+                android:text="이번 달 캘린더" />
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginTop="4dp">
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:text="일"
-                android:textSize="9sp"
-                android:textColor="@color/widget_label" />
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:text="월"
-                android:textSize="9sp"
-                android:textColor="@color/widget_label" />
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:text="화"
-                android:textSize="9sp"
-                android:textColor="@color/widget_label" />
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:text="수"
-                android:textSize="9sp"
-                android:textColor="@color/widget_label" />
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:text="목"
-                android:textSize="9sp"
-                android:textColor="@color/widget_label" />
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:text="금"
-                android:textSize="9sp"
-                android:textColor="@color/widget_label" />
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:text="토"
-                android:textSize="9sp"
-                android:textColor="@color/widget_label" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:id="@+id/big_grid"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:orientation="vertical">
             <LinearLayout
-                android:id="@+id/big_week_0"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:orientation="horizontal">
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:fontFamily="sans-serif"
+                    android:textSize="9sp"
+                    android:textColor="@color/widget_label"
+                    android:text="일" />
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:fontFamily="sans-serif"
+                    android:textSize="9sp"
+                    android:textColor="@color/widget_label"
+                    android:text="월" />
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:fontFamily="sans-serif"
+                    android:textSize="9sp"
+                    android:textColor="@color/widget_label"
+                    android:text="화" />
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:fontFamily="sans-serif"
+                    android:textSize="9sp"
+                    android:textColor="@color/widget_label"
+                    android:text="수" />
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:fontFamily="sans-serif"
+                    android:textSize="9sp"
+                    android:textColor="@color/widget_label"
+                    android:text="목" />
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:fontFamily="sans-serif"
+                    android:textSize="9sp"
+                    android:textColor="@color/widget_label"
+                    android:text="금" />
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:fontFamily="sans-serif"
+                    android:textSize="9sp"
+                    android:textColor="@color/widget_label"
+                    android:text="토" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/big_grid"
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
                 android:layout_weight="1"
-                android:orientation="horizontal">
+                android:orientation="vertical">
+                <LinearLayout
+                    android:id="@+id/big_week_0"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:orientation="horizontal">
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
@@ -315,10 +224,11 @@
                             android:layout_gravity="center"
                             android:gravity="center"
                             android:includeFontPadding="false"
+                            android:fontFamily="sans-serif"
                             android:textSize="10sp"
-                            android:textColor="@color/widget_label" />
+                            android:textColor="@color/widget_icon" />
 
-                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <!-- 오늘(회색 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
                         <ImageView
                             android:id="@+id/big_plan_0"
                             android:layout_width="match_parent"
@@ -382,10 +292,11 @@
                             android:layout_gravity="center"
                             android:gravity="center"
                             android:includeFontPadding="false"
+                            android:fontFamily="sans-serif"
                             android:textSize="10sp"
-                            android:textColor="@color/widget_label" />
+                            android:textColor="@color/widget_icon" />
 
-                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <!-- 오늘(회색 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
                         <ImageView
                             android:id="@+id/big_plan_1"
                             android:layout_width="match_parent"
@@ -449,10 +360,11 @@
                             android:layout_gravity="center"
                             android:gravity="center"
                             android:includeFontPadding="false"
+                            android:fontFamily="sans-serif"
                             android:textSize="10sp"
-                            android:textColor="@color/widget_label" />
+                            android:textColor="@color/widget_icon" />
 
-                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <!-- 오늘(회색 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
                         <ImageView
                             android:id="@+id/big_plan_2"
                             android:layout_width="match_parent"
@@ -516,10 +428,11 @@
                             android:layout_gravity="center"
                             android:gravity="center"
                             android:includeFontPadding="false"
+                            android:fontFamily="sans-serif"
                             android:textSize="10sp"
-                            android:textColor="@color/widget_label" />
+                            android:textColor="@color/widget_icon" />
 
-                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <!-- 오늘(회색 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
                         <ImageView
                             android:id="@+id/big_plan_3"
                             android:layout_width="match_parent"
@@ -583,10 +496,11 @@
                             android:layout_gravity="center"
                             android:gravity="center"
                             android:includeFontPadding="false"
+                            android:fontFamily="sans-serif"
                             android:textSize="10sp"
-                            android:textColor="@color/widget_label" />
+                            android:textColor="@color/widget_icon" />
 
-                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <!-- 오늘(회색 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
                         <ImageView
                             android:id="@+id/big_plan_4"
                             android:layout_width="match_parent"
@@ -650,10 +564,11 @@
                             android:layout_gravity="center"
                             android:gravity="center"
                             android:includeFontPadding="false"
+                            android:fontFamily="sans-serif"
                             android:textSize="10sp"
-                            android:textColor="@color/widget_label" />
+                            android:textColor="@color/widget_icon" />
 
-                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <!-- 오늘(회색 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
                         <ImageView
                             android:id="@+id/big_plan_5"
                             android:layout_width="match_parent"
@@ -717,10 +632,11 @@
                             android:layout_gravity="center"
                             android:gravity="center"
                             android:includeFontPadding="false"
+                            android:fontFamily="sans-serif"
                             android:textSize="10sp"
-                            android:textColor="@color/widget_label" />
+                            android:textColor="@color/widget_icon" />
 
-                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <!-- 오늘(회색 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
                         <ImageView
                             android:id="@+id/big_plan_6"
                             android:layout_width="match_parent"
@@ -765,13 +681,13 @@
                             android:importantForAccessibility="no" />
                     </LinearLayout>
                 </LinearLayout>
-            </LinearLayout>
-            <LinearLayout
-                android:id="@+id/big_week_1"
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="1"
-                android:orientation="horizontal">
+                </LinearLayout>
+                <LinearLayout
+                    android:id="@+id/big_week_1"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:orientation="horizontal">
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
@@ -791,10 +707,11 @@
                             android:layout_gravity="center"
                             android:gravity="center"
                             android:includeFontPadding="false"
+                            android:fontFamily="sans-serif"
                             android:textSize="10sp"
-                            android:textColor="@color/widget_label" />
+                            android:textColor="@color/widget_icon" />
 
-                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <!-- 오늘(회색 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
                         <ImageView
                             android:id="@+id/big_plan_7"
                             android:layout_width="match_parent"
@@ -858,10 +775,11 @@
                             android:layout_gravity="center"
                             android:gravity="center"
                             android:includeFontPadding="false"
+                            android:fontFamily="sans-serif"
                             android:textSize="10sp"
-                            android:textColor="@color/widget_label" />
+                            android:textColor="@color/widget_icon" />
 
-                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <!-- 오늘(회색 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
                         <ImageView
                             android:id="@+id/big_plan_8"
                             android:layout_width="match_parent"
@@ -925,10 +843,11 @@
                             android:layout_gravity="center"
                             android:gravity="center"
                             android:includeFontPadding="false"
+                            android:fontFamily="sans-serif"
                             android:textSize="10sp"
-                            android:textColor="@color/widget_label" />
+                            android:textColor="@color/widget_icon" />
 
-                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <!-- 오늘(회색 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
                         <ImageView
                             android:id="@+id/big_plan_9"
                             android:layout_width="match_parent"
@@ -992,10 +911,11 @@
                             android:layout_gravity="center"
                             android:gravity="center"
                             android:includeFontPadding="false"
+                            android:fontFamily="sans-serif"
                             android:textSize="10sp"
-                            android:textColor="@color/widget_label" />
+                            android:textColor="@color/widget_icon" />
 
-                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <!-- 오늘(회색 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
                         <ImageView
                             android:id="@+id/big_plan_10"
                             android:layout_width="match_parent"
@@ -1059,10 +979,11 @@
                             android:layout_gravity="center"
                             android:gravity="center"
                             android:includeFontPadding="false"
+                            android:fontFamily="sans-serif"
                             android:textSize="10sp"
-                            android:textColor="@color/widget_label" />
+                            android:textColor="@color/widget_icon" />
 
-                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <!-- 오늘(회색 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
                         <ImageView
                             android:id="@+id/big_plan_11"
                             android:layout_width="match_parent"
@@ -1126,10 +1047,11 @@
                             android:layout_gravity="center"
                             android:gravity="center"
                             android:includeFontPadding="false"
+                            android:fontFamily="sans-serif"
                             android:textSize="10sp"
-                            android:textColor="@color/widget_label" />
+                            android:textColor="@color/widget_icon" />
 
-                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <!-- 오늘(회색 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
                         <ImageView
                             android:id="@+id/big_plan_12"
                             android:layout_width="match_parent"
@@ -1193,10 +1115,11 @@
                             android:layout_gravity="center"
                             android:gravity="center"
                             android:includeFontPadding="false"
+                            android:fontFamily="sans-serif"
                             android:textSize="10sp"
-                            android:textColor="@color/widget_label" />
+                            android:textColor="@color/widget_icon" />
 
-                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <!-- 오늘(회색 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
                         <ImageView
                             android:id="@+id/big_plan_13"
                             android:layout_width="match_parent"
@@ -1241,13 +1164,13 @@
                             android:importantForAccessibility="no" />
                     </LinearLayout>
                 </LinearLayout>
-            </LinearLayout>
-            <LinearLayout
-                android:id="@+id/big_week_2"
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="1"
-                android:orientation="horizontal">
+                </LinearLayout>
+                <LinearLayout
+                    android:id="@+id/big_week_2"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:orientation="horizontal">
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
@@ -1267,10 +1190,11 @@
                             android:layout_gravity="center"
                             android:gravity="center"
                             android:includeFontPadding="false"
+                            android:fontFamily="sans-serif"
                             android:textSize="10sp"
-                            android:textColor="@color/widget_label" />
+                            android:textColor="@color/widget_icon" />
 
-                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <!-- 오늘(회색 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
                         <ImageView
                             android:id="@+id/big_plan_14"
                             android:layout_width="match_parent"
@@ -1334,10 +1258,11 @@
                             android:layout_gravity="center"
                             android:gravity="center"
                             android:includeFontPadding="false"
+                            android:fontFamily="sans-serif"
                             android:textSize="10sp"
-                            android:textColor="@color/widget_label" />
+                            android:textColor="@color/widget_icon" />
 
-                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <!-- 오늘(회색 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
                         <ImageView
                             android:id="@+id/big_plan_15"
                             android:layout_width="match_parent"
@@ -1401,10 +1326,11 @@
                             android:layout_gravity="center"
                             android:gravity="center"
                             android:includeFontPadding="false"
+                            android:fontFamily="sans-serif"
                             android:textSize="10sp"
-                            android:textColor="@color/widget_label" />
+                            android:textColor="@color/widget_icon" />
 
-                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <!-- 오늘(회색 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
                         <ImageView
                             android:id="@+id/big_plan_16"
                             android:layout_width="match_parent"
@@ -1468,10 +1394,11 @@
                             android:layout_gravity="center"
                             android:gravity="center"
                             android:includeFontPadding="false"
+                            android:fontFamily="sans-serif"
                             android:textSize="10sp"
-                            android:textColor="@color/widget_label" />
+                            android:textColor="@color/widget_icon" />
 
-                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <!-- 오늘(회색 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
                         <ImageView
                             android:id="@+id/big_plan_17"
                             android:layout_width="match_parent"
@@ -1535,10 +1462,11 @@
                             android:layout_gravity="center"
                             android:gravity="center"
                             android:includeFontPadding="false"
+                            android:fontFamily="sans-serif"
                             android:textSize="10sp"
-                            android:textColor="@color/widget_label" />
+                            android:textColor="@color/widget_icon" />
 
-                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <!-- 오늘(회색 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
                         <ImageView
                             android:id="@+id/big_plan_18"
                             android:layout_width="match_parent"
@@ -1602,10 +1530,11 @@
                             android:layout_gravity="center"
                             android:gravity="center"
                             android:includeFontPadding="false"
+                            android:fontFamily="sans-serif"
                             android:textSize="10sp"
-                            android:textColor="@color/widget_label" />
+                            android:textColor="@color/widget_icon" />
 
-                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <!-- 오늘(회색 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
                         <ImageView
                             android:id="@+id/big_plan_19"
                             android:layout_width="match_parent"
@@ -1669,10 +1598,11 @@
                             android:layout_gravity="center"
                             android:gravity="center"
                             android:includeFontPadding="false"
+                            android:fontFamily="sans-serif"
                             android:textSize="10sp"
-                            android:textColor="@color/widget_label" />
+                            android:textColor="@color/widget_icon" />
 
-                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <!-- 오늘(회색 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
                         <ImageView
                             android:id="@+id/big_plan_20"
                             android:layout_width="match_parent"
@@ -1717,13 +1647,13 @@
                             android:importantForAccessibility="no" />
                     </LinearLayout>
                 </LinearLayout>
-            </LinearLayout>
-            <LinearLayout
-                android:id="@+id/big_week_3"
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="1"
-                android:orientation="horizontal">
+                </LinearLayout>
+                <LinearLayout
+                    android:id="@+id/big_week_3"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:orientation="horizontal">
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
@@ -1743,10 +1673,11 @@
                             android:layout_gravity="center"
                             android:gravity="center"
                             android:includeFontPadding="false"
+                            android:fontFamily="sans-serif"
                             android:textSize="10sp"
-                            android:textColor="@color/widget_label" />
+                            android:textColor="@color/widget_icon" />
 
-                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <!-- 오늘(회색 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
                         <ImageView
                             android:id="@+id/big_plan_21"
                             android:layout_width="match_parent"
@@ -1810,10 +1741,11 @@
                             android:layout_gravity="center"
                             android:gravity="center"
                             android:includeFontPadding="false"
+                            android:fontFamily="sans-serif"
                             android:textSize="10sp"
-                            android:textColor="@color/widget_label" />
+                            android:textColor="@color/widget_icon" />
 
-                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <!-- 오늘(회색 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
                         <ImageView
                             android:id="@+id/big_plan_22"
                             android:layout_width="match_parent"
@@ -1877,10 +1809,11 @@
                             android:layout_gravity="center"
                             android:gravity="center"
                             android:includeFontPadding="false"
+                            android:fontFamily="sans-serif"
                             android:textSize="10sp"
-                            android:textColor="@color/widget_label" />
+                            android:textColor="@color/widget_icon" />
 
-                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <!-- 오늘(회색 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
                         <ImageView
                             android:id="@+id/big_plan_23"
                             android:layout_width="match_parent"
@@ -1944,10 +1877,11 @@
                             android:layout_gravity="center"
                             android:gravity="center"
                             android:includeFontPadding="false"
+                            android:fontFamily="sans-serif"
                             android:textSize="10sp"
-                            android:textColor="@color/widget_label" />
+                            android:textColor="@color/widget_icon" />
 
-                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <!-- 오늘(회색 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
                         <ImageView
                             android:id="@+id/big_plan_24"
                             android:layout_width="match_parent"
@@ -2011,10 +1945,11 @@
                             android:layout_gravity="center"
                             android:gravity="center"
                             android:includeFontPadding="false"
+                            android:fontFamily="sans-serif"
                             android:textSize="10sp"
-                            android:textColor="@color/widget_label" />
+                            android:textColor="@color/widget_icon" />
 
-                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <!-- 오늘(회색 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
                         <ImageView
                             android:id="@+id/big_plan_25"
                             android:layout_width="match_parent"
@@ -2078,10 +2013,11 @@
                             android:layout_gravity="center"
                             android:gravity="center"
                             android:includeFontPadding="false"
+                            android:fontFamily="sans-serif"
                             android:textSize="10sp"
-                            android:textColor="@color/widget_label" />
+                            android:textColor="@color/widget_icon" />
 
-                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <!-- 오늘(회색 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
                         <ImageView
                             android:id="@+id/big_plan_26"
                             android:layout_width="match_parent"
@@ -2145,10 +2081,11 @@
                             android:layout_gravity="center"
                             android:gravity="center"
                             android:includeFontPadding="false"
+                            android:fontFamily="sans-serif"
                             android:textSize="10sp"
-                            android:textColor="@color/widget_label" />
+                            android:textColor="@color/widget_icon" />
 
-                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <!-- 오늘(회색 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
                         <ImageView
                             android:id="@+id/big_plan_27"
                             android:layout_width="match_parent"
@@ -2193,13 +2130,13 @@
                             android:importantForAccessibility="no" />
                     </LinearLayout>
                 </LinearLayout>
-            </LinearLayout>
-            <LinearLayout
-                android:id="@+id/big_week_4"
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="1"
-                android:orientation="horizontal">
+                </LinearLayout>
+                <LinearLayout
+                    android:id="@+id/big_week_4"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:orientation="horizontal">
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
@@ -2219,10 +2156,11 @@
                             android:layout_gravity="center"
                             android:gravity="center"
                             android:includeFontPadding="false"
+                            android:fontFamily="sans-serif"
                             android:textSize="10sp"
-                            android:textColor="@color/widget_label" />
+                            android:textColor="@color/widget_icon" />
 
-                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <!-- 오늘(회색 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
                         <ImageView
                             android:id="@+id/big_plan_28"
                             android:layout_width="match_parent"
@@ -2286,10 +2224,11 @@
                             android:layout_gravity="center"
                             android:gravity="center"
                             android:includeFontPadding="false"
+                            android:fontFamily="sans-serif"
                             android:textSize="10sp"
-                            android:textColor="@color/widget_label" />
+                            android:textColor="@color/widget_icon" />
 
-                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <!-- 오늘(회색 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
                         <ImageView
                             android:id="@+id/big_plan_29"
                             android:layout_width="match_parent"
@@ -2353,10 +2292,11 @@
                             android:layout_gravity="center"
                             android:gravity="center"
                             android:includeFontPadding="false"
+                            android:fontFamily="sans-serif"
                             android:textSize="10sp"
-                            android:textColor="@color/widget_label" />
+                            android:textColor="@color/widget_icon" />
 
-                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <!-- 오늘(회색 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
                         <ImageView
                             android:id="@+id/big_plan_30"
                             android:layout_width="match_parent"
@@ -2420,10 +2360,11 @@
                             android:layout_gravity="center"
                             android:gravity="center"
                             android:includeFontPadding="false"
+                            android:fontFamily="sans-serif"
                             android:textSize="10sp"
-                            android:textColor="@color/widget_label" />
+                            android:textColor="@color/widget_icon" />
 
-                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <!-- 오늘(회색 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
                         <ImageView
                             android:id="@+id/big_plan_31"
                             android:layout_width="match_parent"
@@ -2487,10 +2428,11 @@
                             android:layout_gravity="center"
                             android:gravity="center"
                             android:includeFontPadding="false"
+                            android:fontFamily="sans-serif"
                             android:textSize="10sp"
-                            android:textColor="@color/widget_label" />
+                            android:textColor="@color/widget_icon" />
 
-                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <!-- 오늘(회색 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
                         <ImageView
                             android:id="@+id/big_plan_32"
                             android:layout_width="match_parent"
@@ -2554,10 +2496,11 @@
                             android:layout_gravity="center"
                             android:gravity="center"
                             android:includeFontPadding="false"
+                            android:fontFamily="sans-serif"
                             android:textSize="10sp"
-                            android:textColor="@color/widget_label" />
+                            android:textColor="@color/widget_icon" />
 
-                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <!-- 오늘(회색 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
                         <ImageView
                             android:id="@+id/big_plan_33"
                             android:layout_width="match_parent"
@@ -2621,10 +2564,11 @@
                             android:layout_gravity="center"
                             android:gravity="center"
                             android:includeFontPadding="false"
+                            android:fontFamily="sans-serif"
                             android:textSize="10sp"
-                            android:textColor="@color/widget_label" />
+                            android:textColor="@color/widget_icon" />
 
-                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <!-- 오늘(회색 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
                         <ImageView
                             android:id="@+id/big_plan_34"
                             android:layout_width="match_parent"
@@ -2669,13 +2613,13 @@
                             android:importantForAccessibility="no" />
                     </LinearLayout>
                 </LinearLayout>
-            </LinearLayout>
-            <LinearLayout
-                android:id="@+id/big_week_5"
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="1"
-                android:orientation="horizontal">
+                </LinearLayout>
+                <LinearLayout
+                    android:id="@+id/big_week_5"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:orientation="horizontal">
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
@@ -2695,10 +2639,11 @@
                             android:layout_gravity="center"
                             android:gravity="center"
                             android:includeFontPadding="false"
+                            android:fontFamily="sans-serif"
                             android:textSize="10sp"
-                            android:textColor="@color/widget_label" />
+                            android:textColor="@color/widget_icon" />
 
-                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <!-- 오늘(회색 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
                         <ImageView
                             android:id="@+id/big_plan_35"
                             android:layout_width="match_parent"
@@ -2762,10 +2707,11 @@
                             android:layout_gravity="center"
                             android:gravity="center"
                             android:includeFontPadding="false"
+                            android:fontFamily="sans-serif"
                             android:textSize="10sp"
-                            android:textColor="@color/widget_label" />
+                            android:textColor="@color/widget_icon" />
 
-                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <!-- 오늘(회색 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
                         <ImageView
                             android:id="@+id/big_plan_36"
                             android:layout_width="match_parent"
@@ -2829,10 +2775,11 @@
                             android:layout_gravity="center"
                             android:gravity="center"
                             android:includeFontPadding="false"
+                            android:fontFamily="sans-serif"
                             android:textSize="10sp"
-                            android:textColor="@color/widget_label" />
+                            android:textColor="@color/widget_icon" />
 
-                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <!-- 오늘(회색 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
                         <ImageView
                             android:id="@+id/big_plan_37"
                             android:layout_width="match_parent"
@@ -2896,10 +2843,11 @@
                             android:layout_gravity="center"
                             android:gravity="center"
                             android:includeFontPadding="false"
+                            android:fontFamily="sans-serif"
                             android:textSize="10sp"
-                            android:textColor="@color/widget_label" />
+                            android:textColor="@color/widget_icon" />
 
-                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <!-- 오늘(회색 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
                         <ImageView
                             android:id="@+id/big_plan_38"
                             android:layout_width="match_parent"
@@ -2963,10 +2911,11 @@
                             android:layout_gravity="center"
                             android:gravity="center"
                             android:includeFontPadding="false"
+                            android:fontFamily="sans-serif"
                             android:textSize="10sp"
-                            android:textColor="@color/widget_label" />
+                            android:textColor="@color/widget_icon" />
 
-                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <!-- 오늘(회색 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
                         <ImageView
                             android:id="@+id/big_plan_39"
                             android:layout_width="match_parent"
@@ -3030,10 +2979,11 @@
                             android:layout_gravity="center"
                             android:gravity="center"
                             android:includeFontPadding="false"
+                            android:fontFamily="sans-serif"
                             android:textSize="10sp"
-                            android:textColor="@color/widget_label" />
+                            android:textColor="@color/widget_icon" />
 
-                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <!-- 오늘(회색 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
                         <ImageView
                             android:id="@+id/big_plan_40"
                             android:layout_width="match_parent"
@@ -3097,10 +3047,11 @@
                             android:layout_gravity="center"
                             android:gravity="center"
                             android:includeFontPadding="false"
+                            android:fontFamily="sans-serif"
                             android:textSize="10sp"
-                            android:textColor="@color/widget_label" />
+                            android:textColor="@color/widget_icon" />
 
-                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <!-- 오늘(회색 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
                         <ImageView
                             android:id="@+id/big_plan_41"
                             android:layout_width="match_parent"
@@ -3145,233 +3096,336 @@
                             android:importantForAccessibility="no" />
                     </LinearLayout>
                 </LinearLayout>
+                </LinearLayout>
             </LinearLayout>
-        </LinearLayout>
-
         </LinearLayout>
 
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:layout_marginStart="12dp"
+            android:layout_marginStart="14dp"
             android:orientation="vertical">
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="오늘"
-                android:textSize="11sp"
-                android:textStyle="bold"
-                android:textColor="@color/widget_icon" />
             <LinearLayout
-                android:id="@+id/today_row_0"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="3dp"
-                android:gravity="top"
-                android:orientation="horizontal"
-                android:visibility="gone">
-
-                <ImageView
-                    android:id="@+id/today_dot_0"
-                    android:layout_width="7dp"
-                    android:layout_height="7dp"
-                    android:layout_marginTop="4dp"
-                    android:src="@drawable/widget_dot"
-                    android:importantForAccessibility="no" />
+                android:layout_marginTop="0dp"
+                android:orientation="vertical">
 
                 <TextView
-                    android:id="@+id/today_text_0"
-                    android:layout_width="0dp"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:layout_marginStart="6dp"
+                    android:fontFamily="sans-serif-medium"
                     android:textSize="11sp"
-                    android:textColor="@color/widget_icon"
-                    android:maxLines="2"
-                    android:ellipsize="end" />
-            </LinearLayout>
-            <LinearLayout
-                android:id="@+id/today_row_1"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="3dp"
-                android:gravity="top"
-                android:orientation="horizontal"
-                android:visibility="gone">
+                    android:textColor="@color/widget_label"
+                    android:includeFontPadding="false"
+                    android:text="오늘" />
+                <LinearLayout
+                    android:id="@+id/today_row_0"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="5dp"
+                    android:gravity="top"
+                    android:orientation="horizontal"
+                    android:visibility="gone">
 
-                <ImageView
-                    android:id="@+id/today_dot_1"
-                    android:layout_width="7dp"
-                    android:layout_height="7dp"
-                    android:layout_marginTop="4dp"
-                    android:src="@drawable/widget_dot"
-                    android:importantForAccessibility="no" />
+                    <ImageView
+                        android:id="@+id/today_dot_0"
+                        android:layout_width="7dp"
+                        android:layout_height="7dp"
+                        android:layout_marginTop="4dp"
+                        android:src="@drawable/widget_dot"
+                        android:importantForAccessibility="no" />
+
+                    <TextView
+                        android:id="@+id/today_text_0"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:fontFamily="sans-serif"
+                        android:textSize="11sp"
+                        android:textColor="@color/widget_icon"
+                        android:includeFontPadding="false"
+                        android:layout_marginStart="6dp"
+                        android:maxLines="2"
+                        android:ellipsize="end"
+                        android:lineSpacingExtra="1dp" />
+
+                    <TextView
+                        android:id="@+id/today_done_0"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="sans-serif"
+                        android:textSize="10sp"
+                        android:textColor="@color/widget_label"
+                        android:includeFontPadding="false"
+                        android:text="완료"
+                        android:layout_marginStart="4dp"
+                        android:layout_marginTop="1dp"
+                        android:visibility="gone" />
+                </LinearLayout>
+                <LinearLayout
+                    android:id="@+id/today_row_1"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="5dp"
+                    android:gravity="top"
+                    android:orientation="horizontal"
+                    android:visibility="gone">
+
+                    <ImageView
+                        android:id="@+id/today_dot_1"
+                        android:layout_width="7dp"
+                        android:layout_height="7dp"
+                        android:layout_marginTop="4dp"
+                        android:src="@drawable/widget_dot"
+                        android:importantForAccessibility="no" />
+
+                    <TextView
+                        android:id="@+id/today_text_1"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:fontFamily="sans-serif"
+                        android:textSize="11sp"
+                        android:textColor="@color/widget_icon"
+                        android:includeFontPadding="false"
+                        android:layout_marginStart="6dp"
+                        android:maxLines="2"
+                        android:ellipsize="end"
+                        android:lineSpacingExtra="1dp" />
+
+                    <TextView
+                        android:id="@+id/today_done_1"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="sans-serif"
+                        android:textSize="10sp"
+                        android:textColor="@color/widget_label"
+                        android:includeFontPadding="false"
+                        android:text="완료"
+                        android:layout_marginStart="4dp"
+                        android:layout_marginTop="1dp"
+                        android:visibility="gone" />
+                </LinearLayout>
+                <LinearLayout
+                    android:id="@+id/today_row_2"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="5dp"
+                    android:gravity="top"
+                    android:orientation="horizontal"
+                    android:visibility="gone">
+
+                    <ImageView
+                        android:id="@+id/today_dot_2"
+                        android:layout_width="7dp"
+                        android:layout_height="7dp"
+                        android:layout_marginTop="4dp"
+                        android:src="@drawable/widget_dot"
+                        android:importantForAccessibility="no" />
+
+                    <TextView
+                        android:id="@+id/today_text_2"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:fontFamily="sans-serif"
+                        android:textSize="11sp"
+                        android:textColor="@color/widget_icon"
+                        android:includeFontPadding="false"
+                        android:layout_marginStart="6dp"
+                        android:maxLines="2"
+                        android:ellipsize="end"
+                        android:lineSpacingExtra="1dp" />
+
+                    <TextView
+                        android:id="@+id/today_done_2"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="sans-serif"
+                        android:textSize="10sp"
+                        android:textColor="@color/widget_label"
+                        android:includeFontPadding="false"
+                        android:text="완료"
+                        android:layout_marginStart="4dp"
+                        android:layout_marginTop="1dp"
+                        android:visibility="gone" />
+                </LinearLayout>
 
                 <TextView
-                    android:id="@+id/today_text_1"
-                    android:layout_width="0dp"
+                    android:id="@+id/today_empty"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:layout_marginStart="6dp"
+                    android:fontFamily="sans-serif"
                     android:textSize="11sp"
-                    android:textColor="@color/widget_icon"
-                    android:maxLines="2"
-                    android:ellipsize="end" />
+                    android:textColor="@color/widget_label"
+                    android:includeFontPadding="false"
+                    android:text="계획 없음"
+                    android:layout_marginTop="5dp"
+                    android:visibility="gone" />
             </LinearLayout>
+
             <LinearLayout
-                android:id="@+id/today_row_2"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="3dp"
-                android:gravity="top"
-                android:orientation="horizontal"
-                android:visibility="gone">
-
-                <ImageView
-                    android:id="@+id/today_dot_2"
-                    android:layout_width="7dp"
-                    android:layout_height="7dp"
-                    android:layout_marginTop="4dp"
-                    android:src="@drawable/widget_dot"
-                    android:importantForAccessibility="no" />
+                android:layout_marginTop="12dp"
+                android:orientation="vertical">
 
                 <TextView
-                    android:id="@+id/today_text_2"
-                    android:layout_width="0dp"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:layout_marginStart="6dp"
+                    android:fontFamily="sans-serif-medium"
                     android:textSize="11sp"
-                    android:textColor="@color/widget_icon"
-                    android:maxLines="2"
-                    android:ellipsize="end" />
-            </LinearLayout>
+                    android:textColor="@color/widget_label"
+                    android:includeFontPadding="false"
+                    android:text="내일" />
+                <LinearLayout
+                    android:id="@+id/tmr_row_0"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="5dp"
+                    android:gravity="top"
+                    android:orientation="horizontal"
+                    android:visibility="gone">
 
-            <TextView
-                android:id="@+id/today_empty"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="3dp"
-                android:text="계획 없음"
-                android:textSize="11sp"
-                android:textColor="@color/widget_label"
-                android:visibility="gone" />
-        </LinearLayout>
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:orientation="vertical">
+                    <ImageView
+                        android:id="@+id/tmr_dot_0"
+                        android:layout_width="7dp"
+                        android:layout_height="7dp"
+                        android:layout_marginTop="4dp"
+                        android:src="@drawable/widget_dot"
+                        android:importantForAccessibility="no" />
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="내일"
-                android:textSize="11sp"
-                android:textStyle="bold"
-                android:textColor="@color/widget_icon" />
-            <LinearLayout
-                android:id="@+id/tmr_row_0"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="3dp"
-                android:gravity="top"
-                android:orientation="horizontal"
-                android:visibility="gone">
+                    <TextView
+                        android:id="@+id/tmr_text_0"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:fontFamily="sans-serif"
+                        android:textSize="11sp"
+                        android:textColor="@color/widget_icon"
+                        android:includeFontPadding="false"
+                        android:layout_marginStart="6dp"
+                        android:maxLines="2"
+                        android:ellipsize="end"
+                        android:lineSpacingExtra="1dp" />
 
-                <ImageView
-                    android:id="@+id/tmr_dot_0"
-                    android:layout_width="7dp"
-                    android:layout_height="7dp"
-                    android:layout_marginTop="4dp"
-                    android:src="@drawable/widget_dot"
-                    android:importantForAccessibility="no" />
+                    <TextView
+                        android:id="@+id/tmr_done_0"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="sans-serif"
+                        android:textSize="10sp"
+                        android:textColor="@color/widget_label"
+                        android:includeFontPadding="false"
+                        android:text="완료"
+                        android:layout_marginStart="4dp"
+                        android:layout_marginTop="1dp"
+                        android:visibility="gone" />
+                </LinearLayout>
+                <LinearLayout
+                    android:id="@+id/tmr_row_1"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="5dp"
+                    android:gravity="top"
+                    android:orientation="horizontal"
+                    android:visibility="gone">
+
+                    <ImageView
+                        android:id="@+id/tmr_dot_1"
+                        android:layout_width="7dp"
+                        android:layout_height="7dp"
+                        android:layout_marginTop="4dp"
+                        android:src="@drawable/widget_dot"
+                        android:importantForAccessibility="no" />
+
+                    <TextView
+                        android:id="@+id/tmr_text_1"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:fontFamily="sans-serif"
+                        android:textSize="11sp"
+                        android:textColor="@color/widget_icon"
+                        android:includeFontPadding="false"
+                        android:layout_marginStart="6dp"
+                        android:maxLines="2"
+                        android:ellipsize="end"
+                        android:lineSpacingExtra="1dp" />
+
+                    <TextView
+                        android:id="@+id/tmr_done_1"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="sans-serif"
+                        android:textSize="10sp"
+                        android:textColor="@color/widget_label"
+                        android:includeFontPadding="false"
+                        android:text="완료"
+                        android:layout_marginStart="4dp"
+                        android:layout_marginTop="1dp"
+                        android:visibility="gone" />
+                </LinearLayout>
+                <LinearLayout
+                    android:id="@+id/tmr_row_2"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="5dp"
+                    android:gravity="top"
+                    android:orientation="horizontal"
+                    android:visibility="gone">
+
+                    <ImageView
+                        android:id="@+id/tmr_dot_2"
+                        android:layout_width="7dp"
+                        android:layout_height="7dp"
+                        android:layout_marginTop="4dp"
+                        android:src="@drawable/widget_dot"
+                        android:importantForAccessibility="no" />
+
+                    <TextView
+                        android:id="@+id/tmr_text_2"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:fontFamily="sans-serif"
+                        android:textSize="11sp"
+                        android:textColor="@color/widget_icon"
+                        android:includeFontPadding="false"
+                        android:layout_marginStart="6dp"
+                        android:maxLines="2"
+                        android:ellipsize="end"
+                        android:lineSpacingExtra="1dp" />
+
+                    <TextView
+                        android:id="@+id/tmr_done_2"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="sans-serif"
+                        android:textSize="10sp"
+                        android:textColor="@color/widget_label"
+                        android:includeFontPadding="false"
+                        android:text="완료"
+                        android:layout_marginStart="4dp"
+                        android:layout_marginTop="1dp"
+                        android:visibility="gone" />
+                </LinearLayout>
 
                 <TextView
-                    android:id="@+id/tmr_text_0"
-                    android:layout_width="0dp"
+                    android:id="@+id/tmr_empty"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:layout_marginStart="6dp"
+                    android:fontFamily="sans-serif"
                     android:textSize="11sp"
-                    android:textColor="@color/widget_icon"
-                    android:maxLines="2"
-                    android:ellipsize="end" />
+                    android:textColor="@color/widget_label"
+                    android:includeFontPadding="false"
+                    android:text="계획 없음"
+                    android:layout_marginTop="5dp"
+                    android:visibility="gone" />
             </LinearLayout>
-            <LinearLayout
-                android:id="@+id/tmr_row_1"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="3dp"
-                android:gravity="top"
-                android:orientation="horizontal"
-                android:visibility="gone">
-
-                <ImageView
-                    android:id="@+id/tmr_dot_1"
-                    android:layout_width="7dp"
-                    android:layout_height="7dp"
-                    android:layout_marginTop="4dp"
-                    android:src="@drawable/widget_dot"
-                    android:importantForAccessibility="no" />
-
-                <TextView
-                    android:id="@+id/tmr_text_1"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:layout_marginStart="6dp"
-                    android:textSize="11sp"
-                    android:textColor="@color/widget_icon"
-                    android:maxLines="2"
-                    android:ellipsize="end" />
-            </LinearLayout>
-            <LinearLayout
-                android:id="@+id/tmr_row_2"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="3dp"
-                android:gravity="top"
-                android:orientation="horizontal"
-                android:visibility="gone">
-
-                <ImageView
-                    android:id="@+id/tmr_dot_2"
-                    android:layout_width="7dp"
-                    android:layout_height="7dp"
-                    android:layout_marginTop="4dp"
-                    android:src="@drawable/widget_dot"
-                    android:importantForAccessibility="no" />
-
-                <TextView
-                    android:id="@+id/tmr_text_2"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:layout_marginStart="6dp"
-                    android:textSize="11sp"
-                    android:textColor="@color/widget_icon"
-                    android:maxLines="2"
-                    android:ellipsize="end" />
-            </LinearLayout>
-
-            <TextView
-                android:id="@+id/tmr_empty"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="3dp"
-                android:text="계획 없음"
-                android:textSize="11sp"
-                android:textColor="@color/widget_label"
-                android:visibility="gone" />
-        </LinearLayout>
         </LinearLayout>
     </LinearLayout>
 </LinearLayout>

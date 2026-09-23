@@ -6,4 +6,5 @@
     <color name="widget_icon">#F2F1ED</color>
     <color name="widget_label">#A9A9B2</color>
     <color name="widget_day_done_text">#1A1A1E</color>
+    <color name="widget_track">#34343A</color>
 </resources>

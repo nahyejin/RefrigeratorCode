@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { syncRecipeLists, resetRecipeSync } from '../utils/recipeSync';
+import { clearCalendarWidgetSnapshot } from '../utils/widgetSnapshot';
 
 interface User {
   id: string;
@@ -258,6 +259,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // 로컬을 무시)이라 덜 드러났을 뿐, 동기화 전 로컬 전용 계획은 새는
       // 경로가 있었다(2026-09-18, 같이 처리해 달라는 요청).
       localStorage.removeItem('cookmatch_meal_plan');
+      // 홈 화면 달력 위젯 요약본(식구 기록·레시피 제목)도 앞 계정 것이라 지운다(2026-09-23).
+      void clearCalendarWidgetSnapshot();
       // AI 식단 추천 대화(진행 중인 것·지난 대화)도 같은 문제였다 — 다른 계정으로 들어오면 앞사람의
       // 질문과 식단이 그대로 보였다(2026-09-20). 로그인한 사람의 지난 대화는 서버에 있어서
       // 다시 로그인하면 돌아온다(`utils/aiChat.ts` `syncSessions`).
@@ -323,6 +326,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     localStorage.removeItem('cooking_calendar_shopping_memos');
     // 요리 계획도 같은 이유로 초기화(위 `clearDataOfOtherAccount` 설명 참고).
     localStorage.removeItem('cookmatch_meal_plan');
+    // 홈 화면 달력 위젯 요약본도 — 안 지우면 로그아웃해도 위젯에 식구 기록이 남는다(2026-09-23 지적).
+    void clearCalendarWidgetSnapshot();
     // AI 식단 추천 대화도 같은 이유로 초기화(위 `clearDataOfOtherAccount` 설명 참고).
     localStorage.removeItem('cookmatch_ai_chat');
     localStorage.removeItem('cookmatch_ai_chat_past');

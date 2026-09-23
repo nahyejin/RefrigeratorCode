@@ -26,6 +26,17 @@ public class MainActivity extends BridgeActivity {
         applyTextZoomCap();
     }
 
+    /**
+     * 앱이 화면에서 빠질 때(홈으로 나가기·다른 앱으로 전환) 마이캘린더 위젯을 다시 그린다.
+     * 위젯은 앱이 남긴 요약본만 읽는데, 요약본을 새로 쓰거나(마이캘린더를 봄) 지워도(로그아웃)
+     * 위젯은 스스로 알 길이 없어 30분 주기 갱신까지 옛 그림이 남았다(2026-09-23).
+     */
+    @Override
+    public void onPause() {
+        super.onPause();
+        CalendarWidgetProvider.refreshAll(this);
+    }
+
     private void applyTextZoomCap() {
         if (getBridge() == null) return;
         WebView webView = getBridge().getWebView();

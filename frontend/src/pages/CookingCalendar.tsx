@@ -13,7 +13,7 @@ import { getProxiedImageUrl } from '../utils/imageUtils';
 import BottomNavBar from '../components/BottomNavBar';
 import PullToRefresh from '../components/PullToRefresh';
 import CoupangDynamicBanner from '../components/CoupangDynamicBanner';
-import { saveCalendarWidgetSnapshot } from '../utils/widgetSnapshot';
+import { saveCalendarWidgetSnapshot, orderForLegend } from '../utils/widgetSnapshot';
 import DatePickerField from '../components/DatePickerField';
 import Sheet from '../components/ui/Sheet';
 import Dialog from '../components/ui/Dialog';
@@ -1059,6 +1059,7 @@ const CookingCalendar: React.FC = () => {
     return map;
   }, [entries]);
   const monthlyTotal = entries.length;
+  const meIdForLegend = authUser?.id != null ? Number(authUser.id) : GUEST_USER_ID;
 
 
 
@@ -1066,7 +1067,8 @@ const CookingCalendar: React.FC = () => {
   // 순서대로 앞에서부터 채우고, 합이 목표(100%)를 넘으면 시각적으로만 잘라낸다.
   const goalSegments = React.useMemo(() => {
     if (myGoal <= 0) return [];
-    const sorted = Array.from(monthlyByUser.entries()).sort((a, b) => b[1] - a[1]);
+    // 범례와 같은 순서(많이 한 순 → 같으면 나 먼저) — 위젯도 같은 함수를 쓴다
+    const sorted = orderForLegend(monthlyByUser, meIdForLegend, memberIds);
     let used = 0;
     return sorted.map(([uid, count]) => {
       const rawPct = (count / myGoal) * 100;
@@ -1074,7 +1076,7 @@ const CookingCalendar: React.FC = () => {
       used += pct;
       return { uid, count, pct };
     });
-  }, [monthlyByUser, myGoal]);
+  }, [monthlyByUser, myGoal, meIdForLegend, memberIds]);
   const groupAchievementRate = myGoal > 0 ? Math.min(100, Math.round((monthlyTotal / myGoal) * 100)) : 0;
   const estimatedSavings = monthlyTotal * savingsPerMeal * familySize;
   /**
@@ -1318,12 +1320,8 @@ const CookingCalendar: React.FC = () => {
       cell.planned = true;
     });
 
-    const byUser = new Map<number, { name: string; count: number }>();
-    for (const e of entries) {
-      const cur = byUser.get(e.user_id) || { name: e.nickname || '나', count: 0 };
-      cur.count += 1;
-      byUser.set(e.user_id, cur);
-    }
+    const names = new Map<number, string>();
+    for (const e of entries) if (!names.has(e.user_id)) names.set(e.user_id, e.nickname || '나');
 
     const todayKey = toDateKey(new Date());
     const tomorrow = new Date();
@@ -1350,14 +1348,15 @@ const CookingCalendar: React.FC = () => {
       goal: myGoal || null,
       done: monthlyTotal,
       goalSavings: myGoal ? goalSavings : null,
-      members: [...byUser.entries()].map(([uid, v]) => ({
-        name: v.name, color: colorForUser(uid, memberIds), count: v.count,
+      // 앱 범례와 같은 순서 — 위젯 게이지도 이 순서대로 앞에서부터 칠한다
+      members: orderForLegend(monthlyByUser, meIdForLegend, memberIds).map(([uid, count]) => ({
+        name: nicknameById.get(uid) || names.get(uid) || '나', color: colorForUser(uid, memberIds), count,
       })),
       // 위젯 한 칸에 들어갈 만큼만 — 나머지는 앱에서 본다
       upcoming: upcoming.slice(0, 6),
       updatedAt: new Date().toISOString(),
     });
-  }, [entries, plans, memberIds, monthlyTotal, myGoal, goalSavings, monthStart]);
+  }, [entries, plans, memberIds, monthlyTotal, monthlyByUser, meIdForLegend, nicknameById, myGoal, goalSavings, monthStart]);
   /** 「계획 취소」를 눌렀을 때 정말 지울지 한 번 더 확인하는 대상. */
   const [confirmingPlan, setConfirmingPlan] = React.useState<DisplayPlannedMeal | null>(null);
   /** 「요리 계획 전체 삭제」 확인창을 띄우는 중인지. 실수로 다 지우면 되돌릴
@@ -2323,7 +2322,7 @@ const CookingCalendar: React.FC = () => {
             <span>총 {summary.total}회</span>
             {isInHousehold && summary.byUser.size > 0 && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 8 }}>
-                {Array.from(summary.byUser.entries()).map(([uid, count]) => (
+                {orderForLegend(summary.byUser, meIdForLegend, memberIds).map(([uid, count]) => (
                   <span key={uid} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12 }}>
                     <span style={{ width: 8, height: 8, borderRadius: '50%', background: colorForUser(uid, memberIds), flexShrink: 0 }} />
                     {nicknameById.get(uid) || '?'} {count}회
