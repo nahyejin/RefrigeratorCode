@@ -100,17 +100,17 @@ private struct PillButton: View {
 
 struct CookMatchSmallView: View {
     var body: some View {
+        // 아래 두 버튼은 알약의 양 끝선에 맞춘다(세 버튼이 같은 그리드). 예전엔 반쪽 칸 가운데에 둔 데다
+        // iOS 17 기본 여백(약 16pt)에 우리 여백 10pt 가 겹쳐, 카메라·식단 동그라미가 가운데로 몰려 붙어 보였다
+        // (2026-09-23 지적 — 다음 버전). 바깥 여백은 시스템 기본 여백만 쓴다.
         VStack(spacing: 14) {
             PillButton()
             HStack(spacing: 0) {
                 RoundButton(systemName: "camera.fill", title: "재료 찍기")
-                    .frame(maxWidth: .infinity)
+                Spacer(minLength: 8)
                 RoundButton(systemName: "calendar.badge.checkmark", title: "AI 식단")
-                    .frame(maxWidth: .infinity)
             }
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 12)
         // 작은 위젯은 탭 영역이 하나뿐이라 전체를 「요리 AI」로 연결한다.
         // 재료 찍기·AI 식단은 눌러도 같은 곳으로 가므로, 그 둘을 각각 쓰려면 가로 위젯을 쓴다.
         .widgetURL(W.chat)
@@ -148,7 +148,8 @@ private extension View {
         if #available(iOSApplicationExtension 17.0, *) {
             self.containerBackground(W.card, for: .widget)
         } else {
-            ZStack { W.card; self }
+            // iOS 16 이하는 시스템 여백이 없어서 iOS 17 기본 여백(약 16pt)과 비슷하게 직접 준다
+            ZStack { W.card; self.padding(16) }
         }
     }
 }
