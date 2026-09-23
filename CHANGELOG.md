@@ -11842,3 +11842,6 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 - **마이캘린더 위젯 칸 구분**(사용자 지적 — 목표·달력·목록의 영역 구분이 없어 헷갈림): 목표(+범례)·달력·목록을 각각 옅은 회색 둥근 네모 칸(`widget_panel_bg`, 색 `widget_panel` #F6F6F8 / 다크 #27272C). [gen_widget_calendar_layouts.py](scripts/gen_widget_calendar_layouts.py) 에 `PANEL_PAD`·`GAP`·`CARD_PAD`, Provider 의 게이지·범례 폭 계산도 칸 안쪽 폭으로. 칸 여백 때문에 4×3 목록이 칸 밖으로 잘려 목록 제목은 한 줄(…)로. 아이폰([CookMatchCalendarWidget.swift](frontend/ios/App/CookMatchWidget/CookMatchCalendarWidget.swift))도 `Panel` — 중간 위젯은 높이 약 155pt 라 맨 위 제목 줄 대신 달력 칸 제목을 「2026년 9월」로, 절약액 줄 빼고 범례 한 줄.
 - 에뮬레이터 확인: 4×3·4×2 칸 구분, 2×2 정사각형·세 타일 탭(재료 찍기·AI 식단·요리 AI), 1×1 재료 찍기, 위젯 추가 목록 미리보기 4종 교체. **아이폰 쪽은 맥에서 빌드·확인 필요**(Swift 수정: 버튼 위젯 타일, 재료 찍기 위젯 추가, 캘린더 칸).
 
+### 안드로이드 1.0.3(versionCode 4) 빌드 (2026-09-23 17:14)
+- `build.gradle` versionCode 3 → **4**, versionName 1.0.2 → **1.0.3**. `npm run build` → `npx cap sync android` → `gradlew bundleRelease` → 서명 확인("jar verified"), 13.1MB. 위젯 입구 버그·뒤로=창 닫기·타일 버튼·2×2 정사각형·재료 찍기 위젯·캘린더 칸 구분 포함. 비공개 테스트(Alpha)에 올릴 차례 — 3 (1.0.2)가 아직 검토 중이면 새 버전이 그것을 대신한다(4 에 3 의 내용이 모두 들어 있다).
+
