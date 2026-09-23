@@ -9,4 +9,5 @@
     <color name="widget_circle">#F1F1F4</color>
     <color name="widget_icon">#1A1A1E</color>
     <color name="widget_label">#5A5A63</color>
+    <color name="widget_day_done_text">#1A1A1E</color>
 </resources>

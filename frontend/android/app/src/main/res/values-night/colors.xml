@@ -5,4 +5,5 @@
     <color name="widget_circle">#2E2E33</color>
     <color name="widget_icon">#F2F1ED</color>
     <color name="widget_label">#A9A9B2</color>
+    <color name="widget_day_done_text">#1A1A1E</color>
 </resources>

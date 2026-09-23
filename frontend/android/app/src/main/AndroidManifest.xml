@@ -54,6 +54,14 @@
                 <data android:scheme="com.cookmatch.app" android:host="plan" />
             </intent-filter>
 
+            <!-- 요리 캘린더 위젯을 누르면 -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="com.cookmatch.app" android:host="calendar" />
+            </intent-filter>
+
         </activity>
 
         <!-- 홈 화면 위젯 3×1 — 재료 찍기 / 요리 AI / AI 식단 -->
@@ -80,6 +88,20 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/quick_widget_square_info" />
+        </receiver>
+
+        <!-- 요리 캘린더 위젯 4×2 — 보기 전용(조작 없음), 앱이 남긴 요약본을 읽는다 -->
+        <receiver
+            android:name=".CalendarWidgetProvider"
+            android:label="@string/widget_calendar_label"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="kr.cookmatch.app.CALENDAR_WIDGET_MODE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/calendar_widget_info" />
         </receiver>
 
         <provider

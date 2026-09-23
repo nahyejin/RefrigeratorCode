@@ -17,6 +17,7 @@ import { App } from '@capacitor/app';
 const CAMERA_URL_HOST = 'camera';
 const CHAT_URL_HOST = 'chat';
 const PLAN_URL_HOST = 'plan';
+const CALENDAR_URL_HOST = 'calendar';
 
 const NativeShortcutBridge: React.FC = () => {
   const navigate = useNavigate();
@@ -35,6 +36,10 @@ const NativeShortcutBridge: React.FC = () => {
       }
       if (host === CAMERA_URL_HOST) {
         navigate('/my-fridge?camera=1', { replace: true });
+        return;
+      }
+      if (host === CALENDAR_URL_HOST) {
+        navigate('/cooking-calendar', { replace: true });
         return;
       }
       if (host === PLAN_URL_HOST) {

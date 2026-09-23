@@ -13,4 +13,6 @@
     <string name="widget_quick_square_label">쿡매치 (정사각형)</string>
     <string name="widget_quick_square_description">요리 AI를 크게, 재료 사진 찍기와 AI 일주일 식단을 함께 홈 화면에 둡니다.</string>
     <string name="widget_quick_description">재료 사진 찍기, 요리 AI, AI 일주일 식단을 홈 화면에서 바로 엽니다.</string>
+    <string name="widget_calendar_label">요리 캘린더</string>
+    <string name="widget_calendar_description">이번 달 며칠 요리했는지 홈 화면에서 봅니다. 누르면 앱의 요리 캘린더가 열려요.</string>
 </resources>

@@ -13,6 +13,7 @@ import { getProxiedImageUrl } from '../utils/imageUtils';
 import BottomNavBar from '../components/BottomNavBar';
 import PullToRefresh from '../components/PullToRefresh';
 import CoupangDynamicBanner from '../components/CoupangDynamicBanner';
+import { saveCalendarWidgetSnapshot } from '../utils/widgetSnapshot';
 import DatePickerField from '../components/DatePickerField';
 import Sheet from '../components/ui/Sheet';
 import Dialog from '../components/ui/Dialog';
@@ -1058,6 +1059,23 @@ const CookingCalendar: React.FC = () => {
     return map;
   }, [entries]);
   const monthlyTotal = entries.length;
+
+  /**
+   * 홈 화면 달력 위젯이 읽어 갈 요약본을 남긴다(네이티브 앱에서만).
+   * 위젯은 앱과 다른 프로세스라 로그인 토큰을 쓸 수 없어 서버를 직접 못 부른다 —
+   * 이 화면을 열 때마다 "이 달 며칠에 몇 번 요리했나"를 기기에 적어 두고 위젯은 그걸 읽는다.
+   */
+  React.useEffect(() => {
+    const days: Record<string, number> = {};
+    for (const e of entries) days[e.day] = (days[e.day] || 0) + 1;
+    void saveCalendarWidgetSnapshot({
+      month: `${monthStart.getFullYear()}-${String(monthStart.getMonth() + 1).padStart(2, '0')}`,
+      days,
+      goal: myGoal || null,
+      done: monthlyTotal,
+      updatedAt: new Date().toISOString(),
+    });
+  }, [entries, monthlyTotal, myGoal, monthStart]);
 
   // 그룹이면 목표 게이지를 인원별로 색을 나눠 채운다 — 완료 횟수가 많은
   // 순서대로 앞에서부터 채우고, 합이 목표(100%)를 넘으면 시각적으로만 잘라낸다.

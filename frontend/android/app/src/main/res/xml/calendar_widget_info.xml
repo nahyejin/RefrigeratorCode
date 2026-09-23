@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 요리 캘린더 위젯 4×2 — 보기 전용. 내용은 앱이 남긴 요약본이라 자주 다시 그릴 필요가 없다(30분). -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="250dp"
+    android:minHeight="110dp"
+    android:targetCellWidth="4"
+    android:targetCellHeight="2"
+    android:resizeMode="horizontal|vertical"
+    android:widgetCategory="home_screen"
+    android:previewLayout="@layout/widget_calendar"
+    android:description="@string/widget_calendar_description"
+    android:initialLayout="@layout/widget_calendar"
+    android:updatePeriodMillis="1800000" />
