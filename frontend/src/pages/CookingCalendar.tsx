@@ -1332,7 +1332,12 @@ const CookingCalendar: React.FC = () => {
     const upcoming: { when: 'today' | 'tomorrow'; title: string; kind: 'plan' | 'done'; color: string }[] = [];
     for (const [key, when] of [[todayKey, 'today'], [tomorrowKey, 'tomorrow']] as const) {
       for (const p of plans.get(key) || []) {
-        upcoming.push({ when, title: p.title, kind: 'plan', color: PLAN_MARK_STROKE });
+        // 목록의 색도 달력 점과 같은 **사람 색**을 쓴다(2026-09-23 지적). 계획인지 완료인지는
+        // 위젯이 점 모양으로 구분한다 — 계획은 속이 빈 동그라미, 완료는 꽉 찬 점.
+        upcoming.push({
+          when, title: p.title, kind: 'plan',
+          color: p.userId != null ? colorForUser(p.userId, memberIds) : PLAN_MARK_STROKE,
+        });
       }
       for (const e of entries.filter(x => x.day === key)) {
         upcoming.push({ when, title: e.title, kind: 'done', color: colorForUser(e.user_id, memberIds) });

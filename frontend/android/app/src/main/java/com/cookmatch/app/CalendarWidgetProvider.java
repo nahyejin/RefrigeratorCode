@@ -19,8 +19,8 @@ import java.util.Locale;
 /**
  * 홈 화면 **요리 캘린더 위젯** — 보기 전용. 두 크기를 같은 코드로 그린다.
  *
- *   4×2([CalendarWidgetProvider])      왼쪽 달력 + 오른쪽 오늘·내일 목록
- *   4×4([CalendarBigWidgetProvider])   목표 게이지 + 큰 달력 + 식구 범례
+ *   4×2([CalendarWidgetProvider])       왼쪽 달력 + 오른쪽 목표 카드(게이지·달성·절약액)
+ *   4×3([CalendarBigWidgetProvider])    목표 카드 + 달력 + 식구 범례 + 「오늘」·「내일」 목록(늘리면 4×4)
  *
  * 앱 마이캘린더 화면과 **같은 표식**을 쓴다:
  *   · 완료한 날 — 그 요리를 한 사람의 색 점(여러 명이면 점이 여러 개, 3개까지만)
@@ -49,9 +49,12 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
     private static final int[][] BIG_DOT_IDS = new int[42][3];
     private static final int[] BIG_PLAN_IDS = new int[42];
 
-    private static final int[] ITEM_IDS = { R.id.item_0, R.id.item_1, R.id.item_2, R.id.item_3 };
-    private static final int[] ITEM_DOT_IDS = { R.id.item_dot_0, R.id.item_dot_1, R.id.item_dot_2, R.id.item_dot_3 };
-    private static final int[] ITEM_TEXT_IDS = { R.id.item_text_0, R.id.item_text_1, R.id.item_text_2, R.id.item_text_3 };
+    private static final int[] TODAY_ROW_IDS = { R.id.today_row_0, R.id.today_row_1, R.id.today_row_2 };
+    private static final int[] TODAY_DOT_IDS = { R.id.today_dot_0, R.id.today_dot_1, R.id.today_dot_2 };
+    private static final int[] TODAY_TEXT_IDS = { R.id.today_text_0, R.id.today_text_1, R.id.today_text_2 };
+    private static final int[] TMR_ROW_IDS = { R.id.tmr_row_0, R.id.tmr_row_1, R.id.tmr_row_2 };
+    private static final int[] TMR_DOT_IDS = { R.id.tmr_dot_0, R.id.tmr_dot_1, R.id.tmr_dot_2 };
+    private static final int[] TMR_TEXT_IDS = { R.id.tmr_text_0, R.id.tmr_text_1, R.id.tmr_text_2 };
 
     private static final int[] LEGEND_IDS = { R.id.legend_0, R.id.legend_1, R.id.legend_2, R.id.legend_3 };
     private static final int[] LEGEND_DOT_IDS = { R.id.legend_dot_0, R.id.legend_dot_1, R.id.legend_dot_2, R.id.legend_dot_3 };
@@ -86,25 +89,36 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         }
 
         Calendar today = Calendar.getInstance();
+        int year = today.get(Calendar.YEAR);
+        int month = today.get(Calendar.MONTH) + 1;
         int done = snap == null ? 0 : snap.optInt("done", 0);
         Integer goal = (snap == null || snap.isNull("goal")) ? null : snap.optInt("goal");
+        String prefix = isBig() ? "big" : "small";
 
         drawGrid(context, views, today, days);
 
+        // 목표 카드 — 말은 앱 마이캘린더와 같게 쓴다(2026-09-23 지적: 앱에 없는 말을 새로 만들지 않는다)
+        views.setTextViewText(res(prefix, "goal_title"),
+                String.format(Locale.KOREA, "%d년 %d월 목표", year, month));
+        views.setTextViewText(res(prefix, "goal_count"),
+                goal != null ? String.format(Locale.KOREA, "목표 %d회", goal) : "목표 미설정");
+        int pct = (goal == null || goal <= 0) ? 0 : Math.min(100, Math.round(done * 100f / goal));
+        views.setProgressBar(res(prefix, "gauge"), 100, pct, false);
+        views.setTextViewText(res(prefix, "progress_text"), goal != null
+                ? String.format(Locale.KOREA, "%d회 / %d회 달성 (%d%%)", done, goal, pct)
+                : String.format(Locale.KOREA, "%d회 완료", done));
+        long savings = (snap == null || snap.isNull("goalSavings")) ? 0 : snap.optLong("goalSavings", 0);
+        views.setTextViewText(res(prefix, "savings"), (goal != null && savings > 0)
+                ? String.format(Locale.KOREA, "이번달 목표 %d회를 다 채우면 약 %,d원", goal, savings)
+                : "앱에서 목표를 정하면 절약액을 계산해요");
+
         if (isBig()) {
-            views.setTextViewText(R.id.big_title, String.format(Locale.KOREA, "%d월 요리", today.get(Calendar.MONTH) + 1));
-            views.setTextViewText(R.id.big_goal_text, goal != null
-                    ? String.format(Locale.KOREA, "%d / %d회", done, goal)
-                    : String.format(Locale.KOREA, "%d회", done));
-            drawGauge(context, views, done, goal);
-            drawSavings(views, snap, goal);
+            views.setTextViewText(R.id.big_cal_title, String.format(Locale.KOREA, "%d년 %d월", year, month));
             drawLegend(views, snap);
+            drawDayList(views, snap, "today");
+            drawDayList(views, snap, "tomorrow");
         } else {
-            views.setTextViewText(R.id.calendar_title, String.format(Locale.KOREA, "%d월", today.get(Calendar.MONTH) + 1));
-            views.setTextViewText(R.id.small_summary, goal != null
-                    ? String.format(Locale.KOREA, "%d / %d회", done, goal)
-                    : String.format(Locale.KOREA, "%d회 완료", done));
-            drawUpcoming(views, snap);
+            views.setTextViewText(R.id.calendar_title, String.format(Locale.KOREA, "%d년 %d월", year, month));
         }
 
         // 위젯 전체를 누르면 앱의 요리 캘린더로 — 위젯에서 할 수 있는 유일한 동작이다.
@@ -147,7 +161,7 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
 
             views.setTextViewText(cells[i], String.valueOf(dayNum));
             views.setTextColor(cells[i], context.getColor(
-                    dayNum == todayDay ? R.color.widget_icon : R.color.widget_label));
+                    dayNum == todayDay ? R.color.widget_day_done_text : R.color.widget_label));
             views.setInt(cells[i], "setBackgroundResource",
                     dayNum == todayDay ? R.drawable.widget_day_today : 0);
 
@@ -170,22 +184,6 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         }
     }
 
-    /** 이번 달 목표 게이지 — 채운 만큼 노란 막대(앱 목표 카드의 축약) */
-    private void drawGauge(Context context, RemoteViews views, int done, Integer goal) {
-        int pct = (goal == null || goal <= 0) ? 0 : Math.min(100, Math.round(done * 100f / goal));
-        views.setProgressBar(R.id.big_gauge, 100, pct, false);
-    }
-
-    private void drawSavings(RemoteViews views, JSONObject snap, Integer goal) {
-        long savings = snap == null || snap.isNull("goalSavings") ? 0 : snap.optLong("goalSavings", 0);
-        if (goal == null || savings <= 0) {
-            views.setTextViewText(R.id.big_savings, "앱에서 목표를 정하면 절약액을 계산해요");
-            return;
-        }
-        views.setTextViewText(R.id.big_savings,
-                String.format(Locale.KOREA, "목표 %d회를 다 채우면 약 %,d원", goal, savings));
-    }
-
     /** 식구 범례 — 색·이름·횟수(많이 한 순서, 4명까지) */
     private void drawLegend(RemoteViews views, JSONObject snap) {
         JSONArray members = snap == null ? null : snap.optJSONArray("members");
@@ -202,24 +200,60 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         }
     }
 
-    /** 오늘·내일 계획/완료 목록(4×2 오른쪽) */
-    private void drawUpcoming(RemoteViews views, JSONObject snap) {
+    /**
+     * 「오늘」·「내일」 목록(4×3 아래) — 레시피 제목을 **그대로** 보여 준다(요약하지 않는다).
+     * 점 색은 마이캘린더 달력과 같은 사람 색이고, 계획은 속이 빈 동그라미, 완료는 꽉 찬 점이다.
+     */
+    private void drawDayList(RemoteViews views, JSONObject snap, String when) {
+        boolean tomorrow = "tomorrow".equals(when);
+        int[] rows = tomorrow ? TMR_ROW_IDS : TODAY_ROW_IDS;
+        int[] dots = tomorrow ? TMR_DOT_IDS : TODAY_DOT_IDS;
+        int[] texts = tomorrow ? TMR_TEXT_IDS : TODAY_TEXT_IDS;
+        int emptyId = tomorrow ? R.id.tmr_empty : R.id.today_empty;
+
         JSONArray items = snap == null ? null : snap.optJSONArray("upcoming");
         int shown = 0;
-        for (int i = 0; i < ITEM_IDS.length; i++) {
-            JSONObject it = items == null || i >= items.length() ? null : items.optJSONObject(i);
+        for (int i = 0; i < rows.length; i++) {
+            JSONObject it = null;
+            // 이 구간(오늘/내일)에 해당하는 것만 골라서 순서대로 채운다
+            int seen = 0;
+            for (int j = 0; items != null && j < items.length(); j++) {
+                JSONObject cand = items.optJSONObject(j);
+                if (cand == null || !when.equals(cand.optString("when"))) continue;
+                if (seen++ == i) { it = cand; break; }
+            }
             if (it == null) {
-                views.setViewVisibility(ITEM_IDS[i], View.GONE);
+                views.setViewVisibility(rows[i], View.GONE);
                 continue;
             }
             shown++;
-            views.setViewVisibility(ITEM_IDS[i], View.VISIBLE);
-            views.setInt(ITEM_DOT_IDS[i], "setColorFilter", parseColor(it.optString("color"), Color.GRAY));
-            String when = "tomorrow".equals(it.optString("when")) ? "내일" : "오늘";
-            views.setTextViewText(ITEM_TEXT_IDS[i],
-                    String.format(Locale.KOREA, "%s · %s", when, it.optString("title", "")));
+            views.setViewVisibility(rows[i], View.VISIBLE);
+            views.setImageViewResource(dots[i],
+                    "plan".equals(it.optString("kind")) ? R.drawable.widget_dot_ring : R.drawable.widget_dot);
+            views.setInt(dots[i], "setColorFilter", parseColor(it.optString("color"), Color.GRAY));
+            views.setTextViewText(texts[i], it.optString("title", ""));
         }
-        views.setViewVisibility(R.id.small_empty, shown == 0 ? View.VISIBLE : View.GONE);
+        views.setViewVisibility(emptyId, shown == 0 ? View.VISIBLE : View.GONE);
+    }
+
+    /** 4×2 와 4×3 은 같은 이름의 뷰를 쓰되 id 앞머리만 다르다(small_/big_). */
+    private int res(String prefix, String name) {
+        if ("big".equals(prefix)) {
+            switch (name) {
+                case "goal_title": return R.id.big_goal_title;
+                case "goal_count": return R.id.big_goal_count;
+                case "gauge": return R.id.big_gauge;
+                case "progress_text": return R.id.big_progress_text;
+                default: return R.id.big_savings;
+            }
+        }
+        switch (name) {
+            case "goal_title": return R.id.small_goal_title;
+            case "goal_count": return R.id.small_goal_count;
+            case "gauge": return R.id.small_gauge;
+            case "progress_text": return R.id.small_progress_text;
+            default: return R.id.small_savings;
+        }
     }
 
     private int parseColor(String value, int fallback) {
