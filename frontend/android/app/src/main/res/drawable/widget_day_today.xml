@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 오늘 — 옅은 회색 칠. 달력에 식구 색·빨간 계획 표식이 이미 많아서 노랑을 빼고 색 없는 표식으로(2026-09-23 지적).
+<!-- 오늘 — 옅은 회색 둥근 네모(원 → 둥근 네모, 2026-09-23 요청 — 빨간 계획 동그라미와 모양도 구분된다). 달력에 식구 색·빨간 계획 표식이 이미 많아서 노랑을 빼고 색 없는 표식으로(2026-09-23 지적).
      다크 모드는 drawable-night 에서 밝은 쪽으로 뒤집는다. -->
-<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <corners android:radius="6dp" />
     <solid android:color="#171A1A1E" />
 </shape>
