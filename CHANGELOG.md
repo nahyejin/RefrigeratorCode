@@ -11755,3 +11755,8 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 - **「챗봇」 표현을 「요리 AI」로 통일**(사용자 요청): 앱(요리 AI 열기 버튼 label, 사용량 표시, 개인정보처리방침 AI 사용 설명, 어드민 표), 스토어 원고(`play-full`·`ios-desc` 「검색 말고, 그냥 물어보는 요리 AI」, AI 기능 설명, 키워드 `요리챗봇`→`AI요리`), 광고 문서(AD_BRIEF·REEL_PLAN·REEL_PROMPTS_FULL). 글자 수 검사 통과. 스토어 반영은 다음 제출(안드로이드 새 버전·iOS 1.0.2) 때.
 - 정사각형 위젯 폭 조정: 알약과 아이콘 줄에 같은 안쪽 여백(18dp)을 줘 「요리 AI」 알약을 줄이고 두 버튼 사이가 벌어지지 않게 함(사용자 지적). 좌표가 바뀌어 홈 화면에서 세 버튼을 다시 눌러 확인 — 요리 AI 대화창·사진으로 재료 담기 시트·이번 주 식단 추천 모두 정상.
 - 정사각형 위젯을 카드에 꽉 차게: 바깥 여백 10/12dp, 안쪽 여백 4dp 로 줄이고 알약 높이 48dp·아이콘 원 52dp·글자 12~14sp 로 키움(사용자 지적 — 너무 안쪽으로 모여 있었다). 세 버튼 다시 눌러 `://chat`·`://camera`·`://plan` 모두 정상 확인. 참고: 레이아웃만 바꾸면 런처가 예전 RemoteViews 를 그대로 그려서, 확인 전에 **APK 재설치**가 필요하다.
+
+### 아이폰 홈 화면 위젯 코드 + 안드로이드 1.0.2(versionCode 3) 빌드 (2026-09-23)
+- [CookMatchWidget.swift](frontend/ios/App/CookMatchWidget/CookMatchWidget.swift): WidgetKit 위젯 2종. 가로(systemMedium)는 `Link` 로 버튼마다 다른 주소, 정사각형(systemSmall)은 iOS 가 탭 영역을 하나만 주므로 `widgetURL` 로 전체를 요리 AI 에 건다. 색은 안드로이드 `values`/`values-night` 와 같은 값, iOS 17+ `containerBackground` 분기 포함. 주소는 안드로이드와 동일(`://camera|chat|plan`).
+- [store/IOS_WIDGET_SETUP.md](store/IOS_WIDGET_SETUP.md): 맥에서 Xcode 위젯 타깃을 만들고 이 파일을 넣는 순서·설정값(번들 ID, 버전 일치)·안 될 때 점검표.
+- 안드로이드 `versionCode 3`·`versionName 1.0.2` 로 올려 서명된 `app-release.aab` 새로 빌드 — 위젯·쿠팡 배너·목록 제목 고정 등이 테스터에게 가려면 이 파일을 비공개 테스트에 올려야 한다.
