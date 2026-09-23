@@ -11845,3 +11845,7 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 ### 안드로이드 1.0.3(versionCode 4) 빌드 (2026-09-23 17:14)
 - `build.gradle` versionCode 3 → **4**, versionName 1.0.2 → **1.0.3**. `npm run build` → `npx cap sync android` → `gradlew bundleRelease` → 서명 확인("jar verified"), 13.1MB. 위젯 입구 버그·뒤로=창 닫기·타일 버튼·2×2 정사각형·재료 찍기 위젯·캘린더 칸 구분 포함. 비공개 테스트(Alpha)에 올릴 차례 — 3 (1.0.2)가 아직 검토 중이면 새 버전이 그것을 대신한다(4 에 3 의 내용이 모두 들어 있다).
 
+
+### iOS 1.0.2 빌드 8 업로드 (2026-09-23 17:22, 맥)
+- 윈도우 커밋 `c673fefb`까지 반영(1.0.3 수정 모음 — 위젯 입구 버그·뒤로=창 닫기·타일 버튼·재료 찍기 위젯·캘린더 칸 구분). `npm run build` → `npx cap sync ios` → pbxproj App·CookMatchWidget 빌드 7 → **8**(버전 1.0.2 유지 — 1.0.2 가 심사 대기 중이라 새 버전을 못 만들어 빌드만 교체) → `xcodebuild archive` → `-exportArchive`(destination upload)로 업로드 성공, `CookMatchWidget.appex` 포함 확인.
+- 남은 것: App Store Connect 에서 1.0.2 제출 취소 → 빌드 처리 끝나면 빌드 8 로 교체 → 다시 심사 제출(「심사 대기 중」 상태 확인).
