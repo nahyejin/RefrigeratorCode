@@ -11760,3 +11760,9 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 - [CookMatchWidget.swift](frontend/ios/App/CookMatchWidget/CookMatchWidget.swift): WidgetKit 위젯 2종. 가로(systemMedium)는 `Link` 로 버튼마다 다른 주소, 정사각형(systemSmall)은 iOS 가 탭 영역을 하나만 주므로 `widgetURL` 로 전체를 요리 AI 에 건다. 색은 안드로이드 `values`/`values-night` 와 같은 값, iOS 17+ `containerBackground` 분기 포함. 주소는 안드로이드와 동일(`://camera|chat|plan`).
 - [store/IOS_WIDGET_SETUP.md](store/IOS_WIDGET_SETUP.md): 맥에서 Xcode 위젯 타깃을 만들고 이 파일을 넣는 순서·설정값(번들 ID, 버전 일치)·안 될 때 점검표.
 - 안드로이드 `versionCode 3`·`versionName 1.0.2` 로 올려 서명된 `app-release.aab` 새로 빌드 — 위젯·쿠팡 배너·목록 제목 고정 등이 테스터에게 가려면 이 파일을 비공개 테스트에 올려야 한다.
+
+### 요리 캘린더 위젯(안드로이드) + 앱에서 쿠팡 배너가 막히던 문제 (2026-09-23)
+- [CalendarWidgetProvider.java](frontend/android/app/src/main/java/com/cookmatch/app/CalendarWidgetProvider.java) + `widget_calendar.xml`(42칸): **보기 전용** 4×2 위젯. 요리한 날은 노란 동그라미, 오늘은 테두리, 상단에 「N월 요리」·「11 / 20회」와 일·주·월 전환. 조작(삭제·해제)은 넣지 않았고, 달력을 누르면 `…://calendar` 로 앱의 요리 캘린더가 열린다. 주·일 보기는 첫 줄에 모아 그린다(원래 위치대로 두니 위가 비어 보였다).
+- 데이터는 서버가 아니라 **앱이 남긴 요약본**을 읽는다: [widgetSnapshot.ts](frontend/src/utils/widgetSnapshot.ts) 가 요리 캘린더 화면에서 `@capacitor/preferences`(SharedPreferences `CapacitorStorage`)에 `cookmatch_calendar` 로 저장 → 위젯이 그 JSON 만 읽음. 위젯은 앱과 다른 프로세스라 로그인 토큰을 쓸 수 없어서, 토큰을 밖으로 꺼내는 대신 이 방식을 골랐다.
+- 에뮬레이터 확인: 위젯 배치 → 월 보기(요리한 날 7일 표시) → 주/일 전환 → 달력 탭 시 앱의 요리 캘린더 진입까지.
+- ⚠ 그 과정에서 **앱 안에서 쿠팡 배너가 「Access Denied」** 로 뜨는 것을 발견했다. 쿠팡은 배너를 부르는 페이지의 도메인을 보는데, 앱 화면은 `https://localhost` 라 파트너스에 등록된 도메인이 아니다. → 앱에서는 등록 도메인의 중계 페이지 [public/coupang-banner.html](frontend/public/coupang-banner.html) 을 iframe 으로 띄우도록 수정(웹은 그대로 직접 호출).

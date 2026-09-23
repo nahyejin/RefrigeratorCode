@@ -1,0 +1,49 @@
+<!doctype html>
+<!--
+  앱(WebView) 안에서 쿠팡 다이내믹 배너를 띄우기 위한 중계 페이지.
+
+  왜 필요한가(2026-09-23, 에뮬레이터에서 발견):
+    쿠팡은 배너를 부르는 **페이지의 도메인**을 본다. 앱 안의 화면은 Capacitor 가 `https://localhost` 로
+    띄우기 때문에, 배너 iframe 을 앱 화면에서 직접 부르면 파트너스에 등록된 도메인이 아니어서
+    **「Access Denied」** 가 나온다(웹 refrigerator-code.vercel.app 에서는 정상).
+    그래서 앱에서는 이 페이지(등록된 도메인)를 iframe 으로 열고, 배너는 이 페이지가 부른다.
+
+  파라미터: h(높이, 기본 50), w(폭, 기본 340). 배경은 투명하게 둬서 앱 쪽 회색 광고 상자가 그대로 보인다.
+  배너 id·트래킹 코드는 앱 쪽 CoupangDynamicBanner.tsx 와 같은 값이어야 한다.
+-->
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>쿠팡 추천 상품</title>
+<style>
+  html, body { margin: 0; padding: 0; background: transparent; overflow: hidden; }
+  iframe { display: block; border: 0; width: 100%; }
+</style>
+</head>
+<body>
+<script>
+  var params = new URLSearchParams(location.search);
+  var height = Math.max(40, Math.min(300, parseInt(params.get('h') || '50', 10) || 50));
+  var width = Math.max(200, Math.min(1200, parseInt(params.get('w') || '340', 10) || 340));
+
+  var src = 'https://ads-partners.coupang.com/widgets.html?' + new URLSearchParams({
+    id: '1032264',            // 파트너스 다이내믹 배너 「쿡매치 레시피 하단」
+    template: 'carousel',
+    trackingCode: 'AF2929738',
+    subId: '',
+    width: String(width),
+    height: String(height),
+    tsource: '',
+  }).toString();
+
+  var f = document.createElement('iframe');
+  f.title = '쿠팡 추천 상품';
+  f.src = src;
+  f.height = String(height);
+  f.setAttribute('scrolling', 'no');
+  f.setAttribute('referrerpolicy', 'unsafe-url');
+  document.body.appendChild(f);
+</script>
+</body>
+</html>

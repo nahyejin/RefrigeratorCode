@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { Capacitor } from '@capacitor/core';
 import { OneLineCoupangDisclaimer } from './CoupangDisclaimer';
 
 /**
@@ -21,6 +22,8 @@ const TRACKING_CODE = 'AF2929738'; // 파트너스 트래킹 코드(간편 링�
 const BANNER_HEIGHT = 110;
 const AD_BOX_BG = '#EFEFF2'; // 광고 상자 배경 — 월 목표 카드(surface-sub)보다 한 단계 진하게 해서 서로 구분
 const AD_BOX_PAD_X = 8;
+/** 파트너스에 등록된 우리 도메인 — 앱에서 배너를 부를 때 이 페이지를 거친다 */
+const WEB_ORIGIN = 'https://refrigerator-code.vercel.app';
 
 const CoupangDynamicBanner: React.FC<{
   style?: React.CSSProperties;
@@ -37,7 +40,10 @@ const CoupangDynamicBanner: React.FC<{
 
   if (!BANNER_ID) return null;
 
-  const src = 'https://ads-partners.coupang.com/widgets.html?' + new URLSearchParams({
+  // 쿠팡은 배너를 부르는 **페이지의 도메인**을 본다. 앱은 Capacitor 가 https://localhost 로 띄우기 때문에
+  // 앱 화면에서 배너를 직접 부르면 「Access Denied」가 뜬다(2026-09-23 에뮬레이터에서 확인).
+  // 그래서 앱에서는 파트너스에 등록된 도메인의 중계 페이지(public/coupang-banner.html)를 대신 띄운다.
+  const params = new URLSearchParams({
     id: BANNER_ID,
     template: 'carousel',
     trackingCode: TRACKING_CODE,
@@ -45,7 +51,10 @@ const CoupangDynamicBanner: React.FC<{
     width: String(width || 340),
     height: String(height),
     tsource: '',
-  }).toString();
+  });
+  const src = Capacitor.isNativePlatform()
+    ? `${WEB_ORIGIN}/coupang-banner.html?h=${height}&w=${width || 340}`
+    : `https://ads-partners.coupang.com/widgets.html?${params.toString()}`;
 
   return (
     <div style={{ marginTop: 20, ...style }}>
