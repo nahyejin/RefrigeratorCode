@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- 마이캘린더 위젯이 앱이 남긴 요약본을 읽는 공유 저장소 — App 타깃(App.entitlements)과 같은 값 -->
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>group.com.cookmatch.app</string>
+	</array>
+</dict>
+</plist>

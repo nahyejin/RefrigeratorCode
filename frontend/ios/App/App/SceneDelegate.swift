@@ -1,5 +1,6 @@
 import UIKit
 import Capacitor
+import WidgetKit
 
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     var window: UIWindow?
@@ -34,6 +35,12 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         ])
     }
 
+    // 앱이 화면에서 빠질 때(홈으로 나가기·앱 전환) 마이캘린더 위젯 요약본을 위젯이 읽는 곳으로 옮기고 다시 그리게 한다.
+    // 안드로이드 MainActivity.onPause 와 같은 역할(2026-09-23).
+    func sceneWillResignActive(_ scene: UIScene) {
+        CalendarWidgetSync.sync()
+    }
+
     func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
         SceneDelegateProxy.shared.scene(scene, openURLContexts: URLContexts)
     }
@@ -51,5 +58,26 @@ class MainViewController: CAPBridgeViewController {
     override func capacitorDidLoad() {
         super.capacitorDidLoad()
         webView?.allowsBackForwardNavigationGestures = true
+    }
+}
+
+/// 웹 화면(`utils/widgetSnapshot.ts`)이 Capacitor Preferences 로 남긴 마이캘린더 요약본을
+/// **App Group** 저장소로 복사한다 — 위젯은 앱과 다른 프로세스라 앱 전용 UserDefaults 를 못 읽는다.
+/// 요약본이 없으면(로그아웃·계정 전환 때 웹이 지운다) App Group 쪽도 지워 위젯이 빈 달력이 된다.
+/// App Group(`group.com.cookmatch.app`)은 App·CookMatchWidget 두 타깃 모두에 capability 로 켜 있어야 한다
+/// (store/IOS_WIDGET_SETUP.md).
+enum CalendarWidgetSync {
+    static let appGroup = "group.com.cookmatch.app"
+    static let key = "cookmatch_calendar"
+    /// Capacitor Preferences(iOS)는 UserDefaults.standard 에 "CapacitorStorage." 을 붙여 저장한다
+    static let capacitorKey = "CapacitorStorage." + key
+
+    static func sync() {
+        guard let shared = UserDefaults(suiteName: appGroup) else { return }
+        let value = UserDefaults.standard.string(forKey: capacitorKey)
+        guard value != shared.string(forKey: key) else { return }  // 바뀐 게 없으면 위젯을 깨우지 않는다
+        if let value = value { shared.set(value, forKey: key) } else { shared.removeObject(forKey: key) }
+        WidgetCenter.shared.reloadTimelines(ofKind: "CookMatchCalendarWidget")
+        WidgetCenter.shared.reloadTimelines(ofKind: "CookMatchCalendarLargeWidget")
     }
 }

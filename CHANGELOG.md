@@ -11808,3 +11808,12 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 작업 도구: 레이아웃 전체를 [scripts/gen_widget_calendar_layouts.py](scripts/gen_widget_calendar_layouts.py) 가 만든다(이전 `gen_widget_calendar_grid.py` 대체 — XML 을 직접 고치지 말 것). [scripts/widget_test_snapshot.py](scripts/widget_test_snapshot.py) 는 에뮬레이터 디버그 빌드에 테스트 요약본(식구 3명 / `--many` 10명)을 넣고 위젯을 다시 그린다.
 
 에뮬레이터 확인: 4×3·4×2 캡처(식구 3명·10명 — 4×3 은 10명이 두 줄에 다 들어가고 4×2 는 4명 + 「외 6명」), 다크 모드, 요약본 없는 상태(빈 달력 + 「마이캘린더를 열면 기록이 보여요」), 마이캘린더를 열었다 홈으로 나가면 위젯이 즉시 새 요약본으로 바뀌는 것, 위젯 목록의 새 이름·한 줄 설명. **로그아웃 자체는 에뮬레이터 앱이 로그인돼 있지 않아 직접 눌러 보지 못했다**(요약본 삭제 → 빈 달력 경로는 요약본을 지운 상태로 확인).
+
+### 아이폰에도 마이캘린더 위젯 2종 — 코드 작성, 맥 Xcode 작업 대기 (2026-09-23)
+- 사용자 요청: 안드로이드 4종 기준으로 아이폰도. 버튼 위젯 2종(가로·정사각형)은 코드가 이미 있었고, **마이캘린더 위젯 2종**을 새로 썼다 — [CookMatchCalendarWidget.swift](frontend/ios/App/CookMatchWidget/CookMatchCalendarWidget.swift). 아이폰은 위젯 크기가 정해져 있어 안드로이드 4×2 → **중간(systemMedium)**, 4×3 → **큰(systemLarge)**. 그림·말·규칙은 안드로이드 4차와 같다(맨 위 「2026년 9월」 + 부제목, 사람 색 점, 빨간 손글씨 동그라미 — 같은 경로를 SwiftUI Path 로, 회색 둥근 네모 오늘, 목록 점 = 범례 점 + 「완료」, 범례 두 줄 + 「외 N명」, 누르면 `://calendar`). 중간 위젯은 높이가 약 155pt 라 6주짜리 달도 들어가게 칸 크기를 줄 높이에 맞춰 줄인다. 자정마다 다시 그린다(오늘 표시).
+- **데이터 전달**: iOS 의 Capacitor Preferences 는 앱 전용 `UserDefaults.standard`(`CapacitorStorage.` 접두어)에만 써서 위젯이 못 읽는다. 플러그인을 새로 만드는 대신 안드로이드와 같은 방식 — 앱이 화면에서 빠질 때 [SceneDelegate.swift](frontend/ios/App/App/SceneDelegate.swift) `sceneWillResignActive` → `CalendarWidgetSync` 가 요약본을 **App Group `group.com.cookmatch.app`** 으로 복사(없으면 지움 → 로그아웃 시 빈 달력)하고 두 위젯을 다시 그리게 한다. 웹 코드는 그대로.
+- App Group: [App.entitlements](frontend/ios/App/App/App.entitlements) 에 추가, 위젯용 [CookMatchWidget.entitlements](frontend/ios/App/CookMatchWidget/CookMatchWidget.entitlements) 신설. ⚠ **맥 Xcode 에서 두 타깃에 App Groups capability 를 켜기 전에는 앱 빌드가 서명 오류를 낼 수 있다.**
+- 버튼 위젯 설명도 안드로이드와 같은 한 줄로(「재료 찍기·요리 AI·AI 식단 바로 열기」), 위젯 묶음(@main)에 새 위젯 2종 등록.
+- [store/IOS_WIDGET_SETUP.md](store/IOS_WIDGET_SETUP.md) 에 마이캘린더 위젯·App Group 켜는 순서·확인 항목·안 될 때 표 추가.
+- **확인 못 한 것**: 윈도우라 Swift 를 컴파일·실행해 보지 못했다(맥 첫 빌드에서 오류가 나면 고친다). 화면 모양도 맥 시뮬레이터에서 처음 확인한다.
+

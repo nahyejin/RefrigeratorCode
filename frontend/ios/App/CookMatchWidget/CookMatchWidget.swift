@@ -161,7 +161,7 @@ struct CookMatchQuickWidget: Widget {
             CookMatchMediumView().cookMatchBackground()
         }
         .configurationDisplayName("쿡매치 (가로)")
-        .description("재료 사진 찍기, 요리 AI, AI 일주일 식단을 홈 화면에서 바로 엽니다.")
+        .description("재료 찍기·요리 AI·AI 식단 바로 열기")
         .supportedFamilies([.systemMedium])
     }
 }
@@ -174,7 +174,7 @@ struct CookMatchSmallWidget: Widget {
             CookMatchSmallView().cookMatchBackground()
         }
         .configurationDisplayName("쿡매치 (정사각형)")
-        .description("누르면 요리 AI 가 바로 열립니다.")
+        .description("누르면 요리 AI 가 바로 열려요")
         .supportedFamilies([.systemSmall])
     }
 }
@@ -184,5 +184,7 @@ struct CookMatchWidgetBundle: WidgetBundle {
     var body: some Widget {
         CookMatchQuickWidget()
         CookMatchSmallWidget()
+        CookMatchCalendarWidget()       // CookMatchCalendarWidget.swift — 마이캘린더(중간)
+        CookMatchCalendarLargeWidget()  // 마이캘린더(크게)
     }
 }
