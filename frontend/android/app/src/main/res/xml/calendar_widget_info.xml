@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 요리 캘린더 위젯 4×2 — 왼쪽 달력 + 오른쪽 오늘·내일 목록. 보기 전용. -->
+<!-- 요리 캘린더 위젯 4×2 — 왼쪽 달력 + 오른쪽 목표 카드(게이지·달성·절약액) + 범례. 보기 전용.
+     미리보기는 레이아웃(데이터 없이 빈 달력으로 보임) 대신 실제 화면 캡처 이미지를 쓴다. -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:minWidth="250dp"
     android:minHeight="110dp"
@@ -7,7 +8,7 @@
     android:targetCellHeight="2"
     android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen"
-    android:previewLayout="@layout/widget_calendar"
+    android:previewImage="@drawable/widget_calendar_preview"
     android:description="@string/widget_calendar_description"
     android:initialLayout="@layout/widget_calendar"
     android:updatePeriodMillis="1800000" />

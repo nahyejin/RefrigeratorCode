@@ -1,9 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- 홈 화면 요리 캘린더 위젯 4×2 — **보기 전용**.
-     왼쪽: 「2026년 9월」 달력이 세로를 꽉 채운다(완료=사람 색 점, 계획=빨간 손글씨 동그라미, 오늘=노란 칠)
-     오른쪽: 마이캘린더의 목표 카드를 축약 — 제목·게이지·「N회 / M회 달성」·「다 채우면 약 …원」
-     문구는 앱 화면과 같은 말을 쓴다(2026-09-23 지적: 「9월 요리」처럼 앱에 없는 말은 쓰지 않는다).
-     누르면 앱의 요리 캘린더로 간다. -->
+     왼쪽: 「2026년 9월」 달력(정사각형에 가깝게)  |  오른쪽: 목표 카드 축약 + 범례
+     완료=사람 색 점, 계획=빨간 손글씨 동그라미, 오늘=옅은 노랑. 누르면 앱의 요리 캘린더로 간다. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/small_root"
     android:layout_width="match_parent"
@@ -18,7 +16,7 @@
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="match_parent"
-        android:layout_weight="1.15"
+        android:layout_weight="1"
         android:orientation="vertical">
 
         <TextView
@@ -96,39 +94,52 @@
         <LinearLayout
             android:id="@+id/calendar_grid"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="0dp"
+            android:layout_weight="1"
             android:orientation="vertical">
             <LinearLayout
+                android:id="@+id/week_0"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="0dp"
+                android:layout_weight="1"
                 android:orientation="horizontal">
-                <FrameLayout
+                <LinearLayout
                     android:layout_width="0dp"
-                    android:layout_height="17dp"
-                    android:layout_weight="1">
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
 
-                    <ImageView
-                        android:id="@+id/plan_0"
-                        android:layout_width="17dp"
-                        android:layout_height="17dp"
-                        android:layout_gravity="center"
-                        android:src="@drawable/widget_plan_circle"
-                        android:visibility="gone"
-                        android:importantForAccessibility="no" />
+                    <!-- 계획 동그라미는 두 자리 숫자를 감싸야 해서 숫자 원보다 가로로 넉넉하게 편다 -->
+                    <FrameLayout
+                        android:layout_width="26dp"
+                        android:layout_height="18dp">
 
-                    <TextView
-                        android:id="@+id/cell_0"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:textSize="9sp"
-                        android:textColor="@color/widget_label" />
+                        <TextView
+                            android:id="@+id/cell_0"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:layout_gravity="center"
+                            android:gravity="center"
+                            android:includeFontPadding="false"
+                            android:textSize="10sp"
+                            android:textColor="@color/widget_label" />
+
+                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <ImageView
+                            android:id="@+id/plan_0"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:scaleType="fitXY"
+                            android:src="@drawable/widget_plan_circle"
+                            android:visibility="gone"
+                            android:importantForAccessibility="no" />
+                    </FrameLayout>
 
                     <LinearLayout
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="bottom|center_horizontal"
-                        android:layout_marginBottom="1dp"
+                        android:layout_height="3dp"
+                        android:layout_marginTop="1dp"
                         android:orientation="horizontal">
                         <ImageView
                             android:id="@+id/dot_0_0"
@@ -158,34 +169,44 @@
                             android:visibility="gone"
                             android:importantForAccessibility="no" />
                     </LinearLayout>
-                </FrameLayout>
-                <FrameLayout
+                </LinearLayout>
+                <LinearLayout
                     android:layout_width="0dp"
-                    android:layout_height="17dp"
-                    android:layout_weight="1">
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
 
-                    <ImageView
-                        android:id="@+id/plan_1"
-                        android:layout_width="17dp"
-                        android:layout_height="17dp"
-                        android:layout_gravity="center"
-                        android:src="@drawable/widget_plan_circle"
-                        android:visibility="gone"
-                        android:importantForAccessibility="no" />
+                    <!-- 계획 동그라미는 두 자리 숫자를 감싸야 해서 숫자 원보다 가로로 넉넉하게 편다 -->
+                    <FrameLayout
+                        android:layout_width="26dp"
+                        android:layout_height="18dp">
 
-                    <TextView
-                        android:id="@+id/cell_1"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:textSize="9sp"
-                        android:textColor="@color/widget_label" />
+                        <TextView
+                            android:id="@+id/cell_1"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:layout_gravity="center"
+                            android:gravity="center"
+                            android:includeFontPadding="false"
+                            android:textSize="10sp"
+                            android:textColor="@color/widget_label" />
+
+                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <ImageView
+                            android:id="@+id/plan_1"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:scaleType="fitXY"
+                            android:src="@drawable/widget_plan_circle"
+                            android:visibility="gone"
+                            android:importantForAccessibility="no" />
+                    </FrameLayout>
 
                     <LinearLayout
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="bottom|center_horizontal"
-                        android:layout_marginBottom="1dp"
+                        android:layout_height="3dp"
+                        android:layout_marginTop="1dp"
                         android:orientation="horizontal">
                         <ImageView
                             android:id="@+id/dot_1_0"
@@ -215,34 +236,44 @@
                             android:visibility="gone"
                             android:importantForAccessibility="no" />
                     </LinearLayout>
-                </FrameLayout>
-                <FrameLayout
+                </LinearLayout>
+                <LinearLayout
                     android:layout_width="0dp"
-                    android:layout_height="17dp"
-                    android:layout_weight="1">
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
 
-                    <ImageView
-                        android:id="@+id/plan_2"
-                        android:layout_width="17dp"
-                        android:layout_height="17dp"
-                        android:layout_gravity="center"
-                        android:src="@drawable/widget_plan_circle"
-                        android:visibility="gone"
-                        android:importantForAccessibility="no" />
+                    <!-- 계획 동그라미는 두 자리 숫자를 감싸야 해서 숫자 원보다 가로로 넉넉하게 편다 -->
+                    <FrameLayout
+                        android:layout_width="26dp"
+                        android:layout_height="18dp">
 
-                    <TextView
-                        android:id="@+id/cell_2"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:textSize="9sp"
-                        android:textColor="@color/widget_label" />
+                        <TextView
+                            android:id="@+id/cell_2"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:layout_gravity="center"
+                            android:gravity="center"
+                            android:includeFontPadding="false"
+                            android:textSize="10sp"
+                            android:textColor="@color/widget_label" />
+
+                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <ImageView
+                            android:id="@+id/plan_2"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:scaleType="fitXY"
+                            android:src="@drawable/widget_plan_circle"
+                            android:visibility="gone"
+                            android:importantForAccessibility="no" />
+                    </FrameLayout>
 
                     <LinearLayout
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="bottom|center_horizontal"
-                        android:layout_marginBottom="1dp"
+                        android:layout_height="3dp"
+                        android:layout_marginTop="1dp"
                         android:orientation="horizontal">
                         <ImageView
                             android:id="@+id/dot_2_0"
@@ -272,34 +303,44 @@
                             android:visibility="gone"
                             android:importantForAccessibility="no" />
                     </LinearLayout>
-                </FrameLayout>
-                <FrameLayout
+                </LinearLayout>
+                <LinearLayout
                     android:layout_width="0dp"
-                    android:layout_height="17dp"
-                    android:layout_weight="1">
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
 
-                    <ImageView
-                        android:id="@+id/plan_3"
-                        android:layout_width="17dp"
-                        android:layout_height="17dp"
-                        android:layout_gravity="center"
-                        android:src="@drawable/widget_plan_circle"
-                        android:visibility="gone"
-                        android:importantForAccessibility="no" />
+                    <!-- 계획 동그라미는 두 자리 숫자를 감싸야 해서 숫자 원보다 가로로 넉넉하게 편다 -->
+                    <FrameLayout
+                        android:layout_width="26dp"
+                        android:layout_height="18dp">
 
-                    <TextView
-                        android:id="@+id/cell_3"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:textSize="9sp"
-                        android:textColor="@color/widget_label" />
+                        <TextView
+                            android:id="@+id/cell_3"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:layout_gravity="center"
+                            android:gravity="center"
+                            android:includeFontPadding="false"
+                            android:textSize="10sp"
+                            android:textColor="@color/widget_label" />
+
+                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <ImageView
+                            android:id="@+id/plan_3"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:scaleType="fitXY"
+                            android:src="@drawable/widget_plan_circle"
+                            android:visibility="gone"
+                            android:importantForAccessibility="no" />
+                    </FrameLayout>
 
                     <LinearLayout
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="bottom|center_horizontal"
-                        android:layout_marginBottom="1dp"
+                        android:layout_height="3dp"
+                        android:layout_marginTop="1dp"
                         android:orientation="horizontal">
                         <ImageView
                             android:id="@+id/dot_3_0"
@@ -329,34 +370,44 @@
                             android:visibility="gone"
                             android:importantForAccessibility="no" />
                     </LinearLayout>
-                </FrameLayout>
-                <FrameLayout
+                </LinearLayout>
+                <LinearLayout
                     android:layout_width="0dp"
-                    android:layout_height="17dp"
-                    android:layout_weight="1">
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
 
-                    <ImageView
-                        android:id="@+id/plan_4"
-                        android:layout_width="17dp"
-                        android:layout_height="17dp"
-                        android:layout_gravity="center"
-                        android:src="@drawable/widget_plan_circle"
-                        android:visibility="gone"
-                        android:importantForAccessibility="no" />
+                    <!-- 계획 동그라미는 두 자리 숫자를 감싸야 해서 숫자 원보다 가로로 넉넉하게 편다 -->
+                    <FrameLayout
+                        android:layout_width="26dp"
+                        android:layout_height="18dp">
 
-                    <TextView
-                        android:id="@+id/cell_4"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:textSize="9sp"
-                        android:textColor="@color/widget_label" />
+                        <TextView
+                            android:id="@+id/cell_4"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:layout_gravity="center"
+                            android:gravity="center"
+                            android:includeFontPadding="false"
+                            android:textSize="10sp"
+                            android:textColor="@color/widget_label" />
+
+                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <ImageView
+                            android:id="@+id/plan_4"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:scaleType="fitXY"
+                            android:src="@drawable/widget_plan_circle"
+                            android:visibility="gone"
+                            android:importantForAccessibility="no" />
+                    </FrameLayout>
 
                     <LinearLayout
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="bottom|center_horizontal"
-                        android:layout_marginBottom="1dp"
+                        android:layout_height="3dp"
+                        android:layout_marginTop="1dp"
                         android:orientation="horizontal">
                         <ImageView
                             android:id="@+id/dot_4_0"
@@ -386,34 +437,44 @@
                             android:visibility="gone"
                             android:importantForAccessibility="no" />
                     </LinearLayout>
-                </FrameLayout>
-                <FrameLayout
+                </LinearLayout>
+                <LinearLayout
                     android:layout_width="0dp"
-                    android:layout_height="17dp"
-                    android:layout_weight="1">
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
 
-                    <ImageView
-                        android:id="@+id/plan_5"
-                        android:layout_width="17dp"
-                        android:layout_height="17dp"
-                        android:layout_gravity="center"
-                        android:src="@drawable/widget_plan_circle"
-                        android:visibility="gone"
-                        android:importantForAccessibility="no" />
+                    <!-- 계획 동그라미는 두 자리 숫자를 감싸야 해서 숫자 원보다 가로로 넉넉하게 편다 -->
+                    <FrameLayout
+                        android:layout_width="26dp"
+                        android:layout_height="18dp">
 
-                    <TextView
-                        android:id="@+id/cell_5"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:textSize="9sp"
-                        android:textColor="@color/widget_label" />
+                        <TextView
+                            android:id="@+id/cell_5"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:layout_gravity="center"
+                            android:gravity="center"
+                            android:includeFontPadding="false"
+                            android:textSize="10sp"
+                            android:textColor="@color/widget_label" />
+
+                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <ImageView
+                            android:id="@+id/plan_5"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:scaleType="fitXY"
+                            android:src="@drawable/widget_plan_circle"
+                            android:visibility="gone"
+                            android:importantForAccessibility="no" />
+                    </FrameLayout>
 
                     <LinearLayout
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="bottom|center_horizontal"
-                        android:layout_marginBottom="1dp"
+                        android:layout_height="3dp"
+                        android:layout_marginTop="1dp"
                         android:orientation="horizontal">
                         <ImageView
                             android:id="@+id/dot_5_0"
@@ -443,34 +504,44 @@
                             android:visibility="gone"
                             android:importantForAccessibility="no" />
                     </LinearLayout>
-                </FrameLayout>
-                <FrameLayout
+                </LinearLayout>
+                <LinearLayout
                     android:layout_width="0dp"
-                    android:layout_height="17dp"
-                    android:layout_weight="1">
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
 
-                    <ImageView
-                        android:id="@+id/plan_6"
-                        android:layout_width="17dp"
-                        android:layout_height="17dp"
-                        android:layout_gravity="center"
-                        android:src="@drawable/widget_plan_circle"
-                        android:visibility="gone"
-                        android:importantForAccessibility="no" />
+                    <!-- 계획 동그라미는 두 자리 숫자를 감싸야 해서 숫자 원보다 가로로 넉넉하게 편다 -->
+                    <FrameLayout
+                        android:layout_width="26dp"
+                        android:layout_height="18dp">
 
-                    <TextView
-                        android:id="@+id/cell_6"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:textSize="9sp"
-                        android:textColor="@color/widget_label" />
+                        <TextView
+                            android:id="@+id/cell_6"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:layout_gravity="center"
+                            android:gravity="center"
+                            android:includeFontPadding="false"
+                            android:textSize="10sp"
+                            android:textColor="@color/widget_label" />
+
+                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <ImageView
+                            android:id="@+id/plan_6"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:scaleType="fitXY"
+                            android:src="@drawable/widget_plan_circle"
+                            android:visibility="gone"
+                            android:importantForAccessibility="no" />
+                    </FrameLayout>
 
                     <LinearLayout
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="bottom|center_horizontal"
-                        android:layout_marginBottom="1dp"
+                        android:layout_height="3dp"
+                        android:layout_marginTop="1dp"
                         android:orientation="horizontal">
                         <ImageView
                             android:id="@+id/dot_6_0"
@@ -500,39 +571,51 @@
                             android:visibility="gone"
                             android:importantForAccessibility="no" />
                     </LinearLayout>
-                </FrameLayout>
+                </LinearLayout>
             </LinearLayout>
             <LinearLayout
+                android:id="@+id/week_1"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="0dp"
+                android:layout_weight="1"
                 android:orientation="horizontal">
-                <FrameLayout
+                <LinearLayout
                     android:layout_width="0dp"
-                    android:layout_height="17dp"
-                    android:layout_weight="1">
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
 
-                    <ImageView
-                        android:id="@+id/plan_7"
-                        android:layout_width="17dp"
-                        android:layout_height="17dp"
-                        android:layout_gravity="center"
-                        android:src="@drawable/widget_plan_circle"
-                        android:visibility="gone"
-                        android:importantForAccessibility="no" />
+                    <!-- 계획 동그라미는 두 자리 숫자를 감싸야 해서 숫자 원보다 가로로 넉넉하게 편다 -->
+                    <FrameLayout
+                        android:layout_width="26dp"
+                        android:layout_height="18dp">
 
-                    <TextView
-                        android:id="@+id/cell_7"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:textSize="9sp"
-                        android:textColor="@color/widget_label" />
+                        <TextView
+                            android:id="@+id/cell_7"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:layout_gravity="center"
+                            android:gravity="center"
+                            android:includeFontPadding="false"
+                            android:textSize="10sp"
+                            android:textColor="@color/widget_label" />
+
+                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <ImageView
+                            android:id="@+id/plan_7"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:scaleType="fitXY"
+                            android:src="@drawable/widget_plan_circle"
+                            android:visibility="gone"
+                            android:importantForAccessibility="no" />
+                    </FrameLayout>
 
                     <LinearLayout
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="bottom|center_horizontal"
-                        android:layout_marginBottom="1dp"
+                        android:layout_height="3dp"
+                        android:layout_marginTop="1dp"
                         android:orientation="horizontal">
                         <ImageView
                             android:id="@+id/dot_7_0"
@@ -562,34 +645,44 @@
                             android:visibility="gone"
                             android:importantForAccessibility="no" />
                     </LinearLayout>
-                </FrameLayout>
-                <FrameLayout
+                </LinearLayout>
+                <LinearLayout
                     android:layout_width="0dp"
-                    android:layout_height="17dp"
-                    android:layout_weight="1">
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
 
-                    <ImageView
-                        android:id="@+id/plan_8"
-                        android:layout_width="17dp"
-                        android:layout_height="17dp"
-                        android:layout_gravity="center"
-                        android:src="@drawable/widget_plan_circle"
-                        android:visibility="gone"
-                        android:importantForAccessibility="no" />
+                    <!-- 계획 동그라미는 두 자리 숫자를 감싸야 해서 숫자 원보다 가로로 넉넉하게 편다 -->
+                    <FrameLayout
+                        android:layout_width="26dp"
+                        android:layout_height="18dp">
 
-                    <TextView
-                        android:id="@+id/cell_8"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:textSize="9sp"
-                        android:textColor="@color/widget_label" />
+                        <TextView
+                            android:id="@+id/cell_8"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:layout_gravity="center"
+                            android:gravity="center"
+                            android:includeFontPadding="false"
+                            android:textSize="10sp"
+                            android:textColor="@color/widget_label" />
+
+                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <ImageView
+                            android:id="@+id/plan_8"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:scaleType="fitXY"
+                            android:src="@drawable/widget_plan_circle"
+                            android:visibility="gone"
+                            android:importantForAccessibility="no" />
+                    </FrameLayout>
 
                     <LinearLayout
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="bottom|center_horizontal"
-                        android:layout_marginBottom="1dp"
+                        android:layout_height="3dp"
+                        android:layout_marginTop="1dp"
                         android:orientation="horizontal">
                         <ImageView
                             android:id="@+id/dot_8_0"
@@ -619,34 +712,44 @@
                             android:visibility="gone"
                             android:importantForAccessibility="no" />
                     </LinearLayout>
-                </FrameLayout>
-                <FrameLayout
+                </LinearLayout>
+                <LinearLayout
                     android:layout_width="0dp"
-                    android:layout_height="17dp"
-                    android:layout_weight="1">
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
 
-                    <ImageView
-                        android:id="@+id/plan_9"
-                        android:layout_width="17dp"
-                        android:layout_height="17dp"
-                        android:layout_gravity="center"
-                        android:src="@drawable/widget_plan_circle"
-                        android:visibility="gone"
-                        android:importantForAccessibility="no" />
+                    <!-- 계획 동그라미는 두 자리 숫자를 감싸야 해서 숫자 원보다 가로로 넉넉하게 편다 -->
+                    <FrameLayout
+                        android:layout_width="26dp"
+                        android:layout_height="18dp">
 
-                    <TextView
-                        android:id="@+id/cell_9"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:textSize="9sp"
-                        android:textColor="@color/widget_label" />
+                        <TextView
+                            android:id="@+id/cell_9"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:layout_gravity="center"
+                            android:gravity="center"
+                            android:includeFontPadding="false"
+                            android:textSize="10sp"
+                            android:textColor="@color/widget_label" />
+
+                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <ImageView
+                            android:id="@+id/plan_9"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:scaleType="fitXY"
+                            android:src="@drawable/widget_plan_circle"
+                            android:visibility="gone"
+                            android:importantForAccessibility="no" />
+                    </FrameLayout>
 
                     <LinearLayout
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="bottom|center_horizontal"
-                        android:layout_marginBottom="1dp"
+                        android:layout_height="3dp"
+                        android:layout_marginTop="1dp"
                         android:orientation="horizontal">
                         <ImageView
                             android:id="@+id/dot_9_0"
@@ -676,34 +779,44 @@
                             android:visibility="gone"
                             android:importantForAccessibility="no" />
                     </LinearLayout>
-                </FrameLayout>
-                <FrameLayout
+                </LinearLayout>
+                <LinearLayout
                     android:layout_width="0dp"
-                    android:layout_height="17dp"
-                    android:layout_weight="1">
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
 
-                    <ImageView
-                        android:id="@+id/plan_10"
-                        android:layout_width="17dp"
-                        android:layout_height="17dp"
-                        android:layout_gravity="center"
-                        android:src="@drawable/widget_plan_circle"
-                        android:visibility="gone"
-                        android:importantForAccessibility="no" />
+                    <!-- 계획 동그라미는 두 자리 숫자를 감싸야 해서 숫자 원보다 가로로 넉넉하게 편다 -->
+                    <FrameLayout
+                        android:layout_width="26dp"
+                        android:layout_height="18dp">
 
-                    <TextView
-                        android:id="@+id/cell_10"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:textSize="9sp"
-                        android:textColor="@color/widget_label" />
+                        <TextView
+                            android:id="@+id/cell_10"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:layout_gravity="center"
+                            android:gravity="center"
+                            android:includeFontPadding="false"
+                            android:textSize="10sp"
+                            android:textColor="@color/widget_label" />
+
+                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <ImageView
+                            android:id="@+id/plan_10"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:scaleType="fitXY"
+                            android:src="@drawable/widget_plan_circle"
+                            android:visibility="gone"
+                            android:importantForAccessibility="no" />
+                    </FrameLayout>
 
                     <LinearLayout
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="bottom|center_horizontal"
-                        android:layout_marginBottom="1dp"
+                        android:layout_height="3dp"
+                        android:layout_marginTop="1dp"
                         android:orientation="horizontal">
                         <ImageView
                             android:id="@+id/dot_10_0"
@@ -733,34 +846,44 @@
                             android:visibility="gone"
                             android:importantForAccessibility="no" />
                     </LinearLayout>
-                </FrameLayout>
-                <FrameLayout
+                </LinearLayout>
+                <LinearLayout
                     android:layout_width="0dp"
-                    android:layout_height="17dp"
-                    android:layout_weight="1">
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
 
-                    <ImageView
-                        android:id="@+id/plan_11"
-                        android:layout_width="17dp"
-                        android:layout_height="17dp"
-                        android:layout_gravity="center"
-                        android:src="@drawable/widget_plan_circle"
-                        android:visibility="gone"
-                        android:importantForAccessibility="no" />
+                    <!-- 계획 동그라미는 두 자리 숫자를 감싸야 해서 숫자 원보다 가로로 넉넉하게 편다 -->
+                    <FrameLayout
+                        android:layout_width="26dp"
+                        android:layout_height="18dp">
 
-                    <TextView
-                        android:id="@+id/cell_11"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:textSize="9sp"
-                        android:textColor="@color/widget_label" />
+                        <TextView
+                            android:id="@+id/cell_11"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:layout_gravity="center"
+                            android:gravity="center"
+                            android:includeFontPadding="false"
+                            android:textSize="10sp"
+                            android:textColor="@color/widget_label" />
+
+                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <ImageView
+                            android:id="@+id/plan_11"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:scaleType="fitXY"
+                            android:src="@drawable/widget_plan_circle"
+                            android:visibility="gone"
+                            android:importantForAccessibility="no" />
+                    </FrameLayout>
 
                     <LinearLayout
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="bottom|center_horizontal"
-                        android:layout_marginBottom="1dp"
+                        android:layout_height="3dp"
+                        android:layout_marginTop="1dp"
                         android:orientation="horizontal">
                         <ImageView
                             android:id="@+id/dot_11_0"
@@ -790,34 +913,44 @@
                             android:visibility="gone"
                             android:importantForAccessibility="no" />
                     </LinearLayout>
-                </FrameLayout>
-                <FrameLayout
+                </LinearLayout>
+                <LinearLayout
                     android:layout_width="0dp"
-                    android:layout_height="17dp"
-                    android:layout_weight="1">
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
 
-                    <ImageView
-                        android:id="@+id/plan_12"
-                        android:layout_width="17dp"
-                        android:layout_height="17dp"
-                        android:layout_gravity="center"
-                        android:src="@drawable/widget_plan_circle"
-                        android:visibility="gone"
-                        android:importantForAccessibility="no" />
+                    <!-- 계획 동그라미는 두 자리 숫자를 감싸야 해서 숫자 원보다 가로로 넉넉하게 편다 -->
+                    <FrameLayout
+                        android:layout_width="26dp"
+                        android:layout_height="18dp">
 
-                    <TextView
-                        android:id="@+id/cell_12"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:textSize="9sp"
-                        android:textColor="@color/widget_label" />
+                        <TextView
+                            android:id="@+id/cell_12"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:layout_gravity="center"
+                            android:gravity="center"
+                            android:includeFontPadding="false"
+                            android:textSize="10sp"
+                            android:textColor="@color/widget_label" />
+
+                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <ImageView
+                            android:id="@+id/plan_12"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:scaleType="fitXY"
+                            android:src="@drawable/widget_plan_circle"
+                            android:visibility="gone"
+                            android:importantForAccessibility="no" />
+                    </FrameLayout>
 
                     <LinearLayout
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="bottom|center_horizontal"
-                        android:layout_marginBottom="1dp"
+                        android:layout_height="3dp"
+                        android:layout_marginTop="1dp"
                         android:orientation="horizontal">
                         <ImageView
                             android:id="@+id/dot_12_0"
@@ -847,34 +980,44 @@
                             android:visibility="gone"
                             android:importantForAccessibility="no" />
                     </LinearLayout>
-                </FrameLayout>
-                <FrameLayout
+                </LinearLayout>
+                <LinearLayout
                     android:layout_width="0dp"
-                    android:layout_height="17dp"
-                    android:layout_weight="1">
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
 
-                    <ImageView
-                        android:id="@+id/plan_13"
-                        android:layout_width="17dp"
-                        android:layout_height="17dp"
-                        android:layout_gravity="center"
-                        android:src="@drawable/widget_plan_circle"
-                        android:visibility="gone"
-                        android:importantForAccessibility="no" />
+                    <!-- 계획 동그라미는 두 자리 숫자를 감싸야 해서 숫자 원보다 가로로 넉넉하게 편다 -->
+                    <FrameLayout
+                        android:layout_width="26dp"
+                        android:layout_height="18dp">
 
-                    <TextView
-                        android:id="@+id/cell_13"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:textSize="9sp"
-                        android:textColor="@color/widget_label" />
+                        <TextView
+                            android:id="@+id/cell_13"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:layout_gravity="center"
+                            android:gravity="center"
+                            android:includeFontPadding="false"
+                            android:textSize="10sp"
+                            android:textColor="@color/widget_label" />
+
+                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <ImageView
+                            android:id="@+id/plan_13"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:scaleType="fitXY"
+                            android:src="@drawable/widget_plan_circle"
+                            android:visibility="gone"
+                            android:importantForAccessibility="no" />
+                    </FrameLayout>
 
                     <LinearLayout
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="bottom|center_horizontal"
-                        android:layout_marginBottom="1dp"
+                        android:layout_height="3dp"
+                        android:layout_marginTop="1dp"
                         android:orientation="horizontal">
                         <ImageView
                             android:id="@+id/dot_13_0"
@@ -904,39 +1047,51 @@
                             android:visibility="gone"
                             android:importantForAccessibility="no" />
                     </LinearLayout>
-                </FrameLayout>
+                </LinearLayout>
             </LinearLayout>
             <LinearLayout
+                android:id="@+id/week_2"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="0dp"
+                android:layout_weight="1"
                 android:orientation="horizontal">
-                <FrameLayout
+                <LinearLayout
                     android:layout_width="0dp"
-                    android:layout_height="17dp"
-                    android:layout_weight="1">
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
 
-                    <ImageView
-                        android:id="@+id/plan_14"
-                        android:layout_width="17dp"
-                        android:layout_height="17dp"
-                        android:layout_gravity="center"
-                        android:src="@drawable/widget_plan_circle"
-                        android:visibility="gone"
-                        android:importantForAccessibility="no" />
+                    <!-- 계획 동그라미는 두 자리 숫자를 감싸야 해서 숫자 원보다 가로로 넉넉하게 편다 -->
+                    <FrameLayout
+                        android:layout_width="26dp"
+                        android:layout_height="18dp">
 
-                    <TextView
-                        android:id="@+id/cell_14"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:textSize="9sp"
-                        android:textColor="@color/widget_label" />
+                        <TextView
+                            android:id="@+id/cell_14"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:layout_gravity="center"
+                            android:gravity="center"
+                            android:includeFontPadding="false"
+                            android:textSize="10sp"
+                            android:textColor="@color/widget_label" />
+
+                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <ImageView
+                            android:id="@+id/plan_14"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:scaleType="fitXY"
+                            android:src="@drawable/widget_plan_circle"
+                            android:visibility="gone"
+                            android:importantForAccessibility="no" />
+                    </FrameLayout>
 
                     <LinearLayout
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="bottom|center_horizontal"
-                        android:layout_marginBottom="1dp"
+                        android:layout_height="3dp"
+                        android:layout_marginTop="1dp"
                         android:orientation="horizontal">
                         <ImageView
                             android:id="@+id/dot_14_0"
@@ -966,34 +1121,44 @@
                             android:visibility="gone"
                             android:importantForAccessibility="no" />
                     </LinearLayout>
-                </FrameLayout>
-                <FrameLayout
+                </LinearLayout>
+                <LinearLayout
                     android:layout_width="0dp"
-                    android:layout_height="17dp"
-                    android:layout_weight="1">
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
 
-                    <ImageView
-                        android:id="@+id/plan_15"
-                        android:layout_width="17dp"
-                        android:layout_height="17dp"
-                        android:layout_gravity="center"
-                        android:src="@drawable/widget_plan_circle"
-                        android:visibility="gone"
-                        android:importantForAccessibility="no" />
+                    <!-- 계획 동그라미는 두 자리 숫자를 감싸야 해서 숫자 원보다 가로로 넉넉하게 편다 -->
+                    <FrameLayout
+                        android:layout_width="26dp"
+                        android:layout_height="18dp">
 
-                    <TextView
-                        android:id="@+id/cell_15"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:textSize="9sp"
-                        android:textColor="@color/widget_label" />
+                        <TextView
+                            android:id="@+id/cell_15"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:layout_gravity="center"
+                            android:gravity="center"
+                            android:includeFontPadding="false"
+                            android:textSize="10sp"
+                            android:textColor="@color/widget_label" />
+
+                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <ImageView
+                            android:id="@+id/plan_15"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:scaleType="fitXY"
+                            android:src="@drawable/widget_plan_circle"
+                            android:visibility="gone"
+                            android:importantForAccessibility="no" />
+                    </FrameLayout>
 
                     <LinearLayout
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="bottom|center_horizontal"
-                        android:layout_marginBottom="1dp"
+                        android:layout_height="3dp"
+                        android:layout_marginTop="1dp"
                         android:orientation="horizontal">
                         <ImageView
                             android:id="@+id/dot_15_0"
@@ -1023,34 +1188,44 @@
                             android:visibility="gone"
                             android:importantForAccessibility="no" />
                     </LinearLayout>
-                </FrameLayout>
-                <FrameLayout
+                </LinearLayout>
+                <LinearLayout
                     android:layout_width="0dp"
-                    android:layout_height="17dp"
-                    android:layout_weight="1">
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
 
-                    <ImageView
-                        android:id="@+id/plan_16"
-                        android:layout_width="17dp"
-                        android:layout_height="17dp"
-                        android:layout_gravity="center"
-                        android:src="@drawable/widget_plan_circle"
-                        android:visibility="gone"
-                        android:importantForAccessibility="no" />
+                    <!-- 계획 동그라미는 두 자리 숫자를 감싸야 해서 숫자 원보다 가로로 넉넉하게 편다 -->
+                    <FrameLayout
+                        android:layout_width="26dp"
+                        android:layout_height="18dp">
 
-                    <TextView
-                        android:id="@+id/cell_16"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:textSize="9sp"
-                        android:textColor="@color/widget_label" />
+                        <TextView
+                            android:id="@+id/cell_16"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:layout_gravity="center"
+                            android:gravity="center"
+                            android:includeFontPadding="false"
+                            android:textSize="10sp"
+                            android:textColor="@color/widget_label" />
+
+                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <ImageView
+                            android:id="@+id/plan_16"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:scaleType="fitXY"
+                            android:src="@drawable/widget_plan_circle"
+                            android:visibility="gone"
+                            android:importantForAccessibility="no" />
+                    </FrameLayout>
 
                     <LinearLayout
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="bottom|center_horizontal"
-                        android:layout_marginBottom="1dp"
+                        android:layout_height="3dp"
+                        android:layout_marginTop="1dp"
                         android:orientation="horizontal">
                         <ImageView
                             android:id="@+id/dot_16_0"
@@ -1080,34 +1255,44 @@
                             android:visibility="gone"
                             android:importantForAccessibility="no" />
                     </LinearLayout>
-                </FrameLayout>
-                <FrameLayout
+                </LinearLayout>
+                <LinearLayout
                     android:layout_width="0dp"
-                    android:layout_height="17dp"
-                    android:layout_weight="1">
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
 
-                    <ImageView
-                        android:id="@+id/plan_17"
-                        android:layout_width="17dp"
-                        android:layout_height="17dp"
-                        android:layout_gravity="center"
-                        android:src="@drawable/widget_plan_circle"
-                        android:visibility="gone"
-                        android:importantForAccessibility="no" />
+                    <!-- 계획 동그라미는 두 자리 숫자를 감싸야 해서 숫자 원보다 가로로 넉넉하게 편다 -->
+                    <FrameLayout
+                        android:layout_width="26dp"
+                        android:layout_height="18dp">
 
-                    <TextView
-                        android:id="@+id/cell_17"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:textSize="9sp"
-                        android:textColor="@color/widget_label" />
+                        <TextView
+                            android:id="@+id/cell_17"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:layout_gravity="center"
+                            android:gravity="center"
+                            android:includeFontPadding="false"
+                            android:textSize="10sp"
+                            android:textColor="@color/widget_label" />
+
+                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <ImageView
+                            android:id="@+id/plan_17"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:scaleType="fitXY"
+                            android:src="@drawable/widget_plan_circle"
+                            android:visibility="gone"
+                            android:importantForAccessibility="no" />
+                    </FrameLayout>
 
                     <LinearLayout
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="bottom|center_horizontal"
-                        android:layout_marginBottom="1dp"
+                        android:layout_height="3dp"
+                        android:layout_marginTop="1dp"
                         android:orientation="horizontal">
                         <ImageView
                             android:id="@+id/dot_17_0"
@@ -1137,34 +1322,44 @@
                             android:visibility="gone"
                             android:importantForAccessibility="no" />
                     </LinearLayout>
-                </FrameLayout>
-                <FrameLayout
+                </LinearLayout>
+                <LinearLayout
                     android:layout_width="0dp"
-                    android:layout_height="17dp"
-                    android:layout_weight="1">
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
 
-                    <ImageView
-                        android:id="@+id/plan_18"
-                        android:layout_width="17dp"
-                        android:layout_height="17dp"
-                        android:layout_gravity="center"
-                        android:src="@drawable/widget_plan_circle"
-                        android:visibility="gone"
-                        android:importantForAccessibility="no" />
+                    <!-- 계획 동그라미는 두 자리 숫자를 감싸야 해서 숫자 원보다 가로로 넉넉하게 편다 -->
+                    <FrameLayout
+                        android:layout_width="26dp"
+                        android:layout_height="18dp">
 
-                    <TextView
-                        android:id="@+id/cell_18"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:textSize="9sp"
-                        android:textColor="@color/widget_label" />
+                        <TextView
+                            android:id="@+id/cell_18"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:layout_gravity="center"
+                            android:gravity="center"
+                            android:includeFontPadding="false"
+                            android:textSize="10sp"
+                            android:textColor="@color/widget_label" />
+
+                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <ImageView
+                            android:id="@+id/plan_18"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:scaleType="fitXY"
+                            android:src="@drawable/widget_plan_circle"
+                            android:visibility="gone"
+                            android:importantForAccessibility="no" />
+                    </FrameLayout>
 
                     <LinearLayout
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="bottom|center_horizontal"
-                        android:layout_marginBottom="1dp"
+                        android:layout_height="3dp"
+                        android:layout_marginTop="1dp"
                         android:orientation="horizontal">
                         <ImageView
                             android:id="@+id/dot_18_0"
@@ -1194,34 +1389,44 @@
                             android:visibility="gone"
                             android:importantForAccessibility="no" />
                     </LinearLayout>
-                </FrameLayout>
-                <FrameLayout
+                </LinearLayout>
+                <LinearLayout
                     android:layout_width="0dp"
-                    android:layout_height="17dp"
-                    android:layout_weight="1">
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
 
-                    <ImageView
-                        android:id="@+id/plan_19"
-                        android:layout_width="17dp"
-                        android:layout_height="17dp"
-                        android:layout_gravity="center"
-                        android:src="@drawable/widget_plan_circle"
-                        android:visibility="gone"
-                        android:importantForAccessibility="no" />
+                    <!-- 계획 동그라미는 두 자리 숫자를 감싸야 해서 숫자 원보다 가로로 넉넉하게 편다 -->
+                    <FrameLayout
+                        android:layout_width="26dp"
+                        android:layout_height="18dp">
 
-                    <TextView
-                        android:id="@+id/cell_19"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:textSize="9sp"
-                        android:textColor="@color/widget_label" />
+                        <TextView
+                            android:id="@+id/cell_19"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:layout_gravity="center"
+                            android:gravity="center"
+                            android:includeFontPadding="false"
+                            android:textSize="10sp"
+                            android:textColor="@color/widget_label" />
+
+                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <ImageView
+                            android:id="@+id/plan_19"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:scaleType="fitXY"
+                            android:src="@drawable/widget_plan_circle"
+                            android:visibility="gone"
+                            android:importantForAccessibility="no" />
+                    </FrameLayout>
 
                     <LinearLayout
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="bottom|center_horizontal"
-                        android:layout_marginBottom="1dp"
+                        android:layout_height="3dp"
+                        android:layout_marginTop="1dp"
                         android:orientation="horizontal">
                         <ImageView
                             android:id="@+id/dot_19_0"
@@ -1251,34 +1456,44 @@
                             android:visibility="gone"
                             android:importantForAccessibility="no" />
                     </LinearLayout>
-                </FrameLayout>
-                <FrameLayout
+                </LinearLayout>
+                <LinearLayout
                     android:layout_width="0dp"
-                    android:layout_height="17dp"
-                    android:layout_weight="1">
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
 
-                    <ImageView
-                        android:id="@+id/plan_20"
-                        android:layout_width="17dp"
-                        android:layout_height="17dp"
-                        android:layout_gravity="center"
-                        android:src="@drawable/widget_plan_circle"
-                        android:visibility="gone"
-                        android:importantForAccessibility="no" />
+                    <!-- 계획 동그라미는 두 자리 숫자를 감싸야 해서 숫자 원보다 가로로 넉넉하게 편다 -->
+                    <FrameLayout
+                        android:layout_width="26dp"
+                        android:layout_height="18dp">
 
-                    <TextView
-                        android:id="@+id/cell_20"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:textSize="9sp"
-                        android:textColor="@color/widget_label" />
+                        <TextView
+                            android:id="@+id/cell_20"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:layout_gravity="center"
+                            android:gravity="center"
+                            android:includeFontPadding="false"
+                            android:textSize="10sp"
+                            android:textColor="@color/widget_label" />
+
+                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <ImageView
+                            android:id="@+id/plan_20"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:scaleType="fitXY"
+                            android:src="@drawable/widget_plan_circle"
+                            android:visibility="gone"
+                            android:importantForAccessibility="no" />
+                    </FrameLayout>
 
                     <LinearLayout
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="bottom|center_horizontal"
-                        android:layout_marginBottom="1dp"
+                        android:layout_height="3dp"
+                        android:layout_marginTop="1dp"
                         android:orientation="horizontal">
                         <ImageView
                             android:id="@+id/dot_20_0"
@@ -1308,39 +1523,51 @@
                             android:visibility="gone"
                             android:importantForAccessibility="no" />
                     </LinearLayout>
-                </FrameLayout>
+                </LinearLayout>
             </LinearLayout>
             <LinearLayout
+                android:id="@+id/week_3"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="0dp"
+                android:layout_weight="1"
                 android:orientation="horizontal">
-                <FrameLayout
+                <LinearLayout
                     android:layout_width="0dp"
-                    android:layout_height="17dp"
-                    android:layout_weight="1">
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
 
-                    <ImageView
-                        android:id="@+id/plan_21"
-                        android:layout_width="17dp"
-                        android:layout_height="17dp"
-                        android:layout_gravity="center"
-                        android:src="@drawable/widget_plan_circle"
-                        android:visibility="gone"
-                        android:importantForAccessibility="no" />
+                    <!-- 계획 동그라미는 두 자리 숫자를 감싸야 해서 숫자 원보다 가로로 넉넉하게 편다 -->
+                    <FrameLayout
+                        android:layout_width="26dp"
+                        android:layout_height="18dp">
 
-                    <TextView
-                        android:id="@+id/cell_21"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:textSize="9sp"
-                        android:textColor="@color/widget_label" />
+                        <TextView
+                            android:id="@+id/cell_21"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:layout_gravity="center"
+                            android:gravity="center"
+                            android:includeFontPadding="false"
+                            android:textSize="10sp"
+                            android:textColor="@color/widget_label" />
+
+                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <ImageView
+                            android:id="@+id/plan_21"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:scaleType="fitXY"
+                            android:src="@drawable/widget_plan_circle"
+                            android:visibility="gone"
+                            android:importantForAccessibility="no" />
+                    </FrameLayout>
 
                     <LinearLayout
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="bottom|center_horizontal"
-                        android:layout_marginBottom="1dp"
+                        android:layout_height="3dp"
+                        android:layout_marginTop="1dp"
                         android:orientation="horizontal">
                         <ImageView
                             android:id="@+id/dot_21_0"
@@ -1370,34 +1597,44 @@
                             android:visibility="gone"
                             android:importantForAccessibility="no" />
                     </LinearLayout>
-                </FrameLayout>
-                <FrameLayout
+                </LinearLayout>
+                <LinearLayout
                     android:layout_width="0dp"
-                    android:layout_height="17dp"
-                    android:layout_weight="1">
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
 
-                    <ImageView
-                        android:id="@+id/plan_22"
-                        android:layout_width="17dp"
-                        android:layout_height="17dp"
-                        android:layout_gravity="center"
-                        android:src="@drawable/widget_plan_circle"
-                        android:visibility="gone"
-                        android:importantForAccessibility="no" />
+                    <!-- 계획 동그라미는 두 자리 숫자를 감싸야 해서 숫자 원보다 가로로 넉넉하게 편다 -->
+                    <FrameLayout
+                        android:layout_width="26dp"
+                        android:layout_height="18dp">
 
-                    <TextView
-                        android:id="@+id/cell_22"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:textSize="9sp"
-                        android:textColor="@color/widget_label" />
+                        <TextView
+                            android:id="@+id/cell_22"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:layout_gravity="center"
+                            android:gravity="center"
+                            android:includeFontPadding="false"
+                            android:textSize="10sp"
+                            android:textColor="@color/widget_label" />
+
+                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <ImageView
+                            android:id="@+id/plan_22"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:scaleType="fitXY"
+                            android:src="@drawable/widget_plan_circle"
+                            android:visibility="gone"
+                            android:importantForAccessibility="no" />
+                    </FrameLayout>
 
                     <LinearLayout
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="bottom|center_horizontal"
-                        android:layout_marginBottom="1dp"
+                        android:layout_height="3dp"
+                        android:layout_marginTop="1dp"
                         android:orientation="horizontal">
                         <ImageView
                             android:id="@+id/dot_22_0"
@@ -1427,34 +1664,44 @@
                             android:visibility="gone"
                             android:importantForAccessibility="no" />
                     </LinearLayout>
-                </FrameLayout>
-                <FrameLayout
+                </LinearLayout>
+                <LinearLayout
                     android:layout_width="0dp"
-                    android:layout_height="17dp"
-                    android:layout_weight="1">
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
 
-                    <ImageView
-                        android:id="@+id/plan_23"
-                        android:layout_width="17dp"
-                        android:layout_height="17dp"
-                        android:layout_gravity="center"
-                        android:src="@drawable/widget_plan_circle"
-                        android:visibility="gone"
-                        android:importantForAccessibility="no" />
+                    <!-- 계획 동그라미는 두 자리 숫자를 감싸야 해서 숫자 원보다 가로로 넉넉하게 편다 -->
+                    <FrameLayout
+                        android:layout_width="26dp"
+                        android:layout_height="18dp">
 
-                    <TextView
-                        android:id="@+id/cell_23"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:textSize="9sp"
-                        android:textColor="@color/widget_label" />
+                        <TextView
+                            android:id="@+id/cell_23"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:layout_gravity="center"
+                            android:gravity="center"
+                            android:includeFontPadding="false"
+                            android:textSize="10sp"
+                            android:textColor="@color/widget_label" />
+
+                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <ImageView
+                            android:id="@+id/plan_23"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:scaleType="fitXY"
+                            android:src="@drawable/widget_plan_circle"
+                            android:visibility="gone"
+                            android:importantForAccessibility="no" />
+                    </FrameLayout>
 
                     <LinearLayout
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="bottom|center_horizontal"
-                        android:layout_marginBottom="1dp"
+                        android:layout_height="3dp"
+                        android:layout_marginTop="1dp"
                         android:orientation="horizontal">
                         <ImageView
                             android:id="@+id/dot_23_0"
@@ -1484,34 +1731,44 @@
                             android:visibility="gone"
                             android:importantForAccessibility="no" />
                     </LinearLayout>
-                </FrameLayout>
-                <FrameLayout
+                </LinearLayout>
+                <LinearLayout
                     android:layout_width="0dp"
-                    android:layout_height="17dp"
-                    android:layout_weight="1">
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
 
-                    <ImageView
-                        android:id="@+id/plan_24"
-                        android:layout_width="17dp"
-                        android:layout_height="17dp"
-                        android:layout_gravity="center"
-                        android:src="@drawable/widget_plan_circle"
-                        android:visibility="gone"
-                        android:importantForAccessibility="no" />
+                    <!-- 계획 동그라미는 두 자리 숫자를 감싸야 해서 숫자 원보다 가로로 넉넉하게 편다 -->
+                    <FrameLayout
+                        android:layout_width="26dp"
+                        android:layout_height="18dp">
 
-                    <TextView
-                        android:id="@+id/cell_24"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:textSize="9sp"
-                        android:textColor="@color/widget_label" />
+                        <TextView
+                            android:id="@+id/cell_24"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:layout_gravity="center"
+                            android:gravity="center"
+                            android:includeFontPadding="false"
+                            android:textSize="10sp"
+                            android:textColor="@color/widget_label" />
+
+                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <ImageView
+                            android:id="@+id/plan_24"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:scaleType="fitXY"
+                            android:src="@drawable/widget_plan_circle"
+                            android:visibility="gone"
+                            android:importantForAccessibility="no" />
+                    </FrameLayout>
 
                     <LinearLayout
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="bottom|center_horizontal"
-                        android:layout_marginBottom="1dp"
+                        android:layout_height="3dp"
+                        android:layout_marginTop="1dp"
                         android:orientation="horizontal">
                         <ImageView
                             android:id="@+id/dot_24_0"
@@ -1541,34 +1798,44 @@
                             android:visibility="gone"
                             android:importantForAccessibility="no" />
                     </LinearLayout>
-                </FrameLayout>
-                <FrameLayout
+                </LinearLayout>
+                <LinearLayout
                     android:layout_width="0dp"
-                    android:layout_height="17dp"
-                    android:layout_weight="1">
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
 
-                    <ImageView
-                        android:id="@+id/plan_25"
-                        android:layout_width="17dp"
-                        android:layout_height="17dp"
-                        android:layout_gravity="center"
-                        android:src="@drawable/widget_plan_circle"
-                        android:visibility="gone"
-                        android:importantForAccessibility="no" />
+                    <!-- 계획 동그라미는 두 자리 숫자를 감싸야 해서 숫자 원보다 가로로 넉넉하게 편다 -->
+                    <FrameLayout
+                        android:layout_width="26dp"
+                        android:layout_height="18dp">
 
-                    <TextView
-                        android:id="@+id/cell_25"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:textSize="9sp"
-                        android:textColor="@color/widget_label" />
+                        <TextView
+                            android:id="@+id/cell_25"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:layout_gravity="center"
+                            android:gravity="center"
+                            android:includeFontPadding="false"
+                            android:textSize="10sp"
+                            android:textColor="@color/widget_label" />
+
+                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <ImageView
+                            android:id="@+id/plan_25"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:scaleType="fitXY"
+                            android:src="@drawable/widget_plan_circle"
+                            android:visibility="gone"
+                            android:importantForAccessibility="no" />
+                    </FrameLayout>
 
                     <LinearLayout
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="bottom|center_horizontal"
-                        android:layout_marginBottom="1dp"
+                        android:layout_height="3dp"
+                        android:layout_marginTop="1dp"
                         android:orientation="horizontal">
                         <ImageView
                             android:id="@+id/dot_25_0"
@@ -1598,34 +1865,44 @@
                             android:visibility="gone"
                             android:importantForAccessibility="no" />
                     </LinearLayout>
-                </FrameLayout>
-                <FrameLayout
+                </LinearLayout>
+                <LinearLayout
                     android:layout_width="0dp"
-                    android:layout_height="17dp"
-                    android:layout_weight="1">
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
 
-                    <ImageView
-                        android:id="@+id/plan_26"
-                        android:layout_width="17dp"
-                        android:layout_height="17dp"
-                        android:layout_gravity="center"
-                        android:src="@drawable/widget_plan_circle"
-                        android:visibility="gone"
-                        android:importantForAccessibility="no" />
+                    <!-- 계획 동그라미는 두 자리 숫자를 감싸야 해서 숫자 원보다 가로로 넉넉하게 편다 -->
+                    <FrameLayout
+                        android:layout_width="26dp"
+                        android:layout_height="18dp">
 
-                    <TextView
-                        android:id="@+id/cell_26"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:textSize="9sp"
-                        android:textColor="@color/widget_label" />
+                        <TextView
+                            android:id="@+id/cell_26"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:layout_gravity="center"
+                            android:gravity="center"
+                            android:includeFontPadding="false"
+                            android:textSize="10sp"
+                            android:textColor="@color/widget_label" />
+
+                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <ImageView
+                            android:id="@+id/plan_26"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:scaleType="fitXY"
+                            android:src="@drawable/widget_plan_circle"
+                            android:visibility="gone"
+                            android:importantForAccessibility="no" />
+                    </FrameLayout>
 
                     <LinearLayout
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="bottom|center_horizontal"
-                        android:layout_marginBottom="1dp"
+                        android:layout_height="3dp"
+                        android:layout_marginTop="1dp"
                         android:orientation="horizontal">
                         <ImageView
                             android:id="@+id/dot_26_0"
@@ -1655,34 +1932,44 @@
                             android:visibility="gone"
                             android:importantForAccessibility="no" />
                     </LinearLayout>
-                </FrameLayout>
-                <FrameLayout
+                </LinearLayout>
+                <LinearLayout
                     android:layout_width="0dp"
-                    android:layout_height="17dp"
-                    android:layout_weight="1">
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
 
-                    <ImageView
-                        android:id="@+id/plan_27"
-                        android:layout_width="17dp"
-                        android:layout_height="17dp"
-                        android:layout_gravity="center"
-                        android:src="@drawable/widget_plan_circle"
-                        android:visibility="gone"
-                        android:importantForAccessibility="no" />
+                    <!-- 계획 동그라미는 두 자리 숫자를 감싸야 해서 숫자 원보다 가로로 넉넉하게 편다 -->
+                    <FrameLayout
+                        android:layout_width="26dp"
+                        android:layout_height="18dp">
 
-                    <TextView
-                        android:id="@+id/cell_27"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:textSize="9sp"
-                        android:textColor="@color/widget_label" />
+                        <TextView
+                            android:id="@+id/cell_27"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:layout_gravity="center"
+                            android:gravity="center"
+                            android:includeFontPadding="false"
+                            android:textSize="10sp"
+                            android:textColor="@color/widget_label" />
+
+                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <ImageView
+                            android:id="@+id/plan_27"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:scaleType="fitXY"
+                            android:src="@drawable/widget_plan_circle"
+                            android:visibility="gone"
+                            android:importantForAccessibility="no" />
+                    </FrameLayout>
 
                     <LinearLayout
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="bottom|center_horizontal"
-                        android:layout_marginBottom="1dp"
+                        android:layout_height="3dp"
+                        android:layout_marginTop="1dp"
                         android:orientation="horizontal">
                         <ImageView
                             android:id="@+id/dot_27_0"
@@ -1712,39 +1999,51 @@
                             android:visibility="gone"
                             android:importantForAccessibility="no" />
                     </LinearLayout>
-                </FrameLayout>
+                </LinearLayout>
             </LinearLayout>
             <LinearLayout
+                android:id="@+id/week_4"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="0dp"
+                android:layout_weight="1"
                 android:orientation="horizontal">
-                <FrameLayout
+                <LinearLayout
                     android:layout_width="0dp"
-                    android:layout_height="17dp"
-                    android:layout_weight="1">
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
 
-                    <ImageView
-                        android:id="@+id/plan_28"
-                        android:layout_width="17dp"
-                        android:layout_height="17dp"
-                        android:layout_gravity="center"
-                        android:src="@drawable/widget_plan_circle"
-                        android:visibility="gone"
-                        android:importantForAccessibility="no" />
+                    <!-- 계획 동그라미는 두 자리 숫자를 감싸야 해서 숫자 원보다 가로로 넉넉하게 편다 -->
+                    <FrameLayout
+                        android:layout_width="26dp"
+                        android:layout_height="18dp">
 
-                    <TextView
-                        android:id="@+id/cell_28"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:textSize="9sp"
-                        android:textColor="@color/widget_label" />
+                        <TextView
+                            android:id="@+id/cell_28"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:layout_gravity="center"
+                            android:gravity="center"
+                            android:includeFontPadding="false"
+                            android:textSize="10sp"
+                            android:textColor="@color/widget_label" />
+
+                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <ImageView
+                            android:id="@+id/plan_28"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:scaleType="fitXY"
+                            android:src="@drawable/widget_plan_circle"
+                            android:visibility="gone"
+                            android:importantForAccessibility="no" />
+                    </FrameLayout>
 
                     <LinearLayout
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="bottom|center_horizontal"
-                        android:layout_marginBottom="1dp"
+                        android:layout_height="3dp"
+                        android:layout_marginTop="1dp"
                         android:orientation="horizontal">
                         <ImageView
                             android:id="@+id/dot_28_0"
@@ -1774,34 +2073,44 @@
                             android:visibility="gone"
                             android:importantForAccessibility="no" />
                     </LinearLayout>
-                </FrameLayout>
-                <FrameLayout
+                </LinearLayout>
+                <LinearLayout
                     android:layout_width="0dp"
-                    android:layout_height="17dp"
-                    android:layout_weight="1">
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
 
-                    <ImageView
-                        android:id="@+id/plan_29"
-                        android:layout_width="17dp"
-                        android:layout_height="17dp"
-                        android:layout_gravity="center"
-                        android:src="@drawable/widget_plan_circle"
-                        android:visibility="gone"
-                        android:importantForAccessibility="no" />
+                    <!-- 계획 동그라미는 두 자리 숫자를 감싸야 해서 숫자 원보다 가로로 넉넉하게 편다 -->
+                    <FrameLayout
+                        android:layout_width="26dp"
+                        android:layout_height="18dp">
 
-                    <TextView
-                        android:id="@+id/cell_29"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:textSize="9sp"
-                        android:textColor="@color/widget_label" />
+                        <TextView
+                            android:id="@+id/cell_29"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:layout_gravity="center"
+                            android:gravity="center"
+                            android:includeFontPadding="false"
+                            android:textSize="10sp"
+                            android:textColor="@color/widget_label" />
+
+                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <ImageView
+                            android:id="@+id/plan_29"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:scaleType="fitXY"
+                            android:src="@drawable/widget_plan_circle"
+                            android:visibility="gone"
+                            android:importantForAccessibility="no" />
+                    </FrameLayout>
 
                     <LinearLayout
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="bottom|center_horizontal"
-                        android:layout_marginBottom="1dp"
+                        android:layout_height="3dp"
+                        android:layout_marginTop="1dp"
                         android:orientation="horizontal">
                         <ImageView
                             android:id="@+id/dot_29_0"
@@ -1831,34 +2140,44 @@
                             android:visibility="gone"
                             android:importantForAccessibility="no" />
                     </LinearLayout>
-                </FrameLayout>
-                <FrameLayout
+                </LinearLayout>
+                <LinearLayout
                     android:layout_width="0dp"
-                    android:layout_height="17dp"
-                    android:layout_weight="1">
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
 
-                    <ImageView
-                        android:id="@+id/plan_30"
-                        android:layout_width="17dp"
-                        android:layout_height="17dp"
-                        android:layout_gravity="center"
-                        android:src="@drawable/widget_plan_circle"
-                        android:visibility="gone"
-                        android:importantForAccessibility="no" />
+                    <!-- 계획 동그라미는 두 자리 숫자를 감싸야 해서 숫자 원보다 가로로 넉넉하게 편다 -->
+                    <FrameLayout
+                        android:layout_width="26dp"
+                        android:layout_height="18dp">
 
-                    <TextView
-                        android:id="@+id/cell_30"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:textSize="9sp"
-                        android:textColor="@color/widget_label" />
+                        <TextView
+                            android:id="@+id/cell_30"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:layout_gravity="center"
+                            android:gravity="center"
+                            android:includeFontPadding="false"
+                            android:textSize="10sp"
+                            android:textColor="@color/widget_label" />
+
+                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <ImageView
+                            android:id="@+id/plan_30"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:scaleType="fitXY"
+                            android:src="@drawable/widget_plan_circle"
+                            android:visibility="gone"
+                            android:importantForAccessibility="no" />
+                    </FrameLayout>
 
                     <LinearLayout
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="bottom|center_horizontal"
-                        android:layout_marginBottom="1dp"
+                        android:layout_height="3dp"
+                        android:layout_marginTop="1dp"
                         android:orientation="horizontal">
                         <ImageView
                             android:id="@+id/dot_30_0"
@@ -1888,34 +2207,44 @@
                             android:visibility="gone"
                             android:importantForAccessibility="no" />
                     </LinearLayout>
-                </FrameLayout>
-                <FrameLayout
+                </LinearLayout>
+                <LinearLayout
                     android:layout_width="0dp"
-                    android:layout_height="17dp"
-                    android:layout_weight="1">
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
 
-                    <ImageView
-                        android:id="@+id/plan_31"
-                        android:layout_width="17dp"
-                        android:layout_height="17dp"
-                        android:layout_gravity="center"
-                        android:src="@drawable/widget_plan_circle"
-                        android:visibility="gone"
-                        android:importantForAccessibility="no" />
+                    <!-- 계획 동그라미는 두 자리 숫자를 감싸야 해서 숫자 원보다 가로로 넉넉하게 편다 -->
+                    <FrameLayout
+                        android:layout_width="26dp"
+                        android:layout_height="18dp">
 
-                    <TextView
-                        android:id="@+id/cell_31"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:textSize="9sp"
-                        android:textColor="@color/widget_label" />
+                        <TextView
+                            android:id="@+id/cell_31"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:layout_gravity="center"
+                            android:gravity="center"
+                            android:includeFontPadding="false"
+                            android:textSize="10sp"
+                            android:textColor="@color/widget_label" />
+
+                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <ImageView
+                            android:id="@+id/plan_31"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:scaleType="fitXY"
+                            android:src="@drawable/widget_plan_circle"
+                            android:visibility="gone"
+                            android:importantForAccessibility="no" />
+                    </FrameLayout>
 
                     <LinearLayout
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="bottom|center_horizontal"
-                        android:layout_marginBottom="1dp"
+                        android:layout_height="3dp"
+                        android:layout_marginTop="1dp"
                         android:orientation="horizontal">
                         <ImageView
                             android:id="@+id/dot_31_0"
@@ -1945,34 +2274,44 @@
                             android:visibility="gone"
                             android:importantForAccessibility="no" />
                     </LinearLayout>
-                </FrameLayout>
-                <FrameLayout
+                </LinearLayout>
+                <LinearLayout
                     android:layout_width="0dp"
-                    android:layout_height="17dp"
-                    android:layout_weight="1">
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
 
-                    <ImageView
-                        android:id="@+id/plan_32"
-                        android:layout_width="17dp"
-                        android:layout_height="17dp"
-                        android:layout_gravity="center"
-                        android:src="@drawable/widget_plan_circle"
-                        android:visibility="gone"
-                        android:importantForAccessibility="no" />
+                    <!-- 계획 동그라미는 두 자리 숫자를 감싸야 해서 숫자 원보다 가로로 넉넉하게 편다 -->
+                    <FrameLayout
+                        android:layout_width="26dp"
+                        android:layout_height="18dp">
 
-                    <TextView
-                        android:id="@+id/cell_32"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:textSize="9sp"
-                        android:textColor="@color/widget_label" />
+                        <TextView
+                            android:id="@+id/cell_32"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:layout_gravity="center"
+                            android:gravity="center"
+                            android:includeFontPadding="false"
+                            android:textSize="10sp"
+                            android:textColor="@color/widget_label" />
+
+                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <ImageView
+                            android:id="@+id/plan_32"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:scaleType="fitXY"
+                            android:src="@drawable/widget_plan_circle"
+                            android:visibility="gone"
+                            android:importantForAccessibility="no" />
+                    </FrameLayout>
 
                     <LinearLayout
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="bottom|center_horizontal"
-                        android:layout_marginBottom="1dp"
+                        android:layout_height="3dp"
+                        android:layout_marginTop="1dp"
                         android:orientation="horizontal">
                         <ImageView
                             android:id="@+id/dot_32_0"
@@ -2002,34 +2341,44 @@
                             android:visibility="gone"
                             android:importantForAccessibility="no" />
                     </LinearLayout>
-                </FrameLayout>
-                <FrameLayout
+                </LinearLayout>
+                <LinearLayout
                     android:layout_width="0dp"
-                    android:layout_height="17dp"
-                    android:layout_weight="1">
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
 
-                    <ImageView
-                        android:id="@+id/plan_33"
-                        android:layout_width="17dp"
-                        android:layout_height="17dp"
-                        android:layout_gravity="center"
-                        android:src="@drawable/widget_plan_circle"
-                        android:visibility="gone"
-                        android:importantForAccessibility="no" />
+                    <!-- 계획 동그라미는 두 자리 숫자를 감싸야 해서 숫자 원보다 가로로 넉넉하게 편다 -->
+                    <FrameLayout
+                        android:layout_width="26dp"
+                        android:layout_height="18dp">
 
-                    <TextView
-                        android:id="@+id/cell_33"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:textSize="9sp"
-                        android:textColor="@color/widget_label" />
+                        <TextView
+                            android:id="@+id/cell_33"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:layout_gravity="center"
+                            android:gravity="center"
+                            android:includeFontPadding="false"
+                            android:textSize="10sp"
+                            android:textColor="@color/widget_label" />
+
+                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <ImageView
+                            android:id="@+id/plan_33"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:scaleType="fitXY"
+                            android:src="@drawable/widget_plan_circle"
+                            android:visibility="gone"
+                            android:importantForAccessibility="no" />
+                    </FrameLayout>
 
                     <LinearLayout
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="bottom|center_horizontal"
-                        android:layout_marginBottom="1dp"
+                        android:layout_height="3dp"
+                        android:layout_marginTop="1dp"
                         android:orientation="horizontal">
                         <ImageView
                             android:id="@+id/dot_33_0"
@@ -2059,34 +2408,44 @@
                             android:visibility="gone"
                             android:importantForAccessibility="no" />
                     </LinearLayout>
-                </FrameLayout>
-                <FrameLayout
+                </LinearLayout>
+                <LinearLayout
                     android:layout_width="0dp"
-                    android:layout_height="17dp"
-                    android:layout_weight="1">
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
 
-                    <ImageView
-                        android:id="@+id/plan_34"
-                        android:layout_width="17dp"
-                        android:layout_height="17dp"
-                        android:layout_gravity="center"
-                        android:src="@drawable/widget_plan_circle"
-                        android:visibility="gone"
-                        android:importantForAccessibility="no" />
+                    <!-- 계획 동그라미는 두 자리 숫자를 감싸야 해서 숫자 원보다 가로로 넉넉하게 편다 -->
+                    <FrameLayout
+                        android:layout_width="26dp"
+                        android:layout_height="18dp">
 
-                    <TextView
-                        android:id="@+id/cell_34"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:textSize="9sp"
-                        android:textColor="@color/widget_label" />
+                        <TextView
+                            android:id="@+id/cell_34"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:layout_gravity="center"
+                            android:gravity="center"
+                            android:includeFontPadding="false"
+                            android:textSize="10sp"
+                            android:textColor="@color/widget_label" />
+
+                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <ImageView
+                            android:id="@+id/plan_34"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:scaleType="fitXY"
+                            android:src="@drawable/widget_plan_circle"
+                            android:visibility="gone"
+                            android:importantForAccessibility="no" />
+                    </FrameLayout>
 
                     <LinearLayout
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="bottom|center_horizontal"
-                        android:layout_marginBottom="1dp"
+                        android:layout_height="3dp"
+                        android:layout_marginTop="1dp"
                         android:orientation="horizontal">
                         <ImageView
                             android:id="@+id/dot_34_0"
@@ -2116,39 +2475,51 @@
                             android:visibility="gone"
                             android:importantForAccessibility="no" />
                     </LinearLayout>
-                </FrameLayout>
+                </LinearLayout>
             </LinearLayout>
             <LinearLayout
+                android:id="@+id/week_5"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="0dp"
+                android:layout_weight="1"
                 android:orientation="horizontal">
-                <FrameLayout
+                <LinearLayout
                     android:layout_width="0dp"
-                    android:layout_height="17dp"
-                    android:layout_weight="1">
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
 
-                    <ImageView
-                        android:id="@+id/plan_35"
-                        android:layout_width="17dp"
-                        android:layout_height="17dp"
-                        android:layout_gravity="center"
-                        android:src="@drawable/widget_plan_circle"
-                        android:visibility="gone"
-                        android:importantForAccessibility="no" />
+                    <!-- 계획 동그라미는 두 자리 숫자를 감싸야 해서 숫자 원보다 가로로 넉넉하게 편다 -->
+                    <FrameLayout
+                        android:layout_width="26dp"
+                        android:layout_height="18dp">
 
-                    <TextView
-                        android:id="@+id/cell_35"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:textSize="9sp"
-                        android:textColor="@color/widget_label" />
+                        <TextView
+                            android:id="@+id/cell_35"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:layout_gravity="center"
+                            android:gravity="center"
+                            android:includeFontPadding="false"
+                            android:textSize="10sp"
+                            android:textColor="@color/widget_label" />
+
+                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <ImageView
+                            android:id="@+id/plan_35"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:scaleType="fitXY"
+                            android:src="@drawable/widget_plan_circle"
+                            android:visibility="gone"
+                            android:importantForAccessibility="no" />
+                    </FrameLayout>
 
                     <LinearLayout
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="bottom|center_horizontal"
-                        android:layout_marginBottom="1dp"
+                        android:layout_height="3dp"
+                        android:layout_marginTop="1dp"
                         android:orientation="horizontal">
                         <ImageView
                             android:id="@+id/dot_35_0"
@@ -2178,34 +2549,44 @@
                             android:visibility="gone"
                             android:importantForAccessibility="no" />
                     </LinearLayout>
-                </FrameLayout>
-                <FrameLayout
+                </LinearLayout>
+                <LinearLayout
                     android:layout_width="0dp"
-                    android:layout_height="17dp"
-                    android:layout_weight="1">
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
 
-                    <ImageView
-                        android:id="@+id/plan_36"
-                        android:layout_width="17dp"
-                        android:layout_height="17dp"
-                        android:layout_gravity="center"
-                        android:src="@drawable/widget_plan_circle"
-                        android:visibility="gone"
-                        android:importantForAccessibility="no" />
+                    <!-- 계획 동그라미는 두 자리 숫자를 감싸야 해서 숫자 원보다 가로로 넉넉하게 편다 -->
+                    <FrameLayout
+                        android:layout_width="26dp"
+                        android:layout_height="18dp">
 
-                    <TextView
-                        android:id="@+id/cell_36"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:textSize="9sp"
-                        android:textColor="@color/widget_label" />
+                        <TextView
+                            android:id="@+id/cell_36"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:layout_gravity="center"
+                            android:gravity="center"
+                            android:includeFontPadding="false"
+                            android:textSize="10sp"
+                            android:textColor="@color/widget_label" />
+
+                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <ImageView
+                            android:id="@+id/plan_36"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:scaleType="fitXY"
+                            android:src="@drawable/widget_plan_circle"
+                            android:visibility="gone"
+                            android:importantForAccessibility="no" />
+                    </FrameLayout>
 
                     <LinearLayout
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="bottom|center_horizontal"
-                        android:layout_marginBottom="1dp"
+                        android:layout_height="3dp"
+                        android:layout_marginTop="1dp"
                         android:orientation="horizontal">
                         <ImageView
                             android:id="@+id/dot_36_0"
@@ -2235,34 +2616,44 @@
                             android:visibility="gone"
                             android:importantForAccessibility="no" />
                     </LinearLayout>
-                </FrameLayout>
-                <FrameLayout
+                </LinearLayout>
+                <LinearLayout
                     android:layout_width="0dp"
-                    android:layout_height="17dp"
-                    android:layout_weight="1">
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
 
-                    <ImageView
-                        android:id="@+id/plan_37"
-                        android:layout_width="17dp"
-                        android:layout_height="17dp"
-                        android:layout_gravity="center"
-                        android:src="@drawable/widget_plan_circle"
-                        android:visibility="gone"
-                        android:importantForAccessibility="no" />
+                    <!-- 계획 동그라미는 두 자리 숫자를 감싸야 해서 숫자 원보다 가로로 넉넉하게 편다 -->
+                    <FrameLayout
+                        android:layout_width="26dp"
+                        android:layout_height="18dp">
 
-                    <TextView
-                        android:id="@+id/cell_37"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:textSize="9sp"
-                        android:textColor="@color/widget_label" />
+                        <TextView
+                            android:id="@+id/cell_37"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:layout_gravity="center"
+                            android:gravity="center"
+                            android:includeFontPadding="false"
+                            android:textSize="10sp"
+                            android:textColor="@color/widget_label" />
+
+                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <ImageView
+                            android:id="@+id/plan_37"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:scaleType="fitXY"
+                            android:src="@drawable/widget_plan_circle"
+                            android:visibility="gone"
+                            android:importantForAccessibility="no" />
+                    </FrameLayout>
 
                     <LinearLayout
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="bottom|center_horizontal"
-                        android:layout_marginBottom="1dp"
+                        android:layout_height="3dp"
+                        android:layout_marginTop="1dp"
                         android:orientation="horizontal">
                         <ImageView
                             android:id="@+id/dot_37_0"
@@ -2292,34 +2683,44 @@
                             android:visibility="gone"
                             android:importantForAccessibility="no" />
                     </LinearLayout>
-                </FrameLayout>
-                <FrameLayout
+                </LinearLayout>
+                <LinearLayout
                     android:layout_width="0dp"
-                    android:layout_height="17dp"
-                    android:layout_weight="1">
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
 
-                    <ImageView
-                        android:id="@+id/plan_38"
-                        android:layout_width="17dp"
-                        android:layout_height="17dp"
-                        android:layout_gravity="center"
-                        android:src="@drawable/widget_plan_circle"
-                        android:visibility="gone"
-                        android:importantForAccessibility="no" />
+                    <!-- 계획 동그라미는 두 자리 숫자를 감싸야 해서 숫자 원보다 가로로 넉넉하게 편다 -->
+                    <FrameLayout
+                        android:layout_width="26dp"
+                        android:layout_height="18dp">
 
-                    <TextView
-                        android:id="@+id/cell_38"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:textSize="9sp"
-                        android:textColor="@color/widget_label" />
+                        <TextView
+                            android:id="@+id/cell_38"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:layout_gravity="center"
+                            android:gravity="center"
+                            android:includeFontPadding="false"
+                            android:textSize="10sp"
+                            android:textColor="@color/widget_label" />
+
+                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <ImageView
+                            android:id="@+id/plan_38"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:scaleType="fitXY"
+                            android:src="@drawable/widget_plan_circle"
+                            android:visibility="gone"
+                            android:importantForAccessibility="no" />
+                    </FrameLayout>
 
                     <LinearLayout
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="bottom|center_horizontal"
-                        android:layout_marginBottom="1dp"
+                        android:layout_height="3dp"
+                        android:layout_marginTop="1dp"
                         android:orientation="horizontal">
                         <ImageView
                             android:id="@+id/dot_38_0"
@@ -2349,34 +2750,44 @@
                             android:visibility="gone"
                             android:importantForAccessibility="no" />
                     </LinearLayout>
-                </FrameLayout>
-                <FrameLayout
+                </LinearLayout>
+                <LinearLayout
                     android:layout_width="0dp"
-                    android:layout_height="17dp"
-                    android:layout_weight="1">
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
 
-                    <ImageView
-                        android:id="@+id/plan_39"
-                        android:layout_width="17dp"
-                        android:layout_height="17dp"
-                        android:layout_gravity="center"
-                        android:src="@drawable/widget_plan_circle"
-                        android:visibility="gone"
-                        android:importantForAccessibility="no" />
+                    <!-- 계획 동그라미는 두 자리 숫자를 감싸야 해서 숫자 원보다 가로로 넉넉하게 편다 -->
+                    <FrameLayout
+                        android:layout_width="26dp"
+                        android:layout_height="18dp">
 
-                    <TextView
-                        android:id="@+id/cell_39"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:textSize="9sp"
-                        android:textColor="@color/widget_label" />
+                        <TextView
+                            android:id="@+id/cell_39"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:layout_gravity="center"
+                            android:gravity="center"
+                            android:includeFontPadding="false"
+                            android:textSize="10sp"
+                            android:textColor="@color/widget_label" />
+
+                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <ImageView
+                            android:id="@+id/plan_39"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:scaleType="fitXY"
+                            android:src="@drawable/widget_plan_circle"
+                            android:visibility="gone"
+                            android:importantForAccessibility="no" />
+                    </FrameLayout>
 
                     <LinearLayout
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="bottom|center_horizontal"
-                        android:layout_marginBottom="1dp"
+                        android:layout_height="3dp"
+                        android:layout_marginTop="1dp"
                         android:orientation="horizontal">
                         <ImageView
                             android:id="@+id/dot_39_0"
@@ -2406,34 +2817,44 @@
                             android:visibility="gone"
                             android:importantForAccessibility="no" />
                     </LinearLayout>
-                </FrameLayout>
-                <FrameLayout
+                </LinearLayout>
+                <LinearLayout
                     android:layout_width="0dp"
-                    android:layout_height="17dp"
-                    android:layout_weight="1">
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
 
-                    <ImageView
-                        android:id="@+id/plan_40"
-                        android:layout_width="17dp"
-                        android:layout_height="17dp"
-                        android:layout_gravity="center"
-                        android:src="@drawable/widget_plan_circle"
-                        android:visibility="gone"
-                        android:importantForAccessibility="no" />
+                    <!-- 계획 동그라미는 두 자리 숫자를 감싸야 해서 숫자 원보다 가로로 넉넉하게 편다 -->
+                    <FrameLayout
+                        android:layout_width="26dp"
+                        android:layout_height="18dp">
 
-                    <TextView
-                        android:id="@+id/cell_40"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:textSize="9sp"
-                        android:textColor="@color/widget_label" />
+                        <TextView
+                            android:id="@+id/cell_40"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:layout_gravity="center"
+                            android:gravity="center"
+                            android:includeFontPadding="false"
+                            android:textSize="10sp"
+                            android:textColor="@color/widget_label" />
+
+                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <ImageView
+                            android:id="@+id/plan_40"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:scaleType="fitXY"
+                            android:src="@drawable/widget_plan_circle"
+                            android:visibility="gone"
+                            android:importantForAccessibility="no" />
+                    </FrameLayout>
 
                     <LinearLayout
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="bottom|center_horizontal"
-                        android:layout_marginBottom="1dp"
+                        android:layout_height="3dp"
+                        android:layout_marginTop="1dp"
                         android:orientation="horizontal">
                         <ImageView
                             android:id="@+id/dot_40_0"
@@ -2463,34 +2884,44 @@
                             android:visibility="gone"
                             android:importantForAccessibility="no" />
                     </LinearLayout>
-                </FrameLayout>
-                <FrameLayout
+                </LinearLayout>
+                <LinearLayout
                     android:layout_width="0dp"
-                    android:layout_height="17dp"
-                    android:layout_weight="1">
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
 
-                    <ImageView
-                        android:id="@+id/plan_41"
-                        android:layout_width="17dp"
-                        android:layout_height="17dp"
-                        android:layout_gravity="center"
-                        android:src="@drawable/widget_plan_circle"
-                        android:visibility="gone"
-                        android:importantForAccessibility="no" />
+                    <!-- 계획 동그라미는 두 자리 숫자를 감싸야 해서 숫자 원보다 가로로 넉넉하게 편다 -->
+                    <FrameLayout
+                        android:layout_width="26dp"
+                        android:layout_height="18dp">
 
-                    <TextView
-                        android:id="@+id/cell_41"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:textSize="9sp"
-                        android:textColor="@color/widget_label" />
+                        <TextView
+                            android:id="@+id/cell_41"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:layout_gravity="center"
+                            android:gravity="center"
+                            android:includeFontPadding="false"
+                            android:textSize="10sp"
+                            android:textColor="@color/widget_label" />
+
+                        <!-- 오늘(노란 칠) 위에도 보이도록 숫자보다 뒤에 둔다 -->
+                        <ImageView
+                            android:id="@+id/plan_41"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:scaleType="fitXY"
+                            android:src="@drawable/widget_plan_circle"
+                            android:visibility="gone"
+                            android:importantForAccessibility="no" />
+                    </FrameLayout>
 
                     <LinearLayout
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="bottom|center_horizontal"
-                        android:layout_marginBottom="1dp"
+                        android:layout_height="3dp"
+                        android:layout_marginTop="1dp"
                         android:orientation="horizontal">
                         <ImageView
                             android:id="@+id/dot_41_0"
@@ -2520,9 +2951,10 @@
                             android:visibility="gone"
                             android:importantForAccessibility="no" />
                     </LinearLayout>
-                </FrameLayout>
+                </LinearLayout>
             </LinearLayout>
         </LinearLayout>
+
     </LinearLayout>
 
     <LinearLayout
@@ -2532,60 +2964,169 @@
         android:layout_marginStart="12dp"
         android:orientation="vertical">
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical">
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:id="@+id/small_goal_title"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:textColor="@color/widget_icon"
+                android:maxLines="1"
+                android:text="이번 달 목표" />
+
+            <TextView
+                android:id="@+id/small_goal_count"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:textSize="11sp"
+                android:textColor="@color/widget_label"
+                android:maxLines="1" />
+        </LinearLayout>
+
+        <!-- 게이지는 사람별 색으로 나눠 칠해야 해서(마이캘린더와 같게) Provider 가 비트맵으로 그린다.
+             RemoteViews 로는 자식 뷰 폭을 비율로 못 줘서 ProgressBar·LinearLayout 으로는 색을 못 나눈다. -->
+        <ImageView
+            android:id="@+id/small_gauge"
+            android:layout_width="match_parent"
+            android:layout_height="8dp"
+            android:layout_marginTop="6dp"
+            android:scaleType="fitXY"
+            android:importantForAccessibility="no" />
 
         <TextView
-            android:id="@+id/small_goal_title"
-            android:layout_width="0dp"
+            android:id="@+id/small_progress_text"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:textSize="12sp"
-            android:textStyle="bold"
-            android:textColor="@color/widget_icon"
-            android:maxLines="1"
-            android:text="이번 달 목표" />
-
-        <TextView
-            android:id="@+id/small_goal_count"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="6dp"
+            android:layout_marginTop="5dp"
             android:textSize="11sp"
-            android:textColor="@color/widget_label"
+            android:textColor="@color/widget_icon"
             android:maxLines="1" />
-    </LinearLayout>
 
-    <ProgressBar
-        android:id="@+id/small_gauge"
-        style="?android:attr/progressBarStyleHorizontal"
-        android:layout_width="match_parent"
-        android:layout_height="8dp"
-        android:layout_marginTop="6dp"
-        android:max="100"
-        android:progress="0"
-        android:progressDrawable="@drawable/widget_gauge" />
+        <TextView
+            android:id="@+id/small_savings"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:textSize="10sp"
+            android:textColor="@color/widget_label"
+            android:maxLines="2" />
 
-    <TextView
-        android:id="@+id/small_progress_text"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="5dp"
-        android:textSize="11sp"
-        android:textColor="@color/widget_icon"
-        android:maxLines="1" />
+        <!-- 남는 세로 공간 — 범례를 달력 바닥선에 맞춰 내린다(오른쪽 아래가 비어 보이던 것).
+             RemoteViews 는 일반 View 를 못 써서 빈 FrameLayout 으로 민다. -->
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
 
-    <TextView
-        android:id="@+id/small_savings"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
-        android:textSize="10sp"
-        android:textColor="@color/widget_label"
-        android:maxLines="2" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+            <LinearLayout
+                android:id="@+id/small_legend_0"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:visibility="gone">
 
+                <ImageView
+                    android:id="@+id/small_legend_dot_0"
+                    android:layout_width="7dp"
+                    android:layout_height="7dp"
+                    android:src="@drawable/widget_dot"
+                    android:importantForAccessibility="no" />
+
+                <TextView
+                    android:id="@+id/small_legend_text_0"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:textSize="10sp"
+                    android:textColor="@color/widget_label"
+                    android:maxLines="1" />
+            </LinearLayout>
+            <LinearLayout
+                android:id="@+id/small_legend_1"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:visibility="gone">
+
+                <ImageView
+                    android:id="@+id/small_legend_dot_1"
+                    android:layout_width="7dp"
+                    android:layout_height="7dp"
+                    android:src="@drawable/widget_dot"
+                    android:importantForAccessibility="no" />
+
+                <TextView
+                    android:id="@+id/small_legend_text_1"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:textSize="10sp"
+                    android:textColor="@color/widget_label"
+                    android:maxLines="1" />
+            </LinearLayout>
+            <LinearLayout
+                android:id="@+id/small_legend_2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:visibility="gone">
+
+                <ImageView
+                    android:id="@+id/small_legend_dot_2"
+                    android:layout_width="7dp"
+                    android:layout_height="7dp"
+                    android:src="@drawable/widget_dot"
+                    android:importantForAccessibility="no" />
+
+                <TextView
+                    android:id="@+id/small_legend_text_2"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:textSize="10sp"
+                    android:textColor="@color/widget_label"
+                    android:maxLines="1" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:layout_width="11dp"
+                    android:layout_height="11dp"
+                    android:src="@drawable/widget_plan_circle"
+                    android:importantForAccessibility="no" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="3dp"
+                    android:text="계획"
+                    android:textSize="10sp"
+                    android:textColor="@color/widget_label" />
+            </LinearLayout>
+        </LinearLayout>
     </LinearLayout>
 </LinearLayout>

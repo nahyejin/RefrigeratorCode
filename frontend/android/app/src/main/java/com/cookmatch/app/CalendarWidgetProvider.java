@@ -5,7 +5,11 @@ import android.appwidget.AppWidgetManager;
 import android.appwidget.AppWidgetProvider;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.RectF;
 import android.net.Uri;
 import android.view.View;
 import android.widget.RemoteViews;
@@ -59,6 +63,9 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
     private static final int[] LEGEND_IDS = { R.id.legend_0, R.id.legend_1, R.id.legend_2, R.id.legend_3 };
     private static final int[] LEGEND_DOT_IDS = { R.id.legend_dot_0, R.id.legend_dot_1, R.id.legend_dot_2, R.id.legend_dot_3 };
     private static final int[] LEGEND_TEXT_IDS = { R.id.legend_text_0, R.id.legend_text_1, R.id.legend_text_2, R.id.legend_text_3 };
+    private static final int[] SMALL_LEGEND_IDS = { R.id.small_legend_0, R.id.small_legend_1, R.id.small_legend_2 };
+    private static final int[] SMALL_LEGEND_DOT_IDS = { R.id.small_legend_dot_0, R.id.small_legend_dot_1, R.id.small_legend_dot_2 };
+    private static final int[] SMALL_LEGEND_TEXT_IDS = { R.id.small_legend_text_0, R.id.small_legend_text_1, R.id.small_legend_text_2 };
 
     /** 4×4 하위 클래스가 덮어쓴다. */
     protected boolean isBig() {
@@ -103,7 +110,7 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         views.setTextViewText(res(prefix, "goal_count"),
                 goal != null ? String.format(Locale.KOREA, "목표 %d회", goal) : "목표 미설정");
         int pct = (goal == null || goal <= 0) ? 0 : Math.min(100, Math.round(done * 100f / goal));
-        views.setProgressBar(res(prefix, "gauge"), 100, pct, false);
+        views.setImageViewBitmap(res(prefix, "gauge"), gaugeBitmap(snap, goal));
         views.setTextViewText(res(prefix, "progress_text"), goal != null
                 ? String.format(Locale.KOREA, "%d회 / %d회 달성 (%d%%)", done, goal, pct)
                 : String.format(Locale.KOREA, "%d회 완료", done));
@@ -119,6 +126,7 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
             drawDayList(views, snap, "tomorrow");
         } else {
             views.setTextViewText(R.id.calendar_title, String.format(Locale.KOREA, "%d년 %d월", year, month));
+            drawLegend(views, snap);
         }
 
         // 위젯 전체를 누르면 앱의 요리 캘린더로 — 위젯에서 할 수 있는 유일한 동작이다.
@@ -146,6 +154,10 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         int todayDay = today.get(Calendar.DAY_OF_MONTH);
         String monthPrefix = String.format(Locale.KOREA, "%d-%02d-",
                 today.get(Calendar.YEAR), today.get(Calendar.MONTH) + 1);
+
+        // 주 줄은 남는 높이를 나눠 갖는다 — 5주로 끝나는 달은 6번째 줄을 숨겨 칸을 키운다.
+        views.setViewVisibility(isBig() ? R.id.big_week_5 : R.id.week_5,
+                lead + lastDay > 35 ? View.VISIBLE : View.GONE);
 
         for (int i = 0; i < cells.length; i++) {
             int dayNum = i - lead + 1;
@@ -184,18 +196,56 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         }
     }
 
+    /**
+     * 목표 게이지 — 마이캘린더처럼 **식구별 색으로 나눠** 칠한다(많이 한 사람부터 앞에서 채운다).
+     *
+     * RemoteViews 는 자식 뷰의 폭을 비율로 줄 수 없어서(ProgressBar 는 색이 하나뿐) 비트맵으로 그려
+     * ImageView 에 넣는다. 가로는 고정 폭으로 그리고 ImageView 가 fitXY 로 늘린다.
+     */
+    private Bitmap gaugeBitmap(JSONObject snap, Integer goal) {
+        final int W = 600, H = 16;
+        Bitmap bmp = Bitmap.createBitmap(W, H, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bmp);
+        Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        float radius = H / 2f;
+
+        paint.setColor(0xFFE6E6EA); // track
+        canvas.drawRoundRect(new RectF(0, 0, W, H), radius, radius, paint);
+
+        if (goal == null || goal <= 0) return bmp;
+
+        JSONArray members = snap == null ? null : snap.optJSONArray("members");
+        float x = 0f;
+        for (int i = 0; members != null && i < members.length(); i++) {
+            JSONObject m = members.optJSONObject(i);
+            if (m == null) continue;
+            float w = Math.min(W - x, W * (m.optInt("count", 0) / (float) goal));
+            if (w <= 0) continue;
+            paint.setColor(parseColor(m.optString("color"), 0xFFFFD600));
+            // 막대 전체가 둥근 모양이라, 각 조각은 사각형으로 그리되 양 끝만 둥글게 덮는다.
+            canvas.drawRect(x, 0, x + w, H, paint);
+            if (x == 0f) canvas.drawRoundRect(new RectF(0, 0, Math.min(W, w + radius), H), radius, radius, paint);
+            x += w;
+            if (x >= W) break;
+        }
+        return bmp;
+    }
+
     /** 식구 범례 — 색·이름·횟수(많이 한 순서, 4명까지) */
     private void drawLegend(RemoteViews views, JSONObject snap) {
+        int[] ids = isBig() ? LEGEND_IDS : SMALL_LEGEND_IDS;
+        int[] dotIds = isBig() ? LEGEND_DOT_IDS : SMALL_LEGEND_DOT_IDS;
+        int[] textIds = isBig() ? LEGEND_TEXT_IDS : SMALL_LEGEND_TEXT_IDS;
         JSONArray members = snap == null ? null : snap.optJSONArray("members");
-        for (int i = 0; i < LEGEND_IDS.length; i++) {
+        for (int i = 0; i < ids.length; i++) {
             JSONObject m = members == null || i >= members.length() ? null : members.optJSONObject(i);
             if (m == null) {
-                views.setViewVisibility(LEGEND_IDS[i], View.GONE);
+                views.setViewVisibility(ids[i], View.GONE);
                 continue;
             }
-            views.setViewVisibility(LEGEND_IDS[i], View.VISIBLE);
-            views.setInt(LEGEND_DOT_IDS[i], "setColorFilter", parseColor(m.optString("color"), Color.GRAY));
-            views.setTextViewText(LEGEND_TEXT_IDS[i],
+            views.setViewVisibility(ids[i], View.VISIBLE);
+            views.setInt(dotIds[i], "setColorFilter", parseColor(m.optString("color"), Color.GRAY));
+            views.setTextViewText(textIds[i],
                     String.format(Locale.KOREA, "%s %d", m.optString("name", "식구"), m.optInt("count", 0)));
         }
     }
