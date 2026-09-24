@@ -11849,3 +11849,12 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 ### iOS 1.0.2 빌드 8 업로드 (2026-09-23 17:22, 맥)
 - 윈도우 커밋 `c673fefb`까지 반영(1.0.3 수정 모음 — 위젯 입구 버그·뒤로=창 닫기·타일 버튼·재료 찍기 위젯·캘린더 칸 구분). `npm run build` → `npx cap sync ios` → pbxproj App·CookMatchWidget 빌드 7 → **8**(버전 1.0.2 유지 — 1.0.2 가 심사 대기 중이라 새 버전을 못 만들어 빌드만 교체) → `xcodebuild archive` → `-exportArchive`(destination upload)로 업로드 성공, `CookMatchWidget.appex` 포함 확인.
 - 남은 것: App Store Connect 에서 1.0.2 제출 취소 → 빌드 처리 끝나면 빌드 8 로 교체 → 다시 심사 제출(「심사 대기 중」 상태 확인).
+
+## 2026-09-24
+
+### 아이폰 스와이프 뒤로 가기 — 뒤로가기 버튼이 있는 화면에서만 (다음 iOS 버전)
+- 사용자 지적: 내 냉장고·냉장고 요리·요즘 인기 같은 **탭 화면에서도** 왼쪽 끝을 밀면 이전 탭으로 넘어간다. 원래 의도는 요즘 인기에서 검색해 들어간 화면처럼 **위에 뒤로가기 버튼이 있는 화면에서만**.
+- 원인: 2026-09-22 에 웹뷰 전체 제스처(`allowsBackForwardNavigationGestures`)를 켰는데, 탭 이동도 방문 기록에 쌓여 어디서든 기록을 따라 뒤로 갔다.
+- 수정: [SceneDelegate.swift](frontend/ios/App/App/SceneDelegate.swift) 에서 웹뷰 제스처를 끄고, 웹 쪽 [utils/edgeSwipeBack.ts](frontend/src/utils/edgeSwipeBack.ts) 가 왼쪽 끝(24px 안)에서 시작해 오른쪽으로 70px 이상 민 손짓을 받아 **화면에 떠 있는 [BackButton](frontend/src/components/ui/BackButton.tsx) 중 가장 나중에 뜬 것의 onClick** 을 부른다(BackButton 이 떠 있는 동안만 등록 — 탭 화면엔 없으니 아무 일도 없다). 창 안의 뒤로가기면 창 안에서 한 단계 뒤로. iOS 앱에서만 켜진다(안드로이드는 시스템 뒤로 제스처).
+- 확인 못 한 것: 아이폰 앱에서만 동작해 윈도우에서 시험 못 함 — 다음 iOS 빌드(1.0.3 / 빌드 9)에서 확인. 네이티브(SceneDelegate)가 바뀌어 **앱 업데이트가 필요**하다. 웹 코드는 안드로이드·웹에서는 아무 일도 하지 않는다.
+

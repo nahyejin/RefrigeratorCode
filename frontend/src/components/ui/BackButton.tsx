@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useEdgeSwipeBack } from '../../utils/edgeSwipeBack';
 
 interface BackButtonProps {
   onClick: () => void;
@@ -23,7 +24,10 @@ const BackButton: React.FC<BackButtonProps> = ({
   absolute = true,
   label = '뒤로가기',
   style,
-}) => (
+}) => {
+  // 아이폰: 이 버튼이 떠 있는 화면에서만 왼쪽 끝 스와이프 = 이 버튼 누르기(utils/edgeSwipeBack)
+  useEdgeSwipeBack(onClick);
+  return (
   <button
     type="button"
     aria-label={label}
@@ -73,6 +77,7 @@ const BackButton: React.FC<BackButtonProps> = ({
       />
     </svg>
   </button>
-);
+  );
+};
 
 export default BackButton;
