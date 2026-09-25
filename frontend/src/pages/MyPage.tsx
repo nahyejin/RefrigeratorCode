@@ -1350,14 +1350,15 @@ const MyPage: React.FC = () => {
   // =====================
 
   return (
-    <div className="bg-white min-h-screen max-w-[400px] mx-auto pb-24 relative" style={{ boxSizing: 'border-box' }}>
+    <div className="bg-white min-h-screen max-w-[400px] mx-auto relative" style={{ boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
       {/* 상단 GNB 는 AppRouter 의 TopNavBar 하나만 쓴다.
           예전에는 마이페이지가 똑같은 헤더를 하나 더 그리고 있어 두 개가 겹쳐 있었고,
           복제본은 폭이 400px 로 제한돼 있어 넓은 화면에서 정렬도 달라 보였다. */}
       {/* 다른 그룹원이 즐겨찾기·완료·기록을 방금 했을 수 있는데, 예전엔
           이 화면을 나갔다 다시 들어와야만 반영됐다 — 당겨서 새로고침으로
           그 자리에서 바로 다시 불러올 수 있게 한다. */}
-      <PullToRefresh onRefresh={refreshMyPage}>
+      {/* 세로로 쌓아 남는 높이를 채운다 — 맨 아래 회색 「불편한 점이 있으셨나요」 칸이 화면 끝까지 이어지게(아래 참고) */}
+      <PullToRefresh onRefresh={refreshMyPage} style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
 
       {/* 프로필 영역.
           예전에는 위 130px + 아래 70px 을 비우고 가운데에 닉네임·이메일·노란 버튼만
@@ -1645,12 +1646,13 @@ const MyPage: React.FC = () => {
           아래 바로가기 버튼들)과 같은 흰 배경 카드라 하나로 붙어 보이던
           것을 분리한다(실사용 지적: "우리식구 모두/나의 것만 카드영역에
           같이 잡혀있어서 헷갈리네", 2026-09-14). */}
-      <div style={{ margin: '24px 0 0', padding: '16px 14px', background: 'var(--surface-sub)' }}>
+      {/* 화면 아래 끝까지 채운다(flex: 1) — 내용이 짧으면(비로그인 등) 회색 칸이 중간에 떠 있고 그 아래가 하얗게
+          비어 보였다(2026-09-26 지적 — 이 칸은 바닥에 붙어 있어야 한다). 페이지 전체의 아래 여백(pb-24, 하단 메뉴
+          피하기용)도 이 칸 안으로 옮겼다 — 밖에 두면 회색 아래에 흰 띠가 남는다. 아래 여백 150px 는 하단 메뉴 + 요리 AI
+          버튼(오른쪽 아래) 높이 — 맨 끝까지 내렸을 때 인스타그램 아이디·방침 링크가 버튼에 가리지 않게. */}
+      <div style={{ margin: '24px 0 0', padding: '16px 14px calc(150px + env(safe-area-inset-bottom, 0px))', background: 'var(--surface-sub)', flex: 1 }}>
         <ContactBox />
-      </div>
-
-      <div style={{ marginTop: 20 }}>
-        {/* 쿠팡 광고 - 페이지 맨 끝에 도달했을 때만 표시 */}
+        {/* 쿠팡 광고 - 페이지 맨 끝에 도달했을 때만 표시(광고 단위 ID 가 없으면 아무것도 안 그린다) */}
         <BottomCoupangAd showCondition={true} />
       </div>
       </PullToRefresh>

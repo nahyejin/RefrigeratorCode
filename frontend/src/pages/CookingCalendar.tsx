@@ -2111,11 +2111,6 @@ const CookingCalendar: React.FC = () => {
           </div>
         )}
       </div>
-      {/* 쿠팡 배너 — 월 목표 카드 바로 아래(2026-09-22). 처음엔 화면 맨 끝에 뒀는데 거기까지 내려 보는
-          사람이 드물어, 캘린더를 열면 바로 보이는 자리로 옮겼다. 낮게(50px) 둬서 달력을 밀어내지 않는다. */}
-      <div style={{ margin: '0 14px' }}>
-        <CoupangDynamicBanner height={50} style={{ marginTop: 10, marginBottom: 2 }} />
-      </div>
 
       </>)}
 
@@ -3502,6 +3497,12 @@ const CookingCalendar: React.FC = () => {
             **일 보기에서는 숨긴다** — 메모는 "한 주" 단위라 하루만 보고 있을 때는
             의미가 없고 화면만 길어진다(2026-09-20). 주·월 보기에서만 보인다. */}
         {viewMode !== 'day' && diaryCardNode}
+      </div>
+
+      {/* 쿠팡 배너 — 화면 **맨 끝**, 달력 카드 **바깥**. 2026-09-22 에 월 목표 카드 바로 아래(화면 가운데)로 올렸더니
+          목표 카드와 달력 사이에 광고가 끼어 "엄청 헷갈린다"는 지적(2026-09-26)으로 다시 맨 아래로. 위 내용과 넉넉히 띄운다. */}
+      <div style={{ margin: '40px 14px 0' }}>
+        <CoupangDynamicBanner height={50} style={{ marginBottom: 8 }} />
       </div>
       </div>
       </PullToRefresh>

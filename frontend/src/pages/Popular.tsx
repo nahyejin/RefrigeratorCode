@@ -2295,8 +2295,9 @@ const Popular = () => {
         </section>
         
         {/* 쿠팡 다이내믹 배너 — 화면 맨 끝(2026-09-22). 전의 BottomCoupangAd 는 광고 단위 ID 환경변수가
-            없어 실제로는 아무것도 안 그리고 있었다. */}
-        <CoupangDynamicBanner height={50} style={{ marginTop: 24, marginBottom: 24 }} />
+            없어 실제로는 아무것도 안 그리고 있었다.
+            바로 위가 키워드 검색창이라 24px 로 붙여 두니 검색 결과·콘텐츠처럼 보였다(2026-09-26 지적) → 크게 띄운다. */}
+        <CoupangDynamicBanner height={50} style={{ marginTop: 64, marginBottom: 24 }} />
       </div>
       {toast && (
         <Toast message={toast} />

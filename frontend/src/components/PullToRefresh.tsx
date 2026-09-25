@@ -4,6 +4,8 @@ interface PullToRefreshProps {
   /** 당겨서 새로고침 시 호출. 끝날 때까지 스피너를 계속 보여준다. */
   onRefresh: () => Promise<void> | void;
   children: React.ReactNode;
+  /** 바깥 틀에 더할 스타일 — 마이페이지처럼 내용이 화면보다 짧을 때 남는 높이를 채우게 할 때 쓴다 */
+  style?: React.CSSProperties;
 }
 
 const PULL_THRESHOLD = 64; // 이 이상 당기면 손을 떼는 순간 새로고침
@@ -23,7 +25,7 @@ const RESISTANCE = 0.5; // 당긴 거리보다 실제로는 덜 움직이게(고
  * 마이페이지)에만 적용한다 — 내 냉장고/냉장고요리처럼 내가 직접 바꾼
  * 것만 반영되면 되는 화면은 이미 즉시 반영되고 있어 필요성이 낮다.
  */
-const PullToRefresh: React.FC<PullToRefreshProps> = ({ onRefresh, children }) => {
+const PullToRefresh: React.FC<PullToRefreshProps> = ({ onRefresh, children, style }) => {
   const [pullDistance, setPullDistance] = React.useState(0);
   const [refreshing, setRefreshing] = React.useState(false);
   /**
@@ -148,7 +150,7 @@ const PullToRefresh: React.FC<PullToRefreshProps> = ({ onRefresh, children }) =>
         : '당겨서 새로고침';
 
   return (
-    <div ref={containerRef} style={{ position: 'relative' }}>
+    <div ref={containerRef} style={{ position: 'relative', ...style }}>
       <div
         aria-hidden
         style={{
@@ -208,6 +210,8 @@ const PullToRefresh: React.FC<PullToRefreshProps> = ({ onRefresh, children }) =>
         style={{
           transform: `translateY(${offset}px)`,
           transition: pullingRef.current ? 'none' : 'transform 0.25s ease',
+          // 바깥 틀이 세로로 늘어나게(style 에 flex) 받았으면 안쪽도 같이 늘어나 자식이 남는 높이를 쓸 수 있게 한다
+          ...(style?.display === 'flex' ? { flex: 1, display: 'flex', flexDirection: 'column' as const } : {}),
         }}
       >
         {children}
