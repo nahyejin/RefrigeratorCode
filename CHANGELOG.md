@@ -11858,3 +11858,12 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 - 수정: [SceneDelegate.swift](frontend/ios/App/App/SceneDelegate.swift) 에서 웹뷰 제스처를 끄고, 웹 쪽 [utils/edgeSwipeBack.ts](frontend/src/utils/edgeSwipeBack.ts) 가 왼쪽 끝(24px 안)에서 시작해 오른쪽으로 70px 이상 민 손짓을 받아 **화면에 떠 있는 [BackButton](frontend/src/components/ui/BackButton.tsx) 중 가장 나중에 뜬 것의 onClick** 을 부른다(BackButton 이 떠 있는 동안만 등록 — 탭 화면엔 없으니 아무 일도 없다). 창 안의 뒤로가기면 창 안에서 한 단계 뒤로. iOS 앱에서만 켜진다(안드로이드는 시스템 뒤로 제스처).
 - 확인 못 한 것: 아이폰 앱에서만 동작해 윈도우에서 시험 못 함 — 다음 iOS 빌드(1.0.3 / 빌드 9)에서 확인. 네이티브(SceneDelegate)가 바뀌어 **앱 업데이트가 필요**하다. 웹 코드는 안드로이드·웹에서는 아무 일도 하지 않는다.
 
+## 2026-09-26
+
+### 매일 배치를 아침 7시 한 줄 작업으로 — 끝나면 평일엔 컴퓨터 자동 종료
+- 사용자 요청: 아침 7시에 출근하며 컴퓨터를 켜 두고 나가니, **회사에 있는 동안** 배치가 돌고 끝나면 꺼지게. 밤·새벽엔 컴퓨터가 꺼져 있다.
+- 확인한 문제: 작업마다 시각이 따로(크롤러 22:00 · LLM 05:00 · 사전 06:30 · 알림 07:00)라, 컴퓨터가 꺼져 있던 날은 켜는 순간(09-26 07:09) 네 개가 한꺼번에 돌았다. 크롤러는 22:00 시작 → 보통 02:20 끝(인플루언서 약 4시간)인데 도중에 끊긴 날이 많았다. 또 옛 작업 「냉털이수집기251108」(21:00)이 같은 크롤러를 **중복 실행**해 한쪽은 「이미 실행 중」으로 끝났다.
+- [run_daily_chain.bat](run_daily_chain.bat): 07:00 에 유통기한 알림 → 크롤러 → LLM 재료 추출 → 사전 반영을 **차례로**(각자 원래 배치 파일·로그 그대로, 한 단계가 실패해도 다음 단계 진행) → **평일에만** 끝난 뒤 5분 예고 후 `shutdown /s`(취소 `shutdown /a`, 아예 안 끄려면 `no_shutdown.flag`). 기록은 `daily_chain.log`. 크롤러 걸리는 시간이 날마다 달라 정해진 시각에 끄지 않고 마지막 단계가 끝난 뒤 끈다.
+- 작업 스케줄러: `CookMatch-DailyChain`(매일 07:00, 놓치면 켜질 때 바로, 최대 12시간) 등록, `CookMatch-ExpiryPush`·`CookMatch-WeeklyCrawler`·`CookMatch-DailyLLMIngredients`·`CookMatch-DictionarySync` 는 사용 안 함(삭제 아님). **「냉털이수집기251108」은 관리자 권한으로 만든 작업이라 끄지 못함 — 사용자가 직접 꺼야 한다.**
+- 유통기한 알림은 원래대로 07:00(맨 앞). 사전 반영의 일요일 대체재 재생성·git push 도 그대로.
+
