@@ -7,6 +7,7 @@
 - 기능 설명이 아니라 **「이거 완전 나잖아」 하고 공유하고 싶어지는 니즈 상황**. 쿡매치 핵심 기능(KBF)마다 한 편.
 - 3~5초 안에 상황이 끝나고, 나머지는 자연스럽게 흘러간다. 마지막 1초는 지정한 대상으로 천천히 다가간다.
 - 웃음은 슬랩스틱이 아니라 **무표정한 과장 하나**에서. 인물은 단정하게, 집은 정돈되게.
+- **대사는 상황을 설명하지 않는다**(2026-09-29 지적 — 「아까랑 똑같네」처럼 해설하는 혼잣말은 어색하다). 실제 사람처럼 짧게 흘리고 끝을 흐리며, 설명 대신 반응(「헐」「뭐야…」「먹을 게 없네」)을, 가능하면 혼잣말보다 옆 사람에게 하는 말로. 어색할 바에는 대사 없는 버전을 쓴다.
 
 ## 한글·자막이 화면에 나오지 않게
 - 프롬프트는 **영어**. 한국어는 AUDIO 칸의 **소리로만 나오는 대사**에만 있다.
@@ -27,6 +28,7 @@ LIGHT: Soft daylight from a window plus gentle warm practical lights. Warm white
 CAMERA: Eye level, 35–50mm lens feel, subtle handheld breathing, shallow depth of field. Medium close-up on the person by default. Real-time motion only.
 PROPS: Every object is plain and unmarked. Food packaging comes in solid pastel colors, containers are clear or single-colored, paper items are blank, appliances carry no brand marks. Phones are held with the screen facing away from the camera or lie face down; if a screen must face us, it glows as a soft blurred color.
 SOUND: Natural room sound only (fridge hum, rustling bags, sizzling). No music. The spoken words in AUDIO are heard as voice only.
+SPEECH: Casual, everyday spoken Korean, delivered the way people really talk when nobody is watching: short, half under the breath, trailing off, a small sigh or laugh around the words. Never performed for the camera, never clearly announced like an ad line.
 ENDING: In the last second the camera slowly pushes in on the subject named in LAST SECOND and holds there.
 ```
 
@@ -48,6 +50,7 @@ LIGHT: Soft daylight from a window plus gentle warm practical lights. Warm white
 CAMERA: Eye level, 35–50mm lens feel, subtle handheld breathing, shallow depth of field. Medium close-up on the person by default. Real-time motion only.
 PROPS: Every object is plain and unmarked. Food packaging comes in solid pastel colors, containers are clear or single-colored, paper items are blank, appliances carry no brand marks. Phones are held with the screen facing away from the camera or lie face down; if a screen must face us, it glows as a soft blurred color.
 SOUND: Natural room sound only (fridge hum, rustling bags, sizzling). No music. The spoken words in AUDIO are heard as voice only.
+SPEECH: Casual, everyday spoken Korean, delivered the way people really talk when nobody is watching: short, half under the breath, trailing off, a small sigh or laugh around the words. Never performed for the camera, never clearly announced like an ad line.
 ENDING: In the last second the camera slowly pushes in on the subject named in LAST SECOND and holds there.
 
 [CAST]
@@ -60,7 +63,7 @@ Bright apartment kitchen in the evening, white cabinets, light oak floor, a smal
 She opens the fridge and stares inside for a beat, then closes it. She takes two steps away, stops, turns back and opens it again, as if something new might have appeared. The same half-empty shelves. She holds the door open while cold air softly spills out, her face completely deadpan.
 
 [AUDIO]
-Fridge hum and the soft thump of the door seal. She mutters flatly in Korean: "...아까랑 똑같네."
+Fridge hum and the soft thump of the door seal. She sighs and mutters under her breath in Korean: "아 진짜... 먹을 게 없네."
 
 [LAST SECOND]
 Her hand drifting toward the phone lying face down on the counter.
@@ -84,6 +87,7 @@ LIGHT: Soft daylight from a window plus gentle warm practical lights. Warm white
 CAMERA: Eye level, 35–50mm lens feel, subtle handheld breathing, shallow depth of field. Medium close-up on the person by default. Real-time motion only.
 PROPS: Every object is plain and unmarked. Food packaging comes in solid pastel colors, containers are clear or single-colored, paper items are blank, appliances carry no brand marks. Phones are held with the screen facing away from the camera or lie face down; if a screen must face us, it glows as a soft blurred color.
 SOUND: Natural room sound only (fridge hum, rustling bags, sizzling). No music. The spoken words in AUDIO are heard as voice only.
+SPEECH: Casual, everyday spoken Korean, delivered the way people really talk when nobody is watching: short, half under the breath, trailing off, a small sigh or laugh around the words. Never performed for the camera, never clearly announced like an ad line.
 ENDING: In the last second the camera slowly pushes in on the subject named in LAST SECOND and holds there.
 
 [CAST]
@@ -96,7 +100,7 @@ Older apartment kitchen in the afternoon, cherry-wood cabinets, cream tiled back
 She slides open the crisper drawer and pulls out a cucumber. It droops. Holding it by one end, she watches it bend limply. Without any expression she slowly bends it into a U shape between two fingers and studies it.
 
 [AUDIO]
-The crisper drawer sliding. She mutters quietly in Korean: "너... 언제 이렇게 됐니."
+The crisper drawer sliding. She lets out a small disbelieving laugh and mutters in Korean: "헐... 이거 언제 샀지. 완전 흐물흐물하네."
 
 [LAST SECOND]
 The cucumber bent into a U shape in her fingers.
@@ -120,6 +124,7 @@ LIGHT: Soft daylight from a window plus gentle warm practical lights. Warm white
 CAMERA: Eye level, 35–50mm lens feel, subtle handheld breathing, shallow depth of field. Medium close-up on the person by default. Real-time motion only.
 PROPS: Every object is plain and unmarked. Food packaging comes in solid pastel colors, containers are clear or single-colored, paper items are blank, appliances carry no brand marks. Phones are held with the screen facing away from the camera or lie face down; if a screen must face us, it glows as a soft blurred color.
 SOUND: Natural room sound only (fridge hum, rustling bags, sizzling). No music. The spoken words in AUDIO are heard as voice only.
+SPEECH: Casual, everyday spoken Korean, delivered the way people really talk when nobody is watching: short, half under the breath, trailing off, a small sigh or laugh around the words. Never performed for the camera, never clearly announced like an ad line.
 ENDING: In the last second the camera slowly pushes in on the subject named in LAST SECOND and holds there.
 
 [CAST]
@@ -132,7 +137,7 @@ Bright neighborhood supermarket, refrigerated aisle under soft even light, shelv
 He stands in the aisle holding two identical white tofu packs, one in each hand. He glances at his phone held between them with the screen turned away from us, squints, looks back at the packs, then slowly raises and lowers them like a balance scale.
 
 [AUDIO]
-Soft store ambience and a faint freezer hum. He murmurs in Korean: "집에 두부... 있었나, 없었나."
+Soft store ambience and a faint freezer hum. He murmurs to himself in Korean, trailing off: "두부 있었던 거 같은데..."
 
 [LAST SECOND]
 The two tofu packs in his hands.
@@ -156,6 +161,7 @@ LIGHT: Soft daylight from a window plus gentle warm practical lights. Warm white
 CAMERA: Eye level, 35–50mm lens feel, subtle handheld breathing, shallow depth of field. Medium close-up on the person by default. Real-time motion only.
 PROPS: Every object is plain and unmarked. Food packaging comes in solid pastel colors, containers are clear or single-colored, paper items are blank, appliances carry no brand marks. Phones are held with the screen facing away from the camera or lie face down; if a screen must face us, it glows as a soft blurred color.
 SOUND: Natural room sound only (fridge hum, rustling bags, sizzling). No music. The spoken words in AUDIO are heard as voice only.
+SPEECH: Casual, everyday spoken Korean, delivered the way people really talk when nobody is watching: short, half under the breath, trailing off, a small sigh or laugh around the words. Never performed for the camera, never clearly announced like an ad line.
 ENDING: In the last second the camera slowly pushes in on the subject named in LAST SECOND and holds there.
 
 [CAST]
@@ -168,7 +174,7 @@ New officetel kitchen, all-white surfaces, stainless sink, a small dining table 
 She unpacks a plain paper grocery bag and takes out a bunch of green onions. She opens the fridge door to put it away and finds two more bunches already there, one slightly wilted. She pauses, takes them out, and holds all three together like a bouquet, looking at them.
 
 [AUDIO]
-Paper bag rustling, fridge door opening. She says softly in Korean: "대파만... 세 단이네."
+Paper bag rustling, fridge door opening. She laughs once through her nose and says softly in Korean: "아 뭐야... 대파 있었네."
 
 [LAST SECOND]
 The three bunches of green onions held together like a bouquet.
@@ -192,6 +198,7 @@ LIGHT: Soft daylight from a window plus gentle warm practical lights. Warm white
 CAMERA: Eye level, 35–50mm lens feel, subtle handheld breathing, shallow depth of field. Medium close-up on the person by default. Real-time motion only.
 PROPS: Every object is plain and unmarked. Food packaging comes in solid pastel colors, containers are clear or single-colored, paper items are blank, appliances carry no brand marks. Phones are held with the screen facing away from the camera or lie face down; if a screen must face us, it glows as a soft blurred color.
 SOUND: Natural room sound only (fridge hum, rustling bags, sizzling). No music. The spoken words in AUDIO are heard as voice only.
+SPEECH: Casual, everyday spoken Korean, delivered the way people really talk when nobody is watching: short, half under the breath, trailing off, a small sigh or laugh around the words. Never performed for the camera, never clearly announced like an ad line.
 ENDING: In the last second the camera slowly pushes in on the subject named in LAST SECOND and holds there.
 
 [CAST]
@@ -204,7 +211,7 @@ Compact studio kitchen, single induction burner, small wooden counter with a jar
 Both of his hands are coated in flour and sticky dough, held up like a surgeon's. A phone leans against a jar with its screen facing away from us. He tries to tap it with a knuckle, then with his pinky, and nothing happens. Very seriously, he leans down and brings his nose toward the screen.
 
 [AUDIO]
-Soft kitchen ambience. He mutters in Korean: "잠깐만... 코로 해야 되나."
+Soft kitchen ambience. He mutters in Korean, annoyed: "아 왜 안 눌려..."
 
 [LAST SECOND]
 His face inches from the phone, nose almost touching it.
@@ -228,6 +235,7 @@ LIGHT: Soft daylight from a window plus gentle warm practical lights. Warm white
 CAMERA: Eye level, 35–50mm lens feel, subtle handheld breathing, shallow depth of field. Medium close-up on the person by default. Real-time motion only.
 PROPS: Every object is plain and unmarked. Food packaging comes in solid pastel colors, containers are clear or single-colored, paper items are blank, appliances carry no brand marks. Phones are held with the screen facing away from the camera or lie face down; if a screen must face us, it glows as a soft blurred color.
 SOUND: Natural room sound only (fridge hum, rustling bags, sizzling). No music. The spoken words in AUDIO are heard as voice only.
+SPEECH: Casual, everyday spoken Korean, delivered the way people really talk when nobody is watching: short, half under the breath, trailing off, a small sigh or laugh around the words. Never performed for the camera, never clearly announced like an ad line.
 ENDING: In the last second the camera slowly pushes in on the subject named in LAST SECOND and holds there.
 
 [CAST]
@@ -240,7 +248,7 @@ Small apartment kitchen at dinner time, a pot simmering on the stove, warm penda
 He holds a spoon heaped with salt over the simmering pot. He glances at a phone propped on the counter with its screen turned away from us, then back at the spoon. His hand freezes mid-air, and with a tiny tremor he tips the salt off grain by grain.
 
 [AUDIO]
-Gentle simmering. He mutters in Korean: "소금 적당히... 적당히가 얼마만큼인데."
+Gentle simmering. He mutters in Korean, half reading, half complaining: "적당히...? 적당히가 얼만데."
 
 [LAST SECOND]
 The spoon of salt hovering over the pot.
@@ -264,6 +272,7 @@ LIGHT: Soft daylight from a window plus gentle warm practical lights. Warm white
 CAMERA: Eye level, 35–50mm lens feel, subtle handheld breathing, shallow depth of field. Medium close-up on the person by default. Real-time motion only.
 PROPS: Every object is plain and unmarked. Food packaging comes in solid pastel colors, containers are clear or single-colored, paper items are blank, appliances carry no brand marks. Phones are held with the screen facing away from the camera or lie face down; if a screen must face us, it glows as a soft blurred color.
 SOUND: Natural room sound only (fridge hum, rustling bags, sizzling). No music. The spoken words in AUDIO are heard as voice only.
+SPEECH: Casual, everyday spoken Korean, delivered the way people really talk when nobody is watching: short, half under the breath, trailing off, a small sigh or laugh around the words. Never performed for the camera, never clearly announced like an ad line.
 ENDING: In the last second the camera slowly pushes in on the subject named in LAST SECOND and holds there.
 
 [CAST]
@@ -276,7 +285,7 @@ Living room in the evening, a low fabric sofa, warm floor lamp, a plant in the c
 They sit side by side on the sofa. She scrolls her phone with the screen turned away from us. He turns to her and asks; she answers without looking up. After her last answer he freezes and stares straight ahead, defeated.
 
 [AUDIO]
-Quiet room tone. Spoken in Korean at a natural pace. He: "뭐 먹을래?" She: "아무거나." He: "김치찌개?" She: "그건 별로."
+Quiet room tone. Spoken in Korean at a relaxed, natural pace. He: "뭐 먹을래?" She, without looking up: "아무거나." He: "그럼 김치찌개?" She, after a beat: "음... 그건 좀."
 
 [LAST SECOND]
 His blank, defeated face.
@@ -300,6 +309,7 @@ LIGHT: Soft daylight from a window plus gentle warm practical lights. Warm white
 CAMERA: Eye level, 35–50mm lens feel, subtle handheld breathing, shallow depth of field. Medium close-up on the person by default. Real-time motion only.
 PROPS: Every object is plain and unmarked. Food packaging comes in solid pastel colors, containers are clear or single-colored, paper items are blank, appliances carry no brand marks. Phones are held with the screen facing away from the camera or lie face down; if a screen must face us, it glows as a soft blurred color.
 SOUND: Natural room sound only (fridge hum, rustling bags, sizzling). No music. The spoken words in AUDIO are heard as voice only.
+SPEECH: Casual, everyday spoken Korean, delivered the way people really talk when nobody is watching: short, half under the breath, trailing off, a small sigh or laugh around the words. Never performed for the camera, never clearly announced like an ad line.
 ENDING: In the last second the camera slowly pushes in on the subject named in LAST SECOND and holds there.
 
 [CAST]
@@ -312,7 +322,7 @@ Apartment hallway leading from the kitchen to the front door, warm evening light
 He walks carefully toward the front door carrying a tall stack of clear plastic takeout containers that reaches up to his chin. The tower sways. He stops, rebalances it, then turns his head back toward the kitchen, where his wife is out of frame.
 
 [AUDIO]
-Plastic creaking softly. He calls back in Korean: "여보... 우리 이번 달 집밥 몇 번 했어?"
+Plastic creaking softly. He calls back toward the kitchen in Korean, half laughing: "여보, 이거 다 이번 달 거야?"
 
 [LAST SECOND]
 The wobbling tower of takeout containers.
