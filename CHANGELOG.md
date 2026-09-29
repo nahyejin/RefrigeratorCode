@@ -11910,3 +11910,7 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 - Claude 데스크톱 앱 설정 「Connect new sessions to Remote Control」 → **켬**(사용자 승인). 이 컴퓨터에서 새로 여는 대화는 처음부터 폰·claude.ai 에서 이어 쓸 수 있다.
 - 재시작(윈도우 업데이트 등) 뒤에는 앱이 꺼져 있을 수 있어, 시작 프로그램 폴더에 앱 바로가기(`explorer.exe shell:AppsFolder\Claude_pzs8sxrjxfjjc!Claude`) 추가 — 로그인하면 앱이 켜진다(로그인은 사용자 몫).
 
+### 유튜브 크롤러 API 키 복구 — 키가 무효가 아니라 옮겨 적을 때 글자가 바뀌어 있었다
+- 09-20 부터 유튜브 크롤러가 매번 `API key not valid` 로 1분 만에 수집 없이 끝났다(09-29 점검에서 발견). 사용자가 Google Cloud 콘솔(프로젝트 RefrigeratorCode, 키 이름 youtube-crawler, 제한 YouTube Data API v3 — 정상)에서 키를 확인해 보니, `backend/.env` 의 키가 **비슷한 글자 두 개가 바뀌어** 있었다(알파벳 O ↔ 숫자 0, 대문자 I ↔ 소문자 l). 새 키 발급 없이 `backend/.env`·`.env` 를 콘솔의 키로 맞춤(둘 다 git 제외 파일). 루트 `.env` 에 남아 있던 다른 옛 키도 같은 키로 통일 — 크롤러는 `backend/.env` 를 먼저 읽는다(db_env).
+- 확인: 새 키로 YouTube search API 직접 호출 성공 → 유튜브 크롤러만 따로 실행(아침 배치의 네이버 크롤러와 겹치지 않게) → **1분 만에 레시피 130건 저장, API 오류 0**. 내일 07:00 배치부터 유튜브도 함께 수집.
+
