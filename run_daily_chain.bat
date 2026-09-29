@@ -10,7 +10,7 @@ rem    한꺼번에 몰려 돌았고, 크롤러는 끄는 시각에 도중에 �
 rem    달라서(약 4시간) 정해진 시각에 끄면 또 끊긴다 → 차례로 돌리고 **마지막이 끝난 뒤** 끈다.
 rem
 rem  순서: 유통기한 알림(아침에 가야 해서 맨 앞) → 크롤러 → LLM 재료 추출 → 사전 반영
-rem  컴퓨터 끄기는 평일 19:00 run_evening_sleep.bat(최대 절전)이 맡는다.
+rem  끝나면 sleep_when_idle.ps1 이 10:00 이후·안 쓰고 있을 때 최대 절전(출근길 원격 접속 시간 확보).
 rem  각 단계는 원래 배치 파일을 그대로 부른다 — 로그도 각자 원래 파일에 남는다. 이 파일 기록은 daily_chain.log.
 rem  한 단계가 실패해도 다음 단계는 돈다. 변수 이름은 CHAIN_ 을 붙인다 — 불려 가는 배치들이 LOG·PY 를 덮어쓴다.
 rem
@@ -35,5 +35,6 @@ call apply_dictionary_additions_daily.bat
 
 echo [%date% %time%] ===== 매일 배치 끝 ===== >> %CHAIN_LOG%
 
-rem 끝나도 끄지 않는다 — 평일 저녁 7시 run_evening_sleep.bat 이 최대 절전으로 보낸다(2026-09-26 변경:
-rem 아침 7시에 켜지고 저녁 6시에 꺼지게). 예전엔 여기서 평일에 5분 뒤 종료했다.
+rem 끝나면 안 쓰고 있을 때 최대 절전(2026-09-29): 출근길(~10:00)엔 원격 접속을 위해 깨어 있다가 잠든다.
+rem 자세한 규칙은 sleep_when_idle.ps1. 퇴근길은 평일 16:00 CookMatch-EveningWake 가 다시 깨운다.
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0sleep_when_idle.ps1" -NotBefore 10:00 -FromChain
