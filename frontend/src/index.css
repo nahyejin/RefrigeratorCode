@@ -1012,6 +1012,12 @@ a:focus-visible,
 .loading-dots > span:nth-child(1) { animation-delay: -0.24s; }
 .loading-dots > span:nth-child(2) { animation-delay: -0.12s; }
 .loading-dots > span:nth-child(3) { animation-delay: 0s; }
+/* 멈춘 점 — 당겨서 새로고침에서 당기는 동안(점이 차오르기만 하고 튀지 않음).
+   움직임 줄이기 설정의 `!important` 애니메이션보다 구체적이어야 이긴다. */
+.loading-dots.is-static > span {
+  animation: none !important;
+  transition: opacity .12s linear, transform .12s linear;
+}
 
 /* 확인/안내 팝업 등장 */
 @keyframes dialog-pop {

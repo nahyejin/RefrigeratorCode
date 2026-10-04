@@ -104,7 +104,7 @@ const PullToRefresh: React.FC<PullToRefreshProps> = ({ onRefresh, children, styl
             setJustDone(true);
             updatePullDistance(0);
             // 완료 표시는 잠깐만. 계속 남아 있으면 그것대로 거슬린다.
-            setTimeout(() => setJustDone(false), 700);
+            setTimeout(() => setJustDone(false), 350);
           }, wait);
         });
       } else {
@@ -132,22 +132,17 @@ const PullToRefresh: React.FC<PullToRefreshProps> = ({ onRefresh, children, styl
    * "새로고침 완료" 글자가 화면 위에 겹쳐 깔렸다. 하나로 묶으면 어긋날 수 없다.
    */
   const offset = justDone ? PULL_THRESHOLD : pullDistance;
-  const indicatorOpacity = justDone ? 1 : Math.min(pullDistance / PULL_THRESHOLD, 1);
-  const shouldSpin = refreshing || (!justDone && pullDistance >= PULL_THRESHOLD);
-
   /**
-   * 지금 무슨 상태인지 **글자로** 말해 준다.
+   * 표시는 앱 공통 로딩과 같은 **노란 점 3개**(`.loading-dots`)다.
    *
-   * 화살표만 있으면 "당기라는 건지, 되고 있다는 건지, 끝났다는 건지" 를 알 수
-   * 없다. 아이콘 하나에 세 가지 뜻을 다 실을 수는 없다.
+   * 전에는 회전 화살표 + 「당겨서 새로고침 / 새로고침 중... / 새로고침 완료」 글자였는데,
+   * 앱의 다른 로딩(점 3개)과 따로 놀고 안 예쁘다는 지적(2026-10-04)으로 바꿨다.
+   *  - 당기는 중: 당긴 만큼 점이 왼쪽부터 하나씩 차오른다 → 다 차면 놓으면 된다는 뜻
+   *  - 새로고침 중: 다른 화면 로딩과 똑같이 튄다
+   *  - 끝: 점이 멈춘 채 흐려지며 내용이 제자리로 올라온다(끝났다는 신호는 이 움직임으로)
    */
-  const label = justDone
-    ? '새로고침 완료'
-    : refreshing
-      ? '새로고침 중...'
-      : pullDistance >= PULL_THRESHOLD
-        ? '놓으면 새로고침돼요'
-        : '당겨서 새로고침';
+  const progress = Math.min(pullDistance / PULL_THRESHOLD, 1);
+  const indicatorOpacity = justDone ? 0 : refreshing ? 1 : Math.min(progress * 1.6, 1);
 
   return (
     <div ref={containerRef} style={{ position: 'relative', ...style }}>
@@ -155,57 +150,32 @@ const PullToRefresh: React.FC<PullToRefreshProps> = ({ onRefresh, children, styl
         aria-hidden
         style={{
           position: 'absolute',
-          top: -44,
+          top: -48,
           left: 0,
           right: 0,
-          height: 44,
+          height: 48,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: 7,
           transform: `translateY(${offset}px)`,
           opacity: indicatorOpacity,
-          transition: justDone ? 'opacity .3s ease' : undefined,
+          transition: justDone ? 'opacity .25s ease' : undefined,
           pointerEvents: 'none',
         }}
       >
-        <svg
-          width="18"
-          height="18"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke={justDone ? "#3A6B2E" : "var(--ink-500)"}
-          strokeWidth="2.2"
-          strokeLinecap="round"
-          style={{
-            transform: shouldSpin ? undefined : `rotate(${pullDistance * 2.5}deg)`,
-            animation: shouldSpin ? 'pull-refresh-spin 0.7s linear infinite' : undefined,
-          }}
-        >
-          {justDone ? (
-            <path d="M20 6L9 17l-5-5" />
-          ) : (
-            <>
-              <path d="M20 12a8 8 0 1 1-2.34-5.66" />
-              <path d="M20 4v5h-5" />
-            </>
-          )}
-        </svg>
-        <span style={{
-          fontSize: 12.5,
-          fontWeight: 600,
-          color: justDone ? '#3A6B2E' : 'var(--ink-500)',
-          whiteSpace: 'nowrap',
-        }}>
-          {label}
+        <span className={refreshing ? 'loading-dots' : 'loading-dots is-static'}>
+          {[0, 1, 2].map(i => {
+            // 점 i 는 당긴 거리의 (i/3 ~ (i+1)/3) 구간에서 차오른다
+            const fill = refreshing || justDone ? 1 : Math.max(0, Math.min(1, progress * 3 - i));
+            return (
+              <span
+                key={i}
+                style={refreshing ? undefined : { opacity: 0.25 + 0.75 * fill, transform: `scale(${0.6 + 0.4 * fill})` }}
+              />
+            );
+          })}
         </span>
       </div>
-      <style>{`
-        @keyframes pull-refresh-spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
       <div
         style={{
           transform: `translateY(${offset}px)`,
