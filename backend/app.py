@@ -4180,7 +4180,10 @@ def get_household_completed_calendar():
             for row in manual_rows:
                 row['day'] = row['day'].isoformat()
                 row['created_at'] = row['created_at'].isoformat()
-            rows = sorted(rows + manual_rows, key=lambda r: r['created_at'])
+            # pymysql 은 0건이면 list 가 아니라 빈 tuple 을 준다 — 한쪽만 0건인 달에
+            # list + tuple 로 TypeError(500)가 나 그 달 달력이 통째로 비었다(2026-10-04,
+            # 수동 기록 없는 10월). 둘 다 list 로 감싼다.
+            rows = sorted(list(rows) + list(manual_rows), key=lambda r: r['created_at'])
 
             return jsonify({
                 'entries': rows,

@@ -11914,3 +11914,10 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 - 09-20 부터 유튜브 크롤러가 매번 `API key not valid` 로 1분 만에 수집 없이 끝났다(09-29 점검에서 발견). 사용자가 Google Cloud 콘솔(프로젝트 RefrigeratorCode, 키 이름 youtube-crawler, 제한 YouTube Data API v3 — 정상)에서 키를 확인해 보니, `backend/.env` 의 키가 **비슷한 글자 두 개가 바뀌어** 있었다(알파벳 O ↔ 숫자 0, 대문자 I ↔ 소문자 l). 새 키 발급 없이 `backend/.env`·`.env` 를 콘솔의 키로 맞춤(둘 다 git 제외 파일). 루트 `.env` 에 남아 있던 다른 옛 키도 같은 키로 통일 — 크롤러는 `backend/.env` 를 먼저 읽는다(db_env).
 - 확인: 새 키로 YouTube search API 직접 호출 성공 → 유튜브 크롤러만 따로 실행(아침 배치의 네이버 크롤러와 겹치지 않게) → **1분 만에 레시피 130건 저장, API 오류 0**. 내일 07:00 배치부터 유튜브도 함께 수집.
 
+
+## 2026-10-04
+
+### 마이캘린더 10월이 비어 보이던 문제 — 서버 달력 API 가 500
+- 증상: 10-04 에 레시피를 완료했는데 마이캘린더 월 달력에 안 뜸(9월은 정상). 완료 기록은 DB 에 정상 저장돼 있었다(user_completed_recipes, 2026-10-04 10:57 KST).
+- 원인: `GET /api/households/me/completed-calendar` 가 완료 기록과 수동 기록(user_manual_cook_logs)을 `rows + manual_rows` 로 합치는데, pymysql 은 0건이면 list 가 아니라 **빈 tuple** 을 준다. 10월은 수동 기록이 0건이라 `list + tuple` → TypeError → 500 → 앱은 그 달 기록을 못 받아 달력이 통째로 빔. 9월은 수동 기록이 있어 우연히 피해 갔다(둘 다 0건이어도 tuple+tuple 이라 무사).
+- 수정: 둘 다 `list()` 로 감싸서 합침(`backend/app.py`). 서버 수정이라 앱 재배포 필요 없음 — Railway 배포 후 바로 반영.
