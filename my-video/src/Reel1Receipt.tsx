@@ -64,14 +64,7 @@ export const Reel1Receipt: React.FC = () => {
         <Demo />
       </Sequence>
       <Sequence from={CTA_FROM} durationInFrames={CTA_LEN} name="CTA">
-        <CtaOutro
-          payoffLine={
-            <>
-              냉장고, <span style={{ color: "#D99A00" }}>기억 안 해도 돼요</span>
-            </>
-          }
-        />
-        <Audio src={staticFile("reel1_narration_cta.mp3")} />
+        <Reel1Cta />
       </Sequence>
     </AbsoluteFill>
   );
@@ -258,3 +251,19 @@ const Demo: React.FC = () => {
     </AbsoluteFill>
   );
 };
+
+// 엔딩(페이오프 + CTA 나레이션) — 후킹만 바꾼 버전(ReelHooksV2.tsx)에서도 같은 엔딩을 그대로 쓴다.
+export const Reel1Cta: React.FC = () => (
+  <>
+    <CtaOutro
+      payoffLine={
+        <>
+          냉장고, <span style={{ color: "#D99A00" }}>기억 안 해도 돼요</span>
+        </>
+      }
+    />
+    <Audio src={staticFile("reel1_narration_cta.mp3")} />
+  </>
+);
+
+export { Demo as Reel1Demo, DEMO_LEN as REEL1_DEMO_LEN, CTA_LEN as REEL1_CTA_LEN };

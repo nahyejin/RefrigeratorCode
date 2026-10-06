@@ -77,14 +77,7 @@ export const Reel2Match: React.FC = () => {
         <Demo />
       </Sequence>
       <Sequence from={CTA_FROM} durationInFrames={CTA_LEN} name="CTA">
-        <CtaOutro
-          payoffLine={
-            <>
-              없는 재료 대신, <span style={{ color: "#D99A00" }}>있는 걸로 바꿔드려요</span>
-            </>
-          }
-        />
-        <Audio src={staticFile("reel2_narration_cta.mp3")} />
+        <Reel2Cta />
       </Sequence>
     </AbsoluteFill>
   );
@@ -337,3 +330,19 @@ const Demo: React.FC = () => {
     </AbsoluteFill>
   );
 };
+
+// 엔딩(페이오프 + CTA 나레이션) — 후킹만 바꾼 버전(ReelHooksV2.tsx)에서도 같은 엔딩을 그대로 쓴다.
+export const Reel2Cta: React.FC = () => (
+  <>
+    <CtaOutro
+      payoffLine={
+        <>
+          없는 재료 대신, <span style={{ color: "#D99A00" }}>있는 걸로 바꿔드려요</span>
+        </>
+      }
+    />
+    <Audio src={staticFile("reel2_narration_cta.mp3")} />
+  </>
+);
+
+export { Demo as Reel2Demo, DEMO_LEN as REEL2_DEMO_LEN, CTA_LEN as REEL2_CTA_LEN };

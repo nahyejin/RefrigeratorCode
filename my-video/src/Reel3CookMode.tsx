@@ -70,16 +70,7 @@ export const Reel3CookMode: React.FC = () => {
         <Demo />
       </Sequence>
       <Sequence from={CTA_FROM} durationInFrames={CTA_LEN} name="CTA">
-        <CtaOutro
-          payoffLine={
-            <>
-              이제 손으론 요리하고,
-              <br />
-              <span style={{ color: "#D99A00" }}>레시피는 귀로 들으세요</span>
-            </>
-          }
-        />
-        <Audio src={staticFile("reel3_narration_cta.mp3")} />
+        <Reel3Cta />
       </Sequence>
     </AbsoluteFill>
   );
@@ -442,3 +433,21 @@ const Demo: React.FC = () => {
     </AbsoluteFill>
   );
 };
+
+// 엔딩(페이오프 + CTA 나레이션) — 후킹만 바꾼 버전(ReelHooksV2.tsx)에서도 같은 엔딩을 그대로 쓴다.
+export const Reel3Cta: React.FC = () => (
+  <>
+    <CtaOutro
+      payoffLine={
+        <>
+          이제 손으론 요리하고,
+          <br />
+          <span style={{ color: "#D99A00" }}>레시피는 귀로 들으세요</span>
+        </>
+      }
+    />
+    <Audio src={staticFile("reel3_narration_cta.mp3")} />
+  </>
+);
+
+export { Demo as Reel3Demo, DEMO_LEN as REEL3_DEMO_LEN, CTA_LEN as REEL3_CTA_LEN };

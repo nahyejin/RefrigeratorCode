@@ -72,14 +72,7 @@ export const Reel5ExpiryAlert: React.FC = () => {
         <Demo />
       </Sequence>
       <Sequence from={CTA_FROM} durationInFrames={CTA_LEN} name="CTA">
-        <CtaOutro
-          payoffLine={
-            <>
-              버리기 전에, <span style={{ color: "#D99A00" }}>있는 재료부터 요리하세요</span>
-            </>
-          }
-        />
-        <Audio src={staticFile("reel5_narration_cta.mp3")} />
+        <Reel5Cta />
       </Sequence>
     </AbsoluteFill>
   );
@@ -336,3 +329,19 @@ const Demo: React.FC = () => {
     </AbsoluteFill>
   );
 };
+
+// 엔딩(페이오프 + CTA 나레이션) — 후킹만 바꾼 버전(ReelHooksV2.tsx)에서도 같은 엔딩을 그대로 쓴다.
+export const Reel5Cta: React.FC = () => (
+  <>
+    <CtaOutro
+      payoffLine={
+        <>
+          버리기 전에, <span style={{ color: "#D99A00" }}>있는 재료부터 요리하세요</span>
+        </>
+      }
+    />
+    <Audio src={staticFile("reel5_narration_cta.mp3")} />
+  </>
+);
+
+export { Demo as Reel5Demo, DEMO_LEN as REEL5_DEMO_LEN, CTA_LEN as REEL5_CTA_LEN };

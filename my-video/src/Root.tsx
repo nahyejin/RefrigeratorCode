@@ -9,6 +9,7 @@ import { Reel5ExpiryAlert, REEL5_TOTAL_FRAMES } from "./Reel5ExpiryAlert";
 import { Reel6ChatbotDemo, REEL6_TOTAL_FRAMES } from "./Reel6ChatbotDemo";
 import { Reel7RealRecipe, REEL7_TOTAL_FRAMES } from "./Reel7RealRecipe";
 import { Reel8FamilySavings, REEL8_TOTAL_FRAMES } from "./Reel8FamilySavings";
+import { REELS_HOOK_V2 } from "./ReelHooksV2";
 
 export const RemotionRoot: React.FC = () => {
   return (
@@ -85,6 +86,9 @@ export const RemotionRoot: React.FC = () => {
         width={1080}
         height={1920}
       />
+      {REELS_HOOK_V2.map((r) => (
+        <Composition key={r.id} id={r.id} component={r.Comp} durationInFrames={r.total} fps={30} width={1080} height={1920} />
+      ))}
     </>
   );
 };
