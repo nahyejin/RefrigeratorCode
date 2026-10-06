@@ -11957,3 +11957,12 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 - 맥에서 로컬 변경 없음 확인 → `git pull`(32560509 까지) → `npm install` → `npm run build` → `npx cap sync ios`.
 - `project.pbxproj` 앱·위젯 Debug/Release 4개 설정 모두 MARKETING_VERSION 1.0.3 / CURRENT_PROJECT_VERSION 9 확인. SceneDelegate 의 `allowsBackForwardNavigationGestures = false` 반영 확인.
 - `xcodebuild -project App.xcodeproj -scheme App -configuration Release -destination generic/platform=iOS build` → BUILD SUCCEEDED. Archive·업로드·App Store Connect 제출은 사용자.
+
+### iOS 1.0.3 (빌드 9) 심사 제출
+- Xcode Archive → App Store Connect 업로드 → 1.0.3 버전에 빌드 9 연결 → 2026-10-06 20:47 심사 제출(심사 대기 중). 제출 ID `333d2fc1-2327-4e55-a0f4-b04260cab9a2`.
+- 「이 버전에서 업그레이드된 사항」:
+  - 마이캘린더 목록 탭에서 즐겨찾기한 레시피를 볼 수 있어요. 장보기 재료는 달력 탭에서만 보여요.
+  - 당겨서 새로고침할 때 앱 공통 노란 점 3개로 표시돼요.
+  - 광고 위치와 화면 여백을 정리해 더 보기 편해졌어요.
+  - 화면 왼쪽 끝을 밀어 뒤로 가기는 뒤로가기 버튼이 있는 화면에서만 동작해요.
+- RELEASE_NOTES 「다음 버전」 섹션은 Android 1.0.4(5) 까지 올라간 뒤 버전 섹션으로 옮긴다(현재는 제출 상태만 기록).
