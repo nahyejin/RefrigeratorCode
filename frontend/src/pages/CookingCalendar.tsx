@@ -557,7 +557,14 @@ const CookingCalendar: React.FC = () => {
   const [recorded, setRecorded] = React.useState<any[] | null>(null);
   /** 그룹원 전체의 기록. 각 줄에 `acted_by`(누가 했는지 닉네임)가 붙어 온다. */
   const [householdRecorded, setHouseholdRecorded] = React.useState<any[] | null>(null);
-  const [listKind, setListKind] = React.useState<'done' | 'write'>('done');
+  /** 즐겨찾기. 기록과 같은 모양(레시피 목록, 그룹이면 `acted_by`)이라 같은 방식으로 받고 그린다. */
+  const [favorites, setFavorites] = React.useState<any[] | null>(null);
+  const [householdFavorites, setHouseholdFavorites] = React.useState<any[] | null>(null);
+  /**
+   * 목록 탭에서 무엇을 볼지 — 완료·기록·즐겨찾기.
+   * 즐겨찾기가 빠져 있어 「내가 눌러 둔 것」 셋 중 하나만 안 보이는 게 이상하다는 지적(2026-10-06)으로 더했다.
+   */
+  const [listKind, setListKind] = React.useState<'done' | 'write' | 'favorite'>('done');
   /** `scope === 'household'`일 때 **내 것을 빼고** 볼지. 달력·목록 공용. */
   const [hideMine, setHideMine] = React.useState(false);
   /**
@@ -622,7 +629,7 @@ const CookingCalendar: React.FC = () => {
   /** 기록(메모) 삭제 확인창 — 목록 탭 "기록"에서 쓴다. 그룹 전체 보기에서는
    * 누가 남겼는지(레시피별로 여러 명일 수 있음) 서버가 아이디까지 주지
    * 않아 대리 삭제가 안 되므로, 내 기록일 때만("내 요리만" 보기) 띄운다. */
-  const [confirmingRecordedDelete, setConfirmingRecordedDelete] = React.useState<{ id: number; title: string } | null>(null);
+  const [confirmingRecordedDelete, setConfirmingRecordedDelete] = React.useState<{ id: number; title: string; kind: 'write' | 'favorite' } | null>(null);
   const [deletingRecorded, setDeletingRecorded] = React.useState(false);
 
   /**
@@ -800,6 +807,14 @@ const CookingCalendar: React.FC = () => {
       setAllEntries(mergeLocalDone([], GUEST_USER_ID, myName));
       setRecorded(localRecorded);
       setHouseholdRecorded(localRecorded);
+      let localFavorite: any[] = [];
+      try {
+        localFavorite = JSON.parse(localStorage.getItem('my_favorite_recipes') || '[]');
+      } catch {
+        localFavorite = [];
+      }
+      setFavorites(localFavorite);
+      setHouseholdFavorites(localFavorite);
       return;
     }
     const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
@@ -833,6 +848,26 @@ const CookingCalendar: React.FC = () => {
       .then(r => (r.ok ? r.json() : Promise.reject(new Error())))
       .then(d => setHouseholdRecorded(d.recipes || []))
       .catch(() => setHouseholdRecorded([]));
+
+    // 즐겨찾기 — 기록과 같은 방식(내 것 + 그룹 것)
+    fetch(`${getApiUrl()}/api/users/${authUser.id}/favorite-recipes`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => (r.ok ? r.json() : Promise.reject(new Error())))
+      .then(d => setFavorites(d.recipes || []))
+      .catch(() => {
+        try {
+          setFavorites(JSON.parse(localStorage.getItem('my_favorite_recipes') || '[]'));
+        } catch {
+          setFavorites([]);
+        }
+      });
+    fetch(`${getApiUrl()}/api/households/me/favorite-recipes`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => (r.ok ? r.json() : Promise.reject(new Error())))
+      .then(d => setHouseholdFavorites(d.recipes || []))
+      .catch(() => setHouseholdFavorites([]));
   }, [mode, allEntries, isLoggedIn, authUser?.id]);
 
   /**
@@ -877,6 +912,18 @@ const CookingCalendar: React.FC = () => {
       return by.some(n => n && n !== myName);
     });
   }, [scope, recorded, householdRecorded, hideMine, myName]);
+
+  /** 지금 탭이 보여야 할 즐겨찾기 — `listRecorded` 와 같은 규칙. */
+  const listFavorites = React.useMemo(() => {
+    if (scope !== 'household') return favorites;
+    const src = householdFavorites;
+    if (src === null) return null;
+    if (!hideMine) return src;
+    return src.filter((r: any) => {
+      const by: string[] = Array.isArray(r.acted_by) ? r.acted_by : [];
+      return by.some(n => n && n !== myName);
+    });
+  }, [scope, favorites, householdFavorites, hideMine, myName]);
 
   const handleSaveCompletedDate = async (entry: CalendarEntry) => {
     if (!authUser?.id || !dateInput) return;
@@ -954,14 +1001,20 @@ const CookingCalendar: React.FC = () => {
     if (!confirmingRecordedDelete || deletingRecorded) return;
     setDeletingRecorded(true);
     try {
-      const { id } = confirmingRecordedDelete;
+      const { id, kind } = confirmingRecordedDelete;
       if (authUser?.id) {
-        await removeRecipeActionFromDB('write', Number(authUser.id), id);
+        await removeRecipeActionFromDB(kind, Number(authUser.id), id);
       }
-      removeRecipeFromLocalStorage('write', id);
+      removeRecipeFromLocalStorage(kind, id);
       setConfirmingRecordedDelete(null);
-      setRecorded(prev => (prev ? prev.filter((r: any) => r.id !== id) : prev));
-      setHouseholdRecorded(prev => (prev ? prev.filter((r: any) => r.id !== id) : prev));
+      const drop = (prev: any[] | null) => (prev ? prev.filter((r: any) => r.id !== id) : prev);
+      if (kind === 'favorite') {
+        setFavorites(drop);
+        setHouseholdFavorites(drop);
+      } else {
+        setRecorded(drop);
+        setHouseholdRecorded(drop);
+      }
     } catch (e) {
       console.warn('[CookingCalendar] 기록 삭제 실패:', e);
       alert('기록 삭제 중 오류가 발생했어요.');
@@ -2742,15 +2795,16 @@ const CookingCalendar: React.FC = () => {
           {/* 한 상자 안에서 **미끄러지는** 토글. 알약 두 개로 뒀더니 화면 어디를
               봐도 알약이라 지루했고, 둘이 한 쌍이라는 것도 안 보였다. 여기서는
               둘 중 하나를 고르는 것이므로 테두리를 같이 쓰는 편이 맞다. */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 2px 2px' }}>
+          {/* 즐겨찾기가 더해져 고르개가 길어졌다 — 폰 폭에서 기간 버튼이 카드 밖으로 밀려나므로 자리가 없으면 다음 줄로 */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, padding: '0 2px 2px' }}>
             <div
               role="group"
-              aria-label="완료·기록 고르기"
+              aria-label="완료·기록·즐겨찾기 고르기"
               style={{
                 // 두 칸을 **같은 폭**으로(1fr 1fr). 칸 폭이 글자 길이를 따르면
                 // "내 요리만"과 "우리 식구 전체"의 폭이 달라, 50% 폭으로 미끄러지는
                 // 검은 판이 글자와 어긋나 깨져 보였다(실사용 지적, 2026-09-15).
-                position: 'relative', display: 'inline-grid', gridTemplateColumns: '1fr 1fr', flexShrink: 0,
+                position: 'relative', display: 'inline-grid', gridTemplateColumns: '1fr 1fr 1fr', flexShrink: 0,
                 padding: 3, borderRadius: 10, background: 'var(--surface-sub)',
                 border: '1px solid var(--line-200)',
               }}
@@ -2760,15 +2814,16 @@ const CookingCalendar: React.FC = () => {
               <span
                 aria-hidden
                 style={{
-                  position: 'absolute', top: 3, bottom: 3, left: 3, width: 'calc(50% - 3px)',
+                  position: 'absolute', top: 3, bottom: 3, left: 3, width: 'calc((100% - 6px) / 3)',
                   borderRadius: 8, background: 'var(--ink-900)',
-                  transform: listKind === 'write' ? 'translateX(100%)' : 'none',
+                  transform: `translateX(${listKind === 'favorite' ? 200 : listKind === 'write' ? 100 : 0}%)`,
                   transition: 'transform .2s cubic-bezier(.4,0,.2,1)',
                 }}
               />
               {([
                 { key: 'done', label: '완료', n: listEntries?.length },
                 { key: 'write', label: '기록', n: listRecorded?.length },
+                { key: 'favorite', label: '즐겨찾기', n: listFavorites?.length },
               ] as const).map(({ key, label, n }) => {
                 const on = listKind === key;
                 return (
@@ -2778,8 +2833,9 @@ const CookingCalendar: React.FC = () => {
                     onClick={() => setListKind(key)}
                     aria-pressed={on}
                     style={{
-                      position: 'relative', zIndex: 1, minWidth: 62, height: 28,
-                      padding: '0 12px', border: 'none', background: 'transparent',
+                      position: 'relative', zIndex: 1, height: 28,
+                      padding: '0 9px', border: 'none', background: 'transparent',
+                      whiteSpace: 'nowrap',
                       borderRadius: 8, cursor: 'pointer',
                       color: on ? '#FFFFFF' : 'var(--ink-500)',
                       fontSize: 12.5, fontWeight: on ? 700 : 500,
@@ -2882,21 +2938,26 @@ const CookingCalendar: React.FC = () => {
           <div style={{ maxHeight: '58vh', overflowY: 'auto', display: 'flex',
                         flexDirection: 'column', gap: 8, paddingRight: 2,
                         paddingBottom: 14 }}>
-          {listKind === 'write' ? (
-            listRecorded === null ? (
+          {listKind === 'write' || listKind === 'favorite' ? (() => {
+            // 기록과 즐겨찾기는 모양이 같다(레시피 목록) — 같은 줄로 그리고 글자만 바꾼다
+            const isFav = listKind === 'favorite';
+            const items = isFav ? listFavorites : listRecorded;
+            return items === null ? (
               <div style={{ padding: '24px 4px', textAlign: 'center',
                             fontSize: 13, color: 'var(--ink-500)' }}>
                 불러오는 중이에요...
               </div>
-            ) : listRecorded.length === 0 ? (
+            ) : items.length === 0 ? (
               <div style={{ padding: '24px 4px', textAlign: 'center',
                             fontSize: 13.5, color: 'var(--ink-500)', lineHeight: 1.7 }}>
-                {scope === 'household' ? '식구들의 기록은 아직 모으지 않아요.' : '아직 기록한 레시피가 없어요.'}
+                {isFav
+                  ? (scope === 'household' ? '식구들이 즐겨찾기한 레시피가 아직 없어요.' : '아직 즐겨찾기한 레시피가 없어요.')
+                  : (scope === 'household' ? '식구들의 기록은 아직 모으지 않아요.' : '아직 기록한 레시피가 없어요.')}
                 <br />
-                레시피에서 <b>기록</b>을 누르면 여기 쌓여요.
+                레시피에서 <b>{isFav ? '즐겨찾기' : '기록'}</b>{isFav ? '를' : '을'} 누르면 여기 쌓여요.
               </div>
             ) : (
-              listRecorded.map((r: any) => {
+              items.map((r: any) => {
                 // 그룹 전체 보기에서는 이 기록을 누가 남겼는지(레시피 하나에
                 // 여러 명일 수 있음) 서버가 개인별 id까지는 안 준다 —
                 // "내 요리만" 볼 때만(그러면 이 목록 자체가 전부 내 것) 지울 수
@@ -2952,8 +3013,8 @@ const CookingCalendar: React.FC = () => {
                   {canDeleteRecorded && (
                     <button
                       type="button"
-                      onClick={() => setConfirmingRecordedDelete({ id: r.id, title: r.title })}
-                      aria-label={`${r.title} 기록 취소`}
+                      onClick={() => setConfirmingRecordedDelete({ id: r.id, title: r.title, kind: isFav ? 'favorite' : 'write' })}
+                      aria-label={`${r.title} ${isFav ? '즐겨찾기 해제' : '기록 취소'}`}
                       style={{
                         flexShrink: 0, height: 26, padding: '0 10px', borderRadius: 9999,
                         border: '1px solid var(--line-300)', background: 'var(--surface-sub)',
@@ -2961,14 +3022,14 @@ const CookingCalendar: React.FC = () => {
                         whiteSpace: 'nowrap',
                       }}
                     >
-                      기록 취소
+                      {isFav ? '즐겨찾기 해제' : '기록 취소'}
                     </button>
                   )}
                 </div>
                 );
               })
-            )
-          ) : listEntries === null ? (
+            );
+          })() : listEntries === null ? (
             <div style={{ padding: '24px 4px', textAlign: 'center',
                           fontSize: 13, color: 'var(--ink-500)' }}>
               불러오는 중이에요...
@@ -3410,18 +3471,22 @@ const CookingCalendar: React.FC = () => {
           <Dialog
             open
             onClose={() => setConfirmingRecordedDelete(null)}
-            title="기록을 삭제하시겠습니까?"
+            title={confirmingRecordedDelete.kind === 'favorite' ? '즐겨찾기를 해제할까요?' : '기록을 삭제하시겠습니까?'}
             width={320}
             dismissLabel="아니요"
             actions={[{
-              label: deletingRecorded ? '삭제 중' : '삭제하기',
+              label: confirmingRecordedDelete.kind === 'favorite'
+                ? (deletingRecorded ? '해제 중' : '해제하기')
+                : (deletingRecorded ? '삭제 중' : '삭제하기'),
               variant: 'danger',
               onClick: handleDeleteRecorded,
             }]}
           >
             <span style={{ wordBreak: 'keep-all' }}>
               <b>{confirmingRecordedDelete.title}</b>
-              {eulReul(confirmingRecordedDelete.title)} 남긴 기록을 지워요. 되돌릴 수 없어요.
+              {confirmingRecordedDelete.kind === 'favorite'
+                ? <>{eulReul(confirmingRecordedDelete.title)} 즐겨찾기에서 빼요. 레시피에서 다시 누르면 돌아와요.</>
+                : <>{eulReul(confirmingRecordedDelete.title)} 남긴 기록을 지워요. 되돌릴 수 없어요.</>}
             </span>
           </Dialog>
         )}
@@ -3495,8 +3560,10 @@ const CookingCalendar: React.FC = () => {
             (2026-09-17, "달력의 기간 선택 영역 안에 있으니 자꾸 그것과
             엮여 보인다"는 지적).
             **일 보기에서는 숨긴다** — 메모는 "한 주" 단위라 하루만 보고 있을 때는
-            의미가 없고 화면만 길어진다(2026-09-20). 주·월 보기에서만 보인다. */}
-        {viewMode !== 'day' && diaryCardNode}
+            의미가 없고 화면만 길어진다(2026-09-20). 주·월 보기에서만 보인다.
+            **목록 탭에서도 숨긴다** — 목록은 지나간 것(완료·기록·즐겨찾기)을 훑는 자리라 앞으로 할 일(장보기)이
+            끼면 어색하다는 지적(2026-10-06). 달력 탭에서만. */}
+        {mode === 'calendar' && viewMode !== 'day' && diaryCardNode}
       </div>
 
       {/* 쿠팡 배너 — 화면 **맨 끝**, 달력 카드 **바깥**. 2026-09-22 에 월 목표 카드 바로 아래(화면 가운데)로 올렸더니
