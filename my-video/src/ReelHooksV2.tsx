@@ -14,7 +14,7 @@ import { Reel8Demo, Reel8Cta, REEL8_DEMO_LEN, REEL8_CTA_LEN } from "./Reel8Famil
 // 훅 클립은 전부 720x1280 24fps(캔버스와 같은 9:16). 사용자 요청(2026-10-06)으로 훅은 자르지 않고 원본을
 // 처음부터 끝까지 그대로 쓴다 — 처음엔 군더더기 구간을 하드컷했더니 「뒤쪽이 다 잘렸다」는 지적. 끝 페이드만 남긴다.
 
-type Seg = [number, number]; // 원본 초 단위 [시작, 끝]
+type Seg = [number, number] | [number, number, { zoom: number; origin: string }]; // 원본 초 단위 [시작, 끝, (확대)]
 
 type HookSpec = {
   src: string;
@@ -23,7 +23,7 @@ type HookSpec = {
 };
 
 const sec = (s: number) => Math.round(s * 30);
-const segLen = ([a, b]: Seg) => sec(b) - sec(a);
+const segLen = (seg: Seg) => sec(seg[1]) - sec(seg[0]);
 const hookLen = (h: HookSpec) => h.segs.reduce((t, s) => t + segLen(s), 0);
 
 const HOOK_FADE_OUT = 24; // 훅 끝 0.8s만 흰 화면으로 페이드 — 데모로 뚝 끊기지 않게(기존 편과 동일)
@@ -35,7 +35,16 @@ const CAPTION_CLEAR = 30; // 마지막 1초(푸시인 대상이 화면 아래쪽
 const HOOK1: HookSpec = { src: "reel1_hook_v2_tofu.mp4", segs: [[0, 10.0]], caption: "마트만 오면\n기억이 안 나요" };
 
 // 02편 매칭 ← 냉장고 열고 "아 진짜 먹을 게 없네" → 닫았다 다시 열기 → 폰 쪽으로 손 (원본 10.0s)
-const HOOK2: HookSpec = { src: "reel2_hook_v2_fridge.mp4", segs: [[0, 10.0]], caption: "냉장고는 몇 번을 열어도\n그대로예요" };
+// 생성 오류로 6.0s쯤(카메라가 살짝 돌 때)부터 왼쪽 아래 조리대에 폰이 하나 더 생긴다 — 그 직전(5.9s, 문 닫히고
+// 손 뻗는 순간)부터 오른쪽 위 기준 1.3배 펀치인으로 조리대를 화면 밖으로 밀어낸다(사용자 선택, 2026-10-06).
+const HOOK2: HookSpec = {
+  src: "reel2_hook_v2_fridge.mp4",
+  segs: [
+    [0, 5.9],
+    [5.9, 10.0, { zoom: 1.3, origin: "right top" }],
+  ],
+  caption: "냉장고는 몇 번을 열어도\n그대로예요",
+};
 
 // 03편 요리 모드 ← 반죽 손으로 폰 누르기 "아 왜 안 눌려?" → 코 들이밀며 "아 코로 해야 되나?" (원본 10.0s)
 const HOOK3: HookSpec = { src: "reel3_hook_v2_dough.mp4", segs: [[0, 10.0]], caption: "반죽 묻은 손으로\n레시피 넘겨 본 적 있죠?" };
@@ -45,7 +54,16 @@ const HOOK3B: HookSpec = { src: "reel3_hook_v2_dough_b.mov", segs: [[0, 8.2]], c
 
 // 01편 사진 인식 B안 ← 장바구니에서 대파 → 냉장고에 두 단 더 "아 뭐야… 대파 있었네" → 세 단 꽃다발 푸시인 (원본 10.0s)
 // 기획은 04 AI 식단이었지만, 「있는 줄 모르고 또 산」 상황엔 사진 한 장으로 냉장고를 채워 두는 01 데모가 더 맞다는 사용자 판단(2026-10-06).
-const HOOK1B: HookSpec = { src: "reel1_hook_v2_greenonion.mp4", segs: [[0, 10.0]], caption: "있는 줄 모르고\n또 샀어요" };
+// 「연기가 어색하다」는 지적(2026-10-06) — 카메라 쪽으로 고개를 돌려 입을 크게 벌리는 4.9~6.0s(「아 뭐야」)만 하드컷으로 빼고,
+// 「대파 있었네」와 꽃다발 푸시인은 그대로 둔다. 잘리는 양끝은 둘 다 대사 없는 구간이다.
+const HOOK1B: HookSpec = {
+  src: "reel1_hook_v2_greenonion.mp4",
+  segs: [
+    [0, 4.9],
+    [6.0, 10.0],
+  ],
+  caption: "있는 줄 모르고\n또 샀어요",
+};
 
 // 05편 유통기한 알림 ← 야채칸에서 물러진 애호박 꺼내 보며 "이거 언제 샀더라" (원본 6.33s)
 const HOOK5: HookSpec = { src: "reel5_hook_v2_zucchini.mov", segs: [[0, 6.3]], caption: "사 놓고 잊은 재료,\n우리 집에도 있죠" };
@@ -81,7 +99,13 @@ const HookV2: React.FC<{ spec: HookSpec }> = ({ spec }) => {
                 src={staticFile(spec.src)}
                 trimBefore={sec(seg[0])}
                 trimAfter={sec(seg[1])}
-                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  transform: seg[2] ? `scale(${seg[2].zoom})` : undefined,
+                  transformOrigin: seg[2]?.origin,
+                }}
               />
             </Sequence>
           );
