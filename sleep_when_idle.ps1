@@ -1,12 +1,17 @@
-﻿# 쿡매치 PC 전원 — 「안 쓰고 있을 때」 최대 절전으로 보낸다.
+﻿# 쿡매치 PC 전원 — 「안 쓰고 있을 때」 절전(대기 모드 S3)으로 보낸다.
 #
-# 사용자 요청(2026-09-29): 출근길(07:00~10:00)·퇴근길(16:00~19:30)·배치 시간에만 깨어 있고 그 외엔 잠들어
-# 전기를 아끼되, 출퇴근길에는 구글 원격 데스크톱으로 이 컴퓨터에 들어올 수 있어야 한다(원격 데스크톱은 잠든
-# 컴퓨터를 깨우지 못한다).
+# 깨어 있는 시간: **매일 07:00~19:30**(2026-10-06 사용자 요청). 낮에 회사 컴퓨터·폰으로 이 컴퓨터에 들어와
+# 일하는데, 예전 스케줄(09-29: 배치 끝나면 10시 이후 바로 절전, 평일 16시에만 다시 깨움)로는 낮·주말에
+# 꺼져 있을 때가 많았다. 잠든 컴퓨터는 원격(구글 원격 데스크톱·Claude Remote Control)으로 깨울 수 없다.
 #
-#   07:00  CookMatch-DailyChain 이 깨워 배치 → 끝나면 이 스크립트(-NotBefore 10:00): 출근길이 끝나는 10시 전이면 기다렸다 잠든다
-#   16:00  CookMatch-EveningWake 가 깨운다(평일, 퇴근길)
+#   07:00  CookMatch-DailyChain 이 깨워 배치 → 끝나면 이 스크립트(-FromChain): 재우지 않고
+#          keep_awake_until.ps1 을 띄워 19:25 까지 붙잡는다(아무도 안 만지면 윈도우가 「무인 깨어남」으로 보고 다시 재움)
+#   16:00  CookMatch-EveningWake — 혹시 잠들어 있으면 깨운다(평일, 예전 스케줄의 안전망으로 남겨 둠)
 #   19:25  CookMatch-EveningSleep → 이 스크립트: 5분 알림 뒤 19:30 에 잠든다
+#
+# 최대 절전(shutdown /h) 대신 대기 모드(S3): 최대 절전은 깨는 데 3~6분 걸려 07:00 예약이 「놓친 작업」으로 밀려
+# 07:10 에야 배치가 시작됐고, 그 사이 윈도우가 2분 만에 다시 재운 날이 있었다(10-04 일 07:03 깸 → 07:05 잠듦,
+# 배치는 사용자가 켠 11:52 에야 돔). 대기 모드는 몇 초 만에 깬다. 전기는 밤사이 몇 W 더 쓴다.
 #
 # 잠들기 전 확인:
 #   · no_shutdown.flag 가 있으면 잠들지 않는다(그날 늦게까지 쓸 때)
@@ -60,6 +65,12 @@ function ChainRunning {
     return ($t -and $t.State -eq 'Running')
 }
 
+# 아침 배치 끝: 재우지 않고 19:25 까지 깨어 있게 붙잡는다(2026-10-06)
+if ($FromChain) {
+    Start-Process -FilePath 'powershell.exe' -WindowStyle Hidden -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', (Join-Path $root 'keep_awake_until.ps1'), '-Until', '19:25')
+    exit 0
+}
+
 $deadline = (Get-Date).AddMinutes($MaxWaitMinutes)
 
 # 출근길이 끝나기 전이면 기다린다
@@ -91,7 +102,7 @@ while ($true) {
         Start-Sleep -Seconds 600; continue
     }
 
-    & msg.exe * /time:300 '쿡매치: 5분 뒤 컴퓨터가 최대 절전으로 들어갑니다. 계속 쓰면(마우스·키보드) 잠들지 않아요.' 2>$null
+    & msg.exe * /time:300 '쿡매치: 5분 뒤 컴퓨터가 절전 모드로 들어갑니다. 계속 쓰면(마우스·키보드) 잠들지 않아요.' 2>$null
     Start-Sleep -Seconds 300
     if ([CookMatchIdle]::IdleMinutes() -lt 5 -or (ClaudeBusyMinutesAgo) -lt 5) {
         Log '알림 중에 입력 또는 Claude 작업이 있어 절전 취소 — 10분 뒤 다시 확인'
@@ -99,7 +110,9 @@ while ($true) {
     }
     if (Test-Path (Join-Path $root 'no_shutdown.flag')) { Log 'no_shutdown.flag 가 있어 절전하지 않음'; exit 0 }
 
-    Log '최대 절전으로 들어감'
-    & shutdown.exe /h
+    Log '절전(대기 모드)으로 들어감'
+    # SetSuspendState(hibernate=false): 최대 절전이 아니라 대기 모드(S3) — 깨는 데 몇 초
+    Add-Type -AssemblyName System.Windows.Forms
+    [void][System.Windows.Forms.Application]::SetSuspendState([System.Windows.Forms.PowerState]::Suspend, $false, $false)
     exit 0
 }
