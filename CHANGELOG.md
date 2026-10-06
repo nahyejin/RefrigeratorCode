@@ -11949,3 +11949,6 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 - `CookingCalendar.tsx`: 장보기 카드를 `mode === 'calendar'` 일 때만(달력 탭 주·월 보기). 목록 고르개를 완료·기록·즐겨찾기 3칸으로(미끄러지는 판 1/3 폭). 즐겨찾기는 기록과 같은 방식 — `/api/users/:id/favorite-recipes` + `/api/households/me/favorite-recipes`(그룹 범위·「내 것은 빼고」 규칙 동일), 게스트는 `my_favorite_recipes`. 내 것은 「즐겨찾기 해제」(기록 취소 확인창을 kind 로 같이 씀). 고르개가 길어져 폰 폭에서 기간 버튼이 카드 밖으로 밀려 줄바꿈 허용.
 - 확인: 로컬 미리보기(375px, 게스트)에서 목록 탭 장보기 없음, 즐겨찾기 1건 표시, 판 위치, 기간 버튼 카드 안, 해제 확인창 → 목록·기기 사본에서 빠짐.
 - Android 1.0.4(5) `.aab` 를 이 수정까지 넣어 다시 빌드(아직 업로드 전이라 번호 그대로).
+
+### iOS 1.0.3 (빌드 9) 번호 올림
+- `project.pbxproj` 앱·위젯 4개 설정 모두 1.0.2(8) → 1.0.3(9). RELEASE_NOTES 「다음 버전」 6줄을 맥에서 빌드·제출(맥은 pull → npm run build → cap sync ios → Archive).
