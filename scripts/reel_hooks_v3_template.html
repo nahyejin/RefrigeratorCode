@@ -1,0 +1,161 @@
+<title>쿡매치 후킹 영상 v3</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: 한 줄 세로 스크롤 작업지 — 편마다 카드 하나, 카드 맨 위에 복사 버튼(폰 엄지 위치). 노랑은 복사 버튼·KBF 표식에만. */
+:root{
+  --bg:#f4f4f1; --surface:#ffffff; --ink:#1a1a1e; --muted:#62626b; --line:#e2e2dc;
+  --accent:#ffd600; --accent-ink:#5c4700; --chip:#fff4b8; --pill:#141416; --pill-ink:#ffffff; --code:#f7f7f4;
+  --display:'Black Han Sans','IBM Plex Sans KR','Apple SD Gothic Neo',sans-serif;
+  --body:'IBM Plex Sans KR','Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#141415; --surface:#1d1d1f; --ink:#f1f1ee; --muted:#a3a3ab; --line:#303033;
+  --accent:#ffd600; --accent-ink:#ffe36b; --chip:#3a3210; --pill:#f1f1ee; --pill-ink:#141416; --code:#18181a; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#141415; --surface:#1d1d1f; --ink:#f1f1ee; --muted:#a3a3ab; --line:#303033;
+  --accent:#ffd600; --accent-ink:#ffe36b; --chip:#3a3210; --pill:#f1f1ee; --pill-ink:#141416; --code:#18181a; color-scheme:dark }
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.65;margin:0}
+.page{max-width:760px;margin:0 auto;padding-inline:18px;padding-block:36px 72px;display:flex;flex-direction:column;gap:28px}
+h1{font-family:var(--display);font-weight:400;font-size:34px;line-height:1.2;margin:0;text-wrap:balance}
+h2{font-family:var(--display);font-weight:400;font-size:22px;line-height:1.3;margin:0;text-wrap:balance}
+.lede{color:var(--muted);margin:10px 0 0;max-width:62ch}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.08em;color:var(--muted);margin:0 0 8px}
+.box{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 18px 16px;display:flex;flex-direction:column;gap:10px}
+.box h3{margin:0;font-size:15px;font-weight:700}
+.box ol,.box ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+.box p{margin:0}
+.tip{border-left:4px solid var(--accent)}
+code{font-family:var(--mono);font-size:.9em;background:var(--code);padding:1px 5px;border-radius:5px;border:1px solid var(--line)}
+.clips{display:flex;flex-direction:column;gap:18px}
+.clip{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.clip-head{display:flex;gap:12px;align-items:flex-start}
+.no{font-family:var(--display);font-size:30px;line-height:1;color:var(--line);min-width:40px}
+.clip-head>div{min-width:0;display:flex;flex-direction:column;gap:6px}
+.kbf{align-self:flex-start;font-size:12px;font-weight:600;color:var(--accent-ink);background:var(--chip);border-radius:999px;padding:2px 10px}
+.why{margin:0;color:var(--muted)}
+.row{display:grid;grid-template-columns:92px 1fr;gap:10px;align-items:start}
+.row .k{font-size:12.5px;color:var(--muted);padding-top:3px}
+.cap{display:inline-block;background:var(--pill);color:var(--pill-ink);font-weight:700;font-size:15px;line-height:1.4;padding:8px 14px;border-radius:10px;white-space:pre-line}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+button{font-family:var(--body);font-size:14px;font-weight:600;border-radius:10px;padding:10px 14px;cursor:pointer;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+button.primary{background:var(--accent);border-color:var(--accent);color:#1a1a1e}
+button:focus-visible,summary:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+details{border-top:1px solid var(--line);padding-top:10px}
+summary{cursor:pointer;font-size:13.5px;color:var(--muted);font-weight:600}
+pre{margin:10px 0 0;background:var(--code);border:1px solid var(--line);border-radius:10px;padding:12px;font-family:var(--mono);font-size:12.5px;line-height:1.55;white-space:pre-wrap;word-break:break-word;overflow-x:auto}
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{text-align:left;padding:8px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-weight:600;color:var(--muted);font-size:12.5px}
+.old{display:flex;flex-direction:column;gap:10px}
+.old .item{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.old .item details{border-top:none;padding-top:0}
+.old .bar{display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--pill);color:var(--pill-ink);padding:10px 16px;border-radius:999px;font-size:14px;font-weight:600;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.on{opacity:1}
+@media (max-width:480px){ h1{font-size:28px} .row{grid-template-columns:1fr;gap:4px} }
+@media (prefers-reduced-motion:reduce){ .toast{transition:none} }
+</style>
+
+<div class="page">
+  <header>
+    <p class="eyebrow">REEL HOOKS · v3 · 9:16 · 2026-10-06</p>
+    <h1>쿡매치 후킹 영상 v3</h1>
+    <p class="lede">「이거 완전 우리 집이네」 하고 태그하고 싶어지는 상황 8편이에요. 편 번호가 곧 이어 붙일 앱 데모 번호예요. v2를 편집하면서 나온 문제(가로 영상, 과한 표정, 설명하는 대사, 물건이 늘어나는 오류)를 막는 지시를 모든 편에 넣었어요. 카드의 <b>프롬프트 복사</b>를 눌러 제미나이에 그대로 붙이면 돼요.</p>
+  </header>
+
+  <section class="box">
+    <h3>쓰는 법</h3>
+    <ol>
+      <li>편마다 <b>새 대화</b>에서 붙여 넣으세요. 앞 영상의 얼굴·집이 섞이지 않아요.</li>
+      <li>같은 편을 여러 개 뽑을 때는 맨 아래 <b>변주</b> 표대로 [CAST]·[HOME] 줄만 바꿔요.</li>
+      <li>자막은 편집 때 우리가 얹어요. 카드의 검은 말풍선이 그 자막 제안이고, <b>웃음 포인트 순간</b>에 띄워요.</li>
+      <li>대사는 실생활 반말로 짧게, 주고받는 말로 짰어요. 직접 고칠 때도 상황을 설명하는 말은 넣지 마세요. 연기가 어색하게 나오면 같은 프롬프트로 새 대화에서 다시 뽑는 게 제일 빨라요.</li>
+    </ol>
+  </section>
+
+  <section class="box tip">
+    <h3>가로 영상으로 나올 때</h3>
+    <ul>
+      <li>프롬프트 <b>맨 앞과 맨 끝</b>에 세로 9:16(1080×1920)을 적어 뒀어요. 구도도 세로 화면 기준으로 적었어요.</li>
+      <li>쓰는 화면에 비율 고르는 칸이 있으면 <b>9:16(세로)</b>을 고르세요.</li>
+      <li>그래도 가로로 나오면 같은 대화에서 고쳐 달라고 하지 말고 <b>새 대화에서 다시</b> 붙이세요. 계속 가로면 비율을 고를 수 있는 Google Flow에서 세로를 고르고 같은 프롬프트를 쓰세요.</li>
+      <li>가로 영상을 세로로 잘라 쓰면 화질이 떨어지고 인물이 잘려요. 되도록 다시 뽑으세요.</li>
+    </ul>
+  </section>
+
+  <section class="box tip">
+    <h3>한글·자막이 화면에 나올 때</h3>
+    <ul>
+      <li>프롬프트는 <b>영어</b>예요. 한국어는 소리로만 나오는 대사에만 있어요.</li>
+      <li>「자막 금지」 같은 말은 일부러 뺐어요. 그리지 말 것의 이름을 적으면 제미나이가 오히려 그 단어를 힌트로 써요. 대신 라벨 없는 소품, 화면이 돌아간 폰처럼 <b>있어야 할 것만</b> 적었어요.</li>
+      <li>그래도 나오면 「자막 빼 줘」라고 대화하지 말고 <b>새 대화에서 같은 프롬프트로 다시</b> 만드세요.</li>
+      <li>계속 나오면 <b>대사 없는 버전 복사</b>로 만드세요. 대사가 없으면 글자를 넣을 이유가 사라져요. 대사는 편집에서 목소리·자막으로 얹어요.</li>
+      <li>쓰는 화면에 제외할 요소(negative prompt) 칸이 있으면, 그 칸에만 <code>subtitles, captions, on-screen text, letters, watermark</code> 를 적으세요.</li>
+    </ul>
+  </section>
+
+  <section class="clips" id="clips" aria-label="후킹 영상 8편"></section>
+
+  <section class="box">
+    <h2>같은 편을 여러 개 뽑을 때 — 변주</h2>
+    <p style="color:var(--muted)">[CAST] 끝에 한 줄을 덧붙이고 [HOME] 줄을 바꿔요. 장면·대사·마지막 1초는 그대로 둬요. 얼굴이 계속 비슷하면 [CAST] 끝에 <code>Completely different faces from any earlier clip.</code> 를 붙이세요.</p>
+    <div class="tablewrap"><table id="variants"><thead><tr><th>세트</th><th>바꾸는 것</th><th>[CAST]에 덧붙이기</th><th>[HOME] 바꾸기</th></tr></thead><tbody></tbody></table></div>
+  </section>
+
+  <section>
+    <h2>지난 버전 · v2 완성본 8편 (2026-09-29)</h2>
+    <p class="lede" style="margin-bottom:12px">지금 릴스에 쓴 후킹(두부·대파·애호박 등)을 만든 프롬프트예요. 참고용으로 남겨 뒀어요.</p>
+    <div class="old" id="old"></div>
+  </section>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+const DATA = /*__DATA__*/null;
+const $ = (s, el=document) => el.querySelector(s);
+const esc = s => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let toastTimer;
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('on'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('on'),1600); }
+function selectText(el){ const r=document.createRange(); r.selectNodeContents(el); const s=getSelection(); s.removeAllRanges(); s.addRange(r); }
+function copy(text, preEl){
+  const done = () => toast('복사됐어요 — 제미나이에 붙여 넣으세요');
+  const fail = () => { if (preEl){ preEl.closest('details').open = true; selectText(preEl); } toast('자동 복사가 막혀 있어요 — 선택된 글자를 길게 눌러 복사하세요'); };
+  try { navigator.clipboard.writeText(text).then(done, fail); } catch(e){ fail(); }
+}
+const clips = $('#clips');
+DATA.clips.forEach(c => {
+  const el = document.createElement('article');
+  el.className = 'clip';
+  el.innerHTML = `
+    <div class="clip-head"><span class="no">${c.no}</span><div>
+      <span class="kbf">${esc(c.kbf)}</span><h2>${esc(c.title)}</h2></div></div>
+    <p class="why">${esc(c.why)}</p>
+    <div class="row"><span class="k">편집 자막</span><span><span class="cap">${esc(c.caption)}</span></span></div>
+    <div class="row"><span class="k">자막 띄울 순간</span><span>${esc(c.punch)}</span></div>
+    <div class="row"><span class="k">이어 붙일 데모</span><span>${esc(c.demo)}</span></div>
+    <div class="actions"><button class="primary" type="button" data-k="p">프롬프트 복사</button><button type="button" data-k="n">대사 없는 버전 복사</button></div>
+    <details><summary>프롬프트 전체 보기</summary><pre>${esc(c.prompt)}</pre></details>`;
+  const pre = $('pre', el);
+  $('[data-k="p"]', el).addEventListener('click', () => copy(c.prompt, pre));
+  $('[data-k="n"]', el).addEventListener('click', () => copy(c.promptNoLine, pre));
+  clips.appendChild(el);
+});
+const vt = $('#variants tbody');
+DATA.variants.forEach(v => {
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td><b>${v[0]}</b></td><td>${esc(v[1])}</td><td><code>${esc(v[2])}</code></td><td>${v[3] ? '<code>'+esc(v[3])+'</code>' : '그대로'}</td>`;
+  vt.appendChild(tr);
+});
+const old = $('#old');
+DATA.old.forEach(([title, text]) => {
+  const el = document.createElement('div');
+  el.className = 'old-wrap';
+  el.innerHTML = `<div class="item"><div class="bar"><b>${esc(title)}</b><button type="button">복사</button></div><details><summary>펼쳐 보기</summary><pre>${esc(text)}</pre></details></div>`;
+  const pre = $('pre', el);
+  $('button', el).addEventListener('click', () => copy(text, pre));
+  old.appendChild(el);
+});
+</script>
