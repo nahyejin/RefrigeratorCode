@@ -77,16 +77,7 @@ export const Reel8FamilySavings: React.FC = () => {
         <Demo />
       </Sequence>
       <Sequence from={CTA_FROM} durationInFrames={CTA_LEN} name="CTA">
-        <CtaOutro
-          payoffLine={
-            <>
-              목표부터 식단, 절약까지
-              <br />
-              가족과 함께 <span style={{ color: "#D99A00" }}>확인해요</span>
-            </>
-          }
-        />
-        <Audio src={staticFile("reel8_narration_cta.mp3")} />
+        <Reel8Cta />
       </Sequence>
     </AbsoluteFill>
   );
@@ -398,3 +389,21 @@ const Demo: React.FC = () => {
     </AbsoluteFill>
   );
 };
+
+// 엔딩(페이오프 + CTA 나레이션) — 후킹만 바꾼 버전(ReelHooksV2.tsx)에서도 같은 엔딩을 그대로 쓴다.
+export const Reel8Cta: React.FC = () => (
+  <>
+    <CtaOutro
+      payoffLine={
+        <>
+          목표부터 식단, 절약까지
+          <br />
+          가족과 함께 <span style={{ color: "#D99A00" }}>확인해요</span>
+        </>
+      }
+    />
+    <Audio src={staticFile("reel8_narration_cta.mp3")} />
+  </>
+);
+
+export { Demo as Reel8Demo, DEMO_LEN as REEL8_DEMO_LEN, CTA_LEN as REEL8_CTA_LEN };

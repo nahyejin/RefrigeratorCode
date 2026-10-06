@@ -66,14 +66,7 @@ export const Reel6ChatbotDemo: React.FC = () => {
         <Demo />
       </Sequence>
       <Sequence from={CTA_FROM} durationInFrames={CTA_LEN} name="CTA">
-        <CtaOutro
-          payoffLine={
-            <>
-              검색 대신, <span style={{ color: "#D99A00" }}>말 한마디면 충분해요</span>
-            </>
-          }
-        />
-        <Audio src={staticFile("reel6_narration_cta.mp3")} />
+        <Reel6Cta />
       </Sequence>
     </AbsoluteFill>
   );
@@ -278,3 +271,19 @@ const Demo: React.FC = () => {
     </AbsoluteFill>
   );
 };
+
+// 엔딩(페이오프 + CTA 나레이션) — 후킹만 바꾼 버전(ReelHooksV2.tsx)에서도 같은 엔딩을 그대로 쓴다.
+export const Reel6Cta: React.FC = () => (
+  <>
+    <CtaOutro
+      payoffLine={
+        <>
+          검색 대신, <span style={{ color: "#D99A00" }}>말 한마디면 충분해요</span>
+        </>
+      }
+    />
+    <Audio src={staticFile("reel6_narration_cta.mp3")} />
+  </>
+);
+
+export { Demo as Reel6Demo, DEMO_LEN as REEL6_DEMO_LEN, CTA_LEN as REEL6_CTA_LEN };

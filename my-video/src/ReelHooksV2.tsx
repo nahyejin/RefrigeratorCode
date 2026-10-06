@@ -6,6 +6,9 @@ import { Reel2Demo, Reel2Cta, REEL2_DEMO_LEN, REEL2_CTA_LEN } from "./Reel2Match
 import { Reel3Demo, Reel3Cta, REEL3_DEMO_LEN, REEL3_CTA_LEN } from "./Reel3CookMode";
 import { Reel4Demo, Reel4Cta, REEL4_DEMO_LEN, REEL4_CTA_LEN } from "./Reel4AiDiet";
 import { Reel5Demo, Reel5Cta, REEL5_DEMO_LEN, REEL5_CTA_LEN } from "./Reel5ExpiryAlert";
+import { Reel6Demo, Reel6Cta, REEL6_DEMO_LEN, REEL6_CTA_LEN } from "./Reel6ChatbotDemo";
+import { Reel7Demo, Reel7Cta, REEL7_DEMO_LEN, REEL7_CTA_LEN } from "./Reel7RealRecipe";
+import { Reel8Demo, Reel8Cta, REEL8_DEMO_LEN, REEL8_CTA_LEN } from "./Reel8FamilySavings";
 
 // 후킹 v2(store/REEL_HOOKS_V2.md 프롬프트로 만든 제미나이 실사 클립) + 기존 1~5편의 앱 데모·엔딩을 그대로 이어붙인 버전.
 // 데모 쪽 자막·나레이션·CTA는 원래 편과 완전히 같고, 앞의 후킹만 바뀐다.
@@ -79,6 +82,41 @@ const HOOK5: HookSpec = {
   caption: "사 놓고 잊은 재료,\n우리 집에도 있죠",
 };
 
+// 03편 B안 ← 다른 배우·다른 테이크. 손가락 관절로 폰 누르기 → "아 안 넘어가네…"(1.9~5.1s) → "아 코로 넘겨?"(5.1~6.4s) → 코 들이밀기(~8.2s).
+// 처음부터 끝까지 한 흐름이라 앞 0.5초만 덜어낸다.
+const HOOK3B: HookSpec = {
+  src: "reel3_hook_v2_dough_b.mov",
+  segs: [[0.5, 8.2]],
+  caption: "반죽 묻은 손으로\n레시피 넘겨 본 적 있죠?",
+};
+
+// 06편 요리 AI ← 소파 커플 "뭐 먹을래?" "아무거나" "그럼 김치찌개?" "아니 그거 말고"… 된장찌개·제육볶음까지 세 번 퇴짜(0~8.7s) → 남자 멍한 얼굴 푸시인.
+// 주고받는 대사 자체가 웃음 포인트라 자르지 않고 10초 통째로 쓴다.
+const HOOK6: HookSpec = {
+  src: "reel6_hook_v2_anything.mp4",
+  segs: [[0, 10.0]],
+  caption: "아무거나의 정답,\n물어보세요",
+};
+
+// 07편 진짜 레시피 ← 소금 숟가락 들고 "적당히? 적당히가 얼만데"(0~3.5s) → 떨리는 손으로 소금을 조금씩 덜어냄(~7.5s).
+// 뒤 2.5초는 같은 동작 반복이라 뺀다.
+const HOOK7: HookSpec = {
+  src: "reel7_hook_v2_salt.mp4",
+  segs: [[0, 7.5]],
+  caption: "레시피가\n친절하지 않을 때",
+};
+
+// 08편 가족·아낀 돈 ← 턱 위까지 쌓은 배달 용기 탑을 들고 복도를 걸어오며 "어후, 쓰러지겠다, 쓰러지겠어"(2.9~5.4s) → 흔들리는 탑 푸시인.
+// 처음 걸어 나오는 1.5초와, 대사 뒤 계속 걸어오기만 하는 구간(6.0~8.6s)을 건너뛴다.
+const HOOK8: HookSpec = {
+  src: "reel8_hook_v2_takeout.mov",
+  segs: [
+    [1.5, 6.0],
+    [8.6, 9.7],
+  ],
+  caption: "이번 달 배달 용기,\n몇 개예요?",
+};
+
 const HookV2: React.FC<{ spec: HookSpec }> = ({ spec }) => {
   const frame = useCurrentFrame();
   const total = hookLen(spec);
@@ -139,4 +177,8 @@ export const REELS_HOOK_V2 = [
   { id: "Reel3HookV2Dough", ...makeReel(HOOK3, Reel3Demo, REEL3_DEMO_LEN, Reel3Cta, REEL3_CTA_LEN) },
   { id: "Reel4HookV2GreenOnion", ...makeReel(HOOK4, Reel4Demo, REEL4_DEMO_LEN, Reel4Cta, REEL4_CTA_LEN) },
   { id: "Reel5HookV2Zucchini", ...makeReel(HOOK5, Reel5Demo, REEL5_DEMO_LEN, Reel5Cta, REEL5_CTA_LEN) },
+  { id: "Reel3HookV2DoughB", ...makeReel(HOOK3B, Reel3Demo, REEL3_DEMO_LEN, Reel3Cta, REEL3_CTA_LEN) },
+  { id: "Reel6HookV2Anything", ...makeReel(HOOK6, Reel6Demo, REEL6_DEMO_LEN, Reel6Cta, REEL6_CTA_LEN) },
+  { id: "Reel7HookV2Salt", ...makeReel(HOOK7, Reel7Demo, REEL7_DEMO_LEN, Reel7Cta, REEL7_CTA_LEN) },
+  { id: "Reel8HookV2Takeout", ...makeReel(HOOK8, Reel8Demo, REEL8_DEMO_LEN, Reel8Cta, REEL8_CTA_LEN) },
 ];
