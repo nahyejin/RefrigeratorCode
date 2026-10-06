@@ -4,6 +4,7 @@ import { FONT_FAMILY, WHITE, useCustomFont, Caption } from "./shared";
 import { Reel1Demo, Reel1Cta, REEL1_DEMO_LEN, REEL1_CTA_LEN } from "./Reel1Receipt";
 import { Reel2Demo, Reel2Cta, REEL2_DEMO_LEN, REEL2_CTA_LEN } from "./Reel2Match";
 import { Reel3Demo, Reel3Cta, REEL3_DEMO_LEN, REEL3_CTA_LEN } from "./Reel3CookMode";
+import { Reel4Demo, Reel4Cta, REEL4_DEMO_LEN, REEL4_CTA_LEN } from "./Reel4AiDiet";
 import { Reel5Demo, Reel5Cta, REEL5_DEMO_LEN, REEL5_CTA_LEN } from "./Reel5ExpiryAlert";
 import { Reel6Demo, Reel6Cta, REEL6_DEMO_LEN, REEL6_CTA_LEN } from "./Reel6ChatbotDemo";
 import { Reel7Demo, Reel7Cta, REEL7_DEMO_LEN, REEL7_CTA_LEN } from "./Reel7RealRecipe";
@@ -52,12 +53,12 @@ const HOOK3: HookSpec = { src: "reel3_hook_v2_dough.mp4", segs: [[0, 10.0]], cap
 // 03편 B안 ← 다른 배우·다른 테이크. "아 안 넘어가네…" → "아 코로 넘겨?" → 코 들이밀기 (원본 8.22s)
 const HOOK3B: HookSpec = { src: "reel3_hook_v2_dough_b.mov", segs: [[0, 8.2]], caption: "반죽 묻은 손으로\n레시피 넘겨 본 적 있죠?" };
 
-// 01편 사진 인식 B안 ← 장바구니에서 대파 → 냉장고에 두 단 더 "아 뭐야… 대파 있었네" → 세 단 꽃다발 푸시인 (원본 10.0s)
-// 기획은 04 AI 식단이었지만, 「있는 줄 모르고 또 산」 상황엔 사진 한 장으로 냉장고를 채워 두는 01 데모가 더 맞다는 사용자 판단(2026-10-06).
-// 「연기가 어색하다」는 지적(2026-10-06) — 카메라 쪽으로 고개를 돌려 입을 크게 벌리는 4.9~6.0s(「아 뭐야」)만 하드컷으로 빼고,
+// 04편 AI 식단 ← 장바구니에서 대파 → 냉장고에 두 단 더 "대파 있었네" → 세 단 꽃다발 푸시인 (원본 10.0s)
+// 한때 01 사진 인식에 붙였다가 8편이 데모 하나씩 갖도록 다시 04로(사용자, 2026-10-06).
+// 「연기가 어색하다」는 지적 — 카메라 쪽으로 고개를 돌려 입을 크게 벌리는 4.9~6.0s(「아 뭐야」)만 하드컷으로 빼고,
 // 「대파 있었네」와 꽃다발 푸시인은 그대로 둔다. 잘리는 양끝은 둘 다 대사 없는 구간이다.
-const HOOK1B: HookSpec = {
-  src: "reel1_hook_v2_greenonion.mp4",
+const HOOK4: HookSpec = {
+  src: "reel4_hook_v2_greenonion.mp4",
   segs: [
     [0, 4.9],
     [6.0, 10.0],
@@ -141,7 +142,7 @@ export const REELS_HOOK_V2 = [
   { id: "Reel1HookV2Tofu", ...makeReel(HOOK1, Reel1Demo, REEL1_DEMO_LEN, Reel1Cta, REEL1_CTA_LEN) },
   { id: "Reel2HookV2Fridge", ...makeReel(HOOK2, Reel2Demo, REEL2_DEMO_LEN, Reel2Cta, REEL2_CTA_LEN) },
   { id: "Reel3HookV2Dough", ...makeReel(HOOK3, Reel3Demo, REEL3_DEMO_LEN, Reel3Cta, REEL3_CTA_LEN) },
-  { id: "Reel1HookV2GreenOnion", ...makeReel(HOOK1B, Reel1Demo, REEL1_DEMO_LEN, Reel1Cta, REEL1_CTA_LEN) },
+  { id: "Reel4HookV2GreenOnion", ...makeReel(HOOK4, Reel4Demo, REEL4_DEMO_LEN, Reel4Cta, REEL4_CTA_LEN) },
   { id: "Reel5HookV2Zucchini", ...makeReel(HOOK5, Reel5Demo, REEL5_DEMO_LEN, Reel5Cta, REEL5_CTA_LEN) },
   { id: "Reel3HookV2DoughB", ...makeReel(HOOK3B, Reel3Demo, REEL3_DEMO_LEN, Reel3Cta, REEL3_CTA_LEN) },
   { id: "Reel6HookV2Anything", ...makeReel(HOOK6, Reel6Demo, REEL6_DEMO_LEN, Reel6Cta, REEL6_CTA_LEN) },
