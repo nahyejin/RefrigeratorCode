@@ -11952,3 +11952,8 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 
 ### iOS 1.0.3 (빌드 9) 번호 올림
 - `project.pbxproj` 앱·위젯 4개 설정 모두 1.0.2(8) → 1.0.3(9). RELEASE_NOTES 「다음 버전」 6줄을 맥에서 빌드·제출(맥은 pull → npm run build → cap sync ios → Archive).
+
+### iOS 1.0.3 (빌드 9) 맥 빌드 확인
+- 맥에서 로컬 변경 없음 확인 → `git pull`(32560509 까지) → `npm install` → `npm run build` → `npx cap sync ios`.
+- `project.pbxproj` 앱·위젯 Debug/Release 4개 설정 모두 MARKETING_VERSION 1.0.3 / CURRENT_PROJECT_VERSION 9 확인. SceneDelegate 의 `allowsBackForwardNavigationGestures = false` 반영 확인.
+- `xcodebuild -project App.xcodeproj -scheme App -configuration Release -destination generic/platform=iOS build` → BUILD SUCCEEDED. Archive·업로드·App Store Connect 제출은 사용자.
