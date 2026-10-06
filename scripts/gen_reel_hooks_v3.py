@@ -3,8 +3,9 @@
     python scripts/gen_reel_hooks_v3.py [out.html]   # store/REEL_HOOKS_V3.md + 폰용 HTML(아티팩트 게시용)
 
 v2(2026-09-29)로 뽑은 9개를 실제로 편집해 보고 나온 문제를 막는 판(2026-10-06 사용자 요청):
-  · 가로 영상: 제미나이가 자꾸 16:9로 만든다 → 프롬프트 맨 앞 [FORMAT] 블록과 맨 끝 리마인더 두 군데에 세로 9:16(1080×1920)을
-    못 박고, 구도도 세로 화면 기준으로 적는다(인물은 가운데 세로 기둥, 손·소품은 아래 1/3).
+  · 가로 영상: 제미나이가 자꾸 가로로 만든다 → 맨 앞 첫 줄과 맨 끝 줄을 「Generate this video in a 9:16 vertical aspect ratio
+    (portrait, 1080×1920) for Instagram Reels.」로, 구도도 세로 화면 기준으로. 「가로로 만들지 마라」처럼 피할 것의 이름은 안 적는다
+    (첫 판에 넣었다가 그대로 가로로 나옴). 확실히 받는 2단계: 편마다 세로 첫 장면 이미지 프롬프트 → 그 사진을 첨부해 영상 생성.
   · 어색한 연기: 대파 편에서 카메라 쪽으로 고개를 돌려 입을 크게 벌리는 표정이 나왔다 → ACTING 블록에 「반응은 작게, 입은 말할
     때만, 시선은 소품·상대에게, 대사하는 동안에도 손은 하던 일을 계속」을 긍정문으로 적는다.
   · 어색한 대사: 실생활 반말·짧게·말끝 흐림. 혼잣말보다 옆 사람과 주고받는 말. 상황을 설명하는 대사는 쓰지 않는다.
@@ -19,8 +20,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 
-FORMAT = """[FORMAT — READ FIRST]
-VERTICAL PORTRAIT VIDEO. Aspect ratio 9:16, 1080 pixels wide by 1920 pixels tall: the frame is much taller than it is wide, shot for a phone held upright, like an Instagram Reel or a TikTok. Compose every moment for this tall frame: the person stands in the center column with a little headroom, hands and props sit in the lower third, and the background stretches up behind them. The whole video is this one vertical frame from the first to the last second. Do not make a landscape 16:9 or square video."""
+FORMAT = """Generate this video in a 9:16 vertical aspect ratio (portrait, 1080×1920) for Instagram Reels.
+
+[FORMAT]
+Vertical portrait video for a phone held upright, the same shape as an Instagram Reel: much taller than it is wide, from the first frame to the last. The person stands in the center column with a little headroom, hands and props sit in the lower third, and the room stretches up behind them. If an image is attached, it is the first frame: keep its vertical framing, people and setting exactly."""
 
 COMMON = """[DIRECTION — same for every clip in this series]
 A short Korean slice-of-life comedy series. Treat this as raw camera footage (a clean plate) that an editor will finish later: the frame shows only the live-action scene, exactly as the camera sees it.
@@ -38,7 +41,7 @@ PROPS: Every surface and object is plain and unmarked. Food packaging comes in s
 SOUND: Natural room sound plus the spoken lines in AUDIO. No music. The Korean in AUDIO is heard as voice only.
 ENDING: In the last second the camera slowly pushes in on the subject named in LAST SECOND and holds there."""
 
-REMINDER = "[FORMAT REMINDER] Vertical 9:16 portrait video, 1080×1920, taller than wide, from the first frame to the last."
+REMINDER = "Generate this video in a 9:16 vertical aspect ratio (portrait, 1080×1920) for Instagram Reels."
 
 # 대사 없는 버전 — 대사 대신 숨소리·짧은 웃음만. 대사는 편집에서 목소리·자막으로 얹는다(화면에 글자가 섞일 틈이 아예 없다).
 NO_LINE = "Spoken words: none. Only small natural sounds: a breath out through the nose, a quiet sigh."
@@ -56,6 +59,7 @@ CLIPS = [
         "audio": "Fridge hum, containers sliding. His wife's voice, small and tinny from the phone: \"계란 있어? 없어?\" He, still digging: \"잠깐만, 잠깐만...\" After he opens the carton, flat: \"...한 개 있어.\"",
         "no_line": "Fridge hum, containers sliding, the soft click of the carton lid. He lets out one breath through his nose. Spoken words: none.",
         "last": "The open egg carton with the single egg inside.",
+        "first": "He crouches in front of the open fridge with his phone pinched between his shoulder and his ear, screen against his cheek, one hand sliding a container aside on a shelf.",
     },
     {
         "no": "02", "kbf": "있는 재료로 매칭", "title": "냉장고 재료 라인업",
@@ -69,6 +73,7 @@ CLIPS = [
         "audio": "Quiet kitchen hum. She, puzzled: \"뭐 해?\" He, without taking his eyes off the counter: \"이걸로... 뭐 되나 보고 있어.\"",
         "no_line": "Quiet kitchen hum, a mug set down softly. She lets out a small laugh through her nose. Spoken words: none.",
         "last": "The four lonely ingredients lined up on the counter.",
+        "first": "Four ingredients sit evenly spaced in one neat row on the wooden counter: one egg, half an onion wrapped in plastic, a single sausage, one slice of cheese. He stands a step back with his arms crossed, studying them seriously. His girlfriend is just stepping into the doorway behind him holding a mug.",
     },
     {
         "no": "03", "kbf": "요리 모드 · 손 안 대고 넘기기", "title": "위로, 아니 너무 올렸어",
@@ -82,6 +87,7 @@ CLIPS = [
         "audio": "Soft squish of marinade. She: \"자기야, 이것 좀 올려 줘.\" A beat later, while he scrolls: \"아니 위로... 아니, 너무 올렸어.\" He, quietly: \"아 어디...\"",
         "no_line": "Soft squish of marinade, a finger tapping glass. She sighs patiently. Spoken words: none.",
         "last": "Her red gloved hands held up in the air next to the phone.",
+        "first": "She stands at the counter with both clear gloved hands, covered in red marinade, inside a mixing bowl of marinated meat. A phone leans against a jar with its screen turned away from us. Her husband is on the sofa in the soft-focus background.",
     },
     {
         "no": "04", "kbf": "장 볼 게 가장 적은 식단", "title": "안 닫히는 냉장고",
@@ -95,6 +101,7 @@ CLIPS = [
         "audio": "Containers clinking, the fridge seal. Her husband, from the table, mild: \"또 장 봤어?\" She, palm still on the door: \"...이번 주 거야.\"",
         "no_line": "Containers clinking, the soft creak of the fridge door swinging open. She breathes out slowly. Spoken words: none.",
         "last": "Her hand pressed flat against the fridge door, holding it shut.",
+        "first": "She stands at the open, completely packed fridge, pushing one more container onto a full shelf. Two plain paper grocery bags sit on the floor by her feet. Her husband sits at the dining table in the background.",
     },
     {
         "no": "05", "kbf": "유통기한 임박 알림", "title": "냄새 테스트",
@@ -108,6 +115,7 @@ CLIPS = [
         "audio": "Morning kitchen sounds, the carton cap twisting. He: \"이거 괜찮은 거 같아?\" She, after one sniff, handing it back: \"...너 먹어.\"",
         "no_line": "Morning kitchen sounds, the carton cap twisting, one sniff, then another. She lets out a short laugh through her nose. Spoken words: none.",
         "last": "The milk carton held between them.",
+        "first": "The couple stand side by side at the sunny counter. He holds an opened plain white milk carton just below his nose, about to sniff it; she holds a mug and watches him.",
     },
     {
         "no": "06", "kbf": "요리 AI · 말로 물어보기", "title": "엄마, 뭐 해 먹지?",
@@ -121,6 +129,7 @@ CLIPS = [
         "audio": "Soft kitchen sounds. She, toward the phone: \"엄마, 집에 두부랑 애호박 있는데 뭐 해 먹지?\" Her mother's voice from the phone speaker, warm but tired: \"된장찌개 하면 되잖아. 몇 번을 말하니.\" She, quietly: \"...알았어.\"",
         "no_line": "Soft kitchen sounds, a faint murmur from the phone speaker, the knife meeting the board. She nods to herself. Spoken words: none.",
         "last": "The zucchini being sliced on the cutting board.",
+        "first": "She stands at the counter holding a zucchini in one hand, a plain tofu pack and a cutting board in front of her. Her phone lies face down beside the board.",
     },
     {
         "no": "07", "kbf": "검증된 진짜 레시피", "title": "근데 이거 뭐야?",
@@ -134,6 +143,7 @@ CLIPS = [
         "audio": "Quiet dinner table sounds. She, chewing, kind: \"음... 맛있네.\" A beat. \"근데 이거 뭐야?\" He, small voice: \"...찜닭.\"",
         "no_line": "Quiet dinner table sounds, a spoon on a plate, slow chewing. She nods politely, then pauses. Spoken words: none.",
         "last": "The shapeless dish on the white plate.",
+        "first": "The couple sit at the small dining table. He is setting a plain white plate of a dark, shapeless braised dish down in front of her; she looks at the plate.",
     },
     {
         "no": "08", "kbf": "가족 · 아낀 돈", "title": "또 뵙네요",
@@ -147,6 +157,7 @@ CLIPS = [
         "audio": "Door opening, paper bag rustling. Rider, cheerful: \"아, 또 뵙네요.\" She, polite and a little embarrassed: \"아... 네, 감사합니다.\" Door closes. Her husband, quietly: \"...우리 단골이네.\"",
         "no_line": "Door opening, paper bag rustling, the door closing softly. The couple look at each other and let out a short laugh. Spoken words: none.",
         "last": "The two of them looking at each other, the delivery bag between them.",
+        "first": "Seen from inside the entryway: she has just opened the front door. The delivery rider stands outside holding out a plain white paper bag. Her husband stands in the hallway behind her.",
     },
 ]
 
@@ -158,6 +169,27 @@ VARIANTS = [
     ("D", "안경 · 니트 대신 셔츠", "Add glasses; swap knits for crisp shirts.", "Detached house with solid wood furniture and a garden visible through the window."),
     ("E", "머리를 올려 묶고 앞치마", "Hair tied up high; add plain aprons.", "Narrow villa kitchen with pale gray counters and potted herbs on the sill."),
 ]
+
+
+IMAGE_HEAD = "Create a photoreal still photo in a 9:16 vertical aspect ratio (portrait, 1080×1920), like a frame from an Instagram Reel shot on a phone held upright."
+IMAGE_STYLE = """The person stands in the center column with a little headroom; hands and props sit in the lower third; the room stretches up behind them.
+People: Korean adults with a clean, neat, likable look and natural relaxed expressions, caught mid-moment, looking at the props or at each other rather than at the camera.
+Light: soft daylight from a window plus gentle warm practical lights, warm white balance, natural skin tones, shallow depth of field, eye level, 35–50mm lens feel.
+Props: every surface and object is plain and unmarked; food packaging in solid pastel colors, containers clear or single-colored, paper items blank, no logos; phone screens face away from the camera or lie face down.
+A clean, unedited camera frame."""
+IMAGE_TAIL = "Generate this image in a 9:16 vertical aspect ratio (portrait, 1080×1920)."
+
+
+def image_prompt(c):
+    """세로 영상을 확실히 받는 2단계용 — 먼저 이 세로 사진을 만들고, 그 사진을 첨부해서 영상 프롬프트를 붙인다(영상이 첨부 사진의 비율을 따른다)."""
+    return "\n\n".join([
+        IMAGE_HEAD,
+        f"[SCENE — the first frame]\n{c['first']}",
+        f"[CAST]\n{c['cast']}",
+        f"[HOME]\n{c['home']}",
+        IMAGE_STYLE,
+        IMAGE_TAIL,
+    ])
 
 
 def clip_prompt(c, no_line=False):
@@ -198,10 +230,11 @@ def write_md():
         "- **편 번호 = 앱 데모 번호**: 01 사진 인식, 02 매칭, 03 요리 모드, 04 AI 식단, 05 유통기한, 06 요리 AI, 07 진짜 레시피, 08 가족·아낀 돈.",
         "- **자막 띄울 순간**을 편마다 적었다. 후킹 자막은 웃음 포인트에서 띄운다(0초부터 띄우면 결말을 미리 말해 버린다).",
         "",
-        "## 세로로 안 나올 때",
-        "- 쓰는 화면에 비율 고르는 칸이 있으면 **9:16(세로)** 을 고른다.",
-        "- 제미나이 앱에서 계속 가로로 나오면, 같은 대화에서 고쳐 달라고 하지 말고 **새 대화에서 다시** 붙인다. 그래도 가로면 비율을 고를 수 있는 Google Flow에서 세로를 고르고 같은 프롬프트를 쓴다.",
-        "- 가로 영상을 세로로 잘라 쓰면 화질이 떨어지고 인물이 잘리니, 되도록 다시 뽑는다.",
+        "## 세로(9:16)로 받는 법 — 2026-10-06 보강",
+        "- v3 첫 판도 가로로 나왔다. 원인 후보: 「가로 16:9로 만들지 마라」처럼 **피할 것의 이름을 적은 문장**(v2 때 자막에서 본 것과 같은 역효과). v2(세로로 잘 나옴)엔 이런 문장이 없었다 → 뺐다.",
+        "- 제미나이 앱 사용자 경험상 비율 지시는 **프롬프트 끝에** 「Generate this video in a 9:16 vertical aspect ratio」처럼 짧게 적는 게 잘 먹힌다 → 맨 앞 첫 줄과 맨 끝 줄을 이 문장으로.",
+        "- **가장 확실한 방법(2단계)**: 제미나이 앱은 첨부한 이미지와 같은 비율로 영상을 만든다. ① 편마다 있는 **첫 장면 이미지 프롬프트**로 세로 사진을 먼저 만든다(세로인지 확인) ② 새 대화에서 그 사진을 첨부하고 **영상 프롬프트**를 붙인다. 영상 프롬프트에 「첨부 이미지가 있으면 그게 첫 장면」이라는 줄이 들어 있다.",
+        "- 쓰는 화면에 비율 고르는 칸이 있으면 9:16을 고른다. 세로 영상 생성은 Google AI Plus·Pro·Ultra 요금제에서 된다.",
         "",
         "## 한글·자막이 화면에 나오지 않게 (v2와 같음)",
         "- 프롬프트는 **영어**. 한국어는 AUDIO 칸의 **소리로만 나오는 대사**에만 있다.",
@@ -230,8 +263,16 @@ def write_md():
             f"- **자막 띄울 순간**: {c['punch']}",
             f"- **이어 붙일 앱 데모**: {c['demo']}",
             "",
+            "영상 프롬프트:",
+            "",
             "```",
             clip_prompt(c),
+            "```",
+            "",
+            "첫 장면 이미지 프롬프트(2단계용):",
+            "",
+            "```",
+            image_prompt(c),
             "```",
             "",
         ]
@@ -250,7 +291,7 @@ def write_md():
 
 def write_html(path: Path):
     data = {
-        "clips": [dict(c, prompt=clip_prompt(c), promptNoLine=clip_prompt(c, True)) for c in CLIPS],
+        "clips": [dict(c, prompt=clip_prompt(c), promptNoLine=clip_prompt(c, True), promptImage=image_prompt(c)) for c in CLIPS],
         "variants": VARIANTS,
         "old": v2_blocks(),
     }

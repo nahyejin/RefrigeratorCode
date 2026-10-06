@@ -11,10 +11,11 @@
 - **편 번호 = 앱 데모 번호**: 01 사진 인식, 02 매칭, 03 요리 모드, 04 AI 식단, 05 유통기한, 06 요리 AI, 07 진짜 레시피, 08 가족·아낀 돈.
 - **자막 띄울 순간**을 편마다 적었다. 후킹 자막은 웃음 포인트에서 띄운다(0초부터 띄우면 결말을 미리 말해 버린다).
 
-## 세로로 안 나올 때
-- 쓰는 화면에 비율 고르는 칸이 있으면 **9:16(세로)** 을 고른다.
-- 제미나이 앱에서 계속 가로로 나오면, 같은 대화에서 고쳐 달라고 하지 말고 **새 대화에서 다시** 붙인다. 그래도 가로면 비율을 고를 수 있는 Google Flow에서 세로를 고르고 같은 프롬프트를 쓴다.
-- 가로 영상을 세로로 잘라 쓰면 화질이 떨어지고 인물이 잘리니, 되도록 다시 뽑는다.
+## 세로(9:16)로 받는 법 — 2026-10-06 보강
+- v3 첫 판도 가로로 나왔다. 원인 후보: 「가로 16:9로 만들지 마라」처럼 **피할 것의 이름을 적은 문장**(v2 때 자막에서 본 것과 같은 역효과). v2(세로로 잘 나옴)엔 이런 문장이 없었다 → 뺐다.
+- 제미나이 앱 사용자 경험상 비율 지시는 **프롬프트 끝에** 「Generate this video in a 9:16 vertical aspect ratio」처럼 짧게 적는 게 잘 먹힌다 → 맨 앞 첫 줄과 맨 끝 줄을 이 문장으로.
+- **가장 확실한 방법(2단계)**: 제미나이 앱은 첨부한 이미지와 같은 비율로 영상을 만든다. ① 편마다 있는 **첫 장면 이미지 프롬프트**로 세로 사진을 먼저 만든다(세로인지 확인) ② 새 대화에서 그 사진을 첨부하고 **영상 프롬프트**를 붙인다. 영상 프롬프트에 「첨부 이미지가 있으면 그게 첫 장면」이라는 줄이 들어 있다.
+- 쓰는 화면에 비율 고르는 칸이 있으면 9:16을 고른다. 세로 영상 생성은 Google AI Plus·Pro·Ultra 요금제에서 된다.
 
 ## 한글·자막이 화면에 나오지 않게 (v2와 같음)
 - 프롬프트는 **영어**. 한국어는 AUDIO 칸의 **소리로만 나오는 대사**에만 있다.
@@ -24,8 +25,10 @@
 ## 공통 지시 (모든 편 맨 앞·맨 끝 — 아래 완성본에 이미 합쳐져 있다)
 
 ```
-[FORMAT — READ FIRST]
-VERTICAL PORTRAIT VIDEO. Aspect ratio 9:16, 1080 pixels wide by 1920 pixels tall: the frame is much taller than it is wide, shot for a phone held upright, like an Instagram Reel or a TikTok. Compose every moment for this tall frame: the person stands in the center column with a little headroom, hands and props sit in the lower third, and the background stretches up behind them. The whole video is this one vertical frame from the first to the last second. Do not make a landscape 16:9 or square video.
+Generate this video in a 9:16 vertical aspect ratio (portrait, 1080×1920) for Instagram Reels.
+
+[FORMAT]
+Vertical portrait video for a phone held upright, the same shape as an Instagram Reel: much taller than it is wide, from the first frame to the last. The person stands in the center column with a little headroom, hands and props sit in the lower third, and the room stretches up behind them. If an image is attached, it is the first frame: keep its vertical framing, people and setting exactly.
 
 [DIRECTION — same for every clip in this series]
 A short Korean slice-of-life comedy series. Treat this as raw camera footage (a clean plate) that an editor will finish later: the frame shows only the live-action scene, exactly as the camera sees it.
@@ -45,7 +48,7 @@ ENDING: In the last second the camera slowly pushes in on the subject named in L
 
 …편별 [CAST]·[HOME]·[ACTION]·[AUDIO]·[LAST SECOND]…
 
-[FORMAT REMINDER] Vertical 9:16 portrait video, 1080×1920, taller than wide, from the first frame to the last.
+Generate this video in a 9:16 vertical aspect ratio (portrait, 1080×1920) for Instagram Reels.
 ```
 
 ## 01. 계란 있어? 없어? — 사진 한 장으로 냉장고 채우기
@@ -55,9 +58,13 @@ ENDING: In the last second the camera slowly pushes in on the subject named in L
 - **자막 띄울 순간**: 계란판을 열어 한 알만 보이는 순간(「…한 개 있어」)
 - **이어 붙일 앱 데모**: 01 사진 인식 — 영수증·음식 사진 한 장으로 재료가 냉장고에 담기는 화면(냉장고가 폰 안에)
 
+영상 프롬프트:
+
 ```
-[FORMAT — READ FIRST]
-VERTICAL PORTRAIT VIDEO. Aspect ratio 9:16, 1080 pixels wide by 1920 pixels tall: the frame is much taller than it is wide, shot for a phone held upright, like an Instagram Reel or a TikTok. Compose every moment for this tall frame: the person stands in the center column with a little headroom, hands and props sit in the lower third, and the background stretches up behind them. The whole video is this one vertical frame from the first to the last second. Do not make a landscape 16:9 or square video.
+Generate this video in a 9:16 vertical aspect ratio (portrait, 1080×1920) for Instagram Reels.
+
+[FORMAT]
+Vertical portrait video for a phone held upright, the same shape as an Instagram Reel: much taller than it is wide, from the first frame to the last. The person stands in the center column with a little headroom, hands and props sit in the lower third, and the room stretches up behind them. If an image is attached, it is the first frame: keep its vertical framing, people and setting exactly.
 
 [DIRECTION — same for every clip in this series]
 A short Korean slice-of-life comedy series. Treat this as raw camera footage (a clean plate) that an editor will finish later: the frame shows only the live-action scene, exactly as the camera sees it.
@@ -90,7 +97,30 @@ Fridge hum, containers sliding. His wife's voice, small and tinny from the phone
 [LAST SECOND]
 The open egg carton with the single egg inside.
 
-[FORMAT REMINDER] Vertical 9:16 portrait video, 1080×1920, taller than wide, from the first frame to the last.
+Generate this video in a 9:16 vertical aspect ratio (portrait, 1080×1920) for Instagram Reels.
+```
+
+첫 장면 이미지 프롬프트(2단계용):
+
+```
+Create a photoreal still photo in a 9:16 vertical aspect ratio (portrait, 1080×1920), like a frame from an Instagram Reel shot on a phone held upright.
+
+[SCENE — the first frame]
+He crouches in front of the open fridge with his phone pinched between his shoulder and his ear, screen against his cheek, one hand sliding a container aside on a shelf.
+
+[CAST]
+Late-30s Korean man, short tidy hair, light gray hoodie, sweatpants, thick socks. His wife is heard only as a small voice from his phone.
+
+[HOME]
+Apartment kitchen in the afternoon, white fridge, light oak floor, a fruit bowl on the counter.
+
+The person stands in the center column with a little headroom; hands and props sit in the lower third; the room stretches up behind them.
+People: Korean adults with a clean, neat, likable look and natural relaxed expressions, caught mid-moment, looking at the props or at each other rather than at the camera.
+Light: soft daylight from a window plus gentle warm practical lights, warm white balance, natural skin tones, shallow depth of field, eye level, 35–50mm lens feel.
+Props: every surface and object is plain and unmarked; food packaging in solid pastel colors, containers clear or single-colored, paper items blank, no logos; phone screens face away from the camera or lie face down.
+A clean, unedited camera frame.
+
+Generate this image in a 9:16 vertical aspect ratio (portrait, 1080×1920).
 ```
 
 ## 02. 냉장고 재료 라인업 — 있는 재료로 매칭
@@ -100,9 +130,13 @@ The open egg carton with the single egg inside.
 - **자막 띄울 순간**: 「이걸로… 뭐 되나 보고 있어」 대답하는 순간
 - **이어 붙일 앱 데모**: 02 매칭 — 지금 냉장고 재료로 만들 수 있는 요리가 매칭률 순으로 뜨는 화면
 
+영상 프롬프트:
+
 ```
-[FORMAT — READ FIRST]
-VERTICAL PORTRAIT VIDEO. Aspect ratio 9:16, 1080 pixels wide by 1920 pixels tall: the frame is much taller than it is wide, shot for a phone held upright, like an Instagram Reel or a TikTok. Compose every moment for this tall frame: the person stands in the center column with a little headroom, hands and props sit in the lower third, and the background stretches up behind them. The whole video is this one vertical frame from the first to the last second. Do not make a landscape 16:9 or square video.
+Generate this video in a 9:16 vertical aspect ratio (portrait, 1080×1920) for Instagram Reels.
+
+[FORMAT]
+Vertical portrait video for a phone held upright, the same shape as an Instagram Reel: much taller than it is wide, from the first frame to the last. The person stands in the center column with a little headroom, hands and props sit in the lower third, and the room stretches up behind them. If an image is attached, it is the first frame: keep its vertical framing, people and setting exactly.
 
 [DIRECTION — same for every clip in this series]
 A short Korean slice-of-life comedy series. Treat this as raw camera footage (a clean plate) that an editor will finish later: the frame shows only the live-action scene, exactly as the camera sees it.
@@ -135,7 +169,30 @@ Quiet kitchen hum. She, puzzled: "뭐 해?" He, without taking his eyes off the 
 [LAST SECOND]
 The four lonely ingredients lined up on the counter.
 
-[FORMAT REMINDER] Vertical 9:16 portrait video, 1080×1920, taller than wide, from the first frame to the last.
+Generate this video in a 9:16 vertical aspect ratio (portrait, 1080×1920) for Instagram Reels.
+```
+
+첫 장면 이미지 프롬프트(2단계용):
+
+```
+Create a photoreal still photo in a 9:16 vertical aspect ratio (portrait, 1080×1920), like a frame from an Instagram Reel shot on a phone held upright.
+
+[SCENE — the first frame]
+Four ingredients sit evenly spaced in one neat row on the wooden counter: one egg, half an onion wrapped in plastic, a single sausage, one slice of cheese. He stands a step back with his arms crossed, studying them seriously. His girlfriend is just stepping into the doorway behind him holding a mug.
+
+[CAST]
+Early-30s Korean man, short neat hair, navy crew-neck sweatshirt. His girlfriend, late 20s, hair in a loose bun, soft gray cardigan.
+
+[HOME]
+Small apartment kitchen at night, warm pendant light over a wooden counter, a window with the city dark outside.
+
+The person stands in the center column with a little headroom; hands and props sit in the lower third; the room stretches up behind them.
+People: Korean adults with a clean, neat, likable look and natural relaxed expressions, caught mid-moment, looking at the props or at each other rather than at the camera.
+Light: soft daylight from a window plus gentle warm practical lights, warm white balance, natural skin tones, shallow depth of field, eye level, 35–50mm lens feel.
+Props: every surface and object is plain and unmarked; food packaging in solid pastel colors, containers clear or single-colored, paper items blank, no logos; phone screens face away from the camera or lie face down.
+A clean, unedited camera frame.
+
+Generate this image in a 9:16 vertical aspect ratio (portrait, 1080×1920).
 ```
 
 ## 03. 위로, 아니 너무 올렸어 — 요리 모드 · 손 안 대고 넘기기
@@ -145,9 +202,13 @@ The four lonely ingredients lined up on the counter.
 - **자막 띄울 순간**: 「아니 너무 올렸어」 하는 순간
 - **이어 붙일 앱 데모**: 03 요리 모드 — 손대지 않아도 단계를 소리로 읽어 주고 노랗게 짚어 주는 화면
 
+영상 프롬프트:
+
 ```
-[FORMAT — READ FIRST]
-VERTICAL PORTRAIT VIDEO. Aspect ratio 9:16, 1080 pixels wide by 1920 pixels tall: the frame is much taller than it is wide, shot for a phone held upright, like an Instagram Reel or a TikTok. Compose every moment for this tall frame: the person stands in the center column with a little headroom, hands and props sit in the lower third, and the background stretches up behind them. The whole video is this one vertical frame from the first to the last second. Do not make a landscape 16:9 or square video.
+Generate this video in a 9:16 vertical aspect ratio (portrait, 1080×1920) for Instagram Reels.
+
+[FORMAT]
+Vertical portrait video for a phone held upright, the same shape as an Instagram Reel: much taller than it is wide, from the first frame to the last. The person stands in the center column with a little headroom, hands and props sit in the lower third, and the room stretches up behind them. If an image is attached, it is the first frame: keep its vertical framing, people and setting exactly.
 
 [DIRECTION — same for every clip in this series]
 A short Korean slice-of-life comedy series. Treat this as raw camera footage (a clean plate) that an editor will finish later: the frame shows only the live-action scene, exactly as the camera sees it.
@@ -180,7 +241,30 @@ Soft squish of marinade. She: "자기야, 이것 좀 올려 줘." A beat later, 
 [LAST SECOND]
 Her red gloved hands held up in the air next to the phone.
 
-[FORMAT REMINDER] Vertical 9:16 portrait video, 1080×1920, taller than wide, from the first frame to the last.
+Generate this video in a 9:16 vertical aspect ratio (portrait, 1080×1920) for Instagram Reels.
+```
+
+첫 장면 이미지 프롬프트(2단계용):
+
+```
+Create a photoreal still photo in a 9:16 vertical aspect ratio (portrait, 1080×1920), like a frame from an Instagram Reel shot on a phone held upright.
+
+[SCENE — the first frame]
+She stands at the counter with both clear gloved hands, covered in red marinade, inside a mixing bowl of marinated meat. A phone leans against a jar with its screen turned away from us. Her husband is on the sofa in the soft-focus background.
+
+[CAST]
+Early-30s Korean woman, hair tied up high, plain beige apron over a white tee, clear food-prep gloves covered in red marinade. Her husband, early 30s, short hair, dark green t-shirt.
+
+[HOME]
+Bright apartment kitchen in the early evening, white counter with a mixing bowl of marinated meat, a phone propped against a jar.
+
+The person stands in the center column with a little headroom; hands and props sit in the lower third; the room stretches up behind them.
+People: Korean adults with a clean, neat, likable look and natural relaxed expressions, caught mid-moment, looking at the props or at each other rather than at the camera.
+Light: soft daylight from a window plus gentle warm practical lights, warm white balance, natural skin tones, shallow depth of field, eye level, 35–50mm lens feel.
+Props: every surface and object is plain and unmarked; food packaging in solid pastel colors, containers clear or single-colored, paper items blank, no logos; phone screens face away from the camera or lie face down.
+A clean, unedited camera frame.
+
+Generate this image in a 9:16 vertical aspect ratio (portrait, 1080×1920).
 ```
 
 ## 04. 안 닫히는 냉장고 — 장 볼 게 가장 적은 식단
@@ -190,9 +274,13 @@ Her red gloved hands held up in the air next to the phone.
 - **자막 띄울 순간**: 문이 다시 스르륵 열리는 순간
 - **이어 붙일 앱 데모**: 04 AI 식단 — 냉장고 재료로 짜서 장 볼 게 가장 적어지는 일주일(84개 → 7개)
 
+영상 프롬프트:
+
 ```
-[FORMAT — READ FIRST]
-VERTICAL PORTRAIT VIDEO. Aspect ratio 9:16, 1080 pixels wide by 1920 pixels tall: the frame is much taller than it is wide, shot for a phone held upright, like an Instagram Reel or a TikTok. Compose every moment for this tall frame: the person stands in the center column with a little headroom, hands and props sit in the lower third, and the background stretches up behind them. The whole video is this one vertical frame from the first to the last second. Do not make a landscape 16:9 or square video.
+Generate this video in a 9:16 vertical aspect ratio (portrait, 1080×1920) for Instagram Reels.
+
+[FORMAT]
+Vertical portrait video for a phone held upright, the same shape as an Instagram Reel: much taller than it is wide, from the first frame to the last. The person stands in the center column with a little headroom, hands and props sit in the lower third, and the room stretches up behind them. If an image is attached, it is the first frame: keep its vertical framing, people and setting exactly.
 
 [DIRECTION — same for every clip in this series]
 A short Korean slice-of-life comedy series. Treat this as raw camera footage (a clean plate) that an editor will finish later: the frame shows only the live-action scene, exactly as the camera sees it.
@@ -225,7 +313,30 @@ Containers clinking, the fridge seal. Her husband, from the table, mild: "또 �
 [LAST SECOND]
 Her hand pressed flat against the fridge door, holding it shut.
 
-[FORMAT REMINDER] Vertical 9:16 portrait video, 1080×1920, taller than wide, from the first frame to the last.
+Generate this video in a 9:16 vertical aspect ratio (portrait, 1080×1920) for Instagram Reels.
+```
+
+첫 장면 이미지 프롬프트(2단계용):
+
+```
+Create a photoreal still photo in a 9:16 vertical aspect ratio (portrait, 1080×1920), like a frame from an Instagram Reel shot on a phone held upright.
+
+[SCENE — the first frame]
+She stands at the open, completely packed fridge, pushing one more container onto a full shelf. Two plain paper grocery bags sit on the floor by her feet. Her husband sits at the dining table in the background.
+
+[CAST]
+Late-30s Korean woman, shoulder-length hair tucked behind her ears, cream knit top. Her husband, around 40, glasses, gray sweater, seated at the dining table in the background.
+
+[HOME]
+Family apartment kitchen in the afternoon, white fridge, dining table by the window, two plain paper grocery bags on the floor.
+
+The person stands in the center column with a little headroom; hands and props sit in the lower third; the room stretches up behind them.
+People: Korean adults with a clean, neat, likable look and natural relaxed expressions, caught mid-moment, looking at the props or at each other rather than at the camera.
+Light: soft daylight from a window plus gentle warm practical lights, warm white balance, natural skin tones, shallow depth of field, eye level, 35–50mm lens feel.
+Props: every surface and object is plain and unmarked; food packaging in solid pastel colors, containers clear or single-colored, paper items blank, no logos; phone screens face away from the camera or lie face down.
+A clean, unedited camera frame.
+
+Generate this image in a 9:16 vertical aspect ratio (portrait, 1080×1920).
 ```
 
 ## 05. 냄새 테스트 — 유통기한 임박 알림
@@ -235,9 +346,13 @@ Her hand pressed flat against the fridge door, holding it shut.
 - **자막 띄울 순간**: 「…너 먹어」 하고 우유를 되돌려 주는 순간
 - **이어 붙일 앱 데모**: 05 유통기한 알림 — 푸시 알림 → 유통기한 자동 계산 → 임박 재료 레시피 추천
 
+영상 프롬프트:
+
 ```
-[FORMAT — READ FIRST]
-VERTICAL PORTRAIT VIDEO. Aspect ratio 9:16, 1080 pixels wide by 1920 pixels tall: the frame is much taller than it is wide, shot for a phone held upright, like an Instagram Reel or a TikTok. Compose every moment for this tall frame: the person stands in the center column with a little headroom, hands and props sit in the lower third, and the background stretches up behind them. The whole video is this one vertical frame from the first to the last second. Do not make a landscape 16:9 or square video.
+Generate this video in a 9:16 vertical aspect ratio (portrait, 1080×1920) for Instagram Reels.
+
+[FORMAT]
+Vertical portrait video for a phone held upright, the same shape as an Instagram Reel: much taller than it is wide, from the first frame to the last. The person stands in the center column with a little headroom, hands and props sit in the lower third, and the room stretches up behind them. If an image is attached, it is the first frame: keep its vertical framing, people and setting exactly.
 
 [DIRECTION — same for every clip in this series]
 A short Korean slice-of-life comedy series. Treat this as raw camera footage (a clean plate) that an editor will finish later: the frame shows only the live-action scene, exactly as the camera sees it.
@@ -270,7 +385,30 @@ Morning kitchen sounds, the carton cap twisting. He: "이거 괜찮은 거 같�
 [LAST SECOND]
 The milk carton held between them.
 
-[FORMAT REMINDER] Vertical 9:16 portrait video, 1080×1920, taller than wide, from the first frame to the last.
+Generate this video in a 9:16 vertical aspect ratio (portrait, 1080×1920) for Instagram Reels.
+```
+
+첫 장면 이미지 프롬프트(2단계용):
+
+```
+Create a photoreal still photo in a 9:16 vertical aspect ratio (portrait, 1080×1920), like a frame from an Instagram Reel shot on a phone held upright.
+
+[SCENE — the first frame]
+The couple stand side by side at the sunny counter. He holds an opened plain white milk carton just below his nose, about to sniff it; she holds a mug and watches him.
+
+[CAST]
+A Korean couple in their early 30s. He wears a plain white t-shirt and has messy morning hair; she wears a soft lavender cardigan, hair down.
+
+[HOME]
+Apartment kitchen on a weekend morning, sunlight through the window, a toaster and two mugs on the counter.
+
+The person stands in the center column with a little headroom; hands and props sit in the lower third; the room stretches up behind them.
+People: Korean adults with a clean, neat, likable look and natural relaxed expressions, caught mid-moment, looking at the props or at each other rather than at the camera.
+Light: soft daylight from a window plus gentle warm practical lights, warm white balance, natural skin tones, shallow depth of field, eye level, 35–50mm lens feel.
+Props: every surface and object is plain and unmarked; food packaging in solid pastel colors, containers clear or single-colored, paper items blank, no logos; phone screens face away from the camera or lie face down.
+A clean, unedited camera frame.
+
+Generate this image in a 9:16 vertical aspect ratio (portrait, 1080×1920).
 ```
 
 ## 06. 엄마, 뭐 해 먹지? — 요리 AI · 말로 물어보기
@@ -280,9 +418,13 @@ The milk carton held between them.
 - **자막 띄울 순간**: 엄마가 「몇 번을 말하니」 하는 순간
 - **이어 붙일 앱 데모**: 06 요리 AI — 말하듯 물어보면 냉장고 재료로 딱 맞는 레시피를 찾아 주는 화면
 
+영상 프롬프트:
+
 ```
-[FORMAT — READ FIRST]
-VERTICAL PORTRAIT VIDEO. Aspect ratio 9:16, 1080 pixels wide by 1920 pixels tall: the frame is much taller than it is wide, shot for a phone held upright, like an Instagram Reel or a TikTok. Compose every moment for this tall frame: the person stands in the center column with a little headroom, hands and props sit in the lower third, and the background stretches up behind them. The whole video is this one vertical frame from the first to the last second. Do not make a landscape 16:9 or square video.
+Generate this video in a 9:16 vertical aspect ratio (portrait, 1080×1920) for Instagram Reels.
+
+[FORMAT]
+Vertical portrait video for a phone held upright, the same shape as an Instagram Reel: much taller than it is wide, from the first frame to the last. The person stands in the center column with a little headroom, hands and props sit in the lower third, and the room stretches up behind them. If an image is attached, it is the first frame: keep its vertical framing, people and setting exactly.
 
 [DIRECTION — same for every clip in this series]
 A short Korean slice-of-life comedy series. Treat this as raw camera footage (a clean plate) that an editor will finish later: the frame shows only the live-action scene, exactly as the camera sees it.
@@ -315,7 +457,30 @@ Soft kitchen sounds. She, toward the phone: "엄마, 집에 두부랑 애호박 
 [LAST SECOND]
 The zucchini being sliced on the cutting board.
 
-[FORMAT REMINDER] Vertical 9:16 portrait video, 1080×1920, taller than wide, from the first frame to the last.
+Generate this video in a 9:16 vertical aspect ratio (portrait, 1080×1920) for Instagram Reels.
+```
+
+첫 장면 이미지 프롬프트(2단계용):
+
+```
+Create a photoreal still photo in a 9:16 vertical aspect ratio (portrait, 1080×1920), like a frame from an Instagram Reel shot on a phone held upright.
+
+[SCENE — the first frame]
+She stands at the counter holding a zucchini in one hand, a plain tofu pack and a cutting board in front of her. Her phone lies face down beside the board.
+
+[CAST]
+Late-20s Korean woman, straight hair to her collarbone, oversized light blue shirt. Her mother is heard only as a voice from the phone on speaker.
+
+[HOME]
+Small officetel kitchen in the evening, warm lamp, a tofu block and a zucchini on the cutting board.
+
+The person stands in the center column with a little headroom; hands and props sit in the lower third; the room stretches up behind them.
+People: Korean adults with a clean, neat, likable look and natural relaxed expressions, caught mid-moment, looking at the props or at each other rather than at the camera.
+Light: soft daylight from a window plus gentle warm practical lights, warm white balance, natural skin tones, shallow depth of field, eye level, 35–50mm lens feel.
+Props: every surface and object is plain and unmarked; food packaging in solid pastel colors, containers clear or single-colored, paper items blank, no logos; phone screens face away from the camera or lie face down.
+A clean, unedited camera frame.
+
+Generate this image in a 9:16 vertical aspect ratio (portrait, 1080×1920).
 ```
 
 ## 07. 근데 이거 뭐야? — 검증된 진짜 레시피
@@ -325,9 +490,13 @@ The zucchini being sliced on the cutting board.
 - **자막 띄울 순간**: 「근데 이거 뭐야?」 하는 순간
 - **이어 붙일 앱 데모**: 07 진짜 레시피 — 좋아요·조회수로 검증된 레시피, 분량까지 정리된 재료·조리 순서
 
+영상 프롬프트:
+
 ```
-[FORMAT — READ FIRST]
-VERTICAL PORTRAIT VIDEO. Aspect ratio 9:16, 1080 pixels wide by 1920 pixels tall: the frame is much taller than it is wide, shot for a phone held upright, like an Instagram Reel or a TikTok. Compose every moment for this tall frame: the person stands in the center column with a little headroom, hands and props sit in the lower third, and the background stretches up behind them. The whole video is this one vertical frame from the first to the last second. Do not make a landscape 16:9 or square video.
+Generate this video in a 9:16 vertical aspect ratio (portrait, 1080×1920) for Instagram Reels.
+
+[FORMAT]
+Vertical portrait video for a phone held upright, the same shape as an Instagram Reel: much taller than it is wide, from the first frame to the last. The person stands in the center column with a little headroom, hands and props sit in the lower third, and the room stretches up behind them. If an image is attached, it is the first frame: keep its vertical framing, people and setting exactly.
 
 [DIRECTION — same for every clip in this series]
 A short Korean slice-of-life comedy series. Treat this as raw camera footage (a clean plate) that an editor will finish later: the frame shows only the live-action scene, exactly as the camera sees it.
@@ -360,7 +529,30 @@ Quiet dinner table sounds. She, chewing, kind: "음... 맛있네." A beat. "근�
 [LAST SECOND]
 The shapeless dish on the white plate.
 
-[FORMAT REMINDER] Vertical 9:16 portrait video, 1080×1920, taller than wide, from the first frame to the last.
+Generate this video in a 9:16 vertical aspect ratio (portrait, 1080×1920) for Instagram Reels.
+```
+
+첫 장면 이미지 프롬프트(2단계용):
+
+```
+Create a photoreal still photo in a 9:16 vertical aspect ratio (portrait, 1080×1920), like a frame from an Instagram Reel shot on a phone held upright.
+
+[SCENE — the first frame]
+The couple sit at the small dining table. He is setting a plain white plate of a dark, shapeless braised dish down in front of her; she looks at the plate.
+
+[CAST]
+A Korean couple in their late 20s. He wears glasses and a soft gray knit sweater; she has a short bob and a cream blouse.
+
+[HOME]
+Small apartment dining table at dinner time, warm pendant light, two plain bowls of rice and spoons.
+
+The person stands in the center column with a little headroom; hands and props sit in the lower third; the room stretches up behind them.
+People: Korean adults with a clean, neat, likable look and natural relaxed expressions, caught mid-moment, looking at the props or at each other rather than at the camera.
+Light: soft daylight from a window plus gentle warm practical lights, warm white balance, natural skin tones, shallow depth of field, eye level, 35–50mm lens feel.
+Props: every surface and object is plain and unmarked; food packaging in solid pastel colors, containers clear or single-colored, paper items blank, no logos; phone screens face away from the camera or lie face down.
+A clean, unedited camera frame.
+
+Generate this image in a 9:16 vertical aspect ratio (portrait, 1080×1920).
 ```
 
 ## 08. 또 뵙네요 — 가족 · 아낀 돈
@@ -370,9 +562,13 @@ The shapeless dish on the white plate.
 - **자막 띄울 순간**: 기사님이 「또 뵙네요」 하는 순간
 - **이어 붙일 앱 데모**: 08 가족·아낀 돈 — 가족이 함께 정한 집밥 목표·달성·아낀 돈(추정)이 보이는 마이캘린더
 
+영상 프롬프트:
+
 ```
-[FORMAT — READ FIRST]
-VERTICAL PORTRAIT VIDEO. Aspect ratio 9:16, 1080 pixels wide by 1920 pixels tall: the frame is much taller than it is wide, shot for a phone held upright, like an Instagram Reel or a TikTok. Compose every moment for this tall frame: the person stands in the center column with a little headroom, hands and props sit in the lower third, and the background stretches up behind them. The whole video is this one vertical frame from the first to the last second. Do not make a landscape 16:9 or square video.
+Generate this video in a 9:16 vertical aspect ratio (portrait, 1080×1920) for Instagram Reels.
+
+[FORMAT]
+Vertical portrait video for a phone held upright, the same shape as an Instagram Reel: much taller than it is wide, from the first frame to the last. The person stands in the center column with a little headroom, hands and props sit in the lower third, and the room stretches up behind them. If an image is attached, it is the first frame: keep its vertical framing, people and setting exactly.
 
 [DIRECTION — same for every clip in this series]
 A short Korean slice-of-life comedy series. Treat this as raw camera footage (a clean plate) that an editor will finish later: the frame shows only the live-action scene, exactly as the camera sees it.
@@ -405,7 +601,30 @@ Door opening, paper bag rustling. Rider, cheerful: "아, 또 뵙네요." She, po
 [LAST SECOND]
 The two of them looking at each other, the delivery bag between them.
 
-[FORMAT REMINDER] Vertical 9:16 portrait video, 1080×1920, taller than wide, from the first frame to the last.
+Generate this video in a 9:16 vertical aspect ratio (portrait, 1080×1920) for Instagram Reels.
+```
+
+첫 장면 이미지 프롬프트(2단계용):
+
+```
+Create a photoreal still photo in a 9:16 vertical aspect ratio (portrait, 1080×1920), like a frame from an Instagram Reel shot on a phone held upright.
+
+[SCENE — the first frame]
+Seen from inside the entryway: she has just opened the front door. The delivery rider stands outside holding out a plain white paper bag. Her husband stands in the hallway behind her.
+
+[CAST]
+A Korean couple in their mid 30s in comfortable home clothes; she has her hair in a claw clip, he wears a navy hoodie. A friendly delivery rider in his 30s wears a plain black jacket with no logos and holds a plain white paper bag.
+
+[HOME]
+Apartment front door in the evening, warm entryway light, shoes neatly lined up on the floor.
+
+The person stands in the center column with a little headroom; hands and props sit in the lower third; the room stretches up behind them.
+People: Korean adults with a clean, neat, likable look and natural relaxed expressions, caught mid-moment, looking at the props or at each other rather than at the camera.
+Light: soft daylight from a window plus gentle warm practical lights, warm white balance, natural skin tones, shallow depth of field, eye level, 35–50mm lens feel.
+Props: every surface and object is plain and unmarked; food packaging in solid pastel colors, containers clear or single-colored, paper items blank, no logos; phone screens face away from the camera or lie face down.
+A clean, unedited camera frame.
+
+Generate this image in a 9:16 vertical aspect ratio (portrait, 1080×1920).
 ```
 
 ## 같은 편을 여러 개 뽑을 때 — 변주
