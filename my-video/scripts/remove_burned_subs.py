@@ -49,12 +49,23 @@ for name, box in BOXES.items():
     counts = [white_count(f, box) for f in frames]
     base = np.median(counts[: len(counts) // 2])
     start = next(i for i, c in enumerate(counts) if c > base + 60 and all(cc > base + 60 for cc in counts[i:i + 6]))
-    ref_i = start - 2
+    # 글자가 서서히 나타나고 사라지는 프레임까지 덮도록 앞뒤로 4프레임씩 여유, 기준은 그보다 더 앞의 깨끗한 프레임
+    ref_i = max(0, start - 6)
     # 자막이 중간에 사라지는 경우(4편 세로 「● 응」 7.62~8.29s) 그 뒤 프레임은 건드리지 않는다
-    end = max(i for i, c in enumerate(counts) if c > base + 60) + 2
+    end = min(len(frames) - 1, max(i for i, c in enumerate(counts) if c > base + 60) + 4)
+    start = max(ref_i + 1, start - 4)
     print(f"{name}: frames {start}~{end} ({start / fps:.2f}~{end / fps:.2f}s), ref {ref_i}, base {base}")
     x0, y0, x1, y1 = box
     ref = frames[ref_i]
+    # 덮을 자리를 프레임마다 따로 잡으면 글자 그림자가 덮였다 안 덮였다 하며 「지지직」 깜빡인다(10-08 사용자 지적).
+    # 자막은 화면에 고정돼 있으니, 모든 등장 프레임의 글자 자리(흰 획 + 테두리)를 합쳐 한 장의 고정 마스크로 덮는다.
+    union = np.zeros((y1 - y0, x1 - x0), np.uint8)
+    for i in range(start, end + 1):
+        roi = frames[i][y0:y1, x0:x1].astype(np.int16)
+        mx, mn = roi.max(2), roi.min(2)
+        union |= ((mn > 225) & (mx - mn < 25)).astype(np.uint8)
+    union = cv2.dilate(union * 255, np.ones((9, 9), np.uint8))
+    static_m = cv2.GaussianBlur(union, (7, 7), 0).astype(np.float32)[..., None] / 255.0
     sift = cv2.SIFT_create(3000)
     feat_mask = np.full((H, W), 255, np.uint8)
     for b in BOXES.values():
@@ -80,10 +91,7 @@ for name, box in BOXES.items():
             d_all = np.abs(gray[i].astype(np.int16) - cv2.warpPerspective(gray[ref_i], Hm, (W, H)).astype(np.int16))
             print(f"   frame {i}: inliers ok, bg diff median {np.median(d_all[150:700, 340:610]):.1f}")
         cur = out[i]
-        d = np.abs(cur[y0:y1, x0:x1].astype(np.int16) - warped[y0:y1, x0:x1].astype(np.int16)).max(2)
-        m = (d > 22).astype(np.uint8) * 255
-        m = cv2.dilate(m, np.ones((5, 5), np.uint8))
-        m = cv2.GaussianBlur(m, (5, 5), 0).astype(np.float32)[..., None] / 255.0
+        m = static_m
         patch = cur[y0:y1, x0:x1].astype(np.float32) * (1 - m) + warped[y0:y1, x0:x1].astype(np.float32) * m
         cur[y0:y1, x0:x1] = patch.astype(np.uint8)
 
