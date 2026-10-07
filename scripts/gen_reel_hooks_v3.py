@@ -37,7 +37,7 @@ PEOPLE: Korean adults with a clean, neat, likable look: tidy hair, clear skin, n
 HOMES: Modern Korean homes, lived-in but tidy. Warm wood and white surfaces, one or two plants. No clutter.
 LIGHT: Soft daylight from a window plus gentle warm practical lights. Warm white balance, soft contrast, natural skin tones. Evening scenes use a warm pendant or lamp and stay bright enough to read faces.
 CAMERA: Eye level, 35–50mm lens feel, subtle handheld breathing, shallow depth of field, vertical framing. Medium shot on the people by default. Real-time motion only.
-CONTINUITY: Keep the set simple: only the props named in HOME and ACTION are on the counters, each one clearly separate from the others. Every object stays the same for the whole take: the same number of items in the same places, and each one keeps its own shape. Nothing appears, duplicates or turns into something else, and each person keeps the same face, hair and clothes.
+CONTINUITY: Keep the set simple: only the props named in HOME and ACTION are on the counters, each one clearly separate from the others. Every object stays the same for the whole take: the same number of items in the same places, and each one keeps its own shape. Nothing appears, duplicates or turns into something else, and each person keeps the same face, hair and clothes. Only what the ACTION describes moves: doors, drawers, cabinets and appliances in the background stay closed and still unless a person touches them.
 PROPS: Every surface and object is plain and unmarked. Food packaging comes in solid pastel colors, containers are clear or single-colored, paper items are blank, appliances and clothes carry no logos. Phones are held with the screen facing away from the camera or lie face down; if a screen must face us, it glows as a soft blurred color.
 SOUND: Natural room sound plus the spoken lines in AUDIO. No music. The Korean in AUDIO is heard as voice only.
 ENDING: In the last second the camera slowly pushes in on the subject named in LAST SECOND and holds there."""
@@ -92,17 +92,17 @@ CLIPS = [
     },
     {
         "no": "04", "kbf": "장 볼 게 가장 적은 식단", "title": "안 닫히는 냉장고",
-        "why": "장을 잔뜩 봐 와서 꽉 찬 냉장고에 테트리스하듯 밀어 넣는 건 다들 해 봤어요. 엉덩이로 문을 닫았는데 스르륵 다시 열리는 게 과장 포인트예요.",
+        "why": "장을 잔뜩 봐 와서 꽉 찬 냉장고에 밀어 넣고 문을 닫았는데, 돌아서자마자 문이 스르륵 열려서 방금 넣은 게 삐져나오려는 순간. 다들 해 봤어요. 황급히 등으로 문을 막는 게 웃음 포인트예요.",
         "caption": "이번 주도\n장을 너무 많이 봤어요",
-        "punch": "문이 다시 스르륵 열리는 순간",
+        "punch": "황급히 돌아서서 등으로 문을 막는 순간",
         "demo": "04 AI 식단 — 냉장고 재료로 짜서 장 볼 게 가장 적어지는 일주일(84개 → 7개)",
-        "cast": "Late-30s Korean woman, shoulder-length hair tucked behind her ears, cream knit top. Her husband, around 40, glasses, gray sweater, seated at the dining table in the background.",
-        "home": "Family apartment kitchen in the afternoon, white fridge, dining table by the window, two plain paper grocery bags on the floor.",
-        "action": "The fridge is already packed full. She pushes one more container in and rearranges two others to make it fit, then closes the door and gives it a gentle push with her hip. She turns away, and behind her the door slowly swings back open. She stops, looks at it, and pushes it closed again with her palm, holding it there for a second.",
-        "audio": "Containers clinking. (She pushes the door shut with her hip and turns away; the door slowly swings back open.) Her husband, from the table, glancing over: \"또 장 봤어? 냉장고 꽉 찼던데.\" She, pressing the door shut with her palm: \"이번 주 거야. 이번 주에 다 먹을 거야.\"",
-        "no_line": "Containers clinking, the soft creak of the fridge door swinging open. She breathes out slowly. Spoken words: none.",
-        "last": "Her hand pressed flat against the fridge door, holding it shut.",
-        "first": "She stands at the open, completely packed fridge, pushing one more container onto a full shelf. Two plain paper grocery bags sit on the floor by her feet. Her husband sits at the dining table in the background.",
+        "cast": "Late-30s Korean woman, shoulder-length hair tucked behind her ears, cream knit top, light jeans. Her husband, around 40, glasses, gray sweater, already sitting at the dining table in the background on the right from the first second, reading something on a tablet lying flat.",
+        "home": "Family apartment kitchen in the afternoon. On the left, one tall white single-door fridge with the hinge on its left side. Dining table by the window on the right. Two plain paper grocery bags on the floor by the fridge. All cabinet doors and drawers are closed and stay closed and still for the whole take.",
+        "action": "The fridge is packed full. She pushes one last plain container onto a crowded shelf, closes the fridge door firmly with her hand, and turns to walk toward the table. After two steps, behind her, the fridge door slowly swings back open by itself, and the container she just put in starts to slide out over the edge of the shelf. She hears it, spins around, hurries back and presses her back flat against the door to shut it, arms spread out at her sides, and stays there holding it closed. Only she and the fridge door move; everything else in the kitchen stays still.",
+        "audio": "The soft thump of the fridge door closing, footsteps. (Behind her the door creaks slowly open.) She, spinning around: \"어어어, 잠깐만!\" (She hurries back and presses her back against the door.) Her husband, looking up from the table: \"또 장 봤어?\" She, back pressed to the door, laughing a little out of breath: \"이번 주 거야. 이번 주에 다 먹을 거야.\"",
+        "no_line": "The soft thump of the fridge door closing, footsteps, the slow creak of the door swinging open, quick footsteps back. She lets out a short breathless laugh. Spoken words: none.",
+        "last": "Her back pressed flat against the fridge door, arms spread out to hold it shut.",
+        "first": "She stands at the open, completely packed white single-door fridge on the left, pushing one last plain container onto a crowded shelf. Two plain paper grocery bags sit on the floor by her feet. Her husband sits at the dining table in the background on the right. All cabinet doors and drawers are closed.",
     },
     {
         "no": "05", "kbf": "유통기한 임박 알림", "title": "냄새 테스트",
@@ -241,7 +241,7 @@ def write_md():
         "- 「어색하지 않게」 같은 형용사는 거의 안 먹힌다. 모델은 **구체적인 몸동작 지시**에 반응한다 → ACTING 을 「가족이 몰래 찍은 폰 영상, 각자 하던 일을 하면서 그 김에 말한다, 대답은 고개도 안 들고 바로」로 바꿨다.",
         "- 한국어 억양: 「서울말을 쓰는 한국인이 집에서 하는 평소 억양, 드라마·브이로그처럼」을 SPEECH 에 적었다. 프롬프트 전체를 한글로 바꾸지는 않는다(한글이 많아지면 화면에 깨진 자막이 다시 나온다).",
         "- 대사는 **실제로 할 법한 온전한 문장**으로(10-07 사용자 예시 — 「자기야~! 나 손에 잔뜩 묻어서 만질 수가 없는데, 레시피 좀만 올려 줄래?」). 한때 「최대 두 줄·한마디」로 줄였더니 맥락이 사라져 더 어색했다. 대신 대사마다 그때의 행동을 괄호로 짝지어 **순서대로**(TIMING) 적는다. 말줄임표(…)는 어색하게 긴 멈춤이 되어 쓰지 않는다.",
-        "- 말을 거는 상대가 화면 밖에 있으면 허공을 보고 말한다 → 상대를 **첫 초부터 화면 안에** 두고 「그 사람을 보며 말한다」고 적는다. 소품이 붙어 있으면 서로 바뀐다(3편: 폰을 기대 둔 병의 뚜껑이 폰으로 바뀌어 폰이 2개) → 소품 수를 줄이고 **하나씩 떨어뜨려** 적는다. 어려운 편은 **첫 장면 이미지(2단계)** 로 소품·인물 배치를 먼저 고정한다.",
+        "- 말을 거는 상대가 화면 밖에 있으면 허공을 보고 말한다 → 상대를 **첫 초부터 화면 안에** 두고 「그 사람을 보며 말한다」고 적는다. 배경의 문·서랍은 아무도 안 만져도 움직인다(4편) → 「ACTION 에 적은 것만 움직이고 배경 문·서랍은 닫힌 채 가만히」를 공통 지시에, 냉장고는 문 하나짜리로 정한다. 소품이 붙어 있으면 서로 바뀐다(3편: 폰을 기대 둔 병의 뚜껑이 폰으로 바뀌어 폰이 2개) → 소품 수를 줄이고 **하나씩 떨어뜨려** 적는다. 어려운 편은 **첫 장면 이미지(2단계)** 로 소품·인물 배치를 먼저 고정한다.",
         "- 그래도 어색하면: 같은 프롬프트로 **새 대화에서 2~3번** 뽑아 제일 자연스러운 걸 고른다. 계속 어색하면 **대사 없는 버전**으로 뽑고 웃음은 몸짓·자막으로 낸다.",
         "",
         "## 한글·자막이 화면에 나오지 않게 (v2와 같음)",
