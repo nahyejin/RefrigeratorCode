@@ -42,7 +42,7 @@ A short Korean slice-of-life comedy series. Treat this as raw camera footage (a 
 
 LENGTH: One continuous take, about 8 seconds. The funny moment lands around the middle, then plays out naturally to the end.
 TONE: Observational comedy, like a friend quietly filming a real moment at home. The laugh comes from recognition ("that's so us") and one small absurd detail, played completely straight. Warm, never mean.
-ACTING: Shot like a candid phone video a family member took without the others noticing. Nobody performs. Each person is busy with a small physical task (digging in the fridge, stirring, holding a carton) and keeps doing it while talking, so the words come out as a side effect of the task. Replies come quickly, often without looking up. Reactions are small physical things: a pause in the hands, a glance at the object, a breath out through the nose, a slight shrug, a half-smile at the floor. Faces stay relaxed and ordinary; mouths open only for the words. Eyes go to the props or to each other and stay away from the lens. Whoever is spoken to is already in the frame from the first second, and the speaker turns to look at that person while talking.
+ACTING: Shot like a candid phone video a family member took without the others noticing. Nobody performs. Each person is busy with a small physical task (digging in the fridge, stirring, holding a carton) and keeps doing it while talking, so the words come out as a side effect of the task. Replies come quickly, often without looking up. Reactions are small physical things: a pause in the hands, a glance at the object, a breath out through the nose, a slight shrug, a half-smile at the floor. Faces stay relaxed and ordinary; mouths open only for the words. Comedy comes from cause and effect: something happens, the person notices, and reacts with one quick, real physical action (grabbing, blocking, taking something back, handing it over), the way people do without thinking. Eyes go to the props or to each other and stay away from the lens. Whoever is spoken to is already in the frame from the first second, and the speaker turns to look at that person while talking.
 SPEECH: Native Korean speakers talking in their own natural Seoul Korean, with the warm, lively everyday tone couples and families use with each other at home, the way people sound in a Korean TV drama or a vlog: stretching a name when calling out (자기야~), repeating little words when correcting someone (아니 아니), a small laugh in the voice. Full, natural sentences that say what they need, never clipped or read aloud. Lip movements match the Korean words exactly.
 TIMING: The lines happen in the order written in AUDIO, each one tied to the action next to it, with short natural pauses between them. Each line is spoken once, by the person named.
 PEOPLE: Korean adults with a clean, neat, likable look: tidy hair, clear skin, natural minimal makeup, crisp everyday clothes. Their faces can look tired, puzzled or resigned; their appearance stays neat.
@@ -79,7 +79,7 @@ A short Korean slice-of-life comedy series. Treat this as raw camera footage (a 
 
 LENGTH: One continuous take, about 8 seconds. The funny moment lands around the middle, then plays out naturally to the end.
 TONE: Observational comedy, like a friend quietly filming a real moment at home. The laugh comes from recognition ("that's so us") and one small absurd detail, played completely straight. Warm, never mean.
-ACTING: Shot like a candid phone video a family member took without the others noticing. Nobody performs. Each person is busy with a small physical task (digging in the fridge, stirring, holding a carton) and keeps doing it while talking, so the words come out as a side effect of the task. Replies come quickly, often without looking up. Reactions are small physical things: a pause in the hands, a glance at the object, a breath out through the nose, a slight shrug, a half-smile at the floor. Faces stay relaxed and ordinary; mouths open only for the words. Eyes go to the props or to each other and stay away from the lens. Whoever is spoken to is already in the frame from the first second, and the speaker turns to look at that person while talking.
+ACTING: Shot like a candid phone video a family member took without the others noticing. Nobody performs. Each person is busy with a small physical task (digging in the fridge, stirring, holding a carton) and keeps doing it while talking, so the words come out as a side effect of the task. Replies come quickly, often without looking up. Reactions are small physical things: a pause in the hands, a glance at the object, a breath out through the nose, a slight shrug, a half-smile at the floor. Faces stay relaxed and ordinary; mouths open only for the words. Comedy comes from cause and effect: something happens, the person notices, and reacts with one quick, real physical action (grabbing, blocking, taking something back, handing it over), the way people do without thinking. Eyes go to the props or to each other and stay away from the lens. Whoever is spoken to is already in the frame from the first second, and the speaker turns to look at that person while talking.
 SPEECH: Native Korean speakers talking in their own natural Seoul Korean, with the warm, lively everyday tone couples and families use with each other at home, the way people sound in a Korean TV drama or a vlog: stretching a name when calling out (자기야~), repeating little words when correcting someone (아니 아니), a small laugh in the voice. Full, natural sentences that say what they need, never clipped or read aloud. Lip movements match the Korean words exactly.
 TIMING: The lines happen in the order written in AUDIO, each one tied to the action next to it, with short natural pauses between them. Each line is spoken once, by the person named.
 PEOPLE: Korean adults with a clean, neat, likable look: tidy hair, clear skin, natural minimal makeup, crisp everyday clothes. Their faces can look tired, puzzled or resigned; their appearance stays neat.
@@ -92,19 +92,19 @@ SOUND: Natural room sound plus the spoken lines in AUDIO. No music. The Korean i
 ENDING: In the last second the camera slowly pushes in on the subject named in LAST SECOND and holds there.
 
 [CAST]
-Late-30s Korean man, short tidy hair, light gray hoodie, sweatpants, thick socks. His wife is heard only as a small voice from his phone.
+Late-30s Korean man, short tidy hair, light gray hoodie, sweatpants, thick socks. His wife is not in the scene; she is heard only as a small voice from the phone he holds to his ear.
 
 [HOME]
-Apartment kitchen in the afternoon, white fridge, light oak floor, a fruit bowl on the counter.
+Apartment kitchen in the afternoon. One white single-door fridge, already standing open; the door stays open and still for the whole take. Inside, a few plain pastel containers on the shelves and one plain egg carton at the back of the middle shelf. All cabinet doors and drawers are closed and stay still.
 
 [ACTION]
-He crouches in front of the open fridge with his phone pinched between his shoulder and his ear, screen facing his cheek. He slides containers aside one by one, peering behind them. He finds a plain pastel egg carton at the very back, pulls it out and flips the lid open: a single egg sits inside. He looks at it for a beat.
+He crouches in front of the open fridge, holding his phone to his left ear with his left hand the whole time. With his right hand he slides two containers aside one at a time and peers behind them. He finds the egg carton at the back, pulls it out and flips the lid open with his thumb: there is a single egg inside. He stops and stares at it for a beat, then slowly closes the lid and puts the carton back where it was.
 
 [AUDIO]
-Fridge hum, containers sliding. His wife's voice, small and tinny from the phone: "여보, 집에 계란 있어? 나 지금 마트야." He, still digging through the shelves: "잠깐만, 어디 보자." (He pulls out the carton at the back and flips the lid open, then pauses.) He: "어, 한 개 있네?" Wife, from the phone: "한 개? 알았어, 사 갈게."
+Fridge hum, containers sliding. His wife's voice, small and tinny from the phone: "여보, 집에 계란 있어? 나 지금 마트야." He, still digging with one hand: "잠깐만, 어디 보자." (He pulls out the carton and flips the lid open, then stops and stares at the single egg.) He: "어, 한 개 있네?" Wife, from the phone: "한 개? 알았어, 사 갈게." (He slowly closes the lid and slides the carton back.)
 
 [LAST SECOND]
-The open egg carton with the single egg inside.
+The open egg carton in his hand with the single egg inside.
 
 Generate this video in a 9:16 vertical aspect ratio (portrait, 1080×1920) for Instagram Reels.
 ```
@@ -115,13 +115,13 @@ Generate this video in a 9:16 vertical aspect ratio (portrait, 1080×1920) for I
 Create a photoreal still photo in a 9:16 vertical aspect ratio (portrait, 1080×1920), like a frame from an Instagram Reel shot on a phone held upright.
 
 [SCENE — the first frame]
-He crouches in front of the open fridge with his phone pinched between his shoulder and his ear, screen against his cheek, one hand sliding a container aside on a shelf.
+He crouches in front of the open white single-door fridge, holding his phone to his left ear with his left hand, his right hand sliding a plain container aside on the middle shelf. The fridge door stands wide open. All cabinet doors and drawers are closed.
 
 [CAST]
-Late-30s Korean man, short tidy hair, light gray hoodie, sweatpants, thick socks. His wife is heard only as a small voice from his phone.
+Late-30s Korean man, short tidy hair, light gray hoodie, sweatpants, thick socks. His wife is not in the scene; she is heard only as a small voice from the phone he holds to his ear.
 
 [HOME]
-Apartment kitchen in the afternoon, white fridge, light oak floor, a fruit bowl on the counter.
+Apartment kitchen in the afternoon. One white single-door fridge, already standing open; the door stays open and still for the whole take. Inside, a few plain pastel containers on the shelves and one plain egg carton at the back of the middle shelf. All cabinet doors and drawers are closed and stay still.
 
 The person stands in the center column with a little headroom; hands and props sit in the lower third; the room stretches up behind them.
 People: Korean adults with a clean, neat, likable look and natural relaxed expressions, caught mid-moment, looking at the props or at each other rather than at the camera.
@@ -152,7 +152,7 @@ A short Korean slice-of-life comedy series. Treat this as raw camera footage (a 
 
 LENGTH: One continuous take, about 8 seconds. The funny moment lands around the middle, then plays out naturally to the end.
 TONE: Observational comedy, like a friend quietly filming a real moment at home. The laugh comes from recognition ("that's so us") and one small absurd detail, played completely straight. Warm, never mean.
-ACTING: Shot like a candid phone video a family member took without the others noticing. Nobody performs. Each person is busy with a small physical task (digging in the fridge, stirring, holding a carton) and keeps doing it while talking, so the words come out as a side effect of the task. Replies come quickly, often without looking up. Reactions are small physical things: a pause in the hands, a glance at the object, a breath out through the nose, a slight shrug, a half-smile at the floor. Faces stay relaxed and ordinary; mouths open only for the words. Eyes go to the props or to each other and stay away from the lens. Whoever is spoken to is already in the frame from the first second, and the speaker turns to look at that person while talking.
+ACTING: Shot like a candid phone video a family member took without the others noticing. Nobody performs. Each person is busy with a small physical task (digging in the fridge, stirring, holding a carton) and keeps doing it while talking, so the words come out as a side effect of the task. Replies come quickly, often without looking up. Reactions are small physical things: a pause in the hands, a glance at the object, a breath out through the nose, a slight shrug, a half-smile at the floor. Faces stay relaxed and ordinary; mouths open only for the words. Comedy comes from cause and effect: something happens, the person notices, and reacts with one quick, real physical action (grabbing, blocking, taking something back, handing it over), the way people do without thinking. Eyes go to the props or to each other and stay away from the lens. Whoever is spoken to is already in the frame from the first second, and the speaker turns to look at that person while talking.
 SPEECH: Native Korean speakers talking in their own natural Seoul Korean, with the warm, lively everyday tone couples and families use with each other at home, the way people sound in a Korean TV drama or a vlog: stretching a name when calling out (자기야~), repeating little words when correcting someone (아니 아니), a small laugh in the voice. Full, natural sentences that say what they need, never clipped or read aloud. Lip movements match the Korean words exactly.
 TIMING: The lines happen in the order written in AUDIO, each one tied to the action next to it, with short natural pauses between them. Each line is spoken once, by the person named.
 PEOPLE: Korean adults with a clean, neat, likable look: tidy hair, clear skin, natural minimal makeup, crisp everyday clothes. Their faces can look tired, puzzled or resigned; their appearance stays neat.
@@ -165,19 +165,19 @@ SOUND: Natural room sound plus the spoken lines in AUDIO. No music. The Korean i
 ENDING: In the last second the camera slowly pushes in on the subject named in LAST SECOND and holds there.
 
 [CAST]
-Early-30s Korean man, short neat hair, navy crew-neck sweatshirt. His girlfriend, late 20s, hair in a loose bun, soft gray cardigan.
+Early-30s Korean man, short neat hair, navy crew-neck sweatshirt, already standing at the counter from the first second. His girlfriend, late 20s, hair in a loose bun, soft gray cardigan, holding a mug, walks in from the doorway on the right.
 
 [HOME]
-Small apartment kitchen at night, warm pendant light over a wooden counter, a window with the city dark outside.
+Small apartment kitchen at night, warm pendant light over a wooden counter, a window with the city dark outside. On the counter there are only four ingredients in one evenly spaced row: one egg, half an onion wrapped in plastic, a single sausage, one slice of cheese. Nothing else is on the counter. All cabinet doors and drawers are closed and stay still.
 
 [ACTION]
-On the wooden counter he has lined up, evenly spaced in one neat row: one egg, half an onion wrapped in plastic, a single sausage and one slice of cheese. He stands back with his arms crossed, studying the row very seriously, like a detective at a lineup. His girlfriend walks in behind him holding a mug, stops and looks at the row, then at him.
+He stands a step back from the counter with his arms crossed, studying the row of four ingredients very seriously, like a detective at a lineup. His girlfriend walks in, stops beside him and looks at him, then at the row. She picks up the single egg, holds it up and looks at him. Without a word he takes the egg back from her hand and carefully puts it back in its exact place in the row, then crosses his arms again. She stares at him, holding back a laugh.
 
 [AUDIO]
-Quiet kitchen hum. She, stopping in the doorway behind him with her mug: "뭐 해? 안 자고." He, arms still crossed, without turning around: "배고파서. 이걸로 뭐 해 먹을 수 있나 보고 있어." (She steps closer and looks at the row on the counter.) She, half laughing: "계란 하나로?"
+Quiet kitchen hum. She, stopping beside him: "뭐 해? 안 자고." He, arms crossed, eyes on the counter: "배고파서. 이걸로 뭐 해 먹을 수 있나 보고 있어." (She picks up the egg and holds it up.) She, half laughing: "계란 하나로?" (He takes the egg back without a word and puts it back in its place.)
 
 [LAST SECOND]
-The four lonely ingredients lined up on the counter.
+His hand placing the single egg back in its exact spot in the row.
 
 Generate this video in a 9:16 vertical aspect ratio (portrait, 1080×1920) for Instagram Reels.
 ```
@@ -188,13 +188,13 @@ Generate this video in a 9:16 vertical aspect ratio (portrait, 1080×1920) for I
 Create a photoreal still photo in a 9:16 vertical aspect ratio (portrait, 1080×1920), like a frame from an Instagram Reel shot on a phone held upright.
 
 [SCENE — the first frame]
-Four ingredients sit evenly spaced in one neat row on the wooden counter: one egg, half an onion wrapped in plastic, a single sausage, one slice of cheese. He stands a step back with his arms crossed, studying them seriously. His girlfriend is just stepping into the doorway behind him holding a mug.
+Four ingredients sit evenly spaced in one neat row on the wooden counter: one egg, half an onion wrapped in plastic, a single sausage, one slice of cheese. He stands a step back with his arms crossed, studying them seriously. His girlfriend, holding a mug, is just stepping in from the doorway on the right.
 
 [CAST]
-Early-30s Korean man, short neat hair, navy crew-neck sweatshirt. His girlfriend, late 20s, hair in a loose bun, soft gray cardigan.
+Early-30s Korean man, short neat hair, navy crew-neck sweatshirt, already standing at the counter from the first second. His girlfriend, late 20s, hair in a loose bun, soft gray cardigan, holding a mug, walks in from the doorway on the right.
 
 [HOME]
-Small apartment kitchen at night, warm pendant light over a wooden counter, a window with the city dark outside.
+Small apartment kitchen at night, warm pendant light over a wooden counter, a window with the city dark outside. On the counter there are only four ingredients in one evenly spaced row: one egg, half an onion wrapped in plastic, a single sausage, one slice of cheese. Nothing else is on the counter. All cabinet doors and drawers are closed and stay still.
 
 The person stands in the center column with a little headroom; hands and props sit in the lower third; the room stretches up behind them.
 People: Korean adults with a clean, neat, likable look and natural relaxed expressions, caught mid-moment, looking at the props or at each other rather than at the camera.
@@ -225,7 +225,7 @@ A short Korean slice-of-life comedy series. Treat this as raw camera footage (a 
 
 LENGTH: One continuous take, about 8 seconds. The funny moment lands around the middle, then plays out naturally to the end.
 TONE: Observational comedy, like a friend quietly filming a real moment at home. The laugh comes from recognition ("that's so us") and one small absurd detail, played completely straight. Warm, never mean.
-ACTING: Shot like a candid phone video a family member took without the others noticing. Nobody performs. Each person is busy with a small physical task (digging in the fridge, stirring, holding a carton) and keeps doing it while talking, so the words come out as a side effect of the task. Replies come quickly, often without looking up. Reactions are small physical things: a pause in the hands, a glance at the object, a breath out through the nose, a slight shrug, a half-smile at the floor. Faces stay relaxed and ordinary; mouths open only for the words. Eyes go to the props or to each other and stay away from the lens. Whoever is spoken to is already in the frame from the first second, and the speaker turns to look at that person while talking.
+ACTING: Shot like a candid phone video a family member took without the others noticing. Nobody performs. Each person is busy with a small physical task (digging in the fridge, stirring, holding a carton) and keeps doing it while talking, so the words come out as a side effect of the task. Replies come quickly, often without looking up. Reactions are small physical things: a pause in the hands, a glance at the object, a breath out through the nose, a slight shrug, a half-smile at the floor. Faces stay relaxed and ordinary; mouths open only for the words. Comedy comes from cause and effect: something happens, the person notices, and reacts with one quick, real physical action (grabbing, blocking, taking something back, handing it over), the way people do without thinking. Eyes go to the props or to each other and stay away from the lens. Whoever is spoken to is already in the frame from the first second, and the speaker turns to look at that person while talking.
 SPEECH: Native Korean speakers talking in their own natural Seoul Korean, with the warm, lively everyday tone couples and families use with each other at home, the way people sound in a Korean TV drama or a vlog: stretching a name when calling out (자기야~), repeating little words when correcting someone (아니 아니), a small laugh in the voice. Full, natural sentences that say what they need, never clipped or read aloud. Lip movements match the Korean words exactly.
 TIMING: The lines happen in the order written in AUDIO, each one tied to the action next to it, with short natural pauses between them. Each line is spoken once, by the person named.
 PEOPLE: Korean adults with a clean, neat, likable look: tidy hair, clear skin, natural minimal makeup, crisp everyday clothes. Their faces can look tired, puzzled or resigned; their appearance stays neat.
@@ -298,7 +298,7 @@ A short Korean slice-of-life comedy series. Treat this as raw camera footage (a 
 
 LENGTH: One continuous take, about 8 seconds. The funny moment lands around the middle, then plays out naturally to the end.
 TONE: Observational comedy, like a friend quietly filming a real moment at home. The laugh comes from recognition ("that's so us") and one small absurd detail, played completely straight. Warm, never mean.
-ACTING: Shot like a candid phone video a family member took without the others noticing. Nobody performs. Each person is busy with a small physical task (digging in the fridge, stirring, holding a carton) and keeps doing it while talking, so the words come out as a side effect of the task. Replies come quickly, often without looking up. Reactions are small physical things: a pause in the hands, a glance at the object, a breath out through the nose, a slight shrug, a half-smile at the floor. Faces stay relaxed and ordinary; mouths open only for the words. Eyes go to the props or to each other and stay away from the lens. Whoever is spoken to is already in the frame from the first second, and the speaker turns to look at that person while talking.
+ACTING: Shot like a candid phone video a family member took without the others noticing. Nobody performs. Each person is busy with a small physical task (digging in the fridge, stirring, holding a carton) and keeps doing it while talking, so the words come out as a side effect of the task. Replies come quickly, often without looking up. Reactions are small physical things: a pause in the hands, a glance at the object, a breath out through the nose, a slight shrug, a half-smile at the floor. Faces stay relaxed and ordinary; mouths open only for the words. Comedy comes from cause and effect: something happens, the person notices, and reacts with one quick, real physical action (grabbing, blocking, taking something back, handing it over), the way people do without thinking. Eyes go to the props or to each other and stay away from the lens. Whoever is spoken to is already in the frame from the first second, and the speaker turns to look at that person while talking.
 SPEECH: Native Korean speakers talking in their own natural Seoul Korean, with the warm, lively everyday tone couples and families use with each other at home, the way people sound in a Korean TV drama or a vlog: stretching a name when calling out (자기야~), repeating little words when correcting someone (아니 아니), a small laugh in the voice. Full, natural sentences that say what they need, never clipped or read aloud. Lip movements match the Korean words exactly.
 TIMING: The lines happen in the order written in AUDIO, each one tied to the action next to it, with short natural pauses between them. Each line is spoken once, by the person named.
 PEOPLE: Korean adults with a clean, neat, likable look: tidy hair, clear skin, natural minimal makeup, crisp everyday clothes. Their faces can look tired, puzzled or resigned; their appearance stays neat.
@@ -371,7 +371,7 @@ A short Korean slice-of-life comedy series. Treat this as raw camera footage (a 
 
 LENGTH: One continuous take, about 8 seconds. The funny moment lands around the middle, then plays out naturally to the end.
 TONE: Observational comedy, like a friend quietly filming a real moment at home. The laugh comes from recognition ("that's so us") and one small absurd detail, played completely straight. Warm, never mean.
-ACTING: Shot like a candid phone video a family member took without the others noticing. Nobody performs. Each person is busy with a small physical task (digging in the fridge, stirring, holding a carton) and keeps doing it while talking, so the words come out as a side effect of the task. Replies come quickly, often without looking up. Reactions are small physical things: a pause in the hands, a glance at the object, a breath out through the nose, a slight shrug, a half-smile at the floor. Faces stay relaxed and ordinary; mouths open only for the words. Eyes go to the props or to each other and stay away from the lens. Whoever is spoken to is already in the frame from the first second, and the speaker turns to look at that person while talking.
+ACTING: Shot like a candid phone video a family member took without the others noticing. Nobody performs. Each person is busy with a small physical task (digging in the fridge, stirring, holding a carton) and keeps doing it while talking, so the words come out as a side effect of the task. Replies come quickly, often without looking up. Reactions are small physical things: a pause in the hands, a glance at the object, a breath out through the nose, a slight shrug, a half-smile at the floor. Faces stay relaxed and ordinary; mouths open only for the words. Comedy comes from cause and effect: something happens, the person notices, and reacts with one quick, real physical action (grabbing, blocking, taking something back, handing it over), the way people do without thinking. Eyes go to the props or to each other and stay away from the lens. Whoever is spoken to is already in the frame from the first second, and the speaker turns to look at that person while talking.
 SPEECH: Native Korean speakers talking in their own natural Seoul Korean, with the warm, lively everyday tone couples and families use with each other at home, the way people sound in a Korean TV drama or a vlog: stretching a name when calling out (자기야~), repeating little words when correcting someone (아니 아니), a small laugh in the voice. Full, natural sentences that say what they need, never clipped or read aloud. Lip movements match the Korean words exactly.
 TIMING: The lines happen in the order written in AUDIO, each one tied to the action next to it, with short natural pauses between them. Each line is spoken once, by the person named.
 PEOPLE: Korean adults with a clean, neat, likable look: tidy hair, clear skin, natural minimal makeup, crisp everyday clothes. Their faces can look tired, puzzled or resigned; their appearance stays neat.
@@ -384,19 +384,19 @@ SOUND: Natural room sound plus the spoken lines in AUDIO. No music. The Korean i
 ENDING: In the last second the camera slowly pushes in on the subject named in LAST SECOND and holds there.
 
 [CAST]
-A Korean couple in their early 30s. He wears a plain white t-shirt and has messy morning hair; she wears a soft lavender cardigan, hair down.
+A Korean couple in their early 30s, both standing at the counter side by side from the first second. He wears a plain white t-shirt and has messy morning hair; she wears a soft lavender cardigan, hair down, hands free.
 
 [HOME]
-Apartment kitchen on a weekend morning, sunlight through the window, a toaster and two mugs on the counter.
+Apartment kitchen on a weekend morning, sunlight through the window. On the counter only a toaster against the wall. All cabinet doors and drawers are closed and stay still.
 
 [ACTION]
-He opens a plain white milk carton, sniffs it, pauses, sniffs again and tilts his head, unsure. He holds it out to her. She takes it, sniffs once, holds still for a beat, then calmly hands it straight back to him with a small polite smile.
+He holds one plain white milk carton, already open. He sniffs it, pauses, sniffs again and tilts his head, unsure, then holds it out to her. She takes it, sniffs once, and holds very still for a beat. Then, without a word, she calmly screws the cap back on, hands the carton straight back to him and pats his arm once with a small polite smile. He looks down at the carton, then at her.
 
 [AUDIO]
-Morning kitchen sounds, the carton cap twisting, two short sniffs. He, holding the carton out to her: "자기야, 이거 우유 괜찮은 거 같아? 냄새 좀 맡아 봐." (She sniffs once, holds still for a beat, then hands it straight back with a polite little smile.) She: "음, 자기가 먹어."
+Morning kitchen sounds, two short sniffs. He, holding the carton out to her: "자기야, 이거 우유 괜찮은 거 같아? 냄새 좀 맡아 봐." (She sniffs once, freezes for a beat, screws the cap back on and hands it back.) She, sweetly: "음, 자기가 먹어."
 
 [LAST SECOND]
-The milk carton held between them.
+The milk carton back in his hands, him looking down at it.
 
 Generate this video in a 9:16 vertical aspect ratio (portrait, 1080×1920) for Instagram Reels.
 ```
@@ -407,13 +407,13 @@ Generate this video in a 9:16 vertical aspect ratio (portrait, 1080×1920) for I
 Create a photoreal still photo in a 9:16 vertical aspect ratio (portrait, 1080×1920), like a frame from an Instagram Reel shot on a phone held upright.
 
 [SCENE — the first frame]
-The couple stand side by side at the sunny counter. He holds an opened plain white milk carton just below his nose, about to sniff it; she holds a mug and watches him.
+The couple stand side by side at the sunny counter. He holds one opened plain white milk carton just below his nose, about to sniff it; she stands beside him with her hands free, watching him. Only a toaster sits on the counter against the wall.
 
 [CAST]
-A Korean couple in their early 30s. He wears a plain white t-shirt and has messy morning hair; she wears a soft lavender cardigan, hair down.
+A Korean couple in their early 30s, both standing at the counter side by side from the first second. He wears a plain white t-shirt and has messy morning hair; she wears a soft lavender cardigan, hair down, hands free.
 
 [HOME]
-Apartment kitchen on a weekend morning, sunlight through the window, a toaster and two mugs on the counter.
+Apartment kitchen on a weekend morning, sunlight through the window. On the counter only a toaster against the wall. All cabinet doors and drawers are closed and stay still.
 
 The person stands in the center column with a little headroom; hands and props sit in the lower third; the room stretches up behind them.
 People: Korean adults with a clean, neat, likable look and natural relaxed expressions, caught mid-moment, looking at the props or at each other rather than at the camera.
@@ -444,7 +444,7 @@ A short Korean slice-of-life comedy series. Treat this as raw camera footage (a 
 
 LENGTH: One continuous take, about 8 seconds. The funny moment lands around the middle, then plays out naturally to the end.
 TONE: Observational comedy, like a friend quietly filming a real moment at home. The laugh comes from recognition ("that's so us") and one small absurd detail, played completely straight. Warm, never mean.
-ACTING: Shot like a candid phone video a family member took without the others noticing. Nobody performs. Each person is busy with a small physical task (digging in the fridge, stirring, holding a carton) and keeps doing it while talking, so the words come out as a side effect of the task. Replies come quickly, often without looking up. Reactions are small physical things: a pause in the hands, a glance at the object, a breath out through the nose, a slight shrug, a half-smile at the floor. Faces stay relaxed and ordinary; mouths open only for the words. Eyes go to the props or to each other and stay away from the lens. Whoever is spoken to is already in the frame from the first second, and the speaker turns to look at that person while talking.
+ACTING: Shot like a candid phone video a family member took without the others noticing. Nobody performs. Each person is busy with a small physical task (digging in the fridge, stirring, holding a carton) and keeps doing it while talking, so the words come out as a side effect of the task. Replies come quickly, often without looking up. Reactions are small physical things: a pause in the hands, a glance at the object, a breath out through the nose, a slight shrug, a half-smile at the floor. Faces stay relaxed and ordinary; mouths open only for the words. Comedy comes from cause and effect: something happens, the person notices, and reacts with one quick, real physical action (grabbing, blocking, taking something back, handing it over), the way people do without thinking. Eyes go to the props or to each other and stay away from the lens. Whoever is spoken to is already in the frame from the first second, and the speaker turns to look at that person while talking.
 SPEECH: Native Korean speakers talking in their own natural Seoul Korean, with the warm, lively everyday tone couples and families use with each other at home, the way people sound in a Korean TV drama or a vlog: stretching a name when calling out (자기야~), repeating little words when correcting someone (아니 아니), a small laugh in the voice. Full, natural sentences that say what they need, never clipped or read aloud. Lip movements match the Korean words exactly.
 TIMING: The lines happen in the order written in AUDIO, each one tied to the action next to it, with short natural pauses between them. Each line is spoken once, by the person named.
 PEOPLE: Korean adults with a clean, neat, likable look: tidy hair, clear skin, natural minimal makeup, crisp everyday clothes. Their faces can look tired, puzzled or resigned; their appearance stays neat.
@@ -457,19 +457,19 @@ SOUND: Natural room sound plus the spoken lines in AUDIO. No music. The Korean i
 ENDING: In the last second the camera slowly pushes in on the subject named in LAST SECOND and holds there.
 
 [CAST]
-Late-20s Korean woman, straight hair to her collarbone, oversized light blue shirt. Her mother is heard only as a voice from the phone on speaker.
+Late-20s Korean woman, straight hair to her collarbone, oversized light blue shirt. Her mother is not in the scene; she is heard only as a voice from the phone on speaker.
 
 [HOME]
-Small officetel kitchen in the evening, warm lamp, a tofu block and a zucchini on the cutting board.
+Small officetel kitchen in the evening, warm lamp. On the counter: a wooden cutting board with one plain tofu pack and a knife on it, and to the right of the board one phone lying face down. Nothing else on the counter. All cabinet doors and drawers are closed and stay still.
 
 [ACTION]
-Her phone lies face down on the counter on speaker. She holds a zucchini in one hand and taps the tofu pack with the other, looking down at them while she talks. When her mother answers, she presses her lips together, nods to herself and starts slicing the zucchini.
+She holds a zucchini in one hand, turning it while she talks toward the phone lying face down on the counter; the phone does not move. When her mother answers, she pulls a small sulky face at the phone, puts the zucchini on the board, picks up the knife and starts slicing.
 
 [AUDIO]
-Soft kitchen sounds. She, toward the phone, turning the zucchini in her hand: "엄마, 나 집에 두부랑 애호박 있는데 뭐 해 먹지?" Her mother's voice from the phone speaker, without missing a beat: "된장찌개 하면 되지. 그걸 왜 맨날 물어봐." She, nodding and reaching for the knife: "아 알았어, 알았어."
+Soft kitchen sounds. She, toward the phone: "엄마, 나 집에 두부랑 애호박 있는데 뭐 해 먹지?" Her mother's voice from the phone speaker, without missing a beat: "된장찌개 하면 되지. 그걸 왜 맨날 물어봐." (She pulls a small sulky face at the phone.) She: "아 알았어, 알았어." (She puts the zucchini on the board and starts slicing.)
 
 [LAST SECOND]
-The zucchini being sliced on the cutting board.
+The zucchini being sliced on the cutting board, the phone lying face down beside it.
 
 Generate this video in a 9:16 vertical aspect ratio (portrait, 1080×1920) for Instagram Reels.
 ```
@@ -480,13 +480,13 @@ Generate this video in a 9:16 vertical aspect ratio (portrait, 1080×1920) for I
 Create a photoreal still photo in a 9:16 vertical aspect ratio (portrait, 1080×1920), like a frame from an Instagram Reel shot on a phone held upright.
 
 [SCENE — the first frame]
-She stands at the counter holding a zucchini in one hand, a plain tofu pack and a cutting board in front of her. Her phone lies face down beside the board.
+She stands at the counter holding a zucchini in one hand. In front of her a wooden cutting board with one plain tofu pack and a knife; to the right of the board one phone lies face down. All cabinet doors and drawers are closed.
 
 [CAST]
-Late-20s Korean woman, straight hair to her collarbone, oversized light blue shirt. Her mother is heard only as a voice from the phone on speaker.
+Late-20s Korean woman, straight hair to her collarbone, oversized light blue shirt. Her mother is not in the scene; she is heard only as a voice from the phone on speaker.
 
 [HOME]
-Small officetel kitchen in the evening, warm lamp, a tofu block and a zucchini on the cutting board.
+Small officetel kitchen in the evening, warm lamp. On the counter: a wooden cutting board with one plain tofu pack and a knife on it, and to the right of the board one phone lying face down. Nothing else on the counter. All cabinet doors and drawers are closed and stay still.
 
 The person stands in the center column with a little headroom; hands and props sit in the lower third; the room stretches up behind them.
 People: Korean adults with a clean, neat, likable look and natural relaxed expressions, caught mid-moment, looking at the props or at each other rather than at the camera.
@@ -517,7 +517,7 @@ A short Korean slice-of-life comedy series. Treat this as raw camera footage (a 
 
 LENGTH: One continuous take, about 8 seconds. The funny moment lands around the middle, then plays out naturally to the end.
 TONE: Observational comedy, like a friend quietly filming a real moment at home. The laugh comes from recognition ("that's so us") and one small absurd detail, played completely straight. Warm, never mean.
-ACTING: Shot like a candid phone video a family member took without the others noticing. Nobody performs. Each person is busy with a small physical task (digging in the fridge, stirring, holding a carton) and keeps doing it while talking, so the words come out as a side effect of the task. Replies come quickly, often without looking up. Reactions are small physical things: a pause in the hands, a glance at the object, a breath out through the nose, a slight shrug, a half-smile at the floor. Faces stay relaxed and ordinary; mouths open only for the words. Eyes go to the props or to each other and stay away from the lens. Whoever is spoken to is already in the frame from the first second, and the speaker turns to look at that person while talking.
+ACTING: Shot like a candid phone video a family member took without the others noticing. Nobody performs. Each person is busy with a small physical task (digging in the fridge, stirring, holding a carton) and keeps doing it while talking, so the words come out as a side effect of the task. Replies come quickly, often without looking up. Reactions are small physical things: a pause in the hands, a glance at the object, a breath out through the nose, a slight shrug, a half-smile at the floor. Faces stay relaxed and ordinary; mouths open only for the words. Comedy comes from cause and effect: something happens, the person notices, and reacts with one quick, real physical action (grabbing, blocking, taking something back, handing it over), the way people do without thinking. Eyes go to the props or to each other and stay away from the lens. Whoever is spoken to is already in the frame from the first second, and the speaker turns to look at that person while talking.
 SPEECH: Native Korean speakers talking in their own natural Seoul Korean, with the warm, lively everyday tone couples and families use with each other at home, the way people sound in a Korean TV drama or a vlog: stretching a name when calling out (자기야~), repeating little words when correcting someone (아니 아니), a small laugh in the voice. Full, natural sentences that say what they need, never clipped or read aloud. Lip movements match the Korean words exactly.
 TIMING: The lines happen in the order written in AUDIO, each one tied to the action next to it, with short natural pauses between them. Each line is spoken once, by the person named.
 PEOPLE: Korean adults with a clean, neat, likable look: tidy hair, clear skin, natural minimal makeup, crisp everyday clothes. Their faces can look tired, puzzled or resigned; their appearance stays neat.
@@ -530,19 +530,19 @@ SOUND: Natural room sound plus the spoken lines in AUDIO. No music. The Korean i
 ENDING: In the last second the camera slowly pushes in on the subject named in LAST SECOND and holds there.
 
 [CAST]
-A Korean couple in their late 20s. He wears glasses and a soft gray knit sweater; she has a short bob and a cream blouse.
+A Korean couple in their late 20s, both at the table from the first second. He wears glasses and a soft gray knit sweater; she has a short bob and a cream blouse.
 
 [HOME]
-Small apartment dining table at dinner time, warm pendant light, two plain bowls of rice and spoons.
+Small apartment dining table at dinner time, warm pendant light. They sit at one corner of the table, at a right angle to each other, so both faces are visible. On the table: two plain bowls of rice, two spoons, and one plain white plate of a dark, shapeless braised dish in front of her. Nothing else on the table.
 
 [ACTION]
-He sets a plain white plate of a dark, shapeless braised dish in front of her and sits down, watching her hopefully. She takes a careful bite, chews slowly, nods politely. A short pause. She looks down at the plate again. He keeps watching her.
+He sits with his chin on his hand, watching her hopefully. She scoops a careful bite from the white plate with her spoon, chews slowly and nods politely. A short pause. She lifts a piece with her spoon and studies it closely, turning it a little. He keeps watching her. After his answer she nods slowly and politely takes one more small bite.
 
 [AUDIO]
-Quiet dinner table sounds, slow chewing. She nods politely: "음, 맛있다." (A short pause; she looks down at the plate again.) She, gently: "근데 자기야, 이거 뭐야?" He, after a beat, small voice: "찜닭인데."
+Quiet dinner table sounds, slow chewing. She nods politely: "음, 맛있다." (She lifts a piece with her spoon and studies it.) She, gently: "근데 자기야, 이거 뭐야?" He, after a beat, small voice: "찜닭인데." She, nodding slowly: "아, 찜닭."
 
 [LAST SECOND]
-The shapeless dish on the white plate.
+The shapeless piece held up on her spoon above the white plate.
 
 Generate this video in a 9:16 vertical aspect ratio (portrait, 1080×1920) for Instagram Reels.
 ```
@@ -553,13 +553,13 @@ Generate this video in a 9:16 vertical aspect ratio (portrait, 1080×1920) for I
 Create a photoreal still photo in a 9:16 vertical aspect ratio (portrait, 1080×1920), like a frame from an Instagram Reel shot on a phone held upright.
 
 [SCENE — the first frame]
-The couple sit at the small dining table. He is setting a plain white plate of a dark, shapeless braised dish down in front of her; she looks at the plate.
+The couple sit at one corner of a small dining table at a right angle to each other. In front of her, one plain white plate of a dark, shapeless braised dish and a bowl of rice; she holds a spoon. He rests his chin on his hand, watching her hopefully.
 
 [CAST]
-A Korean couple in their late 20s. He wears glasses and a soft gray knit sweater; she has a short bob and a cream blouse.
+A Korean couple in their late 20s, both at the table from the first second. He wears glasses and a soft gray knit sweater; she has a short bob and a cream blouse.
 
 [HOME]
-Small apartment dining table at dinner time, warm pendant light, two plain bowls of rice and spoons.
+Small apartment dining table at dinner time, warm pendant light. They sit at one corner of the table, at a right angle to each other, so both faces are visible. On the table: two plain bowls of rice, two spoons, and one plain white plate of a dark, shapeless braised dish in front of her. Nothing else on the table.
 
 The person stands in the center column with a little headroom; hands and props sit in the lower third; the room stretches up behind them.
 People: Korean adults with a clean, neat, likable look and natural relaxed expressions, caught mid-moment, looking at the props or at each other rather than at the camera.
@@ -590,7 +590,7 @@ A short Korean slice-of-life comedy series. Treat this as raw camera footage (a 
 
 LENGTH: One continuous take, about 8 seconds. The funny moment lands around the middle, then plays out naturally to the end.
 TONE: Observational comedy, like a friend quietly filming a real moment at home. The laugh comes from recognition ("that's so us") and one small absurd detail, played completely straight. Warm, never mean.
-ACTING: Shot like a candid phone video a family member took without the others noticing. Nobody performs. Each person is busy with a small physical task (digging in the fridge, stirring, holding a carton) and keeps doing it while talking, so the words come out as a side effect of the task. Replies come quickly, often without looking up. Reactions are small physical things: a pause in the hands, a glance at the object, a breath out through the nose, a slight shrug, a half-smile at the floor. Faces stay relaxed and ordinary; mouths open only for the words. Eyes go to the props or to each other and stay away from the lens. Whoever is spoken to is already in the frame from the first second, and the speaker turns to look at that person while talking.
+ACTING: Shot like a candid phone video a family member took without the others noticing. Nobody performs. Each person is busy with a small physical task (digging in the fridge, stirring, holding a carton) and keeps doing it while talking, so the words come out as a side effect of the task. Replies come quickly, often without looking up. Reactions are small physical things: a pause in the hands, a glance at the object, a breath out through the nose, a slight shrug, a half-smile at the floor. Faces stay relaxed and ordinary; mouths open only for the words. Comedy comes from cause and effect: something happens, the person notices, and reacts with one quick, real physical action (grabbing, blocking, taking something back, handing it over), the way people do without thinking. Eyes go to the props or to each other and stay away from the lens. Whoever is spoken to is already in the frame from the first second, and the speaker turns to look at that person while talking.
 SPEECH: Native Korean speakers talking in their own natural Seoul Korean, with the warm, lively everyday tone couples and families use with each other at home, the way people sound in a Korean TV drama or a vlog: stretching a name when calling out (자기야~), repeating little words when correcting someone (아니 아니), a small laugh in the voice. Full, natural sentences that say what they need, never clipped or read aloud. Lip movements match the Korean words exactly.
 TIMING: The lines happen in the order written in AUDIO, each one tied to the action next to it, with short natural pauses between them. Each line is spoken once, by the person named.
 PEOPLE: Korean adults with a clean, neat, likable look: tidy hair, clear skin, natural minimal makeup, crisp everyday clothes. Their faces can look tired, puzzled or resigned; their appearance stays neat.
@@ -603,19 +603,19 @@ SOUND: Natural room sound plus the spoken lines in AUDIO. No music. The Korean i
 ENDING: In the last second the camera slowly pushes in on the subject named in LAST SECOND and holds there.
 
 [CAST]
-A Korean couple in their mid 30s in comfortable home clothes; she has her hair in a claw clip, he wears a navy hoodie. A friendly delivery rider in his 30s wears a plain black jacket with no logos and holds a plain white paper bag.
+A Korean couple in their mid 30s in comfortable home clothes; she has her hair in a claw clip, he wears a navy hoodie and stands in the hallway behind her from the first second. A friendly delivery rider in his 30s wears a plain black jacket with no logos and holds one plain white paper bag.
 
 [HOME]
-Apartment front door in the evening, warm entryway light, shoes neatly lined up on the floor.
+Apartment front door in the evening, seen from inside the entryway, warm entryway light, shoes neatly lined up on the floor. The only thing that moves is the front door when she opens and closes it.
 
 [ACTION]
-She opens the front door. The rider hands her the plain bag and recognizes her with a friendly smile and a small nod. She smiles back politely, a little awkward, takes the bag and closes the door. She turns around; her husband is standing behind her in the hallway. They look at each other.
+She opens the front door. The rider hands her the plain bag and recognizes her with a friendly smile and a small nod. She smiles back politely, a little awkward, takes the bag and closes the door. She turns around to her husband in the hallway. After his line she calmly hands the bag to him.
 
 [AUDIO]
-Door opening, paper bag rustling. Rider, cheerful, recognizing her: "아, 안녕하세요! 또 뵙네요." She, polite and a little embarrassed: "아, 네. 감사합니다." (She closes the door and turns around.) Her husband in the hallway, quietly: "우리 저 기사님이랑 친해졌다."
+Door opening, paper bag rustling. Rider, cheerful, recognizing her: "아, 안녕하세요! 또 뵙네요." She, polite and a little embarrassed: "아, 네. 감사합니다." (She closes the door and turns around.) Her husband, quietly: "우리 저 기사님이랑 친해졌다." She, handing him the bag, deadpan: "자기가 시켰잖아."
 
 [LAST SECOND]
-The two of them looking at each other, the delivery bag between them.
+The delivery bag passing from her hands into his.
 
 Generate this video in a 9:16 vertical aspect ratio (portrait, 1080×1920) for Instagram Reels.
 ```
@@ -626,13 +626,13 @@ Generate this video in a 9:16 vertical aspect ratio (portrait, 1080×1920) for I
 Create a photoreal still photo in a 9:16 vertical aspect ratio (portrait, 1080×1920), like a frame from an Instagram Reel shot on a phone held upright.
 
 [SCENE — the first frame]
-Seen from inside the entryway: she has just opened the front door. The delivery rider stands outside holding out a plain white paper bag. Her husband stands in the hallway behind her.
+Seen from inside the entryway: she has just opened the front door. The delivery rider stands outside holding out one plain white paper bag. Her husband stands in the hallway behind her.
 
 [CAST]
-A Korean couple in their mid 30s in comfortable home clothes; she has her hair in a claw clip, he wears a navy hoodie. A friendly delivery rider in his 30s wears a plain black jacket with no logos and holds a plain white paper bag.
+A Korean couple in their mid 30s in comfortable home clothes; she has her hair in a claw clip, he wears a navy hoodie and stands in the hallway behind her from the first second. A friendly delivery rider in his 30s wears a plain black jacket with no logos and holds one plain white paper bag.
 
 [HOME]
-Apartment front door in the evening, warm entryway light, shoes neatly lined up on the floor.
+Apartment front door in the evening, seen from inside the entryway, warm entryway light, shoes neatly lined up on the floor. The only thing that moves is the front door when she opens and closes it.
 
 The person stands in the center column with a little headroom; hands and props sit in the lower third; the room stretches up behind them.
 People: Korean adults with a clean, neat, likable look and natural relaxed expressions, caught mid-moment, looking at the props or at each other rather than at the camera.
