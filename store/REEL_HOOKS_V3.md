@@ -20,7 +20,7 @@
 ## 연기·대사가 어색할 때 — 2026-10-07 보강
 - 「어색하지 않게」 같은 형용사는 거의 안 먹힌다. 모델은 **구체적인 몸동작 지시**에 반응한다 → ACTING 을 「가족이 몰래 찍은 폰 영상, 각자 하던 일을 하면서 그 김에 말한다, 대답은 고개도 안 들고 바로」로 바꿨다.
 - 한국어 억양: 「서울말을 쓰는 한국인이 집에서 하는 평소 억양, 드라마·브이로그처럼」을 SPEECH 에 적었다. 프롬프트 전체를 한글로 바꾸지는 않는다(한글이 많아지면 화면에 깨진 자막이 다시 나온다).
-- 대사는 **한 편에 최대 두 줄**(DIALOGUE LIMIT), 웃음 포인트 한마디만. 2~3명이 3줄씩 주고받으면 입 모양이 어긋나고 책 읽는 말투가 된다. 말줄임표(…)는 어색하게 긴 멈춤이 되어 뺐다.
+- 대사는 **실제로 할 법한 온전한 문장**으로(10-07 사용자 예시 — 「자기야~! 나 손에 잔뜩 묻어서 만질 수가 없는데, 레시피 좀만 올려 줄래?」). 한때 「최대 두 줄·한마디」로 줄였더니 맥락이 사라져 더 어색했다. 대신 대사마다 그때의 행동을 괄호로 짝지어 **순서대로**(TIMING) 적는다. 말줄임표(…)는 어색하게 긴 멈춤이 되어 쓰지 않는다.
 - 그래도 어색하면: 같은 프롬프트로 **새 대화에서 2~3번** 뽑아 제일 자연스러운 걸 고른다. 계속 어색하면 **대사 없는 버전**으로 뽑고 웃음은 몸짓·자막으로 낸다.
 
 ## 한글·자막이 화면에 나오지 않게 (v2와 같음)
@@ -42,8 +42,8 @@ A short Korean slice-of-life comedy series. Treat this as raw camera footage (a 
 LENGTH: One continuous take, about 8 seconds. The funny moment lands around the middle, then plays out naturally to the end.
 TONE: Observational comedy, like a friend quietly filming a real moment at home. The laugh comes from recognition ("that's so us") and one small absurd detail, played completely straight. Warm, never mean.
 ACTING: Shot like a candid phone video a family member took without the others noticing. Nobody performs. Each person is busy with a small physical task (digging in the fridge, stirring, holding a carton) and keeps doing it while talking, so the words come out as a side effect of the task. Replies come quickly, often without looking up. Reactions are small physical things: a pause in the hands, a glance at the object, a breath out through the nose, a slight shrug, a half-smile at the floor. Faces stay relaxed and ordinary; mouths open only for the words. Eyes go to the props or to each other and stay away from the lens.
-SPEECH: Native Korean speakers talking in their own natural Seoul Korean, with the everyday intonation and rhythm of a Korean family at home, the way people sound in a Korean TV drama or a vlog. Casual banmal, quick and low, a little mumbled, with the sentence endings falling naturally. Each line is short and said once, by the person named in AUDIO, at the moment written there. Lip movements match the Korean words exactly. Between lines there are only room sounds.
-DIALOGUE LIMIT: At most two short lines in the whole clip. Everything else is told by actions and small sounds.
+SPEECH: Native Korean speakers talking in their own natural Seoul Korean, with the warm, lively everyday tone couples and families use with each other at home, the way people sound in a Korean TV drama or a vlog: stretching a name when calling out (자기야~), repeating little words when correcting someone (아니 아니), a small laugh in the voice. Full, natural sentences that say what they need, never clipped or read aloud. Lip movements match the Korean words exactly.
+TIMING: The lines happen in the order written in AUDIO, each one tied to the action next to it, with short natural pauses between them. Each line is spoken once, by the person named.
 PEOPLE: Korean adults with a clean, neat, likable look: tidy hair, clear skin, natural minimal makeup, crisp everyday clothes. Their faces can look tired, puzzled or resigned; their appearance stays neat.
 HOMES: Modern Korean homes, lived-in but tidy. Warm wood and white surfaces, one or two plants. No clutter.
 LIGHT: Soft daylight from a window plus gentle warm practical lights. Warm white balance, soft contrast, natural skin tones. Evening scenes use a warm pendant or lamp and stay bright enough to read faces.
@@ -62,7 +62,7 @@ Generate this video in a 9:16 vertical aspect ratio (portrait, 1080×1920) for I
 
 - **공감 포인트**: 장 보다가 「집에 계란 있어?」 하고 전화하는 건 거의 모든 집에서 하는 일이에요. 냉장고를 한참 뒤져서 찾은 게 계란 한 알이라는 게 웃음 포인트예요.
 - **편집 때 얹을 자막(제안)**: 냉장고 사정, / 아직도 전화로 물어봐요?
-- **자막 띄울 순간**: 계란판을 열어 한 알만 보이는 순간(「한 개 있어」)
+- **자막 띄울 순간**: 계란판을 열어 한 알만 보이는 순간(「어, 한 개 있네?」)
 - **이어 붙일 앱 데모**: 01 사진 인식 — 영수증·음식 사진 한 장으로 재료가 냉장고에 담기는 화면(냉장고가 폰 안에)
 
 영상 프롬프트:
@@ -79,8 +79,8 @@ A short Korean slice-of-life comedy series. Treat this as raw camera footage (a 
 LENGTH: One continuous take, about 8 seconds. The funny moment lands around the middle, then plays out naturally to the end.
 TONE: Observational comedy, like a friend quietly filming a real moment at home. The laugh comes from recognition ("that's so us") and one small absurd detail, played completely straight. Warm, never mean.
 ACTING: Shot like a candid phone video a family member took without the others noticing. Nobody performs. Each person is busy with a small physical task (digging in the fridge, stirring, holding a carton) and keeps doing it while talking, so the words come out as a side effect of the task. Replies come quickly, often without looking up. Reactions are small physical things: a pause in the hands, a glance at the object, a breath out through the nose, a slight shrug, a half-smile at the floor. Faces stay relaxed and ordinary; mouths open only for the words. Eyes go to the props or to each other and stay away from the lens.
-SPEECH: Native Korean speakers talking in their own natural Seoul Korean, with the everyday intonation and rhythm of a Korean family at home, the way people sound in a Korean TV drama or a vlog. Casual banmal, quick and low, a little mumbled, with the sentence endings falling naturally. Each line is short and said once, by the person named in AUDIO, at the moment written there. Lip movements match the Korean words exactly. Between lines there are only room sounds.
-DIALOGUE LIMIT: At most two short lines in the whole clip. Everything else is told by actions and small sounds.
+SPEECH: Native Korean speakers talking in their own natural Seoul Korean, with the warm, lively everyday tone couples and families use with each other at home, the way people sound in a Korean TV drama or a vlog: stretching a name when calling out (자기야~), repeating little words when correcting someone (아니 아니), a small laugh in the voice. Full, natural sentences that say what they need, never clipped or read aloud. Lip movements match the Korean words exactly.
+TIMING: The lines happen in the order written in AUDIO, each one tied to the action next to it, with short natural pauses between them. Each line is spoken once, by the person named.
 PEOPLE: Korean adults with a clean, neat, likable look: tidy hair, clear skin, natural minimal makeup, crisp everyday clothes. Their faces can look tired, puzzled or resigned; their appearance stays neat.
 HOMES: Modern Korean homes, lived-in but tidy. Warm wood and white surfaces, one or two plants. No clutter.
 LIGHT: Soft daylight from a window plus gentle warm practical lights. Warm white balance, soft contrast, natural skin tones. Evening scenes use a warm pendant or lamp and stay bright enough to read faces.
@@ -100,7 +100,7 @@ Apartment kitchen in the afternoon, white fridge, light oak floor, a fruit bowl 
 He crouches in front of the open fridge with his phone pinched between his shoulder and his ear, screen facing his cheek. He slides containers aside one by one, peering behind them. He finds a plain pastel egg carton at the very back, pulls it out and flips the lid open: a single egg sits inside. He looks at it for a beat.
 
 [AUDIO]
-Fridge hum, containers sliding. His wife's voice, small and tinny from the phone, impatient: "계란 있어 없어?" He opens the carton, glances in, and answers flatly while still crouched: "한 개 있어."
+Fridge hum, containers sliding. His wife's voice, small and tinny from the phone: "여보, 집에 계란 있어? 나 지금 마트야." He, still digging through the shelves: "잠깐만, 어디 보자." (He pulls out the carton at the back and flips the lid open, then pauses.) He: "어, 한 개 있네?" Wife, from the phone: "한 개? 알았어, 사 갈게."
 
 [LAST SECOND]
 The open egg carton with the single egg inside.
@@ -135,7 +135,7 @@ Generate this image in a 9:16 vertical aspect ratio (portrait, 1080×1920).
 
 - **공감 포인트**: 냉장고에 남은 걸 다 꺼내 놓고 「이걸로 뭐가 되나」 고민하는 밤은 누구나 겪어요. 재료를 경찰서 용의자처럼 한 줄로 세워 놓고 팔짱 끼고 노려보는 게 과장 포인트예요.
 - **편집 때 얹을 자막(제안)**: 재료는 있는데 / 요리가 안 떠올라요
-- **자막 띄울 순간**: 「이걸로 뭐 되나 보고 있어」 대답하는 순간
+- **자막 띄울 순간**: 여자가 「계란 하나로?」 하는 순간
 - **이어 붙일 앱 데모**: 02 매칭 — 지금 냉장고 재료로 만들 수 있는 요리가 매칭률 순으로 뜨는 화면
 
 영상 프롬프트:
@@ -152,8 +152,8 @@ A short Korean slice-of-life comedy series. Treat this as raw camera footage (a 
 LENGTH: One continuous take, about 8 seconds. The funny moment lands around the middle, then plays out naturally to the end.
 TONE: Observational comedy, like a friend quietly filming a real moment at home. The laugh comes from recognition ("that's so us") and one small absurd detail, played completely straight. Warm, never mean.
 ACTING: Shot like a candid phone video a family member took without the others noticing. Nobody performs. Each person is busy with a small physical task (digging in the fridge, stirring, holding a carton) and keeps doing it while talking, so the words come out as a side effect of the task. Replies come quickly, often without looking up. Reactions are small physical things: a pause in the hands, a glance at the object, a breath out through the nose, a slight shrug, a half-smile at the floor. Faces stay relaxed and ordinary; mouths open only for the words. Eyes go to the props or to each other and stay away from the lens.
-SPEECH: Native Korean speakers talking in their own natural Seoul Korean, with the everyday intonation and rhythm of a Korean family at home, the way people sound in a Korean TV drama or a vlog. Casual banmal, quick and low, a little mumbled, with the sentence endings falling naturally. Each line is short and said once, by the person named in AUDIO, at the moment written there. Lip movements match the Korean words exactly. Between lines there are only room sounds.
-DIALOGUE LIMIT: At most two short lines in the whole clip. Everything else is told by actions and small sounds.
+SPEECH: Native Korean speakers talking in their own natural Seoul Korean, with the warm, lively everyday tone couples and families use with each other at home, the way people sound in a Korean TV drama or a vlog: stretching a name when calling out (자기야~), repeating little words when correcting someone (아니 아니), a small laugh in the voice. Full, natural sentences that say what they need, never clipped or read aloud. Lip movements match the Korean words exactly.
+TIMING: The lines happen in the order written in AUDIO, each one tied to the action next to it, with short natural pauses between them. Each line is spoken once, by the person named.
 PEOPLE: Korean adults with a clean, neat, likable look: tidy hair, clear skin, natural minimal makeup, crisp everyday clothes. Their faces can look tired, puzzled or resigned; their appearance stays neat.
 HOMES: Modern Korean homes, lived-in but tidy. Warm wood and white surfaces, one or two plants. No clutter.
 LIGHT: Soft daylight from a window plus gentle warm practical lights. Warm white balance, soft contrast, natural skin tones. Evening scenes use a warm pendant or lamp and stay bright enough to read faces.
@@ -173,7 +173,7 @@ Small apartment kitchen at night, warm pendant light over a wooden counter, a wi
 On the wooden counter he has lined up, evenly spaced in one neat row: one egg, half an onion wrapped in plastic, a single sausage and one slice of cheese. He stands back with his arms crossed, studying the row very seriously, like a detective at a lineup. His girlfriend walks in behind him holding a mug, stops and looks at the row, then at him.
 
 [AUDIO]
-Quiet kitchen hum. She, stopping behind him: "뭐 해?" He, arms still crossed, without turning around: "이걸로 뭐 되나 보고 있어."
+Quiet kitchen hum. She, stopping in the doorway behind him with her mug: "뭐 해? 안 자고." He, arms still crossed, without turning around: "배고파서. 이걸로 뭐 해 먹을 수 있나 보고 있어." (She steps closer and looks at the row on the counter.) She, half laughing: "계란 하나로?"
 
 [LAST SECOND]
 The four lonely ingredients lined up on the counter.
@@ -204,11 +204,11 @@ A clean, unedited camera frame.
 Generate this image in a 9:16 vertical aspect ratio (portrait, 1080×1920).
 ```
 
-## 03. 위로, 너무 올렸어 — 요리 모드 · 손 안 대고 넘기기
+## 03. 아니 아니, 너무 올렸어 — 요리 모드 · 손 안 대고 넘기기
 
 - **공감 포인트**: 양념 묻은 손으로 레시피를 못 넘겨서 옆 사람을 부르면, 꼭 엉뚱한 데까지 스크롤해 버려요. 커플·가족끼리 태그하기 좋은 상황이에요.
 - **편집 때 얹을 자막(제안)**: 손이 바쁠 땐 / 레시피도 못 넘겨요
-- **자막 띄울 순간**: 「너무 올렸어」 하는 순간
+- **자막 띄울 순간**: 마지막 「아니 아니 아니!」 하는 순간
 - **이어 붙일 앱 데모**: 03 요리 모드 — 손대지 않아도 단계를 소리로 읽어 주고 노랗게 짚어 주는 화면
 
 영상 프롬프트:
@@ -225,8 +225,8 @@ A short Korean slice-of-life comedy series. Treat this as raw camera footage (a 
 LENGTH: One continuous take, about 8 seconds. The funny moment lands around the middle, then plays out naturally to the end.
 TONE: Observational comedy, like a friend quietly filming a real moment at home. The laugh comes from recognition ("that's so us") and one small absurd detail, played completely straight. Warm, never mean.
 ACTING: Shot like a candid phone video a family member took without the others noticing. Nobody performs. Each person is busy with a small physical task (digging in the fridge, stirring, holding a carton) and keeps doing it while talking, so the words come out as a side effect of the task. Replies come quickly, often without looking up. Reactions are small physical things: a pause in the hands, a glance at the object, a breath out through the nose, a slight shrug, a half-smile at the floor. Faces stay relaxed and ordinary; mouths open only for the words. Eyes go to the props or to each other and stay away from the lens.
-SPEECH: Native Korean speakers talking in their own natural Seoul Korean, with the everyday intonation and rhythm of a Korean family at home, the way people sound in a Korean TV drama or a vlog. Casual banmal, quick and low, a little mumbled, with the sentence endings falling naturally. Each line is short and said once, by the person named in AUDIO, at the moment written there. Lip movements match the Korean words exactly. Between lines there are only room sounds.
-DIALOGUE LIMIT: At most two short lines in the whole clip. Everything else is told by actions and small sounds.
+SPEECH: Native Korean speakers talking in their own natural Seoul Korean, with the warm, lively everyday tone couples and families use with each other at home, the way people sound in a Korean TV drama or a vlog: stretching a name when calling out (자기야~), repeating little words when correcting someone (아니 아니), a small laugh in the voice. Full, natural sentences that say what they need, never clipped or read aloud. Lip movements match the Korean words exactly.
+TIMING: The lines happen in the order written in AUDIO, each one tied to the action next to it, with short natural pauses between them. Each line is spoken once, by the person named.
 PEOPLE: Korean adults with a clean, neat, likable look: tidy hair, clear skin, natural minimal makeup, crisp everyday clothes. Their faces can look tired, puzzled or resigned; their appearance stays neat.
 HOMES: Modern Korean homes, lived-in but tidy. Warm wood and white surfaces, one or two plants. No clutter.
 LIGHT: Soft daylight from a window plus gentle warm practical lights. Warm white balance, soft contrast, natural skin tones. Evening scenes use a warm pendant or lamp and stay bright enough to read faces.
@@ -243,13 +243,13 @@ Early-30s Korean woman, hair tied up high, plain beige apron over a white tee, c
 Bright apartment kitchen in the early evening, white counter with a mixing bowl of marinated meat, a phone propped against a jar.
 
 [ACTION]
-She is mixing the meat in the bowl with both gloved hands. The phone leaning on the jar has its screen turned away from us. She glances at it, holds her messy hands up and calls her husband over without moving. He walks in, stands beside her and scrolls the phone with one finger while she leans in to read. He scrolls too far; she tilts her head, he scrolls back, she sighs patiently.
+She is mixing the meat in the bowl with both gloved hands. The phone leaning on the jar has its screen turned away from us. She glances at it, holds her messy hands up and calls her husband over without moving. He walks in, stands beside her and scrolls the phone with one finger while she leans in to read. Every correction makes him overshoot the other way, and each time he glances at her face to check.
 
 [AUDIO]
-Soft squish of marinade, a finger tapping glass. She, leaning toward the phone while he scrolls: "아니 위로, 위로." He scrolls the other way; she tilts her head: "너무 올렸어."
+Soft squish of marinade. She, calling toward the living room with her messy gloved hands up: "자기야~! 나 손에 잔뜩 묻어서 만질 수가 없는데, 레시피 좀만 올려 줄래?" (He walks over and scrolls the phone up a little with one finger.) She, leaning in to read: "아니 아니, 좀만 더 위로." (He scrolls up a bit more and glances at her face, checking.) She: "아니 아니 아니, 너무 올렸어!" (This time he scrolls back down too far, then freezes and looks at her.) She, laughing in exasperation: "아니 아니 아니!"
 
 [LAST SECOND]
-Her red gloved hands held up in the air next to the phone.
+His finger frozen just above the phone, her red gloved hands up beside it.
 
 Generate this video in a 9:16 vertical aspect ratio (portrait, 1080×1920) for Instagram Reels.
 ```
@@ -298,8 +298,8 @@ A short Korean slice-of-life comedy series. Treat this as raw camera footage (a 
 LENGTH: One continuous take, about 8 seconds. The funny moment lands around the middle, then plays out naturally to the end.
 TONE: Observational comedy, like a friend quietly filming a real moment at home. The laugh comes from recognition ("that's so us") and one small absurd detail, played completely straight. Warm, never mean.
 ACTING: Shot like a candid phone video a family member took without the others noticing. Nobody performs. Each person is busy with a small physical task (digging in the fridge, stirring, holding a carton) and keeps doing it while talking, so the words come out as a side effect of the task. Replies come quickly, often without looking up. Reactions are small physical things: a pause in the hands, a glance at the object, a breath out through the nose, a slight shrug, a half-smile at the floor. Faces stay relaxed and ordinary; mouths open only for the words. Eyes go to the props or to each other and stay away from the lens.
-SPEECH: Native Korean speakers talking in their own natural Seoul Korean, with the everyday intonation and rhythm of a Korean family at home, the way people sound in a Korean TV drama or a vlog. Casual banmal, quick and low, a little mumbled, with the sentence endings falling naturally. Each line is short and said once, by the person named in AUDIO, at the moment written there. Lip movements match the Korean words exactly. Between lines there are only room sounds.
-DIALOGUE LIMIT: At most two short lines in the whole clip. Everything else is told by actions and small sounds.
+SPEECH: Native Korean speakers talking in their own natural Seoul Korean, with the warm, lively everyday tone couples and families use with each other at home, the way people sound in a Korean TV drama or a vlog: stretching a name when calling out (자기야~), repeating little words when correcting someone (아니 아니), a small laugh in the voice. Full, natural sentences that say what they need, never clipped or read aloud. Lip movements match the Korean words exactly.
+TIMING: The lines happen in the order written in AUDIO, each one tied to the action next to it, with short natural pauses between them. Each line is spoken once, by the person named.
 PEOPLE: Korean adults with a clean, neat, likable look: tidy hair, clear skin, natural minimal makeup, crisp everyday clothes. Their faces can look tired, puzzled or resigned; their appearance stays neat.
 HOMES: Modern Korean homes, lived-in but tidy. Warm wood and white surfaces, one or two plants. No clutter.
 LIGHT: Soft daylight from a window plus gentle warm practical lights. Warm white balance, soft contrast, natural skin tones. Evening scenes use a warm pendant or lamp and stay bright enough to read faces.
@@ -319,7 +319,7 @@ Family apartment kitchen in the afternoon, white fridge, dining table by the win
 The fridge is already packed full. She pushes one more container in and rearranges two others to make it fit, then closes the door and gives it a gentle push with her hip. She turns away, and behind her the door slowly swings back open. She stops, looks at it, and pushes it closed again with her palm, holding it there for a second.
 
 [AUDIO]
-Containers clinking, the fridge door creaking open again. Her husband, from the table, not looking up: "또 장 봤어?" She, palm pressed on the door: "이번 주 거야."
+Containers clinking. (She pushes the door shut with her hip and turns away; the door slowly swings back open.) Her husband, from the table, glancing over: "또 장 봤어? 냉장고 꽉 찼던데." She, pressing the door shut with her palm: "이번 주 거야. 이번 주에 다 먹을 거야."
 
 [LAST SECOND]
 Her hand pressed flat against the fridge door, holding it shut.
@@ -354,7 +354,7 @@ Generate this image in a 9:16 vertical aspect ratio (portrait, 1080×1920).
 
 - **공감 포인트**: 유통기한 지난 우유를 냄새로 확인하다가 결국 옆 사람한테 넘기는 장면은 거의 모든 커플이 겪어요. 맡아 보고 슬쩍 되돌려 주는 게 웃음 포인트예요.
 - **편집 때 얹을 자막(제안)**: 유통기한, / 아직도 냄새로 확인해요?
-- **자막 띄울 순간**: 「너 먹어」 하고 우유를 되돌려 주는 순간
+- **자막 띄울 순간**: 「음, 자기가 먹어」 하고 우유를 되돌려 주는 순간
 - **이어 붙일 앱 데모**: 05 유통기한 알림 — 푸시 알림 → 유통기한 자동 계산 → 임박 재료 레시피 추천
 
 영상 프롬프트:
@@ -371,8 +371,8 @@ A short Korean slice-of-life comedy series. Treat this as raw camera footage (a 
 LENGTH: One continuous take, about 8 seconds. The funny moment lands around the middle, then plays out naturally to the end.
 TONE: Observational comedy, like a friend quietly filming a real moment at home. The laugh comes from recognition ("that's so us") and one small absurd detail, played completely straight. Warm, never mean.
 ACTING: Shot like a candid phone video a family member took without the others noticing. Nobody performs. Each person is busy with a small physical task (digging in the fridge, stirring, holding a carton) and keeps doing it while talking, so the words come out as a side effect of the task. Replies come quickly, often without looking up. Reactions are small physical things: a pause in the hands, a glance at the object, a breath out through the nose, a slight shrug, a half-smile at the floor. Faces stay relaxed and ordinary; mouths open only for the words. Eyes go to the props or to each other and stay away from the lens.
-SPEECH: Native Korean speakers talking in their own natural Seoul Korean, with the everyday intonation and rhythm of a Korean family at home, the way people sound in a Korean TV drama or a vlog. Casual banmal, quick and low, a little mumbled, with the sentence endings falling naturally. Each line is short and said once, by the person named in AUDIO, at the moment written there. Lip movements match the Korean words exactly. Between lines there are only room sounds.
-DIALOGUE LIMIT: At most two short lines in the whole clip. Everything else is told by actions and small sounds.
+SPEECH: Native Korean speakers talking in their own natural Seoul Korean, with the warm, lively everyday tone couples and families use with each other at home, the way people sound in a Korean TV drama or a vlog: stretching a name when calling out (자기야~), repeating little words when correcting someone (아니 아니), a small laugh in the voice. Full, natural sentences that say what they need, never clipped or read aloud. Lip movements match the Korean words exactly.
+TIMING: The lines happen in the order written in AUDIO, each one tied to the action next to it, with short natural pauses between them. Each line is spoken once, by the person named.
 PEOPLE: Korean adults with a clean, neat, likable look: tidy hair, clear skin, natural minimal makeup, crisp everyday clothes. Their faces can look tired, puzzled or resigned; their appearance stays neat.
 HOMES: Modern Korean homes, lived-in but tidy. Warm wood and white surfaces, one or two plants. No clutter.
 LIGHT: Soft daylight from a window plus gentle warm practical lights. Warm white balance, soft contrast, natural skin tones. Evening scenes use a warm pendant or lamp and stay bright enough to read faces.
@@ -392,7 +392,7 @@ Apartment kitchen on a weekend morning, sunlight through the window, a toaster a
 He opens a plain white milk carton, sniffs it, pauses, sniffs again and tilts his head, unsure. He holds it out to her. She takes it, sniffs once, holds still for a beat, then calmly hands it straight back to him with a small polite smile.
 
 [AUDIO]
-Morning kitchen sounds, the carton cap twisting, two short sniffs. He, holding it out: "이거 괜찮아?" She sniffs once and hands it straight back: "너 먹어."
+Morning kitchen sounds, the carton cap twisting, two short sniffs. He, holding the carton out to her: "자기야, 이거 우유 괜찮은 거 같아? 냄새 좀 맡아 봐." (She sniffs once, holds still for a beat, then hands it straight back with a polite little smile.) She: "음, 자기가 먹어."
 
 [LAST SECOND]
 The milk carton held between them.
@@ -427,7 +427,7 @@ Generate this image in a 9:16 vertical aspect ratio (portrait, 1080×1920).
 
 - **공감 포인트**: 냉장고에 있는 재료를 불러 주며 엄마한테 전화로 메뉴를 묻는 건 자취생·신혼부부 모두의 공감 포인트예요. 엄마의 「맨날 물어보니」가 웃음 포인트예요.
 - **편집 때 얹을 자막(제안)**: 엄마 말고 / 물어볼 데 없나요?
-- **자막 띄울 순간**: 엄마가 「몇 번을 말해」 하는 순간
+- **자막 띄울 순간**: 엄마가 「그걸 왜 맨날 물어봐」 하는 순간
 - **이어 붙일 앱 데모**: 06 요리 AI — 말하듯 물어보면 냉장고 재료로 딱 맞는 레시피를 찾아 주는 화면
 
 영상 프롬프트:
@@ -444,8 +444,8 @@ A short Korean slice-of-life comedy series. Treat this as raw camera footage (a 
 LENGTH: One continuous take, about 8 seconds. The funny moment lands around the middle, then plays out naturally to the end.
 TONE: Observational comedy, like a friend quietly filming a real moment at home. The laugh comes from recognition ("that's so us") and one small absurd detail, played completely straight. Warm, never mean.
 ACTING: Shot like a candid phone video a family member took without the others noticing. Nobody performs. Each person is busy with a small physical task (digging in the fridge, stirring, holding a carton) and keeps doing it while talking, so the words come out as a side effect of the task. Replies come quickly, often without looking up. Reactions are small physical things: a pause in the hands, a glance at the object, a breath out through the nose, a slight shrug, a half-smile at the floor. Faces stay relaxed and ordinary; mouths open only for the words. Eyes go to the props or to each other and stay away from the lens.
-SPEECH: Native Korean speakers talking in their own natural Seoul Korean, with the everyday intonation and rhythm of a Korean family at home, the way people sound in a Korean TV drama or a vlog. Casual banmal, quick and low, a little mumbled, with the sentence endings falling naturally. Each line is short and said once, by the person named in AUDIO, at the moment written there. Lip movements match the Korean words exactly. Between lines there are only room sounds.
-DIALOGUE LIMIT: At most two short lines in the whole clip. Everything else is told by actions and small sounds.
+SPEECH: Native Korean speakers talking in their own natural Seoul Korean, with the warm, lively everyday tone couples and families use with each other at home, the way people sound in a Korean TV drama or a vlog: stretching a name when calling out (자기야~), repeating little words when correcting someone (아니 아니), a small laugh in the voice. Full, natural sentences that say what they need, never clipped or read aloud. Lip movements match the Korean words exactly.
+TIMING: The lines happen in the order written in AUDIO, each one tied to the action next to it, with short natural pauses between them. Each line is spoken once, by the person named.
 PEOPLE: Korean adults with a clean, neat, likable look: tidy hair, clear skin, natural minimal makeup, crisp everyday clothes. Their faces can look tired, puzzled or resigned; their appearance stays neat.
 HOMES: Modern Korean homes, lived-in but tidy. Warm wood and white surfaces, one or two plants. No clutter.
 LIGHT: Soft daylight from a window plus gentle warm practical lights. Warm white balance, soft contrast, natural skin tones. Evening scenes use a warm pendant or lamp and stay bright enough to read faces.
@@ -465,7 +465,7 @@ Small officetel kitchen in the evening, warm lamp, a tofu block and a zucchini o
 Her phone lies face down on the counter on speaker. She holds a zucchini in one hand and taps the tofu pack with the other, looking down at them while she talks. When her mother answers, she presses her lips together, nods to herself and starts slicing the zucchini.
 
 [AUDIO]
-Soft kitchen sounds. She, toward the phone, while turning the zucchini in her hand: "엄마, 두부랑 애호박 있는데 뭐 해 먹어?" Her mother's voice from the phone speaker, without missing a beat: "된장찌개 하라니까, 몇 번을 말해." She nods to herself and starts slicing.
+Soft kitchen sounds. She, toward the phone, turning the zucchini in her hand: "엄마, 나 집에 두부랑 애호박 있는데 뭐 해 먹지?" Her mother's voice from the phone speaker, without missing a beat: "된장찌개 하면 되지. 그걸 왜 맨날 물어봐." She, nodding and reaching for the knife: "아 알았어, 알았어."
 
 [LAST SECOND]
 The zucchini being sliced on the cutting board.
@@ -500,7 +500,7 @@ Generate this image in a 9:16 vertical aspect ratio (portrait, 1080×1920).
 
 - **공감 포인트**: 레시피 영상 보고 열심히 만들었는데 결과물이 전혀 다르게 나오는 경험은 요리해 본 사람이면 다 있어요. 상대가 예의 바르게 맛있다고 한 뒤 묻는 한마디가 웃음 포인트예요.
 - **편집 때 얹을 자막(제안)**: 레시피대로 했는데 / 왜 이렇게 됐지?
-- **자막 띄울 순간**: 「근데 이거 뭐야?」 하는 순간
+- **자막 띄울 순간**: 「근데 자기야, 이거 뭐야?」 하는 순간
 - **이어 붙일 앱 데모**: 07 진짜 레시피 — 좋아요·조회수로 검증된 레시피, 분량까지 정리된 재료·조리 순서
 
 영상 프롬프트:
@@ -517,8 +517,8 @@ A short Korean slice-of-life comedy series. Treat this as raw camera footage (a 
 LENGTH: One continuous take, about 8 seconds. The funny moment lands around the middle, then plays out naturally to the end.
 TONE: Observational comedy, like a friend quietly filming a real moment at home. The laugh comes from recognition ("that's so us") and one small absurd detail, played completely straight. Warm, never mean.
 ACTING: Shot like a candid phone video a family member took without the others noticing. Nobody performs. Each person is busy with a small physical task (digging in the fridge, stirring, holding a carton) and keeps doing it while talking, so the words come out as a side effect of the task. Replies come quickly, often without looking up. Reactions are small physical things: a pause in the hands, a glance at the object, a breath out through the nose, a slight shrug, a half-smile at the floor. Faces stay relaxed and ordinary; mouths open only for the words. Eyes go to the props or to each other and stay away from the lens.
-SPEECH: Native Korean speakers talking in their own natural Seoul Korean, with the everyday intonation and rhythm of a Korean family at home, the way people sound in a Korean TV drama or a vlog. Casual banmal, quick and low, a little mumbled, with the sentence endings falling naturally. Each line is short and said once, by the person named in AUDIO, at the moment written there. Lip movements match the Korean words exactly. Between lines there are only room sounds.
-DIALOGUE LIMIT: At most two short lines in the whole clip. Everything else is told by actions and small sounds.
+SPEECH: Native Korean speakers talking in their own natural Seoul Korean, with the warm, lively everyday tone couples and families use with each other at home, the way people sound in a Korean TV drama or a vlog: stretching a name when calling out (자기야~), repeating little words when correcting someone (아니 아니), a small laugh in the voice. Full, natural sentences that say what they need, never clipped or read aloud. Lip movements match the Korean words exactly.
+TIMING: The lines happen in the order written in AUDIO, each one tied to the action next to it, with short natural pauses between them. Each line is spoken once, by the person named.
 PEOPLE: Korean adults with a clean, neat, likable look: tidy hair, clear skin, natural minimal makeup, crisp everyday clothes. Their faces can look tired, puzzled or resigned; their appearance stays neat.
 HOMES: Modern Korean homes, lived-in but tidy. Warm wood and white surfaces, one or two plants. No clutter.
 LIGHT: Soft daylight from a window plus gentle warm practical lights. Warm white balance, soft contrast, natural skin tones. Evening scenes use a warm pendant or lamp and stay bright enough to read faces.
@@ -538,7 +538,7 @@ Small apartment dining table at dinner time, warm pendant light, two plain bowls
 He sets a plain white plate of a dark, shapeless braised dish in front of her and sits down, watching her hopefully. She takes a careful bite, chews slowly, nods politely. A short pause. She looks down at the plate again. He keeps watching her.
 
 [AUDIO]
-Quiet dinner table sounds, slow chewing. She nods politely, then looks at the plate and asks gently: "맛있는데, 근데 이거 뭐야?" He, after a beat, small voice: "찜닭."
+Quiet dinner table sounds, slow chewing. She nods politely: "음, 맛있다." (A short pause; she looks down at the plate again.) She, gently: "근데 자기야, 이거 뭐야?" He, after a beat, small voice: "찜닭인데."
 
 [LAST SECOND]
 The shapeless dish on the white plate.
@@ -590,8 +590,8 @@ A short Korean slice-of-life comedy series. Treat this as raw camera footage (a 
 LENGTH: One continuous take, about 8 seconds. The funny moment lands around the middle, then plays out naturally to the end.
 TONE: Observational comedy, like a friend quietly filming a real moment at home. The laugh comes from recognition ("that's so us") and one small absurd detail, played completely straight. Warm, never mean.
 ACTING: Shot like a candid phone video a family member took without the others noticing. Nobody performs. Each person is busy with a small physical task (digging in the fridge, stirring, holding a carton) and keeps doing it while talking, so the words come out as a side effect of the task. Replies come quickly, often without looking up. Reactions are small physical things: a pause in the hands, a glance at the object, a breath out through the nose, a slight shrug, a half-smile at the floor. Faces stay relaxed and ordinary; mouths open only for the words. Eyes go to the props or to each other and stay away from the lens.
-SPEECH: Native Korean speakers talking in their own natural Seoul Korean, with the everyday intonation and rhythm of a Korean family at home, the way people sound in a Korean TV drama or a vlog. Casual banmal, quick and low, a little mumbled, with the sentence endings falling naturally. Each line is short and said once, by the person named in AUDIO, at the moment written there. Lip movements match the Korean words exactly. Between lines there are only room sounds.
-DIALOGUE LIMIT: At most two short lines in the whole clip. Everything else is told by actions and small sounds.
+SPEECH: Native Korean speakers talking in their own natural Seoul Korean, with the warm, lively everyday tone couples and families use with each other at home, the way people sound in a Korean TV drama or a vlog: stretching a name when calling out (자기야~), repeating little words when correcting someone (아니 아니), a small laugh in the voice. Full, natural sentences that say what they need, never clipped or read aloud. Lip movements match the Korean words exactly.
+TIMING: The lines happen in the order written in AUDIO, each one tied to the action next to it, with short natural pauses between them. Each line is spoken once, by the person named.
 PEOPLE: Korean adults with a clean, neat, likable look: tidy hair, clear skin, natural minimal makeup, crisp everyday clothes. Their faces can look tired, puzzled or resigned; their appearance stays neat.
 HOMES: Modern Korean homes, lived-in but tidy. Warm wood and white surfaces, one or two plants. No clutter.
 LIGHT: Soft daylight from a window plus gentle warm practical lights. Warm white balance, soft contrast, natural skin tones. Evening scenes use a warm pendant or lamp and stay bright enough to read faces.
@@ -611,7 +611,7 @@ Apartment front door in the evening, warm entryway light, shoes neatly lined up 
 She opens the front door. The rider hands her the plain bag and recognizes her with a friendly smile and a small nod. She smiles back politely, a little awkward, takes the bag and closes the door. She turns around; her husband is standing behind her in the hallway. They look at each other.
 
 [AUDIO]
-Door opening, paper bag rustling. Rider, cheerful, with a small nod of recognition: "아, 또 뵙네요." She smiles politely, takes the bag and closes the door. Her husband behind her, quietly: "우리 단골이네."
+Door opening, paper bag rustling. Rider, cheerful, recognizing her: "아, 안녕하세요! 또 뵙네요." She, polite and a little embarrassed: "아, 네. 감사합니다." (She closes the door and turns around.) Her husband in the hallway, quietly: "우리 저 기사님이랑 친해졌다."
 
 [LAST SECOND]
 The two of them looking at each other, the delivery bag between them.
