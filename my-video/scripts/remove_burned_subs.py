@@ -50,7 +50,9 @@ for name, box in BOXES.items():
     base = np.median(counts[: len(counts) // 2])
     start = next(i for i, c in enumerate(counts) if c > base + 60 and all(cc > base + 60 for cc in counts[i:i + 6]))
     ref_i = start - 2
-    print(f"{name}: appears at frame {start} ({start / fps:.2f}s), ref {ref_i}, base {base}")
+    # 자막이 중간에 사라지는 경우(4편 세로 「● 응」 7.62~8.29s) 그 뒤 프레임은 건드리지 않는다
+    end = max(i for i, c in enumerate(counts) if c > base + 60) + 2
+    print(f"{name}: frames {start}~{end} ({start / fps:.2f}~{end / fps:.2f}s), ref {ref_i}, base {base}")
     x0, y0, x1, y1 = box
     ref = frames[ref_i]
     sift = cv2.SIFT_create(3000)
@@ -61,7 +63,7 @@ for name, box in BOXES.items():
     kr, dr = sift.detectAndCompute(gray[ref_i], feat_mask)
     matcher = cv2.BFMatcher()
     Hm_prev = np.eye(3)
-    for i in range(start - 1, len(frames)):
+    for i in range(start - 1, min(end + 1, len(frames))):
         kc, dc = sift.detectAndCompute(gray[i], feat_mask)
         Hm = Hm_prev
         if dc is not None and len(kc) > 20:
