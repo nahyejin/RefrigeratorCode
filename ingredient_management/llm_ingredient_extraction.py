@@ -730,6 +730,17 @@ def run(*, limit, start_after_id, order, output_path, commit, rpm, concurrency, 
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     write_conn = _connect_db(read_timeout_sec=120) if commit else None
     write_cursor = write_conn.cursor() if write_conn else None
+
+    # 사용자가 이미 쓴 레시피 — 재료가 적어도 지우지 않는다(위 too_few 참고)
+    user_used_ids = set()
+    if write_cursor:
+        for t in ("user_completed_recipes", "user_recorded_recipes", "user_favorite_recipes", "user_meal_plans"):
+            try:
+                write_cursor.execute(f"SELECT DISTINCT recipe_id FROM `{t}` WHERE recipe_id IS NOT NULL")
+                for r in write_cursor.fetchall():
+                    user_used_ids.add(r["recipe_id"] if isinstance(r, dict) else r[0])
+            except Exception:  # noqa: BLE001 — 표가 없으면 넘어간다
+                pass
     changed_count = 0
     deleted_count = 0
     multi_count = 0
@@ -768,19 +779,15 @@ def run(*, limit, start_after_id, order, output_path, commit, rpm, concurrency, 
                         # old에는 재료가 있었는데 new만 비어 있는 경우는 "동의"가 아니라 LLM 쪽의
                         # 파싱 실패/이상 응답일 수 있어 삭제하지 않고 검토 대상으로만 남긴다
                         # (기존 값을 그대로 보존 — 위 id=1326 사고와 동일한 패턴이라 신뢰하지 않음).
-                        # 재료가 **하나뿐**이면 레시피가 아니라 그 재료에 대한 글이다.
-                        #
-                        # 표본을 보면 `새송이버섯 보관법`, `밤보관방법`,
-                        # `아보카도 오일 활용법`, `CU 신상 후기` 같은 것들이다.
-                        # 진짜 레시피인데 추출이 실패해 하나만 남은 경우도 섞이지만
-                        # 그래도 지운다 — **재료가 하나면 어차피 매칭에 못 쓰인다**
-                        # (재료 3개 이하는 추천에서 빠진다). 남겨 두면 자리만 차지하고
-                        # 매일 도는 배치가 계속 다시 훑는다.
-                        #
-                        # 2개는 건드리지 않는다. `계란 + 소금` 처럼 진짜 간단한
-                        # 레시피가 섞여 있어 애매하다.
+                        # **AI 가 판단한 재료가 3개 이하**면 지운다(2026-10-08 사용자 결정 — 「LLM 이
+                        # 판단한 재료가 3개 이하면 수집에서 제외」). 예전엔 1개만 지웠다(`새송이버섯
+                        # 보관법`·`밤보관방법` 같은 글). 크롤러의 「3개 이하 저장 안 함」은 룰베이스로
+                        # 센 것이라, 여기서 AI 로 다시 세야 잡음이 빠져 줄어든 글이 걸린다.
+                        # 목록에선 `RECIPE_READY`(재료 4개 이상)로도 빠진다.
+                        # 사용자가 이미 쓴 레시피(완료·기록·즐겨찾기·식단)는 지우지 않고 값만 쓴다 —
+                        # 지우면 아래 정리 단계가 그 사람 기록까지 지운다.
                         new_count = len([x for x in (new_used or '').split(',') if x.strip()])
-                        too_few = (not err) and new_count == 1
+                        too_few = (not err) and 1 <= new_count <= 3 and rid not in user_used_ids
 
                         should_delete = (not err) and (
                             not_recipe or (new_is_empty and old_was_empty) or too_few
@@ -797,7 +804,7 @@ def run(*, limit, start_after_id, order, output_path, commit, rpm, concurrency, 
                             changed_label = (
                                 ("MULTI_RECIPE" if not_recipe == "multi_recipe" else "NOT_RECIPE")
                                 if not_recipe
-                                else "DELETED_1ING" if too_few
+                                else "DELETED_FEW_ING" if too_few
                                 else "DELETED")
                             added, removed = "", ""
                             display_new_used = ""
