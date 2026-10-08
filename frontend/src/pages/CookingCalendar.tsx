@@ -876,21 +876,29 @@ const CookingCalendar: React.FC = () => {
    * 전에는 `내 요리` 인데도 **식구 것을 다 합쳐서** 보여 줬다. 서버가 그룹
    * 전체를 내려 주는데 그대로 그렸기 때문이다. 내 요리는 내 것이어야 한다.
    */
+  /**
+   * 목록 기간의 시작·끝 날짜(YYYY-MM-DD, 빈 값이면 제한 없음).
+   * 예전엔 완료에만 걸려서 기록·즐겨찾기에서는 기간을 골라도 아무것도 안 바뀌었다 —
+   * 사람별 횟수 요약을 더하면서(2026-10-08) 세 탭이 같은 기간을 쓰게 했다.
+   */
+  const spanBounds = React.useMemo(() => {
+    if (span === 'custom') return { from: range.from, to: range.to };
+    if (span === 'all') return { from: '', to: '' };
+    return { from: toDateKey(addDays(new Date(), -Number(span))), to: '' };
+  }, [span, range]);
+  const inSpan = React.useCallback(
+    (day: string) => (!spanBounds.from || day >= spanBounds.from) && (!spanBounds.to || day <= spanBounds.to),
+    [spanBounds],
+  );
+
   const listEntries = React.useMemo(() => {
     if (allEntries === null) return null;
     const me = Number(authUser?.id);
     let out = allEntries;
     if (scope === 'mine') out = out.filter(e => e.user_id === me);
     else if (hideMine) out = out.filter(e => e.user_id !== me);
-    if (span === 'custom') {
-      if (range.from) out = out.filter(e => e.day >= range.from);
-      if (range.to) out = out.filter(e => e.day <= range.to);
-    } else if (span !== 'all') {
-      const from = toDateKey(addDays(new Date(), -Number(span)));
-      out = out.filter(e => e.day >= from);
-    }
-    return out;
-  }, [allEntries, scope, hideMine, span, range, authUser?.id]);
+    return out.filter(e => inSpan(e.day));
+  }, [allEntries, scope, hideMine, inSpan, authUser?.id]);
 
   /** 내 이름. 기기에만 있는 완료에 주인을 붙일 때 쓴다. */
   const myName = (authUser as any)?.nickname || (authUser as any)?.name || '나';
@@ -902,28 +910,37 @@ const CookingCalendar: React.FC = () => {
    * **오직 나만 기록한 것**을 뺀다 — 나와 식구가 같이 기록한 레시피는 남긴다.
    * (기록은 레시피 한 장에 여러 사람이 묶여 오므로 `acted_by` 로 판단한다)
    */
+  /**
+   * 기록·즐겨찾기 한 줄을 **누가 기간 안에** 했는지 — 닉네임 목록.
+   * 식구 목록은 사람마다 가장 최근 시각(`acted`)이 오고, 내 목록은 `user_saved_at` 하나다.
+   */
+  const actedInSpan = React.useCallback((r: any, household: boolean): string[] => {
+    const dayOf = (when: any) => {
+      const d = new Date(String(when));
+      return Number.isNaN(d.getTime()) ? String(when || '').slice(0, 10) : toDateKey(d);
+    };
+    if (household && Array.isArray(r.acted) && r.acted.length > 0) {
+      return r.acted.filter((a: any) => a?.nickname && a.at && inSpan(dayOf(a.at))).map((a: any) => a.nickname);
+    }
+    const when = r.user_saved_at || r.created_at;
+    if (!when) return spanBounds.from || spanBounds.to ? [] : [household ? (r.acted_by?.[0] || myName) : myName];
+    return inSpan(dayOf(when)) ? (household && Array.isArray(r.acted_by) ? r.acted_by : [myName]) : [];
+  }, [inSpan, spanBounds, myName]);
+
   const listRecorded = React.useMemo(() => {
-    if (scope !== 'household') return recorded;
+    if (scope !== 'household') return recorded === null ? null : recorded.filter((r: any) => actedInSpan(r, false).length > 0);
     const src = householdRecorded;
     if (src === null) return null;
-    if (!hideMine) return src;
-    return src.filter((r: any) => {
-      const by: string[] = Array.isArray(r.acted_by) ? r.acted_by : [];
-      return by.some(n => n && n !== myName);
-    });
-  }, [scope, recorded, householdRecorded, hideMine, myName]);
+    return src.filter((r: any) => actedInSpan(r, true).some(n => n && (!hideMine || n !== myName)));
+  }, [scope, recorded, householdRecorded, hideMine, myName, actedInSpan]);
 
   /** 지금 탭이 보여야 할 즐겨찾기 — `listRecorded` 와 같은 규칙. */
   const listFavorites = React.useMemo(() => {
-    if (scope !== 'household') return favorites;
+    if (scope !== 'household') return favorites === null ? null : favorites.filter((r: any) => actedInSpan(r, false).length > 0);
     const src = householdFavorites;
     if (src === null) return null;
-    if (!hideMine) return src;
-    return src.filter((r: any) => {
-      const by: string[] = Array.isArray(r.acted_by) ? r.acted_by : [];
-      return by.some(n => n && n !== myName);
-    });
-  }, [scope, favorites, householdFavorites, hideMine, myName]);
+    return src.filter((r: any) => actedInSpan(r, true).some(n => n && (!hideMine || n !== myName)));
+  }, [scope, favorites, householdFavorites, hideMine, myName, actedInSpan]);
 
   const handleSaveCompletedDate = async (entry: CalendarEntry) => {
     if (!authUser?.id || !dateInput) return;
@@ -1113,6 +1130,45 @@ const CookingCalendar: React.FC = () => {
   }, [entries]);
   const monthlyTotal = entries.length;
   const meIdForLegend = authUser?.id != null ? Number(authUser.id) : GUEST_USER_ID;
+
+  /**
+   * 목록 탭 요약 — 고른 기간 안에 **사람별로 몇 번** 했는지(2026-10-08 요청).
+   * 완료는 user_id 로, 기록·즐겨찾기는 닉네임으로 센다(서버가 그 둘엔 닉네임만 준다).
+   */
+  const listSummary = React.useMemo(() => {
+    const unit = listKind === 'done' ? '회' : '개';
+    if (listKind === 'done') {
+      if (!listEntries) return null;
+      const by = new Map<number, number>();
+      for (const e of listEntries) by.set(e.user_id, (by.get(e.user_id) || 0) + 1);
+      const people = orderForLegend(by, meIdForLegend, memberIds).map(([uid, n]) => ({
+        key: String(uid),
+        name: nicknameById.get(uid) || (uid === meIdForLegend ? myName : '?'),
+        color: colorForUser(uid, memberIds),
+        n,
+      }));
+      return { total: listEntries.length, unit, people };
+    }
+    const rows = listKind === 'write' ? listRecorded : listFavorites;
+    if (!rows) return null;
+    if (scope !== 'household') return { total: rows.length, unit, people: [] as { key: string; name: string; color: string; n: number }[] };
+    const by = new Map<string, number>();
+    for (const r of rows) {
+      for (const name of actedInSpan(r, true)) {
+        if (hideMine && name === myName) continue;
+        by.set(name, (by.get(name) || 0) + 1);
+      }
+    }
+    const idByName = new Map(householdMembers.map(m => [m.nickname, m.id] as const));
+    const people = [...by.entries()]
+      .sort((a, b) => (a[0] === myName ? -1 : b[0] === myName ? 1 : b[1] - a[1]))
+      .map(([name, n]) => {
+        const uid = idByName.get(name);
+        return { key: name, name, color: uid != null ? colorForUser(uid, memberIds) : 'var(--ink-300)', n };
+      });
+    return { total: rows.length, unit, people };
+  }, [listKind, listEntries, listRecorded, listFavorites, scope, hideMine, myName, meIdForLegend,
+      memberIds, nicknameById, householdMembers, actedInSpan]);
 
 
 
@@ -2834,11 +2890,11 @@ const CookingCalendar: React.FC = () => {
                     aria-pressed={on}
                     style={{
                       position: 'relative', zIndex: 1, height: 28,
-                      padding: '0 9px', border: 'none', background: 'transparent',
+                      padding: '0 6px', border: 'none', background: 'transparent',
                       whiteSpace: 'nowrap',
                       borderRadius: 8, cursor: 'pointer',
                       color: on ? '#FFFFFF' : 'var(--ink-500)',
-                      fontSize: 12.5, fontWeight: on ? 700 : 500,
+                      fontSize: 12, fontWeight: on ? 700 : 500,
                       transition: 'color .2s ease',
                     }}
                   >
@@ -2849,33 +2905,51 @@ const CookingCalendar: React.FC = () => {
             </div>
 
             {/* 기간은 **오른쪽 끝**에. 왼쪽은 무엇을 보는지(완료·기록)이고
-                이쪽은 얼마나 넓게 보는지다. */}
-            <span style={{ marginLeft: 'auto', display: 'flex', gap: 4 }}>
-              {([
-                { key: 'all', label: '전체' },
-                { key: '365', label: '1년' },
-                { key: '90', label: '3개월' },
-                { key: 'custom', label: '직접' },
-              ] as const).map(({ key, label }) => {
-                const on = span === key;
-                return (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => setSpan(key)}
-                    style={{
-                      height: 26, padding: '0 8px', borderRadius: 8, cursor: 'pointer',
-                      border: 'none', background: on ? 'var(--surface-sub)' : 'transparent',
-                      fontSize: 11.5, fontWeight: on ? 700 : 500,
-                      color: on ? '#1A1A1E' : 'var(--ink-500)',
-                    }}
-                  >
-                    {label}
-                  </button>
-                );
-              })}
-            </span>
+                이쪽은 얼마나 넓게 보는지다.
+                버튼 4개(전체·1년·3개월·직접)였을 때는 고르개와 합쳐 폰 폭을 넘어 두 줄이 됐다(2026-10-08 지적)
+                → 폰 기본 선택창이 뜨는 드롭다운 하나로 줄여 한 줄에 넣는다. */}
+            <select
+              id="list-span"
+              aria-label="기간"
+              value={span}
+              onChange={ev => setSpan(ev.target.value as typeof span)}
+              style={{
+                marginLeft: 'auto', flexShrink: 0, height: 30, padding: '0 22px 0 9px',
+                borderRadius: 8, border: '1px solid var(--line-200)', cursor: 'pointer',
+                fontSize: 12.5, fontWeight: 600, color: '#1A1A1E', fontFamily: 'inherit',
+                appearance: 'none', WebkitAppearance: 'none',
+                backgroundColor: '#FFFFFF',
+                backgroundImage: "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%236B6B73' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9l6 6 6-6'/></svg>\")",
+                backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center',
+              }}
+            >
+              <option value="all">전체</option>
+              {/* 기본 선택창은 가장 긴 항목만큼 넓어진다 — 한 줄에 들어가게 짧게 */}
+              <option value="365">1년</option>
+              <option value="90">3개월</option>
+              <option value="custom">직접</option>
+            </select>
           </div>
+
+          {/* 고른 기간에 사람별로 몇 번 했는지 — 고르개 바로 아래(2026-10-08 요청). 달력 탭 요약과 같은 색 점·모양. */}
+          {listSummary && listSummary.total > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', columnGap: 10, rowGap: 4,
+                          padding: '8px 12px', borderRadius: 10, background: 'var(--surface-sub)',
+                          fontSize: 12.5, color: 'var(--ink-700)' }}>
+              <span style={{ fontWeight: 700, color: '#1A1A1E' }}>
+                총 {listSummary.total}{listSummary.unit}
+              </span>
+              {/* 혼자면 「나 N회」는 총계와 같은 말이라 식구 그룹일 때만 사람별로 */}
+              {isInHousehold && listSummary.people.length > 0
+                ? listSummary.people.map(p => (
+                    <span key={p.key} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                      <span aria-hidden style={{ width: 8, height: 8, borderRadius: '50%', background: p.color, flexShrink: 0 }} />
+                      {p.name} {p.n}{listSummary.unit}
+                    </span>
+                  ))
+                : null}
+            </div>
+          )}
 
           {/* 직접 고르는 자리. 퀵 버튼으로 안 되는 구간(작년 여름 같은)이 있다.
               고친 값은 **[적용]** 을 눌러야 반영된다 — 시작일만 고른 순간
@@ -2918,15 +2992,12 @@ const CookingCalendar: React.FC = () => {
             </div>
           )}
 
-          <div style={{ fontSize: 11.5, color: 'var(--ink-500)', padding: '0 2px 4px' }}>
-            {span === 'all' ? '전 기간'
-              : span === '365' ? '최근 1년'
-              : span === '90' ? '최근 3개월'
-              : (range.from || range.to)
-                ? `${range.from || '처음'} ~ ${range.to || '오늘'}`
-                : '기간을 골라 주세요'}
-            {' 기준이에요.'}
-          </div>
+          {/* 기간 이름은 이제 드롭다운에 보인다 — 직접 고른 기간만 날짜를 따로 적는다. */}
+          {span === 'custom' && !(range.from || range.to) && (
+            <div style={{ fontSize: 11.5, color: 'var(--ink-500)', padding: '0 2px 4px' }}>
+              기간을 골라 [적용]을 눌러 주세요.
+            </div>
+          )}
 
           {/* 범위(내 것만/가족 전체) + "내 것은 빼고" 는 이제 위쪽 탭 바로
               아래 공용 토글로 옮겼다(2026-09-15) — 여기 따로 두면 같은
