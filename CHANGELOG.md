@@ -12722,3 +12722,8 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 ### 릴스 후킹 v3 7편(근데 이거 뭐야? · 찜닭) — 클로즈업에서 사라진 접시 음식 되살리기
 - 사용자: 음식에 클로즈업될 때 접시에 있던 음식이 갑자기 사라짐 → 원본 7.04s(169프레임)부터 카메라가 다가가며 접시가 빈 접시로 바뀌어 끝(10s)까지 빔.
 - 7.0s 전 160프레임의 접시 음식(찜닭+국물)을 떼어 169프레임부터 매 프레임 접시 테두리 타원에 맞춰 크기·위치(우물 안)·밝기·초점 흐림을 맞춰 얹음. 접시 타원은 격자로 읽은 키프레임(169·170·172·174·176·180·190·239) 사이 보간 — 다가가는 동안 접시와 함께 커짐. `my-video/scripts/restore_vanished_food.py`, 결과 `my-video/public/reel7_hook_v3_jjimdak.mp4`(대사·오디오 원본 그대로).
+
+### 안드로이드 1.0.5 (versionCode 6) 빌드
+- `npm run app:sync`(웹 빌드 + cap sync) → `build.gradle` 1.0.4(5) → **1.0.5(6)** → `gradlew bundleRelease`(JAVA_HOME = Android Studio jbr) → 서명된 `app-release.aab`(약 13MB, `jarsigner -verify` 통과). 번들에 Railway 주소(refrigeratorcode-production)가 들어갔고 localhost 는 라이브러리 기본값 문자열뿐.
+- 업로드는 사용자가 Play Console 에서. iOS 1.0.4(빌드 10)는 맥에서.
+
