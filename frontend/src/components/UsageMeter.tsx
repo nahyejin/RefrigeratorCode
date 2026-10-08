@@ -310,7 +310,8 @@ export const UsageGauge: React.FC = () => {
       style={{
         border: '1px solid var(--line-200)',
         borderRadius: 14,
-        padding: '16px 18px',
+        // 박스 안쪽 여백은 앱 전체 한 값(위아래 12·좌우 14·모서리 14) — 화면마다 달랐다.
+        padding: '12px 14px',
         background: 'var(--surface)',
         display: 'flex',
         flexDirection: 'column',

@@ -71,10 +71,10 @@ const NotificationSettings: React.FC<{ title?: React.ReactNode }> = ({ title }) 
 
   return (
     <>
-    {title && <GroupTitle style={{ margin: '0 0 8px' }}>{title}</GroupTitle>}
+    {title && <GroupTitle style={{ margin: '14px 0 6px' }}>{title}</GroupTitle>}
     <section
       style={{
-        border: '1px solid var(--line-200)', borderRadius: 14, padding: '14px 16px',
+        border: '1px solid var(--line-200)', borderRadius: 14, padding: '12px 14px',
         background: 'var(--surface-sub)', display: 'flex', flexDirection: 'column', gap: 8,
       }}
     >

@@ -1403,7 +1403,7 @@ const MyPage: React.FC = () => {
         <section
           style={{
             margin: '72px 14px 0',
-            padding: '14px 16px',
+            padding: '12px 14px',
             display: 'flex',
             alignItems: 'center',
             gap: 12,
@@ -1431,7 +1431,7 @@ const MyPage: React.FC = () => {
         <section
           style={{
             margin: '72px 14px 0',
-            padding: '18px 16px',
+            padding: '12px 14px',
             display: 'flex',
             alignItems: 'center',
             gap: 12,
@@ -1624,7 +1624,7 @@ const MyPage: React.FC = () => {
           아무것도 그리지 않아서 **제목만 남았다**(2026-10-08 지적). 제목을
           컴포넌트 안으로 넣어 같은 조건을 타게 했다. */}
       {isLoggedIn && (
-        <div style={{ margin: '18px 14px 0' }} data-guide-target="notification-settings">
+        <div style={{ margin: '0 14px' }} data-guide-target="notification-settings">
           <NotificationSettings title="알림 설정" />
         </div>
       )}

@@ -20,7 +20,9 @@ const GroupTitle: React.FC<{ children: React.ReactNode; style?: React.CSSPropert
   children, style,
 }) => (
   <h2 style={{
-    margin: '18px 14px 8px', fontSize: 12.5, fontWeight: 700,
+    // 위 14 · 아래 6 — 마이페이지(18/8)와 마이캘린더(14/6, 16/6)가 달라 박스 사이
+    // 여백이 화면마다 다르게 느껴졌다(2026-10-09 지적). 한 값으로 통일.
+    margin: '14px 14px 6px', fontSize: 12.5, fontWeight: 700,
     color: 'var(--ink-500)', letterSpacing: '0.02em',
     ...style,
   }}>

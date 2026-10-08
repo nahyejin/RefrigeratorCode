@@ -1690,7 +1690,11 @@ const CookingCalendar: React.FC = () => {
   // 막는 대신, 계정이 필요한 자리에서만 조용히 안내한다.
 
   const gridStart = startOfWeek(monthStart);
-  const gridDays = Array.from({ length: 42 }, (_, i) => addDays(gridStart, i));
+  // 그 달이 걸치는 **주 수만큼만** 그린다(4~6줄). 예전엔 늘 6줄(42칸)이라 5줄로 끝나는
+  // 달도 다음 달 날짜 한 줄이 흐리게 더 붙어 있었다 — 세로로 44px 낭비
+  // (2026-10-09 지적: 월 보기가 너무 높다).
+  const weeksInMonth = Math.ceil((monthStart.getDay() + monthEnd.getDate()) / 7);
+  const gridDays = Array.from({ length: weeksInMonth * 7 }, (_, i) => addDays(gridStart, i));
 
 
   // 하루 셀에 넣을 멤버별 점(최대 3명, 넘치면 +N)
@@ -1840,7 +1844,7 @@ const CookingCalendar: React.FC = () => {
           카드 제목이 `2026년 9월 목표` 라고 못 박아서 막는다. */}
       {/* 사용 가이드 15단계가 **월 목표 + 달력·목록 카드 전체**를 한 번에
           가리키려고 둘을 감싼다(모양에는 영향 없음). */}
-      <GroupTitle style={{ margin: '14px 14px 6px' }}>이번 달 목표</GroupTitle>
+      <GroupTitle>이번 달 목표</GroupTitle>
       <div data-guide-target="calendar-goal-area">
       {(<>
       {/* 월 목표는 "이번 달" 이라는 더 큰 단위 얘기라, 일/주/월 중 무엇을 보고
@@ -1848,7 +1852,7 @@ const CookingCalendar: React.FC = () => {
           가장 먼저 오는 자리에 두고 "몇 월 목표"인지 숫자로 못 박아 둔다.
           (전에는 이 아래 있어서 "왜 주간 보기에서도 월 목표가 나오지" 라는
           혼란이 있었음) */}
-      <div style={{ margin: '0 14px', padding: '12px 14px', borderRadius: 12, background: 'var(--surface-sub)' }}>
+      <div style={{ margin: '0 14px', padding: '12px 14px', borderRadius: 14, background: 'var(--surface-sub)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: '#1A1A1E' }}>
@@ -2145,7 +2149,7 @@ const CookingCalendar: React.FC = () => {
 
       {/* 목표 카드와 명확히 분리된 별도 카드에 캘린더를 담아, 모바일 화면에서
           두 영역이 붙어 보이지 않고 한 화면에 같이 들어오게 했다. */}
-      <GroupTitle style={{ margin: '16px 14px 6px' }}>요리 기록</GroupTitle>
+      <GroupTitle>요리 기록</GroupTitle>
       <div style={{ margin: '0 14px 0', borderRadius: 14, border: '1px solid var(--line-200)', background: '#FFFFFF', overflow: 'hidden' }}>
         {/* 화면을 **가르는** 자리라 탭으로 그린다.
             알약으로 뒀더니 아래 일/주/월 알약과 같아 보여서, 화면을 바꾸는
@@ -2338,12 +2342,13 @@ const CookingCalendar: React.FC = () => {
               </button>
             </div>
           )}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 4, marginBottom: 4 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 4, marginBottom: 2 }}>
             {WEEKDAY_LABELS.map((w) => (
-              <div key={w} style={{ textAlign: 'center', fontSize: 11, color: 'var(--ink-500)', padding: '4px 0' }}>{w}</div>
+              <div key={w} style={{ textAlign: 'center', fontSize: 11, color: 'var(--ink-500)', padding: '2px 0' }}>{w}</div>
             ))}
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 4 }}>
+          {/* 칸 높이를 정사각형(폭에 맞춰 ~45px)에서 **40px 고정**으로, 줄 간격 4→2px. */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', columnGap: 4, rowGap: 2 }}>
             {gridDays.map((d) => {
               const key = toDateKey(d);
               const inMonth = d.getMonth() === anchorDate.getMonth();
@@ -2360,7 +2365,7 @@ const CookingCalendar: React.FC = () => {
                   }}
                   style={{
                     position: 'relative',
-                    aspectRatio: '1 / 1',
+                    height: 40,
                     borderRadius: 10,
                     border: isSelected ? '2px solid var(--ink-900)' : '1px solid transparent',
                     background: isToday ? 'var(--surface-sub)' : 'transparent',
@@ -2368,7 +2373,7 @@ const CookingCalendar: React.FC = () => {
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: 3,
+                    gap: 2,
                     cursor: 'pointer',
                     opacity: inMonth ? 1 : 0.35,
                   }}
