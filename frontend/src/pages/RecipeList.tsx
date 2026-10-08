@@ -1920,8 +1920,10 @@ const RecipeList: React.FC = () => {
                 return;
               }
               
-              allRecipes.push(...pageRecipes);
-              
+              // 같은 레시피가 두 번 붙지 않게 id 로 거른다
+              const seenIds = new Set(allRecipes.map((r: any) => r.id));
+              allRecipes.push(...pageRecipes.filter((r: any) => !seenIds.has(r.id) && seenIds.add(r.id)));
+
               // 각 페이지가 로드될 때마다 캐시 업데이트 (점진적 로딩)
               setCachedFilteredRecipes([...allRecipes]);
               
@@ -2255,10 +2257,14 @@ const RecipeList: React.FC = () => {
     if ((page + 1) * size <= loaded) return;
     if (extendingRef.current) return;
 
+    const PAGE_SIZE = 20;
+    // 받은 개수가 20의 배수가 아니면 서버의 마지막 페이지까지 이미 받은 것이다. 예전엔 여기서도
+    // `floor(loaded/20)+1` 페이지를 다시 받아 **1페이지를 한 번 더 붙였다** — 이전 조건의 큰 total 이
+    // 잠깐 남아 있는 동안 1건짜리 결과가 같은 레시피 2장으로 보였다(2026-10-08 보리새우+어묵 「총 2건」).
+    if (loaded % PAGE_SIZE !== 0) return;
     extendingRef.current = true;
     const mySeq = requestSeqRef.current;
-    const PAGE_SIZE = 20;
-    const from = Math.floor(loaded / PAGE_SIZE) + 1;
+    const from = loaded / PAGE_SIZE + 1;
     const AHEAD = 5;
 
     (async () => {
@@ -2274,7 +2280,11 @@ const RecipeList: React.FC = () => {
           grown.push(...more);
         }
         if (grown.length && mySeq === requestSeqRef.current) {
-          setCachedFilteredRecipes(prev => [...prev, ...grown]);
+          // 같은 레시피가 두 번 붙지 않게 id 로 거른다
+          setCachedFilteredRecipes(prev => {
+            const seen = new Set(prev.map((r: any) => r.id));
+            return [...prev, ...grown.filter((r: any) => !seen.has(r.id) && seen.add(r.id))];
+          });
         }
       } catch (error) {
         console.error('[RecipeList] 뒷페이지 이어받기 실패:', error);

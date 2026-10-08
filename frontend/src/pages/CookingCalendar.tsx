@@ -1073,10 +1073,14 @@ const CookingCalendar: React.FC = () => {
   const nicknameById = React.useMemo(() => {
     const map = new Map<number, string>();
     // 빈 이름을 넣어 두면 `|| '?'` 가 안 걸려서 빈칸으로 보인다. 값이 있을 때만.
+    // 식구 명단·목록(전 기간) 기록에서도 찾는다 — 지금 달력에 보이는 기간(`entries`)에서만 찾으니
+    // 그 기간에 기록이 없는 식구는 목록 요약에서 「? 3회」로 나왔다(2026-10-08 실사용 지적).
+    for (const m of householdMembers) if (m.nickname) map.set(m.id, m.nickname);
+    for (const e of allEntries || []) if (e.nickname) map.set(e.user_id, e.nickname);
     for (const e of entries) if (e.nickname) map.set(e.user_id, e.nickname);
     if (authUser?.id) map.set(Number(authUser.id), myName);
     return map;
-  }, [entries]);
+  }, [entries, allEntries, householdMembers, authUser?.id, myName]);
 
   /** 위 `scope`(내 것만/가족 전체) + `hideMine`(가족 전체에서 내 것 빼고)을
    * 적용한 완료 기록. 달력이 그리는 모든 것(칸의 점, 요약, 일/주 보기 카드)이
