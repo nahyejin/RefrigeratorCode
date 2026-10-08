@@ -16,7 +16,7 @@ import { Recipe, RecipeActionState, FilterState, SubstituteInfo } from '../types
 import { getMyIngredients, getMyIngredientsAsKeywords, sortRecipes, calculateMatchRate, extractKeywordsAndSynonyms, FilterKeywordTree, getDictCategoryKey, preloadIngredientSynonymDict, ingredientSynonymDictCache } from '../utils/recipeUtils';
 import RecipeToast from '../components/RecipeToast';
 import UsedUpSheet from '../components/UsedUpSheet';
-import { takePrefetched, PREFETCH_SIZE, defaultMatchRateMin, setFridgeScreenLoading } from '../utils/recipePrefetch';
+import { takePrefetched, PREFETCH_SIZE, defaultMatchRateMin, setFridgeScreenLoading, DEFAULT_MATCH_MIN } from '../utils/recipePrefetch';
 import { fetchCsvOnce } from '../utils/csvOnce';
 // import Slider from 'rc-slider';
 // import 'rc-slider/assets/index.css';
@@ -185,7 +185,7 @@ function getInitialSortBarState(): {
   appliedExpiryIngredients: string[];
 } {
   // 냉장고가 비어 있으면 매칭률순 + 30~100% 필터로 시작하면 안 된다.
-  // 내 재료가 하나도 없으면 모든 레시피의 매칭률이 0% 이고, 30% 미만은 필터에서
+  // 내 재료가 하나도 없으면 모든 레시피의 매칭률이 0% 이고, 하한 미만은 필터에서
   // 전부 걸러져 화면에 아무것도 안 뜬다(로딩이 안 끝난 것처럼 보인다).
   // 그럴 땐 최신순으로 시작하고 매칭 구간도 열어 둔다.
   const hasIngredients = getMyIngredients().length > 0;
@@ -193,7 +193,9 @@ function getInitialSortBarState(): {
   // 이후 사용자가 변경한 값은 sessionStorage에 저장되어 유지됨
   return {
     sortType: hasIngredients ? 'match' : 'latest',
-    matchRange: (hasIngredients ? [30, 100] : [0, 100]) as [number, number],
+    // 하한 30% → 10%(2026-10-08 사용자 요청 — 30%면 고를 수 있는 레시피가 너무 좁다). recipePrefetch 의
+    // `defaultMatchRateMin()` 과 같은 값이어야 미리 받아 둔 첫 화면을 쓸 수 있다.
+    matchRange: (hasIngredients ? [DEFAULT_MATCH_MIN, 100] : [0, 100]) as [number, number],
     maxLack: 'unlimited',
     appliedExpiryIngredients: [], // 임박재료 없음
   };
@@ -832,8 +834,8 @@ const RecipeList: React.FC = () => {
     // 그대로 되살리면 「매일 같은 레시피」가 다시 생긴다(2026-10-08).
     const d = new Date();
     const today = `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
-    // v: 저장 형식 버전 — 미리 받기가 전체 건수를 20으로 잘못 저장하던 때(2026-10-08 이전)의 저장분을 버리려고 올린다
-    return JSON.stringify({ v: 2, day: today, ingredients: ingredients.sort() });
+    // v: 저장 형식 버전 — 바꾸면 예전 저장분(결과·고른 조건)을 버린다. 2: 전체 건수 20 버그, 3: 매칭도 기본 30→10%(2026-10-08)
+    return JSON.stringify({ v: 3, day: today, ingredients: ingredients.sort() });
   }, []);
   
   // 이전 재료 목록 해시값 저장
@@ -939,7 +941,7 @@ const RecipeList: React.FC = () => {
               : restoredSort
           );
           setMatchRange(
-            fridgeEmptyOnRestore ? [0, 100] : (src.matchRange || [30, 100])
+            fridgeEmptyOnRestore ? [0, 100] : (src.matchRange || [DEFAULT_MATCH_MIN, 100])
           );
           // 「부족해도 되는 재료」도 되살린다 — 저장은 하면서 되살리지를 않아
           // 돌아올 때마다 「제한 없음」으로 풀려 있었다.
@@ -1017,7 +1019,7 @@ const RecipeList: React.FC = () => {
           setSortType(
             fridgeEmpty && (wantSort === 'match' || wantSort === 'expiry') ? 'latest' : wantSort
           );
-          setMatchRange(fridgeEmpty ? [0, 100] : (s.matchRange || [30, 100]));
+          setMatchRange(fridgeEmpty ? [0, 100] : (s.matchRange || [DEFAULT_MATCH_MIN, 100]));
           if (s.maxLack !== undefined) setMaxLack(s.maxLack);
           setSelectedChannel(s.selectedChannel || []);
           setIncludeKeyword(s.includeKeyword || '');
@@ -1694,7 +1696,7 @@ const RecipeList: React.FC = () => {
   }, [showGuide]);
 
   // 필터 조건 및 정렬 기준 변경 감지
-  // 초기 로드 시에도 기본값 [30, 100]을 사용하도록 보장
+  // 초기 로드 시에도 기본값 [DEFAULT_MATCH_MIN, 100]을 사용하도록 보장
   const filterHash = useMemo(() => {
     // 초기 로드 시 기본값 강제 적용 (sessionStorage에 저장된 값이 있어도 초기 로드 시에는 기본값 사용)
     // 초기 로드 기본값은 냉장고 상태에 따라 갈린다 (getInitialSortBarState 참고).

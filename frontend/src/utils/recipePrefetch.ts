@@ -31,7 +31,7 @@ const SORT = 'match_rate';
 /**
  * 첫 화면의 매칭률 하한. `RecipeList.tsx` 의 `getInitialSortBarState()` 와
  * **정확히 같은 규칙**이어야 한다 — 거기가 실제로 화면에 뜨는 첫 요청이고,
- * 여기는 그걸 미리 받아 두는 자리다. 냉장고에 재료가 있으면 30% 미만은
+ * 여기는 그걸 미리 받아 두는 자리다. 냉장고에 재료가 있으면 하한(DEFAULT_MATCH_MIN) 미만은
  * 원래도 걸러서 보여 준다(재료가 없으면 전부 0% 라 필터를 열어 둔다).
  *
  * 이 값을 안 넣고 미리 받았다가, 실제 화면(30% 필터)과 **다른 걸 준 적이
@@ -39,12 +39,15 @@ const SORT = 'match_rate';
  * 바꿔도 반영이 안 되는 것처럼 보였다(바뀐 구간과 무관하게 이 캐시가
  * 조건 검사도 없이 재사용됐기 때문).
  */
+/** 냉장고요리 매칭도 기본 하한(%). 30 → 10 (2026-10-08 사용자 요청). RecipeList 도 이 값을 쓴다. */
+export const DEFAULT_MATCH_MIN = 10;
+
 export function defaultMatchRateMin(): number {
   try {
     // `getInitialSortBarState()` 와 같은 기준(`getMyIngredients`) 을 써야
     // 한다. 동의어 변환을 거치는 `getMyIngredientsAsKeywords` 로 재면
     // 드물게 다른 값이 나올 수 있다 — 그러면 이 판단 자체가 화면과 어긋난다.
-    return getMyIngredients().length > 0 ? 30 : 0;
+    return getMyIngredients().length > 0 ? DEFAULT_MATCH_MIN : 0;
   } catch {
     return 0;
   }
