@@ -339,9 +339,11 @@ export const UsageGauge: React.FC = () => {
             type="button"
             onClick={() => setAsking(true)}
             style={{
-              flexShrink: 0, minHeight: 30, padding: '7px 11px', borderRadius: 8,
-              border: '1px solid var(--line-200)', background: '#FFFFFF',
-              fontSize: 12.5, fontWeight: 700, color: 'var(--ink-700)', cursor: 'pointer',
+              // 마이캘린더 `목표수정` 버튼(24px)과 같은 키(2026-10-09 지적).
+              flexShrink: 0, height: 24, padding: '0 9px', borderRadius: 9999,
+              border: '1px solid var(--line-300)', background: '#FFFFFF',
+              fontSize: 11.5, fontWeight: 600, color: 'var(--ink-700)', cursor: 'pointer',
+              whiteSpace: 'nowrap',
             }}
           >
             더 필요해요
@@ -386,14 +388,11 @@ export const UsageGauge: React.FC = () => {
         </div>
       )}
 
+      {/* 한때 이 막대 위에 `전체 잔여 크레딧  N` 줄이 있었다. **뺐다**(2026-10-09
+          지적) — 카드 머리글이 이미 `남은 크레딧 N` 이라고, 그것도 20px 로 말한다.
+          같은 숫자를 한 카드에서 두 번 적을 이유가 없다(그만큼 카드도 짧아진다).
+          위 막대의 `11 / 15` 는 **다른 숫자**(오늘 몫)라 그대로 둔다. */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-        {dailyCap > 0 && (
-          <div style={{ display: 'flex', justifyContent: 'space-between',
-                        fontSize: 11.5, color: 'var(--ink-500)' }}>
-            <span>전체 잔여 크레딧</span>
-            <span><b style={{ color: '#1A1A1E' }}>{usage.balance}</b></span>
-          </div>
-        )}
         <div
           role="progressbar"
           aria-label="남은 크레딧"

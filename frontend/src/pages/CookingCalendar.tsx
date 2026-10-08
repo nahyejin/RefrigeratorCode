@@ -2812,20 +2812,23 @@ const CookingCalendar: React.FC = () => {
               >
                 적용
               </button>
-              {dirty && (
-                <span style={{ fontSize: 11.5, color: '#B4780A', fontWeight: 600 }}>
-                  아직 적용 안 됐어요
-                </span>
-              )}
             </div>
           )}
 
           {/* 이 안내는 **기간을 고르는 줄 바로 아래**다(2026-10-09 지적) —
               요약 줄 아래에 있으면 무엇에 대한 안내인지 한참 찾는다. */}
-          {/* 기간 이름은 이제 드롭다운에 보인다 — 직접 고른 기간만 날짜를 따로 적는다. */}
-          {span === 'custom' && !(range.from || range.to) && (
-            <div style={{ fontSize: 11.5, color: 'var(--ink-500)', padding: '0 2px 4px' }}>
-              기간을 골라 [적용]을 눌러 주세요.
+          {/* 기간 이름은 이제 드롭다운에 보인다 — 직접 고른 기간만 날짜를 따로 적는다.
+              `아직 적용 안 됐어요` 를 **이 줄 옆에** 둔다(2026-10-09 지적). 전에는
+              날짜 줄 안에 있어서, 폭이 모자라면 그 줄이 두 줄로 늘어나며 **안내가
+              위아래로 쪼개졌다.** 안 눌렀다는 말은 경고라 **빨강**으로 적는다
+              (노란색은 이 앱의 브랜드색이라 경고로 안 읽힌다). */}
+          {span === 'custom' && (!(range.from || range.to) || dirty) && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', columnGap: 6,
+                          fontSize: 11.5, color: 'var(--ink-500)', padding: '0 2px 4px' }}>
+              {!(range.from || range.to) && <span>기간을 골라 [적용]을 눌러 주세요.</span>}
+              {dirty && (
+                <span style={{ color: '#C4342B', fontWeight: 700 }}>아직 적용 안 됐어요</span>
+              )}
             </div>
           )}
 
