@@ -22,6 +22,8 @@ import { shrinkImageForUpload } from '../utils/imageUtils';
 import { applyUsage, spendOptimistically, usageHeaders } from '../utils/usage';
 import { useUsage } from '../components/UsageMeter';
 import { loadIngredientCategoryMap, estimateExpiry, type CategoryMap } from '../utils/shelfLife';
+import { splitExpiring } from '../utils/expiry';
+import ExpiryBand from '../components/ExpiryBand';
 import { STALE_AFTER_DAYS } from '../utils/expiry';
 import {
   isUsageGuideDueThisVisit,
@@ -34,6 +36,33 @@ import {
 // =====================
 // 상수
 // =====================
+
+/**
+ * 보관함 머리줄 오른쪽 끝의 `재료 개수` + (있으면) `임박 N`.
+ * 어느 칸에 얼마나 들었는지, 어느 칸에 곧 상하는 게 있는지를 목록을 펼치지
+ * 않고도 알려 준다(2026-10-08).
+ */
+const BoxStat: React.FC<{ count: number; expiring: number }> = ({ count, expiring }) => (
+  <span style={{ marginLeft: 'auto', paddingLeft: 8, display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
+    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-500)' }}>{count}</span>
+    {/* 폭이 모자라 글자("임박 N") 대신 빨간 숫자 동그라미 — 맨 위 띠가 "곧 상해요 N개" 로
+        무슨 뜻인지 이미 말해 준다. 읽어 주는 기계용 이름은 따로 붙인다. */}
+    {expiring > 0 && (
+      <span
+        title={`곧 상하는 재료 ${expiring}개`}
+        aria-label={`곧 상하는 재료 ${expiring}개`}
+        style={{
+          minWidth: 18, height: 18, padding: '0 5px', boxSizing: 'border-box',
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          borderRadius: 9999, background: '#D14343', color: '#FFFFFF',
+          fontSize: 11, fontWeight: 700, lineHeight: 1,
+        }}
+      >
+        {expiring}
+      </span>
+    )}
+  </span>
+);
 
 const STORAGE_KEY = 'myfridge_ingredients';
 
@@ -1988,6 +2017,21 @@ const MyFridge: React.FC = () => {
     setRoom(prev => fill(prev, 'room'));
   }, [categoryMap, frozen, fridge, room]);
 
+  /**
+   * 보관함 세 칸을 한 묶음으로 — 맨 위 "곧 상해요" 띠와 각 칸 머리줄의
+   * `임박 N` 표시가 같은 기준(`splitExpiring`)을 쓴다. 이 목록은 아래의
+   * 조기 return(로딩) **위**에 둬야 한다 — 훅은 분기 뒤에 둘 수 없다.
+   */
+  const fridgeBoxes = React.useMemo(
+    () => ({ frozen: frozen ?? [], fridge: fridge ?? [], room: room ?? [] }),
+    [frozen, fridge, room],
+  );
+  const expiringByBox = React.useMemo(() => {
+    const count = { frozen: 0, fridge: 0, room: 0 };
+    splitExpiring(fridgeBoxes, categoryMap).soon.forEach(it => { count[it.storage] += 1; });
+    return count;
+  }, [fridgeBoxes, categoryMap]);
+
   const handleModalComplete = (data: { ingredient: string; storageType: StorageBox; hasExpiration: boolean; date: string | null; }, skipCheck: boolean = false) => {
     localEditPendingRef.current = true;
     // 재료 사전에서 keyword로 변환 (synonym -> keyword)
@@ -2161,6 +2205,8 @@ const MyFridge: React.FC = () => {
   return (
     <div className="min-h-screen bg-white">
       <div className="bg-white w-full p-0 m-0 pb-24" style={{ paddingTop: 80 }}>
+        {/* 곧 상하는 재료 — 한 줄 띠. 누르면 목록과 식단 짜기가 시트로 열린다. */}
+        <ExpiryBand boxes={fridgeBoxes} categoryMap={categoryMap} />
         {/* 타이틀+입력창 그룹 */}
         <div className="flex flex-col items-center justify-center w-full" style={{ marginBottom: 40 }}>
           <div className="flex items-center justify-between w-full max-w-[400px] px-5 mb-2" style={{ position: 'relative' }}>
@@ -2449,7 +2495,7 @@ const MyFridge: React.FC = () => {
           {/* 냉동보관 */}
           <div className="mb-4">
             <div className="text-[16px] font-bold mb-2 flex items-center">
-              <SectionIcon kind="frozen" /><span style={{ marginLeft: 6 }}>냉동보관</span>
+              <SectionIcon kind="frozen" /><span style={{ marginLeft: 6, whiteSpace: 'nowrap' }}>냉동보관</span>
               <SortDropdown value={frozenSort} onChange={setFrozenSort} className="ml-2" />
               {(frozen ?? []).length > 0 && (
                 <button
@@ -2459,6 +2505,7 @@ const MyFridge: React.FC = () => {
                   모두삭제
                 </button>
               )}
+              <BoxStat count={(frozen ?? []).length} expiring={expiringByBox.frozen} />
             </div>
             <ScrollablePillSection watchKey={(frozen ?? []).length}>
               {(frozen ?? []).length === 0 && (
@@ -2477,7 +2524,7 @@ const MyFridge: React.FC = () => {
           {/* 냉장보관 */}
           <div className="mb-4">
             <div className="text-[16px] font-bold mb-2 flex items-center">
-              <SectionIcon kind="fridge" /><span style={{ marginLeft: 6 }}>냉장보관</span>
+              <SectionIcon kind="fridge" /><span style={{ marginLeft: 6, whiteSpace: 'nowrap' }}>냉장보관</span>
               <SortDropdown value={fridgeSort} onChange={setFridgeSort} className="ml-2" />
               {fridge && fridge.length > 0 && (
                 <button
@@ -2487,6 +2534,7 @@ const MyFridge: React.FC = () => {
                   모두삭제
                 </button>
               )}
+              <BoxStat count={(fridge ?? []).length} expiring={expiringByBox.fridge} />
             </div>
             <ScrollablePillSection watchKey={(fridge ?? []).length}>
               {fridge && fridge.length === 0 && (
@@ -2506,7 +2554,7 @@ const MyFridge: React.FC = () => {
           {/* 실온보관 */}
           <div className="mb-4">
             <div className="text-[16px] font-bold mb-2 flex items-center">
-              <SectionIcon kind="room" /><span style={{ marginLeft: 6 }}>실온보관</span>
+              <SectionIcon kind="room" /><span style={{ marginLeft: 6, whiteSpace: 'nowrap' }}>실온보관</span>
               <SortDropdown value={roomSort} onChange={setRoomSort} className="ml-2" />
               {room && room.length > 0 && (
                 <button
@@ -2516,6 +2564,7 @@ const MyFridge: React.FC = () => {
                   모두삭제
                 </button>
               )}
+              <BoxStat count={(room ?? []).length} expiring={expiringByBox.room} />
             </div>
             <ScrollablePillSection watchKey={(room ?? []).length}>
               {room && room.length === 0 && (

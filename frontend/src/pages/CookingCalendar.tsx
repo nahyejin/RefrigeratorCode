@@ -1,12 +1,11 @@
 import * as React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import ExpiryAlert from '../components/ExpiryAlert';
 import { loadIngredientCategoryMap, lookupShelfLifeDays, estimateExpiry, type CategoryMap, type StorageKind } from '../utils/shelfLife';
 import type { FridgeItem } from '../utils/expiry';
 import {
   loadPlan, clearAllPlans,
   fetchHouseholdMealPlans, deleteMealPlanFor, clearAllHouseholdMealPlans,
-  type PlannedMeal,
+  type PlannedMeal, type HouseholdPlannedMeal,
 } from '../utils/mealPlan';
 import { openCookMode } from '../utils/cookMode';
 import { getProxiedImageUrl } from '../utils/imageUtils';
@@ -20,7 +19,6 @@ import Sheet from '../components/ui/Sheet';
 import Dialog from '../components/ui/Dialog';
 import Button from '../components/ui/Button';
 import { removeRecipeActionFromDB, removeRecipeFromLocalStorage } from '../utils/recipeStorage';
-import { useUsage } from '../components/UsageMeter';
 import { useAuth } from '../context/AuthContext';
 import { resolveCoupangUrl } from '../utils/coupangLink';
 import { getMyIngredients } from '../utils/recipeUtils';
@@ -420,106 +418,6 @@ function mergeLocalDone(
   });
   return [...server, ...extra];
 }
-
-/**
- * 곧 상하는 재료 + 이번 주 식단을 **한 묶음**으로.
- *
- * 왜 붙여 두나: 두 개가 하나의 이야기다 — "이게 곧 상해요 → 그럼 이걸로 식단을
- * 짜요". 떨어뜨려 놓으면 알림은 잔소리로만 남고, 식단은 왜 지금 짜야 하는지
- * 이유가 없어진다.
- *
- * 왜 로그인 벽 **앞**에도 두나: 둘 다 냉장고 재료(로컬)만 있으면 되는 기능이다.
- * 로그인이 필요한 건 캘린더(내 요리 이력)뿐이다.
- */
-const FridgeToPlan: React.FC<{ onGo: (withAi?: boolean) => void }> = ({ onGo }) => {
-  // 값을 손으로 적어 두면 반드시 낡는다 — 실제로 식단이 3 이 된 뒤에도
-  // 여기만 `크레딧 2` 로 남아 있었다. 서버가 정한 값을 그대로 쓴다.
-  const usageNow = useUsage();
-  const planCost = (usageNow?.credits as any)?.plan ?? 3;
-  const [categoryMap, setCategoryMap] = React.useState<CategoryMap>({});
-  const boxes = React.useMemo(readFridgeBoxes, []);
-
-  React.useEffect(() => {
-    void loadIngredientCategoryMap().then(setCategoryMap).catch(() => {});
-  }, []);
-
-  return (
-    <div style={{ margin: '0 14px 12px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <ExpiryAlert boxes={boxes} categoryMap={categoryMap} onPick={() => onGo(false)} />
-      {/* 나란히 둔다. **AI 가 먼저**다 — 가로로 긴 줄을 위아래로 두 개 쌓으면 둘 다 "주요 버튼"
-          처럼 무거워지고, 무엇이 다른지는 오히려 안 보인다. 옆에 놓으면
-          평범한 것과 노란 것이 한눈에 갈린다.
-
-          '짜기' 를 안 쓴다 — 식단을 짜는 건 앱이 하는 일이고, 사람이 하는 건
-          **추천을 받는 것**이다. 화면 제목도 `이번 주 식단 추천` 이다. */}
-      <div style={{ display: 'flex', gap: 8 }} data-guide-target="weekly-plan-buttons">
-        {/* 여기만 노란색·AI 배지·반짝임. 누르는 순간 크레딧이 나가지는 않고,
-            조건을 적는 칸으로 데려간다 — 냉장고를 보기도 전에 돈이 나가면
-            결과가 마음에 안 들 때 그대로 손해다. */}
-        <span style={{ flex: 1, minWidth: 0, display: 'flex', position: 'relative' }}>
-          <button
-            type="button"
-            onClick={() => onGo(true)}
-            className="ai-action"
-            style={{
-              width: '100%', height: 74, borderRadius: 12, cursor: 'pointer',
-              display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
-              // `<button>` 은 기본이 가운데 정렬이다. 칸 자체는 flex-start 라
-              // 왼쪽에 붙지만, 그 **안에서 두 줄이 서로 가운데로** 맞춰져
-              // 짧은 줄이 들여쓴 것처럼 보였다.
-              textAlign: 'left',
-              justifyContent: 'center', gap: 3, padding: '0 12px',
-            }}
-          >
-            <span style={{ fontSize: 13.5, fontWeight: 700, color: '#1A1A1E' }}>
-              이번 주 AI 식단 추천
-            </span>
-            {/* 두 줄을 **직접 나눠** 적는다.
-
-                전에는 한 문장을 넣고 줄바꿈을 브라우저에 맡겼다. 그러면 폭에
-                따라 1줄이 됐다 2줄이 됐다 하고, 옆의 무료 버튼은 늘 1줄이라
-                둘의 글자 아랫단이 어긋나 보였다. 이제 두 버튼 모두
-                `무엇을 보고 / 무엇을 해 주고 얼마` 두 줄로 같은 자리에서
-                끊긴다. `nowrap` 이라 폭이 좁아져도 줄 수가 안 변한다.
-
-                내용은 그대로다 — 이 버튼과 무료 버튼의 차이는 셋이고
-                (냉장고 재료는 둘 다, 내가 적은 요청과 장보기 최소화는 AI만),
-                그 둘을 첫 줄과 둘째 줄에 하나씩 놓았다. */}
-            <span style={{ fontSize: 11, color: 'rgba(26,26,30,0.65)', lineHeight: 1.35, whiteSpace: 'nowrap' }}>
-              냉장고 재료 + 내 요청
-              <br />
-              장보기 최소화 · 크레딧 {planCost}
-            </span>
-          </button>
-          <span className="ai-fab-badge">AI</span>
-        </span>
-
-        <button
-          type="button"
-          onClick={() => onGo(false)}
-          style={{
-            flex: 1, minWidth: 0, height: 74, borderRadius: 12, cursor: 'pointer',
-            border: '1px solid var(--line-200)', background: 'var(--surface)',
-            display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
-            textAlign: 'left',   // 위 AI 버튼과 같은 이유
-            justifyContent: 'center', gap: 3, padding: '0 12px',
-          }}
-        >
-          <span style={{ fontSize: 13.5, fontWeight: 700, color: '#1A1A1E' }}>
-            이번 주 식단 추천
-          </span>
-          {/* AI 쪽과 **같은 두 줄 구조**. 글자 크기도 11 로 맞춘다
-              (전에는 11.5 라 나란히 놓으면 미묘하게 어긋나 보였다). */}
-          <span style={{ fontSize: 11, color: 'var(--ink-500)', lineHeight: 1.35, whiteSpace: 'nowrap' }}>
-            냉장고 재료만 보고
-            <br />
-            일주일 식단 · 무료
-          </span>
-        </button>
-      </div>
-    </div>
-  );
-};
 
 /**
  * 마이캘린더 — 완료한 레시피를 날짜별로 돌아보는 화면(탭 이름은 "마이캘린더" 다.
@@ -1698,25 +1596,22 @@ const CookingCalendar: React.FC = () => {
     }
   };
 
-  // ── 사용 가이드 14·15단계 ─────────────────────────────────────
+  // ── 사용 가이드 14단계 ─────────────────────────────────────
   // 냉장고요리 가이드 마지막(13단계, AI 챗봇)에서 `?fromGuide=true` 로 넘어온다.
-  // 아래 로그인 여부 분기(early return)보다 **위**에 둔다 — 두 화면 모두
-  // 14단계(식단 추천 버튼)가 있고, 훅은 분기 뒤에 둘 수 없다.
+  // 아래 로그인 여부 분기(early return)보다 **위**에 둔다 — 훅은 분기 뒤에 둘 수 없다.
   const [showGuide, setShowGuide] = React.useState(false);
   const [guideStep, setGuideStep] = React.useState(0);
   const guideStartedRef = React.useRef(false);
   const calendarGuideSteps = React.useMemo(() => [
+    // 식단 추천 버튼은 내냉장고의 "곧 상해요" 시트로 옮겼다(2026-10-08) —
+    // 이 화면의 안내는 월 목표·달력 하나다. 비로그인도 같은 영역이 보인다.
     {
-      targetSelector: '[data-guide-target="weekly-plan-buttons"]',
-      message: '냉장고 재료와 유통기한을 따져서\n일주일 식단을 알뜰하게 짜 드려요.\n필요한 장보기 목록도 함께 만들어져요.',
+      targetSelector: '[data-guide-target="calendar-goal-area"]',
+      message: isLoggedIn
+        ? '이번 달 요리 목표를 세우고\n완료한 요리를 한눈에 모아 보세요.\n목표를 채우면 아낄 수 있는 금액도\n대략 계산해 드려요.\n\n가족 그룹이라면\n식구들과 함께 목표와 현황을\n공유할 수 있어요.'
+        : '만든 요리와 앞으로 만들기로 한 요리가\n날짜별로 달력에 모여요.\n\n로그인하면 월 목표와 절약액,\n식구들과의 공유도 쓸 수 있어요.',
       position: 'bottom' as const,
     },
-    // 월 목표·달력은 로그인해야 있는 화면이다.
-    ...(isLoggedIn ? [{
-      targetSelector: '[data-guide-target="calendar-goal-area"]',
-      message: '이번 달 요리 목표를 세우고\n완료한 요리를 한눈에 모아 보세요.\n목표를 채우면 아낄 수 있는 금액도\n대략 계산해 드려요.\n\n가족 그룹이라면\n식구들과 함께 목표와 현황을\n공유할 수 있어요.',
-      position: 'bottom' as const,
-    }] : []),
   ], [isLoggedIn]);
 
   React.useEffect(() => {
@@ -1895,7 +1790,6 @@ const CookingCalendar: React.FC = () => {
           </Button>
         </section>
       )}
-      <FridgeToPlan onGo={withAi => navigate(withAi ? '/plan?ai=1' : '/plan')} />
       {/* 계획 목록을 여기 또 두지 않는다.
           바로 아래가 달력인데 그 위에 같은 내용을 줄로 늘어놓으면, 같은 것을
           두 번 읽게 되고 정작 달력은 화면 밖으로 밀린다. 계획은 달력 안에서

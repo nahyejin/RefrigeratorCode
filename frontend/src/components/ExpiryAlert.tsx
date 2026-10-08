@@ -36,9 +36,11 @@ interface Props {
   within?: number;
   /** 재료 이름을 누르면 (그 재료로 만들 수 있는 요리 보기 등) */
   onPick?: (name: string) => void;
+  /** 시트 안처럼 이미 틀이 있는 자리에 넣을 때 — 테두리·닫기(×)를 뺀 목록만 */
+  bare?: boolean;
 }
 
-const ExpiryAlert: React.FC<Props> = ({ boxes, categoryMap, within = SOON_DAYS, onPick }) => {
+const ExpiryAlert: React.FC<Props> = ({ boxes, categoryMap, within = SOON_DAYS, onPick, bare = false }) => {
   const [dismissed, setDismissed] = React.useState(false);
 
   // 너무 오래 지난 것은 여기서도 뺀다 — 알림은 **오늘 할 일**을 말하는 자리다.
@@ -49,7 +51,7 @@ const ExpiryAlert: React.FC<Props> = ({ boxes, categoryMap, within = SOON_DAYS, 
   );
   const items: ExpiringItem[] = soon;
 
-  if (dismissed || items.length === 0) return null;
+  if ((dismissed && !bare) || items.length === 0) return null;
 
   const past = items.filter(i => i.days < 0);
   const worst = items[0];
@@ -57,16 +59,19 @@ const ExpiryAlert: React.FC<Props> = ({ boxes, categoryMap, within = SOON_DAYS, 
   return (
     <div
       style={{
-        border: '1px solid var(--line-200)',
-        borderLeft: `4px solid ${past.length ? '#D14343' : '#FFD600'}`,
-        borderRadius: 12,
-        background: 'var(--surface)',
-        padding: '12px 14px',
+        ...(bare ? {} : {
+          border: '1px solid var(--line-200)',
+          borderLeft: `4px solid ${past.length ? '#D14343' : '#FFD600'}`,
+          borderRadius: 12,
+          background: 'var(--surface)',
+          padding: '12px 14px',
+        }),
         display: 'flex',
         flexDirection: 'column',
         gap: 8,
       }}
     >
+      {!bare && (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
         <div style={{ fontSize: 14, fontWeight: 700, color: '#1A1A1E' }}>
           {past.length > 0
@@ -85,6 +90,7 @@ const ExpiryAlert: React.FC<Props> = ({ boxes, categoryMap, within = SOON_DAYS, 
           ×
         </button>
       </div>
+      )}
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
         {items.slice(0, 8).map(item => (
