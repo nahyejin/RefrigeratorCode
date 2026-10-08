@@ -2641,6 +2641,21 @@ def get_me():
     if new_token:
         body['token'] = new_token
         body['merged'] = True
+    else:
+        # **쓰는 동안엔 로그아웃되지 않게** 토큰을 이어 준다(2026-10-08).
+        # 토큰 유효기간이 「발급일부터 30일 고정」이라 매일 앱을 써도 30일째에 로그인이 풀렸다 —
+        # 사용자에겐 「앱 업데이트하니 로그아웃됐다」처럼 보였다. 앱을 열 때마다 이 API 를 부르므로,
+        # 발급된 지 하루가 지났으면 새 30일 토큰을 준다(프론트 AuthContext 가 data.token 을 저장한다).
+        # 30일 동안 한 번도 안 열면 그때만 만료된다.
+        try:
+            issued = int(payload.get('iat') or 0)
+        except (TypeError, ValueError):
+            issued = 0
+        if time.time() - issued > 24 * 60 * 60:
+            body['token'] = generate_jwt_token(
+                user['id'], user['email'], user['nickname'], user['provider']
+            )
+            body['renewed'] = True
     return jsonify(body), 200
 
 

@@ -140,10 +140,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             // 토큰을 함께 준다. 저장해 둬야 다음 요청부터 제 계정으로 나간다.
             // (저장을 안 하면 앱을 열 때마다 넘겨받기만 하고 그 사이 요청들은
             //  전부 닫힌 계정으로 나가 "권한이 없습니다" 가 뜬다)
+            // 발급된 지 하루 지난 토큰이면 서버가 새 30일 토큰도 준다(`renewed`) — 쓰는 동안엔 로그아웃되지 않게.
             if (data?.token) {
               const where = localStorage.getItem('auth_token') ? localStorage : sessionStorage;
               where.setItem('auth_token', data.token);
-              console.info('[Auth] 합쳐진 계정 → 살아 있는 계정으로 세션을 넘겼습니다');
+              console.info(data.merged
+                ? '[Auth] 합쳐진 계정 → 살아 있는 계정으로 세션을 넘겼습니다'
+                : '[Auth] 로그인 유효기간을 이어 받았습니다');
+            }
+            // 「최근 로그인」 배지용 — 이 기능 전에 로그인해 둔 사람도 다음 로그인 화면에서 배지가 보이게
+            // 앱을 열 때마다 서버가 아는 로그인 방법을 적어 둔다(로그아웃해도 이 값은 지우지 않는다).
+            // 단, **기록이 없을 때만** — 서버 값은 계정을 처음 만든 방법이라, 합친 계정이면 실제로 로그인한
+            // 방법(로그인할 때 적은 값)과 다를 수 있다.
+            if (data?.user?.provider) {
+              try {
+                if (!localStorage.getItem('cookmatch_last_login_method')) {
+                  localStorage.setItem('cookmatch_last_login_method', data.user.provider);
+                }
+              } catch { /* 무시 */ }
             }
             if (data?.user) {
               // 서버 쪽 정보가 최신이므로 화면 표시도 맞춘다

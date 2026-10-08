@@ -12104,3 +12104,10 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 - 재생성 결과 대체표 차이는 정확히 +2줄. 화면의 대체표 캐시 버전 2.3→2.4(`RecipeList`·`Popular` 같은 키).
 - 확인: 포함 재료 「보리새우」 → …·건새우·… 로 넓어져 「보리새우+어묵」 매칭 30%↑ 2→4건(꼬치 어묵탕 등), 조건 없이 5→9건.
 - ⚠ 환경 사고 수습: 오늘 07:43 영상 작업용 `opencv-python-headless`·`mediapipe` 설치로 numpy 가 2.5.3 으로 올라가 pandas 2.2.1 이 import 오류(`numpy.dtype size changed`) — 매일 배치(사전 반영·대체표 생성 등)가 멈출 상태였음. pandas 를 2.2.3(numpy 2 호환 패치 버전)으로 올려 해결, pandas·whisper/torch·cv2·selenium·pymysql 등 import 확인. (requirements 의 pandas==2.2.1 은 Railway 서버용이라 그대로)
+
+### 로그인 유지 — 쓰는 동안엔 로그아웃 안 되게 토큰 이어 주기, 「최근 로그인」 배지 기록 보강
+- 사용자: iOS 버전 업데이트하면 로그인이 풀리나? 유지되면 좋겠고, 어렵다면 최근 로그인 배지라도(카카오·네이버·구글·애플 중 뭘로 했는지 기억 안 남).
+- 조사: 로그인은 앱 저장소(localStorage, 기본 「로그인 유지」)에 있고 iOS 앱 업데이트는 이걸 지우지 않는다. 진짜 원인은 JWT `exp` 가 **발급일부터 30일 고정** — 매일 써도 30일째 풀림(업데이트 시점과 겹치면 업데이트 탓처럼 보임). 「최근 로그인」 배지는 이미 있음(`cookmatch_last_login_method`, 로그인할 때 기록) — 기능 전에 로그인해 둔 사람은 기록이 없어 안 보였다.
+- `backend/app.py` `/api/auth/me`: 토큰 `iat` 이 하루 넘었으면 새 30일 토큰(`token`, `renewed: true`)을 함께 줌. 프론트 `AuthContext` 는 이미 `data.token` 을 저장(계정 합치기용 길)하므로 **현재 앱에도 서버 배포만으로 적용**. 로그 문구만 merged/renewed 구분.
+- `AuthContext`: 앱을 열 때 서버가 준 `user.provider` 로 `cookmatch_last_login_method` 를 **기록이 없을 때만** 채움(합친 계정이면 서버 값이 실제 로그인 방법과 다를 수 있어 로그인 때 기록이 이김). 로그아웃해도 이 값은 지우지 않음(원래 그랬음).
+- 확인(Flask 테스트 클라이언트, 운영 DB 읽기): 방금 발급 토큰 → 새 토큰 없음, 25일 된 토큰 → `renewed` + 새 토큰 만료 30.0일, provider naver.
