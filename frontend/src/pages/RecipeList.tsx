@@ -2387,10 +2387,10 @@ const RecipeList: React.FC = () => {
           paddingTop: 76, // 헤더 높이(56px) + 여백(20px)
         }}
       >
-        <h2 className="text-lg font-bold mb-4 text-center">
-          내 냉장고 기반 레시피 추천
-        </h2>
-
+        {/* 한때 여기 `내 냉장고 기반 레시피 추천` 제목이 있었다. **뺐다**
+            (2026-10-08) — 같은 말을 아래 건수 줄이 **숫자와 함께** 한다
+            (`내 냉장고 재료로 찾은 요리 N개`). 설명과 데이터가 한 줄이면
+            세로 40px 를 제목에 따로 쓸 이유가 없다. */}
         <div
           style={{
             position: 'sticky',
@@ -2496,7 +2496,11 @@ const RecipeList: React.FC = () => {
           <span style={{ color: '#6A6A73', fontSize: 12.5, whiteSpace: 'nowrap' }}>
             {/* 서버 전체 건수를 보여 준다. 「부족 재료 N개까지」처럼 화면에서만 거르는 조건이 있으면 받아 온 것 중
                 맞는 개수(total)만 알 수 있어 그걸 보여 준다. */}
-            {favoriteOnly ? '즐겨찾기에 담아 둔 요리' : `총 ${(maxLack === 'unlimited' ? Math.max(serverTotal, total) : total).toLocaleString('ko-KR')}건`}
+            {/* `총 N건` 이 아니라 **무엇을 센 N건인지**까지 적는다 — 위에 있던
+                제목(`내 냉장고 기반 레시피 추천`)의 몫을 이 줄이 이어받았다.
+                `찾은` 이라고 쓰는 이유: 매칭도·필터·키워드가 걸린 결과라
+                `만들 수 있는` 이라고 하면 조건에 따라 거짓말이 된다. */}
+            {favoriteOnly ? '즐겨찾기에 담아 둔 요리' : `내 냉장고 재료로 찾은 요리 ${(maxLack === 'unlimited' ? Math.max(serverTotal, total) : total).toLocaleString('ko-KR')}개`}
           </span>
           <button
             type="button"

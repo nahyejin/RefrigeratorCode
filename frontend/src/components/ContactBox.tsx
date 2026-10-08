@@ -54,7 +54,35 @@ const row: React.CSSProperties = {
   textDecoration: 'none', cursor: 'pointer', width: '100%', boxSizing: 'border-box',
 };
 
-const ContactBox: React.FC = () => (
+/**
+ * `compact` — 화면 바닥에 붙는 **한 줄 띠** 모양.
+ *
+ * 마이페이지에서 이 칸은 높이가 300px 가까이 됐다. 스크롤을 내리면 그 회색
+ * 덩어리가 화면을 밀고 올라와, 정작 보려던 카드들이 밀려났다(2026-10-08).
+ * 문의로 가는 입구는 **한 줄이면 된다** — 설명 문장은 눌러서 들어간 DM 창에서
+ * 하면 되는 말이고, 방침·약관은 글자 하나짜리 링크다.
+ */
+const ContactBox: React.FC<{ compact?: boolean }> = ({ compact }) => compact ? (
+  <div>
+    <a
+      href={`https://ig.me/m/${CONTACT.instagram}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      style={{ ...row, minHeight: 44, padding: '0 12px', gap: 8 }}
+    >
+      <InstagramMark />
+      <span style={{ fontWeight: 700, whiteSpace: 'nowrap' }}>불편한 점이 있으셨나요</span>
+      <span style={{ marginLeft: 'auto', color: 'var(--ink-500)', fontSize: 12.5, whiteSpace: 'nowrap' }}>
+        인스타그램 문의 ›
+      </span>
+    </a>
+    <div style={{ display: 'flex', gap: 8, marginTop: 7, fontSize: 11.5 }}>
+      <Link to="/privacy" style={{ color: 'var(--ink-500)' }}>개인정보처리방침</Link>
+      <span style={{ color: 'var(--line-300)' }}>·</span>
+      <Link to="/terms" style={{ color: 'var(--ink-500)' }}>이용약관</Link>
+    </div>
+  </div>
+) : (
   <div style={{ marginTop: 24 }}>
     <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink-900)', marginBottom: 4, whiteSpace: 'nowrap' }}>
       불편한 점이 있으셨나요

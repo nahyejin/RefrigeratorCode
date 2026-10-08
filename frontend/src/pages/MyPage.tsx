@@ -682,6 +682,36 @@ const MyPage: React.FC = () => {
   const isAdmin = useIsAdmin();
   /** 크레딧 묶음 제목을 그릴지 판단하는 용도 — 값 자체는 `UsageGauge` 가 쓴다. */
   const usageNow = useUsage();
+  /**
+   * 바닥 문의 띠를 띄울까.
+   *
+   * 늘 띄우면 화면을 상시로 먹고, 흐름에 두면 스크롤할 때 회색 덩어리가 따라
+   * 올라온다. 둘 다 싫다는 지적(2026-10-08)이라 **조금이라도 내려갔을 때만**
+   * 바닥에 붙여 띄운다. 맨 위를 보고 있을 때는 아예 없다.
+   */
+  const [contactBarOn, setContactBarOn] = React.useState(false);
+  React.useEffect(() => {
+    const check = () => {
+      // 스크롤할 게 없는 화면이면 **그냥 보여 준다.** 안 그러면 문의·방침·약관으로
+      // 갈 길이 아예 없어진다(비로그인 화면이 실제로 그랬다 — 내용이 짧아 스크롤이
+      // 0이라 띠가 영영 안 떴다).
+      const noScroll = document.documentElement.scrollHeight <= window.innerHeight + 8;
+      // 40px — "맨 위를 보고 있다" 와 "내려 보기 시작했다" 를 가르는 선.
+      setContactBarOn(noScroll || window.scrollY > 40);
+    };
+    check();
+    window.addEventListener('scroll', check, { passive: true });
+    window.addEventListener('resize', check);
+    // 카드들이 나중에 그려지며(사용량·식구 그룹) 페이지 길이가 바뀐다 —
+    // 스크롤 이벤트만 보면 그때를 놓친다.
+    const ro = new ResizeObserver(check);
+    ro.observe(document.body);
+    return () => {
+      window.removeEventListener('scroll', check);
+      window.removeEventListener('resize', check);
+      ro.disconnect();
+    };
+  }, []);
 
   // ── 사용 가이드 16~18단계(마지막) ─────────────────────────────
   // 요리 캘린더 가이드 끝에서 `?fromGuide=true` 로 넘어온다. 셋 다 로그인해야
@@ -1651,16 +1681,47 @@ const MyPage: React.FC = () => {
           비어 보였다(2026-09-26 지적 — 이 칸은 바닥에 붙어 있어야 한다). 페이지 전체의 아래 여백(pb-24, 하단 메뉴
           피하기용)도 이 칸 안으로 옮겼다 — 밖에 두면 회색 아래에 흰 띠가 남는다. 아래 여백 150px 는 하단 메뉴 + 요리 AI
           버튼(오른쪽 아래) 높이 — 맨 끝까지 내렸을 때 인스타그램 아이디·방침 링크가 버튼에 가리지 않게. */}
-      {/* ⚠️ 여기를 `position: sticky; bottom: 0` 으로 만들어 보고 **되돌렸다**
-          (2026-10-08). 실측(390x560): 이 칸은 높이가 326px 이라 바닥에 고정하면
-          크레딧 카드와 레시피 현황을 **통째로 덮었다.** 더 낮출 수도 없다 —
-          요리 AI 버튼이 바닥에서 80~136px 를 쓰고 하단 메뉴가 65px 를 쓰므로,
-          전체 폭 내용을 그 위에 두려면 아래 여백만 136px 가 필요하다.
-          고정하려면 한 줄(44px)짜리 띠로 줄이는 쪽이라, 사용자에게 먼저 묻는다. */}
-      <div style={{ margin: '24px 0 0', padding: '16px 14px calc(150px + env(safe-area-inset-bottom, 0px))', background: 'var(--surface-sub)', flex: 1 }}>
-        <ContactBox />
+      {/* 남는 높이를 회색으로 채운다 — 내용이 짧아도 회색 칸이 중간에 떠 있고
+          그 아래가 하얗게 비어 보이던 것(2026-09-26 지적)을 막는 역할은
+          여기가 계속 한다. 광고는 **띠가 아니라 여기** 있다 — 띠 안에 넣으면
+          띠가 다시 커진다. */}
+      <div style={{ marginTop: 24, background: 'var(--surface-sub)', flex: 1,
+                    display: 'flex', flexDirection: 'column' }}>
         {/* 쿠팡 광고 - 페이지 맨 끝에 도달했을 때만 표시(광고 단위 ID 가 없으면 아무것도 안 그린다) */}
-        <BottomCoupangAd showCondition={true} />
+        <div style={{ padding: '0 14px' }}>
+          <BottomCoupangAd showCondition={true} />
+        </div>
+
+      {/* 문의 띠 — **바닥에 붙고, 맨 위를 보고 있을 때는 없다.**
+          한때 이 칸은 높이 326px 짜리 회색 덩어리였다. 고정하면 크레딧 카드를
+          덮었고(실측 390x560), 흐름에 두면 스크롤할 때 따라 올라왔다. 한 줄로
+          줄이고 조건을 붙여 둘 다 피한다(2026-10-08).
+
+          아래 여백 71px = 하단 메뉴(65) + 6. 오른쪽 여백 80px = 요리 AI 버튼
+          (바닥에서 80~136px, 오른쪽 72px)을 피하려고 — 안 띄우면 인스타그램
+          줄의 오른쪽 끝이 버튼에 깔린다. */}
+      <div
+        aria-hidden={!contactBarOn}
+        style={{
+          // 회색 칸 **안**에 둔다. 밖에 두면 띠가 아래로 숨은 동안 그 자리가
+          // 흰색으로 비어, 페이지 끝에 흰 띠가 남는다(실측으로 확인).
+          marginTop: 'auto',
+          position: 'sticky', bottom: 0, zIndex: 1,
+          background: 'var(--surface-sub)', borderTop: '1px solid var(--line-200)',
+          paddingTop: 10, paddingLeft: 14, paddingRight: 80,
+          paddingBottom: 'calc(71px + env(safe-area-inset-bottom, 0px))',
+          // ⚠️ 숨길 때 `translateY` 를 쓰면 안 된다. transform 은 레이아웃은
+          // 안 건드리지만 **스크롤 영역은 넓힌다** — 아래로 밀어 둔 150px 만큼
+          // 페이지가 길어지고, 그 자리가 흰색으로 남았다(실측으로 확인).
+          // 자리는 그대로 두고(회색 칸 안이라 티가 안 난다) 보이기만 끈다.
+          opacity: contactBarOn ? 1 : 0,
+          visibility: contactBarOn ? 'visible' : 'hidden',
+          pointerEvents: contactBarOn ? 'auto' : 'none',
+          transition: 'opacity 0.18s ease-out',
+        }}
+      >
+        <ContactBox compact />
+      </div>
       </div>
       </PullToRefresh>
 

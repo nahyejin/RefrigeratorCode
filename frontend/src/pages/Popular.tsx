@@ -11,6 +11,7 @@ import BottomNavBar from '../components/BottomNavBar';
 import FilterModal from '../components/FilterModal';
 import IngredientDateModal from '../components/IngredientDateModal';
 import CustomCalendar from '../components/CustomCalendar';
+import MenuSelect from '../components/ui/MenuSelect';
 import 완료하기버튼 from '../assets/완료하기버튼.svg';
 import 공유하기버튼 from '../assets/공유하기버튼.svg';
 import 기록하기버튼 from '../assets/기록하기버튼.svg';
@@ -1691,13 +1692,10 @@ const Popular = () => {
   return (
     <>
       <div className="popular-page" style={{padding: '76px 20px 80px 20px', maxWidth: 400, margin: '0 auto', boxSizing: 'border-box'}}>
-        {/* 상단 타이틀 */}
-        <header style={{marginBottom: 20}}>
-          {/* header 와 h2 가 각각 marginBottom 32 를 걸고 있어 64px 이 비어 있었음 */}
-          <h2 className="text-lg font-bold text-center" style={{marginBottom: 0}}>
-            인기 요리·재료부터 테마 추천까지
-          </h2>
-        </header>
+        {/* 한때 `인기 요리·재료부터 테마 추천까지` 제목이 있었다. **뺐다**
+            (2026-10-08). 아래 섹션 제목들(인기 요리 / 인기 재료 / 테마)이
+            이미 같은 말을 하고 있어서, 제목은 그 목차를 한 번 더 읽어 주는
+            줄이었다. 화면 이름은 하단 탭의 `요즘인기` 가 말한다. */}
 
         {/* 기간 선택 바.
             이 컨트롤은 아래의 모든 섹션에 함께 적용되는 **화면 전체 조건**인데,
@@ -1707,72 +1705,40 @@ const Popular = () => {
             규격이 달라(높이 28, 선택 시 회색) 이 화면만 다른 앱처럼 보였다.
             → 라벨을 붙이고 왼쪽으로 정렬하며, 규격을 냉장고요리와 맞춘다. */}
         {/* 이 줄은 "아래 전체에 걸리는 조건" 이다.
-            좌측 정렬만으로는 가운데 정렬된 제목과 축이 어긋나 어중간해 보였고,
-            바로 아래 섹션과 붙어 어디까지가 컨트롤인지도 불분명했다.
-            → 옅은 판 위에 얹어 한 덩어리로 묶고, 아래 섹션과 충분히 띄운다. */}
-        <div
-          style={{
-            display: 'flex',
-            gap: 8,
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            justifyContent: 'flex-start',
-            padding: '10px 12px',
-            borderRadius: 12,
-            background: 'var(--surface-sub)',
-            border: '1px solid var(--line-200)',
-            marginBottom: 36,
-          }}
-        >
-          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-700)', marginRight: 4 }}>기간</span>
-          {periodOptions.map(opt => (
-            <button
-              key={opt.value}
-              onClick={() => {
-                if (opt.value === 'custom') {
-                  // 모달 열 때 현재 dateRange 값을 tempDateRange에 반영
-                  if (dateRange[0] && dateRange[1]) {
-                    setTempDateRange([dateRange[0], dateRange[1]]);
-                  } else {
-                    setTempDateRange([null, null]);
-                  }
-                  setDateModalOpen(true);
-                } else {
-                  // 다른 기간 선택 시
-                  setPeriod(opt.value);
-                  setDateRange([null, null]);
-                  setTempDateRange([null, null]);
-                }
-              }}
-              style={{
-                // 냉장고요리 탭의 컨트롤 칩과 동일 규격 (높이 40 / radius 6 / 선택 시 잉크색)
-                minHeight: 38,
-                border: period === opt.value ? '1px solid var(--ink-900)' : '1px solid #D2D2D8',
-                borderRadius: 6,
-                fontSize: 13,
-                padding: '0 12px',
-                fontWeight: 600,
-                background: period === opt.value ? 'var(--ink-900)' : '#FFFFFF',
-                color: period === opt.value ? '#FFFFFF' : '#1A1A1E',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                whiteSpace: 'nowrap',
-                boxSizing: 'border-box'
-              }}
-              onMouseEnter={(e) => {
-                if (period !== opt.value) {
-                  e.currentTarget.style.background = '#F5F5F7';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (period !== opt.value) {
-                  e.currentTarget.style.background = '#FFFFFF';
-                }
-              }}
-            >
-              {opt.label}
-            </button>
-          ))}
+            모양은 **냉장고요리 탭의 정렬·필터 줄과 같게** 맞춘다(2026-10-08 지적).
+            전에는 옅은 회색 판 위에 칩 3개를 얹어 뒀는데, 같은 성격의 컨트롤이
+            탭마다 다른 모양이면 이 화면만 다른 앱처럼 보인다.
+              - 회색 판·테두리를 없애고 흰 바탕에 바로 둔다 (냉장고요리와 동일)
+              - 칩 3개 → `MenuSelect` 드롭다운 하나. 마이캘린더 목록의 기간
+                고르개가 이미 같은 부품이다 — **같은 일을 하는 것은 같게 보여야**
+                한다. 높이도 40 으로(냉장고요리 컨트롤과 같은 값)
+            `기간` 라벨은 남긴다. 라벨 없이 두면 무엇을 제어하는 칸인지,
+            어디까지 영향을 주는지 알 수 없다는 지적을 전에 받았다. */}
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 28 }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-700)' }}>기간</span>
+          <MenuSelect
+            ariaLabel="기간"
+            height={40}
+            value={period}
+            onChange={(v) => {
+              if (v === 'custom') {
+                // 모달 열 때 현재 dateRange 값을 tempDateRange 에 반영
+                setTempDateRange(dateRange[0] && dateRange[1] ? [dateRange[0], dateRange[1]] : [null, null]);
+                setDateModalOpen(true);
+                return;
+              }
+              setPeriod(v);
+              setDateRange([null, null]);
+              setTempDateRange([null, null]);
+            }}
+            options={periodOptions.map(opt => (
+              // 직접 고른 기간은 **고른 날짜를 그대로** 보여 준다 —
+              // `기간선택` 이라고만 적혀 있으면 지금 무슨 기간을 보는지 알 수 없다.
+              opt.value === 'custom' && dateRange[0] && dateRange[1]
+                ? { value: opt.value, label: periodLabel }
+                : opt
+            ))}
+          />
         </div>
 
         {/* 기간선택 모달 */}

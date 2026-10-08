@@ -2208,12 +2208,12 @@ const MyFridge: React.FC = () => {
   return (
     <div className="min-h-screen bg-white">
       <div className="bg-white w-full p-0 m-0 pb-24" style={{ paddingTop: 80 }}>
-        {/* 타이틀+입력창 그룹 */}
-        <div className="flex flex-col items-center justify-center w-full" style={{ marginBottom: 40 }}>
-          <div className="flex items-center justify-between w-full max-w-[400px] px-5 mb-2" style={{ position: 'relative' }}>
-            <h1 className="text-[18px] font-bold text-[#1A1A1E] text-center" style={{ flex: 1 }}>내 냉장고 재료 추가</h1>
-          </div>
-        </div>
+        {/* 한때 여기 `내 냉장고 재료 추가` 제목(18px)이 있었다. **뺐다**(2026-10-08).
+            제목 + 아래 여백으로 58px 를 쓰면서, 하는 말은 바로 아래 입력창의
+            `추가할 재료명을 입력하세요` 와 **같은 말**이었다. 설명은 이미 쓰는
+            자리에 붙어 있다 — 그걸 한 번 더 크게 적을 이유가 없다.
+            (화면 이름은 하단 탭의 `내냉장고` 가 늘 말해 주고 있다) */}
+        <div style={{ height: 12 }} />
         <div style={{ maxWidth: 400, margin: '0 auto', paddingLeft: 20, paddingRight: 20, width: '100%', boxSizing: 'border-box' }}>
           <div
             className="flex gap-2 mb-4"
