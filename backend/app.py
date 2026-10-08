@@ -472,6 +472,47 @@ def _ingredient_index_ready(cursor):
 _INGREDIENT_INDEX_READY = None
 
 
+# 검색창 단어 → 같은 뜻 이름 묶음. 재료 사전(동의어)을 처음 한 번만 읽는다.
+_SEARCH_ALIAS = {}
+# 거의 모든 레시피 글에 들어 있어 조건으로 걸면 의미가 없는 말 — 다른 단어가 있을 때만 뺀다.
+_SEARCH_STOPWORDS = {'레시피', '만들기', '만드는법', '요리법', '방법', '황금레시피'}
+_SEARCH_MAX_TERMS = 5
+_SEARCH_MAX_VARIANTS = 6
+
+
+def _search_term_groups(keyword):
+    """검색어를 단어별 [같은 뜻 이름들] 목록으로. 예) '오뎅 잔멸치' → [['오뎅','어묵',…], ['잔멸치']]"""
+    # 괄호·쉼표·슬래시도 띄어쓰기처럼 단어 구분으로 본다(「김치(볶음)」 → 김치·볶음)
+    words = [w for w in re.split(r'[\s,()\[\]/·]+', keyword.strip()) if w][:_SEARCH_MAX_TERMS]
+    meaningful = [w for w in words if w not in _SEARCH_STOPWORDS]
+    words = meaningful or words
+    if 'a2c' not in _SEARCH_ALIAS:
+        try:
+            from ingredient_dictionary import load_alias_to_canonical
+            a2c = load_alias_to_canonical()
+            groups = {}
+            for alias, canon in a2c.items():
+                groups.setdefault(canon, set()).add(alias)
+            _SEARCH_ALIAS['a2c'], _SEARCH_ALIAS['groups'] = a2c, groups
+        except Exception as e:  # 사전이 없어도 검색은 된다 — 그 단어만으로
+            print(f"[검색] 재료 사전을 못 읽어 동의어 없이 찾음: {e}")
+            _SEARCH_ALIAS['a2c'], _SEARCH_ALIAS['groups'] = {}, {}
+    a2c, groups = _SEARCH_ALIAS['a2c'], _SEARCH_ALIAS['groups']
+    out = []
+    for w in words:
+        canon = a2c.get(re.sub(r'\s+', '', w))
+        variants = [w]
+        if canon:
+            # 짧은 이름부터(「오뎅」 처럼 넓게 쓰이는 말) 몇 개만 — 너무 많으면 느려진다
+            for v in [canon] + sorted(groups.get(canon, ()), key=len):
+                if v not in variants:
+                    variants.append(v)
+                if len(variants) >= _SEARCH_MAX_VARIANTS:
+                    break
+        out.append(variants)
+    return out
+
+
 @app.route('/api/recipes/filter')
 def get_filtered_recipes():
     # 페이징
@@ -551,10 +592,22 @@ def get_filtered_recipes():
         where_clauses.append("platform LIKE %s")
         base_params.append(f"%{platform}%")
     
-    # 키워드 필터
+    # 키워드 필터 — 포털처럼 **단어별로** 찾는다(2026-10-08).
+    #
+    # 예전엔 검색어 전체를 한 덩어리로 `LIKE '%오뎅 잔멸치%'` 했다. 제목·본문에 그 글자가 **붙은 채로**
+    # 있어야만 걸려서, 「오뎅」 347건·「잔멸치」 356건인데 「오뎅 잔멸치」는 0건이었다(사용자 지적).
+    # 이제 띄어쓰기로 나눈 단어가 **모두**(AND) 제목·재료 중 어딘가에 있으면 걸리고(붙어 있을 필요는 없다),
+    # 단어마다 재료 사전의 같은 뜻 이름(오뎅↔어묵, 계란↔달걀)도 함께 찾는다(OR).
+    # 매칭도·임박재료·필터 조건은 다른 WHERE 와 그대로 AND 로 걸린다.
+    #   찾는 곳은 **제목 + 레시피 재료 목록**(used_ingredients, LLM 이 본문에서 뽑아 둔 짧은 칸) — 사용자 선택.
+    #   본문(긴 TEXT)까지 훑으면 한 번에 6~8초였고, 본문에 한 번 스친 말로도 걸려 엉뚱한 글이 섞였다
+    #   (「오뎅」 → 「아기국수 간장국수」가 맨 위). 제목+재료는 0.4~1초(운영 DB 실측, 2026-10-08).
+    #   단어 하나 = 정규식 한 번(동의어를 | 로 묶음). DB 의 FULLTEXT 색인은 기본 파서(띄어쓰기 단위)라
+    #   「어묵볶음」 처럼 붙여 쓰는 한글을 못 찾아 못 쓴다.
     if keyword:
-        where_clauses.append("(title LIKE %s OR content LIKE %s)")
-        base_params.extend([f"%{keyword}%", f"%{keyword}%"])
+        for variants in _search_term_groups(keyword):
+            where_clauses.append("CONCAT(title, ' ', IFNULL(used_ingredients, '')) REGEXP %s")
+            base_params.append("|".join(re.sub(r'([.^$*+?()\[\]{}|\\])', r'\\\1', v) for v in variants))
     
     # 포함할 재료 필터 (AND 조건: 모두 포함)
     if include_ingredients:
