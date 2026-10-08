@@ -534,8 +534,10 @@ def _ingredient_variants(ing, with_similar):
             try:
                 import csv as _csv
                 here = os.path.dirname(os.path.abspath(__file__))
-                for path in (os.path.join(here, '..', 'frontend', 'public', 'ingredient_substitute_table.csv'),
-                             os.path.join(here, 'ingredient_substitute_table.csv')):
+                # 운영(Railway)엔 frontend/ 가 안 올라가서 backend/ 의 0.8↑ 쌍 파일을 먼저 본다
+                # (generate_substitutes.py 가 매일 같이 만든다). 로컬에선 원본 대체표로도 된다.
+                for path in (os.path.join(here, 'ingredient_similar_pairs.csv'),
+                             os.path.join(here, '..', 'frontend', 'public', 'ingredient_substitute_table.csv')):
                     if os.path.exists(path):
                         with open(path, encoding='utf-8-sig', newline='') as f:
                             for row in _csv.DictReader(f):

@@ -557,6 +557,22 @@ def save_substitutes(substitutes: List[Dict], overwrite: bool = False):
 
 
 MANUAL_CSV = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'manual_substitutes.csv')
+SIMILAR_PAIRS_CSV = os.path.join(BASE_DIR, 'backend', 'ingredient_similar_pairs.csv')
+SIMILAR_MIN_SCORE = 0.8
+
+
+def save_similar_pairs_for_backend(substitutes: List[Dict]) -> None:
+    """서버(냉장고요리 「꼭 포함할 재료」)가 쓰는 **유사도 0.8 이상 쌍만** backend/ 에 따로 쓴다.
+
+    Railway 배포에는 frontend/ 가 올라가지 않아서 서버가 29MB 대체표를 못 읽었다 — 로컬 시험에선 되는데
+    운영에서만 「보리새우」가 비슷한 재료로 안 넓어졌다(2026-10-08). 서버가 쓰는 건 0.8↑ 뿐이라 150KB 남짓.
+    """
+    rows = [s for s in substitutes if float(s.get('similarity_score') or 0) >= SIMILAR_MIN_SCORE]
+    pd.DataFrame(
+        [{'ingredient_a': r['ingredient_a'], 'ingredient_b': r['ingredient_b'],
+          'similarity_score': r['similarity_score']} for r in rows]
+    ).to_csv(SIMILAR_PAIRS_CSV, index=False, encoding='utf-8-sig')
+    print(f"[OK] 서버용 비슷한 재료 쌍 {len(rows)}개 저장: {SIMILAR_PAIRS_CSV}")
 
 
 def apply_manual_substitutes(substitutes: List[Dict]) -> List[Dict]:
@@ -607,6 +623,7 @@ def main():
 
         # 저장 (기존 데이터 무시하고 새로 생성)
         save_substitutes(substitutes, overwrite=True)
+        save_similar_pairs_for_backend(substitutes)
         
         print("\n" + "=" * 60)
         print("[OK] 완료!")

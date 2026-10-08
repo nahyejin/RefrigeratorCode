@@ -48,7 +48,7 @@ cd /d "%~dp0"
 
 set LOG=dictionary_sync.log
 set PY="C:\Users\user\venv310\Scripts\python.exe"
-set CSVS=frontend/public/ingredient_profile_dict_with_substitutes.csv backend/ingredient_profile_dict_with_substitutes.csv frontend/public/ingredient_substitute_table.csv backend/premium_ingredients_auto.json frontend/public/coupang_ads.csv
+set CSVS=frontend/public/ingredient_profile_dict_with_substitutes.csv backend/ingredient_profile_dict_with_substitutes.csv frontend/public/ingredient_substitute_table.csv backend/ingredient_similar_pairs.csv backend/premium_ingredients_auto.json frontend/public/coupang_ads.csv
 
 echo [%date% %time%] 사전 추가분 반영 시작 >> %LOG%
 

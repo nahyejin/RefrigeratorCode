@@ -12111,3 +12111,9 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 - `backend/app.py` `/api/auth/me`: 토큰 `iat` 이 하루 넘었으면 새 30일 토큰(`token`, `renewed: true`)을 함께 줌. 프론트 `AuthContext` 는 이미 `data.token` 을 저장(계정 합치기용 길)하므로 **현재 앱에도 서버 배포만으로 적용**. 로그 문구만 merged/renewed 구분.
 - `AuthContext`: 앱을 열 때 서버가 준 `user.provider` 로 `cookmatch_last_login_method` 를 **기록이 없을 때만** 채움(합친 계정이면 서버 값이 실제 로그인 방법과 다를 수 있어 로그인 때 기록이 이김). 로그아웃해도 이 값은 지우지 않음(원래 그랬음).
 - 확인(Flask 테스트 클라이언트, 운영 DB 읽기): 방금 발급 토큰 → 새 토큰 없음, 25일 된 토큰 → `renewed` + 새 토큰 만료 30.0일, provider naver.
+
+### 냉장고요리 「비슷한 재료」 확장이 운영에서만 안 되던 것 — 서버용 쌍 파일
+- 사용자: 웹에서도 보리새우+어묵이 여전히 1건(레일웨이 결제 문제? → 아님, 서버는 정상·오늘 다른 변경은 다 반영됨).
+- 운영 조회: 포함 재료 「오뎅」 1,053(동의어 확장 OK), 「보리새우」 37 그대로(비슷한 재료 확장 X). 원인: Railway 배포엔 `frontend/` 가 안 올라가 서버가 `frontend/public/ingredient_substitute_table.csv`(29MB)를 못 읽음 — 사전은 `backend/` 사본이 있어 됐다. 로컬 시험은 두 폴더가 다 있어 못 봤다.
+- `generate_substitutes.py` 가 대체표를 만들 때 **유사도 0.8↑ 쌍만** `backend/ingredient_similar_pairs.csv`(5,812쌍, 160KB)로 같이 씀, 서버는 이 파일을 먼저 읽음. 매일 배치(`apply_dictionary_additions_daily.bat`) 커밋 목록에 추가.
+- 확인: 원본 대체표를 잠시 치운 상태(운영과 같은 조건)에서 「보리새우」 → 건새우 포함 11개로 넓어짐.
