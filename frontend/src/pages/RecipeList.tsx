@@ -20,6 +20,7 @@ import { takePrefetched, PREFETCH_SIZE, defaultMatchRateMin, setFridgeScreenLoad
 import { fetchCsvOnce } from '../utils/csvOnce';
 // import Slider from 'rc-slider';
 // import 'rc-slider/assets/index.css';
+import GroupTitle from '../components/ui/GroupTitle';
 import RecipeSortBar from '../components/RecipeSortBar';
 import { getIngredientPillInfo } from '../utils/recipeUtils';
 import { 
@@ -2487,6 +2488,18 @@ const RecipeList: React.FC = () => {
           onToast={(msg, action) => showToast(msg, action)}
         />
         
+        {/* 건수 줄 → **요즘인기와 같은 제목 형식**(2026-10-09 요청): 작은 회색 제목
+            + 괄호 안 `(총 N건)` 은 더 옅은 회색. 범례 판 **위**에 둔다 — 제목이 이 아래
+            범례와 카드 전체를 이름 붙이는 자리다(범례 판에 달라붙어 보이던 것도 이걸로 해소).
+            `찾은` 이라고 쓰는 이유: 매칭도·필터·키워드가 걸린 결과라 `만들 수 있는` 이라고
+            하면 조건에 따라 거짓말이 된다. 서버 전체 건수를 쓰되, 「부족 재료 N개까지」처럼
+            화면에서만 거르는 조건이 있으면 받아 온 것 중 맞는 개수(total)를 보여 준다. */}
+        <GroupTitle style={{ margin: '12px 2px 6px' }}>
+          내 냉장고 재료로 찾은 요리{' '}
+          <span style={{ fontWeight: 500, color: 'var(--ink-400)' }}>
+            (총 {(maxLack === 'unlimited' ? Math.max(serverTotal, total) : total).toLocaleString('ko-KR')}건)
+          </span>
+        </GroupTitle>
         {/* 범례(`부족 재료 / 대체 가능 / 보유 재료`)만 옅은 회색 판에 담는다.
             이건 아래 카드의 **표식을 읽는 열쇠**라 영역이 있어야 한다는 지적
             (2026-10-09)으로 판을 줬는데, 건수까지 같이 넣었더니 **범례인지
@@ -2498,17 +2511,6 @@ const RecipeList: React.FC = () => {
           padding: '6px 10px', borderRadius: 10, background: 'var(--surface-sub)',
         }}>
           <IngredientLegend />
-        </div>
-        {/* 범례 판과 건수 줄 사이 12px — 6px 라 건수 글자가 판에 달라붙어 보였다(2026-10-09 지적). */}
-        <div style={{ marginTop: 12, marginBottom: 6, color: 'var(--ink-700)',
-                      fontSize: 12.5, fontWeight: 600 }}>
-          {/* 서버 전체 건수를 보여 준다. 「부족 재료 N개까지」처럼 화면에서만 거르는 조건이 있으면
-              받아 온 것 중 맞는 개수(total)만 알 수 있어 그걸 보여 준다.
-              `총 N건` 이 아니라 **무엇을 센 N건인지**까지 적는다 — 없앤 제목
-              (`내 냉장고 기반 레시피 추천`)의 몫을 이 줄이 이어받았다. `찾은` 이라고
-              쓰는 이유: 매칭도·필터·키워드가 걸린 결과라 `만들 수 있는` 이라고 하면
-              조건에 따라 거짓말이 된다. */}
-          내 냉장고 재료로 찾은 요리 {(maxLack === 'unlimited' ? Math.max(serverTotal, total) : total).toLocaleString('ko-KR')}개
         </div>
         </div>
 
@@ -2574,8 +2576,12 @@ const RecipeList: React.FC = () => {
             </button>
           )}
 
+          {/* 카드 영역을 **박스로 한 번 더 잡는다**(2026-10-09 요청) — 요즘인기·마이페이지의
+              박스+작은 제목과 같은 방식. 카드 한 장 한 장도 테두리가 있어 겹쳐 보이지 않게
+              박스는 아주 옅은 배경판(테두리 없음)으로 둔다. */}
           {!loading && (
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2"
+                 style={{ padding: 8, borderRadius: 14, background: 'var(--surface-sub)', marginTop: 4 }}>
               {(() => {
                 // 재료가 없거나, 디폴트 '달걀'만 있고 레시피가 없을 때 안내 문구 표시
                 const hasOnlyDefaultEgg = myIngredients.length === 1 && 
