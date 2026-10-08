@@ -20,6 +20,11 @@ let current: CookTarget | null = null;
 const listeners = new Set<Listener>();
 
 export function openCookMode(target: CookTarget) {
+  // 레시피 번호가 없으면 **열지 않는다.** 직접 적은 기록(수동 기록)처럼 레시피가 없는 항목이 번호
+  // 없이 넘어오면, 시트가 열린 채 **직전에 열었던 레시피 내용을 그대로 보여 줬다** — 사용자에게는
+  // "내가 누르지 않은 항목의 드로우 패널이 열린다"(2026-10-09)로 보였다.
+  const id = Number(target?.id);
+  if (target?.id == null || !Number.isFinite(id)) return;
   current = target;
   listeners.forEach(fn => fn(current));
 }

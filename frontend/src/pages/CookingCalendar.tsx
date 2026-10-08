@@ -2974,8 +2974,10 @@ const CookingCalendar: React.FC = () => {
                 // 취소할 수 있다(당사자 알림 + 복구 가능, 서버 처리).
                 const isMine = authUser?.id != null && e.user_id === Number(authUser.id);
                 const canCancel = !authUser?.id || isMine || isInHousehold;
+                // 직접 적은 기록(수동 기록)은 레시피가 없어 조리 순서 시트를 열 곳이 없다.
+                const hasRecipe = e.entry_type !== 'manual' && e.recipe_id != null;
                 return (
-                  <div key={e.day + '-' + e.recipe_id + '-' + i}>
+                  <div key={e.day + '-' + (e.entry_type === 'manual' ? 'm' + e.manual_log_id : e.recipe_id) + '-' + i}>
                     {first && (
                       <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-500)',
                                     margin: i === 0 ? '0 0 6px' : '10px 0 6px', padding: '0 2px' }}>
@@ -2992,10 +2994,11 @@ const CookingCalendar: React.FC = () => {
                     >
                       <button
                         type="button"
-                        onClick={() => openCookMode({ id: e.recipe_id, title: e.title })}
+                        onClick={() => { if (hasRecipe) openCookMode({ id: e.recipe_id as number, title: e.title }); }}
                         style={{
                           display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0,
-                          border: 'none', background: 'none', padding: 0, cursor: 'pointer', textAlign: 'left',
+                          border: 'none', background: 'none', padding: 0,
+                          cursor: hasRecipe ? 'pointer' : 'default', textAlign: 'left',
                         }}
                       >
                         {e.thumbnail ? (
