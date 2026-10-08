@@ -142,15 +142,20 @@ const STYLES = {
     // 때도 배지가 있을 때도 세로 방향 여유(32~34px)가 이미 minHeight(40px)
     // 안에 들어오므로, 세로 패딩 없이 `alignItems: center` 만으로 가운데
     // 정렬하면 항상 정확히 40px 로 맞는다.
-    minHeight: 40,
+    // 40 → 32 (2026-10-09 지적: 이 줄 버튼들이 너무 높다).
+    // 높이를 40 으로 잡고 있던 이유는 배지(`10%↑`, `3개`)가 **라벨 아래**
+    // 한 줄을 더 쓰기 때문이었다. 배지를 라벨 **옆**으로 옮겨(아래 markup)
+    // 한 줄로 만들었으니 32 로 충분하다. 대신 가로가 길어지는데, 그만큼은
+    // `필터` 를 아이콘만 남겨서 벌었다.
+    minHeight: 32,
     border: '1px solid #D2D2D8',
     borderRadius: 6,
-    fontSize: 13,
-    padding: '0 8px',
+    fontSize: 12.5,
+    padding: '0 9px',
     fontWeight: 600,
     background: '#FFFFFF',
     color: '#1A1A1E',
-    minWidth: 70,
+    gap: 4,
     marginRight: 0,
     whiteSpace: 'nowrap' as const,
     lineHeight: 1.3,
@@ -185,8 +190,8 @@ const STYLES = {
   },
   select: {
     // `button` 과 같은 이유로 세로 패딩은 안 준다 — 매칭도/임박 재료와
-    // 같은 줄에서 높이가 달라 보이지 않게.
-    minHeight: 40,
+    // 같은 줄에서 높이가 달라 보이지 않게. 40 → 32 도 함께(2026-10-09).
+    minHeight: 32,
     border: '1px solid #D2D2D8',
     borderRadius: 6,
     fontSize: 13,
@@ -254,15 +259,15 @@ const STYLES = {
     flexShrink: 0 as const,
     // 세로 패딩 없음 — 매칭도/임박 재료/정렬과 같은 높이(40px)로 맞추려는
     // 이유는 위 `button` 항목 설명과 같다.
-    minHeight: 40,
+    minHeight: 32,
     border: 'none',
     borderRadius: 999,
-    fontSize: 13,
-    padding: '0 14px',
+    fontSize: 12.5,
+    padding: '0 11px',
     fontWeight: 700,
     background: '#1A1A1E',
     color: '#FFFFFF',
-    minWidth: 50,
+    minWidth: 0,
     whiteSpace: 'nowrap' as const,
     lineHeight: 1.3,
     boxSizing: 'border-box' as const,
@@ -286,9 +291,14 @@ const STYLES = {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
-    padding: 24,
+    // 여백 24 → 18, 그리고 **최대 높이**를 못 박는다(2026-10-09 지적: 폰에서
+    // 팝업이 너무 높다). 없으면 내용이 길어질 때 팝업이 화면을 넘어가고,
+    // 바깥(딤)에 스크롤이 걸려 닫기 버튼도 손에 안 닿는다.
+    padding: 18,
     width: 340,
     maxWidth: '95vw',
+    maxHeight: 'calc(100dvh - 88px)',
+    overflowY: 'auto' as const,
     position: 'relative' as const
   },
   closeButton: {
@@ -409,7 +419,8 @@ const STYLES = {
     gap: 8,
     marginBottom: 8,
     justifyContent: 'center' as const,
-    minHeight: 40
+    // 40 → 26. 아무것도 안 고른 상태에서 빈 자리를 40px 비워 두고 있었다.
+    minHeight: 26
   },
   ingredientPill: {
     padding: '2px 8px',
@@ -440,8 +451,16 @@ const STYLES = {
     cursor: 'pointer'
   },
   ingredientList: {
-    maxHeight: 320,
-    overflowY: 'auto' as const
+    // 320 → 화면에 따라(최대 240). 팝업 높이의 대부분이 이 칸이었다.
+    maxHeight: 'min(36vh, 240px)',
+    overflowY: 'auto' as const,
+    // **테두리를 준다**(2026-10-09 지적: 어디부터 어디까지가 고르는 칸인지
+    // 가늠이 안 된다). 스크롤되는 칸은 경계가 보여야 "여기 안에서 더 내려
+    // 볼 수 있다" 가 읽힌다.
+    border: '1px solid var(--line-200)',
+    borderRadius: 10,
+    padding: 4,
+    background: '#FFFFFF',
   },
   ingredientItem: {
     display: 'flex' as const,
@@ -774,19 +793,16 @@ const RecipeSortBar = ({
             aria-label={`재료 매칭도 설정 모달 열기${matchSummary ? ` (지금: ${matchSummary})` : ''}`}
             data-guide-target="match-rate-button"
           >
-            <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'center',
-                           lineHeight: 1.05 }}>
-              <span>
-                <span aria-hidden="true" style={{ marginRight: 4 }}>%</span>
+            {/* 배지를 라벨 **아래**에 두면 버튼이 두 줄이 되어 40px 가 필요했다.
+                옆으로 옮겨 한 줄(32px)로 만든다(2026-10-09). */}
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, lineHeight: 1.1 }}>
+              <span style={{ whiteSpace: 'nowrap' }}>
+                <span aria-hidden="true" style={{ marginRight: 3 }}>%</span>
                 매칭도
               </span>
-              {matchSummaryParts.length > 0 && (
-                <span style={{ display: 'flex', gap: 3, marginTop: 2 }}>
-                  {matchSummaryParts.map(part => (
-                    <span key={part} style={{ ...STYLES.buttonNote, marginTop: 0 }}>{part}</span>
-                  ))}
-                </span>
-              )}
+              {matchSummaryParts.map(part => (
+                <span key={part} style={{ ...STYLES.buttonNote, marginTop: 0 }}>{part}</span>
+              ))}
             </span>
           </button>
           <button
@@ -799,8 +815,8 @@ const RecipeSortBar = ({
               appliedExpiryIngredients.length ? ` (지금 ${appliedExpiryIngredients.length}개)` : ''}`}
             data-guide-target="expiry-button"
           >
-            <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'center',
-                           lineHeight: 1.05 }}>
+            {/* 매칭도와 같은 이유로 배지를 라벨 옆에 둔다(2026-10-09). */}
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, lineHeight: 1.1 }}>
               {/* 시계 아이콘이 배지("N개")가 붙었을 때 컬럼 전체 높이의 가운데로
                   정렬돼(부모 button 의 alignItems:center) "임박 재료" 글자보다
                   아래로 처져 보였다(실사용 지적, 2026-09-14). "매칭도" 버튼의
@@ -824,7 +840,7 @@ const RecipeSortBar = ({
                 임박 재료
               </span>
               {appliedExpiryIngredients.length > 0 && (
-                <span style={STYLES.buttonNote}>{appliedExpiryIngredients.length}개</span>
+                <span style={{ ...STYLES.buttonNote, marginTop: 0 }}>{appliedExpiryIngredients.length}개</span>
               )}
             </span>
           </button>
@@ -971,10 +987,13 @@ const RecipeSortBar = ({
           aria-label={`필터 모달 열기${filterCount ? ` (조건 ${filterCount}개)` : ''}`}
           data-guide-target="filter-button"
         >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          {/* 글자(`필터`)를 빼고 **아이콘만** 남겼다(2026-10-09 요청) — 배지를
+              라벨 옆으로 옮기며 이 줄의 가로가 길어진 만큼을 여기서 번다.
+              아이콘은 깔때기 모양이고, 걸린 조건 수는 옆 배지가 말한다.
+              읽어 주는 기계용 이름은 `aria-label` 에 그대로 있다. */}
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path d="M3 5h18M6 12h12M10 19h4" stroke="#FFFFFF" strokeWidth="2.2" strokeLinecap="round" />
           </svg>
-          필터
           {/* 어두운 알약이라 밑에 작은 글씨를 붙이면 안 읽힌다. 숫자를 옆에
               배지로 붙인다 — 몇 개가 걸려 있는지만 알면 된다. */}
           {filterCount > 0 && (
@@ -1238,7 +1257,9 @@ const RecipeSortBar = ({
                 </span>
               )) : <span style={{color: '#9A9AA2', fontSize: 15}}>재료를 선택해 주세요</span>}
             </div>
-            {/* 재료 리스트 스크롤 영역 */}
+            {/* 재료 리스트 스크롤 영역 — 테두리(`ingredientList`)와 이 이름이
+                함께 "여기서 고른다" 를 말한다(2026-10-09 지적). */}
+            <div style={STYLES.fieldLabel}>냉장고에 담긴 재료에서 고르기</div>
             <div style={STYLES.ingredientList}>
               {expirySortedIngredientList.length === 0 && (
                 <div style={{...STYLES.ingredientItem, color: '#9A9AA2', fontSize: 13, textAlign: 'center', padding: 24}}>해당 정보가 입력된 재료가 없습니다.</div>

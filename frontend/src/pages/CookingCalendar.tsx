@@ -1156,6 +1156,9 @@ const CookingCalendar: React.FC = () => {
     }
   };
 
+  /** 사람별 색 범례를 그릴 상황인가(그룹이고, 누군가 한 번이라도 했을 때). */
+  const hasMemberLegend = isInHousehold && goalSegments.length > 0;
+
   const handleSaveGoal = async () => {
     const goal = parseInt(goalInput, 10);
     if (Number.isNaN(goal) || goal < 0 || goal > 200 || !authUser?.id) {
@@ -1966,41 +1969,20 @@ const CookingCalendar: React.FC = () => {
             </span>
           )}
         </div>
-        {/* 인원별 색 범례 — 게이지 색과 같은 순서(완료 많은 순). 한때 "자세히
-            보기" 접힘 영역 안에 넣었더니 "이건 게이지 바로 옆에 항상 붙어
-            있어야지 숨기면 안 된다"는 지적을 받았다 — 누가 몇 회 했는지는
-            게이지가 보여주는 핵심 정보의 일부라, 계산식 설명 문구와는 무게가
-            다르다. 그래서 게이지 바로 아래, 항상 보이는 자리로 옮겼다. */}
-        {isInHousehold && goalSegments.length > 0 && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 8 }}>
-            {goalSegments.map((seg) => (
-              <span key={seg.uid} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--ink-700)' }}>
-                <span style={{ width: 8, height: 8, borderRadius: '50%', background: colorForUser(seg.uid, memberIds), flexShrink: 0 }} />
-                {nicknameById.get(seg.uid) || '?'} {seg.count}회
-              </span>
-            ))}
-          </div>
-        )}
-        {/* 절약액은 재료 가격 데이터가 없어 정확한 계산이 아니라 대략적인
-            추정치다 — 그렇게 명시해서 실제 계산인 것처럼 오해하지 않게 한다.
-            "목표를 달성하면 얼마인지"가 아니라 "이번 달 완료한 횟수 기준"
-            이라는 게 헷갈린다는 지적을 받아 "이번달"을 헤드라인에 직접
-            박아 뒀다(아래 계산식 줄의 × {monthlyTotal}회 도 같은 의미).
-            한 끼 추정액도 1인 기준(식구 수를 곱하므로)임을 명시했다.
-            계산식 문장 안에 수정 버튼을 끼워 넣었더니 문장이 이상한
-            지점에서 줄바꿈되고 어수선해 보인다는 지적을 받아, 문장(읽기)과
-            수정 조작(칩 버튼 2개)을 분리했다 — 문장은 그냥 텍스트로 온전히
-            보여주고, 그 아래 알약 모양 칩으로 값만 눌러서 바로 고칠 수
-            있게 했다. 목표·달성률·절약액까지는 카드를 접어도 항상 보인다. */}
-        {/* 절약액은 위 달성률 줄로 옮겼다(2026-10-09) — 한 줄을 통째로 쓰던 것이
-            카드 세로의 가장 큰 덩어리였다. 돈 아이콘(💰 대신 쓰던 선 아이콘)도
-            같이 뺐다: 한 줄에 같이 서려면 그 20px 이 아쉽다. */}
-        {/* 안내 문구(매월 1일 초기화, 공동 목표 여부)만 접어 둔다 — 인원별
-            범례는 게이지가 보여주는 핵심 정보라 항상 위에 노출한다(위 참고).
-
-            알약 배지로 뒀더니 **본문보다 눈에 띄었다.** 여기 담기는 건
-            부수적인 안내라, 그만한 무게를 가질 자리가 아니다. 테두리를 빼고
-            흐린 글자로 둔다 — 찾는 사람만 찾으면 된다. */}
+        {/* 인원별 색 범례 + `자세히 보기` 를 **한 줄**에 둔다(2026-10-09 요청:
+            이번 달 목표 칸의 세로를 더 줄이고 싶다). 범례는 게이지가 보여주는
+            핵심 정보라 접지 않고 늘 보여 주고(2026-09 지적), `자세히 보기` 는
+            그 줄 오른쪽 끝에 붙여 한 줄을 번다.
+            식구가 많아 범례가 두 줄이 되면 `자세히 보기` 는 마지막 줄 오른쪽으로
+            내려간다(`flexWrap`) — 글자가 겹치는 일은 없다. */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center',
+                      columnGap: 10, rowGap: 6, marginTop: 8 }}>
+          {hasMemberLegend && goalSegments.map((seg) => (
+            <span key={seg.uid} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--ink-700)' }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: colorForUser(seg.uid, memberIds), flexShrink: 0 }} />
+              {nicknameById.get(seg.uid) || '?'} {seg.count}회
+            </span>
+          ))}
         <button
           type="button"
           onClick={() => setGoalCardExpanded((v) => !v)}
@@ -2011,7 +1993,9 @@ const CookingCalendar: React.FC = () => {
             gap: 3,
             height: 24,
             padding: 0,
-            marginTop: 10,
+            flexShrink: 0,
+            // 사람 범례가 있으면 **그 줄 오른쪽 끝**, 없으면 그냥 왼쪽.
+            marginLeft: hasMemberLegend ? 'auto' : 0,
             background: 'transparent',
             border: 'none',
             cursor: 'pointer',
@@ -2035,6 +2019,7 @@ const CookingCalendar: React.FC = () => {
             <path d="M6 9l6 6 6-6" />
           </svg>
         </button>
+        </div>
 
         {goalCardExpanded && (
           <div style={{ marginTop: 10 }}>

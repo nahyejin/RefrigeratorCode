@@ -2211,7 +2211,10 @@ const MyFridge: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-white">
-      <div className="bg-white w-full p-0 m-0 pb-24" style={{ paddingTop: 80 }}>
+      {/* 위 여백 76 = 헤더(56) + 20. **냉장고요리 검색창과 같은 자리**에서
+          시작해야 한다(2026-10-09 지적: 이 화면만 위가 유독 넓다).
+          전에는 80 + 아래 컨테이너의 marginTop 8 = 88 이었다. */}
+      <div className="bg-white w-full p-0 m-0 pb-24" style={{ paddingTop: 76 }}>
         {/* 한때 여기 `내 냉장고 재료 추가` 제목(18px)이 있었다. **뺐다**(2026-10-08).
             제목 + 아래 여백으로 58px 를 쓰면서, 하는 말은 바로 아래 입력창의
             `추가할 재료명을 입력하세요` 와 **같은 말**이었다. 설명은 이미 쓰는
@@ -2250,9 +2253,7 @@ const MyFridge: React.FC = () => {
           onComplete={handleModalComplete}
         />
         {/* 재고 관리 구역 */}
-        {/* 입력칸이 이 안으로 들어왔으니 위 여백(48)은 과하다 — 화면 첫 줄이
-            `내 냉장고 재고 관리` 가 된다. */}
-        <div style={{ maxWidth: 400, margin: '0 auto', paddingLeft: 20, paddingRight: 20, width: '100%', marginTop: 8, boxSizing: 'border-box' }}>
+        <div style={{ maxWidth: 400, margin: '0 auto', paddingLeft: 20, paddingRight: 20, width: '100%', boxSizing: 'border-box' }}>
           {/* 제목(`내 냉장고 재고 관리`)도 **뺐다**(2026-10-09 지적: "여기서는
               필요 없을 것 같다"). 이 화면은 처음부터 끝까지 내 냉장고 재고
               이야기 하나뿐이고, 화면 이름은 하단 탭의 `내냉장고` 가 말한다.
@@ -2479,15 +2480,14 @@ const MyFridge: React.FC = () => {
                 </div>
               )}
             </div>
-            <button
-              type="button"
-              className="bg-[#FFD600] text-[#1A1A1E] font-bold rounded-full px-5 py-2 text-sm shadow hover:bg-yellow-300 transition whitespace-nowrap"
-              style={{ display: 'flex', alignItems: 'center', height: 40, padding: '0 18px', fontSize: 16, marginLeft: 0, alignSelf: 'flex-start' }}
-              onClick={() => combinedFiltered.length > 0 && handleSelect(combinedFiltered[0])}
-              disabled={combinedFiltered.length === 0}
-            >
-              입력
-            </button>
+            {/* 한때 여기 노란 `입력` 버튼이 있었다. **뺐다**(2026-10-09 요청).
+                하는 일이 `handleSelect(combinedFiltered[0])` — 추천 목록의 첫
+                항목을 고르는 것뿐이었다. 즉 **목록에서 고르거나 엔터를 치는
+                것과 똑같고**, 목록이 비면 아예 눌리지도 않았다
+                (사전에 없는 이름은 이 버튼으로도 담을 수 없었다 —
+                 `handleInputKeyDown` 이 "자동완성 목록에서 선택해 주세요" 로
+                 막는다). 같은 일을 하는 세 번째 길이라 없애는 것이 맞다.
+                덕분에 입력칸이 78px 넓어졌다. */}
             {/* 예전엔 "영수증 인식"/"사진으로 재료 인식" 버튼이 따로 있었는데,
                 실제 인식 기능이 들어오기 전까진 어차피 준비 중 안내만 뜨는 자리였다.
                 버튼 하나로 모으고, 눌렀을 때 "뭘 찍을지" 먼저 고르게 한다
@@ -2534,8 +2534,6 @@ const MyFridge: React.FC = () => {
           {/* 곧 상하는 재료 — 한 줄 띠. 누르면 목록과 식단 짜기가 시트로 열린다.
               화면 맨 위에 있던 것을 여기로 내렸다(2026-10-08) — 재고를 말하기
               시작하는 자리 아래가 제자리다. 임박한 게 없으면 아예 그려지지 않는다. */}
-          <div style={{ height: 14 }} />
-          <ExpiryBand bare boxes={fridgeBoxes} categoryMap={categoryMap} />
           <div data-guide-target="storage-areas">
           {/* 냉동보관 */}
           <div style={{ marginBottom: 10 }}>
@@ -2651,9 +2649,18 @@ const MyFridge: React.FC = () => {
           </div>
           </div>
           
-          {/* 쿠팡 다이내믹 배너 — 실온 보관 영역 바로 아래, 화면 맨 끝(2026-09-22). 전의 BottomCoupangAd 는
+          {/* 「곧 상해요」 띠 — **보관함 세 칸 아래, 광고 위**(2026-10-09 요청).
+              입력 줄 바로 아래에 뒀더니 보관함 세 칸을 아래로 밀어, 정작 이
+              화면의 본문(재고)이 한눈에 안 들어왔다. 임박 재료는 **보고 나서
+              챙기는 것**이라 목록을 다 본 뒤가 제자리고, 임박한 게 없으면
+              아무것도 그리지 않으므로 평소에는 이 자리도 비어 있다. */}
+          <div style={{ marginTop: 14 }}>
+            <ExpiryBand bare boxes={fridgeBoxes} categoryMap={categoryMap} />
+          </div>
+
+          {/* 쿠팡 다이내믹 배너 — 화면 맨 끝(2026-09-22). 전의 BottomCoupangAd 는
               광고 단위 ID 환경변수가 없어 실제로는 아무것도 안 그리고 있었다. */}
-          <CoupangDynamicBanner height={50} style={{ marginTop: 32, marginBottom: 24 }} />
+          <CoupangDynamicBanner height={50} style={{ marginTop: 24, marginBottom: 24 }} />
         </div>
         {/* 하단 내비게이션 */}
         <div className="w-full">

@@ -2487,30 +2487,27 @@ const RecipeList: React.FC = () => {
           onToast={(msg, action) => showToast(msg, action)}
         />
         
-        {/* 범례 + 건수를 **한 칸(옅은 회색 판)** 으로 묶었다(2026-10-09 지적:
-            "범례가 그냥 떠 있다 — 영역이라도 잡아 달라"). 이 둘은 아래 카드를
-            읽는 **열쇠**라, 카드와 같은 흰 바닥에 글자만 떠 있으면 어디까지가
-            설명이고 어디부터가 내용인지 흐릿하다.
-            한 줄에 다 넣지는 않는다 — 범례(243px) + 건수는 375px 에 안 들어간다.
-            `flexWrap` 으로 폭이 되면 한 줄, 안 되면 두 줄.
-            (한때 오른쪽에 `즐겨찾기만` 버튼이 있었다. **뺐다**(2026-10-09 요청) —
-             즐겨찾기는 마이페이지 `레시피 현황` 에서 보는 것이고, 이 화면은
-             냉장고 재료로 찾는 자리다.) */}
+        {/* 범례(`부족 재료 / 대체 가능 / 보유 재료`)만 옅은 회색 판에 담는다.
+            이건 아래 카드의 **표식을 읽는 열쇠**라 영역이 있어야 한다는 지적
+            (2026-10-09)으로 판을 줬는데, 건수까지 같이 넣었더니 **범례인지
+            결과 요약인지 헷갈린다**는 지적을 다시 받았다 — 건수는 판 밖으로.
+            (한때 오른쪽에 `즐겨찾기만` 버튼이 있었다. 뺐다 — 즐겨찾기는
+             마이페이지 `레시피 현황` 에서 보는 것이다.) */}
         <div style={{
-          display: 'flex', alignItems: 'center', flexWrap: 'wrap', columnGap: 10, rowGap: 4,
-          marginTop: 8, marginBottom: 8, padding: '7px 10px', borderRadius: 10,
-          background: 'var(--surface-sub)',
+          display: 'flex', alignItems: 'center', marginTop: 8,
+          padding: '6px 10px', borderRadius: 10, background: 'var(--surface-sub)',
         }}>
           <IngredientLegend />
-          <span style={{ color: 'var(--ink-700)', fontSize: 12.5, whiteSpace: 'nowrap', fontWeight: 600 }}>
-            {/* 서버 전체 건수를 보여 준다. 「부족 재료 N개까지」처럼 화면에서만 거르는 조건이 있으면
-                받아 온 것 중 맞는 개수(total)만 알 수 있어 그걸 보여 준다.
-                `총 N건` 이 아니라 **무엇을 센 N건인지**까지 적는다 — 없앤 제목
-                (`내 냉장고 기반 레시피 추천`)의 몫을 이 줄이 이어받았다. `찾은` 이라고
-                쓰는 이유: 매칭도·필터·키워드가 걸린 결과라 `만들 수 있는` 이라고 하면
-                조건에 따라 거짓말이 된다. */}
-            내 냉장고 재료로 찾은 요리 {(maxLack === 'unlimited' ? Math.max(serverTotal, total) : total).toLocaleString('ko-KR')}개
-          </span>
+        </div>
+        <div style={{ marginTop: 6, marginBottom: 6, color: 'var(--ink-700)',
+                      fontSize: 12.5, fontWeight: 600 }}>
+          {/* 서버 전체 건수를 보여 준다. 「부족 재료 N개까지」처럼 화면에서만 거르는 조건이 있으면
+              받아 온 것 중 맞는 개수(total)만 알 수 있어 그걸 보여 준다.
+              `총 N건` 이 아니라 **무엇을 센 N건인지**까지 적는다 — 없앤 제목
+              (`내 냉장고 기반 레시피 추천`)의 몫을 이 줄이 이어받았다. `찾은` 이라고
+              쓰는 이유: 매칭도·필터·키워드가 걸린 결과라 `만들 수 있는` 이라고 하면
+              조건에 따라 거짓말이 된다. */}
+          내 냉장고 재료로 찾은 요리 {(maxLack === 'unlimited' ? Math.max(serverTotal, total) : total).toLocaleString('ko-KR')}개
         </div>
         </div>
 
