@@ -53,6 +53,45 @@ export function defaultMatchRateMin(): number {
   }
 }
 
+/**
+ * 같은 매칭률 안에서 섞는 순서의 seed. 서버에 `shuffle_seed` 로 보낸다.
+ *
+ * **새로 받을 때마다 다르게**(2026-10-08 「새로고침할 때마다 같은 매칭률 안에서는 랜덤하게」) —
+ * 앱을 새로 열면(새 세션) 새 seed, 브라우저 새로고침이어도 새 seed. 다른 탭을 보다 돌아오는 동안은
+ * 같은 seed 를 써야 이미 본 1~N 페이지와 다음 페이지가 이어진다(sessionStorage 에 둔다).
+ * 새로고침이면 RecipeList 가 `consumePageReload()` 로 알아채 저장해 둔 목록 대신 새로 받는다.
+ */
+const SHUFFLE_SEED_KEY = 'recipe_shuffle_seed';
+const PAGE_RELOADED = (() => {
+  try {
+    const nav = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined;
+    return nav?.type === 'reload';
+  } catch {
+    return false;
+  }
+})();
+let shuffleSeed: number | null = null;
+let reloadConsumed = false;
+
+/** 이번 페이지 로드가 브라우저 새로고침이었는지 — **처음 한 번만** true(다른 탭 갔다 오면 false). */
+export function consumePageReload(): boolean {
+  if (reloadConsumed) return false;
+  reloadConsumed = true;
+  return PAGE_RELOADED;
+}
+
+export function getShuffleSeed(): number {
+  if (shuffleSeed != null) return shuffleSeed;
+  let seed = 0;
+  try { if (!PAGE_RELOADED) seed = Number(sessionStorage.getItem(SHUFFLE_SEED_KEY)) || 0; } catch { /* 없으면 새로 */ }
+  if (!seed) {
+    seed = 1 + Math.floor(Math.random() * 2_000_000_000);
+    try { sessionStorage.setItem(SHUFFLE_SEED_KEY, String(seed)); } catch { /* 저장 못 해도 이번 화면엔 쓴다 */ }
+  }
+  shuffleSeed = seed;
+  return seed;
+}
+
 /** 받아 둔 것을 얼마나 믿을까. 냉장고가 그대로여도 레시피는 매일 늘어난다. */
 const FRESH_MS = 10 * 60 * 1000;
 
@@ -76,7 +115,7 @@ export function prefetchKey(): string | null {
     // 날짜도 넣는다 — 서버 매칭률순이 날마다 바뀌므로 어제 받아 둔 것은 못 쓴다
     const d = new Date();
     const today = `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
-    return `${SORT}|${PREFETCH_SIZE}|${defaultMatchRateMin()}|${today}|${[...my].sort().join(',')}`;
+    return `${SORT}|${PREFETCH_SIZE}|${defaultMatchRateMin()}|${today}|${getShuffleSeed()}|${[...my].sort().join(',')}`;
   } catch {
     return null;
   }
@@ -90,6 +129,7 @@ function request(my: string[], matchRateMin: number): Promise<PrefetchResult | n
     my_ingredients: my.join(','),
     match_rate_min: String(matchRateMin),
     match_rate_max: '100',
+    shuffle_seed: String(getShuffleSeed()),
   });
   return fetch(`${API_BASE_URL}/api/recipes/filter?${params}`)
     .then(r => (r.ok ? r.json() : null))
@@ -175,7 +215,7 @@ export function prefetchFridgeRecipes(): void {
       if (!key) return;                   // 냉장고가 비었으면 부를 것이 없다
       if (slot && slot.key === key && Date.now() - slot.at < FRESH_MS) return;
 
-      // 열쇠 모양: `match_rate|20|<매칭률 하한>|<날짜>|<재료들>` — 재료는 **마지막** 칸
+      // 열쇠 모양: `match_rate|20|<매칭률 하한>|<날짜>|<seed>|<재료들>` — 재료는 **마지막** 칸
       // (날짜 칸을 끼우면서 parts[3] 으로 읽던 곳이 날짜를 재료로 보낸 적이 있다 — 끝에서 읽는다).
       const parts = key.split('|');
       const matchRateMin = Number(parts[2]) || 0;

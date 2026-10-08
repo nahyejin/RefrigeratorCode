@@ -34,18 +34,14 @@ export function compareByMatchRateThenLatest(a: Recipe, b: Recipe): number {
   const aMatchRate = Number(a.match_rate) || 0;
   const bMatchRate = Number(b.match_rate) || 0;
 
-  // 냉장고요리(서버 `/api/recipes/filter` 매칭률순)는 서버가 `is_new`·`day_key` 를 붙여 준다 —
-  // 매칭률 10% 구간(90~100% 한 구간) → 최근 7일 수집 먼저 → 날마다 바뀌는 순서. 여기서 정확한 매칭률로
-  // 다시 세우면 그 순서를 덮어써서 매일 같은 레시피가 위에 오므로(2026-10-08) 같은 규칙을 따른다.
+  // 냉장고요리(서버 `/api/recipes/filter` 매칭률순)는 서버가 `day_key`(섞는 순서)를 붙여 준다 —
+  // 정확한 매칭률 높은 순 → 같은 매칭률 안에서는 그 화면이 받을 때 고른 seed 로 섞은 순서.
+  // 여기서 게시일로 다시 세우면 섞은 게 사라져 매번 같은 레시피가 위에 온다(2026-10-08).
   // 기기에만 있는 목록(완료·기록 등)은 이 값이 없어 아래 예전 규칙 그대로다.
   const aKey = (a as any).day_key;
   const bKey = (b as any).day_key;
   if (aKey != null && bKey != null) {
-    const band = (r: number) => Math.floor(Math.min(r, 99) / 10);
-    if (band(aMatchRate) !== band(bMatchRate)) return band(bMatchRate) - band(aMatchRate);
-    const aNew = Number((a as any).is_new) || 0;
-    const bNew = Number((b as any).is_new) || 0;
-    if (aNew !== bNew) return bNew - aNew;
+    if (aMatchRate !== bMatchRate) return bMatchRate - aMatchRate;
     if (Number(aKey) !== Number(bKey)) return Number(aKey) - Number(bKey);
     return (Number(b.id) || 0) - (Number(a.id) || 0);
   }

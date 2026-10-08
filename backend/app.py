@@ -959,20 +959,24 @@ def get_filtered_recipes():
     # ORDER BY
     extra_select = ""
     if sort_by == 'match_rate':
-        # 예전엔 `match_rate DESC` 하나뿐이었다. 냉장고가 그대로면 결과가 날마다 똑같고, 같은 매칭률끼리는
-        # 정해진 순서가 없어 DB 저장 순서(대개 오래된 글)대로 잘려 나갔다 — 화면은 상위 200개만 받으므로
-        # 새로 들어온 레시피가 그 안에 못 들어갔다(2026-10-08 「매일 비슷한 레시피만 보인다」 지적).
-        #   1) 매칭률을 10% 구간으로 묶어 높은 구간부터(90~100% 는 한 구간) — 「매칭 높은 게 위」는 그대로
-        #   2) 같은 구간에선 최근 7일 안에 수집된 레시피 먼저(A)
-        #   3) 나머지는 **날짜마다 바뀌는** 순서(B) — 같은 날엔 고정이라 페이지를 넘겨도 섞이지 않는다
-        # 프론트 `compareByMatchRateThenLatest` 가 같은 규칙(is_new·day_key)으로 다시 정렬한다.
-        # day_seed 는 서버가 만든 숫자(YYYYMMDD)뿐이라 SQL 에 직접 넣어도 안전하다.
-        day_seed = (datetime.utcnow() + timedelta(hours=9)).strftime('%Y%m%d')  # KST — 서버에 시간대 DB 가 없어도 되게 고정 +9
+        # 예전엔 `match_rate DESC` 하나뿐이었다. 같은 매칭률끼리는 정해진 순서가 없어 DB 저장 순서대로
+        # 잘려 나가 날마다 같은 레시피만 위에 왔다(2026-10-08 지적).
+        # 그다음엔 10% 구간(90~100% 한 구간) → 최근 7일 먼저 → 날짜별 순서로 바꿨는데, 「재료매칭순인데
+        # 96% 가 100% 보다 위」·「여전히 같은 게 위」라는 지적(2026-10-08)을 받아 지금 규칙으로:
+        #   1) **정확한 매칭률** 높은 순
+        #   2) 같은 매칭률 안에서는 `shuffle_seed` 로 섞은 순서 — 화면이 새로 받을 때마다(앱을 새로
+        #      열거나 새로고침) 새 seed 를 보내 매번 다르게 나오고, 같은 seed 로 받는 다음 페이지와는
+        #      순서가 이어진다. seed 가 없으면(예전 앱) 날짜.
+        # 프론트 `compareByMatchRateThenLatest` 가 같은 규칙(매칭률·day_key)으로 다시 정렬한다.
+        # seed 는 int 로 바꾼 숫자만 SQL 에 넣으므로 안전하다.
+        shuffle_seed = request.args.get('shuffle_seed', type=int)
+        if shuffle_seed is None:
+            shuffle_seed = int((datetime.utcnow() + timedelta(hours=9)).strftime('%Y%m%d'))  # KST 고정 +9
         extra_select = (
             ", (recipes.collected_at >= NOW() - INTERVAL 7 DAY) AS is_new"
-            f", CRC32(CONCAT(recipes.id, '{day_seed}')) AS day_key"
+            f", CRC32(CONCAT(recipes.id, ':', {abs(shuffle_seed)})) AS day_key"
         )
-        order_by = "FLOOR(LEAST(match_rate, 99) / 10) DESC, is_new DESC, day_key, recipes.id DESC"
+        order_by = "match_rate DESC, day_key, recipes.id DESC"
     elif sort_by == 'date':
         order_by = "post_time DESC"
     elif sort_by == 'popular':

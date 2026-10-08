@@ -16,7 +16,7 @@ import { Recipe, RecipeActionState, FilterState, SubstituteInfo } from '../types
 import { getMyIngredients, getMyIngredientsAsKeywords, sortRecipes, calculateMatchRate, extractKeywordsAndSynonyms, FilterKeywordTree, getDictCategoryKey, preloadIngredientSynonymDict, ingredientSynonymDictCache } from '../utils/recipeUtils';
 import RecipeToast from '../components/RecipeToast';
 import UsedUpSheet from '../components/UsedUpSheet';
-import { takePrefetched, PREFETCH_SIZE, defaultMatchRateMin, setFridgeScreenLoading, DEFAULT_MATCH_MIN } from '../utils/recipePrefetch';
+import { takePrefetched, PREFETCH_SIZE, defaultMatchRateMin, setFridgeScreenLoading, DEFAULT_MATCH_MIN, getShuffleSeed, consumePageReload } from '../utils/recipePrefetch';
 import { fetchCsvOnce } from '../utils/csvOnce';
 // import Slider from 'rc-slider';
 // import 'rc-slider/assets/index.css';
@@ -516,6 +516,10 @@ async function loadRecipesPaged(
       size: size.toString(),
       sort_by: filters.sortBy || 'match_rate'
     });
+    // 같은 매칭률 안에서 섞는 순서 — 새로 받을 때마다 다른 seed(recipePrefetch.getShuffleSeed)
+    if ((filters.sortBy || 'match_rate') === 'match_rate') {
+      params.append('shuffle_seed', String(getShuffleSeed()));
+    }
     
     // 재료 매칭도 필터 추가
     if (filters.matchRateMin !== undefined) {
@@ -834,8 +838,8 @@ const RecipeList: React.FC = () => {
     // 그대로 되살리면 「매일 같은 레시피」가 다시 생긴다(2026-10-08).
     const d = new Date();
     const today = `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
-    // v: 저장 형식 버전 — 바꾸면 예전 저장분(결과·고른 조건)을 버린다. 2: 전체 건수 20 버그, 3: 매칭도 기본 30→10%(2026-10-08)
-    return JSON.stringify({ v: 3, day: today, ingredients: ingredients.sort() });
+    // v: 저장 형식 버전 — 바꾸면 예전 저장분(결과·고른 조건)을 버린다. 2: 전체 건수 20 버그, 3: 매칭도 기본 30→10%, 4: 정확한 매칭률+섞기 순서(2026-10-08)
+    return JSON.stringify({ v: 4, day: today, ingredients: ingredients.sort() });
   }, []);
   
   // 이전 재료 목록 해시값 저장
@@ -869,6 +873,9 @@ const RecipeList: React.FC = () => {
   // 컴포넌트 마운트 시 sessionStorage에서 상태 복원 (재료 변경 감지 포함)
   useEffect(() => {
     try {
+      // 브라우저 새로고침이면 저장해 둔 목록을 버리고 새로 받는다 — 같은 매칭률 안의 순서를 새로 섞기 위해
+      // (2026-10-08 「새로고침할 때마다 랜덤하게」). 다른 탭 갔다 오는 건 그대로 복원.
+      if (consumePageReload()) sessionStorage.removeItem(STORAGE_KEY_RECIPE_LIST);
       const savedState = sessionStorage.getItem(STORAGE_KEY_RECIPE_LIST);
       const savedIngredientsHash = sessionStorage.getItem(STORAGE_KEY_INGREDIENTS_HASH);
       const currentIngredientsHash = getIngredientsHash();
