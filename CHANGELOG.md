@@ -12754,3 +12754,7 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 - 스토어 콘솔에는 사용자가 직접 올려야 함(Play Console 스토어 등록정보 · App Store Connect 스크린샷).
 - 번호: Android 1.0.5(6) → **1.0.6(7)** 빌드(서명된 `.aab`), iOS pbxproj 1.0.4(10) → **1.0.5(11)**. 직전 1.0.5(6)/1.0.4(10)은 이미 제출된 상태.
 
+
+### iOS 1.0.5 (빌드 11) 맥 빌드
+- 맥에서 로컬 변경 없음 확인 → `git pull`(`30da05e1` 까지, 윈도우에서 pbxproj 1.0.5(11)·스크린샷 04~06 교체 반영) → `npm install` → `npm run build` → `npx cap sync ios`.
+- 앱·위젯 4개 설정 1.0.5 / 11 확인. `xcodebuild … -configuration Release -destination generic/platform=iOS build` → BUILD SUCCEEDED. Archive·업로드·App Store Connect 제출(새 스크린샷 `store/screenshots/ios/` 8장)은 사용자.
