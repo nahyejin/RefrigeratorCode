@@ -2494,25 +2494,24 @@ const RecipeList: React.FC = () => {
             `찾은` 이라고 쓰는 이유: 매칭도·필터·키워드가 걸린 결과라 `만들 수 있는` 이라고
             하면 조건에 따라 거짓말이 된다. 서버 전체 건수를 쓰되, 「부족 재료 N개까지」처럼
             화면에서만 거르는 조건이 있으면 받아 온 것 중 맞는 개수(total)를 보여 준다. */}
-        <GroupTitle style={{ margin: '12px 2px 6px' }}>
-          내 냉장고 재료로 찾은 요리{' '}
-          <span style={{ fontWeight: 500, color: 'var(--ink-400)' }}>
-            (총 {(maxLack === 'unlimited' ? Math.max(serverTotal, total) : total).toLocaleString('ko-KR')}건)
-          </span>
-        </GroupTitle>
-        {/* 범례(`부족 재료 / 대체 가능 / 보유 재료`)만 옅은 회색 판에 담는다.
-            이건 아래 카드의 **표식을 읽는 열쇠**라 영역이 있어야 한다는 지적
-            (2026-10-09)으로 판을 줬는데, 건수까지 같이 넣었더니 **범례인지
-            결과 요약인지 헷갈린다**는 지적을 다시 받았다 — 건수는 판 밖으로.
-            (한때 오른쪽에 `즐겨찾기만` 버튼이 있었다. 뺐다 — 즐겨찾기는
-             마이페이지 `레시피 현황` 에서 보는 것이다.) */}
-        {/* 범례는 부수 자료라 **작게(11px) · 오른쪽**으로(2026-10-09 요청). 판의 가로폭은
-            카드와 같다 — 카드 목록 바탕판을 없애 이제 같은 폭이다. */}
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginTop: 8,
-          padding: '4px 10px', borderRadius: 10, background: 'var(--surface-sub)',
-        }}>
-          <IngredientLegend compact />
+        {/* 제목과 범례를 **한 줄**에(2026-10-09 요청): 왼쪽 제목, 오른쪽 범례. 범례 판은 내용
+            폭만큼만 — 가로로 길게 늘어져 있을 이유가 없다. 제목은 `내 냉장고 재료로 찾은 요리`
+            → `냉장고로 찾은 요리` 로 줄였다(한 줄에 같이 들어가야 해서). 폭이 정말 모자란
+            기기에서는 범례가 다음 줄 오른쪽으로 내려간다(`flexWrap`). */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      flexWrap: 'wrap', gap: '4px 8px', margin: '12px 2px 6px' }}>
+          <GroupTitle style={{ margin: 0, whiteSpace: 'nowrap' }}>
+            냉장고로 찾은 요리{' '}
+            <span style={{ fontWeight: 500, color: 'var(--ink-400)' }}>
+              (총 {(maxLack === 'unlimited' ? Math.max(serverTotal, total) : total).toLocaleString('ko-KR')}건)
+            </span>
+          </GroupTitle>
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', marginLeft: 'auto',
+            padding: '3px 8px', borderRadius: 8, background: 'var(--surface-sub)',
+          }}>
+            <IngredientLegend compact />
+          </div>
         </div>
         </div>
 
@@ -2578,10 +2577,12 @@ const RecipeList: React.FC = () => {
             </button>
           )}
 
-          {/* (한때 여기 카드 목록을 옅은 회색 바탕판으로 감쌌다 — 보기 흉하고 카드 폭만
-              16px 줄여 위 범례 판이 더 넓어 보이게 한다는 지적(2026-10-09)으로 **뺐다**.) */}
+          {/* 카드 목록을 **흰 박스**로 한 번 잡는다(2026-10-09). 처음엔 옅은 회색 판이었는데
+              보기 흉하다는 지적으로 뺐더니 영역이 사라져, 요즘인기·마이페이지와 같은 흰 바탕 +
+              옅은 테두리 박스로 되살렸다. 범례가 이제 제목 줄에 있어 박스와 폭이 어긋나 보이지 않는다. */}
           {!loading && (
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2"
+                 style={{ padding: 8, borderRadius: 14, border: '1px solid var(--line-200)', background: '#FFFFFF', marginTop: 4 }}>
               {(() => {
                 // 재료가 없거나, 디폴트 '달걀'만 있고 레시피가 없을 때 안내 문구 표시
                 const hasOnlyDefaultEgg = myIngredients.length === 1 && 

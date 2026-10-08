@@ -17,6 +17,9 @@ interface IngredientLegendProps {
   compact?: boolean;
 }
 
+/** 작은 범례는 색 견본이 뜻을 이미 말하므로 글자를 두 글자로 줄인다(제목 줄에 같이 들어가야 해서). */
+const COMPACT_LABEL: Partial<Record<string, string>> = { missing: '부족', substitutable: '대체', owned: '보유' };
+
 const formatCount = (n: number) => n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 
 /**
@@ -39,7 +42,7 @@ const IngredientLegend: React.FC<IngredientLegendProps> = ({ total, style, swatc
         <div key={state} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <span style={legendSwatchStyle(state)} />
           <span style={{ color: compact ? '#6A6A73' : '#3A3A42', fontSize: compact ? 11 : 13, whiteSpace: 'nowrap' }}>
-            {PILL_COLORS[state].label}
+            {compact ? COMPACT_LABEL[state] ?? PILL_COLORS[state].label : PILL_COLORS[state].label}
           </span>
         </div>
       ))}
