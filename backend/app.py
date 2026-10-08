@@ -846,9 +846,22 @@ def get_filtered_recipes():
         match_rate_params = []
 
     # ORDER BY
+    extra_select = ""
     if sort_by == 'match_rate':
-        # 재료 매칭률 기준으로만 정렬 (match_rate가 모두 같을 때도 match_rate 기준 유지)
-        order_by = "match_rate DESC"
+        # 예전엔 `match_rate DESC` 하나뿐이었다. 냉장고가 그대로면 결과가 날마다 똑같고, 같은 매칭률끼리는
+        # 정해진 순서가 없어 DB 저장 순서(대개 오래된 글)대로 잘려 나갔다 — 화면은 상위 200개만 받으므로
+        # 새로 들어온 레시피가 그 안에 못 들어갔다(2026-10-08 「매일 비슷한 레시피만 보인다」 지적).
+        #   1) 매칭률을 10% 구간으로 묶어 높은 구간부터(90~100% 는 한 구간) — 「매칭 높은 게 위」는 그대로
+        #   2) 같은 구간에선 최근 7일 안에 수집된 레시피 먼저(A)
+        #   3) 나머지는 **날짜마다 바뀌는** 순서(B) — 같은 날엔 고정이라 페이지를 넘겨도 섞이지 않는다
+        # 프론트 `compareByMatchRateThenLatest` 가 같은 규칙(is_new·day_key)으로 다시 정렬한다.
+        # day_seed 는 서버가 만든 숫자(YYYYMMDD)뿐이라 SQL 에 직접 넣어도 안전하다.
+        day_seed = (datetime.utcnow() + timedelta(hours=9)).strftime('%Y%m%d')  # KST — 서버에 시간대 DB 가 없어도 되게 고정 +9
+        extra_select = (
+            ", (recipes.collected_at >= NOW() - INTERVAL 7 DAY) AS is_new"
+            f", CRC32(CONCAT(recipes.id, '{day_seed}')) AS day_key"
+        )
+        order_by = "FLOOR(LEAST(match_rate, 99) / 10) DESC, is_new DESC, day_key, recipes.id DESC"
     elif sort_by == 'date':
         order_by = "post_time DESC"
     elif sort_by == 'popular':
@@ -941,7 +954,7 @@ def get_filtered_recipes():
     # content는 제외하여 네트워크 전송량과 메모리 사용량 감소
     main_sql = f"""
       SELECT {select_cols},
-             {match_rate_expr} AS match_rate
+             {match_rate_expr} AS match_rate{extra_select}
       FROM {from_sql}
       WHERE {where_sql}
     """

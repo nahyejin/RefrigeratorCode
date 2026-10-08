@@ -824,7 +824,11 @@ const RecipeList: React.FC = () => {
   // 재료 목록의 해시값 계산 (변경 감지용)
   const getIngredientsHash = useCallback(() => {
     const ingredients = getMyIngredients();
-    return JSON.stringify(ingredients.sort());
+    // 오늘 날짜도 넣는다 — 서버 매칭률순은 날마다 순서가 바뀌므로(같은 구간 안), 하루 지난 저장 결과를
+    // 그대로 되살리면 「매일 같은 레시피」가 다시 생긴다(2026-10-08).
+    const d = new Date();
+    const today = `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+    return JSON.stringify({ day: today, ingredients: ingredients.sort() });
   }, []);
   
   // 이전 재료 목록 해시값 저장

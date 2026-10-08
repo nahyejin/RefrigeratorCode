@@ -66,7 +66,10 @@ export function prefetchKey(): string | null {
   try {
     const my = getMyIngredientsAsKeywords();
     if (!my || my.length === 0) return null;
-    return `${SORT}|${PREFETCH_SIZE}|${defaultMatchRateMin()}|${[...my].sort().join(',')}`;
+    // 날짜도 넣는다 — 서버 매칭률순이 날마다 바뀌므로 어제 받아 둔 것은 못 쓴다
+    const d = new Date();
+    const today = `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+    return `${SORT}|${PREFETCH_SIZE}|${defaultMatchRateMin()}|${today}|${[...my].sort().join(',')}`;
   } catch {
     return null;
   }
@@ -160,10 +163,11 @@ export function prefetchFridgeRecipes(): void {
       if (!key) return;                   // 냉장고가 비었으면 부를 것이 없다
       if (slot && slot.key === key && Date.now() - slot.at < FRESH_MS) return;
 
-      // 열쇠 모양: `match_rate|20|<매칭률 하한>|<재료들>` — 재료는 마지막 칸.
+      // 열쇠 모양: `match_rate|20|<매칭률 하한>|<날짜>|<재료들>` — 재료는 **마지막** 칸
+      // (날짜 칸을 끼우면서 parts[3] 으로 읽던 곳이 날짜를 재료로 보낸 적이 있다 — 끝에서 읽는다).
       const parts = key.split('|');
       const matchRateMin = Number(parts[2]) || 0;
-      const my = parts[3].split(',');
+      const my = parts[parts.length - 1].split(',');
       setFridgeBusy(true);
       const promise = request(my, matchRateMin)
         .finally(() => setFridgeBusy(false));
