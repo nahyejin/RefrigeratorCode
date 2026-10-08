@@ -5,7 +5,6 @@ import Toast from '../components/Toast';
 import IngredientLegend from '../components/IngredientLegend';
 import SectionHeader from '../components/SectionHeader';
 import SectionIcon from '../components/ui/SectionIcon';
-import SectionBand from '../components/ui/SectionBand';
 import Button from '../components/ui/Button';
 import Dialog from '../components/ui/Dialog';
 import BottomNavBar from '../components/BottomNavBar';
@@ -1445,12 +1444,12 @@ const MyPage: React.FC = () => {
       {/* 제목은 **게이지가 실제로 그려질 때만.** `UsageGauge` 는 사용량을 아직
           못 받았으면 아무것도 안 그리는데(서버가 안 뜬 경우 등), 그때 제목만
           남으면 빈 제목 한 줄이 떠 있게 된다 — 실제로 그렇게 보였다. */}
-      {!!usageNow && <GroupTitle>AI 크레딧</GroupTitle>}
+      {!!usageNow && <GroupTitle>크레딧 사용 현황</GroupTitle>}
       <div style={{ margin: '0 14px' }}>
         <UsageGauge />
       </div>
 
-      {isLoggedIn && <GroupTitle>설정</GroupTitle>}
+      {isLoggedIn && <GroupTitle>그룹 설정 현황</GroupTitle>}
       {isLoggedIn && (
         <div style={{ margin: '0 14px' }} data-guide-target="household-section">
           {/* 가이드가 이 칸(17단계)을 가리키면 펼친다 — 접힌 채면 제목 한 줄뿐이다. */}
@@ -1461,8 +1460,9 @@ const MyPage: React.FC = () => {
       {/* 알림 설정 — 그룹 설정 바로 아래. 임박 알림도 결국 "내 정보·설정"
           묶음의 하나라 이 자리가 자연스럽다(로그인 안 했으면 아예 켤 수
           없으므로 로그인 상태에서만 보여준다). */}
+      {isLoggedIn && <GroupTitle>알림 설정</GroupTitle>}
       {isLoggedIn && (
-        <div style={{ margin: '8px 14px 0' }} data-guide-target="notification-settings">
+        <div style={{ margin: '0 14px' }} data-guide-target="notification-settings">
           <NotificationSettings />
         </div>
       )}
@@ -1497,20 +1497,10 @@ const MyPage: React.FC = () => {
         </div>
       )}
 
-      {/* 내 정보/그룹 설정(위)과 레시피 활용 내역(아래) 은 서로 다른
-          이야기라 구분선을 둔다. 반대로 아래 토글·요약 숫자·세 목록은 하나로
-          이어지는 이야기라 이 구분선 하나로 뭉쳐 두고, 그 안쪽에서는
-          나누지 않는다(토글 바로 아래에 구분선을 두면 "저 토글이 즐겨찾기
-          영역에만 적용되나?" 로 오해하기 쉬웠음). */}
-      {/* 이 지점의 부모는 좌우 패딩이 없는 화면 최상위 컨테이너라, 다른 곳
-          (bleed=14, 좌우 14px 패딩 안에서 씀)과 달리 bleed=0 이어야 밴드가
-          화면 밖으로 새지 않는다. */}
-      {isLoggedIn && <SectionBand bleed={0} gap={16} />}
-
-      {/* 제목이 생기면서 밴드의 위아래 여백(28+28=56px)이 과해졌다 — 16 으로 줄였다.
-          밴드를 아예 빼지 않는 이유: 위(계정·설정)와 아래(레시피 내역)는 **다른
-          이야기**라, 제목만으로는 같은 목록의 하위 구분처럼 읽힐 수 있다. */}
-      <GroupTitle>내 레시피</GroupTitle>
+      {/* 한때 여기 회색 구분 밴드(`SectionBand`)가 있었다. **뺐다**(2026-10-08) —
+          묶음마다 제목과 테두리 박스가 생긴 뒤로는 경계를 그것들이 말한다.
+          제목 바로 위에 회색 띠가 또 있으면 구분선이 두 겹이 된다. */}
+      <GroupTitle>레시피 현황</GroupTitle>
 
       {/* 그룹에 속해 있을 때만: 즐겨찾기/기록/완료 세 영역을 "우리 식구 모두"
           볼지 "나의 것만" 볼지 고르는 상위 토글. 세 영역이 각각 따로 그룹
@@ -1521,9 +1511,16 @@ const MyPage: React.FC = () => {
       {/* 화면 전체의 기준을 바꾸는 자리라 **탭**으로 그린다. 요리 캘린더의
           `달력 / 내 요리 / 우리 식구 요리` 와 같은 모양이다 — 같은 일을 하는
           것은 같게 보여야 한다. 알약으로 뒀더니 아래 필터들과 구분이 안 됐다. */}
+      {/* 위 묶음들과 **같은 모양의 박스 하나**로 담는다(2026-10-08).
+          전에는 탭 · 체크박스 · 요약 숫자가 각각 따로 떠 있어서, 같은 이야기인데
+          세 덩어리로 보였다. 박스 테두리가 "여기까지가 레시피 현황" 을 말한다. */}
+      <div style={{
+        margin: '0 14px', border: '1px solid var(--line-200)', borderRadius: 14,
+        background: 'var(--surface)', overflow: 'hidden',
+      }}>
       {isInHousehold && (
         <div style={{ display: 'flex', borderBottom: '1px solid var(--line-200)',
-                      margin: '12px 14px 0', padding: '0 4px' }}>
+                      padding: '0 6px' }}>
           {([
             // 기본값(나의 것만)이 앞에 온다.
             { key: 'mine', label: '나의 것만' },
@@ -1561,7 +1558,7 @@ const MyPage: React.FC = () => {
           눌리는데 아무 일도 안 일어나는 게 제일 나쁘다. */}
       {showAllHousehold && (
         <label style={{ display: 'flex', alignItems: 'center', gap: 6,
-                        margin: '10px 14px 0', fontSize: 12.5,
+                        padding: '10px 14px 0', fontSize: 12.5,
                         cursor: othersTotal === 0 ? 'default' : 'pointer' }}>
           <input
             type="checkbox"
@@ -1584,10 +1581,8 @@ const MyPage: React.FC = () => {
       <nav
         style={{
           display: 'flex',
-          margin: '12px 14px 0',
-          border: '1px solid var(--line-200)',
-          borderRadius: 14,
-          overflow: 'hidden',
+          // 테두리·모서리는 바깥 박스가 갖는다 — 박스 안에 또 박스를 두면
+          // 선이 두 겹으로 보인다.
         }}
       >
         {[
@@ -1622,6 +1617,7 @@ const MyPage: React.FC = () => {
           </button>
         ))}
       </nav>
+      </div>
 
       {/* 한때 여기 `즐겨찾기로 요리 고르기` · `만든 요리 돌아보기` 두 버튼이 있었다.
           **뺐다**(2026-10-08 요청). 바로 위 요약 숫자 세 칸이 이미 같은 곳으로 가는
@@ -1655,6 +1651,12 @@ const MyPage: React.FC = () => {
           비어 보였다(2026-09-26 지적 — 이 칸은 바닥에 붙어 있어야 한다). 페이지 전체의 아래 여백(pb-24, 하단 메뉴
           피하기용)도 이 칸 안으로 옮겼다 — 밖에 두면 회색 아래에 흰 띠가 남는다. 아래 여백 150px 는 하단 메뉴 + 요리 AI
           버튼(오른쪽 아래) 높이 — 맨 끝까지 내렸을 때 인스타그램 아이디·방침 링크가 버튼에 가리지 않게. */}
+      {/* ⚠️ 여기를 `position: sticky; bottom: 0` 으로 만들어 보고 **되돌렸다**
+          (2026-10-08). 실측(390x560): 이 칸은 높이가 326px 이라 바닥에 고정하면
+          크레딧 카드와 레시피 현황을 **통째로 덮었다.** 더 낮출 수도 없다 —
+          요리 AI 버튼이 바닥에서 80~136px 를 쓰고 하단 메뉴가 65px 를 쓰므로,
+          전체 폭 내용을 그 위에 두려면 아래 여백만 136px 가 필요하다.
+          고정하려면 한 줄(44px)짜리 띠로 줄이는 쪽이라, 사용자에게 먼저 묻는다. */}
       <div style={{ margin: '24px 0 0', padding: '16px 14px calc(150px + env(safe-area-inset-bottom, 0px))', background: 'var(--surface-sub)', flex: 1 }}>
         <ContactBox />
         {/* 쿠팡 광고 - 페이지 맨 끝에 도달했을 때만 표시(광고 단위 ID 가 없으면 아무것도 안 그린다) */}

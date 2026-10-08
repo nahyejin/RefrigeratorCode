@@ -367,56 +367,56 @@ const HouseholdSection: React.FC<HouseholdSectionProps> = ({ onChange, guideExpa
         background: 'var(--surface)',
       }}
     >
-      <div
-        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginBottom: 4 }}
-      >
-        <span style={{ fontSize: 15, fontWeight: 700, color: '#1A1A1E' }}>그룹 설정</span>
-        {info?.in_household && (
-          <button
-            type="button"
-            onClick={() => setExpanded((v) => !v)}
-            aria-expanded={expanded}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4,
-              height: 28,
-              padding: '0 10px',
-              borderRadius: 9999,
-              background: 'var(--surface-sub)',
-              border: 'none',
-              cursor: 'pointer',
-              flexShrink: 0,
-              fontSize: 12.5,
-              fontWeight: 600,
-              color: 'var(--ink-700)',
-            }}
-          >
-            {expanded ? '접기' : '펼치기'}
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="var(--ink-700)"
-              strokeWidth="2.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              style={{ transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }}
-            >
-              <path d="M6 9l6 6 6-6" />
-            </svg>
-          </button>
-        )}
-      </div>
+      {/* 카드 안에 다시 `그룹 설정` 이라고 적지 않는다 — 바로 위 묶음 제목이
+          이미 그 말을 한다(2026-10-08). 제목을 빼면서 접기/펼치기 버튼은
+          설명 한 줄과 **같은 줄**로 옮겼다(아래) — 혼자 남으면 무엇을 펼치는
+          버튼인지 알 수 없는 줄이 하나 생긴다. */}
 
       {loading && !info ? (
         <div style={{ fontSize: 13, color: 'var(--ink-500)', padding: '8px 0' }}>불러오는 중...</div>
       ) : info?.in_household ? (
         <div>
-          <p style={{ fontSize: 13, color: 'var(--ink-500)', marginBottom: expanded ? 10 : 0 }}>
-            식구와 냉장고를 함께 쓰고 있어요.
-          </p>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        gap: 6, marginBottom: expanded ? 10 : 0 }}>
+            <p style={{ fontSize: 13, color: 'var(--ink-500)', margin: 0 }}>
+              식구와 냉장고를 함께 쓰고 있어요.
+            </p>
+              <button
+                type="button"
+                onClick={() => setExpanded((v) => !v)}
+                aria-expanded={expanded}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  height: 28,
+                  padding: '0 10px',
+                  borderRadius: 9999,
+                  background: 'var(--surface-sub)',
+                  border: 'none',
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                  fontSize: 12.5,
+                  fontWeight: 600,
+                  color: 'var(--ink-700)',
+                }}
+              >
+                {expanded ? '접기' : '펼치기'}
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="var(--ink-700)"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  style={{ transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }}
+                >
+                  <path d="M6 9l6 6 6-6" />
+                </svg>
+              </button>
+          </div>
 
           {expanded && (
           <>
