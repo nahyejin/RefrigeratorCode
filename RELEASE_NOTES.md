@@ -13,7 +13,7 @@
 
 ## 다음 버전 — 쌓는 중 (iOS 1.0.4 · 빌드 10 / Android 1.0.5 · versionCode 6)
 
-**Android 1.0.5(6) 빌드 완료 2026-10-09 02:47** — 아래 표 전부 포함, 서명된 `app-release.aab`(`frontend/android/app/build/outputs/bundle/release/`). Play Console 업로드는 사용자가 한다. 이 시각 이후 앱 쪽을 또 고치면 다시 빌드(같은 versionCode 로는 업로드 불가 → 7).
+**Android 1.0.5(6) 빌드 완료 2026-10-09 02:47** — 아래 표 전부 포함, 서명된 `app-release.aab`(`frontend/android/app/build/outputs/bundle/release/`). **2026-10-09 비공개 테스트(Alpha)에 업로드·검토 제출**(출시명 `6 (1.0.5)`, 관리형 게시 꺼짐 → 통과하면 자동 게시). 결과는 Gmail·Play Console 알림. 이 시각 이후 앱 쪽을 또 고치면 다시 빌드(같은 versionCode 로는 업로드 불가 → 7).
 
 | 날짜 | 변경 | 계기 |
 |---|---|---|

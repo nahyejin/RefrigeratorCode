@@ -12726,4 +12726,4 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 ### 안드로이드 1.0.5 (versionCode 6) 빌드
 - `npm run app:sync`(웹 빌드 + cap sync) → `build.gradle` 1.0.4(5) → **1.0.5(6)** → `gradlew bundleRelease`(JAVA_HOME = Android Studio jbr) → 서명된 `app-release.aab`(약 13MB, `jarsigner -verify` 통과). 번들에 Railway 주소(refrigeratorcode-production)가 들어갔고 localhost 는 라이브러리 기본값 문자열뿐.
 - 업로드는 사용자가 Play Console 에서. iOS 1.0.4(빌드 10)는 맥에서.
-
+- 2026-10-09 사용자가 Play Console 비공개 테스트(Alpha)에 `6 (1.0.5)` 업로드·검토 제출(빠른 검사 진행 중 화면 확인). 이어서 맥에서 iOS 1.0.4(빌드 10).
