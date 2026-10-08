@@ -24,6 +24,7 @@ import { useUsage } from '../components/UsageMeter';
 import { loadIngredientCategoryMap, estimateExpiry, type CategoryMap } from '../utils/shelfLife';
 import { splitExpiring } from '../utils/expiry';
 import ExpiryBand from '../components/ExpiryBand';
+import GroupTitle from '../components/ui/GroupTitle';
 import { STALE_AFTER_DAYS } from '../utils/expiry';
 import {
   isUsageGuideDueThisVisit,
@@ -2249,8 +2250,13 @@ const MyFridge: React.FC = () => {
         {/* 입력칸이 이 안으로 들어왔으니 위 여백(48)은 과하다 — 화면 첫 줄이
             `내 냉장고 재고 관리` 가 된다. */}
         <div style={{ maxWidth: 400, margin: '0 auto', paddingLeft: 20, paddingRight: 20, width: '100%', marginTop: 8, boxSizing: 'border-box' }}>
-          <div className="flex items-center justify-between mb-2" style={{ position: 'relative', width: '100%' }}>
-            <h2 className="text-[16px] font-bold text-[#1A1A1E]">내 냉장고 재고 관리</h2>
+          {/* 제목을 **다른 화면과 같은 작은 회색 글자**로 바꿨다(2026-10-08 지적:
+              "16px 굵은 제목 + 가로선이 이 페이지에만 있다"). 마이페이지·
+              마이캘린더·요즘인기가 모두 `GroupTitle` 이라, 이 화면만 다른
+              방식으로 영역을 말할 이유가 없다. 아래 1px 가로선도 뺐다 —
+              제목과 박스가 이미 경계를 말한다. */}
+          <div className="flex items-center justify-between" style={{ position: 'relative', width: '100%' }}>
+            <GroupTitle style={{ margin: '0 0 6px' }}>내 냉장고 재고 관리</GroupTitle>
             {/* 저장 버튼을 없애고 상태 표시로 교체.
                 재료가 바뀌면 자동으로 저장되므로 사용자가 누를 일이 없다.
                 다만 예전 자동 저장은 실패해도 콘솔에만 찍고 끝나서 저장이 안 된 걸
@@ -2296,7 +2302,6 @@ const MyFridge: React.FC = () => {
               </div>
             )}
           </div>
-          <div style={{height: 1, width: '100%', background: 'var(--line-200)', marginBottom: 14}} />
           {/* 재료 추가 줄 — **재고 관리 머리줄 바로 아래**로 옮겼다(2026-10-08).
               화면 맨 위에 혼자 떠 있을 때는 "여기 입력하면 아래 냉장고에
               담긴다" 가 안 읽혔다(제목을 빼 봐도 마찬가지였다). 입력칸이
@@ -2502,6 +2507,7 @@ const MyFridge: React.FC = () => {
           {/* 곧 상하는 재료 — 한 줄 띠. 누르면 목록과 식단 짜기가 시트로 열린다.
               화면 맨 위에 있던 것을 여기로 내렸다(2026-10-08) — 재고를 말하기
               시작하는 자리 아래가 제자리다. 임박한 게 없으면 아예 그려지지 않는다. */}
+          <div style={{ height: 14 }} />
           <ExpiryBand bare boxes={fridgeBoxes} categoryMap={categoryMap} />
           <div data-guide-target="storage-areas">
           {/* 냉동보관 */}

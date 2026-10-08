@@ -1839,12 +1839,14 @@ const CookingCalendar: React.FC = () => {
                 type="button"
                 onClick={() => setProgressOpen(true)}
                 style={{
-                  height: 22, padding: '0 8px', borderRadius: 9999,
+                  height: 24, padding: '0 9px', borderRadius: 9999,
                   border: '1px solid var(--line-300)', background: 'var(--surface)',
                   fontSize: 11, fontWeight: 600, color: 'var(--ink-500)', cursor: 'pointer',
+                  whiteSpace: 'nowrap',
                 }}
               >
-                기록
+                {/* `기록` 한 글자로는 무엇의 기록인지 알 수 없었다(2026-10-08). */}
+                월별 기록 보기
               </button>
             )}
           </span>
@@ -2256,15 +2258,20 @@ const CookingCalendar: React.FC = () => {
                   type="button"
                   onClick={() => setViewMode(key)}
                   style={{
-                    minHeight: 30,
-                    padding: '7px 14px',
+                    // 30 → 26. 회색으로 꽉 찬 알약이 커서 투박해 보였다
+                    // (2026-10-08: "높이도 높고 촌스럽다" · 목표 카드의
+                    // `월별 기록 보기` 버튼 높이를 기준으로).
+                    // 안 고른 것은 **흰 면 + 얇은 테두리** — 회색 면끼리
+                    // 붙어 있으면 뭐가 켜진 건지 한 번 더 봐야 한다.
+                    height: 26,
+                    padding: '0 12px',
                     boxSizing: 'border-box',
                     borderRadius: 9999,
-                    fontSize: 13,
-                    fontWeight: on ? 700 : 500,
-                    background: on ? 'var(--ink-900)' : 'var(--surface-sub)',
+                    fontSize: 12.5,
+                    fontWeight: on ? 700 : 600,
+                    background: on ? 'var(--ink-900)' : 'var(--surface)',
                     color: on ? '#FFFFFF' : 'var(--ink-700)',
-                    border: 'none',
+                    border: on ? 'none' : '1px solid var(--line-300)',
                     cursor: 'pointer',
                   }}
                 >
@@ -2284,9 +2291,10 @@ const CookingCalendar: React.FC = () => {
               setManualLogOpen(true);
             }}
             style={{
-              display: 'inline-flex', alignItems: 'center', gap: 4, height: 30, padding: '0 10px',
-              borderRadius: 9999, border: '1px solid var(--line-300)', background: 'var(--surface-sub)',
-              fontSize: 12.5, fontWeight: 700, color: 'var(--ink-700)', cursor: 'pointer',
+              // 왼쪽 일/주/월 퀵버튼과 **같은 높이·같은 면**이어야 한 줄로 읽힌다.
+              display: 'inline-flex', alignItems: 'center', gap: 4, height: 26, padding: '0 10px',
+              borderRadius: 9999, border: '1px solid var(--line-300)', background: 'var(--surface)',
+              fontSize: 12, fontWeight: 600, color: 'var(--ink-700)', cursor: 'pointer',
               whiteSpace: 'nowrap', flexShrink: 0,
             }}
           >

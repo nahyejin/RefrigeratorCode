@@ -2,15 +2,14 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { fetchCsvOnce } from '../utils/csvOnce';
 import { takePrefetchedPopular } from '../utils/recipePrefetch';
 import SectionIcon from '../components/ui/SectionIcon';
+import GroupTitle from '../components/ui/GroupTitle';
 import LoadingIndicator from '../components/LoadingIndicator';
-import SectionHeader from '../components/SectionHeader';
 import Toast from '../components/Toast';
 import IngredientLegend from '../components/IngredientLegend';
 import BottomNavBar from '../components/BottomNavBar';
 import FilterModal from '../components/FilterModal';
 import IngredientDateModal from '../components/IngredientDateModal';
 import CustomCalendar from '../components/CustomCalendar';
-import MenuSelect from '../components/ui/MenuSelect';
 import 완료하기버튼 from '../assets/완료하기버튼.svg';
 import 공유하기버튼 from '../assets/공유하기버튼.svg';
 import 기록하기버튼 from '../assets/기록하기버튼.svg';
@@ -1692,40 +1691,45 @@ const Popular = () => {
             규격이 달라(높이 28, 선택 시 회색) 이 화면만 다른 앱처럼 보였다.
             → 라벨을 붙이고 왼쪽으로 정렬하며, 규격을 냉장고요리와 맞춘다. */}
         {/* 이 줄은 "아래 전체에 걸리는 조건" 이다.
-            모양은 **냉장고요리 탭의 정렬·필터 줄과 같게** 맞춘다(2026-10-08 지적).
-            전에는 옅은 회색 판 위에 칩 3개를 얹어 뒀는데, 같은 성격의 컨트롤이
-            탭마다 다른 모양이면 이 화면만 다른 앱처럼 보인다.
-              - 회색 판·테두리를 없애고 흰 바탕에 바로 둔다 (냉장고요리와 동일)
-              - 칩 3개 → `MenuSelect` 드롭다운 하나. 마이캘린더 목록의 기간
-                고르개가 이미 같은 부품이다 — **같은 일을 하는 것은 같게 보여야**
-                한다. 높이도 40 으로(냉장고요리 컨트롤과 같은 값)
-            `기간` 라벨은 남긴다. 라벨 없이 두면 무엇을 제어하는 칸인지,
-            어디까지 영향을 주는지 알 수 없다는 지적을 전에 받았다. */}
-        <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 28 }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-700)' }}>기간</span>
-          <MenuSelect
-            ariaLabel="기간"
-            height={40}
-            value={period}
-            onChange={(v) => {
-              if (v === 'custom') {
-                // 모달 열 때 현재 dateRange 값을 tempDateRange 에 반영
-                setTempDateRange(dateRange[0] && dateRange[1] ? [dateRange[0], dateRange[1]] : [null, null]);
-                setDateModalOpen(true);
-                return;
-              }
-              setPeriod(v);
-              setDateRange([null, null]);
-              setTempDateRange([null, null]);
-            }}
-            options={periodOptions.map(opt => (
-              // 직접 고른 기간은 **고른 날짜를 그대로** 보여 준다 —
-              // `기간선택` 이라고만 적혀 있으면 지금 무슨 기간을 보는지 알 수 없다.
-              opt.value === 'custom' && dateRange[0] && dateRange[1]
-                ? { value: opt.value, label: periodLabel }
-                : opt
-            ))}
-          />
+            **퀵버튼으로 되돌렸다**(2026-10-08) — 고를 게 셋뿐인데 드롭다운은
+            한 번 더 누르게 만든다. 모양은 마이캘린더의 `일 / 주 / 월` 과 같은
+            규격(높이 26 · 알약 · 고른 것만 검은 면)이다. 거기서도 높이 30 짜리
+            회색 알약이 투박하다는 지적을 받아 같이 낮췄다. */}
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', marginBottom: 20 }}>
+          <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink-700)', marginRight: 2 }}>기간</span>
+          {periodOptions.map(opt => {
+            const on = period === opt.value;
+            // 직접 고른 기간은 고른 날짜를 그대로 보여 준다 — `기간선택` 이라고만
+            // 적혀 있으면 지금 무슨 기간을 보는지 알 수 없다.
+            const label = opt.value === 'custom' && dateRange[0] && dateRange[1] ? periodLabel : opt.label;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => {
+                  if (opt.value === 'custom') {
+                    setTempDateRange(dateRange[0] && dateRange[1] ? [dateRange[0], dateRange[1]] : [null, null]);
+                    setDateModalOpen(true);
+                    return;
+                  }
+                  setPeriod(opt.value);
+                  setDateRange([null, null]);
+                  setTempDateRange([null, null]);
+                }}
+                aria-pressed={on}
+                style={{
+                  height: 26, padding: '0 12px', boxSizing: 'border-box',
+                  borderRadius: 9999, fontSize: 12.5, fontWeight: on ? 700 : 600,
+                  background: on ? 'var(--ink-900)' : 'var(--surface)',
+                  color: on ? '#FFFFFF' : 'var(--ink-700)',
+                  border: on ? 'none' : '1px solid var(--line-300)',
+                  cursor: 'pointer', whiteSpace: 'nowrap',
+                }}
+              >
+                {label}
+              </button>
+            );
+          })}
         </div>
 
         {/* 기간선택 모달 */}
@@ -1803,6 +1807,8 @@ const Popular = () => {
           if (premiumRecipes.length === 0) return null;
 
           return (
+            <>
+            <GroupTitle style={{ margin: '0 2px 6px' }}>특별한 날 특별한 음식</GroupTitle>
             <section style={{
           // 회색 가로선(`SectionBand`)으로 가르던 것을 **박스**로 바꿨다
           // (2026-10-08 요청). 마이페이지·마이캘린더가 이미 박스+작은 제목으로
@@ -1819,11 +1825,12 @@ const Popular = () => {
                   ③ "평소엔 잘 안 쓰는 재료로 만드는 요리예요" — 자주 쓰는 재료가 들어간
                      경우도 있어 사실과 어긋남
                   → 단정할 수 있는 만큼만 말한다 */}
-              <SectionHeader
-                icon={<SectionIcon kind="special" />}
-                title="특별한 날 특별한 음식"
-                description="특별한 재료로 만드는 요리예요"
-              />
+              {/* 제목은 박스 **바깥**의 작은 회색 글자가 맡는다(2026-10-08 요청 —
+                  마이페이지·마이캘린더와 같은 형식). 안쪽에는 설명 한 줄만. */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                <SectionIcon kind="special" />
+                <span style={{ fontSize: 12.5, color: 'var(--ink-500)' }}>특별한 재료로 만드는 요리예요</span>
+              </div>
               {/* 범례 + 총 건수 (유튜브/네이버 섹션과 동일한 형식) */}
               <IngredientLegend swatchesHidden total={premiumRecipes.length} style={{ marginBottom: 6, marginTop: 8 }} />
               
@@ -1981,6 +1988,7 @@ const Popular = () => {
                 )}
               </div>
             </section>
+            </>
           );
         })()}
 
@@ -1995,6 +2003,8 @@ const Popular = () => {
         {(naverRecipes.length > 0 || youtubeRecipes.length > 0) && (() => {
           const list = feedTab === 'naver' ? naverRecipes : youtubeRecipes;
           return (
+        <>
+        <GroupTitle style={{ margin: '0 2px 6px' }}>인기 레시피</GroupTitle>
         <section style={{
           // 회색 가로선(`SectionBand`)으로 가르던 것을 **박스**로 바꿨다
           // (2026-10-08 요청). 마이페이지·마이캘린더가 이미 박스+작은 제목으로
@@ -2002,10 +2012,6 @@ const Popular = () => {
           marginBottom: 14, padding: '14px 12px 16px', borderRadius: 14,
           border: '1px solid var(--line-200)', background: '#FFFFFF',
         }}>
-          <SectionHeader
-            title="인기 레시피"
-            iconUrl={feedTab === 'naver' ? naverTitleImg : youtubeTitleImg}
-          />
 
           {/* 어디 것인지 고른다. 급상승 표와 같은 모양이다. */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -2077,6 +2083,7 @@ const Popular = () => {
              }}
            />
         </section>
+        </>
           );
         })()}
 
@@ -2090,6 +2097,8 @@ const Popular = () => {
             `순위·이름·레시피 수` 에 `▴2배` 배지까지 들어갈 자리가 안 나온다.
             **탭으로 겹치면** 높이는 절반이 되고, 표는 화면 폭을 다 쓴다. */}
         {(dishRankings.length > 0 || themeRankings.length > 0) && (
+        <>
+        <GroupTitle style={{ margin: '0 2px 6px' }}>인기 급상승 TOP 10</GroupTitle>
         <section style={{
           // 회색 가로선(`SectionBand`)으로 가르던 것을 **박스**로 바꿨다
           // (2026-10-08 요청). 마이페이지·마이캘린더가 이미 박스+작은 제목으로
@@ -2097,7 +2106,6 @@ const Popular = () => {
           marginBottom: 14, padding: '14px 12px 16px', borderRadius: 14,
           border: '1px solid var(--line-200)', background: '#FFFFFF',
         }}>
-          <SectionHeader icon={<SectionIcon kind="trending" />} title="인기 급상승 TOP 10" />
 
           {/* 요리 / 테마. 요리 캘린더의 완료·기록과 같은 모양이다 —
               같은 일(둘 중 하나 고르기)은 같게 보여야 한다. */}
@@ -2206,6 +2214,7 @@ const Popular = () => {
             </tbody>
           </table>
         </section>
+        </>
         )}
 
         {/* 한때 여기 `특정 재료·테마 등 키워드로 찾아보기` 검색창이 있었다.

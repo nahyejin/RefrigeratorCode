@@ -1474,14 +1474,6 @@ const MyPage: React.FC = () => {
       {/* 알림 설정 — 그룹 설정 바로 아래. 임박 알림도 결국 "내 정보·설정"
           묶음의 하나라 이 자리가 자연스럽다(로그인 안 했으면 아예 켤 수
           없으므로 로그인 상태에서만 보여준다). */}
-      {/* 제목을 밖에서 달지 않는다 — 알림을 지원하지 않는 기기에서는 이 카드가
-          아무것도 그리지 않아서 **제목만 남았다**(2026-10-08 지적). 제목을
-          컴포넌트 안으로 넣어 같은 조건을 타게 했다. */}
-      {isLoggedIn && (
-        <div style={{ margin: '18px 14px 0' }} data-guide-target="notification-settings">
-          <NotificationSettings title="알림 설정" />
-        </div>
-      )}
 
       {/* 어드민 입구 — **그룹 설정 아래**에 둔다.
           관리자는 한 명인데 그 한 줄을 위에 두면, 모두가 쓰는 그룹 설정이
@@ -1609,6 +1601,10 @@ const MyPage: React.FC = () => {
               gap: 2,
               background: 'var(--surface)',
               border: 'none',
+              // ⚠️ `index.css` 의 전역 규칙 `button { border-radius: 8px }` 때문에
+              // 칸마다 모서리가 둥글어, 박스 안에서 **종이 세 장이 겹친 것처럼**
+              // 보였다(2026-10-08 지적). 모서리는 바깥 박스만 갖는다.
+              borderRadius: 0,
               borderLeft: i === 0 ? 'none' : '1px solid var(--line-200)',
               cursor: 'pointer',
             }}
@@ -1623,6 +1619,15 @@ const MyPage: React.FC = () => {
         ))}
       </nav>
       </div>
+
+      {/* 제목을 밖에서 달지 않는다 — 알림을 지원하지 않는 기기에서는 이 카드가
+          아무것도 그리지 않아서 **제목만 남았다**(2026-10-08 지적). 제목을
+          컴포넌트 안으로 넣어 같은 조건을 타게 했다. */}
+      {isLoggedIn && (
+        <div style={{ margin: '18px 14px 0' }} data-guide-target="notification-settings">
+          <NotificationSettings title="알림 설정" />
+        </div>
+      )}
 
       {/* 한때 여기 `즐겨찾기로 요리 고르기` · `만든 요리 돌아보기` 두 버튼이 있었다.
           **뺐다**(2026-10-08 요청). 바로 위 요약 숫자 세 칸이 이미 같은 곳으로 가는
@@ -1687,7 +1692,10 @@ const MyPage: React.FC = () => {
           // "가로 버튼이면 폭을 다른 거랑 맞춰라"). 요리 AI 버튼을 피하는 일은
           // 띠 전체를 줄이는 대신 **줄 안쪽 여백**으로 한다(아래 ContactBox).
           paddingTop: 10, paddingLeft: 14, paddingRight: 14,
-          paddingBottom: 'calc(71px + env(safe-area-inset-bottom, 0px))',
+          // 116px = 하단 메뉴(65) + 요리 AI 버튼(바닥에서 80~136px)을 피할 만큼.
+          // 문구를 버튼 **오른쪽 끝에 붙이려면**(2026-10-08 요청) 줄 안쪽 여백으로
+          // 버튼을 피할 수 없다 — 띠 자체를 버튼 위로 올려야 한다.
+          paddingBottom: 'calc(116px + env(safe-area-inset-bottom, 0px))',
           // ⚠️ 숨길 때 `translateY` 를 쓰면 안 된다. transform 은 레이아웃은
           // 안 건드리지만 **스크롤 영역은 넓힌다** — 아래로 밀어 둔 150px 만큼
           // 페이지가 길어지고, 그 자리가 흰색으로 남았다(실측으로 확인).

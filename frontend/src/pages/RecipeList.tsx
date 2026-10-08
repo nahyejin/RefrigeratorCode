@@ -2417,7 +2417,9 @@ const RecipeList: React.FC = () => {
             type="text"
             value={keywordSearchInput}
             onChange={e => setKeywordSearchInput(e.target.value)}
-            placeholder="꼭 포함할 키워드를 입력해 주세요"
+            // 무엇을 찾는 칸인지부터 적는다 — `꼭 포함할 키워드` 만으로는
+            // 어디서 무엇을 찾는지 알 수 없다(2026-10-08 지적).
+            placeholder="레시피 제목·재료로 찾기 (예: 김치찌개)"
             aria-label="꼭 포함할 키워드 검색"
             className="w-full border border-gray-300 rounded-full text-sm placeholder-[#9A9AA2] focus:outline-none"
             style={{

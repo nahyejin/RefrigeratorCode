@@ -68,15 +68,25 @@ const ContactBox: React.FC<{ compact?: boolean }> = ({ compact }) => compact ? (
       href={`https://ig.me/m/${CONTACT.instagram}`}
       target="_blank"
       rel="noopener noreferrer"
-      // 오른쪽 안쪽 여백 76px — 줄(테두리)은 다른 카드와 **같은 폭**으로 두고,
-      // 글자만 요리 AI 버튼(오른쪽 72px) 앞에서 멈추게 한다. 띠 자체를 줄이면
-      // 위 카드들과 폭이 어긋나 보인다.
-      style={{ ...row, minHeight: 44, padding: '0 76px 0 12px', gap: 8 }}
+      // 줄(테두리)은 다른 카드와 같은 폭이고, 링크는 **줄 오른쪽 끝에 붙는다**
+      // (2026-10-08 요청). 요리 AI 버튼은 띠 전체를 그 위로 올려 피했다
+      // (`MyPage` 의 paddingBottom 참고).
+      //
+      // 한 줄에 다 넣으려다 **문구가 말줄임**으로 잘렸다(390px 실측: 왼쪽
+      // 문구에 쓸 수 있는 폭이 180px 인데 글자는 273px). 두 줄로 나눈다 —
+      // 문구를 줄이는 쪽은 사용자가 정해 준 문구를 고치는 일이라 안 한다.
+      style={{ ...row, minHeight: 58, padding: '8px 12px', gap: 2,
+               flexDirection: 'column', alignItems: 'stretch' }}
     >
-      <InstagramMark />
-      <span style={{ fontWeight: 700, whiteSpace: 'nowrap' }}>불편한 점이 있으셨나요</span>
-      <span style={{ marginLeft: 'auto', color: 'var(--ink-500)', fontSize: 12.5, whiteSpace: 'nowrap' }}>
-        인스타그램 문의 ›
+      <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+        <InstagramMark />
+        <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis',
+                       whiteSpace: 'nowrap', fontWeight: 700 }}>
+          불편한 점이나 개선 요청 사항이 있으신가요
+        </span>
+      </span>
+      <span style={{ alignSelf: 'flex-end', color: 'var(--ink-500)', fontSize: 12.5, whiteSpace: 'nowrap' }}>
+        인스타그램 문의/건의 ›
       </span>
     </a>
     <div style={{ display: 'flex', gap: 8, marginTop: 7, fontSize: 11.5 }}>
