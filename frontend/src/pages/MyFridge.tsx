@@ -390,6 +390,15 @@ const IngredientPill: React.FC<IngredientPillProps> = ({ item, onRemove, onSetti
   );
 };
 
+/** 보관함 한 칸(제목 줄 + 재료 칩 칸)을 한 덩어리로 묶는 회색 카드. */
+const STORAGE_CARD_STYLE: React.CSSProperties = {
+  marginBottom: 10,
+  background: '#F5F5F7',
+  borderRadius: 20,
+  boxShadow: '0 1px 4px rgba(0,0,0,0.03)',
+  overflow: 'hidden',
+};
+
 interface ScrollablePillSectionProps {
   watchKey: number;
   children: React.ReactNode;
@@ -428,14 +437,14 @@ const ScrollablePillSection: React.FC<ScrollablePillSectionProps> = ({ watchKey,
         ref={scrollRef}
         onScroll={updateScrollHint}
         style={{
-          background: '#F5F5F7',
-          borderRadius: 20,
-          boxShadow: '0 1px 4px rgba(0,0,0,0.03)',
+          // 배경·모서리는 바깥 카드(STORAGE_CARD_STYLE)가 갖는다. 제목 줄이 카드
+          // 윗부분이고 이 칸만 스크롤되므로, 재료가 스크롤돼도 제목은 안 사라진다.
+          background: 'transparent',
           // 140 → 112, 여백 16 → 12. 보관함 세 칸(냉동·냉장·실온)이 **스크롤
           // 없이 한 화면에** 들어와야 한다는 요청(2026-10-09). 112 면 알약
           // 두 줄이 온전히 보이고 세 번째 줄이 살짝 걸쳐, 더 있다는 것도 보인다
           // (칸 안은 그대로 스크롤되고 아래쪽 화살표가 힌트를 준다).
-          padding: 12,
+          padding: '8px 12px 12px',
           maxHeight: '112px',
           minHeight: '112px',
           border: 'none',
@@ -456,8 +465,6 @@ const ScrollablePillSection: React.FC<ScrollablePillSectionProps> = ({ watchKey,
               bottom: 0,
               height: 32,
               pointerEvents: 'none',
-              borderBottomLeftRadius: 20,
-              borderBottomRightRadius: 20,
               background: 'linear-gradient(to bottom, rgba(245,246,248,0), rgba(245,246,248,0.92))',
             }}
           />
@@ -2538,11 +2545,11 @@ const MyFridge: React.FC = () => {
               시작하는 자리 아래가 제자리다. 임박한 게 없으면 아예 그려지지 않는다. */}
           <div data-guide-target="storage-areas">
           {/* 냉동보관 */}
-          <div style={{ marginBottom: 10 }}>
+          <div style={STORAGE_CARD_STYLE}>
             {/* 이름 + 재료수를 왼쪽에 한 덩어리로 묶고, 조작 버튼(정렬·모두삭제)은
                 오른쪽으로 밀어낸다. 폭이 모자라면 **조작 버튼 묶음만** 아랫줄로
                 내려가므로 `재료수 N개` 와 `임박 N개` 가 잘리는 일이 없다. */}
-            <div className="text-[16px] font-bold mb-2 flex items-center" style={{ flexWrap: 'wrap', rowGap: 6 }}>
+            <div className="text-[16px] font-bold flex items-center" style={{ flexWrap: 'wrap', rowGap: 6, padding: '10px 12px 0' }}>
               <SectionIcon kind="frozen" /><span style={{ marginLeft: 6, whiteSpace: 'nowrap' }}>냉동보관</span>
               <BoxStat count={(frozen ?? []).length} expiring={expiringByBox.frozen} />
               <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
@@ -2575,11 +2582,11 @@ const MyFridge: React.FC = () => {
             </ScrollablePillSection>
           </div>
           {/* 냉장보관 */}
-          <div style={{ marginBottom: 10 }}>
+          <div style={STORAGE_CARD_STYLE}>
             {/* 이름 + 재료수를 왼쪽에 한 덩어리로 묶고, 조작 버튼(정렬·모두삭제)은
                 오른쪽으로 밀어낸다. 폭이 모자라면 **조작 버튼 묶음만** 아랫줄로
                 내려가므로 `재료수 N개` 와 `임박 N개` 가 잘리는 일이 없다. */}
-            <div className="text-[16px] font-bold mb-2 flex items-center" style={{ flexWrap: 'wrap', rowGap: 6 }}>
+            <div className="text-[16px] font-bold flex items-center" style={{ flexWrap: 'wrap', rowGap: 6, padding: '10px 12px 0' }}>
               <SectionIcon kind="fridge" /><span style={{ marginLeft: 6, whiteSpace: 'nowrap' }}>냉장보관</span>
               <BoxStat count={(fridge ?? []).length} expiring={expiringByBox.fridge} />
               <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
@@ -2613,11 +2620,11 @@ const MyFridge: React.FC = () => {
             </ScrollablePillSection>
           </div>
           {/* 실온보관 */}
-          <div style={{ marginBottom: 10 }}>
+          <div style={STORAGE_CARD_STYLE}>
             {/* 이름 + 재료수를 왼쪽에 한 덩어리로 묶고, 조작 버튼(정렬·모두삭제)은
                 오른쪽으로 밀어낸다. 폭이 모자라면 **조작 버튼 묶음만** 아랫줄로
                 내려가므로 `재료수 N개` 와 `임박 N개` 가 잘리는 일이 없다. */}
-            <div className="text-[16px] font-bold mb-2 flex items-center" style={{ flexWrap: 'wrap', rowGap: 6 }}>
+            <div className="text-[16px] font-bold flex items-center" style={{ flexWrap: 'wrap', rowGap: 6, padding: '10px 12px 0' }}>
               <SectionIcon kind="room" /><span style={{ marginLeft: 6, whiteSpace: 'nowrap' }}>실온보관</span>
               <BoxStat count={(room ?? []).length} expiring={expiringByBox.room} />
               <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
