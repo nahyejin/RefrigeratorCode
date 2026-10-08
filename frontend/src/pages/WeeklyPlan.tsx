@@ -2308,8 +2308,10 @@ const WeeklyPlan: React.FC = () => {
           style={{
             width: '100%', minHeight: 46, borderRadius: 12, marginBottom: 12,
             border: '1px solid var(--line-200)', background: 'var(--surface)',
+            // 글자를 키운 폰에서 제목이 세 줄로 찌그러졌다(2026-10-09 확인) —
+            // 두 덩어리가 한 줄에 안 들어가면 **덩어리째** 아랫줄로 내려간다.
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '0 14px', cursor: 'pointer',
+            flexWrap: 'wrap', gap: '2px 10px', padding: '8px 14px', cursor: 'pointer',
           }}
         >
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
@@ -2317,13 +2319,13 @@ const WeeklyPlan: React.FC = () => {
               fontSize: 10, fontWeight: 800, letterSpacing: '.04em', flexShrink: 0,
               padding: '2px 6px', borderRadius: 6, background: '#1A1A1E', color: '#FFD600',
             }}>AI</span>
-            <span style={{ fontSize: 13.5, fontWeight: 700, color: '#1A1A1E' }}>
+            <span style={{ fontSize: 13.5, fontWeight: 700, color: '#1A1A1E', whiteSpace: 'nowrap' }}>
               조건 말하고 추천받기
             </span>
           </span>
           {/* 이 화면은 조건을 못 받는다. 그 말을 여기서 해 둬야
               "왜 매운 걸 빼 달라고 못 하지" 를 안 겪는다. */}
-          <span style={{ fontSize: 12, color: 'var(--ink-500)', flexShrink: 0 }}>
+          <span style={{ fontSize: 12, color: 'var(--ink-500)', flexShrink: 0, marginLeft: 'auto' }}>
             아이·다이어트 같은 조건 · 크레딧 {planCost} ›
           </span>
         </button>

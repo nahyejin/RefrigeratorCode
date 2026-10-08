@@ -2496,7 +2496,7 @@ const MyFridge: React.FC = () => {
               오른쪽에는 「곧 상해요」 알림을 작은 칩으로 얹는다(2026-10-09 요청:
               띠로 한 줄 따로 두지 말고 상자 우측 상단쯤에). 임박한 게 없으면
               칩은 그려지지 않아 제목만 남는다. */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, margin: '0 2px 6px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '4px 8px', margin: '0 2px 6px' }}>
             <GroupTitle style={{ margin: 0, whiteSpace: 'nowrap' }}>내 냉장고 재료 관리</GroupTitle>
             <ExpiryBand variant="chip" boxes={fridgeBoxes} categoryMap={categoryMap} />
           </div>
