@@ -21,7 +21,7 @@
 - 「어색하지 않게」 같은 형용사는 거의 안 먹힌다. 모델은 **구체적인 몸동작 지시**에 반응한다 → ACTING 을 「가족이 몰래 찍은 폰 영상, 각자 하던 일을 하면서 그 김에 말한다, 대답은 고개도 안 들고 바로」로 바꿨다.
 - 한국어 억양: 「서울말을 쓰는 한국인이 집에서 하는 평소 억양, 드라마·브이로그처럼」을 SPEECH 에 적었다. 프롬프트 전체를 한글로 바꾸지는 않는다(한글이 많아지면 화면에 깨진 자막이 다시 나온다).
 - 대사는 **실제로 할 법한 온전한 문장**으로(10-07 사용자 예시 — 「자기야~! 나 손에 잔뜩 묻어서 만질 수가 없는데, 레시피 좀만 올려 줄래?」). 한때 「최대 두 줄·한마디」로 줄였더니 맥락이 사라져 더 어색했다. 대신 대사마다 그때의 행동을 괄호로 짝지어 **순서대로**(TIMING) 적는다. 말줄임표(…)는 어색하게 긴 멈춤이 되어 쓰지 않는다.
-- 말을 거는 상대가 화면 밖에 있으면 허공을 보고 말한다 → 상대를 **첫 초부터 화면 안에** 두고 「그 사람을 보며 말한다」고 적는다. 배경의 문·서랍은 아무도 안 만져도 움직인다(4편) → 「ACTION 에 적은 것만 움직이고 배경 문·서랍은 닫힌 채 가만히」를 공통 지시에, 냉장고는 문 하나짜리로 정한다. 소품이 붙어 있으면 서로 바뀐다(3편: 폰을 기대 둔 병의 뚜껑이 폰으로 바뀌어 폰이 2개) → 소품 수를 줄이고 **하나씩 떨어뜨려** 적는다. 어려운 편은 **첫 장면 이미지(2단계)** 로 소품·인물 배치를 먼저 고정한다.
+- 말을 거는 상대가 화면 밖에 있으면 허공을 보고 말한다 → 상대를 **첫 초부터 화면 안에** 두고 「그 사람을 보며 말한다」고 적는다. 소품 동작을 그 물건에 없는 부품으로 적으면 모양이 바뀐다(5편: 삼각 지붕형 우유곽에 「뚜껑을 돌려 닫는다」고 써서 6.5초에 위가 평평하고 한글 라벨 붙은 상자로 변함) → 소품의 생김새를 정확히 적고(gable-top, 입구 열림) 「끝까지 같은 모양·사람이 옮길 때만 움직임」. 배경의 문·서랍은 아무도 안 만져도 움직인다(4편) → 「ACTION 에 적은 것만 움직이고 배경 문·서랍은 닫힌 채 가만히」를 공통 지시에, 냉장고는 문 하나짜리로 정한다. 소품이 붙어 있으면 서로 바뀐다(3편: 폰을 기대 둔 병의 뚜껑이 폰으로 바뀌어 폰이 2개) → 소품 수를 줄이고 **하나씩 떨어뜨려** 적는다. 어려운 편은 **첫 장면 이미지(2단계)** 로 소품·인물 배치를 먼저 고정한다.
 - 그래도 어색하면: 같은 프롬프트로 **새 대화에서 2~3번** 뽑아 제일 자연스러운 걸 고른다. 계속 어색하면 **대사 없는 버전**으로 뽑고 웃음은 몸짓·자막으로 낸다.
 
 ## 한글·자막이 화면에 나오지 않게 (v2와 같음)
@@ -355,7 +355,7 @@ Generate this image in a 9:16 vertical aspect ratio (portrait, 1080×1920).
 
 - **공감 포인트**: 유통기한 지난 우유를 냄새로 확인하다가 결국 옆 사람한테 넘기는 장면은 거의 모든 커플이 겪어요. 맡아 보고 슬쩍 되돌려 주는 게 웃음 포인트예요.
 - **편집 때 얹을 자막(제안)**: 유통기한, / 아직도 냄새로 확인해요?
-- **자막 띄울 순간**: 「음, 자기가 먹어」 하고 우유를 되돌려 주는 순간
+- **자막 띄울 순간**: 「음, 자기가 먹어」 하고 우유곽을 그대로 되돌려 주는 순간
 - **이어 붙일 앱 데모**: 05 유통기한 알림 — 푸시 알림 → 유통기한 자동 계산 → 임박 재료 레시피 추천
 
 영상 프롬프트:
@@ -387,16 +387,16 @@ ENDING: In the last second the camera slowly pushes in on the subject named in L
 A Korean couple in their early 30s, both standing at the counter side by side from the first second. He wears a plain white t-shirt and has messy morning hair; she wears a soft lavender cardigan, hair down, hands free.
 
 [HOME]
-Apartment kitchen on a weekend morning, sunlight through the window. On the counter only a toaster against the wall. All cabinet doors and drawers are closed and stay still.
+Apartment kitchen on a weekend morning, sunlight through the window. On the counter only a toaster against the wall. All cabinet doors and drawers are closed and stay still. There is exactly one milk carton in the scene: a plain white gable-top carton (the classic peaked-roof shape) with its pour spout already pinched open. It keeps this same shape, size and open spout for the whole take; it has no screw cap and nobody closes it.
 
 [ACTION]
-He holds one plain white milk carton, already open. He sniffs it, pauses, sniffs again and tilts his head, unsure, then holds it out to her. She takes it, sniffs once, and holds very still for a beat. Then, without a word, she calmly screws the cap back on, hands the carton straight back to him and pats his arm once with a small polite smile. He looks down at the carton, then at her.
+He holds the one gable-top milk carton with its spout open. He sniffs at the spout, pauses, sniffs again and tilts his head, unsure, then holds it out to her. She takes it with both hands, sniffs once at the spout, and holds very still for a beat. Then, without a word, she calmly hands the carton straight back to him, unchanged, and pats his arm once with a small polite smile. He looks down at the carton in his hands, then at her. The carton only moves when one of them moves it.
 
 [AUDIO]
-Morning kitchen sounds, two short sniffs. He, holding the carton out to her: "자기야, 이거 우유 괜찮은 거 같아? 냄새 좀 맡아 봐." (She sniffs once, freezes for a beat, screws the cap back on and hands it back.) She, sweetly: "음, 자기가 먹어."
+Morning kitchen sounds, two short sniffs. He, holding the carton out to her: "자기야, 이거 우유 괜찮은 거 같아? 냄새 좀 맡아 봐." (She sniffs once at the spout, freezes for a beat, and hands the carton straight back.) She, sweetly: "음, 자기가 먹어."
 
 [LAST SECOND]
-The milk carton back in his hands, him looking down at it.
+The same open gable-top milk carton back in his hands, him looking down at it.
 
 Generate this video in a 9:16 vertical aspect ratio (portrait, 1080×1920) for Instagram Reels.
 ```
@@ -407,13 +407,13 @@ Generate this video in a 9:16 vertical aspect ratio (portrait, 1080×1920) for I
 Create a photoreal still photo in a 9:16 vertical aspect ratio (portrait, 1080×1920), like a frame from an Instagram Reel shot on a phone held upright.
 
 [SCENE — the first frame]
-The couple stand side by side at the sunny counter. He holds one opened plain white milk carton just below his nose, about to sniff it; she stands beside him with her hands free, watching him. Only a toaster sits on the counter against the wall.
+The couple stand side by side at the sunny counter. He holds one plain white gable-top milk carton with its spout pinched open just below his nose, about to sniff it; she stands beside him with her hands free, watching him. Only a toaster sits on the counter against the wall.
 
 [CAST]
 A Korean couple in their early 30s, both standing at the counter side by side from the first second. He wears a plain white t-shirt and has messy morning hair; she wears a soft lavender cardigan, hair down, hands free.
 
 [HOME]
-Apartment kitchen on a weekend morning, sunlight through the window. On the counter only a toaster against the wall. All cabinet doors and drawers are closed and stay still.
+Apartment kitchen on a weekend morning, sunlight through the window. On the counter only a toaster against the wall. All cabinet doors and drawers are closed and stay still. There is exactly one milk carton in the scene: a plain white gable-top carton (the classic peaked-roof shape) with its pour spout already pinched open. It keeps this same shape, size and open spout for the whole take; it has no screw cap and nobody closes it.
 
 The person stands in the center column with a little headroom; hands and props sit in the lower third; the room stretches up behind them.
 People: Korean adults with a clean, neat, likable look and natural relaxed expressions, caught mid-moment, looking at the props or at each other rather than at the camera.
