@@ -1,5 +1,6 @@
 import React from 'react';
 import { pushSupported, isPushSubscribed, subscribeToPush, unsubscribeFromPush } from '../utils/push';
+import GroupTitle from './ui/GroupTitle';
 
 /**
  * 유통기한 임박 알림을 **마이페이지에 정착시킨다.**
@@ -22,7 +23,13 @@ import { pushSupported, isPushSubscribed, subscribeToPush, unsubscribeFromPush }
  *   없다. 대신 서버는 같은 냉장고를 보는 구독자 전원에게 보낸다 — 그래서
  *   각자 자기 폰에서 이 화면을 한 번씩 켜면 다 같이 받게 된다.
  */
-const NotificationSettings: React.FC = () => {
+/**
+ * `title` 은 **이 컴포넌트가 직접 그린다.** 밖에서 묶음 제목을 달면, 알림을
+ * 지원하지 않는 기기(아래 `unsupported` 에서 null 반환)에서 **제목만 남는다** —
+ * 실제로 마이페이지에 `알림 설정` 글자만 떠 있고 토글이 없었다(2026-10-08).
+ * 제목과 내용은 같은 조건을 타야 한다.
+ */
+const NotificationSettings: React.FC<{ title?: React.ReactNode }> = ({ title }) => {
   const [status, setStatus] = React.useState<'loading' | 'on' | 'off' | 'unsupported'>('loading');
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -63,6 +70,8 @@ const NotificationSettings: React.FC = () => {
   const on = status === 'on';
 
   return (
+    <>
+    {title && <GroupTitle style={{ margin: '0 0 8px' }}>{title}</GroupTitle>}
     <section
       style={{
         border: '1px solid var(--line-200)', borderRadius: 14, padding: '14px 16px',
@@ -117,6 +126,7 @@ const NotificationSettings: React.FC = () => {
         </div>
       )}
     </section>
+    </>
   );
 };
 

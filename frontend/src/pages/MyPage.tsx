@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import ContactBox from '../components/ContactBox';
+import GroupTitle from '../components/ui/GroupTitle';
+import SegmentedToggle from '../components/ui/SegmentedToggle';
 import CloseButton from '../components/ui/CloseButton';
 import Toast from '../components/Toast';
 import IngredientLegend from '../components/IngredientLegend';
@@ -390,24 +392,6 @@ const ActionButton: React.FC<{
       />
     </button>
   </span>
-);
-
-/**
- * 묶음 제목 — `AI 크레딧` / `설정` / `내 레시피`.
- *
- * 이 화면에는 성격이 다른 세 가지가 들어 있다(크레딧 · 식구/알림 설정 ·
- * 즐겨찾기·기록·완료). 그런데 전부 같은 모양의 흰 카드로 줄줄이 놓여 있어서
- * **어디서 무엇이 끝나고 시작되는지 읽히지 않았다**("UI가 너무 복잡해",
- * 2026-10-08). 카드를 줄이는 대신 **이름을 붙인다** — 찾는 사람이 세 글자만
- * 보고 바로 내려갈 수 있으면 그만큼 단순해진다.
- */
-const GroupTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <h2 style={{
-    margin: '18px 14px 8px', fontSize: 12.5, fontWeight: 700,
-    color: 'var(--ink-500)', letterSpacing: '0.02em',
-  }}>
-    {children}
-  </h2>
 );
 
 // =====================
@@ -1490,10 +1474,12 @@ const MyPage: React.FC = () => {
       {/* 알림 설정 — 그룹 설정 바로 아래. 임박 알림도 결국 "내 정보·설정"
           묶음의 하나라 이 자리가 자연스럽다(로그인 안 했으면 아예 켤 수
           없으므로 로그인 상태에서만 보여준다). */}
-      {isLoggedIn && <GroupTitle>알림 설정</GroupTitle>}
+      {/* 제목을 밖에서 달지 않는다 — 알림을 지원하지 않는 기기에서는 이 카드가
+          아무것도 그리지 않아서 **제목만 남았다**(2026-10-08 지적). 제목을
+          컴포넌트 안으로 넣어 같은 조건을 타게 했다. */}
       {isLoggedIn && (
-        <div style={{ margin: '0 14px' }} data-guide-target="notification-settings">
-          <NotificationSettings />
+        <div style={{ margin: '18px 14px 0' }} data-guide-target="notification-settings">
+          <NotificationSettings title="알림 설정" />
         </div>
       )}
 
@@ -1548,37 +1534,20 @@ const MyPage: React.FC = () => {
         margin: '0 14px', border: '1px solid var(--line-200)', borderRadius: 14,
         background: 'var(--surface)', overflow: 'hidden',
       }}>
+      {/* 마이캘린더의 `내 요리만 / 우리 식구 전체` 와 **같은 부품**을 쓴다
+          (2026-10-08 지적: 밑줄 탭이라 탭처럼 보이지 않는다). 같은 일을 하는
+          고르개는 앱 어디서나 같은 모양이어야 한다. */}
       {isInHousehold && (
-        <div style={{ display: 'flex', borderBottom: '1px solid var(--line-200)',
-                      padding: '0 6px' }}>
-          {([
-            // 기본값(나의 것만)이 앞에 온다.
-            { key: 'mine', label: '나의 것만' },
-            { key: 'all', label: '우리 식구 모두' },
-          ] as const).map(({ key, label }) => {
-            const on = householdViewMode === key;
-            return (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setHouseholdViewMode(key)}
-                style={{
-                  minHeight: 40, padding: '12px 14px', background: 'transparent',
-                  border: 'none', marginBottom: -1, position: 'relative',
-                  fontSize: 14, fontWeight: on ? 700 : 500,
-                  color: on ? '#1A1A1E' : 'var(--ink-500)', cursor: 'pointer',
-                }}
-              >
-                {label}
-                {on && (
-                  <span aria-hidden style={{
-                    position: 'absolute', left: 14, right: 14, bottom: 0,
-                    height: 2, borderRadius: 2, background: '#1A1A1E',
-                  }} />
-                )}
-              </button>
-            );
-          })}
+        <div style={{ padding: '12px 12px 0' }}>
+          <SegmentedToggle
+            value={householdViewMode}
+            onChange={(v) => setHouseholdViewMode(v)}
+            options={[
+              // 기본값(나의 것만)이 앞에 온다.
+              { value: 'mine', label: '나의 것만' },
+              { value: 'all', label: '우리 식구 모두' },
+            ]}
+          />
         </div>
       )}
 
@@ -1588,7 +1557,7 @@ const MyPage: React.FC = () => {
           눌리는데 아무 일도 안 일어나는 게 제일 나쁘다. */}
       {showAllHousehold && (
         <label style={{ display: 'flex', alignItems: 'center', gap: 6,
-                        padding: '10px 14px 0', fontSize: 12.5,
+                        padding: '10px 14px 0', fontSize: 12.5, flexWrap: 'wrap',
                         cursor: othersTotal === 0 ? 'default' : 'pointer' }}>
           <input
             type="checkbox"
@@ -1612,7 +1581,9 @@ const MyPage: React.FC = () => {
         style={{
           display: 'flex',
           // 테두리·모서리는 바깥 박스가 갖는다 — 박스 안에 또 박스를 두면
-          // 선이 두 겹으로 보인다.
+          // 선이 두 겹으로 보인다. 위에 고르개가 있을 때만 경계선을 둔다.
+          marginTop: isInHousehold ? 12 : 0,
+          borderTop: isInHousehold ? '1px solid var(--line-200)' : 'none',
         }}
       >
         {[
@@ -1642,8 +1613,12 @@ const MyPage: React.FC = () => {
               cursor: 'pointer',
             }}
           >
-            <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink-900)', lineHeight: 1.2 }}>{count}</span>
-            <span style={{ fontSize: 12, color: 'var(--ink-500)' }}>{label}</span>
+            <span style={{ fontSize: 20, fontWeight: 800, color: 'var(--ink-900)', lineHeight: 1.15 }}>{count}</span>
+            {/* 라벨 뒤의 `›` — 숫자만 있으면 **읽을 것**처럼 보이고, 눌러서
+                목록으로 가는 자리라는 게 안 읽힌다(2026-10-08). */}
+            <span style={{ fontSize: 12, color: 'var(--ink-500)', display: 'inline-flex', alignItems: 'center', gap: 2 }}>
+              {label}<span aria-hidden style={{ fontSize: 13, color: 'var(--line-300)' }}>›</span>
+            </span>
           </button>
         ))}
       </nav>
@@ -1708,7 +1683,10 @@ const MyPage: React.FC = () => {
           marginTop: 'auto',
           position: 'sticky', bottom: 0, zIndex: 1,
           background: 'var(--surface-sub)', borderTop: '1px solid var(--line-200)',
-          paddingTop: 10, paddingLeft: 14, paddingRight: 80,
+          // 좌우 14px — 위 카드들과 **같은 폭**이어야 한다(2026-10-08 지적:
+          // "가로 버튼이면 폭을 다른 거랑 맞춰라"). 요리 AI 버튼을 피하는 일은
+          // 띠 전체를 줄이는 대신 **줄 안쪽 여백**으로 한다(아래 ContactBox).
+          paddingTop: 10, paddingLeft: 14, paddingRight: 14,
           paddingBottom: 'calc(71px + env(safe-area-inset-bottom, 0px))',
           // ⚠️ 숨길 때 `translateY` 를 쓰면 안 된다. transform 은 레이아웃은
           // 안 건드리지만 **스크롤 영역은 넓힌다** — 아래로 밀어 둔 150px 만큼

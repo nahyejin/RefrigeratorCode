@@ -68,7 +68,10 @@ const ContactBox: React.FC<{ compact?: boolean }> = ({ compact }) => compact ? (
       href={`https://ig.me/m/${CONTACT.instagram}`}
       target="_blank"
       rel="noopener noreferrer"
-      style={{ ...row, minHeight: 44, padding: '0 12px', gap: 8 }}
+      // 오른쪽 안쪽 여백 76px — 줄(테두리)은 다른 카드와 **같은 폭**으로 두고,
+      // 글자만 요리 AI 버튼(오른쪽 72px) 앞에서 멈추게 한다. 띠 자체를 줄이면
+      // 위 카드들과 폭이 어긋나 보인다.
+      style={{ ...row, minHeight: 44, padding: '0 76px 0 12px', gap: 8 }}
     >
       <InstagramMark />
       <span style={{ fontWeight: 700, whiteSpace: 'nowrap' }}>불편한 점이 있으셨나요</span>

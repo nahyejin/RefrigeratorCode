@@ -2213,8 +2213,95 @@ const MyFridge: React.FC = () => {
             `추가할 재료명을 입력하세요` 와 **같은 말**이었다. 설명은 이미 쓰는
             자리에 붙어 있다 — 그걸 한 번 더 크게 적을 이유가 없다.
             (화면 이름은 하단 탭의 `내냉장고` 가 늘 말해 주고 있다) */}
-        <div style={{ height: 12 }} />
-        <div style={{ maxWidth: 400, margin: '0 auto', paddingLeft: 20, paddingRight: 20, width: '100%', boxSizing: 'border-box' }}>
+        <IngredientRecognitionSheet
+          isOpen={recognitionOpen}
+          onClose={() => setRecognitionOpen(false)}
+          loading={recognitionLoading}
+          photoCount={recognitionPhotoCount}
+          ingredients={recognized}
+          unmatched={recognizedUnmatched}
+          purchaseDate={recognizedPurchaseDate}
+          datePerItem={recognitionPerItemDate}
+          errorText={recognitionError}
+          ingredientDict={ingredientDict}
+          onConfirm={handleRecognizedConfirm}
+        />
+        <CameraCaptureSheet
+          isOpen={cameraSheetOpen}
+          onClose={() => setCameraSheetOpen(false)}
+          onCaptured={(mode, files) => { void handleCameraCaptured(mode, files); }}
+        />
+        {/* IngredientDetailModal */}
+        <IngredientDetailModal
+          isOpen={modalOpen}
+          onClose={() => { 
+            setModalOpen(false); 
+            setModalIngredient(null);
+            setModalInitialData(null);
+          }}
+          ingredient={modalIngredient || ''}
+          initialStorageType={modalInitialData?.storageType || null}
+          initialDate={modalInitialData?.date || null}
+          initialDateType={modalInitialData?.dateType || null}
+          onComplete={handleModalComplete}
+        />
+        {/* 재고 관리 구역 */}
+        {/* 입력칸이 이 안으로 들어왔으니 위 여백(48)은 과하다 — 화면 첫 줄이
+            `내 냉장고 재고 관리` 가 된다. */}
+        <div style={{ maxWidth: 400, margin: '0 auto', paddingLeft: 20, paddingRight: 20, width: '100%', marginTop: 8, boxSizing: 'border-box' }}>
+          <div className="flex items-center justify-between mb-2" style={{ position: 'relative', width: '100%' }}>
+            <h2 className="text-[16px] font-bold text-[#1A1A1E]">내 냉장고 재고 관리</h2>
+            {/* 저장 버튼을 없애고 상태 표시로 교체.
+                재료가 바뀌면 자동으로 저장되므로 사용자가 누를 일이 없다.
+                다만 예전 자동 저장은 실패해도 콘솔에만 찍고 끝나서 저장이 안 된 걸
+                알 수 없었기 때문에(그래서 수동 저장 버튼이 생겼던 것),
+                이제 상태를 눈에 보이게 하고 실패 시 다시 시도할 수 있게 한다. */}
+            {isLoggedIn && user?.id && saveStatus !== 'idle' && (
+              <div
+                role="status"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: saveStatus === 'error' ? 'var(--danger)' : 'var(--ink-400)',
+                }}
+              >
+                {saveStatus === 'saving' && '저장 중…'}
+                {saveStatus === 'success' && '저장됨'}
+                {saveStatus === 'error' && (
+                  <>
+                    저장하지 못했어요
+                    <button
+                      type="button"
+                      onClick={handleSaveClick}
+                      style={{
+                        height: 26,
+                        padding: '0 10px',
+                        boxSizing: 'border-box',
+                        fontSize: 12,
+                        fontWeight: 600,
+                        color: 'var(--ink-900)',
+                        background: 'var(--surface-sub)',
+                        border: '1px solid var(--line-300)',
+                        borderRadius: 8,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      다시 시도
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+          <div style={{height: 1, width: '100%', background: 'var(--line-200)', marginBottom: 14}} />
+          {/* 재료 추가 줄 — **재고 관리 머리줄 바로 아래**로 옮겼다(2026-10-08).
+              화면 맨 위에 혼자 떠 있을 때는 "여기 입력하면 아래 냉장고에
+              담긴다" 가 안 읽혔다(제목을 빼 봐도 마찬가지였다). 입력칸이
+              자기가 채우는 목록과 **같은 박스 안에** 있으면 설명이 필요 없다.
+              사진 찍기(카메라)도 같은 줄이라 함께 내려온다. */}
           <div
             className="flex gap-2 mb-4"
             /* 가이드가 이 줄 전체(입력창 + 입력 + 카메라)를 가리킨다.
@@ -2412,89 +2499,6 @@ const MyFridge: React.FC = () => {
               여기 두면 같은 말을 두 번 한다 — 아래 재고 목록이 이미 재료마다
               `D-10` `지남` 을 달고 있다. 배너의 값어치는 **냉장고를 안 보고
               있을 때** 알려 주는 것이고, 그건 다른 화면에서 할 일이다. */}
-        </div>
-        <IngredientRecognitionSheet
-          isOpen={recognitionOpen}
-          onClose={() => setRecognitionOpen(false)}
-          loading={recognitionLoading}
-          photoCount={recognitionPhotoCount}
-          ingredients={recognized}
-          unmatched={recognizedUnmatched}
-          purchaseDate={recognizedPurchaseDate}
-          datePerItem={recognitionPerItemDate}
-          errorText={recognitionError}
-          ingredientDict={ingredientDict}
-          onConfirm={handleRecognizedConfirm}
-        />
-        <CameraCaptureSheet
-          isOpen={cameraSheetOpen}
-          onClose={() => setCameraSheetOpen(false)}
-          onCaptured={(mode, files) => { void handleCameraCaptured(mode, files); }}
-        />
-        {/* IngredientDetailModal */}
-        <IngredientDetailModal
-          isOpen={modalOpen}
-          onClose={() => { 
-            setModalOpen(false); 
-            setModalIngredient(null);
-            setModalInitialData(null);
-          }}
-          ingredient={modalIngredient || ''}
-          initialStorageType={modalInitialData?.storageType || null}
-          initialDate={modalInitialData?.date || null}
-          initialDateType={modalInitialData?.dateType || null}
-          onComplete={handleModalComplete}
-        />
-        {/* 재고 관리 구역 */}
-        <div style={{ maxWidth: 400, margin: '0 auto', paddingLeft: 20, paddingRight: 20, width: '100%', marginTop: 48, boxSizing: 'border-box' }}>
-          <div className="flex items-center justify-between mb-2" style={{ position: 'relative', width: '100%' }}>
-            <h2 className="text-[16px] font-bold text-[#1A1A1E]">내 냉장고 재고 관리</h2>
-            {/* 저장 버튼을 없애고 상태 표시로 교체.
-                재료가 바뀌면 자동으로 저장되므로 사용자가 누를 일이 없다.
-                다만 예전 자동 저장은 실패해도 콘솔에만 찍고 끝나서 저장이 안 된 걸
-                알 수 없었기 때문에(그래서 수동 저장 버튼이 생겼던 것),
-                이제 상태를 눈에 보이게 하고 실패 시 다시 시도할 수 있게 한다. */}
-            {isLoggedIn && user?.id && saveStatus !== 'idle' && (
-              <div
-                role="status"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  fontSize: 12,
-                  fontWeight: 600,
-                  color: saveStatus === 'error' ? 'var(--danger)' : 'var(--ink-400)',
-                }}
-              >
-                {saveStatus === 'saving' && '저장 중…'}
-                {saveStatus === 'success' && '저장됨'}
-                {saveStatus === 'error' && (
-                  <>
-                    저장하지 못했어요
-                    <button
-                      type="button"
-                      onClick={handleSaveClick}
-                      style={{
-                        height: 26,
-                        padding: '0 10px',
-                        boxSizing: 'border-box',
-                        fontSize: 12,
-                        fontWeight: 600,
-                        color: 'var(--ink-900)',
-                        background: 'var(--surface-sub)',
-                        border: '1px solid var(--line-300)',
-                        borderRadius: 8,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      다시 시도
-                    </button>
-                  </>
-                )}
-              </div>
-            )}
-          </div>
-          <div style={{height: 1, width: '100%', background: 'var(--line-200)', marginBottom: 14}} />
           {/* 곧 상하는 재료 — 한 줄 띠. 누르면 목록과 식단 짜기가 시트로 열린다.
               화면 맨 위에 있던 것을 여기로 내렸다(2026-10-08) — 재고를 말하기
               시작하는 자리 아래가 제자리다. 임박한 게 없으면 아예 그려지지 않는다. */}

@@ -4,7 +4,6 @@ import { takePrefetchedPopular } from '../utils/recipePrefetch';
 import SectionIcon from '../components/ui/SectionIcon';
 import LoadingIndicator from '../components/LoadingIndicator';
 import SectionHeader from '../components/SectionHeader';
-import SectionBand from '../components/ui/SectionBand';
 import Toast from '../components/Toast';
 import IngredientLegend from '../components/IngredientLegend';
 import BottomNavBar from '../components/BottomNavBar';
@@ -636,7 +635,6 @@ function calculateDishRankings(recipes: Recipe[], dishKeywords: { keyword: strin
 }
 
 const Popular = () => {
-  const [search, setSearch] = useState('');
   const nickname = "닉네임"; // 실제 닉네임 연동 필요
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -1678,17 +1676,6 @@ const Popular = () => {
     return [...notInHead, ...inHead].slice(0, 20);
   }, [premiumPool, youtubeRecipes, naverRecipes]);
 
-  // 화면에서 첫 번째로 그려지는 섹션. 섹션 앞머리의 구분 밴드는
-  // "앞 내용과 나뉜다" 는 뜻이라, 맨 위 섹션에 붙으면 기간 컨트롤과 콘텐츠를 갈라놓아
-  // 기간 바가 아래와 무관한 별도 영역처럼 보이게 된다.
-  // 유튜브·네이버는 이제 한 섹션이라 둘 중 하나만 있어도 그 자리가 첫 섹션이다.
-  // 급상승도 요리·테마가 한 섹션이라 `dish` 하나로 본다.
-  const firstSectionKey =
-    premiumRecipes.length > 0 ? 'premium'
-    : (naverRecipes.length > 0 || youtubeRecipes.length > 0) ? 'naver'
-    : (dishRankings.length > 0 || themeRankings.length > 0) ? 'dish'
-    : 'search';
-
   return (
     <>
       <div className="popular-page" style={{padding: '76px 20px 80px 20px', maxWidth: 400, margin: '0 auto', boxSizing: 'border-box'}}>
@@ -1816,8 +1803,13 @@ const Popular = () => {
           if (premiumRecipes.length === 0) return null;
 
           return (
-            <section style={{ marginBottom: 0 }}>
-              {firstSectionKey !== 'premium' && <SectionBand bleed={20} />}
+            <section style={{
+          // 회색 가로선(`SectionBand`)으로 가르던 것을 **박스**로 바꿨다
+          // (2026-10-08 요청). 마이페이지·마이캘린더가 이미 박스+작은 제목으로
+          // 영역을 말하므로, 같은 앱에서 구분 방식이 둘일 이유가 없다.
+          marginBottom: 14, padding: '14px 12px 16px', borderRadius: 14,
+          border: '1px solid var(--line-200)', background: '#FFFFFF',
+        }}>
               {/* 문구 변천:
                   ① "값비싼 재료가 들어간 레시피를 모았어요" — 비싼 재료를 사게 하려는
                      의도가 그대로 드러나 보였음
@@ -2003,8 +1995,13 @@ const Popular = () => {
         {(naverRecipes.length > 0 || youtubeRecipes.length > 0) && (() => {
           const list = feedTab === 'naver' ? naverRecipes : youtubeRecipes;
           return (
-        <section style={{ marginBottom: 0 }}>
-          {firstSectionKey !== 'naver' && <SectionBand bleed={20} />}
+        <section style={{
+          // 회색 가로선(`SectionBand`)으로 가르던 것을 **박스**로 바꿨다
+          // (2026-10-08 요청). 마이페이지·마이캘린더가 이미 박스+작은 제목으로
+          // 영역을 말하므로, 같은 앱에서 구분 방식이 둘일 이유가 없다.
+          marginBottom: 14, padding: '14px 12px 16px', borderRadius: 14,
+          border: '1px solid var(--line-200)', background: '#FFFFFF',
+        }}>
           <SectionHeader
             title="인기 레시피"
             iconUrl={feedTab === 'naver' ? naverTitleImg : youtubeTitleImg}
@@ -2093,8 +2090,13 @@ const Popular = () => {
             `순위·이름·레시피 수` 에 `▴2배` 배지까지 들어갈 자리가 안 나온다.
             **탭으로 겹치면** 높이는 절반이 되고, 표는 화면 폭을 다 쓴다. */}
         {(dishRankings.length > 0 || themeRankings.length > 0) && (
-        <section style={{ marginBottom: 0 }}>
-          {firstSectionKey !== 'dish' && <SectionBand bleed={20} />}
+        <section style={{
+          // 회색 가로선(`SectionBand`)으로 가르던 것을 **박스**로 바꿨다
+          // (2026-10-08 요청). 마이페이지·마이캘린더가 이미 박스+작은 제목으로
+          // 영역을 말하므로, 같은 앱에서 구분 방식이 둘일 이유가 없다.
+          marginBottom: 14, padding: '14px 12px 16px', borderRadius: 14,
+          border: '1px solid var(--line-200)', background: '#FFFFFF',
+        }}>
           <SectionHeader icon={<SectionIcon kind="trending" />} title="인기 급상승 TOP 10" />
 
           {/* 요리 / 테마. 요리 캘린더의 완료·기록과 같은 모양이다 —
@@ -2206,61 +2208,12 @@ const Popular = () => {
         </section>
         )}
 
-        {/* 인기 레시피 직접 찾아보기 검색창 */}
-        <section style={{ marginBottom: 0 }}>
-          {firstSectionKey !== 'search' && <SectionBand bleed={20} />}
-          <SectionHeader icon={<SectionIcon kind="search" />} title="특정 재료·테마 등 키워드로 찾아보기" />
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              width: '100%',
-              maxWidth: 360,
-              margin: '0 auto',
-              gap: 8,
-            }}
-          >
-            <input
-              type="text"
-              placeholder="관심 키워드를 입력해주세요"
-              className="border border-gray-300 rounded-full px-4 py-2 text-sm focus:outline-none"
-              style={{
-                maxWidth: 250,
-                minWidth: 0,
-                flex: '0 1 auto',
-                minHeight: 40,
-                fontFamily: 'Pretendard, sans-serif',
-              }}
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter' && search.trim()) {
-                  navigate(`/ingredient/${encodeURIComponent(search.trim())}`);
-                }
-              }}
-            />
-            <button
-              className="bg-[#FFD600] text-[#1A1A1E] font-bold rounded-full px-5 py-2 text-sm shadow hover:bg-yellow-300 transition"
-              style={{
-                minHeight: 40,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontFamily: 'Pretendard, sans-serif',
-                whiteSpace: 'nowrap',
-              }}
-              onClick={() => {
-                if (search.trim()) {
-                  navigate(`/ingredient/${encodeURIComponent(search.trim())}`);
-                }
-              }}
-            >
-              검색
-            </button>
-          </div>
-        </section>
-        
+        {/* 한때 여기 `특정 재료·테마 등 키워드로 찾아보기` 검색창이 있었다.
+            **뺐다**(2026-10-08 요청) — 냉장고요리 탭의 검색창과 **하는 일이 같다.**
+            같은 기능이 두 화면에 있으면 어느 쪽이 무엇인지 매번 따져야 하고,
+            이 화면은 "고른 것을 보여 주는" 자리라 찾는 일은 거기서 하면 된다.
+            (재료 상세로 가는 길은 아래 인기 재료·급상승 표가 그대로 갖고 있다) */}
+
         {/* 쿠팡 다이내믹 배너 — 화면 맨 끝(2026-09-22). 전의 BottomCoupangAd 는 광고 단위 ID 환경변수가
             없어 실제로는 아무것도 안 그리고 있었다.
             바로 위가 키워드 검색창이라 24px 로 붙여 두니 검색 결과·콘텐츠처럼 보였다(2026-09-26 지적) → 크게 띄운다. */}

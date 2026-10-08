@@ -1,6 +1,8 @@
 import * as React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import PlanButtons from '../components/PlanButtons';
+import GroupTitle from '../components/ui/GroupTitle';
+import SegmentedToggle from '../components/ui/SegmentedToggle';
 import { loadIngredientCategoryMap, lookupShelfLifeDays, estimateExpiry, type CategoryMap, type StorageKind } from '../utils/shelfLife';
 import type { FridgeItem } from '../utils/expiry';
 import {
@@ -1796,6 +1798,10 @@ const CookingCalendar: React.FC = () => {
       {/* 식단 추천 버튼 — 식단을 짜면 결과가 이 달력에 담기므로 여기가 제자리다.
           한때 내냉장고로 옮겼다가 "너무 숨어 있다"는 지적(2026-10-08)으로 되돌리고,
           대신 높이를 74→52px 로 줄였다. 임박 재료 카드는 내냉장고에 남는다. */}
+      {/* 묶음 제목 — 마이페이지와 **같은 작은 회색 글자**다(2026-10-08 요청).
+          이 화면도 성격이 다른 칸 셋(식단 추천 · 월 목표 · 요리 기록)이
+          흰 박스로 줄줄이 놓여 있어 경계가 안 읽혔다. */}
+      <GroupTitle style={{ margin: '0 14px 6px' }}>식단 추천</GroupTitle>
       <div style={{ margin: '0 14px 8px' }}>
         <PlanButtons />
       </div>
@@ -1812,6 +1818,7 @@ const CookingCalendar: React.FC = () => {
           카드 제목이 `2026년 9월 목표` 라고 못 박아서 막는다. */}
       {/* 사용 가이드 15단계가 **월 목표 + 달력·목록 카드 전체**를 한 번에
           가리키려고 둘을 감싼다(모양에는 영향 없음). */}
+      <GroupTitle style={{ margin: '14px 14px 6px' }}>이번 달 목표</GroupTitle>
       <div data-guide-target="calendar-goal-area">
       {(<>
       {/* 월 목표는 "이번 달" 이라는 더 큰 단위 얘기라, 일/주/월 중 무엇을 보고
@@ -1823,7 +1830,7 @@ const CookingCalendar: React.FC = () => {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: '#1A1A1E' }}>
-              {anchorDate.getFullYear()}년 {anchorDate.getMonth() + 1}월 목표
+              {anchorDate.getFullYear()}년 {anchorDate.getMonth() + 1}월
             </span>
             {/* 지난 달들을 들여다보는 구멍. 목표는 이번 달 하나만 말하는데,
                 쌓인 것을 못 보면 목표를 세워 둔 보람이 없다. */}
@@ -2150,7 +2157,8 @@ const CookingCalendar: React.FC = () => {
 
       {/* 목표 카드와 명확히 분리된 별도 카드에 캘린더를 담아, 모바일 화면에서
           두 영역이 붙어 보이지 않고 한 화면에 같이 들어오게 했다. */}
-      <div style={{ margin: '14px 14px 0', borderRadius: 14, border: '1px solid var(--line-200)', background: '#FFFFFF', overflow: 'hidden' }}>
+      <GroupTitle style={{ margin: '16px 14px 6px' }}>요리 기록</GroupTitle>
+      <div style={{ margin: '0 14px 0', borderRadius: 14, border: '1px solid var(--line-200)', background: '#FFFFFF', overflow: 'hidden' }}>
         {/* 화면을 **가르는** 자리라 탭으로 그린다.
             알약으로 뒀더니 아래 일/주/월 알약과 같아 보여서, 화면을 바꾸는
             것인지 결과를 좁히는 필터인지 구분이 안 됐다. 탭은 밑줄로 "지금
@@ -2204,51 +2212,16 @@ const CookingCalendar: React.FC = () => {
             군더더기라 뺐다 — 체크박스 이름만으로 충분히 읽힌다. */}
         {isInHousehold && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px 0' }}>
-            <div
-              role="group"
-              aria-label="범위 고르기"
-              style={{
-                // 두 칸을 **같은 폭**으로(1fr 1fr). 칸 폭이 글자 길이를 따르면
-                // "내 요리만"과 "우리 식구 전체"의 폭이 달라, 50% 폭으로 미끄러지는
-                // 검은 판이 글자와 어긋나 깨져 보였다(실사용 지적, 2026-09-15).
-                position: 'relative', display: 'inline-grid', gridTemplateColumns: '1fr 1fr', flexShrink: 0,
-                padding: 3, borderRadius: 10, background: 'var(--surface-sub)',
-                border: '1px solid var(--line-200)',
-              }}
-            >
-              <span
-                aria-hidden
-                style={{
-                  position: 'absolute', top: 3, bottom: 3, left: 3, width: 'calc(50% - 3px)',
-                  borderRadius: 8, background: 'var(--ink-900)',
-                  transform: scope === 'household' ? 'translateX(100%)' : 'none',
-                  transition: 'transform .2s cubic-bezier(.4,0,.2,1)',
-                }}
-              />
-              {([
-                { key: 'mine', label: '내 요리만' },
-                { key: 'household', label: '우리 식구 전체' },
-              ] as const).map(({ key, label }) => {
-                const on = scope === key;
-                return (
-                  <button
-                    key={key}
-                    type="button"
-                    aria-pressed={on}
-                    onClick={() => { setScope(key); if (key === 'household') setListKind('done'); }}
-                    style={{
-                      position: 'relative', zIndex: 1, height: 28, padding: '0 12px',
-                      border: 'none', background: 'transparent', borderRadius: 8, cursor: 'pointer',
-                      color: on ? '#FFFFFF' : 'var(--ink-500)',
-                      fontSize: 12.5, fontWeight: on ? 700 : 500,
-                      whiteSpace: 'nowrap', transition: 'color .2s ease',
-                    }}
-                  >
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
+            {/* 공용 부품으로 뺐다 — 마이페이지의 `나의 것만 / 우리 식구 모두` 가
+                같은 모양을 써야 한다(2026-10-08). 설계 메모는 `SegmentedToggle`. */}
+            <SegmentedToggle
+              value={scope}
+              onChange={(key) => { setScope(key); if (key === 'household') setListKind('done'); }}
+              options={[
+                { value: 'mine' as const, label: '내 요리만' },
+                { value: 'household' as const, label: '우리 식구 전체' },
+              ]}
+            />
             {scope === 'household' && (
               <label style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0,
                               fontSize: 12.5, color: 'var(--ink-700)', cursor: 'pointer' }}>
