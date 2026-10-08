@@ -556,6 +556,37 @@ def save_substitutes(substitutes: List[Dict], overwrite: bool = False):
               f"(유사도: {sub['similarity_score']:.2f}, 이유: {sub['substitution_reason']})")
 
 
+MANUAL_CSV = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'manual_substitutes.csv')
+
+
+def apply_manual_substitutes(substitutes: List[Dict]) -> List[Dict]:
+    """`manual_substitutes.csv`(사람이 정한 대체 쌍)를 자동 생성 결과에 합친다. 같은 (a, b) 쌍은 손 지정으로 바꾼다.
+
+    예) 사전에서 보리새우는 생물 새우(갑각류)로만 분류돼 건새우와 이어지지 않았는데, 실생활에선 말린 보리새우를
+    건새우처럼 쓴다(2026-10-08 사용자 요청) — 이런 건 Feature·분류로 계산해서는 안 나온다.
+    """
+    if not os.path.exists(MANUAL_CSV):
+        return substitutes
+    manual = pd.read_csv(MANUAL_CSV, encoding='utf-8-sig')
+    rows = []
+    for _, r in manual.iterrows():
+        a, b = str(r['ingredient_a']).strip(), str(r['ingredient_b']).strip()
+        if not a or not b or a == 'nan' or b == 'nan':
+            continue
+        rows.append({
+            'ingredient_a': a,
+            'ingredient_b': b,
+            'substitution_direction': f'{a}→{b}',
+            'similarity_score': float(r['similarity_score']),
+            'substitution_reason': str(r.get('substitution_reason') or '수동 지정').strip(),
+            'calculation_details': '수동 지정(manual_substitutes.csv)',
+        })
+    pairs = {(m['ingredient_a'], m['ingredient_b']) for m in rows}
+    kept = [s for s in substitutes if (s['ingredient_a'], s['ingredient_b']) not in pairs]
+    print(f"[INFO] 수동 지정 대체 쌍 {len(rows)}개 합침")
+    return kept + rows
+
+
 def main():
     """메인 함수"""
     print("=" * 60)
@@ -570,6 +601,10 @@ def main():
             print("[WARN] 생성된 대체제가 없습니다.")
             return
         
+        # 손으로 지정한 쌍을 합친다 — 표는 매일 통째로 새로 만들어서(overwrite) 표에 직접 넣은 줄은
+        # 다음 날 사라진다. 그래서 `manual_substitutes.csv` 에 따로 두고 매번 덮어 쓴다(같은 쌍이면 손 지정이 이긴다).
+        substitutes = apply_manual_substitutes(substitutes)
+
         # 저장 (기존 데이터 무시하고 새로 생성)
         save_substitutes(substitutes, overwrite=True)
         

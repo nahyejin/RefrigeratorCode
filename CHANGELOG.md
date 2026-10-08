@@ -12098,3 +12098,9 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 - `backend/app.py` `_ingredient_variants`: 포함 재료 하나 = 사전 대표어·동의어 + 대체표(`ingredient_substitute_table.csv`) 유사도 0.8↑ 재료(최대 12개) 중 하나라도 재료칸에 있으면 통과, 재료끼리는 그대로 AND. 제외 재료는 같은 뜻까지만(비슷한 것까지 빼면 너무 많이 사라짐). 대체표·사전은 처음 한 번만 읽어 캐시.
 - 예: 보리새우 → 꽃새우·적새우살·닭새우·가시발새우·흰다리새우·생새우·새우살·새우·대하, 어묵 → 오뎅·봉어묵·삼진어묵 등.
 - 확인(운영 DB 읽기): 「보리새우+어묵」 매칭 30%↑ 1 → 2건, 조건 없이 1 → 5건, 「오뎅」 포함 1,053건(어묵으로 적힌 글까지). 새우·어묵이 같이 든 레시피 자체가 드묾 — 사전에서 보리새우가 생물 새우(갑각류)로만 분류돼 건새우와 연결이 없는데, 건새우 계열까지 묶어도 9건.
+
+### 사전 — 보리새우 ↔ 건새우를 비슷한 재료로(수동 지정 대체 쌍 파일 신설)
+- 사용자 요청. 대체표(`ingredient_substitute_table.csv`)는 매일 배치가 `generate_substitutes.py` 로 **통째로 새로 만들어**(overwrite) 표에 직접 넣은 줄은 다음 날 사라진다 → `ingredient_management/manual_substitutes.csv`(사람이 정한 쌍) 신설, 생성 스크립트가 매번 합침(같은 쌍이면 손 지정이 이김). 보리새우→건새우·건새우→보리새우 0.85.
+- 재생성 결과 대체표 차이는 정확히 +2줄. 화면의 대체표 캐시 버전 2.3→2.4(`RecipeList`·`Popular` 같은 키).
+- 확인: 포함 재료 「보리새우」 → …·건새우·… 로 넓어져 「보리새우+어묵」 매칭 30%↑ 2→4건(꼬치 어묵탕 등), 조건 없이 5→9건.
+- ⚠ 환경 사고 수습: 오늘 07:43 영상 작업용 `opencv-python-headless`·`mediapipe` 설치로 numpy 가 2.5.3 으로 올라가 pandas 2.2.1 이 import 오류(`numpy.dtype size changed`) — 매일 배치(사전 반영·대체표 생성 등)가 멈출 상태였음. pandas 를 2.2.3(numpy 2 호환 패치 버전)으로 올려 해결, pandas·whisper/torch·cv2·selenium·pymysql 등 import 확인. (requirements 의 pandas==2.2.1 은 Railway 서버용이라 그대로)

@@ -255,7 +255,7 @@ function normalizeRecipe(recipe: any) {
  */
 async function loadSubstituteTable(): Promise<{ [key: string]: { ingredient_b: string; similarity_score?: number }[] }> {
   const CACHE_KEY = 'substitute_table_cache';
-  const CACHE_VERSION = '2.3'; // 대체재 양방향(단맛 조미) 테이블 반영
+  const CACHE_VERSION = '2.4'; // 수동 지정 대체 쌍(보리새우↔건새우, 2026-10-08) 반영
   // 버전만 보면 예전 값을 들고 있는 사람이 영원히 그대로다 — 대체재 표는
   // 사전이 바뀌든 말든 매일 재생성되므로(06:30 배치) 하루 지나면 다시 받는다.
   const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
