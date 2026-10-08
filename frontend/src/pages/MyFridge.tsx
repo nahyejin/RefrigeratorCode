@@ -2265,53 +2265,7 @@ const MyFridge: React.FC = () => {
               필요 없을 것 같다"). 이 화면은 처음부터 끝까지 내 냉장고 재고
               이야기 하나뿐이고, 화면 이름은 하단 탭의 `내냉장고` 가 말한다.
               그만큼(약 24px) 보관함 세 칸이 위로 올라온다.
-              저장 상태(`저장됨`)는 이 줄 오른쪽에 그대로 남는다. */}
-          <div className="flex items-center justify-end" style={{ position: 'relative', width: '100%' }}>
-            {/* 저장 버튼을 없애고 상태 표시로 교체.
-                재료가 바뀌면 자동으로 저장되므로 사용자가 누를 일이 없다.
-                다만 예전 자동 저장은 실패해도 콘솔에만 찍고 끝나서 저장이 안 된 걸
-                알 수 없었기 때문에(그래서 수동 저장 버튼이 생겼던 것),
-                이제 상태를 눈에 보이게 하고 실패 시 다시 시도할 수 있게 한다. */}
-            {isLoggedIn && user?.id && saveStatus !== 'idle' && (
-              <div
-                role="status"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  fontSize: 12,
-                  fontWeight: 600,
-                  color: saveStatus === 'error' ? 'var(--danger)' : 'var(--ink-400)',
-                }}
-              >
-                {saveStatus === 'saving' && '저장 중…'}
-                {saveStatus === 'success' && '저장됨'}
-                {saveStatus === 'error' && (
-                  <>
-                    저장하지 못했어요
-                    <button
-                      type="button"
-                      onClick={handleSaveClick}
-                      style={{
-                        height: 26,
-                        padding: '0 10px',
-                        boxSizing: 'border-box',
-                        fontSize: 12,
-                        fontWeight: 600,
-                        color: 'var(--ink-900)',
-                        background: 'var(--surface-sub)',
-                        border: '1px solid var(--line-300)',
-                        borderRadius: 8,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      다시 시도
-                    </button>
-                  </>
-                )}
-              </div>
-            )}
-          </div>
+              저장 상태(`저장됨`)는 화면 아래 토스트로 옮겼다(맨 아래 참고). */}
           {/* 재료 추가 줄 — **재고 관리 머리줄 바로 아래**로 옮겼다(2026-10-08).
               화면 맨 위에 혼자 떠 있을 때는 "여기 입력하면 아래 냉장고에
               담긴다" 가 안 읽혔다(제목을 빼 봐도 마찬가지였다). 입력칸이
@@ -2717,6 +2671,62 @@ const MyFridge: React.FC = () => {
             }}
           >
             {infoToast.text}
+          </div>
+        )}
+        {/* 저장 상태 — 예전엔 입력 줄 위 우측 상단에 끼어 있었는데, 뜰 때만 한 줄이
+            생겨 레이아웃을 밀고 검색 박스에 붙어 보였다. 레이아웃에 영향 없는
+            화면 아래 토스트로 옮겼다(2026-10-09 지적).
+            저장 버튼을 없애고 상태 표시로 교체했다. 재료가 바뀌면 자동 저장되므로
+            누를 일이 없지만, 예전 자동 저장은 실패해도 콘솔에만 찍혀 알 수 없었다
+            (그래서 수동 저장 버튼이 생겼던 것). 상태를 눈에 보이게 하고 실패 시
+            다시 시도할 수 있게 한다. */}
+        {isLoggedIn && user?.id && saveStatus !== 'idle' && (
+          <div
+            role="status"
+            style={{
+              position: 'fixed',
+              bottom: infoToast ? 160 : 100,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: saveStatus === 'error' ? '6px 8px 6px 14px' : '8px 14px',
+              borderRadius: 9999,
+              background: saveStatus === 'error' ? 'rgba(196,52,43,0.95)' : 'rgba(34,34,34,0.82)',
+              color: '#FFFFFF',
+              fontSize: 13,
+              fontWeight: 600,
+              whiteSpace: 'nowrap',
+              zIndex: 'var(--z-toast)',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+            }}
+          >
+            {saveStatus === 'saving' && '저장 중…'}
+            {saveStatus === 'success' && '저장됨'}
+            {saveStatus === 'error' && (
+              <>
+                저장하지 못했어요
+                <button
+                  type="button"
+                  onClick={handleSaveClick}
+                  style={{
+                    height: 26,
+                    padding: '0 10px',
+                    boxSizing: 'border-box',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: 'var(--ink-900)',
+                    background: '#FFFFFF',
+                    border: 'none',
+                    borderRadius: 9999,
+                    cursor: 'pointer',
+                  }}
+                >
+                  다시 시도
+                </button>
+              </>
+            )}
           </div>
         )}
         {/* Loading animation */}
