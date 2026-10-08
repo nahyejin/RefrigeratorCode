@@ -279,12 +279,17 @@ SOURCES = {
     "diet": ("store/sources/diet_ai_plan.png", None, 185),
     "chat": (V + "reel6_chatbot_demo.mp4", 29.2, 180),
     "photo": (V + "reel1_loading_freeze.png", None, 0),
-    "match": (V + "reel2_matching_demo_fixed.mp4", 9.0, 0),
-    "substitute": (V + "reel2_substitute_freeze.png", None, 0),
-    "expiry": (V + "reel5_expiry_demo.mp4", 16.0, 180),
+    # (INSETS crop 의 y 는 웹뷰 좌표에 상태바 132px 를 더한 화면 캡처 좌표다)
+    # 2026-10-09 화면 개편 뒤 새로 찍음 — 안드로이드 에뮬레이터(1080x2400)에서 실제 앱(비회원 + 배포 서버
+    # 레시피)을 그대로 캡처. 위 132px 는 안드로이드 상태바. 아래 INSETS 의 같은 이름 항목도 같은 캡처에서 자른다.
+    "match": ("store/sources/match_main.png", None, 132),
+    "substitute": ("store/sources/substitute_main.png", None, 132),
+    "expiry": ("store/sources/match_main.png", None, 132),  # 배경은 목록 그대로(임박 필터 적용 뒤 화면은 썸네일이 안 뜬 카드가 섞였다)
     "cook": (V + "reel3_reading_freeze.png", None, 180),
     "family": (V + "reel8_family_demo.mp4", 16.5, 180),
 }
+
+NO_BLUR = {"match", "substitute", "expiry"}
 
 # 폰 화면 위에 겹쳐 올리는 보조 이미지(기울인 작은 카드 / 확대 콜아웃).
 #   crop: 원본 픽셀 좌표(상태바 자르기 전)  w: 캔버스 폭 대비 너비  angle: 반시계 방향 기울기(도)
@@ -301,13 +306,13 @@ INSETS = {
              w=0.29, angle=0, cx=0.5, cy=0.33, radius=0.045),
     ],
     # 재료 매칭도 설정 팝업
-    "match": dict(src="store/sources/match_filter_popup.png", crop=(92, 642, 1114, 2166),
+    "match": dict(src="store/sources/match_filter_popup.png", crop=(94, 583, 986, 1886),
                   w=0.47, angle=-6, cx=0.72, cy=0.40, radius=0.04),
     # "대체 가능 · 당근→양파"가 있는 레시피 카드를 잘라 크게
-    "substitute": dict(src=V + "reel2_substitute_freeze.png", crop=(30, 624, 910, 1070),
+    "substitute": dict(src="store/sources/substitute_main.png", crop=(91, 1153, 990, 1548),
                        w=0.92, angle=-2, cx=0.5, cy=0.78, radius=0.03),
     # 임박 재료 설정 팝업
-    "expiry": dict(src="store/sources/expiry_filter_popup.png", crop=(92, 665, 1114, 2145),
+    "expiry": dict(src="store/sources/expiry_filter_popup.png", crop=(94, 582, 986, 1887),
                    w=0.47, angle=-6, cx=0.72, cy=0.40, radius=0.04),
     # 가족별 요리 횟수 + 이번 달 절약액과 그 계산식
     "family": dict(src=V + "reel8_savings_bg.png", crop=(20, 248, 860, 850),
@@ -350,10 +355,12 @@ def load_frame(key):
         path = cached
     im = Image.open(path).convert("RGB")
     im = im.crop((0, top_crop, im.width, im.height))
-    # 헤더 오른쪽(계정 이름·요금제 배지·로그아웃)을 블러 — 실제 사용자 이름이 찍혀 있다
-    hh = int(im.width * 0.1)
-    box = (int(im.width * 0.46), 0, im.width, hh)
-    im.paste(im.crop(box).filter(ImageFilter.GaussianBlur(int(im.width * 0.02))), box[:2])
+    # 헤더 오른쪽(계정 이름·요금제 배지·로그아웃)을 블러 — 실제 사용자 이름이 찍혀 있다.
+    # 비회원으로 새로 찍은 캡처(헤더가 `로그인 / 회원가입`)는 가릴 것이 없다.
+    if key not in NO_BLUR:
+        hh = int(im.width * 0.1)
+        box = (int(im.width * 0.46), 0, im.width, hh)
+        im.paste(im.crop(box).filter(ImageFilter.GaussianBlur(int(im.width * 0.02))), box[:2])
     return im
 
 
