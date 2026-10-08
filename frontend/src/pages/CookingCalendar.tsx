@@ -2923,7 +2923,8 @@ const CookingCalendar: React.FC = () => {
                 backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center',
               }}
             >
-              <option value="all">전체</option>
+              {/* 「전체」만 두니 무엇이 전체인지 안 읽힌다는 지적(2026-10-08) — 「기간 전체」 */}
+              <option value="all">기간 전체</option>
               {/* 기본 선택창은 가장 긴 항목만큼 넓어진다 — 한 줄에 들어가게 짧게 */}
               <option value="365">1년</option>
               <option value="90">3개월</option>
