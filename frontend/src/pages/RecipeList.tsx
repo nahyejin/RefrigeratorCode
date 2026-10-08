@@ -2499,7 +2499,8 @@ const RecipeList: React.FC = () => {
         }}>
           <IngredientLegend />
         </div>
-        <div style={{ marginTop: 6, marginBottom: 6, color: 'var(--ink-700)',
+        {/* 범례 판과 건수 줄 사이 12px — 6px 라 건수 글자가 판에 달라붙어 보였다(2026-10-09 지적). */}
+        <div style={{ marginTop: 12, marginBottom: 6, color: 'var(--ink-700)',
                       fontSize: 12.5, fontWeight: 600 }}>
           {/* 서버 전체 건수를 보여 준다. 「부족 재료 N개까지」처럼 화면에서만 거르는 조건이 있으면
               받아 온 것 중 맞는 개수(total)만 알 수 있어 그걸 보여 준다.

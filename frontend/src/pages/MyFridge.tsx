@@ -2311,7 +2311,7 @@ const MyFridge: React.FC = () => {
               자기가 채우는 목록과 **같은 박스 안에** 있으면 설명이 필요 없다.
               사진 찍기(카메라)도 같은 줄이라 함께 내려온다. */}
           <div
-            className="flex gap-2 mb-4"
+            className="flex gap-2"
             /* 가이드가 이 줄 전체(입력창 + 입력 + 카메라)를 가리킨다.
                안내 문구가 "재료명을 입력하거나, 사진을 찍어서" 라고 둘 다 말하므로
                입력창만 감싸면 카메라 버튼이 하이라이트 밖에 남는다.
@@ -2325,7 +2325,9 @@ const MyFridge: React.FC = () => {
             style={{
               width: '100%',
               maxWidth: 400,
-              margin: '0 auto',
+              // 아래 첫 보관함(냉동)과 **24px**. 16px(mb-4)이라 붙어 보였다 —
+              // 냉장고요리의 검색창→정렬 줄 간격(24px)과 맞춘다(2026-10-09 지적).
+              margin: '0 auto 24px',
               justifyContent: 'center',
               alignItems: 'flex-start',
             }}

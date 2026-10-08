@@ -38,6 +38,7 @@ import Slider from 'rc-slider';
 import 'rc-slider/assets/index.css';
 import { Recipe } from '../types/recipe';
 import { filterRecipes } from '../utils/recipeFilters';
+import { STALE_AFTER_DAYS } from '../utils/expiry';
 import { getDictCategoryKey, getDDay, FilterKeywordTree, FilterKeywordNode, calculateMatchRate } from '../utils/recipeUtils';
 import { FilterState } from './FilterModal';
 
@@ -679,14 +680,38 @@ const RecipeSortBar = ({
   }, [includeKeyword, includeIngredients, excludeIngredients, selectedChannel,
       selectedCategoryKeywords]);
 
-  const expirySortedIngredientList = useMemo(() =>
-    myFridgeIngredientList
-      .filter(i => i.expiry || i.estimatedExpiry)
-      .sort((a, b) =>
-        new Date(a.expiry || a.estimatedExpiry).getTime() -
-        new Date(b.expiry || b.estimatedExpiry).getTime()),
-    [myFridgeIngredientList]
-  );
+  /**
+   * 재료를 **D-day 가 가까운 것부터** 세운다.
+   *
+   * 예전엔 `new Date('2026.10.12')` 로 바로 비교했다. 날짜를 점(.)으로 저장하는데,
+   * 점 표기는 사파리·아이폰에서 Invalid Date 가 돼 비교값이 NaN — **정렬이 아예 안 되고
+   * 넣은 순서 그대로** 나왔다("정렬 기준이 없는 것 같다" — 2026-10-09 지적).
+   * 대시로 바꿔 읽는다.
+   *
+   * 순서: 이미 지났거나(14일 이내) 곧 상하는 것 → 먼 것. **14일 넘게 지난 것**은
+   * 냉장고에 실제로 없을 가능성이 높아(앱에서 안 지운 것) 맨 아래로 보낸다 —
+   * 위에 두면 "152일 지남" 이 매번 첫 줄을 차지한다.
+   */
+  const expirySortedIngredientList = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const timeOf = (i: any): number => {
+      const raw = String(i.expiry || i.estimatedExpiry || '').replace(/\./g, '-');
+      const t = new Date(raw).getTime();
+      return isNaN(t) ? Number.POSITIVE_INFINITY : t;
+    };
+    const isStale = (t: number) => t !== Number.POSITIVE_INFINITY
+      && Math.round((t - today.getTime()) / 86400000) < -STALE_AFTER_DAYS;
+    return myFridgeIngredientList
+      .filter((i: any) => i.expiry || i.estimatedExpiry)
+      .sort((a: any, b: any) => {
+        const ta = timeOf(a), tb = timeOf(b);
+        const sa = isStale(ta), sb = isStale(tb);
+        if (sa !== sb) return sa ? 1 : -1;
+        // 오래 지난 것끼리는 덜 오래된 것이 위(= 시각이 큰 쪽)
+        return sa ? tb - ta : ta - tb;
+      });
+  }, [myFridgeIngredientList]);
 
   // 필터 적용 함수
   const applyFilter = useCallback(async (options?: any) => {
@@ -1186,12 +1211,16 @@ const RecipeSortBar = ({
       {isExpiryModalOpen && (
         <Portal>
         <div style={STYLES.modal}>
-          <div style={STYLES.modalContent}>
+          {/* 안쪽 내용만 스크롤하고 **[적용]은 바닥에 고정** — 웹에서 창이 낮으면 적용 버튼이
+              스크롤을 내려야 나타났다(2026-10-09 지적). 팝업 전체를 스크롤시키지 않고,
+              제목 아래 본문만 `flex:1` 칸에서 스크롤한다. */}
+          <div style={{ ...STYLES.modalContent, display: 'flex', flexDirection: 'column', overflowY: 'hidden' }}>
             <CloseButton onClick={() => {
               setSelectedExpiryIngredients(appliedExpiryIngredients);
               setExpiryModalOpen(false);
             }} />
-            <div style={STYLES.modalTitle}>임박 재료 설정</div>
+            <div style={{ ...STYLES.modalTitle, flexShrink: 0 }}>임박 재료 설정</div>
+            <div className="always-scrollbar" style={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto', paddingRight: 2 }}>
 
             {/* 이 목록에 "직접 넣지도 않은 유통기한" 이 왜 떠 있는지 밝힌다.
                 구매일만 넣어 둔 재료도 추정 기한으로 이 목록에 들어오기 때문에,
@@ -1260,7 +1289,9 @@ const RecipeSortBar = ({
             {/* 재료 리스트 스크롤 영역 — 테두리(`ingredientList`)와 이 이름이
                 함께 "여기서 고른다" 를 말한다(2026-10-09 지적). */}
             <div style={STYLES.fieldLabel}>냉장고에 담긴 재료에서 고르기</div>
-            <div style={STYLES.ingredientList}>
+            {/* `always-scrollbar` — 스크롤바를 늘 보이게. 폰은 손대기 전엔 스크롤바가 안 보여서
+                "아래에 더 있는지" 가늠이 안 됐다(2026-10-09 지적). */}
+            <div className="always-scrollbar" style={STYLES.ingredientList}>
               {expirySortedIngredientList.length === 0 && (
                 <div style={{...STYLES.ingredientItem, color: '#9A9AA2', fontSize: 13, textAlign: 'center', padding: 24}}>해당 정보가 입력된 재료가 없습니다.</div>
               )}
@@ -1297,8 +1328,9 @@ const RecipeSortBar = ({
                 </div>
               ))}
             </div>
+            </div>
             <button
-              style={STYLES.applyButton}
+              style={{ ...STYLES.applyButton, marginTop: 12, flexShrink: 0 }}
               onClick={() => {
                 setAppliedExpiryIngredients(selectedExpiryIngredients);
                 setExpiryModalOpen(false);
