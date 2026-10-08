@@ -12758,3 +12758,7 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 ### iOS 1.0.5 (빌드 11) 맥 빌드
 - 맥에서 로컬 변경 없음 확인 → `git pull`(`30da05e1` 까지, 윈도우에서 pbxproj 1.0.5(11)·스크린샷 04~06 교체 반영) → `npm install` → `npm run build` → `npx cap sync ios`.
 - 앱·위젯 4개 설정 1.0.5 / 11 확인. `xcodebuild … -configuration Release -destination generic/platform=iOS build` → BUILD SUCCEEDED. Archive·업로드·App Store Connect 제출(새 스크린샷 `store/screenshots/ios/` 8장)은 사용자.
+
+### iOS 스크린샷 1206×2622 판 추가
+- App Store Connect 1.0.5 페이지 스크린샷 칸이 「Dynamic Island 지원 iPhone (중형 디스플레이)」뿐이라 1290×2796 원본이 들어가지 않음(1179×2556·1206×2622 만 허용). `store/screenshots/ios/` 8장을 `sips` 로 높이 2622(폭 1210)로 줄인 뒤 가운데 1206 폭으로 잘라 `store/screenshots/ios_1206x2622/` 에 둠 — 양옆 2px 씩만 잘림, 글자·화면 잘림 없음(04 확인).
+- 원본이 바뀌면 이 폴더도 다시 만들 것: `sips -z 2622 1210 원본 --out 대상 && sips -c 2622 1206 대상`.
