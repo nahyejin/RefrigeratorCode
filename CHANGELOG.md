@@ -12158,3 +12158,8 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 - 서버 `/api/recipes/filter`(match_rate): `ORDER BY match_rate DESC, CRC32(CONCAT(id, ':', shuffle_seed)), id DESC`. `shuffle_seed`(int) 를 안 보내면(예전 앱) 날짜(KST) seed.
 - 프론트: `recipePrefetch.getShuffleSeed()` — sessionStorage 에 두어 다른 탭 갔다 와도 같은 seed(이어 받는 페이지 순서가 이어짐), 새 세션(앱 새로 열기)이나 브라우저 새로고침(`performance` navigation type `reload`)이면 새 seed. 미리 받기 키·요청에도 seed. `RecipeList` 는 새로고침이면 저장된 목록을 버리고 새로 받음(`consumePageReload`), 세션 해시 v:4. `compareByMatchRateThenLatest` 도 정확한 매칭률 → day_key.
 - 확인(Flask 테스트 클라이언트, 운영 DB, 재료 15개): 매칭률 100×16 → 95 → 94 → 93 순, 같은 seed 두 번 같은 순서, 2페이지가 1페이지와 겹치지 않고 93% 부터 이어짐. tsc 통과.
+
+### 크롤러 — 재료 개수 컷을 AI 단계로 넘김
+- 사용자: 재료 판정은 AI 가 하는 것 아니었나? → 크롤링 때의 「추출된 재료 3개 이하면 저장 안 함」은 **사전 기반 룰** 추출(`extract_ingredients`)이었다. 10/8 네이버 주제별 보기: 새 글 475 중 265 가 이 컷으로 버려짐 — 표본에 「참치·묵은지·달걀」(김치찌개), 「카레」 1개 등 룰이 재료를 놓친 진짜 레시피가 섞임. AI 는 이 컷을 통과한 글만 봤다.
+- 네이버 블로그(2곳)·인플루언서·유튜브 크롤러에서 개수 컷 제거 → 재료 블록이 있는 글은 저장하고, 밤 LLM 단계가 AI 재료로 세어 3개 이하면 삭제(오늘 바꾼 규칙). 각 크롤러 단독 실행(`__main__`) 끝의 `delete_low_ingredient_entries()`(오늘 수집분 룰 3개 이하 삭제) 호출도 제거 — 남겨 두면 AI 보기 전에 지운다. 「재료 블록이 아예 없음」 컷은 그대로.
+- AI 처리량: 하루 약 440 → 700건 예상, 배치 한도 `--limit 5280` 안. 저장됐지만 AI 전인 글은 `RECIPE_READY` 로 원래 안 보인다.

@@ -605,10 +605,8 @@ class YouTubeCrawler:
                         if not used_block or len(used_block.strip()) < 10:
                             logger.info(f"[SKIP NO INGREDIENTS] 재료 정보가 없어 저장하지 않음: {video_info['link']}")
                             continue
+                        # 재료 개수는 여기서 자르지 않는다 — 룰베이스는 재료를 놓쳐(「참치·묵은지·달걀」 김치찌개도 걸렸다) 밤 AI 단계가 세고 3개 이하면 지운다(2026-10-08)
                         used_ings = extract_ingredients(used_block)
-                        if not used_ings or len(used_ings) <= 3:
-                            logger.info(f"[SKIP FEW INGREDIENTS] 추출된 재료가 3개 이하여서 저장하지 않음: {video_info['link']} (재료: {used_ings})")
-                            continue
                         video_info['used_ingredients'] = ','.join(used_ings)
                         video_info['used_ingredients_block'] = used_block
                         video_info['block_reason'] = block_reason
@@ -747,5 +745,4 @@ if __name__ == "__main__":
     try:
         crawler.process_influencer_list()
     finally:
-        crawler.delete_low_ingredient_entries()
         crawler.close() 

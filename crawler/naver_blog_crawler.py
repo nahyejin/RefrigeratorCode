@@ -912,10 +912,8 @@ class NaverBlogCrawler(BaseCrawler):
             print(f"❌ 재료 정보가 없어 저장하지 않음: {link}")
             return None
 
+        # 재료 개수는 여기서 자르지 않는다 — 룰베이스는 재료를 놓쳐(「참치·묵은지·달걀」 김치찌개도 걸렸다) 밤 AI 단계가 세고 3개 이하면 지운다(2026-10-08)
         used_ingredients = extract_ingredients(used_ingredients_block)
-        if not used_ingredients or len(used_ingredients) <= 3:
-            print(f"❌ 추출된 재료가 3개 이하여서 저장하지 않음: {link} (재료: {used_ingredients})")
-            return None
         
         # Create Recipe object
         return Recipe(
@@ -1212,13 +1210,8 @@ class NaverBlogCrawler(BaseCrawler):
                 print(f"❌ 재료 정보가 없어 저장하지 않음: {link}")
                 self.driver.switch_to.default_content()
                 return None
+            # 재료 개수는 여기서 자르지 않는다 — 룰베이스는 재료를 놓쳐(「참치·묵은지·달걀」 김치찌개도 걸렸다) 밤 AI 단계가 세고 3개 이하면 지운다(2026-10-08)
             used_ingredients = extract_ingredients(used_ingredients_block)
-            
-            # 추출된 재료 개수 체크 (3개 이하이면 저장하지 않음)
-            if not used_ingredients or len(used_ingredients) <= 3:
-                print(f"❌ 추출된 재료가 3개 이하여서 저장하지 않음: {link} (재료: {used_ingredients})")
-                self.driver.switch_to.default_content()
-                return None
             # ---
 
             # 썸네일
@@ -1323,4 +1316,3 @@ def delete_low_ingredient_entries(self):
 if __name__ == "__main__":
     crawler = NaverBlogCrawler()
     crawler.crawl()
-    crawler.delete_low_ingredient_entries() 

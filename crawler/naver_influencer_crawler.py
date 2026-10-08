@@ -775,12 +775,8 @@ class NaverInfluencerCrawler:
             if not used_ingredients_block or len(used_ingredients_block.strip()) < 10:
                 logger.info(f"[SKIP NO INGREDIENTS] 재료 정보가 없는 포스트: {current_url}")
                 return {}
+            # 재료 개수는 여기서 자르지 않는다 — 룰베이스는 재료를 놓쳐(「참치·묵은지·달걀」 김치찌개도 걸렸다) 밤 AI 단계가 세고 3개 이하면 지운다(2026-10-08)
             used_ingredients = extract_ingredients(used_ingredients_block)
-            
-            # 추출된 재료 개수 체크 (3개 이하이면 저장하지 않음)
-            if not used_ingredients or len(used_ingredients) <= 3:
-                logger.info(f"[SKIP FEW INGREDIENTS] 추출된 재료가 3개 이하인 포스트: {current_url} (재료: {used_ingredients})")
-                return {}
             # ---
 
             return {
@@ -1222,7 +1218,6 @@ def main():
     crawler = NaverInfluencerCrawler()
     recipes = crawler.crawl()
     crawler.save_to_json(recipes)
-    crawler.delete_low_ingredient_entries()
     logger.info(f"Total recipes collected: {len(recipes)}")
 
 if __name__ == "__main__":
