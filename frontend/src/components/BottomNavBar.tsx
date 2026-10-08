@@ -111,6 +111,30 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({ activeTab }) => {
   const navigate = useNavigate();
   const fridgeBusy = useFridgePrefetching();
 
+  // 글자 크기를 키운 폰(안드로이드 설정 · 어르신용)에서는 `마이캘린더` 같은 라벨이
+  // 탭 폭보다 넓어져 글자 중간에서 줄이 바뀌었다(`마이캘린/더`, 2026-10-09 확인).
+  // 줄바꿈을 막고(nowrap), 탭 폭보다 넓으면 **가장 넓은 라벨에 맞춰 다 같이** 줄인다
+  // (라벨마다 크기가 달라 보이지 않게). 평소엔 1 이라 그대로다.
+  const navRef = React.useRef<HTMLElement>(null);
+  const [labelScale, setLabelScale] = React.useState(1);
+  React.useLayoutEffect(() => {
+    const measure = () => {
+      const nav = navRef.current;
+      if (!nav) return;
+      let ratio = 1;
+      nav.querySelectorAll<HTMLElement>('[data-nav-label]').forEach((el) => {
+        const slot = el.parentElement?.clientWidth ?? 0;
+        if (slot > 0 && el.offsetWidth > slot - 4) ratio = Math.min(ratio, (slot - 4) / el.offsetWidth);
+      });
+      setLabelScale(Math.max(0.6, ratio));
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    const fonts = (document as any).fonts;
+    fonts?.ready?.then(measure);
+    return () => window.removeEventListener('resize', measure);
+  });
+
   return (
     <>
     {/* 스크롤 끝 여백. 네비는 fixed 라 페이지 흐름에 자리를 차지하지 않고,
@@ -120,6 +144,7 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({ activeTab }) => {
         화면 맨 끝에 놓이므로, 여기서 한 번에 FAB 높이만큼 흐름 속 여백을 더한다. */}
     <div aria-hidden style={{ height: 64, flexShrink: 0 }} />
     <nav
+      ref={navRef}
       style={{
         position: 'fixed',
         bottom: 0,
@@ -192,8 +217,12 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({ activeTab }) => {
               )}
             </span>
             <span
+              data-nav-label
               style={{
                 fontSize: 12,
+                whiteSpace: 'nowrap',
+                transform: labelScale < 1 ? `scale(${labelScale})` : undefined,
+                transformOrigin: 'center top',
                 fontWeight: isActive ? 700 : 500,
                 color: isActive ? 'var(--ink-900)' : 'var(--ink-400)',
                 letterSpacing: '-0.2px',

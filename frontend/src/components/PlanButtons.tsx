@@ -22,10 +22,11 @@ const PlanButtons: React.FC<{ onBeforeGo?: () => void }> = ({ onBeforeGo }) => {
   };
 
   const base: React.CSSProperties = {
-    width: '100%', height: 52, borderRadius: 12, cursor: 'pointer',
+    // height 가 아니라 minHeight — 글자 크기를 키운 폰에서 글자가 잘리지 않게(2026-10-09).
+    width: '100%', minHeight: 52, borderRadius: 12, cursor: 'pointer',
     display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
     // `<button>` 은 기본이 가운데 정렬 — 두 줄이 서로 가운데로 맞춰져 들여쓴 것처럼 보이던 문제.
-    textAlign: 'left', justifyContent: 'center', gap: 2, padding: '0 12px',
+    textAlign: 'left', justifyContent: 'center', gap: 2, padding: '6px 12px',
   };
 
   return (
@@ -35,10 +36,10 @@ const PlanButtons: React.FC<{ onBeforeGo?: () => void }> = ({ onBeforeGo }) => {
           그대로 손해다. */}
       <span style={{ flex: 1, minWidth: 0, display: 'flex', position: 'relative' }}>
         <button type="button" onClick={() => onGo(true)} className="ai-action" style={base}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: '#1A1A1E', whiteSpace: 'nowrap' }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: '#1A1A1E', wordBreak: 'keep-all', paddingRight: 14 }}>
             이번 주 AI 식단 추천
           </span>
-          <span style={{ fontSize: 10.5, color: 'rgba(26,26,30,0.65)', whiteSpace: 'nowrap' }}>
+          <span style={{ fontSize: 10.5, color: 'rgba(26,26,30,0.65)', wordBreak: 'keep-all' }}>
             장보기 최소화 · 크레딧 {planCost}
           </span>
         </button>
@@ -53,10 +54,10 @@ const PlanButtons: React.FC<{ onBeforeGo?: () => void }> = ({ onBeforeGo }) => {
           border: '1px solid var(--line-200)', background: 'var(--surface)',
         }}
       >
-        <span style={{ fontSize: 13, fontWeight: 700, color: '#1A1A1E', whiteSpace: 'nowrap' }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: '#1A1A1E', wordBreak: 'keep-all' }}>
           이번 주 식단 추천
         </span>
-        <span style={{ fontSize: 10.5, color: 'var(--ink-500)', whiteSpace: 'nowrap' }}>
+        <span style={{ fontSize: 10.5, color: 'var(--ink-500)', wordBreak: 'keep-all' }}>
           냉장고 재료만 · 무료
         </span>
       </button>

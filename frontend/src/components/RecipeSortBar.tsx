@@ -619,6 +619,35 @@ const RecipeSortBar = ({
   const [tempMatchRangeMax, setTempMatchRangeMax] = useState<string | null>(null);
   const [isSortDropdownOpen, setIsSortDropdownOpen] = useState<boolean>(false);
   const sortDropdownRef = useRef<HTMLDivElement>(null);
+  // 글자 크기를 키운 폰(안드로이드 설정 · 어르신용)에서는 버튼들이 한 줄에 다 못
+  // 들어가 정렬이 `재..` 로 잘리고 필터 버튼이 화면 밖으로 밀렸다(2026-10-09 확인).
+  // 평소엔 이전처럼 안 접고(출렁임 방지), **정말 넘칠 때만** 왼쪽 묶음을 접는다.
+  const barRef = useRef<HTMLDivElement>(null);
+  const groupRef = useRef<HTMLDivElement>(null);
+  const [crowded, setCrowded] = useState(false);
+  useLayoutEffect(() => {
+    const check = () => {
+      const bar = barRef.current;
+      const group = groupRef.current;
+      if (!bar || !group) return;
+      const prev = group.style.flexWrap;
+      group.style.flexWrap = 'nowrap';
+      // 넘침은 두 가지로 나타난다: 줄 전체가 넘치거나, 줄어들 수 있는 정렬 칸이
+      // 말줄임(`재..`)으로 접히거나. 둘 다 본다. 글자가 2~3px 모자란 정도(평소 크기)
+      // 는 예전처럼 한 줄 그대로 두고, 20% 넘게 잘릴 때만 접는다.
+      let over = bar.scrollWidth > bar.clientWidth + 1;
+      if (!over) {
+        over = Array.from(bar.querySelectorAll<HTMLElement>('*')).some(
+          (el) => el.clientWidth > 0 && el.clientWidth < el.scrollWidth * 0.8 && getComputedStyle(el).overflow !== 'visible',
+        );
+      }
+      group.style.flexWrap = prev;
+      setCrowded(over);
+    };
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  });
   const [tempMatchRange, setTempMatchRange] = useState<[number, number]>(matchRange); // 임시 매칭도 범위
   const [expiryIngredientMode, setExpiryIngredientMode] = useState<'and'|'or'>(() => {
     const saved = localStorage.getItem('recipe_sortbar_state_fridge');
@@ -807,8 +836,8 @@ const RecipeSortBar = ({
 
   return (
     <>
-      <div style={STYLES.container}>
-        <div style={STYLES.buttonGroup}>
+      <div ref={barRef} style={STYLES.container}>
+        <div ref={groupRef} style={crowded ? { ...STYLES.buttonGroup, flexWrap: 'wrap' as const } : STYLES.buttonGroup}>
           <button
             style={STYLES.button}
             onClick={() => {

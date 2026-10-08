@@ -1879,9 +1879,12 @@ const CookingCalendar: React.FC = () => {
           (전에는 이 아래 있어서 "왜 주간 보기에서도 월 목표가 나오지" 라는
           혼란이 있었음) */}
       <div style={{ margin: '0 14px', padding: '12px 14px', borderRadius: 14, background: 'var(--surface-sub)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+        {/* 글자 크기를 키운 폰에서 `2026년 10/월` 처럼 글자 중간에서 줄이 바뀌고
+            버튼 글자가 칸 밖으로 넘쳤다(2026-10-09 확인) — 줄바꿈은 묶음 단위로,
+            버튼 높이는 minHeight 로. */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px 8px', marginBottom: 6 }}>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: '#1A1A1E' }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: '#1A1A1E', whiteSpace: 'nowrap' }}>
               {anchorDate.getFullYear()}년 {anchorDate.getMonth() + 1}월
             </span>
             {/* 지난 달들을 들여다보는 구멍. 목표는 이번 달 하나만 말하는데,
@@ -1891,7 +1894,7 @@ const CookingCalendar: React.FC = () => {
                 type="button"
                 onClick={() => setProgressOpen(true)}
                 style={{
-                  height: 24, padding: '0 9px', borderRadius: 9999,
+                  minHeight: 24, padding: '0 9px', borderRadius: 9999,
                   border: '1px solid var(--line-300)', background: 'var(--surface)',
                   fontSize: 11, fontWeight: 600, color: 'var(--ink-500)', cursor: 'pointer',
                   whiteSpace: 'nowrap',
@@ -1931,7 +1934,7 @@ const CookingCalendar: React.FC = () => {
             </span>
           ) : (
             <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 13, fontWeight: 700, color: '#1A1A1E' }}>목표 {myGoal}회</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#1A1A1E', whiteSpace: 'nowrap' }}>목표 {myGoal}회</span>
               {/* 목표 저장은 계정에 묶인 값이다(households/users 테이블) — 게스트는
                   고쳐도 저장할 곳이 없으니, 수정 버튼 대신 로그인 유도로 바꾼다. */}
               {isLoggedIn ? (
@@ -1941,7 +1944,7 @@ const CookingCalendar: React.FC = () => {
                     setGoalInput(String(myGoal));
                     setEditingGoal(true);
                   }}
-                  style={{ height: 24, padding: '0 8px', borderRadius: 6, fontSize: 11.5, fontWeight: 600, color: 'var(--ink-700)', background: '#FFFFFF', border: '1px solid var(--line-300)', cursor: 'pointer' }}
+                  style={{ minHeight: 24, padding: '0 8px', borderRadius: 6, fontSize: 11.5, fontWeight: 600, color: 'var(--ink-700)', background: '#FFFFFF', border: '1px solid var(--line-300)', cursor: 'pointer', whiteSpace: 'nowrap' }}
                 >
                   목표수정
                 </button>
@@ -1949,7 +1952,7 @@ const CookingCalendar: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => navigate('/login')}
-                  style={{ height: 24, padding: '0 8px', borderRadius: 6, fontSize: 11.5, fontWeight: 600, color: 'var(--ink-700)', background: '#FFFFFF', border: '1px solid var(--line-300)', cursor: 'pointer' }}
+                  style={{ minHeight: 24, padding: '0 8px', borderRadius: 6, fontSize: 11.5, fontWeight: 600, color: 'var(--ink-700)', background: '#FFFFFF', border: '1px solid var(--line-300)', cursor: 'pointer', whiteSpace: 'nowrap' }}
                 >
                   로그인하고 설정
                 </button>
