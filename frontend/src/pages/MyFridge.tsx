@@ -2336,11 +2336,17 @@ const MyFridge: React.FC = () => {
               <input
                 ref={inputRef}
                 type="text"
-                placeholder="추가할 재료명을 입력하세요"
+                /* `+` 아이콘이 들어오면서 칸 안쪽 폭이 20px 줄었다 — 360px 에서
+                   `추가할 재료명을 입력하세요`(163px)가 쓸 수 있는 폭(146px)을
+                   넘어 꼬리가 잘렸다(실측). 아이콘이 `추가` 를 이미 말하므로
+                   문장을 짧게 줄인다. */
+                placeholder="추가할 재료명 입력"
                 className="border border-gray-300 rounded-full px-4 py-2 text-sm focus:outline-none"
                 style={{
                   width: '100%',
                   minHeight: 40,
+                  // 왼쪽 `+` 아이콘 자리(아래). 글자가 아이콘 위로 올라오지 않게.
+                  paddingLeft: 36,
                   fontFamily: 'Pretendard, sans-serif',
                 }}
                 value={inputValue}
@@ -2350,6 +2356,25 @@ const MyFridge: React.FC = () => {
                 onKeyDown={handleInputKeyDown}
                 autoComplete="off"
               />
+              {/* 칸 왼쪽의 `+` — **무엇을 하는 칸인지**를 글자 없이 말한다
+                  (2026-10-09 요청). 문구를 `추가할 재료명…` 으로 바꿔도 여전히
+                  "검색창" 으로 읽힌다는 지적이라, 아이콘을 붙인다.
+                  `∨`(드롭다운 표시)는 쓰지 않는다 — 목록은 **글자를 넣은 뒤에만**
+                  열리므로, 늘 붙어 있는 `∨` 는 눌러도 아무 일이 없는 약속이 된다.
+                  `pointerEvents: none` — 아이콘을 눌러도 칸이 포커스를 받는다. */}
+              <span
+                aria-hidden
+                style={{
+                  position: 'absolute', left: 14, top: 0, bottom: 0,
+                  display: 'flex', alignItems: 'center',
+                  color: 'var(--ink-500)', pointerEvents: 'none',
+                }}
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     strokeWidth="2.4" strokeLinecap="round">
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
+              </span>
               {showDropdown && combinedFiltered.length > 0 && (
                 /* 모바일은 스크롤바가 '만졌을 때만' 잠깐 나타나는 방식이라,
                    목록이 더 있다는 사실이 손을 대기 전에는 보이지 않았다.
