@@ -12,7 +12,7 @@ import BottomNavBar from '../components/BottomNavBar';
 import HouseholdSection from '../components/HouseholdSection';
 import NotificationSettings from '../components/NotificationSettings';
 import PullToRefresh from '../components/PullToRefresh';
-import UsageGauge, { useIsAdmin } from '../components/UsageMeter';
+import UsageGauge, { useIsAdmin, useUsage } from '../components/UsageMeter';
 import GuideOverlay from '../components/GuideOverlay';
 import { markUsageGuideFinished, usageGuideTotalSteps, USAGE_GUIDE_STEPS } from '../utils/onboardingPrompts';
 import logoImg from '../assets/냉털이 로고 white.png';
@@ -393,6 +393,24 @@ const ActionButton: React.FC<{
   </span>
 );
 
+/**
+ * 묶음 제목 — `AI 크레딧` / `설정` / `내 레시피`.
+ *
+ * 이 화면에는 성격이 다른 세 가지가 들어 있다(크레딧 · 식구/알림 설정 ·
+ * 즐겨찾기·기록·완료). 그런데 전부 같은 모양의 흰 카드로 줄줄이 놓여 있어서
+ * **어디서 무엇이 끝나고 시작되는지 읽히지 않았다**("UI가 너무 복잡해",
+ * 2026-10-08). 카드를 줄이는 대신 **이름을 붙인다** — 찾는 사람이 세 글자만
+ * 보고 바로 내려갈 수 있으면 그만큼 단순해진다.
+ */
+const GroupTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <h2 style={{
+    margin: '18px 14px 8px', fontSize: 12.5, fontWeight: 700,
+    color: 'var(--ink-500)', letterSpacing: '0.02em',
+  }}>
+    {children}
+  </h2>
+);
+
 // =====================
 // 메인 컴포넌트
 // =====================
@@ -663,6 +681,8 @@ const MyPage: React.FC = () => {
   const location = useLocation();
   /** 관리자에게만 어드민 입구를 보여준다 (실제 권한 검사는 서버가 한다) */
   const isAdmin = useIsAdmin();
+  /** 크레딧 묶음 제목을 그릴지 판단하는 용도 — 값 자체는 `UsageGauge` 가 쓴다. */
+  const usageNow = useUsage();
 
   // ── 사용 가이드 16~18단계(마지막) ─────────────────────────────
   // 요리 캘린더 가이드 끝에서 `?fromGuide=true` 로 넘어온다. 셋 다 로그인해야
@@ -1422,12 +1442,17 @@ const MyPage: React.FC = () => {
           그 값을 보여줘야 "가입하면 더 쓸 수 있다"고 말할 수 있다.
           "더 필요해요" 버튼은 요청 폼(4단계)이 생기면 onRequestMore 로 붙인다.
           지금 붙이면 눌러도 아무 일도 안 일어나는 버튼이 된다. */}
-      <div style={{ margin: '12px 14px 0' }}>
+      {/* 제목은 **게이지가 실제로 그려질 때만.** `UsageGauge` 는 사용량을 아직
+          못 받았으면 아무것도 안 그리는데(서버가 안 뜬 경우 등), 그때 제목만
+          남으면 빈 제목 한 줄이 떠 있게 된다 — 실제로 그렇게 보였다. */}
+      {!!usageNow && <GroupTitle>AI 크레딧</GroupTitle>}
+      <div style={{ margin: '0 14px' }}>
         <UsageGauge />
       </div>
 
+      {isLoggedIn && <GroupTitle>설정</GroupTitle>}
       {isLoggedIn && (
-        <div style={{ margin: '12px 14px 0' }} data-guide-target="household-section">
+        <div style={{ margin: '0 14px' }} data-guide-target="household-section">
           {/* 가이드가 이 칸(17단계)을 가리키면 펼친다 — 접힌 채면 제목 한 줄뿐이다. */}
           <HouseholdSection onChange={loadHouseholdRecipeFeeds} guideExpand={showGuide && guideStep === 1} />
         </div>
@@ -1437,7 +1462,7 @@ const MyPage: React.FC = () => {
           묶음의 하나라 이 자리가 자연스럽다(로그인 안 했으면 아예 켤 수
           없으므로 로그인 상태에서만 보여준다). */}
       {isLoggedIn && (
-        <div style={{ margin: '12px 14px 0' }} data-guide-target="notification-settings">
+        <div style={{ margin: '8px 14px 0' }} data-guide-target="notification-settings">
           <NotificationSettings />
         </div>
       )}
@@ -1452,7 +1477,7 @@ const MyPage: React.FC = () => {
           아는 것만으로는 아무것도 볼 수 없다. 서버가 /api/admin/* 마다
           is_admin 을 확인한다. 여기서 감추는 건 "찾기 쉽게" 하려는 것이다. */}
       {isAdmin && (
-        <div style={{ margin: '12px 14px 0' }}>
+        <div style={{ margin: '8px 14px 0' }}>
           <button
             type="button"
             onClick={() => navigate('/admin')}
@@ -1480,7 +1505,12 @@ const MyPage: React.FC = () => {
       {/* 이 지점의 부모는 좌우 패딩이 없는 화면 최상위 컨테이너라, 다른 곳
           (bleed=14, 좌우 14px 패딩 안에서 씀)과 달리 bleed=0 이어야 밴드가
           화면 밖으로 새지 않는다. */}
-      {isLoggedIn && <SectionBand bleed={0} />}
+      {isLoggedIn && <SectionBand bleed={0} gap={16} />}
+
+      {/* 제목이 생기면서 밴드의 위아래 여백(28+28=56px)이 과해졌다 — 16 으로 줄였다.
+          밴드를 아예 빼지 않는 이유: 위(계정·설정)와 아래(레시피 내역)는 **다른
+          이야기**라, 제목만으로는 같은 목록의 하위 구분처럼 읽힐 수 있다. */}
+      <GroupTitle>내 레시피</GroupTitle>
 
       {/* 그룹에 속해 있을 때만: 즐겨찾기/기록/완료 세 영역을 "우리 식구 모두"
           볼지 "나의 것만" 볼지 고르는 상위 토글. 세 영역이 각각 따로 그룹
@@ -1593,35 +1623,10 @@ const MyPage: React.FC = () => {
         ))}
       </nav>
 
-      {/* 숫자만 있으면 "그래서 어디서 쓰지" 가 남는다. 쓰는 자리를 알려 준다. */}
-      <div style={{
-        display: 'flex', gap: 6, margin: '8px 14px 0', flexWrap: 'wrap',
-      }}>
-        <button
-          type="button"
-          // **「즐겨찾기만」을 켠 채로** 보낸다. 그냥 목록으로 보내면 전체가
-          // 나와서, 즐겨찾기로 고르러 왔는데 그 버튼을 다시 찾아 눌러야 했다.
-          onClick={() => navigate('/recipe-list', { state: { favoriteOnly: true } })}
-          style={{
-            flex: 1, minWidth: 150, minHeight: 40, borderRadius: 10, cursor: 'pointer',
-            border: '1px solid var(--line-200)', background: 'var(--surface)',
-            fontSize: 12.5, fontWeight: 600, color: 'var(--ink-700)',
-          }}
-        >
-          즐겨찾기로 요리 고르기 &rsaquo;
-        </button>
-        <button
-          type="button"
-          onClick={() => navigate('/cooking-calendar', { state: { mode: 'list' } })}
-          style={{
-            flex: 1, minWidth: 150, minHeight: 40, borderRadius: 10, cursor: 'pointer',
-            border: '1px solid var(--line-200)', background: 'var(--surface)',
-            fontSize: 12.5, fontWeight: 600, color: 'var(--ink-700)',
-          }}
-        >
-          만든 요리 돌아보기 &rsaquo;
-        </button>
-      </div>
+      {/* 한때 여기 `즐겨찾기로 요리 고르기` · `만든 요리 돌아보기` 두 버튼이 있었다.
+          **뺐다**(2026-10-08 요청). 바로 위 요약 숫자 세 칸이 이미 같은 곳으로 가는
+          입구인데, 그 아래에 비슷한 말을 하는 버튼이 또 있으니 "둘이 뭐가 다른가" 를
+          매번 따져 읽게 됐다. 입구는 하나면 된다. */}
 
       {/* 즐겨찾기·기록·완료 **목록**은 여기 두지 않는다.
           위 요약 숫자가 각각의 자리로 보내는 입구다.

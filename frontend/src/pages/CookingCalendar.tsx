@@ -1849,12 +1849,19 @@ const CookingCalendar: React.FC = () => {
                 onChange={(e) => setGoalInput(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') handleSaveGoal();
+                  if (e.key === 'Escape') setEditingGoal(false);
                 }}
+                // 칸을 벗어나면 그대로 저장한다(2026-10-08). [적용]을 찾아 눌러야만
+                // 반영되면, 숫자를 고쳐 놓고 딴 데를 누른 사람은 **고친 줄 알고
+                // 떠난다.** 같은 화면의 `1인 한 끼`·`식구 수`도 이미 이렇게 동작한다.
+                onBlur={() => handleSaveGoal()}
                 autoFocus
                 style={{ width: 56, height: 28, borderRadius: 6, border: '1px solid var(--line-300)', textAlign: 'center', fontSize: 13 }}
               />
               <button
                 type="button"
+                // blur 가 먼저 나가면 이 버튼이 사라져 클릭이 씹힌다.
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={handleSaveGoal}
                 style={{ height: 28, padding: '0 10px', borderRadius: 6, fontSize: 12, fontWeight: 700, color: '#1A1A1E', background: 'var(--brand)', border: 'none', cursor: 'pointer' }}
               >

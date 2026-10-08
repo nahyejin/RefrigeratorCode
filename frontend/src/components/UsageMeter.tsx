@@ -262,6 +262,15 @@ export const UsageGauge: React.FC = () => {
   const [asking, setAsking] = React.useState(false);
   const [reason, setReason] = React.useState('');
   const [result, setResult] = React.useState<string | null>(null);
+  /**
+   * 카드 아래쪽 설명(기능별 크레딧 · 충전 주기 안내)을 펼쳤나.
+   *
+   * 마이페이지가 복잡하다는 지적(2026-10-08)에서 이 카드가 가장 길었다. 늘 봐야
+   * 하는 것은 **남은 양 두 줄과 `더 필요해요`** 뿐이고, 기능당 몇 크레딧인지·
+   * 언제 채워지는지는 **한 번 읽으면 되는 것**이다. 접어 두고 찾는 사람만 편다.
+   * (마이캘린더 목표 카드의 `자세히 보기` 와 같은 모양)
+   */
+  const [detail, setDetail] = React.useState(false);
 
   React.useEffect(() => {
     void refreshUsage();
@@ -405,10 +414,28 @@ export const UsageGauge: React.FC = () => {
         </div>
       </div>
 
+      <button
+        type="button"
+        onClick={() => setDetail(v => !v)}
+        aria-expanded={detail}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 3, height: 22, padding: 0,
+          background: 'transparent', border: 'none', cursor: 'pointer',
+          fontSize: 11.5, fontWeight: 500, color: 'var(--ink-500)',
+        }}
+      >
+        {detail ? '자세히 접기' : '자세히 보기'}
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--ink-500)"
+             strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden
+             style={{ transform: detail ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }}>
+          <path d="M6 9l6 6 6-6" />
+        </svg>
+      </button>
+
       {/* 어디에 쓰이는지 **세 군데를 다 적는다.** 식단 짜기가 빠져 있어서,
           크레딧이 줄어 있는데 왜 줄었는지 알 수 없는 경우가 생겼다.
           값은 서버가 정하는 것이라 서버가 준 값을 그대로 쓴다. */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+      <div style={{ display: detail ? 'flex' : 'none', flexWrap: 'wrap', gap: 6 }}>
         {[
           ['재료 담기', (usage.credits as any)?.vision ?? 2],
           ['요리 AI', (usage.credits as any)?.chat ?? 1],
@@ -425,7 +452,9 @@ export const UsageGauge: React.FC = () => {
 
       {/* 두 막대가 이미 무엇이 얼마인지 말하고 있다. 여기서는 **언제 채워지는지**
           만 짧게 — 막대가 못 하는 말이 그것뿐이다. */}
-      <div style={{ fontSize: 12, color: 'var(--ink-500)', lineHeight: 1.7 }}>
+      {/* 비회원에게는 접지 않는다 — 여기 적힌 `가입 시 N 크레딧 지급` 이
+          이 카드가 비회원에게 하는 **유일한 말**이다. */}
+      <div style={{ display: (detail || usage.is_guest) ? 'block' : 'none', fontSize: 12, color: 'var(--ink-500)', lineHeight: 1.7 }}>
         {usage.is_guest ? (
           <>가입 시 <b>{usage.signup_credits} 크레딧</b> 지급.</>
         ) : (
