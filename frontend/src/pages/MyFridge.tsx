@@ -2222,7 +2222,10 @@ const MyFridge: React.FC = () => {
                입력창만 감싸면 카메라 버튼이 하이라이트 밖에 남는다.
                ⚠️ 화면 문구(placeholder 등)로 찾지 말 것 — 예전에 placeholder 를
                   "추가할 재료명을 입력하세요" → "재료명을 입력하세요" 로 다듬는 순간
-                  선택자가 안 맞아 이 단계의 하이라이트가 통째로 사라진 적이 있다. */
+                  선택자가 안 맞아 이 단계의 하이라이트가 통째로 사라진 적이 있다.
+                  (2026-10-08 문구를 "추가할 재료명을 입력하세요" 로 되돌렸다 —
+                   `재료명을 입력하세요` 만으로는 **내 냉장고를 검색하는 칸**처럼
+                   읽혔다. 선택자는 이제 이 속성이라 문구를 바꿔도 안전하다) */
             data-guide-target="ingredient-add-row"
             style={{
               width: '100%',
@@ -2239,7 +2242,7 @@ const MyFridge: React.FC = () => {
               <input
                 ref={inputRef}
                 type="text"
-                placeholder="재료명을 입력하세요"
+                placeholder="추가할 재료명을 입력하세요"
                 className="border border-gray-300 rounded-full px-4 py-2 text-sm focus:outline-none"
                 style={{
                   width: '100%',
@@ -2509,7 +2512,10 @@ const MyFridge: React.FC = () => {
                 <SortDropdown value={frozenSort} onChange={setFrozenSort} />
                 {(frozen ?? []).length > 0 && (
                   <button
-                    className="h-6 px-1.5 py-0 text-[11px] font-medium rounded border border-gray-300 bg-white text-[#3A3A42] hover:bg-[#F5F5F7] active:bg-[#E6E6EA] transition whitespace-nowrap"
+                    // 높이를 숫자로 못 박는다 — 옆 정렬 드롭다운이 28px 이고,
+                    // 이쪽은 h-6(24px)이라 4px 이 어긋나 보였다(2026-10-08).
+                    style={{ height: 28 }}
+                    className="px-1.5 py-0 text-[11px] font-medium rounded border border-gray-300 bg-white text-[#3A3A42] hover:bg-[#F5F5F7] active:bg-[#E6E6EA] transition whitespace-nowrap"
                     onClick={() => handleRemoveAll('frozen')}
                   >
                     모두삭제
@@ -2543,7 +2549,10 @@ const MyFridge: React.FC = () => {
                 <SortDropdown value={fridgeSort} onChange={setFridgeSort} />
                 {fridge && fridge.length > 0 && (
                   <button
-                    className="h-6 px-1.5 py-0 text-[11px] font-medium rounded border border-gray-300 bg-white text-[#3A3A42] hover:bg-[#F5F5F7] active:bg-[#E6E6EA] transition whitespace-nowrap"
+                    // 높이를 숫자로 못 박는다 — 옆 정렬 드롭다운이 28px 이고,
+                    // 이쪽은 h-6(24px)이라 4px 이 어긋나 보였다(2026-10-08).
+                    style={{ height: 28 }}
+                    className="px-1.5 py-0 text-[11px] font-medium rounded border border-gray-300 bg-white text-[#3A3A42] hover:bg-[#F5F5F7] active:bg-[#E6E6EA] transition whitespace-nowrap"
                     onClick={() => handleRemoveAll('fridge')}
                   >
                     모두삭제
@@ -2578,7 +2587,10 @@ const MyFridge: React.FC = () => {
                 <SortDropdown value={roomSort} onChange={setRoomSort} />
                 {room && room.length > 0 && (
                   <button
-                    className="h-6 px-1.5 py-0 text-[11px] font-medium rounded border border-gray-300 bg-white text-[#3A3A42] hover:bg-[#F5F5F7] active:bg-[#E6E6EA] transition whitespace-nowrap"
+                    // 높이를 숫자로 못 박는다 — 옆 정렬 드롭다운이 28px 이고,
+                    // 이쪽은 h-6(24px)이라 4px 이 어긋나 보였다(2026-10-08).
+                    style={{ height: 28 }}
+                    className="px-1.5 py-0 text-[11px] font-medium rounded border border-gray-300 bg-white text-[#3A3A42] hover:bg-[#F5F5F7] active:bg-[#E6E6EA] transition whitespace-nowrap"
                     onClick={() => handleRemoveAll('room')}
                   >
                     모두삭제

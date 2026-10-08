@@ -50,23 +50,30 @@ const ExpiryBand: React.FC<{
         style={{
           width: '100%', minHeight: 44, boxSizing: 'border-box', cursor: 'pointer',
           display: 'flex', alignItems: 'center', gap: 8, textAlign: 'left',
-          padding: '8px 14px', background: 'var(--surface)',
-          border: '1px solid var(--line-200)',
+          // 바로 아래 보관함 머리줄(냉동·냉장·실온)과 **다른 종류의 것**으로 보여야
+          // 한다. 흰 면에 검은 글씨로 뒀더니 보관함 하나가 더 있는 것처럼 읽혔다
+          // (2026-10-08). 그래서 면·글자·글자색을 모두 달리 가져간다:
+          //   보관함 머리줄 = 흰 배경 + 16px 검정 굵은 글씨(화면의 구조)
+          //   이 띠        = 옅은 빨강 면 + 13.5px 빨간 글씨(지금 급한 소식)
+          // 색값은 새로 만들지 않고 재료 알약의 `임박` 배지와 같은 것을 쓴다
+          // (배경 #FFE7E4 · 글자 #C4342B) — 같은 이야기면 같은 색이어야 한다.
+          padding: '8px 14px', background: '#FFF1EF',
+          border: '1px solid #F6D5D1',
           // 왼쪽 표시는 **언제나 빨강**이다. 노랑은 이 앱에서 브랜드색(AI·강조)이라
           // "여기를 눌러 보라" 로 읽히고, 상하기 직전이라는 경고로는 안 읽힌다.
           // 지난 것과 임박한 것의 구분은 색이 아니라 문구(`유통기한이 지난 재료`)가 한다.
-          borderLeft: '4px solid #D14343',
+          borderLeft: '4px solid #C4342B',
           borderRadius: 12,
         }}
       >
-        <span style={{ fontSize: 14, fontWeight: 700, color: '#1A1A1E', whiteSpace: 'nowrap' }}>{title}</span>
+        <span style={{ fontSize: 13.5, fontWeight: 700, color: '#C4342B', whiteSpace: 'nowrap' }}>{title}</span>
         <span style={{
-          flex: 1, minWidth: 0, fontSize: 12, color: 'var(--ink-500)',
+          flex: 1, minWidth: 0, fontSize: 12, color: '#9B6B66',
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>
           {worst.name} {daysLabel(worst.days, worst.estimated)}
         </span>
-        <span aria-hidden style={{ color: 'var(--ink-500)', fontSize: 18, lineHeight: 1 }}>›</span>
+        <span aria-hidden style={{ color: '#C4342B', fontSize: 18, lineHeight: 1 }}>›</span>
       </button>
       </div>
 
