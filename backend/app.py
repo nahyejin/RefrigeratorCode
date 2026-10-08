@@ -513,6 +513,54 @@ def _search_term_groups(keyword):
     return out
 
 
+_SIMILAR_MIN_SCORE = 0.8
+_INCLUDE_MAX_VARIANTS = 12
+
+
+def _ingredient_variants(ing, with_similar):
+    """필터 재료 하나 → 레시피 재료칸(used_ingredients, 공백 없음)에서 찾을 이름들.
+    대표어·동의어(재료 사전), with_similar 면 대체표에서 유사도 0.8 이상인 재료까지."""
+    name = re.sub(r'\s+', '', str(ing))
+    _search_term_groups('')  # 사전(동의어) 캐시를 채운다
+    a2c, groups = _SEARCH_ALIAS.get('a2c', {}), _SEARCH_ALIAS.get('groups', {})
+    canon = a2c.get(name, name)
+    out = [name]
+    for v in [canon] + sorted(groups.get(canon, ()), key=len):
+        if v not in out:
+            out.append(v)
+    if with_similar:
+        if 'similar' not in _SEARCH_ALIAS:
+            sim = {}
+            try:
+                import csv as _csv
+                here = os.path.dirname(os.path.abspath(__file__))
+                for path in (os.path.join(here, '..', 'frontend', 'public', 'ingredient_substitute_table.csv'),
+                             os.path.join(here, 'ingredient_substitute_table.csv')):
+                    if os.path.exists(path):
+                        with open(path, encoding='utf-8-sig', newline='') as f:
+                            for row in _csv.DictReader(f):
+                                try:
+                                    score = float(row.get('similarity_score') or 0)
+                                except ValueError:
+                                    continue
+                                if score >= _SIMILAR_MIN_SCORE:
+                                    a = re.sub(r'\s+', '', row.get('ingredient_a') or '')
+                                    b = re.sub(r'\s+', '', row.get('ingredient_b') or '')
+                                    if a and b:
+                                        sim.setdefault(a, []).append((score, b))
+                        break
+            except Exception as e:
+                print(f"[필터] 대체표를 못 읽어 비슷한 재료 없이 찾음: {e}")
+            for k in sim:
+                sim[k].sort(reverse=True)
+            _SEARCH_ALIAS['similar'] = sim
+        for _score, v in _SEARCH_ALIAS['similar'].get(canon, []) + _SEARCH_ALIAS['similar'].get(name, []):
+            v = a2c.get(v, v)
+            if v not in out:
+                out.append(v)
+    return out[:_INCLUDE_MAX_VARIANTS]
+
+
 @app.route('/api/recipes/filter')
 def get_filtered_recipes():
     # 페이징
@@ -609,17 +657,25 @@ def get_filtered_recipes():
             where_clauses.append("CONCAT(title, ' ', IFNULL(used_ingredients, '')) REGEXP %s")
             base_params.append("|".join(re.sub(r'([.^$*+?()\[\]{}|\\])', r'\\\1', v) for v in variants))
     
-    # 포함할 재료 필터 (AND 조건: 모두 포함)
+    # 포함할 재료 필터 (AND 조건: 재료마다 모두 포함)
+    #
+    # 재료 하나는 **같은 뜻(사전 동의어) + 아주 비슷한 재료(대체표 유사도 0.8↑)** 중 하나만 있으면 된다
+    # (2026-10-08 사용자 선택). 예전엔 이름이 정확히 같아야 해서 「보리새우」(전체 37개)+「어묵」이
+    # 1건뿐이었다 — 레시피 작성자 대부분은 「새우」(877)·「생새우」 등으로 적는다.
     if include_ingredients:
         for ing in include_ingredients:
-            where_clauses.append("FIND_IN_SET(%s, REPLACE(used_ingredients,' ','')) > 0")
-            base_params.append(ing)
-    
-    # 제외할 재료 필터 (AND 조건: 모두 제외)
+            variants = _ingredient_variants(ing, with_similar=True)
+            where_clauses.append(
+                "(" + " OR ".join(["FIND_IN_SET(%s, REPLACE(used_ingredients,' ','')) > 0"] * len(variants)) + ")"
+            )
+            base_params.extend(variants)
+
+    # 제외할 재료 필터 (AND 조건: 모두 제외) — 같은 뜻까지만 넓힌다(비슷한 재료까지 빼면 너무 많이 사라진다)
     if exclude_ingredients:
         for ing in exclude_ingredients:
-            where_clauses.append("FIND_IN_SET(%s, REPLACE(used_ingredients,' ','')) = 0")
-            base_params.append(ing)
+            for v in _ingredient_variants(ing, with_similar=False):
+                where_clauses.append("FIND_IN_SET(%s, REPLACE(used_ingredients,' ','')) = 0")
+                base_params.append(v)
     
     # 카테고리 키워드 필터 (FULLTEXT 인덱스 사용으로 성능 최적화)
     # FULLTEXT 인덱스 존재 여부는 한 번만 확인하고 캐싱 (성능 최적화)
