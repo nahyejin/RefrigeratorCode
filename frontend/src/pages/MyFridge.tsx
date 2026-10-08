@@ -2,6 +2,7 @@ import * as React from 'react';
 import { fetchCsvOnce } from '../utils/csvOnce';
 import { track } from '../utils/track';
 import SectionIcon from '../components/ui/SectionIcon';
+import GroupTitle from '../components/ui/GroupTitle';
 import LoadingIndicator from '../components/LoadingIndicator';
 import BottomNavBar from '../components/BottomNavBar';
 import TagPill from '../components/TagPill';
@@ -2491,6 +2492,14 @@ const MyFridge: React.FC = () => {
           {/* 곧 상하는 재료 — 한 줄 띠. 누르면 목록과 식단 짜기가 시트로 열린다.
               화면 맨 위에 있던 것을 여기로 내렸다(2026-10-08) — 재고를 말하기
               시작하는 자리 아래가 제자리다. 임박한 게 없으면 아예 그려지지 않는다. */}
+          {/* 상자 제목 — 냉장고요리·요즘인기·마이페이지와 같은 회색 묶음 제목.
+              오른쪽에는 「곧 상해요」 알림을 작은 칩으로 얹는다(2026-10-09 요청:
+              띠로 한 줄 따로 두지 말고 상자 우측 상단쯤에). 임박한 게 없으면
+              칩은 그려지지 않아 제목만 남는다. */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, margin: '0 2px 6px' }}>
+            <GroupTitle style={{ margin: 0, whiteSpace: 'nowrap' }}>내 냉장고 재료 관리</GroupTitle>
+            <ExpiryBand variant="chip" boxes={fridgeBoxes} categoryMap={categoryMap} />
+          </div>
           {/* 보관함 세 칸을 흰 상자 하나로 묶는다(냉장고요리 카드 목록 상자와 같은 모양).
               overflow 를 숨기지 않는다 — 정렬 드롭다운 메뉴가 상자 밖으로 펼쳐져야 한다. */}
           <div
@@ -2616,15 +2625,6 @@ const MyFridge: React.FC = () => {
           </div>
           </div>
           
-          {/* 「곧 상해요」 띠 — **보관함 세 칸 아래, 광고 위**(2026-10-09 요청).
-              입력 줄 바로 아래에 뒀더니 보관함 세 칸을 아래로 밀어, 정작 이
-              화면의 본문(재고)이 한눈에 안 들어왔다. 임박 재료는 **보고 나서
-              챙기는 것**이라 목록을 다 본 뒤가 제자리고, 임박한 게 없으면
-              아무것도 그리지 않으므로 평소에는 이 자리도 비어 있다. */}
-          <div style={{ marginTop: 14 }}>
-            <ExpiryBand bare boxes={fridgeBoxes} categoryMap={categoryMap} />
-          </div>
-
           {/* 쿠팡 다이내믹 배너 — 화면 맨 끝(2026-09-22). 전의 BottomCoupangAd 는
               광고 단위 ID 환경변수가 없어 실제로는 아무것도 안 그리고 있었다. */}
           <CoupangDynamicBanner height={50} style={{ marginTop: 24, marginBottom: 24 }} />

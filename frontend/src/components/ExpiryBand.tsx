@@ -27,7 +27,13 @@ const ExpiryBand: React.FC<{
   categoryMap: CategoryMap;
   /** 이미 폭과 여백이 잡힌 자리에 넣을 때. 바깥 래퍼(maxWidth·좌우 여백)를 뺀다. */
   bare?: boolean;
-}> = ({ boxes, categoryMap, bare }) => {
+  /**
+   * `chip` — 보관함 상자 제목 줄 오른쪽에 놓는 **작은 알림**(`! 곧 상해요 3개`).
+   * 띠(44px)는 화면을 더 먹는다는 지적(2026-10-09)으로, 제목 줄 한쪽에 얹을 수
+   * 있게 한 모양을 더했다. 누르면 같은 시트가 열린다.
+   */
+  variant?: 'band' | 'chip';
+}> = ({ boxes, categoryMap, bare, variant = 'band' }) => {
   const [open, setOpen] = React.useState(false);
   const { soon } = React.useMemo(() => splitExpiring(boxes, categoryMap), [boxes, categoryMap]);
   if (soon.length === 0) return null;
@@ -37,6 +43,54 @@ const ExpiryBand: React.FC<{
   const title = past.length > 0
     ? `유통기한이 지난 재료 ${past.length}개`
     : `곧 상해요 ${soon.length}개`;
+
+  const sheet = (
+    <Sheet open={open} onClose={() => setOpen(false)} title="곧 상해요" maxHeight="80dvh">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <ExpiryAlert bare boxes={boxes} categoryMap={categoryMap} />
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#1A1A1E', marginBottom: 8 }}>
+            이 재료로 이번 주 식단 짜기
+          </div>
+          <PlanButtons onBeforeGo={() => setOpen(false)} />
+        </div>
+      </div>
+    </Sheet>
+  );
+
+  if (variant === 'chip') {
+    // 색은 띠와 같은 값(#FFF1EF 면 · #C4342B 글자) — 같은 이야기면 같은 색.
+    const chipText = past.length > 0 ? `기한 지남 ${past.length}개` : `곧 상해요 ${soon.length}개`;
+    return (
+      <>
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          aria-label={title}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0,
+            padding: '3px 8px', borderRadius: 8, border: 'none', cursor: 'pointer',
+            background: '#FFF1EF', color: '#C4342B', fontSize: 12, fontWeight: 700,
+            whiteSpace: 'nowrap',
+          }}
+        >
+          <span
+            aria-hidden
+            style={{
+              width: 14, height: 14, borderRadius: 9999, background: '#C4342B', color: '#FFFFFF',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 10, fontWeight: 800, lineHeight: 1,
+            }}
+          >
+            !
+          </span>
+          {chipText}
+          <span aria-hidden style={{ fontSize: 14, lineHeight: 1, marginLeft: -1 }}>›</span>
+        </button>
+        {sheet}
+      </>
+    );
+  }
 
   return (
     <>
@@ -77,17 +131,7 @@ const ExpiryBand: React.FC<{
       </button>
       </div>
 
-      <Sheet open={open} onClose={() => setOpen(false)} title="곧 상해요" maxHeight="80dvh">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <ExpiryAlert bare boxes={boxes} categoryMap={categoryMap} />
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#1A1A1E', marginBottom: 8 }}>
-              이 재료로 이번 주 식단 짜기
-            </div>
-            <PlanButtons onBeforeGo={() => setOpen(false)} />
-          </div>
-        </div>
-      </Sheet>
+      {sheet}
     </>
   );
 };
