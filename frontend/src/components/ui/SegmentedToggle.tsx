@@ -15,6 +15,11 @@ import * as React from 'react';
 export interface SegmentedOption<T extends string> {
   value: T;
   label: string;
+  /** 고를 것이 없을 때(예: 유튜브 글이 0건) — 회색으로 두고 누르지 못하게. 숨기지 않는 이유는
+   *  "거긴 아무것도 없다" 는 것도 알려 줘야 하기 때문이다. */
+  disabled?: boolean;
+  /** 라벨 옆 작은 숫자 배지(예: `완료 3`). 라벨만 있으면 몇 건인지 눌러 봐야 안다. */
+  badge?: number | string;
 }
 
 function SegmentedToggle<T extends string>({
@@ -49,23 +54,37 @@ function SegmentedToggle<T extends string>({
           transition: 'transform .2s cubic-bezier(.4,0,.2,1)',
         }}
       />
-      {options.map(({ value: key, label }) => {
+      {options.map(({ value: key, label, disabled, badge }) => {
         const on = key === value;
         return (
           <button
             key={key}
             type="button"
             aria-pressed={on}
+            disabled={disabled}
             onClick={() => onChange(key)}
             style={{
               position: 'relative', zIndex: 1, height, padding: '0 12px',
-              border: 'none', background: 'transparent', borderRadius: 8, cursor: 'pointer',
-              color: on ? '#FFFFFF' : 'var(--ink-500)',
+              border: 'none', background: 'transparent', borderRadius: 8,
+              cursor: disabled ? 'default' : 'pointer',
+              color: on ? '#FFFFFF' : (disabled ? 'var(--line-300)' : 'var(--ink-500)'),
               fontSize: 12.5, fontWeight: on ? 700 : 500,
               whiteSpace: 'nowrap', transition: 'color .2s ease',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 4,
             }}
           >
             {label}
+            {badge !== undefined && badge !== '' && (
+              /* 숫자는 **배지 안에서** 말한다 — 라벨에 그냥 붙이면 칸 폭이
+                 숫자 길이에 따라 흔들려(1 vs 12) 미끄러지는 검은 판과 어긋난다. */
+              <span style={{
+                minWidth: 16, height: 16, padding: '0 4px', boxSizing: 'border-box',
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                borderRadius: 9999, fontSize: 10.5, fontWeight: 700, lineHeight: 1,
+                background: on ? 'rgba(255,255,255,0.22)' : 'var(--line-200)',
+                color: on ? '#FFFFFF' : 'var(--ink-700)',
+              }}>{badge}</span>
+            )}
           </button>
         );
       })}

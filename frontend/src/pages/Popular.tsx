@@ -3,6 +3,7 @@ import { fetchCsvOnce } from '../utils/csvOnce';
 import { takePrefetchedPopular } from '../utils/recipePrefetch';
 import SectionIcon from '../components/ui/SectionIcon';
 import GroupTitle from '../components/ui/GroupTitle';
+import SegmentedToggle from '../components/ui/SegmentedToggle';
 import LoadingIndicator from '../components/LoadingIndicator';
 import Toast from '../components/Toast';
 import IngredientLegend from '../components/IngredientLegend';
@@ -57,6 +58,13 @@ const initialFilterState: FilterState = {
 };
 
 // 기간 옵션 상수
+/** 제목 옆 `(총 N건)`. 오른쪽 끝에 따로 적던 것을 제목 옆 작은 글씨로 옮겼다(2026-10-08). */
+const CountNote: React.FC<{ n: number }> = ({ n }) => (
+  <span style={{ fontWeight: 500, color: 'var(--ink-400)' }}>
+    (총 {n.toLocaleString('ko-KR')}건)
+  </span>
+);
+
 const PERIOD_OPTIONS = [
   { value: 'week', label: '최근 7일' },
   { value: 'month', label: '최근 30일' },
@@ -1808,12 +1816,15 @@ const Popular = () => {
 
           return (
             <>
-            <GroupTitle style={{ margin: '0 2px 6px' }}>특별한 날 특별한 음식</GroupTitle>
+            <GroupTitle style={{ margin: '0 2px 6px' }}>
+              특별한 날 특별한 음식 <CountNote n={premiumRecipes.length} />
+            </GroupTitle>
             <section style={{
           // 회색 가로선(`SectionBand`)으로 가르던 것을 **박스**로 바꿨다
           // (2026-10-08 요청). 마이페이지·마이캘린더가 이미 박스+작은 제목으로
           // 영역을 말하므로, 같은 앱에서 구분 방식이 둘일 이유가 없다.
-          marginBottom: 14, padding: '14px 12px 16px', borderRadius: 14,
+          // 위아래 여백을 **같게**(2026-10-08 지적: 위가 더 비어 보인다).
+          marginBottom: 14, padding: '12px', borderRadius: 14,
           border: '1px solid var(--line-200)', background: '#FFFFFF',
         }}>
               {/* 문구 변천:
@@ -1825,14 +1836,12 @@ const Popular = () => {
                   ③ "평소엔 잘 안 쓰는 재료로 만드는 요리예요" — 자주 쓰는 재료가 들어간
                      경우도 있어 사실과 어긋남
                   → 단정할 수 있는 만큼만 말한다 */}
-              {/* 제목은 박스 **바깥**의 작은 회색 글자가 맡는다(2026-10-08 요청 —
-                  마이페이지·마이캘린더와 같은 형식). 안쪽에는 설명 한 줄만. */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-                <SectionIcon kind="special" />
-                <span style={{ fontSize: 12.5, color: 'var(--ink-500)' }}>특별한 재료로 만드는 요리예요</span>
-              </div>
+              {/* 설명 줄(`특별한 재료로 만드는 요리예요`)도 **뺐다**(2026-10-08) —
+                  제목이 이미 `특별한 날 특별한 음식` 이라고 말한다. */}
               {/* 범례 + 총 건수 (유튜브/네이버 섹션과 동일한 형식) */}
-              <IngredientLegend swatchesHidden total={premiumRecipes.length} style={{ marginBottom: 6, marginTop: 8 }} />
+              {/* 건수는 제목 옆 작은 글씨로 옮겼다 — 오른쪽 끝에 따로 적을 만큼
+                  중요한 숫자가 아니다(2026-10-08 지적). */}
+              <IngredientLegend swatchesHidden style={{ marginBottom: 6, marginTop: 0 }} />
               
               {/* 가로 스크롤 컨테이너 (버튼 포함) */}
               <div style={{ position: 'relative' }}>
@@ -2004,65 +2013,31 @@ const Popular = () => {
           const list = feedTab === 'naver' ? naverRecipes : youtubeRecipes;
           return (
         <>
-        <GroupTitle style={{ margin: '0 2px 6px' }}>인기 레시피</GroupTitle>
+        <GroupTitle style={{ margin: '0 2px 6px' }}>
+          인기 레시피 <CountNote n={list.length} />
+        </GroupTitle>
         <section style={{
           // 회색 가로선(`SectionBand`)으로 가르던 것을 **박스**로 바꿨다
           // (2026-10-08 요청). 마이페이지·마이캘린더가 이미 박스+작은 제목으로
           // 영역을 말하므로, 같은 앱에서 구분 방식이 둘일 이유가 없다.
-          marginBottom: 14, padding: '14px 12px 16px', borderRadius: 14,
+          // 위아래 여백을 **같게**(2026-10-08 지적: 위가 더 비어 보인다).
+          marginBottom: 14, padding: '12px', borderRadius: 14,
           border: '1px solid var(--line-200)', background: '#FFFFFF',
         }}>
 
-          {/* 어디 것인지 고른다. 급상승 표와 같은 모양이다. */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                        gap: 8, marginTop: 8, marginBottom: 6 }}>
-            <div
-              role="group"
-              aria-label="플랫폼 고르기"
-              style={{
-                position: 'relative', display: 'inline-flex', flexShrink: 0,
-                padding: 3, borderRadius: 10, background: 'var(--surface-sub)',
-                border: '1px solid var(--line-200)',
-              }}
-            >
-              <span
-                aria-hidden
-                style={{
-                  position: 'absolute', top: 3, bottom: 3, left: 3, width: 'calc(50% - 3px)',
-                  borderRadius: 8, background: 'var(--ink-900)',
-                  transform: feedTab === 'youtube' ? 'translateX(100%)' : 'none',
-                  transition: 'transform .2s cubic-bezier(.4,0,.2,1)',
-                }}
-              />
-              {([
-                { key: 'naver', label: '네이버', n: naverRecipes.length },
-                { key: 'youtube', label: '유튜브', n: youtubeRecipes.length },
-              ] as const).map(({ key, label, n }) => {
-                const on = feedTab === key;
-                return (
-                  <button
-                    key={key}
-                    type="button"
-                    disabled={n === 0}
-                    onClick={() => setFeedTab(key)}
-                    aria-pressed={on}
-                    style={{
-                      position: 'relative', zIndex: 1, minWidth: 74, minHeight: 30,
-                      padding: '0 12px', border: 'none', background: 'transparent',
-                      borderRadius: 8, cursor: n === 0 ? 'default' : 'pointer',
-                      color: on ? '#FFFFFF' : (n === 0 ? 'var(--line-300)' : 'var(--ink-500)'),
-                      fontSize: 13, fontWeight: on ? 700 : 500,
-                      transition: 'color .2s ease',
-                    }}
-                  >
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
-            <span style={{ fontSize: 13, color: '#6A6A73', whiteSpace: 'nowrap' }}>
-              총 {list.length.toLocaleString()}건
-            </span>
+          {/* 어디 것인지 고른다. 모양은 마이캘린더의 `내 요리만 / 우리 식구 전체`
+              와 같은 공용 부품이다(2026-10-08 지적: 높이를 통일해 달라).
+              직접 만든 30px 짜리였던 것을 `SegmentedToggle`(28px)로 바꿨다.
+              **왼쪽 정렬** — 총 건수는 제목 옆으로 옮겨서 오른쪽에 둘 것이 없다. */}
+          <div style={{ display: 'flex', marginBottom: 8 }}>
+            <SegmentedToggle
+              value={feedTab}
+              onChange={(v) => setFeedTab(v)}
+              options={[
+                { value: 'naver' as const, label: '네이버', disabled: naverRecipes.length === 0 },
+                { value: 'youtube' as const, label: '유튜브', disabled: youtubeRecipes.length === 0 },
+              ]}
+            />
           </div>
 
            <VirtualizedHorizontalRecipeList
@@ -2098,62 +2073,31 @@ const Popular = () => {
             **탭으로 겹치면** 높이는 절반이 되고, 표는 화면 폭을 다 쓴다. */}
         {(dishRankings.length > 0 || themeRankings.length > 0) && (
         <>
-        <GroupTitle style={{ margin: '0 2px 6px' }}>인기 급상승 TOP 10</GroupTitle>
+        <GroupTitle style={{ margin: '0 2px 6px' }}>
+          인기 급상승 TOP 10{' '}
+          <CountNote n={(risingTab === 'dish' ? dishRankings : themeRankings).length} />
+        </GroupTitle>
         <section style={{
           // 회색 가로선(`SectionBand`)으로 가르던 것을 **박스**로 바꿨다
           // (2026-10-08 요청). 마이페이지·마이캘린더가 이미 박스+작은 제목으로
           // 영역을 말하므로, 같은 앱에서 구분 방식이 둘일 이유가 없다.
-          marginBottom: 14, padding: '14px 12px 16px', borderRadius: 14,
+          // 위아래 여백을 **같게**(2026-10-08 지적: 위가 더 비어 보인다).
+          marginBottom: 14, padding: '12px', borderRadius: 14,
           border: '1px solid var(--line-200)', background: '#FFFFFF',
         }}>
 
-          {/* 요리 / 테마. 요리 캘린더의 완료·기록과 같은 모양이다 —
-              같은 일(둘 중 하나 고르기)은 같게 보여야 한다. */}
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
-            <div
-              role="group"
-              aria-label="요리·테마 고르기"
-              style={{
-                position: 'relative', display: 'inline-flex',
-                padding: 3, borderRadius: 10, background: 'var(--surface-sub)',
-                border: '1px solid var(--line-200)',
-              }}
-            >
-              <span
-                aria-hidden
-                style={{
-                  position: 'absolute', top: 3, bottom: 3, left: 3, width: 'calc(50% - 3px)',
-                  borderRadius: 8, background: 'var(--ink-900)',
-                  transform: risingTab === 'theme' ? 'translateX(100%)' : 'none',
-                  transition: 'transform .2s cubic-bezier(.4,0,.2,1)',
-                }}
-              />
-              {([
-                { key: 'dish', label: '요리', n: dishRankings.length },
-                { key: 'theme', label: '테마', n: themeRankings.length },
-              ] as const).map(({ key, label, n }) => {
-                const on = risingTab === key;
-                return (
-                  <button
-                    key={key}
-                    type="button"
-                    disabled={n === 0}
-                    onClick={() => setRisingTab(key)}
-                    aria-pressed={on}
-                    style={{
-                      position: 'relative', zIndex: 1, minWidth: 76, minHeight: 30,
-                      padding: '0 14px', border: 'none', background: 'transparent',
-                      borderRadius: 8, cursor: n === 0 ? 'default' : 'pointer',
-                      color: on ? '#FFFFFF' : (n === 0 ? 'var(--line-300)' : 'var(--ink-500)'),
-                      fontSize: 13, fontWeight: on ? 700 : 500,
-                      transition: 'color .2s ease',
-                    }}
-                  >
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
+          {/* 요리 / 테마. 마이캘린더와 같은 공용 고르개다.
+              가운데 정렬이었는데 **왼쪽**으로 옮겼다(2026-10-08 지적) —
+              이 화면의 다른 고르개(기간·네이버/유튜브)가 모두 왼쪽에서 시작한다. */}
+          <div style={{ display: 'flex', marginBottom: 10 }}>
+            <SegmentedToggle
+              value={risingTab}
+              onChange={(v) => setRisingTab(v)}
+              options={[
+                { value: 'dish' as const, label: '요리', disabled: dishRankings.length === 0 },
+                { value: 'theme' as const, label: '테마', disabled: themeRankings.length === 0 },
+              ]}
+            />
           </div>
 
           {/* 표는 하나다. 고른 쪽의 줄만 그린다.

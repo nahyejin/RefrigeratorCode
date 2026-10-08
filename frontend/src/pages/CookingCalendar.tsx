@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import PlanButtons from '../components/PlanButtons';
 import GroupTitle from '../components/ui/GroupTitle';
 import SegmentedToggle from '../components/ui/SegmentedToggle';
+import PillSelect from '../components/ui/PillSelect';
 import { loadIngredientCategoryMap, lookupShelfLifeDays, estimateExpiry, type CategoryMap, type StorageKind } from '../utils/shelfLife';
 import type { FridgeItem } from '../utils/expiry';
 import {
@@ -2245,41 +2246,17 @@ const CookingCalendar: React.FC = () => {
             이 줄로 끌어올려 [일][주][월]과 같은 높이·오른쪽에 둔다. */}
         <div style={{ display: mode === 'calendar' ? 'flex' : 'none', alignItems: 'center',
                       justifyContent: 'space-between', flexWrap: 'wrap', gap: 6, padding: '8px 14px 0' }}>
-          <div style={{ display: 'flex', gap: 6 }}>
-            {([
-              { key: 'day', label: '일' },
-              { key: 'week', label: '주' },
-              { key: 'month', label: '월' },
-            ] as const).map(({ key, label }) => {
-              const on = viewMode === key;
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => setViewMode(key)}
-                  style={{
-                    // 30 → 26. 회색으로 꽉 찬 알약이 커서 투박해 보였다
-                    // (2026-10-08: "높이도 높고 촌스럽다" · 목표 카드의
-                    // `월별 기록 보기` 버튼 높이를 기준으로).
-                    // 안 고른 것은 **흰 면 + 얇은 테두리** — 회색 면끼리
-                    // 붙어 있으면 뭐가 켜진 건지 한 번 더 봐야 한다.
-                    height: 26,
-                    padding: '0 12px',
-                    boxSizing: 'border-box',
-                    borderRadius: 9999,
-                    fontSize: 12.5,
-                    fontWeight: on ? 700 : 600,
-                    background: on ? 'var(--ink-900)' : 'var(--surface)',
-                    color: on ? '#FFFFFF' : 'var(--ink-700)',
-                    border: on ? 'none' : '1px solid var(--line-300)',
-                    cursor: 'pointer',
-                  }}
-                >
-                  {label}
-                </button>
-              );
-            })}
-          </div>
+          {/* 일 / 주 / 월 — 아래 `완료·기록·즐겨찾기` 와 **같은 부품**이다
+              (2026-10-09 요청: 형식을 동일하게). 설계 메모는 `PillSelect`. */}
+          <PillSelect
+            value={viewMode}
+            onChange={(v) => setViewMode(v)}
+            options={[
+              { value: 'day' as const, label: '일' },
+              { value: 'week' as const, label: '주' },
+              { value: 'month' as const, label: '월' },
+            ]}
+          />
           <button
             type="button"
             onClick={() => {
@@ -2759,56 +2736,18 @@ const CookingCalendar: React.FC = () => {
               둘 중 하나를 고르는 것이므로 테두리를 같이 쓰는 편이 맞다. */}
           {/* 즐겨찾기가 더해져 고르개가 길어졌다 — 폰 폭에서 기간 버튼이 카드 밖으로 밀려나므로 자리가 없으면 다음 줄로 */}
           <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, padding: '0 2px 2px' }}>
-            <div
-              role="group"
-              aria-label="완료·기록·즐겨찾기 고르기"
-              style={{
-                // 두 칸을 **같은 폭**으로(1fr 1fr). 칸 폭이 글자 길이를 따르면
-                // "내 요리만"과 "우리 식구 전체"의 폭이 달라, 50% 폭으로 미끄러지는
-                // 검은 판이 글자와 어긋나 깨져 보였다(실사용 지적, 2026-09-15).
-                position: 'relative', display: 'inline-grid', gridTemplateColumns: '1fr 1fr 1fr', flexShrink: 0,
-                padding: 3, borderRadius: 10, background: 'var(--surface-sub)',
-                border: '1px solid var(--line-200)',
-              }}
-            >
-              {/* 미끄러지는 판. 버튼마다 배경을 켜고 끄면 툭 끊기는데,
-                  판 하나가 옮겨 다니면 "여기서 저기로 옮겼다" 가 보인다. */}
-              <span
-                aria-hidden
-                style={{
-                  position: 'absolute', top: 3, bottom: 3, left: 3, width: 'calc((100% - 6px) / 3)',
-                  borderRadius: 8, background: 'var(--ink-900)',
-                  transform: `translateX(${listKind === 'favorite' ? 200 : listKind === 'write' ? 100 : 0}%)`,
-                  transition: 'transform .2s cubic-bezier(.4,0,.2,1)',
-                }}
-              />
-              {([
-                { key: 'done', label: '완료', n: listEntries?.length },
-                { key: 'write', label: '기록', n: listRecorded?.length },
-                { key: 'favorite', label: '즐겨찾기', n: listFavorites?.length },
-              ] as const).map(({ key, label, n }) => {
-                const on = listKind === key;
-                return (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => setListKind(key)}
-                    aria-pressed={on}
-                    style={{
-                      position: 'relative', zIndex: 1, height: 28,
-                      padding: '0 6px', border: 'none', background: 'transparent',
-                      whiteSpace: 'nowrap',
-                      borderRadius: 8, cursor: 'pointer',
-                      color: on ? '#FFFFFF' : 'var(--ink-500)',
-                      fontSize: 12, fontWeight: on ? 700 : 500,
-                      transition: 'color .2s ease',
-                    }}
-                  >
-                    {label}{typeof n === 'number' ? ` ${n}` : ''}
-                  </button>
-                );
-              })}
-            </div>
+            {/* 위 `일 / 주 / 월` 과 **같은 알약 배지**로 맞췄다(2026-10-09 요청).
+                미끄러지는 판이었는데, 같은 화면에서 같은 일(하나 고르기)을 하는
+                줄끼리 모양이 달랐다. 건수는 라벨 옆 **배지 안**에 적는다. */}
+            <PillSelect
+              value={listKind}
+              onChange={(v) => setListKind(v)}
+              options={[
+                { value: 'done' as const, label: '완료', badge: listEntries?.length },
+                { value: 'write' as const, label: '기록', badge: listRecorded?.length },
+                { value: 'favorite' as const, label: '즐겨찾기', badge: listFavorites?.length },
+              ]}
+            />
 
             {/* 기간은 **오른쪽 끝**에. 왼쪽은 무엇을 보는지(완료·기록)이고
                 이쪽은 얼마나 넓게 보는지다.
@@ -2821,19 +2760,69 @@ const CookingCalendar: React.FC = () => {
               <MenuSelect
                 ariaLabel="기간"
                 align="right"
+                // 왼쪽 알약 배지(26)와 **같은 높이**여야 한 줄로 읽힌다(2026-10-09).
+                height={26}
                 value={span}
                 onChange={v => setSpan(v)}
                 options={[
                   { value: 'all', label: '기간 전체' },
                   { value: '365', label: '최근 1년' },
                   { value: '90', label: '최근 3개월' },
-                  { value: 'custom', label: '직접 고르기' },
+                  // `직접 고르기` → `기간 선택`(2026-10-09 요청).
+                  { value: 'custom', label: '기간 선택' },
                 ]}
               />
             </span>
           </div>
 
-          {/* 고른 기간에 사람별로 몇 번 했는지 — 고르개 바로 아래(2026-10-08 요청). 달력 탭 요약과 같은 색 점·모양. */}
+          {/* 직접 고르는 자리. 퀵 버튼으로 안 되는 구간(작년 여름 같은)이 있다.
+              고친 값은 **[적용]** 을 눌러야 반영된다 — 시작일만 고른 순간
+              "그날부터 오늘까지" 로 한 번 조회되는 중간 결과는 아무도 원한 적 없다. */}
+          {span === 'custom' && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 2px 8px',
+                          flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-700)' }}>기간</span>
+              <DatePickerField
+                value={draft.from}
+                onChange={v => setDraft(d => ({ ...d, from: v }))}
+                placeholder="시작일"
+                // `DatePickerField` 기본값이 minHeight 34 라 height 만으로는 안 낮아진다.
+                style={{ flex: 1, minWidth: 96, minHeight: 28, height: 28, padding: '0 10px' }}
+              />
+              <span style={{ fontSize: 12, color: 'var(--ink-500)' }}>~</span>
+              <DatePickerField
+                value={draft.to}
+                onChange={v => setDraft(d => ({ ...d, to: v }))}
+                placeholder="종료일"
+                // `DatePickerField` 기본값이 minHeight 34 라 height 만으로는 안 낮아진다.
+                style={{ flex: 1, minWidth: 96, minHeight: 28, height: 28, padding: '0 10px' }}
+              />
+              <button
+                type="button"
+                disabled={!dirty}
+                onClick={() => setRange(draft)}
+                style={{
+                  // 34 → 28. 같은 줄의 날짜 칸·위쪽 배지와 키를 맞춘다(2026-10-09).
+                  height: 28, padding: '0 12px', borderRadius: 8, border: 'none',
+                  background: dirty ? '#1A1A1E' : 'var(--line-200)',
+                  color: dirty ? '#FFFFFF' : 'var(--ink-500)',
+                  fontSize: 12.5, fontWeight: 700, cursor: dirty ? 'pointer' : 'default',
+                  flexShrink: 0,
+                }}
+              >
+                적용
+              </button>
+              {dirty && (
+                <span style={{ fontSize: 11.5, color: '#B4780A', fontWeight: 600 }}>
+                  아직 적용 안 됐어요
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* 요약은 **기간을 고르는 줄 다음**이다(2026-10-09 지적) — 무엇을
+              기준으로 센 숫자인지 먼저 보여 주고 그 결과를 아래에 둔다.
+              전에는 기간 고르개와 「기간 선택」 날짜 줄 사이에 끼어 있었다. */}
           {listSummary && listSummary.total > 0 && (
             <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', columnGap: 10, rowGap: 4,
                           padding: '8px 12px', borderRadius: 10, background: 'var(--surface-sub)',
@@ -2850,47 +2839,6 @@ const CookingCalendar: React.FC = () => {
                     </span>
                   ))
                 : null}
-            </div>
-          )}
-
-          {/* 직접 고르는 자리. 퀵 버튼으로 안 되는 구간(작년 여름 같은)이 있다.
-              고친 값은 **[적용]** 을 눌러야 반영된다 — 시작일만 고른 순간
-              "그날부터 오늘까지" 로 한 번 조회되는 중간 결과는 아무도 원한 적 없다. */}
-          {span === 'custom' && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 2px 8px',
-                          flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-700)' }}>기간</span>
-              <DatePickerField
-                value={draft.from}
-                onChange={v => setDraft(d => ({ ...d, from: v }))}
-                placeholder="시작일"
-                style={{ flex: 1, minWidth: 96 }}
-              />
-              <span style={{ fontSize: 12, color: 'var(--ink-500)' }}>~</span>
-              <DatePickerField
-                value={draft.to}
-                onChange={v => setDraft(d => ({ ...d, to: v }))}
-                placeholder="종료일"
-                style={{ flex: 1, minWidth: 96 }}
-              />
-              <button
-                type="button"
-                disabled={!dirty}
-                onClick={() => setRange(draft)}
-                style={{
-                  minHeight: 34, padding: '9px 12px', borderRadius: 8, border: 'none',
-                  background: dirty ? '#1A1A1E' : 'var(--line-200)',
-                  color: dirty ? '#FFFFFF' : 'var(--ink-500)',
-                  fontSize: 12.5, fontWeight: 700, cursor: dirty ? 'pointer' : 'default',
-                }}
-              >
-                적용
-              </button>
-              {dirty && (
-                <span style={{ fontSize: 11.5, color: '#B4780A', fontWeight: 600 }}>
-                  아직 적용 안 됐어요
-                </span>
-              )}
             </div>
           )}
 
