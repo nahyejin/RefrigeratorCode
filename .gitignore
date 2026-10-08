@@ -41,3 +41,6 @@ store/.frames/
 
 # 매일 배치 끝에 컴퓨터를 끄지 않게 하는 표시 파일(run_daily_chain.bat) — 기기별 설정
 no_shutdown.flag
+
+# DB 정리 스크립트 백업(운영 데이터)
+backups/
