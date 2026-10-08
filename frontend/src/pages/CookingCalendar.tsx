@@ -451,6 +451,32 @@ function mergeLocalDone(
  * 설정한 멤버 기준) 날짜별로 누가 뭘 완료했는지 멤버별 색으로 구분해 보여주고,
  * 이번 달 목표 대비 달성률도 함께 보여준다.
  */
+/**
+ * 「총 N회 · 나 4회 · 식구 3회」 요약 띠 — **달력 탭과 목록 탭이 같이 쓴다.**
+ *
+ * 달력 탭만 「총 N회」 줄 아래로 사람별 줄이 따로 내려가 두 줄이었고 목록 탭은 한 줄이었다
+ * (2026-10-09 지적: 통일해 달라). 한 줄로 이어 쓰되 `flexWrap` 이라, 식구가 많아 폭이 모자라면
+ * 그때만 자연스럽게 다음 줄로 넘어간다 — 줄바꿈을 막는 게 아니라 **필요할 때만** 일어나게 한다.
+ */
+const SummaryStrip: React.FC<{
+  total: number;
+  unit: string;
+  people: { key: string | number; name: string; n: number; color: string }[];
+  style?: React.CSSProperties;
+}> = ({ total, unit, people, style }) => (
+  <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', columnGap: 10, rowGap: 4,
+                padding: '8px 12px', borderRadius: 10, background: 'var(--surface-sub)',
+                fontSize: 12.5, color: 'var(--ink-700)', ...style }}>
+    <span style={{ fontWeight: 700, color: '#1A1A1E' }}>총 {total}{unit}</span>
+    {people.map(p => (
+      <span key={p.key} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+        <span aria-hidden style={{ width: 8, height: 8, borderRadius: '50%', background: p.color, flexShrink: 0 }} />
+        {p.name} {p.n}{unit}
+      </span>
+    ))}
+  </div>
+);
+
 const CookingCalendar: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -2294,19 +2320,16 @@ const CookingCalendar: React.FC = () => {
             일 보기 카드의 "이 날은 완료한 레시피가 없어요" 같은 빈 상태
             안내가 이미 따로 있어서, 0을 한 번 더 말할 필요가 없다. */}
         {mode === 'calendar' && summary.total > 0 && (
-          <div style={{ margin: '8px 14px 0', padding: '10px 14px', borderRadius: 12, background: 'var(--surface-sub)', fontSize: 13, color: 'var(--ink-700)' }}>
-            <span>총 {summary.total}회</span>
-            {isInHousehold && summary.byUser.size > 0 && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 8 }}>
-                {orderForLegend(summary.byUser, meIdForLegend, memberIds).map(([uid, count]) => (
-                  <span key={uid} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12 }}>
-                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: colorForUser(uid, memberIds), flexShrink: 0 }} />
-                    {nicknameById.get(uid) || '?'} {count}회
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
+          <SummaryStrip
+            style={{ margin: '8px 14px 0' }}
+            total={summary.total}
+            unit="회"
+            people={isInHousehold && summary.byUser.size > 0
+              ? orderForLegend(summary.byUser, meIdForLegend, memberIds).map(([uid, count]) => ({
+                  key: uid, name: nicknameById.get(uid) || '?', n: count, color: colorForUser(uid, memberIds),
+                }))
+              : []}
+          />
         )}
 
         {loading && <div style={{ textAlign: 'center', padding: 24, color: 'var(--ink-500)', fontSize: 13 }}>불러오는 중...</div>}
@@ -2826,22 +2849,12 @@ const CookingCalendar: React.FC = () => {
               기준으로 센 숫자인지 먼저 보여 주고 그 결과를 아래에 둔다.
               전에는 기간 고르개와 「기간 선택」 날짜 줄 사이에 끼어 있었다. */}
           {listSummary && listSummary.total > 0 && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', columnGap: 10, rowGap: 4,
-                          padding: '8px 12px', borderRadius: 10, background: 'var(--surface-sub)',
-                          fontSize: 12.5, color: 'var(--ink-700)' }}>
-              <span style={{ fontWeight: 700, color: '#1A1A1E' }}>
-                총 {listSummary.total}{listSummary.unit}
-              </span>
-              {/* 혼자면 「나 N회」는 총계와 같은 말이라 식구 그룹일 때만 사람별로 */}
-              {isInHousehold && listSummary.people.length > 0
-                ? listSummary.people.map(p => (
-                    <span key={p.key} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                      <span aria-hidden style={{ width: 8, height: 8, borderRadius: '50%', background: p.color, flexShrink: 0 }} />
-                      {p.name} {p.n}{listSummary.unit}
-                    </span>
-                  ))
-                : null}
-            </div>
+            // 혼자면 「나 N회」는 총계와 같은 말이라 식구 그룹일 때만 사람별로
+            <SummaryStrip
+              total={listSummary.total}
+              unit={listSummary.unit}
+              people={isInHousehold ? listSummary.people.map(p => ({ key: p.key, name: p.name, n: p.n, color: p.color })) : []}
+            />
           )}
 
           {/* 범위(내 것만/가족 전체) + "내 것은 빼고" 는 이제 위쪽 탭 바로
