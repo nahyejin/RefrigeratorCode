@@ -2403,7 +2403,9 @@ const RecipeList: React.FC = () => {
             paddingLeft: 20,
             paddingRight: 20,
             paddingTop: 8,
-            paddingBottom: 10, // 범례 아래 흰 여백 (카드가 범례에 바짝 붙어 지나가지 않도록)
+            // 범례 아래 흰 여백 (카드가 범례에 바짝 붙어 지나가지 않도록). 카드 박스가 있을 땐
+            // 아래 `윗선 캡`이 이 자리를 대신한다.
+            paddingBottom: loading ? 10 : 0,
           }}
         >
         <form
@@ -2513,6 +2515,17 @@ const RecipeList: React.FC = () => {
             <IngredientLegend compact />
           </div>
         </div>
+        {/* 카드 박스의 **윗선**(2026-10-09 지적: 스크롤하면 박스 윗선이 같이 올라가 사라진다).
+            박스 본체는 스크롤과 함께 움직이므로 윗선은 고정 머리 안에 둔다 — 머리 맨 아래에
+            테두리·모서리가 둥근 14px 짜리 뚜껑을 붙이고, 아래 박스는 윗선 없이 이어 그린다.
+            카드는 이 뚜껑 밑으로 지나가 사라지므로 늘 "박스 안에서 스크롤" 로 읽힌다. */}
+        {!loading && (
+          <div aria-hidden style={{
+            height: 14, marginTop: 6, boxSizing: 'border-box',
+            border: '1px solid var(--line-200)', borderBottom: 'none',
+            borderRadius: '14px 14px 0 0', background: '#FFFFFF',
+          }} />
+        )}
         </div>
 
           {/* 로딩 중에는 실제 카드와 같은 모양의 뼈대를 목록 자리에 보여준다.
@@ -2582,7 +2595,10 @@ const RecipeList: React.FC = () => {
               옅은 테두리 박스로 되살렸다. 범례가 이제 제목 줄에 있어 박스와 폭이 어긋나 보이지 않는다. */}
           {!loading && (
             <div className="flex flex-col gap-2"
-                 style={{ padding: 8, borderRadius: 14, border: '1px solid var(--line-200)', background: '#FFFFFF', marginTop: 4 }}>
+                 style={{
+                   padding: '0 8px 8px', borderRadius: '0 0 14px 14px', background: '#FFFFFF',
+                   border: '1px solid var(--line-200)', borderTop: 'none',
+                 }}>
               {(() => {
                 // 재료가 없거나, 디폴트 '달걀'만 있고 레시피가 없을 때 안내 문구 표시
                 const hasOnlyDefaultEgg = myIngredients.length === 1 && 
