@@ -2506,11 +2506,13 @@ const RecipeList: React.FC = () => {
             결과 요약인지 헷갈린다**는 지적을 다시 받았다 — 건수는 판 밖으로.
             (한때 오른쪽에 `즐겨찾기만` 버튼이 있었다. 뺐다 — 즐겨찾기는
              마이페이지 `레시피 현황` 에서 보는 것이다.) */}
+        {/* 범례는 부수 자료라 **작게(11px) · 오른쪽**으로(2026-10-09 요청). 판의 가로폭은
+            카드와 같다 — 카드 목록 바탕판을 없애 이제 같은 폭이다. */}
         <div style={{
-          display: 'flex', alignItems: 'center', marginTop: 8,
-          padding: '6px 10px', borderRadius: 10, background: 'var(--surface-sub)',
+          display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginTop: 8,
+          padding: '4px 10px', borderRadius: 10, background: 'var(--surface-sub)',
         }}>
-          <IngredientLegend />
+          <IngredientLegend compact />
         </div>
         </div>
 
@@ -2576,12 +2578,10 @@ const RecipeList: React.FC = () => {
             </button>
           )}
 
-          {/* 카드 영역을 **박스로 한 번 더 잡는다**(2026-10-09 요청) — 요즘인기·마이페이지의
-              박스+작은 제목과 같은 방식. 카드 한 장 한 장도 테두리가 있어 겹쳐 보이지 않게
-              박스는 아주 옅은 배경판(테두리 없음)으로 둔다. */}
+          {/* (한때 여기 카드 목록을 옅은 회색 바탕판으로 감쌌다 — 보기 흉하고 카드 폭만
+              16px 줄여 위 범례 판이 더 넓어 보이게 한다는 지적(2026-10-09)으로 **뺐다**.) */}
           {!loading && (
-            <div className="flex flex-col gap-2"
-                 style={{ padding: 8, borderRadius: 14, background: 'var(--surface-sub)', marginTop: 4 }}>
+            <div className="flex flex-col gap-2">
               {(() => {
                 // 재료가 없거나, 디폴트 '달걀'만 있고 레시피가 없을 때 안내 문구 표시
                 const hasOnlyDefaultEgg = myIngredients.length === 1 && 

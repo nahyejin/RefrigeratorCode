@@ -392,7 +392,12 @@ export const UsageGauge: React.FC = () => {
         <div style={{ display: 'flex', justifyContent: 'space-between',
                       fontSize: 11.5, color: 'var(--ink-500)' }}>
           <span>전체 잔여 크레딧</span>
-          <b style={{ color: '#1A1A1E' }}>{usage.balance}</b>
+          {/* 금일 잔여 줄과 같은 `남은 / 전체` 표기 — 분모를 안 적으면 많은 건지 적은 건지
+              가늠이 안 된다(2026-10-09 지적). `base` 는 아래 막대가 쓰는 기준(가입 크레딧). */}
+          <span>
+            <b style={{ color: '#1A1A1E' }}>{usage.balance}</b>
+            {' / '}{base}
+          </span>
         </div>
         <div
           role="progressbar"

@@ -13,6 +13,8 @@ interface IngredientLegendProps {
    * 칩을 펴면 칩 자체가 색을 보여 준다 — 그때 굳이 설명이 필요하지 않다.
    */
   swatchesHidden?: boolean;
+  /** 작은 글씨(11px)·좁은 간격 — 냉장고요리처럼 범례가 부수 자료인 자리. */
+  compact?: boolean;
 }
 
 const formatCount = (n: number) => n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
@@ -22,7 +24,7 @@ const formatCount = (n: number) => n.toString().replace(/\B(?=(\d{3})+(?!\d))/g,
  * 예전엔 이 마크업이 6개 파일에 그대로 복붙되어 있었고, pill 색을 바꿔도
  * 범례는 따라오지 않는 상태였다. 색은 styles/ingredientPill.ts 한 곳에서만 정의한다.
  */
-const IngredientLegend: React.FC<IngredientLegendProps> = ({ total, style, swatchesHidden }) => (
+const IngredientLegend: React.FC<IngredientLegendProps> = ({ total, style, swatchesHidden, compact = false }) => (
   <div
     style={{
       display: 'flex',
@@ -32,11 +34,11 @@ const IngredientLegend: React.FC<IngredientLegendProps> = ({ total, style, swatc
       ...style,
     }}
   >
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: compact ? 8 : 10, minWidth: 0 }}>
       {!swatchesHidden && LEGEND_ORDER.map((state) => (
         <div key={state} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <span style={legendSwatchStyle(state)} />
-          <span style={{ color: '#3A3A42', fontSize: 13, whiteSpace: 'nowrap' }}>
+          <span style={{ color: compact ? '#6A6A73' : '#3A3A42', fontSize: compact ? 11 : 13, whiteSpace: 'nowrap' }}>
             {PILL_COLORS[state].label}
           </span>
         </div>

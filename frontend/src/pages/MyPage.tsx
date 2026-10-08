@@ -1530,7 +1530,13 @@ const MyPage: React.FC = () => {
           (2026-10-08 지적: 밑줄 탭이라 탭처럼 보이지 않는다). 같은 일을 하는
           고르개는 앱 어디서나 같은 모양이어야 한다. */}
       {isInHousehold && (
-        <div style={{ padding: '12px 12px 0' }}>
+        // 토글과 `내 것은 빼고 보기` 를 **한 줄**에(2026-10-09 지적: 체크박스가 줄바꿈돼
+        // 아래 줄로 내려갔다). 폭이 모자라 글자를 두 줄로 쌓는다 — 위 `내 것은 빼고 보기`,
+        // 아래 `식구들 것 N건`. 두 줄이어도 토글(28px)과 같은 높이라 줄이 늘지 않는다.
+        // `모두` 는 나 + 식구라서, 식구가 아무것도 안 했으면 `나의 것만` 과 같은 목록이
+        // 된다 — 이걸 켜면 남는 게 진짜 식구 몫이다. 남을 게 없으면 **눌리지 않게** 하고
+        // 이유를 적는다(눌리는데 아무 일도 안 일어나는 게 제일 나쁘다).
+        <div style={{ padding: '12px 12px 0', display: 'flex', alignItems: 'center', gap: 10 }}>
           <SegmentedToggle
             value={householdViewMode}
             onChange={(v) => setHouseholdViewMode(v)}
@@ -1540,31 +1546,28 @@ const MyPage: React.FC = () => {
               { value: 'all', label: '우리 식구 모두' },
             ]}
           />
+          {showAllHousehold && (
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, flex: 1,
+                            cursor: othersTotal === 0 ? 'default' : 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={hideMine}
+                disabled={othersTotal === 0}
+                onChange={e => setHideMine(e.target.checked)}
+                style={{ width: 16, height: 16, flexShrink: 0 }}
+              />
+              <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0, lineHeight: 1.3 }}>
+                <span style={{ fontSize: 12.5, fontWeight: 600, whiteSpace: 'nowrap',
+                               color: othersTotal === 0 ? 'var(--ink-500)' : 'var(--ink-700)' }}>
+                  내 것은 빼고 보기
+                </span>
+                <span style={{ fontSize: 11, color: 'var(--ink-500)', whiteSpace: 'nowrap' }}>
+                  {othersTotal === 0 ? '식구 기록 없음' : `식구들 것 ${othersTotal}건`}
+                </span>
+              </span>
+            </label>
+          )}
         </div>
-      )}
-
-      {/* `모두` 는 나 + 식구다. 식구가 아무것도 안 했으면 `나의 것만` 과 같은
-          목록이 되는데, 화면에서는 그걸 알 수가 없다. 이걸 켜면 남는 게 진짜
-          식구 몫이다. 남을 게 없으면 **눌리지 않게** 하고 이유를 적는다 —
-          눌리는데 아무 일도 안 일어나는 게 제일 나쁘다. */}
-      {showAllHousehold && (
-        <label style={{ display: 'flex', alignItems: 'center', gap: 6,
-                        padding: '10px 14px 0', fontSize: 12.5, flexWrap: 'wrap',
-                        cursor: othersTotal === 0 ? 'default' : 'pointer' }}>
-          <input
-            type="checkbox"
-            checked={hideMine}
-            disabled={othersTotal === 0}
-            onChange={e => setHideMine(e.target.checked)}
-            style={{ width: 16, height: 16 }}
-          />
-          <span style={{ color: othersTotal === 0 ? 'var(--ink-500)' : 'var(--ink-700)', fontWeight: 600 }}>
-            내 것은 빼고 보기
-          </span>
-          <span style={{ color: 'var(--ink-500)' }}>
-            {othersTotal === 0 ? '· 식구들이 한 게 아직 없어요' : `· 식구들 것 ${othersTotal}건`}
-          </span>
-        </label>
       )}
 
       {/* 이 화면이 무엇을 담고 있는지 한눈에 알려주는 요약 줄.
