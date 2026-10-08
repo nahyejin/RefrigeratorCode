@@ -2,14 +2,15 @@
 
 2026-10-08. 이전 patch_morphed_prop.py 는 윗부분만 덮어 몸통 폭이 달라진 게 남았다. REF 우유곽에서 손가락을 inpaint 로
 지운 깨끗한 판을 만들고, 매 프레임 지금 손가락(피부색 HSV)만 위에 남긴다. 위치는 두 손을 템플릿 매칭으로 따라가 9프레임 이동평균으로 다듬는다
-(처음엔 phaseCorrelate 로 매 프레임 따라갔다가 우유곽이 ±5px 씩 떨렸다 — 2026-10-08 사용자 지적).
+(서브픽셀 + 가우시안 sigma 6프레임. 덮는 영역은 원래 좁은 우유곽이 밖으로 비치지 않게 넉넉히, 페더 14px.
+ 처음엔 phaseCorrelate 로 매 프레임 따라갔다가 우유곽이 ±5px 씩 떨렸다 — 2026-10-08 사용자 지적).
     python scripts/replace_prop_under_hands.py in.mp4 out_video_only.mp4   (REF/FROM/영역은 파일 위 상수)
 소리는 ffmpeg 로 원본에서 되붙인다.
 """
 import cv2, numpy as np, sys
 F, OUT = sys.argv[1], sys.argv[2]
 REF, FROM = 150, 151
-X0, Y0, X1, Y1 = 198, 672, 300, 920
+X0, Y0, X1, Y1 = 176, 664, 336, 968
 cap = cv2.VideoCapture(F); fps = cap.get(5); fr = []
 while True:
     ok, f = cap.read()
@@ -31,7 +32,7 @@ rp = cv2.inpaint(rp, rsk, 7, cv2.INPAINT_TELEA)  # fingers removed from the refe
 cv2.imwrite("ref_clean.png", np.hstack([ref[Y0:Y1, X0:X1], rp]))
 patch = rp.astype(np.float32)
 ph, pw = patch.shape[:2]
-feather = np.ones((ph, pw), np.float32); fe = 6
+feather = np.ones((ph, pw), np.float32); fe = 14
 for k in range(fe):
     a = (k + 1) / (fe + 1)
     feather[k, :] *= a; feather[-1 - k, :] *= a; feather[:, k] *= a; feather[:, -1 - k] *= a
@@ -42,21 +43,34 @@ raw = []
 for i in range(FROM, len(fr)):
     r = cv2.matchTemplate(gray(fr[i])[740:940, 130:440], tpl, cv2.TM_CCOEFF_NORMED)
     _, _, _, l = cv2.minMaxLoc(r)
-    raw.append((l[0] - 40, l[1] - 40))
+    x, y = l
+    # subpixel: parabola through neighbours
+    sx = sy = 0.0
+    if 0 < x < r.shape[1] - 1:
+        a, b, c = r[y, x - 1], r[y, x], r[y, x + 1]; d = a - 2 * b + c
+        sx = 0.5 * (a - c) / d if d != 0 else 0.0
+    if 0 < y < r.shape[0] - 1:
+        a, b, c = r[y - 1, x], r[y, x], r[y + 1, x]; d = a - 2 * b + c
+        sy = 0.5 * (a - c) / d if d != 0 else 0.0
+    raw.append((x + sx - 40, y + sy - 40))
 raw = np.array([(0.0, 0.0)] * 3 + raw, np.float32)  # anchor start at ref
-k = 9
+# heavy gaussian smoothing (sigma 6 frames) -> path follows only the slow hand drift
+k = 37; xs = np.arange(k) - k // 2; ker = np.exp(-xs ** 2 / (2 * 6.0 ** 2)); ker /= ker.sum()
 pad = np.pad(raw, ((k // 2, k // 2), (0, 0)), mode='edge')
-sm = np.stack([np.convolve(pad[:, j], np.ones(k) / k, mode='valid') for j in range(2)], 1)[3:]
+sm = np.stack([np.convolve(pad[:, j], ker, mode='valid') for j in range(2)], 1)[3:]
 out = cv2.VideoWriter(OUT, cv2.VideoWriter_fourcc(*'mp4v'), fps, (W, H))
 full = np.zeros((H, W, 3), np.float32); fmask = np.zeros((H, W), np.float32)
 full[Y0:Y1, X0:X1] = patch; fmask[Y0:Y1, X0:X1] = feather
+prev_sk = None
 for i, f in enumerate(fr):
     if i >= FROM:
         dx, dy = sm[i - FROM]
         M = np.float32([[1, 0, dx], [0, 1, dy]])
         wp = cv2.warpAffine(full, M, (W, H), flags=cv2.INTER_LINEAR)
         wm = cv2.warpAffine(fmask, M, (W, H), flags=cv2.INTER_LINEAR)
-        m = wm * (1 - skin(f).astype(np.float32))
+        sk = skin(f).astype(np.float32)
+        prev_sk = sk if prev_sk is None else 0.5 * prev_sk + 0.5 * sk  # temporal smoothing of finger mask
+        m = wm * (1 - prev_sk)
         m = cv2.GaussianBlur(m, (5, 5), 0)[..., None]
         f = (wp * m + f.astype(np.float32) * (1 - m)).astype(np.uint8)
     out.write(f)
