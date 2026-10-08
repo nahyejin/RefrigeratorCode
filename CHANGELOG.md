@@ -12739,3 +12739,4 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 - 1.0.3(9) 는 2026-10-07 심사 통과. 맥에서 로컬 변경 없음 확인 → `git pull`(`81d5144d` 까지) → `npm install` → `npm run build` → `npx cap sync ios`.
 - `project.pbxproj` 앱·위젯 Debug/Release 4개 설정 1.0.3(9) → 1.0.4(10). 이번에 받은 커밋에 네이티브(`frontend/ios`) 변경은 없음 — 웹 화면 수정만.
 - `xcodebuild -project App.xcodeproj -scheme App -configuration Release -destination generic/platform=iOS build` → BUILD SUCCEEDED. Archive·업로드·App Store Connect 제출은 사용자.
+- (후속 2) 사용자: 배달원 클로즈업 때는 부부 뒷모습·머리 일부도 안 보이게 → 배달원이 부부 사이로 걸어와 그를 따라가는 프레임엔 둘이 걸림. 격자로 둘의 윤곽을 재 보니 머리~어깨 높이에서 아내 오른쪽 끝 x≈325, 남편 왼쪽 끝 x≈465 — 그 사이 창(x 325–465, y 490–740, 약 5배)에 고정: 0s 유리문 너머 배달원 → 문 열고 들어와 → 얼굴·상체로 「안녕하세요」. 2.9–3.3s 에 폭을 로그 스케일+ease 로 140→720 넓혀 부부가 드러나고 3.2s 아내 대사. 확대 보정 언샤프(σ2.2, 0.3).
