@@ -363,7 +363,9 @@ const HouseholdSection: React.FC<HouseholdSectionProps> = ({ onChange, guideExpa
         border: '1px solid var(--line-200)',
         borderRadius: 16,
         padding: '16px 16px',
-        marginBottom: 16,
+        // ⚠️ 바깥 여백은 **쓰는 쪽이 정한다.** 여기 `marginBottom: 16` 이 박혀
+        // 있어서, 마이페이지에서 이 카드 다음 묶음만 34px(18+16) 떨어져
+        // 다른 묶음(18px)과 간격이 달랐다(2026-10-09 지적).
         background: 'var(--surface)',
       }}
     >

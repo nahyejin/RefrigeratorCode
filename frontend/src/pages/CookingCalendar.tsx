@@ -358,6 +358,24 @@ function formatWon(n: number): string {
 }
 
 /**
+ * 절약액을 **짧게** — `160,000원` → `16만원`.
+ *
+ * 달성률 줄과 **한 줄에 같이** 세우려고 만들었다(2026-10-09 요청: 목표 카드의
+ * 세로를 더 줄여 달라). 360px 기준으로 `0회 / 20회 달성 (0%)`(110px) 옆에
+ * 들어갈 폭이 190px 뿐인데, `이번달 절약액 약 160,000원 (목표 달성 시 240,000원)`
+ * 은 270px 이다. 어차피 **추정치**(`약`)라 만원 아래 자리는 뜻이 없다.
+ */
+function formatWonShort(n: number): string {
+  if (n >= 10000) {
+    const man = n / 10000;
+    // 11.5만원처럼 소수 한 자리까지만. 10만 이상은 반올림해서 정수로.
+    const text = man >= 10 ? String(Math.round(man)) : String(Math.round(man * 10) / 10);
+    return `${text}만원`;
+  }
+  return `${n.toLocaleString('ko-KR')}원`;
+}
+
+/**
  * 내냉장고가 쓰는 그 자리에서 보관함 세 칸을 읽는다.
  * 키 이름을 새로 정하지 않는다 — 다르게 적으면 재료가 있는데도 안 뜬다.
  */
@@ -1925,8 +1943,28 @@ const CookingCalendar: React.FC = () => {
             <div style={{ height: '100%', width: `${groupAchievementRate}%`, background: 'var(--brand)', borderRadius: 9999, transition: 'width 0.2s ease' }} />
           )}
         </div>
-        <div style={{ fontSize: 12, color: 'var(--ink-500)', marginTop: 6 }}>
-          {monthlyTotal}회 / {myGoal}회 달성 ({groupAchievementRate}%)
+        {/* 달성률과 절약액을 **한 줄**에 둔다(2026-10-09 요청: 이 카드 세로를 더
+            줄여 달라). 절약액은 아래에 따로 한 줄을 쓰고 있었는데, 둘 다 "지금
+            어디까지 왔나" 를 말하는 숫자라 같은 줄에 있는 게 오히려 맞다.
+            폭이 모자라면 절약액만 아랫줄로 내려간다(`flexWrap`). */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center',
+                      columnGap: 8, rowGap: 2, fontSize: 12, color: 'var(--ink-500)', marginTop: 6 }}>
+          <span style={{ whiteSpace: 'nowrap' }}>
+            {monthlyTotal}회 / {myGoal}회 달성 ({groupAchievementRate}%)
+          </span>
+          {/* 아직 한 번도 안 했어도 **목표를 채우면 얼마인지**는 보여 준다.
+              0원만 띄우고 마는 건 아무 말도 안 하는 것과 같다. */}
+          {(monthlyTotal > 0 || myGoal > 0) && (
+            <span style={{ whiteSpace: 'nowrap' }}>
+              {monthlyTotal > 0 && (
+                <>절약 약 <b style={{ color: 'var(--ink-900)' }}>{formatWonShort(estimatedSavings)}</b></>
+              )}
+              {monthlyTotal > 0 && myGoal > monthlyTotal && ' · '}
+              {myGoal > monthlyTotal && (
+                <>목표 달성 시 <b style={{ color: 'var(--ink-900)' }}>{formatWonShort(goalSavings)}</b></>
+              )}
+            </span>
+          )}
         </div>
         {/* 인원별 색 범례 — 게이지 색과 같은 순서(완료 많은 순). 한때 "자세히
             보기" 접힘 영역 안에 넣었더니 "이건 게이지 바로 옆에 항상 붙어
@@ -1954,47 +1992,9 @@ const CookingCalendar: React.FC = () => {
             수정 조작(칩 버튼 2개)을 분리했다 — 문장은 그냥 텍스트로 온전히
             보여주고, 그 아래 알약 모양 칩으로 값만 눌러서 바로 고칠 수
             있게 했다. 목표·달성률·절약액까지는 카드를 접어도 항상 보인다. */}
-        {/* 아직 한 번도 안 했어도 **목표를 채우면 얼마인지**는 보여 준다.
-            0원만 띄우고 마는 건 아무 말도 안 하는 것과 같다. */}
-        {(monthlyTotal > 0 || myGoal > 0) && (
-          <div style={{ marginTop: 8 }}>
-            {/* 절약액 + (목표 달성 시 금액)을 **한 줄**에 — 두 줄로 쌓으면 이 카드가
-                세로로 길어진다(2026-10-08, "영역별 세로 길이는 최대한 좁혀야"). 폭이
-                모자라면 괄호 묶음째 아랫줄로 내려가므로 글자가 중간에서 꺾이지 않는다. */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', columnGap: 6, rowGap: 2 }}>
-              {monthlyTotal > 0 && (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12.5, fontWeight: 600, color: 'var(--ink-700)', whiteSpace: 'nowrap' }}>
-                  {/* 이모지(💰)는 기기·OS마다 그림체가 달라 앱의 다른 검정 선
-                      아이콘과 톤이 안 맞는다는 지적을 받아, SectionIcon과 같은
-                      선 아이콘 스타일(24 뷰박스, strokeWidth 1.7)로 통일했다. */}
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden style={{ flexShrink: 0 }}>
-                    <ellipse cx="12" cy="17" rx="7" ry="3" />
-                    <ellipse cx="12" cy="12" rx="7" ry="3" />
-                    <path d="M5 12v5M19 12v5" />
-                  </svg>
-                  이번달 절약액 약 {formatWon(estimatedSavings)}원
-                </span>
-              )}
-              {/* 목표까지 가면 얼마인지. 지금까지 한 것만 보여 주면 남은
-                  횟수를 채울 이유가 화면에 없다. 목표 횟수는 카드 맨 위에 이미
-                  있어 괄호 안에서는 뺀다(더 짧아야 한 줄에 들어간다). */}
-              {myGoal > monthlyTotal && (
-                <span style={{
-                  fontSize: monthlyTotal > 0 ? 11.5 : 12.5,
-                  fontWeight: monthlyTotal > 0 ? 400 : 600,
-                  color: monthlyTotal > 0 ? 'var(--ink-500)' : 'var(--ink-700)',
-                  whiteSpace: 'nowrap',
-                }}>
-                  {/* 괄호 안에서는 `약` 을 뺀다. 앞 문장이 이미 `약` 이라고 말했고,
-                      한 줄에 들어가느냐 마느냐가 두 글자에서 갈린다(360px 기준). */}
-                  {monthlyTotal > 0
-                    ? <>(목표 달성 시 <b style={{ color: '#1A1A1E' }}>{formatWon(goalSavings)}원</b>)</>
-                    : <>이번달 목표 {myGoal}회를 다 채우면 약 <b style={{ color: '#1A1A1E' }}>{formatWon(goalSavings)}원</b></>}
-                </span>
-              )}
-            </div>
-          </div>
-        )}
+        {/* 절약액은 위 달성률 줄로 옮겼다(2026-10-09) — 한 줄을 통째로 쓰던 것이
+            카드 세로의 가장 큰 덩어리였다. 돈 아이콘(💰 대신 쓰던 선 아이콘)도
+            같이 뺐다: 한 줄에 같이 서려면 그 20px 이 아쉽다. */}
         {/* 안내 문구(매월 1일 초기화, 공동 목표 여부)만 접어 둔다 — 인원별
             범례는 게이지가 보여주는 핵심 정보라 항상 위에 노출한다(위 참고).
 
@@ -2820,6 +2820,15 @@ const CookingCalendar: React.FC = () => {
             </div>
           )}
 
+          {/* 이 안내는 **기간을 고르는 줄 바로 아래**다(2026-10-09 지적) —
+              요약 줄 아래에 있으면 무엇에 대한 안내인지 한참 찾는다. */}
+          {/* 기간 이름은 이제 드롭다운에 보인다 — 직접 고른 기간만 날짜를 따로 적는다. */}
+          {span === 'custom' && !(range.from || range.to) && (
+            <div style={{ fontSize: 11.5, color: 'var(--ink-500)', padding: '0 2px 4px' }}>
+              기간을 골라 [적용]을 눌러 주세요.
+            </div>
+          )}
+
           {/* 요약은 **기간을 고르는 줄 다음**이다(2026-10-09 지적) — 무엇을
               기준으로 센 숫자인지 먼저 보여 주고 그 결과를 아래에 둔다.
               전에는 기간 고르개와 「기간 선택」 날짜 줄 사이에 끼어 있었다. */}
@@ -2839,13 +2848,6 @@ const CookingCalendar: React.FC = () => {
                     </span>
                   ))
                 : null}
-            </div>
-          )}
-
-          {/* 기간 이름은 이제 드롭다운에 보인다 — 직접 고른 기간만 날짜를 따로 적는다. */}
-          {span === 'custom' && !(range.from || range.to) && (
-            <div style={{ fontSize: 11.5, color: 'var(--ink-500)', padding: '0 2px 4px' }}>
-              기간을 골라 [적용]을 눌러 주세요.
             </div>
           )}
 

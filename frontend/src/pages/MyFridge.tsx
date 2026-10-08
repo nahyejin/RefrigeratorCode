@@ -24,7 +24,6 @@ import { useUsage } from '../components/UsageMeter';
 import { loadIngredientCategoryMap, estimateExpiry, type CategoryMap } from '../utils/shelfLife';
 import { splitExpiring } from '../utils/expiry';
 import ExpiryBand from '../components/ExpiryBand';
-import GroupTitle from '../components/ui/GroupTitle';
 import { STALE_AFTER_DAYS } from '../utils/expiry';
 import {
   isUsageGuideDueThisVisit,
@@ -432,9 +431,13 @@ const ScrollablePillSection: React.FC<ScrollablePillSectionProps> = ({ watchKey,
           background: '#F5F5F7',
           borderRadius: 20,
           boxShadow: '0 1px 4px rgba(0,0,0,0.03)',
-          padding: 16,
-          maxHeight: '140px',
-          minHeight: '140px',
+          // 140 → 112, 여백 16 → 12. 보관함 세 칸(냉동·냉장·실온)이 **스크롤
+          // 없이 한 화면에** 들어와야 한다는 요청(2026-10-09). 112 면 알약
+          // 두 줄이 온전히 보이고 세 번째 줄이 살짝 걸쳐, 더 있다는 것도 보인다
+          // (칸 안은 그대로 스크롤되고 아래쪽 화살표가 힌트를 준다).
+          padding: 12,
+          maxHeight: '112px',
+          minHeight: '112px',
           border: 'none',
           overflowY: 'auto',
           overflowX: 'hidden',
@@ -2250,13 +2253,12 @@ const MyFridge: React.FC = () => {
         {/* 입력칸이 이 안으로 들어왔으니 위 여백(48)은 과하다 — 화면 첫 줄이
             `내 냉장고 재고 관리` 가 된다. */}
         <div style={{ maxWidth: 400, margin: '0 auto', paddingLeft: 20, paddingRight: 20, width: '100%', marginTop: 8, boxSizing: 'border-box' }}>
-          {/* 제목을 **다른 화면과 같은 작은 회색 글자**로 바꿨다(2026-10-08 지적:
-              "16px 굵은 제목 + 가로선이 이 페이지에만 있다"). 마이페이지·
-              마이캘린더·요즘인기가 모두 `GroupTitle` 이라, 이 화면만 다른
-              방식으로 영역을 말할 이유가 없다. 아래 1px 가로선도 뺐다 —
-              제목과 박스가 이미 경계를 말한다. */}
-          <div className="flex items-center justify-between" style={{ position: 'relative', width: '100%' }}>
-            <GroupTitle style={{ margin: '0 0 6px' }}>내 냉장고 재고 관리</GroupTitle>
+          {/* 제목(`내 냉장고 재고 관리`)도 **뺐다**(2026-10-09 지적: "여기서는
+              필요 없을 것 같다"). 이 화면은 처음부터 끝까지 내 냉장고 재고
+              이야기 하나뿐이고, 화면 이름은 하단 탭의 `내냉장고` 가 말한다.
+              그만큼(약 24px) 보관함 세 칸이 위로 올라온다.
+              저장 상태(`저장됨`)는 이 줄 오른쪽에 그대로 남는다. */}
+          <div className="flex items-center justify-end" style={{ position: 'relative', width: '100%' }}>
             {/* 저장 버튼을 없애고 상태 표시로 교체.
                 재료가 바뀌면 자동으로 저장되므로 사용자가 누를 일이 없다.
                 다만 예전 자동 저장은 실패해도 콘솔에만 찍고 끝나서 저장이 안 된 걸
@@ -2511,7 +2513,7 @@ const MyFridge: React.FC = () => {
           <ExpiryBand bare boxes={fridgeBoxes} categoryMap={categoryMap} />
           <div data-guide-target="storage-areas">
           {/* 냉동보관 */}
-          <div className="mb-4">
+          <div style={{ marginBottom: 10 }}>
             {/* 이름 + 재료수를 왼쪽에 한 덩어리로 묶고, 조작 버튼(정렬·모두삭제)은
                 오른쪽으로 밀어낸다. 폭이 모자라면 **조작 버튼 묶음만** 아랫줄로
                 내려가므로 `재료수 N개` 와 `임박 N개` 가 잘리는 일이 없다. */}
@@ -2548,7 +2550,7 @@ const MyFridge: React.FC = () => {
             </ScrollablePillSection>
           </div>
           {/* 냉장보관 */}
-          <div className="mb-4">
+          <div style={{ marginBottom: 10 }}>
             {/* 이름 + 재료수를 왼쪽에 한 덩어리로 묶고, 조작 버튼(정렬·모두삭제)은
                 오른쪽으로 밀어낸다. 폭이 모자라면 **조작 버튼 묶음만** 아랫줄로
                 내려가므로 `재료수 N개` 와 `임박 N개` 가 잘리는 일이 없다. */}
@@ -2586,7 +2588,7 @@ const MyFridge: React.FC = () => {
             </ScrollablePillSection>
           </div>
           {/* 실온보관 */}
-          <div className="mb-4">
+          <div style={{ marginBottom: 10 }}>
             {/* 이름 + 재료수를 왼쪽에 한 덩어리로 묶고, 조작 버튼(정렬·모두삭제)은
                 오른쪽으로 밀어낸다. 폭이 모자라면 **조작 버튼 묶음만** 아랫줄로
                 내려가므로 `재료수 N개` 와 `임박 N개` 가 잘리는 일이 없다. */}
