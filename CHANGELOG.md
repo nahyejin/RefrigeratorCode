@@ -12731,3 +12731,10 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 ### 릴스 후킹 v3 8편(로비 배달) — 부부가 빈 로비문을 바라보고 서 있는 앞부분 잘라냄
 - 사용자: 부부가 처음부터 로비문만 바라보는 게 어색함. 이상적으론 오른쪽(화면 밖 엘리베이터)을 향해 있다가 배달원의 「아 안녕하세요」를 듣고 로비문으로 시선이 가야 함 → 사람 몸 방향은 편집으로 못 바꿈. 배달원이 걸어오는 동안 부부가 길 양옆을 막고 서 있어 부부를 뺀 클로즈업도 안 나옴(배달원 경로가 둘의 등과 겹침).
 - 대신 배달원이 들어와 걷는 0–1.75s(첫 말 2.05s 전)를 잘라 「안녕하세요」 0.3초 전부터 시작 — 부부가 빈 문을 바라보며 기다리는 장면이 사라지고, 다가온 배달원을 맞는 장면이 됨. 소리 0.08s 페이드인. `my-video/public/reel8_hook_v3_lobby.mp4`(10.0 → 8.25s).
+
+## 2026-10-09
+
+### iOS 1.0.4 (빌드 10) 맥 빌드
+- 1.0.3(9) 는 2026-10-07 심사 통과. 맥에서 로컬 변경 없음 확인 → `git pull`(`81d5144d` 까지) → `npm install` → `npm run build` → `npx cap sync ios`.
+- `project.pbxproj` 앱·위젯 Debug/Release 4개 설정 1.0.3(9) → 1.0.4(10). 이번에 받은 커밋에 네이티브(`frontend/ios`) 변경은 없음 — 웹 화면 수정만.
+- `xcodebuild -project App.xcodeproj -scheme App -configuration Release -destination generic/platform=iOS build` → BUILD SUCCEEDED. Archive·업로드·App Store Connect 제출은 사용자.
