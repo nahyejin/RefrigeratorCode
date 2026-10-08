@@ -58,8 +58,7 @@ export function evaluateVisitForUsageGuide(now = Date.now()): boolean {
 export const USAGE_GUIDE_STEPS = {
   myFridge: 3,
   recipeList: 9,
-  // 식단 추천 버튼이 내냉장고로 옮겨 가(2026-10-08) 로그인 여부와 무관하게 한 단계(월 목표·달력).
-  calendar: (_loggedIn: boolean) => 1,
+  calendar: (loggedIn: boolean) => (loggedIn ? 2 : 1),
   myPage: 3,
 } as const;
 

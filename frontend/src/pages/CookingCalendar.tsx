@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import PlanButtons from '../components/PlanButtons';
 import { loadIngredientCategoryMap, lookupShelfLifeDays, estimateExpiry, type CategoryMap, type StorageKind } from '../utils/shelfLife';
 import type { FridgeItem } from '../utils/expiry';
 import {
@@ -1603,15 +1604,17 @@ const CookingCalendar: React.FC = () => {
   const [guideStep, setGuideStep] = React.useState(0);
   const guideStartedRef = React.useRef(false);
   const calendarGuideSteps = React.useMemo(() => [
-    // 식단 추천 버튼은 내냉장고의 "곧 상해요" 시트로 옮겼다(2026-10-08) —
-    // 이 화면의 안내는 월 목표·달력 하나다. 비로그인도 같은 영역이 보인다.
     {
-      targetSelector: '[data-guide-target="calendar-goal-area"]',
-      message: isLoggedIn
-        ? '이번 달 요리 목표를 세우고\n완료한 요리를 한눈에 모아 보세요.\n목표를 채우면 아낄 수 있는 금액도\n대략 계산해 드려요.\n\n가족 그룹이라면\n식구들과 함께 목표와 현황을\n공유할 수 있어요.'
-        : '만든 요리와 앞으로 만들기로 한 요리가\n날짜별로 달력에 모여요.\n\n로그인하면 월 목표와 절약액,\n식구들과의 공유도 쓸 수 있어요.',
+      targetSelector: '[data-guide-target="weekly-plan-buttons"]',
+      message: '냉장고 재료와 유통기한을 따져서\n일주일 식단을 알뜰하게 짜 드려요.\n필요한 장보기 목록도 함께 만들어져요.',
       position: 'bottom' as const,
     },
+    // 월 목표·달력은 로그인해야 있는 화면이다.
+    ...(isLoggedIn ? [{
+      targetSelector: '[data-guide-target="calendar-goal-area"]',
+      message: '이번 달 요리 목표를 세우고\n완료한 요리를 한눈에 모아 보세요.\n목표를 채우면 아낄 수 있는 금액도\n대략 계산해 드려요.\n\n가족 그룹이라면\n식구들과 함께 목표와 현황을\n공유할 수 있어요.',
+      position: 'bottom' as const,
+    }] : []),
   ], [isLoggedIn]);
 
   React.useEffect(() => {
@@ -1790,6 +1793,12 @@ const CookingCalendar: React.FC = () => {
           </Button>
         </section>
       )}
+      {/* 식단 추천 버튼 — 식단을 짜면 결과가 이 달력에 담기므로 여기가 제자리다.
+          한때 내냉장고로 옮겼다가 "너무 숨어 있다"는 지적(2026-10-08)으로 되돌리고,
+          대신 높이를 74→52px 로 줄였다. 임박 재료 카드는 내냉장고에 남는다. */}
+      <div style={{ margin: '0 14px 8px' }}>
+        <PlanButtons />
+      </div>
       {/* 계획 목록을 여기 또 두지 않는다.
           바로 아래가 달력인데 그 위에 같은 내용을 줄로 늘어놓으면, 같은 것을
           두 번 읽게 되고 정작 달력은 화면 밖으로 밀린다. 계획은 달력 안에서
@@ -1931,32 +1940,42 @@ const CookingCalendar: React.FC = () => {
         {/* 아직 한 번도 안 했어도 **목표를 채우면 얼마인지**는 보여 준다.
             0원만 띄우고 마는 건 아무 말도 안 하는 것과 같다. */}
         {(monthlyTotal > 0 || myGoal > 0) && (
-          <div style={{ marginTop: 10 }}>
-            {monthlyTotal > 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12.5, fontWeight: 600, color: 'var(--ink-700)' }}>
-              {/* 이모지(💰)는 기기·OS마다 그림체가 달라 앱의 다른 검정 선
-                  아이콘과 톤이 안 맞는다는 지적을 받아, SectionIcon과 같은
-                  선 아이콘 스타일(24 뷰박스, strokeWidth 1.7)로 통일했다. */}
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden style={{ flexShrink: 0 }}>
-                <ellipse cx="12" cy="17" rx="7" ry="3" />
-                <ellipse cx="12" cy="12" rx="7" ry="3" />
-                <path d="M5 12v5M19 12v5" />
-              </svg>
-              이번달 절약액 약 {formatWon(estimatedSavings)}원
+          <div style={{ marginTop: 8 }}>
+            {/* 절약액 + (목표 달성 시 금액)을 **한 줄**에 — 두 줄로 쌓으면 이 카드가
+                세로로 길어진다(2026-10-08, "영역별 세로 길이는 최대한 좁혀야"). 폭이
+                모자라면 괄호 묶음째 아랫줄로 내려가므로 글자가 중간에서 꺾이지 않는다. */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', columnGap: 6, rowGap: 2 }}>
+              {monthlyTotal > 0 && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12.5, fontWeight: 600, color: 'var(--ink-700)', whiteSpace: 'nowrap' }}>
+                  {/* 이모지(💰)는 기기·OS마다 그림체가 달라 앱의 다른 검정 선
+                      아이콘과 톤이 안 맞는다는 지적을 받아, SectionIcon과 같은
+                      선 아이콘 스타일(24 뷰박스, strokeWidth 1.7)로 통일했다. */}
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden style={{ flexShrink: 0 }}>
+                    <ellipse cx="12" cy="17" rx="7" ry="3" />
+                    <ellipse cx="12" cy="12" rx="7" ry="3" />
+                    <path d="M5 12v5M19 12v5" />
+                  </svg>
+                  이번달 절약액 약 {formatWon(estimatedSavings)}원
+                </span>
+              )}
+              {/* 목표까지 가면 얼마인지. 지금까지 한 것만 보여 주면 남은
+                  횟수를 채울 이유가 화면에 없다. 목표 횟수는 카드 맨 위에 이미
+                  있어 괄호 안에서는 뺀다(더 짧아야 한 줄에 들어간다). */}
+              {myGoal > monthlyTotal && (
+                <span style={{
+                  fontSize: monthlyTotal > 0 ? 11.5 : 12.5,
+                  fontWeight: monthlyTotal > 0 ? 400 : 600,
+                  color: monthlyTotal > 0 ? 'var(--ink-500)' : 'var(--ink-700)',
+                  whiteSpace: 'nowrap',
+                }}>
+                  {/* 괄호 안에서는 `약` 을 뺀다. 앞 문장이 이미 `약` 이라고 말했고,
+                      한 줄에 들어가느냐 마느냐가 두 글자에서 갈린다(360px 기준). */}
+                  {monthlyTotal > 0
+                    ? <>(목표 달성 시 <b style={{ color: '#1A1A1E' }}>{formatWon(goalSavings)}원</b>)</>
+                    : <>이번달 목표 {myGoal}회를 다 채우면 약 <b style={{ color: '#1A1A1E' }}>{formatWon(goalSavings)}원</b></>}
+                </span>
+              )}
             </div>
-            )}
-            {/* 목표까지 가면 얼마인지. 지금까지 한 것만 보여 주면 남은
-                횟수를 채울 이유가 화면에 없다. */}
-            {myGoal > monthlyTotal && (
-              <div style={{
-                fontSize: monthlyTotal > 0 ? 11.5 : 12.5,
-                fontWeight: monthlyTotal > 0 ? 400 : 600,
-                color: monthlyTotal > 0 ? 'var(--ink-500)' : 'var(--ink-700)',
-                marginTop: monthlyTotal > 0 ? 3 : 0, lineHeight: 1.5,
-              }}>
-                이번달 목표 {myGoal}회를 다 채우면 약 <b style={{ color: '#1A1A1E' }}>{formatWon(goalSavings)}원</b>
-              </div>
-            )}
           </div>
         )}
         {/* 안내 문구(매월 1일 초기화, 공동 목표 여부)만 접어 둔다 — 인원별

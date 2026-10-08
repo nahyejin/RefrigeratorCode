@@ -38,27 +38,30 @@ import {
 // =====================
 
 /**
- * 보관함 머리줄 오른쪽 끝의 `재료 개수` + (있으면) `임박 N`.
- * 어느 칸에 얼마나 들었는지, 어느 칸에 곧 상하는 게 있는지를 목록을 펼치지
- * 않고도 알려 준다(2026-10-08).
+ * 보관함 이름 옆의 `재료수 N개` + (있으면) `임박 N개`.
+ *
+ * 처음에는 숫자만(`12`) 적고 임박은 빨간 동그라미(`2`)로 뒀다. 폭이 모자라서
+ * 그랬는데, **무엇을 세는 숫자인지 알 수 없다**는 지적을 받았다(2026-10-08).
+ * 숫자는 이름이 붙어야 숫자다 — 폭은 정렬 드롭다운 문구를 줄여서 벌었다.
+ *
+ * 임박은 색만으로 말하지 않는다. 빨간색은 "뭔가 급하다" 까지만 전하고 그게
+ * 개수인지 등급인지는 말해 주지 않는다. 글자로 `임박 2개` 라고 적는다.
  */
 const BoxStat: React.FC<{ count: number; expiring: number }> = ({ count, expiring }) => (
-  <span style={{ marginLeft: 'auto', paddingLeft: 8, display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
-    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-500)' }}>{count}</span>
-    {/* 폭이 모자라 글자("임박 N") 대신 빨간 숫자 동그라미 — 맨 위 띠가 "곧 상해요 N개" 로
-        무슨 뜻인지 이미 말해 준다. 읽어 주는 기계용 이름은 따로 붙인다. */}
+  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flexShrink: 0, marginLeft: 5 }}>
+    <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink-500)', whiteSpace: 'nowrap' }}>
+      재료수 {count}개
+    </span>
     {expiring > 0 && (
       <span
-        title={`곧 상하는 재료 ${expiring}개`}
-        aria-label={`곧 상하는 재료 ${expiring}개`}
         style={{
-          minWidth: 18, height: 18, padding: '0 5px', boxSizing: 'border-box',
+          height: 18, padding: '0 6px', boxSizing: 'border-box',
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
           borderRadius: 9999, background: '#D14343', color: '#FFFFFF',
-          fontSize: 11, fontWeight: 700, lineHeight: 1,
+          fontSize: 11, fontWeight: 700, lineHeight: 1, whiteSpace: 'nowrap',
         }}
       >
-        {expiring}
+        임박 {expiring}개
       </span>
     )}
   </span>
@@ -2205,8 +2208,6 @@ const MyFridge: React.FC = () => {
   return (
     <div className="min-h-screen bg-white">
       <div className="bg-white w-full p-0 m-0 pb-24" style={{ paddingTop: 80 }}>
-        {/* 곧 상하는 재료 — 한 줄 띠. 누르면 목록과 식단 짜기가 시트로 열린다. */}
-        <ExpiryBand boxes={fridgeBoxes} categoryMap={categoryMap} />
         {/* 타이틀+입력창 그룹 */}
         <div className="flex flex-col items-center justify-center w-full" style={{ marginBottom: 40 }}>
           <div className="flex items-center justify-between w-full max-w-[400px] px-5 mb-2" style={{ position: 'relative' }}>
@@ -2491,21 +2492,30 @@ const MyFridge: React.FC = () => {
             )}
           </div>
           <div style={{height: 1, width: '100%', background: 'var(--line-200)', marginBottom: 14}} />
+          {/* 곧 상하는 재료 — 한 줄 띠. 누르면 목록과 식단 짜기가 시트로 열린다.
+              화면 맨 위에 있던 것을 여기로 내렸다(2026-10-08) — 재고를 말하기
+              시작하는 자리 아래가 제자리다. 임박한 게 없으면 아예 그려지지 않는다. */}
+          <ExpiryBand bare boxes={fridgeBoxes} categoryMap={categoryMap} />
           <div data-guide-target="storage-areas">
           {/* 냉동보관 */}
           <div className="mb-4">
-            <div className="text-[16px] font-bold mb-2 flex items-center">
+            {/* 이름 + 재료수를 왼쪽에 한 덩어리로 묶고, 조작 버튼(정렬·모두삭제)은
+                오른쪽으로 밀어낸다. 폭이 모자라면 **조작 버튼 묶음만** 아랫줄로
+                내려가므로 `재료수 N개` 와 `임박 N개` 가 잘리는 일이 없다. */}
+            <div className="text-[16px] font-bold mb-2 flex items-center" style={{ flexWrap: 'wrap', rowGap: 6 }}>
               <SectionIcon kind="frozen" /><span style={{ marginLeft: 6, whiteSpace: 'nowrap' }}>냉동보관</span>
-              <SortDropdown value={frozenSort} onChange={setFrozenSort} className="ml-2" />
-              {(frozen ?? []).length > 0 && (
-                <button
-                  className="ml-2 h-6 px-2 py-0 text-xs font-medium rounded border border-gray-300 bg-white text-[#3A3A42] hover:bg-[#F5F5F7] active:bg-[#E6E6EA] transition whitespace-nowrap"
-                  onClick={() => handleRemoveAll('frozen')}
-                >
-                  모두삭제
-                </button>
-              )}
               <BoxStat count={(frozen ?? []).length} expiring={expiringByBox.frozen} />
+              <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
+                <SortDropdown value={frozenSort} onChange={setFrozenSort} />
+                {(frozen ?? []).length > 0 && (
+                  <button
+                    className="h-6 px-1.5 py-0 text-[11px] font-medium rounded border border-gray-300 bg-white text-[#3A3A42] hover:bg-[#F5F5F7] active:bg-[#E6E6EA] transition whitespace-nowrap"
+                    onClick={() => handleRemoveAll('frozen')}
+                  >
+                    모두삭제
+                  </button>
+                )}
+              </span>
             </div>
             <ScrollablePillSection watchKey={(frozen ?? []).length}>
               {(frozen ?? []).length === 0 && (
@@ -2523,18 +2533,23 @@ const MyFridge: React.FC = () => {
           </div>
           {/* 냉장보관 */}
           <div className="mb-4">
-            <div className="text-[16px] font-bold mb-2 flex items-center">
+            {/* 이름 + 재료수를 왼쪽에 한 덩어리로 묶고, 조작 버튼(정렬·모두삭제)은
+                오른쪽으로 밀어낸다. 폭이 모자라면 **조작 버튼 묶음만** 아랫줄로
+                내려가므로 `재료수 N개` 와 `임박 N개` 가 잘리는 일이 없다. */}
+            <div className="text-[16px] font-bold mb-2 flex items-center" style={{ flexWrap: 'wrap', rowGap: 6 }}>
               <SectionIcon kind="fridge" /><span style={{ marginLeft: 6, whiteSpace: 'nowrap' }}>냉장보관</span>
-              <SortDropdown value={fridgeSort} onChange={setFridgeSort} className="ml-2" />
-              {fridge && fridge.length > 0 && (
-                <button
-                  className="ml-2 h-6 px-2 py-0 text-xs font-medium rounded border border-gray-300 bg-white text-[#3A3A42] hover:bg-[#F5F5F7] active:bg-[#E6E6EA] transition whitespace-nowrap"
-                  onClick={() => handleRemoveAll('fridge')}
-                >
-                  모두삭제
-                </button>
-              )}
               <BoxStat count={(fridge ?? []).length} expiring={expiringByBox.fridge} />
+              <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
+                <SortDropdown value={fridgeSort} onChange={setFridgeSort} />
+                {fridge && fridge.length > 0 && (
+                  <button
+                    className="h-6 px-1.5 py-0 text-[11px] font-medium rounded border border-gray-300 bg-white text-[#3A3A42] hover:bg-[#F5F5F7] active:bg-[#E6E6EA] transition whitespace-nowrap"
+                    onClick={() => handleRemoveAll('fridge')}
+                  >
+                    모두삭제
+                  </button>
+                )}
+              </span>
             </div>
             <ScrollablePillSection watchKey={(fridge ?? []).length}>
               {fridge && fridge.length === 0 && (
@@ -2553,18 +2568,23 @@ const MyFridge: React.FC = () => {
           </div>
           {/* 실온보관 */}
           <div className="mb-4">
-            <div className="text-[16px] font-bold mb-2 flex items-center">
+            {/* 이름 + 재료수를 왼쪽에 한 덩어리로 묶고, 조작 버튼(정렬·모두삭제)은
+                오른쪽으로 밀어낸다. 폭이 모자라면 **조작 버튼 묶음만** 아랫줄로
+                내려가므로 `재료수 N개` 와 `임박 N개` 가 잘리는 일이 없다. */}
+            <div className="text-[16px] font-bold mb-2 flex items-center" style={{ flexWrap: 'wrap', rowGap: 6 }}>
               <SectionIcon kind="room" /><span style={{ marginLeft: 6, whiteSpace: 'nowrap' }}>실온보관</span>
-              <SortDropdown value={roomSort} onChange={setRoomSort} className="ml-2" />
-              {room && room.length > 0 && (
-                <button
-                  className="ml-2 h-6 px-2 py-0 text-xs font-medium rounded border border-gray-300 bg-white text-[#3A3A42] hover:bg-[#F5F5F7] active:bg-[#E6E6EA] transition whitespace-nowrap"
-                  onClick={() => handleRemoveAll('room')}
-                >
-                  모두삭제
-                </button>
-              )}
               <BoxStat count={(room ?? []).length} expiring={expiringByBox.room} />
+              <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
+                <SortDropdown value={roomSort} onChange={setRoomSort} />
+                {room && room.length > 0 && (
+                  <button
+                    className="h-6 px-1.5 py-0 text-[11px] font-medium rounded border border-gray-300 bg-white text-[#3A3A42] hover:bg-[#F5F5F7] active:bg-[#E6E6EA] transition whitespace-nowrap"
+                    onClick={() => handleRemoveAll('room')}
+                  >
+                    모두삭제
+                  </button>
+                )}
+              </span>
             </div>
             <ScrollablePillSection watchKey={(room ?? []).length}>
               {room && room.length === 0 && (
