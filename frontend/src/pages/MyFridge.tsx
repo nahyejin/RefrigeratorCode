@@ -390,15 +390,6 @@ const IngredientPill: React.FC<IngredientPillProps> = ({ item, onRemove, onSetti
   );
 };
 
-/** 보관함 한 칸(제목 줄 + 재료 칩 칸)을 한 덩어리로 묶는 회색 카드. */
-const STORAGE_CARD_STYLE: React.CSSProperties = {
-  marginBottom: 10,
-  background: '#F5F5F7',
-  borderRadius: 20,
-  boxShadow: '0 1px 4px rgba(0,0,0,0.03)',
-  overflow: 'hidden',
-};
-
 interface ScrollablePillSectionProps {
   watchKey: number;
   children: React.ReactNode;
@@ -437,14 +428,15 @@ const ScrollablePillSection: React.FC<ScrollablePillSectionProps> = ({ watchKey,
         ref={scrollRef}
         onScroll={updateScrollHint}
         style={{
-          // 배경·모서리는 바깥 카드(STORAGE_CARD_STYLE)가 갖는다. 제목 줄이 카드
-          // 윗부분이고 이 칸만 스크롤되므로, 재료가 스크롤돼도 제목은 안 사라진다.
-          background: 'transparent',
+          // 흰 바깥 상자 안에서 제목·정렬 버튼(흰 바탕)과 재료 칸(회색 바탕)이
+          // 구분되어 보이도록 재료 칸만 회색으로 둔다.
+          background: '#F5F5F7',
+          borderRadius: 14,
           // 140 → 112, 여백 16 → 12. 보관함 세 칸(냉동·냉장·실온)이 **스크롤
           // 없이 한 화면에** 들어와야 한다는 요청(2026-10-09). 112 면 알약
           // 두 줄이 온전히 보이고 세 번째 줄이 살짝 걸쳐, 더 있다는 것도 보인다
           // (칸 안은 그대로 스크롤되고 아래쪽 화살표가 힌트를 준다).
-          padding: '8px 12px 12px',
+          padding: 12,
           maxHeight: '112px',
           minHeight: '112px',
           border: 'none',
@@ -465,6 +457,8 @@ const ScrollablePillSection: React.FC<ScrollablePillSectionProps> = ({ watchKey,
               bottom: 0,
               height: 32,
               pointerEvents: 'none',
+              borderBottomLeftRadius: 14,
+              borderBottomRightRadius: 14,
               background: 'linear-gradient(to bottom, rgba(245,246,248,0), rgba(245,246,248,0.92))',
             }}
           />
@@ -2497,13 +2491,23 @@ const MyFridge: React.FC = () => {
           {/* 곧 상하는 재료 — 한 줄 띠. 누르면 목록과 식단 짜기가 시트로 열린다.
               화면 맨 위에 있던 것을 여기로 내렸다(2026-10-08) — 재고를 말하기
               시작하는 자리 아래가 제자리다. 임박한 게 없으면 아예 그려지지 않는다. */}
-          <div data-guide-target="storage-areas">
+          {/* 보관함 세 칸을 흰 상자 하나로 묶는다(냉장고요리 카드 목록 상자와 같은 모양).
+              overflow 를 숨기지 않는다 — 정렬 드롭다운 메뉴가 상자 밖으로 펼쳐져야 한다. */}
+          <div
+            data-guide-target="storage-areas"
+            style={{
+              padding: '12px 12px 2px',
+              background: '#FFFFFF',
+              border: '1px solid var(--line-200)',
+              borderRadius: 14,
+            }}
+          >
           {/* 냉동보관 */}
-          <div style={STORAGE_CARD_STYLE}>
+          <div style={{ marginBottom: 10 }}>
             {/* 이름 + 재료수를 왼쪽에 한 덩어리로 묶고, 조작 버튼(정렬·모두삭제)은
                 오른쪽으로 밀어낸다. 폭이 모자라면 **조작 버튼 묶음만** 아랫줄로
                 내려가므로 `재료수 N개` 와 `임박 N개` 가 잘리는 일이 없다. */}
-            <div className="text-[16px] font-bold flex items-center" style={{ flexWrap: 'wrap', rowGap: 6, padding: '10px 12px 0' }}>
+            <div className="text-[14px] font-bold mb-1.5 flex items-center" style={{ flexWrap: 'wrap', rowGap: 6 }}>
               <SectionIcon kind="frozen" /><span style={{ marginLeft: 6, whiteSpace: 'nowrap' }}>냉동보관</span>
               <BoxStat count={(frozen ?? []).length} expiring={expiringByBox.frozen} />
               <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
@@ -2536,11 +2540,11 @@ const MyFridge: React.FC = () => {
             </ScrollablePillSection>
           </div>
           {/* 냉장보관 */}
-          <div style={STORAGE_CARD_STYLE}>
+          <div style={{ marginBottom: 10 }}>
             {/* 이름 + 재료수를 왼쪽에 한 덩어리로 묶고, 조작 버튼(정렬·모두삭제)은
                 오른쪽으로 밀어낸다. 폭이 모자라면 **조작 버튼 묶음만** 아랫줄로
                 내려가므로 `재료수 N개` 와 `임박 N개` 가 잘리는 일이 없다. */}
-            <div className="text-[16px] font-bold flex items-center" style={{ flexWrap: 'wrap', rowGap: 6, padding: '10px 12px 0' }}>
+            <div className="text-[14px] font-bold mb-1.5 flex items-center" style={{ flexWrap: 'wrap', rowGap: 6 }}>
               <SectionIcon kind="fridge" /><span style={{ marginLeft: 6, whiteSpace: 'nowrap' }}>냉장보관</span>
               <BoxStat count={(fridge ?? []).length} expiring={expiringByBox.fridge} />
               <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
@@ -2574,11 +2578,11 @@ const MyFridge: React.FC = () => {
             </ScrollablePillSection>
           </div>
           {/* 실온보관 */}
-          <div style={STORAGE_CARD_STYLE}>
+          <div style={{ marginBottom: 10 }}>
             {/* 이름 + 재료수를 왼쪽에 한 덩어리로 묶고, 조작 버튼(정렬·모두삭제)은
                 오른쪽으로 밀어낸다. 폭이 모자라면 **조작 버튼 묶음만** 아랫줄로
                 내려가므로 `재료수 N개` 와 `임박 N개` 가 잘리는 일이 없다. */}
-            <div className="text-[16px] font-bold flex items-center" style={{ flexWrap: 'wrap', rowGap: 6, padding: '10px 12px 0' }}>
+            <div className="text-[14px] font-bold mb-1.5 flex items-center" style={{ flexWrap: 'wrap', rowGap: 6 }}>
               <SectionIcon kind="room" /><span style={{ marginLeft: 6, whiteSpace: 'nowrap' }}>실온보관</span>
               <BoxStat count={(room ?? []).length} expiring={expiringByBox.room} />
               <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
