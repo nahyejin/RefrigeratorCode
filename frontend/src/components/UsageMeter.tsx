@@ -318,39 +318,35 @@ export const UsageGauge: React.FC = () => {
         gap: 10,
       }}
     >
-      {/* 남은 양이 이 카드의 요점이다. 제목과 같은 크기로 적어 두면
-          "AI 크레딧" 이라는 이름만 눈에 들어오고 정작 숫자는 안 읽힌다. */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12.5, color: 'var(--ink-500)' }}>
-          {/* PLUS 인지 FREE 인지를 **명시적으로** 적는다. 배지가 없을 때
-              "무료구나" 로 짐작하게 두면, 아직 안 불러온 상태와 헷갈린다.
-              GNB 의 배지(`TopNavBar.tsx`)와 같은 값 — 어디서 봐도 같은 말. */}
-          {!usage.is_guest && <PlanBadge isPaid={!!usage.is_paid} />}
-          {/* '개' 를 붙이지 않는다. 크레딧이 곧 세는 단위다 —
-              "37개" 는 무엇이 37개인지 다시 묻게 만든다. */}
-          <span>
-            남은 크레딧{' '}
-            <b style={{ color: '#1A1A1E', fontWeight: 800, fontSize: 20 }}>{usage.balance}</b>
-          </span>
+      {/* 머리글은 **요금제 배지(FREE/PLUS)와 `더 필요해요`뿐**이다(2026-10-09, "남은 크레딧 N 은
+          필요 없다, 요금제가 뭔지만 필요하다"는 지적 — 두 번째 요청). 남은 양은 아래 막대 줄에
+          막대와 함께 적는다. PLUS 인지 FREE 인지를 **명시적으로** 적는다 — 배지가 없을 때
+          "무료구나" 로 짐작하게 두면, 아직 안 불러온 상태와 헷갈린다. GNB 의 배지
+          (`TopNavBar.tsx`)와 같은 값 — 어디서 봐도 같은 말. 비회원은 요금제가 없어 이 줄이 없다. */}
+      {!usage.is_guest && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+            <PlanBadge isPaid={!!usage.is_paid} />
+          </div>
+          {/* 모자란 걸 아는 순간이 바로 이 숫자를 볼 때다. 카드 맨 아래 두면
+              그 순간과 버튼 사이에 설명이 세 줄 끼어 있다. */}
+          {!pending && !asking && (
+            <button
+              type="button"
+              onClick={() => setAsking(true)}
+              style={{
+                // 마이캘린더 `목표수정` 버튼(24px)과 같은 키(2026-10-09 지적).
+                flexShrink: 0, height: 24, padding: '0 9px', borderRadius: 9999,
+                border: '1px solid var(--line-300)', background: '#FFFFFF',
+                fontSize: 11.5, fontWeight: 600, color: 'var(--ink-700)', cursor: 'pointer',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              더 필요해요
+            </button>
+          )}
         </div>
-        {/* 모자란 걸 아는 순간이 바로 이 숫자를 볼 때다. 카드 맨 아래 두면
-            그 순간과 버튼 사이에 설명이 세 줄 끼어 있다. */}
-        {!usage.is_guest && !pending && !asking && (
-          <button
-            type="button"
-            onClick={() => setAsking(true)}
-            style={{
-              // 마이캘린더 `목표수정` 버튼(24px)과 같은 키(2026-10-09 지적).
-              flexShrink: 0, height: 24, padding: '0 9px', borderRadius: 9999,
-              border: '1px solid var(--line-300)', background: '#FFFFFF',
-              fontSize: 11.5, fontWeight: 600, color: 'var(--ink-700)', cursor: 'pointer',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            더 필요해요
-          </button>
-        )}
-      </div>
+      )}
 
       {/* 막대가 둘이다. **다른 것을 세기 때문**이다 —
           위는 오늘 안에 쓸 수 있는 양(자정에 돌아온다),
@@ -389,11 +385,15 @@ export const UsageGauge: React.FC = () => {
         </div>
       )}
 
-      {/* 한때 이 막대 위에 `전체 잔여 크레딧  N` 줄이 있었다. **뺐다**(2026-10-09
-          지적) — 카드 머리글이 이미 `남은 크레딧 N` 이라고, 그것도 20px 로 말한다.
-          같은 숫자를 한 카드에서 두 번 적을 이유가 없다(그만큼 카드도 짧아진다).
-          위 막대의 `11 / 15` 는 **다른 숫자**(오늘 몫)라 그대로 둔다. */}
+      {/* 머리글에서 `남은 크레딧 N` 을 뺐으므로(위 참고), 이 막대 위 줄에 **금일 잔여 크레딧과
+          같은 모양**으로 적는다 — 한때 같은 숫자를 머리글(20px)과 여기서 두 번 적는다는
+          지적으로 이 줄을 뺐는데, 이제 머리글에 없으니 여기가 유일한 자리다. */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between',
+                      fontSize: 11.5, color: 'var(--ink-500)' }}>
+          <span>전체 잔여 크레딧</span>
+          <b style={{ color: '#1A1A1E' }}>{usage.balance}</b>
+        </div>
         <div
           role="progressbar"
           aria-label="남은 크레딧"
