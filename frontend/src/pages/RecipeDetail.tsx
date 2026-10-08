@@ -10,6 +10,7 @@ import {
   removeRecipeFromLocalStorage,
 } from '../utils/recipeStorage';
 import CoupangAd from '../components/CoupangAd';
+import Dialog from '../components/ui/Dialog';
 
 // =====================
 // 상수
@@ -37,6 +38,8 @@ const RecipeDetail: React.FC = () => {
     write: false,
     favorite: false
   });
+  /** 즐겨찾기·기록·완료를 **해제**할 때 한 번 묻는다 — 다른 모든 화면(목록·시트)과 같다. */
+  const [pendingRemove, setPendingRemove] = useState<'favorite' | 'done' | 'write' | null>(null);
   const navigate = useNavigate();
   const myIngredients = getMyIngredients();
 
@@ -65,12 +68,20 @@ const RecipeDetail: React.FC = () => {
     const current = getRecipeActionState(recipe.id);
     if (action === 'favorite' || action === 'done' || action === 'write') {
       if (current[action]) {
-        removeRecipeFromLocalStorage(action, recipe.id);
+        setPendingRemove(action);
       } else {
         addRecipeToLocalStorage(action, recipe);
       }
       setActionState(getRecipeActionState(recipe.id));
     }
+  };
+
+  const confirmRemove = () => {
+    if (recipe && pendingRemove) {
+      removeRecipeFromLocalStorage(pendingRemove, recipe.id);
+      setActionState(getRecipeActionState(recipe.id));
+    }
+    setPendingRemove(null);
   };
 
   // =====================
@@ -160,6 +171,23 @@ const RecipeDetail: React.FC = () => {
       <div className="mt-6 text-xs text-gray-400">
         * 본문/재료 정보는 예시 데이터입니다.
       </div>
+
+      {pendingRemove && (
+        <Dialog
+          open
+          onClose={() => setPendingRemove(null)}
+          title={
+            pendingRemove === 'done' ? '레시피 완료를 취소하시겠어요?'
+            : pendingRemove === 'write' ? '레시피 기록을 취소하시겠어요?'
+            : '레시피 즐겨찾기를 취소하시겠어요?'
+          }
+          width={320}
+          actions={[
+            { label: '아니요', onClick: () => setPendingRemove(null), variant: 'outline' },
+            { label: '네, 취소할게요', onClick: confirmRemove, variant: 'danger' },
+          ]}
+        />
+      )}
     </div>
   );
 };
