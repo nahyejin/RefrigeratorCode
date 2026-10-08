@@ -15,6 +15,7 @@ import PullToRefresh from '../components/PullToRefresh';
 import CoupangDynamicBanner from '../components/CoupangDynamicBanner';
 import { saveCalendarWidgetSnapshot, orderForLegend } from '../utils/widgetSnapshot';
 import DatePickerField from '../components/DatePickerField';
+import MenuSelect from '../components/ui/MenuSelect';
 import Sheet from '../components/ui/Sheet';
 import Dialog from '../components/ui/Dialog';
 import Button from '../components/ui/Button';
@@ -2908,28 +2909,23 @@ const CookingCalendar: React.FC = () => {
                 이쪽은 얼마나 넓게 보는지다.
                 버튼 4개(전체·1년·3개월·직접)였을 때는 고르개와 합쳐 폰 폭을 넘어 두 줄이 됐다(2026-10-08 지적)
                 → 폰 기본 선택창이 뜨는 드롭다운 하나로 줄여 한 줄에 넣는다. */}
-            <select
-              id="list-span"
-              aria-label="기간"
-              value={span}
-              onChange={ev => setSpan(ev.target.value as typeof span)}
-              style={{
-                marginLeft: 'auto', flexShrink: 0, height: 30, padding: '0 22px 0 9px',
-                borderRadius: 8, border: '1px solid var(--line-200)', cursor: 'pointer',
-                fontSize: 12.5, fontWeight: 600, color: '#1A1A1E', fontFamily: 'inherit',
-                appearance: 'none', WebkitAppearance: 'none',
-                backgroundColor: '#FFFFFF',
-                backgroundImage: "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%236B6B73' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9l6 6 6-6'/></svg>\")",
-                backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center',
-              }}
-            >
-              {/* 「전체」만 두니 무엇이 전체인지 안 읽힌다는 지적(2026-10-08) — 「기간 전체」 */}
-              <option value="all">기간 전체</option>
-              {/* 기본 선택창은 가장 긴 항목만큼 넓어진다 — 한 줄에 들어가게 짧게 */}
-              <option value="365">1년</option>
-              <option value="90">3개월</option>
-              <option value="custom">직접</option>
-            </select>
+            {/* 기본 <select> 는 폰마다 시스템 선택창이 떠서 냉장고요리 드롭다운과 모양이 달랐다(2026-10-08) —
+                같은 모양의 MenuSelect 로. 화면 오른쪽 끝이라 목록도 오른쪽에 맞춘다.
+                「전체」만 두니 무엇이 전체인지 안 읽힌다는 지적으로 「기간 전체」. */}
+            <span style={{ marginLeft: 'auto', flexShrink: 0 }}>
+              <MenuSelect
+                ariaLabel="기간"
+                align="right"
+                value={span}
+                onChange={v => setSpan(v)}
+                options={[
+                  { value: 'all', label: '기간 전체' },
+                  { value: '365', label: '최근 1년' },
+                  { value: '90', label: '최근 3개월' },
+                  { value: 'custom', label: '직접 고르기' },
+                ]}
+              />
+            </span>
           </div>
 
           {/* 고른 기간에 사람별로 몇 번 했는지 — 고르개 바로 아래(2026-10-08 요청). 달력 탭 요약과 같은 색 점·모양. */}
