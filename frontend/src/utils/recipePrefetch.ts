@@ -56,8 +56,12 @@ const FRESH_MS = 10 * 60 * 1000;
 interface Slot {
   key: string;
   at: number;
-  promise: Promise<any[] | null>;
+  promise: Promise<PrefetchResult | null>;
 }
+
+/** 미리 받은 첫 화면 — 레시피와 **전체 건수**. 건수를 버리고 레시피 길이(20)를 전체로 썼더니
+ *  「총 20건」에서 더 안 늘었다(2026-10-08 실사용 지적). */
+export interface PrefetchResult { recipes: any[]; total: number }
 
 let slot: Slot | null = null;
 
@@ -75,7 +79,7 @@ export function prefetchKey(): string | null {
   }
 }
 
-function request(my: string[], matchRateMin: number): Promise<any[] | null> {
+function request(my: string[], matchRateMin: number): Promise<PrefetchResult | null> {
   const params = new URLSearchParams({
     page: '1',
     size: String(PREFETCH_SIZE),
@@ -86,7 +90,12 @@ function request(my: string[], matchRateMin: number): Promise<any[] | null> {
   });
   return fetch(`${API_BASE_URL}/api/recipes/filter?${params}`)
     .then(r => (r.ok ? r.json() : null))
-    .then(d => (Array.isArray(d) ? d : d?.recipes || null))
+    .then(d => {
+      const recipes = Array.isArray(d) ? d : d?.recipes;
+      if (!Array.isArray(recipes)) return null;
+      const total = Number(d?.total) || recipes.length;
+      return { recipes, total };
+    })
     .catch(() => null);
 }
 
@@ -182,7 +191,7 @@ export function prefetchFridgeRecipes(): void {
  * **한 번 쓰면 비운다.** 화면이 새로고침을 눌렀는데 아까 것을 또 주면
  * "안 바뀐다" 가 된다.
  */
-export function takePrefetched(): Promise<any[] | null> | null {
+export function takePrefetched(): Promise<PrefetchResult | null> | null {
   const key = prefetchKey();
   if (!key || !slot || slot.key !== key) return null;
   if (Date.now() - slot.at >= FRESH_MS) { slot = null; return null; }

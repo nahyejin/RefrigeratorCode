@@ -601,14 +601,15 @@ async function loadRecipesPaged(
       const early = takePrefetched();
       if (early) {
         const got = await early;
-        if (got && got.length > 0) {
-          console.log('[RecipeList] 미리 받아 둔 첫 화면을 씀:', got.length);
+        if (got && got.recipes.length > 0) {
+          console.log('[RecipeList] 미리 받아 둔 첫 화면을 씀:', got.recipes.length, '/ 전체', got.total);
           return {
-            recipes: got.map((recipe: any) => ({
+            recipes: got.recipes.map((recipe: any) => ({
               ...recipe,
               date: formatDate(recipe.post_time || recipe.date || ''),
             })),
-            total: got.length,
+            // 서버가 준 **전체 건수** — 예전엔 받은 20개를 전체로 써서 「총 20건」에서 멈췄다
+            total: got.total,
           };
         }
       }
@@ -779,7 +780,10 @@ const RecipeList: React.FC = () => {
   // 페이징 관련 상태
   const [page, setPage] = useState(1);
   const [size] = useState(30); // 서버 사이드 페이지네이션용 크기
-  const [total, setTotal] = useState(0); // 서버에서 필터링된 전체 개수
+  const [total, setTotal] = useState(0); // 받아 온 것 중 지금 조건(매칭 구간·부족 재료)에 맞는 개수 — 화면 페이지 나눔용
+  // 서버가 알려 준 **전체** 개수. `total` 은 받아 온 개수(최대 200)로 덮여서 「총 N건」이 받아 온 만큼만 보였고,
+  // 뒤쪽 이어 받기도 그 숫자를 보고 「다 받았다」고 멈췄다(2026-10-08 「총 20건에서 안 늘어난다」).
+  const [serverTotal, setServerTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0); // 로딩 진행률 (0-100)
   const progressAnimationRef = useRef<NodeJS.Timeout | null>(null); // 프로그레스 애니메이션 ref
@@ -828,7 +832,8 @@ const RecipeList: React.FC = () => {
     // 그대로 되살리면 「매일 같은 레시피」가 다시 생긴다(2026-10-08).
     const d = new Date();
     const today = `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
-    return JSON.stringify({ day: today, ingredients: ingredients.sort() });
+    // v: 저장 형식 버전 — 미리 받기가 전체 건수를 20으로 잘못 저장하던 때(2026-10-08 이전)의 저장분을 버리려고 올린다
+    return JSON.stringify({ v: 2, day: today, ingredients: ingredients.sort() });
   }, []);
   
   // 이전 재료 목록 해시값 저장
@@ -922,6 +927,7 @@ const RecipeList: React.FC = () => {
           // 상태 복원
           setCachedFilteredRecipes(parsedState.cachedFilteredRecipes);
           setTotal(parsedState.total || 0);
+          setServerTotal(parsedState.serverTotal || parsedState.total || 0);
           setPage(parsedState.page || 1);
           // 냉장고가 비어 있으면 예전에 쓰던 매칭 기반 정렬/구간을 되살리면 안 된다.
           // 전부 0% 라서 30~100% 구간에 아무것도 안 걸려 화면이 텅 빈다.
@@ -1859,6 +1865,7 @@ const RecipeList: React.FC = () => {
       // 1페이지를 즉시 캐시에 저장하고 표시
       setCachedFilteredRecipes(firstPageRecipes);
       setTotal(initialTotal);
+      setServerTotal(initialTotal);
       setPage(1); // 필터 변경 시 항상 1페이지로 리셋
       setLastFilterHash(filterHash);
       
@@ -1969,6 +1976,7 @@ const RecipeList: React.FC = () => {
         const stateToSave = {
           cachedFilteredRecipes,
           total,
+          serverTotal,
           page,
           sortType,
           matchRange,
@@ -1989,7 +1997,7 @@ const RecipeList: React.FC = () => {
         console.warn('[RecipeList] 상태 저장 실패:', error);
       }
     }
-  }, [cachedFilteredRecipes, total, page, sortType, matchRange, maxLack, lastFilterHash, selectedChannel, includeKeyword, includeIngredients, excludeIngredients, selectedCategoryKeywords, appliedExpiryIngredients, getIngredientsHash]);
+  }, [cachedFilteredRecipes, total, serverTotal, page, sortType, matchRange, maxLack, lastFilterHash, selectedChannel, includeKeyword, includeIngredients, excludeIngredients, selectedCategoryKeywords, appliedExpiryIngredients, getIngredientsHash]);
 
   // **고른 조건만** 결과를 기다리지 않고 바로 저장한다.
   //
@@ -2252,7 +2260,7 @@ const RecipeList: React.FC = () => {
   useEffect(() => {
     if (loading || !initialLoadDone.current) return;
     const loaded = cachedFilteredRecipes.length;
-    if (loaded === 0 || loaded >= total) return;
+    if (loaded === 0 || loaded >= serverTotal) return;
     // 다음 페이지까지 볼 수 있으면 아직 받을 필요가 없다
     if ((page + 1) * size <= loaded) return;
     if (extendingRef.current) return;
@@ -2272,7 +2280,7 @@ const RecipeList: React.FC = () => {
         const grown: any[] = [];
         for (let p = from; p < from + AHEAD; p++) {
           if (mySeq !== requestSeqRef.current) return;   // 조건이 바뀌었으면 그만
-          if ((p - 1) * PAGE_SIZE >= total) break;
+          if ((p - 1) * PAGE_SIZE >= serverTotal) break;
           const { recipes: more } = await loadRecipesPaged(
             p, PAGE_SIZE, lastFilterParamsRef.current, categoryKeywordTree
           );
@@ -2292,7 +2300,7 @@ const RecipeList: React.FC = () => {
         extendingRef.current = false;
       }
     })();
-  }, [page, size, total, loading, cachedFilteredRecipes.length, categoryKeywordTree, loadRecipesPaged]);
+  }, [page, size, serverTotal, loading, cachedFilteredRecipes.length, categoryKeywordTree, loadRecipesPaged]);
 
   // 페이지 변경 핸들러 (클라이언트 사이드 페이지네이션)
   const handlePageChange = (newPage: number) => {
@@ -2477,7 +2485,9 @@ const RecipeList: React.FC = () => {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                       gap: 8, marginTop: 6, marginBottom: 6 }}>
           <span style={{ color: '#6A6A73', fontSize: 12.5, whiteSpace: 'nowrap' }}>
-            {favoriteOnly ? '즐겨찾기에 담아 둔 요리' : `총 ${total.toLocaleString('ko-KR')}건`}
+            {/* 서버 전체 건수를 보여 준다. 「부족 재료 N개까지」처럼 화면에서만 거르는 조건이 있으면 받아 온 것 중
+                맞는 개수(total)만 알 수 있어 그걸 보여 준다. */}
+            {favoriteOnly ? '즐겨찾기에 담아 둔 요리' : `총 ${(maxLack === 'unlimited' ? Math.max(serverTotal, total) : total).toLocaleString('ko-KR')}건`}
           </span>
           <button
             type="button"
