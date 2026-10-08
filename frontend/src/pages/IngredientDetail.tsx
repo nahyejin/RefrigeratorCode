@@ -37,6 +37,7 @@ import {
   addRecipeActionToDB,
   removeRecipeActionFromDB,
 } from '../utils/recipeStorage';
+import { DEFAULT_MATCH_MIN } from '../utils/recipePrefetch';
 
 // =====================
 // 상수
@@ -298,7 +299,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
   const [buttonStates, setButtonStates] = useState<{ [id: number]: RecipeActionState }>({});
   const [toast, setToast] = useState('');
   const [includeKeyword, setIncludeKeyword] = useState('');
-  const [matchRange, setMatchRange] = useState<[number, number]>([30, 100]);
+  const [matchRange, setMatchRange] = useState<[number, number]>([DEFAULT_MATCH_MIN, 100]); // 매칭도 기본 하한 30→10%(2026-10-08) — 냉장고요리와 같은 값
   const [maxLack, setMaxLack] = useState<number | 'unlimited'>('unlimited');
   const [selectedExpiryIngredients, setSelectedExpiryIngredients] = useState<string[]>([]);
   const [appliedExpiryIngredients, setAppliedExpiryIngredients] = useState<string[]>([]);

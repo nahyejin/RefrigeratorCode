@@ -25,6 +25,7 @@ import {
   removeRecipeActionFromDB,
 } from '../utils/recipeStorage';
 import { useAuth } from '../context/AuthContext';
+import { DEFAULT_MATCH_MIN } from '../utils/recipePrefetch';
 
 // =====================
 // 상수
@@ -175,7 +176,7 @@ const RecordedRecipeListPage: React.FC = () => {
   const [matchRateModalOpen, setMatchRateModalOpen] = useState(false);
   const [expiryModalOpen, setExpiryModalOpen] = useState(false);
   const [filteredRecipes, setFilteredRecipes] = useState<Recipe[]>([]);
-  const [matchRange, setMatchRange] = useState<[number, number]>([30, 100]);
+  const [matchRange, setMatchRange] = useState<[number, number]>([DEFAULT_MATCH_MIN, 100]); // 매칭도 기본 하한 30→10%(2026-10-08) — 냉장고요리와 같은 값
   const [maxLack, setMaxLack] = useState<number | 'unlimited'>('unlimited');
   const [appliedExpiryIngredients, setAppliedExpiryIngredients] = useState<string[]>([]);
   const [pendingRemove, setPendingRemove] = useState<PendingRemove | null>(null);

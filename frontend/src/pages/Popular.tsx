@@ -38,6 +38,7 @@ import RegisterPromptModal from '../components/RegisterPromptModal';
 import { parseUsedIngredientsForPills } from '../utils/ingredientPillNoise';
 import CoupangProductAd from '../components/CoupangProductAd';
 import CoupangDynamicBanner from '../components/CoupangDynamicBanner';
+import { DEFAULT_MATCH_MIN } from '../utils/recipePrefetch';
 
 // 필터 상태 타입 및 초기값
 type FilterState = {
@@ -1511,7 +1512,7 @@ const Popular = () => {
   const sortedThemes = themeRankings;
 
   const [sortType, setSortType] = useState('match');
-  const [matchRange, setMatchRange] = useState<[number, number]>([30, 100]);
+  const [matchRange, setMatchRange] = useState<[number, number]>([DEFAULT_MATCH_MIN, 100]); // 매칭도 기본 하한 30→10%(2026-10-08) — 냉장고요리와 같은 값
   const [maxLack, setMaxLack] = useState<number | 'unlimited'>('unlimited');
   const [appliedExpiryIngredients, setAppliedExpiryIngredients] = useState<string[]>([]);
 

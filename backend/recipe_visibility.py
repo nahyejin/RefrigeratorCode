@@ -34,7 +34,16 @@
 """
 
 # 목록·검색·추천에서 쓰는 조건. `WHERE` 없이 조건만 담는다.
-RECIPE_READY = "llm_ingredients_at IS NOT NULL"
+#
+# **재료가 2개 이하인 글도 내보내지 않는다**(2026-10-08 사용자 결정). 「밤 찌는 법(밤·소금)」, 「블루베리+우유」,
+# 「올리브오일 후기(달걀·올리브유)」 처럼 원물 그대로라 요리로 보기 어렵다. 크롤러는 저장할 때 「재료 3개 이하면
+# 안 받는다」를 걸지만 그건 **룰베이스로 뽑은 재료**로 센 것이라, 밤마다 AI 가 다시 뽑아 잡음이 빠지면
+# 2개 이하로 줄어든 글이 그대로 보였다(당시 245건). 3개짜리는 애호박전·수육·꽃게찜 같은 진짜 요리가 섞여 남긴다.
+# 쉼표 개수로 센다 — `LIKE '%,%,%'` 는 파라미터가 있는 쿼리에서 `%` 가 서식 문자로 읽혀 깨진다.
+RECIPE_READY = (
+    "llm_ingredients_at IS NOT NULL"
+    " AND LENGTH(used_ingredients) - LENGTH(REPLACE(used_ingredients, ',', '')) >= 2"
+)
 
 # `WHERE ...` 로 시작하는 절이 필요할 때.
 WHERE_READY = "WHERE " + RECIPE_READY
