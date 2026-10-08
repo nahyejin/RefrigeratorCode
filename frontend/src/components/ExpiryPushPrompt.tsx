@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { pushSupported, isPushSubscribed, subscribeToPush, pushPermissionDecided, pushPermissionGranted } from '../utils/push';
 import { isExpiryPushPromptSeen, markExpiryPushPromptSeen } from '../utils/onboardingPrompts';
-import CloseButton from './ui/CloseButton';
+import ExpiryPushSheet from './ExpiryPushSheet';
 
 /**
  * "유통기한 임박 알림 켜시겠어요?" — 로그인한 사람에게 **딱 한 번** 묻는다.
@@ -84,59 +84,7 @@ const ExpiryPushPrompt: React.FC = () => {
 
   if (!visible) return null;
 
-  return (
-    <div
-      style={{
-        position: 'fixed', inset: 0, zIndex: 'var(--z-toast)',
-        background: 'rgba(0,0,0,0.42)', display: 'flex',
-        alignItems: 'flex-end', justifyContent: 'center',
-      }}
-    >
-      <div
-        role="dialog"
-        aria-label="유통기한 임박 알림 안내"
-        style={{
-          position: 'relative', width: '100%', maxWidth: 400,
-          background: 'rgba(20, 20, 20, 0.94)', borderRadius: '22px 22px 0 0',
-          boxShadow: '0 -12px 30px rgba(0,0,0,0.18)',
-          padding: '22px 18px calc(18px + env(safe-area-inset-bottom))',
-          color: '#FFFFFF',
-        }}
-      >
-        <CloseButton onClick={close} dark style={{ top: 10, right: 10 }} />
-        <div style={{ paddingRight: 36 }}>
-          <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 8, lineHeight: 1.35, wordBreak: 'keep-all' }}>
-            유통기한 임박 알림을 받아보세요
-          </div>
-          <div style={{ fontSize: 15, lineHeight: 1.55, color: 'rgba(255,255,255,0.66)', wordBreak: 'keep-all' }}>
-            알림을 허용하면, 유통기한이 임박한 재료에 대한 알림을 받을 수 있어요.
-          </div>
-        </div>
-        <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-          <button
-            onClick={close}
-            style={{
-              flex: 1, minHeight: 38, borderRadius: 12,
-              border: '1px solid rgba(255,255,255,0.12)', background: '#3A3A42',
-              color: '#D2D2D8', fontSize: 15, fontWeight: 500, cursor: 'pointer',
-            }}
-          >
-            닫기
-          </button>
-          <button
-            onClick={turnOn}
-            style={{
-              flex: 1, minHeight: 38, borderRadius: 12, border: 'none',
-              background: 'var(--brand)', color: '#1A1A1E',
-              fontSize: 15, fontWeight: 700, cursor: 'pointer',
-            }}
-          >
-            알림 켜기
-          </button>
-        </div>
-      </div>
-    </div>
-  );
+  return <ExpiryPushSheet onClose={close} onConfirm={turnOn} />;
 };
 
 export default ExpiryPushPrompt;

@@ -1619,20 +1619,22 @@ const RecipeList: React.FC = () => {
       ),
       position: 'left' as const,
     },
+    // 카드 버튼 순서(완료 · 기록 · 공유)와 같게 — 기록이 10번째, 링크 복사가 11번째(2026-10-09 요청).
     {
-      targetSelector: '[data-guide-target="recipe-share-button"]',
+      targetSelector: '[data-guide-target="recipe-write-button"]',
       message: (
         <>
-          <GuideActionIcon src={공유하기버튼} alt="공유" /> 레시피 링크를 복사해요.
+          <GuideActionIcon src={기록하기버튼} alt="기록" /> 버튼을 누르면 레시피를 기록 상태로 저장해요.<br />
+          기록 레시피는 마이페이지에서 확인할 수 있어요.
         </>
       ),
       position: 'left' as const,
     },
     {
-      targetSelector: '[data-guide-target="recipe-write-button"]',
+      targetSelector: '[data-guide-target="recipe-share-button"]',
       message: (
         <>
-          <GuideActionIcon src={기록하기버튼} alt="기록" /> 메모를 남겨요. <b>마이캘린더</b>에서 볼 수 있어요.
+          <GuideActionIcon src={공유하기버튼} alt="공유" /> 레시피 링크를 복사해요.
         </>
       ),
       position: 'left' as const,

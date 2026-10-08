@@ -438,8 +438,11 @@ const ScrollablePillSection: React.FC<ScrollablePillSectionProps> = ({ watchKey,
           // 두 줄이 온전히 보이고 세 번째 줄이 살짝 걸쳐, 더 있다는 것도 보인다
           // (칸 안은 그대로 스크롤되고 아래쪽 화살표가 힌트를 준다).
           padding: 12,
-          maxHeight: '112px',
-          minHeight: '112px',
+          // 112 → 146 (2026-10-09 요청): 알약 줄이 세 줄째 간신히 보이던 것을 **네 줄째가
+          // 간신히 보이게**(알약 한 줄 ≈ 34px). 세 칸이 한 화면에 안 들어가게 됐지만
+          // 한 칸에 보이는 재료가 늘어 스크롤할 일이 줄었다.
+          maxHeight: '146px',
+          minHeight: '146px',
           border: 'none',
           overflowY: 'auto',
           overflowX: 'hidden',

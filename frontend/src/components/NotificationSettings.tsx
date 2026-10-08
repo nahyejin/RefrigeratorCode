@@ -1,6 +1,7 @@
 import React from 'react';
 import { pushSupported, isPushSubscribed, subscribeToPush, unsubscribeFromPush } from '../utils/push';
 import GroupTitle from './ui/GroupTitle';
+import ExpiryPushSheet from './ExpiryPushSheet';
 
 /**
  * 유통기한 임박 알림을 **마이페이지에 정착시킨다.**
@@ -33,29 +34,31 @@ const NotificationSettings: React.FC<{ title?: React.ReactNode }> = ({ title }) 
   const [status, setStatus] = React.useState<'loading' | 'on' | 'off' | 'unsupported'>('loading');
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [sheetOpen, setSheetOpen] = React.useState(false);
 
   React.useEffect(() => {
     if (!pushSupported()) { setStatus('unsupported'); return; }
     isPushSubscribed().then(on => setStatus(on ? 'on' : 'off'));
   }, []);
 
-  const toggle = async () => {
+  // 켜기 — 첫 접속 때와 같은 안내 시트(`ExpiryPushSheet`)에서 `알림 켜기` 를 눌렀을 때 실제로 구독한다.
+  const enable = async () => {
+    setSheetOpen(false);
     setBusy(true);
     setError(null);
-    if (status === 'on') {
-      await unsubscribeFromPush();
-      setStatus('off');
-    } else {
+    {
       const result = await subscribeToPush();
+      const reason = (result as { reason?: string }).reason;
       if (result.ok) {
         setStatus('on');
-      } else if (result.reason === 'denied') {
+      } else if (reason === 'denied') {
         // 웹(브라우저 권한)과 네이티브 앱(휴대폰 설정 > 앱 > 쿡매치 > 알림) 둘 다 해당되게
         setError('알림 권한이 꺼져 있어요. 휴대폰(또는 브라우저) 설정에서 쿡매치 알림을 허용해 주세요.');
-      } else if (result.reason === 'login_required') {
+      } else if (reason === 'login_required') {
         setError('로그인 후에 켤 수 있어요.');
-      } else if (result.reason === 'unsupported') {
+      } else if (reason === 'unsupported') {
         setStatus('unsupported');
+        setError('이 기기(브라우저)에서는 알림을 켤 수 없어요. 쿡매치 앱에서 켜 주세요.');
       } else {
         // 이 프로젝트는 strict 가 꺼져 있어 `result.ok` 로 좁혀지지 않는다 — 좁히지 않고 읽는다
         const detail = (result as { detail?: string }).detail;
@@ -65,7 +68,21 @@ const NotificationSettings: React.FC<{ title?: React.ReactNode }> = ({ title }) 
     setBusy(false);
   };
 
-  if (status === 'unsupported') return null;
+  const toggle = async () => {
+    setError(null);
+    if (status === 'on') {
+      setBusy(true);
+      await unsubscribeFromPush();
+      setStatus('off');
+      setBusy(false);
+    } else if (status === 'unsupported') {
+      // 영역은 그대로 두고(2026-10-09 요청 — 첫 안내에서 허용을 안 눌러도 설정 칸은 있어야 한다),
+      // 눌렀을 때 왜 못 켜는지만 알려 준다.
+      setError('이 기기(브라우저)에서는 알림을 켤 수 없어요. 쿡매치 앱에서 켜 주세요.');
+    } else {
+      setSheetOpen(true);
+    }
+  };
 
   const on = status === 'on';
 
@@ -126,6 +143,7 @@ const NotificationSettings: React.FC<{ title?: React.ReactNode }> = ({ title }) 
         </div>
       )}
     </section>
+    {sheetOpen && <ExpiryPushSheet onClose={() => setSheetOpen(false)} onConfirm={enable} />}
     </>
   );
 };
