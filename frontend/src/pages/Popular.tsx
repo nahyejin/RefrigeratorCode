@@ -2104,23 +2104,27 @@ const Popular = () => {
               폭을 화면 끝까지 늘리면 요리명과 레시피 수 사이가 휑하게 벌어진다
               (375px 화면에서 가운데 130px 이 빈 칸이었다). 내용에 맞는 폭으로
               **가운데** 둔다. */}
-          <table className="border-collapse text-[15px] font-sans"
-                 style={{ background: '#FFFFFF', width: '100%', maxWidth: 320, margin: '0 auto' }}>
+          {/* 글자 15 → 13px, 머리글은 12px 회색 굵게(2026-10-10 지적: 이 표만 다른 화면보다 글자가 크다).
+              세 칸 모두 **가운데 정렬** — 레시피 수 칸은 오른쪽에 붙어 있어서 머리글과 어긋났다.
+              칸 폭을 고정(`fixed`)하고, 숫자와 배지는 각자 정해진 폭에 둬서 줄마다 숫자 자릿수가
+              맞는다(배지가 없는 줄도 같은 자리를 비워 둔다). */}
+          <table className="border-collapse font-sans"
+                 style={{ background: '#FFFFFF', width: '100%', maxWidth: 340, margin: '0 auto', tableLayout: 'fixed', fontSize: 13 }}>
             <thead>
               <tr style={{ borderTop: '1px solid #E6E6EA', borderBottom: '1px solid #E6E6EA', background: '#F5F5F7' }}>
-                <th className="py-1.5 px-2 text-center font-medium text-[#1A1A1E] whitespace-nowrap" style={{ width: 48 }}>순위</th>
-                <th className="py-1.5 px-2 text-center font-medium text-[#1A1A1E] whitespace-nowrap">
+                <th className="py-2 px-2 text-center whitespace-nowrap" style={{ width: 52, fontSize: 12, fontWeight: 600, color: 'var(--ink-500)' }}>순위</th>
+                <th className="py-2 px-2 text-center whitespace-nowrap" style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-500)' }}>
                   {risingTab === 'dish' ? '요리명' : '테마명'}
                 </th>
-                <th className="py-1.5 px-2 text-right font-medium text-[#1A1A1E] whitespace-nowrap" style={{ width: 118 }}>레시피 수</th>
+                <th className="py-2 px-2 text-center whitespace-nowrap" style={{ width: 128, fontSize: 12, fontWeight: 600, color: 'var(--ink-500)' }}>레시피 수</th>
               </tr>
             </thead>
             <tbody>
               {(risingTab === 'dish' ? dishRankings : themeRankings).map((row: any, idx: number) => (
                 <tr key={row.id ?? row.name}>
-                  <td className="py-1.5 px-2 text-center text-[#8A8A90] font-normal whitespace-nowrap">{idx + 1}</td>
-                  <td className="py-1.5 px-2 text-center whitespace-nowrap"
-                      style={{ overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 0 }}>
+                  <td className="py-2 px-2 text-center text-[#8A8A90] font-normal whitespace-nowrap">{idx + 1}</td>
+                  <td className="py-2 px-2 text-center whitespace-nowrap"
+                      style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     <span
                       style={{ cursor: 'pointer', color: '#1A1A1E', fontWeight: 500 }}
                       onClick={() => navigate(`/ingredient/${encodeURIComponent(row.name)}`
@@ -2132,16 +2136,17 @@ const Popular = () => {
                   </td>
                   {/* 숫자와 배지를 **오른쪽에 붙여** 나란히 둔다. 예전에는 칸
                       안에서 절대배치로 겹쳐 놨는데, 폭이 좁아지면 숫자를 덮었다. */}
-                  <td className="py-1.5 px-2 whitespace-nowrap">
-                    <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
-                      <span style={{ color: '#3A3A42' }}>
+                  <td className="py-2 px-2 whitespace-nowrap">
+                    <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                      <span style={{ color: '#3A3A42', width: 32, textAlign: 'right' }}>
                         {row.count.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
                       </span>
+                      <span style={{ width: 54, textAlign: 'left', display: 'inline-flex' }}>
                       {(row.isNew || row.rate > 0 || (row.multiplier !== undefined && row.multiplier > 1)) && (
                         <span
                           style={{
                             display: 'inline-block', padding: '2px 6px', borderRadius: 4,
-                            fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap',
+                            fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap',
                             backgroundColor: (row.isNew || row.rate >= 0) ? '#FFF5F5' : '#EFF6FF',
                             color: (row.isNew || row.rate >= 0) ? '#E85A4F' : '#3A6EA5',
                           }}
@@ -2151,6 +2156,7 @@ const Popular = () => {
                             : row.rate > 0 ? `▴${row.rate}%` : ''}
                         </span>
                       )}
+                      </span>
                     </span>
                   </td>
                 </tr>
