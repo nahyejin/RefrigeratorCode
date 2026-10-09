@@ -17,7 +17,7 @@ import { Reel8Demo, Reel8Cta, REEL8_DEMO_LEN, REEL8_CTA_LEN } from "./Reel8Famil
 
 type Seg = [number, number] | [number, number, { zoom: number; origin: string }]; // 원본 초 단위 [시작, 끝, (확대)]
 
-type HookSpec = {
+export type HookSpec = {
   src: string;
   segs: Seg[];
   // 자막이 뜨는 원본 시각(초) — 웃음 포인트(대사·반전)가 터지는 순간. 그 전에 자막이 먼저 뜨면 결말을 미리
@@ -128,7 +128,7 @@ const HookV2: React.FC<{ spec: HookSpec }> = ({ spec }) => {
   );
 };
 
-const makeReel = (spec: HookSpec, Demo: React.FC, demoLen: number, Cta: React.FC, ctaLen: number) => {
+export const makeReel = (spec: HookSpec, Demo: React.FC, demoLen: number, Cta: React.FC, ctaLen: number) => {
   const hLen = hookLen(spec);
   const Comp: React.FC = () => {
     useCustomFont();

@@ -7,7 +7,7 @@ import { fitToNarration } from "./narrationFrames";
 // "아, 이것도 결국 못 먹고 버리네..." 혼잣말 후 쓰레기통 쪽으로 돌아서는 리액션
 const HOOK_VIDEO = "reel5_hook_gemini.mov";
 // 데모: 실제 쿡매치 유통기한 알림 흐름(56s, 884x1920, 30fps) — 푸시 알림 → 유통기한 자동계산 → 임박재료 레시피 추천
-const DEMO_VIDEO = "reel5_expiry_demo.mp4";
+export const DEMO_VIDEO = "reel5_expiry_demo.mp4";
 
 // 데모 화면 녹화본(영상·정지이미지 전부) 최상단에 iOS 상태바 + 화면 녹화 표시가 그대로 찍혀 있어서
 // 위쪽 180px을 크롭해서 뺀다. CSS scale()/scaleY()로 확대-크롭하는 방식은 각각 가로가 잘리거나

@@ -23,7 +23,7 @@ const DEMO_VIDEO = "reel6_chatbot_demo_new.mp4";
 // 데모 화면 녹화본 최상단에 iOS 상태바 + 화면 녹화 표시가 그대로 찍혀 있어서 위쪽 180px을 크롭해서
 // 뺀다. 스케일(확대) 기반 크롭은 가로가 잘리거나(scale) 세로가 찌그러 보이는(scaleY) 부작용이 있어서,
 // 콘텐츠를 위로 cropTop만큼 밀어 올리는 position 이동 방식으로 처리 — 비율·가로폭을 전혀 안 건드린다.
-const TOPCROP_PX = 180;
+export const TOPCROP_PX = 180;
 
 const HB1 = 168; // reel6_hook_line_clean.mp4 전체 프레임 수
 const HB2 = 51; // reel6_hook_turn_clean.mp4 전체 프레임 수
