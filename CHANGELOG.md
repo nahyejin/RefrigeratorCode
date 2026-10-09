@@ -12867,3 +12867,8 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 - 데모·엔딩은 기존 편 그대로(자막·음성 동일). **2·5·6·7편은 새 UI 녹화, 1·3·4·8편 데모는 옛 UI 화면**(1·4·8편은 사진/로그인이 필요해 못 바꿈, 3편은 화면 유지).
 - 확인: 8편 모두 훅 → 데모 → 엔딩 프레임 훑음(자막 위치·이음매 정상). 소리 포함 실제 재생은 사용자 확인 필요.
 
+### 릴스 후킹 v3 — 사용자가 보내 준 8편을 각 편 앞에 붙여 8편 렌더
+- 사용자가 v3 프롬프트(`store/REEL_HOOKS_V3.md`)로 만든 클립을 5개 + 3개로 나눠 전달. 대사(Whisper)·장면으로 편 매칭: 01 계란 있어? 없어?(`reel1_hook_v3_egg.mov`, **원본 424x720 저해상도** — 화면에 맞춰 확대돼 약간 부드러움) · 02 재료 라인업(`reel2_hook_v3_lineup.mp4`) · 03 화면 올려줄래?(`reel3_hook_v3_scroll.mp4`) · 04 냉장고 문(`reel4_hook_v3_fridgedoor.mp4`) · 05 우유(`reel5_hook_v3_milk.mp4`) · 06 엄마(`reel6_hook_v3_mom.mp4`) · 07 찜닭(`reel7_hook_v3_jjimdak.mp4`) · 08 로비(`reel8_hook_v3_lobby.mp4`). 4~8편은 이미 `public/` 에 있던 편집본과 같은 파일.
+- `my-video/src/ReelHooksV3.tsx` 신설(v2 의 `makeReel`·`HookSpec` 재사용 — 훅은 자르지 않고 끝 페이드만). 자막은 문서의 「자막 띄울 순간」부터: 6.8s / 5.0 / 8.4 / 6.0 / 6.8 / 5.2 / 4.0 / 5.6. `Root.tsx` 등록(`Reel1HookV3Egg` … `Reel8HookV3Lobby`), `scripts/render_hooks_v3.sh` 로 렌더 → `my-video/out/reelN_hookv3_*.mp4`.
+- 데모·엔딩은 기존 편 그대로(2·5·6·7편은 새 UI 녹화, 1·3·4·8편은 옛 UI). 8편 모두 훅 → 데모 → 엔딩 프레임 확인. 소리 포함 재생은 사용자 확인 필요.
+
