@@ -17,7 +17,7 @@ export type PillState = 'owned' | 'substitutable' | 'missing';
 
 export const PILL_COLORS: Record<
   PillState,
-  { bg: string; fg: string; border: string; label: string; borderStyle?: 'solid' | 'dashed'; dot?: string }
+  { bg: string; fg: string; border: string; label: string; borderStyle?: 'solid' | 'dashed' }
 > = {
   // 부족 재료는 "채워야 할 빈 칸"으로 읽히도록 흰 배경 + 점선 테두리.
   // 예전엔 가장 옅은 회색 채움이라 배경으로 물러나 있었는데,
@@ -35,15 +35,15 @@ export const PILL_COLORS: Record<
     border: '#3A3A42',
     label: '대체 가능',
   },
-  // 2026-10-10: 연한 노랑(#FFF1B8)은 탁해서 촌스럽고, 샛노랑(#FFD600)은 카드마다 4~6개가 깔리면 너무 튄다는
-  // 지적이라 **흰 바탕 + 앞에 노란 점 하나**로(후보 중 사용자가 고름). 보유 재료는 "당연한 정보"라 물러나 있어야
-  // 하고, 눈에 띄어야 하는 건 부족(점선)·대체(검정)다. 노란색은 점으로만 남아 브랜드 느낌을 지킨다.
+  // 2026-10-10: 색을 세 번 바꿨다 — 연노랑(탁해서 촌스럽다) → 샛노랑(너무 튄다) → 흰 바탕+노란 점(이상하다).
+  // 결국 **옅은 회색**으로. 보유 재료는 카드마다 4~6개라 "당연한 정보"로 물러나 있어야 하고, 눈에 띄어야 하는 건
+  // 부족(점선)·대체(검정)다. 노랑은 매칭도 배지·버튼 같은 브랜드 자리에만 남긴다.
   owned: {
-    bg: '#FFFFFF',
-    fg: '#1A1A1E',
-    border: '#E4E4E8',
+    bg: '#F1F1F4',
+    fg: '#3A3A42',
+    // 테두리를 살짝 둔다 — 범례 견본이 같은 옅은 회색 칸(`#F5F5F7`) 위에서 사라지지 않게.
+    border: '#E2E2E7',
     label: '보유 재료',
-    dot: '#FFD600',
   },
 };
 
@@ -54,12 +54,11 @@ export const LEGEND_ORDER: PillState[] = ['missing', 'substitutable', 'owned'];
 export function pillStyle(state: PillState): CSSProperties {
   const c = PILL_COLORS[state];
   return {
-    // 점이 있는 상태(보유)는 배경 그림으로 점을 그린다 — 마크업을 건드리지 않고 모든 칩에 적용된다.
-    background: c.dot ? `radial-gradient(circle at 12px 50%, ${c.dot} 0 3.5px, transparent 4px), ${c.bg}` : c.bg,
+    background: c.bg,
     color: c.fg,
     border: `1px ${c.borderStyle || 'solid'} ${c.border}`,
     borderRadius: 9999,
-    padding: c.dot ? '0 11px 0 22px' : '0 11px',
+    padding: '0 11px',
     fontSize: 13,
     lineHeight: 1.3,
     fontWeight: 500,
@@ -78,7 +77,7 @@ export function legendSwatchStyle(state: PillState): CSSProperties {
     width: 22,
     height: 13,
     borderRadius: 9999,
-    background: c.dot ? `radial-gradient(circle at 6px 50%, ${c.dot} 0 3px, transparent 3.5px), ${c.bg}` : c.bg,
+    background: c.bg,
     border: `1px ${c.borderStyle || 'solid'} ${c.border}`,
     display: 'inline-block',
     flexShrink: 0,

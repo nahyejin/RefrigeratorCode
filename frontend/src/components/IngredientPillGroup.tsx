@@ -159,6 +159,14 @@ const IngredientPillGroup: React.FC<IngredientPillGroupProps> = ({ needIngredien
   const overflowCount = pillInfo.pills.length - COLLAPSED_COUNT;
   const visiblePills = expanded ? pillInfo.pills : pillInfo.pills.slice(0, COLLAPSED_COUNT);
 
+  // 대체 매핑(`들기름→참기름`) — 검정 `대체` 칩 안에 바로 `들기름 → 참기름` 으로 보여 준다(2026-10-10 요청:
+  // 아래에 `대체 가능` 배지 + 노란 칩을 또 두는 건 같은 말을 두 번 하는 것).
+  const substituteTarget = new Map<string, string>();
+  pillInfo.substitutes.forEach((sub: string) => {
+    const [from, to] = String(sub).split('→').map((x) => x.trim());
+    if (from && to) substituteTarget.set(normalize(from), to);
+  });
+
   const stateOf = (ing: string): PillState =>
     mySet.has(normalize(ing))
       ? 'owned'
@@ -179,7 +187,13 @@ const IngredientPillGroup: React.FC<IngredientPillGroupProps> = ({ needIngredien
           // 부족 재료는 "채워야 할 빈 칸" → 눌러서 바로 채울(구매할) 수 있게 한다.
           const clickable = state === 'missing' && !!onMissingClick;
           if (!clickable) {
-            return <span key={ing} style={pillStyle(state)}>{displayName}</span>;
+            const target = state === 'substitutable' ? substituteTarget.get(normalize(displayName)) ?? substituteTarget.get(normalize(ing)) : undefined;
+            return (
+              <span key={ing} style={pillStyle(state)}>
+                {displayName}
+                {target && (<><span aria-hidden style={{ margin: '0 5px', opacity: 0.7 }}>→</span>{target}</>)}
+              </span>
+            );
           }
           return (
             <button
@@ -212,58 +226,6 @@ const IngredientPillGroup: React.FC<IngredientPillGroupProps> = ({ needIngredien
         )}
       </div>
 
-      {/* 대체 가능 — 부족한 재료를 무엇으로 바꿀 수 있는지가 이 앱의 핵심 기능이라
-          별도 줄로 분리하되 눈에 띄게 둔다.
-
-          가로 카드에서는 개수를 제한한다:
-          이 줄이 여러 줄로 늘어나면 카드마다 높이가 달라진다.
-          실측해보니 가로 목록의 카드 높이가 228~324px 로 벌어져 있었고,
-          목록이 잡아 둔 슬롯(280px)을 넘는 카드는 아래가 잘려 나가고 있었다.
-          가로 목록은 훑어보는 자리이므로 여기서는 대표 하나만 보이고,
-          나머지는 개수로 알린다(전체는 카드를 눌러 상세에서 확인). */}
-      {pillInfo.substitutes.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginTop: 2 }}>
-          {/* 이게 이 앱의 핵심 기능인데 회색 12px 로 제일 조용했다.
-              "없는 재료를 무엇으로 바꿀 수 있나" 는 찾아 읽는 게 아니라
-              눈에 들어와야 하는 정보다. */}
-          <span
-            style={{
-              fontSize: 11,
-              fontWeight: 800,
-              color: '#1A1A1E',
-              background: 'var(--brand)',
-              borderRadius: 9999,
-              padding: '2px 8px',
-              flex: '0 0 auto',
-              letterSpacing: '.01em',
-            }}
-          >
-            대체 가능
-          </span>
-          {(compact ? pillInfo.substitutes.slice(0, 1) : pillInfo.substitutes).map((sub) => (
-            <span
-              key={sub}
-              style={{
-                fontSize: 13,
-                fontWeight: 700,
-                color: '#1A1A1E',
-                background: '#FFFDF2',
-                border: '1px solid #E0B400',
-                borderRadius: 9999,
-                padding: '2px 10px',
-                flex: '0 0 auto',
-              }}
-            >
-              {sub}
-            </span>
-          ))}
-          {compact && pillInfo.substitutes.length > 1 && (
-            <span style={{ fontSize: 12, color: 'var(--ink-400)', flex: '0 0 auto' }}>
-              외 {pillInfo.substitutes.length - 1}개
-            </span>
-          )}
-        </div>
-      )}
     </div>
   );
 };
