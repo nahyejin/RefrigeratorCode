@@ -393,14 +393,14 @@ const IngredientPill: React.FC<IngredientPillProps> = ({ item, onRemove, onSetti
 };
 
 /**
- * 보관함 한 칸 — **옅은 색을 깐 둥근 면**(2026-10-10). 회색 선만 있으면 개발자 화면 같다는 지적이라, 선·띠 대신
- * 칸마다 아주 옅은 색(냉동=하늘, 냉장=민트, 실온=크림)을 깔아 구분과 분위기를 함께 준다. 테두리 없음.
- * 재료 칩은 흰 바탕이라 이 색 위에서 또렷하다.
+ * 보관함 한 칸 — **무채색 옅은 면**(2026-10-10). 처음엔 칸마다 하늘·민트·크림을 깔았는데 파랑·초록·노랑이
+ * 촌스럽다는 지적이라 세 칸 모두 같은 옅은 회색으로 통일. 선·띠 없이 면 하나로 칸을 가르고, 칩·버튼은 흰 바탕이라 또렷하다.
  */
+const SECTION_BG = '#F6F6F8';
 const SECTION_TINT: Record<StorageBox, string> = {
-  frozen: '#F0F6FF',
-  fridge: '#EFF9F4',
-  room: '#FFF7EA',
+  frozen: SECTION_BG,
+  fridge: SECTION_BG,
+  room: SECTION_BG,
 };
 const sectionStyle = (kind: StorageBox): React.CSSProperties => ({
   padding: '14px 14px 10px',
