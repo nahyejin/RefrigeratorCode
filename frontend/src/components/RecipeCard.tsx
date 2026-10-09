@@ -765,7 +765,8 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
               `좋아요 0` 은 뺐다. 네이버 블로그는 대부분 0이라 늘 노이즈였다. */}
           {usedIngredientList.length > 0 ? (
             <>
-              <b style={{ color: match.rate >= 70 ? '#3A6B2E' : 'var(--ink-700)' }}>
+              {/* 70% 이상일 때만 색을 입힌다. 초록(#3A6B2E)이 앱 색(검정·노랑·회색)과 따로 논다는 지적(2026-10-10)으로 파랑으로. */}
+              <b style={{ color: match.rate >= 70 ? '#2C6BD6' : 'var(--ink-700)' }}>
                 내 재료 {usedIngredientList.length - lackingIngredients.length}
                 /{usedIngredientList.length}
               </b>
