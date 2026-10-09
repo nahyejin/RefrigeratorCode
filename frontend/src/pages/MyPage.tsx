@@ -666,37 +666,6 @@ const MyPage: React.FC = () => {
   const isAdmin = useIsAdmin();
   /** 크레딧 묶음 제목을 그릴지 판단하는 용도 — 값 자체는 `UsageGauge` 가 쓴다. */
   const usageNow = useUsage();
-  /**
-   * 바닥 문의 띠를 띄울까.
-   *
-   * 늘 띄우면 화면을 상시로 먹고, 흐름에 두면 스크롤할 때 회색 덩어리가 따라
-   * 올라온다. 둘 다 싫다는 지적(2026-10-08)이라 **조금이라도 내려갔을 때만**
-   * 바닥에 붙여 띄운다. 맨 위를 보고 있을 때는 아예 없다.
-   */
-  const [contactBarOn, setContactBarOn] = React.useState(false);
-  React.useEffect(() => {
-    const check = () => {
-      // 스크롤할 게 없는 화면이면 **그냥 보여 준다.** 안 그러면 문의·방침·약관으로
-      // 갈 길이 아예 없어진다(비로그인 화면이 실제로 그랬다 — 내용이 짧아 스크롤이
-      // 0이라 띠가 영영 안 떴다).
-      const noScroll = document.documentElement.scrollHeight <= window.innerHeight + 8;
-      // 40px — "맨 위를 보고 있다" 와 "내려 보기 시작했다" 를 가르는 선.
-      setContactBarOn(noScroll || window.scrollY > 40);
-    };
-    check();
-    window.addEventListener('scroll', check, { passive: true });
-    window.addEventListener('resize', check);
-    // 카드들이 나중에 그려지며(사용량·식구 그룹) 페이지 길이가 바뀐다 —
-    // 스크롤 이벤트만 보면 그때를 놓친다.
-    const ro = new ResizeObserver(check);
-    ro.observe(document.body);
-    return () => {
-      window.removeEventListener('scroll', check);
-      window.removeEventListener('resize', check);
-      ro.disconnect();
-    };
-  }, []);
-
   // ── 사용 가이드 16~18단계(마지막) ─────────────────────────────
   // 요리 캘린더 가이드 끝에서 `?fromGuide=true` 로 넘어온다. 셋 다 로그인해야
   // 있는 칸이라 로그인 상태에서만 시작한다.
@@ -1684,29 +1653,15 @@ const MyPage: React.FC = () => {
           (바닥에서 80~136px, 오른쪽 72px)을 피하려고 — 안 띄우면 인스타그램
           줄의 오른쪽 끝이 버튼에 깔린다. */}
       <div
-        aria-hidden={!contactBarOn}
         style={{
-          // 회색 칸 **안**에 둔다. 밖에 두면 띠가 아래로 숨은 동안 그 자리가
-          // 흰색으로 비어, 페이지 끝에 흰 띠가 남는다(실측으로 확인).
+          // **붙어 있지도, 갑자기 나타나지도 않는다**(2026-10-10 요청) — 페이지 맨 끝에 그냥 놓인다.
+          // 예전에는 조금 내려가면 바닥에 붙어 떠오르는 띠였는데(스크롤하면 갑자기 나타남) 없앴다.
           marginTop: 'auto',
-          position: 'sticky', bottom: 0, zIndex: 1,
           background: 'var(--surface-sub)', borderTop: '1px solid var(--line-200)',
-          // 좌우 14px — 위 카드들과 **같은 폭**이어야 한다(2026-10-08 지적:
-          // "가로 버튼이면 폭을 다른 거랑 맞춰라"). 요리 AI 버튼을 피하는 일은
-          // 띠 전체를 줄이는 대신 **줄 안쪽 여백**으로 한다(아래 ContactBox).
+          // 좌우 14px — 위 카드들과 같은 폭.
           paddingTop: 10, paddingLeft: 14, paddingRight: 14,
           // 116px = 하단 메뉴(65) + 요리 AI 버튼(바닥에서 80~136px)을 피할 만큼.
-          // 문구를 버튼 **오른쪽 끝에 붙이려면**(2026-10-08 요청) 줄 안쪽 여백으로
-          // 버튼을 피할 수 없다 — 띠 자체를 버튼 위로 올려야 한다.
           paddingBottom: 'calc(116px + env(safe-area-inset-bottom, 0px))',
-          // ⚠️ 숨길 때 `translateY` 를 쓰면 안 된다. transform 은 레이아웃은
-          // 안 건드리지만 **스크롤 영역은 넓힌다** — 아래로 밀어 둔 150px 만큼
-          // 페이지가 길어지고, 그 자리가 흰색으로 남았다(실측으로 확인).
-          // 자리는 그대로 두고(회색 칸 안이라 티가 안 난다) 보이기만 끈다.
-          opacity: contactBarOn ? 1 : 0,
-          visibility: contactBarOn ? 'visible' : 'hidden',
-          pointerEvents: contactBarOn ? 'auto' : 'none',
-          transition: 'opacity 0.18s ease-out',
         }}
       >
         <ContactBox compact />

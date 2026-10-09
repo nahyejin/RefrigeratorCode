@@ -392,11 +392,13 @@ const IngredientPill: React.FC<IngredientPillProps> = ({ item, onRemove, onSetti
 };
 
 /**
- * 보관함 한 칸 — 좌우 20px 안쪽. 칸 사이는 **선도 띠도 없이 여백만**(2026-10-10).
- * 두꺼운 회색 띠는 옛 앱처럼 촌스럽다는 지적 — 유튜브 앱도 지금은 구분선 대신 흰 여백과 제목으로 가른다.
+ * 보관함 한 칸 — 좌우 20px 안쪽. 칸 사이는 **머리카락 선(1px) 하나**로 가른다(2026-10-10).
+ * 14px 회색 띠는 촌스럽다는 지적이라 걷었는데, 선도 여백도 없으니 칸이 구분이 안 된다는 지적이 이어서
+ * — 띠가 아니라 얇은 선으로 돌아왔다(유튜브 앱도 선반 사이엔 연한 1px 선을 쓴다).
  */
 const SECTION_STYLE: React.CSSProperties = {
-  padding: '16px 20px 8px',
+  padding: '16px 20px 12px',
+  borderBottom: '1px solid var(--line-200)',
 };
 
 interface ScrollablePillSectionProps {
@@ -2486,7 +2488,7 @@ const MyFridge: React.FC = () => {
               칸 안 스크롤은 없앴다 — 재료가 많으면 `더보기` 로 펼친다. */}
           <div
             data-guide-target="storage-areas"
-            style={{ margin: '0 -20px', background: '#FFFFFF' }}
+            style={{ margin: '0 -20px', background: '#FFFFFF', borderTop: '1px solid var(--line-200)' }}
           >
           {/* 냉동보관 */}
           <div style={SECTION_STYLE}>
