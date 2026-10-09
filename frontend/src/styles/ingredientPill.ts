@@ -35,10 +35,12 @@ export const PILL_COLORS: Record<
     border: '#3A3A42',
     label: '대체 가능',
   },
+  // 2026-10-10: 연한 노랑(#FFF1B8)이 촌스럽다는 지적으로 **매칭도 배지와 같은 브랜드 노랑**으로.
+  // (아래 `색 선택 의도` 의 "노란 덩어리" 우려보다 칙칙해 보이는 문제가 더 크다고 판단 — 글자는 진한 검정.)
   owned: {
-    bg: '#FFF1B8',
-    fg: '#6B5200',
-    border: '#F5DE86',
+    bg: '#FFD600',
+    fg: '#1A1A1E',
+    border: '#FFD600',
     label: '보유 재료',
   },
 };

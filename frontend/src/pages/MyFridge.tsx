@@ -316,7 +316,8 @@ const IngredientPill: React.FC<IngredientPillProps> = ({ item, onRemove, onSetti
           시계 버튼은 pill 과 떨어져 있어 무엇인지 알기 어려웠다.
           → pill 을 누르면 바로 설정 팝업이 열리도록 합치고 시계 버튼을 없앴다. */}
       <TagPill
-        style={{ fontSize: 13, cursor: 'pointer', marginRight: 0, marginBottom: 0 }}
+        // 높이 30 → 26: 냉장고요리 재료 배지(`pillStyle`)와 같은 높이로(2026-10-10 요청). 흰 바탕은 칸의 옅은 색 위에서 또렷하게.
+        style={{ fontSize: 13, cursor: 'pointer', marginRight: 0, marginBottom: 0, height: 26, padding: '0 10px', background: '#FFFFFF', border: '1px solid var(--line-200)' }}
       >
         <span
           className="truncate max-w-[100px]"
@@ -392,21 +393,31 @@ const IngredientPill: React.FC<IngredientPillProps> = ({ item, onRemove, onSetti
 };
 
 /**
- * 보관함 한 칸 — 좌우 20px 안쪽. 칸 사이는 **머리카락 선(1px) 하나**로 가른다(2026-10-10).
- * 14px 회색 띠는 촌스럽다는 지적이라 걷었는데, 선도 여백도 없으니 칸이 구분이 안 된다는 지적이 이어서
- * — 띠가 아니라 얇은 선으로 돌아왔다(유튜브 앱도 선반 사이엔 연한 1px 선을 쓴다).
+ * 보관함 한 칸 — **옅은 색을 깐 둥근 면**(2026-10-10). 회색 선만 있으면 개발자 화면 같다는 지적이라, 선·띠 대신
+ * 칸마다 아주 옅은 색(냉동=하늘, 냉장=민트, 실온=크림)을 깔아 구분과 분위기를 함께 준다. 테두리 없음.
+ * 재료 칩은 흰 바탕이라 이 색 위에서 또렷하다.
  */
-const SECTION_STYLE: React.CSSProperties = {
-  padding: '16px 20px 12px',
-  borderBottom: '1px solid var(--line-200)',
+const SECTION_TINT: Record<StorageBox, string> = {
+  frozen: '#F0F6FF',
+  fridge: '#EFF9F4',
+  room: '#FFF7EA',
 };
+const sectionStyle = (kind: StorageBox): React.CSSProperties => ({
+  padding: '14px 14px 10px',
+  marginBottom: 12,
+  borderRadius: 18,
+  background: SECTION_TINT[kind],
+});
 
 interface ScrollablePillSectionProps {
   watchKey: number;
   children: React.ReactNode;
+  /** 접었을 때 아래를 흐리게 덮는 색 — 칸 바탕색과 같아야 한다(`SECTION_TINT`). */
+  fade?: string;
 }
 
-const ScrollablePillSection: React.FC<ScrollablePillSectionProps> = ({ watchKey, children }) => {
+const ScrollablePillSection: React.FC<ScrollablePillSectionProps> = ({ watchKey, children, fade = '#FFFFFF' }) => {
+  const fadeRgb = [1, 3, 5].map(i => parseInt(fade.slice(i, i + 2), 16)).join(',');
   /**
    * 재료 칩 칸 — **칸 안 스크롤 대신 `더보기`**(2026-10-10, 유튜브 앱처럼).
    * 칸 안에 또 스크롤이 있으면 한 화면에 스크롤이 두 개라 손가락이 헷갈렸다. 접어 둔 높이(약 네 줄째가
@@ -454,7 +465,7 @@ const ScrollablePillSection: React.FC<ScrollablePillSectionProps> = ({ watchKey,
             style={{
               position: 'absolute', left: 0, right: 0, bottom: 0, height: 44,
               pointerEvents: 'none',
-              background: 'linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0.96))',
+              background: `linear-gradient(to bottom, rgba(${fadeRgb},0), rgba(${fadeRgb},0.96))`,
             }}
           />
         )}
@@ -2488,10 +2499,10 @@ const MyFridge: React.FC = () => {
               칸 안 스크롤은 없앴다 — 재료가 많으면 `더보기` 로 펼친다. */}
           <div
             data-guide-target="storage-areas"
-            style={{ margin: '0 -20px', background: '#FFFFFF', borderTop: '1px solid var(--line-200)' }}
+            style={{ background: '#FFFFFF' }}
           >
           {/* 냉동보관 */}
-          <div style={SECTION_STYLE}>
+          <div style={sectionStyle('frozen')}>
             {/* 이름 + 재료수를 왼쪽에 한 덩어리로 묶고, 조작 버튼(정렬·모두삭제)은
                 오른쪽으로 밀어낸다. 폭이 모자라면 **조작 버튼 묶음만** 아랫줄로
                 내려가므로 `재료수 N개` 와 `임박 N개` 가 잘리는 일이 없다. */}
@@ -2513,7 +2524,7 @@ const MyFridge: React.FC = () => {
                 )}
               </span>
             </div>
-            <ScrollablePillSection watchKey={(frozen ?? []).length}>
+            <ScrollablePillSection watchKey={(frozen ?? []).length} fade={SECTION_TINT.frozen}>
               {(frozen ?? []).length === 0 && (
                 <div className="text-gray-400 text-xs py-1">재료가 아직 없어요</div>
               )}
@@ -2528,7 +2539,7 @@ const MyFridge: React.FC = () => {
             </ScrollablePillSection>
           </div>
           {/* 냉장보관 */}
-          <div style={SECTION_STYLE}>
+          <div style={sectionStyle('fridge')}>
             {/* 이름 + 재료수를 왼쪽에 한 덩어리로 묶고, 조작 버튼(정렬·모두삭제)은
                 오른쪽으로 밀어낸다. 폭이 모자라면 **조작 버튼 묶음만** 아랫줄로
                 내려가므로 `재료수 N개` 와 `임박 N개` 가 잘리는 일이 없다. */}
@@ -2550,7 +2561,7 @@ const MyFridge: React.FC = () => {
                 )}
               </span>
             </div>
-            <ScrollablePillSection watchKey={(fridge ?? []).length}>
+            <ScrollablePillSection watchKey={(fridge ?? []).length} fade={SECTION_TINT.fridge}>
               {fridge && fridge.length === 0 && (
                 <div className="text-gray-400 text-xs py-1">재료가 아직 없어요</div>
               )}
@@ -2566,7 +2577,7 @@ const MyFridge: React.FC = () => {
             </ScrollablePillSection>
           </div>
           {/* 실온보관 */}
-          <div style={SECTION_STYLE}>
+          <div style={sectionStyle('room')}>
             {/* 이름 + 재료수를 왼쪽에 한 덩어리로 묶고, 조작 버튼(정렬·모두삭제)은
                 오른쪽으로 밀어낸다. 폭이 모자라면 **조작 버튼 묶음만** 아랫줄로
                 내려가므로 `재료수 N개` 와 `임박 N개` 가 잘리는 일이 없다. */}
@@ -2588,7 +2599,7 @@ const MyFridge: React.FC = () => {
                 )}
               </span>
             </div>
-            <ScrollablePillSection watchKey={(room ?? []).length}>
+            <ScrollablePillSection watchKey={(room ?? []).length} fade={SECTION_TINT.room}>
               {room && room.length === 0 && (
                 <div className="text-gray-400 text-xs py-1">재료가 아직 없어요</div>
               )}
