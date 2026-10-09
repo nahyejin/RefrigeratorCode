@@ -259,6 +259,12 @@ export interface RecipeCardProps {
    *    그래서 사진과 제목에 자리를 몰아주고 나머지는 접는다.
    */
   variant?: 'match' | 'browse';
+  /**
+   * 화면 좌우 끝까지 꽉 차는 카드(유튜브 앱처럼). 썸네일이 좌우 여백·모서리 없이 16:9 로
+   * 가득 차고, 카드 사이는 테두리 대신 옅은 회색 띠로 가른다. 박스 안에 갇혀 답답하다는
+   * 지적(2026-10-10)으로 냉장고요리에서 쓴다. 부모가 좌우 여백을 음수 마진으로 걷어 둬야 한다.
+   */
+  bleed?: boolean;
 }
 
 // RecipeCard는 UI만 담당, 상태/스토리지/토스트 등은 상위에서 관리
@@ -275,6 +281,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
   onThumbnailError,
   hasAd: hasAdProp,
   variant = 'match',
+  bleed = false,
   isHorizontal = false,
   fixedHeight,
   onHeightChange,
@@ -496,12 +503,12 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
   return (
     <div
       ref={setRootEl}
-      className="recipe-card-press bg-white rounded-[20px] relative block cursor-pointer"
+      className={`recipe-card-press bg-white ${bleed ? 'rounded-none' : 'rounded-[20px]'} relative block cursor-pointer`}
       style={{
         ...(isLast ? STYLES.lastCard : STYLES.card),
         // 사방을 같게. 전에는 `3px 8px` 이라 **좌우 9px, 위아래 4px**(테두리 1px
         // 포함)이었다. 썸네일이 위쪽에만 바짝 붙어 카드가 위로 쏠려 보였다.
-        padding: 8,
+        padding: bleed ? '0 14px 14px' : 8,
         marginBottom: isHorizontal ? 0 : 8, // 가로 리스트: 행 높이 안에서 카드~스크롤바 사이 빈칸 방지
         touchAction: 'pan-y pan-x', // 세로 및 가로 스크롤 모두 허용
         // 가로 목록에서는 높이를 고정해 모든 카드(광고 카드 포함)를 같은 규격으로 맞춘다.
@@ -532,6 +539,12 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
         // 딱딱해지는데, 그림자가 같이 있으면 얇은 선으로도 경계가 읽힌다.
         border: '1px solid var(--line-200)',
         boxShadow: '0 1px 3px rgba(26,26,30,0.05)',
+        // 꽉 찬 카드: 테두리·그림자·모서리 없이, 아래에 옅은 회색 띠 하나로 카드를 가른다.
+        ...(bleed ? {
+          border: 'none', boxShadow: 'none', borderRadius: 0, marginBottom: 0,
+          borderBottom: '8px solid var(--surface-sub)',
+          maxWidth: 'none',
+        } : null),
       }}
       onClick={handleCardClick}
       onMouseDown={(e) => {
@@ -545,7 +558,8 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
           음식이 뭉개진다. 훑어보는 자리(`browse`)에서는 키운다. */}
       <div style={{
         ...STYLES.imageContainer,
-        height: browse ? 160 : (isHorizontal ? 100 : 160)
+        height: browse ? 160 : (isHorizontal ? 100 : 160),
+        ...(bleed ? { height: 'auto', margin: '0 -14px 12px', width: 'auto' } : null),
       }}>
         <img
           src={getProxiedImageUrl(recipe.thumbnail || '')}
@@ -563,6 +577,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
           style={{ 
             ...STYLES.thumbnail,
             height: browse ? 160 : (isHorizontal ? 100 : 160),
+            ...(bleed ? { height: 'auto', aspectRatio: '16 / 9', borderRadius: 0, marginBottom: 0, display: 'block' } : null),
             cursor: 'pointer',
             touchAction: 'pan-y', // 세로 스크롤 허용
             userSelect: 'none', // 이미지 선택 방지
