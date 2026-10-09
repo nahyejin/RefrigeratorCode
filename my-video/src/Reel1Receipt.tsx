@@ -4,18 +4,22 @@ import { FONT_FAMILY, WHITE, LINE, useCustomFont, CtaOutro, Caption } from "./sh
 import { fitToNarration } from "./narrationFrames";
 
 // 원본: VID_20260911180601731.mp4 (15.2s, 632x1280, 30fps) — 실제 쿡매치 사진 인식 데모
-const RAW_VIDEO = "reel1_photo_recognition.mp4";
+const RAW_VIDEO = "reel1_photo_demo_new.mp4";
+// ⚠️ 2026-10-10 화면 개편 뒤 **새 UI 로 다시 녹화**(안드로이드 에뮬레이터, 로그인 계정 `엄마`, 크레딧 2 사용 — `scripts/rec_reel1.py`).
+// 사진 보관함에 `store/sources/camera_coupang.png` 를 넣어 두고 시스템 사진 선택기에서 실제로 골랐다. 940x1920·30fps·상태바 없음.
+// `반영하기` 이후(토스트·냉장고)는 이어서 따로 찍은 `reel1_photo_done_new.mp4`(`rec_reel1b`).
+const DONE_VIDEO = "reel1_photo_done_new.mp4";
 // 훅 비주얼: 제미나이로 생성한 실사풍 클립(4.625s, 632x1124, 24fps) — "이거 저번에도 샀나?"
 const HOOK_VIDEO = "reel1_hook_gemini.mov";
 
 // ---- 원본 타임코드(30fps 기준 프레임) — 콘티 "원본 매핑" 표와 동일 ----
 const RAW = {
-  modal: [120, 150], // 0:04–0:05 "어떤 사진을 고르실 건가요?" 모달
-  browse: [150, 240], // 0:05–0:08 사진첩에서 쿠팡 캡처 탐색(사용자 확인 후 그대로 사용)
-  select: [255, 270], // 0:08.5–0:09 쿠팡 캡처 선택 확정(로고 노출 구간 → 블러)
-  loading: [270, 336], // 0:09–0:11.2 인식 로딩 (11.4~12.05s 부근 "아기방 소리 감지" 알림 배너 회피)
-  result: [369, 390], // 0:12.3–0:13 "3개를 읽었어요" 결과
-  done: [390, 450], // 0:13–0:15 냉장고 반영 + 토스트
+  modal: [410, 440], // 새 녹화 13.7–14.7s "어떤 사진을 고르실 건가요?" 모달
+  browse: [630, 720], // 21.0–24.0s 사진 선택기에서 쿠팡 캡처 탐색 → 선택(체크)
+  select: [740, 755], // 24.7–25.2s 완료 누르는 순간(로고 노출 구간 → 블러)
+  loading: [780, 850], // 26.0–28.3s 인식 로딩("글자와 재료를 골라내는 중이에요" 등)
+  result: [1020, 1050], // 34.0–35.0s "사진에서 찾은 재료" 결과
+  done: [175, 235], // (DONE_VIDEO) 5.8–7.8s `3개 반영하기` → "3개를 담았어요" 토스트
 };
 
 const rateC1 = 1.2;
@@ -100,7 +104,7 @@ const HookVideo: React.FC = () => {
 };
 
 // ---------- ③ 데모 (실사) ----------
-const VIDEO_W = 948; // 632x1280 원본을 캔버스 높이(1920)에 맞춰 스케일(x1.5)
+const VIDEO_W = 940; // 새 녹화 940x1920
 const VIDEO_H = 1920;
 const VIDEO_LEFT = (1080 - VIDEO_W) / 2;
 
@@ -117,7 +121,8 @@ const DemoClip: React.FC<{
   punchZoom?: number;
   punchOrigin?: string;
   fadeOut?: boolean; // 바로 뒤에 같은 화면의 정지 컷이 이어지면 false — 이음매에서 깜빡이지 않게
-}> = ({ rawFrom, rawTo, rate, len, blur, punchZoom, punchOrigin = "center", fadeOut: withFadeOut = true }) => {
+  src?: string;
+}> = ({ rawFrom, rawTo, rate, len, blur, punchZoom, punchOrigin = "center", fadeOut: withFadeOut = true, src = RAW_VIDEO }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const fadeIn = interpolate(frame, [0, 4], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
@@ -141,7 +146,7 @@ const DemoClip: React.FC<{
       }}
     >
       <OffthreadVideo
-        src={staticFile(RAW_VIDEO)}
+        src={staticFile(src)}
         trimBefore={rawFrom}
         trimAfter={rawTo}
         playbackRate={rate}
@@ -226,13 +231,13 @@ const Demo: React.FC = () => {
         <Sequence from={c4From} durationInFrames={C4} name="result">
           {/* "3개를 담았어요" 토스트가 뜨는 순간 확대되어 강조 — 토스트가 화면 하단 중앙에 뜨는
               자리라 좌우로 잘릴 걱정 없이 그 자리 기준으로 그냥 확대해도 된다. */}
-          <DemoClip rawFrom={RAW.result[0]} rawTo={RAW.result[1]} rate={1} len={C4} punchZoom={1.3} punchOrigin="50% 85%" />
+          <DemoClip rawFrom={RAW.result[0]} rawTo={RAW.result[1]} rate={1} len={C4} punchZoom={1.08} punchOrigin="50% 60%" />
         </Sequence>
         <Sequence from={c5From} durationInFrames={C5} name="done">
-          <DemoClip rawFrom={RAW.done[0]} rawTo={RAW.done[1]} rate={1} len={C5} />
+          <DemoClip rawFrom={RAW.done[0]} rawTo={RAW.done[1]} rate={1} len={C5} src={DONE_VIDEO} fadeOut={false} />
         </Sequence>
         <Sequence from={holdFrom} durationInFrames={PAYOFF_HOLD} name="hold">
-          <DemoClip rawFrom={RAW.done[1] - 1} rawTo={RAW.done[1]} rate={0.02} len={PAYOFF_HOLD} />
+          <FreezeFrame src="reel1_done_freeze.png" len={PAYOFF_HOLD} />
         </Sequence>
       </div>
 

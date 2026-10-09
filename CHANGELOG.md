@@ -12872,3 +12872,12 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 - `my-video/src/ReelHooksV3.tsx` 신설(v2 의 `makeReel`·`HookSpec` 재사용 — 훅은 자르지 않고 끝 페이드만). 자막은 문서의 「자막 띄울 순간」부터: 6.8s / 5.0 / 8.4 / 6.0 / 6.8 / 5.2 / 4.0 / 5.6. `Root.tsx` 등록(`Reel1HookV3Egg` … `Reel8HookV3Lobby`), `scripts/render_hooks_v3.sh` 로 렌더 → `my-video/out/reelN_hookv3_*.mp4`.
 - 데모·엔딩은 기존 편 그대로(2·5·6·7편은 새 UI 녹화, 1·3·4·8편은 옛 UI). 8편 모두 훅 → 데모 → 엔딩 프레임 확인. 소리 포함 재생은 사용자 확인 필요.
 
+### 릴스 1·4·8편 데모도 새 UI 로 — 에뮬레이터에 사용자가 로그인한 가족 계정(`엄마`)으로 녹화
+- 사용자가 에뮬레이터에서 직접 로그인(네이버, 닉네임 `엄마`, 식구 그룹·9월 기록 있음) → 그 세션으로 `adb screenrecord` + 웹뷰 원격 디버깅 녹화(`my-video/scripts/rec_reel1.py` · `rec_reel4.py` · `rec_reel4_cal.py` · `rec_reel8.py`).
+- **8편 가족·절약**(`reel8_family_demo_new.mp4`): 목표수정 15→20회 → 자세히 보기(절약액 카드, `reel8_savings_bg/card.png` 정지 컷) → 달력 이전 달(9월 엄마·아빠 점) → 목록 탭 우리 식구 전체. 녹화 뒤 **목표를 15회로 되돌림**.
+- **4편 AI 식단**(`reel4_diet_demo_new.mp4` + 식단 담은 뒤 월/주 캘린더 `rec_reel4_cal`): `아이 먹을 것 위주로` → 로딩 → `장보기 9개면 7일치` → `마이캘린더에 담기` → 월 보기 빨간 원(10/10~16) · 주 보기 목록. 크레딧 3×2회(계정 크레딧 1170대라 부담 없음). 녹화 뒤 **담은 식단은 `요리 계획 전체 삭제` 로 지움**.
+- **1편 사진 인식**(`reel1_photo_demo_new.mp4` + `reel1_photo_done_new.mp4`): 사진 보관함에 `store/sources/camera_coupang.png` 를 `adb push` 해 두고(`MSYS_NO_PATHCONV=1` 필요) 안드로이드 시스템 사진 선택기에서 실제로 선택 → 인식 → 결과 시트 → `3개 반영하기` → 토스트. 크레딧 2. 녹화 뒤 **반영된 재료 3개(방울양배추·표고버섯·치즈)는 냉장고에서 삭제**해 원상복구.
+- 컴포지션 갱신: `Reel1Receipt.tsx`(타임코드·`DONE_VIDEO`·정지 컷), `Reel4AiDiet.tsx`, `Reel8FamilySavings.tsx`. 이제 **3편 요리 모드를 뺀 7편**이 새 UI 데모(3편은 화면 개편 영향 없음).
+- 4벌(원본 후킹 · v2 · v3 · v4) × 8편 = **32편 전부 다시 렌더**(`scripts/render_all_new.sh`) → `my-video/out/`. 옛 렌더는 `out/_old_20261010/`.
+- 계정 데이터 변경 요약: 크레딧 사용(1176→약 1165), 목표·식단·재료는 원상복구. 화면에 닉네임 `엄마`·`FREE` 배지가 보인다(어드민 행은 마이페이지에만 있어 데모엔 안 나옴).
+

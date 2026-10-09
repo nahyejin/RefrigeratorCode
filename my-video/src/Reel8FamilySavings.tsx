@@ -21,19 +21,22 @@ const HOOK_LEN = HOOK_RAW.line[1] - HOOK_RAW.line[0]; // 299f
 // 사용자가 "가족과 즐겨찾기한 요리를 공유하고 기록을 나누는" 자막을 요청하면서 실제 화면에 월간·
 // 주간 캘린더가 있는지 물어봐서, 프레임 단위로 재확인한 결과 원래 2비트 플랜(목표 설정→절약액 확인)
 // 뒤에 캘린더·가족기록 내용이 더 있는 것을 확인 — 3번째 비트로 추가.
-const DEMO_VIDEO = "reel8_family_demo.mp4";
+const DEMO_VIDEO = "reel8_family_demo_new.mp4";
+// ⚠️ 2026-10-10 화면 개편 뒤 **새 UI 로 다시 녹화**(안드로이드 에뮬레이터, 로그인한 가족 계정 `엄마` — `scripts/rec_reel8.py`).
+// 940x1920, 30fps, 상태바 없음, 30.6s. 목표를 15→20회로 고쳐 보여 준 뒤 15회로 되돌렸다. 아래 DEMO_RAW 는 새 녹화의 타임코드.
+// 달력 비트는 전월(9월) 가족 기록 점, 목록 비트는 `목록` 탭(우리 식구 전체).
 
 // 데모 화면 최상단에 화면 녹화 표시(빨간 점 + 검은 알약 배지)가 찍혀 있어서 위쪽 180px을
 // 크롭해서 뺀다(Reel4/5/6/7과 동일한 patturn — 스케일 없이 position만 이동해서 가로폭·비율을
 // 전혀 안 건드리고, 잘려나간 만큼 위아래에 똑같이 여백을 남긴다).
-const TOPCROP_PX = 180;
+const TOPCROP_PX = 0; // 새 녹화는 상태바가 이미 잘려 있어 크롭 없음
 
 // ---- 데모 원본 타임코드(30fps 기준 프레임) ----
 const DEMO_RAW = {
-  goalSet: [210, 306], // 0:07.0–10.2 "목표수정" 탭 → 10회를 지우고 15회로 새로 입력
-  savingsCheck: [306, 408], // 0:10.2–13.6 적용 직후 "15회 달성 47%" · "목표까지 약 360,000원"으로 바뀐 결과
-  familyCal: [420, 504], // 0:14.0–16.8 월간 캘린더 — 날짜별 아빠(주황)·엄마(파랑) 색 점으로 구분된 기록
-  familyShare: [642, 738], // 0:21.4–24.6 "우리 식구 요리" 탭 — 식구들 것만 필터링해 날짜·시간과 함께 보기
+  goalSet: [215, 311], // 새 녹화 7.2–10.4s "목표수정" 탭 → 15회를 20회로 입력
+  savingsCheck: [306, 408], // (정지 컷이라 영상 구간은 안 쓴다 — `reel8_savings_bg/card.png` 가 새 화면 "목표 20회 · 목표 달성 시 48만원")
+  familyCal: [558, 642], // 새 녹화 18.6–21.4s 월간 캘린더 — 전월(9월) 엄마(파랑)·아빠(주황) 점
+  familyShare: [690, 786], // 새 녹화 23.0–26.2s `목록` 탭 — 우리 식구 전체 기록
 };
 const rateDemo = 1;
 
@@ -286,7 +289,7 @@ const Hook: React.FC = () => {
 };
 
 // ---------- ③ 데모 (실사 — 880x1920, 세로 높이가 캔버스와 같아 좌우만 살짝 레터박스) ----------
-const VIDEO_W = 880;
+const VIDEO_W = 940;
 const VIDEO_H = 1920;
 const VIDEO_LEFT = (1080 - VIDEO_W) / 2; // 100
 
@@ -312,7 +315,7 @@ const Demo: React.FC = () => {
       {GOAL_FREEZE > 0 && (
         <Sequence from={goalFrom + GOAL_VIDEO} durationInFrames={GOAL_FREEZE} name="goal-set-freeze">
           {/* punchZoom 스프링은 영상 끝(96f)엔 이미 1.3배로 정착해 있어서 같은 배율로 고정 */}
-          <FreezeImg src={GOAL_FREEZE_IMG} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} zoom={1.3} origin="80% 23%" cropTop={TOPCROP_PX} />
+          <FreezeImg src={GOAL_FREEZE_IMG} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} zoom={1.3} origin="85% 25%" cropTop={TOPCROP_PX} />
         </Sequence>
       )}
       <Sequence from={goalFrom} durationInFrames={GOAL_VIDEO} name="goal-set">
@@ -330,7 +333,7 @@ const Demo: React.FC = () => {
           cropTop={TOPCROP_PX}
           fade={false}
           punchZoom={1.3}
-          punchOrigin="80% 23%"
+          punchOrigin="85% 25%"
           punchDelay={20}
         />
       </Sequence>
