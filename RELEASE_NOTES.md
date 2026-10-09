@@ -13,6 +13,8 @@
 
 ## 다음 버전 — 쌓는 중 (iOS 1.0.6 · 빌드 12 / Android 1.0.7 · versionCode 8)
 
+**Android 1.0.7(8) 빌드 완료 2026-10-09 15:18**(서명된 `app-release.aab`) — 아래 표 전부 포함. iOS 1.0.6(빌드 12)은 `project.pbxproj` 번호만 올려 둠(맥에서 pull → build → cap sync → Archive). 이 시각 이후 앱 쪽을 또 고치면 다시 빌드(Android versionCode 9).
+
 | 날짜 | 변경 | 계기 |
 |---|---|---|
 | 2026-10-10 | 레시피 카드 `내 재료 N/M`(매칭 70% 이상) 글자색을 초록에서 **파랑**으로 | 사용자: 갑자기 초록인 이유 |

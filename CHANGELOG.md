@@ -12845,3 +12845,7 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 - 판단: 초록(`#3A6B2E`)은 "가진 것 = 좋음" 뜻으로 매칭률 70% 이상일 때만 입혔는데, 앱 색(검정·노랑·회색)과 따로 놀았다. 노랑은 흰 바탕에서 글자가 안 읽혀 제외, 파랑 선택.
 - `RecipeCard.tsx`: 70% 이상 `#3A6B2E` → **`#2C6BD6`**, 70% 미만은 그대로 진한 회색. 확인: 폰 크기에서 `내 재료 5/5` 가 파랑.
 
+### 안드로이드 1.0.7(versionCode 8) 빌드 · iOS 번호 1.0.6(12)
+- `npm run app:sync` → `build.gradle` 1.0.6(7) → **1.0.7(8)** → `gradlew bundleRelease` → 서명된 `app-release.aab`(약 13MB, `jarsigner -verify` 통과, 파일 안에 `1.0.7`). 직전 1.0.6(7)은 프로덕션 검토 제출 상태.
+- iOS `project.pbxproj` 1.0.5(11) → **1.0.6(12)**. 맥에서 pull → build → `npx cap sync ios` → Archive 하면 됨(사용자가 저녁에 맥을 켜면 안내).
+
