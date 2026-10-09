@@ -13,7 +13,7 @@
 
 ## 다음 버전 — 쌓는 중 (iOS 1.0.6 · 빌드 12 / Android 1.0.7 · versionCode 8)
 
-**Android 1.0.7(8) 빌드 완료 2026-10-09 15:18**(서명된 `app-release.aab`) — 아래 표 전부 포함. iOS 1.0.6(빌드 12)은 `project.pbxproj` 번호만 올려 둠(맥에서 pull → build → cap sync → Archive). 이 시각 이후 앱 쪽을 또 고치면 다시 빌드(Android versionCode 9).
+**Android 1.0.7(8) 빌드 완료 2026-10-09 15:18**(서명된 `app-release.aab`) — 아래 표 전부 포함. **iOS 1.0.6(12) 맥 빌드 2026-10-10** — `eba61fce` 기준, Release 빌드 성공. Archive·업로드·심사 제출은 사용자(1.0.5(11) 심사 결과에 따라 취소 후 교체 또는 통과 후 새 버전). 이 시각 이후 앱 쪽을 또 고치면 다시 빌드(Android versionCode 9).
 
 | 날짜 | 변경 | 계기 |
 |---|---|---|

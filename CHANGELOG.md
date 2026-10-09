@@ -12881,3 +12881,9 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 - 4벌(원본 후킹 · v2 · v3 · v4) × 8편 = **32편 전부 다시 렌더**(`scripts/render_all_new.sh`) → `my-video/out/`. 옛 렌더는 `out/_old_20261010/`.
 - 계정 데이터 변경 요약: 크레딧 사용(1176→약 1165), 목표·식단·재료는 원상복구. 화면에 닉네임 `엄마`·`FREE` 배지가 보인다(어드민 행은 마이페이지에만 있어 데모엔 안 나옴).
 
+
+## 2026-10-10
+
+### iOS 1.0.6 (빌드 12) 맥 빌드
+- 맥에서 로컬 변경 없음 확인 → `git pull`(`eba61fce` 까지, 윈도우에서 pbxproj 1.0.6(12) 반영) → `npm install` → `npm run build` → `npx cap sync ios`. 네이티브 변경은 번호뿐.
+- `xcodebuild … -configuration Release -destination generic/platform=iOS build` → BUILD SUCCEEDED. Archive·업로드·제출은 사용자.
