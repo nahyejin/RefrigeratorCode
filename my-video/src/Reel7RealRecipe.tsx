@@ -52,9 +52,16 @@ const TOPCROP_PX = 180;
 // "레시피 4만여 개" 문구가 뜨는 순간 + 레시피 상세 화면 + 실제 유튜브 원본으로 연결되는 장면)가 있어서
 // 그걸 살리는 4비트로 재구성. 사용자 피드백으로 "수만 건 엄선" 비트를 맨 앞으로 재배치(신뢰도 있는 다른
 // 비트들보다 이 임팩트 있는 숫자를 먼저 보여주는 게 설득력 있다는 판단), 그 앞에 스플래시 화면도 추가.
+// ⚠️ 2026-10-10 화면 개편 뒤 **claim40k · popularSort 두 비트만** 새 UI 로 다시 녹화했다(`scripts/rec_reel5.py` 의 로딩 카드 구간,
+// `scripts/rec_reel7.py`; 940x1920·상태바 없음 — 파일은 `reel7_claim_demo_new.mp4` · `reel7_sort_demo_new.mp4`).
+// 상세·원문 유튜브 비트는 화면 개편과 무관해 옛 녹화(`reel7_recipe_demo.mp4`)를 그대로 쓴다.
+const CLAIM_SRC = "reel7_claim_demo_new.mp4";
+const SORT_SRC = "reel7_sort_demo_new.mp4";
+const NEW_W = 940;
+const NEW_LEFT = (1080 - NEW_W) / 2; // 70
 const DEMO_RAW = {
-  claim40k: [18, 84], // 0:00.6–2.8 로딩 카드에 "레시피 4만여 개를 하나씩 맞춰 보는 중" 문구
-  popularSort: [165, 270], // 0:05.5–9.0 정렬 드롭다운(인기순 선택 표시) + 댓글 1237개인 인기 카드
+  claim40k: [0, 62], // 새 녹화 — 로딩 카드("내 재료 N개와…" → "레시피 4만여 개를 하나씩 맞춰 보는 중") 2.1s 중 앞 2.07s
+  popularSort: [0, 100], // 새 녹화 — 정렬 드롭다운 열림 → 인기순 선택(1.4s) + 하드컷 + 결과 카드(1.9s)
   detail: [519, 624], // 0:17.3–20.8 레시피 상세(재료·조리순서 단계별 정리)
   sourceProof: [624, 707], // 0:20.8–23.57(끝) "원문에서 자세히 보기" 탭 → 실제 유튜브 영상(좋아요·조회수)
 };
@@ -339,23 +346,23 @@ const Demo: React.FC = () => {
       </Sequence>
       <Sequence from={claimFrom} durationInFrames={CLAIM_VIDEO} name="claim-40k">
         <SubClip
-          src={DEMO_VIDEO}
+          src={CLAIM_SRC}
           rawFrom={DEMO_RAW.claim40k[0]}
           rawTo={DEMO_RAW.claim40k[1]}
           rate={rateDemo}
           len={CLAIM_VIDEO}
-          width={VIDEO_W}
+          width={NEW_W}
           height={VIDEO_H}
-          left={VIDEO_LEFT}
+          left={NEW_LEFT}
           zoom={1.1}
           origin="50% 42%"
-          cropTop={TOPCROP_PX}
+          cropTop={0}
           fade={false}
         />
       </Sequence>
       {CLAIM_FREEZE > 0 && (
         <Sequence from={claimFrom + CLAIM_VIDEO} durationInFrames={CLAIM_FREEZE} name="claim-40k-freeze">
-          <FreezeImg src={CLAIM_FREEZE_IMG} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} zoom={1.1} origin="50% 42%" cropTop={TOPCROP_PX} />
+          <FreezeImg src={CLAIM_FREEZE_IMG} width={NEW_W} height={VIDEO_H} left={NEW_LEFT} zoom={1.1} origin="50% 42%" cropTop={0} />
         </Sequence>
       )}
       <Sequence from={sortFrom} durationInFrames={SORT_VIDEO} name="popular-sort">
@@ -363,24 +370,24 @@ const Demo: React.FC = () => {
             자막이 가리키는 화면 요소가 뭔지 바로 보이도록. 뒤에 같은 화면의 정지 컷이 이어지면 끝 페이드를
             꺼서 이음매에서 깜빡이지 않게 한다. */}
         <SubClip
-          src={DEMO_VIDEO}
+          src={SORT_SRC}
           rawFrom={DEMO_RAW.popularSort[0]}
           rawTo={DEMO_RAW.popularSort[1]}
           rate={rateDemo}
           len={SORT_VIDEO}
-          width={VIDEO_W}
+          width={NEW_W}
           height={VIDEO_H}
-          left={VIDEO_LEFT}
-          cropTop={TOPCROP_PX}
+          left={NEW_LEFT}
+          cropTop={0}
           punchZoom={1.35}
-          punchOrigin="62% 40%"
+          punchOrigin="70% 24%"
           fadeOutFrames={SORT_FREEZE > 0 ? 0 : 4}
         />
       </Sequence>
       {SORT_FREEZE > 0 && (
         <Sequence from={sortFrom + SORT_VIDEO} durationInFrames={SORT_FREEZE} name="popular-sort-freeze">
           {/* punchZoom 스프링은 105f 뒤엔 이미 1.35배로 정착해 있어서 같은 배율로 고정 */}
-          <FreezeImg src={SORT_FREEZE_IMG} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} zoom={1.35} origin="62% 40%" cropTop={TOPCROP_PX} />
+          <FreezeImg src={SORT_FREEZE_IMG} width={NEW_W} height={VIDEO_H} left={NEW_LEFT} zoom={1.35} origin="70% 24%" cropTop={0} />
         </Sequence>
       )}
       <Sequence from={detailFrom} durationInFrames={DETAIL_VIDEO} name="detail">

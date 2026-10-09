@@ -16,7 +16,9 @@ import { fitToNarration } from "./narrationFrames";
 const HOOK_LINE_VIDEO = "reel6_hook_line_clean.mp4"; // 5.6s, 168f — 대사("...일이고"까지), afade(exp, 0.25s)로 이미 끝을 죽여둠
 const HOOK_TURN_VIDEO = "reel6_hook_turn_clean.mp4"; // 1.7s, 51f — 리액션(무음, -an으로 오디오 트랙 자체를 제거)
 // 데모: 실제 쿡매치 요리 챗봇 흐름(36s, 880x1920, 30fps) — 질문 입력 → 로딩 → AI 답변(이유 설명) + 레시피 카드
-const DEMO_VIDEO = "reel6_chatbot_demo.mp4";
+const DEMO_VIDEO = "reel6_chatbot_demo_new.mp4";
+// ⚠️ 2026-10-10 화면 개편 뒤 **새 UI 로 다시 녹화**(안드로이드 에뮬레이터, 비회원 체험 크레딧 1개 사용 — `scripts/rec_reel6.py`).
+// 940x1920, 30fps, 상태바 없음, 30.7s. 아래 DEMO_RAW 는 새 녹화의 타임코드.
 
 // 데모 화면 녹화본 최상단에 iOS 상태바 + 화면 녹화 표시가 그대로 찍혀 있어서 위쪽 180px을 크롭해서
 // 뺀다. 스케일(확대) 기반 크롭은 가로가 잘리거나(scale) 세로가 찌그러 보이는(scaleY) 부작용이 있어서,
@@ -29,12 +31,12 @@ const HOOK_LEN = HB1 + HB2; // 219f — 정지 홀드 없이 바로 하드컷
 
 // ---- 데모 원본 타임코드(30fps 기준 프레임) ----
 const DEMO_RAW = {
-  ask: [360, 510], // 0:12.0–17.0 챗봇 진입(추천 질문 칩) → "아이가 잘 먹는 음식 추천" 입력 → 전송
-  loading: [510, 699], // 0:17.0–23.3 로딩 스켈레톤 2단계("찾는 중" → "이유를 정리하는 중")
-  reveal: [699, 885], // 0:23.3–29.5 AI 답변 스트리밍("유통기한 임박한 돼지고기 활용" 등) + 레시피 카드 4장
+  ask: [180, 324], // 새 녹화 6.0–10.8s 챗봇 진입(추천 질문 칩) → "아이가 잘 먹는 음식 추천" 입력 → 전송
+  loading: [324, 636], // 10.8–21.2s 로딩 스켈레톤 2단계("찾는 중" → "이유를 정리하는 중" → "거의 다 됐어요")
+  reveal: [639, 822], // 21.3–27.4s AI 답변 + 레시피 카드(매칭률 배지) 스크롤
 };
 const rateAsk = 1.3;
-const rateLoading = 4.0; // 로딩 6초를 짧게 압축
+const rateLoading = 6.0; // 로딩 10초를 짧게 압축
 const rateReveal = 1;
 
 const ASK_LEN = Math.round((DEMO_RAW.ask[1] - DEMO_RAW.ask[0]) / rateAsk); // 115f
@@ -194,7 +196,7 @@ const Hook: React.FC = () => {
 };
 
 // ---------- ③ 데모 (실사 — 880x1920, 세로 높이가 캔버스와 같아 좌우만 살짝 레터박스) ----------
-const VIDEO_W = 880;
+const VIDEO_W = 940;
 const VIDEO_H = 1920;
 const VIDEO_LEFT = (1080 - VIDEO_W) / 2; // 100
 
@@ -228,15 +230,15 @@ const Demo: React.FC = () => {
           width={VIDEO_W}
           height={VIDEO_H}
           left={VIDEO_LEFT}
-          cropTop={TOPCROP_PX}
+          cropTop={0}
           fade={false}
           punchZoom={1.3}
-          punchOrigin="73% 30%"
+          punchOrigin="73% 22%"
           punchDelay={ASK_LEN - 30}
         />
       </Sequence>
       <Sequence from={loadingFrom} durationInFrames={LOADING_LEN} name="loading">
-        <SubClip src={DEMO_VIDEO} rawFrom={DEMO_RAW.loading[0]} rawTo={DEMO_RAW.loading[1]} rate={rateLoading} len={LOADING_LEN} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} cropTop={TOPCROP_PX} />
+        <SubClip src={DEMO_VIDEO} rawFrom={DEMO_RAW.loading[0]} rawTo={DEMO_RAW.loading[1]} rate={rateLoading} len={LOADING_LEN} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} cropTop={0} />
       </Sequence>
 
       <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, transform: frame >= pulseFrom ? `scale(${pulseScale})` : undefined }}>
@@ -252,7 +254,7 @@ const Demo: React.FC = () => {
             left={VIDEO_LEFT}
             zoom={1.1}
             origin="50% 55%"
-            cropTop={TOPCROP_PX}
+            cropTop={0}
             fade={false}
           />
         </Sequence>

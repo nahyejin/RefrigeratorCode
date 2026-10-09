@@ -8,7 +8,10 @@ const HOOK_VIDEO = "reel2_hook_gemini.mp4";
 // 데모: 실제 쿡매치 매칭률 필터 + 대체 재료 추천 + 부족재료 구매 화면(20.5s, 940x1920, 30fps, 재촬영본)
 // 원본 파일은 영상 맨 끝(19.7~20.5s) 근처에서 seek가 불안정해서(같은 타임코드인데 요청마다 다른 프레임이 나옴),
 // 고정 프레임레이트로 재인코딩한 버전을 씀 — 재인코딩 후에는 정확히 재현됨
-const DEMO_VIDEO = "reel2_matching_demo_fixed.mp4";
+const DEMO_VIDEO = "reel2_matching_demo_new.mp4";
+// ⚠️ 2026-10-10 화면 개편 뒤 **새 UI 로 다시 녹화**한 파일(안드로이드 에뮬레이터 1080x2400 → 상태바·내비 줄을 잘라
+// 940x1920, 30fps 고정 프레임, 30.6s). 녹화 스크립트: `scripts/rec_reel2.py`. 옛 파일(`reel2_matching_demo(_fixed).mp4`)은
+// 옛 UI 라 더 쓰지 않는다. 아래 DEMO_RAW 는 새 녹화의 타임코드(`scripts/rec_reel2.json` 표식 + 화면 변화 보정)다.
 
 // ---- 훅 원본 타임코드(30fps 기준 프레임) — 오디오에서 실제 대사 구간을 실측해서 잡음 ----
 // silencedetect로 확인한 발화 구간: 4.5~5.9s(주된 대사 "아 이 재료가 없네"), 7.3~7.7s(짧은 탄식)
@@ -25,11 +28,11 @@ const HOOK_LEN = HB1 + HB2 + HB3; // 228f
 
 // ---- 데모 원본 타임코드(30fps 기준 프레임) ----
 const DEMO_RAW = {
-  filter: [30, 135], // 0:01.0–4.5 매칭도 설정 모달 열고 63~100% 조정 후 적용
-  results: [195, 330], // 0:06.5–11.0 필터링된 결과 스크롤(매칭도 배지·재료 칩) — 11초 이후 매칭도를 63~84%로 한 번 더 좁히는 모달이 다시 뜨길래 그 앞부분까지만 쓰고 하드컷으로 건너뜀
-  substitute: [510, 570], // 0:17.0–19.0 "당근→양파" 대체 가능 칩 노출(원속도로 또렷하게)
-  coupangList: [555, 585], // 0:18.5–19.5 "통깨+" 칩이 보이는 리스트
-  coupangModal: [606, 616], // 0:20.2–20.53(영상 맨 끝) 부족 재료 구매 모달 — 실측해보니 모달이 열려 있는 구간이 여기뿐이라(그 전엔 계속 리스트), 나머지는 하드컷으로 건너뜀
+  filter: [210, 300], // 0:07.0–10.0 매칭도 설정 모달 열고 60~99% 로 조정 후 적용
+  results: [363, 498], // 0:12.1–16.6 필터링된 결과 스크롤(매칭도 배지·재료 칩)
+  substitute: [582, 642], // 0:19.4–21.4 "들기름 → 참기름" 대체 칩 노출(검정 칩 안에 화살표)
+  coupangList: [734, 764], // 0:24.5–25.5 "굴소스 +" 부족 칩이 보이는 리스트
+  coupangModal: [800, 830], // 0:26.7–27.7 부족 재료 구매 시트
 };
 const rateFilter = 1.3;
 const rateResults = 1.5;
@@ -288,12 +291,12 @@ const Demo: React.FC = () => {
             height={VIDEO_H}
             left={VIDEO_LEFT}
             zoom={1.6}
-            origin="33% 51%"
+            origin="0% 90%"
             fade={false}
           />
         </Sequence>
         <Sequence from={d3From + D3_VIDEO} durationInFrames={D3_FREEZE} name="substitute-freeze">
-          <FreezeImg src={SUBSTITUTE_FREEZE} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} zoom={1.6} origin="33% 51%" />
+          <FreezeImg src={SUBSTITUTE_FREEZE} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} zoom={1.6} origin="0% 90%" />
         </Sequence>
         <Sequence from={d4From} durationInFrames={D4a} name="coupangList">
           <SubClip

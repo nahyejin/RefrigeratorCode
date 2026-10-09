@@ -29,12 +29,13 @@ const HOOK_LEN = HB1 + HB2; // 186f
 
 // ---- 데모 원본 타임코드(30fps 기준 프레임) ----
 const DEMO_RAW = {
-  addSpinach: [1179, 1395], // 0:39.3–46.5 "시금치" 입력 → 보관공간·유통기한 모름 선택 → 구매시점 선택 → 확인
-  recipe: [381, 495], // 0:12.7–16.5 냉장고요리, 임박순 필터 켠 상태로 복숭아 우유 100% 매칭 카드
+  addSpinach: [162, 402], // 새 녹화(`reel5_add_demo_new.mp4`, scripts/rec_reel5_add.py) 5.4–13.4s. 옛: 1179–1395 = 0:39.3–46.5 "시금치" 입력 → 보관공간·유통기한 모름 선택 → 구매시점 선택 → 확인
+  recipe: [366, 480], // 새 녹화(`reel5_recipe_demo_new.mp4`) 0:12.2–16.0 냉장고요리, 임박 재료(우유·두부) 필터 켠 상태로 100% 매칭 카드
 };
-const rateAddSpinach = 2.5; // 입력~확인까지 여러 스텝이라 배속 압축(1보다 큰 배속은 OffthreadVideo 흰 화면 버그와 무관 — 안전)
+const rateAddSpinach = 2.5; // 새 녹화 240f → 96f // 입력~확인까지 여러 스텝이라 배속 압축(1보다 큰 배속은 OffthreadVideo 흰 화면 버그와 무관 — 안전)
 const rateRecipe = 1;
 
+const ADD_VIDEO_SRC = "reel5_add_demo_new.mp4"; // 2026-10-10 새 UI 로 다시 녹화(940x1920, 상태바 없음) — 입력 → 보관 공간 → 구매시점 → 확인
 const ADD_LEN = Math.round((DEMO_RAW.addSpinach[1] - DEMO_RAW.addSpinach[0]) / rateAddSpinach); // 86f
 
 // 데모 자막 나레이션(제미나이 TTS)이 비트보다 길면 비트를 나레이션 끝까지 늘린다 — 길이는
@@ -45,7 +46,12 @@ const SPINACH_HOLD = fitToNarration(ADD_LEN + 45, "reel5_narration_2") - ADD_LEN
 const RECIPE_VIDEO = Math.round((DEMO_RAW.recipe[1] - DEMO_RAW.recipe[0]) / rateRecipe); // 114f
 const RECIPE_LEN = fitToNarration(RECIPE_VIDEO, "reel5_narration_3");
 const RECIPE_FREEZE = RECIPE_LEN - RECIPE_VIDEO;
-const RECIPE_FREEZE_IMG = "reel5_recipe_freeze.png"; // 레시피 카드 영상 마지막 프레임(0:16.45)
+const RECIPE_FREEZE_IMG = "reel5_recipe_freeze.png"; // 레시피 카드 영상 마지막 프레임(새 녹화 0:15.9)
+// ⚠️ 2026-10-10 화면 개편 뒤 이 **레시피 카드 비트만** 새 UI 로 다시 녹화했다(`scripts/rec_reel5.py`, 940x1920·상태바 없음).
+// 알림 잠금화면·재료 등록 비트는 화면 개편과 무관해 옛 녹화(`reel5_expiry_demo.mp4`)를 그대로 쓴다.
+const RECIPE_VIDEO_SRC = "reel5_recipe_demo_new.mp4";
+const RECIPE_W = 940;
+const RECIPE_LEFT = (1080 - RECIPE_W) / 2; // 70
 const PULSE = 15; // 레시피 카드 뒷부분 확대 펄스(페이오프)
 
 const DEMO_LEN = ALERT_LEN + ADD_LEN + SPINACH_HOLD + RECIPE_LEN;
@@ -227,22 +233,18 @@ const AlertFreeze: React.FC<{ len: number }> = ({ len }) => {
 
 // 유통기한 자동계산 리빌 — 새로 등록된 "시금치 약 D-7" 알약이 목록 속에 묻혀 눈에 안 띈다는 피드백으로,
 // 등록 직후 정지 화면을 그 위치로 확대해서 명확히 보여준다.
-const SPINACH_ORIGIN = "66% 70%"; // 목록에서 "시금치 약 D-7" 알약이 위치한 지점
+const SPINACH_ORIGIN = "22% 43%"; // 목록에서 "시금치 약 D-7" 알약이 위치한 지점
 const SpinachReveal: React.FC<{ len: number }> = ({ len }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const opacity = interpolate(frame, [0, 4, len - 5, len], [0, 1, 1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   const zoom = interpolate(spring({ frame, fps, config: { damping: 13, mass: 0.7 } }), [0, 1], [1, 1.8]);
   return (
-    <div style={{ position: "absolute", top: 0, left: VIDEO_LEFT, width: VIDEO_W, height: VIDEO_H, overflow: "hidden", border: `1px solid ${LINE}`, opacity }}>
-      <div style={{ position: "absolute", top: TOPCROP_PX / 2, left: 0, width: "100%", height: `calc(100% - ${TOPCROP_PX}px)`, overflow: "hidden" }}>
-        <div style={{ position: "absolute", top: -TOPCROP_PX, left: 0, width: "100%", height: `calc(100% + ${TOPCROP_PX}px)` }}>
-          <Img
-            src={staticFile("reel5_spinach_freeze.png")}
-            style={{ width: "100%", height: "100%", objectFit: "cover", transform: `scale(${zoom})`, transformOrigin: SPINACH_ORIGIN }}
-          />
-        </div>
-      </div>
+    <div style={{ position: "absolute", top: 0, left: RECIPE_LEFT, width: RECIPE_W, height: VIDEO_H, overflow: "hidden", border: `1px solid ${LINE}`, opacity }}>
+      <Img
+        src={staticFile("reel5_spinach_freeze.png")}
+        style={{ width: "100%", height: "100%", objectFit: "cover", transform: `scale(${zoom})`, transformOrigin: SPINACH_ORIGIN }}
+      />
     </div>
   );
 };
@@ -272,15 +274,15 @@ const Demo: React.FC = () => {
 
       <Sequence from={addFrom} durationInFrames={ADD_LEN} name="add-spinach">
         <SubClip
-          src={DEMO_VIDEO}
+          src={ADD_VIDEO_SRC}
           rawFrom={DEMO_RAW.addSpinach[0]}
           rawTo={DEMO_RAW.addSpinach[1]}
           rate={rateAddSpinach}
           len={ADD_LEN}
-          width={VIDEO_W}
+          width={RECIPE_W}
           height={VIDEO_H}
-          left={VIDEO_LEFT}
-          cropTop={TOPCROP_PX}
+          left={RECIPE_LEFT}
+          cropTop={0}
         />
       </Sequence>
 
@@ -291,23 +293,23 @@ const Demo: React.FC = () => {
       <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, transform: frame >= pulseFrom ? `scale(${pulseScale})` : undefined }}>
         <Sequence from={recipeFrom} durationInFrames={RECIPE_VIDEO} name="recipe">
           <SubClip
-            src={DEMO_VIDEO}
+            src={RECIPE_VIDEO_SRC}
             rawFrom={DEMO_RAW.recipe[0]}
             rawTo={DEMO_RAW.recipe[1]}
             rate={rateRecipe}
             len={RECIPE_VIDEO}
-            width={VIDEO_W}
+            width={RECIPE_W}
             height={VIDEO_H}
-            left={VIDEO_LEFT}
+            left={RECIPE_LEFT}
             zoom={1.15}
             origin="50% 42%"
-            cropTop={TOPCROP_PX}
+            cropTop={0}
             fade={false}
           />
         </Sequence>
         {RECIPE_FREEZE > 0 && (
           <Sequence from={recipeFrom + RECIPE_VIDEO} durationInFrames={RECIPE_FREEZE} name="recipe-freeze">
-            <FreezeImg src={RECIPE_FREEZE_IMG} width={VIDEO_W} height={VIDEO_H} left={VIDEO_LEFT} zoom={1.15} origin="50% 42%" cropTop={TOPCROP_PX} />
+            <FreezeImg src={RECIPE_FREEZE_IMG} width={RECIPE_W} height={VIDEO_H} left={RECIPE_LEFT} zoom={1.15} origin="50% 42%" cropTop={0} />
           </Sequence>
         )}
       </div>

@@ -12849,3 +12849,15 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 - `npm run app:sync` → `build.gradle` 1.0.6(7) → **1.0.7(8)** → `gradlew bundleRelease` → 서명된 `app-release.aab`(약 13MB, `jarsigner -verify` 통과, 파일 안에 `1.0.7`). 직전 1.0.6(7)은 프로덕션 검토 제출 상태.
 - iOS `project.pbxproj` 1.0.5(11) → **1.0.6(12)**. 맥에서 pull → build → `npx cap sync ios` → Archive 하면 됨(사용자가 저녁에 맥을 켜면 안내).
 
+### 릴스 데모 영상 — 새 UI 로 다시 녹화해 교체(2·5·6·7편, 후킹 v1·v2 둘 다)
+- 사용자: 화면을 많이 고쳤으니 영상에 들어갈 앱 화면도 새 UI 로 다시 찍어 바꿔 달라(자막·음성은 그대로, 화면만 교체).
+- 방법: 안드로이드 에뮬레이터(`cookmatch_pixel`)에 디버그 앱을 깔고, 웹뷰 원격 디버깅(CDP)으로 **화면 안에서 타임라인(JS)을 돌리며** `adb screenrecord` 로 녹화 → 상태바·내비 줄을 잘라 **940x1920 · 30fps 고정**으로 재인코딩(`scripts/rec_lib.py` 의 `run_timeline` — 파이썬↔에뮬레이터 왕복 지연이 타이밍에 안 끼게). 비회원 상태 + 샘플 재료(`scripts/seed_fridge.js`) + 배포 서버 실제 레시피.
+- 새로 찍어 교체한 것(`my-video/public/`, 스크립트 `my-video/scripts/rec_*.py`):
+  - **2편 냉장고요리 매칭**: `reel2_matching_demo_new.mp4`(+`reel2_substitute_freeze.png`·`reel2_coupang_freeze.png`) — 매칭도 팝업 → 60~99% 적용 → 결과 훑기 → 검정 `들기름 → 참기름` 대체 칩 → `굴소스 +` 부족 칩 → 구매 시트. `Reel2Match.tsx` 의 `DEMO_RAW`·확대 중심 갱신.
+  - **5편 유통기한**: 레시피 카드 비트(`reel5_recipe_demo_new.mp4` — 임박 재료 팝업에서 우유·두부 → 적용 → 결과) + 재료 등록 비트(`reel5_add_demo_new.mp4` — 시금치 입력 → 냉장보관 → 유통기한 모름 → 구매시점 → 확인, `reel5_spinach_freeze.png` 에 `시금치 약 D-7`). 잠금화면 알림 비트는 앱 화면이 아니라 그대로.
+  - **6편 챗봇**: `reel6_chatbot_demo_new.mp4` — 비회원 체험 크레딧 1개로 `아이가 잘 먹는 음식 추천` 질문 → 로딩 → AI 답변 + 매칭률 카드.
+  - **7편 진짜 레시피**: 로딩 카드(`reel7_claim_demo_new.mp4`)·정렬 드롭다운→인기순(`reel7_sort_demo_new.mp4`)만 새로. 상세·원문 유튜브·스플래시 비트는 화면 개편과 무관해 옛 녹화 그대로.
+- 렌더(`scripts/render_new_ui_reels.sh` + 6편·5편 재렌더): `out/reel2_match`·`reel2_hookv2_fridge`·`reel5_expiry`·`reel5_hookv2_zucchini`·`reel6_chatbot`·`reel6_hookv2_anything`·`reel7_recipe`·`reel7_hookv2_salt` `.mp4`. **옛 렌더는 `out/_old_20261010/` 에 보관**(2·5·7편 6개; 6편 둘은 새 렌더 직전 복사). 후킹 v3(4~8편 후킹 클립)은 아직 컴포지션에 안 묶여 있어, 묶을 때 같은 `*Demo` 컴포넌트를 쓰면 새 화면이 자동으로 들어간다.
+- **못 한 것(로그인 필요)**: 4편 AI 식단(크레딧 3, 비회원 체험 남은 하루 몫 2라 부족 + 캘린더 화면), 8편 가족·절약(식구 그룹 계정). 1편 사진 인식은 카메라·AI 사진 업로드가 필요해 못 찍음(뒤 배경 내냉장고가 옛 모양이나 어두운 팝업 뒤라 영향 작음). 3편 요리 모드는 레시피 시트가 그대로라 유지. → 4·8편은 로그인한 에뮬레이터/폰에서 같은 방식(`rec_lib.run_timeline`)으로 찍어야 함.
+- 확인: 각 편의 데모 구간 프레임을 렌더 스틸로 확인(자막 위치·확대 중심·싱크). 실제 재생(소리 포함)은 사용자가 한 번 봐 주세요.
+
