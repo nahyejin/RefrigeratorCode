@@ -155,7 +155,7 @@ const VirtualizedRecipeList = forwardRef<VirtualizedRecipeListRef, VirtualizedRe
       {items.map((item) => {
         if (item.kind === 'ad') {
           return (
-            <div key={item.key} style={bleed ? { padding: '14px 14px 14px', borderBottom: '8px solid var(--surface-sub)' } : { marginBottom: 16 }}>
+            <div key={item.key} style={bleed ? { padding: '14px 14px 14px', borderBottom: '14px solid var(--surface-sub)' } : { marginBottom: 16 }}>
               <CoupangAdCard
                 ingredient={item.ingredient}
                 recipeId={item.recipeId}

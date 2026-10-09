@@ -542,7 +542,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
         // 꽉 찬 카드: 테두리·그림자·모서리 없이, 아래에 옅은 회색 띠 하나로 카드를 가른다.
         ...(bleed ? {
           border: 'none', boxShadow: 'none', borderRadius: 0, marginBottom: 0,
-          borderBottom: '8px solid var(--surface-sub)',
+          borderBottom: '14px solid var(--surface-sub)',
           maxWidth: 'none',
         } : null),
       }}
@@ -722,7 +722,9 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
           display: '-webkit-box',
           WebkitLineClamp: 2,
           WebkitBoxOrient: 'vertical' as const,
-          minHeight: 40,
+          // 두 줄 자리를 미리 잡지 않는다(꽉 찬 카드, 2026-10-10 요청) — 제목이 한 줄이면 한 줄만,
+          // 길면 두 줄까지. 다른 목록은 카드 높이를 맞추려고 40px 를 유지한다.
+          minHeight: bleed ? 0 : 40,
         }),
       }}>
         {recipe.title}
