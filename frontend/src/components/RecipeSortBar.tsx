@@ -180,7 +180,8 @@ const STYLES = {
     // 넓어 보였다(실사용 지적, 2026-09-13). 내용 너비만큼만 차지하고
     // (`flex-basis: auto`), 진짜 좁을 때만 `minWidth` 까지 줄어든다.
     flex: '0 1 auto' as const,
-    minWidth: 56,
+    // 56 → 36: 배지가 많아 줄이 빠듯할 때 정렬은 `∨` 한 글자까지 줄어든다(줄바꿈 대신 말줄임).
+    minWidth: 36,
     // `visible` 이어야 한다 — 펼친 목록(아래 `isSortDropdownOpen` 블록)이
     // 이 칸을 기준으로 `top:100%` 절대 위치로 붙는데, 여기를 `hidden` 으로
     // 두면 목록이 이 칸의 세로 경계 밖으로 나가는 순간 그대로 잘려 안 보인다
@@ -619,35 +620,9 @@ const RecipeSortBar = ({
   const [tempMatchRangeMax, setTempMatchRangeMax] = useState<string | null>(null);
   const [isSortDropdownOpen, setIsSortDropdownOpen] = useState<boolean>(false);
   const sortDropdownRef = useRef<HTMLDivElement>(null);
-  // 글자 크기를 키운 폰(안드로이드 설정 · 어르신용)에서는 버튼들이 한 줄에 다 못
-  // 들어가 정렬이 `재..` 로 잘리고 필터 버튼이 화면 밖으로 밀렸다(2026-10-09 확인).
-  // 평소엔 이전처럼 안 접고(출렁임 방지), **정말 넘칠 때만** 왼쪽 묶음을 접는다.
-  const barRef = useRef<HTMLDivElement>(null);
-  const groupRef = useRef<HTMLDivElement>(null);
-  const [crowded, setCrowded] = useState(false);
-  useLayoutEffect(() => {
-    const check = () => {
-      const bar = barRef.current;
-      const group = groupRef.current;
-      if (!bar || !group) return;
-      const prev = group.style.flexWrap;
-      group.style.flexWrap = 'nowrap';
-      // 넘침은 두 가지로 나타난다: 줄 전체가 넘치거나, 줄어들 수 있는 정렬 칸이
-      // 말줄임(`재..`)으로 접히거나. 둘 다 본다. 글자가 2~3px 모자란 정도(평소 크기)
-      // 는 예전처럼 한 줄 그대로 두고, 20% 넘게 잘릴 때만 접는다.
-      let over = bar.scrollWidth > bar.clientWidth + 1;
-      if (!over) {
-        over = Array.from(bar.querySelectorAll<HTMLElement>('*')).some(
-          (el) => el.clientWidth > 0 && el.clientWidth < el.scrollWidth * 0.8 && getComputedStyle(el).overflow !== 'visible',
-        );
-      }
-      group.style.flexWrap = prev;
-      setCrowded(over);
-    };
-    check();
-    window.addEventListener('resize', check);
-    return () => window.removeEventListener('resize', check);
-  });
+  // 이 줄은 **절대 줄바꿈하지 않는다**(2026-09-12 실사용 지적 + 2026-10-10 재차 지적). 배지가 붙어 폭이 모자라면
+  // 줄이 아래로 접히는 게 아니라 **정렬 칸이 말줄임(`재료매…`)으로 줄어든다.** 한때 큰 글자 폰 대응으로 넘칠 때만
+  // 접게 했었는데 평소 화면에서도 접혀 버려 되돌렸다.
   const [tempMatchRange, setTempMatchRange] = useState<[number, number]>(matchRange); // 임시 매칭도 범위
   const [expiryIngredientMode, setExpiryIngredientMode] = useState<'and'|'or'>(() => {
     const saved = localStorage.getItem('recipe_sortbar_state_fridge');
@@ -836,10 +811,12 @@ const RecipeSortBar = ({
 
   return (
     <>
-      <div ref={barRef} style={STYLES.container}>
-        <div ref={groupRef} style={crowded ? { ...STYLES.buttonGroup, flexWrap: 'wrap' as const } : STYLES.buttonGroup}>
+      <div style={STYLES.container}>
+        <div style={STYLES.buttonGroup}>
           <button
-            style={STYLES.button}
+            // 매칭도 배지가 둘(`50~99%` · `부족 2개`)이면 줄이 모자라, 정렬 칸만 줄이면 필터 버튼이 밀려난다 —
+            // 이 버튼도 끝이 잘리는 한이 있어도 **줄바꿈은 하지 않는다**(2026-10-10 지적).
+            style={{ ...STYLES.button, flexShrink: 0.3, minWidth: 0, overflow: 'hidden' }}
             onClick={() => {
               setTempMatchRange(matchRange); // 모달 열 때 현재 값을 임시 상태로 복사
               setMatchRateModalOpen(true);
