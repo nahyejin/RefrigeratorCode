@@ -12887,3 +12887,9 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 ### iOS 1.0.6 (빌드 12) 맥 빌드
 - 맥에서 로컬 변경 없음 확인 → `git pull`(`eba61fce` 까지, 윈도우에서 pbxproj 1.0.6(12) 반영) → `npm install` → `npm run build` → `npx cap sync ios`. 네이티브 변경은 번호뿐.
 - `xcodebuild … -configuration Release -destination generic/platform=iOS build` → BUILD SUCCEEDED. Archive·업로드·제출은 사용자.
+
+### iOS 1.0.6 (빌드 12) 심사 제출
+- 1.0.5(11) 는 심사 통과(업로드 오류 문구 「previously approved version [1.0.5]」로 확인).
+- 첫 Archive 가 pull 과 같은 시각(00:12)에 만들어져 Xcode 가 예전 번호 1.0.5(11) 로 묶음 → 업로드 거부(「train version '1.0.5' is closed」). Xcode 를 끄고 다시 열어 1.0.6(12) 로 다시 Archive·업로드.
+- App Store Connect 에서 1.0.6 새 버전 → 빌드 12 → 2026-10-10 00:29 심사 제출(심사 대기 중). 제출 ID `d6f5e3e0-95ce-4a89-8417-655eb0ed7964`.
+- 교훈: 맥에서 pull 로 번호가 바뀌면 Xcode 를 다시 열고 General 탭에서 Version/Build 를 확인한 뒤 Archive.
