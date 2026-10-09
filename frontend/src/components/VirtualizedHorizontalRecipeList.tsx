@@ -37,6 +37,11 @@ interface VirtualizedHorizontalRecipeListProps {
   showAds?: boolean;
   /** 카드에 "OO님도 즐겨찾기함" 같은 배지를 붙일 문구. undefined면 배지 없음. */
   getAttributionLabel?: (recipe: Recipe) => string | undefined;
+  /**
+   * 목록을 화면 좌우 끝까지 흐르게 하되 첫 카드는 이 만큼(px) 안쪽에서 시작한다(유튜브 앱의 가로 선반처럼).
+   * 부모의 좌우 여백이 이 값이어야 한다 — 바깥 래퍼가 음수 마진으로 그만큼 넓어진다.
+   */
+  edgePad?: number;
 }
 
 // 상수 정의
@@ -136,8 +141,17 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
   listHeightExtra = 64,
   compactSectionGap = false,
   showAds = true,
-  getAttributionLabel
+  getAttributionLabel,
+  edgePad = 0,
 }) => {
+  // react-window 안쪽 판을 `edgePad` 만큼 넓혀, 마지막 카드까지 스크롤해도 오른쪽 끝에 바짝 붙지 않게 한다.
+  // (컴포넌트 정체성이 바뀌면 목록이 통째로 다시 그려지므로 useMemo 로 고정)
+  const InnerElement = React.useMemo(
+    () => React.forwardRef<HTMLDivElement, any>(({ style, ...rest }, ref) => (
+      <div ref={ref} style={{ ...style, width: (parseFloat(style?.width) || 0) + edgePad * 2 }} {...rest} />
+    )),
+    [edgePad],
+  );
   /** compact: List 높이 = cardHeight + extra. cardHeight는 가로 카드 실세로 요즘인기와 맞출 것(불필요하게 크면 빈 띠). */
   const resolvedListHeightExtra = compactSectionGap
     ? Math.max(5, Math.round(cardHeight * 0.022))
@@ -386,6 +400,7 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
         <div
           style={{
             ...style,
+            ...(edgePad ? { left: (Number(style.left) || 0) + edgePad } : null),
             // 광고 칸만 좁다 (`AD_WIDTH`). 목록이 `VariableSizeList` 라서
             // 칸마다 폭을 따로 줄 수 있다 — 예전 `FixedSizeList` 에서는
             // 레시피 카드와 같은 300px 을 쓸 수밖에 없었다.
@@ -416,6 +431,7 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
       <div
         style={{
           ...style,
+          ...(edgePad ? { left: (Number(style.left) || 0) + edgePad } : null),
           width: cardWidth,
           marginRight: gap,
           // 카드 하나하나에 `pan-x` 만 허용해 두면, 카드 위에서 시작한 세로 스와이프가
@@ -488,6 +504,7 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
       style={{
         position: 'relative',
         ...(compactSectionGap ? { paddingBottom: 0 } : {}),
+        ...(edgePad ? { margin: `0 -${edgePad}px` } : {}),
       }}
     >
       <div 
@@ -509,6 +526,7 @@ const VirtualizedHorizontalRecipeList: React.FC<VirtualizedHorizontalRecipeListP
           estimatedItemSize={itemSize}
           layout="horizontal"
           width={containerWidth}
+          innerElementType={edgePad ? InnerElement : undefined}
           onScroll={(props) => {
             // react-window의 onScroll 이벤트로 스크롤 위치 추적
             const container = containerRef.current;

@@ -391,107 +391,83 @@ const IngredientPill: React.FC<IngredientPillProps> = ({ item, onRemove, onSetti
   );
 };
 
+/** 보관함 한 칸 — 좌우 20px 안쪽, 아래는 14px 회색 띠(칸을 가르는 선 대신). */
+const SECTION_STYLE: React.CSSProperties = {
+  padding: '14px 20px 14px',
+  borderBottom: '14px solid var(--surface-sub)',
+};
+
 interface ScrollablePillSectionProps {
   watchKey: number;
   children: React.ReactNode;
 }
 
 const ScrollablePillSection: React.FC<ScrollablePillSectionProps> = ({ watchKey, children }) => {
-  const scrollRef = React.useRef<HTMLDivElement>(null);
-  const [scrollHint, setScrollHint] = React.useState<'down' | 'up' | null>(null);
+  /**
+   * 재료 칩 칸 — **칸 안 스크롤 대신 `더보기`**(2026-10-10, 유튜브 앱처럼).
+   * 칸 안에 또 스크롤이 있으면 한 화면에 스크롤이 두 개라 손가락이 헷갈렸다. 접어 둔 높이(약 네 줄째가
+   * 간신히 보이는 정도) 안에 다 들어가면 그대로 보여 주고, 넘치면 아래를 흐리게 하고 `전체 보기` 를 둔다.
+   * 재료가 적은 칸은 내용만큼만 차지한다(예전엔 늘 146px 를 비워 뒀다).
+   */
+  const COLLAPSED_MAX = 140;
+  const innerRef = React.useRef<HTMLDivElement>(null);
+  const [expanded, setExpanded] = React.useState(false);
+  const [overflowing, setOverflowing] = React.useState(false);
 
-  const updateScrollHint = React.useCallback(() => {
-    const el = scrollRef.current;
+  const measure = React.useCallback(() => {
+    const el = innerRef.current;
     if (!el) return;
-    const hasOverflow = el.scrollHeight - el.clientHeight > 2;
-    const canScrollUp = el.scrollTop > 2;
-    const canScrollDown = el.scrollTop + el.clientHeight < el.scrollHeight - 2;
-    if (!hasOverflow) {
-      setScrollHint(null);
-      return;
-    }
-    setScrollHint(canScrollDown ? 'down' : (canScrollUp ? 'up' : null));
+    setOverflowing(el.scrollHeight > COLLAPSED_MAX + 2);
   }, []);
 
-  React.useEffect(() => {
-    updateScrollHint();
-    const rafId = window.requestAnimationFrame(updateScrollHint);
-    window.addEventListener('resize', updateScrollHint);
+  React.useLayoutEffect(() => {
+    measure();
+    const rafId = window.requestAnimationFrame(measure);
+    window.addEventListener('resize', measure);
     return () => {
       window.cancelAnimationFrame(rafId);
-      window.removeEventListener('resize', updateScrollHint);
+      window.removeEventListener('resize', measure);
     };
-  }, [updateScrollHint, watchKey]);
+  }, [measure, watchKey, children]);
+
+  const collapsed = overflowing && !expanded;
 
   return (
-    <div style={{ position: 'relative' }}>
-      <div
-        ref={scrollRef}
-        onScroll={updateScrollHint}
-        style={{
-          // 흰 바깥 상자 안에서 제목·정렬 버튼(흰 바탕)과 재료 칸(회색 바탕)이
-          // 구분되어 보이도록 재료 칸만 회색으로 둔다.
-          background: '#F5F5F7',
-          borderRadius: 14,
-          // 140 → 112, 여백 16 → 12. 보관함 세 칸(냉동·냉장·실온)이 **스크롤
-          // 없이 한 화면에** 들어와야 한다는 요청(2026-10-09). 112 면 알약
-          // 두 줄이 온전히 보이고 세 번째 줄이 살짝 걸쳐, 더 있다는 것도 보인다
-          // (칸 안은 그대로 스크롤되고 아래쪽 화살표가 힌트를 준다).
-          padding: 12,
-          // 112 → 146 (2026-10-09 요청): 알약 줄이 세 줄째 간신히 보이던 것을 **네 줄째가
-          // 간신히 보이게**(알약 한 줄 ≈ 34px). 세 칸이 한 화면에 안 들어가게 됐지만
-          // 한 칸에 보이는 재료가 늘어 스크롤할 일이 줄었다.
-          maxHeight: '146px',
-          minHeight: '146px',
-          border: 'none',
-          overflowY: 'auto',
-          overflowX: 'hidden',
-        }}
-        className="custom-scrollbar"
-      >
-        {children}
-      </div>
-      {scrollHint && (
-        <>
+    <div>
+      <div style={{ position: 'relative' }}>
+        <div
+          ref={innerRef}
+          style={{
+            maxHeight: collapsed ? COLLAPSED_MAX : 'none',
+            overflow: 'hidden',
+          }}
+        >
+          {children}
+        </div>
+        {collapsed && (
           <div
+            aria-hidden
             style={{
-              position: 'absolute',
-              left: 0,
-              right: 0,
-              bottom: 0,
-              height: 32,
+              position: 'absolute', left: 0, right: 0, bottom: 0, height: 44,
               pointerEvents: 'none',
-              borderBottomLeftRadius: 14,
-              borderBottomRightRadius: 14,
-              background: 'linear-gradient(to bottom, rgba(245,246,248,0), rgba(245,246,248,0.92))',
+              background: 'linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0.96))',
             }}
           />
-          <div
-            style={{
-              position: 'absolute',
-              left: '50%',
-              ...(scrollHint === 'down' ? { bottom: 6 } : { top: 6 }),
-              transform: 'translateX(-50%)',
-              pointerEvents: 'none',
-              width: 26,
-              height: 26,
-              borderRadius: '9999px',
-              background: 'rgba(255,255,255,0.92)',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#6A6A73',
-              fontSize: 16,
-              fontWeight: 400,
-              lineHeight: 1,
-              zIndex: 2,
-            }}
-            aria-hidden="true"
-          >
-            {scrollHint === 'down' ? '∨' : '∧'}
-          </div>
-        </>
+        )}
+      </div>
+      {overflowing && (
+        <button
+          type="button"
+          onClick={() => setExpanded(v => !v)}
+          aria-expanded={expanded}
+          style={{
+            display: 'block', margin: '6px auto 0', padding: '4px 12px',
+            border: 'none', background: 'none', cursor: 'pointer',
+            fontSize: 12.5, fontWeight: 600, color: 'var(--ink-500)',
+          }}
+        >
+          {expanded ? '접기 ∧' : '전체 보기 ∨'}
+        </button>
       )}
     </div>
   );
@@ -2503,19 +2479,15 @@ const MyFridge: React.FC = () => {
             <GroupTitle style={{ margin: 0, whiteSpace: 'nowrap' }}>내 냉장고 재료 관리</GroupTitle>
             <ExpiryBand variant="chip" boxes={fridgeBoxes} categoryMap={categoryMap} />
           </div>
-          {/* 보관함 세 칸을 흰 상자 하나로 묶는다(냉장고요리 카드 목록 상자와 같은 모양).
-              overflow 를 숨기지 않는다 — 정렬 드롭다운 메뉴가 상자 밖으로 펼쳐져야 한다. */}
+          {/* 보관함 세 칸 — **박스 없이 평평하게**(2026-10-10, 유튜브 앱처럼). 칸 사이는 테두리
+              대신 14px 회색 띠로 가르고, 화면 좌우 끝까지 쓴다(바깥 20px 여백을 음수 마진으로 걷음).
+              칸 안 스크롤은 없앴다 — 재료가 많으면 `더보기` 로 펼친다. */}
           <div
             data-guide-target="storage-areas"
-            style={{
-              padding: '12px 12px 2px',
-              background: '#FFFFFF',
-              border: '1px solid var(--line-200)',
-              borderRadius: 14,
-            }}
+            style={{ margin: '0 -20px', background: '#FFFFFF', borderTop: '1px solid var(--line-200)' }}
           >
           {/* 냉동보관 */}
-          <div style={{ marginBottom: 10 }}>
+          <div style={SECTION_STYLE}>
             {/* 이름 + 재료수를 왼쪽에 한 덩어리로 묶고, 조작 버튼(정렬·모두삭제)은
                 오른쪽으로 밀어낸다. 폭이 모자라면 **조작 버튼 묶음만** 아랫줄로
                 내려가므로 `재료수 N개` 와 `임박 N개` 가 잘리는 일이 없다. */}
@@ -2552,7 +2524,7 @@ const MyFridge: React.FC = () => {
             </ScrollablePillSection>
           </div>
           {/* 냉장보관 */}
-          <div style={{ marginBottom: 10 }}>
+          <div style={SECTION_STYLE}>
             {/* 이름 + 재료수를 왼쪽에 한 덩어리로 묶고, 조작 버튼(정렬·모두삭제)은
                 오른쪽으로 밀어낸다. 폭이 모자라면 **조작 버튼 묶음만** 아랫줄로
                 내려가므로 `재료수 N개` 와 `임박 N개` 가 잘리는 일이 없다. */}
@@ -2590,7 +2562,7 @@ const MyFridge: React.FC = () => {
             </ScrollablePillSection>
           </div>
           {/* 실온보관 */}
-          <div style={{ marginBottom: 10 }}>
+          <div style={SECTION_STYLE}>
             {/* 이름 + 재료수를 왼쪽에 한 덩어리로 묶고, 조작 버튼(정렬·모두삭제)은
                 오른쪽으로 밀어낸다. 폭이 모자라면 **조작 버튼 묶음만** 아랫줄로
                 내려가므로 `재료수 N개` 와 `임박 N개` 가 잘리는 일이 없다. */}

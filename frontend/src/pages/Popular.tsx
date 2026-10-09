@@ -1816,7 +1816,7 @@ const Popular = () => {
 
           return (
             <>
-            <GroupTitle style={{ margin: '0 2px 6px' }}>
+            <GroupTitle style={{ margin: '14px 2px 6px' }}>
               특별한 날 특별한 음식 <CountNote n={premiumRecipes.length} />
             </GroupTitle>
             <section style={{
@@ -1824,8 +1824,9 @@ const Popular = () => {
           // (2026-10-08 요청). 마이페이지·마이캘린더가 이미 박스+작은 제목으로
           // 영역을 말하므로, 같은 앱에서 구분 방식이 둘일 이유가 없다.
           // 위아래 여백을 **같게**(2026-10-08 지적: 위가 더 비어 보인다).
-          marginBottom: 14, padding: '12px', borderRadius: 14,
-          border: '1px solid var(--line-200)', background: '#FFFFFF',
+          margin: '0 -20px 0', padding: '0 20px 16px', background: '#FFFFFF',
+          // 박스 테두리 대신 14px 회색 띠로 가른다(2026-10-10, 유튜브 앱처럼 — 박스가 답답하다는 지적).
+          borderBottom: '14px solid var(--surface-sub)',
         }}>
               {/* 문구 변천:
                   ① "값비싼 재료가 들어간 레시피를 모았어요" — 비싼 재료를 사게 하려는
@@ -1844,7 +1845,7 @@ const Popular = () => {
               <IngredientLegend swatchesHidden style={{ marginBottom: 6, marginTop: 0 }} />
               
               {/* 가로 스크롤 컨테이너 (버튼 포함) */}
-              <div style={{ position: 'relative' }}>
+              <div style={{ position: 'relative', margin: '0 -20px' }}>
                 <div
                   ref={premiumScrollRef}
                   style={{
@@ -1852,6 +1853,9 @@ const Popular = () => {
                     overflowX: 'auto',
                     overflowY: 'hidden',
                     gap: '16px',
+                    // 화면 끝까지 흐르되 첫 카드는 20px 안쪽에서 시작(유튜브 앱의 가로 선반처럼)
+                    paddingLeft: 20,
+                    paddingRight: 20,
                     // 카드 맨 위가 이 상자의 맨 위와 딱 붙어 있으면
                     // `overflow-y: hidden` 이 **테두리 위 그림자를 잘라** 카드
                     // 윗선이 흐려 보인다. 3px 만 띄운다(아래는 이미 8px).
@@ -2013,7 +2017,7 @@ const Popular = () => {
           const list = feedTab === 'naver' ? naverRecipes : youtubeRecipes;
           return (
         <>
-        <GroupTitle style={{ margin: '0 2px 6px' }}>
+        <GroupTitle style={{ margin: '14px 2px 6px' }}>
           인기 레시피 <CountNote n={list.length} />
         </GroupTitle>
         <section style={{
@@ -2021,8 +2025,9 @@ const Popular = () => {
           // (2026-10-08 요청). 마이페이지·마이캘린더가 이미 박스+작은 제목으로
           // 영역을 말하므로, 같은 앱에서 구분 방식이 둘일 이유가 없다.
           // 위아래 여백을 **같게**(2026-10-08 지적: 위가 더 비어 보인다).
-          marginBottom: 14, padding: '12px', borderRadius: 14,
-          border: '1px solid var(--line-200)', background: '#FFFFFF',
+          margin: '0 -20px 0', padding: '0 20px 16px', background: '#FFFFFF',
+          // 박스 테두리 대신 14px 회색 띠로 가른다(2026-10-10, 유튜브 앱처럼 — 박스가 답답하다는 지적).
+          borderBottom: '14px solid var(--surface-sub)',
         }}>
 
           {/* 어디 것인지 고른다. 모양은 마이캘린더의 `내 요리만 / 우리 식구 전체`
@@ -2052,6 +2057,7 @@ const Popular = () => {
              cardHeight={290}
              gap={16}
              showRank={true}
+             edgePad={20}
              compactSectionGap
              onThumbnailError={(recipeId) => {
                setFailedThumbnailIds(prev => new Set([...prev, recipeId]));
@@ -2073,7 +2079,7 @@ const Popular = () => {
             **탭으로 겹치면** 높이는 절반이 되고, 표는 화면 폭을 다 쓴다. */}
         {(dishRankings.length > 0 || themeRankings.length > 0) && (
         <>
-        <GroupTitle style={{ margin: '0 2px 6px' }}>
+        <GroupTitle style={{ margin: '14px 2px 6px' }}>
           인기 급상승 TOP 10{' '}
           <CountNote n={(risingTab === 'dish' ? dishRankings : themeRankings).length} />
         </GroupTitle>
@@ -2082,8 +2088,9 @@ const Popular = () => {
           // (2026-10-08 요청). 마이페이지·마이캘린더가 이미 박스+작은 제목으로
           // 영역을 말하므로, 같은 앱에서 구분 방식이 둘일 이유가 없다.
           // 위아래 여백을 **같게**(2026-10-08 지적: 위가 더 비어 보인다).
-          marginBottom: 14, padding: '12px', borderRadius: 14,
-          border: '1px solid var(--line-200)', background: '#FFFFFF',
+          margin: '0 -20px 0', padding: '0 20px 16px', background: '#FFFFFF',
+          // 박스 테두리 대신 14px 회색 띠로 가른다(2026-10-10, 유튜브 앱처럼 — 박스가 답답하다는 지적).
+          borderBottom: '14px solid var(--surface-sub)',
         }}>
 
           {/* 요리 / 테마. 마이캘린더와 같은 공용 고르개다.
