@@ -588,6 +588,20 @@ const WeeklyPlan: React.FC = () => {
    * 이 화면은 다시 만들어지지 않기 때문이다.
    */
   const enteredAi = React.useRef(false);
+  /**
+   * 무료 ↔ AI 를 오갈 때 **식단(`slots`)·장보기 바구니를 비운다**(2026-10-10 지적: 이번 주 식단 추천에서 만든 계획의
+   * 장보기 목록이 AI 식단 추천 화면으로 그대로 따라왔다). 두 화면은 한 컴포넌트라 상태를 같이 쓰는데, 각 화면의
+   * 식단과 장보기 목록은 **그 화면 안에서만** 있어야 한다. 처음 그릴 때는 이미 비어 있어 건드리지 않는다.
+   */
+  const prevWantAi = React.useRef(wantAi);
+  React.useEffect(() => {
+    if (prevWantAi.current === wantAi) return;
+    prevWantAi.current = wantAi;
+    setSlots(prev => prev.map(s => ({ ...s, meals: [] })));
+    setSaved(false);
+    setBasket(null);
+    setAiNote(null);
+  }, [wantAi]);
   React.useEffect(() => {
     if (!wantAi) { enteredAi.current = false; return; }
     if (enteredAi.current) return;
@@ -1512,7 +1526,7 @@ const WeeklyPlan: React.FC = () => {
                         fontSize: 11.5, fontWeight: 700, color: 'var(--ink-700)', cursor: 'pointer',
                       }}
                     >
-                      + 요리 추가
+                      + 해당 일자 요리 추가
                     </button>
                   </div>
 
@@ -1676,36 +1690,8 @@ const WeeklyPlan: React.FC = () => {
               ))}
             </div>
 
-            {/* 이걸 하려면 **뭘 사야 하나.** 예전엔 여기도 재료 배지를 한 번 더
-                늘어놓아서, 한참 아래 진짜 장보기 목록(체크박스·구매확인 있는
-                곳)과 같은 재료가 두 번 보였다("위에도 있고 아래도 있다" —
-                실사용 지적, 2026-09-16). 목록 자체는 아래 한 곳에만 두고,
-                여기는 몇 개인지 + 그리로 데려가는 버튼만 남긴다. */}
-            {shopping.length > 0 && (
-              <div style={{
-                border: '1px solid #E0B400', background: '#FFFDF2',
-                borderRadius: 12, padding: '11px 12px', marginTop: 12,
-              }}>
-                <div style={{ fontSize: 14, fontWeight: 800, color: '#1A1A1E' }}>
-                  이걸 하려면 장보기 <span style={{ color: '#B4780A' }}>{shopping.length}개</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => document.getElementById('shopping-list')
-                    ?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-                  style={{
-                    width: '100%', minHeight: 38, marginTop: 10, borderRadius: 9,
-                    border: 'none', background: '#1A1A1E', color: '#FFFFFF',
-                    fontSize: 12.5, fontWeight: 700, cursor: 'pointer',
-                  }}
-                >
-                  장보기 목록으로 보기 ({shopping.length}개)
-                </button>
-                <div style={{ fontSize: 10, color: 'var(--ink-500)', marginTop: 7 }}>
-                  쿠팡 파트너스 · 수수료를 받을 수 있어요
-                </div>
-              </div>
-            )}
+            {/* 「이걸 하려면 장보기 N개 · 장보기 목록으로 보기」 박스는 뺐다(2026-10-10 요청 — AI 식단 화면에서 이미 뺀 것과
+                맞춤). 장보기 목록은 아래 한 곳에만 있다. */}
 
             {/* 반영하기 — 이게 없으면 "짜고 끝" 이다. */}
             <button
@@ -1719,7 +1705,7 @@ const WeeklyPlan: React.FC = () => {
                 transition: 'background .18s ease, color .18s ease',
               }}
             >
-              {saved ? '캘린더에 담았어요 · 다시 담기' : '이번 주 식단 계획 반영하기'}
+              {saved ? '캘린더에 담았어요 · 다시 담기' : '마이캘린더에 담기'}
             </button>
             {saved && (
               <button
