@@ -6519,8 +6519,13 @@ def collect_events():
 
         user_id, device_id = usage_quota.caller_identity()
         body = request.get_json(silent=True) or {}
+        # 앱이 platform 을 안 보내는 옛 버전이어도 요청 머리글(Origin)로 안드로이드·iOS·웹을 구분한다.
+        hint = user_events.platform_from_headers(
+            request.headers.get('Origin'), request.headers.get('User-Agent')
+        )
         saved = user_events.record(
-            get_db, body.get('events'), user_id=user_id, device_id=device_id
+            get_db, body.get('events'), user_id=user_id, device_id=device_id,
+            platform_hint=hint,
         )
         return jsonify({'saved': saved})
     except Exception as e:  # noqa: BLE001

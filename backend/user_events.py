@@ -96,7 +96,29 @@ def _clip(value, limit):
     return text[:limit] if text else None
 
 
-def record(get_db, events, user_id=None, device_id=None):
+def platform_from_headers(origin, user_agent):
+    """요청 머리글로 앱/웹을 가려낸다 — 앱을 새로 빌드해 스토어에 올리지 않아도 지금 깔린 앱부터 구분된다.
+
+    Capacitor 앱의 웹뷰는 자기 주소가 고정이다: 이 프로젝트는 안드로이드·iOS 모두 `https://localhost`(iOS 기본값 `capacitor://localhost` 도 처리).
+    웹(쿡매치 사이트)은 vercel 주소. 그 밖(개발 중 localhost:포트 등)은 구분하지 않는다.
+    """
+    o = (origin or "").strip().lower()
+    if o.startswith("capacitor://") or o.startswith("ionic://"):
+        return "ios"
+    if o in ("https://localhost", "http://localhost"):
+        # capacitor.config.ts 가 androidScheme·iosScheme 둘 다 https 라서 두 앱의 Origin 이 같다 → 웹뷰의 UA 로 가른다.
+        ua = (user_agent or "").lower()
+        if "android" in ua:
+            return "android"
+        if "iphone" in ua or "ipad" in ua or "ipod" in ua:
+            return "ios"
+        return None
+    if o.endswith(".vercel.app") or "cookmatch" in o or o.startswith("https://refrigerator-code"):
+        return "web"
+    return None
+
+
+def record(get_db, events, user_id=None, device_id=None, platform_hint=None):
     """이벤트 묶음을 저장한다. 저장 실패가 앱을 막지 않도록 예외는 위에서 삼킨다."""
     ensure_table(get_db)
 
@@ -123,7 +145,7 @@ def record(get_db, events, user_id=None, device_id=None):
             _clip(item.get("screen"), 60),
             _clip(item.get("detail"), 120),
             _clip(item.get("source"), 60),
-            platform if (platform := _clip(item.get("platform"), 12)) in ("android", "ios", "web") else None,
+            (platform if (platform := _clip(item.get("platform"), 12) or platform_hint) in ("android", "ios", "web") else None),
             now - timedelta(milliseconds=ago_ms),
         ))
 
