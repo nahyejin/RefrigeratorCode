@@ -18,7 +18,7 @@
 
 import calendar
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from flask import jsonify, request
 
@@ -1020,6 +1020,7 @@ def register(app, get_db):
             screens, exits, sessions, sources = [], [], {}, []
             screen_series, exit_series = [], []
             events_range = {'a': None, 'b': None}
+            new_devices = []
             cursor.execute("SHOW TABLES LIKE 'user_events'")
             if cursor.fetchone():
                 cursor.execute(
@@ -1076,6 +1077,30 @@ def register(app, get_db):
                     tuple(ev_params),
                 )
                 events_range = cursor.fetchone() or {'a': None, 'b': None}
+
+                # 새로 들어온 기기 — **그 기기가 처음 기록된 날**로 센다.
+                #
+                # 앱스토어·플레이스토어의 다운로드 수는 이 서버가 모르고(두 스토어가 하루 이틀 늦게 알려 준다),
+                # 서버가 아는 건 "앱을 처음 열어 기록이 남은 기기" 뿐이다. 광고로 설치해서 처음 열어 본 사람의
+                # 가장 가까운 숫자이고, 지연 없이 바로 보인다. 기간 필터와 무관하게 **그 기기의 첫 기록**을
+                # 보아야 하므로(기간 안에서만 보면 예전 사용자가 다 새 기기로 보인다) 기간 조건은 걸지 않고
+                # 내 기기·계정 제외만 건다. platform 은 2026-10-12 부터 기록해서 그 전 기기는 'unknown'.
+                import user_events
+                user_events.ensure_table(get_db)  # platform 칸이 없으면 이때 덧붙인다(멱등)
+                nd_cond, nd_params = _where('created_at', None, None, ex_ids, ex_devices,
+                                            device_col='device_id')
+                cursor.execute(
+                    "SELECT DATE(first_at) d, COALESCE(plat, 'unknown') platform, COUNT(*) n FROM ("
+                    "  SELECT device_id, MIN(created_at) first_at, MAX(platform) plat "
+                    f"  FROM user_events WHERE device_id IS NOT NULL{nd_cond} GROUP BY device_id"
+                    ") x WHERE first_at >= (CURDATE() - INTERVAL 90 DAY) "
+                    "GROUP BY d, platform ORDER BY d",
+                    tuple(nd_params),
+                )
+                new_devices = [
+                    {'date': r['d'].isoformat(), 'platform': r['platform'], 'n': r['n']}
+                    for r in cursor.fetchall()
+                ]
 
                 # 화면 진입을 **날짜별로** 남긴다.
                 #
@@ -1224,6 +1249,8 @@ def register(app, get_db):
             'screens': screens,
             'exits': exits,
             'sessions': sessions,
+            'new_devices': new_devices,
+            'today_kst': datetime.now(timezone(timedelta(hours=9))).date().isoformat(),
             'sources': sources,
             'screen_series': screen_series,
             'exit_series': exit_series,

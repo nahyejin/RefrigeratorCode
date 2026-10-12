@@ -17,6 +17,7 @@
  *  - **실패해도 조용히 넘어간다.** 기록은 부수적인 일이라 화면을 막으면 안 된다.
  */
 
+import { Capacitor } from '@capacitor/core';
 import { getDeviceId, usageHeaders } from './usage';
 
 const API_BASE_URL =
@@ -85,6 +86,16 @@ function sessionId(): string {
   }
 }
 
+/** 앱(안드로이드·iOS)인지 웹인지 — 어드민의 「새로 들어온 기기」를 나누는 데 쓴다. */
+function platformName(): string {
+  try {
+    const p = Capacitor.getPlatform();
+    return p === 'android' || p === 'ios' ? p : 'web';
+  } catch {
+    return 'web';
+  }
+}
+
 function payload(events: Event[]) {
   const now = Date.now();
   return JSON.stringify({
@@ -100,6 +111,7 @@ function payload(events: Event[]) {
       detail: e.detail,
       session_id: e.session_id,
       source: e.source,
+      platform: platformName(),
       ago_ms: Math.max(0, now - e.at),
     })),
   });

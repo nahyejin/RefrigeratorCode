@@ -2294,6 +2294,63 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
 
+          {act.today_kst && (
+            <div style={S.card}>
+              <h2 style={S.h2}>새로 들어온 기기</h2>
+              <Range>그 기기가 처음 기록된 날 기준 · 내 계정·기기 제외 · 지연 없이 바로 반영</Range>
+              {(() => {
+                // 앱스토어·플레이스토어의 다운로드 수는 이 서버가 모른다(두 스토어가 하루 이틀 늦게 알려 준다).
+                // 서버가 아는 건 앱을 처음 열어 기록이 남은 기기뿐 — 광고로 설치해서 처음 열어 본 사람에 가장 가까운 숫자.
+                const nd: { date: string; platform: string; n: number }[] = act.new_devices || [];
+                const dayStr = (offset: number) => {
+                  const d = new Date(act.today_kst + 'T12:00:00Z');
+                  d.setUTCDate(d.getUTCDate() - offset);
+                  return d.toISOString().slice(0, 10);
+                };
+                const on = (date: string, plat?: string) =>
+                  nd.filter((r) => r.date === date && (!plat || r.platform === plat)).reduce((a, r) => a + r.n, 0);
+                const days = Array.from({ length: 7 }, (_, i) => dayStr(i));
+                const week = days.reduce((a, d) => a + on(d), 0);
+                const label = (d: string, i: number) => (i === 0 ? '오늘' : i === 1 ? '어제' : d.slice(5).replace('-', '/'));
+                const tile = (title: string, value: number) => (
+                  <div style={{ flex: '1 1 110px', background: 'var(--surface-2, #f4f4f2)', borderRadius: 10, padding: '10px 12px' }}>
+                    <div style={{ fontSize: 11.5, color: 'var(--ink-500)' }}>{title}</div>
+                    <div style={{ fontSize: 22, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{num(value)}</div>
+                  </div>
+                );
+                return (
+                  <>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '4px 0 12px' }}>
+                      {tile('오늘', on(days[0]))}
+                      {tile('어제', on(days[1]))}
+                      {tile('최근 7일', week)}
+                    </div>
+                    <table style={{ borderCollapse: 'collapse', width: '100%' }}>
+                      <thead><tr>{['날짜', '합계', '안드로이드', '아이폰', '웹', '구분 전'].map((h) => (
+                        <th key={h} style={S.th}>{h}</th>))}</tr></thead>
+                      <tbody>
+                        {days.map((d, i) => (
+                          <tr key={d}>
+                            <td style={S.td}>{label(d, i)}</td>
+                            <td style={{ ...S.td, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{num(on(d))}</td>
+                            {['android', 'ios', 'web', 'unknown'].map((pl) => (
+                              <td key={pl} style={{ ...S.td, fontVariantNumeric: 'tabular-nums' }}>{num(on(d, pl))}</td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </>
+                );
+              })()}
+              <div style={{ fontSize: 11.5, color: 'var(--ink-500)', marginTop: 8, lineHeight: 1.6 }}>
+                <b>스토어 다운로드 수와는 달라요.</b> 앱을 설치해서 <b>처음 열어 본</b> 기기만 잡혀요(설치만 하고 안 열면 안 보여요).
+                스토어 숫자는 구글 플레이 콘솔 「통계」와 앱스토어 커넥트 「분석」에서 하루 이틀 늦게 나와요.
+                앱·웹 구분은 10/12 이후부터 기록돼서 그 전 기기는 「구분 전」에 들어가요.
+              </div>
+            </div>
+          )}
+
           {(act.screens || []).length > 0 && (
             <div style={S.card}>
               <h2 style={S.h2}>어느 화면을 보고 어디서 나가나</h2>

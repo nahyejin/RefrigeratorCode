@@ -69,6 +69,7 @@ def ensure_table(get_db):
                     screen VARCHAR(60) NULL,
                     detail VARCHAR(120) NULL,
                     source VARCHAR(60) NULL,     -- 어디서 들어왔나 (utm_source)
+                    platform VARCHAR(12) NULL,   -- android / ios / web (2026-10-12 추가, 이전 기록은 NULL)
                     created_at DATETIME NOT NULL,
                     INDEX idx_time (created_at),
                     INDEX idx_session (session_id, created_at),
@@ -77,6 +78,10 @@ def ensure_table(get_db):
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
                 """
             )
+            # 이미 만들어진 표에는 platform 칸을 한 번만 덧붙인다(앱·웹 구분 — 2026-10-12).
+            cursor.execute("SHOW COLUMNS FROM user_events LIKE 'platform'")
+            if not cursor.fetchone():
+                cursor.execute("ALTER TABLE user_events ADD COLUMN platform VARCHAR(12) NULL AFTER source")
             db.commit()
             _ddl_done = True
         finally:
@@ -118,6 +123,7 @@ def record(get_db, events, user_id=None, device_id=None):
             _clip(item.get("screen"), 60),
             _clip(item.get("detail"), 120),
             _clip(item.get("source"), 60),
+            platform if (platform := _clip(item.get("platform"), 12)) in ("android", "ios", "web") else None,
             now - timedelta(milliseconds=ago_ms),
         ))
 
@@ -154,8 +160,8 @@ def record(get_db, events, user_id=None, device_id=None):
 
         cursor.executemany(
             "INSERT INTO user_events "
-            "(user_id, device_id, session_id, name, screen, detail, source, created_at) "
-            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
+            "(user_id, device_id, session_id, name, screen, detail, source, platform, created_at) "
+            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
             rows,
         )
         db.commit()
