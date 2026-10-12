@@ -12944,3 +12944,8 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 - 사용자: 각 문구에 기능별 설명도 좋지만 주요 기능 8종 언급이 모든 콘텐츠에 기본으로 들어가면 좋겠고, 다운로드 URL도 매번 언급해야 한다.
 - `scripts/gen_reel_captions.py`: `FEATURES`(8종 요약) · `URL`(`👉 refrigerator-code.vercel.app/download`) 추가, `caption()` 순서 = 훅·기능 설명 → 8종 요약 → 「프로필 링크에서 받을 수 있어요」 → URL → 해시태그. `store/REEL_CAPTIONS.md` 재생성(24편, 한 편 약 800자 — 인스타 한도 2,200자 이내), `store/REEL_PLAN.md` 규칙 갱신.
 - `store/REEL_UPLOAD_PLAN.html` 도 새 본문으로 다시 만듦.
+
+### 릴스 본문 안내 문구 — 「프로필 링크」 → 「앱스토어·Play 스토어에서 '쿡매치' 검색」
+- 사용자: 프로필 링크를 타고 들어갈 필요 없이 앱스토어에서 쿡매치를 검색하라고만 해도 되는 것 아닌가, 그게 더 메인.
+- 확인: App Store(kr) 검색 `쿡매치` 1위 = 쿡매치 - 냉장고 레시피, Play 검색 `쿡매치` 1위 = 쿡매치 - 냉장고 재료로 레시피 추천.
+- `scripts/gen_reel_captions.py`: `LAST` = `📲 앱스토어·Play 스토어에서 '쿡매치'를 검색하세요`, `URL` = `바로 받기 👉 refrigerator-code.vercel.app/download`. `REEL_CAPTIONS.md`·`REEL_PLAN.md`·`REEL_UPLOAD_PLAN.html` 재생성. (영상 끝 CTA 화면의 「프로필 링크에서 시작하기」는 그대로 — 프로필 링크 자체는 유지.)
