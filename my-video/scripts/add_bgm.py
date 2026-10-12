@@ -10,7 +10,7 @@ import make_bgm
 
 ap = argparse.ArgumentParser()
 ap.add_argument("src"); ap.add_argument("idx", type=int); ap.add_argument("dst")
-ap.add_argument("--gain", type=float, default=0.4)
+ap.add_argument("--gain", type=float, default=0.34)
 ap.add_argument("--keep", help="합성한 곡을 이 경로에 남긴다")
 a = ap.parse_args()
 dur = float(subprocess.check_output(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", a.src], text=True))
@@ -21,7 +21,7 @@ fade_out = max(0.0, dur - 4.0)
 flt = (
     f"[1:a]volume={a.gain},afade=t=in:st=0:d=1.5,afade=t=out:st={fade_out:.2f}:d=4[m];"
     "[0:a]asplit=2[v1][v2];"
-    "[m][v1]sidechaincompress=threshold=0.012:ratio=14:attack=15:release=500:makeup=1[md];"
+    "[m][v1]sidechaincompress=threshold=0.005:ratio=20:attack=12:release=600:makeup=1[md];"
     "[md][v2]amix=inputs=2:normalize=0:duration=first[a]"
 )
 subprocess.check_call(["ffmpeg", "-v", "error", "-y", "-i", a.src, "-i", wav, "-filter_complex", flt, "-map", "0:v", "-map", "[a]",
