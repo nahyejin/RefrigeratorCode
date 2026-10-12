@@ -158,7 +158,7 @@ export const CtaOutro: React.FC<{ payoffLine: React.ReactNode }> = ({ payoffLine
           opacity: searchP,
         }}
       >
-        앱스토어 · Play 스토어에서
+        앱스토어, 플레이스토어에서 검색하세요
       </div>
       <div
         style={{
