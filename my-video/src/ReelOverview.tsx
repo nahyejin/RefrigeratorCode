@@ -329,7 +329,7 @@ export const ReelOverview: React.FC = () => {
         <CtaOutro
           payoffLine={
             <>
-              기능 8가지, <Mark>앱 하나로</Mark>
+              있는 재료로 <Mark>오늘 저녁 해결</Mark>
             </>
           }
         />
