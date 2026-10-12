@@ -286,10 +286,11 @@ SOURCES = {
     "substitute": ("store/sources/substitute_main.png", None, 132),
     "expiry": ("store/sources/match_main.png", None, 132),  # 배경은 목록 그대로(임박 필터 적용 뒤 화면은 썸네일이 안 뜬 카드가 섞였다)
     "cook": (V + "reel3_reading_freeze.png", None, 180),
-    "family": (V + "reel8_family_demo.mp4", 16.5, 180),
+    # 2026-10-12: 로그인한 가족 계정(엄마) 새 UI 녹화에서 뽑음 — 헤더의 닉네임은 기본 블러(NO_BLUR 아님)
+    "family": ("store/sources/family_main.png", None, 0),
 }
 
-NO_BLUR = {"match", "substitute", "expiry"}
+NO_BLUR = {"match", "expiry"}  # substitute 는 로그인 상태(`엄마`)로 찍혀 헤더 블러
 
 # 폰 화면 위에 겹쳐 올리는 보조 이미지(기울인 작은 카드 / 확대 콜아웃).
 #   crop: 원본 픽셀 좌표(상태바 자르기 전)  w: 캔버스 폭 대비 너비  angle: 반시계 방향 기울기(도)
@@ -306,16 +307,16 @@ INSETS = {
              w=0.29, angle=0, cx=0.5, cy=0.33, radius=0.045),
     ],
     # 재료 매칭도 설정 팝업
-    "match": dict(src="store/sources/match_filter_popup.png", crop=(94, 583, 986, 1886),
+    "match": dict(src="store/sources/match_filter_popup.png", crop=(94, 582, 986, 1887),
                   w=0.47, angle=-6, cx=0.72, cy=0.40, radius=0.04),
     # "대체 가능 · 당근→양파"가 있는 레시피 카드를 잘라 크게
-    "substitute": dict(src="store/sources/substitute_main.png", crop=(91, 1153, 990, 1548),
+    "substitute": dict(src="store/sources/substitute_main.png", crop=(15, 1270, 1065, 1560),
                        w=0.92, angle=-2, cx=0.5, cy=0.78, radius=0.03),
     # 임박 재료 설정 팝업
     "expiry": dict(src="store/sources/expiry_filter_popup.png", crop=(94, 582, 986, 1887),
                    w=0.47, angle=-6, cx=0.72, cy=0.40, radius=0.04),
     # 가족별 요리 횟수 + 이번 달 절약액과 그 계산식
-    "family": dict(src=V + "reel8_savings_bg.png", crop=(20, 248, 860, 850),
+    "family": dict(src="store/sources/family_savings.png", crop=(20, 140, 920, 420),
                    w=0.9, angle=-2, cx=0.5, cy=0.62, radius=0.03),
 }
 

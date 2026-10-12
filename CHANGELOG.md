@@ -12916,3 +12916,9 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 - `frontend/public/download.html`: `ANDROID_LIVE` false → **true** — 안드로이드 기기는 `play.google.com/store/apps/details?id=kr.cookmatch.app` 로 바로 이동(인스타 링크는 그대로). Vercel 배포 후 반영.
 - 사용자 작업: 쿠팡 파트너스 모바일 앱 목록에 Play 주소 추가.
 
+### 스토어 스크린샷 4·5·6·8번 새 UI 로 다시 제작(Play 1080x1920 · iOS 1290x2796)
+- 사용자: 4·5·6·8번 스토어 이미지를 다시 바꿔 달라. 어제 만든 4·5·6번은 그 뒤 칩 모양(보유=옅은 회색, 대체=검정 칩 안 `들기름 → 참기름`)이 또 바뀌어 낡음, 8번은 옛 UI 그대로였음.
+- 에뮬레이터(비회원)에서 새로 캡처: `store/sources/match_main.png`·`match_filter_popup.png`·`substitute_main.png`·`expiry_filter_popup.png`. **8번 가족**은 로그인한 가족 계정 녹화(`reel8_family_demo_new.mp4`)에서 뽑은 `family_main.png`(목록 탭 우리 식구 전체)·`family_savings.png`(절약액 계산식) — 헤더 닉네임은 블러.
+- `store/make_store_assets.py`: `SOURCES`·`INSETS` 갱신(5번은 헤더가 로그인 상태라 블러), `python store/make_store_assets.py shots` 로 Play·iOS 두 크기 재생성(`store/screenshots/play|ios/04·05·06·08_*.png`). 1·2·3·7번은 그대로.
+- 올리는 건 사용자: Play Console 스토어 등록정보 · App Store Connect.
+
