@@ -4,7 +4,7 @@ import { FONT_FAMILY, WHITE, LINE, useCustomFont, CtaOutro, Caption } from "./sh
 import { fitToNarration } from "./narrationFrames";
 
 // 훅: 제미나이 생성 실사 클립(8s, 720x1280, 24fps, 대사 포함) — 마트 계산대에서 영수증이 과장되게 길게 나옴
-const HOOK_VIDEO = "reel4_hook_gemini.mp4";
+const HOOK_VIDEO = "reel4_hook_gemini_clean.mp4"; // 우하단 제미나이 ✦ 표식을 지운 판(scripts/remove_gemini_mark.py)
 // 데모: 실제 쿡매치 AI 식단 추천 전체 흐름(43s, 880x1920, 30fps) — 버튼 탭부터 캘린더(월/주) 반영까지
 // 재촬영본. 이전 버전(reel4_diet_demo.mp4, 쿠팡 연결까지 있던 52s짜리)은 "AI 식단 추천 버튼을 누르는
 // 순간"과 "캘린더에 월별/주별로 반영된 화면"이 빠져 있어서, 그 두 가지가 포함된 새 녹화본으로 교체.
