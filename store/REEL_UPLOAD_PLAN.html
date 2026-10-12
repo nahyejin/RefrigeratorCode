@@ -1,0 +1,792 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>쿡매치 릴스 일정표</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap">
+<style>
+:root{
+  /* 레이아웃: 좌측 날짜 열 + 우측 내용 카드 24장을 날짜순으로 세로 나열. 상단에 시간 결정 요약. */
+  --bg:#f2f4f1; --surface:#ffffff; --fg:#17211c; --muted:#5d6b63; --line:#dde3dd;
+  --accent:#d4442a; --accent-fg:#ffffff; --accent-soft:#fbe6e0;
+  --leaf:#2f6b4a; --leaf-soft:#dcebe2; --cap-bg:#f6f8f5;
+  --font-body:"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --font-num:"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#121815; --surface:#1b241f; --fg:#e8eee9; --muted:#9baba0; --line:#2b3730;
+    --accent:#f06a4f; --accent-fg:#1a0d09; --accent-soft:#3a1f19;
+    --leaf:#7fcaa0; --leaf-soft:#1f3328; --cap-bg:#161e19; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#121815; --surface:#1b241f; --fg:#e8eee9; --muted:#9baba0; --line:#2b3730;
+  --accent:#f06a4f; --accent-fg:#1a0d09; --accent-soft:#3a1f19;
+  --leaf:#7fcaa0; --leaf-soft:#1f3328; --cap-bg:#161e19; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:15px;line-height:1.65;margin:0}
+.wrap{max-width:880px;margin:0 auto;padding:28px 16px 56px;display:flex;flex-direction:column;gap:20px}
+header .eyebrow{font-size:12px;font-weight:700;letter-spacing:.08em;color:var(--accent);margin:0 0 6px}
+h1{font-size:28px;line-height:1.25;margin:0 0 8px;font-weight:900;text-wrap:balance}
+header p{margin:0;color:var(--muted);max-width:62ch}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.fact{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.fact small{display:block;font-size:12px;color:var(--muted);font-weight:500}
+.fact b{font-size:20px;font-weight:900;font-variant-numeric:tabular-nums}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 18px}
+.panel h2{font-size:17px;margin:0 0 8px;font-weight:700}
+.panel p{margin:0 0 8px;max-width:64ch}
+.panel p:last-child{margin-bottom:0}
+.panel ol,.panel ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+.answer{border-left:4px solid var(--accent)}
+.note{font-size:13px;color:var(--muted)}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between;padding-block:8px;border-bottom:1px solid var(--line)}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{font:inherit;font-size:13px;font-weight:700;border:1px solid var(--line);background:var(--surface);color:var(--fg);padding:5px 12px;border-radius:999px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.prog{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.prog b{color:var(--leaf);font-weight:900}
+h2.round{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;font-size:18px;font-weight:900;margin:14px 0 0;padding-bottom:6px;border-bottom:2px solid var(--fg)}
+h2.round span{font-size:13px;font-weight:500;color:var(--muted);font-variant-numeric:tabular-nums}
+.post{display:grid;grid-template-columns:104px minmax(0,1fr);gap:0;background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.post.is-done{opacity:.55}
+.post.is-today{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+.when{background:var(--cap-bg);border-right:1px solid var(--line);padding:14px 8px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:2px}
+.md{font-family:var(--font-num);font-size:26px;font-weight:900;line-height:1.1;font-variant-numeric:tabular-nums}
+.wd{font-size:13px;color:var(--muted);font-weight:500}
+.time{margin-top:6px;font-size:14px;font-weight:700;background:var(--accent);color:var(--accent-fg);padding:1px 10px;border-radius:999px;font-variant-numeric:tabular-nums}
+.no{margin-top:6px;font-size:11px;color:var(--muted)}
+.badge{margin-top:6px;font-size:11px;font-weight:900;color:var(--accent);letter-spacing:.04em}
+.body{padding:14px 16px 16px;min-width:0;display:flex;flex-direction:column;gap:8px}
+.head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+h3{font-size:18px;line-height:1.35;margin:0;font-weight:900;text-wrap:balance;min-width:0}
+.done{flex:none;display:flex;gap:6px;align-items:center;font-size:13px;color:var(--muted);cursor:pointer;padding-top:3px}
+.done input{width:18px;height:18px;accent-color:var(--leaf)}
+.scene{margin:0;max-width:62ch}
+.meta{margin:0;display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;font-size:12px;color:var(--muted)}
+.tag{background:var(--leaf-soft);color:var(--leaf);font-weight:700;padding:1px 9px;border-radius:999px}
+.file{font-family:ui-monospace,Consolas,monospace;overflow-wrap:anywhere}
+.cap-head{display:flex;justify-content:space-between;align-items:center;margin-top:4px;font-size:12px;font-weight:700;letter-spacing:.06em;color:var(--muted)}
+.copy{font:inherit;font-size:13px;font-weight:700;border:1px solid var(--fg);background:var(--fg);color:var(--bg);padding:5px 14px;border-radius:8px;cursor:pointer}
+.copy.ok{background:var(--leaf);border-color:var(--leaf);color:var(--bg)}
+.cap{margin:0;background:var(--cap-bg);border:1px solid var(--line);border-radius:8px;padding:12px 14px;white-space:pre-wrap;overflow-wrap:anywhere;font-family:var(--font-body);font-size:14px;line-height:1.7}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (max-width:560px){
+  h1{font-size:24px}
+  .post{grid-template-columns:minmax(0,1fr)}
+  .when{flex-direction:row;flex-wrap:wrap;justify-content:flex-start;align-items:center;gap:4px 10px;border-right:0;border-bottom:1px solid var(--line);padding:10px 14px;text-align:left}
+  .md{font-size:22px}.time,.no{margin-top:0}.no{margin-left:auto}
+}
+</style></head>
+<body>
+
+<div class="wrap">
+<header>
+  <p class="eyebrow">쿡매치 인스타그램 · 릴스 24편</p>
+  <h1>릴스 업로드 일정표</h1>
+  <p>10월 12일(월) 오늘 첫 영상을 올리고, 월·수·금 오후 5시에 한 편씩 올립니다. 영상마다 어떤 상황인지, 붙여 넣을 본문, 올릴 날짜를 한 장에 모았어요.</p>
+</header>
+
+<section class="facts" aria-label="요약">
+  <div class="fact"><small>첫 업로드</small><b>10/12 (월)</b></div>
+  <div class="fact"><small>올리는 요일</small><b>월 · 수 · 금</b></div>
+  <div class="fact"><small>올리는 시간</small><b>오후 5시</b></div>
+  <div class="fact"><small>마지막 업로드</small><b>12/4 (금)</b></div>
+</section>
+
+<section class="panel answer">
+  <h2>18시보다 16~17시가 맞아요. 17:00으로 잡았습니다</h2>
+  <p>영상 대부분이 “오늘 뭐 먹지”, “냉장고에 뭐 있더라” 같은 저녁 메뉴 고민에서 시작해요. 사람들이 저녁 메뉴를 정하는 때가 오후 4~6시라 이 시간에 보이면 상황이 바로 와닿아요.</p>
+  <p>인스타는 올린 직후 1~2시간 반응으로 더 많은 사람에게 보여 줄지 정하는 경향이 있어요. 퇴근 후에 가장 많이 보는 6시 이후 시간대 바로 앞에 올려 두면 그때 더 널리 퍼지기 좋아요.</p>
+  <p class="note">정답이 있는 건 아니에요. 처음 4주는 17시로 고정하고, 인스타 인사이트의 ‘팔로워가 가장 많이 접속하는 시간’을 확인해서 그때 시간대를 조정하면 돼요. 오늘은 오전이라 17시까지 시간이 충분해요.</p>
+</section>
+
+<section class="panel">
+  <h2>올리는 방법</h2>
+  <ol>
+    <li>아래 카드의 파일 이름으로 영상을 찾습니다. 모두 <code>my-video/out/최종24편</code> 폴더 안에 있어요.</li>
+    <li>인스타 앱에서 릴스 올리기를 누르고 영상을 고른 뒤, 카드의 <b>본문 복사</b>를 눌러 설명란에 붙여 넣어요.</li>
+    <li>프로페셔널 계정이면 고급 설정에서 날짜와 시간을 정해 예약할 수 있어요. 한 번에 며칠씩 미리 예약해 두면 편해요. 예약 메뉴가 안 보이면 그날 17시에 직접 올리면 됩니다.</li>
+    <li>올린 영상은 카드의 <b>올렸어요</b>를 체크해 두세요. 체크 표시는 이 브라우저에만 저장돼요.</li>
+  </ol>
+</section>
+
+<div class="bar">
+  <div class="chips" role="group" aria-label="벌 선택">
+    <button type="button" class="chip" data-f="all" aria-pressed="true">전체 24편</button>
+    <button type="button" class="chip" data-f="0" aria-pressed="false">1벌</button>
+    <button type="button" class="chip" data-f="1" aria-pressed="false">2벌</button>
+    <button type="button" class="chip" data-f="2" aria-pressed="false">3벌</button>
+  </div>
+  <div class="prog"><b id="doneN">0</b> / 24편 올림</div>
+</div>
+<h2 class="round" id="r1" data-round="0">1벌 · 처음 만든 8편<span>10/12 – 10/28</span></h2>
+<article class="post" data-round="0" data-date="2026-10-12" data-id="p1">
+  <div class="when">
+    <div class="md">10/12</div>
+    <div class="wd">월요일</div>
+    <div class="time">17:00</div>
+    <div class="no">1/24번째</div>
+  </div>
+  <div class="body">
+    <div class="head">
+      <h3>카트가 한가득</h3>
+      <label class="done"><input type="checkbox" class="chk" id="chk1"><span>올렸어요</span></label>
+    </div>
+    <p class="scene">계획 없이 장을 보다가 카트가 한가득 차 버린 마트 장면.</p>
+    <p class="meta"><span class="tag">AI 식단</span><span class="file" title="my-video/out/최종24편/1벌_처음8편/reel4_diet.mp4">1벌_처음8편 / reel4_diet.mp4</span></p>
+    <div class="cap-head"><span>인스타 본문</span><button type="button" class="copy" data-t="cap">본문 복사</button></div>
+    <pre class="cap">계획 없이 장 보다가 카트가 한가득 찬 적 있죠? 🛒
+
+원하는 걸 말하면 쿡매치 AI가 냉장고 재료로 일주일 식단을 짜 줘요.
+있는 재료부터 채우니까 장 볼 목록이 확 줄고, 짠 식단은 캘린더에 그대로 담겨요.
+
+프로필 링크에서 받을 수 있어요
+
+#식단 #냉장고파먹기 #냉털 #집밥 #자취요리</pre>
+  </div>
+</article>
+<article class="post" data-round="0" data-date="2026-10-14" data-id="p2">
+  <div class="when">
+    <div class="md">10/14</div>
+    <div class="wd">수요일</div>
+    <div class="time">17:00</div>
+    <div class="no">2/24번째</div>
+  </div>
+  <div class="body">
+    <div class="head">
+      <h3>“이거 저번에도 샀나?”</h3>
+      <label class="done"><input type="checkbox" class="chk" id="chk2"><span>올렸어요</span></label>
+    </div>
+    <p class="scene">마트 진열대 앞에서 물건을 든 채 ‘이거 저번에도 샀나?’ 하고 멈춰 서는 장면.</p>
+    <p class="meta"><span class="tag">사진 인식</span><span class="file" title="my-video/out/최종24편/1벌_처음8편/reel1_receipt.mp4">1벌_처음8편 / reel1_receipt.mp4</span></p>
+    <div class="cap-head"><span>인스타 본문</span><button type="button" class="copy" data-t="cap">본문 복사</button></div>
+    <pre class="cap">&quot;이거 저번에도 샀나?&quot; 마트에서 한 번쯤 해 본 생각이죠 🛒
+
+영수증이나 음식 사진 한 장이면 쿡매치가 재료를 알아서 읽어요.
+재료도 유통기한도 자동으로 냉장고에 담겨서, 마트에서 헷갈릴 일이 없어요.
+
+프로필 링크에서 받을 수 있어요
+
+#냉털 #냉장고파먹기 #자취요리 #집밥 #유통기한</pre>
+  </div>
+</article>
+<article class="post" data-round="0" data-date="2026-10-16" data-id="p3">
+  <div class="when">
+    <div class="md">10/16</div>
+    <div class="wd">금요일</div>
+    <div class="time">17:00</div>
+    <div class="no">3/24번째</div>
+  </div>
+  <div class="body">
+    <div class="head">
+      <h3>검색창 앞에서 멍</h3>
+      <label class="done"><input type="checkbox" class="chk" id="chk3"><span>올렸어요</span></label>
+    </div>
+    <p class="scene">‘오늘 뭐 해 먹지…’ 하며 검색창 앞에서 멍하니 있는 장면.</p>
+    <p class="meta"><span class="tag">요리 AI</span><span class="file" title="my-video/out/최종24편/1벌_처음8편/reel6_chatbot.mp4">1벌_처음8편 / reel6_chatbot.mp4</span></p>
+    <div class="cap-head"><span>인스타 본문</span><button type="button" class="copy" data-t="cap">본문 복사</button></div>
+    <pre class="cap">오늘 뭐 해 먹지… 검색창 앞에서 멍 때린 적 있죠 🤔
+
+검색창 대신 쿡매치 AI한테 말하듯 물어보세요.
+내 냉장고 재료와 취향을 반영해서 딱 맞는 레시피를 골라 줘요.
+
+프로필 링크에서 받을 수 있어요
+
+#오늘뭐먹지 #집밥 #냉털 #자취요리 #식단</pre>
+  </div>
+</article>
+<article class="post" data-round="0" data-date="2026-10-19" data-id="p4">
+  <div class="when">
+    <div class="md">10/19</div>
+    <div class="wd">월요일</div>
+    <div class="time">17:00</div>
+    <div class="no">4/24번째</div>
+  </div>
+  <div class="body">
+    <div class="head">
+      <h3>재료 한두 개가 없어서 포기</h3>
+      <label class="done"><input type="checkbox" class="chk" id="chk4"><span>올렸어요</span></label>
+    </div>
+    <p class="scene">어렵게 찾은 레시피인데 재료가 한두 개 없어서, 결국 접는 장면.</p>
+    <p class="meta"><span class="tag">레시피 매칭</span><span class="file" title="my-video/out/최종24편/1벌_처음8편/reel2_match.mp4">1벌_처음8편 / reel2_match.mp4</span></p>
+    <div class="cap-head"><span>인스타 본문</span><button type="button" class="copy" data-t="cap">본문 복사</button></div>
+    <pre class="cap">어렵게 찾은 레시피, 재료 한두 개 없어서 포기한 적 있죠? 😮‍💨
+
+쿡매치는 내 냉장고 재료 기준으로 레시피를 매칭률 순으로 보여 줘요.
+없는 재료는 있는 재료로 바꿔 쓰는 방법까지 알려 주고, 정말 없는 건 바로 살 수 있게 이어 줘요.
+
+프로필 링크에서 받을 수 있어요
+
+#냉털 #냉장고파먹기 #오늘뭐먹지 #자취요리 #집밥</pre>
+  </div>
+</article>
+<article class="post" data-round="0" data-date="2026-10-21" data-id="p5">
+  <div class="when">
+    <div class="md">10/21</div>
+    <div class="wd">수요일</div>
+    <div class="time">17:00</div>
+    <div class="no">5/24번째</div>
+  </div>
+  <div class="body">
+    <div class="head">
+      <h3>결국 버린 채소</h3>
+      <label class="done"><input type="checkbox" class="chk" id="chk5"><span>올렸어요</span></label>
+    </div>
+    <p class="scene">사 놓고 깜빡해서 시들어 버린 채소를 결국 버리게 되는 장면.</p>
+    <p class="meta"><span class="tag">유통기한 알림</span><span class="file" title="my-video/out/최종24편/1벌_처음8편/reel5_expiry.mp4">1벌_처음8편 / reel5_expiry.mp4</span></p>
+    <div class="cap-head"><span>인스타 본문</span><button type="button" class="copy" data-t="cap">본문 복사</button></div>
+    <pre class="cap">사 놓고 유통기한 놓쳐서, 결국 버린 적 있죠? 🥬
+
+쿡매치는 유통기한이 다가오면 앱을 안 켜도 알림으로 알려 줘요.
+유통기한은 자동으로 계산되고, 임박한 재료로 만들 레시피까지 바로 추천해요.
+
+프로필 링크에서 받을 수 있어요
+
+#유통기한 #냉장고파먹기 #냉털 #집밥 #자취요리</pre>
+  </div>
+</article>
+<article class="post" data-round="0" data-date="2026-10-23" data-id="p6">
+  <div class="when">
+    <div class="md">10/23</div>
+    <div class="wd">금요일</div>
+    <div class="time">17:00</div>
+    <div class="no">6/24번째</div>
+  </div>
+  <div class="body">
+    <div class="head">
+      <h3>손에 뭐가 묻어서</h3>
+      <label class="done"><input type="checkbox" class="chk" id="chk6"><span>올렸어요</span></label>
+    </div>
+    <p class="scene">손에 뭐가 잔뜩 묻었는데 레시피 화면은 손으로 넘겨야 하는 부엌 장면.</p>
+    <p class="meta"><span class="tag">요리 모드</span><span class="file" title="my-video/out/최종24편/1벌_처음8편/reel3_cookmode.mp4">1벌_처음8편 / reel3_cookmode.mp4</span></p>
+    <div class="cap-head"><span>인스타 본문</span><button type="button" class="copy" data-t="cap">본문 복사</button></div>
+    <pre class="cap">요리할 땐 손에 뭐가 잔뜩 묻어 있는데, 레시피는 손으로 넘겨야 하죠 🙌
+
+요리 모드를 켜면 화면을 안 만져도 레시피를 단계별로 읽어 줘요.
+지금 할 부분은 노랗게 짚어 줘서, 요리가 끝날 때까지 놓칠 일이 없어요.
+
+프로필 링크에서 받을 수 있어요
+
+#집밥 #자취요리 #오늘뭐먹지 #냉털 #식단</pre>
+  </div>
+</article>
+<article class="post" data-round="0" data-date="2026-10-26" data-id="p7">
+  <div class="when">
+    <div class="md">10/26</div>
+    <div class="wd">월요일</div>
+    <div class="time">17:00</div>
+    <div class="no">7/24번째</div>
+  </div>
+  <div class="body">
+    <div class="head">
+      <h3>왜 제 것만 이상하죠</h3>
+      <label class="done"><input type="checkbox" class="chk" id="chk7"><span>올렸어요</span></label>
+    </div>
+    <p class="scene">레시피를 그대로 따라 했는데 내 요리만 이상하게 나온 장면.</p>
+    <p class="meta"><span class="tag">진짜 레시피</span><span class="file" title="my-video/out/최종24편/1벌_처음8편/reel7_recipe.mp4">1벌_처음8편 / reel7_recipe.mp4</span></p>
+    <div class="cap-head"><span>인스타 본문</span><button type="button" class="copy" data-t="cap">본문 복사</button></div>
+    <pre class="cap">레시피 따라 했는데, 왜 제 것만 이상하죠? 😢
+
+쿡매치에는 유튜브·네이버 상위 채널에서 매일 골라 모은 레시피가 수만 건 있어요.
+좋아요·댓글·조회수를 반영한 인기순이라, 검증된 레시피부터 볼 수 있어요.
+
+프로필 링크에서 받을 수 있어요
+
+#집밥 #자취요리 #오늘뭐먹지 #냉털 #식단</pre>
+  </div>
+</article>
+<article class="post" data-round="0" data-date="2026-10-28" data-id="p8">
+  <div class="when">
+    <div class="md">10/28</div>
+    <div class="wd">수요일</div>
+    <div class="time">17:00</div>
+    <div class="no">8/24번째</div>
+  </div>
+  <div class="body">
+    <div class="head">
+      <h3>이번 달 배달비</h3>
+      <label class="done"><input type="checkbox" class="chk" id="chk8"><span>올렸어요</span></label>
+    </div>
+    <p class="scene">부부가 이번 달 배달비 내역을 보고 놀라는 장면.</p>
+    <p class="meta"><span class="tag">가족·아낀 돈</span><span class="file" title="my-video/out/최종24편/1벌_처음8편/reel8_family_savings.mp4">1벌_처음8편 / reel8_family_savings.mp4</span></p>
+    <div class="cap-head"><span>인스타 본문</span><button type="button" class="copy" data-t="cap">본문 복사</button></div>
+    <pre class="cap">이번 달 배달비, 얼마인지 볼 용기 있어요? 💸
+
+가족과 함께 이번 달 집밥 목표를 정해 보세요.
+요리할 때마다 아낀 돈(예상)이 쌓이고, 가족이 만든 요리가 캘린더에 남아요.
+
+프로필 링크에서 받을 수 있어요
+
+#집밥 #식단 #냉장고파먹기 #냉털 #오늘뭐먹지</pre>
+  </div>
+</article>
+<h2 class="round" id="r2" data-round="1">2벌 · 새 클립 A<span>10/30 – 11/16</span></h2>
+<article class="post" data-round="1" data-date="2026-10-30" data-id="p9">
+  <div class="when">
+    <div class="md">10/30</div>
+    <div class="wd">금요일</div>
+    <div class="time">17:00</div>
+    <div class="no">9/24번째</div>
+  </div>
+  <div class="body">
+    <div class="head">
+      <h3>“아 뭐야, 대파 있었네”</h3>
+      <label class="done"><input type="checkbox" class="chk" id="chk9"><span>올렸어요</span></label>
+    </div>
+    <p class="scene">장 봐 온 대파를 넣으려다 냉장고에 이미 대파가 있는 걸 발견하는 장면.</p>
+    <p class="meta"><span class="tag">AI 식단</span><span class="file" title="my-video/out/최종24편/2벌_새클립A_v4/reel4_hookv4_greenonion.mp4">2벌_새클립A_v4 / reel4_hookv4_greenonion.mp4</span></p>
+    <div class="cap-head"><span>인스타 본문</span><button type="button" class="copy" data-t="cap">본문 복사</button></div>
+    <pre class="cap">있는 줄 모르고 또 산 대파, 우리 집에만 있는 거 아니죠? 🌿
+
+원하는 걸 말하면 냉장고에 있는 재료로 일주일 식단을 짜 줘요.
+짠 식단은 그대로 캘린더에 담기고, 있는 재료부터 최대한 채워서 장 볼 건 꼭 필요한 것만 남아요.
+이제 장보기도 가장 효율적으로.
+
+프로필 링크에서 받을 수 있어요
+
+#식단 #냉장고파먹기 #냉털 #집밥 #자취요리</pre>
+  </div>
+</article>
+<article class="post" data-round="1" data-date="2026-11-02" data-id="p10">
+  <div class="when">
+    <div class="md">11/2</div>
+    <div class="wd">월요일</div>
+    <div class="time">17:00</div>
+    <div class="no">10/24번째</div>
+  </div>
+  <div class="body">
+    <div class="head">
+      <h3>“두부 있었던 것 같은데?”</h3>
+      <label class="done"><input type="checkbox" class="chk" id="chk10"><span>올렸어요</span></label>
+    </div>
+    <p class="scene">마트에서 두부를 들고 ‘집에 있었나…?’ 하고 멈춰 서는 장면.</p>
+    <p class="meta"><span class="tag">사진 인식</span><span class="file" title="my-video/out/최종24편/2벌_새클립A_v4/reel1_hookv4_tofu.mp4">2벌_새클립A_v4 / reel1_hookv4_tofu.mp4</span></p>
+    <div class="cap-head"><span>인스타 본문</span><button type="button" class="copy" data-t="cap">본문 복사</button></div>
+    <pre class="cap">마트에서 두부 들고 &quot;집에 있었나…?&quot; 멈춘 적 있죠 🤔
+
+냉장고를 폰에 넣어 두면 그런 고민이 없어요.
+영수증이든 음식 사진이든 한 장만 찍으면 재료가 알아서 등록되고, 유통기한도 같이 챙겨 줘요.
+이제 냉장고, 기억 안 해도 돼요.
+
+프로필 링크에서 받을 수 있어요
+
+#냉털 #냉장고파먹기 #자취요리 #집밥 #유통기한</pre>
+  </div>
+</article>
+<article class="post" data-round="1" data-date="2026-11-04" data-id="p11">
+  <div class="when">
+    <div class="md">11/4</div>
+    <div class="wd">수요일</div>
+    <div class="time">17:00</div>
+    <div class="no">11/24번째</div>
+  </div>
+  <div class="body">
+    <div class="head">
+      <h3>“아무거나”→“그거 말고”</h3>
+      <label class="done"><input type="checkbox" class="chk" id="chk11"><span>올렸어요</span></label>
+    </div>
+    <p class="scene">소파에 앉은 커플, ‘뭐 먹을래?’ ‘아무거나’ 하고서 메뉴마다 퇴짜 놓는 장면.</p>
+    <p class="meta"><span class="tag">요리 AI</span><span class="file" title="my-video/out/최종24편/2벌_새클립A_v4/reel6_hookv4_anything.mp4">2벌_새클립A_v4 / reel6_hookv4_anything.mp4</span></p>
+    <div class="cap-head"><span>인스타 본문</span><button type="button" class="copy" data-t="cap">본문 복사</button></div>
+    <pre class="cap">&quot;뭐 먹을래?&quot; &quot;아무거나.&quot; &quot;김치찌개?&quot; &quot;아니 그거 말고.&quot; 🙃
+
+이 대화, 이제 쿡매치한테 물어보세요.
+말하듯 물어보면 내 냉장고 재료와 취향에 맞는 레시피를 골라 줘요.
+검색 대신 말 한마디면 충분해요.
+
+프로필 링크에서 받을 수 있어요
+
+#오늘뭐먹지 #집밥 #냉털 #자취요리 #식단</pre>
+  </div>
+</article>
+<article class="post" data-round="1" data-date="2026-11-06" data-id="p12">
+  <div class="when">
+    <div class="md">11/6</div>
+    <div class="wd">금요일</div>
+    <div class="time">17:00</div>
+    <div class="no">12/24번째</div>
+  </div>
+  <div class="body">
+    <div class="head">
+      <h3>“먹을 게 없네”</h3>
+      <label class="done"><input type="checkbox" class="chk" id="chk12"><span>올렸어요</span></label>
+    </div>
+    <p class="scene">냉장고를 열어 놓고 ‘먹을 게 없네’ 하며 한참 서 있는 장면.</p>
+    <p class="meta"><span class="tag">레시피 매칭</span><span class="file" title="my-video/out/최종24편/2벌_새클립A_v4/reel2_hookv4_fridge.mp4">2벌_새클립A_v4 / reel2_hookv4_fridge.mp4</span></p>
+    <div class="cap-head"><span>인스타 본문</span><button type="button" class="copy" data-t="cap">본문 복사</button></div>
+    <pre class="cap">냉장고는 몇 번을 열어도 그대로예요 🫠
+
+먹을 게 없는 게 아니라, 뭘 해 먹을지가 안 떠오르는 거예요.
+쿡매치는 지금 냉장고 재료로 만들 수 있는 요리를 매칭률 순으로 보여 줘요.
+재료가 한두 개 모자라면 대신 쓸 재료를 알려 주고, 정말 없는 건 바로 살 수 있게 이어 줘요.
+
+프로필 링크에서 받을 수 있어요
+
+#냉털 #냉장고파먹기 #오늘뭐먹지 #자취요리 #집밥</pre>
+  </div>
+</article>
+<article class="post" data-round="1" data-date="2026-11-09" data-id="p13">
+  <div class="when">
+    <div class="md">11/9</div>
+    <div class="wd">월요일</div>
+    <div class="time">17:00</div>
+    <div class="no">13/24번째</div>
+  </div>
+  <div class="body">
+    <div class="head">
+      <h3>“이거 언제 샀더라?”</h3>
+      <label class="done"><input type="checkbox" class="chk" id="chk13"><span>올렸어요</span></label>
+    </div>
+    <p class="scene">냉장고 앞에서 ‘이거 언제 샀더라?’ 하며 물러진 애호박을 꺼내는 장면.</p>
+    <p class="meta"><span class="tag">유통기한 알림</span><span class="file" title="my-video/out/최종24편/2벌_새클립A_v4/reel5_hookv4_zucchini.mp4">2벌_새클립A_v4 / reel5_hookv4_zucchini.mp4</span></p>
+    <div class="cap-head"><span>인스타 본문</span><button type="button" class="copy" data-t="cap">본문 복사</button></div>
+    <pre class="cap">&quot;이거 언제 샀더라…&quot; 야채칸에서 물러진 애호박 꺼내 본 적 있죠 🥲
+
+앱을 안 켜도 유통기한이 다가오면 알림으로 알려 줘요.
+유통기한을 직접 안 적어도 자동으로 계산해 주고, 임박한 재료 순으로 바로 레시피까지 추천해요.
+버리기 전에, 있는 재료부터 요리하세요.
+
+프로필 링크에서 받을 수 있어요
+
+#유통기한 #냉장고파먹기 #냉털 #집밥 #자취요리</pre>
+  </div>
+</article>
+<article class="post" data-round="1" data-date="2026-11-11" data-id="p14">
+  <div class="when">
+    <div class="md">11/11</div>
+    <div class="wd">수요일</div>
+    <div class="time">17:00</div>
+    <div class="no">14/24번째</div>
+  </div>
+  <div class="body">
+    <div class="head">
+      <h3>“아 코로 넘겨?”</h3>
+      <label class="done"><input type="checkbox" class="chk" id="chk14"><span>올렸어요</span></label>
+    </div>
+    <p class="scene">반죽 묻은 손으로 폰 레시피를 넘기려다 ‘아 코로 넘겨?’ 하는 장면.</p>
+    <p class="meta"><span class="tag">요리 모드</span><span class="file" title="my-video/out/최종24편/2벌_새클립A_v4/reel3_hookv4_dough.mp4">2벌_새클립A_v4 / reel3_hookv4_dough.mp4</span></p>
+    <div class="cap-head"><span>인스타 본문</span><button type="button" class="copy" data-t="cap">본문 복사</button></div>
+    <pre class="cap">반죽 묻은 손으로 레시피 넘기다가… 코까지 써 본 사람 🙋
+
+요리 모드를 켜면 화면을 안 만져도 돼요.
+단계를 소리로 읽어 주고, 지금 할 부분을 노랗게 짚어 줘요. 요리가 끝날 때까지요.
+이제 손으론 요리하고, 레시피는 귀로 들으세요.
+
+프로필 링크에서 받을 수 있어요
+
+#집밥 #자취요리 #오늘뭐먹지 #냉털 #식단</pre>
+  </div>
+</article>
+<article class="post" data-round="1" data-date="2026-11-13" data-id="p15">
+  <div class="when">
+    <div class="md">11/13</div>
+    <div class="wd">금요일</div>
+    <div class="time">17:00</div>
+    <div class="no">15/24번째</div>
+  </div>
+  <div class="body">
+    <div class="head">
+      <h3>“적당히가 얼만데?”</h3>
+      <label class="done"><input type="checkbox" class="chk" id="chk15"><span>올렸어요</span></label>
+    </div>
+    <p class="scene">레시피에 ‘소금 적당히’라고 적혀 있어서 ‘적당히가 얼만데?’ 하는 장면.</p>
+    <p class="meta"><span class="tag">진짜 레시피</span><span class="file" title="my-video/out/최종24편/2벌_새클립A_v4/reel7_hookv4_salt.mp4">2벌_새클립A_v4 / reel7_hookv4_salt.mp4</span></p>
+    <div class="cap-head"><span>인스타 본문</span><button type="button" class="copy" data-t="cap">본문 복사</button></div>
+    <pre class="cap">&quot;소금 적당히&quot;… 적당히가 얼만데요 🧂
+
+쿡매치에는 유튜브·네이버 상위 채널에서 매일 골라 모은 레시피가 수만 건 있어요.
+좋아요·댓글·조회수를 반영해 인기순으로 보여 주고, 출처까지 확인할 수 있어요.
+뭘 골라도 실패 없는 진짜 레시피만.
+
+프로필 링크에서 받을 수 있어요
+
+#집밥 #자취요리 #오늘뭐먹지 #냉털 #식단</pre>
+  </div>
+</article>
+<article class="post" data-round="1" data-date="2026-11-16" data-id="p16">
+  <div class="when">
+    <div class="md">11/16</div>
+    <div class="wd">월요일</div>
+    <div class="time">17:00</div>
+    <div class="no">16/24번째</div>
+  </div>
+  <div class="body">
+    <div class="head">
+      <h3>“어휴, 쓰러지겠다”</h3>
+      <label class="done"><input type="checkbox" class="chk" id="chk16"><span>올렸어요</span></label>
+    </div>
+    <p class="scene">배달 용기가 탑처럼 쌓인 걸 보고 ‘어휴 쓰러지겠다’ 하는 장면.</p>
+    <p class="meta"><span class="tag">가족·아낀 돈</span><span class="file" title="my-video/out/최종24편/2벌_새클립A_v4/reel8_hookv4_takeout.mp4">2벌_새클립A_v4 / reel8_hookv4_takeout.mp4</span></p>
+    <div class="cap-head"><span>인스타 본문</span><button type="button" class="copy" data-t="cap">본문 복사</button></div>
+    <pre class="cap">이번 달 배달 용기… 몇 개였는지 세어 보셨어요? 🥡
+
+가족과 함께 이번 달 집밥 목표를 정해 보세요.
+요리할 때마다 아낀 돈(예상)이 바로 보이고, 가족이 언제 뭘 만들었는지 캘린더에 기록으로 남아요.
+목표부터 식단, 절약까지 가족과 함께 확인해요.
+
+프로필 링크에서 받을 수 있어요
+
+#집밥 #식단 #냉장고파먹기 #냉털 #오늘뭐먹지</pre>
+  </div>
+</article>
+<h2 class="round" id="r3" data-round="2">3벌 · 새 클립 B<span>11/18 – 12/4</span></h2>
+<article class="post" data-round="2" data-date="2026-11-18" data-id="p17">
+  <div class="when">
+    <div class="md">11/18</div>
+    <div class="wd">수요일</div>
+    <div class="time">17:00</div>
+    <div class="no">17/24번째</div>
+  </div>
+  <div class="body">
+    <div class="head">
+      <h3>안 닫히는 냉장고</h3>
+      <label class="done"><input type="checkbox" class="chk" id="chk17"><span>올렸어요</span></label>
+    </div>
+    <p class="scene">장 봐 온 사람이 꽉 찬 냉장고 문을 등으로 막고 ‘또 장 봤어?’ ‘응, 이번 주 거야’ 하는 장면.</p>
+    <p class="meta"><span class="tag">AI 식단</span><span class="file" title="my-video/out/최종24편/3벌_새클립B_v3/reel4_hookv3_fridgedoor.mp4">3벌_새클립B_v3 / reel4_hookv3_fridgedoor.mp4</span></p>
+    <div class="cap-head"><span>인스타 본문</span><button type="button" class="copy" data-t="cap">본문 복사</button></div>
+    <pre class="cap">꽉 찬 냉장고, 닫았는데 스르륵 다시 열려서 등으로 막아 본 적 있죠? 😅
+
+이번 주는 장 보기 전에 쿡매치부터 열어 보세요.
+냉장고에 있는 재료로 일주일 식단을 먼저 짜고, 장 볼 건 꼭 필요한 것만 남겨 줘요.
+
+프로필 링크에서 받을 수 있어요
+
+#식단 #냉장고파먹기 #냉털 #집밥 #자취요리</pre>
+  </div>
+</article>
+<article class="post" data-round="2" data-date="2026-11-20" data-id="p18">
+  <div class="when">
+    <div class="md">11/20</div>
+    <div class="wd">금요일</div>
+    <div class="time">17:00</div>
+    <div class="no">18/24번째</div>
+  </div>
+  <div class="body">
+    <div class="head">
+      <h3>“계란 있어? 없어?”</h3>
+      <label class="done"><input type="checkbox" class="chk" id="chk18"><span>올렸어요</span></label>
+    </div>
+    <p class="scene">장 보다가 집에 전화해서 ‘계란 있어? 없어?’ 묻는 장면. 냉장고 앞 사람이 ‘어, 한 개 있네?’ 하고 답한다.</p>
+    <p class="meta"><span class="tag">사진 인식</span><span class="file" title="my-video/out/최종24편/3벌_새클립B_v3/reel1_hookv3_egg.mp4">3벌_새클립B_v3 / reel1_hookv3_egg.mp4</span></p>
+    <div class="cap-head"><span>인스타 본문</span><button type="button" class="copy" data-t="cap">본문 복사</button></div>
+    <pre class="cap">장 보다가 &quot;집에 계란 있어?&quot; 전화해 본 사람 🙋 (답은 늘 &quot;어, 한 개 있네?&quot;)
+
+냉장고에 뭐가 있는지 이제 폰으로 보세요.
+장 보고 영수증 사진 한 장만 찍으면 재료와 유통기한이 자동으로 등록돼요.
+전화 안 해도, 냉장고 안 열어 봐도 돼요.
+
+프로필 링크에서 받을 수 있어요
+
+#냉털 #냉장고파먹기 #자취요리 #집밥 #유통기한</pre>
+  </div>
+</article>
+<article class="post" data-round="2" data-date="2026-11-23" data-id="p19">
+  <div class="when">
+    <div class="md">11/23</div>
+    <div class="wd">월요일</div>
+    <div class="time">17:00</div>
+    <div class="no">19/24번째</div>
+  </div>
+  <div class="body">
+    <div class="head">
+      <h3>“엄마, 뭐 해 먹지?”</h3>
+      <label class="done"><input type="checkbox" class="chk" id="chk19"><span>올렸어요</span></label>
+    </div>
+    <p class="scene">엄마와 통화하며 ‘두부랑 애호박 있는데 뭐 해 먹지?’ 묻고 ‘그걸 왜 맨날 물어봐’ 듣는 장면.</p>
+    <p class="meta"><span class="tag">요리 AI</span><span class="file" title="my-video/out/최종24편/3벌_새클립B_v3/reel6_hookv3_mom.mp4">3벌_새클립B_v3 / reel6_hookv3_mom.mp4</span></p>
+    <div class="cap-head"><span>인스타 본문</span><button type="button" class="copy" data-t="cap">본문 복사</button></div>
+    <pre class="cap">&quot;엄마, 두부랑 애호박 있는데 뭐 해 먹지?&quot; &quot;그걸 왜 맨날 물어봐.&quot; 📞
+
+이제 엄마 대신 쿡매치 AI한테 물어보세요.
+냉장고에 있는 재료를 말하듯 알려 주면, 내 취향까지 반영해서 레시피를 골라 줘요.
+몇 번을 물어봐도 괜찮아요.
+
+프로필 링크에서 받을 수 있어요
+
+#오늘뭐먹지 #집밥 #냉털 #자취요리 #식단</pre>
+  </div>
+</article>
+<article class="post" data-round="2" data-date="2026-11-25" data-id="p20">
+  <div class="when">
+    <div class="md">11/25</div>
+    <div class="wd">수요일</div>
+    <div class="time">17:00</div>
+    <div class="no">20/24번째</div>
+  </div>
+  <div class="body">
+    <div class="head">
+      <h3>재료 다 꺼내 놓고 한참</h3>
+      <label class="done"><input type="checkbox" class="chk" id="chk20"><span>올렸어요</span></label>
+    </div>
+    <p class="scene">남은 재료를 다 꺼내 놓고 부부가 ‘이걸로 뭐 되나’ 하며 한참 쳐다보는 장면.</p>
+    <p class="meta"><span class="tag">레시피 매칭</span><span class="file" title="my-video/out/최종24편/3벌_새클립B_v3/reel2_hookv3_lineup.mp4">3벌_새클립B_v3 / reel2_hookv3_lineup.mp4</span></p>
+    <div class="cap-head"><span>인스타 본문</span><button type="button" class="copy" data-t="cap">본문 복사</button></div>
+    <pre class="cap">냉장고에 남은 재료 다 꺼내 놓고 한참 쳐다본 적 있죠 🥚🧅
+
+남은 재료만 있어도 괜찮아요.
+쿡매치가 지금 냉장고 재료로 만들 수 있는 요리를 매칭률 순으로 찾아 주고, 모자란 재료는 대신 쓸 재료를 추천해요.
+
+프로필 링크에서 받을 수 있어요
+
+#냉털 #냉장고파먹기 #오늘뭐먹지 #자취요리 #집밥</pre>
+  </div>
+</article>
+<article class="post" data-round="2" data-date="2026-11-27" data-id="p21">
+  <div class="when">
+    <div class="md">11/27</div>
+    <div class="wd">금요일</div>
+    <div class="time">17:00</div>
+    <div class="no">21/24번째</div>
+  </div>
+  <div class="body">
+    <div class="head">
+      <h3>“냄새가 이상한데?”</h3>
+      <label class="done"><input type="checkbox" class="chk" id="chk21"><span>올렸어요</span></label>
+    </div>
+    <p class="scene">우유 앞에서 ‘이거 괜찮은 거 같아?’ ‘음, 자기가 먹어’ 하며 서로 미루는 장면.</p>
+    <p class="meta"><span class="tag">유통기한 알림</span><span class="file" title="my-video/out/최종24편/3벌_새클립B_v3/reel5_hookv3_milk.mp4">3벌_새클립B_v3 / reel5_hookv3_milk.mp4</span></p>
+    <div class="cap-head"><span>인스타 본문</span><button type="button" class="copy" data-t="cap">본문 복사</button></div>
+    <pre class="cap">&quot;이거 우유 괜찮은 거 같아?&quot; &quot;음, 자기가 먹어.&quot; 🥛
+
+냄새 맡기 전에 알림부터 확인하세요.
+쿡매치가 유통기한을 자동으로 계산해서, 다가오면 알림으로 알려 줘요.
+임박한 재료로 만들 레시피도 바로 추천해요.
+
+프로필 링크에서 받을 수 있어요
+
+#유통기한 #냉장고파먹기 #냉털 #집밥 #자취요리</pre>
+  </div>
+</article>
+<article class="post" data-round="2" data-date="2026-11-30" data-id="p22">
+  <div class="when">
+    <div class="md">11/30</div>
+    <div class="wd">월요일</div>
+    <div class="time">17:00</div>
+    <div class="no">22/24번째</div>
+  </div>
+  <div class="body">
+    <div class="head">
+      <h3>“아니 아니, 너무 올렸어”</h3>
+      <label class="done"><input type="checkbox" class="chk" id="chk22"><span>올렸어요</span></label>
+    </div>
+    <p class="scene">양념 묻은 손으로 ‘화면 좀 올려줄래’ 부탁했다가 ‘너무 올렸어!’ ‘아니 아니 아니!’ 하는 장면.</p>
+    <p class="meta"><span class="tag">요리 모드</span><span class="file" title="my-video/out/최종24편/3벌_새클립B_v3/reel3_hookv3_scroll.mp4">3벌_새클립B_v3 / reel3_hookv3_scroll.mp4</span></p>
+    <div class="cap-head"><span>인스타 본문</span><button type="button" class="copy" data-t="cap">본문 복사</button></div>
+    <pre class="cap">&quot;좀만 더 위로.&quot; &quot;너무 올렸어!&quot; &quot;아니 아니 아니!&quot; 양념 묻은 손으로 레시피 보는 사람 공감 🧤
+
+요리 모드면 옆 사람 부를 필요 없어요.
+손 안 대도 단계를 소리로 읽어 주고, 지금 할 부분을 노랗게 짚어 줘요.
+이제 손으론 요리하고, 레시피는 귀로 들으세요.
+
+프로필 링크에서 받을 수 있어요
+
+#집밥 #자취요리 #오늘뭐먹지 #냉털 #식단</pre>
+  </div>
+</article>
+<article class="post" data-round="2" data-date="2026-12-02" data-id="p23">
+  <div class="when">
+    <div class="md">12/2</div>
+    <div class="wd">수요일</div>
+    <div class="time">17:00</div>
+    <div class="no">23/24번째</div>
+  </div>
+  <div class="body">
+    <div class="head">
+      <h3>“근데 자기야, 이거 뭐야?”</h3>
+      <label class="done"><input type="checkbox" class="chk" id="chk23"><span>올렸어요</span></label>
+    </div>
+    <p class="scene">맛있게 먹다가 ‘근데 자기야, 이거 뭐야?’ ‘찜닭인데.’ 하는 장면.</p>
+    <p class="meta"><span class="tag">진짜 레시피</span><span class="file" title="my-video/out/최종24편/3벌_새클립B_v3/reel7_hookv3_jjimdak.mp4">3벌_새클립B_v3 / reel7_hookv3_jjimdak.mp4</span></p>
+    <div class="cap-head"><span>인스타 본문</span><button type="button" class="copy" data-t="cap">본문 복사</button></div>
+    <pre class="cap">&quot;음, 맛있다. 근데 자기야, 이거 뭐야?&quot; &quot;찜닭인데.&quot; 😂
+
+처음부터 검증된 레시피로 시작하세요.
+쿡매치는 유튜브·네이버 상위 채널 레시피를 좋아요·댓글·조회수 순으로 보여 주고, 출처까지 확인할 수 있어요.
+
+프로필 링크에서 받을 수 있어요
+
+#집밥 #자취요리 #오늘뭐먹지 #냉털 #식단</pre>
+  </div>
+</article>
+<article class="post" data-round="2" data-date="2026-12-04" data-id="p24">
+  <div class="when">
+    <div class="md">12/4</div>
+    <div class="wd">금요일</div>
+    <div class="time">17:00</div>
+    <div class="no">24/24번째</div>
+  </div>
+  <div class="body">
+    <div class="head">
+      <h3>“또 뵙네요”</h3>
+      <label class="done"><input type="checkbox" class="chk" id="chk24"><span>올렸어요</span></label>
+    </div>
+    <p class="scene">아파트 로비에서 배달 기사님과 마주쳐 ‘또 뵙네요’ 하고 인사하는 장면.</p>
+    <p class="meta"><span class="tag">가족·아낀 돈</span><span class="file" title="my-video/out/최종24편/3벌_새클립B_v3/reel8_hookv3_lobby.mp4">3벌_새클립B_v3 / reel8_hookv3_lobby.mp4</span></p>
+    <div class="cap-head"><span>인스타 본문</span><button type="button" class="copy" data-t="cap">본문 복사</button></div>
+    <pre class="cap">배달 기사님이 &quot;또 뵙네요&quot; 하셨어요… 🛵
+
+기사님과 더 친해지기 전에, 가족과 이번 달 집밥 목표부터 정해 보세요.
+요리할 때마다 아낀 돈(예상)이 바로 보이고, 누가 언제 뭘 만들었는지도 캘린더에 남아요.
+
+프로필 링크에서 받을 수 있어요
+
+#집밥 #식단 #냉장고파먹기 #냉털 #오늘뭐먹지</pre>
+  </div>
+</article>
+<p class="note">영상 순서는 같은 기능이 연달아 나오지 않도록 섞었고, 한 벌(8편)을 다 올린 뒤 다음 벌로 넘어가요. 절약 금액이 나오는 영상은 본문에 ‘예상’이라고 적어 두었습니다.</p>
+</div>
+<script>
+(function(){
+  var posts=[].slice.call(document.querySelectorAll('.post'));
+  var KEY='cookmatch-reel-done-v1', done={};
+  try{ done=JSON.parse(localStorage.getItem(KEY)||'{}')||{}; }catch(e){ done={}; }
+  function save(){ try{ localStorage.setItem(KEY,JSON.stringify(done)); }catch(e){} }
+  function today(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+  function refresh(){
+    var t=today(), n=0;
+    posts.forEach(function(p){
+      var id=p.getAttribute('data-id'), on=!!done[id];
+      p.classList.toggle('is-done',on);
+      p.querySelector('.chk').checked=on;
+      if(on) n++;
+      var isToday=p.getAttribute('data-date')===t;
+      p.classList.toggle('is-today',isToday);
+      var w=p.querySelector('.when'), b=w.querySelector('.badge');
+      if(isToday&&!b){ b=document.createElement('div'); b.className='badge'; b.textContent='오늘 올리는 영상'; w.appendChild(b); }
+      if(!isToday&&b) b.remove();
+    });
+    document.getElementById('doneN').textContent=n;
+  }
+  posts.forEach(function(p){
+    p.querySelector('.chk').addEventListener('change',function(e){
+      var id=p.getAttribute('data-id');
+      if(e.target.checked) done[id]=1; else delete done[id];
+      save(); refresh();
+    });
+    var btn=p.querySelector('.copy'), pre=p.querySelector('.cap');
+    btn.addEventListener('click',function(){
+      var txt=pre.textContent;
+      function ok(){ btn.textContent='복사됨'; btn.classList.add('ok'); setTimeout(function(){ btn.textContent='본문 복사'; btn.classList.remove('ok'); },1600); }
+      function fallback(){
+        var r=document.createRange(); r.selectNodeContents(pre);
+        var s=window.getSelection(); s.removeAllRanges(); s.addRange(r);
+        try{ if(document.execCommand('copy')) ok(); else btn.textContent='길게 눌러 복사'; }catch(e){ btn.textContent='길게 눌러 복사'; }
+      }
+      if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(txt).then(ok,fallback); } else { fallback(); }
+    });
+  });
+  var chips=[].slice.call(document.querySelectorAll('.chip'));
+  chips.forEach(function(c){
+    c.addEventListener('click',function(){
+      var f=c.getAttribute('data-f');
+      chips.forEach(function(x){ x.setAttribute('aria-pressed',x===c?'true':'false'); });
+      document.querySelectorAll('[data-round]').forEach(function(el){
+        el.hidden = !(f==='all'||el.getAttribute('data-round')===f);
+      });
+    });
+  });
+  refresh();
+})();
+</script>
+</body></html>
