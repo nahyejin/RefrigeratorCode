@@ -9,6 +9,7 @@ import { Reel5ExpiryAlert, REEL5_TOTAL_FRAMES } from "./Reel5ExpiryAlert";
 import { Reel6ChatbotDemo, REEL6_TOTAL_FRAMES } from "./Reel6ChatbotDemo";
 import { Reel7RealRecipe, REEL7_TOTAL_FRAMES } from "./Reel7RealRecipe";
 import { Reel8FamilySavings, REEL8_TOTAL_FRAMES } from "./Reel8FamilySavings";
+import { ReelOverview, REEL_OVERVIEW_TOTAL_FRAMES } from "./ReelOverview";
 import { REELS_HOOK_V2 } from "./ReelHooksV2";
 import { REELS_HOOK_V4 } from "./ReelHooksV4";
 import { REELS_HOOK_V3 } from "./ReelHooksV3";
@@ -84,6 +85,14 @@ export const RemotionRoot: React.FC = () => {
         id="Reel8FamilySavings"
         component={Reel8FamilySavings}
         durationInFrames={REEL8_TOTAL_FRAMES}
+        fps={30}
+        width={1080}
+        height={1920}
+      />
+      <Composition
+        id="ReelOverview"
+        component={ReelOverview}
+        durationInFrames={REEL_OVERVIEW_TOTAL_FRAMES}
         fps={30}
         width={1080}
         height={1920}
