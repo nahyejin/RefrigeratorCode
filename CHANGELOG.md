@@ -12922,3 +12922,7 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 - `store/make_store_assets.py`: `SOURCES`·`INSETS` 갱신(5번은 헤더가 로그인 상태라 블러), `python store/make_store_assets.py shots` 로 Play·iOS 두 크기 재생성(`store/screenshots/play|ios/04·05·06·08_*.png`). 1·2·3·7번은 그대로.
 - 올리는 건 사용자: Play Console 스토어 등록정보 · App Store Connect.
 
+### 릴스 24편 올리는 순서 문서 — `store/REEL_UPLOAD_PLAN.md`
+- 사용자: 영상과 본문 문구를 어떤 순서로 인스타에 올릴지 정해 달라.
+- 24편(1벌 처음 8편 · 2벌 새 클립 A v4 · 3벌 새 클립 B v3, `my-video/out/최종24편/`)을 **주 3편(화·목·토 저녁), 10/13~12/5 8주**로 배치. 소구 순서는 AD_BRIEF 기준(AI 식단 → 사진 인식 → 요리 AI → 매칭 → 유통기한 → 요리 모드 → 진짜 레시피 → 가족). 같은 데모는 8편 간격. 편마다 영상 경로 + 복사용 본문(REEL_CAPTIONS.md 에서 가져옴: 2벌=2바퀴, 3벌=3바퀴) 수록.
+
