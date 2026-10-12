@@ -12949,3 +12949,7 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 - 사용자: 프로필 링크를 타고 들어갈 필요 없이 앱스토어에서 쿡매치를 검색하라고만 해도 되는 것 아닌가, 그게 더 메인.
 - 확인: App Store(kr) 검색 `쿡매치` 1위 = 쿡매치 - 냉장고 레시피, Play 검색 `쿡매치` 1위 = 쿡매치 - 냉장고 재료로 레시피 추천.
 - `scripts/gen_reel_captions.py`: `LAST` = `📲 앱스토어·Play 스토어에서 '쿡매치'를 검색하세요`, `URL` = `바로 받기 👉 refrigerator-code.vercel.app/download`. `REEL_CAPTIONS.md`·`REEL_PLAN.md`·`REEL_UPLOAD_PLAN.html` 재생성. (영상 끝 CTA 화면의 「프로필 링크에서 시작하기」는 그대로 — 프로필 링크 자체는 유지.)
+
+### 릴스 본문 링크 줄에 「프로필 링크로도 받을 수 있다」 안내 추가
+- 사용자: 본문에 주소만 있으면 안 되고, 프로필 링크로 들어와도 보인다는 말을 같이 써 달라(본문 주소는 눌러지지 않으므로).
+- `scripts/gen_reel_captions.py` `URL` = `프로필 링크로 들어와도 바로 받을 수 있어요 👉 refrigerator-code.vercel.app/download`. `REEL_CAPTIONS.md`·`REEL_PLAN.md`·`REEL_UPLOAD_PLAN.html` 재생성.

@@ -1,7 +1,7 @@
 # 릴스 24편 — 인스타 본문 (8편 × 3바퀴)
 
 만든 날: 2026-10-06 · 만든 스크립트: `scripts/gen_reel_captions.py`(직접 고치지 말고 스크립트를 고쳐 다시 만든다).
-규칙은 [REEL_PLAN.md](REEL_PLAN.md): 주요 기능 8종 요약(모든 편 공통) + 「앱스토어·Play 스토어에서 '쿡매치'를 검색하세요」 + 바로 받기 주소 + 해시태그 5개, 절약액은 「예상」.
+규칙은 [REEL_PLAN.md](REEL_PLAN.md): 주요 기능 8종 요약(모든 편 공통) + 「앱스토어·Play 스토어에서 '쿡매치'를 검색하세요」 + 프로필 링크 안내와 주소 + 해시태그 5개, 절약액은 「예상」.
 1바퀴 = 처음 만든 8편, 2바퀴 = 후킹 v2([REEL_HOOKS_V2.md](REEL_HOOKS_V2.md)), 3바퀴 = 후킹 v3([REEL_HOOKS_V3.md](REEL_HOOKS_V3.md), 영상 만들 예정).
 
 ## 1바퀴 · 처음 만든 8편
@@ -27,7 +27,7 @@
 👨‍👩‍👧 가족 집밥 목표·아낀 돈(예상)
 
 📲 앱스토어·Play 스토어에서 '쿡매치'를 검색하세요
-바로 받기 👉 refrigerator-code.vercel.app/download
+프로필 링크로 들어와도 바로 받을 수 있어요 👉 refrigerator-code.vercel.app/download
 
 #냉털 #냉장고파먹기 #자취요리 #집밥 #유통기한
 ```
@@ -53,7 +53,7 @@
 👨‍👩‍👧 가족 집밥 목표·아낀 돈(예상)
 
 📲 앱스토어·Play 스토어에서 '쿡매치'를 검색하세요
-바로 받기 👉 refrigerator-code.vercel.app/download
+프로필 링크로 들어와도 바로 받을 수 있어요 👉 refrigerator-code.vercel.app/download
 
 #냉털 #냉장고파먹기 #오늘뭐먹지 #자취요리 #집밥
 ```
@@ -79,7 +79,7 @@
 👨‍👩‍👧 가족 집밥 목표·아낀 돈(예상)
 
 📲 앱스토어·Play 스토어에서 '쿡매치'를 검색하세요
-바로 받기 👉 refrigerator-code.vercel.app/download
+프로필 링크로 들어와도 바로 받을 수 있어요 👉 refrigerator-code.vercel.app/download
 
 #집밥 #자취요리 #오늘뭐먹지 #냉털 #식단
 ```
@@ -105,7 +105,7 @@
 👨‍👩‍👧 가족 집밥 목표·아낀 돈(예상)
 
 📲 앱스토어·Play 스토어에서 '쿡매치'를 검색하세요
-바로 받기 👉 refrigerator-code.vercel.app/download
+프로필 링크로 들어와도 바로 받을 수 있어요 👉 refrigerator-code.vercel.app/download
 
 #식단 #냉장고파먹기 #냉털 #집밥 #자취요리
 ```
@@ -131,7 +131,7 @@
 👨‍👩‍👧 가족 집밥 목표·아낀 돈(예상)
 
 📲 앱스토어·Play 스토어에서 '쿡매치'를 검색하세요
-바로 받기 👉 refrigerator-code.vercel.app/download
+프로필 링크로 들어와도 바로 받을 수 있어요 👉 refrigerator-code.vercel.app/download
 
 #유통기한 #냉장고파먹기 #냉털 #집밥 #자취요리
 ```
@@ -157,7 +157,7 @@
 👨‍👩‍👧 가족 집밥 목표·아낀 돈(예상)
 
 📲 앱스토어·Play 스토어에서 '쿡매치'를 검색하세요
-바로 받기 👉 refrigerator-code.vercel.app/download
+프로필 링크로 들어와도 바로 받을 수 있어요 👉 refrigerator-code.vercel.app/download
 
 #오늘뭐먹지 #집밥 #냉털 #자취요리 #식단
 ```
@@ -183,7 +183,7 @@
 👨‍👩‍👧 가족 집밥 목표·아낀 돈(예상)
 
 📲 앱스토어·Play 스토어에서 '쿡매치'를 검색하세요
-바로 받기 👉 refrigerator-code.vercel.app/download
+프로필 링크로 들어와도 바로 받을 수 있어요 👉 refrigerator-code.vercel.app/download
 
 #집밥 #자취요리 #오늘뭐먹지 #냉털 #식단
 ```
@@ -209,7 +209,7 @@
 👨‍👩‍👧 가족 집밥 목표·아낀 돈(예상)
 
 📲 앱스토어·Play 스토어에서 '쿡매치'를 검색하세요
-바로 받기 👉 refrigerator-code.vercel.app/download
+프로필 링크로 들어와도 바로 받을 수 있어요 👉 refrigerator-code.vercel.app/download
 
 #집밥 #식단 #냉장고파먹기 #냉털 #오늘뭐먹지
 ```
@@ -238,7 +238,7 @@
 👨‍👩‍👧 가족 집밥 목표·아낀 돈(예상)
 
 📲 앱스토어·Play 스토어에서 '쿡매치'를 검색하세요
-바로 받기 👉 refrigerator-code.vercel.app/download
+프로필 링크로 들어와도 바로 받을 수 있어요 👉 refrigerator-code.vercel.app/download
 
 #냉털 #냉장고파먹기 #자취요리 #집밥 #유통기한
 ```
@@ -265,7 +265,7 @@
 👨‍👩‍👧 가족 집밥 목표·아낀 돈(예상)
 
 📲 앱스토어·Play 스토어에서 '쿡매치'를 검색하세요
-바로 받기 👉 refrigerator-code.vercel.app/download
+프로필 링크로 들어와도 바로 받을 수 있어요 👉 refrigerator-code.vercel.app/download
 
 #냉털 #냉장고파먹기 #오늘뭐먹지 #자취요리 #집밥
 ```
@@ -292,7 +292,7 @@
 👨‍👩‍👧 가족 집밥 목표·아낀 돈(예상)
 
 📲 앱스토어·Play 스토어에서 '쿡매치'를 검색하세요
-바로 받기 👉 refrigerator-code.vercel.app/download
+프로필 링크로 들어와도 바로 받을 수 있어요 👉 refrigerator-code.vercel.app/download
 
 #집밥 #자취요리 #오늘뭐먹지 #냉털 #식단
 ```
@@ -319,7 +319,7 @@
 👨‍👩‍👧 가족 집밥 목표·아낀 돈(예상)
 
 📲 앱스토어·Play 스토어에서 '쿡매치'를 검색하세요
-바로 받기 👉 refrigerator-code.vercel.app/download
+프로필 링크로 들어와도 바로 받을 수 있어요 👉 refrigerator-code.vercel.app/download
 
 #식단 #냉장고파먹기 #냉털 #집밥 #자취요리
 ```
@@ -346,7 +346,7 @@
 👨‍👩‍👧 가족 집밥 목표·아낀 돈(예상)
 
 📲 앱스토어·Play 스토어에서 '쿡매치'를 검색하세요
-바로 받기 👉 refrigerator-code.vercel.app/download
+프로필 링크로 들어와도 바로 받을 수 있어요 👉 refrigerator-code.vercel.app/download
 
 #유통기한 #냉장고파먹기 #냉털 #집밥 #자취요리
 ```
@@ -373,7 +373,7 @@
 👨‍👩‍👧 가족 집밥 목표·아낀 돈(예상)
 
 📲 앱스토어·Play 스토어에서 '쿡매치'를 검색하세요
-바로 받기 👉 refrigerator-code.vercel.app/download
+프로필 링크로 들어와도 바로 받을 수 있어요 👉 refrigerator-code.vercel.app/download
 
 #오늘뭐먹지 #집밥 #냉털 #자취요리 #식단
 ```
@@ -400,7 +400,7 @@
 👨‍👩‍👧 가족 집밥 목표·아낀 돈(예상)
 
 📲 앱스토어·Play 스토어에서 '쿡매치'를 검색하세요
-바로 받기 👉 refrigerator-code.vercel.app/download
+프로필 링크로 들어와도 바로 받을 수 있어요 👉 refrigerator-code.vercel.app/download
 
 #집밥 #자취요리 #오늘뭐먹지 #냉털 #식단
 ```
@@ -427,7 +427,7 @@
 👨‍👩‍👧 가족 집밥 목표·아낀 돈(예상)
 
 📲 앱스토어·Play 스토어에서 '쿡매치'를 검색하세요
-바로 받기 👉 refrigerator-code.vercel.app/download
+프로필 링크로 들어와도 바로 받을 수 있어요 👉 refrigerator-code.vercel.app/download
 
 #집밥 #식단 #냉장고파먹기 #냉털 #오늘뭐먹지
 ```
@@ -456,7 +456,7 @@
 👨‍👩‍👧 가족 집밥 목표·아낀 돈(예상)
 
 📲 앱스토어·Play 스토어에서 '쿡매치'를 검색하세요
-바로 받기 👉 refrigerator-code.vercel.app/download
+프로필 링크로 들어와도 바로 받을 수 있어요 👉 refrigerator-code.vercel.app/download
 
 #냉털 #냉장고파먹기 #자취요리 #집밥 #유통기한
 ```
@@ -482,7 +482,7 @@
 👨‍👩‍👧 가족 집밥 목표·아낀 돈(예상)
 
 📲 앱스토어·Play 스토어에서 '쿡매치'를 검색하세요
-바로 받기 👉 refrigerator-code.vercel.app/download
+프로필 링크로 들어와도 바로 받을 수 있어요 👉 refrigerator-code.vercel.app/download
 
 #냉털 #냉장고파먹기 #오늘뭐먹지 #자취요리 #집밥
 ```
@@ -509,7 +509,7 @@
 👨‍👩‍👧 가족 집밥 목표·아낀 돈(예상)
 
 📲 앱스토어·Play 스토어에서 '쿡매치'를 검색하세요
-바로 받기 👉 refrigerator-code.vercel.app/download
+프로필 링크로 들어와도 바로 받을 수 있어요 👉 refrigerator-code.vercel.app/download
 
 #집밥 #자취요리 #오늘뭐먹지 #냉털 #식단
 ```
@@ -535,7 +535,7 @@
 👨‍👩‍👧 가족 집밥 목표·아낀 돈(예상)
 
 📲 앱스토어·Play 스토어에서 '쿡매치'를 검색하세요
-바로 받기 👉 refrigerator-code.vercel.app/download
+프로필 링크로 들어와도 바로 받을 수 있어요 👉 refrigerator-code.vercel.app/download
 
 #식단 #냉장고파먹기 #냉털 #집밥 #자취요리
 ```
@@ -562,7 +562,7 @@
 👨‍👩‍👧 가족 집밥 목표·아낀 돈(예상)
 
 📲 앱스토어·Play 스토어에서 '쿡매치'를 검색하세요
-바로 받기 👉 refrigerator-code.vercel.app/download
+프로필 링크로 들어와도 바로 받을 수 있어요 👉 refrigerator-code.vercel.app/download
 
 #유통기한 #냉장고파먹기 #냉털 #집밥 #자취요리
 ```
@@ -589,7 +589,7 @@
 👨‍👩‍👧 가족 집밥 목표·아낀 돈(예상)
 
 📲 앱스토어·Play 스토어에서 '쿡매치'를 검색하세요
-바로 받기 👉 refrigerator-code.vercel.app/download
+프로필 링크로 들어와도 바로 받을 수 있어요 👉 refrigerator-code.vercel.app/download
 
 #오늘뭐먹지 #집밥 #냉털 #자취요리 #식단
 ```
@@ -615,7 +615,7 @@
 👨‍👩‍👧 가족 집밥 목표·아낀 돈(예상)
 
 📲 앱스토어·Play 스토어에서 '쿡매치'를 검색하세요
-바로 받기 👉 refrigerator-code.vercel.app/download
+프로필 링크로 들어와도 바로 받을 수 있어요 👉 refrigerator-code.vercel.app/download
 
 #집밥 #자취요리 #오늘뭐먹지 #냉털 #식단
 ```
@@ -641,7 +641,7 @@
 👨‍👩‍👧 가족 집밥 목표·아낀 돈(예상)
 
 📲 앱스토어·Play 스토어에서 '쿡매치'를 검색하세요
-바로 받기 👉 refrigerator-code.vercel.app/download
+프로필 링크로 들어와도 바로 받을 수 있어요 👉 refrigerator-code.vercel.app/download
 
 #집밥 #식단 #냉장고파먹기 #냉털 #오늘뭐먹지
 ```
