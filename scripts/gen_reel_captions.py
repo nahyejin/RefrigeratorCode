@@ -17,7 +17,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 LAST = "📲 앱스토어·Play 스토어에서 '쿡매치'를 검색하세요"
-URL = "프로필 링크로 들어와도 바로 받을 수 있어요 👉 refrigerator-code.vercel.app/download"
+# 두 줄로 나눠 붙이지 않는다(2026-10-12 사용자): 안내 문장 한 줄, 주소 한 줄.
+URL = "프로필 링크로 들어와도 바로 받을 수 있어요\n👉 refrigerator-code.vercel.app/download"
 # 2026-10-12 사용자: 모든 편 본문에 주요 기능 8종 언급 + 다운로드 주소를 매번 넣는다.
 # 같은 날 사용자: 프로필 링크를 타고 가게 하지 말고 「앱스토어에서 쿡매치 검색」을 메인 안내로(두 스토어 모두 검색 1위 확인).
 FEATURES = [
