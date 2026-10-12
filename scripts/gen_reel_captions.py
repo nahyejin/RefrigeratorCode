@@ -183,8 +183,16 @@ ROUNDS = [
 ]
 
 
+# 2026-10-12 사용자: #레시피 #레시피추천 #요리 #식단 같은 기본 태그는 모든 편 하단에 들어가야 한다(+ #유아식 #캠핑요리 #술안주 #다이어트식).
+BASE_TAGS = ["#레시피", "#레시피추천", "#요리", "#식단", "#유아식", "#캠핑요리", "#술안주", "#다이어트식"]
+
+
+def tags_of(p):
+    return BASE_TAGS + [t for t in p["tags"] if t not in BASE_TAGS]
+
+
 def caption(p):
-    return "\n".join(p["body"] + [""] + FEATURES + ["", LAST, URL, "", " ".join(p["tags"])])
+    return "\n".join(p["body"] + [""] + FEATURES + ["", LAST, URL, "", " ".join(tags_of(p))])
 
 
 def write_md():
@@ -192,7 +200,7 @@ def write_md():
         "# 릴스 24편 — 인스타 본문 (8편 × 3바퀴)",
         "",
         "만든 날: 2026-10-06 · 만든 스크립트: `scripts/gen_reel_captions.py`(직접 고치지 말고 스크립트를 고쳐 다시 만든다).",
-        "규칙은 [REEL_PLAN.md](REEL_PLAN.md): 주요 기능 8종 요약(모든 편 공통) + 「앱스토어·Play 스토어에서 '쿡매치'를 검색하세요」 + 프로필 링크 안내와 주소 + 해시태그 5개, 절약액은 「예상」.",
+        "규칙은 [REEL_PLAN.md](REEL_PLAN.md): 주요 기능 8종 요약(모든 편 공통) + 「앱스토어·Play 스토어에서 '쿡매치'를 검색하세요」 + 프로필 링크 안내와 주소 + 기본 태그 8개 + 편별 태그, 절약액은 「예상」.",
         "1바퀴 = 처음 만든 8편, 2바퀴 = 후킹 v2([REEL_HOOKS_V2.md](REEL_HOOKS_V2.md)), 3바퀴 = 후킹 v3([REEL_HOOKS_V3.md](REEL_HOOKS_V3.md), 영상 만들 예정).",
         "",
     ]
@@ -251,7 +259,7 @@ pre{margin:0;background:var(--code);border:1px solid var(--line);border-radius:1
   <header>
     <p class="eyebrow">REEL CAPTIONS · 8 × 3 = 24 · 2026-10-06</p>
     <h1>쿡매치 릴스 본문</h1>
-    <p class="lede">릴스 24편(8편 × 3바퀴)에 붙일 글이에요. <b>복사</b>를 누르고 인스타 본문 칸에 그대로 붙이면 돼요. 마지막 줄과 해시태그 5개까지 들어 있어요. 복사한 카드는 버튼이 회색으로 바뀌어요(이 기기에서만 기억해요).</p>
+    <p class="lede">릴스 24편(8편 × 3바퀴)에 붙일 글이에요. <b>복사</b>를 누르고 인스타 본문 칸에 그대로 붙이면 돼요. 마지막 줄과 기본 태그 8개 + 편별 태그까지 들어 있어요. 복사한 카드는 버튼이 회색으로 바뀌어요(이 기기에서만 기억해요).</p>
   </header>
   <nav aria-label="바퀴로 이동">__NAV__</nav>
   __ROUNDS__
