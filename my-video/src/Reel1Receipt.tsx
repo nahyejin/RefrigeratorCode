@@ -100,26 +100,6 @@ const HookVideo: React.FC = () => {
             transformOrigin: "top center",
           }}
         />
-        {/* 제미나이가 만든 통조림·라면 포장의 한글이 깨져 있다(「질트렉」「작각라스면」 등) — 상품이 놓인 자리만
-            약하게 흐린다(2026-10-12). 처음엔 아래 28%를 통째로 15px 흐렸더니 너무 심하다는 지적 → 상품 띠만, 사방을 마스크로
-            풀어 경계가 안 보이게, 흐림도 9px 로. */}
-        <div
-          style={{
-            position: "absolute",
-            left: 0,
-            width: 1080,
-            top: 1470,
-            height: 450,
-            backdropFilter: "blur(9px)",
-            WebkitBackdropFilter: "blur(9px)",
-            maskImage:
-              "linear-gradient(to bottom, transparent 0%, black 18%, black 100%), linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%)",
-            WebkitMaskImage:
-              "linear-gradient(to bottom, transparent 0%, black 18%, black 100%), linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%)",
-            maskComposite: "intersect",
-            WebkitMaskComposite: "source-in",
-          }}
-        />
       </div>
       <Caption from={0} len={HOOK_VIDEO_LEN - 10} text="이거 저번에도 샀나?" />
     </AbsoluteFill>
@@ -202,7 +182,7 @@ const FreezeFrame: React.FC<{ src: string; len: number }> = ({ src, len }) => {
 // ---------- 사진 3종 모음 컷 — 스토어 미리보기 03번(영수증 · 음식 · 쿠팡 주문내역)과 같은 소재 ----------
 const SRC_CARDS = [
   { img: "reel1_src_receipt.jpg", label: "영수증", x: 0.19, angle: -8, w: 340, top: 470, at: 0 },
-  { img: "reel1_src_coupang.jpg", label: "장본 화면", x: 0.81, angle: 8, w: 340, top: 470, at: 12 },
+  { img: "reel1_src_coupang.jpg", label: "장본 목록", x: 0.81, angle: 8, w: 340, top: 470, at: 12 },
   { img: "reel1_src_pizza_cheese.jpg", label: "음식 사진", x: 0.5, angle: 0, w: 400, top: 400, at: 24 },
 ];
 
