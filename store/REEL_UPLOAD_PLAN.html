@@ -65,6 +65,12 @@ h3{font-size:18px;line-height:1.35;margin:0;font-weight:900;text-wrap:balance;mi
 .meta{margin:0;display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;font-size:12px;color:var(--muted)}
 .tag{background:var(--leaf-soft);color:var(--leaf);font-weight:700;padding:1px 9px;border-radius:999px}
 .file{font-family:ui-monospace,Consolas,monospace;overflow-wrap:anywhere}
+.music{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;background:var(--cap-bg);border:1px dashed var(--line);border-radius:8px;padding:9px 12px;font-size:13px}
+.music b{font-size:12px;letter-spacing:.06em;color:var(--leaf)}
+.music .mood{flex:1 1 100%;min-width:0}
+.music .kws{display:flex;gap:6px;flex-wrap:wrap;align-items:center;color:var(--muted);font-size:12px}
+.music .kw{background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:1px 10px;color:var(--fg);font-weight:500}
+.music .vol{color:var(--muted);font-size:12px}
 .cap-head{display:flex;justify-content:space-between;align-items:center;margin-top:4px;font-size:12px;font-weight:700;letter-spacing:.06em;color:var(--muted)}
 .copy{font:inherit;font-size:13px;font-weight:700;border:1px solid var(--fg);background:var(--fg);color:var(--bg);padding:5px 14px;border-radius:8px;cursor:pointer}
 .copy.ok{background:var(--leaf);border-color:var(--leaf);color:var(--bg)}
@@ -110,6 +116,17 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
   </ol>
 </section>
 
+<section class="panel">
+  <h2>음악 붙이는 방법</h2>
+  <ol>
+    <li>릴스 올리기 → 영상 선택 → 편집 화면의 <b>음악(음표)</b> 버튼을 누릅니다.</li>
+    <li>카드의 <b>검색어</b>를 검색창에 쳐서 분위기가 맞는 곡을 고르고, <b>완료</b>를 누릅니다.</li>
+    <li>볼륨(스피커)에서 영상 원본 소리는 100%, 음악은 10~15%로 낮게 둡니다. 영상에 배우 대사와 음성 설명이 있어서 음악이 크면 안 들려요.</li>
+    <li>한 번 올린 릴스의 음악은 바꿀 수 없어요. 올리기 전에 처음부터 끝까지 한 번 들어 보세요.</li>
+  </ol>
+  <p class="note">곡 이름은 계정 종류와 시기에 따라 인스타 음악 목록이 달라서 고정하지 않았어요. 비즈니스 계정은 상업용으로 허용된 곡만 보여서 검색 결과가 적을 수 있어요.</p>
+</section>
+
 <div class="bar">
   <div class="chips" role="group" aria-label="벌 선택">
     <button type="button" class="chip" data-f="all" aria-pressed="true">전체 25편</button>
@@ -118,7 +135,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
     <button type="button" class="chip" data-f="1" aria-pressed="false">2벌</button>
     <button type="button" class="chip" data-f="2" aria-pressed="false">3벌</button>
   </div>
-  <div class="prog"><b id="doneN">0</b> / 24편 올림</div>
+  <div class="prog"><b id="doneN">0</b> / 25편 올림</div>
 </div>
 <h2 class="round" id="r0" data-round="-1">0 · 기능 총정리 (프로필 고정용)<span>10/12 – 10/12</span></h2>
 <article class="post" data-round="-1" data-date="2026-10-12" data-id="p1">
@@ -134,7 +151,8 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
       <label class="done"><input type="checkbox" class="chk" id="chk1"><span>올렸어요</span></label>
     </div>
     <p class="scene">프로필에 들어온 사람이 ‘이런 8가지 기능이 메인이구나’를 한눈에 알아보게 하는 약 1분 영상이에요. 올린 뒤 프로필 맨 위에 고정(핀)해 두세요. 대사 없이 자막만 있어서 인스타 음원을 얹어 올리면 돼요.</p>
-    <p class="meta"><span class="tag">8가지 전체</span><span class="file" title="my-video/out/최종24편/0_기능총정리/reel0_overview_8features.mp4">0_기능총정리 / reel0_overview_8features.mp4</span></p>
+    <p class="meta"><span class="tag">8가지 전체</span><span class="file" title="my-video/out/최종24편/0_기능총정리/reel0_overview_8features_음악.mp4">0_기능총정리 / reel0_overview_8features_음악.mp4</span></p>
+    <div class="music"><b>음악</b><span class="mood">음악이 이미 들어 있는 파일(…_음악.mp4)이에요. 인스타에서는 음악을 추가하지 말고 그대로 올리세요.</span></div>
     <div class="cap-head"><span>인스타 본문</span><button type="button" class="copy" data-t="cap">본문 복사</button></div>
     <pre class="cap">있는 재료로 오늘 저녁 해결 🍳
 
@@ -146,8 +164,8 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 🥘 레시피 매칭 — 냉장고 재료로 만들 수 있는 레시피 + 대체 재료
 🗓️ AI 식단 — 일주일 식단과 장보기
 🤖 요리 AI — 말하듯 물어보면 레시피 추천
-⏰ 유통기한 알림
-🙌 읽어주기 모드 — 손 안 대고 단계별로 읽어 줘요
+⏰ 유통기한 알림 — 곧 상하는 재료를 푸시로 알려 줘요
+🙌 읽어주기 모드 — 소리 내어 단계별로 레시피를 읽어 줘요
 📺 검증된 레시피 — 유튜브·네이버 인기 레시피
 👨‍👩‍👧 가족이 아낀 돈 — 가족 집밥 목표·아낀 돈(예상)
 
@@ -172,6 +190,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
     </div>
     <p class="scene">마트 진열대 앞에서 물건을 든 채 ‘이거 저번에도 샀나?’ 하고 멈춰 서는 장면.</p>
     <p class="meta"><span class="tag">사진 인식</span><span class="file" title="my-video/out/최종24편/1벌_처음8편/reel1_receipt.mp4">1벌_처음8편 / reel1_receipt.mp4</span></p>
+    <div class="music"><b>추천 음악</b><span class="mood">산뜻하고 경쾌한 어쿠스틱 팝 — 마트 장보기 브이로그 느낌</span><span class="kws">검색어 <span class="kw">upbeat acoustic</span><span class="kw">grocery vlog</span><span class="kw">산뜻한 브이로그</span></span><span class="vol">원본 소리 100% · 음악 10~15%</span></div>
     <div class="cap-head"><span>인스타 본문</span><button type="button" class="copy" data-t="cap">본문 복사</button></div>
     <pre class="cap">&quot;이거 저번에도 샀나?&quot; 마트에서 한 번쯤 해 본 생각이죠 🛒
 
@@ -183,8 +202,8 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 🥘 레시피 매칭 — 냉장고 재료로 만들 수 있는 레시피 + 대체 재료
 🗓️ AI 식단 — 일주일 식단과 장보기
 🤖 요리 AI — 말하듯 물어보면 레시피 추천
-⏰ 유통기한 알림
-🙌 읽어주기 모드 — 손 안 대고 단계별로 읽어 줘요
+⏰ 유통기한 알림 — 곧 상하는 재료를 푸시로 알려 줘요
+🙌 읽어주기 모드 — 소리 내어 단계별로 레시피를 읽어 줘요
 📺 검증된 레시피 — 유튜브·네이버 인기 레시피
 👨‍👩‍👧 가족이 아낀 돈 — 가족 집밥 목표·아낀 돈(예상)
 
@@ -208,6 +227,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
     </div>
     <p class="scene">어렵게 찾은 레시피인데 재료가 한두 개 없어서, 결국 접는 장면.</p>
     <p class="meta"><span class="tag">레시피 매칭</span><span class="file" title="my-video/out/최종24편/1벌_처음8편/reel2_match.mp4">1벌_처음8편 / reel2_match.mp4</span></p>
+    <div class="music"><b>추천 음악</b><span class="mood">가볍게 통통 튀는 로파이 팝 — 요리 브이로그 느낌</span><span class="kws">검색어 <span class="kw">lofi cooking</span><span class="kw">cooking vlog</span><span class="kw">bouncy</span></span><span class="vol">원본 소리 100% · 음악 10~15%</span></div>
     <div class="cap-head"><span>인스타 본문</span><button type="button" class="copy" data-t="cap">본문 복사</button></div>
     <pre class="cap">어렵게 찾은 레시피, 재료 한두 개 없어서 포기한 적 있죠? 😮‍💨
 
@@ -219,8 +239,8 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 🥘 레시피 매칭 — 냉장고 재료로 만들 수 있는 레시피 + 대체 재료
 🗓️ AI 식단 — 일주일 식단과 장보기
 🤖 요리 AI — 말하듯 물어보면 레시피 추천
-⏰ 유통기한 알림
-🙌 읽어주기 모드 — 손 안 대고 단계별로 읽어 줘요
+⏰ 유통기한 알림 — 곧 상하는 재료를 푸시로 알려 줘요
+🙌 읽어주기 모드 — 소리 내어 단계별로 레시피를 읽어 줘요
 📺 검증된 레시피 — 유튜브·네이버 인기 레시피
 👨‍👩‍👧 가족이 아낀 돈 — 가족 집밥 목표·아낀 돈(예상)
 
@@ -244,6 +264,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
     </div>
     <p class="scene">사 놓고 깜빡해서 시들어 버린 채소를 결국 버리게 되는 장면.</p>
     <p class="meta"><span class="tag">유통기한 알림</span><span class="file" title="my-video/out/최종24편/1벌_처음8편/reel5_expiry.mp4">1벌_처음8편 / reel5_expiry.mp4</span></p>
+    <div class="music"><b>추천 음악</b><span class="mood">살짝 장난스럽고 호기심 가는 피치카토 — 뒤로 갈수록 밝아지는 곡</span><span class="kws">검색어 <span class="kw">quirky</span><span class="kw">playful pizzicato</span><span class="kw">funny cute</span></span><span class="vol">원본 소리 100% · 음악 10~15%</span></div>
     <div class="cap-head"><span>인스타 본문</span><button type="button" class="copy" data-t="cap">본문 복사</button></div>
     <pre class="cap">사 놓고 유통기한 놓쳐서, 결국 버린 적 있죠? 🥬
 
@@ -255,8 +276,8 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 🥘 레시피 매칭 — 냉장고 재료로 만들 수 있는 레시피 + 대체 재료
 🗓️ AI 식단 — 일주일 식단과 장보기
 🤖 요리 AI — 말하듯 물어보면 레시피 추천
-⏰ 유통기한 알림
-🙌 읽어주기 모드 — 손 안 대고 단계별로 읽어 줘요
+⏰ 유통기한 알림 — 곧 상하는 재료를 푸시로 알려 줘요
+🙌 읽어주기 모드 — 소리 내어 단계별로 레시피를 읽어 줘요
 📺 검증된 레시피 — 유튜브·네이버 인기 레시피
 👨‍👩‍👧 가족이 아낀 돈 — 가족 집밥 목표·아낀 돈(예상)
 
@@ -280,6 +301,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
     </div>
     <p class="scene">계획 없이 카트를 가득 채웠더니, 계산대에서 영수증이 바닥까지 끝없이 길게 나와 놀라는 장면.</p>
     <p class="meta"><span class="tag">AI 식단</span><span class="file" title="my-video/out/최종24편/1벌_처음8편/reel4_diet.mp4">1벌_처음8편 / reel4_diet.mp4</span></p>
+    <div class="music"><b>추천 음악</b><span class="mood">활기찬 팝·펑키 — 장보기 하울 분위기</span><span class="kws">검색어 <span class="kw">grocery haul</span><span class="kw">upbeat funk</span><span class="kw">happy shopping</span></span><span class="vol">원본 소리 100% · 음악 10~15%</span></div>
     <div class="cap-head"><span>인스타 본문</span><button type="button" class="copy" data-t="cap">본문 복사</button></div>
     <pre class="cap">계획 없이 장 보다가 카트가 한가득 찬 적 있죠? 🛒
 
@@ -291,8 +313,8 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 🥘 레시피 매칭 — 냉장고 재료로 만들 수 있는 레시피 + 대체 재료
 🗓️ AI 식단 — 일주일 식단과 장보기
 🤖 요리 AI — 말하듯 물어보면 레시피 추천
-⏰ 유통기한 알림
-🙌 읽어주기 모드 — 손 안 대고 단계별로 읽어 줘요
+⏰ 유통기한 알림 — 곧 상하는 재료를 푸시로 알려 줘요
+🙌 읽어주기 모드 — 소리 내어 단계별로 레시피를 읽어 줘요
 📺 검증된 레시피 — 유튜브·네이버 인기 레시피
 👨‍👩‍👧 가족이 아낀 돈 — 가족 집밥 목표·아낀 돈(예상)
 
@@ -316,6 +338,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
     </div>
     <p class="scene">‘오늘 뭐 해 먹지…’ 하며 검색창 앞에서 멍하니 있는 장면.</p>
     <p class="meta"><span class="tag">요리 AI</span><span class="file" title="my-video/out/최종24편/1벌_처음8편/reel6_chatbot.mp4">1벌_처음8편 / reel6_chatbot.mp4</span></p>
+    <div class="music"><b>추천 음악</b><span class="mood">편안하게 대화하는 느낌의 카페 재즈·어쿠스틱</span><span class="kws">검색어 <span class="kw">cafe jazz</span><span class="kw">chill acoustic</span><span class="kw">coffee shop</span></span><span class="vol">원본 소리 100% · 음악 10~15%</span></div>
     <div class="cap-head"><span>인스타 본문</span><button type="button" class="copy" data-t="cap">본문 복사</button></div>
     <pre class="cap">오늘 뭐 해 먹지… 검색창 앞에서 멍 때린 적 있죠 🤔
 
@@ -327,8 +350,8 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 🥘 레시피 매칭 — 냉장고 재료로 만들 수 있는 레시피 + 대체 재료
 🗓️ AI 식단 — 일주일 식단과 장보기
 🤖 요리 AI — 말하듯 물어보면 레시피 추천
-⏰ 유통기한 알림
-🙌 읽어주기 모드 — 손 안 대고 단계별로 읽어 줘요
+⏰ 유통기한 알림 — 곧 상하는 재료를 푸시로 알려 줘요
+🙌 읽어주기 모드 — 소리 내어 단계별로 레시피를 읽어 줘요
 📺 검증된 레시피 — 유튜브·네이버 인기 레시피
 👨‍👩‍👧 가족이 아낀 돈 — 가족 집밥 목표·아낀 돈(예상)
 
@@ -352,6 +375,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
     </div>
     <p class="scene">손에 뭐가 잔뜩 묻었는데 레시피 화면은 손으로 넘겨야 하는 부엌 장면.</p>
     <p class="meta"><span class="tag">요리 모드</span><span class="file" title="my-video/out/최종24편/1벌_처음8편/reel3_cookmode.mp4">1벌_처음8편 / reel3_cookmode.mp4</span></p>
+    <div class="music"><b>추천 음악</b><span class="mood">여유로운 보사노바·키친 재즈 — 요리하는 차분한 분위기</span><span class="kws">검색어 <span class="kw">bossa nova</span><span class="kw">kitchen jazz</span><span class="kw">cooking at home</span></span><span class="vol">원본 소리 100% · 음악 10~15%</span></div>
     <div class="cap-head"><span>인스타 본문</span><button type="button" class="copy" data-t="cap">본문 복사</button></div>
     <pre class="cap">요리할 땐 손에 뭐가 잔뜩 묻어 있는데, 레시피는 손으로 넘겨야 하죠 🙌
 
@@ -363,8 +387,8 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 🥘 레시피 매칭 — 냉장고 재료로 만들 수 있는 레시피 + 대체 재료
 🗓️ AI 식단 — 일주일 식단과 장보기
 🤖 요리 AI — 말하듯 물어보면 레시피 추천
-⏰ 유통기한 알림
-🙌 읽어주기 모드 — 손 안 대고 단계별로 읽어 줘요
+⏰ 유통기한 알림 — 곧 상하는 재료를 푸시로 알려 줘요
+🙌 읽어주기 모드 — 소리 내어 단계별로 레시피를 읽어 줘요
 📺 검증된 레시피 — 유튜브·네이버 인기 레시피
 👨‍👩‍👧 가족이 아낀 돈 — 가족 집밥 목표·아낀 돈(예상)
 
@@ -388,6 +412,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
     </div>
     <p class="scene">레시피를 그대로 따라 했는데 내 요리만 이상하게 나온 장면.</p>
     <p class="meta"><span class="tag">진짜 레시피</span><span class="file" title="my-video/out/최종24편/1벌_처음8편/reel7_recipe.mp4">1벌_처음8편 / reel7_recipe.mp4</span></p>
+    <div class="music"><b>추천 음악</b><span class="mood">따뜻하고 믿음이 가는 어쿠스틱 기타 — 긍정적인 분위기</span><span class="kws">검색어 <span class="kw">warm acoustic</span><span class="kw">feel good</span><span class="kw">positive guitar</span></span><span class="vol">원본 소리 100% · 음악 10~15%</span></div>
     <div class="cap-head"><span>인스타 본문</span><button type="button" class="copy" data-t="cap">본문 복사</button></div>
     <pre class="cap">레시피 따라 했는데, 왜 제 것만 이상하죠? 😢
 
@@ -399,8 +424,8 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 🥘 레시피 매칭 — 냉장고 재료로 만들 수 있는 레시피 + 대체 재료
 🗓️ AI 식단 — 일주일 식단과 장보기
 🤖 요리 AI — 말하듯 물어보면 레시피 추천
-⏰ 유통기한 알림
-🙌 읽어주기 모드 — 손 안 대고 단계별로 읽어 줘요
+⏰ 유통기한 알림 — 곧 상하는 재료를 푸시로 알려 줘요
+🙌 읽어주기 모드 — 소리 내어 단계별로 레시피를 읽어 줘요
 📺 검증된 레시피 — 유튜브·네이버 인기 레시피
 👨‍👩‍👧 가족이 아낀 돈 — 가족 집밥 목표·아낀 돈(예상)
 
@@ -424,6 +449,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
     </div>
     <p class="scene">부부가 이번 달 배달비 내역을 보고 놀라는 장면.</p>
     <p class="meta"><span class="tag">가족·아낀 돈</span><span class="file" title="my-video/out/최종24편/1벌_처음8편/reel8_family_savings.mp4">1벌_처음8편 / reel8_family_savings.mp4</span></p>
+    <div class="music"><b>추천 음악</b><span class="mood">포근한 우쿨렐레 — 가족 일상 분위기</span><span class="kws">검색어 <span class="kw">ukulele happy</span><span class="kw">family vlog</span><span class="kw">cozy home</span></span><span class="vol">원본 소리 100% · 음악 10~15%</span></div>
     <div class="cap-head"><span>인스타 본문</span><button type="button" class="copy" data-t="cap">본문 복사</button></div>
     <pre class="cap">이번 달 배달비, 얼마인지 볼 용기 있어요? 💸
 
@@ -435,8 +461,8 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 🥘 레시피 매칭 — 냉장고 재료로 만들 수 있는 레시피 + 대체 재료
 🗓️ AI 식단 — 일주일 식단과 장보기
 🤖 요리 AI — 말하듯 물어보면 레시피 추천
-⏰ 유통기한 알림
-🙌 읽어주기 모드 — 손 안 대고 단계별로 읽어 줘요
+⏰ 유통기한 알림 — 곧 상하는 재료를 푸시로 알려 줘요
+🙌 읽어주기 모드 — 소리 내어 단계별로 레시피를 읽어 줘요
 📺 검증된 레시피 — 유튜브·네이버 인기 레시피
 👨‍👩‍👧 가족이 아낀 돈 — 가족 집밥 목표·아낀 돈(예상)
 
@@ -461,6 +487,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
     </div>
     <p class="scene">마트에서 두부를 들고 ‘집에 있었나…?’ 하고 멈춰 서는 장면.</p>
     <p class="meta"><span class="tag">사진 인식</span><span class="file" title="my-video/out/최종24편/2벌_새클립A_v4/reel1_hookv4_tofu.mp4">2벌_새클립A_v4 / reel1_hookv4_tofu.mp4</span></p>
+    <div class="music"><b>추천 음악</b><span class="mood">마트에서 머뭇거리는 코믹한 분위기 — 가벼운 어쿠스틱</span><span class="kws">검색어 <span class="kw">funny thinking</span><span class="kw">comedy light</span><span class="kw">quirky acoustic</span></span><span class="vol">원본 소리 100% · 음악 10~15%</span></div>
     <div class="cap-head"><span>인스타 본문</span><button type="button" class="copy" data-t="cap">본문 복사</button></div>
     <pre class="cap">마트에서 두부 들고 &quot;집에 있었나…?&quot; 멈춘 적 있죠 🤔
 
@@ -473,8 +500,8 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 🥘 레시피 매칭 — 냉장고 재료로 만들 수 있는 레시피 + 대체 재료
 🗓️ AI 식단 — 일주일 식단과 장보기
 🤖 요리 AI — 말하듯 물어보면 레시피 추천
-⏰ 유통기한 알림
-🙌 읽어주기 모드 — 손 안 대고 단계별로 읽어 줘요
+⏰ 유통기한 알림 — 곧 상하는 재료를 푸시로 알려 줘요
+🙌 읽어주기 모드 — 소리 내어 단계별로 레시피를 읽어 줘요
 📺 검증된 레시피 — 유튜브·네이버 인기 레시피
 👨‍👩‍👧 가족이 아낀 돈 — 가족 집밥 목표·아낀 돈(예상)
 
@@ -498,6 +525,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
     </div>
     <p class="scene">냉장고를 열어 놓고 ‘먹을 게 없네’ 하며 한참 서 있는 장면.</p>
     <p class="meta"><span class="tag">레시피 매칭</span><span class="file" title="my-video/out/최종24편/2벌_새클립A_v4/reel2_hookv4_fridge.mp4">2벌_새클립A_v4 / reel2_hookv4_fridge.mp4</span></p>
+    <div class="music"><b>추천 음악</b><span class="mood">나른하고 심심한 로파이 — 뒤로 가면 경쾌해지는 곡</span><span class="kws">검색어 <span class="kw">lofi chill</span><span class="kw">lazy day</span><span class="kw">bored funny</span></span><span class="vol">원본 소리 100% · 음악 10~15%</span></div>
     <div class="cap-head"><span>인스타 본문</span><button type="button" class="copy" data-t="cap">본문 복사</button></div>
     <pre class="cap">냉장고는 몇 번을 열어도 그대로예요 🫠
 
@@ -510,8 +538,8 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 🥘 레시피 매칭 — 냉장고 재료로 만들 수 있는 레시피 + 대체 재료
 🗓️ AI 식단 — 일주일 식단과 장보기
 🤖 요리 AI — 말하듯 물어보면 레시피 추천
-⏰ 유통기한 알림
-🙌 읽어주기 모드 — 손 안 대고 단계별로 읽어 줘요
+⏰ 유통기한 알림 — 곧 상하는 재료를 푸시로 알려 줘요
+🙌 읽어주기 모드 — 소리 내어 단계별로 레시피를 읽어 줘요
 📺 검증된 레시피 — 유튜브·네이버 인기 레시피
 👨‍👩‍👧 가족이 아낀 돈 — 가족 집밥 목표·아낀 돈(예상)
 
@@ -535,6 +563,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
     </div>
     <p class="scene">냉장고 앞에서 ‘이거 언제 샀더라?’ 하며 물러진 애호박을 꺼내는 장면.</p>
     <p class="meta"><span class="tag">유통기한 알림</span><span class="file" title="my-video/out/최종24편/2벌_새클립A_v4/reel5_hookv4_zucchini.mp4">2벌_새클립A_v4 / reel5_hookv4_zucchini.mp4</span></p>
+    <div class="music"><b>추천 음악</b><span class="mood">귀엽고 코믹한 곡 — 효과음 느낌이 나는 피치카토</span><span class="kws">검색어 <span class="kw">cute comedy</span><span class="kw">silly</span><span class="kw">pizzicato fun</span></span><span class="vol">원본 소리 100% · 음악 10~15%</span></div>
     <div class="cap-head"><span>인스타 본문</span><button type="button" class="copy" data-t="cap">본문 복사</button></div>
     <pre class="cap">&quot;이거 언제 샀더라…&quot; 야채칸에서 물러진 애호박 꺼내 본 적 있죠 🥲
 
@@ -547,8 +576,8 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 🥘 레시피 매칭 — 냉장고 재료로 만들 수 있는 레시피 + 대체 재료
 🗓️ AI 식단 — 일주일 식단과 장보기
 🤖 요리 AI — 말하듯 물어보면 레시피 추천
-⏰ 유통기한 알림
-🙌 읽어주기 모드 — 손 안 대고 단계별로 읽어 줘요
+⏰ 유통기한 알림 — 곧 상하는 재료를 푸시로 알려 줘요
+🙌 읽어주기 모드 — 소리 내어 단계별로 레시피를 읽어 줘요
 📺 검증된 레시피 — 유튜브·네이버 인기 레시피
 👨‍👩‍👧 가족이 아낀 돈 — 가족 집밥 목표·아낀 돈(예상)
 
@@ -572,6 +601,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
     </div>
     <p class="scene">장 봐 온 대파를 넣으려다 냉장고에 이미 대파가 있는 걸 발견하는 장면.</p>
     <p class="meta"><span class="tag">AI 식단</span><span class="file" title="my-video/out/최종24편/2벌_새클립A_v4/reel4_hookv4_greenonion.mp4">2벌_새클립A_v4 / reel4_hookv4_greenonion.mp4</span></p>
+    <div class="music"><b>추천 음악</b><span class="mood">‘또 샀네’ 하는 웃음 포인트 — 통통 튀는 코믹 팝</span><span class="kws">검색어 <span class="kw">funny pop</span><span class="kw">oops</span><span class="kw">comedy bounce</span></span><span class="vol">원본 소리 100% · 음악 10~15%</span></div>
     <div class="cap-head"><span>인스타 본문</span><button type="button" class="copy" data-t="cap">본문 복사</button></div>
     <pre class="cap">있는 줄 모르고 또 산 대파, 우리 집에만 있는 거 아니죠? 🌿
 
@@ -584,8 +614,8 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 🥘 레시피 매칭 — 냉장고 재료로 만들 수 있는 레시피 + 대체 재료
 🗓️ AI 식단 — 일주일 식단과 장보기
 🤖 요리 AI — 말하듯 물어보면 레시피 추천
-⏰ 유통기한 알림
-🙌 읽어주기 모드 — 손 안 대고 단계별로 읽어 줘요
+⏰ 유통기한 알림 — 곧 상하는 재료를 푸시로 알려 줘요
+🙌 읽어주기 모드 — 소리 내어 단계별로 레시피를 읽어 줘요
 📺 검증된 레시피 — 유튜브·네이버 인기 레시피
 👨‍👩‍👧 가족이 아낀 돈 — 가족 집밥 목표·아낀 돈(예상)
 
@@ -609,6 +639,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
     </div>
     <p class="scene">소파에 앉은 커플, ‘뭐 먹을래?’ ‘아무거나’ 하고서 메뉴마다 퇴짜 놓는 장면.</p>
     <p class="meta"><span class="tag">요리 AI</span><span class="file" title="my-video/out/최종24편/2벌_새클립A_v4/reel6_hookv4_anything.mp4">2벌_새클립A_v4 / reel6_hookv4_anything.mp4</span></p>
+    <div class="music"><b>추천 음악</b><span class="mood">티격태격하는 커플의 장난스러운 스윙·재즈</span><span class="kws">검색어 <span class="kw">playful jazz</span><span class="kw">couple funny</span><span class="kw">swing light</span></span><span class="vol">원본 소리 100% · 음악 10~15%</span></div>
     <div class="cap-head"><span>인스타 본문</span><button type="button" class="copy" data-t="cap">본문 복사</button></div>
     <pre class="cap">&quot;뭐 먹을래?&quot; &quot;아무거나.&quot; &quot;김치찌개?&quot; &quot;아니 그거 말고.&quot; 🙃
 
@@ -621,8 +652,8 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 🥘 레시피 매칭 — 냉장고 재료로 만들 수 있는 레시피 + 대체 재료
 🗓️ AI 식단 — 일주일 식단과 장보기
 🤖 요리 AI — 말하듯 물어보면 레시피 추천
-⏰ 유통기한 알림
-🙌 읽어주기 모드 — 손 안 대고 단계별로 읽어 줘요
+⏰ 유통기한 알림 — 곧 상하는 재료를 푸시로 알려 줘요
+🙌 읽어주기 모드 — 소리 내어 단계별로 레시피를 읽어 줘요
 📺 검증된 레시피 — 유튜브·네이버 인기 레시피
 👨‍👩‍👧 가족이 아낀 돈 — 가족 집밥 목표·아낀 돈(예상)
 
@@ -646,6 +677,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
     </div>
     <p class="scene">반죽 묻은 손으로 폰 레시피를 넘기려다 ‘아 코로 넘겨?’ 하는 장면.</p>
     <p class="meta"><span class="tag">요리 모드</span><span class="file" title="my-video/out/최종24편/2벌_새클립A_v4/reel3_hookv4_dough.mp4">2벌_새클립A_v4 / reel3_hookv4_dough.mp4</span></p>
+    <div class="music"><b>추천 음악</b><span class="mood">베이킹하는 아늑한 어쿠스틱·잔잔한 피아노</span><span class="kws">검색어 <span class="kw">baking cozy</span><span class="kw">kitchen acoustic</span><span class="kw">soft piano happy</span></span><span class="vol">원본 소리 100% · 음악 10~15%</span></div>
     <div class="cap-head"><span>인스타 본문</span><button type="button" class="copy" data-t="cap">본문 복사</button></div>
     <pre class="cap">반죽 묻은 손으로 레시피 넘기다가… 코까지 써 본 사람 🙋
 
@@ -658,8 +690,8 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 🥘 레시피 매칭 — 냉장고 재료로 만들 수 있는 레시피 + 대체 재료
 🗓️ AI 식단 — 일주일 식단과 장보기
 🤖 요리 AI — 말하듯 물어보면 레시피 추천
-⏰ 유통기한 알림
-🙌 읽어주기 모드 — 손 안 대고 단계별로 읽어 줘요
+⏰ 유통기한 알림 — 곧 상하는 재료를 푸시로 알려 줘요
+🙌 읽어주기 모드 — 소리 내어 단계별로 레시피를 읽어 줘요
 📺 검증된 레시피 — 유튜브·네이버 인기 레시피
 👨‍👩‍👧 가족이 아낀 돈 — 가족 집밥 목표·아낀 돈(예상)
 
@@ -683,6 +715,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
     </div>
     <p class="scene">레시피에 ‘소금 적당히’라고 적혀 있어서 ‘적당히가 얼만데?’ 하는 장면.</p>
     <p class="meta"><span class="tag">진짜 레시피</span><span class="file" title="my-video/out/최종24편/2벌_새클립A_v4/reel7_hookv4_salt.mp4">2벌_새클립A_v4 / reel7_hookv4_salt.mp4</span></p>
+    <div class="music"><b>추천 음악</b><span class="mood">답답하다가 풀리는 코믹 팝 — 가벼운 펑키</span><span class="kws">검색어 <span class="kw">funny confused</span><span class="kw">quirky comedy</span><span class="kw">light funk</span></span><span class="vol">원본 소리 100% · 음악 10~15%</span></div>
     <div class="cap-head"><span>인스타 본문</span><button type="button" class="copy" data-t="cap">본문 복사</button></div>
     <pre class="cap">&quot;소금 적당히&quot;… 적당히가 얼만데요 🧂
 
@@ -695,8 +728,8 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 🥘 레시피 매칭 — 냉장고 재료로 만들 수 있는 레시피 + 대체 재료
 🗓️ AI 식단 — 일주일 식단과 장보기
 🤖 요리 AI — 말하듯 물어보면 레시피 추천
-⏰ 유통기한 알림
-🙌 읽어주기 모드 — 손 안 대고 단계별로 읽어 줘요
+⏰ 유통기한 알림 — 곧 상하는 재료를 푸시로 알려 줘요
+🙌 읽어주기 모드 — 소리 내어 단계별로 레시피를 읽어 줘요
 📺 검증된 레시피 — 유튜브·네이버 인기 레시피
 👨‍👩‍👧 가족이 아낀 돈 — 가족 집밥 목표·아낀 돈(예상)
 
@@ -720,6 +753,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
     </div>
     <p class="scene">배달 용기가 탑처럼 쌓인 걸 보고 ‘어휴 쓰러지겠다’ 하는 장면.</p>
     <p class="meta"><span class="tag">가족·아낀 돈</span><span class="file" title="my-video/out/최종24편/2벌_새클립A_v4/reel8_hookv4_takeout.mp4">2벌_새클립A_v4 / reel8_hookv4_takeout.mp4</span></p>
+    <div class="music"><b>추천 음악</b><span class="mood">과장된 드라마틱 분위기 → 경쾌하게 풀리는 곡</span><span class="kws">검색어 <span class="kw">dramatic comedy</span><span class="kw">cinematic funny</span><span class="kw">upbeat pop</span></span><span class="vol">원본 소리 100% · 음악 10~15%</span></div>
     <div class="cap-head"><span>인스타 본문</span><button type="button" class="copy" data-t="cap">본문 복사</button></div>
     <pre class="cap">이번 달 배달 용기… 몇 개였는지 세어 보셨어요? 🥡
 
@@ -732,8 +766,8 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 🥘 레시피 매칭 — 냉장고 재료로 만들 수 있는 레시피 + 대체 재료
 🗓️ AI 식단 — 일주일 식단과 장보기
 🤖 요리 AI — 말하듯 물어보면 레시피 추천
-⏰ 유통기한 알림
-🙌 읽어주기 모드 — 손 안 대고 단계별로 읽어 줘요
+⏰ 유통기한 알림 — 곧 상하는 재료를 푸시로 알려 줘요
+🙌 읽어주기 모드 — 소리 내어 단계별로 레시피를 읽어 줘요
 📺 검증된 레시피 — 유튜브·네이버 인기 레시피
 👨‍👩‍👧 가족이 아낀 돈 — 가족 집밥 목표·아낀 돈(예상)
 
@@ -758,6 +792,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
     </div>
     <p class="scene">장 보다가 집에 전화해서 ‘계란 있어? 없어?’ 묻는 장면. 냉장고 앞 사람이 ‘어, 한 개 있네?’ 하고 답한다.</p>
     <p class="meta"><span class="tag">사진 인식</span><span class="file" title="my-video/out/최종24편/3벌_새클립B_v3/reel1_hookv3_egg.mp4">3벌_새클립B_v3 / reel1_hookv3_egg.mp4</span></p>
+    <div class="music"><b>추천 음악</b><span class="mood">일상 코미디 느낌의 밝은 어쿠스틱</span><span class="kws">검색어 <span class="kw">daily comedy</span><span class="kw">phone call funny</span><span class="kw">cheerful acoustic</span></span><span class="vol">원본 소리 100% · 음악 10~15%</span></div>
     <div class="cap-head"><span>인스타 본문</span><button type="button" class="copy" data-t="cap">본문 복사</button></div>
     <pre class="cap">장 보다가 &quot;집에 계란 있어?&quot; 전화해 본 사람 🙋 (답은 늘 &quot;어, 한 개 있네?&quot;)
 
@@ -770,8 +805,8 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 🥘 레시피 매칭 — 냉장고 재료로 만들 수 있는 레시피 + 대체 재료
 🗓️ AI 식단 — 일주일 식단과 장보기
 🤖 요리 AI — 말하듯 물어보면 레시피 추천
-⏰ 유통기한 알림
-🙌 읽어주기 모드 — 손 안 대고 단계별로 읽어 줘요
+⏰ 유통기한 알림 — 곧 상하는 재료를 푸시로 알려 줘요
+🙌 읽어주기 모드 — 소리 내어 단계별로 레시피를 읽어 줘요
 📺 검증된 레시피 — 유튜브·네이버 인기 레시피
 👨‍👩‍👧 가족이 아낀 돈 — 가족 집밥 목표·아낀 돈(예상)
 
@@ -795,6 +830,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
     </div>
     <p class="scene">남은 재료를 다 꺼내 놓고 부부가 ‘이걸로 뭐 되나’ 하며 한참 쳐다보는 장면.</p>
     <p class="meta"><span class="tag">레시피 매칭</span><span class="file" title="my-video/out/최종24편/3벌_새클립B_v3/reel2_hookv3_lineup.mp4">3벌_새클립B_v3 / reel2_hookv3_lineup.mp4</span></p>
+    <div class="music"><b>추천 음악</b><span class="mood">남은 재료를 고민하는 귀엽고 차분한 로파이</span><span class="kws">검색어 <span class="kw">lofi puzzle</span><span class="kw">thinking music</span><span class="kw">cute chill</span></span><span class="vol">원본 소리 100% · 음악 10~15%</span></div>
     <div class="cap-head"><span>인스타 본문</span><button type="button" class="copy" data-t="cap">본문 복사</button></div>
     <pre class="cap">냉장고에 남은 재료 다 꺼내 놓고 한참 쳐다본 적 있죠 🥚🧅
 
@@ -806,8 +842,8 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 🥘 레시피 매칭 — 냉장고 재료로 만들 수 있는 레시피 + 대체 재료
 🗓️ AI 식단 — 일주일 식단과 장보기
 🤖 요리 AI — 말하듯 물어보면 레시피 추천
-⏰ 유통기한 알림
-🙌 읽어주기 모드 — 손 안 대고 단계별로 읽어 줘요
+⏰ 유통기한 알림 — 곧 상하는 재료를 푸시로 알려 줘요
+🙌 읽어주기 모드 — 소리 내어 단계별로 레시피를 읽어 줘요
 📺 검증된 레시피 — 유튜브·네이버 인기 레시피
 👨‍👩‍👧 가족이 아낀 돈 — 가족 집밥 목표·아낀 돈(예상)
 
@@ -831,6 +867,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
     </div>
     <p class="scene">우유 앞에서 ‘이거 괜찮은 거 같아?’ ‘음, 자기가 먹어’ 하며 서로 미루는 장면.</p>
     <p class="meta"><span class="tag">유통기한 알림</span><span class="file" title="my-video/out/최종24편/3벌_새클립B_v3/reel5_hookv3_milk.mp4">3벌_새클립B_v3 / reel5_hookv3_milk.mp4</span></p>
+    <div class="music"><b>추천 음악</b><span class="mood">살짝 긴장되다 웃음으로 풀리는 코믹 서스펜스</span><span class="kws">검색어 <span class="kw">suspense funny</span><span class="kw">mystery light</span><span class="kw">comedy tension</span></span><span class="vol">원본 소리 100% · 음악 10~15%</span></div>
     <div class="cap-head"><span>인스타 본문</span><button type="button" class="copy" data-t="cap">본문 복사</button></div>
     <pre class="cap">&quot;이거 우유 괜찮은 거 같아?&quot; &quot;음, 자기가 먹어.&quot; 🥛
 
@@ -843,8 +880,8 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 🥘 레시피 매칭 — 냉장고 재료로 만들 수 있는 레시피 + 대체 재료
 🗓️ AI 식단 — 일주일 식단과 장보기
 🤖 요리 AI — 말하듯 물어보면 레시피 추천
-⏰ 유통기한 알림
-🙌 읽어주기 모드 — 손 안 대고 단계별로 읽어 줘요
+⏰ 유통기한 알림 — 곧 상하는 재료를 푸시로 알려 줘요
+🙌 읽어주기 모드 — 소리 내어 단계별로 레시피를 읽어 줘요
 📺 검증된 레시피 — 유튜브·네이버 인기 레시피
 👨‍👩‍👧 가족이 아낀 돈 — 가족 집밥 목표·아낀 돈(예상)
 
@@ -868,6 +905,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
     </div>
     <p class="scene">장 봐 온 사람이 꽉 찬 냉장고 문을 등으로 막고 ‘또 장 봤어?’ ‘응, 이번 주 거야’ 하는 장면.</p>
     <p class="meta"><span class="tag">AI 식단</span><span class="file" title="my-video/out/최종24편/3벌_새클립B_v3/reel4_hookv3_fridgedoor.mp4">3벌_새클립B_v3 / reel4_hookv3_fridgedoor.mp4</span></p>
+    <div class="music"><b>추천 음악</b><span class="mood">슬랩스틱 코믹 — 통통 튀는 만화 느낌</span><span class="kws">검색어 <span class="kw">slapstick</span><span class="kw">cartoon funny</span><span class="kw">bouncy comedy</span></span><span class="vol">원본 소리 100% · 음악 10~15%</span></div>
     <div class="cap-head"><span>인스타 본문</span><button type="button" class="copy" data-t="cap">본문 복사</button></div>
     <pre class="cap">꽉 찬 냉장고, 닫았는데 스르륵 다시 열려서 등으로 막아 본 적 있죠? 😅
 
@@ -879,8 +917,8 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 🥘 레시피 매칭 — 냉장고 재료로 만들 수 있는 레시피 + 대체 재료
 🗓️ AI 식단 — 일주일 식단과 장보기
 🤖 요리 AI — 말하듯 물어보면 레시피 추천
-⏰ 유통기한 알림
-🙌 읽어주기 모드 — 손 안 대고 단계별로 읽어 줘요
+⏰ 유통기한 알림 — 곧 상하는 재료를 푸시로 알려 줘요
+🙌 읽어주기 모드 — 소리 내어 단계별로 레시피를 읽어 줘요
 📺 검증된 레시피 — 유튜브·네이버 인기 레시피
 👨‍👩‍👧 가족이 아낀 돈 — 가족 집밥 목표·아낀 돈(예상)
 
@@ -904,6 +942,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
     </div>
     <p class="scene">엄마와 통화하며 ‘두부랑 애호박 있는데 뭐 해 먹지?’ 묻고 ‘그걸 왜 맨날 물어봐’ 듣는 장면.</p>
     <p class="meta"><span class="tag">요리 AI</span><span class="file" title="my-video/out/최종24편/3벌_새클립B_v3/reel6_hookv3_mom.mp4">3벌_새클립B_v3 / reel6_hookv3_mom.mp4</span></p>
+    <div class="music"><b>추천 음악</b><span class="mood">따뜻하고 웃긴 가족 통화 분위기</span><span class="kws">검색어 <span class="kw">warm family funny</span><span class="kw">mom daughter</span><span class="kw">cozy cheerful</span></span><span class="vol">원본 소리 100% · 음악 10~15%</span></div>
     <div class="cap-head"><span>인스타 본문</span><button type="button" class="copy" data-t="cap">본문 복사</button></div>
     <pre class="cap">&quot;엄마, 두부랑 애호박 있는데 뭐 해 먹지?&quot; &quot;그걸 왜 맨날 물어봐.&quot; 📞
 
@@ -916,8 +955,8 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 🥘 레시피 매칭 — 냉장고 재료로 만들 수 있는 레시피 + 대체 재료
 🗓️ AI 식단 — 일주일 식단과 장보기
 🤖 요리 AI — 말하듯 물어보면 레시피 추천
-⏰ 유통기한 알림
-🙌 읽어주기 모드 — 손 안 대고 단계별로 읽어 줘요
+⏰ 유통기한 알림 — 곧 상하는 재료를 푸시로 알려 줘요
+🙌 읽어주기 모드 — 소리 내어 단계별로 레시피를 읽어 줘요
 📺 검증된 레시피 — 유튜브·네이버 인기 레시피
 👨‍👩‍👧 가족이 아낀 돈 — 가족 집밥 목표·아낀 돈(예상)
 
@@ -941,6 +980,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
     </div>
     <p class="scene">양념 묻은 손으로 ‘화면 좀 올려줄래’ 부탁했다가 ‘너무 올렸어!’ ‘아니 아니 아니!’ 하는 장면.</p>
     <p class="meta"><span class="tag">요리 모드</span><span class="file" title="my-video/out/최종24편/3벌_새클립B_v3/reel3_hookv3_scroll.mp4">3벌_새클립B_v3 / reel3_hookv3_scroll.mp4</span></p>
+    <div class="music"><b>추천 음악</b><span class="mood">티키타카 리듬이 있는 코믹한 곡</span><span class="kws">검색어 <span class="kw">tikitaka funny</span><span class="kw">comedy rhythm</span><span class="kw">playful</span></span><span class="vol">원본 소리 100% · 음악 10~15%</span></div>
     <div class="cap-head"><span>인스타 본문</span><button type="button" class="copy" data-t="cap">본문 복사</button></div>
     <pre class="cap">&quot;좀만 더 위로.&quot; &quot;너무 올렸어!&quot; &quot;아니 아니 아니!&quot; 양념 묻은 손으로 레시피 보는 사람 공감 🧤
 
@@ -953,8 +993,8 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 🥘 레시피 매칭 — 냉장고 재료로 만들 수 있는 레시피 + 대체 재료
 🗓️ AI 식단 — 일주일 식단과 장보기
 🤖 요리 AI — 말하듯 물어보면 레시피 추천
-⏰ 유통기한 알림
-🙌 읽어주기 모드 — 손 안 대고 단계별로 읽어 줘요
+⏰ 유통기한 알림 — 곧 상하는 재료를 푸시로 알려 줘요
+🙌 읽어주기 모드 — 소리 내어 단계별로 레시피를 읽어 줘요
 📺 검증된 레시피 — 유튜브·네이버 인기 레시피
 👨‍👩‍👧 가족이 아낀 돈 — 가족 집밥 목표·아낀 돈(예상)
 
@@ -978,6 +1018,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
     </div>
     <p class="scene">맛있게 먹다가 ‘근데 자기야, 이거 뭐야?’ ‘찜닭인데.’ 하는 장면.</p>
     <p class="meta"><span class="tag">진짜 레시피</span><span class="file" title="my-video/out/최종24편/3벌_새클립B_v3/reel7_hookv3_jjimdak.mp4">3벌_새클립B_v3 / reel7_hookv3_jjimdak.mp4</span></p>
+    <div class="music"><b>추천 음악</b><span class="mood">맛있게 먹는 따뜻한 저녁 식사 — 코믹하게 마무리</span><span class="kws">검색어 <span class="kw">yummy</span><span class="kw">dinner cozy</span><span class="kw">happy eating</span></span><span class="vol">원본 소리 100% · 음악 10~15%</span></div>
     <div class="cap-head"><span>인스타 본문</span><button type="button" class="copy" data-t="cap">본문 복사</button></div>
     <pre class="cap">&quot;음, 맛있다. 근데 자기야, 이거 뭐야?&quot; &quot;찜닭인데.&quot; 😂
 
@@ -989,8 +1030,8 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 🥘 레시피 매칭 — 냉장고 재료로 만들 수 있는 레시피 + 대체 재료
 🗓️ AI 식단 — 일주일 식단과 장보기
 🤖 요리 AI — 말하듯 물어보면 레시피 추천
-⏰ 유통기한 알림
-🙌 읽어주기 모드 — 손 안 대고 단계별로 읽어 줘요
+⏰ 유통기한 알림 — 곧 상하는 재료를 푸시로 알려 줘요
+🙌 읽어주기 모드 — 소리 내어 단계별로 레시피를 읽어 줘요
 📺 검증된 레시피 — 유튜브·네이버 인기 레시피
 👨‍👩‍👧 가족이 아낀 돈 — 가족 집밥 목표·아낀 돈(예상)
 
@@ -1014,6 +1055,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
     </div>
     <p class="scene">아파트 로비에서 배달 기사님과 마주쳐 ‘또 뵙네요’ 하고 인사하는 장면.</p>
     <p class="meta"><span class="tag">가족·아낀 돈</span><span class="file" title="my-video/out/최종24편/3벌_새클립B_v3/reel8_hookv3_lobby.mp4">3벌_새클립B_v3 / reel8_hookv3_lobby.mp4</span></p>
+    <div class="music"><b>추천 음악</b><span class="mood">경쾌한 배달 오토바이 느낌의 밝은 팝</span><span class="kws">검색어 <span class="kw">delivery upbeat</span><span class="kw">scooter pop</span><span class="kw">sunny pop</span></span><span class="vol">원본 소리 100% · 음악 10~15%</span></div>
     <div class="cap-head"><span>인스타 본문</span><button type="button" class="copy" data-t="cap">본문 복사</button></div>
     <pre class="cap">배달 기사님이 &quot;또 뵙네요&quot; 하셨어요… 🛵
 
@@ -1025,8 +1067,8 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 🥘 레시피 매칭 — 냉장고 재료로 만들 수 있는 레시피 + 대체 재료
 🗓️ AI 식단 — 일주일 식단과 장보기
 🤖 요리 AI — 말하듯 물어보면 레시피 추천
-⏰ 유통기한 알림
-🙌 읽어주기 모드 — 손 안 대고 단계별로 읽어 줘요
+⏰ 유통기한 알림 — 곧 상하는 재료를 푸시로 알려 줘요
+🙌 읽어주기 모드 — 소리 내어 단계별로 레시피를 읽어 줘요
 📺 검증된 레시피 — 유튜브·네이버 인기 레시피
 👨‍👩‍👧 가족이 아낀 돈 — 가족 집밥 목표·아낀 돈(예상)
 
