@@ -1,6 +1,7 @@
 import React from "react";
 import { AbsoluteFill, OffthreadVideo, Sequence, staticFile, interpolate, useCurrentFrame } from "remotion";
 import { FONT_FAMILY, WHITE, useCustomFont, Caption } from "./shared";
+import { RestFeatures, restLen, REST_EXCL } from "./RestFeatures";
 import { Reel1Demo, Reel1Cta, REEL1_DEMO_LEN, REEL1_CTA_LEN } from "./Reel1Receipt";
 import { Reel2Demo, Reel2Cta, REEL2_DEMO_LEN, REEL2_CTA_LEN } from "./Reel2Match";
 import { Reel3Demo, Reel3Cta, REEL3_DEMO_LEN, REEL3_CTA_LEN } from "./Reel3CookMode";
@@ -128,8 +129,11 @@ const HookV2: React.FC<{ spec: HookSpec }> = ({ spec }) => {
   );
 };
 
-export const makeReel = (spec: HookSpec, Demo: React.FC, demoLen: number, Cta: React.FC, ctaLen: number) => {
+const CTA2_LEN = 120; // 끝 화면 한 번 더(무음) 4s
+
+export const makeReel = (spec: HookSpec, Demo: React.FC, demoLen: number, Cta: React.FC<{ silent?: boolean }>, ctaLen: number, restIdx: number) => {
   const hLen = hookLen(spec);
+  const rLen = restLen(restIdx); // 끝 화면 뒤 「이 밖의 기능 7가지」 빠른 훑기 + 끝 화면 한 번 더(2026-10-12 사용자 지시)
   const Comp: React.FC = () => {
     useCustomFont();
     return (
@@ -143,19 +147,25 @@ export const makeReel = (spec: HookSpec, Demo: React.FC, demoLen: number, Cta: R
         <Sequence from={hLen + demoLen} durationInFrames={ctaLen} name="CTA">
           <Cta />
         </Sequence>
+        <Sequence from={hLen + demoLen + ctaLen} durationInFrames={rLen} name="Rest">
+          <RestFeatures excl={restIdx} />
+        </Sequence>
+        <Sequence from={hLen + demoLen + ctaLen + rLen} durationInFrames={CTA2_LEN} name="CTA-again">
+          <Cta silent />
+        </Sequence>
       </AbsoluteFill>
     );
   };
-  return { Comp, total: hLen + demoLen + ctaLen };
+  return { Comp, total: hLen + demoLen + ctaLen + rLen + CTA2_LEN };
 };
 
 export const REELS_HOOK_V2 = [
-  { id: "Reel1HookV2Tofu", ...makeReel(HOOK1, Reel1Demo, REEL1_DEMO_LEN, Reel1Cta, REEL1_CTA_LEN) },
-  { id: "Reel2HookV2Fridge", ...makeReel(HOOK2, Reel2Demo, REEL2_DEMO_LEN, Reel2Cta, REEL2_CTA_LEN) },
-  { id: "Reel4HookV2GreenOnion", ...makeReel(HOOK4, Reel4Demo, REEL4_DEMO_LEN, Reel4Cta, REEL4_CTA_LEN) },
-  { id: "Reel5HookV2Zucchini", ...makeReel(HOOK5, Reel5Demo, REEL5_DEMO_LEN, Reel5Cta, REEL5_CTA_LEN) },
-  { id: "Reel3HookV2DoughB", ...makeReel(HOOK3B, Reel3Demo, REEL3_DEMO_LEN, Reel3Cta, REEL3_CTA_LEN) },
-  { id: "Reel6HookV2Anything", ...makeReel(HOOK6, Reel6Demo, REEL6_DEMO_LEN, Reel6Cta, REEL6_CTA_LEN) },
-  { id: "Reel7HookV2Salt", ...makeReel(HOOK7, Reel7Demo, REEL7_DEMO_LEN, Reel7Cta, REEL7_CTA_LEN) },
-  { id: "Reel8HookV2Takeout", ...makeReel(HOOK8, Reel8Demo, REEL8_DEMO_LEN, Reel8Cta, REEL8_CTA_LEN) },
+  { id: "Reel1HookV2Tofu", ...makeReel(HOOK1, Reel1Demo, REEL1_DEMO_LEN, Reel1Cta, REEL1_CTA_LEN, REST_EXCL[0]) },
+  { id: "Reel2HookV2Fridge", ...makeReel(HOOK2, Reel2Demo, REEL2_DEMO_LEN, Reel2Cta, REEL2_CTA_LEN, REST_EXCL[1]) },
+  { id: "Reel4HookV2GreenOnion", ...makeReel(HOOK4, Reel4Demo, REEL4_DEMO_LEN, Reel4Cta, REEL4_CTA_LEN, REST_EXCL[3]) },
+  { id: "Reel5HookV2Zucchini", ...makeReel(HOOK5, Reel5Demo, REEL5_DEMO_LEN, Reel5Cta, REEL5_CTA_LEN, REST_EXCL[4]) },
+  { id: "Reel3HookV2DoughB", ...makeReel(HOOK3B, Reel3Demo, REEL3_DEMO_LEN, Reel3Cta, REEL3_CTA_LEN, REST_EXCL[2]) },
+  { id: "Reel6HookV2Anything", ...makeReel(HOOK6, Reel6Demo, REEL6_DEMO_LEN, Reel6Cta, REEL6_CTA_LEN, REST_EXCL[5]) },
+  { id: "Reel7HookV2Salt", ...makeReel(HOOK7, Reel7Demo, REEL7_DEMO_LEN, Reel7Cta, REEL7_CTA_LEN, REST_EXCL[6]) },
+  { id: "Reel8HookV2Takeout", ...makeReel(HOOK8, Reel8Demo, REEL8_DEMO_LEN, Reel8Cta, REEL8_CTA_LEN, REST_EXCL[7]) },
 ];

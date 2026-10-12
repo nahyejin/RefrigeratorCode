@@ -1,4 +1,5 @@
 import { makeReel, type HookSpec } from "./ReelHooksV2";
+import { REST_EXCL } from "./RestFeatures";
 import { Reel1Demo, Reel1Cta, REEL1_DEMO_LEN, REEL1_CTA_LEN } from "./Reel1Receipt";
 import { Reel2Demo, Reel2Cta, REEL2_DEMO_LEN, REEL2_CTA_LEN } from "./Reel2Match";
 import { Reel3Demo, Reel3Cta, REEL3_DEMO_LEN, REEL3_CTA_LEN } from "./Reel3CookMode";
@@ -31,12 +32,12 @@ const H7: HookSpec = { src: "reel7_hook_v4_salt_clean.mp4", segs: [[0, 10.0]], c
 const H8: HookSpec = { src: "reel8_hook_v4_takeout_clean.mp4", segs: [[0, 9.7]], captionAt: 5.5, caption: "이번 달 배달 용기,\n몇 개예요?" };
 
 export const REELS_HOOK_V4 = [
-  { id: "Reel1HookV4Tofu", ...makeReel(H1, Reel1Demo, REEL1_DEMO_LEN, Reel1Cta, REEL1_CTA_LEN) },
-  { id: "Reel2HookV4Fridge", ...makeReel(H2, Reel2Demo, REEL2_DEMO_LEN, Reel2Cta, REEL2_CTA_LEN) },
-  { id: "Reel3HookV4Dough", ...makeReel(H3, Reel3Demo, REEL3_DEMO_LEN, Reel3Cta, REEL3_CTA_LEN) },
-  { id: "Reel4HookV4GreenOnion", ...makeReel(H4, Reel4Demo, REEL4_DEMO_LEN, Reel4Cta, REEL4_CTA_LEN) },
-  { id: "Reel5HookV4Zucchini", ...makeReel(H5, Reel5Demo, REEL5_DEMO_LEN, Reel5Cta, REEL5_CTA_LEN) },
-  { id: "Reel6HookV4Anything", ...makeReel(H6, Reel6Demo, REEL6_DEMO_LEN, Reel6Cta, REEL6_CTA_LEN) },
-  { id: "Reel7HookV4Salt", ...makeReel(H7, Reel7Demo, REEL7_DEMO_LEN, Reel7Cta, REEL7_CTA_LEN) },
-  { id: "Reel8HookV4Takeout", ...makeReel(H8, Reel8Demo, REEL8_DEMO_LEN, Reel8Cta, REEL8_CTA_LEN) },
+  { id: "Reel1HookV4Tofu", ...makeReel(H1, Reel1Demo, REEL1_DEMO_LEN, Reel1Cta, REEL1_CTA_LEN, REST_EXCL[0]) },
+  { id: "Reel2HookV4Fridge", ...makeReel(H2, Reel2Demo, REEL2_DEMO_LEN, Reel2Cta, REEL2_CTA_LEN, REST_EXCL[1]) },
+  { id: "Reel3HookV4Dough", ...makeReel(H3, Reel3Demo, REEL3_DEMO_LEN, Reel3Cta, REEL3_CTA_LEN, REST_EXCL[2]) },
+  { id: "Reel4HookV4GreenOnion", ...makeReel(H4, Reel4Demo, REEL4_DEMO_LEN, Reel4Cta, REEL4_CTA_LEN, REST_EXCL[3]) },
+  { id: "Reel5HookV4Zucchini", ...makeReel(H5, Reel5Demo, REEL5_DEMO_LEN, Reel5Cta, REEL5_CTA_LEN, REST_EXCL[4]) },
+  { id: "Reel6HookV4Anything", ...makeReel(H6, Reel6Demo, REEL6_DEMO_LEN, Reel6Cta, REEL6_CTA_LEN, REST_EXCL[5]) },
+  { id: "Reel7HookV4Salt", ...makeReel(H7, Reel7Demo, REEL7_DEMO_LEN, Reel7Cta, REEL7_CTA_LEN, REST_EXCL[6]) },
+  { id: "Reel8HookV4Takeout", ...makeReel(H8, Reel8Demo, REEL8_DEMO_LEN, Reel8Cta, REEL8_CTA_LEN, REST_EXCL[7]) },
 ];

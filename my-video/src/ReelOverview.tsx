@@ -9,19 +9,19 @@ import { FONT_FAMILY, WHITE, INK, INK_FAINT, YELLOW, LINE, useCustomFont, CtaOut
 // 2차 수정(같은 날 사용자 피드백): 첫 장면 노란 칩·「차례로 보여 드릴게요」 삭제, 사진 인식은 촬영→선택→인식→등록 흐름,
 // 매칭은 팝업 조정→적용→레시피, 요리 모드는 스피커 표시, AI 식단은 입력→결과, 유통기한은 푸시 알림→임박 재료 설정→레시피.
 
-type Part =
+export type Part =
   | { kind: "clip"; src: string; from: number; to: number; rate?: number; zoom?: number; cropTop?: number; blurFrom?: number }
   | { kind: "photos"; len: number }
   | { kind: "push"; len: number }
   | { kind: "savings"; len: number };
 
-type Seg = { label: string; caption: string; speaker?: boolean; parts: Part[] };
+export type Seg = { label: string; caption: string; speaker?: boolean; parts: Part[] };
 
 // 푸시 알림 장면: true 면 에뮬레이터에서 진짜 FCM 푸시를 받아 녹화한 클립(`overview_push_demo.mp4`)을, false 면 같은 모양으로 그린 잠금화면을 쓴다.
 const REAL_PUSH_CLIP = false;
 const PUSH_CLIP_FRAMES = 150;
 
-const SEGS: Seg[] = [
+export const SEGS: Seg[] = [
   {
     label: "AI 재료인식",
     caption: "영수증·음식 사진·장본 목록을\nAI가 읽어서 재료로 등록",
@@ -100,8 +100,8 @@ const SEGS: Seg[] = [
 const INTRO = 105; // 3.5s
 const CTA_LEN = 135; // 4.5s
 
-const partLen = (p: Part) => (p.kind === "clip" ? Math.round((p.to - p.from) / (p.rate ?? 1)) : p.len);
-const segLen = (s: Seg) => s.parts.reduce((a, p) => a + partLen(p), 0);
+export const partLen = (p: Part) => (p.kind === "clip" ? Math.round((p.to - p.from) / (p.rate ?? 1)) : p.len);
+export const segLen = (s: Seg) => s.parts.reduce((a, p) => a + partLen(p), 0);
 const TOTAL = INTRO + SEGS.reduce((a, s) => a + segLen(s), 0) + CTA_LEN;
 
 export const REEL_OVERVIEW_TOTAL_FRAMES = TOTAL;
@@ -109,14 +109,14 @@ export const REEL_OVERVIEW_TOTAL_FRAMES = TOTAL;
 const VIDEO_W = 940;
 const VIDEO_LEFT = (1080 - VIDEO_W) / 2;
 
-const fade = (frame: number, len: number) =>
+export const fade = (frame: number, len: number) =>
   Math.min(
     interpolate(frame, [0, 4], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }),
     interpolate(frame, [len - 4, len - 1], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
   );
 
 // 화면 녹화는 940(또는 880) x 1920 — 가로가 880인 옛 녹화(요리 모드)는 같은 자리에 가운데 정렬로 둔다.
-const Clip: React.FC<{ part: Extract<Part, { kind: "clip" }>; len: number }> = ({ part, len }) => {
+export const Clip: React.FC<{ part: Extract<Part, { kind: "clip" }>; len: number }> = ({ part, len }) => {
   const frame = useCurrentFrame();
   const crop = part.cropTop ?? 0;
   const video = (
@@ -152,7 +152,7 @@ const SHOTS = [
   { img: "reel1_src_coupang.jpg", label: "장본 목록", x: 0.81, angle: 8, w: 340, top: 470, at: 16, flash: 52 },
 ];
 
-const PhotoShots: React.FC<{ len: number }> = ({ len }) => {
+export const PhotoShots: React.FC<{ len: number }> = ({ len }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   return (
@@ -176,7 +176,7 @@ const PhotoShots: React.FC<{ len: number }> = ({ len }) => {
 };
 
 // 푸시 알림 장면 — 잠금화면에 알림이 내려오는 모양(진짜 녹화 클립이 없을 때 쓰는 대체 장면)
-const PushScene: React.FC<{ len: number }> = ({ len }) => {
+export const PushScene: React.FC<{ len: number }> = ({ len }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   if (REAL_PUSH_CLIP) {
@@ -207,7 +207,7 @@ const PushScene: React.FC<{ len: number }> = ({ len }) => {
 
 // 아낀 돈(절약액) 카드 줌인 — 8편의 SavingsFreeze 와 같은 소재(reel8_savings_bg/card.png: 「목표 20회 · 목표 달성 시 48만원」)를
 // 흐린 배경 위에 크게 팝인한 뒤 천천히 더 확대해서 숫자에 시선이 가게 한다.
-const SavingsZoom: React.FC<{ len: number }> = ({ len }) => {
+export const SavingsZoom: React.FC<{ len: number }> = ({ len }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const pop = spring({ frame, fps, config: { damping: 14, mass: 0.6 } });
@@ -223,7 +223,7 @@ const SavingsZoom: React.FC<{ len: number }> = ({ len }) => {
 };
 
 // 요리 모드: 소리로 읽어 주고 있다는 스피커 표시(음파가 번갈아 켜진다)
-const SpeakerBadge: React.FC = () => {
+export const SpeakerBadge: React.FC = () => {
   const frame = useCurrentFrame();
   const wave = (i: number) => 0.35 + 0.65 * Math.max(0, Math.sin((frame / 30) * Math.PI * 2.2 - i * 0.9));
   return (
@@ -239,7 +239,7 @@ const SpeakerBadge: React.FC = () => {
 };
 
 // 위쪽 기능 이름 + 진행 점(8개 중 몇 번째인지)
-const FeatureTag: React.FC<{ index: number; label: string; len: number }> = ({ index, label, len }) => {
+export const FeatureTag: React.FC<{ index: number; label: string; len: number; count?: number }> = ({ index, label, len, count }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const p = spring({ frame, fps, config: { damping: 16, mass: 0.6 } });
@@ -248,7 +248,7 @@ const FeatureTag: React.FC<{ index: number; label: string; len: number }> = ({ i
     <div style={{ position: "absolute", top: 170, left: 0, right: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 18, opacity: Math.min(p, out), transform: `translateY(${(1 - p) * -14}px)` }}>
       <div style={{ backgroundColor: YELLOW, color: INK, fontSize: 56, fontWeight: 800, padding: "12px 38px", borderRadius: 999, boxShadow: "0 10px 26px rgba(255,214,0,0.35)" }}>{label}</div>
       <div style={{ display: "flex", gap: 12 }}>
-        {SEGS.map((_, i) => (
+        {Array.from({ length: count ?? SEGS.length }).map((_, i) => (
           <div key={i} style={{ width: i === index ? 44 : 14, height: 14, borderRadius: 7, backgroundColor: i === index ? INK : "rgba(26,26,30,0.22)" }} />
         ))}
       </div>

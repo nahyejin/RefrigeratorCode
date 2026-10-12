@@ -1,6 +1,7 @@
 import React from "react";
 import { AbsoluteFill, Audio, Img, OffthreadVideo, Sequence, staticFile, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import { FONT_FAMILY, WHITE, LINE, useCustomFont, CtaOutro, Caption } from "./shared";
+import { RestFeatures, restLen, REST_EXCL } from "./RestFeatures";
 import { fitToNarration } from "./narrationFrames";
 
 // 원본: VID_20260911180601731.mp4 (15.2s, 632x1280, 30fps) — 실제 쿡매치 사진 인식 데모
@@ -54,9 +55,15 @@ const CTA_LEN = fitToNarration(90, "reel1_narration_cta", 20);
 
 const HOOK_FROM = 0;
 const DEMO_FROM = HOOK_FROM + HOOK_VIDEO_LEN;
+// 데모 → 끝 화면(다운로드 안내) → 이 밖의 기능 7가지 빠르게 훑기(RestFeatures) → 끝 화면 한 번 더(무음) — 2026-10-12 사용자 지시.
+// 중간에 이탈하는 사람은 첫 끝 화면에서 이미 다운로드 안내를 봤고, 끝까지 보는 사람에게는 마지막에 한 번 더 보여 준다.
 const CTA_FROM = DEMO_FROM + DEMO_LEN;
+const REST_LEN = restLen(REST_EXCL[0]);
+const REST_FROM = CTA_FROM + CTA_LEN;
+const CTA2_LEN = 120; // 4s, 음성 없이 같은 화면
+const CTA2_FROM = REST_FROM + REST_LEN;
 
-export const REEL1_TOTAL_FRAMES = CTA_FROM + CTA_LEN; // ≈ 14.0s
+export const REEL1_TOTAL_FRAMES = CTA2_FROM + CTA2_LEN; // ≈ 14.0s
 
 export const Reel1Receipt: React.FC = () => {
   useCustomFont();
@@ -72,6 +79,12 @@ export const Reel1Receipt: React.FC = () => {
       </Sequence>
       <Sequence from={CTA_FROM} durationInFrames={CTA_LEN} name="CTA">
         <Reel1Cta />
+      </Sequence>
+      <Sequence from={REST_FROM} durationInFrames={REST_LEN} name="Rest">
+        <RestFeatures excl={REST_EXCL[0]} />
+      </Sequence>
+      <Sequence from={CTA2_FROM} durationInFrames={CTA2_LEN} name="CTA-again">
+        <Reel1Cta silent />
       </Sequence>
     </AbsoluteFill>
   );
@@ -313,7 +326,7 @@ const Demo: React.FC = () => {
 };
 
 // 엔딩(페이오프 + CTA 나레이션) — 후킹만 바꾼 버전(ReelHooksV2.tsx)에서도 같은 엔딩을 그대로 쓴다.
-export const Reel1Cta: React.FC = () => (
+export const Reel1Cta: React.FC<{ silent?: boolean }> = ({ silent }) => (
   <>
     <CtaOutro
       payoffLine={
@@ -322,7 +335,7 @@ export const Reel1Cta: React.FC = () => (
         </>
       }
     />
-    <Audio src={staticFile("reel1_narration_cta.mp3")} />
+    {!silent && <Audio src={staticFile("reel1_narration_cta.mp3")} />}
   </>
 );
 
