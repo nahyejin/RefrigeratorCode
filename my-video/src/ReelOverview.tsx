@@ -23,8 +23,8 @@ const PUSH_CLIP_FRAMES = 150;
 
 const SEGS: Seg[] = [
   {
-    label: "사진 인식",
-    caption: "영수증·음식 사진·장본 목록\n사진 한 장이면 재료 등록 끝",
+    label: "AI 재료인식",
+    caption: "영수증·음식 사진·장본 목록을\nAI가 읽어서 재료로 등록",
     parts: [
       { kind: "photos", len: 66 }, // 영수증·음식·장본 목록을 카메라로 찍는 장면(셔터 플래시)
       { kind: "clip", src: "reel1_photo_demo_new.mp4", from: 410, to: 440, rate: 1.2 }, // 어떤 사진을 고르실 건가요?
@@ -40,16 +40,6 @@ const SEGS: Seg[] = [
     parts: [{ kind: "clip", src: "reel2_matching_demo_new.mp4", from: 165, to: 425, rate: 1.5 }], // 팝업 열기→60~99%→적용→레시피
   },
   {
-    label: "요리 모드",
-    caption: "손 안 대고 단계별로\n읽어 주는 요리 모드",
-    speaker: true,
-    parts: [
-      // 옛 녹화(880x1920)라 맨 위에 폰 상태바(시각·배터리)가 찍혀 있다 → 아래 기준으로 4.5% 확대해 윗부분을 밀어낸다
-      { kind: "clip", src: "reel3_cookmode_demo.mp4", from: 240, to: 300, zoom: 1.045 },
-      { kind: "clip", src: "reel3_cookmode_demo.mp4", from: 489, to: 549, zoom: 1.045 },
-    ],
-  },
-  {
     label: "AI 식단",
     caption: "원하는 걸 입력하면\nAI가 일주일 식단을 짜 줘요",
     parts: [
@@ -57,14 +47,6 @@ const SEGS: Seg[] = [
       { kind: "clip", src: "reel4_diet_demo_new.mp4", from: 225, to: 280 }, // 요청 입력·전송
       { kind: "clip", src: "reel4_diet_demo_new.mp4", from: 273, to: 590, rate: 4 }, // 로딩(빨리감기)
       { kind: "clip", src: "reel4_diet_demo_new.mp4", from: 590, to: 680 }, // 결과 + 장보기
-    ],
-  },
-  {
-    label: "유통기한 알림",
-    caption: "유통기한이 다가오면 푸시 알림,\n임박 재료로 바로 레시피 확인",
-    parts: [
-      { kind: "push", len: REAL_PUSH_CLIP ? PUSH_CLIP_FRAMES : 120 },
-      { kind: "clip", src: "reel5_recipe_demo_new.mp4", from: 180, to: 420, rate: 1.5 }, // 임박 재료 설정 → 적용 → 레시피
     ],
   },
   {
@@ -77,8 +59,26 @@ const SEGS: Seg[] = [
     ],
   },
   {
-    label: "진짜 레시피",
-    caption: "유튜브·네이버 인기순 레시피,\n원문 영상까지 바로 확인",
+    label: "유통기한 알림",
+    caption: "유통기한이 다가오면 푸시 알림,\n임박 재료로 바로 레시피 확인",
+    parts: [
+      { kind: "push", len: REAL_PUSH_CLIP ? PUSH_CLIP_FRAMES : 120 },
+      { kind: "clip", src: "reel5_recipe_demo_new.mp4", from: 180, to: 420, rate: 1.5 }, // 임박 재료 설정 → 적용 → 레시피
+    ],
+  },
+  {
+    label: "읽어주기 모드",
+    caption: "요리 중 화면을 안 만져도\n단계별로 소리 내어 읽어 줘요",
+    speaker: true,
+    parts: [
+      // 옛 녹화(880x1920)라 맨 위에 폰 상태바(시각·배터리)가 찍혀 있다 → 아래 기준으로 4.5% 확대해 윗부분을 밀어낸다
+      { kind: "clip", src: "reel3_cookmode_demo.mp4", from: 240, to: 300, zoom: 1.045 },
+      { kind: "clip", src: "reel3_cookmode_demo.mp4", from: 489, to: 549, zoom: 1.045 },
+    ],
+  },
+  {
+    label: "검증된 레시피",
+    caption: "유튜브·네이버 인기순, 검증된 레시피\n원문 영상까지 바로 확인",
     parts: [
       { kind: "clip", src: "reel7_sort_demo_new.mp4", from: 0, to: 90 }, // 인기순 정렬
       // 옛 녹화(아이폰 화면, 880x1920)라 맨 위 상태바를 7편과 똑같이 180px 잘라 내고, 유튜브 하단 채널 정보(원본 y 1440~)는 흐린다
@@ -87,7 +87,7 @@ const SEGS: Seg[] = [
     ],
   },
   {
-    label: "가족·아낀 돈",
+    label: "가족이 아낀 돈",
     caption: "가족과 집밥 목표를 정하면\n아낀 돈(예상)이 바로 보여요",
     parts: [
       { kind: "clip", src: "reel8_family_demo_new.mp4", from: 215, to: 311, rate: 1.5 }, // 목표 수정
