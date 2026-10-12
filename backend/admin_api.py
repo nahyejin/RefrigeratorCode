@@ -192,6 +192,17 @@ def _excluded(get_db):
         cursor.execute("SELECT id FROM users WHERE exclude_from_stats = 1")
         ids = [r['id'] for r in cursor.fetchall()]
         devices = []
+        # 계정 없이 쓴 내 기기(개발·테스트용 에뮬레이터, 화면 점검용 브라우저 등)는 위 방식으로는 못 잡는다 —
+        # 로그인한 적이 없으면 어느 계정에도 안 걸리기 때문. 그런 기기는 따로 표에 적어 두고 같이 뺀다(2026-10-12).
+        cursor.execute(
+            "CREATE TABLE IF NOT EXISTS stats_excluded_devices ("
+            " device_id VARCHAR(64) PRIMARY KEY,"
+            " note VARCHAR(80) NULL,"
+            " created_at DATETIME NOT NULL"
+            ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+        )
+        cursor.execute("SELECT device_id FROM stats_excluded_devices")
+        devices = [r['device_id'] for r in cursor.fetchall()]
         if ids:
             cursor.execute("SHOW TABLES LIKE 'user_events'")
             if cursor.fetchone():
@@ -201,7 +212,7 @@ def _excluded(get_db):
                     f"WHERE user_id IN ({marks}) AND device_id IS NOT NULL",
                     tuple(ids),
                 )
-                devices = [r['device_id'] for r in cursor.fetchall()]
+                devices = list(dict.fromkeys(devices + [r['device_id'] for r in cursor.fetchall()]))
     finally:
         cursor.close()
         db.close()
