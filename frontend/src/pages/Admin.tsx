@@ -2260,6 +2260,8 @@ const Dashboard: React.FC = () => {
                 ? <>맨 위 <b>방문</b>은 그 기간에 앱·웹을 열어 본 사람(비회원 포함)이고, 그 아래는 그 기간에 <b>가입한 사람</b>이 각 단계까지 얼마나 왔는지예요 (활동은 오늘까지 봅니다).</>
                 : <>맨 위 <b>방문</b>은 앱·웹을 열어 본 사람(비회원 포함)이고, 그 아래는 가입한 사람이 각 단계까지 얼마나 오는지예요. 방문 → 가입에서 줄어드는 폭이 광고로 들어온 사람의 첫 이탈이에요. 로그인 안 한 사람은 <b>기기 하나를 한 명</b>으로 세서, 앱을 지웠다 다시 깔거나 다른 브라우저로 열면 새 사람으로 보일 수 있어요.</>}
               {' '}<b>많이 줄어드는 칸이 고칠 곳</b>입니다.
+              <br />
+              <b>숫자 옆 %</b>는 맨 위 칸(방문) 대비 남은 비율이고, <b style={{ color: '#D14343' }}>빨간 -%</b>는 <b>바로 윗 칸보다 줄어든 비율</b>(그 칸에서 빠진 사람 몫)이에요.
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {(act.steps || []).map((st: any, i: number) => {
@@ -2280,7 +2282,8 @@ const Dashboard: React.FC = () => {
                                   fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
                       <b>{st.count}</b>명 · {pct}%
                       {drop !== null && drop > 0 && (
-                        <span style={{ color: '#D14343' }}>{' -' + drop + '%'}</span>
+                        // 빨간 -%는 바로 윗 단계 숫자보다 얼마나 줄었는지(= 그 단계에서 빠진 사람 비율).
+                        <span style={{ color: '#D14343' }} title={`바로 윗 단계(${act.steps[i - 1].label})보다 ${drop}% 줄었어요`}>{' -' + drop + '%'}</span>
                       )}
                     </div>
                   </div>
@@ -2356,7 +2359,8 @@ const Dashboard: React.FC = () => {
                       {tile('하루 평균', all.length ? (total / all.length).toFixed(1) : '0')}
                       {tile(label(to) + (to === today ? '' : ' (마지막 날)'), on(to))}
                     </div>
-                    <table style={{ borderCollapse: 'collapse', width: '100%' }}>
+                    <div style={{ overflowX: 'auto' }}>
+                    <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 340 }}>
                       <thead><tr>{['날짜', '합계', '안드로이드', '아이폰', '웹', '구분 전'].map((h) => (
                         <th key={h} style={S.th}>{h}</th>))}</tr></thead>
                       <tbody>
@@ -2378,6 +2382,7 @@ const Dashboard: React.FC = () => {
                         ))}
                       </tbody>
                     </table>
+                    </div>
                     {all.length > MAX_ROWS && (
                       <div style={{ fontSize: 11.5, color: 'var(--ink-500)', marginTop: 6 }}>
                         최근 {MAX_ROWS}일만 줄로 보여 줘요. 앞선 {all.length - MAX_ROWS}일은 위 합계에 들어 있어요.
@@ -2445,8 +2450,9 @@ const Dashboard: React.FC = () => {
                   : '그 칸 동안 끝난 방문을, 마지막으로 본 화면으로 나눈 수예요. 높은 선이 사람을 놓치는 자리입니다.'}
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 18 }}>
-                <div>
+              {/* 칸이 좁으면(폰) 표가 카드 밖으로 삐져나가던 것 수정: 그리드 칸에 minWidth 0, 표는 칸 안에서 가로 스크롤 */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(260px, 100%), 1fr))', gap: 18 }}>
+                <div style={{ minWidth: 0, overflowX: 'auto' }}>
                   <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>많이 본 화면</div>
                   <table style={{ borderCollapse: 'collapse', width: '100%' }}>
                     <thead><tr>{['화면', '진입', '방문'].map(h => (
@@ -2463,7 +2469,7 @@ const Dashboard: React.FC = () => {
                   </table>
                 </div>
 
-                <div>
+                <div style={{ minWidth: 0, overflowX: 'auto' }}>
                   {/* 방문의 마지막 화면 = 그 사람이 나간 자리.
                       상위에 뜨는 화면이 곧 손볼 곳이다. */}
                   <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>
