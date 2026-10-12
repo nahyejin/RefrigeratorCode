@@ -4,7 +4,7 @@ import { FONT_FAMILY, WHITE, LINE, useCustomFont, CtaOutro, Caption } from "./sh
 import { fitToNarration } from "./narrationFrames";
 
 // 훅: 제미나이 생성 실사 클립(10s, 720x1280, 24fps, 대사 포함 재촬영본) — 소파에서 레시피 보다 설레었다가 실망하는 여성
-const HOOK_VIDEO = "reel2_hook_gemini.mp4";
+const HOOK_VIDEO = "reel2_hook_gemini_clean.mp4";
 // 데모: 실제 쿡매치 매칭률 필터 + 대체 재료 추천 + 부족재료 구매 화면(20.5s, 940x1920, 30fps, 재촬영본)
 // 원본 파일은 영상 맨 끝(19.7~20.5s) 근처에서 seek가 불안정해서(같은 타임코드인데 요청마다 다른 프레임이 나옴),
 // 고정 프레임레이트로 재인코딩한 버전을 씀 — 재인코딩 후에는 정확히 재현됨

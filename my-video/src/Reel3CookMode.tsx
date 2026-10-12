@@ -4,7 +4,7 @@ import { FONT_FAMILY, WHITE, LINE, CAPTION_TOP, useCustomFont, CtaOutro, Caption
 import { fitToNarration } from "./narrationFrames";
 
 // 훅: 제미나이 생성 실사 클립(10s, 720x1280, 24fps) — 주방에서 요리하다 폰을 만지려는 여성
-const HOOK_VIDEO = "reel3_hook_gemini.mp4";
+const HOOK_VIDEO = "reel3_hook_gemini_clean.mp4";
 // 데모: 실제 쿡매치 요리모드 음성 읽어주기 화면(28.1s, 880x1920, 120fps)
 const DEMO_VIDEO = "reel3_cookmode_demo.mp4";
 

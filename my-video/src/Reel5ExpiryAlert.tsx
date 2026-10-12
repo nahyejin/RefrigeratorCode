@@ -5,7 +5,7 @@ import { fitToNarration } from "./narrationFrames";
 
 // 훅: 제미나이 생성 실사 클립(8.93s, 720x1280, 24fps, 대사 포함) — 냉장고 뒤적이다 물러진 채소를 꺼내 보며
 // "아, 이것도 결국 못 먹고 버리네..." 혼잣말 후 쓰레기통 쪽으로 돌아서는 리액션
-const HOOK_VIDEO = "reel5_hook_gemini.mov";
+const HOOK_VIDEO = "reel5_hook_gemini_clean.mp4";
 // 데모: 실제 쿡매치 유통기한 알림 흐름(56s, 884x1920, 30fps) — 푸시 알림 → 유통기한 자동계산 → 임박재료 레시피 추천
 export const DEMO_VIDEO = "reel5_expiry_demo.mp4";
 

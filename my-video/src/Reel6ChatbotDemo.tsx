@@ -13,8 +13,8 @@ import { fitToNarration } from "./narrationFrames";
 // 그래서 정지 홀드를 아예 없애고, 대사 클립 끝에서 리액션 클립으로 바로 하드컷한다 — 두 클립 다
 // 같은 촬영본의 서로 다른 시점이라 원래도 이어붙이는 게 자연스럽고, 얼린 표정이 없으니 위화감의
 // 원인 자체가 사라진다. 오디오는 여전히 ffmpeg afade로 미리 곱게 죽여둔 clean 파일을 그대로 씀.
-const HOOK_LINE_VIDEO = "reel6_hook_line_clean.mp4"; // 5.6s, 168f — 대사("...일이고"까지), afade(exp, 0.25s)로 이미 끝을 죽여둠
-const HOOK_TURN_VIDEO = "reel6_hook_turn_clean.mp4"; // 1.7s, 51f — 리액션(무음, -an으로 오디오 트랙 자체를 제거)
+const HOOK_LINE_VIDEO = "reel6_hook_line_clean_clean.mp4"; // 5.6s, 168f — 대사("...일이고"까지), afade(exp, 0.25s)로 이미 끝을 죽여둠
+const HOOK_TURN_VIDEO = "reel6_hook_turn_clean_clean.mp4"; // 1.7s, 51f — 리액션(무음, -an으로 오디오 트랙 자체를 제거)
 // 데모: 실제 쿡매치 요리 챗봇 흐름(36s, 880x1920, 30fps) — 질문 입력 → 로딩 → AI 답변(이유 설명) + 레시피 카드
 const DEMO_VIDEO = "reel6_chatbot_demo_new.mp4";
 // ⚠️ 2026-10-10 화면 개편 뒤 **새 UI 로 다시 녹화**(안드로이드 에뮬레이터, 비회원 체험 크레딧 1개 사용 — `scripts/rec_reel6.py`).

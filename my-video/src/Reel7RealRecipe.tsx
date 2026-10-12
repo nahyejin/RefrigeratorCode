@@ -10,7 +10,7 @@ import { fitToNarration } from "./narrationFrames";
 // 파일이었음). silencedetect로 실측한 결과 이번에도 대사가 두 번의 짧은 끊김(1.7~2.1s, 2.33~4.03s,
 // 5.68~7.27s)을 두고 망설이듯 이어짐 — 자연스러운 호흡이라 그대로 통째로 살리고, 파일 끝(9.45s)까지
 // 이어지는 리액션도 같은 컷 안에서 하드컷 없이 그대로 사용.
-const HOOK_VIDEO = "reel7_hook_gemini.mov";
+const HOOK_VIDEO = "reel7_hook_gemini_clean.mp4";
 const HOOK_RAW = {
   line: [0, 283], // 0:00–9.43 밥 먹으며 망설이듯 대사 + 파일 끝까지 이어지는 리액션
 };

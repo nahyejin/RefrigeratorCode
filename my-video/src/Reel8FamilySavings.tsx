@@ -8,7 +8,7 @@ import { fitToNarration } from "./narrationFrames";
 // 보며 한숨까지 한 컷으로 이어짐. silencedetect로 실측한 결과 대사는 3.1~6.3s, 짧은 리액션이
 // 6.8~7.9s, 마지막 한숨이 8.9s 근처까지 — storyboard 지시대로 하드컷 없이 파일 전체를 한 테이크로
 // 그대로 사용(오디오도 무음 처리 안 함).
-const HOOK_VIDEO = "reel8_hook_gemini.mp4";
+const HOOK_VIDEO = "reel8_hook_gemini_clean.mp4";
 const HOOK_RAW = {
   line: [0, 299], // 0:00–9.97 부부가 배달비 확인하고 놀라는 리액션 + 한숨까지 파일 끝까지 이어지는 한 컷
 };
