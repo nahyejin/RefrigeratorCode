@@ -296,8 +296,8 @@ const Demo: React.FC = () => {
         </Sequence>
       </div>
 
-      <Caption from={srcFrom} len={BEAT1} text={"영수증이든 음식 사진이든\n한 장이면 자동 인식"} />
-      <Caption from={c4From} len={BEAT2} text={"재료랑 유통기한까지\n자동으로"} />
+      <Caption from={srcFrom} len={BEAT1} text={"영수증·음식 사진·장본 목록\n한 장이면 자동 인식"} />
+      <Caption from={c4From} len={BEAT2} text={"재료·유통기한까지 자동 등록\n내 냉장고 관리 바로 시작"} />
 
       {/* 데모 자막 음성 나레이션(제미나이 TTS, Kore) — 자막 타이핑 시작 프레임에 맞춰 재생.
           화면 자막은 명사구로 끝나지만, TTS에 명사구를 넣으면 끝 발음이 뭉개지는 사고가 있어서
