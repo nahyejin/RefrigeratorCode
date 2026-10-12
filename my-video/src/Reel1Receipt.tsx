@@ -26,6 +26,9 @@ const rateC1 = 1.2;
 const rateBrowse = 1.2;
 const rateC3 = 1.2;
 
+// 2026-10-12 사용자: 영수증만 나오지 말고 음식 사진·쿠팡 장본 화면까지 「사진 한 장이면 재료 등록 끝」(스토어 미리보기 03번)처럼 보여 달라
+// → 데모 맨 앞에 사진 3종 모음 컷(SRC)을 넣는다. 자막·나레이션(「영수증이든 음식 사진이든 한 장이면 자동 인식」)은 이 컷부터 시작.
+const SRC = 90; // 3s
 const C1 = Math.round((RAW.modal[1] - RAW.modal[0]) / rateC1); // 25f
 const CBrowse = Math.round((RAW.browse[1] - RAW.browse[0]) / rateBrowse); // 75f
 const C2 = RAW.select[1] - RAW.select[0]; // 15f (원속도, 블러)
@@ -37,7 +40,7 @@ const HOLD = 21; // 0.7s 페이오프 홀드(나레이션이 더 길면 아래 P
 // 데모 자막 나레이션(제미나이 TTS)이 비트보다 길면 비트를 나레이션 끝까지 늘린다 — 길이는
 // narrationFrames.ts(실제 mp3 길이에서 자동 생성)에서 가져와서, 음성을 다시 뽑아도 손으로 안 고친다.
 // 1번 자막 비트는 로딩 마지막 프레임을 정지 이미지로, 2번 자막 비트는 기존 페이오프 홀드를 늘려서 채움.
-const BEAT1_BASE = C1 + CBrowse + C2 + C3; // 170f
+const BEAT1_BASE = SRC + C1 + CBrowse + C2 + C3; // 260f
 const BEAT1 = fitToNarration(BEAT1_BASE, "reel1_narration_1");
 const LOADING_FREEZE = BEAT1 - BEAT1_BASE;
 const BEAT2 = fitToNarration(C4 + C5 + HOLD, "reel1_narration_2");
@@ -97,19 +100,24 @@ const HookVideo: React.FC = () => {
             transformOrigin: "top center",
           }}
         />
-        {/* 제미나이가 만든 통조림·라면 포장의 한글이 깨져 있다(「질트렉」「작각라스면」 등) — 아래쪽 상품 영역만 흐리게
-            가린다(2026-10-12 사용자 요청). 위쪽 경계는 마스크로 부드럽게 풀어서 줄 자국이 안 나게 한다(좌우·아래는 화면 끝). */}
+        {/* 제미나이가 만든 통조림·라면 포장의 한글이 깨져 있다(「질트렉」「작각라스면」 등) — 상품이 놓인 자리만
+            약하게 흐린다(2026-10-12). 처음엔 아래 28%를 통째로 15px 흐렸더니 너무 심하다는 지적 → 상품 띠만, 사방을 마스크로
+            풀어 경계가 안 보이게, 흐림도 9px 로. */}
         <div
           style={{
             position: "absolute",
             left: 0,
             width: 1080,
-            top: 1400,
-            height: 520,
-            backdropFilter: "blur(15px)",
-            WebkitBackdropFilter: "blur(15px)",
-            maskImage: "linear-gradient(to bottom, transparent 0%, black 22%, black 100%)",
-            WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, black 22%, black 100%)",
+            top: 1470,
+            height: 450,
+            backdropFilter: "blur(9px)",
+            WebkitBackdropFilter: "blur(9px)",
+            maskImage:
+              "linear-gradient(to bottom, transparent 0%, black 18%, black 100%), linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%)",
+            WebkitMaskImage:
+              "linear-gradient(to bottom, transparent 0%, black 18%, black 100%), linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%)",
+            maskComposite: "intersect",
+            WebkitMaskComposite: "source-in",
           }}
         />
       </div>
@@ -191,11 +199,60 @@ const FreezeFrame: React.FC<{ src: string; len: number }> = ({ src, len }) => {
   );
 };
 
+// ---------- 사진 3종 모음 컷 — 스토어 미리보기 03번(영수증 · 음식 · 쿠팡 주문내역)과 같은 소재 ----------
+const SRC_CARDS = [
+  { img: "reel1_src_receipt.jpg", label: "영수증", x: 0.19, angle: -8, w: 340, top: 470, at: 0 },
+  { img: "reel1_src_coupang.jpg", label: "장본 화면", x: 0.81, angle: 8, w: 340, top: 470, at: 12 },
+  { img: "reel1_src_pizza_cheese.jpg", label: "음식 사진", x: 0.5, angle: 0, w: 400, top: 400, at: 24 },
+];
+
+const PhotoSources: React.FC<{ len: number }> = ({ len }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const fadeOut = interpolate(frame, [len - 5, len - 1], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  return (
+    <AbsoluteFill style={{ backgroundColor: WHITE, opacity: fadeOut }}>
+      {SRC_CARDS.map((c) => {
+        const p = spring({ frame: frame - c.at, fps, config: { damping: 16, mass: 0.7 } });
+        const h = Math.round(c.w * (2399 / 1206));
+        return (
+          <div
+            key={c.label}
+            style={{
+              position: "absolute",
+              left: 1080 * c.x - c.w / 2,
+              top: c.top + (1 - p) * 120,
+              width: c.w,
+              opacity: p,
+              transform: `rotate(${c.angle * p}deg)`,
+            }}
+          >
+            <Img
+              src={staticFile(c.img)}
+              style={{
+                width: c.w,
+                height: h,
+                objectFit: "cover",
+                borderRadius: 38,
+                border: "7px solid #1A1A1E",
+                boxShadow: "0 18px 40px rgba(26,26,30,0.22)",
+                display: "block",
+              }}
+            />
+            <div style={{ marginTop: 20, textAlign: "center", fontSize: 40, fontWeight: 800, color: "#1A1A1E" }}>{c.label}</div>
+          </div>
+        );
+      })}
+    </AbsoluteFill>
+  );
+};
+
 const Demo: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  const c1From = 0;
+  const srcFrom = 0;
+  const c1From = srcFrom + SRC;
   const browseFrom = c1From + C1;
   const c2From = browseFrom + CBrowse;
   const c3From = c2From + C2;
@@ -226,6 +283,9 @@ const Demo: React.FC = () => {
           transform: frame >= holdFrom ? `scale(${holdScale})` : undefined,
         }}
       >
+        <Sequence from={srcFrom} durationInFrames={SRC} name="sources">
+          <PhotoSources len={SRC} />
+        </Sequence>
         <Sequence from={c1From} durationInFrames={C1} name="modal">
           <DemoClip rawFrom={RAW.modal[0]} rawTo={RAW.modal[1]} rate={rateC1} len={C1} />
         </Sequence>
@@ -256,13 +316,13 @@ const Demo: React.FC = () => {
         </Sequence>
       </div>
 
-      <Caption from={c1From} len={BEAT1} text={"영수증이든 음식 사진이든\n한 장이면 자동 인식"} />
+      <Caption from={srcFrom} len={BEAT1} text={"영수증이든 음식 사진이든\n한 장이면 자동 인식"} />
       <Caption from={c4From} len={BEAT2} text={"재료랑 유통기한까지\n자동으로"} />
 
       {/* 데모 자막 음성 나레이션(제미나이 TTS, Kore) — 자막 타이핑 시작 프레임에 맞춰 재생.
           화면 자막은 명사구로 끝나지만, TTS에 명사구를 넣으면 끝 발음이 뭉개지는 사고가 있어서
           음성은 동사로 끝나는 완전한 문장("…자동으로 인식돼요", "…자동으로 등록돼요")으로 뽑았다. */}
-      <Sequence from={c1From} durationInFrames={BEAT1} name="narration-1">
+      <Sequence from={srcFrom} durationInFrames={BEAT1} name="narration-1">
         <Audio src={staticFile("reel1_narration_1.mp3")} />
       </Sequence>
       <Sequence from={c4From} durationInFrames={BEAT2} name="narration-2">
