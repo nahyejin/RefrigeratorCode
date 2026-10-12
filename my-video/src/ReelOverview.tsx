@@ -1,6 +1,6 @@
 import React from "react";
 import { AbsoluteFill, Easing, Img, OffthreadVideo, Sequence, staticFile, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
-import { FONT_FAMILY, WHITE, INK, YELLOW, LINE, useCustomFont, CtaOutro, Caption, AppIcon, RevealText } from "./shared";
+import { FONT_FAMILY, WHITE, INK, INK_FAINT, YELLOW, LINE, useCustomFont, CtaOutro, Caption, AppIcon, Wordmark, RevealText } from "./shared";
 
 // 「기능 총정리」 릴스 (2026-10-12 사용자 아이디어) — 프로필에 들어온 사람이 「아, 이런 8가지 기능이 메인이구나」를 한눈에
 // 알아보게 하는 영상. 8편 릴스의 화면 녹화(무음)에서 장면을 뽑아 기능마다 이어 붙이고, 위쪽에 기능 이름·진행 점, 아래에 한 줄 자막.
@@ -97,7 +97,7 @@ const SEGS: Seg[] = [
   },
 ];
 
-const INTRO = 66; // 2.2s
+const INTRO = 105; // 3.5s
 const CTA_LEN = 135; // 4.5s
 
 const partLen = (p: Part) => (p.kind === "clip" ? Math.round((p.to - p.from) / (p.rate ?? 1)) : p.len);
@@ -256,19 +256,41 @@ const FeatureTag: React.FC<{ index: number; label: string; len: number }> = ({ i
   );
 };
 
-const Intro: React.FC = () => (
-  <AbsoluteFill style={{ backgroundColor: WHITE }}>
-    <div style={{ position: "absolute", top: 560, left: 0, right: 0, display: "flex", justifyContent: "center" }}>
-      <AppIcon size={200} />
-    </div>
-    <RevealText top={860} delay={4} size={86}>
-      냉장고 앱 하나로
-    </RevealText>
-    <RevealText top={985} delay={14} size={86}>
-      <span style={{ color: "#D99A00" }}>이 8가지</span>가 다 돼요
-    </RevealText>
-  </AbsoluteFill>
+// 형광펜 표시 — 탁한 황토색 글씨 대신 진한 글씨 위에 밝은 노랑 밑줄을 깐다(「누리끼리하다」 피드백)
+const Mark: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <span style={{ backgroundImage: `linear-gradient(transparent 56%, ${YELLOW} 56%, ${YELLOW} 93%, transparent 93%)`, padding: "0 8px" }}>{children}</span>
 );
+
+const Intro: React.FC = () => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  return (
+    <AbsoluteFill style={{ backgroundColor: WHITE }}>
+      <div style={{ position: "absolute", top: 250, left: 0, right: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}>
+        <AppIcon size={170} />
+        <Wordmark size={66} />
+      </div>
+      <RevealText top={600} delay={4} size={68}>
+        냉장고 앱 쿡매치 하나로
+      </RevealText>
+      <RevealText top={705} delay={12} size={92}>
+        이 <Mark>8가지</Mark>가 다 돼요
+      </RevealText>
+      {/* 8가지 기능 목록 — 노란 반투명 칩 대신 연한 회색 칩 + 노란 점(2열 x 4행)으로 정돈 */}
+      <div style={{ position: "absolute", top: 905, left: 90, right: 90, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }}>
+        {SEGS.map((sg, i) => {
+          const p = spring({ frame: frame - (28 + i * 6), fps, config: { damping: 15, mass: 0.6 } });
+          return (
+            <div key={sg.label} style={{ opacity: p, transform: `translateY(${(1 - p) * 20}px)`, display: "flex", alignItems: "center", gap: 18, backgroundColor: INK_FAINT, borderRadius: 26, padding: "24px 30px", fontSize: 46, fontWeight: 800, color: INK }}>
+              <span style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: YELLOW, flex: "none" }} />
+              {sg.label}
+            </div>
+          );
+        })}
+      </div>
+    </AbsoluteFill>
+  );
+};
 
 export const ReelOverview: React.FC = () => {
   useCustomFont();
@@ -307,7 +329,7 @@ export const ReelOverview: React.FC = () => {
         <CtaOutro
           payoffLine={
             <>
-              기능 8가지, <span style={{ color: "#D99A00" }}>앱 하나로</span>
+              기능 8가지, <Mark>앱 하나로</Mark>
             </>
           }
         />
