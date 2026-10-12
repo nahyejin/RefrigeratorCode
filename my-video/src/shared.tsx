@@ -109,27 +109,128 @@ export const CtaOutro: React.FC<{ payoffLine: React.ReactNode }> = ({ payoffLine
   const ctaOpacity = interpolate(frame, [32, 46], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   const ctaPulse = frame > 46 ? 1 + Math.sin(((frame - 46) / fps) * Math.PI * 1.8) * 0.035 : 1;
 
+  // 앱스토어 검색 안내(2026-10-12 사용자 아이디어) — 검색창에 「쿡매치」가 타이핑되고 앱이 결과로 뜬다.
+  // 프로필 링크 버튼은 그대로 두고, 그 위에 넣는다. 인스타 하단 UI(y≈1600~)에 안 가리게 버튼 위(1060~1350)에 배치.
+  const SEARCH_AT = 54; // 검색창 등장 프레임
+  const TYPE_AT = SEARCH_AT + 14; // 타이핑 시작
+  const SEARCH_TEXT = "쿡매치";
+  const searchP = interpolate(spring({ frame: frame - SEARCH_AT, fps, config: { damping: 20, mass: 0.7 } }), [0, 1], [0, 1]);
+  const typed = Math.max(0, Math.min(SEARCH_TEXT.length, Math.floor((frame - TYPE_AT) / 6) + 1));
+  const typingDone = frame >= TYPE_AT + SEARCH_TEXT.length * 6;
+  const cursorOn = !typingDone ? true : Math.floor((frame - TYPE_AT) / 8) % 2 === 0 && frame < TYPE_AT + SEARCH_TEXT.length * 6 + 40;
+  const RESULT_AT = TYPE_AT + SEARCH_TEXT.length * 6 + 8;
+  const resultP = interpolate(spring({ frame: frame - RESULT_AT, fps, config: { damping: 14, mass: 0.6 } }), [0, 1], [0, 1]);
+
   return (
     <AbsoluteFill style={{ backgroundColor: WHITE }}>
-      <AbsoluteFill style={{ alignItems: "center", justifyContent: "center", paddingTop: 60 }}>
-        <div
-          style={{
-            opacity: logoOpacity,
-            transform: `scale(${logoP})`,
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: 26,
-          }}
-        >
-          <AppIcon size={260} />
-          <Wordmark size={80} />
-        </div>
-      </AbsoluteFill>
+      <div
+        style={{
+          position: "absolute",
+          top: 470,
+          left: 0,
+          right: 0,
+          opacity: logoOpacity,
+          transform: `scale(${logoP})`,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: 26,
+        }}
+      >
+        <AppIcon size={260} />
+        <Wordmark size={80} />
+      </div>
 
-      <RevealText top={1180} delay={26} size={64}>
+      <RevealText top={900} delay={26} size={64}>
         {payoffLine}
       </RevealText>
+
+      <div
+        style={{
+          position: "absolute",
+          top: 1062,
+          left: 0,
+          right: 0,
+          textAlign: "center",
+          fontSize: 38,
+          fontWeight: 700,
+          color: INK_SOFT,
+          opacity: searchP,
+        }}
+      >
+        앱스토어 · Play 스토어에서
+      </div>
+      <div
+        style={{
+          position: "absolute",
+          top: 1122,
+          left: 0,
+          right: 0,
+          display: "flex",
+          justifyContent: "center",
+          opacity: searchP,
+          transform: `translateY(${(1 - searchP) * 16}px)`,
+        }}
+      >
+        <div
+          style={{
+            width: 700,
+            height: 104,
+            borderRadius: 999,
+            border: `3px solid ${INK}`,
+            backgroundColor: WHITE,
+            display: "flex",
+            alignItems: "center",
+            gap: 22,
+            padding: "0 36px",
+            boxShadow: "0 10px 26px rgba(26,26,30,0.12)",
+          }}
+        >
+          <svg width="46" height="46" viewBox="0 0 46 46" fill="none">
+            <circle cx="19" cy="19" r="13" stroke={INK} strokeWidth="5" />
+            <line x1="29" y1="29" x2="41" y2="41" stroke={INK} strokeWidth="5" strokeLinecap="round" />
+          </svg>
+          <div style={{ fontSize: 54, fontWeight: 700, color: INK, display: "flex", alignItems: "center" }}>
+            {SEARCH_TEXT.slice(0, typed)}
+            <span
+              style={{
+                display: "inline-block",
+                width: 4,
+                height: 56,
+                marginLeft: 4,
+                backgroundColor: INK,
+                opacity: cursorOn ? 1 : 0,
+              }}
+            />
+          </div>
+        </div>
+      </div>
+      <div
+        style={{
+          position: "absolute",
+          top: 1244,
+          left: 0,
+          right: 0,
+          display: "flex",
+          justifyContent: "center",
+          opacity: resultP,
+          transform: `scale(${0.9 + resultP * 0.1})`,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 20,
+            backgroundColor: INK_FAINT,
+            borderRadius: 28,
+            padding: "14px 30px 14px 16px",
+          }}
+        >
+          <AppIcon size={72} />
+          <div style={{ fontSize: 40, fontWeight: 800, color: INK }}>쿡매치 · 냉장고 레시피</div>
+        </div>
+      </div>
 
       <div
         style={{
