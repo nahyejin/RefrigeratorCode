@@ -2258,7 +2258,7 @@ const Dashboard: React.FC = () => {
             <div style={{ fontSize: 12, color: 'var(--ink-500)', marginBottom: 12, lineHeight: 1.6 }}>
               {act.filters?.ranged
                 ? <>맨 위 <b>방문</b>은 그 기간에 앱·웹을 열어 본 사람(비회원 포함)이고, 그 아래는 그 기간에 <b>가입한 사람</b>이 각 단계까지 얼마나 왔는지예요 (활동은 오늘까지 봅니다).</>
-                : <>맨 위 <b>방문</b>은 앱·웹을 열어 본 사람(비회원 포함)이고, 그 아래는 가입한 사람이 각 단계까지 얼마나 오는지예요. 방문 → 가입에서 줄어드는 폭이 광고로 들어온 사람의 첫 이탈이에요.</>}
+                : <>맨 위 <b>방문</b>은 앱·웹을 열어 본 사람(비회원 포함)이고, 그 아래는 가입한 사람이 각 단계까지 얼마나 오는지예요. 방문 → 가입에서 줄어드는 폭이 광고로 들어온 사람의 첫 이탈이에요. 로그인 안 한 사람은 <b>기기 하나를 한 명</b>으로 세서, 앱을 지웠다 다시 깔거나 다른 브라우저로 열면 새 사람으로 보일 수 있어요.</>}
               {' '}<b>많이 줄어드는 칸이 고칠 곳</b>입니다.
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -2267,8 +2267,10 @@ const Dashboard: React.FC = () => {
                 const pct = Math.round((st.count / base) * 100);
                 const prev = i > 0 ? act.steps[i - 1].count : null;
                 const drop = prev !== null && prev > 0 ? Math.round(((prev - st.count) / prev) * 100) : null;
+                const visitTimes: number = act.sessions?.total ?? 0;
                 return (
-                  <div key={st.label} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <React.Fragment key={st.label}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <div style={{ width: 76, fontSize: 13, fontWeight: 600, flexShrink: 0 }}>{st.label}</div>
                     <div style={{ flex: 1, minWidth: 0, height: 22, background: 'var(--line-200)',
                                   borderRadius: 6, overflow: 'hidden' }}>
@@ -2282,6 +2284,20 @@ const Dashboard: React.FC = () => {
                       )}
                     </div>
                   </div>
+                  {st.label === '방문' && (
+                    // 명 기준 바로 아래에 횟수 기준을 덧붙인다(같은 사람이 여러 번 열면 각각 센다).
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: -2 }}>
+                      <div style={{ width: 76, fontSize: 12, color: 'var(--ink-500)', flexShrink: 0, paddingLeft: 8 }}>└ 횟수</div>
+                      <div style={{ flex: 1, minWidth: 0, fontSize: 12, color: 'var(--ink-500)' }}>
+                        같은 사람이 여러 번 열면 열 때마다 셉니다(30분 넘게 쉬었다 열면 새 방문)
+                        {st.count > 0 && <> · 1명당 평균 <b>{(visitTimes / st.count).toFixed(1)}</b>번</>}
+                      </div>
+                      <div style={{ width: 108, textAlign: 'right', fontSize: 12, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
+                        <b>{num(visitTimes)}</b>회
+                      </div>
+                    </div>
+                  )}
+                  </React.Fragment>
                 );
               })}
             </div>

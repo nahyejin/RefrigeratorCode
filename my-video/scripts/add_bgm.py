@@ -10,8 +10,10 @@ import make_bgm
 
 ap = argparse.ArgumentParser()
 ap.add_argument("src"); ap.add_argument("idx", type=int); ap.add_argument("dst")
-ap.add_argument("--gain", type=float, default=0.34)
+ap.add_argument("--gain", type=float, default=0.42)
 ap.add_argument("--keep", help="합성한 곡을 이 경로에 남긴다")
+ap.add_argument("--thr", type=float, default=0.025); ap.add_argument("--ratio", type=float, default=1.8); ap.add_argument("--rel", type=int, default=400)
+ap.add_argument("--music-only", action="store_true", help="음악만(눌린 상태) 뽑아 크기 점검용으로 쓴다")
 a = ap.parse_args()
 dur = float(subprocess.check_output(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", a.src], text=True))
 buf, info = make_bgm.make(a.idx, dur)
@@ -21,11 +23,18 @@ fade_out = max(0.0, dur - 4.0)
 flt = (
     f"[1:a]volume={a.gain},afade=t=in:st=0:d=1.5,afade=t=out:st={fade_out:.2f}:d=4[m];"
     "[0:a]asplit=2[v1][v2];"
-    "[m][v1]sidechaincompress=threshold=0.005:ratio=20:attack=12:release=600:makeup=1[md];"
+    f"[m][v1]sidechaincompress=threshold={a.thr}:ratio={a.ratio}:attack=12:release={a.rel}:makeup=1[md];"
     "[md][v2]amix=inputs=2:normalize=0:duration=first[a]"
 )
-subprocess.check_call(["ffmpeg", "-v", "error", "-y", "-i", a.src, "-i", wav, "-filter_complex", flt, "-map", "0:v", "-map", "[a]",
-                       "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", a.dst])
+flt_music = (
+    f"[1:a]volume={a.gain},afade=t=in:st=0:d=1.5,afade=t=out:st={fade_out:.2f}:d=4[m];"
+    f"[m][0:a]sidechaincompress=threshold={a.thr}:ratio={a.ratio}:attack=12:release={a.rel}:makeup=1[md]"
+)
+if a.music_only:
+    subprocess.check_call(["ffmpeg", "-v", "error", "-y", "-i", a.src, "-i", wav, "-filter_complex", flt_music, "-map", "[md]", a.dst])
+else:
+    subprocess.check_call(["ffmpeg", "-v", "error", "-y", "-i", a.src, "-i", wav, "-filter_complex", flt, "-map", "0:v", "-map", "[a]",
+                           "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", a.dst])
 if not a.keep:
     os.remove(wav)
 print(info)
