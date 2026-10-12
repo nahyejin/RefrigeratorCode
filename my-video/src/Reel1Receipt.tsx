@@ -97,6 +97,21 @@ const HookVideo: React.FC = () => {
             transformOrigin: "top center",
           }}
         />
+        {/* 제미나이가 만든 통조림·라면 포장의 한글이 깨져 있다(「질트렉」「작각라스면」 등) — 아래쪽 상품 영역만 흐리게
+            가린다(2026-10-12 사용자 요청). 위쪽 경계는 마스크로 부드럽게 풀어서 줄 자국이 안 나게 한다(좌우·아래는 화면 끝). */}
+        <div
+          style={{
+            position: "absolute",
+            left: 0,
+            width: 1080,
+            top: 1400,
+            height: 520,
+            backdropFilter: "blur(15px)",
+            WebkitBackdropFilter: "blur(15px)",
+            maskImage: "linear-gradient(to bottom, transparent 0%, black 22%, black 100%)",
+            WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, black 22%, black 100%)",
+          }}
+        />
       </div>
       <Caption from={0} len={HOOK_VIDEO_LEN - 10} text="이거 저번에도 샀나?" />
     </AbsoluteFill>
