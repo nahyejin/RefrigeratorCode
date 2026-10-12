@@ -37,9 +37,10 @@ ROUNDS = [
         "key": "r0", "name": "0 · 기능 총정리 1편",
         "posts": [
             {"file": "reel0_overview_8features.mp4", "title": "00 기능 총정리 — 8가지를 30초에",
-             "body": ["냉장고 앱 하나로 이 8가지가 다 돼요 🧊", "",
-                      "쿡매치가 처음이라면 이 영상부터 보세요.",
-                      "프로필에 올린 영상마다 기능을 하나씩 자세히 보여 드려요."],
+             "features_title": "쿡매치가 해 주는 8가지 👇",
+             "body": ["있는 재료로 오늘 저녁 해결 🍳", "",
+                      "냉장고에 뭐가 있는지만 알려 주세요.",
+                      "뭘 해 먹을지 고민은 줄이고, 장 볼 건 꼭 필요한 것만, 버려지는 재료는 없게 도와줘요."],
              "tags": ["#냉털", "#냉장고파먹기", "#자취요리", "#집밥", "#오늘뭐먹지"]},
         ],
     },
@@ -202,7 +203,9 @@ def tags_of(p):
 
 
 def caption(p):
-    return "\n".join(p["body"] + [""] + FEATURES + ["", LAST, URL, "", " ".join(tags_of(p))])
+    # 총정리 편만 기능 목록 제목을 따로 쓴다(앞단에 슬로건·혜택 한 줄, 그 아래에 기능 목록 — 2026-10-12 사용자 지시)
+    feats = [p["features_title"]] + FEATURES[1:] if p.get("features_title") else FEATURES
+    return "\n".join(p["body"] + [""] + feats + ["", LAST, URL, "", " ".join(tags_of(p))])
 
 
 def write_md():
