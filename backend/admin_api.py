@@ -972,7 +972,21 @@ def register(app, get_db):
                 cursor.execute(sql, tuple(params))
                 return cursor.fetchone()['n'] or 0
 
+            # 맨 앞 칸 「방문」 — 가입 전에 앱·웹을 열어 본 사람(비회원 포함). 2026-10-12 사용자 요청:
+            # 가입부터 세면 광고로 들어온 사람 중 몇 명이 가입까지 갔는지(= 가장 큰 이탈)가 안 보인다.
+            # 사람 = 로그인했으면 계정, 아니면 기기. 기간 필터와 내 계정·기기 제외가 그대로 걸린다.
+            visits = 0
+            cursor.execute("SHOW TABLES LIKE 'user_events'")
+            if cursor.fetchone():
+                cursor.execute(
+                    "SELECT COUNT(*) n FROM (SELECT COALESCE(CONCAT('u', user_id), CONCAT('d', device_id)) who "
+                    f"FROM user_events WHERE 1=1{ev_cond} GROUP BY who HAVING who IS NOT NULL) x",
+                    tuple(ev_params),
+                )
+                visits = cursor.fetchone()['n'] or 0
+
             steps = [
+                ('방문', visits, '앱이나 웹을 열어 기록이 남은 사람(비회원 포함, 기기 기준)'),
                 ('가입', total, '탈퇴하지 않은 계정'),
                 ('재료 등록', count(
                     "SELECT COUNT(DISTINCT i.user_id) n FROM user_ingredients i "
@@ -1089,13 +1103,22 @@ def register(app, get_db):
                 user_events.ensure_table(get_db)  # platform 칸이 없으면 이때 덧붙인다(멱등)
                 nd_cond, nd_params = _where('created_at', None, None, ex_ids, ex_devices,
                                             device_col='device_id')
+                # 화면 맨 위의 기간 설정을 따른다. 기간을 안 골랐으면 최근 90일(화면은 그중 최근 7일을 보여 준다).
+                nd_parts, nd_range_params = [], []
+                if start:
+                    nd_parts.append("first_at >= %s")
+                    nd_range_params.append(start)
+                if end:
+                    nd_parts.append("first_at <= %s")
+                    nd_range_params.append(end)
+                nd_range = " AND ".join(nd_parts) if nd_parts else "first_at >= (CURDATE() - INTERVAL 90 DAY)"
                 cursor.execute(
                     "SELECT DATE(first_at) d, COALESCE(plat, 'unknown') platform, COUNT(*) n FROM ("
                     "  SELECT device_id, MIN(created_at) first_at, MAX(platform) plat "
                     f"  FROM user_events WHERE device_id IS NOT NULL{nd_cond} GROUP BY device_id"
-                    ") x WHERE first_at >= (CURDATE() - INTERVAL 90 DAY) "
+                    ") x WHERE " + nd_range + " "
                     "GROUP BY d, platform ORDER BY d",
-                    tuple(nd_params),
+                    tuple(nd_params) + tuple(nd_range_params),
                 )
                 new_devices = [
                     {'date': r['d'].isoformat(), 'platform': r['platform'], 'n': r['n']}

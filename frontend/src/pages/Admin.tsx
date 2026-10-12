@@ -2252,13 +2252,13 @@ const Dashboard: React.FC = () => {
             <h2 style={S.h2}>어디까지 오고 어디서 멈추나</h2>
             <Range>
               {act.filters?.ranged
-                ? `${spanOf(act.filters?.from, act.filters?.to)} 에 가입한 사람`
-                : `전체 기간 누적 · 첫 가입 ${dayOf(AP.users_from) || '-'} ~ 오늘 ${dayOf(AP.now) || '-'}`}
+                ? `방문: ${spanOf(act.filters?.from, act.filters?.to)} 에 앱·웹을 연 사람 · 그 아래: 같은 기간에 가입한 사람`
+                : `방문: 화면 기록을 켠 뒤부터 앱·웹을 연 사람(${dayOf(AP.events_from) || '-'} ~) · 그 아래: 전체 기간 가입자 누적(첫 가입 ${dayOf(AP.users_from) || '-'} ~ 오늘 ${dayOf(AP.now) || '-'})`}
             </Range>
             <div style={{ fontSize: 12, color: 'var(--ink-500)', marginBottom: 12, lineHeight: 1.6 }}>
               {act.filters?.ranged
-                ? <>그 기간에 <b>가입한 사람</b>이 각 단계까지 얼마나 왔는지예요 (활동은 오늘까지 봅니다).</>
-                : <>가입한 사람이 각 단계까지 얼마나 오는지예요.</>}
+                ? <>맨 위 <b>방문</b>은 그 기간에 앱·웹을 열어 본 사람(비회원 포함)이고, 그 아래는 그 기간에 <b>가입한 사람</b>이 각 단계까지 얼마나 왔는지예요 (활동은 오늘까지 봅니다).</>
+                : <>맨 위 <b>방문</b>은 앱·웹을 열어 본 사람(비회원 포함)이고, 그 아래는 가입한 사람이 각 단계까지 얼마나 오는지예요. 방문 → 가입에서 줄어드는 폭이 광고로 들어온 사람의 첫 이탈이에요.</>}
               {' '}<b>많이 줄어드는 칸이 고칠 곳</b>입니다.
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -2297,41 +2297,63 @@ const Dashboard: React.FC = () => {
           {act.today_kst && (
             <div style={S.card}>
               <h2 style={S.h2}>새로 들어온 기기</h2>
-              <Range>그 기기가 처음 기록된 날 기준 · 내 계정·기기 제외 · 지연 없이 바로 반영</Range>
+              <Range>
+                {act.filters?.ranged
+                  ? `${spanOf(act.filters?.from, act.filters?.to)} 에 처음 기록된 기기`
+                  : '기간을 고르지 않아서 최근 7일을 보여 줘요'}
+                {' · 내 계정·기기 제외 · 지연 없이 바로 반영'}
+              </Range>
               {(() => {
+                // 맨 위의 기간 설정을 그대로 따른다(기간을 안 골랐으면 최근 7일).
                 // 앱스토어·플레이스토어의 다운로드 수는 이 서버가 모른다(두 스토어가 하루 이틀 늦게 알려 준다).
                 // 서버가 아는 건 앱을 처음 열어 기록이 남은 기기뿐 — 광고로 설치해서 처음 열어 본 사람에 가장 가까운 숫자.
                 const nd: { date: string; platform: string; n: number }[] = act.new_devices || [];
-                const dayStr = (offset: number) => {
-                  const d = new Date(act.today_kst + 'T12:00:00Z');
-                  d.setUTCDate(d.getUTCDate() - offset);
+                const today: string = act.today_kst;
+                const shift = (base: string, offset: number) => {
+                  const d = new Date(base + 'T12:00:00Z');
+                  d.setUTCDate(d.getUTCDate() + offset);
                   return d.toISOString().slice(0, 10);
                 };
+                const ranged = !!act.filters?.ranged;
+                const to: string = ranged && act.filters?.to ? String(act.filters.to).slice(0, 10) : today;
+                const from: string = ranged && act.filters?.from ? String(act.filters.from).slice(0, 10) : shift(to, -6);
+                const all: string[] = [];
+                for (let d = to; d >= from && all.length < 400; d = shift(d, -1)) all.push(d);
+                const MAX_ROWS = 31;
+                const days = all.slice(0, MAX_ROWS);
                 const on = (date: string, plat?: string) =>
                   nd.filter((r) => r.date === date && (!plat || r.platform === plat)).reduce((a, r) => a + r.n, 0);
-                const days = Array.from({ length: 7 }, (_, i) => dayStr(i));
-                const week = days.reduce((a, d) => a + on(d), 0);
-                const label = (d: string, i: number) => (i === 0 ? '오늘' : i === 1 ? '어제' : d.slice(5).replace('-', '/'));
-                const tile = (title: string, value: number) => (
+                const sumOf = (list: string[], plat?: string) => list.reduce((a, d) => a + on(d, plat), 0);
+                const total = sumOf(all);
+                const label = (d: string) =>
+                  d === today ? '오늘' : d === shift(today, -1) ? '어제' : d.slice(5).replace('-', '/');
+                const tile = (title: string, value: string | number) => (
                   <div style={{ flex: '1 1 110px', background: 'var(--surface-2, #f4f4f2)', borderRadius: 10, padding: '10px 12px' }}>
                     <div style={{ fontSize: 11.5, color: 'var(--ink-500)' }}>{title}</div>
-                    <div style={{ fontSize: 22, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{num(value)}</div>
+                    <div style={{ fontSize: 22, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{typeof value === 'number' ? num(value) : value}</div>
                   </div>
                 );
                 return (
                   <>
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '4px 0 12px' }}>
-                      {tile('오늘', on(days[0]))}
-                      {tile('어제', on(days[1]))}
-                      {tile('최근 7일', week)}
+                      {tile(ranged ? '기간 합계' : '최근 7일 합계', total)}
+                      {tile('하루 평균', all.length ? (total / all.length).toFixed(1) : '0')}
+                      {tile(label(to) + (to === today ? '' : ' (마지막 날)'), on(to))}
                     </div>
                     <table style={{ borderCollapse: 'collapse', width: '100%' }}>
                       <thead><tr>{['날짜', '합계', '안드로이드', '아이폰', '웹', '구분 전'].map((h) => (
                         <th key={h} style={S.th}>{h}</th>))}</tr></thead>
                       <tbody>
-                        {days.map((d, i) => (
+                        <tr>
+                          <td style={{ ...S.td, fontWeight: 700 }}>{ranged ? '기간 합계' : '7일 합계'}</td>
+                          <td style={{ ...S.td, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{num(total)}</td>
+                          {['android', 'ios', 'web', 'unknown'].map((pl) => (
+                            <td key={pl} style={{ ...S.td, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{num(sumOf(all, pl))}</td>
+                          ))}
+                        </tr>
+                        {days.map((d) => (
                           <tr key={d}>
-                            <td style={S.td}>{label(d, i)}</td>
+                            <td style={S.td}>{label(d)}</td>
                             <td style={{ ...S.td, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{num(on(d))}</td>
                             {['android', 'ios', 'web', 'unknown'].map((pl) => (
                               <td key={pl} style={{ ...S.td, fontVariantNumeric: 'tabular-nums' }}>{num(on(d, pl))}</td>
@@ -2340,6 +2362,11 @@ const Dashboard: React.FC = () => {
                         ))}
                       </tbody>
                     </table>
+                    {all.length > MAX_ROWS && (
+                      <div style={{ fontSize: 11.5, color: 'var(--ink-500)', marginTop: 6 }}>
+                        최근 {MAX_ROWS}일만 줄로 보여 줘요. 앞선 {all.length - MAX_ROWS}일은 위 합계에 들어 있어요.
+                      </div>
+                    )}
                   </>
                 );
               })()}
