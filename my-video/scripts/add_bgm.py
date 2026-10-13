@@ -2,21 +2,23 @@
 
     PYTHONUTF8=1 python scripts/add_bgm.py in.mp4 <곡 번호 0~23> out.mp4 [--gain 1.0] [--duck 12]
 
-곡은 scripts/make_bgm.py 로 영상 길이에 맞춰 즉석 합성(24곡이 서로 다름). 영상 화면은 다시 인코딩하지 않는다(-c:v copy).
+곡은 scripts/make_bgm.py(--engine 2 면 make_bgm2.py) 로 영상 길이에 맞춰 즉석 합성(24곡이 서로 다름). 영상 화면은 다시 인코딩하지 않는다(-c:v copy).
 """
 import argparse, os, subprocess, sys, tempfile
 sys.path.insert(0, os.path.dirname(__file__))
 import make_bgm
+import make_bgm2
 
 ap = argparse.ArgumentParser()
 ap.add_argument("src"); ap.add_argument("idx", type=int); ap.add_argument("dst")
 ap.add_argument("--gain", type=float, default=0.42)
+ap.add_argument("--engine", type=int, default=1, help="1=make_bgm(1벌), 2=make_bgm2(2·3벌, 곡마다 장르가 다름)")
 ap.add_argument("--keep", help="합성한 곡을 이 경로에 남긴다")
 ap.add_argument("--thr", type=float, default=0.025); ap.add_argument("--ratio", type=float, default=1.8); ap.add_argument("--rel", type=int, default=400)
 ap.add_argument("--music-only", action="store_true", help="음악만(눌린 상태) 뽑아 크기 점검용으로 쓴다")
 a = ap.parse_args()
 dur = float(subprocess.check_output(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", a.src], text=True))
-buf, info = make_bgm.make(a.idx, dur)
+buf, info = (make_bgm2 if a.engine == 2 else make_bgm).make(a.idx, dur)
 wav = a.keep or os.path.join(tempfile.gettempdir(), f"bgm_{a.idx}_{os.getpid()}.wav")
 make_bgm.save(wav, buf)
 fade_out = max(0.0, dur - 4.0)
