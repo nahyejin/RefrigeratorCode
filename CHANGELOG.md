@@ -13076,3 +13076,8 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 ### `/download` 뒤에 글자가 붙어도 다운로드 페이지로 (2026-10-14)
 - 어드민에서 페이스북·인스타 유입 3명이 전부 `/download,드디어` 로 들어와 빈 화면만 보고 나간 것을 확인(광고/게시물 링크 뒤에 `,드디어` 가 붙음). 기존 rewrite 는 정확히 `/download` 만 받아서 나머지는 SPA 로 떨어져 빈 화면이 됐다.
 - `frontend/vercel.json`: `/download(.*)` → `/download.html`. 광고 URL 자체는 사용자가 광고 관리자에서 고쳐야 함.
+
+### 다운로드 페이지 방문 기록 + 프로필/광고 유입 구분 (2026-10-14)
+- 문제: `download.html` 은 폰이면 곧바로 App Store/Play 로 보내고 아무 기록도 안 남겼다 → 인스타 프로필·광고 링크로 와서 스토어로 간 사람이 어드민에 0명.
+- 이제 이동 전에 `/api/events` 로 `session_start` + `screen_view(다운로드)` 를 보낸다(최대 0.7초 기다림). 유입은 `utm_source`(없으면 referrer 호스트), platform 은 UA 로. 앱 `track.ts` 와 같은 저장 키(`cookmatch_device_id`, `cookmatch_session_id`, `cookmatch_source`)라 「웹에서 바로 시작하기」로 이어지면 같은 방문으로 센다.
+- 링크 규칙: 인스타 프로필 `…/download?utm_source=ig_profile`, 광고 `…/download?utm_source=ig_ad` → 어드민 「어디서 들어왔나」에 따로 보임.

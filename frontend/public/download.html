@@ -34,8 +34,48 @@
   var isIOS = /iPhone|iPad|iPod/i.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
   var isAndroid = /Android/i.test(ua);
 
-  if (isIOS) location.replace(APP_STORE);
-  else if (isAndroid && ANDROID_LIVE) location.replace(PLAY_STORE);
+  // 스토어로 넘기기 전에 방문을 남긴다 — 안 그러면 링크로 와서 바로 스토어로 간 사람이 어드민에 한 명도 안 잡힌다.
+  // 유입: ?utm_source=ig_profile(프로필) / ig_ad(광고) 처럼 링크에 붙인 값, 없으면 들어온 사이트.
+  // 앱의 track.ts 와 같은 저장 키를 써서 「웹에서 바로 시작하기」로 이어지면 같은 방문·같은 기기로 센다.
+  function logVisit(done) {
+    var finished = false;
+    function finish() { if (!finished) { finished = true; done(); } }
+    try {
+      var source = null;
+      try { source = new URLSearchParams(location.search).get('utm_source'); } catch (e) {}
+      if (!source && document.referrer && document.referrer.indexOf(location.host) < 0) {
+        try { source = new URL(document.referrer).hostname.replace(/^www\./, ''); } catch (e) {}
+      }
+      source = source ? source.slice(0, 60) : null;
+      var uuid = function () {
+        return (window.crypto && crypto.randomUUID) ? crypto.randomUUID()
+          : 's' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+      };
+      var deviceId = 'no-storage', sessionId = uuid();
+      try {
+        deviceId = localStorage.getItem('cookmatch_device_id') || uuid();
+        localStorage.setItem('cookmatch_device_id', deviceId);
+        sessionStorage.setItem('cookmatch_session_id', sessionId);
+        sessionStorage.setItem('cookmatch_session_at', String(Date.now()));
+        if (source) sessionStorage.setItem('cookmatch_source', source);
+      } catch (e) {}
+      var platform = isIOS ? 'ios' : isAndroid ? 'android' : 'web';
+      var ev = function (name, screen) {
+        return { name: name, screen: screen, session_id: sessionId, source: source || undefined, platform: platform, ago_ms: 0 };
+      };
+      fetch('https://refrigeratorcode-production.up.railway.app/api/events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Device-Id': deviceId },
+        body: JSON.stringify({ device_id: deviceId, events: [ev('session_start'), ev('screen_view', '다운로드')] }),
+        keepalive: true
+      }).then(finish, finish);
+    } catch (e) {}
+    setTimeout(finish, 700); // 기록이 늦어도 스토어 이동을 오래 막지 않는다
+  }
+
+  if (isIOS) logVisit(function () { location.replace(APP_STORE); });
+  else if (isAndroid && ANDROID_LIVE) logVisit(function () { location.replace(PLAY_STORE); });
+  else logVisit(function () {});
 </script>
 <style>
   :root { --bg:#FFFFFF; --ink:#1A1A1E; --sub:#6B6B75; --line:#E6E6EA; --brand:#FFD600; --card:#F6F6F8; }
