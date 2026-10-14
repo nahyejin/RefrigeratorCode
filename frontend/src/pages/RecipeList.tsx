@@ -418,7 +418,7 @@ async function loadIngredientDictionary(): Promise<string[]> {
   // 읽어 배열 메서드가 없는 객체를 배열처럼 쓰다 깨지는 사고로 이어질 수 있어
   // 이 화면만의 키로 분리한다.
   const CACHE_KEY = 'ingredient_dict_names_cache';
-  const CACHE_VERSION = '1.1'; // 2026-10-15 오븐·백패킹 추가 — 버전을 올려야 기기에 저장된 옛 목록 대신 새 목록을 받는다
+  const CACHE_VERSION = '1.0';
   // 버전만 보면 예전 값을 들고 있는 사람이 영원히 그대로다 — 사전은 매일
   // 자동으로 바뀌므로(06:30 배치) 하루 지나면 다시 받는다.
   const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
