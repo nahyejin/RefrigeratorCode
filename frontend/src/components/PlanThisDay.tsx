@@ -1,6 +1,12 @@
 import React from 'react';
-import { savePlan, planByDate, clearPlanMeal, conflictingDates, toDateKey } from '../utils/mealPlan';
+import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
+import {
+  savePlan, planByDate, clearPlanMeal, conflictingDates, toDateKey, pullMyPlansIntoLocal,
+  describePlannedDays, type PlanMode,
+} from '../utils/mealPlan';
 import { track } from '../utils/track';
+import { closeCookMode } from '../utils/cookMode';
 import DatePickerField from './DatePickerField';
 import Dialog from './ui/Dialog';
 
@@ -63,6 +69,22 @@ const PlanThisDay: React.FC<Props> = ({ recipeId, title, link, thumbnail }) => {
   const [selected, setSelected] = React.useState<string[]>([]);
   /** 「적용하기」를 눌렀는데 다른 요리와 겹치는 날이 있을 때만 채워진다. */
   const [conflict, setConflict] = React.useState<string[] | null>(null);
+  /** 알약 아래 한 줄 안내(예: 이미 넣어 둔 날을 또 골랐을 때). 잠깐 보이고 사라진다. */
+  const [notice, setNotice] = React.useState<string | null>(null);
+  /** 「적용하기」 결과를 화면 아래에서 잠깐 말한다 — 마이캘린더로 바로 갈 수 있게. */
+  const [toast, setToast] = React.useState<string | null>(null);
+  const navigate = useNavigate();
+
+  React.useEffect(() => {
+    if (!notice) return;
+    const t = setTimeout(() => setNotice(null), 3000);
+    return () => clearTimeout(t);
+  }, [notice]);
+  React.useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 3600);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   const refresh = React.useCallback(() => {
     const found: string[] = [];
@@ -74,19 +96,43 @@ const PlanThisDay: React.FC<Props> = ({ recipeId, title, link, thumbnail }) => {
     setSelected(sorted);
   }, [recipeId]);
 
-  React.useEffect(refresh, [refresh]);
+  // 다른 기기·웹에서 넣은 내 계획(서버에만 있는 것)도 보이게 먼저 맞춘다.
+  // 안 그러면 이미 넣어 둔 날이 빈 날처럼 보이고, 겹침도 못 알아챈다(2026-10-14 실사용 보고).
+  React.useEffect(() => {
+    refresh();
+    let alive = true;
+    pullMyPlansIntoLocal().then(() => { if (alive) refresh(); }).catch(() => {});
+    return () => { alive = false; };
+  }, [refresh]);
 
   const days = React.useMemo(() => choices(), []);
 
-  const toggleKey = (key: string) => {
-    setSelected(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
-  };
-  const toggle = (d: Date) => toggleKey(toDateKey(d));
+  const short = (key: string) => `${Number(key.slice(5, 7))}/${Number(key.slice(8, 10))}`;
 
-  const short = (key: string) => key.slice(5).replace('-', '/');
+  /**
+   * 알약·달력에서 날을 누른다.
+   *
+   * 이미 넣어 둔 날(✓)을 누르면 예전엔 **말없이 선택이 꺼졌다** — 같은 날에 또
+   * 넣으려던 사람에겐 "아무 반응이 없다" 로 보였다. 이제는 이미 있다고 알려 주고,
+   * 알약을 한 번 더 누를 때만 「빼기」로 바뀐다. 달력으로 고른 날은 빼지 않는다.
+   */
+  const toggleKey = (key: string, fromCalendar = false) => {
+    const isBooked = booked.includes(key);
+    const isOn = selected.includes(key);
+    if (isBooked && isOn) {
+      if (fromCalendar || notice !== `booked:${key}`) {
+        setNotice(`booked:${key}`);
+        return;
+      }
+      setSelected(prev => prev.filter(k => k !== key));
+      setNotice(null);
+      return;
+    }
+    setSelected(prev => isOn ? prev.filter(k => k !== key) : [...prev, key]);
+  };
 
   /** 실제로 저장한다. 겹치는 날을 어떻게 할지(`mode`)는 다이얼로그에서 고른다. */
-  const commit = (mode: 'overwrite' | 'fill') => {
+  const commit = (mode: PlanMode) => {
     const removed = booked.filter(k => !selected.includes(k));
     removed.forEach(k => clearPlanMeal(k, recipeId));
     if (removed.length) track('recipe_action', 'plan_remove');
@@ -97,14 +143,18 @@ const PlanThisDay: React.FC<Props> = ({ recipeId, title, link, thumbnail }) => {
       track('recipe_action', 'plan_add');
     }
     setConflict(null);
+    setOpen(false);
     refresh();
+    if (added.length) setToast(`마이캘린더에 ${added.map(short).join(', ')} 담았어요`);
+    else if (removed.length) setToast(`마이캘린더에서 ${removed.map(short).join(', ')} 뺐어요`);
   };
 
-  /** 「적용하기」 — 새로 고른 날 중 다른 요리와 겹치는 게 있으면 먼저 물어본다. */
-  const apply = () => {
+  /** 「적용하기」 — 새로 고른 날 중 다른 요리가 있는 날이 있으면 먼저 물어본다. */
+  const apply = async () => {
+    await pullMyPlansIntoLocal().catch(() => {});
     const added = selected.filter(k => !booked.includes(k));
     const clashDates = conflictingDates(added.map(date => ({ date, recipeId, title, link, thumbnail })));
-    if (clashDates.length === 0) { commit('overwrite'); return; }
+    if (clashDates.length === 0) { commit('add'); return; }
     setConflict(clashDates);
   };
 
@@ -148,23 +198,32 @@ const PlanThisDay: React.FC<Props> = ({ recipeId, title, link, thumbnail }) => {
       {open && (
         <>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
-          {days.map((d, i) => {
-            const key = toDateKey(d);
+          {[
+            ...days.map((d, i) => ({ key: toDateKey(d), text: label(d, i) })),
+            // 14일 밖에 넣어 둔 날도 알약으로 보여야 뺄 수 있다.
+            ...booked.filter(k => !days.some(d => toDateKey(d) === k))
+              .map(k => ({ key: k, text: `${short(k)} (${DAY_NAMES[new Date(`${k}T00:00:00`).getDay()]})` })),
+          ].map(({ key, text }) => {
             const on = selected.includes(key);
+            const isBooked = booked.includes(key);
+            // 이미 넣어 둔 날을 빼기로 한 상태 — 적용하면 이 날에서 빠진다.
+            const removing = isBooked && !on;
             return (
               <button
                 key={key}
                 type="button"
-                onClick={() => toggle(d)}
+                onClick={() => toggleKey(key)}
                 aria-pressed={on}
                 style={{
                   minHeight: 32, padding: '8px 11px', borderRadius: 9999, cursor: 'pointer',
-                  border: on ? '1px solid #1A1A1E' : '1px solid var(--line-200)',
+                  border: on ? '1px solid #1A1A1E' : removing ? '1px dashed #D93A3A' : '1px solid var(--line-200)',
                   background: on ? '#FFD600' : 'var(--surface)',
-                  fontSize: 12.5, fontWeight: on ? 700 : 500, color: '#1A1A1E',
+                  fontSize: 12.5, fontWeight: on ? 700 : 500,
+                  color: removing ? '#D93A3A' : '#1A1A1E',
+                  textDecoration: removing ? 'line-through' : 'none',
                 }}
               >
-                {label(d, i)}
+                {isBooked && on ? '✓ ' : ''}{text}
               </button>
             );
           })}
@@ -176,12 +235,24 @@ const PlanThisDay: React.FC<Props> = ({ recipeId, title, link, thumbnail }) => {
               같은 앱에서 날짜를 고르는 방법이 두 가지가 된다. */}
           <DatePickerField
             value=""
-            onChange={v => { if (v) toggleKey(v); }}
+            onChange={v => { if (v) toggleKey(v, true); }}
             placeholder="다른 날짜"
             minDate={new Date()}
             style={{ minHeight: 32, borderRadius: 9999, borderStyle: 'dashed' }}
           />
         </div>
+
+        {notice?.startsWith('booked:') && (
+          <div role="status" style={{ marginTop: 8, fontSize: 12, color: 'var(--ink-700)', lineHeight: 1.5 }}>
+            {short(notice.slice(7))}에는 이미 이 요리를 넣어 뒀어요
+ · 빼려면 그 날짜를 한 번 더 누르세요
+          </div>
+        )}
+        {booked.some(k => !selected.includes(k)) && (
+          <div style={{ marginTop: 8, fontSize: 12, color: '#D93A3A', lineHeight: 1.5 }}>
+            적용하면 {booked.filter(k => !selected.includes(k)).map(short).join(', ')}에서 빠져요
+          </div>
+        )}
 
         {/* 예전엔 알약을 누르는 즉시 저장했다. 여러 날을 한꺼번에 고르고
             나서 겹치는 날이 있는지 한 번에 물어보려면(바로 아래 다이얼로그)
@@ -214,35 +285,57 @@ const PlanThisDay: React.FC<Props> = ({ recipeId, title, link, thumbnail }) => {
           dismissLabel="그만두기"
           nested
         >
+          {/* 하루에 여러 끼를 넣을 수 있으니 「하나 더 넣기」가 기본이다(2026-10-14 사용자 요청).
+              「겹치는 날은 빼고 나머지만」은 레시피 한 개를 담는 이 자리엔 맞지 않아 뺐다. */}
           <div style={{ fontSize: 13.5, color: 'var(--ink-700)', lineHeight: 1.7, textAlign: 'left' }}>
-            <b>{conflict.length}일</b>에 다른 요리가 있어요 ·{' '}
-            {conflict.slice(0, 3).map(d => d.slice(5).replace('-', '/')).join(', ')}
-            {conflict.length > 3 && ` 외 ${conflict.length - 3}일`}
+            그 날엔 다른 요리가 있어요
+            <ul style={{ margin: '6px 0 0', paddingLeft: 18 }}>
+              {describePlannedDays(conflict).map(t => <li key={t}>{t}</li>)}
+              {conflict.length > 3 && <li>외 {conflict.length - 3}일</li>}
+            </ul>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 14 }}>
               <button
                 type="button"
-                onClick={() => commit('overwrite')}
+                onClick={() => commit('add')}
                 style={{
                   minHeight: 46, borderRadius: 10, border: 'none', background: '#FFD600',
                   color: '#1A1A1E', fontSize: 14, fontWeight: 700, cursor: 'pointer',
                 }}
               >
-                겹치는 날도 이걸로 바꾸기
+                하나 더 넣기
               </button>
               <button
                 type="button"
-                onClick={() => commit('fill')}
+                onClick={() => commit('overwrite')}
                 style={{
                   minHeight: 46, borderRadius: 10, background: 'var(--surface)',
                   border: '1px solid var(--line-200)',
                   color: '#1A1A1E', fontSize: 14, fontWeight: 700, cursor: 'pointer',
                 }}
               >
-                겹치는 날은 빼고 나머지만
+                이걸로 바꾸기
               </button>
             </div>
           </div>
         </Dialog>
+      )}
+
+      {/* 레시피 시트 안쪽은 움직이는(transform) 상자라 position:fixed 가 그 안에 갇힌다.
+          화면 맨 위 층(body)에 띄워야 시트 위, 화면 아래에 제대로 보인다. */}
+      {toast && createPortal(
+        <div className="plan-toast" role="status">
+          <span aria-hidden style={{
+            width: 18, height: 18, borderRadius: 9999, background: '#FFD600',
+            color: '#1A1A1E', fontSize: 11, fontWeight: 800, flexShrink: 0,
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          }}>✓</span>
+          <span>{toast}</span>
+          {/* 레시피 시트는 앱에 하나 떠 있는 것(CookModeHost)이라 화면을 옮겨도 남는다 — 닫고 간다. */}
+          <button type="button" onClick={() => { setToast(null); closeCookMode(); navigate('/cooking-calendar'); }}>
+            마이캘린더 보기
+          </button>
+        </div>,
+        document.body,
       )}
     </section>
   );

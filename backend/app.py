@@ -5392,6 +5392,7 @@ def save_user_meal_plans(user_id):
     - mode 'overwrite'(기본): meals에 담긴 **날짜들**은 그 날의 기존 계획을
       통째로 새 것으로 바꾼다.
     - mode 'fill': 이미 계획이 있는 날은 그대로 두고, 빈 날에만 넣는다.
+    - mode 'add': 기존 계획은 그대로 두고 하나 더 넣는다(하루 여러 끼, 2026-10-14).
     (프론트 utils/mealPlan.ts의 savePlan()과 같은 규칙 — 로컬 저장 로직을
     그대로 서버에도 반영해야 두 저장소가 어긋나지 않는다.)"""
     try:
@@ -5441,6 +5442,10 @@ def save_user_meal_plans(user_id):
                 taken = {r['plan_date'] for r in cursor.fetchall()}
                 parsed = [p for p in parsed if p['date'] not in taken]
                 dates = sorted({p['date'] for p in parsed})
+            elif mode == 'add':
+                # 하나 더 넣기 — 그 날의 기존 계획은 그대로 두고 옆에 더한다.
+                # 같은 날 같은 레시피는 아래 INSERT 의 ON DUPLICATE KEY 로 한 번만 남는다.
+                pass
             else:
                 # overwrite — 이 날짜들의 기존 계획은 통째로 비우고 새로 넣는다.
                 for d in dates:

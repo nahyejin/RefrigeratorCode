@@ -15,7 +15,10 @@ import { track } from '../utils/track';
 import { getProxiedImageUrl } from '../utils/imageUtils';
 import { usageHeaders, applyUsage, spendOptimistically } from '../utils/usage';
 import { UsageLine, useUsage } from '../components/UsageMeter';
-import { savePlan, conflictingDates, pullMyPlansIntoLocal, toDateKey, type PlannedMeal } from '../utils/mealPlan';
+import {
+  savePlan, conflictingDates, pullMyPlansIntoLocal, toDateKey, describePlannedDays,
+  type PlannedMeal, type PlanMode,
+} from '../utils/mealPlan';
 import { loadChat, saveChat, archiveChat, loadSessions, dropSession, syncSessions,
          toPlanned, type ChatMsg, type ChatSession } from '../utils/aiChat';
 
@@ -1210,16 +1213,16 @@ const WeeklyPlan: React.FC = () => {
       })),
     );
 
-  const commit = (mode: 'overwrite' | 'fill') => {
+  const commit = (mode: PlanMode) => {
     const fromPast = pendingMeals !== null;
     const meals = pendingMeals ?? buildMeals();
     // `fill` 은 이미 정해 둔 날은 건드리지 않아서 실제로 담긴 것은 겹치지 않은 날뿐이다.
-    const clashes = conflict ? conflict.length : 0;
+    const clashSet = new Set(conflict ?? []);
     savePlan(meals, mode);
     setConflict(null);
     setPendingMeals(null);
     if (!fromPast) setSaved(true);
-    setToast(mode === 'fill' ? meals.length - clashes : meals.length);
+    setToast(mode === 'fill' ? meals.filter(m => !clashSet.has(m.date)).length : meals.length);
     track('recipe_action', 'plan_apply');
   };
 
@@ -2427,32 +2430,34 @@ const WeeklyPlan: React.FC = () => {
         >
           {/* 버튼 안에 설명을 두 줄로 넣었더니 44px 밖으로 튀어나갔다.
               **버튼 이름만으로 뜻이 통하게** 짓고 설명은 걷어낸다. */}
+          {/* AI 식단·일반 식단 모두 이 창 하나를 쓴다. 선택지 넷(2026-10-14 사용자 요청):
+              이걸로 바꾸기 / 하나 더 넣기(그 날 계획 옆에) / 계획 없는 날에 넣기 / 그만두기. */}
           <div style={{ fontSize: 13.5, color: 'var(--ink-700)', lineHeight: 1.7, textAlign: 'left' }}>
-            <b>{conflict.length}일</b>이 겹쳐요 ·{' '}
-            {conflict.slice(0, 3).map(d => d.slice(5).replace('-', '/')).join(', ')}
-            {conflict.length > 3 && ` 외 ${conflict.length - 3}일`}
+            <b>{conflict.length}일</b>에 이미 계획이 있어요
+            <ul style={{ margin: '6px 0 0', paddingLeft: 18 }}>
+              {describePlannedDays(conflict).map(t => <li key={t}>{t}</li>)}
+              {conflict.length > 3 && <li>외 {conflict.length - 3}일</li>}
+            </ul>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 14 }}>
-              <button
-                type="button"
-                onClick={() => commit('overwrite')}
-                style={{
-                  minHeight: 46, borderRadius: 10, border: 'none', background: '#FFD600',
-                  color: '#1A1A1E', fontSize: 14, fontWeight: 700, cursor: 'pointer',
-                }}
-              >
-                겹치는 날도 새로 바꾸기
-              </button>
-              <button
-                type="button"
-                onClick={() => commit('fill')}
-                style={{
-                  minHeight: 46, borderRadius: 10, background: 'var(--surface)',
-                  border: '1px solid var(--line-200)',
-                  color: '#1A1A1E', fontSize: 14, fontWeight: 700, cursor: 'pointer',
-                }}
-              >
-                빈 날에만 넣기
-              </button>
+              {([
+                ['overwrite', '이걸로 바꾸기'],
+                ['add', '하나 더 넣기'],
+                ['fill', '계획 없는 날에 넣기'],
+              ] as [PlanMode, string][]).map(([mode, text], i) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => commit(mode)}
+                  style={{
+                    minHeight: 46, borderRadius: 10,
+                    border: i === 0 ? 'none' : '1px solid var(--line-200)',
+                    background: i === 0 ? '#FFD600' : 'var(--surface)',
+                    color: '#1A1A1E', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+                  }}
+                >
+                  {text}
+                </button>
+              ))}
             </div>
           </div>
         </Dialog>

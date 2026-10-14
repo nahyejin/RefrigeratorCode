@@ -130,7 +130,18 @@ export async function pullMyPlansIntoLocal(): Promise<void> {
 export function conflictingDates(meals: PlannedMeal[]): string[] {
   const today = toDateKey(new Date());
   const have = new Set(loadPlan().filter(m => m.date >= today).map(m => m.date));
-  return meals.map(m => m.date).filter(d => have.has(d));
+  return [...new Set(meals.map(m => m.date).filter(d => have.has(d)))];
+}
+
+/** 확인창에 「그 날 뭐가 잡혀 있는지」 보여 주려고. 예: `10/14 · 김치찌개 외 1` */
+export function describePlannedDays(dates: string[], max = 3): string[] {
+  const byDate = planByDate();
+  return dates.slice(0, max).map(d => {
+    const titles = (byDate.get(d) || []).map(m => m.title);
+    const head = `${Number(d.slice(5, 7))}/${Number(d.slice(8, 10))}`;
+    if (titles.length === 0) return head;
+    return `${head} · ${titles[0]}${titles.length > 1 ? ` 외 ${titles.length - 1}` : ''}`;
+  });
 }
 
 /**
@@ -140,11 +151,15 @@ export function conflictingDates(meals: PlannedMeal[]): string[] {
  * `mode` 로 겹치는 날을 어떻게 할지 고른다:
  *   - `overwrite` — 그 날의 옛 계획을 새 것으로 바꾼다
  *   - `fill` — **이미 정해 둔 날은 그대로 두고** 비어 있는 날에만 넣는다
+ *   - `add` — 그 날의 옛 계획은 그대로 두고 **하나 더** 넣는다(하루 여러 끼, 2026-10-14).
+ *     같은 날 같은 레시피는 한 번만 남는다.
  *
  * 전에는 묻지 않고 늘 덮어썼다. 월요일에 정성껏 고쳐 둔 계획이 "다시 짜기" 한
  * 번에 말없이 사라졌다.
  */
-export function savePlan(meals: PlannedMeal[], mode: 'overwrite' | 'fill' = 'overwrite'): void {
+export type PlanMode = 'overwrite' | 'fill' | 'add';
+
+export function savePlan(meals: PlannedMeal[], mode: PlanMode = 'overwrite'): void {
   const today = toDateKey(new Date());
   const existing = loadPlan().filter(m => m.date >= today);
 
@@ -155,7 +170,10 @@ export function savePlan(meals: PlannedMeal[], mode: 'overwrite' | 'fill' = 'ove
   }
 
   const replacing = new Set(incoming.map(m => m.date));
-  const kept = existing.filter(m => !replacing.has(m.date));
+  const same = new Set(incoming.map(m => `${m.date}|${m.recipeId}`));
+  const kept = mode === 'add'
+    ? existing.filter(m => !same.has(`${m.date}|${m.recipeId}`))
+    : existing.filter(m => !replacing.has(m.date));
   try {
     localStorage.setItem(KEY, JSON.stringify([...kept, ...incoming].sort((a, b) => (a.date < b.date ? -1 : 1))));
   } catch {
