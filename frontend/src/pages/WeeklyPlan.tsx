@@ -7,7 +7,7 @@ import StepLoading from '../components/StepLoading';
 import { getMyIngredients } from '../utils/recipeUtils';
 import { loadIngredientCategoryMap, lookupShelfLifeDays, estimateExpiry, type CategoryMap, type StorageKind } from '../utils/shelfLife';
 import { useAuth } from '../context/AuthContext';
-import { splitExpiring, daysLabel, SOON_DAYS, STALE_AFTER_DAYS,
+import { splitExpiring, daysLabel, expiryTone, SOON_DAYS, STALE_AFTER_DAYS,
          type FridgeItem, type ExpiringItem } from '../utils/expiry';
 import { openCookMode } from '../utils/cookMode';
 import { resolveCoupangUrl } from '../utils/coupangLink';
@@ -272,13 +272,13 @@ const SectionHead: React.FC<{
  * 뺀 재료를 목록에서 지우지 않고 취소선만 긋는 이유: 지우면 되돌릴 자리가
  * 사라진다. 잘못 눌렀을 때 같은 자리를 다시 누르면 돌아와야 한다.
  *
- * 색은 세 단계 — `priority`(곧 상해서 먼저 써야 함, 진한 amber) >
- * 보통(연한 yellow) > `warn`(너무 지나서 기본 제외, pink). 전엔 priority와
- * 보통이 같은 연한 yellow라 펼쳤을 때 뭐가 급한 건지 색만 보고는 몰랐다.
+ * 색: 유통기한이 붙은 재료는 내냉장고 D-day 뱃지와 같은 색(`expiryTone`)을 쓴다.
+ * 예전엔 이 화면만 진한 노랑(곧 상함)·연노랑(보통)이라 다른 화면과 달랐고
+ * 「누리끼리하다」는 지적을 받았다(2026-10-15). 기한 없는 재료는 흰 바탕.
  */
 const IngredientChip: React.FC<{
-  label: string; on: boolean; warn?: boolean; priority?: boolean; onToggle: () => void;
-}> = ({ label, on, warn, priority, onToggle }) => (
+  label: string; on: boolean; tone?: { bg: string; fg: string }; onToggle: () => void;
+}> = ({ label, on, tone, onToggle }) => (
   <button
     type="button"
     onClick={onToggle}
@@ -286,9 +286,9 @@ const IngredientChip: React.FC<{
     style={{
       fontSize: 12, padding: '5px 10px', borderRadius: 9999, cursor: 'pointer',
       lineHeight: 1.4,
-      border: on ? `1px solid ${warn ? '#B03A28' : priority ? '#B8860B' : '#1A1A1E'}` : '1px dashed var(--line-200)',
-      background: on ? (warn ? '#FBE3E0' : priority ? '#FFE066' : '#FFF8CC') : 'var(--surface-sub)',
-      color: on ? (warn ? '#B03A28' : '#7A5C00') : 'var(--ink-500)',
+      border: on ? `1px solid ${tone ? tone.bg : 'var(--line-200)'}` : '1px dashed var(--line-200)',
+      background: on ? (tone ? tone.bg : 'var(--surface)') : 'var(--surface-sub)',
+      color: on ? (tone ? tone.fg : 'var(--ink-900)') : 'var(--ink-500)',
       textDecoration: on ? 'none' : 'line-through',
       fontWeight: on ? 700 : 500,
     }}
@@ -2212,7 +2212,7 @@ const WeeklyPlan: React.FC = () => {
 
         {expiring.length > 0 ? (
           <>
-            <div style={{ fontSize: 12, color: '#B03A28', fontWeight: 700, marginBottom: 6 }}>
+            <div style={{ fontSize: 12, color: '#C4342B', fontWeight: 700, marginBottom: 6 }}>
               곧 상해요
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
@@ -2221,8 +2221,7 @@ const WeeklyPlan: React.FC = () => {
                   key={'s' + i.storage + i.name}
                   label={i.name + ' · ' + daysLabel(i.days, i.estimated)}
                   on={!off?.has(i.name)}
-                  warn={i.days < 0}
-                  priority={i.days >= 0}
+                  tone={expiryTone(i.days, i.estimated)}
                   onToggle={() => toggle(i.name)}
                 />
               ))}
@@ -2264,7 +2263,7 @@ const WeeklyPlan: React.FC = () => {
                       key={'t' + i.storage + i.name}
                       label={i.name + ' · ' + daysLabel(i.days, i.estimated)}
                       on={!off?.has(i.name)}
-                      warn
+                      tone={expiryTone(i.days, i.estimated)}
                       onToggle={() => toggle(i.name)}
                     />
                   ))}

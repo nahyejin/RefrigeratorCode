@@ -3184,6 +3184,23 @@ const CookingCalendar: React.FC = () => {
                 // 줄바꿈을 허용해 편집칸을 통째로 아랫줄로 내린다(아래 flexBasis).
                 style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 12, padding: '10px 12px', borderRadius: 12, border: '1px solid var(--line-200)' }}
               >
+                {/* 일별 보기의 완료 기록은 누르면 아무 일도 없었다 — 주·월 보기와 위
+                    「만들기로 한 요리」는 레시피 시트가 열리는데 여기만 빠져 있었다
+                    (2026-10-15 실사용 보고). 썸네일·제목을 누르면 같은 시트를 연다.
+                    직접 기록은 원문 레시피가 없어 열 것이 없다. */}
+                <button
+                  type="button"
+                  disabled={isManual || e.recipe_id == null}
+                  onClick={() => {
+                    if (!isManual && e.recipe_id != null) openCookMode({ id: e.recipe_id as number, title: e.title });
+                  }}
+                  aria-label={isManual ? undefined : `${e.title} 레시피 보기`}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0,
+                    border: 'none', background: 'none', padding: 0, textAlign: 'left',
+                    cursor: isManual || e.recipe_id == null ? 'default' : 'pointer', color: 'inherit',
+                  }}
+                >
                 {isManual ? (
                   // 수동 기록은 원문이 없어 썸네일이 없다 — 같은 자리를 옅은
                   // 채우기로 채워 목록 정렬이 흔들리지 않게 한다.
@@ -3218,6 +3235,7 @@ const CookingCalendar: React.FC = () => {
                     </span>
                   </div>
                 </div>
+                </button>
                 {/* 완료 버튼을 실제로 요리한 날 바로 안 누르면 캘린더에 엉뚱한
                     날짜로 찍힌다 — 내가 완료한 기록만 날짜를 고칠 수 있게 한다.
                     삭제는 **같은 그룹이면 서로 대신할 수 있다** — 식구가

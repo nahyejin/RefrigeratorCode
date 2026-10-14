@@ -128,6 +128,19 @@ export function splitExpiring(
   };
 }
 
+/**
+ * 유통기한 뱃지 색 — **내냉장고의 D-day 뱃지가 기준**이다(2026-10-15, 화면마다 노랑·연노랑이
+ * 섞여 「누리끼리하다」는 지적으로 통일).
+ *   · 오래 지남(STALE_AFTER_DAYS 넘게) → 진한 빨강 바탕, 흰 글씨
+ *   · 지났거나 3일 안 → 옅은 분홍, 빨간 글씨 (짐작한 기한이면 옅은 주황, 갈색 글씨 — 확정처럼 안 보이게)
+ *   · 그 밖 → 회색
+ */
+export function expiryTone(days: number, estimated = false): { bg: string; fg: string } {
+  if (days < -STALE_AFTER_DAYS) return { bg: '#E8483A', fg: '#FFFFFF' };
+  if (days <= 3) return estimated ? { bg: '#FFF3E0', fg: '#9A5B00' } : { bg: '#FFE7E4', fg: '#C4342B' };
+  return { bg: 'var(--surface-sub)', fg: 'var(--ink-500)' };
+}
+
 /** "지났어요" / "오늘까지" / "2일 남음" — 숫자만 던지지 않고 말로. */
 export function daysLabel(days: number, estimated = false): string {
   const about = estimated ? '약 ' : '';

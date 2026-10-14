@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  splitExpiring, daysLabel, SOON_DAYS, STALE_AFTER_DAYS,
+  splitExpiring, daysLabel, expiryTone, SOON_DAYS, STALE_AFTER_DAYS,
   type FridgeItem, type ExpiringItem,
 } from '../utils/expiry';
 import type { CategoryMap, StorageKind } from '../utils/shelfLife';
@@ -101,9 +101,11 @@ const ExpiryAlert: React.FC<Props> = ({ boxes, categoryMap, within = SOON_DAYS, 
             style={{
               display: 'inline-flex', alignItems: 'center', gap: 5,
               fontSize: 12, padding: '5px 10px', borderRadius: 9999,
-              border: '1px solid var(--line-200)',
-              background: item.days < 0 ? '#FBE3E0' : '#FFF8CC',
-              color: item.days < 0 ? '#B03A28' : '#7A5C00',
+              border: 'none',
+              // 내냉장고 D-day 뱃지와 같은 색(2026-10-15 통일)
+              background: expiryTone(item.days, item.estimated).bg,
+              color: expiryTone(item.days, item.estimated).fg,
+              
               cursor: onPick ? 'pointer' : 'default',
             }}
           >
