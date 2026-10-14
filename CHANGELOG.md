@@ -13100,3 +13100,6 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 ### 레시피 액션 토스트 겹침·안 사라짐 + 계획 겹침 확인창 문구 (2026-10-14)
 - 즐겨찾기 추가 직후 해제를 누르면 「추가했습니다」 토스트와 해제 확인창이 같은 자리에 겹쳐 떠 있었음. RecipeList·Popular·MyPage·IngredientDetail·CompletedRecipeListPage·RecordedRecipeListPage: `pendingRemove` 가 생기면 토스트를 닫는 effect + 토스트 타이머를 `[toast]` effect 하나로(예전엔 호출마다 setTimeout 을 걸고 안 지워 앞 타이머가 새 토스트를 일찍 지움). **요즘인기는 즐겨찾기·완료·기록 토스트가 아예 안 사라졌음** → 1.5초. CookModeSheet 는 확인창 열 때 토스트 닫기.
 - 계획 겹침 확인창: 새 `components/PlanConflictSummary.tsx`(레시피 시트·식단 추천 공용) — 「10/13, 10/14에 이미 계획한 요리가 있어요.」 + 날짜(요일)별 요리 이름 목록. `mealPlan.ts` `plannedTitlesOn`·`shortDate`(describePlannedDays 대체). 식단 추천 선택지에서 「계획 없는 날에 넣기」 삭제 → 이걸로 바꾸기 / 하나 더 넣기 / 그만두기.
+
+### 식단 추천 카드: 「다른 요리로」「빼기」를 테두리 버튼으로 (2026-10-14)
+- 글자 링크 셋(조리 순서 보기 | 다른 요리로 | 빼기)이 좁은 폭에서 줄바꿈되며 「빼기」가 혼자 떨어지고 버튼인지 분간이 안 됨(사용자 스크린샷). 조리 순서 보기는 글자 링크 그대로, 아래 줄에 「↻ 다른 요리로」「✕ 빼기」를 「+ 해당 일자 요리 추가」와 같은 테두리 버튼으로 한 줄에.

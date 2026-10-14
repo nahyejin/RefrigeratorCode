@@ -1653,28 +1653,31 @@ const WeeklyPlan: React.FC = () => {
                                 >
                                   조리 순서 보기 &rsaquo;
                                 </button>
-                                <span aria-hidden style={{ color: 'var(--line-300)' }}>|</span>
-                                <button
-                                  type="button"
-                                  onClick={() => swapOne(i, k)}
-                                  style={{
-                                    border: 'none', background: 'transparent', padding: 0,
-                                    fontSize: 12, fontWeight: 600, color: 'var(--ink-500)', cursor: 'pointer',
-                                  }}
-                                >
-                                  다른 요리로
-                                </button>
-                                <span aria-hidden style={{ color: 'var(--line-300)' }}>|</span>
-                                <button
-                                  type="button"
-                                  onClick={() => removeAt(i, k)}
-                                  style={{
-                                    border: 'none', background: 'transparent', padding: 0,
-                                    fontSize: 12, fontWeight: 600, color: 'var(--ink-500)', cursor: 'pointer',
-                                  }}
-                                >
-                                  빼기
-                                </button>
+                              </div>
+                              {/* 「다른 요리로 | 빼기」를 글자로만 두었더니 폭이 좁으면 「빼기」가
+                                  다음 줄로 혼자 떨어졌고, 버튼인지 글자인지 분간이 안 됐다
+                                  (2026-10-14 사용자 지적). 「+ 해당 일자 요리 추가」와 같은
+                                  테두리 버튼으로, 둘을 한 묶음으로 둔다. */}
+                              <div style={{ display: 'flex', gap: 6, flexWrap: 'nowrap', marginTop: 8 }}>
+                                {([
+                                  ['↻ 다른 요리로', () => swapOne(i, k), `${meal.recipe.title} 다른 요리로 바꾸기`],
+                                  ['✕ 빼기', () => removeAt(i, k), `${meal.recipe.title} 식단에서 빼기`],
+                                ] as [string, () => void, string][]).map(([text, onClick, aria]) => (
+                                  <button
+                                    key={text}
+                                    type="button"
+                                    onClick={onClick}
+                                    aria-label={aria}
+                                    style={{
+                                      minHeight: 30, padding: '5px 10px', borderRadius: 8,
+                                      border: '1px solid var(--line-200)', background: 'var(--surface)',
+                                      fontSize: 12, fontWeight: 600, color: 'var(--ink-700)',
+                                      cursor: 'pointer', whiteSpace: 'nowrap',
+                                    }}
+                                  >
+                                    {text}
+                                  </button>
+                                ))}
                               </div>
                             </div>
 
