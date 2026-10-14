@@ -13081,3 +13081,7 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 - 문제: `download.html` 은 폰이면 곧바로 App Store/Play 로 보내고 아무 기록도 안 남겼다 → 인스타 프로필·광고 링크로 와서 스토어로 간 사람이 어드민에 0명.
 - 이제 이동 전에 `/api/events` 로 `session_start` + `screen_view(다운로드)` 를 보낸다(최대 0.7초 기다림). 유입은 `utm_source`(없으면 referrer 호스트), platform 은 UA 로. 앱 `track.ts` 와 같은 저장 키(`cookmatch_device_id`, `cookmatch_session_id`, `cookmatch_source`)라 「웹에서 바로 시작하기」로 이어지면 같은 방문으로 센다.
 - 링크 규칙: 인스타 프로필 `…/download?utm_source=ig_profile`, 광고 `…/download?utm_source=ig_ad` → 어드민 「어디서 들어왔나」에 따로 보임.
+
+### 릴스 일정 재편: 3벌 먼저, 그다음 직접 요리 영상 + 2벌 번갈아 (2026-10-14)
+- 사용자: 1벌 8편 이틀 만에 다 올림 / 3벌 훅이 더 웃겨서 먼저 / 이후엔 실제 요리 영상 + 쿡매치 활용 기능 영상, 중간중간 2벌.
+- `store/REEL_UPLOAD_PLAN.html`: 총정리·1벌 「올림」 처리, 3벌 10/15~10/22 매일 17:00, 이후 직접 요리 영상 자리 5칸(월·금, 촬영 후 — 본문 초안 포함) + 2벌 화·목·토(10/24~11/10). 2·3벌 카드는 새 음악 파일(`최종24편_음악_v2/…_음악.mp4`, 곡 장르 표기)로, 「요리 영상」 필터 추가. 총 30편.
