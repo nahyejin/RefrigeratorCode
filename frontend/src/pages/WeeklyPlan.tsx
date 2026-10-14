@@ -16,9 +16,10 @@ import { getProxiedImageUrl } from '../utils/imageUtils';
 import { usageHeaders, applyUsage, spendOptimistically } from '../utils/usage';
 import { UsageLine, useUsage } from '../components/UsageMeter';
 import {
-  savePlan, conflictingDates, pullMyPlansIntoLocal, toDateKey, describePlannedDays,
+  savePlan, conflictingDates, pullMyPlansIntoLocal, toDateKey,
   type PlannedMeal, type PlanMode,
 } from '../utils/mealPlan';
+import PlanConflictSummary from '../components/PlanConflictSummary';
 import { loadChat, saveChat, archiveChat, loadSessions, dropSession, syncSessions,
          toPlanned, type ChatMsg, type ChatSession } from '../utils/aiChat';
 
@@ -2430,19 +2431,15 @@ const WeeklyPlan: React.FC = () => {
         >
           {/* 버튼 안에 설명을 두 줄로 넣었더니 44px 밖으로 튀어나갔다.
               **버튼 이름만으로 뜻이 통하게** 짓고 설명은 걷어낸다. */}
-          {/* AI 식단·일반 식단 모두 이 창 하나를 쓴다. 선택지 넷(2026-10-14 사용자 요청):
-              이걸로 바꾸기 / 하나 더 넣기(그 날 계획 옆에) / 계획 없는 날에 넣기 / 그만두기. */}
-          <div style={{ fontSize: 13.5, color: 'var(--ink-700)', lineHeight: 1.7, textAlign: 'left' }}>
-            <b>{conflict.length}일</b>에 이미 계획이 있어요
-            <ul style={{ margin: '6px 0 0', paddingLeft: 18 }}>
-              {describePlannedDays(conflict).map(t => <li key={t}>{t}</li>)}
-              {conflict.length > 3 && <li>외 {conflict.length - 3}일</li>}
-            </ul>
+          {/* AI 식단·일반 식단 모두 이 창 하나를 쓴다. 선택지(2026-10-14 사용자 요청):
+              이걸로 바꾸기 / 하나 더 넣기(그 날 계획 옆에) / 그만두기.
+              「계획 없는 날에 넣기(빈 날에만)」는 헷갈린다는 지적으로 뺐다. */}
+          <div>
+            <PlanConflictSummary dates={conflict} />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 14 }}>
               {([
                 ['overwrite', '이걸로 바꾸기'],
                 ['add', '하나 더 넣기'],
-                ['fill', '계획 없는 날에 넣기'],
               ] as [PlanMode, string][]).map(([mode, text], i) => (
                 <button
                   key={mode}

@@ -133,15 +133,15 @@ export function conflictingDates(meals: PlannedMeal[]): string[] {
   return [...new Set(meals.map(m => m.date).filter(d => have.has(d)))];
 }
 
-/** 확인창에 「그 날 뭐가 잡혀 있는지」 보여 주려고. 예: `10/14 · 김치찌개 외 1` */
-export function describePlannedDays(dates: string[], max = 3): string[] {
+/** `2026-10-14` → `10/14` */
+export function shortDate(key: string): string {
+  return `${Number(key.slice(5, 7))}/${Number(key.slice(8, 10))}`;
+}
+
+/** 확인창에 「그 날 어떤 요리가 잡혀 있는지」 보여 주려고 — 날짜순, 날짜마다 요리 이름들. */
+export function plannedTitlesOn(dates: string[]): { date: string; titles: string[] }[] {
   const byDate = planByDate();
-  return dates.slice(0, max).map(d => {
-    const titles = (byDate.get(d) || []).map(m => m.title);
-    const head = `${Number(d.slice(5, 7))}/${Number(d.slice(8, 10))}`;
-    if (titles.length === 0) return head;
-    return `${head} · ${titles[0]}${titles.length > 1 ? ` 외 ${titles.length - 1}` : ''}`;
-  });
+  return [...dates].sort().map(date => ({ date, titles: (byDate.get(date) || []).map(m => m.title) }));
 }
 
 /**

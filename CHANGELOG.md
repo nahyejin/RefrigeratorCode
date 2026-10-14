@@ -13096,3 +13096,7 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 - `utils/mealPlan.ts`: `PlanMode` 에 `add`(그 날 기존 계획 유지 + 하나 더, 같은 날 같은 레시피는 한 번), `describePlannedDays()`(확인창에 그 날 요리 이름). `conflictingDates` 중복 날짜 제거. 백엔드 `POST /meal-plans` 에 `mode=add`(기존 행 안 지움, UNIQUE 키로 중복 방지).
 - `PlanThisDay.tsx`: 열 때·적용 전에 `pullMyPlansIntoLocal()`, 넣어 둔 날 ✓·빼기 상태(빨간 취소선)·안내 문구, 겹치면 하나 더 넣기(기본)/이걸로 바꾸기/그만두기, 안 겹치면 `add` 로 저장(덮어쓰기 위험 제거), 적용 후 body 포털 토스트 「마이캘린더에 N/N 담았어요 [마이캘린더 보기]」(시트 닫고 이동). 14일 밖 넣어 둔 날도 알약으로.
 - `WeeklyPlan.tsx`(AI·일반 식단 공용 확인창): 이걸로 바꾸기/하나 더 넣기/계획 없는 날에 넣기/그만두기.
+
+### 레시피 액션 토스트 겹침·안 사라짐 + 계획 겹침 확인창 문구 (2026-10-14)
+- 즐겨찾기 추가 직후 해제를 누르면 「추가했습니다」 토스트와 해제 확인창이 같은 자리에 겹쳐 떠 있었음. RecipeList·Popular·MyPage·IngredientDetail·CompletedRecipeListPage·RecordedRecipeListPage: `pendingRemove` 가 생기면 토스트를 닫는 effect + 토스트 타이머를 `[toast]` effect 하나로(예전엔 호출마다 setTimeout 을 걸고 안 지워 앞 타이머가 새 토스트를 일찍 지움). **요즘인기는 즐겨찾기·완료·기록 토스트가 아예 안 사라졌음** → 1.5초. CookModeSheet 는 확인창 열 때 토스트 닫기.
+- 계획 겹침 확인창: 새 `components/PlanConflictSummary.tsx`(레시피 시트·식단 추천 공용) — 「10/13, 10/14에 이미 계획한 요리가 있어요.」 + 날짜(요일)별 요리 이름 목록. `mealPlan.ts` `plannedTitlesOn`·`shortDate`(describePlannedDays 대체). 식단 추천 선택지에서 「계획 없는 날에 넣기」 삭제 → 이걸로 바꾸기 / 하나 더 넣기 / 그만두기.

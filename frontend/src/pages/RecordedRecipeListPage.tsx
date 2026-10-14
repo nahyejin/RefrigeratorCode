@@ -180,6 +180,17 @@ const RecordedRecipeListPage: React.FC = () => {
   const [maxLack, setMaxLack] = useState<number | 'unlimited'>('unlimited');
   const [appliedExpiryIngredients, setAppliedExpiryIngredients] = useState<string[]>([]);
   const [pendingRemove, setPendingRemove] = useState<PendingRemove | null>(null);
+
+  // 해제 확인창이 뜨면 직전 토스트(「추가했습니다」)는 닫는다 — 같은 자리에 두 개가 겹쳐 떠 있었다(2026-10-14).
+  React.useEffect(() => { if (pendingRemove) { setToast(''); } }, [pendingRemove]);
+  // 토스트는 **마지막 것 기준으로** 정해진 시간 뒤에 사라진다. 예전엔 토스트마다 타이머를
+  // 따로 걸고 지우지 않아서, 앞 타이머가 새 토스트를 일찍 지우거나(목록 화면) 아예
+  // 안 사라졌다(요즘인기).
+  React.useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => { setToast(''); }, TOAST_DURATION);
+    return () => clearTimeout(t);
+  }, [toast]);
   const [pendingRecipe, setPendingRecipe] = useState<any>(null);
   const [includeIngredients, setIncludeIngredients] = useState<string[]>([]);
   const [excludeIngredients, setExcludeIngredients] = useState<string[]>([]);
@@ -225,7 +236,6 @@ const RecordedRecipeListPage: React.FC = () => {
    */
   const showToast = (message: string) => {
     setToast(message);
-    setTimeout(() => setToast(''), TOAST_DURATION);
   };
 
   /**

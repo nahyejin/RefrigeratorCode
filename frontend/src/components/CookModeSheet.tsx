@@ -237,6 +237,7 @@ const CookModeSheet: React.FC<Props> = ({
   const toggleAction = (type: 'favorite' | 'done' | 'write') => {
     if (recipeId == null) return;
     if (actionState[type]) {
+      setToast(null); // 「추가했습니다」와 확인창이 겹치지 않게
       setConfirmingRemove(type);
       return;
     }

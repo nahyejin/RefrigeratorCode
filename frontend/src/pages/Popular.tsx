@@ -673,6 +673,17 @@ const Popular = () => {
   const today = new Date();
   today.setHours(23, 59, 59, 999);
   const [toast, setToast] = useState('');
+
+  // 해제 확인창이 뜨면 직전 토스트(「추가했습니다」)는 닫는다 — 같은 자리에 두 개가 겹쳐 떠 있었다(2026-10-14).
+  React.useEffect(() => { if (pendingRemove) { setToast(''); } }, [pendingRemove]);
+  // 토스트는 **마지막 것 기준으로** 정해진 시간 뒤에 사라진다. 예전엔 토스트마다 타이머를
+  // 따로 걸고 지우지 않아서, 앞 타이머가 새 토스트를 일찍 지우거나(목록 화면) 아예
+  // 안 사라졌다(요즘인기).
+  React.useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => { setToast(''); }, 1500);
+    return () => clearTimeout(t);
+  }, [toast]);
   /** 방금 완료한 레시피 — 쓴 재료를 냉장고에서 뺄지 묻는다. */
   const [usedUp, setUsedUp] = useState<{ id: number; title: string } | null>(null);
   /** 인기 급상승에서 무엇을 보고 있나. 요리와 테마가 한 자리를 나눠 쓴다. */

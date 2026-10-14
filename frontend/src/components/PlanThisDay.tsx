@@ -3,8 +3,9 @@ import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import {
   savePlan, planByDate, clearPlanMeal, conflictingDates, toDateKey, pullMyPlansIntoLocal,
-  describePlannedDays, type PlanMode,
+  type PlanMode,
 } from '../utils/mealPlan';
+import PlanConflictSummary from './PlanConflictSummary';
 import { track } from '../utils/track';
 import { closeCookMode } from '../utils/cookMode';
 import DatePickerField from './DatePickerField';
@@ -287,12 +288,8 @@ const PlanThisDay: React.FC<Props> = ({ recipeId, title, link, thumbnail }) => {
         >
           {/* 하루에 여러 끼를 넣을 수 있으니 「하나 더 넣기」가 기본이다(2026-10-14 사용자 요청).
               「겹치는 날은 빼고 나머지만」은 레시피 한 개를 담는 이 자리엔 맞지 않아 뺐다. */}
-          <div style={{ fontSize: 13.5, color: 'var(--ink-700)', lineHeight: 1.7, textAlign: 'left' }}>
-            그 날엔 다른 요리가 있어요
-            <ul style={{ margin: '6px 0 0', paddingLeft: 18 }}>
-              {describePlannedDays(conflict).map(t => <li key={t}>{t}</li>)}
-              {conflict.length > 3 && <li>외 {conflict.length - 3}일</li>}
-            </ul>
+          <div>
+            <PlanConflictSummary dates={conflict} />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 14 }}>
               <button
                 type="button"

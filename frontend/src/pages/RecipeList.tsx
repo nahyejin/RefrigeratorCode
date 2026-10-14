@@ -776,6 +776,17 @@ const RecipeList: React.FC = () => {
   // 즐겨찾기/완료/기록 취소 확인 (누르면 바로 지워지지 않고 한 번 더 확인한다 —
   // 마이페이지 전체보기 목록과 같은 규격)
   const [pendingRemove, setPendingRemove] = useState<{ type: 'done' | 'write' | 'favorite'; id: number } | null>(null);
+
+  // 해제 확인창이 뜨면 직전 토스트(「추가했습니다」)는 닫는다 — 같은 자리에 두 개가 겹쳐 떠 있었다(2026-10-14).
+  React.useEffect(() => { if (pendingRemove) { setToast(''); setToastAction(null); } }, [pendingRemove]);
+  // 토스트는 **마지막 것 기준으로** 정해진 시간 뒤에 사라진다. 예전엔 토스트마다 타이머를
+  // 따로 걸고 지우지 않아서, 앞 타이머가 새 토스트를 일찍 지우거나(목록 화면) 아예
+  // 안 사라졌다(요즘인기).
+  React.useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => { setToast(''); setToastAction(null); }, TOAST_DURATION);
+    return () => clearTimeout(t);
+  }, [toast]);
   const [showGuide, setShowGuide] = useState(false);
   const [guideStep, setGuideStep] = useState(0);
   const { isLoggedIn, user: authUser } = useAuth();
@@ -1303,7 +1314,6 @@ const RecipeList: React.FC = () => {
   ) => {
     setToast(message);
     setToastAction(action ?? null);
-    setTimeout(() => { setToast(''); setToastAction(null); }, TOAST_DURATION);
   };
 
   /**
