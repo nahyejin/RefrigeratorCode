@@ -12,13 +12,16 @@ import make_bgm2
 ap = argparse.ArgumentParser()
 ap.add_argument("src"); ap.add_argument("idx", type=int); ap.add_argument("dst")
 ap.add_argument("--gain", type=float, default=0.42)
-ap.add_argument("--engine", type=int, default=1, help="1=make_bgm(1벌), 2=make_bgm2(2·3벌, 곡마다 장르가 다름)")
+ap.add_argument("--engine", type=int, default=1, help="1=make_bgm(1벌), 2=make_bgm2(2·3벌, 곡마다 장르가 다름), 3=make_bgm2 의 밝은 곡(SONGS3, 2·3벌 최종)")
 ap.add_argument("--keep", help="합성한 곡을 이 경로에 남긴다")
 ap.add_argument("--thr", type=float, default=0.025); ap.add_argument("--ratio", type=float, default=1.8); ap.add_argument("--rel", type=int, default=400)
 ap.add_argument("--music-only", action="store_true", help="음악만(눌린 상태) 뽑아 크기 점검용으로 쓴다")
 a = ap.parse_args()
 dur = float(subprocess.check_output(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", a.src], text=True))
-buf, info = (make_bgm2 if a.engine == 2 else make_bgm).make(a.idx, dur)
+if a.engine == 3:
+    buf, info = make_bgm2.make(a.idx, dur, songs=make_bgm2.SONGS3)
+else:
+    buf, info = (make_bgm2 if a.engine == 2 else make_bgm).make(a.idx, dur)
 wav = a.keep or os.path.join(tempfile.gettempdir(), f"bgm_{a.idx}_{os.getpid()}.wav")
 make_bgm.save(wav, buf)
 fade_out = max(0.0, dur - 4.0)

@@ -500,6 +500,117 @@ SONGS = [
          fill="snare_chip", verb=0.06, comp_level=0.5),
 ]
 
+# v3(2026-10-14): 사용자 「16곡이 너무 비장하다」(특히 엄마·찜닭·우유 편) → 전부 밝고 장난스럽게.
+# 원칙: 장조로 시작하는 밝은 진행만 / 패드·스트링·신스 리드처럼 길게 끄는 소리 빼기 / 짧게 끊는 악기
+# (우쿨렐레·피치카토·글로켄·마림바·휘파람) / 셔플 리듬 / 멜로디도 짧게(skippy) / 울림 줄이기.
+# lead2 에 세 번째 값 "answer" 를 주면 B 마디 끝에 짧게 두 번 대답한다.
+SHUF = [(0, 1.0), (0.5, 0.55), (1, 0.8), (1.5, 0.55), (2, 1.0), (2.5, 0.55), (3, 0.8), (3.5, 0.55)]
+SONGS3 = [
+    dict(name="우쿨렐레 깡총", key=0, bpm=118, meter=4, swing=0.62,
+         A=["1", "4", "5", "1"], B=["4", "1", "5", "1", "4", "1", "2:m", "5"],
+         comps=[("uke", "strum8", -0.2, 64)], bass=("upright", "bouncy"),
+         lead=("glock", "skippy", 79), lead2=("whistle", 76, "answer"),
+         drums=[("kick_soft", ONE3, 0.8, 0, "main"), ("clap", BACK, 0.55, 0.1, "main"), ("shaker", SHUF, 0.35, 0.3, "all")],
+         fill="clap", verb=0.12),
+    dict(name="피치카토 살금살금", key=5, bpm=112, meter=4, swing=0.5,
+         A=["1", "2:m", "5", "1"], B=["4", "5", "1", "1", "4", "5", "2:m", "5"],
+         comps=[("pizz", "boomchick", 0.15, 60)], bass=("pizz", "root_fifth"),
+         lead=("marimba", "skippy", 77), lead2=("glock", 84, "answer"),
+         drums=[("rim", OFF, 0.4, 0.25, "all"), ("kick_soft", ONE3, 0.7, 0, "main"), ("snap", BACK, 0.35, -0.2, "main")],
+         fill=None, verb=0.1),
+    dict(name="오르골 장보기", key=7, bpm=120, meter=4, swing=0.6,
+         A=["1", "4", "1", "5"], B=["4", "5", "1", "1", "4", "5", "1", "5"],
+         comps=[("uke", "stab8", -0.2, 62)], bass=("upright", "root_fifth"),
+         lead=("musicbox", "skippy", 81), lead2=None,
+         drums=[("snap", BACK, 0.45, 0.2, "all"), ("shaker", SHUF, 0.3, -0.3, "all"), ("kick_soft", ONE3, 0.6, 0, "main")],
+         fill=None, verb=0.14),
+    dict(name="휘파람 장바구니", key=2, bpm=116, meter=4, swing=0.5,
+         A=["1", "5", "4", "5"], B=["4", "1", "5", "1", "4", "1", "5", "5"],
+         comps=[("steel", "folk8", -0.25, 60)], bass=("ebass", "quarters"),
+         lead=("whistle", "skippy", 81), lead2=("glock", 84, "answer"),
+         drums=[("kick_soft", FOUR, 0.7, 0, "main"), ("clap", BACK, 0.5, 0.1, "main"), ("tamb", OFF, 0.35, 0.35, "all")],
+         fill="clap", verb=0.12),
+    dict(name="마림바 소풍", key=9, bpm=112, meter=4, swing=0.5,
+         A=["1", "4", "5", "4"], B=["2:m", "5", "1", "4", "2:m", "5", "1", "1"],
+         comps=[("marimba", "arp8", 0.25, 69), ("nylon", "skank", -0.25, 62)], bass=("upright", "bouncy"),
+         lead=("ocarina", "skippy", 79), lead2=None,
+         drums=[("bongo", [(0.5, 0.7), (1.75, 0.6), (2.5, 0.8), (3.5, 0.6)], 0.45, 0.3, "all"),
+                ("shaker", H8, 0.3, -0.2, "all"), ("kick_soft", ONE3, 0.6, 0, "main")],
+         fill=None, verb=0.12),
+    dict(name="밴조 깡충", key=7, bpm=128, meter=4, swing=0.5,
+         A=["1", "4", "1", "5"], B=["4", "4", "1", "1", "2", "5", "1", "1"],
+         comps=[("banjo", "roll", 0.3, 67), ("steel", "boomchick", -0.3, 57)], bass=("upright", "root_fifth"),
+         lead=("whistle", "skippy", 79), lead2=None,
+         drums=[("kick_soft", ONE3, 0.6, 0, "main"),
+                ("brush", [(i * 0.5, 1.0 if i in (2, 6) else 0.45) for i in range(8)], 0.45, 0.1, "all")],
+         fill=None, verb=0.1),
+    dict(name="칼림바 콩콩", key=4, bpm=104, meter=4, swing=0.6,
+         A=["1", "5", "4", "1"], B=["4", "1", "4", "5"],
+         comps=[("kalimba", "arp8", 0.25, 72), ("uke", "stab8", -0.25, 62)], bass=("upright", "pop"),
+         lead=("marimba", "skippy", 76), lead2=None,
+         drums=[("snap", BACK, 0.45, 0.2, "all"), ("shaker", SHUF, 0.3, -0.25, "all"),
+                ("kick_soft", [(0, 1), (2.5, 0.6)], 0.6, 0, "main")],
+         fill=None, verb=0.14),
+    dict(name="만화 행진", key=10, bpm=128, meter=4, swing=0.5,
+         A=["1", "4", "5", "1"], B=["4", "1", "2:m", "5", "4", "1", "5", "1"],
+         comps=[("pizz", "stab8", 0.2, 58)], bass=("pizz", "octave8"),
+         lead=("piano", "skippy", 79), lead2=("glock", 86, "answer"),
+         drums=[("tamb", OFF, 0.35, 0.3, "all"), ("snare_lofi", BACK, 0.4, 0, "main"), ("kick_soft", ONE3, 0.7, 0, "main")],
+         fill="snare_lofi", verb=0.1),
+    # ── 3벌 ──
+    dict(name="통통 일렉피아노", key=5, bpm=104, meter=4, swing=0.62,
+         A=["1", "4", "2:m", "5"], B=["4", "5", "1", "1", "4", "5", "1", "5"],
+         comps=[("epiano", "stab8", 0.0, 62)], bass=("upright", "bouncy"),
+         lead=("piano", "skippy", 79), lead2=("glock", 84, "answer"),
+         drums=[("snap", BACK, 0.45, 0.2, "all"), ("hat", SHUF, 0.25, -0.25, "main"),
+                ("kick_soft", [(0, 1), (2.5, 0.7)], 0.7, 0, "main")],
+         fill="snap", verb=0.14),
+    dict(name="신나는 클라브", key=4, bpm=110, meter=4, swing=0.5,
+         A=["1", "4", "1", "5"], B=["4", "5", "1", "1", "4", "5", "2:m", "5"],
+         comps=[("clav", "clav16", 0.2, 64), ("muted", "skank", -0.35, 55)], bass=("slap", "pop"),
+         lead=("softsquare", "riff", 76), lead2=None,
+         drums=[("kick", [(0, 1), (2.5, 0.8)], 0.75, 0, "main"), ("snare", BACK, 0.45, 0.05, "main"), ("hat", H16, 0.25, 0.3, "all")],
+         fill="snare", verb=0.08),
+    dict(name="스틸팬 바캉스", key=0, bpm=116, meter=4, swing=0.5,
+         A=["1", "1", "4", "5"], B=["4", "5", "1", "6:m", "4", "5", "1", "1"],
+         comps=[("uke", "strum8", -0.2, 64)], bass=("upright", "pop"),
+         lead=("steelpan", "skippy", 79), lead2=None,
+         drums=[("kick_soft", ONE3, 0.6, 0, "main"), ("clap", BACK, 0.45, 0, "main"), ("shaker", H16, 0.3, 0.3, "all"),
+                ("bongo", [(0.75, 0.6), (2.75, 0.6), (3.5, 0.5)], 0.35, -0.3, "main")],
+         fill=None, verb=0.12),
+    dict(name="아코디언 쿵짝", key=2, bpm=126, meter=4, swing=0.5,
+         A=["1", "5:7", "5:7", "1"], B=["4", "1", "5:7", "1", "4", "1", "5:7", "1"],
+         comps=[("accordion", "boomchick", -0.2, 60)], bass=("upright", "root_fifth"),
+         lead=("accordion", "skippy", 74), lead2=("glock", 86, "answer"),
+         drums=[("kick_soft", ONE3, 0.5, 0, "main"), ("tamb", BACK, 0.35, 0.3, "all")],
+         fill=None, verb=0.1),
+    dict(name="포켓 칩튠", key=7, bpm=136, meter=4, swing=0.5,
+         A=["1", "4", "1", "5"], B=["4", "5", "1", "1", "4", "5", "1", "5"],
+         comps=[("chiparp", "chiparp", 0.2, 70)], bass=("tribass", "octave8"),
+         lead=("square", "skippy", 84), lead2=None,
+         drums=[("kick_chip", [(0, 1), (2, 0.8)], 0.7, 0, "main"),
+                ("snare_chip", BACK, 0.45, 0, "main"), ("hat_chip", H8, 0.25, 0.2, "all")],
+         fill="snare_chip", verb=0.04, comp_level=0.45),
+    dict(name="래그타임 피아노", key=0, bpm=112, meter=4, swing=0.62,
+         A=["1", "4", "5", "1"], B=["4", "4", "1", "1", "2", "2", "5", "5"],
+         comps=[("piano", "boomchick", 0.1, 60)], bass=("upright", "root_fifth"),
+         lead=("piano", "skippy", 79), lead2=("whistle", 81, "answer"),
+         drums=[("brush", BACK, 0.4, 0.1, "all"), ("kick_soft", ONE3, 0.5, 0, "main")],
+         fill=None, verb=0.1),
+    dict(name="비브라폰 셔플", key=3, bpm=120, meter=4, swing=0.6,
+         A=["1", "4", "1", "5"], B=["4", "4", "1", "1", "2", "5", "1", "1"],
+         comps=[("uke", "stab8", -0.2, 62)], bass=("upright", "bouncy"),
+         lead=("vibes", "skippy", 79), lead2=("glock", 86, "answer"),
+         drums=[("snap", BACK, 0.45, 0.2, "all"), ("shaker", SHUF, 0.3, -0.3, "all"), ("kick_soft", ONE3, 0.5, 0, "main")],
+         fill=None, verb=0.12),
+    dict(name="리코더 동요", key=9, bpm=116, meter=4, swing=0.5,
+         A=["1", "5", "4", "1"], B=["4", "1", "5", "1", "4", "1", "5", "5"],
+         comps=[("pizz", "boomchick", 0.15, 60), ("glock", "arp8", -0.3, 81)], bass=("pizz", "root_fifth"),
+         lead=("ocarina", "skippy", 76), lead2=None,
+         drums=[("triangle", [(0, 0.7)], 0.2, 0.3, "main"), ("shaker", H8, 0.3, -0.3, "all"), ("kick_soft", ONE3, 0.5, 0, "main")],
+         fill=None, verb=0.12, comp_level=0.6),
+]
+
 # 쇳소리·잡음 계열 타악기는 귀를 피곤하게 해서 한 번 더 줄인다(밝기 점검 후 2026-10-13)
 BRIGHT = {"hat": 0.6, "ohat": 0.6, "shaker": 0.65, "tamb": 0.6, "ride": 0.2, "hat_chip": 0.6, "brush": 0.8}
 
@@ -511,6 +622,7 @@ STYLE = {
     "lyrical": dict(L=[1, 1.5, 2, 0.5], w=[0.35, 0.2, 0.2, 0.25], rest=0.10, legato=0.95),
     "swingy": dict(L=[0.5, 1, 1.5], w=[0.55, 0.3, 0.15], rest=0.18, legato=0.8),
     "riff": dict(L=[0.25, 0.5, 0.75, 1], w=[0.3, 0.4, 0.15, 0.15], rest=0.22, legato=0.6),
+    "skippy": dict(L=[0.5, 1, 1.5], w=[0.6, 0.3, 0.1], rest=0.15, legato=0.5),  # 깡총깡총 짧게 끊는 멜로디
 }
 
 
@@ -688,6 +800,8 @@ def comp_events(pat, notes, meter, bar_i):
         ev += [(p, notes, L, v, "B") for p, v, L in pos]
     elif pat == "citypop":
         ev += [(p, notes, L, v, "B") for p, v, L in [(0, 0.9, 1.5), (1.75, 0.7, 0.25), (2.5, 0.8, 1), (3.5, 0.6, 0.5)]]
+    elif pat == "stab8":  # 화음을 짧게 톡톡
+        ev += [(p, notes[-3:], L, v, "B") for p, v, L in [(0, 1, 0.25), (1, 0.8, 0.25), (1.5, 0.6, 0.2), (2, 0.9, 0.25), (3, 0.8, 0.25), (3.5, 0.6, 0.2)]]
     elif pat == "offstab":
         ev += [(p, notes[-3:], 0.4, v, "B") for p, v in [(0.5, 0.8), (1.5, 0.7), (2.5, 0.8), (3.25, 0.55), (3.5, 0.7)]]
     else:
@@ -766,8 +880,9 @@ def reverb(x, seconds, seed):
     return out
 
 
-def make(idx, dur):
-    song = SONGS[idx % len(SONGS)]
+def make(idx, dur, songs=None):
+    songs = songs or SONGS
+    song = songs[idx % len(songs)]
     rng = np.random.default_rng(2026 + idx * 101)
     key, meter, bpm = song["key"], song["meter"], song["bpm"]
     sw, sw16 = song.get("swing", 0.5), song.get("swing16", 0.5)
@@ -853,8 +968,14 @@ def make(idx, dur):
             for p, L, m, v in mel:
                 put("lead", note(lead_inst, int(m), round(L * beat * leg, 2), bi % 3), bt(t0, p) + hum(), v, 0.1)
         # 두 번째 선율(길게)
-        if song["lead2"] and sec in ("B", "break"):
-            inst2, c2 = song["lead2"]
+        if song["lead2"] and len(song["lead2"]) == 3 and sec == "B":
+            # 대답하듯 마디 끝에 짧게 두 번(길게 끌면 비장해진다)
+            inst2, c2, _ = song["lead2"]
+            top = voicing(key, sym, c2, n_notes=3)
+            for k, p in enumerate((meter - 1, meter - 0.5)):
+                put("lead2", note(inst2, int(top[-1 - k]), round(0.4 * beat, 2), k), bt(t0, p) + hum(), 0.8, -0.3)
+        elif song["lead2"] and sec in ("B", "break"):
+            inst2, c2 = song["lead2"][:2]
             cands = voicing(key, sym, c2, n_notes=3)
             m2 = min(cands, key=lambda x: abs(x - (prev2 if prev2 else c2)))
             prev2 = m2
