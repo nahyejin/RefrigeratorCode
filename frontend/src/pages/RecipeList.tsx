@@ -418,7 +418,7 @@ async function loadIngredientDictionary(): Promise<string[]> {
   // 읽어 배열 메서드가 없는 객체를 배열처럼 쓰다 깨지는 사고로 이어질 수 있어
   // 이 화면만의 키로 분리한다.
   const CACHE_KEY = 'ingredient_dict_names_cache';
-  const CACHE_VERSION = '1.0';
+  const CACHE_VERSION = '1.1'; // 2026-10-15 오븐·백패킹 추가 — 버전을 올려야 기기에 저장된 옛 목록 대신 새 목록을 받는다
   // 버전만 보면 예전 값을 들고 있는 사람이 영원히 그대로다 — 사전은 매일
   // 자동으로 바뀌므로(06:30 배치) 하루 지나면 다시 받는다.
   const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
@@ -1175,7 +1175,7 @@ const RecipeList: React.FC = () => {
   // Filter_Keywords.csv 로드 (캐싱 적용)
   useEffect(() => {
     const CACHE_KEY = 'filter_keywords_cache';
-    const CACHE_VERSION = '1.0';
+    const CACHE_VERSION = '1.1'; // 2026-10-15 오븐·백패킹 추가 — 버전을 올려야 기기에 저장된 옛 목록 대신 새 목록을 받는다
     const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
     // 캐시 확인
@@ -1257,7 +1257,7 @@ const RecipeList: React.FC = () => {
         if (typeof window !== 'undefined' && window.localStorage) {
           try {
             localStorage.setItem('filter_keywords_cache', JSON.stringify({
-              version: '1.0',
+              version: CACHE_VERSION,
               data: tree,
               savedAt: Date.now()
             }));
@@ -2223,33 +2223,6 @@ const RecipeList: React.FC = () => {
   // RecipeSortBar에서 임박 재료와 maxLack 필터를 적용하여 filteredRecipes를 업데이트함
   // 재료 매칭도 필터는 서버에서 적용됨
 
-  // 키워드/재료 필터가 적용될 때는 더 많은 데이터를 로드
-  const loadMoreDataForFiltering = useCallback(async () => {
-    setLoading(true);
-    
-    // 필터링을 위해 더 많은 데이터를 로드 (최대 1000개)
-    const filters = {
-      matchRateMin: matchRange[0],
-      matchRateMax: matchRange[1],
-      sortBy: sortType === 'match' ? 'match_rate' :
-              sortType === 'latest' ? 'date' :
-              sortType === 'popular' ? 'popular' :
-              sortType === 'expiry' ? 'match_rate' : 'match_rate',
-      platform: selectedChannel.length > 0 ? selectedChannel[0] : undefined,
-      appliedExpiryIngredients: appliedExpiryIngredients.length > 0 ? appliedExpiryIngredients : undefined
-    };
-    
-    try {
-      const {recipes: newRecipes, total: newTotal} = await loadRecipesPaged(1, 1000, filters, categoryKeywordTree);
-      setRecipes(newRecipes);
-      setTotal(newTotal);
-      setPage(1);
-    } catch (error) {
-      console.error('Error loading more data for filtering:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [matchRange, sortType, selectedChannel, appliedExpiryIngredients]);
 
   // 필터/정렬 상태 저장
   useEffect(() => {
@@ -2478,7 +2451,6 @@ const RecipeList: React.FC = () => {
           recipes={recipes}
           myIngredients={myIngredients}
           onFilteredRecipesChange={setFilteredRecipes}
-          onLoadMoreDataForFiltering={loadMoreDataForFiltering}
           sortType={sortType}
           setSortType={setSortType}
           matchRange={matchRange}

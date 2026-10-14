@@ -60,7 +60,6 @@ interface RecipeSortBarProps {
   recipes: Recipe[];
   myIngredients: string[];
   onFilteredRecipesChange: (filtered: Recipe[]) => void;
-  onLoadMoreDataForFiltering?: () => Promise<void>;
   sortType: string;
   setSortType: (v: string) => void;
   matchRange: [number, number];
@@ -584,7 +583,6 @@ const RecipeSortBar = ({
   recipes,
   myIngredients,
   onFilteredRecipesChange,
-  onLoadMoreDataForFiltering,
   sortType, 
   setSortType, 
   matchRange, 
@@ -722,18 +720,12 @@ const RecipeSortBar = ({
     if (options) {
       console.log('Applying filter options:', options);
       
-      // 키워드 필터가 있으면 더 많은 데이터를 로드
-      const hasKeywordFilter = options.selectedCategoryKeywords && 
-                               options.selectedCategoryKeywords.length > 0;
-      const hasOtherFilters = (options.includeKeyword && options.includeKeyword.trim()) ||
-                              (options.includeIngredients && options.includeIngredients.length > 0) ||
-                              (options.excludeIngredients && options.excludeIngredients.length > 0);
-      
-      if ((hasKeywordFilter || hasOtherFilters) && onLoadMoreDataForFiltering) {
-        console.log('Loading more data for filtering...');
-        await onLoadMoreDataForFiltering();
-      }
-      
+      // 예전엔 여기서 「필터용으로 더 받기」(onLoadMoreDataForFiltering)를 먼저 불렀다. 그건
+      // 필터를 화면에서 걸던 시절 것이라 **필터 없이** 1,000건을 받아 목록(recipes)을 덮어썼고,
+      // 서버가 필터를 건 정상 요청보다 늦게 오면 「꼭 포함할 재료: 고구마」인데 고구마 없는 레시피가
+      // 떴다(2026-10-15 실사용 보고, 인기순에서). 필터는 이제 서버가 건다 — 아래 상태만 바꾸면
+      // RecipeList 가 조건을 담아 다시 받는다.
+
       // 필터 옵션이 전달되면 상태 업데이트
       if (options.includeKeyword !== undefined) {
         setIncludeKeyword(options.includeKeyword);
@@ -766,7 +758,7 @@ const RecipeSortBar = ({
     }
     
     setFilterModalOpen(false);
-  }, [onLoadMoreDataForFiltering]);
+  }, []);
 
   // 전체 재료 목록 fetch
   useEffect(() => {
