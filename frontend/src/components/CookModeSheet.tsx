@@ -313,12 +313,30 @@ const CookModeSheet: React.FC<Props> = ({
 
   // 읽기를 멈추는 일은 여러 곳에서 일어난다(닫기, 화면 이탈, 다시 누르기).
   // 한 곳에 모아 두지 않으면 시트를 닫아도 계속 떠드는 상태가 된다.
+  /**
+   * 읽는 동안 화면이 꺼지지 않게 붙잡는다. 이제 멈출 때까지 반복해 읽으므로(2026-10-15)
+   * 화면이 꺼지면 폰이 소리까지 끊어 버린다. 지원 안 하는 기기는 그냥 넘어간다.
+   */
+  const wakeLockRef = React.useRef<any>(null);
+  const holdScreen = React.useCallback(() => {
+    try {
+      const wl = (navigator as any).wakeLock;
+      if (!wl || wakeLockRef.current) return;
+      wl.request('screen').then((l: any) => { wakeLockRef.current = l; }).catch(() => {});
+    } catch { /* 지원 안 함 */ }
+  }, []);
+  const releaseScreen = React.useCallback(() => {
+    try { wakeLockRef.current?.release?.(); } catch { /* 무시 */ }
+    wakeLockRef.current = null;
+  }, []);
+
   const stopSpeaking = React.useCallback(() => {
     runIdRef.current += 1;
     if (canSpeak()) window.speechSynthesis.cancel();
     setSpeaking(false);
     setAt(-1);
-  }, []);
+    releaseScreen();
+  }, [releaseScreen]);
 
   React.useEffect(() => {
     if (!isOpen || !recipeId) return;
@@ -353,13 +371,25 @@ const CookModeSheet: React.FC<Props> = ({
     const myRun = ++runIdRef.current;   // 이번 읽기의 번호
     window.speechSynthesis.cancel();
     setSpeaking(true);
+    holdScreen();
 
     const run = (i: number) => {
       // 그 사이에 다른 읽기가 시작됐으면 이 갈래는 조용히 물러난다.
       if (myRun !== runIdRef.current) return;
       if (i >= steps.length) {
-        setSpeaking(false);
+        // **멈출 때까지 처음부터 다시 읽는다**(2026-10-15 사용자 요청 — 한 번 읽고 끝나서,
+        // 요리하다 다시 듣고 싶으면 손을 씻고 화면을 다시 눌러야 했다).
+        // 끝에서 잠깐 쉬고 「처음부터 다시」를 말해 줘야 어디서 다시 시작하는지 안다.
         setAt(-1);
+        setTimeout(() => {
+          if (myRun !== runIdRef.current) return;
+          const again = new SpeechSynthesisUtterance('처음부터 다시 읽을게요.');
+          again.lang = 'ko-KR';
+          again.rate = BASE_RATE * speed;
+          again.onend = () => run(0);
+          again.onerror = () => { if (myRun === runIdRef.current) run(0); };
+          window.speechSynthesis.speak(again);
+        }, 2000);
         return;
       }
       setAt(i);
@@ -373,11 +403,12 @@ const CookModeSheet: React.FC<Props> = ({
         if (myRun !== runIdRef.current) return;
         setSpeaking(false);
         setAt(-1);
+        releaseScreen();
       };
       window.speechSynthesis.speak(u);
     };
     run(start);
-  }, [steps, speed]);
+  }, [steps, speed, holdScreen, releaseScreen]);
 
   React.useEffect(() => { speakFromRef.current = speakFrom; }, [speakFrom]);
 
