@@ -194,6 +194,14 @@ export function addRecipeToLocalStorage(type: StorageType, recipe: Recipe): void
   
   safeJsonSet(key, sortRecipesByUserSavedAtDesc([savedRecipe, ...recipes]));
   notifyRecipeStorageChange(type);
+
+  // 완료는 어느 화면에서 누르든 여기를 지난다 — 「냉장고에서 다 쓴 재료」 시트(UsedUpHost)를 띄운다.
+  // 이름은 components/UsedUpSheet 의 RECIPE_DONE_EVENT 와 같아야 한다(여기서 컴포넌트를 import 하지 않으려고 문자열로).
+  if (type === 'done' && typeof window !== 'undefined' && !Number.isNaN(normalizedId)) {
+    window.dispatchEvent(new CustomEvent('cookmatch:recipe-done', {
+      detail: { id: normalizedId, title: (recipe as any).title || '' },
+    }));
+  }
 }
 
 /**

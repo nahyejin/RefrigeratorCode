@@ -15,7 +15,6 @@ import VirtualizedRecipeList, { VirtualizedRecipeListRef } from '../components/V
 import { Recipe, RecipeActionState, FilterState, SubstituteInfo } from '../types/recipe';
 import { getMyIngredients, getMyIngredientsAsKeywords, sortRecipes, calculateMatchRate, extractKeywordsAndSynonyms, FilterKeywordTree, getDictCategoryKey, preloadIngredientSynonymDict, ingredientSynonymDictCache } from '../utils/recipeUtils';
 import RecipeToast from '../components/RecipeToast';
-import UsedUpSheet from '../components/UsedUpSheet';
 import { takePrefetched, PREFETCH_SIZE, defaultMatchRateMin, setFridgeScreenLoading, DEFAULT_MATCH_MIN, getShuffleSeed, consumePageReload } from '../utils/recipePrefetch';
 import { fetchCsvOnce } from '../utils/csvOnce';
 // import Slider from 'rc-slider';
@@ -1348,8 +1347,6 @@ const RecipeList: React.FC = () => {
    * 실패해도 막지 않는다 — 기기 저장은 이미 끝났고, 화면은 그걸로 그린다.
    * 비회원은 서버에 계정이 없으니 기기 저장이 전부다.
    */
-  /** 방금 완료한 레시피 — 쓴 재료를 냉장고에서 뺄지 묻는다. */
-  const [usedUp, setUsedUp] = React.useState<{ id: number; title: string } | null>(null);
 
   const syncToServer = React.useCallback(
     async (type: 'favorite' | 'done' | 'write', id: number, remove = false) => {
@@ -1406,8 +1403,7 @@ const RecipeList: React.FC = () => {
         void syncToServer('done', id);
         setRecipeActionStates(prev => ({ ...prev, [id]: getRecipeActionState(id) }));
         showToast('레시피를 완료했습니다!');
-        // 만들었으면 그 재료는 거의 다 쓴 것이다. 지금이 기억이 가장 정확할 때다.
-        setUsedUp({ id, title: recipe.title || '' });
+        // 「냉장고에서 다 쓴 재료」는 전역 UsedUpHost 가 완료 기록을 듣고 묻는다(어느 화면에서 완료하든).
       }
     } else {
       // 완료 취소
@@ -2958,7 +2954,6 @@ const RecipeList: React.FC = () => {
 
       {/* 완료 직후 — 쓴 재료를 냉장고에서 뺄지 묻는다. 안 물으면 없는
           재료로 계속 식단을 짜 주고 유통기한 알림도 계속 울린다. */}
-      <UsedUpSheet recipe={usedUp} onClose={() => setUsedUp(null)} />
 
       <BottomNavBar activeTab="recipe" />
       

@@ -14,6 +14,7 @@ import RecipeChatWidget from '../components/RecipeChatWidget';
 import PlanUpgradeToast from '../components/PlanUpgradeToast';
 import { prefetchFridgeRecipes, prefetchPopular } from '../utils/recipePrefetch';
 import CookModeHost from '../components/CookModeHost';
+import { UsedUpHost } from '../components/UsedUpSheet';
 import ShareRequestPopup from '../components/ShareRequestPopup';
 import FamilyActionNotice from '../components/FamilyActionNotice';
 import { AuthProvider } from '../context/AuthContext';
@@ -305,6 +306,8 @@ function AppContent() {
       {/* 요리 모드 시트는 앱에 **하나만** 둔다. 카드가 흩어져 있는 화면마다
           시트를 하나씩 두면 같은 코드를 여섯 군데에 적게 된다. */}
       <CookModeHost />
+      {/* 레시피를 완료하면(어느 화면이든) 「냉장고에서 다 쓴 재료」를 묻는다. 시트보다 뒤에 둬야 위에 뜬다. */}
+      <UsedUpHost />
       <ShareRequestPopup />
       <FamilyActionNotice />
     </>

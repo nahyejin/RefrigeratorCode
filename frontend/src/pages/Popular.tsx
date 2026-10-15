@@ -24,7 +24,6 @@ import { calculateMatchRate } from '../utils/recipeUtils';
 import naverLogo from '../assets/썸네일_naverlogo.png';
 import youtubeLogo from '../assets/썸네일_youtubelogo.png';
 import RecipeCard from '../components/RecipeCard';
-import UsedUpSheet from '../components/UsedUpSheet';
 import youtubeTitleImg from '../assets/유튜브제목이미지.png';
 import naverTitleImg from '../assets/네이버제목이미지.png';
 import { addRecipeToLocalStorage, removeRecipeFromLocalStorage, getRecipesFromLocalStorage, copyRecipeUrlToClipboard, getMyFridgeIngredients, buildRecipeActionStatesForRecipes, getRecipeActionState, lookupRecipeActionState } from '../utils/recipeStorage';
@@ -684,8 +683,6 @@ const Popular = () => {
     const t = setTimeout(() => { setToast(''); }, 1500);
     return () => clearTimeout(t);
   }, [toast]);
-  /** 방금 완료한 레시피 — 쓴 재료를 냉장고에서 뺄지 묻는다. */
-  const [usedUp, setUsedUp] = useState<{ id: number; title: string } | null>(null);
   /** 인기 급상승에서 무엇을 보고 있나. 요리와 테마가 한 자리를 나눠 쓴다. */
   const [risingTab, setRisingTab] = useState<'dish' | 'theme'>('dish');
   /** 인기 레시피를 어디 것으로 보고 있나. 네이버가 기본 — 건수가 훨씬 많다. */
@@ -1203,8 +1200,7 @@ const Popular = () => {
             
           setButtonStates(prev => ({ ...prev, [id]: getRecipeActionState(id) }));
             setToast('레시피를 완료했습니다!');
-            // 만들었으면 그 재료는 거의 다 쓴 것이다. 지금이 기억이 가장 정확할 때다.
-            setUsedUp({ id, title: recipe.title || '' });
+        // 「냉장고에서 다 쓴 재료」는 전역 UsedUpHost 가 완료 기록을 듣고 묻는다(어느 화면에서 완료하든).
           }
         }
       }
@@ -2285,7 +2281,6 @@ const Popular = () => {
         message={registerModalMessage || '더 많은 기능을 사용하려면'}
       />
       {/* 완료 직후 — 쓴 재료를 냉장고에서 뺄지 묻는다. */}
-      <UsedUpSheet recipe={usedUp} onClose={() => setUsedUp(null)} />
 
       <BottomNavBar activeTab="popularity" />
     </>

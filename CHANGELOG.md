@@ -13114,3 +13114,9 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 
 ### 마이캘린더 달력 보기 버튼 순서 월/주/일 (2026-10-15)
 - 사용자 요청. `CookingCalendar` 의 `PillSelect` 옵션 순서만 바꿈(기본 보기·동작은 그대로).
+
+### 완료 후 「냉장고에서 다 쓴 재료」 시트를 모든 완료 경로에 + 확인창·서버 반영 (2026-10-15)
+- 사용자 요청: 레시피 완료(「레시피를 완료하셨나요?」 팝업, 카드 완료 버튼 등) 순간 레시피 재료 중 냉장고에 있는 것을 보여 주고 뺄 수 있게, 뺄 때 확인창.
+- 기존 `UsedUpSheet`(RecipeList·Popular 카드에만 연결)는 냉장고 저장값 `{frozen,fridge,room}` 을 배열로만 읽어 늘 빈 냉장고로 보고 **한 번도 안 떴음**, 또 기기에서만 지워 로그인 사용자는 서버 값으로 되살아났음.
+- 고침: 묶음(옛 배열도) 읽기, 이름은 띄어쓰기 무시 매칭, 빼기 → `Dialog`(nested) 확인 「냉장고에서 뺄까요? (재료들) 내냉장고 목록에서 사라져요」 → 기기 저장 + `POST /api/users/:id/ingredients` + 토스트 「냉장고에서 N개 뺐어요」. 제목 「냉장고에서 다 쓴 재료가 있나요?」.
+- 전역 `UsedUpHost`(AppRouter, CookModeHost 뒤): `recipeStorage.addRecipeToLocalStorage('done')` 가 `cookmatch:recipe-done` 이벤트를 쏘고 이를 들어 띄움 → 레시피 시트·완료 넛지·마이페이지·재료 상세·완료/기록 목록 등 모든 완료 경로. RecipeList·Popular 의 화면별 시트 제거(중복 방지).
