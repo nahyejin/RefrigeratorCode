@@ -1,5 +1,5 @@
 import React from "react";
-import { AbsoluteFill, Easing, Img, OffthreadVideo, Sequence, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
+import { AbsoluteFill, Audio, Easing, Img, OffthreadVideo, Sequence, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
 import { FONT_FAMILY, INK, WHITE, YELLOW, LINE, useCustomFont, CtaOutro, Caption } from "./shared";
 import { Intro, INTRO, CTA_LEN, Mark, OverviewSegments, OverviewCta, SEGS_LEN } from "./ReelOverview";
 
@@ -13,6 +13,7 @@ const DIR = "cooking/소세지볶음_20261015/work/";
 const f = (s: number) => Math.round(s * 30);
 
 type Shot =
+  | { kind: "story"; src: string; from: number; to: number }
   | { kind: "video"; src: string; from: number; to: number; rate?: number; audio?: boolean; step?: string; app?: boolean }
   | { kind: "plate"; len: number; caption: string }
   | { kind: "chip"; len: number }
@@ -21,7 +22,15 @@ type Shot =
   | { kind: "features"; len: number }
   | { kind: "finalCta"; len: number };
 
-const shotLen = (s: Shot) => (s.kind === "video" ? Math.round((f(s.to) - f(s.from)) / (s.rate ?? 1)) : s.len);
+const shotLen = (s: Shot) => (s.kind === "video" || s.kind === "story" ? Math.round((f(s.to) - f(s.from)) / (s.kind === "video" ? s.rate ?? 1 : 1)) : s.len);
+
+// 오늘의 이야기 — 하원길 영상(원래 소리는 다른 대화라 끄고, 자막으로 이야기를 붙인다)
+const STORY: Shot[] = [{ kind: "story", src: "pickup.mp4", from: 0, to: 10 }];
+const STORY_LINES = [
+  { at: 0.3, len: 2.6, text: "하원길에 물어봤어요\n「오늘 저녁 뭐 먹고 싶어?」", big: false },
+  { at: 3.1, len: 2.2, text: "「소시지!」", big: true },
+  { at: 5.5, len: 4.4, text: "쏘야엔 파프리카·당근도 필요한데\n집에 있는 채소는 양파뿐…", big: false },
+];
 
 // 요리 단계(레시피 카드 순서와 같게) — 숫자·분량은 레시피 카드 그대로
 const COOK: Shot[] = [
@@ -34,13 +43,12 @@ const COOK: Shot[] = [
   { kind: "video", src: "c03.mp4", from: 204, to: 212, rate: 2, step: "양념이 고루 배면 완성!" },
 ];
 const KID: Shot[] = [
-  { kind: "plate", len: 90, caption: "아이 식판에 담으면 끝" },
-  { kind: "video", src: "kid.mp4", from: 34, to: 37.5, audio: true },
+  { kind: "plate", len: 105, caption: "아이 식판엔 소시지 듬뿍" },
+  { kind: "video", src: "kid.mp4", from: 34, to: 37.5 },
   { kind: "video", src: "kid.mp4", from: 4.5, to: 12, audio: true },
 ];
 const APP: Shot[] = [
-  { kind: "video", src: "app.mp4", from: 0.5, to: 8.5, rate: 2, app: true, step: "이 레시피는 쿡매치로 찾았어요\n냉장고에 소시지를 담고" },
-  { kind: "video", src: "app.mp4", from: 11.5, to: 20, rate: 2, app: true, step: "꼭 넣을 재료 「소시지」로 검색" },
+  { kind: "video", src: "app.mp4", from: 11.5, to: 20, rate: 2, app: true, step: "이 레시피는 쿡매치로 찾았어요\n꼭 넣을 재료에 「소시지」" },
   { kind: "video", src: "app.mp4", from: 24, to: 39.3, rate: 3, app: true, step: "소시지 요리 484개 중에서" },
   { kind: "chip", len: 135 },
   { kind: "video", src: "app.mp4", from: 41, to: 47, rate: 1.5, app: true, step: "당근은 빼고, 있는 양파로" },
@@ -52,9 +60,10 @@ const TAIL: Shot[] = [
   { kind: "features", len: SEGS_LEN },
   { kind: "finalCta", len: CTA_LEN },
 ];
-const SHOTS: Shot[] = [...COOK, ...KID, ...APP, ...TAIL];
+const SHOTS: Shot[] = [...STORY, ...COOK, ...KID, ...APP, ...TAIL];
 export const COOKING_SAUSAGE_TOTAL = SHOTS.reduce((a, s) => a + shotLen(s), 0);
 const TITLE_LEN = f(3.6);
+const STORY_LEN = STORY.reduce((a, s) => a + shotLen(s), 0);
 
 const fadeInOut = (frame: number, len: number, k = 5) =>
   Math.min(
@@ -105,10 +114,11 @@ const RecipeTitle: React.FC = () => {
 // 아이 식판 사진 — 천천히 다가간다
 const Plate: React.FC<{ len: number; caption: string }> = ({ len, caption }) => {
   const frame = useCurrentFrame();
-  const z = interpolate(frame, [0, len], [1.04, 1.16], { easing: Easing.inOut(Easing.cubic) });
+  // 소시지 칸(사진 왼쪽 가운데)을 화면 가운데로 두고 천천히 다가간다
+  const z = interpolate(frame, [0, len], [1.0, 1.28], { easing: Easing.inOut(Easing.cubic) });
   return (
     <AbsoluteFill style={{ backgroundColor: "#000", opacity: fadeInOut(frame, len, 4) }}>
-      <Img src={staticFile(DIR + "plate.jpg")} style={{ width: "100%", height: "100%", objectFit: "cover", transform: `scale(${z})` }} />
+      <Img src={staticFile(DIR + "plate.jpg")} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "0% 50%", transform: `scale(${z})`, transformOrigin: "30% 52%" }} />
       <Caption from={6} len={len - 8} text={caption} />
     </AbsoluteFill>
   );
@@ -176,7 +186,8 @@ const Shots: React.FC = () => {
         const len = shotLen(s);
         cursor += len;
         let body: React.ReactNode;
-        if (s.kind === "video") body = <Video s={s} len={len} />;
+        if (s.kind === "story") body = <Video s={{ kind: "video", src: s.src, from: s.from, to: s.to }} len={len} />;
+        else if (s.kind === "video") body = <Video s={s} len={len} />;
         else if (s.kind === "plate") body = <Plate len={len} caption={s.caption} />;
         else if (s.kind === "chip") body = <ChipZoom len={len} />;
         else if (s.kind === "cta")
@@ -213,16 +224,41 @@ const Shots: React.FC = () => {
 };
 
 // 아이 장면에서 엄마·아이 말 자막 — kid.mp4 4.5s~ 구간 기준(원본 5.06s 「맛있어?」, 6.92s 「맛있다!」)
-const kidStart = SHOTS.slice(0, COOK.length + 2).reduce((a, s) => a + shotLen(s), 0);
+const kidStart = SHOTS.slice(0, STORY.length + COOK.length + 2).reduce((a, s) => a + shotLen(s), 0);
+
+// 잔잔한 브이로그 BGM(scripts/make_vlog_bgm.py 로 직접 합성) — 아이 대사 장면에서는 음악을 내리고 대사만
+const KID_TALK_LEN = f(12 - 4.5);
+const Bgm: React.FC = () => {
+  const talkFrom = kidStart, talkTo = kidStart + KID_TALK_LEN;
+  return (
+    <Audio
+      src={staticFile("bgm_vlog_calm.mp3")}
+      volume={(fr) =>
+        0.42 *
+        Math.min(
+          interpolate(fr, [0, 20], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }),
+          interpolate(fr, [COOKING_SAUSAGE_TOTAL - 45, COOKING_SAUSAGE_TOTAL - 1], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }),
+          interpolate(fr, [talkFrom - 12, talkFrom, talkTo, talkTo + 15], [1, 0, 0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
+        )
+      }
+    />
+  );
+};
 
 export const CookingSausage: React.FC = () => {
   useCustomFont();
   return (
     <AbsoluteFill style={{ backgroundColor: "#000", fontFamily: FONT_FAMILY }}>
       <Shots />
-      <Sequence from={0} durationInFrames={TITLE_LEN}>
+      {STORY_LINES.map((l, i) => (
+        <Sequence key={i} from={f(l.at)} durationInFrames={f(l.len)}>
+          {l.big ? <Said at={0} len={f(l.len)} text={l.text} who="kid" /> : <Caption from={0} len={f(l.len)} text={l.text} />}
+        </Sequence>
+      ))}
+      <Sequence from={STORY_LEN} durationInFrames={TITLE_LEN}>
         <RecipeTitle />
       </Sequence>
+      <Bgm />
       <Said at={kidStart + f(5.06 - 4.5)} len={f(1.3)} text="맛있어?" who="mom" />
       <Said at={kidStart + f(6.92 - 4.5)} len={f(1.9)} text="맛있다!" who="kid" />
     </AbsoluteFill>
