@@ -2264,15 +2264,16 @@ const CookingCalendar: React.FC = () => {
             이 줄로 끌어올려 [일][주][월]과 같은 높이·오른쪽에 둔다. */}
         <div style={{ display: mode === 'calendar' ? 'flex' : 'none', alignItems: 'center',
                       justifyContent: 'space-between', flexWrap: 'wrap', gap: 6, padding: '8px 14px 0' }}>
-          {/* 일 / 주 / 월 — 아래 `완료·기록·즐겨찾기` 와 **같은 부품**이다
-              (2026-10-09 요청: 형식을 동일하게). 설계 메모는 `PillSelect`. */}
+          {/* 월 / 주 / 일 — 아래 `완료·기록·즐겨찾기` 와 **같은 부품**이다
+              (2026-10-09 요청: 형식을 동일하게). 설계 메모는 `PillSelect`.
+              순서는 넓은 것부터(2026-10-15 사용자 요청: 일/주/월 → 월/주/일). */}
           <PillSelect
             value={viewMode}
             onChange={(v) => setViewMode(v)}
             options={[
-              { value: 'day' as const, label: '일' },
-              { value: 'week' as const, label: '주' },
               { value: 'month' as const, label: '월' },
+              { value: 'week' as const, label: '주' },
+              { value: 'day' as const, label: '일' },
             ]}
           />
           <button
