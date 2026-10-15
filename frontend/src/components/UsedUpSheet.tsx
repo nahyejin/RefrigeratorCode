@@ -2,7 +2,6 @@ import * as React from 'react';
 import { createPortal } from 'react-dom';
 import Sheet from './ui/Sheet';
 import Dialog from './ui/Dialog';
-import { loadIngredientCategoryMap, type CategoryMap } from '../utils/shelfLife';
 
 const API_BASE_URL =
   (import.meta.env && import.meta.env.VITE_API_BASE_URL) ||
@@ -27,9 +26,8 @@ export const RECIPE_DONE_EVENT = 'cookmatch:recipe-done';
  *   없다고 하게 되고, 그건 남겨 두는 것보다 나쁘다. **묻고 고르게** 한다.
  *   지우기 직전에 한 번 더 확인한다(2026-10-15 사용자 요청) — 지운 재료는 되돌릴 곳이 없다.
  *
- * 무엇을 기본으로 켜 두나:
- *   `usedUpByDefault()` 참고. 간장·소금 같은 양념은 한 번 요리했다고 없어지지
- *   않는다 — 전부 켜 두면 매번 꺼야 해서 이 창이 귀찮은 것이 된다.
+ * 아무것도 미리 골라 두지 않는다(2026-10-15 사용자 요청 — 예전엔 양념을 뺀 원물을 켜 뒀다).
+ *   알약 대신 체크박스 줄이라 고르는 것임이 보인다.
  *
  * ⚠️ 2026-10-15 고친 것: 냉장고 저장값은 `{frozen, fridge, room}` 묶음인데 이 창은 배열로만
  *   읽어서 늘 「냉장고가 비었다」로 보고 **한 번도 뜨지 않았다.** 또 기기에서만 지워서 로그인한
@@ -39,22 +37,6 @@ export const RECIPE_DONE_EVENT = 'cookmatch:recipe-done';
 
 type Box = 'frozen' | 'fridge' | 'room';
 type Boxes = Record<Box, any[]>;
-
-/**
- * 이 재료를 **한 끼로 다 썼다고 볼 수 있나** — 기본 체크 여부를 정한다.
- *
- * 판단 기준은 재료 사전의 **중분류** 하나로 못 박는다. 사전에는 이 여덟 가지가 있다:
- *   켠다  `식재료 원물` · `유제품` · `즉석식/간편식` — 한 끼 만들면 실제로 없어지거나 크게 준다
- *   끈다  `양념/조미료` · `베이킹·제면·디저트용 재료` · `음료/주류` · `빙재료`
- * 사전에 없는 이름은 **켠다**(특정 부위·품종 같은 원물일 가능성이 높다).
- */
-const KEEP = ['양념', '조미료', '베이킹', '음료', '주류', '빙재료'];
-
-function usedUpByDefault(name: string, map: CategoryMap): boolean {
-  const mid = map[name]?.mid || '';
-  if (!mid) return true;
-  return !KEEP.some(k => mid.includes(k));
-}
 
 const squash = (s: string) => String(s || '').replace(/\s+/g, '');
 
@@ -94,15 +76,8 @@ interface Props {
 const UsedUpSheet: React.FC<Props> = ({ recipe, onClose }) => {
   const [names, setNames] = React.useState<string[] | null>(null);
   const [picked, setPicked] = React.useState<Set<string>>(new Set());
-  const [map, setMap] = React.useState<CategoryMap>({});
   const [confirming, setConfirming] = React.useState(false);
   const [toast, setToast] = React.useState<string | null>(null);
-
-  React.useEffect(() => {
-    let alive = true;
-    void loadIngredientCategoryMap().then(m => alive && setMap(m));
-    return () => { alive = false; };
-  }, []);
 
   React.useEffect(() => {
     if (!toast) return;
@@ -136,12 +111,13 @@ const UsedUpSheet: React.FC<Props> = ({ recipe, onClose }) => {
           .filter((n: string | undefined): n is string => !!n);
         const uniq = [...new Set<string>(used)];
         setNames(uniq);
-        setPicked(new Set(uniq.filter(n => usedUpByDefault(n, map))));
+        // 미리 골라 두지 않는다(2026-10-15 사용자 요청) — 무엇을 지울지는 사람이 직접 고른다.
+        setPicked(new Set());
       })
       .catch(() => alive && setNames([]));
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recipe?.id, map]);
+  }, [recipe?.id]);
 
   const remove = () => {
     const gone = new Set([...picked].map(squash));
@@ -185,34 +161,42 @@ const UsedUpSheet: React.FC<Props> = ({ recipe, onClose }) => {
         hideFooter
       >
         <div style={{ fontSize: 12.5, color: 'var(--ink-500)', lineHeight: 1.6, marginBottom: 10 }}>
-          이 요리에 들어간 재료 중 냉장고에 있는 것이에요. 다 쓴 것만 골라 주세요 — 남은 게 있으면 체크를 꺼 주세요.
+          이 요리에 들어간 재료 중 내냉장고에 있는 것이에요.<br />
+          이번 요리에서 다 쓴 재료를 골라 내냉장고에서 빼 주세요.
         </div>
 
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+        {/* 알약 모양이면 고르는 것인지 몰라서(사용자 지적) 체크박스 줄로. */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 6 }}>
           {(names || []).map(name => {
             const on = picked.has(name);
             return (
-              <button
+              <label
                 key={name}
-                type="button"
-                aria-pressed={on}
-                onClick={() => setPicked(p => {
-                  const next = new Set(p);
-                  if (next.has(name)) next.delete(name); else next.add(name);
-                  return next;
-                })}
                 style={{
-                  minHeight: 34, padding: '9px 12px', borderRadius: 9999, cursor: 'pointer',
-                  border: on ? 'none' : '1px solid var(--line-300)',
-                  background: on ? '#1A1A1E' : 'var(--surface)',
-                  color: on ? '#FFFFFF' : 'var(--ink-700)',
-                  fontSize: 13, fontWeight: on ? 700 : 500,
-                  display: 'inline-flex', alignItems: 'center', gap: 5,
+                  display: 'flex', alignItems: 'center', gap: 10, minHeight: 44, padding: '0 12px',
+                  borderRadius: 10, cursor: 'pointer', boxSizing: 'border-box',
+                  border: on ? '1px solid #1A1A1E' : '1px solid var(--line-200)',
+                  background: on ? 'var(--surface-sub)' : 'var(--surface)',
                 }}
               >
-                {on && <span aria-hidden style={{ fontSize: 11 }}>✓</span>}
-                {name}
-              </button>
+                <input
+                  type="checkbox"
+                  checked={on}
+                  onChange={() => setPicked(p => {
+                    const next = new Set(p);
+                    if (next.has(name)) next.delete(name); else next.add(name);
+                    return next;
+                  })}
+                  style={{ width: 20, height: 20, margin: 0, flexShrink: 0, accentColor: '#1A1A1E', cursor: 'pointer' }}
+                />
+                <span style={{
+                  minWidth: 0, fontSize: 14, fontWeight: on ? 700 : 500,
+                  color: on ? 'var(--ink-900)' : 'var(--ink-700)',
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                }}>
+                  {name}
+                </span>
+              </label>
             );
           })}
         </div>

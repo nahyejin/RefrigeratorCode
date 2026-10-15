@@ -13120,3 +13120,7 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 - 기존 `UsedUpSheet`(RecipeList·Popular 카드에만 연결)는 냉장고 저장값 `{frozen,fridge,room}` 을 배열로만 읽어 늘 빈 냉장고로 보고 **한 번도 안 떴음**, 또 기기에서만 지워 로그인 사용자는 서버 값으로 되살아났음.
 - 고침: 묶음(옛 배열도) 읽기, 이름은 띄어쓰기 무시 매칭, 빼기 → `Dialog`(nested) 확인 「냉장고에서 뺄까요? (재료들) 내냉장고 목록에서 사라져요」 → 기기 저장 + `POST /api/users/:id/ingredients` + 토스트 「냉장고에서 N개 뺐어요」. 제목 「냉장고에서 다 쓴 재료가 있나요?」.
 - 전역 `UsedUpHost`(AppRouter, CookModeHost 뒤): `recipeStorage.addRecipeToLocalStorage('done')` 가 `cookmatch:recipe-done` 이벤트를 쏘고 이를 들어 띄움 → 레시피 시트·완료 넛지·마이페이지·재료 상세·완료/기록 목록 등 모든 완료 경로. RecipeList·Popular 의 화면별 시트 제거(중복 방지).
+
+### 다 쓴 재료 창 문구·체크박스, 캘린더 일별 아래 여백 (2026-10-15)
+- `UsedUpSheet`: 안내 「이 요리에 들어간 재료 중 내냉장고에 있는 것이에요. / 이번 요리에서 다 쓴 재료를 골라 내냉장고에서 빼 주세요.」, 기본 선택 없음(양념 제외 원물 자동 체크 → 제거, 분류 사전 로딩도 제거), 알약 → 체크박스 줄(그리드). 
+- `CookingCalendar` 일별 보기 컨테이너 아래 여백 0 → 16px(카드가 여러 개일 때 마지막 카드가 바깥 상자 밑선에 닿음).
