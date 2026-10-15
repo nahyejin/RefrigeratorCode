@@ -48,9 +48,12 @@ const KID: Shot[] = [
   { kind: "video", src: "kid.mp4", from: 4.5, to: 12, audio: true },
 ];
 const APP: Shot[] = [
-  { kind: "video", src: "app.mp4", from: 11.5, to: 20, rate: 2, app: true, step: "이 레시피는 쿡매치로 찾았어요\n꼭 넣을 재료에 「소시지」" },
-  { kind: "video", src: "app.mp4", from: 24, to: 39.3, rate: 3, app: true, step: "소시지 요리 484개 중에서" },
-  { kind: "chip", len: 135 },
+  { kind: "video", src: "app.mp4", from: 9.0, to: 10.6, app: true, step: "쿡매치 레시피는 유튜브·네이버\n상위 채널에서 검증된 것들" },
+  { kind: "video", src: "app.mp4", from: 10.6, to: 11.9, rate: 0.6, app: true, step: "그중에서도 「인기순」으로 정렬" },
+  { kind: "video", src: "app.mp4", from: 11.9, to: 14, rate: 2, app: true },
+  { kind: "video", src: "app.mp4", from: 14, to: 20, rate: 2, app: true, step: "꼭 넣을 재료에 「소시지」" },
+  { kind: "video", src: "app.mp4", from: 24, to: 39.3, rate: 3, app: true, step: "인기 많고, 내 냉장고 재료와\n많이 맞는 소시지 요리" },
+  { kind: "chip", len: 210 },
   { kind: "video", src: "app.mp4", from: 41, to: 47, rate: 1.5, app: true, step: "당근은 빼고, 있는 양파로" },
   { kind: "video", src: "app.mp4", from: 69.3, to: 73.3, app: true, step: "다 만들면 완료 — 기록까지 끝" },
 ];
@@ -138,41 +141,54 @@ const Said: React.FC<{ at: number; len: number; text: string; who: "mom" | "kid"
   );
 };
 
-// 레시피 카드의 「당근 → 양파」 칩으로 줌인 — 당근이 없어서 대체 재료 양파로 추천된 것
-const CHIP = { cx: 172 / 1206, cy: 1962 / 2422, x: 45, y: 1925, w: 258, h: 74 };
+// 레시피 카드 하단으로 줌인 — ① 「내 재료 11/11 (87%)」 매칭률 ② 「당근 → 양파」 대체 재료(당근이 없어서 양파로 추천)
+// 좌표는 앱 작업본(1206x2422) 기준
+const HL = [
+  { x: 14, y: 1838, w: 500, h: 52, round: 14, from: 34, to: 112, caption: "내 냉장고 재료와\n87% 매칭되는 레시피" },
+  { x: 45, y: 1925, w: 258, h: 74, round: 999, from: 112, to: 9999, caption: "당근이 없으면?\n있는 「양파」로 대체 추천" },
+];
 const ChipZoom: React.FC<{ len: number }> = ({ len }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const z = interpolate(frame, [6, 34], [1, 2.4], { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: Easing.inOut(Easing.cubic) });
-  const ring = spring({ frame: frame - 34, fps, config: { damping: 11, mass: 0.6 } });
-  const pulse = frame > 50 ? 1 + Math.sin(((frame - 50) / fps) * Math.PI * 2) * 0.04 : 1;
+  const z = interpolate(frame, [6, 34], [1, 1.85], { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: Easing.inOut(Easing.cubic) });
   const s = 956 / 1206; // 앱 화면 배율
-  // 칩을 화면 가운데 위(자막 위)로 끌어오며 확대: 화면 좌표 = T + z·p
+  // 두 줄 사이를 화면 가운데 위(자막 위)로 끌어오며 확대: 화면 좌표 = T + z·p
   const t = interpolate(frame, [6, 34], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: Easing.inOut(Easing.cubic) });
-  const px = CHIP.cx * 956, py = CHIP.cy * 1920;
+  const px = 270 * s, py = 1915 * s;
   const tx = t * (478 - z * px), ty = t * (820 - z * py);
   return (
     <AbsoluteFill style={{ backgroundColor: WHITE }}>
       <div style={{ position: "absolute", top: 0, left: (1080 - 956) / 2, width: 956, height: 1920, overflow: "hidden", border: `1px solid ${LINE}` }}>
         <div style={{ position: "absolute", inset: 0, transformOrigin: "0 0", transform: `translate(${tx}px, ${ty}px) scale(${z})` }}>
           <Img src={staticFile(DIR + "chip_frame.png")} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
-          <div
-            style={{
-              position: "absolute",
-              left: (CHIP.x - 8) * s,
-              top: (CHIP.y - 8) * s,
-              width: (CHIP.w + 16) * s,
-              height: (CHIP.h + 16) * s,
-              borderRadius: 999,
-              border: `${5 / z}px solid ${YELLOW}`,
-              boxShadow: `0 0 ${18 / z}px rgba(255,214,0,0.9)`,
-              opacity: ring,
-              transform: `scale(${interpolate(ring, [0, 1], [1.4, 1]) * pulse})`,
-            }}
-          />
+          {HL.map((h, i) => {
+            const ring = spring({ frame: frame - h.from, fps, config: { damping: 11, mass: 0.6 } });
+            const off = interpolate(frame, [h.to - 4, h.to], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+            const pulse = frame > h.from + 16 ? 1 + Math.sin(((frame - h.from - 16) / fps) * Math.PI * 2) * 0.03 : 1;
+            if (frame < h.from) return null;
+            return (
+              <div
+                key={i}
+                style={{
+                  position: "absolute",
+                  left: (h.x - 8) * s,
+                  top: (h.y - 8) * s,
+                  width: (h.w + 16) * s,
+                  height: (h.h + 16) * s,
+                  borderRadius: h.round,
+                  border: `${5 / z}px solid ${YELLOW}`,
+                  boxShadow: `0 0 ${18 / z}px rgba(255,214,0,0.9)`,
+                  opacity: Math.min(ring, off),
+                  transform: `scale(${interpolate(ring, [0, 1], [1.3, 1]) * pulse})`,
+                }}
+              />
+            );
+          })}
         </div>
       </div>
-      <Caption from={36} len={len - 38} text={"당근이 없어도 괜찮아요\n대체 재료 「양파」로 추천"} />
+      {HL.map((h, i) => (
+        <Caption key={i} from={h.from + 2} len={Math.min(h.to, len) - h.from - 6} text={h.caption} />
+      ))}
     </AbsoluteFill>
   );
 };
@@ -232,7 +248,7 @@ const Bgm: React.FC = () => {
   const talkFrom = kidStart, talkTo = kidStart + KID_TALK_LEN;
   return (
     <Audio
-      src={staticFile("bgm_vlog_calm.mp3")}
+      src={staticFile("bgm_vlog_bright.mp3")}
       volume={(fr) =>
         0.42 *
         Math.min(

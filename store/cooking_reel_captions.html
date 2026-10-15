@@ -1,0 +1,97 @@
+<title>쿡매치 요리 릴스 본문</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=IBM+Plex+Sans+KR:wght@400;600;700&display=swap">
+<style>
+/* Layout: 폰에서 세로로 넘기는 편별 카드 — 카드 맨 위 큰 복사 버튼, 아래 인스타에 그대로 붙일 본문 */
+:root{
+  --bg:#f6f5f0; --surface:#ffffff; --ink:#1a1a1e; --muted:#66666e; --line:#e3e2dc;
+  --accent:#ffd600; --accent-ink:#1a1a1e; --chip:#fff4b8; --chip-ink:#5c4700;
+  --display:'Black Han Sans','IBM Plex Sans KR','Apple SD Gothic Neo',sans-serif;
+  --body:'IBM Plex Sans KR','Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#141415; --surface:#1d1d1f; --ink:#f1f1ee; --muted:#a3a3ab; --line:#303033; --chip:#3a3210; --chip-ink:#ffe36b; color-scheme:dark } }
+:root[data-theme="dark"]{ --bg:#141415; --surface:#1d1d1f; --ink:#f1f1ee; --muted:#a3a3ab; --line:#303033; --chip:#3a3210; --chip-ink:#ffe36b; color-scheme:dark }
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.65;margin:0}
+.page{max-width:680px;margin:0 auto;padding-inline:16px;padding-block:28px 64px;display:flex;flex-direction:column;gap:22px}
+h1{font-family:var(--display);font-weight:400;font-size:30px;line-height:1.2;margin:0;text-wrap:balance}
+.lede{color:var(--muted);margin:8px 0 0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}
+.head h2{font-family:var(--display);font-weight:400;font-size:22px;margin:0}
+.date{font-size:12.5px;color:var(--muted);letter-spacing:.04em}
+.chip{display:inline-block;font-size:12px;font-weight:600;color:var(--chip-ink);background:var(--chip);border-radius:999px;padding:2px 10px;margin-top:6px}
+button{font-family:var(--body);font-size:16px;font-weight:700;border-radius:12px;padding:14px 18px;cursor:pointer;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);width:100%}
+button:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+pre{margin:0;white-space:pre-wrap;word-break:break-word;font-family:var(--body);font-size:14.5px;line-height:1.7;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:14px}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:999px;font-size:14px;font-weight:600;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.on{opacity:1}
+@media (prefers-reduced-motion:reduce){.toast{transition:none}}
+</style>
+
+<div class="page">
+  <header>
+    <h1>쿡매치 요리 릴스 본문</h1>
+    <p class="lede">릴스 올릴 때 <b>본문 복사</b>를 누르고 인스타 캡션에 붙여 넣으세요. 위쪽은 그날의 이야기·레시피, 아래쪽은 8가지 기능과 스토어 안내예요.</p>
+  </header>
+
+  <section class="card" aria-labelledby="t1">
+    <div class="head">
+      <div>
+        <div class="date">2026-10-15 · 요리 릴스 1편</div>
+        <h2 id="t1">소세지야채볶음</h2>
+        <span class="chip">대체 재료 · 당근 → 양파</span>
+      </div>
+    </div>
+    <button type="button" data-copy="c1">본문 복사</button>
+    <pre id="c1">하원길에 "오늘 저녁 뭐 먹고 싶어?" 물었더니 1초 만에 "소시지!" 🌭
+쏘야엔 파프리카랑 당근도 넣어야 하는데… 냉장고를 열어 보니 채소는 양파뿐 😅
+배고프다는 아이 앞에서 호다닥, 양파만으로 5분 만에 완성했어요.
+한 입 먹더니 "맛있다!" 한마디에 오늘 저녁 성공 🙌
+
+🍳 5분 소세지야채볶음 (쏘야)
+[재료]
+비엔나소시지, 양파 1/2개 (당근이 없어서 양파로 대신했어요)
+마늘, 식용유 2스푼
+[양념] 케첩 4 · 간장 2 · 설탕 2 · 식초 1 (스푼), 후추 약간, 통깨
+
+1. 소시지는 칼집 내고, 양파는 큼직하게 썰어요
+2. 식용유 2스푼에 마늘을 먼저 볶아 향을 내요
+3. 양파를 넣고 투명해질 때까지 볶아요
+4. 소시지를 넣고 함께 볶아요
+5. 케첩·간장·설탕·식초를 넣고 후추 톡톡
+6. 양념이 고루 배면 통깨 솔솔, 완성!
+
+💡 레시피는 쿡매치에서 찾았어요
+'꼭 넣을 재료'에 소시지를 넣고 인기순으로 정렬했더니,
+유튜브·네이버 상위 채널 레시피 중에서도 인기 많은 것 + 내 냉장고 재료와 87% 맞는 레시피가 나왔어요.
+당근이 없어도 괜찮아요. 집에 있는 재료로 바꿔서 알려 줘요 (당근 → 양파)
+
+쿡매치로 이런 걸 할 수 있어요
+📸 AI 재료인식 — 영수증·음식 사진·장본 목록
+🥘 레시피 매칭 — 냉장고 재료로 만들 수 있는 레시피 + 대체 재료
+🗓️ AI 식단 — 일주일 식단과 장보기
+🤖 요리 AI — 말하듯 물어보면 레시피 추천
+⏰ 유통기한 알림 — 곧 상하는 재료를 푸시로 알려 줘요
+🙌 읽어주기 모드 — 소리 내어 단계별로 레시피를 읽어 줘요
+📺 검증된 레시피 — 유튜브·네이버 인기 레시피
+👨‍👩‍👧 가족이 아낀 돈 — 가족 집밥 목표·아낀 돈(예상)
+
+📲 앱스토어·Play 스토어에서 '쿡매치'를 검색하세요
+프로필 링크로 들어와도 바로 받을 수 있어요
+👉 refrigerator-code.vercel.app/download
+
+#쏘야 #소세지야채볶음 #소시지볶음 #유아식 #아이반찬 #유아식반찬 #5분요리 #간단요리 #냉털 #냉장고파먹기 #집밥 #육아브이로그 #오늘뭐먹지 #레시피 #쿡매치</pre>
+  </section>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script>
+const toast = document.getElementById("toast");
+function show(msg){ toast.textContent = msg; toast.classList.add("on"); clearTimeout(show.t); show.t = setTimeout(() => toast.classList.remove("on"), 1600); }
+document.querySelectorAll("[data-copy]").forEach(btn => btn.addEventListener("click", () => {
+  const el = document.getElementById(btn.dataset.copy);
+  const text = el.textContent;
+  const fallback = () => { const r = document.createRange(); r.selectNodeContents(el); const s = getSelection(); s.removeAllRanges(); s.addRange(r); show("본문을 선택했어요. 길게 눌러 복사하세요"); };
+  try { navigator.clipboard.writeText(text).then(() => show("복사했어요"), fallback); } catch (e) { fallback(); }
+}));
+</script>

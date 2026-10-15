@@ -2,7 +2,7 @@
 
 Karplus-Strong 로 뜯는 기타 아르페지오 + 부드러운 베이스 + 아주 작은 셰이커, 84BPM,
 코드 진행 C - G/B - Am - F (1·5·6·4), 4마디마다 멜로디 변주. 간단한 리버브(감쇠 노이즈 임펄스 FFT 합성곱).
-    python scripts/make_vlog_bgm.py out.wav [초]
+    python scripts/make_vlog_bgm.py out.wav [초] [BPM]   # BPM 100↑ 이면 경쾌한 버전(2026-10-15 「너무 루즈해」 → 108)
 """
 import sys, wave
 import numpy as np
@@ -10,7 +10,8 @@ import numpy as np
 SR = 44100
 OUT = sys.argv[1]
 DUR = float(sys.argv[2]) if len(sys.argv) > 2 else 150.0
-BPM = 84
+BPM = float(sys.argv[3]) if len(sys.argv) > 3 else 84
+BRIGHT = BPM >= 100  # 경쾌한 버전: 16분 기타 + 킥·스냅 + 멜로디 일찍
 BEAT = 60 / BPM
 rng = np.random.default_rng(7)
 N = int(DUR * SR) + SR * 4
@@ -30,7 +31,7 @@ def pluck(freq, dur, bright=0.5):
     return out * env
 
 def add(sig, t, gain, pan=0.0):
-    i = int(t * SR); j = min(N, i + len(sig))
+    i = max(0, int(t * SR)); j = min(N, i + len(sig))
     if i >= N: return
     l, r = np.cos((pan + 1) * np.pi / 4), np.sin((pan + 1) * np.pi / 4)
     mix[i:j, 0] += sig[:j - i] * gain * l
@@ -48,9 +49,43 @@ def P(m, d, b=0.5):
     if key not in cache: cache[key] = pluck(hz(m), d, b)
     return cache[key]
 
+PAT16 = [0, 3, 2, 4, 1, 3, 2, 4, 0, 3, 2, 4, 1, 4, 3, 2]
+ACC16 = [1.25, .7, .9, .75, 1.1, .7, .9, .75, 1.2, .7, .9, .75, 1.1, .8, .95, .8]
+def drum_kick():
+    n = int(0.25 * SR); tt = np.arange(n) / SR
+    f = 48 + 90 * np.exp(-tt * 40)
+    return np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-tt * 14)
+def drum_snap():
+    n = int(0.12 * SR); tt = np.arange(n) / SR
+    nz = rng.normal(0, 1, n); nz = np.diff(np.concatenate([[0], nz]))
+    return (nz * 0.7 + np.sin(2 * np.pi * 1800 * tt) * 0.3) * np.exp(-tt * 45)
+KICK, SNAP = drum_kick(), drum_snap()
 for bar in range(bars):
     t0 = bar * 4 * BEAT
     notes, root = CH[bar % 4]
+    if BRIGHT:
+        for k, idx in enumerate(PAT16):
+            t = t0 + k * BEAT / 4 + rng.normal(0, 0.004)
+            add(P(notes[idx] + 12 if idx >= 3 else notes[idx], 0.9, 0.85), t, 0.13 * ACC16[k], pan=-0.3 + 0.12 * idx)
+        if bar >= 1:
+            for b in (0, 2, 2.5):
+                add(KICK, t0 + b * BEAT, 0.35 if b != 2.5 else 0.22)
+            for b in (1, 3):
+                add(SNAP, t0 + b * BEAT, 0.16, pan=0.1)
+        for b in (0, 1.5, 2, 3.5):
+            n = int(0.9 * SR); tt = np.arange(n) / SR
+            bs = (np.sin(2 * np.pi * hz(root) * tt) + 0.25 * np.sin(4 * np.pi * hz(root) * tt)) * np.exp(-tt * 4) * np.minimum(1, tt / 0.006)
+            add(bs, t0 + b * BEAT, 0.20 if b in (0, 2) else 0.12)
+        if bar >= 2 and (bar // 8) % 4 != 3:
+            mel = MEL[bar % 4]
+            for k, m in enumerate(mel):
+                if m is None: continue
+                add(P(m + 12, 1.0, 0.9), t0 + k * BEAT / 2 + rng.normal(0, 0.005), 0.10, pan=0.35)
+        for k in range(16):
+            n = int(0.04 * SR)
+            sh = np.diff(np.concatenate([[0], rng.normal(0, 1, n)])) * np.exp(-np.arange(n) / (0.008 * SR))
+            add(sh, t0 + k * BEAT / 4, 0.02 * (1.4 if k % 4 == 2 else 0.8), pan=0.45)
+        continue
     for k, idx in enumerate(PATTERN):
         t = t0 + k * BEAT / 2 + rng.normal(0, 0.006)
         add(P(notes[idx], 2.2), t, 0.16 * (1.1 if k % 2 == 0 else 0.85), pan=-0.25 + 0.1 * idx)
@@ -76,12 +111,12 @@ for bar in range(bars):
 
 # reverb
 ir_n = int(1.8 * SR)
-ir = rng.normal(0, 1, ir_n) * np.exp(-np.arange(ir_n) / (0.45 * SR)); ir[0] = 0
+ir = rng.normal(0, 1, ir_n) * np.exp(-np.arange(ir_n) / ((0.25 if BRIGHT else 0.45) * SR)); ir[0] = 0
 ir /= np.sqrt((ir ** 2).sum())
 L = 1 << int(np.ceil(np.log2(N + ir_n)))
 IR = np.fft.rfft(ir, L)
 wet = np.stack([np.fft.irfft(np.fft.rfft(mix[:, c], L) * IR, L)[:N] for c in range(2)], 1)
-out = mix * 0.8 + wet * 0.28
+out = mix * 0.85 + wet * (0.16 if BRIGHT else 0.28)
 out = out[: int(DUR * SR)]
 # fades + normalize
 fi, fo = int(1.5 * SR), int(3.0 * SR)
