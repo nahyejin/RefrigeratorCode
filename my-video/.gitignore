@@ -19,3 +19,9 @@ public/cooking/**/*.mov
 public/cooking/**/*.MOV
 public/cooking/**/*.MP4
 public/cooking/**/*.m4v
+public/cooking/**/work/
+public/cooking/**/*.jpg
+public/cooking/**/*.JPG
+public/cooking/**/*.png
+public/cooking/**/*.heic
+public/cooking/**/*.HEIC
