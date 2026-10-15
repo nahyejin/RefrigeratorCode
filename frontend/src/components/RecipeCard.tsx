@@ -454,6 +454,10 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
   };
   
   const lackingIngredients = getLackingIngredients();
+  // 없지만 냉장고의 다른 재료로 대신할 수 있는 것(예: 당근 → 양파). 「N개 부족」에서는 빼지만(만들 수는 있으므로),
+  // 「내 재료 N/M」에서는 가진 것으로 세지 않는다 — 매칭률(%)도 대체 재료를 세지 않아서, 같이 세면
+  // 「11/11 (87%)」처럼 둘이 어긋나 보였다(2026-10-15 사용자 지적). 대신 「· 대체 1」로 따로 적는다.
+  const substitutedCount = Math.max(0, (match.need_ingredients?.length || 0) - lackingIngredients.length);
 
   const handleCardClick = (e: React.MouseEvent<HTMLDivElement>) => {
     // 버튼 영역 클릭 시 카드 클릭 이벤트 무시
@@ -767,10 +771,11 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
             <>
               {/* 70% 이상일 때만 색을 입힌다. 초록(#3A6B2E)이 앱 색(검정·노랑·회색)과 따로 논다는 지적(2026-10-10)으로 파랑으로. */}
               <b style={{ color: match.rate >= 70 ? '#2C6BD6' : 'var(--ink-700)' }}>
-                내 재료 {usedIngredientList.length - lackingIngredients.length}
+                내 재료 {Math.max(0, usedIngredientList.length - lackingIngredients.length - substitutedCount)}
                 /{usedIngredientList.length}
               </b>
               {!browse && ` (${match.rate}%)`}
+              {substitutedCount > 0 && ` · 대체 ${substitutedCount}`}
               {recipe.comments ? ` · 댓글 ${recipe.comments}` : ''}
             </>
           ) : (
