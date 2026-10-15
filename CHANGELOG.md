@@ -13135,3 +13135,4 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 - 사용자: 앞으로 내가 요리한 영상도 편집 → 릴스 한 편 = 요리 영상 + 그 요리에 쿡매치 쓰는 화면 영상 + 8개 기능 풀영상(기본형). 원본을 어디에 넣을지.
 - `my-video/public/cooking/` 아래 요리마다 `요리명_YYYYMMDD/` 폴더, 안에 `1_cooking/`(요리 영상, 01_·02_ 순서) · `2_app/`(쿡매치 화면 녹화) · `memo.txt`. 8개 기능 풀영상은 기존 `ReelOverview` 를 붙임. Remotion `staticFile` 이 `public/` 아래만 읽어서 여기로.
 - 영상 파일은 `my-video/.gitignore` 로 제외(용량·화면 녹화 속 개인 알림 — 05편 원본 녹화와 같은 이유). README 에 규칙 정리.
+- 폰에서 원본을 바로 받는 통로: PC 에 개인 OneDrive 가 로그인·동기화 중이라 `OneDrive\쿡매치_요리영상\` 폴더를 만들고 「항상 이 기기에 유지」(attrib +P) — 폰 OneDrive 앱(또는 사진 → 공유 → OneDrive)으로 올리면 원본 화질로 PC 에 내려옴. 편집 때 거기서 `my-video/public/cooking/` 로 복사. README 에 추가.
