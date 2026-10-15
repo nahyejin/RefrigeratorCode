@@ -871,6 +871,12 @@ const RecipeList: React.FC = () => {
     map: new Map(),
   });
 
+  // **한 번 자리를 잡은 레시피는 그 자리에 둔다.** 뒤쪽 페이지가 백그라운드로 도착할 때마다 받은 것 전체를
+  // 다시 정렬했더니(프론트 매칭률은 동의어·가중치 반영이라 서버 순서와 조금 다르다) 늦게 온 레시피가 1페이지로
+  // 끼어들어, 보고 있던 카드가 자꾸 밀려났다(2026-10-15 사용자 지적). 같은 조건(정렬·구간·부족 개수·임박 재료·
+  // 필터·내 재료) 안에서는 이미 놓인 순서를 고정하고, 새로 온 것만 그 뒤에 정렬해서 붙인다. 조건이 바뀌면 처음부터.
+  const pinnedOrderRef = useRef<{ key: string; ids: any[] }>({ key: '', ids: [] });
+
   useEffect(() => {
     setKeywordSearchInput(includeKeyword);
   }, [includeKeyword]);
@@ -2194,12 +2200,23 @@ const RecipeList: React.FC = () => {
     setTotal(inMatchRange.length);
 
     // 정렬 기준에 따라 정렬
-    const sortedRecipes = sortRecipes(
+    const freshlySorted = sortRecipes(
       inMatchRange,
       effectiveSortType,
       myIngredients,
       appliedExpiryIngredients
     );
+
+    // 이미 놓인 순서 고정(pinnedOrderRef 설명 참고) — 새로 온 것만 정렬 순서대로 뒤에 붙인다
+    const pinKey = JSON.stringify([effectiveSortType, effectiveMatchRange, maxLack, appliedExpiryIngredients, lastFilterHash, ingredientsCacheKey]);
+    if (pinnedOrderRef.current.key !== pinKey) pinnedOrderRef.current = { key: pinKey, ids: [] };
+    const byId = new Map(freshlySorted.map(r => [r.id, r]));
+    const kept = pinnedOrderRef.current.ids.filter(id => byId.has(id));
+    const keptSet = new Set(kept);
+    const added = freshlySorted.filter(r => !keptSet.has(r.id)).map(r => r.id);
+    const order = [...kept, ...added];
+    pinnedOrderRef.current.ids = order;
+    const sortedRecipes = order.map(id => byId.get(id)!);
 
     // 페이지네이션 적용
     const startIndex = (page - 1) * size;
@@ -2207,7 +2224,7 @@ const RecipeList: React.FC = () => {
     const paginatedRecipes = sortedRecipes.slice(startIndex, endIndex);
 
     setRecipes(paginatedRecipes);
-  }, [sortType, cachedFilteredRecipes, page, size, myIngredients, appliedExpiryIngredients, maxLack, initialLoadDone, matchRange]);
+  }, [sortType, cachedFilteredRecipes, page, size, myIngredients, appliedExpiryIngredients, maxLack, initialLoadDone, matchRange, lastFilterHash]);
   
   // 필터가 변경되면 초기 로드 플래그 리셋 (필터 적용 시 다시 로드)
   useEffect(() => {
