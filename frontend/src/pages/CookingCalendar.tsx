@@ -3077,7 +3077,8 @@ const CookingCalendar: React.FC = () => {
 
       {/* 일 보기 */}
       {mode === 'calendar' && viewMode === 'day' && (
-        <div style={{ padding: '12px 14px 16px', // 아래 여백 0 이면 마지막 카드가 바깥 상자 밑선에 붙었다(2026-10-15 사용자 지적) display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ padding: '12px 14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {/* 아래 여백 0 이면 카드가 여러 개일 때 마지막 카드가 바깥 상자 밑선에 붙었다(2026-10-15) */}
           {/* 이 날의 **계획**. 완료 기록과 섞지 않고 위에 따로 둔다 —
               "할 것" 과 "했다" 는 다른 이야기다. */}
           {/* "만들기로 한 요리" 카드를 볼 수 있는 곳엔 취소도 있어야 한다.

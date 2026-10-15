@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { createPortal } from 'react-dom';
-import Sheet from './ui/Sheet';
 import Dialog from './ui/Dialog';
 
 const API_BASE_URL =
@@ -153,18 +152,26 @@ const UsedUpSheet: React.FC<Props> = ({ recipe, onClose }) => {
 
   return (
     <>
-      <Sheet
-        open={open}
+      {/* 아래에서 올라오는 패널이었는데, 레시피 시트(역시 패널)에서 완료하면 패널이 두 겹이 됐다
+          (2026-10-15 사용자 지적). 가운데 팝업으로 — 시트 위에 떠야 하므로 nested. */}
+      <Dialog
+        open={open && !confirming}
         onClose={onClose}
         title="냉장고에서 다 쓴 재료가 있나요?"
-        maxHeight="70dvh"
-        hideFooter
+        width={380}
+        nested
+        actions={[
+          { label: '그냥 둘게요', onClick: onClose, variant: 'outline' },
+          picked.size
+            ? { label: `${picked.size}개 빼기`, onClick: () => setConfirming(true), variant: 'primary' }
+            : { label: '재료를 골라 주세요', onClick: () => {}, variant: 'secondary' },
+        ]}
       >
-        <div style={{ fontSize: 12.5, color: 'var(--ink-500)', lineHeight: 1.6, marginBottom: 10 }}>
+        <div style={{ fontSize: 13, color: 'var(--ink-500)', lineHeight: 1.6, marginBottom: 12 }}>
           이 요리에 들어간 재료 중 내냉장고에 있는 것이에요.<br />
           이번 요리에서 다 쓴 재료를 골라 내냉장고에서 빼 주세요.
         </div>
-
+        <div style={{ textAlign: 'left' }}>
         {/* 알약 모양이면 고르는 것인지 몰라서(사용자 지적) 체크박스 줄로. */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 6 }}>
           {(names || []).map(name => {
@@ -201,36 +208,10 @@ const UsedUpSheet: React.FC<Props> = ({ recipe, onClose }) => {
           })}
         </div>
 
-        <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-          <button
-            type="button"
-            onClick={onClose}
-            style={{
-              flex: 1, minHeight: 46, borderRadius: 12,
-              border: '1px solid var(--line-200)', background: 'var(--surface)',
-              fontSize: 14, fontWeight: 700, color: 'var(--ink-700)', cursor: 'pointer',
-            }}
-          >
-            그냥 둘게요
-          </button>
-          <button
-            type="button"
-            onClick={() => setConfirming(true)}
-            disabled={picked.size === 0}
-            style={{
-              flex: 1.4, minHeight: 46, borderRadius: 12, border: 'none',
-              background: picked.size ? '#FFD600' : 'var(--line-200)',
-              color: picked.size ? '#1A1A1E' : 'var(--ink-500)',
-              fontSize: 14, fontWeight: 700,
-              cursor: picked.size ? 'pointer' : 'default',
-            }}
-          >
-            {picked.size ? `냉장고에서 ${picked.size}개 빼기` : '뺄 재료를 골라 주세요'}
-          </button>
         </div>
-      </Sheet>
+      </Dialog>
 
-      {/* 지우기 직전 확인 — 시트 위에 떠야 하므로 nested */}
+      {/* 지우기 직전 확인 — 고르기 팝업 대신 이 자리에 뜬다 */}
       <Dialog
         open={open && confirming}
         onClose={() => setConfirming(false)}
