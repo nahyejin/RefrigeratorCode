@@ -97,8 +97,8 @@ export const SEGS: Seg[] = [
   },
 ];
 
-const INTRO = 105; // 3.5s
-const CTA_LEN = 135; // 4.5s
+export const INTRO = 105; // 3.5s
+export const CTA_LEN = 135; // 4.5s
 
 export const partLen = (p: Part) => (p.kind === "clip" ? Math.round((p.to - p.from) / (p.rate ?? 1)) : p.len);
 export const segLen = (s: Seg) => s.parts.reduce((a, p) => a + partLen(p), 0);
@@ -257,11 +257,12 @@ export const FeatureTag: React.FC<{ index: number; label: string; len: number; c
 };
 
 // 형광펜 표시 — 탁한 황토색 글씨 대신 진한 글씨 위에 밝은 노랑 밑줄을 깐다(「누리끼리하다」 피드백)
-const Mark: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+export const Mark: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <span style={{ backgroundImage: `linear-gradient(transparent 56%, ${YELLOW} 56%, ${YELLOW} 93%, transparent 93%)`, padding: "0 8px" }}>{children}</span>
 );
 
-const Intro: React.FC = () => {
+// 요리 릴스(2026-10-15)에서는 같은 화면을 「그 밖에도 이런 기능이 있어요」 로 바꿔 전환 장면으로 쓴다.
+export const Intro: React.FC<{ line1?: React.ReactNode; line2?: React.ReactNode }> = ({ line1, line2 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   return (
@@ -271,10 +272,14 @@ const Intro: React.FC = () => {
         <Wordmark size={66} />
       </div>
       <RevealText top={600} delay={4} size={68}>
-        냉장고 앱 쿡매치 하나로
+        {line1 ?? "냉장고 앱 쿡매치 하나로"}
       </RevealText>
       <RevealText top={705} delay={12} size={92}>
-        이 <Mark>8가지</Mark>가 다 돼요
+        {line2 ?? (
+          <>
+            이 <Mark>8가지</Mark>가 다 돼요
+          </>
+        )}
       </RevealText>
       {/* 8가지 기능 목록 — 노란 반투명 칩 대신 연한 회색 칩 + 노란 점(2열 x 4행)으로 정돈 */}
       <div style={{ position: "absolute", top: 905, left: 90, right: 90, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }}>
@@ -292,14 +297,13 @@ const Intro: React.FC = () => {
   );
 };
 
-export const ReelOverview: React.FC = () => {
-  useCustomFont();
-  let cursor = INTRO;
+export const SEGS_LEN = SEGS.reduce((a, s) => a + segLen(s), 0);
+
+// 8개 기능 장면만(0프레임부터). 다른 릴스 뒤에 붙일 때 쓴다.
+export const OverviewSegments: React.FC = () => {
+  let cursor = 0;
   return (
     <AbsoluteFill style={{ backgroundColor: WHITE, fontFamily: FONT_FAMILY }}>
-      <Sequence from={0} durationInFrames={INTRO} name="Intro">
-        <Intro />
-      </Sequence>
       {SEGS.map((s, i) => {
         const from = cursor;
         const total = segLen(s);
@@ -325,14 +329,33 @@ export const ReelOverview: React.FC = () => {
           </Sequence>
         );
       })}
-      <Sequence from={cursor} durationInFrames={CTA_LEN} name="CTA">
-        <CtaOutro
-          payoffLine={
-            <>
-              있는 재료로 <Mark>오늘 저녁 해결</Mark>
-            </>
-          }
-        />
+    </AbsoluteFill>
+  );
+};
+
+// 쿡매치 대표 슬로건(앱스토어 부제와 같음) + 스토어 검색 + 프로필 링크
+export const OverviewCta: React.FC = () => (
+  <CtaOutro
+    payoffLine={
+      <>
+        있는 재료로 <Mark>오늘 저녁 해결</Mark>
+      </>
+    }
+  />
+);
+
+export const ReelOverview: React.FC = () => {
+  useCustomFont();
+  return (
+    <AbsoluteFill style={{ backgroundColor: WHITE, fontFamily: FONT_FAMILY }}>
+      <Sequence from={0} durationInFrames={INTRO} name="Intro">
+        <Intro />
+      </Sequence>
+      <Sequence from={INTRO} durationInFrames={SEGS_LEN} name="Features">
+        <OverviewSegments />
+      </Sequence>
+      <Sequence from={INTRO + SEGS_LEN} durationInFrames={CTA_LEN} name="CTA">
+        <OverviewCta />
       </Sequence>
     </AbsoluteFill>
   );

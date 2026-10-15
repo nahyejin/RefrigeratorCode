@@ -10,6 +10,7 @@ import { Reel6ChatbotDemo, REEL6_TOTAL_FRAMES } from "./Reel6ChatbotDemo";
 import { Reel7RealRecipe, REEL7_TOTAL_FRAMES } from "./Reel7RealRecipe";
 import { Reel8FamilySavings, REEL8_TOTAL_FRAMES } from "./Reel8FamilySavings";
 import { ReelOverview, REEL_OVERVIEW_TOTAL_FRAMES } from "./ReelOverview";
+import { CookingSausage, COOKING_SAUSAGE_TOTAL } from "./CookingSausage";
 import { REELS_HOOK_V2 } from "./ReelHooksV2";
 import { REELS_HOOK_V4 } from "./ReelHooksV4";
 import { REELS_HOOK_V3 } from "./ReelHooksV3";
@@ -97,6 +98,7 @@ export const RemotionRoot: React.FC = () => {
         width={1080}
         height={1920}
       />
+      <Composition id="CookingSausage" component={CookingSausage} durationInFrames={COOKING_SAUSAGE_TOTAL} fps={30} width={1080} height={1920} />
       {REELS_HOOK_V3.map((r) => (
         <Composition key={r.id} id={r.id} component={r.Comp} durationInFrames={r.total} fps={30} width={1080} height={1920} />
       ))}
