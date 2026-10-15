@@ -12,3 +12,10 @@ out
 # 단, 이 파일 없이는 add-spinach/recipe 데모 비트를 다시 렌더링할 수 없다.)
 public/reel5_expiry_demo.mp4
 public/reel5_notif_full_RAW_backup.png
+
+# 요리 릴스 원본(요리·앱 화면 녹화) — 용량이 크고 개인 알림이 찍힐 수 있어 로컬에만. README·memo 만 올린다
+public/cooking/**/*.mp4
+public/cooking/**/*.mov
+public/cooking/**/*.MOV
+public/cooking/**/*.MP4
+public/cooking/**/*.m4v
