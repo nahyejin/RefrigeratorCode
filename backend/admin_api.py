@@ -1016,7 +1016,7 @@ def register(app, get_db):
                     "SELECT COUNT(DISTINCT l.user_id) n FROM llm_usage l "
                     f"JOIN users u ON u.id = l.user_id AND u.deleted_at IS NULL{uid_cond}",
                     uid_params),
-                 '챗봇이나 사진 인식을 써 본 사람'),
+                 'AI 챗봇·사진 등록·식단 짜기 중 하나라도 써 본 사람'),
                 ('식구 그룹', count(
                     "SELECT COUNT(*) n FROM users u "
                     f"WHERE u.household_id IS NOT NULL AND u.deleted_at IS NULL{uid_cond}",
@@ -1241,28 +1241,88 @@ def register(app, get_db):
             cursor.execute("SELECT MIN(created_at) a, MAX(created_at) b FROM llm_usage")
             usage_range = cursor.fetchone() or {'a': None, 'b': None}
 
+            # 사람별 활동 (2026-10-16 개편).
+            #
+            # 예전 칸은 「재료·즐겨찾기·완료·기록·AI」 다섯 개였는데 뜻이 섞여 있었다:
+            #  - 재료 = 지금 냉장고에 든 개수인데 "담은 횟수" 로 읽혔고, 식구 그룹이면
+            #    재료가 창설자 계정에 저장돼 나머지 식구는 늘 0 이었다.
+            #  - AI = 호출 횟수가 아니라 **크레딧 합**이었고, 챗봇·사진·식단이 한 칸에 섞였다.
+            # 그래서 「지금 가진 것」 과 「한 일(횟수)」 을 칸으로 나눈다.
+            #  - 지금 가진 것: 냉장고 재료(그룹이면 그룹 냉장고), 즐겨찾기, 완료, 기록
+            #  - 한 일: 재료 담기·빼기(user_events, 서버 기록 2026-10-16~), AI 종류별 호출(llm_usage)
+            cursor.execute("SHOW TABLES LIKE 'households'")
+            fridge_owner = (
+                "COALESCE((SELECT h.storage_user_id FROM households h WHERE h.id = u.household_id), u.id)"
+                if cursor.fetchone() else "u.id"
+            )
+            cursor.execute("SHOW TABLES LIKE 'user_events'")
+            has_events = bool(cursor.fetchone())
+            # 서버 기록은 detail 에 개수를 적는다. 개수가 없는 옛 기록은 1건으로 친다.
+            ev_join = (
+                """
+                LEFT JOIN (
+                  SELECT user_id,
+                         SUM(CASE WHEN name = 'ingredient_add'
+                                  THEN COALESCE(CAST(detail AS UNSIGNED), 1) ELSE 0 END) ing_added,
+                         SUM(CASE WHEN name = 'ingredient_remove'
+                                  THEN COALESCE(CAST(detail AS UNSIGNED), 1) ELSE 0 END) ing_removed,
+                         MAX(created_at) last_at
+                  FROM user_events WHERE user_id IS NOT NULL GROUP BY user_id
+                ) ev ON ev.user_id = u.id
+                """ if has_events else
+                "LEFT JOIN (SELECT NULL user_id, 0 ing_added, 0 ing_removed, NULL last_at) ev ON 1 = 0"
+            )
             cursor.execute(
                 """
                 SELECT u.id, u.nickname, u.email, u.created_at,
-                       (SELECT COUNT(*) FROM user_ingredients WHERE user_id=u.id) ingredients,
+                       (SELECT COUNT(*) FROM user_ingredients WHERE user_id = """ + fridge_owner + """) ingredients,
+                       u.household_id IS NOT NULL in_household,
+                       COALESCE(ev.ing_added, 0) ing_added,
+                       COALESCE(ev.ing_removed, 0) ing_removed,
                        (SELECT COUNT(*) FROM user_favorite_recipes WHERE user_id=u.id) favorites,
                        (SELECT COUNT(*) FROM user_completed_recipes WHERE user_id=u.id) completed,
                        (SELECT COUNT(*) FROM user_recorded_recipes WHERE user_id=u.id) recorded,
-                       (SELECT COALESCE(SUM(credits),0) FROM llm_usage WHERE user_id=u.id) credits,
+                       COALESCE(ai.chat, 0) ai_chat,
+                       COALESCE(ai.vision, 0) ai_vision,
+                       COALESCE(ai.plan, 0) ai_plan,
+                       COALESCE(ai.credits, 0) credits,
                        GREATEST(
-                         COALESCE((SELECT MAX(updated_at) FROM user_ingredients WHERE user_id=u.id), u.created_at),
+                         u.created_at,
+                         COALESCE(ev.last_at, u.created_at),
+                         COALESCE(ai.last_at, u.created_at),
+                         COALESCE((SELECT MAX(saved_at) FROM user_ingredients WHERE user_id=u.id), u.created_at),
                          COALESCE((SELECT MAX(created_at) FROM user_completed_recipes WHERE user_id=u.id), u.created_at),
                          COALESCE((SELECT MAX(created_at) FROM user_recorded_recipes WHERE user_id=u.id), u.created_at),
-                         COALESCE((SELECT MAX(created_at) FROM llm_usage WHERE user_id=u.id), u.created_at)
+                         COALESCE((SELECT MAX(created_at) FROM user_favorite_recipes WHERE user_id=u.id), u.created_at)
                        ) AS last_active
                 FROM users u
+                """ + ev_join + """
+                LEFT JOIN (
+                  SELECT user_id,
+                         SUM(kind = 'chat') chat, SUM(kind = 'vision') vision, SUM(kind = 'plan') plan,
+                         SUM(credits) credits, MAX(created_at) last_at
+                  FROM llm_usage WHERE user_id IS NOT NULL GROUP BY user_id
+                ) ai ON ai.user_id = u.id
                 WHERE u.deleted_at IS NULL""" + uid_cond + """
                 ORDER BY last_active DESC
-                LIMIT 100
+                LIMIT 1000
                 """,
                 tuple(uid_params),
             )
             people = cursor.fetchall()
+            for r in people:
+                for k in ('ing_added', 'ing_removed', 'ai_chat', 'ai_vision', 'ai_plan', 'credits'):
+                    r[k] = int(r[k] or 0)
+                r['in_household'] = bool(r['in_household'])
+
+            # 재료 담기·빼기는 서버가 2026-10-16 부터 남긴다. 그 전 숫자는 없다는 걸 화면에 적는다.
+            actions_from = None
+            if has_events:
+                cursor.execute(
+                    "SELECT MIN(created_at) a FROM user_events "
+                    "WHERE name IN ('ingredient_add', 'ingredient_remove')"
+                )
+                actions_from = (cursor.fetchone() or {}).get('a')
         finally:
             cursor.close()
             db.close()
@@ -1302,6 +1362,7 @@ def register(app, get_db):
                 'usage_to': _iso(usage_range['b']),
                 'events_from': _iso(events_range['a']),
                 'events_to': _iso(events_range['b']),
+                'actions_from': _iso(actions_from),
             },
             'blind_spots': [
                 '앱을 지우고 다시 깐 비회원 — 기기 식별자가 새로 만들어져 다른 사람으로 보인다',
@@ -1349,12 +1410,19 @@ def register(app, get_db):
         cursor = db.cursor()
         out = {}
         try:
+            # total  = 가입한 계정 전부 (지금 탈퇴했어도 포함)
+            # active = 그중 **지금도 탈퇴하지 않은** 계정
+            # 「가입 − 탈퇴」 로 빼지 않고 따로 센다: 기간을 고르면 탈퇴는 '탈퇴한 때' 로
+            # 거르므로, 그 기간 탈퇴자 중엔 기간 전에 가입한 사람도 섞여 빼기가 맞지 않는다.
             cursor.execute(
-                "SELECT COUNT(*) total, "
-                f"SUM(household_id IS NOT NULL) in_household FROM users WHERE 1=1{sign_cond}",
+                "SELECT COUNT(*) total, SUM(deleted_at IS NULL) active, "
+                "SUM(household_id IS NOT NULL AND deleted_at IS NULL) in_household "
+                f"FROM users WHERE 1=1{sign_cond}",
                 tuple(sign_params),
             )
             out['users'] = cursor.fetchone()
+            out['users']['active'] = int(out['users']['active'] or 0)
+            out['users']['in_household'] = int(out['users']['in_household'] or 0)
             cursor.execute(
                 f"SELECT COUNT(*) n FROM users WHERE deleted_at IS NOT NULL{gone_cond}",
                 tuple(gone_params),

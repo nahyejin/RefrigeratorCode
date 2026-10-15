@@ -10,6 +10,7 @@ import hashlib
 import json
 import base64
 import hmac
+from collections import Counter
 from html import escape as html_escape
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -4689,6 +4690,18 @@ def save_user_ingredients(user_id):
             # 저장 시점 기록
             saved_at = datetime.now()
 
+            # 저장은 "전부 지우고 다시 넣기" 라서 무엇을 담고 뺐는지가 따로 안 남는다.
+            # 지우기 전 목록과 새 목록을 이름으로 견줘 담은 개수·뺀 개수를 센다 —
+            # 어드민 「사람별 활동」의 재료 담기/빼기 (2026-10-16).
+            cursor.execute("SELECT name FROM user_ingredients WHERE user_id = %s", (storage_user_id,))
+            before_names = Counter(r['name'] for r in cursor.fetchall())
+            after_names = Counter(
+                ing['name'] for box in ['frozen', 'fridge', 'room'] for ing in ingredients.get(box, [])
+            )
+            cursor.execute("SELECT fridge_seeded FROM users WHERE id = %s", (user_id,))
+            seeded_row = cursor.fetchone()
+            was_seeded = bool(seeded_row and seeded_row.get('fridge_seeded'))
+
             # 기존 재료 삭제
             cursor.execute("DELETE FROM user_ingredients WHERE user_id = %s", (storage_user_id,))
 
@@ -4713,6 +4726,17 @@ def save_user_ingredients(user_id):
             except Exception as e:
                 print(f'[save_user_ingredients] fridge_seeded 표시 실패(무시): {e}')
             db.commit()
+
+            # 이 계정의 **첫 저장**은 세지 않는다 — 가입 직후 기본 재료를 넣거나 비회원 때
+            # 담아 둔 것을 옮기는 저장이라, 세면 모든 신규 가입자가 "재료 10개 담음" 으로 보인다.
+            if was_seeded:
+                import user_events
+                added = sum((after_names - before_names).values())
+                removed = sum((before_names - after_names).values())
+                if added:
+                    user_events.log_action(get_db, user_id, 'ingredient_add', str(added))
+                if removed:
+                    user_events.log_action(get_db, user_id, 'ingredient_remove', str(removed))
             return jsonify({'message': '재료가 저장되었습니다.', 'saved_at': saved_at.strftime('%Y-%m-%d %H:%M:%S')}), 200
             
         except Exception as e:
@@ -4800,6 +4824,8 @@ def add_user_recorded_recipe(user_id):
                 (user_id, recipe_id)
             )
             db.commit()
+            import user_events
+            user_events.log_action(get_db, user_id, 'recipe_action', 'record_add')
             return jsonify({'message': '레시피가 기록되었습니다.'}), 200
             
         except Exception as e:
@@ -4838,6 +4864,8 @@ def remove_user_recorded_recipe(user_id, recipe_id):
                 (user_id, recipe_id)
             )
             db.commit()
+            import user_events
+            user_events.log_action(get_db, user_id, 'recipe_action', 'record_remove')
             return jsonify({'message': '레시피 기록이 삭제되었습니다.'}), 200
             
         except Exception as e:
@@ -4951,6 +4979,9 @@ def add_user_completed_recipe(user_id):
                     title=(recipe_row['title'] if recipe_row else '레시피'), recipe_id=recipe_id,
                 )
             db.commit()
+            # 식구가 대신 눌렀으면 **누른 사람**의 활동으로 센다.
+            import user_events
+            user_events.log_action(get_db, actor_user_id, 'recipe_action', 'complete_add')
             return jsonify({'message': '레시피가 완료되었습니다.'}), 200
 
         except Exception as e:
@@ -5010,6 +5041,8 @@ def remove_user_completed_recipe(user_id, recipe_id):
                     snapshot_created_at=existing['created_at'],
                 )
             db.commit()
+            import user_events
+            user_events.log_action(get_db, actor_user_id, 'recipe_action', 'complete_remove')
             return jsonify({'message': '레시피 완료가 취소되었습니다.'}), 200
 
         except Exception as e:
@@ -5833,6 +5866,8 @@ def add_user_favorite_recipe(user_id):
                 (user_id, recipe_id)
             )
             db.commit()
+            import user_events
+            user_events.log_action(get_db, user_id, 'recipe_action', 'favorite_add')
             return jsonify({'message': '레시피가 즐겨찾기에 추가되었습니다.'}), 200
 
         except Exception as e:
@@ -5870,6 +5905,8 @@ def remove_user_favorite_recipe(user_id, recipe_id):
                 (user_id, recipe_id)
             )
             db.commit()
+            import user_events
+            user_events.log_action(get_db, user_id, 'recipe_action', 'favorite_remove')
             return jsonify({'message': '레시피 즐겨찾기가 취소되었습니다.'}), 200
 
         except Exception as e:

@@ -78,6 +78,10 @@ async function api(path: string, init?: RequestInit) {
 const shortDate = (iso: string | null) => (iso ? iso.slice(0, 10) : '');
 const num = (n: number) => n.toLocaleString('ko-KR');
 
+/** llm_usage.kind → 화면 이름. 예전엔 vision 이 아니면 전부 '요리 AI' 라 식단 짜기가 챗봇과 구분이 안 됐다. */
+const AI_KIND: Record<string, string> = { chat: 'AI 챗봇', vision: 'AI 사진 등록', plan: 'AI 식단 짜기' };
+const aiKindName = (kind: string) => AI_KIND[kind] || kind;
+
 const S = {
   page: { minHeight: '100vh', background: 'var(--surface-sub)', padding: '16px 12px 48px' } as React.CSSProperties,
   card: {
@@ -450,7 +454,7 @@ const UsageHistory: React.FC<{ userId: number }> = ({ userId }) => {
           {rows.map((r, i) => (
             <tr key={i}>
               <td style={S.td}>{(r.created_at || '').replace('T', ' ').slice(0, 16)}</td>
-              <td style={S.td}>{r.kind === 'vision' ? '사진' : '요리 AI'}</td>
+              <td style={S.td}>{aiKindName(r.kind)}</td>
               <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums' }}>{r.credits}</td>
               <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums' }}>{r.images ?? '-'}</td>
               <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums' }}>
@@ -2586,7 +2590,7 @@ const Dashboard: React.FC = () => {
                 <tbody>
                   {act.features.map((f: any) => (
                     <tr key={f.kind}>
-                      <td style={S.td}>{f.kind === 'vision' ? '사진 인식' : '요리 AI'}</td>
+                      <td style={S.td}>{aiKindName(f.kind)}</td>
                       <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums' }}>{f.users}</td>
                       <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums' }}>{num(f.calls)}</td>
                       <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums' }}>{num(f.credits)}</td>
@@ -2597,35 +2601,125 @@ const Dashboard: React.FC = () => {
             </div>
           )}
 
-          <div style={{ ...S.card, padding: 0, overflowX: 'auto' }}>
-            <h2 style={{ ...S.h2, padding: '16px 16px 0', margin: 0 }}>사람별 활동</h2>
-            <div style={{ padding: '0 16px' }}>
-              <Range>전체 기간 누적 · 마지막 활동이 최근인 100명</Range>
-            </div>
-            <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 700, marginTop: 10 }}>
-              {/* 가입일이 있어야 "언제 들어온 사람이 아직 쓰고 있나" 를 읽을 수 있다.
-                  마지막 활동만 보면 어제 가입해서 어제 쓴 사람과 반년 전에 가입해
-                  계속 쓰는 사람이 똑같아 보인다. */}
-              <thead><tr>{['닉네임', '가입일', '재료', '즐겨찾기', '완료', '기록', 'AI', '마지막 활동'].map(h => (
-                <th key={h} style={S.th}>{h}</th>))}</tr></thead>
-              <tbody>
-                {(act.people || []).map((u: any) => (
-                  <tr key={u.id}>
-                    <td style={S.td}>{u.nickname}</td>
-                    <td style={{ ...S.td, fontSize: 12, color: 'var(--ink-500)' }}>
-                      {dayOf(u.created_at) || '-'}
-                    </td>
-                    <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums' }}>{u.ingredients}</td>
-                    <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums' }}>{u.favorites}</td>
-                    <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums' }}>{u.completed}</td>
-                    <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums' }}>{u.recorded}</td>
-                    <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums' }}>{u.credits}</td>
-                    <td style={S.td}>{String(u.last_active || '').replace('T', ' ').slice(0, 16)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          {(() => {
+            // 칸을 「지금 가진 것」 과 「한 일(횟수)」 로 나눈다. 예전 「재료」 는 지금
+            // 냉장고 개수인지 담은 횟수인지, 「AI」 는 호출인지 크레딧인지 알 수 없었다.
+            const people: any[] = act.people || [];
+            const COLS: { key: string; label: string; group: string }[] = [
+              { key: 'ingredients', label: '냉장고', group: '재료' },
+              { key: 'ing_added', label: '담기', group: '재료' },
+              { key: 'ing_removed', label: '빼기', group: '재료' },
+              { key: 'favorites', label: '즐겨찾기', group: '레시피 (지금)' },
+              { key: 'completed', label: '완료', group: '레시피 (지금)' },
+              { key: 'recorded', label: '기록', group: '레시피 (지금)' },
+              { key: 'ai_chat', label: '챗봇', group: 'AI (호출 횟수)' },
+              { key: 'ai_vision', label: '사진 등록', group: 'AI (호출 횟수)' },
+              { key: 'ai_plan', label: '식단 짜기', group: 'AI (호출 횟수)' },
+              { key: 'credits', label: '크레딧', group: 'AI (호출 횟수)' },
+            ];
+            const groups = COLS.reduce<{ name: string; span: number }[]>((acc, c) => {
+              const last = acc[acc.length - 1];
+              if (last && last.name === c.group) last.span += 1;
+              else acc.push({ name: c.group, span: 1 });
+              return acc;
+            }, []);
+            const total = (key: string) => people.reduce((s, u) => s + (Number(u[key]) || 0), 0);
+            // 20명이 넘으면 표 안에서 스크롤한다. 머리글·합계 줄은 붙어 있게(sticky).
+            const scroll = people.length > 20;
+            const head = { ...S.th, position: 'sticky' as const, background: 'var(--surface)', zIndex: 1 };
+            const cellNum = { ...S.td, fontVariantNumeric: 'tabular-nums' as const, textAlign: 'right' as const };
+            const groupEdge = (i: number) =>
+              i > 0 && COLS[i - 1].group !== COLS[i].group ? { borderLeft: '1px solid var(--line-200)' } : {};
+            const foot = {
+              ...cellNum, fontWeight: 700, position: 'sticky' as const, bottom: 0,
+              background: 'var(--surface-sub)', borderTop: '1px solid var(--line-300)',
+            };
+            return (
+              <div style={{ ...S.card, padding: 0 }}>
+                <h2 style={{ ...S.h2, padding: '16px 16px 0', margin: 0 }}>사람별 활동</h2>
+                <div style={{ padding: '0 16px' }}>
+                  <Range>
+                    {AP.actions_from
+                      ? `재료 담기·빼기는 ${dayOf(AP.actions_from)}부터`
+                      : '재료 담기·빼기는 2026-10-16 이후 기록부터'} · 나머지는 전체 기간 누적 · 탈퇴 제외 {num(people.length)}명
+                  </Range>
+                </div>
+                <div style={{ overflow: 'auto', maxHeight: scroll ? 760 : undefined, marginTop: 10 }}>
+                  <table style={{ borderCollapse: 'separate', borderSpacing: 0, width: '100%', minWidth: 980 }}>
+                    {/* 가입일이 있어야 "언제 들어온 사람이 아직 쓰고 있나" 를 읽을 수 있다.
+                        마지막 활동만 보면 어제 가입해서 어제 쓴 사람과 반년 전에 가입해
+                        계속 쓰는 사람이 똑같아 보인다. */}
+                    <thead>
+                      <tr>
+                        <th rowSpan={2} style={{ ...head, top: 0 }}>닉네임</th>
+                        <th rowSpan={2} style={{ ...head, top: 0 }}>가입일</th>
+                        {groups.map((g, i) => (
+                          <th key={g.name} colSpan={g.span}
+                              style={{ ...head, top: 0, textAlign: 'center', color: 'var(--ink-700)',
+                                       ...(i > 0 ? { borderLeft: '1px solid var(--line-200)' } : {}) }}>
+                            {g.name}
+                          </th>
+                        ))}
+                        <th rowSpan={2} style={{ ...head, top: 0 }}>마지막 활동</th>
+                      </tr>
+                      <tr>
+                        {COLS.map((c, i) => (
+                          <th key={c.key} style={{ ...head, top: 31, textAlign: 'right', ...groupEdge(i) }}>{c.label}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {people.map((u: any) => (
+                        <tr key={u.id}>
+                          <td style={S.td}>{u.nickname}</td>
+                          <td style={{ ...S.td, fontSize: 12, color: 'var(--ink-500)' }}>
+                            {dayOf(u.created_at) || '-'}
+                          </td>
+                          {COLS.map((c, i) => (
+                            <td key={c.key} style={{ ...cellNum, ...groupEdge(i),
+                                                     color: Number(u[c.key]) ? undefined : 'var(--ink-300)' }}>
+                              {num(Number(u[c.key]) || 0)}
+                              {c.key === 'ingredients' && u.in_household ? (
+                                <span title="식구 그룹 냉장고 — 그룹원 모두 같은 숫자"
+                                      style={{ fontSize: 10, color: 'var(--ink-500)', marginLeft: 3 }}>그룹</span>
+                              ) : null}
+                            </td>
+                          ))}
+                          <td style={S.td}>{String(u.last_active || '').replace('T', ' ').slice(0, 16)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr>
+                        <td style={{ ...foot, textAlign: 'left' }}>합계</td>
+                        <td style={{ ...foot, textAlign: 'left', fontWeight: 400, color: 'var(--ink-500)' }}>
+                          {num(people.length)}명
+                        </td>
+                        {COLS.map((c, i) => (
+                          <td key={c.key} style={{ ...foot, ...groupEdge(i) }}>
+                            {c.key === 'ingredients' ? '-' : num(total(c.key))}
+                          </td>
+                        ))}
+                        <td style={foot} />
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--ink-500)', padding: '10px 16px 14px', lineHeight: 1.8 }}>
+                  <b>냉장고</b> 지금 냉장고에 든 재료 수. 식구 그룹이면 그룹 냉장고 하나를 같이 쓰므로
+                  그룹원 모두 같은 숫자예요(그래서 합계는 내지 않아요).
+                  <br />
+                  <b>담기 / 빼기</b> 직접 입력·사진 등록·챗봇 등 어떤 길로든 냉장고에 넣고 뺀 재료 개수.
+                  가입 직후 기본 재료가 들어가는 첫 저장은 세지 않아요.
+                  <br />
+                  <b>즐겨찾기 · 완료 · 기록</b> 지금 남아 있는 레시피 수. 취소하면 줄어들고,
+                  같은 레시피를 두 번 완료해도 1이에요.
+                  <br />
+                  <b>AI</b> 기능별로 쓴 횟수. <b>크레딧</b>은 그 횟수에 기능별 가격을 곱해 차감된 합이에요.
+                </div>
+              </div>
+            );
+          })()}
         </>
       )}
 
@@ -2640,10 +2734,17 @@ const Dashboard: React.FC = () => {
           {(() => {
             const R = !!data.filters?.ranged;
             const span = R ? spanOf(data.filters?.from, data.filters?.to) : null;
+            // 「전체 사용자」 하나만 있을 땐 탈퇴를 뺀 숫자인지 누적 가입인지 읽을 수 없었다
+            // (2026-10-16 사용자 지적). 현재 회원과 누적 가입을 나란히 두고 뜻을 적는다.
             return [
-            [R ? '가입' : '전체 사용자', num(data.users?.total ?? 0), span || '누적 (탈퇴 포함)'],
-            ['탈퇴', num(data.users?.deleted ?? 0), span || '누적'],
-            ['식구 그룹 소속', num(data.users?.in_household ?? 0), span || '지금 이 순간'],
+            [R ? '가입 후 남은 회원' : '현재 회원', num(data.users?.active ?? 0),
+             R ? `${span}에 가입해서 지금도 탈퇴 안 한 계정` : '지금 탈퇴하지 않은 계정'],
+            [R ? '가입' : '누적 가입', num(data.users?.total ?? 0),
+             R ? `${span}에 가입한 계정 (그 뒤 탈퇴 포함)` : '지금까지 가입한 계정 전부 (탈퇴 포함)'],
+            ['탈퇴', num(data.users?.deleted ?? 0),
+             R ? `${span}에 탈퇴한 계정 (가입은 그 전일 수 있음)` : '지금까지 탈퇴한 계정 전부'],
+            ['식구 그룹 소속', num(data.users?.in_household ?? 0),
+             R ? `${span} 가입자 중 지금 그룹에 있는 회원` : '지금 그룹에 있는 회원'],
             [R ? '크레딧' : '이번 주 크레딧', num(data.this_week?.credits ?? 0),
              span || `${dayOf(P.week_start) || '월요일'}부터`],
             [R ? '호출' : '이번 주 호출', num(data.this_week?.calls ?? 0),
@@ -2691,7 +2792,7 @@ const Dashboard: React.FC = () => {
             <tbody>
               {data.credit_check.map((r: any) => (
                 <tr key={r.kind}>
-                  <td style={S.td}>{r.kind === 'vision' ? '사진' : '요리 AI'}</td>
+                  <td style={S.td}>{aiKindName(r.kind)}</td>
                   <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums' }}>{num(r.n)}</td>
                   <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums' }}>{num(r.avg_tokens || 0)}</td>
                   <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums', fontWeight: 700 }}>

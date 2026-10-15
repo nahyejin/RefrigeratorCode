@@ -36,15 +36,25 @@ MAX_BATCH = 50
 ALLOWED = {
     "screen_view",      # 화면 진입 (screen 필수)
     "session_start",    # 방문 시작
-    "ingredient_add",   # 재료 담기
-    "vision_use",       # 사진 인식
-    "chat_use",         # 챗봇 질문
-    "recipe_open",      # 레시피 열기
-    "recipe_action",    # 즐겨찾기/완료/기록 (detail 에 무엇인지)
+    "ingredient_add",     # 재료 담기 (서버 기록은 detail 에 개수)
+    "ingredient_remove",  # 재료 빼기 (서버 기록은 detail 에 개수) — 2026-10-16 추가
+    "vision_use",         # 사진 인식
+    "chat_use",           # 챗봇 질문
+    "recipe_open",        # 레시피 열기
+    "recipe_action",      # 즐겨찾기/완료/기록/식단 (detail 에 무엇인지 — RECIPE_ACTIONS)
     "coupang_click",    # 쿠팡 링크
     "signup",           # 가입 완료
     "login",            # 로그인
 }
+
+# recipe_action 의 detail 값. 서버가 남기는 것(favorite_*/complete_*/record_*)과
+# 앱이 남기는 것(plan_*)이 섞여 있다. 어드민 「사람별 활동」이 이 값으로 칸을 나눈다.
+RECIPE_ACTIONS = (
+    "favorite_add", "favorite_remove",
+    "complete_add", "complete_remove",
+    "record_add", "record_remove",
+    "plan_add", "plan_remove", "plan_apply",
+)
 
 _ddl_lock = threading.Lock()
 _ddl_done = False
@@ -191,3 +201,34 @@ def record(get_db, events, user_id=None, device_id=None, platform_hint=None):
         cursor.close()
         db.close()
     return len(rows)
+
+
+def log_action(get_db, user_id, name, detail=None):
+    """서버가 처리한 행동을 **서버에서** 남긴다 (2026-10-16).
+
+    왜 서버에서 남기나:
+        재료 담기·즐겨찾기·완료·기록은 앱이 보내기로 해 놓고 실제로는 보내는 코드가
+        없었다. 앱에서 고치면 스토어 심사를 거쳐 새 버전이 깔려야 비로소 쌓이기
+        시작하지만, 서버에서 남기면 **지금 깔린 앱부터 바로** 쌓인다. 이 행동들은
+        어차피 서버 API 를 거치므로 빠지는 것도 없다.
+
+    방문(session_id)은 모른다 — 서버 요청에는 실려 오지 않는다. 그래서 이 기록은
+    「사람별 활동」에는 잡히지만 유입 출처별 성적표(방문 단위)에는 안 잡힌다.
+
+    기록 실패가 원래 요청을 망치면 안 되므로 예외는 모두 삼킨다.
+    """
+    if not user_id:
+        return
+    try:
+        device_id, hint = None, None
+        try:
+            from flask import request
+            device_id = request.headers.get("X-Device-Id") or None
+            hint = platform_from_headers(request.headers.get("Origin"),
+                                         request.headers.get("User-Agent"))
+        except RuntimeError:
+            pass  # 요청 밖(배치 등)에서 불렸다
+        record(get_db, [{"name": name, "detail": detail}],
+               user_id=user_id, device_id=device_id, platform_hint=hint)
+    except Exception as e:  # noqa: BLE001
+        print(f"[events] 서버 기록 실패(무시): {name} {detail} {e}", flush=True)
