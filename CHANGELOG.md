@@ -13165,3 +13165,10 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 
 ### 안드로이드 1.0.8(versionCode 9) 빌드
 - 1.0.7(8, 10/9) 이후 앱 화면 수정(10/10~10/15, RELEASE_NOTES 「다음 버전」 표 전부) 반영. `build.gradle` 1.0.7(8) → **1.0.8(9)** → `npm run app:sync` → `gradlew bundleRelease`(JAVA_HOME = Android Studio jbr) → `frontend/android/app/build/outputs/bundle/release/app-release.aab`(13.1MB, `jarsigner -verify` 「jar verified」, 매니페스트에 `1.0.8`·`kr.cookmatch.app`, 번들 JS 에 Railway 주소). Play Console 업로드는 사용자.
+
+## 2026-10-16
+
+### iOS 1.0.7 (빌드 13) 맥 빌드
+- 맥에서 로컬 변경 없음 확인 → `git pull`(`c5b1d9f9` 까지, 75커밋) → `project.pbxproj` 앱·위젯 4개 설정 1.0.6(12) → 1.0.7(13) → `npm install` → `npm run build` → `npx cap sync ios` → `xcodebuild … Release generic/platform=iOS build` BUILD SUCCEEDED.
+- 윈도우에서 바뀐 iOS 스크린샷 03·04·05·06·08 을 App Store Connect 중형 칸용 `store/screenshots/ios_1206x2622/` 로 다시 만듦(높이 2622 로 줄이고 가운데 1206 폭).
+- Archive 전 Xcode 를 다시 열고 General 탭 Version 1.0.7 / Build 13 확인할 것(10-10 에 예전 번호로 Archive 된 일). Archive·업로드·제출은 사용자.
