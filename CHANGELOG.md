@@ -13160,3 +13160,8 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 - 원인: 백그라운드로 뒤쪽 페이지(20개씩)가 올 때마다 받은 것 전체를 프론트 매칭률(동의어·가중치 반영 — 서버 `match_rate` 와 조금 다름)로 다시 정렬 → 늦게 온 레시피가 1페이지로 끼어듦.
 - `RecipeList.tsx` `pinnedOrderRef`: 같은 조건(정렬·매칭 구간·부족 개수·임박 재료·`lastFilterHash`·내 재료) 안에서는 이미 놓인 id 순서를 그대로 두고, 새로 온 것만 정렬해 뒤에 붙임. 조건이 바뀌면 키가 달라져 처음부터 정렬.
 - 확인(로컬, 냉장고 11개): 첫 화면 뜬 뒤 3초 간격 24초 동안 위 10개 순서 동일, 그 사이 페이지 1→5까지 이어 받음. tsc 통과.
+
+## 2026-10-16
+
+### 안드로이드 1.0.8(versionCode 9) 빌드
+- 1.0.7(8, 10/9) 이후 앱 화면 수정(10/10~10/15, RELEASE_NOTES 「다음 버전」 표 전부) 반영. `build.gradle` 1.0.7(8) → **1.0.8(9)** → `npm run app:sync` → `gradlew bundleRelease`(JAVA_HOME = Android Studio jbr) → `frontend/android/app/build/outputs/bundle/release/app-release.aab`(13.1MB, `jarsigner -verify` 「jar verified」, 매니페스트에 `1.0.8`·`kr.cookmatch.app`, 번들 JS 에 Railway 주소). Play Console 업로드는 사용자.
