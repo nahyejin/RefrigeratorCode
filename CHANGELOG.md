@@ -13195,3 +13195,4 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 - 확인: Flask 테스트 클라이언트(발송만 가짜) — 같은 그룹 식구 1명에게 제목 「나혜진님이 레시피를 보냈어요」·본문 「“소고기 찹스테이크…”」·url 확인, 없는 레시피 404, 로그인 없음 401, 테스트 행 삭제. 로컬 FCM·APNs 인증 로드·JWT 생성 OK. 브라우저(로컬, 가짜 로그인·가짜 그룹): 공유 → 고르는 창(나 제외 2명 기본 선택) → 보내기 → 「보냈어요 · 테스트할머니님은 알림이 꺼져 있어요」, `/recipe-list?open=178500&from=family` → 패널 열림 → 닫기 → 「언제 해먹을까요?」 → 내일 → 적용 → 10/17 계획 저장. tsc 통과.
 - **남은 것(사용자)**: Railway 백엔드 환경변수에 푸시 인증 정보 넣기 — 없으면 서버가 보낼 수 없어 「알림을 받을 기기가 없어요」로 나온다.
 - Railway 푸시 환경변수: 값은 바탕화면 `Railway_푸시_환경변수.txt`(저장소 밖, git 아님)로 모아 줌 — FIREBASE_SERVICE_ACCOUNT_JSON·APNS_KEY_P8 은 base64(push_send._maybe_b64 가 풀어 씀), APNS_KEY_ID·APNS_TEAM_ID·VAPID_*. 환경변수만으로 FCM·APNs 인증 로드·JWT 생성 확인. Railway 입력은 사용자.
+- 확인용 `GET /api/push/server-ready` → {android, ios, web} 예/아니오(비밀 값 없음).

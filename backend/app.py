@@ -7014,6 +7014,30 @@ def push_status():
     return jsonify({'subscribed': found})
 
 
+@app.route('/api/push/server-ready', methods=['GET'])
+def push_server_ready():
+    """서버가 바로 푸시를 보낼 수 있는지(인증 정보가 읽히는지)만 예/아니오로 — 비밀 값은 내보내지 않는다(2026-10-16)."""
+    import push_send
+    out = {}
+    try:
+        out['android'] = bool(push_send._load_fcm()[0])
+    except Exception as e:
+        out['android'] = False
+        out['android_error'] = type(e).__name__
+    try:
+        cfg = push_send._load_apns()
+        out['ios'] = bool(cfg and push_send._apns_bearer(cfg))
+    except Exception as e:
+        out['ios'] = False
+        out['ios_error'] = type(e).__name__
+    try:
+        import pywebpush  # noqa: F401
+        out['web'] = bool(os.getenv('VAPID_PRIVATE_KEY'))
+    except ImportError:
+        out['web'] = False
+    return jsonify(out)
+
+
 @app.route('/api/health')
 def health_check():
     return jsonify({
