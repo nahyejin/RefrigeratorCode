@@ -13196,3 +13196,4 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 - **남은 것(사용자)**: Railway 백엔드 환경변수에 푸시 인증 정보 넣기 — 없으면 서버가 보낼 수 없어 「알림을 받을 기기가 없어요」로 나온다.
 - Railway 푸시 환경변수: 값은 바탕화면 `Railway_푸시_환경변수.txt`(저장소 밖, git 아님)로 모아 줌 — FIREBASE_SERVICE_ACCOUNT_JSON·APNS_KEY_P8 은 base64(push_send._maybe_b64 가 풀어 씀), APNS_KEY_ID·APNS_TEAM_ID·VAPID_*. 환경변수만으로 FCM·APNs 인증 로드·JWT 생성 확인. Railway 입력은 사용자.
 - 확인용 `GET /api/push/server-ready` → {android, ios, web} 예/아니오(비밀 값 없음).
+- 배포 후 운영 서버 확인: `/api/push/server-ready` → android·ios·web 모두 true(사용자가 Railway 환경변수 입력·배포).
