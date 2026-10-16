@@ -13200,3 +13200,4 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 
 ### 안드로이드 1.0.9(versionCode 10) 빌드
 - 가족에게 레시피 보내기까지 넣으려고 1.0.8(9, 검토/게시 중) 다음 번호로. `build.gradle` → **1.0.9(10)** → `npm run app:sync` → `gradlew bundleRelease` → 서명된 `app-release.aab`(13.1MB, 「jar verified」, 매니페스트 1.0.9, 번들 JS 에 「가족에게 알림으로 보내기」·Railway 주소). Play 업로드는 사용자.
+- Play 1.0.8(9) 2026-10-16 승인·게시 완료(사용자 확인, 제출 당일). 1.0.9(10)은 그 위 업데이트로 올림.
