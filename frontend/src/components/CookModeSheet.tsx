@@ -91,10 +91,12 @@ interface Props {
   fallbackLink?: string;
   /** 내 냉장고에 있는 재료(대표어). 있는 것/없는 것을 나눠 보여 준다. */
   myIngredients?: string[];
+  /** 닫을 때 「언제 해먹을까요?」 팝업 — 가족이 알림으로 보낸 레시피로 열었을 때 */
+  askPlanOnClose?: boolean;
 }
 
 const CookModeSheet: React.FC<Props> = ({
-  isOpen, onClose, recipeId, fallbackTitle, fallbackLink, myIngredients = [],
+  isOpen, onClose, recipeId, fallbackTitle, fallbackLink, myIngredients = [], askPlanOnClose = false,
 }) => {
   const [data, setData] = React.useState<CookData | null>(null);
   const [loading, setLoading] = React.useState(false);
@@ -146,6 +148,10 @@ const CookModeSheet: React.FC<Props> = ({
    * 안 떴다**(실사용 지적, 2026-09-15). 닫힘 판정은 이 사본으로 한다.
    */
   const nudgeTargetRef = React.useRef<NudgeTarget | null>(null);
+  /** 가족이 보낸 레시피를 닫을 때 묻는 「언제 해먹을까요?」 대상(값이 있으면 팝업이 떠 있다) */
+  const [planAsk, setPlanAsk] = React.useState<NudgeTarget | null>(null);
+  const askPlanRef = React.useRef(false);
+  React.useEffect(() => { if (isOpen) askPlanRef.current = askPlanOnClose; }, [isOpen, askPlanOnClose]);
 
   React.useEffect(() => {
     if (!isOpen || recipeId == null) return;
@@ -167,6 +173,12 @@ const CookModeSheet: React.FC<Props> = ({
     const target = nudgeTargetRef.current;
     openedAtRef.current = null;
     if (openedAt == null || !target) return;
+    // 가족이 보낸 레시피 — 닫는 순간 날짜를 묻는다(완료 확인보다 먼저, 둘 중 하나만)
+    if (askPlanRef.current) {
+      askPlanRef.current = false;
+      setPlanAsk(target);
+      return;
+    }
     // 이미 완료한 레시피면 물을 이유가 없다 — 시트 밖(카드)에서 눌렀을 수도
     // 있으니 화면 상태가 아니라 기기 목록으로 본다.
     if (Date.now() - openedAt >= DONE_NUDGE_MS && !getRecipeActionState(target.id).done) {
@@ -781,6 +793,32 @@ const CookModeSheet: React.FC<Props> = ({
     {/* 토스트는 시트 **밖**에 둔다 — 시트 안에 있으면 닫힌 뒤 확인창에서
         「완료했어요」를 눌렀을 때 결과 안내가 안 보인다. */}
     {toast && <Toast message={toast} />}
+    {planAsk && (
+      <Dialog
+        open
+        onClose={() => setPlanAsk(null)}
+        title="언제 해먹을까요?"
+        width={360}
+        showClose={false}
+        ownFooter
+      >
+        <div>
+          {planAsk.title && (
+            <div style={{ fontSize: 13, color: 'var(--ink-700)', lineHeight: 1.5, marginBottom: 10, wordBreak: 'keep-all' }}>
+              {planAsk.title}
+            </div>
+          )}
+          <PlanThisDay
+            recipeId={planAsk.id}
+            title={planAsk.title || '레시피'}
+            link={planAsk.link}
+            thumbnail={planAsk.thumbnail}
+            popup
+            onDone={(msg) => { setPlanAsk(null); if (msg) setToast(msg); }}
+          />
+        </div>
+      </Dialog>
+    )}
     {doneNudge && (
       <Dialog
         open

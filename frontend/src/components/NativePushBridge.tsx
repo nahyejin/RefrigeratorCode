@@ -30,6 +30,13 @@ const NativePushBridge: React.FC = () => {
         description: '냉장고 재료가 곧 상할 때 알려드려요',
         importance: 4, // 기본 알림음 + 상단 표시
       }).catch(() => {});
+      // 가족이 보낸 레시피(서버 backend/push_send.py 의 channel_id 'family' 와 같은 이름)
+      PushNotifications.createChannel({
+        id: 'family',
+        name: '가족이 보낸 레시피',
+        description: '가족 그룹 식구가 레시피를 보내면 알려드려요',
+        importance: 4,
+      }).catch(() => {});
     }
 
     let removed = false;

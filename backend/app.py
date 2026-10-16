@@ -3822,6 +3822,107 @@ def get_household_member_stats(member_id):
         return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
 
 
+# 레시피를 가족에게 푸시로 보내기(2026-10-16 사용자 요청) — 레시피 카드 「공유」에서 그룹이 있으면 고른다.
+# 「OOO님이 레시피를 보냈어요 / "제목"」 알림을 누르면 냉장고요리에서 그 레시피 패널이 열리고,
+# 닫을 때 「언제 해먹을까요?」를 묻는다(프론트 RecipeShareOpener). 발송은 push_send(서버에서 바로).
+SHARE_PUSH_HOURLY_LIMIT = 30
+
+
+def ensure_recipe_shares_table(cursor):
+    cursor.execute(
+        """CREATE TABLE IF NOT EXISTS recipe_shares (
+               id INT AUTO_INCREMENT PRIMARY KEY,
+               from_user_id INT NOT NULL,
+               to_user_id INT NOT NULL,
+               recipe_id INT NOT NULL,
+               delivered INT NOT NULL DEFAULT 0,
+               created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+               INDEX idx_from_time (from_user_id, created_at),
+               INDEX idx_to_time (to_user_id, created_at)
+           ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"""
+    )
+
+
+@app.route('/api/households/share-recipe', methods=['POST'])
+def share_recipe_to_household():
+    """같은 가족 그룹 식구에게 레시피를 푸시로 보낸다. body: {recipe_id, to_user_ids?(없으면 나 빼고 전원)}"""
+    user_id, err = _auth_user_id()
+    if err:
+        return err
+    data = request.get_json() or {}
+    try:
+        recipe_id = int(data.get('recipe_id'))
+    except (TypeError, ValueError):
+        return jsonify({'error': 'recipe_id가 필요합니다.'}), 400
+    wanted = data.get('to_user_ids')
+
+    ensure_households_table()
+    ensure_push_device_tokens_table()
+    ensure_push_subscriptions_table()
+    db = get_db()
+    cursor = db.cursor()
+    try:
+        household = get_household_by_user(cursor, user_id)
+        if not household:
+            return jsonify({'error': '가족 그룹이 없어요.'}), 400
+        cursor.execute(
+            "SELECT id, nickname FROM users WHERE household_id = %s AND deleted_at IS NULL",
+            (household['id'],)
+        )
+        members = {m['id']: m for m in cursor.fetchall()}
+        me = members.get(user_id)
+        others = [uid for uid in members if uid != user_id]
+        if isinstance(wanted, list) and wanted:
+            targets = [int(u) for u in wanted if str(u).isdigit() and int(u) in others]
+        else:
+            targets = others
+        if not targets:
+            return jsonify({'error': '보낼 식구가 없어요.'}), 400
+
+        ensure_recipe_shares_table(cursor)
+        cursor.execute(
+            "SELECT COUNT(*) AS n FROM recipe_shares WHERE from_user_id = %s AND created_at > NOW() - INTERVAL 1 HOUR",
+            (user_id,)
+        )
+        if (cursor.fetchone() or {}).get('n', 0) >= SHARE_PUSH_HOURLY_LIMIT:
+            return jsonify({'error': '잠시 후 다시 보내 주세요.'}), 429
+
+        cursor.execute("SELECT title FROM recipes WHERE id = %s", (recipe_id,))
+        row = cursor.fetchone()
+        if not row:
+            return jsonify({'error': '레시피를 찾을 수 없어요.'}), 404
+        title = (row['title'] or '').strip()
+        if len(title) > 60:
+            title = title[:58] + '…'
+        sender = (me or {}).get('nickname') or '식구'
+        from push_send import send_to_users
+        results = send_to_users(
+            cursor, targets,
+            title=f"{sender}님이 레시피를 보냈어요",
+            body=f"“{title}”",
+            url=f"/recipe-list?open={recipe_id}&from=family",
+            channel_id="family",
+        )
+        for uid in targets:
+            cursor.execute(
+                "INSERT INTO recipe_shares (from_user_id, to_user_id, recipe_id, delivered) VALUES (%s, %s, %s, %s)",
+                (user_id, uid, recipe_id, results[uid]['sent'])
+            )
+        db.commit()
+        return jsonify({
+            'ok': True,
+            'recipients': [
+                {'id': uid, 'nickname': members[uid]['nickname'], 'delivered': results[uid]['sent']}
+                for uid in targets
+            ],
+        }), 200
+    except Exception as e:
+        print(f"share_recipe_to_household error: {e}")
+        return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
+    finally:
+        db.close()
+
+
 @app.route('/api/households/share-requests', methods=['POST'])
 def create_share_request():
     """"내 즐겨찾기 등을 그룹에 공유해 달라" 요청 보내기. 대상이 이미

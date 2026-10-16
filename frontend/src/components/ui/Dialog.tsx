@@ -32,6 +32,8 @@ interface DialogProps {
    * 이 옵션을 켜면 한 단계 위 층(--z-modal-nested)에 올려 순서와 무관하게 위에 온다.
    */
   nested?: boolean;
+  /** 본문이 자기 버튼(나가기 포함)을 갖고 있을 때만 — 하단 버튼 줄을 그리지 않는다 */
+  ownFooter?: boolean;
 }
 
 /**
@@ -55,6 +57,7 @@ const Dialog: React.FC<DialogProps> = ({
   closeOnBackdrop = true,
   width = 340,
   nested = false,
+  ownFooter = false,
 }) => {
   // 안드로이드 폰 「뒤로」로 닫기(utils/closeOnBack) — ESC 와 같은 뜻
   useCloseOnBack(open, onClose);
@@ -155,7 +158,7 @@ const Dialog: React.FC<DialogProps> = ({
 
         {/* 하단에는 항상 나갈 수 있는 버튼이 있어야 한다.
             (팝업마다 나갈 방법이 있는 곳/없는 곳이 섞여 있던 문제) */}
-        <div style={{ display: 'flex', gap: 8 }}>
+        {!ownFooter && <div style={{ display: 'flex', gap: 8 }}>
           {actions.length === 0 ? (
             <Button variant="outline" size="md" block onClick={onClose}>
               {dismissLabel}
@@ -173,7 +176,7 @@ const Dialog: React.FC<DialogProps> = ({
               </Button>
             ))
           )}
-        </div>
+        </div>}
       </div>
     </Portal>
   );

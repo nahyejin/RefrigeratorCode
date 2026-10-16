@@ -51,10 +51,16 @@ interface Props {
   title: string;
   link?: string;
   thumbnail?: string;
+  /**
+   * 팝업으로 쓸 때(가족이 보낸 레시피 패널을 닫는 순간 — 2026-10-16). 날짜 알약이 처음부터 펼쳐져 있고
+   * 맨 아래 [그만두기][적용하기]. 끝나면 onDone.
+   */
+  popup?: boolean;
+  onDone?: (message?: string) => void;
 }
 
-const PlanThisDay: React.FC<Props> = ({ recipeId, title, link, thumbnail }) => {
-  const [open, setOpen] = React.useState(false);
+const PlanThisDay: React.FC<Props> = ({ recipeId, title, link, thumbnail, popup, onDone }) => {
+  const [open, setOpen] = React.useState(!!popup);
   /** 이 레시피가 이미 잡혀 있는 날들(저장된 상태). 다시 열었을 때 보여야 한다. */
   const [booked, setBooked] = React.useState<string[]>([]);
   /**
@@ -144,10 +150,13 @@ const PlanThisDay: React.FC<Props> = ({ recipeId, title, link, thumbnail }) => {
       track('recipe_action', 'plan_add');
     }
     setConflict(null);
-    setOpen(false);
+    if (!popup) setOpen(false);
     refresh();
-    if (added.length) setToast(`마이캘린더에 ${added.map(short).join(', ')} 담았어요`);
-    else if (removed.length) setToast(`마이캘린더에서 ${removed.map(short).join(', ')} 뺐어요`);
+    const msg = added.length ? `마이캘린더에 ${added.map(short).join(', ')} 담았어요`
+      : removed.length ? `마이캘린더에서 ${removed.map(short).join(', ')} 뺐어요` : '';
+    // 팝업은 곧 닫혀 이 안의 토스트가 같이 사라지므로 문구를 부른 쪽에 넘긴다
+    if (popup) { onDone?.(msg || undefined); return; }
+    if (msg) setToast(msg);
   };
 
   /** 「적용하기」 — 새로 고른 날 중 다른 요리가 있는 날이 있으면 먼저 물어본다. */
@@ -162,22 +171,24 @@ const PlanThisDay: React.FC<Props> = ({ recipeId, title, link, thumbnail }) => {
   const dirty = selected.length !== booked.length || selected.some(k => !booked.includes(k));
 
   return (
-    <section style={{
+    <section style={popup ? {} : {
       border: '1px solid var(--line-200)', borderRadius: 12, padding: '12px 14px',
       background: 'var(--surface-sub)',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 13.5, fontWeight: 700, color: '#1A1A1E' }}>
-            언제 해먹을까요?
-          </div>
+          {!popup && (
+            <div style={{ fontSize: 13.5, fontWeight: 700, color: '#1A1A1E' }}>
+              언제 해먹을까요?
+            </div>
+          )}
           <div style={{ fontSize: 11.5, color: 'var(--ink-500)', marginTop: 2 }}>
             {booked.length > 0
               ? `${booked.map(short).join(', ')}에 하기로 했어요`
               : '고른 날짜가 마이캘린더에 남아요'}
           </div>
         </div>
-        <button
+        {!popup && <button
           type="button"
           onClick={() => {
             // 닫을 때 확정 안 한 선택은 버린다 — 저장은 「적용하기」만 한다.
@@ -193,7 +204,7 @@ const PlanThisDay: React.FC<Props> = ({ recipeId, title, link, thumbnail }) => {
           }}
         >
           {open ? '접기' : booked.length > 0 ? '날짜 고치기' : '날짜 고르기'}
-        </button>
+        </button>}
       </div>
 
       {open && (
@@ -258,19 +269,34 @@ const PlanThisDay: React.FC<Props> = ({ recipeId, title, link, thumbnail }) => {
         {/* 예전엔 알약을 누르는 즉시 저장했다. 여러 날을 한꺼번에 고르고
             나서 겹치는 날이 있는지 한 번에 물어보려면(바로 아래 다이얼로그)
             "다 고른 다음 확정" 하는 순간이 따로 있어야 한다. */}
-        <button
-          type="button"
-          onClick={apply}
-          disabled={!dirty}
-          style={{
-            width: '100%', minHeight: 40, marginTop: 10, borderRadius: 10, border: 'none',
-            background: dirty ? '#FFD600' : 'var(--line-200)',
-            color: dirty ? '#1A1A1E' : 'var(--ink-500)',
-            fontSize: 13.5, fontWeight: 700, cursor: dirty ? 'pointer' : 'default',
-          }}
-        >
-          적용하기
-        </button>
+        <div style={{ display: 'flex', gap: 8, marginTop: popup ? 14 : 10 }}>
+          {popup && (
+            <button
+              type="button"
+              onClick={() => onDone?.()}
+              style={{
+                flex: 1, minHeight: 44, borderRadius: 10, background: 'var(--surface)',
+                border: '1px solid var(--line-200)', color: '#1A1A1E',
+                fontSize: 13.5, fontWeight: 700, cursor: 'pointer',
+              }}
+            >
+              그만두기
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={apply}
+            disabled={!dirty}
+            style={{
+              flex: 1, width: '100%', minHeight: popup ? 44 : 40, borderRadius: 10, border: 'none',
+              background: dirty ? '#FFD600' : 'var(--line-200)',
+              color: dirty ? '#1A1A1E' : 'var(--ink-500)',
+              fontSize: 13.5, fontWeight: 700, cursor: dirty ? 'pointer' : 'default',
+            }}
+          >
+            적용하기
+          </button>
+        </div>
         </>
       )}
 

@@ -13,6 +13,7 @@ import 기록하기버튼 from '../assets/기록하기버튼.png';
 import naverLogo from '../assets/썸네일_naverlogo.png';
 import youtubeLogo from '../assets/썸네일_youtubelogo.png';
 import { openCookMode } from '../utils/cookMode';
+import { requestShare } from '../utils/recipeShare';
 import { track } from '../utils/track';
 
 // 버튼/아이콘/스타일 상수화
@@ -410,6 +411,14 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
   // 버튼 클릭 핸들러 하나로 통합
   const handleActionButtonClick = (action: 'done' | 'share' | 'write' | 'favorite', e: React.MouseEvent) => {
     e.preventDefault();
+    if (action === 'share') {
+      // 가족 그룹에 식구가 있으면 「링크 복사 / 가족에게 보내기」를 고르게 한다(없으면 예전처럼 바로 링크 복사)
+      void requestShare({
+        id: Number(recipe.id), title: recipe.title, link: recipe.link,
+        copyLink: () => onRecipeAction({ ...recipe, action: 'share' }),
+      });
+      return;
+    }
     onRecipeAction({ ...recipe, action });
   };
 

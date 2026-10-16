@@ -11,3 +11,5 @@ gunicorn
 requests
 PyJWT 
 cryptography
+httpx[http2]
+pywebpush

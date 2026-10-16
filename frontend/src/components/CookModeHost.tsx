@@ -22,6 +22,7 @@ const CookModeHost: React.FC = () => {
       fallbackTitle={target?.title}
       fallbackLink={target?.link}
       myIngredients={target?.myIngredients}
+      askPlanOnClose={target?.askPlanOnClose}
     />
   );
 };

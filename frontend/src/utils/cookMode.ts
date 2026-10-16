@@ -12,6 +12,8 @@ export interface CookTarget {
   link?: string;
   /** 내 냉장고 재료(대표어) — 있는 것/없는 것을 나눠 보여 주기 위해 */
   myIngredients?: string[];
+  /** 닫을 때 「언제 해먹을까요?」 팝업을 띄운다 — 가족이 알림으로 보낸 레시피를 열었을 때(2026-10-16) */
+  askPlanOnClose?: boolean;
 }
 
 type Listener = (target: CookTarget | null) => void;
