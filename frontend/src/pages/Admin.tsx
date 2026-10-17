@@ -1971,18 +1971,36 @@ const spanOf = (from?: string | null, to?: string | null) =>
  * 카드마다 집계 구간이 다르다(누적 / 이번 주 / 최근 30일 / 기록을 켠 뒤부터).
  * 안 적어 두면 볼 때마다 "이게 언제 거지" 를 되묻게 되고, 결국 잘못 비교한다.
  */
-const Range: React.FC<{ children: React.ReactNode; inline?: boolean }> = ({ children, inline }) => (
-  <div style={{
-    display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap',
-    margin: inline ? 0 : '-4px 0 12px',
-  }}>
-    <span style={{
-      fontSize: 10.5, fontWeight: 700, padding: '2px 7px', borderRadius: 9999,
-      background: 'var(--surface-sub)', color: 'var(--ink-500)', whiteSpace: 'nowrap',
-    }}>기간</span>
-    <span style={{ fontSize: 11.5, color: 'var(--ink-500)' }}>{children}</span>
-  </div>
-);
+/** 대시보드 위에서 고른 기간의 이름(「최근 7일」·「전체」·「10/01 ~ 10/05」). Range 의 노란 표시가 읽는다. */
+const PeriodContext = React.createContext<string | null>(null);
+
+/**
+ * 표시 두 가지(2026-10-17) — 대시보드에 「고른 기간을 따르는 카드」 와 「늘 같은 구간인 카드」 가 섞여 있는데
+ * 둘 다 같은 회색 「기간」 표시라 어느 카드가 기간 버튼에 반응하는지 알 수 없었다(사용자).
+ *  - `mode="period"`: 노란 「고른 기간 · 최근 7일」 — 위 기간 버튼(선택 시 노랑)과 같은 색이라 이어져 보인다
+ *  - `mode="fixed"` : 회색 「기간 무관」 — 기간을 바꿔도 안 변한다
+ *  - 없으면 예전 회색 「기간」(대시보드 밖 탭)
+ */
+const Range: React.FC<{ children: React.ReactNode; inline?: boolean; mode?: 'period' | 'fixed' }> = ({ children, inline, mode }) => {
+  const period = React.useContext(PeriodContext);
+  const chip = mode === 'period'
+    ? { text: `고른 기간 · ${period ?? ''}`, bg: '#FFF3B0', fg: '#5C4700', border: '1px solid #EBCB3A' }
+    : mode === 'fixed'
+      ? { text: '기간 무관', bg: 'var(--surface-sub)', fg: 'var(--ink-500)', border: '1px solid var(--line-200)' }
+      : { text: '기간', bg: 'var(--surface-sub)', fg: 'var(--ink-500)', border: '1px solid transparent' };
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap',
+      margin: inline ? 0 : '-4px 0 12px',
+    }}>
+      <span style={{
+        fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 9999,
+        background: chip.bg, color: chip.fg, border: chip.border, whiteSpace: 'nowrap',
+      }}>{chip.text}</span>
+      <span style={{ fontSize: 11.5, color: 'var(--ink-500)' }}>{children}</span>
+    </div>
+  );
+};
 
 /**
  * 사람(또는 기기) 한 줄씩 늘어놓는 활동 표 — 「사람별 활동」·「로그인 없이 들어온 기기」 가 같이 쓴다.
@@ -2299,6 +2317,17 @@ const StatsBar: React.FC<{
       </div>
     )}
 
+    {/* 어느 카드가 이 기간을 따르는지 — 카드마다 붙은 표시와 같은 모양으로 보여 준다(2026-10-17). */}
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 10,
+                  fontSize: 11.5, color: 'var(--ink-500)', lineHeight: 1.6 }}>
+      <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 9999,
+                     background: '#FFF3B0', color: '#5C4700', border: '1px solid #EBCB3A' }}>고른 기간</span>
+      표시가 붙은 카드만 이 기간으로 바뀌어요.
+      <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 9999,
+                     background: 'var(--surface-sub)', color: 'var(--ink-500)', border: '1px solid var(--line-200)' }}>기간 무관</span>
+      은 늘 같은 구간이에요.
+    </div>
+
     {/* 만든 사람 본인 계정이 여러 개라 통계를 통째로 덮는다. 데이터를 지우지
         않고 **볼 때만** 뺀다 — 지우면 되돌릴 수 없다. */}
     <label style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 10,
@@ -2347,6 +2376,10 @@ const Dashboard: React.FC = () => {
 
   const P = data.periods || {};
   const AP = (act && act.periods) || {};
+  // 노란 「고른 기간 · …」 표시에 들어갈 이름
+  const periodLabel = filter.range === 'custom'
+    ? `${filter.from ? filter.from.slice(5).replace('-', '/') : '처음'} ~ ${filter.to ? filter.to.slice(5).replace('-', '/') : '오늘'}`
+    : (RANGES.find(r => r.key === filter.range)?.label || '전체');
 
   const daily: any[] = data.usage_daily || [];
   const byDate = new Map<string, number>();
@@ -2355,7 +2388,7 @@ const Dashboard: React.FC = () => {
   const recent: [string, number][] = [...byDate.entries()];
 
   return (
-    <>
+    <PeriodContext.Provider value={periodLabel}>
       <StatsBar
         value={filter}
         onChange={setFilter}
@@ -2370,11 +2403,11 @@ const Dashboard: React.FC = () => {
                   「앱 다운로드 누적 286」 이 스토어 다운로드 286회처럼 읽혔는데, 실제론 웹 첫 방문 브라우저와
                   앱·웹 구분 전 기기까지 섞인 숫자였다. 앱과 웹을 따로 보이고 이름에 무엇을 세는지 적는다. */}
               <h2 style={S.h2}>새로 들어온 기기 <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-500)' }}>(앱 처음 연 기기 + 웹 첫 방문)</span></h2>
-              <Range>
+              <Range mode="period">
                 {act.filters?.ranged
-                  ? `${spanOf(act.filters?.from, act.filters?.to)} 에 처음 기록된 기기`
-                  : '기간을 고르지 않아서 최근 7일을 보여 줘요'}
-                {' · 내 계정·기기 제외 · 지연 없이 바로 반영'}
+                  ? `아래 「${periodLabel}」 칸과 날짜 표 — 그 기간에 처음 기록된 기기`
+                  : '「전체」 일 때 아래 칸과 날짜 표는 최근 7일'}
+                {' · 맨 위 누적은 기간 무관 · 내 계정·기기 제외'}
               </Range>
               {(() => {
                 // 맨 위의 기간 설정을 그대로 따른다(기간을 안 골랐으면 최근 7일).
@@ -2412,8 +2445,10 @@ const Dashboard: React.FC = () => {
                 return (
                   <>
                     {/* 지금까지 누적 — 앱 / 웹 / 구분 전 을 **따로**. 한 숫자로 합치면 다운로드 수처럼 읽힌다. */}
-                    <div style={{ fontSize: 12, color: 'var(--ink-500)', margin: '4px 0 6px' }}>
-                      지금까지 누적 <span style={{ fontVariantNumeric: 'tabular-nums' }}>(셋을 합치면 {num(dtAll)})</span>
+                    <div style={{ margin: '4px 0 6px' }}>
+                      <Range inline mode="fixed">
+                        지금까지 누적 <span style={{ fontVariantNumeric: 'tabular-nums' }}>(셋을 합치면 {num(dtAll)})</span>
+                      </Range>
                     </div>
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '0 0 8px' }}>
                       {tile('앱 — 설치하고 처음 연 기기', (dt.android || 0) + (dt.ios || 0),
@@ -2421,8 +2456,8 @@ const Dashboard: React.FC = () => {
                       {tile('웹 — 처음 들어온 브라우저', dt.web || 0, '설치 없음')}
                       {tile('앱·웹 구분 전', dt.unknown || 0, '10/12 전에 들어와 어느 쪽인지 모름')}
                     </div>
-                    <div style={{ fontSize: 12, color: 'var(--ink-500)', margin: '10px 0 6px' }}>
-                      {ranged ? '고른 기간' : '최근 7일'}
+                    <div style={{ margin: '12px 0 6px' }}>
+                      <Range inline mode="period">{ranged ? '이 기간에 새로 들어온 기기' : '「전체」 일 때는 최근 7일'}</Range>
                     </div>
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '0 0 12px' }}>
                       {tile(ranged ? '새로 들어온 기기' : '7일 동안 새로 들어온 기기', total)}
@@ -2477,7 +2512,7 @@ const Dashboard: React.FC = () => {
 
           <div style={S.card}>
             <h2 style={S.h2}>어디까지 오고 어디서 멈추나</h2>
-            <Range>
+            <Range mode="period">
               {act.filters?.ranged
                 ? `들어온 사람: ${spanOf(act.filters?.from, act.filters?.to)} 에 앱·웹을 연 사람 · 그 아래: 같은 기간에 가입한 사람`
                 : `들어온 사람: 화면 기록을 켠 뒤부터 앱·웹을 연 사람(${dayOf(AP.events_from) || '-'} ~) · 그 아래: 전체 기간 가입자 누적(첫 가입 ${dayOf(AP.users_from) || '-'} ~ 오늘 ${dayOf(AP.now) || '-'})`}
@@ -2541,8 +2576,10 @@ const Dashboard: React.FC = () => {
           {(act.screens || []).length > 0 && (
             <div style={S.card}>
               <h2 style={S.h2}>어느 화면을 보고 어디서 나가나</h2>
-              <Range>
-                화면 기록을 켠 뒤부터 · {spanOf(AP.events_from, AP.events_to)}
+              <Range mode="period">
+                {act.filters?.ranged
+                  ? spanOf(act.filters?.from, act.filters?.to)
+                  : `화면 기록을 켠 뒤 전부 · ${spanOf(AP.events_from, AP.events_to)}`}
               </Range>
               <div style={{ fontSize: 12, color: 'var(--ink-500)', marginBottom: 12, lineHeight: 1.6 }}>
                 방문 {act.sessions?.total ?? 0}회 · 사람 {act.sessions?.people ?? 0}명 ·
@@ -2718,7 +2755,9 @@ const Dashboard: React.FC = () => {
           {(act.features || []).length > 0 && (
             <div style={S.card}>
               <h2 style={S.h2}>어떤 기능을 쓰나</h2>
-              <Range>전체 기간 누적 · {spanOf(AP.usage_from, AP.usage_to)}</Range>
+              <Range mode="period">
+                {act.filters?.ranged ? spanOf(act.filters?.from, act.filters?.to) : `전체 · ${spanOf(AP.usage_from, AP.usage_to)}`}
+              </Range>
               <div className="adm-scroll"><table style={{ borderCollapse: 'collapse', width: '100%' }}>
                 <thead><tr>{['기능', '쓴 사람', '쓴 횟수', '쓴 크레딧'].map(h => (
                   <th key={h} style={S.th}>{h}</th>))}</tr></thead>
@@ -2778,10 +2817,13 @@ const Dashboard: React.FC = () => {
                 <div style={{ ...S.card, padding: 0 }}>
                   <h2 style={{ ...S.h2, padding: '16px 16px 0', margin: 0 }}>사람별 활동</h2>
                   <div style={{ padding: '0 16px' }}>
-                    <Range>
-                      {AP.actions_from
+                    <Range mode="period">
+                      {act.filters?.ranged
+                        ? `이 기간에 가입한 사람만 · 칸의 숫자는 가입 뒤 전부(누적)`
+                        : '모든 회원 · 칸의 숫자는 가입 뒤 전부(누적)'}
+                      {' · '}{AP.actions_from
                         ? `재료 담기·빼기는 ${dayOf(AP.actions_from)}부터`
-                        : '재료 담기·빼기는 2026-10-16 이후 기록부터'} · 나머지는 전체 기간 누적 · 탈퇴 제외 {num(people.length)}명
+                        : '재료 담기·빼기는 2026-10-16 이후 기록부터'} · 탈퇴 제외 {num(people.length)}명
                     </Range>
                   </div>
                   {/* 가입일이 있어야 "언제 들어온 사람이 아직 쓰고 있나" 를 읽을 수 있다.
@@ -2825,7 +2867,7 @@ const Dashboard: React.FC = () => {
                 <div style={{ ...S.card, padding: 0 }}>
                   <h2 style={{ ...S.h2, padding: '16px 16px 0', margin: 0 }}>로그인 없이 들어온 기기</h2>
                   <div style={{ padding: '0 16px' }}>
-                    <Range>{filterSpan} · 한 번도 로그인하지 않은 기기 {num(guests.length)}대</Range>
+                    <Range mode="period">{act.filters?.ranged ? '이 기간에 들어온 기록이 있는 기기' : filterSpan} · 한 번도 로그인하지 않은 기기 {num(guests.length)}대</Range>
                     <div style={{ fontSize: 13, color: 'var(--ink-700)', margin: '-4px 0 0' }}>
                       다시 온 기기(방문 2번 이상) <b>{num(returning)}대</b>
                       {guests.length ? ` · ${Math.round((returning / guests.length) * 100)}%` : ''}
@@ -2881,6 +2923,9 @@ const Dashboard: React.FC = () => {
 
       <div style={S.card}>
         <h2 style={S.h2}>한눈에</h2>
+        <Range mode="period">
+          {data.filters?.ranged ? '타일 아래 문구가 그 기간 기준으로 바뀌어요' : '「전체」 — 누적(크레딧·AI 쓴 횟수는 이번 주, 쿠팡은 최근 30일)'}
+        </Range>
         {/* 타일마다 집계 구간이 다르다. 한 줄로 뭉뚱그리면 '이번 주' 와 '누적' 이
             나란히 놓인 걸 못 알아채므로 **타일마다** 적는다. */}
         {/* 기간을 골랐으면 **모든 타일이 그 기간**을 센다. 예전에는 타일마다
@@ -2926,7 +2971,7 @@ const Dashboard: React.FC = () => {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8,
                       flexWrap: 'nowrap', margin: '-4px 0 12px' }}>
           <div style={{ minWidth: 0, flex: 1, overflow: 'hidden' }}>
-            <Range inline>{UNITS[creditUnit].note} · 기록이 없는 칸은 0</Range>
+            <Range inline mode="fixed">{UNITS[creditUnit].note} · 기록이 없는 칸은 0</Range>
           </div>
           <UnitTabs value={creditUnit} onChange={setCreditUnit} compact />
         </div>
@@ -2937,7 +2982,9 @@ const Dashboard: React.FC = () => {
           벌어지면 CREDITS_VISION 을 조정한다 — 감으로 바꾸지 말 것. */}
       <div style={S.card}>
         <h2 style={S.h2}>크레딧 환산 점검</h2>
-        <Range>전체 기간 누적 · {spanOf(P.usage_from, P.usage_to)}</Range>
+        <Range mode="period">
+          {data.filters?.ranged ? spanOf(data.filters?.from, data.filters?.to) : `전체 · ${spanOf(P.usage_from, P.usage_to)}`}
+        </Range>
         {(data.credit_check || []).length === 0 ? (
           <div style={{ fontSize: 13, color: 'var(--ink-500)' }}>토큰이 기록된 AI 사용이 아직 없어요.</div>
         ) : (
@@ -2965,7 +3012,7 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
-    </>
+    </PeriodContext.Provider>
   );
 };
 
