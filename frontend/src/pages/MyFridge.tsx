@@ -343,7 +343,7 @@ const IngredientPill: React.FC<IngredientPillProps> = ({ item, onRemove, onSetti
           → pill 을 누르면 바로 설정 팝업이 열리도록 합치고 시계 버튼을 없앴다. */}
       <TagPill
         // 높이 30 → 26: 냉장고요리 재료 배지(`pillStyle`)와 같은 높이로(2026-10-10 요청). 흰 바탕은 칸의 옅은 색 위에서 또렷하게.
-        style={{ fontSize: 13, cursor: 'pointer', marginRight: 0, marginBottom: 0, height: 26, padding: '0 10px', background: SECTION_BG, border: '1px solid #E8E8EC' }}
+        style={{ fontSize: 13, cursor: 'pointer', marginRight: 0, marginBottom: 0, height: 26, padding: '0 10px', background: '#FFFFFF', border: '1px solid var(--line-200)' }}
       >
         <span
           className="truncate max-w-[100px]"
@@ -423,8 +423,8 @@ const IngredientPill: React.FC<IngredientPillProps> = ({ item, onRemove, onSetti
  * 촌스럽다는 지적이라 세 칸 모두 같은 옅은 회색으로 통일. 선·띠 없이 면 하나로 칸을 가르고, 칩·버튼은 흰 바탕이라 또렷하다.
  */
 const SECTION_BG = '#F6F6F8';
-/** 칸 안 재료 쟁반 바탕 — 칸(회색) 안의 흰 판. 칩은 반대로 옅은 회색이라 흰 판 위에서 또렷하다. */
-const TRAY_BG = '#FFFFFF';
+/** 칸 안 재료 자리 바탕 — 칸(#F6F6F8)보다 한 단계만 깊은 같은 계열. 흰 칩이 그 위에서 살짝 떠 보인다. */
+const TRAY_BG = '#EEEEF2';
 const SECTION_TINT: Record<StorageBox, string> = {
   frozen: SECTION_BG,
   fridge: SECTION_BG,
@@ -507,10 +507,11 @@ const ScrollablePillSection: React.FC<ScrollablePillSectionProps> = ({
 
   return (
     <div>
-      {/* 재료 칸 = 흰 「쟁반」(2026-10-17). 회색 칸 바탕 위에 칩이 그냥 흩어져 있으면 어디까지가 재료
-          자리이고 어디까지 찼는지 안 보였다(사용자). 칸 제목·`전체 보기` 는 쟁반 밖에 둬서 경계가 분명하게.
-          흐림도 쟁반 색(흰색)으로 덮는다. */}
-      <div style={{ position: 'relative', background: TRAY_BG, border: '1px solid #ECECF0', borderRadius: 12,
+      {/* 재료 자리 = 칸 바탕보다 **아주 조금 더 깊은** 같은 회색(2026-10-17). 회색 칸 위에 칩이 그냥 흩어져
+          있으면 어디까지가 재료 자리이고 어디까지 찼는지 안 보였다(사용자). 처음엔 흰 판 + 테두리로 했는데
+          "색이 뒤집힌 네모라 튀고 촌스럽다" — 테두리 없이 톤만 한 단계 내려 살짝 파인 느낌만 준다.
+          칸 제목·`전체 보기` 는 이 자리 밖. 흐림도 이 자리 색으로 덮는다. */}
+      <div style={{ position: 'relative', background: TRAY_BG, borderRadius: 12,
                     padding: '8px 8px 4px', overflow: 'hidden' }}>
         <div
           ref={innerRef}
