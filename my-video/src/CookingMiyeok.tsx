@@ -27,7 +27,7 @@ const STORY: Shot[] = [{ kind: "video", src: "c01_050235.mp4", from: 0, to: 16.5
 const STORY_LINES = [
   { at: 3.0, len: 3.5, text: "할아버지 생신이라\n아이 데리고 친정에 왔어요", big: false },
   { at: 6.7, len: 3.7, text: "할머니가 고기 소화를 못 하시고\n이도 약해지셔서", big: false },
-  { at: 10.6, len: 2.6, text: "「할머니, 무슨 미역국 드실 수 있어요?」", big: false },
+  { at: 10.6, len: 2.6, text: "「할머니, 무슨 미역국 먹을 수 있어..?」", big: false },
   { at: 13.3, len: 3.2, text: "「황태로 부드럽게 끓이면\n먹을 수 있으려나…」", big: false },
 ];
 // 첫 훅 — 의아함을 준다(2026-10-17 사용자 요청)
