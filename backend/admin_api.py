@@ -1046,6 +1046,7 @@ def register(app, get_db):
             screen_series, exit_series = [], []
             events_range = {'a': None, 'b': None}
             new_devices = []
+            devices_total = {}
             cursor.execute("SHOW TABLES LIKE 'user_events'")
             if cursor.fetchone():
                 cursor.execute(
@@ -1135,6 +1136,16 @@ def register(app, get_db):
                     {'date': r['d'].isoformat(), 'platform': r['platform'], 'n': r['n']}
                     for r in cursor.fetchall()
                 ]
+                # 지금까지 **누적** — 「다운로드 수가 어디 있나」 에 기간과 상관없이 답하는 숫자(2026-10-17).
+                # 기간 표만 있으면 최근 7일만 보여서 "그래서 전체 몇 대냐" 를 못 읽는다.
+                cursor.execute(
+                    "SELECT COALESCE(plat, 'unknown') platform, COUNT(*) n FROM ("
+                    "  SELECT device_id, MAX(platform) plat "
+                    f"  FROM user_events WHERE device_id IS NOT NULL{nd_cond} GROUP BY device_id"
+                    ") x GROUP BY platform",
+                    tuple(nd_params),
+                )
+                devices_total = {r['platform']: r['n'] for r in cursor.fetchall()}
 
                 # 화면 진입을 **날짜별로** 남긴다.
                 #
@@ -1266,17 +1277,24 @@ def register(app, get_db):
                                   THEN COALESCE(CAST(detail AS UNSIGNED), 1) ELSE 0 END) ing_added,
                          SUM(CASE WHEN name = 'ingredient_remove'
                                   THEN COALESCE(CAST(detail AS UNSIGNED), 1) ELSE 0 END) ing_removed,
-                         MAX(created_at) last_at
+                         MAX(created_at) last_at,
+                         -- 방문 = 로그인한 기록이 하나라도 있는 방문(session). 비회원으로
+                         -- 둘러보다 그 방문 안에서 로그인했으면 그 사람의 방문으로 센다.
+                         COUNT(DISTINCT session_id) visits,
+                         COUNT(DISTINCT DATE(created_at)) visit_days
                   FROM user_events WHERE user_id IS NOT NULL GROUP BY user_id
                 ) ev ON ev.user_id = u.id
                 """ if has_events else
-                "LEFT JOIN (SELECT NULL user_id, 0 ing_added, 0 ing_removed, NULL last_at) ev ON 1 = 0"
+                "LEFT JOIN (SELECT NULL user_id, 0 ing_added, 0 ing_removed, NULL last_at, "
+                "0 visits, 0 visit_days) ev ON 1 = 0"
             )
             cursor.execute(
                 """
                 SELECT u.id, u.nickname, u.email, u.created_at,
                        (SELECT COUNT(*) FROM user_ingredients WHERE user_id = """ + fridge_owner + """) ingredients,
                        u.household_id IS NOT NULL in_household,
+                       COALESCE(ev.visits, 0) visits,
+                       COALESCE(ev.visit_days, 0) visit_days,
                        COALESCE(ev.ing_added, 0) ing_added,
                        COALESCE(ev.ing_removed, 0) ing_removed,
                        (SELECT COUNT(*) FROM user_favorite_recipes WHERE user_id=u.id) favorites,
@@ -1311,7 +1329,8 @@ def register(app, get_db):
             )
             people = cursor.fetchall()
             for r in people:
-                for k in ('ing_added', 'ing_removed', 'ai_chat', 'ai_vision', 'ai_plan', 'credits'):
+                for k in ('visits', 'visit_days', 'ing_added', 'ing_removed',
+                          'ai_chat', 'ai_vision', 'ai_plan', 'credits'):
                     r[k] = int(r[k] or 0)
                 r['in_household'] = bool(r['in_household'])
 
@@ -1323,6 +1342,55 @@ def register(app, get_db):
                     "WHERE name IN ('ingredient_add', 'ingredient_remove')"
                 )
                 actions_from = (cursor.fetchone() or {}).get('a')
+
+            # 로그인 없이 들어온 사람 — **기기별** (2026-10-17).
+            #
+            # 비회원은 계정이 없으니 기기 식별자(앱을 처음 열 때 만들어 저장해 두는 값)로
+            # 한 사람을 갈음한다. 그 기기에서 **한 번이라도 로그인했으면** 회원 표에 이미
+            # 있으므로 뺀다(기간과 상관없이 전체 기록으로 판단). 앱을 지웠다 다시 깔면
+            # 식별자가 새로 생겨 다른 사람으로 보인다 — blind_spots 에 적어 둔 그 한계.
+            # 방문 수·화면 수는 위쪽 기간 설정과 내 기기 제외를 따른다.
+            guests = []
+            if has_events:
+                cursor.execute(
+                    """
+                    SELECT e.device_id,
+                           MAX(e.platform) platform,
+                           MIN(e.created_at) first_at,
+                           MAX(e.created_at) last_at,
+                           COUNT(DISTINCT e.session_id) visits,
+                           COUNT(DISTINCT DATE(e.created_at)) visit_days,
+                           SUM(e.name = 'screen_view') views,
+                           SUBSTRING_INDEX(GROUP_CONCAT(e.source ORDER BY e.created_at), ',', 1) source
+                    FROM (SELECT * FROM user_events WHERE device_id IS NOT NULL""" + ev_cond + """) e
+                    WHERE NOT EXISTS (
+                      SELECT 1 FROM user_events m
+                      WHERE m.device_id = e.device_id AND m.user_id IS NOT NULL
+                    )
+                    GROUP BY e.device_id
+                    ORDER BY last_at DESC
+                    LIMIT 1000
+                    """,
+                    tuple(ev_params),
+                )
+                guests = cursor.fetchall()
+
+                # 비회원도 체험 크레딧으로 AI 를 쓸 수 있다 — 기기별로 종류를 나눠 붙인다.
+                cursor.execute(
+                    "SELECT device_id, SUM(kind = 'chat') chat, SUM(kind = 'vision') vision, "
+                    "SUM(kind = 'plan') plan FROM llm_usage "
+                    f"WHERE user_id IS NULL AND device_id IS NOT NULL{use_cond} GROUP BY device_id",
+                    tuple(use_params),
+                )
+                guest_ai = {r['device_id']: r for r in cursor.fetchall()}
+                for r in guests:
+                    ai = guest_ai.get(r['device_id']) or {}
+                    r['ai_chat'] = int(ai.get('chat') or 0)
+                    r['ai_vision'] = int(ai.get('vision') or 0)
+                    r['ai_plan'] = int(ai.get('plan') or 0)
+                    r['views'] = int(r['views'] or 0)
+                    r['first_at'] = r['first_at'].isoformat() if r['first_at'] else None
+                    r['last_at'] = r['last_at'].isoformat() if r['last_at'] else None
         finally:
             cursor.close()
             db.close()
@@ -1339,11 +1407,13 @@ def register(app, get_db):
                  'last_active': r['last_active'].isoformat() if r['last_active'] else None}
                 for r in people
             ],
+            'guests': guests,
             # 지금 데이터로는 못 보는 것. 화면에 함께 적어 오해를 막는다.
             'screens': screens,
             'exits': exits,
             'sessions': sessions,
             'new_devices': new_devices,
+            'devices_total': devices_total,
             'today_kst': datetime.now(timezone(timedelta(hours=9))).date().isoformat(),
             'sources': sources,
             'screen_series': screen_series,

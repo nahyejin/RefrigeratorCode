@@ -1965,6 +1965,97 @@ const Range: React.FC<{ children: React.ReactNode; inline?: boolean }> = ({ chil
 );
 
 /**
+ * 사람(또는 기기) 한 줄씩 늘어놓는 활동 표 — 「사람별 활동」·「로그인 없이 들어온 기기」 가 같이 쓴다.
+ *
+ * - 숫자 칸은 묶음(group)으로 2단 머리글을 만든다. 칸 이름만 있으면 "완료" 가 지금 남은
+ *   수인지 누른 횟수인지 읽을 수 없어서, 묶음 이름에 그 뜻을 적는다.
+ * - 맨 아래 합계 줄. `noTotal` 칸은 더하면 뜻이 없는 숫자(그룹원이 같은 냉장고 등)라 '-'.
+ * - 20줄이 넘으면 표 안에서 스크롤하고 머리글·합계는 붙어 있다(sticky). 사람이 늘면
+ *   페이지 전체가 끝없이 길어져 아래 카드를 못 찾게 된다.
+ */
+type ActivityCol = { key: string; label: string; group: string; noTotal?: boolean };
+type ActivityText = { label: string; render: (r: any) => React.ReactNode };
+const ActivityTable: React.FC<{
+  rows: any[];
+  rowKey: (r: any) => string | number;
+  lead: ActivityText[];
+  cols: ActivityCol[];
+  tail: ActivityText[];
+  badge?: (r: any, key: string) => React.ReactNode;
+  unit: string;
+}> = ({ rows, rowKey, lead, cols, tail, badge, unit }) => {
+  const groups = cols.reduce<{ name: string; span: number }[]>((acc, c) => {
+    const last = acc[acc.length - 1];
+    if (last && last.name === c.group) last.span += 1;
+    else acc.push({ name: c.group, span: 1 });
+    return acc;
+  }, []);
+  const total = (key: string) => rows.reduce((s, r) => s + (Number(r[key]) || 0), 0);
+  const scroll = rows.length > 20;
+  const head = { ...S.th, position: 'sticky' as const, background: 'var(--surface)', zIndex: 1 };
+  const cellNum = { ...S.td, fontVariantNumeric: 'tabular-nums' as const, textAlign: 'right' as const };
+  const edge = (i: number) =>
+    i === 0 || cols[i - 1].group !== cols[i].group ? { borderLeft: '1px solid var(--line-200)' } : {};
+  const foot = {
+    ...cellNum, fontWeight: 700, position: 'sticky' as const, bottom: 0,
+    background: 'var(--surface-sub)', borderTop: '1px solid var(--line-300)',
+  };
+  return (
+    <div style={{ overflow: 'auto', maxHeight: scroll ? 760 : undefined, marginTop: 10 }}>
+      <table style={{ borderCollapse: 'separate', borderSpacing: 0, width: '100%', minWidth: 980 }}>
+        <thead>
+          <tr>
+            {lead.map(c => <th key={c.label} rowSpan={2} style={{ ...head, top: 0 }}>{c.label}</th>)}
+            {groups.map(g => (
+              <th key={g.name} colSpan={g.span}
+                  style={{ ...head, top: 0, textAlign: 'center', color: 'var(--ink-700)',
+                           borderLeft: '1px solid var(--line-200)' }}>
+                {g.name}
+              </th>
+            ))}
+            {tail.map(c => <th key={c.label} rowSpan={2} style={{ ...head, top: 0 }}>{c.label}</th>)}
+          </tr>
+          <tr>
+            {cols.map((c, i) => (
+              <th key={c.key} style={{ ...head, top: 31, textAlign: 'right', ...edge(i) }}>{c.label}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map(r => (
+            <tr key={rowKey(r)}>
+              {lead.map(c => <td key={c.label} style={S.td}>{c.render(r)}</td>)}
+              {cols.map((c, i) => (
+                <td key={c.key} style={{ ...cellNum, ...edge(i),
+                                         color: Number(r[c.key]) ? undefined : 'var(--ink-300)' }}>
+                  {num(Number(r[c.key]) || 0)}
+                  {badge ? badge(r, c.key) : null}
+                </td>
+              ))}
+              {tail.map(c => <td key={c.label} style={S.td}>{c.render(r)}</td>)}
+            </tr>
+          ))}
+        </tbody>
+        <tfoot>
+          <tr>
+            {lead.map((c, i) => (
+              <td key={c.label} style={{ ...foot, textAlign: 'left',
+                                          ...(i > 0 ? { fontWeight: 400, color: 'var(--ink-500)' } : {}) }}>
+                {i === 0 ? '합계' : i === 1 ? `${num(rows.length)}${unit}` : ''}
+              </td>
+            ))}
+            {cols.map((c, i) => (
+              <td key={c.key} style={{ ...foot, ...edge(i) }}>{c.noTotal ? '-' : num(total(c.key))}</td>
+            ))}
+            {tail.map(c => <td key={c.label} style={foot} />)}
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  );
+};
+
+/**
  * 날짜별 막대그래프 (한 계열).
  *
  * 전에는 막대만 그리고 값은 `title`(마우스 올림)로만 보여 줬다. **폰에는 마우스가
@@ -2252,6 +2343,106 @@ const Dashboard: React.FC = () => {
 
       {act && (
         <>
+          {act.today_kst && (
+            <div style={S.card}>
+              {/* 「다운로드 수가 어디 있나」 를 못 찾았다(2026-10-17) — 이름에 '다운로드' 를 넣고 맨 위로 올림. */}
+              <h2 style={S.h2}>앱 다운로드 <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-500)' }}>(처음 연 기기)</span></h2>
+              <Range>
+                {act.filters?.ranged
+                  ? `${spanOf(act.filters?.from, act.filters?.to)} 에 처음 기록된 기기`
+                  : '기간을 고르지 않아서 최근 7일을 보여 줘요'}
+                {' · 내 계정·기기 제외 · 지연 없이 바로 반영'}
+              </Range>
+              {(() => {
+                // 맨 위의 기간 설정을 그대로 따른다(기간을 안 골랐으면 최근 7일).
+                // 앱스토어·플레이스토어의 다운로드 수는 이 서버가 모른다(두 스토어가 하루 이틀 늦게 알려 준다).
+                // 서버가 아는 건 앱을 처음 열어 기록이 남은 기기뿐 — 광고로 설치해서 처음 열어 본 사람에 가장 가까운 숫자.
+                const nd: { date: string; platform: string; n: number }[] = act.new_devices || [];
+                const today: string = act.today_kst;
+                const shift = (base: string, offset: number) => {
+                  const d = new Date(base + 'T12:00:00Z');
+                  d.setUTCDate(d.getUTCDate() + offset);
+                  return d.toISOString().slice(0, 10);
+                };
+                const ranged = !!act.filters?.ranged;
+                const to: string = ranged && act.filters?.to ? String(act.filters.to).slice(0, 10) : today;
+                const from: string = ranged && act.filters?.from ? String(act.filters.from).slice(0, 10) : shift(to, -6);
+                const all: string[] = [];
+                for (let d = to; d >= from && all.length < 400; d = shift(d, -1)) all.push(d);
+                const MAX_ROWS = 31;
+                const days = all.slice(0, MAX_ROWS);
+                const on = (date: string, plat?: string) =>
+                  nd.filter((r) => r.date === date && (!plat || r.platform === plat)).reduce((a, r) => a + r.n, 0);
+                const sumOf = (list: string[], plat?: string) => list.reduce((a, d) => a + on(d, plat), 0);
+                const total = sumOf(all);
+                const label = (d: string) =>
+                  d === today ? '오늘' : d === shift(today, -1) ? '어제' : d.slice(5).replace('-', '/');
+                const tile = (title: string, value: string | number) => (
+                  <div style={{ flex: '1 1 110px', background: 'var(--surface-2, #f4f4f2)', borderRadius: 10, padding: '10px 12px' }}>
+                    <div style={{ fontSize: 11.5, color: 'var(--ink-500)' }}>{title}</div>
+                    <div style={{ fontSize: 22, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{typeof value === 'number' ? num(value) : value}</div>
+                  </div>
+                );
+                const dt: Record<string, number> = act.devices_total || {};
+                const dtAll = Object.values(dt).reduce((a, n) => a + (Number(n) || 0), 0);
+                return (
+                  <>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap',
+                                  background: 'var(--surface-sub)', borderRadius: 10, padding: '10px 12px', margin: '4px 0 8px' }}>
+                      <span style={{ fontSize: 12, color: 'var(--ink-500)' }}>지금까지 누적</span>
+                      <b style={{ fontSize: 24, fontVariantNumeric: 'tabular-nums' }}>{num(dtAll)}</b>
+                      <span style={{ fontSize: 12, color: 'var(--ink-500)', fontVariantNumeric: 'tabular-nums' }}>
+                        안드로이드 {num(dt.android || 0)} · 아이폰 {num(dt.ios || 0)} · 웹 {num(dt.web || 0)} · 구분 전 {num(dt.unknown || 0)}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '0 0 12px' }}>
+                      {tile(ranged ? '기간 합계' : '최근 7일 합계', total)}
+                      {tile('하루 평균', all.length ? (total / all.length).toFixed(1) : '0')}
+                      {tile(label(to) + (to === today ? '' : ' (마지막 날)'), on(to))}
+                    </div>
+                    <div style={{ overflowX: 'auto' }}>
+                    <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 340 }}>
+                      <thead><tr>{['날짜', '합계', '안드로이드', '아이폰', '웹', '구분 전'].map((h) => (
+                        <th key={h} style={S.th}>{h}</th>))}</tr></thead>
+                      <tbody>
+                        <tr>
+                          <td style={{ ...S.td, fontWeight: 700 }}>{ranged ? '기간 합계' : '7일 합계'}</td>
+                          <td style={{ ...S.td, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{num(total)}</td>
+                          {['android', 'ios', 'web', 'unknown'].map((pl) => (
+                            <td key={pl} style={{ ...S.td, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{num(sumOf(all, pl))}</td>
+                          ))}
+                        </tr>
+                        {days.map((d) => (
+                          <tr key={d}>
+                            <td style={S.td}>{label(d)}</td>
+                            <td style={{ ...S.td, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{num(on(d))}</td>
+                            {['android', 'ios', 'web', 'unknown'].map((pl) => (
+                              <td key={pl} style={{ ...S.td, fontVariantNumeric: 'tabular-nums' }}>{num(on(d, pl))}</td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    </div>
+                    {all.length > MAX_ROWS && (
+                      <div style={{ fontSize: 11.5, color: 'var(--ink-500)', marginTop: 6 }}>
+                        최근 {MAX_ROWS}일만 줄로 보여 줘요. 앞선 {all.length - MAX_ROWS}일은 위 합계에 들어 있어요.
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+              <div style={{ fontSize: 11.5, color: 'var(--ink-500)', marginTop: 8, lineHeight: 1.6 }}>
+                <b>스토어 다운로드 수와는 달라요.</b> 앱을 설치해서 <b>처음 열어 본</b> 기기만 잡혀요(설치만 하고 안 열면 안 보여요).
+                스토어 숫자는{' '}
+                <a href="https://play.google.com/console" target="_blank" rel="noreferrer">구글 플레이 콘솔</a> 「통계」와{' '}
+                <a href="https://appstoreconnect.apple.com/analytics" target="_blank" rel="noreferrer">앱스토어 커넥트</a> 「분석」에서
+                하루 이틀 늦게 나와요. 웹은 설치가 없어서 처음 접속한 브라우저를 셉니다.
+                앱·웹 구분은 10/12 이후부터 기록돼서 그 전 기기는 「구분 전」에 들어가요.
+              </div>
+            </div>
+          )}
+
           <div style={S.card}>
             <h2 style={S.h2}>어디까지 오고 어디서 멈추나</h2>
             <Range>
@@ -2316,92 +2507,6 @@ const Dashboard: React.FC = () => {
               이걸 보려면 화면 진입·행동을 남기는 기록이 따로 필요해요.
             </div>
           </div>
-
-          {act.today_kst && (
-            <div style={S.card}>
-              <h2 style={S.h2}>새로 들어온 기기</h2>
-              <Range>
-                {act.filters?.ranged
-                  ? `${spanOf(act.filters?.from, act.filters?.to)} 에 처음 기록된 기기`
-                  : '기간을 고르지 않아서 최근 7일을 보여 줘요'}
-                {' · 내 계정·기기 제외 · 지연 없이 바로 반영'}
-              </Range>
-              {(() => {
-                // 맨 위의 기간 설정을 그대로 따른다(기간을 안 골랐으면 최근 7일).
-                // 앱스토어·플레이스토어의 다운로드 수는 이 서버가 모른다(두 스토어가 하루 이틀 늦게 알려 준다).
-                // 서버가 아는 건 앱을 처음 열어 기록이 남은 기기뿐 — 광고로 설치해서 처음 열어 본 사람에 가장 가까운 숫자.
-                const nd: { date: string; platform: string; n: number }[] = act.new_devices || [];
-                const today: string = act.today_kst;
-                const shift = (base: string, offset: number) => {
-                  const d = new Date(base + 'T12:00:00Z');
-                  d.setUTCDate(d.getUTCDate() + offset);
-                  return d.toISOString().slice(0, 10);
-                };
-                const ranged = !!act.filters?.ranged;
-                const to: string = ranged && act.filters?.to ? String(act.filters.to).slice(0, 10) : today;
-                const from: string = ranged && act.filters?.from ? String(act.filters.from).slice(0, 10) : shift(to, -6);
-                const all: string[] = [];
-                for (let d = to; d >= from && all.length < 400; d = shift(d, -1)) all.push(d);
-                const MAX_ROWS = 31;
-                const days = all.slice(0, MAX_ROWS);
-                const on = (date: string, plat?: string) =>
-                  nd.filter((r) => r.date === date && (!plat || r.platform === plat)).reduce((a, r) => a + r.n, 0);
-                const sumOf = (list: string[], plat?: string) => list.reduce((a, d) => a + on(d, plat), 0);
-                const total = sumOf(all);
-                const label = (d: string) =>
-                  d === today ? '오늘' : d === shift(today, -1) ? '어제' : d.slice(5).replace('-', '/');
-                const tile = (title: string, value: string | number) => (
-                  <div style={{ flex: '1 1 110px', background: 'var(--surface-2, #f4f4f2)', borderRadius: 10, padding: '10px 12px' }}>
-                    <div style={{ fontSize: 11.5, color: 'var(--ink-500)' }}>{title}</div>
-                    <div style={{ fontSize: 22, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{typeof value === 'number' ? num(value) : value}</div>
-                  </div>
-                );
-                return (
-                  <>
-                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '4px 0 12px' }}>
-                      {tile(ranged ? '기간 합계' : '최근 7일 합계', total)}
-                      {tile('하루 평균', all.length ? (total / all.length).toFixed(1) : '0')}
-                      {tile(label(to) + (to === today ? '' : ' (마지막 날)'), on(to))}
-                    </div>
-                    <div style={{ overflowX: 'auto' }}>
-                    <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 340 }}>
-                      <thead><tr>{['날짜', '합계', '안드로이드', '아이폰', '웹', '구분 전'].map((h) => (
-                        <th key={h} style={S.th}>{h}</th>))}</tr></thead>
-                      <tbody>
-                        <tr>
-                          <td style={{ ...S.td, fontWeight: 700 }}>{ranged ? '기간 합계' : '7일 합계'}</td>
-                          <td style={{ ...S.td, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{num(total)}</td>
-                          {['android', 'ios', 'web', 'unknown'].map((pl) => (
-                            <td key={pl} style={{ ...S.td, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{num(sumOf(all, pl))}</td>
-                          ))}
-                        </tr>
-                        {days.map((d) => (
-                          <tr key={d}>
-                            <td style={S.td}>{label(d)}</td>
-                            <td style={{ ...S.td, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{num(on(d))}</td>
-                            {['android', 'ios', 'web', 'unknown'].map((pl) => (
-                              <td key={pl} style={{ ...S.td, fontVariantNumeric: 'tabular-nums' }}>{num(on(d, pl))}</td>
-                            ))}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                    </div>
-                    {all.length > MAX_ROWS && (
-                      <div style={{ fontSize: 11.5, color: 'var(--ink-500)', marginTop: 6 }}>
-                        최근 {MAX_ROWS}일만 줄로 보여 줘요. 앞선 {all.length - MAX_ROWS}일은 위 합계에 들어 있어요.
-                      </div>
-                    )}
-                  </>
-                );
-              })()}
-              <div style={{ fontSize: 11.5, color: 'var(--ink-500)', marginTop: 8, lineHeight: 1.6 }}>
-                <b>스토어 다운로드 수와는 달라요.</b> 앱을 설치해서 <b>처음 열어 본</b> 기기만 잡혀요(설치만 하고 안 열면 안 보여요).
-                스토어 숫자는 구글 플레이 콘솔 「통계」와 앱스토어 커넥트 「분석」에서 하루 이틀 늦게 나와요.
-                앱·웹 구분은 10/12 이후부터 기록돼서 그 전 기기는 「구분 전」에 들어가요.
-              </div>
-            </div>
-          )}
 
           {(act.screens || []).length > 0 && (
             <div style={S.card}>
@@ -2605,119 +2710,140 @@ const Dashboard: React.FC = () => {
             // 칸을 「지금 가진 것」 과 「한 일(횟수)」 로 나눈다. 예전 「재료」 는 지금
             // 냉장고 개수인지 담은 횟수인지, 「AI」 는 호출인지 크레딧인지 알 수 없었다.
             const people: any[] = act.people || [];
-            const COLS: { key: string; label: string; group: string }[] = [
-              { key: 'ingredients', label: '냉장고', group: '재료' },
+            const when = (t: string | null | undefined) => String(t || '').replace('T', ' ').slice(0, 16);
+            const VISIT: ActivityCol[] = [
+              { key: 'visits', label: '방문', group: '방문' },
+              { key: 'visit_days', label: '방문한 날', group: '방문' },
+            ];
+            const AI: ActivityCol[] = [
+              { key: 'ai_chat', label: '챗봇', group: 'AI (호출 횟수)' },
+              { key: 'ai_vision', label: '사진 등록', group: 'AI (호출 횟수)' },
+              { key: 'ai_plan', label: '식단 짜기', group: 'AI (호출 횟수)' },
+            ];
+            const COLS: ActivityCol[] = [
+              ...VISIT,
+              { key: 'ingredients', label: '냉장고', group: '재료', noTotal: true },
               { key: 'ing_added', label: '담기', group: '재료' },
               { key: 'ing_removed', label: '빼기', group: '재료' },
               { key: 'favorites', label: '즐겨찾기', group: '레시피 (지금)' },
               { key: 'completed', label: '완료', group: '레시피 (지금)' },
               { key: 'recorded', label: '기록', group: '레시피 (지금)' },
-              { key: 'ai_chat', label: '챗봇', group: 'AI (호출 횟수)' },
-              { key: 'ai_vision', label: '사진 등록', group: 'AI (호출 횟수)' },
-              { key: 'ai_plan', label: '식단 짜기', group: 'AI (호출 횟수)' },
+              ...AI,
               { key: 'credits', label: '크레딧', group: 'AI (호출 횟수)' },
             ];
-            const groups = COLS.reduce<{ name: string; span: number }[]>((acc, c) => {
-              const last = acc[acc.length - 1];
-              if (last && last.name === c.group) last.span += 1;
-              else acc.push({ name: c.group, span: 1 });
-              return acc;
-            }, []);
-            const total = (key: string) => people.reduce((s, u) => s + (Number(u[key]) || 0), 0);
-            // 20명이 넘으면 표 안에서 스크롤한다. 머리글·합계 줄은 붙어 있게(sticky).
-            const scroll = people.length > 20;
-            const head = { ...S.th, position: 'sticky' as const, background: 'var(--surface)', zIndex: 1 };
-            const cellNum = { ...S.td, fontVariantNumeric: 'tabular-nums' as const, textAlign: 'right' as const };
-            const groupEdge = (i: number) =>
-              i > 0 && COLS[i - 1].group !== COLS[i].group ? { borderLeft: '1px solid var(--line-200)' } : {};
-            const foot = {
-              ...cellNum, fontWeight: 700, position: 'sticky' as const, bottom: 0,
-              background: 'var(--surface-sub)', borderTop: '1px solid var(--line-300)',
-            };
+
+            // 로그인 없이 들어온 사람 — 계정이 없으니 기기 하나를 한 사람으로 본다.
+            const guests: any[] = act.guests || [];
+            const returning = guests.filter(g => (g.visits || 0) >= 2).length;
+            const GUEST_COLS: ActivityCol[] = [
+              ...VISIT,
+              { key: 'views', label: '본 화면', group: '방문' },
+              ...AI,
+            ];
+            const PLATFORM: Record<string, string> = { android: '안드로이드', ios: 'iOS', web: '웹' };
+            const filterSpan = act.filters?.ranged ? spanOf(act.filters?.from, act.filters?.to) : '전체 기간';
+
             return (
-              <div style={{ ...S.card, padding: 0 }}>
-                <h2 style={{ ...S.h2, padding: '16px 16px 0', margin: 0 }}>사람별 활동</h2>
-                <div style={{ padding: '0 16px' }}>
-                  <Range>
-                    {AP.actions_from
-                      ? `재료 담기·빼기는 ${dayOf(AP.actions_from)}부터`
-                      : '재료 담기·빼기는 2026-10-16 이후 기록부터'} · 나머지는 전체 기간 누적 · 탈퇴 제외 {num(people.length)}명
-                  </Range>
+              <>
+                <div style={{ ...S.card, padding: 0 }}>
+                  <h2 style={{ ...S.h2, padding: '16px 16px 0', margin: 0 }}>사람별 활동</h2>
+                  <div style={{ padding: '0 16px' }}>
+                    <Range>
+                      {AP.actions_from
+                        ? `재료 담기·빼기는 ${dayOf(AP.actions_from)}부터`
+                        : '재료 담기·빼기는 2026-10-16 이후 기록부터'} · 나머지는 전체 기간 누적 · 탈퇴 제외 {num(people.length)}명
+                    </Range>
+                  </div>
+                  {/* 가입일이 있어야 "언제 들어온 사람이 아직 쓰고 있나" 를 읽을 수 있다.
+                      마지막 활동만 보면 어제 가입해서 어제 쓴 사람과 반년 전에 가입해
+                      계속 쓰는 사람이 똑같아 보인다. */}
+                  <ActivityTable
+                    rows={people}
+                    rowKey={u => u.id}
+                    unit="명"
+                    lead={[
+                      { label: '닉네임', render: u => u.nickname },
+                      { label: '가입일', render: u => (
+                        <span style={{ fontSize: 12, color: 'var(--ink-500)' }}>{dayOf(u.created_at) || '-'}</span>
+                      ) },
+                    ]}
+                    cols={COLS}
+                    tail={[{ label: '마지막 활동', render: u => when(u.last_active) }]}
+                    badge={(u, key) => key === 'ingredients' && u.in_household ? (
+                      <span title="식구 그룹 냉장고 — 그룹원 모두 같은 숫자"
+                            style={{ fontSize: 10, color: 'var(--ink-500)', marginLeft: 3 }}>그룹</span>
+                    ) : null}
+                  />
+                  <div style={{ fontSize: 12, color: 'var(--ink-500)', padding: '10px 16px 14px', lineHeight: 1.8 }}>
+                    <b>방문</b> 앱·웹을 연 횟수. 30분 넘게 아무것도 안 하다 다시 쓰면 새 방문이에요.
+                    로그인 전에 둘러보다 그 방문 안에서 로그인했으면 그 사람 방문으로 쳐요.
+                    <b> 방문한 날</b>은 그중 서로 다른 날짜 수 — 2 이상이면 다른 날 다시 온 사람이에요.
+                    <br />
+                    <b>냉장고</b> 지금 냉장고에 든 재료 수. 식구 그룹이면 그룹 냉장고 하나를 같이 쓰므로
+                    그룹원 모두 같은 숫자예요(그래서 합계는 내지 않아요).
+                    <br />
+                    <b>담기 / 빼기</b> 직접 입력·사진 등록·챗봇 등 어떤 길로든 냉장고에 넣고 뺀 재료 개수.
+                    가입 직후 기본 재료가 들어가는 첫 저장은 세지 않아요.
+                    <br />
+                    <b>즐겨찾기 · 완료 · 기록</b> 지금 남아 있는 레시피 수. 취소하면 줄어들고,
+                    같은 레시피를 두 번 완료해도 1이에요.
+                    <br />
+                    <b>AI</b> 기능별로 쓴 횟수. <b>크레딧</b>은 그 횟수에 기능별 가격을 곱해 차감된 합이에요.
+                  </div>
                 </div>
-                <div style={{ overflow: 'auto', maxHeight: scroll ? 760 : undefined, marginTop: 10 }}>
-                  <table style={{ borderCollapse: 'separate', borderSpacing: 0, width: '100%', minWidth: 980 }}>
-                    {/* 가입일이 있어야 "언제 들어온 사람이 아직 쓰고 있나" 를 읽을 수 있다.
-                        마지막 활동만 보면 어제 가입해서 어제 쓴 사람과 반년 전에 가입해
-                        계속 쓰는 사람이 똑같아 보인다. */}
-                    <thead>
-                      <tr>
-                        <th rowSpan={2} style={{ ...head, top: 0 }}>닉네임</th>
-                        <th rowSpan={2} style={{ ...head, top: 0 }}>가입일</th>
-                        {groups.map((g, i) => (
-                          <th key={g.name} colSpan={g.span}
-                              style={{ ...head, top: 0, textAlign: 'center', color: 'var(--ink-700)',
-                                       ...(i > 0 ? { borderLeft: '1px solid var(--line-200)' } : {}) }}>
-                            {g.name}
-                          </th>
-                        ))}
-                        <th rowSpan={2} style={{ ...head, top: 0 }}>마지막 활동</th>
-                      </tr>
-                      <tr>
-                        {COLS.map((c, i) => (
-                          <th key={c.key} style={{ ...head, top: 31, textAlign: 'right', ...groupEdge(i) }}>{c.label}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {people.map((u: any) => (
-                        <tr key={u.id}>
-                          <td style={S.td}>{u.nickname}</td>
-                          <td style={{ ...S.td, fontSize: 12, color: 'var(--ink-500)' }}>
-                            {dayOf(u.created_at) || '-'}
-                          </td>
-                          {COLS.map((c, i) => (
-                            <td key={c.key} style={{ ...cellNum, ...groupEdge(i),
-                                                     color: Number(u[c.key]) ? undefined : 'var(--ink-300)' }}>
-                              {num(Number(u[c.key]) || 0)}
-                              {c.key === 'ingredients' && u.in_household ? (
-                                <span title="식구 그룹 냉장고 — 그룹원 모두 같은 숫자"
-                                      style={{ fontSize: 10, color: 'var(--ink-500)', marginLeft: 3 }}>그룹</span>
-                              ) : null}
-                            </td>
-                          ))}
-                          <td style={S.td}>{String(u.last_active || '').replace('T', ' ').slice(0, 16)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                    <tfoot>
-                      <tr>
-                        <td style={{ ...foot, textAlign: 'left' }}>합계</td>
-                        <td style={{ ...foot, textAlign: 'left', fontWeight: 400, color: 'var(--ink-500)' }}>
-                          {num(people.length)}명
-                        </td>
-                        {COLS.map((c, i) => (
-                          <td key={c.key} style={{ ...foot, ...groupEdge(i) }}>
-                            {c.key === 'ingredients' ? '-' : num(total(c.key))}
-                          </td>
-                        ))}
-                        <td style={foot} />
-                      </tr>
-                    </tfoot>
-                  </table>
+
+                <div style={{ ...S.card, padding: 0 }}>
+                  <h2 style={{ ...S.h2, padding: '16px 16px 0', margin: 0 }}>로그인 없이 들어온 기기</h2>
+                  <div style={{ padding: '0 16px' }}>
+                    <Range>{filterSpan} · 한 번도 로그인하지 않은 기기 {num(guests.length)}대</Range>
+                    <div style={{ fontSize: 13, color: 'var(--ink-700)', margin: '-4px 0 0' }}>
+                      다시 온 기기(방문 2번 이상) <b>{num(returning)}대</b>
+                      {guests.length ? ` · ${Math.round((returning / guests.length) * 100)}%` : ''}
+                    </div>
+                  </div>
+                  {guests.length === 0 ? (
+                    <div style={{ fontSize: 13, color: 'var(--ink-500)', padding: '12px 16px 16px' }}>
+                      이 기간에 로그인 없이 들어온 기기가 없어요.
+                    </div>
+                  ) : (
+                    <ActivityTable
+                      rows={guests}
+                      rowKey={g => g.device_id}
+                      unit="대"
+                      lead={[
+                        // 기기 식별자는 앱이 만든 무작위 값이라 개인정보는 아니지만 길어서 끝 6자리만 보인다.
+                        { label: '기기', render: g => (
+                          <span title={g.device_id} style={{ fontFamily: 'monospace', fontSize: 12 }}>
+                            …{String(g.device_id).slice(-6)}
+                          </span>
+                        ) },
+                        { label: '플랫폼', render: g => (
+                          <span style={{ fontSize: 12, color: 'var(--ink-500)' }}>
+                            {PLATFORM[g.platform] || '모름'}
+                          </span>
+                        ) },
+                        { label: '유입', render: g => (
+                          <span style={{ fontSize: 12, color: 'var(--ink-500)' }}>{g.source || '(직접)'}</span>
+                        ) },
+                      ]}
+                      cols={GUEST_COLS}
+                      tail={[
+                        { label: '처음 온 때', render: g => when(g.first_at) },
+                        { label: '마지막 방문', render: g => when(g.last_at) },
+                      ]}
+                    />
+                  )}
+                  <div style={{ fontSize: 12, color: 'var(--ink-500)', padding: '10px 16px 14px', lineHeight: 1.8 }}>
+                    계정이 없으니 <b>기기 하나를 한 사람</b>으로 봐요. 그 기기에서 한 번이라도 로그인했으면
+                    위 「사람별 활동」 에 있으므로 여기서는 빠져요.
+                    <br />
+                    앱을 지웠다 다시 깔거나 브라우저 기록을 지우면 새 기기로 보여요 — 같은 사람이 두 줄로 잡힐 수 있어요.
+                    <br />
+                    <b>플랫폼</b> 「모름」 은 플랫폼을 기록하기 전(2026-10-12 이전)에만 들어온 기기예요.
+                    비회원은 재료를 기기에만 저장해서 재료 담기는 셀 수 없어요.
+                  </div>
                 </div>
-                <div style={{ fontSize: 12, color: 'var(--ink-500)', padding: '10px 16px 14px', lineHeight: 1.8 }}>
-                  <b>냉장고</b> 지금 냉장고에 든 재료 수. 식구 그룹이면 그룹 냉장고 하나를 같이 쓰므로
-                  그룹원 모두 같은 숫자예요(그래서 합계는 내지 않아요).
-                  <br />
-                  <b>담기 / 빼기</b> 직접 입력·사진 등록·챗봇 등 어떤 길로든 냉장고에 넣고 뺀 재료 개수.
-                  가입 직후 기본 재료가 들어가는 첫 저장은 세지 않아요.
-                  <br />
-                  <b>즐겨찾기 · 완료 · 기록</b> 지금 남아 있는 레시피 수. 취소하면 줄어들고,
-                  같은 레시피를 두 번 완료해도 1이에요.
-                  <br />
-                  <b>AI</b> 기능별로 쓴 횟수. <b>크레딧</b>은 그 횟수에 기능별 가격을 곱해 차감된 합이에요.
-                </div>
-              </div>
+              </>
             );
           })()}
         </>
