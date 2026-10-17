@@ -372,6 +372,8 @@ def register(app, get_db):
             # 하루 상한의 **하한**만 플랜 기본값이고, 잔액이 많으면 그만큼 올라간다.
             'daily_burn_days': usage_quota.DAILY_BURN_DAYS,
             'credits': dict(usage_quota.CREDITS),
+            # 비회원 체험분(기기마다). 화면에 "비회원은 AI 를 못 쓴다" 고 잘못 적혀 있었다(2026-10-17).
+            'guest_trial': usage_quota.GUEST_TRIAL_CREDITS,
             'resets_at': usage_quota.next_week_start().isoformat(),
         }
         return jsonify({'users': users, 'week_start': week_start.isoformat(), 'policy': policy})
@@ -997,14 +999,14 @@ def register(app, get_db):
                 visits = cursor.fetchone()['n'] or 0
 
             steps = [
-                ('방문', visits, '앱이나 웹을 열어 기록이 남은 사람(비회원 포함, 기기 기준)'),
-                ('가입', total, '탈퇴하지 않은 계정'),
-                ('재료 등록', count(
+                ('들어온 사람', visits, '앱이나 웹을 열어 기록이 남은 사람(비회원 포함, 기기 기준)'),
+                ('가입한 사람', total, '탈퇴하지 않은 계정'),
+                ('재료 담은 사람', count(
                     "SELECT COUNT(DISTINCT i.user_id) n FROM user_ingredients i "
                     f"JOIN users u ON u.id = i.user_id AND u.deleted_at IS NULL{uid_cond}",
                     uid_params),
                  '냉장고에 재료를 하나라도 넣은 사람'),
-                ('레시피 반응', count(
+                ('레시피 저장한 사람', count(
                     "SELECT COUNT(DISTINCT x.user_id) n FROM ("
                     "  SELECT user_id FROM user_favorite_recipes"
                     "  UNION SELECT user_id FROM user_completed_recipes"
@@ -1012,12 +1014,12 @@ def register(app, get_db):
                     f"JOIN users u ON u.id = x.user_id AND u.deleted_at IS NULL{uid_cond}",
                     uid_params),
                  '즐겨찾기·완료·기록 중 하나라도 한 사람'),
-                ('AI 사용', count(
+                ('AI 쓴 사람', count(
                     "SELECT COUNT(DISTINCT l.user_id) n FROM llm_usage l "
                     f"JOIN users u ON u.id = l.user_id AND u.deleted_at IS NULL{uid_cond}",
                     uid_params),
                  'AI 챗봇·사진 등록·식단 짜기 중 하나라도 써 본 사람'),
-                ('식구 그룹', count(
+                ('식구 그룹 참여', count(
                     "SELECT COUNT(*) n FROM users u "
                     f"WHERE u.household_id IS NOT NULL AND u.deleted_at IS NULL{uid_cond}",
                     uid_params),

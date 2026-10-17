@@ -78,6 +78,24 @@ async function api(path: string, init?: RequestInit) {
 const shortDate = (iso: string | null) => (iso ? iso.slice(0, 10) : '');
 const num = (n: number) => n.toLocaleString('ko-KR');
 
+/**
+ * 어드민의 모든 표가 쓰는 스크롤 상자(`.adm-scroll`).
+ *  - 높이: min(60vh, 520px) — 휴대폰에서도 표 위아래로 페이지를 밀 자리가 남는다
+ *  - 머리 행(thead)·합계 행(tfoot)·첫 열은 붙어 있다(sticky). 붙은 칸은 뒤가 비치지 않게 바탕을 칠한다
+ *  - border-collapse: collapse 면 sticky 칸의 테두리가 사라져서 separate 로 바꾼다
+ *  - `.adm-grid`(ActivityTable)는 2단 머리라 sticky 를 스스로 정한다 — 첫 열 규칙만 뺀다
+ */
+const ADMIN_TABLE_CSS = `
+.adm-scroll { overflow: auto; max-height: min(60vh, 520px); -webkit-overflow-scrolling: touch; }
+.adm-scroll > table { border-collapse: separate !important; border-spacing: 0; }
+.adm-scroll thead th { position: sticky; top: 0; z-index: 2; background: var(--surface); }
+.adm-scroll tfoot td, .adm-scroll tfoot th { position: sticky; bottom: 0; z-index: 2; background: var(--surface-sub); }
+.adm-scroll:not(.adm-grid) tr > :first-child { position: sticky; left: 0; z-index: 1; background: var(--surface); }
+.adm-scroll:not(.adm-grid) thead tr > :first-child, .adm-scroll:not(.adm-grid) tfoot tr > :first-child { z-index: 3; }
+.adm-scroll:not(.adm-grid) tfoot tr > :first-child { background: var(--surface-sub); }
+`;
+
+
 /** llm_usage.kind → 화면 이름. 예전엔 vision 이 아니면 전부 '요리 AI' 라 식단 짜기가 챗봇과 구분이 안 됐다. */
 const AI_KIND: Record<string, string> = { chat: 'AI 챗봇', vision: 'AI 사진 등록', plan: 'AI 식단 짜기' };
 const aiKindName = (kind: string) => AI_KIND[kind] || kind;
@@ -128,6 +146,7 @@ const PolicyCard: React.FC<{ policy: any }> = ({ policy }) => {
   const label: Record<string, string> = { guest: '비회원', free: '회원 (free)', plus: '회원 (plus)' };
   const chat = policy.credits?.chat ?? 1;
   const vision = policy.credits?.vision ?? 2;
+  const plan = policy.credits?.plan ?? 3;
 
   return (
     <div style={{ ...S.card, marginBottom: 10 }}>
@@ -149,8 +168,8 @@ const PolicyCard: React.FC<{ policy: any }> = ({ policy }) => {
       {open && (
         <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 320 }}>
-              <thead><tr>{['구분', '일 상한'].map(h => (
+            <div className="adm-scroll"><table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 320 }}>
+              <thead><tr>{['구분', '하루 상한 기본값'].map(h => (
                 <th key={h} style={S.th}>{h}</th>))}</tr></thead>
               <tbody>
                 {(policy.plans || []).map((p: any) => (
@@ -160,21 +179,21 @@ const PolicyCard: React.FC<{ policy: any }> = ({ policy }) => {
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
           </div>
 
           {/* 표의 숫자는 **하한**이다. 이 줄이 없으면 "일 상한 15" 만 보고
               크레딧을 많이 준 계정이 왜 15에 안 막히는지 설명이 안 된다. */}
           <div style={{ fontSize: 12.5, color: 'var(--ink-700)', lineHeight: 1.8 }}>
-            <b>일 상한은 하한이다</b> — 실제 상한은 위 값, 사용자별로 넣은 숫자,{' '}
+            <b>표의 숫자는 가장 낮은 값이에요</b> — 실제 하루 상한은 위 값, 사용자별로 넣은 숫자,{' '}
             <b>잔액 ÷ {policy.daily_burn_days ?? 7}일</b> 중 <b>가장 큰 값</b>이에요.
             크레딧을 300개 줬는데 하루 15개씩만 쓸 수 있으면 다 쓰는 데 20일이
             걸린다 — 준 걸 못 쓰게 하는 셈이라, 잔액이 많으면 상한도 같이 올라가요.
           </div>
 
           <div style={{ fontSize: 12.5, color: 'var(--ink-700)', lineHeight: 1.8 }}>
-            <b>무엇을 세는가</b> — 요리 AI 질문 <b>{chat}</b>, 사진 인식 <b>{vision}</b>
-            (사진 장수와 무관).
+            <b>한 번 쓸 때 드는 크레딧</b> — AI 챗봇 질문 <b>{chat}</b>, AI 사진 등록 <b>{vision}</b>
+            (사진 장수와 무관), AI 식단 짜기 <b>{plan}</b>.
             <br />
             사진이 여러 장이어도 LLM 호출은 한 번이라, 장수만큼 매기면 여러 장을 한 번에
             올리는 것에 벌금을 매기는 꼴이 된다.
@@ -200,7 +219,8 @@ const PolicyCard: React.FC<{ policy: any }> = ({ policy }) => {
             앱을 더 나쁘게 기억하게 만든다.
             <br />
             <br />
-            <b>비회원</b> — AI 기능을 아예 못 쓴다. 로그인해야 크레딧이 생긴다.
+            <b>비회원</b> — 기기마다 체험 크레딧 <b>{policy.guest_trial ?? 5}</b>개(매주 다시 채우지 않음).
+            다 쓰면 가입해야 크레딧이 생긴다.
             <br />
             <b>다음 주간 지급</b> — {String(policy.resets_at || '').slice(0, 10)}
           </div>
@@ -442,7 +462,7 @@ const UsageHistory: React.FC<{ userId: number }> = ({ userId }) => {
 
   return (
     <div style={{ overflowX: 'auto' }}>
-      <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 520 }}>
+      <div className="adm-scroll"><table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 520 }}>
         <thead>
           <tr>
             {['시각', '종류', '크레딧', '사진', '토큰', '모델'].map(h => (
@@ -464,7 +484,7 @@ const UsageHistory: React.FC<{ userId: number }> = ({ userId }) => {
             </tr>
           ))}
         </tbody>
-      </table>
+      </table></div>
     </div>
   );
 };
@@ -552,7 +572,7 @@ const Requests: React.FC = () => {
               동작 칸이 넓어지자 사유 칸이 눌려 **글자가 세로로 쌓였다.**
               `table-layout: fixed` 로 정한 폭을 지키게 하고, 표가 좁아지면
               칸을 줄이는 대신 **가로로 스크롤**한다(바깥에 이미 걸려 있다). */}
-          <table style={{ borderCollapse: 'collapse', width: '100%',
+          <div className="adm-scroll"><table style={{ borderCollapse: 'collapse', width: '100%',
                           minWidth: 980, tableLayout: 'fixed' }}>
             <colgroup>
               <col style={{ width: 84 }} />{/* 요청일 */}
@@ -618,7 +638,7 @@ const Requests: React.FC = () => {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         </div>
       )}
       <div style={{ fontSize: 12, color: 'var(--ink-500)', padding: '0 4px', lineHeight: 1.7 }}>
@@ -1129,7 +1149,7 @@ const Dictionary: React.FC = () => {
           // 닿기까지 한참 걸렸다. 이 표만 정해진 높이 안에서 스크롤되게 가둔다.
           return (
             <div style={{ maxHeight: 480, overflowY: 'auto', overflowX: 'auto', border: '1px solid var(--line-200)', borderRadius: 8 }}>
-              <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 460 }}>
+              <div className="adm-scroll"><table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 460 }}>
                 <thead>
                   <tr>
                     <th style={{ ...S.th, width: 34, position: 'sticky', top: 0, background: 'var(--surface)', zIndex: 1 }} />
@@ -1196,7 +1216,7 @@ const Dictionary: React.FC = () => {
                     );
                   })}
                 </tbody>
-              </table>
+              </table></div>
             </div>
           );
         })()}
@@ -1429,7 +1449,7 @@ const Maintenance: React.FC = () => {
       <div style={S.card}>
         <h2 style={S.h2}>손으로 관리하는 자료</h2>
         <div style={{ overflowX: 'auto' }}>
-          <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 620 }}>
+          <div className="adm-scroll"><table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 620 }}>
             <thead>
               <tr>{['자료', '내용', '최근 수정', '왜 관리하나'].map(h => (
                 <th key={h} style={S.th}>{h}</th>
@@ -1459,7 +1479,7 @@ const Maintenance: React.FC = () => {
                 );
               })}
             </tbody>
-          </table>
+          </table></div>
         </div>
 
         {/* **손으로 채워야 하는 것**이라 이 카드에 둔다.
@@ -1564,7 +1584,7 @@ const Maintenance: React.FC = () => {
           사전 탭의 "사전에 없던 이름" 은 이제 확인용이지 할 일 목록이 아닙니다.
         </div>
         <div style={{ overflowX: 'auto' }}>
-          <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 860 }}>
+          <div className="adm-scroll"><table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 860 }}>
             <thead>
               <tr>{['작업', '마지막 실행', '결과', '다음 실행', '무슨 일을 하나'].map(h => (
                 <th key={h} style={S.th}>{h}</th>
@@ -1624,7 +1644,7 @@ const Maintenance: React.FC = () => {
                 );
               })}
             </tbody>
-          </table>
+          </table></div>
         </div>
       </div>
 
@@ -1991,21 +2011,22 @@ const ActivityTable: React.FC<{
     return acc;
   }, []);
   const total = (key: string) => rows.reduce((s, r) => s + (Number(r[key]) || 0), 0);
-  const scroll = rows.length > 20;
   const head = { ...S.th, position: 'sticky' as const, background: 'var(--surface)', zIndex: 1 };
   const cellNum = { ...S.td, fontVariantNumeric: 'tabular-nums' as const, textAlign: 'right' as const };
   const edge = (i: number) =>
     i === 0 || cols[i - 1].group !== cols[i].group ? { borderLeft: '1px solid var(--line-200)' } : {};
+  // 첫 열(닉네임·기기)은 옆으로 밀어도 붙어 있게 — 모서리 칸은 위·옆 둘 다 붙으므로 가장 위층.
+  const pinFirst = (z: number) => ({ position: 'sticky' as const, left: 0, zIndex: z });
   const foot = {
     ...cellNum, fontWeight: 700, position: 'sticky' as const, bottom: 0,
     background: 'var(--surface-sub)', borderTop: '1px solid var(--line-300)',
   };
   return (
-    <div style={{ overflow: 'auto', maxHeight: scroll ? 760 : undefined, marginTop: 10 }}>
+    <div className="adm-scroll adm-grid" style={{ marginTop: 10 }}>
       <table style={{ borderCollapse: 'separate', borderSpacing: 0, width: '100%', minWidth: 980 }}>
         <thead>
           <tr>
-            {lead.map(c => <th key={c.label} rowSpan={2} style={{ ...head, top: 0 }}>{c.label}</th>)}
+            {lead.map((c, i) => <th key={c.label} rowSpan={2} style={{ ...head, top: 0, ...(i === 0 ? pinFirst(3) : {}) }}>{c.label}</th>)}
             {groups.map(g => (
               <th key={g.name} colSpan={g.span}
                   style={{ ...head, top: 0, textAlign: 'center', color: 'var(--ink-700)',
@@ -2024,7 +2045,7 @@ const ActivityTable: React.FC<{
         <tbody>
           {rows.map(r => (
             <tr key={rowKey(r)}>
-              {lead.map(c => <td key={c.label} style={S.td}>{c.render(r)}</td>)}
+              {lead.map((c, i) => <td key={c.label} style={{ ...S.td, ...(i === 0 ? { ...pinFirst(1), background: 'var(--surface)' } : {}) }}>{c.render(r)}</td>)}
               {cols.map((c, i) => (
                 <td key={c.key} style={{ ...cellNum, ...edge(i),
                                          color: Number(r[c.key]) ? undefined : 'var(--ink-300)' }}>
@@ -2040,7 +2061,7 @@ const ActivityTable: React.FC<{
           <tr>
             {lead.map((c, i) => (
               <td key={c.label} style={{ ...foot, textAlign: 'left',
-                                          ...(i > 0 ? { fontWeight: 400, color: 'var(--ink-500)' } : {}) }}>
+                                          ...(i > 0 ? { fontWeight: 400, color: 'var(--ink-500)' } : pinFirst(3)) }}>
                 {i === 0 ? '합계' : i === 1 ? `${num(rows.length)}${unit}` : ''}
               </td>
             ))}
@@ -2345,8 +2366,10 @@ const Dashboard: React.FC = () => {
         <>
           {act.today_kst && (
             <div style={S.card}>
-              {/* 「다운로드 수가 어디 있나」 를 못 찾았다(2026-10-17) — 이름에 '다운로드' 를 넣고 맨 위로 올림. */}
-              <h2 style={S.h2}>앱 다운로드 <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-500)' }}>(처음 연 기기)</span></h2>
+              {/* 이름 변천(2026-10-17): 「새로 들어온 기기」 → 「앱 다운로드」(찾기 쉽게) → 다시 「새로 들어온 기기」.
+                  「앱 다운로드 누적 286」 이 스토어 다운로드 286회처럼 읽혔는데, 실제론 웹 첫 방문 브라우저와
+                  앱·웹 구분 전 기기까지 섞인 숫자였다. 앱과 웹을 따로 보이고 이름에 무엇을 세는지 적는다. */}
+              <h2 style={S.h2}>새로 들어온 기기 <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-500)' }}>(앱 처음 연 기기 + 웹 첫 방문)</span></h2>
               <Range>
                 {act.filters?.ranged
                   ? `${spanOf(act.filters?.from, act.filters?.to)} 에 처음 기록된 기기`
@@ -2377,34 +2400,41 @@ const Dashboard: React.FC = () => {
                 const total = sumOf(all);
                 const label = (d: string) =>
                   d === today ? '오늘' : d === shift(today, -1) ? '어제' : d.slice(5).replace('-', '/');
-                const tile = (title: string, value: string | number) => (
-                  <div style={{ flex: '1 1 110px', background: 'var(--surface-2, #f4f4f2)', borderRadius: 10, padding: '10px 12px' }}>
+                const tile = (title: string, value: string | number, sub?: string) => (
+                  <div style={{ flex: '1 1 130px', background: 'var(--surface-2, #f4f4f2)', borderRadius: 10, padding: '10px 12px' }}>
                     <div style={{ fontSize: 11.5, color: 'var(--ink-500)' }}>{title}</div>
                     <div style={{ fontSize: 22, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{typeof value === 'number' ? num(value) : value}</div>
+                    {sub && <div style={{ fontSize: 11, color: 'var(--ink-500)', marginTop: 2 }}>{sub}</div>}
                   </div>
                 );
                 const dt: Record<string, number> = act.devices_total || {};
                 const dtAll = Object.values(dt).reduce((a, n) => a + (Number(n) || 0), 0);
                 return (
                   <>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap',
-                                  background: 'var(--surface-sub)', borderRadius: 10, padding: '10px 12px', margin: '4px 0 8px' }}>
-                      <span style={{ fontSize: 12, color: 'var(--ink-500)' }}>지금까지 누적</span>
-                      <b style={{ fontSize: 24, fontVariantNumeric: 'tabular-nums' }}>{num(dtAll)}</b>
-                      <span style={{ fontSize: 12, color: 'var(--ink-500)', fontVariantNumeric: 'tabular-nums' }}>
-                        안드로이드 {num(dt.android || 0)} · 아이폰 {num(dt.ios || 0)} · 웹 {num(dt.web || 0)} · 구분 전 {num(dt.unknown || 0)}
-                      </span>
+                    {/* 지금까지 누적 — 앱 / 웹 / 구분 전 을 **따로**. 한 숫자로 합치면 다운로드 수처럼 읽힌다. */}
+                    <div style={{ fontSize: 12, color: 'var(--ink-500)', margin: '4px 0 6px' }}>
+                      지금까지 누적 <span style={{ fontVariantNumeric: 'tabular-nums' }}>(셋을 합치면 {num(dtAll)})</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '0 0 8px' }}>
+                      {tile('앱 — 설치하고 처음 연 기기', (dt.android || 0) + (dt.ios || 0),
+                            `안드로이드 ${num(dt.android || 0)} · 아이폰 ${num(dt.ios || 0)}`)}
+                      {tile('웹 — 처음 들어온 브라우저', dt.web || 0, '설치 없음')}
+                      {tile('앱·웹 구분 전', dt.unknown || 0, '10/12 전에 들어와 어느 쪽인지 모름')}
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--ink-500)', margin: '10px 0 6px' }}>
+                      {ranged ? '고른 기간' : '최근 7일'}
                     </div>
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '0 0 12px' }}>
-                      {tile(ranged ? '기간 합계' : '최근 7일 합계', total)}
+                      {tile(ranged ? '새로 들어온 기기' : '7일 동안 새로 들어온 기기', total)}
                       {tile('하루 평균', all.length ? (total / all.length).toFixed(1) : '0')}
-                      {tile(label(to) + (to === today ? '' : ' (마지막 날)'), on(to))}
+                      {tile(`${label(to)}${to === today ? '' : '(마지막 날)'} 새로 들어온 기기`, on(to))}
                     </div>
                     <div style={{ overflowX: 'auto' }}>
-                    <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 340 }}>
-                      <thead><tr>{['날짜', '합계', '안드로이드', '아이폰', '웹', '구분 전'].map((h) => (
+                    <div className="adm-scroll"><table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 340 }}>
+                      <thead><tr>{['날짜', '합계', '안드로이드 앱', '아이폰 앱', '웹', '구분 전'].map((h) => (
                         <th key={h} style={S.th}>{h}</th>))}</tr></thead>
-                      <tbody>
+                      {/* 합계 줄은 맨 아래(tfoot) — 스크롤해도 바닥에 붙어 있다 */}
+                      <tfoot>
                         <tr>
                           <td style={{ ...S.td, fontWeight: 700 }}>{ranged ? '기간 합계' : '7일 합계'}</td>
                           <td style={{ ...S.td, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{num(total)}</td>
@@ -2412,6 +2442,8 @@ const Dashboard: React.FC = () => {
                             <td key={pl} style={{ ...S.td, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{num(sumOf(all, pl))}</td>
                           ))}
                         </tr>
+                      </tfoot>
+                      <tbody>
                         {days.map((d) => (
                           <tr key={d}>
                             <td style={S.td}>{label(d)}</td>
@@ -2422,7 +2454,7 @@ const Dashboard: React.FC = () => {
                           </tr>
                         ))}
                       </tbody>
-                    </table>
+                    </table></div>
                     </div>
                     {all.length > MAX_ROWS && (
                       <div style={{ fontSize: 11.5, color: 'var(--ink-500)', marginTop: 6 }}>
@@ -2433,7 +2465,7 @@ const Dashboard: React.FC = () => {
                 );
               })()}
               <div style={{ fontSize: 11.5, color: 'var(--ink-500)', marginTop: 8, lineHeight: 1.6 }}>
-                <b>스토어 다운로드 수와는 달라요.</b> 앱을 설치해서 <b>처음 열어 본</b> 기기만 잡혀요(설치만 하고 안 열면 안 보여요).
+                <b>스토어 다운로드 수가 아니에요.</b> 앱은 설치하고 <b>처음 열어 본</b> 기기만 잡혀요(설치만 하고 안 열면 안 보여요).
                 스토어 숫자는{' '}
                 <a href="https://play.google.com/console" target="_blank" rel="noreferrer">구글 플레이 콘솔</a> 「통계」와{' '}
                 <a href="https://appstoreconnect.apple.com/analytics" target="_blank" rel="noreferrer">앱스토어 커넥트</a> 「분석」에서
@@ -2447,16 +2479,16 @@ const Dashboard: React.FC = () => {
             <h2 style={S.h2}>어디까지 오고 어디서 멈추나</h2>
             <Range>
               {act.filters?.ranged
-                ? `방문: ${spanOf(act.filters?.from, act.filters?.to)} 에 앱·웹을 연 사람 · 그 아래: 같은 기간에 가입한 사람`
-                : `방문: 화면 기록을 켠 뒤부터 앱·웹을 연 사람(${dayOf(AP.events_from) || '-'} ~) · 그 아래: 전체 기간 가입자 누적(첫 가입 ${dayOf(AP.users_from) || '-'} ~ 오늘 ${dayOf(AP.now) || '-'})`}
+                ? `들어온 사람: ${spanOf(act.filters?.from, act.filters?.to)} 에 앱·웹을 연 사람 · 그 아래: 같은 기간에 가입한 사람`
+                : `들어온 사람: 화면 기록을 켠 뒤부터 앱·웹을 연 사람(${dayOf(AP.events_from) || '-'} ~) · 그 아래: 전체 기간 가입자 누적(첫 가입 ${dayOf(AP.users_from) || '-'} ~ 오늘 ${dayOf(AP.now) || '-'})`}
             </Range>
             <div style={{ fontSize: 12, color: 'var(--ink-500)', marginBottom: 12, lineHeight: 1.6 }}>
               {act.filters?.ranged
-                ? <>맨 위 <b>방문</b>은 그 기간에 앱·웹을 열어 본 사람(비회원 포함)이고, 그 아래는 그 기간에 <b>가입한 사람</b>이 각 단계까지 얼마나 왔는지예요 (활동은 오늘까지 봅니다).</>
-                : <>맨 위 <b>방문</b>은 앱·웹을 열어 본 사람(비회원 포함)이고, 그 아래는 가입한 사람이 각 단계까지 얼마나 오는지예요. 방문 → 가입에서 줄어드는 폭이 광고로 들어온 사람의 첫 이탈이에요. 로그인 안 한 사람은 <b>기기 하나를 한 명</b>으로 세서, 앱을 지웠다 다시 깔거나 다른 브라우저로 열면 새 사람으로 보일 수 있어요.</>}
+                ? <>맨 위 <b>들어온 사람</b>은 그 기간에 앱·웹을 열어 본 사람(비회원 포함)이고, 그 아래는 그 기간에 <b>가입한 사람</b>이 각 단계까지 얼마나 왔는지예요 (활동은 오늘까지 봅니다).</>
+                : <>맨 위 <b>들어온 사람</b>은 앱·웹을 열어 본 사람(비회원 포함)이고, 그 아래는 가입한 사람이 각 단계까지 얼마나 오는지예요. 들어온 사람 → 가입에서 줄어드는 폭이 광고로 들어온 사람의 첫 이탈이에요. 로그인 안 한 사람은 <b>기기 하나를 한 명</b>으로 세서, 앱을 지웠다 다시 깔거나 다른 브라우저로 열면 새 사람으로 보일 수 있어요.</>}
               {' '}<b>많이 줄어드는 칸이 고칠 곳</b>입니다.
               <br />
-              <b>숫자 옆 %</b>는 맨 위 칸(방문) 대비 남은 비율이고, <b style={{ color: '#D14343' }}>빨간 -%</b>는 <b>바로 윗 칸보다 줄어든 비율</b>(그 칸에서 빠진 사람 몫)이에요.
+              <b>숫자 옆 %</b>는 맨 위 칸(들어온 사람) 대비 남은 비율이고, <b style={{ color: '#D14343' }}>빨간 -%</b>는 <b>바로 윗 칸보다 줄어든 비율</b>(그 칸에서 빠진 사람 몫)이에요.
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {(act.steps || []).map((st: any, i: number) => {
@@ -2468,7 +2500,7 @@ const Dashboard: React.FC = () => {
                 return (
                   <React.Fragment key={st.label}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ width: 76, fontSize: 13, fontWeight: 600, flexShrink: 0 }}>{st.label}</div>
+                    <div style={{ width: 100, fontSize: 12.5, fontWeight: 600, flexShrink: 0 }}>{st.label}</div>
                     <div style={{ flex: 1, minWidth: 0, height: 22, background: 'var(--line-200)',
                                   borderRadius: 6, overflow: 'hidden' }}>
                       <div style={{ width: pct + '%', height: '100%', background: '#FFD600' }} />
@@ -2482,10 +2514,10 @@ const Dashboard: React.FC = () => {
                       )}
                     </div>
                   </div>
-                  {st.label === '방문' && (
+                  {st.label === '들어온 사람' && (
                     // 명 기준 바로 아래에 횟수 기준을 덧붙인다(같은 사람이 여러 번 열면 각각 센다).
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: -2 }}>
-                      <div style={{ width: 76, fontSize: 12, color: 'var(--ink-500)', flexShrink: 0, paddingLeft: 8 }}>└ 횟수</div>
+                      <div style={{ width: 100, fontSize: 12, color: 'var(--ink-500)', flexShrink: 0, paddingLeft: 8 }}>└ 들어온 횟수</div>
                       <div style={{ flex: 1, minWidth: 0, fontSize: 12, color: 'var(--ink-500)' }}>
                         같은 사람이 여러 번 열면 열 때마다 셉니다(30분 넘게 쉬었다 열면 새 방문)
                         {st.count > 0 && <> · 1명당 평균 <b>{(visitTimes / st.count).toFixed(1)}</b>번</>}
@@ -2503,8 +2535,6 @@ const Dashboard: React.FC = () => {
               탈퇴 {act.churned}명.
               <br />
               <b>아직 못 보는 것</b>: {(act.blind_spots || []).join(' / ')}
-              <br />
-              이걸 보려면 화면 진입·행동을 남기는 기록이 따로 필요해요.
             </div>
           </div>
 
@@ -2527,7 +2557,7 @@ const Dashboard: React.FC = () => {
                             alignItems: 'center', margin: '2px 0 10px' }}>
                 <div style={{ display: 'inline-flex', border: '1px solid var(--line-200)',
                               borderRadius: 8, overflow: 'hidden' }}>
-                  {([['views', '화면 진입'], ['exits', '나간 자리']] as const).map(([k, label]) => (
+                  {([['views', '많이 본 화면'], ['exits', '마지막으로 본 화면']] as const).map(([k, label]) => (
                     <button
                       key={k}
                       type="button"
@@ -2563,8 +2593,8 @@ const Dashboard: React.FC = () => {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(260px, 100%), 1fr))', gap: 18 }}>
                 <div style={{ minWidth: 0, overflowX: 'auto' }}>
                   <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>많이 본 화면</div>
-                  <table style={{ borderCollapse: 'collapse', width: '100%' }}>
-                    <thead><tr>{['화면', '진입', '방문'].map(h => (
+                  <div className="adm-scroll"><table style={{ borderCollapse: 'collapse', width: '100%' }}>
+                    <thead><tr>{['화면', '본 횟수', '본 방문'].map(h => (
                       <th key={h} style={S.th}>{h}</th>))}</tr></thead>
                     <tbody>
                       {act.screens.map((r: any) => (
@@ -2575,7 +2605,7 @@ const Dashboard: React.FC = () => {
                         </tr>
                       ))}
                     </tbody>
-                  </table>
+                  </table></div>
                 </div>
 
                 <div style={{ minWidth: 0, overflowX: 'auto' }}>
@@ -2584,8 +2614,8 @@ const Dashboard: React.FC = () => {
                   <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>
                     마지막으로 본 화면 <span style={{ fontWeight: 400, color: 'var(--ink-500)' }}>(= 나간 자리)</span>
                   </div>
-                  <table style={{ borderCollapse: 'collapse', width: '100%' }}>
-                    <thead><tr>{['화면', '방문 수'].map(h => (
+                  <div className="adm-scroll"><table style={{ borderCollapse: 'collapse', width: '100%' }}>
+                    <thead><tr>{['화면', '여기서 끝난 방문'].map(h => (
                       <th key={h} style={S.th}>{h}</th>))}</tr></thead>
                     <tbody>
                       {(act.exits || []).map((r: any) => (
@@ -2595,7 +2625,7 @@ const Dashboard: React.FC = () => {
                         </tr>
                       ))}
                     </tbody>
-                  </table>
+                  </table></div>
                 </div>
               </div>
 
@@ -2605,8 +2635,8 @@ const Dashboard: React.FC = () => {
                 // 절반이 담는 유입이 낫다. 그래서 비율을 옆에 붙여 둔다.
                 const totalSessions = act.sources.reduce(
                   (a: number, r: any) => a + (r.sessions || 0), 0) || 1;
-                const cols = ['유입', '방문', '사람', '방문당 화면',
-                              '재료 담기', 'AI 사용', '가입', '쿠팡', '첫 화면', '들어온 기간'];
+                const cols = ['유입', '방문 수', '사람 수', '방문당 본 화면',
+                              '재료 담은 방문', 'AI 쓴 방문', '가입한 방문', '쿠팡 누른 방문', '처음 본 화면', '들어온 기간'];
                 return (
                   <div style={{ marginTop: 18 }}>
                     <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>어디서 들어왔나</div>
@@ -2620,7 +2650,7 @@ const Dashboard: React.FC = () => {
                       광고를 더 쓰면 됩니다.
                     </div>
                     <div style={{ overflowX: 'auto' }}>
-                      <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 780 }}>
+                      <div className="adm-scroll"><table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 780 }}>
                         <thead><tr>{cols.map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
                         <tbody>
                           {act.sources.map((r: any) => {
@@ -2665,7 +2695,7 @@ const Dashboard: React.FC = () => {
                             );
                           })}
                         </tbody>
-                      </table>
+                      </table></div>
                     </div>
                     <div style={{ fontSize: 12, color: 'var(--ink-500)', marginTop: 10, lineHeight: 1.7 }}>
                       <b>방문당 화면</b>이 1에 가까우면 첫 화면만 보고 바로 나갔다는 뜻이에요 —
@@ -2689,8 +2719,8 @@ const Dashboard: React.FC = () => {
             <div style={S.card}>
               <h2 style={S.h2}>어떤 기능을 쓰나</h2>
               <Range>전체 기간 누적 · {spanOf(AP.usage_from, AP.usage_to)}</Range>
-              <table style={{ borderCollapse: 'collapse', width: '100%' }}>
-                <thead><tr>{['기능', '쓴 사람', '호출', '크레딧'].map(h => (
+              <div className="adm-scroll"><table style={{ borderCollapse: 'collapse', width: '100%' }}>
+                <thead><tr>{['기능', '쓴 사람', '쓴 횟수', '쓴 크레딧'].map(h => (
                   <th key={h} style={S.th}>{h}</th>))}</tr></thead>
                 <tbody>
                   {act.features.map((f: any) => (
@@ -2702,7 +2732,7 @@ const Dashboard: React.FC = () => {
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </table></div>
             </div>
           )}
 
@@ -2716,9 +2746,9 @@ const Dashboard: React.FC = () => {
               { key: 'visit_days', label: '방문한 날', group: '방문' },
             ];
             const AI: ActivityCol[] = [
-              { key: 'ai_chat', label: '챗봇', group: 'AI (호출 횟수)' },
-              { key: 'ai_vision', label: '사진 등록', group: 'AI (호출 횟수)' },
-              { key: 'ai_plan', label: '식단 짜기', group: 'AI (호출 횟수)' },
+              { key: 'ai_chat', label: '챗봇', group: 'AI (쓴 횟수)' },
+              { key: 'ai_vision', label: '사진 등록', group: 'AI (쓴 횟수)' },
+              { key: 'ai_plan', label: '식단 짜기', group: 'AI (쓴 횟수)' },
             ];
             const COLS: ActivityCol[] = [
               ...VISIT,
@@ -2729,7 +2759,7 @@ const Dashboard: React.FC = () => {
               { key: 'completed', label: '완료', group: '레시피 (지금)' },
               { key: 'recorded', label: '기록', group: '레시피 (지금)' },
               ...AI,
-              { key: 'credits', label: '크레딧', group: 'AI (호출 횟수)' },
+              { key: 'credits', label: '쓴 크레딧', group: 'AI (쓴 횟수)' },
             ];
 
             // 로그인 없이 들어온 사람 — 계정이 없으니 기기 하나를 한 사람으로 본다.
@@ -2871,11 +2901,11 @@ const Dashboard: React.FC = () => {
              R ? `${span}에 탈퇴한 계정 (가입은 그 전일 수 있음)` : '지금까지 탈퇴한 계정 전부'],
             ['식구 그룹 소속', num(data.users?.in_household ?? 0),
              R ? `${span} 가입자 중 지금 그룹에 있는 회원` : '지금 그룹에 있는 회원'],
-            [R ? '크레딧' : '이번 주 크레딧', num(data.this_week?.credits ?? 0),
+            [R ? '쓴 크레딧' : '이번 주 쓴 크레딧', num(data.this_week?.credits ?? 0),
              span || `${dayOf(P.week_start) || '월요일'}부터`],
-            [R ? '호출' : '이번 주 호출', num(data.this_week?.calls ?? 0),
+            [R ? 'AI 쓴 횟수' : '이번 주 AI 쓴 횟수', num(data.this_week?.calls ?? 0),
              span || `${dayOf(P.week_start) || '월요일'}부터`],
-            ['쿠팡 클릭', num(data.coupang_clicks_30d ?? 0),
+            ['쿠팡 링크 누름', num(data.coupang_clicks_30d ?? 0),
              span || `${dayOf(P.since_30d) || '30일 전'}부터`],
           ]; })().map(([label, value, when]) => (
             <div key={label as string} style={{ background: 'var(--surface-sub)', borderRadius: 10, padding: '10px 12px' }}>
@@ -2909,11 +2939,11 @@ const Dashboard: React.FC = () => {
         <h2 style={S.h2}>크레딧 환산 점검</h2>
         <Range>전체 기간 누적 · {spanOf(P.usage_from, P.usage_to)}</Range>
         {(data.credit_check || []).length === 0 ? (
-          <div style={{ fontSize: 13, color: 'var(--ink-500)' }}>토큰이 기록된 호출이 아직 없어요.</div>
+          <div style={{ fontSize: 13, color: 'var(--ink-500)' }}>토큰이 기록된 AI 사용이 아직 없어요.</div>
         ) : (
-          <table style={{ borderCollapse: 'collapse', width: '100%' }}>
+          <div className="adm-scroll"><table style={{ borderCollapse: 'collapse', width: '100%' }}>
             <thead>
-              <tr>{['종류', '호출', '평균 토큰', '크레딧당 토큰'].map(h => <th key={h} style={S.th}>{h}</th>)}</tr>
+              <tr>{['기능', '쓴 횟수', '1회 평균 토큰', '크레딧 1당 토큰'].map(h => <th key={h} style={S.th}>{h}</th>)}</tr>
             </thead>
             <tbody>
               {data.credit_check.map((r: any) => (
@@ -2927,7 +2957,7 @@ const Dashboard: React.FC = () => {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         )}
         <div style={{ fontSize: 12, color: 'var(--ink-500)', marginTop: 8, lineHeight: 1.6 }}>
           두 줄의 <b>크레딧당 토큰</b>이 크게 벌어지면 환산이 어긋난 것입니다.
@@ -2949,14 +2979,14 @@ const USER_COLUMNS: { key: UserSortKey; label: string; text?: boolean }[] = [
   { key: 'id', label: 'id' },
   { key: 'email', label: '이메일', text: true },
   { key: 'nickname', label: '닉네임', text: true },
-  { key: 'created_at', label: '가입' },
-  { key: 'provider', label: '경로', text: true },
-  { key: 'ingredient_count', label: '재료' },
-  { key: 'today_credits', label: '오늘 (일 상한)' },
-  { key: 'week_credits', label: '이번 주 (주 한도)' },
-  { key: 'week_tokens', label: '토큰' },
+  { key: 'created_at', label: '가입일' },
+  { key: 'provider', label: '가입 방법', text: true },
+  { key: 'ingredient_count', label: '냉장고 재료' },
+  { key: 'today_credits', label: '오늘 쓴 크레딧 / 하루 상한' },
+  { key: 'week_credits', label: '이번 주 쓴 크레딧 · 잔액' },
+  { key: 'week_tokens', label: '이번 주 토큰' },
   { key: 'plan', label: '플랜', text: true },
-  { key: 'deleted_at', label: '탈퇴' },
+  { key: 'deleted_at', label: '탈퇴일' },
   // 관리 열은 버튼뿐이라 "관리자 → 집계 제외 → 나머지" 표시로 정렬한다
   { key: 'manage', label: '관리' },
 ];
@@ -3051,6 +3081,9 @@ const Admin: React.FC = () => {
   return (
     <PullToRefresh onRefresh={refresh}>
     <div style={S.page}>
+      {/* 어드민 표 공통(2026-10-17): 표가 화면보다 높으면 표 바깥을 밀 자리가 없어 페이지가 안 내려갔다.
+          표 높이를 화면의 60% 남짓으로 묶고, 머리 행·첫 열·맨 아래 합계 행은 스크롤해도 붙어 있게. */}
+      <style>{ADMIN_TABLE_CSS}</style>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
         <h1 style={{ fontSize: 18, fontWeight: 700, margin: 0, flex: 1 }}>쿡매치 어드민</h1>
         <button type="button" style={S.btn} onClick={() => navigate('/')}>앱으로</button>
@@ -3108,9 +3141,10 @@ const Admin: React.FC = () => {
 
           {/* "사용량" 과 "토큰" 이 뭔지 매번 헷갈리므로 표 옆에 적어 둔다. */}
           <div style={{ fontSize: 12, color: 'var(--ink-500)', lineHeight: 1.7, padding: '0 4px 8px' }}>
-            <b>오늘 / 이번 주</b>는 <b>크레딧</b>이에요 — 요리 AI 1, 사진 인식 2.
-            사용자에게 보이는 숫자가 이것이고, 한도도 이 단위로 걸립니다.
-            둘은 따로 걸려요(일 상한 · 주 한도).
+            <b>오늘 / 이번 주</b>는 <b>쓴 크레딧</b>이에요 — AI 챗봇 {policy?.credits?.chat ?? 1},
+            AI 사진 등록 {policy?.credits?.vision ?? 2}, AI 식단 짜기 {policy?.credits?.plan ?? 3}.
+            사용자에게 보이는 숫자가 이것이고, 막히는 것도 이 단위예요 —
+            <b> 잔액</b>이 0이 되거나 그날 <b>하루 상한</b>만큼 썼으면 못 써요.
             <br />
             <b>토큰</b>은 LLM 이 실제로 쓴 양(원가)이에요. 화면엔 안 나오고,
             "사진 2크레딧이 적정한가" 를 감이 아니라 근거로 판단하려고 기록만 합니다.
@@ -3118,7 +3152,7 @@ const Admin: React.FC = () => {
           </div>
 
           <div style={{ ...S.card, padding: 0, overflowX: 'auto' }}>
-            <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 760 }}>
+            <div className="adm-scroll"><table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 760 }}>
               <thead>
                 <tr>
                   {USER_COLUMNS.map(c => {
@@ -3219,7 +3253,7 @@ const Admin: React.FC = () => {
                   </React.Fragment>
                 ))}
               </tbody>
-            </table>
+            </table></div>
           </div>
 
           {users && users.length === 0 && (

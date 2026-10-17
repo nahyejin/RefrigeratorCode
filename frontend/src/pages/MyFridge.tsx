@@ -343,7 +343,7 @@ const IngredientPill: React.FC<IngredientPillProps> = ({ item, onRemove, onSetti
           → pill 을 누르면 바로 설정 팝업이 열리도록 합치고 시계 버튼을 없앴다. */}
       <TagPill
         // 높이 30 → 26: 냉장고요리 재료 배지(`pillStyle`)와 같은 높이로(2026-10-10 요청). 흰 바탕은 칸의 옅은 색 위에서 또렷하게.
-        style={{ fontSize: 13, cursor: 'pointer', marginRight: 0, marginBottom: 0, height: 26, padding: '0 10px', background: '#FFFFFF', border: '1px solid var(--line-200)' }}
+        style={{ fontSize: 13, cursor: 'pointer', marginRight: 0, marginBottom: 0, height: 26, padding: '0 10px', background: SECTION_BG, border: '1px solid #E8E8EC' }}
       >
         <span
           className="truncate max-w-[100px]"
@@ -423,6 +423,8 @@ const IngredientPill: React.FC<IngredientPillProps> = ({ item, onRemove, onSetti
  * 촌스럽다는 지적이라 세 칸 모두 같은 옅은 회색으로 통일. 선·띠 없이 면 하나로 칸을 가르고, 칩·버튼은 흰 바탕이라 또렷하다.
  */
 const SECTION_BG = '#F6F6F8';
+/** 칸 안 재료 쟁반 바탕 — 칸(회색) 안의 흰 판. 칩은 반대로 옅은 회색이라 흰 판 위에서 또렷하다. */
+const TRAY_BG = '#FFFFFF';
 const SECTION_TINT: Record<StorageBox, string> = {
   frozen: SECTION_BG,
   fridge: SECTION_BG,
@@ -438,9 +440,7 @@ const sectionStyle = (kind: StorageBox): React.CSSProperties => ({
 interface ScrollablePillSectionProps {
   watchKey: number;
   children: React.ReactNode;
-  /** 접었을 때 아래를 흐리게 덮는 색 — 칸 바탕색과 같아야 한다(`SECTION_TINT`). */
-  fade?: string;
-  /** 접었을 때 높이(px). 기본 140 — 「종류별로 묶기」 일 때 더 크게 */
+  /** 접었을 때 높이(px). 기본 140 */
   collapsedMax?: number;
   /** 위쪽 「모두 펼치기 / 모두 접기」 — n 이 바뀔 때마다 open 으로 맞춘다(그 뒤 칸마다 따로 눌러도 된다) */
   expandSignal?: { open: boolean; n: number };
@@ -449,9 +449,9 @@ interface ScrollablePillSectionProps {
 }
 
 const ScrollablePillSection: React.FC<ScrollablePillSectionProps> = ({
-  watchKey, children, fade = '#FFFFFF', collapsedMax, expandSignal, onOverflowChange,
+  watchKey, children, collapsedMax, expandSignal, onOverflowChange,
 }) => {
-  const fadeRgb = [1, 3, 5].map(i => parseInt(fade.slice(i, i + 2), 16)).join(',');
+  const fadeRgb = [1, 3, 5].map(i => parseInt(TRAY_BG.slice(i, i + 2), 16)).join(',');
   /**
    * 재료 칩 칸 — 접어 둔 높이(약 네 줄째가 간신히 보이는 정도) 안에 다 들어가면 그대로 보여 주고,
    * 넘치면 아래를 흐리게 하고 `전체 보기` 를 둔다. 접힌 채로 칸 안 스크롤도 된다(2026-10-17, 아래 참고).
@@ -507,7 +507,11 @@ const ScrollablePillSection: React.FC<ScrollablePillSectionProps> = ({
 
   return (
     <div>
-      <div style={{ position: 'relative' }}>
+      {/* 재료 칸 = 흰 「쟁반」(2026-10-17). 회색 칸 바탕 위에 칩이 그냥 흩어져 있으면 어디까지가 재료
+          자리이고 어디까지 찼는지 안 보였다(사용자). 칸 제목·`전체 보기` 는 쟁반 밖에 둬서 경계가 분명하게.
+          흐림도 쟁반 색(흰색)으로 덮는다. */}
+      <div style={{ position: 'relative', background: TRAY_BG, border: '1px solid #ECECF0', borderRadius: 12,
+                    padding: '8px 8px 4px', overflow: 'hidden' }}>
         <div
           ref={innerRef}
           onScroll={collapsed ? onInnerScroll : undefined}
@@ -2723,7 +2727,7 @@ const MyFridge: React.FC = () => {
                 )}
               </span>
             </div>
-            <ScrollablePillSection watchKey={(frozen ?? []).length} fade={SECTION_TINT.frozen} expandSignal={expandSignal} onOverflowChange={overflowSetters.frozen}>
+            <ScrollablePillSection watchKey={(frozen ?? []).length} expandSignal={expandSignal} onOverflowChange={overflowSetters.frozen}>
               {(frozen ?? []).length === 0 && (
                 <div className="text-gray-400 text-xs py-1">재료가 아직 없어요</div>
               )}
@@ -2745,7 +2749,7 @@ const MyFridge: React.FC = () => {
                 )}
               </span>
             </div>
-            <ScrollablePillSection watchKey={(fridge ?? []).length} fade={SECTION_TINT.fridge} expandSignal={expandSignal} onOverflowChange={overflowSetters.fridge}>
+            <ScrollablePillSection watchKey={(fridge ?? []).length} expandSignal={expandSignal} onOverflowChange={overflowSetters.fridge}>
               {fridge && fridge.length === 0 && (
                 <div className="text-gray-400 text-xs py-1">재료가 아직 없어요</div>
               )}
@@ -2767,7 +2771,7 @@ const MyFridge: React.FC = () => {
                 )}
               </span>
             </div>
-            <ScrollablePillSection watchKey={(room ?? []).length} fade={SECTION_TINT.room} expandSignal={expandSignal} onOverflowChange={overflowSetters.room}>
+            <ScrollablePillSection watchKey={(room ?? []).length} expandSignal={expandSignal} onOverflowChange={overflowSetters.room}>
               {room && room.length === 0 && (
                 <div className="text-gray-400 text-xs py-1">재료가 아직 없어요</div>
               )}
