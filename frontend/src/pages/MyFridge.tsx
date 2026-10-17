@@ -301,6 +301,30 @@ function getDdayLabel(item: Ingredient): { text: string; urgent: boolean; estima
   return { text: `${prefix}D-${days}`, urgent: days <= 3, estimated, stale: false };
 }
 
+/**
+ * 칸의 [모두 삭제] — 글자 없이 휴지통 아이콘만(2026-10-17 요청). 옆 정렬 드롭다운과 같은 28px 높이의 정사각형.
+ * 글자가 없으니 화면낭독용 이름(aria-label)과 마우스를 올리면 뜨는 이름(title)을 꼭 단다.
+ * 누르면 바로 지우지 않고 확인 팝업이 뜬다(handleRemoveAll).
+ */
+const REMOVE_ALL_LABEL: Record<StorageBox, string> = { frozen: '냉동', fridge: '냉장', room: '실온' };
+const RemoveAllButton: React.FC<{ box: StorageBox; onClick: () => void }> = ({ box, onClick }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    aria-label={`${REMOVE_ALL_LABEL[box]}보관 재료 모두 삭제`}
+    title="모두 삭제"
+    style={{ width: 28, height: 28, padding: 0, display: 'inline-flex', alignItems: 'center',
+             justifyContent: 'center', flexShrink: 0 }}
+    className="rounded border border-gray-300 bg-white text-[#5A5A62] hover:bg-[#F5F5F7] active:bg-[#E6E6EA] transition"
+  >
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9"
+         strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M4 7h16" /><path d="M10 11v6" /><path d="M14 11v6" />
+      <path d="M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12" /><path d="M9 7V4h6v3" />
+    </svg>
+  </button>
+);
+
 const IngredientPill: React.FC<IngredientPillProps> = ({ item, onRemove, onSettingsClick, isFirstInFridge = false }) => {
   const dday = getDdayLabel(item);
 
@@ -2677,15 +2701,7 @@ const MyFridge: React.FC = () => {
               <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
                 <SortDropdown value={frozenSort} onChange={setFrozenSort} />
                 {(frozen ?? []).length > 0 && (
-                  <button
-                    // 높이를 숫자로 못 박는다 — 옆 정렬 드롭다운이 28px 이고,
-                    // 이쪽은 h-6(24px)이라 4px 이 어긋나 보였다(2026-10-08).
-                    style={{ height: 28 }}
-                    className="px-1.5 py-0 text-[11px] font-medium rounded border border-gray-300 bg-white text-[#3A3A42] hover:bg-[#F5F5F7] active:bg-[#E6E6EA] transition whitespace-nowrap"
-                    onClick={() => handleRemoveAll('frozen')}
-                  >
-                    모두삭제
-                  </button>
+                  <RemoveAllButton box="frozen" onClick={() => handleRemoveAll('frozen')} />
                 )}
               </span>
             </div>
@@ -2707,15 +2723,7 @@ const MyFridge: React.FC = () => {
               <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
                 <SortDropdown value={fridgeSort} onChange={setFridgeSort} />
                 {fridge && fridge.length > 0 && (
-                  <button
-                    // 높이를 숫자로 못 박는다 — 옆 정렬 드롭다운이 28px 이고,
-                    // 이쪽은 h-6(24px)이라 4px 이 어긋나 보였다(2026-10-08).
-                    style={{ height: 28 }}
-                    className="px-1.5 py-0 text-[11px] font-medium rounded border border-gray-300 bg-white text-[#3A3A42] hover:bg-[#F5F5F7] active:bg-[#E6E6EA] transition whitespace-nowrap"
-                    onClick={() => handleRemoveAll('fridge')}
-                  >
-                    모두삭제
-                  </button>
+                  <RemoveAllButton box="fridge" onClick={() => handleRemoveAll('fridge')} />
                 )}
               </span>
             </div>
@@ -2737,15 +2745,7 @@ const MyFridge: React.FC = () => {
               <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
                 <SortDropdown value={roomSort} onChange={setRoomSort} />
                 {room && room.length > 0 && (
-                  <button
-                    // 높이를 숫자로 못 박는다 — 옆 정렬 드롭다운이 28px 이고,
-                    // 이쪽은 h-6(24px)이라 4px 이 어긋나 보였다(2026-10-08).
-                    style={{ height: 28 }}
-                    className="px-1.5 py-0 text-[11px] font-medium rounded border border-gray-300 bg-white text-[#3A3A42] hover:bg-[#F5F5F7] active:bg-[#E6E6EA] transition whitespace-nowrap"
-                    onClick={() => handleRemoveAll('room')}
-                  >
-                    모두삭제
-                  </button>
+                  <RemoveAllButton box="room" onClick={() => handleRemoveAll('room')} />
                 )}
               </span>
             </div>
