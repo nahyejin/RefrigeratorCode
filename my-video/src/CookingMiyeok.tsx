@@ -35,7 +35,7 @@ const HOOK = { at: 0.15, len: 2.75, text: "황태로도\n미역국을 끓인다�
 
 // 쿡매치에서 찾기 — 앱 작업본(1206x2422) 시각
 const APP: Shot[] = [
-  { kind: "video", src: "app_raw.mp4", from: 60.5, to: 64, rate: 1.2, app: true, step: "황태 미역국이 있어…?!\n쿡매치에서 「미역국」 검색" },
+  { kind: "video", src: "app_raw.mp4", from: 60.5, to: 64, rate: 1.2, app: true, step: "황태 미역국이 있나?\n쿡매치에서 「미역국」 검색" },
   { kind: "video", src: "app_raw.mp4", from: 65, to: 70.6, rate: 1.4, app: true, step: "꼭 넣을 재료에 「황태」" },
   { kind: "video", src: "app_raw.mp4", from: 71.5, to: 75.6, app: true, step: "그중에서도 「인기순」으로" },
   { kind: "video", src: "app_raw.mp4", from: 76, to: 81, rate: 1.8, app: true, step: "있다! 황태 미역국\n유튜브·네이버 검증 레시피" },
