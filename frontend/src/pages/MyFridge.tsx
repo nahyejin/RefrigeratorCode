@@ -1023,34 +1023,8 @@ const MyFridge: React.FC = () => {
     return () => clearTimeout(timer);
   }, [loading, showWelcomeModal, showGuide]);
 
-  // 로그인 상태 변경 시 localStorage → DB 동기화
-  React.useEffect(() => {
-    const syncLocalStorageToDB = async () => {
-      // 비회원 → 회원 전환 시 localStorage 데이터를 DB에 저장
-      if (isLoggedIn && user?.id) {
-        const localData = loadIngredients();
-        const hasLocalData = localData.frozen.length > 0 || localData.fridge.length > 0 || localData.room.length > 0;
-        
-        if (hasLocalData) {
-          // DB에 데이터가 있는지 확인
-          const dbData = await loadIngredientsFromDB();
-          const hasDbData = dbData && (dbData.frozen.length > 0 || dbData.fridge.length > 0 || dbData.room.length > 0);
-          
-          // DB에 데이터가 없으면 localStorage 데이터를 DB에 저장
-          if (!hasDbData) {
-            console.log('[MyFridge] 비회원 → 회원 전환: localStorage 데이터를 DB에 동기화:', {
-              frozen: localData.frozen.length,
-              fridge: localData.fridge.length,
-              room: localData.room.length
-            });
-            await saveIngredientsToDB(localData.frozen, localData.fridge, localData.room, 0, false, 'sync');
-          }
-        }
-      }
-    };
-    
-    syncLocalStorageToDB();
-  }, [isLoggedIn, user?.id]);
+  // 비회원 → 회원 전환 때 기기 냉장고를 계정으로 옮기는 일은 아래 loadData 가 한다(2026-10-17).
+  // 여기 따로 있던 effect 는 loadData 와 같은 순간에 돌아 서로 덮어썼다 — loadData 주석 참고.
 
   // 앱을 다시 열 때(포그라운드로 돌아올 때) 최신 상태로 새로고침한다.
   // 가족 등 다른 기기에서 로그인해서 그새 재료를 바꿨을 수 있는데, 지금은
@@ -1130,6 +1104,34 @@ const MyFridge: React.FC = () => {
           }
           
           if (isMounted) {
+            // 비회원 때 담아 둔 냉장고를 계정으로 옮긴다(2026-10-17) — **여기 한 곳에서** 정한다.
+            //
+            // 예전엔 따로 도는 effect 가 "DB 가 비었으면 기기 냉장고를 올린다" 를 했는데, 같은 순간 이 로드가
+            // 빈 DB 값으로 화면과 기기 저장(localStorage)을 덮고 → 빈 화면을 본 「기본 재료 넣기」 가 기본 28개를
+            // 넣어 자동 저장 → 앞서 올린 비회원 냉장고를 덮었다. 갓 가입한 사람의 냉장고가 기본 재료로 바뀌던 원인.
+            // 계정 냉장고가 비어 있고 기기에 비회원 때 재료가 있으면, 그것을 그대로 계정 냉장고로 삼는다.
+            if (dbData !== null) {
+              const dbEmpty = dbData.frozen.length === 0 && dbData.fridge.length === 0 && dbData.room.length === 0;
+              const guest = loadIngredients();
+              const guestHas = guest.frozen.length > 0 || guest.fridge.length > 0 || guest.room.length > 0;
+              if (dbEmpty && guestHas) {
+                dataLoadedRef.current = true;
+                seedDecidedRef.current = true; // 기본 재료를 다시 넣지 않는다
+                try { localStorage.setItem(`myfridge_seeded_${user.id}`, '1'); } catch { /* 표시 못 남겨도 진행 */ }
+                setFrozen(guest.frozen);
+                setFridge(guest.fridge);
+                setRoom(guest.room);
+                lastSavedDataRef.current = {
+                  frozen: [...guest.frozen], fridge: [...guest.fridge], room: [...guest.room],
+                };
+                setHasChanges(false);
+                isInitialLoad.current = false;
+                dbLoadFailed.current = false;
+                setLoading(false);
+                await saveIngredientsToDB(guest.frozen, guest.fridge, guest.room, 0, false, 'sync');
+                return;
+              }
+            }
             if (dbData !== null) {
               // DB 데이터가 있으면 (빈 배열이어도) DB 데이터 사용 (우선)
               console.log('[MyFridge] DB에서 재료 로드 성공:', {

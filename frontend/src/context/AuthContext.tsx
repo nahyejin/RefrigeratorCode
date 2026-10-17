@@ -253,7 +253,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const KEY = 'last_active_user_id';
     const current = userId ? String(userId) : 'guest';
     try {
-      if (localStorage.getItem(KEY) === current) return;
+      const prev = localStorage.getItem(KEY);
+      if (prev === current) return;
+      // **비회원 → 계정은 지우지 않고 넘겨준다**(2026-10-17). 예전엔 비회원('guest' 또는 기록 없음)도
+      // "다른 사람" 으로 보고 지워서, 비회원 때 꾸민 냉장고·즐겨찾기·식단이 가입·로그인하는 순간 사라졌다.
+      // 로그아웃은 기기 데이터를 비우고 'guest' 를 남기므로, 'guest' 상태의 기기 데이터는 지금 이 기기를
+      // 쓰는 사람이 만든 것이다 — 로그인하는 그 사람에게 넘기는 게 맞다. 실제 다른 계정끼리 바뀔 때만 지운다.
+      // (넘겨받은 냉장고를 계정에 올리는 일은 MyFridge loadData 가 한다.)
+      if ((prev === null || prev === 'guest') && userId) {
+        localStorage.setItem(KEY, current);
+        return;
+      }
 
       localStorage.removeItem('myfridge_ingredients');
       localStorage.removeItem('my_recorded_recipes');
