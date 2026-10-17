@@ -123,4 +123,5 @@
 - 완성본을 OneDrive 같은 폴더에 `완성_릴스_<요리명>.mp4` 로 복사 → 사용자가 폰에서 바로 인스타 업로드.
 - 대화창 미리보기는 30MB 제한 → 720p crf28 로 줄여서 보낸다.
 - 인스타 본문: `store/COOKING_REEL_CAPTIONS.md` 에 편마다 추가 — **위: 일상 이야기 + 레시피(재료·양념·순서) + 쿡매치로 찾은 방법, 아래: 8개 기능(공통 문구) + 스토어 검색·프로필 링크 + 해시태그**. 폰에서 복사할 수 있게 HTML 아티팩트로도 올린다 — 원본 `store/cooking_reel_captions.html`(편마다 카드 하나 추가), 아티팩트 https://claude.ai/artifact/V3N7Wb7NQdasHU8hNs2695 (같은 URL 에 다시 게시: Artifact read → 카드 추가 → publish with url).
+- **해시태그 필수**(사용자): 요리 태그 + `#냉털 #냉장고털기 #냉장고파먹기 #집밥 #오늘뭐먹지 #레시피 #레시피앱 #요리앱` + 맨 끝 `#쿡매치 #cookmatch`(앱 소개라 한글·영어 둘 다).
 - CHANGELOG.md 기록, 커밋·푸시(영상 원본 제외).
