@@ -453,9 +453,8 @@ const ScrollablePillSection: React.FC<ScrollablePillSectionProps> = ({
 }) => {
   const fadeRgb = [1, 3, 5].map(i => parseInt(fade.slice(i, i + 2), 16)).join(',');
   /**
-   * 재료 칩 칸 — **칸 안 스크롤 대신 `더보기`**(2026-10-10, 유튜브 앱처럼).
-   * 칸 안에 또 스크롤이 있으면 한 화면에 스크롤이 두 개라 손가락이 헷갈렸다. 접어 둔 높이(약 네 줄째가
-   * 간신히 보이는 정도) 안에 다 들어가면 그대로 보여 주고, 넘치면 아래를 흐리게 하고 `전체 보기` 를 둔다.
+   * 재료 칩 칸 — 접어 둔 높이(약 네 줄째가 간신히 보이는 정도) 안에 다 들어가면 그대로 보여 주고,
+   * 넘치면 아래를 흐리게 하고 `전체 보기` 를 둔다. 접힌 채로 칸 안 스크롤도 된다(2026-10-17, 아래 참고).
    * 재료가 적은 칸은 내용만큼만 차지한다(예전엔 늘 146px 를 비워 뒀다).
    */
   // 묶기를 켜도 접힌 높이는 같은 140(2026-10-17 사용자: "기존 기본 높이로"). 한때 묶으면 320 으로
@@ -490,19 +489,38 @@ const ScrollablePillSection: React.FC<ScrollablePillSectionProps> = ({
 
   const collapsed = overflowing && !expanded;
 
+  // 접힌 채로도 **칸 안에서 스크롤**된다(2026-10-17 사용자 요청 — 10-10 에 「두 스크롤이 헷갈린다」 로
+  // 없앴던 것을 되살림). 그때의 불편을 덜려고: 끝까지 내리면 아래 흐림을 걷어 "끝" 이 보이게 하고,
+  // overscroll 은 기본값(끝에 닿으면 페이지가 이어서 스크롤 — 손가락이 칸에 갇히지 않는다).
+  const [atBottom, setAtBottom] = React.useState(false);
+  const onInnerScroll = () => {
+    const el = innerRef.current;
+    if (el) setAtBottom(el.scrollTop + el.clientHeight >= el.scrollHeight - 4);
+  };
+  // 다시 접을 때는 맨 위부터
+  React.useEffect(() => {
+    if (collapsed && innerRef.current) {
+      innerRef.current.scrollTop = 0;
+      setAtBottom(false);
+    }
+  }, [collapsed]);
+
   return (
     <div>
       <div style={{ position: 'relative' }}>
         <div
           ref={innerRef}
+          onScroll={collapsed ? onInnerScroll : undefined}
           style={{
             maxHeight: collapsed ? COLLAPSED_MAX : 'none',
-            overflow: 'hidden',
+            overflowY: collapsed ? 'auto' : 'hidden',
+            overflowX: 'hidden',
+            WebkitOverflowScrolling: 'touch',
           }}
         >
           {children}
         </div>
-        {collapsed && (
+        {collapsed && !atBottom && (
           <div
             aria-hidden
             style={{
