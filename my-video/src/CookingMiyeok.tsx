@@ -31,7 +31,7 @@ const STORY_LINES = [
   { at: 13.3, len: 3.2, text: "「황태로 부드럽게 끓이면\n먹을 수 있으려나…」", big: false },
 ];
 // 첫 훅 — 의아함을 준다(2026-10-17 사용자 요청)
-const HOOK = { at: 0.15, len: 2.75, text: "황태로도\n미역국을 끓인다고?" };
+const HOOK = { at: 0, len: 2.75, text: "황태로도\n미역국을 끓인다고?" };
 
 // 쿡매치에서 찾기 — 앱 작업본(1206x2422) 시각
 const APP: Shot[] = [
@@ -223,10 +223,10 @@ const Bgm: React.FC = () => (
 const Hook: React.FC = () => {
   const frame = useCurrentFrame();
   const len = f(HOOK.len);
-  const p = spring({ frame, fps: 30, config: { damping: 12, mass: 0.6 } });
-  const o = fadeInOut(frame, len, 5);
+  // 썸네일로 쓰므로 첫 프레임부터 꽉 보이게 — 사라질 때만 페이드(COOKING_REEL_GUIDE 0-1)
+  const o = interpolate(frame, [len - 6, len], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   return (
-    <div style={{ position: "absolute", top: 640, left: 40, right: 40, textAlign: "center", opacity: o, transform: `scale(${interpolate(p, [0, 1], [0.8, 1])})`, fontFamily: FONT_FAMILY }}>
+    <div style={{ position: "absolute", top: 640, left: 40, right: 40, textAlign: "center", opacity: o, fontFamily: FONT_FAMILY }}>
       <span style={{ display: "inline-block", whiteSpace: "pre-line", fontSize: 118, fontWeight: 900, lineHeight: 1.18, color: YELLOW, textShadow: "0 6px 22px rgba(0,0,0,0.8), 0 0 6px rgba(0,0,0,0.8)" }}>{HOOK.text}</span>
     </div>
   );
