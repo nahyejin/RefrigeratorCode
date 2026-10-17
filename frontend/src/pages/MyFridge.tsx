@@ -2076,8 +2076,9 @@ const MyFridge: React.FC = () => {
   /**
    * 칸 하나의 재료 칩. 「종류별로 묶기」 가 켜져 있으면 재료 수와 상관없이 묶음 제목을 끼워
    * 나눈다. 묶음 안 순서는 그 칸의 정렬(유통기한·구매·이름) 그대로.
-   * 묶음 제목: 말머리 점 + 이름 + 개수 + 옅은 가로선 — 칸끼리 구분은 되되 칸 제목(냉장보관 등)보다
-   * 튀지 않게(2026-10-17 "너무 강하게는 말고").
+   * 묶음 제목: 작은 회색 이름 + 더 옅은 개수, 묶음 **사이**에만 칸 끝까지 닿는 머리카락 선.
+   * 처음엔 말머리 점 + 제목 옆 가로선이었는데 "촌스럽다"(2026-10-17) — 장식 두 개가 눈에 걸렸다.
+   * 장식을 빼고 여백·글자 크기로만 나눈다(설정 화면의 섹션 머리처럼). 칸 제목(냉장보관)보다 튀면 안 된다.
    */
   const renderBoxPills = (box: StorageBox, list: Ingredient[], sort: SortType) => {
     const sorted = sortIngredients(list, sort);
@@ -2097,14 +2098,19 @@ const MyFridge: React.FC = () => {
       const first = shown === 0;
       return (
         <React.Fragment key={g.group}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12,
-                        color: 'var(--ink-500)', margin: first ? '2px 0 5px' : '10px 0 5px' }}>
-            <span aria-hidden style={{ width: 5, height: 5, borderRadius: '50%', flexShrink: 0,
-                                       background: 'var(--ink-500)' }} />
-            <span style={{ fontWeight: 700, color: 'var(--ink-700)', whiteSpace: 'nowrap' }}>{g.group}</span>
-            <span style={{ fontVariantNumeric: 'tabular-nums' }}>{g.items.length}</span>
-            {soon > 0 && <span style={{ color: '#C4342B', whiteSpace: 'nowrap' }}>임박 {soon}</span>}
-            <span aria-hidden style={{ flex: 1, height: 1, background: 'var(--line-200)', marginLeft: 4 }} />
+          <div style={{
+            display: 'flex', alignItems: 'baseline', gap: 5, fontSize: 11.5, letterSpacing: '-0.01em',
+            ...(first
+              ? { margin: '2px 0 6px' }
+              : { margin: '8px 0 6px', paddingTop: 10, borderTop: '1px solid rgba(0,0,0,0.06)' }),
+          }}>
+            <span style={{ fontWeight: 600, color: 'var(--ink-500)', whiteSpace: 'nowrap' }}>{g.group}</span>
+            <span style={{ color: 'var(--ink-300)', fontVariantNumeric: 'tabular-nums' }}>{g.items.length}</span>
+            {soon > 0 && (
+              <span style={{ marginLeft: 'auto', color: '#C4342B', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                임박 {soon}
+              </span>
+            )}
           </div>
           {g.items.map(item => pill(item, shown++ === 0))}
         </React.Fragment>
