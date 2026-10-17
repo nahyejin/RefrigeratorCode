@@ -287,18 +287,54 @@ def compute_expiring_soon(rows, alias_to_canonical, dict_rows, bands):
 
 
 def days_label(days, estimated):
+    # 짐작한 날짜면 지난 것에도 「약」 — 예전엔 지난 것만 「약」 이 빠져 정확한 날짜처럼 읽혔다(2026-10-17).
     about = "약 " if estimated else ""
     if days < 0:
-        return f"{-days}일 지났어요"
+        return f"{about}{-days}일 지남"
     if days == 0:
         return f"{about}오늘까지"
     return f"{about}{days}일 남음"
 
 
+# 알림 본문에 이름을 몇 개까지 적을지. 잠금화면에서 두세 줄이면 잘린다.
+BODY_MAX_NAMES = 4
+
+
 def build_body(items):
-    urgent = [f"{i['name']}({days_label(i['days'], i['estimated'])})" for i in items[:3]]
-    more = f" 외 {len(items) - 3}개" if len(items) > 3 else ""
-    return ", ".join(urgent) + more
+    """재료 이름이 먼저 보이게, 같은 말은 한 번만.
+
+    예전: 「참치캔(6일 지났어요), 달걀(6일 지났어요), 쌀(6일 지났어요) 외 3개」 — 같은 말이
+    재료마다 붙어 잠금화면에서 이름이 세 개밖에 안 보였다(2026-10-17 사용자 지적).
+    지금: 「참치캔·달걀·쌀·김치 약 6일 지남 외 2개」 — 지난 것 / 오늘까지 / 남은 것 세 묶음으로
+    모아 묶음마다 말을 한 번만 붙인다. 날짜가 서로 다르면 「약 3~6일 지남」 처럼 범위로.
+    짐작한 날짜가 하나라도 섞인 묶음은 「약」 을 붙인다(정확한 척하지 않는다).
+    `items` 는 남은 날 오름차순(가장 급한 것부터)이다.
+    """
+    shown = items[:BODY_MAX_NAMES]
+    buckets = []  # [(kind, [items])] — 순서: 지남 → 오늘까지 → 남음
+    for it in shown:
+        kind = "past" if it["days"] < 0 else ("today" if it["days"] == 0 else "soon")
+        if buckets and buckets[-1][0] == kind:
+            buckets[-1][1].append(it)
+        else:
+            buckets.append((kind, [it]))
+
+    parts = []
+    for kind, group in buckets:
+        names = "·".join(i["name"] for i in group)
+        about = "약 " if any(i["estimated"] for i in group) else ""
+        nums = sorted(abs(i["days"]) for i in group)
+        span = f"{nums[0]}" if nums[0] == nums[-1] else f"{nums[0]}~{nums[-1]}"
+        if kind == "past":
+            label = f"{about}{span}일 지남"
+        elif kind == "today":
+            label = f"{about}오늘까지"
+        else:
+            label = f"{about}{span}일 남음"
+        parts.append(f"{names} {label}")
+
+    more = f" 외 {len(items) - len(shown)}개" if len(items) > len(shown) else ""
+    return ", ".join(parts) + more
 
 
 def resolve_storage_user_id(cursor, user_id):

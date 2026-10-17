@@ -27,6 +27,7 @@ import { useAuth } from '../context/AuthContext';
 import { resolveCoupangUrl } from '../utils/coupangLink';
 import { getMyIngredients } from '../utils/recipeUtils';
 import { track } from '../utils/track';
+import { MEMBER_COLORS, colorForUser } from '../utils/memberColors';
 import GuideOverlay from '../components/GuideOverlay';
 import { markUsageGuideFinished, usageGuideTotalSteps, USAGE_GUIDE_STEPS } from '../utils/onboardingPrompts';
 
@@ -196,30 +197,11 @@ function saveShoppingMemoHistory(data: Record<string, ShoppingMemoEntry>): Recor
 
 const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
 
-// 그룹원을 색으로 구분하기 위한 팔레트. 그룹 최대 인원(서버 `HOUSEHOLD_MAX_MEMBERS`,
-// 10명)과 같은 10색이다 — 인원을 늘리면 이 색도 같이 늘릴 것.
-// 브랜드 강조색(노랑)·"요리 계획 있는 날" 표식(빨강)과 헷갈리지 않게 빨강·노랑 계열은 뺐다.
-const MEMBER_COLORS = [
-  '#3B82F6', // 파랑
-  '#F97316', // 주황
-  '#22C55E', // 초록
-  '#A855F7', // 보라
-  '#65A30D', // 올리브
-  '#06B6D4', // 하늘
-  '#EC4899', // 분홍
-  '#92400E', // 갈색
-  '#64748B', // 회색
-  '#4338CA', // 남색
-];
 
 /** 비로그인(게스트)일 때 기기 완료 기록의 주인으로 쓰는 자리 표시 id.
  * 실제 계정 id와 겹칠 일이 없게 음수로 둔다. */
 const GUEST_USER_ID = -1;
 
-function colorForUser(userId: number, orderedIds: number[]): string {
-  const idx = orderedIds.indexOf(userId);
-  return MEMBER_COLORS[idx % MEMBER_COLORS.length];
-}
 
 // ✓/✎ 같은 유니코드 기호 대신 SectionIcon과 같은 선 아이콘 스타일(24 뷰박스)로
 // 그린다 — 유니코드 기호도 폰트/OS에 따라 이모지 스타일로 렌더될 수 있어
@@ -1633,7 +1615,8 @@ const CookingCalendar: React.FC = () => {
             await fetch(`${getApiUrl()}/api/users/${authUser.id}/ingredients`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-              body: JSON.stringify({ ingredients: next }),
+              // source: 재료 기록에 "장보기에서 담음" 으로 남는다
+              body: JSON.stringify({ ingredients: next, source: 'shopping' }),
             });
           } catch (e) {
             console.warn('[CookingCalendar] 구매 반영(서버) 실패 — 기기에는 남음:', e);

@@ -4791,14 +4791,29 @@ def save_user_ingredients(user_id):
             # 저장 시점 기록
             saved_at = datetime.now()
 
+            # 기록 표는 **쓰기 전에** 만든다. CREATE TABLE 은 MySQL 에서 진행 중인 트랜잭션을
+            # 몰래 커밋하므로, 재료를 지운 뒤에 만들면 지우기만 먼저 확정될 수 있다.
+            import fridge_history
+            fridge_history.ensure_table(cursor)
+
             # 저장은 "전부 지우고 다시 넣기" 라서 무엇을 담고 뺐는지가 따로 안 남는다.
             # 지우기 전 목록과 새 목록을 이름으로 견줘 담은 개수·뺀 개수를 센다 —
             # 어드민 「사람별 활동」의 재료 담기/빼기 (2026-10-16).
-            cursor.execute("SELECT name FROM user_ingredients WHERE user_id = %s", (storage_user_id,))
-            before_names = Counter(r['name'] for r in cursor.fetchall())
-            after_names = Counter(
-                ing['name'] for box in ['frozen', 'fridge', 'room'] for ing in ingredients.get(box, [])
+            cursor.execute(
+                "SELECT name, storage_box, expiry_date, purchase_date FROM user_ingredients WHERE user_id = %s",
+                (storage_user_id,),
             )
+            before_rows = [
+                {'name': r['name'], 'box': r['storage_box'],
+                 'expiry': r['expiry_date'], 'purchase': r['purchase_date']}
+                for r in cursor.fetchall()
+            ]
+            after_rows = [
+                {'name': ing['name'], 'box': box, 'expiry': ing.get('expiry'), 'purchase': ing.get('purchase')}
+                for box in ['frozen', 'fridge', 'room'] for ing in ingredients.get(box, [])
+            ]
+            before_names = Counter(r['name'] for r in before_rows)
+            after_names = Counter(r['name'] for r in after_rows)
             cursor.execute("SELECT fridge_seeded FROM users WHERE id = %s", (user_id,))
             seeded_row = cursor.fetchone()
             was_seeded = bool(seeded_row and seeded_row.get('fridge_seeded'))
@@ -4826,6 +4841,20 @@ def save_user_ingredients(user_id):
                 cursor.execute('UPDATE users SET fridge_seeded = 1 WHERE id = %s', (user_id,))
             except Exception as e:
                 print(f'[save_user_ingredients] fridge_seeded 표시 실패(무시): {e}')
+
+            # 내냉장고 「재료 기록」 — 누가 무엇을 바꿨나. 첫 저장(기본 재료 넣기)은 남기지 않는다.
+            # 기록이 실패해도 재료 저장은 살린다: SAVEPOINT 로 기록만 되돌린다.
+            if was_seeded:
+                try:
+                    cursor.execute("SAVEPOINT fridge_history_sp")
+                    fridge_history.record(
+                        cursor, storage_user_id, user_id,
+                        fridge_history.diff(before_rows, after_rows),
+                        source=(data.get('source') or 'manual'),
+                    )
+                except Exception as e:
+                    cursor.execute("ROLLBACK TO SAVEPOINT fridge_history_sp")
+                    print(f'[save_user_ingredients] 재료 기록 실패(무시): {e}')
             db.commit()
 
             # 이 계정의 **첫 저장**은 세지 않는다 — 가입 직후 기본 재료를 넣거나 비회원 때
@@ -4850,6 +4879,54 @@ def save_user_ingredients(user_id):
     except Exception as e:
         print(f"Save user ingredients error: {e}")
         return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
+
+@app.route('/api/users/<int:user_id>/ingredients/history', methods=['GET'])
+def get_user_ingredient_history(user_id):
+    """내냉장고 「재료 기록」 — 최근 90일 동안 누가 무엇을 담고·빼고·옮기고·바꿨나.
+
+    그룹에 속해 있으면 **그룹 냉장고**의 기록을 준다(식구가 넣은 것도 보인다).
+    """
+    try:
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({'error': '인증이 필요합니다.'}), 401
+        payload = verify_jwt_token(auth_header.split(' ')[1])
+        if not payload or payload.get('user_id') != user_id:
+            return jsonify({'error': '권한이 없습니다.'}), 403
+
+        import fridge_history
+        ensure_user_data_tables()
+        ensure_households_table()
+        db = get_db()
+        cursor = db.cursor()
+        try:
+            storage_user_id = resolve_ingredient_storage_user_id(cursor, user_id)
+            rows = fridge_history.load(cursor, storage_user_id)
+            # 그룹을 만든 사람은 냉장고가 자기 계정이라 storage_user_id 로는 그룹인지 못 가린다.
+            cursor.execute("SELECT household_id FROM users WHERE id = %s", (user_id,))
+            me = cursor.fetchone() or {}
+            # 식구 색은 요리캘린더와 같게 — 그룹원 id 오름차순의 몇 번째인지로 정한다.
+            member_ids = [user_id]
+            if me.get('household_id'):
+                cursor.execute(
+                    "SELECT id FROM users WHERE household_id = %s AND deleted_at IS NULL ORDER BY id",
+                    (me['household_id'],),
+                )
+                member_ids = [r['id'] for r in cursor.fetchall()]
+            db.commit()  # 표를 처음 만든 경우
+            return jsonify({
+                'items': rows,
+                'keep_days': fridge_history.KEEP_DAYS,
+                'shared': bool(me.get('household_id')),
+                'member_ids': member_ids,
+            }), 200
+        finally:
+            cursor.close()
+            db.close()
+    except Exception as e:
+        print(f"Get ingredient history error: {e}")
+        return jsonify({'error': '재료 기록을 불러오지 못했어요.'}), 500
+
 
 @app.route('/api/users/<int:user_id>/recorded-recipes', methods=['GET'])
 def get_user_recorded_recipes(user_id):

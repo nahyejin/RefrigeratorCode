@@ -144,7 +144,8 @@ export function expiryTone(days: number, estimated = false): { bg: string; fg: s
 /** "지났어요" / "오늘까지" / "2일 남음" — 숫자만 던지지 않고 말로. */
 export function daysLabel(days: number, estimated = false): string {
   const about = estimated ? '약 ' : '';
-  if (days < 0) return `${-days}일 지났어요`;
+  // 짐작한 날짜면 지난 것에도 「약」(2026-10-17) — 빠져 있어서 정확한 날짜처럼 읽혔다.
+  if (days < 0) return `${about}${-days}일 지났어요`;
   if (days === 0) return `${about}오늘까지`;
   return `${about}${days}일 남음`;
 }

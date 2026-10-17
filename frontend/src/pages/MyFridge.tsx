@@ -25,6 +25,8 @@ import { useUsage } from '../components/UsageMeter';
 import { loadIngredientCategoryMap, estimateExpiry, type CategoryMap } from '../utils/shelfLife';
 import { splitExpiring } from '../utils/expiry';
 import ExpiryBand from '../components/ExpiryBand';
+import FridgeHistorySheet from '../components/FridgeHistorySheet';
+import { splitIntoGroups, GROUP_MIN_ITEMS } from '../utils/fridgeGroups';
 import { STALE_AFTER_DAYS } from '../utils/expiry';
 import {
   isUsageGuideDueThisVisit,
@@ -492,11 +494,28 @@ const ScrollablePillSection: React.FC<ScrollablePillSectionProps> = ({ watchKey,
 // 메인 컴포넌트
 // =====================
 
+const GROUP_BY_KIND_KEY = 'myfridge_group_by_kind';
+
 const MyFridge: React.FC = () => {
   console.log('[MyFridge] 컴포넌트 렌더링 시작');
   
   // 재료 카테고리 표 (유통기한 추정용). 앱 전체가 같은 CSV 를 쓰므로 유틸에서 캐시한다
   const [categoryMap, setCategoryMap] = React.useState<CategoryMap>({});
+  // 「종류별로 묶기」 — 세 칸 공통 스위치 하나. 기기에 기억한다(2026-10-17).
+  const [groupByKind, setGroupByKind] = React.useState<boolean>(() => {
+    try { return localStorage.getItem(GROUP_BY_KIND_KEY) === '1'; } catch { return false; }
+  });
+  const toggleGroupByKind = (on: boolean) => {
+    setGroupByKind(on);
+    try { localStorage.setItem(GROUP_BY_KIND_KEY, on ? '1' : '0'); } catch { /* 저장 막힘 — 이번만 */ }
+  };
+  // 「재료 기록」 시트
+  const [historyOpen, setHistoryOpen] = React.useState(false);
+  /**
+   * 다음 저장에 실어 보낼 "어디서 바꿨나"(서버의 재료 기록이 "사진으로 3개 담음" 처럼 쓴다).
+   * 저장은 600ms 묶어서 나가므로 행동하는 순간 값을 두고, 보낼 때 꺼내 비운다.
+   */
+  const pendingSourceRef = React.useRef<string | null>(null);
   const [frozen, setFrozen] = React.useState<Ingredient[] | null>(null);
   const [fridge, setFridge] = React.useState<Ingredient[] | null>(null);
   const [room, setRoom] = React.useState<Ingredient[] | null>(null);
@@ -680,7 +699,11 @@ const MyFridge: React.FC = () => {
   };
 
   // DB에 재료 저장 (재시도 로직 포함)
-  const saveIngredientsToDB = async (frozen: Ingredient[], fridge: Ingredient[], room: Ingredient[], retryCount = 0, showStatus = false) => {
+  const saveIngredientsToDB = async (
+    frozen: Ingredient[], fridge: Ingredient[], room: Ingredient[], retryCount = 0, showStatus = false,
+    /** 재료 기록에 남길 "어디서 바꿨나" — manual(기본) / photo / sync */
+    source: string = 'manual',
+  ) => {
     if (!isLoggedIn || !user?.id) {
       if (showStatus) {
         setSaveStatus('error');
@@ -711,6 +734,7 @@ const MyFridge: React.FC = () => {
       const apiUrl = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'https://refrigeratorcode-production.up.railway.app';
       const requestBody = {
         ingredients: { frozen, fridge, room },
+        source,
       };
       
       console.log('[MyFridge] DB 저장 요청 시작:', {
@@ -772,7 +796,7 @@ const MyFridge: React.FC = () => {
         const delay = Math.pow(2, retryCount) * 1000; // 지수 백오프: 1초, 2초, 4초
         console.log(`[MyFridge] ${delay}ms 후 재시도 (${retryCount + 1}/${MAX_RETRIES})`);
         await new Promise(resolve => setTimeout(resolve, delay));
-        return saveIngredientsToDB(frozen, fridge, room, retryCount + 1, showStatus);
+        return saveIngredientsToDB(frozen, fridge, room, retryCount + 1, showStatus, source);
       }
       
       console.error('[MyFridge] DB 저장 최종 실패: 모든 재시도 소진');
@@ -946,7 +970,7 @@ const MyFridge: React.FC = () => {
               fridge: localData.fridge.length,
               room: localData.room.length
             });
-            await saveIngredientsToDB(localData.frozen, localData.fridge, localData.room);
+            await saveIngredientsToDB(localData.frozen, localData.fridge, localData.room, 0, false, 'sync');
           }
         }
       }
@@ -1084,7 +1108,7 @@ const MyFridge: React.FC = () => {
                 isInitialLoad.current = false;
                 setLoading(false);
                 // DB에 저장 시도
-                saveIngredientsToDB(localData.frozen, localData.fridge, localData.room).catch(err => {
+                saveIngredientsToDB(localData.frozen, localData.fridge, localData.room, 0, false, 'sync').catch(err => {
                   console.error('[MyFridge] DB 저장 실패:', err);
                 });
                 return;
@@ -1636,7 +1660,9 @@ const MyFridge: React.FC = () => {
         autoSaveTimer.current = setTimeout(() => {
           const seq = ++autoSaveSeq.current;
           setSaveStatus('saving');
-          saveIngredientsToDB(snapshot.frozen, snapshot.fridge, snapshot.room, 0, false)
+          const source = pendingSourceRef.current || 'manual';
+          pendingSourceRef.current = null;
+          saveIngredientsToDB(snapshot.frozen, snapshot.fridge, snapshot.room, 0, false, source)
             .then((ok) => {
               // 더 최신 저장이 이미 시작됐으면 이 결과는 버린다 (순서 역전 방지)
               if (seq !== autoSaveSeq.current) return;
@@ -1860,6 +1886,8 @@ const MyFridge: React.FC = () => {
       buckets[storage].push(obj);
     });
 
+    // 재료 기록에 "사진으로 N개 담음" 으로 남게 — 이어지는 자동 저장이 이 값을 싣고 간다.
+    pendingSourceRef.current = 'photo';
     if (buckets.frozen.length) setFrozen(prev => (prev ? [...prev, ...buckets.frozen] : buckets.frozen));
     if (buckets.fridge.length) setFridge(prev => (prev ? [...prev, ...buckets.fridge] : buckets.fridge));
     if (buckets.room.length) setRoom(prev => (prev ? [...prev, ...buckets.room] : buckets.room));
@@ -2034,6 +2062,45 @@ const MyFridge: React.FC = () => {
     splitExpiring(fridgeBoxes, categoryMap).soon.forEach(it => { count[it.storage] += 1; });
     return count;
   }, [fridgeBoxes, categoryMap]);
+  // 묶음 제목 옆 「임박 N」 — 칸 머리의 임박 수와 같은 기준(splitExpiring)으로 센다.
+  const soonKeys = React.useMemo(
+    () => new Set(splitExpiring(fridgeBoxes, categoryMap).soon.map(it => `${it.storage}:${it.name}`)),
+    [fridgeBoxes, categoryMap],
+  );
+
+  /**
+   * 칸 하나의 재료 칩. 「종류별로 묶기」 가 켜져 있고 재료가 GROUP_MIN_ITEMS 개 이상이면
+   * 묶음 제목을 끼워 나눈다. 묶음 안 순서는 그 칸의 정렬(유통기한·구매·이름) 그대로.
+   */
+  const renderBoxPills = (box: StorageBox, list: Ingredient[], sort: SortType) => {
+    const sorted = sortIngredients(list, sort);
+    const pill = (item: Ingredient, first: boolean) => (
+      <IngredientPill
+        key={`${item.id}-${item.name}`}
+        item={item}
+        onRemove={(id) => removeTag(box, id)}
+        onSettingsClick={handleTagClick}
+        isFirstInFridge={box === 'fridge' && first}
+      />
+    );
+    const groups = groupByKind ? splitIntoGroups(sorted, categoryMap) : null;
+    if (!groups) return sorted.map((item, i) => pill(item, i === 0));
+    let shown = 0;
+    return groups.map(g => {
+      const soon = g.items.filter(it => soonKeys.has(`${box}:${it.name}`)).length;
+      return (
+        <React.Fragment key={g.group}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12,
+                        color: 'var(--ink-500)', margin: shown === 0 ? '0 0 4px' : '8px 0 4px' }}>
+            <span style={{ fontWeight: 700, color: 'var(--ink-700)' }}>{g.group}</span>
+            <span style={{ fontVariantNumeric: 'tabular-nums' }}>{g.items.length}</span>
+            {soon > 0 && <span style={{ color: '#C4342B' }}>임박 {soon}</span>}
+          </div>
+          {g.items.map(item => pill(item, shown++ === 0))}
+        </React.Fragment>
+      );
+    });
+  };
 
   const handleModalComplete = (data: { ingredient: string; storageType: StorageBox; hasExpiration: boolean; date: string | null; }, skipCheck: boolean = false) => {
     localEditPendingRef.current = true;
@@ -2494,6 +2561,48 @@ const MyFridge: React.FC = () => {
             <GroupTitle style={{ margin: 0, whiteSpace: 'nowrap' }}>내 냉장고 재료 관리</GroupTitle>
             <ExpiryBand variant="chip" boxes={fridgeBoxes} categoryMap={categoryMap} />
           </div>
+          {/* 「종류별로 묶기」 스위치(세 칸 공통)와 「기록」 버튼 — 작게 한 줄(2026-10-17 요청).
+              기록은 서버에 남는 것이라 로그인했을 때만. */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        gap: 8, margin: '0 2px 8px' }}>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={groupByKind}
+              onClick={() => toggleGroupByKind(!groupByKind)}
+              title={`재료가 ${GROUP_MIN_ITEMS}개 이상인 칸을 고기·채소·양념 같은 종류로 나눠요`}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minHeight: 32,
+                       background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+                       fontSize: 12, color: 'var(--ink-700)' }}
+            >
+              <span aria-hidden style={{ width: 30, height: 18, borderRadius: 9999, padding: 2,
+                                         boxSizing: 'border-box', transition: 'background .15s',
+                                         background: groupByKind ? 'var(--brand)' : 'var(--line-300)' }}>
+                <span style={{ display: 'block', width: 14, height: 14, borderRadius: '50%', background: '#FFFFFF',
+                               transform: groupByKind ? 'translateX(12px)' : 'none', transition: 'transform .15s' }} />
+              </span>
+              종류별로 묶기
+            </button>
+            {isLoggedIn && user?.id && (
+              <button
+                type="button"
+                onClick={() => setHistoryOpen(true)}
+                aria-label="재료 기록 보기 — 누가 언제 담고 뺐는지"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 4, height: 28, padding: '0 9px',
+                         fontSize: 11.5, fontWeight: 500, color: '#3A3A42', background: '#FFFFFF',
+                         border: '1px solid var(--line-300)', borderRadius: 6, cursor: 'pointer' }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                     strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <path d="M3 12a9 9 0 1 0 3-6.7" /><path d="M3 4v4h4" /><path d="M12 7v5l3 2" />
+                </svg>
+                기록
+              </button>
+            )}
+          </div>
+          {isLoggedIn && user?.id && (
+            <FridgeHistorySheet open={historyOpen} onClose={() => setHistoryOpen(false)} userId={Number(user.id)} />
+          )}
           {/* 보관함 세 칸 — **박스 없이 평평하게**(2026-10-10, 유튜브 앱처럼). 칸 사이는 테두리
               대신 14px 회색 띠로 가르고, 화면 좌우 끝까지 쓴다(바깥 20px 여백을 음수 마진으로 걷음).
               칸 안 스크롤은 없앴다 — 재료가 많으면 `더보기` 로 펼친다. */}
@@ -2528,14 +2637,7 @@ const MyFridge: React.FC = () => {
               {(frozen ?? []).length === 0 && (
                 <div className="text-gray-400 text-xs py-1">재료가 아직 없어요</div>
               )}
-              {sortIngredients(frozen ?? [], frozenSort).map((item) => (
-                <IngredientPill
-                  key={`${item.id}-${item.name}`}
-                  item={item}
-                  onRemove={(id) => removeTag('frozen', id)}
-                  onSettingsClick={handleTagClick}
-                />
-              ))}
+              {renderBoxPills('frozen', frozen ?? [], frozenSort)}
             </ScrollablePillSection>
           </div>
           {/* 냉장보관 */}
@@ -2565,15 +2667,7 @@ const MyFridge: React.FC = () => {
               {fridge && fridge.length === 0 && (
                 <div className="text-gray-400 text-xs py-1">재료가 아직 없어요</div>
               )}
-              {sortIngredients(fridge ?? [], fridgeSort).map((item, index) => (
-                <IngredientPill
-                  key={`${item.id}-${item.name}`}
-                  item={item}
-                  onRemove={(id) => removeTag('fridge', id)}
-                  onSettingsClick={handleTagClick}
-                  isFirstInFridge={index === 0}
-                />
-              ))}
+              {renderBoxPills('fridge', fridge ?? [], fridgeSort)}
             </ScrollablePillSection>
           </div>
           {/* 실온보관 */}
@@ -2603,14 +2697,7 @@ const MyFridge: React.FC = () => {
               {room && room.length === 0 && (
                 <div className="text-gray-400 text-xs py-1">재료가 아직 없어요</div>
               )}
-              {sortIngredients(room ?? [], roomSort).map((item) => (
-                <IngredientPill
-                  key={`${item.id}-${item.name}`}
-                  item={item}
-                  onRemove={(id) => removeTag('room', id)}
-                  onSettingsClick={handleTagClick}
-                />
-              ))}
+              {renderBoxPills('room', room ?? [], roomSort)}
             </ScrollablePillSection>
           </div>
           </div>

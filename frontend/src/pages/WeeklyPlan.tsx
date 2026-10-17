@@ -730,7 +730,8 @@ const WeeklyPlan: React.FC = () => {
             await fetch(`${API_BASE_URL}/api/users/${authUser.id}/ingredients`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-              body: JSON.stringify({ ingredients: next }),
+              // source: 재료 기록에 "장보기에서 담음" 으로 남는다
+              body: JSON.stringify({ ingredients: next, source: 'shopping' }),
             });
           } catch (e) {
             console.warn('[WeeklyPlan] 구매 반영(서버) 실패 — 기기에는 남음:', e);

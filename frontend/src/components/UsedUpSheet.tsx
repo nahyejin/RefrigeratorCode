@@ -138,7 +138,8 @@ const UsedUpSheet: React.FC<Props> = ({ recipe, onClose }) => {
       fetch(`${API_BASE_URL}/api/users/${me.id}/ingredients`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${me.token}` },
-        body: JSON.stringify({ ingredients: next }),
+        // source: 재료 기록에 "요리하고 N개 다 씀" 으로 남는다
+        body: JSON.stringify({ ingredients: next, source: 'cooked' }),
       }).catch(e => console.warn('[UsedUpSheet] 냉장고 서버 저장 실패 — 기기에는 반영됨:', e));
     }
     setToast(`냉장고에서 ${picked.size}개 뺐어요`);
