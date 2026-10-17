@@ -25,6 +25,20 @@ from flask import jsonify, request
 import usage_quota
 
 
+# 「새로 들어온 기기」 분류(2026-10-17) — 기기마다 본 화면으로 나눈다.
+#   실제 쿡매치 화면(홈·냉장고요리 등)을 봤으면 → 그 기기 종류(android / ios = 앱, web = 브라우저로 사용)
+#   다운로드 페이지(download.html, 화면 이름 「다운로드」)만 열었으면 → link_<기기>(스토어로 넘어감, 설치 여부 모름)
+#   그 밖에 개인정보처리방침·약관만 열었거나 링크 미리보기 봇(/download,… 처럼 경로로 찍힘)이면 → other
+_INFO_SCREEN = ("(screen IN ('/privacy', '/terms', '/account-deletion', '/coupang-banner.html') "
+                "OR screen LIKE '/download%%' OR screen = '다운로드')")
+DEVICE_KIND = (
+    "CASE "
+    f"WHEN SUM(name = 'screen_view' AND screen IS NOT NULL AND NOT {_INFO_SCREEN}) > 0 THEN MAX(platform) "
+    "WHEN SUM(screen = '다운로드') > 0 THEN CONCAT('link_', COALESCE(MAX(platform), 'web')) "
+    "WHEN SUM(name = 'screen_view') > 0 THEN 'other' "
+    "ELSE MAX(platform) END"
+)
+
 def _bearer_payload():
     auth = request.headers.get('Authorization') or ''
     if not auth.startswith('Bearer '):
@@ -1129,7 +1143,7 @@ def register(app, get_db):
                 cursor.execute(
                     "SELECT DATE(first_at) d, COALESCE(plat, 'unknown') platform, COUNT(*) n FROM ("
                     # 다운로드 링크(download.html)만 열고 스토어로 넘어간 기기는 앱·웹과 따로 센다(link_ios/link_android/link_web, 2026-10-17)
-                    "  SELECT device_id, MIN(created_at) first_at, CASE WHEN SUM(name = 'screen_view' AND IFNULL(screen, '') <> '다운로드') = 0 AND SUM(screen = '다운로드') > 0 THEN CONCAT('link_', COALESCE(MAX(platform), 'web')) ELSE MAX(platform) END plat "
+                    f"  SELECT device_id, MIN(created_at) first_at, {DEVICE_KIND} plat "
                     f"  FROM user_events WHERE device_id IS NOT NULL{nd_cond} GROUP BY device_id"
                     ") x WHERE " + nd_range + " "
                     "GROUP BY d, platform ORDER BY d",
@@ -1143,7 +1157,7 @@ def register(app, get_db):
                 # 기간 표만 있으면 최근 7일만 보여서 "그래서 전체 몇 대냐" 를 못 읽는다.
                 cursor.execute(
                     "SELECT COALESCE(plat, 'unknown') platform, COUNT(*) n FROM ("
-                    "  SELECT device_id, CASE WHEN SUM(name = 'screen_view' AND IFNULL(screen, '') <> '다운로드') = 0 AND SUM(screen = '다운로드') > 0 THEN CONCAT('link_', COALESCE(MAX(platform), 'web')) ELSE MAX(platform) END plat "
+                    f"  SELECT device_id, {DEVICE_KIND} plat "
                     f"  FROM user_events WHERE device_id IS NOT NULL{nd_cond} GROUP BY device_id"
                     ") x GROUP BY platform",
                     tuple(nd_params),

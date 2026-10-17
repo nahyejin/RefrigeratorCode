@@ -2428,7 +2428,7 @@ const Dashboard: React.FC = () => {
                 const MAX_ROWS = 31;
                 const days = all.slice(0, MAX_ROWS);
                 const on = (date: string, plat?: string) =>
-                  nd.filter((r) => r.date === date && (!plat || (plat === 'link' ? r.platform.startsWith('link_') : r.platform === plat))).reduce((a, r) => a + r.n, 0);
+                  nd.filter((r) => r.date === date && (!plat ? r.platform !== 'other' /* 합계엔 봇·안내만 기기를 넣지 않는다 */ : plat === 'link' ? r.platform.startsWith('link_') : r.platform === plat)).reduce((a, r) => a + r.n, 0);
                 const sumOf = (list: string[], plat?: string) => list.reduce((a, d) => a + on(d, plat), 0);
                 const total = sumOf(all);
                 const label = (d: string) =>
@@ -2447,7 +2447,7 @@ const Dashboard: React.FC = () => {
                     {/* 지금까지 누적 — 앱 / 웹 / 구분 전 을 **따로**. 한 숫자로 합치면 다운로드 수처럼 읽힌다. */}
                     <div style={{ margin: '4px 0 6px' }}>
                       <Range inline mode="fixed">
-                        지금까지 누적 <span style={{ fontVariantNumeric: 'tabular-nums' }}>(넷을 합치면 {num(dtAll)})</span>
+                        지금까지 누적 <span style={{ fontVariantNumeric: 'tabular-nums' }}>(모두 합치면 {num(dtAll)})</span>
                       </Range>
                     </div>
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '0 0 8px' }}>
@@ -2457,6 +2457,7 @@ const Dashboard: React.FC = () => {
                       {tile('다운로드 링크만 누른 기기', (dt.link_ios || 0) + (dt.link_android || 0) + (dt.link_web || 0),
                             `스토어로 넘어감(설치 여부 모름) · 아이폰 ${num(dt.link_ios || 0)} · 안드로이드 ${num(dt.link_android || 0)} · PC 등 ${num(dt.link_web || 0)}`)}
                       {tile('앱·웹 구분 전', dt.unknown || 0, '10/12 전에 들어와 어느 쪽인지 모름')}
+                      {tile('사람 아님·안내 페이지만', dt.other || 0, '개인정보처리방침·약관만 열어 봄(스토어 심사 등), 링크 미리보기 봇')}
                     </div>
                     <div style={{ margin: '12px 0 6px' }}>
                       <Range inline mode="period">{ranged ? '이 기간에 새로 들어온 기기' : '「전체」 일 때는 최근 7일'}</Range>
@@ -2467,15 +2468,15 @@ const Dashboard: React.FC = () => {
                       {tile(`${label(to)}${to === today ? '' : '(마지막 날)'} 새로 들어온 기기`, on(to))}
                     </div>
                     <div style={{ overflowX: 'auto' }}>
-                    <div className="adm-scroll"><table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 340 }}>
-                      <thead><tr>{['날짜', '합계', '안드로이드 앱', '아이폰 앱', '웹', '링크만', '구분 전'].map((h) => (
+                    <div className="adm-scroll"><table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 460 }}>
+                      <thead><tr>{['날짜', '합계', '안드로이드 앱', '아이폰 앱', '웹', '링크만', '구분 전', '봇·안내만'].map((h) => (
                         <th key={h} style={S.th}>{h}</th>))}</tr></thead>
                       {/* 합계 줄은 맨 아래(tfoot) — 스크롤해도 바닥에 붙어 있다 */}
                       <tfoot>
                         <tr>
                           <td style={{ ...S.td, fontWeight: 700 }}>{ranged ? '기간 합계' : '7일 합계'}</td>
                           <td style={{ ...S.td, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{num(total)}</td>
-                          {['android', 'ios', 'web', 'link', 'unknown'].map((pl) => (
+                          {['android', 'ios', 'web', 'link', 'unknown', 'other'].map((pl) => (
                             <td key={pl} style={{ ...S.td, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{num(sumOf(all, pl))}</td>
                           ))}
                         </tr>
@@ -2485,7 +2486,7 @@ const Dashboard: React.FC = () => {
                           <tr key={d}>
                             <td style={S.td}>{label(d)}</td>
                             <td style={{ ...S.td, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{num(on(d))}</td>
-                            {['android', 'ios', 'web', 'link', 'unknown'].map((pl) => (
+                            {['android', 'ios', 'web', 'link', 'unknown', 'other'].map((pl) => (
                               <td key={pl} style={{ ...S.td, fontVariantNumeric: 'tabular-nums' }}>{num(on(d, pl))}</td>
                             ))}
                           </tr>
@@ -2506,7 +2507,7 @@ const Dashboard: React.FC = () => {
                 스토어 숫자는{' '}
                 <a href="https://play.google.com/console" target="_blank" rel="noreferrer">구글 플레이 콘솔</a> 「통계」와{' '}
                 <a href="https://appstoreconnect.apple.com/analytics" target="_blank" rel="noreferrer">앱스토어 커넥트</a> 「분석」에서
-                하루 이틀 늦게 나와요. 웹은 다운로드 페이지가 아니라 쿡매치 화면까지 들어온 브라우저만 셉니다. 「링크만」은 프로필 링크(다운로드 페이지)를 열고 스토어로 넘어간 기기예요 — 스토어 화면을 봤는지·설치했는지는 몰라요(설치하고 앱을 열면 「앱」에 따로 잡혀요).
+                하루 이틀 늦게 나와요. 웹은 다운로드·개인정보처리방침 같은 안내 페이지가 아니라 홈·냉장고요리 같은 쿡매치 화면까지 본 브라우저만 셉니다(주소를 직접 치거나 검색·공유로 들어온 사람, PC 에서 「웹에서 바로 시작하기」를 누른 사람). 「링크만」은 프로필 링크(다운로드 페이지)를 열고 스토어로 넘어간 기기예요 — 스토어 화면을 봤는지·설치했는지는 몰라요(설치하고 앱을 열면 「앱」에 따로 잡혀요). 「봇·안내만」은 사람이 아니거나(인스타·페이스북 링크 미리보기, 앱 모음 사이트) 개인정보처리방침·약관만 열어 본 기기라 새 사용자로 보지 않아요.
                 앱·웹 구분은 10/12 이후부터 기록돼서 그 전 기기는 「구분 전」에 들어가요.
               </div>
             </div>
