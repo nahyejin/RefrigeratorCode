@@ -1128,7 +1128,8 @@ def register(app, get_db):
                 nd_range = " AND ".join(nd_parts) if nd_parts else "first_at >= (CURDATE() - INTERVAL 90 DAY)"
                 cursor.execute(
                     "SELECT DATE(first_at) d, COALESCE(plat, 'unknown') platform, COUNT(*) n FROM ("
-                    "  SELECT device_id, MIN(created_at) first_at, MAX(platform) plat "
+                    # 다운로드 링크(download.html)만 열고 스토어로 넘어간 기기는 앱·웹과 따로 센다(link_ios/link_android/link_web, 2026-10-17)
+                    "  SELECT device_id, MIN(created_at) first_at, CASE WHEN SUM(name = 'screen_view' AND IFNULL(screen, '') <> '다운로드') = 0 AND SUM(screen = '다운로드') > 0 THEN CONCAT('link_', COALESCE(MAX(platform), 'web')) ELSE MAX(platform) END plat "
                     f"  FROM user_events WHERE device_id IS NOT NULL{nd_cond} GROUP BY device_id"
                     ") x WHERE " + nd_range + " "
                     "GROUP BY d, platform ORDER BY d",
@@ -1142,7 +1143,7 @@ def register(app, get_db):
                 # 기간 표만 있으면 최근 7일만 보여서 "그래서 전체 몇 대냐" 를 못 읽는다.
                 cursor.execute(
                     "SELECT COALESCE(plat, 'unknown') platform, COUNT(*) n FROM ("
-                    "  SELECT device_id, MAX(platform) plat "
+                    "  SELECT device_id, CASE WHEN SUM(name = 'screen_view' AND IFNULL(screen, '') <> '다운로드') = 0 AND SUM(screen = '다운로드') > 0 THEN CONCAT('link_', COALESCE(MAX(platform), 'web')) ELSE MAX(platform) END plat "
                     f"  FROM user_events WHERE device_id IS NOT NULL{nd_cond} GROUP BY device_id"
                     ") x GROUP BY platform",
                     tuple(nd_params),
