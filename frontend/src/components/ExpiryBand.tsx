@@ -44,14 +44,10 @@ const ExpiryBand: React.FC<{
     ? `유통기한이 지난 재료 ${past.length}개`
     : `곧 상해요 ${soon.length}개`;
 
-  // 시트 제목은 **안에 든 것**대로(2026-10-17) — 「기한 지남 2개」 를 눌렀는데 「곧 상해요」 가 떠
-  // 이미 지난 재료가 곧 상할 재료처럼 읽혔다. '임박' 은 지난 것을 못 담아서 상황별로 나눈다.
-  const upcoming = soon.length - past.length;
-  const sheetTitle = past.length === 0
-    ? '곧 상해요'
-    : upcoming === 0
-      ? '유통기한이 지났어요'
-      : '지났거나 곧 상해요';
+  // 칩과 시트 제목을 「임박 재료」 하나로 맞춘다(2026-10-17 사용자 결정). 예전엔 칩이 「기한 지남 2개」 인데
+  // 시트는 「곧 상해요」 라 서로 다른 말을 했다. 지난 것·곧 지날 것을 따로 부르지 않고 한 이름으로 퉁치고,
+  // 어느 쪽인지는 시트 안 재료마다 붙은 「5일 지났어요 / 약 2일 남음」 이 말한다.
+  const sheetTitle = '임박 재료';
 
   const sheet = (
     <Sheet open={open} onClose={() => setOpen(false)} title={sheetTitle} maxHeight="80dvh">
@@ -69,13 +65,13 @@ const ExpiryBand: React.FC<{
 
   if (variant === 'chip') {
     // 색은 띠와 같은 값(#FFF1EF 면 · #C4342B 글자) — 같은 이야기면 같은 색.
-    const chipText = past.length > 0 ? `기한 지남 ${past.length}개` : `곧 상해요 ${soon.length}개`;
+    const chipText = `임박 재료 ${soon.length}개`;
     return (
       <>
         <button
           type="button"
           onClick={() => setOpen(true)}
-          aria-label={title}
+          aria-label={past.length > 0 ? `임박 재료 ${soon.length}개 — 그중 ${past.length}개는 유통기한이 지났어요` : chipText}
           style={{
             display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0,
             padding: '3px 8px', borderRadius: 8, border: 'none', cursor: 'pointer',
