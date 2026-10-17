@@ -23,11 +23,12 @@ type Shot =
 const shotLen = (s: Shot) => (s.kind === "video" ? Math.round((f(s.to) - f(s.from)) / (s.rate ?? 1)) : s.len);
 
 // 생신 영상 — 아이가 「사랑하는 할아버지의 생일 축하합니다」를 부르는 원음 그대로, 이야기는 자막으로
-const STORY: Shot[] = [{ kind: "video", src: "c01_050235.mp4", from: 0, to: 14, audio: true }];
+const STORY: Shot[] = [{ kind: "video", src: "c01_050235.mp4", from: 0, to: 16.5, audio: true }];
 const STORY_LINES = [
   { at: 3.0, len: 3.5, text: "할아버지 생신이라\n아이 데리고 친정에 왔어요", big: false },
   { at: 6.7, len: 3.7, text: "할머니가 고기 소화를 못 하시고\n이도 약해지셔서", big: false },
-  { at: 10.6, len: 3.4, text: "엄마가 「황태로 미역국 끓이자」", big: false },
+  { at: 10.6, len: 2.6, text: "「할머니, 무슨 미역국 드실 수 있어요?」", big: false },
+  { at: 13.3, len: 3.2, text: "「황태로 부드럽게 끓이면\n먹을 수 있으려나…」", big: false },
 ];
 // 첫 훅 — 의아함을 준다(2026-10-17 사용자 요청)
 const HOOK = { at: 0.15, len: 2.75, text: "황태로도\n미역국을 끓인다고?" };
@@ -204,7 +205,7 @@ const Shots: React.FC = () => {
 // 브이로그 BGM — 생신 노래(원음)가 나오는 이야기 장면에서는 음악을 끄고, 그 뒤부터 깐다
 const Bgm: React.FC = () => (
   <Audio
-    src={staticFile("bgm_vlog_bright.mp3")}
+    src={staticFile("bgm_waltz_warm.mp3")}
     volume={(fr) => {
       let v = Math.min(
         interpolate(fr, [STORY_LEN - 10, STORY_LEN + 15], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }),
