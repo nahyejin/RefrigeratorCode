@@ -44,8 +44,17 @@ const ExpiryBand: React.FC<{
     ? `유통기한이 지난 재료 ${past.length}개`
     : `곧 상해요 ${soon.length}개`;
 
+  // 시트 제목은 **안에 든 것**대로(2026-10-17) — 「기한 지남 2개」 를 눌렀는데 「곧 상해요」 가 떠
+  // 이미 지난 재료가 곧 상할 재료처럼 읽혔다. '임박' 은 지난 것을 못 담아서 상황별로 나눈다.
+  const upcoming = soon.length - past.length;
+  const sheetTitle = past.length === 0
+    ? '곧 상해요'
+    : upcoming === 0
+      ? '유통기한이 지났어요'
+      : '지났거나 곧 상해요';
+
   const sheet = (
-    <Sheet open={open} onClose={() => setOpen(false)} title="곧 상해요" maxHeight="80dvh">
+    <Sheet open={open} onClose={() => setOpen(false)} title={sheetTitle} maxHeight="80dvh">
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <ExpiryAlert bare boxes={boxes} categoryMap={categoryMap} />
         <div>

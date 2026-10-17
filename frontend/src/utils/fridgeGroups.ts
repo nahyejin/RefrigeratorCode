@@ -6,9 +6,11 @@ import type { CategoryMap } from './shelfLife';
  * 사전 분류를 그대로 쓰지 않는 이유:
  *   사전 중분류 '식재료 원물' 은 고기와 채소를 한데 묶고, '양념/조미료' 는 소분류가 14가지라
  *   냉장고 칸으로 쓰기엔 하나는 너무 굵고 하나는 너무 잘다. 냉장고를 열었을 때 눈이 가는
- *   단위로 8묶음을 다시 정했다. 순서는 **고정** — 매번 같은 자리에 있어야 찾는다.
+ *   단위로 다시 정했다. 순서는 **고정** — 매번 같은 자리에 있어야 찾는다.
  *
- * 운영 데이터(2026-10-17): 냉장고 재료 553개 전부가 사전에 있어 「그 밖에」 로 새는 것은 거의 없다.
+ * 처음엔 8개 미만인 칸은 안 묶고, 한 개짜리 묶음은 「그 밖에」 로 합쳤다. 사용자가 개수와
+ * 상관없이 다 묶어 달라고 했고(2026-10-17), 합치기 때문에 냉장고에 하나뿐인 과일(방울토마토)이
+ * 「그 밖에」 로 밀려나 "분류가 틀렸다" 로 보였다 — 둘 다 없앴다. 한 개짜리 묶음도 그대로 둔다.
  */
 
 export const FRIDGE_GROUPS = [
@@ -19,14 +21,44 @@ export const FRIDGE_GROUPS = [
   '유제품',
   '양념·소스',
   '반찬·간편식',
+  '면·빵·가루',
   '그 밖에',
 ] as const;
 export type FridgeGroup = typeof FRIDGE_GROUPS[number];
 
-/** 이 개수보다 적은 칸은 켜 두어도 묶지 않는다 — 몇 개 안 되는데 칸을 나누면 오히려 찾기 어렵다. */
-export const GROUP_MIN_ITEMS = 8;
+/**
+ * 사전 분류와 냉장고에서 보는 감각이 다른 재료 — **이 묶기 화면에만** 쓰는 예외(2026-10-17 점검).
+ *
+ * 사전 자체를 고치지 않은 이유: 소분류는 유통기한 추정(shelfLife)·레시피 매칭도 같이 쓴다.
+ * 여기서는 "냉장고를 열었을 때 어디서 찾나" 만 바로잡는다.
+ * 대부분은 같은 재료가 사전에 **두 번**(자기 항목 + 다른 재료의 동의어) 다른 분류로 올라 있던 것이다
+ * — 예: 방울토마토는 자기 항목이 과일, '토마토' 의 동의어로는 채소. 한쪽으로 맞췄다.
+ */
+const NAME_GROUP: Record<string, FridgeGroup> = {
+  // 토마토는 모두 채소로(사전의 '토마토' 가 채소)
+  방울토마토: '채소·버섯', 완숙토마토: '채소·버섯', 토마토: '채소·버섯',
+  // 콩나물·숙주는 사전상 콩류지만 냉장고에선 채소 칸
+  콩나물: '채소·버섯', 숙주: '채소·버섯', 숙주나물: '채소·버섯',
+  // 깨는 양념으로(참깨는 양념인데 통깨만 곡물·견과였다)
+  통깨: '양념·소스', 참깨: '양념·소스', 깨: '양념·소스', 볶은참깨: '양념·소스',
+  // 참치캔은 고기·해산물로(캔참치만 반찬이었다)
+  캔참치: '고기·해산물·달걀', 참치캔: '고기·해산물·달걀',
+  // 반찬으로 먹는 것
+  게장: '반찬·간편식', 양념게장: '반찬·간편식', 간장게장: '반찬·간편식',
+  장아찌: '반찬·간편식', 매실장아찌: '반찬·간편식', 마늘쫑장아찌: '반찬·간편식',
+  쌈무: '반찬·간편식', 무쌈: '반찬·간편식', 명이나물: '반찬·간편식',
+  밥: '반찬·간편식', 쌀밥: '반찬·간편식', 누룽지: '반찬·간편식',
+  만두: '반찬·간편식', 감자만두: '반찬·간편식', 납작만두: '반찬·간편식',
+  // 육수 재료는 양념(다시팩은 양념인데 멸치육수주머니만 해산물이었다)
+  다시팩: '양념·소스', 멸치육수주머니: '양념·소스',
+  // 가루는 가루로
+  코코아가루: '면·빵·가루', 코코아파우더: '면·빵·가루', 생콩가루: '면·빵·가루', 날콩가루: '면·빵·가루',
+  // 캐비아는 해산물(사전에 유제품으로 잘못 들어가 있다)
+  캐비아: '고기·해산물·달걀', 캐비어: '고기·해산물·달걀',
+};
 
 export function groupOf(name: string, categoryMap: CategoryMap): FridgeGroup {
+  if (NAME_GROUP[name]) return NAME_GROUP[name];
   const cat = categoryMap[name];
   if (!cat) return '그 밖에';
   const { mid, sub } = cat;
@@ -39,25 +71,20 @@ export function groupOf(name: string, categoryMap: CategoryMap): FridgeGroup {
   if (mid === '양념/조미료') return '양념·소스';
   if (mid === '유제품') return '유제품';
   if (mid === '즉석식/간편식') return '반찬·간편식';
-  return '그 밖에'; // 베이킹·음료 등
+  // 소면·밀가루·빵·떡 — 처음엔 「그 밖에」 였는데 운영 냉장고에서 그 밖에의 대부분이 이것이었다
+  if (mid.startsWith('베이킹·제면·디저트용')) return '면·빵·가루';
+  return '그 밖에'; // 음료·주류·얼음 등
 }
 
 /**
- * 칸 하나를 묶음으로 나눈다. 빈 묶음은 뺀다. 하나짜리 묶음은 「그 밖에」 로 합친다
- * (한 개만 든 칸이 줄줄이 생기면 묶은 의미가 없다). 묶음 안의 순서는 받은 순서 그대로 —
+ * 칸 하나를 묶음으로 나눈다. 빈 묶음은 뺀다. 묶음 안의 순서는 받은 순서 그대로 —
  * 정렬은 부르는 쪽이 이미 해서 넘긴다.
- * `null` 이면 묶지 말라는 뜻(재료가 적다).
  */
 export function splitIntoGroups<T extends { name: string }>(
   items: T[], categoryMap: CategoryMap,
-): { group: FridgeGroup; items: T[] }[] | null {
-  if (items.length < GROUP_MIN_ITEMS) return null;
-  const raw = items.map(it => groupOf(it.name, categoryMap));
-  const count = new Map<FridgeGroup, number>();
-  raw.forEach(g => count.set(g, (count.get(g) || 0) + 1));
-  // 하나뿐인 묶음은 「그 밖에」 로. 원래 순서(= 고른 정렬)를 지키려고 재료마다 최종 묶음을 정한 뒤 거른다.
-  const final = raw.map(g => (count.get(g)! > 1 ? g : '그 밖에'));
+): { group: FridgeGroup; items: T[] }[] {
+  const of = items.map(it => groupOf(it.name, categoryMap));
   return FRIDGE_GROUPS
-    .map(g => ({ group: g, items: items.filter((_, i) => final[i] === g) }))
+    .map(g => ({ group: g, items: items.filter((_, i) => of[i] === g) }))
     .filter(x => x.items.length > 0);
 }

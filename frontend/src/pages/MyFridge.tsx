@@ -26,7 +26,7 @@ import { loadIngredientCategoryMap, estimateExpiry, type CategoryMap } from '../
 import { splitExpiring } from '../utils/expiry';
 import ExpiryBand from '../components/ExpiryBand';
 import FridgeHistorySheet from '../components/FridgeHistorySheet';
-import { splitIntoGroups, GROUP_MIN_ITEMS } from '../utils/fridgeGroups';
+import { splitIntoGroups } from '../utils/fridgeGroups';
 import { STALE_AFTER_DAYS } from '../utils/expiry';
 import {
   isUsageGuideDueThisVisit,
@@ -416,9 +416,11 @@ interface ScrollablePillSectionProps {
   children: React.ReactNode;
   /** 접었을 때 아래를 흐리게 덮는 색 — 칸 바탕색과 같아야 한다(`SECTION_TINT`). */
   fade?: string;
+  /** 접었을 때 높이(px). 기본 140 — 「종류별로 묶기」 일 때 더 크게 */
+  collapsedMax?: number;
 }
 
-const ScrollablePillSection: React.FC<ScrollablePillSectionProps> = ({ watchKey, children, fade = '#FFFFFF' }) => {
+const ScrollablePillSection: React.FC<ScrollablePillSectionProps> = ({ watchKey, children, fade = '#FFFFFF', collapsedMax }) => {
   const fadeRgb = [1, 3, 5].map(i => parseInt(fade.slice(i, i + 2), 16)).join(',');
   /**
    * 재료 칩 칸 — **칸 안 스크롤 대신 `더보기`**(2026-10-10, 유튜브 앱처럼).
@@ -426,7 +428,9 @@ const ScrollablePillSection: React.FC<ScrollablePillSectionProps> = ({ watchKey,
    * 간신히 보이는 정도) 안에 다 들어가면 그대로 보여 주고, 넘치면 아래를 흐리게 하고 `전체 보기` 를 둔다.
    * 재료가 적은 칸은 내용만큼만 차지한다(예전엔 늘 146px 를 비워 뒀다).
    */
-  const COLLAPSED_MAX = 140;
+  // 「종류별로 묶기」 를 켜면 묶음 제목 줄이 높이를 먹어서, 재료 8개짜리 칸도 두 묶음 만에 접혔다 —
+  // 묶었을 때는 부르는 쪽이 더 큰 값을 넘긴다(2026-10-17).
+  const COLLAPSED_MAX = collapsedMax ?? 140;
   const innerRef = React.useRef<HTMLDivElement>(null);
   const [expanded, setExpanded] = React.useState(false);
   const [overflowing, setOverflowing] = React.useState(false);
@@ -502,8 +506,9 @@ const MyFridge: React.FC = () => {
   // 재료 카테고리 표 (유통기한 추정용). 앱 전체가 같은 CSV 를 쓰므로 유틸에서 캐시한다
   const [categoryMap, setCategoryMap] = React.useState<CategoryMap>({});
   // 「종류별로 묶기」 — 세 칸 공통 스위치 하나. 기기에 기억한다(2026-10-17).
+  // 처음 들어오면 **켜져 있다**(사용자 요청) — 끈 적이 있을 때만('0') 꺼진 채로 연다.
   const [groupByKind, setGroupByKind] = React.useState<boolean>(() => {
-    try { return localStorage.getItem(GROUP_BY_KIND_KEY) === '1'; } catch { return false; }
+    try { return localStorage.getItem(GROUP_BY_KIND_KEY) !== '0'; } catch { return true; }
   });
   const toggleGroupByKind = (on: boolean) => {
     setGroupByKind(on);
@@ -2069,8 +2074,10 @@ const MyFridge: React.FC = () => {
   );
 
   /**
-   * 칸 하나의 재료 칩. 「종류별로 묶기」 가 켜져 있고 재료가 GROUP_MIN_ITEMS 개 이상이면
-   * 묶음 제목을 끼워 나눈다. 묶음 안 순서는 그 칸의 정렬(유통기한·구매·이름) 그대로.
+   * 칸 하나의 재료 칩. 「종류별로 묶기」 가 켜져 있으면 재료 수와 상관없이 묶음 제목을 끼워
+   * 나눈다. 묶음 안 순서는 그 칸의 정렬(유통기한·구매·이름) 그대로.
+   * 묶음 제목: 말머리 점 + 이름 + 개수 + 옅은 가로선 — 칸끼리 구분은 되되 칸 제목(냉장보관 등)보다
+   * 튀지 않게(2026-10-17 "너무 강하게는 말고").
    */
   const renderBoxPills = (box: StorageBox, list: Ingredient[], sort: SortType) => {
     const sorted = sortIngredients(list, sort);
@@ -2083,18 +2090,21 @@ const MyFridge: React.FC = () => {
         isFirstInFridge={box === 'fridge' && first}
       />
     );
-    const groups = groupByKind ? splitIntoGroups(sorted, categoryMap) : null;
-    if (!groups) return sorted.map((item, i) => pill(item, i === 0));
+    if (!groupByKind || sorted.length === 0) return sorted.map((item, i) => pill(item, i === 0));
     let shown = 0;
-    return groups.map(g => {
+    return splitIntoGroups(sorted, categoryMap).map(g => {
       const soon = g.items.filter(it => soonKeys.has(`${box}:${it.name}`)).length;
+      const first = shown === 0;
       return (
         <React.Fragment key={g.group}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12,
-                        color: 'var(--ink-500)', margin: shown === 0 ? '0 0 4px' : '8px 0 4px' }}>
-            <span style={{ fontWeight: 700, color: 'var(--ink-700)' }}>{g.group}</span>
+                        color: 'var(--ink-500)', margin: first ? '2px 0 5px' : '10px 0 5px' }}>
+            <span aria-hidden style={{ width: 5, height: 5, borderRadius: '50%', flexShrink: 0,
+                                       background: 'var(--ink-500)' }} />
+            <span style={{ fontWeight: 700, color: 'var(--ink-700)', whiteSpace: 'nowrap' }}>{g.group}</span>
             <span style={{ fontVariantNumeric: 'tabular-nums' }}>{g.items.length}</span>
-            {soon > 0 && <span style={{ color: '#C4342B' }}>임박 {soon}</span>}
+            {soon > 0 && <span style={{ color: '#C4342B', whiteSpace: 'nowrap' }}>임박 {soon}</span>}
+            <span aria-hidden style={{ flex: 1, height: 1, background: 'var(--line-200)', marginLeft: 4 }} />
           </div>
           {g.items.map(item => pill(item, shown++ === 0))}
         </React.Fragment>
@@ -2570,7 +2580,7 @@ const MyFridge: React.FC = () => {
               role="switch"
               aria-checked={groupByKind}
               onClick={() => toggleGroupByKind(!groupByKind)}
-              title={`재료가 ${GROUP_MIN_ITEMS}개 이상인 칸을 고기·채소·양념 같은 종류로 나눠요`}
+              title="냉동·냉장·실온 안을 고기·채소·양념 같은 종류로 나눠요"
               style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minHeight: 32,
                        background: 'none', border: 'none', padding: 0, cursor: 'pointer',
                        fontSize: 12, color: 'var(--ink-700)' }}
@@ -2584,19 +2594,24 @@ const MyFridge: React.FC = () => {
               종류별로 묶기
             </button>
             {isLoggedIn && user?.id && (
+              // 글자 없이 동그란 아이콘 버튼(2026-10-17 요청). 보이는 원은 32px 이지만 바깥 여백까지
+              // 눌리게 44px 로 잡는다 — 손가락 터치 영역.
               <button
                 type="button"
                 onClick={() => setHistoryOpen(true)}
                 aria-label="재료 기록 보기 — 누가 언제 담고 뺐는지"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 4, height: 28, padding: '0 9px',
-                         fontSize: 11.5, fontWeight: 500, color: '#3A3A42', background: '#FFFFFF',
-                         border: '1px solid var(--line-300)', borderRadius: 6, cursor: 'pointer' }}
+                title="재료 기록"
+                style={{ width: 44, height: 44, margin: -6, display: 'inline-flex', alignItems: 'center',
+                         justifyContent: 'center', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                     strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                  <path d="M3 12a9 9 0 1 0 3-6.7" /><path d="M3 4v4h4" /><path d="M12 7v5l3 2" />
-                </svg>
-                기록
+                <span aria-hidden style={{ width: 32, height: 32, borderRadius: '50%', display: 'inline-flex',
+                                           alignItems: 'center', justifyContent: 'center', color: '#3A3A42',
+                                           background: '#FFFFFF', border: '1px solid var(--line-300)' }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                       strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 12a9 9 0 1 0 3-6.7" /><path d="M3 4v4h4" /><path d="M12 7v5l3 2" />
+                  </svg>
+                </span>
               </button>
             )}
           </div>
@@ -2633,7 +2648,7 @@ const MyFridge: React.FC = () => {
                 )}
               </span>
             </div>
-            <ScrollablePillSection watchKey={(frozen ?? []).length} fade={SECTION_TINT.frozen}>
+            <ScrollablePillSection watchKey={(frozen ?? []).length} fade={SECTION_TINT.frozen} collapsedMax={groupByKind ? 320 : undefined}>
               {(frozen ?? []).length === 0 && (
                 <div className="text-gray-400 text-xs py-1">재료가 아직 없어요</div>
               )}
@@ -2663,7 +2678,7 @@ const MyFridge: React.FC = () => {
                 )}
               </span>
             </div>
-            <ScrollablePillSection watchKey={(fridge ?? []).length} fade={SECTION_TINT.fridge}>
+            <ScrollablePillSection watchKey={(fridge ?? []).length} fade={SECTION_TINT.fridge} collapsedMax={groupByKind ? 320 : undefined}>
               {fridge && fridge.length === 0 && (
                 <div className="text-gray-400 text-xs py-1">재료가 아직 없어요</div>
               )}
@@ -2693,7 +2708,7 @@ const MyFridge: React.FC = () => {
                 )}
               </span>
             </div>
-            <ScrollablePillSection watchKey={(room ?? []).length} fade={SECTION_TINT.room}>
+            <ScrollablePillSection watchKey={(room ?? []).length} fade={SECTION_TINT.room} collapsedMax={groupByKind ? 320 : undefined}>
               {room && room.length === 0 && (
                 <div className="text-gray-400 text-xs py-1">재료가 아직 없어요</div>
               )}
