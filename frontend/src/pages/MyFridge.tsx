@@ -330,6 +330,7 @@ const IngredientPill: React.FC<IngredientPillProps> = ({ item, onRemove, onSetti
 
   return (
     <div
+      data-pill=""
       style={{ display: 'inline-flex', alignItems: 'center', marginRight: 8, marginBottom: 4 }}
       /* 가이드("이 재료 배지를 누르면...")는 **배지 전체**를 감싸야 한다.
          예전엔 이 속성이 안쪽 이름 <span> 에 붙어 있어서, 노란 테두리가 글자
@@ -423,8 +424,6 @@ const IngredientPill: React.FC<IngredientPillProps> = ({ item, onRemove, onSetti
  * 촌스럽다는 지적이라 세 칸 모두 같은 옅은 회색으로 통일. 선·띠 없이 면 하나로 칸을 가르고, 칩·버튼은 흰 바탕이라 또렷하다.
  */
 const SECTION_BG = '#F6F6F8';
-/** 칸 안 재료 자리 바탕 — 칸(#F6F6F8)보다 한 단계만 깊은 같은 계열. 흰 칩이 그 위에서 살짝 떠 보인다. */
-const TRAY_BG = '#EEEEF2';
 const SECTION_TINT: Record<StorageBox, string> = {
   frozen: SECTION_BG,
   fridge: SECTION_BG,
@@ -451,7 +450,6 @@ interface ScrollablePillSectionProps {
 const ScrollablePillSection: React.FC<ScrollablePillSectionProps> = ({
   watchKey, children, collapsedMax, expandSignal, onOverflowChange,
 }) => {
-  const fadeRgb = [1, 3, 5].map(i => parseInt(TRAY_BG.slice(i, i + 2), 16)).join(',');
   /**
    * 재료 칩 칸 — 접어 둔 높이(약 네 줄째가 간신히 보이는 정도) 안에 다 들어가면 그대로 보여 주고,
    * 넘치면 아래를 흐리게 하고 `전체 보기` 를 둔다. 접힌 채로 칸 안 스크롤도 된다(2026-10-17, 아래 참고).
@@ -463,12 +461,19 @@ const ScrollablePillSection: React.FC<ScrollablePillSectionProps> = ({
   const innerRef = React.useRef<HTMLDivElement>(null);
   const [expanded, setExpanded] = React.useState(false);
   const [overflowing, setOverflowing] = React.useState(false);
+  // 접힌 높이 아래로 밀려 처음 화면에 안 보이는 칩 수 — 버튼에 「8개 더 보기」 로 적는다.
+  const [hiddenCount, setHiddenCount] = React.useState(0);
 
   // COLLAPSED_MAX 가 바뀌면(묶기 켜고 끔) 다시 재야 하므로 의존성에 넣는다.
   const measure = React.useCallback(() => {
     const el = innerRef.current;
     if (!el) return;
     setOverflowing(el.scrollHeight > COLLAPSED_MAX + 2);
+    // 칩의 아래 끝이 접힌 높이를 넘으면 "안 보이는 칩" 으로 센다(스크롤 맨 위 기준).
+    const pills = el.querySelectorAll<HTMLElement>('[data-pill]');
+    let hidden = 0;
+    pills.forEach(p => { if (p.offsetTop + p.offsetHeight > COLLAPSED_MAX + 2) hidden += 1; });
+    setHiddenCount(hidden);
   }, [COLLAPSED_MAX]);
 
   React.useEffect(() => { onOverflowChange?.(overflowing); }, [overflowing, onOverflowChange]);
@@ -493,48 +498,49 @@ const ScrollablePillSection: React.FC<ScrollablePillSectionProps> = ({
   // 없앴던 것을 되살림). 그때의 불편을 덜려고: 끝까지 내리면 아래 흐림을 걷어 "끝" 이 보이게 하고,
   // overscroll 은 기본값(끝에 닿으면 페이지가 이어서 스크롤 — 손가락이 칸에 갇히지 않는다).
   const [atBottom, setAtBottom] = React.useState(false);
+  const [atTop, setAtTop] = React.useState(true);
   const onInnerScroll = () => {
     const el = innerRef.current;
-    if (el) setAtBottom(el.scrollTop + el.clientHeight >= el.scrollHeight - 4);
+    if (!el) return;
+    setAtBottom(el.scrollTop + el.clientHeight >= el.scrollHeight - 4);
+    setAtTop(el.scrollTop <= 2);
   };
   // 다시 접을 때는 맨 위부터
   React.useEffect(() => {
     if (collapsed && innerRef.current) {
       innerRef.current.scrollTop = 0;
       setAtBottom(false);
+      setAtTop(true);
     }
   }, [collapsed]);
 
+  // 가장자리 흐림은 **마스크**로 — 색을 덮는 게 아니라 내용 자체를 투명하게 사라지게 한다. 바탕색과
+  // 맞출 필요가 없고 상자도 생기지 않는다. 아래는 더 남았을 때만, 위는 안에서 내려 봤을 때만.
+  const fadeTop = collapsed && !atTop ? 14 : 0;
+  const fadeBottom = collapsed && !atBottom ? 36 : 0;
+  const mask = collapsed
+    ? `linear-gradient(to bottom, transparent 0, #000 ${fadeTop}px, #000 calc(100% - ${fadeBottom}px), transparent 100%)`
+    : undefined;
+
   return (
     <div>
-      {/* 재료 자리 = 칸 바탕보다 **아주 조금 더 깊은** 같은 회색(2026-10-17). 회색 칸 위에 칩이 그냥 흩어져
-          있으면 어디까지가 재료 자리이고 어디까지 찼는지 안 보였다(사용자). 처음엔 흰 판 + 테두리로 했는데
-          "색이 뒤집힌 네모라 튀고 촌스럽다" — 테두리 없이 톤만 한 단계 내려 살짝 파인 느낌만 준다.
-          칸 제목·`전체 보기` 는 이 자리 밖. 흐림도 이 자리 색으로 덮는다. */}
-      <div style={{ position: 'relative', background: TRAY_BG, borderRadius: 12,
-                    padding: '8px 8px 4px', overflow: 'hidden' }}>
-        <div
-          ref={innerRef}
-          onScroll={collapsed ? onInnerScroll : undefined}
-          style={{
-            maxHeight: collapsed ? COLLAPSED_MAX : 'none',
-            overflowY: collapsed ? 'auto' : 'hidden',
-            overflowX: 'hidden',
-            WebkitOverflowScrolling: 'touch',
-          }}
-        >
-          {children}
-        </div>
-        {collapsed && !atBottom && (
-          <div
-            aria-hidden
-            style={{
-              position: 'absolute', left: 0, right: 0, bottom: 0, height: 44,
-              pointerEvents: 'none',
-              background: `linear-gradient(to bottom, rgba(${fadeRgb},0), rgba(${fadeRgb},0.96))`,
-            }}
-          />
-        )}
+      {/* 재료가 어디까지 있고 얼마나 남았나 — **상자로 가르지 않는다**(2026-10-17). 흰 판(색이 뒤집혀 튐) →
+          한 톤 깊은 회색 판(그래도 상자라 촌스러움)을 거쳐, 장식 대신 정보로: 접힌 가장자리는 내용이 투명하게
+          사라지고(마스크), 버튼이 「8개 더 보기」 처럼 남은 수를 말하고, 버튼 위에 칸 너비의 옅은 선 하나. */}
+      <div
+        ref={innerRef}
+        onScroll={collapsed ? onInnerScroll : undefined}
+        style={{
+          position: 'relative', // 칩 offsetTop 기준
+          maxHeight: collapsed ? COLLAPSED_MAX : 'none',
+          overflowY: collapsed ? 'auto' : 'hidden',
+          overflowX: 'hidden',
+          WebkitOverflowScrolling: 'touch',
+          maskImage: mask,
+          WebkitMaskImage: mask,
+        }}
+      >
+        {children}
       </div>
       {overflowing && (
         <button
@@ -542,12 +548,12 @@ const ScrollablePillSection: React.FC<ScrollablePillSectionProps> = ({
           onClick={() => setExpanded(v => !v)}
           aria-expanded={expanded}
           style={{
-            display: 'block', margin: '6px auto 0', padding: '4px 12px',
-            border: 'none', background: 'none', cursor: 'pointer',
+            display: 'block', width: '100%', margin: '6px 0 0', padding: '8px 0 2px',
+            border: 'none', borderTop: '1px solid rgba(0,0,0,0.06)', borderRadius: 0, background: 'none', cursor: 'pointer',
             fontSize: 12.5, fontWeight: 600, color: 'var(--ink-500)',
           }}
         >
-          {expanded ? '접기 ∧' : '전체 보기 ∨'}
+          {expanded ? '접기 ∧' : hiddenCount > 0 ? `${hiddenCount}개 더 보기 ∨` : '전체 보기 ∨'}
         </button>
       )}
     </div>
