@@ -243,7 +243,12 @@ export type CategoryMap = Record<string, IngredientCategory>;
 
 const CSV_URL = '/ingredient_profile_dict_with_substitutes.csv';
 // v2 부터 재료별 보관 일수(days)를 함께 담는다. v1 캐시에는 없으므로 키를 올린다.
-const CACHE_KEY = 'ingredient_category_map_v2';
+// v3(2026-10-17): 받은 시각을 같이 남기고 **하루가 지나면 새로 받는다.** v2 는 기한이 없어
+// 한 번 받은 기기는 사전이 바뀌어도(매일 배치로 재료가 늘고, 분류를 바로잡아도) 옛 표를 계속 썼다 —
+// 방울토마토를 채소로 고친 것도, 새로 들어온 재료의 유통기한 짐작도 기존 사용자에겐 안 닿았다.
+const CACHE_KEY = 'ingredient_category_map_v3';
+const OLD_CACHE_KEYS = ['ingredient_category_map', 'ingredient_category_map_v2'];
+const CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
 let cached: Promise<CategoryMap> | null = null;
 
@@ -273,8 +278,12 @@ export function loadIngredientCategoryMap(): Promise<CategoryMap> {
 
   cached = (async () => {
     try {
+      OLD_CACHE_KEYS.forEach(k => localStorage.removeItem(k));
       const raw = localStorage.getItem(CACHE_KEY);
-      if (raw) return JSON.parse(raw) as CategoryMap;
+      if (raw) {
+        const saved = JSON.parse(raw) as { at: number; map: CategoryMap };
+        if (saved && saved.map && Date.now() - saved.at < CACHE_MAX_AGE_MS) return saved.map;
+      }
     } catch {
       // 캐시가 깨졌으면 그냥 새로 받는다
     }
@@ -342,7 +351,7 @@ export function loadIngredientCategoryMap(): Promise<CategoryMap> {
     }
 
     try {
-      localStorage.setItem(CACHE_KEY, JSON.stringify(map));
+      localStorage.setItem(CACHE_KEY, JSON.stringify({ at: Date.now(), map }));
     } catch {
       // 용량 초과 등으로 못 남겨도 동작에는 지장이 없다
     }

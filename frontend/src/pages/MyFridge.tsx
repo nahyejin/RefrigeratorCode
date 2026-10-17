@@ -418,9 +418,15 @@ interface ScrollablePillSectionProps {
   fade?: string;
   /** 접었을 때 높이(px). 기본 140 — 「종류별로 묶기」 일 때 더 크게 */
   collapsedMax?: number;
+  /** 위쪽 「모두 펼치기 / 모두 접기」 — n 이 바뀔 때마다 open 으로 맞춘다(그 뒤 칸마다 따로 눌러도 된다) */
+  expandSignal?: { open: boolean; n: number };
+  /** 이 칸이 접을 만큼 넘치는지 — 「모두 펼치기」 버튼을 보일지 정하는 데 쓴다 */
+  onOverflowChange?: (overflowing: boolean) => void;
 }
 
-const ScrollablePillSection: React.FC<ScrollablePillSectionProps> = ({ watchKey, children, fade = '#FFFFFF', collapsedMax }) => {
+const ScrollablePillSection: React.FC<ScrollablePillSectionProps> = ({
+  watchKey, children, fade = '#FFFFFF', collapsedMax, expandSignal, onOverflowChange,
+}) => {
   const fadeRgb = [1, 3, 5].map(i => parseInt(fade.slice(i, i + 2), 16)).join(',');
   /**
    * 재료 칩 칸 — **칸 안 스크롤 대신 `더보기`**(2026-10-10, 유튜브 앱처럼).
@@ -428,18 +434,25 @@ const ScrollablePillSection: React.FC<ScrollablePillSectionProps> = ({ watchKey,
    * 간신히 보이는 정도) 안에 다 들어가면 그대로 보여 주고, 넘치면 아래를 흐리게 하고 `전체 보기` 를 둔다.
    * 재료가 적은 칸은 내용만큼만 차지한다(예전엔 늘 146px 를 비워 뒀다).
    */
-  // 「종류별로 묶기」 를 켜면 묶음 제목 줄이 높이를 먹어서, 재료 8개짜리 칸도 두 묶음 만에 접혔다 —
-  // 묶었을 때는 부르는 쪽이 더 큰 값을 넘긴다(2026-10-17).
+  // 묶기를 켜도 접힌 높이는 같은 140(2026-10-17 사용자: "기존 기본 높이로"). 한때 묶으면 320 으로
+  // 늘렸다가, measure 가 처음 값만 기억하는 바람에 묶기를 끄면 `전체 보기` 가 사라지는 버그가 났다.
   const COLLAPSED_MAX = collapsedMax ?? 140;
   const innerRef = React.useRef<HTMLDivElement>(null);
   const [expanded, setExpanded] = React.useState(false);
   const [overflowing, setOverflowing] = React.useState(false);
 
+  // COLLAPSED_MAX 가 바뀌면(묶기 켜고 끔) 다시 재야 하므로 의존성에 넣는다.
   const measure = React.useCallback(() => {
     const el = innerRef.current;
     if (!el) return;
     setOverflowing(el.scrollHeight > COLLAPSED_MAX + 2);
-  }, []);
+  }, [COLLAPSED_MAX]);
+
+  React.useEffect(() => { onOverflowChange?.(overflowing); }, [overflowing, onOverflowChange]);
+  React.useEffect(() => {
+    if (expandSignal) setExpanded(expandSignal.open);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [expandSignal?.n]);
 
   React.useLayoutEffect(() => {
     measure();
@@ -516,6 +529,15 @@ const MyFridge: React.FC = () => {
   };
   // 「재료 기록」 시트
   const [historyOpen, setHistoryOpen] = React.useState(false);
+  // 「모두 펼치기 / 모두 접기」 — 세 칸의 `전체 보기` 를 한 번에(2026-10-17 요청).
+  const [expandSignal, setExpandSignal] = React.useState<{ open: boolean; n: number }>({ open: false, n: 0 });
+  const [overflowBoxes, setOverflowBoxes] = React.useState<Record<string, boolean>>({});
+  const overflowSetters = React.useMemo(() => {
+    const make = (box: string) => (v: boolean) =>
+      setOverflowBoxes(prev => (prev[box] === v ? prev : { ...prev, [box]: v }));
+    return { frozen: make('frozen'), fridge: make('fridge'), room: make('room') };
+  }, []);
+  const anyOverflow = Object.values(overflowBoxes).some(Boolean);
   /**
    * 다음 저장에 실어 보낼 "어디서 바꿨나"(서버의 재료 기록이 "사진으로 3개 담음" 처럼 쓴다).
    * 저장은 600ms 묶어서 나가므로 행동하는 순간 값을 두고, 보낼 때 꺼내 비운다.
@@ -2067,18 +2089,14 @@ const MyFridge: React.FC = () => {
     splitExpiring(fridgeBoxes, categoryMap).soon.forEach(it => { count[it.storage] += 1; });
     return count;
   }, [fridgeBoxes, categoryMap]);
-  // 묶음 제목 옆 「임박 N」 — 칸 머리의 임박 수와 같은 기준(splitExpiring)으로 센다.
-  const soonKeys = React.useMemo(
-    () => new Set(splitExpiring(fridgeBoxes, categoryMap).soon.map(it => `${it.storage}:${it.name}`)),
-    [fridgeBoxes, categoryMap],
-  );
-
   /**
-   * 칸 하나의 재료 칩. 「종류별로 묶기」 가 켜져 있으면 재료 수와 상관없이 묶음 제목을 끼워
-   * 나눈다. 묶음 안 순서는 그 칸의 정렬(유통기한·구매·이름) 그대로.
-   * 묶음 제목: 작은 회색 이름 + 더 옅은 개수, 묶음 **사이**에만 칸 끝까지 닿는 머리카락 선.
-   * 처음엔 말머리 점 + 제목 옆 가로선이었는데 "촌스럽다"(2026-10-17) — 장식 두 개가 눈에 걸렸다.
-   * 장식을 빼고 여백·글자 크기로만 나눈다(설정 화면의 섹션 머리처럼). 칸 제목(냉장보관)보다 튀면 안 된다.
+   * 칸 하나의 재료 칩. 「종류별로 묶기」 가 켜져 있으면 재료 수와 상관없이 묶음마다 줄을 나눈다.
+   * 묶음 안 순서는 그 칸의 정렬(유통기한·구매·이름) 그대로.
+   *
+   * 묶음 이름은 **그 묶음 첫 줄의 맨 앞에** 작은 회색 글자로 — 칩과 같은 줄이다(2026-10-17).
+   * 거쳐 온 것: 말머리 점 + 옆 가로선("촌스럽다") → 제목 한 줄 + 묶음 사이 선("한 줄씩 잡아먹어
+   * 냉동·냉장·실온이 한눈에 안 보인다"). 제목 줄을 따로 두지 않으니 칸 높이가 묶기 전과 거의 같다.
+   * 묶음별 「임박 N」 도 뺐다 — 칸 머리에 이미 있고, 칩마다 D-표기가 있다.
    */
   const renderBoxPills = (box: StorageBox, list: Ingredient[], sort: SortType) => {
     const sorted = sortIngredients(list, sort);
@@ -2093,27 +2111,26 @@ const MyFridge: React.FC = () => {
     );
     if (!groupByKind || sorted.length === 0) return sorted.map((item, i) => pill(item, i === 0));
     let shown = 0;
+    // 제목은 **자기 한 줄**, 칩은 그 아래. 제목 바로 옆에 짧고 옅은 선 하나(2026-10-17 사용자 지정).
+    // 예전엔 제목 줄 위에 구분선이 따로 있어 묶음마다 두 줄을 먹었다 — 그게 "한눈에 안 보인다" 의
+    // 원인이었다(제목 한 줄 자체는 괜찮다고 함). 제목을 칩 옆에 붙이는 것은 하지 말 것(사용자 요청).
     return splitIntoGroups(sorted, categoryMap).map(g => {
-      const soon = g.items.filter(it => soonKeys.has(`${box}:${it.name}`)).length;
       const first = shown === 0;
       return (
-        <React.Fragment key={g.group}>
-          <div style={{
-            display: 'flex', alignItems: 'baseline', gap: 5, fontSize: 11.5, letterSpacing: '-0.01em',
-            ...(first
-              ? { margin: '2px 0 6px' }
-              : { margin: '8px 0 6px', paddingTop: 10, borderTop: '1px solid rgba(0,0,0,0.06)' }),
-          }}>
-            <span style={{ fontWeight: 600, color: 'var(--ink-500)', whiteSpace: 'nowrap' }}>{g.group}</span>
-            <span style={{ color: 'var(--ink-300)', fontVariantNumeric: 'tabular-nums' }}>{g.items.length}</span>
-            {soon > 0 && (
-              <span style={{ marginLeft: 'auto', color: '#C4342B', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                임박 {soon}
-              </span>
-            )}
+        <div key={g.group}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, height: 18,
+                        margin: first ? '0 0 4px' : '4px 0 4px' }}>
+            <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink-500)', whiteSpace: 'nowrap',
+                           letterSpacing: '-0.01em' }}>
+              {g.group}
+            </span>
+            <span style={{ fontSize: 11, color: 'var(--ink-300)', fontVariantNumeric: 'tabular-nums' }}>
+              {g.items.length}
+            </span>
+            <span aria-hidden style={{ width: 28, height: 1, background: 'var(--line-200)', marginLeft: 2 }} />
           </div>
           {g.items.map(item => pill(item, shown++ === 0))}
-        </React.Fragment>
+        </div>
       );
     });
   };
@@ -2579,8 +2596,7 @@ const MyFridge: React.FC = () => {
           </div>
           {/* 「종류별로 묶기」 스위치(세 칸 공통)와 「기록」 버튼 — 작게 한 줄(2026-10-17 요청).
               기록은 서버에 남는 것이라 로그인했을 때만. */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                        gap: 8, margin: '0 2px 8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '0 2px 8px' }}>
             <button
               type="button"
               role="switch"
@@ -2599,21 +2615,40 @@ const MyFridge: React.FC = () => {
               </span>
               종류별로 묶기
             </button>
+            {/* 「모두 펼치기 / 모두 접기」 — 세 칸의 `전체 보기` 를 한 번에. 넘치는 칸이 없으면 숨긴다. */}
+            {anyOverflow && (
+              <button
+                type="button"
+                onClick={() => setExpandSignal(s => ({ open: !s.open, n: s.n + 1 }))}
+                aria-expanded={expandSignal.open}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 3, minHeight: 32, padding: '0 2px',
+                         background: 'none', border: 'none', cursor: 'pointer', fontSize: 12,
+                         color: 'var(--ink-500)', whiteSpace: 'nowrap' }}
+              >
+                {expandSignal.open ? '모두 접기' : '모두 펼치기'}
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6"
+                     strokeLinecap="round" strokeLinejoin="round" aria-hidden
+                     style={{ transform: expandSignal.open ? 'rotate(180deg)' : 'none' }}>
+                  <path d="M6 9l6 6 6-6" />
+                </svg>
+              </button>
+            )}
             {isLoggedIn && user?.id && (
-              // 글자 없이 동그란 아이콘 버튼(2026-10-17 요청). 보이는 원은 32px 이지만 바깥 여백까지
-              // 눌리게 44px 로 잡는다 — 손가락 터치 영역.
+              // 글자 없이 작은 동그란 아이콘 버튼(2026-10-17 — 「더 작게」). 보이는 원은 26px 이지만
+              // 둘레까지 눌리게 40px 로 잡는다 — 손가락 터치 영역.
               <button
                 type="button"
                 onClick={() => setHistoryOpen(true)}
                 aria-label="재료 기록 보기 — 누가 언제 담고 뺐는지"
                 title="재료 기록"
-                style={{ width: 44, height: 44, margin: -6, display: 'inline-flex', alignItems: 'center',
-                         justifyContent: 'center', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+                style={{ width: 40, height: 40, margin: '-7px -7px -7px auto', display: 'inline-flex',
+                         alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none',
+                         padding: 0, cursor: 'pointer' }}
               >
-                <span aria-hidden style={{ width: 32, height: 32, borderRadius: '50%', display: 'inline-flex',
-                                           alignItems: 'center', justifyContent: 'center', color: '#3A3A42',
+                <span aria-hidden style={{ width: 26, height: 26, borderRadius: '50%', display: 'inline-flex',
+                                           alignItems: 'center', justifyContent: 'center', color: 'var(--ink-500)',
                                            background: '#FFFFFF', border: '1px solid var(--line-300)' }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"
                        strokeLinecap="round" strokeLinejoin="round">
                     <path d="M3 12a9 9 0 1 0 3-6.7" /><path d="M3 4v4h4" /><path d="M12 7v5l3 2" />
                   </svg>
@@ -2654,7 +2689,7 @@ const MyFridge: React.FC = () => {
                 )}
               </span>
             </div>
-            <ScrollablePillSection watchKey={(frozen ?? []).length} fade={SECTION_TINT.frozen} collapsedMax={groupByKind ? 320 : undefined}>
+            <ScrollablePillSection watchKey={(frozen ?? []).length} fade={SECTION_TINT.frozen} expandSignal={expandSignal} onOverflowChange={overflowSetters.frozen}>
               {(frozen ?? []).length === 0 && (
                 <div className="text-gray-400 text-xs py-1">재료가 아직 없어요</div>
               )}
@@ -2684,7 +2719,7 @@ const MyFridge: React.FC = () => {
                 )}
               </span>
             </div>
-            <ScrollablePillSection watchKey={(fridge ?? []).length} fade={SECTION_TINT.fridge} collapsedMax={groupByKind ? 320 : undefined}>
+            <ScrollablePillSection watchKey={(fridge ?? []).length} fade={SECTION_TINT.fridge} expandSignal={expandSignal} onOverflowChange={overflowSetters.fridge}>
               {fridge && fridge.length === 0 && (
                 <div className="text-gray-400 text-xs py-1">재료가 아직 없어요</div>
               )}
@@ -2714,7 +2749,7 @@ const MyFridge: React.FC = () => {
                 )}
               </span>
             </div>
-            <ScrollablePillSection watchKey={(room ?? []).length} fade={SECTION_TINT.room} collapsedMax={groupByKind ? 320 : undefined}>
+            <ScrollablePillSection watchKey={(room ?? []).length} fade={SECTION_TINT.room} expandSignal={expandSignal} onOverflowChange={overflowSetters.room}>
               {room && room.length === 0 && (
                 <div className="text-gray-400 text-xs py-1">재료가 아직 없어요</div>
               )}
