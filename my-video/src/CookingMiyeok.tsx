@@ -135,7 +135,7 @@ const Plate: React.FC<{ len: number; caption: string }> = ({ len, caption }) => 
   const z = interpolate(frame, [0, len], [1.0, 1.15], { easing: Easing.inOut(Easing.cubic) });
   return (
     <AbsoluteFill style={{ backgroundColor: "#000", opacity: fadeInOut(frame, len, 4) }}>
-      <Img src={staticFile(DIR + "plate.jpg")} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "50% 60%", transform: `scale(${z})`, transformOrigin: "55% 65%" }} />
+      <Img src={staticFile(DIR + "photo.jpg")} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "50% 60%", transform: `scale(${z})`, transformOrigin: "55% 65%" }} />
       <Caption from={6} len={len - 8} text={caption} />
     </AbsoluteFill>
   );
