@@ -52,11 +52,11 @@ ENDING: The final second simply holds on the subject named in LAST SECOND, with 
 Generate this video in a 9:16 vertical aspect ratio (portrait, 1080×1920) for Instagram Reels.
 ```
 
-## 01. 어제 산 계란, 오늘 또 — 사진 한 장으로 냉장고 채우기
+## 01. 그럼 이건 누가 산 거야? — 사진 한 장으로 냉장고 채우기
 
-- **공감 포인트**: 냉장고에 뭐가 있는지 몰라서 같은 걸 또 사 오는 일, 다들 있죠. 둘이 각자 계란을 사 와서 똑같은 계란판 두 개가 나란히 놓이는 게 웃음 포인트예요.
-- **썸네일 후킹 자막(추천, 첫 프레임부터)**: 🧠 상식 파괴형 「어제 산 계란을 / 오늘 또 샀다고?」
-- **다른 후보**: 💛 감정 공감형 「장 보고 와서 / 늘 이 말 하죠」 · 📱 기능 활용형 「냉장고 속을 / 폰으로 보세요」
+- **공감 포인트**: 냉장고에 뭐가 있는지 몰라서 같은 걸 또 사 오는 일, 다들 있죠. 남편도 사 오고 아내도 사 왔는데 우유가 세 통 — 마지막 한 통은 아무도 산 기억이 없다는 게 반전이에요. (2026-10-18 계란 편이 약하다는 의견으로 교체)
+- **썸네일 후킹 자막(추천, 첫 프레임부터)**: 🧠 상식 파괴형 「둘이 장 봤는데 / 우유가 왜 세 통?」
+- **다른 후보**: 💛 감정 공감형 「냉장고에 뭐 있는지 / 아무도 몰라요」 · 📱 기능 활용형 「영수증 찍어 두면 / 냉장고가 기억해요」
 - **이어 붙일 앱 데모**: 01 사진 인식 — 영수증 사진 한 장으로 산 재료가 냉장고에 담기는 화면(이미 있는 재료가 보임)
 
 영상 프롬프트:
@@ -85,19 +85,19 @@ SOUND: Natural room sound plus the spoken lines in AUDIO. No music. The Korean i
 ENDING: The final second simply holds on the subject named in LAST SECOND, with the camera still.
 
 [CAST]
-Early-30s Korean woman, hair in a low ponytail, beige knit cardigan. Her husband, early 30s, short hair, navy sweatshirt, stands at the kitchen counter a step to her right, both hands resting on the counter.
+Early-30s Korean man, short tidy hair, navy sweatshirt. His wife, early 30s, hair in a low ponytail, beige knit cardigan, stands beside the open fridge on the right, arms loosely crossed, holding nothing.
 
 [HOME]
-Apartment kitchen in the afternoon. One white single-door fridge, already standing wide open; the door stays open and still for the whole take. On the middle shelf, one closed plain white egg carton sits alone in the center. The other shelves are empty. The counter beside the fridge is bare.
+Apartment kitchen in the afternoon. One white single-door fridge, already standing wide open; the door stays open and still for the whole take. On the middle shelf, two identical short plain white milk bottles with blue screw caps stand side by side near the left edge, with an empty space to their right. The other shelves are empty. The counter is bare.
 
 [ACTION]
-She stands in front of the open fridge holding one closed plain white egg carton in both hands at chest height, identical to the one on the shelf. She slowly raises it toward the shelf, then stops and holds it still in the air, looking at the identical carton already on the shelf. After a beat she slowly turns her head to her husband. He glances at the carton in her hands, then at the shelf. The carton on the shelf never moves.
+He stands in front of the open fridge holding a third identical short plain white milk bottle with a blue cap in his right hand. He slowly reaches toward the shelf, then pauses with the bottle in the air when he sees the two bottles already there. He slowly sets his bottle down in the empty space to their right, so three identical bottles stand in a row, and lets go; it stays exactly there. He and his wife both look at the three bottles, then slowly at each other. The two bottles already on the shelf never move.
 
 [AUDIO]
-Fridge hum. She, holding the carton up: "어? 자기야, 계란 사 왔어?" He, glancing at the shelf: "응, 어제 사 왔지." (She looks down at the carton in her hands.) She, quietly: "나도 오늘 샀는데." (He breathes out through his nose with a small smile.)
+Fridge hum. He, holding the bottle: "자기야, 나 우유 사 왔어." She, looking at the shelf: "어? 나도 어제 사 왔는데." (He sets his bottle down next to the other two and looks at them.) He: "그럼 이건 누가 산 거야?" (They both look at the three bottles, then slowly at each other.)
 
 [LAST SECOND]
-The two identical egg cartons: one held in her hands, one on the shelf.
+The three identical milk bottles standing in a row on the shelf.
 
 Generate this video in a 9:16 vertical aspect ratio (portrait, 1080×1920) for Instagram Reels.
 ```
@@ -108,13 +108,13 @@ Generate this video in a 9:16 vertical aspect ratio (portrait, 1080×1920) for I
 Create a photoreal still photo in a 9:16 vertical aspect ratio (portrait, 1080×1920), like a frame from an Instagram Reel shot on a phone held upright.
 
 [SCENE — the first frame]
-She stands in front of the open white single-door fridge holding a closed plain white egg carton in both hands at chest height. An identical closed carton sits alone on the middle shelf. Her husband stands at the bare counter a step to her right, hands resting on it, looking at her.
+He stands in front of the open white single-door fridge holding a short plain white milk bottle with a blue cap in his right hand. Two identical bottles stand side by side on the middle shelf with an empty space to their right. His wife stands beside the fridge on the right with arms loosely crossed, looking at the shelf.
 
 [CAST]
-Early-30s Korean woman, hair in a low ponytail, beige knit cardigan. Her husband, early 30s, short hair, navy sweatshirt, stands at the kitchen counter a step to her right, both hands resting on the counter.
+Early-30s Korean man, short tidy hair, navy sweatshirt. His wife, early 30s, hair in a low ponytail, beige knit cardigan, stands beside the open fridge on the right, arms loosely crossed, holding nothing.
 
 [HOME]
-Apartment kitchen in the afternoon. One white single-door fridge, already standing wide open; the door stays open and still for the whole take. On the middle shelf, one closed plain white egg carton sits alone in the center. The other shelves are empty. The counter beside the fridge is bare.
+Apartment kitchen in the afternoon. One white single-door fridge, already standing wide open; the door stays open and still for the whole take. On the middle shelf, two identical short plain white milk bottles with blue screw caps stand side by side near the left edge, with an empty space to their right. The other shelves are empty. The counter is bare.
 
 The people stand or sit in the center column with a little headroom; hands and props sit in the lower third; the room stretches up behind them.
 People: Korean adults with a clean, neat, likable look and natural relaxed expressions, caught mid-moment, looking at the props or at each other rather than at the camera.
