@@ -237,14 +237,45 @@ export function trackScreen(pathname: string) {
   }
 }
 
+/**
+ * 앱을 **다시 열었을 때**도 방문으로 센다.
+ *
+ * 화면 기록은 경로가 바뀔 때만 남는다. 그런데 폰 앱은 닫아도 뒤에 살아 있다가
+ * 다시 열면 보던 화면(예: 내냉장고)에서 그대로 이어진다 — 경로가 안 바뀌니
+ * 며칠을 열어 냉장고만 봐도 기록이 0 이었다(2026-10-18, 「잘 쓰고 있다」는 회원이
+ * 어드민엔 가입 날 3분만 남아 있던 일). 30분 넘게 쉬었다 돌아오면 새 방문으로 보고
+ * 지금 화면을 한 번 기록한다(`sessionId()` 가 새 방문이면 session_start 도 남긴다).
+ */
+function noteReturn() {
+  try {
+    if (typeof window === 'undefined') return;
+    const last = Number(sessionStorage.getItem(SESSION_AT) || 0);
+    if (last && Date.now() - last <= SESSION_GAP_MS) return;   // 같은 방문 안
+    lastScreen = '';
+    trackScreen(window.location.pathname);
+  } catch {
+    /* 무시 */
+  }
+}
+
 /** 탭을 닫거나 숨길 때 남은 것을 내보낸다. 여기가 "마지막 화면"이 결정되는 곳. */
 export function installTrackingFlush() {
   if (typeof document === 'undefined') return;
   const send = () => flush(true);
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') send();
+    else noteReturn();
   });
   window.addEventListener('pagehide', send);
+  // 네이티브 앱은 웹뷰의 visibilitychange 가 기기마다 들쭉날쭉해 앱 「다시 열림」도 듣는다.
+  if (Capacitor.isNativePlatform()) {
+    import('@capacitor/app')
+      .then(({ App }) => {
+        App.addListener('resume', noteReturn);
+        App.addListener('pause', send);
+      })
+      .catch(() => {});
+  }
 }
 
 /** 기기 식별자는 사용량 쪽과 같은 것을 쓴다 (한 사람을 두 번 세지 않게). */
