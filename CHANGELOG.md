@@ -13324,3 +13324,9 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 - 사용자: 지인 회원 mj(카카오, 10/16 아이폰 가입)가 며칠 잘 썼다는데 어드민엔 기록이 거의 없음. 운영 DB(읽기 전용): mj 는 가입 직후 3분(화면 3·레시피 1)뿐, 냉장고 30개는 가입 때 자동으로 채운 기본 재료 그대로(수정 없음), 즐겨찾기·완료·AI·계획 0. 기록 장치는 정상(회원 1 아이폰 10/16~18 53건, 냉장고 서버 저장도 정상).
 - 빈틈: `track.ts` 는 경로가 바뀔 때만 screen_view 를 남김 → 폰 앱은 백그라운드에서 이어 열리면 경로가 그대로라 「열어서 냉장고만 보기」가 며칠이어도 0. `installTrackingFlush` 에 `noteReturn()` — visibilitychange visible + 네이티브 `@capacitor/app` resume 때 30분 넘게 쉬었으면 지금 화면을 한 번 기록(새 방문이면 session_start 도), pause 때 flush. 웹은 배포 즉시, 앱은 다음 빌드부터.
 - 참고: 서버 `log_action` 의 ingredient_add/remove 가 지금까지 1건뿐(회원 1 은 오늘도 냉장고 저장했는데 안 쌓임) — 확인 필요.
+
+## 2026-10-19
+
+### iOS 1.0.8 (빌드 14) 맥 빌드
+- 맥에서 로컬 변경 없음 확인 → `git pull`(`4e3bfa2b` 까지, 50커밋) → `project.pbxproj` 앱·위젯 4개 설정 1.0.7(13) → 1.0.8(14) → `npm install` → `npm run build` → `npx cap sync ios` → `xcodebuild … Release generic/platform=iOS build` BUILD SUCCEEDED.
+- 스크린샷·네이티브(`frontend/ios`) 변경 없음(번호만). Archive·업로드·제출은 사용자.
