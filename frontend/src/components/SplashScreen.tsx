@@ -38,7 +38,6 @@ const STYLES = {
     display: 'block' as const,
     marginBottom: 26,
     position: 'relative' as const,
-    filter: 'drop-shadow(0 10px 24px rgba(0,0,0,0.12))',
   },
   wordmark: {
     height: 'clamp(28px, 7vw, 38px)',
