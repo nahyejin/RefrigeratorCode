@@ -12,8 +12,7 @@ const CONSTANTS = {
   DIGIT_LENGTH: 4,
 } as const;
 
-// 유튜브 앱처럼 단순하게(2026-10-18): 흰 바탕 가운데 로고 하나, 아래에 누적 레시피 수 한 줄.
-// 그 전엔 큰 아이콘 + 큰 숫자 + 설명 두 줄이었고(「촌스럽다」), 노란 배경 시안은 「너무 노랗다」.
+// 스타일 상수 (앱 본편과 동일한 화이트/블랙/옐로우 톤)
 const STYLES = {
   container: {
     width: '100vw',
@@ -24,66 +23,79 @@ const STYLES = {
   },
   brandGroup: {
     position: 'absolute' as const,
-    top: '46%',
+    top: '42%',
     left: '50%',
     transform: 'translate(-50%, -50%)',
     display: 'flex' as const,
     flexDirection: 'column' as const,
     alignItems: 'center' as const,
-    gap: 14,
+    width: '90%',
   },
+  // 아이콘 = 진짜 앱 아이콘 + 그릇 위 김 애니메이션(SplashLogo, 2026-10-18)
   icon: {
-    width: 'clamp(72px, 20vw, 92px)',
-    height: 'clamp(72px, 20vw, 92px)',
-    borderRadius: '24%',
+    width: 'clamp(124px, 36vw, 168px)',
+    height: 'clamp(124px, 36vw, 168px)',
     display: 'block' as const,
+    marginBottom: 26,
+    position: 'relative' as const,
+    filter: 'drop-shadow(0 10px 24px rgba(0,0,0,0.12))',
   },
   wordmark: {
-    height: 'clamp(20px, 5vw, 24px)',
+    height: 'clamp(28px, 7vw, 38px)',
     width: 'auto',
     display: 'block' as const,
   },
-  // 레시피 수 — 예전 자리(화면 70% 높이) 그대로, 너무 아래면 안 보인다(2026-10-18)
-  statLine: {
+  statGroup: {
     position: 'absolute' as const,
-    top: '70%',
-    left: 0,
-    right: 0,
+    top: '73%',
+    left: '50%',
+    transform: 'translate(-50%, -50%)',
     display: 'flex' as const,
-    justifyContent: 'center' as const,
-    alignItems: 'baseline' as const,
-    gap: 6,
-    color: '#8A8A93',
-    fontSize: 15,
-    fontWeight: 500,
-    letterSpacing: '-0.01em',
+    flexDirection: 'column' as const,
+    alignItems: 'center' as const,
+    width: '90%',
   },
-  // 워드마크 아래 얇은 진행 막대 — 유튜브처럼 「로딩 중」이 보이게
-  bar: {
-    width: 'clamp(96px, 28vw, 128px)',
-    height: 3,
-    borderRadius: 3,
-    background: '#EFEFF2',
-    overflow: 'hidden' as const,
-    marginTop: 10,
+  label: {
+    color: '#9A9AA2',
+    fontSize: 'clamp(14px, 3.2vw, 17px)',
+    fontWeight: 600,
+    letterSpacing: '0.02em',
+    marginBottom: 8,
   },
-  barFill: {
-    height: '100%',
-    borderRadius: 3,
-    background: '#FFD600',
-  },
-  // 글꼴은 `splash-number` 클래스(Manrope)가 정한다(main.tsx·index.css).
-  number: {
+  // 글꼴은 `splash-number` 클래스(Manrope)가 정한다 — 전역 규칙이 글꼴을 Pretendard 로
+  // 강제해서 인라인 fontFamily 로는 못 바꾼다. 번들한 굵기는 700 하나다(main.tsx).
+  numberDisplay: {
     color: '#1A1A1E',
     fontWeight: 700,
-    fontSize: 24,
+    fontSize: 'clamp(38px, 10.5vw, 54px)',
+    letterSpacing: '-0.01em',
+    textAlign: 'center' as const,
     whiteSpace: 'nowrap' as const,
+    lineHeight: '1.2',
   },
-  // 숫자 한 칸 폭 고정 — 굴러가는 동안 좌우로 흔들리지 않게
-  digitCell: { display: 'inline-block', width: '0.62em', textAlign: 'center' as const },
-  commaCell: { display: 'inline-block', width: '0.3em', textAlign: 'center' as const },
+  // 숫자 한 칸의 폭을 고정한다. 굴러가는 동안 숫자가 바뀔 때마다 글자 폭이 달라
+  // (1은 좁고 0은 넓다) 전체가 좌우로 흔들려 보이던 것을 막는다.
+  digitCell: {
+    display: 'inline-block',
+    width: '0.6em',
+    textAlign: 'center' as const,
+  },
+  commaCell: {
+    display: 'inline-block',
+    width: '0.3em',
+    textAlign: 'center' as const,
+  },
+  descriptionText: {
+    color: '#B8B8C0',
+    fontSize: 'clamp(14px, 3vw, 17px)',
+    fontWeight: 400,
+    textAlign: 'center' as const,
+    lineHeight: '1.6',
+    marginTop: 10,
+  },
 };
 
+// 유틸리티 함수들
 const Utils = {
   formatNumberWithComma: (digits: string[]): string => {
     const numberStr = digits.join('');
@@ -92,9 +104,26 @@ const Utils = {
     if (num === 0 && digits.length === 4) return '0,000';
     return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   },
-  generateRandomDigits: (length: number): string[] =>
-    Array.from({ length }, () => Math.floor(Math.random() * 10).toString()),
+  generateRandomDigits: (length: number): string[] => {
+    return Array.from({ length }, () => Math.floor(Math.random() * 10).toString());
+  },
 };
+
+/**
+ * 진짜 앱 아이콘은 그대로 두고, 집 안 그릇 위로 김이 모락모락 올라오는 애니메이션만 얹는다
+ * (2026-10-18, 사용자: 로고가 다른 그림으로 바뀌면 로고 자체가 바뀐 것 같다).
+ * 김 SVG 는 아이콘과 같은 0~100 좌표계로 위에 겹친다. 애니메이션이 안 돌면 김만 안 보이고 로고는 그대로.
+ */
+const SplashLogo: React.FC<{ style: React.CSSProperties }> = ({ style }) => (
+  <div className="sl-wrap" style={style}>
+    <img src={cookmatchIcon} alt="CookMatch" style={{ width: '100%', height: '100%', display: 'block' }} draggable={false} />
+    <svg viewBox="0 0 100 100" className="sl-steam" aria-hidden="true">
+      <path className="sl-wisp sl-w1" d="M41 51 C38 47 44 44 41 40 C38 36 43 34 41 31" />
+      <path className="sl-wisp sl-w2" d="M50.5 51 C47.5 46 53.5 42 50.5 37 C47.5 32 53 29 50.5 25" />
+      <path className="sl-wisp sl-w3" d="M60 51 C57 47 63 44 60 40 C57 36 62 34 60 31" />
+    </svg>
+  </div>
+);
 
 const SplashScreen: React.FC<SplashScreenProps> = ({ recipeCount }) => {
   const [stage, setStage] = useState<'roulette' | 'final'>('roulette');
@@ -108,21 +137,29 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ recipeCount }) => {
       setStage('roulette');
       return;
     }
+
     setStage('roulette');
     rouletteStartTime.current = Date.now();
+
     const animate = () => {
       const elapsed = Date.now() - rouletteStartTime.current;
+
       if (elapsed < CONSTANTS.ROULETTE_DURATION) {
-        setDisplayDigits(Utils.generateRandomDigits(CONSTANTS.DIGIT_LENGTH));
+        const randomDigits = Utils.generateRandomDigits(CONSTANTS.DIGIT_LENGTH);
+        setDisplayDigits(randomDigits);
         animationRef.current = requestAnimationFrame(animate);
       } else {
         setStage('final');
         setDisplayDigits(recipeCount.toString().split(''));
       }
     };
+
     animationRef.current = requestAnimationFrame(animate);
+
     return () => {
-      if (animationRef.current) cancelAnimationFrame(animationRef.current);
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
     };
   }, [recipeCount]);
 
@@ -133,23 +170,21 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ recipeCount }) => {
   return (
     <div style={STYLES.container}>
       <div style={STYLES.brandGroup}>
-        <img className="splash-breathe" src={cookmatchIcon} alt="" style={STYLES.icon} draggable={false} />
+        <SplashLogo style={STYLES.icon} />
         <img src={cookmatchWordmark} alt="CookMatch" style={STYLES.wordmark} draggable={false} />
-        <div style={STYLES.bar} aria-hidden>
-          <div className="splash-bar" style={STYLES.barFill} />
+      </div>
+      <div style={STYLES.statGroup}>
+        <div style={STYLES.label}>누적 레시피 수</div>
+        <div className="splash-number" style={STYLES.numberDisplay}>
+          {formatted.split('').map((ch, i) => (
+            <span key={i} style={ch === ',' ? STYLES.commaCell : STYLES.digitCell}>{ch}</span>
+          ))}
+        </div>
+        <div style={STYLES.descriptionText}>
+          리뷰수·조회수·구독자수 등을 고려하여<br />
+          검증된 레시피를 매일 수집하고 있어요
         </div>
       </div>
-      {recipeCount > 0 && (
-        <div style={STYLES.statLine}>
-          <span>검증된 레시피</span>
-          <span className="splash-number" style={STYLES.number}>
-            {formatted.split('').map((ch, i) => (
-              <span key={i} style={ch === ',' ? STYLES.commaCell : STYLES.digitCell}>{ch}</span>
-            ))}
-          </span>
-          <span>개</span>
-        </div>
-      )}
     </div>
   );
 };

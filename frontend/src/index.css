@@ -1396,12 +1396,19 @@ select:focus-visible {
   font-family: 'Manrope', 'Pretendard', sans-serif !important;
 }
 
-/* 스플래시(2026-10-18) — 유튜브처럼: 아이콘이 살짝 숨 쉬듯 커졌다 작아지고, 워드마크 아래 노란 막대가 차오른다.
-   처음 상태를 숨기는 효과(opacity 0 시작)는 쓰지 않는다 — 애니메이션이 안 도는 환경에서도 화면은 그대로 보이게. */
-@keyframes splash-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
-@keyframes splash-bar { 0% { width: 8%; } 70% { width: 82%; } 100% { width: 96%; } }
-.splash-breathe { animation: splash-breathe 1.4s ease-in-out infinite; }
-.splash-bar { width: 96%; animation: splash-bar 2.2s cubic-bezier(.3,.6,.4,1) forwards; }
+/* 스플래시 아이콘 김 애니메이션(2026-10-18, SplashScreen.tsx 의 SplashLogo).
+   로고는 그대로, 그릇 위로 김 세 가닥이 번갈아 피어오른다. 기본 상태 = 김 안 보임(로고만). */
+.sl-steam { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.sl-wisp { fill: none; stroke: #fff; stroke-width: 3.4; stroke-linecap: round; opacity: 0;
+  stroke-dasharray: 32; stroke-dashoffset: 32; animation: sl-wisp 2.1s ease-out infinite; }
+.sl-w2 { animation-delay: 0.45s; }
+.sl-w3 { animation-delay: 0.9s; }
+@keyframes sl-wisp {
+  0% { opacity: 0; stroke-dashoffset: 32; transform: translateY(3px); }
+  20% { opacity: 0.95; }
+  55% { opacity: 0.9; stroke-dashoffset: 0; }
+  100% { opacity: 0; stroke-dashoffset: -30; transform: translateY(-5px); }
+}
 @media (prefers-reduced-motion: reduce) {
-  .splash-breathe, .splash-bar { animation: none; }
+  .sl-wisp { animation: none; }
 }
