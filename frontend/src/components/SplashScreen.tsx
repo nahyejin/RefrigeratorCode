@@ -43,10 +43,10 @@ const STYLES = {
     width: 'auto',
     display: 'block' as const,
   },
-  // 아래 한 줄 — 홈 인디케이터 위
+  // 레시피 수 — 예전 자리(화면 70% 높이) 그대로, 너무 아래면 안 보인다(2026-10-18)
   statLine: {
     position: 'absolute' as const,
-    bottom: 'calc(env(safe-area-inset-bottom, 0px) + 56px)',
+    top: '70%',
     left: 0,
     right: 0,
     display: 'flex' as const,
@@ -54,15 +54,29 @@ const STYLES = {
     alignItems: 'baseline' as const,
     gap: 6,
     color: '#8A8A93',
-    fontSize: 13,
+    fontSize: 15,
     fontWeight: 500,
     letterSpacing: '-0.01em',
+  },
+  // 워드마크 아래 얇은 진행 막대 — 유튜브처럼 「로딩 중」이 보이게
+  bar: {
+    width: 'clamp(96px, 28vw, 128px)',
+    height: 3,
+    borderRadius: 3,
+    background: '#EFEFF2',
+    overflow: 'hidden' as const,
+    marginTop: 10,
+  },
+  barFill: {
+    height: '100%',
+    borderRadius: 3,
+    background: '#FFD600',
   },
   // 글꼴은 `splash-number` 클래스(Manrope)가 정한다(main.tsx·index.css).
   number: {
     color: '#1A1A1E',
     fontWeight: 700,
-    fontSize: 15,
+    fontSize: 24,
     whiteSpace: 'nowrap' as const,
   },
   // 숫자 한 칸 폭 고정 — 굴러가는 동안 좌우로 흔들리지 않게
@@ -119,8 +133,11 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ recipeCount }) => {
   return (
     <div style={STYLES.container}>
       <div style={STYLES.brandGroup}>
-        <img src={cookmatchIcon} alt="" style={STYLES.icon} draggable={false} />
+        <img className="splash-breathe" src={cookmatchIcon} alt="" style={STYLES.icon} draggable={false} />
         <img src={cookmatchWordmark} alt="CookMatch" style={STYLES.wordmark} draggable={false} />
+        <div style={STYLES.bar} aria-hidden>
+          <div className="splash-bar" style={STYLES.barFill} />
+        </div>
       </div>
       {recipeCount > 0 && (
         <div style={STYLES.statLine}>

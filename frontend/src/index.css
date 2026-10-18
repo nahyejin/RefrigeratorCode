@@ -1395,3 +1395,13 @@ select:focus-visible {
 .splash-number * {
   font-family: 'Manrope', 'Pretendard', sans-serif !important;
 }
+
+/* 스플래시(2026-10-18) — 유튜브처럼: 아이콘이 살짝 숨 쉬듯 커졌다 작아지고, 워드마크 아래 노란 막대가 차오른다.
+   처음 상태를 숨기는 효과(opacity 0 시작)는 쓰지 않는다 — 애니메이션이 안 도는 환경에서도 화면은 그대로 보이게. */
+@keyframes splash-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+@keyframes splash-bar { 0% { width: 8%; } 70% { width: 82%; } 100% { width: 96%; } }
+.splash-breathe { animation: splash-breathe 1.4s ease-in-out infinite; }
+.splash-bar { width: 96%; animation: splash-bar 2.2s cubic-bezier(.3,.6,.4,1) forwards; }
+@media (prefers-reduced-motion: reduce) {
+  .splash-breathe, .splash-bar { animation: none; }
+}
