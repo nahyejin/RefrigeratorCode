@@ -31,7 +31,7 @@ const STYLES = {
     alignItems: 'center' as const,
     width: '90%',
   },
-  // 아이콘 = 진짜 앱 아이콘 + 그릇 위 김 애니메이션(SplashLogo, 2026-10-18)
+  // 아이콘 = 진짜 앱 아이콘 그대로(2026-10-18 김 애니메이션은 2026-10-19 사용자 요청으로 뺌)
   icon: {
     width: 'clamp(124px, 36vw, 168px)',
     height: 'clamp(124px, 36vw, 168px)',
@@ -108,22 +108,6 @@ const Utils = {
   },
 };
 
-/**
- * 진짜 앱 아이콘은 그대로 두고, 집 안 그릇 위로 김이 모락모락 올라오는 애니메이션만 얹는다
- * (2026-10-18, 사용자: 로고가 다른 그림으로 바뀌면 로고 자체가 바뀐 것 같다).
- * 김 SVG 는 아이콘과 같은 0~100 좌표계로 위에 겹친다. 애니메이션이 안 돌면 김만 안 보이고 로고는 그대로.
- */
-const SplashLogo: React.FC<{ style: React.CSSProperties }> = ({ style }) => (
-  <div className="sl-wrap" style={style}>
-    <img src={cookmatchIcon} alt="CookMatch" style={{ width: '100%', height: '100%', display: 'block' }} draggable={false} />
-    <svg viewBox="0 0 100 100" className="sl-steam" aria-hidden="true">
-      <path className="sl-wisp sl-w1" d="M41 51 C38 47 44 44 41 40 C38 36 43 34 41 31" />
-      <path className="sl-wisp sl-w2" d="M50.5 51 C47.5 46 53.5 42 50.5 37 C47.5 32 53 29 50.5 25" />
-      <path className="sl-wisp sl-w3" d="M60 51 C57 47 63 44 60 40 C57 36 62 34 60 31" />
-    </svg>
-  </div>
-);
-
 const SplashScreen: React.FC<SplashScreenProps> = ({ recipeCount }) => {
   const [stage, setStage] = useState<'roulette' | 'final'>('roulette');
   const [displayDigits, setDisplayDigits] = useState<string[]>(['0']);
@@ -169,7 +153,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ recipeCount }) => {
   return (
     <div style={STYLES.container}>
       <div style={STYLES.brandGroup}>
-        <SplashLogo style={STYLES.icon} />
+        <img src={cookmatchIcon} alt="CookMatch" style={STYLES.icon} draggable={false} />
         <img src={cookmatchWordmark} alt="CookMatch" style={STYLES.wordmark} draggable={false} />
       </div>
       <div style={STYLES.statGroup}>

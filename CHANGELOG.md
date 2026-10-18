@@ -13330,3 +13330,8 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 ### iOS 1.0.8 (빌드 14) 맥 빌드
 - 맥에서 로컬 변경 없음 확인 → `git pull`(`4e3bfa2b` 까지, 50커밋) → `project.pbxproj` 앱·위젯 4개 설정 1.0.7(13) → 1.0.8(14) → `npm install` → `npm run build` → `npx cap sync ios` → `xcodebuild … Release generic/platform=iOS build` BUILD SUCCEEDED.
 - 스크린샷·네이티브(`frontend/ios`) 변경 없음(번호만). Archive·업로드·제출은 사용자.
+
+### 스플래시 김 애니메이션 빼기
+- 사용자: 10-18 에 넣은 시작 화면 「그릇 위 김」 애니메이션은 빼기로 한 것(커밋은 「(시안)」 그대로 main 에 남아 1.0.8 빌드에 들어가 있었음).
+- `SplashScreen.tsx`: `SplashLogo`(아이콘 + 김 SVG) 삭제, 진짜 앱 아이콘 `<img>` 만. `index.css`: `.sl-steam`·`.sl-wisp`·`@keyframes sl-wisp` 삭제. 로고 뒤 그림자 없는 것·아래 「누적 레시피 수」 문구는 그대로.
+- 확인: 로컬 미리보기(sessionStorage `splashShown` 지우고 새로 열기)에서 시작 화면 로고 168px·김 요소 0개, `npm run build` 통과 → `cap sync ios` → Release 빌드 성공. iOS 1.0.8(14) 은 아직 업로드 전이라 번호 그대로. RELEASE_NOTES 10-18 줄을 「다시 뺌」으로 바꿈.
