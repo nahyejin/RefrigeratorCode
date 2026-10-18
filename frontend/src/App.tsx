@@ -100,7 +100,8 @@ function App() {
   
   if (showSplash) {
     console.log('App.tsx - Rendering SplashScreen with recipeCount:', recipeCount, 'key:', splashKey);
-    return <SplashScreen key={splashKey} recipeCount={recipeCount} />;
+    // key 로 다시 그리지 않는다 — 숫자가 도착할 때 다시 그려서 등장 애니메이션이 한 번 더 돌았다(2026-10-18). 숫자는 recipeCount 변화로 굴러간다.
+    return <SplashScreen recipeCount={recipeCount} />;
   }
 
   return (

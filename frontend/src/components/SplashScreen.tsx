@@ -12,13 +12,15 @@ const CONSTANTS = {
   DIGIT_LENGTH: 4,
 } as const;
 
-// 스타일 상수 (앱 본편과 동일한 화이트/블랙/옐로우 톤)
+// 스타일 상수 — 브랜드 노랑 배경(2026-10-18 B안: 흰 배경에 로고만 정적으로 있던 것이 밋밋하다는 의견).
+// 릴스 썸네일의 노란 후킹 자막과 같은 색이라 「노란 앱 = 쿡매치」로 이어진다.
+const BRAND_YELLOW = '#FFD600';
 const STYLES = {
   container: {
     width: '100vw',
     height: '100vh',
     position: 'relative' as const,
-    background: '#ffffff',
+    background: BRAND_YELLOW,
     overflow: 'hidden',
   },
   brandGroup: {
@@ -31,13 +33,15 @@ const STYLES = {
     alignItems: 'center' as const,
     width: '90%',
   },
+  // 아이콘도 노란 바탕이라 흰 테두리로 띄운다
   iconWrap: {
-    width: 'clamp(140px, 42vw, 200px)',
-    height: 'clamp(140px, 42vw, 200px)',
+    width: 'clamp(124px, 36vw, 176px)',
+    height: 'clamp(124px, 36vw, 176px)',
     borderRadius: '26%',
     overflow: 'hidden' as const,
-    boxShadow: '0 12px 32px rgba(0,0,0,0.14)',
-    marginBottom: 28,
+    border: '5px solid #ffffff',
+    boxShadow: '0 14px 34px rgba(120,90,0,0.22)',
+    marginBottom: 24,
   },
   icon: {
     width: '100%',
@@ -60,8 +64,15 @@ const STYLES = {
     alignItems: 'center' as const,
     width: '90%',
   },
+  slogan: {
+    color: '#5C4700',
+    fontSize: 'clamp(15px, 3.6vw, 18px)',
+    fontWeight: 700,
+    marginTop: 14,
+    letterSpacing: '-0.01em',
+  },
   label: {
-    color: '#9A9AA2',
+    color: '#6B5200',
     fontSize: 'clamp(14px, 3.2vw, 17px)',
     fontWeight: 600,
     letterSpacing: '0.02em',
@@ -91,7 +102,7 @@ const STYLES = {
     textAlign: 'center' as const,
   },
   descriptionText: {
-    color: '#B8B8C0',
+    color: '#7A6100',
     fontSize: 'clamp(14px, 3vw, 17px)',
     fontWeight: 400,
     textAlign: 'center' as const,
@@ -159,12 +170,13 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ recipeCount }) => {
   return (
     <div style={STYLES.container}>
       <div style={STYLES.brandGroup}>
-        <div style={STYLES.iconWrap}>
+        <div className="splash-pop" style={STYLES.iconWrap}>
           <img src={cookmatchIcon} alt="CookMatch" style={STYLES.icon} draggable={false} />
         </div>
         <img src={cookmatchWordmark} alt="CookMatch" style={STYLES.wordmark} draggable={false} />
+        <div className="splash-rise" style={STYLES.slogan}>있는 재료로 오늘 저녁 해결</div>
       </div>
-      <div style={STYLES.statGroup}>
+      <div className="splash-rise splash-rise-late" style={STYLES.statGroup}>
         <div style={STYLES.label}>누적 레시피 수</div>
         <div className="splash-number" style={STYLES.numberDisplay}>
           {formatted.split('').map((ch, i) => (

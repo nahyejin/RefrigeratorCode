@@ -1395,3 +1395,18 @@ select:focus-visible {
 .splash-number * {
   font-family: 'Manrope', 'Pretendard', sans-serif !important;
 }
+
+/* 스플래시 B안(2026-10-18) — 아이콘이 톡 튀어나오고, 슬로건·숫자가 뒤따라 나타난다.
+   숫자 묶음은 위치를 transform 으로 잡고 있어 opacity 만 움직인다. */
+@keyframes splash-pop {
+  0% { transform: scale(0.6); opacity: 0; }
+  60% { transform: scale(1.08); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes splash-fade { from { opacity: 0; } to { opacity: 1; } }
+.splash-pop { animation: splash-pop 520ms cubic-bezier(.2,.9,.3,1.2) both; }
+.splash-rise { animation: splash-fade 420ms ease-out 260ms both; }
+.splash-rise-late { animation-delay: 380ms; }
+@media (prefers-reduced-motion: reduce) {
+  .splash-pop, .splash-rise { animation: none; }
+}
