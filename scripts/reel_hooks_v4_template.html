@@ -1,0 +1,178 @@
+<title>쿡매치 후킹 영상 4벌</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: 한 줄 세로 스크롤 작업지 — 편마다 카드 하나, 카드 맨 위에 복사 버튼(폰 엄지 위치). 노랑은 복사 버튼·KBF 표식에만. */
+:root{
+  --bg:#f4f4f1; --surface:#ffffff; --ink:#1a1a1e; --muted:#62626b; --line:#e2e2dc;
+  --accent:#ffd600; --accent-ink:#5c4700; --chip:#fff4b8; --pill:#141416; --pill-ink:#ffffff; --code:#f7f7f4;
+  --display:'Black Han Sans','IBM Plex Sans KR','Apple SD Gothic Neo',sans-serif;
+  --body:'IBM Plex Sans KR','Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#141415; --surface:#1d1d1f; --ink:#f1f1ee; --muted:#a3a3ab; --line:#303033;
+  --accent:#ffd600; --accent-ink:#ffe36b; --chip:#3a3210; --pill:#f1f1ee; --pill-ink:#141416; --code:#18181a; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#141415; --surface:#1d1d1f; --ink:#f1f1ee; --muted:#a3a3ab; --line:#303033;
+  --accent:#ffd600; --accent-ink:#ffe36b; --chip:#3a3210; --pill:#f1f1ee; --pill-ink:#141416; --code:#18181a; color-scheme:dark }
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.65;margin:0}
+.page{max-width:760px;margin:0 auto;padding-inline:18px;padding-block:36px 72px;display:flex;flex-direction:column;gap:28px}
+h1{font-family:var(--display);font-weight:400;font-size:34px;line-height:1.2;margin:0;text-wrap:balance}
+h2{font-family:var(--display);font-weight:400;font-size:22px;line-height:1.3;margin:0;text-wrap:balance}
+.lede{color:var(--muted);margin:10px 0 0;max-width:62ch}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.08em;color:var(--muted);margin:0 0 8px}
+.box{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 18px 16px;display:flex;flex-direction:column;gap:10px}
+.box h3{margin:0;font-size:15px;font-weight:700}
+.box ol,.box ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+.box p{margin:0}
+.tip{border-left:4px solid var(--accent)}
+code{font-family:var(--mono);font-size:.9em;background:var(--code);padding:1px 5px;border-radius:5px;border:1px solid var(--line)}
+.clips{display:flex;flex-direction:column;gap:18px}
+.clip{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.clip-head{display:flex;gap:12px;align-items:flex-start}
+.no{font-family:var(--display);font-size:30px;line-height:1;color:var(--line);min-width:40px}
+.clip-head>div{min-width:0;display:flex;flex-direction:column;gap:6px}
+.kbf{align-self:flex-start;font-size:12px;font-weight:600;color:var(--accent-ink);background:var(--chip);border-radius:999px;padding:2px 10px}
+.why{margin:0;color:var(--muted)}
+.row{display:grid;grid-template-columns:92px 1fr;gap:10px;align-items:start}
+.row .k{font-size:12.5px;color:var(--muted);padding-top:3px}
+.hook{display:inline-block;background:#1a1a1e;color:#ffd600;font-family:var(--display);font-size:22px;line-height:1.25;padding:10px 16px;border-radius:10px;white-space:pre-line;text-align:center}
+.kind{font-size:12px;color:var(--muted);margin-top:4px}
+.alts{display:flex;flex-direction:column;gap:4px;font-size:13.5px}
+.alts span{white-space:pre-line}
+.cap{display:inline-block;background:var(--pill);color:var(--pill-ink);font-weight:700;font-size:15px;line-height:1.4;padding:8px 14px;border-radius:10px;white-space:pre-line}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+button{font-family:var(--body);font-size:14px;font-weight:600;border-radius:10px;padding:10px 14px;cursor:pointer;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+button.primary{background:var(--accent);border-color:var(--accent);color:#1a1a1e}
+button:focus-visible,summary:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+details{border-top:1px solid var(--line);padding-top:10px}
+summary{cursor:pointer;font-size:13.5px;color:var(--muted);font-weight:600}
+pre{margin:10px 0 0;background:var(--code);border:1px solid var(--line);border-radius:10px;padding:12px;font-family:var(--mono);font-size:12.5px;line-height:1.55;white-space:pre-wrap;word-break:break-word;overflow-x:auto}
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{text-align:left;padding:8px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-weight:600;color:var(--muted);font-size:12.5px}
+.old{display:flex;flex-direction:column;gap:10px}
+.old .item{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.old .item details{border-top:none;padding-top:0}
+.old .bar{display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--pill);color:var(--pill-ink);padding:10px 16px;border-radius:999px;font-size:14px;font-weight:600;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.on{opacity:1}
+@media (max-width:480px){ h1{font-size:28px} .row{grid-template-columns:1fr;gap:4px} }
+@media (prefers-reduced-motion:reduce){ .toast{transition:none} }
+</style>
+
+<div class="page">
+  <header>
+    <p class="eyebrow">REEL HOOKS · 4벌 · 9:16 · 2026-10-18</p>
+    <h1>쿡매치 후킹 영상 4벌</h1>
+    <p class="lede">새 상황 8편이에요. 편 번호가 곧 이어 붙일 앱 데모 번호예요. 3벌에서 많았던 <b>아무도 안 만졌는데 물건이 움직이는 장면</b>을 줄이도록 공통 지시와 장면을 다시 짰어요. 카드의 <b>영상 프롬프트 복사</b>를 눌러 제미나이 새 대화에 그대로 붙이면 돼요.</p>
+  </header>
+
+  <section class="box tip">
+    <h3>물건이 저절로 움직이지 않게 — 이번에 바꾼 것</h3>
+    <ul>
+      <li><b>카메라 고정</b>: 손떨림과 마지막 1초 확대를 뺐어요. 화면이 흔들리면 물건이 미끄러지는 것처럼 보여요.</li>
+      <li><b>물건은 손에 들렸을 때만 움직이고</b>, 놓으면 그 자리에 그대로 있도록 모든 편에 적었어요. 문·서랍·음식·식물은 처음부터 끝까지 가만히.</li>
+      <li><b>소품은 3개 이하</b>로, 서로 떨어뜨려 놨어요. 붙어 있으면 서로 섞여 모양이 바뀌어요.</li>
+      <li><b>동작은 한두 개, 천천히.</b> 낚아채기 같은 빠른 동작을 빼고 웃음은 대사와 작은 반응으로 내요. 붓기·썰기·김·문 여닫기 장면은 아예 안 썼어요.</li>
+      <li>그래도 움직이면: ① <b>첫 장면 이미지</b>를 먼저 만들어 첨부(배치가 고정돼요) ② 새 대화에서 2~3번 뽑아 고르기 ③ 제외할 요소 칸이 있으면 거기에만 <code>objects moving by themselves, morphing, extra objects, camera shake</code></li>
+    </ul>
+  </section>
+
+  <section class="box tip" id="vertical">
+    <h3>세로(9:16)로 받는 법</h3>
+    <ol>
+      <li><b>보통</b>: 카드의 <b>영상 프롬프트 복사</b>를 새 대화에 붙여요. 맨 앞 첫 줄과 맨 끝 줄에 「9:16 vertical」을 짧게 적어 뒀어요. 비율 고르는 칸이 보이면 9:16을 고르세요.</li>
+      <li><b>그래도 가로로 나오면 — 2단계(가장 확실)</b>: 제미나이는 첨부한 사진과 같은 비율로 영상을 만들어요.
+        <ol>
+          <li><b>첫 장면 이미지 복사</b>로 세로 사진을 먼저 만들어요. 사진이 세로인지 확인하세요.</li>
+          <li>새 대화에서 그 사진을 첨부하고 <b>영상 프롬프트 복사</b>를 붙여요. 사진이 첫 장면이 돼요.</li>
+        </ol>
+      </li>
+      <li>같은 대화에서 「세로로 바꿔 줘」라고 하지 말고 새 대화에서 다시 하세요. 세로 영상은 Google AI Plus·Pro·Ultra 요금제에서 돼요.</li>
+    </ol>
+  </section>
+
+  <section class="box">
+    <h3>쓰는 법</h3>
+    <ol>
+      <li>편마다 <b>새 대화</b>에서 붙여 넣으세요. 앞 영상의 얼굴·집이 섞이지 않아요.</li>
+      <li>같은 편을 여러 개 뽑을 때는 맨 아래 <b>변주</b> 표대로 [CAST]·[HOME] 줄만 바꿔요.</li>
+      <li>카드의 노란 글씨가 <b>썸네일 후킹 자막</b>이에요. 편집 때 <b>첫 장면부터</b> 화면 가운데 크게 넣어요(인스타 커버). 후킹 규칙대로 전략별 후보를 2개 더 적어 뒀어요.</li>
+      <li>대사는 실생활 반말로 짧게, 주고받는 말로 짰어요. 직접 고칠 때도 상황을 설명하는 말은 넣지 마세요. 연기가 어색하게 나오면 같은 프롬프트로 새 대화에서 다시 뽑는 게 제일 빨라요.</li>
+    </ol>
+  </section>
+
+  <section class="box tip">
+    <h3>연기·대사가 어색할 때</h3>
+    <ul>
+      <li>「어색하지 않게」라고 적는 건 거의 효과가 없어요. 그래서 <b>몸동작으로</b> 적었어요. 가족이 몰래 찍은 영상처럼, 각자 하던 일을 하면서 그 김에 말하고, 대답은 고개도 안 들고 바로 해요.</li>
+      <li>대사는 <b>실제로 할 법한 온전한 문장</b>으로 썼어요. 「자기야~! 나 손에 잔뜩 묻어서 만질 수가 없는데…」처럼 부르고, 부탁하고, 정정하는 말을 다 넣었어요. 대사마다 그때 하는 행동을 짝지어 순서대로 적었어요. 「…」는 어색한 멈춤이 돼서 쓰지 않아요.</li>
+      <li>한국어 억양은 「서울말 쓰는 한국인이 집에서 하는 평소 말투, 드라마·브이로그처럼」이라고 적었어요. 프롬프트 전체를 한글로 바꾸면 화면에 깨진 자막이 다시 나와서 영어로 뒀어요.</li>
+      <li>그래도 어색하면 <b>새 대화에서 2~3번</b> 뽑아 제일 자연스러운 걸 고르세요. 계속 어색하면 <b>대사 없는 버전</b>으로 뽑고, 웃음은 몸짓과 우리 자막으로 내요.</li>
+    </ul>
+  </section>
+
+  <section class="box tip">
+    <h3>한글·자막이 화면에 나올 때</h3>
+    <ul>
+      <li>프롬프트는 <b>영어</b>예요. 한국어는 소리로만 나오는 대사에만 있어요.</li>
+      <li>「자막 금지」 같은 말은 일부러 뺐어요. 그리지 말 것의 이름을 적으면 제미나이가 오히려 그 단어를 힌트로 써요. 대신 라벨 없는 소품, 화면이 돌아간 폰처럼 <b>있어야 할 것만</b> 적었어요.</li>
+      <li>그래도 나오면 「자막 빼 줘」라고 대화하지 말고 <b>새 대화에서 같은 프롬프트로 다시</b> 만드세요.</li>
+      <li>계속 나오면 <b>대사 없는 버전 복사</b>로 만드세요. 대사가 없으면 글자를 넣을 이유가 사라져요. 대사는 편집에서 목소리·자막으로 얹어요.</li>
+      <li>쓰는 화면에 제외할 요소(negative prompt) 칸이 있으면, 그 칸에만 <code>subtitles, captions, on-screen text, letters, watermark</code> 를 적으세요.</li>
+    </ul>
+  </section>
+
+  <section class="clips" id="clips" aria-label="후킹 영상 8편"></section>
+
+  <section class="box">
+    <h2>같은 편을 여러 개 뽑을 때 — 변주</h2>
+    <p style="color:var(--muted)">[CAST] 끝에 한 줄을 덧붙이고 [HOME] 줄을 바꿔요. 장면·대사·마지막 1초는 그대로 둬요. 얼굴이 계속 비슷하면 [CAST] 끝에 <code>Completely different faces from any earlier clip.</code> 를 붙이세요.</p>
+    <div class="tablewrap"><table id="variants"><thead><tr><th>세트</th><th>바꾸는 것</th><th>[CAST]에 덧붙이기</th><th>[HOME] 바꾸기</th></tr></thead><tbody></tbody></table></div>
+  </section>
+
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+const DATA = /*__DATA__*/null;
+const $ = (s, el=document) => el.querySelector(s);
+const esc = s => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let toastTimer;
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('on'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('on'),1600); }
+function selectText(el){ const r=document.createRange(); r.selectNodeContents(el); const s=getSelection(); s.removeAllRanges(); s.addRange(r); }
+function copy(text, preEl){
+  const done = () => toast('복사됐어요 — 제미나이에 붙여 넣으세요');
+  const fail = () => { if (preEl){ preEl.closest('details').open = true; selectText(preEl); } toast('자동 복사가 막혀 있어요 — 선택된 글자를 길게 눌러 복사하세요'); };
+  try { navigator.clipboard.writeText(text).then(done, fail); } catch(e){ fail(); }
+}
+const clips = $('#clips');
+DATA.clips.forEach(c => {
+  const el = document.createElement('article');
+  el.className = 'clip';
+  el.innerHTML = `
+    <div class="clip-head"><span class="no">${c.no}</span><div>
+      <span class="kbf">${esc(c.kbf)}</span><h2>${esc(c.title)}</h2></div></div>
+    <p class="why">${esc(c.why)}</p>
+    <div class="row"><span class="k">썸네일 자막</span><span><span class="hook">${esc(c.hook)}</span><div class="kind">${esc(c.hook_kind)} · 추천</div></span></div>
+    <div class="row"><span class="k">다른 후보</span><div class="alts">${c.alts.map(([k,t]) => `<span>${esc(k)} 「${esc(t.split(String.fromCharCode(10)).join(' / '))}」</span>`).join('')}</div></div>
+    <div class="row"><span class="k">이어 붙일 데모</span><span>${esc(c.demo)}</span></div>
+    <div class="actions"><button class="primary" type="button" data-k="p">영상 프롬프트 복사</button><button type="button" data-k="i">첫 장면 이미지 복사</button><button type="button" data-k="n">대사 없는 버전 복사</button></div>
+    <details><summary>영상 프롬프트 전체 보기</summary><pre data-pre="p">${esc(c.prompt)}</pre></details>
+    <details><summary>첫 장면 이미지 프롬프트 보기 (2단계용)</summary><pre data-pre="i">${esc(c.promptImage)}</pre></details>`;
+  const pre = $('[data-pre="p"]', el), preI = $('[data-pre="i"]', el);
+  $('[data-k="p"]', el).addEventListener('click', () => copy(c.prompt, pre));
+  $('[data-k="i"]', el).addEventListener('click', () => copy(c.promptImage, preI));
+  $('[data-k="n"]', el).addEventListener('click', () => copy(c.promptNoLine, pre));
+  clips.appendChild(el);
+});
+const vt = $('#variants tbody');
+DATA.variants.forEach(v => {
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td><b>${v[0]}</b></td><td>${esc(v[1])}</td><td><code>${esc(v[2])}</code></td><td>${v[3] ? '<code>'+esc(v[3])+'</code>' : '그대로'}</td>`;
+  vt.appendChild(tr);
+});
+</script>
