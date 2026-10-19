@@ -4799,8 +4799,9 @@ def save_user_ingredients(user_id):
             # 저장은 "전부 지우고 다시 넣기" 라서 무엇을 담고 뺐는지가 따로 안 남는다.
             # 지우기 전 목록과 새 목록을 이름으로 견줘 담은 개수·뺀 개수를 센다 —
             # 어드민 「사람별 활동」의 재료 담기/빼기 (2026-10-16).
+            # FOR UPDATE — 같은 냉장고에 저장이 동시에 들어오면 하나씩 처리한다(아래 base 비교가 의미 있으려면).
             cursor.execute(
-                "SELECT name, storage_box, expiry_date, purchase_date FROM user_ingredients WHERE user_id = %s",
+                "SELECT name, storage_box, expiry_date, purchase_date FROM user_ingredients WHERE user_id = %s FOR UPDATE",
                 (storage_user_id,),
             )
             before_rows = [
@@ -4814,6 +4815,25 @@ def save_user_ingredients(user_id):
             ]
             before_names = Counter(r['name'] for r in before_rows)
             after_names = Counter(r['name'] for r in after_rows)
+
+            # **옛 목록으로 덮어쓰기 막기** (2026-10-19). 저장은 "통째로 바꾸기" 라, 서버 목록을 못 받아 온
+            # 기기나 오래 열어 둔 탭이 저장하면 그새 바뀐 재료가 통째로 사라진다 — 하지도 않은 「40개 뺌」이
+            # 기록된 사고. 앱이 "내가 마지막으로 본 서버 목록"(base, 재료 이름들)을 함께 보내면, 지금 서버
+            # 목록과 다를 때 저장하지 않고 409 로 최신 목록을 돌려준다. base 를 안 보내는 옛 앱·다른 화면은 예전대로.
+            base = data.get('base')
+            if isinstance(base, list) and Counter(str(n) for n in base) != before_names:
+                db.rollback()
+                current = {'frozen': [], 'fridge': [], 'room': []}
+                for r in before_rows:
+                    current.setdefault(r['box'], []).append({
+                        'name': r['name'],
+                        'expiry': r['expiry'].strftime('%Y-%m-%d') if r['expiry'] else None,
+                        'purchase': r['purchase'].strftime('%Y-%m-%d') if r['purchase'] else None,
+                    })
+                print(f'[save_user_ingredients] 옛 목록 저장 거절: user_id={user_id}, '
+                      f'base={sum(Counter(base).values())}개, server={len(before_rows)}개, after={len(after_rows)}개')
+                return jsonify({'error': 'conflict', 'message': '다른 곳에서 냉장고가 바뀌었어요.',
+                                'current': current}), 409
             cursor.execute("SELECT fridge_seeded FROM users WHERE id = %s", (user_id,))
             seeded_row = cursor.fetchone()
             was_seeded = bool(seeded_row and seeded_row.get('fridge_seeded'))
@@ -4851,6 +4871,7 @@ def save_user_ingredients(user_id):
                         cursor, storage_user_id, user_id,
                         fridge_history.diff(before_rows, after_rows),
                         source=(data.get('source') or 'manual'),
+                        client=request.headers.get('User-Agent'),
                     )
                 except Exception as e:
                     cursor.execute("ROLLBACK TO SAVEPOINT fridge_history_sp")
@@ -4879,6 +4900,84 @@ def save_user_ingredients(user_id):
     except Exception as e:
         print(f"Save user ingredients error: {e}")
         return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
+
+@app.route('/api/users/<int:user_id>/ingredients/history/revert', methods=['POST'])
+def revert_user_ingredient_history(user_id):
+    """「재료 기록」 한 줄을 되돌린다 (2026-10-19).
+
+    body: {batch_id, mode}
+      mode='undo'    — 그 저장 하나만 취소(그 뒤에 바꾼 것은 그대로)
+      mode='restore' — 그 저장 **직전** 상태로 냉장고를 되돌림(그 뒤의 저장도 함께 되돌아감)
+
+    되돌린 것도 한 번의 저장으로 기록에 남는다(source=undo/restore, ref_batch=되돌린 저장) —
+    그래서 되돌린 것을 다시 「실행 취소」할 수 있다.
+    """
+    try:
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({'error': '인증이 필요합니다.'}), 401
+        payload = verify_jwt_token(auth_header.split(' ')[1])
+        if not payload or payload.get('user_id') != user_id:
+            return jsonify({'error': '권한이 없습니다.'}), 403
+
+        data = request.get_json(silent=True) or {}
+        batch_id = str(data.get('batch_id') or '')
+        mode = data.get('mode')
+        if not re.fullmatch(r'[0-9a-f]{32}', batch_id) or mode not in ('undo', 'restore'):
+            return jsonify({'error': '잘못된 요청이에요.'}), 400
+
+        import fridge_history
+        ensure_user_data_tables()
+        ensure_households_table()
+        db = get_db()
+        cursor = db.cursor()
+        try:
+            fridge_history.ensure_table(cursor)  # DDL 은 쓰기 전에(묵시적 커밋)
+            storage_user_id = resolve_ingredient_storage_user_id(cursor, user_id)
+            planned = fridge_history.plan_revert(cursor, storage_user_id, batch_id, mode)
+            if planned is None:
+                db.rollback()
+                return jsonify({'error': '그 기록을 찾지 못했어요. 3달이 지나 지워졌을 수 있어요.'}), 404
+            after_rows, _ = planned
+
+            cursor.execute(
+                "SELECT name, storage_box, expiry_date, purchase_date FROM user_ingredients WHERE user_id = %s",
+                (storage_user_id,),
+            )
+            before_rows = [
+                {'name': r['name'], 'box': r['storage_box'],
+                 'expiry': r['expiry_date'], 'purchase': r['purchase_date']}
+                for r in cursor.fetchall()
+            ]
+            changes = fridge_history.diff(before_rows, after_rows)
+            if not changes:
+                db.rollback()
+                return jsonify({'message': '이미 그 상태예요.', 'changed': 0}), 200
+
+            saved_at = datetime.now()
+            cursor.execute("DELETE FROM user_ingredients WHERE user_id = %s", (storage_user_id,))
+            for it in after_rows:
+                box = it['box'] if it['box'] in ('frozen', 'fridge', 'room') else 'fridge'
+                cursor.execute(
+                    """INSERT INTO user_ingredients (user_id, name, storage_box, expiry_date, purchase_date, saved_at)
+                       VALUES (%s, %s, %s, %s, %s, %s)""",
+                    (storage_user_id, it['name'], box, it.get('expiry'), it.get('purchase'), saved_at),
+                )
+            fridge_history.record(
+                cursor, storage_user_id, user_id, changes,
+                source=mode, ref_batch=batch_id, client=request.headers.get('User-Agent'),
+            )
+            db.commit()
+            return jsonify({'message': '되돌렸어요.', 'changed': len(changes)}), 200
+        except Exception:
+            db.rollback()
+            raise
+        finally:
+            cursor.close()
+            db.close()
+    except Exception as e:
+        print(f"Revert ingredient history error: {e}")
+        return jsonify({'error': '되돌리지 못했어요. 잠시 뒤 다시 해 주세요.'}), 500
 
 @app.route('/api/users/<int:user_id>/ingredients/history', methods=['GET'])
 def get_user_ingredient_history(user_id):
