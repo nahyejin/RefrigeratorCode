@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { saveFridgeChange } from '../utils/fridgeServer';
 import { useNavigate, useLocation } from 'react-router-dom';
 import PlanButtons from '../components/PlanButtons';
 import GroupTitle from '../components/ui/GroupTitle';
@@ -1610,17 +1611,14 @@ const CookingCalendar: React.FC = () => {
         next[kind] = [...next[kind], newItem];
         try { localStorage.setItem('myfridge_ingredients', JSON.stringify(next)); } catch { /* 용량 초과 등 — 무시 */ }
         if (authUser?.id) {
-          try {
-            const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
-            await fetch(`${getApiUrl()}/api/users/${authUser.id}/ingredients`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-              // source: 재료 기록에 "장보기에서 담음" 으로 남는다
-              body: JSON.stringify({ ingredients: next, source: 'shopping' }),
-            });
-          } catch (e) {
-            console.warn('[CookingCalendar] 구매 반영(서버) 실패 — 기기에는 남음:', e);
-          }
+          // 기기 목록을 통째로 올리지 않는다 — 서버 지금 목록에 이 재료만 더한다(utils/fridgeServer 설명).
+          // source: 재료 기록에 "장보기에서 담음" 으로 남는다
+          const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+          const saved = await saveFridgeChange(authUser.id, token, cur => {
+            if ([...cur.frozen, ...cur.fridge, ...cur.room].some(it => it.name === name)) return null;
+            return { ...cur, [kind]: [...cur[kind], newItem] };
+          }, 'shopping');
+          if (!saved) console.warn('[CookingCalendar] 구매 반영(서버) 실패 — 기기에는 남음');
         }
       }
       setItemBought(weekKey, name, true);

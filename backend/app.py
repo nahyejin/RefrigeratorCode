@@ -3447,6 +3447,8 @@ def create_household():
         ensure_user_data_tables()
         db = get_db()
         cursor = db.cursor()
+        import fridge_history
+        fridge_history.ensure_table(cursor)  # 재료 기록 표(DDL)는 쓰기 전에
         try:
             cursor.execute("SELECT household_id FROM users WHERE id = %s", (user_id,))
             row = cursor.fetchone()
@@ -3464,7 +3466,9 @@ def create_household():
                 (household_id, 1 if share_recipe_actions else 0, user_id)
             )
             if not keep_ingredients:
+                before = _fridge_rows(cursor, user_id)
                 cursor.execute("DELETE FROM user_ingredients WHERE user_id = %s", (user_id,))
+                _record_fridge_change(cursor, user_id, user_id, before, 'household')
             db.commit()
             return jsonify({'invite_code': invite_code}), 201
         except Exception as e:
@@ -3517,6 +3521,8 @@ def join_household():
         ensure_user_data_tables()
         db = get_db()
         cursor = db.cursor()
+        import fridge_history
+        fridge_history.ensure_table(cursor)  # 재료 기록 표(DDL)는 쓰기 전에
         try:
             cursor.execute("SELECT household_id FROM users WHERE id = %s", (user_id,))
             row = cursor.fetchone()
@@ -3573,6 +3579,7 @@ def join_household():
                     merged[key] = better(merged[key], ing) if key in merged else ing
 
                 saved_at = datetime.now()
+                before = _fridge_rows(cursor, storage_user_id)
                 cursor.execute("DELETE FROM user_ingredients WHERE user_id = %s", (storage_user_id,))
                 for ing in merged.values():
                     cursor.execute(
@@ -3580,6 +3587,8 @@ def join_household():
                            VALUES (%s, %s, %s, %s, %s, %s)""",
                         (storage_user_id, ing['name'], ing['storage_box'], ing['expiry_date'], ing['purchase_date'], saved_at)
                     )
+                # 그룹 냉장고 기록에 "OO 님이 들어오며 N개 담음" 으로 남는다
+                _record_fridge_change(cursor, storage_user_id, user_id, before, 'household')
             # merge_ingredients가 false면 내 개인 재료는 그대로 두고 아무것도
             # 옮기지 않는다 — 그룹에 들어가는 순간부터는 어차피 storage_user_id로
             # 리다이렉션되어 그룹의 기존 재료를 보게 된다.
@@ -3602,6 +3611,31 @@ def join_household():
     except Exception as e:
         print(f"Join household error: {e}")
         return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
+
+
+def _fridge_rows(cursor, storage_user_id):
+    """재료 기록(fridge_history.diff)에 넣을 모양으로 지금 냉장고를 읽는다."""
+    cursor.execute(
+        "SELECT name, storage_box, expiry_date, purchase_date FROM user_ingredients WHERE user_id = %s",
+        (storage_user_id,),
+    )
+    return [{'name': r['name'], 'box': r['storage_box'], 'expiry': r['expiry_date'], 'purchase': r['purchase_date']}
+            for r in cursor.fetchall()]
+
+
+def _record_fridge_change(cursor, storage_user_id, actor_user_id, before, source):
+    """그룹 만들기·참여·나가기처럼 저장 API 밖에서 냉장고가 바뀐 것도 「재료 기록」에 남긴다(2026-10-19).
+    예전엔 남지 않아서 재료가 '말없이' 사라진 것처럼 보였다. 기록이 실패해도 본 작업은 살린다.
+    호출 전에 fridge_history.ensure_table 을 불러 둘 것(DDL 은 진행 중인 트랜잭션을 커밋한다)."""
+    import fridge_history
+    try:
+        cursor.execute("SAVEPOINT fridge_household_sp")
+        fridge_history.record(cursor, storage_user_id, actor_user_id,
+                              fridge_history.diff(before, _fridge_rows(cursor, storage_user_id)),
+                              source=source, client=request.headers.get('User-Agent'))
+    except Exception as e:
+        cursor.execute("ROLLBACK TO SAVEPOINT fridge_household_sp")
+        print(f'[household] 재료 기록 실패(무시): {e}')
 
 
 def _copy_ingredients(cursor, from_user_id, to_user_id, saved_at):
@@ -3651,6 +3685,8 @@ def leave_household():
         ensure_user_data_tables()
         db = get_db()
         cursor = db.cursor()
+        import fridge_history
+        fridge_history.ensure_table(cursor)  # 재료 기록 표(DDL)는 쓰기 전에
         try:
             household = get_household_by_user(cursor, user_id)
             if not household:
@@ -3680,7 +3716,9 @@ def leave_household():
                 # 남은 멤버가 없으면 내 재료가 곧 그룹 재료였으므로 따로 복사할 것도 없다.
             elif ingredients_merged:
                 # 예전에 내 재료를 그룹에 합쳤다면, 지금 그룹 재료를 그대로 복사해 온다.
+                before = _fridge_rows(cursor, user_id)
                 _copy_ingredients(cursor, storage_user_id, user_id, saved_at)
+                _record_fridge_change(cursor, user_id, user_id, before, 'household')
             # else: 합친 적이 없으면 내 user_ingredients 행은 참여 이후 한 번도
             # 건드리지 않았으므로 — 참여 전 재료가 이미 그대로 보존돼 있다.
 

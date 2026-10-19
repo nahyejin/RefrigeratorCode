@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { saveFridgeChange } from '../utils/fridgeServer';
 import { createPortal } from 'react-dom';
 import Dialog from './ui/Dialog';
 
@@ -135,12 +136,15 @@ const UsedUpSheet: React.FC<Props> = ({ recipe, onClose }) => {
     // 로그인했으면 서버도 같은 냉장고로. 안 하면 다음에 서버 값을 받아 올 때 되살아난다.
     const me = currentUser();
     if (me) {
-      fetch(`${API_BASE_URL}/api/users/${me.id}/ingredients`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${me.token}` },
-        // source: 재료 기록에 "요리하고 N개 다 씀" 으로 남는다
-        body: JSON.stringify({ ingredients: next, source: 'cooked' }),
-      }).catch(e => console.warn('[UsedUpSheet] 냉장고 서버 저장 실패 — 기기에는 반영됨:', e));
+      // 기기 목록을 통째로 올리지 않는다 — 서버 지금 목록에서 고른 것만 뺀다(utils/fridgeServer 설명).
+      // source: 재료 기록에 "요리하고 N개 다 씀" 으로 남는다
+      void saveFridgeChange(me.id, me.token, cur => ({
+        frozen: cur.frozen.filter(x => !gone.has(squash(x?.name))),
+        fridge: cur.fridge.filter(x => !gone.has(squash(x?.name))),
+        room: cur.room.filter(x => !gone.has(squash(x?.name))),
+      }), 'cooked').then(saved => {
+        if (!saved) console.warn('[UsedUpSheet] 냉장고 서버 저장 실패 — 기기에는 반영됨');
+      });
     }
     setToast(`냉장고에서 ${picked.size}개 뺐어요`);
     setConfirming(false);

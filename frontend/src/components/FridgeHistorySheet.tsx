@@ -110,6 +110,11 @@ function headline(l: Line): string {
     if (l.action === 'move') return `${how}로 ${what} 옮김`;
     return `${how}로 ${what} 날짜 바꿈`;
   }
+  if (l.source === 'household') {
+    // 식구 그룹 만들기·참여(재료 합치기)·나가기로 바뀐 것
+    if (l.action === 'add') return `식구 그룹 냉장고 합치며 ${what} 담음`;
+    if (l.action === 'remove') return `식구 그룹 정리로 ${what} 뺌`;
+  }
   if (l.action === 'add') {
     const how = l.source === 'photo' ? '사진으로 ' : l.source === 'shopping' ? '장보기에서 ' : '';
     return `${how}${what} 담음`;
