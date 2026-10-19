@@ -173,7 +173,7 @@ const FridgeHistorySheet: React.FC<{
   const [notice, setNotice] = React.useState<string | null>(null);
   /** 확인 팝업 미리보기 — 되돌리면 재료가 몇 개가 되나(서버 dry_run) */
   const [preview, setPreview] = React.useState<
-    { before_count: number; after_count: number } | 'loading' | 'error' | null
+    { before_count: number; after_count: number; by_source: Record<string, number> } | 'loading' | 'error' | null
   >(null);
   React.useEffect(() => {
     if (!confirm) { setPreview(null); return; }
@@ -186,7 +186,7 @@ const FridgeHistorySheet: React.FC<{
       body: JSON.stringify({ batch_id: confirm.entry.batch, mode: confirm.mode, dry_run: true }),
     })
       .then(r => (r.ok ? r.json() : Promise.reject(new Error())))
-      .then(d => alive && setPreview({ before_count: d.before_count, after_count: d.after_count }))
+      .then(d => alive && setPreview({ before_count: d.before_count, after_count: d.after_count, by_source: d.by_source || {} }))
       .catch(() => alive && setPreview('error'));
     return () => { alive = false; };
   }, [confirm, userId]);
@@ -274,6 +274,16 @@ const FridgeHistorySheet: React.FC<{
 
   const ask = (entry: Entry, mode: 'undo' | 'restore') =>
     setConfirm({ entry, mode, later: entries.findIndex(e => e.batch === entry.batch) });
+
+  /** 다른 화면에서 생긴 냉장고 변경 — "장보기 2개·요리 완료 1개". 그 화면의 체크·기록은 그대로 남는다 */
+  const otherSources = (p: typeof preview): string => {
+    if (!p || typeof p === 'string') return '';
+    const label: Record<string, string> = { shopping: '장보기', cooked: '요리 완료', household: '식구 그룹' };
+    return Object.entries(p.by_source)
+      .filter(([k, n]) => label[k] && n > 0)
+      .map(([k, n]) => `${label[k]} ${n}개`)
+      .join('·');
+  };
 
   const when = (iso: string) => `${dayLabel(dayKey(iso))} ${timeLabel(iso)}`;
 
@@ -421,6 +431,7 @@ const FridgeHistorySheet: React.FC<{
             </div>
             <div style={{ fontSize: 12, color: 'var(--ink-500)' }}>
               {`변경 ${confirm.later + 1}건이 되돌아가요`}
+              {otherSources(preview) && <> · <b style={{ color: 'var(--ink-700, #3A3A40)' }}>{otherSources(preview)} 포함</b></>}
               {state.status === 'ok' && state.shared ? ' (식구 것 포함)' : ''}.<br />
               되돌린 것도 기록에 남아요.
             </div>

@@ -4993,8 +4993,30 @@ def revert_user_ingredient_history(user_id):
             changes = fridge_history.diff(before_rows, after_rows)
             if data.get('dry_run'):
                 # 확인 팝업의 미리보기 — "재료 37개 → 40개". 아무것도 바꾸지 않는다.
+                # 함께 되돌아가는 것 중 다른 화면에서 생긴 냉장고 변경 — "장보기 2개·요리 완료 1개 포함".
+                # 장보기 체크·완료 기록 자체는 그대로라 "샀다고 했는데 냉장고엔 없음" 을 미리 알려 준다.
+                cursor.execute(
+                    "SELECT MIN(id) AS first_id FROM fridge_history WHERE storage_user_id = %s AND batch_id = %s",
+                    (storage_user_id, batch_id),
+                )
+                first_id = cursor.fetchone()['first_id']
+                if mode == 'undo':
+                    cursor.execute(
+                        "SELECT source, COUNT(*) AS n FROM fridge_history "
+                        "WHERE storage_user_id = %s AND batch_id = %s GROUP BY source",
+                        (storage_user_id, batch_id),
+                    )
+                else:
+                    cursor.execute(
+                        "SELECT source, COUNT(*) AS n FROM fridge_history "
+                        "WHERE storage_user_id = %s AND id >= %s GROUP BY source",
+                        (storage_user_id, first_id),
+                    )
+                by_source = {r['source']: int(r['n']) for r in cursor.fetchall()
+                             if r['source'] in ('shopping', 'cooked', 'household')}
                 db.rollback()
                 return jsonify({
+                    'by_source': by_source,
                     'before_count': len(before_rows),
                     'after_count': len(after_rows),
                     'added': sum(1 for c in changes if c['action'] == 'add'),
