@@ -299,6 +299,15 @@ const FridgeHistorySheet: React.FC<{
                           <div style={{ fontSize: 13.5, color: '#1A1A1E', lineHeight: 1.45 }}>
                             {state.shared && <b style={{ fontWeight: 700, marginRight: 4 }}>{l.actor}</b>}
                             {headline(l)}
+                            {/* 사람이 직접 한 게 아니라 기기가 서버와 맞추며 바꾼 것 — "내가 안 했는데?" 를 구분하게(2026-10-19) */}
+                            {l.source === 'sync' && (
+                              <span style={{ marginLeft: 6, display: 'inline-flex', alignItems: 'center', gap: 3,
+                                             height: 18, padding: '0 7px', borderRadius: 9999, verticalAlign: 1,
+                                             background: '#EEF2FF', color: '#4F5BD5', fontSize: 10.5, fontWeight: 700 }}>
+                                <span aria-hidden style={{ width: 5, height: 5, borderRadius: '50%', background: 'currentColor' }} />
+                                기기 동기화
+                              </span>
+                            )}
                             {isUndone && l === e.lines[0] && (
                               <span style={{ marginLeft: 6, fontSize: 11, color: 'var(--ink-500)' }}>취소됨</span>
                             )}
