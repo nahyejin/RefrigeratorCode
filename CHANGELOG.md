@@ -13367,3 +13367,12 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 - 원인 조사(10-20): 15분 뒤 자동 절전 설정은 없었음 — 윈도우 전원 계획은 AC 절전·최대 절전 「안 함」(화면만 10분 뒤 꺼짐), 프로젝트의 `sleep_when_idle.ps1` 자동 절전은 10-13 사용자 요청으로 이미 꺼져 있음(`no_shutdown.flag` + `CookMatch-EveningSleep`·`EveningWake` Disabled). 10-19 01:10 절전은 사유 「Application API」(직접 절전 호출, 직전까지 터미널·크롬 사용)로, 그 때문에 07:00 배치가 건너뛰어지고 20:49 전원 버튼 기상 → 20:55 「놓친 작업」 보충 실행됨.
 - 사용자가 관리자 PowerShell 에서 직접 실행(시스템 전원 설정은 내가 바꾸지 않는 규칙): `powercfg /change standby-timeout-ac 0`·`hibernate-timeout-ac 0`·`monitor-timeout-ac 0`(화면 꺼짐도 안 함으로), `CookMatch-DailyChain` 의 `WakeToRun = True`(예전엔 False라 잠든 PC 를 07:00 에 못 깨웠음 — 주석은 깨운다고 돼 있었으나 실제로는 꺼져 있었음). 적용 확인: AC 절전·최대 절전·화면 꺼짐 모두 0, WakeToRun=True.
 - 참고: 이 작업은 `MultipleInstances=IgnoreNew` — 전날 배치가 아직 돌고 있으면(10-19 보충 실행은 크롤러만 01:49 에도 진행 중) 07:00 건은 건너뜀.
+
+### 제미나이(Veo) 영상 프롬프트 규칙 문서
+- `store/VEO_PROMPT_RULES.md` 새로 만듦. 앞으로 후킹 영상 프롬프트를 짤 때 먼저 보는 문서.
+  - 제미나이 조언: 상태가 바뀌는 행동 금지, 물건은 처음부터 손이나 탁자 위에, subtle·gentle·natural, STRICTLY STATIC ENVIRONMENT, 큰 연기 금지, 대사는 나중에 더빙이나 자막도 가능.
+  - 기존 v1~v4 교훈도 합쳐 정리했다.
+- 사용자가 실제로 뽑아 본 결과: 오류가 거의 없고 자연스럽다. 다만 우유 편에서 이야기 논리가 깨졌다.
+  - 남자가 「오다가 사왔어」라는데 들어오는 모습이 안 보였다.
+  - 「저건」이라는데 식탁이 떨어져 있지 않았다. 대사는 식탁인데 HOME 은 조리대였다.
+  - 그래서 점검 질문 3개(어디서 왔나 / 지시어와 거리 / 장소 이름 일치)와, 고친 우유 편 프롬프트를 넣었다.
