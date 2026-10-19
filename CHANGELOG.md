@@ -13336,3 +13336,7 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 - `SplashScreen.tsx`: `SplashLogo`(아이콘 + 김 SVG) 삭제, 진짜 앱 아이콘 `<img>` 만. `index.css`: `.sl-steam`·`.sl-wisp`·`@keyframes sl-wisp` 삭제. 로고 뒤 그림자 없는 것·아래 「누적 레시피 수」 문구는 그대로.
 - 확인: 로컬 미리보기(sessionStorage `splashShown` 지우고 새로 열기)에서 시작 화면 로고 168px·김 요소 0개, `npm run build` 통과 → `cap sync ios` → Release 빌드 성공. iOS 1.0.8(14) 은 아직 업로드 전이라 번호 그대로. RELEASE_NOTES 10-18 줄을 「다시 뺌」으로 바꿈.
 - 정정: 1.0.8(14) 는 김이 든 채 이미 Archive·업로드(00:57)돼 있었음 → `project.pbxproj` 빌드 14 → **15**, 다시 Release 빌드 성공(번들 CSS 에 `sl-wisp` 없음 확인). App Store Connect 1.0.8 에는 빌드 15 를 넣을 것.
+
+### 안드로이드 1.0.11(versionCode 12) 빌드 — 구글 스토어 업로드용 최신본
+- 1.0.10(11, 10/18) 이후 앱 쪽 수정 반영: 내냉장고 재료 기록 되돌리기(「이 변경 전으로」·확인 팝업·기기 동기화 배지·식구 그룹 변경 기록), 옛 목록으로 덮어쓰는 저장 막기, 장보기 목록·「샀어요」 체크 서버 저장, 앱 재진입 방문 기록, 스플래시 김 애니메이션 제거. `9660e2be`(원격 main 최신) 기준.
+- `app/build.gradle` → **1.0.11(12)**. 1.0.10(11) 을 이미 올렸는지 불확실해 같은 번호 재사용(거부 위험)을 피하려고 번호를 한 단계 올림. `npm run app:sync` → `gradlew bundleRelease`(JAVA_HOME = Android Studio jbr) → 서명된 `app-release.aab`(13.1MB, 「jar verified」, 매니페스트 1.0.11·`kr.cookmatch.app`, 번들 JS 에 「이 변경 전으로」 포함 확인). 바탕화면 `쿡매치_안드로이드_1.0.11(12).aab` 로도 복사. Play 업로드는 사용자. iOS 는 맥에서 별도.
