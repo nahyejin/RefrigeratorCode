@@ -17,8 +17,8 @@ const API_BASE_URL =
  * 한 번에 담은 것은 한 줄로 묶는다 — 영수증 사진 한 장에 12개를 담으면 12줄이 아니라
  * "사진으로 12개 담음" 한 줄과 그 아래 이름들.
  *
- * 히스토리 관리 (2026-10-19): 저장 한 번(batch)마다 오른쪽에 두 버튼.
- *   [실행 취소]    그 저장 하나만 거꾸로 — 그 뒤에 바꾼 재료는 그대로
+ * 히스토리 관리 (2026-10-19): 저장 한 번(batch)마다 오른쪽에 버튼 하나.
+ * (처음엔 [실행 취소] 도 있었는데 둘이 있으니 헷갈린다고 해서 뺐다. 서버의 mode='undo' 는 남겨 둔다.)
  *   [이 변경 전으로] 그 저장 **직전** 상태로 냉장고 전체를 — 그 뒤의 저장도 함께 되돌아간다
  *   (「이 버전으로 복원」 은 '그 변경이 반영된 뒤' 로 읽혀서, 뺀 기록에서 누르면 빈 냉장고가 된다 — 헷갈려 이름을 바꿈)
  * 누르면 확인 팝업을 띄우고, 되돌린 것도 기록에 한 줄로 남는다(그 줄을 다시 취소할 수 있다).
@@ -177,7 +177,7 @@ const FridgeHistorySheet: React.FC<{
   const [notice, setNotice] = React.useState<string | null>(null);
   const [state, setState] = React.useState<
     { status: 'loading' } | { status: 'error' } |
-    { status: 'ok'; items: Item[]; shared: boolean; keepDays: number; memberIds: number[] }
+    { status: 'ok'; items: Item[]; shared: boolean; keepDays: number; restoreDays: number; memberIds: number[] }
   >({ status: 'loading' });
 
   React.useEffect(() => {
@@ -193,7 +193,7 @@ const FridgeHistorySheet: React.FC<{
         if (!alive) return;
         setState({
           status: 'ok', items: d.items || [], shared: !!d.shared,
-          keepDays: d.keep_days || 90, memberIds: d.member_ids || [userId],
+          keepDays: d.keep_days || 90, restoreDays: d.restore_days || 14, memberIds: d.member_ids || [userId],
         });
       })
       .catch(() => alive && setState({ status: 'error' }));
@@ -275,7 +275,8 @@ const FridgeHistorySheet: React.FC<{
       {state.status === 'ok' && (
         <>
           <div style={{ fontSize: 12, color: 'var(--ink-500)', margin: '0 0 6px' }}>
-            {state.shared ? '우리 식구 냉장고' : '내 냉장고'} · 최근 {Math.round(state.keepDays / 30)}달
+            {state.shared ? '우리 식구 냉장고' : '내 냉장고'} · 최근 {Math.round(state.keepDays / 30)}달 기록
+            · 최근 {state.restoreDays}일 안의 변경은 그 전으로 되돌릴 수 있어요
           </div>
           {days.length === 0 && (
             <div style={{ fontSize: 13, color: 'var(--ink-500)', padding: '16px 0', lineHeight: 1.6 }}>
@@ -288,7 +289,6 @@ const FridgeHistorySheet: React.FC<{
                 {dayLabel(day.key)}
               </div>
               {day.entries.map(e => {
-                const newest = e.batch === entries[0]?.batch;
                 const isUndone = undone.has(e.batch);
                 return (
                   <div key={e.batch} style={{ display: 'flex', gap: 10, padding: '9px 0',
@@ -337,16 +337,19 @@ const FridgeHistorySheet: React.FC<{
                       <span style={{ fontSize: 11.5, color: 'var(--ink-500)', marginTop: 2 }}>
                         {timeLabel(e.at)}
                       </span>
-                      <button type="button" style={smallBtn} onClick={() => ask(e, 'undo')}
-                              aria-label={`${when(e.at)} 변경 실행 취소`}>
-                        실행 취소
+                      {/* 버튼은 하나만 — 실행 취소와 둘이 있으니 헷갈린다(2026-10-19 사용자 요청).
+                          최근 restoreDays(14일) 기록에만 단다 — 서버 RESTORE_DAYS 설명 참고 */}
+                      {Date.now() - new Date(e.at).getTime() < state.restoreDays * 86400000 && (
+                      <button type="button" style={{ ...smallBtn, display: 'inline-flex', alignItems: 'center', gap: 3 }}
+                              onClick={() => ask(e, 'restore')}
+                              aria-label={`${when(e.at)} 변경 전 상태로 복원`}>
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                          <path d="M12 20h9" />
+                          <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+                        </svg>
+                        이 변경 전으로
                       </button>
-                      {/* 가장 최근 저장이면 「이 변경 전으로」 는 실행 취소와 같다 — 하나만 보인다 */}
-                      {!newest && (
-                        <button type="button" style={smallBtn} onClick={() => ask(e, 'restore')}
-                                aria-label={`${when(e.at)} 변경 전 상태로 복원`}>
-                          이 변경 전으로
-                        </button>
                       )}
                     </div>
                   </div>

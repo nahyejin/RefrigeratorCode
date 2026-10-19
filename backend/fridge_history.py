@@ -25,6 +25,10 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 
 KEEP_DAYS = 90
+# 「이 변경 전으로」 는 최근 14일 기록에만 (2026-10-19). 기록은 90일 보이지만, 오래된 시점으로 되돌리면
+# 그 뒤 몇 주치 장보기·요리로 바뀐 냉장고가 통째로 옛날로 돌아가 오히려 실제와 어긋난다.
+# 잘못 지워진 것을 알아채는 데는 보통 며칠이면 충분하다 — 주 1~2회 장보기 두 바퀴.
+RESTORE_DAYS = 14
 
 # 앱이 저장할 때 함께 알려 주는 "어디서 바꿨나". 목록 밖 값은 버린다.
 SOURCES = {
@@ -250,7 +254,7 @@ def plan_revert(cursor, storage_user_id, batch_id, mode):
     """mode='undo'  — 그 저장 하나만 취소한 목록
        mode='restore' — 그 저장 **직전** 상태(그 뒤의 저장까지 모두 거꾸로)
 
-    돌려주는 값: (새 목록, 그 저장의 시각) — 기록이 없으면 None.
+    돌려주는 값: (새 목록, 그 저장의 시각) — 기록이 없으면 None, RESTORE_DAYS 보다 오래됐으면 "too_old".
     """
     ensure_table(cursor)
     cursor.execute(
@@ -261,6 +265,8 @@ def plan_revert(cursor, storage_user_id, batch_id, mode):
     head = cursor.fetchone()
     if not head or head["first_id"] is None:
         return None
+    if head["at"] < datetime.now() - timedelta(days=RESTORE_DAYS):
+        return "too_old"
 
     cursor.execute(
         "SELECT name, storage_box, expiry_date, purchase_date FROM user_ingredients "

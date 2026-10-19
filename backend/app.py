@@ -4976,6 +4976,9 @@ def revert_user_ingredient_history(user_id):
             if planned is None:
                 db.rollback()
                 return jsonify({'error': '그 기록을 찾지 못했어요. 3달이 지나 지워졌을 수 있어요.'}), 404
+            if planned == 'too_old':
+                db.rollback()
+                return jsonify({'error': f'{fridge_history.RESTORE_DAYS}일보다 오래된 기록으로는 되돌릴 수 없어요.'}), 400
             after_rows, _ = planned
 
             cursor.execute(
@@ -5054,6 +5057,7 @@ def get_user_ingredient_history(user_id):
             return jsonify({
                 'items': rows,
                 'keep_days': fridge_history.KEEP_DAYS,
+                'restore_days': fridge_history.RESTORE_DAYS,
                 'shared': bool(me.get('household_id')),
                 'member_ids': member_ids,
             }), 200
