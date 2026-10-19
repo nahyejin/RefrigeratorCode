@@ -154,10 +154,6 @@ function timeLabel(iso: string): string {
 /** 같은 저장(batch)의 줄들 — 버튼은 저장 단위로 한 벌 */
 type Entry = { batch: string; lines: Line[]; at: string };
 
-function summary(lines: Line[]): string {
-  return lines.map(headline).join(' · ');
-}
-
 const smallBtn: React.CSSProperties = {
   height: 26, padding: '0 9px', borderRadius: 9999, border: '1px solid var(--line-200)',
   background: 'var(--surface)', color: 'var(--ink-700, #3A3A40)', fontSize: 11.5, fontWeight: 600,
@@ -175,6 +171,25 @@ const FridgeHistorySheet: React.FC<{
   const [confirm, setConfirm] = React.useState<{ entry: Entry; mode: 'undo' | 'restore'; later: number } | null>(null);
   const [busy, setBusy] = React.useState(false);
   const [notice, setNotice] = React.useState<string | null>(null);
+  /** 확인 팝업 미리보기 — 되돌리면 재료가 몇 개가 되나(서버 dry_run) */
+  const [preview, setPreview] = React.useState<
+    { before_count: number; after_count: number } | 'loading' | 'error' | null
+  >(null);
+  React.useEffect(() => {
+    if (!confirm) { setPreview(null); return; }
+    let alive = true;
+    setPreview('loading');
+    const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+    fetch(`${API_BASE_URL}/api/users/${userId}/ingredients/history/revert`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ batch_id: confirm.entry.batch, mode: confirm.mode, dry_run: true }),
+    })
+      .then(r => (r.ok ? r.json() : Promise.reject(new Error())))
+      .then(d => alive && setPreview({ before_count: d.before_count, after_count: d.after_count }))
+      .catch(() => alive && setPreview('error'));
+    return () => { alive = false; };
+  }, [confirm, userId]);
   const [state, setState] = React.useState<
     { status: 'loading' } | { status: 'error' } |
     { status: 'ok'; items: Item[]; shared: boolean; keepDays: number; restoreDays: number; memberIds: number[] }
@@ -218,7 +233,7 @@ const FridgeHistorySheet: React.FC<{
       });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(d.error || '되돌리지 못했어요. 잠시 뒤 다시 해 주세요.');
-      setNotice(d.changed ? (confirm.mode === 'undo' ? '실행 취소했어요' : '그 변경 전으로 되돌렸어요') : '이미 그 상태예요');
+      setNotice(d.changed ? '되돌렸어요' : '이미 그 상태예요');
       setConfirm(null);
       setReload(n => n + 1);
       await onReverted?.();
@@ -261,6 +276,16 @@ const FridgeHistorySheet: React.FC<{
     setConfirm({ entry, mode, later: entries.findIndex(e => e.batch === entry.batch) });
 
   const when = (iso: string) => `${dayLabel(dayKey(iso))} ${timeLabel(iso)}`;
+
+  /**
+   * 「이 변경 전으로」 가 몇 시 상태인지 — "직전" 이라는 말이 헷갈려서(2026-10-19) 시각으로 보여 준다.
+   * 바로 앞 기록이 있으면 그 시각의 상태와 같으니 "오전 12:20 상태로", 없으면 "오전 12:28 이전 상태로".
+   */
+  const targetLabel = (entry: Entry) => {
+    const i = entries.findIndex(x => x.batch === entry.batch);
+    const prev = i >= 0 ? entries[i + 1] : undefined;
+    return prev ? `${when(prev.at)} 상태로` : `${when(entry.at)} 이전 상태로`;
+  };
 
   return (
     <Sheet open={open} onClose={onClose} title="재료 기록" maxHeight="80dvh">
@@ -366,37 +391,39 @@ const FridgeHistorySheet: React.FC<{
           {notice}
         </div>
       )}
+      {/* 확인 팝업 — 짧게(2026-10-19 요청): 몇 시 상태로 돌아가는지 + 재료가 몇 개가 되는지만 */}
       <Dialog
         open={!!confirm}
         onClose={() => !busy && setConfirm(null)}
         nested
-        width={360}
-        title={confirm?.mode === 'undo' ? '이 변경을 실행 취소할까요?' : '이 변경 전 상태로 되돌릴까요?'}
+        width={320}
+        title="이 시점으로 되돌릴까요?"
         actions={[
-          { label: '닫기', onClick: () => setConfirm(null), variant: 'outline' },
-          { label: busy ? '되돌리는 중…' : (confirm?.mode === 'undo' ? '실행 취소' : '복원하기'),
-            onClick: runRevert, variant: 'primary' },
+          { label: '취소', onClick: () => setConfirm(null), variant: 'outline' },
+          { label: busy ? '되돌리는 중…' : '되돌리기', onClick: runRevert, variant: 'primary' },
         ]}
       >
         {confirm && (
-          <div style={{ fontSize: 13, color: 'var(--ink-700, #3A3A40)', lineHeight: 1.6, wordBreak: 'keep-all' }}>
-            <div style={{ padding: '8px 10px', borderRadius: 10, background: 'var(--line-100, #F4F4F6)',
-                          marginBottom: 10 }}>
-              <b>{when(confirm.entry.at)}</b><br />{summary(confirm.entry.lines)}
+          <div style={{ fontSize: 13, color: 'var(--ink-700, #3A3A40)', lineHeight: 1.55, wordBreak: 'keep-all',
+                        textAlign: 'center' }}>
+            <div style={{ padding: '10px 12px', borderRadius: 12, background: 'var(--line-100, #F4F4F6)',
+                          marginBottom: 8 }}>
+              <div style={{ fontSize: 13.5, fontWeight: 700, color: '#1A1A1E' }}>{targetLabel(confirm.entry)}</div>
+              <div style={{ fontSize: 14, marginTop: 4 }}>
+                {preview === 'loading' ? (
+                  <span style={{ color: 'var(--ink-500)' }}>재료 수 계산 중…</span>
+                ) : preview === 'error' || !preview ? (
+                  <span style={{ color: 'var(--ink-500)' }}>재료 수를 불러오지 못했어요</span>
+                ) : (
+                  <>재료 {preview.before_count}개 → <b style={{ color: '#1A1A1E' }}>{preview.after_count}개</b></>
+                )}
+              </div>
             </div>
-            {confirm.mode === 'undo' ? (
-              <p style={{ margin: '0 0 8px' }}>이 변경만 거꾸로 되돌려요. 그 뒤에 바꾼 재료는 그대로 둬요.</p>
-            ) : (
-              <p style={{ margin: '0 0 8px' }}>
-                냉장고 전체를 이 변경 <b>직전</b> 상태로 되돌려요.
-                {confirm.later > 0 && <> 그 뒤에 한 변경 <b>{confirm.later}건</b>도 함께 되돌아가요.</>}
-                {state.status === 'ok' && state.shared && <> 식구가 바꾼 것도 포함돼요.</>}
-              </p>
-            )}
-            <p style={{ margin: 0, fontSize: 12, color: 'var(--ink-500)' }}>
-              지금 냉장고가 바뀌며 원래대로 되돌리기 어려울 수 있어요. 되돌린 내용은 재료 기록에 남아서,
-              그 줄의 [실행 취소]로 다시 돌릴 수 있어요. 날짜가 기록되지 않은 예전 재료는 이름과 보관 칸만 돌아와요.
-            </p>
+            <div style={{ fontSize: 12, color: 'var(--ink-500)' }}>
+              {`변경 ${confirm.later + 1}건이 되돌아가요`}
+              {state.status === 'ok' && state.shared ? ' (식구 것 포함)' : ''}.<br />
+              되돌린 것도 기록에 남아요.
+            </div>
           </div>
         )}
       </Dialog>

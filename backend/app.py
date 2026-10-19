@@ -4943,7 +4943,7 @@ def save_user_ingredients(user_id):
 def revert_user_ingredient_history(user_id):
     """「재료 기록」 한 줄을 되돌린다 (2026-10-19).
 
-    body: {batch_id, mode}
+    body: {batch_id, mode, dry_run?}  — dry_run 이면 바꾸지 않고 개수만 돌려준다(확인 팝업 미리보기)
       mode='undo'    — 그 저장 하나만 취소(그 뒤에 바꾼 것은 그대로)
       mode='restore' — 그 저장 **직전** 상태로 냉장고를 되돌림(그 뒤의 저장도 함께 되돌아감)
 
@@ -4991,6 +4991,16 @@ def revert_user_ingredient_history(user_id):
                 for r in cursor.fetchall()
             ]
             changes = fridge_history.diff(before_rows, after_rows)
+            if data.get('dry_run'):
+                # 확인 팝업의 미리보기 — "재료 37개 → 40개". 아무것도 바꾸지 않는다.
+                db.rollback()
+                return jsonify({
+                    'before_count': len(before_rows),
+                    'after_count': len(after_rows),
+                    'added': sum(1 for c in changes if c['action'] == 'add'),
+                    'removed': sum(1 for c in changes if c['action'] == 'remove'),
+                    'changed': len(changes),
+                }), 200
             if not changes:
                 db.rollback()
                 return jsonify({'message': '이미 그 상태예요.', 'changed': 0}), 200
