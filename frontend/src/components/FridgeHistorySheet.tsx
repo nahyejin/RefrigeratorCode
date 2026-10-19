@@ -309,9 +309,9 @@ const FridgeHistorySheet: React.FC<{
       )}
       {state.status === 'ok' && (
         <>
-          <div style={{ fontSize: 12, color: 'var(--ink-500)', margin: '0 0 6px' }}>
-            {state.shared ? '우리 식구 냉장고' : '내 냉장고'} · 최근 {Math.round(state.keepDays / 30)}달 기록
-            · 최근 {state.restoreDays}일 안의 변경은 그 전으로 되돌릴 수 있어요
+          <div style={{ fontSize: 12, color: 'var(--ink-500)', margin: '0 0 6px', lineHeight: 1.5 }}>
+            {state.shared ? '우리 식구 냉장고' : '내 냉장고'} 최근 {Math.round(state.keepDays / 30)}달 기록이에요.<br />
+            최근 {state.restoreDays}일 변경은 되돌릴 수 있어요.
           </div>
           {days.length === 0 && (
             <div style={{ fontSize: 13, color: 'var(--ink-500)', padding: '16px 0', lineHeight: 1.6 }}>
