@@ -145,10 +145,9 @@ function dayLabel(key: string): string {
   const d = new Date(key + 'T12:00:00');
   return `${d.getMonth() + 1}월 ${d.getDate()}일 (${'일월화수목금토'[d.getDay()]})`;
 }
+/** "00:31" — 24시간. 복원 줄의 기준 시각("10/19 00:20:13 기준 복원")과 같은 표기로 맞춘다(2026-10-19). */
 function timeLabel(iso: string): string {
-  const h = Number(iso.slice(11, 13));
-  const m = iso.slice(14, 16);
-  return `${h < 12 ? '오전' : '오후'} ${h % 12 === 0 ? 12 : h % 12}:${m}`;
+  return iso.slice(11, 16);
 }
 
 /** 같은 저장(batch)의 줄들 — 버튼은 저장 단위로 한 벌 */
