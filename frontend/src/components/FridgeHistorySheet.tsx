@@ -19,7 +19,8 @@ const API_BASE_URL =
  *
  * 히스토리 관리 (2026-10-19): 저장 한 번(batch)마다 오른쪽에 두 버튼.
  *   [실행 취소]    그 저장 하나만 거꾸로 — 그 뒤에 바꾼 재료는 그대로
- *   [이전으로 복원] 그 저장 **직전** 상태로 냉장고 전체를 — 그 뒤의 저장도 함께 되돌아간다
+ *   [이 변경 전으로] 그 저장 **직전** 상태로 냉장고 전체를 — 그 뒤의 저장도 함께 되돌아간다
+ *   (「이 버전으로 복원」 은 '그 변경이 반영된 뒤' 로 읽혀서, 뺀 기록에서 누르면 빈 냉장고가 된다 — 헷갈려 이름을 바꿈)
  * 누르면 확인 팝업을 띄우고, 되돌린 것도 기록에 한 줄로 남는다(그 줄을 다시 취소할 수 있다).
  * 하지도 않은 「40개 뺌」이 기록된 사고(2026-10-19) 뒤 사용자 요청.
  */
@@ -217,7 +218,7 @@ const FridgeHistorySheet: React.FC<{
       });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(d.error || '되돌리지 못했어요. 잠시 뒤 다시 해 주세요.');
-      setNotice(d.changed ? (confirm.mode === 'undo' ? '실행 취소했어요' : '그 시점 이전으로 복원했어요') : '이미 그 상태예요');
+      setNotice(d.changed ? (confirm.mode === 'undo' ? '실행 취소했어요' : '그 변경 전으로 되돌렸어요') : '이미 그 상태예요');
       setConfirm(null);
       setReload(n => n + 1);
       await onReverted?.();
@@ -340,11 +341,11 @@ const FridgeHistorySheet: React.FC<{
                               aria-label={`${when(e.at)} 변경 실행 취소`}>
                         실행 취소
                       </button>
-                      {/* 가장 최근 저장이면 「이전으로 복원」 은 실행 취소와 같다 — 하나만 보인다 */}
+                      {/* 가장 최근 저장이면 「이 변경 전으로」 는 실행 취소와 같다 — 하나만 보인다 */}
                       {!newest && (
                         <button type="button" style={smallBtn} onClick={() => ask(e, 'restore')}
-                                aria-label={`${when(e.at)} 변경 이전으로 복원`}>
-                          이전으로 복원
+                                aria-label={`${when(e.at)} 변경 전 상태로 복원`}>
+                          이 변경 전으로
                         </button>
                       )}
                     </div>
@@ -367,7 +368,7 @@ const FridgeHistorySheet: React.FC<{
         onClose={() => !busy && setConfirm(null)}
         nested
         width={360}
-        title={confirm?.mode === 'undo' ? '이 변경을 실행 취소할까요?' : '이 변경 이전으로 복원할까요?'}
+        title={confirm?.mode === 'undo' ? '이 변경을 실행 취소할까요?' : '이 변경 전 상태로 되돌릴까요?'}
         actions={[
           { label: '닫기', onClick: () => setConfirm(null), variant: 'outline' },
           { label: busy ? '되돌리는 중…' : (confirm?.mode === 'undo' ? '실행 취소' : '복원하기'),

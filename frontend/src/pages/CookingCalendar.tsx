@@ -1459,6 +1459,62 @@ const CookingCalendar: React.FC = () => {
     return cleaned;
   });
 
+  /**
+   * 장보기 목록·「샀어요」 체크를 **계정(서버)에도** 둔다 (2026-10-19). 기기에만 있으면 로그아웃·계정 전환·
+   * 재설치·기기 변경 때 사라진다. 들어오면 먼저 서버 것을 받아 더 최근 쪽을 쓰고(updatedAt 비교),
+   * 그 뒤 바뀔 때마다 올린다. 서버도 더 최근 것만 남긴다 — 오래 열어 둔 다른 기기가 덮지 못하게.
+   */
+  const memoPulledRef = React.useRef(false);
+  React.useEffect(() => {
+    memoPulledRef.current = false;
+    if (!isLoggedIn || !authUser?.id) return;
+    const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+    if (!token) return;
+    let alive = true;
+    fetch(`${getApiUrl()}/api/users/me/shopping-memo`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => (r.ok ? r.json() : Promise.reject(new Error())))
+      .then(d => {
+        if (!alive) return;
+        const server: ShoppingMemoEntry | null = d.memo || null;
+        setMemoHistory(prev => {
+          const local = prev[SHOPPING_LIST_KEY];
+          if (server && (!local || server.updatedAt > local.updatedAt)) {
+            return saveShoppingMemoHistory({ [SHOPPING_LIST_KEY]: { ...server, weekKey: SHOPPING_LIST_KEY } });
+          }
+          // 기기 것이 더 최근(또는 서버에 없음) — 새 객체로 바꿔 아래 저장 효과가 서버에 올리게 한다
+          return local ? { ...prev } : prev;
+        });
+        memoPulledRef.current = true;
+      })
+      .catch(() => { /* 서버를 못 받으면 올리지도 않는다 — 기기 것만 쓴다 */ });
+    return () => { alive = false; };
+  }, [isLoggedIn, authUser?.id]);
+
+  React.useEffect(() => {
+    if (!memoPulledRef.current || !isLoggedIn || !authUser?.id) return;
+    const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+    if (!token) return;
+    const entry = memoHistory[SHOPPING_LIST_KEY] || null;
+    const t = setTimeout(() => {
+      fetch(`${getApiUrl()}/api/users/me/shopping-memo`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ memo: entry, updatedAt: new Date().toISOString() }),
+      })
+        .then(r => (r.ok ? r.json() : null))
+        .then(d => {
+          // 서버 것이 더 최근이었다 — 그것으로 맞춘다
+          if (d?.stale) {
+            setMemoHistory(d.memo
+              ? saveShoppingMemoHistory({ [SHOPPING_LIST_KEY]: { ...d.memo, weekKey: SHOPPING_LIST_KEY } })
+              : saveShoppingMemoHistory({}));
+          }
+        })
+        .catch(e => console.warn('[CookingCalendar] 장보기 목록 서버 저장 실패 — 기기에는 남음:', e));
+    }, 800);
+    return () => clearTimeout(t);
+  }, [memoHistory, isLoggedIn, authUser?.id]);
+
   /** 방금 계산한 목록을 저장한다(목록이 비면 지운다). 이미 산 것으로 체크했던 재료가 새 목록에 없으면
    * (계획이 바뀜) 자연히 빠지도록 교집합만 남긴다. */
   const upsertListMemo = React.useCallback((rangeLabel: string, items: string[]) => {

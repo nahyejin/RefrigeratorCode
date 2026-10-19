@@ -5660,6 +5660,103 @@ def _auth_user_id():
     return payload['user_id'], None
 
 
+_shopping_memo_ready = False
+
+
+def ensure_shopping_memo_table():
+    """장보기 목록 「샀어요」 체크를 계정에 둔다 (2026-10-19). 예전엔 기기(localStorage)에만 있어서
+    로그아웃·계정 전환·앱 재설치·기기 변경 때 사라졌다."""
+    global _shopping_memo_ready
+    if _shopping_memo_ready:
+        return
+    db = get_db()
+    cursor = db.cursor()
+    try:
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS user_shopping_memos (
+                user_id INT NOT NULL PRIMARY KEY,
+                memo_json MEDIUMTEXT NOT NULL,
+                client_updated_at VARCHAR(40) NOT NULL,   -- 앱이 정한 수정 시각(ISO) — 늦게 도착한 옛 저장을 거른다
+                updated_at DATETIME NOT NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        """)
+        db.commit()
+        _shopping_memo_ready = True
+    finally:
+        db.close()
+
+
+@app.route('/api/users/me/shopping-memo', methods=['GET'])
+def get_shopping_memo():
+    user_id, err = _auth_user_id()
+    if err:
+        return err
+    ensure_shopping_memo_table()
+    db = get_db()
+    cursor = db.cursor()
+    try:
+        cursor.execute("SELECT memo_json FROM user_shopping_memos WHERE user_id = %s", (user_id,))
+        row = cursor.fetchone()
+        return jsonify({'memo': json.loads(row['memo_json']) if row else None})
+    finally:
+        db.close()
+
+
+@app.route('/api/users/me/shopping-memo', methods=['PUT'])
+def put_shopping_memo():
+    """body: {memo: {rangeLabel, items, bought, updatedAt} | null}
+
+    **더 최근 것만 남긴다** — 서버에 있는 것이 이 저장보다 새것(updatedAt 이 더 늦음)이면 바꾸지 않고
+    서버 것을 돌려준다. 오래 열어 둔 다른 기기의 옛 체크가 최신 체크를 덮지 않게."""
+    user_id, err = _auth_user_id()
+    if err:
+        return err
+    data = request.get_json(silent=True) or {}
+    memo = data.get('memo')
+    if memo is not None:
+        if (not isinstance(memo, dict) or not isinstance(memo.get('items'), list)
+                or not isinstance(memo.get('bought'), list) or not isinstance(memo.get('updatedAt'), str)
+                or len(memo['items']) > 300 or len(memo['bought']) > 300):
+            return jsonify({'error': '잘못된 형식입니다.'}), 400
+        memo = {
+            'weekKey': 'all',
+            'rangeLabel': str(memo.get('rangeLabel') or '')[:40],
+            'items': [str(x)[:60] for x in memo['items']],
+            'bought': [str(x)[:60] for x in memo['bought']],
+            'updatedAt': memo['updatedAt'][:40],
+        }
+    stamp = memo['updatedAt'] if memo else (str(data.get('updatedAt') or '')[:40] or datetime.utcnow().isoformat() + 'Z')
+
+    ensure_shopping_memo_table()
+    db = get_db()
+    cursor = db.cursor()
+    try:
+        cursor.execute(
+            "SELECT memo_json, client_updated_at FROM user_shopping_memos WHERE user_id = %s FOR UPDATE",
+            (user_id,),
+        )
+        row = cursor.fetchone()
+        # ISO 문자열(같은 형식)은 글자 순서가 곧 시간 순서다
+        if row and row['client_updated_at'] > stamp:
+            db.rollback()
+            return jsonify({'ok': False, 'stale': True, 'memo': json.loads(row['memo_json'])}), 200
+        cursor.execute(
+            """INSERT INTO user_shopping_memos (user_id, memo_json, client_updated_at, updated_at)
+               VALUES (%s, %s, %s, %s)
+               ON DUPLICATE KEY UPDATE memo_json = VALUES(memo_json),
+                 client_updated_at = VALUES(client_updated_at), updated_at = VALUES(updated_at)""",
+            (user_id, json.dumps(memo, ensure_ascii=False), stamp, datetime.now()),
+        )
+        db.commit()
+        return jsonify({'ok': True})
+    except Exception as e:
+        db.rollback()
+        print(f'[shopping-memo] 저장 실패: {e}')
+        return jsonify({'error': '저장하지 못했어요.'}), 500
+    finally:
+        db.close()
+
+
 @app.route('/api/users/me/ai-chat-sessions', methods=['GET'])
 def get_ai_chat_sessions():
     """내 AI 식단 추천 지난 대화 목록."""
