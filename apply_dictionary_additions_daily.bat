@@ -191,6 +191,13 @@ if errorlevel 1 (
   echo [%date% %time%] 커밋할 것이 없거나 커밋 실패 >> %LOG%
   goto done
 )
+REM    다른 곳(클라우드 작업 등)에서 main 에 먼저 올린 것이 있으면 푸시가 거절된다 - 받아서 그 위에 얹고 올린다(2026-10-19).
+git pull --rebase --autostash origin main >> %LOG% 2>&1
+if errorlevel 1 (
+  git rebase --abort >> %LOG% 2>&1
+  echo [%date% %time%] 최신 받기 실패 - 커밋은 남아 있습니다. git pull 로 직접 맞춰 주세요 >> %LOG%
+  goto done
+)
 git push origin main >> %LOG% 2>&1
 if errorlevel 1 (
   echo [%date% %time%] 푸시 실패 - 커밋은 남아 있습니다. 네트워크/인증을 확인하세요 >> %LOG%
