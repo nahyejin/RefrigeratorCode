@@ -105,11 +105,11 @@ function headline(l: Line): string {
   const n = l.names.length;
   const what = n === 1 ? l.names[0] : `${n}개`;
   if (l.source === 'undo' || l.source === 'restore') {
-    const how = l.source === 'undo' ? '실행 취소' : '복원';
-    if (l.action === 'add') return `${how}로 ${what} 되살림`;
-    if (l.action === 'remove') return `${how}로 ${what} 뺌`;
-    if (l.action === 'move') return `${how}로 ${what} 옮김`;
-    return `${how}로 ${what} 날짜 바꿈`;
+    // 앞머리("10/19 00:20:13 기준 복원 · ")는 화면에서 붙인다 — 몇 시 기준인지는 다른 기록을 봐야 안다
+    if (l.action === 'add') return `${what} 되살림`;
+    if (l.action === 'remove') return `${what} 뺌`;
+    if (l.action === 'move') return `${what} 옮김`;
+    return `${what} 날짜 바꿈`;
   }
   if (l.source === 'household') {
     // 식구 그룹 만들기·참여(재료 합치기)·나가기로 바뀐 것
@@ -245,9 +245,8 @@ const FridgeHistorySheet: React.FC<{
     }
   };
 
-  const { days, entries, atOf, undone } = React.useMemo(() => {
-    const empty = { days: [] as { key: string; entries: Entry[] }[], entries: [] as Entry[],
-                    atOf: new Map<string, string>(), undone: new Set<string>() };
+  const { days, entries, undone } = React.useMemo(() => {
+    const empty = { days: [] as { key: string; entries: Entry[] }[], entries: [] as Entry[], undone: new Set<string>() };
     if (state.status !== 'ok') return empty;
     const entries: Entry[] = [];
     for (const l of toLines(state.items, userId)) {
@@ -262,14 +261,13 @@ const FridgeHistorySheet: React.FC<{
       if (last && last.key === k) last.entries.push(e);
       else days.push({ key: k, entries: [e] });
     }
-    const atOf = new Map(entries.map(e => [e.batch, e.at]));
     // 실행 취소된 저장 — 「취소됨」 표시. 최근 것부터 보며, 취소한 줄 자체가 다시 취소됐으면 원래대로 둔다.
     const undone = new Set<string>();
     for (const e of entries) {
       const l = e.lines[0];
       if (l.source === 'undo' && l.refBatch && !undone.has(e.batch)) undone.add(l.refBatch);
     }
-    return { days, entries, atOf, undone };
+    return { days, entries, undone };
   }, [state, userId]);
 
   const ask = (entry: Entry, mode: 'undo' | 'restore') =>
@@ -283,6 +281,24 @@ const FridgeHistorySheet: React.FC<{
       .filter(([k, n]) => label[k] && n > 0)
       .map(([k, n]) => `${label[k]} ${n}개`)
       .join('·');
+  };
+
+  /** "10/19 00:20:13" — 복원 기록에 남기는 기준 시각(초까지, 2026-10-19 요청) */
+  const stamp = (iso: string) => `${iso.slice(5, 7)}/${iso.slice(8, 10)} ${iso.slice(11, 19)}`;
+
+  /**
+   * 복원·실행 취소 줄의 앞머리 — "10/19 00:20:13 기준 복원 · ".
+   * 「이 변경 전으로」 는 되돌린 기록의 **바로 앞 기록** 시각의 상태와 같다(확인 팝업 targetLabel 과 같은 규칙).
+   * 앞 기록이 없으면 되돌린 기록 시각의 "이전".
+   */
+  const revertPrefix = (e: Entry): string => {
+    const l = e.lines[0];
+    if (l.source !== 'restore' && l.source !== 'undo') return '';
+    if (l.source === 'undo') return '실행 취소 · ';
+    const i = l.refBatch ? entries.findIndex(x => x.batch === l.refBatch) : -1;
+    if (i < 0) return '복원 · ';
+    const prev = entries[i + 1];
+    return prev ? `${stamp(prev.at)} 기준 복원 · ` : `${stamp(entries[i].at)} 이전 기준 복원 · `;
   };
 
   const when = (iso: string) => `${dayLabel(dayKey(iso))} ${timeLabel(iso)}`;
@@ -339,6 +355,7 @@ const FridgeHistorySheet: React.FC<{
                         <div key={l.key} style={{ marginBottom: 2 }}>
                           <div style={{ fontSize: 13.5, color: '#1A1A1E', lineHeight: 1.45 }}>
                             {state.shared && <b style={{ fontWeight: 700, marginRight: 4 }}>{l.actor}</b>}
+                            {l === e.lines[0] && revertPrefix(e)}
                             {headline(l)}
                             {/* 사람이 직접 한 게 아니라 기기가 서버와 맞추며 바꾼 것 — "내가 안 했는데?" 를 구분하게(2026-10-19) */}
                             {l.source === 'sync' && (
@@ -361,11 +378,6 @@ const FridgeHistorySheet: React.FC<{
                           )}
                         </div>
                       ))}
-                      {e.lines[0].refBatch && atOf.get(e.lines[0].refBatch) && (
-                        <div style={{ fontSize: 11.5, color: 'var(--ink-500)', marginTop: 1 }}>
-                          ↩ {when(atOf.get(e.lines[0].refBatch) as string)} 기록을 {e.lines[0].source === 'undo' ? '취소' : '기준으로 복원'}
-                        </div>
-                      )}
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 5,
                                   flexShrink: 0 }}>
