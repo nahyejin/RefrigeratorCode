@@ -658,6 +658,17 @@ const MyFridge: React.FC = () => {
    * **동기적으로** 세우는 ref 를 따로 둔다. 저장이 끝나면 내린다.
    */
   const localEditPendingRef = React.useRef(false);
+  /**
+   * 서버 목록을 아직 못 받아 왔는지 — 이때는 **서버에 저장하지 않는다**(2026-10-19).
+   *
+   * 저장은 "통째로 바꾸기" 다. 예전엔 서버 조회가 10초 안에 안 끝나면 빈 냉장고로 화면을 열고
+   * 그 빈 목록을 자동 저장했고, 조회가 실패하면 이 기기에 남은 옛 목록을 서버에 올렸다.
+   * 사용자가 하지도 않은 「40개 뺌」「37개 담음」 이 기록된 원인. 서버 목록을 한 번 제대로
+   * 받아 오기 전까지는 화면만 보여 주고 서버는 건드리지 않는다.
+   */
+  const serverWriteBlockedRef = React.useRef(false);
+  /** 자동 저장을 한 번에 하나씩 — 앞 저장이 끝나야 다음 저장의 base(마지막으로 본 서버 목록)가 맞다 */
+  const saveChainRef = React.useRef<Promise<unknown>>(Promise.resolve());
   /** [모두삭제] 확인 팝업이 어느 칸을 대상으로 열려 있는지 */
   const [removeAllTarget, setRemoveAllTarget] = useState<StorageBox | null>(null);
   const [hasChanges, setHasChanges] = useState(false); // 변경사항 추적
@@ -778,12 +789,49 @@ const MyFridge: React.FC = () => {
     }
   };
 
+  /**
+   * 서버가 준 목록({frozen, fridge, room})으로 화면·기기 저장·"마지막으로 본 서버 목록" 을 맞춘다.
+   * 409(다른 곳에서 바뀜)와 「재료 기록」 되돌리기 뒤에 쓴다. 이것도 화면 변경이라 자동 저장이
+   * 한 번 돌지만, base 가 지금 서버 목록과 같고 바뀐 것이 없어 기록은 남지 않는다.
+   */
+  const applyServerData = (
+    raw: { frozen?: unknown; fridge?: unknown; room?: unknown } | null | undefined,
+    message?: string,
+  ) => {
+    if (!raw) return;
+    const pick = (box: string, v: unknown): Ingredient[] =>
+      (Array.isArray(v) ? v : []).map((it: any, i: number) => ({
+        id: String(it.id ?? `${box}-${Date.now()}-${i}`),
+        name: it.name,
+        ...(it.expiry ? { expiry: it.expiry } : {}),
+        ...(it.purchase ? { purchase: it.purchase } : {}),
+      }));
+    const next = { frozen: pick('frozen', raw.frozen), fridge: pick('fridge', raw.fridge), room: pick('room', raw.room) };
+    lastSavedDataRef.current = { frozen: [...next.frozen], fridge: [...next.fridge], room: [...next.room] };
+    localEditPendingRef.current = false;
+    serverWriteBlockedRef.current = false;
+    setFrozen(next.frozen);
+    setFridge(next.fridge);
+    setRoom(next.room);
+    saveIngredients(next.frozen, next.fridge, next.room);
+    setHasChanges(false);
+    if (message) {
+      setInfoToast({ text: message });
+      setTimeout(() => setInfoToast(null), 4000);
+    }
+  };
+
   // DB에 재료 저장 (재시도 로직 포함)
   const saveIngredientsToDB = async (
     frozen: Ingredient[], fridge: Ingredient[], room: Ingredient[], retryCount = 0, showStatus = false,
     /** 재료 기록에 남길 "어디서 바꿨나" — manual(기본) / photo / sync */
     source: string = 'manual',
-  ) => {
+    /**
+     * 이 기기가 마지막으로 본 서버 목록. 보내면 서버가 지금 목록과 견줘, 그새 다른 곳에서 바뀌었으면
+     * 저장하지 않고 409 를 준다(옛 목록으로 덮어쓰기 방지). 그때는 서버 목록으로 화면을 맞춘다.
+     */
+    base?: { frozen: Ingredient[]; fridge: Ingredient[]; room: Ingredient[] } | null,
+  ): Promise<boolean> => {
     if (!isLoggedIn || !user?.id) {
       if (showStatus) {
         setSaveStatus('error');
@@ -812,10 +860,11 @@ const MyFridge: React.FC = () => {
       }
       
       const apiUrl = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'https://refrigeratorcode-production.up.railway.app';
-      const requestBody = {
+      const requestBody: Record<string, unknown> = {
         ingredients: { frozen, fridge, room },
         source,
       };
+      if (base) requestBody.base = [...base.frozen, ...base.fridge, ...base.room].map(it => it.name);
       
       console.log('[MyFridge] DB 저장 요청 시작:', {
         url: `${apiUrl}/api/users/${user.id}/ingredients`,
@@ -841,6 +890,17 @@ const MyFridge: React.FC = () => {
         ok: response.ok
       });
       
+      if (response.status === 409) {
+        // 다른 기기·탭에서 그새 바뀌었다 — 덮어쓰지 않고 서버 목록으로 맞춘다. 재시도하지 않는다.
+        const body = await response.json().catch(() => null);
+        applyServerData(body?.current, '다른 곳에서 냉장고가 바뀌어 최신으로 불러왔어요. 방금 바꾼 것은 다시 해 주세요.');
+        if (showStatus) {
+          setIsSaving(false);
+          setSaveStatus('idle');
+        }
+        return false;
+      }
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error('[MyFridge] DB 저장 실패 응답:', {
@@ -876,7 +936,7 @@ const MyFridge: React.FC = () => {
         const delay = Math.pow(2, retryCount) * 1000; // 지수 백오프: 1초, 2초, 4초
         console.log(`[MyFridge] ${delay}ms 후 재시도 (${retryCount + 1}/${MAX_RETRIES})`);
         await new Promise(resolve => setTimeout(resolve, delay));
-        return saveIngredientsToDB(frozen, fridge, room, retryCount + 1, showStatus, source);
+        return saveIngredientsToDB(frozen, fridge, room, retryCount + 1, showStatus, source, base);
       }
       
       console.error('[MyFridge] DB 저장 최종 실패: 모든 재시도 소진');
@@ -1043,11 +1103,19 @@ const MyFridge: React.FC = () => {
 
     const refreshOnResume = async () => {
       if (document.visibilityState !== 'visible') return;
-      if (loading || isSaving || hasChanges) return;
+      // 서버 목록을 아직 못 받아 온 상태면(위 serverWriteBlockedRef) 이 기기의 변경은 서버에 못 간 것이다 —
+      // 서버 값이 기준이므로 그대로 받아 온다.
+      const blocked = serverWriteBlockedRef.current;
+      if (!blocked && (loading || isSaving || hasChanges)) return;
       // 이 기기에서 방금 건드린 게 아직 저장 전이면 DB 값으로 덮지 않는다.
-      if (localEditPendingRef.current) return;
+      if (!blocked && localEditPendingRef.current) return;
       const dbData = await loadIngredientsFromDB();
       if (dbData) {
+        serverWriteBlockedRef.current = false;
+        localEditPendingRef.current = false;
+        dataLoadedRef.current = true;
+        isInitialLoad.current = false;
+        setLoading(false);
         setFrozen(dbData.frozen);
         setFridge(dbData.fridge);
         setRoom(dbData.room);
@@ -1135,7 +1203,8 @@ const MyFridge: React.FC = () => {
                 isInitialLoad.current = false;
                 dbLoadFailed.current = false;
                 setLoading(false);
-                await saveIngredientsToDB(guest.frozen, guest.fridge, guest.room, 0, false, 'sync');
+                // base: 방금 받은 (빈) 서버 목록 — 그새 다른 기기가 채웠으면 덮지 않는다
+                await saveIngredientsToDB(guest.frozen, guest.fridge, guest.room, 0, false, 'sync', dbData);
                 return;
               }
             }
@@ -1147,6 +1216,7 @@ const MyFridge: React.FC = () => {
                 room: dbData.room.length
               });
               dataLoadedRef.current = true; // 데이터 로드 완료 표시
+              serverWriteBlockedRef.current = false;
               setFrozen(dbData.frozen);
               setFridge(dbData.fridge);
               setRoom(dbData.room);
@@ -1170,8 +1240,13 @@ const MyFridge: React.FC = () => {
               const localData = loadIngredients();
               const hasLocalData = localData.frozen.length > 0 || localData.fridge.length > 0 || localData.room.length > 0;
               
+              // 서버 목록을 못 받았다 — 이 기기의 목록은 보여 주기만 하고 **서버에는 올리지 않는다.**
+              // (예전엔 여기서 기기 목록을 서버에 'sync' 로 올렸다. 기기 목록이 옛것이면 서버의 최신
+              //  재료가 그 옛 목록으로 바뀌었다 — serverWriteBlockedRef 설명 참고.) 앱으로 돌아오면 다시 불러온다.
+              serverWriteBlockedRef.current = true;
+              setInfoToast({ text: '재료를 불러오지 못했어요. 연결되면 다시 불러올게요.' });
+              setTimeout(() => setInfoToast(null), 4000);
               if (hasLocalData) {
-                // localStorage에 데이터가 있으면 DB에 동기화
                 console.log('[MyFridge] localStorage 데이터를 DB에 동기화:', {
                   frozen: localData.frozen.length,
                   fridge: localData.fridge.length,
@@ -1189,10 +1264,6 @@ const MyFridge: React.FC = () => {
                 setHasChanges(false);
                 isInitialLoad.current = false;
                 setLoading(false);
-                // DB에 저장 시도
-                saveIngredientsToDB(localData.frozen, localData.fridge, localData.room, 0, false, 'sync').catch(err => {
-                  console.error('[MyFridge] DB 저장 실패:', err);
-                });
                 return;
               } else {
                 // localStorage에도 없으면 빈 상태로 유지
@@ -1263,9 +1334,15 @@ const MyFridge: React.FC = () => {
           loading: loading
         });
         dataLoadedRef.current = true; // 타임아웃으로 인한 로드 완료 표시
-        setFrozen([]);
-        setFridge([]);
-        setRoom([]);
+        // 빈 화면은 "재료가 0개" 가 아니라 "아직 모름" 이다. 이 빈 목록이 자동 저장되면 서버 재료가
+        // 전부 지워진다 — 서버 목록을 받기 전까지 저장을 막는다(serverWriteBlockedRef 설명).
+        serverWriteBlockedRef.current = true;
+        const local = loadIngredients();
+        setFrozen(local.frozen);
+        setFridge(local.fridge);
+        setRoom(local.room);
+        setInfoToast({ text: '재료를 불러오는 중이에요. 잠시 뒤 다시 확인해 주세요.' });
+        setTimeout(() => setInfoToast(null), 4000);
         isInitialLoad.current = false;
         setLoading(false);
       } else if (isMounted && dataLoadedRef.current) {
@@ -1490,7 +1567,9 @@ const MyFridge: React.FC = () => {
 
       const shouldAddInitialIngredients = !seedDecidedRef.current && isEmpty && !seededSomewhere && (
         !isLoggedIn || !user?.id || // 비회원
-        (dbLoadAttempted.current && localEmpty) // 회원: DB 조회를 마쳤고 로컬에도 없음
+        // 회원: DB 조회를 **성공적으로** 마쳤고 로컬에도 없음. 조회가 실패·지연된 빈 화면에서 기본 재료를 넣으면
+        // 그 28개가 서버의 진짜 냉장고를 덮는다(serverWriteBlockedRef 설명) — 새 기기·재설치 직후에 특히.
+        (dbLoadAttempted.current && localEmpty && !dbLoadFailed.current && !serverWriteBlockedRef.current)
       );
       
       if (shouldAddInitialIngredients) {
@@ -1734,7 +1813,8 @@ const MyFridge: React.FC = () => {
       // ⚠️ 예전에는 `hasData` 가 참일 때만 저장해서, 재료를 **전부 지우면 저장 자체를
       //    건너뛰었다.** 서버엔 예전 목록이 남아 다음 로그인 때 지운 재료가 되살아났음.
       //    빈 상태도 정상적인 상태이므로 그대로 저장한다.
-      if (isLoggedIn && user?.id) {
+      // 서버 목록을 아직 못 받아 왔으면 서버에는 보내지 않는다(serverWriteBlockedRef 설명).
+      if (isLoggedIn && user?.id && !serverWriteBlockedRef.current) {
         // 연속 변경 시 요청이 겹쳐 늦게 출발한 요청이 먼저 도착하면 옛 데이터가
         // 최신을 덮어쓸 수 있음 → 짧게 묶어서(디바운스) 마지막 상태만 보낸다.
         if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
@@ -1744,12 +1824,26 @@ const MyFridge: React.FC = () => {
           setSaveStatus('saving');
           const source = pendingSourceRef.current || 'manual';
           pendingSourceRef.current = null;
-          saveIngredientsToDB(snapshot.frozen, snapshot.fridge, snapshot.room, 0, false, source)
+          // 앞 저장이 끝난 뒤에 보낸다 — 그래야 base(마지막으로 본 서버 목록)가 앞 저장을 반영한다.
+          const run = saveChainRef.current.then(() =>
+            saveIngredientsToDB(snapshot.frozen, snapshot.fridge, snapshot.room, 0, false, source,
+                                lastSavedDataRef.current)
+              .then((ok) => {
+                if (ok) lastSavedDataRef.current = {
+                  frozen: [...snapshot.frozen], fridge: [...snapshot.fridge], room: [...snapshot.room],
+                };
+                return ok;
+              }));
+          saveChainRef.current = run.catch(() => undefined);
+          run
             .then((ok) => {
               // 더 최신 저장이 이미 시작됐으면 이 결과는 버린다 (순서 역전 방지)
               if (seq !== autoSaveSeq.current) return;
               // 서버까지 반영됐으면 이제 DB 값으로 최신화해도 안전하다.
-              if (ok) localEditPendingRef.current = false;
+              if (ok) {
+                localEditPendingRef.current = false;
+                setHasChanges(false);
+              }
               setSaveStatus(ok ? 'success' : 'error');
               if (ok) setTimeout(() => setSaveStatus('idle'), 2000);
             })
@@ -2712,7 +2806,13 @@ const MyFridge: React.FC = () => {
             )}
           </div>
           {isLoggedIn && user?.id && (
-            <FridgeHistorySheet open={historyOpen} onClose={() => setHistoryOpen(false)} userId={Number(user.id)} />
+            <FridgeHistorySheet
+              open={historyOpen}
+              onClose={() => setHistoryOpen(false)}
+              userId={Number(user.id)}
+              // 되돌린 뒤엔 서버 목록이 기준 — 화면·기기 저장을 서버 목록으로 맞춘다
+              onReverted={async () => applyServerData(await loadIngredientsFromDB())}
+            />
           )}
           {/* 보관함 세 칸 — **박스 없이 평평하게**(2026-10-10, 유튜브 앱처럼). 칸 사이는 테두리
               대신 14px 회색 띠로 가르고, 화면 좌우 끝까지 쓴다(바깥 20px 여백을 음수 마진으로 걷음).

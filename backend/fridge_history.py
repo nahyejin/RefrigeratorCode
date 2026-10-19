@@ -10,6 +10,13 @@
     같은 그룹 식구에게만 보여 주는 사용자 기능이라 이름을 남긴다. 어드민 화면에서 읽지 않는다.
 
 보관: 90일 (사용자가 3달로 정함). 저장할 때 그 냉장고의 90일 넘은 기록을 지운다.
+
+되돌리기 (2026-10-19):
+    기록 한 줄(한 번의 저장)을 「실행 취소」하거나, 그 저장 **직전** 상태로 「복원」할 수 있다.
+    둘 다 지금 냉장고에 기록을 거꾸로 적용해서 만든다(스냅숏을 따로 두지 않는다).
+    그래서 재료마다 그때의 유통기한·구매일(expiry/purchase)을 함께 남긴다 — 뺀 재료를
+    되살릴 때 날짜까지 돌려놓으려고. 이 칸이 생기기 전 기록은 날짜 없이 이름·칸만 돌아온다.
+    되돌린 것도 한 번의 저장으로 기록에 남으므로(source=undo/restore) 그것을 다시 취소할 수 있다.
 """
 
 import threading
@@ -26,6 +33,16 @@ SOURCES = {
     "shopping",  # 장보기 목록에서 「샀어요」
     "cooked",    # 요리를 끝내고 다 쓴 재료 빼기
     "sync",      # 이 기기에만 있던 재료를 서버와 맞춤
+    "undo",      # 「재료 기록」에서 한 줄 실행 취소
+    "restore",   # 「재료 기록」에서 그 저장 직전으로 복원
+}
+
+# 표가 처음 생긴 뒤에 붙인 칸들. 이미 있는 표에는 ALTER 로 더한다.
+_EXTRA_COLUMNS = {
+    "expiry": "DATE NULL",              # 그 재료의 유통기한(뺐으면 빼기 전 값)
+    "purchase": "DATE NULL",            # 그 재료의 구매일
+    "ref_batch": "CHAR(32) NULL",       # undo/restore 일 때 어느 저장을 되돌렸나
+    "client": "VARCHAR(120) NULL",      # 저장을 보낸 기기(User-Agent 앞부분) — 원인 추적용, 화면엔 안 보인다
 }
 
 _ddl_lock = threading.Lock()
@@ -50,11 +67,20 @@ def ensure_table(cursor):
                 from_box VARCHAR(10) NULL,         -- move 일 때 원래 보관함
                 detail VARCHAR(120) NULL,          -- update 일 때 "expiry:2026-10-20>2026-10-26"
                 source VARCHAR(12) NULL,
+                expiry DATE NULL,
+                purchase DATE NULL,
+                ref_batch CHAR(32) NULL,
+                client VARCHAR(120) NULL,
                 created_at DATETIME NOT NULL,
                 INDEX idx_fridge_time (storage_user_id, created_at)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             """
         )
+        cursor.execute("SHOW COLUMNS FROM fridge_history")
+        have = {r["Field"] for r in cursor.fetchall()}
+        for col, spec in _EXTRA_COLUMNS.items():
+            if col not in have:
+                cursor.execute(f"ALTER TABLE fridge_history ADD COLUMN {col} {spec}")
         _ddl_done = True
 
 
@@ -105,16 +131,22 @@ def diff(before, after):
             news.remove(n)
             if o["box"] != n["box"]:
                 changes.append({"action": "move", "name": name, "box": n["box"], "from_box": o["box"],
-                                "detail": _date_detail(o, n)})
+                                "detail": _date_detail(o, n), **_dates(n)})
             else:
                 changes.append({"action": "update", "name": name, "box": n["box"], "from_box": None,
-                                "detail": _date_detail(o, n)})
+                                "detail": _date_detail(o, n), **_dates(n)})
         # 3) 짝 없는 것
         for n in news:
-            changes.append({"action": "add", "name": name, "box": n["box"], "from_box": None, "detail": None})
+            changes.append({"action": "add", "name": name, "box": n["box"], "from_box": None, "detail": None,
+                            **_dates(n)})
         for o in olds:
-            changes.append({"action": "remove", "name": name, "box": o["box"], "from_box": None, "detail": None})
+            changes.append({"action": "remove", "name": name, "box": o["box"], "from_box": None, "detail": None,
+                            **_dates(o)})
     return changes
+
+
+def _dates(it):
+    return {"expiry": it.get("expiry"), "purchase": it.get("purchase")}
 
 
 def _date_detail(o, n):
@@ -125,8 +157,8 @@ def _date_detail(o, n):
     return None
 
 
-def record(cursor, storage_user_id, actor_user_id, changes, source=None):
-    """바뀐 것을 저장한다. 호출한 쪽의 트랜잭션(commit)에 함께 실린다."""
+def record(cursor, storage_user_id, actor_user_id, changes, source=None, ref_batch=None, client=None):
+    """바뀐 것을 저장한다. 호출한 쪽의 트랜잭션(commit)에 함께 실린다. 남긴 batch_id 를 돌려준다."""
     ensure_table(cursor)
     now = datetime.now()
     cursor.execute(
@@ -134,17 +166,19 @@ def record(cursor, storage_user_id, actor_user_id, changes, source=None):
         (storage_user_id, now - timedelta(days=KEEP_DAYS)),
     )
     if not changes:
-        return 0
+        return None
     batch = uuid.uuid4().hex
     src = source if source in SOURCES else None
     cursor.executemany(
         "INSERT INTO fridge_history "
-        "(storage_user_id, actor_user_id, batch_id, action, name, box, from_box, detail, source, created_at) "
-        "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+        "(storage_user_id, actor_user_id, batch_id, action, name, box, from_box, detail, source,"
+        " expiry, purchase, ref_batch, client, created_at) "
+        "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
         [(storage_user_id, actor_user_id, batch, c["action"], c["name"][:255], c["box"], c["from_box"],
-          c["detail"], src, now) for c in changes],
+          c["detail"], src, _day(c.get("expiry")), _day(c.get("purchase")), ref_batch,
+          (client or None) and client[:120], now) for c in changes],
     )
-    return len(changes)
+    return batch
 
 
 def load(cursor, storage_user_id, limit=500):
@@ -153,7 +187,7 @@ def load(cursor, storage_user_id, limit=500):
     cursor.execute(
         """
         SELECT h.id, h.actor_user_id, h.batch_id, h.action, h.name, h.box, h.from_box, h.detail,
-               h.source, h.created_at,
+               h.source, h.ref_batch, h.created_at,
                CASE WHEN u.deleted_at IS NULL THEN u.nickname ELSE NULL END AS actor_nickname
         FROM fridge_history h
         LEFT JOIN users u ON u.id = h.actor_user_id
@@ -167,3 +201,93 @@ def load(cursor, storage_user_id, limit=500):
     for r in rows:
         r["created_at"] = r["created_at"].isoformat() if r["created_at"] else None
     return rows
+
+
+# ---------------------------------------------------------------------------
+# 되돌리기
+# ---------------------------------------------------------------------------
+
+def _reverse(state, rows, skip_existing):
+    """한 번의 저장(rows)을 state(지금 냉장고 목록) 위에서 거꾸로 적용한 새 목록.
+
+    이름으로 짝을 짓는다(저장이 "전부 지우고 다시 넣기" 라 재료 id 가 남지 않는다).
+    skip_existing: 뺀 재료를 되살릴 때 같은 칸에 같은 이름이 이미 있으면 건너뛴다 —
+    한 줄만 취소할 때 쓴다(그새 다시 담았으면 두 개가 되지 않게).
+    """
+    out = [dict(it) for it in state]
+
+    def find(name, box):
+        same_box = [it for it in out if it["name"] == name and it["box"] == box]
+        return (same_box or [it for it in out if it["name"] == name] or [None])[0]
+
+    for r in rows:
+        name, box = r["name"], r["box"]
+        if r["action"] == "add":
+            hit = find(name, box)
+            if hit is not None:
+                out.remove(hit)
+        elif r["action"] == "remove":
+            if skip_existing and any(it["name"] == name and it["box"] == box for it in out):
+                continue
+            out.append({"name": name, "box": box or "fridge",
+                        "expiry": _day(r.get("expiry")), "purchase": _day(r.get("purchase"))})
+        else:  # move / update — 지금 있는 칸에서 찾아 원래대로
+            hit = find(name, box)
+            if hit is None:
+                continue
+            if r["action"] == "move" and r.get("from_box"):
+                hit["box"] = r["from_box"]
+            if r.get("detail") and ":" in r["detail"]:
+                key, rest = r["detail"].split(":", 1)
+                old = rest.split(">", 1)[0]
+                if key in ("expiry", "purchase"):
+                    hit[key] = old or None
+    return out
+
+
+def plan_revert(cursor, storage_user_id, batch_id, mode):
+    """mode='undo'  — 그 저장 하나만 취소한 목록
+       mode='restore' — 그 저장 **직전** 상태(그 뒤의 저장까지 모두 거꾸로)
+
+    돌려주는 값: (새 목록, 그 저장의 시각) — 기록이 없으면 None.
+    """
+    ensure_table(cursor)
+    cursor.execute(
+        "SELECT MIN(id) AS first_id, MIN(created_at) AS at FROM fridge_history "
+        "WHERE storage_user_id = %s AND batch_id = %s",
+        (storage_user_id, batch_id),
+    )
+    head = cursor.fetchone()
+    if not head or head["first_id"] is None:
+        return None
+
+    cursor.execute(
+        "SELECT name, storage_box, expiry_date, purchase_date FROM user_ingredients "
+        "WHERE user_id = %s FOR UPDATE",
+        (storage_user_id,),
+    )
+    state = [{"name": r["name"], "box": r["storage_box"],
+              "expiry": _day(r["expiry_date"]), "purchase": _day(r["purchase_date"])}
+             for r in cursor.fetchall()]
+
+    if mode == "undo":
+        cursor.execute(
+            "SELECT * FROM fridge_history WHERE storage_user_id = %s AND batch_id = %s ORDER BY id",
+            (storage_user_id, batch_id),
+        )
+        return _reverse(state, cursor.fetchall(), skip_existing=True), head["at"]
+
+    # restore: 가장 최근 저장부터 그 저장까지 차례로 거꾸로 적용
+    cursor.execute(
+        "SELECT * FROM fridge_history WHERE storage_user_id = %s AND id >= %s ORDER BY id DESC",
+        (storage_user_id, head["first_id"]),
+    )
+    batches = defaultdict(list)
+    order = []
+    for r in cursor.fetchall():
+        if r["batch_id"] not in batches:
+            order.append(r["batch_id"])
+        batches[r["batch_id"]].append(r)
+    for b in order:
+        state = _reverse(state, batches[b], skip_existing=False)
+    return state, head["at"]
