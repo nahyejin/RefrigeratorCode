@@ -61,7 +61,7 @@ AI는 「상태가 바뀌는 순간」에 사람 몸과 물건을 섞어 버린�
 
 - **어디서 왔는지가 보여야 한다**: 「나 오다가 우유 사왔어」라고 말하는데 남자가 조리대 옆에 가만히 서 있으면 집에 들어오는 사람처럼 안 보인다.
   - 들어오는 장면은 **긴 걷기 대신 짧게** 쓴다.
-    - 문이 보이지 않는 복도에서 2~3걸음, 천천히, 화면 쪽으로 걸어 들어온다.
+    - 문이 보이지 않는 화면 옆에서 2~3걸음, 천천히 걸어 들어온다. 물건이 놓인 식탁 앞을 지나가지 않게 옆에서 들어온다.
     - 제미나이 조언 5번(정면으로 걸어오기는 비교적 안정적)과 같은 원리다.
     - 문은 열지 않는다. 이미 들어와 있거나, 화면 밖에 있다.
   - 도착 신호도 같이 쓴다: 겉옷(점퍼)을 입은 채, 한 손에 우유만.
@@ -94,12 +94,14 @@ MOTION AND OBJECTS: STRICTLY STATIC ENVIRONMENT. No one walks, no doors open, no
 ```
 
 - 짧게 걸어 들어오는 장면(5번)이 필요한 편만 MOTION 의 `No one walks` 를 바꾼다.
-  - 바꿀 문장: `Only he takes two or three slow steps forward toward the viewer at the start, then stands still; nobody else walks.`
+  - 바꿀 문장: `Only he takes two or three slow steps in from the left side of the frame at the start, then stands still; nobody else walks.`
   - 나머지 문장은 그대로 둔다.
 - [ACTION] 에서 「누가 무엇을 안 하는지」를 한 번 더 적으면 좋다. 예: `Nobody touches or moves the food.`, `She does not scroll or tap the screen.`
 - [LAST SECOND] 는 「가만히 있는 얼굴이나 물건」으로 끝낸다. 예: `…, perfectly still.`
 
 ## 7. 고친 예 — 01 우유 편(5번 규칙 반영)
+8편 전체 완성본: [REEL_HOOKS_V5.md](REEL_HOOKS_V5.md) (`scripts/gen_reel_hooks_v5.py`).
+
 
 ```
 Generate this video in a 9:16 vertical aspect ratio (portrait, 1080×1920) for Instagram Reels.
@@ -111,16 +113,16 @@ Vertical portrait video for a phone held upright. Medium shot on the people.
 A short Korean slice-of-life comedy series. Treat this as raw footage.
 ACTING: Natural, relaxed everyday pace. Subtle facial expressions (a quick look, a short laugh). No big movements.
 SPEECH: Native Korean speakers talking in natural Seoul Korean. Lip movements match the words exactly.
-MOTION AND OBJECTS: STRICTLY STATIC ENVIRONMENT. Only the man takes two or three slow steps forward toward the viewer at the start, then stands still; nobody else walks. No doors open, no objects are passed back and forth. Objects stay exactly where they start (in hands or on the table) to prevent AI morphing. Hands do not change their grip. Only subtle head turns and facial expressions.
+MOTION AND OBJECTS: STRICTLY STATIC ENVIRONMENT. Only the man takes two or three slow steps in from the left side of the frame at the start, then stands still; nobody else walks. No doors open, no objects are passed back and forth. Objects stay exactly where they start (in hands or on the table) to prevent AI morphing. Hands do not change their grip. Only subtle head turns and facial expressions.
 
 [CAST]
 Early-30s Korean man, short tidy hair, light gray zip-up jacket over a navy sweatshirt, just home from outside. His wife, early 30s, hair in a low ponytail, beige knit cardigan.
 
 [HOME]
-Apartment kitchen and dining area in the afternoon. In the foreground, the wife stands near the kitchen entrance. About three meters behind them, clearly visible in the frame but slightly out of focus, is a small wooden dining table. On that table are exactly two identical short plain white milk bottles with blue caps, standing apart, and nothing else. No door is visible. The background is simple.
+Apartment kitchen and dining area in the afternoon. About three meters behind them, clearly visible in the frame but slightly out of focus, is a small wooden dining table. On that table are exactly two identical short plain white milk bottles with blue caps, standing apart, and nothing else. No door is visible. The background is simple.
 
 [ACTION]
-The man comes in from the hallway, taking two or three slow steps toward the viewer while holding one identical short plain white milk bottle with a blue cap in his right hand, then stops next to his wife. He keeps holding the bottle the whole time and never puts it down. She turns her head to him. Then both of them turn their heads and look over at the dining table in the background. Nobody walks to the table, and nobody touches the two bottles on it; they never move. Count: two bottles on the table plus the one in his hand, three in total, the same from start to end.
+The man comes in from the left side of the frame, taking two or three slow steps while holding one identical short plain white milk bottle with a blue cap in his right hand, then stops next to his wife. He keeps holding the bottle the whole time and never puts it down. She turns her head to him. Then both of them turn their heads and look over at the dining table in the background. Nobody walks to the table, and nobody touches the two bottles on it; they never move. Count: two bottles on the table plus the one in his hand, three in total, the same from start to end.
 
 [AUDIO]
 He, walking in and lifting the bottle slightly: "자기야, 나 오다가 우유 사왔어."
