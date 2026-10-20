@@ -2808,6 +2808,9 @@ const Dashboard: React.FC = () => {
               { key: 'visits', label: '방문', group: '방문' },
               { key: 'visit_days', label: '방문한 날', group: '방문' },
             ];
+            // 사람별 표에만: 로그인 횟수(2026-10-20부터 기록)
+            const LOGIN_COL: ActivityCol = { key: 'logins', label: '로그인', group: '방문' };
+            const PROVIDER_LABEL: Record<string, string> = { kakao: '카카오', naver: '네이버', google: '구글', apple: '애플', local: '이메일' };
             const AI: ActivityCol[] = [
               { key: 'ai_chat', label: '챗봇', group: 'AI (쓴 횟수)' },
               { key: 'ai_vision', label: '사진 등록', group: 'AI (쓴 횟수)' },
@@ -2815,6 +2818,7 @@ const Dashboard: React.FC = () => {
             ];
             const COLS: ActivityCol[] = [
               ...VISIT,
+              LOGIN_COL,
               { key: 'ingredients', label: '냉장고', group: '재료', noTotal: true },
               { key: 'ing_added', label: '담기', group: '재료' },
               { key: 'ing_removed', label: '빼기', group: '재료' },
@@ -2862,6 +2866,9 @@ const Dashboard: React.FC = () => {
                       { label: '가입일', render: u => (
                         <span style={{ fontSize: 12, color: 'var(--ink-500)' }}>{dayOf(u.created_at) || '-'}</span>
                       ) },
+                      { label: '가입 방법', render: u => (
+                        <span style={{ fontSize: 12, color: 'var(--ink-500)' }}>{PROVIDER_LABEL[u.provider] || u.provider || '-'}</span>
+                      ) },
                     ]}
                     cols={COLS}
                     tail={[{ label: '마지막 활동', render: u => when(u.last_active) }]}
@@ -2871,6 +2878,8 @@ const Dashboard: React.FC = () => {
                     ) : null}
                   />
                   <div style={{ fontSize: 12, color: 'var(--ink-500)', padding: '10px 16px 14px', lineHeight: 1.8 }}>
+                    <b>가입 방법</b> 어느 계정으로 가입했는지. <b>로그인</b> 로그인한 횟수(가입 때 한 번 포함) — 2026-10-20부터 기록돼서 그 전에 로그인한 건 빠져 있어요.
+                    <br />
                     <b>방문</b> 앱·웹을 연 횟수. 30분 넘게 아무것도 안 하다 다시 쓰면 새 방문이에요.
                     로그인 전에 둘러보다 그 방문 안에서 로그인했으면 그 사람 방문으로 쳐요.
                     <b> 방문한 날</b>은 그중 서로 다른 날짜 수 — 2 이상이면 다른 날 다시 온 사람이에요.

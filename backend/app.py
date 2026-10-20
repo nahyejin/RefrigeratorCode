@@ -1232,6 +1232,19 @@ def ensure_users_table():
     finally:
         db.close()
 
+def _log_auth_event(user_id, name, provider=None):
+    """가입(signup)·로그인(login)을 화면 기록(user_events)에 남긴다 — 어드민 「사람별 활동」용(2026-10-20).
+
+    이름은 예전부터 허용 목록에 있었지만 남기는 코드가 한 곳도 없어서 가입·로그인이 기록에 하나도 없었다.
+    기록 실패가 로그인·가입을 막으면 안 되므로 예외는 삼킨다.
+    """
+    try:
+        import user_events
+        user_events.log_action(get_db, user_id, name, (provider or None))
+    except Exception as e:  # noqa: BLE001
+        print(f"[events] {name} 기록 실패(무시): {e}", flush=True)
+
+
 def grant_new_user_credits(user_id, email=None, provider=None, provider_id=None):
     """새로 만든 계정에 가입 크레딧을 준다.
 
@@ -1241,6 +1254,7 @@ def grant_new_user_credits(user_id, email=None, provider=None, provider_id=None)
     지급이 실패해도 가입 자체는 성공시킨다 — 크레딧 때문에 로그인이 막히면
     본말이 전도된다.
     """
+    _log_auth_event(user_id, 'signup', provider)  # 새 계정을 만든 모든 길(소셜·이메일)이 여기를 지난다
     try:
         import usage_quota
 
@@ -1408,6 +1422,7 @@ def _remember_native_login():
 
 def _oauth_success_response(token, user, provider):
     """소셜 로그인 성공 뒤 돌려줄 응답 — 웹이면 프론트로, 앱이면 앱으로 돌아가는 페이지."""
+    _log_auth_event((user or {}).get('id') if isinstance(user, dict) else None, 'login', provider)
     challenge = session.pop('oauth_native_challenge', None)
     if not challenge:
         return redirect(f"{FRONTEND_URL}/auth/success?token={token}")
@@ -1594,6 +1609,7 @@ def apple_native_login():
         _save_apple_refresh_token(user['id'], authorization_code)
 
         token = generate_jwt_token(user['id'], user['email'], user['nickname'], provider='apple')
+        _log_auth_event(user['id'], 'login', 'apple')
         return jsonify({'token': token})
     except Exception as e:
         print(f"[Apple 로그인] 처리 실패: {e}")
@@ -2083,6 +2099,7 @@ def login():
             
             # JWT 토큰 생성
             token = generate_jwt_token(user_id, user_email, user_nickname, provider='local')
+            _log_auth_event(user_id, 'login', 'local')
             
             return jsonify({
                 'message': '로그인되었습니다.',

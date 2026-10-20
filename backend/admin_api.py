@@ -1285,6 +1285,9 @@ def register(app, get_db):
             )
             cursor.execute("SHOW TABLES LIKE 'user_events'")
             has_events = bool(cursor.fetchone())
+            # 로그인 횟수 — `login` 기록은 2026-10-20 부터 쌓인다(그 전 로그인은 기록이 없어 0).
+            login_sql = ("(SELECT COUNT(*) FROM user_events WHERE user_id = u.id AND name = 'login')"
+                         if has_events else "0")
             # 서버 기록은 detail 에 개수를 적는다. 개수가 없는 옛 기록은 1건으로 친다.
             ev_join = (
                 """
@@ -1307,7 +1310,8 @@ def register(app, get_db):
             )
             cursor.execute(
                 """
-                SELECT u.id, u.nickname, u.email, u.created_at,
+                SELECT u.id, u.nickname, u.email, u.created_at, u.provider,
+                       """ + login_sql + """ logins,
                        (SELECT COUNT(*) FROM user_ingredients WHERE user_id = """ + fridge_owner + """) ingredients,
                        u.household_id IS NOT NULL in_household,
                        COALESCE(ev.visits, 0) visits,
