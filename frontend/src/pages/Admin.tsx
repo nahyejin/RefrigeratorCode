@@ -2002,6 +2002,15 @@ const Range: React.FC<{ children: React.ReactNode; inline?: boolean; mode?: 'per
   );
 };
 
+/** 숫자 카드 한 장 — 「새로 들어온 기기」 누적 칸과 기간 칸이 같이 쓴다. */
+const StatTile: React.FC<{ title: string; value: string | number; sub?: string }> = ({ title, value, sub }) => (
+  <div style={{ flex: '1 1 150px', background: 'var(--surface-2, #f4f4f2)', borderRadius: 10, padding: '10px 12px' }}>
+    <div style={{ fontSize: 11.5, color: 'var(--ink-500)', fontWeight: 600 }}>{title}</div>
+    <div style={{ fontSize: 22, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{typeof value === 'number' ? num(value) : value}</div>
+    {sub && <div style={{ fontSize: 11, color: 'var(--ink-500)', marginTop: 2, lineHeight: 1.45 }}>{sub}</div>}
+  </div>
+);
+
 /**
  * 사람(또는 기기) 한 줄씩 늘어놓는 활동 표 — 「사람별 활동」·「로그인 없이 들어온 기기」 가 같이 쓴다.
  *
@@ -2389,6 +2398,30 @@ const Dashboard: React.FC = () => {
 
   return (
     <PeriodContext.Provider value={periodLabel}>
+      {/* 날짜 선택(아래 StatsBar)과 상관없이 지금까지 쌓인 숫자라서 선택 줄 **위**에 따로 둔다(2026-10-20 사용자:
+          기간 무관한 칸이 기간 선택 아래 섞여 있어 선택에 따라 바뀌는 줄 착각) */}
+      {act?.today_kst && (() => {
+        const dt: Record<string, number> = act.devices_total || {};
+        const dtAll = Object.values(dt).reduce((a, n) => a + (Number(n) || 0), 0);
+        return (
+          <div style={S.card}>
+            <h2 style={S.h2}>앱·웹에 들어온 기기 — 전체 누적</h2>
+            <Range mode="fixed">
+              아래 날짜를 바꿔도 변하지 않아요 · 서버에 처음 기록된 날부터 지금까지 · 내 계정·기기 제외 · 모두 합치면 {num(dtAll)}
+            </Range>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '0 0 4px' }}>
+              <StatTile title="앱 — 설치하고 처음 연 기기" value={(dt.android || 0) + (dt.ios || 0)}
+                        sub={`안드로이드 ${num(dt.android || 0)} · 아이폰 ${num(dt.ios || 0)}`} />
+              <StatTile title="웹 — 브라우저로 쿡매치를 쓴 기기" value={dt.web || 0} sub="다운로드 페이지 말고 실제 화면까지 들어옴" />
+              <StatTile title="다운로드 링크만 누른 기기" value={(dt.link_ios || 0) + (dt.link_android || 0) + (dt.link_web || 0)}
+                        sub={`스토어로 넘어감(설치 여부 모름) · 아이폰 ${num(dt.link_ios || 0)} · 안드로이드 ${num(dt.link_android || 0)} · PC 등 ${num(dt.link_web || 0)}`} />
+              <StatTile title="앱·웹 구분 전" value={dt.unknown || 0} sub="10/12 전에 들어와 어느 쪽인지 모름" />
+              <StatTile title="사람 아님·안내 페이지만" value={dt.other || 0} sub="개인정보처리방침·약관만 열어 봄(스토어 심사 등), 링크 미리보기 봇" />
+            </div>
+          </div>
+        );
+      })()}
+
       <StatsBar
         value={filter}
         onChange={setFilter}
@@ -2402,12 +2435,11 @@ const Dashboard: React.FC = () => {
               {/* 이름 변천(2026-10-17): 「새로 들어온 기기」 → 「앱 다운로드」(찾기 쉽게) → 다시 「새로 들어온 기기」.
                   「앱 다운로드 누적 286」 이 스토어 다운로드 286회처럼 읽혔는데, 실제론 웹 첫 방문 브라우저와
                   앱·웹 구분 전 기기까지 섞인 숫자였다. 앱과 웹을 따로 보이고 이름에 무엇을 세는지 적는다. */}
-              <h2 style={S.h2}>새로 들어온 기기 <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-500)' }}>(앱 처음 연 기기 · 웹 사용 · 다운로드 링크만)</span></h2>
+              <h2 style={S.h2}>새로 들어온 기기 — 고른 기간 <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-500)' }}>(그 기간에 처음 기록된 기기)</span></h2>
               <Range mode="period">
                 {act.filters?.ranged
-                  ? `아래 「${periodLabel}」 칸과 날짜 표 — 그 기간에 처음 기록된 기기`
-                  : '「전체」 일 때 아래 칸과 날짜 표는 최근 7일'}
-                {' · 맨 위 누적은 기간 무관 · 내 계정·기기 제외'}
+                  ? `위에서 고른 「${periodLabel}」 에 서버에 처음 기록된 기기만 · 내 계정·기기 제외`
+                  : '「전체」를 고르면 최근 7일만 보여 줘요(전체 누적은 맨 위 카드) · 내 계정·기기 제외'}
               </Range>
               {(() => {
                 // 맨 위의 기간 설정을 그대로 따른다(기간을 안 골랐으면 최근 7일).
@@ -2440,32 +2472,21 @@ const Dashboard: React.FC = () => {
                     {sub && <div style={{ fontSize: 11, color: 'var(--ink-500)', marginTop: 2 }}>{sub}</div>}
                   </div>
                 );
-                const dt: Record<string, number> = act.devices_total || {};
-                const dtAll = Object.values(dt).reduce((a, n) => a + (Number(n) || 0), 0);
                 return (
                   <>
-                    {/* 지금까지 누적 — 앱 / 웹 / 구분 전 을 **따로**. 한 숫자로 합치면 다운로드 수처럼 읽힌다. */}
                     <div style={{ margin: '4px 0 6px' }}>
-                      <Range inline mode="fixed">
-                        지금까지 누적 <span style={{ fontVariantNumeric: 'tabular-nums' }}>(모두 합치면 {num(dtAll)})</span>
-                      </Range>
-                    </div>
-                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '0 0 8px' }}>
-                      {tile('앱 — 설치하고 처음 연 기기', (dt.android || 0) + (dt.ios || 0),
-                            `안드로이드 ${num(dt.android || 0)} · 아이폰 ${num(dt.ios || 0)}`)}
-                      {tile('웹 — 브라우저로 쿡매치를 쓴 기기', dt.web || 0, '다운로드 페이지 말고 실제 화면까지 들어옴')}
-                      {tile('다운로드 링크만 누른 기기', (dt.link_ios || 0) + (dt.link_android || 0) + (dt.link_web || 0),
-                            `스토어로 넘어감(설치 여부 모름) · 아이폰 ${num(dt.link_ios || 0)} · 안드로이드 ${num(dt.link_android || 0)} · PC 등 ${num(dt.link_web || 0)}`)}
-                      {tile('앱·웹 구분 전', dt.unknown || 0, '10/12 전에 들어와 어느 쪽인지 모름')}
-                      {tile('사람 아님·안내 페이지만', dt.other || 0, '개인정보처리방침·약관만 열어 봄(스토어 심사 등), 링크 미리보기 봇')}
-                    </div>
-                    <div style={{ margin: '12px 0 6px' }}>
-                      <Range inline mode="period">{ranged ? '이 기간에 새로 들어온 기기' : '「전체」 일 때는 최근 7일'}</Range>
+                      <Range inline mode="period">{ranged ? '이 기간에 처음 기록된 기기' : '「전체」를 고르면 최근 7일'}</Range>
                     </div>
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '0 0 12px' }}>
-                      {tile(ranged ? '새로 들어온 기기' : '7일 동안 새로 들어온 기기', total)}
-                      {tile('하루 평균', all.length ? (total / all.length).toFixed(1) : '0')}
-                      {tile(`${label(to)}${to === today ? '' : '(마지막 날)'} 새로 들어온 기기`, on(to))}
+                      <StatTile title="합계 (사람 아님 제외)" value={total}
+                                sub={`하루 평균 ${all.length ? (total / all.length).toFixed(1) : '0'}명 · ${all.length}일`} />
+                      <StatTile title="앱 — 설치하고 처음 연 기기" value={sumOf(all, 'android') + sumOf(all, 'ios')}
+                                sub={`안드로이드 ${num(sumOf(all, 'android'))} · 아이폰 ${num(sumOf(all, 'ios'))}`} />
+                      <StatTile title="웹 — 브라우저로 쿡매치를 쓴 기기" value={sumOf(all, 'web')} sub="다운로드 페이지 말고 실제 화면까지 들어옴" />
+                      <StatTile title="다운로드 링크만 누른 기기" value={sumOf(all, 'link')}
+                                sub={`아이폰 ${num(sumOf(all, 'link_ios'))} · 안드로이드 ${num(sumOf(all, 'link_android'))} · PC 등 ${num(sumOf(all, 'link_web'))}`} />
+                      <StatTile title="앱·웹 구분 전" value={sumOf(all, 'unknown')} sub="10/12 전에 들어와 어느 쪽인지 모름" />
+                      <StatTile title="사람 아님·안내 페이지만" value={sumOf(all, 'other')} sub="방침·약관만 열어 봄, 링크 미리보기 봇" />
                     </div>
                     <div style={{ overflowX: 'auto' }}>
                     <div className="adm-scroll"><table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 460 }}>
