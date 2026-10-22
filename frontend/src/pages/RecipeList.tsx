@@ -991,6 +991,12 @@ const RecipeList: React.FC = () => {
       // 브라우저 새로고침이면 저장해 둔 목록을 버리고 새로 받는다 — 같은 매칭률 안의 순서를 새로 섞기 위해
       // (2026-10-08 「새로고침할 때마다 랜덤하게」). 다른 탭 갔다 오는 건 그대로 복원.
       if (consumePageReload()) sessionStorage.removeItem(STORAGE_KEY_RECIPE_LIST);
+      // **다른 화면에 갔다가 돌아오면 검색 조건은 기본값으로 시작한다**(2026-10-22 사용자 결정 — 「최근 검색조건」으로
+      // 되살린 조건이 탭을 오간 뒤에도 그대로 걸려 있어 풀리지 않았다). 풀린 조건은 「최근 검색조건」 배지로 한 번에 되살린다.
+      // 예전엔 탭을 오가도 조건을 유지했는데(2026-10 「바꾼 게 원복됐다」 수정), 그 역할은 이제 배지가 맡는다.
+      // 저장은 이 화면에 머무는 동안 그대로 쓰고(아래 저장 effect), 돌아올 때 여기서 버린다.
+      sessionStorage.removeItem(STORAGE_KEY_RECIPE_LIST);
+      sessionStorage.removeItem(STORAGE_KEY_RECIPE_SETTINGS);
       const savedState = sessionStorage.getItem(STORAGE_KEY_RECIPE_LIST);
       const savedIngredientsHash = sessionStorage.getItem(STORAGE_KEY_INGREDIENTS_HASH);
       const currentIngredientsHash = getIngredientsHash();
