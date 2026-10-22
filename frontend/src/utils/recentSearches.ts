@@ -11,7 +11,8 @@
  */
 const KEY = 'cookmatch_recent_recipe_conditions_v1';
 const OLD_KEY = 'cookmatch_recent_recipe_searches_v1'; // 검색어만 저장하던 첫 판(같은 날 교체) — 읽어서 옮긴다
-export const RECENT_SEARCH_MAX = 6;
+// 10개를 넘으면 가장 오래된 것부터 지운다(2026-10-22 사용자: 5~10개 정도). 한 줄 가로 스크롤이라 10개까지는 충분히 훑어볼 수 있다.
+export const RECENT_SEARCH_MAX = 10;
 
 export interface SearchCondition {
   keyword: string;

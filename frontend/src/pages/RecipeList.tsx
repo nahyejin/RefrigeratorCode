@@ -2571,7 +2571,9 @@ const RecipeList: React.FC = () => {
           const nowKey = conditionKey(currentCondition);
           const atDefault = isDefaultCondition(currentCondition, base);
           return (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4, margin: '-6px 0 10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, margin: '-6px 0 10px' }}>
+            {/* 「최근」 글자는 스크롤되는 배지 줄 밖, 맨 왼쪽에 고정 */}
+            <span style={{ fontSize: 11.5, color: '#9A9AA2', flexShrink: 0 }}>최근</span>
             <div
               style={{
                 display: 'flex',
@@ -2585,7 +2587,6 @@ const RecipeList: React.FC = () => {
               }}
               aria-label="최근 검색조건"
             >
-              <span style={{ fontSize: 11.5, color: '#9A9AA2', flexShrink: 0 }}>최근</span>
               {recentSearches.map((c) => {
                 const label = describeCondition(c, base);
                 const active = conditionKey(c) === nowKey;
