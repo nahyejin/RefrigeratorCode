@@ -77,7 +77,7 @@ const baseGuideSteps = [
   {
     targetSelector: '[data-guide-target="storage-areas"]',
     message:
-      '냉동·냉장·실온 세 칸이에요.\n자주 쓰는 재료를 미리 넣어 뒀으니\n내 냉장고에 맞게 고쳐 쓰세요.',
+      '냉동·냉장·실온 세 칸이에요.\n없는 재료는 X 를 눌러\n지울 수 있어요.',
     position: 'top' as const,
   },
   {

@@ -13485,3 +13485,5 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 - 확인(로컬 미리보기): 첫 진입 팝업에서 「소금」을 빼고 시작 → 냉장고 29개·소금 없음, 직접 담은 재료 3개 상태에서 4번째 입력 즉시 확인창, 즐겨찾기 4번째 차단(3개 유지)과 확인창, AI 소진 확인창, 두 번째 방문 팝업(탭 이동 시), 로그인 화면 안내 줄. 서버(Railway)는 실제 DB 쿼리를 이 PC에서 돌려 보지 못했고(문법 검사만) 배포 뒤 어드민 카드로 확인 필요.
 - 정리: `WelcomeModal.tsx`·`RegisterPromptModal.tsx`(MyFridge·RecipeList·Popular 에서 더는 안 씀)는 파일만 남아 있다.
 - 알려둘 것: 이전 작업에서 쓴 `npx tsc --noEmit -p .` 는 루트 tsconfig 가 `files: []` 라 아무것도 검사하지 않았다. 앞으로는 `-p tsconfig.app.json` 을 쓴다(기존에 있던 오류 몇 건은 이번 변경과 무관: CustomCalendar·RecipeSortBar·Login 버튼 등).
+- (같은 날 추가 정리) 안 쓰게 된 **`WelcomeModal.tsx`·`RegisterPromptModal.tsx` 삭제**. 마이페이지(`MyPage.tsx`)에 남아 있던 옛 「완료·기록 5개 권유 팝업」도 같은 3개 한도로 바꾸고(즐겨찾기 포함, `guardGuestSave`), 완료·기록 목록 화면(`CompletedRecipeListPage`·`RecordedRecipeListPage`)의 저장 버튼에도 한도를 걸었다. 첫 진입 사용 가이드 1단계 문구가 새 팝업과 겹쳐(「자주 쓰는 재료를 미리 넣어 뒀으니 고쳐 쓰세요」) 「냉동·냉장·실온 세 칸이에요. 없는 재료는 X 를 눌러 지울 수 있어요.」로 바꿨다.
+- (같은 날 검증) 어드민 「가입 유도 팝업」 카드의 쿼리 두 개를 **실제 서버 DB에 읽기 전용(SELECT)으로 돌려 오류 없이 실행됨을 확인**(아직 cta 이벤트가 없어 0행). 서버 `user_events` 에는 현재 signup·login 이벤트가 0건 — 마지막 가입(id 85)이 10/19 라 로깅 배포(10/20) 이후 가입이 없었고, 로그인은 토큰이 유지돼 새 로그인이 없었을 수 있다. 다음 가입·로그인 때 기록되는지 다시 확인할 것.

@@ -102,9 +102,9 @@ import {
   normalizeRecipeId,
   addRecipeActionToDB,
   removeRecipeActionFromDB,
+  guardGuestSave,
 } from '../utils/recipeStorage';
 import { useAuth } from '../context/AuthContext';
-import RegisterPromptModal from '../components/RegisterPromptModal';
 import BottomCoupangAd from '../components/BottomCoupangAd';
 import { parseUsedIngredientsForPills } from '../utils/ingredientPillNoise';
 
@@ -651,9 +651,6 @@ const MyPage: React.FC = () => {
   const [showPassword2, setShowPassword2] = useState(false);
   const [checkingNickname, setCheckingNickname] = useState(false);
   const [nicknameCheckResult, setNicknameCheckResult] = useState<{ available: boolean; message: string } | null>(null);
-  const [showRegisterModal, setShowRegisterModal] = useState(false);
-  const [registerModalMessage, setRegisterModalMessage] = useState('');
-  const [pendingRegisterRecipe, setPendingRegisterRecipe] = useState<{ id: number; type: 'done' | 'write'; recipe: any } | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
   // 가족 그룹에 속해 있으면, "내가 즐겨찾는/기록한/완료한" 영역을 그룹원
@@ -1155,6 +1152,7 @@ const MyPage: React.FC = () => {
       completedRecipes.find(r => r.id === id);
 
     if (recipe) {
+      if (!guardGuestSave('favorite', id)) return;   // 비회원 3개 한도(4번째부터 로그인 확인창)
       const savedRecipe = withUserSavedAt(recipe);
       addRecipeToLocalStorage('favorite', savedRecipe);
       addRecipeToDB('favorite', id);
@@ -1182,17 +1180,8 @@ const MyPage: React.FC = () => {
       // 완료 추가 전에 5개 조건 체크
       const recipe = recordedRecipes.find(r => r.id === id) || completedRecipes.find(r => r.id === id);
       if (recipe && !getRecipesFromLocalStorage('done').some(r => r.id === id)) {
-        const currentCount = getRecipesFromLocalStorage('done').length;
-        const totalCount = currentCount + 1;
-        
-        // 완료한 레시피 5개 이상 시 회원가입 유도 (비회원일 때만)
-        if (totalCount >= 5 && !isLoggedIn) {
-          // 레시피 저장 전에 모달 표시
-          setPendingRegisterRecipe({ id, type: 'done', recipe });
-          setRegisterModalMessage('더 많은 레시피를 완료하려면');
-          setShowRegisterModal(true);
-          return;
-        }
+        // 비회원은 완료 3개까지(4번째부터 로그인 확인창)
+        if (!guardGuestSave('done', id)) return;
         
         // 조건 통과 시 레시피 저장
         const savedRecipe = withUserSavedAt(recipe);
@@ -1226,17 +1215,8 @@ const MyPage: React.FC = () => {
       // 기록 추가 전에 5개 조건 체크
       const recipe = completedRecipes.find(r => r.id === id) || recordedRecipes.find(r => r.id === id);
       if (recipe && !getRecipesFromLocalStorage('write').some(r => r.id === id)) {
-        const currentCount = getRecipesFromLocalStorage('write').length;
-        const totalCount = currentCount + 1;
-        
-        // 기록한 레시피 5개 이상 시 회원가입 유도 (비회원일 때만)
-        if (totalCount >= 5 && !isLoggedIn) {
-          // 레시피 저장 전에 모달 표시
-          setPendingRegisterRecipe({ id, type: 'write', recipe });
-          setRegisterModalMessage('더 많은 레시피를 기록하려면');
-          setShowRegisterModal(true);
-          return;
-        }
+        // 비회원은 기록 3개까지(4번째부터 로그인 확인창)
+        if (!guardGuestSave('write', id)) return;
         
         // 조건 통과 시 레시피 저장
         const savedRecipe = withUserSavedAt(recipe);
@@ -2024,34 +2004,6 @@ const MyPage: React.FC = () => {
         </div>
       )}
       
-      {/* 회원가입 유도 모달 */}
-      <RegisterPromptModal
-        visible={showRegisterModal}
-        onClose={() => {
-          setShowRegisterModal(false);
-          setPendingRegisterRecipe(null);
-        }}
-        onConfirm={() => {
-          // 회원가입하기를 누르면 레시피 저장 진행
-          if (pendingRegisterRecipe) {
-            if (pendingRegisterRecipe.type === 'done') {
-              const savedRecipe = withUserSavedAt(pendingRegisterRecipe.recipe);
-              addRecipeToLocalStorage('done', savedRecipe);
-              addRecipeToDB('done', pendingRegisterRecipe.id);
-              const updatedCompleted = sortRecipesByUserSavedAtDesc([savedRecipe, ...completedRecipes]);
-              setCompletedRecipes(updatedCompleted);
-            } else if (pendingRegisterRecipe.type === 'write') {
-              const savedRecipe = withUserSavedAt(pendingRegisterRecipe.recipe);
-              addRecipeToLocalStorage('write', savedRecipe);
-              addRecipeToDB('write', pendingRegisterRecipe.id);
-              const updatedRecorded = sortRecipesByUserSavedAtDesc([savedRecipe, ...recordedRecipes]);
-              setRecordedRecipes(updatedRecorded);
-            }
-            setPendingRegisterRecipe(null);
-          }
-        }}
-        message={registerModalMessage || '더 많은 기능을 사용하려면'}
-      />
       
       {/* 회원탈퇴 확인 모달.
           예전에는 `z-[calc(var(--z-modal) + 1)]` 이라고 적혀 있었는데,

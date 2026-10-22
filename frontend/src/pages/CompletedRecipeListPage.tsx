@@ -24,6 +24,7 @@ import {
   getRecipeActionState,
   addRecipeActionToDB,
   removeRecipeActionFromDB,
+  guardGuestSave,
 } from '../utils/recipeStorage';
 import { useAuth } from '../context/AuthContext';
 import { DEFAULT_MATCH_MIN } from '../utils/recipePrefetch';
@@ -222,6 +223,7 @@ const CompletedRecipeListPage: React.FC = () => {
     const prev = recipeActionStates[id] || { done: false, write: false, share: false, favorite: false };
 
     if (!prev.done) {
+      if (!guardGuestSave('done', id)) return;   // 비회원 3개 한도
       // 완료 추가
       const recipe = recipes.find(r => r.id === id);
       if (recipe && !getRecipesFromLocalStorage('done').some((r: any) => r.id === id)) {
@@ -244,6 +246,7 @@ const CompletedRecipeListPage: React.FC = () => {
     const prev = recipeActionStates[id] || { done: false, write: false, share: false, favorite: false };
 
     if (!prev.write) {
+      if (!guardGuestSave('write', id)) return;   // 비회원 3개 한도
       // 기록 추가
       const recipe = recipes.find(r => r.id === id);
       if (recipe && !getRecipesFromLocalStorage('write').some((r: any) => r.id === id)) {
@@ -279,6 +282,7 @@ const CompletedRecipeListPage: React.FC = () => {
     const recipe = recipes.find(r => r.id === id);
 
     if (!prev.favorite) {
+      if (!guardGuestSave('favorite', id)) return;   // 비회원 3개 한도
       if (recipe && !getRecipesFromLocalStorage('favorite').some((r: any) => r.id === id)) {
         addRecipeToLocalStorage('favorite', recipe);
         if (syncUserId) addRecipeActionToDB('favorite', syncUserId, id);
