@@ -22,7 +22,7 @@
 #   · 5분 알림 동안 누가 만지면 잠들지 않는다
 #   · 최대 6시간 기다려도 계속 쓰고 있으면 그날은 포기한다
 #
-# **-Shutdown (2026-10-22 사용자 요청)**: 절전 대신 완전히 끈다(shutdown /s /f). 매일 14:00 CookMatch-MiddayShutdown 이
+# **-Shutdown (2026-10-22 사용자 요청, 07:00~19:00 켜 둠)**: 절전 대신 완전히 끈다(shutdown /s /f). 매일 19:00 CookMatch-EveningShutdown 이
 #   위 확인을 거쳐 끄고, 다음 날 아침은 BIOS 「Resume by Alarm」(06:55)이 전원을 켠다(윈도우 자동 로그인 → 07:00 CookMatch-DailyChain).
 #   절전+작업 스케줄러 깨우기는 무인 깨어남 재절전·깨움 지연(10-21 07:07 깸 → 07:12 잠 → 07:26 배치 시작)이 반복돼 접었다.
 #   이 모드에선 CookMatch-MorningWake·keep_awake 가 필요 없다(켜진 채로 안 재우니까).
