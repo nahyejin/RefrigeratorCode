@@ -34,6 +34,7 @@ import { useAuth } from '../context/AuthContext';
 import RegisterPromptModal from '../components/RegisterPromptModal';
 import GuideOverlay from '../components/GuideOverlay';
 import { markUsageGuideFinished, markUsageGuideOpened, usageGuideTotalSteps, USAGE_GUIDE_STEPS } from '../utils/onboardingPrompts';
+import { loadRecentSearches, addRecentSearch, removeRecentSearch, clearRecentSearches } from '../utils/recentSearches';
 
 // 사용법 안내(GuideOverlay)에서 "즐겨찾기(☆)" 처럼 글자로 아이콘을 대신 적어 두면
 // 실제 버튼 모양과 안 맞거나(즐겨찾기는 카드 위 어두운 원+별) 폰트에 따라 글자가
@@ -764,6 +765,8 @@ const RecipeList: React.FC = () => {
     useState<{ label: string; onClick: () => void } | null>(null);
   const [includeKeyword, setIncludeKeyword] = useState('');
   const [keywordSearchInput, setKeywordSearchInput] = useState('');
+  // 최근 검색어(기기 저장) — 검색창 아래 배지로 보여 주고, 눌러서 다시 찾는다.
+  const [recentSearches, setRecentSearches] = useState<string[]>(() => loadRecentSearches());
   const [allIngredients, setAllIngredients] = useState<string[]>([]);
   const [substituteTable, setSubstituteTable] = useState<{ [key: string]: { ingredient_b: string; similarity_score?: number }[] }>({});
   const [matchRateModalOpen, setMatchRateModalOpen] = useState(false);
@@ -884,8 +887,17 @@ const RecipeList: React.FC = () => {
   const handleKeywordSearchSubmit = useCallback((event?: React.FormEvent<HTMLFormElement>) => {
     event?.preventDefault();
     setPage(1);
-    setIncludeKeyword(keywordSearchInput.trim());
+    const term = keywordSearchInput.trim();
+    setIncludeKeyword(term);
+    if (term) setRecentSearches(addRecentSearch(term));
   }, [keywordSearchInput]);
+
+  const applyRecentSearch = useCallback((term: string) => {
+    setKeywordSearchInput(term);
+    setPage(1);
+    setIncludeKeyword(term);
+    setRecentSearches(addRecentSearch(term)); // 쓴 것은 맨 앞으로
+  }, []);
   
   // 컴포넌트 마운트 시 sessionStorage에서 상태 복원 (재료 변경 감지 포함)
   useEffect(() => {
@@ -2459,6 +2471,66 @@ const RecipeList: React.FC = () => {
             </svg>
           </button>
         </form>
+
+        {/* 최근 검색어 — 한 줄(줄바꿈 없음), 넘치면 옆으로 밀어 보기. 배지를 누르면 다시 검색, ✕ 는 그 검색어만 지움. */}
+        {recentSearches.length > 0 && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              margin: '-6px 0 10px',
+              overflowX: 'auto',
+              whiteSpace: 'nowrap',
+              scrollbarWidth: 'none',
+            }}
+            aria-label="최근 검색어"
+          >
+            <span style={{ fontSize: 11.5, color: '#9A9AA2', flexShrink: 0 }}>최근</span>
+            {recentSearches.map((term) => {
+              const active = term === includeKeyword;
+              return (
+                <span
+                  key={term}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    flexShrink: 0,
+                    borderRadius: 9999,
+                    border: active ? '1px solid #1A1A1E' : '1px solid #E4E4E8',
+                    background: active ? '#FFFFFF' : '#F4F4F6',
+                    color: '#1A1A1E',
+                    fontSize: 12.5,
+                    lineHeight: 1,
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => applyRecentSearch(term)}
+                    style={{ border: 'none', background: 'transparent', color: 'inherit', font: 'inherit', padding: '7px 4px 7px 11px', cursor: 'pointer' }}
+                  >
+                    {term}
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={`${term} 지우기`}
+                    onClick={() => setRecentSearches(removeRecentSearch(term))}
+                    style={{ border: 'none', background: 'transparent', color: '#9A9AA2', font: 'inherit', padding: '7px 9px 7px 2px', cursor: 'pointer' }}
+                  >
+                    ✕
+                  </button>
+                </span>
+              );
+            })}
+            <button
+              type="button"
+              onClick={() => setRecentSearches(clearRecentSearches())}
+              style={{ flexShrink: 0, border: 'none', background: 'transparent', color: '#9A9AA2', fontSize: 11.5, padding: '4px 2px', cursor: 'pointer' }}
+            >
+              모두 지우기
+            </button>
+          </div>
+        )}
         
         <RecipeSortBar
           recipes={recipes}

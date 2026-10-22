@@ -13413,3 +13413,9 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 - 점검: 절전(S3)+작업 스케줄러 깨우기가 불안정 — 10-21 07:07 깸 → 07:12 무인 재절전 → 07:20 깸 → 07:26 배치 시작, 크롤러 11:04에 멈춤(작업 결과 0xC000013A), 13:05 절전. 10-22는 01:10에 사용자가 직접 종료해 아침 배치가 안 돎(14:29 수동 켬). 유선 랜(Realtek 2.5GbE)은 케이블이 없고 USB 무선랜만 연결돼 있어 꺼짐/절전 중 원격 깨우기가 불가.
 - `sleep_when_idle.ps1`: `-Shutdown` 추가 — 기존 안전장치(배치 종료 대기·15분 입력 없음·Claude Code 작업 중 아님·5분 알림·no_shutdown.flag) 뒤에 `shutdown /s /f /t 0`. `ChainRunning` 은 작업 상태 외에 크롤러·배치 프로세스(python/cmd)가 남아 있어도 도는 중으로 봄.
 - 사용자가 할 일(시스템 설정, 내가 안 건드림): BIOS Resume by Alarm 06:55 + AC BACK Always On, 윈도우 자동 로그인, 작업 `CookMatch-MorningWake`·`CookMatch-MiddaySleep` 삭제 후 `CookMatch-MiddayShutdown`(14:00, `-Shutdown`) 등록, 원격 켜기용 유선 랜 연결+Wake on LAN 또는 스마트 플러그.
+
+### 냉장고요리 「최근 검색어」 배지 (2026-10-22)
+- 사용자: 가입 전환 개선 중 가벼운 것부터 — 냉장고요리 검색창 아래에 최근 검색어를 배지로 보여 달라(개수는 몇 개만).
+- 신규 `frontend/src/utils/recentSearches.ts`: localStorage `cookmatch_recent_recipe_searches_v1`, 최대 6개, 같은 검색어는 맨 앞으로, 40자 제한, 저장 실패는 조용히 무시.
+- `frontend/src/pages/RecipeList.tsx`: 키워드 검색을 제출하면 기록, 검색창 아래 한 줄(줄바꿈 없이 옆으로 밀어 보기)에 「최근」 + 배지(누르면 그 검색어로 바로 검색, ✕ 로 한 개 지움) + 「모두 지우기」. 지금 적용 중인 검색어 배지는 검정 테두리.
+- 확인(로컬 미리보기): 데스크톱·375px 폭에서 배지 줄이 화면을 넘치지 않고 옆으로만 밀림, 배지 누르기·✕·모두 지우기 정상. 앱(안드로이드·iOS)은 새 빌드가 나가야 보이고 웹은 배포 즉시.
