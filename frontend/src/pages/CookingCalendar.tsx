@@ -1684,25 +1684,32 @@ const CookingCalendar: React.FC = () => {
     }
   };
 
-  // ── 사용 가이드 14단계 ─────────────────────────────────────
-  // 냉장고요리 가이드 마지막(13단계, AI 챗봇)에서 `?fromGuide=true` 로 넘어온다.
+  // ── 사용 가이드 13~15단계 ──────────────────────────────────
+  // 냉장고요리 가이드 마지막(12단계, AI 챗봇)에서 `?fromGuide=true` 로 넘어온다.
   // 아래 로그인 여부 분기(early return)보다 **위**에 둔다 — 훅은 분기 뒤에 둘 수 없다.
   const [showGuide, setShowGuide] = React.useState(false);
   const [guideStep, setGuideStep] = React.useState(0);
   const guideStartedRef = React.useRef(false);
   const calendarGuideSteps = React.useMemo(() => [
+    // 13) 이번 주 **AI** 식단 추천 버튼만 — AI 가 더 강조돼야 한다는 요청으로 일반 버튼은 소개하지 않는다.
     {
-      targetSelector: '[data-guide-target="weekly-plan-buttons"]',
-      message: '냉장고 재료와 유통기한을 따져서\n일주일 식단을 알뜰하게 짜 드려요.\n필요한 장보기 목록도 함께 만들어져요.',
+      targetSelector: '[data-guide-target="weekly-ai-plan-button"]',
+      message: 'AI가 내 냉장고 재료와 유통기한을 따져\n일주일 식단을 짜 드려요.\n"담백하게" 처럼 말로 조건을 넣을 수도 있고\n필요한 장보기 목록도 함께 만들어져요.',
       position: 'bottom' as const,
     },
-    // 월 목표·달력은 로그인해야 있는 화면이다.
-    ...(isLoggedIn ? [{
+    // 14) 아래 요리 기록 달력(2026-10-22 추가)
+    {
+      targetSelector: '[data-guide-target="calendar-record-card"]',
+      message: '완료하거나 기록한 요리, 짜 둔 식단이\n이 달력에 모여요.\n월·주·일로 바꿔 보고\n[목록] 탭에서는 전부 한눈에 볼 수 있어요.',
+      position: 'top' as const,
+    },
+    // 15) 이번 달 목표(2026-10-22: 달력은 비로그인도 쓰는 화면이라 모두에게 보여 준다)
+    {
       targetSelector: '[data-guide-target="calendar-goal-area"]',
       message: '이번 달 요리 목표를 세우고\n완료한 요리를 한눈에 모아 보세요.\n목표를 채우면 아낄 수 있는 금액도\n대략 계산해 드려요.\n\n가족 그룹이라면\n식구들과 함께 목표와 현황을\n공유할 수 있어요.',
       position: 'bottom' as const,
-    }] : []),
-  ], [isLoggedIn]);
+    },
+  ], []);
 
   React.useEffect(() => {
     if (authLoading || guideStartedRef.current) return;
@@ -2216,7 +2223,7 @@ const CookingCalendar: React.FC = () => {
       {/* 목표 카드와 명확히 분리된 별도 카드에 캘린더를 담아, 모바일 화면에서
           두 영역이 붙어 보이지 않고 한 화면에 같이 들어오게 했다. */}
       <GroupTitle>요리 기록</GroupTitle>
-      <div style={{ margin: '0 14px 0', borderRadius: 14, border: '1px solid var(--line-200)', background: '#FFFFFF', overflow: 'hidden' }}>
+      <div data-guide-target="calendar-record-card" style={{ margin: '0 14px 0', borderRadius: 14, border: '1px solid var(--line-200)', background: '#FFFFFF', overflow: 'hidden' }}>
         {/* 화면을 **가르는** 자리라 탭으로 그린다.
             알약으로 뒀더니 아래 일/주/월 알약과 같아 보여서, 화면을 바꾸는
             것인지 결과를 좁히는 필터인지 구분이 안 됐다. 탭은 밑줄로 "지금

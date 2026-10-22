@@ -34,7 +34,8 @@ const PlanButtons: React.FC<{ onBeforeGo?: () => void }> = ({ onBeforeGo }) => {
       {/* 여기만 노란색·AI 배지·반짝임. 누르는 순간 크레딧이 나가지는 않고, 조건을 적는
           칸으로 데려간다 — 냉장고를 보기도 전에 돈이 나가면 결과가 마음에 안 들 때
           그대로 손해다. */}
-      <span style={{ flex: 1, minWidth: 0, display: 'flex', position: 'relative' }}>
+      {/* 사용 가이드 13단계가 이 AI 버튼만 가리킨다(일반 버튼은 소개하지 않음). */}
+      <span style={{ flex: 1, minWidth: 0, display: 'flex', position: 'relative' }} data-guide-target="weekly-ai-plan-button">
         <button type="button" onClick={() => onGo(true)} className="ai-action" style={base}>
           <span style={{ fontSize: 13, fontWeight: 700, color: '#1A1A1E', wordBreak: 'keep-all', paddingRight: 14 }}>
             이번 주 AI 식단 추천

@@ -1175,6 +1175,7 @@ const WeeklyPlan: React.FC = () => {
 
   /** 조건을 보내고 AI 를 부른다. */
   const send = (text: string) => {
+    if (guestOut) { openLoginGate('ai', { credits: guestCreditsNow }); return; }
     const t = text.trim();
     if (!t || !canAi || asking) return;
     setChat(c => [...c, { who: 'me', text: t, at: Date.now() }]);
@@ -1264,6 +1265,14 @@ const WeeklyPlan: React.FC = () => {
   const planCost = (usage?.credits as Record<string, number> | undefined)?.plan ?? 3;
   // 비회원도 체험분이 남아 있으면 AI 식단을 써 볼 수 있다.
   const canAi = !!usage && usage.can_use_ai;
+  // 비회원이 체험 크레딧을 다 쓴 상태. 입력칸·보내기가 잠겨 있으면 안내가 뜰 구멍조차 없었다(2026-10-22 사용자 지적) —
+  // AI 화면에 **들어오는 순간** 확인창을 띄우고, 잠그는 대신 눌렀을 때도 같은 확인창을 띄운다.
+  const guestOut = !!usage && usage.is_guest && !usage.can_use_ai;
+  const aiTappable = canAi || guestOut;
+  const guestCreditsNow = usage?.signup_credits;
+  React.useEffect(() => {
+    if (wantAi && guestOut) openLoginGate('ai', { credits: guestCreditsNow });
+  }, [wantAi, guestOut, guestCreditsNow]);
 
   /**
    * 조건을 넣는 칸.
@@ -2036,14 +2045,14 @@ const WeeklyPlan: React.FC = () => {
               <button
                 key={x}
                 type="button"
-                disabled={!canAi || asking || noStock}
+                disabled={!aiTappable || asking || noStock}
                 onClick={() => send(x)}
                 style={{
                   flexShrink: 0, minHeight: 30, padding: '7px 11px', borderRadius: 9999,
                   border: '1px solid var(--line-200)', background: 'var(--surface)',
                   fontSize: 12.5, color: 'var(--ink-700)',
-                  cursor: canAi && !asking ? 'pointer' : 'default',
-                  opacity: canAi && !asking ? 1 : 0.5,
+                  cursor: aiTappable && !asking ? 'pointer' : 'default',
+                  opacity: aiTappable && !asking ? 1 : 0.5,
                 }}
               >
                 {x}
@@ -2059,7 +2068,10 @@ const WeeklyPlan: React.FC = () => {
               onKeyDown={e => { if (e.key === 'Enter') send(wish); }}
               placeholder={noStock ? '냉장고에 재료를 먼저 넣어 주세요'
                 : canAi ? '어떤 식단이 좋을까요?' : '크레딧을 다 쓰셨어요'}
-              disabled={!canAi || asking || noStock}
+              disabled={!aiTappable || asking || noStock}
+              // 체험을 다 쓴 비회원: 잠그지 않고 눌렀을 때 로그인 확인창을 띄운다(입력은 막는다).
+              readOnly={guestOut}
+              onClick={() => { if (guestOut) openLoginGate('ai', { credits: guestCreditsNow }); }}
               style={{
                 flex: 1, minWidth: 0, minHeight: 44, borderRadius: 22,
                 border: '1px solid var(--line-200)', padding: '0 16px',
@@ -2070,13 +2082,13 @@ const WeeklyPlan: React.FC = () => {
               <button
                 type="button"
                 className="ai-action"
-                disabled={!canAi || asking || noStock || !wish.trim()}
+                disabled={!aiTappable || asking || noStock || (!guestOut && !wish.trim())}
                 onClick={() => send(wish)}
                 style={{
                   width: 44, height: 44, borderRadius: 22, padding: 0,
                   fontSize: 15, fontWeight: 800,
-                  cursor: canAi && !asking && wish.trim() ? 'pointer' : 'default',
-                  opacity: canAi && !asking && wish.trim() ? 1 : 0.5,
+                  cursor: aiTappable && !asking && (guestOut || wish.trim()) ? 'pointer' : 'default',
+                  opacity: aiTappable && !asking && (guestOut || wish.trim()) ? 1 : 0.5,
                 }}
               >
                 <span>↑</span>

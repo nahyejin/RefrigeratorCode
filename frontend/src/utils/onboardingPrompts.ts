@@ -48,19 +48,21 @@ export function evaluateVisitForUsageGuide(now = Date.now()): boolean {
  * 더하거나 뺄 때 한 곳만 고쳐져 숫자가 튄다(실제로 없어진 '저장 버튼' 단계가
  * 남아 로그인하면 3/12 다음이 5/12였다). 단계 수는 여기 한 곳에 둔다.
  *
- * 월 목표·달력(요리 캘린더 2번째)과 마이페이지 세 단계는 로그인해야 있는
- * 화면이라, 비로그인이면 요리 캘린더 첫 단계에서 끝난다.
+ * 마이페이지 세 단계는 로그인해야 있는 화면이라, 비로그인이면 요리 캘린더 마지막 단계(15)에서 끝난다.
  */
 export const USAGE_GUIDE_STEPS = {
   myFridge: 3,
   recipeList: 9,
-  calendar: (loggedIn: boolean) => (loggedIn ? 2 : 1),
+  // 요리 캘린더 3단계(2026-10-22): 13 이번 주 **AI** 식단 추천 버튼 → 14 요리 기록 달력 → 15 이번 달 목표.
+  // 일반 「이번 주 식단 추천」 버튼은 따로 소개하지 않는다(AI 가 더 강조돼야 한다는 사용자 요청).
+  // 예전엔 로그인한 사람만 월 목표·달력 단계를 봤는데(2단계), 달력은 비로그인도 쓰는 화면이라 모두에게 보여 준다.
+  calendar: 3,
   myPage: 3,
 } as const;
 
 export function usageGuideTotalSteps(loggedIn: boolean): number {
   return USAGE_GUIDE_STEPS.myFridge + USAGE_GUIDE_STEPS.recipeList
-    + USAGE_GUIDE_STEPS.calendar(loggedIn) + (loggedIn ? USAGE_GUIDE_STEPS.myPage : 0);
+    + USAGE_GUIDE_STEPS.calendar + (loggedIn ? USAGE_GUIDE_STEPS.myPage : 0);
 }
 
 export function isUsageGuideDueThisVisit(): boolean {

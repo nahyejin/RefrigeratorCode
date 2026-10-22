@@ -2039,7 +2039,7 @@ const MyPage: React.FC = () => {
         steps={myPageGuideSteps}
         isLastStepConfirm={true}
         totalSteps={usageGuideTotalSteps(true)}
-        startStepOffset={USAGE_GUIDE_STEPS.myFridge + USAGE_GUIDE_STEPS.recipeList + USAGE_GUIDE_STEPS.calendar(true)}
+        startStepOffset={USAGE_GUIDE_STEPS.myFridge + USAGE_GUIDE_STEPS.recipeList + USAGE_GUIDE_STEPS.calendar}
       />
     </div>
   );

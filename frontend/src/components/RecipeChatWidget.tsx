@@ -395,6 +395,14 @@ const RecipeChatWidget: React.FC = () => {
     return () => window.removeEventListener('cookmatch-open-chat', onOpen);
   }, []);
 
+  // 비회원이 체험 크레딧을 다 쓴 채로 챗봇을 열면 **열리는 순간** 로그인 확인창을 띄운다(2026-10-22 사용자 지적:
+  // 질문을 보내고 나서야 떠서 헛걸음이었다). 훅이라 아래 `hideOnAuth` 분기보다 위에 둔다.
+  const guestOut = !!usageNow && usageNow.is_guest && !usageNow.can_use_ai;
+  const guestCredits = usageNow?.signup_credits;
+  React.useEffect(() => {
+    if (open && guestOut) openLoginGate('ai', { credits: guestCredits });
+  }, [open, guestOut, guestCredits]);
+
   if (hideOnAuth) return null;
 
   const startNewThread = () => {
@@ -436,6 +444,11 @@ const RecipeChatWidget: React.FC = () => {
   const sendMessage = async (text: string) => {
     const content = text.trim();
     if (!content || loading) return;
+    // 이미 크레딧이 없는 비회원이면 서버에 보내지 않고 바로 확인창(질문을 쓴 뒤 눌러도 같은 안내).
+    if (guestOut) {
+      openLoginGate('ai', { credits: guestCredits });
+      return;
+    }
 
     const nextMessages: ChatMessage[] = [...messages, { role: 'user', content }];
     setMessages(nextMessages);
