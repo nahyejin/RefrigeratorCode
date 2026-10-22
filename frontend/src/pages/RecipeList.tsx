@@ -2642,15 +2642,27 @@ const RecipeList: React.FC = () => {
               title="검색조건 초기화"
               disabled={atDefault}
               onClick={resetConditions}
+              // 내냉장고의 「재료 기록」 버튼과 같은 규격: 눌리는 영역 40px, 보이는 원 26px(흰 바탕 + 연한 테두리 + 회색 아이콘 13px).
+              // 세로 여백은 음수로 줄여 배지 줄 높이를 늘리지 않는다.
               style={{
-                flexShrink: 0, border: 'none', background: 'transparent', padding: 4, display: 'inline-flex',
-                color: atDefault ? '#C8C8CE' : '#1A1A1E', cursor: atDefault ? 'default' : 'pointer',
+                flexShrink: 0, width: 40, height: 40, margin: '-7px -7px -7px 0', padding: 0,
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                background: 'none', border: 'none', cursor: atDefault ? 'default' : 'pointer',
               }}
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M4 12a8 8 0 1 0 2.6-5.9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                <path d="M4 4.5v4.2h4.2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+              <span
+                aria-hidden
+                style={{
+                  width: 26, height: 26, borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  background: '#FFFFFF', border: '1px solid var(--line-300)',
+                  color: 'var(--ink-500)', opacity: atDefault ? 0.45 : 1,
+                }}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 12a8 8 0 1 1-2.6-5.9" />
+                  <path d="M20 4v4.2h-4.2" />
+                </svg>
+              </span>
             </button>
             </div>
           );
