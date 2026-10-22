@@ -219,7 +219,7 @@ const PolicyCard: React.FC<{ policy: any }> = ({ policy }) => {
             앱을 더 나쁘게 기억하게 만든다.
             <br />
             <br />
-            <b>비회원</b> — 기기마다 체험 크레딧 <b>{policy.guest_trial ?? 5}</b>개(매주 다시 채우지 않음).
+            <b>비회원</b> — 기기마다 체험 크레딧 <b>{policy.guest_trial ?? 6}</b>크레딧(매주 다시 채우지 않음).
             다 쓰면 가입해야 크레딧이 생긴다.
             <br />
             <b>다음 주간 지급</b> — {String(policy.resets_at || '').slice(0, 10)}
@@ -2840,8 +2840,61 @@ const Dashboard: React.FC = () => {
             const PLATFORM: Record<string, string> = { android: '안드로이드', ios: 'iOS', web: '웹' };
             const filterSpan = act.filters?.ranged ? spanOf(act.filters?.from, act.filters?.to) : '전체 기간';
 
+            // 비회원 로그인 유도 팝업(2026-10-22): 어느 팝업이 몇 번 뜨고 눌리고 닫혔나 + 가입 직전 마지막으로 누른 팝업
+            const CTA_LABEL: Record<string, string> = {
+              ingredient_limit: '재료 3개 한도', favorite_limit: '즐겨찾기 3개 한도', write_limit: '기록 3개 한도',
+              done_limit: '완료 3개 한도', ai_out: 'AI 체험 소진', return_visit: '두 번째 방문',
+            };
+            const cta: any[] = act.cta || [];
+            const signupAfter: any[] = act.signup_after_cta || [];
+            const signupTotal = signupAfter.reduce((a, r) => a + (r.n || 0), 0);
+
             return (
               <>
+                <div style={{ ...S.card }}>
+                  <h2 style={{ ...S.h2, margin: 0 }}>가입 유도 팝업</h2>
+                  <div style={{ fontSize: 12, color: '#6A6A73', margin: '4px 0 10px', lineHeight: 1.6 }}>
+                    {filterSpan} · 앱에 이 팝업이 들어간 새 버전부터 쌓입니다. 「누름」은 [로그인하기]를 누른 횟수, 「닫음」은 취소·나중에·X.
+                  </div>
+                  {cta.length === 0 ? (
+                    <div style={{ fontSize: 13, color: '#6A6A73' }}>아직 기록이 없어요.</div>
+                  ) : (
+                    <div style={{ overflowX: 'auto' }}>
+                      <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 360 }}>
+                        <thead><tr>{['팝업', '본 사람', '뜬 횟수', '누름', '닫음', '누른 비율'].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
+                        <tbody>
+                          {cta.map(r => (
+                            <tr key={r.tag}>
+                              <td style={S.td}>{CTA_LABEL[r.tag] || r.tag || '(알 수 없음)'}</td>
+                              <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums' }}>{num(r.viewers)}</td>
+                              <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums' }}>{num(r.views)}</td>
+                              <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums', fontWeight: 700 }}>{num(r.clicks)}</td>
+                              <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums' }}>{num(r.dismisses)}</td>
+                              <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums' }}>{r.views ? `${Math.round((r.clicks / r.views) * 100)}%` : '-'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                  <h3 style={{ fontSize: 14, margin: '16px 0 4px' }}>가입 직전에 마지막으로 누른 팝업</h3>
+                  <div style={{ fontSize: 12, color: '#6A6A73', marginBottom: 8, lineHeight: 1.6 }}>
+                    같은 기기에서 가입 시각 이전의 마지막 [로그인하기] 클릭 기준. 「팝업 없이」는 팝업을 누르지 않고 가입한 경우입니다(가입 {num(signupTotal)}건).
+                  </div>
+                  {signupAfter.length === 0 ? (
+                    <div style={{ fontSize: 13, color: '#6A6A73' }}>이 기간에 가입 기록이 없어요.</div>
+                  ) : (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                      {signupAfter.map(r => (
+                        <div key={r.tag} style={{ border: '1px solid #E6E6EA', borderRadius: 10, padding: '8px 12px', fontSize: 13 }}>
+                          <div style={{ color: '#6A6A73', fontSize: 12 }}>{CTA_LABEL[r.tag] || r.tag}</div>
+                          <div style={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{num(r.n)}건</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 <div style={{ ...S.card, padding: 0 }}>
                   <h2 style={{ ...S.h2, padding: '16px 16px 0', margin: 0 }}>사람별 활동</h2>
                   <div style={{ padding: '0 16px' }}>

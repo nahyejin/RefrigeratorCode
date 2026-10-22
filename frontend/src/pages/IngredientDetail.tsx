@@ -36,6 +36,7 @@ import {
   clearRecipesFromLocalStorage,
   addRecipeActionToDB,
   removeRecipeActionFromDB,
+  guardGuestSave,
 } from '../utils/recipeStorage';
 import { DEFAULT_MATCH_MIN } from '../utils/recipePrefetch';
 
@@ -386,6 +387,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
 
     if (action.action === 'favorite') {
       if (!prevState.favorite) {
+        if (!guardGuestSave('favorite', id)) return;   // 비회원 3개 한도
         const recipe = recipes.find(r => r.id === id);
         if (recipe && !getRecipesFromLocalStorage('favorite').some((r: any) => r.id === id)) {
           addRecipeToLocalStorage('favorite', recipe);
@@ -401,6 +403,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
 
     if (action.action === 'done') {
       if (!prevState.done) {
+        if (!guardGuestSave('done', id)) return;   // 비회원 3개 한도
         const recipe = recipes.find(r => r.id === id);
         if (recipe && !getRecipesFromLocalStorage('done').some((r: any) => r.id === id)) {
           addRecipeToLocalStorage('done', recipe);
@@ -416,6 +419,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ customTitle }) => {
 
     if (action.action === 'write') {
       if (!prevState.write) {
+        if (!guardGuestSave('write', id)) return;   // 비회원 3개 한도
         const recipe = recipes.find(r => r.id === id);
         if (recipe && !getRecipesFromLocalStorage('write').some((r: any) => r.id === id)) {
           addRecipeToLocalStorage('write', recipe);

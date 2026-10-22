@@ -9,6 +9,7 @@ import {
   addRecipeToLocalStorage,
   removeRecipeFromLocalStorage,
   copyRecipeUrlToClipboard,
+  guardGuestSave,
 } from '../utils/recipeStorage';
 import type { Recipe, RecipeActionState } from '../types/recipe';
 import CoupangDynamicBanner from './CoupangDynamicBanner';
@@ -253,6 +254,7 @@ const CookModeSheet: React.FC<Props> = ({
       setConfirmingRemove(type);
       return;
     }
+    if (!guardGuestSave(type, recipeId)) return;   // 비회원 3개 한도(4번째부터 로그인 확인창)
     addRecipeToLocalStorage(type, asStorageRecipe());
     void syncAndNotify(type, recipeId, false);
     setActionState(prev => ({ ...prev, [type]: true }));
@@ -284,6 +286,7 @@ const CookModeSheet: React.FC<Props> = ({
     setDoneNudge(null);
     if (!t) return;
     if (!getRecipeActionState(t.id).done) {
+      if (!guardGuestSave('done', t.id)) return;   // 비회원 3개 한도
       addRecipeToLocalStorage('done', {
         ...asStorageRecipe(), id: t.id, title: t.title, link: t.link, thumbnail: t.thumbnail,
       } as Recipe);

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { track } from '../utils/track';
+import { openLoginGate } from '../utils/loginGate';
 import { applyUsage, refreshUsage, spendOptimistically, usageHeaders } from '../utils/usage';
 import { UsageLine, useUsage } from './UsageMeter';
 import BackButton from './ui/BackButton';
@@ -464,6 +465,10 @@ const RecipeChatWidget: React.FC = () => {
       applyUsage(data?.usage);
       track('chat_use');
       if (!response.ok) {
+        // 비회원 체험을 다 썼으면 같은 로그인 확인창을 띄운다(말풍선에는 서버 안내가 그대로 남는다).
+        if (data?.usage?.is_guest && data.usage.can_use_ai === false) {
+          openLoginGate('ai', { credits: data.usage.signup_credits });
+        }
         throw new Error(data.error || '채팅 요청에 실패했습니다.');
       }
       setMessages((prev) => [

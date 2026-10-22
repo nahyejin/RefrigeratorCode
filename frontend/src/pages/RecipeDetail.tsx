@@ -8,6 +8,7 @@ import {
   getRecipeActionState,
   addRecipeToLocalStorage,
   removeRecipeFromLocalStorage,
+  guardGuestSave,
 } from '../utils/recipeStorage';
 import CoupangAd from '../components/CoupangAd';
 import Dialog from '../components/ui/Dialog';
@@ -70,6 +71,7 @@ const RecipeDetail: React.FC = () => {
       if (current[action]) {
         setPendingRemove(action);
       } else {
+        if (!guardGuestSave(action, recipe.id)) return;   // 비회원 3개 한도
         addRecipeToLocalStorage(action, recipe);
       }
       setActionState(getRecipeActionState(recipe.id));

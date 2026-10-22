@@ -28,10 +28,10 @@ import {
   getRecipesFromLocalStorage,
   getRecipeActionState,
   buildRecipeActionStatesForRecipes,
-  copyRecipeUrlToClipboard 
+  copyRecipeUrlToClipboard,
+  guardGuestSave,
 } from '../utils/recipeStorage';
 import { useAuth } from '../context/AuthContext';
-import RegisterPromptModal from '../components/RegisterPromptModal';
 import GuideOverlay from '../components/GuideOverlay';
 import { markUsageGuideFinished, markUsageGuideOpened, usageGuideTotalSteps, USAGE_GUIDE_STEPS } from '../utils/onboardingPrompts';
 import {
@@ -791,9 +791,6 @@ const RecipeList: React.FC = () => {
   const [matchRateModalOpen, setMatchRateModalOpen] = useState(false);
   const [expiryModalOpen, setExpiryModalOpen] = useState(false);
   const [selectedExpiryIngredients, setSelectedExpiryIngredients] = useState<string[]>([]);
-  const [showRegisterModal, setShowRegisterModal] = useState(false);
-  const [registerModalMessage, setRegisterModalMessage] = useState('');
-  const [pendingRecipe, setPendingRecipe] = useState<{ id: number; type: 'done' | 'write'; recipe: any } | null>(null);
   // 즐겨찾기/완료/기록 취소 확인 (누르면 바로 지워지지 않고 한 번 더 확인한다 —
   // 마이페이지 전체보기 목록과 같은 규격)
   const [pendingRemove, setPendingRemove] = useState<{ type: 'done' | 'write' | 'favorite'; id: number } | null>(null);
@@ -1434,6 +1431,8 @@ const RecipeList: React.FC = () => {
 
     if (!isActive) {
       if (recipe && !getRecipesFromLocalStorage('favorite').some((r: any) => r.id === id)) {
+        // 비회원은 즐겨찾기 3개까지(4번째부터 로그인 확인창)
+        if (!guardGuestSave('favorite', id)) return;
         const normalized = normalizeRecipe(recipe);
         addRecipeToLocalStorage('favorite', normalized);
         void syncToServer('favorite', id);
@@ -1494,18 +1493,8 @@ const RecipeList: React.FC = () => {
       // 완료 추가 전에 5개 조건 체크
       const recipe = recipes.find(r => r.id === id);
       if (recipe && !getRecipesFromLocalStorage('done').some((r: any) => r.id === id)) {
-        const currentCount = getRecipesFromLocalStorage('done').length;
-        const totalCount = currentCount + 1;
-        
-        // 완료한 레시피 5개 이상 시 회원가입 유도 (비회원일 때만)
-        if (totalCount >= 5 && !isLoggedIn) {
-          // 레시피 저장 전에 모달 표시
-          const normalized = normalizeRecipe(recipe);
-          setPendingRecipe({ id, type: 'done', recipe: normalized });
-          setRegisterModalMessage('더 많은 레시피를 완료하려면');
-          setShowRegisterModal(true);
-          return;
-        }
+        // 비회원은 완료 3개까지(4번째부터 로그인 확인창)
+        if (!guardGuestSave('done', id)) return;
         
         // 조건 통과 시 레시피 저장
         const normalized = normalizeRecipe(recipe);
@@ -1531,18 +1520,8 @@ const RecipeList: React.FC = () => {
       // 기록 추가 전에 5개 조건 체크
       const recipe = recipes.find(r => r.id === id);
       if (recipe && !getRecipesFromLocalStorage('write').some((r: any) => r.id === id)) {
-        const currentCount = getRecipesFromLocalStorage('write').length;
-        const totalCount = currentCount + 1;
-        
-        // 기록한 레시피 5개 이상 시 회원가입 유도 (비회원일 때만)
-        if (totalCount >= 5 && !isLoggedIn) {
-          // 레시피 저장 전에 모달 표시
-          const normalized = normalizeRecipe(recipe);
-          setPendingRecipe({ id, type: 'write', recipe: normalized });
-          setRegisterModalMessage('더 많은 레시피를 기록하려면');
-          setShowRegisterModal(true);
-          return;
-        }
+        // 비회원은 기록 3개까지(4번째부터 로그인 확인창)
+        if (!guardGuestSave('write', id)) return;
         
         // 조건 통과 시 레시피 저장
         const normalized = normalizeRecipe(recipe);
@@ -3260,29 +3239,6 @@ const RecipeList: React.FC = () => {
         </div>
       )}
 
-      {/* 회원가입 유도 모달 */}
-      <RegisterPromptModal
-        visible={showRegisterModal}
-        onClose={() => {
-          setShowRegisterModal(false);
-          setPendingRecipe(null);
-        }}
-        onConfirm={() => {
-          // 회원가입하기를 누르면 레시피 저장 진행
-          if (pendingRecipe) {
-            if (pendingRecipe.type === 'done') {
-              addRecipeToLocalStorage('done', pendingRecipe.recipe);
-              setRecipeActionStates(prev => ({ ...prev, [pendingRecipe.id]: { ...prev[pendingRecipe.id], done: true } }));
-            } else if (pendingRecipe.type === 'write') {
-              addRecipeToLocalStorage('write', pendingRecipe.recipe);
-              setRecipeActionStates(prev => ({ ...prev, [pendingRecipe.id]: { ...prev[pendingRecipe.id], write: true } }));
-            }
-            setPendingRecipe(null);
-          }
-        }}
-        message={registerModalMessage || '더 많은 기능을 사용하려면'}
-      />
-      
       {/* 사용 가이드 오버레이 */}
       <GuideOverlay
         visible={showGuide}

@@ -26,14 +26,13 @@ import youtubeLogo from '../assets/썸네일_youtubelogo.png';
 import RecipeCard from '../components/RecipeCard';
 import youtubeTitleImg from '../assets/유튜브제목이미지.png';
 import naverTitleImg from '../assets/네이버제목이미지.png';
-import { addRecipeToLocalStorage, removeRecipeFromLocalStorage, getRecipesFromLocalStorage, copyRecipeUrlToClipboard, getMyFridgeIngredients, buildRecipeActionStatesForRecipes, getRecipeActionState, lookupRecipeActionState } from '../utils/recipeStorage';
+import { addRecipeToLocalStorage, removeRecipeFromLocalStorage, getRecipesFromLocalStorage, copyRecipeUrlToClipboard, getMyFridgeIngredients, buildRecipeActionStatesForRecipes, getRecipeActionState, lookupRecipeActionState, guardGuestSave } from '../utils/recipeStorage';
 import VirtualizedRecipeList from '../components/VirtualizedRecipeList';
 import RecipeToast from '../components/RecipeToast';
 import RecipeSortBar from '../components/RecipeSortBar';
 import VirtualizedHorizontalRecipeList from '../components/VirtualizedHorizontalRecipeList';
 import { decodeRecipesText } from '../utils/textUtils';
 import { useAuth } from '../context/AuthContext';
-import RegisterPromptModal from '../components/RegisterPromptModal';
 import { parseUsedIngredientsForPills } from '../utils/ingredientPillNoise';
 import CoupangProductAd from '../components/CoupangProductAd';
 import CoupangDynamicBanner from '../components/CoupangDynamicBanner';
@@ -645,9 +644,6 @@ const Popular = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const { isLoggedIn, user: authUser } = useAuth();
-  const [showRegisterModal, setShowRegisterModal] = useState(false);
-  const [registerModalMessage, setRegisterModalMessage] = useState('');
-  const [pendingRecipe, setPendingRecipe] = useState<{ id: number; type: 'done' | 'write'; recipe: any } | null>(null);
   // 즐겨찾기/완료/기록 취소 확인 (누르면 바로 지워지지 않고 한 번 더 확인한다 —
   // 마이페이지 전체보기 목록과 같은 규격)
   const [pendingRemove, setPendingRemove] = useState<{ type: 'done' | 'write' | 'favorite'; id: number } | null>(null);
@@ -1037,6 +1033,8 @@ const Popular = () => {
         if (prevState.favorite) {
           setPendingRemove({ type: 'favorite', id });
         } else if (recipe && !getRecipesFromLocalStorage('favorite').some((r: any) => r.id === id)) {
+          // 비회원은 즐겨찾기 3개까지(4번째부터 로그인 확인창)
+          if (!guardGuestSave('favorite', id)) return;
           const normalized = {
             id: recipe.id,
             title: recipe.title,
@@ -1102,47 +1100,8 @@ const Popular = () => {
         } else {
         // 완료 추가 전에 5개 조건 체크
           if (recipe && !getRecipesFromLocalStorage('done').some((r: any) => r.id === id)) {
-          const currentCount = getRecipesFromLocalStorage('done').length;
-          const totalCount = currentCount + 1;
-          
-          // 완료한 레시피 5개 이상 시 회원가입 유도 (비회원일 때만)
-          if (totalCount >= 5 && !isLoggedIn) {
-            // 레시피 저장 전에 모달 표시
-            const normalized = {
-              id: recipe.id,
-              title: recipe.title,
-              content: recipe.content || '',
-              author: recipe.author || '',
-              date: recipe.date || '',
-              body: recipe.body || recipe.content || recipe.description || '',
-              description: recipe.description || '',
-              thumbnail: recipe.thumbnail || '',
-              used_ingredients: recipe.used_ingredients || '',
-              used_ingredients_block: recipe.used_ingredients_block || '',
-              block_reason: recipe.block_reason || '',
-              link: recipe.link || '',
-              platform: recipe.platform || 'youtube',
-              channel: recipe.channel || 'youtube',
-              likes: recipe.likes || 0,
-              comments: recipe.comments || 0,
-              substitutes: recipe.substitutes || [],
-              match_rate: recipe.match_rate || 0,
-              my_ingredients: recipe.my_ingredients || [],
-              need_ingredients: recipe.need_ingredients || [],
-              created_at: recipe.created_at || '',
-              updated_at: recipe.updated_at || '',
-              like_count: recipe.like_count || 0,
-              comment_count: recipe.comment_count || 0,
-              post_time: recipe.post_time || '',
-              collected_at: recipe.collected_at || '',
-              hits: recipe.hits || 0,
-              action: recipe.action,
-            };
-            setPendingRecipe({ id, type: 'done', recipe: normalized });
-            setRegisterModalMessage('더 많은 레시피를 완료하려면');
-            setShowRegisterModal(true);
-            return;
-          }
+          // 비회원은 완료 3개까지(4번째부터 로그인 확인창)
+          if (!guardGuestSave('done', id)) return;
           
           // 조건 통과 시 레시피 저장
             const normalized = {
@@ -1212,47 +1171,8 @@ const Popular = () => {
         } else {
         // 기록 추가 전에 5개 조건 체크
           if (recipe && !getRecipesFromLocalStorage('write').some((r: any) => r.id === id)) {
-          const currentCount = getRecipesFromLocalStorage('write').length;
-          const totalCount = currentCount + 1;
-          
-          // 기록한 레시피 5개 이상 시 회원가입 유도 (비회원일 때만)
-          if (totalCount >= 5 && !isLoggedIn) {
-            // 레시피 저장 전에 모달 표시
-            const normalized = {
-              id: recipe.id,
-              title: recipe.title,
-              content: recipe.content || '',
-              author: recipe.author || '',
-              date: recipe.date || '',
-              body: recipe.body || recipe.content || recipe.description || '',
-              description: recipe.description || '',
-              thumbnail: recipe.thumbnail || '',
-              used_ingredients: recipe.used_ingredients || '',
-              used_ingredients_block: recipe.used_ingredients_block || '',
-              block_reason: recipe.block_reason || '',
-              link: recipe.link || '',
-              platform: recipe.platform || 'youtube',
-              channel: recipe.channel || 'youtube',
-              likes: recipe.likes || 0,
-              comments: recipe.comments || 0,
-              substitutes: recipe.substitutes || [],
-              match_rate: recipe.match_rate || 0,
-              my_ingredients: recipe.my_ingredients || [],
-              need_ingredients: recipe.need_ingredients || [],
-              created_at: recipe.created_at || '',
-              updated_at: recipe.updated_at || '',
-              like_count: recipe.like_count || 0,
-              comment_count: recipe.comment_count || 0,
-              post_time: recipe.post_time || '',
-              collected_at: recipe.collected_at || '',
-              hits: recipe.hits || 0,
-              action: recipe.action,
-            };
-            setPendingRecipe({ id, type: 'write', recipe: normalized });
-            setRegisterModalMessage('더 많은 레시피를 기록하려면');
-            setShowRegisterModal(true);
-            return;
-          }
+          // 비회원은 기록 3개까지(4번째부터 로그인 확인창)
+          if (!guardGuestSave('write', id)) return;
           
           // 조건 통과 시 레시피 저장
             const normalized = {
@@ -2258,28 +2178,6 @@ const Popular = () => {
         </div>
       )}
       
-      {/* 회원가입 유도 모달 */}
-      <RegisterPromptModal
-        visible={showRegisterModal}
-        onClose={() => {
-          setShowRegisterModal(false);
-          setPendingRecipe(null);
-        }}
-        onConfirm={() => {
-          // 회원가입하기를 누르면 레시피 저장 진행
-          if (pendingRecipe) {
-            if (pendingRecipe.type === 'done') {
-              addRecipeToLocalStorage('done', pendingRecipe.recipe);
-              setButtonStates(prev => ({ ...prev, [pendingRecipe.id]: getRecipeActionState(pendingRecipe.id) }));
-            } else if (pendingRecipe.type === 'write') {
-              addRecipeToLocalStorage('write', pendingRecipe.recipe);
-              setButtonStates(prev => ({ ...prev, [pendingRecipe.id]: getRecipeActionState(pendingRecipe.id) }));
-            }
-            setPendingRecipe(null);
-          }
-        }}
-        message={registerModalMessage || '더 많은 기능을 사용하려면'}
-      />
       {/* 완료 직후 — 쓴 재료를 냉장고에서 뺄지 묻는다. */}
 
       <BottomNavBar activeTab="popularity" />

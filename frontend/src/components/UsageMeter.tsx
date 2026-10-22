@@ -295,7 +295,7 @@ export const UsageGauge: React.FC = () => {
   const ratio = remainingRatio(usage);
   // 잔액에는 "최대치" 가 없다(충전하면 늘어난다). 막대는 가입 지급분을 100 으로
   // 놓고 **남은 양**을 보여 준다 — 채워질수록 좋은 방향이라 직관과 맞다.
-  const base = Math.max(1, usage.is_guest ? (usage.guest_trial || 5) : (usage.signup_credits || 30));
+  const base = Math.max(1, usage.is_guest ? (usage.guest_trial || 6) : (usage.signup_credits || 30));
   const pct = Math.min(100, (usage.balance / base) * 100);
   const tone = toneOf(ratio);
   // 오늘 한도. 잔액과 **다른 것**이라 막대를 따로 그린다.

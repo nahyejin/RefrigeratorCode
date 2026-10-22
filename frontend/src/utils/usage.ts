@@ -181,7 +181,7 @@ export function subscribeUsage(fn: (u: Usage | null) => void): () => void {
  */
 export function remainingRatio(u: Usage | null): number {
   if (!u) return 1;
-  const base = Math.max(1, u.is_guest ? (u.guest_trial || 5) : (u.signup_credits || 30));
+  const base = Math.max(1, u.is_guest ? (u.guest_trial || 6) : (u.signup_credits || 30));
   const byBalance = Math.min(1, u.balance / base);
   const byDaily = u.daily_cap > 0 ? u.daily_remaining / u.daily_cap : 1;
   return Math.max(0, Math.min(byBalance, byDaily));

@@ -1,4 +1,5 @@
 import { Recipe, RecipeActionState } from '../types/recipe';
+import { GUEST_SAVE_LIMIT, isGuestNow, openLoginGate } from './loginGate';
 
 // =====================
 // 상수
@@ -61,6 +62,22 @@ export function normalizeRecipeId(id: number | string | null | undefined): numbe
   if (typeof id === 'number') return id;
   const parsed = Number(id);
   return Number.isNaN(parsed) ? NaN : parsed;
+}
+
+/**
+ * 비회원이 이 레시피를 **더 저장해도 되나**(즐겨찾기·기록·완료 각각 3개까지).
+ *
+ * 허용이면 true. 이미 담긴 레시피(다시 누름)나 3개 미만이면 허용. 막히면 로그인 확인창을 띄우고 false —
+ * 부르는 쪽은 false 면 저장도 「저장했어요」 토스트도 하지 않는다. 로그인한 사용자는 항상 true.
+ */
+export function guardGuestSave(type: StorageType, id: number | string | null | undefined): boolean {
+  if (!isGuestNow()) return true;
+  const nid = normalizeRecipeId(id);
+  const saved = getRecipesFromLocalStorage(type);
+  if (saved.some(r => normalizeRecipeId(r.id) === nid)) return true;
+  if (saved.length < GUEST_SAVE_LIMIT) return true;
+  openLoginGate(type);
+  return false;
 }
 
 /**
@@ -184,6 +201,9 @@ function notifyRecipeStorageChange(type: StorageType): void {
  * 레시피를 localStorage에 추가한다
  */
 export function addRecipeToLocalStorage(type: StorageType, recipe: Recipe): void {
+  // 비회원 한도의 **마지막 보루**. 화면의 버튼 처리에서 먼저 `guardGuestSave` 로 막고 안내하지만(그래야 「저장했어요」
+  // 토스트가 안 뜸), 거기를 안 거치는 길이 있어도 4번째부터는 저장되지 않는다.
+  if (!guardGuestSave(type, recipe.id)) return;
   const key = STORAGE_KEYS[type];
   const normalizedId = normalizeRecipeId(recipe.id);
   const recipes = removeRecipeById(getRecipesFromLocalStorage(type), normalizedId);

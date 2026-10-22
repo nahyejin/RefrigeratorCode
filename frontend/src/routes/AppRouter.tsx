@@ -17,6 +17,7 @@ import CookModeHost from '../components/CookModeHost';
 import RecipeShareHost from '../components/RecipeShareHost';
 import RecipeShareOpener from '../components/RecipeShareOpener';
 import { UsedUpHost } from '../components/UsedUpSheet';
+import LoginGateHost from '../components/LoginGateHost';
 import ShareRequestPopup from '../components/ShareRequestPopup';
 import FamilyActionNotice from '../components/FamilyActionNotice';
 import { AuthProvider } from '../context/AuthContext';
@@ -312,6 +313,8 @@ function AppContent() {
       <RecipeShareOpener />
       {/* 레시피를 완료하면(어느 화면이든) 「냉장고에서 다 쓴 재료」를 묻는다. 시트보다 뒤에 둬야 위에 뜬다. */}
       <UsedUpHost />
+      {/* 비회원 로그인 확인창(한도·AI 체험 소진·두 번째 방문). 어느 화면에서든 openLoginGate() 로 띄운다. */}
+      <LoginGateHost />
       <ShareRequestPopup />
       <FamilyActionNotice />
     </>

@@ -12,8 +12,8 @@ import saveIcon from '../assets/saveicon.png';
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import RegisterPromptModal from '../components/RegisterPromptModal';
-import WelcomeModal from '../components/WelcomeModal';
+import DefaultIngredientsDialog from '../components/DefaultIngredientsDialog';
+import { GUEST_SAVE_LIMIT, isSeedIngredientId, openLoginGate } from '../utils/loginGate';
 import GuideOverlay from '../components/GuideOverlay';
 import CoupangDynamicBanner from '../components/CoupangDynamicBanner';
 import CameraCaptureSheet, { type CaptureMode } from '../components/CameraCaptureSheet';
@@ -618,8 +618,6 @@ const MyFridge: React.FC = () => {
   const [fridgeSort, setFridgeSort] = React.useState<SortType>('expiry');
   const [roomSort, setRoomSort] = React.useState<SortType>('expiry');
   const [loading, setLoading] = useState(true);
-  const [showRegisterModal, setShowRegisterModal] = useState(false);
-  const [pendingIngredient, setPendingIngredient] = useState<{ ingredient: string; storageType: StorageBox; hasExpiration: boolean; date: string | null; } | null>(null);
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
   const [guideStep, setGuideStep] = useState(0);
@@ -2012,6 +2010,10 @@ const MyFridge: React.FC = () => {
       track('vision_use', mode);
 
       if (!res.ok) {
+        // 비회원 체험을 다 썼으면 같은 로그인 확인창을 띄운다.
+        if (data?.usage?.is_guest && data.usage.can_use_ai === false) {
+          openLoginGate('ai', { credits: data.usage.signup_credits });
+        }
         setRecognitionError((data && data.error) || '사진을 읽지 못했어요. 다시 찍어 주세요.');
       } else {
         setRecognized((data && data.ingredients) || []);
@@ -2032,16 +2034,22 @@ const MyFridge: React.FC = () => {
    * 실려 온 보관함을 그대로 쓰고 칸별로 나눠 담는다.
    */
   const handleRecognizedConfirm = (items: ConfirmedIngredient[]) => {
-    setRecognitionOpen(false);
-    localEditPendingRef.current = true;
     const already = new Set(
       [...(frozen || []), ...(fridge || []), ...(room || [])].map(i => i.name)
     );
     const fresh = items.filter(item => !already.has(item.name));
+    // 비회원은 직접 담은 재료 3개까지. 넘치면 시트를 닫지 않고 확인창만 띄운다 — 취소하고 고른 재료를 줄여 다시 담을 수 있게.
+    if (!isLoggedIn && fresh.length > 0 && guestAddedCount() + fresh.length > GUEST_SAVE_LIMIT) {
+      openLoginGate('ingredient');
+      return;
+    }
+    setRecognitionOpen(false);
+    localEditPendingRef.current = true;
     if (fresh.length === 0) {
       showPrepNotice('고른 재료가 이미 냉장고에 있어요.');
       return;
     }
+    if (!isLoggedIn) track('fridge_edit', 'photo');
 
     const buckets: Record<StorageBox, Ingredient[]> = { frozen: [], fridge: [], room: [] };
     fresh.forEach((item, idx) => {
@@ -2112,6 +2120,15 @@ const MyFridge: React.FC = () => {
       alert('이미 존재하는 재료입니다.');
       setInputValue('');
       setShowDropdown(false);
+      return;
+    }
+
+    // 비회원 한도(직접 담은 재료 3개)는 **날짜·보관 위치를 고르기 전에** 알린다 — 다 고르고 나서 막히면 허탈하다.
+    if (!isLoggedIn && guestAddedCount() >= GUEST_SAVE_LIMIT) {
+      setInputValue('');
+      setShowDropdown(false);
+      (document.activeElement as HTMLElement | null)?.blur?.();
+      openLoginGate('ingredient');
       return;
     }
     
@@ -2284,6 +2301,45 @@ const MyFridge: React.FC = () => {
     });
   };
 
+  /** 직접 담은 재료 수(기본 재료는 뺀다) — 비회원 3개 한도에 쓴다 */
+  const guestAddedCount = () =>
+    [...(frozen || []), ...(fridge || []), ...(room || [])].filter(i => !isSeedIngredientId(i.id)).length;
+
+  /** 첫 진입 팝업에 보여 줄 기본 재료(지금 냉장고에 남아 있는 것) */
+  const seedItems = React.useMemo(
+    () => [...(frozen || []), ...(fridge || []), ...(room || [])]
+      .filter(i => isSeedIngredientId(i.id))
+      .map(i => ({ id: i.id as string, name: i.name })),
+    [frozen, fridge, room],
+  );
+
+  /** 첫 진입 팝업을 닫고 이어서 사용 가이드를 시작한다(예전 WelcomeModal 의 닫기와 같은 흐름) */
+  const finishWelcome = () => {
+    setShowWelcomeModal(false);
+    const forceShowWelcome = new URLSearchParams(window.location.search).get('showWelcome') === 'true';
+    const guideShown = localStorage.getItem('myfridge_guide_shown');
+    if (forceShowWelcome || !guideShown) {
+      setTimeout(() => {
+        markUsageGuideOpened();
+        setShowGuide(true);
+        setGuideStep(0);
+      }, 300);
+    } else {
+      markUsageGuideFinished();
+    }
+  };
+
+  /** 팝업에서 「없어요」로 고른 기본 재료를 냉장고에서 뺀다 */
+  const removeSeedItems = (ids: string[]) => {
+    if (ids.length === 0) return;
+    localEditPendingRef.current = true;
+    const drop = (list: Ingredient[] | null) => (list ? list.filter(i => !ids.includes(i.id as string)) : list);
+    setFrozen(drop(frozen));
+    setFridge(drop(fridge));
+    setRoom(drop(room));
+    if (!isLoggedIn) track('fridge_edit', 'seed_trim');
+  };
+
   const handleModalComplete = (data: { ingredient: string; storageType: StorageBox; hasExpiration: boolean; date: string | null; }, skipCheck: boolean = false) => {
     localEditPendingRef.current = true;
     // 재료 사전에서 keyword로 변환 (synonym -> keyword)
@@ -2330,23 +2386,18 @@ const MyFridge: React.FC = () => {
       if (data.storageType === 'fridge') setFridge(prev => prev ? [...prev, updatedIngredient] : [updatedIngredient]);
       if (data.storageType === 'room') setRoom(prev => prev ? [...prev, updatedIngredient] : [updatedIngredient]);
     } else {
-      // 새 재료 추가 전에 10개 조건 체크 (skipCheck가 false일 때만)
-      if (!skipCheck) {
-        const currentCount = (frozen?.length || 0) + (fridge?.length || 0) + (room?.length || 0);
-        const totalCount = currentCount + 1;
-        
-        // 재료 10개 이상 추가 시 회원가입 유도 (비회원일 때만)
-        if (totalCount >= 10 && !isLoggedIn) {
-          // 재료 추가 모달 닫기
+      // 비회원은 **직접 담은 재료 3개까지**(기본 재료는 세지 않음). 4번째부터는 로그인해야 담을 수 있다 —
+      // 예전엔 기본 재료까지 센 10개에서 권유 팝업이 떴고 [나중에]를 눌러도 담겼다(2026-10-22 정책 변경).
+      if (!skipCheck && !isLoggedIn) {
+        if (guestAddedCount() >= GUEST_SAVE_LIMIT) {
           setModalOpen(false);
           setModalIngredient(null);
-          // 재료 추가 전에 모달 표시
-          setPendingIngredient(data);
-          setShowRegisterModal(true);
+          openLoginGate('ingredient');
           return;
         }
       }
-      
+      if (!isLoggedIn) track('fridge_edit', 'manual');
+
       // 재료 추가
       const obj = { 
         id: `${ingredientKeyword}-${Date.now()}`,
@@ -2705,12 +2756,9 @@ const MyFridge: React.FC = () => {
                   // 비회원도 **체험분이 남아 있으면** 쓸 수 있다.
                   // 무엇이 좋은지 본 적 없는 사람에게 가입하라고 하면 안 한다.
                   if (usage && !usage.can_use_ai) {
-                    showPrepNotice(
-                      usage.is_guest
-                        ? `체험을 다 쓰셨어요. 가입하면 ${usage.signup_credits}개를 드려요.`
-                        : '크레딧을 다 쓰셨어요.',
-                    );
-                    if (usage.is_guest) navigate('/login');
+                    // 비회원: 같은 로그인 확인창(「AI 체험을 다 쓰셨어요 / 가입하면 30크레딧…」). 회원: 기존 안내.
+                    if (usage.is_guest) openLoginGate('ai', { credits: usage.signup_credits });
+                    else showPrepNotice('크레딧을 다 쓰셨어요.');
                     return;
                   }
                   setCameraSheetOpen(true);
@@ -3004,50 +3052,21 @@ const MyFridge: React.FC = () => {
           </div>
         )}
         
-        {/* 회원가입 유도 모달 */}
-        <RegisterPromptModal
-          visible={showRegisterModal}
-          onClose={() => {
-            setShowRegisterModal(false);
-            // 나중에/배경 닫기: 비로그인 유지하되 방금 확정하려던 재료는 로컬에 반영
-            if (pendingIngredient) {
-              handleModalComplete(pendingIngredient, true);
-            }
-            setPendingIngredient(null);
-          }}
-          onConfirm={() => {
-            // 3초 회원가입: 재료 반영 후 로그인으로 이동
-            if (pendingIngredient) {
-              handleModalComplete(pendingIngredient, true);
-              setPendingIngredient(null);
-            }
-          }}
-          message="더 많은 재료를 안전히 저장하려면"
-          subMessage="회원가입이 필요해요"
-          dismissLabel="나중에"
-          confirmLabel="3초 회원가입"
-        />
-        
-        {/* 환영 모달 - 처음 방문한 사용자에게만 표시 */}
-        <WelcomeModal
-          visible={showWelcomeModal}
-          onClose={() => {
+        {/* 첫 진입 팝업 — 기본 재료를 종류별 칩으로 보여 주고 없는 것만 빼게 한다(2026-10-22 시안 ①). */}
+        <DefaultIngredientsDialog
+          open={showWelcomeModal && seedItems.length > 0}
+          items={seedItems}
+          isLoggedIn={isLoggedIn}
+          onClose={finishWelcome}
+          onStart={(ids) => { removeSeedItems(ids); finishWelcome(); }}
+          onLogin={(ids) => {
+            removeSeedItems(ids);
+            // 로그인 뒤에 사용 가이드를 이어서 보여 주기 위한 표시(예전 WelcomeModal 과 같은 규칙)
+            try {
+              if (!localStorage.getItem('myfridge_guide_shown')) localStorage.setItem('show_guide_after_login', 'true');
+            } catch { /* 표시를 못 남겨도 로그인은 진행 */ }
             setShowWelcomeModal(false);
-            // 모달 닫으면 가이드 시작
-            const urlParams = new URLSearchParams(window.location.search);
-            const forceShowWelcome = urlParams.get('showWelcome') === 'true';
-            const guideShown = localStorage.getItem('myfridge_guide_shown');
-            
-            // 강제 표시 모드이거나 가이드가 아직 표시되지 않았으면 가이드 시작
-            if (forceShowWelcome || !guideShown) {
-              setTimeout(() => {
-                markUsageGuideOpened();
-                setShowGuide(true);
-                setGuideStep(0);
-              }, 300);
-            } else {
-              markUsageGuideFinished();
-            }
+            navigate('/login');
           }}
         />
         

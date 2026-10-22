@@ -71,6 +71,17 @@ type SocialLoginProvider = 'google' | 'kakao' | 'naver' | 'apple';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
+  // 이 기기에 비회원 때 담아 둔 냉장고가 있나(있어야 아래 「처음이라면 / 쓰던 계정이 있다면」 안내가 의미가 있다)
+  const hasGuestFridge = (() => {
+    try {
+      const raw = localStorage.getItem('myfridge_ingredients');
+      if (!raw) return false;
+      const d = JSON.parse(raw);
+      return ['frozen', 'fridge', 'room'].some(k => Array.isArray(d?.[k]) && d[k].length > 0);
+    } catch {
+      return false;
+    }
+  })();
   const { loginWithToken } = useAuth();
 
   const [email, setEmail] = React.useState('');
@@ -191,7 +202,23 @@ const Login: React.FC = () => {
         <div className={`w-full ${MAX_CONTAINER_WIDTH} text-center text-[15px] text-gray-500 mb-6 mx-auto font-normal`}>
           로그인하여 내냉장고를 더 똑똑하게 관리하세요
         </div>
-        
+
+        {/* 비회원 때 담아 둔 재료가 있을 때만: 가입하면 이어지는지, 쓰던 계정이면 어떻게 되는지.
+            (이미 가입한 계정으로 로그인하면 그 계정 데이터가 우선이고 합치지 않는다 — 2026-10-22 사용자 확정) */}
+        {hasGuestFridge && (
+          <div className={`w-full ${MAX_CONTAINER_WIDTH} mb-6 mx-auto`}
+               style={{ border: '1px solid #EFEFF2', borderRadius: 12 }}>
+            <div style={{ padding: '12px 16px' }}>
+              <div style={{ fontSize: 13.5, fontWeight: 500, color: '#55555D' }}>처음이라면</div>
+              <div style={{ fontSize: 13, lineHeight: 1.5, color: '#7A7A83', marginTop: 2 }}>지금 담은 재료가 그대로 저장돼요.</div>
+            </div>
+            <div style={{ padding: '12px 16px', borderTop: '1px solid #EFEFF2' }}>
+              <div style={{ fontSize: 13.5, fontWeight: 500, color: '#55555D' }}>쓰던 계정이 있다면</div>
+              <div style={{ fontSize: 13, lineHeight: 1.5, color: '#7A7A83', marginTop: 2 }}>그 계정의 냉장고가 보여요.</div>
+            </div>
+          </div>
+        )}
+
         {/* 로그인 입력+버튼 세로배치 */}
         <div className={`flex flex-col ${CONTAINER_WIDTH} items-center gap-2 mb-3 mx-auto`}>
           <NeangteolInput 

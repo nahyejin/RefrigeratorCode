@@ -1412,6 +1412,51 @@ def register(app, get_db):
                     r['views'] = int(r['views'] or 0)
                     r['first_at'] = r['first_at'].isoformat() if r['first_at'] else None
                     r['last_at'] = r['last_at'].isoformat() if r['last_at'] else None
+
+            # 비회원 로그인 유도 팝업(2026-10-22): 어느 팝업이 몇 번 뜨고, 눌리고, 닫혔나. 그리고
+            # **가입 직전에 마지막으로 누른 팝업**이 무엇이었나(= 어느 시점에 전환됐나). 같은 기기에서
+            # 가입 시각 이전의 마지막 cta_click 을 본다. 팝업이 없던 때(예전 가입)나 팝업 없이 가입한 사람은
+            # 「팝업 없이」로 센다. detail: ingredient_limit / favorite_limit / write_limit / done_limit / ai_out / return_visit
+            cta = []
+            signup_after = []
+            if has_events:
+                cursor.execute(
+                    """
+                    SELECT detail tag,
+                           SUM(name = 'cta_view') views,
+                           SUM(name = 'cta_click') clicks,
+                           SUM(name = 'cta_dismiss') dismisses,
+                           COUNT(DISTINCT CASE WHEN name = 'cta_view'
+                                 THEN COALESCE(CAST(user_id AS CHAR), device_id) END) viewers
+                    FROM user_events
+                    WHERE name IN ('cta_view', 'cta_click', 'cta_dismiss')""" + ev_cond + """
+                    GROUP BY detail
+                    ORDER BY views DESC
+                    """,
+                    tuple(ev_params),
+                )
+                cta = cursor.fetchall()
+                for r in cta:
+                    for k in ('views', 'clicks', 'dismisses', 'viewers'):
+                        r[k] = int(r[k] or 0)
+                cursor.execute(
+                    """
+                    SELECT COALESCE(t.detail, '(팝업 없이)') tag, COUNT(*) n FROM (
+                      SELECT (SELECT c.detail FROM user_events c
+                              WHERE c.name = 'cta_click' AND c.device_id = s.device_id
+                                AND c.created_at <= s.created_at
+                              ORDER BY c.created_at DESC LIMIT 1) detail
+                      FROM (SELECT * FROM user_events
+                            WHERE name = 'signup' AND device_id IS NOT NULL""" + ev_cond + """) s
+                    ) t
+                    GROUP BY tag
+                    ORDER BY n DESC
+                    """,
+                    tuple(ev_params),
+                )
+                signup_after = cursor.fetchall()
+                for r in signup_after:
+                    r['n'] = int(r['n'] or 0)
         finally:
             cursor.close()
             db.close()
@@ -1429,6 +1474,8 @@ def register(app, get_db):
                 for r in people
             ],
             'guests': guests,
+            'cta': cta,
+            'signup_after_cta': signup_after,
             # 지금 데이터로는 못 보는 것. 화면에 함께 적어 오해를 막는다.
             'screens': screens,
             'exits': exits,

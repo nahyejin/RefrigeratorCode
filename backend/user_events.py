@@ -45,6 +45,13 @@ ALLOWED = {
     "coupang_click",    # 쿠팡 링크
     "signup",           # 가입 완료
     "login",            # 로그인
+    # 비회원 로그인 유도(2026-10-22). detail 은 어느 확인창인지: ingredient_limit / favorite_limit /
+    # write_limit / done_limit / ai_out / return_visit. 「본 것 → 누른 것 → 닫은 것」으로 전환을 본다.
+    "cta_view",         # 확인창이 떴다
+    "cta_click",        # 「로그인하기」를 눌렀다
+    "cta_dismiss",      # 취소·나중에·X 로 닫았다
+    # 비회원 냉장고 편집(서버는 로그인 사용자의 재료만 알기 때문에 앱이 보낸다). detail: manual / photo / seed_trim
+    "fridge_edit",
 }
 
 # recipe_action 의 detail 값. 서버가 남기는 것(favorite_*/complete_*/record_*)과

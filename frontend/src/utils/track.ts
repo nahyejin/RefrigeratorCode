@@ -27,6 +27,8 @@ const API_BASE_URL =
 const SESSION_KEY = 'cookmatch_session_id';
 const SESSION_AT = 'cookmatch_session_at';
 const SOURCE_KEY = 'cookmatch_source';
+/** 같은 값을 `utils/loginGate.ts` 가 읽는다(서로 import 하지 않으려고 문자열을 맞춘다) */
+const SESSION_COUNT_KEY = 'cookmatch_session_count';
 /** 이 시간 넘게 아무것도 안 하면 다음 방문으로 본다 */
 const SESSION_GAP_MS = 30 * 60 * 1000;
 
@@ -77,6 +79,10 @@ function sessionId(): string {
           ? crypto.randomUUID()
           : `s${now.toString(36)}${Math.random().toString(36).slice(2, 8)}`;
       sessionStorage.setItem(SESSION_KEY, id);
+      // 「이 기기에서 몇 번째 방문인가」 — 비회원 두 번째 방문 팝업(utils/loginGate)이 읽는다.
+      try {
+        localStorage.setItem(SESSION_COUNT_KEY, String(Number(localStorage.getItem(SESSION_COUNT_KEY) || 0) + 1));
+      } catch { /* 저장 못 해도 기록은 계속 */ }
       queueEvent('session_start');
     }
     sessionStorage.setItem(SESSION_AT, String(now));

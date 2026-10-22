@@ -14,6 +14,7 @@ import { openCookMode } from '../utils/cookMode';
 import { resolveCoupangUrl } from '../utils/coupangLink';
 import { track } from '../utils/track';
 import { getProxiedImageUrl } from '../utils/imageUtils';
+import { openLoginGate } from '../utils/loginGate';
 import { usageHeaders, applyUsage, spendOptimistically } from '../utils/usage';
 import { UsageLine, useUsage } from '../components/UsageMeter';
 import {
@@ -1027,6 +1028,10 @@ const WeeklyPlan: React.FC = () => {
       track('chat_use', 'plan');
 
       if (!res.ok) {
+        // 비회원 체험을 다 썼으면 같은 로그인 확인창을 띄운다.
+        if (data?.usage?.is_guest && data.usage.can_use_ai === false) {
+          openLoginGate('ai', { credits: data.usage.signup_credits });
+        }
         aiFailReason.current = (data && data.error) || '식단을 짜지 못했어요.';
         setError(aiFailReason.current);
         return;
@@ -1256,7 +1261,7 @@ const WeeklyPlan: React.FC = () => {
     return [...need.entries()].sort((a, b) => b[1] - a[1]);
   }, [active, myIngredients]);
 
-  const planCost = (usage?.credits as Record<string, number> | undefined)?.plan ?? 2;
+  const planCost = (usage?.credits as Record<string, number> | undefined)?.plan ?? 3;
   // 비회원도 체험분이 남아 있으면 AI 식단을 써 볼 수 있다.
   const canAi = !!usage && usage.can_use_ai;
 
@@ -1320,7 +1325,10 @@ const WeeklyPlan: React.FC = () => {
                   type="button"
                   className="ai-action"
                   disabled={asking}
-                  onClick={() => { if (canAi) void askAi(); }}
+                  onClick={() => {
+                    if (canAi) void askAi();
+                    else if (usage?.is_guest) openLoginGate('ai', { credits: usage.signup_credits });
+                  }}
                   style={{
                     minHeight: 40, padding: '12px 14px', borderRadius: 10,
                     fontSize: 13.5, fontWeight: 700, whiteSpace: 'nowrap',
@@ -1339,7 +1347,7 @@ const WeeklyPlan: React.FC = () => {
               {canAi ? (
                 <>이 버튼만 <b>{planCost} 크레딧</b>을 써요. 아래 식단은 공짜예요.</>
               ) : usage?.is_guest ? (
-                <><b>가입하면 {usage.signup_credits}개</b>를 바로 드려요. 아래 식단은 그냥 쓰셔도 됩니다.</>
+                <><b>가입하면 {usage.signup_credits}크레딧</b>을 바로 드려요. 아래 식단은 그냥 쓰셔도 됩니다.</>
               ) : (
                 <>아래 식단은 그냥 쓰셔도 됩니다.</>
               )}
