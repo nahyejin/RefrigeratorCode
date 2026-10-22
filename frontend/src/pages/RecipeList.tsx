@@ -945,6 +945,22 @@ const RecipeList: React.FC = () => {
     return () => window.clearTimeout(timer);
   }, [currentCondition]);
 
+  /** 검색조건을 전부 기본값으로(검색어·정렬·매칭률·부족 재료·임박 재료·포함/제외·채널·필터) */
+  const resetConditions = useCallback(() => {
+    const b = buildBaseCondition();
+    setPage(1);
+    setKeywordSearchInput('');
+    setIncludeKeyword('');
+    setSortType(b.sortType);
+    setMatchRange(b.matchRange);
+    setMaxLack(b.maxLack);
+    setSelectedChannel([]);
+    setIncludeIngredients([]);
+    setExcludeIngredients([]);
+    setSelectedCategoryKeywords(initialFilterState);
+    setAppliedExpiryIngredients([]);
+  }, []);
+
   /** 최근 검색조건을 눌렀을 때 — 그 당시 조건을 통째로 되살린다 */
   const applyRecentSearch = useCallback((c: SearchCondition) => {
     const fridge = getMyIngredients();
@@ -2547,13 +2563,16 @@ const RecipeList: React.FC = () => {
         {recentSearches.length > 0 && (() => {
           const base = buildBaseCondition();
           const nowKey = conditionKey(currentCondition);
+          const atDefault = isDefaultCondition(currentCondition, base);
           return (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, margin: '-6px 0 10px' }}>
             <div
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: 6,
-                margin: '-6px 0 10px',
+                flex: 1,
+                minWidth: 0,
                 overflowX: 'auto',
                 whiteSpace: 'nowrap',
                 scrollbarWidth: 'none',
@@ -2609,6 +2628,24 @@ const RecipeList: React.FC = () => {
               >
                 모두 지우기
               </button>
+            </div>
+            {/* 조건 초기화 — 스크롤되는 배지 줄 밖, 맨 오른쪽에 고정. 기본 조건이면 누를 것이 없어 흐리게. */}
+            <button
+              type="button"
+              aria-label="검색조건 초기화"
+              title="검색조건 초기화"
+              disabled={atDefault}
+              onClick={resetConditions}
+              style={{
+                flexShrink: 0, border: 'none', background: 'transparent', padding: 4, display: 'inline-flex',
+                color: atDefault ? '#C8C8CE' : '#1A1A1E', cursor: atDefault ? 'default' : 'pointer',
+              }}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M4 12a8 8 0 1 0 2.6-5.9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                <path d="M4 4.5v4.2h4.2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
             </div>
           );
         })()}
