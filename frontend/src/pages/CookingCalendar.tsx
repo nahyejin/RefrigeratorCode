@@ -1694,13 +1694,13 @@ const CookingCalendar: React.FC = () => {
     // 13) 이번 주 **AI** 식단 추천 버튼만 — AI 가 더 강조돼야 한다는 요청으로 일반 버튼은 소개하지 않는다.
     {
       targetSelector: '[data-guide-target="weekly-ai-plan-button"]',
-      message: 'AI가 내 냉장고 재료와 유통기한을 따져\n일주일 식단을 짜 드려요.\n"담백하게" 처럼 말로 조건을 넣을 수도 있고\n필요한 장보기 목록도 함께 만들어져요.',
+      message: 'AI가 내 재료와 유통기한을 따져\n일주일 식단을 짜 드려요.\n장보기 목록도 함께 만들어져요.',
       position: 'bottom' as const,
     },
     // 14) 아래 요리 기록 달력(2026-10-22 추가)
     {
       targetSelector: '[data-guide-target="calendar-record-card"]',
-      message: '완료하거나 기록한 요리, 짜 둔 식단이\n이 달력에 모여요.\n월·주·일로 바꿔 보고\n[목록] 탭에서는 전부 한눈에 볼 수 있어요.',
+      message: '완료·기록한 요리와 식단이\n이 달력에 모여요.\n월·주·일로 바꿔 볼 수 있어요.',
       position: 'top' as const,
     },
     // 15) 이번 달 목표(2026-10-22: 달력은 비로그인도 쓰는 화면이라 모두에게 보여 준다)
