@@ -1,4 +1,6 @@
-"""Railway MySQL 'root' 비밀번호를 새로 바꾼다.
+"""[2026-10-22 주의] 이 스크립트는 쓰지 말 것. Railway 보안 사고 공식 가이드(MySQL)는 DB 서비스의 Database 탭 → Config → Connection 의 **Regenerate** 로만 비밀번호를 바꾸라고 한다. 변수를 손으로 고치거나 ALTER USER 로 바꾸면 DB 와 변수가 서로 어긋난다 — 이 스크립트가 정확히 그 방식이다. 바꾼 뒤에는 이 PC 의 backend/.env 의 DB_PASSWORD 만 새 값으로 직접 맞춘다.
+
+Railway MySQL 'root' 비밀번호를 새로 바꾼다.
 
 보안 정책상 이 비밀번호 변경은 자동화 도구(Claude)가 직접 실행할 수 없어서,
 사용자가 직접 터미널에서 이 스크립트를 실행해야 한다.
