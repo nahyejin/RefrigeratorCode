@@ -21,10 +21,16 @@
 #     폰에서 원격 조작(claude.ai)으로 일을 시키면 마우스·키보드 입력이 없어서 위 규칙으로는 작업 도중에 잠들었다(2026-09-29 요청)
 #   · 5분 알림 동안 누가 만지면 잠들지 않는다
 #   · 최대 6시간 기다려도 계속 쓰고 있으면 그날은 포기한다
+#
+# **-Shutdown (2026-10-22 사용자 요청)**: 절전 대신 완전히 끈다(shutdown /s /f). 매일 14:00 CookMatch-MiddayShutdown 이
+#   위 확인을 거쳐 끄고, 다음 날 아침은 BIOS 「Resume by Alarm」(06:55)이 전원을 켠다(윈도우 자동 로그인 → 07:00 CookMatch-DailyChain).
+#   절전+작업 스케줄러 깨우기는 무인 깨어남 재절전·깨움 지연(10-21 07:07 깸 → 07:12 잠 → 07:26 배치 시작)이 반복돼 접었다.
+#   이 모드에선 CookMatch-MorningWake·keep_awake 가 필요 없다(켜진 채로 안 재우니까).
 # 기록: daily_chain.log
 param(
     [string]$NotBefore = '',
     [switch]$FromChain,
+    [switch]$Shutdown,
     [int]$IdleMinutes = 15,
     [int]$MaxWaitMinutes = 360
 )
@@ -62,7 +68,11 @@ function ClaudeBusyMinutesAgo {
 
 function ChainRunning {
     $t = Get-ScheduledTask -TaskName 'CookMatch-DailyChain' -ErrorAction SilentlyContinue
-    return ($t -and $t.State -eq 'Running')
+    if ($t -and $t.State -eq 'Running') { return $true }
+    # 작업 상태가 Ready 여도 배치·크롤러 파이썬이 남아 돌고 있으면 도는 중으로 본다(10-21: 작업은 죽었는데 크롤러 흔적 확인용)
+    $p = Get-CimInstance Win32_Process -Filter "Name='python.exe' OR Name='cmd.exe'" -ErrorAction SilentlyContinue |
+        Where-Object { $_.CommandLine -match 'run_all_crawlers|run_daily_chain|run_crawlers_scheduled|run_llm_ingredients|apply_dictionary_additions' }
+    return [bool]$p
 }
 
 # 아침 배치 끝: 재우지 않고 19:25 까지 깨어 있게 붙잡는다(2026-10-06)
@@ -102,7 +112,8 @@ while ($true) {
         Start-Sleep -Seconds 600; continue
     }
 
-    & msg.exe * /time:300 '쿡매치: 5분 뒤 컴퓨터가 절전 모드로 들어갑니다. 계속 쓰면(마우스·키보드) 잠들지 않아요.' 2>$null
+    $notice = if ($Shutdown) { '쿡매치: 5분 뒤 컴퓨터가 꺼집니다(내일 아침 7시 전에 자동으로 켜져요). 계속 쓰면(마우스·키보드) 꺼지지 않아요.' } else { '쿡매치: 5분 뒤 컴퓨터가 절전 모드로 들어갑니다. 계속 쓰면(마우스·키보드) 잠들지 않아요.' }
+    & msg.exe * /time:300 $notice 2>$null
     Start-Sleep -Seconds 300
     if ([CookMatchIdle]::IdleMinutes() -lt 5 -or (ClaudeBusyMinutesAgo) -lt 5) {
         Log '알림 중에 입력 또는 Claude 작업이 있어 절전 취소 — 10분 뒤 다시 확인'
@@ -110,6 +121,12 @@ while ($true) {
     }
     if (Test-Path (Join-Path $root 'no_shutdown.flag')) { Log 'no_shutdown.flag 가 있어 절전하지 않음'; exit 0 }
 
+    if ($Shutdown) {
+        Log '종료(전원 끄기)로 들어감 — 내일 아침 BIOS 알람이 켬'
+        # /f: 열려 있는 프로그램이 종료를 막아 켜진 채 남는 걸 방지(5분 알림·입력 없음 확인을 거친 뒤라 안전)
+        & shutdown.exe /s /f /t 0
+        exit 0
+    }
     Log '절전(대기 모드)으로 들어감'
     # SetSuspendState(hibernate=false): 최대 절전이 아니라 대기 모드(S3) — 깨는 데 몇 초
     Add-Type -AssemblyName System.Windows.Forms
