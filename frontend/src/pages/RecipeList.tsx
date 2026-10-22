@@ -34,7 +34,10 @@ import { useAuth } from '../context/AuthContext';
 import RegisterPromptModal from '../components/RegisterPromptModal';
 import GuideOverlay from '../components/GuideOverlay';
 import { markUsageGuideFinished, markUsageGuideOpened, usageGuideTotalSteps, USAGE_GUIDE_STEPS } from '../utils/onboardingPrompts';
-import { loadRecentSearches, addRecentSearch, removeRecentSearch, clearRecentSearches } from '../utils/recentSearches';
+import {
+  loadRecentSearches, addRecentSearch, removeRecentSearch, clearRecentSearches,
+  conditionKey, isDefaultCondition, describeCondition, type SearchCondition,
+} from '../utils/recentSearches';
 
 // 사용법 안내(GuideOverlay)에서 "즐겨찾기(☆)" 처럼 글자로 아이콘을 대신 적어 두면
 // 실제 버튼 모양과 안 맞거나(즐겨찾기는 카드 위 어두운 원+별) 폰트에 따라 글자가
@@ -199,6 +202,22 @@ function getInitialSortBarState(): {
     matchRange: (hasIngredients ? [DEFAULT_MATCH_MIN, 100] : [0, 100]) as [number, number],
     maxLack: 'unlimited',
     appliedExpiryIngredients: [], // 임박재료 없음
+  };
+}
+
+/** 「최근 검색조건」에서 기본값으로 치는 조건(검색어 없음 + 정렬바 기본값) */
+function buildBaseCondition(): SearchCondition {
+  const b = getInitialSortBarState();
+  return {
+    keyword: '',
+    sortType: b.sortType,
+    matchRange: b.matchRange,
+    maxLack: b.maxLack,
+    selectedChannel: [],
+    includeIngredients: [],
+    excludeIngredients: [],
+    categoryKeywords: {},
+    expiryIngredients: [],
   };
 }
 
@@ -766,7 +785,7 @@ const RecipeList: React.FC = () => {
   const [includeKeyword, setIncludeKeyword] = useState('');
   const [keywordSearchInput, setKeywordSearchInput] = useState('');
   // 최근 검색어(기기 저장) — 검색창 아래 배지로 보여 주고, 눌러서 다시 찾는다.
-  const [recentSearches, setRecentSearches] = useState<string[]>(() => loadRecentSearches());
+  const [recentSearches, setRecentSearches] = useState<SearchCondition[]>(() => loadRecentSearches(buildBaseCondition()));
   const [allIngredients, setAllIngredients] = useState<string[]>([]);
   const [substituteTable, setSubstituteTable] = useState<{ [key: string]: { ingredient_b: string; similarity_score?: number }[] }>({});
   const [matchRateModalOpen, setMatchRateModalOpen] = useState(false);
@@ -887,16 +906,67 @@ const RecipeList: React.FC = () => {
   const handleKeywordSearchSubmit = useCallback((event?: React.FormEvent<HTMLFormElement>) => {
     event?.preventDefault();
     setPage(1);
-    const term = keywordSearchInput.trim();
-    setIncludeKeyword(term);
-    if (term) setRecentSearches(addRecentSearch(term));
+    setIncludeKeyword(keywordSearchInput.trim());
   }, [keywordSearchInput]);
 
-  const applyRecentSearch = useCallback((term: string) => {
-    setKeywordSearchInput(term);
+  // 지금 고른 조건 전체(검색어·정렬·매칭률·부족 재료·임박 재료·포함/제외·채널·필터)
+  const currentCondition = useMemo<SearchCondition>(() => ({
+    keyword: includeKeyword,
+    sortType,
+    matchRange: matchRange as [number, number],
+    maxLack,
+    selectedChannel,
+    includeIngredients,
+    excludeIngredients,
+    categoryKeywords: selectedCategoryKeywords as unknown as Record<string, string[]>,
+    expiryIngredients: appliedExpiryIngredients,
+  }), [includeKeyword, sortType, matchRange, maxLack, selectedChannel, includeIngredients, excludeIngredients, selectedCategoryKeywords, appliedExpiryIngredients]);
+
+  /**
+   * 「최근 검색조건」 기록 — 사용자가 조건을 바꾸고 1.2초 가만히 있으면 그 조건 묶음을 저장한다(매번 만질 때마다
+   * 쌓이지 않게). 화면에 들어온 직후 1.5초 동안은 저장된 조건을 되살리는 중이라 기록하지 않는다(탭을 오갈 때마다
+   * 맨 앞으로 올라오지 않게). 전부 기본값이고 검색어도 없으면 기록할 것이 없다.
+   */
+  const mountedAtRef = useRef(Date.now());
+  const lastConditionKeyRef = useRef<string | null>(null);
+  useEffect(() => {
+    const key = conditionKey(currentCondition);
+    if (lastConditionKeyRef.current === null || Date.now() - mountedAtRef.current < 1500) {
+      lastConditionKeyRef.current = key;
+      return;
+    }
+    if (lastConditionKeyRef.current === key) return;
+    lastConditionKeyRef.current = key;
+    const base = buildBaseCondition();
+    if (isDefaultCondition(currentCondition, base)) return;
+    const timer = window.setTimeout(() => {
+      setRecentSearches(addRecentSearch(currentCondition, base));
+    }, 1200);
+    return () => window.clearTimeout(timer);
+  }, [currentCondition]);
+
+  /** 최근 검색조건을 눌렀을 때 — 그 당시 조건을 통째로 되살린다 */
+  const applyRecentSearch = useCallback((c: SearchCondition) => {
+    const fridge = getMyIngredients();
+    const fridgeEmpty = fridge.length === 0;
     setPage(1);
-    setIncludeKeyword(term);
-    setRecentSearches(addRecentSearch(term)); // 쓴 것은 맨 앞으로
+    setKeywordSearchInput(c.keyword);
+    setIncludeKeyword(c.keyword);
+    // 냉장고가 비었으면 매칭 기반 정렬·구간은 아무것도 안 걸리니 열어 둔다(탭 복원 때와 같은 규칙)
+    const wantExpiry = c.expiryIngredients.filter((n) => fridge.includes(n)); // 그새 없어진 재료는 뺀다
+    setSortType(
+      fridgeEmpty && (c.sortType === 'match' || c.sortType === 'expiry') ? 'latest'
+        : c.sortType === 'expiry' && wantExpiry.length === 0 ? 'match'
+        : c.sortType
+    );
+    setMatchRange(fridgeEmpty ? [0, 100] : c.matchRange);
+    setMaxLack(c.maxLack);
+    setSelectedChannel(c.selectedChannel);
+    setIncludeIngredients(c.includeIngredients);
+    setExcludeIngredients(c.excludeIngredients);
+    setSelectedCategoryKeywords({ ...initialFilterState, ...(c.categoryKeywords as unknown as FilterState) });
+    setAppliedExpiryIngredients(wantExpiry);
+    setRecentSearches(addRecentSearch(c, buildBaseCondition())); // 쓴 것은 맨 앞으로
   }, []);
   
   // 컴포넌트 마운트 시 sessionStorage에서 상태 복원 (재료 변경 감지 포함)
@@ -2472,65 +2542,76 @@ const RecipeList: React.FC = () => {
           </button>
         </form>
 
-        {/* 최근 검색어 — 한 줄(줄바꿈 없음), 넘치면 옆으로 밀어 보기. 배지를 누르면 다시 검색, ✕ 는 그 검색어만 지움. */}
-        {recentSearches.length > 0 && (
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              margin: '-6px 0 10px',
-              overflowX: 'auto',
-              whiteSpace: 'nowrap',
-              scrollbarWidth: 'none',
-            }}
-            aria-label="최근 검색어"
-          >
-            <span style={{ fontSize: 11.5, color: '#9A9AA2', flexShrink: 0 }}>최근</span>
-            {recentSearches.map((term) => {
-              const active = term === includeKeyword;
-              return (
-                <span
-                  key={term}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    flexShrink: 0,
-                    borderRadius: 9999,
-                    border: active ? '1px solid #1A1A1E' : '1px solid #E4E4E8',
-                    background: active ? '#FFFFFF' : '#F4F4F6',
-                    color: '#1A1A1E',
-                    fontSize: 12.5,
-                    lineHeight: 1,
-                  }}
-                >
-                  <button
-                    type="button"
-                    onClick={() => applyRecentSearch(term)}
-                    style={{ border: 'none', background: 'transparent', color: 'inherit', font: 'inherit', padding: '7px 4px 7px 11px', cursor: 'pointer' }}
-                  >
-                    {term}
-                  </button>
-                  <button
-                    type="button"
-                    aria-label={`${term} 지우기`}
-                    onClick={() => setRecentSearches(removeRecentSearch(term))}
-                    style={{ border: 'none', background: 'transparent', color: '#9A9AA2', font: 'inherit', padding: '7px 9px 7px 2px', cursor: 'pointer' }}
-                  >
-                    ✕
-                  </button>
-                </span>
-              );
-            })}
-            <button
-              type="button"
-              onClick={() => setRecentSearches(clearRecentSearches())}
-              style={{ flexShrink: 0, border: 'none', background: 'transparent', color: '#9A9AA2', fontSize: 11.5, padding: '4px 2px', cursor: 'pointer' }}
+        {/* 최근 검색조건 — 한 줄(줄바꿈 없음), 넘치면 옆으로 밀어 보기. 배지를 누르면 그 당시 검색어·정렬·매칭률·필터를 통째로 되살리고,
+            ✕ 는 그 조건만 지운다. 배지 글자는 기본값과 다른 것만 줄여서 보여 준다. */}
+        {recentSearches.length > 0 && (() => {
+          const base = buildBaseCondition();
+          const nowKey = conditionKey(currentCondition);
+          return (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                margin: '-6px 0 10px',
+                overflowX: 'auto',
+                whiteSpace: 'nowrap',
+                scrollbarWidth: 'none',
+              }}
+              aria-label="최근 검색조건"
             >
-              모두 지우기
-            </button>
-          </div>
-        )}
+              <span style={{ fontSize: 11.5, color: '#9A9AA2', flexShrink: 0 }}>최근</span>
+              {recentSearches.map((c) => {
+                const label = describeCondition(c, base);
+                const active = conditionKey(c) === nowKey;
+                return (
+                  <span
+                    key={conditionKey(c)}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      flexShrink: 0,
+                      borderRadius: 9999,
+                      border: active ? '1px solid #1A1A1E' : '1px solid #E4E4E8',
+                      background: active ? '#FFFFFF' : '#F4F4F6',
+                      color: '#1A1A1E',
+                      fontSize: 12.5,
+                      lineHeight: 1,
+                    }}
+                  >
+                    <button
+                      type="button"
+                      title={label}
+                      onClick={() => applyRecentSearch(c)}
+                      style={{
+                        border: 'none', background: 'transparent', color: 'inherit', font: 'inherit',
+                        padding: '7px 4px 7px 11px', cursor: 'pointer',
+                        maxWidth: 190, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {label}
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={`${label} 지우기`}
+                      onClick={() => setRecentSearches(removeRecentSearch(c, base))}
+                      style={{ border: 'none', background: 'transparent', color: '#9A9AA2', font: 'inherit', padding: '7px 9px 7px 2px', cursor: 'pointer' }}
+                    >
+                      ✕
+                    </button>
+                  </span>
+                );
+              })}
+              <button
+                type="button"
+                onClick={() => setRecentSearches(clearRecentSearches())}
+                style={{ flexShrink: 0, border: 'none', background: 'transparent', color: '#9A9AA2', fontSize: 11.5, padding: '4px 2px', cursor: 'pointer' }}
+              >
+                모두 지우기
+              </button>
+            </div>
+          );
+        })()}
         
         <RecipeSortBar
           recipes={recipes}
