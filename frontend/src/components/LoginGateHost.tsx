@@ -1,7 +1,6 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Dialog from './ui/Dialog';
-import { isHomeInstallPromptSnoozed, isStandaloneAppMode } from '../utils/onboardingPrompts';
 import {
   GATE_EVENT, GateDetail, GateKind, gateCopy, isGuestNow, markReturnGateShown, shouldShowReturnGate, trackGate,
 } from '../utils/loginGate';
@@ -40,11 +39,6 @@ const LoginGateHost: React.FC = () => {
     if (location.pathname === firstPath.current) return;
     if (SKIP_PATHS.some(p => location.pathname.startsWith(p))) return;
     if (!shouldShowReturnGate()) return;
-    // 웹에서 「홈 화면에 추가」 안내가 뜰 차례(또는 떠 있는 중)면 양보한다 — 팝업 두 개가 한꺼번에 뜨지 않게.
-    // 앱(스토어 설치본)·이미 홈 화면에 추가했거나 안내를 닫은 사람에게는 그대로 뜬다.
-    try {
-      if (!isStandaloneAppMode() && !isHomeInstallPromptSnoozed()) return;
-    } catch { /* 판단 못 하면 그냥 띄운다 */ }
     markReturnGateShown();
     const timer = window.setTimeout(() => {
       setGate({ kind: 'return' });

@@ -5,7 +5,6 @@ import SplashScreen from '../components/SplashScreen';
 import ScrollToTop from '../components/ScrollToTop';
 import TopNavBar from '../components/TopNavBar';
 import ErrorBoundary from '../components/ErrorBoundary';
-import HomeInstallPrompt from '../components/HomeInstallPrompt';
 import ExpiryPushPrompt from '../components/ExpiryPushPrompt';
 import NativePushBridge from '../components/NativePushBridge';
 import NativeAuthBridge from '../components/NativeAuthBridge';
@@ -296,7 +295,6 @@ function AppContent() {
           <Route path="/admin" element={<Admin />} />
         </Routes>
       </Suspense>
-      <HomeInstallPrompt />
       <ExpiryPushPrompt />
       {/* 네이티브 앱 푸시 배선(알림 채널·알림 탭 → 화면 이동·토큰 갱신). 웹에선 아무것도 안 함. */}
       <NativePushBridge />

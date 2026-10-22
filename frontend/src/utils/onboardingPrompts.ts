@@ -9,14 +9,10 @@ export const ONBOARDING_KEYS = {
   usageGuideStartedThisVisit: 'usage_guide_started_this_visit',
   usageGuideFinishedThisVisit: 'usage_guide_finished_this_visit',
   usageGuideNeverShow: 'usage_guide_never_show',
-  homeInstallDismissedThisSession: 'home_install_prompt_dismissed_this_session',
-  homeInstallSnoozedUntil: 'home_install_prompt_snoozed_until',
-  homeInstallNeverShow: 'home_install_prompt_never_show',
   expiryPushPromptSeen: 'expiry_push_prompt_seen',
 } as const;
 
 export const USAGE_GUIDE_INACTIVE_DAYS = 30;
-export const HOME_INSTALL_SNOOZE_DAYS = 7;
 export const USAGE_GUIDE_FINISHED_EVENT = 'usageGuideFinished';
 export const USAGE_GUIDE_OPENED_EVENT = 'usageGuideOpened';
 
@@ -88,24 +84,6 @@ export function isStandaloneAppMode(): boolean {
   const iosStandalone = Boolean((window.navigator as Navigator & { standalone?: boolean }).standalone);
   const displayModeStandalone = window.matchMedia?.('(display-mode: standalone)').matches;
   return iosStandalone || Boolean(displayModeStandalone);
-}
-
-export function isHomeInstallPromptSnoozed(now = Date.now()): boolean {
-  if (localStorage.getItem(ONBOARDING_KEYS.homeInstallNeverShow) === 'true') return true;
-  if (sessionStorage.getItem(ONBOARDING_KEYS.homeInstallDismissedThisSession) === 'true') return true;
-
-  const snoozedUntil = parseTime(localStorage.getItem(ONBOARDING_KEYS.homeInstallSnoozedUntil));
-  return snoozedUntil > now;
-}
-
-export function dismissHomeInstallPromptForSession(): void {
-  sessionStorage.setItem(ONBOARDING_KEYS.homeInstallDismissedThisSession, 'true');
-}
-
-export function snoozeHomeInstallPrompt(days = HOME_INSTALL_SNOOZE_DAYS): void {
-  const snoozedUntil = Date.now() + days * DAY_MS;
-  localStorage.setItem(ONBOARDING_KEYS.homeInstallSnoozedUntil, new Date(snoozedUntil).toISOString());
-  dismissHomeInstallPromptForSession();
 }
 
 /**
