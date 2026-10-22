@@ -13493,3 +13493,9 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 - 08:11 Railway Support 메일: 환경변수 접근 가능성, 모든 변수·키 폐기/재발급 권고, **복구 전까지 새 버전 배포 불가**. 그래서 이날 오후 푸시한 서버 변경(체험 크레딧 6·cta_* 이벤트·어드민 가입 유도 카드)은 운영에 아직 안 올라가 있다(`/api/usage` 가 guest_trial=5). 프론트(Vercel)는 정상 — 새 확인창은 이미 웹에 반영.
 - 영향 없이 동작하는 이유: 새 이벤트(cta_*)는 옛 서버가 허용 목록에 없어 조용히 버리고, 어드민 카드는 응답에 값이 없으면 「아직 기록이 없어요」로 보인다. 서버 배포가 되면 자동으로 채워진다.
 - 키 교체는 사용자가 직접(DB 비밀번호는 `scripts/rotate_db_password.py`). 점검 결과와 순서는 메모리 `project_railway_incident_20261022` 참고. 로컬 `.env` 의 Gemini 키 2개는 아직 유효(HTTP 200) 확인.
+
+### 운영 DB 날짜별 백업 (2026-10-22)
+- 사용자 요청: Railway 가 먹통이 될 때를 대비해 DB 를 이 PC 에 주기적으로 백업. 첫 백업(수동, 16:55 스냅샷)은 33개 테이블 498,788행 전부 행 수 일치로 확인(recipes 43,068 · recipe_ingredient 428,097 — DB 의 추정 행 수 2만 4천과 달랐음).
+- 신규 `scripts/backup_db.py`: pymysql 로 mysqldump 없이 전체 덤프(읽기 전용, `START TRANSACTION WITH CONSISTENT SNAPSHOT` 한 번으로 일관된 시점). 테이블마다 `<이름>.sql`(CREATE TABLE + 500행씩 INSERT), `manifest.json` 에 테이블별 행 수 일치 여부. 접속 정보는 `backend/.env`(`db_env`)에서만 읽음. 저장 위치는 **프로젝트 밖** `C:\Users\user\CookMatchBackups\db_날짜`(프로젝트 안이면 거부 — 개인정보가 공개 저장소에 올라가는 것 방지), 최근 7개만 남김(`--keep`). 어긋난 테이블이 있으면 종료 코드 1.
+- 신규 `run_db_backup_daily.bat`(CRLF) → `run_daily_chain.bat` 의 마지막 단계(사전 반영 뒤, 끝 표시 앞)로 연결. 로그는 `db_backup.log`. 배치가 도는 동안 파일 앞부분을 건드리면 cmd 가 꼬이므로 **뒤쪽에만 줄을 넣었다**(그래서 앞 단계의 「n/4」 표시는 그대로).
+- 백업에는 회원 이메일이 들어 있다 — OneDrive 같은 동기화 폴더·GitHub 에 올리지 말 것. 복원은 날짜 폴더의 .sql 을 MySQL 에 불러오면 된다(DROP TABLE IF EXISTS 로 시작하므로 빈 DB·복구용 DB 에).

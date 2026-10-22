@@ -33,6 +33,9 @@ call run_llm_ingredients_daily.bat
 echo [%date% %time%] 4/4 사전 반영 >> %CHAIN_LOG%
 call apply_dictionary_additions_daily.bat
 
+echo [%date% %time%] DB 백업(2026-10-22 추가 단계) >> %CHAIN_LOG%
+call run_db_backup_daily.bat
+
 echo [%date% %time%] ===== 매일 배치 끝 ===== >> %CHAIN_LOG%
 
 rem 끝나면 안 쓰고 있을 때 최대 절전(2026-09-29): 출근길(~10:00)엔 원격 접속을 위해 깨어 있다가 잠든다.
