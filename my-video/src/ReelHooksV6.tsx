@@ -13,7 +13,8 @@ import { Reel4Demo, Reel4Cta, REEL4_DEMO_LEN, REEL4_CTA_LEN } from "./Reel4AiDie
 const H2: HookSpec = { src: "reel2_hook_v6_cabbage.mp4", segs: [[0, 10.0]], captionAt: 6.1, caption: "먹을 게 없는 게 아니라\n안 보였던 거예요" };
 
 // 04 AI 식단 ← 「돈이 너무 많이 나갔네」 → 월 치킨·화 치킨·수 피자·목 족발 → 「금요일도 치킨」(10.32s) → 「그냥 정하지 말자」 (원본 20.0s)
-const H4: HookSpec = { src: "reel4_hook_v6_menu.mp4", segs: [[0, 20.0]], captionAt: 10.4, caption: "일주일 식단 짜다가\n배달 메뉴판 완성" };
+// 17.3s 에서 자른다 — 둘이 웃고 난 뒤 남자가 굳은 채 앉아 있는 꼬리가 길다(사용자 요청, 2026-10-23).
+const H4: HookSpec = { src: "reel4_hook_v6_menu.mp4", segs: [[0, 17.3]], captionAt: 10.4, caption: "일주일 식단 짜다가\n배달 메뉴판 완성" };
 
 export const REELS_HOOK_V6 = [
   { id: "Reel2HookV6Cabbage", ...makeReel(H2, Reel2Demo, REEL2_DEMO_LEN, Reel2Cta, REEL2_CTA_LEN, REST_EXCL[1]) },

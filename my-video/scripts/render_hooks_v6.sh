@@ -4,7 +4,7 @@
 cd "$(dirname "$0")/.."
 export PYTHONUTF8=1
 mkdir -p "out/후킹v6"
-for t in "Reel2HookV6Cabbage:reel2_hookv6_cabbage:4" "Reel4HookV6Menu:reel4_hookv6_menu:0"; do
+for t in ${ONLY:-"Reel2HookV6Cabbage:reel2_hookv6_cabbage:4" "Reel4HookV6Menu:reel4_hookv6_menu:0"}; do
   IFS=: read id name song <<< "$t"
   echo "=== $id ($(date +%H:%M:%S))"
   npx remotion render "$id" "out/후킹v6/$name.mp4" --codec h264 --crf 18 --concurrency 4 2>&1 | tail -1
