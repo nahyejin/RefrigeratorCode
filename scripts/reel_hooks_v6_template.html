@@ -77,6 +77,7 @@ th{font-weight:600;color:var(--muted);font-size:12.5px}
       <li><b>구도가 편마다 달라요</b>: 현관→주방, 냉장고와 아일랜드, 조리대와 소파, 소파 뒤에서 내려다보기, 어깨 너머로 보기, 식탁 차리기.</li>
       <li><b>깨짐 막는 규칙은 그대로</b>: 한 번 잡은 물건은 끝까지 손에, 건네지 않기, 연 문은 열린 채, 그 밖은 가만히, 개수는 숫자로.</li>
       <li><b>대사의 호흡</b>: 말끝 흐림, 반 박자 쉼, 바로 받아치기, 콧웃음·한숨을 괄호로 붙였어요.</li>
+      <li><b>1차 시험 반영(10/23)</b>: 01 우유는 문 안쪽 포켓에서만 꺼내요. 02는 냉장고 문이 앞을 가려 안이 안 보이고, 마지막에 <b>추가 컷(냉장고 안쪽)</b>을 붙여 공개해요. 03은 대사마다 누가 말하는지 옷·자리로 못 박았어요. 공통으로 「화면 위에는 어떤 글자도 나타나지 않는다」를 넣었어요.</li>
     </ul>
   </section>
 
@@ -133,13 +134,14 @@ DATA.clips.forEach(c => {
     <div class="row"><span class="k">썸네일 자막</span><span><span class="hook">${esc(c.hook)}</span><div class="kind">${esc(c.hook_kind)} · 추천</div></span></div>
     <div class="row"><span class="k">다른 후보</span><div class="alts">${c.alts.map(([k,t]) => `<span>${esc(k)} 「${esc(t.split(String.fromCharCode(10)).join(' / '))}」</span>`).join('')}</div></div>
     <div class="row"><span class="k">이어 붙일 데모</span><span>${esc(c.demo)}</span></div>
-    <div class="actions"><button class="primary" type="button" data-k="p">영상 프롬프트 복사</button><button type="button" data-k="i">첫 장면 이미지 복사</button><button type="button" data-k="n">대사 없는 버전 복사</button></div>
+    <div class="actions"><button class="primary" type="button" data-k="p">영상 프롬프트 복사</button><button type="button" data-k="i">첫 장면 이미지 복사</button><button type="button" data-k="n">대사 없는 버전 복사</button>${c.extra ? '<button type="button" data-k="x">추가 컷(냉장고 안쪽) 복사</button>' : ''}</div>
     <details><summary>영상 프롬프트 전체 보기</summary><pre data-pre="p">${esc(c.prompt)}</pre></details>
-    <details><summary>첫 장면 이미지 프롬프트 보기 (2단계용)</summary><pre data-pre="i">${esc(c.promptImage)}</pre></details>`;
+    <details><summary>첫 장면 이미지 프롬프트 보기 (2단계용)</summary><pre data-pre="i">${esc(c.promptImage)}</pre></details>${c.extra ? `<details><summary>추가 컷 프롬프트 보기 (편집에서 마지막에 이어 붙임)</summary><pre data-pre="x">${esc(c.extra)}</pre></details>` : ''}`;
   const pre = $('[data-pre="p"]', el), preI = $('[data-pre="i"]', el);
   $('[data-k="p"]', el).addEventListener('click', () => copy(c.prompt, pre));
   $('[data-k="i"]', el).addEventListener('click', () => copy(c.promptImage, preI));
   $('[data-k="n"]', el).addEventListener('click', () => copy(c.promptNoLine, pre));
+  if (c.extra) $('[data-k="x"]', el).addEventListener('click', () => copy(c.extra, $('[data-pre="x"]', el)));
   clips.appendChild(el);
 });
 const vt = $('#variants tbody');
