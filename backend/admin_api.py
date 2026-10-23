@@ -1355,6 +1355,25 @@ def register(app, get_db):
                     r[k] = int(r[k] or 0)
                 r['in_household'] = bool(r['in_household'])
 
+            # 사람별 기기(2026-10-23): 그 사람이 로그인해서 남긴 기록의 플랫폼 중 **가장 최근 것**과 쓴 플랫폼 전부.
+            # 아이폰·안드로이드·웹을 어드민에서 구분하려는 것. 플랫폼 기록(2026-10-12) 전에만 쓴 사람은 비어 있다(= 모름).
+            if has_events and people:
+                cursor.execute(
+                    "SELECT user_id, platform, MAX(created_at) last_at FROM user_events "
+                    "WHERE user_id IS NOT NULL AND platform IS NOT NULL GROUP BY user_id, platform"
+                )
+                by_user = {}
+                for pr in cursor.fetchall():
+                    by_user.setdefault(pr['user_id'], []).append((pr['last_at'], pr['platform']))
+                for r in people:
+                    plats = [p for _, p in sorted(by_user.get(r['id'], []), reverse=True)]
+                    r['platforms'] = plats
+                    r['platform'] = plats[0] if plats else None
+            else:
+                for r in people:
+                    r['platforms'] = []
+                    r['platform'] = None
+
             # 재료 담기·빼기는 서버가 2026-10-16 부터 남긴다. 그 전 숫자는 없다는 걸 화면에 적는다.
             actions_from = None
             if has_events:
@@ -1506,6 +1525,154 @@ def register(app, get_db):
                 '앱을 지우고 다시 깐 비회원 — 기기 식별자가 새로 만들어져 다른 사람으로 보인다',
                 '왜 나갔는지 — 화면과 순서는 알아도 이유는 물어봐야 안다',
             ],
+        })
+
+    @app.route('/api/admin/activity/timeline', methods=['GET'])
+    def admin_activity_timeline():
+        """한 사람(회원 `user_id` 또는 로그인 안 한 기기 `device_id`)이 **시간 순으로 무엇을 했는지**(2026-10-23).
+
+        사용자 요청: 새 회원이 가입하기까지 무엇을 했는지(어느 화면을 보고, 어떤 팝업을 보고 눌렀는지, 몇 번째 방문에
+        가입했는지)를 어드민에서 최대한 자세히 보고 싶다. 같은 기기에서 가입 **전**에 남긴 기록(user_id 가 비어 있음)도 한 줄로
+        이어 붙인다. 소셜 로그인은 브라우저를 한 번 거쳐 와서 가입·로그인 기록에는 기기 식별자가 없을 수 있으므로,
+        기록은 「이 사람의 user_id 이거나, 이 사람이 쓴 기기에서 남긴 것」을 모두 모은다.
+        """
+        _, err = guard()
+        if err:
+            return err
+        user_id = request.args.get('user_id', type=int)
+        device_id = (request.args.get('device_id') or '').strip()[:64]
+        if not user_id and not device_id:
+            return jsonify({'error': 'user_id 또는 device_id 가 필요해요.'}), 400
+
+        db = get_db()
+        cursor = db.cursor()
+        try:
+            user = None
+            devices = set()
+            if device_id:
+                devices.add(device_id)
+            if user_id:
+                cursor.execute(
+                    "SELECT id, nickname, email, provider, created_at FROM users WHERE id=%s", (user_id,))
+                user = cursor.fetchone()
+                if not user:
+                    return jsonify({'error': '없는 사용자예요.'}), 404
+                cursor.execute(
+                    "SELECT DISTINCT device_id FROM user_events WHERE user_id=%s AND device_id IS NOT NULL", (user_id,))
+                devices |= {r['device_id'] for r in cursor.fetchall()}
+
+            conds, params = [], []
+            if user_id:
+                conds.append("user_id = %s")
+                params.append(user_id)
+            if devices:
+                conds.append("device_id IN (" + ",".join(["%s"] * len(devices)) + ")")
+                params.extend(sorted(devices))
+            cursor.execute(
+                "SELECT created_at, name, screen, detail, source, platform, session_id, user_id, device_id "
+                "FROM user_events WHERE " + " OR ".join(conds) + " ORDER BY created_at, id LIMIT 3000",
+                tuple(params),
+            )
+            rows = cursor.fetchall()
+
+            # AI 사용(체험·가입 뒤 모두): 사진·챗봇·식단. 비회원 체험분은 기기 기준이다.
+            ai_rows = []
+            ai_conds, ai_params = [], []
+            if user_id:
+                ai_conds.append("user_id = %s")
+                ai_params.append(user_id)
+            if devices:
+                ai_conds.append("(user_id IS NULL AND device_id IN (" + ",".join(["%s"] * len(devices)) + "))")
+                ai_params.extend(sorted(devices))
+            if ai_conds:
+                cursor.execute(
+                    "SELECT created_at, kind, credits, user_id FROM llm_usage WHERE "
+                    + " OR ".join(ai_conds) + " ORDER BY created_at LIMIT 500",
+                    tuple(ai_params),
+                )
+                ai_rows = cursor.fetchall()
+        finally:
+            cursor.close()
+            db.close()
+
+        def iso(t):
+            return t.strftime('%Y-%m-%dT%H:%M:%S') if t else None
+
+        events = []
+        for r in rows:
+            events.append({
+                'at': iso(r['created_at']), 'name': r['name'], 'screen': r['screen'], 'detail': r['detail'],
+                'platform': r['platform'], 'session': (r['session_id'] or '')[:8],
+                'logged_in': r['user_id'] is not None,
+            })
+        for r in ai_rows:
+            events.append({
+                'at': iso(r['created_at']), 'name': 'ai_use', 'screen': None, 'detail': r['kind'],
+                'credits': int(r['credits'] or 0), 'platform': None, 'session': '',
+                'logged_in': r['user_id'] is not None,
+            })
+        events.sort(key=lambda e: e['at'] or '')
+
+        # 가입 시각: signup 기록이 있으면 그것, 없으면(옛 가입) 계정 생성 시각
+        signup_at = None
+        if user:
+            for e in events:
+                if e['name'] == 'signup':
+                    signup_at = e['at']
+                    break
+            if not signup_at:
+                signup_at = iso(user['created_at'])
+
+        pool = [e for e in events if e['at'] and e['at'] <= signup_at] if signup_at else events
+        screens = {}
+        for e in pool:
+            if e['name'] == 'screen_view' and e['screen']:
+                screens[e['screen']] = screens.get(e['screen'], 0) + 1
+        cta = {}
+        for e in pool:
+            if e['name'] in ('cta_view', 'cta_click', 'cta_dismiss'):
+                d = cta.setdefault(e['detail'] or '?', {'view': 0, 'click': 0, 'dismiss': 0})
+                d[e['name'][4:]] += 1
+        ai_credits = {}
+        for e in pool:
+            if e['name'] == 'ai_use':
+                ai_credits[e['detail']] = ai_credits.get(e['detail'], 0) + int(e.get('credits') or 0)
+        first_at = events[0]['at'] if events else None
+        minutes = None
+        if signup_at and first_at:
+            from datetime import datetime as _dt
+            try:
+                minutes = int((_dt.fromisoformat(signup_at) - _dt.fromisoformat(first_at)).total_seconds() // 60)
+            except Exception:  # noqa: BLE001
+                minutes = None
+        plats = []
+        for r in reversed(rows):
+            if r['platform'] and r['platform'] not in plats:
+                plats.append(r['platform'])
+        sources = [r['source'] for r in rows if r['source']]
+
+        return jsonify({
+            'target': 'user' if user else 'device',
+            'user': ({'id': user['id'], 'nickname': user['nickname'], 'email': _clean_email(user['email']),
+                      'provider': user['provider'], 'created_at': iso(user['created_at'])} if user else None),
+            'devices': [d[-6:] for d in sorted(devices)],
+            'platforms': plats,
+            'summary': {
+                'first_at': first_at,
+                'last_at': events[-1]['at'] if events else None,
+                'signup_at': signup_at,
+                'minutes_to_signup': minutes,
+                'visits_before': len({e['session'] for e in pool if e['session']}),
+                'screen_views_before': sum(screens.values()),
+                'top_screens': sorted(screens.items(), key=lambda kv: -kv[1])[:6],
+                'cta_before': cta,
+                'ai_credits_before': ai_credits,
+                'fridge_edits_before': sum(1 for e in pool if e['name'] == 'fridge_edit'),
+                'source': sources[0] if sources else None,
+                'total_events': len(events),
+            },
+            'events': events,
+            'truncated': len(rows) >= 3000,
         })
 
     @app.route('/api/admin/dashboard', methods=['GET'])

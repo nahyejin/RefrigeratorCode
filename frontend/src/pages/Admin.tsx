@@ -1,6 +1,7 @@
 import React from 'react';
 import DatePickerField from '../components/DatePickerField';
 import PullToRefresh from '../components/PullToRefresh';
+import Portal from '../components/Portal';
 import { useNavigate } from 'react-router-dom';
 import { getAuthToken } from '../utils/usage';
 
@@ -2104,6 +2105,192 @@ const ActivityTable: React.FC<{
 };
 
 /**
+ * 한 사람(회원 또는 로그인 안 한 기기)이 **시간 순으로 무엇을 했는지**(2026-10-23 사용자 요청).
+ *
+ * 새 회원이 가입하기까지 어느 화면을 보고, 어떤 가입 유도 팝업을 보고 눌렀는지, 몇 번째 방문에 가입했는지를
+ * 최대한 자세히 본다. 같은 기기에서 가입 **전**에 남긴 기록도 이어 붙여 온다(서버 `/api/admin/activity/timeline`).
+ */
+const TL_PLATFORM: Record<string, string> = { android: '안드로이드', ios: '아이폰(iOS)', web: '웹' };
+const TL_PROVIDER: Record<string, string> = { kakao: '카카오', naver: '네이버', google: '구글', apple: '애플', local: '이메일' };
+const TL_CTA: Record<string, string> = {
+  ingredient_limit: '재료 3개 한도', favorite_limit: '즐겨찾기 3개 한도', write_limit: '기록 3개 한도',
+  done_limit: '완료 3개 한도', ai_out: 'AI 체험 소진', return_visit: '두 번째 방문',
+};
+const TL_ACTION: Record<string, string> = {
+  favorite_add: '즐겨찾기 추가', favorite_remove: '즐겨찾기 취소', complete_add: '완료 추가', complete_remove: '완료 취소',
+  record_add: '기록 추가', record_remove: '기록 취소', plan_add: '요리 계획 담기', plan_remove: '요리 계획 빼기', plan_apply: '식단 적용',
+};
+const TL_AI: Record<string, string> = { chat: '챗봇', vision: '사진 인식', plan: 'AI 식단' };
+
+/** 한 줄 설명과 색 구분(kind): 화면/행동/팝업/AI/가입 */
+function describeEvent(e: any): { text: string; kind: 'screen' | 'act' | 'cta' | 'ai' | 'auth' | 'visit' } {
+  const d = e.detail as string | null;
+  switch (e.name) {
+    case 'session_start': return { text: '앱·웹을 열었어요 (새 방문)', kind: 'visit' };
+    case 'screen_view': return { text: `${e.screen || '화면'} 화면`, kind: 'screen' };
+    case 'recipe_open': return { text: '레시피를 열어 봤어요', kind: 'act' };
+    case 'recipe_action': return { text: TL_ACTION[d || ''] || `레시피 ${d || '행동'}`, kind: 'act' };
+    case 'ingredient_add': return { text: `재료 ${d || 1}개 담기`, kind: 'act' };
+    case 'ingredient_remove': return { text: `재료 ${d || 1}개 빼기`, kind: 'act' };
+    case 'chat_use': return { text: d ? `챗봇·AI 질문 (${d})` : '챗봇에 질문', kind: 'ai' };
+    case 'vision_use': return { text: `사진으로 재료 인식${d ? ` (${d})` : ''}`, kind: 'ai' };
+    case 'coupang_click': return { text: '쿠팡 링크를 눌렀어요', kind: 'act' };
+    case 'signup': return { text: `가입 완료 (${TL_PROVIDER[d || ''] || d || '?'})`, kind: 'auth' };
+    case 'login': return { text: `로그인 (${TL_PROVIDER[d || ''] || d || '?'})`, kind: 'auth' };
+    case 'cta_view': return { text: `「${TL_CTA[d || ''] || d}」 팝업이 떴어요`, kind: 'cta' };
+    case 'cta_click': return { text: `「${TL_CTA[d || ''] || d}」 팝업에서 [로그인하기]를 눌렀어요`, kind: 'cta' };
+    case 'cta_dismiss': return { text: `「${TL_CTA[d || ''] || d}」 팝업을 닫았어요`, kind: 'cta' };
+    case 'fridge_edit': return {
+      text: d === 'photo' ? '재료를 사진으로 담았어요 (비회원)' : d === 'seed_trim' ? '기본 재료에서 없는 재료를 뺐어요 (비회원)' : '재료를 직접 담았어요 (비회원)',
+      kind: 'act',
+    };
+    case 'ai_use': return { text: `AI ${TL_AI[d || ''] || d} 사용 (${e.credits || 0}크레딧)`, kind: 'ai' };
+    default: return { text: `${e.name}${d ? ` (${d})` : ''}`, kind: 'act' };
+  }
+}
+
+const KIND_STYLE: Record<string, { dot: string; bg?: string }> = {
+  screen: { dot: '#C8C8CE' },
+  visit: { dot: '#1A1A1E' },
+  act: { dot: '#4C8DF6' },
+  cta: { dot: '#F28C28' },
+  ai: { dot: '#8A5CF6' },
+  auth: { dot: '#1B9B5A', bg: '#E6F4EA' },
+};
+
+const fmtGap = (sec: number) => {
+  if (sec < 90) return `${Math.max(1, Math.round(sec))}초`;
+  const m = Math.round(sec / 60);
+  if (m < 90) return `${m}분`;
+  const h = Math.round(m / 60);
+  if (h < 36) return `${h}시간`;
+  return `${Math.round(h / 24)}일`;
+};
+const tlTime = (iso: string) => iso.replace('T', ' ').slice(5, 19); // 10-22 22:31:51
+
+const PersonTimeline: React.FC<{ target: { user_id?: number; device_id?: string; title: string }; onClose: () => void }> = ({ target, onClose }) => {
+  const [d, setD] = React.useState<any>(null);
+  const [err, setErr] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    setD(null);
+    setErr(null);
+    const q = target.user_id ? `user_id=${target.user_id}` : `device_id=${encodeURIComponent(target.device_id || '')}`;
+    api(`/api/admin/activity/timeline?${q}`).then(setD).catch(e => setErr(e.message));
+  }, [target.user_id, target.device_id]);
+
+  React.useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { window.removeEventListener('keydown', onKey); document.body.style.overflow = prev; };
+  }, [onClose]);
+
+  const sm = d?.summary;
+  const events: any[] = d?.events || [];
+  const signupIdx = d && sm?.signup_at ? events.findIndex(e => e.name === 'signup') : -1;
+  const plat = (d?.platforms || []).map((p: string) => TL_PLATFORM[p] || p).join(' · ') || '모름';
+  const row = (label: string, val: React.ReactNode) => (
+    <div style={{ display: 'flex', gap: 10, fontSize: 13, lineHeight: 1.7 }}>
+      <span style={{ width: 92, flexShrink: 0, color: 'var(--ink-500)' }}>{label}</span>
+      <span style={{ minWidth: 0, flex: 1 }}>{val}</span>
+    </div>
+  );
+  const dur = sm?.minutes_to_signup;
+  const durText = dur == null ? '-' : dur < 1 ? '1분도 안 걸렸어요' : dur < 90 ? `${dur}분 만에` : dur < 60 * 36 ? `${Math.round(dur / 60)}시간 만에` : `${Math.round(dur / 1440)}일 만에`;
+
+  let lastSession = '';
+  // PullToRefresh(transform)·sticky 조상 안에서는 position: fixed 가 화면이 아니라 그 조상 기준이 된다 —
+  // body 로 옮겨 그린다(Portal).
+  return (
+    <Portal>
+    <div role="dialog" aria-modal="true" onClick={onClose}
+         style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+      <div onClick={e => e.stopPropagation()}
+           style={{ width: '100%', maxWidth: 720, maxHeight: '92vh', overflowY: 'auto', background: 'var(--surface)',
+                    borderRadius: '18px 18px 0 0', padding: '18px 16px 28px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8 }}>
+          <h2 style={{ ...S.h2, margin: 0 }}>{target.title}</h2>
+          <button type="button" onClick={onClose} aria-label="닫기"
+                  style={{ border: '1px solid var(--line-300)', background: 'var(--surface)', borderRadius: 8, padding: '4px 12px', cursor: 'pointer', fontSize: 13 }}>
+            닫기
+          </button>
+        </div>
+        {err && <div style={{ color: '#B3261E', fontSize: 13 }}>{err}</div>}
+        {!d && !err && <div style={{ fontSize: 13, color: 'var(--ink-500)' }}>불러오는 중...</div>}
+        {d && (
+          <>
+            <div style={{ background: 'var(--surface-sub)', borderRadius: 12, padding: '12px 14px', margin: '6px 0 14px' }}>
+              {d.user && row('계정', <>{d.user.nickname} · {TL_PROVIDER[d.user.provider] || d.user.provider} · {d.user.email || '이메일 없음'}</>)}
+              {row('기기', <>{plat}{d.devices?.length ? <span style={{ color: 'var(--ink-500)' }}> (기기 …{d.devices.join(', …')})</span> : null}</>)}
+              {row('처음 들어온 때', sm.first_at ? tlTime(sm.first_at) : '-')}
+              {sm.signup_at && row('가입한 때', <b>{tlTime(sm.signup_at)} <span style={{ fontWeight: 400, color: 'var(--ink-500)' }}>· 처음 온 뒤 {durText}</span></b>)}
+              {row('유입 경로', sm.source || '(직접 / 모름)')}
+              {row(d.user ? '가입 전 방문' : '지금까지 방문', `${num(sm.visits_before)}번 · 화면 ${num(sm.screen_views_before)}번`)}
+              {sm.top_screens?.length > 0 && row(d.user ? '가입 전 본 화면' : '많이 본 화면',
+                sm.top_screens.map(([n, c]: [string, number]) => `${n} ${c}`).join(' · '))}
+              {Object.keys(sm.cta_before || {}).length > 0 && row(d.user ? '가입 전 팝업' : '본 팝업', (
+                <span>{Object.entries(sm.cta_before).map(([k, v]: [string, any]) =>
+                  `${TL_CTA[k] || k}: 뜸 ${v.view} · 누름 ${v.click} · 닫음 ${v.dismiss}`).join(' / ')}</span>
+              ))}
+              {Object.keys(sm.ai_credits_before || {}).length > 0 && row(d.user ? '가입 전 AI 체험' : 'AI 체험',
+                Object.entries(sm.ai_credits_before).map(([k, v]) => `${TL_AI[k] || k} ${v}크레딧`).join(' · '))}
+              {sm.fridge_edits_before > 0 && row('비회원 냉장고 편집', `${sm.fridge_edits_before}번`)}
+              {row('기록 수', `${num(sm.total_events)}건${d.truncated ? ' (너무 많아 앞부분만)' : ''}`)}
+            </div>
+
+            <div style={{ fontSize: 12, color: 'var(--ink-500)', margin: '0 0 8px' }}>
+              시간 순서 · 방문이 바뀌면 줄을 띄우고, 30분 넘게 쉰 뒤에는 쉰 시간을 적어요. 색 점: 검정 새 방문 · 회색 화면 · 파랑 행동 · 주황 가입 유도 팝업 · 보라 AI · 초록 가입/로그인.
+            </div>
+            {events.length === 0 && <div style={{ fontSize: 13, color: 'var(--ink-500)' }}>남은 기록이 없어요.</div>}
+            <ol style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+              {events.map((e, i) => {
+                const prevAt = i > 0 ? Date.parse(events[i - 1].at) : null;
+                const gap = prevAt != null ? (Date.parse(e.at) - prevAt) / 1000 : 0;
+                const info = describeEvent(e);
+                const st = KIND_STYLE[info.kind];
+                const newVisit = e.name === 'session_start' || (e.session && e.session !== lastSession && lastSession !== '');
+                if (e.session) lastSession = e.session;
+                const isSignup = e.name === 'signup';
+                return (
+                  <React.Fragment key={i}>
+                    {i === signupIdx && null}
+                    {gap >= 1800 && (
+                      <li style={{ fontSize: 11.5, color: 'var(--ink-500)', textAlign: 'center', padding: '8px 0' }}>
+                        — {fmtGap(gap)} 뒤 —
+                      </li>
+                    )}
+                    {newVisit && gap < 1800 && i > 0 && <li aria-hidden style={{ height: 6 }} />}
+                    <li style={{ display: 'flex', gap: 10, alignItems: 'baseline', padding: '3px 6px', borderRadius: 6,
+                                 background: st.bg || 'transparent', opacity: signupIdx >= 0 && i < signupIdx ? 1 : 1 }}>
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: st.dot, flexShrink: 0, alignSelf: 'center' }} />
+                      <span style={{ width: 104, flexShrink: 0, fontSize: 11.5, color: 'var(--ink-500)', fontVariantNumeric: 'tabular-nums' }}>
+                        {tlTime(e.at)}
+                      </span>
+                      <span style={{ fontSize: 13, minWidth: 0, flex: 1, fontWeight: isSignup ? 700 : 400 }}>
+                        {info.text}
+                      </span>
+                      {e.platform && (
+                        <span style={{ fontSize: 10.5, color: 'var(--ink-400, #9A9AA2)', flexShrink: 0 }}>{TL_PLATFORM[e.platform] || e.platform}</span>
+                      )}
+                    </li>
+                    {isSignup && (
+                      <li style={{ fontSize: 11.5, color: 'var(--ink-500)', textAlign: 'center', padding: '6px 0 4px' }}>▲ 가입 전 · 가입 후 ▼</li>
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </ol>
+          </>
+        )}
+      </div>
+    </div>
+    </Portal>
+  );
+};
+
+/**
  * 날짜별 막대그래프 (한 계열).
  *
  * 전에는 막대만 그리고 값은 `title`(마우스 올림)로만 보여 줬다. **폰에는 마우스가
@@ -2369,6 +2556,8 @@ const Dashboard: React.FC = () => {
   // 크레딧 그래프는 화면 추이와 **따로** 고른다. 둘을 한 상태로 묶으면
   // 한쪽을 월별로 보려다 다른 쪽까지 바뀌어 비교하던 걸 놓친다.
   const [creditUnit, setCreditUnit] = React.useState<string>('day');
+  // 사람·기기를 눌렀을 때 뜨는 시간 순 행동 기록(2026-10-23). 훅이라 아래 early return 보다 위에 둔다.
+  const [timeline, setTimeline] = React.useState<{ user_id?: number; device_id?: string; title: string } | null>(null);
 
   React.useEffect(() => {
     // 기간을 바꾸면 두 요청을 **함께** 다시 보낸다. 하나만 갱신하면 같은 화면에
@@ -2398,6 +2587,7 @@ const Dashboard: React.FC = () => {
 
   return (
     <PeriodContext.Provider value={periodLabel}>
+      {timeline && <PersonTimeline target={timeline} onClose={() => setTimeline(null)} />}
       {/* 날짜 선택(아래 StatsBar)과 상관없이 지금까지 쌓인 숫자라서 선택 줄 **위**에 따로 둔다(2026-10-20 사용자:
           기간 무관한 칸이 기간 선택 아래 섞여 있어 선택에 따라 바뀌는 줄 착각) */}
       {act?.today_kst && (() => {
@@ -2837,7 +3027,7 @@ const Dashboard: React.FC = () => {
               { key: 'views', label: '본 화면', group: '방문' },
               ...AI,
             ];
-            const PLATFORM: Record<string, string> = { android: '안드로이드', ios: 'iOS', web: '웹' };
+            const PLATFORM: Record<string, string> = { android: '안드로이드', ios: '아이폰(iOS)', web: '웹' };
             const filterSpan = act.filters?.ranged ? spanOf(act.filters?.from, act.filters?.to) : '전체 기간';
 
             // 비회원 로그인 유도 팝업(2026-10-22): 어느 팝업이 몇 번 뜨고 눌리고 닫혔나 + 가입 직전 마지막으로 누른 팝업
@@ -2915,7 +3105,20 @@ const Dashboard: React.FC = () => {
                     rowKey={u => u.id}
                     unit="명"
                     lead={[
-                      { label: '닉네임', render: u => u.nickname },
+                      // 닉네임을 누르면 그 사람이 가입 전부터 지금까지 무엇을 했는지 시간 순으로 열린다.
+                      { label: '닉네임', render: u => (
+                        <button type="button" onClick={() => setTimeline({ user_id: u.id, title: `${u.nickname} 님의 행동 기록` })}
+                                title="가입 전부터 지금까지 한 일을 시간 순으로 봐요"
+                                style={{ border: 'none', background: 'transparent', padding: 0, cursor: 'pointer', font: 'inherit',
+                                         color: 'inherit', textDecoration: 'underline', textUnderlineOffset: 3, textAlign: 'left' }}>
+                          {u.nickname}
+                        </button>
+                      ) },
+                      { label: '기기', render: u => (
+                        <span style={{ fontSize: 12, color: 'var(--ink-500)', whiteSpace: 'nowrap' }}>
+                          {(u.platforms || []).length ? (u.platforms as string[]).map(p => TL_PLATFORM[p] || p).join('·') : '모름'}
+                        </span>
+                      ) },
                       { label: '가입일', render: u => (
                         <span style={{ fontSize: 12, color: 'var(--ink-500)' }}>{dayOf(u.created_at) || '-'}</span>
                       ) },
@@ -2931,6 +3134,9 @@ const Dashboard: React.FC = () => {
                     ) : null}
                   />
                   <div style={{ fontSize: 12, color: 'var(--ink-500)', padding: '10px 16px 14px', lineHeight: 1.8 }}>
+                    <b>닉네임</b>을 누르면 그 사람이 <b>가입 전부터 지금까지 무엇을 했는지</b> 시간 순으로 열려요(본 화면·가입 유도 팝업·재료·AI).
+                    <b>기기</b> 로그인해서 쓴 기록의 플랫폼(아이폰·안드로이드·웹, 둘 이상 썼으면 모두).
+                    <br />
                     <b>가입 방법</b> 어느 계정으로 가입했는지. <b>로그인</b> 로그인한 횟수(가입 때 한 번 포함) — 2026-10-20부터 기록돼서 그 전에 로그인한 건 빠져 있어요.
                     <br />
                     <b>방문</b> 앱·웹을 연 횟수. 30분 넘게 아무것도 안 하다 다시 쓰면 새 방문이에요.
@@ -2971,9 +3177,12 @@ const Dashboard: React.FC = () => {
                       lead={[
                         // 기기 식별자는 앱이 만든 무작위 값이라 개인정보는 아니지만 길어서 끝 6자리만 보인다.
                         { label: '기기', render: g => (
-                          <span title={g.device_id} style={{ fontFamily: 'monospace', fontSize: 12 }}>
+                          <button type="button" title="이 기기가 한 일을 시간 순으로 봐요"
+                                  onClick={() => setTimeline({ device_id: g.device_id, title: `비회원 기기 …${String(g.device_id).slice(-6)} 의 행동 기록` })}
+                                  style={{ border: 'none', background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: 'monospace', fontSize: 12,
+                                           color: 'inherit', textDecoration: 'underline', textUnderlineOffset: 3 }}>
                             …{String(g.device_id).slice(-6)}
-                          </span>
+                          </button>
                         ) },
                         { label: '플랫폼', render: g => (
                           <span style={{ fontSize: 12, color: 'var(--ink-500)' }}>
