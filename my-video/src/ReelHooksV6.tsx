@@ -2,7 +2,6 @@ import { makeReel, type HookSpec } from "./ReelHooksV2";
 import { REST_EXCL } from "./RestFeatures";
 import { Reel2Demo, Reel2Cta, REEL2_DEMO_LEN, REEL2_CTA_LEN } from "./Reel2Match";
 import { Reel3Demo, Reel3Cta, REEL3_DEMO_LEN, REEL3_CTA_LEN } from "./Reel3CookMode";
-import { Reel6Demo, Reel6Cta, REEL6_DEMO_LEN, REEL6_CTA_LEN } from "./Reel6ChatbotDemo";
 import { Reel7Demo, Reel7Cta, REEL7_DEMO_LEN, REEL7_CTA_LEN } from "./Reel7RealRecipe";
 import { Reel4Demo, Reel4Cta, REEL4_DEMO_LEN, REEL4_CTA_LEN } from "./Reel4AiDiet";
 
@@ -36,6 +35,7 @@ export const REELS_HOOK_V6 = [
   { id: "Reel2HookV6Cabbage", ...makeReel(H2, Reel2Demo, REEL2_DEMO_LEN, Reel2Cta, REEL2_CTA_LEN, REST_EXCL[1]) },
   { id: "Reel3HookV6Gloves", ...makeReel(H3, Reel3Demo, REEL3_DEMO_LEN, Reel3Cta, REEL3_CTA_LEN, REST_EXCL[2]) },
   { id: "Reel4HookV6Menu", ...makeReel(H4, Reel4Demo, REEL4_DEMO_LEN, Reel4Cta, REEL4_CTA_LEN, REST_EXCL[3]) },
-  { id: "Reel6HookV6Delivery", ...makeReel(H6, Reel6Demo, REEL6_DEMO_LEN, Reel6Cta, REEL6_CTA_LEN, REST_EXCL[5]) },
+  // 06 배달 훅이지만 데모는 02 매칭 — 「레시피마다 장 보래」에는 「내 냉장고 기준 매칭률 순 + 없는 재료는 있는 걸로 대체」가 답이다(사용자 선택, 2026-10-24).
+  { id: "Reel6HookV6Delivery", ...makeReel(H6, Reel2Demo, REEL2_DEMO_LEN, Reel2Cta, REEL2_CTA_LEN, REST_EXCL[1]) },
   { id: "Reel7HookV6Blog", ...makeReel(H7, Reel7Demo, REEL7_DEMO_LEN, Reel7Cta, REEL7_CTA_LEN, REST_EXCL[6]) },
 ];
