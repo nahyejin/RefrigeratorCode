@@ -2,6 +2,7 @@ import { makeReel, type HookSpec } from "./ReelHooksV2";
 import { REST_EXCL } from "./RestFeatures";
 import { Reel2Demo, Reel2Cta, REEL2_DEMO_LEN, REEL2_CTA_LEN } from "./Reel2Match";
 import { Reel3Demo, Reel3Cta, REEL3_DEMO_LEN, REEL3_CTA_LEN } from "./Reel3CookMode";
+import { Reel7Demo, Reel7Cta, REEL7_DEMO_LEN, REEL7_CTA_LEN } from "./Reel7RealRecipe";
 import { Reel4Demo, Reel4Cta, REEL4_DEMO_LEN, REEL4_CTA_LEN } from "./Reel4AiDiet";
 
 // 후킹 v6(2026-10-23) — store/REEL_HOOKS_V6.md 프롬프트로 사용자가 뽑은 제미나이 클립 중 살린 두 편.
@@ -21,8 +22,13 @@ const H3: HookSpec = { src: "reel3_hook_v6_gloves.mp4", segs: [[0, 12.2]], capti
 // 17.3s 에서 자른다 — 둘이 웃고 난 뒤 남자가 굳은 채 앉아 있는 꼬리가 길다(사용자 요청, 2026-10-23).
 const H4: HookSpec = { src: "reel4_hook_v6_menu.mp4", segs: [[0, 17.3]], captionAt: 10.4, caption: "일주일 식단 짜다가\n배달 메뉴판 완성" };
 
+// 07 검증된 레시피 ← 빈 팬 앞에서 블로그 레시피를 내리며 「이 사람이 아직 제주도에 있어」 → 「아직 바다 보고 있어」 → 「…이제 귤 따러 갔어」
+// 원본 9.25s 가 너무 빨라(사용자) 0.85배로 늦춘 편집본(10.875s, 목소리 높이 유지·표식 지움). 펀치 대사 「아직 바다 보고 있어」 원본 3.82s → 4.5s.
+const H7: HookSpec = { src: "reel7_hook_v6_blog.mp4", segs: [[0, 10.8]], captionAt: 4.5, caption: "레시피 보려다\n남의 여행기만 봤어요" };
+
 export const REELS_HOOK_V6 = [
   { id: "Reel2HookV6Cabbage", ...makeReel(H2, Reel2Demo, REEL2_DEMO_LEN, Reel2Cta, REEL2_CTA_LEN, REST_EXCL[1]) },
   { id: "Reel3HookV6Gloves", ...makeReel(H3, Reel3Demo, REEL3_DEMO_LEN, Reel3Cta, REEL3_CTA_LEN, REST_EXCL[2]) },
   { id: "Reel4HookV6Menu", ...makeReel(H4, Reel4Demo, REEL4_DEMO_LEN, Reel4Cta, REEL4_CTA_LEN, REST_EXCL[3]) },
+  { id: "Reel7HookV6Blog", ...makeReel(H7, Reel7Demo, REEL7_DEMO_LEN, Reel7Cta, REEL7_CTA_LEN, REST_EXCL[6]) },
 ];
