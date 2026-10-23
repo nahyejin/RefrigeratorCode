@@ -10,7 +10,7 @@ import { Reel4Demo, Reel4Cta, REEL4_DEMO_LEN, REEL4_CTA_LEN } from "./Reel4AiDie
 // 자막 시각은 Whisper(medium) 단어 시각 실측. BGM 은 렌더 뒤 scripts/render_hooks_v6.sh 에서 add_bgm.py 로 깐다.
 
 // 02 매칭 ← 「오늘 저녁 뭐 먹어?」 「양배추 반 통이랑 소시지? 이게 다야」 → 「뒤에 저건 다 뭔데?」(6.08s) 「어? 저거 언제 샀지?」 (원본 10.0s)
-const H2: HookSpec = { src: "reel2_hook_v6_cabbage.mp4", segs: [[0, 10.0]], captionAt: 6.1, caption: "먹을 게 없는 게 아니라\n안 보였던 거예요" };
+const H2: HookSpec = { src: "reel2_hook_v6_cabbage.mp4", segs: [[0, 10.0]], captionAt: 6.1, caption: "있는 재료도 모르고\n뭐 해 먹지 고민했죠?" }; // 02 매칭 데모(「내 냉장고 기준 매칭률 순」)로 이어지게(사용자 선택, 2026-10-23)
 
 // 04 AI 식단 ← 「돈이 너무 많이 나갔네」 → 월 치킨·화 치킨·수 피자·목 족발 → 「금요일도 치킨」(10.32s) → 「그냥 정하지 말자」 (원본 20.0s)
 // 17.3s 에서 자른다 — 둘이 웃고 난 뒤 남자가 굳은 채 앉아 있는 꼬리가 길다(사용자 요청, 2026-10-23).
