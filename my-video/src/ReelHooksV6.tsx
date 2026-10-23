@@ -1,6 +1,7 @@
 import { makeReel, type HookSpec } from "./ReelHooksV2";
 import { REST_EXCL } from "./RestFeatures";
 import { Reel2Demo, Reel2Cta, REEL2_DEMO_LEN, REEL2_CTA_LEN } from "./Reel2Match";
+import { Reel3Demo, Reel3Cta, REEL3_DEMO_LEN, REEL3_CTA_LEN } from "./Reel3CookMode";
 import { Reel4Demo, Reel4Cta, REEL4_DEMO_LEN, REEL4_CTA_LEN } from "./Reel4AiDiet";
 
 // 후킹 v6(2026-10-23) — store/REEL_HOOKS_V6.md 프롬프트로 사용자가 뽑은 제미나이 클립 중 살린 두 편.
@@ -12,11 +13,16 @@ import { Reel4Demo, Reel4Cta, REEL4_DEMO_LEN, REEL4_CTA_LEN } from "./Reel4AiDie
 // 02 매칭 ← 「오늘 저녁 뭐 먹어?」 「양배추 반 통이랑 소시지? 이게 다야」 → 「뒤에 저건 다 뭔데?」(6.08s) 「어? 저거 언제 샀지?」 (원본 10.0s)
 const H2: HookSpec = { src: "reel2_hook_v6_cabbage.mp4", segs: [[0, 10.0]], captionAt: 6.1, caption: "있는 재료도 모르고\n뭐 해 먹지 고민했죠?" }; // 02 매칭 데모(「내 냉장고 기준 매칭률 순」)로 이어지게(사용자 선택, 2026-10-23)
 
+// 03 요리 모드 ← 냄비 든 채 레시피 화면이 꺼짐 「나 손 없어」 → 「팔꿈치로 눌러」 「냄비 들고 있잖아」 → 「…그럼 코로」(9.24s)
+// 편집본(12.2s): 「그럼 코로」부터 남자 얼굴로 다가가고, 대사 뒤 2.2초 입 다문 무표정으로 머문 뒤 흰 페이드(hooks_v6_fixed/03_장갑_수정.mp4).
+const H3: HookSpec = { src: "reel3_hook_v6_gloves.mp4", segs: [[0, 12.2]], captionAt: 9.3, caption: "요리 중에 화면 꺼지면\n진짜 난감하죠" };
+
 // 04 AI 식단 ← 「돈이 너무 많이 나갔네」 → 월 치킨·화 치킨·수 피자·목 족발 → 「금요일도 치킨」(10.32s) → 「그냥 정하지 말자」 (원본 20.0s)
 // 17.3s 에서 자른다 — 둘이 웃고 난 뒤 남자가 굳은 채 앉아 있는 꼬리가 길다(사용자 요청, 2026-10-23).
 const H4: HookSpec = { src: "reel4_hook_v6_menu.mp4", segs: [[0, 17.3]], captionAt: 10.4, caption: "일주일 식단 짜다가\n배달 메뉴판 완성" };
 
 export const REELS_HOOK_V6 = [
   { id: "Reel2HookV6Cabbage", ...makeReel(H2, Reel2Demo, REEL2_DEMO_LEN, Reel2Cta, REEL2_CTA_LEN, REST_EXCL[1]) },
+  { id: "Reel3HookV6Gloves", ...makeReel(H3, Reel3Demo, REEL3_DEMO_LEN, Reel3Cta, REEL3_CTA_LEN, REST_EXCL[2]) },
   { id: "Reel4HookV6Menu", ...makeReel(H4, Reel4Demo, REEL4_DEMO_LEN, Reel4Cta, REEL4_CTA_LEN, REST_EXCL[3]) },
 ];
