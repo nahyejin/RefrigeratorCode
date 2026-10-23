@@ -1,5 +1,6 @@
 import { makeReel, type HookSpec } from "./ReelHooksV2";
 import { REST_EXCL } from "./RestFeatures";
+import { Reel1Demo, Reel1Cta, REEL1_DEMO_LEN, REEL1_CTA_LEN } from "./Reel1Receipt";
 import { Reel2Demo, Reel2Cta, REEL2_DEMO_LEN, REEL2_CTA_LEN } from "./Reel2Match";
 import { Reel3Demo, Reel3Cta, REEL3_DEMO_LEN, REEL3_CTA_LEN } from "./Reel3CookMode";
 import { Reel7Demo, Reel7Cta, REEL7_DEMO_LEN, REEL7_CTA_LEN } from "./Reel7RealRecipe";
@@ -12,7 +13,7 @@ import { Reel4Demo, Reel4Cta, REEL4_DEMO_LEN, REEL4_CTA_LEN } from "./Reel4AiDie
 // 자막 시각은 Whisper(medium) 단어 시각 실측. BGM 은 렌더 뒤 scripts/render_hooks_v6.sh 에서 add_bgm.py 로 깐다.
 
 // 02 매칭 ← 「오늘 저녁 뭐 먹어?」 「양배추 반 통이랑 소시지? 이게 다야」 → 「뒤에 저건 다 뭔데?」(6.08s) 「어? 저거 언제 샀지?」 (원본 10.0s)
-const H2: HookSpec = { src: "reel2_hook_v6_cabbage.mp4", segs: [[0, 10.0]], captionAt: 6.1, caption: "있는 재료도 모르고\n뭐 해 먹지 고민했죠?" }; // 02 매칭 데모(「내 냉장고 기준 매칭률 순」)로 이어지게(사용자 선택, 2026-10-23)
+const H2: HookSpec = { src: "reel2_hook_v6_cabbage.mp4", segs: [[0, 10.0]], captionAt: 6.1, caption: "냉장고에 뭐 있는지\n나만 몰랐어요" }; // 데모는 01 사진 인식(사용자 결정 2026-10-24 — 「안쪽에 뭐 있는지 몰랐다」 → 냉장고를 앱이 기억)
 
 // 03 요리 모드 ← 냄비 든 채 레시피 화면이 꺼짐 「나 손 없어」 → 「팔꿈치로 눌러」 「냄비 들고 있잖아」 → 「…그럼 코로」(9.24s)
 // 편집본(12.2s): 「그럼 코로」부터 남자 얼굴로 다가가고, 대사 뒤 2.2초 입 다문 무표정으로 머문 뒤 흰 페이드(hooks_v6_fixed/03_장갑_수정.mp4).
@@ -32,7 +33,7 @@ const H7: HookSpec = { src: "reel7_hook_v6_blog.mp4", segs: [[0, 10.8]], caption
 const H6: HookSpec = { src: "reel6_hook_v6_delivery.mp4", segs: [[0, 12.0]], captionAt: 5.5, caption: "레시피 열 개 봤는데\n다 장 보래요" };
 
 export const REELS_HOOK_V6 = [
-  { id: "Reel2HookV6Cabbage", ...makeReel(H2, Reel2Demo, REEL2_DEMO_LEN, Reel2Cta, REEL2_CTA_LEN, REST_EXCL[1]) },
+  { id: "Reel2HookV6Cabbage", ...makeReel(H2, Reel1Demo, REEL1_DEMO_LEN, Reel1Cta, REEL1_CTA_LEN, REST_EXCL[0]) },
   { id: "Reel3HookV6Gloves", ...makeReel(H3, Reel3Demo, REEL3_DEMO_LEN, Reel3Cta, REEL3_CTA_LEN, REST_EXCL[2]) },
   { id: "Reel4HookV6Menu", ...makeReel(H4, Reel4Demo, REEL4_DEMO_LEN, Reel4Cta, REEL4_CTA_LEN, REST_EXCL[3]) },
   // 06 배달 훅이지만 데모는 02 매칭 — 「레시피마다 장 보래」에는 「내 냉장고 기준 매칭률 순 + 없는 재료는 있는 걸로 대체」가 답이다(사용자 선택, 2026-10-24).
