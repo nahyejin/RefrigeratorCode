@@ -2,6 +2,7 @@ import { makeReel, type HookSpec } from "./ReelHooksV2";
 import { REST_EXCL } from "./RestFeatures";
 import { Reel2Demo, Reel2Cta, REEL2_DEMO_LEN, REEL2_CTA_LEN } from "./Reel2Match";
 import { Reel3Demo, Reel3Cta, REEL3_DEMO_LEN, REEL3_CTA_LEN } from "./Reel3CookMode";
+import { Reel6Demo, Reel6Cta, REEL6_DEMO_LEN, REEL6_CTA_LEN } from "./Reel6ChatbotDemo";
 import { Reel7Demo, Reel7Cta, REEL7_DEMO_LEN, REEL7_CTA_LEN } from "./Reel7RealRecipe";
 import { Reel4Demo, Reel4Cta, REEL4_DEMO_LEN, REEL4_CTA_LEN } from "./Reel4AiDiet";
 
@@ -26,9 +27,14 @@ const H4: HookSpec = { src: "reel4_hook_v6_menu.mp4", segs: [[0, 17.3]], caption
 // 원본 9.25s 가 너무 빨라(사용자) 0.85배로 늦춘 편집본(10.875s, 목소리 높이 유지·표식 지움). 펀치 대사 「아직 바다 보고 있어」 원본 3.82s → 4.5s.
 const H7: HookSpec = { src: "reel7_hook_v6_blog.mp4", segs: [[0, 10.8]], captionAt: 4.5, caption: "레시피 보려다\n남의 여행기만 봤어요" };
 
+// 06 요리 AI ← (남편 주인공, v7.2) 소파에서 「냉장고 파먹기 하려고 레시피를 열 개를 봤거든?」 → 「근데 열 개 다 마트 가서 뭘 사 오래」(5.5s) → 아내 「배달 시킬까?」(~9.0s)
+// 원본 10.0s 가 대사 직후 끝나 너무 짧다(사용자) → 꼬리 2초(9.5~10.0s 정·역 반복 = 고개 끄덕임) + 대사 뒤부터 남자 얼굴로 3초 동안 천천히 1.35배. 편집본 12.0s.
+const H6: HookSpec = { src: "reel6_hook_v6_delivery.mp4", segs: [[0, 12.0]], captionAt: 5.5, caption: "레시피 열 개 봤는데\n다 장 보래요" };
+
 export const REELS_HOOK_V6 = [
   { id: "Reel2HookV6Cabbage", ...makeReel(H2, Reel2Demo, REEL2_DEMO_LEN, Reel2Cta, REEL2_CTA_LEN, REST_EXCL[1]) },
   { id: "Reel3HookV6Gloves", ...makeReel(H3, Reel3Demo, REEL3_DEMO_LEN, Reel3Cta, REEL3_CTA_LEN, REST_EXCL[2]) },
   { id: "Reel4HookV6Menu", ...makeReel(H4, Reel4Demo, REEL4_DEMO_LEN, Reel4Cta, REEL4_CTA_LEN, REST_EXCL[3]) },
+  { id: "Reel6HookV6Delivery", ...makeReel(H6, Reel6Demo, REEL6_DEMO_LEN, Reel6Cta, REEL6_CTA_LEN, REST_EXCL[5]) },
   { id: "Reel7HookV6Blog", ...makeReel(H7, Reel7Demo, REEL7_DEMO_LEN, Reel7Cta, REEL7_CTA_LEN, REST_EXCL[6]) },
 ];
