@@ -132,7 +132,7 @@ DATA.clips.forEach(c => {
     <div class="clip-head"><span class="no">${c.no}</span><div>
       <span class="kbf">${esc(c.kbf)}</span><h2>${esc(c.title)}</h2></div></div>
     <p class="why">${esc(c.why)}</p>
-    <div class="row"><span class="k">썸네일 자막</span><span><span class="hook">${esc(c.hook)}</span><div class="kind">${esc(c.hook_kind)} · 추천</div></span></div>
+    <div class="row"><span class="k">후킹 자막</span><span><span class="hook">${esc(c.hook)}</span><div class="kind">${esc(c.hook_kind)} · 추천</div></span></div>
     <div class="row"><span class="k">다른 후보</span><div class="alts">${c.alts.map(([k,t]) => `<span>${esc(k)} 「${esc(t.split(String.fromCharCode(10)).join(' / '))}」</span>`).join('')}</div></div>
     <div class="row"><span class="k">이어 붙일 데모</span><span>${esc(c.demo)}</span></div>
     <div class="actions"><button class="primary" type="button" data-k="p">영상 프롬프트 복사</button><button type="button" data-k="i">첫 장면 이미지 복사</button><button type="button" data-k="n">대사 없는 버전 복사</button>${c.extra ? '<button type="button" data-k="x">추가 컷(냉장고 안쪽) 복사</button>' : ''}</div>
