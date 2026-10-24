@@ -136,6 +136,27 @@ def clip_prompt(ep, i):
     ])
 
 
+def full_prompt(ep):
+    """한 번에 한 영상(약 30초) — 사용자 요청(2026-10-24): 클립 4개로 나누지 말고 한 번 복붙으로. 04 메뉴 편이 한 프롬프트로 20초까지 나온 적이 있다."""
+    p = PRESENTERS[ep["p"]]
+    parts = ["첫마디", "공감", "해결", "마무리"]
+    t = [(0, 7.5), (7.5, 15), (15, 22.5), (22.5, 30)]
+    beats = "\n".join(
+        f"{i + 1}) {a}~{b}초 · {parts[i]} — {act}. 이 사람 목소리로, 빠르고 자연스럽게 이어서 말한다: \"{line}\""
+        for i, ((line, act), (a, b)) in enumerate(zip(ep["clips"], t)))
+    return "\n\n".join([
+        HEAD,
+        f"[한 줄 요약]\n{p['name'].split('(')[0]} 한 명이 셀카처럼 폰을 들고, 쿡매치의 「{ep['feature']}」 기능을 친구에게 알려 주듯 처음부터 끝까지 쉬지 않고 혼자 말하는 약 30초짜리 한 컷 영상. 중간에 끊기거나 장면이 바뀌지 않는다.",
+        RULES,
+        f"[출연자]\n{p['look']} 목소리: {p['voice']}.",
+        f"[장소]\n{p['place']}",
+        "[말하는 순서 — 위에서 아래로, 한 번에 이어서]\n" + beats + "\n5) 30초: 말을 마치고 렌즈를 본 채 작게 웃는다. — 말 없음",
+        "[길이]\n약 30초, 한 번에 이어 찍은 한 컷. 네 부분의 대사를 빠짐없이 모두 말한다.",
+        "[마지막 장면]\n렌즈를 보고 웃는 출연자의 얼굴.",
+        TAIL,
+    ])
+
+
 def edit_plan(ep):
     return f"클립1~4 이어 붙이기 + 위 제목 「{ep['title']}」 고정 · 아래 말 자막 · 클립3·4 동안 {DEMO_NAMES[ep['demo']]} 화면 카드 → 쿡매치 로고·유도 화면 → 그 밖의 기능 7가지 → 끝 화면"
 
@@ -150,20 +171,21 @@ def write_md():
          "- 셀카처럼 폰을 들고 쉬지 않고 빠르게(초당 6음절 안팎). 위에 제목 자막 고정, 아래 말 자막, 해결 부분에서 앱 화면이 얼굴 위에 카드로 뜬다.",
          "",
          "## 만드는 순서",
-         "1. 출연자 사진(W·M 각각 한 번, 셀카 구도).",
-         "2. 편마다 클립 1~4 를 각각 새 대화에서, 사진을 첨부하고 뽑는다(각 약 8초).",
+         "1. 편마다 **영상 프롬프트(한 번에)** 를 새 대화에 그대로 붙여 넣는다 — 사진 첨부 없이 복붙 한 번(사용자 요청 2026-10-24).",
+         "2. 8~10초에서 잘려 나올 때만: 출연자 사진(W·M)을 만들어 첨부하고 「나눠 뽑기」 클립 1~4 를 쓴다.",
          "3. 네 클립을 보내면 Claude 가 편집: " + "클립1~4 이어 붙이기 + 위 제목·아래 말 자막 + 클립3·4 동안 기능 화면 카드 → 쿡매치 로고·유도 화면 → 그 밖의 기능 7가지 → 끝 화면.",
          "",
          "## 공통 「꼭 지킬 것」", "", "```", RULES, "```", ""]
-    for k in PRESENTERS:
-        L += [f"## 출연자 사진 — {PRESENTERS[k]['name']}", "", "```", photo_prompt(k), "```", ""]
     for ep in EPISODES:
         L += [f"## {ep['no']}. {ep['title']} — {ep['feature']} · {PRESENTERS[ep['p']]['name']}", "",
               f"- **편집**: {edit_plan(ep)}", "- **대사(약 30초)**:"]
         L += [f"  {i + 1}. {c[0]}" for i, c in enumerate(ep["clips"])]
         L.append("")
+        L += ["영상 프롬프트(한 번에, 약 30초):", "", "```", full_prompt(ep), "```", ""]
         for i in range(4):
-            L += [f"클립 {i + 1}:", "", "```", clip_prompt(ep, i), "```", ""]
+            L += [f"(잘릴 때만) 나눠 뽑기 클립 {i + 1}:", "", "```", clip_prompt(ep, i), "```", ""]
+    for k in PRESENTERS:
+        L += [f"## (잘릴 때만) 출연자 사진 — {PRESENTERS[k]['name']}", "", "```", photo_prompt(k), "```", ""]
     (ROOT / "store/REEL_TALK_V2.md").write_text("\n".join(L) + "\n", encoding="utf-8", newline="\n")
 
 
@@ -172,7 +194,7 @@ def write_html(path: Path):
         "presenters": [{"key": k, "name": v["name"], "look": v["look"], "photo": photo_prompt(k)} for k, v in PRESENTERS.items()],
         "episodes": [{"no": e["no"], "title": e["title"], "feature": e["feature"], "presenter": PRESENTERS[e["p"]]["name"],
                       "plan": edit_plan(e), "lines": [c[0] for c in e["clips"]],
-                      "clips": [clip_prompt(e, i) for i in range(4)]} for e in EPISODES],
+                      "full": full_prompt(e), "clips": [clip_prompt(e, i) for i in range(4)]} for e in EPISODES],
     }
     tpl = (ROOT / "scripts/reel_talk_v2_template.html").read_text(encoding="utf-8")
     path.write_text(tpl.replace("/*__DATA__*/null", json.dumps(data, ensure_ascii=False).replace("</", "<\\/")), encoding="utf-8")
