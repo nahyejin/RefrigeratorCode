@@ -2543,6 +2543,150 @@ const StatsBar: React.FC<{
   );
 };
 
+/**
+ * 「들어온 기기」를 **겹치지 않는 세 묶음**으로 보여 준다(2026-10-24 사용자 지적: 앱·웹·다운로드 링크·구분 전이 한 줄에
+ * 섞여 있어 서로 겹치는지 합이 전체인지 알 수 없었다). 서버는 기기 식별자 하나를 **정확히 한 칸**에만 넣는다:
+ *
+ *   ① 쿡매치 화면까지 본 기기  = 안드로이드 앱 + 아이폰 앱 + 웹 + 앱·웹 모름(플랫폼을 기록하기 전인 10/12 이전)
+ *   ② 다운로드 페이지만 본 기기 = 아이폰 + 안드로이드 + PC 등 (프로필 링크로 설치 안내 페이지만 열고 끝난 브라우저)
+ *   ③ 사람 아닌 것            = 개인정보처리방침·약관만 열었거나 링크 미리보기 봇 — 합계에서 **뺀다**
+ *
+ * 기기 수 ≠ 사람 수: 같은 사람이 브라우저로 다운로드 페이지를 보고(②) 앱을 설치해 열면(①) 브라우저와 앱이 각각 기기
+ * 한 대로 잡힌다.
+ */
+const DeviceBreakdown: React.FC<{ c: Record<string, number>; periodNote?: string }> = ({ c, periodNote }) => {
+  const g = (k: string) => Number(c[k] || 0);
+  const app = g('android') + g('ios');
+  const web = g('web');
+  const unknown = g('unknown');
+  const used = app + web + unknown;
+  const link = g('link_ios') + g('link_android') + g('link_web');
+  const other = g('other');
+  const people = used + link;
+  const COLOR = { app: '#1A1A1E', web: '#4C8DF6', unknown: '#B8B8C0', link: '#F28C28', other: '#E3E3E8' };
+  const seg = (v: number, color: string, label: string) => v > 0 ? (
+    <div key={label} title={`${label} ${num(v)}`} style={{ width: `${(v / Math.max(people + other, 1)) * 100}%`, background: color, height: '100%' }} />
+  ) : null;
+  const dot = (color: string) => <span aria-hidden style={{ width: 9, height: 9, borderRadius: '50%', background: color, flexShrink: 0, display: 'inline-block' }} />;
+  const line = (color: string, label: string, v: number, hint?: string) => (
+    <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, padding: '3px 0', fontSize: 13 }}>
+      <span style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0, flex: 1 }}>
+        {dot(color)}
+        <span style={{ minWidth: 0 }}>{label}{hint && <span style={{ color: 'var(--ink-500)', fontSize: 11.5 }}> · {hint}</span>}</span>
+      </span>
+      <b style={{ fontVariantNumeric: 'tabular-nums' }}>{num(v)}</b>
+    </div>
+  );
+  const box = (title: string, total: number, children: React.ReactNode, note: string, muted?: boolean) => (
+    <div style={{ border: '1px solid var(--line-200)', borderRadius: 12, padding: '10px 12px', background: muted ? 'var(--surface-sub)' : 'var(--surface)' }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
+        <span style={{ fontSize: 13.5, fontWeight: 700 }}>{title}</span>
+        <span style={{ fontSize: 20, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{num(total)}</span>
+      </div>
+      <div style={{ fontSize: 11.5, color: 'var(--ink-500)', margin: '1px 0 6px', lineHeight: 1.5 }}>{note}</div>
+      {children}
+    </div>
+  );
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 12.5, color: 'var(--ink-500)', fontWeight: 600 }}>들어온 기기 합계 (봇·안내만 뺀 것)</span>
+        <span style={{ fontSize: 30, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{num(people)}대</span>
+        <span style={{ fontSize: 12, color: 'var(--ink-500)' }}>= ① {num(used)} + ② {num(link)}{periodNote ? ` · ${periodNote}` : ''}</span>
+      </div>
+      <div role="img" aria-label="기기 구성 비율" style={{ display: 'flex', height: 12, borderRadius: 6, overflow: 'hidden', background: 'var(--line-200)', margin: '8px 0 10px' }}>
+        {seg(app, COLOR.app, '앱')}{seg(web, COLOR.web, '웹')}{seg(unknown, COLOR.unknown, '앱·웹 모름')}{seg(link, COLOR.link, '다운로드 페이지만')}{seg(other, COLOR.other, '봇·안내만')}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 10 }}>
+        {box('① 쿡매치 화면까지 본 기기', used, (
+          <>
+            {line(COLOR.app, '안드로이드 앱', g('android'), '설치하고 열어 본 기기')}
+            {line(COLOR.app, '아이폰 앱', g('ios'), '설치하고 열어 본 기기')}
+            {line(COLOR.web, '웹', web, '브라우저에서 쿡매치 화면을 봄')}
+            {line(COLOR.unknown, '앱·웹 모름', unknown, '10/12 이전 기록')}
+          </>
+        ), '홈·냉장고요리 같은 실제 화면을 본 기기. 앱인지 웹인지는 아래 칸으로 나뉘어요.')}
+        {box('② 다운로드 페이지만 본 기기', link, (
+          <>
+            {line(COLOR.link, '아이폰', g('link_ios'))}
+            {line(COLOR.link, '안드로이드', g('link_android'))}
+            {line(COLOR.link, 'PC 등', g('link_web'))}
+          </>
+        ), '프로필 링크로 설치 안내 페이지만 열고 끝난 브라우저. 스토어로 넘어갔는지·설치했는지는 몰라요. 설치해서 앱을 열면 ①의 앱 기기로 따로 잡혀요.')}
+        {box('③ 사람 아닌 것', other, null,
+          '개인정보처리방침·약관만 열어 봄(스토어 심사 등), 링크 미리보기 봇. 합계에서 뺐어요.', true)}
+      </div>
+      <div style={{ fontSize: 11.5, color: 'var(--ink-500)', marginTop: 8, lineHeight: 1.6 }}>
+        <b>기기 하나는 ①②③ 중 한 곳에만 들어가요(겹치지 않아요).</b> ①+②+③ = 전체 {num(people + other)}대.
+        다만 <b>기기 수는 사람 수가 아니에요</b> — 같은 사람이 브라우저로 다운로드 페이지를 보고(②) 앱을 설치해 열면(①) 기기가 두 대로 잡혀요.
+      </div>
+    </div>
+  );
+};
+
+/**
+ * 「요약」 탭 — 기간과 상관없이 지금까지의 전반적인 숫자만 카드로(2026-10-24 사용자 요청: 일자별 분석은 대시보드 탭에 두고,
+ * 전체 누적은 따로 한눈에 보게).
+ */
+const Overview: React.FC = () => {
+  const [act, setAct] = React.useState<any>(null);
+  const [data, setData] = React.useState<any>(null);
+  const [error, setError] = React.useState<string | null>(null);
+  React.useEffect(() => {
+    api('/api/admin/activity').then(setAct).catch(e => setError(e.message));
+    api('/api/admin/dashboard').then(setData).catch(() => {});
+  }, []);
+  if (error) return <div style={S.card}>{error}</div>;
+  if (!act) return <div style={S.card}>불러오는 중...</div>;
+
+  const today: string = act.today_kst;
+  const shift = (base: string, offset: number) => {
+    const d = new Date(base + 'T12:00:00Z');
+    d.setUTCDate(d.getUTCDate() + offset);
+    return d.toISOString().slice(0, 10);
+  };
+  const nd: { date: string; platform: string; n: number }[] = act.new_devices || [];
+  // 새로 들어온 기기(그 기기가 처음 기록된 날 기준, 봇·안내만 제외)
+  const sumDays = (from: string, to: string) =>
+    nd.filter(r => r.date >= from && r.date <= to && r.platform !== 'other').reduce((a, r) => a + r.n, 0);
+  const todayN = sumDays(today, today);
+  const yesterdayN = sumDays(shift(today, -1), shift(today, -1));
+  const weekN = sumDays(shift(today, -6), today);
+  const U = data?.users || {};
+  return (
+    <>
+      <div style={S.card}>
+        <h2 style={S.h2}>쿡매치에 들어온 기기 — 전체 누적</h2>
+        <Range mode="fixed">서버에 처음 기록된 날부터 지금까지 · 내 계정·기기 제외</Range>
+        <DeviceBreakdown c={act.devices_total || {}} />
+      </div>
+
+      <div style={S.card}>
+        <h2 style={S.h2}>새로 들어온 기기</h2>
+        <Range mode="fixed">그 기기가 처음 기록된 날 기준 · 봇·안내만 제외 · 기간별 자세한 표는 「대시보드」 탭</Range>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <StatTile title="오늘" value={todayN} />
+          <StatTile title="어제" value={yesterdayN} />
+          <StatTile title="최근 7일" value={weekN} sub={`하루 평균 ${(weekN / 7).toFixed(1)}대`} />
+        </div>
+      </div>
+
+      <div style={S.card}>
+        <h2 style={S.h2}>회원</h2>
+        <Range mode="fixed">전체 누적 · 내 계정 제외</Range>
+        {data ? (
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <StatTile title="현재 회원" value={U.active ?? 0} sub="탈퇴하지 않은 계정" />
+            <StatTile title="누적 가입" value={U.total ?? 0} sub="탈퇴 포함" />
+            <StatTile title="탈퇴" value={U.deleted ?? 0} />
+            <StatTile title="식구 그룹 소속" value={U.in_household ?? 0} />
+          </div>
+        ) : <div style={{ fontSize: 13, color: 'var(--ink-500)' }}>불러오는 중...</div>}
+      </div>
+    </>
+  );
+};
+
 const Dashboard: React.FC = () => {
   const [data, setData] = React.useState<any>(null);
   const [act, setAct] = React.useState<any>(null);
@@ -2588,29 +2732,7 @@ const Dashboard: React.FC = () => {
   return (
     <PeriodContext.Provider value={periodLabel}>
       {timeline && <PersonTimeline target={timeline} onClose={() => setTimeline(null)} />}
-      {/* 날짜 선택(아래 StatsBar)과 상관없이 지금까지 쌓인 숫자라서 선택 줄 **위**에 따로 둔다(2026-10-20 사용자:
-          기간 무관한 칸이 기간 선택 아래 섞여 있어 선택에 따라 바뀌는 줄 착각) */}
-      {act?.today_kst && (() => {
-        const dt: Record<string, number> = act.devices_total || {};
-        const dtAll = Object.values(dt).reduce((a, n) => a + (Number(n) || 0), 0);
-        return (
-          <div style={S.card}>
-            <h2 style={S.h2}>앱·웹에 들어온 기기 — 전체 누적</h2>
-            <Range mode="fixed">
-              아래 날짜를 바꿔도 변하지 않아요 · 서버에 처음 기록된 날부터 지금까지 · 내 계정·기기 제외 · 모두 합치면 {num(dtAll)}
-            </Range>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '0 0 4px' }}>
-              <StatTile title="앱 — 설치하고 처음 연 기기" value={(dt.android || 0) + (dt.ios || 0)}
-                        sub={`안드로이드 ${num(dt.android || 0)} · 아이폰 ${num(dt.ios || 0)}`} />
-              <StatTile title="웹 — 브라우저로 쿡매치를 쓴 기기" value={dt.web || 0} sub="다운로드 페이지 말고 실제 화면까지 들어옴" />
-              <StatTile title="다운로드 링크만 누른 기기" value={(dt.link_ios || 0) + (dt.link_android || 0) + (dt.link_web || 0)}
-                        sub={`스토어로 넘어감(설치 여부 모름) · 아이폰 ${num(dt.link_ios || 0)} · 안드로이드 ${num(dt.link_android || 0)} · PC 등 ${num(dt.link_web || 0)}`} />
-              <StatTile title="앱·웹 구분 전" value={dt.unknown || 0} sub="10/12 전에 들어와 어느 쪽인지 모름" />
-              <StatTile title="사람 아님·안내 페이지만" value={dt.other || 0} sub="개인정보처리방침·약관만 열어 봄(스토어 심사 등), 링크 미리보기 봇" />
-            </div>
-          </div>
-        );
-      })()}
+      {/* 전체 누적 기기 카드는 「요약」 탭으로 옮겼다(2026-10-24). 이 탭은 날짜를 고르는 분석만 둔다. */}
 
       <StatsBar
         value={filter}
@@ -2629,7 +2751,7 @@ const Dashboard: React.FC = () => {
               <Range mode="period">
                 {act.filters?.ranged
                   ? `위에서 고른 「${periodLabel}」 에 서버에 처음 기록된 기기만 · 내 계정·기기 제외`
-                  : '「전체」를 고르면 최근 7일만 보여 줘요(전체 누적은 맨 위 카드) · 내 계정·기기 제외'}
+                  : '「전체」를 고르면 최근 7일만 보여 줘요(전체 누적은 「요약」 탭) · 내 계정·기기 제외'}
               </Range>
               {(() => {
                 // 맨 위의 기간 설정을 그대로 따른다(기간을 안 골랐으면 최근 7일).
@@ -2665,22 +2787,21 @@ const Dashboard: React.FC = () => {
                 return (
                   <>
                     <div style={{ margin: '4px 0 6px' }}>
-                      <Range inline mode="period">{ranged ? '이 기간에 처음 기록된 기기' : '「전체」를 고르면 최근 7일'}</Range>
+                      <Range inline mode="period">{ranged ? '이 기간에 처음 기록된 기기(기간 안에서 처음 기록된 날 기준)' : '「전체」를 고르면 최근 7일'}</Range>
                     </div>
-                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '0 0 12px' }}>
-                      <StatTile title="합계 (사람 아님 제외)" value={total}
-                                sub={`하루 평균 ${all.length ? (total / all.length).toFixed(1) : '0'}명 · ${all.length}일`} />
-                      <StatTile title="앱 — 설치하고 처음 연 기기" value={sumOf(all, 'android') + sumOf(all, 'ios')}
-                                sub={`안드로이드 ${num(sumOf(all, 'android'))} · 아이폰 ${num(sumOf(all, 'ios'))}`} />
-                      <StatTile title="웹 — 브라우저로 쿡매치를 쓴 기기" value={sumOf(all, 'web')} sub="다운로드 페이지 말고 실제 화면까지 들어옴" />
-                      <StatTile title="다운로드 링크만 누른 기기" value={sumOf(all, 'link')}
-                                sub={`아이폰 ${num(sumOf(all, 'link_ios'))} · 안드로이드 ${num(sumOf(all, 'link_android'))} · PC 등 ${num(sumOf(all, 'link_web'))}`} />
-                      <StatTile title="앱·웹 구분 전" value={sumOf(all, 'unknown')} sub="10/12 전에 들어와 어느 쪽인지 모름" />
-                      <StatTile title="사람 아님·안내 페이지만" value={sumOf(all, 'other')} sub="방침·약관만 열어 봄, 링크 미리보기 봇" />
+                    <div style={{ margin: '0 0 12px' }}>
+                      <DeviceBreakdown
+                        c={{
+                          android: sumOf(all, 'android'), ios: sumOf(all, 'ios'), web: sumOf(all, 'web'), unknown: sumOf(all, 'unknown'),
+                          link_ios: sumOf(all, 'link_ios'), link_android: sumOf(all, 'link_android'), link_web: sumOf(all, 'link_web'),
+                          other: sumOf(all, 'other'),
+                        }}
+                        periodNote={`하루 평균 ${all.length ? (total / all.length).toFixed(1) : '0'}대 · ${all.length}일`}
+                      />
                     </div>
                     <div style={{ overflowX: 'auto' }}>
                     <div className="adm-scroll"><table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 460 }}>
-                      <thead><tr>{['날짜', '합계', '안드로이드 앱', '아이폰 앱', '웹', '링크만', '구분 전', '봇·안내만'].map((h) => (
+                      <thead><tr>{['날짜', '합계(봇 제외)', '안드로이드 앱', '아이폰 앱', '웹', '다운로드 페이지만', '앱·웹 모름', '봇·안내만'].map((h) => (
                         <th key={h} style={S.th}>{h}</th>))}</tr></thead>
                       {/* 합계 줄은 맨 아래(tfoot) — 스크롤해도 바닥에 붙어 있다 */}
                       <tfoot>
@@ -2714,12 +2835,12 @@ const Dashboard: React.FC = () => {
                 );
               })()}
               <div style={{ fontSize: 11.5, color: 'var(--ink-500)', marginTop: 8, lineHeight: 1.6 }}>
-                <b>스토어 다운로드 수가 아니에요.</b> 앱은 설치하고 <b>처음 열어 본</b> 기기만 잡혀요(설치만 하고 안 열면 안 보여요).
+                <b>스토어 다운로드 수가 아니에요.</b> 앱은 설치하고 <b>처음 열어 본</b> 기기만 잡혀요(설치만 하고 안 열면 안 보여요). 합계는 사람 수가 아니라 <b>기기 수</b>예요.
                 스토어 숫자는{' '}
                 <a href="https://play.google.com/console" target="_blank" rel="noreferrer">구글 플레이 콘솔</a> 「통계」와{' '}
                 <a href="https://appstoreconnect.apple.com/analytics" target="_blank" rel="noreferrer">앱스토어 커넥트</a> 「분석」에서
-                하루 이틀 늦게 나와요. 웹은 다운로드·개인정보처리방침 같은 안내 페이지가 아니라 홈·냉장고요리 같은 쿡매치 화면까지 본 브라우저만 셉니다(주소를 직접 치거나 검색·공유로 들어온 사람, PC 에서 「웹에서 바로 시작하기」를 누른 사람). 「링크만」은 프로필 링크(다운로드 페이지)를 열고 스토어로 넘어간 기기예요 — 스토어 화면을 봤는지·설치했는지는 몰라요(설치하고 앱을 열면 「앱」에 따로 잡혀요). 「봇·안내만」은 사람이 아니거나(인스타·페이스북 링크 미리보기, 앱 모음 사이트) 개인정보처리방침·약관만 열어 본 기기라 새 사용자로 보지 않아요.
-                앱·웹 구분은 10/12 이후부터 기록돼서 그 전 기기는 「구분 전」에 들어가요.
+                하루 이틀 늦게 나와요. 웹은 다운로드·개인정보처리방침 같은 안내 페이지가 아니라 홈·냉장고요리 같은 쿡매치 화면까지 본 브라우저만 셉니다(주소를 직접 치거나 검색·공유로 들어온 사람, PC 에서 「웹에서 바로 시작하기」를 누른 사람). 「다운로드 페이지만」은 프로필 링크(다운로드 페이지)를 열고 끝난 기기예요 — 스토어 화면을 봤는지·설치했는지는 몰라요(설치하고 앱을 열면 앱 기기로 따로 잡혀요). 「봇·안내만」은 사람이 아니거나(인스타·페이스북 링크 미리보기, 앱 모음 사이트) 개인정보처리방침·약관만 열어 본 기기라 새 사용자로 보지 않아요.
+                앱·웹 구분은 10/12 이후부터 기록돼서 그 전 기기는 「앱·웹 모름」에 들어가요(쿡매치 화면은 본 기기예요).
               </div>
             </div>
           )}
@@ -3347,7 +3468,7 @@ const Admin: React.FC = () => {
   const [allowed, setAllowed] = React.useState<boolean | null>(null);
   // 대시보드가 첫 탭이다 — 어드민을 여는 이유는 대개 "지금 어떤 상태지" 이기 때문.
   // 사전은 가끔 손보는 것이라 맨 뒤.
-  const [tab, setTab] = React.useState<'dashboard' | 'users' | 'requests' | 'ops' | 'dictionary'>('dashboard');
+  const [tab, setTab] = React.useState<'overview' | 'dashboard' | 'users' | 'requests' | 'ops' | 'dictionary'>('overview');
   const [users, setUsers] = React.useState<AdminUser[] | null>(null);
   const [policy, setPolicy] = React.useState<any>(null);
   const [keyword, setKeyword] = React.useState('');
@@ -3433,15 +3554,17 @@ const Admin: React.FC = () => {
 
       {/* 탭 줄은 스크롤해도 위에 붙어 있게 — 긴 표를 내려 본 뒤 다른 탭으로 가려고 맨 위까지 올릴 필요가 없다.
           top 은 공통 GNB 높이(56px). 배경을 페이지 배경과 같게 칠해 아래 내용이 비치지 않게 한다. */}
-      <div style={{ display: 'flex', gap: 6, position: 'sticky', top: 56, zIndex: 20,
+      <div style={{ display: 'flex', gap: 6, position: 'sticky', top: 56, zIndex: 20, overflowX: 'auto',
                     background: 'var(--surface-sub)', margin: '0 -12px 12px', padding: '8px 12px' }}>
-        {([['dashboard', '대시보드'], ['users', '사용자'], ['requests', '요청'], ['ops', '운영'], ['dictionary', '사전']] as const).map(([key, label]) => (
+        {([['overview', '요약'], ['dashboard', '대시보드'], ['users', '사용자'], ['requests', '요청'], ['ops', '운영'], ['dictionary', '사전']] as const).map(([key, label]) => (
           <button
             key={key}
             type="button"
             onClick={() => setTab(key)}
             style={{
               ...S.btn,
+              // 탭이 여섯 개가 돼서 폰에서 「요약」이 두 줄로 꺾였다 — 한 줄로 두고 모자라면 옆으로 민다.
+              whiteSpace: 'nowrap', flexShrink: 0,
               background: tab === key ? '#1A1A1E' : '#FFFFFF',
               color: tab === key ? '#FFFFFF' : 'var(--ink-700)',
               border: tab === key ? '1px solid #1A1A1E' : S.btn.border,
@@ -3452,7 +3575,9 @@ const Admin: React.FC = () => {
         ))}
       </div>
 
-      {tab === 'dashboard' ? (
+      {tab === 'overview' ? (
+        <Overview key={refreshKey} />
+      ) : tab === 'dashboard' ? (
         <Dashboard key={refreshKey} />
       ) : tab === 'requests' ? (
         <Requests key={refreshKey} />
