@@ -2602,15 +2602,15 @@ const DeviceBreakdown: React.FC<{ c: Record<string, number>; periodNote?: string
           <>
             {line(COLOR.app, '안드로이드 앱', g('android'), '설치하고 열어 본 기기')}
             {line(COLOR.app, '아이폰 앱', g('ios'), '설치하고 열어 본 기기')}
-            {line(COLOR.web, '웹', web, '브라우저에서 쿡매치 화면을 봄')}
-            {line(COLOR.unknown, '앱·웹 모름', unknown, '10/12 이전 기록')}
+            {line(COLOR.web, '웹(브라우저)', web, '앱이 아니라 브라우저로 봄 · 휴대폰 브라우저도 여기예요')}
+            {line(COLOR.unknown, '앱·웹 모름', unknown, '10/12 이전 기록(앱·웹 표시를 시작하기 전이라 구분 못 함)')}
           </>
         ), '쿡매치 안(홈·냉장고요리 등)을 본 기기예요. 다운로드 페이지를 거쳐 왔어도 여기에 들어가요. 앱인지 웹인지는 아래 칸으로 나뉘어요.')}
         {box('② 다운로드 페이지까지만 온 기기', link, (
           <>
             {line(COLOR.link, '아이폰', g('link_ios'))}
-            {line(COLOR.link, '안드로이드', g('link_android'))}
-            {line(COLOR.link, 'PC 등', g('link_web'))}
+            {line(COLOR.link, '안드로이드', g('link_android'), '10/24 전엔 기록이 빠졌어요')}
+            {line(COLOR.link, 'PC 등', g('link_web'), '아이폰·안드로이드가 아닌 접속 — 사람이 아닌 봇이 섞여 있을 수 있어요')}
           </>
         ), '프로필 링크로 설치 안내 페이지는 열었지만, 쿡매치 안에서의 기록은 없는 기기예요. 스토어로 넘어가 설치했을 수도 있어요 — 설치하고 앱을 열면 앱 기기로 따로 ①에 잡혀요(설치만 하고 안 열면 안 보여요).')}
         {box('③ 사람 아닌 것', other, null,
