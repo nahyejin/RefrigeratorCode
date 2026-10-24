@@ -258,6 +258,83 @@ def _where(column, start, end, ids=None, devices=None,
     return (" AND " + " AND ".join(parts) if parts else ""), params
 
 
+# ── 릴스 게시 기록(2026-10-24) ────────────────────────────────────────────────
+# 사용자가 인스타 릴스를 올릴 때마다 날짜를 알려 주면 쌓고, 올린 날 전후의 신규 기기·가입과 나란히 보여 준다.
+# 왜 DB 에 두나: 일정표(store/REEL_UPLOAD_PLAN.html)의 「올렸어요」 체크는 브라우저에만 저장돼 실제 게시일을 알 수 없었다.
+# 프로필 링크가 하나라 어느 릴스에서 왔는지는 기록되지 않는다 — 날짜 겹침으로만 본다(어드민 화면에도 그렇게 적는다).
+REEL_KINDS = {'overview': '기능 총정리', 'hook': '연기 영상', 'cooking': '직접 요리', 'other': '기타'}
+
+# 처음 만들 때 한 번 넣는, 사용자가 직접 알려 준 19편(2026-10-24).
+REEL_SEED = [
+    ('2026-09-11', '최초 릴스', 'other', '본계정 스토리에도 공유 — 지인 유입으로 추정(쿡매치 관심은 낮을 수 있음)'),
+    ('2026-10-12', '8가지 기능 총정리', 'overview', None),
+    ('2026-10-12', '“이거 저번에도 샀나?”(영수증)', 'hook', None),
+    ('2026-10-12', '재료 한두 개 때문에 레시피 포기', 'hook', None),
+    ('2026-10-13', '사 놓고 유통기한 놓쳐 버린 채소', 'hook', None),
+    ('2026-10-13', '계획 없이 카트 한가득·긴 영수증', 'hook', None),
+    ('2026-10-13', '“오늘 뭐 해 먹지” 검색창 앞에서 멍', 'hook', None),
+    ('2026-10-13', '손으로 레시피 순서 따라가기 힘들잖아요', 'hook', None),
+    ('2026-10-13', '레시피 따라 했는데 왜 제 것만 이상하죠', 'hook', None),
+    ('2026-10-14', '이번 달 배달비 볼 용기 있어요?', 'hook', None),
+    ('2026-10-14', '“집에 계란 있어? 없어?”', 'hook', None),
+    ('2026-10-14', '재료 다 꺼내 놓고 한참 쳐다본 적 있죠', 'hook', None),
+    ('2026-10-15', '“근데 자기야, 이거 뭐야?” 찜닭', 'hook', None),
+    ('2026-10-15', '소세지야채볶음(직접 요리)', 'cooking', None),
+    ('2026-10-17', '우유 냄새 “자기가 먹어”', 'hook', None),
+    ('2026-10-17', '황태미역국(직접 요리)', 'cooking', None),
+    ('2026-10-19', '안 닫히는 냉장고', 'hook', None),
+    ('2026-10-20', '“엄마, 두부랑 애호박 있는데 뭐 해 먹지?”', 'hook', None),
+    ('2026-10-24', '“아니 아니, 너무 올렸어”(화면 올려줘)', 'hook', None),
+]
+
+
+def _ensure_reel_table(get_db):
+    db = get_db()
+    cursor = db.cursor()
+    try:
+        cursor.execute(
+            "CREATE TABLE IF NOT EXISTS reel_posts ("
+            " id INT AUTO_INCREMENT PRIMARY KEY,"
+            " posted_on DATE NOT NULL,"
+            " title VARCHAR(120) NOT NULL,"
+            " kind VARCHAR(16) NOT NULL DEFAULT 'hook',"
+            " note VARCHAR(255) NULL,"
+            " created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,"
+            " INDEX idx_posted (posted_on)"
+            ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+        )
+        cursor.execute("SELECT COUNT(*) AS n FROM reel_posts")
+        row = cursor.fetchone()
+        n = row['n'] if isinstance(row, dict) else row[0]
+        if not n:
+            cursor.executemany(
+                "INSERT INTO reel_posts (posted_on, title, kind, note) VALUES (%s, %s, %s, %s)", REEL_SEED
+            )
+        db.commit()
+    finally:
+        cursor.close()
+        db.close()
+
+
+
+def _reel_fields(body):
+    """요청 본문 → (날짜, 제목, 종류, 메모). 잘못되면 ('error', 문구)."""
+    posted = str(body.get('posted_on') or '').strip()[:10]
+    try:
+        datetime.strptime(posted, '%Y-%m-%d')
+    except ValueError:
+        return ('error', '올린 날짜를 YYYY-MM-DD 로 적어 주세요.')
+    title = str(body.get('title') or '').strip()[:120]
+    if not title:
+        return ('error', '릴스 제목(내용)을 적어 주세요.')
+    kind = str(body.get('kind') or 'hook')
+    if kind not in REEL_KINDS:
+        return ('error', '종류가 올바르지 않습니다.')
+    note = str(body.get('note') or '').strip()[:255] or None
+    return (posted, title, kind, note)
+
+
+
 def register(app, get_db):
     """앱에 어드민 라우트를 붙인다. app.py 에서 한 번 호출한다."""
 
@@ -1588,6 +1665,171 @@ def register(app, get_db):
                 '왜 나갔는지 — 화면과 순서는 알아도 이유는 물어봐야 안다',
             ],
         })
+
+    @app.route('/api/admin/reels', methods=['GET'])
+    def admin_reels():
+        """릴스 게시 기록 + 올린 날 전후의 신규 기기·가입(날짜 겹침으로만 본다)."""
+        _, err = guard()
+        if err:
+            return err
+        _ensure_reel_table(get_db)
+        ids, devices = _excluded(get_db)
+        db = get_db()
+        cursor = db.cursor()
+        try:
+            cursor.execute("SELECT id, posted_on, title, kind, note FROM reel_posts ORDER BY posted_on, id")
+            posts = cursor.fetchall()
+            if not posts:
+                return jsonify({'posts': [], 'days': [], 'kinds': [], 'kind_labels': REEL_KINDS})
+            first = posts[0]['posted_on'] - timedelta(days=1)
+
+            dev_clause, dev_params = '', []
+            if devices:
+                dev_clause = " AND device_id NOT IN (" + ",".join(["%s"] * len(devices)) + ")"
+                dev_params = list(devices)
+            cursor.execute(
+                "SELECT d, COUNT(*) AS n, SUM(ig) AS ig FROM ("
+                " SELECT DATE(MIN(created_at)) AS d,"
+                "  MAX(source LIKE 'ig%%' OR source LIKE '%%instagram%%') AS ig"
+                " FROM user_events WHERE device_id IS NOT NULL" + dev_clause +
+                " GROUP BY device_id HAVING MIN(created_at) >= %s) t GROUP BY d",
+                dev_params + [first],
+            )
+            new_by = {r['d']: (int(r['n']), int(r['ig'] or 0)) for r in cursor.fetchall()}
+
+            cursor.execute(
+                "SELECT DATE(created_at) AS d, COUNT(DISTINCT device_id) AS n FROM user_events"
+                " WHERE screen = '다운로드' AND device_id IS NOT NULL AND created_at >= %s" + dev_clause +
+                " GROUP BY d",
+                [first] + dev_params,
+            )
+            dl_by = {r['d']: int(r['n']) for r in cursor.fetchall()}
+
+            user_clause, user_params = '', []
+            if ids:
+                user_clause = " AND id NOT IN (" + ",".join(["%s"] * len(ids)) + ")"
+                user_params = list(ids)
+            cursor.execute(
+                "SELECT DATE(created_at) AS d, COUNT(*) AS n FROM users WHERE created_at >= %s" + user_clause +
+                " GROUP BY d",
+                [first] + user_params,
+            )
+            su_by = {r['d']: int(r['n']) for r in cursor.fetchall()}
+        finally:
+            cursor.close()
+            db.close()
+
+        today = datetime.now(usage_quota.KST).date()
+        per_day = {}
+        for p in posts:
+            per_day.setdefault(p['posted_on'], []).append(p)
+
+        def window(day, series, pos):
+            # 올린 날 + 다음 날. 올린 직후 하루 이틀 사이에 들어온 것으로 본다.
+            total = 0
+            for k in (0, 1):
+                v = series.get(day + timedelta(days=k), 0)
+                total += v[pos] if isinstance(v, tuple) else v
+            return total
+
+        out_posts = []
+        for p in posts:
+            day = p['posted_on']
+            same = len(per_day[day])
+            new = window(day, new_by, 0)
+            sig = window(day, su_by, 0)
+            out_posts.append({
+                'id': p['id'], 'posted_on': day.isoformat(), 'title': p['title'], 'kind': p['kind'],
+                'kind_label': REEL_KINDS.get(p['kind'], p['kind']), 'note': p['note'],
+                'same_day_posts': same,
+                'window_new': new, 'window_signups': sig,
+                'share_new': round(new / same, 1), 'share_signups': round(sig / same, 2),
+                'window_open': (today - day).days < 2,   # 다음 날이 아직 안 끝났다
+            })
+
+        kinds = []
+        for key, label in REEL_KINDS.items():
+            rows = [o for o in out_posts if o['kind'] == key and not o['window_open']]
+            if rows:
+                kinds.append({
+                    'kind': key, 'label': label, 'count': len(rows),
+                    'avg_new': round(sum(o['share_new'] for o in rows) / len(rows), 1),
+                    'avg_signups': round(sum(o['share_signups'] for o in rows) / len(rows), 2),
+                })
+
+        days = []
+        d = first
+        while d <= today:
+            days.append({
+                'date': d.isoformat(), 'new': new_by.get(d, (0, 0))[0], 'ig': new_by.get(d, (0, 0))[1],
+                'downloads': dl_by.get(d, 0), 'signups': su_by.get(d, 0),
+                'posts': [p['title'] for p in per_day.get(d, [])],
+                'kinds': [p['kind'] for p in per_day.get(d, [])],
+            })
+            d += timedelta(days=1)
+
+        return jsonify({
+            'posts': out_posts, 'days': days, 'kinds': kinds, 'kind_labels': REEL_KINDS,
+            'filters': {'excluded_users': len(ids), 'excluded_devices': len(devices)},
+        })
+
+    @app.route('/api/admin/reels', methods=['POST'])
+    def admin_reel_add():
+        _, err = guard()
+        if err:
+            return err
+        body = request.get_json(silent=True) or {}
+        parsed = _reel_fields(body)
+        if isinstance(parsed, tuple) and parsed and parsed[0] == 'error':
+            return jsonify({'error': parsed[1]}), 400
+        _ensure_reel_table(get_db)
+        db = get_db()
+        cursor = db.cursor()
+        try:
+            cursor.execute(
+                "INSERT INTO reel_posts (posted_on, title, kind, note) VALUES (%s, %s, %s, %s)", parsed
+            )
+            db.commit()
+            return jsonify({'ok': True, 'id': cursor.lastrowid})
+        finally:
+            cursor.close()
+            db.close()
+
+    @app.route('/api/admin/reels/<int:reel_id>', methods=['PUT'])
+    def admin_reel_update(reel_id):
+        _, err = guard()
+        if err:
+            return err
+        parsed = _reel_fields(request.get_json(silent=True) or {})
+        if isinstance(parsed, tuple) and parsed and parsed[0] == 'error':
+            return jsonify({'error': parsed[1]}), 400
+        db = get_db()
+        cursor = db.cursor()
+        try:
+            cursor.execute(
+                "UPDATE reel_posts SET posted_on=%s, title=%s, kind=%s, note=%s WHERE id=%s",
+                (*parsed, reel_id),
+            )
+            db.commit()
+            return jsonify({'ok': True})
+        finally:
+            cursor.close()
+            db.close()
+
+    @app.route('/api/admin/reels/<int:reel_id>', methods=['DELETE'])
+    def admin_reel_delete(reel_id):
+        _, err = guard()
+        if err:
+            return err
+        db = get_db()
+        cursor = db.cursor()
+        try:
+            cursor.execute("DELETE FROM reel_posts WHERE id = %s", (reel_id,))
+            db.commit()
+            return jsonify({'ok': True})
+        finally:
+            cursor.close()
+            db.close()
 
     @app.route('/api/admin/activity/timeline', methods=['GET'])
     def admin_activity_timeline():

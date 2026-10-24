@@ -2625,6 +2625,175 @@ const DeviceBreakdown: React.FC<{ c: Record<string, number>; periodNote?: string
 };
 
 /**
+ * 「릴스」 탭 — 인스타 릴스를 올린 날과 그 전후의 신규 기기·가입을 나란히(2026-10-24 사용자 요청: 올린 영상을 계속 알려 줄 테니 누적해서 대시보드에).
+ *
+ * 한계를 화면에 적어 둔다: 프로필 링크가 하나라 **어느 릴스에서 왔는지는 기록되지 않는다.** 올린 날과 올린 다음 날의
+ * 신규 기기·가입을 보여 줄 뿐이라, 같은 날 여러 편이면 편 수로 나눈 몫이다. 원인을 증명하는 표가 아니다.
+ */
+const KIND_COLOR: Record<string, string> = { overview: '#7A8AA6', hook: '#C79A00', cooking: '#2F8F5B', other: '#8A8A93' };
+
+const ReelsTab: React.FC = () => {
+  const [data, setData] = React.useState<any>(null);
+  const [error, setError] = React.useState<string | null>(null);
+  const [excludeMine, setExcludeMine] = React.useState(true);
+  const today = new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10);
+  const [form, setForm] = React.useState({ posted_on: today, title: '', kind: 'hook', note: '' });
+  const [saving, setSaving] = React.useState(false);
+
+  const load = React.useCallback(() => {
+    api(`/api/admin/reels${excludeMine ? '' : '?keep_excluded=1'}`).then(setData).catch(e => setError(e.message));
+  }, [excludeMine]);
+  React.useEffect(() => { load(); }, [load]);
+
+  const add = async () => {
+    if (!form.title.trim()) { setError('릴스 제목(내용)을 적어 주세요.'); return; }
+    setSaving(true);
+    try {
+      await api('/api/admin/reels', { method: 'POST', body: JSON.stringify(form) });
+      setForm({ ...form, title: '', note: '' });
+      setError(null);
+      load();
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+  const remove = async (id: number, title: string) => {
+    if (!window.confirm(`「${title}」 기록을 지울까요?`)) return;
+    try {
+      await api(`/api/admin/reels/${id}`, { method: 'DELETE' });
+      load();
+    } catch (e: any) {
+      setError(e.message);
+    }
+  };
+
+  if (!data) return <div style={S.card}>{error || '불러오는 중...'}</div>;
+  const labels: Record<string, string> = data.kind_labels || {};
+  const badge = (kind: string) => (
+    <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 7px', borderRadius: 9999, color: '#fff',
+                   background: KIND_COLOR[kind] || '#8A8A93', whiteSpace: 'nowrap' }}>{labels[kind] || kind}</span>
+  );
+  const dayRows: any[] = [...(data.days || [])].reverse();
+  const posts: any[] = [...(data.posts || [])].reverse();
+
+  return (
+    <>
+      <label style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12.5, color: 'var(--ink-700)', cursor: 'pointer',
+                      background: 'var(--surface)', border: '1px solid var(--line-200)', borderRadius: 12, padding: '10px 14px', marginBottom: 12 }}>
+        <input type="checkbox" checked={excludeMine} onChange={e => setExcludeMine(e.target.checked)} style={{ width: 16, height: 16 }} />
+        내 활동 빼고 보기
+        <span style={{ color: 'var(--ink-500)' }}>(사용자 탭에서 표시한 {data.filters?.excluded_users || 0}개 계정)</span>
+      </label>
+
+      <div style={S.card}>
+        <h2 style={S.h2}>릴스 올렸어요</h2>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          <input type="date" value={form.posted_on} onChange={e => setForm({ ...form, posted_on: e.target.value })} style={{ ...S.input, width: 140 }} />
+          <select value={form.kind} onChange={e => setForm({ ...form, kind: e.target.value })} style={{ ...S.input, width: 110 }}>
+            {Object.entries(labels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          </select>
+          <input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="릴스 제목·내용"
+                 onKeyDown={e => e.key === 'Enter' && add()} style={{ ...S.input, flex: '1 1 200px' }} />
+          <input value={form.note} onChange={e => setForm({ ...form, note: e.target.value })} placeholder="메모(선택)" style={{ ...S.input, flex: '1 1 140px' }} />
+          <button type="button" style={S.primary} disabled={saving} onClick={add}>{saving ? '저장 중' : '추가'}</button>
+        </div>
+        {error && <div style={{ color: '#B4452B', fontSize: 12, marginTop: 8 }}>{error}</div>}
+        <div style={{ fontSize: 11.5, color: 'var(--ink-500)', marginTop: 8, lineHeight: 1.6 }}>
+          올린 날짜와 내용을 적으면 아래 표에 바로 반영돼요. <b>어느 릴스에서 왔는지는 기록되지 않아요</b>(프로필 링크가 하나) —
+          올린 날과 그 다음 날의 신규 기기·가입을 나란히 보여 주는 것이고, 같은 날 여러 편이면 편 수로 나눈 몫이에요. 원인을 증명하는 표가 아니에요.
+        </div>
+      </div>
+
+      {(data.kinds || []).length > 0 && (
+        <div style={S.card}>
+          <h2 style={S.h2}>종류별 한 편당(올린 날+다음 날 신규 기기·가입)</h2>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {data.kinds.map((k: any) => (
+              <StatTile key={k.kind} title={`${k.label} · ${k.count}편`} value={`${k.avg_new}대 · ${k.avg_signups}명`}
+                        sub="한 편당 평균 신규 기기 · 가입" />
+            ))}
+          </div>
+          <div style={{ fontSize: 11.5, color: 'var(--ink-500)', marginTop: 8, lineHeight: 1.6 }}>
+            다음 날까지 안 끝난 편은 뺐어요. 표본이 적을수록(가입은 한 달에 몇 명) 우연이 크니 방향만 보세요.
+          </div>
+        </div>
+      )}
+
+      <div style={S.card}>
+        <h2 style={S.h2}>날짜별</h2>
+        <div className="adm-scroll">
+          <table style={{ width: '100%', minWidth: 520 }}>
+            <thead>
+              <tr>
+                <th style={S.th}>날짜</th><th style={S.th}>올린 릴스</th>
+                <th style={{ ...S.th, textAlign: 'right' }}>신규 기기</th><th style={{ ...S.th, textAlign: 'right' }}>인스타 표시</th>
+                <th style={{ ...S.th, textAlign: 'right' }}>다운로드 화면</th><th style={{ ...S.th, textAlign: 'right' }}>신규 가입</th>
+              </tr>
+            </thead>
+            <tbody>
+              {dayRows.map(d => (
+                <tr key={d.date} style={d.posts.length ? undefined : { color: 'var(--ink-500)' }}>
+                  <td style={S.td}>{d.date.slice(5).replace('-', '/')}</td>
+                  <td style={{ ...S.td, whiteSpace: 'normal', minWidth: 180 }}>
+                    {d.posts.length
+                      ? d.posts.map((t: string, i: number) => (
+                        <div key={i} style={{ display: 'flex', gap: 5, alignItems: 'baseline' }}>{badge(d.kinds[i])}<span>{t}</span></div>
+                      ))
+                      : '—'}
+                  </td>
+                  <td style={{ ...S.td, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{d.new}</td>
+                  <td style={{ ...S.td, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{d.ig}</td>
+                  <td style={{ ...S.td, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{d.downloads}</td>
+                  <td style={{ ...S.td, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{d.signups}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div style={{ fontSize: 11.5, color: 'var(--ink-500)', marginTop: 8, lineHeight: 1.6 }}>
+          「신규 기기」는 그날 처음 기록된 기기, 「인스타 표시」는 그중 인스타에서 온 표시가 붙은 기기예요(링크에 유입 표시를 안 붙이면 못 잡아요).
+        </div>
+      </div>
+
+      <div style={S.card}>
+        <h2 style={S.h2}>올린 릴스 {posts.length}편</h2>
+        <div className="adm-scroll">
+          <table style={{ width: '100%', minWidth: 560 }}>
+            <thead>
+              <tr>
+                <th style={S.th}>날짜</th><th style={S.th}>종류</th><th style={S.th}>내용</th>
+                <th style={{ ...S.th, textAlign: 'right' }}>이틀간 신규 기기</th><th style={{ ...S.th, textAlign: 'right' }}>이틀간 가입</th><th style={S.th} />
+              </tr>
+            </thead>
+            <tbody>
+              {posts.map(p => (
+                <tr key={p.id} title={p.note || undefined}>
+                  <td style={S.td}>{p.posted_on.slice(5).replace('-', '/')}</td>
+                  <td style={S.td}>{badge(p.kind)}</td>
+                  <td style={{ ...S.td, whiteSpace: 'normal', minWidth: 160 }}>
+                    {p.title}{p.note && <div style={{ fontSize: 11, color: 'var(--ink-500)' }}>{p.note}</div>}
+                  </td>
+                  <td style={{ ...S.td, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                    {p.window_new}{p.same_day_posts > 1 && <span style={{ color: 'var(--ink-500)' }}> (÷{p.same_day_posts}={p.share_new})</span>}
+                    {p.window_open && <span style={{ color: 'var(--ink-500)' }}> 집계 중</span>}
+                  </td>
+                  <td style={{ ...S.td, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{p.window_signups}</td>
+                  <td style={S.td}>
+                    <button type="button" style={{ ...S.btn, height: 26, padding: '0 8px', fontSize: 11 }} onClick={() => remove(p.id, p.title)}>삭제</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </>
+  );
+};
+
+/**
  * 「요약」 탭 — 기간과 상관없이 지금까지의 전반적인 숫자만 카드로(2026-10-24 사용자 요청: 일자별 분석은 대시보드 탭에 두고,
  * 전체 누적은 따로 한눈에 보게).
  */
@@ -3507,7 +3676,7 @@ const Admin: React.FC = () => {
   const [allowed, setAllowed] = React.useState<boolean | null>(null);
   // 대시보드가 첫 탭이다 — 어드민을 여는 이유는 대개 "지금 어떤 상태지" 이기 때문.
   // 사전은 가끔 손보는 것이라 맨 뒤.
-  const [tab, setTab] = React.useState<'overview' | 'dashboard' | 'users' | 'requests' | 'ops' | 'dictionary'>('overview');
+  const [tab, setTab] = React.useState<'overview' | 'dashboard' | 'reels' | 'users' | 'requests' | 'ops' | 'dictionary'>('overview');
   const [users, setUsers] = React.useState<AdminUser[] | null>(null);
   const [policy, setPolicy] = React.useState<any>(null);
   const [keyword, setKeyword] = React.useState('');
@@ -3595,7 +3764,7 @@ const Admin: React.FC = () => {
           top 은 공통 GNB 높이(56px). 배경을 페이지 배경과 같게 칠해 아래 내용이 비치지 않게 한다. */}
       <div style={{ display: 'flex', gap: 6, position: 'sticky', top: 56, zIndex: 20, overflowX: 'auto',
                     background: 'var(--surface-sub)', margin: '0 -12px 12px', padding: '8px 12px' }}>
-        {([['overview', '요약'], ['dashboard', '대시보드'], ['users', '사용자'], ['requests', '요청'], ['ops', '운영'], ['dictionary', '사전']] as const).map(([key, label]) => (
+        {([['overview', '요약'], ['dashboard', '대시보드'], ['reels', '릴스'], ['users', '사용자'], ['requests', '요청'], ['ops', '운영'], ['dictionary', '사전']] as const).map(([key, label]) => (
           <button
             key={key}
             type="button"
@@ -3618,6 +3787,8 @@ const Admin: React.FC = () => {
         <Overview key={refreshKey} />
       ) : tab === 'dashboard' ? (
         <Dashboard key={refreshKey} />
+      ) : tab === 'reels' ? (
+        <ReelsTab key={refreshKey} />
       ) : tab === 'requests' ? (
         <Requests key={refreshKey} />
       ) : tab === 'dictionary' ? (
