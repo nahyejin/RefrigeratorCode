@@ -7010,7 +7010,7 @@ def suggest_meal_plan():
                     'summary': summary_text})
 
 
-@app.route('/api/events', methods=['POST'])
+@app.route('/api/events', methods=['GET', 'POST'])
 def collect_events():
     """화면 진입·핵심 행동 기록을 받는다.
 
@@ -7020,6 +7020,9 @@ def collect_events():
     실패해도 절대 사용자에게 티나지 않게 한다. 기록은 부수적인 일이라, 이것 때문에
     화면이 멈추거나 오류가 뜨면 본말이 전도된다. 항상 200 을 돌려준다.
     """
+    # GET 은 기록하지 않는 점검용 — 이 서버가 text/plain 본문(sendBeacon)을 읽는 버전인지 배포 뒤에 확인하려고 둔다.
+    if request.method == 'GET':
+        return jsonify({'ok': True, 'accepts_text_plain': True})
     try:
         import usage_quota
         import user_events
