@@ -48,12 +48,13 @@ const TALK01: TalkSpec = {
   //   「담아 두면 … 만들 수 있는」 매칭률 범위 60~99% 확대 → 「요리가 몇 퍼센트 맞는지까지 순서대로」 결과 목록의 「내 재료 5/6 (92%)」 확대
   //   → 「한두 개 없으면 있는 재료로 바꿔 주고요」 대체 재료 칩 「들기름 → 참기름」 크게 확대.
   // 정지 화면(원본에서 뽑은 프레임) 위로 강조 지점에 천천히 다가간다 — 영상 재생은 스크롤 위치가 흔들려 강조 지점이 빠져나갔다.
-  // 처음 버전처럼 앱 화면 전체(원래 크기)를 보여 주고, 강조할 부분만 살짝(1.0→1.3배) 다가간다(사용자 2026-10-24: 크게 확대하지 말 것).
+  // 한 장의 카드 안에서 앱 사용 흐름대로 이어 간다(사용자 2026-10-24): 내 냉장고 화면 → 매칭률 필터 조정 → 매칭률 높은 순 결과 스크롤
+  // → 대체 재료 배지로 천천히 확대. 카드끼리는 바로 이어 붙여(페이드 없이) 한 화면처럼 보이게 한다.
   overlays: [
-    { at: T2 + 0.2, len: 3.4, src: "", img: "talk_match_8.8.png", from: 0, focus: [0.5, 0.44], zoom: 1.0, zoomTo: 1.25 },
-    { at: T2 + 3.6, len: 1.6, src: "reel2_matching_demo_new.mp4", from: 12.1, rate: 1.0 },
-    { at: T2 + 5.2, len: 2.0, src: "", img: "talk_match_13.5.png", from: 0, focus: [0.3, 0.71], zoom: 1.0, zoomTo: 1.3 },
-    { at: T2 + 7.2, len: 2.75, src: "", img: "talk_match_20.6.png", from: 0, focus: [0.2, 0.67], zoom: 1.0, zoomTo: 1.3 },
+    { at: T2 + 0.15, len: 1.95, src: "reel1_photo_done_new.mp4", from: 9.0, rate: 1.0 },
+    { at: T2 + 2.1, len: 2.5, src: "reel2_matching_demo_new.mp4", from: 7.0, rate: 1.2, focus: [0.5, 0.44], zoom: 1.0, zoomTo: 1.12 },
+    { at: T2 + 4.6, len: 2.6, src: "reel2_matching_demo_new.mp4", from: 12.0, rate: 1.5 },
+    { at: T2 + 7.2, len: 2.75, src: "", img: "talk_match_20.6.png", from: 0, focus: [0.2, 0.67], zoom: 1.0, zoomTo: 1.6 },
   ],
 };
 
@@ -78,11 +79,11 @@ const Said: React.FC<{ text: string }> = ({ text }) => {
 const CARD_W = 600;
 const CARD_H = 780;
 const SRC_AR = 1920 / 940;
-const AppCard: React.FC<{ o: Overlay }> = ({ o }) => {
+const AppCard: React.FC<{ o: Overlay; fadeIn?: boolean; fadeOut?: boolean }> = ({ o, fadeIn = true, fadeOut = true }) => {
   const frame = useCurrentFrame();
   const len = f(o.len);
-  const op = interpolate(frame, [0, 6, len - 6, len], [0, 1, 1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-  const sc = interpolate(frame, [0, 8], [0.94, 1], { extrapolateRight: "clamp" });
+  const op = Math.min(fadeIn ? interpolate(frame, [0, 6], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }) : 1, fadeOut ? interpolate(frame, [len - 6, len], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }) : 1);
+  const sc = fadeIn ? interpolate(frame, [0, 8], [0.94, 1], { extrapolateRight: "clamp" }) : 1;
   const z = interpolate(frame, [0, len], [o.zoom ?? 1, o.zoomTo ?? o.zoom ?? 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   const [fx, fy] = o.focus ?? [0.5, 0.2];
   const w = CARD_W * z;
@@ -111,8 +112,10 @@ const Talk: React.FC<{ s: TalkSpec }> = ({ s }) => {
       <AbsoluteFill style={{ opacity: fade }}>
         <OffthreadVideo src={staticFile(s.src)} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
         {s.overlays.map((o, i) => (
-          <Sequence key={i} from={f(o.at * k)} durationInFrames={f(o.len * k)}>
-            <AppCard o={{ ...o, len: o.len * k }} />
+          <Sequence key={i} from={f(o.at * k)} durationInFrames={f(o.len * k) + 1}>
+            <AppCard o={{ ...o, len: o.len * k }}
+              fadeIn={!(i > 0 && Math.abs(s.overlays[i - 1].at + s.overlays[i - 1].len - o.at) < 0.05)}
+              fadeOut={!(i < s.overlays.length - 1 && Math.abs(o.at + o.len - s.overlays[i + 1].at) < 0.05)} />
           </Sequence>
         ))}
         <Title text={s.title} />
