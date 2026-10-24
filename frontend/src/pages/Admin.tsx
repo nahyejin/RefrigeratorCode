@@ -2616,6 +2616,29 @@ const DeviceBreakdown: React.FC<{ c: Record<string, number>; periodNote?: string
         {box('③ 사람 아닌 것', other, null,
           '개인정보처리방침·약관만 열어 봄(스토어 심사 등), 링크 미리보기 봇. 합계에서 뺐어요.', true)}
       </div>
+      {people > 0 && (
+        <div style={{ marginTop: 10, border: '1px solid var(--line-200)', borderRadius: 12, padding: '10px 12px', background: 'var(--surface)' }}>
+          <div style={{ fontSize: 13.5, fontWeight: 700 }}>기기가 어디까지 왔나</div>
+          <div style={{ fontSize: 11.5, color: 'var(--ink-500)', margin: '1px 0 8px', lineHeight: 1.5 }}>
+            막대가 짧아지는 건 <b>같은 사람이 줄어든 게 아니에요</b>(바로 안으로 들어온 사람도 있어서). 단계 사이의 전환율이 아니라, 기기를 어디까지 왔는지로 나눈 분포예요.
+          </div>
+          {([
+            ['기록된 기기 전체', people, '#B8B8C0', '봇·안내만 뺀 합계'],
+            ['쿡매치 안까지 들어온 기기', used, '#4C8DF6', '①'],
+            ['그중 앱으로 연 기기', app, '#1A1A1E', '앱·웹을 구분하기 시작한 10/12 이후만 셀 수 있어요'],
+          ] as [string, number, string, string][]).map(([label, v, color, hint]) => (
+            <div key={label} style={{ marginBottom: 6 }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, fontSize: 12.5 }}>
+                <span>{label} <span style={{ color: 'var(--ink-500)', fontSize: 11 }}>· {hint}</span></span>
+                <b style={{ fontVariantNumeric: 'tabular-nums' }}>{num(v)}</b>
+              </div>
+              <div style={{ height: 14, background: 'var(--line-200)', borderRadius: 4, overflow: 'hidden' }}>
+                <div style={{ width: `${Math.max((v / Math.max(people, 1)) * 100, v > 0 ? 1.5 : 0)}%`, height: '100%', background: color }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
       {app > 0 && (() => {
         // 앱을 연 기기가 어떤 길로 설치됐는지는 서버가 모른다. 다만 「다운로드 페이지에서 왔을 수 있는 기기」는 모바일(아이폰·안드로이드)
         // 다운로드 페이지 방문 기기 수를 넘을 수 없으므로, 앱을 연 기기에서 그 수를 뺀 만큼은 **최소한** 다른 길(스토어 직접 검색·지인 추천 등)이다.
