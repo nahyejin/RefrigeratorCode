@@ -16,6 +16,7 @@ ap.add_argument("--engine", type=int, default=1, help="1=make_bgm(1벌), 2=make_
 ap.add_argument("--keep", help="합성한 곡을 이 경로에 남긴다")
 ap.add_argument("--thr", type=float, default=0.025); ap.add_argument("--ratio", type=float, default=1.8); ap.add_argument("--rel", type=int, default=400)
 ap.add_argument("--music-only", action="store_true", help="음악만(눌린 상태) 뽑아 크기 점검용으로 쓴다")
+ap.add_argument("--start", type=float, default=0.0, help="이 초부터 음악을 켠다(그 전은 무음). 셀카형(형식 ③)은 「그 밖에도 이런 기능이 있어요」 시작 시각 — 사용자 요청 2026-10-24")
 a = ap.parse_args()
 dur = float(subprocess.check_output(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", a.src], text=True))
 if a.engine == 3:
@@ -25,14 +26,16 @@ else:
 wav = a.keep or os.path.join(tempfile.gettempdir(), f"bgm_{a.idx}_{os.getpid()}.wav")
 make_bgm.save(wav, buf)
 fade_out = max(0.0, dur - 4.0)
+head = (f"[1:a]volume={a.gain},volume=0:enable='lt(t,{a.start:.2f})',afade=t=in:st={a.start:.2f}:d=1.0" if a.start > 0
+        else f"[1:a]volume={a.gain},afade=t=in:st=0:d=1.5")
 flt = (
-    f"[1:a]volume={a.gain},afade=t=in:st=0:d=1.5,afade=t=out:st={fade_out:.2f}:d=4[m];"
+    f"{head},afade=t=out:st={fade_out:.2f}:d=4[m];"
     "[0:a]asplit=2[v1][v2];"
     f"[m][v1]sidechaincompress=threshold={a.thr}:ratio={a.ratio}:attack=12:release={a.rel}:makeup=1[md];"
     "[md][v2]amix=inputs=2:normalize=0:duration=first[a]"
 )
 flt_music = (
-    f"[1:a]volume={a.gain},afade=t=in:st=0:d=1.5,afade=t=out:st={fade_out:.2f}:d=4[m];"
+    f"{head},afade=t=out:st={fade_out:.2f}:d=4[m];"
     f"[m][0:a]sidechaincompress=threshold={a.thr}:ratio={a.ratio}:attack=12:release={a.rel}:makeup=1[md]"
 )
 if a.music_only:
