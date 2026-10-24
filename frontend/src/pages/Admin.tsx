@@ -2616,6 +2616,24 @@ const DeviceBreakdown: React.FC<{ c: Record<string, number>; periodNote?: string
         {box('③ 사람 아닌 것', other, null,
           '개인정보처리방침·약관만 열어 봄(스토어 심사 등), 링크 미리보기 봇. 합계에서 뺐어요.', true)}
       </div>
+      {app > 0 && (() => {
+        // 앱을 연 기기가 어떤 길로 설치됐는지는 서버가 모른다. 다만 「다운로드 페이지에서 왔을 수 있는 기기」는 모바일(아이폰·안드로이드)
+        // 다운로드 페이지 방문 기기 수를 넘을 수 없으므로, 앱을 연 기기에서 그 수를 뺀 만큼은 **최소한** 다른 길(스토어 직접 검색·지인 추천 등)이다.
+        // 안드로이드 다운로드 페이지 방문은 2026-10-24 전에 누락돼 이 최소치가 실제보다 높게 나올 수 있다.
+        const viaPage = g('link_ios') + g('link_android');
+        const maxPage = Math.min(app, viaPage);
+        const minOther = app - maxPage;
+        return (
+          <div style={{ marginTop: 8, border: '1px dashed var(--line-200)', borderRadius: 10, padding: '8px 12px', fontSize: 12, lineHeight: 1.7, background: 'var(--surface-sub)' }}>
+            <b>(추정) 앱을 연 기기 {num(app)}대는 어디서 왔을까</b>
+            <div>· 다운로드 페이지를 거쳤을 수 있는 기기: <b>최대 {num(maxPage)}대</b> <span style={{ color: 'var(--ink-500)' }}>(휴대폰 다운로드 페이지 방문 기기 수가 상한)</span></div>
+            <div>· 스토어 직접 검색·지인 추천 등 다른 길: <b>최소 {num(minOther)}대</b></div>
+            <div style={{ color: 'var(--ink-500)', fontSize: 11.5 }}>
+              서버는 설치 경로를 모르니 확정이 아니라 범위예요. 안드로이드 다운로드 페이지 방문은 10/24 전에 빠져 있어서, 최소치가 실제보다 높게 나올 수 있어요.
+            </div>
+          </div>
+        );
+      })()}
       <div style={{ fontSize: 11.5, color: 'var(--ink-500)', marginTop: 8, lineHeight: 1.6 }}>
         <b>①과 ②는 겹치지 않아요.</b> 쿡매치 안까지 들어왔으면 ①, 다운로드 페이지에서 기록이 끝났으면 ②예요. ③은 사람이 아닌 것(약관만 열어 본 심사·미리보기 봇)이고요. ①+②+③ = 전체 {num(people + other)}대.
         다만 <b>기기 수는 사람 수가 아니에요</b> — 같은 사람이 브라우저로 다운로드 페이지를 보고(②) 앱을 설치해 열면(①) 기기가 두 대로 잡혀요. 안드로이드는 다운로드 페이지에서 Play 스토어로 바로 넘어가는데, 그 순간의 기록이 빠지던 문제를 2026-10-24 에 고쳤어요(그 전 안드로이드 다운로드 페이지 방문은 거의 안 잡혔어요).
