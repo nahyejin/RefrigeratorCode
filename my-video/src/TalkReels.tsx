@@ -1,5 +1,5 @@
 import React from "react";
-import { AbsoluteFill, OffthreadVideo, Sequence, interpolate, staticFile, useCurrentFrame } from "remotion";
+import { AbsoluteFill, Img, OffthreadVideo, Sequence, interpolate, staticFile, useCurrentFrame } from "remotion";
 import { WHITE, useCustomFont, FONT_FAMILY } from "./shared";
 import { RestFeatures, restLen, REST_EXCL } from "./RestFeatures";
 import { Reel2Cta, REEL2_CTA_LEN } from "./Reel2Match";
@@ -17,7 +17,8 @@ const CTA2_LEN = 120;
 const FADE = 15; // 출연자 영상 끝 0.5초 흰 화면으로
 
 type Phrase = [number, number, string]; // 편집된 출연자 영상 기준 [시작초, 끝초, 구절]
-type Overlay = { at: number; len: number; src: string; from: number; rate?: number; pos?: string };
+// focus: 원본 앱 화면에서 강조할 지점(가로·세로 비율 0~1), zoom→zoomTo: 그 지점으로 다가가는 배율(기존 기능 영상의 확대 강조와 같은 역할)
+type Overlay = { at: number; len: number; src: string; from: number; rate?: number; img?: string; focus?: [number, number]; zoom?: number; zoomTo?: number };
 // speed: 출연자 영상을 ffmpeg 로 미리 빨리 돌린 배속(파일은 src). phrases·overlays·len 은 1배속 기준 숫자를 그대로 쓰고 코드가 speed 로 나눈다.
 type TalkSpec = { src: string; len: number; speed?: number; title: string; phrases: Phrase[]; overlays: Overlay[] };
 
@@ -43,10 +44,14 @@ const TALK01: TalkSpec = {
     [T2 + 3.6, T2 + 4.52, "요리가"], [T2 + 4.52, T2 + 5.7, "몇 퍼센트 맞는지까지"], [T2 + 5.7, T2 + 7.1, "순서대로 떠요"],
     [T2 + 7.22, T2 + 8.08, "한두 개 없으면"], [T2 + 8.08, T2 + 9.6, "있는 재료로 바꿔 주고요"],
   ],
-  // 기능 설명(클립 3) 동안 매칭 화면: 결과 목록(매칭률 배지) → 대체 재료 칩. 원본 reel2_matching_demo_new.mp4 시각.
+  // 기능 설명(클립 3) 동안 매칭 화면 — 기존 02 매칭 기능 영상에서 확대해 보여 주던 부분을 그대로 살림(사용자 요청 2026-10-24):
+  //   「담아 두면 … 만들 수 있는」 매칭률 범위 60~99% 확대 → 「요리가 몇 퍼센트 맞는지까지 순서대로」 결과 목록의 「내 재료 5/6 (92%)」 확대
+  //   → 「한두 개 없으면 있는 재료로 바꿔 주고요」 대체 재료 칩 「들기름 → 참기름」 크게 확대.
+  // 정지 화면(원본에서 뽑은 프레임) 위로 강조 지점에 천천히 다가간다 — 영상 재생은 스크롤 위치가 흔들려 강조 지점이 빠져나갔다.
   overlays: [
-    { at: T2 + 0.3, len: 6.9, src: "reel2_matching_demo_new.mp4", from: 10.0, rate: 1.0 },
-    { at: T2 + 7.2, len: 2.75, src: "reel2_matching_demo_new.mp4", from: 19.2, rate: 1.0, pos: "center 40%" },
+    { at: T2 + 0.2, len: 3.4, src: "", img: "talk_match_8.8.png", from: 0, focus: [0.5, 0.44], zoom: 1.5, zoomTo: 2.0 },
+    { at: T2 + 3.6, len: 3.6, src: "", img: "talk_match_13.5.png", from: 0, focus: [0.3, 0.71], zoom: 1.8, zoomTo: 2.4 },
+    { at: T2 + 7.2, len: 2.75, src: "", img: "talk_match_20.6.png", from: 0, focus: [0.2, 0.67], zoom: 1.8, zoomTo: 2.4 },
   ],
 };
 
@@ -66,16 +71,30 @@ const Said: React.FC<{ text: string }> = ({ text }) => {
   );
 };
 
-// 얼굴 위 가운데 앱 화면 카드(참고 영상처럼 화면 너비의 약 56%)
+// 얼굴 위 가운데 앱 화면 카드(참고 영상처럼 화면 너비의 약 56%). 앱 화면 녹화(940×1920)를 카드 폭에 맞춰 놓고,
+// focus 지점이 카드 가운데 오도록 옮긴 뒤 zoom → zoomTo 로 천천히 다가간다(카드 밖으로 빈 곳이 보이지 않게 가장자리에서 멈춤).
+const CARD_W = 600;
+const CARD_H = 780;
+const SRC_AR = 1920 / 940;
 const AppCard: React.FC<{ o: Overlay }> = ({ o }) => {
   const frame = useCurrentFrame();
   const len = f(o.len);
   const op = interpolate(frame, [0, 6, len - 6, len], [0, 1, 1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   const sc = interpolate(frame, [0, 8], [0.94, 1], { extrapolateRight: "clamp" });
+  const z = interpolate(frame, [0, len], [o.zoom ?? 1, o.zoomTo ?? o.zoom ?? 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const [fx, fy] = o.focus ?? [0.5, 0.2];
+  const w = CARD_W * z;
+  const h = CARD_W * SRC_AR * z;
+  const left = Math.min(0, Math.max(CARD_W - w, CARD_W / 2 - fx * w));
+  const top = Math.min(0, Math.max(CARD_H - h, CARD_H / 2 - fy * h));
   return (
-    <div style={{ position: "absolute", left: (1080 - 600) / 2, top: 360, width: 600, height: 780, borderRadius: 26, overflow: "hidden", opacity: op, transform: `scale(${sc})`, boxShadow: "0 18px 50px rgba(0,0,0,0.45)", background: "#fff" }}>
-      <OffthreadVideo src={staticFile(o.src)} muted trimBefore={f(o.from)} playbackRate={o.rate ?? 1}
-        style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: o.pos ?? "center top" }} />
+    <div style={{ position: "absolute", left: (1080 - CARD_W) / 2, top: 360, width: CARD_W, height: CARD_H, borderRadius: 26, overflow: "hidden", opacity: op, transform: `scale(${sc})`, boxShadow: "0 18px 50px rgba(0,0,0,0.45)", background: "#fff" }}>
+      {o.img ? (
+        <Img src={staticFile(o.img)} style={{ position: "absolute", left, top, width: w, height: h, maxWidth: "none", maxHeight: "none" }} />
+      ) : (
+        <OffthreadVideo src={staticFile(o.src)} muted trimBefore={f(o.from)} playbackRate={o.rate ?? 1}
+          style={{ position: "absolute", left, top, width: w, height: h, maxWidth: "none", maxHeight: "none" }} />
+      )}
     </div>
   );
 };
@@ -112,7 +131,7 @@ const Talk: React.FC<{ s: TalkSpec }> = ({ s }) => {
 
 const make = (s: TalkSpec, Cta: React.FC<{ silent?: boolean }>, ctaLen: number, restIdx: number) => {
   const tLen = f(s.len / (s.speed ?? 1));
-  const rLen = restLen(restIdx);
+  const rLen = restLen(restIdx, true);
   const Comp: React.FC = () => {
     useCustomFont();
     return (
@@ -124,7 +143,7 @@ const make = (s: TalkSpec, Cta: React.FC<{ silent?: boolean }>, ctaLen: number, 
           <Cta />
         </Sequence>
         <Sequence from={tLen + ctaLen} durationInFrames={rLen} name="Rest">
-          <RestFeatures excl={restIdx} />
+          <RestFeatures excl={restIdx} badges />
         </Sequence>
         <Sequence from={tLen + ctaLen + rLen} durationInFrames={CTA2_LEN} name="CTA-again">
           <Cta silent />

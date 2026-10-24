@@ -262,7 +262,8 @@ export const Mark: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 );
 
 // 요리 릴스(2026-10-15)에서는 같은 화면을 「그 밖에도 이런 기능이 있어요」 로 바꿔 전환 장면으로 쓴다.
-export const Intro: React.FC<{ line1?: React.ReactNode; line2?: React.ReactNode }> = ({ line1, line2 }) => {
+// labels: 칩으로 보여 줄 기능 이름(없으면 8가지 전부). 셀카형 「이 밖에도」 장면은 그 편 기능을 뺀 7가지만 쓴다.
+export const Intro: React.FC<{ line1?: React.ReactNode; line2?: React.ReactNode; labels?: string[] }> = ({ line1, line2, labels }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   return (
@@ -283,12 +284,12 @@ export const Intro: React.FC<{ line1?: React.ReactNode; line2?: React.ReactNode 
       </RevealText>
       {/* 8가지 기능 목록 — 노란 반투명 칩 대신 연한 회색 칩 + 노란 점(2열 x 4행)으로 정돈 */}
       <div style={{ position: "absolute", top: 905, left: 90, right: 90, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }}>
-        {SEGS.map((sg, i) => {
+        {(labels ?? SEGS.map((x) => x.label)).map((label, i) => {
           const p = spring({ frame: frame - (28 + i * 6), fps, config: { damping: 15, mass: 0.6 } });
           return (
-            <div key={sg.label} style={{ opacity: p, transform: `translateY(${(1 - p) * 20}px)`, display: "flex", alignItems: "center", gap: 18, backgroundColor: INK_FAINT, borderRadius: 26, padding: "24px 30px", fontSize: 46, fontWeight: 800, color: INK }}>
+            <div key={label} style={{ opacity: p, transform: `translateY(${(1 - p) * 20}px)`, display: "flex", alignItems: "center", gap: 18, backgroundColor: INK_FAINT, borderRadius: 26, padding: "24px 30px", fontSize: 46, fontWeight: 800, color: INK }}>
               <span style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: YELLOW, flex: "none" }} />
-              {sg.label}
+              {label}
             </div>
           );
         })}
