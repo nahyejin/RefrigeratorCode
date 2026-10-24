@@ -2,7 +2,7 @@ import * as React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import logoImg from '../assets/냉털이 로고 white.png';
 import { useAuth } from '../context/AuthContext';
-import { useUsage, PlanBadge } from './UsageMeter';
+import { useUsage, PlanBadge, useIsAdmin } from './UsageMeter';
 
 /**
  * 상단 GNB.
@@ -49,6 +49,8 @@ const TopNavBar: React.FC = () => {
   const location = useLocation();
   const { isLoggedIn, user, logout } = useAuth();
   const usage = useUsage();
+  // 관리자 계정에게만 어드민 입구를 보인다(화면 편의일 뿐 보안이 아니다 — 권한은 서버가 /api/admin/* 마다 확인한다).
+  const isAdmin = useIsAdmin(isLoggedIn);
   const isLoginPage = location.pathname === '/login';
 
   return (
@@ -95,6 +97,20 @@ const TopNavBar: React.FC = () => {
             {/* 체험 중인 비회원(is_guest)에게는 아직 플랜이랄 게 없다 —
                 회원에게만 보여 준다. */}
             {usage && !usage.is_guest && <PlanBadge isPaid={!!usage.is_paid} />}
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={() => navigate('/admin')}
+                aria-label="어드민 페이지로"
+                style={{
+                  flexShrink: 0, height: 22, padding: '0 8px', margin: '0 2px',
+                  borderRadius: 9999, border: '1px solid var(--ink-900)', background: 'var(--surface)',
+                  color: 'var(--ink-900)', fontSize: 11, fontWeight: 700, letterSpacing: '.02em', cursor: 'pointer',
+                }}
+              >
+                admin
+              </button>
+            )}
             <NavTextButton onClick={logout}>로그아웃</NavTextButton>
           </>
         ) : (

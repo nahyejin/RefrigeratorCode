@@ -34,13 +34,17 @@ const API_BASE_URL =
  * ⚠️ 이건 **화면 편의일 뿐 보안이 아니다.** 실제 권한은 서버가 `/api/admin/*`
  * 마다 DB 의 is_admin 을 확인한다. 여기서 참이 나와도 서버가 거부하면 못 본다.
  */
-export function useIsAdmin(): boolean {
+export function useIsAdmin(loggedIn?: boolean): boolean {
   const [isAdmin, setIsAdmin] = React.useState(false);
 
+  // loggedIn 을 받는 쪽(GNB 는 앱 내내 떠 있다)은 로그인·로그아웃할 때마다 다시 확인한다. 안 넘기면 처음 한 번만.
   React.useEffect(() => {
     let alive = true;
     const token = getAuthToken();
-    if (!token) return;
+    if (!token) {
+      setIsAdmin(false);
+      return;
+    }
     fetch(`${API_BASE_URL}/api/admin/me`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => (r.ok ? r.json() : null))
       .then(d => alive && setIsAdmin(!!d?.is_admin))
@@ -48,7 +52,7 @@ export function useIsAdmin(): boolean {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [loggedIn]);
 
   return isAdmin;
 }
