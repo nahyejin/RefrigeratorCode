@@ -2630,7 +2630,8 @@ const DeviceBreakdown: React.FC<{ c: Record<string, number>; periodNote?: string
  * 한계를 화면에 적어 둔다: 프로필 링크가 하나라 **어느 릴스에서 왔는지는 기록되지 않는다.** 올린 날과 올린 다음 날의
  * 신규 기기·가입을 보여 줄 뿐이라, 같은 날 여러 편이면 편 수로 나눈 몫이다. 원인을 증명하는 표가 아니다.
  */
-const KIND_COLOR: Record<string, string> = { overview: '#7A8AA6', hook: '#C79A00', cooking: '#2F8F5B', selfie: '#B15BB0', other: '#8A8A93' };
+// 범례 색은 서로 확실히 달라야 한다(막대의 노랑과도 겹치지 않게): 파랑·주황·초록·보라·회색.
+const KIND_COLOR: Record<string, string> = { overview: '#1C7ED6', hook: '#E8590C', cooking: '#2F9E44', selfie: '#9C36B5', other: '#868E96' };
 
 const ReelsTab: React.FC = () => {
   const [data, setData] = React.useState<any>(null);
@@ -2718,25 +2719,28 @@ const ReelsTab: React.FC = () => {
 
       {(data.kinds || []).length > 0 && (
         <div style={S.card}>
-          <h2 style={S.h2}>릴스 종류별 — 한 편 올리면 이틀 동안 평균</h2>
+          <h2 style={S.h2}>릴스 종류별 — 1편당 평균</h2>
+          <div style={{ fontSize: 12, color: 'var(--ink-700)', marginBottom: 8, lineHeight: 1.6 }}>
+            아래 숫자는 모두 <b>릴스 1편당 평균</b>이에요. 릴스를 올린 날과 다음 날, 이틀 동안 늘어난 수를 그 종류 편수로 나눈 값이에요.
+          </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 8 }}>
             {data.kinds.map((k: any) => (
               <div key={k.kind} style={{ background: 'var(--surface-2, #f4f4f2)', borderRadius: 10, padding: '10px 12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  {badge(k.kind)}<span style={{ fontSize: 11.5, color: 'var(--ink-500)' }}>{k.count}편 기준</span>
+                  {badge(k.kind)}<span style={{ fontSize: 11.5, color: 'var(--ink-500)' }}>{k.count}편의 평균</span>
                 </div>
-                <div style={{ marginTop: 8, fontSize: 11.5, color: 'var(--ink-500)' }}>새로 들어온 기기</div>
+                <div style={{ marginTop: 8, fontSize: 11.5, color: 'var(--ink-500)' }}>1편당 새로 들어온 기기</div>
                 <div style={{ fontSize: 20, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{k.avg_new}<span style={{ fontSize: 12, fontWeight: 600 }}> 대</span></div>
-                <div style={{ marginTop: 6, fontSize: 11.5, color: 'var(--ink-500)' }}>회원가입</div>
+                <div style={{ marginTop: 6, fontSize: 11.5, color: 'var(--ink-500)' }}>1편당 회원가입</div>
                 <div style={{ fontSize: 20, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{k.avg_signups}<span style={{ fontSize: 12, fontWeight: 600 }}> 명</span></div>
                 <div style={{ fontSize: 11, color: 'var(--ink-500)', marginTop: 2 }}>
-                  {k.avg_signups > 0 ? `약 ${Math.round(1 / k.avg_signups)}편에 1명 꼴` : '가입한 사람 없음'}
+                  {k.avg_signups >= 1 ? `1편에 약 ${k.avg_signups}명` : k.avg_signups > 0 ? `약 ${Math.round(1 / k.avg_signups)}편에 1명 꼴` : '가입한 사람 없음'}
                 </div>
               </div>
             ))}
           </div>
           <div style={{ fontSize: 11.5, color: 'var(--ink-500)', marginTop: 8, lineHeight: 1.6 }}>
-            <b>새로 들어온 기기</b> = 쿡매치(앱·웹)에 처음 들어온 폰·브라우저, <b>회원가입</b> = 실제로 가입한 사람이에요. 릴스를 올린 날과 다음 날, 두 날 동안의 평균이고
+            <b>새로 들어온 기기</b> = 쿡매치(앱·웹)에 처음 들어온 폰·브라우저, <b>회원가입</b> = 실제로 가입한 사람이에요.
             같은 날 여러 편이면 나눠 셈해요. 다음 날까지 안 끝난 편은 뺐어요. 표본이 적을수록 우연이 크니 방향만 보세요.
           </div>
         </div>
