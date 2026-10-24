@@ -47,7 +47,7 @@ pre{margin:10px 0 0;background:var(--code);border:1px solid var(--line);border-r
   <header>
     <p class="eyebrow">REEL · 형식 ③ 출연자 추천·후기 · v2.2 · 30초 분량 · 2026-10-24</p>
     <h1>쿡매치 출연자 릴스 프롬프트</h1>
-    <p class="lede">보내 주신 참고 영상처럼 출연자가 셀카로 <b>약 30초 동안 주절주절</b> 혼자 설명해요. <b>한 편 = 프롬프트 하나, 복붙 한 번</b>이에요. 길이가 잘릴 때만 쓰는 나눠 뽑기(클립 4개)도 카드 아래에 있어요.</p>
+    <p class="lede">보내 주신 참고 영상처럼 출연자가 셀카로 <b>약 30초 동안 주절주절</b> 혼자 설명해요. 제미나이는 한 번에 10초까지라, 한 편을 <b>클립 5개</b>(각 6~7초)로 뽑아 주시면 제가 30초 한 편으로 이어 붙여요.</p>
   </header>
 
   <section class="box tip">
@@ -62,17 +62,19 @@ pre{margin:10px 0 0;background:var(--code);border:1px solid var(--line);border-r
   </section>
 
   <section class="box tip">
-    <h3>만드는 순서 — 복붙 한 번</h3>
+    <h3>만드는 순서 — 제미나이는 한 번에 10초까지라서</h3>
     <ol>
-      <li>편 카드의 <b>영상 프롬프트 복사</b>를 누르고, 제미나이 <b>새 대화</b>에 그대로 붙여 넣어요. 사진 첨부 없이 이것만으로 약 30초 한 영상이 나와요.</li>
-      <li>영상을 보내 주시면 자막·기능 화면·끝 화면을 넣어 완성할게요.</li>
-      <li>제미나이가 8~10초에서 잘라 버릴 때만, 맨 아래 <b>잘릴 때만</b> 부분(출연자 사진 + 나눠 뽑기)을 써 주세요.</li>
+      <li><b>출연자 사진</b>을 먼저 한 장 만들어요(아래 「출연자 사진」, W·M 각각 한 번). 다섯 클립이 같은 얼굴·옷·장소로 이어지게 해 줘요.</li>
+      <li>편 카드의 <b>클립 1~5</b>를 하나씩, <b>매번 새 대화</b>에서 그 사진을 <b>첨부</b>하고 붙여 넣어요. 클립마다 대사가 6~7초라 10초 안에 다 들어가요.</li>
+      <li>다섯 영상을 보내 주시면 제가 이어 붙여 약 30초 한 편으로 만들고, 자막·기능 화면·끝 화면까지 넣을게요. 클립 끝의 남는 몇 초는 잘라 내요.</li>
+      <li>클립마다 목소리가 조금 다르게 나오면, 같은 사진으로 그 클립만 다시 뽑아 주세요.</li>
     </ol>
   </section>
 
+  <section class="box" id="presenters"><h2>출연자 사진 (먼저 한 장)</h2></section>
   <section id="eps" style="display:flex;flex-direction:column;gap:18px" aria-label="편 8개"></section>
 </div>
-<section class="box" id="presenters" style="max-width:760px;margin:0 auto 72px"><h2>잘릴 때만 — 출연자 사진</h2><p style="margin:0;color:var(--muted)">나눠 뽑기(클립 1~5)를 쓸 때, 클립들이 같은 사람으로 이어지게 먼저 만들어 첨부하는 사진이에요. 한 번에 뽑을 땐 필요 없어요.</p></section>
+
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
@@ -100,10 +102,9 @@ DATA.episodes.forEach(e => {
   c.innerHTML = `<div class="head"><span class="no">${e.no}</span><div><span class="tag">${esc(e.feature)}</span><h2>${esc(e.title)}</h2>
       <p class="plan">${esc(e.presenter)} · ${esc(e.plan)}</p></div></div>
     <ul class="lines">${e.lines.map((l,i)=>`<li><b>${i+1}</b><span>${esc(l)}</span></li>`).join('')}</ul>
-    <div class="actions"><button type="button" data-full="1">영상 프롬프트 복사 (한 번에)</button></div>
-    <details><summary>영상 프롬프트 전체 보기</summary><pre data-p="full">${esc(e.full)}</pre></details>
-    <details><summary>잘릴 때만 — 나눠 뽑기(클립 1~5)</summary><div class="actions" style="margin-top:10px">${e.clips.map((_,i)=>`<button type="button" data-i="${i}">클립 ${i+1} 복사</button>`).join('')}</div></details>
-    ${e.clips.map((p,i)=>`<details><summary>나눠 뽑기 클립 ${i+1} 보기</summary><pre data-p="${i}">${esc(p)}</pre></details>`).join('')}`;
+    <div class="actions">${e.clips.map((_,i)=>`<button type="button" data-i="${i}">클립 ${i+1} 복사</button>`).join('')}</div>
+    <details><summary>(참고) 30초를 한 번에 — 10초 넘게 만들 수 있을 때만</summary><div class="actions" style="margin-top:10px"><button type="button" data-full="1">한 번에 프롬프트 복사</button></div><pre data-p="full">${esc(e.full)}</pre></details>
+    ${e.clips.map((p,i)=>`<details><summary>클립 ${i+1} 프롬프트 보기</summary><pre data-p="${i}">${esc(p)}</pre></details>`).join('')}`;
   c.querySelectorAll('button[data-i]').forEach(b => b.addEventListener('click', () => { const i=+b.dataset.i; copy(e.clips[i], $(`pre[data-p="${i}"]`, c)); }));
   $('button[data-full]', c).addEventListener('click', () => copy(e.full, $('pre[data-p="full"]', c)));
   eps.appendChild(c);
