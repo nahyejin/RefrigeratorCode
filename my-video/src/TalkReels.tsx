@@ -18,15 +18,18 @@ const FADE = 15; // 출연자 영상 끝 0.5초 흰 화면으로
 
 type Phrase = [number, number, string]; // 편집된 출연자 영상 기준 [시작초, 끝초, 구절]
 type Overlay = { at: number; len: number; src: string; from: number; rate?: number; pos?: string };
-type TalkSpec = { src: string; len: number; title: string; phrases: Phrase[]; overlays: Overlay[] };
+// speed: 출연자 영상을 ffmpeg 로 미리 빨리 돌린 배속(파일은 src). phrases·overlays·len 은 1배속 기준 숫자를 그대로 쓰고 코드가 speed 로 나눈다.
+type TalkSpec = { src: string; len: number; speed?: number; title: string; phrases: Phrase[]; overlays: Overlay[] };
 
 // 01 레시피 매칭 — 「요리할수록 돈이 더 드는 이유」(출연자 W). 클립 경계: 0–9.85 / 9.85–19.30 / 19.30–29.25
 // 말 자막 시각은 Whisper(medium) 단어 시각 실측(클립 2는 −0.2s, 클립 3은 −0.08s 잘라 낸 만큼 당김).
 const T1 = 9.85;
 const T2 = 19.3;
 const TALK01: TalkSpec = {
-  src: "talk01_presenter.mp4",
+  // 사용자 요청(2026-10-24): 이 편만 말이 너무 느려서 1.25배속(음 높이 유지, talk01_presenter_x125.mp4). 다음 편부터는 프롬프트에서 빠르게 말하게 했다.
+  src: "talk01_presenter_x125.mp4",
   len: 29.25,
+  speed: 1.25,
   title: "요리할수록\n돈이 더 드는 이유",
   phrases: [
     [0.25, 1.14, "요리할수록"], [1.14, 2.36, "돈이 더 드는 사람"], [2.36, 3.76, "이유가 딱 하나예요"],
@@ -36,7 +39,7 @@ const TALK01: TalkSpec = {
     [T1 + 3.08, T1 + 4.1, "맛없고 비싸고"], [T1 + 4.1, T1 + 5.28, "힘드니까요"],
     [T1 + 5.46, T1 + 6.5, "그러다 남은 재료부터"], [T1 + 6.5, T1 + 7.52, "쓰게 해 주는 앱을"],
     [T1 + 7.52, T1 + 8.2, "찾았는데"], [T1 + 8.2, T1 + 9.45, "그게 쿡매치예요"],
-    [T2 + 0.06, T2 + 1.96, "냉장고 재료를 담아 두면"], [T2 + 1.96, T2 + 3.6, "지금 있는 재료로 만들 수 있는"],
+    [T2 + 0.06, T2 + 1.96, "냉장고 재료를 담아 두면"], [T2 + 1.96, T2 + 3.06, "지금 있는 재료로"], [T2 + 3.06, T2 + 3.6, "만들 수 있는"],
     [T2 + 3.6, T2 + 4.52, "요리가"], [T2 + 4.52, T2 + 5.7, "몇 퍼센트 맞는지까지"], [T2 + 5.7, T2 + 7.1, "순서대로 떠요"],
     [T2 + 7.22, T2 + 8.08, "한두 개 없으면"], [T2 + 8.08, T2 + 9.6, "있는 재료로 바꿔 주고요"],
   ],
@@ -53,11 +56,15 @@ const Title: React.FC<{ text: string }> = ({ text }) => (
   </div>
 );
 
-const Said: React.FC<{ text: string }> = ({ text }) => (
-  <div style={{ position: "absolute", top: 1190, left: 40, right: 40, textAlign: "center", fontFamily: SANS }}>
-    <span style={{ fontSize: 76, fontWeight: 800, color: WHITE, letterSpacing: "-0.01em", textShadow: SHADOW }}>{text}</span>
-  </div>
-);
+// 말 자막은 항상 한 줄(사용자: 줄바꿈 애매하게 하지 말 것). 한글 한 글자 ≈ 글자 크기 폭이라 13자를 넘으면 크기를 줄인다.
+const Said: React.FC<{ text: string }> = ({ text }) => {
+  const size = Math.min(76, Math.floor(1000 / Math.max(1, text.replace(/\s/g, "").length + text.split(" ").length * 0.3)));
+  return (
+    <div style={{ position: "absolute", top: 1190, left: 20, right: 20, textAlign: "center", fontFamily: SANS }}>
+      <span style={{ fontSize: size, fontWeight: 800, color: WHITE, letterSpacing: "-0.01em", whiteSpace: "nowrap", textShadow: SHADOW }}>{text}</span>
+    </div>
+  );
+};
 
 // 얼굴 위 가운데 앱 화면 카드(참고 영상처럼 화면 너비의 약 56%)
 const AppCard: React.FC<{ o: Overlay }> = ({ o }) => {
@@ -75,15 +82,16 @@ const AppCard: React.FC<{ o: Overlay }> = ({ o }) => {
 
 const Talk: React.FC<{ s: TalkSpec }> = ({ s }) => {
   const frame = useCurrentFrame();
-  const total = f(s.len);
+  const k = 1 / (s.speed ?? 1);
+  const total = f(s.len * k);
   const fade = interpolate(frame, [total - FADE, total - 1], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   return (
     <AbsoluteFill style={{ backgroundColor: WHITE }}>
       <AbsoluteFill style={{ opacity: fade }}>
         <OffthreadVideo src={staticFile(s.src)} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
         {s.overlays.map((o, i) => (
-          <Sequence key={i} from={f(o.at)} durationInFrames={f(o.len)}>
-            <AppCard o={o} />
+          <Sequence key={i} from={f(o.at * k)} durationInFrames={f(o.len * k)}>
+            <AppCard o={{ ...o, len: o.len * k }} />
           </Sequence>
         ))}
         <Title text={s.title} />
@@ -92,7 +100,7 @@ const Talk: React.FC<{ s: TalkSpec }> = ({ s }) => {
           const next = s.phrases[i + 1];
           const end = next && next[0] - b < 0.35 ? next[0] : b + 0.15;
           return (
-            <Sequence key={i} from={f(a)} durationInFrames={Math.max(1, f(end) - f(a))}>
+            <Sequence key={i} from={f(a * k)} durationInFrames={Math.max(1, f(end * k) - f(a * k))}>
               <Said text={t} />
             </Sequence>
           );
@@ -103,7 +111,7 @@ const Talk: React.FC<{ s: TalkSpec }> = ({ s }) => {
 };
 
 const make = (s: TalkSpec, Cta: React.FC<{ silent?: boolean }>, ctaLen: number, restIdx: number) => {
-  const tLen = f(s.len);
+  const tLen = f(s.len / (s.speed ?? 1));
   const rLen = restLen(restIdx);
   const Comp: React.FC = () => {
     useCustomFont();
