@@ -2998,7 +2998,7 @@ const Dashboard: React.FC = () => {
               <Range mode="period">
                 {act.filters?.ranged
                   ? `위에서 고른 「${periodLabel}」 에 서버에 처음 기록된 기기만 · 내 계정·기기 제외`
-                  : '「전체」를 고르면 최근 7일만 보여 줘요(전체 누적은 「요약」 탭) · 내 계정·기기 제외'}
+                  : '「전체」 = 서버에 처음 기록된 날부터 지금까지(「요약」 탭 누적과 같아요, 날짜별 표는 최근 31일까지) · 내 계정·기기 제외'}
               </Range>
               {(() => {
                 // 맨 위의 기간 설정을 그대로 따른다(기간을 안 골랐으면 최근 7일).
@@ -3013,7 +3013,9 @@ const Dashboard: React.FC = () => {
                 };
                 const ranged = !!act.filters?.ranged;
                 const to: string = ranged && act.filters?.to ? String(act.filters.to).slice(0, 10) : today;
-                const from: string = ranged && act.filters?.from ? String(act.filters.from).slice(0, 10) : shift(to, -6);
+                // 「전체」(기간을 안 골랐을 때)는 처음 기록된 날부터 오늘까지. 예전엔 최근 7일만 합쳐서 요약 탭 누적과 숫자가 달랐다.
+                const firstSeen = nd.length ? nd.reduce((a, r) => (r.date < a ? r.date : a), nd[0].date) : shift(to, -6);
+                const from: string = ranged && act.filters?.from ? String(act.filters.from).slice(0, 10) : firstSeen;
                 const all: string[] = [];
                 for (let d = to; d >= from && all.length < 400; d = shift(d, -1)) all.push(d);
                 const MAX_ROWS = 31;
@@ -3034,7 +3036,7 @@ const Dashboard: React.FC = () => {
                 return (
                   <>
                     <div style={{ margin: '4px 0 6px' }}>
-                      <Range inline mode="period">{ranged ? '이 기간에 처음 기록된 기기(기간 안에서 처음 기록된 날 기준)' : '「전체」를 고르면 최근 7일'}</Range>
+                      <Range inline mode="period">{ranged ? '이 기간에 처음 기록된 기기(기간 안에서 처음 기록된 날 기준)' : '「전체」 = 처음 기록된 날부터 지금까지'}</Range>
                     </div>
                     <div style={{ margin: '0 0 12px' }}>
                       <DeviceBreakdown
@@ -3053,7 +3055,7 @@ const Dashboard: React.FC = () => {
                       {/* 합계 줄은 맨 아래(tfoot) — 스크롤해도 바닥에 붙어 있다 */}
                       <tfoot>
                         <tr>
-                          <td style={{ ...S.td, fontWeight: 700 }}>{ranged ? '기간 합계' : '7일 합계'}</td>
+                          <td style={{ ...S.td, fontWeight: 700 }}>{ranged ? '기간 합계' : '전체 합계'}</td>
                           <td style={{ ...S.td, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{num(total)}</td>
                           {['android', 'ios', 'web', 'link', 'unknown', 'other'].map((pl) => (
                             <td key={pl} style={{ ...S.td, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{num(sumOf(all, pl))}</td>

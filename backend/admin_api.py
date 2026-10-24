@@ -1270,7 +1270,8 @@ def register(app, get_db):
                 user_events.ensure_table(get_db)  # platform 칸이 없으면 이때 덧붙인다(멱등)
                 nd_cond, nd_params = _where('created_at', None, None, ex_ids, ex_devices,
                                             device_col='device_id')
-                # 화면 맨 위의 기간 설정을 따른다. 기간을 안 골랐으면 최근 90일(화면은 그중 최근 7일을 보여 준다).
+                # 화면 맨 위의 기간 설정을 따른다. 기간을 안 골랐으면(「전체」) **처음 기록된 날부터 전부** — 예전엔 최근 90일만 줘서
+                # 화면이 최근 7일만 합쳐 「전체」인데 요약 탭 누적(324)과 달랐다(2026-10-24 사용자 지적).
                 nd_parts, nd_range_params = [], []
                 if start:
                     nd_parts.append("first_at >= %s")
@@ -1278,7 +1279,7 @@ def register(app, get_db):
                 if end:
                     nd_parts.append("first_at <= %s")
                     nd_range_params.append(end)
-                nd_range = " AND ".join(nd_parts) if nd_parts else "first_at >= (CURDATE() - INTERVAL 90 DAY)"
+                nd_range = " AND ".join(nd_parts) if nd_parts else "1=1"
                 cursor.execute(
                     "SELECT DATE(first_at) d, COALESCE(plat, 'unknown') platform, COUNT(*) n FROM ("
                     # 다운로드 링크(download.html)만 열고 스토어로 넘어간 기기는 앱·웹과 따로 센다(link_ios/link_android/link_web, 2026-10-17)
