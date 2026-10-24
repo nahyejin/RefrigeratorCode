@@ -2592,32 +2592,32 @@ const DeviceBreakdown: React.FC<{ c: Record<string, number>; periodNote?: string
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
         <span style={{ fontSize: 12.5, color: 'var(--ink-500)', fontWeight: 600 }}>들어온 기기 합계 (봇·안내만 뺀 것)</span>
         <span style={{ fontSize: 30, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{num(people)}대</span>
-        <span style={{ fontSize: 12, color: 'var(--ink-500)' }}>= ① {num(used)} + ② {num(link)}{periodNote ? ` · ${periodNote}` : ''}</span>
+        <span style={{ fontSize: 12, color: 'var(--ink-500)' }}>= ① {num(used)} + ② {num(link)} (둘은 겹치지 않아요){periodNote ? ` · ${periodNote}` : ''}</span>
       </div>
       <div role="img" aria-label="기기 구성 비율" style={{ display: 'flex', height: 12, borderRadius: 6, overflow: 'hidden', background: 'var(--line-200)', margin: '8px 0 10px' }}>
         {seg(app, COLOR.app, '앱')}{seg(web, COLOR.web, '웹')}{seg(unknown, COLOR.unknown, '앱·웹 모름')}{seg(link, COLOR.link, '다운로드 페이지를 본 기기')}{seg(other, COLOR.other, '봇·안내만')}
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 10 }}>
-        {box('① 쿡매치 화면까지 본 기기', used, (
+        {box('① 쿡매치 화면을 본 기기', used, (
           <>
             {line(COLOR.app, '안드로이드 앱', g('android'), '설치하고 열어 본 기기')}
             {line(COLOR.app, '아이폰 앱', g('ios'), '설치하고 열어 본 기기')}
             {line(COLOR.web, '웹', web, '브라우저에서 쿡매치 화면을 봄')}
             {line(COLOR.unknown, '앱·웹 모름', unknown, '10/12 이전 기록')}
           </>
-        ), '홈·냉장고요리 같은 실제 화면을 본 기기. 앱인지 웹인지는 아래 칸으로 나뉘어요.')}
-        {box('② 다운로드 페이지를 본 기기', link, (
+        ), '홈·냉장고요리 같은 쿡매치 화면을 한 번이라도 본 기기. 다운로드 페이지도 봤더라도 화면을 봤다면 ①에만 들어가요. 앱인지 웹인지는 아래 칸으로 나뉘어요.')}
+        {box('② 다운로드 페이지 기록만 있는 기기', link, (
           <>
             {line(COLOR.link, '아이폰', g('link_ios'))}
             {line(COLOR.link, '안드로이드', g('link_android'))}
             {line(COLOR.link, 'PC 등', g('link_web'))}
           </>
-        ), '프로필 링크로 설치 안내 페이지를 열었고, 이 브라우저에서는 쿡매치 화면 기록이 없는 기기. 스토어로 넘어가 실제로 설치했을 수도 있어요 — 설치하고 앱을 열면 ①의 앱 기기로 따로 잡혀요(설치만 하고 안 열면 안 보여요).')}
+        ), '프로필 링크로 설치 안내 페이지는 열었는데, 이 브라우저에서는 쿡매치 화면 기록이 없는 기기. 스토어로 넘어가 실제로 설치했을 수도 있어요 — 설치하고 앱을 열면 ①의 앱 기기로 따로 잡혀요(설치만 하고 안 열면 안 보여요).')}
         {box('③ 사람 아닌 것', other, null,
           '개인정보처리방침·약관만 열어 봄(스토어 심사 등), 링크 미리보기 봇. 합계에서 뺐어요.', true)}
       </div>
       <div style={{ fontSize: 11.5, color: 'var(--ink-500)', marginTop: 8, lineHeight: 1.6 }}>
-        <b>기기 하나는 ①②③ 중 한 곳에만 들어가요(겹치지 않아요).</b> ①+②+③ = 전체 {num(people + other)}대.
+        <b>①②③은 서로 겹치지 않아요(교집합 없음).</b> 기기 하나는 ① 쿡매치 화면을 본 적 있으면 ①, 아니면서 다운로드 페이지 기록이 있으면 ②, 그 밖(약관·미리보기 봇)은 ③ 중 <b>딱 한 곳</b>에만 들어가요. ①+②+③ = 전체 {num(people + other)}대.
         다만 <b>기기 수는 사람 수가 아니에요</b> — 같은 사람이 브라우저로 다운로드 페이지를 보고(②) 앱을 설치해 열면(①) 기기가 두 대로 잡혀요. 안드로이드는 다운로드 페이지에서 Play 스토어로 바로 넘어가는데, 그 순간의 기록이 빠지던 문제를 2026-10-24 에 고쳤어요(그 전 안드로이드 다운로드 페이지 방문은 거의 안 잡혔어요).
       </div>
     </div>
