@@ -2639,11 +2639,17 @@ const ReelsTab: React.FC = () => {
   const today = new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10);
   const [form, setForm] = React.useState({ posted_on: today, title: '', kind: 'hook', note: '' });
   const [saving, setSaving] = React.useState(false);
+  const [sel, setSel] = React.useState<string | null>(null);   // 막대그래프에서 고른 날
+  const chartRef = React.useRef<HTMLDivElement>(null);
 
   const load = React.useCallback(() => {
     api(`/api/admin/reels${excludeMine ? '' : '?keep_excluded=1'}`).then(setData).catch(e => setError(e.message));
   }, [excludeMine]);
   React.useEffect(() => { load(); }, [load]);
+  // 막대가 많아 옆으로 밀어 보는 그래프라, 열면 가장 최근(오른쪽 끝)부터 보이게 한다.
+  React.useEffect(() => {
+    if (chartRef.current) chartRef.current.scrollLeft = chartRef.current.scrollWidth;
+  }, [data]);
 
   const add = async () => {
     if (!form.title.trim()) { setError('릴스 제목(내용)을 적어 주세요.'); return; }
@@ -2675,8 +2681,12 @@ const ReelsTab: React.FC = () => {
     <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 7px', borderRadius: 9999, color: '#fff',
                    background: KIND_COLOR[kind] || '#8A8A93', whiteSpace: 'nowrap' }}>{labels[kind] || kind}</span>
   );
-  const dayRows: any[] = [...(data.days || [])].reverse();
+  const days: any[] = data.days || [];
   const posts: any[] = [...(data.posts || [])].reverse();
+  const maxNew = Math.max(1, ...days.map((d: any) => d.new));
+  const BAR_H = 120;
+  const selDay = days.find(d => d.date === sel) || days[days.length - 1];
+  const md = (iso: string) => `${+iso.slice(5, 7)}/${+iso.slice(8, 10)}`;
 
   return (
     <>
@@ -2708,54 +2718,29 @@ const ReelsTab: React.FC = () => {
 
       {(data.kinds || []).length > 0 && (
         <div style={S.card}>
-          <h2 style={S.h2}>종류별 한 편당(올린 날+다음 날 신규 기기·가입)</h2>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <h2 style={S.h2}>릴스 종류별 — 한 편 올리면 이틀 동안 평균</h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 8 }}>
             {data.kinds.map((k: any) => (
-              <StatTile key={k.kind} title={`${k.label} · ${k.count}편`} value={`${k.avg_new}대 · ${k.avg_signups}명`}
-                        sub="한 편당 평균 신규 기기 · 가입" />
+              <div key={k.kind} style={{ background: 'var(--surface-2, #f4f4f2)', borderRadius: 10, padding: '10px 12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  {badge(k.kind)}<span style={{ fontSize: 11.5, color: 'var(--ink-500)' }}>{k.count}편 기준</span>
+                </div>
+                <div style={{ marginTop: 8, fontSize: 11.5, color: 'var(--ink-500)' }}>새로 들어온 기기</div>
+                <div style={{ fontSize: 20, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{k.avg_new}<span style={{ fontSize: 12, fontWeight: 600 }}> 대</span></div>
+                <div style={{ marginTop: 6, fontSize: 11.5, color: 'var(--ink-500)' }}>회원가입</div>
+                <div style={{ fontSize: 20, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{k.avg_signups}<span style={{ fontSize: 12, fontWeight: 600 }}> 명</span></div>
+                <div style={{ fontSize: 11, color: 'var(--ink-500)', marginTop: 2 }}>
+                  {k.avg_signups > 0 ? `약 ${Math.round(1 / k.avg_signups)}편에 1명 꼴` : '가입한 사람 없음'}
+                </div>
+              </div>
             ))}
           </div>
           <div style={{ fontSize: 11.5, color: 'var(--ink-500)', marginTop: 8, lineHeight: 1.6 }}>
-            다음 날까지 안 끝난 편은 뺐어요. 표본이 적을수록(가입은 한 달에 몇 명) 우연이 크니 방향만 보세요.
+            <b>새로 들어온 기기</b> = 쿡매치(앱·웹)에 처음 들어온 폰·브라우저, <b>회원가입</b> = 실제로 가입한 사람이에요. 릴스를 올린 날과 다음 날, 두 날 동안의 평균이고
+            같은 날 여러 편이면 나눠 셈해요. 다음 날까지 안 끝난 편은 뺐어요. 표본이 적을수록 우연이 크니 방향만 보세요.
           </div>
         </div>
       )}
-
-      <div style={S.card}>
-        <h2 style={S.h2}>날짜별</h2>
-        <div className="adm-scroll">
-          <table style={{ width: '100%', minWidth: 520 }}>
-            <thead>
-              <tr>
-                <th style={S.th}>날짜</th><th style={S.th}>올린 릴스</th>
-                <th style={{ ...S.th, textAlign: 'right' }}>신규 기기</th><th style={{ ...S.th, textAlign: 'right' }}>인스타 표시</th>
-                <th style={{ ...S.th, textAlign: 'right' }}>다운로드 화면</th><th style={{ ...S.th, textAlign: 'right' }}>신규 가입</th>
-              </tr>
-            </thead>
-            <tbody>
-              {dayRows.map(d => (
-                <tr key={d.date} style={d.posts.length ? undefined : { color: 'var(--ink-500)' }}>
-                  <td style={S.td}>{d.date.slice(5).replace('-', '/')}</td>
-                  <td style={{ ...S.td, whiteSpace: 'normal', minWidth: 180 }}>
-                    {d.posts.length
-                      ? d.posts.map((t: string, i: number) => (
-                        <div key={i} style={{ display: 'flex', gap: 5, alignItems: 'baseline' }}>{badge(d.kinds[i])}<span>{t}</span></div>
-                      ))
-                      : '—'}
-                  </td>
-                  <td style={{ ...S.td, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{d.new}</td>
-                  <td style={{ ...S.td, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{d.ig}</td>
-                  <td style={{ ...S.td, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{d.downloads}</td>
-                  <td style={{ ...S.td, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{d.signups}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <div style={{ fontSize: 11.5, color: 'var(--ink-500)', marginTop: 8, lineHeight: 1.6 }}>
-          「신규 기기」는 그날 처음 기록된 기기, 「인스타 표시」는 그중 인스타에서 온 표시가 붙은 기기예요(링크에 유입 표시를 안 붙이면 못 잡아요).
-        </div>
-      </div>
 
       <div style={S.card}>
         <h2 style={S.h2}>올린 릴스 {posts.length}편</h2>
@@ -2764,7 +2749,7 @@ const ReelsTab: React.FC = () => {
             <thead>
               <tr>
                 <th style={S.th}>날짜</th><th style={S.th}>종류</th><th style={S.th}>내용</th>
-                <th style={{ ...S.th, textAlign: 'right' }}>이틀간 신규 기기</th><th style={{ ...S.th, textAlign: 'right' }}>이틀간 가입</th><th style={S.th} />
+                <th style={{ ...S.th, textAlign: 'right' }}>이틀간 새 기기(대)</th><th style={{ ...S.th, textAlign: 'right' }}>이틀간 가입(명)</th><th style={S.th} />
               </tr>
             </thead>
             <tbody>
@@ -2787,6 +2772,73 @@ const ReelsTab: React.FC = () => {
               ))}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <div style={S.card}>
+        <h2 style={S.h2}>날짜별 — 막대를 누르면 그날 내용이 아래에 나와요</h2>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', fontSize: 11.5, color: 'var(--ink-500)', marginBottom: 8, alignItems: 'center' }}>
+          <span><span style={{ display: 'inline-block', width: 10, height: 10, background: '#FFD600', borderRadius: 2, marginRight: 4 }} />막대 = 그날 새로 들어온 기기(대)</span>
+          <span><span style={{ display: 'inline-block', background: '#1A1A1E', color: '#fff', fontSize: 10, fontWeight: 700, borderRadius: 4, padding: '0 4px', marginRight: 4 }}>2</span>검은 칸 = 그날 가입한 사람(명)</span>
+          <span>색 점 = 그날 올린 릴스</span>
+          {Object.entries(labels).map(([k, v]) => (
+            <span key={k}><span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 9999, background: KIND_COLOR[k] || '#8A8A93', marginRight: 3 }} />{v}</span>
+          ))}
+        </div>
+        <div ref={chartRef} style={{ overflowX: 'auto', paddingBottom: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 3, minWidth: days.length * 25 }}>
+            {days.map((d: any, i: number) => {
+              const h = Math.max(d.new ? 3 : 1, Math.round((d.new / maxNew) * BAR_H));
+              const on = !!selDay && selDay.date === d.date;
+              const first = i === 0 || d.date.slice(8) === '01';
+              return (
+                <button
+                  key={d.date}
+                  type="button"
+                  onClick={() => setSel(d.date)}
+                  aria-label={`${md(d.date)} 신규 기기 ${d.new}대 가입 ${d.signups}명 릴스 ${d.posts.length}편`}
+                  style={{ width: 22, flexShrink: 0, border: 'none', cursor: 'pointer', padding: '0 0 4px', borderRadius: 6,
+                           background: on ? 'var(--surface-sub)' : 'transparent', display: 'flex', flexDirection: 'column', alignItems: 'center' }}
+                >
+                  <span style={{ fontSize: 10, height: 14, fontVariantNumeric: 'tabular-nums', color: 'var(--ink-700)' }}>{d.new || ''}</span>
+                  <div style={{ height: BAR_H, display: 'flex', alignItems: 'flex-end' }}>
+                    <div style={{ width: 14, height: h, background: '#FFD600', borderRadius: '3px 3px 0 0', opacity: d.new ? 1 : 0.35 }} />
+                  </div>
+                  <span style={{ fontSize: first ? 8.5 : 9.5, marginTop: 3, whiteSpace: 'nowrap', color: 'var(--ink-500)', fontWeight: on ? 700 : 400 }}>
+                    {first ? md(d.date) : d.date.slice(8)}
+                  </span>
+                  <div style={{ height: 17, marginTop: 2, display: 'flex', alignItems: 'center' }}>
+                    {d.signups > 0 && (
+                      <span style={{ background: '#1A1A1E', color: '#fff', fontSize: 10, fontWeight: 700, borderRadius: 4, padding: '0 4px', minWidth: 14, textAlign: 'center' }}>{d.signups}</span>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, minHeight: 12 }}>
+                    {d.kinds.slice(0, 4).map((k: string, j: number) => (
+                      <span key={j} style={{ width: 8, height: 8, borderRadius: 9999, background: KIND_COLOR[k] || '#8A8A93' }} />
+                    ))}
+                    {d.kinds.length > 4 && <span style={{ fontSize: 9, color: 'var(--ink-500)' }}>+{d.kinds.length - 4}</span>}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        {selDay && (
+          <div style={{ marginTop: 10, background: 'var(--surface-sub)', borderRadius: 10, padding: '10px 12px', fontSize: 12.5, lineHeight: 1.7 }}>
+            <b>{md(selDay.date)}</b> · 새로 들어온 기기 <b>{selDay.new}대</b>(그중 인스타 표시 {selDay.ig}대) · 다운로드 화면 본 기기 {selDay.downloads}대 · 회원가입 <b>{selDay.signups}명</b>
+            {selDay.posts.length > 0 ? (
+              <div style={{ marginTop: 4 }}>
+                {selDay.posts.map((t: string, i: number) => (
+                  <div key={i} style={{ display: 'flex', gap: 5, alignItems: 'baseline' }}>{badge(selDay.kinds[i])}<span>{t}</span></div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ color: 'var(--ink-500)' }}>이날 올린 릴스 없음</div>
+            )}
+          </div>
+        )}
+        <div style={{ fontSize: 11.5, color: 'var(--ink-500)', marginTop: 8, lineHeight: 1.6 }}>
+          「인스타 표시」는 그날 새로 들어온 기기 중 인스타에서 온 표시가 붙은 기기예요(링크에 유입 표시를 안 붙이면 못 잡아요). 그래프는 처음 릴스를 올린 날 전날부터 오늘까지예요.
         </div>
       </div>
     </>
