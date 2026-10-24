@@ -34,6 +34,8 @@ export interface Usage {
   is_guest: boolean;
   weekly_credits: number;
   signup_credits: number;
+  /** 어드민이 손으로 준 가장 최근 크레딧(2주 안). 앱을 켰을 때 한 번 알린다. */
+  admin_grant?: { id: number; amount: number } | null;
   /** 비회원 체험분 (기기당 한 번, 다시 안 채워짐) */
   guest_trial: number;
   /** 다음 주간 지급 시각 (ISO). 매주 월요일 00:00 KST */

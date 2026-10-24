@@ -37,6 +37,13 @@ const NativePushBridge: React.FC = () => {
         description: '가족 그룹 식구가 레시피를 보내면 알려드려요',
         importance: 4,
       }).catch(() => {});
+      // 유료 전환·크레딧 지급(서버 admin_api.py 의 channel_id 'account' 와 같은 이름)
+      PushNotifications.createChannel({
+        id: 'account',
+        name: '계정 알림',
+        description: '유료 전환이나 크레딧 지급을 알려드려요',
+        importance: 4,
+      }).catch(() => {});
     }
 
     let removed = false;

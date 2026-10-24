@@ -11,6 +11,7 @@ import NativeAuthBridge from '../components/NativeAuthBridge';
 import NativeShortcutBridge from '../components/NativeShortcutBridge';
 import RecipeChatWidget from '../components/RecipeChatWidget';
 import PlanUpgradeToast from '../components/PlanUpgradeToast';
+import CreditGrantToast from '../components/CreditGrantToast';
 import { prefetchFridgeRecipes, prefetchPopular } from '../utils/recipePrefetch';
 import CookModeHost from '../components/CookModeHost';
 import RecipeShareHost from '../components/RecipeShareHost';
@@ -304,6 +305,7 @@ function AppContent() {
       <RecipeChatWidget />
       {/* 유료로 바뀐 것을 한 번 알린다. 어디에 있든 보여야 하므로 전역에 둔다. */}
       <PlanUpgradeToast />
+      <CreditGrantToast />
       {/* 요리 모드 시트는 앱에 **하나만** 둔다. 카드가 흩어져 있는 화면마다
           시트를 하나씩 두면 같은 코드를 여섯 군데에 적게 된다. */}
       <CookModeHost />

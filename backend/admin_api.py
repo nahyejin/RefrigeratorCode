@@ -448,6 +448,8 @@ def register(app, get_db):
         db = get_db()
         cursor = db.cursor()
         try:
+            # 푸시를 보낼지 가르려고 바꾸기 **전** 상태를 본다(이미 유료인 사람에게 같은 내용을 또 보내지 않는다).
+            prev_plan, _, prev_until = usage_quota._plan_of(cursor, user_id)
             cursor.execute(
                 """
                 INSERT INTO user_quota
@@ -468,7 +470,40 @@ def register(app, get_db):
         if grant:
             usage_quota.topup(get_db, user_id, grant, note=note[:255], reason='admin')
 
-        return jsonify(usage_quota.status(get_db, user_id=user_id))
+        st = usage_quota.status(get_db, user_id=user_id)
+
+        # 푸시: 앱 안 안내(PlanUpgradeToast / CreditGrantToast)와 같은 문구. 알림을 켜 둔 기기에만 간다.
+        # 푸시가 실패해도 지급은 이미 끝났으니 응답은 그대로 돌려준다.
+        became_plus = plan == 'plus' and (prev_plan != 'plus' or prev_until != plan_until)
+        title = body_text = None
+        if became_plus:
+            title = '유료 계정이 됐어요'
+            body_text = f"매주 {st['weekly_credits']} 크레딧을 받아요"
+            if st.get('plan_until'):
+                body_text += f" · {st['plan_until']} 까지"
+            if grant:
+                body_text += f". 추가로 {grant}크레딧도 지급됐어요"
+        elif grant:
+            title = '크레딧이 추가 지급됐어요'
+            body_text = f"{grant}크레딧이 추가로 지급됐어요"
+        push_result = None
+        if title:
+            try:
+                from push_send import send_to_users
+                pdb = get_db()
+                pcur = pdb.cursor()
+                try:
+                    push_result = send_to_users(
+                        pcur, [user_id], title, body_text, '/my-page', channel_id='account'
+                    ).get(user_id)
+                    pdb.commit()
+                finally:
+                    pcur.close()
+                    pdb.close()
+            except Exception as e:
+                print(f"admin_set_quota push error: {e}")
+        st['push'] = {'title': title, 'sent': (push_result or {}).get('sent', 0)} if title else None
+        return jsonify(st)
 
     @app.route('/api/admin/users/<int:user_id>/stats-exclude', methods=['PUT'])
     def admin_set_stats_exclude(user_id):

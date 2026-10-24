@@ -38,6 +38,9 @@ const PlanUpgradeToast: React.FC = () => {
       return;
     }
     setShow(true);
+    try {
+      sessionStorage.setItem('cookmatch_plan_toast_at', String(Date.now()));   // 크레딧 토스트가 겹치지 않게 비켜 준다
+    } catch { /* 없어도 된다 */ }
     const t = setTimeout(() => setShow(false), 6000);
     return () => clearTimeout(t);
   }, [usage?.is_paid, usage?.plan_until]);

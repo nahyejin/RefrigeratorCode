@@ -650,6 +650,7 @@ def status(get_db, user_id=None, device_id=None):
     cursor = db.cursor()
     try:
         plan, daily_fixed, plan_until = _plan_of(cursor, user_id, now)
+        admin_grant = None
         if user_id is None:
             # 비회원 체험분. 지급 원장(credit_grants)은 회원용이라, 여기서는
             # **정해진 체험분에서 쓴 만큼 뺀다.** 기기 식별자 기준이다.
@@ -666,6 +667,16 @@ def status(get_db, user_id=None, device_id=None):
             granted, used, left = balance(cursor, user_id)
             daily_used = _used(cursor, user_id, device_id,
                                day_start(now).replace(tzinfo=None))
+            # 어드민이 손으로 준 가장 최근 크레딧(2주 안). 앱이 "N크레딧이 추가 지급됐어요" 를 한 번 보여 주는 데 쓴다.
+            cursor.execute(
+                "SELECT id, amount FROM credit_grants WHERE user_id = %s AND reason = 'admin' "
+                "AND amount > 0 AND created_at >= %s ORDER BY id DESC LIMIT 1",
+                (user_id, now.replace(tzinfo=None) - timedelta(days=14)),
+            )
+            _g = cursor.fetchone()
+            if _g:
+                admin_grant = ({"id": int(_g["id"]), "amount": int(_g["amount"])} if isinstance(_g, dict)
+                               else {"id": int(_g[0]), "amount": int(_g[1])})
     finally:
         cursor.close()
         db.close()
@@ -698,6 +709,7 @@ def status(get_db, user_id=None, device_id=None):
         # 기한이 지난 것은 위에서 이미 `free` 로 바뀌어 내려온다.
         "plan_until": plan_until.strftime("%Y-%m-%d") if plan_until else None,
         "signup_credits": SIGNUP_CREDITS,
+        "admin_grant": admin_grant,
         "next_weekly_at": next_week_start(now).isoformat(),
         "credits": dict(CREDITS),
     }
