@@ -2630,7 +2630,7 @@ const DeviceBreakdown: React.FC<{ c: Record<string, number>; periodNote?: string
  * 한계를 화면에 적어 둔다: 프로필 링크가 하나라 **어느 릴스에서 왔는지는 기록되지 않는다.** 올린 날과 올린 다음 날의
  * 신규 기기·가입을 보여 줄 뿐이라, 같은 날 여러 편이면 편 수로 나눈 몫이다. 원인을 증명하는 표가 아니다.
  */
-const KIND_COLOR: Record<string, string> = { overview: '#7A8AA6', hook: '#C79A00', cooking: '#2F8F5B', other: '#8A8A93' };
+const KIND_COLOR: Record<string, string> = { overview: '#7A8AA6', hook: '#C79A00', cooking: '#2F8F5B', selfie: '#B15BB0', other: '#8A8A93' };
 
 const ReelsTab: React.FC = () => {
   const [data, setData] = React.useState<any>(null);

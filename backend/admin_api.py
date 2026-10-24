@@ -262,7 +262,7 @@ def _where(column, start, end, ids=None, devices=None,
 # 사용자가 인스타 릴스를 올릴 때마다 날짜를 알려 주면 쌓고, 올린 날 전후의 신규 기기·가입과 나란히 보여 준다.
 # 왜 DB 에 두나: 일정표(store/REEL_UPLOAD_PLAN.html)의 「올렸어요」 체크는 브라우저에만 저장돼 실제 게시일을 알 수 없었다.
 # 프로필 링크가 하나라 어느 릴스에서 왔는지는 기록되지 않는다 — 날짜 겹침으로만 본다(어드민 화면에도 그렇게 적는다).
-REEL_KINDS = {'overview': '기능 총정리', 'hook': '연기 영상', 'cooking': '직접 요리', 'other': '기타'}
+REEL_KINDS = {'overview': '기능 총정리', 'hook': '연기 영상', 'cooking': '직접 요리', 'selfie': '셀카 설명', 'other': '기타'}
 
 # 처음 만들 때 한 번 넣는, 사용자가 직접 알려 준 19편(2026-10-24).
 REEL_SEED = [
