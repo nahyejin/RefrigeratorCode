@@ -61,6 +61,7 @@ RECIPE_ACTIONS = (
     "complete_add", "complete_remove",
     "record_add", "record_remove",
     "plan_add", "plan_remove", "plan_apply",
+    "share_link",   # 레시피 링크 복사(공유 버튼) — 2026-10-24 부터 앱이 남긴다
 )
 
 _ddl_lock = threading.Lock()

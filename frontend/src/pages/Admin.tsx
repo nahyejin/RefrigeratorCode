@@ -2118,7 +2118,7 @@ const TL_CTA: Record<string, string> = {
 };
 const TL_ACTION: Record<string, string> = {
   favorite_add: '즐겨찾기 추가', favorite_remove: '즐겨찾기 취소', complete_add: '완료 추가', complete_remove: '완료 취소',
-  record_add: '기록 추가', record_remove: '기록 취소', plan_add: '요리 계획 담기', plan_remove: '요리 계획 빼기', plan_apply: '식단 적용',
+  record_add: '기록 추가', record_remove: '기록 취소', plan_add: '요리 계획 담기', plan_remove: '요리 계획 빼기', plan_apply: '식단 적용', share_link: '레시피 링크 복사(공유)',
 };
 const TL_AI: Record<string, string> = { chat: '챗봇', vision: '사진 인식', plan: 'AI 식단' };
 
@@ -2595,7 +2595,7 @@ const DeviceBreakdown: React.FC<{ c: Record<string, number>; periodNote?: string
         <span style={{ fontSize: 12, color: 'var(--ink-500)' }}>= ① {num(used)} + ② {num(link)}{periodNote ? ` · ${periodNote}` : ''}</span>
       </div>
       <div role="img" aria-label="기기 구성 비율" style={{ display: 'flex', height: 12, borderRadius: 6, overflow: 'hidden', background: 'var(--line-200)', margin: '8px 0 10px' }}>
-        {seg(app, COLOR.app, '앱')}{seg(web, COLOR.web, '웹')}{seg(unknown, COLOR.unknown, '앱·웹 모름')}{seg(link, COLOR.link, '다운로드 페이지만')}{seg(other, COLOR.other, '봇·안내만')}
+        {seg(app, COLOR.app, '앱')}{seg(web, COLOR.web, '웹')}{seg(unknown, COLOR.unknown, '앱·웹 모름')}{seg(link, COLOR.link, '다운로드 페이지를 본 기기')}{seg(other, COLOR.other, '봇·안내만')}
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 10 }}>
         {box('① 쿡매치 화면까지 본 기기', used, (
@@ -2606,19 +2606,19 @@ const DeviceBreakdown: React.FC<{ c: Record<string, number>; periodNote?: string
             {line(COLOR.unknown, '앱·웹 모름', unknown, '10/12 이전 기록')}
           </>
         ), '홈·냉장고요리 같은 실제 화면을 본 기기. 앱인지 웹인지는 아래 칸으로 나뉘어요.')}
-        {box('② 다운로드 페이지만 본 기기', link, (
+        {box('② 다운로드 페이지를 본 기기', link, (
           <>
             {line(COLOR.link, '아이폰', g('link_ios'))}
             {line(COLOR.link, '안드로이드', g('link_android'))}
             {line(COLOR.link, 'PC 등', g('link_web'))}
           </>
-        ), '프로필 링크로 설치 안내 페이지만 열고 끝난 브라우저. 스토어로 넘어갔는지·설치했는지는 몰라요. 설치해서 앱을 열면 ①의 앱 기기로 따로 잡혀요.')}
+        ), '프로필 링크로 설치 안내 페이지를 열었고, 이 브라우저에서는 쿡매치 화면 기록이 없는 기기. 스토어로 넘어가 실제로 설치했을 수도 있어요 — 설치하고 앱을 열면 ①의 앱 기기로 따로 잡혀요(설치만 하고 안 열면 안 보여요).')}
         {box('③ 사람 아닌 것', other, null,
           '개인정보처리방침·약관만 열어 봄(스토어 심사 등), 링크 미리보기 봇. 합계에서 뺐어요.', true)}
       </div>
       <div style={{ fontSize: 11.5, color: 'var(--ink-500)', marginTop: 8, lineHeight: 1.6 }}>
         <b>기기 하나는 ①②③ 중 한 곳에만 들어가요(겹치지 않아요).</b> ①+②+③ = 전체 {num(people + other)}대.
-        다만 <b>기기 수는 사람 수가 아니에요</b> — 같은 사람이 브라우저로 다운로드 페이지를 보고(②) 앱을 설치해 열면(①) 기기가 두 대로 잡혀요.
+        다만 <b>기기 수는 사람 수가 아니에요</b> — 같은 사람이 브라우저로 다운로드 페이지를 보고(②) 앱을 설치해 열면(①) 기기가 두 대로 잡혀요. 안드로이드는 다운로드 페이지에서 Play 스토어로 바로 넘어가는데, 그 순간의 기록이 빠지던 문제를 2026-10-24 에 고쳤어요(그 전 안드로이드 다운로드 페이지 방문은 거의 안 잡혔어요).
       </div>
     </div>
   );
@@ -2801,7 +2801,7 @@ const Dashboard: React.FC = () => {
                     </div>
                     <div style={{ overflowX: 'auto' }}>
                     <div className="adm-scroll"><table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 460 }}>
-                      <thead><tr>{['날짜', '합계(봇 제외)', '안드로이드 앱', '아이폰 앱', '웹', '다운로드 페이지만', '앱·웹 모름', '봇·안내만'].map((h) => (
+                      <thead><tr>{['날짜', '합계(봇 제외)', '안드로이드 앱', '아이폰 앱', '웹', '다운로드 페이지 열람', '앱·웹 모름', '봇·안내만'].map((h) => (
                         <th key={h} style={S.th}>{h}</th>))}</tr></thead>
                       {/* 합계 줄은 맨 아래(tfoot) — 스크롤해도 바닥에 붙어 있다 */}
                       <tfoot>
@@ -2839,7 +2839,7 @@ const Dashboard: React.FC = () => {
                 스토어 숫자는{' '}
                 <a href="https://play.google.com/console" target="_blank" rel="noreferrer">구글 플레이 콘솔</a> 「통계」와{' '}
                 <a href="https://appstoreconnect.apple.com/analytics" target="_blank" rel="noreferrer">앱스토어 커넥트</a> 「분석」에서
-                하루 이틀 늦게 나와요. 웹은 다운로드·개인정보처리방침 같은 안내 페이지가 아니라 홈·냉장고요리 같은 쿡매치 화면까지 본 브라우저만 셉니다(주소를 직접 치거나 검색·공유로 들어온 사람, PC 에서 「웹에서 바로 시작하기」를 누른 사람). 「다운로드 페이지만」은 프로필 링크(다운로드 페이지)를 열고 끝난 기기예요 — 스토어 화면을 봤는지·설치했는지는 몰라요(설치하고 앱을 열면 앱 기기로 따로 잡혀요). 「봇·안내만」은 사람이 아니거나(인스타·페이스북 링크 미리보기, 앱 모음 사이트) 개인정보처리방침·약관만 열어 본 기기라 새 사용자로 보지 않아요.
+                하루 이틀 늦게 나와요. 웹은 다운로드·개인정보처리방침 같은 안내 페이지가 아니라 홈·냉장고요리 같은 쿡매치 화면까지 본 브라우저만 셉니다(주소를 직접 치거나 검색·공유로 들어온 사람, PC 에서 「웹에서 바로 시작하기」를 누른 사람). 「다운로드 페이지 열람」은 프로필 링크(다운로드 페이지)를 열었고 그 브라우저에서는 쿡매치 화면 기록이 없는 기기예요 — 스토어에서 실제로 설치했는지는 몰라요(설치하고 앱을 열면 앱 기기로 따로 잡혀요). 「봇·안내만」은 사람이 아니거나(인스타·페이스북 링크 미리보기, 앱 모음 사이트) 개인정보처리방침·약관만 열어 본 기기라 새 사용자로 보지 않아요.
                 앱·웹 구분은 10/12 이후부터 기록돼서 그 전 기기는 「앱·웹 모름」에 들어가요(쿡매치 화면은 본 기기예요).
               </div>
             </div>
@@ -2864,7 +2864,24 @@ const Dashboard: React.FC = () => {
               {(act.steps || []).map((st: any, i: number) => {
                 const base = act.steps[0]?.count || 1;
                 const pct = Math.round((st.count / base) * 100);
-                const prev = i > 0 ? act.steps[i - 1].count : null;
+                // 「└ 즐겨찾기」 같은 세부 칸은 단계가 아니라 바로 윗 칸의 쪼갬이므로 줄어든 비율(빨간 -%)을 계산하지 않고,
+                // 윗 단계 비교도 그 세부 칸을 건너뛴 **진짜 단계**끼리 한다.
+                if (st.sub) {
+                  return (
+                    <div key={st.label} title={st.why} style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: -3 }}>
+                      <div style={{ width: 100, fontSize: 12, color: 'var(--ink-500)', flexShrink: 0, paddingLeft: 8 }}>{st.label}</div>
+                      <div style={{ flex: 1, minWidth: 0, height: 12, background: 'var(--line-200)', borderRadius: 4, overflow: 'hidden' }}>
+                        <div style={{ width: pct + '%', height: '100%', background: '#FFE97A' }} />
+                      </div>
+                      <div style={{ width: 108, textAlign: 'right', fontSize: 11.5, color: 'var(--ink-500)', fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
+                        <b style={{ color: 'var(--ink-900)' }}>{st.count}</b>명 · {pct}%
+                      </div>
+                    </div>
+                  );
+                }
+                let pi = i - 1;
+                while (pi >= 0 && act.steps[pi].sub) pi -= 1;
+                const prev = pi >= 0 ? act.steps[pi].count : null;
                 const drop = prev !== null && prev > 0 ? Math.round(((prev - st.count) / prev) * 100) : null;
                 const visitTimes: number = act.sessions?.total ?? 0;
                 return (
@@ -2880,7 +2897,7 @@ const Dashboard: React.FC = () => {
                       <b>{st.count}</b>명 · {pct}%
                       {drop !== null && drop > 0 && (
                         // 빨간 -%는 바로 윗 단계 숫자보다 얼마나 줄었는지(= 그 단계에서 빠진 사람 비율).
-                        <span style={{ color: '#D14343' }} title={`바로 윗 단계(${act.steps[i - 1].label})보다 ${drop}% 줄었어요`}>{' -' + drop + '%'}</span>
+                        <span style={{ color: '#D14343' }} title={`바로 윗 단계(${act.steps[pi].label})보다 ${drop}% 줄었어요`}>{' -' + drop + '%'}</span>
                       )}
                     </div>
                   </div>

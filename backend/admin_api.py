@@ -1028,6 +1028,19 @@ def register(app, get_db):
                     f"JOIN users u ON u.id = x.user_id AND u.deleted_at IS NULL{uid_cond}",
                     uid_params),
                  '즐겨찾기·완료·기록 중 하나라도 한 사람'),
+                # 위 칸의 세부(2026-10-24 사용자: 즐겨찾기·기록·공유한 사람이 왜 안 보이나). 합집합이라 세부 합과 다를 수 있다.
+                ('└ 즐겨찾기', count(
+                    "SELECT COUNT(DISTINCT x.user_id) n FROM user_favorite_recipes x "
+                    f"JOIN users u ON u.id = x.user_id AND u.deleted_at IS NULL{uid_cond}",
+                    uid_params), '즐겨찾기를 하나라도 남긴 사람'),
+                ('└ 완료', count(
+                    "SELECT COUNT(DISTINCT x.user_id) n FROM user_completed_recipes x "
+                    f"JOIN users u ON u.id = x.user_id AND u.deleted_at IS NULL{uid_cond}",
+                    uid_params), '「완료」를 하나라도 남긴 사람'),
+                ('└ 기록', count(
+                    "SELECT COUNT(DISTINCT x.user_id) n FROM user_recorded_recipes x "
+                    f"JOIN users u ON u.id = x.user_id AND u.deleted_at IS NULL{uid_cond}",
+                    uid_params), '「기록」을 하나라도 남긴 사람'),
                 ('AI 쓴 사람', count(
                     "SELECT COUNT(DISTINCT l.user_id) n FROM llm_usage l "
                     f"JOIN users u ON u.id = l.user_id AND u.deleted_at IS NULL{uid_cond}",
@@ -1039,6 +1052,20 @@ def register(app, get_db):
                     uid_params),
                  '다른 사람과 냉장고를 공유하는 사람'),
             ]
+            # 공유한 사람(2026-10-24): 가족에게 레시피를 보낸 사람(표가 있어 지난 기록까지) + 링크를 복사한 사람(앱이 10/24 부터 기록)
+            cursor.execute("SHOW TABLES LIKE 'recipe_shares'")
+            if cursor.fetchone():
+                steps.append(('공유(가족에게)', count(
+                    "SELECT COUNT(DISTINCT s.from_user_id) n FROM recipe_shares s "
+                    f"JOIN users u ON u.id = s.from_user_id AND u.deleted_at IS NULL{uid_cond}",
+                    uid_params), '레시피를 가족(식구)에게 보낸 사람'))
+            cursor.execute("SHOW TABLES LIKE 'user_events'")
+            if cursor.fetchone():
+                steps.append(('공유(링크 복사)', count(
+                    "SELECT COUNT(DISTINCT e.user_id) n FROM user_events e "
+                    f"JOIN users u ON u.id = e.user_id AND u.deleted_at IS NULL{uid_cond} "
+                    "WHERE e.name = 'recipe_action' AND e.detail = 'share_link'",
+                    uid_params), '레시피 링크를 복사한 사람(2026-10-24 부터 기록)'))
 
             cursor.execute(
                 "SELECT COUNT(*) n FROM users u WHERE u.deleted_at IS NOT NULL "
@@ -1483,7 +1510,7 @@ def register(app, get_db):
         return jsonify({
             'total': total,
             'churned': churned,
-            'steps': [{'label': a, 'count': b, 'why': c} for a, b, c in steps],
+            'steps': [{'label': a, 'count': b, 'why': c, 'sub': a.startswith('└')} for a, b, c in steps],
             'features': features,
             'people': [
                 {**r,

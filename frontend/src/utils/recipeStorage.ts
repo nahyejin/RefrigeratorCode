@@ -1,5 +1,6 @@
 import { Recipe, RecipeActionState } from '../types/recipe';
 import { GUEST_SAVE_LIMIT, isGuestNow, openLoginGate } from './loginGate';
+import { track } from './track';
 
 // =====================
 // 상수
@@ -214,6 +215,9 @@ export function addRecipeToLocalStorage(type: StorageType, recipe: Recipe): void
   
   safeJsonSet(key, sortRecipesByUserSavedAtDesc([savedRecipe, ...recipes]));
   notifyRecipeStorageChange(type);
+  // 비회원의 저장은 서버가 모르는 기기 안의 일이라 앱이 직접 남긴다(회원은 서버가 따로 남기니 중복 방지). 가입 전에 무엇을 저장했는지를
+  // 어드민 행동 기록에서 보려는 것.
+  if (isGuestNow()) track('recipe_action', `${type === 'done' ? 'complete' : type === 'write' ? 'record' : 'favorite'}_add`);
 
   // 완료는 어느 화면에서 누르든 여기를 지난다 — 「냉장고에서 다 쓴 재료」 시트(UsedUpHost)를 띄운다.
   // 이름은 components/UsedUpSheet 의 RECIPE_DONE_EVENT 와 같아야 한다(여기서 컴포넌트를 import 하지 않으려고 문자열로).
@@ -342,6 +346,7 @@ export async function removeRecipeActionFromDB(type: StorageType, userId: number
 export function copyRecipeUrlToClipboard(recipe: Recipe): void {
   const shareUrl = recipe.link || `${window.location.origin}${DEFAULT_RECIPE_URL}${recipe.id}`;
   
+  track('recipe_action', 'share_link');   // 공유한 사람을 어드민에서 본다(2026-10-24)
   navigator.clipboard.writeText(shareUrl)
     .then(() => {
       console.log('[Share] URL이 클립보드에 복사되었습니다:', shareUrl);

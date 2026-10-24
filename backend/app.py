@@ -7025,7 +7025,12 @@ def collect_events():
         import user_events
 
         user_id, device_id = usage_quota.caller_identity()
-        body = request.get_json(silent=True) or {}
+        # force=True: `text/plain` 으로 온 본문도 JSON 으로 읽는다. 다운로드 페이지가 스토어로 넘어가기 직전에 쓰는
+        # `navigator.sendBeacon(주소, 문자열)` 은 Content-Type 이 text/plain 이라(사전 확인 요청이 필요 없는 단순 요청 —
+        # 페이지가 사라져도 나간다) 예전 방식(application/json fetch)이 중간에 끊기는 안드로이드에서 기록이 안 남았다.
+        body = request.get_json(silent=True, force=True) or {}
+        if not device_id:
+            device_id = str(body.get('device_id') or '').strip()[:64] or None
         # 앱이 platform 을 안 보내는 옛 버전이어도 요청 머리글(Origin)로 안드로이드·iOS·웹을 구분한다.
         hint = user_events.platform_from_headers(
             request.headers.get('Origin'), request.headers.get('User-Agent')
