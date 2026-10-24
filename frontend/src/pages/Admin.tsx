@@ -2610,11 +2610,10 @@ const DeviceBreakdown: React.FC<{ c: Record<string, number>; periodNote?: string
           <>
             {line(COLOR.link, '아이폰', g('link_ios'))}
             {line(COLOR.link, '안드로이드', g('link_android'), '10/24 전엔 기록이 빠졌어요')}
-            {line(COLOR.link, 'PC 등', g('link_web'), '아이폰·안드로이드가 아닌 접속 — 사람이 아닌 봇이 섞여 있을 수 있어요')}
           </>
         ), '프로필 링크로 설치 안내 페이지는 열었지만, 쿡매치 안에서의 기록은 없는 기기예요. 스토어로 넘어가 설치했을 수도 있어요 — 설치하고 앱을 열면 앱 기기로 따로 ①에 잡혀요(설치만 하고 안 열면 안 보여요).')}
         {box('③ 사람 아닌 것', other, null,
-          '개인정보처리방침·약관만 열어 봄(스토어 심사 등), 링크 미리보기 봇. 합계에서 뺐어요.', true)}
+          '개인정보처리방침·약관만 열어 봄(스토어 심사 등), 링크 미리보기 봇, PC 등(아이폰·안드로이드가 아닌 접속)에서 다운로드 페이지만 연 기기(봇 의심). 합계에서 뺐어요.', true)}
       </div>
       {people > 0 && (
         <div style={{ marginTop: 10, border: '1px solid var(--line-200)', borderRadius: 12, padding: '10px 12px', background: 'var(--surface)' }}>

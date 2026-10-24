@@ -34,7 +34,9 @@ _INFO_SCREEN = ("(screen IN ('/privacy', '/terms', '/account-deletion', '/coupan
 DEVICE_KIND = (
     "CASE "
     f"WHEN SUM(name = 'screen_view' AND screen IS NOT NULL AND NOT {_INFO_SCREEN}) > 0 THEN MAX(platform) "
-    "WHEN SUM(screen = '다운로드') > 0 THEN CONCAT('link_', COALESCE(MAX(platform), 'web')) "
+    # 다운로드 페이지만 연 기기 중 아이폰·안드로이드가 아닌 접속(PC 등)은 사람이 아닌 봇일 가능성이 커서 「사람 아닌 것」으로 센다(2026-10-24:
+    # 10/24 새벽 5시에 18대가 2건씩만 남기고 끝남, 출처 없음 — 휴대폰 접속(아이폰·안드로이드)만 「다운로드 페이지까지만 온 기기」).
+    "WHEN SUM(screen = '다운로드') > 0 THEN CASE WHEN MAX(platform) IN ('ios', 'android') THEN CONCAT('link_', MAX(platform)) ELSE 'other' END "
     "WHEN SUM(name = 'screen_view') > 0 THEN 'other' "
     "ELSE MAX(platform) END"
 )
