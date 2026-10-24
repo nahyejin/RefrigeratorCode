@@ -1,0 +1,109 @@
+<title>쿡매치 출연자 릴스 프롬프트</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: 한 줄 세로 스크롤 — ① 만드는 순서 ② 출연자 사진 2장 ③ 편 카드 8장(클립 A·B·C 복사 버튼). 노랑은 복사 버튼에만. */
+:root{
+  --bg:#f4f4f1; --surface:#ffffff; --ink:#1a1a1e; --muted:#62626b; --line:#e2e2dc;
+  --accent:#ffd600; --chip:#fff4b8; --chip-ink:#5c4700; --code:#f7f7f4; --pill:#141416; --pill-ink:#fff;
+  --display:'Black Han Sans','IBM Plex Sans KR','Apple SD Gothic Neo',sans-serif;
+  --body:'IBM Plex Sans KR','Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#141415; --surface:#1d1d1f; --ink:#f1f1ee; --muted:#a3a3ab; --line:#303033; --chip:#3a3210; --chip-ink:#ffe36b; --code:#18181a; --pill:#f1f1ee; --pill-ink:#141416; color-scheme:dark } }
+:root[data-theme="dark"]{ --bg:#141415; --surface:#1d1d1f; --ink:#f1f1ee; --muted:#a3a3ab; --line:#303033; --chip:#3a3210; --chip-ink:#ffe36b; --code:#18181a; --pill:#f1f1ee; --pill-ink:#141416; color-scheme:dark }
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.65;margin:0}
+.page{max-width:760px;margin:0 auto;padding-inline:16px;padding-block:32px 72px;display:flex;flex-direction:column;gap:22px}
+h1{font-family:var(--display);font-weight:400;font-size:32px;line-height:1.2;margin:0;text-wrap:balance}
+h2{font-family:var(--display);font-weight:400;font-size:22px;line-height:1.3;margin:0}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.08em;color:var(--muted);margin:0 0 8px}
+.lede{color:var(--muted);margin:10px 0 0;max-width:62ch}
+.box{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:10px}
+.box h3{margin:0;font-size:15px;font-weight:700}
+.box ol,.box ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+.tip{border-left:4px solid var(--accent)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.head{display:flex;gap:12px;align-items:flex-start}
+.no{font-family:var(--display);font-size:30px;line-height:1;color:var(--line);min-width:40px}
+.head>div{min-width:0;display:flex;flex-direction:column;gap:6px}
+.tag{align-self:flex-start;font-size:12px;font-weight:600;color:var(--chip-ink);background:var(--chip);border-radius:999px;padding:2px 10px}
+.plan{font-size:13.5px;color:var(--muted);margin:0}
+.lines{margin:0;padding-left:0;list-style:none;display:flex;flex-direction:column;gap:6px}
+.lines li{display:grid;grid-template-columns:28px 1fr;gap:8px;align-items:start}
+.lines b{display:inline-flex;justify-content:center;align-items:center;width:24px;height:24px;border-radius:6px;background:var(--pill);color:var(--pill-ink);font-size:13px}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+button{font-family:var(--body);font-size:14px;font-weight:600;border-radius:10px;padding:10px 14px;cursor:pointer;border:1px solid var(--accent);background:var(--accent);color:#1a1a1e}
+button:focus-visible,summary:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+details{border-top:1px solid var(--line);padding-top:10px}
+summary{cursor:pointer;font-size:13.5px;color:var(--muted);font-weight:600}
+pre{margin:10px 0 0;background:var(--code);border:1px solid var(--line);border-radius:10px;padding:12px;font-family:var(--mono);font-size:12.5px;line-height:1.55;white-space:pre-wrap;word-break:break-word}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--pill);color:var(--pill-ink);padding:10px 16px;border-radius:999px;font-size:14px;font-weight:600;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.on{opacity:1}
+@media (prefers-reduced-motion:reduce){.toast{transition:none}}
+</style>
+
+<div class="page">
+  <header>
+    <p class="eyebrow">REEL · 형식 ③ 출연자 추천·후기 · v2 · 2026-10-24</p>
+    <h1>쿡매치 출연자 릴스 프롬프트</h1>
+    <p class="lede">보내 주신 참고 영상처럼 출연자가 셀카로 <b>약 30초 동안 주절주절</b> 혼자 설명해요. 제미나이는 한 번에 8초 정도라 한 편을 <b>클립 4개</b>로 나눠 뽑아요. 클립마다 2~3문장을 쉬지 않고 빠르게 말해요.</p>
+  </header>
+
+  <section class="box tip">
+    <h3>참고 영상에서 가져온 구조</h3>
+    <ol>
+      <li><b>첫마디</b>: 대비·질문 한 문장으로 붙잡기 (「냉장고 관리 못 하는 사람, 특징이 딱 하나 있어요」)</li>
+      <li><b>공감</b>: 문제를 구체적으로 (두부 또 사고, 대파 또 사고…)</li>
+      <li><b>해결</b>: 쿡매치 기능을 실제 숫자로 (4만 개 넘는 레시피, 영수증 한 장…)</li>
+      <li><b>마무리</b>: 써 보니 좋은 점 + 「안 쓸 이유가 없어요」</li>
+    </ol>
+    <p style="margin:0">편집은 참고 영상처럼 해요: <b>화면 위에 제목 자막 고정</b>, 아래에 <b>말 자막</b>, 3·4번째 클립 동안 <b>앱 화면이 얼굴 위에 카드로</b> 떠요. 그다음 쿡매치 로고·유도 화면 → 그 밖의 기능 7가지 → 끝 화면.</p>
+  </section>
+
+  <section class="box tip">
+    <h3>만드는 순서</h3>
+    <ol>
+      <li><b>출연자 사진</b>을 먼저 만들어요(W·M 각각 한 번, 셀카 구도). 마음에 드는 얼굴이 나올 때까지 사진만 여러 번.</li>
+      <li>편마다 클립 1~4를 <b>각각 새 대화</b>에서, 그 사진을 <b>첨부</b>하고 프롬프트를 붙여 뽑아요.</li>
+      <li>네 클립을 보내 주시면 이어 붙이고 자막·기능 화면·끝 화면을 넣어 완성할게요.</li>
+      <li>말이 8초에 다 안 들어가 잘리면, 같은 프롬프트로 한 번 더 뽑거나 그 클립 대사를 조금 줄여 주세요.</li>
+    </ol>
+  </section>
+
+  <section class="box" id="presenters"><h2>출연자 사진</h2></section>
+  <section id="eps" style="display:flex;flex-direction:column;gap:18px" aria-label="편 8개"></section>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+const DATA = /*__DATA__*/null;
+const $ = (s, el=document) => el.querySelector(s);
+const esc = s => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let t; function toast(m){ const x=$('#toast'); x.textContent=m; x.classList.add('on'); clearTimeout(t); t=setTimeout(()=>x.classList.remove('on'),1600); }
+function copy(text, pre){
+  const fail = () => { pre.closest('details').open = true; const r=document.createRange(); r.selectNodeContents(pre); const s=getSelection(); s.removeAllRanges(); s.addRange(r); toast('선택된 글자를 길게 눌러 복사하세요'); };
+  try { navigator.clipboard.writeText(text).then(() => toast('복사됐어요 — 제미나이에 붙여 넣으세요'), fail); } catch(e){ fail(); }
+}
+const ps = $('#presenters');
+DATA.presenters.forEach(p => {
+  const d = document.createElement('div');
+  d.innerHTML = `<p style="margin:0"><b>${esc(p.name)}</b> — ${esc(p.look)}</p>
+    <div class="actions" style="margin-top:8px"><button type="button">사진 프롬프트 복사</button></div>
+    <details><summary>사진 프롬프트 보기</summary><pre>${esc(p.photo)}</pre></details>`;
+  $('button', d).addEventListener('click', () => copy(p.photo, $('pre', d)));
+  ps.appendChild(d);
+});
+const eps = $('#eps');
+DATA.episodes.forEach(e => {
+  const c = document.createElement('article');
+  c.className = 'card';
+  c.innerHTML = `<div class="head"><span class="no">${e.no}</span><div><span class="tag">${esc(e.feature)}</span><h2>${esc(e.title)}</h2>
+      <p class="plan">${esc(e.presenter)} · ${esc(e.plan)}</p></div></div>
+    <ul class="lines">${e.lines.map((l,i)=>`<li><b>${i+1}</b><span>${esc(l)}</span></li>`).join('')}</ul>
+    <div class="actions">${e.clips.map((_,i)=>`<button type="button" data-i="${i}">클립 ${i+1} 복사</button>`).join('')}</div>
+    ${e.clips.map((p,i)=>`<details><summary>클립 ${i+1} 프롬프트 보기</summary><pre data-p="${i}">${esc(p)}</pre></details>`).join('')}`;
+  c.querySelectorAll('button[data-i]').forEach(b => b.addEventListener('click', () => { const i=+b.dataset.i; copy(e.clips[i], $(`pre[data-p="${i}"]`, c)); }));
+  eps.appendChild(c);
+});
+</script>
