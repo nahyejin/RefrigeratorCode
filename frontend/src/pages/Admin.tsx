@@ -2632,12 +2632,33 @@ const Overview: React.FC = () => {
   const [act, setAct] = React.useState<any>(null);
   const [data, setData] = React.useState<any>(null);
   const [error, setError] = React.useState<string | null>(null);
+  // 「내 활동 빼고 보기」 — 대시보드 탭과 **같은 규칙**(2026-10-24 사용자 요청): 켜 두면(기본) 사용자 탭에서 표시한 내 계정·기기를
+  // 빼고, 끄면 서버에 `keep_excluded=1` 을 보내 그대로 센다.
+  const [excludeMine, setExcludeMine] = React.useState(true);
   React.useEffect(() => {
-    api('/api/admin/activity').then(setAct).catch(e => setError(e.message));
-    api('/api/admin/dashboard').then(setData).catch(() => {});
-  }, []);
+    const q = excludeMine ? '' : '?keep_excluded=1';
+    setAct(null);
+    setData(null);
+    api(`/api/admin/activity${q}`).then(setAct).catch(e => setError(e.message));
+    api(`/api/admin/dashboard${q}`).then(setData).catch(() => {});
+  }, [excludeMine]);
   if (error) return <div style={S.card}>{error}</div>;
-  if (!act) return <div style={S.card}>불러오는 중...</div>;
+  const mineToggle = (
+    <label style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12.5, color: 'var(--ink-700)', cursor: 'pointer',
+                    background: 'var(--surface)', border: '1px solid var(--line-200)', borderRadius: 12, padding: '10px 14px' }}>
+      <input
+        type="checkbox"
+        checked={excludeMine}
+        onChange={e => setExcludeMine(e.target.checked)}
+        style={{ width: 16, height: 16 }}
+      />
+      내 활동 빼고 보기
+      <span style={{ color: 'var(--ink-500)' }}>
+        (사용자 탭에서 표시한 {(act?.filters?.excluded_users ?? data?.filters?.excluded_users) || 0}개 계정)
+      </span>
+    </label>
+  );
+  if (!act) return <>{mineToggle}<div style={S.card}>불러오는 중...</div></>;
 
   const today: string = act.today_kst;
   const shift = (base: string, offset: number) => {
@@ -2655,9 +2676,10 @@ const Overview: React.FC = () => {
   const U = data?.users || {};
   return (
     <>
+      {mineToggle}
       <div style={S.card}>
         <h2 style={S.h2}>쿡매치에 들어온 기기 — 전체 누적</h2>
-        <Range mode="fixed">서버에 처음 기록된 날부터 지금까지 · 내 계정·기기 제외</Range>
+        <Range mode="fixed">서버에 처음 기록된 날부터 지금까지 · {excludeMine ? '내 계정·기기 제외' : '내 계정·기기 포함'}</Range>
         <DeviceBreakdown c={act.devices_total || {}} />
       </div>
 
@@ -2673,7 +2695,7 @@ const Overview: React.FC = () => {
 
       <div style={S.card}>
         <h2 style={S.h2}>회원</h2>
-        <Range mode="fixed">전체 누적 · 내 계정 제외</Range>
+        <Range mode="fixed">전체 누적 · {excludeMine ? '내 계정 제외' : '내 계정 포함'}</Range>
         {data ? (
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <StatTile title="현재 회원" value={U.active ?? 0} sub="탈퇴하지 않은 계정" />
