@@ -63,10 +63,23 @@
       var ev = function (name, screen) {
         return { name: name, screen: screen, session_id: sessionId, source: source || undefined, platform: platform, ago_ms: 0 };
       };
-      fetch('https://refrigeratorcode-production.up.railway.app/api/events', {
+      var EVENTS_URL = 'https://refrigeratorcode-production.up.railway.app/api/events';
+      var payload = JSON.stringify({ device_id: deviceId, events: [ev('session_start'), ev('screen_view', '다운로드')] });
+      // 1순위: sendBeacon. 스토어로 넘어가는 순간 페이지가 사라져도 브라우저가 대신 보내 준다(문자열 본문 = text/plain 이라
+      // 사전 확인 요청이 없는 단순 요청이고, 서버 /api/events 가 text/plain 도 읽는다 — 2026-10-24).
+      // 예전 fetch(application/json + 사용자 지정 머리글)는 안드로이드에서 Play 로 넘어가며 끊겨 안드로이드 방문이 거의 안 잡혔다
+      // (다운로드 화면 기록: 아이폰 기기 17·안드로이드 1).
+      var beaconed = false;
+      try { beaconed = !!(navigator.sendBeacon && navigator.sendBeacon(EVENTS_URL, payload)); } catch (e) {}
+      if (beaconed) {
+        setTimeout(finish, 150); // 브라우저가 이미 넘겨받았다 — 잠깐만 두고 스토어로
+        return;
+      }
+      // 2순위(beacon 을 못 쓰는 브라우저): 예전 방식 그대로
+      fetch(EVENTS_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Device-Id': deviceId },
-        body: JSON.stringify({ device_id: deviceId, events: [ev('session_start'), ev('screen_view', '다운로드')] }),
+        body: payload,
         keepalive: true
       }).then(finish, finish);
     } catch (e) {}
