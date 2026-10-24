@@ -26,6 +26,8 @@
 #   위 확인을 거쳐 끄고, 다음 날 아침은 BIOS 「Resume by Alarm」(06:55)이 전원을 켠다(윈도우 자동 로그인 → 07:00 CookMatch-DailyChain).
 #   절전+작업 스케줄러 깨우기는 무인 깨어남 재절전·깨움 지연(10-21 07:07 깸 → 07:12 잠 → 07:26 배치 시작)이 반복돼 접었다.
 #   이 모드에선 CookMatch-MorningWake·keep_awake 가 필요 없다(켜진 채로 안 재우니까).
+#   **토·일은 끄지 않는다**(2026-10-24 사용자 요청): 아침 BIOS 알람은 매일 켜고, 저녁 종료만 평일(월~금)에만 한다.
+#   금요일 저녁에 꺼지면 토요일 06:55 에 켜져 일요일 밤을 지나 월요일 19:00 까지 계속 켜져 있다(공휴일은 구분하지 않음).
 # 기록: daily_chain.log
 param(
     [string]$NotBefore = '',
@@ -82,6 +84,9 @@ if ($FromChain) {
 }
 
 $deadline = (Get-Date).AddMinutes($MaxWaitMinutes)
+
+# 주말(토=6·일=0)엔 끄지 않는다 — 시작할 때의 요일 기준(금요일 저녁에 시작해 자정을 넘겨 기다린 경우는 금요일로 본다)
+if ($Shutdown -and ([int](Get-Date).DayOfWeek) -in 0, 6) { Log '주말이라 저녁 종료를 건너뜀'; exit 0 }
 
 # 출근길이 끝나기 전이면 기다린다
 if ($NotBefore) {
