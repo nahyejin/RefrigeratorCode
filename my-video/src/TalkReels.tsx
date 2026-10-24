@@ -48,10 +48,12 @@ const TALK01: TalkSpec = {
   //   「담아 두면 … 만들 수 있는」 매칭률 범위 60~99% 확대 → 「요리가 몇 퍼센트 맞는지까지 순서대로」 결과 목록의 「내 재료 5/6 (92%)」 확대
   //   → 「한두 개 없으면 있는 재료로 바꿔 주고요」 대체 재료 칩 「들기름 → 참기름」 크게 확대.
   // 정지 화면(원본에서 뽑은 프레임) 위로 강조 지점에 천천히 다가간다 — 영상 재생은 스크롤 위치가 흔들려 강조 지점이 빠져나갔다.
+  // 처음 버전처럼 앱 화면 전체(원래 크기)를 보여 주고, 강조할 부분만 살짝(1.0→1.3배) 다가간다(사용자 2026-10-24: 크게 확대하지 말 것).
   overlays: [
-    { at: T2 + 0.2, len: 3.4, src: "", img: "talk_match_8.8.png", from: 0, focus: [0.5, 0.44], zoom: 1.5, zoomTo: 2.0 },
-    { at: T2 + 3.6, len: 3.6, src: "", img: "talk_match_13.5.png", from: 0, focus: [0.3, 0.71], zoom: 1.8, zoomTo: 2.4 },
-    { at: T2 + 7.2, len: 2.75, src: "", img: "talk_match_20.6.png", from: 0, focus: [0.2, 0.67], zoom: 1.8, zoomTo: 2.4 },
+    { at: T2 + 0.2, len: 3.4, src: "", img: "talk_match_8.8.png", from: 0, focus: [0.5, 0.44], zoom: 1.0, zoomTo: 1.25 },
+    { at: T2 + 3.6, len: 1.6, src: "reel2_matching_demo_new.mp4", from: 12.1, rate: 1.0 },
+    { at: T2 + 5.2, len: 2.0, src: "", img: "talk_match_13.5.png", from: 0, focus: [0.3, 0.71], zoom: 1.0, zoomTo: 1.3 },
+    { at: T2 + 7.2, len: 2.75, src: "", img: "talk_match_20.6.png", from: 0, focus: [0.2, 0.67], zoom: 1.0, zoomTo: 1.3 },
   ],
 };
 
