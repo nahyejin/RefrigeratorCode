@@ -1205,6 +1205,7 @@ def register(app, get_db):
             new_devices = []
             devices_total = {}
             visit_hist = {}
+            day_hist = {}
             cursor.execute("SHOW TABLES LIKE 'user_events'")
             if cursor.fetchone():
                 cursor.execute(
@@ -1266,6 +1267,15 @@ def register(app, get_db):
                     tuple(ev_params),
                 )
                 visit_hist = {str(r['b']): int(r['n']) for r in cursor.fetchall()}
+                # 같은 기기가 **며칠에 걸쳐** 들어왔나(2026-10-25 사용자 요청 추가). 하루에 여러 번 열어도 하루로 센다.
+                cursor.execute(
+                    "SELECT LEAST(v, 10) AS b, COUNT(*) AS n FROM ("
+                    f"  SELECT device_id, COUNT(DISTINCT DATE(created_at)) AS v, {DEVICE_KIND} AS k"
+                    f"  FROM user_events WHERE device_id IS NOT NULL{ev_cond} GROUP BY device_id"
+                    ") x WHERE k IS NULL OR k <> 'other' GROUP BY b ORDER BY b",
+                    tuple(ev_params),
+                )
+                day_hist = {str(r['b']): int(r['n']) for r in cursor.fetchall()}
 
                 cursor.execute(
                     f"SELECT MIN(created_at) a, MAX(created_at) b FROM user_events "
@@ -1657,6 +1667,7 @@ def register(app, get_db):
             'new_devices': new_devices,
             'devices_total': devices_total,
             'visit_hist': visit_hist,
+            'day_hist': day_hist,
             'today_kst': datetime.now(timezone(timedelta(hours=9))).date().isoformat(),
             'sources': sources,
             'screen_series': screen_series,

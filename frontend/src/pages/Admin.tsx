@@ -2896,37 +2896,46 @@ const ReelsTab: React.FC = () => {
  * 사람이 아닌 기기(③)는 빼고, 「내 활동 빼고 보기」와 대시보드의 기간을 그대로 따른다(같은 `act` 응답).
  * 같은 기기 집단 안의 비율이라 「전체 기기 중 N번 이상 비율」은 읽어도 된다(단계 사이 전환율이 아니다).
  */
-const RevisitBars: React.FC<{ hist?: Record<string, number>; mode?: 'period' | 'fixed'; note?: string }> = ({ hist, mode = 'fixed', note }) => {
-  const h = hist || {};
-  const total = Object.values(h).reduce((a, n) => a + Number(n || 0), 0);
-  // 「N번 이상」 누적: N 이상인 칸을 모두 더한다.
-  const atLeast = (n: number) => Object.entries(h).reduce((a, [k, v]) => a + (Number(k) >= n ? Number(v || 0) : 0), 0);
-  const rows = Array.from({ length: 10 }, (_, i) => i + 1).map(n => ({ n, v: atLeast(n) }));
+const RevisitBars: React.FC<{ hist?: Record<string, number>; dayHist?: Record<string, number>; mode?: 'period' | 'fixed'; note?: string }> = ({ hist, dayHist, mode = 'fixed', note }) => {
+  // 두 가지로 센다: ① 방문 횟수(30분 넘게 쉬었다 오면 새 방문, 하루에 여러 번도 각각) ② 며칠에 걸쳐(하루에 몇 번을 열든 하루).
+  const group = (title: string, sub: string, h: Record<string, number>, unit: '번' | '일') => {
+    const total = Object.values(h).reduce((a, n) => a + Number(n || 0), 0);
+    // 「N번 이상」 누적: N 이상인 칸을 모두 더한다.
+    const atLeast = (n: number) => Object.entries(h).reduce((a, [k, v]) => a + (Number(k) >= n ? Number(v || 0) : 0), 0);
+    const rows = Array.from({ length: 10 }, (_, i) => i + 1).map(n => ({ n, v: atLeast(n) }));
+    return (
+      <div style={{ marginTop: 10 }}>
+        <div style={{ fontSize: 13.5, fontWeight: 700 }}>{title}</div>
+        <div style={{ fontSize: 11.5, color: 'var(--ink-500)', margin: '1px 0 6px', lineHeight: 1.5 }}>{sub}</div>
+        {total === 0 ? (
+          <div style={{ fontSize: 12.5, color: 'var(--ink-500)' }}>이 기간에는 기록이 없어요.</div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {rows.map(({ n, v }) => (
+              <div key={n} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ width: 66, fontSize: 12, fontWeight: 600, flexShrink: 0 }}>{n === 1 ? `전체(1${unit}+)` : `${n}${unit} 이상`}</div>
+                <div style={{ flex: 1, minWidth: 0, height: 16, background: 'var(--line-200)', borderRadius: 4, overflow: 'hidden' }}>
+                  <div style={{ width: `${(v / total) * 100}%`, minWidth: v > 0 ? 3 : 0, height: '100%', background: unit === '번' ? '#FFD600' : '#4C8DF6' }} />
+                </div>
+                <div style={{ width: 84, textAlign: 'right', fontSize: 12, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
+                  <b>{num(v)}</b>대 · {Math.round((v / total) * 100)}%
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+  const total = Object.values(hist || {}).reduce((a, n) => a + Number(n || 0), 0);
   return (
     <div style={S.card}>
-      <h2 style={S.h2}>몇 번 들어왔나 — N번 이상 들어온 기기</h2>
+      <h2 style={S.h2}>얼마나 자주 들어왔나 — N번·N일 이상 들어온 기기</h2>
       <Range mode={mode}>{note || '기기 기준(회원가입 기준 아님) · 사람 아닌 것 제외'}</Range>
-      {total === 0 ? (
-        <div style={{ fontSize: 12.5, color: 'var(--ink-500)' }}>이 기간에는 기록이 없어요.</div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {rows.map(({ n, v }) => (
-            <div key={n} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ width: 62, fontSize: 12, fontWeight: 600, flexShrink: 0 }}>{n === 1 ? '전체(1번+)' : n === 10 ? '10번 이상' : `${n}번 이상`}</div>
-              <div style={{ flex: 1, minWidth: 0, height: 16, background: 'var(--line-200)', borderRadius: 4, overflow: 'hidden' }}>
-                <div style={{ width: `${(v / total) * 100}%`, minWidth: v > 0 ? 3 : 0, height: '100%', background: '#FFD600' }} />
-              </div>
-              <div style={{ width: 84, textAlign: 'right', fontSize: 12, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
-                <b>{num(v)}</b>대 · {Math.round((v / total) * 100)}%
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-      <div style={{ fontSize: 11.5, color: 'var(--ink-500)', marginTop: 8, lineHeight: 1.6 }}>
-        <b>방문</b> = 앱·웹을 열어 쓰다가 30분 넘게 쉬었다 다시 들어오면 새 방문으로 세요. 같은 날 두 번 들어와도 두 번이에요.
-        퍼센트는 <b>그 기간에 기록된 기기 전체</b> 중 N번 이상 들어온 기기의 비율이에요(전체 {num(total)}대). 같은 사람이 폰·PC 로 들어오면 두 기기, 앱을 지웠다 다시 깔면 새 기기로 세요.
-        로그인하지 않은 기기도 포함해요.
+      {group('① 방문 횟수 — N번 이상 들어온 기기', '앱·웹을 열어 쓰다가 30분 넘게 쉬었다 다시 들어오면 새 방문이에요. 같은 날 두 번 들어와도 두 번.', hist || {}, '번')}
+      {group('② 며칠에 걸쳐 — N일 이상 들어온 기기', '하루에 몇 번을 열든 그날은 하루로 세요. 며칠에 걸쳐 돌아왔는지(다시 찾아온 기기)를 보는 쪽이에요.', dayHist || {}, '일')}
+      <div style={{ fontSize: 11.5, color: 'var(--ink-500)', marginTop: 10, lineHeight: 1.6 }}>
+        퍼센트는 <b>그 기간에 기록된 기기 전체</b> 중 비율이에요(전체 {num(total)}대). 같은 사람이 폰·PC 로 들어오면 두 기기, 앱을 지웠다 다시 깔면 새 기기로 세요. 로그인하지 않은 기기도 포함해요.
       </div>
     </div>
   );
@@ -2991,7 +3000,7 @@ const Overview: React.FC = () => {
         <DeviceBreakdown c={act.devices_total || {}} />
       </div>
 
-      <RevisitBars hist={act.visit_hist} note={`서버에 처음 기록된 날부터 지금까지 · ${excludeMine ? '내 계정·기기 제외' : '내 계정·기기 포함'} · 기기 기준(회원가입 기준 아님) · 사람 아닌 것 제외`} />
+      <RevisitBars hist={act.visit_hist} dayHist={act.day_hist} note={`서버에 처음 기록된 날부터 지금까지 · ${excludeMine ? '내 계정·기기 제외' : '내 계정·기기 포함'} · 기기 기준(회원가입 기준 아님) · 사람 아닌 것 제외`} />
 
       <div style={S.card}>
         <h2 style={S.h2}>새로 들어온 기기</h2>
@@ -3179,7 +3188,7 @@ const Dashboard: React.FC = () => {
             </div>
           )}
 
-          <RevisitBars hist={act.visit_hist} mode="period" note="위에서 고른 기간 안의 방문 · 기기 기준(회원가입 기준 아님) · 사람 아닌 것 제외" />
+          <RevisitBars hist={act.visit_hist} dayHist={act.day_hist} mode="period" note="위에서 고른 기간 안의 방문 · 기기 기준(회원가입 기준 아님) · 사람 아닌 것 제외" />
 
           <div style={S.card}>
             <h2 style={S.h2}>어디까지 오고 어디서 멈추나</h2>
