@@ -93,10 +93,13 @@ DATA.episodes.forEach(e => {
       <p class="plan">${esc(e.presenter)} · ${esc(e.plan)}</p></div></div>
     <ul class="lines">${e.lines.map((l,i)=>`<li><b>${i+1}</b><span>${esc(l)}</span></li>`).join('')}</ul>
     <div class="actions"><button type="button" data-photo="1">① 사진 프롬프트 복사</button>${e.clips.map((_,i)=>`<button type="button" data-i="${i}">클립 ${i+1} 복사</button>`).join('')}</div>
+    <div class="actions"><button type="button" data-cap="1" style="background:var(--surface);border-color:var(--line);color:var(--ink)">인스타 본문 복사</button></div>
+    <details><summary>인스타 본문 보기</summary><pre data-p="cap">${esc(e.caption)}</pre></details>
     <details><summary>이 편 출연자 사진 프롬프트 보기</summary><pre data-p="photo">${esc(e.photo)}</pre></details>
     <details><summary>(참고) 30초를 한 번에 — 10초 넘게 만들 수 있을 때만</summary><div class="actions" style="margin-top:10px"><button type="button" data-full="1">한 번에 프롬프트 복사</button></div><pre data-p="full">${esc(e.full)}</pre></details>
     ${e.clips.map((p,i)=>`<details><summary>클립 ${i+1} 프롬프트 보기</summary><pre data-p="${i}">${esc(p)}</pre></details>`).join('')}`;
   c.querySelectorAll('button[data-i]').forEach(b => b.addEventListener('click', () => { const i=+b.dataset.i; copy(e.clips[i], $(`pre[data-p="${i}"]`, c)); }));
+  $('button[data-cap]', c).addEventListener('click', () => copy(e.caption, $('pre[data-p="cap"]', c)));
   $('button[data-photo]', c).addEventListener('click', () => copy(e.photo, $('pre[data-p="photo"]', c)));
   $('button[data-full]', c).addEventListener('click', () => copy(e.full, $('pre[data-p="full"]', c)));
   eps.appendChild(c);
