@@ -64,14 +64,13 @@ pre{margin:10px 0 0;background:var(--code);border:1px solid var(--line);border-r
   <section class="box tip">
     <h3>만드는 순서 — 대화 세 번으로 30초</h3>
     <ol>
-      <li><b>출연자 사진</b>을 먼저 한 장 만들어요(아래 「출연자 사진」, W·M 각각 한 번이면 계속 써요).</li>
+      <li>편마다 출연자가 달라요. 카드의 <b>① 사진 프롬프트 복사</b>로 그 편 출연자 사진을 먼저 한 장 만들어요.</li>
       <li>편 카드의 <b>클립 1 · 2 · 3</b>을 하나씩, 매번 <b>새 대화</b>에 같은 사진을 첨부해 붙여 넣어요. 각각 약 10초.</li>
       <li>클립 1 = 첫마디·공감, 클립 2 = 「나도 그랬다 → 쿡매치를 만남」, 클립 3 = <b>기능 설명</b>(20~30초). 클립 3에는 제가 앱 실제 구동 화면을 얹을 거라, 출연자는 화면을 보여 주듯 말만 하면 돼요.</li>
       <li>세 영상을 보내 주시면 이어 붙이고 자막·기능 화면·끝 화면까지 넣을게요.</li>
     </ol>
   </section>
 
-  <section class="box" id="presenters"><h2>출연자 사진 (먼저 한 장)</h2></section>
   <section id="eps" style="display:flex;flex-direction:column;gap:18px" aria-label="편 8개"></section>
 </div>
 
@@ -86,15 +85,6 @@ function copy(text, pre){
   const fail = () => { pre.closest('details').open = true; const r=document.createRange(); r.selectNodeContents(pre); const s=getSelection(); s.removeAllRanges(); s.addRange(r); toast('선택된 글자를 길게 눌러 복사하세요'); };
   try { navigator.clipboard.writeText(text).then(() => toast('복사됐어요 — 제미나이에 붙여 넣으세요'), fail); } catch(e){ fail(); }
 }
-const ps = $('#presenters');
-DATA.presenters.forEach(p => {
-  const d = document.createElement('div');
-  d.innerHTML = `<p style="margin:0"><b>${esc(p.name)}</b> — ${esc(p.look)}</p>
-    <div class="actions" style="margin-top:8px"><button type="button">사진 프롬프트 복사</button></div>
-    <details><summary>사진 프롬프트 보기</summary><pre>${esc(p.photo)}</pre></details>`;
-  $('button', d).addEventListener('click', () => copy(p.photo, $('pre', d)));
-  ps.appendChild(d);
-});
 const eps = $('#eps');
 DATA.episodes.forEach(e => {
   const c = document.createElement('article');
@@ -102,10 +92,12 @@ DATA.episodes.forEach(e => {
   c.innerHTML = `<div class="head"><span class="no">${e.no}</span><div><span class="tag">${esc(e.feature)}</span><h2>${esc(e.title)}</h2>
       <p class="plan">${esc(e.presenter)} · ${esc(e.plan)}</p></div></div>
     <ul class="lines">${e.lines.map((l,i)=>`<li><b>${i+1}</b><span>${esc(l)}</span></li>`).join('')}</ul>
-    <div class="actions">${e.clips.map((_,i)=>`<button type="button" data-i="${i}">클립 ${i+1} 복사</button>`).join('')}</div>
+    <div class="actions"><button type="button" data-photo="1">① 사진 프롬프트 복사</button>${e.clips.map((_,i)=>`<button type="button" data-i="${i}">클립 ${i+1} 복사</button>`).join('')}</div>
+    <details><summary>이 편 출연자 사진 프롬프트 보기</summary><pre data-p="photo">${esc(e.photo)}</pre></details>
     <details><summary>(참고) 30초를 한 번에 — 10초 넘게 만들 수 있을 때만</summary><div class="actions" style="margin-top:10px"><button type="button" data-full="1">한 번에 프롬프트 복사</button></div><pre data-p="full">${esc(e.full)}</pre></details>
     ${e.clips.map((p,i)=>`<details><summary>클립 ${i+1} 프롬프트 보기</summary><pre data-p="${i}">${esc(p)}</pre></details>`).join('')}`;
   c.querySelectorAll('button[data-i]').forEach(b => b.addEventListener('click', () => { const i=+b.dataset.i; copy(e.clips[i], $(`pre[data-p="${i}"]`, c)); }));
+  $('button[data-photo]', c).addEventListener('click', () => copy(e.photo, $('pre[data-p="photo"]', c)));
   $('button[data-full]', c).addEventListener('click', () => copy(e.full, $('pre[data-p="full"]', c)));
   eps.appendChild(c);
 });
