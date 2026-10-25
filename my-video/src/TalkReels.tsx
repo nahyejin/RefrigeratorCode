@@ -138,16 +138,16 @@ const MUTED = "#FFFFFF";
 const SHADOW_STRONG = "0 2px 8px rgba(0,0,0,0.85), 0 0 3px rgba(0,0,0,0.9)";
 // 위치: 아래 가운데(사용자 2026-10-25 최종). 아래 아이디·본문 줄보다 위.
 const SearchBanner: React.FC = () => (
-  <div style={{ position: "absolute", left: 0, right: 0, bottom: 330, display: "flex", flexDirection: "column", alignItems: "center", gap: 6, fontFamily: FONT_FAMILY }}>
-    <div style={{ fontSize: 24, fontWeight: 700, color: MUTED, textShadow: SHADOW_STRONG, whiteSpace: "nowrap" }}>앱스토어·플레이스토어에서 검색하세요</div>
-    <div style={{ width: 280, height: 52, borderRadius: 999, border: "2px solid #1A1A1E", background: WHITE, display: "flex", alignItems: "center", gap: 12, padding: "0 20px", boxShadow: "0 4px 12px rgba(0,0,0,0.2)" }}>
-      <svg width="24" height="24" viewBox="0 0 46 46" fill="none">
+  <div style={{ position: "absolute", left: 0, right: 0, bottom: 330, display: "flex", flexDirection: "column", alignItems: "center", gap: 8, fontFamily: FONT_FAMILY }}>
+    <div style={{ fontSize: 32, fontWeight: 700, color: MUTED, textShadow: SHADOW_STRONG, whiteSpace: "nowrap" }}>앱스토어·플레이스토어에서 검색하세요</div>
+    <div style={{ width: 360, height: 68, borderRadius: 999, border: "2px solid #1A1A1E", background: WHITE, display: "flex", alignItems: "center", gap: 14, padding: "0 26px", boxShadow: "0 4px 12px rgba(0,0,0,0.2)" }}>
+      <svg width="32" height="32" viewBox="0 0 46 46" fill="none">
         <circle cx="19" cy="19" r="13" stroke="#1A1A1E" strokeWidth="5" />
         <line x1="29" y1="29" x2="41" y2="41" stroke="#1A1A1E" strokeWidth="5" strokeLinecap="round" />
       </svg>
-      <div style={{ fontSize: 28, fontWeight: 700, color: "#1A1A1E" }}>쿡매치</div>
+      <div style={{ fontSize: 38, fontWeight: 700, color: "#1A1A1E" }}>쿡매치</div>
     </div>
-    <div style={{ fontSize: 22, fontWeight: 600, color: MUTED, textShadow: SHADOW_STRONG, whiteSpace: "nowrap" }}>프로필 링크에서도 시작할 수 있어요</div>
+    <div style={{ fontSize: 29, fontWeight: 600, color: MUTED, textShadow: SHADOW_STRONG, whiteSpace: "nowrap" }}>프로필 링크에서도 시작할 수 있어요</div>
   </div>
 );
 
