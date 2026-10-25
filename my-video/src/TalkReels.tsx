@@ -3,6 +3,7 @@ import { AbsoluteFill, Img, OffthreadVideo, Sequence, interpolate, staticFile, u
 import { WHITE, useCustomFont, FONT_FAMILY } from "./shared";
 import { RestFeatures, restLen, REST_EXCL } from "./RestFeatures";
 import { Reel2Cta, REEL2_CTA_LEN } from "./Reel2Match";
+import { Reel7Cta, REEL7_CTA_LEN } from "./Reel7RealRecipe";
 
 // 릴스 형식 ③ 출연자 추천·후기형(store/REEL_FORMATS.md ③, 프롬프트 store/REEL_TALK_V2.md).
 // 사용자가 보낸 참고 영상(재능 검사 앱 광고) 편집을 따른다:
@@ -18,7 +19,7 @@ const FADE = 15; // 출연자 영상 끝 0.5초 흰 화면으로
 
 type Phrase = [number, number, string]; // 편집된 출연자 영상 기준 [시작초, 끝초, 구절]
 // focus: 원본 앱 화면에서 강조할 지점(가로·세로 비율 0~1), zoom→zoomTo: 그 지점으로 다가가는 배율(기존 기능 영상의 확대 강조와 같은 역할)
-type Overlay = { at: number; len: number; src: string; from: number; rate?: number; img?: string; focus?: [number, number]; zoom?: number; zoomTo?: number };
+type Overlay = { at: number; len: number; src: string; from: number; rate?: number; img?: string; srcW?: number; focus?: [number, number]; zoom?: number; zoomTo?: number };
 // speed: 출연자 영상을 ffmpeg 로 미리 빨리 돌린 배속(파일은 src). phrases·overlays·len 은 1배속 기준 숫자를 그대로 쓰고 코드가 speed 로 나눈다.
 type TalkSpec = { src: string; len: number; speed?: number; title: string; phrases: Phrase[]; overlays: Overlay[] };
 
@@ -58,6 +59,33 @@ const TALK01: TalkSpec = {
   ],
 };
 
+// 02 검증된 레시피 — 「아이 저녁, 결국 김에 밥 먹인 날」(출연자 02). 클립 경계 0–9.80 / 9.80–19.36 / 19.36–29.32, 1.25배속.
+// 마지막 「안 쓸 이유가 없어요」는 제미나이 클립이 10초에서 잘라 들어 있지 않다.
+const U1 = 9.8;
+const U2 = 19.36;
+const TALK02: TalkSpec = {
+  src: "talk02_presenter_x125.mp4",
+  len: 29.32,
+  speed: 1.25,
+  title: "아이 저녁,\n결국 김에 밥 먹인 날",
+  phrases: [
+    [0.0, 1.9, "아이가 배고프다고 해서"], [1.9, 3.06, "저녁을 시작했어요"], [3.32, 4.18, "근데 레시피 찾고"],
+    [4.18, 5.3, "읽고 따라 하다 보니까"], [5.3, 7.26, "한 시간이 훌쩍 가는 거예요"], [7.68, 8.46, "애는 울고불고"],
+    [8.46, U1 - 0.05, "저도 같이 울고 싶고"], [U1 + 0.05, 11.44, "결국 어떻게 됐냐면요"], [11.58, 12.84, "김에 밥 싸 줬어요"],
+    [13.06, 14.5, "한 시간 걸려 만든 요리는"], [14.5, 16.04, "아무도 안 먹고요"], [16.42, 17.52, "배고픈 애 앞에서는"],
+    [17.52, 19.22, "빨리 되는 게 최고더라고요"], [19.58, 21.06, "요즘은 쿡매치에서"], [21.06, 22.0, "검증된 레시피 중에"],
+    [22.0, 23.04, "빨리 되는 걸 골라요"], [23.16, 24.14, "순서만 딱 정리돼 있어서"], [24.14, 25.18, "금방 해요"],
+    [25.52, 27.08, "무료로 시작할 수 있으니까"], [27.08, 28.9, "지금 한번 써 보세요"],
+  ],
+  // 앱 쓰는 순서: 냉장고요리 목록 → 정렬 「인기순」 → 인기 레시피 결과 → 레시피 상세(재료·순서 요약)로 천천히 살짝 확대.
+  // 무료 안내 대사(25.5초~)에서는 카드를 내리고 얼굴을 보여 준다.
+  overlays: [
+    { at: U2 + 0.15, len: 2.0, src: "reel7_sort_demo_new.mp4", from: 0.0, rate: 1.0 },
+    { at: U2 + 2.15, len: 1.6, src: "reel7_sort_demo_new.mp4", from: 2.0, rate: 0.8 },
+    { at: U2 + 3.75, len: 2.35, src: "reel7_recipe_demo.mp4", srcW: 880, from: 18.0, rate: 1.0, focus: [0.5, 0.5], zoom: 1.0, zoomTo: 1.2 },
+  ],
+};
+
 const Title: React.FC<{ text: string }> = ({ text }) => (
   <div style={{ position: "absolute", top: 150, left: 40, right: 40, textAlign: "center", fontFamily: SANS }}>
     <span style={{ whiteSpace: "pre-line", fontSize: 78, fontWeight: 800, lineHeight: 1.22, color: WHITE, letterSpacing: "-0.01em", textShadow: SHADOW }}>{text}</span>
@@ -77,7 +105,7 @@ const Said: React.FC<{ text: string }> = ({ text }) => {
 // 얼굴 위 가운데 앱 화면 카드(참고 영상처럼 화면 너비의 약 56%). 앱 화면 녹화(940×1920)를 카드 폭에 맞춰 놓고,
 // focus 지점이 카드 가운데 오도록 옮긴 뒤 zoom → zoomTo 로 천천히 다가간다(카드 밖으로 빈 곳이 보이지 않게 가장자리에서 멈춤).
 const CARD_W = 600;
-const CARD_H = 780;
+const CARD_H = 696; // 위 검색 안내(338~470)와 아래 말 자막(1190~) 사이
 const SRC_AR = 1920 / 940;
 const AppCard: React.FC<{ o: Overlay; fadeIn?: boolean; fadeOut?: boolean }> = ({ o, fadeIn = true, fadeOut = true }) => {
   const frame = useCurrentFrame();
@@ -87,11 +115,11 @@ const AppCard: React.FC<{ o: Overlay; fadeIn?: boolean; fadeOut?: boolean }> = (
   const z = interpolate(frame, [0, len], [o.zoom ?? 1, o.zoomTo ?? o.zoom ?? 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   const [fx, fy] = o.focus ?? [0.5, 0.2];
   const w = CARD_W * z;
-  const h = CARD_W * SRC_AR * z;
+  const h = CARD_W * (o.srcW ? 1920 / o.srcW : SRC_AR) * z;
   const left = Math.min(0, Math.max(CARD_W - w, CARD_W / 2 - fx * w));
   const top = Math.min(0, Math.max(CARD_H - h, CARD_H / 2 - fy * h));
   return (
-    <div style={{ position: "absolute", left: (1080 - CARD_W) / 2, top: 360, width: CARD_W, height: CARD_H, borderRadius: 26, overflow: "hidden", opacity: op, transform: `scale(${sc})`, boxShadow: "0 18px 50px rgba(0,0,0,0.45)", background: "#fff" }}>
+    <div style={{ position: "absolute", left: (1080 - CARD_W) / 2, top: 482, width: CARD_W, height: CARD_H, borderRadius: 26, overflow: "hidden", opacity: op, transform: `scale(${sc})`, boxShadow: "0 18px 50px rgba(0,0,0,0.45)", background: "#fff" }}>
       {o.img ? (
         <Img src={staticFile(o.img)} style={{ position: "absolute", left, top, width: w, height: h, maxWidth: "none", maxHeight: "none" }} />
       ) : (
@@ -102,7 +130,26 @@ const AppCard: React.FC<{ o: Overlay; fadeIn?: boolean; fadeOut?: boolean }> = (
   );
 };
 
-const Talk: React.FC<{ s: TalkSpec }> = ({ s }) => {
+
+// 셀카 말하는 동안 계속 떠 있는 검색 안내(사용자 2026-10-25). 릴스는 아래쪽(왼쪽 아이디·본문, 오른쪽 좋아요 아이콘, 유료 광고의 「더 알아보기」 막대)이
+// 가려지므로 맨 위 제목 바로 아래(안전 영역)에 둔다. 유료 홍보용은 끈 버전(Clean)을 같이 만든다.
+// 끝 화면(CtaOutro)의 검색창 디자인을 작게 줄인 것 — 회색 안내 한 줄 + 작은 「🔍 쿡매치」 검색창 + 회색 글자 「프로필 링크에서도 시작할 수 있어요」(사용자 2026-10-25: 배지 말고 작게)
+const MUTED = "rgba(255,255,255,0.88)";
+const SearchBanner: React.FC = () => (
+  <div style={{ position: "absolute", left: 0, right: 0, top: 338, display: "flex", flexDirection: "column", alignItems: "center", gap: 6, fontFamily: FONT_FAMILY }}>
+    <div style={{ fontSize: 24, fontWeight: 700, color: MUTED, textShadow: SHADOW, whiteSpace: "nowrap" }}>앱스토어·플레이스토어에서 검색하세요</div>
+    <div style={{ width: 300, height: 52, borderRadius: 999, border: "2px solid #1A1A1E", background: WHITE, display: "flex", alignItems: "center", gap: 12, padding: "0 20px", boxShadow: "0 4px 12px rgba(0,0,0,0.2)" }}>
+      <svg width="24" height="24" viewBox="0 0 46 46" fill="none">
+        <circle cx="19" cy="19" r="13" stroke="#1A1A1E" strokeWidth="5" />
+        <line x1="29" y1="29" x2="41" y2="41" stroke="#1A1A1E" strokeWidth="5" strokeLinecap="round" />
+      </svg>
+      <div style={{ fontSize: 28, fontWeight: 700, color: "#1A1A1E" }}>쿡매치</div>
+    </div>
+    <div style={{ fontSize: 22, fontWeight: 600, color: MUTED, textShadow: SHADOW, whiteSpace: "nowrap" }}>프로필 링크에서도 시작할 수 있어요</div>
+  </div>
+);
+
+const Talk: React.FC<{ s: TalkSpec; banner?: boolean }> = ({ s, banner }) => {
   const frame = useCurrentFrame();
   const k = 1 / (s.speed ?? 1);
   const total = f(s.len * k);
@@ -119,6 +166,12 @@ const Talk: React.FC<{ s: TalkSpec }> = ({ s }) => {
           </Sequence>
         ))}
         <Title text={s.title} />
+        {/* 검색 안내는 기능 설명이 시작되는 클립 3(약 20초)부터 끝까지(사용자 2026-10-25) */}
+        {banner && (
+          <Sequence from={f(s.overlays[0].at * k) - 4}>
+            <SearchBanner />
+          </Sequence>
+        )}
         {s.phrases.map(([a, b, t], i) => {
           // 다음 구절이 바로 이어지면 끝까지 붙여 깜빡임이 없게
           const next = s.phrases[i + 1];
@@ -134,7 +187,7 @@ const Talk: React.FC<{ s: TalkSpec }> = ({ s }) => {
   );
 };
 
-const make = (s: TalkSpec, Cta: React.FC<{ silent?: boolean }>, ctaLen: number, restIdx: number) => {
+const make = (s: TalkSpec, Cta: React.FC<{ silent?: boolean }>, ctaLen: number, restIdx: number, banner = true) => {
   const tLen = f(s.len / (s.speed ?? 1));
   const rLen = restLen(restIdx, true);
   const Comp: React.FC = () => {
@@ -142,7 +195,7 @@ const make = (s: TalkSpec, Cta: React.FC<{ silent?: boolean }>, ctaLen: number, 
     return (
       <AbsoluteFill style={{ backgroundColor: WHITE, fontFamily: FONT_FAMILY }}>
         <Sequence from={0} durationInFrames={tLen} name="Talk">
-          <Talk s={s} />
+          <Talk s={s} banner={banner} />
         </Sequence>
         <Sequence from={tLen} durationInFrames={ctaLen} name="CTA">
           <Cta />
@@ -159,6 +212,10 @@ const make = (s: TalkSpec, Cta: React.FC<{ silent?: boolean }>, ctaLen: number, 
   return { Comp, total: tLen + ctaLen + rLen + CTA2_LEN };
 };
 
+// 편마다 두 벌: 하단 검색 안내 있음(일반 게시) / 없음(Clean — 인스타 유료 홍보용)
 export const REELS_TALK = [
   { id: "Talk01Matching", ...make(TALK01, Reel2Cta, REEL2_CTA_LEN, REST_EXCL[1]) },
+  { id: "Talk01MatchingClean", ...make(TALK01, Reel2Cta, REEL2_CTA_LEN, REST_EXCL[1], false) },
+  { id: "Talk02Recipe", ...make(TALK02, Reel7Cta, REEL7_CTA_LEN, REST_EXCL[6]) },
+  { id: "Talk02RecipeClean", ...make(TALK02, Reel7Cta, REEL7_CTA_LEN, REST_EXCL[6], false) },
 ];
