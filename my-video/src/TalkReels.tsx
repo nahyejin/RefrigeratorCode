@@ -64,9 +64,9 @@ const TALK01: TalkSpec = {
 const U1 = 9.8;
 const U2 = 19.36;
 const TALK02: TalkSpec = {
-  src: "talk02_presenter_x125.mp4",
+  src: "talk02_presenter_x135.mp4", // 1.35배속(사용자 2026-10-25: 더 빠르게 — 말 속도 약 7.7음절/초, 참고 영상 8.2)
   len: 29.32,
-  speed: 1.25,
+  speed: 1.35,
   title: "아이 저녁,\n결국 김에 밥 먹인 날",
   phrases: [
     [0.0, 1.9, "아이가 배고프다고 해서"], [1.9, 3.06, "저녁을 시작했어요"], [3.32, 4.18, "근데 레시피 찾고"],
@@ -105,7 +105,7 @@ const Said: React.FC<{ text: string }> = ({ text }) => {
 // 얼굴 위 가운데 앱 화면 카드(참고 영상처럼 화면 너비의 약 56%). 앱 화면 녹화(940×1920)를 카드 폭에 맞춰 놓고,
 // focus 지점이 카드 가운데 오도록 옮긴 뒤 zoom → zoomTo 로 천천히 다가간다(카드 밖으로 빈 곳이 보이지 않게 가장자리에서 멈춤).
 const CARD_W = 600;
-const CARD_H = 696; // 위 검색 안내(338~470)와 아래 말 자막(1190~) 사이
+const CARD_H = 780;
 const SRC_AR = 1920 / 940;
 const AppCard: React.FC<{ o: Overlay; fadeIn?: boolean; fadeOut?: boolean }> = ({ o, fadeIn = true, fadeOut = true }) => {
   const frame = useCurrentFrame();
@@ -119,7 +119,7 @@ const AppCard: React.FC<{ o: Overlay; fadeIn?: boolean; fadeOut?: boolean }> = (
   const left = Math.min(0, Math.max(CARD_W - w, CARD_W / 2 - fx * w));
   const top = Math.min(0, Math.max(CARD_H - h, CARD_H / 2 - fy * h));
   return (
-    <div style={{ position: "absolute", left: (1080 - CARD_W) / 2, top: 482, width: CARD_W, height: CARD_H, borderRadius: 26, overflow: "hidden", opacity: op, transform: `scale(${sc})`, boxShadow: "0 18px 50px rgba(0,0,0,0.45)", background: "#fff" }}>
+    <div style={{ position: "absolute", left: (1080 - CARD_W) / 2, top: 360, width: CARD_W, height: CARD_H, borderRadius: 26, overflow: "hidden", opacity: op, transform: `scale(${sc})`, boxShadow: "0 18px 50px rgba(0,0,0,0.45)", background: "#fff" }}>
       {o.img ? (
         <Img src={staticFile(o.img)} style={{ position: "absolute", left, top, width: w, height: h, maxWidth: "none", maxHeight: "none" }} />
       ) : (
@@ -134,18 +134,20 @@ const AppCard: React.FC<{ o: Overlay; fadeIn?: boolean; fadeOut?: boolean }> = (
 // 셀카 말하는 동안 계속 떠 있는 검색 안내(사용자 2026-10-25). 릴스는 아래쪽(왼쪽 아이디·본문, 오른쪽 좋아요 아이콘, 유료 광고의 「더 알아보기」 막대)이
 // 가려지므로 맨 위 제목 바로 아래(안전 영역)에 둔다. 유료 홍보용은 끈 버전(Clean)을 같이 만든다.
 // 끝 화면(CtaOutro)의 검색창 디자인을 작게 줄인 것 — 회색 안내 한 줄 + 작은 「🔍 쿡매치」 검색창 + 회색 글자 「프로필 링크에서도 시작할 수 있어요」(사용자 2026-10-25: 배지 말고 작게)
-const MUTED = "rgba(255,255,255,0.88)";
+const MUTED = "#FFFFFF";
+const SHADOW_STRONG = "0 2px 8px rgba(0,0,0,0.85), 0 0 3px rgba(0,0,0,0.9)";
+// 위치: 아래 가운데(사용자 2026-10-25 최종). 아래 아이디·본문 줄보다 위.
 const SearchBanner: React.FC = () => (
-  <div style={{ position: "absolute", left: 0, right: 0, top: 338, display: "flex", flexDirection: "column", alignItems: "center", gap: 6, fontFamily: FONT_FAMILY }}>
-    <div style={{ fontSize: 24, fontWeight: 700, color: MUTED, textShadow: SHADOW, whiteSpace: "nowrap" }}>앱스토어·플레이스토어에서 검색하세요</div>
-    <div style={{ width: 300, height: 52, borderRadius: 999, border: "2px solid #1A1A1E", background: WHITE, display: "flex", alignItems: "center", gap: 12, padding: "0 20px", boxShadow: "0 4px 12px rgba(0,0,0,0.2)" }}>
+  <div style={{ position: "absolute", left: 0, right: 0, bottom: 330, display: "flex", flexDirection: "column", alignItems: "center", gap: 6, fontFamily: FONT_FAMILY }}>
+    <div style={{ fontSize: 24, fontWeight: 700, color: MUTED, textShadow: SHADOW_STRONG, whiteSpace: "nowrap" }}>앱스토어·플레이스토어에서 검색하세요</div>
+    <div style={{ width: 280, height: 52, borderRadius: 999, border: "2px solid #1A1A1E", background: WHITE, display: "flex", alignItems: "center", gap: 12, padding: "0 20px", boxShadow: "0 4px 12px rgba(0,0,0,0.2)" }}>
       <svg width="24" height="24" viewBox="0 0 46 46" fill="none">
         <circle cx="19" cy="19" r="13" stroke="#1A1A1E" strokeWidth="5" />
         <line x1="29" y1="29" x2="41" y2="41" stroke="#1A1A1E" strokeWidth="5" strokeLinecap="round" />
       </svg>
       <div style={{ fontSize: 28, fontWeight: 700, color: "#1A1A1E" }}>쿡매치</div>
     </div>
-    <div style={{ fontSize: 22, fontWeight: 600, color: MUTED, textShadow: SHADOW, whiteSpace: "nowrap" }}>프로필 링크에서도 시작할 수 있어요</div>
+    <div style={{ fontSize: 22, fontWeight: 600, color: MUTED, textShadow: SHADOW_STRONG, whiteSpace: "nowrap" }}>프로필 링크에서도 시작할 수 있어요</div>
   </div>
 );
 
