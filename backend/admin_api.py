@@ -1204,6 +1204,7 @@ def register(app, get_db):
             events_range = {'a': None, 'b': None}
             new_devices = []
             devices_total = {}
+            visit_hist = {}
             cursor.execute("SHOW TABLES LIKE 'user_events'")
             if cursor.fetchone():
                 cursor.execute(
@@ -1253,6 +1254,18 @@ def register(app, get_db):
                     tuple(ev_params),
                 )
                 sessions['people'] = cursor.fetchone()['n'] or 0
+
+                # 기기별 방문 횟수 분포(2026-10-25 사용자 요청: 「2번 이상·3번 이상… 들어온 기기」, 회원가입 기준이 아니라 **기기** 기준).
+                # 방문 = 세션(앱·웹에서 30분 넘게 쉬었다 다시 오면 새 방문). 봇·안내만 기기(`other`)는 사람이 아니라서 뺀다.
+                # 10번 이상은 한 칸으로 묶는다. 「N번 이상」 누적은 화면이 계산한다.
+                cursor.execute(
+                    "SELECT LEAST(v, 10) AS b, COUNT(*) AS n FROM ("
+                    f"  SELECT device_id, GREATEST(1, COUNT(DISTINCT session_id)) AS v, {DEVICE_KIND} AS k"
+                    f"  FROM user_events WHERE device_id IS NOT NULL{ev_cond} GROUP BY device_id"
+                    ") x WHERE k IS NULL OR k <> 'other' GROUP BY b ORDER BY b",
+                    tuple(ev_params),
+                )
+                visit_hist = {str(r['b']): int(r['n']) for r in cursor.fetchall()}
 
                 cursor.execute(
                     f"SELECT MIN(created_at) a, MAX(created_at) b FROM user_events "
@@ -1643,6 +1656,7 @@ def register(app, get_db):
             'sessions': sessions,
             'new_devices': new_devices,
             'devices_total': devices_total,
+            'visit_hist': visit_hist,
             'today_kst': datetime.now(timezone(timedelta(hours=9))).date().isoformat(),
             'sources': sources,
             'screen_series': screen_series,
