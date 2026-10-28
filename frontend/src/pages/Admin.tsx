@@ -2665,13 +2665,14 @@ const DeviceBreakdown: React.FC<{ c: Record<string, number>; periodNote?: string
 };
 
 /**
- * 「릴스」 탭 — 인스타 릴스를 올린 날과 그 전후의 신규 기기·가입을 나란히(2026-10-24 사용자 요청: 올린 영상을 계속 알려 줄 테니 누적해서 대시보드에).
+ * 「게시물」 탭(옛 「릴스」, 2026-10-29 스레드 글·인스타 게시물도 기록) — 올린 날과 그 전후의 신규 기기·가입을 나란히(2026-10-24 사용자 요청: 올린 영상을 계속 알려 줄 테니 누적해서 대시보드에).
  *
  * 한계를 화면에 적어 둔다: 프로필 링크가 하나라 **어느 릴스에서 왔는지는 기록되지 않는다.** 올린 날과 올린 다음 날의
  * 신규 기기·가입을 보여 줄 뿐이라, 같은 날 여러 편이면 편 수로 나눈 몫이다. 원인을 증명하는 표가 아니다.
  */
 // 범례 색은 서로 확실히 달라야 한다(막대의 노랑과도 겹치지 않게): 파랑·주황·초록·보라·회색.
-const KIND_COLOR: Record<string, string> = { overview: '#1C7ED6', hook: '#E8590C', cooking: '#2F9E44', selfie: '#9C36B5', other: '#868E96' };
+// 스레드 글·인스타 게시물도 같은 탭에 기록한다(2026-10-29) — 청록·분홍을 더했다.
+const KIND_COLOR: Record<string, string> = { overview: '#1C7ED6', hook: '#E8590C', cooking: '#2F9E44', selfie: '#9C36B5', threads: '#0C8599', ig_post: '#D6336C', other: '#868E96' };
 
 const ReelsTab: React.FC = () => {
   const [data, setData] = React.useState<any>(null);
@@ -2693,7 +2694,7 @@ const ReelsTab: React.FC = () => {
   }, [data]);
 
   const add = async () => {
-    if (!form.title.trim()) { setError('릴스 제목(내용)을 적어 주세요.'); return; }
+    if (!form.title.trim()) { setError('제목(내용)을 적어 주세요.'); return; }
     setSaving(true);
     try {
       await api('/api/admin/reels', { method: 'POST', body: JSON.stringify(form) });
@@ -2739,29 +2740,29 @@ const ReelsTab: React.FC = () => {
       </label>
 
       <div style={S.card}>
-        <h2 style={S.h2}>릴스 올렸어요</h2>
+        <h2 style={S.h2}>오늘 올렸어요 — 릴스·스레드·인스타 게시물</h2>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           <input type="date" value={form.posted_on} onChange={e => setForm({ ...form, posted_on: e.target.value })} style={{ ...S.input, width: 140 }} />
-          <select value={form.kind} onChange={e => setForm({ ...form, kind: e.target.value })} style={{ ...S.input, width: 110 }}>
+          <select value={form.kind} onChange={e => setForm({ ...form, kind: e.target.value })} style={{ ...S.input, width: 150 }}>
             {Object.entries(labels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
-          <input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="릴스 제목·내용"
+          <input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder={form.kind === 'threads' ? '스레드 글 첫 줄' : '제목·내용'}
                  onKeyDown={e => e.key === 'Enter' && add()} style={{ ...S.input, flex: '1 1 200px' }} />
           <input value={form.note} onChange={e => setForm({ ...form, note: e.target.value })} placeholder="메모(선택)" style={{ ...S.input, flex: '1 1 140px' }} />
           <button type="button" style={S.primary} disabled={saving} onClick={add}>{saving ? '저장 중' : '추가'}</button>
         </div>
         {error && <div style={{ color: '#B4452B', fontSize: 12, marginTop: 8 }}>{error}</div>}
         <div style={{ fontSize: 11.5, color: 'var(--ink-500)', marginTop: 8, lineHeight: 1.6 }}>
-          올린 날짜와 내용을 적으면 아래 표에 바로 반영돼요. <b>어느 릴스에서 왔는지는 기록되지 않아요</b>(프로필 링크가 하나) —
+          올린 날짜·종류·내용을 적으면 아래 표에 바로 반영돼요. 스레드 글은 종류에서 「스레드 글」을 고르고 첫 줄을 적으면 돼요. <b>어느 글에서 왔는지는 기록되지 않아요</b>(프로필 링크가 하나) —
           올린 날과 그 다음 날의 신규 기기·가입을 나란히 보여 주는 것이고, 같은 날 여러 편이면 편 수로 나눈 몫이에요. 원인을 증명하는 표가 아니에요.
         </div>
       </div>
 
       {(data.kinds || []).length > 0 && (
         <div style={S.card}>
-          <h2 style={S.h2}>릴스 종류별 — 1편당 평균</h2>
+          <h2 style={S.h2}>종류별 — 1편당 평균</h2>
           <div style={{ fontSize: 12, color: 'var(--ink-700)', marginBottom: 8, lineHeight: 1.6 }}>
-            아래 숫자는 모두 <b>릴스 1편당 평균</b>이에요. 릴스를 올린 날과 다음 날, 이틀 동안 늘어난 수를 그 종류 편수로 나눈 값이에요.
+            아래 숫자는 모두 <b>1편당 평균</b>이에요(스레드 글도 1편으로 셈). 올린 날과 다음 날, 이틀 동안 늘어난 수를 그 종류 편수로 나눈 값이에요.
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 8 }}>
             {data.kinds.map((k: any) => (
@@ -2787,7 +2788,7 @@ const ReelsTab: React.FC = () => {
       )}
 
       <div style={S.card}>
-        <h2 style={S.h2}>올린 릴스 {posts.length}편</h2>
+        <h2 style={S.h2}>올린 게시물 {posts.length}개</h2>
         <div className="adm-scroll">
           <table style={{ width: '100%', minWidth: 560 }}>
             <thead>
@@ -2824,7 +2825,7 @@ const ReelsTab: React.FC = () => {
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', fontSize: 11.5, color: 'var(--ink-500)', marginBottom: 8, alignItems: 'center' }}>
           <span><span style={{ display: 'inline-block', width: 10, height: 10, background: '#FFD600', borderRadius: 2, marginRight: 4 }} />막대 = 그날 새로 들어온 기기(대)</span>
           <span><span style={{ display: 'inline-block', background: '#1A1A1E', color: '#fff', fontSize: 10, fontWeight: 700, borderRadius: 4, padding: '0 4px', marginRight: 4 }}>2</span>검은 칸 = 그날 가입한 사람(명)</span>
-          <span>색 점 = 그날 올린 릴스</span>
+          <span>색 점 = 그날 올린 게시물</span>
           {Object.entries(labels).map(([k, v]) => (
             <span key={k}><span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 9999, background: KIND_COLOR[k] || '#8A8A93', marginRight: 3 }} />{v}</span>
           ))}
@@ -2840,7 +2841,7 @@ const ReelsTab: React.FC = () => {
                   key={d.date}
                   type="button"
                   onClick={() => setSel(d.date)}
-                  aria-label={`${md(d.date)} 신규 기기 ${d.new}대 가입 ${d.signups}명 릴스 ${d.posts.length}편`}
+                  aria-label={`${md(d.date)} 신규 기기 ${d.new}대 가입 ${d.signups}명 게시물 ${d.posts.length}개`}
                   style={{ width: 22, flexShrink: 0, border: 'none', cursor: 'pointer', padding: '0 0 4px', borderRadius: 6,
                            background: on ? 'var(--surface-sub)' : 'transparent', display: 'flex', flexDirection: 'column', alignItems: 'center' }}
                 >
@@ -2869,7 +2870,7 @@ const ReelsTab: React.FC = () => {
         </div>
         {selDay && (
           <div style={{ marginTop: 10, background: 'var(--surface-sub)', borderRadius: 10, padding: '10px 12px', fontSize: 12.5, lineHeight: 1.7 }}>
-            <b>{md(selDay.date)}</b> · 새로 들어온 기기 <b>{selDay.new}대</b>(그중 인스타 표시 {selDay.ig}대) · 다운로드 화면 본 기기 {selDay.downloads}대 · 회원가입 <b>{selDay.signups}명</b>
+            <b>{md(selDay.date)}</b> · 새로 들어온 기기 <b>{selDay.new}대</b>(그중 인스타 표시 {selDay.ig}대 · 스레드 표시 {selDay.th || 0}대) · 다운로드 화면 본 기기 {selDay.downloads}대 · 회원가입 <b>{selDay.signups}명</b>
             {selDay.posts.length > 0 ? (
               <div style={{ marginTop: 4 }}>
                 {selDay.posts.map((t: string, i: number) => (
@@ -2877,12 +2878,12 @@ const ReelsTab: React.FC = () => {
                 ))}
               </div>
             ) : (
-              <div style={{ color: 'var(--ink-500)' }}>이날 올린 릴스 없음</div>
+              <div style={{ color: 'var(--ink-500)' }}>이날 올린 게시물 없음</div>
             )}
           </div>
         )}
         <div style={{ fontSize: 11.5, color: 'var(--ink-500)', marginTop: 8, lineHeight: 1.6 }}>
-          「인스타 표시」는 그날 새로 들어온 기기 중 인스타에서 온 표시가 붙은 기기예요(링크에 유입 표시를 안 붙이면 못 잡아요). 그래프는 처음 릴스를 올린 날 전날부터 오늘까지예요.
+          「인스타 표시」·「스레드 표시」는 그날 새로 들어온 기기 중 프로필 링크 꼬리표(<code>?utm_source=instagram</code> / <code>threads</code>)가 붙어 온 기기예요. 꼬리표를 안 붙이면 못 잡아요. 그래프는 처음 올린 날 전날부터 오늘까지예요.
         </div>
       </div>
     </>
@@ -3918,7 +3919,7 @@ const Admin: React.FC = () => {
           top 은 공통 GNB 높이(56px). 배경을 페이지 배경과 같게 칠해 아래 내용이 비치지 않게 한다. */}
       <div style={{ display: 'flex', gap: 6, position: 'sticky', top: 56, zIndex: 20, overflowX: 'auto',
                     background: 'var(--surface-sub)', margin: '0 -12px 12px', padding: '8px 12px' }}>
-        {([['overview', '요약'], ['dashboard', '대시보드'], ['reels', '릴스'], ['users', '사용자'], ['requests', '요청'], ['ops', '운영'], ['dictionary', '사전']] as const).map(([key, label]) => (
+        {([['overview', '요약'], ['dashboard', '대시보드'], ['reels', '게시물'], ['users', '사용자'], ['requests', '요청'], ['ops', '운영'], ['dictionary', '사전']] as const).map(([key, label]) => (
           <button
             key={key}
             type="button"

@@ -264,7 +264,9 @@ def _where(column, start, end, ids=None, devices=None,
 # 사용자가 인스타 릴스를 올릴 때마다 날짜를 알려 주면 쌓고, 올린 날 전후의 신규 기기·가입과 나란히 보여 준다.
 # 왜 DB 에 두나: 일정표(store/REEL_UPLOAD_PLAN.html)의 「올렸어요」 체크는 브라우저에만 저장돼 실제 게시일을 알 수 없었다.
 # 프로필 링크가 하나라 어느 릴스에서 왔는지는 기록되지 않는다 — 날짜 겹침으로만 본다(어드민 화면에도 그렇게 적는다).
-REEL_KINDS = {'overview': '기능 총정리', 'hook': '연기 영상', 'cooking': '직접 요리', 'selfie': '셀카 설명', 'other': '기타'}
+# 릴스 종류 + 스레드·인스타 게시물(2026-10-29 사용자: 스레드 글도 같은 탭에 기록). kind 는 VARCHAR 라 표를 바꿀 필요가 없다.
+REEL_KINDS = {'overview': '기능 총정리', 'hook': '연기 영상', 'cooking': '직접 요리', 'selfie': '셀카 설명',
+              'threads': '스레드 글', 'ig_post': '인스타 피드·스토리', 'other': '기타'}
 
 # 처음 만들 때 한 번 넣는, 사용자가 직접 알려 준 19편(2026-10-24).
 REEL_SEED = [
@@ -328,7 +330,7 @@ def _reel_fields(body):
         return ('error', '올린 날짜를 YYYY-MM-DD 로 적어 주세요.')
     title = str(body.get('title') or '').strip()[:120]
     if not title:
-        return ('error', '릴스 제목(내용)을 적어 주세요.')
+        return ('error', '제목(내용)을 적어 주세요.')
     kind = str(body.get('kind') or 'hook')
     if kind not in REEL_KINDS:
         return ('error', '종류가 올바르지 않습니다.')
@@ -1716,14 +1718,15 @@ def register(app, get_db):
                 dev_clause = " AND device_id NOT IN (" + ",".join(["%s"] * len(devices)) + ")"
                 dev_params = list(devices)
             cursor.execute(
-                "SELECT d, COUNT(*) AS n, SUM(ig) AS ig FROM ("
+                "SELECT d, COUNT(*) AS n, SUM(ig) AS ig, SUM(th) AS th FROM ("
                 " SELECT DATE(MIN(created_at)) AS d,"
-                "  MAX(source LIKE 'ig%%' OR source LIKE '%%instagram%%') AS ig"
+                "  MAX(source LIKE 'ig%%' OR source LIKE '%%instagram%%') AS ig,"
+                "  MAX(source LIKE '%%threads%%') AS th"
                 " FROM user_events WHERE device_id IS NOT NULL" + dev_clause +
                 " GROUP BY device_id HAVING MIN(created_at) >= %s) t GROUP BY d",
                 dev_params + [first],
             )
-            new_by = {r['d']: (int(r['n']), int(r['ig'] or 0)) for r in cursor.fetchall()}
+            new_by = {r['d']: (int(r['n']), int(r['ig'] or 0), int(r['th'] or 0)) for r in cursor.fetchall()}
 
             cursor.execute(
                 "SELECT DATE(created_at) AS d, COUNT(DISTINCT device_id) AS n FROM user_events"
@@ -1789,7 +1792,8 @@ def register(app, get_db):
         d = first
         while d <= today:
             days.append({
-                'date': d.isoformat(), 'new': new_by.get(d, (0, 0))[0], 'ig': new_by.get(d, (0, 0))[1],
+                'date': d.isoformat(), 'new': new_by.get(d, (0, 0, 0))[0], 'ig': new_by.get(d, (0, 0, 0))[1],
+                'th': new_by.get(d, (0, 0, 0))[2],
                 'downloads': dl_by.get(d, 0), 'signups': su_by.get(d, 0),
                 'posts': [p['title'] for p in per_day.get(d, [])],
                 'kinds': [p['kind'] for p in per_day.get(d, [])],
