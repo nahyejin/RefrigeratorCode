@@ -13,7 +13,7 @@ import subprocess, sys, wave
 import numpy as np
 
 CLEAN = "adeclick=w=55:o=75:a=2:t=2,afftdn=nr=8:nf=-40,lowpass=f=12000"
-WM = "delogo=x=570:y=1130:w=62:h=62"
+WM = "delogo=x=570:y=1130:w=62:h=62,delogo=x=598:y=1203:w=56:h=56"  # 두 번째 표식(아래쪽 작은 별)이 끝까지 남는 클립이 있다(talk02 1차·2차 클립 1)
 # 클립마다 첫 0.4초는 표식이 움직이며 더 크게 나온다(REEL_FORMATS ③) — 원본 시각 기준으로 넓은 영역을 따로 지운다.
 WM_START = "delogo=x=622:y=1186:w=92:h=90:enable='lt(t,0.45)'"
 SR = 48000

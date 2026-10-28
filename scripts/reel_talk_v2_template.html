@@ -100,7 +100,7 @@ const eps = $('#eps');
 DATA.episodes.forEach(e => {
   const c = document.createElement('article');
   c.className = 'card';
-  c.innerHTML = `<div class="head"><span class="no">${e.no}</span><div><span class="tag">${esc(e.feature)}</span><h2>${esc(e.title)}</h2>
+  c.innerHTML = `<div class="head"><span class="no">${e.no}</span><div><span class="tag">${esc(e.feature)}</span><h2>${esc(e.title).split(" / ").join("<br>")}</h2><p style="margin:2px 0 0;font-size:13px;color:var(--muted)">위 제목 자막 · ${esc(e.strategy)}</p>
       <p class="plan">${esc(e.presenter)} · ${esc(e.plan)}</p></div></div>
     <ul class="lines">${e.lines.map((l,i)=>`<li><b>${i+1}</b><span>${esc(l)}</span></li>`).join('')}</ul>
     <div class="actions"><button type="button" data-photo="1">① 사진 프롬프트 복사</button>${e.clips.map((_,i)=>`<button type="button" data-i="${i}">클립 ${i+1} 복사</button>`).join('')}</div>
