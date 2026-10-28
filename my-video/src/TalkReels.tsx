@@ -86,6 +86,31 @@ const TALK02: TalkSpec = {
   ],
 };
 
+// 02 다시 찍음(2026-10-28 「너무 작위적」 → 일반인 차림·평소 말투·말로 하는 권유 없음) — 「딸 저녁, 결국 김에 밥 먹인 날」.
+// 클립 경계 0–9.48 / 9.48–18.60 / 18.60–28.07, 1.3배속. 끝에 권유 대사가 없어서 「있어서 이제 금방 해요」는 카드를 내리고 얼굴로 끝낸다.
+const V1 = 9.48;
+const V2 = 18.6;
+const TALK02B: TalkSpec = {
+  src: "talk02b_presenter_x130.mp4",
+  len: 28.07,
+  speed: 1.3,
+  title: "딸 저녁,\n결국 김에 밥 먹인 날",
+  phrases: [
+    [0.0, 1.52, "딸이 배고프다고"], [1.52, 3.74, "해서 저녁을 시작했어요"], [4.3, 6.22, "레시피 찾고 읽고"],
+    [6.22, 7.76, "따라 하다 보니까"], [7.76, V1 - 0.04, "한 시간이 가더라고요"], [9.78, 10.4, "애는 울고"],
+    [10.4, 12.46, "저도 울고 싶고"], [12.46, 13.62, "결국 김에 밥"], [13.62, 14.86, "싸 줬어요"],
+    [15.28, 16.28, "한 시간 걸린 그"], [16.28, 17.82, "요리는 아무도"], [17.82, V2 - 0.02, "안 먹었고요"],
+    [18.94, 20.34, "요즘은 쿡매치에서"], [20.34, 22.08, "빨리 되는 레시피부터 봐요"], [23.02, 24.82, "순서만 딱 정리돼"],
+    [24.82, 27.04, "있어서 이제 금방 해요"],
+  ],
+  // 앱 쓰는 순서(이전 02와 같음): 정렬 「인기순」 → 인기 레시피 결과 → 레시피 상세(재료·순서 요약)로 천천히 살짝 확대.
+  overlays: [
+    { at: V2 + 0.15, len: 2.0, src: "reel7_sort_demo_new.mp4", from: 0.0, rate: 1.0 },
+    { at: V2 + 2.15, len: 1.6, src: "reel7_sort_demo_new.mp4", from: 2.0, rate: 0.8 },
+    { at: V2 + 3.75, len: 3.4, src: "reel7_recipe_demo.mp4", srcW: 880, from: 18.0, rate: 0.85, focus: [0.5, 0.5], zoom: 1.0, zoomTo: 1.2 },
+  ],
+};
+
 const Title: React.FC<{ text: string }> = ({ text }) => (
   <div style={{ position: "absolute", top: 150, left: 40, right: 40, textAlign: "center", fontFamily: SANS }}>
     <span style={{ whiteSpace: "pre-line", fontSize: 78, fontWeight: 800, lineHeight: 1.22, color: WHITE, letterSpacing: "-0.01em", textShadow: SHADOW }}>{text}</span>
@@ -220,4 +245,6 @@ export const REELS_TALK = [
   { id: "Talk01MatchingClean", ...make(TALK01, Reel2Cta, REEL2_CTA_LEN, REST_EXCL[1], false) },
   { id: "Talk02Recipe", ...make(TALK02, Reel7Cta, REEL7_CTA_LEN, REST_EXCL[6]) },
   { id: "Talk02RecipeClean", ...make(TALK02, Reel7Cta, REEL7_CTA_LEN, REST_EXCL[6], false) },
+  { id: "Talk02Kim", ...make(TALK02B, Reel7Cta, REEL7_CTA_LEN, REST_EXCL[6]) },
+  { id: "Talk02KimClean", ...make(TALK02B, Reel7Cta, REEL7_CTA_LEN, REST_EXCL[6], false) },
 ];
