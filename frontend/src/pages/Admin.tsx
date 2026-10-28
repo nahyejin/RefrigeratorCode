@@ -87,6 +87,9 @@ const num = (n: number) => n.toLocaleString('ko-KR');
  *  - `.adm-grid`(ActivityTable)는 2단 머리라 sticky 를 스스로 정한다 — 첫 열 규칙만 뺀다
  */
 const ADMIN_TABLE_CSS = `
+/* index.css 가 모든 select 에 z-index(드롭다운 층)를 준다. 줄 배치(flex) 안에서는 그게 먹어서, 스크롤하면 위에 붙은 탭 줄 위로
+   떠 보였다(2026-10-29 사용자). 어드민에서는 끈다 — 이 스타일이 index.css 보다 뒤에 들어가 같은 세기에서 이긴다. */
+div select { z-index: auto !important; }
 .adm-scroll { overflow: auto; max-height: min(60vh, 520px); -webkit-overflow-scrolling: touch; }
 .adm-scroll > table { border-collapse: separate !important; border-spacing: 0; }
 .adm-scroll thead th { position: sticky; top: 0; z-index: 2; background: var(--surface); }

@@ -111,6 +111,8 @@ const TALK02B: TalkSpec = {
   ],
 };
 
+const SHOW_TITLE = false;
+
 const Title: React.FC<{ text: string }> = ({ text }) => (
   <div style={{ position: "absolute", top: 150, left: 40, right: 40, textAlign: "center", fontFamily: SANS }}>
     <span style={{ whiteSpace: "pre-line", fontSize: 78, fontWeight: 800, lineHeight: 1.22, color: WHITE, letterSpacing: "-0.01em", textShadow: SHADOW }}>{text}</span>
@@ -192,7 +194,8 @@ const Talk: React.FC<{ s: TalkSpec; banner?: boolean }> = ({ s, banner }) => {
               fadeOut={!(i < s.overlays.length - 1 && Math.abs(o.at + o.len - s.overlays[i + 1].at) < 0.05)} />
           </Sequence>
         ))}
-        <Title text={s.title} />
+        {/* 위 제목 자막은 모든 편에서 뺀다(2026-10-29 사용자). title 은 인스타 본문 첫 줄·문서용으로만 남긴다. */}
+        {SHOW_TITLE && <Title text={s.title} />}
         {/* 검색 안내는 기능 설명이 시작되는 클립 3(약 20초)부터 끝까지(사용자 2026-10-25) */}
         {banner && (
           <Sequence from={f(s.overlays[0].at * k) - 4}>
