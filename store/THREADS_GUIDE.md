@@ -71,7 +71,7 @@
   요알못 엄마의 냉장고 털기 기록
   재료 사서 버리던 사람 → 딸 낳고 다시 부엌으로
   ```
-- 프로필 링크: `https://refrigerator-code.vercel.app/download?utm_source=threads` (다운로드 페이지가 utm_source를 이미 기록함 → 관리자에서 스레드 유입이 따로 보임)
+- 프로필 링크: **처음 2주는 비워 둔다(2026-10-29 결정)** — 계정 겉모습에서 앱 흔적을 다 빼고, 3주 차 「레시피 보기 싫어서 결국 만든 것」 글을 올리는 날 다시 단다. 그때 링크: `https://refrigerator-code.vercel.app/download?utm_source=threads` (다운로드 페이지가 utm_source를 이미 기록함 → 관리자에서 스레드 유입이 따로 보임)
 - 프로필 사진: 얼굴이 부담되면 손+냉장고 사진, 또는 실제 요리 사진. 앱 아이콘은 쓰지 않는다.
 
 ---
