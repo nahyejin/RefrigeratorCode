@@ -2,7 +2,7 @@
 
 > 2026-10-28 작성. 인스타 릴스와 별개로, **광고 계정 티가 안 나는** 스레드 계정을 키우기 위한 기준.
 > 근거 = ① 2026년 알고리즘 분석 글(아래 출처, 메타 공식 아님) ② 2026-10-28 실제 한국 스레드 검색 결과(냉장고 파먹기·식비·집밥·유통기한·앱개발)에서 반응 수를 직접 비교.
-> 2주 치 글 초안: `store/THREADS_POSTS_W1W2.md`
+> 2주 치 글 초안: `store/THREADS_POSTS_W1W2.md` (생성: `scripts/gen_threads_posts.py`) · 폰 복사용 아티팩트 https://claude.ai/artifact/NHCCWznk4GAkeqA77hgZ4G
 
 ---
 
