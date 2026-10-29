@@ -5,6 +5,7 @@ import { Reel2Demo, Reel2Cta, REEL2_DEMO_LEN, REEL2_CTA_LEN } from "./Reel2Match
 import { Reel3Demo, Reel3Cta, REEL3_DEMO_LEN, REEL3_CTA_LEN } from "./Reel3CookMode";
 import { Reel7Demo, Reel7Cta, REEL7_DEMO_LEN, REEL7_CTA_LEN } from "./Reel7RealRecipe";
 import { Reel4Demo, Reel4Cta, REEL4_DEMO_LEN, REEL4_CTA_LEN } from "./Reel4AiDiet";
+import { Reel5Demo, Reel5Cta, REEL5_DEMO_LEN, REEL5_CTA_LEN } from "./Reel5ExpiryAlert";
 
 // 후킹 v6(2026-10-23) — store/REEL_HOOKS_V6.md 프롬프트로 사용자가 뽑은 제미나이 클립 중 살린 두 편.
 // 클립은 편집본(my-video/public/hooks_v6_fixed 에서 확대·글자 지우기·라벨 블러 후 사용자가 확인한 파일).
@@ -33,11 +34,16 @@ const H7: HookSpec = { src: "reel7_hook_v6_blog_fast.mp4", segs: [[0, 9.66]], ca
 // (정·역 반복으로 늘렸더니 버벅거려 보인다는 지적으로 슬로우로 바꿈, 2026-10-24)
 const H6: HookSpec = { src: "reel6_hook_v6_delivery.mp4", segs: [[0, 12.0]], captionAt: 5.5, caption: "레시피 열 개 봤는데\n다 장 보래요" };
 
+// 05 유통기한 ← v7.4(대사 두 번: 아내 「어제까지네... 하루 지난 건 괜찮지?」 1.5~3.8s → 남편 「그럼 자기가 먹어.」 4.5~5.4s → 째려봄).
+// 클립 전체(10.0s)를 쓴다. 표식 두 개(오른쪽 아래 큰 별·그 아래 작은 별)와 첫 0.45초 움직이는 표식을 delogo 로 지움(reel5_hook_v6_yogurt.mp4).
+const H5: HookSpec = { src: "reel5_hook_v6_yogurt.mp4", segs: [[0, 10.0]], captionAt: 4.5, caption: "유통기한 어제,\n먹어? 말아?" };
+
 export const REELS_HOOK_V6 = [
   { id: "Reel2HookV6Cabbage", ...makeReel(H2, Reel1Demo, REEL1_DEMO_LEN, Reel1Cta, REEL1_CTA_LEN, REST_EXCL[0]) },
   { id: "Reel3HookV6Gloves", ...makeReel(H3, Reel3Demo, REEL3_DEMO_LEN, Reel3Cta, REEL3_CTA_LEN, REST_EXCL[2]) },
   { id: "Reel4HookV6Menu", ...makeReel(H4, Reel4Demo, REEL4_DEMO_LEN, Reel4Cta, REEL4_CTA_LEN, REST_EXCL[3]) },
   // 06 배달 훅이지만 데모는 02 매칭 — 「레시피마다 장 보래」에는 「내 냉장고 기준 매칭률 순 + 없는 재료는 있는 걸로 대체」가 답이다(사용자 선택, 2026-10-24).
   { id: "Reel6HookV6Delivery", ...makeReel(H6, Reel2Demo, REEL2_DEMO_LEN, Reel2Cta, REEL2_CTA_LEN, REST_EXCL[1]) },
+  { id: "Reel5HookV6Yogurt", ...makeReel(H5, Reel5Demo, REEL5_DEMO_LEN, Reel5Cta, REEL5_CTA_LEN, REST_EXCL[4]) },
   { id: "Reel7HookV6Blog", ...makeReel(H7, Reel7Demo, REEL7_DEMO_LEN, Reel7Cta, REEL7_CTA_LEN, REST_EXCL[6]) },
 ];

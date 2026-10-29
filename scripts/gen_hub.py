@@ -25,7 +25,7 @@ import gen_reel_talk_v2 as talk  # noqa: E402
 import gen_threads_posts as threads  # noqa: E402
 
 # 다 만든 편(영상이 out/ 에 있음). 새로 만들면 여기에 번호를 더한다.
-HOOK_DONE = {"02", "03", "04", "06", "07"}
+HOOK_DONE = {"02", "03", "04", "05", "06", "07"}
 TALK_DONE = {"01", "02"}
 
 ROUND_NAME = {"-1": "총정리", "0": "1벌", "1": "2벌", "2": "3벌", "3": "직접 요리", "4": "4벌"}
@@ -86,6 +86,30 @@ def cooking_items():
     return out
 
 
+FEATURES_TAIL = """쿡매치로 이런 걸 할 수 있어요
+📸 AI 재료인식 — 영수증·음식 사진·장본 목록
+🥘 레시피 매칭 — 냉장고 재료로 만들 수 있는 레시피 + 대체 재료
+🗓️ AI 식단 — 일주일 식단과 장보기
+🤖 요리 AI — 말하듯 물어보면 레시피 추천
+⏰ 유통기한 알림 — 곧 상하는 재료를 푸시로 알려 줘요
+🙌 읽어주기 모드 — 소리 내어 단계별로 레시피를 읽어 줘요
+📺 검증된 레시피 — 유튜브·네이버 인기 레시피
+👨‍👩‍👧 가족이 아낀 돈 — 가족 집밥 목표·아낀 돈(예상)
+
+📲 앱스토어·Play 스토어에서 '쿡매치'를 검색하세요
+프로필 링크로 들어와도 바로 받을 수 있어요
+👉 refrigerator-code.vercel.app/download"""
+
+# 일정표(REEL_UPLOAD_PLAN.html) 뒤에 새로 만든 4벌 편. 날짜는 화·목·토 자리를 이어 간다.
+EXTRA_REELS = [
+    {"id": "h4-5", "ch": "reel", "kind": "4벌", "date": "2026-11-24", "time": "17:00", "title": "“그럼 자기가 먹어”",
+     "scene": "냉장고 구석에서 나온 요거트, 날짜를 보니 어제까지. 「하루 지난 건 괜찮지?」 묻자 남편이 「그럼 자기가 먹어」, 아내가 째려보는 장면.",
+     "tag": "유통기한 알림", "file": "my-video/out/후킹v6/reel5_hookv6_yogurt_음악.mp4",
+     "music": "음악이 이미 들어 있는 파일이에요(밴조 깡충, 직접 만든 곡). 인스타에서 음악을 추가하지 말고 그대로 올리세요.",
+     "body": "「어제까지네… 하루 지난 건 괜찮지?」\n「그럼 자기가 먹어.」 🥄\n\n유통기한 하루 지난 요거트, 먹어? 말아?\n쿡매치는 넣어 둔 재료의 유통기한을 알아서 계산하고, 다가오면 알림으로 먼저 알려 줘요.\n임박한 재료로 만들 레시피까지 바로 보여 줘서, 날짜 지나기 전에 다 먹을 수 있어요.\n\n"
+             + FEATURES_TAIL + "\n\n#레시피 #레시피추천 #요리 #집밥 #오늘뭐먹지 #냉털 #냉장고털기 #냉장고파먹기 #유통기한 #부부일상 #쿡매치 #cookmatch"},
+]
+
 TALK_FILES = {"01": "my-video/out/출연자형/Talk01Matching_음악.mp4", "02": "my-video/out/출연자형/talk02_kim_music.mp4"}
 
 
@@ -116,7 +140,7 @@ def thread_items():
 
 
 def post_data():
-    items = plan_items() + cooking_items() + talk_items() + thread_items()
+    items = plan_items() + EXTRA_REELS + cooking_items() + talk_items() + thread_items()
     # 묶음 탭(2026-10-29 사용자: 릴스가 너무 많아 1벌·2벌… 유형별로 고르게)
     grp = {"총정리": "총정리", "1벌": "연기형 1벌", "2벌": "연기형 2벌", "3벌": "연기형 3벌", "4벌": "연기형 4벌", "직접 요리": "직접 요리", "셀카형": "출연자 셀카형"}
     for it in items:
