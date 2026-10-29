@@ -1591,25 +1591,6 @@ const MyPage: React.FC = () => {
         </div>
       )}
 
-      {/* 사용 가이드 다시 보기(2026-10-29) — 첫 방문에 [이 재료로 요리 보기]로 바로 요리 화면에 간 사람은 가이드를 건너뛰고
-          다음 방문에 한 번 보게 되는데, 그걸 놓쳤거나 다시 보고 싶은 사람이 직접 찾을 수 있어야 한다. 비로그인에게도 보인다. */}
-      <div style={{ margin: '8px 14px 0' }}>
-        <button
-          type="button"
-          onClick={() => { requestUsageGuideReplay(); navigate('/my-fridge'); }}
-          style={{
-            width: '100%', minHeight: 46, borderRadius: 14,
-            border: '1px solid var(--line-200)', background: 'var(--surface)',
-            fontSize: 14, fontWeight: 700, color: 'var(--ink-900)', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '0 18px',
-          }}
-        >
-          <span>사용 가이드 다시 보기</span>
-          <span aria-hidden="true">›</span>
-        </button>
-      </div>
-
       {/* 한때 여기 `즐겨찾기로 요리 고르기` · `만든 요리 돌아보기` 두 버튼이 있었다.
           **뺐다**(2026-10-08 요청). 바로 위 요약 숫자 세 칸이 이미 같은 곳으로 가는
           입구인데, 그 아래에 비슷한 말을 하는 버튼이 또 있으니 "둘이 뭐가 다른가" 를
@@ -1673,6 +1654,28 @@ const MyPage: React.FC = () => {
           paddingBottom: 'calc(116px + env(safe-area-inset-bottom, 0px))',
         }}
       >
+        {/* 사용 가이드 다시 보기(2026-10-29) — 첫 방문에 [이 재료로 요리 보기]로 바로 요리 화면에 간 사람은 가이드를 건너뛰고
+            다음 방문에 한 번 보게 되는데, 놓쳤거나 다시 보고 싶은 사람이 직접 찾을 수 있어야 한다. 비로그인에게도 보인다.
+            **바로 아래 문의 줄과 같은 모양·같은 폭**으로 그 위에 붙인다(사용자 요청: 「불편한 점이나 요청이 있다면」 줄과 레벨을 맞추고 바로 위에). */}
+        <button
+          type="button"
+          onClick={() => { requestUsageGuideReplay(); navigate('/my-fridge'); }}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
+            width: '100%', boxSizing: 'border-box', minHeight: 44, padding: '0 12px', marginBottom: 8,
+            borderRadius: 10, border: '1px solid var(--line-200)', background: 'var(--surface)',
+            color: 'var(--ink-900)', fontFamily: 'inherit', cursor: 'pointer', textAlign: 'left',
+          }}
+        >
+          <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis',
+                         whiteSpace: 'nowrap', fontSize: 12.5, fontWeight: 700 }}>
+            사용 방법이 궁금하다면
+          </span>
+          <span style={{ marginLeft: 'auto', flexShrink: 0, color: 'var(--ink-700)',
+                         fontSize: 12.5, fontWeight: 600, whiteSpace: 'nowrap' }}>
+            사용 가이드 다시 보기 ›
+          </span>
+        </button>
         <ContactBox compact />
       </div>
       </div>
