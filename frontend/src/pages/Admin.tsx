@@ -2994,6 +2994,49 @@ function sourceLabel(src: string): string {
   return '';
 }
 
+/** 같은 곳에서 온 유입 이름들을 한 묶음으로(2026-10-29 사용자: 인스타 꼬리표는 계정마다 다른데 하위로 구분돼야 한다).
+ *  인스타그램 아래에 프로필(본계정·쿡매치·똥글이)·릴스·꼬리표 없이 인스타에서 눌러 들어온 것이 한 단계 아래로 들어간다. */
+function sourceFamily(src: string): string | null {
+  const t = (src || '').toLowerCase();
+  if (t === '(직접)') return null;
+  if (t.startsWith('portfolio')) return '포트폴리오';
+  if (t.startsWith('resume')) return '이력서';
+  if (t === 'ig' || t.startsWith('ig_') || t.startsWith('instagram') || t.includes('instagram.')) return '인스타그램';
+  if (t.startsWith('threads') || t.includes('threads.')) return '스레드';
+  return null;
+}
+
+/** 묶음이 2줄 이상이면 합계 줄(_group) + 아래 줄(_depth=1)로 펼쳐 준다. 방문·재료·가입 수는 합산(방문은 줄마다 겹치지 않는다). */
+function groupSources(rows: any[]): any[] {
+  const fam = new Map<string, any[]>();
+  const order: { key: string; sessions: number; rows: any[]; name?: string }[] = [];
+  for (const r of rows) {
+    const f = sourceFamily(r.source);
+    if (!f) { order.push({ key: r.source, sessions: r.sessions || 0, rows: [r] }); continue; }
+    if (!fam.has(f)) fam.set(f, []);
+    fam.get(f)!.push(r);
+  }
+  fam.forEach((members, name) => {
+    if (members.length < 2) {
+      order.push({ key: members[0].source, sessions: members[0].sessions || 0, rows: members });
+      return;
+    }
+    const sum = (k: string) => members.reduce((a, m) => a + (m[k] || 0), 0);
+    const firsts = members.map(m => m.first_at).filter(Boolean).sort();
+    const lasts = members.map(m => m.last_at).filter(Boolean).sort();
+    const head = {
+      source: name, _group: true, _n: members.length,
+      sessions: sum('sessions'), people: sum('people'), views: sum('views'),
+      added: sum('added'), ai: sum('ai'), signups: sum('signups'), coupang: sum('coupang'),
+      landing: '', first_at: firsts[0] || null, last_at: lasts[lasts.length - 1] || null,
+    };
+    const kids = [...members].sort((a, b) => (b.sessions || 0) - (a.sessions || 0)).map(m => ({ ...m, _depth: 1 }));
+    order.push({ key: name, sessions: head.sessions, rows: [head, ...kids] });
+  });
+  order.sort((a, b) => b.sessions - a.sessions);
+  return order.flatMap(o => o.rows);
+}
+
 /** 탭 맨 위 한 줄 — 요약과 대시보드가 같은 카드를 일부 같이 쓰므로, 이 탭을 무엇에 쓰는지 먼저 적어 둔다(2026-10-29 사용자: 두 탭의 역할이 분명치 않음. 항목은 하나도 빼지 않는 조건). */
 const TabRole: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
   <div style={{ margin: '0 2px 10px', fontSize: 12.5, lineHeight: 1.6, color: 'var(--ink-700)' }}>
@@ -3497,12 +3540,15 @@ const Dashboard: React.FC = () => {
                       광고를 더 쓰면 됩니다.
                       <br />
                       표가 넓어서 폰에서는 <b>표를 옆으로 밀어야</b> 오른쪽 숫자(재료 담은 방문·가입한 방문 등)가 보여요.
+                      <br />
+                      <b>인스타그램·스레드·포트폴리오·이력서</b>는 이름이 둘 이상이면 <b>합친 줄</b> 아래에 계정·링크별로 나뉘어 보여요.
+                      합친 줄의 사람 수는 아래 줄을 더한 값이라, 같은 기기가 두 줄에 있으면 겹쳐 셀 수 있어요.
                     </div>
                     <div style={{ overflowX: 'auto' }}>
                       <div className="adm-scroll"><table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 780 }}>
                         <thead><tr>{cols.map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
                         <tbody>
-                          {act.sources.map((r: any) => {
+                          {groupSources(act.sources).map((r: any) => {
                             const share = Math.round((r.sessions / totalSessions) * 100);
                             const rate = (n: number) => (r.sessions ? Math.round((n / r.sessions) * 100) : 0);
                             const cellNum = { ...S.td, fontVariantNumeric: 'tabular-nums' as const };
@@ -3515,10 +3561,16 @@ const Dashboard: React.FC = () => {
                               </>
                             );
                             return (
-                              <tr key={r.source}>
-                                <td style={{ ...S.td, width: 170, minWidth: 170, maxWidth: 170, whiteSpace: 'normal', wordBreak: 'break-all' }}>
-                                  <b>{r.source}</b>
-                                  {sourceLabel(r.source) && (
+                              <tr key={(r._depth ? 'k:' : '') + r.source} style={r._group ? { background: 'var(--surface-sub)' } : undefined}>
+                                <td style={{ ...S.td, width: 170, minWidth: 170, maxWidth: 170, whiteSpace: 'normal', wordBreak: 'break-all',
+                                             paddingLeft: r._depth ? 24 : undefined,
+                                             background: r._group ? 'var(--surface-sub)' : undefined }}>
+                                  <b>{r._depth ? '└ ' : ''}{r.source}</b>
+                                  {r._group ? (
+                                    <div style={{ fontSize: 11, color: 'var(--ink-500)', marginTop: 2, lineHeight: 1.45, fontWeight: 400 }}>
+                                      아래 {r._n}개를 합친 줄
+                                    </div>
+                                  ) : sourceLabel(r.source) && (
                                     <div style={{ fontSize: 11, color: 'var(--ink-500)', marginTop: 2, lineHeight: 1.45, fontWeight: 400 }}>
                                       {sourceLabel(r.source)}
                                     </div>
