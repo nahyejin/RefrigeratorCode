@@ -5,6 +5,7 @@ import {
   GATE_EVENT, GateDetail, GateKind, gateCopy, isGuestNow, markReturnGateShown, shouldShowReturnGate, trackGate,
 } from '../utils/loginGate';
 import { isUsageGuideRunning } from '../utils/onboardingPrompts';
+import { rememberPostLoginReturn } from '../utils/postLoginReturn';
 
 /**
  * 비회원 로그인 확인창 — 앱에 **하나만** 둔다(2026-10-22).
@@ -61,6 +62,9 @@ const LoginGateHost: React.FC = () => {
   const login = () => {
     trackGate('cta_click', kind);
     setGate(null);
+    // 레시피 패널이 열려 있으면 로그인 화면이 그 뒤에 숨는다 — 보던 자리를 적어 두고 패널을 닫은 뒤 이동한다.
+    // 로그인이 끝나면 그 화면으로 돌아와 같은 레시피 패널이 다시 열린다.
+    rememberPostLoginReturn();
     navigate('/login');
   };
 
