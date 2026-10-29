@@ -2971,7 +2971,7 @@ const SOURCE_GUIDE: { tag: string; means: string; link?: string }[] = [
 
 function sourceLabel(src: string): string {
   const t = (src || '').toLowerCase();
-  if (t === '(직접)') return '꼬리표 없이 들어옴 — 주소를 직접 치거나, 북마크·홈 화면 아이콘, 또는 출처를 안 알려주는 링크(PDF·메신저 등)';
+  if (t === '(직접)') return '꼬리표 없음 — 주소 직접 입력·북마크·홈 화면 아이콘, 또는 출처를 안 알려주는 링크(PDF·메신저 등)';
   const kind = t.endsWith('_web') ? ' · 웹 첫 화면' : t.endsWith('_app') ? ' · 앱 다운로드 페이지' : '';
   if (t.startsWith('portfolio')) return '포트폴리오에서 온 방문' + kind;
   if (t.startsWith('resume')) return '이력서에서 온 방문' + kind;
@@ -3495,6 +3495,8 @@ const Dashboard: React.FC = () => {
                       괄호 안 비율은 모두 <b>그 유입의 방문 수 대비</b>예요.
                       <b> 방문이 많은 쪽</b>이 아니라 <b>재료 담기·가입 비율이 높은 쪽</b>에
                       광고를 더 쓰면 됩니다.
+                      <br />
+                      표가 넓어서 폰에서는 <b>표를 옆으로 밀어야</b> 오른쪽 숫자(재료 담은 방문·가입한 방문 등)가 보여요.
                     </div>
                     <div style={{ overflowX: 'auto' }}>
                       <div className="adm-scroll"><table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 780 }}>
@@ -3514,7 +3516,7 @@ const Dashboard: React.FC = () => {
                             );
                             return (
                               <tr key={r.source}>
-                                <td style={{ ...S.td, minWidth: 150 }}>
+                                <td style={{ ...S.td, width: 170, minWidth: 170, maxWidth: 170, whiteSpace: 'normal', wordBreak: 'break-all' }}>
                                   <b>{r.source}</b>
                                   {sourceLabel(r.source) && (
                                     <div style={{ fontSize: 11, color: 'var(--ink-500)', marginTop: 2, lineHeight: 1.45, fontWeight: 400 }}>
