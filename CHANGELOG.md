@@ -14046,3 +14046,4 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 - 빌드: `frontend/android/app/build.gradle` 1.0.12(13) → **1.0.13(14)**(1.0.12(13) 업로드 여부가 기록에 없어 번호 충돌을 피함), `npm run app:sync` → `JAVA_HOME`=Android Studio jbr 로 `gradlew bundleRelease` 성공, `app-release.aab` 13.1MB 서명 확인(`jarsigner -verify`), 번들에 새 문구들 포함 확인. iOS 는 맥에서 1.0.10(17)로(아래 명령).
 - 같은 날 수정(사용자: 어드민 버튼을 맨 아래로): 마이페이지 하단 칸의 어드민 줄을 위→아래 「사용 가이드 / 문의 / (방침 링크) / 어드민(관리자만)」 순으로, **문의 줄과 방침 링크 밑 맨 아래**로 옮겼다(간격 14). Android 1.0.13(14) `app-release.aab` 다시 빌드(23:17, 13.1MB, `jarsigner -verify` 통과).
 - 2026-10-30: 예약 실행 첫 회가 권한 확인 창에서 멈춰(그동안 다음 실행도 막힘) 승인된 2건을 직접 올림 — salim_han.kkeut 답글, 3일 양배추 글(사진은 `frontend/public/threads/post-w1-03.jpg`로 공개 주소 만든 뒤 첫 답글까지).
+- 2026-10-30: 새 글 올리는 시간대를 사용자 생활 패턴으로 바꿈 — 아침 7~8시(출근길)·점심 12~13시·밤 20시~0시대(아이 재운 뒤). 예약 실행도 7~23시 + 0시로(`THREADS_AUTOMATION.md`, `THREADS_GUIDE.md` 5장).

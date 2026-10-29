@@ -20,7 +20,7 @@
 ## 순서
 1. **올리기** — `status == approved` 를 읽는다(쿼리).
    - reply: 바로 올린다. `{"id", "kind":"reply", "text": text or draft, "reply_to": 문서 id}`
-   - post: **낮 12~13시, 저녁 20~22시에만**, 하루 최대 2개. 그 밖이면 다음 실행으로 미룬다.
+   - post: **아침 7~8시(출근길), 낮 12~13시(점심), 밤 20시~0시대(퇴근·아이 재운 뒤)에만**, 하루 최대 2개·한 시간대에 1개. 그 밖이면 다음 실행으로 미룬다. (2026-10-30 사용자: 엄마들이 폰 보는 시간 = 출근길·점심·밤 8시~새벽 12시, 본인도 그렇다)
      - `image_asset` 이 있고 `image_public` 이 없으면: Artifact `read`(url=검토함, path=asset id)로 받아서
        `frontend/public/threads/<문서id>.<확장자>` 로 복사 → 커밋·푸시 → `https://refrigerator-code.vercel.app/threads/<파일>` 이 200이 될 때까지(최대 5분) 기다림 → `image_public` 에 저장.
      - `{"id", "kind":"post", "text", "image_url": image_public, "first_reply": first_reply_text or first_reply}`
