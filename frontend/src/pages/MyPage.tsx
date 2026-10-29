@@ -1624,30 +1624,6 @@ const MyPage: React.FC = () => {
           paddingBottom: 'calc(116px + env(safe-area-inset-bottom, 0px))',
         }}
       >
-        {/* 어드민 입구(2026-10-29 이동) — 예전엔 그룹 설정 아래 큰 버튼이었는데, 관리자 한 명만 보는 줄이라 모두가 쓰는 위쪽
-            카드들 사이에 둘 이유가 없다. 문의·가이드 줄과 같은 모양으로 하단 칸에 모은다. 보안 장치가 아니다 — 서버가
-            /api/admin/* 마다 is_admin 을 확인한다. 여기서 감추는 건 "찾기 쉽게" 하려는 것이다. */}
-        {isAdmin && (
-          <button
-            type="button"
-            onClick={() => navigate('/admin')}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
-              width: '100%', boxSizing: 'border-box', minHeight: 44, padding: '0 12px', marginBottom: 8,
-              borderRadius: 10, border: '1px solid var(--line-200)', background: 'var(--surface)',
-              color: 'var(--ink-900)', fontFamily: 'inherit', cursor: 'pointer', textAlign: 'left',
-            }}
-          >
-            <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis',
-                           whiteSpace: 'nowrap', fontSize: 12.5, fontWeight: 700 }}>
-              어드민
-            </span>
-            <span style={{ marginLeft: 'auto', flexShrink: 0, color: 'var(--ink-700)',
-                           fontSize: 12.5, fontWeight: 600, whiteSpace: 'nowrap' }}>
-              사용자 · 요청 · 대시보드 ›
-            </span>
-          </button>
-        )}
         {/* 사용 가이드 다시 보기(2026-10-29) — 첫 방문에 [이 재료로 요리 보기]로 바로 요리 화면에 간 사람은 가이드를 건너뛰고
             다음 방문에 한 번 보게 되는데, 놓쳤거나 다시 보고 싶은 사람이 직접 찾을 수 있어야 한다. 비로그인에게도 보인다.
             **바로 아래 문의 줄과 같은 모양·같은 폭**으로 그 위에 붙인다(사용자 요청: 「불편한 점이나 요청이 있다면」 줄과 레벨을 맞추고 바로 위에). */}
@@ -1671,6 +1647,30 @@ const MyPage: React.FC = () => {
           </span>
         </button>
         <ContactBox compact />
+        {/* 어드민 입구(2026-10-29 이동) — 예전엔 그룹 설정 아래 큰 버튼이었는데, 관리자 한 명만 보는 줄이라 모두가 쓰는 위쪽
+            카드들 사이에 둘 이유가 없다. 문의·가이드 줄과 같은 모양으로 하단 칸 **맨 아래**(문의 줄·방침 링크 밑)에 둔다(사용자: 맨 아래로). 보안 장치가 아니다 — 서버가
+            /api/admin/* 마다 is_admin 을 확인한다. 여기서 감추는 건 "찾기 쉽게" 하려는 것이다. */}
+        {isAdmin && (
+          <button
+            type="button"
+            onClick={() => navigate('/admin')}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
+              width: '100%', boxSizing: 'border-box', minHeight: 44, padding: '0 12px', marginTop: 14,
+              borderRadius: 10, border: '1px solid var(--line-200)', background: 'var(--surface)',
+              color: 'var(--ink-900)', fontFamily: 'inherit', cursor: 'pointer', textAlign: 'left',
+            }}
+          >
+            <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis',
+                           whiteSpace: 'nowrap', fontSize: 12.5, fontWeight: 700 }}>
+              어드민
+            </span>
+            <span style={{ marginLeft: 'auto', flexShrink: 0, color: 'var(--ink-700)',
+                           fontSize: 12.5, fontWeight: 600, whiteSpace: 'nowrap' }}>
+              사용자 · 요청 · 대시보드 ›
+            </span>
+          </button>
+        )}
       </div>
       </div>
       </PullToRefresh>
