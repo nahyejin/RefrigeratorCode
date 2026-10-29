@@ -111,7 +111,8 @@ const TALK02B: TalkSpec = {
   ],
 };
 
-const SHOW_TITLE = false;
+// 2026-10-29 사용자: 한 번 껐다가 다시 켬 — 맨 위 문구는 「질문을 던지고 답은 영상 안에」(요리할수록 돈이 더 드는 이유 처럼).
+const SHOW_TITLE = true;
 
 const Title: React.FC<{ text: string }> = ({ text }) => (
   <div style={{ position: "absolute", top: 150, left: 40, right: 40, textAlign: "center", fontFamily: SANS }}>
@@ -204,7 +205,7 @@ const Talk: React.FC<{ s: TalkSpec; banner?: boolean }> = ({ s, banner }) => {
               fadeOut={!(i < s.overlays.length - 1 && Math.abs(o.at + o.len - s.overlays[i + 1].at) < 0.05)} />
           </Sequence>
         ))}
-        {/* 위 제목 자막은 모든 편에서 뺀다(2026-10-29 사용자). title 은 인스타 본문 첫 줄·문서용으로만 남긴다. */}
+        {/* 위 제목 자막(훅). SHOW_TITLE 참고. */}
         {SHOW_TITLE && <Title text={s.title} />}
         {/* 검색 안내는 기능 설명이 시작되는 클립 3(약 20초)부터 끝까지(사용자 2026-10-25) */}
         {banner && (
