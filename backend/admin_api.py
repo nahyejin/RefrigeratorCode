@@ -354,6 +354,35 @@ def _reel_fields(body):
 
 
 
+def _period_device_counts(cursor, start, end, ev_cond, ev_params, nd_cond, nd_params):
+    """한 기간의 기기 수 — `{active, new, returning, non_person}`.
+
+    들어온 기기(active) = 그 기간에 기록이 있는 기기(사람만) = 새로 들어온(처음 기록이 그 기간 안) + 다시 들어온(예전부터 있던).
+    사람 아닌 기기(링크 미리보기 봇 등, `DEVICE_KIND` 가 `other`)는 따로 센다. 대시보드·요약 탭이 같은 함수를 써서 숫자가 어긋나지 않는다(2026-10-29).
+    """
+    p_new_parts, p_new_params = [], []
+    if start:
+        p_new_parts.append("f.first_at >= %s")
+        p_new_params.append(start)
+    if end:
+        p_new_parts.append("f.first_at <= %s")
+        p_new_params.append(end)
+    p_new = " AND ".join(p_new_parts) if p_new_parts else "1=1"
+    cursor.execute(
+        "SELECT COALESCE(SUM(CASE WHEN p.k IS NULL OR p.k <> 'other' THEN 1 ELSE 0 END), 0) AS active, "
+        f"COALESCE(SUM(CASE WHEN (p.k IS NULL OR p.k <> 'other') AND {p_new} THEN 1 ELSE 0 END), 0) AS new_n, "
+        "COALESCE(SUM(CASE WHEN p.k = 'other' THEN 1 ELSE 0 END), 0) AS other_n FROM ("
+        f"  SELECT device_id, {DEVICE_KIND} AS k FROM user_events WHERE device_id IS NOT NULL{ev_cond} GROUP BY device_id"
+        ") p JOIN ("
+        f"  SELECT device_id, MIN(created_at) AS first_at FROM user_events WHERE device_id IS NOT NULL{nd_cond} GROUP BY device_id"
+        ") f ON f.device_id = p.device_id",
+        tuple(p_new_params) + tuple(ev_params) + tuple(nd_params),
+    )
+    row = cursor.fetchone() or {}
+    active, new = int(row.get('active') or 0), int(row.get('new_n') or 0)
+    return {'active': active, 'new': new, 'returning': max(active - new, 0), 'non_person': int(row.get('other_n') or 0)}
+
+
 def register(app, get_db):
     """앱에 어드민 라우트를 붙인다. app.py 에서 한 번 호출한다."""
 
@@ -1075,6 +1104,60 @@ def register(app, get_db):
         payload['recorded_at'] = row['updated_at'].isoformat() if row['updated_at'] else None
         return jsonify({'status': payload})
 
+    @app.route('/api/admin/summary', methods=['GET'])
+    def admin_summary():
+        """「요약」 탭 — 오늘·어제·최근 7일·전체를 나란히(2026-10-29).
+
+        기준은 대시보드와 같다: 기기 기준·사람 아닌 것 제외, 「내 활동 빼고 보기」(`keep_excluded=1` 이면 포함). 날짜는 대시보드 「오늘」과 같은 서버 시계.
+        신규 가입 = 그 기간에 가입한 계정(탈퇴하지 않은 것).
+        """
+        _, err = guard()
+        if err:
+            return err
+        usage_quota.ensure_tables(get_db)
+        ex_ids, ex_devices = _excluded(get_db)
+        now = datetime.now()
+        today0 = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        spans = [
+            ('today', '오늘', today0, None),
+            ('yesterday', '어제', today0 - timedelta(days=1), today0 - timedelta(seconds=1)),
+            ('week', '최근 7일', today0 - timedelta(days=6), None),
+            ('all', '전체', None, None),
+        ]
+        nd_cond, nd_params = _where('created_at', None, None, ex_ids, ex_devices, device_col='device_id')
+        db = get_db()
+        cursor = db.cursor()
+        out = []
+        try:
+            cursor.execute("SHOW TABLES LIKE 'user_events'")
+            has_events = bool(cursor.fetchone())
+            for key, label, start, end in spans:
+                counts = {'active': 0, 'new': 0, 'returning': 0, 'non_person': 0}
+                if has_events:
+                    ev_cond, ev_params = _where('created_at', start, end, ex_ids, ex_devices, device_col='device_id')
+                    counts = _period_device_counts(cursor, start, end, ev_cond, ev_params, nd_cond, nd_params)
+                u_cond, u_params = "", []
+                if start:
+                    u_cond += " AND created_at >= %s"
+                    u_params.append(start)
+                if end:
+                    u_cond += " AND created_at <= %s"
+                    u_params.append(end)
+                if ex_ids:
+                    u_cond += " AND id NOT IN (" + ",".join(["%s"] * len(ex_ids)) + ")"
+                    u_params.extend(ex_ids)
+                cursor.execute(f"SELECT COUNT(*) AS n FROM users WHERE deleted_at IS NULL{u_cond}", tuple(u_params))
+                counts['signups'] = int((cursor.fetchone() or {}).get('n') or 0)
+                out.append({'key': key, 'label': label, **counts})
+        finally:
+            cursor.close()
+            db.close()
+        return jsonify({
+            'periods': out,
+            'filters': {'excluded_users': len(ex_ids), 'excluded_devices': len(ex_devices)},
+            'today_kst': datetime.now(timezone(timedelta(hours=9))).date().isoformat(),
+        })
+
     @app.route('/api/admin/activity', methods=['GET'])
     def admin_activity():
         """사용자가 어디까지 오고 어디서 멈추는지.
@@ -1343,31 +1426,8 @@ def register(app, get_db):
                     {'date': r['d'].isoformat(), 'platform': r['platform'], 'n': r['n']}
                     for r in cursor.fetchall()
                 ]
-                # 이 기간에 **들어온** 기기(=기간 안에 기록이 있는 기기) = 새로 들어온 기기 + 다시 들어온(예전부터 있던) 기기.
-                # 2026-10-29 사용자 지적: 「오늘」인데 위 「새로 들어온 기기」는 3대, 퍼널 「들어온 사람」은 12대 — 12 = 새 3 + 다시 온 9 를 한 번에 보이게.
-                # 사람 아닌 기기(③)는 기간 안 기록으로 판정해 뺀다(퍼널 맨 앞 칸과 같은 기준).
-                p_new_parts, p_new_params = [], []
-                if start:
-                    p_new_parts.append("f.first_at >= %s")
-                    p_new_params.append(start)
-                if end:
-                    p_new_parts.append("f.first_at <= %s")
-                    p_new_params.append(end)
-                p_new = " AND ".join(p_new_parts) if p_new_parts else "1=1"
-                cursor.execute(
-                    "SELECT COALESCE(SUM(CASE WHEN p.k IS NULL OR p.k <> 'other' THEN 1 ELSE 0 END), 0) AS active, "
-                    f"COALESCE(SUM(CASE WHEN (p.k IS NULL OR p.k <> 'other') AND {p_new} THEN 1 ELSE 0 END), 0) AS new_n, "
-                    "COALESCE(SUM(CASE WHEN p.k = 'other' THEN 1 ELSE 0 END), 0) AS other_n FROM ("
-                    f"  SELECT device_id, {DEVICE_KIND} AS k FROM user_events WHERE device_id IS NOT NULL{ev_cond} GROUP BY device_id"
-                    ") p JOIN ("
-                    f"  SELECT device_id, MIN(created_at) AS first_at FROM user_events WHERE device_id IS NOT NULL{nd_cond} GROUP BY device_id"
-                    ") f ON f.device_id = p.device_id",
-                    tuple(p_new_params) + tuple(ev_params) + tuple(nd_params),
-                )
-                _pd = cursor.fetchone() or {}
-                _active, _new = int(_pd.get('active') or 0), int(_pd.get('new_n') or 0)
-                period_devices = {'active': _active, 'new': _new, 'returning': max(_active - _new, 0),
-                                  'non_person': int(_pd.get('other_n') or 0)}
+                # 이 기간에 **들어온** 기기 = 새로 들어온 + 다시 들어온(+ 사람 아닌 기기 수). 계산은 `_period_device_counts`(요약 탭 표와 공용).
+                period_devices = _period_device_counts(cursor, start, end, ev_cond, ev_params, nd_cond, nd_params)
                 # 지금까지 **누적** — 「다운로드 수가 어디 있나」 에 기간과 상관없이 답하는 숫자(2026-10-17).
                 # 기간 표만 있으면 최근 7일만 보여서 "그래서 전체 몇 대냐" 를 못 읽는다.
                 cursor.execute(

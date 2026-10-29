@@ -2988,95 +2988,88 @@ const PeriodDevicesBox: React.FC<{ pd?: { active: number; new: number; returning
  * 전체 누적은 따로 한눈에 보게).
  */
 const Overview: React.FC = () => {
-  const [act, setAct] = React.useState<any>(null);
+  const [summary, setSummary] = React.useState<any>(null);
   const [data, setData] = React.useState<any>(null);
   const [error, setError] = React.useState<string | null>(null);
-  // 기간·「내 활동 빼고 보기」를 대시보드 탭과 **같은 막대**(StatsBar)로 고른다(2026-10-29 사용자 요청: 요약 탭도 기간 선택, 내 활동 줄이 너무 붙어 있음).
-  // 기본은 「전체」(전체 누적). 기간을 고르면 「고른 기간」 표시가 붙은 카드만 그 기간으로 바뀐다.
-  const [filter, setFilter] = React.useState<StatsFilter>({ range: 'all', from: '', to: '', excludeMine: true });
+  // 「내 활동 빼고 보기」 — 대시보드 탭과 **같은 규칙**: 켜 두면(기본) 사용자 탭에서 표시한 내 계정·기기를 빼고, 끄면 `keep_excluded=1`.
+  const [excludeMine, setExcludeMine] = React.useState(true);
   React.useEffect(() => {
-    const q = filterQuery(filter);
-    const mine = filter.excludeMine ? '' : (q ? '&keep_excluded=1' : '?keep_excluded=1');
-    setAct(null);
-    api(`/api/admin/activity${q}${mine}`).then(setAct).catch(e => setError(e.message));
-  }, [filter]);
-  // 회원 카드는 늘 전체 누적이라 기간과 상관없이 「내 활동」 설정만 따른다.
-  React.useEffect(() => {
+    const q = excludeMine ? '' : '?keep_excluded=1';
+    setSummary(null);
     setData(null);
-    api(`/api/admin/dashboard${filter.excludeMine ? '' : '?keep_excluded=1'}`).then(setData).catch(() => {});
-  }, [filter.excludeMine]);
+    api(`/api/admin/summary${q}`).then(setSummary).catch(e => setError(e.message));
+    api(`/api/admin/dashboard${q}`).then(setData).catch(() => {});
+  }, [excludeMine]);
   if (error) return <div style={S.card}>{error}</div>;
-  const excludeMine = filter.excludeMine;
-  const ranged = filter.range !== 'all';
-  const periodLabel = filter.range === 'custom'
-    ? `${filter.from ? filter.from.slice(5).replace('-', '/') : '처음'} ~ ${filter.to ? filter.to.slice(5).replace('-', '/') : '오늘'}`
-    : (RANGES.find(r => r.key === filter.range)?.label || '전체');
+  // 위·아래 카드와 간격을 둔 카드 안에 둔다(2026-10-29 사용자: 이 줄이 너무 붙어 있음).
   const mineToggle = (
-    <StatsBar
-      value={filter}
-      onChange={setFilter}
-      excludedCount={(act?.filters?.excluded_users ?? data?.filters?.excluded_users) || 0}
-    />
+    <div style={S.card}>
+      <label style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12.5, color: 'var(--ink-700)', cursor: 'pointer' }}>
+        <input type="checkbox" checked={excludeMine} onChange={e => setExcludeMine(e.target.checked)} style={{ width: 16, height: 16 }} />
+        내 활동 빼고 보기
+        <span style={{ color: 'var(--ink-500)' }}>
+          (사용자 탭에서 표시한 {(summary?.filters?.excluded_users ?? data?.filters?.excluded_users) || 0}개 계정)
+        </span>
+      </label>
+    </div>
   );
-  if (!act) return <PeriodContext.Provider value={periodLabel}>{mineToggle}<div style={S.card}>불러오는 중...</div></PeriodContext.Provider>;
+  const head = (
+    <TabRole title="요약 — 지금 어떤 상황인지 한눈에.">
+      오늘·어제·최근 7일·전체를 나란히 보고, 회원 현황을 봐요. 기간을 골라 보는 기기 구성·재방문·퍼널·추이 같은 분석은 「대시보드」에서 해요(같은 숫자는 두 탭이 똑같이 나와요).
+    </TabRole>
+  );
+  if (!summary) return <>{head}{mineToggle}<div style={S.card}>불러오는 중...</div></>;
 
-  const today: string = act.today_kst;
-  const shift = (base: string, offset: number) => {
-    const d = new Date(base + 'T12:00:00Z');
-    d.setUTCDate(d.getUTCDate() + offset);
-    return d.toISOString().slice(0, 10);
-  };
-  const nd: { date: string; platform: string; n: number }[] = act.new_devices || [];
-  // 새로 들어온 기기(그 기기가 처음 기록된 날 기준, 봇·안내만 제외)
-  const sumDays = (from: string, to: string) =>
-    nd.filter(r => r.date >= from && r.date <= to && r.platform !== 'other').reduce((a, r) => a + r.n, 0);
-  const todayN = sumDays(today, today);
-  const yesterdayN = sumDays(shift(today, -1), shift(today, -1));
-  const weekN = sumDays(shift(today, -6), today);
+  const periods: any[] = summary.periods || [];
   const U = data?.users || {};
-  // 기간을 골랐을 때 기기 구성은 그 기간에 **처음 기록된** 기기로 나눈다(서버가 new_devices 를 기간으로 잘라 줌).
-  const ndSum = (pl: string) => nd.filter(r => (pl === 'link' ? r.platform.startsWith('link_') : r.platform === pl)).reduce((a, r) => a + r.n, 0);
-  const rangedTotals: Record<string, number> = {
-    android: ndSum('android'), ios: ndSum('ios'), web: ndSum('web'), unknown: ndSum('unknown'),
-    link_ios: ndSum('link_ios'), link_android: ndSum('link_android'), link_web: ndSum('link_web'), other: ndSum('other'),
-  };
   const mineNote = excludeMine ? '내 계정·기기 제외' : '내 계정·기기 포함';
+  const th: React.CSSProperties = { ...S.th, textAlign: 'right', padding: '8px 4px', fontSize: 10.5 };
+  const rowLabel = (text: string, sub?: string, indent?: boolean) => (
+    <td style={{ ...S.td, whiteSpace: 'normal', paddingLeft: indent ? 14 : 4, paddingRight: 4, fontSize: indent ? 12 : 13, color: indent ? 'var(--ink-700)' : undefined, fontWeight: indent ? 400 : 700 }}>
+      {text}{sub && <div style={{ fontSize: 10.5, color: 'var(--ink-500)', fontWeight: 400 }}>{sub}</div>}
+    </td>
+  );
+  const cell = (v: number, strong?: boolean, sub?: string) => (
+    <td style={{ ...S.td, textAlign: 'right', padding: '9px 4px', fontVariantNumeric: 'tabular-nums', fontWeight: strong ? 800 : 500, fontSize: strong ? 15 : 13 }}>
+      {num(v)}{sub && <div style={{ fontSize: 10, color: 'var(--ink-500)', fontWeight: 400 }}>{sub}</div>}
+    </td>
+  );
+  const row = (label: string, key: string, opts: { strong?: boolean; indent?: boolean; sub?: string } = {}) => (
+    <tr key={label}>
+      {rowLabel(label, opts.sub, opts.indent)}
+      {periods.map(p => cell(p[key] || 0, opts.strong, key === 'new' && p.key === 'week' ? `하루 평균 ${((p.new || 0) / 7).toFixed(1)}` : undefined))}
+    </tr>
+  );
+
   return (
-    <PeriodContext.Provider value={periodLabel}>
-      <TabRole title="요약 — 지금 어떤 상황인지 한눈에.">
-        기본은 처음부터 지금까지 쌓인 전체 현황이에요. 기간을 바꿔 보는 것도 되지만, 일자별 표·퍼널·화면 추이·사람별 활동처럼 원인을 파고드는 분석은 「대시보드」에서 해요.
-      </TabRole>
+    <>
+      {head}
       {mineToggle}
       <div style={S.card}>
-        <h2 style={S.h2}>{ranged ? '쿡매치에 들어온 기기 — 고른 기간' : '쿡매치에 들어온 기기 — 전체 누적'}</h2>
-        {ranged ? (
-          <Range mode="period">위에서 고른 「{periodLabel}」 안의 기록 · {mineNote}</Range>
-        ) : (
-          <Range mode="fixed">서버에 처음 기록된 날부터 지금까지 · {mineNote}</Range>
-        )}
-        {ranged && <PeriodDevicesBox pd={act.period_devices} ranged />}
-        <DeviceBreakdown
-          c={ranged ? rangedTotals : (act.devices_total || {})}
-          title={ranged ? '새로 들어온 기기 합계 (봇·안내만 뺀 것)' : undefined}
-        />
-      </div>
-
-      <RevisitBars hist={act.visit_hist} dayHist={act.day_hist} mode={ranged ? 'period' : 'fixed'}
-        note={ranged
-          ? `위에서 고른 기간 안의 방문 · ${mineNote} · 기기 기준(회원가입 기준 아님) · 사람 아닌 것 제외`
-          : `서버에 처음 기록된 날부터 지금까지 · ${mineNote} · 기기 기준(회원가입 기준 아님) · 사람 아닌 것 제외`} />
-
-      {!ranged && (
-        <div style={S.card}>
-          <h2 style={S.h2}>새로 들어온 기기</h2>
-          <Range mode="fixed">그 기기가 처음 기록된 날 기준 · 봇·안내만 제외 · 기간을 고르면 위 「쿡매치에 들어온 기기」 카드가 그 기간으로 바뀌어요</Range>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <StatTile title="오늘" value={todayN} />
-            <StatTile title="어제" value={yesterdayN} />
-            <StatTile title="최근 7일" value={weekN} sub={`하루 평균 ${(weekN / 7).toFixed(1)}대`} />
-          </div>
+        <h2 style={S.h2}>들어온 기기 — 오늘·어제·최근 7일·전체</h2>
+        <Range mode="fixed">기기 기준(사람 아닌 것 제외) · {mineNote} · 기간을 바꿔 자세히 보려면 「대시보드」 탭</Range>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse' }}>
+            <colgroup><col style={{ width: '34%' }} /><col style={{ width: '15%' }} /><col style={{ width: '15%' }} /><col style={{ width: '18%' }} /><col style={{ width: '18%' }} /></colgroup>
+            <thead>
+              <tr>
+                <th style={{ ...S.th, padding: '8px 10px' }} />
+                {periods.map(p => <th key={p.key} style={th}>{p.label}</th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {row('들어온 기기', 'active', { strong: true, sub: '그 기간에 기록 있는 기기' })}
+              {row('└ 새로 들어온', 'new', { indent: true, sub: '처음 기록된 기기' })}
+              {row('└ 다시 들어온', 'returning', { indent: true, sub: '예전에도 온 기기' })}
+              {row('사람 아닌 기기', 'non_person', { sub: '봇 등(위에서 뺌)' })}
+              {row('신규 가입', 'signups', { strong: true, sub: '그 기간 가입 계정' })}
+            </tbody>
+          </table>
         </div>
-      )}
+        <div style={{ fontSize: 11.5, color: 'var(--ink-500)', marginTop: 8, lineHeight: 1.6 }}>
+          「전체」의 들어온 기기는 처음부터 지금까지의 합계예요. 같은 사람이 폰·PC 로 들어오면 두 기기로 세어요.
+        </div>
+      </div>
 
       <div style={S.card}>
         <h2 style={S.h2}>회원</h2>
@@ -3090,7 +3083,7 @@ const Overview: React.FC = () => {
           </div>
         ) : <div style={{ fontSize: 13, color: 'var(--ink-500)' }}>불러오는 중...</div>}
       </div>
-    </PeriodContext.Provider>
+    </>
   );
 };
 
@@ -3141,7 +3134,7 @@ const Dashboard: React.FC = () => {
       {timeline && <PersonTimeline target={timeline} onClose={() => setTimeline(null)} />}
       {/* 전체 누적 기기 카드는 「요약」 탭으로 옮겼다(2026-10-24). 이 탭은 날짜를 고르는 분석만 둔다. */}
       <TabRole title="대시보드 — 기간을 골라 왜 그런지 파고드는 분석.">
-        일자별 표·퍼널(어디서 멈추나)·화면 추이·크레딧·사람별 활동을 봐요. 지금 상황을 한눈에 보려면 「요약」이 더 빨라요(같은 숫자는 두 탭이 똑같이 나와요).
+        기기 구성(①②③)·몇 번/며칠 들어왔나·일자별 표·퍼널(어디서 멈추나)·화면 추이·크레딧·사람별 활동을 봐요. 「전체」를 고르면 처음부터 지금까지예요. 오늘·어제·최근 7일을 한 줄로 비교하는 건 「요약」이 더 빨라요(같은 숫자는 두 탭이 똑같이 나와요).
       </TabRole>
 
       <StatsBar
