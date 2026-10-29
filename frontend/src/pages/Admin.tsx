@@ -2945,6 +2945,13 @@ const RevisitBars: React.FC<{ hist?: Record<string, number>; dayHist?: Record<st
   );
 };
 
+/** 탭 맨 위 한 줄 — 요약과 대시보드가 같은 카드를 일부 같이 쓰므로, 이 탭을 무엇에 쓰는지 먼저 적어 둔다(2026-10-29 사용자: 두 탭의 역할이 분명치 않음. 항목은 하나도 빼지 않는 조건). */
+const TabRole: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
+  <div style={{ margin: '0 2px 10px', fontSize: 12.5, lineHeight: 1.6, color: 'var(--ink-700)' }}>
+    <b>{title}</b> <span style={{ color: 'var(--ink-500)' }}>{children}</span>
+  </div>
+);
+
 /**
  * 「이 기간에 들어온 기기 = 새로 들어온 + 다시 들어온」 박스(2026-10-29 사용자 지적: 오늘인데 퍼널 「들어온 사람」 12 vs 「새로 들어온 기기」 3).
  * 들어온 기기 = 그 기간에 기록이 있는 기기(퍼널 맨 앞 칸과 같은 숫자). 사람 아닌 기기(링크 미리보기 봇 등)는 따로 보여 준다.
@@ -3036,6 +3043,9 @@ const Overview: React.FC = () => {
   const mineNote = excludeMine ? '내 계정·기기 제외' : '내 계정·기기 포함';
   return (
     <PeriodContext.Provider value={periodLabel}>
+      <TabRole title="요약 — 지금 어떤 상황인지 한눈에.">
+        기본은 처음부터 지금까지 쌓인 전체 현황이에요. 기간을 바꿔 보는 것도 되지만, 일자별 표·퍼널·화면 추이·사람별 활동처럼 원인을 파고드는 분석은 「대시보드」에서 해요.
+      </TabRole>
       {mineToggle}
       <div style={S.card}>
         <h2 style={S.h2}>{ranged ? '쿡매치에 들어온 기기 — 고른 기간' : '쿡매치에 들어온 기기 — 전체 누적'}</h2>
@@ -3130,6 +3140,9 @@ const Dashboard: React.FC = () => {
     <PeriodContext.Provider value={periodLabel}>
       {timeline && <PersonTimeline target={timeline} onClose={() => setTimeline(null)} />}
       {/* 전체 누적 기기 카드는 「요약」 탭으로 옮겼다(2026-10-24). 이 탭은 날짜를 고르는 분석만 둔다. */}
+      <TabRole title="대시보드 — 기간을 골라 왜 그런지 파고드는 분석.">
+        일자별 표·퍼널(어디서 멈추나)·화면 추이·크레딧·사람별 활동을 봐요. 지금 상황을 한눈에 보려면 「요약」이 더 빨라요(같은 숫자는 두 탭이 똑같이 나와요).
+      </TabRole>
 
       <StatsBar
         value={filter}
