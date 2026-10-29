@@ -52,6 +52,9 @@ ALLOWED = {
     "cta_dismiss",      # 취소·나중에·X 로 닫았다
     # 비회원 냉장고 편집(서버는 로그인 사용자의 재료만 알기 때문에 앱이 보낸다). detail: manual / photo / seed_trim
     "fridge_edit",
+    # 다운로드 페이지(/download)에서 스토어로 넘어간 것(2026-10-29). detail: app_store / play_store / web 은 버튼을 누른 것,
+    # app_store_auto / play_store_auto 는 휴대폰이라 스토어로 바로 넘긴 것. 유입(source)과 함께 본다.
+    "store_click",
 }
 
 # recipe_action 의 detail 값. 서버가 남기는 것(favorite_*/complete_*/record_*)과

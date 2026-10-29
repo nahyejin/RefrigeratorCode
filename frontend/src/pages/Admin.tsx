@@ -2138,6 +2138,15 @@ function describeEvent(e: any): { text: string; kind: 'screen' | 'act' | 'cta' |
     case 'chat_use': return { text: d ? `챗봇·AI 질문 (${d})` : '챗봇에 질문', kind: 'ai' };
     case 'vision_use': return { text: `사진으로 재료 인식${d ? ` (${d})` : ''}`, kind: 'ai' };
     case 'coupang_click': return { text: '쿠팡 링크를 눌렀어요', kind: 'act' };
+    case 'store_click': return {
+      text: d === 'app_store' ? '다운로드 화면에서 [App Store]를 눌렀어요'
+        : d === 'play_store' ? '다운로드 화면에서 [Google Play]를 눌렀어요'
+        : d === 'web' ? '다운로드 화면에서 [웹에서 바로 시작하기]를 눌렀어요'
+        : d === 'app_store_auto' ? 'App Store로 바로 넘어갔어요 (아이폰)'
+        : d === 'play_store_auto' ? 'Google Play로 바로 넘어갔어요 (안드로이드)'
+        : `다운로드 화면 이동 (${d || '?'})`,
+      kind: 'act',
+    };
     case 'signup': return { text: `가입 완료 (${TL_PROVIDER[d || ''] || d || '?'})`, kind: 'auth' };
     case 'login': return { text: `로그인 (${TL_PROVIDER[d || ''] || d || '?'})`, kind: 'auth' };
     case 'cta_view': return { text: `「${TL_CTA[d || ''] || d}」 팝업이 떴어요`, kind: 'cta' };
