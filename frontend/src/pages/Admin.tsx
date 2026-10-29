@@ -91,6 +91,8 @@ const ADMIN_TABLE_CSS = `
    떠 보였다(2026-10-29 사용자). 어드민에서는 끈다 — 이 스타일이 index.css 보다 뒤에 들어가 같은 세기에서 이긴다. */
 div select { z-index: auto !important; }
 .adm-scroll { overflow: auto; max-height: min(60vh, 520px); -webkit-overflow-scrolling: touch; }
+/* 줄 수가 정해진 짧은 표(어디서 들어왔나)는 높이를 자르지 않는다 — 옆으로 밀기만(2026-10-29 사용자) */
+.adm-scroll.adm-full { max-height: none; }
 .adm-scroll > table { border-collapse: separate !important; border-spacing: 0; }
 .adm-scroll thead th { position: sticky; top: 0; z-index: 2; background: var(--surface); }
 .adm-scroll tfoot td, .adm-scroll tfoot th { position: sticky; bottom: 0; z-index: 2; background: var(--surface-sub); }
@@ -3545,7 +3547,7 @@ const Dashboard: React.FC = () => {
                       합친 줄의 사람 수는 아래 줄을 더한 값이라, 같은 기기가 두 줄에 있으면 겹쳐 셀 수 있어요.
                     </div>
                     <div style={{ overflowX: 'auto' }}>
-                      <div className="adm-scroll"><table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 780 }}>
+                      <div className="adm-scroll adm-full"><table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 780 }}>
                         <thead><tr>{cols.map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
                         <tbody>
                           {groupSources(act.sources).map((r: any) => {
