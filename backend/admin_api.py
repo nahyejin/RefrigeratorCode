@@ -1133,18 +1133,22 @@ def register(app, get_db):
             # 맨 앞 칸 「방문」 — 가입 전에 앱·웹을 열어 본 사람(비회원 포함). 2026-10-12 사용자 요청:
             # 가입부터 세면 광고로 들어온 사람 중 몇 명이 가입까지 갔는지(= 가장 큰 이탈)가 안 보인다.
             # 사람 = 로그인했으면 계정, 아니면 기기. 기간 필터와 내 계정·기기 제외가 그대로 걸린다.
+            #
+            # ⚠️ 2026-10-29 기준 통일(사용자 지적: 위쪽 「들어온 기기 합계」 296/299 와 이 칸 408 이 다름). 예전엔 「로그인했으면 계정, 아니면 기기」로 세서
+            # 같은 사람이 가입 전 기기·가입 후 계정으로 두 번 잡히고, 약관만 열어 본 심사·봇(③)도 들어 있었다. 이제 위 합계와 같은 **기기 기준·사람 아닌 것 제외**.
             visits = 0
             cursor.execute("SHOW TABLES LIKE 'user_events'")
             if cursor.fetchone():
                 cursor.execute(
-                    "SELECT COUNT(*) n FROM (SELECT COALESCE(CONCAT('u', user_id), CONCAT('d', device_id)) who "
-                    f"FROM user_events WHERE 1=1{ev_cond} GROUP BY who HAVING who IS NOT NULL) x",
+                    f"SELECT COUNT(*) n FROM (SELECT device_id, {DEVICE_KIND} AS k "
+                    f"FROM user_events WHERE device_id IS NOT NULL{ev_cond} GROUP BY device_id) x "
+                    "WHERE k IS NULL OR k <> 'other'",
                     tuple(ev_params),
                 )
                 visits = cursor.fetchone()['n'] or 0
 
             steps = [
-                ('들어온 사람', visits, '앱이나 웹을 열어 기록이 남은 사람(비회원 포함, 기기 기준)'),
+                ('들어온 사람', visits, '앱이나 웹을 열어 기록이 남은 기기(비회원 포함, 사람 아닌 것 제외 — 위 「들어온 기기 합계」와 같은 기준)'),
                 ('가입한 사람', total, '탈퇴하지 않은 계정'),
                 ('재료 담은 사람', count(
                     "SELECT COUNT(DISTINCT i.user_id) n FROM user_ingredients i "
@@ -1284,6 +1288,9 @@ def register(app, get_db):
                     tuple(ev_params),
                 )
                 visit_hist = {str(r['b']): int(r['n']) for r in cursor.fetchall()}
+                # 「사람 N명 · 두 번 이상 온 N명」 줄도 같은 기준(기기·사람 아닌 것 제외)으로 맞춘다(2026-10-29).
+                sessions['people'] = sum(visit_hist.values())
+                sessions['returning'] = sum(n for b, n in visit_hist.items() if int(b) >= 2)
                 # 같은 기기가 **며칠에 걸쳐** 들어왔나(2026-10-25 사용자 요청 추가). 하루에 여러 번 열어도 하루로 센다.
                 cursor.execute(
                     "SELECT LEAST(v, 10) AS b, COUNT(*) AS n FROM ("

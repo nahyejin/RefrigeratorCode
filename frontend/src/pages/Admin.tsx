@@ -3283,8 +3283,8 @@ const Dashboard: React.FC = () => {
                   : `화면 기록을 켠 뒤 전부 · ${spanOf(AP.events_from, AP.events_to)}`}
               </Range>
               <div style={{ fontSize: 12, color: 'var(--ink-500)', marginBottom: 12, lineHeight: 1.6 }}>
-                방문 {act.sessions?.total ?? 0}회 · 사람 {act.sessions?.people ?? 0}명 ·
-                두 번 이상 온 사람 <b>{act.sessions?.returning ?? 0}명</b>
+                방문 {act.sessions?.total ?? 0}회 · 기기 {act.sessions?.people ?? 0}대(사람 아닌 것 제외) ·
+                두 번 이상 온 기기 <b>{act.sessions?.returning ?? 0}대</b>
                 {(act.sessions?.people ?? 0) > 0 &&
                   ' (' + Math.round(((act.sessions?.returning ?? 0) / act.sessions.people) * 100) + '%)'}
               </div>
