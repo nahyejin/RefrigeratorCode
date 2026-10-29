@@ -1493,7 +1493,10 @@ def register(app, get_db):
                            COUNT(DISTINCT COALESCE(CONCAT('u', e.user_id),
                                                    CONCAT('d', e.device_id))) people,
                            SUM(e.name = 'screen_view') views,
+                           -- 재료 담기: 회원은 서버 기록(ingredient_add), 비회원은 앱이 보낸 fridge_edit(직접·사진)로 센다.
+                           -- 비회원 기록은 2026-10-22 부터 있고, 팝업에서 빼기(seed_trim)는 담기가 아니라 뺀다.
                            COUNT(DISTINCT CASE WHEN e.name = 'ingredient_add'
+                                                 OR (e.name = 'fridge_edit' AND e.detail IN ('manual', 'photo'))
                                                THEN e.session_id END) added,
                            COUNT(DISTINCT CASE WHEN e.name IN ('vision_use', 'chat_use')
                                                THEN e.session_id END) ai,
@@ -1720,10 +1723,11 @@ def register(app, get_db):
                            SUM(name = 'cta_view') views,
                            SUM(name = 'cta_click') clicks,
                            SUM(name = 'cta_dismiss') dismisses,
+                           SUM(name = 'cta_start') starts,
                            COUNT(DISTINCT CASE WHEN name = 'cta_view'
                                  THEN COALESCE(CAST(user_id AS CHAR), device_id) END) viewers
                     FROM user_events
-                    WHERE name IN ('cta_view', 'cta_click', 'cta_dismiss')""" + ev_cond + """
+                    WHERE name IN ('cta_view', 'cta_click', 'cta_dismiss', 'cta_start')""" + ev_cond + """
                     GROUP BY detail
                     ORDER BY views DESC
                     """,
@@ -1731,7 +1735,7 @@ def register(app, get_db):
                 )
                 cta = cursor.fetchall()
                 for r in cta:
-                    for k in ('views', 'clicks', 'dismisses', 'viewers'):
+                    for k in ('views', 'clicks', 'dismisses', 'starts', 'viewers'):
                         r[k] = int(r[k] or 0)
                 cursor.execute(
                     """

@@ -2119,7 +2119,7 @@ const TL_PLATFORM: Record<string, string> = { android: '안드로이드', ios: '
 const TL_PROVIDER: Record<string, string> = { kakao: '카카오', naver: '네이버', google: '구글', apple: '애플', local: '이메일' };
 const TL_CTA: Record<string, string> = {
   ingredient_limit: '재료 3개 한도', favorite_limit: '즐겨찾기 3개 한도', write_limit: '기록 3개 한도',
-  done_limit: '완료 3개 한도', ai_out: 'AI 체험 소진', return_visit: '두 번째 방문',
+  done_limit: '완료 3개 한도', ai_out: 'AI 체험 소진', return_visit: '두 번째 방문', welcome: '첫 시작(기본 재료)',
 };
 const TL_ACTION: Record<string, string> = {
   favorite_add: '즐겨찾기 추가', favorite_remove: '즐겨찾기 취소', complete_add: '완료 추가', complete_remove: '완료 취소',
@@ -2154,6 +2154,7 @@ function describeEvent(e: any): { text: string; kind: 'screen' | 'act' | 'cta' |
     case 'cta_view': return { text: `「${TL_CTA[d || ''] || d}」 팝업이 떴어요`, kind: 'cta' };
     case 'cta_click': return { text: `「${TL_CTA[d || ''] || d}」 팝업에서 [로그인하기]를 눌렀어요`, kind: 'cta' };
     case 'cta_dismiss': return { text: `「${TL_CTA[d || ''] || d}」 팝업을 닫았어요`, kind: 'cta' };
+    case 'cta_start': return { text: `「${TL_CTA[d || ''] || d}」 팝업에서 [이대로 시작]을 눌렀어요 (로그인 없이)`, kind: 'cta' };
     case 'fridge_edit': return {
       text: d === 'photo' ? '재료를 사진으로 담았어요 (비회원)' : d === 'seed_trim' ? '기본 재료에서 없는 재료를 뺐어요 (비회원)' : '재료를 직접 담았어요 (비회원)',
       kind: 'act',
@@ -3543,6 +3544,9 @@ const Dashboard: React.FC = () => {
                       <br />
                       표가 넓어서 폰에서는 <b>표를 옆으로 밀어야</b> 오른쪽 숫자(재료 담은 방문·가입한 방문 등)가 보여요.
                       <br />
+                      <b>재료 담은 방문</b>은 회원의 재료 담기와 비회원의 직접·사진 담기를 함께 센 값이에요
+                      (비회원 기록은 10/22부터라 그 전 방문은 0으로 나와요. 팝업에서 기본 재료를 빼는 건 담기에 안 세요).
+                      <br />
                       <b>인스타그램·스레드·포트폴리오·이력서</b>는 이름이 둘 이상이면 <b>합친 줄</b> 아래에 계정·링크별로 나뉘어 보여요.
                       합친 줄의 사람 수는 아래 줄을 더한 값이라, 같은 기기가 두 줄에 있으면 겹쳐 셀 수 있어요.
                     </div>
@@ -3717,6 +3721,7 @@ const Dashboard: React.FC = () => {
             const CTA_LABEL: Record<string, string> = {
               ingredient_limit: '재료 3개 한도', favorite_limit: '즐겨찾기 3개 한도', write_limit: '기록 3개 한도',
               done_limit: '완료 3개 한도', ai_out: 'AI 체험 소진', return_visit: '두 번째 방문',
+              welcome: '첫 시작(기본 재료 고르기)',
             };
             const cta: any[] = act.cta || [];
             const signupAfter: any[] = act.signup_after_cta || [];
@@ -3728,13 +3733,14 @@ const Dashboard: React.FC = () => {
                   <h2 style={{ ...S.h2, margin: 0 }}>가입 유도 팝업</h2>
                   <div style={{ fontSize: 12, color: '#6A6A73', margin: '4px 0 10px', lineHeight: 1.6 }}>
                     {filterSpan} · 앱에 이 팝업이 들어간 새 버전부터 쌓입니다. 「누름」은 [로그인하기]를 누른 횟수, 「닫음」은 취소·나중에·X.
+                    「첫 시작(기본 재료 고르기)」은 처음 앱을 열면 뜨는 팝업이에요 — 「누름」=[로그인하고 시작], 「그냥 시작」=[이대로 시작], 「닫음」=X. 새 앱 빌드부터 쌓여요.
                   </div>
                   {cta.length === 0 ? (
                     <div style={{ fontSize: 13, color: '#6A6A73' }}>아직 기록이 없어요.</div>
                   ) : (
                     <div style={{ overflowX: 'auto' }}>
                       <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 360 }}>
-                        <thead><tr>{['팝업', '본 사람', '뜬 횟수', '누름', '닫음', '누른 비율'].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
+                        <thead><tr>{['팝업', '본 사람', '뜬 횟수', '누름', '그냥 시작', '닫음', '누른 비율'].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
                         <tbody>
                           {cta.map(r => (
                             <tr key={r.tag}>
@@ -3742,6 +3748,7 @@ const Dashboard: React.FC = () => {
                               <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums' }}>{num(r.viewers)}</td>
                               <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums' }}>{num(r.views)}</td>
                               <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums', fontWeight: 700 }}>{num(r.clicks)}</td>
+                              <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums' }}>{r.tag === 'welcome' ? num(r.starts) : '-'}</td>
                               <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums' }}>{num(r.dismisses)}</td>
                               <td style={{ ...S.td, fontVariantNumeric: 'tabular-nums' }}>{r.views ? `${Math.round((r.clicks / r.views) * 100)}%` : '-'}</td>
                             </tr>
