@@ -233,17 +233,48 @@ IMAGE_TAIL = "9:16 세로(1080×1920) 사진으로."
 
 
 def clip_prompt(c, no_line=False):
-    beats = "\n".join(beat_line(i + 1, b, no_line) for i, b in enumerate(c["beats"]))
-    summary = c["summary"] + (" 대사 없이 표정과 동작만으로, 말소리는 없다." if no_line else "")
+    """사진을 먼저 만들고 그 사진으로 영상을 뽑는다(2026-10-29 사용자):
+    · 장소·인물 묘사는 사진에 이미 있으니 영상 프롬프트에서는 뺀다 — 앞에 묘사가 길면 대본이 묻혀 대사가 꼬인다.
+    · 동작과 대사를 위아래로 오가며 맞춰 보지 않게, 한 줄 = 시간 · 누가 · 동작 → 그 사람 대사 로 한 번에 적는다.
+    · 맨 위에 대본, 아래에 짧은 지킬 것. 대사 횟수를 대본 머리에 적는다."""
+    who_order, seen = [], set()
+    for b in c["beats"]:
+        if b[1] not in seen:
+            seen.add(b[1]); who_order.append(b[1])
+    def short(who):
+        g = gender(who)
+        name, _, rest = who.partition("(")
+        return f"{g or name} = {name}{(' · ' + rest.rstrip(')')) if rest else ''}"
+    # 같은 사람(성별)은 한 번만
+    cast, gs = [], set()
+    for w in who_order:
+        g = gender(w) or w
+        if g not in gs:
+            gs.add(g); cast.append(short(w))
+    spoken = [b for b in c["beats"] if b[3]]
+    turns = " → ".join(f"{gender(b[1]) or b[1]} 한 번" for b in spoken)
+    lines = []
+    for i, (t, who, act, line, tone) in enumerate(c["beats"], 1):
+        g = gender(who) or who
+        act = act.replace("이 줄의 말은 처음부터 끝까지 아내 혼자 한다.", "").replace("이 줄의 말은 처음부터 끝까지 남편 혼자 한다.", "") \
+                 .replace("이 줄의 말은 남편 혼자 한다.", "").replace("이 줄의 말은 아내 혼자 한다.", "").strip()
+        if line and not no_line:
+            lines.append(f"{i}) {t} · {g}: {act}\n   {g}: \"{line}\" ({tone})")
+        else:
+            lines.append(f"{i}) {t} · {g}: {act} (말 없음)")
+    head = (f"대본 — 위에서 아래로 한 번씩. 대사는 딱 {len(spoken)}마디({turns})." if spoken and not no_line
+            else "대본 — 위에서 아래로 한 번씩. 대사 없이 표정과 동작만, 말소리는 없다.")
+    rules = ["지킬 것"]
+    if spoken and not no_line:
+        rules += ["- 대사는 위에 적힌 것뿐이다. 한 마디는 한 사람이 처음부터 끝까지 말하고, 그동안 다른 사람은 입을 꾹 다문다. 「말 없음」 줄에는 아무도 말하지 않는다.",
+                  "- 여자 대사는 여자 목소리, 남자 대사는 낮은 남자 목소리. 서울말 반말, 괄호 속 말투대로 자연스럽게."]
+    rules += ["- 사람·옷·장소·물건은 첨부한 사진 그대로. 사진에 없는 물건은 생기지 않고, 손에 든 물건은 끝까지 그 손에 있다. 손가락은 다섯 개.",
+              "- 화면은 처음부터 끝까지 고정(흔들림·확대·이동 없음). 화면에 자막·글자 없음. 방 안 소리와 대사만, 음악 없음."]
     return "\n\n".join([
-        HEAD,
-        f"[한 줄 요약]\n{summary}",
-        RULES,
-        f"[등장인물]\n{c['cast']}",
-        f"[장소 — 처음 모습]\n{c['place']}",
-        f"[장면 순서 — 위에서 아래로, 이 순서대로 한 번씩]\n{beats}",
-        f"[마지막 장면]\n{c['last']}",
-        TAIL,
+        "첨부한 사진을 첫 장면으로, 그대로 이어지는 약 8초짜리 9:16 세로 영상을 만들어 줘.",
+        "등장인물: " + ", ".join(cast),
+        head + "\n" + "\n".join(lines) + f"\n끝 장면: {c['last']}",
+        "\n".join(rules),
     ])
 
 
