@@ -2946,6 +2946,37 @@ const RevisitBars: React.FC<{ hist?: Record<string, number>; dayHist?: Record<st
 };
 
 /**
+ * 「이 기간에 들어온 기기 = 새로 들어온 + 다시 들어온」 박스(2026-10-29 사용자 지적: 오늘인데 퍼널 「들어온 사람」 12 vs 「새로 들어온 기기」 3).
+ * 들어온 기기 = 그 기간에 기록이 있는 기기(퍼널 맨 앞 칸과 같은 숫자). 사람 아닌 기기(링크 미리보기 봇 등)는 따로 보여 준다.
+ * 대시보드와 요약 탭이 함께 쓴다.
+ */
+const PeriodDevicesBox: React.FC<{ pd?: { active: number; new: number; returning: number; non_person?: number }; ranged: boolean; showFunnelNote?: boolean }> = ({ pd, ranged, showFunnelNote }) => {
+  if (!pd) return null;
+  return (
+    <div style={{ margin: '0 0 12px', padding: '10px 12px', borderRadius: 12, background: 'var(--surface-sub)', border: '1px solid var(--line-200)' }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 12.5, color: 'var(--ink-500)', fontWeight: 600 }}>{ranged ? '이 기간에 들어온 기기' : '들어온 기기'}(사람, 기록이 있는 기기)</span>
+        <span style={{ fontSize: 30, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{num(pd.active)}대</span>
+      </div>
+      <div style={{ fontSize: 13, marginTop: 2 }}>
+        = <b>새로 들어온 {num(pd.new)}대</b> <span style={{ color: 'var(--ink-500)' }}>(처음 기록된 기기)</span>
+        {' + '}<b>다시 들어온 {num(pd.returning)}대</b> <span style={{ color: 'var(--ink-500)' }}>(예전에 온 적 있는 기기)</span>
+      </div>
+      {(pd.non_person ?? 0) > 0 && (
+        <div style={{ fontSize: 12, marginTop: 4, color: 'var(--ink-700)' }}>
+          이 밖에 <b>사람 아닌 기기 {num(pd.non_person ?? 0)}대</b>가 더 기록됐어요(링크 미리보기 봇·약관만 열어 본 기기 등) — 위 숫자와 퍼널에서는 뺐어요.
+        </div>
+      )}
+      {showFunnelNote && (
+        <div style={{ fontSize: 11.5, color: 'var(--ink-500)', marginTop: 4, lineHeight: 1.5 }}>
+          아래 「어디까지 오고 어디서 멈추나」의 「들어온 사람」이 이 숫자예요. 아래 칸들은 이 중 <b>새로 들어온 기기</b>만 나눠 보여 줘요.
+        </div>
+      )}
+    </div>
+  );
+};
+
+/**
  * 「요약」 탭 — 기간과 상관없이 지금까지의 전반적인 숫자만 카드로(2026-10-24 사용자 요청: 일자별 분석은 대시보드 탭에 두고,
  * 전체 누적은 따로 한눈에 보게).
  */
@@ -2953,33 +2984,34 @@ const Overview: React.FC = () => {
   const [act, setAct] = React.useState<any>(null);
   const [data, setData] = React.useState<any>(null);
   const [error, setError] = React.useState<string | null>(null);
-  // 「내 활동 빼고 보기」 — 대시보드 탭과 **같은 규칙**(2026-10-24 사용자 요청): 켜 두면(기본) 사용자 탭에서 표시한 내 계정·기기를
-  // 빼고, 끄면 서버에 `keep_excluded=1` 을 보내 그대로 센다.
-  const [excludeMine, setExcludeMine] = React.useState(true);
+  // 기간·「내 활동 빼고 보기」를 대시보드 탭과 **같은 막대**(StatsBar)로 고른다(2026-10-29 사용자 요청: 요약 탭도 기간 선택, 내 활동 줄이 너무 붙어 있음).
+  // 기본은 「전체」(전체 누적). 기간을 고르면 「고른 기간」 표시가 붙은 카드만 그 기간으로 바뀐다.
+  const [filter, setFilter] = React.useState<StatsFilter>({ range: 'all', from: '', to: '', excludeMine: true });
   React.useEffect(() => {
-    const q = excludeMine ? '' : '?keep_excluded=1';
+    const q = filterQuery(filter);
+    const mine = filter.excludeMine ? '' : (q ? '&keep_excluded=1' : '?keep_excluded=1');
     setAct(null);
+    api(`/api/admin/activity${q}${mine}`).then(setAct).catch(e => setError(e.message));
+  }, [filter]);
+  // 회원 카드는 늘 전체 누적이라 기간과 상관없이 「내 활동」 설정만 따른다.
+  React.useEffect(() => {
     setData(null);
-    api(`/api/admin/activity${q}`).then(setAct).catch(e => setError(e.message));
-    api(`/api/admin/dashboard${q}`).then(setData).catch(() => {});
-  }, [excludeMine]);
+    api(`/api/admin/dashboard${filter.excludeMine ? '' : '?keep_excluded=1'}`).then(setData).catch(() => {});
+  }, [filter.excludeMine]);
   if (error) return <div style={S.card}>{error}</div>;
+  const excludeMine = filter.excludeMine;
+  const ranged = filter.range !== 'all';
+  const periodLabel = filter.range === 'custom'
+    ? `${filter.from ? filter.from.slice(5).replace('-', '/') : '처음'} ~ ${filter.to ? filter.to.slice(5).replace('-', '/') : '오늘'}`
+    : (RANGES.find(r => r.key === filter.range)?.label || '전체');
   const mineToggle = (
-    <label style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12.5, color: 'var(--ink-700)', cursor: 'pointer',
-                    background: 'var(--surface)', border: '1px solid var(--line-200)', borderRadius: 12, padding: '10px 14px' }}>
-      <input
-        type="checkbox"
-        checked={excludeMine}
-        onChange={e => setExcludeMine(e.target.checked)}
-        style={{ width: 16, height: 16 }}
-      />
-      내 활동 빼고 보기
-      <span style={{ color: 'var(--ink-500)' }}>
-        (사용자 탭에서 표시한 {(act?.filters?.excluded_users ?? data?.filters?.excluded_users) || 0}개 계정)
-      </span>
-    </label>
+    <StatsBar
+      value={filter}
+      onChange={setFilter}
+      excludedCount={(act?.filters?.excluded_users ?? data?.filters?.excluded_users) || 0}
+    />
   );
-  if (!act) return <>{mineToggle}<div style={S.card}>불러오는 중...</div></>;
+  if (!act) return <PeriodContext.Provider value={periodLabel}>{mineToggle}<div style={S.card}>불러오는 중...</div></PeriodContext.Provider>;
 
   const today: string = act.today_kst;
   const shift = (base: string, offset: number) => {
@@ -2995,26 +3027,46 @@ const Overview: React.FC = () => {
   const yesterdayN = sumDays(shift(today, -1), shift(today, -1));
   const weekN = sumDays(shift(today, -6), today);
   const U = data?.users || {};
+  // 기간을 골랐을 때 기기 구성은 그 기간에 **처음 기록된** 기기로 나눈다(서버가 new_devices 를 기간으로 잘라 줌).
+  const ndSum = (pl: string) => nd.filter(r => (pl === 'link' ? r.platform.startsWith('link_') : r.platform === pl)).reduce((a, r) => a + r.n, 0);
+  const rangedTotals: Record<string, number> = {
+    android: ndSum('android'), ios: ndSum('ios'), web: ndSum('web'), unknown: ndSum('unknown'),
+    link_ios: ndSum('link_ios'), link_android: ndSum('link_android'), link_web: ndSum('link_web'), other: ndSum('other'),
+  };
+  const mineNote = excludeMine ? '내 계정·기기 제외' : '내 계정·기기 포함';
   return (
-    <>
+    <PeriodContext.Provider value={periodLabel}>
       {mineToggle}
       <div style={S.card}>
-        <h2 style={S.h2}>쿡매치에 들어온 기기 — 전체 누적</h2>
-        <Range mode="fixed">서버에 처음 기록된 날부터 지금까지 · {excludeMine ? '내 계정·기기 제외' : '내 계정·기기 포함'}</Range>
-        <DeviceBreakdown c={act.devices_total || {}} />
+        <h2 style={S.h2}>{ranged ? '쿡매치에 들어온 기기 — 고른 기간' : '쿡매치에 들어온 기기 — 전체 누적'}</h2>
+        {ranged ? (
+          <Range mode="period">위에서 고른 「{periodLabel}」 안의 기록 · {mineNote}</Range>
+        ) : (
+          <Range mode="fixed">서버에 처음 기록된 날부터 지금까지 · {mineNote}</Range>
+        )}
+        {ranged && <PeriodDevicesBox pd={act.period_devices} ranged />}
+        <DeviceBreakdown
+          c={ranged ? rangedTotals : (act.devices_total || {})}
+          title={ranged ? '새로 들어온 기기 합계 (봇·안내만 뺀 것)' : undefined}
+        />
       </div>
 
-      <RevisitBars hist={act.visit_hist} dayHist={act.day_hist} note={`서버에 처음 기록된 날부터 지금까지 · ${excludeMine ? '내 계정·기기 제외' : '내 계정·기기 포함'} · 기기 기준(회원가입 기준 아님) · 사람 아닌 것 제외`} />
+      <RevisitBars hist={act.visit_hist} dayHist={act.day_hist} mode={ranged ? 'period' : 'fixed'}
+        note={ranged
+          ? `위에서 고른 기간 안의 방문 · ${mineNote} · 기기 기준(회원가입 기준 아님) · 사람 아닌 것 제외`
+          : `서버에 처음 기록된 날부터 지금까지 · ${mineNote} · 기기 기준(회원가입 기준 아님) · 사람 아닌 것 제외`} />
 
-      <div style={S.card}>
-        <h2 style={S.h2}>새로 들어온 기기</h2>
-        <Range mode="fixed">그 기기가 처음 기록된 날 기준 · 봇·안내만 제외 · 기간별 자세한 표는 「대시보드」 탭</Range>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <StatTile title="오늘" value={todayN} />
-          <StatTile title="어제" value={yesterdayN} />
-          <StatTile title="최근 7일" value={weekN} sub={`하루 평균 ${(weekN / 7).toFixed(1)}대`} />
+      {!ranged && (
+        <div style={S.card}>
+          <h2 style={S.h2}>새로 들어온 기기</h2>
+          <Range mode="fixed">그 기기가 처음 기록된 날 기준 · 봇·안내만 제외 · 기간을 고르면 위 「쿡매치에 들어온 기기」 카드가 그 기간으로 바뀌어요</Range>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <StatTile title="오늘" value={todayN} />
+            <StatTile title="어제" value={yesterdayN} />
+            <StatTile title="최근 7일" value={weekN} sub={`하루 평균 ${(weekN / 7).toFixed(1)}대`} />
+          </div>
         </div>
-      </div>
+      )}
 
       <div style={S.card}>
         <h2 style={S.h2}>회원</h2>
@@ -3028,7 +3080,7 @@ const Overview: React.FC = () => {
           </div>
         ) : <div style={{ fontSize: 13, color: 'var(--ink-500)' }}>불러오는 중...</div>}
       </div>
-    </>
+    </PeriodContext.Provider>
   );
 };
 
@@ -3136,21 +3188,7 @@ const Dashboard: React.FC = () => {
                     <div style={{ margin: '4px 0 6px' }}>
                       <Range inline mode="period">{ranged ? '이 기간에 처음 기록된 기기(기간 안에서 처음 기록된 날 기준)' : '「전체」 = 처음 기록된 날부터 지금까지'}</Range>
                     </div>
-                    {act.period_devices && (
-                      <div style={{ margin: '0 0 12px', padding: '10px 12px', borderRadius: 12, background: 'var(--surface-sub)', border: '1px solid var(--line-200)' }}>
-                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
-                          <span style={{ fontSize: 12.5, color: 'var(--ink-500)', fontWeight: 600 }}>{ranged ? '이 기간에 들어온 기기' : '들어온 기기'}(기록이 있는 기기)</span>
-                          <span style={{ fontSize: 30, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{num(act.period_devices.active)}대</span>
-                        </div>
-                        <div style={{ fontSize: 13, marginTop: 2 }}>
-                          = <b>새로 들어온 {num(act.period_devices.new)}대</b> <span style={{ color: 'var(--ink-500)' }}>(처음 기록된 기기)</span>
-                          {' + '}<b>다시 들어온 {num(act.period_devices.returning)}대</b> <span style={{ color: 'var(--ink-500)' }}>(예전에 온 적 있는 기기)</span>
-                        </div>
-                        <div style={{ fontSize: 11.5, color: 'var(--ink-500)', marginTop: 4, lineHeight: 1.5 }}>
-                          아래 「어디까지 오고 어디서 멈추나」의 「들어온 사람」이 이 숫자예요. 아래 칸들은 이 중 <b>새로 들어온 기기</b>만 나눠 보여 줘요.
-                        </div>
-                      </div>
-                    )}
+                    <PeriodDevicesBox pd={act.period_devices} ranged={ranged} showFunnelNote />
                     <div style={{ margin: '0 0 12px' }}>
                       <DeviceBreakdown
                         title="새로 들어온 기기 합계 (봇·안내만 뺀 것)"

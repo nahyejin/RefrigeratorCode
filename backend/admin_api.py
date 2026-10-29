@@ -1227,7 +1227,7 @@ def register(app, get_db):
             devices_total = {}
             visit_hist = {}
             day_hist = {}
-            period_devices = {'active': 0, 'new': 0, 'returning': 0}
+            period_devices = {'active': 0, 'new': 0, 'returning': 0, 'non_person': 0}
             cursor.execute("SHOW TABLES LIKE 'user_events'")
             if cursor.fetchone():
                 cursor.execute(
@@ -1355,16 +1355,19 @@ def register(app, get_db):
                     p_new_params.append(end)
                 p_new = " AND ".join(p_new_parts) if p_new_parts else "1=1"
                 cursor.execute(
-                    f"SELECT COUNT(*) AS active, COALESCE(SUM(CASE WHEN {p_new} THEN 1 ELSE 0 END), 0) AS new_n FROM ("
+                    "SELECT COALESCE(SUM(CASE WHEN p.k IS NULL OR p.k <> 'other' THEN 1 ELSE 0 END), 0) AS active, "
+                    f"COALESCE(SUM(CASE WHEN (p.k IS NULL OR p.k <> 'other') AND {p_new} THEN 1 ELSE 0 END), 0) AS new_n, "
+                    "COALESCE(SUM(CASE WHEN p.k = 'other' THEN 1 ELSE 0 END), 0) AS other_n FROM ("
                     f"  SELECT device_id, {DEVICE_KIND} AS k FROM user_events WHERE device_id IS NOT NULL{ev_cond} GROUP BY device_id"
                     ") p JOIN ("
                     f"  SELECT device_id, MIN(created_at) AS first_at FROM user_events WHERE device_id IS NOT NULL{nd_cond} GROUP BY device_id"
-                    ") f ON f.device_id = p.device_id WHERE p.k IS NULL OR p.k <> 'other'",
+                    ") f ON f.device_id = p.device_id",
                     tuple(p_new_params) + tuple(ev_params) + tuple(nd_params),
                 )
                 _pd = cursor.fetchone() or {}
                 _active, _new = int(_pd.get('active') or 0), int(_pd.get('new_n') or 0)
-                period_devices = {'active': _active, 'new': _new, 'returning': max(_active - _new, 0)}
+                period_devices = {'active': _active, 'new': _new, 'returning': max(_active - _new, 0),
+                                  'non_person': int(_pd.get('other_n') or 0)}
                 # 지금까지 **누적** — 「다운로드 수가 어디 있나」 에 기간과 상관없이 답하는 숫자(2026-10-17).
                 # 기간 표만 있으면 최근 7일만 보여서 "그래서 전체 몇 대냐" 를 못 읽는다.
                 cursor.execute(
