@@ -31,8 +31,23 @@ import usage_quota
 #   그 밖에 개인정보처리방침·약관만 열었거나 링크 미리보기 봇(/download,… 처럼 경로로 찍힘)이면 → other
 _INFO_SCREEN = ("(screen IN ('/privacy', '/terms', '/account-deletion', '/coupang-banner.html') "
                 "OR screen LIKE '/download%%' OR screen = '다운로드')")
+# 링크 검사 봇 몰림(2026-10-29 사용자: 「몇 초 안에 화면 하나만 열고 끝난 기기가 짧은 시간에 몰려 오면 사람 아님」).
+# 10/29 07:49~07:50 에 9대가 74초 사이에 들어와 화면 하나씩만 열고 같은 초에 끝났다(출처 instagram·m.facebook.com —
+# 프로필 링크를 바꾼 직후 메타가 링크를 검사한 것). 「빠른 기기」 = 화면 1개 이하 + 첫 기록과 끝 기록이 2초 이내.
+# 빠른 기기가 90초 안에 3대 이상 몰리면 그 기기들을 사람이 아닌 것(`other`)으로 센다. 파라미터가 없는 SQL 이라 어디에 끼워도 된다.
+_QUICK_DEVICES = (
+    "SELECT device_id, MIN(created_at) t0 FROM user_events WHERE device_id IS NOT NULL GROUP BY device_id "
+    "HAVING SUM(name = 'screen_view') <= 1 AND TIMESTAMPDIFF(SECOND, MIN(created_at), MAX(created_at)) <= 2"
+)
+BOT_DEVICES_SQL = (
+    f"SELECT qa.device_id FROM ({_QUICK_DEVICES}) qa JOIN ({_QUICK_DEVICES}) qb "
+    "ON qb.device_id <> qa.device_id AND ABS(TIMESTAMPDIFF(SECOND, qa.t0, qb.t0)) <= 90 "
+    "GROUP BY qa.device_id HAVING COUNT(*) >= 2"
+)
+
 DEVICE_KIND = (
     "CASE "
+    f"WHEN device_id IN ({BOT_DEVICES_SQL}) THEN 'other' "
     f"WHEN SUM(name = 'screen_view' AND screen IS NOT NULL AND NOT {_INFO_SCREEN}) > 0 THEN MAX(platform) "
     # 다운로드 페이지만 연 기기 중 아이폰·안드로이드가 아닌 접속(PC 등)은 사람이 아닌 봇일 가능성이 커서 「사람 아닌 것」으로 센다(2026-10-24:
     # 10/24 새벽 5시에 18대가 2건씩만 남기고 끝남, 출처 없음 — 휴대폰 접속(아이폰·안드로이드)만 「다운로드 페이지까지만 온 기기」).
@@ -1397,7 +1412,7 @@ def register(app, get_db):
                            MAX(e.created_at) last_at
                     FROM user_events e
                     JOIN (""" + _SESSION_SOURCE + """) s ON s.session_id = e.session_id
-                    WHERE 1=1 """ + ev_cond.replace('created_at', 'e.created_at')
+                    WHERE (e.device_id IS NULL OR e.device_id NOT IN (""" + BOT_DEVICES_SQL + """)) """ + ev_cond.replace('created_at', 'e.created_at')
                                           .replace('user_id', 'e.user_id')
                                           .replace('device_id', 'e.device_id') + """
                     GROUP BY s.src ORDER BY sessions DESC LIMIT 20
@@ -1723,6 +1738,7 @@ def register(app, get_db):
                 "  MAX(source LIKE 'ig%%' OR source LIKE '%%instagram%%') AS ig,"
                 "  MAX(source LIKE '%%threads%%') AS th"
                 " FROM user_events WHERE device_id IS NOT NULL" + dev_clause +
+                " AND device_id NOT IN (" + BOT_DEVICES_SQL + ")"   # 링크 검사 봇 몰림은 뺀다(2026-10-29)
                 " GROUP BY device_id HAVING MIN(created_at) >= %s) t GROUP BY d",
                 dev_params + [first],
             )
