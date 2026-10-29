@@ -4,6 +4,7 @@ import Dialog from './ui/Dialog';
 import {
   GATE_EVENT, GateDetail, GateKind, gateCopy, isGuestNow, markReturnGateShown, shouldShowReturnGate, trackGate,
 } from '../utils/loginGate';
+import { isUsageGuideRunning } from '../utils/onboardingPrompts';
 
 /**
  * 비회원 로그인 확인창 — 앱에 **하나만** 둔다(2026-10-22).
@@ -39,6 +40,8 @@ const LoginGateHost: React.FC = () => {
     if (location.pathname === firstPath.current) return;
     if (SKIP_PATHS.some(p => location.pathname.startsWith(p))) return;
     if (!shouldShowReturnGate()) return;
+    // 사용 가이드가 화면을 옮겨 가며 도는 중이면 겹치지 않게 이번 방문에는 건너뛴다(2026-10-29: 가이드가 두 번째 방문에도 뜬다)
+    if (isUsageGuideRunning()) return;
     markReturnGateShown();
     const timer = window.setTimeout(() => {
       setGate({ kind: 'return' });

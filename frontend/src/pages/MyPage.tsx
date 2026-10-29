@@ -15,7 +15,7 @@ import NotificationSettings from '../components/NotificationSettings';
 import PullToRefresh from '../components/PullToRefresh';
 import UsageGauge, { useIsAdmin, useUsage } from '../components/UsageMeter';
 import GuideOverlay from '../components/GuideOverlay';
-import { markUsageGuideFinished, usageGuideTotalSteps, USAGE_GUIDE_STEPS } from '../utils/onboardingPrompts';
+import { markUsageGuideFinished, requestUsageGuideReplay, usageGuideTotalSteps, USAGE_GUIDE_STEPS } from '../utils/onboardingPrompts';
 import logoImg from '../assets/냉털이 로고 white.png';
 import searchIcon from '../assets/navigator_search.png';
 import myProfileImg from '../assets/profile_default.png'; // 기본 프로필 이미지(없으면 대체)
@@ -1590,6 +1590,25 @@ const MyPage: React.FC = () => {
           <NotificationSettings title="알림 설정" />
         </div>
       )}
+
+      {/* 사용 가이드 다시 보기(2026-10-29) — 첫 방문에 [이 재료로 요리 보기]로 바로 요리 화면에 간 사람은 가이드를 건너뛰고
+          다음 방문에 한 번 보게 되는데, 그걸 놓쳤거나 다시 보고 싶은 사람이 직접 찾을 수 있어야 한다. 비로그인에게도 보인다. */}
+      <div style={{ margin: '8px 14px 0' }}>
+        <button
+          type="button"
+          onClick={() => { requestUsageGuideReplay(); navigate('/my-fridge'); }}
+          style={{
+            width: '100%', minHeight: 46, borderRadius: 14,
+            border: '1px solid var(--line-200)', background: 'var(--surface)',
+            fontSize: 14, fontWeight: 700, color: 'var(--ink-900)', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '0 18px',
+          }}
+        >
+          <span>사용 가이드 다시 보기</span>
+          <span aria-hidden="true">›</span>
+        </button>
+      </div>
 
       {/* 한때 여기 `즐겨찾기로 요리 고르기` · `만든 요리 돌아보기` 두 버튼이 있었다.
           **뺐다**(2026-10-08 요청). 바로 위 요약 숫자 세 칸이 이미 같은 곳으로 가는

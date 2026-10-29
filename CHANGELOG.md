@@ -14019,3 +14019,11 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 - 실행 절차 `store/THREADS_AUTOMATION.md`, 예약 작업 `threads-auto`(매일 9~23시 매시 7분): 승인된 답글은 바로, 새 글은 12~13시·20~22시에만 올리고 새 댓글 초안·다음 글 초안을 채운다.
 - 첫 초안: 첫 글 미답 댓글 4개 답글, 2주 글 중 1~3일 새 글.
 - 남은 일: 앱에 `threads_content_publish` 권한 추가 후 토큰 다시 받기(지금 토큰은 읽기만).
+
+### 사용 가이드: 첫 방문 대신 두 번째 방문 + 마이페이지 다시 보기 (2026-10-29)
+- 사용자 질문 「첫 방문 가이드는 언제 뜨나」 → 확인해 보니 [이 재료로 요리 보기]로 곧바로 요리 화면에 간 비회원은 첫 방문 판정이 이미 소진돼 **30일 넘게 쉬기 전까지 가이드를 볼 일이 없었다**(마이페이지에 다시 보기도 없음). 앞서 「첫 방문 중에는 뜨지 않는다」고 한 건 절반만 맞는 설명이었다. → 사용자 결정: 두 번째 방문 + 마이페이지 다시 보기.
+- `onboardingPrompts.ts`: `deferUsageGuideToNextVisit()`(localStorage `usage_guide_deferred_to_next_visit`)로 미뤄 두고, `evaluateVisitForUsageGuide`가 첫 방문이 아닌데 이 표시가 있으면 가이드를 볼 차례로 본다(가이드가 열리면 `markUsageGuideOpened`가 표시를 지움 → 열릴 때까지 방문마다 대상). `requestUsageGuideReplay()`·`isUsageGuideRunning()` 추가.
+- `MyFridge.tsx`: [이 재료로 요리 보기]에서 `deferUsageGuideToNextVisit()` 호출(X로 닫은 사람·회원은 기존 흐름 그대로).
+- `MyPage.tsx`: 「사용 가이드 다시 보기」 줄(비로그인 포함) → `requestUsageGuideReplay()` 후 `/my-fridge`로 이동해 내냉장고에서 처음부터(1/15) 시작.
+- `LoginGateHost.tsx`: 가이드가 도는 중(`isUsageGuideRunning`)이면 「두 번째 방문」 로그인 안내를 건너뛴다(가이드가 두 번째 방문에도 뜨게 되면서 화면을 옮길 때 겹치는 것을 막음). 가이드를 건너뛰거나 끝낸 뒤 화면을 옮기면 기존대로 뜬다.
+- 확인(로컬 웹, 비회원): 첫 방문엔 가이드 없이 표시만 남음 → 세션을 비우고 다시 열면 팝업 없이 내냉장고 가이드 (1/15) 시작·표시 지워짐 → 마이페이지 「사용 가이드 다시 보기」 → `/my-fridge` 가이드 (1/15). 새 앱 빌드부터 적용(웹은 즉시).

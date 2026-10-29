@@ -33,6 +33,7 @@ import {
   markUsageGuideFinished,
   usageGuideTotalSteps,
   markUsageGuideOpened,
+  deferUsageGuideToNextVisit,
   ONBOARDING_KEYS,
 } from '../utils/onboardingPrompts';
 
@@ -3070,6 +3071,7 @@ const MyFridge: React.FC = () => {
             // 비회원: 빼기로 한 재료를 이 기기에 **바로 저장**하고 만들 수 있는 요리 화면으로 간다(2026-10-29).
             // 화면이 바뀌면 이 페이지의 저장 효과가 돌기 전에 사라질 수 있어 상태 반영에 기대지 않는다.
             track('cta_start', 'welcome');
+            deferUsageGuideToNextVisit(); // 첫 방문엔 가이드를 건너뛰고 다음 방문에 한 번
             removeSeedItems(ids);
             const keep = (list: Ingredient[] | null) => (list ?? []).filter(i => !ids.includes(i.id as string));
             saveIngredients(keep(frozen), keep(fridge), keep(room));
