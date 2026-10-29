@@ -96,10 +96,10 @@ const TALK02B: TalkSpec = {
   speed: 1.4,
   title: "한 시간 요리하고\n결국 김에 밥", // 훅(2026-10-29 사용자: 「딸 저녁, 김에 밥 먹인 날」은 공감이 안 됨) — 반전·현실 직시형
   phrases: [
-    [0.0, 1.52, "딸이 배고프다고"], [1.52, 3.74, "해서 저녁을 시작했어요"], [4.3, 6.22, "레시피 찾고 읽고"],
+    [0.0, 2.1, "딸이 배고프다고 해서"], [2.1, 3.74, "저녁을 시작했어요"], [4.3, 6.22, "레시피 찾고 읽고"],
     [6.22, 7.76, "따라 하다 보니까"], [7.76, V1 - 0.04, "한 시간이 가더라고요"], [9.78, 10.4, "애는 울고"],
     [10.4, 12.46, "저도 울고 싶고"], [12.46, 13.62, "결국 김에 밥"], [13.62, 14.86, "싸 줬어요"],
-    [15.28, 16.28, "한 시간 걸린 그"], [16.28, 17.82, "요리는 아무도"], [17.82, V2 - 0.02, "안 먹었고요"],
+    [15.28, 16.1, "한 시간 걸린"], [16.1, 17.82, "그 요리는 아무도"], [17.82, V2 - 0.02, "안 먹었고요"],
     [18.94, 20.34, "요즘은 쿡매치에서"], [20.34, 22.08, "빨리 되는 레시피부터 봐요"], [23.02, 24.25, "순서만 딱 정리돼"],
     [24.25, 26.47, "있어서 이제 금방 해요"],
   ],
@@ -119,15 +119,25 @@ const Title: React.FC<{ text: string }> = ({ text }) => (
   </div>
 );
 
-// 말 자막은 항상 한 줄(사용자: 줄바꿈 애매하게 하지 말 것). 한글 한 글자 ≈ 글자 크기 폭이라 13자를 넘으면 크기를 줄인다.
-const Said: React.FC<{ text: string }> = ({ text }) => {
-  const size = Math.min(76, Math.floor(1000 / Math.max(1, text.replace(/\s/g, "").length + text.split(" ").length * 0.3)));
-  return (
-    <div style={{ position: "absolute", top: 1190, left: 20, right: 20, textAlign: "center", fontFamily: SANS }}>
-      <span style={{ fontSize: size, fontWeight: 800, color: WHITE, letterSpacing: "-0.01em", whiteSpace: "nowrap", textShadow: SHADOW }}>{text}</span>
-    </div>
-  );
+// 말 자막 줄바꿈(2026-10-29 사용자: 「한 줄로만 만들어 달라고 한 적 없다, 적당히 줄바꿈」).
+// 글자 크기는 고정(70). 짧으면 한 줄, 9자를 넘으면 가운데에 가장 가까운 띄어쓰기에서 두 줄로 나눈다(어절 중간에서 끊지 않는다).
+// 구절에 \n 을 직접 넣으면 그 자리에서 나눈다.
+const SAID_SIZE = 70;
+const splitSaid = (text: string) => {
+  if (text.includes("\n")) return text;
+  if (text.replace(/\s/g, "").length <= 9) return text;
+  const mid = text.length / 2;
+  let best = -1;
+  for (let i = 0; i < text.length; i++) {
+    if (text[i] === " " && (best < 0 || Math.abs(i - mid) < Math.abs(best - mid))) best = i;
+  }
+  return best < 0 ? text : text.slice(0, best) + "\n" + text.slice(best + 1);
 };
+const Said: React.FC<{ text: string }> = ({ text }) => (
+  <div style={{ position: "absolute", top: 1170, left: 40, right: 40, textAlign: "center", fontFamily: SANS }}>
+    <span style={{ fontSize: SAID_SIZE, fontWeight: 800, lineHeight: 1.25, color: WHITE, letterSpacing: "-0.01em", whiteSpace: "pre-line", textShadow: SHADOW }}>{splitSaid(text)}</span>
+  </div>
+);
 
 // 얼굴 위 가운데 앱 화면 카드(참고 영상처럼 화면 너비의 약 56%). 앱 화면 녹화(940×1920)를 카드 폭에 맞춰 놓고,
 // focus 지점이 카드 가운데 오도록 옮긴 뒤 zoom → zoomTo 로 천천히 다가간다(카드 밖으로 빈 곳이 보이지 않게 가장자리에서 멈춤).
