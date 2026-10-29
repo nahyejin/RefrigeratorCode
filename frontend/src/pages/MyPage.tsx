@@ -1434,36 +1434,6 @@ const MyPage: React.FC = () => {
           묶음의 하나라 이 자리가 자연스럽다(로그인 안 했으면 아예 켤 수
           없으므로 로그인 상태에서만 보여준다). */}
 
-      {/* 어드민 입구 — **그룹 설정 아래**에 둔다.
-          관리자는 한 명인데 그 한 줄을 위에 두면, 모두가 쓰는 그룹 설정이
-          그만큼 아래로 밀린다. 자주 쓰는 것이 위로 오는 게 맞다.
-          여기가 '내 정보·설정' 묶음의 맨 끝이라, 바로 아래 구분선과 함께
-          "설정은 여기까지" 로 읽히기도 한다.
-
-          관리자에게만 보이지만, 이건 보안 장치가 아니다 — 경로(/admin)를
-          아는 것만으로는 아무것도 볼 수 없다. 서버가 /api/admin/* 마다
-          is_admin 을 확인한다. 여기서 감추는 건 "찾기 쉽게" 하려는 것이다. */}
-      {isAdmin && (
-        <div style={{ margin: '8px 14px 0' }}>
-          <button
-            type="button"
-            onClick={() => navigate('/admin')}
-            style={{
-              width: '100%', minHeight: 46, borderRadius: 14,
-              border: '1px solid var(--line-200)', background: 'var(--surface)',
-              fontSize: 14, fontWeight: 700, color: 'var(--ink-900)', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: '0 18px',
-            }}
-          >
-            <span>어드민</span>
-            <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--ink-500)' }}>
-              사용자 · 요청 · 대시보드 ›
-            </span>
-          </button>
-        </div>
-      )}
-
       {/* 한때 여기 회색 구분 밴드(`SectionBand`)가 있었다. **뺐다**(2026-10-08) —
           묶음마다 제목과 테두리 박스가 생긴 뒤로는 경계를 그것들이 말한다.
           제목 바로 위에 회색 띠가 또 있으면 구분선이 두 겹이 된다. */}
@@ -1654,6 +1624,30 @@ const MyPage: React.FC = () => {
           paddingBottom: 'calc(116px + env(safe-area-inset-bottom, 0px))',
         }}
       >
+        {/* 어드민 입구(2026-10-29 이동) — 예전엔 그룹 설정 아래 큰 버튼이었는데, 관리자 한 명만 보는 줄이라 모두가 쓰는 위쪽
+            카드들 사이에 둘 이유가 없다. 문의·가이드 줄과 같은 모양으로 하단 칸에 모은다. 보안 장치가 아니다 — 서버가
+            /api/admin/* 마다 is_admin 을 확인한다. 여기서 감추는 건 "찾기 쉽게" 하려는 것이다. */}
+        {isAdmin && (
+          <button
+            type="button"
+            onClick={() => navigate('/admin')}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
+              width: '100%', boxSizing: 'border-box', minHeight: 44, padding: '0 12px', marginBottom: 8,
+              borderRadius: 10, border: '1px solid var(--line-200)', background: 'var(--surface)',
+              color: 'var(--ink-900)', fontFamily: 'inherit', cursor: 'pointer', textAlign: 'left',
+            }}
+          >
+            <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis',
+                           whiteSpace: 'nowrap', fontSize: 12.5, fontWeight: 700 }}>
+              어드민
+            </span>
+            <span style={{ marginLeft: 'auto', flexShrink: 0, color: 'var(--ink-700)',
+                           fontSize: 12.5, fontWeight: 600, whiteSpace: 'nowrap' }}>
+              사용자 · 요청 · 대시보드 ›
+            </span>
+          </button>
+        )}
         {/* 사용 가이드 다시 보기(2026-10-29) — 첫 방문에 [이 재료로 요리 보기]로 바로 요리 화면에 간 사람은 가이드를 건너뛰고
             다음 방문에 한 번 보게 되는데, 놓쳤거나 다시 보고 싶은 사람이 직접 찾을 수 있어야 한다. 비로그인에게도 보인다.
             **바로 아래 문의 줄과 같은 모양·같은 폭**으로 그 위에 붙인다(사용자 요청: 「불편한 점이나 요청이 있다면」 줄과 레벨을 맞추고 바로 위에). */}
