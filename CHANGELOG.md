@@ -13910,3 +13910,12 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 - **4벌 07 블로그 편: 훅 부분을 빠르게(사용자: 0.85배는 너무 느림)**
   - 0.85배 파일을 1.12배로 다시 올렸다(원본의 약 0.95배, `reel7_hook_v6_blog_fast.mp4`). H7 시각도 1.12로 나눴다(9.66초, 자막 4.03초).
   - 다시 렌더했고 폰용 사본은 `out/후킹v6/reel7_hookv6_blog_phone.mp4` 다.
+- **아티팩트를 두 장으로 정리(사용자: 다섯 개라 관리가 어렵다 → 만들 때 / 올릴 때)**
+  - **만들기** https://claude.ai/artifact/BGyobmSLq8o69qkFQWhSkK (`scripts/hub_make.html`)
+    - 후킹 영상(연기) v7 과 출연자 셀카형 프롬프트를 탭 두 개로 나눴다.
+    - 만들 차례인 편이 위에 오고, 다 만든 편은 접힌다. 다 만든 편은 `gen_hub.py` 의 `HOOK_DONE`/`TALK_DONE` 에 적는다.
+  - **올리기** https://claude.ai/artifact/TFXqkE6h3UEtfW47BiSEsP (`scripts/hub_post.html`)
+    - 인스타 릴스(옛 일정표 35편, 요리 릴스 2편, 셀카형 01·02)와 스레드 글 15편 + 3주 차를 날짜순 한 목록에 모았다. 본문·첫 답글 복사 버튼이 있다.
+    - 「올렸어요」는 아티팩트 db(collection `posted`)에 저장한다. 다시 열어도 그대로다. 예전 페이지는 브라우저 저장이라 새로 열면 초기화됐다(사용자 지적).
+    - 이미 올린 19편과 스레드 첫 글을 넣어 두었다(사용자가 알려 준 날짜 기준).
+  - **원본**: `scripts/gen_hub.py` 가 기존 원본(gen_reel_hooks_v7·gen_reel_talk_v2·gen_threads_posts, store/REEL_UPLOAD_PLAN.html, store/COOKING_REEL_CAPTIONS.md)을 읽어 만든다. `store/REEL_UPLOAD_PLAN.html` 은 옛 일정표 아티팩트의 최신판(35편)으로 덮어썼다.

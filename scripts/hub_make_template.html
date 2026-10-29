@@ -1,0 +1,117 @@
+<title>쿡매치 만들기</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap">
+<style>
+/* 레이아웃: 만들 차례인 편이 위(펼침), 다 만든 편은 아래 접힘. 카드 = 편 번호 띠 + 훅 + 복사 버튼 줄 */
+:root {
+  --bg: #F1F3F4; --paper: #FFFFFF; --ink: #1A1D1F; --muted: #626A70; --line: #DADFE2;
+  --accent: #2D4F8E; --accent-ink: #FFFFFF; --soft: #E7EDF7; --ok: #2F7A57; --cap: #F7F9FA;
+  --sans: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #131618; --paper: #1C2023; --ink: #E9ECEE; --muted: #9DA5AB; --line: #2E3438;
+  --accent: #8FB0EE; --accent-ink: #0F1626; --soft: #22304A; --ok: #7CCBA5; --cap: #171B1E; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #131618; --paper: #1C2023; --ink: #E9ECEE; --muted: #9DA5AB; --line: #2E3438;
+  --accent: #8FB0EE; --accent-ink: #0F1626; --soft: #22304A; --ok: #7CCBA5; --cap: #171B1E; color-scheme: dark }
+body { background: var(--bg); color: var(--ink); font: 15px/1.6 var(--sans); }
+.wrap { max-width: 640px; margin: 0 auto; padding-block: 22px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; flex-direction: column; gap: 14px; }
+h1 { font-size: 24px; margin: 0; }
+.sub { color: var(--muted); margin: 2px 0 0; font-size: 14px; }
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.tab { font: 500 13.5px var(--sans); border: 1px solid var(--line); background: var(--paper); color: var(--ink); padding: 6px 14px; border-radius: 999px; cursor: pointer; }
+.tab[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.how { background: var(--soft); border-radius: 12px; padding: 12px 14px; font-size: 14px; }
+.how ol { margin: 6px 0 0; padding-left: 20px; display: grid; gap: 3px; }
+h2 { font-size: 15px; margin: 8px 0 0; }
+.list { display: grid; gap: 12px; }
+.card { background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 14px; display: grid; gap: 10px; min-width: 0; }
+.top { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 13px; }
+.no { font-weight: 700; font-variant-numeric: tabular-nums; }
+.feat { color: var(--muted); }
+.st { margin-left: auto; font-size: 12px; font-weight: 700; padding: 1px 9px; border-radius: 999px; background: var(--soft); color: var(--accent); }
+.st.ok { background: transparent; color: var(--ok); border: 1px solid var(--line); }
+h3 { margin: 0; font-size: 17px; line-height: 1.4; }
+.hook { white-space: pre-line; font-weight: 700; font-size: 15px; border-left: 3px solid var(--accent); padding-left: 10px; }
+.hook small { display: block; font-weight: 400; color: var(--muted); font-size: 12.5px; }
+.why { font-size: 13.5px; color: var(--muted); margin: 0; }
+.lines { margin: 0; padding-left: 18px; font-size: 13.5px; display: grid; gap: 2px; }
+.btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn { flex: 1 1 130px; appearance: none; border: 1px solid var(--line); border-radius: 10px; padding: 9px 10px; font: 500 13.5px var(--sans); cursor: pointer; background: var(--paper); color: var(--accent); }
+.btn.main { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+pre { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font: 13px/1.6 var(--sans); background: var(--cap); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; max-height: 240px; overflow: auto; }
+details > summary { cursor: pointer; font-weight: 700; padding: 6px 0; }
+.btn:focus-visible, .tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(22px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--bg); padding: 9px 16px; border-radius: 999px; font-size: 14px; }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>쿡매치 만들기</h1>
+    <p class="sub">제미나이로 뽑을 프롬프트만 모았어요. 만들 차례인 편이 위에 있어요.</p>
+  </header>
+  <div class="tabs" role="group" aria-label="형식">
+    <button class="tab" type="button" data-t="hooks" aria-pressed="true">후킹 영상 (연기)</button>
+    <button class="tab" type="button" data-t="talks" aria-pressed="false">출연자 셀카형</button>
+  </div>
+  <div class="how" id="how"></div>
+  <h2 id="hTodo"></h2>
+  <div class="list" id="todo"></div>
+  <details id="doneBox"><summary id="hDone"></summary><div class="list" id="done"></div></details>
+</div>
+<div class="toast" id="toast" hidden>복사했어요</div>
+
+<script>
+const DATA = /*DATA*/null;
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s || "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const HOW = {
+  hooks: `<b>후킹 영상 뽑는 순서</b><ol><li>「첫 장면 이미지」로 사진을 먼저 만들어요.</li><li>새 대화에 그 사진을 첨부하고 「영상 프롬프트」를 붙여 넣어요(한 번에 약 10초).</li><li>대사가 꼬이면 「대사 없는 버전」으로 뽑고, 대사는 편집에서 얹어요.</li><li>뽑은 영상을 보내 주시면 기능 화면을 붙여 완성해요.</li></ol>`,
+  talks: `<b>출연자 셀카형 뽑는 순서</b><ol><li>「① 출연자 사진」으로 그 편 출연자 사진을 먼저 만들어요.</li><li>클립 1·2·3을 하나씩, 매번 <b>새 대화</b>에 같은 사진을 첨부해서 붙여 넣어요.</li><li>세 영상을 보내 주시면 이어 붙이고 자막·기능 화면·끝 화면까지 넣어요.</li></ol>`,
+};
+let tab = "hooks";
+try { tab = localStorage.getItem("hub_make_tab") || "hooks"; } catch (e) {}
+
+const toast = $("#toast"); let tt;
+function copy(text, pre) {
+  const ok = () => { toast.textContent = "복사했어요"; toast.hidden = false; clearTimeout(tt); tt = setTimeout(() => toast.hidden = true, 1400); };
+  const fb = () => { pre.hidden = false; const r = document.createRange(); r.selectNodeContents(pre); const s = getSelection(); s.removeAllRanges(); s.addRange(r); toast.textContent = "선택했어요. 길게 눌러 복사하세요"; toast.hidden = false; };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(ok, fb); else fb();
+}
+
+function card(c) {
+  const el = document.createElement("article");
+  el.className = "card";
+  el.innerHTML = `
+    <div class="top"><span class="no">${esc(c.no)}</span><span class="feat">${esc(c.feature)}${c.who ? " · " + esc(c.who) : ""}</span>
+      <span class="st ${c.done ? "ok" : ""}">${c.done ? "만듦" : "만들 차례"}</span></div>
+    <h3>${esc(c.title)}</h3>
+    <div class="hook">${esc(c.hook)}<small>${esc(c.hookKind)}</small></div>
+    <p class="why">${esc(c.why)}</p>
+    ${c.lines ? `<ol class="lines">${c.lines.map(l => `<li>${esc(l)}</li>`).join("")}</ol>` : ""}
+    <div class="btns">${c.copies.map((x, i) => `<button class="btn ${x.main ? "main" : ""}" type="button" data-i="${i}">${esc(x.label)} 복사</button>`).join("")}</div>
+    <pre hidden></pre>`;
+  const pre = $("pre", el);
+  el.querySelectorAll("button[data-i]").forEach(b => b.addEventListener("click", () => {
+    const x = c.copies[+b.dataset.i]; pre.textContent = x.text; copy(x.text, pre);
+  }));
+  return el;
+}
+
+function render() {
+  const cards = DATA[tab];
+  $("#how").innerHTML = HOW[tab];
+  const todo = cards.filter(c => !c.done), done = cards.filter(c => c.done);
+  $("#hTodo").textContent = `만들 차례 ${todo.length}편`;
+  $("#hDone").textContent = `다 만든 편 ${done.length}편`;
+  $("#todo").replaceChildren(...todo.map(card));
+  $("#done").replaceChildren(...done.map(card));
+  document.querySelectorAll(".tab").forEach(x => x.setAttribute("aria-pressed", x.dataset.t === tab ? "true" : "false"));
+}
+document.querySelectorAll(".tab").forEach(b => b.addEventListener("click", () => {
+  tab = b.dataset.t; try { localStorage.setItem("hub_make_tab", tab); } catch (e) {} render();
+}));
+render();
+</script>
