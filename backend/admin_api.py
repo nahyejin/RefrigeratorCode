@@ -1227,6 +1227,7 @@ def register(app, get_db):
             devices_total = {}
             visit_hist = {}
             day_hist = {}
+            period_devices = {'active': 0, 'new': 0, 'returning': 0}
             cursor.execute("SHOW TABLES LIKE 'user_events'")
             if cursor.fetchone():
                 cursor.execute(
@@ -1342,6 +1343,28 @@ def register(app, get_db):
                     {'date': r['d'].isoformat(), 'platform': r['platform'], 'n': r['n']}
                     for r in cursor.fetchall()
                 ]
+                # 이 기간에 **들어온** 기기(=기간 안에 기록이 있는 기기) = 새로 들어온 기기 + 다시 들어온(예전부터 있던) 기기.
+                # 2026-10-29 사용자 지적: 「오늘」인데 위 「새로 들어온 기기」는 3대, 퍼널 「들어온 사람」은 12대 — 12 = 새 3 + 다시 온 9 를 한 번에 보이게.
+                # 사람 아닌 기기(③)는 기간 안 기록으로 판정해 뺀다(퍼널 맨 앞 칸과 같은 기준).
+                p_new_parts, p_new_params = [], []
+                if start:
+                    p_new_parts.append("f.first_at >= %s")
+                    p_new_params.append(start)
+                if end:
+                    p_new_parts.append("f.first_at <= %s")
+                    p_new_params.append(end)
+                p_new = " AND ".join(p_new_parts) if p_new_parts else "1=1"
+                cursor.execute(
+                    f"SELECT COUNT(*) AS active, COALESCE(SUM(CASE WHEN {p_new} THEN 1 ELSE 0 END), 0) AS new_n FROM ("
+                    f"  SELECT device_id, {DEVICE_KIND} AS k FROM user_events WHERE device_id IS NOT NULL{ev_cond} GROUP BY device_id"
+                    ") p JOIN ("
+                    f"  SELECT device_id, MIN(created_at) AS first_at FROM user_events WHERE device_id IS NOT NULL{nd_cond} GROUP BY device_id"
+                    ") f ON f.device_id = p.device_id WHERE p.k IS NULL OR p.k <> 'other'",
+                    tuple(p_new_params) + tuple(ev_params) + tuple(nd_params),
+                )
+                _pd = cursor.fetchone() or {}
+                _active, _new = int(_pd.get('active') or 0), int(_pd.get('new_n') or 0)
+                period_devices = {'active': _active, 'new': _new, 'returning': max(_active - _new, 0)}
                 # 지금까지 **누적** — 「다운로드 수가 어디 있나」 에 기간과 상관없이 답하는 숫자(2026-10-17).
                 # 기간 표만 있으면 최근 7일만 보여서 "그래서 전체 몇 대냐" 를 못 읽는다.
                 cursor.execute(
@@ -1691,6 +1714,7 @@ def register(app, get_db):
             'new_devices': new_devices,
             'devices_total': devices_total,
             'visit_hist': visit_hist,
+            'period_devices': period_devices,
             'day_hist': day_hist,
             'today_kst': datetime.now(timezone(timedelta(hours=9))).date().isoformat(),
             'sources': sources,

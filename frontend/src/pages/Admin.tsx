@@ -2557,7 +2557,7 @@ const StatsBar: React.FC<{
  * 기기 수 ≠ 사람 수: 같은 사람이 브라우저로 다운로드 페이지를 보고(②) 앱을 설치해 열면(①) 브라우저와 앱이 각각 기기
  * 한 대로 잡힌다.
  */
-const DeviceBreakdown: React.FC<{ c: Record<string, number>; periodNote?: string }> = ({ c, periodNote }) => {
+const DeviceBreakdown: React.FC<{ c: Record<string, number>; periodNote?: string; title?: string }> = ({ c, periodNote, title }) => {
   const g = (k: string) => Number(c[k] || 0);
   const app = g('android') + g('ios');
   const web = g('web');
@@ -2593,7 +2593,7 @@ const DeviceBreakdown: React.FC<{ c: Record<string, number>; periodNote?: string
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 12.5, color: 'var(--ink-500)', fontWeight: 600 }}>들어온 기기 합계 (봇·안내만 뺀 것)</span>
+        <span style={{ fontSize: 12.5, color: 'var(--ink-500)', fontWeight: 600 }}>{title || '들어온 기기 합계 (봇·안내만 뺀 것)'}</span>
         <span style={{ fontSize: 30, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{num(people)}대</span>
         <span style={{ fontSize: 12, color: 'var(--ink-500)' }}>= ① {num(used)} + ② {num(link)} (둘은 겹치지 않아요){periodNote ? ` · ${periodNote}` : ''}</span>
       </div>
@@ -3136,8 +3136,24 @@ const Dashboard: React.FC = () => {
                     <div style={{ margin: '4px 0 6px' }}>
                       <Range inline mode="period">{ranged ? '이 기간에 처음 기록된 기기(기간 안에서 처음 기록된 날 기준)' : '「전체」 = 처음 기록된 날부터 지금까지'}</Range>
                     </div>
+                    {act.period_devices && (
+                      <div style={{ margin: '0 0 12px', padding: '10px 12px', borderRadius: 12, background: 'var(--surface-sub)', border: '1px solid var(--line-200)' }}>
+                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: 12.5, color: 'var(--ink-500)', fontWeight: 600 }}>{ranged ? '이 기간에 들어온 기기' : '들어온 기기'}(기록이 있는 기기)</span>
+                          <span style={{ fontSize: 30, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{num(act.period_devices.active)}대</span>
+                        </div>
+                        <div style={{ fontSize: 13, marginTop: 2 }}>
+                          = <b>새로 들어온 {num(act.period_devices.new)}대</b> <span style={{ color: 'var(--ink-500)' }}>(처음 기록된 기기)</span>
+                          {' + '}<b>다시 들어온 {num(act.period_devices.returning)}대</b> <span style={{ color: 'var(--ink-500)' }}>(예전에 온 적 있는 기기)</span>
+                        </div>
+                        <div style={{ fontSize: 11.5, color: 'var(--ink-500)', marginTop: 4, lineHeight: 1.5 }}>
+                          아래 「어디까지 오고 어디서 멈추나」의 「들어온 사람」이 이 숫자예요. 아래 칸들은 이 중 <b>새로 들어온 기기</b>만 나눠 보여 줘요.
+                        </div>
+                      </div>
+                    )}
                     <div style={{ margin: '0 0 12px' }}>
                       <DeviceBreakdown
+                        title="새로 들어온 기기 합계 (봇·안내만 뺀 것)"
                         c={{
                           android: sumOf(all, 'android'), ios: sumOf(all, 'ios'), web: sumOf(all, 'web'), unknown: sumOf(all, 'unknown'),
                           link_ios: sumOf(all, 'link_ios'), link_android: sumOf(all, 'link_android'), link_web: sumOf(all, 'link_web'),
