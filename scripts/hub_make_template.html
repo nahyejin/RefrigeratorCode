@@ -53,7 +53,8 @@ details > summary { cursor: pointer; font-weight: 700; padding: 6px 0; }
     <p class="sub">제미나이로 뽑을 프롬프트만 모았어요. 만들 차례인 편이 위에 있어요.</p>
   </header>
   <div class="tabs" role="group" aria-label="형식">
-    <button class="tab" type="button" data-t="hooks" aria-pressed="true">후킹 영상 (연기)</button>
+    <button class="tab" type="button" data-t="hooks5" aria-pressed="true">후킹 5벌 (연기)</button>
+    <button class="tab" type="button" data-t="hooks" aria-pressed="false">후킹 4벌</button>
     <button class="tab" type="button" data-t="talks" aria-pressed="false">출연자 셀카형</button>
   </div>
   <div class="how" id="how"></div>
@@ -68,11 +69,13 @@ const DATA = /*DATA*/null;
 const $ = (s, el = document) => el.querySelector(s);
 const esc = s => String(s || "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const HOW = {
+  hooks5: `<b>후킹 5벌 뽑는 순서</b> (4벌과 같은 방식)<ol><li>「① 첫 장면 사진」으로 사진을 먼저 만들어요.</li><li><b>새 대화</b>에 그 사진을 첨부하고 「② 영상 프롬프트」를 붙여 넣어요(약 10초).</li><li>뽑은 영상을 보내 주시면 기능 화면을 붙여 완성해요.</li></ol>`,
   hooks: `<b>후킹 영상 뽑는 순서</b><ol><li>「첫 장면 이미지」로 사진을 먼저 만들어요.</li><li>새 대화에 그 사진을 첨부하고 「영상 프롬프트」를 붙여 넣어요(한 번에 약 10초).</li><li>대사가 꼬이면 「대사 없는 버전」으로 뽑고, 대사는 편집에서 얹어요.</li><li>뽑은 영상을 보내 주시면 기능 화면을 붙여 완성해요.</li></ol>`,
   talks: `<b>출연자 셀카형 뽑는 순서</b><ol><li>「① 출연자 사진」으로 그 편 출연자 사진을 먼저 만들어요.</li><li>클립 1·2·3을 하나씩, 매번 <b>새 대화</b>에 같은 사진을 첨부해서 붙여 넣어요.</li><li>세 영상을 보내 주시면 이어 붙이고 자막·기능 화면·끝 화면까지 넣어요.</li></ol>`,
 };
-let tab = "hooks";
-try { tab = localStorage.getItem("hub_make_tab") || "hooks"; } catch (e) {}
+let tab = "hooks5";
+try { tab = localStorage.getItem("hub_make_tab5") || "hooks5"; } catch (e) {}
+if (!DATA[tab]) tab = "hooks5";
 
 const toast = $("#toast"); let tt;
 function copy(text, pre) {
@@ -111,7 +114,7 @@ function render() {
   document.querySelectorAll(".tab").forEach(x => x.setAttribute("aria-pressed", x.dataset.t === tab ? "true" : "false"));
 }
 document.querySelectorAll(".tab").forEach(b => b.addEventListener("click", () => {
-  tab = b.dataset.t; try { localStorage.setItem("hub_make_tab", tab); } catch (e) {} render();
+  tab = b.dataset.t; try { localStorage.setItem("hub_make_tab5", tab); } catch (e) {} render();
 }));
 render();
 </script>

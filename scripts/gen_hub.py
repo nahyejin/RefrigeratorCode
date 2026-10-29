@@ -23,26 +23,38 @@ sys.path.insert(0, str(ROOT / "scripts"))
 import gen_reel_hooks_v7 as hooks  # noqa: E402
 import gen_reel_talk_v2 as talk  # noqa: E402
 import gen_threads_posts as threads  # noqa: E402
+import gen_reel_hooks_v8 as hooks5  # noqa: E402
 
 # 다 만든 편(영상이 out/ 에 있음). 새로 만들면 여기에 번호를 더한다.
-HOOK_DONE = {"02", "03", "04", "05", "06", "07"}
+HOOK_DONE = {"02", "03", "04", "05", "06", "06B", "07", "08"}
+HOOK5_DONE = set()  # 5벌(gen_reel_hooks_v8.py)
 TALK_DONE = {"01", "02"}
 
 ROUND_NAME = {"-1": "총정리", "0": "1벌", "1": "2벌", "2": "3벌", "3": "직접 요리", "4": "4벌"}
 
 
-def make_data():
-    hook_cards = []
-    for c in hooks.CLIPS:
-        hook_cards.append({
-            "no": c["no"], "title": c["title"], "feature": c["kbf"], "done": c["no"] in HOOK_DONE,
+def hook_card(c, done, hooks=hooks):
+    return {
+            "no": c["no"], "title": c["title"], "feature": c["kbf"], "done": c["no"] in done,
             "why": c["why"], "hook": c["hook"], "hookKind": c["hook_kind"], "demo": c["demo"],
             "copies": [
                 {"label": "영상 프롬프트", "text": hooks.clip_prompt(c), "main": True},
                 {"label": "첫 장면 이미지", "text": hooks.image_prompt(c)},
                 {"label": "대사 없는 버전", "text": hooks.clip_prompt(c, True)},
             ] + ([{"label": "추가 컷(냉장고 안쪽)", "text": c["extra"]}] if c.get("extra") else []),
-        })
+        }
+
+
+def make_data():
+    hook_cards = [hook_card(c, HOOK_DONE) for c in hooks.CLIPS]
+    # 5벌은 사진을 먼저 만들므로 「첫 장면 이미지」를 첫 버튼으로
+    hook5_cards = []
+    for c in hooks5.CLIPS:
+        h = hook_card(c, HOOK5_DONE)
+        h["copies"] = [{"label": "① 첫 장면 사진", "text": hooks.image_prompt(c), "main": True},
+                       {"label": "② 영상 프롬프트", "text": hooks.clip_prompt(c), "main": True},
+                       {"label": "대사 없는 버전", "text": hooks.clip_prompt(c, True)}]
+        hook5_cards.append(h)
     talk_cards = []
     for e in talk.EPISODES:
         p = talk.presenter(e)
@@ -53,7 +65,7 @@ def make_data():
             "copies": [{"label": "① 출연자 사진", "text": talk.photo_prompt(e), "main": True}]
             + [{"label": f"클립 {i + 1}", "text": talk.clip_prompt(e, i)} for i in range(3)],
         })
-    return {"hooks": hook_cards, "talks": talk_cards}
+    return {"hooks5": hook5_cards, "hooks": hook_cards, "talks": talk_cards}
 
 
 def plan_items():
@@ -108,6 +120,18 @@ EXTRA_REELS = [
      "music": "음악이 이미 들어 있는 파일이에요(밴조 깡충, 직접 만든 곡). 인스타에서 음악을 추가하지 말고 그대로 올리세요.",
      "body": "「어제까지네… 하루 지난 건 괜찮지?」\n「그럼 자기가 먹어.」 🥄\n\n유통기한 하루 지난 요거트, 먹어? 말아?\n쿡매치는 넣어 둔 재료의 유통기한을 알아서 계산하고, 다가오면 알림으로 먼저 알려 줘요.\n임박한 재료로 만들 레시피까지 바로 보여 줘서, 날짜 지나기 전에 다 먹을 수 있어요.\n\n"
              + FEATURES_TAIL + "\n\n#레시피 #레시피추천 #요리 #집밥 #오늘뭐먹지 #냉털 #냉장고털기 #냉장고파먹기 #유통기한 #부부일상 #쿡매치 #cookmatch"},
+    {"id": "h4-8", "ch": "reel", "kind": "4벌", "date": "2026-11-26", "time": "17:00", "title": "“그럼 안 아낀 거잖아”",
+     "scene": "남편이 집밥을 차리며 「배달보다 이만 원은 아꼈다」 뿌듯해하자, 아내가 「그 돈으로 치킨 시켜 먹자」, 남편이 「…그럼 안 아낀 거잖아」.",
+     "tag": "가족 · 아낀 돈", "file": "my-video/out/후킹v6/reel8_hookv7_chicken_음악.mp4",
+     "music": "음악이 이미 들어 있는 파일이에요(대사 구간은 음악 없음). 인스타에서 음악을 추가하지 말고 그대로 올리세요.",
+     "body": "「오늘 집에서 해 먹으니까 이만 원은 아꼈다.」\n「그럼 그 돈으로 치킨 시켜 먹자.」\n「…그럼 안 아낀 거잖아.」 🍗\n\n집밥으로 아낀 돈, 어디에 쓰세요?\n쿡매치는 집에서 요리할 때마다 배달 대비 아낀 돈(예상)을 쌓아서 보여 주고, 가족이 같이 집밥 목표를 채워 갈 수 있어요.\n\n"
+             + FEATURES_TAIL + "\n\n#레시피 #레시피추천 #요리 #집밥 #오늘뭐먹지 #배달비 #식비절약 #부부일상 #쿡매치 #cookmatch"},
+    {"id": "h4-6b", "ch": "reel", "kind": "4벌", "date": "2026-11-28", "time": "17:00", "title": "“나 말고 폰한테 물어봐”",
+     "scene": "열린 냉장고 앞 남편이 「두부랑 김치 있는데 뭐 해 먹지?」 묻자, 소파의 아내가 폰만 보며 「그거 오늘만 세 번째야… 나 말고 폰한테 물어봐. 걔가 더 잘 알아」.",
+     "tag": "요리 AI", "file": "my-video/out/후킹v6/reel6_hookv7_askphone_음악.mp4",
+     "music": "음악이 이미 들어 있는 파일이에요(대사 구간은 음악 없음). 인스타에서 음악을 추가하지 말고 그대로 올리세요.",
+     "body": "「자기야, 두부랑 김치 있는데 뭐 해 먹지?」\n「그거 오늘만 세 번째야… 나 말고 폰한테 물어봐.」 📱\n\n하루에 몇 번씩 나오는 「뭐 해 먹지?」\n쿡매치 요리 AI에 말하듯 물어보면, 냉장고에 있는 재료로 만들 수 있는 레시피를 골라 줘요.\n\n"
+             + FEATURES_TAIL + "\n\n#레시피 #레시피추천 #요리 #집밥 #오늘뭐먹지 #냉털 #냉장고파먹기 #두부요리 #부부일상 #쿡매치 #cookmatch"},
 ]
 
 TALK_FILES = {"01": "my-video/out/출연자형/Talk01Matching_음악.mp4", "02": "my-video/out/출연자형/talk02_kim_music.mp4"}

@@ -6,6 +6,8 @@ import { Reel3Demo, Reel3Cta, REEL3_DEMO_LEN, REEL3_CTA_LEN } from "./Reel3CookM
 import { Reel7Demo, Reel7Cta, REEL7_DEMO_LEN, REEL7_CTA_LEN } from "./Reel7RealRecipe";
 import { Reel4Demo, Reel4Cta, REEL4_DEMO_LEN, REEL4_CTA_LEN } from "./Reel4AiDiet";
 import { Reel5Demo, Reel5Cta, REEL5_DEMO_LEN, REEL5_CTA_LEN } from "./Reel5ExpiryAlert";
+import { Reel6Demo, Reel6Cta, REEL6_DEMO_LEN, REEL6_CTA_LEN } from "./Reel6ChatbotDemo";
+import { Reel8Demo, Reel8Cta, REEL8_DEMO_LEN, REEL8_CTA_LEN } from "./Reel8FamilySavings";
 
 // 후킹 v6(2026-10-23) — store/REEL_HOOKS_V6.md 프롬프트로 사용자가 뽑은 제미나이 클립 중 살린 두 편.
 // 클립은 편집본(my-video/public/hooks_v6_fixed 에서 확대·글자 지우기·라벨 블러 후 사용자가 확인한 파일).
@@ -38,6 +40,13 @@ const H6: HookSpec = { src: "reel6_hook_v6_delivery.mp4", segs: [[0, 12.0]], cap
 // 클립 전체(10.0s)를 쓴다. 표식 두 개(오른쪽 아래 큰 별·그 아래 작은 별)와 첫 0.45초 움직이는 표식을 delogo 로 지움(reel5_hook_v6_yogurt.mp4).
 const H5: HookSpec = { src: "reel5_hook_v6_yogurt.mp4", segs: [[0, 10.0]], captionAt: 4.5, caption: "유통기한 어제,\n먹어? 말아?" };
 
+// v7 새 프롬프트(사진 먼저 → 대본 한 덩어리)로 뽑은 두 편(2026-10-29). 클립 전체 10.0s, 빠르기 그대로(짧아서 배속 없음 — 사용자).
+// 표식은 delogo(큰 별 570,1130 · 작은 별 638,1203 · 첫 0.45초 움직이는 표식). Whisper 실측 시각.
+// 08 아낀 돈 ← 남편 「짠! … 이만 원은 아꼈다」 0~4.9s → 아내 「그럼 그 돈으로 오늘 치킨 시켜 먹자」 5.34s → 남편 「…그럼 안 아낀 거잖아」 8.46s
+const H8: HookSpec = { src: "reel8_hook_v7_chicken.mp4", segs: [[0, 10.0]], captionAt: 5.4, caption: "집밥으로 아낀 돈,\n어디에 써요?" };
+// 06B 요리 AI ← 남편 「자기야 두부랑 김치 있는데 이걸로 뭐 해 먹지?」 0~4.1s → 아내 「그거 오늘만 세 번째야… 나 말고 폰한테 물어봐. 걔가 더 잘 알아」 4.44~8.46s
+const H6B: HookSpec = { src: "reel6_hook_v7_askphone.mp4", segs: [[0, 10.0]], captionAt: 6.2, caption: "뭐 해 먹지는\n이제 폰한테 물어봐요" };
+
 export const REELS_HOOK_V6 = [
   { id: "Reel2HookV6Cabbage", ...makeReel(H2, Reel1Demo, REEL1_DEMO_LEN, Reel1Cta, REEL1_CTA_LEN, REST_EXCL[0]) },
   { id: "Reel3HookV6Gloves", ...makeReel(H3, Reel3Demo, REEL3_DEMO_LEN, Reel3Cta, REEL3_CTA_LEN, REST_EXCL[2]) },
@@ -45,5 +54,7 @@ export const REELS_HOOK_V6 = [
   // 06 배달 훅이지만 데모는 02 매칭 — 「레시피마다 장 보래」에는 「내 냉장고 기준 매칭률 순 + 없는 재료는 있는 걸로 대체」가 답이다(사용자 선택, 2026-10-24).
   { id: "Reel6HookV6Delivery", ...makeReel(H6, Reel2Demo, REEL2_DEMO_LEN, Reel2Cta, REEL2_CTA_LEN, REST_EXCL[1]) },
   { id: "Reel5HookV6Yogurt", ...makeReel(H5, Reel5Demo, REEL5_DEMO_LEN, Reel5Cta, REEL5_CTA_LEN, REST_EXCL[4]) },
+  { id: "Reel8HookV7Chicken", ...makeReel(H8, Reel8Demo, REEL8_DEMO_LEN, Reel8Cta, REEL8_CTA_LEN, REST_EXCL[7]) },
+  { id: "Reel6HookV7AskPhone", ...makeReel(H6B, Reel6Demo, REEL6_DEMO_LEN, Reel6Cta, REEL6_CTA_LEN, REST_EXCL[5]) },
   { id: "Reel7HookV6Blog", ...makeReel(H7, Reel7Demo, REEL7_DEMO_LEN, Reel7Cta, REEL7_CTA_LEN, REST_EXCL[6]) },
 ];
