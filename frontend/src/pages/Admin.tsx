@@ -2954,6 +2954,46 @@ const RevisitBars: React.FC<{ hist?: Record<string, number>; dayHist?: Record<st
   );
 };
 
+/** 「어디서 들어왔나」 표의 유입 이름(utm_source)을 사람 말로 풀어 준다(2026-10-29 사용자: 이름만 봐서는 어디서 온 건지 모르겠다).
+ *  내가 붙인 꼬리표는 이름 규칙으로, 꼬리표가 없을 땐 앱이 대신 적어 둔 「온 사이트 주소」로 푼다. */
+const SOURCE_GUIDE: { tag: string; means: string; link?: string }[] = [
+  { tag: 'portfolio_web', means: '포트폴리오의 「웹에서 바로 써보기」 버튼', link: '/?utm_source=portfolio_web' },
+  { tag: 'portfolio_app', means: '포트폴리오의 「앱 다운로드」 버튼', link: '/download?utm_source=portfolio_app' },
+  { tag: 'resume_web', means: '이력서의 웹 링크', link: '/?utm_source=resume_web' },
+  { tag: 'resume_app', means: '이력서의 앱 다운로드 링크', link: '/download?utm_source=resume_app' },
+  { tag: 'ig_profile_main', means: '인스타 본계정 프로필의 링크', link: '/download?utm_source=ig_profile_main' },
+  { tag: 'ig_profile_cookmatch', means: '인스타 쿡매치 계정 프로필의 링크', link: '/download?utm_source=ig_profile_cookmatch' },
+  { tag: 'ig_profile_ddong', means: '인스타 똥글이 계정 프로필의 링크', link: '/download?utm_source=ig_profile_ddong' },
+  { tag: 'ig_profile', means: '계정 구분 없이 붙였던 인스타 프로필 링크(세 계정이 섞여 있어요)', link: '/download?utm_source=ig_profile' },
+  { tag: 'threads', means: '스레드 글에 붙인 링크', link: '/?utm_source=threads' },
+  { tag: 'instagram', means: '인스타그램 릴스·스토리·게시물 글에 붙인 링크', link: '/?utm_source=instagram' },
+];
+
+function sourceLabel(src: string): string {
+  const t = (src || '').toLowerCase();
+  if (t === '(직접)') return '꼬리표 없이 들어옴 — 주소를 직접 치거나, 북마크·홈 화면 아이콘, 또는 출처를 안 알려주는 링크(PDF·메신저 등)';
+  const kind = t.endsWith('_web') ? ' · 웹 첫 화면' : t.endsWith('_app') ? ' · 앱 다운로드 페이지' : '';
+  if (t.startsWith('portfolio')) return '포트폴리오에서 온 방문' + kind;
+  if (t.startsWith('resume')) return '이력서에서 온 방문' + kind;
+  if (t === 'ig_profile') return '인스타그램 프로필 링크 — 계정 구분 없이 붙인 것(본계정·쿡매치·똥글이가 섞임)';
+  if (t === 'ig') return '인스타그램 꼬리표(ig) — 어느 링크인지까지는 구분 안 됨';
+  if (t === 'ig_profile_main') return '인스타 본계정 프로필 링크';
+  if (t === 'ig_profile_cookmatch') return '인스타 쿡매치 계정 프로필 링크';
+  if (t === 'ig_profile_ddong') return '인스타 똥글이 계정 프로필 링크';
+  if (t === 'ig_ad') return '인스타그램 광고';
+  if (t.startsWith('ig_') || t.startsWith('instagram')) return '인스타그램 글에 붙인 링크';
+  if (t.startsWith('threads')) return '스레드 글에 붙인 링크';
+  if (t.includes('.')) {
+    // 꼬리표가 없어서 앱이 「어느 사이트에서 왔나」 로 대신 적은 것
+    if (t.includes('instagram')) return '꼬리표 없음 — 인스타그램에서 눌러 들어옴';
+    if (t.includes('threads')) return '꼬리표 없음 — 스레드에서 눌러 들어옴';
+    if (/google|naver|daum|bing/.test(t)) return '꼬리표 없음 — 검색해서 들어옴';
+    if (t.includes('vercel.app')) return '꼬리표 없음 — 쿡매치 다른 페이지에서 이어짐';
+    return '꼬리표 없음 — 이 사이트의 링크를 눌러 들어옴';
+  }
+  return '';
+}
+
 /** 탭 맨 위 한 줄 — 요약과 대시보드가 같은 카드를 일부 같이 쓰므로, 이 탭을 무엇에 쓰는지 먼저 적어 둔다(2026-10-29 사용자: 두 탭의 역할이 분명치 않음. 항목은 하나도 빼지 않는 조건). */
 const TabRole: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
   <div style={{ margin: '0 2px 10px', fontSize: 12.5, lineHeight: 1.6, color: 'var(--ink-700)' }}>
@@ -3474,7 +3514,14 @@ const Dashboard: React.FC = () => {
                             );
                             return (
                               <tr key={r.source}>
-                                <td style={S.td}><b>{r.source}</b></td>
+                                <td style={{ ...S.td, minWidth: 150 }}>
+                                  <b>{r.source}</b>
+                                  {sourceLabel(r.source) && (
+                                    <div style={{ fontSize: 11, color: 'var(--ink-500)', marginTop: 2, lineHeight: 1.45, fontWeight: 400 }}>
+                                      {sourceLabel(r.source)}
+                                    </div>
+                                  )}
+                                </td>
                                 <td style={cellNum}>
                                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
                                     <span>{num(r.sessions)}</span>
@@ -3516,6 +3563,30 @@ const Dashboard: React.FC = () => {
                       (<code>instagram_story</code>, <code>threads_0902</code> 처럼 글마다
                       다르게 붙이면 글 단위로도 볼 수 있어요).
                     </div>
+                    <details style={{ marginTop: 10, fontSize: 12, color: 'var(--ink-700)', lineHeight: 1.7 }}>
+                      <summary style={{ cursor: 'pointer', fontWeight: 700 }}>
+                        내가 심어 둔 꼬리표 목록 · 링크 (눌러서 펼치기)
+                      </summary>
+                      <div className="adm-scroll" style={{ marginTop: 6 }}>
+                        <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 520 }}>
+                          <thead><tr>{['표에 뜨는 이름', '어디서 온 건가', '심을 링크 (앞에 refrigerator-code.vercel.app 붙이기)'].map(h => (
+                            <th key={h} style={S.th}>{h}</th>))}</tr></thead>
+                          <tbody>
+                            {SOURCE_GUIDE.map(g => (
+                              <tr key={g.tag}>
+                                <td style={S.td}><b>{g.tag}</b></td>
+                                <td style={S.td}>{g.means}</td>
+                                <td style={{ ...S.td, fontSize: 11.5 }}><code>{g.link}</code></td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      <div style={{ marginTop: 6, color: 'var(--ink-500)' }}>
+                        이름 뒤에 <code>_web</code> 은 웹 첫 화면, <code>_app</code> 은 다운로드 페이지로 보낸 링크예요.
+                        목록에 없는 이름도 표에 그대로 뜨고, 이름 규칙(portfolio·resume·ig·threads로 시작)에 맞으면 설명도 같이 붙어요.
+                      </div>
+                    </details>
                   </div>
                 );
               })()}
