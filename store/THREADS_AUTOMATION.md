@@ -4,7 +4,7 @@
 > 예약 작업 `threads-auto`가 이 문서를 그대로 따른다. 글 규칙은 `store/THREADS_GUIDE.md`(먼저 읽기).
 
 - 레포: `C:\Users\user\Desktop\RefrigeratorCode`
-- 검토함 아티팩트: https://claude.ai/artifact/6uhYSxHqiFSt7CbpYsM2mQ (db 컬렉션 `items`)
+- 검토함: 「쿡매치 만들기」 아티팩트 https://claude.ai/artifact/BGyobmSLq8o69qkFQWhSkK 의 「스레드 업로드용」 탭 (db 컬렉션 `items`, 2026-10-30 옛 검토함 6uhYSxHqiFSt7CbpYsM2mQ 에서 옮김). 페이지는 `scripts/gen_hub.py` 로 `scripts/hub_make.html` 을 만들고 `scripts/hub_threads.js` 를 함께 올린다
 - 스크립트: `python scripts/threads_bot.py fetch | post FILE | stats` (토큰 `.env.threads`, 깃 무시. **토큰 값은 절대 출력·채팅 금지**)
 
 ## items 문서
@@ -21,7 +21,7 @@
 1. **올리기** — `status == approved` 를 읽는다(쿼리).
    - reply: 바로 올린다. `{"id", "kind":"reply", "text": text or draft, "reply_to": 문서 id}`
    - post: **아침 7~8시(출근길), 낮 12~13시(점심), 밤 20시~0시대(퇴근·아이 재운 뒤)에만**, 하루 최대 2개·한 시간대에 1개. 그 밖이면 다음 실행으로 미룬다. (2026-10-30 사용자: 엄마들이 폰 보는 시간 = 출근길·점심·밤 8시~새벽 12시, 본인도 그렇다)
-     - `image_asset` 이 있고 `image_public` 이 없으면: Artifact `read`(url=검토함, path=asset id)로 받아서
+     - `image_asset` 이 있고 `image_public` 이 없으면: Artifact `read`(url=https://claude.ai/artifact/BGyobmSLq8o69qkFQWhSkK, path=asset id)로 받아서
        `frontend/public/threads/<문서id>.<확장자>` 로 복사 → 커밋·푸시 → `https://refrigerator-code.vercel.app/threads/<파일>` 이 200이 될 때까지(최대 5분) 기다림 → `image_public` 에 저장.
      - `{"id", "kind":"post", "text", "image_url": image_public, "first_reply": first_reply_text or first_reply}`
    - 본문에 `[대괄호]` 가 남아 있으면 올리지 말고 `failed`, error = "대괄호를 실제 내용으로 바꿔 주세요".

@@ -6,14 +6,17 @@
 :root {
   --bg: #F1F3F4; --paper: #FFFFFF; --ink: #1A1D1F; --muted: #626A70; --line: #DADFE2;
   --accent: #2D4F8E; --accent-ink: #FFFFFF; --soft: #E7EDF7; --ok: #2F7A57; --cap: #F7F9FA;
+  --warn: #A2620C; --warn-soft: #F8ECD9; --done: #4A5F8C;
   --sans: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
   --bg: #131618; --paper: #1C2023; --ink: #E9ECEE; --muted: #9DA5AB; --line: #2E3438;
-  --accent: #8FB0EE; --accent-ink: #0F1626; --soft: #22304A; --ok: #7CCBA5; --cap: #171B1E; color-scheme: dark } }
+  --accent: #8FB0EE; --accent-ink: #0F1626; --soft: #22304A; --ok: #7CCBA5; --cap: #171B1E;
+  --warn: #E3A54D; --warn-soft: #3A2E1B; --done: #9FB2DF; color-scheme: dark } }
 :root[data-theme="dark"] {
   --bg: #131618; --paper: #1C2023; --ink: #E9ECEE; --muted: #9DA5AB; --line: #2E3438;
-  --accent: #8FB0EE; --accent-ink: #0F1626; --soft: #22304A; --ok: #7CCBA5; --cap: #171B1E; color-scheme: dark }
+  --accent: #8FB0EE; --accent-ink: #0F1626; --soft: #22304A; --ok: #7CCBA5; --cap: #171B1E;
+  --warn: #E3A54D; --warn-soft: #3A2E1B; --done: #9FB2DF; color-scheme: dark }
 body { background: var(--bg); color: var(--ink); font: 15px/1.6 var(--sans); }
 .wrap { max-width: 640px; margin: 0 auto; padding-block: 22px 64px;
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
@@ -23,6 +26,30 @@ h1 { font-size: 24px; margin: 0; }
 .tabs { display: flex; gap: 6px; flex-wrap: wrap; }
 .tab { font: 500 13.5px var(--sans); border: 1px solid var(--line); background: var(--paper); color: var(--ink); padding: 6px 14px; border-radius: 999px; cursor: pointer; }
 .tab[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.main-tabs { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--paper); }
+.mtab { appearance: none; border: 0; background: none; font: 700 14.5px var(--sans); color: var(--muted); padding: 11px 8px; cursor: pointer; }
+.mtab[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.mtab:focus-visible { outline: 2px solid var(--accent); outline-offset: -3px; }
+.section { display: flex; flex-direction: column; gap: 14px; }
+.tcard { background: var(--paper); border: 1px solid var(--line); border-left: 4px solid var(--warn); border-radius: 12px; padding: 14px; display: grid; gap: 10px; min-width: 0; }
+.tcard.approved { border-left-color: var(--accent); } .tcard.posted { border-left-color: var(--done); }
+.tcard.skip { border-left-color: var(--line); } .tcard.failed { border-left-color: var(--warn); }
+.tmeta { font-size: 12px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 10px; } .tmeta a { color: inherit; }
+.quote { background: var(--cap); border-radius: 8px; padding: 8px 10px; font-size: 13px; color: var(--muted); white-space: pre-wrap; }
+.comment { white-space: pre-wrap; overflow-wrap: anywhere; } .who { font-weight: 700; }
+.tcard label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 4px; }
+.tcard textarea { width: 100%; box-sizing: border-box; font: 15px/1.55 var(--sans); color: var(--ink); background: var(--cap); border: 1px solid var(--line); border-radius: 8px; padding: 10px; resize: vertical; min-height: 80px; }
+.tcard textarea:focus-visible { outline: 2px solid var(--accent); }
+.flag { font-size: 12px; color: var(--warn); background: var(--warn-soft); border-radius: 6px; padding: 4px 8px; }
+.trow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 13px; }
+.trow .btn { flex: 0 1 auto; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.state { font-size: 12.5px; font-weight: 700; padding: 2px 10px; border-radius: 999px; background: var(--soft); color: var(--accent); }
+.state.posted { color: var(--done); } .state.failed { background: var(--warn-soft); color: var(--warn); } .state.skip { background: var(--cap); color: var(--muted); }
+.photo img { border-radius: 8px; max-height: 260px; }
+.empty { text-align: center; color: var(--muted); padding: 28px 12px; border: 1px dashed var(--line); border-radius: 12px; }
+.pills { display: flex; flex-wrap: wrap; gap: 6px; font-size: 13px; }
+.pill { padding: 2px 10px; border-radius: 999px; background: var(--paper); border: 1px solid var(--line); font-variant-numeric: tabular-nums; }
 .how { background: var(--soft); border-radius: 12px; padding: 12px 14px; font-size: 14px; }
 .how ol { margin: 6px 0 0; padding-left: 20px; display: grid; gap: 3px; }
 h2 { font-size: 15px; margin: 8px 0 0; }
@@ -50,8 +77,13 @@ details > summary { cursor: pointer; font-weight: 700; padding: 6px 0; }
 <div class="wrap">
   <header>
     <h1>쿡매치 만들기</h1>
-    <p class="sub">제미나이로 뽑을 프롬프트만 모았어요. 만들 차례인 편이 위에 있어요.</p>
+    <p class="sub" id="sub"></p>
   </header>
+  <div class="main-tabs" role="group" aria-label="올릴 곳">
+    <button class="mtab" type="button" data-m="ig" aria-pressed="true">인스타그램 업로드용</button>
+    <button class="mtab" type="button" data-m="th" aria-pressed="false">스레드 업로드용</button>
+  </div>
+  <section class="section" id="ig">
   <div class="tabs" role="group" aria-label="형식">
     <button class="tab" type="button" data-t="hooks5" aria-pressed="true">후킹 5벌 (연기)</button>
     <button class="tab" type="button" data-t="hooks" aria-pressed="false">후킹 4벌</button>
@@ -61,6 +93,16 @@ details > summary { cursor: pointer; font-weight: 700; padding: 6px 0; }
   <h2 id="hTodo"></h2>
   <div class="list" id="todo"></div>
   <details id="doneBox"><summary id="hDone"></summary><div class="list" id="done"></div></details>
+  </section>
+  <section class="section" id="th" hidden>
+    <div class="pills" id="tsum"></div>
+    <div class="tabs" role="group" aria-label="종류">
+      <button class="tab ttab" type="button" data-k="reply" aria-pressed="true">답글</button>
+      <button class="tab ttab" type="button" data-k="post" aria-pressed="false">새 글</button>
+    </div>
+    <div class="how" id="thow"></div>
+    <div class="list" id="tlist"><div class="empty">검토함을 불러오는 중이에요.</div></div>
+  </section>
 </div>
 <div class="toast" id="toast" hidden>복사했어요</div>
 
@@ -111,10 +153,26 @@ function render() {
   $("#hDone").textContent = `다 만든 편 ${done.length}편`;
   $("#todo").replaceChildren(...todo.map(card));
   $("#done").replaceChildren(...done.map(card));
-  document.querySelectorAll(".tab").forEach(x => x.setAttribute("aria-pressed", x.dataset.t === tab ? "true" : "false"));
+  document.querySelectorAll(".tab[data-t]").forEach(x => x.setAttribute("aria-pressed", x.dataset.t === tab ? "true" : "false"));
 }
-document.querySelectorAll(".tab").forEach(b => b.addEventListener("click", () => {
+document.querySelectorAll(".tab[data-t]").forEach(b => b.addEventListener("click", () => {
   tab = b.dataset.t; try { localStorage.setItem("hub_make_tab5", tab); } catch (e) {} render();
 }));
 render();
+
+/* ── 상위 탭: 인스타그램 / 스레드 ── */
+const SUB = { ig: "제미나이로 뽑을 프롬프트만 모았어요. 만들 차례인 편이 위에 있어요.",
+  th: "@yoalmot.mom · 초안을 고치고 올리기를 누르면, 매시 7분 자동 실행 때 스레드에 올라가요." };
+let main = "ig";
+try { main = localStorage.getItem("hub_make_main") || "ig"; } catch (e) {}
+try { const h = location.hash.slice(1); if (h === "threads") main = "th"; if (h === "instagram") main = "ig"; } catch (e) {}
+function showMain() {
+  $("#ig").hidden = main !== "ig"; $("#th").hidden = main !== "th"; $("#sub").textContent = SUB[main];
+  document.querySelectorAll(".mtab").forEach(x => x.setAttribute("aria-pressed", String(x.dataset.m === main)));
+}
+document.querySelectorAll(".mtab").forEach(b => b.addEventListener("click", () => {
+  main = b.dataset.m; try { localStorage.setItem("hub_make_main", main); } catch (e) {} showMain();
+}));
+showMain();
 </script>
+<script src="hub_threads.js"></script>
