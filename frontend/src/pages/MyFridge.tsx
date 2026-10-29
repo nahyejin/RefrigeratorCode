@@ -3065,16 +3065,16 @@ const MyFridge: React.FC = () => {
           items={seedItems}
           isLoggedIn={isLoggedIn}
           onClose={() => { if (!isLoggedIn) track('cta_dismiss', 'welcome'); finishWelcome(); }}
-          onStart={(ids) => { if (!isLoggedIn) track('cta_start', 'welcome'); removeSeedItems(ids); finishWelcome(); }}
-          onLogin={(ids) => {
-            track('cta_click', 'welcome');
+          onStart={(ids) => {
+            if (isLoggedIn) { removeSeedItems(ids); finishWelcome(); return; }
+            // 비회원: 빼기로 한 재료를 이 기기에 **바로 저장**하고 만들 수 있는 요리 화면으로 간다(2026-10-29).
+            // 화면이 바뀌면 이 페이지의 저장 효과가 돌기 전에 사라질 수 있어 상태 반영에 기대지 않는다.
+            track('cta_start', 'welcome');
             removeSeedItems(ids);
-            // 로그인 뒤에 사용 가이드를 이어서 보여 주기 위한 표시(예전 WelcomeModal 과 같은 규칙)
-            try {
-              if (!localStorage.getItem('myfridge_guide_shown')) localStorage.setItem('show_guide_after_login', 'true');
-            } catch { /* 표시를 못 남겨도 로그인은 진행 */ }
+            const keep = (list: Ingredient[] | null) => (list ?? []).filter(i => !ids.includes(i.id as string));
+            saveIngredients(keep(frozen), keep(fridge), keep(room));
             setShowWelcomeModal(false);
-            navigate('/login');
+            navigate('/recipe-list');
           }}
         />
         

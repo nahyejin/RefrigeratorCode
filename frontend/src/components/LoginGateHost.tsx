@@ -69,7 +69,7 @@ const LoginGateHost: React.FC = () => {
       title={copy.title}
       actions={[
         { label: copy.dismiss, onClick: dismiss, variant: 'outline' },
-        { label: '로그인하기', onClick: login, variant: 'primary' },
+        { label: kind === 'save' ? '3초 만에 저장하기' : '로그인하기', onClick: login, variant: 'primary' },
       ]}
     >
       <div style={{ fontSize: 14 }}>

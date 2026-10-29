@@ -27,13 +27,11 @@ interface Props {
   isLoggedIn: boolean;
   /** X 로 닫기 — 재료는 그대로 */
   onClose: () => void;
-  /** [이대로 시작] — 빼기로 한 재료 id 를 넘긴다 */
+  /** [이 재료로 요리 보기] — 빼기로 한 재료 id 를 넘긴다 */
   onStart: (removedIds: string[]) => void;
-  /** [로그인하고 시작] — 비회원만. 빼기로 한 재료를 반영한 뒤 로그인으로 */
-  onLogin: (removedIds: string[]) => void;
 }
 
-const DefaultIngredientsDialog: React.FC<Props> = ({ open, items, isLoggedIn, onClose, onStart, onLogin }) => {
+const DefaultIngredientsDialog: React.FC<Props> = ({ open, items, isLoggedIn, onClose, onStart }) => {
   const [off, setOff] = React.useState<Record<string, boolean>>({});
 
   // 열릴 때마다 처음 상태(전부 선택)로
@@ -56,16 +54,18 @@ const DefaultIngredientsDialog: React.FC<Props> = ({ open, items, isLoggedIn, on
   const removedIds = Object.keys(off).filter(id => off[id]);
   const count = items.length - removedIds.length;
 
-  const actions = isLoggedIn
-    ? [{ label: '이대로 시작', onClick: () => onStart(removedIds), variant: 'primary' as const }]
-    : [
-        { label: '이대로 시작', onClick: () => onStart(removedIds), variant: 'outline' as const },
-        { label: '로그인하고 시작', onClick: () => onLogin(removedIds), variant: 'primary' as const },
-      ];
+  // 2026-10-29: 「3개까지만·사라질 수 있어요」 경고와 [로그인하고 시작]을 뺐다. 처음 보는 사람에게 제한부터 말하면
+  // 가치를 보기 전에 벽이 된다 → 재료를 고르면 **만들 수 있는 요리**부터 보여 주고, 가입은 레시피를 본 뒤에 권한다.
+  const actions = [
+    { label: isLoggedIn ? '이대로 시작' : '이 재료로 요리 보기', onClick: () => onStart(removedIds), variant: 'primary' as const },
+  ];
 
   return (
     <Dialog open={open} onClose={onClose} title="자주 쓰는 재료를 담아 뒀어요" actions={actions}>
       <div style={{ fontSize: 14, marginBottom: 4 }}>없는 재료는 눌러서 빼 주세요 ({count}개 선택)</div>
+      {!isLoggedIn && (
+        <div style={{ fontSize: 12.5, color: 'var(--ink-500)' }}>고른 재료로 만들 수 있는 요리를 바로 보여 드려요.</div>
+      )}
       <div style={{ textAlign: 'left', margin: '10px 0 0' }}>
         {grouped.map(g => (
           <div key={g.name}>
@@ -95,12 +95,12 @@ const DefaultIngredientsDialog: React.FC<Props> = ({ open, items, isLoggedIn, on
           </div>
         ))}
       </div>
-      {!isLoggedIn && (
+      {removedIds.length > 0 && (
         <div style={{
-          marginTop: 14, padding: '10px 12px', borderRadius: 10, background: '#F4F4F6',
-          fontSize: 12.5, lineHeight: 1.55, color: '#3A3A42',
+          marginTop: 14, padding: '10px 12px', borderRadius: 10, background: '#FFF8CC', border: '1px solid #FFE766',
+          fontSize: 12.5, lineHeight: 1.55, color: '#1A1A1E',
         }}>
-          <b style={{ color: '#1A1A1E' }}>3개까지만 더 담을 수 있어요.</b><br />로그인하지 않으면 사라질 수 있어요.
+          <b>지금 {removedIds.length}개를 뺐어요</b>
         </div>
       )}
     </Dialog>

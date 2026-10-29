@@ -15,6 +15,7 @@ import youtubeLogo from '../assets/썸네일_youtubelogo.png';
 import { openCookMode } from '../utils/cookMode';
 import { requestShare } from '../utils/recipeShare';
 import { track } from '../utils/track';
+import { scheduleSavePrompt } from '../utils/loginGate';
 
 // 버튼/아이콘/스타일 상수화
 // 액션 4개 중 '완료·기록·공유'는 요리한 *뒤*에 쓰는 동작인데도 목록을 훑는 내내
@@ -193,6 +194,8 @@ const Utils = {
 /** 레시피를 열었다는 기록. 어떤 레시피가 실제로 열리는지 알아야 추천을 고칠 수 있다. */
 const trackRecipeOpen = (id: number) => {
   try { track('recipe_open', String(id)); } catch { /* 기록 실패가 화면을 막지 않는다 */ }
+  // 비회원이 처음 레시피를 본 직후 한 번 「이 냉장고 저장해 둘까요?」(utils/loginGate 의 scheduleSavePrompt)
+  try { scheduleSavePrompt(); } catch { /* 제안이 안 떠도 레시피는 열린다 */ }
 };
 
 export interface RecipeCardProps {

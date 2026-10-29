@@ -2119,7 +2119,7 @@ const TL_PLATFORM: Record<string, string> = { android: '안드로이드', ios: '
 const TL_PROVIDER: Record<string, string> = { kakao: '카카오', naver: '네이버', google: '구글', apple: '애플', local: '이메일' };
 const TL_CTA: Record<string, string> = {
   ingredient_limit: '재료 3개 한도', favorite_limit: '즐겨찾기 3개 한도', write_limit: '기록 3개 한도',
-  done_limit: '완료 3개 한도', ai_out: 'AI 체험 소진', return_visit: '두 번째 방문', welcome: '첫 시작(기본 재료)',
+  done_limit: '완료 3개 한도', ai_out: 'AI 체험 소진', return_visit: '두 번째 방문', welcome: '첫 시작(기본 재료)', save_prompt: '레시피 본 뒤 저장 제안',
 };
 const TL_ACTION: Record<string, string> = {
   favorite_add: '즐겨찾기 추가', favorite_remove: '즐겨찾기 취소', complete_add: '완료 추가', complete_remove: '완료 취소',
@@ -3721,7 +3721,7 @@ const Dashboard: React.FC = () => {
             const CTA_LABEL: Record<string, string> = {
               ingredient_limit: '재료 3개 한도', favorite_limit: '즐겨찾기 3개 한도', write_limit: '기록 3개 한도',
               done_limit: '완료 3개 한도', ai_out: 'AI 체험 소진', return_visit: '두 번째 방문',
-              welcome: '첫 시작(기본 재료 고르기)',
+              welcome: '첫 시작(기본 재료 고르기)', save_prompt: '레시피 본 뒤 저장 제안',
             };
             const cta: any[] = act.cta || [];
             const signupAfter: any[] = act.signup_after_cta || [];
@@ -3733,7 +3733,7 @@ const Dashboard: React.FC = () => {
                   <h2 style={{ ...S.h2, margin: 0 }}>가입 유도 팝업</h2>
                   <div style={{ fontSize: 12, color: '#6A6A73', margin: '4px 0 10px', lineHeight: 1.6 }}>
                     {filterSpan} · 앱에 이 팝업이 들어간 새 버전부터 쌓입니다. 「누름」은 [로그인하기]를 누른 횟수, 「닫음」은 취소·나중에·X.
-                    「첫 시작(기본 재료 고르기)」은 처음 앱을 열면 뜨는 팝업이에요 — 「누름」=[로그인하고 시작], 「그냥 시작」=[이대로 시작], 「닫음」=X. 새 앱 빌드부터 쌓여요.
+                    「첫 시작(기본 재료 고르기)」은 처음 앱을 열면 뜨는 팝업이에요 — 「그냥 시작」=[이 재료로 요리 보기](예전 빌드는 [이대로 시작]), 「닫음」=X, 「누름」=[로그인하고 시작](예전 빌드만). 「레시피 본 뒤 저장 제안」은 처음 레시피를 연 3.5초 뒤 한 번 뜨는 「이 냉장고, 저장해 둘까요?」예요. 새 앱 빌드부터 쌓여요.
                   </div>
                   {cta.length === 0 ? (
                     <div style={{ fontSize: 13, color: '#6A6A73' }}>아직 기록이 없어요.</div>
