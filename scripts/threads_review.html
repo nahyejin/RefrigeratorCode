@@ -1,0 +1,193 @@
+<title>스레드 검토함</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&family=Gowun+Batang:wght@700&display=swap">
+<style>
+/* 폰 한 손 검토: 위 요약 → 탭(답글/새 글) → 카드 한 줄로. 상태는 왼쪽 띠 색으로 */
+:root {
+  --bg: #f3f4f1; --surface: #ffffff; --ink: #1b1d1a; --muted: #686d66; --line: #dcdfd8;
+  --accent: #2f6b4f; --accent-soft: #e2eee7; --warn: #a2620c; --warn-soft: #f8ecd9;
+  --done: #4a5f8c; --done-soft: #e5e9f3; --quote: #eceee9;
+  --f-body: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --f-display: "Gowun Batang", "Nanum Myeongjo", serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #141613; --surface: #1d201c; --ink: #e8ebe5; --muted: #9aa096; --line: #31352f;
+  --accent: #7fc4a0; --accent-soft: #23362b; --warn: #e3a54d; --warn-soft: #3a2e1b;
+  --done: #9fb2df; --done-soft: #252c3d; --quote: #262a25; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #141613; --surface: #1d201c; --ink: #e8ebe5; --muted: #9aa096; --line: #31352f;
+  --accent: #7fc4a0; --accent-soft: #23362b; --warn: #e3a54d; --warn-soft: #3a2e1b;
+  --done: #9fb2df; --done-soft: #252c3d; --quote: #262a25; color-scheme: dark }
+body { background: var(--bg); color: var(--ink); font: 15px/1.6 var(--f-body); }
+.wrap { max-width: 640px; margin: 0 auto; padding-block: 20px 60px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 16px; }
+h1 { font: 700 26px/1.25 var(--f-display); margin: 0; text-wrap: balance; }
+.sub { color: var(--muted); font-size: 13px; margin: 4px 0 0; }
+.summary { display: flex; flex-wrap: wrap; gap: 8px; font-size: 13px; }
+.pill { padding: 3px 10px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+.pill b { font-weight: 700; }
+.tabs { display: flex; gap: 6px; border-bottom: 1px solid var(--line); }
+.tab { appearance: none; border: 0; background: none; font: 500 15px var(--f-body); color: var(--muted);
+  padding: 8px 12px; border-bottom: 2px solid transparent; cursor: pointer; }
+.tab[aria-selected="true"] { color: var(--ink); border-color: var(--ink); }
+.tab:focus-visible, button:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.list { display: grid; gap: 12px; }
+.group { font-size: 12px; letter-spacing: .06em; color: var(--muted); margin: 8px 0 -4px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--warn);
+  border-radius: 10px; padding: 14px; display: grid; gap: 10px; min-width: 0; }
+.card.approved { border-left-color: var(--accent); }
+.card.posted { border-left-color: var(--done); opacity: .85; }
+.card.skip, .card.failed { border-left-color: var(--line); }
+.card.failed { border-left-color: var(--warn); }
+.meta { font-size: 12px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 10px; }
+.meta a { color: inherit; }
+.quote { background: var(--quote); border-radius: 8px; padding: 8px 10px; font-size: 13px; color: var(--muted); white-space: pre-wrap; }
+.comment { white-space: pre-wrap; overflow-wrap: anywhere; }
+.who { font-weight: 700; }
+label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 4px; }
+textarea { width: 100%; box-sizing: border-box; font: 15px/1.55 var(--f-body); color: var(--ink); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 8px; padding: 10px; resize: vertical; min-height: 80px; }
+textarea[readonly] { opacity: .8; }
+.why { font-size: 12px; color: var(--muted); }
+.flag { font-size: 12px; color: var(--warn); background: var(--warn-soft); border-radius: 6px; padding: 4px 8px; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+button.act { appearance: none; border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+  font: 500 14px var(--f-body); padding: 8px 14px; border-radius: 8px; cursor: pointer; }
+button.main { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+button:disabled { opacity: .45; cursor: not-allowed; }
+.state { font-size: 13px; padding: 3px 10px; border-radius: 999px; }
+.state.approved { background: var(--accent-soft); color: var(--accent); }
+.state.posted { background: var(--done-soft); color: var(--done); }
+.state.failed { background: var(--warn-soft); color: var(--warn); }
+.state.skip { background: var(--quote); color: var(--muted); }
+.photo img { border-radius: 8px; max-height: 260px; }
+.empty { text-align: center; color: var(--muted); padding: 32px 12px; border: 1px dashed var(--line); border-radius: 10px; }
+.note { font-size: 13px; color: var(--muted); }
+@media (prefers-reduced-motion: no-preference) { .card { transition: border-color .2s; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>스레드 검토함</h1>
+    <p class="sub">@yoalmot.mom · 초안을 고치고 「올리기」를 누르면, 다음 자동 실행 때 스레드에 올라가요.</p>
+  </header>
+  <div class="summary" id="summary"></div>
+  <nav class="tabs" role="tablist">
+    <button class="tab" role="tab" id="tab-reply" data-kind="reply" aria-selected="true">답글</button>
+    <button class="tab" role="tab" id="tab-post" data-kind="post" aria-selected="false">새 글</button>
+  </nav>
+  <section class="list" id="list">
+    <div class="empty">검토할 초안을 불러오는 중이에요. 새 댓글이 오면 Claude가 답글 초안을 여기에 넣어요.</div>
+  </section>
+  <p class="note">[대괄호]가 남은 글은 올릴 수 없어요. 직접 겪은 사실로 바꾸거나 그 줄을 지워 주세요.</p>
+</div>
+
+<script>
+const LABEL = { pending: "검토 전", approved: "올리기 대기", posted: "올림", skip: "안 달기", failed: "실패" };
+const ORDER = ["pending", "failed", "approved", "posted", "skip"];
+let kind = "reply", docs = [], db = null, assets = null;
+try { kind = localStorage.getItem("tr_kind") || "reply"; } catch (e) {}
+
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const when = t => t ? new Date(t).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "numeric", minute: "2-digit" }) : "";
+
+function summary() {
+  const n = s => docs.filter(d => d.status === s).length;
+  const k = k => docs.filter(d => d.kind === k && d.status === "pending").length;
+  document.getElementById("summary").innerHTML =
+    `<span class="pill">검토 전 <b>${n("pending")}</b></span>` +
+    `<span class="pill">올리기 대기 <b>${n("approved")}</b></span>` +
+    `<span class="pill">올림 <b>${n("posted")}</b></span>` +
+    (n("failed") ? `<span class="pill">실패 <b>${n("failed")}</b></span>` : "");
+  document.getElementById("tab-reply").textContent = `답글${k("reply") ? " · " + k("reply") : ""}`;
+  document.getElementById("tab-post").textContent = `새 글${k("post") ? " · " + k("post") : ""}`;
+}
+
+function card(d) {
+  const editable = d.status === "pending" || d.status === "failed";
+  const text = d.text ?? d.draft ?? "";
+  const head = d.kind === "reply"
+    ? `<div class="meta"><span>${esc(d.post_first_line)}</span>${d.permalink ? `<a href="${esc(d.permalink)}" target="_blank" rel="noopener">글 보기</a>` : ""}<span>${when(d.timestamp)}</span></div>
+       ${d.parent_text ? `<div class="quote">내 답글: ${esc(d.parent_text)}</div>` : ""}
+       <div class="comment"><span class="who">@${esc(d.username)}</span> ${esc(d.comment)}</div>`
+    : `<div class="meta"><span>${esc(d.slot || "")}</span><span>${esc(d.type || "")}</span></div>
+       ${d.photo_hint ? `<div class="quote">사진: ${esc(d.photo_hint)}</div>` : ""}`;
+  const photo = d.kind === "post"
+    ? `<div class="photo">${d.image_url ? `<img src="${esc(d.image_url)}" alt="올릴 사진">` : ""}
+         ${editable && assets ? `<label for="ph-${d.id}">사진 한 장 (직접 찍은 것)</label><input type="file" accept="image/*" id="ph-${d.id}" data-photo="${d.id}">` : ""}</div>` : "";
+  const first = d.kind === "post"
+    ? `<div><label for="fr-${d.id}">올리자마자 달 첫 답글</label><textarea id="fr-${d.id}" data-first="${d.id}" ${editable ? "" : "readonly"} style="min-height:56px">${esc(d.first_reply_text ?? d.first_reply ?? "")}</textarea></div>` : "";
+  const bracket = /\[[^\]]*\]/.test(text) && editable;
+  const actions = editable
+    ? `<div class="row"><button class="act main" data-go="${d.id}" ${bracket ? "disabled" : ""}>${d.kind === "reply" ? "이대로 답글 달기" : "이대로 올리기"}</button>
+       <button class="act" data-skip="${d.id}">${d.kind === "reply" ? "안 달기" : "이 글 빼기"}</button></div>`
+    : `<div class="row"><span class="state ${d.status}">${LABEL[d.status]}</span>
+       ${d.status === "approved" ? `<span class="note">다음 자동 실행 때 올라가요</span><button class="act" data-undo="${d.id}">되돌리기</button>` : ""}
+       ${d.status === "skip" ? `<button class="act" data-undo="${d.id}">되돌리기</button>` : ""}
+       ${d.posted_link ? `<a class="note" href="${esc(d.posted_link)}" target="_blank" rel="noopener">스레드에서 보기</a>` : ""}</div>`;
+  return `<article class="card ${d.status}">${head}
+    <div><label for="tx-${d.id}">${d.kind === "reply" ? "답글 초안" : "본문"}</label>
+    <textarea id="tx-${d.id}" data-text="${d.id}" ${editable ? "" : "readonly"} style="min-height:${d.kind === "post" ? 200 : 80}px">${esc(text)}</textarea></div>
+    ${d.why ? `<div class="why">${esc(d.why)}</div>` : ""}
+    ${bracket ? `<div class="flag">[대괄호] 부분을 실제 이야기로 바꿔야 올릴 수 있어요</div>` : ""}
+    ${d.status === "failed" && d.error ? `<div class="flag">올리다 실패: ${esc(d.error)}</div>` : ""}
+    ${first}${photo}${actions}</article>`;
+}
+
+function render() {
+  summary();
+  document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", String(t.dataset.kind === kind)));
+  const mine = docs.filter(d => d.kind === kind)
+    .sort((a, b) => ORDER.indexOf(a.status) - ORDER.indexOf(b.status) || String(b.timestamp || b.slot || "").localeCompare(String(a.timestamp || a.slot || "")));
+  const el = document.getElementById("list");
+  if (!db) { el.innerHTML = `<div class="empty">검토함에 연결하지 못했어요. claude.ai에 로그인한 상태로 열어 주세요.</div>`; return; }
+  if (!mine.length) { el.innerHTML = `<div class="empty">${kind === "reply" ? "답할 새 댓글이 없어요. 새 댓글이 오면 Claude가 답글 초안을 넣어요." : "새 글 초안이 아직 없어요. Claude가 다음 글을 써서 넣어요."}</div>`; return; }
+  let html = "", last = "";
+  for (const d of mine) { if (d.status !== last) { html += `<div class="group">${LABEL[d.status]}</div>`; last = d.status; } html += card(d); }
+  el.innerHTML = html;
+}
+
+document.addEventListener("click", async e => {
+  const t = e.target.closest("button"); if (!t) return;
+  if (t.dataset.kind) { kind = t.dataset.kind; try { localStorage.setItem("tr_kind", kind); } catch (_) {} render(); return; }
+  const id = t.dataset.go || t.dataset.skip || t.dataset.undo; if (!id || !db) return;
+  t.disabled = true;
+  const patch = {};
+  if (t.dataset.go) {
+    patch.status = "approved"; patch.approved_at = new Date().toISOString(); patch.error = null;
+    patch.text = document.getElementById("tx-" + id).value.trim();
+    const fr = document.getElementById("fr-" + id); if (fr) patch.first_reply_text = fr.value.trim();
+  } else patch.status = t.dataset.skip ? "skip" : "pending";
+  try { await db.collection("items").doc(id).update(patch); }
+  catch (err) { t.disabled = false; t.textContent = "저장 못 했어요. 다시 눌러 주세요"; }
+});
+
+// 고치는 중인 글은 칸을 떠날 때 저장(다른 기기에서 열어도 이어서)
+document.addEventListener("change", async e => {
+  const el = e.target; if (!db) return;
+  const id = el.dataset.text || el.dataset.first || el.dataset.photo; if (!id) return;
+  try {
+    if (el.dataset.photo && el.files[0] && assets) {
+      const a = await assets.upload(el.files[0]);
+      await db.collection("items").doc(id).update({ image_asset: a.id, image_url: a.url, image_public: null });
+    } else if (el.dataset.text) await db.collection("items").doc(id).update({ text: el.value });
+    else await db.collection("items").doc(id).update({ first_reply_text: el.value });
+  } catch (err) { /* 승인할 때 다시 저장된다 */ }
+});
+
+(async () => {
+  db = await claude.use("db");
+  assets = await claude.use("assets");
+  if (!db) { render(); return; }
+  db.collection("items").onSnapshot(snap => {
+    const active = document.activeElement && document.activeElement.id;
+    docs = snap.docs.map(s => ({ id: s.id, ...s.data() }));
+    // 입력 중이면 다시 그리지 않음(쓰던 글이 날아가지 않게)
+    if (active && /^(tx|fr)-/.test(active)) { summary(); return; }
+    render();
+  }, () => { db = null; render(); });
+})();
+render();
+</script>

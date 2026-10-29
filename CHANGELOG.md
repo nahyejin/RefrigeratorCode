@@ -14011,3 +14011,11 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 - `loginGate.ts`/`LoginGateHost.tsx`/`RecipeCard.tsx`: 새 확인창 종류 `save`(detail `save_prompt`, 「이 냉장고, 저장해 둘까요?」 [나중에 할게요][3초 만에 저장하기]). 비회원이 이 기기에서 **처음 레시피를 열고 3.5초 뒤 한 번만**(`scheduleSavePrompt`, localStorage `cookmatch_save_prompt_at`).
 - `Admin.tsx`: 「가입 유도 팝업」·사람별 타임라인에 `레시피 본 뒤 저장 제안` 라벨, 첫 시작 팝업 설명 갱신. 정책 문서 `store/LOGIN_GATE_POLICY.md`, `RELEASE_NOTES.md` 갱신.
 - 확인: 로컬 웹(비회원 새 기기)에서 팝업 경고 문구 제거·[이 재료로 요리 보기] 단일 버튼, 두부·김치·우유 빼고 시작 시 `myfridge_ingredients`에서 3개만 빠지고 `/recipe-list`로 이동, 저장 제안 확인창 문구·버튼 표시. 레시피 데이터가 로컬엔 없어 「레시피 열기 3.5초 뒤 자동 표시」는 실제로는 못 눌러 봤고(확인창은 이벤트로 띄워 확인), 시안의 하단 시트 모양이 아니라 앱 공통 팝업(`Dialog`) 모양이다. 새 앱 빌드부터 적용(웹은 배포 즉시).
+
+### 스레드 자동화(답글 초안·새 글, 검토 후 올리기)
+- 스레드 API 토큰 연결(@yoalmot.mom, 60일, `.env.threads`·깃 무시). 폰의 토큰 생성기 팝업은 빈 화면에서 멈춰서 PC 생성기로 받았다.
+- `scripts/threads_bot.py`: `fetch`(내 글 대화에서 아직 답 안 한 남의 답글. 맨 위 답글에 한꺼번에 답한 경우도 답한 걸로 침), `post`(승인 항목 올리기, 새 글은 첫 답글까지), `stats`(조회·답글·좋아요).
+- 검토함 아티팩트 `scripts/threads_review.html` → https://claude.ai/artifact/6uhYSxHqiFSt7CbpYsM2mQ (db `items`): 답글/새 글 탭, 초안 고치기·「이대로 올리기」·「안 달기」, 새 글 사진 올리기, [대괄호] 남으면 올리기 막음.
+- 실행 절차 `store/THREADS_AUTOMATION.md`, 예약 작업 `threads-auto`(매일 9~23시 매시 7분): 승인된 답글은 바로, 새 글은 12~13시·20~22시에만 올리고 새 댓글 초안·다음 글 초안을 채운다.
+- 첫 초안: 첫 글 미답 댓글 4개 답글, 2주 글 중 1~3일 새 글.
+- 남은 일: 앱에 `threads_content_publish` 권한 추가 후 토큰 다시 받기(지금 토큰은 읽기만).
