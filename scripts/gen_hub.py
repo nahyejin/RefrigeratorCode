@@ -117,6 +117,10 @@ def thread_items():
 
 def post_data():
     items = plan_items() + cooking_items() + talk_items() + thread_items()
+    # 묶음 탭(2026-10-29 사용자: 릴스가 너무 많아 1벌·2벌… 유형별로 고르게)
+    grp = {"총정리": "총정리", "1벌": "연기형 1벌", "2벌": "연기형 2벌", "3벌": "연기형 3벌", "4벌": "연기형 4벌", "직접 요리": "직접 요리", "셀카형": "출연자 셀카형"}
+    for it in items:
+        it["grp"] = "스레드" if it["ch"] == "threads" else grp.get(it["kind"], "기타")
     seen = set()
     for it in items:
         assert it["id"] not in seen, it["id"]
