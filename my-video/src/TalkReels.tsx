@@ -4,6 +4,7 @@ import { WHITE, useCustomFont, FONT_FAMILY } from "./shared";
 import { RestFeatures, restLen, REST_EXCL } from "./RestFeatures";
 import { Reel2Cta, REEL2_CTA_LEN } from "./Reel2Match";
 import { Reel7Cta, REEL7_CTA_LEN } from "./Reel7RealRecipe";
+import { Reel3Cta, REEL3_CTA_LEN } from "./Reel3CookMode";
 
 // 릴스 형식 ③ 출연자 추천·후기형(store/REEL_FORMATS.md ③, 프롬프트 store/REEL_TALK_V2.md).
 // 사용자가 보낸 참고 영상(재능 검사 앱 광고) 편집을 따른다:
@@ -108,6 +109,31 @@ const TALK02B: TalkSpec = {
     { at: V2 + 0.15, len: 2.0, src: "reel7_sort_demo_new.mp4", from: 0.0, rate: 1.0 },
     { at: V2 + 2.15, len: 1.6, src: "reel7_sort_demo_new.mp4", from: 2.0, rate: 0.8 },
     { at: V2 + 3.75, len: 2.85, src: "reel7_recipe_demo.mp4", srcW: 880, from: 18.0, rate: 0.85, focus: [0.5, 0.5], zoom: 1.0, zoomTo: 1.2 },
+  ],
+};
+
+// 03 요리 모드 — 「요리가 싫었던 진짜 이유」(출연자 03, 2026-10-30). 클립 경계 0–7.02 / 7.02–15.70 / 15.70–25.32, 1.4배속.
+// 클립 1 끝에 「힘들었던 거예요」를 한 번 더 말해서 뒤의 것(원본 7.15초~)을 잘라 냈다. 끝 「이제 좀 할 만해요」는 카드를 내리고 얼굴로 끝낸다.
+const W1 = 7.02;
+const W2 = 15.7;
+const TALK03: TalkSpec = {
+  src: "talk03_presenter_x140.mp4",
+  len: 25.32,
+  speed: 1.4,
+  title: "요리가 싫었던\n진짜 이유",
+  phrases: [
+    [0.0, 1.5, "저 요리 못하는 줄"], [1.5, 2.3, "알았거든요"], [2.94, 4.46, "근데 아니더라고요"],
+    [4.9, 5.88, "레시피 보는 게"], [5.88, W1 - 0.02, "힘들었던 거예요"],
+    [7.15, 8.05, "한 줄 보고"], [8.28, 9.0, "손 씻고"], [9.88, 10.8, "다시 폰 켜고"],
+    [11.68, 12.35, "어디까지 했지"], [12.48, 13.6, "하는 사이에"], [14.12, W2 - 0.02, "딸은\n배고프다고 하고"],
+    [15.84, 17.28, "요즘은 쿡매치가"], [17.28, 18.66, "한 줄씩 읽어 줘요"], [19.84, 20.75, "저는 듣고"],
+    [21.08, 22.62, "손만 움직이면 되니까"], [23.28, 24.42, "이제 좀 할 만해요"],
+  ],
+  // 앱 쓰는 순서: 레시피 「조리 순서」의 「▶ 읽어 주기」 → 읽는 중(1단계 노란 표시)으로 살짝 다가감 → 1단계에서 2단계로 저절로 넘어감.
+  overlays: [
+    { at: W2 + 0.15, len: 2.0, src: "reel3_cookmode_demo.mp4", srcW: 880, from: 5.8, rate: 1.0, focus: [0.5, 0.45] },
+    { at: W2 + 2.15, len: 2.0, src: "reel3_cookmode_demo.mp4", srcW: 880, from: 8.0, rate: 1.0, focus: [0.6, 0.36], zoom: 1.0, zoomTo: 1.25 },
+    { at: W2 + 4.15, len: 2.8, src: "reel3_cookmode_demo.mp4", srcW: 880, from: 15.8, rate: 1.0, focus: [0.5, 0.5] },
   ],
 };
 
@@ -261,4 +287,5 @@ export const REELS_TALK = [
   { id: "Talk02RecipeClean", ...make(TALK02, Reel7Cta, REEL7_CTA_LEN, REST_EXCL[6], false) },
   { id: "Talk02Kim", ...make(TALK02B, Reel7Cta, REEL7_CTA_LEN, REST_EXCL[6]) },
   { id: "Talk02KimClean", ...make(TALK02B, Reel7Cta, REEL7_CTA_LEN, REST_EXCL[6], false) },
+  { id: "Talk03CookMode", ...make(TALK03, Reel3Cta, REEL3_CTA_LEN, REST_EXCL[2]) },
 ];

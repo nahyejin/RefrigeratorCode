@@ -28,7 +28,7 @@ import gen_reel_hooks_v8 as hooks5  # noqa: E402
 # 다 만든 편(영상이 out/ 에 있음). 새로 만들면 여기에 번호를 더한다.
 HOOK_DONE = {"02", "03", "04", "05", "06", "06B", "07", "08"}
 HOOK5_DONE = set()  # 5벌(gen_reel_hooks_v8.py)
-TALK_DONE = {"01", "02"}
+TALK_DONE = {"01", "02", "03"}
 
 ROUND_NAME = {"-1": "총정리", "0": "1벌", "1": "2벌", "2": "3벌", "3": "직접 요리", "4": "4벌"}
 
@@ -134,7 +134,7 @@ EXTRA_REELS = [
              + FEATURES_TAIL + "\n\n#레시피 #레시피추천 #요리 #집밥 #오늘뭐먹지 #냉털 #냉장고파먹기 #두부요리 #부부일상 #쿡매치 #cookmatch"},
 ]
 
-TALK_FILES = {"01": "my-video/out/출연자형/Talk01Matching_음악.mp4", "02": "my-video/out/출연자형/talk02_kim_music.mp4"}
+TALK_FILES = {"01": "my-video/out/출연자형/Talk01Matching_음악.mp4", "02": "my-video/out/출연자형/talk02_kim_music.mp4", "03": "my-video/out/출연자형/talk03_cookmode_music.mp4"}
 
 
 def talk_items():
