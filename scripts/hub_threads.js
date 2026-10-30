@@ -49,7 +49,7 @@ function card(d) {
     <div><label for="tx-${d.id}">${d.kind === "reply" ? "답글 초안" : "본문"}</label>
     <textarea id="tx-${d.id}" data-text="${d.id}" ${editable ? "" : "readonly"} style="min-height:${d.kind === "post" ? 200 : 80}px">${esc(text)}</textarea></div>
     ${d.why ? `<p class="why">${esc(d.why)}</p>` : ""}
-    ${bracket ? `<div class="flag">[대괄호] 부분을 실제 이야기로 바꿔야 올릴 수 있어요</div>` : ""}
+    ${editable ? `<div class="flag bracket" ${bracket ? "" : "hidden"}>[대괄호] 부분을 실제 이야기로 바꿔야 「이대로 올리기」가 눌려요</div>` : ""}
     ${d.status === "failed" && d.error ? `<div class="flag">올리다 실패: ${esc(d.error)}</div>` : ""}
     ${first}${photo}${actions}</article>`;
 }
@@ -82,8 +82,17 @@ $("#tlist").addEventListener("click", async e => {
     patch.text = document.getElementById("tx-" + id).value.trim();
     const fr = document.getElementById("fr-" + id); if (fr) patch.first_reply_text = fr.value.trim();
   } else patch.status = t.dataset.skip ? "skip" : "pending";
+  if (t.dataset.go) t.textContent = "저장하는 중…";
   try { await db.collection("items").doc(id).update(patch); }
   catch (err) { t.disabled = false; t.textContent = "저장 못 했어요. 다시 눌러 주세요"; }
+});
+// [대괄호]를 고치는 즉시 버튼을 풀고 안내를 바꾼다(전에는 칸을 떠나야 다시 그려져서, 눌러도 아무 반응이 없어 보였다 — 2026-10-31 사용자)
+$("#tlist").addEventListener("input", e => {
+  const id = e.target.dataset.text; if (!id) return;
+  const left = /\[[^\]]*\]/.test(e.target.value);
+  const go = document.querySelector(`[data-go="${id}"]`); if (go) go.disabled = left;
+  const card = e.target.closest(".tcard"), flag = card && card.querySelector(".flag.bracket");
+  if (flag) flag.hidden = !left;
 });
 // 고치는 중인 글은 칸을 떠날 때 저장(다른 기기에서 열어도 이어서)
 $("#tlist").addEventListener("change", async e => {
