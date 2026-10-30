@@ -85,10 +85,18 @@ def wait_ready(cid):
 
 def publish(item):
     q = {"text": item["text"]}
+    imgs = item.get("image_urls") or []
     if item["kind"] == "reply":
         q.update(media_type="TEXT", reply_to_id=item["reply_to"])
-    elif item.get("image_url"):
-        q.update(media_type="IMAGE", image_url=item["image_url"])
+    elif len(imgs) > 1:  # 사진 여러 장 = 캐러셀(2~20장): 사진마다 항목 컨테이너 → 묶음 컨테이너
+        kids = []
+        for u in imgs[:20]:
+            k = call("me/threads", "POST", media_type="IMAGE", image_url=u, is_carousel_item="true")["id"]
+            wait_ready(k)
+            kids.append(k)
+        q.update(media_type="CAROUSEL", children=",".join(kids))
+    elif imgs or item.get("image_url"):
+        q.update(media_type="IMAGE", image_url=imgs[0] if imgs else item["image_url"])
     else:
         q.update(media_type="TEXT")
     cid = call("me/threads", "POST", **q)["id"]

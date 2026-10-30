@@ -32,9 +32,11 @@ function card(d) {
        ${d.parent_text ? `<div class="quote">내 답글: ${esc(d.parent_text)}</div>` : ""}
        <div class="comment"><span class="who">@${esc(d.username)}</span> ${esc(d.comment)}</div>`
     : `<div class="tmeta"><span>${esc(d.slot)}</span><span>${esc(d.type)}</span></div>${d.photo_hint ? `<div class="quote">사진: ${esc(d.photo_hint)}</div>` : ""}`;
+  // 사진은 여러 장(스레드 캐러셀, 최대 20장). 옛 문서는 image_url 한 장.
+  const imgs = d.images || (d.image_url ? [{ url: d.image_url }] : []);
   const photo = d.kind === "post"
-    ? `<div class="photo">${d.image_url ? `<img src="${esc(d.image_url)}" alt="올릴 사진">` : ""}
-       ${editable && assets ? `<label for="ph-${d.id}">사진 한 장 (직접 찍은 것)</label><input type="file" accept="image/*" id="ph-${d.id}" data-photo="${d.id}">` : ""}</div>` : "";
+    ? `<div class="photo">${imgs.length ? `<div class="pics">${imgs.map((m, i) => `<img src="${esc(m.url)}" alt="올릴 사진 ${i + 1}">`).join("")}</div>` : ""}
+       ${editable && assets ? `<label for="ph-${d.id}">사진 고르기 — 여러 장은 한 번에 같이 골라요(최대 20장, 고른 순서대로 올라가요)</label><input type="file" accept="image/*" multiple id="ph-${d.id}" data-photo="${d.id}"><span class="feat" id="phs-${d.id}">${imgs.length ? `지금 ${imgs.length}장` : ""}</span>` : ""}</div>` : "";
   const first = d.kind === "post"
     ? `<div><label for="fr-${d.id}">올리자마자 달 첫 답글</label><textarea id="fr-${d.id}" data-first="${d.id}" ${editable ? "" : "readonly"} style="min-height:56px">${esc(d.first_reply_text ?? d.first_reply ?? "")}</textarea></div>` : "";
   const bracket = editable && /\[[^\]]*\]/.test(text);
@@ -99,9 +101,15 @@ $("#tlist").addEventListener("change", async e => {
   const el = e.target; if (!db) return;
   const id = el.dataset.text || el.dataset.first || el.dataset.photo; if (!id) return;
   try {
-    if (el.dataset.photo && el.files[0] && assets) {
-      const a = await assets.upload(el.files[0]);
-      await db.collection("items").doc(id).update({ image_asset: a.id, image_url: a.url, image_public: null });
+    if (el.dataset.photo && el.files.length && assets) {
+      const st = document.getElementById("phs-" + id), files = [...el.files].slice(0, 20), images = [];
+      for (const [i, file] of files.entries()) {
+        if (st) st.textContent = `올리는 중… ${i + 1}/${files.length}`;
+        const a = await assets.upload(file);
+        images.push({ asset: a.id, url: a.url });
+      }
+      // 새로 고르면 통째로 바꾼다. 옛 한 장 필드는 비운다.
+      await db.collection("items").doc(id).update({ images, image_publics: null, image_asset: null, image_url: null, image_public: null });
     } else if (el.dataset.text) await db.collection("items").doc(id).update({ text: el.value });
     else await db.collection("items").doc(id).update({ first_reply_text: el.value });
   } catch (err) { /* 승인할 때 다시 저장된다 */ }
