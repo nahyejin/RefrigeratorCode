@@ -14057,3 +14057,8 @@ App Store 심사가 끝나 백엔드 배포 제약이 풀려서, 미뤄 둔 일�
 - 2026-10-31: 스레드 새 글 초안 「소분 끝판왕은 백패킹」(post-new-20261031-1) — 사용자가 전날 밤 캠핑용 양념을 소분한 실제 사진을 `frontend/public/threads/post-new-20261031-1.jpg` 로 올림, 검토함에 pending.
 - 2026-10-31: 만들기 아티팩트 스레드 탭 — [대괄호]가 남아 「이대로 올리기」가 꺼져 있을 때 눌러도 반응이 없어 「된 건지 모르겠다」(사용자). 글을 고치는 즉시 대괄호 검사해 버튼·안내를 바로 바꾸고, 누르면 「저장하는 중…」 표시(`scripts/hub_threads.js`).
 - 2026-10-31: 스레드 새 글에 사진 여러 장(캐러셀, 최대 20장) — 사용자: 왜 사진이 하나밖에 안 올라가? 검토함 사진 칸을 여러 장 고르기로(`images` 목록, 고른 순서), `threads_bot.py` 가 `image_urls` 2장 이상이면 CAROUSEL(항목 컨테이너 → 묶음)로 올림, 자동화 문서도 `image_publics` 로.
+
+### 자동 절전·종료 해제 (2026-10-31)
+- 사용자: 지금 걸린 자동 절전·전원 끔을 해제해 달라. 점검: 윈도우 절전·최대 절전·화면 꺼짐 AC 설정 모두 0(안 함) — 이미 해제 상태. 남은 건 평일 19:00 `CookMatch-EveningShutdown`(`sleep_when_idle.ps1 -Shutdown`) 하나(토·일은 스크립트가 건너뜀).
+- `no_shutdown.flag` 를 만들어 스크립트가 절전·종료를 하지 않게 함(스크립트가 대기 루프와 종료 직전에 이 파일을 확인). 작업 자체를 끄는 건 시스템 설정이라 사용자가 관리자 PowerShell 로 `Disable-ScheduledTask CookMatch-EveningShutdown`(또는 삭제) 실행. 다시 켜려면 flag 삭제 + `Enable-ScheduledTask`.
+- 그대로 둔 것: 아침 BIOS 알람(설정했다면)과 `CookMatch-DailyChain` 07:00 깨우기 — 켜는 쪽이라 해제 대상 아님.
